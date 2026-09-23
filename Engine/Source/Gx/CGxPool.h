@@ -1,0 +1,26 @@
+#ifndef ENGINE_SOURCE_GX_CGXPOOL_H
+#define ENGINE_SOURCE_GX_CGXPOOL_H
+
+#include <cstddef>
+#include <cstdint>
+#include "Engine/Source/Gx/CGxDevice/Types.h"
+#include "Engine/Source/Gx/Types.h"
+#include "Storm/H/stpl.h"
+
+struct CGxBuf;
+class CGxPool;
+
+class CGxPool : public TSLinkedNode<CGxPool> {
+    public:
+    /* 0008 */ EGxPoolTarget m_target;
+    /* 000C */ EGxPoolUsage m_usage;
+    /* 0010 */ int32_t m_size;
+    /* 0014 */ void* m_apiSpecific;
+    /* 0018 */ void* m_mem;
+    /* 001C */ int32_t unk_001C;
+    /* 0020 */ TSList<CGxBuf> m_bufList;
+    /* 002C */ EGxPoolHintBits m_hint;
+    /* 0030 */ const char* m_name;
+};
+
+#endif

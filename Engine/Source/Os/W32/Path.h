@@ -1,0 +1,4 @@
+#ifndef ENGINE_SOURCE_OS_W32_PATH_H
+#define ENGINE_SOURCE_OS_W32_PATH_H
+
+#endif

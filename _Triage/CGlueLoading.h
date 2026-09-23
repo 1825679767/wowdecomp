@@ -1,0 +1,4 @@
+#ifndef _TRIAGE_CGLUELOADING_H
+#define _TRIAGE_CGLUELOADING_H
+
+#endif

@@ -1,0 +1,4 @@
+#ifndef _TRIAGE_WARDENCACHED_H
+#define _TRIAGE_WARDENCACHED_H
+
+#endif

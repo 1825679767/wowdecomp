@@ -1,0 +1,1 @@
+#include "CSimpleFrame.h"

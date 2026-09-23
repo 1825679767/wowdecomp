@@ -1,0 +1,4 @@
+#ifndef WOW_SOURCE_UI_CKBSYSTEM_H
+#define WOW_SOURCE_UI_CKBSYSTEM_H
+
+#endif

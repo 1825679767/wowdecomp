@@ -1,0 +1,4 @@
+#ifndef WOW_SOURCE_GLUE_CGLUEMGR_H
+#define WOW_SOURCE_GLUE_CGLUEMGR_H
+
+#endif

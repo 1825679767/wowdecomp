@@ -1,0 +1,4 @@
+#ifndef _TRIAGE_LCDGFXBASE_H
+#define _TRIAGE_LCDGFXBASE_H
+
+#endif

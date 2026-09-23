@@ -1,0 +1,4 @@
+#ifndef STORM_SOURCE_SCOMP_H
+#define STORM_SOURCE_SCOMP_H
+
+#endif

@@ -1,0 +1,4 @@
+#ifndef WOW_SOURCE_UI_TRADEFRAME_H
+#define WOW_SOURCE_UI_TRADEFRAME_H
+
+#endif

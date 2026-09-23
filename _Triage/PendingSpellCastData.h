@@ -1,0 +1,48 @@
+#ifndef _TRIAGE_PENDINGSPELLCASTDATA_H
+#define _TRIAGE_PENDINGSPELLCASTDATA_H
+
+#include <cstddef>
+#include <cstdint>
+#include "Engine/Source/Tempest/C3Vector.h"
+#include "WoW/Source/Object/WGUID.h"
+
+class PendingSpellCastData {
+    public:
+    /* 0000 */ WGUID m_caster;
+    /* 0008 */ WGUID m_target;
+    /* 0010 */ uint32_t unk_0010;
+    /* 0014 */ uint32_t unk_0014;
+    /* 0018 */ uint32_t m_spellId;
+    /* 001C */ uint32_t m_pendingCast;
+    /* 0020 */ uint32_t m_targetFlags;
+    /* 0024 */ uint32_t unk_0024;
+    /* 0028 */ WGUID m_objectTarget;
+    /* 0030 */ WGUID m_itemTarget;
+    /* 0038 */ uint32_t unk_0038;
+    /* 003C */ uint32_t unk_003C;
+    /* 0040 */ WGUID m_sourceTarget;
+    /* 0048 */ WGUID m_destTarget;
+    /* 0050 */ C3Vector m_sourcePos;
+    /* 005C */ C3Vector m_destPos;
+    /* 0068 */ float unk_0068;
+    /* 006C */ uint32_t unk_006C;
+    /* 0070 */ uint32_t unk_0070;
+    /* 0074 */ uint32_t unk_0074;
+    /* 0078 */ uint32_t unk_0078;
+    /* 007C */ uint32_t unk_007C;
+    /* 0080 */ uint32_t unk_0080;
+    /* 0084 */ uint32_t unk_0084;
+    /* 0088 */ uint32_t unk_0088;
+    /* 008C */ uint32_t unk_008C;
+    /* 0090 */ char m_targetString [128];
+    /* 0110 */ uint32_t unk_0110;
+    /* 0114 */ uint32_t m_castFlags;
+    /* 0118 */ uint32_t unk_0118;
+    /* 011C */ float unk_011C;
+    /* 0120 */ float unk_0120;
+    /* 0124 */ uint32_t unk_0124;
+    /* 0128 */ uint32_t unk_0128;
+    /* 012C */ uint32_t unk_012C;
+};
+
+#endif

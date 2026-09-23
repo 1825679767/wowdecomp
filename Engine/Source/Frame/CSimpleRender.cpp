@@ -1,0 +1,1 @@
+#include "CSimpleRender.h"

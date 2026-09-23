@@ -1,0 +1,4 @@
+#ifndef _TRIAGE_WATERRIPPLE_H
+#define _TRIAGE_WATERRIPPLE_H
+
+#endif

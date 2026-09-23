@@ -1,0 +1,4 @@
+#ifndef WOW_SOURCE_UI_UILCD_LCD_H
+#define WOW_SOURCE_UI_UILCD_LCD_H
+
+#endif

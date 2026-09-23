@@ -1,0 +1,4 @@
+#ifndef WOW_SOURCE_UIUTIL_CURSOR_H
+#define WOW_SOURCE_UIUTIL_CURSOR_H
+
+#endif

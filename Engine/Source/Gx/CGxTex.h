@@ -1,0 +1,42 @@
+#ifndef ENGINE_SOURCE_GX_CGXTEX_H
+#define ENGINE_SOURCE_GX_CGXTEX_H
+
+#include <cstddef>
+#include <cstdint>
+#include "Engine/Source/Gx/CGxTexFlags.h"
+#include "Storm/H/stpl.h"
+#include "_Triage/CiRect.h"
+
+class CGxTex;
+
+class CGxTex {
+    public:
+    /* 0000 */ CiRect m_updateRect;
+    /* 0010 */ int16_t m_updatePlaneMin;
+    /* 0012 */ int16_t m_updatePlaneMax;
+    /* 0014 */ uint32_t m_width;
+    /* 0018 */ uint32_t m_height;
+    /* 001C */ uint32_t m_depth;
+    /* 0020 */ uint32_t m_target;
+    /* 0024 */ uint32_t m_format;
+    /* 0028 */ uint32_t m_dataFormat;
+    /* 002C */ CGxTexFlags m_flags;
+    /* 0030 */ void* m_userArg;
+    /* 0034 */ void* m_userFunc;
+    /* 0038 */ void* m_apiSpecificData;
+    /* 003C */ void* m_apiSpecificData2;
+    /* 0040 */ TSLink<CGxTex> m_link;
+    /* 0048 */ uint32_t unk_0048;
+    /* 004C */ uint32_t unk_004C;
+    /* 0050 */ uint32_t unk_0050;
+    /* 0054 */ uint32_t unk_0054;
+    /* 0058 */ int8_t m_char58;
+    /* 0059 */ int8_t m_char59;
+    /* 005A */ int8_t m_needsUpdate;
+    /* 005B */ int8_t m_needsCreation;
+    /* 005C */ int8_t m_needsFlagUpdate;
+    /* 005D */ int8_t m_char5D;
+    /* 005E */ uint16_t m_pad;
+};
+
+#endif

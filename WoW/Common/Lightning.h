@@ -1,0 +1,19 @@
+#ifndef WOW_COMMON_LIGHTNING_H
+#define WOW_COMMON_LIGHTNING_H
+
+#include <cstddef>
+#include <cstdint>
+
+class CLightningManager {
+    public:
+    /* 0000 */ uint32_t unk_0000;
+    /* 0004 */ uint32_t unk_0004;
+    /* 0008 */ uint32_t unk_0008;
+    /* 000C */ uint32_t unk_000C;
+    /* 0010 */ uint32_t unk_0010;
+    /* 0014 */ uint32_t unk_0014;
+    /* 0018 */ uint32_t unk_0018;
+    /* 001C */ uint32_t unk_001C;
+};
+
+#endif

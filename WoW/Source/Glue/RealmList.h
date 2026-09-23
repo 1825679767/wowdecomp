@@ -1,0 +1,4 @@
+#ifndef WOW_SOURCE_GLUE_REALMLIST_H
+#define WOW_SOURCE_GLUE_REALMLIST_H
+
+#endif

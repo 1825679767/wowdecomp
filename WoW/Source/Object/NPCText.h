@@ -1,0 +1,4 @@
+#ifndef WOW_SOURCE_OBJECT_NPCTEXT_H
+#define WOW_SOURCE_OBJECT_NPCTEXT_H
+
+#endif

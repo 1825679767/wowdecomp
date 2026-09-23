@@ -1,0 +1,4 @@
+#ifndef _TRIAGE__ANONYMOUS_NAMESPACE__H
+#define _TRIAGE__ANONYMOUS_NAMESPACE__H
+
+#endif

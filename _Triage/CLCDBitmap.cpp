@@ -1,0 +1,1 @@
+#include "CLCDBitmap.h"

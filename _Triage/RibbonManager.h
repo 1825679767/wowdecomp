@@ -1,0 +1,4 @@
+#ifndef _TRIAGE_RIBBONMANAGER_H
+#define _TRIAGE_RIBBONMANAGER_H
+
+#endif

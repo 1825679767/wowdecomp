@@ -1,0 +1,86 @@
+cmake_minimum_required(VERSION 3.10)
+
+if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+    message(FATAL_ERROR
+        "In-source builds not allowed.
+        Please make a new directory (called a build directory) and run CMake from there.
+        You may need to remove CMakeCache.txt."
+    )
+endif ()
+
+project(wowdecomp CXX C)
+
+if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+    message(FATAL_ERROR "wowdecomp targets Windows only.")
+endif ()
+
+# x64 is the target. Win32 stays buildable: it is the configuration whose struct layouts can be
+# checked against Wow.exe 3.3.5a (12340).
+if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(WOWDECOMP_ARCH_64 1)
+    add_compile_definitions(WOWDECOMP_ARCH_64=1)
+elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set(WOWDECOMP_ARCH_32 1)
+    add_compile_definitions(WOWDECOMP_ARCH_32=1)
+else ()
+    message(FATAL_ERROR "Unsupported pointer size.")
+endif ()
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+add_compile_definitions(
+    WIN32
+    _WINDOWS
+    NOMINMAX
+    WIN32_LEAN_AND_MEAN
+    _CRT_SECURE_NO_WARNINGS
+)
+
+# Third-party code is linked, not decompiled, for now.
+if (EXISTS ${CMAKE_SOURCE_DIR}/ThirdParty/CMakeLists.txt)
+    add_subdirectory(ThirdParty)
+endif ()
+
+add_subdirectory(Engine/Source/BLPFile)
+add_subdirectory(Engine/Source/Base)
+add_subdirectory(Engine/Source/BlizzardCore)
+add_subdirectory(Engine/Source/ComSat)
+add_subdirectory(Engine/Source/ConsoleBase)
+add_subdirectory(Engine/Source/DayNight)
+add_subdirectory(Engine/Source/Event)
+add_subdirectory(Engine/Source/FFX)
+add_subdirectory(Engine/Source/Frame)
+add_subdirectory(Engine/Source/FrameScript)
+add_subdirectory(Engine/Source/FrameXML)
+add_subdirectory(Engine/Source/Gx)
+add_subdirectory(Engine/Source/Gxu)
+add_subdirectory(Engine/Source/Images)
+add_subdirectory(Engine/Source/Model2)
+add_subdirectory(Engine/Source/Os)
+add_subdirectory(Engine/Source/Services)
+add_subdirectory(Engine/Source/ShaderEffect)
+add_subdirectory(Engine/Source/SoundEngine)
+add_subdirectory(Engine/Source/Tempest)
+add_subdirectory(Storm)
+add_subdirectory(WoW/Common)
+add_subdirectory(WoW/Source/Battlenet)
+add_subdirectory(WoW/Source/Console)
+add_subdirectory(WoW/Source/ConsoleDevice)
+add_subdirectory(WoW/Source/DB)
+add_subdirectory(WoW/Source/Game)
+add_subdirectory(WoW/Source/Glue)
+add_subdirectory(WoW/Source/Magic)
+add_subdirectory(WoW/Source/Minigame)
+add_subdirectory(WoW/Source/Net)
+add_subdirectory(WoW/Source/Object)
+add_subdirectory(WoW/Source/ObjectAlloc)
+add_subdirectory(WoW/Source/ObjectMgrClient)
+add_subdirectory(WoW/Source/UIUtil)
+add_subdirectory(WoW/Source/Ui)
+add_subdirectory(WoW/Source/WorldClient)
+add_subdirectory(WoW/Source/WowServices)
+add_subdirectory(WoW/Source/WowSvcs)
+add_subdirectory(_Triage)
+add_subdirectory(WoW/Source)

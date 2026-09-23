@@ -1,0 +1,65 @@
+#ifndef ENGINE_SOURCE_FRAME_CSIMPLEANIM_H
+#define ENGINE_SOURCE_FRAME_CSIMPLEANIM_H
+
+#include <cstddef>
+#include <cstdint>
+#include <windows.h>
+#include "Storm/H/stpl.h"
+
+struct EVENTLISTENERNODE;
+class FrameScript_Object;
+
+class CLCDConnection {
+    public:
+    /* 0000 */ uint8_t unk_0000;
+    /* 0001 */ uint8_t unk_0001[4];
+    /* 0005 */ uint8_t unk_0005[3];
+    /* 0008 */ int32_t unk_0008;
+    /* 000C */ int32_t unk_000C;
+    /* 0010 */ int32_t unk_0010;
+    /* 0014 */ int32_t unk_0014;
+    /* 0018 */ int32_t unk_0018;
+    /* 001C */ int32_t unk_001C;
+    /* 0020 */ int32_t unk_0020;
+    /* 0024 */ int32_t unk_0024;
+    /* 0028 */ int32_t unk_0028;
+    /* 002C */ int32_t unk_002C;
+    /* 0030 */ int32_t unk_0030;
+    /* 0034 */ int32_t unk_0034;
+    /* 0038 */ int32_t unk_0038;
+    /* 003C */ int32_t unk_003C;
+    /* 0040 */ int32_t unk_0040;
+    /* 0044 */ int32_t unk_0044;
+    /* 0048 */ int32_t unk_0048;
+};
+
+class CSimpleAnim {
+    public:
+    /* 0000 */ uint8_t unk_0000 [4];
+    /* 0004 */ uint32_t* m_vmt;
+    /* 0008 */ uint32_t unk_0008;
+    /* 000C */ uint32_t unk_000C;
+};
+
+class CSimpleAnimGroup;
+
+struct EVENTLISTENERNODE {
+    /* 0000 */ TSLink<EVENTLISTENERNODE> m_node;
+    /* 0008 */ FrameScript_Object* m_listener;
+};
+
+class FrameScript_Object {
+    public:
+    struct ScriptIx {
+        /* 0000 */ int32_t m_luaRef;
+        /* 0004 */ int8_t* m_tainted;
+    };
+
+    /* 0004 */ int32_t m_luaRegistered;
+    /* 0008 */ int32_t m_luaObjectRef;
+    /* 000C */ FrameScript_Object::ScriptIx m_onEvent;
+
+    virtual ~FrameScript_Object();
+};
+
+#endif

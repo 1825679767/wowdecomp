@@ -1,0 +1,4 @@
+#ifndef _TRIAGE_BNETPACKET1_H
+#define _TRIAGE_BNETPACKET1_H
+
+#endif

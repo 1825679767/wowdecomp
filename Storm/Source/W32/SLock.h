@@ -1,0 +1,4 @@
+#ifndef STORM_SOURCE_W32_SLOCK_H
+#define STORM_SOURCE_W32_SLOCK_H
+
+#endif
