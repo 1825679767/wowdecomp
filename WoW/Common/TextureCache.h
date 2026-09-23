@@ -6,7 +6,6 @@
 #include <windows.h>
 #include "Storm/H/stpl.h"
 #include "WoW/Common/ComponentCore/Types.h"
-#include "WoW/Source/Ui/TalentInfo.h"
 
 struct BLPHeader;
 class CACHEENTRY;

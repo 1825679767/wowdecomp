@@ -4,11 +4,11 @@
 #include <cstddef>
 #include <cstdint>
 #include "Storm/H/stpl.h"
+#include "Storm/Source/W32/SLock.h"
 #include "WoW/Source/Net/NetClient/Types.h"
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 #include "WoW/Source/UIUtil/AddOns.h"
-#include "_Triage/SCritSect.h"
 
 struct CDataStore;
 struct CGObject_C;

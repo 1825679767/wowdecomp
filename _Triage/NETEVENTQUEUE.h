@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Storm/H/stpl.h"
-#include "_Triage/SCritSect.h"
+#include "Storm/Source/W32/SLock.h"
 
 struct NETEVENTQUEUENODE;
 class NetClient;

@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include "Storm/H/stpl.h"
+#include "WoW/Source/Ui/KEYBINDING.h"
+#include "WoW/Source/Ui/MODIFIEDCLICK.h"
 
 struct HASHKEY_STRI;
 class KEYBINDING;

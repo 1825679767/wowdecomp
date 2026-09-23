@@ -3,11 +3,11 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "_Triage/SSyncObject.h"
+#include "Storm/Source/W32/SLock.h"
 
-class SThread {
+class SThread : public SSyncObject {
     public:
-    /* 0000 */ SSyncObject unk_0000;
+    int32_t SetPriority(int32_t priority);
 };
 
 #endif

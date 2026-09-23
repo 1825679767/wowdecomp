@@ -4,9 +4,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/Gxu/GxuFontMiscClasses.h"
 #include "Storm/H/stpl.h"
 #include "WoW/Common/TextureCache.h"
-#include "WoW/Source/Ui/TalentInfo.h"
 
 struct CGxString;
 struct CHARCODEDESC;

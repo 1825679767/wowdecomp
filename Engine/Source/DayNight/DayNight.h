@@ -7,6 +7,8 @@
 #include "Engine/Source/Tempest/cimvector.h"
 #include "Storm/H/stpl.h"
 
+struct C3Vector;
+struct CImVector;
 struct CM2Model;
 struct CM2Scene;
 struct CTexture;
@@ -102,10 +104,10 @@ struct DNClouds {
     /* 0048 */ uint32_t unk_0048;
     /* 004C */ uint32_t unk_004C;
     /* 0050 */ uint32_t unk_0050;
-    /* 0054 */ TSFixedArray<void> unk_0054;
-    /* 0060 */ TSFixedArray<void> unk_0060;
-    /* 006C */ TSFixedArray<void> unk_006C;
-    /* 0078 */ TSFixedArray<void> unk_0078;
+    /* 0054 */ TSFixedArray<C3Vector> unk_0054;
+    /* 0060 */ TSFixedArray<uint8_t> unk_0060;
+    /* 006C */ TSFixedArray<uint8_t> unk_006C;
+    /* 0078 */ TSFixedArray<uint8_t> unk_0078;
     /* 0084 */ uint16_t unk_0084;
     /* 0086 */ uint16_t unk_0086;
     /* 0088 */ uint32_t unk_0088;
@@ -168,9 +170,9 @@ struct DNPlanets {
 
 namespace DayNight {
 struct DNSky {
-    /* 0000 */ TSFixedArray<void> m_geoVerts;
-    /* 000C */ TSFixedArray<void> m_clrVerts;
-    /* 0018 */ TSFixedArray<void> m_indices;
+    /* 0000 */ TSFixedArray<uint8_t> m_geoVerts;
+    /* 000C */ TSFixedArray<CImVector> m_clrVerts;
+    /* 0018 */ TSFixedArray<uint16_t> m_indices;
     /* 0024 */ uint32_t m_sphThetaTess;
     /* 0028 */ uint16_t m_nVerts;
     /* 002A */ uint16_t m_nIndices;

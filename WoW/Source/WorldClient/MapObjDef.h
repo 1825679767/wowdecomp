@@ -67,7 +67,7 @@ class CMapObjDef : public CMapBaseObj {
     /* 0114 */ TSExplicitList<CMapObjDefMapObjDefGroupLink> m_mapObjDefGroupLinkList;
     /* 0120 */ TSGrowableArray<CMapObjDefGroup> m_defGroups;
     /* 0130 */ uint32_t m_groupCount;
-    /* 0134 */ TSGrowableArray<void> m_lightsArray;
+    /* 0134 */ TSGrowableArray<uint8_t> m_lightsArray;
     /* 0144 */ uint32_t m_argbColor;
     /* 0148 */ int32_t unk_0148;
     /* 014C */ int32_t unk_014C;

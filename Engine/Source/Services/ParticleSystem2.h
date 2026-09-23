@@ -5,8 +5,30 @@
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/c44matrix.h"
+#include "Engine/Source/Tempest/c4quaternion.h"
 #include "Engine/Source/Tempest/caabox.h"
 #include "Storm/H/stpl.h"
+
+class CM2Model;
+class CParticle2;
+class CParticle2_Model;
+
+class CParticle2 {
+    public:
+    /* 0000 */ float m_age;
+    /* 0004 */ C3Vector m_position;
+    /* 0010 */ C3Vector m_velocity;
+    /* 001C */ int16_t m_lifeSeed;
+    /* 001E */ uint16_t m_randomSeed;
+};
+
+class CParticle2_Model {
+    public:
+    /* 0000 */ CParticle2 m_base;
+    /* 0020 */ C4Quaternion m_orientation;
+    /* 0030 */ C3Vector m_angularVelocity;
+    /* 003C */ CM2Model* m_model;
+};
 
 class CParticleEmitter2 {
     public:
@@ -20,10 +42,10 @@ class CParticleEmitter2 {
     /* 0020 */ int32_t m_emitterType;
     /* 0024 */ uint32_t m_random;
     /* 0028 */ uint32_t m_random2;
-    /* 002C */ TSGrowableArray<void> m_particles;
-    /* 003C */ TSGrowableArray<void> m_particleModels;
-    /* 004C */ TSGrowableArray<void> m_liveList;
-    /* 005C */ TSGrowableArray<void> m_freeList;
+    /* 002C */ TSGrowableArray<CParticle2> m_particles;
+    /* 003C */ TSGrowableArray<CParticle2_Model> m_particleModels;
+    /* 004C */ TSGrowableArray<uint32_t> m_liveList;
+    /* 005C */ TSGrowableArray<uint32_t> m_freeList;
     /* 006C */ uint32_t m_childEmitterCount;
     /* 0070 */ uint32_t m_childEmitters [4];
     /* 0080 */ uint32_t m_model;

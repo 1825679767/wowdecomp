@@ -15,6 +15,23 @@ class CM2Model;
 struct CMapBaseObj;
 struct CShaderEffect;
 struct M2Batch;
+struct M2Element;
+
+struct M2Element {
+    /* 0000 */ int32_t m_type;
+    /* 0004 */ CM2Model* m_model;
+    /* 0008 */ uint32_t m_flags;
+    /* 000C */ float m_alpha;
+    /* 0010 */ float unk_0010;
+    /* 0014 */ float unk_0014;
+    /* 0018 */ int32_t m_index;
+    /* 001C */ int32_t m_priorityPlane;
+    /* 0020 */ M2Batch* m_batch;
+    /* 0024 */ void* m_skinSection;
+    /* 0028 */ CShaderEffect* m_effect;
+    /* 002C */ uint32_t m_vertexPermute;
+    /* 0030 */ uint32_t m_pixelPermute;
+};
 
 class CM2Scene {
     public:
@@ -31,9 +48,9 @@ class CM2Scene {
     /* 0028 */ CM2Model* m_animateList;
     /* 002C */ CM2Model* m_drawList;
     /* 0030 */ CM2Model* m_particleList;
-    /* 0034 */ TSGrowableArray<void> m_elements;
-    /* 0044 */ TSGrowableArray<void> m_doodadElements;
-    /* 0054 */ TSGrowableArray<void> m_passElements [3];
+    /* 0034 */ TSGrowableArray<M2Element> m_elements;
+    /* 0044 */ TSGrowableArray<uint8_t> m_doodadElements;
+    /* 0054 */ TSGrowableArray<uint8_t> m_passElements [3];
     /* 0084 */ C44Matrix m_view;
     /* 00C4 */ C44Matrix m_viewInv;
     /* 0104 */ uint32_t m_projectTextureCallback;
@@ -50,22 +67,6 @@ class CM2Scene {
     /* 013C */ CMapBaseObj* m_lastHitOwner;
     /* 0140 */ uint32_t m_liquidTypeId;
     /* 0144 */ uint32_t m_passMask;
-};
-
-struct M2Element {
-    /* 0000 */ int32_t m_type;
-    /* 0004 */ CM2Model* m_model;
-    /* 0008 */ uint32_t m_flags;
-    /* 000C */ float m_alpha;
-    /* 0010 */ float unk_0010;
-    /* 0014 */ float unk_0014;
-    /* 0018 */ int32_t m_index;
-    /* 001C */ int32_t m_priorityPlane;
-    /* 0020 */ M2Batch* m_batch;
-    /* 0024 */ void* m_skinSection;
-    /* 0028 */ CShaderEffect* m_effect;
-    /* 002C */ uint32_t m_vertexPermute;
-    /* 0030 */ uint32_t m_pixelPermute;
 };
 
 #endif

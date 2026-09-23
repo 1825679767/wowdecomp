@@ -5,11 +5,13 @@
 #include <cstdint>
 #include "Storm/H/stpl.h"
 
+struct HASHKEY_NONE;
+
 class DBCache {
     public:
     /* 0000 */ uint32_t unk_0000;
     /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ TSHashTable<void, void> m_entries;
+    /* 0008 */ uint8_t m_entries[40];
     /* 0030 */ uint32_t m_signature;
     /* 0034 */ const char* m_fileName;
     /* 0038 */ uint32_t m_version;
@@ -23,7 +25,7 @@ class DBCache {
     /* 004C */ uint32_t m_queriesSent;
     /* 0050 */ uint32_t m_nextQueryTime;
     /* 0054 */ TSList<void> m_pending;
-    /* 0060 */ TSHashTable<void, void> m_reverse;
+    /* 0060 */ uint8_t m_reverse[40];
 };
 
 #endif

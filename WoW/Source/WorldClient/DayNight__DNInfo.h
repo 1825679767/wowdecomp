@@ -59,7 +59,7 @@ struct DNInfo {
     /* 00A0 */ DNFogInfo m_fogInterior;
     /* 00B0 */ DNFogInfo m_fogGroup;
     /* 00C0 */ uint32_t m_interiorFogId;
-    /* 00C4 */ TSFixedArray<void> m_interiorFogIds;
+    /* 00C4 */ TSFixedArray<uint8_t> m_interiorFogIds;
     /* 00D0 */ uint32_t m_interiorFogFlags;
     /* 00D4 */ DNLightBands m_bands;
     /* 0170 */ DNLightState m_light0;

@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <windows.h>
 #include "Storm/H/stpl.h"
-#include "WoW/Source/Ui/TalentInfo.h"
 #include "_Triage/CRect.h"
 
 class CColor;

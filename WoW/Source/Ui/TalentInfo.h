@@ -4,10 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 
-struct HASHKEY_NONE {
-    /* 0000 */ int32_t m_unused;
-};
-
 class CGTalentGroup_C {
     public:
     /* 0000 */ uint8_t unk_0000[8];

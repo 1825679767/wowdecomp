@@ -4,9 +4,9 @@
 #include <cstddef>
 #include <cstdint>
 #include "Storm/H/stpl.h"
+#include "Storm/Source/W32/SLock.h"
 #include "WoW/Source/Net/NetClient/NetClient.h"
 #include "WoW/Source/WowServices/Types.h"
-#include "_Triage/SCritSect.h"
 
 class WowConnectionResponse;
 
