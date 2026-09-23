@@ -244,27 +244,32 @@ class TSExportTableSyncReuse : public TSExportTableSimpleReuse<T, THandle> {
     void Unlock(TLockedHandle lockedhandle);
 };
 
+// INLINED
 template <class T>
 TSLink<T>::TSLink() {
     this->m_prevLink = nullptr;
     this->m_next = nullptr;
 }
 
+// INLINED
 template <class T>
 TSLink<T>::~TSLink() {
     this->Unlink();
 }
 
+// INLINED
 template <class T>
 int32_t TSLink<T>::IsLinked() {
     return this->m_next != nullptr;
 }
 
+// INLINED
 template <class T>
 T* TSLink<T>::Next() {
     return (reinterpret_cast<uintptr_t>(this->m_next) & 1) ? nullptr : this->m_next;
 }
 
+// INLINED
 template <class T>
 TSLink<T>* TSLink<T>::NextLink(ptrdiff_t linkoffset) {
     uintptr_t next = reinterpret_cast<uintptr_t>(this->m_next);
@@ -304,11 +309,13 @@ void TSLink<T>::Unlink() {
     }
 }
 
+// INLINED
 template <class T>
 TSLink<T>* TSGetLink<T>::Link(T* nodeptr, ptrdiff_t linkoffset) {
     return &static_cast<TSLinkedNode<T>*>(nodeptr)->m_link;
 }
 
+// INLINED
 template <class T>
 TSLink<T>* TSGetExplicitLink<T>::Link(T* nodeptr, ptrdiff_t linkoffset) {
     return reinterpret_cast<TSLink<T>*>(reinterpret_cast<uint8_t*>(nodeptr) + linkoffset);
@@ -321,21 +328,25 @@ int32_t TSList<T, TGetLink>::IsEnd(T* ptr) {
     return (reinterpret_cast<uintptr_t>(ptr) & 1) || !ptr;
 }
 
+// INLINED
 template <class T, class TGetLink>
 TSList<T, TGetLink>::TSList() {
     this->SetLinkOffset(0);
 }
 
+// INLINED
 template <class T, class TGetLink>
 TSList<T, TGetLink>::TSList(const TSList<T, TGetLink>& source) {
     this->SetLinkOffset(source.m_linkoffset);
 }
 
+// INLINED
 template <class T, class TGetLink>
 TSList<T, TGetLink>::~TSList() {
     this->UnlinkAll();
 }
 
+// INLINED
 template <class T, class TGetLink>
 void TSList<T, TGetLink>::ChangeLinkOffset(ptrdiff_t linkoffset) {
     if (linkoffset != this->m_linkoffset) {
@@ -374,6 +385,7 @@ T* TSList<T, TGetLink>::Head() {
     return this->m_terminator.Next();
 }
 
+// INLINED
 template <class T, class TGetLink>
 void TSList<T, TGetLink>::InitializeTerminator() {
     this->m_terminator.m_prevLink = &this->m_terminator;
@@ -387,6 +399,7 @@ int32_t TSList<T, TGetLink>::IsLinked(T* ptr) {
     return this->Link(ptr)->IsLinked();
 }
 
+// INLINED
 template <class T, class TGetLink>
 TSLink<T>* TSList<T, TGetLink>::Link(T* ptr) {
     return ptr ? TGetLink::Link(ptr, this->m_linkoffset) : &this->m_terminator;
@@ -441,6 +454,7 @@ T* TSList<T, TGetLink>::NewNode(uint32_t location, size_t extrabytes, uint32_t f
     return node;
 }
 
+// INLINED
 template <class T, class TGetLink>
 T* TSList<T, TGetLink>::Next(T* ptr) {
     return this->Link(ptr)->Next();
@@ -453,6 +467,7 @@ T* TSList<T, TGetLink>::RawNext(T* ptr) {
     return this->Link(ptr)->RawNext();
 }
 
+// INLINED
 template <class T, class TGetLink>
 void TSList<T, TGetLink>::SetLinkOffset(ptrdiff_t linkoffset) {
     this->m_linkoffset = linkoffset;
@@ -483,6 +498,7 @@ void TSList<T, TGetLink>::UnlinkNode(T* ptr) {
     this->Link(ptr)->Unlink();
 }
 
+// INLINED
 template <class T, int offset>
 TSExplicitList<T, offset>::TSExplicitList() {
     this->SetLinkOffset(offset);
@@ -508,26 +524,31 @@ void TSSwap(T& a, T& b) {
     b = temp;
 }
 
+// INLINED
 template <class T>
 T& TSBaseArray<T>::operator[](uint32_t index) {
     return this->m_data[index];
 }
 
+// INLINED
 template <class T>
 uint32_t TSBaseArray<T>::Count() {
     return this->m_count;
 }
 
+// INLINED
 template <class T>
 const char* TSBaseArray<T>::MemFileName() {
     return typeid(T).raw_name();
 }
 
+// INLINED
 template <class T>
 int32_t TSBaseArray<T>::MemLineNo() {
     return -2;
 }
 
+// INLINED
 template <class T>
 T* TSBaseArray<T>::Ptr() {
     return this->m_data;
@@ -540,6 +561,7 @@ T* TSBaseArray<T>::Top() {
     return this->m_count ? &this->m_data[this->m_count - 1] : nullptr;
 }
 
+// INLINED
 template <class T>
 TSFixedArray<T>::TSFixedArray() {
     this->m_alloc = 0;
@@ -570,6 +592,7 @@ void TSFixedArray<T>::Clear() {
     this->m_data = nullptr;
 }
 
+// INLINED
 template <class T>
 void TSFixedArray<T>::ReallocAndClearData(uint32_t count) {
     for (uint32_t i = 0; i < this->m_count; i++) {
@@ -656,6 +679,7 @@ TSFixedArray<T>& TSFixedArray<T>::operator=(const TSFixedArray<T>& source) {
     return *this;
 }
 
+// INLINED
 template <class T>
 TSGrowableArray<T>::TSGrowableArray() {
     this->m_chunk = 0;
@@ -865,6 +889,7 @@ TSHashTable<T, TKey>::TSHashTable() {
     this->m_slotmask = 0xFFFFFFFF;
 }
 
+// INLINED
 template <class T, class TKey>
 void TSHashTable<T, TKey>::Clear() {
     this->InternalClear(0);
@@ -975,6 +1000,7 @@ void TSHashTable<T, TKey>::InternalClear(int32_t warn) {
     }
 }
 
+// INLINED
 template <class T, class TKey>
 void TSHashTable<T, TKey>::InternalLinkNode(T* ptr, uint32_t hashval) {
     if (this->m_slotmask == 0xFFFFFFFF) {
@@ -1277,24 +1303,29 @@ void TSExportTableSyncReuse<T, THandle, TLockedHandle, TSync>::Unlock(TLockedHan
     this->SyncLeaveLock(lockedhandle);
 }
 
+// INLINED
 inline bool HASHKEY_CONSTSTR::operator==(const char* str) {
     return this->m_str == str || SStrCmp(this->m_str, str, 0x7FFFFFFF) == 0;
 }
 
+// INLINED
 inline bool HASHKEY_NONE::operator==(const HASHKEY_NONE& key) {
     return true;
 }
 
+// INLINED
 inline HASHKEY_STR::HASHKEY_STR() {
     this->m_str = nullptr;
 }
 
+// INLINED
 inline HASHKEY_STR::~HASHKEY_STR() {
     if (this->m_str) {
         SMemFree(this->m_str, __FILE__, __LINE__, 0);
     }
 }
 
+// INLINED
 inline HASHKEY_STR& HASHKEY_STR::operator=(const char* str) {
     if (this->m_str != str) {
         if (this->m_str) {
@@ -1307,14 +1338,17 @@ inline HASHKEY_STR& HASHKEY_STR::operator=(const char* str) {
     return *this;
 }
 
+// INLINED
 inline bool HASHKEY_STR::operator==(const char* str) {
     return SStrCmp(this->m_str, str, 0x7FFFFFFF) == 0;
 }
 
+// INLINED
 inline bool HASHKEY_STRI::operator==(const char* str) {
     return SStrCmpI(this->m_str, str, 0x7FFFFFFF) == 0;
 }
 
+// INLINED
 inline bool HASHKEY_UTF8I::operator==(const char* str) {
     return SStrCmpUTF8I(this->m_str, str, 0x7FFFFFFF) == 0;
 }
