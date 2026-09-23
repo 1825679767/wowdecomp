@@ -102,3 +102,7 @@ void* STORMAPI SMemReAlloc(void* ptr, size_t bytes, const char* filename, int32_
 
     return newptr;
 }
+
+void operator delete(void* ptr) noexcept {
+    SMemFree(ptr, "delete", -1, 0);
+}

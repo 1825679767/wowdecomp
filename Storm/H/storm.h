@@ -6,6 +6,15 @@
 
 #define STORMAPI __stdcall
 
+struct BigData;
+struct SSignatureData;
+
+void STORMAPI SBigDel(BigData* num);
+void STORMAPI SBigFromBinary(BigData* num, const void* data, uint32_t bytes);
+void STORMAPI SBigNew(BigData** num);
+void STORMAPI SBigPowMod(BigData* a, BigData* b, BigData* c, BigData* d);
+void STORMAPI SBigToBinaryBuffer(BigData* num, uint8_t* data, uint32_t maxBytes, uint32_t* bytes);
+
 int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int32_t linenumber, const char* description, int32_t recoverable, uint32_t exitcode, uint32_t unknown);
 void STORMAPI SErrSetLastError(uint32_t errorcode);
 
@@ -19,6 +28,12 @@ int32_t STORMAPI SRegLoadString(const char* keyname, const char* valuename, uint
 int32_t STORMAPI SRegLoadValue(const char* keyname, const char* valuename, uint32_t flags, uint32_t* value);
 int32_t STORMAPI SRegSaveString(const char* keyname, const char* valuename, uint32_t flags, const char* string);
 int32_t STORMAPI SRegSaveValue(const char* keyname, const char* valuename, uint32_t flags, uint32_t value);
+
+int32_t SSignatureVerify(const uint8_t* data, uint32_t size, const uint8_t* modulus, uint32_t modulusSize, const uint8_t* pubExponent, uint32_t pubExponentSize);
+void SSignatureVerifyStream_Begin(SSignatureData** token, uint32_t modulusSize, uint32_t pubExponentSize);
+int32_t SSignatureVerifyStream_Finish(SSignatureData* token, const uint8_t* modulus, const uint8_t* pubExponent);
+uint32_t SSignatureVerifyStream_GetSignatureLength(SSignatureData* token);
+void SSignatureVerifyStream_ProvideData(SSignatureData* token, const uint8_t* data, uint32_t size);
 
 int32_t STORMAPI SStrCmp(const char* string1, const char* string2, size_t maxchars);
 int32_t STORMAPI SStrCmpI(const char* string1, const char* string2, size_t maxchars);
