@@ -86,6 +86,12 @@ int32_t STORMAPI SRegLoadValue(const char* keyname, const char* valuename, uint3
 int32_t STORMAPI SRegSaveString(const char* keyname, const char* valuename, uint32_t flags, const char* string);
 int32_t STORMAPI SRegSaveValue(const char* keyname, const char* valuename, uint32_t flags, uint32_t value);
 
+void STORMAPI SRgnCombineRectf(HSRGN handle, const RECTF* rect, void* param, int32_t combinemode);
+void STORMAPI SRgnCreate(HSRGN* handle, uint32_t reserved);
+void STORMAPI SRgnDelete(HSRGN handle);
+void STORMAPI SRgnDestroy();
+void STORMAPI SRgnGetBoundingRectf(HSRGN handle, RECTF* rect);
+
 int32_t SSignatureVerify(const uint8_t* data, uint32_t size, const uint8_t* modulus, uint32_t modulusSize, const uint8_t* pubExponent, uint32_t pubExponentSize);
 void SSignatureVerifyStream_Begin(SSignatureData** token, uint32_t modulusSize, uint32_t pubExponentSize);
 int32_t SSignatureVerifyStream_Finish(SSignatureData* token, const uint8_t* modulus, const uint8_t* pubExponent);

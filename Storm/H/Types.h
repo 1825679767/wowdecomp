@@ -27,6 +27,19 @@ struct _ARGLIST {
     /* 000C */ int32_t (STORMAPI* callback)(_CMDPARAMS*, const char*);
 };
 
+struct HSRGN__ {
+    /* 0000 */ int32_t unused;
+};
+
+typedef HSRGN__* HSRGN;
+
+struct RECTF {
+    /* 0000 */ float left;
+    /* 0004 */ float bottom;
+    /* 0008 */ float right;
+    /* 000C */ float top;
+};
+
 struct HSLOG__ {
     /* 0000 */ int32_t unused;
 };

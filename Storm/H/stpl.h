@@ -141,10 +141,11 @@ class TSHashTable {
     virtual void InternalDelete(T* ptr);
     virtual T* InternalNew(TSExplicitList<T>* listptr, size_t extrabytes, uint32_t flags);
     virtual ~TSHashTable();
+    virtual void Destroy();
 
     TSHashTable();
     void Clear();
-    void Destroy();
+    void Delete(T* ptr);
     void GrowListArray(uint32_t newarraysize);
     void Initialize();
     void Insert(T* ptr, uint32_t hashval, const TKey& key);
@@ -154,6 +155,7 @@ class TSHashTable {
     void InternalLinkNode(T* ptr, uint32_t hashval);
     T* InternalNewNode(uint32_t hashval, size_t extrabytes, uint32_t flags);
     int32_t MonitorFullness(uint32_t slot);
+    T* New(uint32_t hashval, const TKey& key, size_t extrabytes, uint32_t flags);
     T* New(uint32_t hashval, const char* str, size_t extrabytes, uint32_t flags);
     T* New(const char* str, size_t extrabytes, uint32_t flags);
     T* Ptr(uint32_t hashval, const TKey& key);
@@ -194,6 +196,49 @@ struct HASHKEY_UTF8I {
     /* 0000 */ char* m_str;
 
     bool operator==(const char* str);
+};
+
+template <class T, class TKey>
+class TSHashTableReuse : public TSHashTable<T, TKey> {
+    public:
+    /* 0028 */ TSExplicitList<T> m_reuseList;
+
+    virtual void InternalDelete(T* ptr);
+    virtual T* InternalNew(TSExplicitList<T>* listptr, size_t extrabytes, uint32_t flags);
+    virtual ~TSHashTableReuse();
+    virtual void Destroy();
+
+    TSHashTableReuse();
+    void Destructor();
+};
+
+template <class T, class THandle>
+class TSExportTableSimpleReuse : public TSHashTableReuse<T, HASHKEY_NONE> {
+    public:
+    /* 0034 */ HASHKEY_NONE m_key;
+    /* 0038 */ uint32_t m_sequence;
+    /* 003C */ int32_t m_wrapped;
+
+    TSExportTableSimpleReuse();
+    void Delete(T* ptr);
+    THandle GenerateUniqueHandle();
+    T* New(THandle* handle);
+    T* Ptr(THandle handle);
+};
+
+template <class T, class THandle, class TLockedHandle, class TSync>
+class TSExportTableSyncReuse : public TSExportTableSimpleReuse<T, THandle> {
+    public:
+    /* 0040 */ TSync m_sync;
+
+    void Delete(THandle handle);
+    void DeleteUnlock(T* ptr, TLockedHandle lockedhandle);
+    int32_t IsForWriting(TLockedHandle lockedhandle);
+    T* Lock(THandle handle, TLockedHandle* lockedhandle, int32_t forwriting);
+    T* NewLock(THandle* handle, TLockedHandle* lockedhandle);
+    void SyncEnterLock(TLockedHandle* lockedhandle, int32_t forwriting);
+    void SyncLeaveLock(TLockedHandle lockedhandle);
+    void Unlock(TLockedHandle lockedhandle);
 };
 
 template <class T>
@@ -805,6 +850,13 @@ void TSHashTable<T, TKey>::Destroy() {
     this->m_slotlistarray.Clear();
 }
 
+// INLINED
+template <class T, class TKey>
+void TSHashTable<T, TKey>::Delete(T* ptr) {
+    this->Unlink(ptr);
+    this->InternalDelete(ptr);
+}
+
 // VERIFY: 35086749 auto
 // OFFSET: [0x00492C70, 0x00496CE0, 0x004B9000, 0x004BB800, 0x004BCB50, 0x004BCD20, 0x004BE750, 0x004C0A20, 0x004CAF90, 0x004CCFC0, 0x004CD190, 0x004CE550, 0x004CF720, 0x004D6800, 0x004F3660, 0x00506AB0, 0x00506D40, 0x00506F10, 0x005070E0, 0x00529D90, 0x00529F60, 0x0052A240, 0x0052F590, 0x0053F900, 0x005491D0, 0x0055A6A0, 0x0055A870, 0x00561270, 0x00561440, 0x00561610, 0x005617E0, 0x005619B0, 0x005679A0, 0x005764C0, 0x00593110, 0x005B68B0, 0x005B6A80, 0x005C1AA0, 0x005C1C70, 0x005C8A40, 0x005C8C10, 0x005D2950, 0x005F09E0, 0x005F4270, 0x005F66B0, 0x005F6880, 0x005F6A50, 0x005FD000, 0x00618AF0, 0x00618CC0, 0x00618EF0, 0x00675AB0, 0x006773F0, 0x006775C0, 0x00677790, 0x00677960, 0x00677B30, 0x00677D00, 0x00677ED0, 0x006780A0, 0x00678270, 0x00678440, 0x00678610, 0x006787E0, 0x006789B0, 0x00678B80, 0x00678D50, 0x006894C0, 0x006BC520, 0x006C3370, 0x006C3540, 0x006C5B40, 0x006C87B0, 0x006E74A0, 0x006E7670, 0x006F4B80, 0x006F4D50, 0x006F4F20, 0x006F50F0, 0x006F52C0, 0x006F5490, 0x006F5660, 0x0070A310, 0x0070A540, 0x007378D0, 0x00767D50, 0x00768E90, 0x0076D430, 0x00777120, 0x007B09F0, 0x007BE580, 0x007BE760, 0x007DDC50, 0x007DDE20, 0x007E0670, 0x007F2E50, 0x007F5590, 0x0080A840, 0x0080AA10, 0x00811720, 0x008118F0, 0x00811AC0, 0x00813700, 0x008138D0, 0x0081B160, 0x0084BB00, 0x0084BCD0, 0x0086F280, 0x00876970, 0x0087C230]
 template <class T, class TKey>
@@ -952,6 +1004,16 @@ int32_t TSHashTable<T, TKey>::MonitorFullness(uint32_t slot) {
     return 0;
 }
 
+// INLINED
+template <class T, class TKey>
+T* TSHashTable<T, TKey>::New(uint32_t hashval, const TKey& key, size_t extrabytes, uint32_t flags) {
+    T* node = this->InternalNewNode(hashval, extrabytes, flags);
+    node->m_hashval = hashval;
+    node->m_key = key;
+
+    return node;
+}
+
 // VERIFY: 5082a074 auto
 // OFFSET: [0x00509720, 0x00562870, 0x005628D0]
 template <class T, class TKey>
@@ -971,7 +1033,7 @@ T* TSHashTable<T, TKey>::New(const char* str, size_t extrabytes, uint32_t flags)
 }
 
 // VERIFY: cb777ac9 manual
-// OFFSET: [0x004BB1E0, 0x006C2A50, 0x007B0690, 0x007BDD80, 0x007BDDF0]
+// OFFSET: [0x004BB1E0, 0x006C2A50, 0x006F6020, 0x007B0690, 0x007BDD80, 0x007BDDF0]
 template <class T, class TKey>
 T* TSHashTable<T, TKey>::Ptr(uint32_t hashval, const TKey& key) {
     if (this->m_slotmask == 0xFFFFFFFF) {
@@ -1017,6 +1079,173 @@ void TSHashTable<T, TKey>::Unlink(T* ptr) {
         ptr->m_linktoslot.Unlink();
         ptr->m_linktofull.Unlink();
     }
+}
+
+// VERIFY: b87209d2 manual
+// OFFSET: 0x00776F30
+template <class T, class TKey>
+TSHashTableReuse<T, TKey>::TSHashTableReuse() {
+    this->m_reuseList.ChangeLinkOffset(offsetof(T, m_linktoslot));
+}
+
+// VERIFY: dcbf18cd manual
+// OFFSET: [0x004B8F10, 0x004BB710, 0x004C0D30, 0x006BC830, 0x007772F0]
+template <class T, class TKey>
+TSHashTableReuse<T, TKey>::~TSHashTableReuse() {
+    this->Destructor();
+}
+
+// VERIFY: 1442481d auto
+// OFFSET: [0x004B8EF0, 0x004BB650, 0x004C0BF0, 0x006BBB40, 0x007768E0]
+template <class T, class TKey>
+void TSHashTableReuse<T, TKey>::Destroy() {
+    this->Clear();
+    this->Destructor();
+}
+
+// VERIFY: 1014068c auto
+// OFFSET: [0x004B6690, 0x004BAEF0, 0x004C0040, 0x006BB880, 0x00776870]
+template <class T, class TKey>
+void TSHashTableReuse<T, TKey>::Destructor() {
+    T* node;
+
+    while ((node = this->m_reuseList.Head()) != nullptr) {
+        this->m_reuseList.UnlinkNode(node);
+        SMemFree(node, typeid(T).raw_name(), -2, 0);
+    }
+}
+
+// VERIFY: a0b4896c manual
+// OFFSET: [0x004B8E70, 0x004C0C10, 0x006BC6F0, 0x00777000]
+template <class T, class TKey>
+void TSHashTableReuse<T, TKey>::InternalDelete(T* ptr) {
+    this->m_fulllist.UnlinkNode(ptr);
+    ptr->~T();
+    new (&ptr->m_linktoslot) TSLink<T>;
+    this->m_reuseList.LinkToHead(ptr);
+}
+
+// VERIFY: 187b5e87 manual
+// OFFSET: [0x004B9240, 0x004BB670, 0x004C0C90, 0x006BC770, 0x00776F90]
+template <class T, class TKey>
+T* TSHashTableReuse<T, TKey>::InternalNew(TSExplicitList<T>* listptr, size_t extrabytes, uint32_t flags) {
+    T* node = this->m_reuseList.Head();
+
+    if (!node) {
+        return listptr->NewNode(1, 0, 0);
+    }
+
+    this->m_reuseList.UnlinkNode(node);
+    new (node) T;
+    listptr->LinkToHead(node);
+
+    return node;
+}
+
+// INLINED
+template <class T, class THandle>
+TSExportTableSimpleReuse<T, THandle>::TSExportTableSimpleReuse() {
+    this->m_sequence = static_cast<uint32_t>(~reinterpret_cast<uintptr_t>(this) & 0xFFFFFFF);
+    this->m_wrapped = 0;
+}
+
+// INLINED
+template <class T, class THandle>
+void TSExportTableSimpleReuse<T, THandle>::Delete(T* ptr) {
+    TSHashTable<T, HASHKEY_NONE>::Delete(ptr);
+}
+
+// VERIFY: 50a85424 manual
+// OFFSET: 0x00777080
+template <class T, class THandle>
+THandle TSExportTableSimpleReuse<T, THandle>::GenerateUniqueHandle() {
+    do {
+        while (++this->m_sequence == 0) {
+            this->m_wrapped = 1;
+        }
+    } while (this->m_wrapped && this->Ptr(reinterpret_cast<THandle>(static_cast<uintptr_t>(this->m_sequence))));
+
+    return reinterpret_cast<THandle>(static_cast<uintptr_t>(this->m_sequence));
+}
+
+// INLINED
+template <class T, class THandle>
+T* TSExportTableSimpleReuse<T, THandle>::New(THandle* handle) {
+    THandle uniquehandle = this->GenerateUniqueHandle();
+    *handle = uniquehandle;
+
+    return TSHashTable<T, HASHKEY_NONE>::New(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(uniquehandle)), this->m_key, 0, 0);
+}
+
+// INLINED
+template <class T, class THandle>
+T* TSExportTableSimpleReuse<T, THandle>::Ptr(THandle handle) {
+    return TSHashTable<T, HASHKEY_NONE>::Ptr(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(handle)), this->m_key);
+}
+
+// VERIFY: 21249c03 manual
+// OFFSET: 0x007778A0
+template <class T, class THandle, class TLockedHandle, class TSync>
+void TSExportTableSyncReuse<T, THandle, TLockedHandle, TSync>::Delete(THandle handle) {
+    TLockedHandle lockedhandle;
+    T* ptr = this->Lock(handle, &lockedhandle, 1);
+    this->DeleteUnlock(ptr, lockedhandle);
+}
+
+// INLINED
+template <class T, class THandle, class TLockedHandle, class TSync>
+void TSExportTableSyncReuse<T, THandle, TLockedHandle, TSync>::DeleteUnlock(T* ptr, TLockedHandle lockedhandle) {
+    TSExportTableSimpleReuse<T, THandle>::Delete(ptr);
+    this->Unlock(lockedhandle);
+}
+
+// INLINED
+template <class T, class THandle, class TLockedHandle, class TSync>
+int32_t TSExportTableSyncReuse<T, THandle, TLockedHandle, TSync>::IsForWriting(TLockedHandle lockedhandle) {
+    return lockedhandle == reinterpret_cast<TLockedHandle>(1);
+}
+
+// INLINED
+template <class T, class THandle, class TLockedHandle, class TSync>
+T* TSExportTableSyncReuse<T, THandle, TLockedHandle, TSync>::Lock(THandle handle, TLockedHandle* lockedhandle, int32_t forwriting) {
+    this->SyncEnterLock(lockedhandle, forwriting);
+    T* ptr = this->Ptr(handle);
+
+    if (!ptr) {
+        this->SyncLeaveLock(*lockedhandle);
+        *lockedhandle = nullptr;
+    }
+
+    return ptr;
+}
+
+// INLINED
+template <class T, class THandle, class TLockedHandle, class TSync>
+T* TSExportTableSyncReuse<T, THandle, TLockedHandle, TSync>::NewLock(THandle* handle, TLockedHandle* lockedhandle) {
+    this->SyncEnterLock(lockedhandle, 1);
+    return this->New(handle);
+}
+
+// INLINED
+template <class T, class THandle, class TLockedHandle, class TSync>
+void TSExportTableSyncReuse<T, THandle, TLockedHandle, TSync>::SyncEnterLock(TLockedHandle* lockedhandle, int32_t forwriting) {
+    this->m_sync.Enter(forwriting);
+    *lockedhandle = reinterpret_cast<TLockedHandle>(static_cast<intptr_t>(2 * (forwriting != 0) - 1));
+}
+
+// INLINED
+template <class T, class THandle, class TLockedHandle, class TSync>
+void TSExportTableSyncReuse<T, THandle, TLockedHandle, TSync>::SyncLeaveLock(TLockedHandle lockedhandle) {
+    if (lockedhandle) {
+        this->m_sync.Leave(this->IsForWriting(lockedhandle));
+    }
+}
+
+// VERIFY: d83857d4 manual
+// OFFSET: 0x00776240
+template <class T, class THandle, class TLockedHandle, class TSync>
+void TSExportTableSyncReuse<T, THandle, TLockedHandle, TSync>::Unlock(TLockedHandle lockedhandle) {
+    this->SyncLeaveLock(lockedhandle);
 }
 
 inline bool HASHKEY_CONSTSTR::operator==(const char* str) {
