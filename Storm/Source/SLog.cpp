@@ -342,7 +342,7 @@ static int32_t CreateFileDirectory(const char* path) {
     return CreateDirectoryA(buffer, nullptr);
 }
 
-// VERIFY: 36e0d901 manual
+// VERIFY: 803fd35b manual
 // OFFSET: 0x00775740
 static int32_t OpenLogFile(const char* filename, void** file, uint32_t flags) {
     if (!filename || !*filename) {
@@ -352,7 +352,7 @@ static int32_t OpenLogFile(const char* filename, void** file, uint32_t flags) {
 
     char newfilename[MAX_PATH];
     const char* path = PrependDefaultDir(newfilename, sizeof(newfilename), filename);
-    int32_t append = (flags >> 2) & 1;
+    int32_t append = (flags & SLOG_FLAG_APPEND) != 0;
     CreateFileDirectory(path);
 
     *file = CreateFileA(path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, append ? OPEN_ALWAYS : CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -365,7 +365,7 @@ static int32_t OpenLogFile(const char* filename, void** file, uint32_t flags) {
     return result;
 }
 
-// VERIFY: 19c95612 auto
+// VERIFY: 73b1be42 auto
 // OFFSET: 0x007757E0
 int32_t STORMAPI SLogCreate(const char* filename, uint32_t flags, HSLOG* log) {
     if (!filename || !*filename || !log) {
@@ -375,14 +375,14 @@ int32_t STORMAPI SLogCreate(const char* filename, uint32_t flags, HSLOG* log) {
 
     *log = nullptr;
 
-    if (flags & 2) {
+    if (flags & SLOG_FLAG_NOFILE) {
         filename = "";
-        flags &= ~1;
+        flags &= ~SLOG_FLAG_OPENFILE;
     }
 
     void* file = INVALID_HANDLE_VALUE;
 
-    if ((flags & 1) && !OpenLogFile(filename, &file, flags)) {
+    if ((flags & SLOG_FLAG_OPENFILE) && !OpenLogFile(filename, &file, flags)) {
         return 0;
     }
 
@@ -406,7 +406,7 @@ int32_t STORMAPI SLogCreate(const char* filename, uint32_t flags, HSLOG* log) {
     return 1;
 }
 
-// VERIFY: 3aff050a manual
+// VERIFY: f5a9b1b2 manual
 // OFFSET: 0x007758E0
 void STORMAPI SLogDestroy() {
     SLogFlushAll();
@@ -416,7 +416,7 @@ void STORMAPI SLogDestroy() {
 
         while (s_loghead[i]) {
             char filename[MAX_PATH];
-            SStrCopy(filename, s_loghead[i]->filename, 0x7FFFFFFF);
+            SStrCopy(filename, s_loghead[i]->filename, STORM_MAX_STR);
             SLogClose(s_loghead[i]->log);
             SErrReportNamedResourceLeak("HSLOG", filename);
         }

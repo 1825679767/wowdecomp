@@ -6,6 +6,10 @@
 #include "Storm/H/stpl.h"
 #include "Storm/H/storm.h"
 
+#define SOURCE_NEWRECT 0x1
+#define SOURCE_OVERLAPPED 0x2
+#define SOURCE_PARAMONLY 0x10000
+
 // STATIC: 0x00CB7408
 static TSExportTableSyncReuse<RGN, HSRGN, HLOCKEDRGN, CCritSect> s_rgntable;
 
@@ -42,30 +46,30 @@ static void DeleteSourceRect(TSGrowableArray<_SOURCE>* sourcearray, uint32_t ind
     source->flags = 0;
 }
 
-// VERIFY: 9a9f08b5 manual
+// VERIFY: 60491716 manual
 // OFFSET: 0x00776140
 static void ProcessBooleanOperation(TSGrowableArray<_SOURCE>* sourcearray, int32_t combinemode) {
     for (uint32_t i = 0; i < sourcearray->Count(); i++) {
         _SOURCE* source = &(*sourcearray)[i];
 
         switch (combinemode) {
-            case 1:
-                if (!(source->flags & 2)) {
+            case SRGN_AND:
+                if (!(source->flags & SOURCE_OVERLAPPED)) {
                     DeleteSourceRect(sourcearray, i);
                 }
                 break;
-            case 3:
-                if (source->flags & 2) {
+            case SRGN_XOR:
+                if (source->flags & SOURCE_OVERLAPPED) {
                     DeleteSourceRect(sourcearray, i);
                 }
                 break;
-            case 4:
-                if (source->flags & 3) {
+            case SRGN_DIFF:
+                if (source->flags & (SOURCE_NEWRECT | SOURCE_OVERLAPPED)) {
                     DeleteSourceRect(sourcearray, i);
                 }
                 break;
-            case 5:
-                if (source->flags & 1) {
+            case SRGN_COPY:
+                if (source->flags & SOURCE_NEWRECT) {
                     DeleteSourceRect(sourcearray, i);
                 }
                 break;
@@ -87,7 +91,7 @@ static void AddSourceRect(TSGrowableArray<_SOURCE>* sourcearray, const RECTF* re
     source->flags = flags;
 }
 
-// VERIFY: 41503c6b manual
+// VERIFY: 08c9fdeb manual
 // OFFSET: 0x007762A0
 static void FragmentSourceRectangles(TSGrowableArray<_SOURCE>* sourcearray, uint32_t firstindex, uint32_t lastindex, int32_t previousoverlap, const RECTF* rect, void* param, int32_t sequence) {
     int32_t overlapsexisting = previousoverlap;
@@ -100,7 +104,7 @@ static void FragmentSourceRectangles(TSGrowableArray<_SOURCE>* sourcearray, uint
         }
 
         if (CompareRects(checkrect, rect)) {
-            (*sourcearray)[index].flags |= 2;
+            (*sourcearray)[index].flags |= SOURCE_OVERLAPPED;
             overlapsexisting = 1;
             continue;
         }
@@ -156,7 +160,7 @@ static void FragmentSourceRectangles(TSGrowableArray<_SOURCE>* sourcearray, uint
 
             if (overlaps[i][1]) {
                 _SOURCE* source = &(*sourcearray)[index];
-                AddSourceRect(sourcearray, &newrect[i], source->param, source->sequence, (source->flags & ~3) | (overlaps[i][0] ? 2 : 0));
+                AddSourceRect(sourcearray, &newrect[i], source->param, source->sequence, (source->flags & ~(SOURCE_NEWRECT | SOURCE_OVERLAPPED)) | (overlaps[i][0] ? SOURCE_OVERLAPPED : 0));
             }
         }
 
@@ -164,7 +168,7 @@ static void FragmentSourceRectangles(TSGrowableArray<_SOURCE>* sourcearray, uint
         return;
     }
 
-    AddSourceRect(sourcearray, rect, param, sequence, (overlapsexisting ? 2 : 0) | 1);
+    AddSourceRect(sourcearray, rect, param, sequence, (overlapsexisting ? SOURCE_OVERLAPPED : 0) | SOURCE_NEWRECT);
 }
 
 // VERIFY: c9c28f6e manual
@@ -210,7 +214,7 @@ void STORMAPI SRgnDestroy() {
     s_rgntable.Destroy();
 }
 
-// VERIFY: 58b770ec manual
+// VERIFY: 0924832d manual
 // OFFSET: 0x00777420
 void STORMAPI SRgnCombineRectf(HSRGN handle, const RECTF* rect, void* param, int32_t combinemode) {
     if (!handle) {
@@ -225,13 +229,13 @@ void STORMAPI SRgnCombineRectf(HSRGN handle, const RECTF* rect, void* param, int
         return;
     }
 
-    if (combinemode < 1) {
+    if (combinemode < SRGN_AND) {
         DebugValidate("combinemode >= 1");
         SErrSetLastError(ERROR_INVALID_PARAMETER);
         return;
     }
 
-    if (combinemode > 6) {
+    if (combinemode > SRGN_PARAMONLY) {
         DebugValidate("combinemode <= 6");
         SErrSetLastError(ERROR_INVALID_PARAMETER);
         return;
@@ -244,9 +248,9 @@ void STORMAPI SRgnCombineRectf(HSRGN handle, const RECTF* rect, void* param, int
         return;
     }
 
-    if (combinemode == 2 || combinemode == 6) {
+    if (combinemode == SRGN_OR || combinemode == SRGN_PARAMONLY) {
         if (!IsNullRect(rect)) {
-            AddSourceRect(&rgn->source, rect, param, ++rgn->sequence, combinemode == 6 ? 0x10000 : 0);
+            AddSourceRect(&rgn->source, rect, param, ++rgn->sequence, combinemode == SRGN_PARAMONLY ? SOURCE_PARAMONLY : 0);
         }
     } else {
         if (!IsNullRect(rect)) {
@@ -261,7 +265,7 @@ void STORMAPI SRgnCombineRectf(HSRGN handle, const RECTF* rect, void* param, int
     s_rgntable.Unlock(lockedhandle);
 }
 
-// VERIFY: 221ecd0d manual
+// VERIFY: 85bd9183 manual
 // OFFSET: 0x00777590
 void STORMAPI SRgnGetBoundingRectf(HSRGN handle, RECTF* rect) {
     if (!handle) {
@@ -292,7 +296,7 @@ void STORMAPI SRgnGetBoundingRectf(HSRGN handle, RECTF* rect) {
     uint32_t count = rgn->source.Count();
 
     for (uint32_t i = 0; i < count; i++) {
-        if (source[i].flags & 0x10000) {
+        if (source[i].flags & SOURCE_PARAMONLY) {
             continue;
         }
 

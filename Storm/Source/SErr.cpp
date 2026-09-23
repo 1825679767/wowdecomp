@@ -5,10 +5,35 @@
 #include <cstring>
 #include <malloc.h>
 #include <windows.h>
+#include <ddraw.h>
+#include <mmsystem.h>
+#include <dsound.h>
 #include "SOption.h"
 #include "Storm/H/stpl.h"
 #include "Storm/H/storm.h"
 #include "W32/MachineState.h"
+
+#define STORM_FACILITY 0x510
+#define SERR_STRING_BASE 0x5100
+
+#define SERR_STR_ERROR 0
+#define SERR_STR_CRITICAL 1
+#define SERR_STR_PROGRAM 2
+#define SERR_STR_FILE_LINE 3
+#define SERR_STR_FUNCTION 4
+#define SERR_STR_OBJECT 5
+#define SERR_STR_HANDLE 6
+#define SERR_STR_EXPRESSION 7
+#define SERR_STR_DESCRIPTION 8
+#define SERR_STR_TERMINATE 9
+#define SERR_STR_KEEP_RUNNING 10
+#define SERR_STR_FILE 11
+#define SERR_STR_BREAK 12
+#define SERR_STR_BREAK_OR_RUN 13
+#define SERR_STR_EXCEPTION 14
+#define SERR_STR_ACCESS_VIOLATION 15
+#define SERR_STR_READ 16
+#define SERR_STR_WRITTEN 17
 
 template <class T, class TGetLink = TSGetLink<T> >
 class TSListWinHeap : public TSList<T, TGetLink> {
@@ -110,7 +135,7 @@ static int32_t (STORMAPI* s_logCallback)(char*, uint32_t);
 static uint32_t s_noMiniDumps;
 
 // STATIC: 0x00CAD8C0
-static char s_logLastFile[260];
+static char s_logLastFile[MAX_PATH];
 
 // VERIFY: 252815d5 manual
 // OFFSET: 0x00427010
@@ -121,13 +146,13 @@ static void Breakpoint() {
     }
 }
 
-// VERIFY: 1c220556 manual
+// VERIFY: 3bd8f113 manual
 // OFFSET: 0x00770F70
 static const char* GetErrorString(uint32_t id) {
     // STATIC: 0x00CAD9C8
     static char buffer[256];
 
-    if (!LoadStringA(StormGetInstance(), id + 0x5100, buffer, sizeof(buffer))) {
+    if (!LoadStringA(StormGetInstance(), id + SERR_STRING_BASE, buffer, sizeof(buffer))) {
         return s_displaystr[id];
     }
 
@@ -151,9 +176,9 @@ static void AddStormFacility(uint16_t facility) {
 
 // INLINED
 inline void AddStormMessages() {
-    AddStormFacility(0x510);
-    AddStormFacility(0x876);
-    AddStormFacility(0x878);
+    AddStormFacility(STORM_FACILITY);
+    AddStormFacility(_FACDD);
+    AddStormFacility(_FACDS);
 }
 
 // VERIFY: bca19f6e manual
@@ -269,11 +294,11 @@ inline int32_t MakeDirectory(const char* path) {
     return (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
-// VERIFY: 733654b2 auto
+// VERIFY: dafcafda auto
 // OFFSET: 0x007711C0
 static HANDLE CreateErrorLogFile(const char* suffix, const char* ext, char* logpath, uint32_t logpathchars, const SYSTEMTIME* time) {
-    char logfilename[260];
-    char exefullpath[260];
+    char logfilename[MAX_PATH];
+    char exefullpath[MAX_PATH];
 
     if (!suffix) {
         suffix = " Log";
@@ -302,10 +327,10 @@ static HANDLE CreateErrorLogFile(const char* suffix, const char* ext, char* logp
     return CreateFileA(logpath, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 }
 
-// VERIFY: c1ec20e6 auto
+// VERIFY: 975744b4 auto
 // OFFSET: 0x007712D0
 static HANDLE CreateErrorLog(const char* suffix, const char* message, const SYSTEMTIME* time) {
-    char logpath[260];
+    char logpath[MAX_PATH];
     SYSTEMTIME localTime;
 
     if (!time) {
@@ -319,7 +344,7 @@ static HANDLE CreateErrorLog(const char* suffix, const char* message, const SYST
         return logfile;
     }
 
-    LogComputerInfoHeader(1, WriteLine, logfile, s_logtitle, time);
+    LogComputerInfoHeader(LOG_OPTION_DEFAULT, WriteLine, logfile, s_logtitle, time);
     WriteMessageToLog(logfile, message);
 
     if (s_logCallback) {
@@ -337,33 +362,33 @@ static HANDLE CreateErrorLog(const char* suffix, const char* message, const SYST
     return logfile;
 }
 
-// VERIFY: 7b803581 manual
+// VERIFY: 82987fc0 manual
 // OFFSET: 0x007713B0
 static const char* SErrGetErrorText(uint32_t errorcode) {
     switch (errorcode) {
-        case 0x85100000:
+        case STORM_ERROR_ASSERTION:
             return "Assertion Failure";
-        case 0x8510006C:
+        case STORM_ERROR_NOT_ARCHIVE:
             return "Not Archive";
-        case 0x85100079:
+        case STORM_ERROR_VERSION_MISMATCH:
             return "Version Mismatch";
-        case 0x8510007A:
+        case STORM_ERROR_MEM_NOT_ALLOCATED:
             return "Memory Already Freed";
-        case 0x8510007B:
+        case STORM_ERROR_MEM_CORRUPTED:
             return "Memory Corrupt";
-        case 0x8510007C:
+        case STORM_ERROR_MEM_INVALID:
             return "Memory Invalid Block";
-        case 0x8510007E:
+        case STORM_ERROR_MEM_NOT_FREED:
             return "Memory Never Released";
-        case 0x8510007F:
+        case STORM_ERROR_RESOURCES_NOT_RELEASED:
             return "Handle Never Released";
-        case 0x85100080:
+        case STORM_ERROR_OUT_OF_BOUNDS:
             return "Access Out Of Bounds";
-        case 0x85100083:
+        case STORM_ERROR_FILE_CORRUPTED:
             return "File Corrupt";
-        case 0x85100084:
+        case STORM_ERROR_FATAL:
             return "Fatal Exception";
-        case 0x85100086:
+        case STORM_ERROR_FATAL_CONDITION:
             return "Fatal Condition";
         default:
             return "";
@@ -620,7 +645,7 @@ int32_t STORMAPI SErrDestroy() {
     return 1;
 }
 
-// VERIFY: e33c0f1e manual
+// VERIFY: 1b09034a manual
 // OFFSET: 0x00771D10
 int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int32_t linenumber, const char* description, int32_t recoverable, uint32_t exitcode, uint32_t unknown) {
     // STATIC: 0x00CAE934
@@ -644,9 +669,9 @@ int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int3
     s_displaying = 1;
 
     // STATIC: 0x00CAE830
-    static char appfilename[260];
+    static char appfilename[MAX_PATH];
     // STATIC: 0x00CAE728
-    static char appname[260];
+    static char appname[MAX_PATH];
     appfilename[0] = 0;
     appname[0] = 0;
     GetModuleFileNameA(nullptr, appfilename, sizeof(appfilename));
@@ -673,7 +698,7 @@ int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int3
     SErrGetErrorStr(errorcode, errorstr, sizeof(errorstr));
 
     if (!errorstr[0]) {
-        SStrPrintf(errorstr, sizeof(errorstr), GetErrorString(0), errorcode, errorcode, SErrGetErrorText(errorcode));
+        SStrPrintf(errorstr, sizeof(errorstr), GetErrorString(SERR_STR_ERROR), errorcode, errorcode, SErrGetErrorText(errorcode));
     }
 
     // STATIC: 0x00CAE4E0
@@ -681,7 +706,7 @@ int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int3
     // STATIC: 0x00CAE3E0
     static char localnamebuffer[256];
 
-    if (localnameptr && *localnameptr && (linenumber == -2 || linenumber == -3) && UndecorateObjectName(localnameptr, localnamebuffer, sizeof(localnamebuffer))) {
+    if (localnameptr && *localnameptr && (linenumber == SLOG_OBJECT || linenumber == SLOG_HANDLE) && UndecorateObjectName(localnameptr, localnamebuffer, sizeof(localnamebuffer))) {
         localnameptr = localnamebuffer;
     }
 
@@ -707,40 +732,40 @@ int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int3
     SDebugPrintf("%s\n", outstr);
 
     outptr = outstr;
-    SStrPrintf(outptr, outend - outptr, GetErrorString(1), errorstr);
+    SStrPrintf(outptr, outend - outptr, GetErrorString(SERR_STR_CRITICAL), errorstr);
     outptr += SStrLen(outptr);
-    SStrPrintf(outptr, outend - outptr, GetErrorString(2), appfilename);
+    SStrPrintf(outptr, outend - outptr, GetErrorString(SERR_STR_PROGRAM), appfilename);
     outptr += SStrLen(outptr);
 
     if (localnameptr && *localnameptr) {
         switch (linenumber) {
-            case -5:
-                SStrPrintf(outptr, outend - outptr, GetErrorString(14), localnameptr);
+            case SLOG_EXCEPTION:
+                SStrPrintf(outptr, outend - outptr, GetErrorString(SERR_STR_EXCEPTION), localnameptr);
                 break;
-            case -4:
-                SStrPrintf(outptr, outend - outptr, GetErrorString(11), localnameptr);
+            case SLOG_FILE:
+                SStrPrintf(outptr, outend - outptr, GetErrorString(SERR_STR_FILE), localnameptr);
                 break;
-            case -3:
-                SStrPrintf(outptr, outend - outptr, GetErrorString(6), localnameptr);
+            case SLOG_HANDLE:
+                SStrPrintf(outptr, outend - outptr, GetErrorString(SERR_STR_HANDLE), localnameptr);
                 break;
-            case -2:
-                SStrPrintf(outptr, outend - outptr, GetErrorString(5), localnameptr);
+            case SLOG_OBJECT:
+                SStrPrintf(outptr, outend - outptr, GetErrorString(SERR_STR_OBJECT), localnameptr);
                 break;
-            case -1:
-                SStrPrintf(outptr, outend - outptr, GetErrorString(4), localnameptr);
+            case SLOG_FUNCTION:
+                SStrPrintf(outptr, outend - outptr, GetErrorString(SERR_STR_FUNCTION), localnameptr);
                 break;
             default:
-                SStrPrintf(outptr, outend - outptr, GetErrorString(3), localnameptr, linenumber);
+                SStrPrintf(outptr, outend - outptr, GetErrorString(SERR_STR_FILE_LINE), localnameptr, linenumber);
                 break;
         }
 
         outptr += SStrLen(outptr);
     }
 
-    if (errorcode == 0x85100000) {
-        SStrPrintf(outptr, outend - outptr, GetErrorString(7), description ? description : "");
+    if (errorcode == STORM_ERROR_ASSERTION) {
+        SStrPrintf(outptr, outend - outptr, GetErrorString(SERR_STR_EXPRESSION), description ? description : "");
     } else {
-        SStrPrintf(outptr, outend - outptr, GetErrorString(8), description ? description : "");
+        SStrPrintf(outptr, outend - outptr, GetErrorString(SERR_STR_DESCRIPTION), description ? description : "");
     }
 
     outptr += SStrLen(outptr);
@@ -764,7 +789,7 @@ int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int3
         HANDLE logfile = CreateErrorLog(suffix, outstr, &time);
 
         if (logfile != INVALID_HANDLE_VALUE) {
-            LogMachineState(0x40001, WriteLine, logfile, context ? 0 : 2, context);
+            LogMachineState(LOG_OPTION_DEFAULT | LOG_OPTION_FRAMEPARAMS, WriteLine, logfile, context ? 0 : 2, context);
             CloseHandle(logfile);
         }
 
@@ -776,7 +801,7 @@ int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int3
 
         if (LogMiniDumpIsAvailable() && !s_noMiniDumps) {
             // STATIC: 0x00CADAC8
-            static char logpath[260];
+            static char logpath[MAX_PATH];
             HANDLE dumpfile = CreateErrorLogFile(suffix, "dmp", logpath, sizeof(logpath), &time);
 
             if (dumpfile != INVALID_HANDLE_VALUE) {
@@ -802,14 +827,14 @@ int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int3
 
     if (!CanBreakToDebugger()) {
         if (recoverable) {
-            outptr += SStrCopy(outptr, GetErrorString(10), outend - outptr);
+            outptr += SStrCopy(outptr, GetErrorString(SERR_STR_KEEP_RUNNING), outend - outptr);
             icon = MB_ICONWARNING;
             buttons = MB_OKCANCEL | MB_DEFBUTTON2;
             defaultresult = IDCANCEL;
             keeprunning = IDOK;
             breakresult = 0;
         } else {
-            outptr += SStrCopy(outptr, GetErrorString(9), outend - outptr);
+            outptr += SStrCopy(outptr, GetErrorString(SERR_STR_TERMINATE), outend - outptr);
             icon = MB_ICONERROR;
             buttons = MB_OK;
             defaultresult = IDOK;
@@ -818,14 +843,14 @@ int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int3
         }
     } else {
         if (!recoverable) {
-            outptr += SStrCopy(outptr, GetErrorString(12), outend - outptr);
+            outptr += SStrCopy(outptr, GetErrorString(SERR_STR_BREAK), outend - outptr);
             icon = MB_ICONERROR;
             buttons = MB_YESNO | MB_DEFBUTTON2;
             defaultresult = IDNO;
             keeprunning = 0;
             breakresult = IDYES;
         } else {
-            outptr += SStrCopy(outptr, GetErrorString(13), outend - outptr);
+            outptr += SStrCopy(outptr, GetErrorString(SERR_STR_BREAK_OR_RUN), outend - outptr);
             icon = MB_ICONWARNING;
             buttons = MB_YESNOCANCEL | MB_DEFBUTTON2;
             defaultresult = IDNO;
@@ -882,7 +907,7 @@ int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int3
     return 0;
 }
 
-// VERIFY: 602aef6d manual
+// VERIFY: 61ab0aca manual
 // OFFSET: 0x00772670
 void STORMAPI SErrReportNamedResourceLeak(const char* handlename, const char* resourcename) {
     // STATIC: 0x00CAE940
@@ -912,11 +937,11 @@ void STORMAPI SErrReportNamedResourceLeak(const char* handlename, const char* re
         SStrPrintf(szMessage, sizeof(szMessage), "Storm Error : handle never released -- %s\n", errormessage);
         OutputDebugStringA(szMessage);
     } else {
-        SErrDisplayError(0x8510007F, errormessage, -3, nullptr, 1, 1, 0x11111111);
+        SErrDisplayError(STORM_ERROR_RESOURCES_NOT_RELEASED, errormessage, SLOG_HANDLE, nullptr, 1, 1, 0x11111111);
     }
 }
 
-// VERIFY: d3740e85 manual
+// VERIFY: 7c346b74 manual
 // OFFSET: 0x00772760
 static LONG WINAPI ExceptionFilterWin32(EXCEPTION_POINTERS* exceptionpointers) {
     EXCEPTION_RECORD* record = exceptionpointers->ExceptionRecord;
@@ -942,11 +967,11 @@ static LONG WINAPI ExceptionFilterWin32(EXCEPTION_POINTERS* exceptionpointers) {
 
         if (record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && record->NumberParameters == 2) {
             char format[256];
-            SStrCopy(format, GetErrorString(15), sizeof(format));
-            SStrPrintf(message, sizeof(message), format, record->ExceptionAddress, reinterpret_cast<void*>(record->ExceptionInformation[1]), GetErrorString(record->ExceptionInformation[0] ? 17 : 16));
+            SStrCopy(format, GetErrorString(SERR_STR_ACCESS_VIOLATION), sizeof(format));
+            SStrPrintf(message, sizeof(message), format, record->ExceptionAddress, reinterpret_cast<void*>(record->ExceptionInformation[1]), GetErrorString(record->ExceptionInformation[0] ? SERR_STR_WRITTEN : SERR_STR_READ));
         }
 
-        SErrDisplayError(0x85100084, buffer, -5, message, 0, 1, 0x11111111);
+        SErrDisplayError(STORM_ERROR_FATAL, buffer, SLOG_EXCEPTION, message, 0, 1, 0x11111111);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         HANDLE file = CreateFileA("Errors\\exception-failed.txt", GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 
@@ -997,12 +1022,12 @@ void SErrDisplayAppFatalCustom(uint32_t errorcode, const char* format, ...) {
     SErrDisplayAppFatalCustomV(errorcode, format, args);
 }
 
-// VERIFY: 47d22c10 auto
+// VERIFY: 83bbd052 auto
 // OFFSET: 0x00772AA0
 void SErrDisplayAppFatal(const char* format, ...) {
     va_list args;
     va_start(args, format);
-    SErrDisplayAppFatalCustomV(0x85100086, format, args);
+    SErrDisplayAppFatalCustomV(STORM_ERROR_FATAL_CONDITION, format, args);
 }
 
 // VERIFY: d0bff028 manual

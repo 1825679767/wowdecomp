@@ -8,6 +8,9 @@
 #include <tlhelp32.h>
 #include <winternl.h>
 #include "MachineState.h"
+
+#define CV_SIGNATURE_NB10 0x3031424E
+#define CV_SIGNATURE_RSDS 0x53445352
 #include "Storm/H/storm.h"
 
 #if defined(_M_X64)
@@ -229,10 +232,10 @@ static const char* sGetPathLeaf(const char* path) {
     return leaf ? leaf + 1 : path;
 }
 
-// VERIFY: e2cc4820 auto
+// VERIFY: 908349a9 auto
 // OFFSET: 0x0077CEC0
 static void sLogExeFile(void (*logLineProc)(void*, const char*, ...), void* logLineProcParam) {
-    char exeFullPath[260];
+    char exeFullPath[MAX_PATH];
     GetModuleFileNameA(nullptr, exeFullPath, sizeof(exeFullPath));
     logLineProc(logLineProcParam, "%-10s%s", "Exe:", exeFullPath);
 }
@@ -252,10 +255,10 @@ static void sLogDateTimeString(void (*logLineProc)(void*, const char*, ...), voi
     logLineProc(logLineProcParam, "%-10s%3s %2d, %4d %2d:%02d:%02d.%03d %cM", "Time:", s_monthNames[time->wMonth - 1], time->wDay, time->wYear, hour, time->wMinute, time->wSecond, time->wMilliseconds, ampm);
 }
 
-// VERIFY: 2adf4d86 manual
+// VERIFY: 26ed8d9b manual
 // OFFSET: 0x0077CF70
 static void sLogUserName(void (*logLineProc)(void*, const char*, ...), void* logLineProcParam) {
-    char userName[260];
+    char userName[MAX_PATH];
     DWORD size = 257;
 
     if (!GetUserNameA(userName, &size)) {
@@ -278,12 +281,12 @@ static void sLogComputerName(void (*logLineProc)(void*, const char*, ...), void*
     logLineProc(logLineProcParam, "%-10s%s", "Computer:", computerName);
 }
 
-// VERIFY: 5d6c6265 auto
+// VERIFY: d5866a0e auto
 // OFFSET: 0x0077D040
 static void sLogMemory(uint32_t logOptions, void (*logLineProc)(void*, const char*, ...), void* logLineProcParam, uint8_t* instructionPointer, uint8_t* stackPointer) {
     sLogHeader(logLineProc, logLineProcParam, "Memory Dump");
 
-    if (logOptions & 0x100000) {
+    if (logOptions & LOG_OPTION_CODE) {
         logLineProc(logLineProcParam, "Code: %d bytes starting at (EIP = " LOG_PTR ")", 16, reinterpret_cast<uintptr_t>(instructionPointer));
         logLineProc(logLineProcParam, "");
         sLogMemoryHexDump(logLineProc, logLineProcParam, instructionPointer, 16, 0);
@@ -291,7 +294,7 @@ static void sLogMemory(uint32_t logOptions, void (*logLineProc)(void*, const cha
         logLineProc(logLineProcParam, "");
     }
 
-    if (logOptions & 0x200000) {
+    if (logOptions & LOG_OPTION_STACK) {
         logLineProc(logLineProcParam, "Stack: %d bytes starting at (ESP = " LOG_PTR ")", 1024, reinterpret_cast<uintptr_t>(stackPointer));
         logLineProc(logLineProcParam, "");
         sLogMemoryHexDump(logLineProc, logLineProcParam, stackPointer, 1024, 1);
@@ -330,7 +333,7 @@ static const char* GetFileNameFromPath(const char* path, size_t maxchars) {
     return leaf ? leaf + 1 : path;
 }
 
-// VERIFY: 1765d10e manual
+// VERIFY: 8fcb8ae7 manual
 // OFFSET: 0x0077D170
 static void sReadCodeViewInfo(MODULEDEBUGINFO* info, uint32_t size, uint32_t type, const uint8_t* data) {
     if (size < 4) {
@@ -339,15 +342,15 @@ static void sReadCodeViewInfo(MODULEDEBUGINFO* info, uint32_t size, uint32_t typ
 
     const uint32_t* header = reinterpret_cast<const uint32_t*>(data);
 
-    if (header[0] == 0x3031424E) {
+    if (header[0] == CV_SIGNATURE_NB10) {
         if (size >= 0x14) {
             info->signature = header[2];
             SStrCopy(info->pdbName, GetFileNameFromPath(reinterpret_cast<const char*>(data + 0x10), 64), sizeof(info->pdbName));
             info->age = header[3];
             memset(&info->guid, 0, sizeof(info->guid));
         }
-    } else if (header[0] == 0x53445352 && size >= 0x1C) {
-        SStrCopy(info->pdbName, GetFileNameFromPath(reinterpret_cast<const char*>(data + 0x18), 260), sizeof(info->pdbName));
+    } else if (header[0] == CV_SIGNATURE_RSDS && size >= 0x1C) {
+        SStrCopy(info->pdbName, GetFileNameFromPath(reinterpret_cast<const char*>(data + 0x18), MAX_PATH), sizeof(info->pdbName));
         info->age = header[5];
         memcpy(&info->guid, data + 4, sizeof(info->guid));
     }
@@ -464,16 +467,16 @@ static int32_t sDbgHelpGetStackFrameInfo(DWORD_PTR address, char* moduleName, ch
 
 // INLINED
 inline void sLogVerboseMessage(uint32_t logOptions, void (*logLineProc)(void*, const char*, ...), void* logLineProcParam, const char* format, uint32_t error) {
-    if (logOptions & 0x80000000) {
+    if (logOptions & LOG_OPTION_VERBOSE) {
         logLineProc(logLineProcParam, format, error);
     }
 }
 
-// VERIFY: e5349ac7 manual
+// VERIFY: 90778587 manual
 // OFFSET: 0x0077D4F0
 static void sLogDbgHelpStackFrame(uint32_t logOptions, void (*logLineProc)(void*, const char*, ...), void* logLineProcParam, const STACKFRAME* stackFrame) {
     char symbolName[256];
-    char fileName[260];
+    char fileName[MAX_PATH];
     char moduleName[32];
     uint32_t lineNumber;
     uint32_t symbolDisplacement;
@@ -492,7 +495,7 @@ static void sLogDbgHelpStackFrame(uint32_t logOptions, void (*logLineProc)(void*
         sLogVerboseMessage(logOptions, logLineProc, logLineProcParam, "**** SymGetSymFromAddr() failed, error: %d", GetLastError());
     }
 
-    if (logOptions & 0x40000) {
+    if (logOptions & LOG_OPTION_FRAMEPARAMS) {
         const char* format = fileName[0] ? LOG_PTR " %-12s %s+%d (0x" LOG_PTR ",0x" LOG_PTR ",0x" LOG_PTR ",0x" LOG_PTR ") (%s,%d)" : LOG_PTR " %-12s %s+%d (0x" LOG_PTR ",0x" LOG_PTR ",0x" LOG_PTR ",0x" LOG_PTR ")";
         logLineProc(logLineProcParam, format, address, moduleName, symbolName, symbolDisplacement, stackFrame->Params[0], stackFrame->Params[1], stackFrame->Params[2], stackFrame->Params[3], fileName, lineNumber);
     } else {
@@ -501,10 +504,10 @@ static void sLogDbgHelpStackFrame(uint32_t logOptions, void (*logLineProc)(void*
     }
 }
 
-// VERIFY: d9861b3f auto
+// VERIFY: c9f6977d auto
 // OFFSET: 0x0077D630
 static BOOL sSymInitialize(HANDLE process) {
-    char path[260];
+    char path[MAX_PATH];
     path[0] = 0;
     GetModuleFileNameA(nullptr, path, sizeof(path));
 
@@ -597,7 +600,7 @@ static void sLogDbgHelpStackFrames(STACKFRAME* stackFrame, HANDLE process, HANDL
     }
 }
 
-// VERIFY: 46f51234 manual
+// VERIFY: 835a9a80 manual
 // OFFSET: 0x0077D860
 static void sLogDbgHelpStackTrace(uint32_t logOptions, void (*logLineProc)(void*, const char*, ...), void* logLineProcParam, DWORD_PTR registerEip, DWORD_PTR registerEbp, DWORD_PTR registerEsp, uint32_t stackFramesToSkip) {
     sLogHeader(logLineProc, logLineProcParam, "Stack Trace (Using DBGHELP.DLL)");
@@ -610,7 +613,7 @@ static void sLogDbgHelpStackTrace(uint32_t logOptions, void (*logLineProc)(void*
 
         if (!sSymInitialize(process)) {
             logLineProc(logLineProcParam, "****  Couldn't initialize Debug Help library, error: %d", GetLastError());
-        } else if (logOptions & 0x20000) {
+        } else if (logOptions & LOG_OPTION_DBGHELPSTACK) {
             DWORD currentThreadId = GetCurrentThreadId();
             DWORD threads[128];
             uint32_t numThreads = 0;
@@ -684,7 +687,7 @@ static void sLogDbgHelpStackTrace(uint32_t logOptions, void (*logLineProc)(void*
     logLineProc(logLineProcParam, "");
 }
 
-// VERIFY: 8cb13445 manual
+// VERIFY: 2b5e12bd manual
 // OFFSET: 0x0077DB10
 static void sLogX86ManualStackTrace(void (*logLineProc)(void*, const char*, ...), void* logLineProcParam, DWORD_PTR registerEip, DWORD_PTR registerEbp, uint32_t stackFramesToSkip) {
     sLogHeader(logLineProc, logLineProcParam, "Stack Trace (Manual)");
@@ -739,7 +742,7 @@ static void sLogX86ManualStackTrace(void (*logLineProc)(void*, const char*, ...)
 
         for (uint32_t frame = 0; frame < 100; ++frame) {
             if (frame >= (threadId != currentThreadId ? 1 : stackFramesToSkip)) {
-                char modulePath[260];
+                char modulePath[MAX_PATH];
                 uint32_t section;
                 uint32_t offset;
                 sGetLogicalAddress(reinterpret_cast<void*>(eip), modulePath, sizeof(modulePath), &section, &offset);
@@ -802,30 +805,30 @@ void UnloadMachineStateSymbols() {
     sgDbgHelpDll.Unload();
 }
 
-// VERIFY: f53f0637 manual
+// VERIFY: 63d078e3 manual
 // OFFSET: 0x0077DE30
 void LogComputerInfoHeader(uint32_t logOptions, void (*logLineProc)(void*, const char*, ...), void* logLineProcParam, const char* headerTitleLine, const SYSTEMTIME* time) {
     if (InterlockedIncrement(&sgRecursionLevel) == 1) {
-        if (!logOptions || (logOptions & 1)) {
-            logOptions |= 0x3C;
+        if (!logOptions || (logOptions & LOG_OPTION_DEFAULT)) {
+            logOptions |= LOG_OPTION_EXEFILE | LOG_OPTION_DATETIME | LOG_OPTION_COMPUTERNAME | LOG_OPTION_USERNAME;
 
             if (headerTitleLine && *headerTitleLine) {
-                logOptions |= 2;
+                logOptions |= LOG_OPTION_TITLE;
             }
         }
 
         sLogSeparatorLine(logLineProc, logLineProcParam, '=', 1);
 
-        if ((logOptions & 2) && headerTitleLine && *headerTitleLine) {
+        if ((logOptions & LOG_OPTION_TITLE) && headerTitleLine && *headerTitleLine) {
             logLineProc(logLineProcParam, "%s", headerTitleLine);
             logLineProc(logLineProcParam, "");
         }
 
-        if (logOptions & 4) {
+        if (logOptions & LOG_OPTION_EXEFILE) {
             sLogExeFile(logLineProc, logLineProcParam);
         }
 
-        if (logOptions & 8) {
+        if (logOptions & LOG_OPTION_DATETIME) {
             SYSTEMTIME currentTime;
 
             if (!time) {
@@ -836,11 +839,11 @@ void LogComputerInfoHeader(uint32_t logOptions, void (*logLineProc)(void*, const
             sLogDateTimeString(logLineProc, logLineProcParam, time);
         }
 
-        if (logOptions & 0x20) {
+        if (logOptions & LOG_OPTION_USERNAME) {
             sLogUserName(logLineProc, logLineProcParam);
         }
 
-        if (logOptions & 0x10) {
+        if (logOptions & LOG_OPTION_COMPUTERNAME) {
             sLogComputerName(logLineProc, logLineProcParam);
         }
 
@@ -1101,15 +1104,15 @@ static void sLogLoadedModules(void (*logLineProc)(void*, const char*, ...), void
     }
 }
 
-// VERIFY: 8068798c manual
+// VERIFY: 691ea2e6 manual
 // OFFSET: 0x0077E670
 void LogMachineState(uint32_t logOptions, void (*logLineProc)(void*, const char*, ...), void* logLineProcParam, uint32_t stackFramesToSkip, CONTEXT* context) {
     if (InterlockedIncrement(&sgRecursionLevel) == 1) {
-        if (!logOptions || (logOptions & 1)) {
-            logOptions |= 0x6A0000;
+        if (!logOptions || (logOptions & LOG_OPTION_DEFAULT)) {
+            logOptions |= LOG_OPTION_DBGHELPSTACK | LOG_OPTION_MANUALSTACK | LOG_OPTION_STACK | LOG_OPTION_MODULES;
 
             if (context) {
-                logOptions |= 0x110000;
+                logOptions |= LOG_OPTION_REGISTERS | LOG_OPTION_CODE;
             }
         }
 
@@ -1146,29 +1149,29 @@ void LogMachineState(uint32_t logOptions, void (*logLineProc)(void*, const char*
                 pop registerEsp
             }
 #endif
-            logOptions &= ~0x110000u;
+            logOptions &= ~static_cast<uint32_t>(LOG_OPTION_REGISTERS | LOG_OPTION_CODE);
             stackFramesToSkip = stackFramesToSkip + 1;
         }
 
         sLogSeparatorLine(logLineProc, logLineProcParam, '-', 1);
 
-        if ((logOptions & 0x10000) && context) {
+        if ((logOptions & LOG_OPTION_REGISTERS) && context) {
             sLogX86ContextRegisters(logLineProc, logLineProcParam, context);
         }
 
-        if (logOptions & 0x80000) {
+        if (logOptions & LOG_OPTION_MANUALSTACK) {
             sLogX86ManualStackTrace(logLineProc, logLineProcParam, registerEip, registerEbp, stackFramesToSkip);
         }
 
-        if (logOptions & 0x20000) {
+        if (logOptions & LOG_OPTION_DBGHELPSTACK) {
             sLogDbgHelpStackTrace(logOptions, logLineProc, logLineProcParam, registerEip, registerEbp, registerEsp, stackFramesToSkip);
         }
 
-        if (logOptions & 0x400000) {
+        if (logOptions & LOG_OPTION_MODULES) {
             sLogLoadedModules(logLineProc, logLineProcParam);
         }
 
-        if (logOptions & 0x300000) {
+        if (logOptions & (LOG_OPTION_CODE | LOG_OPTION_STACK)) {
             sLogMemory(logOptions, logLineProc, logLineProcParam, reinterpret_cast<uint8_t*>(registerEip), reinterpret_cast<uint8_t*>(registerEsp));
         }
 

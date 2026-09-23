@@ -1029,7 +1029,7 @@ static void Bzip2Compress(void* dest, uint32_t* destsize, const void* source, ui
     } else if (result != BZ_OK) {
         char str[256];
         SStrPrintf(str, sizeof(str), "bzip2Compress:%d", result);
-        SErrDisplayError(0x85100083, "<unknown>", -4, str, 0, 1, 0x11111111);
+        SErrDisplayError(STORM_ERROR_FILE_CORRUPTED, "<unknown>", SLOG_FILE, str, 0, 1, 0x11111111);
     }
 
     *hint = 0;
@@ -1399,20 +1399,20 @@ static void HuffmanCompress(void* dest, uint32_t* destsize, const void* source, 
 
 // STATIC: 0x00A3B4EC
 static const _COMPRESSALGORITHM s_compressalgorithm[6] = {
-    { 0x40, ImaAdpcmMonoCompress },
-    { 0x80, ImaAdpcmStereoCompress },
-    { 0x20, RLEZeroCompress },
-    { 0x01, HuffmanCompress },
-    { 0x02, ZlibCompress },
-    { 0x10, Bzip2Compress },
+    { MPQ_COMPRESSION_ADPCM_MONO, ImaAdpcmMonoCompress },
+    { MPQ_COMPRESSION_ADPCM_STEREO, ImaAdpcmStereoCompress },
+    { MPQ_COMPRESSION_SPARSE, RLEZeroCompress },
+    { MPQ_COMPRESSION_HUFFMANN, HuffmanCompress },
+    { MPQ_COMPRESSION_ZLIB, ZlibCompress },
+    { MPQ_COMPRESSION_BZIP2, Bzip2Compress },
 };
 
 // STATIC: 0x00A3B51C
 static const _DECOMPRESSALGORITHM s_decompressalgorithm[6] = {
-    { 0x40, ImaAdpcmMonoDecompress },
-    { 0x80, ImaAdpcmStereoDecompress },
-    { 0x20, RLEZeroDecompress },
-    { 0x01, HuffmanDecompress },
-    { 0x02, ZlibDecompress },
-    { 0x10, Bzip2Decompress },
+    { MPQ_COMPRESSION_ADPCM_MONO, ImaAdpcmMonoDecompress },
+    { MPQ_COMPRESSION_ADPCM_STEREO, ImaAdpcmStereoDecompress },
+    { MPQ_COMPRESSION_SPARSE, RLEZeroDecompress },
+    { MPQ_COMPRESSION_HUFFMANN, HuffmanDecompress },
+    { MPQ_COMPRESSION_ZLIB, ZlibDecompress },
+    { MPQ_COMPRESSION_BZIP2, Bzip2Decompress },
 };

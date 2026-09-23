@@ -2,6 +2,7 @@
 #define STORM_SOURCE_SLOG_H
 
 #include <cstdint>
+#include <windows.h>
 #include "Storm/H/storm.h"
 
 struct HLOCKEDLOG__ {
@@ -13,7 +14,7 @@ typedef HLOCKEDLOG__* HLOCKEDLOG;
 struct _LOG {
     /* 0000 */ HSLOG log;
     /* 0004 */ _LOG* next;
-    /* 0008 */ char filename[260];
+    /* 0008 */ char filename[MAX_PATH];
     /* 010C */ void* file;
     /* 0110 */ uint32_t flags;
     /* 0114 */ uint32_t bufferused;

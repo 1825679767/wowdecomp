@@ -7,7 +7,7 @@
 
 // INLINED: [0x007704BE->0x007704E7, 0x00770595->0x007705BE]
 int32_t STORMAPI SRegGetBaseKey(uint32_t flags, char* buffer, uint32_t bufferchars) {
-    if (flags & 2) {
+    if (flags & SREG_BATTLE_NET) {
         SStrCopy(buffer, "Software\\Battle.net\\", bufferchars);
     } else {
         SStrCopy(buffer, "Software\\Blizzard Entertainment\\", bufferchars);
@@ -20,14 +20,14 @@ int32_t STORMAPI SRegGetBaseKey(uint32_t flags, char* buffer, uint32_t buffercha
 static void BuildFullKeyName(const char* keyname, uint32_t flags, char* buffer, uint32_t bufferchars) {
     *buffer = 0;
 
-    if (!(flags & 0x10)) {
+    if (!(flags & SREG_ABSOLUTE)) {
         SRegGetBaseKey(flags, buffer, bufferchars);
     }
 
     SStrPack(buffer, keyname, bufferchars);
 }
 
-// VERIFY: dbb8e77c auto
+// VERIFY: c4c72960 auto
 // OFFSET: 0x007703A0
 static LSTATUS ILoadValue(HKEY parentkey, const char* subkeyname, const char* valuename, DWORD* datatype, void* buffer, DWORD bytes, DWORD* bytesread) {
     HKEY key;
@@ -46,8 +46,8 @@ static LSTATUS ILoadValue(HKEY parentkey, const char* subkeyname, const char* va
         return result;
     }
 
-    WCHAR widename[260];
-    SUniConvertUTF8to16(reinterpret_cast<uint16_t*>(widename), 260, subkeyname, 0x7FFFFFFF, nullptr, nullptr);
+    WCHAR widename[MAX_PATH];
+    SUniConvertUTF8to16(reinterpret_cast<uint16_t*>(widename), MAX_PATH, subkeyname, STORM_MAX_STR, nullptr, nullptr);
 
     LSTATUS result = RegOpenKeyExW(parentkey, widename, 0, KEY_READ, &key);
 
@@ -56,24 +56,24 @@ static LSTATUS ILoadValue(HKEY parentkey, const char* subkeyname, const char* va
     }
 
     *bytesread = bytes;
-    SUniConvertUTF8to16(reinterpret_cast<uint16_t*>(widename), 260, valuename, 0x7FFFFFFF, nullptr, nullptr);
+    SUniConvertUTF8to16(reinterpret_cast<uint16_t*>(widename), MAX_PATH, valuename, STORM_MAX_STR, nullptr, nullptr);
     result = RegQueryValueExW(key, widename, nullptr, datatype, static_cast<BYTE*>(buffer), bytesread);
     RegCloseKey(key);
 
     return result;
 }
 
-// VERIFY: e6932131 auto
+// VERIFY: 9a7f0737 auto
 // OFFSET: 0x00770490
 static int32_t InternalLoadEntry(const char* keyname, const char* valuename, uint32_t flags, DWORD* datatype, void* buffer, DWORD bytes, DWORD* bytesread) {
     *bytesread = 0;
     *datatype = REG_DWORD;
 
     LSTATUS result = ERROR_CANTOPEN;
-    char fullkeyname[260];
-    BuildFullKeyName(keyname, flags, fullkeyname, 260);
+    char fullkeyname[MAX_PATH];
+    BuildFullKeyName(keyname, flags, fullkeyname, MAX_PATH);
 
-    if (!(flags & 4)) {
+    if (!(flags & SREG_EXCLUDE_CURRENT_USER)) {
         result = ILoadValue(HKEY_CURRENT_USER, fullkeyname, valuename, datatype, buffer, bytes, bytesread);
 
         if (!result) {
@@ -81,7 +81,7 @@ static int32_t InternalLoadEntry(const char* keyname, const char* valuename, uin
         }
     }
 
-    if (!(flags & 1)) {
+    if (!(flags & SREG_EXCLUDE_LOCAL_MACHINE)) {
         result = ILoadValue(HKEY_LOCAL_MACHINE, fullkeyname, valuename, datatype, buffer, bytes, bytesread);
     }
 
@@ -94,33 +94,33 @@ static int32_t InternalLoadEntry(const char* keyname, const char* valuename, uin
     return 0;
 }
 
-// VERIFY: 913277ef manual
+// VERIFY: 839c0d2e manual
 // OFFSET: 0x00770580
 static int32_t InternalSaveEntry(const char* keyname, const char* valuename, uint32_t flags, DWORD datatype, const void* buffer, DWORD bytes) {
-    char fullkeyname[260];
-    BuildFullKeyName(keyname, flags, fullkeyname, 260);
+    char fullkeyname[MAX_PATH];
+    BuildFullKeyName(keyname, flags, fullkeyname, MAX_PATH);
 
-    WCHAR widename[260];
+    WCHAR widename[MAX_PATH];
     HKEY key;
     DWORD disposition;
     LSTATUS result;
 
     if (!g_opt.unicodeenabled) {
-        result = RegCreateKeyExA(flags & 4 ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER, fullkeyname, 0, nullptr, 0, KEY_WRITE, nullptr, &key, &disposition);
+        result = RegCreateKeyExA(flags & SREG_EXCLUDE_CURRENT_USER ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER, fullkeyname, 0, nullptr, 0, KEY_WRITE, nullptr, &key, &disposition);
     } else {
-        SUniConvertUTF8to16(reinterpret_cast<uint16_t*>(widename), 260, fullkeyname, 0x7FFFFFFF, nullptr, nullptr);
-        result = RegCreateKeyExW(flags & 4 ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER, widename, 0, nullptr, 0, KEY_WRITE, nullptr, &key, &disposition);
+        SUniConvertUTF8to16(reinterpret_cast<uint16_t*>(widename), MAX_PATH, fullkeyname, STORM_MAX_STR, nullptr, nullptr);
+        result = RegCreateKeyExW(flags & SREG_EXCLUDE_CURRENT_USER ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER, widename, 0, nullptr, 0, KEY_WRITE, nullptr, &key, &disposition);
     }
 
     if (!result) {
         if (!g_opt.unicodeenabled) {
             result = RegSetValueExA(key, valuename, 0, datatype, static_cast<const BYTE*>(buffer), bytes);
         } else {
-            SUniConvertUTF8to16(reinterpret_cast<uint16_t*>(widename), 260, valuename, 0x7FFFFFFF, nullptr, nullptr);
+            SUniConvertUTF8to16(reinterpret_cast<uint16_t*>(widename), MAX_PATH, valuename, STORM_MAX_STR, nullptr, nullptr);
             result = RegSetValueExW(key, widename, 0, datatype, static_cast<const BYTE*>(buffer), bytes);
         }
 
-        if (!result && (flags & 8)) {
+        if (!result && (flags & SREG_FLUSH_KEY)) {
             result = RegFlushKey(key);
         }
 
@@ -218,7 +218,7 @@ int32_t STORMAPI SRegLoadValue(const char* keyname, const char* valuename, uint3
     return 1;
 }
 
-// VERIFY: e574ee8a manual
+// VERIFY: bbc971a0 manual
 // OFFSET: 0x007708F0
 int32_t STORMAPI SRegSaveString(const char* keyname, const char* valuename, uint32_t flags, const char* string) {
     if (!keyname || !*keyname || !valuename || !*valuename || !string) {
@@ -226,7 +226,7 @@ int32_t STORMAPI SRegSaveString(const char* keyname, const char* valuename, uint
         return 0;
     }
 
-    WCHAR widestring[260];
+    WCHAR widestring[MAX_PATH];
     const void* data;
     DWORD bytes;
 
@@ -234,7 +234,7 @@ int32_t STORMAPI SRegSaveString(const char* keyname, const char* valuename, uint
         bytes = static_cast<DWORD>(SStrLen(string) + 1);
         data = string;
     } else {
-        SUniConvertUTF8to16(reinterpret_cast<uint16_t*>(widestring), 260, string, 0x7FFFFFFF, nullptr, nullptr);
+        SUniConvertUTF8to16(reinterpret_cast<uint16_t*>(widestring), MAX_PATH, string, STORM_MAX_STR, nullptr, nullptr);
         bytes = static_cast<DWORD>((wcslen(widestring) + 1) * sizeof(WCHAR));
         data = widestring;
     }

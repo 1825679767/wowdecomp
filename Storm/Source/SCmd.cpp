@@ -6,6 +6,10 @@
 #include "Storm/H/stpl.h"
 #include "Storm/H/storm.h"
 
+#define SCMD_STRING_INVALID_ARGUMENT 0x5201
+#define SCMD_STRING_SYNTAX_INCORRECT 0x5202
+#define SCMD_STRING_RESPONSE_FILE 0x5203
+
 // STATIC: 0x00A39F84
 static const char* const s_errorstr[3] = {
     "Invalid argument: %s",
@@ -24,7 +28,7 @@ static int32_t s_addedoptional;
 
 static int32_t ProcessString(const char** stringptr, _PROCESSING* processing, CMDDEF** nextarg, int32_t (STORMAPI* extracallback)(const char*), void (STORMAPI* errorcallback)(_CMDERROR*));
 
-// VERIFY: 2ffd6149 manual
+// VERIFY: 57a7617a manual
 // OFFSET: 0x00772B30
 static void ConvertBool(CMDDEF* ptr, const char* string, int32_t* datachars) {
     int32_t set;
@@ -36,7 +40,7 @@ static void ConvertBool(CMDDEF* ptr, const char* string, int32_t* datachars) {
         set = 1;
         *datachars = 1;
     } else {
-        set = (ptr->flags & 1) != 1;
+        set = (ptr->flags & SCMD_BOOL_CLEAR) != SCMD_BOOL_CLEAR;
     }
 
     ptr->currvalue &= ~ptr->setmask;
@@ -54,12 +58,12 @@ static void ConvertBool(CMDDEF* ptr, const char* string, int32_t* datachars) {
     }
 }
 
-// VERIFY: 371a4de5 manual
+// VERIFY: c9248849 manual
 // OFFSET: 0x00772BA0
 static void ConvertNumber(CMDDEF* ptr, const char* string, int32_t* datachars) {
     char* endptr = nullptr;
 
-    if (ptr->flags & 1) {
+    if (ptr->flags & SCMD_NUM_SIGNED) {
         ptr->currvalue = strtol(string, &endptr, 0);
     } else {
         ptr->currvalue = strtoul(string, &endptr, 0);
@@ -76,7 +80,7 @@ static void ConvertNumber(CMDDEF* ptr, const char* string, int32_t* datachars) {
     }
 }
 
-// VERIFY: bfa55d35 manual
+// VERIFY: e5d0c972 manual
 // OFFSET: 0x00772C20
 static void ConvertString(CMDDEF* ptr, const char* string, int32_t* datachars) {
     *datachars = SStrLen(string);
@@ -86,31 +90,31 @@ static void ConvertString(CMDDEF* ptr, const char* string, int32_t* datachars) {
     }
 
     ptr->currvaluestr = static_cast<char*>(SMemAlloc(SStrLen(string) + 1, __FILE__, __LINE__, 0));
-    SStrCopy(ptr->currvaluestr, string, 0x7FFFFFFF);
+    SStrCopy(ptr->currvaluestr, string, STORM_MAX_STR);
 
     if (ptr->variableptr) {
         SStrCopy(static_cast<char*>(ptr->variableptr), string, ptr->variablebytes);
     }
 }
 
-// VERIFY: 65c3005a manual
+// VERIFY: fa07c0c1 manual
 // OFFSET: 0x00772C90
 static void GenerateError(void (STORMAPI* errorcallback)(_CMDERROR*), uint32_t errorcode, const char* itemstring) {
     uint32_t index;
     UINT stringid;
 
     switch (errorcode) {
-        case 0x85100065:
+        case STORM_ERROR_BAD_ARGUMENT:
             index = 0;
-            stringid = 0x5201;
+            stringid = SCMD_STRING_INVALID_ARGUMENT;
             break;
-        case 0x8510006D:
+        case STORM_ERROR_NOT_ENOUGH_ARGUMENTS:
             index = 1;
-            stringid = 0x5202;
+            stringid = SCMD_STRING_SYNTAX_INCORRECT;
             break;
         case ERROR_OPEN_FAILED:
             index = 2;
-            stringid = 0x5203;
+            stringid = SCMD_STRING_RESPONSE_FILE;
             break;
         default:
             return;
@@ -172,7 +176,7 @@ static int32_t ProcessFile(const char* filename, _PROCESSING* processing, CMDDEF
     return result;
 }
 
-// VERIFY: 32d9d033 manual
+// VERIFY: 07f50fe2 manual
 // OFFSET: 0x00772E70
 static CMDDEF* FindFlagDef(const char* string, CMDDEF* firstdef, int32_t minlength) {
     int32_t strlength = SStrLen(string);
@@ -183,7 +187,7 @@ static CMDDEF* FindFlagDef(const char* string, CMDDEF* firstdef, int32_t minleng
         if (ptr->namelength > bestlength && ptr->namelength <= strlength) {
             int32_t match;
 
-            if (ptr->flags & 0x100) {
+            if (ptr->flags & SCMD_CASE_SENSITIVE) {
                 match = !strncmp(ptr->name, string, ptr->namelength);
             } else {
                 match = !_strnicmp(ptr->name, string, ptr->namelength);
@@ -199,19 +203,19 @@ static CMDDEF* FindFlagDef(const char* string, CMDDEF* firstdef, int32_t minleng
     return bestptr;
 }
 
-// VERIFY: a4c6f104 manual
+// VERIFY: 57f0dce1 manual
 // OFFSET: 0x00772F60
 static int32_t PerformConversion(CMDDEF* ptr, const char* string, int32_t* datachars) {
     *datachars = 0;
 
-    switch (ptr->flags & 0x30000) {
-        case 0:
+    switch (ptr->flags & SCMD_TYPE_MASK) {
+        case SCMD_TYPE_BOOL:
             ConvertBool(ptr, string, datachars);
             break;
-        case 0x10000:
+        case SCMD_TYPE_NUMBER:
             ConvertNumber(ptr, string, datachars);
             break;
-        case 0x20000:
+        case SCMD_TYPE_STRING:
             ConvertString(ptr, string, datachars);
             break;
         default:
@@ -239,16 +243,16 @@ static int32_t PerformConversion(CMDDEF* ptr, const char* string, int32_t* datac
         TSList<CMDDEF>* list = i ? &s_flaglist : &s_arglist;
 
         for (CMDDEF* curr = list->Head(); !TSList<CMDDEF>::IsEnd(curr); curr = list->RawNext(curr)) {
-            if (curr->id == ptr->id && (curr->flags & 0x30000) == (ptr->flags & 0x30000) && curr != ptr) {
+            if (curr->id == ptr->id && (curr->flags & SCMD_TYPE_MASK) == (ptr->flags & SCMD_TYPE_MASK) && curr != ptr) {
                 curr->found = 1;
 
-                if ((curr->flags & 0x30000) == 0x20000) {
+                if ((curr->flags & SCMD_TYPE_MASK) == SCMD_TYPE_STRING) {
                     if (curr->currvaluestr) {
                         SMemFree(curr->currvaluestr, __FILE__, __LINE__, 0);
                     }
 
                     curr->currvaluestr = static_cast<char*>(SMemAlloc(SStrLen(ptr->currvaluestr) + 1, __FILE__, __LINE__, 0));
-                    SStrCopy(curr->currvaluestr, ptr->currvaluestr, 0x7FFFFFFF);
+                    SStrCopy(curr->currvaluestr, ptr->currvaluestr, STORM_MAX_STR);
                 } else {
                     curr->currvalue = ptr->currvalue;
                 }
@@ -281,7 +285,7 @@ static int32_t ProcessCurrentFlag(const char* string, _PROCESSING* processing, i
     return 1;
 }
 
-// VERIFY: 811be472 manual
+// VERIFY: 676197ee manual
 // OFFSET: 0x00773160
 static int32_t ProcessFlags(const char* string, _PROCESSING* processing, void (STORMAPI* errorcallback)(_CMDERROR*)) {
     char lastflag[256];
@@ -307,7 +311,7 @@ static int32_t ProcessFlags(const char* string, _PROCESSING* processing, void (S
 
         if (!flagdef) {
             if (errorcallback) {
-                GenerateError(errorcallback, 0x85100065, string);
+                GenerateError(errorcallback, STORM_ERROR_BAD_ARGUMENT, string);
             }
 
             return 0;
@@ -321,9 +325,9 @@ static int32_t ProcessFlags(const char* string, _PROCESSING* processing, void (S
 
         processing->ptr = flagdef;
         processing->namelength = namelength;
-        SStrCopy(processing->name, lastflag, 0x7FFFFFFF);
+        SStrCopy(processing->name, lastflag, STORM_MAX_STR);
 
-        if (!*curr && (flagdef->flags & 0x30000)) {
+        if (!*curr && (flagdef->flags & SCMD_TYPE_MASK)) {
             flagdef->found = 1;
             return 1;
         }
@@ -340,7 +344,7 @@ static int32_t ProcessFlags(const char* string, _PROCESSING* processing, void (S
     return 1;
 }
 
-// VERIFY: 1b062e8d manual
+// VERIFY: 47908333 manual
 // OFFSET: 0x007732F0
 static int32_t ProcessToken(const char* string, int32_t quoted, _PROCESSING* processing, CMDDEF** nextarg, int32_t (STORMAPI* extracallback)(const char*), void (STORMAPI* errorcallback)(_CMDERROR*)) {
     if (*string == '@' && !quoted) {
@@ -369,21 +373,21 @@ static int32_t ProcessToken(const char* string, int32_t quoted, _PROCESSING* pro
         }
 
         if (errorcallback) {
-            GenerateError(errorcallback, 0x85100065, string);
+            GenerateError(errorcallback, STORM_ERROR_BAD_ARGUMENT, string);
         }
     }
 
     return 0;
 }
 
-// VERIFY: a65d2107 manual
+// VERIFY: 933c71b1 manual
 // OFFSET: 0x007733D0
 int32_t STORMAPI SCmdDestroy() {
     for (int32_t i = 0; i <= 1; i++) {
         TSList<CMDDEF>* list = i ? &s_flaglist : &s_arglist;
 
         for (CMDDEF* ptr = list->Head(); !TSList<CMDDEF>::IsEnd(ptr); ptr = list->RawNext(ptr)) {
-            if ((ptr->flags & 0x30000) == 0x20000 && ptr->currvaluestr) {
+            if ((ptr->flags & SCMD_TYPE_MASK) == SCMD_TYPE_STRING && ptr->currvaluestr) {
                 SMemFree(ptr->currvaluestr, __FILE__, __LINE__, 0);
                 ptr->currvaluestr = nullptr;
             }
@@ -467,25 +471,25 @@ int32_t STORMAPI SCmdRegisterArgument(uint32_t flags, uint32_t id, const char* n
         return 0;
     }
 
-    if ((flags & 0x3000000) == 0x2000000 && s_addedoptional) {
+    if ((flags & SCMD_ARG_MASK) == SCMD_ARG_REQUIRED && s_addedoptional) {
         DebugValidate("(((flags) & ((0 << 24) | (1 << 24) | (2 << 24))) != (2 << 24)) || (!s_addedoptional)");
         SErrSetLastError(ERROR_INVALID_PARAMETER);
         return 0;
     }
 
-    if ((flags & 0x3000000) == 0 && namelength <= 0) {
+    if ((flags & SCMD_ARG_MASK) == SCMD_ARG_FLAG && namelength <= 0) {
         DebugValidate("(((flags) & ((0 << 24) | (1 << 24) | (2 << 24))) != (0 << 24)) || (namelength > 0)");
         SErrSetLastError(ERROR_INVALID_PARAMETER);
         return 0;
     }
 
-    if ((flags & 0x30000) == 0 && variableptr && variablebytes != sizeof(DWORD)) {
+    if ((flags & SCMD_TYPE_MASK) == SCMD_TYPE_BOOL && variableptr && variablebytes != sizeof(DWORD)) {
         DebugValidate("(((flags) & ((0 << 16) | (1 << 16) | (2 << 16))) != (0 << 16)) || (!variableptr) || (variablebytes == sizeof(DWORD))");
         SErrSetLastError(ERROR_INVALID_PARAMETER);
         return 0;
     }
 
-    CMDDEF* ptr = ((flags & 0x3000000) ? &s_arglist : &s_flaglist)->NewNode(2, 0, 0);
+    CMDDEF* ptr = ((flags & SCMD_ARG_MASK) ? &s_arglist : &s_flaglist)->NewNode(2, 0, 0);
     SStrCopy(ptr->name, name, sizeof(ptr->name));
     ptr->id = id;
     ptr->namelength = namelength;
@@ -496,13 +500,13 @@ int32_t STORMAPI SCmdRegisterArgument(uint32_t flags, uint32_t id, const char* n
     ptr->setmask = setmask;
     ptr->callback = callback;
 
-    if ((flags & 0x30000) || (flags & 1) != 1) {
+    if ((flags & SCMD_TYPE_MASK) || (flags & SCMD_BOOL_CLEAR) != SCMD_BOOL_CLEAR) {
         ptr->currvalue = 0;
     } else {
         ptr->currvalue = setvalue;
     }
 
-    if ((flags & 0x3000000) == 0x1000000) {
+    if ((flags & SCMD_ARG_MASK) == SCMD_ARG_OPTIONAL) {
         s_addedoptional = 1;
     }
 
@@ -552,7 +556,7 @@ int32_t STORMAPI SCmdGetBool(uint32_t id) {
     return SCmdGetNum(id) != 0;
 }
 
-// VERIFY: 448e3761 manual
+// VERIFY: 6a7f749e manual
 // OFFSET: 0x00773890
 int32_t STORMAPI SCmdProcess(const char* cmdline, int32_t skipprogname, int32_t (STORMAPI* extracallback)(const char*), void (STORMAPI* errorcallback)(_CMDERROR*)) {
     if (!cmdline) {
@@ -577,7 +581,7 @@ int32_t STORMAPI SCmdProcess(const char* cmdline, int32_t skipprogname, int32_t 
     int32_t result = 1;
 
     while (nextarg && result) {
-        if ((nextarg->flags & 0x3000000) == 0x2000000) {
+        if ((nextarg->flags & SCMD_ARG_MASK) == SCMD_ARG_REQUIRED) {
             result = 0;
         } else {
             nextarg = nextarg->Next();
@@ -585,7 +589,7 @@ int32_t STORMAPI SCmdProcess(const char* cmdline, int32_t skipprogname, int32_t 
     }
 
     if (errorcallback && !result) {
-        GenerateError(errorcallback, 0x8510006D, "");
+        GenerateError(errorcallback, STORM_ERROR_NOT_ENOUGH_ARGUMENTS, "");
     }
 
     return result;
