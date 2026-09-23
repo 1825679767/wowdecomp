@@ -40,7 +40,7 @@ inline BigNum& BigNum::PowMod(const BigNum& b, const BigNum& c, const BigNum& d)
 // INLINED: 0x0077CA22->0x0077CA48
 inline void* BigNum::ToBinaryBuffer(void* data, uint32_t bytes) const {
     uint32_t written;
-    SBigToBinaryBuffer(this->m_data, static_cast<uint8_t*>(data), bytes, &written);
+    SBigToBinaryBuffer(this->m_data, data, bytes, &written);
 
     if (written < bytes) {
         memset(static_cast<uint8_t*>(data) + written, 0, bytes - written);

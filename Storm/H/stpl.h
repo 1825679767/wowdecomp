@@ -92,6 +92,7 @@ class TSFixedArray : public TSBaseArray<T> {
     public:
     TSFixedArray();
     ~TSFixedArray();
+    TSFixedArray<T>& operator=(const TSFixedArray<T>& source);
     void Clear();
     void ReallocAndClearData(uint32_t count);
     void ReallocData(uint32_t count);
@@ -537,6 +538,16 @@ void TSFixedArray<T>::SetCount(uint32_t count) {
             this->Clear();
         }
     }
+}
+
+// INLINED
+template <class T>
+TSFixedArray<T>& TSFixedArray<T>::operator=(const TSFixedArray<T>& source) {
+    if (this != &source) {
+        this->Set(source.m_count, source.m_data);
+    }
+
+    return *this;
 }
 
 template <class T>

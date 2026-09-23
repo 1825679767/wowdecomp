@@ -6,14 +6,21 @@
 
 #define STORMAPI __stdcall
 
-struct BigData;
+class BigData;
 struct SSignatureData;
 
+void STORMAPI SBigAdd(BigData* a, const BigData* b, const BigData* c);
+void STORMAPI SBigBitLen(BigData* a, uint32_t* bits);
+int32_t STORMAPI SBigCompare(const BigData* a, const BigData* b);
 void STORMAPI SBigDel(BigData* num);
 void STORMAPI SBigFromBinary(BigData* num, const void* data, uint32_t bytes);
+void STORMAPI SBigFromUnsigned(BigData* num, uint32_t val);
+void STORMAPI SBigMod(BigData* a, const BigData* b, const BigData* c);
+void STORMAPI SBigMul(BigData* a, const BigData* b, const BigData* c);
 void STORMAPI SBigNew(BigData** num);
-void STORMAPI SBigPowMod(BigData* a, BigData* b, BigData* c, BigData* d);
-void STORMAPI SBigToBinaryBuffer(BigData* num, uint8_t* data, uint32_t maxBytes, uint32_t* bytes);
+void STORMAPI SBigPowMod(BigData* a, const BigData* b, const BigData* c, const BigData* d);
+void STORMAPI SBigSub(BigData* a, const BigData* b, const BigData* c);
+void STORMAPI SBigToBinaryBuffer(const BigData* num, void* data, uint32_t maxBytes, uint32_t* bytes);
 
 int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int32_t linenumber, const char* description, int32_t recoverable, uint32_t exitcode, uint32_t unknown);
 void STORMAPI SErrSetLastError(uint32_t errorcode);
