@@ -52,6 +52,15 @@ void STORMAPI SErrSetLastError(uint32_t errorcode);
 void STORMAPI SErrSetLogCallback(int32_t (STORMAPI* callback)(char*, uint32_t));
 void STORMAPI SErrSetLogTitleString(const char* title);
 
+void STORMAPI SLogClose(HSLOG log);
+int32_t STORMAPI SLogCreate(const char* filename, uint32_t flags, HSLOG* log);
+void STORMAPI SLogDestroy();
+void STORMAPI SLogFlush(HSLOG log);
+void STORMAPI SLogFlushAll();
+void STORMAPI SLogInitialize();
+void STORMAPI SLogVWrite(HSLOG log, const char* format, va_list arglist);
+void SLogWrite(HSLOG log, const char* format, ...);
+
 void SDebugPrintf(const char* format, ...);
 
 struct MEMREPORTENTRY {
@@ -83,7 +92,7 @@ int32_t SSignatureVerifyStream_Finish(SSignatureData* token, const uint8_t* modu
 uint32_t SSignatureVerifyStream_GetSignatureLength(SSignatureData* token);
 void SSignatureVerifyStream_ProvideData(SSignatureData* token, const uint8_t* data, uint32_t size);
 
-const char* SStrChr(const char* string, char search);
+char* SStrChr(const char* string, char search);
 char* SStrChrR(char* string, char search);
 int32_t STORMAPI SStrCmp(const char* string1, const char* string2, size_t maxchars);
 int32_t STORMAPI SStrCmpI(const char* string1, const char* string2, size_t maxchars);
@@ -94,6 +103,7 @@ uint32_t STORMAPI SStrHashHT(const char* string);
 size_t STORMAPI SStrLen(const char* string);
 size_t STORMAPI SStrPack(char* dest, const char* source, size_t destsize);
 size_t SStrPrintf(char* dest, size_t maxchars, const char* format, ...);
+size_t SStrVPrintf(char* dest, size_t maxchars, const char* format, va_list arglist);
 void STORMAPI SStrTokenize(const char** string, char* buffer, size_t bufferchars, const char* whitespace, int32_t* quoted);
 
 int32_t STORMAPI SUniConvertUTF16to8(char* dst, uint32_t dstmaxchars, const uint16_t* src, uint32_t srcmaxchars, uint32_t* dstchars, uint32_t* srcchars);

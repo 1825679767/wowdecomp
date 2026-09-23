@@ -27,6 +27,12 @@ struct _ARGLIST {
     /* 000C */ int32_t (STORMAPI* callback)(_CMDPARAMS*, const char*);
 };
 
+struct HSLOG__ {
+    /* 0000 */ int32_t unused;
+};
+
+typedef HSLOG__* HSLOG;
+
 struct _CMDERROR {
     /* 0000 */ uint32_t errorcode;
     /* 0004 */ const char* itemstr;
