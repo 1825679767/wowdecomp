@@ -161,8 +161,6 @@ struct HASHKEY_CONSTSTR {
 };
 
 struct HASHKEY_NONE {
-    /* 0000 */ int32_t m_unused;
-
     bool operator==(const HASHKEY_NONE& key);
 };
 
@@ -777,7 +775,7 @@ void TSHashTable<T, TKey>::Initialize() {
     }
 }
 
-// OFFSET: [0x004B93B0, 0x004D6A70, 0x0073F200]
+// OFFSET: [0x004B93B0, 0x004D6A70, 0x004F38D0, 0x0073F200, 0x007B0C60, 0x007BEA70, 0x007BEAE0]
 template <class T, class TKey>
 void TSHashTable<T, TKey>::Insert(T* ptr, uint32_t hashval, const TKey& key) {
     this->InternalLinkNode(ptr, hashval);
@@ -818,7 +816,6 @@ void TSHashTable<T, TKey>::InternalClear(int32_t warn) {
     }
 }
 
-// OFFSET: [0x004F38D0, 0x007B0C60, 0x007BEA70, 0x007BEAE0]
 template <class T, class TKey>
 void TSHashTable<T, TKey>::InternalLinkNode(T* ptr, uint32_t hashval) {
     if (this->m_slotmask == 0xFFFFFFFF) {

@@ -28,7 +28,7 @@ uint32_t SSyncObject::Wait(uint32_t timeout) {
 }
 
 // OFFSET: 0x007746B0
-uint32_t SSyncObject::WaitMultiplePtr(uint32_t count, SSyncObject** objects, int32_t waitAll, uint32_t timeout) {
+uint32_t STORMAPI SSyncObject::WaitMultiplePtr(uint32_t count, SSyncObject** objects, int32_t waitAll, uint32_t timeout) {
     HANDLE handles[MAXIMUM_WAIT_OBJECTS];
 
     if (count > MAXIMUM_WAIT_OBJECTS) {
@@ -60,7 +60,11 @@ int32_t SEvent::Reset() {
 int32_t SThread::SetPriority(int32_t priority) {
     static const int32_t priorities[] = { THREAD_PRIORITY_LOWEST, THREAD_PRIORITY_BELOW_NORMAL, THREAD_PRIORITY_NORMAL, THREAD_PRIORITY_ABOVE_NORMAL, THREAD_PRIORITY_HIGHEST, THREAD_PRIORITY_TIME_CRITICAL };
 
-    return priority < 6 && SetThreadPriority(this->m_opaqueData, priorities[priority]);
+    if (priority < 6) {
+        return SetThreadPriority(this->m_opaqueData, priorities[priority]);
+    }
+
+    return 0;
 }
 
 // OFFSET: 0x007747A0

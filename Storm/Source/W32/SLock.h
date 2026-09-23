@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Storm/H/storm.h"
 
 class SCritSect {
     public:
@@ -18,7 +19,7 @@ class SCritSect {
 
 class SSyncObject {
     public:
-    static uint32_t WaitMultiplePtr(uint32_t count, SSyncObject** objects, int32_t waitAll, uint32_t timeout);
+    static uint32_t STORMAPI WaitMultiplePtr(uint32_t count, SSyncObject** objects, int32_t waitAll, uint32_t timeout);
 
     /* 0000 */ HANDLE m_opaqueData;
 
