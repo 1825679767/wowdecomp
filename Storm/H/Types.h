@@ -27,6 +27,11 @@ struct _ARGLIST {
     /* 000C */ int32_t (STORMAPI* callback)(_CMDPARAMS*, const char*);
 };
 
+enum SMEMREPORTTYPE {
+    SMEM_REPORT_BY_CALLER = 0,
+    SMEM_REPORT_HISTOGRAM = 1,
+};
+
 struct HSRGN__ {
     /* 0000 */ int32_t unused;
 };

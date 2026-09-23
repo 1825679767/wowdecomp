@@ -75,6 +75,11 @@
 
 #define SSTR_HASH_CASESENSITIVE 0x1
 
+#define STORM_SERVICE_GETALLOCATOR 1
+#define STORM_SERVICE_GENERATEREPORT 2
+#define STORM_SERVICE_I64TOSTRING 3
+#define STORM_SERVICE_MARKALLHEAPS 4
+
 class BigData;
 struct HINSTANCE__;
 struct HWND__;
@@ -152,7 +157,7 @@ void* STORMAPI SMemAlloc(size_t bytes, const char* filename, int32_t linenumber,
 int32_t STORMAPI SMemFree(void* ptr, const char* filename, int32_t linenumber, uint32_t flags);
 void* STORMAPI SMemReAlloc(void* ptr, size_t bytes, const char* filename, int32_t linenumber, uint32_t flags);
 void STORMAPI SMemSetDebugFlags(uint32_t flags, uint8_t changeMask);
-void SMemGenerateReport(uint32_t type, uint32_t flags, void (STORMAPI* callback)(void*, const MEMREPORTENTRY*), void* context);
+void SMemGenerateReport(SMEMREPORTTYPE type, void (STORMAPI* callback)(void*, const MEMREPORTENTRY*), void* context);
 
 int32_t STORMAPI SRegGetBaseKey(uint32_t flags, char* buffer, uint32_t bufferchars);
 int32_t STORMAPI SRegLoadString(const char* keyname, const char* valuename, uint32_t flags, char* buffer, uint32_t buffersize);
@@ -218,6 +223,7 @@ HWND__* STORMAPI SMsgGetDefaultWindow();
 int32_t STORMAPI zlib_compress(uint8_t* dest, uint32_t* destLen, const uint8_t* source, uint32_t sourceLen, int32_t level);
 int32_t STORMAPI zlib_uncompress(uint8_t* dest, uint32_t* destLen, const uint8_t* source, uint32_t sourceLen);
 
+int32_t StormCallService(int32_t selector, ...);
 HINSTANCE__* STORMAPI StormGetInstance();
 
 void DebugLog(const char* format, ...);

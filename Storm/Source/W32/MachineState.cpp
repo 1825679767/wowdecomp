@@ -527,7 +527,7 @@ static void STORMAPI CmdMemOutput(void* hOutput, const MEMREPORTENTRY* entry) {
     dump->logLineProc(dump->logLineProcParam, "%5d %5d %s(%d)", entry->unk_0010, entry->unk_0014, entry->unk_0024, entry->unk_0020 >> 1);
 }
 
-// VERIFY: 8ff4d5e8 auto
+// VERIFY: ce870f4e auto
 // OFFSET: 0x0077D6C0
 static void sShowOutOfMemory(void (*logLineProc)(void*, const char*, ...), void* logLineProcParam) {
     if (!g_memFullError) {
@@ -537,8 +537,13 @@ static void sShowOutOfMemory(void (*logLineProc)(void*, const char*, ...), void*
     MEMDUMP dump;
     dump.logLineProc = logLineProc;
     dump.logLineProcParam = logLineProcParam;
-    SMemGenerateReport(2, 0, CmdMemOutput, &dump);
+    SMemGenerateReport(SMEM_REPORT_BY_CALLER, CmdMemOutput, &dump);
     sLogSeparatorLine(logLineProc, logLineProcParam, '-', 1);
+}
+
+// INLINED: [0x0077D6CF->0x0077D6E7]
+void SMemGenerateReport(SMEMREPORTTYPE type, void (STORMAPI* callback)(void*, const MEMREPORTENTRY*), void* context) {
+    StormCallService(STORM_SERVICE_GENERATEREPORT, type, callback, context);
 }
 
 // VERIFY: 4d821f64 auto
