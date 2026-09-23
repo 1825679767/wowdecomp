@@ -123,6 +123,7 @@ void STORMAPI SErrSetLastError(uint32_t errorcode);
 void STORMAPI SErrSetLogCallback(int32_t (STORMAPI* callback)(char*, uint32_t));
 void STORMAPI SErrSetLogTitleString(const char* title);
 
+int32_t STORMAPI SEvtDestroy();
 int32_t STORMAPI SEvtUnregisterType(uint32_t type, uintptr_t subtype);
 
 void STORMAPI SLogClose(HSLOG log);
