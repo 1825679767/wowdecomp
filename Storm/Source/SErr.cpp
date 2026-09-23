@@ -645,7 +645,7 @@ int32_t STORMAPI SErrDestroy() {
     return 1;
 }
 
-// VERIFY: 1b09034a manual
+// VERIFY: fbaaf8a2 manual
 // OFFSET: 0x00771D10
 int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int32_t linenumber, const char* description, int32_t recoverable, uint32_t exitcode, uint32_t unknown) {
     // STATIC: 0x00CAE934
@@ -793,7 +793,7 @@ int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int3
             CloseHandle(logfile);
         }
 
-        char* details = strstr(outstr, "Debug Details:");
+        char* details = SStrStr(outstr, "Debug Details:");
 
         if (details) {
             outptr = details;

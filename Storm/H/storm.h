@@ -73,6 +73,8 @@
 #define MPQ_COMPRESSION_ADPCM_MONO 0x40
 #define MPQ_COMPRESSION_ADPCM_STEREO 0x80
 
+#define SSTR_HASH_CASESENSITIVE 0x1
+
 class BigData;
 struct HINSTANCE__;
 struct HWND__;
@@ -169,19 +171,41 @@ int32_t SSignatureVerifyStream_Finish(SSignatureData* token, const uint8_t* modu
 uint32_t SSignatureVerifyStream_GetSignatureLength(SSignatureData* token);
 void SSignatureVerifyStream_ProvideData(SSignatureData* token, const uint8_t* data, uint32_t size);
 
+const char* STORMAPI SStrAdvanceCharsUTF8(const char* string, size_t chars);
 char* SStrChr(const char* string, char search);
 char* SStrChrR(char* string, char search);
 int32_t STORMAPI SStrCmp(const char* string1, const char* string2, size_t maxchars);
 int32_t STORMAPI SStrCmpI(const char* string1, const char* string2, size_t maxchars);
-int32_t STORMAPI SStrCmpUTF8I(const char* string1, const char* string2, int32_t maxchars);
+int32_t STORMAPI SStrCmpUTF8I(const char* string1, const char* string2, size_t maxchars);
 size_t STORMAPI SStrCopy(char* dest, const char* source, size_t destsize);
+size_t STORMAPI SStrCopyUTF8(char* dest, const char* source, size_t destsize, size_t maxchars);
 char* STORMAPI SStrDupA(const char* string, const char* filename, int32_t linenumber);
+uint32_t STORMAPI SStrHash(const char* string, uint32_t flags, uint32_t seed);
 uint32_t STORMAPI SStrHashHT(const char* string);
+void STORMAPI SStrInitialize();
 size_t STORMAPI SStrLen(const char* string);
+size_t STORMAPI SStrLen(const uint16_t* string);
+size_t STORMAPI SStrLenUTF8(const char* string);
+size_t STORMAPI SStrLenUTF8(const char* string, size_t maxchars);
+void STORMAPI SStrLower(char* string);
 size_t STORMAPI SStrPack(char* dest, const char* source, size_t destsize);
 size_t SStrPrintf(char* dest, size_t maxchars, const char* format, ...);
-size_t SStrVPrintf(char* dest, size_t maxchars, const char* format, va_list arglist);
+int32_t STORMAPI SStrSortUTF8I(const char* string1, const char* string2, size_t maxchars);
+char* SStrStr(const char* string, const char* search);
+char* SStrStrI(const char* string, const char* search);
+const char* SStrStrUTF8I(const char* string, const char* search);
+float STORMAPI SStrToFloat(const char* string);
+int32_t STORMAPI SStrToInt(const char* string);
+int64_t STORMAPI SStrToInt64(const char* string);
+uint32_t STORMAPI SStrToUnsigned(const char* string);
+uint32_t STORMAPI SStrToUnsigned(const char** string);
 void STORMAPI SStrTokenize(const char** string, char* buffer, size_t bufferchars, const char* whitespace, int32_t* quoted);
+void STORMAPI SStrUpper(char* string);
+size_t SStrVPrintf(char* dest, size_t maxchars, const char* format, va_list arglist);
+
+char* Int64ToString(int64_t num, char* buf, size_t destsize);
+int32_t vsnoprintf(char* dest, size_t maxchars, const char* format, va_list arglist);
+int32_t vsoprintf(char* dest, const char* format, va_list arglist);
 
 int32_t STORMAPI SUniConvertUTF16to8(char* dst, uint32_t dstmaxchars, const uint16_t* src, uint32_t srcmaxchars, uint32_t* dstchars, uint32_t* srcchars);
 int32_t STORMAPI SUniConvertUTF8to16(uint16_t* dst, uint32_t dstmaxchars, const char* src, uint32_t srcmaxchars, uint32_t* dstchars, uint32_t* srcchars);

@@ -1107,7 +1107,7 @@ T* TSHashTable<T, TKey>::Ptr(uint32_t hashval, const TKey& key) {
 }
 
 // VERIFY: fca99b11 manual
-// OFFSET: [0x004BE0E0, 0x0053F3B0, 0x00687870, 0x006C8100, 0x007E0250]
+// OFFSET: [0x004BE0E0, 0x0053F3B0, 0x0055F4D0, 0x00687870, 0x006C8100, 0x007E0250]
 template <class T, class TKey>
 T* TSHashTable<T, TKey>::Ptr(const char* str) {
     if (this->m_slotmask == 0xFFFFFFFF) {
