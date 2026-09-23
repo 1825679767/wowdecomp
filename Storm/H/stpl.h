@@ -19,6 +19,7 @@ class TSLink {
     int32_t IsLinked();
     T* Next();
     TSLink<T>* NextLink(ptrdiff_t linkoffset);
+    T* RawNext();
     void Unlink();
 };
 
@@ -40,6 +41,8 @@ class TSList {
     /* 0000 */ ptrdiff_t m_linkoffset;
     /* 0004 */ TSLink<T> m_terminator;
 
+    static int32_t IsEnd(T* ptr);
+
     TSList();
     TSList(const TSList<T, TGetLink>& source);
     ~TSList();
@@ -55,6 +58,7 @@ class TSList {
     void LinkToTail(T* ptr);
     T* NewNode(uint32_t location, size_t extrabytes, uint32_t flags);
     T* Next(T* ptr);
+    T* RawNext(T* ptr);
     void SetLinkOffset(ptrdiff_t linkoffset);
     void UnlinkAll();
     void UnlinkNode(T* ptr);
@@ -70,6 +74,8 @@ template <class T>
 class TSLinkedNode {
     public:
     /* 0000 */ TSLink<T> m_link;
+
+    T* Next();
 };
 
 template <class T>
@@ -226,6 +232,12 @@ TSLink<T>* TSLink<T>::NextLink(ptrdiff_t linkoffset) {
     return reinterpret_cast<TSLink<T>*>(reinterpret_cast<uint8_t*>(this->m_next) + linkoffset);
 }
 
+// INLINED
+template <class T>
+T* TSLink<T>::RawNext() {
+    return this->m_next;
+}
+
 // VERIFY: ecb66e10 auto
 // OFFSET: 0x0079F820
 template <class T>
@@ -246,6 +258,13 @@ TSLink<T>* TSGetLink<T>::Link(T* nodeptr, ptrdiff_t linkoffset) {
 template <class T>
 TSLink<T>* TSGetExplicitLink<T>::Link(T* nodeptr, ptrdiff_t linkoffset) {
     return reinterpret_cast<TSLink<T>*>(reinterpret_cast<uint8_t*>(nodeptr) + linkoffset);
+}
+
+// VERIFY: 718ec6f6 auto
+// OFFSET: 0x00407900
+template <class T, class TGetLink>
+int32_t TSList<T, TGetLink>::IsEnd(T* ptr) {
+    return (reinterpret_cast<uintptr_t>(ptr) & 1) || !ptr;
 }
 
 template <class T, class TGetLink>
@@ -373,6 +392,13 @@ T* TSList<T, TGetLink>::Next(T* ptr) {
     return this->Link(ptr)->Next();
 }
 
+// VERIFY: 230ebf8d auto
+// OFFSET: 0x004D4770
+template <class T, class TGetLink>
+T* TSList<T, TGetLink>::RawNext(T* ptr) {
+    return this->Link(ptr)->RawNext();
+}
+
 template <class T, class TGetLink>
 void TSList<T, TGetLink>::SetLinkOffset(ptrdiff_t linkoffset) {
     this->m_linkoffset = linkoffset;
@@ -400,6 +426,12 @@ void TSList<T, TGetLink>::UnlinkNode(T* ptr) {
 template <class T, int offset>
 TSExplicitList<T, offset>::TSExplicitList() {
     this->SetLinkOffset(offset);
+}
+
+// INLINED
+template <class T>
+T* TSLinkedNode<T>::Next() {
+    return this->m_link.Next();
 }
 
 template <class T>

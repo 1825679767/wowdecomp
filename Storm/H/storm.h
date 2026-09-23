@@ -4,8 +4,7 @@
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
-
-#define STORMAPI __stdcall
+#include "Storm/H/Types.h"
 
 class BigData;
 struct HINSTANCE__;
@@ -24,6 +23,15 @@ void STORMAPI SBigNew(BigData** num);
 void STORMAPI SBigPowMod(BigData* a, const BigData* b, const BigData* c, const BigData* d);
 void STORMAPI SBigSub(BigData* a, const BigData* b, const BigData* c);
 void STORMAPI SBigToBinaryBuffer(const BigData* num, void* data, uint32_t maxBytes, uint32_t* bytes);
+
+int32_t STORMAPI SCmdDestroy();
+int32_t STORMAPI SCmdGetBool(uint32_t id);
+uint32_t STORMAPI SCmdGetNum(uint32_t id);
+int32_t STORMAPI SCmdGetString(uint32_t id, char* buffer, uint32_t bufferchars);
+int32_t STORMAPI SCmdProcess(const char* cmdline, int32_t skipprogname, int32_t (STORMAPI* extracallback)(const char*), void (STORMAPI* errorcallback)(_CMDERROR*));
+int32_t STORMAPI SCmdProcessCommandLine(int32_t (STORMAPI* extracallback)(const char*), void (STORMAPI* errorcallback)(_CMDERROR*));
+int32_t STORMAPI SCmdRegisterArgList(const _ARGLIST* listptr, uint32_t numargs);
+int32_t STORMAPI SCmdRegisterArgument(uint32_t flags, uint32_t id, const char* name, void* variableptr, uint32_t variablebytes, uint32_t setvalue, uint32_t setmask, int32_t (STORMAPI* callback)(_CMDPARAMS*, const char*));
 
 void STORMAPI SErrCatchUnhandledExceptions();
 int32_t STORMAPI SErrDestroy();
@@ -75,6 +83,7 @@ int32_t SSignatureVerifyStream_Finish(SSignatureData* token, const uint8_t* modu
 uint32_t SSignatureVerifyStream_GetSignatureLength(SSignatureData* token);
 void SSignatureVerifyStream_ProvideData(SSignatureData* token, const uint8_t* data, uint32_t size);
 
+const char* SStrChr(const char* string, char search);
 char* SStrChrR(char* string, char search);
 int32_t STORMAPI SStrCmp(const char* string1, const char* string2, size_t maxchars);
 int32_t STORMAPI SStrCmpI(const char* string1, const char* string2, size_t maxchars);
@@ -85,6 +94,7 @@ uint32_t STORMAPI SStrHashHT(const char* string);
 size_t STORMAPI SStrLen(const char* string);
 size_t STORMAPI SStrPack(char* dest, const char* source, size_t destsize);
 size_t SStrPrintf(char* dest, size_t maxchars, const char* format, ...);
+void STORMAPI SStrTokenize(const char** string, char* buffer, size_t bufferchars, const char* whitespace, int32_t* quoted);
 
 int32_t STORMAPI SUniConvertUTF16to8(char* dst, uint32_t dstmaxchars, const uint16_t* src, uint32_t srcmaxchars, uint32_t* dstchars, uint32_t* srcchars);
 int32_t STORMAPI SUniConvertUTF8to16(uint16_t* dst, uint32_t dstmaxchars, const char* src, uint32_t srcmaxchars, uint32_t* dstchars, uint32_t* srcchars);
