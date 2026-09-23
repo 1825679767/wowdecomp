@@ -1,5 +1,6 @@
 #include "SLock.h"
 #include "SThread.h"
+#include "Storm/H/storm.h"
 
 // OFFSET: 0x00774620
 SCritSect::SCritSect() {
@@ -75,6 +76,10 @@ void SMutex::Create(int32_t initialOwner, const char* name) {
     }
 
     this->m_opaqueData = CreateMutexA(nullptr, initialOwner, name);
+
+    if (!this->m_opaqueData) {
+        DebugLog("SMutex::Create: CreateMutex failed");
+    }
 }
 
 // OFFSET: 0x00774810
@@ -93,6 +98,10 @@ SSyncObject::~SSyncObject() {
 // OFFSET: 0x00774900
 SEvent::SEvent(int32_t manualReset, int32_t initialState) {
     this->m_opaqueData = CreateEventA(nullptr, manualReset, initialState, nullptr);
+
+    if (!this->m_opaqueData) {
+        DebugLog("SEvent::SEvent: CreateEvent failed");
+    }
 }
 
 // OFFSET: 0x00774940

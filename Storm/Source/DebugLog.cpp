@@ -1,0 +1,26 @@
+#include <cstdarg>
+#include <cstdio>
+#include <cstring>
+#include <windows.h>
+#include "Storm/H/storm.h"
+
+void DebugLog(const char* format, ...) {
+    char buffer[1024];
+
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+
+    OutputDebugStringA(buffer);
+
+    size_t length = strlen(buffer);
+
+    if (length == 0 || buffer[length - 1] != '\n') {
+        OutputDebugStringA("\n");
+    }
+}
+
+void DebugValidate(const char* expression) {
+    DebugLog("Validation failed: %s", expression);
+}
