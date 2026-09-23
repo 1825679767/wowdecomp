@@ -46,10 +46,22 @@ void STORMAPI SErrSetLogTitleString(const char* title);
 
 void SDebugPrintf(const char* format, ...);
 
+struct MEMREPORTENTRY {
+    /* 0000 */ uint8_t unk_0000[16];
+    /* 0010 */ uint32_t unk_0010;
+    /* 0014 */ uint32_t unk_0014;
+    /* 0018 */ uint8_t unk_0018[8];
+    /* 0020 */ uint32_t unk_0020;
+    /* 0024 */ char unk_0024[1];
+};
+
+extern int32_t g_memFullError;
+
 void* STORMAPI SMemAlloc(size_t bytes, const char* filename, int32_t linenumber, uint32_t flags);
 int32_t STORMAPI SMemFree(void* ptr, const char* filename, int32_t linenumber, uint32_t flags);
 void* STORMAPI SMemReAlloc(void* ptr, size_t bytes, const char* filename, int32_t linenumber, uint32_t flags);
 void STORMAPI SMemSetDebugFlags(uint32_t flags, uint8_t changeMask);
+void SMemGenerateReport(uint32_t type, uint32_t flags, void (STORMAPI* callback)(void*, const MEMREPORTENTRY*), void* context);
 
 int32_t STORMAPI SRegGetBaseKey(uint32_t flags, char* buffer, uint32_t bufferchars);
 int32_t STORMAPI SRegLoadString(const char* keyname, const char* valuename, uint32_t flags, char* buffer, uint32_t buffersize);
