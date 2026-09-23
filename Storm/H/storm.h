@@ -121,6 +121,8 @@ void STORMAPI SErrSetLastError(uint32_t errorcode);
 void STORMAPI SErrSetLogCallback(int32_t (STORMAPI* callback)(char*, uint32_t));
 void STORMAPI SErrSetLogTitleString(const char* title);
 
+int32_t STORMAPI SEvtUnregisterType(uint32_t type, uintptr_t subtype);
+
 void STORMAPI SLogClose(HSLOG log);
 int32_t STORMAPI SLogCreate(const char* filename, uint32_t flags, HSLOG* log);
 void STORMAPI SLogDestroy();
@@ -185,6 +187,7 @@ int32_t STORMAPI SUniConvertUTF16to8(char* dst, uint32_t dstmaxchars, const uint
 int32_t STORMAPI SUniConvertUTF8to16(uint16_t* dst, uint32_t dstmaxchars, const char* src, uint32_t srcmaxchars, uint32_t* dstchars, uint32_t* srcchars);
 int32_t STORMAPI SUniConvertUTF8to16Len(const char* src, uint32_t srcmaxchars, uint32_t* srcchars);
 
+int32_t STORMAPI SMsgDestroy();
 HWND__* STORMAPI SMsgGetDefaultWindow();
 
 int32_t STORMAPI zlib_compress(uint8_t* dest, uint32_t* destLen, const uint8_t* source, uint32_t sourceLen, int32_t level);
