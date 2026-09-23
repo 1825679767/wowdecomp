@@ -19,6 +19,7 @@ class TSLink {
     int32_t IsLinked();
     T* Next();
     TSLink<T>* NextLink(ptrdiff_t linkoffset);
+    T* Prev();
     T* RawNext();
     void Unlink();
 };
@@ -60,6 +61,7 @@ class TSList {
     T* Next(T* ptr);
     T* RawNext(T* ptr);
     void SetLinkOffset(ptrdiff_t linkoffset);
+    T* Tail();
     void UnlinkAll();
     void UnlinkNode(T* ptr);
 };
@@ -76,6 +78,7 @@ class TSLinkedNode {
     /* 0000 */ TSLink<T> m_link;
 
     T* Next();
+    T* RawNext();
 };
 
 template <class T>
@@ -279,6 +282,12 @@ TSLink<T>* TSLink<T>::NextLink(ptrdiff_t linkoffset) {
 
 // INLINED
 template <class T>
+T* TSLink<T>::Prev() {
+    return this->m_prevLink->m_prevLink->Next();
+}
+
+// INLINED
+template <class T>
 T* TSLink<T>::RawNext() {
     return this->m_next;
 }
@@ -450,6 +459,12 @@ void TSList<T, TGetLink>::SetLinkOffset(ptrdiff_t linkoffset) {
     this->InitializeTerminator();
 }
 
+// INLINED
+template <class T, class TGetLink>
+T* TSList<T, TGetLink>::Tail() {
+    return this->m_terminator.Prev();
+}
+
 // VERIFY: cdd999f0 manual
 // OFFSET: [0x005BD800, 0x007CECD0]
 template <class T, class TGetLink>
@@ -477,6 +492,20 @@ TSExplicitList<T, offset>::TSExplicitList() {
 template <class T>
 T* TSLinkedNode<T>::Next() {
     return this->m_link.Next();
+}
+
+// INLINED
+template <class T>
+T* TSLinkedNode<T>::RawNext() {
+    return this->m_link.RawNext();
+}
+
+// INLINED
+template <class T>
+void TSSwap(T& a, T& b) {
+    T temp = a;
+    a = b;
+    b = temp;
 }
 
 template <class T>

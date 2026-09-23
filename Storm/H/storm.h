@@ -33,6 +33,8 @@ int32_t STORMAPI SCmdProcessCommandLine(int32_t (STORMAPI* extracallback)(const 
 int32_t STORMAPI SCmdRegisterArgList(const _ARGLIST* listptr, uint32_t numargs);
 int32_t STORMAPI SCmdRegisterArgument(uint32_t flags, uint32_t id, const char* name, void* variableptr, uint32_t variablebytes, uint32_t setvalue, uint32_t setmask, int32_t (STORMAPI* callback)(_CMDPARAMS*, const char*));
 
+int32_t STORMAPI SCompDestroy();
+
 void STORMAPI SErrCatchUnhandledExceptions();
 int32_t STORMAPI SErrDestroy();
 [[noreturn]] void SErrDisplayAppFatal(const char* format, ...);
@@ -117,6 +119,9 @@ int32_t STORMAPI SUniConvertUTF8to16(uint16_t* dst, uint32_t dstmaxchars, const 
 int32_t STORMAPI SUniConvertUTF8to16Len(const char* src, uint32_t srcmaxchars, uint32_t* srcchars);
 
 HWND__* STORMAPI SMsgGetDefaultWindow();
+
+int32_t STORMAPI zlib_compress(uint8_t* dest, uint32_t* destLen, const uint8_t* source, uint32_t sourceLen, int32_t level);
+int32_t STORMAPI zlib_uncompress(uint8_t* dest, uint32_t* destLen, const uint8_t* source, uint32_t sourceLen);
 
 HINSTANCE__* STORMAPI StormGetInstance();
 
