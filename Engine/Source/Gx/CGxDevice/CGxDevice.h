@@ -8,8 +8,10 @@
 #include "Engine/Source/Gx/CGxGammaRamp.h"
 #include "Engine/Source/Gx/CGxLight.h"
 #include "Engine/Source/Gx/CGxMatrixStack.h"
+#include "Engine/Source/Gx/CGxTex.h"
 #include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Tempest/C2Vector.h"
+#include "Engine/Source/Tempest/C2iVector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C4Vector.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
@@ -20,6 +22,7 @@
 #include "WoW/Source/WorldClient/Types.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "Engine/Source/Tempest/CRect.h"
+#include "Engine/Source/Tempest/CiRect.h"
 #include "_Triage/EmergencyMem.h"
 
 class CGxAppRenderState;
@@ -45,6 +48,10 @@ class CGxAppRenderState {
     /* 0014 */ int32_t m_dirty;
 };
 
+typedef void (__fastcall* GxDeviceCallback)();
+typedef intptr_t (__stdcall* GxWindowProc)(void* window, uint32_t message, uintptr_t wparam, intptr_t lparam);
+typedef void (*GxTexUserFunc)(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevel, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);
+
 class CGxDevice {
     public:
     struct TextureTarget {
@@ -64,17 +71,17 @@ class CGxDevice {
     /* 0050 */ C2Vector m_primTexCoord [8];
     /* 0090 */ C3Vector m_primNormal;
     /* 009C */ CImVector m_primColor;
-    /* 00A0 */ TSGrowableArray<uint32_t> m_primVertexArray;
-    /* 00B0 */ TSGrowableArray<uint32_t> m_primTexCoordArray [8];
-    /* 0130 */ TSGrowableArray<uint32_t> m_primNormalArray;
-    /* 0140 */ TSGrowableArray<uint32_t> m_primColorArray;
-    /* 0150 */ TSGrowableArray<uint32_t> m_primIndexArray;
+    /* 00A0 */ TSGrowableArray<C3Vector> m_primVertexArray;
+    /* 00B0 */ TSGrowableArray<C2Vector> m_primTexCoordArray [8];
+    /* 0130 */ TSGrowableArray<C3Vector> m_primNormalArray;
+    /* 0140 */ TSGrowableArray<CImVector> m_primColorArray;
+    /* 0150 */ TSGrowableArray<uint16_t> m_primIndexArray;
     /* 0160 */ uint32_t m_primMask;
     /* 0164 */ CRect m_defWindowRect;
     /* 0174 */ CRect m_curWindowRect;
-    /* 0184 */ TSGrowableArray<uint32_t> m_deviceRestoredCallbacks;
-    /* 0194 */ TSGrowableArray<uint32_t> m_textureRecreationCallbacks;
-    /* 01A4 */ TSGrowableArray<uint32_t> m_stereoChangedCallbacks;
+    /* 0184 */ TSGrowableArray<GxDeviceCallback> m_deviceRestoredCallbacks;
+    /* 0194 */ TSGrowableArray<GxDeviceCallback> m_textureRecreationCallbacks;
+    /* 01A4 */ TSGrowableArray<GxDeviceCallback> m_stereoChangedCallbacks;
     /* 01B4 */ EGxApi m_api;
     /* 01B8 */ uint32_t m_cpuFeatures;
     /* 01BC */ CGxFormat m_format;
@@ -82,7 +89,7 @@ class CGxDevice {
     /* 0350 */ uint32_t m_baseMipLevel;
     /* 0354 */ CGxGammaRamp m_gammaRamp;
     /* 0954 */ CGxGammaRamp m_systemGammaRamp;
-    /* 0F54 */ int32_t (__stdcall* m_windowProc )(void* window, uint32_t message, uintptr_t wparam, intptr_t lparam);
+    /* 0F54 */ GxWindowProc m_windowProc;
     /* 0F58 */ int32_t m_context;
     /* 0F5C */ int32_t m_intF5C;
     /* 0F60 */ int32_t m_windowVisible;
@@ -135,7 +142,92 @@ class CGxDevice {
     /* 3960 */ CGxTex* m_cursorTexture;
     /* 3964 */ float m_cursorDepth;
 
+    virtual void ITexMarkAsUpdated(CGxTex* texId);
+    virtual void IRsSendToHw(EGxRenderState which) = 0;
+    virtual void ICursorCreate(const CGxFormat& format);
+    virtual void ICursorDestroy();
+    virtual void ICursorDraw();
+    virtual void NotifyOnDeviceRestored();
+    virtual void NotifyOnTextureRecreation();
+    virtual void NotifyOnStereoChanged();
     virtual ~CGxDevice();
+    virtual int32_t DeviceCreate(GxWindowProc windowProc, const CGxFormat& format);
+    virtual int32_t DeviceCreate(void* window, const CGxFormat& format);
+    virtual void DeviceDestroy();
+    virtual void DeviceEvictResources();
+    virtual int32_t DeviceSetFormat(const CGxFormat& format);
+    virtual void DeviceSetBaseMipLevel(uint32_t level);
+    virtual void DeviceSetGamma(float gamma);
+    virtual void DeviceSetGamma(const CGxGammaRamp& ramp);
+    virtual void* DeviceWindow() = 0;
+    virtual void DeviceTakeScreenShot();
+    virtual void DeviceReadScreenShot(uint32_t& width, uint32_t& height, const CImVector*& pixels);
+    virtual void DeviceReadPixels(CiRect& rect, TSGrowableArray<CImVector>& pixels) = 0;
+    virtual void DeviceReadDepths(CiRect& rect, TSGrowableArray<float>& depths) = 0;
+    virtual int32_t DeviceWM(EGxWM wm, uintptr_t param1, uintptr_t param2) = 0;
+    virtual void DeviceSetRenderTarget(EGxBuffer buffer, CGxTex* texture, uint32_t plane);
+    virtual void DeviceSaveDepthSurface();
+    virtual void DeviceRestoreDepthSurface();
+    virtual void DeviceResolveDepthBuffer(CGxTex* texture);
+    virtual void DeviceCopyTex(CGxTex* source, uint32_t sourcePlane, CGxTex* dest, uint32_t destPlane);
+    virtual void DeviceOverride(EGxOverride override, uint32_t value);
+    virtual void AddDeviceRestoredCallback(GxDeviceCallback callback);
+    virtual void RemoveDeviceRestoredCallback(GxDeviceCallback callback);
+    virtual void AddTextureRecreationCallback(GxDeviceCallback callback);
+    virtual void RemoveTextureRecreationCallback(GxDeviceCallback callback);
+    virtual void AddStereoChangedCallback(GxDeviceCallback callback);
+    virtual void RemoveStereoChangedCallback(GxDeviceCallback callback);
+    virtual void CapsWindowSize(CRect& rect) = 0;
+    virtual void CapsWindowSizeInScreenCoords(CRect& rect) = 0;
+    virtual void LogCrashInfo(char* buffer, uint32_t size);
+    virtual void ScenePresent();
+    virtual void SceneClear(uint32_t mask, CImVector color);
+    virtual void XformSetProjection(const C44Matrix& matrix);
+    virtual void XformSetView(const C44Matrix& matrix);
+    virtual void Draw(CGxBatch* batch, int32_t count);
+    virtual void PrimBegin(EGxPrim primType);
+    virtual void PrimDrawElements();
+    virtual void PrimVertex(const C3Vector& v);
+    virtual void PrimTexCoord(uint32_t tmu, const C2Vector& t);
+    virtual void PrimNormal(const C3Vector& n);
+    virtual void PrimColor(const CImVector& c);
+    virtual void PrimPointSize(float size);
+    virtual void PrimLineWidth(float width);
+    virtual void MasterEnableSet(EGxMasterEnables state, int32_t enable);
+    virtual void PoolSizeSet(CGxPool* pool, uint32_t size) = 0;
+    virtual void PoolDestroy(CGxPool* pool);
+    virtual char* BufLock(CGxBuf* buf);
+    virtual int32_t BufUnlock(CGxBuf* buf, uint32_t size);
+    virtual void BufData(CGxBuf* buf, const void* data, uint32_t size, uint32_t offset);
+    virtual void TexCreate(EGxTexTarget target, uint32_t width, uint32_t height, uint32_t depth, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags, void* userArg, GxTexUserFunc userFunc, const char* name, CGxTex*& texId);
+    virtual void TexDestroy(CGxTex* texId);
+    virtual int32_t TexCopy(CGxTex* dest, CGxTex* source, const C2iVector& pos, const C2iVector& size, uint32_t level, uint32_t plane) = 0;
+    virtual int32_t TexStretch(CGxTex* dest, const CiRect* destRect, const CiRect* sourceRect, uint32_t level, uint32_t face) = 0;
+    virtual void TexSetCacheSize(uint32_t size);
+    virtual void QueryCreate(CGxQuery*& query, EGxQueryType type);
+    virtual void QueryDestroy(CGxQuery*& query);
+    virtual bool QueryBegin(CGxQuery* query) = 0;
+    virtual bool QueryEnd(CGxQuery* query) = 0;
+    virtual bool QueryGetParam(CGxQuery* query, EGxQueryParam param, uint32_t& data) = 0;
+    virtual bool QueryGetData(CGxQuery* query, uint32_t& data) = 0;
+    virtual void ShaderCreate(CGxShader** shaders, EGxShTarget target, const char* path, const char* name, uint32_t permutations);
+    virtual void ShaderDestroy(CGxShader*& shader);
+    virtual void ShaderConstantsSet(EGxShTarget target, uint32_t index, const float* constants, uint32_t count);
+    virtual void IShaderReload(CGxShader* shader, const char* path, const char* name) = 0;
+    virtual void IShaderCreate(CGxShader* shader) = 0;
+    virtual void CursorSetVisible(int32_t visible);
+    virtual uint32_t* CursorLock();
+    virtual void CursorUnlock(uint32_t x, uint32_t y);
+    virtual void StereoSetConvergence(float convergence) = 0;
+    virtual float StereoGetConvergence() = 0;
+    virtual void StereoSetSeparation(float separation) = 0;
+    virtual float StereoGetSeparation() = 0;
+    virtual bool StereoEnabled() = 0;
+    virtual void DeviceUnk81(uint32_t a, uint32_t b) = 0;
+    virtual void DeviceUnk82() = 0;
+    virtual void DeviceUnk83(uint32_t a, uint32_t b) = 0;
 };
+
+extern CGxDevice* g_theGxDevicePtr;
 
 #endif

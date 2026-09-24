@@ -55,6 +55,46 @@ enum EGxVertexBufferFormat {
     GxVertexBufferFormats_Last = 14,
 };
 
+enum EGxBuffer {
+    GxBuffers_Color = 0,
+    GxBuffers_Depth = 1,
+    GxBuffers_Last = 2,
+};
+
+enum EGxOverride {
+    GxOverride_PixelShader = 0,
+    GxOverride_Unk1 = 1,
+    GxOverride_Unk2 = 2,
+    GxOverride_Unk3 = 3,
+    GxOverride_Unk4 = 4,
+    GxOverride_Unk5 = 5,
+    GxOverride_Unk6 = 6,
+    GxOverride_Unk7 = 7,
+    GxOverride_Unk8 = 8,
+    GxOverrides_Last = 9,
+};
+
+enum EGxQueryParam {
+    GxQueryParam_Unk0 = 0,
+    GxQueryParams_Last = 1,
+};
+
+enum EGxTexCommand {
+    GxTex_Lock = 0,
+    GxTex_Latch = 1,
+    GxTex_Unlock = 2,
+    GxTex_3 = 3,
+    GxTexCommands_Last = 4,
+};
+
+enum EGxWM {
+    GxWM_Size = 0,
+    GxWM_DisplayChange = 1,
+    GxWM_Destroy = 2,
+    GxWM_SetFocus = 3,
+    GxWM_KillFocus = 4,
+};
+
 class CGxBatch {
     public:
     /* 0000 */ EGxPrim m_primType;
@@ -127,7 +167,15 @@ class CGxQuery {
     /* 0000 */ void* m_apiSpecific;
     /* 0004 */ EGxQueryType m_type;
     /* 0008 */ TSLink<CGxQuery> m_link;
+
+    CGxQuery(EGxQueryType type);
 };
+
+// INLINED
+inline CGxQuery::CGxQuery(EGxQueryType type) {
+    this->m_apiSpecific = nullptr;
+    this->m_type = type;
+}
 
 enum EGxPoolTarget {
     GxPoolTarget_Vertex = 0,

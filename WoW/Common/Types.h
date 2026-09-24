@@ -15,12 +15,4 @@ class CAaBspNode {
     /* 000C */ float m_planeDist;
 };
 
-enum EGxTexCommand {
-    GxTex_Lock = 0,
-    GxTex_Latch = 1,
-    GxTex_Unlock = 2,
-    GxTex_3 = 3,
-    GxTexCommands_Last = 4,
-};
-
 #endif

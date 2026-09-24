@@ -3,11 +3,6 @@
 
 #include <cstddef>
 #include <cstdint>
-
-enum EGxBuffer {
-    GxBuffers_Color = 0,
-    GxBuffers_Depth = 1,
-    GxBuffers_Last = 2,
-};
+#include "Engine/Source/Gx/Types.h"
 
 #endif

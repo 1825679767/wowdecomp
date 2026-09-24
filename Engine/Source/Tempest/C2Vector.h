@@ -11,10 +11,16 @@ class C2Vector {
     /* 0000 */ float x;
     /* 0004 */ float y;
 
-    C2Vector() = default;
+    C2Vector();
     C2Vector(const C3Vector& v);
     void Normalize();
     void NormalizeSafe();
 };
+
+// INLINED
+inline C2Vector::C2Vector() {
+    this->x = 0.0f;
+    this->y = 0.0f;
+}
 
 #endif
