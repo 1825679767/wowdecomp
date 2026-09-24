@@ -12,19 +12,4 @@ class TRefCnt {
     virtual ~TRefCnt();
 };
 
-// INLINED
-inline TRefCnt::TRefCnt() {
-    this->m_refcnt = 0;
-}
-
-// VERIFY: 9e4f100c manual
-// OFFSET: 0x00407920
-inline void TRefCnt::DeleteSelf() {
-    delete this;
-}
-
-// INLINED
-inline TRefCnt::~TRefCnt() {
-}
-
 #endif

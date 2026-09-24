@@ -21,18 +21,4 @@ void HandleDestroy();
 HOBJECT HandleDuplicate(HOBJECT handle);
 void HandleInitialize();
 
-// INLINED
-inline CHandleObject::CHandleObject() {
-    this->m_refcount = 0;
-}
-
-// INLINED
-inline CHandleObject::~CHandleObject() {
-}
-
-// INLINED
-inline const char* CHandleObject::GetObjectName() {
-    return nullptr;
-}
-
 #endif

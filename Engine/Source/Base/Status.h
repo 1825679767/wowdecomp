@@ -36,22 +36,4 @@ class CStatus {
 
 CStatus& GetGlobalStatusObj();
 
-// INLINED
-inline CStatus::STATUSENTRY::~STATUSENTRY() {
-    if (this->m_text) {
-        SMemFree(this->m_text, __FILE__, __LINE__, 0);
-    }
-}
-
-// INLINED
-inline CStatus::CStatus() {
-    this->m_highestSeverity = STATUS_INFO;
-}
-
-// INLINED
-inline void CStatus::Clear() {
-    this->m_statusList.Clear();
-    this->m_highestSeverity = STATUS_INFO;
-}
-
 #endif

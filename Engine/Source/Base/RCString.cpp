@@ -8,6 +8,15 @@
 // STATIC: 0x00B4166C
 CStringManager* CStringManager::s_stringManager;
 
+// INLINED
+RCString::RCString() {
+    this->Copy(nullptr);
+}
+
+// INLINED
+RCString::~RCString() {
+}
+
 // VERIFY: e6cc38e8 auto
 // OFFSET: 0x0047CCB0
 void RCString::Copy(const RCString& source) {

@@ -8,6 +8,24 @@
 // STATIC: 0x00AC0CE4
 static CStatus s_errorList;
 
+// INLINED
+CStatus::STATUSENTRY::~STATUSENTRY() {
+    if (this->m_text) {
+        SMemFree(this->m_text, __FILE__, __LINE__, 0);
+    }
+}
+
+// INLINED
+CStatus::CStatus() {
+    this->m_highestSeverity = STATUS_INFO;
+}
+
+// INLINED
+void CStatus::Clear() {
+    this->m_statusList.Clear();
+    this->m_highestSeverity = STATUS_INFO;
+}
+
 // VERIFY: d83a4f5e auto
 // OFFSET: 0x0047C090
 CStatus& GetGlobalStatusObj() {

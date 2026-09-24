@@ -3,6 +3,20 @@
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Storm/H/storm.h"
 
+// INLINED
+CHandleObject::CHandleObject() {
+    this->m_refcount = 0;
+}
+
+// INLINED
+CHandleObject::~CHandleObject() {
+}
+
+// INLINED
+const char* CHandleObject::GetObjectName() {
+    return nullptr;
+}
+
 // VERIFY: 436d38d9 manual
 // OFFSET: 0x0047BF30
 void HandleClose(HOBJECT handle) {

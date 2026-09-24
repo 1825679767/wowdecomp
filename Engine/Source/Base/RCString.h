@@ -40,13 +40,4 @@ class CStringManager {
     const char* Add(const char* str);
 };
 
-// INLINED
-inline RCString::RCString() {
-    this->Copy(nullptr);
-}
-
-// INLINED
-inline RCString::~RCString() {
-}
-
 #endif
