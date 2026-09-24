@@ -13,6 +13,17 @@ struct TLSSlot {
     /* 0004 */ TLSDestructor m_destructor;
 };
 
+template <class T>
+class LocalObject {
+    public:
+    static void Delete(void* ptr);
+    static void* New(void* param);
+
+    /* 0000 */ TLSSlot m_slot;
+
+    operator T&();
+};
+
 void* RegisterLocalStorage(TLSSlot* slot, void* (*constructor)(void*), void* param, TLSDestructor destructor);
 
 }
@@ -28,6 +39,26 @@ bool AllocateTLSSlot(Blizzard::Thread::TLSSlot* slot, Blizzard::Thread::TLSDestr
 void InternalSetLocalStorage(const Blizzard::Thread::TLSSlot* slot, const void* value);
 void RunTLSDestructors();
 
+}
+
+// VERIFY: 5e833541 auto
+// OFFSET: 0x00436070
+template <class T>
+void Blizzard::Thread::LocalObject<T>::Delete(void* ptr) {
+    delete static_cast<T*>(ptr);
+}
+
+// INLINED
+template <class T>
+void* Blizzard::Thread::LocalObject<T>::New(void* param) {
+    return new T;
+}
+
+// VERIFY: 55d34611 manual
+// OFFSET: 0x004537E0
+template <class T>
+Blizzard::Thread::LocalObject<T>::operator T&() {
+    return *static_cast<T*>(RegisterLocalStorage(&this->m_slot, New, nullptr, Delete));
 }
 
 #endif

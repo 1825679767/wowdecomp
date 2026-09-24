@@ -46,7 +46,7 @@ union FileInfoMask {
 
 namespace System_File {
 namespace Stacked {
-typedef bool (__stdcall* FileFunc )(Blizzard::File::Filesystem* fs, System_File::Stacked::FileParms* parms);
+typedef bool (*FileFunc)(Blizzard::File::Filesystem* fs, System_File::Stacked::FileParms* parms);
 }
 }
 
@@ -98,7 +98,7 @@ struct Filesystem {
 
 namespace Blizzard {
 namespace File {
-typedef bool (__stdcall* ProcessDirCallback_interface )(const Blizzard::File::ProcessDirParms* parms);
+typedef bool (*ProcessDirCallback_interface)(const Blizzard::File::ProcessDirParms& parms);
 }
 }
 
