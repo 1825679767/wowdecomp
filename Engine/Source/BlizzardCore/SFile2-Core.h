@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Storm/H/Types.h"
 
 namespace Blizzard { namespace Debug { struct ErrorStackRecord; }}
 
@@ -19,9 +20,18 @@ struct ErrorStackRecord {
 }
 }
 
+class SEvent;
+
+struct SOVERLAPPED {
+    /* 0000 */ uint32_t Offset;
+    /* 0004 */ SEvent* hEvent;
+};
+
 class SFile {
     public:
+    static void STORMAPI CreateOverlapped(SOVERLAPPED* overlapped);
     static void Destroy();
+    static void STORMAPI DestroyOverlapped(SOVERLAPPED* overlapped);
     static int32_t Initialize();
 
     /* 0000 */ uint8_t unk_0000[1];
