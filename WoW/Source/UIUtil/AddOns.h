@@ -4,17 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CDataStore {
-    public:
-    /* 0004 */ uint8_t* m_data;
-    /* 0008 */ uint32_t m_base;
-    /* 000C */ uint32_t m_alloc;
-    /* 0010 */ uint32_t m_size;
-    /* 0014 */ uint32_t m_read;
-
-    virtual ~CDataStore();
-};
-
 class UIADDON {
     public:
     /* 0000 */ uint8_t unk_0000[48];
