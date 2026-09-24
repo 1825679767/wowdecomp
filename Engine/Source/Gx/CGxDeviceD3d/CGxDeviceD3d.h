@@ -216,7 +216,7 @@ class CGxDeviceD3d : public CGxDevice {
     /* 3AB4 */ int32_t m_d3dNVAPI;
     /* 3AB8 */ uint32_t m_d3dStereoEnabled;
     /* 3ABC */ uint32_t m_d3dStereoRestore;
-    /* 3AC0 */ uint32_t m_d3dStereoHandle;
+    /* 3AC0 */ void* m_d3dStereoHandle;
     /* 3AC4 */ float m_d3dStereoConvergence;
     /* 3AC8 */ float m_d3dStereoSeparation;
     /* 3ACC */ int32_t m_d3dStereoDirty;
@@ -304,6 +304,9 @@ class CGxDeviceD3d : public CGxDevice {
     virtual void DeviceUnk82();
     virtual void DeviceUnk83(uint32_t a, uint32_t b);
 
+    static const D3DFORMAT s_GxFormatToD3dFormat[CGxFormat::Formats_Last];
+    static const D3DFORMAT s_GxTexFmtToD3dFmt[GxTexFormats_Last];
+    static const D3DPRIMITIVETYPE s_primitiveConversion[GxPrims_Last];
     static const D3DBLEND s_srcBlend[12];
     static const D3DBLEND s_dstBlend[12];
     static const D3DCMPFUNC s_cmpFunc[4];
@@ -317,18 +320,31 @@ class CGxDeviceD3d : public CGxDevice {
 
     static int32_t ILoadD3dLib(HINSTANCE& d3dLib, LPDIRECT3D9& d3d);
     static void IUnloadD3dLib(HINSTANCE& d3dLib, LPDIRECT3D9& d3d);
+    static LRESULT CALLBACK WindowProcD3d(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
 
     CGxDeviceD3d();
     void DsSet(EDeviceState state, uint32_t value);
     void IBindPixelShader(CGxShader* shader);
     void IBindVertexShader(CGxShader* shader);
     LPDIRECT3DVERTEXDECLARATION9 ICreateD3dVertexDecl(const D3DVERTEXELEMENT9* elements, uint32_t count);
+    int32_t ICreateD3d();
+    int32_t ICreateD3dDevice(const CGxFormat& format);
     LPDIRECT3DINDEXBUFFER9 ICreateD3dIB(EGxPoolUsage usage, uint32_t size);
     LPDIRECT3DVERTEXBUFFER9 ICreateD3dVB(EGxPoolUsage usage, uint32_t size);
+    int32_t ICreateWindow(CGxFormat& format);
+    void IDestroyD3d();
     void IReleaseD3dPool(CGxPool* pool);
+    void IReleaseD3dPools(int32_t freePools);
+    void IReleaseD3dQueries();
+    void IReleaseD3dResources(int32_t freeTextures);
+    void IReleaseD3dShaders(int32_t freeShaders);
+    void IReleaseD3dVertexDecl();
+    void ISceneBegin();
     void ISceneEnd();
     void ISetAlphaOp(uint32_t tmu, uint32_t op);
+    void ISetCaps(const CGxFormat& format);
     void ISetColorOp(uint32_t tmu, uint32_t op);
+    void ISetPresentParms(D3DPRESENT_PARAMETERS& d3dpp, const CGxFormat& format);
     void ISetMaterial(CImVector diffuse, CImVector emissive, CImVector specular, float specularExp);
     void ISetTexCoord(uint32_t tmu, uint32_t coord);
     void ISetTexCoordIndex(uint32_t tmu, int32_t texGen, uint32_t coord);
@@ -339,6 +355,7 @@ class CGxDeviceD3d : public CGxDevice {
     void IShaderCreatePixel(CGxShader* shader);
     void IShaderConstantsFlush();
     void IShaderCreateVertex(CGxShader* shader);
+    void IStateSetD3DDefaults();
     void IStateSync();
     void IStateSyncClipPlanes();
     void IStateSyncEnables();
@@ -347,6 +364,7 @@ class CGxDeviceD3d : public CGxDevice {
     void IStateSyncScissorRect();
     void IStateSyncVertexPtrs();
     void IStateSyncXforms();
+    void ITexForceRecreation(int32_t all);
     void IXformSetTex(uint32_t tmu);
     void IXformSetViewport();
     void IXformSetWorld();

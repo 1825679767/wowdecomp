@@ -13,6 +13,7 @@
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Os/Path.h"
 #include "Engine/Source/Os/Processor.h"
+#include "Engine/Source/Os/TimeManager.h"
 
 // STATIC: 0x00AD8B4C
 static uint32_t s_primVertsPerPrim[GxPrims_Last] = { 1, 2, 1, 3, 1, 1 };
@@ -59,8 +60,14 @@ static C2iVector kWinMinSize = { 320, 240 };
 // STATIC: 0x00C5DF88
 CGxDevice* g_theGxDevicePtr;
 
+// STATIC: 0x00C5DFD8
+CGxShader* CGxDevice::s_uiVertexShader[2];
+
 // STATIC: 0x00C5DFE0
 ShadowConstants CGxDevice::s_shadowConstants[2];
+
+// STATIC: 0x00C5FFFC
+CGxShader* CGxDevice::s_uiPixelShader;
 
 // STATIC: 0x00C5FFF4
 uint32_t CGxDevice::m_logBytes;
@@ -72,7 +79,10 @@ HSLOG CGxDevice::m_log;
 static float kWinAspect;
 
 // STATIC: 0x00C60300
-static C2iVector s_clientAdjust;
+C2iVector CGxDevice::s_clientAdjust;
+
+// STATIC: 0x00C60308
+static uint32_t s_nextFrameTime;
 
 void CGxDevice::DeviceEvictResources() {
 }
@@ -1656,4 +1666,31 @@ void CGxDevice::PrimDrawElements() {
         GxPrimLockIndexPtr(this->m_primType, this->m_primIndexArray.Count(), this->m_primIndexArray.m_data);
         GxDrawLockedElements();
     }
+}
+
+// VERIFY: e7eb4342 auto
+// OFFSET: 0x006836D0
+void CGxDevice::WaitForFPSCap() {
+    uint32_t maxFps = GxGetMaxFPS() ? GxGetMaxFPS() : 0xFFFFFFFF;
+    uint32_t maxFpsBk = GxGetMaxFPSBk() ? GxGetMaxFPSBk() : 0xFFFFFFFF;
+
+    if (!this->m_windowFocus && maxFps >= maxFpsBk) {
+        maxFps = maxFpsBk;
+    }
+
+    if (maxFps <= 8) {
+        maxFps = 8;
+    } else if (maxFps == 0xFFFFFFFF) {
+        return;
+    }
+
+    uint32_t frameMs = 1000 / maxFps;
+    uint32_t now = OsGetAsyncTimeMs();
+
+    if (s_nextFrameTime - now < 1000) {
+        OsSleep(s_nextFrameTime - now);
+        now = OsGetAsyncTimeMs();
+    }
+
+    s_nextFrameTime = now + frameMs;
 }

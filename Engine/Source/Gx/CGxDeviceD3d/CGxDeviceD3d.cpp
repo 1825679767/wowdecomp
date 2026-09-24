@@ -5,15 +5,28 @@
 #include "Engine/Source/Gx/CGxBuf.h"
 #include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/CGxTex.h"
+#include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Os/Error.h"
+#include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "ThirdParty/nvapi/nvapi.h"
 
 typedef IDirect3D9* (WINAPI* Direct3DCreate9Proc)(UINT sdkVersion);
+
+// STATIC: 0x00A2E4A8
+const D3DFORMAT CGxDeviceD3d::s_GxFormatToD3dFormat[CGxFormat::Formats_Last] = { D3DFMT_R5G6B5, D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8, D3DFMT_A2R10G10B10, D3DFMT_D16, D3DFMT_D24X8, D3DFMT_D24S8, D3DFMT_D32 };
 
 // STATIC: 0x00A2E4C8
 const uint32_t CGxDeviceD3d::s_gxAttribToD3dAttribSize[7] = { 4, 4, 4, 8, 12, 4, 4 };
 
 // STATIC: 0x00A2E4E4
 static const D3DQUERYTYPE s_d3dQueryTypes[1] = { D3DQUERYTYPE_OCCLUSION };
+
+// STATIC: 0x00A2F81C
+const D3DFORMAT CGxDeviceD3d::s_GxTexFmtToD3dFmt[GxTexFormats_Last] = { D3DFMT_UNKNOWN, D3DFMT_A8B8G8R8, D3DFMT_A8R8G8B8, D3DFMT_A4R4G4B4, D3DFMT_A1R5G5B5, D3DFMT_R5G6B5, D3DFMT_DXT1, D3DFMT_DXT3, D3DFMT_DXT5, D3DFMT_V8U8, D3DFMT_G16R16F, D3DFMT_R32F, D3DFMT_D24X8 };
+
+// STATIC: 0x00A2F8D4
+const D3DPRIMITIVETYPE CGxDeviceD3d::s_primitiveConversion[GxPrims_Last] = { D3DPT_POINTLIST, D3DPT_LINELIST, D3DPT_LINESTRIP, D3DPT_TRIANGLELIST, D3DPT_TRIANGLESTRIP, D3DPT_TRIANGLEFAN };
 
 // STATIC: 0x00A2F8EC
 const D3DDECLUSAGE CGxDeviceD3d::s_gxAttribToD3dAttribUsage[GxVAs_Last] = { D3DDECLUSAGE_POSITION, D3DDECLUSAGE_BLENDWEIGHT, D3DDECLUSAGE_BLENDINDICES, D3DDECLUSAGE_NORMAL, D3DDECLUSAGE_COLOR, D3DDECLUSAGE_COLOR, D3DDECLUSAGE_TEXCOORD, D3DDECLUSAGE_TEXCOORD, D3DDECLUSAGE_TEXCOORD, D3DDECLUSAGE_TEXCOORD, D3DDECLUSAGE_TEXCOORD, D3DDECLUSAGE_TEXCOORD, D3DDECLUSAGE_TEXCOORD, D3DDECLUSAGE_TEXCOORD };
@@ -1943,4 +1956,1029 @@ void CGxDeviceD3d::IBindVertexShader(CGxShader* shader) {
     } else {
         this->m_d3dDevice->SetVertexShader(nullptr);
     }
+}
+
+// VERIFY: 84e2843a manual
+// OFFSET: 0x0068E250
+void CGxDeviceD3d::ISetPresentParms(D3DPRESENT_PARAMETERS& d3dpp, const CGxFormat& format) {
+    memset(&d3dpp, 0, sizeof(d3dpp));
+
+    if (format.m_window) {
+        D3DDISPLAYMODE displayMode;
+
+        if (FAILED(this->m_d3d->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &displayMode))) {
+            displayMode.Format = this->m_desktopDisplayMode.Format;
+        }
+
+        const CRect& window = this->DeviceCurWindow();
+        d3dpp.Windowed = TRUE;
+        d3dpp.BackBufferWidth = static_cast<UINT>(window.maxX);
+        d3dpp.BackBufferFormat = displayMode.Format;
+        d3dpp.BackBufferHeight = static_cast<UINT>(window.maxY);
+        d3dpp.BackBufferCount = format.m_vsync ? format.m_backBufferCount : 1;
+        d3dpp.FullScreen_RefreshRateInHz = 0;
+    } else {
+        d3dpp.BackBufferWidth = format.m_size.x;
+        d3dpp.BackBufferHeight = format.m_size.y;
+        d3dpp.BackBufferFormat = s_GxFormatToD3dFormat[format.m_colorFormat];
+        d3dpp.BackBufferCount = format.m_vsync ? format.m_backBufferCount : 1;
+        d3dpp.FullScreen_RefreshRateInHz = format.m_refreshRate;
+    }
+
+    d3dpp.hDeviceWindow = this->m_hwnd;
+    d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+    d3dpp.EnableAutoDepthStencil = TRUE;
+    d3dpp.AutoDepthStencilFormat = s_GxFormatToD3dFormat[format.m_depthFormat];
+
+    switch (format.m_vsync) {
+        case 1:
+            d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+            break;
+
+        case 2:
+            d3dpp.PresentationInterval = format.m_window ? D3DPRESENT_INTERVAL_ONE : D3DPRESENT_INTERVAL_TWO;
+            break;
+
+        case 3:
+            d3dpp.PresentationInterval = format.m_window ? D3DPRESENT_INTERVAL_ONE : D3DPRESENT_INTERVAL_THREE;
+            break;
+
+        case 4:
+            d3dpp.PresentationInterval = format.m_window ? D3DPRESENT_INTERVAL_ONE : D3DPRESENT_INTERVAL_FOUR;
+            break;
+
+        default:
+            d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+            break;
+    }
+
+    if (format.m_multisampleCount <= 1) {
+        d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+        return;
+    }
+
+    d3dpp.MultiSampleType = static_cast<D3DMULTISAMPLE_TYPE>(format.m_multisampleCount);
+
+    DWORD qualityLevels;
+
+    if (FAILED(this->m_d3d->CheckDeviceMultiSampleType(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, d3dpp.BackBufferFormat, format.m_window, d3dpp.MultiSampleType, &qualityLevels)) || qualityLevels <= 1) {
+        qualityLevels = 1;
+    }
+
+    d3dpp.MultiSampleQuality = static_cast<DWORD>((qualityLevels - 1) * format.m_multisampleQuality);
+}
+
+// VERIFY: 284cb5b4 manual
+// OFFSET: 0x0068EB20
+static ATOM WindowClassCreate() {
+    HINSTANCE instance = GetModuleHandleA(nullptr);
+
+    WNDCLASSEXA windowClass;
+    memset(&windowClass, 0, sizeof(windowClass));
+    windowClass.cbSize = sizeof(windowClass);
+    windowClass.style = CS_OWNDC;
+    windowClass.lpfnWndProc = CGxDeviceD3d::WindowProcD3d;
+    windowClass.hInstance = instance;
+    windowClass.lpszClassName = "GxWindowClassD3d";
+    windowClass.hIcon = static_cast<HICON>(LoadImageA(instance, "BlizzardIcon.ico", IMAGE_ICON, 0, 0, LR_DEFAULTSIZE));
+    windowClass.hCursor = LoadCursorA(instance, "BlizzardCursor.cur");
+
+    if (!windowClass.hCursor) {
+        windowClass.hCursor = LoadCursorA(instance, IDC_ARROW);
+    }
+
+    return RegisterClassExA(&windowClass);
+}
+
+// VERIFY: 9db942aa manual
+// OFFSET: 0x0068EBB0
+int32_t CGxDeviceD3d::ICreateWindow(CGxFormat& format) {
+    HINSTANCE instance = GetModuleHandleA(nullptr);
+    DWORD style;
+
+    if (!format.m_window) {
+        style = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_SYSMENU;
+    } else if (format.m_maximize == 1) {
+        style = WS_POPUP | WS_VISIBLE;
+    } else if (format.m_maximize == 2) {
+        style = WS_POPUP;
+    } else {
+        style = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+    }
+
+    float aspectRatio = 0.0f;
+
+    if (format.m_aspect) {
+        int32_t width = format.m_size.x;
+
+        if (width) {
+            int32_t height = format.m_size.y;
+
+            if (height) {
+                aspectRatio = static_cast<float>(width) / height;
+            }
+        }
+    }
+
+    RECT clientRect;
+    clientRect.right = format.m_size.x;
+    clientRect.left = 0;
+    clientRect.top = 0;
+    clientRect.bottom = format.m_size.y;
+    AdjustWindowRectEx(&clientRect, style, FALSE, 0);
+
+    CGxDevice::s_clientAdjust.x = clientRect.right - format.m_size.x - clientRect.left;
+    CGxDevice::s_clientAdjust.y = clientRect.bottom - format.m_size.y - clientRect.top;
+
+    if (format.m_window) {
+        if (format.m_maximize == 1) {
+            format.m_pos.x = 0;
+            format.m_pos.y = 0;
+            format.m_size.x = GetSystemMetrics(SM_CXSCREEN);
+            format.m_size.y = GetSystemMetrics(SM_CYSCREEN);
+        } else {
+            RECT windowRect;
+            windowRect.left = 0;
+            windowRect.top = 0;
+            windowRect.right = format.m_size.x;
+            windowRect.bottom = format.m_size.y;
+
+            if (CGxDevice::AdjustWindowRectToWorkArea(aspectRatio, &CGxDevice::s_clientAdjust, &windowRect)) {
+                format.m_pos.x = windowRect.left;
+                format.m_pos.y = windowRect.top;
+                format.m_size.x = windowRect.right - windowRect.left;
+                format.m_size.y = windowRect.bottom - windowRect.top;
+            } else {
+                format.m_pos.x = 0;
+                format.m_pos.y = 0;
+            }
+        }
+    }
+
+    int32_t width = format.m_size.x;
+    int32_t height = format.m_size.y;
+
+    if (!width) {
+        width = CW_USEDEFAULT;
+    }
+
+    if (!height) {
+        height = CW_USEDEFAULT;
+    }
+
+    if (format.m_window && format.m_maximize != 1 && format.m_size.x && format.m_size.y) {
+        width += CGxDevice::s_clientAdjust.x;
+        height += CGxDevice::s_clientAdjust.y;
+    }
+
+    this->m_hwnd = CreateWindowExA(WS_EX_APPWINDOW, "GxWindowClassD3d", "World of Warcraft", style, format.m_pos.x, format.m_pos.y, width, height, nullptr, nullptr, instance, this);
+
+    if (this->m_hwnd && format.m_maximize != 2) {
+        ShowWindow(this->m_hwnd, SW_SHOWNORMAL);
+    }
+
+    return this->m_hwnd != nullptr;
+}
+
+// VERIFY: d94c29eb manual
+// OFFSET: 0x0068EE20
+void CGxDeviceD3d::ISetCaps(const CGxFormat& format) {
+    this->m_caps.m_numTmus = this->m_d3dCaps.MaxSimultaneousTextures >= 8 ? 8 : this->m_d3dCaps.MaxSimultaneousTextures;
+    this->m_caps.m_pixelCenterOnEdge = 0;
+    this->m_caps.m_texelCenterOnEdge = 1;
+
+    uint32_t maxTextureSize = this->m_d3dCaps.MaxTextureWidth;
+    this->m_caps.m_texMaxSize[GxTex_2d] = maxTextureSize >= 256 ? maxTextureSize : 256;
+    this->m_caps.m_texMaxSize[GxTex_CubeMap] = maxTextureSize >= 256 ? maxTextureSize : 256;
+    this->m_caps.m_texMaxSize[GxTex_Rectangle] = maxTextureSize >= 256 ? maxTextureSize : 256;
+    this->m_caps.m_texMaxSize[GxTex_NonPow2] = maxTextureSize >= 256 ? maxTextureSize : 256;
+    this->m_caps.m_maxIndex = this->m_d3dCaps.MaxVertexIndex;
+
+    uint32_t filterCaps = this->m_d3dCaps.TextureFilterCaps;
+    this->m_caps.m_texFilterTrilinear = (filterCaps & D3DPTFILTERCAPS_MIPFLINEAR) != 0;
+    this->m_caps.m_texFilterAnisotropic = (filterCaps & (D3DPTFILTERCAPS_MINFANISOTROPIC | D3DPTFILTERCAPS_MAGFANISOTROPIC)) != 0;
+
+    if (filterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC) {
+        s_filterModes[GxTex_Anisotropic][0] = D3DTEXF_ANISOTROPIC;
+    }
+
+    if (this->m_d3dCaps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC) {
+        s_filterModes[GxTex_Anisotropic][1] = D3DTEXF_ANISOTROPIC;
+    }
+
+    this->m_caps.m_maxTexAnisotropy = this->m_d3dCaps.MaxAnisotropy;
+
+    if (this->m_caps.m_texFilterAnisotropic && this->m_d3dCaps.MaxAnisotropy < 2) {
+        this->m_caps.m_texFilterAnisotropic = 0;
+    }
+
+    this->m_caps.m_depthBias = (this->m_d3dCaps.RasterCaps & D3DPRASTERCAPS_DEPTHBIAS) != 0;
+    this->m_caps.m_numStreams = this->m_d3dCaps.MaxStreams;
+    this->m_caps.unk_0010 = this->m_d3dCaps.Caps2 & 0x1;
+
+    for (uint32_t i = 0; i < GxShTargets_Last; i++) {
+        this->m_caps.m_shaderTargets[i] = 0;
+        this->m_caps.m_shaderConstants[i] = 0;
+    }
+
+    uint32_t pixelShaderVersion = this->m_d3dCaps.PixelShaderVersion;
+
+    if (pixelShaderVersion >= D3DPS_VERSION(3, 0)) {
+        this->m_caps.m_shaderTargets[GxSh_Pixel] = 4;
+    } else if (pixelShaderVersion >= D3DPS_VERSION(2, 0)) {
+        this->m_caps.m_shaderTargets[GxSh_Pixel] = 3;
+    } else if (pixelShaderVersion >= D3DPS_VERSION(1, 4)) {
+        this->m_caps.m_shaderTargets[GxSh_Pixel] = 2;
+    } else if (pixelShaderVersion >= D3DPS_VERSION(1, 1)) {
+        this->m_caps.m_shaderTargets[GxSh_Pixel] = 1;
+    }
+
+    if (this->m_caps.m_shaderTargets[GxSh_Pixel]) {
+        uint32_t vertexShaderVersion = this->m_d3dCaps.VertexShaderVersion;
+
+        if (vertexShaderVersion >= D3DVS_VERSION(3, 0)) {
+            this->m_caps.m_shaderTargets[GxSh_Vertex] = 3;
+        } else if (vertexShaderVersion >= D3DVS_VERSION(2, 0)) {
+            this->m_caps.m_shaderTargets[GxSh_Vertex] = 2;
+        } else if (vertexShaderVersion == D3DVS_VERSION(1, 1)) {
+            this->m_caps.m_shaderTargets[GxSh_Vertex] = 1;
+        }
+
+        this->m_caps.m_shaderConstants[GxSh_Vertex] = this->m_d3dCaps.MaxVertexShaderConst;
+    }
+
+    if (format.m_fixedFunction[GxSh_Pixel] != -1 && format.m_fixedFunction[GxSh_Pixel] <= this->m_caps.m_shaderTargets[GxSh_Pixel]) {
+        this->m_caps.m_shaderTargets[GxSh_Pixel] = format.m_fixedFunction[GxSh_Pixel];
+    }
+
+    if (format.m_fixedFunction[GxSh_Vertex] != -1 && format.m_fixedFunction[GxSh_Vertex] <= this->m_caps.m_shaderTargets[GxSh_Vertex]) {
+        this->m_caps.m_shaderTargets[GxSh_Vertex] = format.m_fixedFunction[GxSh_Vertex];
+    }
+
+    if (this->m_caps.m_shaderTargets[GxSh_Pixel] == 4 && this->m_caps.m_shaderTargets[GxSh_Vertex] != 3) {
+        this->m_caps.m_shaderTargets[GxSh_Pixel] = 3;
+    }
+
+    D3DDEVICE_CREATION_PARAMETERS creationParameters;
+    this->m_d3dDevice->GetCreationParameters(&creationParameters);
+
+    D3DADAPTER_IDENTIFIER9 identifier;
+    this->m_d3d->GetAdapterIdentifier(creationParameters.AdapterOrdinal, 0, &identifier);
+
+    if (identifier.VendorId == 0x10DE && identifier.DeviceId - 0x300 <= 0xFF && this->m_caps.m_shaderConstants[GxSh_Vertex] > 192) {
+        this->m_caps.m_shaderConstants[GxSh_Vertex] = 192;
+    }
+
+    for (uint32_t i = 0; i < GxTexFormats_Last; i++) {
+        if (i) {
+            this->m_caps.m_texFmt[i] = this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, 0, D3DRTYPE_TEXTURE, s_GxTexFmtToD3dFmt[i]) == D3D_OK;
+        } else {
+            this->m_caps.m_texFmt[0] = 0;
+        }
+    }
+
+    this->m_caps.m_generateMipMaps = (this->m_d3dCaps.Caps2 & D3DCAPS2_CANAUTOGENMIPMAP) != 0;
+
+    if (this->m_caps.m_shaderTargets[GxSh_Vertex] <= 1) {
+        s_gxAttribToD3dAttribType[1] = D3DDECLTYPE_D3DCOLOR;
+        s_gxAttribToD3dAttribType[2] = D3DDECLTYPE_D3DCOLOR;
+    }
+
+    this->m_caps.m_rttFormat[GxTex_Argb8888] = this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_A8R8G8B8) == D3D_OK;
+    this->m_caps.m_rttFormat[GxTex_Rgb565] = this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_R5G6B5) == D3D_OK;
+    this->m_caps.m_rttFormat[GxTex_Gr1616F] = this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_G16R16F) == D3D_OK;
+    this->m_caps.m_rttFormat[GxTex_R32F] = this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_R32F) == D3D_OK;
+    this->m_caps.m_rttFormat[GxTex_D24X8] = this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_TEXTURE, D3DFMT_D24X8) == D3D_OK;
+
+    this->m_caps.m_colorWrite = (this->m_d3dCaps.PrimitiveMiscCaps & D3DPMISCCAPS_COLORWRITEENABLE) != 0;
+    this->m_caps.m_hwCursor = this->m_d3dCaps.CursorCaps & D3DCURSORCAPS_COLOR;
+    this->m_caps.m_maxClipPlanes = this->m_d3dCaps.MaxUserClipPlanes;
+
+    uint32_t textureCaps = this->m_d3dCaps.TextureCaps;
+    this->m_caps.m_texTarget[GxTex_2d] = 1;
+    this->m_caps.m_texTarget[GxTex_CubeMap] = (textureCaps & D3DPTEXTURECAPS_CUBEMAP) != 0;
+    this->m_caps.m_texTarget[GxTex_Rectangle] = 0;
+    this->m_caps.m_texTarget[GxTex_NonPow2] = (textureCaps & D3DPTEXTURECAPS_NONPOW2CONDITIONAL) || !(textureCaps & D3DPTEXTURECAPS_POW2);
+    this->m_caps.m_texNonPow2 = 1;
+
+    if (this->m_caps.m_texTarget[GxTex_NonPow2]) {
+        this->m_caps.m_texNonPow2 = (textureCaps & D3DPTEXTURECAPS_NONPOW2CONDITIONAL) != 0;
+
+        if (identifier.VendorId == 0x10DE) {
+            this->m_caps.m_texNonPow2 = 0;
+        }
+    }
+
+    LPDIRECT3DQUERY9 query = nullptr;
+    this->m_caps.m_occlusionQuery = this->m_d3dDevice->CreateQuery(D3DQUERYTYPE_OCCLUSION, &query) == D3D_OK;
+
+    if (query) {
+        query->Release();
+    }
+
+    this->m_caps.m_pointParameters = this->m_d3dCaps.MaxPointSize > 1.0f;
+    this->m_caps.m_pointScaleMax = this->m_d3dCaps.MaxPointSize;
+    this->m_caps.m_pointSprite = this->m_d3dCaps.MaxPointSize > 1.0f;
+    this->m_caps.m_blendFactor = (this->m_d3dCaps.SrcBlendCaps & D3DPBLENDCAPS_BLENDFACTOR) != 0;
+    this->m_caps.unk_0130 = 1;
+    this->m_caps.unk_0114[1] = 0;
+    this->m_caps.unk_0114[0] = 0;
+    this->m_caps.unk_0114[2] = 0;
+    this->m_caps.unk_0114[3] = 0;
+    this->m_caps.unk_0114[4] = 0;
+    this->m_caps.unk_0134 = this->m_caps.m_shaderTargets[GxSh_Pixel] != 4;
+    this->m_caps.unk_0138 = this->m_caps.m_shaderTargets[GxSh_Pixel] != 4;
+}
+
+// VERIFY: fa4490e9 manual
+// OFFSET: 0x0068F370
+static void DefaultTexUserFunc(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t face, uint32_t level, void* userArg, uint32_t& texelStrideInBytes, const void*& texels) {
+    // STATIC: 0x00C60340
+    static CImVector s_texels[64];
+
+    switch (command) {
+        case GxTex_Lock: {
+            uint32_t color = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(userArg));
+
+            for (uint32_t i = 0; i < 64; i++) {
+                *reinterpret_cast<uint32_t*>(&s_texels[i]) = color;
+            }
+
+            break;
+        }
+
+        case GxTex_Latch:
+            texelStrideInBytes = 4 * width;
+            texels = s_texels;
+            break;
+
+        default:
+            break;
+    }
+}
+
+// VERIFY: ee744ef0 manual
+// OFFSET: 0x0068F3D0
+int32_t CGxDeviceD3d::ICreateD3dDevice(const CGxFormat& format) {
+    if (NvAPI_Initialize() == NVAPI_OK) {
+        this->m_d3dStereoEnabled = 0;
+        this->m_d3dNVAPI = 1;
+
+        NvU8 stereoEnabled;
+
+        switch (NvAPI_Stereo_IsEnabled(&stereoEnabled)) {
+            case NVAPI_NOT_SUPPORTED:
+                CGxDevice::Log("No stereoscopic device present.");
+                break;
+
+            case NVAPI_NO_IMPLEMENTATION:
+                CGxDevice::Log("No stereoscopic driver present.");
+                break;
+
+            case NVAPI_OK:
+                this->m_d3dStereoRestore = this->m_d3dStereoEnabled;
+                this->m_caps.m_stereoAvailable = 1;
+
+                if (format.m_stereoEnabled) {
+                    if (!stereoEnabled) {
+                        NvAPI_Status status = NvAPI_Stereo_Enable();
+
+                        if (status != NVAPI_OK) {
+                            NvAPI_ShortString message;
+                            NvAPI_GetErrorMessage(status, message);
+                            CGxDevice::Log("Failed to enable stereoscopic mode: %s", message);
+                        }
+                    }
+                } else if (stereoEnabled) {
+                    NvAPI_Stereo_Disable();
+                }
+
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    bool hwTnL = format.m_hwTnL;
+
+    if (hwTnL && !(this->m_d3dCaps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT)) {
+        hwTnL = false;
+    }
+
+    this->m_d3dIsHwDevice = hwTnL;
+
+    D3DPRESENT_PARAMETERS d3dpp;
+    this->ISetPresentParms(d3dpp, format);
+
+    DWORD behaviorFlags = hwTnL ? D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE | D3DCREATE_FPU_PRESERVE : D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_FPU_PRESERVE;
+
+    if (FAILED(this->m_d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_hwnd, behaviorFlags, &d3dpp, &this->m_d3dDevice))) {
+        this->m_d3dDevice = nullptr;
+        return 0;
+    }
+
+    if (this->m_d3dNVAPI) {
+        NvU8 stereoEnabled = 0;
+
+        if (NvAPI_Stereo_IsEnabled(&stereoEnabled) == NVAPI_OK && stereoEnabled) {
+            NvAPI_Stereo_CreateConfigurationProfileRegistryKey(NVAPI_STEREO_DEFAULT_REGISTRY_PROFILE);
+            NvAPI_Stereo_CreateHandleFromIUnknown(this->m_d3dDevice, reinterpret_cast<StereoHandle*>(&this->m_d3dStereoHandle));
+
+            if (this->m_d3dStereoHandle) {
+                this->m_d3dStereoEnabled = 1;
+                this->m_d3dStereoDirty = 1;
+            }
+        }
+    }
+
+    this->m_devAdapterFormat = d3dpp.BackBufferFormat;
+    this->m_context = 1;
+    this->m_devDepthFormat = d3dpp.AutoDepthStencilFormat;
+
+    this->ISetCaps(format);
+    this->Log(this->m_caps);
+    CGxDevice::Log("\tNVAPI: %d", this->m_d3dNVAPI);
+    CGxDevice::Log("\tstereoHandle: %x", this->m_d3dStereoHandle);
+
+    this->IStateSetD3DDefaults();
+    this->DeviceSetGamma(this->m_gammaRamp);
+    this->ICursorCreate(format);
+
+    // STATIC: 0x00C60444
+    static uint32_t s_defaultColor = 0xFF00FF00;
+
+    GxTexCreate(8, 8, GxTex_Argb8888, CGxTexFlags(GxTex_Linear), reinterpret_cast<void*>(static_cast<uintptr_t>(s_defaultColor)), DefaultTexUserFunc, this->m_texture3B58);
+
+    if (this->m_texture3B58) {
+        GxTexUpdate(this->m_texture3B58, 0, 0, 0, 0, 1);
+    }
+
+    g_theGxDevicePtr->ShaderCreate(CGxDevice::s_uiVertexShader, GxSh_Vertex, "Shaders\\Vertex", "UI", 2);
+    g_theGxDevicePtr->ShaderCreate(&CGxDevice::s_uiPixelShader, GxSh_Pixel, "Shaders\\Pixel", "UI", 1);
+
+    return 1;
+}
+
+// VERIFY: 7e7b165d manual
+// OFFSET: 0x00690150
+void CGxDeviceD3d::IReleaseD3dResources(int32_t freeTextures) {
+    this->ITexForceRecreation(freeTextures);
+    this->IReleaseD3dShaders(freeTextures);
+    this->IReleaseD3dPools(freeTextures);
+    memset(this->m_deviceStates, 0xFF, sizeof(this->m_deviceStates));
+
+    if (this->m_defColorSurface) {
+        this->m_defColorSurface->Release();
+        this->m_defColorSurface = nullptr;
+    }
+
+    if (this->m_defDepthSurface) {
+        this->m_defDepthSurface->Release();
+        this->m_defDepthSurface = nullptr;
+    }
+
+    if (this->m_defDepthStencilSurface) {
+        this->m_defDepthStencilSurface->Release();
+        this->m_defDepthStencilSurface = nullptr;
+    }
+
+    if (this->m_surface3B44) {
+        this->m_surface3B44->Release();
+        this->m_surface3B44 = nullptr;
+    }
+
+    if (this->m_eventQuery) {
+        this->m_eventQuery->Release();
+        this->m_eventQuery = nullptr;
+    }
+
+    this->IReleaseD3dQueries();
+
+    if (this->m_d3dDevice) {
+        this->m_d3dDevice->ShowCursor(FALSE);
+    }
+}
+
+// VERIFY: 40e1c97b manual
+// OFFSET: 0x00690230
+int32_t CGxDeviceD3d::DeviceWM(EGxWM wm, uintptr_t param1, uintptr_t param2) {
+    switch (wm) {
+        case GxWM_Size:
+            if (param2 == SIZE_MINIMIZED || param2 == SIZE_MAXHIDE) {
+                this->m_windowVisible = 0;
+                break;
+            }
+
+            this->m_windowVisible = 1;
+            this->DeviceSetDefWindow(*reinterpret_cast<const CRect*>(param1));
+
+            if (this->m_d3dDevice && this->m_context) {
+                this->IReleaseD3dResources(0);
+
+                D3DPRESENT_PARAMETERS d3dpp;
+                this->ISetPresentParms(d3dpp, this->m_format);
+
+                if (this->m_d3dDevice->Reset(&d3dpp) == D3D_OK) {
+                    this->IStateSetD3DDefaults();
+                    this->ISetWindowFocus(1);
+                    this->m_context = 1;
+                    this->m_intF5C = 0;
+                    this->NotifyOnDeviceRestored();
+                    this->m_viewportDirty = 1;
+                    break;
+                }
+
+                this->m_context = 0;
+            }
+
+            this->m_viewportDirty = 1;
+            break;
+
+        case GxWM_DisplayChange:
+            if (this->m_windowVisible) {
+                this->DeviceSetDefWindow(*reinterpret_cast<const CRect*>(param1));
+                this->m_viewportDirty = 1;
+            }
+
+            break;
+
+        case GxWM_Destroy:
+        case GxWM_KillFocus:
+            this->m_windowFocus = 0;
+            break;
+
+        case GxWM_SetFocus:
+            this->ISetWindowFocus(1);
+            break;
+
+        default:
+            break;
+    }
+
+    return 0;
+}
+
+// VERIFY: 53945590 manual
+// OFFSET: 0x006903B0
+void CGxDeviceD3d::IDestroyD3d() {
+    for (uint32_t i = 0; i < 2; i++) {
+        if (CGxDevice::s_uiVertexShader[i]) {
+            g_theGxDevicePtr->ShaderDestroy(CGxDevice::s_uiVertexShader[i]);
+        }
+    }
+
+    if (CGxDevice::s_uiPixelShader) {
+        g_theGxDevicePtr->ShaderDestroy(CGxDevice::s_uiPixelShader);
+    }
+
+    this->ICursorDestroy();
+    this->IReleaseD3dResources(1);
+    this->IReleaseD3dVertexDecl();
+
+    if (this->m_eventQuery) {
+        this->m_eventQuery->Release();
+        this->m_eventQuery = nullptr;
+    }
+
+    if (this->m_texture3B58) {
+        GxTexDestroy(this->m_texture3B58);
+        this->m_texture3B58 = nullptr;
+    }
+
+    if (this->m_d3dStereoHandle) {
+        NvAPI_Stereo_DestroyHandle(static_cast<StereoHandle>(this->m_d3dStereoHandle));
+        this->m_d3dStereoHandle = nullptr;
+    }
+
+    if (this->m_d3dDevice) {
+        this->m_d3dDevice->Release();
+        this->m_d3dDevice = nullptr;
+    }
+
+    if (this->m_d3dNVAPI) {
+        NvU8 stereoEnabled;
+
+        if (NvAPI_Stereo_IsEnabled(&stereoEnabled) == NVAPI_OK) {
+            if (this->m_d3dStereoRestore) {
+                if (!stereoEnabled) {
+                    NvAPI_Stereo_Enable();
+                }
+            } else if (stereoEnabled) {
+                NvAPI_Stereo_Disable();
+            }
+        }
+    }
+}
+
+// VERIFY: fc602985 manual
+// OFFSET: 0x006904D0
+int32_t CGxDeviceD3d::DeviceSetFormat(const CGxFormat& format) {
+    CGxDevice::Log("CGxDeviceD3d::DeviceSetFormat():");
+    this->Log(format);
+
+    if (this->m_hwnd) {
+        ShowWindow(this->m_hwnd, SW_HIDE);
+    }
+
+    this->IDestroyD3d();
+
+    if (this->m_hwnd) {
+        DestroyWindow(this->m_hwnd);
+    }
+
+    this->m_hwnd = nullptr;
+    this->m_format = format;
+
+    CGxFormat createFormat = format;
+
+    if (this->ICreateWindow(createFormat) && this->ICreateD3dDevice(createFormat) && CGxDevice::DeviceSetFormat(createFormat)) {
+        this->ISetWindowFocus(1);
+        return 1;
+    }
+
+    CGxDevice::Log("CGxDeviceD3d::DeviceSetFormat(): unable to set format!");
+    this->IDestroyD3d();
+
+    if (this->m_hwnd) {
+        DestroyWindow(this->m_hwnd);
+    }
+
+    this->m_hwnd = nullptr;
+
+    return 0;
+}
+
+// VERIFY: 1b01f8e3 manual
+// OFFSET: 0x006905F0
+void CGxDeviceD3d::DeviceDestroy() {
+    CGxDevice::DeviceDestroy();
+
+    if (this->m_hwnd && this->m_ownhwnd) {
+        DestroyWindow(this->m_hwnd);
+        this->m_hwnd = nullptr;
+    }
+
+    if (this->m_hwndClass) {
+        UnregisterClassA(reinterpret_cast<const char*>(static_cast<uintptr_t>(this->m_hwndClass)), GetModuleHandleA(nullptr));
+        this->m_hwndClass = 0;
+    }
+
+    this->IDestroyD3d();
+
+    if (this->m_d3d) {
+        this->m_d3d->Release();
+        this->m_d3d = nullptr;
+    }
+
+    if (this->m_d3dLib) {
+        FreeLibrary(this->m_d3dLib);
+        this->m_d3dLib = nullptr;
+    }
+}
+
+// VERIFY: cbd2d003 manual
+// OFFSET: 0x00690680
+int32_t CGxDeviceD3d::ICreateD3d() {
+    if (CGxDeviceD3d::ILoadD3dLib(this->m_d3dLib, this->m_d3d) && SUCCEEDED(this->m_d3d->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &this->m_d3dCaps))) {
+        if (this->m_desktopDisplayMode.Format) {
+            return 1;
+        }
+
+        D3DDISPLAYMODE displayMode;
+
+        if (SUCCEEDED(this->m_d3d->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &displayMode))) {
+            this->m_desktopDisplayMode = displayMode;
+            return 1;
+        }
+    }
+
+    this->IDestroyD3d();
+    CGxDeviceD3d::IUnloadD3dLib(this->m_d3dLib, this->m_d3d);
+
+    return 0;
+}
+
+// VERIFY: a236ad1a auto
+// OFFSET: 0x00690750
+int32_t CGxDeviceD3d::DeviceCreate(GxWindowProc windowProc, const CGxFormat& format) {
+    this->m_ownhwnd = 1;
+
+    HDC dc = GetDC(nullptr);
+
+    if (GetDeviceGammaRamp(dc, &this->m_systemGammaRamp) && &this->m_gammaRamp != &this->m_systemGammaRamp) {
+        this->m_gammaRamp = this->m_systemGammaRamp;
+    }
+
+    ReleaseDC(nullptr, dc);
+
+    this->m_hwndClass = WindowClassCreate();
+
+    if (!this->m_hwndClass) {
+        char* error = OsGetLastErrorStr();
+        CGxDevice::Log("CGxDeviceD3d::DeviceCreate(): WindowClassCreate() failed: %s", error);
+        OsFreeLastErrorStr(error);
+        this->DeviceDestroy();
+        return 0;
+    }
+
+    if (this->ICreateD3d() && CGxDevice::DeviceCreate(windowProc, format)) {
+        return 1;
+    }
+
+    this->DeviceDestroy();
+    return 0;
+}
+
+// VERIFY: 9f23f35b auto
+// OFFSET: 0x00690830
+int32_t CGxDeviceD3d::DeviceCreate(void* window, const CGxFormat& format) {
+    this->m_ownhwnd = 0;
+    CGxDevice::DeviceCreate(window, format);
+    this->m_hwnd = static_cast<HWND>(window);
+
+    if (this->ICreateD3d() && this->ICreateD3dDevice(format) && CGxDevice::DeviceCreate(window, format)) {
+        return 1;
+    }
+
+    this->DeviceDestroy();
+    return 0;
+}
+
+// VERIFY: 64f9b1e2 manual
+// OFFSET: 0x006A1690
+void CGxDeviceD3d::IReleaseD3dQueries() {
+    for (CGxQuery* query = this->m_queryList.Head(); query; query = this->m_queryList.Next(query)) {
+        if (query->m_apiSpecific) {
+            static_cast<LPDIRECT3DQUERY9>(query->m_apiSpecific)->Release();
+        }
+
+        query->m_apiSpecific = nullptr;
+    }
+}
+
+// VERIFY: 3b5a78ad manual
+// OFFSET: 0x006A1C60
+void CGxDeviceD3d::IReleaseD3dPools(int32_t freePools) {
+    for (CGxPool* pool = this->m_poolList.Head(); pool; pool = this->m_poolList.Next(pool)) {
+        if (freePools || pool->m_usage == GxPoolUsage_Stream || pool->m_usage == GxPoolUsage_Dynamic) {
+            this->IReleaseD3dPool(pool);
+        }
+    }
+}
+
+// VERIFY: edfb05c2 manual
+// OFFSET: 0x006A2AA0
+void CGxDeviceD3d::ITexForceRecreation(int32_t all) {
+    for (CGxTex* texId = this->m_textures.Head(); texId; texId = this->m_textures.Next(texId)) {
+        if (!texId->m_apiSpecificData || !(all || texId->m_flags.m_renderTarget)) {
+            continue;
+        }
+
+        // STATIC: 0x00C60698
+        static CiRect s_updateRect;
+
+        if (!texId->m_needsCreation && (texId->m_apiSpecificData || texId->m_apiSpecificData2)) {
+            static_cast<IDirect3DBaseTexture9*>(texId->m_apiSpecificData)->Release();
+        }
+
+        texId->m_apiSpecificData = this->m_texture3B58;
+        texId->m_needsCreation = 1;
+        this->TexMarkForUpdate(texId, s_updateRect, 0);
+
+        uint32_t texelStrideInBytes;
+        const void* texels;
+        texId->m_userFunc(GxTex_3, texId->m_width, texId->m_height, 0, 0, texId->m_userArg, texelStrideInBytes, texels);
+    }
+
+    if (this->m_hwnd && this->m_d3dDevice) {
+        this->NotifyOnTextureRecreation();
+    }
+}
+
+// VERIFY: f166562f auto
+// OFFSET: 0x006A3350
+void CGxDeviceD3d::ISceneBegin() {
+    if (!this->m_context) {
+        if (this->m_d3dDevice->TestCooperativeLevel() == D3DERR_DEVICENOTRESET) {
+            this->IReleaseD3dResources(0);
+
+            D3DPRESENT_PARAMETERS d3dpp;
+            this->ISetPresentParms(d3dpp, this->m_format);
+
+            if (this->m_d3dDevice->Reset(&d3dpp) == D3D_OK) {
+                this->IStateSetD3DDefaults();
+                this->ISetWindowFocus(1);
+                this->m_context = 1;
+                this->m_intF5C = 0;
+                this->m_d3dStereoDirty = 1;
+                this->NotifyOnDeviceRestored();
+            }
+        }
+
+        if (!this->m_context) {
+            return;
+        }
+    }
+
+    this->ShaderConstantsClear();
+
+    if (this->m_d3dDevice->BeginScene() == D3D_OK) {
+        this->m_inScene = 1;
+    }
+}
+
+// VERIFY: 677ac69d manual
+// OFFSET: 0x006A3450
+void CGxDeviceD3d::ScenePresent() {
+    if (this->m_context) {
+        int32_t scrShotClick = this->m_scrShotClick;
+
+        CGxDevice::ScenePresent();
+        this->ISceneEnd();
+        this->ICursorDraw();
+
+        if (this->m_format.m_fixLag) {
+            if (this->m_eventQuery) {
+                this->m_eventQuery->Issue(D3DISSUE_END);
+
+                while (this->m_eventQuery->GetData(nullptr, 0, D3DGETDATA_FLUSH) == S_FALSE) {
+                    OsSleep(0);
+                }
+            } else {
+                LPDIRECT3DSURFACE9 backBuffer;
+
+                if (SUCCEEDED(this->m_d3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backBuffer))) {
+                    D3DSURFACE_DESC desc;
+                    backBuffer->GetDesc(&desc);
+
+                    D3DLOCKED_RECT lockedRect;
+
+                    if (SUCCEEDED(backBuffer->LockRect(&lockedRect, nullptr, D3DLOCK_READONLY))) {
+                        backBuffer->UnlockRect();
+                    }
+
+                    backBuffer->Release();
+                }
+            }
+        }
+
+        if (scrShotClick) {
+            this->DeviceScreenShot();
+        }
+
+        this->WaitForFPSCap();
+
+        if (FAILED(this->m_d3dDevice->Present(nullptr, nullptr, nullptr, nullptr))) {
+            this->m_context = 0;
+        }
+
+        if (this->m_d3dStereoHandle && this->m_d3dStereoDirty) {
+            this->m_d3dStereoDirty = 0;
+
+            NvAPI_Status status = NvAPI_Stereo_SetConvergence(static_cast<StereoHandle>(this->m_d3dStereoHandle), this->m_d3dStereoConvergence);
+            CGxDevice::Log("NvAPI_Stereo_SetConvergence: status=%d convergence=%g", status, this->m_d3dStereoConvergence);
+
+            status = NvAPI_Stereo_SetSeparation(static_cast<StereoHandle>(this->m_d3dStereoHandle), this->m_d3dStereoSeparation);
+            CGxDevice::Log("NvAPI_Stereo_SetSeparation: status=%d separation=%g", status, this->m_d3dStereoSeparation);
+        }
+    }
+
+    this->ISceneBegin();
+}
+
+// VERIFY: ada703ca manual
+// OFFSET: 0x006A3620
+void CGxDeviceD3d::Draw(CGxBatch* batch, int32_t count) {
+    if (!this->m_context || this->m_intF5C) {
+        return;
+    }
+
+    this->IStateSync();
+
+    uint32_t baseVertexIndex = 0;
+
+    if (!this->m_caps.unk_0010) {
+        baseVertexIndex = this->m_primVertexFormatBuf[0]->m_index / this->m_primVertexFormatBuf[0]->m_itemSize;
+    }
+
+    if (count) {
+        uint32_t primCount = this->PrimCalcCount(batch->m_primType, batch->m_count);
+        this->m_d3dDevice->DrawIndexedPrimitive(s_primitiveConversion[batch->m_primType], baseVertexIndex, batch->m_minIndex, batch->m_maxIndex - batch->m_minIndex + 1, batch->m_start + (this->m_primIndexBuf->m_index >> 1), primCount);
+    } else {
+        uint32_t primCount = this->PrimCalcCount(batch->m_primType, batch->m_count);
+        this->m_d3dDevice->DrawPrimitive(s_primitiveConversion[batch->m_primType], baseVertexIndex, primCount);
+    }
+}
+
+// VERIFY: 3259f92c auto
+// OFFSET: 0x006A3A60
+void CGxDeviceD3d::IStateSetD3DDefaults() {
+    this->m_d3dDevice->SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
+    this->m_d3dDevice->SetRenderState(D3DRS_LOCALVIEWER, TRUE);
+    this->m_d3dDevice->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
+    this->m_d3dDevice->SetRenderState(D3DRS_FOGVERTEXMODE, D3DFOG_LINEAR);
+    this->m_d3dDevice->SetRenderState(D3DRS_FOGDENSITY, 0);
+
+    for (uint32_t i = 0; i < 16; i++) {
+        this->m_d3dDevice->SetSamplerState(i, D3DSAMP_ADDRESSW, D3DTADDRESS_CLAMP);
+    }
+
+    this->IRsForceUpdate();
+    this->IRsSync(0);
+
+    this->m_primVertexDirty = 0xFFFFFFFF;
+    this->m_primIndexDirty = 0;
+    this->m_d3dDevice->SetIndices(nullptr);
+    this->m_d3dCurrentVertexDecl = nullptr;
+    this->m_d3dCurrentIndexBuf = nullptr;
+
+    for (uint32_t i = 0; i < 8; i++) {
+        this->m_d3dVertexStreamBuf[i] = nullptr;
+        this->m_d3dVertexStreamOfs[i] = 0xFFFFFFFF;
+        this->m_d3dVertexStreamStride[i] = 0xFFFFFFFF;
+    }
+
+    this->m_d3dDevice->GetRenderTarget(0, &this->m_defColorSurface);
+    this->m_d3dDevice->GetDepthStencilSurface(&this->m_defDepthSurface);
+    this->InitLights();
+    this->m_ambientOnlyMode = 0;
+
+    if (!this->m_eventQuery) {
+        this->m_d3dDevice->CreateQuery(D3DQUERYTYPE_EVENT, &this->m_eventQuery);
+    }
+
+    this->ISceneBegin();
+}
+
+// VERIFY: 079341d1 auto
+// OFFSET: 0x006A5680
+void CGxDeviceD3d::IReleaseD3dVertexDecl() {
+    for (uint32_t i = 0; i < GxVertexBufferFormats_Last; i++) {
+        if (this->m_d3dVertexDecl[i]) {
+            this->m_d3dVertexDecl[i]->Release();
+            this->m_d3dVertexDecl[i] = nullptr;
+        }
+    }
+
+    for (uint32_t i = 0; i < this->m_gxVertexDecl.Count(); i++) {
+        this->m_gxVertexDecl[i].m_d3dDecl->Release();
+    }
+
+    this->m_gxVertexDecl.m_count = 0;
+}
+
+// VERIFY: d5e85bed manual
+// OFFSET: 0x006A5E40
+void CGxDeviceD3d::IReleaseD3dShaders(int32_t freeShaders) {
+    if (!freeShaders) {
+        return;
+    }
+
+    TSHashTable<CGxShader, HASHKEY_STRI>& pixelShaders = this->m_shaderList[GxSh_Pixel];
+
+    for (CGxShader* shader = pixelShaders.m_fulllist.Head(); shader; shader = pixelShaders.m_fulllist.Next(shader)) {
+        if (shader->m_apiSpecific) {
+            static_cast<LPDIRECT3DPIXELSHADER9>(shader->m_apiSpecific)->Release();
+            shader->m_apiSpecific = nullptr;
+            shader->m_loaded = 0;
+        }
+    }
+
+    TSHashTable<CGxShader, HASHKEY_STRI>& vertexShaders = this->m_shaderList[GxSh_Vertex];
+
+    for (CGxShader* shader = vertexShaders.m_fulllist.Head(); shader; shader = vertexShaders.m_fulllist.Next(shader)) {
+        if (shader->m_apiSpecific) {
+            static_cast<LPDIRECT3DVERTEXSHADER9>(shader->m_apiSpecific)->Release();
+            shader->m_apiSpecific = nullptr;
+            shader->m_loaded = 0;
+        }
+    }
+}
+
+// VERIFY: fca6a4dc manual
+// OFFSET: 0x006A74B0
+void CGxDeviceD3d::SceneClear(uint32_t mask, CImVector color) {
+    if (!this->m_context) {
+        return;
+    }
+
+    DWORD flags = (mask & 0x1) != 0;
+
+    if (mask & 0x2) {
+        flags |= D3DCLEAR_ZBUFFER;
+    }
+
+    if (this->m_viewportDirty) {
+        this->IXformSetViewport();
+    }
+
+    this->m_d3dDevice->Clear(0, nullptr, flags, D3DCOLOR_ARGB(color.a, color.r, color.g, color.b), 1.0f, 0);
+}
+
+// VERIFY: 9a01b076 auto
+// OFFSET: 0x0068E4A0
+void CGxDeviceD3d::DeviceSetBaseMipLevel(uint32_t level) {
+    this->ITexForceRecreation(1);
+    CGxDevice::DeviceSetBaseMipLevel(level);
 }

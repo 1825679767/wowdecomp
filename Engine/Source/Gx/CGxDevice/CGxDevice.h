@@ -32,6 +32,7 @@
 struct CGxAppRenderState;
 struct CGxBuf;
 struct CGxPool;
+struct tagRECT;
 class CGxQuery;
 class CGxStateBom;
 class CGxTex;
@@ -246,10 +247,14 @@ class CGxDevice {
     virtual void DeviceUnk83(uint32_t a, uint32_t b) = 0;
 
     static HSLOG m_log;
+    static C2iVector s_clientAdjust;
     static C3Vector s_pointScaleAttenuation;
+    static CGxShader* s_uiPixelShader;
+    static CGxShader* s_uiVertexShader[2];
     static ShadowConstants s_shadowConstants[2];
     static uint32_t m_logBytes;
 
+    static int32_t AdjustWindowRectToWorkArea(float aspectRatio, C2iVector* adjust, tagRECT* rect);
     static void ClampRectBottom(CiRect& windowRect);
     static void ClampRectBottomByAspect(CiRect& windowRect);
     static void ClampRectLeftByAspect(CiRect& windowRect);
@@ -323,6 +328,7 @@ class CGxDevice {
     void TexSetCannotUpdate(CGxTex* texId);
     void TexSetDataFormat(CGxTex* texId, EGxTexFormat dataFormat);
     void TexSetUserData(CGxTex* texId, GxTexUserFunc userFunc, void* userArg);
+    void WaitForFPSCap();
     void XformPush(EGxXform xf);
     void XformPushAndSet(EGxXform xf, const C44Matrix& matrix);
 };

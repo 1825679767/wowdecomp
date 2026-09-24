@@ -17,3 +17,10 @@ target_link_libraries(Gx
     PRIVATE
         d3d9.lib
 )
+
+if (WIN32)
+    target_link_libraries(Gx
+        PRIVATE
+            nvapi
+    )
+endif ()

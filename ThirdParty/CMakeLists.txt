@@ -50,3 +50,18 @@ target_include_directories(lzma
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/lzma
 )
+
+if (WIN32)
+    add_library(nvapi INTERFACE)
+
+    target_include_directories(nvapi
+        INTERFACE
+            ${CMAKE_CURRENT_SOURCE_DIR}/nvapi
+    )
+
+    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+        target_link_libraries(nvapi INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/nvapi/amd64/nvapi64.lib)
+    else ()
+        target_link_libraries(nvapi INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/nvapi/x86/nvapi.lib)
+    endif ()
+endif ()
