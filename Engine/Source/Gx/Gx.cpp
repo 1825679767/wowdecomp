@@ -345,3 +345,71 @@ void GxXformViewProj(C44Matrix& matrix) {
     proj = device->m_projection;
     matrix = view * proj;
 }
+
+// VERIFY: cc1eb20e auto
+// OFFSET: 0x00482A20
+CGxBuf* GxBufStream(EGxPoolTarget target, uint32_t itemSize, uint32_t itemCount) {
+    return g_theGxDevicePtr->BufStream(target, itemSize, itemCount);
+}
+
+// VERIFY: e93d7c49 auto
+// OFFSET: 0x00616AD0
+void GxXformPush(EGxXform xf, const C44Matrix& matrix) {
+    g_theGxDevicePtr->XformPushAndSet(xf, matrix);
+}
+
+// VERIFY: 870a4b79 auto
+// OFFSET: 0x006813F0
+void GxTexSetCannotUpdate(CGxTex* texId) {
+    g_theGxDevicePtr->TexSetCannotUpdate(texId);
+}
+
+// VERIFY: 5e6cbd33 auto
+// OFFSET: 0x00681410
+void GxTexSetUserData(CGxTex* texId, GxTexUserFunc userFunc, void* userArg) {
+    g_theGxDevicePtr->TexSetUserData(texId, userFunc, userArg);
+}
+
+// VERIFY: 354bf1c4 auto
+// OFFSET: 0x00681490
+void GxTexParameters(const CGxTex* texId, CGxTexParms& parms) {
+    g_theGxDevicePtr->TexParameters(texId, parms);
+}
+
+// VERIFY: 8ea5ed6d auto
+// OFFSET: 0x006814B0
+void GxTexSetDataFormat(CGxTex* texId, EGxTexFormat dataFormat) {
+    g_theGxDevicePtr->TexSetDataFormat(texId, dataFormat);
+}
+
+// VERIFY: cf3f18d6 manual
+// OFFSET: 0x00681AB0
+void GxPrimIndexPtr(uint32_t indexCount, const uint16_t* indices) {
+    CGxBuf* buf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, sizeof(uint16_t), indexCount);
+    g_theGxDevicePtr->BufData(buf, indices, buf->m_itemSize * buf->m_itemCount, 0);
+    buf->unk_001C = 1;
+    g_theGxDevicePtr->PrimIndexPtr(buf);
+}
+
+// VERIFY: 75e347bc auto
+// OFFSET: 0x00681F20
+void GxTexUpdate(CGxTex* texId, int32_t minX, int32_t minY, int32_t maxX, int32_t maxY, int32_t immediate) {
+    CiRect rect;
+    rect.minY = minY;
+    rect.minX = minX;
+    rect.maxY = maxY;
+    rect.maxX = maxX;
+    g_theGxDevicePtr->TexMarkForUpdate(texId, rect, immediate);
+}
+
+// VERIFY: dfb2cc84 manual
+// OFFSET: 0x006823A0
+void GxPrimLockIndexPtr(EGxPrim primType, uint32_t indexCount, const uint16_t* indices) {
+    s_lockPrimType = primType;
+    s_lockIndexCount = indexCount;
+
+    CGxBuf* buf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, sizeof(uint16_t), indexCount);
+    g_theGxDevicePtr->BufData(buf, indices, buf->m_itemSize * buf->m_itemCount, 0);
+    buf->unk_001C = 1;
+    g_theGxDevicePtr->PrimIndexPtr(buf);
+}

@@ -35,6 +35,13 @@ class CGxTex;
 class CImVector;
 struct HASHKEY_STR;
 
+class ShadowConstants {
+    public:
+    /* 0000 */ float constants[256 * 4];
+    /* 1000 */ uint32_t dirtyMax;
+    /* 1004 */ uint32_t dirtyMin;
+};
+
 class CGxStateBom {
     public:
     /* 0000 */ uint8_t m_data[12];
@@ -50,7 +57,6 @@ class CGxAppRenderState {
 
 typedef void (__fastcall* GxDeviceCallback)();
 typedef intptr_t (__stdcall* GxWindowProc)(void* window, uint32_t message, uintptr_t wparam, intptr_t lparam);
-typedef void (*GxTexUserFunc)(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevel, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);
 
 class CGxDevice {
     public:
@@ -227,12 +233,52 @@ class CGxDevice {
     virtual void DeviceUnk82() = 0;
     virtual void DeviceUnk83(uint32_t a, uint32_t b) = 0;
 
+    static void ClampRectBottom(CiRect& windowRect);
+    static void ClampRectLeft(CiRect& windowRect);
+    static void ClampRectRight(CiRect& windowRect);
+    static void ClampRectTop(CiRect& windowRect);
+    static void ICursorUpdate(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t face, uint32_t level, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);
+
+    CGxBuf* BufStream(EGxPoolTarget target, uint32_t itemSize, uint32_t itemCount);
+    void BufSizeSet(CGxBuf* buf, uint32_t itemSize, uint32_t itemCount);
+    CGxCaps& Caps();
     int32_t CapsHasContext(int32_t context);
     int32_t CapsIsWindowVisible(int32_t visible);
+    int32_t CapsWindowHasFocus(int32_t focus);
+    void ClipPlaneSet(uint32_t index, const C4Plane& plane);
+    void CursorSetDepth(float depth);
     EGxApi DeviceApi();
+    uint32_t DeviceBaseMipLevel();
     void DeviceClearScreenShot();
+    const CRect& DeviceCurWindow();
+    const CRect& DeviceDefWindow();
+    void DeviceGamma(CGxGammaRamp& ramp);
+    void DeviceScreenShot();
+    void DeviceSetCurWindow(const CRect& rect);
+    void DeviceSetDefWindow(const CRect& rect);
+    int32_t IDevIsWindowed();
+    void InitLights();
+    void LightEnable(uint32_t index, int32_t enable);
+    void LightSet(uint32_t index, const CGxLight& light, const C3Vector& pos);
     int32_t MasterEnable(EGxMasterEnables state);
+    int32_t NeedsUpdate(uint32_t app, uint32_t hw, uint32_t appDisables, uint32_t hwDisables, uint32_t flagPos, int32_t& enable);
+    uint32_t PrimCalcCount(EGxPrim primType, uint32_t indexCount);
+    void PrimIndexPtr(CGxBuf* buf);
+    void PrimVertexFormat(CGxBuf* buf, const CGxVertexAttrib* attribs, uint32_t count);
+    void PrimVertexMask(uint32_t mask);
+    void SetScissor(const CRect& rect);
+    void ShaderConstantsClear();
+    float* ShaderConstantsLock(EGxShTarget target);
+    void ShaderConstantsUnlock(EGxShTarget target, uint32_t index, uint32_t count);
+    int32_t TexCanUpdate(CGxTex* texId);
+    int32_t TexIsReadyNow(CGxTex* texId);
+    void TexMarkForUpdate(CGxTex* texId, const CiRect& updateRect, int32_t immediate);
+    void TexParameters(const CGxTex* texId, CGxTexParms& parms);
+    void TexSetCannotUpdate(CGxTex* texId);
+    void TexSetDataFormat(CGxTex* texId, EGxTexFormat dataFormat);
+    void TexSetUserData(CGxTex* texId, GxTexUserFunc userFunc, void* userArg);
     void XformPush(EGxXform xf);
+    void XformPushAndSet(EGxXform xf, const C44Matrix& matrix);
 };
 
 extern CGxDevice* g_theGxDevicePtr;

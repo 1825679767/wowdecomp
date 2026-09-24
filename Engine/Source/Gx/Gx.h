@@ -5,6 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/Gx/CGxDevice/Types.h"
 #include "Engine/Source/Gx/Types.h"
+#include "Engine/Source/Gx/CGxTex.h"
 #include "Engine/Source/Tempest/C2iVector.h"
 
 class C3Vector;
@@ -20,6 +21,15 @@ class CRect;
 char* GxBufLock(CGxBuf* buf);
 void GxBufUnlock(CGxBuf* buf, uint32_t size);
 void GxBufData(CGxBuf* buf, const void* data, uint32_t size, uint32_t offset);
+CGxBuf* GxBufStream(EGxPoolTarget target, uint32_t itemSize, uint32_t itemCount);
+void GxPrimIndexPtr(uint32_t indexCount, const uint16_t* indices);
+void GxPrimLockIndexPtr(EGxPrim primType, uint32_t indexCount, const uint16_t* indices);
+void GxTexParameters(const CGxTex* texId, CGxTexParms& parms);
+void GxTexSetCannotUpdate(CGxTex* texId);
+void GxTexSetDataFormat(CGxTex* texId, EGxTexFormat dataFormat);
+void GxTexSetUserData(CGxTex* texId, GxTexUserFunc userFunc, void* userArg);
+void GxTexUpdate(CGxTex* texId, int32_t minX, int32_t minY, int32_t maxX, int32_t maxY, int32_t immediate);
+void GxXformPush(EGxXform xf, const C44Matrix& matrix);
 void GxCapsWindowSizeInScreenCoords(CRect& rect);
 void GxDraw(CGxBatch* batch, int32_t count);
 void GxDrawLockedElements();

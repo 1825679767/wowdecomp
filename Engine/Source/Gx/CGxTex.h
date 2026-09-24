@@ -11,6 +11,8 @@
 
 class CGxTex;
 
+typedef void (*GxTexUserFunc)(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevel, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);
+
 class CGxTexParms {
     public:
     /* 0000 */ EGxTexTarget m_target;
@@ -21,7 +23,7 @@ class CGxTexParms {
     /* 0014 */ EGxTexFormat m_dataFormat;
     /* 0018 */ CGxTexFlags m_flags;
     /* 001C */ void* m_userArg;
-    /* 0020 */ void* m_userFunc;
+    /* 0020 */ GxTexUserFunc m_userFunc;
 };
 
 class CGxTex {
@@ -32,12 +34,12 @@ class CGxTex {
     /* 0014 */ uint32_t m_width;
     /* 0018 */ uint32_t m_height;
     /* 001C */ uint32_t m_depth;
-    /* 0020 */ uint32_t m_target;
-    /* 0024 */ uint32_t m_format;
-    /* 0028 */ uint32_t m_dataFormat;
+    /* 0020 */ EGxTexTarget m_target;
+    /* 0024 */ EGxTexFormat m_format;
+    /* 0028 */ EGxTexFormat m_dataFormat;
     /* 002C */ CGxTexFlags m_flags;
     /* 0030 */ void* m_userArg;
-    /* 0034 */ void* m_userFunc;
+    /* 0034 */ GxTexUserFunc m_userFunc;
     /* 0038 */ void* m_apiSpecificData;
     /* 003C */ void* m_apiSpecificData2;
     /* 0040 */ TSLink<CGxTex> m_link;
