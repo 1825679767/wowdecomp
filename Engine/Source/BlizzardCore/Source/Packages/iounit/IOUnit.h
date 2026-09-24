@@ -24,6 +24,7 @@ class IOUnit {
     virtual bool Close();
 
     IOUnit(IOUnit* next, bool ownsMemory);
+    bool Release();
 };
 
 class IORangeUnit : public IOUnit {

@@ -6,9 +6,19 @@
 Blizzard::Lock::ConstructOnce<System_MPQGlobals::Globals> System_MPQGlobals::s_globals;
 
 // VERIFY: be9441c5 manual
+// INLINED
+bool System_MPQGlobals::ArchiveLess::operator()(const System_SFile::ARCHIVEREC* a, const System_SFile::ARCHIVEREC* b) const {
+    if (a->m_priority == b->m_priority) {
+        return a->m_id > b->m_id;
+    }
+
+    return a->m_priority > b->m_priority;
+}
+
+// VERIFY: df235665 manual
 // OFFSET: 0x0044FFF0
 System_MPQGlobals::Globals::Globals() {
-    this->m_mopaq.unk_0000 = 0;
+    this->m_mopaq.m_directAccess = 0;
 
     if (!Blizzard::Process::GetProcessDirectory(this->m_mopaq.m_basePath, sizeof(this->m_mopaq.m_basePath))) {
         this->m_mopaq.m_basePath[0] = '\0';

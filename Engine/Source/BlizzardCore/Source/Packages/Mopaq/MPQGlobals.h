@@ -11,10 +11,14 @@
 
 namespace System_MPQGlobals {
 
-typedef std::set<System_SFile::ARCHIVEREC*, std::less<System_SFile::ARCHIVEREC*>, Blizzard::Memory::AllocSTL_raw<System_SFile::ARCHIVEREC*>> ArchiveList;
+struct ArchiveLess {
+    bool operator()(const System_SFile::ARCHIVEREC* a, const System_SFile::ARCHIVEREC* b) const;
+};
+
+typedef std::set<System_SFile::ARCHIVEREC*, ArchiveLess, Blizzard::Memory::AllocSTL_raw<System_SFile::ARCHIVEREC*>> ArchiveList;
 
 struct MopaqGlobals {
-    /* 0000 */ uint32_t unk_0000;
+    /* 0000 */ uint32_t m_directAccess;
     /* 0004 */ char m_basePath[260];
     /* 0108 */ uint32_t unk_0108;
     /* 010C */ uint32_t unk_010C;

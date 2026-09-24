@@ -54,6 +54,38 @@ bool IOUnit::Close() {
     return true;
 }
 
+// VERIFY: 230d82c9 manual
+// OFFSET: 0x00430C10
+bool IOUnit::Release() {
+    bool result = true;
+    IOUnit* unit = this;
+
+    do {
+        if (unit->m_refCount.Decrement() > 0) {
+            break;
+        }
+
+        if (!unit->Close()) {
+            result = false;
+        }
+
+        unit = unit->m_next;
+    } while (unit);
+
+    IOUnit* stop = unit;
+    unit = this;
+
+    while (unit != stop) {
+        IOUnit* next = unit->m_next;
+        bool ownsMemory = unit->m_ownsMemory;
+        unit->~IOUnit();
+        IOUnitContainer::Free(unit, ownsMemory);
+        unit = next;
+    }
+
+    return result;
+}
+
 // VERIFY: 361b842f auto
 // OFFSET: 0x0042B980
 IORangeUnit::IORangeUnit(int64_t start, int64_t end, bool ownsMemory, IOUnit* next) : IOUnit(next, ownsMemory) {

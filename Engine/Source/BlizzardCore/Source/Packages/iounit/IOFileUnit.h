@@ -40,4 +40,10 @@ class IOUnbufferedFileUnit : public IOFileUnit {
     IOUnbufferedFileUnit(Blizzard::File::StreamRecord* stream, bool ownsMemory);
 };
 
+namespace System_Mopaq {
+
+IOUnbufferedFileUnit* OpenDiskFile(IOUnitContainer* container, const char* path, int32_t flags);
+
+}
+
 #endif

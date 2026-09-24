@@ -236,3 +236,23 @@ bool IOUnbufferedFileUnit::Close() {
     bool result = Blizzard::File::SetEOF(this->m_stream, this->m_size, 0);
     return Blizzard::File::Close(this->m_stream) && result;
 }
+
+// VERIFY: b673bf5e manual
+// OFFSET: 0x00436860
+IOUnbufferedFileUnit* System_Mopaq::OpenDiskFile(IOUnitContainer* container, const char* path, int32_t flags) {
+    bool ownsMemory;
+    void* memory = IOUnitContainer::Alloc(container, sizeof(IOUnbufferedFileUnit), &ownsMemory);
+
+    Blizzard::File::StreamRecord* stream;
+
+    if (!Blizzard::File::Open(path, flags, stream)) {
+        IOUnitContainer::Free(memory, ownsMemory);
+        return nullptr;
+    }
+
+    if (!memory) {
+        return nullptr;
+    }
+
+    return new (memory) IOUnbufferedFileUnit(stream, ownsMemory);
+}
