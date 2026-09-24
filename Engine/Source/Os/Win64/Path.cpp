@@ -37,4 +37,14 @@ bool OsSetCurrentDirectory(const char* path) {
     return false;
 }
 
+// OFFSET: 0x00461D10
+int32_t OsCreateDirectory(const char* path, int32_t recursive) {
+    if (!path) {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    return Blizzard::File::CreateDirectory(path, recursive != 0) != 0;
+}
+
 #endif

@@ -1,6 +1,7 @@
 #ifndef ENGINE_SOURCE_GX_CGXDEVICE_CGXDEVICE_H
 #define ENGINE_SOURCE_GX_CGXDEVICE_CGXDEVICE_H
 
+#include <cstdarg>
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Gx/CGxDevice/Types.h"
@@ -18,6 +19,7 @@
 #include "Engine/Source/Tempest/C4Plane.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/Types.h"
 #include "WoW/Source/Types.h"
 #include "WoW/Source/WorldClient/Types.h"
 #include "WoW/Source/WorldClient/World.h"
@@ -44,8 +46,20 @@ class ShadowConstants {
 
 class CGxStateBom {
     public:
-    /* 0000 */ uint8_t m_data[12];
+    /* 0000 */ union {
+        int32_t i[3];
+        uint32_t u[3];
+        float f[3];
+        void* p;
+    } m_data;
     /* 000C */ int32_t m_filler;
+};
+
+class CGxPushedRenderState {
+    public:
+    /* 0000 */ EGxRenderState m_which;
+    /* 0004 */ CGxStateBom m_value;
+    /* 0014 */ uint32_t m_stackDepth;
 };
 
 class CGxAppRenderState {
@@ -66,9 +80,9 @@ class CGxDevice {
         /* 0008 */ void* m_apiSpecific;
     };
 
-    /* 0004 */ TSGrowableArray<uint32_t> m_pushedStates;
+    /* 0004 */ TSGrowableArray<CGxPushedRenderState> m_pushedStates;
     /* 0014 */ TSGrowableArray<uint32_t> m_stackOffsets;
-    /* 0024 */ TSGrowableArray<uint32_t> m_dirtyStates;
+    /* 0024 */ TSGrowableArray<EGxRenderState> m_dirtyStates;
     /* 0034 */ EGxPrim m_primType;
     /* 0038 */ int32_t m_indexLocked;
     /* 003C */ int32_t m_vertexLocked;
@@ -233,7 +247,18 @@ class CGxDevice {
     virtual void DeviceUnk82() = 0;
     virtual void DeviceUnk83(uint32_t a, uint32_t b) = 0;
 
+    static HSLOG m_log;
+    static uint32_t m_logBytes;
+
     static void ClampRectBottom(CiRect& windowRect);
+    static void ClampRectBottomByAspect(CiRect& windowRect);
+    static void ClampRectLeftByAspect(CiRect& windowRect);
+    static void ClampRectRightByAspect(CiRect& windowRect);
+    static void ClampRectTopByAspect(CiRect& windowRect);
+    static void Log(const char* format, ...);
+    static void Log(const char* format, va_list args);
+    static void LogClose();
+    static void LogOpen();
     static void ClampRectLeft(CiRect& windowRect);
     static void ClampRectRight(CiRect& windowRect);
     static void ClampRectTop(CiRect& windowRect);
@@ -246,6 +271,19 @@ class CGxDevice {
     int32_t CapsHasContext(int32_t context);
     int32_t CapsIsWindowVisible(int32_t visible);
     int32_t CapsWindowHasFocus(int32_t focus);
+    void ClampRectToWindow(CiRect& rect);
+    void Log(const CGxCaps& caps) const;
+    void Log(const CGxFormat& format) const;
+    void IRsDirty(EGxRenderState which);
+    void IRsForceUpdate();
+    void IRsForceUpdate(EGxRenderState which);
+    void IRsInit();
+    void IRsSync(int32_t force);
+    void RsPop();
+    void RsPush();
+    void RsSet(EGxRenderState which, void* value);
+    void TexSetFlags(CGxTex* texId, CGxTexFlags flags);
+    void TexSetWrap(CGxTex* texId, EGxTexWrapMode wrapU, EGxTexWrapMode wrapV);
     void ClipPlaneSet(uint32_t index, const C4Plane& plane);
     void CursorSetDepth(float depth);
     EGxApi DeviceApi();

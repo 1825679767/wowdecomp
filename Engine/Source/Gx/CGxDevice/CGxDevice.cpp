@@ -1,17 +1,33 @@
 #include <cfloat>
+#include <cstdarg>
+#include <cstdio>
 #include <cstdint>
+#include <cstring>
 #include <new>
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Gx/Buffer.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Os/Path.h"
 
 // STATIC: 0x00AD8B4C
 static uint32_t s_primVertsPerPrim[GxPrims_Last] = { 1, 2, 1, 3, 1, 1 };
 
 // STATIC: 0x00AD8B64
 static uint32_t s_primVertsExtra[GxPrims_Last] = { 0, 0, 1, 0, 2, 2 };
+
+// STATIC: 0x00AD87FC
+static const char* s_pixelShaderTargetNames[14] = { "none", "ps_1_1", "ps_1_4", "ps_2_0", "ps_3_0", "ps_4_0", "ps_5_0", "nvrc", "nvts", "nvts2", "nvts3", "nvfp2", "arbfp1", "glsl" };
+
+// STATIC: 0x00AD8834
+static const char* s_vertexShaderTargetNames[12] = { "none", "vs_1_1", "vs_2_0", "vs_3_0", "vs_4_0", "vs_5_0", "arbvp1", "arbvp1_cg12", "nvvp", "nvvp2", "nvvp3", "glsl" };
+
+// STATIC: 0x00AD8BB4
+static float s_pointScaleAttenuation[3] = { 1.0f, 0.0f, 0.0f };
+
+// STATIC: 0x00AD8C80
+static const char* s_formatNames[CGxFormat::Formats_Last] = { "Rgb565", "ArgbX888", "Argb8888", "Argb2101010", "Ds160", "Ds24X", "Ds248", "Ds320" };
 
 // STATIC: 0x00AD8BC0
 static C2iVector kWinMinSize = { 320, 240 };
@@ -21,6 +37,12 @@ CGxDevice* g_theGxDevicePtr;
 
 // STATIC: 0x00C5DFE0
 static ShadowConstants s_shadowConstants[2];
+
+// STATIC: 0x00C5FFF4
+uint32_t CGxDevice::m_logBytes;
+
+// STATIC: 0x00C5FFF8
+HSLOG CGxDevice::m_log;
 
 // STATIC: 0x00C5FFF0
 static float kWinAspect;
@@ -913,4 +935,400 @@ void CGxDevice::PrimVertexPtr(CGxBuf* buf, EGxVertexBufferFormat format) {
     this->m_primVertexFormat = format;
     this->m_primVertexBuf = buf;
     this->m_primVertexSize = Buffer::s_vertexBufDesc[format].size;
+}
+
+// VERIFY: dabc8a7e manual
+// OFFSET: 0x00409670
+void CGxDevice::RsPush() {
+    uint32_t offset = this->m_pushedStates.Count();
+    *this->m_stackOffsets.New() = offset;
+}
+
+// VERIFY: 6c531365 manual
+// OFFSET: 0x00685970
+void CGxDevice::IRsDirty(EGxRenderState which) {
+    CGxAppRenderState& state = this->m_appRenderStates[which];
+
+    if (!state.m_dirty) {
+        *this->m_dirtyStates.New() = which;
+        state.m_dirty = 1;
+    }
+
+    if (state.m_stackDepth != this->m_stackOffsets.Count()) {
+        CGxPushedRenderState* pushed = this->m_pushedStates.New();
+        pushed->m_which = which;
+        pushed->m_value = state.m_value;
+        pushed->m_stackDepth = state.m_stackDepth;
+        state.m_stackDepth = this->m_stackOffsets.Count();
+    }
+}
+
+// VERIFY: 2dc8f39a manual
+// OFFSET: 0x006859E0
+void CGxDevice::IRsForceUpdate(EGxRenderState which) {
+    if (!this->m_context) {
+        return;
+    }
+
+    uint32_t count = this->m_dirtyStates.Count();
+    this->m_dirtyStates.SetCount(count + 1);
+    this->m_dirtyStates[count] = which;
+
+    CGxAppRenderState& state = this->m_appRenderStates[which];
+    state.m_dirty = 1;
+
+    CGxStateBom& hw = this->m_hwRenderStates[which];
+    hw.m_data.i[0] = ~state.m_value.m_data.i[0];
+    hw.m_data.i[1] = ~state.m_value.m_data.i[1];
+    hw.m_data.i[2] = ~state.m_value.m_data.i[2];
+    hw.m_filler = ~state.m_value.m_filler;
+}
+
+// VERIFY: a888e50a manual
+// OFFSET: 0x00685A70
+void CGxDevice::IRsForceUpdate() {
+    for (uint32_t which = 0; which < GxRenderStates_Last; which++) {
+        *this->m_dirtyStates.New() = static_cast<EGxRenderState>(which);
+
+        CGxAppRenderState& state = this->m_appRenderStates[which];
+        state.m_dirty = 1;
+
+        CGxStateBom& hw = this->m_hwRenderStates[which];
+        hw.m_data.i[0] = ~state.m_value.m_data.i[0];
+        hw.m_data.i[1] = ~state.m_value.m_data.i[1];
+        hw.m_data.i[2] = ~state.m_value.m_data.i[2];
+        hw.m_filler = ~state.m_value.m_filler;
+    }
+}
+
+// VERIFY: ef9949e8 manual
+// OFFSET: 0x00685B50
+void CGxDevice::IRsSync(int32_t force) {
+    if (force) {
+        this->IRsForceUpdate();
+    }
+
+    for (uint32_t i = this->m_dirtyStates.Count(); i; i--) {
+        EGxRenderState which = this->m_dirtyStates[i - 1];
+        CGxAppRenderState& state = this->m_appRenderStates[which];
+        CGxStateBom& hw = this->m_hwRenderStates[which];
+
+        if (state.m_dirty) {
+            if ((state.m_value.m_data.i[0] - hw.m_data.i[0]) | (state.m_value.m_data.i[1] - hw.m_data.i[1]) | (state.m_value.m_data.i[2] - hw.m_data.i[2]) | (state.m_value.m_filler - hw.m_filler)) {
+                this->IRsSendToHw(which);
+            }
+        }
+
+        hw = state.m_value;
+        state.m_dirty = 0;
+    }
+
+    this->m_dirtyStates.SetCount(0);
+}
+
+// VERIFY: 57344373 manual
+// OFFSET: 0x00685CD0
+void CGxDevice::TexSetFlags(CGxTex* texId, CGxTexFlags flags) {
+    if (!(texId->m_flags != flags)) {
+        return;
+    }
+
+    if (texId->m_flags.m_filter != flags.m_filter) {
+        texId->m_char5D = 0;
+    }
+
+    texId->m_flags = flags;
+    texId->m_needsFlagUpdate = 1;
+
+    for (uint32_t i = GxRs_Texture0; i <= GxRs_Texture15; i++) {
+        if (this->m_hwRenderStates[i].m_data.p == texId) {
+            this->IRsForceUpdate(static_cast<EGxRenderState>(i));
+        }
+    }
+}
+
+// VERIFY: 1b273417 manual
+// OFFSET: 0x00685D40
+void CGxDevice::TexSetWrap(CGxTex* texId, EGxTexWrapMode wrapU, EGxTexWrapMode wrapV) {
+    if (texId->m_flags.m_wrapU == static_cast<uint32_t>(wrapU) && texId->m_flags.m_wrapV == static_cast<uint32_t>(wrapV)) {
+        return;
+    }
+
+    texId->m_flags.m_wrapU = wrapU;
+    texId->m_flags.m_wrapV = wrapV;
+    texId->m_needsFlagUpdate = 1;
+
+    for (uint32_t i = GxRs_Texture0; i <= GxRs_Texture15; i++) {
+        if (this->m_hwRenderStates[i].m_data.p == texId) {
+            this->IRsForceUpdate(static_cast<EGxRenderState>(i));
+        }
+    }
+}
+
+// VERIFY: 69ad163c auto
+// OFFSET: 0x00685EB0
+void CGxDevice::MasterEnableSet(EGxMasterEnables state, int32_t enable) {
+    this->m_appMasterEnables = ((enable & 1) << state) | (this->m_appMasterEnables & ~(1 << state));
+
+    switch (state) {
+        case 0:
+            this->IRsForceUpdate(GxRs_Lighting);
+            break;
+
+        case 1:
+            this->IRsForceUpdate(GxRs_Fog);
+            break;
+
+        case 2:
+            this->IRsForceUpdate(GxRs_DepthTest);
+            break;
+
+        case 3:
+            this->IRsForceUpdate(GxRs_DepthWrite);
+            break;
+
+        case 4:
+            this->IRsForceUpdate(GxRs_ColorWrite);
+            break;
+
+        case 5:
+            this->IRsForceUpdate(GxRs_Culling);
+            break;
+
+        default:
+            break;
+    }
+}
+
+// VERIFY: 988cfc26 manual
+// OFFSET: 0x00685F50
+void CGxDevice::RsSet(EGxRenderState which, void* value) {
+    if (!this->m_context) {
+        return;
+    }
+
+    CGxAppRenderState& state = this->m_appRenderStates[which];
+
+    if (state.m_value.m_data.p == value) {
+        return;
+    }
+
+    this->IRsDirty(which);
+    state.m_value.m_data.p = value;
+
+    if (value && which >= GxRs_Texture0 && which <= GxRs_Texture15) {
+        CGxTex* texId = static_cast<CGxTex*>(value);
+
+        if (texId->m_flags.m_bit31 && texId->m_needsUpdate) {
+            this->ITexMarkAsUpdated(texId);
+        }
+    }
+}
+
+// VERIFY: cbb13905 manual
+// OFFSET: 0x00685FB0
+void CGxDevice::RsPop() {
+    uint32_t offset = this->m_stackOffsets[this->m_stackOffsets.Count() - 1];
+
+    for (uint32_t i = this->m_pushedStates.Count(); i > offset; i--) {
+        CGxPushedRenderState& pushed = this->m_pushedStates[i - 1];
+        CGxAppRenderState& state = this->m_appRenderStates[pushed.m_which];
+
+        if (!state.m_dirty) {
+            *this->m_dirtyStates.New() = pushed.m_which;
+            state.m_dirty = 1;
+        }
+
+        state.m_value = pushed.m_value;
+        state.m_stackDepth = pushed.m_stackDepth;
+    }
+
+    this->m_pushedStates.SetCount(offset);
+    this->m_stackOffsets.SetCount(this->m_stackOffsets.Count() - 1);
+}
+
+// VERIFY: ef30aa1f manual
+// OFFSET: 0x00686120
+void CGxDevice::IRsInit() {
+    this->m_appRenderStates.SetCount(GxRenderStates_Last);
+    this->m_hwRenderStates.SetCount(GxRenderStates_Last);
+    memset(this->m_appRenderStates.Ptr(), 0, sizeof(CGxAppRenderState) * GxRenderStates_Last);
+    memset(this->m_hwRenderStates.Ptr(), 0, sizeof(CGxStateBom) * GxRenderStates_Last);
+
+    this->m_appRenderStates[GxRs_PolygonOffset].m_value.m_data.i[0] = 0;
+    this->m_appRenderStates[GxRs_MatDiffuse].m_value.m_data.i[0] = -1;
+    this->m_appRenderStates[GxRs_MatEmissive].m_value.m_data.i[0] = 0;
+    this->m_appRenderStates[GxRs_MatSpecular].m_value.m_data.i[0] = 0;
+    this->m_appRenderStates[GxRs_MatSpecularExp].m_value.m_data.f[0] = 0.0f;
+    this->m_appRenderStates[GxRs_NormalizeNormals].m_value.m_data.i[0] = 0;
+    this->m_appRenderStates[GxRs_BlendingMode].m_value.m_data.i[0] = 0;
+    this->m_appRenderStates[GxRs_FogStart].m_value.m_data.f[0] = 1.0f;
+    this->m_appRenderStates[GxRs_FogEnd].m_value.m_data.f[0] = 0.0f;
+    this->m_appRenderStates[GxRs_FogColor].m_value.m_data.i[0] = 0xFF808080;
+    this->m_appRenderStates[GxRs_Lighting].m_value.m_data.i[0] = 1;
+    this->m_appRenderStates[GxRs_Fog].m_value.m_data.i[0] = 1;
+    this->m_appRenderStates[GxRs_DepthTest].m_value.m_data.i[0] = 1;
+    this->m_appRenderStates[GxRs_DepthFunc].m_value.m_data.i[0] = 0;
+    this->m_appRenderStates[GxRs_DepthWrite].m_value.m_data.i[0] = 1;
+    this->m_appRenderStates[GxRs_ColorWrite].m_value.m_data.i[0] = 15;
+    this->m_appRenderStates[GxRs_Culling].m_value.m_data.i[0] = 1;
+    this->m_appRenderStates[GxRs_ClipPlaneMask].m_value.m_data.i[0] = 0;
+    this->m_appRenderStates[GxRs_Multisample].m_value.m_data.i[0] = 1;
+    this->m_appRenderStates[GxRs_ScissorTest].m_value.m_data.i[0] = 0;
+
+    for (uint32_t i = 0; i < 8; i++) {
+        this->m_appRenderStates[GxRs_Texture0 + i].m_value.m_data.i[0] = 0;
+        this->m_appRenderStates[GxRs_ColorOp0 + i].m_value.m_data.i[0] = 0;
+        this->m_appRenderStates[GxRs_AlphaOp0 + i].m_value.m_data.i[0] = 0;
+        this->m_appRenderStates[GxRs_TexGen0 + i].m_value.m_data.i[0] = 0;
+        this->m_appRenderStates[GxRs_TextureShader0 + i].m_value.m_data.i[0] = 0;
+        this->m_appRenderStates[GxRs_TextureCoord0 + i].m_value.m_data.i[0] = i;
+    }
+
+    for (uint32_t i = GxRs_Texture8; i <= GxRs_Texture15; i++) {
+        this->m_appRenderStates[i].m_value.m_data.i[0] = 0;
+    }
+
+    this->m_appRenderStates[GxRs_PixelShader].m_value.m_data.i[0] = 0;
+    this->m_appRenderStates[GxRs_VertexShader].m_value.m_data.i[0] = 0;
+    this->m_appRenderStates[GxRs_PointScale].m_value.m_data.f[0] = 1.0f;
+    this->m_appRenderStates[GxRs_PointScaleAttenuation].m_value.m_data.f[0] = s_pointScaleAttenuation[0];
+    this->m_appRenderStates[GxRs_PointScaleAttenuation].m_value.m_data.f[1] = s_pointScaleAttenuation[1];
+    this->m_appRenderStates[GxRs_PointScaleAttenuation].m_value.m_data.f[2] = s_pointScaleAttenuation[2];
+    this->m_appRenderStates[GxRs_PointScaleMin].m_value.m_data.f[0] = 0.0f;
+    this->m_appRenderStates[GxRs_PointScaleMax].m_value.m_data.f[0] = 1.0f;
+    this->m_appRenderStates[GxRs_PointSprite].m_value.m_data.i[0] = 0;
+    this->m_appRenderStates[Unk84].m_value.m_data.f[0] = 0.0f;
+    this->m_appRenderStates[GxRs_ColorMaterial].m_value.m_data.i[0] = 0;
+}
+
+// VERIFY: 255ba7d0 manual
+// OFFSET: 0x00689050
+void CGxDevice::XformSetView(const C44Matrix& matrix) {
+    CGxMatrixStack& stack = this->m_xforms[GxXform_View];
+    stack.m_dirty = 1;
+    stack.m_flags[stack.m_level] &= ~CGxMatrixStack::F_Identity;
+    stack.m_mtx[stack.m_level] = matrix;
+
+    for (uint32_t i = 0; i < 8; i++) {
+        if (static_cast<uint32_t>(this->m_appRenderStates[GxRs_TexGen0 + i].m_value.m_data.i[0] - 1) <= 1) {
+            this->IRsForceUpdate(static_cast<EGxRenderState>(GxRs_TexGen0 + i));
+        }
+    }
+}
+
+// VERIFY: b93f77d5 auto
+// OFFSET: 0x00683670
+void CGxDevice::LogOpen() {
+    if (!CGxDevice::m_log) {
+        OsCreateDirectory("Logs", 0);
+        SLogCreate("Logs\\gx.log", 0, &CGxDevice::m_log);
+        CGxDevice::m_logBytes = 0;
+    }
+}
+
+// VERIFY: 1023b26f auto
+// OFFSET: 0x006836B0
+void CGxDevice::LogClose() {
+    if (CGxDevice::m_log) {
+        SLogClose(CGxDevice::m_log);
+        CGxDevice::m_log = nullptr;
+    }
+}
+
+// VERIFY: 7008afc9 auto
+// OFFSET: 0x00683CE0
+void CGxDevice::ClampRectToWindow(CiRect& rect) {
+    CiRect window;
+    window.minY = static_cast<int32_t>(this->m_curWindowRect.minY);
+    window.minX = static_cast<int32_t>(this->m_curWindowRect.minX);
+    window.maxY = static_cast<int32_t>(this->m_curWindowRect.maxY);
+    window.maxX = static_cast<int32_t>(this->m_curWindowRect.maxX);
+    rect = rect & window;
+}
+
+// VERIFY: 9718483f auto
+// OFFSET: 0x00683D60
+void CGxDevice::ClampRectTopByAspect(CiRect& windowRect) {
+    if (kWinAspect != 0.0f) {
+        windowRect.minY = windowRect.maxY - static_cast<int32_t>(static_cast<float>(windowRect.maxX - windowRect.minX - s_clientAdjust.x) / kWinAspect + 0.5f + s_clientAdjust.y);
+    }
+}
+
+// VERIFY: d339c793 auto
+// OFFSET: 0x00683DB0
+void CGxDevice::ClampRectBottomByAspect(CiRect& windowRect) {
+    if (kWinAspect != 0.0f) {
+        windowRect.maxY = windowRect.minY + static_cast<int32_t>(static_cast<float>(windowRect.maxX - windowRect.minX - s_clientAdjust.x) / kWinAspect + 0.5f + s_clientAdjust.y);
+    }
+}
+
+// VERIFY: 46215ef6 auto
+// OFFSET: 0x00683E00
+void CGxDevice::ClampRectLeftByAspect(CiRect& windowRect) {
+    if (kWinAspect != 0.0f) {
+        windowRect.minX = windowRect.maxX - static_cast<int32_t>(kWinAspect * static_cast<float>(windowRect.maxY - windowRect.minY - s_clientAdjust.y) + 0.5f + s_clientAdjust.x);
+    }
+}
+
+// VERIFY: 9342553f auto
+// OFFSET: 0x00683E50
+void CGxDevice::ClampRectRightByAspect(CiRect& windowRect) {
+    if (kWinAspect != 0.0f) {
+        windowRect.maxX = windowRect.minX + static_cast<int32_t>(kWinAspect * static_cast<float>(windowRect.maxY - windowRect.minY - s_clientAdjust.y) + 0.5f + s_clientAdjust.x);
+    }
+}
+
+// VERIFY: 252d85a0 manual
+// OFFSET: 0x00684BA0
+void CGxDevice::Log(const char* format, va_list args) {
+    if (!CGxDevice::m_log) {
+        return;
+    }
+
+    char buffer[2048];
+    vsnprintf(buffer, sizeof(buffer), format, args);
+
+    if (CGxDevice::m_logBytes < 0x200000) {
+        SLogWrite(CGxDevice::m_log, buffer);
+        CGxDevice::m_logBytes += static_cast<uint32_t>(strlen(buffer));
+    }
+}
+
+// VERIFY: 4fc450e6 auto
+// OFFSET: 0x00684C20
+void CGxDevice::Log(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+
+    if (CGxDevice::m_log) {
+        CGxDevice::Log(format, args);
+    }
+
+    va_end(args);
+}
+
+// VERIFY: e580fa38 auto
+// OFFSET: 0x00684C40
+void CGxDevice::Log(const CGxCaps& caps) const {
+    CGxDevice::Log("Caps:");
+    CGxDevice::Log("\tnumTmus: %d", caps.m_numTmus);
+    CGxDevice::Log("\tgenerateMipMaps: %d", caps.m_generateMipMaps);
+    CGxDevice::Log("\ttexFilterAnisotropic: %d, %d", caps.m_texFilterTrilinear, caps.m_maxTexAnisotropy);
+    CGxDevice::Log("\trttFormat: %d, %d", caps.m_rttFormat[2], caps.m_rttFormat[5]);
+    CGxDevice::Log("\tpixelShaderTarget: %s", s_pixelShaderTargetNames[caps.m_shaderTargets[GxSh_Pixel]]);
+    CGxDevice::Log("\tvertexShaderTarget: %s", s_vertexShaderTargetNames[caps.m_shaderTargets[GxSh_Vertex]]);
+    CGxDevice::Log("\tvertexShaderConstants: %d", caps.m_shaderConstants[GxSh_Vertex]);
+    CGxDevice::Log("\tnumStreams: %d", caps.m_numStreams);
+    CGxDevice::Log("\tstereoAvailable: %d", caps.m_stereoAvailable);
+}
+
+// VERIFY: e3c13afb auto
+// OFFSET: 0x00684D10
+void CGxDevice::Log(const CGxFormat& format) const {
+    if (format.m_window) {
+        CGxDevice::Log("\tFormat: %d x %d Window, %s, multisample %d", format.m_size.x, format.m_size.y, s_formatNames[format.m_depthFormat], format.m_multisampleCount);
+    } else {
+        CGxDevice::Log("\tFormat %d x %d @ %d Fullscreen, %s, %s, multisample %d", format.m_size.x, format.m_size.y, format.m_refreshRate, s_formatNames[format.m_colorFormat], s_formatNames[format.m_depthFormat], format.m_multisampleCount);
+    }
 }

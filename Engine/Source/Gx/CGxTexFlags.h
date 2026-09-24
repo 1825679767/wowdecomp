@@ -20,6 +20,7 @@ class CGxTexFlags {
     uint32_t m_unk16 : 15;
     uint32_t m_bit31 : 1;
 
+    bool operator!=(const CGxTexFlags& flags) const;
     CGxTexFlags(EGxTexFilter filter = GxTex_Linear, uint32_t wrapU = 0, uint32_t wrapV = 0, uint32_t forceMipTracking = 0, uint32_t generateMipMaps = 0, uint32_t renderTarget = 0, uint32_t maxAnisotropy = 1, uint32_t bit8 = 0, uint32_t bit14 = 0, uint32_t bit15 = 0);
 };
 

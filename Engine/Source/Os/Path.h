@@ -4,6 +4,7 @@
 #include <cstdint>
 
 uint32_t GetModuleFileNameUTF8(void* module, char* path, uint32_t size);
+int32_t OsCreateDirectory(const char* path, int32_t recursive);
 void OsGetExePath(char* path, uint32_t size);
 uint32_t OsPathGetRootChars(const char* path);
 void OsPathStripFilename(char* path);

@@ -1,3 +1,4 @@
+#include <cstdarg>
 #include <cstdint>
 #include "Engine/Source/Gx/Buffer.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
@@ -35,6 +36,9 @@ static BlitFormat s_blitFormats[GxTexFormats_Last] = {
     BlitFormat_Rgb565, BlitFormat_Dxt1, BlitFormat_Dxt3, BlitFormat_Dxt5, BlitFormat_Uv88, BlitFormat_Gr1616F,
     BlitFormat_R32F, BlitFormat_D24X8
 };
+
+// STATIC: 0x00AD87E4
+const char* g_gxApiNames[GxApis_Last] = { "OpenGL", "D3D9", "D3D9Ex", "D3D10", "D3D11", "GLL" };
 
 // STATIC: 0x00AD8AC0
 static uint32_t s_vertexSize[GxVertexBufferFormats_Last] = { 12, 24, 28, 32, 36, 40, 44, 16, 24, 32, 20, 28, 48, 48 };
@@ -615,4 +619,91 @@ void GxPrimVertexPtr(uint32_t vertexCount, const C3Vector* pos, uint32_t posStri
 void GxPrimLockVertexPtrs(uint32_t vertexCount, const C3Vector* pos, uint32_t posStride, const C3Vector* normal, uint32_t normalStride, const CImVector* color, uint32_t colorStride, const uint8_t* bone, uint32_t boneStride, const C2Vector* tex0, uint32_t tex0Stride, const C2Vector* tex1, uint32_t tex1Stride) {
     s_lockVertexCount = vertexCount;
     GxPrimVertexPtr(vertexCount, pos, posStride, normal, normalStride, color, colorStride, tex0, tex0Stride, tex1, tex1Stride);
+}
+
+// VERIFY: 5e637469 auto
+// OFFSET: 0x00408240
+void GxRsSet(EGxRenderState which, void* value) {
+    g_theGxDevicePtr->RsSet(which, value);
+}
+
+// VERIFY: be880d39 auto
+// OFFSET: 0x00408BF0
+void GxRsSet(EGxRenderState which, int32_t value) {
+    if (!g_theGxDevicePtr->m_context) {
+        return;
+    }
+
+    CGxAppRenderState& state = g_theGxDevicePtr->m_appRenderStates[which];
+
+    if (state.m_value.m_data.i[0] != value) {
+        g_theGxDevicePtr->IRsDirty(which);
+        state.m_value.m_data.i[0] = value;
+    }
+}
+
+// VERIFY: 3f036f15 auto
+// OFFSET: 0x00763C70
+void GxRsSet(EGxRenderState which, float value) {
+    if (!g_theGxDevicePtr->m_context) {
+        return;
+    }
+
+    CGxAppRenderState& state = g_theGxDevicePtr->m_appRenderStates[which];
+
+    if (value != state.m_value.m_data.f[0]) {
+        g_theGxDevicePtr->IRsDirty(which);
+        state.m_value.m_data.f[0] = value;
+    }
+}
+
+// VERIFY: d54d4b83 auto
+// OFFSET: 0x00681430
+void GxTexSetFlags(CGxTex* texId, CGxTexFlags flags) {
+    g_theGxDevicePtr->TexSetFlags(texId, flags);
+}
+
+// VERIFY: afbfe546 auto
+// OFFSET: 0x00681450
+void GxTexSetWrap(CGxTex* texId, EGxTexWrapMode wrapU, EGxTexWrapMode wrapV) {
+    g_theGxDevicePtr->TexSetWrap(texId, wrapU, wrapV);
+}
+
+// VERIFY: 9afde255 manual
+// OFFSET: 0x006817C0
+void GxLogOpen() {
+    CGxDevice::LogOpen();
+}
+
+// VERIFY: d45cbace manual
+// OFFSET: 0x006817D0
+void GxLogClose() {
+    CGxDevice::LogClose();
+}
+
+// VERIFY: b65f4ddb auto
+// OFFSET: 0x006817E0
+void GxLog(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    CGxDevice::Log(format, args);
+    va_end(args);
+}
+
+// VERIFY: b49a76f0 manual
+// OFFSET: 0x00682200
+void GxLogCrashInfo(char* buffer, uint32_t size) {
+    if (!g_theGxDevicePtr) {
+        return;
+    }
+
+    SStrPack(buffer, "\r\n----------------------------------------\r\n", STORM_MAX_STR);
+    SStrPack(buffer, "               GxInfo\r\n", STORM_MAX_STR);
+    SStrPack(buffer, "----------------------------------------\r\n", STORM_MAX_STR);
+
+    char line[260];
+    SStrPrintf(line, sizeof(line), "GxApi: %s\r\n", g_gxApiNames[g_theGxDevicePtr->DeviceApi()]);
+    SStrPack(buffer, line, size);
+    g_theGxDevicePtr->LogCrashInfo(buffer, size);
+    SStrPack(buffer, "\r\n", size);
 }

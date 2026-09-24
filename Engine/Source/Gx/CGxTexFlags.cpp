@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstring>
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxTexFlags.h"
 
@@ -17,4 +18,10 @@ CGxTexFlags::CGxTexFlags(EGxTexFilter filter, uint32_t wrapU, uint32_t wrapV, ui
     this->m_maxAnisotropy = maxAnisotropy < g_theGxDevicePtr->Caps().m_maxTexAnisotropy ? maxAnisotropy : g_theGxDevicePtr->Caps().m_maxTexAnisotropy;
     this->m_bit14 = bit14;
     this->m_bit15 = bit15;
+}
+
+// VERIFY: aa1674cd manual
+// OFFSET: 0x00683AE0
+bool CGxTexFlags::operator!=(const CGxTexFlags& flags) const {
+    return memcmp(this, &flags, sizeof(CGxTexFlags)) != 0;
 }
