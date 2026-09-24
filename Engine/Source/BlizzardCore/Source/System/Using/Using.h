@@ -1,29 +1,40 @@
 #ifndef ENGINE_SOURCE_BLIZZARDCORE_SOURCE_SYSTEM_USING_USING_H
 #define ENGINE_SOURCE_BLIZZARDCORE_SOURCE_SYSTEM_USING_USING_H
 
-#include <cstddef>
 #include <cstdint>
 
-namespace System_Using { struct Depends; }
-
 namespace System_Using {
+
 struct Depends {
-    /* 0000 */ uint16_t m_id;
+    /* 0000 */ int16_t id;
     /* 0002 */ uint8_t unk_0002[2];
-    /* 0004 */ System_Using::Depends* m_next;
+    /* 0004 */ Depends* next;
 };
+
+struct UsingRec {
+    /* 0000 */ char* name;
+    /* 0004 */ int16_t id;
+    /* 0006 */ int16_t refCount;
+    /* 0008 */ void (*shutdownproc)();
+    /* 000C */ int16_t dependCount;
+    /* 000E */ uint8_t unk_000E[2];
+    /* 0010 */ Depends* depends;
+};
+
+UsingRec* Intern(const char* name);
+void RegisterNull();
+void ShutdownUnused();
+
 }
 
-namespace System_Using {
-struct UsingRec {
-    /* 0000 */ char* m_name;
-    /* 0004 */ uint16_t m_id;
-    /* 0006 */ uint16_t m_refCount;
-    /* 0008 */ void (__stdcall* m_shutdownproc )();
-    /* 000C */ uint16_t m_dependCount;
-    /* 000E */ uint8_t unk_000E[2];
-    /* 0010 */ System_Using::Depends* m_depends;
-};
+namespace Blizzard {
+namespace Using {
+
+void DependsOn(const char* me, const char* dependsOn);
+void StartUsing(const char* name);
+void StopUsing(const char* name);
+
+}
 }
 
 #endif
