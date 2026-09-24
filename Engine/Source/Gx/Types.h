@@ -95,6 +95,21 @@ enum EGxWM {
     GxWM_KillFocus = 4,
 };
 
+enum EGxTexFilter {
+    GxTex_Nearest = 0,
+    GxTex_Linear = 1,
+    GxTex_NearestMipNearest = 2,
+    GxTex_LinearMipNearest = 3,
+    GxTex_LinearMipLinear = 4,
+    GxTex_Anisotropic = 5,
+    GxTexFilters_Last = 6,
+};
+
+enum EGxTexWrapMode {
+    GxTex_Clamp = 0,
+    GxTex_Wrap = 1,
+};
+
 enum EGxXform {
     GxXform_Tex0 = 0,
     GxXform_Tex1 = 1,

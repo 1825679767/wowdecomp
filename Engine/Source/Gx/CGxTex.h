@@ -43,8 +43,7 @@ class CGxTex {
     /* 0038 */ void* m_apiSpecificData;
     /* 003C */ void* m_apiSpecificData2;
     /* 0040 */ TSLink<CGxTex> m_link;
-    /* 0048 */ uint32_t unk_0048;
-    /* 004C */ uint32_t unk_004C;
+    /* 0048 */ TSLink<CGxTex> m_link2;
     /* 0050 */ uint32_t unk_0050;
     /* 0054 */ uint32_t unk_0054;
     /* 0058 */ int8_t m_char58;
@@ -54,6 +53,9 @@ class CGxTex {
     /* 005C */ int8_t m_needsFlagUpdate;
     /* 005D */ int8_t m_char5D;
     /* 005E */ uint16_t m_pad;
+
+    CGxTex(EGxTexTarget target, uint32_t width, uint32_t height, uint32_t depth, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags, void* userArg, GxTexUserFunc userFunc, const char* name);
+    ~CGxTex();
 };
 
 #endif

@@ -11,9 +11,18 @@ class CiRect {
     /* 0008 */ int32_t maxY;
     /* 000C */ int32_t maxX;
 
+    CiRect();
     CiRect operator&=(const CiRect& r);
 };
 
 CiRect operator&(const CiRect& l, const CiRect& r);
+
+// INLINED
+inline CiRect::CiRect() {
+    this->minY = 0;
+    this->minX = 0;
+    this->maxY = 0;
+    this->maxX = 0;
+}
 
 #endif

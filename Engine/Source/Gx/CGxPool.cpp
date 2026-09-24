@@ -18,3 +18,10 @@ void CGxPool::Discard() {
 
     this->unk_001C = 0;
 }
+
+// VERIFY: 56739d8d auto
+// OFFSET: 0x00685C00
+void CGxPool::UnlinkBuf(CGxBuf* buf) {
+    this->m_bufList.UnlinkNode(buf);
+    buf->m_pool = nullptr;
+}

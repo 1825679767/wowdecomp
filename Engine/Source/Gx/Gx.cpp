@@ -1,7 +1,11 @@
 #include <cstdint>
+#include "Engine/Source/Gx/Buffer.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Tempest/C2Vector.h"
+#include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00A2D57C
@@ -240,10 +244,10 @@ void GxTexDestroy(CGxTex* texId) {
     g_theGxDevicePtr->TexDestroy(texId);
 }
 
-// VERIFY: 4926e588 manual
+// VERIFY: a80072c3 manual
 // OFFSET: 0x006814D0
 int32_t GxTexCopy(CGxTex* dest, CGxTex* source, const C2iVector& pos, const C2iVector& size, uint32_t level, uint32_t plane) {
-    if (dest && static_cast<int32_t>(dest->m_flags.m_fFlags) < 0 && (dest->m_target != GxTex_CubeMap || plane < 6)) {
+    if (dest && dest->m_flags.m_bit31 && (dest->m_target != GxTex_CubeMap || plane < 6)) {
         return g_theGxDevicePtr->TexCopy(dest, source, pos, size, level, plane);
     }
 
@@ -251,10 +255,10 @@ int32_t GxTexCopy(CGxTex* dest, CGxTex* source, const C2iVector& pos, const C2iV
     return 0;
 }
 
-// VERIFY: 43084cdc auto
+// VERIFY: d90f6ed2 auto
 // OFFSET: 0x006815C0
 int32_t GxTexReusable(CGxTexParms& parms) {
-    return parms.m_depth == 0 && (parms.m_flags.m_fFlags & 0xC0) == 0 && parms.m_target == GxTex_2d && parms.m_format <= GxTex_Dxt5;
+    return parms.m_depth == 0 && !parms.m_flags.m_generateMipMaps && !parms.m_flags.m_renderTarget && parms.m_target == GxTex_2d && parms.m_format <= GxTex_Dxt5;
 }
 
 // VERIFY: 01ea0eb4 manual
@@ -412,4 +416,203 @@ void GxPrimLockIndexPtr(EGxPrim primType, uint32_t indexCount, const uint16_t* i
     g_theGxDevicePtr->BufData(buf, indices, buf->m_itemSize * buf->m_itemCount, 0);
     buf->unk_001C = 1;
     g_theGxDevicePtr->PrimIndexPtr(buf);
+}
+
+// VERIFY: 7adb9aa8 auto
+// OFFSET: 0x006813D0
+void GxTexUpdate(CGxTex* texId, CiRect& updateRect, int32_t immediate) {
+    g_theGxDevicePtr->TexMarkForUpdate(texId, updateRect, immediate);
+}
+
+// VERIFY: 49a2a643 manual
+// OFFSET: 0x00681CB0
+int32_t GxTexCreate(uint32_t width, uint32_t height, EGxTexFormat format, CGxTexFlags flags, void* userArg, GxTexUserFunc userFunc, CGxTex*& texId) {
+    texId = nullptr;
+
+    if (width > g_theGxDevicePtr->Caps().m_texMaxSize[GxTex_2d] || height > g_theGxDevicePtr->Caps().m_texMaxSize[GxTex_2d] || (width & (width - 1)) || (height & (height - 1)) || format > GxTexFormats_Last) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    if (flags.m_generateMipMaps && (!g_theGxDevicePtr->Caps().m_generateMipMaps || (format >= GxTex_Dxt1 && format <= GxTex_Dxt5))) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    if ((flags.m_filter == GxTex_Anisotropic && !g_theGxDevicePtr->Caps().m_texFilterAnisotropic) || !userFunc || width < 8 || height < 8) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    return g_theGxDevicePtr->TexCreate(GxTex_2d, width, height, 0, format, format, flags, userArg, userFunc, "Unknown", texId);
+}
+
+// VERIFY: a44e4684 manual
+// OFFSET: 0x00681D90
+int32_t GxTexCreate(EGxTexTarget target, uint32_t width, uint32_t height, uint32_t depth, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags, void* userArg, GxTexUserFunc userFunc, const char* name, CGxTex*& texId) {
+    texId = nullptr;
+
+    if (target > GxTexTargets_Last || g_theGxDevicePtr->Caps().m_texTarget[target] != 1 || width < 8 || height < 8 || width > g_theGxDevicePtr->Caps().m_texMaxSize[target] || height > g_theGxDevicePtr->Caps().m_texMaxSize[target]) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    if (target == GxTex_Rectangle) {
+        if (flags.m_filter > GxTex_Linear) {
+            SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+            return 0;
+        }
+    } else if (target != GxTex_NonPow2) {
+        if ((width & (width - 1)) || (height & (height - 1))) {
+            SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+            return 0;
+        }
+    }
+
+    if (format > GxTexFormats_Last || (flags.m_generateMipMaps && (!g_theGxDevicePtr->Caps().m_generateMipMaps || (format >= GxTex_Dxt1 && format <= GxTex_Dxt5))) || (flags.m_filter == GxTex_Anisotropic && !g_theGxDevicePtr->Caps().m_texFilterAnisotropic) || dataFormat > GxTexFormats_Last || !userFunc) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    return g_theGxDevicePtr->TexCreate(target, width, height, depth, format, dataFormat, flags, userArg, userFunc, name, texId);
+}
+
+// VERIFY: 6866ac7c auto
+// OFFSET: 0x00681EE0
+int32_t GxTexCreate(const CGxTexParms& parms, CGxTex*& texId) {
+    return GxTexCreate(parms.m_target, parms.m_width, parms.m_height, parms.m_depth, parms.m_format, parms.m_dataFormat, parms.m_flags, parms.m_userArg, parms.m_userFunc, "", texId);
+}
+
+// VERIFY: 83fc849d auto
+// OFFSET: 0x00681B00
+void GxPrimVertexPtr(CGxBuf* buf, EGxVertexBufferFormat format) {
+    const VertexBufDesc& desc = Buffer::s_vertexBufDesc[format];
+    g_theGxDevicePtr->PrimVertexFormat(buf, desc.attribs, desc.attribCount);
+    g_theGxDevicePtr->PrimVertexMask(desc.mask);
+    g_theGxDevicePtr->PrimVertexPtr(buf, format);
+}
+
+// VERIFY: d5a113e1 manual
+// OFFSET: 0x00682400
+void GxPrimVertexPtr(uint32_t vertexCount, const C3Vector* pos, uint32_t posStride, const C3Vector* normal, uint32_t normalStride, const CImVector* color, uint32_t colorStride, const C2Vector* tex0, uint32_t tex0Stride, const C2Vector* tex1, uint32_t tex1Stride) {
+    EGxVertexBufferFormat format = GxVBF_PN;
+
+    if (pos) {
+        if (normal) {
+            if (color) {
+                if (!tex0 && !tex1) {
+                    format = GxVBF_PNC;
+                } else if (tex0 && !tex1) {
+                    format = GxVBF_PNCT;
+                } else if (tex0 && tex1) {
+                    format = GxVBF_PNCT2;
+                }
+            } else {
+                if (!tex0 && !tex1) {
+                    format = GxVBF_PN;
+                } else if (tex0 && !tex1) {
+                    format = GxVBF_PNT;
+                } else if (tex0 && tex1) {
+                    format = GxVBF_PNT2;
+                }
+            }
+        } else if (color) {
+            if (tex0) {
+                format = tex1 ? GxVBF_PCT2 : GxVBF_PCT;
+            } else if (!tex1) {
+                format = GxVBF_PC;
+            }
+        } else if (tex0) {
+            format = tex1 ? GxVBF_PT2 : GxVBF_PT;
+        } else if (!tex1) {
+            format = GxVBF_P;
+        }
+    }
+
+    uint32_t vertexSize = s_vertexSize[format];
+    CGxBuf* buf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, vertexSize, vertexCount);
+    char* data = g_theGxDevicePtr->BufLock(buf);
+
+    C3Vector emptyNormal;
+    C2Vector emptyTex1;
+    C2Vector emptyTex0;
+    CImVector emptyColor;
+
+    char* posDst = data + s_vertexAttribOffset[format][GxVA_Position];
+    char* normalDst = normal ? data + s_vertexAttribOffset[format][GxVA_Normal] : reinterpret_cast<char*>(&emptyNormal);
+    uint32_t normalDstStride = normal ? vertexSize : 0;
+    char* colorDst = color ? data + s_vertexAttribOffset[format][GxVA_Color0] : reinterpret_cast<char*>(&emptyColor);
+    uint32_t colorDstStride = color ? vertexSize : 0;
+    char* tex0Dst = tex0 ? data + s_vertexAttribOffset[format][GxVA_TexCoord0] : reinterpret_cast<char*>(&emptyTex0);
+    uint32_t tex0DstStride = tex0 ? vertexSize : 0;
+    char* tex1Dst = tex1 ? data + s_vertexAttribOffset[format][GxVA_TexCoord1] : reinterpret_cast<char*>(&emptyTex1);
+    uint32_t tex1DstStride = tex1 ? vertexSize : 0;
+
+    if (!normal) {
+        normal = &emptyNormal;
+        normalStride = 0;
+    }
+
+    if (!color) {
+        color = &emptyColor;
+        colorStride = 0;
+    }
+
+    if (!tex0) {
+        tex0 = &emptyTex0;
+        tex0Stride = 0;
+    }
+
+    if (!tex1) {
+        tex1 = &emptyTex1;
+        tex1Stride = 0;
+    }
+
+    for (uint32_t i = 0; i < vertexCount; i++) {
+        *reinterpret_cast<C3Vector*>(posDst) = *pos;
+        pos = reinterpret_cast<const C3Vector*>(reinterpret_cast<const char*>(pos) + posStride);
+        posDst += vertexSize;
+
+        *reinterpret_cast<C3Vector*>(normalDst) = *normal;
+        normal = reinterpret_cast<const C3Vector*>(reinterpret_cast<const char*>(normal) + normalStride);
+        normalDst += normalDstStride;
+
+        CImVector c;
+
+        if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+            c.b = color->r;
+            c.g = color->g;
+            c.r = color->b;
+            c.a = color->a;
+        } else {
+            c = *color;
+        }
+
+        *reinterpret_cast<CImVector*>(colorDst) = c;
+        color = reinterpret_cast<const CImVector*>(reinterpret_cast<const char*>(color) + colorStride);
+        colorDst += colorDstStride;
+
+        *reinterpret_cast<C2Vector*>(tex0Dst) = *tex0;
+        tex0Dst += tex0DstStride;
+        tex0 = reinterpret_cast<const C2Vector*>(reinterpret_cast<const char*>(tex0) + tex0Stride);
+
+        *reinterpret_cast<C2Vector*>(tex1Dst) = *tex1;
+        tex1 = reinterpret_cast<const C2Vector*>(reinterpret_cast<const char*>(tex1) + tex1Stride);
+        tex1Dst += tex1DstStride;
+    }
+
+    g_theGxDevicePtr->BufUnlock(buf, vertexCount * vertexSize);
+    buf->unk_001C = 1;
+
+    const VertexBufDesc& desc = Buffer::s_vertexBufDesc[format];
+    g_theGxDevicePtr->PrimVertexFormat(buf, desc.attribs, desc.attribCount);
+    g_theGxDevicePtr->PrimVertexMask(desc.mask);
+    g_theGxDevicePtr->PrimVertexPtr(buf, format);
+}
+
+// VERIFY: a230e3a0 auto
+// OFFSET: 0x006828C0
+void GxPrimLockVertexPtrs(uint32_t vertexCount, const C3Vector* pos, uint32_t posStride, const C3Vector* normal, uint32_t normalStride, const CImVector* color, uint32_t colorStride, const uint8_t* bone, uint32_t boneStride, const C2Vector* tex0, uint32_t tex0Stride, const C2Vector* tex1, uint32_t tex1Stride) {
+    s_lockVertexCount = vertexCount;
+    GxPrimVertexPtr(vertexCount, pos, posStride, normal, normalStride, color, colorStride, tex0, tex0Stride, tex1, tex1Stride);
 }

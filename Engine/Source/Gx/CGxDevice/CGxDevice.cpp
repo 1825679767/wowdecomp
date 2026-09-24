@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <new>
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Gx/Buffer.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/Gx.h"
@@ -841,4 +842,75 @@ void CGxDevice::TexSetUserData(CGxTex* texId, GxTexUserFunc userFunc, void* user
     texId->m_updateRect.maxY = texId->m_height;
     texId->m_updateRect.maxX = texId->m_width;
     texId->m_needsUpdate = 1;
+}
+
+// VERIFY: 6017c596 manual
+// OFFSET: 0x00684AD0
+void CGxDevice::ICursorCreate(const CGxFormat& format) {
+    this->m_hwCursor = format.m_hwCursor && this->m_caps.m_hwCursor;
+
+    if (!this->m_hwCursor && !this->m_cursorTexture) {
+        CGxTexFlags flags;
+        flags.m_filter = GxTex_Linear;
+        flags.m_wrapU = 0;
+        flags.m_wrapV = 0;
+        flags.m_forceMipTracking = 0;
+        flags.m_generateMipMaps = 0;
+        flags.m_renderTarget = 0;
+        flags.m_maxAnisotropy = 1;
+        GxTexCreate(32, 32, GxTex_Argb8888, flags, this, CGxDevice::ICursorUpdate, this->m_cursorTexture);
+    }
+}
+
+// VERIFY: 4216d1f6 auto
+// OFFSET: 0x00684B50
+void CGxDevice::CursorUnlock(uint32_t x, uint32_t y) {
+    this->m_cursorHotspotY = y;
+    this->m_cursorHotspotX = x;
+
+    if (this->m_cursorTexture) {
+        CiRect rect;
+        rect.maxY = 32;
+        rect.maxX = 32;
+        GxTexUpdate(this->m_cursorTexture, rect, 0);
+    }
+}
+
+// VERIFY: efed35aa manual
+// OFFSET: 0x00685C60
+int32_t CGxDevice::TexCreate(EGxTexTarget target, uint32_t width, uint32_t height, uint32_t depth, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags, void* userArg, GxTexUserFunc userFunc, const char* name, CGxTex*& texId) {
+    texId = new (SMemAlloc(sizeof(CGxTex), __FILE__, __LINE__, 0)) CGxTex(target, width, height, depth, format, dataFormat, flags, userArg, userFunc, name);
+    this->m_textures.LinkToHead(texId);
+    return 1;
+}
+
+// VERIFY: ff832600 manual
+// OFFSET: 0x00687980
+void CGxDevice::TexDestroy(CGxTex* texId) {
+    texId->m_link.Unlink();
+    delete texId;
+}
+
+// VERIFY: 87fe3127 manual
+// OFFSET: 0x00688290
+void CGxDevice::BufDestroy(CGxBuf*& buf) {
+    if (!buf) {
+        return;
+    }
+
+    if (buf->m_pool) {
+        buf->m_pool->UnlinkBuf(buf);
+    }
+
+    buf->m_link.Unlink();
+    delete buf;
+    buf = nullptr;
+}
+
+// VERIFY: e4c51956 auto
+// OFFSET: 0x00682EE0
+void CGxDevice::PrimVertexPtr(CGxBuf* buf, EGxVertexBufferFormat format) {
+    this->m_primVertexFormat = format;
+    this->m_primVertexBuf = buf;
+    this->m_primVertexSize = Buffer::s_vertexBufDesc[format].size;
 }

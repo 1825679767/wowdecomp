@@ -24,6 +24,7 @@ class CGxPool : public TSLinkedNode<CGxPool> {
 
     void Discard();
     void Invalidate();
+    void UnlinkBuf(CGxBuf* buf);
 };
 
 #endif

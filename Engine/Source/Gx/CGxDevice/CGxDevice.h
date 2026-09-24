@@ -133,7 +133,7 @@ class CGxDevice {
     /* 28C4 */ EmergencyMem m_emergencyMem [2];
     /* 28EC */ TSFixedArray<CGxAppRenderState> m_appRenderStates;
     /* 28F8 */ TSFixedArray<CGxStateBom> m_hwRenderStates;
-    /* 2904 */ TSList<CGxTex> m_textures;
+    /* 2904 */ TSExplicitList<CGxTex> m_textures;
     /* 2910 */ CGxDevice::TextureTarget m_textureTarget [2];
     /* 2928 */ TSExplicitList<CGxQuery> m_queryList;
     /* 2934 */ int32_t m_scrShotClick;
@@ -205,7 +205,7 @@ class CGxDevice {
     virtual char* BufLock(CGxBuf* buf);
     virtual int32_t BufUnlock(CGxBuf* buf, uint32_t size);
     virtual void BufData(CGxBuf* buf, const void* data, uint32_t size, uint32_t offset);
-    virtual void TexCreate(EGxTexTarget target, uint32_t width, uint32_t height, uint32_t depth, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags, void* userArg, GxTexUserFunc userFunc, const char* name, CGxTex*& texId);
+    virtual int32_t TexCreate(EGxTexTarget target, uint32_t width, uint32_t height, uint32_t depth, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags, void* userArg, GxTexUserFunc userFunc, const char* name, CGxTex*& texId);
     virtual void TexDestroy(CGxTex* texId);
     virtual int32_t TexCopy(CGxTex* dest, CGxTex* source, const C2iVector& pos, const C2iVector& size, uint32_t level, uint32_t plane) = 0;
     virtual int32_t TexStretch(CGxTex* dest, const CiRect* destRect, const CiRect* sourceRect, uint32_t level, uint32_t face) = 0;
@@ -239,6 +239,7 @@ class CGxDevice {
     static void ClampRectTop(CiRect& windowRect);
     static void ICursorUpdate(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t face, uint32_t level, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);
 
+    void BufDestroy(CGxBuf*& buf);
     CGxBuf* BufStream(EGxPoolTarget target, uint32_t itemSize, uint32_t itemCount);
     void BufSizeSet(CGxBuf* buf, uint32_t itemSize, uint32_t itemCount);
     CGxCaps& Caps();
@@ -266,6 +267,7 @@ class CGxDevice {
     void PrimIndexPtr(CGxBuf* buf);
     void PrimVertexFormat(CGxBuf* buf, const CGxVertexAttrib* attribs, uint32_t count);
     void PrimVertexMask(uint32_t mask);
+    void PrimVertexPtr(CGxBuf* buf, EGxVertexBufferFormat format);
     void SetScissor(const CRect& rect);
     void ShaderConstantsClear();
     float* ShaderConstantsLock(EGxShTarget target);
