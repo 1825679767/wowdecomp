@@ -1,29 +1,52 @@
 #ifndef ENGINE_SOURCE_BASE_RCSTRING_H
 #define ENGINE_SOURCE_BASE_RCSTRING_H
 
-#include <cstddef>
 #include <cstdint>
-
-class TRefCnt {
-    public:
-    /* 0004 */ uint32_t m_refcnt;
-
-    virtual ~TRefCnt();
-};
+#include "Engine/Source/Base/RefCount.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 class RCString : public TRefCnt {
     public:
-    /* 0008 */ uint8_t* m_str;
+    /* 0008 */ const char* m_str;
+
+    RCString();
+    virtual ~RCString();
+    void Copy(const RCString& source);
+    void Copy(const char* str);
 };
 
-class CStringMemory {
+class CStringMemory : public TSGrowableArray<void*> {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
+    /* 0010 */ char* unk_0010;
+    /* 0014 */ char* unk_0014;
+
+    CStringMemory();
+    ~CStringMemory();
+    void AllocateBlock(uint32_t size);
+    char* New(const char* str);
 };
+
+class CStringManager {
+    public:
+    /* 0000 */ char* unk_0000[521];
+    /* 0824 */ CStringMemory unk_0824;
+
+    static CStringManager* s_stringManager;
+
+    static void DestroyManager();
+    static CStringManager* Get();
+
+    CStringManager();
+    const char* Add(const char* str);
+};
+
+// INLINED
+inline RCString::RCString() {
+    this->Copy(nullptr);
+}
+
+// INLINED
+inline RCString::~RCString() {
+}
 
 #endif
