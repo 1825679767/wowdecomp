@@ -43,4 +43,15 @@ struct StorageUnit {
 }
 }
 
+namespace Blizzard {
+namespace Storage {
+
+extern int32_t s_variantIndex;
+extern char s_variantName[260];
+
+void BuildVariantFileName(char* dest, uint32_t size, const char* name, const char* extension);
+
+}
+}
+
 #endif

@@ -105,6 +105,7 @@ struct HASHENTRY {
     /* 000C */ uint32_t m_blockIndex;
 };
 
+#pragma pack(push, 4)
 struct MPQHEADER {
     /* 0000 */ uint32_t m_magic;
     /* 0004 */ uint32_t m_headerSize;
@@ -119,6 +120,7 @@ struct MPQHEADER {
     /* 0028 */ uint16_t m_hashTablePosHi;
     /* 002A */ uint16_t m_blockTablePosHi;
 };
+#pragma pack(pop)
 
 struct ArchiveBuffers {
     /* 0000 */ Blizzard::Memory::TempBuffer<uint8_t, 4> unk_0000;
@@ -181,11 +183,15 @@ class ARCHIVEREC {
     void ConvertToNewHashTableFormat();
     bool FillNewHashTable(int32_t hashBits);
     BLOCKENTRY GetBlockEntry(uint32_t index);
+    bool IncreaseHashBits(int32_t* hashBits);
     void InitializeTables();
     void PackBlockTable();
     bool ReadAdditionalAttributes();
     bool RemoveInternalArchiveRef();
+    void SetBlockCrc(uint32_t index, uint32_t crc);
     void SetBlockEntry(uint32_t index, const BLOCKENTRY& entry);
+    void SetBlockFileTime(uint32_t index, uint64_t fileTime);
+    void SetBlockMd5(uint32_t index, const Blizzard::Util::Digest<16>& md5);
     void SetMD5Check(uint32_t index, bool enabled);
 };
 

@@ -9,7 +9,7 @@
 
 class IOMpqUnit : public IOUnit {
     public:
-    /* 0010 */ uint32_t unk_0010;
+    /* 0010 */ uint32_t m_position;
     /* 0014 */ System_SFile::ARCHIVEREC* m_archive;
     /* 0018 */ Blizzard::Memory::TempBuffer<char, 260> m_name;
 

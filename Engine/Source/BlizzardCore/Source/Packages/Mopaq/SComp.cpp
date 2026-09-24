@@ -5,7 +5,9 @@
 #include "Engine/Source/BlizzardCore/Source/System/Memory/MemoryStorm.h"
 #include "Engine/Source/BlizzardCore/Source/System/Memory/TempBuffer.h"
 #include "Engine/Source/Storm/Source/SComp.h"
+extern "C" {
 #include "ThirdParty/zlib/contrib/blast/blast.h"
+}
 #include "ThirdParty/zlib/zlib.h"
 
 extern "C" {

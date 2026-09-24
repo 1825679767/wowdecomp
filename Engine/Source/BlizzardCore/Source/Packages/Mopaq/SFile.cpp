@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstring>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/iounit/IOAlignUnit.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/iounit/IOChecksumUnit.h"
@@ -10,9 +11,12 @@
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/MPQGlobals.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SFile.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SFileArchives.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
+#include "Engine/Source/BlizzardCore/Source/System/File/File.h"
 #include "Engine/Source/BlizzardCore/Source/System/Lock/Lock.h"
 #include "Engine/Source/BlizzardCore/Source/System/Log/Log.h"
 #include "Engine/Source/BlizzardCore/Source/System/String/Path.h"
+#include "Engine/Source/BlizzardCore/Source/System/String/String.h"
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00B38344
@@ -20,6 +24,9 @@ Blizzard::Thread::LocalObject<System_SFile::RawReadInfo> System_SFile::s_rawRead
 
 // STATIC: 0x00B3858C
 uint32_t System_SFile::s_threadingMode;
+
+// STATIC: 0x00AB9090
+static const char* s_specialFiles[3] = { "(signature)", "(listfile)", "(attributes)" };
 
 // INLINED
 System_SFile::RawReadInfo::RawReadInfo() {
@@ -236,4 +243,202 @@ fail:
 
     *result = file;
     return found;
+}
+
+// VERIFY: fc7d831c manual
+// OFFSET: 0x00426E60
+int32_t Blizzard::Mopaq::SFileOpenFileEx(System_SFile::ARCHIVEREC* handle, const char* name, uint32_t flags, IOMpqUnit** result) {
+    Blizzard::Util::Digest<16> md5 = System_SFile::s_emptyMd5;
+    return SFileOpenFileEx(handle, name, md5, flags, result);
+}
+
+// VERIFY: 0d0219f6 manual
+// OFFSET: 0x00426F70
+uint32_t Blizzard::Mopaq::SFileGetFileSize(IOMpqUnit* file) {
+    int64_t size = 0;
+
+    if (file->GetFileSize(&size)) {
+        return static_cast<uint32_t>(size);
+    }
+
+    return -1;
+}
+
+// VERIFY: 3d1301e5 auto
+// OFFSET: 0x004321A0
+bool Blizzard::Mopaq::SFileCloseFile(IOMpqUnit* file) {
+    return file->Release();
+}
+
+// VERIFY: 653d5feb manual
+// OFFSET: 0x0045A1E0
+bool Blizzard::Mopaq::SFileGetArchiveName(System_SFile::ARCHIVEREC* handle, char* name, uint32_t size) {
+    *name = '\0';
+
+    System_SFile::ARCHIVEREC* archive = System_SFile::GetArchivePtr(handle, true);
+
+    if (!archive) {
+        return false;
+    }
+
+    Blizzard::String::Copy(name, archive->m_name, size);
+    archive->RemoveInternalArchiveRef();
+
+    return true;
+}
+
+// VERIFY: 678ca972 manual
+// OFFSET: 0x0045A4B0
+bool Blizzard::Mopaq::SFileReadFile(IOMpqUnit* file, void* buffer, uint32_t count, uint32_t* bytesRead) {
+    uint32_t read = 0;
+    bool result = file->Read(buffer, file->m_position, count, &read);
+
+    if (!result) {
+        static_cast<System_SFile::RawReadInfo&>(System_SFile::s_rawReadInfo).m_retryNative = true;
+        result = file->Read(buffer, file->m_position, count, &read);
+        static_cast<System_SFile::RawReadInfo&>(System_SFile::s_rawReadInfo).m_retryNative = false;
+    }
+
+    file->m_position += read;
+
+    if (bytesRead) {
+        *bytesRead = read;
+    }
+
+    if (read != count) {
+        System_SFile::s_lastError = 38;
+    }
+
+    if (!result) {
+        char name[260];
+        System_SFile::ARCHIVEREC* archive = file->GetArchive();
+
+        if (archive) {
+            SFileGetArchiveName(archive, name, sizeof(name));
+            Blizzard::Streaming::MakePartFileName(name, sizeof(name));
+            Blizzard::String::QuickFormat<1024> message("SFileReadFile - %s - %s", file->GetPath(), name);
+            Blizzard::File::AddToLastErrorStack(0, message.m_buffer, 4);
+            return false;
+        }
+
+        Blizzard::String::Copy(name, file->GetPath(), sizeof(name));
+        Blizzard::Streaming::MakePartFileName(name, sizeof(name));
+        Blizzard::String::QuickFormat<1024> message("SFileReadFile - %s", file->GetPath());
+        Blizzard::File::AddToLastErrorStack(0, message.m_buffer, 4);
+    }
+
+    return result;
+}
+
+// VERIFY: 2a684620 manual
+// OFFSET: 0x0045B5A0
+bool Blizzard::Mopaq::SFileLoadFile(System_SFile::ARCHIVEREC* handle, const char* name, void** data, uint32_t* size, uint32_t extra, uint32_t flags) {
+    uint8_t* buffer = nullptr;
+    *data = nullptr;
+
+    if (size) {
+        *size = 0;
+    }
+
+    Blizzard::Util::Digest<16> md5 = System_SFile::s_emptyMd5;
+    IOMpqUnit* file = nullptr;
+
+    if (SFileOpenFileEx(handle, name, md5, flags, &file)) {
+        uint32_t bytes = SFileGetFileSize(file);
+        buffer = static_cast<uint8_t*>(SMemAlloc(bytes + extra, __FILE__, __LINE__, 0));
+
+        if (SFileReadFile(file, buffer, bytes, nullptr)) {
+            if (extra) {
+                memset(buffer + bytes, 0, extra);
+            }
+
+            *data = buffer;
+            buffer = nullptr;
+
+            if (size) {
+                *size = bytes;
+            }
+        }
+    }
+
+    SMemFree(buffer, __FILE__, __LINE__, 0);
+
+    if (file) {
+        file->Release();
+    }
+
+    return *data != nullptr;
+}
+
+// VERIFY: d17c29b0 manual
+// OFFSET: 0x00426A40
+bool System_SFile::ListfileParser::Next() {
+    this->m_token = this->m_data + this->m_pos;
+
+    while (this->m_pos < this->m_size) {
+        char c = this->m_data[this->m_pos];
+
+        if (c == '\r' || c == '\n') {
+            this->m_data[this->m_pos] = '\0';
+            this->m_pos++;
+
+            if (this->m_pos < this->m_size && this->m_data[this->m_pos] == '\n') {
+                this->m_pos++;
+            }
+
+            return false;
+        }
+
+        this->m_pos++;
+    }
+
+    if (this->m_special >= 2) {
+        return true;
+    }
+
+    this->m_special++;
+    this->m_token = s_specialFiles[this->m_special];
+    this->m_isSpecial = true;
+
+    return false;
+}
+
+// INLINED
+System_SFile::ListfileParser::~ListfileParser() {
+    SMemFree(this->m_data, __FILE__, __LINE__, 0);
+}
+
+// VERIFY: 9cda92e4 manual
+// OFFSET: 0x0045B6A0
+bool System_SFile::ARCHIVEREC::FillNewHashTable(int32_t hashBits) {
+    ListfileParser parser;
+    parser.m_special = 0;
+
+    if (Blizzard::Mopaq::SFileLoadFile(this, "(listfile)", reinterpret_cast<void**>(&parser.m_data), &parser.m_size, 0, 0)) {
+        parser.m_pos = 0;
+        parser.m_token = nullptr;
+        parser.m_isSpecial = false;
+    }
+
+    while (!parser.Next()) {
+        const char* name = parser.m_token;
+        bool deleted;
+        uint32_t hashIndex = SearchHashTable(this, name, true, &deleted);
+
+        if (hashIndex == -1) {
+            return false;
+        }
+
+        if (!this->m_hashEntryTable->AddEntry(name, this->m_hashTable[hashIndex].m_blockIndex, this->m_blockEntryTable)) {
+            if (!this->IncreaseHashBits(&hashBits)) {
+                return false;
+            }
+
+            parser.m_pos = 0;
+            parser.m_special = 0;
+            parser.m_isSpecial = false;
+        }
+    }
+
+    return true;
 }

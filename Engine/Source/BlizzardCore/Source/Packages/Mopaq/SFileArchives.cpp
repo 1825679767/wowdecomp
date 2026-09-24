@@ -2,10 +2,12 @@
 #include <cstdio>
 #include <cstring>
 #include "Engine/Source/BlizzardCore/Source/Packages/iounit/IOFileUnit.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/IOMpqUnit.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/MPQEncrypt.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/MPQGlobals.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/NewZerofill.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SComp.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SFile.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SFileArchives.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Util/Hash.h"
@@ -1570,4 +1572,145 @@ void System_SFile::ARCHIVEREC::SetMD5Check(uint32_t index, bool enabled) {
 // OFFSET: 0x00431A20
 void System_SFile::ARCHIVEREC::SetBlockEntry(uint32_t index, const BLOCKENTRY& entry) {
     this->m_blockTable[index] = entry;
+}
+
+// VERIFY: fb240c69 manual
+// OFFSET: 0x0042C520
+void System_SFile::ARCHIVEREC::SetBlockFileTime(uint32_t index, uint64_t fileTime) {
+    BlockEntryTable* blocks = this->m_blockEntryTable;
+
+    if (blocks) {
+        if (this->m_flags & 0x100) {
+            blocks->m_fileTimes[index] = fileTime;
+        }
+    } else {
+        this->m_blockTable[index].m_fileTime = fileTime;
+    }
+}
+
+// VERIFY: ec838e62 manual
+// OFFSET: 0x0042C5C0
+void System_SFile::ARCHIVEREC::SetBlockMd5(uint32_t index, const Blizzard::Util::Digest<16>& md5) {
+    BlockEntryTable* blocks = this->m_blockEntryTable;
+
+    if (blocks) {
+        if (this->m_flags & 0x40) {
+            blocks->m_md5s[index] = md5;
+        }
+    } else {
+        this->m_blockTable[index].m_md5 = md5;
+    }
+}
+
+// VERIFY: 4e54de6f manual
+// OFFSET: 0x0042C720
+void System_SFile::ARCHIVEREC::SetBlockCrc(uint32_t index, uint32_t crc) {
+    BlockEntryTable* blocks = this->m_blockEntryTable;
+
+    if (blocks) {
+        if (this->m_flags & 0x80) {
+            blocks->m_crcs[index] = crc;
+        }
+    } else {
+        this->m_blockTable[index].m_crc = crc;
+    }
+}
+
+// VERIFY: 6163de47 manual
+// OFFSET: 0x00431AC0
+bool System_SFile::ARCHIVEREC::IncreaseHashBits(int32_t* hashBits) {
+    if (*hashBits == 64) {
+        return false;
+    }
+
+    HashEntryTable* table = this->m_hashEntryTable;
+
+    if (table->m_indices) {
+        delete table->m_indices;
+        table->m_indices = nullptr;
+    }
+
+    memset(table->m_tags, 0, table->m_slotCount);
+    this->m_hashEntryTable->SetHashBits(++*hashBits);
+    this->m_blockEntryTable->InitializeHashCheckTable(*hashBits);
+
+    return true;
+}
+
+// VERIFY: 1fe80913 manual
+// OFFSET: 0x00431B50
+bool System_SFile::ARCHIVEREC::ReadAdditionalAttributes() {
+    Blizzard::Util::Digest<16> md5 = s_emptyMd5;
+    IOMpqUnit* file;
+
+    if (!Blizzard::Mopaq::SFileOpenFileEx(this, "(attributes)", md5, 0x10, &file)) {
+        return false;
+    }
+
+    uint32_t count = this->m_header.m_blockTableSize;
+    uint32_t size = Blizzard::Mopaq::SFileGetFileSize(file);
+
+    if (size < 8 || size > (count << 9) + 8) {
+        file->Release();
+        return false;
+    }
+
+    HeapArray<uint8_t> data(size);
+
+    if (!file->Read(data.m_data, 0, size, nullptr)) {
+        file->Release();
+        return false;
+    }
+
+    file->Release();
+
+    const uint32_t* header = reinterpret_cast<const uint32_t*>(data.m_data);
+    uint32_t flags = header[1];
+    uint32_t remaining = size - 8;
+    const uint8_t* p = data.m_data + 8;
+    uint32_t needed = 0;
+    uint32_t unknown = flags;
+
+    if (flags & 1) {
+        needed = 4 * count;
+        unknown &= ~1u;
+    }
+
+    if (flags & 2) {
+        needed += 8 * count;
+        unknown &= ~2u;
+    }
+
+    if (flags & 4) {
+        needed += 16 * count;
+        unknown &= ~4u;
+    }
+
+    if (remaining < needed || (!unknown && remaining != needed)) {
+        return false;
+    }
+
+    if (flags & 1) {
+        for (uint32_t i = 0; i < count; i++, p += 4) {
+            this->SetBlockCrc(i, *reinterpret_cast<const uint32_t*>(p));
+        }
+    }
+
+    if (flags & 2) {
+        for (uint32_t i = 0; i < count; i++, p += 8) {
+            this->SetBlockFileTime(i, *reinterpret_cast<const uint64_t*>(p));
+        }
+    }
+
+    if (flags & 4) {
+        for (uint32_t i = 0; i < count; i++, p += 16) {
+            this->SetBlockMd5(i, *reinterpret_cast<const Blizzard::Util::Digest<16>*>(p));
+        }
+    }
+
+    for (uint32_t i = 0; i < count; i++) {
+        this->SetMD5Check(i, false);
+    }
+
+    return true;
 }

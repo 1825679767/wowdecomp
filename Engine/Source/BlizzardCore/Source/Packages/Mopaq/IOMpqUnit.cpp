@@ -13,12 +13,14 @@
 #include "Engine/Source/BlizzardCore/Source/System/Hardware/Hardware.h"
 #include "Engine/Source/BlizzardCore/Source/System/Lock/Lock.h"
 #include "Engine/Source/BlizzardCore/Source/System/String/String.h"
+extern "C" {
 #include "ThirdParty/zlib/contrib/blast/blast.h"
+}
 #include "ThirdParty/zlib/zlib.h"
 
-// VERIFY: 4faeb939 manual
+// VERIFY: ca82d7d9 manual
 // OFFSET: 0x00431DB0
-IOMpqUnit::IOMpqUnit(System_SFile::ARCHIVEREC* archive, const char* name, bool ownsMemory, IOUnit* next) : IOUnit(next, ownsMemory), unk_0010(0), m_archive(archive), m_name((name ? static_cast<uint32_t>(strlen(name)) : 0) + 1) {
+IOMpqUnit::IOMpqUnit(System_SFile::ARCHIVEREC* archive, const char* name, bool ownsMemory, IOUnit* next) : IOUnit(next, ownsMemory), m_position(0), m_archive(archive), m_name((name ? static_cast<uint32_t>(strlen(name)) : 0) + 1) {
     Blizzard::String::Copy(this->m_name.m_data, name, this->m_name.m_count);
 
     if (this->m_archive) {
