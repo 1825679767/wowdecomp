@@ -1,6 +1,5 @@
 #include <cfloat>
 #include <cstdint>
-#include <windows.h>
 #include "SRgn.h"
 #include "Engine/Source/Storm/H/SCritSect.h"
 #include "Engine/Source/Storm/H/stpl.h"
@@ -214,30 +213,30 @@ void STORMAPI SRgnDestroy() {
     s_rgntable.Destroy();
 }
 
-// VERIFY: 0924832d manual
+// VERIFY: 182f77be manual
 // OFFSET: 0x00777420
 void STORMAPI SRgnCombineRectf(HSRGN handle, const RECTF* rect, void* param, int32_t combinemode) {
     if (!handle) {
         DebugValidate("handle");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 
     if (!rect) {
         DebugValidate("rect");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 
     if (combinemode < SRGN_AND) {
         DebugValidate("combinemode >= 1");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 
     if (combinemode > SRGN_PARAMONLY) {
         DebugValidate("combinemode <= 6");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 
@@ -265,18 +264,18 @@ void STORMAPI SRgnCombineRectf(HSRGN handle, const RECTF* rect, void* param, int
     s_rgntable.Unlock(lockedhandle);
 }
 
-// VERIFY: 85bd9183 manual
+// VERIFY: 31d5dafb manual
 // OFFSET: 0x00777590
 void STORMAPI SRgnGetBoundingRectf(HSRGN handle, RECTF* rect) {
     if (!handle) {
         DebugValidate("handle");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 
     if (!rect) {
         DebugValidate("rect");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 
@@ -316,24 +315,24 @@ void STORMAPI SRgnGetBoundingRectf(HSRGN handle, RECTF* rect) {
     }
 }
 
-// VERIFY: f8eb918c manual
+// VERIFY: 04309b8a manual
 // OFFSET: 0x00777940
 void STORMAPI SRgnDelete(HSRGN handle) {
     if (!handle) {
         DebugValidate("handle");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 
     s_rgntable.Delete(handle);
 }
 
-// VERIFY: 8c3583d2 manual
+// VERIFY: 3c5dae2f manual
 // OFFSET: 0x00777980
 void STORMAPI SRgnCreate(HSRGN* handle, uint32_t reserved) {
     if (!handle) {
         DebugValidate("handle");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 
@@ -341,7 +340,7 @@ void STORMAPI SRgnCreate(HSRGN* handle, uint32_t reserved) {
 
     if (reserved) {
         DebugValidate("!reserved");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 

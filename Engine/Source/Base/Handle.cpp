@@ -1,5 +1,4 @@
 #include <cstdint>
-#include <windows.h>
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Storm/H/storm.h"
 
@@ -27,11 +26,11 @@ void HandleClose(HOBJECT handle) {
     }
 }
 
-// VERIFY: 1752397d auto
+// VERIFY: 96ec39c1 auto
 // OFFSET: 0x0047BF50
 HOBJECT HandleCreate(CHandleObject* ptr, const char* handleName) {
     if (!ptr) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return nullptr;
     }
 

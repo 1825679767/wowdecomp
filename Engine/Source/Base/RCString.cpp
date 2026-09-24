@@ -1,7 +1,6 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
-#include <windows.h>
 #include "Engine/Source/Base/RCString.h"
 #include "Engine/Source/Storm/H/storm.h"
 
@@ -107,7 +106,7 @@ CStringManager* CStringManager::Get() {
     return CStringManager::s_stringManager;
 }
 
-// VERIFY: c5dcbaed manual
+// VERIFY: 881a5cd6 manual
 // OFFSET: 0x0047CF80
 void RCString::Copy(const char* str) {
     if (!str) {
@@ -118,7 +117,7 @@ void RCString::Copy(const char* str) {
     CStringManager* pManager = CStringManager::Get();
 
     if (!pManager) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 

@@ -1,6 +1,5 @@
 #include <cstdint>
 #include <cstring>
-#include <windows.h>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/Storm/H/storm.h"
 
@@ -201,12 +200,12 @@ CDataStore& CDataStore::Put(float val) {
     return *this;
 }
 
-// VERIFY: 4a0cacb3 manual
+// VERIFY: 16d8b8ae manual
 // OFFSET: 0x0047B1C0
 CDataStore& CDataStore::PutArray(const uint8_t* pval, uint32_t count) {
     if (!pval) {
         if (count) {
-            SErrSetLastError(ERROR_INVALID_PARAMETER);
+            SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         }
 
         return *this;
@@ -262,13 +261,13 @@ int32_t CDataStore::FetchRead(uint32_t pos, uint32_t bytes) {
     return 0;
 }
 
-// VERIFY: b2df8075 manual
+// VERIFY: 05c2b42b manual
 // OFFSET: 0x0047B300
 CDataStore& CDataStore::PutString(const char* string) {
     if (string) {
         this->PutArray(reinterpret_cast<const uint8_t*>(string), static_cast<uint32_t>(SStrLen(string)) + 1);
     } else {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
     }
 
     return *this;
@@ -329,12 +328,12 @@ CDataStore& CDataStore::Get(float& val) {
     return *this;
 }
 
-// VERIFY: dfeea6d2 manual
+// VERIFY: e39fa63b manual
 // OFFSET: 0x0047B480
 CDataStore& CDataStore::GetString(char* string, uint32_t maxChars) {
     if (!string) {
         if (maxChars) {
-            SErrSetLastError(ERROR_INVALID_PARAMETER);
+            SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         }
 
         return *this;
@@ -385,11 +384,11 @@ CDataStore& CDataStore::GetString(char* string, uint32_t maxChars) {
     return *this;
 }
 
-// VERIFY: 4ba3cc08 manual
+// VERIFY: 35d578c9 manual
 // OFFSET: 0x0047B560
 CDataStore& CDataStore::GetArray(uint8_t* pval, uint32_t count) {
     if (!pval && count) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return *this;
     }
 
@@ -421,11 +420,11 @@ CDataStore& CDataStore::GetArray(uint8_t* pval, uint32_t count) {
     return *this;
 }
 
-// VERIFY: 358bf16b manual
+// VERIFY: 97a1b952 auto
 // OFFSET: 0x0047B5F0
 CDataStore& CDataStore::GetArray(uint32_t* pval, uint32_t count) {
     if (!pval && count) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return *this;
     }
 

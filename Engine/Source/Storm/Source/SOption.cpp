@@ -1,5 +1,4 @@
 #include <cstdint>
-#include <windows.h>
 #include "SOption.h"
 #include "Engine/Source/Storm/H/storm.h"
 
@@ -12,10 +11,10 @@ static int32_t s_alloccount;
 // STATIC: 0x00CAE958
 _STORMOPTIONS g_opt;
 
-// VERIFY: a23253ec auto
+// VERIFY: e736f9e3 auto
 // OFFSET: 0x00773A80
 int32_t STORMAPI StormSetOption(int32_t optname, void* optval, uint32_t optlen) {
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
 
     if (!optval) {
         return 0;
@@ -113,6 +112,6 @@ int32_t STORMAPI StormSetOption(int32_t optname, void* optval, uint32_t optlen) 
         return 0;
     }
 
-    SErrSetLastError(ERROR_SUCCESS);
+    SErrSetLastError(STORM_ERROR_SUCCESS);
     return 1;
 }

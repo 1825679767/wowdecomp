@@ -3,11 +3,26 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Gx/CGxDevice/Types.h"
 #include "Engine/Source/Gx/CGxTexFlags.h"
+#include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/CiRect.h"
 
 class CGxTex;
+
+class CGxTexParms {
+    public:
+    /* 0000 */ EGxTexTarget m_target;
+    /* 0004 */ uint32_t m_width;
+    /* 0008 */ uint32_t m_height;
+    /* 000C */ uint32_t m_depth;
+    /* 0010 */ EGxTexFormat m_format;
+    /* 0014 */ EGxTexFormat m_dataFormat;
+    /* 0018 */ CGxTexFlags m_flags;
+    /* 001C */ void* m_userArg;
+    /* 0020 */ void* m_userFunc;
+};
 
 class CGxTex {
     public:

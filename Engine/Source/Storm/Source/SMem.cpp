@@ -23,13 +23,13 @@ void STORMAPI SMemSetDebugFlags(uint32_t flags, uint8_t changeMask) {
     }
 }
 
-// VERIFY: c3585437 manual
+// VERIFY: cd1f46b7 manual
 // OFFSET: 0x0076E4E0
 static void FatalError(size_t bytes, const char* filename, int32_t linenumber) {
     char buffer[128];
     sprintf(buffer, "Requested %u bytes of memory", static_cast<uint32_t>(bytes));
 
-    SErrDisplayError(ERROR_NOT_ENOUGH_MEMORY, filename, linenumber, buffer, s_exitonfailure == 0, 1, 0x11111111);
+    SErrDisplayError(STORM_ERROR_NOT_ENOUGH_MEMORY, filename, linenumber, buffer, s_exitonfailure == 0, 1, 0x11111111);
 
     if (s_exitonfailure) {
         StormExitProcess(1);

@@ -226,6 +226,13 @@ class CGxDevice {
     virtual void DeviceUnk81(uint32_t a, uint32_t b) = 0;
     virtual void DeviceUnk82() = 0;
     virtual void DeviceUnk83(uint32_t a, uint32_t b) = 0;
+
+    int32_t CapsHasContext(int32_t context);
+    int32_t CapsIsWindowVisible(int32_t visible);
+    EGxApi DeviceApi();
+    void DeviceClearScreenShot();
+    int32_t MasterEnable(EGxMasterEnables state);
+    void XformPush(EGxXform xf);
 };
 
 extern CGxDevice* g_theGxDevicePtr;

@@ -366,3 +366,60 @@ void CGxDevice::QueryDestroy(CGxQuery*& query) {
 void CGxDevice::XformSetProjection(const C44Matrix& matrix) {
     this->m_projection = matrix;
 }
+
+// VERIFY: 1e7393f5 manual
+// OFFSET: 0x0057C3A0
+void CGxDevice::XformPush(EGxXform xf) {
+    CGxMatrixStack& stack = this->m_xforms[xf];
+    stack.m_level++;
+
+    if (stack.m_level >= 3) {
+        stack.m_level = 3;
+    }
+
+    stack.m_mtx[stack.m_level] = stack.m_mtx[stack.m_level - 1];
+    stack.m_flags[stack.m_level] = stack.m_flags[stack.m_level - 1];
+    stack.m_dirty = 1;
+}
+
+// VERIFY: a5c0394a auto
+// OFFSET: 0x00682D20
+EGxApi CGxDevice::DeviceApi() {
+    return this->m_api;
+}
+
+// VERIFY: 8d0aae56 manual
+// OFFSET: 0x00682DC0
+int32_t CGxDevice::CapsIsWindowVisible(int32_t visible) {
+    if (visible < 0) {
+        return this->m_windowVisible;
+    }
+
+    this->m_windowVisible = visible > 0;
+    return visible > 0;
+}
+
+// VERIFY: be5adc5f manual
+// OFFSET: 0x00682E20
+int32_t CGxDevice::CapsHasContext(int32_t context) {
+    if (context < 0) {
+        return this->m_context;
+    }
+
+    this->m_context = context > 0;
+    return context > 0;
+}
+
+// VERIFY: 2c348324 auto
+// OFFSET: 0x00683100
+int32_t CGxDevice::MasterEnable(EGxMasterEnables state) {
+    return ((1 << state) & this->m_appMasterEnables) != 0;
+}
+
+// VERIFY: c1bb2ca3 auto
+// OFFSET: 0x00685370
+void CGxDevice::DeviceClearScreenShot() {
+    this->m_scrShotHeight = 0;
+    this->m_scrShotWidth = 0;
+    this->m_scrShotPixels.Clear();
+}

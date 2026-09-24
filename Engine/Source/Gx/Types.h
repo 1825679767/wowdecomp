@@ -95,6 +95,38 @@ enum EGxWM {
     GxWM_KillFocus = 4,
 };
 
+enum EGxXform {
+    GxXform_Tex0 = 0,
+    GxXform_Tex1 = 1,
+    GxXform_Tex2 = 2,
+    GxXform_Tex3 = 3,
+    GxXform_Tex4 = 4,
+    GxXform_Tex5 = 5,
+    GxXform_Tex6 = 6,
+    GxXform_Tex7 = 7,
+    GxXform_World = 8,
+    GxXform_Projection = 9,
+    GxXform_View = 10,
+    GxXforms_Last = 11,
+};
+
+enum BlitFormat {
+    BlitFormat_Unknown = 0,
+    BlitFormat_Abgr8888 = 1,
+    BlitFormat_Argb8888 = 2,
+    BlitFormat_Argb4444 = 3,
+    BlitFormat_Argb1555 = 4,
+    BlitFormat_Rgb565 = 5,
+    BlitFormat_Dxt1 = 6,
+    BlitFormat_Dxt3 = 7,
+    BlitFormat_Dxt5 = 8,
+    BlitFormat_Uv88 = 9,
+    BlitFormat_Gr1616F = 10,
+    BlitFormat_R32F = 11,
+    BlitFormat_D24X8 = 12,
+    BlitFormats_Last = 13,
+};
+
 class CGxBatch {
     public:
     /* 0000 */ EGxPrim m_primType;

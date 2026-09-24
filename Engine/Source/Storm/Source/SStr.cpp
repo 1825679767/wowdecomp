@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <windows.h>
 #include "SOption.h"
 #include "Engine/Source/Storm/H/storm.h"
 
@@ -45,11 +44,11 @@ static int32_t s_initialized;
 // STATIC: 0x00CAC170
 static double s_realDigit[20][10];
 
-// VERIFY: eeceac03 auto
+// VERIFY: 6c594f7b auto
 // OFFSET: 0x0076E6E0
 char* SStrChr(const char* string, char search) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return nullptr;
     }
 
@@ -62,11 +61,11 @@ char* SStrChr(const char* string, char search) {
     return nullptr;
 }
 
-// VERIFY: b0ed7459 manual
+// VERIFY: 263abdbd auto
 // OFFSET: 0x0076E720
 char* SStrChrR(char* string, char search) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return nullptr;
     }
 
@@ -408,11 +407,11 @@ int32_t STORMAPI SStrSortUTF8I(const char* string1, const char* string2, size_t 
     return result;
 }
 
-// VERIFY: 0316d247 manual
+// VERIFY: b3c3de02 manual
 // OFFSET: 0x0076ED20
 size_t STORMAPI SStrCopy(char* dest, const char* source, size_t destsize) {
     if (!dest || !source) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -434,11 +433,11 @@ size_t STORMAPI SStrCopy(char* dest, const char* source, size_t destsize) {
     return curr - dest;
 }
 
-// VERIFY: 003fe1fb manual
+// VERIFY: 4cf8cd50 manual
 // OFFSET: 0x0076EDA0
 size_t STORMAPI SStrCopyUTF8(char* dest, const char* source, size_t destsize, size_t maxchars) {
     if (!dest || !source) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -467,11 +466,11 @@ size_t STORMAPI SStrCopyUTF8(char* dest, const char* source, size_t destsize, si
     return curr - dest;
 }
 
-// VERIFY: b89b5eb2 manual
+// VERIFY: c8b00c92 auto
 // OFFSET: 0x0076EE30
 size_t STORMAPI SStrLen(const char* string) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -484,11 +483,11 @@ size_t STORMAPI SStrLen(const char* string) {
     return curr - string;
 }
 
-// VERIFY: 31f50dae auto
+// VERIFY: 32365d2c auto
 // OFFSET: 0x0076EE60
 size_t STORMAPI SStrLen(const uint16_t* string) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -501,11 +500,11 @@ size_t STORMAPI SStrLen(const uint16_t* string) {
     return curr - string;
 }
 
-// VERIFY: 977cb374 manual
+// VERIFY: 2dc41369 auto
 // OFFSET: 0x0076EEA0
 size_t STORMAPI SStrLenUTF8(const char* string) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -520,11 +519,11 @@ size_t STORMAPI SStrLenUTF8(const char* string) {
     return length;
 }
 
-// VERIFY: f86e3dfb manual
+// VERIFY: 4492ca41 manual
 // OFFSET: 0x0076EEE0
 size_t STORMAPI SStrLenUTF8(const char* string, size_t maxchars) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -539,11 +538,11 @@ size_t STORMAPI SStrLenUTF8(const char* string, size_t maxchars) {
     return length;
 }
 
-// VERIFY: c66a24f2 manual
+// VERIFY: 4d394932 manual
 // OFFSET: 0x0076EF30
 const char* STORMAPI SStrAdvanceCharsUTF8(const char* string, size_t chars) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return nullptr;
     }
 
@@ -556,11 +555,11 @@ const char* STORMAPI SStrAdvanceCharsUTF8(const char* string, size_t chars) {
     return string;
 }
 
-// VERIFY: 8fe11d85 manual
+// VERIFY: 2678bf77 manual
 // OFFSET: 0x0076EF70
 size_t STORMAPI SStrPack(char* dest, const char* source, size_t destsize) {
     if (!dest || !source) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -621,11 +620,11 @@ static size_t ISStrVPrintf(char* dest, size_t maxchars, const char* format, va_l
     return result;
 }
 
-// VERIFY: 399d6c99 manual
+// VERIFY: c3018cdb auto
 // OFFSET: 0x0076F070
 size_t SStrPrintf(char* dest, size_t maxchars, const char* format, ...) {
     if (!dest || !format) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -634,22 +633,22 @@ size_t SStrPrintf(char* dest, size_t maxchars, const char* format, ...) {
     return ISStrVPrintf(dest, maxchars, format, arglist);
 }
 
-// VERIFY: 33cf988c manual
+// VERIFY: 190c39be manual
 // OFFSET: 0x0076F0A0
 size_t SStrVPrintf(char* dest, size_t maxchars, const char* format, va_list arglist) {
     if (!dest || !format) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
     return ISStrVPrintf(dest, maxchars, format, arglist);
 }
 
-// VERIFY: fbfc2017 manual
+// VERIFY: 79f69ad9 manual
 // OFFSET: 0x0076F0D0
 int32_t STORMAPI SStrToInt(const char* string) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -674,11 +673,11 @@ int32_t STORMAPI SStrToInt(const char* string) {
     return result;
 }
 
-// VERIFY: 88aab666 manual
+// VERIFY: c5c1fa9e auto
 // OFFSET: 0x0076F140
 uint32_t STORMAPI SStrToUnsigned(const char* string) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -693,11 +692,11 @@ uint32_t STORMAPI SStrToUnsigned(const char* string) {
     return result;
 }
 
-// VERIFY: 020d0151 manual
+// VERIFY: 0b70bbc1 manual
 // OFFSET: 0x0076F190
 uint32_t STORMAPI SStrToUnsigned(const char** string) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -711,13 +710,13 @@ uint32_t STORMAPI SStrToUnsigned(const char** string) {
     return result;
 }
 
-// VERIFY: 24273f38 manual
+// VERIFY: cb6da48d manual
 // OFFSET: 0x0076F1E0
 void STORMAPI SStrTokenize(const char** string, char* buffer, size_t bufferchars, const char* whitespace, int32_t* quoted) {
     int32_t inquotes = 0;
 
     if (!string || !*string || (!buffer && bufferchars) || !whitespace) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 
@@ -772,11 +771,11 @@ void STORMAPI SStrTokenize(const char** string, char* buffer, size_t bufferchars
     }
 }
 
-// VERIFY: 0f841d2d manual
+// VERIFY: a6e9692a auto
 // OFFSET: 0x0076F340
 uint32_t STORMAPI SStrHash(const char* string, uint32_t flags, uint32_t seed) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -896,11 +895,11 @@ void STORMAPI SStrLower(char* string) {
     _strlwr(string);
 }
 
-// VERIFY: e8197237 manual
+// VERIFY: d9e4e017 auto
 // OFFSET: 0x0076F700
 char* SStrStr(const char* string, const char* search) {
     if (!string || !search) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return nullptr;
     }
 
@@ -915,11 +914,11 @@ char* SStrStr(const char* string, const char* search) {
     return nullptr;
 }
 
-// VERIFY: c346a3af manual
+// VERIFY: 648bbc09 auto
 // OFFSET: 0x0076F770
 char* SStrStrI(const char* string, const char* search) {
     if (!string || !search) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return nullptr;
     }
 
@@ -934,11 +933,11 @@ char* SStrStrI(const char* string, const char* search) {
     return nullptr;
 }
 
-// VERIFY: 76623cb9 manual
+// VERIFY: 3228cf7b manual
 // OFFSET: 0x0076F7E0
 const char* SStrStrUTF8I(const char* string, const char* search) {
     if (!string || !search) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return nullptr;
     }
 
@@ -1015,11 +1014,11 @@ static void InitializeFloatDigits() {
     }
 }
 
-// VERIFY: 34c08ea1 manual
+// VERIFY: 6dbcfaba auto
 // OFFSET: 0x0076F9E0
 char* STORMAPI SStrDupA(const char* string, const char* filename, int32_t linenumber) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return nullptr;
     }
 
@@ -1039,11 +1038,11 @@ void STORMAPI SStrInitialize() {
 void STORMAPI SStrDestroy() {
 }
 
-// VERIFY: 91e40fee manual
+// VERIFY: 0bb00853 manual
 // OFFSET: 0x0076FA50
 int64_t STORMAPI SStrToInt64(const char* string) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -1085,11 +1084,11 @@ static void CheckInitialized() {
     }
 }
 
-// VERIFY: e1ff44fd manual
+// VERIFY: 5ad58df0 manual
 // OFFSET: 0x0076FB80
 float STORMAPI SStrToFloat(const char* string) {
     if (!string) {
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0.0f;
     }
 

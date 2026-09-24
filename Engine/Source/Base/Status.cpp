@@ -1,7 +1,6 @@
 #include <cstdarg>
 #include <cstdint>
 #include <cstring>
-#include <windows.h>
 #include "Engine/Source/Base/Status.h"
 #include "Engine/Source/Storm/H/storm.h"
 
@@ -113,7 +112,7 @@ char* CStatus::GetErrorStrAlloc(STATUS_TYPE minSeverity, const char* separator) 
     return buffer;
 }
 
-// VERIFY: 4e511dd5 manual
+// VERIFY: c97894d9 manual
 // OFFSET: 0x0047C290
 void CStatus::Prepend(STATUS_TYPE severity, const char* format, ...) {
     char buffer[256];
@@ -121,7 +120,7 @@ void CStatus::Prepend(STATUS_TYPE severity, const char* format, ...) {
 
     if (!format) {
         DebugValidate("format");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 
@@ -142,7 +141,7 @@ void CStatus::Prepend(STATUS_TYPE severity, const char* format, ...) {
     }
 }
 
-// VERIFY: 8906e022 manual
+// VERIFY: 29d4c2bf manual
 // OFFSET: 0x0047C360
 void CStatus::Add(STATUS_TYPE severity, const char* format, ...) {
     char buffer[256];
@@ -150,7 +149,7 @@ void CStatus::Add(STATUS_TYPE severity, const char* format, ...) {
 
     if (!format) {
         DebugValidate("format");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return;
     }
 

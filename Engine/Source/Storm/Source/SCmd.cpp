@@ -1,7 +1,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <windows.h>
 #include "SCmd.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -325,12 +324,12 @@ uint32_t STORMAPI SCmdGetNum(uint32_t id) {
     return 0;
 }
 
-// VERIFY: 10d3c4a7 manual
+// VERIFY: 0ad756b7 manual
 // OFFSET: 0x007734C0
 int32_t STORMAPI SCmdGetString(uint32_t id, char* buffer, uint32_t bufferchars) {
     if (!buffer) {
         DebugValidate("buffer");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -338,7 +337,7 @@ int32_t STORMAPI SCmdGetString(uint32_t id, char* buffer, uint32_t bufferchars) 
 
     if (!bufferchars) {
         DebugValidate("bufferchars");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -369,31 +368,31 @@ int32_t STORMAPI SCmdRegisterArgument(uint32_t flags, uint32_t id, const char* n
 
     if (namelength >= 16) {
         DebugValidate("namelength < 16");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
     if (variablebytes && !variableptr) {
         DebugValidate("(!variablebytes) || variableptr");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
     if ((flags & SCMD_ARG_MASK) == SCMD_ARG_REQUIRED && s_addedoptional) {
         DebugValidate("(((flags) & ((0 << 24) | (1 << 24) | (2 << 24))) != (2 << 24)) || (!s_addedoptional)");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
     if ((flags & SCMD_ARG_MASK) == SCMD_ARG_FLAG && namelength <= 0) {
         DebugValidate("(((flags) & ((0 << 24) | (1 << 24) | (2 << 24))) != (0 << 24)) || (namelength > 0)");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
-    if ((flags & SCMD_TYPE_MASK) == SCMD_TYPE_BOOL && variableptr && variablebytes != sizeof(DWORD)) {
+    if ((flags & SCMD_TYPE_MASK) == SCMD_TYPE_BOOL && variableptr && variablebytes != sizeof(uint32_t)) {
         DebugValidate("(((flags) & ((0 << 16) | (1 << 16) | (2 << 16))) != (0 << 16)) || (!variableptr) || (variablebytes == sizeof(DWORD))");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -421,12 +420,12 @@ int32_t STORMAPI SCmdRegisterArgument(uint32_t flags, uint32_t id, const char* n
     return 1;
 }
 
-// VERIFY: 39e1c13e manual
+// VERIFY: d951e040 manual
 // OFFSET: 0x00773590
 int32_t STORMAPI SCmdRegisterArgList(const _ARGLIST* listptr, uint32_t numargs) {
     if (!listptr) {
         DebugValidate("listptr");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
@@ -464,12 +463,12 @@ int32_t STORMAPI SCmdGetBool(uint32_t id) {
     return SCmdGetNum(id) != 0;
 }
 
-// VERIFY: 6a7f749e manual
+// VERIFY: 7da9dfa3 manual
 // OFFSET: 0x00773890
 int32_t STORMAPI SCmdProcess(const char* cmdline, int32_t skipprogname, int32_t (STORMAPI* extracallback)(const char*), void (STORMAPI* errorcallback)(_CMDERROR*)) {
     if (!cmdline) {
         DebugValidate("cmdline");
-        SErrSetLastError(ERROR_INVALID_PARAMETER);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return 0;
     }
 
