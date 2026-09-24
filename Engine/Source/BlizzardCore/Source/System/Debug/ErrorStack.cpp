@@ -2,6 +2,7 @@
 #include <cstring>
 #include "Engine/Source/BlizzardCore/Source/System/Debug/ErrorStack.h"
 #include "Engine/Source/BlizzardCore/Source/System/Memory/MemoryStorm.h"
+#include "Engine/Source/BlizzardCore/Source/System/Memory/TempBuffer.h"
 #include "Engine/Source/BlizzardCore/Source/System/String/String.h"
 
 // STATIC: 0x00AB909D
@@ -41,7 +42,7 @@ const char* Blizzard::Debug::ErrorStackAsText(ErrorStackRecord* stack) {
     return stack ? stack->m_flattened : "";
 }
 
-// VERIFY: 2b650219 manual
+// VERIFY: e94d9434 manual
 // OFFSET: 0x00432210
 Blizzard::Debug::ErrorStackRecord* Blizzard::Debug::AddErrorToStack(ErrorStackRecord* stack, int32_t errCode, const char* errStr, int32_t category) {
     if (!g_ErrorStackEnabled) {
@@ -61,10 +62,9 @@ Blizzard::Debug::ErrorStackRecord* Blizzard::Debug::AddErrorToStack(ErrorStackRe
     }
 
     uint32_t bytes = strBytes + (prevText ? static_cast<uint32_t>(strlen(prevText)) : 0) + 100;
-    char localBuffer[2048];
-    char* buffer = bytes > sizeof(localBuffer) ? new char[bytes] : localBuffer;
-    Blizzard::String::Format(buffer, bytes, "[%d] err=%d text=%s\n%s", level, errCode, errStr, prevText);
-    uint32_t flatBytes = (buffer ? static_cast<uint32_t>(strlen(buffer)) : 0) + 1;
+    Blizzard::Memory::TempBuffer<char, 2048> buffer(bytes);
+    Blizzard::String::Format(buffer.m_data, bytes, "[%d] err=%d text=%s\n%s", level, errCode, errStr, prevText);
+    uint32_t flatBytes = (buffer.m_data ? static_cast<uint32_t>(strlen(buffer.m_data)) : 0) + 1;
 
     ErrorStackRecord* record = static_cast<ErrorStackRecord*>(Blizzard::Memory::Allocate(sizeof(ErrorStackRecord)));
     record->m_code = errCode;
@@ -74,7 +74,7 @@ Blizzard::Debug::ErrorStackRecord* Blizzard::Debug::AddErrorToStack(ErrorStackRe
     record->m_str = static_cast<char*>(Blizzard::Memory::Allocate(strBytes));
     Blizzard::String::Copy(record->m_str, errStr, strBytes);
     record->m_flattened = static_cast<char*>(Blizzard::Memory::Allocate(flatBytes));
-    Blizzard::String::Copy(record->m_flattened, buffer, flatBytes);
+    Blizzard::String::Copy(record->m_flattened, buffer.m_data, flatBytes);
 
     ErrorStackRecord* head;
 
@@ -102,10 +102,6 @@ Blizzard::Debug::ErrorStackRecord* Blizzard::Debug::AddErrorToStack(ErrorStackRe
         Blizzard::Memory::Free(node->m_prev->m_str);
         Blizzard::Memory::Free(node->m_prev);
         node->m_prev = nullptr;
-    }
-
-    if (buffer != localBuffer) {
-        delete[] buffer;
     }
 
     return head;
