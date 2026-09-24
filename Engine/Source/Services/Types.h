@@ -28,12 +28,6 @@ class CAsyncObject {
     /* 0028 */ TSLink<CAsyncObject> m_link;
 };
 
-class CRndSeed {
-    public:
-    /* 0000 */ uint32_t m_rndacc;
-    /* 0004 */ uint32_t m_rndvls;
-};
-
 enum PIXEL_FORMAT {
     PIXEL_DXT1 = 0,
     PIXEL_DXT3 = 1,

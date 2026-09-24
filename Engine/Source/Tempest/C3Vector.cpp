@@ -153,42 +153,42 @@ C3Vector::C3Vector(const CImVector& color) {
     this->z = 0.0039215689f * color.b;
 }
 
-// VERIFY: 6c06034c manual
+// VERIFY: 6cb56de3 manual
 // OFFSET: 0x009829B0
-uint32_t C3Vector::MajorAxis() const {
+C3Vector::EAxis C3Vector::MajorAxis() const {
     float y = fabs(this->y);
     float x = fabs(this->x);
     float z = fabs(this->z);
 
     if (x <= y) {
         if (y > z) {
-            return 1;
+            return AXIS_Y;
         }
     } else if (x > z) {
-        return 0;
+        return AXIS_X;
     }
 
-    return 2;
+    return AXIS_Z;
 }
 
-// VERIFY: feacbec9 manual
+// VERIFY: 8564aa4a manual
 // OFFSET: 0x009829F0
-uint32_t C3Vector::MinorAxis() const {
+C3Vector::EAxis C3Vector::MinorAxis() const {
     float y = fabs(this->y);
     float x = fabs(this->x);
     float z = fabs(this->z);
 
     if (x >= y) {
         if (y <= z) {
-            return 1;
+            return AXIS_Y;
         }
 
-        return 2;
+        return AXIS_Z;
     }
 
     if (x >= z) {
-        return 2;
+        return AXIS_Z;
     }
 
-    return 0;
+    return AXIS_X;
 }

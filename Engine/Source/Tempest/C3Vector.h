@@ -9,6 +9,12 @@ class CImVector;
 
 class C3Vector {
     public:
+    enum EAxis {
+        AXIS_X = 0,
+        AXIS_Y = 1,
+        AXIS_Z = 2
+    };
+
     static C3Vector Cross(const C3Vector& a, const C3Vector& b);
     static C3Vector Max(const C3Vector& a, const C3Vector& b);
     static C3Vector Min(const C3Vector& a, const C3Vector& b);
@@ -20,8 +26,8 @@ class C3Vector {
     C3Vector() = default;
     C3Vector(const C4Vector& v);
     C3Vector(const CImVector& color);
-    uint32_t MajorAxis() const;
-    uint32_t MinorAxis() const;
+    EAxis MajorAxis() const;
+    EAxis MinorAxis() const;
     void Normalize();
     void NormalizeSafe();
     void Zero();
