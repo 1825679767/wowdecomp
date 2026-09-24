@@ -96,6 +96,17 @@ enum EGxWM {
     GxWM_KillFocus = 4,
 };
 
+enum EGxTexGen {
+    GxTexGen_Disabled = 0,
+    GxTexGen_ObjectLinear = 1,
+    GxTexGen_EyeLinear = 2,
+    GxTexGen_Unk3 = 3,
+    GxTexGen_ReflectionMap = 4,
+    GxTexGen_Normal = 5,
+    GxTexGen_SphereMap = 6,
+    GxTexGens_Last = 7,
+};
+
 enum EGxTexFilter {
     GxTex_Nearest = 0,
     GxTex_Linear = 1,

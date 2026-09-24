@@ -48,7 +48,7 @@ int32_t s_streamVertexPoolSize = 0x2C0000;
 int32_t s_streamIndexPoolSize = 0x40000;
 
 // STATIC: 0x00AD8BB4
-static float s_pointScaleAttenuation[3] = { 1.0f, 0.0f, 0.0f };
+C3Vector CGxDevice::s_pointScaleAttenuation(1.0f, 0.0f, 0.0f);
 
 // STATIC: 0x00AD8C80
 static const char* s_formatNames[CGxFormat::Formats_Last] = { "Rgb565", "ArgbX888", "Argb8888", "Argb2101010", "Ds160", "Ds24X", "Ds248", "Ds320" };
@@ -60,7 +60,7 @@ static C2iVector kWinMinSize = { 320, 240 };
 CGxDevice* g_theGxDevicePtr;
 
 // STATIC: 0x00C5DFE0
-static ShadowConstants s_shadowConstants[2];
+ShadowConstants CGxDevice::s_shadowConstants[2];
 
 // STATIC: 0x00C5FFF4
 uint32_t CGxDevice::m_logBytes;
@@ -496,11 +496,12 @@ void CGxDevice::XformPushAndSet(EGxXform xf, const C44Matrix& matrix) {
     stack.m_mtx[stack.m_level] = matrix;
 }
 
-// VERIFY: 522bd08f manual
+// VERIFY: d13c8956 manual
 // OFFSET: 0x00682C50
 void CGxDevice::InitLights() {
     for (uint32_t i = 0; i < 4; i++) {
-        this->m_lights[i].m_flags = 0xFF00FF;
+        this->m_lights[i].m_flags = 0xFF;
+        this->m_lights[i].unk_0046 = 0xFF;
         this->m_lights[i].m_enable = 0;
     }
 }
@@ -1171,7 +1172,7 @@ void CGxDevice::RsPop() {
     this->m_stackOffsets.SetCount(this->m_stackOffsets.Count() - 1);
 }
 
-// VERIFY: ef30aa1f manual
+// VERIFY: 8af231b1 manual
 // OFFSET: 0x00686120
 void CGxDevice::IRsInit() {
     this->m_appRenderStates.SetCount(GxRenderStates_Last);
@@ -1216,9 +1217,9 @@ void CGxDevice::IRsInit() {
     this->m_appRenderStates[GxRs_PixelShader].m_value.m_data.i[0] = 0;
     this->m_appRenderStates[GxRs_VertexShader].m_value.m_data.i[0] = 0;
     this->m_appRenderStates[GxRs_PointScale].m_value.m_data.f[0] = 1.0f;
-    this->m_appRenderStates[GxRs_PointScaleAttenuation].m_value.m_data.f[0] = s_pointScaleAttenuation[0];
-    this->m_appRenderStates[GxRs_PointScaleAttenuation].m_value.m_data.f[1] = s_pointScaleAttenuation[1];
-    this->m_appRenderStates[GxRs_PointScaleAttenuation].m_value.m_data.f[2] = s_pointScaleAttenuation[2];
+    this->m_appRenderStates[GxRs_PointScaleAttenuation].m_value.m_data.f[0] = s_pointScaleAttenuation.x;
+    this->m_appRenderStates[GxRs_PointScaleAttenuation].m_value.m_data.f[1] = s_pointScaleAttenuation.y;
+    this->m_appRenderStates[GxRs_PointScaleAttenuation].m_value.m_data.f[2] = s_pointScaleAttenuation.z;
     this->m_appRenderStates[GxRs_PointScaleMin].m_value.m_data.f[0] = 0.0f;
     this->m_appRenderStates[GxRs_PointScaleMax].m_value.m_data.f[0] = 1.0f;
     this->m_appRenderStates[GxRs_PointSprite].m_value.m_data.i[0] = 0;

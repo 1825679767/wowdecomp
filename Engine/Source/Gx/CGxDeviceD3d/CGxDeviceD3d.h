@@ -10,10 +10,198 @@
 
 class CGxDeviceD3d : public CGxDevice {
     public:
+    enum EDeviceState {
+        Ds_SrcBlend = 0,
+        Ds_DstBlend = 1,
+        Ds_TssMagFilter0 = 2,
+        Ds_TssMagFilter1 = 3,
+        Ds_TssMagFilter2 = 4,
+        Ds_TssMagFilter3 = 5,
+        Ds_TssMagFilter4 = 6,
+        Ds_TssMagFilter5 = 7,
+        Ds_TssMagFilter6 = 8,
+        Ds_TssMagFilter7 = 9,
+        Ds_TssMagFilter8 = 10,
+        Ds_TssMagFilter9 = 11,
+        Ds_TssMagFilter10 = 12,
+        Ds_TssMagFilter11 = 13,
+        Ds_TssMagFilter12 = 14,
+        Ds_TssMagFilter13 = 15,
+        Ds_TssMagFilter14 = 16,
+        Ds_TssMagFilter15 = 17,
+        Ds_TssMinFilter0 = 18,
+        Ds_TssMinFilter1 = 19,
+        Ds_TssMinFilter2 = 20,
+        Ds_TssMinFilter3 = 21,
+        Ds_TssMinFilter4 = 22,
+        Ds_TssMinFilter5 = 23,
+        Ds_TssMinFilter6 = 24,
+        Ds_TssMinFilter7 = 25,
+        Ds_TssMinFilter8 = 26,
+        Ds_TssMinFilter9 = 27,
+        Ds_TssMinFilter10 = 28,
+        Ds_TssMinFilter11 = 29,
+        Ds_TssMinFilter12 = 30,
+        Ds_TssMinFilter13 = 31,
+        Ds_TssMinFilter14 = 32,
+        Ds_TssMinFilter15 = 33,
+        Ds_TssMipFilter0 = 34,
+        Ds_TssMipFilter1 = 35,
+        Ds_TssMipFilter2 = 36,
+        Ds_TssMipFilter3 = 37,
+        Ds_TssMipFilter4 = 38,
+        Ds_TssMipFilter5 = 39,
+        Ds_TssMipFilter6 = 40,
+        Ds_TssMipFilter7 = 41,
+        Ds_TssMipFilter8 = 42,
+        Ds_TssMipFilter9 = 43,
+        Ds_TssMipFilter10 = 44,
+        Ds_TssMipFilter11 = 45,
+        Ds_TssMipFilter12 = 46,
+        Ds_TssMipFilter13 = 47,
+        Ds_TssMipFilter14 = 48,
+        Ds_TssMipFilter15 = 49,
+        Ds_TssWrapU0 = 50,
+        Ds_TssWrapU1 = 51,
+        Ds_TssWrapU2 = 52,
+        Ds_TssWrapU3 = 53,
+        Ds_TssWrapU4 = 54,
+        Ds_TssWrapU5 = 55,
+        Ds_TssWrapU6 = 56,
+        Ds_TssWrapU7 = 57,
+        Ds_TssWrapU8 = 58,
+        Ds_TssWrapU9 = 59,
+        Ds_TssWrapU10 = 60,
+        Ds_TssWrapU11 = 61,
+        Ds_TssWrapU12 = 62,
+        Ds_TssWrapU13 = 63,
+        Ds_TssWrapU14 = 64,
+        Ds_TssWrapU15 = 65,
+        Ds_TssWrapV0 = 66,
+        Ds_TssWrapV1 = 67,
+        Ds_TssWrapV2 = 68,
+        Ds_TssWrapV3 = 69,
+        Ds_TssWrapV4 = 70,
+        Ds_TssWrapV5 = 71,
+        Ds_TssWrapV6 = 72,
+        Ds_TssWrapV7 = 73,
+        Ds_TssWrapV8 = 74,
+        Ds_TssWrapV9 = 75,
+        Ds_TssWrapV10 = 76,
+        Ds_TssWrapV11 = 77,
+        Ds_TssWrapV12 = 78,
+        Ds_TssWrapV13 = 79,
+        Ds_TssWrapV14 = 80,
+        Ds_TssWrapV15 = 81,
+        Ds_TssTexTransformFlags0 = 82,
+        Ds_TssTexTransformFlags1 = 83,
+        Ds_TssTexTransformFlags2 = 84,
+        Ds_TssTexTransformFlags3 = 85,
+        Ds_TssTexTransformFlags4 = 86,
+        Ds_TssTexTransformFlags5 = 87,
+        Ds_TssTexTransformFlags6 = 88,
+        Ds_TssTexTransformFlags7 = 89,
+        Ds_TssMaxAnisotropy0 = 90,
+        Ds_TssMaxAnisotropy1 = 91,
+        Ds_TssMaxAnisotropy2 = 92,
+        Ds_TssMaxAnisotropy3 = 93,
+        Ds_TssMaxAnisotropy4 = 94,
+        Ds_TssMaxAnisotropy5 = 95,
+        Ds_TssMaxAnisotropy6 = 96,
+        Ds_TssMaxAnisotropy7 = 97,
+        Ds_TssMaxAnisotropy8 = 98,
+        Ds_TssMaxAnisotropy9 = 99,
+        Ds_TssMaxAnisotropy10 = 100,
+        Ds_TssMaxAnisotropy11 = 101,
+        Ds_TssMaxAnisotropy12 = 102,
+        Ds_TssMaxAnisotropy13 = 103,
+        Ds_TssMaxAnisotropy14 = 104,
+        Ds_TssMaxAnisotropy15 = 105,
+        Ds_TssTexCoordIndex0 = 106,
+        Ds_TssTexCoordIndex1 = 107,
+        Ds_TssTexCoordIndex2 = 108,
+        Ds_TssTexCoordIndex3 = 109,
+        Ds_TssTexCoordIndex4 = 110,
+        Ds_TssTexCoordIndex5 = 111,
+        Ds_TssTexCoordIndex6 = 112,
+        Ds_TssTexCoordIndex7 = 113,
+        Ds_TssColorOp0 = 114,
+        Ds_TssColorOp1 = 115,
+        Ds_TssColorOp2 = 116,
+        Ds_TssColorOp3 = 117,
+        Ds_TssColorOp4 = 118,
+        Ds_TssColorOp5 = 119,
+        Ds_TssColorOp6 = 120,
+        Ds_TssColorOp7 = 121,
+        Ds_TssAlphaOp0 = 122,
+        Ds_TssAlphaOp1 = 123,
+        Ds_TssAlphaOp2 = 124,
+        Ds_TssAlphaOp3 = 125,
+        Ds_TssAlphaOp4 = 126,
+        Ds_TssAlphaOp5 = 127,
+        Ds_TssAlphaOp6 = 128,
+        Ds_TssAlphaOp7 = 129,
+        Ds_TssColorArg10 = 130,
+        Ds_TssColorArg11 = 131,
+        Ds_TssColorArg12 = 132,
+        Ds_TssColorArg13 = 133,
+        Ds_TssColorArg14 = 134,
+        Ds_TssColorArg15 = 135,
+        Ds_TssColorArg16 = 136,
+        Ds_TssColorArg17 = 137,
+        Ds_TssColorArg20 = 138,
+        Ds_TssColorArg21 = 139,
+        Ds_TssColorArg22 = 140,
+        Ds_TssColorArg23 = 141,
+        Ds_TssColorArg24 = 142,
+        Ds_TssColorArg25 = 143,
+        Ds_TssColorArg26 = 144,
+        Ds_TssColorArg27 = 145,
+        Ds_TssAlphaArg10 = 146,
+        Ds_TssAlphaArg11 = 147,
+        Ds_TssAlphaArg12 = 148,
+        Ds_TssAlphaArg13 = 149,
+        Ds_TssAlphaArg14 = 150,
+        Ds_TssAlphaArg15 = 151,
+        Ds_TssAlphaArg16 = 152,
+        Ds_TssAlphaArg17 = 153,
+        Ds_TssAlphaArg20 = 154,
+        Ds_TssAlphaArg21 = 155,
+        Ds_TssAlphaArg22 = 156,
+        Ds_TssAlphaArg23 = 157,
+        Ds_TssAlphaArg24 = 158,
+        Ds_TssAlphaArg25 = 159,
+        Ds_TssAlphaArg26 = 160,
+        Ds_TssAlphaArg27 = 161,
+        Ds_AmbientMaterialSource = 162,
+        Ds_DiffuseMaterialSource = 163,
+        Ds_SpecularMaterialSource = 164,
+        Ds_EmissiveMaterialSource = 165,
+        Ds_Ambient = 166,
+        Ds_AlphaBlendEnable = 167,
+        Ds_AlphaTestEnable = 168,
+        Ds_AlphaRef = 169,
+        Ds_FogEnable = 170,
+        Ds_ZWriteEnable = 171,
+        Ds_ColorWriteEnable = 172,
+        Ds_Lighting = 173,
+        Ds_SpecularEnable = 174,
+        Ds_CullMode = 175,
+        Ds_ClipPlaneEnable = 176,
+        Ds_ZFunc = 177,
+        Ds_PointScaleA = 178,
+        Ds_PointScaleB = 179,
+        Ds_PointScaleC = 180,
+        Ds_PointScaleEnable = 181,
+        DeviceStates_Last = 182,
+    };
+
     struct GxVertexDecl {
         /* 0000 */ uint32_t m_count;
         /* 0004 */ D3DVERTEXELEMENT9 m_elements [15];
         /* 007C */ IDirect3DVertexDeclaration9* m_d3dDecl;
+
+        bool Compare(const D3DVERTEXELEMENT9* elements, uint32_t count);
     };
 
     /* 3968 */ HWND m_hwnd;
@@ -116,17 +304,52 @@ class CGxDeviceD3d : public CGxDevice {
     virtual void DeviceUnk82();
     virtual void DeviceUnk83(uint32_t a, uint32_t b);
 
+    static const D3DBLEND s_srcBlend[12];
+    static const D3DBLEND s_dstBlend[12];
+    static const D3DCMPFUNC s_cmpFunc[4];
+    static const D3DCULL s_cullMode[3];
+    static D3DTEXTUREFILTERTYPE s_filterModes[GxTexFilters_Last][3];
+    static const D3DTEXTUREADDRESS s_wrapModes[2];
+    static const uint32_t s_gxAttribToD3dAttribSize[7];
+    static D3DDECLTYPE s_gxAttribToD3dAttribType[7];
+    static const D3DDECLUSAGE s_gxAttribToD3dAttribUsage[GxVAs_Last];
+    static const uint32_t s_gxAttribToD3dAttribUsageIndex[GxVAs_Last];
+
     static int32_t ILoadD3dLib(HINSTANCE& d3dLib, LPDIRECT3D9& d3d);
     static void IUnloadD3dLib(HINSTANCE& d3dLib, LPDIRECT3D9& d3d);
 
     CGxDeviceD3d();
+    void DsSet(EDeviceState state, uint32_t value);
+    void IBindPixelShader(CGxShader* shader);
+    void IBindVertexShader(CGxShader* shader);
+    LPDIRECT3DVERTEXDECLARATION9 ICreateD3dVertexDecl(const D3DVERTEXELEMENT9* elements, uint32_t count);
     LPDIRECT3DINDEXBUFFER9 ICreateD3dIB(EGxPoolUsage usage, uint32_t size);
     LPDIRECT3DVERTEXBUFFER9 ICreateD3dVB(EGxPoolUsage usage, uint32_t size);
     void IReleaseD3dPool(CGxPool* pool);
     void ISceneEnd();
+    void ISetAlphaOp(uint32_t tmu, uint32_t op);
+    void ISetColorOp(uint32_t tmu, uint32_t op);
+    void ISetMaterial(CImVector diffuse, CImVector emissive, CImVector specular, float specularExp);
+    void ISetTexCoord(uint32_t tmu, uint32_t coord);
+    void ISetTexCoordIndex(uint32_t tmu, int32_t texGen, uint32_t coord);
+    void ISetTexGen(uint32_t tmu, int32_t texGen);
+    void ISetTexture(uint32_t tmu, CGxTex* texId);
+    void ISetVertexBuffer(uint32_t stream, LPDIRECT3DVERTEXBUFFER9 buffer, uint32_t offset, uint32_t stride);
     void ISetWindowFocus(int32_t focus);
     void IShaderCreatePixel(CGxShader* shader);
+    void IShaderConstantsFlush();
     void IShaderCreateVertex(CGxShader* shader);
+    void IStateSync();
+    void IStateSyncClipPlanes();
+    void IStateSyncEnables();
+    void IStateSyncLights();
+    void IStateSyncMaterial();
+    void IStateSyncScissorRect();
+    void IStateSyncVertexPtrs();
+    void IStateSyncXforms();
+    void IXformSetTex(uint32_t tmu);
+    void IXformSetViewport();
+    void IXformSetWorld();
 };
 
 CGxDevice* CreateCGxDeviceD3d();

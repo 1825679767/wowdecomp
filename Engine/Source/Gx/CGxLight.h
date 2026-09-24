@@ -30,7 +30,8 @@ class CGxApiLight {
     /* 0038 */ float m_linearAttenuation;
     /* 003C */ float m_quadraticAttenuation;
     /* 0040 */ int32_t m_enable;
-    /* 0044 */ uint32_t m_flags;
+    /* 0044 */ uint16_t m_flags;
+    /* 0046 */ uint16_t unk_0046;
 
     CGxApiLight();
     CGxApiLight& operator=(const CGxLight& light);

@@ -246,6 +246,8 @@ class CGxDevice {
     virtual void DeviceUnk83(uint32_t a, uint32_t b) = 0;
 
     static HSLOG m_log;
+    static C3Vector s_pointScaleAttenuation;
+    static ShadowConstants s_shadowConstants[2];
     static uint32_t m_logBytes;
 
     static void ClampRectBottom(CiRect& windowRect);
