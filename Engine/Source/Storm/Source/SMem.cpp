@@ -104,12 +104,26 @@ void* STORMAPI SMemReAlloc(void* ptr, size_t bytes, const char* filename, int32_
     return newptr;
 }
 
-void operator delete(void* ptr) noexcept {
-    SMemFree(ptr, "delete", SLOG_FUNCTION, 0);
+// VERIFY: a7926bc3 auto
+// OFFSET: 0x00401010
+void* operator new(size_t bytes) {
+    return SMemAlloc(bytes, "new", SLOG_FUNCTION, 0);
 }
 
+// VERIFY: 79127843 auto
+// OFFSET: 0x0047CC90
+void operator delete(void* ptr) noexcept {
+    if (ptr) {
+        SMemFree(ptr, "delete", SLOG_FUNCTION, 0);
+    }
+}
+
+// VERIFY: 5c89935c auto
+// OFFSET: 0x00401030
 void operator delete[](void* ptr) noexcept {
-    SMemFree(ptr, "delete[]", SLOG_FUNCTION, 0);
+    if (ptr) {
+        SMemFree(ptr, "delete[]", SLOG_FUNCTION, 0);
+    }
 }
 
 int32_t STORMAPI SMemDestroy() {
