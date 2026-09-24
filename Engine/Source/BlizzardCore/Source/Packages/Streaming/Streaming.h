@@ -6,6 +6,9 @@
 namespace Blizzard {
 namespace Streaming {
 
+extern bool s_streamingReady;
+extern bool s_isStreamingTrial;
+
 int32_t CheckFileRange(const char* path, int64_t offset, uint32_t count, const char* name, int32_t flags);
 bool IsStreamedFile(const char* path);
 

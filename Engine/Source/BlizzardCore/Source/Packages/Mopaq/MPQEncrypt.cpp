@@ -199,3 +199,17 @@ uint32_t System_MPQEncrypt::Hash(const char* str, uint32_t type) {
 
     return seed1;
 }
+
+// VERIFY: 63e20e19 manual
+// OFFSET: 0x00426600
+void System_MPQEncrypt::Decrypt(uint32_t* data, uint32_t size, uint32_t key) {
+    uint32_t seed = 0xEEEEEEEE;
+
+    for (uint32_t count = size >> 2; count; count--) {
+        seed += s_cryptTable[0x400 + (key & 0xFF)];
+        uint32_t value = *data ^ (key + seed);
+        *data++ = value;
+        key = ((~key << 21) + 0x11111111) | (key >> 11);
+        seed = value + seed + (seed << 5) + 3;
+    }
+}

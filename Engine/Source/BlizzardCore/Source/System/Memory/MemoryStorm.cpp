@@ -2,7 +2,8 @@
 #include "Engine/Source/BlizzardCore/Source/System/Memory/MemoryStorm.h"
 #include "Engine/Source/Storm/H/storm.h"
 
-// INLINED
+// VERIFY: 7ea46aa7 manual
+// OFFSET: 0x0042E390
 void* Blizzard::Memory::Allocate(uint32_t bytes) {
     return SMemAlloc(bytes, __FILE__, __LINE__, 0);
 }

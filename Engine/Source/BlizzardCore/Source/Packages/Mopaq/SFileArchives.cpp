@@ -2,10 +2,14 @@
 #include <cstdio>
 #include <cstring>
 #include "Engine/Source/BlizzardCore/Source/Packages/iounit/IOFileUnit.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/MPQEncrypt.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/MPQGlobals.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/NewZerofill.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SComp.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SFileArchives.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Util/Hash.h"
+#include "Engine/Source/BlizzardCore/Source/System/Debug/Debug.h"
 #include "Engine/Source/BlizzardCore/Source/System/Debug/ErrorStack.h"
 #include "Engine/Source/BlizzardCore/Source/System/File/File.h"
 #include "Engine/Source/BlizzardCore/Source/System/Memory/MemoryStorm.h"
@@ -19,6 +23,9 @@ Blizzard::Lock::Atomic System_SFile::s_nextArchiveId = { static_cast<int32_t>(0x
 
 // STATIC: 0x00B32508
 uint32_t System_SFile::s_lastError;
+
+// STATIC: 0x00B38A6C
+Blizzard::Util::Digest<16> System_SFile::s_emptyMd5;
 
 // VERIFY: daebe118 auto
 // OFFSET: 0x00426A30
@@ -769,4 +776,440 @@ bool Blizzard::Mopaq::SFileOpenArchive(const char* path, int32_t priority, uint3
     Blizzard::File::AddToLastErrorStack(2, message.m_buffer, 4);
 
     return false;
+}
+
+// INLINED
+void System_SFile::BlockEntryTable::UpdateLayout() {
+    this->m_entryBits = this->m_offsetBits;
+    this->m_offsetBit = 0;
+    this->m_fileSizeBit = this->m_offsetBits;
+    this->m_entryBits += this->m_fileSizeBits;
+    this->m_compressedSizeBit = this->m_fileSizeBit + this->m_fileSizeBits;
+    this->m_entryBits += this->m_compressedSizeBits;
+    this->m_flagIndexBit = this->m_compressedSizeBit + this->m_compressedSizeBits;
+    this->m_entryBits += this->m_flagIndexBits;
+    this->m_md5Bit = this->m_flagIndexBit + this->m_flagIndexBits;
+    this->m_entryBits += this->m_md5Bits;
+}
+
+// VERIFY: 519bc563 manual
+// OFFSET: 0x0042C050
+void System_SFile::BlockEntryTable::SetLayout(BLOCKENTRY& maxima) {
+    uint32_t bits = 0;
+
+    for (uint32_t value = static_cast<uint32_t>(maxima.m_offset >> 32); value; value >>= 1) {
+        bits++;
+    }
+
+    if (bits) {
+        bits += 32;
+    } else {
+        for (uint32_t value = static_cast<uint32_t>(maxima.m_offset); value; value >>= 1) {
+            bits++;
+        }
+    }
+
+    this->m_offsetBits = bits;
+    this->UpdateLayout();
+
+    bits = 0;
+
+    for (uint32_t value = maxima.m_fileSize; value; value >>= 1) {
+        bits++;
+    }
+
+    this->m_fileSizeBits = bits;
+    this->UpdateLayout();
+
+    bits = 0;
+
+    for (uint32_t value = maxima.m_compressedSize; value; value >>= 1) {
+        bits++;
+    }
+
+    this->m_compressedSizeBits = bits;
+    this->UpdateLayout();
+
+    uint32_t flagCount = static_cast<uint32_t>(this->m_flagTable.size());
+
+    if (flagCount > 1) {
+        bits = 0;
+
+        for (uint32_t value = flagCount; value; value >>= 1) {
+            bits++;
+        }
+
+        this->m_flagIndexBits = bits;
+        this->UpdateLayout();
+    }
+
+    if (this->m_tableFlags & 0x200) {
+        this->m_md5Bits = 1;
+        this->UpdateLayout();
+    }
+}
+
+// VERIFY: 2269e3f2 manual
+// OFFSET: 0x00431570
+bool System_SFile::BlockEntryTable::PackEntry(uint32_t index, const BLOCKENTRY* entry) {
+    if (!this->m_entries) {
+        this->m_entries = new BitPacked(this->m_entryBits * this->m_count, 0);
+    }
+
+    uint32_t base = index * this->m_entryBits;
+
+    if (!this->m_entries->WriteBits(base + this->m_offsetBit, this->m_offsetBits, reinterpret_cast<const uint8_t*>(&entry->m_offset), 8)
+        || !this->m_entries->WriteBits(base + this->m_fileSizeBit, this->m_fileSizeBits, reinterpret_cast<const uint8_t*>(&entry->m_fileSize), 4)
+        || !this->m_entries->WriteBits(base + this->m_compressedSizeBit, this->m_compressedSizeBits, reinterpret_cast<const uint8_t*>(&entry->m_compressedSize), 4)) {
+        return false;
+    }
+
+    if (this->m_flagTable.size() <= 1) {
+        return true;
+    }
+
+    uint32_t flagIndex = 0;
+
+    if (this->m_flagTable.size()) {
+        while (flagIndex < this->m_flagTable.size() && this->m_flagTable[flagIndex] != entry->m_flags) {
+            flagIndex++;
+        }
+    }
+
+    if (flagIndex == this->m_flagTable.size()) {
+        return false;
+    }
+
+    if (!this->m_entries->WriteBits(base + this->m_flagIndexBit, this->m_flagIndexBits, reinterpret_cast<const uint8_t*>(&flagIndex), 4)) {
+        return false;
+    }
+
+    if (this->m_tableFlags & 0x200) {
+        uint8_t md5Check = entry->m_md5Check != 0;
+        return this->m_entries->WriteBits(base + this->m_md5Bit, this->m_md5Bits, &md5Check, 1);
+    }
+
+    return true;
+}
+
+// VERIFY: fc0aa738 manual
+// OFFSET: 0x00437510
+void System_SFile::ARCHIVEREC::PackBlockTable() {
+    uint32_t index = 0;
+
+    for (std::vector<BLOCKENTRY>::iterator it = this->m_blockTable.begin(); it != this->m_blockTable.end(); ++it) {
+        this->m_blockEntryTable->PackEntry(index++, &*it);
+    }
+}
+
+// VERIFY: 774ccb9f manual
+// OFFSET: 0x00446FA0
+System_SFile::BlockEntryTable::BlockEntryTable(uint32_t count, uint32_t flags) {
+    this->m_entryBits = 0;
+    this->m_offsetBit = 0;
+    this->m_fileSizeBit = 0;
+    this->m_compressedSizeBit = 0;
+    this->m_flagIndexBit = 0;
+    this->m_md5Bit = 0;
+    this->m_offsetBits = 0;
+    this->m_fileSizeBits = 0;
+    this->m_compressedSizeBits = 0;
+    this->m_flagIndexBits = 0;
+    this->m_md5Bits = 0;
+    this->m_hashEntryBits = 0;
+    this->m_hashExtraBits = 0;
+    this->m_hashBits = 0;
+    this->m_hashes = nullptr;
+    this->m_entries = nullptr;
+    this->m_count = count;
+    this->m_tableFlags = flags;
+
+    if (flags & 0x80) {
+        this->m_crcs.resize(this->m_count, 0);
+    }
+
+    if (this->m_tableFlags & 0x40) {
+        this->m_md5s.resize(this->m_count);
+    }
+
+    if (this->m_tableFlags & 0x100) {
+        this->m_fileTimes.resize(this->m_count, 0);
+    }
+}
+
+// VERIFY: 087d3832 manual
+// OFFSET: 0x004470B0
+void System_SFile::BlockEntryTable::AddFlags(uint32_t flags) {
+    for (std::vector<uint32_t>::iterator it = this->m_flagTable.begin(); it != this->m_flagTable.end(); ++it) {
+        if (*it == flags) {
+            return;
+        }
+    }
+
+    this->m_flagTable.push_back(flags);
+}
+
+// VERIFY: e18a2c3d manual
+// OFFSET: 0x00447170
+System_SFile::BLOCKENTRY* System_SFile::BlockEntryTable::GetMaxima(BLOCKENTRY* maxima, const std::vector<BLOCKENTRY>& entries) {
+    maxima->m_offset = 0;
+    maxima->m_compressedSize = 0;
+    maxima->m_fileSize = 0;
+
+    for (std::vector<BLOCKENTRY>::const_iterator it = entries.begin(); it != entries.end(); ++it) {
+        if (it->m_offset > maxima->m_offset) {
+            maxima->m_offset = it->m_offset;
+        }
+
+        if (it->m_compressedSize > maxima->m_compressedSize) {
+            maxima->m_compressedSize = it->m_compressedSize;
+        }
+
+        if (it->m_fileSize > maxima->m_fileSize) {
+            maxima->m_fileSize = it->m_fileSize;
+        }
+
+        this->AddFlags(it->m_flags);
+    }
+
+    return maxima;
+}
+
+// VERIFY: e9ba7a76 manual
+// OFFSET: 0x004472A0
+void System_SFile::ARCHIVEREC::BuildBlockTable() {
+    this->m_blockEntryTable = new BlockEntryTable(static_cast<uint32_t>(this->m_blockTable.size()), this->m_flags);
+
+    BLOCKENTRY maxima;
+    this->m_blockEntryTable->GetMaxima(&maxima, this->m_blockTable);
+    this->m_blockEntryTable->SetLayout(maxima);
+    this->PackBlockTable();
+
+    std::vector<BLOCKENTRY>().swap(this->m_blockTable);
+}
+
+// VERIFY: adaffe17 manual
+// OFFSET: 0x004473A0
+bool System_SFile::InitEmptyTables(ARCHIVEREC* archive, uint32_t hashCount) {
+    std::vector<BLOCKENTRY>().swap(archive->m_blockTable);
+    delete archive->m_blockEntryTable;
+    delete archive->m_hashEntryTable;
+    archive->m_header.m_blockTableSize = 0;
+
+    HASHENTRY empty;
+    memset(&empty, 0xFF, sizeof(empty));
+
+    std::vector<HASHENTRY>().swap(archive->m_hashTable);
+    archive->m_hashTable.insert(archive->m_hashTable.end(), hashCount, empty);
+    archive->m_header.m_hashTableSize = hashCount;
+    archive->m_blockKeys.clear();
+    archive->m_blockKeysBuilt = true;
+    archive->m_tablesInitialized = true;
+
+    return true;
+}
+
+// INLINED
+System_SFile::ArchivePtr::ArchivePtr(ARCHIVEREC* archive) {
+    this->m_archive = archive;
+    this->m_locked = false;
+}
+
+// VERIFY: a3a3d82c manual
+// OFFSET: 0x00457E20
+System_SFile::ArchivePtr::~ArchivePtr() {
+    if (this->m_locked && this->m_archive) {
+        Blizzard::Lock::MutexLeave(this->m_archive->m_mutex.m_mutex);
+    }
+
+    this->m_locked = false;
+
+    if (this->m_archive) {
+        this->m_archive->RemoveInternalArchiveRef();
+    }
+}
+
+// VERIFY: 7b172bc2 manual
+// OFFSET: 0x0045B830
+void System_SFile::ARCHIVEREC::ConvertToNewHashTableFormat() {
+    BlockEntryTable* blocks = this->m_blockEntryTable;
+
+    if (!blocks) {
+        return;
+    }
+
+    uint32_t count = blocks->m_count;
+    blocks->InitializeHashCheckTable(64);
+    this->m_hashEntryTable = new HashEntryTable(count, 64);
+
+    if (this->FillNewHashTable(64)) {
+        std::vector<HASHENTRY>().swap(this->m_hashTable);
+    } else {
+        delete this->m_hashEntryTable;
+        this->m_hashEntryTable = nullptr;
+    }
+}
+
+// VERIFY: 21a7ff6e manual
+// OFFSET: 0x0045B8B0
+void System_SFile::ARCHIVEREC::InitializeTables() {
+    if (this->m_tablesInitialized) {
+        return;
+    }
+
+    ArchivePtr archive(GetArchivePtr(this, true));
+
+    if (this->m_hashTable.size() || this->m_blockEntryTable) {
+        return;
+    }
+
+    HASHENTRY zero = {};
+    this->m_hashTable.resize(this->m_header.m_hashTableSize, zero);
+
+    uint32_t hashSize;
+    uint32_t hashDiskSize;
+    int64_t hashPos;
+    bool success;
+
+    if (!this->m_header.m_hashTableSize) {
+        goto hashError;
+    }
+
+    hashPos = (static_cast<int64_t>(this->m_header.m_hashTablePosHi) << 32) | this->m_header.m_hashTablePos;
+    hashDiskSize = this->m_header.m_blockTablePos - this->m_header.m_hashTablePos;
+    hashSize = this->m_header.m_hashTableSize * 16;
+
+    if (hashDiskSize != hashSize) {
+        uint8_t* buffer = static_cast<uint8_t*>(Blizzard::Memory::Allocate(hashDiskSize));
+        success = this->m_file->Read(buffer, this->m_archiveOffset + hashPos, hashDiskSize, nullptr);
+
+        if (success) {
+            System_MPQEncrypt::Decrypt(reinterpret_cast<uint32_t*>(buffer), hashDiskSize, 0xC3AF3770);
+            hashSize = this->m_header.m_hashTableSize * 16;
+            success = System_SComp::Decompress(&this->m_hashTable[0], &hashSize, buffer, hashDiskSize);
+
+            if (success) {
+                archive.m_archive->m_compressedTables = true;
+            }
+        }
+
+        Blizzard::Memory::Free(buffer);
+    } else {
+        success = this->m_file->Read(&this->m_hashTable[0], this->m_archiveOffset + hashPos, hashSize, nullptr);
+
+        if (success) {
+            System_MPQEncrypt::Decrypt(reinterpret_cast<uint32_t*>(&this->m_hashTable[0]), this->m_header.m_hashTableSize * 16, 0xC3AF3770);
+        }
+    }
+
+    if (!success) {
+        goto hashError;
+    }
+
+    for (int32_t i = 0; i < static_cast<int32_t>(this->m_header.m_hashTableSize); i++) {
+        this->m_hashTable[i].unk_000B = 0;
+    }
+
+    this->m_blockTable.resize(this->m_header.m_blockTableSize);
+
+    if (this->m_header.m_blockTableSize) {
+        int64_t blockPos = (static_cast<int64_t>(this->m_header.m_blockTablePosHi) << 32) | this->m_header.m_blockTablePos;
+        uint32_t blockDiskSize;
+
+        if (this->m_header.m_hiBlockTablePos) {
+            blockDiskSize = static_cast<uint32_t>(this->m_header.m_hiBlockTablePos) - this->m_header.m_blockTablePos;
+        } else {
+            blockDiskSize = static_cast<uint32_t>(this->m_archiveEnd) - this->m_header.m_blockTablePos - static_cast<uint32_t>(this->m_archiveOffset);
+        }
+
+        uint32_t blockSize = this->m_header.m_blockTableSize * 16;
+
+        if (blockDiskSize != blockSize) {
+            uint8_t* buffer = static_cast<uint8_t*>(Blizzard::Memory::Allocate(blockDiskSize));
+            success = this->m_file->Read(buffer, this->m_archiveOffset + blockPos, blockDiskSize, nullptr);
+
+            if (success) {
+                System_MPQEncrypt::Decrypt(reinterpret_cast<uint32_t*>(buffer), blockDiskSize, 0xEC83B3A3);
+                blockSize = this->m_header.m_blockTableSize * 16;
+                success = System_SComp::Decompress(&this->m_blockTable[0], &blockSize, buffer, blockDiskSize);
+
+                if (success) {
+                    archive.m_archive->m_compressedTables = true;
+                }
+            }
+
+            Blizzard::Memory::Free(buffer);
+        } else {
+            success = this->m_file->Read(&this->m_blockTable[0], this->m_archiveOffset + blockPos, blockSize, nullptr);
+
+            if (success) {
+                System_MPQEncrypt::Decrypt(reinterpret_cast<uint32_t*>(&this->m_blockTable[0]), this->m_header.m_blockTableSize * 16, 0xEC83B3A3);
+            }
+        }
+
+        if (!success) {
+            Blizzard::String::QuickFormat<1024> message("Unable to read archive block table: \"%s\"\n", this->m_name);
+            fputs(message.m_buffer, stderr);
+            InitEmptyTables(this, 1);
+            return;
+        }
+
+        const uint32_t* raw = reinterpret_cast<const uint32_t*>(&this->m_blockTable[0]) + (this->m_header.m_blockTableSize * 16 - 16) / 4;
+        BLOCKENTRY* first = &this->m_blockTable[0];
+        int64_t archiveOffset = this->m_archiveOffset;
+
+        for (BLOCKENTRY* entry = &this->m_blockTable[this->m_header.m_blockTableSize - 1]; entry >= first; entry--, raw -= 4) {
+            uint32_t offset = raw[0];
+            uint32_t compressedSize = raw[1];
+            uint32_t fileSize = raw[2];
+            uint32_t flags = raw[3];
+            entry->m_compressedSize = compressedSize;
+            entry->m_offset = offset + archiveOffset;
+            entry->m_fileSize = fileSize;
+            entry->m_flags = flags;
+            entry->m_crc = 0;
+            entry->m_fileTime = 0;
+            entry->m_md5 = s_emptyMd5;
+            entry->m_md5Check = false;
+        }
+    }
+
+    if (this->m_header.m_hiBlockTablePos) {
+        HeapArray<uint16_t> hiBlockTable(this->m_header.m_blockTableSize);
+
+        if (!this->m_file->Read(hiBlockTable.m_data, this->m_archiveOffset + this->m_header.m_hiBlockTablePos, this->m_header.m_blockTableSize * 2, nullptr)) {
+            Blizzard::String::QuickFormat<1024> message("Unable to read extended block table: \"%s\"\n", this->m_name);
+            Blizzard::Debug::StderrOutput(message.m_buffer);
+            InitEmptyTables(this, 1);
+            return;
+        }
+
+        for (uint32_t i = 0; i < this->m_header.m_blockTableSize; i++) {
+            this->m_blockTable[i].m_offset |= static_cast<int64_t>(hiBlockTable.m_data[i]) << 32;
+        }
+    }
+
+    if (!(this->m_flags & 0x10) && (this->m_flags & 0x400)) {
+        this->BuildBlockTable();
+        this->ConvertToNewHashTableFormat();
+    }
+
+    if (!Blizzard::Streaming::s_streamingReady || !Blizzard::Streaming::s_isStreamingTrial) {
+        if (!this->ReadAdditionalAttributes()) {
+            Blizzard::String::QuickFormat<1024> message("Unable to read extra attributes: \"%s\"\n", this->m_name);
+            Blizzard::Debug::StderrOutput(message.m_buffer);
+        }
+    }
+
+    this->m_blockKeysBuilt = false;
+    this->m_tablesInitialized = true;
+    return;
+
+hashError:
+    {
+        Blizzard::String::QuickFormat<1024> message("Unable to read archive hash table: \"%s\"\n", this->m_name);
+        fputs(message.m_buffer, stderr);
+    }
+
+    InitEmptyTables(this, 1);
 }

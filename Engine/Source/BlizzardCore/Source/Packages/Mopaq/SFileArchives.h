@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "Engine/Source/BlizzardCore/Include/Blizzard/Util/Digest.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/iounit/IOUnit.h"
 #include "Engine/Source/BlizzardCore/Source/System/Lock/Lock.h"
 #include "Engine/Source/BlizzardCore/Source/System/Memory/TempBuffer.h"
@@ -14,11 +15,13 @@ namespace System_SFile {
 
 #pragma pack(push, 1)
 struct BLOCKENTRY {
-    /* 0000 */ uint64_t m_offset;
+    /* 0000 */ int64_t m_offset;
     /* 0008 */ uint32_t m_compressedSize;
     /* 000C */ uint32_t m_fileSize;
     /* 0010 */ uint32_t m_flags;
-    /* 0014 */ uint8_t unk_0014[28];
+    /* 0014 */ uint32_t m_crc;
+    /* 0018 */ uint64_t m_fileTime;
+    /* 0020 */ Blizzard::Util::Digest<16> m_md5;
     /* 0030 */ bool m_md5Check;
 };
 #pragma pack(pop)
@@ -54,14 +57,20 @@ class BlockEntryTable {
     /* 0048 */ BitPacked* m_hashes;
     /* 004C */ BitPacked* m_entries;
     /* 0050 */ uint32_t m_count;
-    /* 0054 */ std::vector<uint8_t> unk_0054;
-    /* 0064 */ std::vector<uint8_t> unk_0064;
-    /* 0074 */ std::vector<uint8_t> unk_0074;
+    /* 0054 */ std::vector<uint64_t> m_fileTimes;
+    /* 0064 */ std::vector<uint32_t> m_crcs;
+    /* 0074 */ std::vector<Blizzard::Util::Digest<16>> m_md5s;
     /* 0084 */ uint32_t m_tableFlags;
 
+    BlockEntryTable(uint32_t count, uint32_t flags);
     ~BlockEntryTable();
+    void AddFlags(uint32_t flags);
+    BLOCKENTRY* GetMaxima(BLOCKENTRY* maxima, const std::vector<BLOCKENTRY>& entries);
     void InitializeHashCheckTable(int32_t bits);
+    bool PackEntry(uint32_t index, const BLOCKENTRY* entry);
+    void SetLayout(BLOCKENTRY& maxima);
     bool UnpackEntry(uint32_t index, BLOCKENTRY* entry);
+    void UpdateLayout();
 };
 
 class HashEntryTable {
@@ -91,7 +100,8 @@ struct HASHENTRY {
     /* 0000 */ uint32_t m_hashA;
     /* 0004 */ uint32_t m_hashB;
     /* 0008 */ uint16_t m_locale;
-    /* 000A */ uint16_t m_platform;
+    /* 000A */ uint8_t m_platform;
+    /* 000B */ uint8_t unk_000B;
     /* 000C */ uint32_t m_blockIndex;
 };
 
@@ -108,12 +118,6 @@ struct MPQHEADER {
     /* 0020 */ uint64_t m_hiBlockTablePos;
     /* 0028 */ uint16_t m_hashTablePosHi;
     /* 002A */ uint16_t m_blockTablePosHi;
-};
-
-struct BlockKey {
-    /* 0000 */ uint32_t m_data[4];
-
-    bool operator<(const BlockKey& other) const;
 };
 
 struct ArchiveBuffers {
@@ -141,14 +145,15 @@ class ARCHIVEREC {
     /* 0074 */ uint32_t m_flags;
     /* 0078 */ uint32_t m_sectorSize;
     /* 007C */ uint32_t unk_007C;
-    /* 0080 */ uint32_t unk_0080;
+    /* 0080 */ bool m_compressedTables;
+    /* 0081 */ uint8_t unk_0081[3];
     /* 0084 */ char m_name[260];
     /* 0188 */ std::string m_directPath;
     /* 01A4 */ BlockEntryTable* m_blockEntryTable;
     /* 01A8 */ HashEntryTable* m_hashEntryTable;
     /* 01AC */ std::vector<BLOCKENTRY> m_blockTable;
     /* 01BC */ std::vector<HASHENTRY> m_hashTable;
-    /* 01CC */ std::map<BlockKey, uint32_t> m_blockKeys;
+    /* 01CC */ std::map<Blizzard::Util::Digest<16>, uint32_t> m_blockKeys;
     /* 01D8 */ bool m_blockKeysBuilt;
     /* 01D9 */ bool m_tablesInitialized;
     /* 01DA */ uint8_t unk_01DA[6];
@@ -169,15 +174,42 @@ class ARCHIVEREC {
 
     ARCHIVEREC();
     ~ARCHIVEREC();
+    void BuildBlockTable();
+    void ConvertToNewHashTableFormat();
+    bool FillNewHashTable(int32_t hashBits);
     void InitializeTables();
+    void PackBlockTable();
+    bool ReadAdditionalAttributes();
     bool RemoveInternalArchiveRef();
 };
 
+class ArchivePtr {
+    public:
+    /* 0000 */ ARCHIVEREC* m_archive;
+    /* 0004 */ bool m_locked;
+    /* 0005 */ uint8_t unk_0005[3];
+
+    ArchivePtr(ARCHIVEREC* archive);
+    ~ArchivePtr();
+};
+
+template <class T>
+class HeapArray {
+    public:
+    /* 0000 */ uint32_t m_count;
+    /* 0004 */ T* m_data;
+
+    HeapArray(uint32_t count);
+    ~HeapArray();
+};
+
+extern Blizzard::Util::Digest<16> s_emptyMd5;
 extern Blizzard::Lock::Atomic s_nextArchiveId;
 extern uint32_t s_lastError;
 
 void ConvertRelativePathName(const char* path, char* result);
 ARCHIVEREC* GetArchivePtr(ARCHIVEREC* handle, bool addRef);
+bool InitEmptyTables(ARCHIVEREC* archive, uint32_t hashCount);
 bool OpenDirectPathAsArchive(const char* path, int32_t priority, uint32_t flags, ARCHIVEREC** result);
 bool s_OpenArchive(ARCHIVEREC* archive, uint32_t flags, ARCHIVEREC** result);
 
@@ -194,6 +226,20 @@ bool SFileOpenArchive(IOUnit* file, const char* name, int32_t priority, uint32_t
 bool SFileSetBasePath(const char* path);
 
 }
+}
+
+// VERIFY: 6d32e555 manual
+// OFFSET: [0x0042EA10, 0x0042ED30]
+template <class T>
+System_SFile::HeapArray<T>::HeapArray(uint32_t count) {
+    this->m_count = count;
+    this->m_data = count ? new T[count] : nullptr;
+}
+
+// INLINED
+template <class T>
+System_SFile::HeapArray<T>::~HeapArray() {
+    delete[] this->m_data;
 }
 
 #endif
