@@ -55,6 +55,23 @@ bool Write(StreamRecord* file, const void* data, int64_t offset, int32_t* count)
 }
 }
 
+namespace Blizzard {
+namespace File {
+namespace RemoveDirectoryAndContents_Internal {
+
+struct State {
+    /* 0000 */ bool m_success;
+    /* 0001 */ bool m_removeReadOnly;
+
+    bool Remove(const char* path, bool removeReadOnly);
+};
+
+bool Callback(const ProcessDirParms& parms);
+
+}
+}
+}
+
 namespace System_File {
 
 struct FileError {
@@ -133,9 +150,17 @@ extern Blizzard::File::Filesystem* s_manager;
 extern Blizzard::File::Filesystem s_initstack;
 extern Blizzard::File::Filesystem s_nullstack;
 extern Blizzard::File::Filesystem s_basestack;
+extern Blizzard::File::Filesystem s_throttlestack;
+extern int64_t s_throttleRate;
+extern int64_t s_throttleDebt;
+extern int32_t s_throttleDelay;
 
 bool file_init(Blizzard::File::Filesystem* fs, FileParms* parms);
 void HoistAll();
+bool PassThrough(Blizzard::File::Filesystem* fs, FileParms* parms);
+bool stream_read(Blizzard::File::Filesystem* fs, FileParms* parms);
+void Throttle(int64_t bytes, int64_t elapsed);
+bool throttle_read(Blizzard::File::Filesystem* fs, FileParms* parms);
 bool null_cd(Blizzard::File::Filesystem* fs, FileParms* parms);
 bool null_close(Blizzard::File::Filesystem* fs, FileParms* parms);
 bool null_copy(Blizzard::File::Filesystem* fs, FileParms* parms);

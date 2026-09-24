@@ -2,10 +2,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <windows.h>
+#include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
 #include "Engine/Source/BlizzardCore/Source/System/Debug/ErrorStack.h"
 #include "Engine/Source/BlizzardCore/Source/System/File/File.h"
 #include "Engine/Source/BlizzardCore/Source/System/Memory/MemoryStorm.h"
+#include "Engine/Source/BlizzardCore/Source/System/String/Path.h"
 #include "Engine/Source/BlizzardCore/Source/System/String/String.h"
+#include "Engine/Source/BlizzardCore/Source/System/Time/Time.h"
 #include "Engine/Source/BlizzardCore/Source/System/Thread/ThreadLocalStorage.h"
 
 // STATIC: 0x00AB90B0
@@ -127,6 +131,52 @@ const Blizzard::File::FileInfo System_File::s_noinfo = { nullptr, 0, -1 };
 
 // STATIC: 0x00B38308
 Blizzard::Thread::LocalObject<System_File::FileError> System_File::s_error;
+
+// STATIC: 0x00AB9130
+int64_t System_File::Stacked::s_throttleRate = 56888;
+
+// STATIC: 0x00B332C8
+int64_t System_File::Stacked::s_throttleDebt;
+
+// STATIC: 0x00B38024
+int32_t System_File::Stacked::s_throttleDelay;
+
+// STATIC: 0x00AB9138
+Blizzard::File::Filesystem System_File::Stacked::s_throttlestack = {
+    &System_File::Stacked::s_throttlestack,
+    nullptr,
+    {
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::throttle_read,
+        System_File::Stacked::throttle_read,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::PassThrough,
+        System_File::Stacked::null_shutdown
+    }
+};
 
 bool System_File::Stacked::null_cd(Blizzard::File::Filesystem* fs, FileParms* parms) {
     return false;
@@ -1021,4 +1071,109 @@ bool System_File::LoadFile(const char* filename, void** data, uint32_t* bytes, i
     Blizzard::File::Close(file);
 
     return result;
+}
+
+// VERIFY: 4035c774 manual
+// OFFSET: 0x00427AA0
+bool System_File::Stacked::PassThrough(Blizzard::File::Filesystem* fs, FileParms* parms) {
+    if (!fs->m_next) {
+        return false;
+    }
+
+    return (*reinterpret_cast<FileFunc*>(reinterpret_cast<uintptr_t>(fs->m_next) + parms->m_verb))(fs->m_next, parms);
+}
+
+// VERIFY: 8a8e85a7 manual
+// OFFSET: 0x004378C0
+bool System_File::Stacked::throttle_read(Blizzard::File::Filesystem* fs, FileParms* parms) {
+    Blizzard::Time::Timestamp start = Blizzard::Time::GetTimestamp();
+    bool result = fs->m_next ? (*reinterpret_cast<FileFunc*>(reinterpret_cast<uintptr_t>(fs->m_next) + parms->m_verb))(fs->m_next, parms) : false;
+    Blizzard::Time::Timestamp end = Blizzard::Time::GetTimestamp();
+    Throttle(parms->m_amount, end - start);
+
+    return result;
+}
+
+// VERIFY: 9304d39d manual
+// OFFSET: 0x0042D500
+void System_File::Stacked::Throttle(int64_t bytes, int64_t elapsed) {
+    if (s_throttleDelay > 0) {
+        Sleep(s_throttleDelay);
+    }
+
+    s_throttleDebt += static_cast<int64_t>(static_cast<double>(bytes) / static_cast<double>(s_throttleRate) * 1000000000.0f) - elapsed;
+
+    if (s_throttleDebt < -1000000000) {
+        s_throttleDebt = -1000000000;
+        return;
+    }
+
+    if (s_throttleDebt > 10000000) {
+        int32_t milliseconds = static_cast<int32_t>(s_throttleDebt / 1000000);
+        s_throttleDebt -= milliseconds * 1000000;
+        Sleep(milliseconds);
+    }
+}
+
+// VERIFY: 7905c4fd manual
+// OFFSET: 0x0044FA10
+bool Blizzard::File::RemoveDirectoryAndContents_Internal::Callback(const ProcessDirParms& parms) {
+    State* state = static_cast<State*>(parms.m_cookie);
+    char path[1024];
+
+    if (parms.m_isDir) {
+        Blizzard::String::Format(path, sizeof(path), "%s%s/", parms.m_pathRoot, parms.m_filename);
+        Blizzard::File::ProcessDirFast(path, state, Callback, true);
+
+        if (!Blizzard::File::RemoveDirectory(path)) {
+            state->m_success = false;
+        }
+
+        return true;
+    }
+
+    Blizzard::String::Format(path, sizeof(path), "%s%s", parms.m_pathRoot, parms.m_filename);
+
+    if (state->m_removeReadOnly) {
+        Blizzard::File::SetAttributes(path, 0x20);
+    }
+
+    if (Blizzard::Streaming::IsStreamedFile(path)) {
+        return true;
+    }
+
+    if (!Blizzard::File::Delete(path)) {
+        state->m_success = false;
+    }
+
+    return true;
+}
+
+// VERIFY: 03f16ff6 manual
+// OFFSET: 0x00450970
+bool Blizzard::File::RemoveDirectoryAndContents_Internal::State::Remove(const char* path, bool removeReadOnly) {
+    this->m_removeReadOnly = removeReadOnly;
+    this->m_success = true;
+
+    return Blizzard::File::ProcessDirFast(path, this, Callback, true) && this->m_success;
+}
+
+// VERIFY: 3b3eafc9 manual
+// OFFSET: 0x004518C0
+bool Blizzard::File::RemoveDirectoryAndContents(const char* path, bool removeReadOnly) {
+    if (Exists(path) != 2) {
+        return false;
+    }
+
+    char buffer[1024];
+    Blizzard::String::Copy(buffer, path, sizeof(buffer));
+    Blizzard::String::ForceTrailingSeparator(buffer, sizeof(buffer), Blizzard::String::FirstPathSeparator(buffer));
+
+    RemoveDirectoryAndContents_Internal::State state = {};
+
+    if (!state.Remove(buffer, removeReadOnly)) {
+        return false;
+    }
+
+    return RemoveDirectory(buffer);
 }

@@ -306,6 +306,26 @@ static void* s_DecompressBuffer;
 // STATIC: 0x00CB746C
 static CCritSect s_decompCrit;
 
+// STATIC: 0x00A3B4EC
+static const _COMPRESSALGORITHM s_compressalgorithm[6] = {
+    { MPQ_COMPRESSION_ADPCM_MONO, ImaAdpcmMonoCompress },
+    { MPQ_COMPRESSION_ADPCM_STEREO, ImaAdpcmStereoCompress },
+    { MPQ_COMPRESSION_SPARSE, RLEZeroCompress },
+    { MPQ_COMPRESSION_HUFFMANN, HuffmanCompress },
+    { MPQ_COMPRESSION_ZLIB, ZlibCompress },
+    { MPQ_COMPRESSION_BZIP2, Bzip2Compress },
+};
+
+// STATIC: 0x00A3B51C
+static const _DECOMPRESSALGORITHM s_decompressalgorithm[6] = {
+    { MPQ_COMPRESSION_ADPCM_MONO, ImaAdpcmMonoDecompress },
+    { MPQ_COMPRESSION_ADPCM_STEREO, ImaAdpcmStereoDecompress },
+    { MPQ_COMPRESSION_SPARSE, RLEZeroDecompress },
+    { MPQ_COMPRESSION_HUFFMANN, HuffmanDecompress },
+    { MPQ_COMPRESSION_ZLIB, ZlibDecompress },
+    { MPQ_COMPRESSION_BZIP2, Bzip2Decompress },
+};
+
 namespace {
 
 // INLINED
@@ -776,7 +796,7 @@ int32_t STORMAPI zlib_compress(uint8_t* dest, uint32_t* destLen, const uint8_t* 
 }
 
 // OFFSET: 0x00778110
-static void ZlibCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
+void ZlibCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
     int32_t level;
 
     if (optimization == 1) {
@@ -833,7 +853,7 @@ int32_t STORMAPI zlib_uncompress(uint8_t* dest, uint32_t* destLen, const uint8_t
 }
 
 // OFFSET: 0x00778250
-static int32_t ZlibDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
+int32_t ZlibDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
     uint32_t size = *destsize;
 
     if (zlib_uncompress(static_cast<uint8_t*>(dest), &size, static_cast<const uint8_t*>(source), sourcesize)) {
@@ -846,7 +866,7 @@ static int32_t ZlibDecompress(void* dest, uint32_t* destsize, const void* source
 }
 
 // OFFSET: 0x00778290
-static void RLEZeroCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
+void RLEZeroCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
     uint8_t* basedest = static_cast<uint8_t*>(dest);
     uint8_t* enddest = basedest + *destsize;
     const uint8_t* curr = static_cast<const uint8_t*>(source);
@@ -985,7 +1005,7 @@ static void RLEZeroCompress(void* dest, uint32_t* destsize, const void* source, 
 }
 
 // OFFSET: 0x00778500
-static int32_t RLEZeroDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
+int32_t RLEZeroDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
     uint8_t* currdest = static_cast<uint8_t*>(dest);
     const uint8_t* curr = static_cast<const uint8_t*>(source);
     const uint8_t* endsource = curr + sourcesize;
@@ -1021,7 +1041,7 @@ static int32_t RLEZeroDecompress(void* dest, uint32_t* destsize, const void* sou
 }
 
 // OFFSET: 0x007785A0
-static void Bzip2Compress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
+void Bzip2Compress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
     int32_t result = BZ2_bzBuffToBuffCompress(static_cast<char*>(dest), destsize, static_cast<char*>(const_cast<void*>(source)), sourcesize, 9, 0, 0);
 
     if (result == BZ_OUTBUFF_FULL) {
@@ -1035,33 +1055,34 @@ static void Bzip2Compress(void* dest, uint32_t* destsize, const void* source, ui
     *hint = 0;
 }
 
+// VERIFY: 5ff122e8 auto
 // OFFSET: 0x00778630
-static int32_t Bzip2Decompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
+int32_t Bzip2Decompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
     return BZ2_bzBuffToBuffDecompress(static_cast<char*>(dest), destsize, static_cast<char*>(const_cast<void*>(source)), sourcesize, 0, 0) == BZ_OK;
 }
 
 // OFFSET: 0x00778660
-static void ImaAdpcmMonoCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
+void ImaAdpcmMonoCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
     uint8_t bitspersample;
     ImaAdpcmCheckOptimization(optimization, &bitspersample, hint);
     *destsize = ImaAdpcmCompress(static_cast<uint8_t*>(dest), *destsize, static_cast<const int16_t*>(source), sourcesize, 1, bitspersample);
 }
 
 // OFFSET: 0x007786D0
-static int32_t ImaAdpcmMonoDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
+int32_t ImaAdpcmMonoDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
     *destsize = ImaAdpcmDecompress(static_cast<int16_t*>(dest), *destsize, static_cast<const uint8_t*>(source), sourcesize, 1);
     return 1;
 }
 
 // OFFSET: 0x00778700
-static void ImaAdpcmStereoCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
+void ImaAdpcmStereoCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
     uint8_t bitspersample;
     ImaAdpcmCheckOptimization(optimization, &bitspersample, hint);
     *destsize = ImaAdpcmCompress(static_cast<uint8_t*>(dest), *destsize, static_cast<const int16_t*>(source), sourcesize, 2, bitspersample);
 }
 
 // OFFSET: 0x00778770
-static int32_t ImaAdpcmStereoDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
+int32_t ImaAdpcmStereoDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
     *destsize = ImaAdpcmDecompress(static_cast<int16_t*>(dest), *destsize, static_cast<const uint8_t*>(source), sourcesize, 2);
     return 1;
 }
@@ -1382,7 +1403,7 @@ CHuffmanDecoder::CHuffmanDecoder() {
 }
 
 // OFFSET: 0x00779250
-static int32_t HuffmanDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
+int32_t HuffmanDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
     CBitInput input(source);
     CHuffmanDecoder decoder;
     *destsize = decoder.Decompress(dest, *destsize, &input);
@@ -1391,28 +1412,8 @@ static int32_t HuffmanDecompress(void* dest, uint32_t* destsize, const void* sou
 }
 
 // OFFSET: 0x007792D0
-static void HuffmanCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
+void HuffmanCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
     CBitOutput output(dest, *destsize);
     CHuffmanEncoder encoder;
     *destsize = encoder.Compress(&output, source, sourcesize, static_cast<uint8_t>(*hint));
 }
-
-// STATIC: 0x00A3B4EC
-static const _COMPRESSALGORITHM s_compressalgorithm[6] = {
-    { MPQ_COMPRESSION_ADPCM_MONO, ImaAdpcmMonoCompress },
-    { MPQ_COMPRESSION_ADPCM_STEREO, ImaAdpcmStereoCompress },
-    { MPQ_COMPRESSION_SPARSE, RLEZeroCompress },
-    { MPQ_COMPRESSION_HUFFMANN, HuffmanCompress },
-    { MPQ_COMPRESSION_ZLIB, ZlibCompress },
-    { MPQ_COMPRESSION_BZIP2, Bzip2Compress },
-};
-
-// STATIC: 0x00A3B51C
-static const _DECOMPRESSALGORITHM s_decompressalgorithm[6] = {
-    { MPQ_COMPRESSION_ADPCM_MONO, ImaAdpcmMonoDecompress },
-    { MPQ_COMPRESSION_ADPCM_STEREO, ImaAdpcmStereoDecompress },
-    { MPQ_COMPRESSION_SPARSE, RLEZeroDecompress },
-    { MPQ_COMPRESSION_HUFFMANN, HuffmanDecompress },
-    { MPQ_COMPRESSION_ZLIB, ZlibDecompress },
-    { MPQ_COMPRESSION_BZIP2, Bzip2Decompress },
-};

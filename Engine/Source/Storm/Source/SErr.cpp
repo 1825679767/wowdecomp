@@ -41,19 +41,6 @@ class TSListWinHeap : public TSList<T, TGetLink> {
     T* NewNode(uint32_t location, size_t extrabytes, uint32_t flags);
 };
 
-// INLINED
-template <class T, class TGetLink>
-T* TSListWinHeap<T, TGetLink>::NewNode(uint32_t location, size_t extrabytes, uint32_t flags) {
-    T* node = new (HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(T) + extrabytes)) T;
-    memset(node, 0, sizeof(T) + extrabytes);
-
-    if (location) {
-        this->LinkNode(node, location, nullptr);
-    }
-
-    return node;
-}
-
 struct APPFATINFO {
     /* 0000 */ const char* filename;
     /* 0004 */ int32_t linenumber;
@@ -136,6 +123,19 @@ static uint32_t s_noMiniDumps;
 
 // STATIC: 0x00CAD8C0
 static char s_logLastFile[MAX_PATH];
+
+// INLINED
+template <class T, class TGetLink>
+T* TSListWinHeap<T, TGetLink>::NewNode(uint32_t location, size_t extrabytes, uint32_t flags) {
+    T* node = new (HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(T) + extrabytes)) T;
+    memset(node, 0, sizeof(T) + extrabytes);
+
+    if (location) {
+        this->LinkNode(node, location, nullptr);
+    }
+
+    return node;
+}
 
 // VERIFY: 252815d5 manual
 // OFFSET: 0x00427010
