@@ -37,3 +37,14 @@ Blizzard::Lock::ScopedMutex::ScopedMutex(Mutex& mutex) {
 Blizzard::Lock::ScopedMutex::~ScopedMutex() {
     MutexLeave(*this->m_mutex);
 }
+
+// INLINED
+Blizzard::Lock::RMutex::RMutex() {
+    MutexCreate(this->m_mutex);
+}
+
+// VERIFY: c30d512a auto
+// OFFSET: 0x00421640
+Blizzard::Lock::RMutex::~RMutex() {
+    MutexDestroy(this->m_mutex);
+}

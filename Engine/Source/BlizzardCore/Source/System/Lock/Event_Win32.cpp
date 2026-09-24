@@ -25,3 +25,14 @@ void Blizzard::Lock::EventWaitForever(Event& event) {
 Blizzard::Lock::Event* Blizzard::Lock::EventWait(uint32_t timeout, Event& event) {
     return WaitForSingleObject(event, timeout) == WAIT_OBJECT_0 ? &event : nullptr;
 }
+
+// INLINED
+Blizzard::Lock::EventObject::EventObject() {
+    this->m_event = CreateEventA(nullptr, FALSE, FALSE, nullptr);
+}
+
+// VERIFY: 6f2dcc6d auto
+// OFFSET: 0x0042B390
+Blizzard::Lock::EventObject::~EventObject() {
+    EventDestroy(this->m_event);
+}

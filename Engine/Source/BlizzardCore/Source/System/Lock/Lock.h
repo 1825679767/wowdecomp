@@ -18,6 +18,22 @@ class Atomic {
     int32_t Increment();
 };
 
+class EventObject {
+    public:
+    /* 0000 */ Event m_event;
+
+    EventObject();
+    ~EventObject();
+};
+
+class RMutex {
+    public:
+    /* 0000 */ Mutex m_mutex;
+
+    RMutex();
+    ~RMutex();
+};
+
 class ScopedMutex {
     public:
     /* 0000 */ Mutex* m_mutex;
