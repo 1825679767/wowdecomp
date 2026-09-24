@@ -128,13 +128,13 @@ const char* SFile::GetDataPath() {
     return System_SFile2::s_dataPath;
 }
 
-// VERIFY: bf5014d2 manual
+// VERIFY: 2f5c6797 manual
 // OFFSET: 0x00421950
 int32_t STORMAPI SFile::OpenArchive(const char* path, int32_t priority, uint32_t flags, SArchive** archive) {
     int32_t result = 0;
     Blizzard::File::SetLastErrorStack(nullptr);
 
-    *archive = new (0, __FILE__, __LINE__) SArchive;
+    *archive = new (0u, __FILE__, __LINE__) SArchive;
     (*archive)->m_archive = nullptr;
 
     System_SFile::ARCHIVEREC* handle;
@@ -157,10 +157,10 @@ int32_t STORMAPI SFile::OpenArchive(const char* path, int32_t priority, uint32_t
     return result;
 }
 
-// VERIFY: 4710e28c manual
+// VERIFY: d9cadfcd manual
 // OFFSET: 0x00421A10
 int32_t STORMAPI SFile::OpenPathAsArchive(SArchive* archive, const char* path, int32_t priority, uint32_t flags, SArchive** result) {
-    *result = new (0, __FILE__, __LINE__) SArchive;
+    *result = new (0u, __FILE__, __LINE__) SArchive;
     (*result)->m_archive = nullptr;
 
     System_SFile::ARCHIVEREC* handle;
@@ -453,10 +453,10 @@ int32_t STORMAPI SFile::FileExists(const char* name) {
     return result;
 }
 
-// VERIFY: d77fd3b6 manual
+// VERIFY: 43a7d076 manual
 // OFFSET: 0x00422330
 SFileImpl::SFileImpl(uint32_t type) {
-    this->m_lock = new (0, __FILE__, __LINE__) SFileLock();
+    this->m_lock = new (0u, __FILE__, __LINE__) SFileLock();
     this->m_lock->unk_0018 = 0;
     this->m_stream = nullptr;
     this->m_archive = nullptr;
@@ -807,13 +807,13 @@ bool System_SFile2::FindFile(const char* name, char* path, uint32_t size, uint32
     return false;
 }
 
-// VERIFY: 9fec6085 manual
+// VERIFY: 8c71c618 manual
 // OFFSET: 0x00424B50
 int32_t STORMAPI SFile::OpenEx(SArchive* archive, const char* name, uint32_t flags, SFileImpl** result) {
     Blizzard::File::SetLastErrorStack(nullptr);
 
     if (CheckIfStreamingAndTrial() && System_SFile2::s_soundCacheArchive && Blizzard::String::FindI(name, ".wav", 0x7FFFFFFF)) {
-        *result = new (0, __FILE__, __LINE__) SFileImpl(3);
+        *result = new (0u, __FILE__, __LINE__) SFileImpl(3);
 
         Blizzard::Lock::MutexEnter(System_SFile2::s_soundCacheLock);
         int32_t opened = Blizzard::Mopaq::SFileOpenFileEx(System_SFile2::s_soundCacheArchive, name, 0, &(*result)->m_file);
@@ -853,7 +853,7 @@ int32_t STORMAPI SFile::OpenEx(SArchive* archive, const char* name, uint32_t fla
     }
 
     int32_t opened = 0;
-    *result = new (0, __FILE__, __LINE__) SFileImpl(type);
+    *result = new (0u, __FILE__, __LINE__) SFileImpl(type);
 
     switch (type) {
         case 0: {
