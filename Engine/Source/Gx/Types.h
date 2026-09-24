@@ -76,7 +76,8 @@ enum EGxOverride {
 
 enum EGxQueryParam {
     GxQueryParam_Unk0 = 0,
-    GxQueryParams_Last = 1,
+    GxQueryParam_Unk1 = 1,
+    GxQueryParams_Last = 2,
 };
 
 enum EGxTexCommand {

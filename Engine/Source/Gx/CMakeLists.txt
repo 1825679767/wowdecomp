@@ -1,5 +1,9 @@
 file(GLOB_RECURSE PRIVATE_SOURCES CONFIGURE_DEPENDS "*.cpp")
 
+if (NOT WIN32)
+    list(FILTER PRIVATE_SOURCES EXCLUDE REGEX "/CGxDeviceD3d/")
+endif ()
+
 add_library(Gx STATIC
     ${PRIVATE_SOURCES}
 )
