@@ -2,52 +2,26 @@
 #include "Engine/Source/BlizzardCore/Source/System/String/String.h"
 #include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
 
-#define USING_MAX 32
-#define DEPENDS_MAX 128
-#define STRINGPOOL_SIZE 1024
-#define HASH_SIZE 64
-
-namespace System_Using {
-
-class UsingHashTable {
-    public:
-    struct Entry {
-        /* 0000 */ uint32_t m_hash;
-        /* 0004 */ uint16_t m_value;
-        /* 0006 */ uint8_t unk_0006[2];
-    };
-
-    static uint32_t Hash(const char* name);
-
-    /* 0000 */ Entry m_entries[HASH_SIZE];
-    /* 0200 */ uint32_t m_used;
-
-    bool Find(const char* name, uint32_t& slot);
-    void Insert(const char* name, uint16_t value);
-};
-
 // STATIC: 0x00B325E0
-char s_UsingNames[STRINGPOOL_SIZE];
+char System_Using::s_UsingNames[STRINGPOOL_SIZE];
 
 // STATIC: 0x00B329E0
-Depends s_Depends[DEPENDS_MAX];
+System_Using::Depends System_Using::s_Depends[DEPENDS_MAX];
 
 // STATIC: 0x00B32DE0
-UsingRec use[USING_MAX];
+System_Using::UsingRec System_Using::use[USING_MAX];
 
 // STATIC: 0x00B33060
-UsingHashTable s_Using;
+System_Using::UsingHashTable System_Using::s_Using;
 
 // STATIC: 0x00B382B8
-char* s_UsingNamesTail;
+char* System_Using::s_UsingNamesTail;
 
 // STATIC: 0x00B382BC
-int16_t s_NextUsingID;
+int16_t System_Using::s_NextUsingID;
 
 // STATIC: 0x00B382C0
-int32_t s_NextDependsID;
-
-}
+int32_t System_Using::s_NextDependsID;
 
 // VERIFY: 146a9c90 manual
 // OFFSET: 0x00429220

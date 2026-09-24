@@ -3,6 +3,11 @@
 
 #include <cstdint>
 
+#define USING_MAX 32
+#define DEPENDS_MAX 128
+#define STRINGPOOL_SIZE 1024
+#define HASH_SIZE 64
+
 namespace System_Using {
 
 struct Depends {
@@ -20,6 +25,31 @@ struct UsingRec {
     /* 000E */ uint8_t unk_000E[2];
     /* 0010 */ Depends* depends;
 };
+
+class UsingHashTable {
+    public:
+    struct Entry {
+        /* 0000 */ uint32_t m_hash;
+        /* 0004 */ uint16_t m_value;
+        /* 0006 */ uint8_t unk_0006[2];
+    };
+
+    static uint32_t Hash(const char* name);
+
+    /* 0000 */ Entry m_entries[HASH_SIZE];
+    /* 0200 */ uint32_t m_used;
+
+    bool Find(const char* name, uint32_t& slot);
+    void Insert(const char* name, uint16_t value);
+};
+
+extern char s_UsingNames[STRINGPOOL_SIZE];
+extern Depends s_Depends[DEPENDS_MAX];
+extern UsingRec use[USING_MAX];
+extern UsingHashTable s_Using;
+extern char* s_UsingNamesTail;
+extern int16_t s_NextUsingID;
+extern int32_t s_NextDependsID;
 
 UsingRec* Intern(const char* name);
 void RegisterNull();
