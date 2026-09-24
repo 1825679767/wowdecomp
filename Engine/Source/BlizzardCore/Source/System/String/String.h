@@ -28,10 +28,13 @@ class QuickFormat {
 uint32_t Append(char* dst, const char* src, uint32_t maxchars);
 uint32_t Copy(char* dst, const char* src, uint32_t maxchars);
 char* Duplicate(const char* str);
+bool Equal(const char* str1, const char* str2);
+bool EqualI(const char* str1, const char* str2);
 const char* Find(const char* str, const char* substr, uint32_t maxchars);
 const char* FindI(const char* str, const char* substr, uint32_t maxchars);
 const char* FindReverse(const char* str, char c, uint32_t maxchars);
 int32_t Format(char* dst, uint32_t maxchars, const char* format, ...);
+uint32_t Length(const char* str);
 void MemCopy(void* dst, const void* src, int32_t bytes);
 void MemFill(void* dst, uint32_t bytes, uint8_t value);
 int32_t VFormat(char* dst, uint32_t maxchars, const char* format, va_list args);

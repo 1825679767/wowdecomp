@@ -1637,7 +1637,7 @@ bool System_SFile::ARCHIVEREC::IncreaseHashBits(int32_t* hashBits) {
     return true;
 }
 
-// VERIFY: 1fe80913 manual
+// VERIFY: 82bbd725 manual
 // OFFSET: 0x00431B50
 bool System_SFile::ARCHIVEREC::ReadAdditionalAttributes() {
     Blizzard::Util::Digest<16> md5 = s_emptyMd5;
@@ -1648,7 +1648,7 @@ bool System_SFile::ARCHIVEREC::ReadAdditionalAttributes() {
     }
 
     uint32_t count = this->m_header.m_blockTableSize;
-    uint32_t size = Blizzard::Mopaq::SFileGetFileSize(file);
+    uint32_t size = Blizzard::Mopaq::SFileGetFileSize(file, nullptr);
 
     if (size < 8 || size > (count << 9) + 8) {
         file->Release();
@@ -1711,6 +1711,61 @@ bool System_SFile::ARCHIVEREC::ReadAdditionalAttributes() {
     for (uint32_t i = 0; i < count; i++) {
         this->SetMD5Check(i, false);
     }
+
+    return true;
+}
+
+// VERIFY: a43d10d2 manual
+// OFFSET: 0x0045C5C0
+bool Blizzard::Mopaq::SFileOpenArchiveView(System_SFile::ARCHIVEREC* handle, const char* name, int32_t priority, System_SFile::ARCHIVEREC** result) {
+    *result = nullptr;
+
+    System_SFile::ArchivePtr archive(System_SFile::GetArchivePtr(handle, true));
+
+    if (!archive.m_archive) {
+        return false;
+    }
+
+    char path[260];
+
+    if (!archive.m_archive->m_file) {
+        Blizzard::String::JoinPath(path, sizeof(path), archive.m_archive->m_directPath.c_str(), name);
+        return SFileOpenArchive(path, priority, archive.m_archive->m_flags, result);
+    }
+
+    if (archive.m_archive->m_parent) {
+        Blizzard::String::JoinPath(path, sizeof(path), archive.m_archive->m_directPath.c_str(), name);
+        return SFileOpenArchiveView(archive.m_archive->m_parent, path, priority, result);
+    }
+
+    System_SFile::ARCHIVEREC* view = NewZerofill<System_SFile::ARCHIVEREC>();
+    view->m_priority = priority;
+    view->m_id = System_SFile::s_nextArchiveId.Increment() - 1;
+    view->m_flags = archive.m_archive->m_flags;
+    view->m_externalRefs.Increment();
+    view->m_internalRefs.Increment();
+
+    {
+        Blizzard::Lock::ScopedMutex lock(System_MPQGlobals::GetArchiveLock()->m_mutex);
+        archive.m_archive->m_internalRefs.Increment();
+        System_MPQGlobals::GetArchiveList()->insert(view);
+    }
+
+    Blizzard::String::Copy(view->m_name, archive.m_archive->m_name, sizeof(view->m_name));
+    archive.m_archive->m_file->m_refCount.Increment();
+    view->m_file = archive.m_archive->m_file;
+    view->m_parent = handle;
+    view->unk_0200 = 0;
+
+    char directory[260];
+    Blizzard::String::MakeBackslashPath(name, directory, sizeof(directory));
+
+    if (directory[0]) {
+        Blizzard::String::ForceTrailingSeparator(directory, sizeof(directory), '\\');
+    }
+
+    view->m_directPath.assign(directory, strlen(directory));
+    *result = view;
 
     return true;
 }

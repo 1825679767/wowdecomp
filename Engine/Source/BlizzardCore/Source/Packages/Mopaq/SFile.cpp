@@ -252,9 +252,9 @@ int32_t Blizzard::Mopaq::SFileOpenFileEx(System_SFile::ARCHIVEREC* handle, const
     return SFileOpenFileEx(handle, name, md5, flags, result);
 }
 
-// VERIFY: 0d0219f6 manual
+// VERIFY: 019950a8 manual
 // OFFSET: 0x00426F70
-uint32_t Blizzard::Mopaq::SFileGetFileSize(IOMpqUnit* file) {
+uint32_t Blizzard::Mopaq::SFileGetFileSize(IOMpqUnit* file, uint32_t* sizeHigh) {
     int64_t size = 0;
 
     if (file->GetFileSize(&size)) {
@@ -330,7 +330,7 @@ bool Blizzard::Mopaq::SFileReadFile(IOMpqUnit* file, void* buffer, uint32_t coun
     return result;
 }
 
-// VERIFY: 2a684620 manual
+// VERIFY: 672505f5 manual
 // OFFSET: 0x0045B5A0
 bool Blizzard::Mopaq::SFileLoadFile(System_SFile::ARCHIVEREC* handle, const char* name, void** data, uint32_t* size, uint32_t extra, uint32_t flags) {
     uint8_t* buffer = nullptr;
@@ -344,7 +344,7 @@ bool Blizzard::Mopaq::SFileLoadFile(System_SFile::ARCHIVEREC* handle, const char
     IOMpqUnit* file = nullptr;
 
     if (SFileOpenFileEx(handle, name, md5, flags, &file)) {
-        uint32_t bytes = SFileGetFileSize(file);
+        uint32_t bytes = SFileGetFileSize(file, nullptr);
         buffer = static_cast<uint8_t*>(SMemAlloc(bytes + extra, __FILE__, __LINE__, 0));
 
         if (SFileReadFile(file, buffer, bytes, nullptr)) {
@@ -441,4 +441,42 @@ bool System_SFile::ARCHIVEREC::FillNewHashTable(int32_t hashBits) {
     }
 
     return true;
+}
+
+// VERIFY: 97ac8f92 manual
+// OFFSET: 0x00426EB0
+int32_t Blizzard::Mopaq::SFileSetFilePointer(IOMpqUnit* file, int32_t distance, int32_t* distanceHigh, uint32_t method) {
+    if (method == 0) {
+        file->m_position = distance;
+        return distance;
+    }
+
+    if (method == 1) {
+        if (distance >= 0 || file->m_position >= static_cast<uint32_t>(-distance)) {
+            file->m_position += distance;
+        } else {
+            file->m_position = 0;
+        }
+
+        return file->m_position;
+    }
+
+    if (method == 2) {
+        int64_t size;
+
+        if (!file->GetFileSize(&size)) {
+            return file->m_position;
+        }
+
+        if (distance >= 0 || size >= -distance) {
+            int32_t position = distance + static_cast<int32_t>(size);
+            file->m_position = position;
+            return position;
+        }
+
+        file->m_position = 0;
+        return 0;
+    }
+
+    return file->m_position;
 }

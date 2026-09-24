@@ -229,3 +229,25 @@ int32_t Blizzard::String::Format(char* dst, uint32_t maxchars, const char* forma
 char* Blizzard::String::Duplicate(const char* str) {
     return System_String::Duplicate(str, __FILE__, __LINE__);
 }
+
+// VERIFY: 3f0dab9f manual
+// OFFSET: 0x00428730
+bool Blizzard::String::Equal(const char* str1, const char* str2) {
+    return str1 && str2 && !strcmp(str1, str2);
+}
+
+// VERIFY: a6e9afd5 manual
+// OFFSET: 0x00428780
+bool Blizzard::String::EqualI(const char* str1, const char* str2) {
+    return str1 && str2 && !_stricmp(str1, str2);
+}
+
+// VERIFY: 87af17bb manual
+// OFFSET: 0x004287E0
+uint32_t Blizzard::String::Length(const char* str) {
+    if (str) {
+        return static_cast<uint32_t>(strlen(str));
+    }
+
+    return 0;
+}

@@ -251,6 +251,7 @@ int32_t SFileFileExists(System_SFile::ARCHIVEREC* handle, const char* name, uint
 uint32_t SFileGetLastError();
 bool SFileOpenArchive(const char* path, int32_t priority, uint32_t flags, System_SFile::ARCHIVEREC** result);
 bool SFileOpenArchive(IOUnit* file, const char* name, int32_t priority, uint32_t flags, System_SFile::ARCHIVEREC** result);
+bool SFileOpenArchiveView(System_SFile::ARCHIVEREC* handle, const char* name, int32_t priority, System_SFile::ARCHIVEREC** result);
 bool SFileSetBasePath(const char* path);
 
 }

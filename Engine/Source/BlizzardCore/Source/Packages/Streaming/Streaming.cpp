@@ -9,6 +9,12 @@ bool Blizzard::Streaming::s_streamingReady;
 // STATIC: 0x00B38181
 bool Blizzard::Streaming::s_isStreamingTrial;
 
+// VERIFY: f236703c manual
+// OFFSET: 0x00428010
+bool CheckIfStreamingAndTrial() {
+    return Blizzard::Streaming::s_streamingReady && Blizzard::Streaming::s_isStreamingTrial;
+}
+
 // VERIFY: 657b98b1 auto
 // OFFSET: 0x0044F0D0
 void Blizzard::Streaming::MakePartFileName(char* name, uint32_t size) {

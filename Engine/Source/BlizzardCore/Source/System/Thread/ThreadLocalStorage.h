@@ -55,7 +55,7 @@ void* Blizzard::Thread::LocalObject<T>::New(void* param) {
 }
 
 // VERIFY: 55d34611 manual
-// OFFSET: [0x00453770, 0x004537E0, 0x00453940]
+// OFFSET: [0x00422480, 0x00453770, 0x004537E0, 0x00453940]
 template <class T>
 Blizzard::Thread::LocalObject<T>::operator T&() {
     return *static_cast<T*>(RegisterLocalStorage(&this->m_slot, New, nullptr, Delete));
