@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
-#include "Engine/Source/Tempest/caabox.h"
+#include "Engine/Source/Tempest/CAaBox.h"
 
 class CModelBlob {
     public:

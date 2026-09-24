@@ -3,7 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "_Triage/CRect.h"
+#include "Engine/Source/Tempest/CRect.h"
 
 struct BackgroundImage {
     /* 0000 */ char* m_path;

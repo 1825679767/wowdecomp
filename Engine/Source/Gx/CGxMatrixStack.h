@@ -3,7 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/Tempest/c44matrix.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
 
 class CGxMatrixStack {
     public:

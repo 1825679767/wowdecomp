@@ -1,0 +1,45 @@
+#include "Engine/Source/Tempest/C2Vector.h"
+#include "Engine/Source/Tempest/CRect.h"
+
+// VERIFY: 9e372182 manual
+// OFFSET: 0x00488D40
+bool CRect::IsPointInside(const C2Vector& point) const {
+    return this->minX <= point.x && this->maxX >= point.x && this->minY <= point.y && this->maxY >= point.y;
+}
+
+// VERIFY: b5d6979a manual
+// OFFSET: 0x0078F2F0
+CRect operator|(const CRect& l, const CRect& r) {
+    float maxX = r.maxX >= l.maxX ? r.maxX : l.maxX;
+    float maxY = r.maxY >= l.maxY ? r.maxY : l.maxY;
+    float minX = r.minX <= l.minX ? r.minX : l.minX;
+
+    CRect result;
+    result.minY = r.minY <= l.minY ? r.minY : l.minY;
+    result.minX = minX;
+    result.maxY = maxY;
+    result.maxX = maxX;
+    return result;
+}
+
+// VERIFY: cb7d68e7 manual
+// OFFSET: 0x007A6DA0
+CRect operator+(const CRect& l, const CRect& r) {
+    CRect result;
+    result.minY = l.minY + r.minY;
+    result.minX = l.minX + r.minX;
+    result.maxY = l.maxY + r.maxY;
+    result.maxX = l.maxX + r.maxX;
+    return result;
+}
+
+// VERIFY: a12d3dd3 manual
+// OFFSET: 0x007A6DD0
+CRect operator/(const CRect& l, const CRect& r) {
+    CRect result;
+    result.minY = l.minY / r.minY;
+    result.minX = l.minX / r.minX;
+    result.maxY = l.maxY / r.maxY;
+    result.maxX = l.maxX / r.maxX;
+    return result;
+}

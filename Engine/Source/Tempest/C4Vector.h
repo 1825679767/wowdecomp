@@ -4,12 +4,18 @@
 #include <cstddef>
 #include <cstdint>
 
+class CImVector;
+
 class C4Vector {
     public:
-    /* 0000 */ float m_x;
-    /* 0004 */ float m_y;
-    /* 0008 */ float m_z;
-    /* 000C */ float m_w;
+    /* 0000 */ float x;
+    /* 0004 */ float y;
+    /* 0008 */ float z;
+    /* 000C */ float w;
+
+    C4Vector() = default;
+    C4Vector(const CImVector& color);
+    void NormalizeSafe();
 };
 
 #endif

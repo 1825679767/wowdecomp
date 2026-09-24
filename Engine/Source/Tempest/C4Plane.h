@@ -7,8 +7,10 @@
 
 class C4Plane {
     public:
-    /* 0000 */ C3Vector m_n;
-    /* 000C */ float m_d;
+    /* 0000 */ C3Vector n;
+    /* 000C */ float d;
+
+    void From3Pos(const C3Vector& p0, const C3Vector& p1, const C3Vector& p2);
 };
 
 #endif

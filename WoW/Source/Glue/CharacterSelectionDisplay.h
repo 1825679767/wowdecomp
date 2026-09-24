@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "WoW/Source/Glue/Types.h"
 
 class CCharacterComponent;
 class CM2Model;

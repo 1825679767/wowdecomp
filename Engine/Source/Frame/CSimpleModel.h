@@ -7,7 +7,7 @@
 #include "Engine/Source/Frame/CSimpleAnim.h"
 #include "Engine/Source/Frame/CSimpleFrame.h"
 #include "Engine/Source/Model2/M2Light.h"
-#include "Engine/Source/Tempest/cimvector.h"
+#include "Engine/Source/Tempest/CImVector.h"
 
 struct CM2Model;
 struct CM2Scene;

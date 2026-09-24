@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <windows.h>
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/c4plane.h"
-#include "Engine/Source/Tempest/caasphere.h"
+#include "Engine/Source/Tempest/C4Plane.h"
+#include "Engine/Source/Tempest/CAaSphere.h"
 
 class CM2Light;
 struct CM2Scene;

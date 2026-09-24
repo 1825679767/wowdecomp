@@ -11,14 +11,14 @@
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C4Vector.h"
-#include "Engine/Source/Tempest/c44matrix.h"
-#include "Engine/Source/Tempest/c4plane.h"
-#include "Engine/Source/Tempest/cimvector.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
+#include "Engine/Source/Tempest/C4Plane.h"
+#include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Types.h"
 #include "WoW/Source/WorldClient/Types.h"
 #include "WoW/Source/WorldClient/World.h"
-#include "_Triage/CRect.h"
+#include "Engine/Source/Tempest/CRect.h"
 #include "_Triage/EmergencyMem.h"
 
 class CGxAppRenderState;

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <windows.h>
 #include "Engine/Source/Frame/CSimpleFrame.h"
-#include "Engine/Source/Tempest/cimvector.h"
+#include "Engine/Source/Tempest/CImVector.h"
 
 class CSimpleFontString;
 class CSimpleTexture;

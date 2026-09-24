@@ -8,7 +8,7 @@
 #include "Engine/Source/Frame/CSimpleAnim.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Storm/H/stpl.h"
-#include "_Triage/CRect.h"
+#include "Engine/Source/Tempest/CRect.h"
 
 class CBackdropGenerator;
 class CRenderBatch;

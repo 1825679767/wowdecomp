@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 
 class CMouseEvent {

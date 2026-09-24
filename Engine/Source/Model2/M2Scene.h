@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
-#include "Engine/Source/Tempest/c44matrix.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 

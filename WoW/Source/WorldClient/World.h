@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Storm/H/stpl.h"
-#include "_Triage/CRect.h"
+#include "Engine/Source/Tempest/CRect.h"
 
 class CMapBaseObj;
 class CMapChunk;

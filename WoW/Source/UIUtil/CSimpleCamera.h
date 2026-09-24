@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/c33matrix.h"
+#include "Engine/Source/Tempest/C33Matrix.h"
 
 class CSimpleCamera {
     public:

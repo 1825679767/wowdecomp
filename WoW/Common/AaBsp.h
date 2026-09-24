@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/caabox.h"
+#include "Engine/Source/Tempest/CAaBox.h"
 
 class C3Vector;
 struct CAaBspNode;

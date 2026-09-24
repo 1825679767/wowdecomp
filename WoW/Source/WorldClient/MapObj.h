@@ -4,10 +4,10 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/c4plane.h"
-#include "Engine/Source/Tempest/c4quaternion.h"
-#include "Engine/Source/Tempest/caabox.h"
-#include "Engine/Source/Tempest/cimvector.h"
+#include "Engine/Source/Tempest/C4Plane.h"
+#include "Engine/Source/Tempest/C4Quaternion.h"
+#include "Engine/Source/Tempest/CAaBox.h"
+#include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
 class C3Vector;

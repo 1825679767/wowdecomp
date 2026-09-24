@@ -4,9 +4,9 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/c44matrix.h"
-#include "Engine/Source/Tempest/c4quaternion.h"
-#include "Engine/Source/Tempest/caabox.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
+#include "Engine/Source/Tempest/C4Quaternion.h"
+#include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
 class CM2Model;

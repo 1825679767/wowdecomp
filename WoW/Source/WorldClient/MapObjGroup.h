@@ -5,9 +5,11 @@
 #include <cstdint>
 #include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Tempest/C2Vector.h"
+#include "Engine/Source/Tempest/C3Ray.h"
+#include "Engine/Source/Tempest/C3Segment.h"
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/caabox.h"
-#include "Engine/Source/Tempest/cimvector.h"
+#include "Engine/Source/Tempest/CAaBox.h"
+#include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Common/AaBsp.h"
 #include "_Triage/C2iVector.h"
@@ -42,7 +44,7 @@ struct BspQuery_Segment : public BspQuery {
     /* 0010 */ float* m_hitT;
     /* 0014 */ float m_origHitT;
     /* 0018 */ C3Segment m_seg;
-    /* 0030 */ CRay m_ray;
+    /* 0030 */ C3Ray m_ray;
     /* 0048 */ float m_oosegMag;
     /* 004C */ float m_maxT;
     /* 0050 */ SMOMaterial* m_materials;

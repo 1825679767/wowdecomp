@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
-#include "_Triage/CRect.h"
+#include "Engine/Source/Tempest/CRect.h"
 
 class CFramePoint;
 class CLayoutFrame;

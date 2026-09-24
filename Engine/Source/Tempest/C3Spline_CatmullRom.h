@@ -3,7 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/Tempest/c3spline.h"
+#include "Engine/Source/Tempest/C3Spline.h"
 
 class C3Spline_CatmullRom : public C3Spline {
     public:

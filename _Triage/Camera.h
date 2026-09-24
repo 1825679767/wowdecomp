@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/c34matrix.h"
+#include "Engine/Source/Tempest/C34Matrix.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/UIUtil/CSimpleCamera.h"

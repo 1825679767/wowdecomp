@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/c44matrix.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
 #include "_Triage/C2iVector.h"
 
 class CChunkLiquid;

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/cimvector.h"
+#include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
 class CGxString;

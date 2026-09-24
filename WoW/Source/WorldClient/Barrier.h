@@ -4,8 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/c4plane.h"
-#include "Engine/Source/Tempest/cimvector.h"
+#include "Engine/Source/Tempest/C4Plane.h"
+#include "Engine/Source/Tempest/CImVector.h"
 
 class CBarrier_Contact;
 class CGxVertexPCT0T1;

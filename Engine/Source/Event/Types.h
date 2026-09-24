@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Tempest/C2Vector.h"
 
 enum KEY : uint32_t {
     KEY_NONE = 0xFFFFFFFFFFFFFFFF,
@@ -123,6 +124,17 @@ enum SCHEDSTATE : uint32_t {
     SCHEDSTATE_CLOSED = 1,
     SCHEDSTATE_DESTROYED = 2,
     _UNIQUE_SYMBOL_SCHEDSTATE_96 = 0xFFFFFFFFFFFFFFFF,
+};
+
+struct MouseEventData {
+    /* 0000 */ uint32_t m_mode;
+    /* 0004 */ uint32_t m_button;
+    /* 0008 */ uint32_t m_buttonState;
+    /* 000C */ uint32_t m_metaKeyState;
+    /* 0010 */ uint32_t m_flags;
+    /* 0014 */ C2Vector m_mousePosition;
+    /* 001C */ uint32_t m_wheelAmount;
+    /* 0020 */ uint32_t m_eventTime;
 };
 
 #endif

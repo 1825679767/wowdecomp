@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <windows.h>
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/caabox.h"
+#include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
 struct CAsyncObject;
@@ -16,6 +16,11 @@ class CM2Model;
 class CM2Shared;
 struct M2Data;
 struct M2SkinProfile;
+
+struct M2Bounds {
+    /* 0000 */ CAaBox m_extent;
+    /* 0018 */ float m_radius;
+};
 
 class CM2SequenceLoad {
     public:

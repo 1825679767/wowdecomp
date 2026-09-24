@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/caasphere.h"
+#include "Engine/Source/Tempest/CAaSphere.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
 class CGxBuf;

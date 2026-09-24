@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
-#include "Engine/Source/Tempest/c44matrix.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
 
 struct CM2Cache;
 struct CM2Scene;

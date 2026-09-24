@@ -3,12 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
-
-class C2iVector {
-    public:
-    /* 0000 */ int32_t m_x;
-    /* 0004 */ int32_t m_y;
-};
+#include "Engine/Source/Tempest/C2iVector.h"
 
 class CGxMonitorMode {
     public:
