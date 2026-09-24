@@ -21,6 +21,9 @@ struct ErrorStackRecord {
 
 class SFile {
     public:
+    static void Destroy();
+    static int32_t Initialize();
+
     /* 0000 */ uint8_t unk_0000[1];
 };
 

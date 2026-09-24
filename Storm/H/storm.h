@@ -75,6 +75,19 @@
 
 #define SSTR_HASH_CASESENSITIVE 0x1
 
+#define STORM_OPTION_SERR_LEAK_SILENT_WARNING 1
+#define STORM_OPTION_WAVE_CHUNK_SIZE 2
+#define STORM_OPTION_SMEM_LEAK_SILENT_WARNING 3
+#define STORM_OPTION_ALIGN_STREAMING_WAVE_DATA 4
+#define STORM_OPTION_ECHO_TO_OUTPUT_DEBUG_STRING 5
+#define STORM_OPTION_ALLOC_COUNTS 6
+#define STORM_OPTION_SERR_SUPPRESS_LOGS 7
+#define STORM_OPTION_CRC_ENABLED 9
+#define STORM_OPTION_ORDERED_PRINTF_ENABLED 10
+#define STORM_OPTION_UNICODE_ENABLED 11
+#define STORM_OPTION_UNK_0024 12
+#define STORM_OPTION_UNK_0028 13
+
 #define STORM_SERVICE_GETALLOCATOR 1
 #define STORM_SERVICE_GENERATEREPORT 2
 #define STORM_SERVICE_I64TOSTRING 3
@@ -154,7 +167,9 @@ struct MEMREPORTENTRY {
 extern int32_t g_memFullError;
 
 void* STORMAPI SMemAlloc(size_t bytes, const char* filename, int32_t linenumber, uint32_t flags);
+int32_t STORMAPI SMemDestroy();
 int32_t STORMAPI SMemFree(void* ptr, const char* filename, int32_t linenumber, uint32_t flags);
+void STORMAPI SMemInitialize();
 void* STORMAPI SMemReAlloc(void* ptr, size_t bytes, const char* filename, int32_t linenumber, uint32_t flags);
 void STORMAPI SMemSetDebugFlags(uint32_t flags, uint8_t changeMask);
 void SMemGenerateReport(SMEMREPORTTYPE type, void (STORMAPI* callback)(void*, const MEMREPORTENTRY*), void* context);
@@ -188,6 +203,7 @@ size_t STORMAPI SStrCopyUTF8(char* dest, const char* source, size_t destsize, si
 char* STORMAPI SStrDupA(const char* string, const char* filename, int32_t linenumber);
 uint32_t STORMAPI SStrHash(const char* string, uint32_t flags, uint32_t seed);
 uint32_t STORMAPI SStrHashHT(const char* string);
+void STORMAPI SStrDestroy();
 void STORMAPI SStrInitialize();
 size_t STORMAPI SStrLen(const char* string);
 size_t STORMAPI SStrLen(const uint16_t* string);
@@ -220,6 +236,8 @@ uint32_t STORMAPI SGetCurrentProcessId();
 uint32_t STORMAPI SGetCurrentThreadId();
 int32_t STORMAPI SGetCurrentThreadPriority();
 int32_t STORMAPI SGetThreadName(uint32_t threadId, char* buffer, int32_t bufferchars);
+void SServerDestroy();
+void SServerInitialize();
 int32_t STORMAPI SSetCurrentProcessAffinityMask(size_t mask);
 int32_t STORMAPI SSetCurrentThreadPriority(int32_t priority);
 
@@ -234,7 +252,14 @@ int32_t STORMAPI zlib_compress(uint8_t* dest, uint32_t* destLen, const uint8_t* 
 int32_t STORMAPI zlib_uncompress(uint8_t* dest, uint32_t* destLen, const uint8_t* source, uint32_t sourceLen);
 
 int32_t StormCallService(int32_t selector, ...);
+void STORMAPI StormDestroy();
+[[noreturn]] void StormExit(int32_t code);
+[[noreturn]] void StormExitProcess(int32_t code);
 HINSTANCE__* STORMAPI StormGetInstance();
+void STORMAPI StormInitialize();
+void StormRtlDestroy();
+void StormRtlInitialize();
+int32_t STORMAPI StormSetOption(int32_t optname, void* optval, uint32_t optlen);
 
 void DebugLog(const char* format, ...);
 void DebugLog(int32_t target, const char* format, ...);

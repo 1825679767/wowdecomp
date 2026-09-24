@@ -989,7 +989,7 @@ static LONG WINAPI ExceptionFilterWin32(EXCEPTION_POINTERS* exceptionpointers) {
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
-// VERIFY: cf8721a5 manual
+// VERIFY: b77b8a18 manual
 // OFFSET: 0x007729B0
 void SErrDisplayAppFatalCustomV(uint32_t errorcode, const char* format, va_list args) {
     const char* filename = nullptr;
@@ -1011,7 +1011,7 @@ void SErrDisplayAppFatalCustomV(uint32_t errorcode, const char* format, va_list 
     _vsnprintf(buffer, sizeof(buffer) - 1, format, args);
     buffer[sizeof(buffer) - 1] = 0;
     SErrDisplayError(errorcode, filename, linenumber, buffer, 0, 1, 0x11111111);
-    _Exit(1);
+    StormExitProcess(1);
 }
 
 // VERIFY: 47ca2cfe auto

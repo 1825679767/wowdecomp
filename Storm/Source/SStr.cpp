@@ -1036,6 +1036,9 @@ void STORMAPI SStrInitialize() {
     s_initialized = 1;
 }
 
+void STORMAPI SStrDestroy() {
+}
+
 // VERIFY: 91e40fee manual
 // OFFSET: 0x0076FA50
 int64_t STORMAPI SStrToInt64(const char* string) {

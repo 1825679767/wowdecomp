@@ -23,7 +23,7 @@ void STORMAPI SMemSetDebugFlags(uint32_t flags, uint8_t changeMask) {
     }
 }
 
-// VERIFY: 17199318 auto
+// VERIFY: c3585437 manual
 // OFFSET: 0x0076E4E0
 static void FatalError(size_t bytes, const char* filename, int32_t linenumber) {
     char buffer[128];
@@ -32,7 +32,7 @@ static void FatalError(size_t bytes, const char* filename, int32_t linenumber) {
     SErrDisplayError(ERROR_NOT_ENOUGH_MEMORY, filename, linenumber, buffer, s_exitonfailure == 0, 1, 0x11111111);
 
     if (s_exitonfailure) {
-        _Exit(1);
+        StormExitProcess(1);
     }
 }
 
@@ -106,4 +106,11 @@ void* STORMAPI SMemReAlloc(void* ptr, size_t bytes, const char* filename, int32_
 
 void operator delete(void* ptr) noexcept {
     SMemFree(ptr, "delete", SLOG_FUNCTION, 0);
+}
+
+int32_t STORMAPI SMemDestroy() {
+    return 1;
+}
+
+void STORMAPI SMemInitialize() {
 }
