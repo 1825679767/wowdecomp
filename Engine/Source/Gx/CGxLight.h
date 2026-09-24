@@ -32,6 +32,7 @@ class CGxApiLight {
     /* 0040 */ int32_t m_enable;
     /* 0044 */ uint32_t m_flags;
 
+    CGxApiLight();
     CGxApiLight& operator=(const CGxLight& light);
 };
 

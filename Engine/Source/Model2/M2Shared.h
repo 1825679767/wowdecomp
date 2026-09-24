@@ -9,8 +9,8 @@
 #include "Engine/Source/Storm/H/stpl.h"
 
 struct CAsyncObject;
-class CGxBuf;
-class CGxPool;
+struct CGxBuf;
+struct CGxPool;
 class CM2Cache;
 class CM2Model;
 class CM2Shared;

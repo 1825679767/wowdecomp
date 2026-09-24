@@ -189,9 +189,8 @@ struct HASHKEY_STR {
     bool operator==(const char* str);
 };
 
-struct HASHKEY_STRI {
-    /* 0000 */ char* m_str;
-
+struct HASHKEY_STRI : public HASHKEY_STR {
+    HASHKEY_STRI& operator=(const char* str);
     bool operator==(const char* str);
 };
 
@@ -1127,7 +1126,7 @@ T* TSHashTable<T, TKey>::Ptr(const char* str) {
 }
 
 // VERIFY: b253b260 manual
-// OFFSET: 0x00565030
+// OFFSET: [0x00565030, 0x00685230]
 template <class T, class TKey>
 void TSHashTable<T, TKey>::Unlink(T* ptr) {
     if (ptr->m_linktoslot.IsLinked()) {
@@ -1341,6 +1340,12 @@ inline HASHKEY_STR& HASHKEY_STR::operator=(const char* str) {
 // INLINED
 inline bool HASHKEY_STR::operator==(const char* str) {
     return SStrCmp(this->m_str, str, STORM_MAX_STR) == 0;
+}
+
+// INLINED
+inline HASHKEY_STRI& HASHKEY_STRI::operator=(const char* str) {
+    HASHKEY_STR::operator=(str);
+    return *this;
 }
 
 // INLINED

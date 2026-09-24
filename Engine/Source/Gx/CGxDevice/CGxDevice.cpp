@@ -5,11 +5,14 @@
 #include <cstring>
 #include <new>
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/Gx/Buffer.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
+#include "Engine/Source/Gx/CGxDevice/CGxShader.h"
 #include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Os/Path.h"
+#include "Engine/Source/Os/Processor.h"
 
 // STATIC: 0x00AD8B4C
 static uint32_t s_primVertsPerPrim[GxPrims_Last] = { 1, 2, 1, 3, 1, 1 };
@@ -22,6 +25,27 @@ static const char* s_pixelShaderTargetNames[14] = { "none", "ps_1_1", "ps_1_4", 
 
 // STATIC: 0x00AD8834
 static const char* s_vertexShaderTargetNames[12] = { "none", "vs_1_1", "vs_2_0", "vs_3_0", "vs_4_0", "vs_5_0", "arbvp1", "arbvp1_cg12", "nvvp", "nvvp2", "nvvp3", "glsl" };
+
+// STATIC: 0x00AD8864
+static const char* s_geometryShaderTargetNames[3] = { "none", "gs_4_0", "gs_5_0" };
+
+// STATIC: 0x00AD8870
+static const char* s_hullShaderTargetNames[2] = { "none", "hs_5_0" };
+
+// STATIC: 0x00AD8878
+static const char* s_domainShaderTargetNames[2] = { "none", "ds_5_0" };
+
+// STATIC: 0x00AD8880
+static const char* s_computeShaderTargetNames[4] = { "none", "cs_5_0", "cs_cuda", "cs_ocl" };
+
+// STATIC: 0x00AD8890
+static const char** s_shaderTargetNames[GxShTargets_Last] = { s_vertexShaderTargetNames, s_hullShaderTargetNames, s_domainShaderTargetNames, s_geometryShaderTargetNames, s_pixelShaderTargetNames, s_computeShaderTargetNames };
+
+// STATIC: 0x00AD8BAC
+int32_t s_streamVertexPoolSize = 0x2C0000;
+
+// STATIC: 0x00AD8BB0
+int32_t s_streamIndexPoolSize = 0x40000;
 
 // STATIC: 0x00AD8BB4
 static float s_pointScaleAttenuation[3] = { 1.0f, 0.0f, 0.0f };
@@ -1331,4 +1355,279 @@ void CGxDevice::Log(const CGxFormat& format) const {
     } else {
         CGxDevice::Log("\tFormat %d x %d @ %d Fullscreen, %s, %s, multisample %d", format.m_size.x, format.m_size.y, format.m_refreshRate, s_formatNames[format.m_colorFormat], s_formatNames[format.m_depthFormat], format.m_multisampleCount);
     }
+}
+
+// VERIFY: d7e6dbd8 manual
+// OFFSET: 0x00688690
+CGxDevice::CGxDevice() : m_defWindowRect(), m_curWindowRect(), m_viewport(), m_scissorRect(), m_appMasterEnables(0), m_hwMasterEnables(0) {
+    this->IRsInit();
+    this->m_frameCount = 0;
+    this->m_primType = GxPrims_Last;
+    this->m_api = GxApis_Last;
+    this->m_windowProc = nullptr;
+    this->m_cpuFeatures = OsGetProcessorFeatures();
+    memset(&this->m_caps, 0, sizeof(this->m_caps));
+    this->m_baseMipLevel = 0;
+    this->m_caps.m_maxTexAnisotropy = 1;
+    this->m_viewport.m_x.m_l = 0.0f;
+    this->m_viewport.m_x.m_h = 1.0f;
+    this->m_viewport.m_y.m_l = 0.0f;
+    this->m_viewport.m_y.m_h = 1.0f;
+    this->m_viewport.m_z.m_l = 0.0f;
+    this->m_viewport.m_z.m_h = 1.0f;
+    this->m_viewportDirty = 1;
+    this->InitLights();
+    this->m_appMasterEnables = 0x1FF;
+    this->m_hwMasterEnables = 0x1FF;
+    this->m_scrShotClick = 0;
+    this->m_scrShotWidth = 0;
+    this->m_scrShotHeight = 0;
+    this->m_indexLocked = 0;
+    this->m_vertexLocked = 0;
+    this->m_inBeginEnd = 0;
+    this->m_bufLocked[0] = nullptr;
+    this->m_bufLocked[1] = nullptr;
+    memset(this->m_primVertexFormatBuf, 0, sizeof(this->m_primVertexFormatBuf));
+    this->m_vertexPool = nullptr;
+    this->m_indexPool = nullptr;
+    this->m_streamBufs[0] = nullptr;
+    this->m_streamBufs[1] = nullptr;
+    this->m_clipPlaneMask = 0;
+    memset(this->m_clipPlane, 0, sizeof(this->m_clipPlane));
+    this->m_scissorRect.minY = 0.0f;
+    this->m_scissorRect.minX = 0.0f;
+    this->m_scissorRect.maxY = 0.0f;
+    this->m_scissorRect.maxX = 0.0f;
+    this->m_scissorRectDirty = 1;
+    this->m_primVertexMask = 0;
+    this->m_primVertexDirty = 0;
+    this->m_primVertexFormat = GxVertexBufferFormats_Last;
+    this->m_primVertexBuf = nullptr;
+    this->m_primIndexBuf = nullptr;
+    this->m_primIndexDirty = 0;
+    this->m_gammaRamp.Set(1.0f);
+    this->m_systemGammaRamp.Set(1.0f);
+
+    for (uint32_t i = 0; i < 2; i++) {
+        this->m_textureTarget[i].m_texture = nullptr;
+        this->m_textureTarget[i].m_plane = 0;
+        this->m_textureTarget[i].m_apiSpecific = nullptr;
+    }
+
+    this->m_cursorVisible = 1;
+    this->m_hwCursor = 0;
+    this->m_cursorHotspotX = 0;
+    this->m_cursorHotspotY = 0;
+    memset(this->m_cursor, 0, sizeof(this->m_cursor));
+    this->m_cursorDepth = 1.0f;
+    this->m_cursorTexture = nullptr;
+    this->m_context = 0;
+    this->m_intF5C = 0;
+    this->m_windowVisible = 0;
+    this->m_windowFocus = 0;
+    this->ShaderConstantsClear();
+}
+
+// VERIFY: ea9f4c67 manual
+// OFFSET: 0x006890C0
+CGxDevice::~CGxDevice() {
+    for (CGxTex* texId = this->m_textures.Head(); texId; texId = this->m_textures.Next(texId)) {
+        if (texId->m_apiSpecificData) {
+            char buffer[256];
+            sprintf(buffer, "Unfreed texture (%d x %d) with user function address %08x.", texId->m_width, texId->m_height, static_cast<uint32_t>(reinterpret_cast<uintptr_t>(texId->m_userFunc)));
+            DebugLog(buffer);
+        }
+    }
+
+    this->BufDestroy(this->m_streamBufs[0]);
+    this->BufDestroy(this->m_streamBufs[1]);
+    this->PoolDestroy(this->m_vertexPool);
+    this->PoolDestroy(this->m_indexPool);
+    this->m_bufList.Clear();
+    this->m_poolList.Clear();
+}
+
+// VERIFY: aaaa19ed manual
+// OFFSET: 0x00687660
+CGxBuf* CGxDevice::BufCreate(CGxPool* pool, uint32_t itemSize, uint32_t itemCount, uint32_t index) {
+    CGxBuf* buf = new (SMemAlloc(sizeof(CGxBuf), __FILE__, __LINE__, 0)) CGxBuf(pool, itemSize, itemCount, index);
+    pool->m_bufList.LinkToTail(buf);
+    buf->m_pool = pool;
+    return buf;
+}
+
+// VERIFY: f38621c0 manual
+// OFFSET: 0x006876D0
+CGxPool* CGxDevice::PoolCreate(EGxPoolTarget target, EGxPoolUsage usage, int32_t size, EGxPoolHintBits hint, const char* name) {
+    CGxPool* pool = new (SMemAlloc(sizeof(CGxPool), __FILE__, __LINE__, 0)) CGxPool(target, usage, size, hint, name);
+    this->m_poolList.LinkToTail(pool);
+    return pool;
+}
+
+// VERIFY: 9730452c manual
+// OFFSET: 0x00688340
+void CGxDevice::PoolDestroy(CGxPool* pool) {
+    if (pool) {
+        this->m_poolList.UnlinkNode(pool);
+        delete pool;
+    }
+}
+
+// VERIFY: 7426c187 auto
+// OFFSET: 0x00687900
+void CGxDevice::DeviceCreateStreamBufs() {
+    this->m_streamBufs[0] = this->BufCreate(this->m_vertexPool, 0, 0, 0);
+    this->m_streamBufs[1] = this->BufCreate(this->m_indexPool, 0, 0, 0);
+}
+
+// VERIFY: 9a2a4bda auto
+// OFFSET: 0x00687940
+void CGxDevice::DeviceCreatePools() {
+    this->m_vertexPool = this->PoolCreate(GxPoolTarget_Vertex, GxPoolUsage_Stream, s_streamVertexPoolSize, GxPoolHintBit_Unk3, "Stream_vtx");
+    this->m_indexPool = this->PoolCreate(GxPoolTarget_Index, GxPoolUsage_Stream, s_streamIndexPoolSize, GxPoolHintBit_Unk3, "Stream_idx");
+}
+
+// VERIFY: 3ce50085 manual
+// OFFSET: 0x00684970
+void CGxDevice::IShaderLoad(CGxShader** shaders, EGxShTarget target, const char* path, const char* name, uint32_t permutations) {
+    int32_t profile = this->m_caps.m_shaderTargets[target];
+
+    if (profile <= 0) {
+        return;
+    }
+
+    while (true) {
+        char filename[260];
+        sprintf(filename, "%s\\%s\\%s.bls", path, s_shaderTargetNames[target][profile], name);
+
+        SFileImpl* file;
+        SFileOpenFile(filename, &file);
+
+        if (file) {
+            uint32_t magic;
+            SFileReadFile(file, &magic, 4, nullptr, nullptr, 0);
+
+            if (magic == 'GXSH') {
+                uint32_t version;
+                SFileReadFile(file, &version, 4, nullptr, nullptr, 0);
+
+                if (version == 0x10003) {
+                    uint32_t unknown;
+                    SFileReadFile(file, &unknown, 4, nullptr, nullptr, 0);
+
+                    for (uint32_t i = 0; i < permutations; i++) {
+                        shaders[i]->Load(file);
+                        shaders[i]->m_loaded = 0;
+                        shaders[i]->unk_0034 = 0;
+                    }
+
+                    profile = 0;
+                }
+            }
+
+            SFileCloseFile(file);
+        }
+
+        if (target == GxSh_Vertex) {
+            switch (profile) {
+                case 2:
+                    profile = 1;
+                    break;
+
+                case 3:
+                    profile = 2;
+                    break;
+
+                default:
+                    return;
+            }
+        } else if (target == GxSh_Pixel) {
+            switch (profile) {
+                case 2:
+                    profile = 1;
+                    break;
+
+                case 3:
+                    profile = 2;
+                    break;
+
+                case 4:
+                    profile = 3;
+                    break;
+
+                case 9:
+                case 10:
+                    profile = 8;
+                    break;
+
+                default:
+                    return;
+            }
+        } else {
+            return;
+        }
+    }
+}
+
+// VERIFY: 9b12ed92 manual
+// OFFSET: 0x006897C0
+void CGxDevice::ShaderCreate(CGxShader** shaders, EGxShTarget target, const char* path, const char* name, uint32_t permutations) {
+    if (permutations == 1) {
+        shaders[0] = this->m_shaderList[target].Ptr(name);
+
+        if (shaders[0]) {
+            shaders[0]->m_refCount++;
+            return;
+        }
+
+        shaders[0] = this->m_shaderList[target].New(name, 0, 0);
+        shaders[0]->m_refCount++;
+        shaders[0]->m_target = target;
+    } else {
+        char buffer[256];
+
+        memset(shaders, 0, sizeof(CGxShader*) * permutations);
+
+        uint32_t i;
+
+        for (i = 0; i < permutations; i++) {
+            sprintf(buffer, "%s:%d", name, i);
+            shaders[i] = this->m_shaderList[target].Ptr(buffer);
+
+            if (!shaders[i]) {
+                break;
+            }
+        }
+
+        if (i >= permutations) {
+            for (i = 0; i < permutations; i++) {
+                if (shaders[i]) {
+                    shaders[i]->m_refCount++;
+                }
+            }
+
+            return;
+        }
+
+        for (i = 0; i < permutations; i++) {
+            sprintf(buffer, "%s:%d", name, i);
+            shaders[i] = this->m_shaderList[target].New(buffer, 0, 0);
+            shaders[i]->m_refCount++;
+            shaders[i]->m_target = target;
+        }
+    }
+
+    this->IShaderLoad(shaders, target, path, name, permutations);
+}
+
+// VERIFY: 10cd5175 manual
+// OFFSET: 0x00687820
+void CGxDevice::ShaderDestroy(CGxShader*& shader) {
+    shader->m_refCount--;
+
+    if (!shader->m_refCount) {
+        this->m_shaderList[shader->m_target].Delete(shader);
+    }
+
+    shader = nullptr;
 }

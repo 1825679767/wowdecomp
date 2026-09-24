@@ -4,6 +4,8 @@
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Gx/CGxBuf.h"
+#include "Engine/Source/Gx/CGxDevice/CGxShader.h"
 #include "Engine/Source/Gx/CGxDevice/Types.h"
 #include "Engine/Source/Gx/CGxFormat.h"
 #include "Engine/Source/Gx/CGxGammaRamp.h"
@@ -27,15 +29,13 @@
 #include "Engine/Source/Tempest/CiRect.h"
 #include "_Triage/EmergencyMem.h"
 
-class CGxAppRenderState;
-class CGxBuf;
-class CGxPool;
+struct CGxAppRenderState;
+struct CGxBuf;
+struct CGxPool;
 class CGxQuery;
-class CGxShader;
 class CGxStateBom;
 class CGxTex;
 class CImVector;
-struct HASHKEY_STR;
 
 class ShadowConstants {
     public:
@@ -55,15 +55,13 @@ class CGxStateBom {
     /* 000C */ int32_t m_filler;
 };
 
-class CGxPushedRenderState {
-    public:
+struct CGxPushedRenderState {
     /* 0000 */ EGxRenderState m_which;
     /* 0004 */ CGxStateBom m_value;
     /* 0014 */ uint32_t m_stackDepth;
 };
 
-class CGxAppRenderState {
-    public:
+struct CGxAppRenderState {
     /* 0000 */ CGxStateBom m_value;
     /* 0010 */ uint32_t m_stackDepth;
     /* 0014 */ int32_t m_dirty;
@@ -126,11 +124,11 @@ class CGxDevice {
     /* 2534 */ int32_t m_scissorRectDirty;
     /* 2538 */ CRect m_scissorRect;
     /* 2548 */ CGxApiLight m_lights [4];
-    /* 2668 */ TSHashObject<CGxShader, HASHKEY_STR> m_shaderList [10];
+    /* 2668 */ TSHashTable<CGxShader, HASHKEY_STRI> m_shaderList [6];
     /* 2758 */ uint32_t m_appMasterEnables;
     /* 275C */ uint32_t m_hwMasterEnables;
     /* 2760 */ TSList<CGxPool> m_poolList;
-    /* 276C */ uint32_t unk_276C [3];
+    /* 276C */ TSList<CGxBuf> m_bufList;
     /* 2778 */ CGxBuf* m_bufLocked [2];
     /* 2780 */ CGxPool* m_vertexPool;
     /* 2784 */ CGxPool* m_indexPool;
@@ -147,9 +145,9 @@ class CGxDevice {
     /* 28C4 */ EmergencyMem m_emergencyMem [2];
     /* 28EC */ TSFixedArray<CGxAppRenderState> m_appRenderStates;
     /* 28F8 */ TSFixedArray<CGxStateBom> m_hwRenderStates;
-    /* 2904 */ TSExplicitList<CGxTex> m_textures;
+    /* 2904 */ TSExplicitList<CGxTex, offsetof(CGxTex, m_link)> m_textures;
     /* 2910 */ CGxDevice::TextureTarget m_textureTarget [2];
-    /* 2928 */ TSExplicitList<CGxQuery> m_queryList;
+    /* 2928 */ TSExplicitList<CGxQuery, offsetof(CGxQuery, m_link)> m_queryList;
     /* 2934 */ int32_t m_scrShotClick;
     /* 2938 */ uint32_t m_scrShotWidth;
     /* 293C */ uint32_t m_scrShotHeight;
@@ -264,7 +262,13 @@ class CGxDevice {
     static void ClampRectTop(CiRect& windowRect);
     static void ICursorUpdate(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t face, uint32_t level, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);
 
+    CGxDevice();
+    CGxBuf* BufCreate(CGxPool* pool, uint32_t itemSize, uint32_t itemCount, uint32_t index);
     void BufDestroy(CGxBuf*& buf);
+    void DeviceCreatePools();
+    void DeviceCreateStreamBufs();
+    void IShaderLoad(CGxShader** shaders, EGxShTarget target, const char* path, const char* name, uint32_t permutations);
+    CGxPool* PoolCreate(EGxPoolTarget target, EGxPoolUsage usage, int32_t size, EGxPoolHintBits hint, const char* name);
     CGxBuf* BufStream(EGxPoolTarget target, uint32_t itemSize, uint32_t itemCount);
     void BufSizeSet(CGxBuf* buf, uint32_t itemSize, uint32_t itemCount);
     CGxCaps& Caps();

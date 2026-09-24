@@ -8,7 +8,7 @@
 #include "Engine/Source/Tempest/CAaSphere.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
-class CGxBuf;
+struct CGxBuf;
 class CMapChunk;
 class CMapChunkBufBlock;
 class CMapRenderChunk;

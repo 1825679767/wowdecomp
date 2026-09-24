@@ -1,6 +1,15 @@
 #include <cstdint>
 #include "Engine/Source/Gx/CGxPool.h"
 
+// INLINED
+CGxPool::CGxPool(EGxPoolTarget target, EGxPoolUsage usage, int32_t size, EGxPoolHintBits hint, const char* name) : m_target(target), m_usage(usage), m_size(size), m_apiSpecific(nullptr), unk_001C(0), m_hint(hint), m_name(name) {
+}
+
+// VERIFY: 434bd8af manual
+// OFFSET: 0x00687740
+CGxPool::~CGxPool() {
+}
+
 // VERIFY: 3a3418b6 manual
 // OFFSET: 0x00688230
 void CGxPool::Invalidate() {

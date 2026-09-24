@@ -6,8 +6,8 @@
 #include "Engine/Source/Gx/CGxDevice/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
-class CGxBuf;
-class CGxPool;
+struct CGxBuf;
+struct CGxPool;
 class CGxQuery;
 
 enum EGxApi {
@@ -149,19 +149,6 @@ class CGxBatch {
     /* 0008 */ uint32_t m_count;
     /* 000C */ uint16_t m_minIndex;
     /* 000E */ uint16_t m_maxIndex;
-};
-
-class CGxBuf : public TSLinkedNode<CGxBuf> {
-    public:
-    /* 0008 */ CGxPool* m_pool;
-    /* 000C */ uint32_t m_itemSize;
-    /* 0010 */ uint32_t m_itemCount;
-    /* 0014 */ uint32_t m_size;
-    /* 0018 */ uint32_t m_index;
-    /* 001C */ uint8_t unk_001C;
-    /* 001D */ uint8_t unk_001D;
-    /* 001E */ uint8_t unk_001E;
-    /* 001F */ uint8_t unk_001F;
 };
 
 enum EGxColorFormat {

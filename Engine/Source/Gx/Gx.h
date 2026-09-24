@@ -12,7 +12,7 @@ class C2Vector;
 class C3Vector;
 class C44Matrix;
 class CGxBatch;
-class CGxBuf;
+struct CGxBuf;
 class CGxQuery;
 class CGxTex;
 class CGxTexParms;

@@ -6,8 +6,8 @@
 #include <windows.h>
 #include "Engine/Source/Storm/H/stpl.h"
 
-class CGxBuf;
-class CGxPool;
+struct CGxBuf;
+struct CGxPool;
 class CMapChunkBuf;
 class CMapChunkLiquid;
 
