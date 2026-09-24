@@ -64,10 +64,6 @@ struct EMBEDDEDTEXTUREINFO {
     /* 0038 */ uint32_t unk_0038;
 };
 
-struct HOBJECT__ {
-    /* 0000 */ int32_t m_unused;
-};
-
 enum QUOTEDCODE {
     CODE_INVALIDCODE = 0,
     CODE_COLORON = 1,

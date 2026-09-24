@@ -35,6 +35,12 @@ enum STATUS_TYPE {
     STATUS_NUMTYPES = 4,
 };
 
+struct HOBJECT__ {
+    /* 0000 */ int32_t m_unused;
+};
+
+typedef HOBJECT__* HOBJECT;
+
 struct HPROPCONTEXT__ {
     /* 0000 */ int32_t m_unused;
 };
