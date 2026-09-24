@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
-#include "Engine/Source/Storm/Source/W32/SLock.h"
+#include "Engine/Source/Storm/Source/SLock.h"
 #include "WoW/Source/Net/NetClient/NetClient.h"
 #include "WoW/Source/WowServices/Types.h"
 

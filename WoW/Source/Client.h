@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
-#include "Engine/Source/Storm/Source/W32/SThread.h"
+#include "Engine/Source/Storm/Source/SThread.h"
 
 class CAsyncObject;
 class CAsyncQueue;

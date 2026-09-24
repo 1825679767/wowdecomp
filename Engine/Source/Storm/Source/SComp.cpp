@@ -388,6 +388,7 @@ uint32_t CBitOutput::GetTotalBytes() {
     return static_cast<uint32_t>(this->m_currdest - this->m_basedest);
 }
 
+// VERIFY: 0d765a9c manual
 // OFFSET: 0x00777A80
 void CBitOutput::OutputBits(uint32_t value, uint32_t count) {
     this->m_rack |= value << this->m_rackbits;
@@ -404,6 +405,7 @@ void CBitOutput::OutputBits(uint32_t value, uint32_t count) {
     }
 }
 
+// VERIFY: cd187739 manual
 // OFFSET: 0x00777AD0
 void CBitOutput::Pad() {
     while (this->m_rackbits) {
@@ -437,6 +439,7 @@ void ImaAdpcmCheckOptimization(uint32_t optimization, uint8_t* bitspersample, ui
     *hint = 7;
 }
 
+// VERIFY: cd08f35c manual
 // OFFSET: 0x00777B60
 uint32_t ImaAdpcmCompress(uint8_t* dest, uint32_t destsize, const int16_t* source, uint32_t sourcesize, uint32_t channels, uint8_t bitspersample) {
     uint8_t* basedest = dest;
@@ -453,7 +456,7 @@ uint32_t ImaAdpcmCompress(uint8_t* dest, uint32_t destsize, const int16_t* sourc
     uint8_t* currdest = dest + 2;
     uint32_t headersize = static_cast<uint32_t>(currdest + 2 * channels - basedest);
 
-    if (headersize > destsize) {
+    if (static_cast<int32_t>(headersize) > static_cast<int32_t>(destsize)) {
         return headersize;
     }
 
@@ -467,7 +470,7 @@ uint32_t ImaAdpcmCompress(uint8_t* dest, uint32_t destsize, const int16_t* sourc
         last[i] = sample;
     }
 
-    int32_t budget = static_cast<int32_t>(basedest + sourcesize / 2 - currdest);
+    int32_t budget = static_cast<int32_t>(basedest + static_cast<int32_t>(sourcesize) / 2 - currdest);
     uint32_t escapebudget = budget < 0 ? 0 : budget;
     uint32_t channel = channels - 1;
     uint32_t samples = sourcesize / 2;
@@ -477,7 +480,7 @@ uint32_t ImaAdpcmCompress(uint8_t* dest, uint32_t destsize, const int16_t* sourc
         return static_cast<uint32_t>(currdest - basedest);
     }
 
-    while (static_cast<uint32_t>(currdest - basedest + 2) <= destsize) {
+    while (static_cast<int32_t>(currdest - basedest + 2) <= static_cast<int32_t>(destsize)) {
         if (channels == 2) {
             channel = channel == 0;
         }
@@ -573,6 +576,7 @@ uint32_t ImaAdpcmCompress(uint8_t* dest, uint32_t destsize, const int16_t* sourc
     return static_cast<uint32_t>(currdest - basedest + 2);
 }
 
+// VERIFY: 60539bcf manual
 // OFFSET: 0x00777DE0
 uint32_t ImaAdpcmDecompress(int16_t* dest, uint32_t destsize, const uint8_t* source, uint32_t sourcesize, uint32_t channels) {
     int16_t* basedest = dest;
@@ -713,6 +717,7 @@ uint32_t ImaAdpcmDecompress(int16_t* dest, uint32_t destsize, const uint8_t* sou
 
 }
 
+// VERIFY: 42257291 manual
 // OFFSET: 0x00777B10
 void CHuffmanEncoder::EncodeSymbol(CBitOutput* output, int32_t symbol) {
     HUFFNODE* node = this->m_symbol[symbol];
@@ -795,6 +800,7 @@ int32_t STORMAPI zlib_compress(uint8_t* dest, uint32_t* destLen, const uint8_t* 
     return deflateEnd(&stream);
 }
 
+// VERIFY: bb488e5e manual
 // OFFSET: 0x00778110
 void ZlibCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
     int32_t level;
@@ -852,6 +858,7 @@ int32_t STORMAPI zlib_uncompress(uint8_t* dest, uint32_t* destLen, const uint8_t
     return inflateEnd(&stream);
 }
 
+// VERIFY: 356d3f12 auto
 // OFFSET: 0x00778250
 int32_t ZlibDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
     uint32_t size = *destsize;
@@ -865,6 +872,7 @@ int32_t ZlibDecompress(void* dest, uint32_t* destsize, const void* source, uint3
     return 1;
 }
 
+// VERIFY: c10a7cae manual
 // OFFSET: 0x00778290
 void RLEZeroCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
     uint8_t* basedest = static_cast<uint8_t*>(dest);
@@ -1004,6 +1012,7 @@ void RLEZeroCompress(void* dest, uint32_t* destsize, const void* source, uint32_
     *destsize = static_cast<uint32_t>(currdest - basedest);
 }
 
+// VERIFY: 95b62d68 manual
 // OFFSET: 0x00778500
 int32_t RLEZeroDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
     uint8_t* currdest = static_cast<uint8_t*>(dest);
@@ -1040,6 +1049,7 @@ int32_t RLEZeroDecompress(void* dest, uint32_t* destsize, const void* source, ui
     return 1;
 }
 
+// VERIFY: e72b39e6 auto
 // OFFSET: 0x007785A0
 void Bzip2Compress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
     int32_t result = BZ2_bzBuffToBuffCompress(static_cast<char*>(dest), destsize, static_cast<char*>(const_cast<void*>(source)), sourcesize, 9, 0, 0);
@@ -1061,6 +1071,7 @@ int32_t Bzip2Decompress(void* dest, uint32_t* destsize, const void* source, uint
     return BZ2_bzBuffToBuffDecompress(static_cast<char*>(dest), destsize, static_cast<char*>(const_cast<void*>(source)), sourcesize, 0, 0) == BZ_OK;
 }
 
+// VERIFY: 1b0eface manual
 // OFFSET: 0x00778660
 void ImaAdpcmMonoCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
     uint8_t bitspersample;
@@ -1068,12 +1079,14 @@ void ImaAdpcmMonoCompress(void* dest, uint32_t* destsize, const void* source, ui
     *destsize = ImaAdpcmCompress(static_cast<uint8_t*>(dest), *destsize, static_cast<const int16_t*>(source), sourcesize, 1, bitspersample);
 }
 
+// VERIFY: 49716049 auto
 // OFFSET: 0x007786D0
 int32_t ImaAdpcmMonoDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
     *destsize = ImaAdpcmDecompress(static_cast<int16_t*>(dest), *destsize, static_cast<const uint8_t*>(source), sourcesize, 1);
     return 1;
 }
 
+// VERIFY: da8efbd6 manual
 // OFFSET: 0x00778700
 void ImaAdpcmStereoCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
     uint8_t bitspersample;
@@ -1081,6 +1094,7 @@ void ImaAdpcmStereoCompress(void* dest, uint32_t* destsize, const void* source, 
     *destsize = ImaAdpcmCompress(static_cast<uint8_t*>(dest), *destsize, static_cast<const int16_t*>(source), sourcesize, 2, bitspersample);
 }
 
+// VERIFY: a08eb470 auto
 // OFFSET: 0x00778770
 int32_t ImaAdpcmStereoDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
     *destsize = ImaAdpcmDecompress(static_cast<int16_t*>(dest), *destsize, static_cast<const uint8_t*>(source), sourcesize, 2);
@@ -1235,6 +1249,7 @@ void CHuffman::IncrementWeight(HUFFNODE* node) {
     }
 }
 
+// VERIFY: a9e74d9d manual
 // OFFSET: 0x00778D50
 int32_t CHuffmanDecoder::DecodeSymbol(CBitInput* input) {
     uint32_t cachebits = input->PeekBits(7, 0x7F);
@@ -1312,6 +1327,7 @@ void CHuffman::AddSymbol(int32_t symbol) {
 CHuffman::~CHuffman() {
 }
 
+// VERIFY: cc595800 manual
 // OFFSET: 0x00779000
 uint32_t CHuffmanDecoder::Decompress(void* dest, uint32_t destsize, CBitInput* input) {
     if (!destsize) {
@@ -1354,6 +1370,7 @@ uint32_t CHuffmanDecoder::Decompress(void* dest, uint32_t destsize, CBitInput* i
     return static_cast<uint32_t>(currdest - static_cast<uint8_t*>(dest));
 }
 
+// VERIFY: b3e4b8da manual
 // OFFSET: 0x00779110
 uint32_t CHuffmanEncoder::Compress(CBitOutput* output, const void* source, uint32_t sourcesize, uint8_t hint) {
     this->BuildTree(hint);
@@ -1402,6 +1419,7 @@ CHuffmanDecoder::CHuffmanDecoder() {
     }
 }
 
+// VERIFY: b2762984 manual
 // OFFSET: 0x00779250
 int32_t HuffmanDecompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize) {
     CBitInput input(source);
@@ -1411,6 +1429,7 @@ int32_t HuffmanDecompress(void* dest, uint32_t* destsize, const void* source, ui
     return 1;
 }
 
+// VERIFY: 143ff329 auto
 // OFFSET: 0x007792D0
 void HuffmanCompress(void* dest, uint32_t* destsize, const void* source, uint32_t sourcesize, uint32_t* hint, uint32_t optimization) {
     CBitOutput output(dest, *destsize);

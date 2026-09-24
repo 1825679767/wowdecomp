@@ -1,6 +1,6 @@
 #include <cstdint>
 #include "Engine/Source/Base/Prop.h"
-#include "Engine/Source/Os/W32/Tls.h"
+#include "Engine/Source/Os/Tls.h"
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00B41668

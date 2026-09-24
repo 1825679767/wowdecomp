@@ -52,6 +52,7 @@ bool Create(uint32_t (*function)(void*), void* param, ThreadRecord** thread, con
 bool CreateDetached(uint32_t (*function)(void*), void* param, const char* name);
 bool CreateDetachedFromPool(ThreadPoolRecord* pool, uint32_t (*function)(void*), void* param, int32_t flags, int32_t stackSize);
 bool CreateFromPool(ThreadPoolRecord* pool, uint32_t (*function)(void*), void* param, ThreadRecord** thread, int32_t flags, int32_t stackSize);
+bool WaitForever(ThreadRecord* thread);
 
 }
 }

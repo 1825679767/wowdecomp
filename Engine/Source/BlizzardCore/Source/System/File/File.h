@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <windows.h>
 #include "Engine/Source/BlizzardCore/Source/System/Debug/ErrorStack.h"
-#include "Engine/Source/BlizzardCore/Source/System/File/Filestack_Win32.h"
+#include "Engine/Source/BlizzardCore/Source/System/File/Filestack.h"
 #include "Engine/Source/BlizzardCore/Source/System/File/Types.h"
 #include "Engine/Source/BlizzardCore/Source/System/Lock/Lock.h"
 #include "Engine/Source/BlizzardCore/Source/System/Thread/ThreadLocalStorage.h"

@@ -1,4 +1,0 @@
-#ifndef ENGINE_SOURCE_OS_W32_OSCALL_H
-#define ENGINE_SOURCE_OS_W32_OSCALL_H
-
-#endif

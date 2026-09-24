@@ -2,7 +2,7 @@
 #include "Engine/Source/Base/FileCache.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Storm/H/storm.h"
-#include "Engine/Source/Storm/Source/W32/SLock.h"
+#include "Engine/Source/Storm/Source/SLock.h"
 
 // STATIC: 0x00B415F0
 static TSHashTable<PrefetchNode, HASHKEY_STRI> s_activeFiles;

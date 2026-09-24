@@ -16,28 +16,4 @@ class CCritSect {
     void Leave(int32_t fromwriting);
 };
 
-inline CCritSect::CCritSect() {
-    InitializeCriticalSection(&this->m_critsect);
-}
-
-inline CCritSect::~CCritSect() {
-    DeleteCriticalSection(&this->m_critsect);
-}
-
-inline void CCritSect::Enter() {
-    EnterCriticalSection(&this->m_critsect);
-}
-
-inline void CCritSect::Enter(int32_t forwriting) {
-    EnterCriticalSection(&this->m_critsect);
-}
-
-inline void CCritSect::Leave() {
-    LeaveCriticalSection(&this->m_critsect);
-}
-
-inline void CCritSect::Leave(int32_t fromwriting) {
-    LeaveCriticalSection(&this->m_critsect);
-}
-
 #endif
