@@ -41,3 +41,12 @@ target_include_directories(bzip2
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/bzip2
 )
+
+add_library(lzma STATIC
+    lzma/LzmaDecode.c
+)
+
+target_include_directories(lzma
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/lzma
+)

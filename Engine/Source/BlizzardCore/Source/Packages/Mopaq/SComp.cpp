@@ -8,8 +8,46 @@
 #include "ThirdParty/zlib/contrib/blast/blast.h"
 #include "ThirdParty/zlib/zlib.h"
 
+extern "C" {
+#include "ThirdParty/lzma/LzmaDecode.h"
+}
+
 // STATIC: 0x00B38324
 Blizzard::Thread::LocalObject<System_SComp::ZlibAllocBuffer> System_SComp::s_zlibAllocBuffer;
+
+// VERIFY: 07c244c0 manual
+// OFFSET: 0x00463FD0
+bool LzmaMemDecode(const uint8_t* source, uint32_t sourceSize, uint8_t* dest, uint32_t destSize, uint32_t* destProcessed, void* (*alloc)(uint32_t size), void (*free)(void* address)) {
+    if (sourceSize < 14) {
+        return false;
+    }
+
+    *destProcessed = 0;
+
+    CLzmaDecoderState state;
+
+    if (source[0] || LzmaDecodeProperties(&state.Properties, source + 1, 5) != LZMA_RESULT_OK) {
+        return false;
+    }
+
+    state.Probs = static_cast<CProb*>(alloc(LzmaGetNumProbs(&state.Properties) * sizeof(CProb)));
+
+    if (!state.Probs) {
+        return false;
+    }
+
+    SizeT inProcessed;
+    SizeT outProcessed;
+    int result = LzmaDecode(&state, source + 14, sourceSize - 14, &inProcessed, dest, destSize, &outProcessed);
+    free(state.Probs);
+
+    if (result != LZMA_RESULT_OK) {
+        return false;
+    }
+
+    *destProcessed = outProcessed;
+    return true;
+}
 
 // VERIFY: 8d0660e7 manual
 // OFFSET: 0x0042BE30

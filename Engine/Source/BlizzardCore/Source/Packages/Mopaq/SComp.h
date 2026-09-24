@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "Engine/Source/BlizzardCore/Source/System/Thread/ThreadLocalStorage.h"
 
-extern "C" int LzmaMemDecode(const uint8_t* source, uint32_t sourceSize, uint8_t* dest, uint32_t destSize, uint32_t* destProcessed, void* (*alloc)(uint32_t size), void (*free)(void* address));
+bool LzmaMemDecode(const uint8_t* source, uint32_t sourceSize, uint8_t* dest, uint32_t destSize, uint32_t* destProcessed, void* (*alloc)(uint32_t size), void (*free)(void* address));
 
 namespace System_SComp {
 
