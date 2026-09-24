@@ -18,7 +18,6 @@ class CTexture {
     /* 002A */ uint8_t m_bestMip;
     /* 002B */ uint8_t m_alphaBits;
     /* 002C */ CStatus m_status;
-    /* 0038 */ uint8_t unk_0038[8];
     /* 0040 */ CAsyncObject* m_asyncObject;
     /* 0044 */ uint32_t m_gxTex;
     /* 0048 */ uint32_t m_gxTexTarget;
