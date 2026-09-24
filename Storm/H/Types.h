@@ -27,6 +27,15 @@ struct _ARGLIST {
     /* 000C */ int32_t (STORMAPI* callback)(_CMDPARAMS*, const char*);
 };
 
+enum ArgumentSize {
+    e_unspecified = 0,
+    e_intSized = 1,
+    e_pointerSized = 2,
+    e_longLongSized = 3,
+    e_doubleSized = 4,
+    e_takesNoSpace = 5,
+};
+
 enum SMEMREPORTTYPE {
     SMEM_REPORT_BY_CALLER = 0,
     SMEM_REPORT_HISTOGRAM = 1,

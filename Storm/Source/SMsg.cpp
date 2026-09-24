@@ -1,4 +1,6 @@
+#include <cstdarg>
 #include <cstdint>
+#include <cstdio>
 #include <windows.h>
 #include "SMsg.h"
 #include "Storm/H/stpl.h"
@@ -63,4 +65,14 @@ int32_t STORMAPI SMsgDestroy() {
     }
 
     return 1;
+}
+
+// VERIFY: bf612cef manual
+// OFFSET: 0x0077E960
+void SDebugPrintf(const char* format, ...) {
+    char buffer[4096];
+    va_list arglist;
+    va_start(arglist, format);
+    _vsnprintf(buffer, sizeof(buffer), format, arglist);
+    OutputDebugStringA(buffer);
 }

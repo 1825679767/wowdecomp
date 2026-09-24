@@ -210,8 +210,8 @@ void STORMAPI SStrUpper(char* string);
 size_t SStrVPrintf(char* dest, size_t maxchars, const char* format, va_list arglist);
 
 char* Int64ToString(int64_t num, char* buf, size_t destsize);
-int32_t vsnoprintf(char* dest, size_t maxchars, const char* format, va_list arglist);
-int32_t vsoprintf(char* dest, const char* format, va_list arglist);
+int32_t vsnoprintf(char* out, size_t outSize, const char* format, va_list argumentList);
+int32_t vsoprintf(char* out, const char* format, va_list argumentList);
 
 int32_t STORMAPI SUniConvertUTF16to8(char* dst, uint32_t dstmaxchars, const uint16_t* src, uint32_t srcmaxchars, uint32_t* dstchars, uint32_t* srcchars);
 int32_t STORMAPI SUniConvertUTF8to16(uint16_t* dst, uint32_t dstmaxchars, const char* src, uint32_t srcmaxchars, uint32_t* dstchars, uint32_t* srcchars);
