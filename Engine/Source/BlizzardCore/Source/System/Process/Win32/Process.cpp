@@ -45,4 +45,9 @@ bool Blizzard::Process::GetProcessDirectory(char* buffer, int32_t buffersize) {
     return true;
 }
 
+// INLINED
+void Blizzard::Process::Sleep(uint32_t milliseconds) {
+    ::Sleep(milliseconds);
+}
+
 #endif

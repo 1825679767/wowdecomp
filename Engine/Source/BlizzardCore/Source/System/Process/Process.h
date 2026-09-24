@@ -8,6 +8,7 @@ namespace Process {
 
 bool GetProcessDirectory(char* buffer, int32_t buffersize);
 bool GetProcessPath(char* buffer, int32_t buffersize);
+void Sleep(uint32_t milliseconds);
 
 }
 }
