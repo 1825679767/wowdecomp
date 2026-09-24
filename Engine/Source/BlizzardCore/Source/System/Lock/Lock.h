@@ -18,6 +18,14 @@ class Atomic {
     int32_t Increment();
 };
 
+class ScopedMutex {
+    public:
+    /* 0000 */ Mutex* m_mutex;
+
+    ScopedMutex(Mutex& mutex);
+    ~ScopedMutex();
+};
+
 void EventDestroy(Event& event);
 void EventSet(Event& event);
 Event* EventWait(uint32_t timeout, Event& event);

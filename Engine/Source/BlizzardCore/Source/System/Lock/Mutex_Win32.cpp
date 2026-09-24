@@ -25,3 +25,15 @@ void Blizzard::Lock::MutexDestroy(Mutex& mutex) {
     DeleteCriticalSection(&mutex);
     mutex.DebugInfo = nullptr;
 }
+
+// INLINED
+Blizzard::Lock::ScopedMutex::ScopedMutex(Mutex& mutex) {
+    this->m_mutex = &mutex;
+    MutexEnter(mutex);
+}
+
+// VERIFY: d890ef24 auto
+// OFFSET: 0x0042B3A0
+Blizzard::Lock::ScopedMutex::~ScopedMutex() {
+    MutexLeave(*this->m_mutex);
+}

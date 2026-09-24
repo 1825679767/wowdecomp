@@ -1,30 +1,33 @@
 #ifndef ENGINE_SOURCE_BLIZZARDCORE_SOURCE_SYSTEM_THREAD_THREADLOCALSTORAGE_H
 #define ENGINE_SOURCE_BLIZZARDCORE_SOURCE_SYSTEM_THREAD_THREADLOCALSTORAGE_H
 
-#include <cstddef>
 #include <cstdint>
 
 namespace Blizzard {
 namespace Thread {
-typedef void (__stdcall* TLSDestructor_interface )(void*);
-}
-}
 
-namespace Blizzard {
-namespace Thread {
-typedef Blizzard::Thread::TLSDestructor_interface TLSDestructor;
-}
-}
+typedef void (*TLSDestructor)(void*);
 
-namespace Blizzard {
-namespace Thread {
 struct TLSSlot {
     /* 0000 */ uint32_t m_key;
-    /* 0004 */ Blizzard::Thread::TLSDestructor m_destructor;
-    /* 0008 */ bool m_initialized;
-    /* 0009 */ uint8_t unk_0009[3];
+    /* 0004 */ TLSDestructor m_destructor;
 };
+
+void* RegisterLocalStorage(TLSSlot* slot, void* (*constructor)(void*), void* param, TLSDestructor destructor);
+
 }
+}
+
+namespace System_Thread {
+
+extern Blizzard::Thread::TLSSlot* s_slotList[128];
+extern uint32_t s_slotListUsed;
+
+bool AllocateLocalStorage(Blizzard::Thread::TLSSlot* slot, Blizzard::Thread::TLSDestructor destructor);
+bool AllocateTLSSlot(Blizzard::Thread::TLSSlot* slot, Blizzard::Thread::TLSDestructor destructor);
+void InternalSetLocalStorage(const Blizzard::Thread::TLSSlot* slot, const void* value);
+void RunTLSDestructors();
+
 }
 
 #endif
