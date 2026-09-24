@@ -42,7 +42,7 @@ void RunTLSDestructors();
 }
 
 // VERIFY: 5e833541 auto
-// OFFSET: 0x00436070
+// OFFSET: [0x00429860, 0x00436070]
 template <class T>
 void Blizzard::Thread::LocalObject<T>::Delete(void* ptr) {
     delete static_cast<T*>(ptr);
@@ -51,11 +51,11 @@ void Blizzard::Thread::LocalObject<T>::Delete(void* ptr) {
 // INLINED
 template <class T>
 void* Blizzard::Thread::LocalObject<T>::New(void* param) {
-    return new T;
+    return new T();
 }
 
 // VERIFY: 55d34611 manual
-// OFFSET: 0x004537E0
+// OFFSET: [0x00453770, 0x004537E0]
 template <class T>
 Blizzard::Thread::LocalObject<T>::operator T&() {
     return *static_cast<T*>(RegisterLocalStorage(&this->m_slot, New, nullptr, Delete));
