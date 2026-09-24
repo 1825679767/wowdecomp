@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
 class CMapChunk;
@@ -35,24 +36,6 @@ class CMapObjDefMapObjDefGroupLink {
     /* 0008 */ CMapObjDef* m_ref;
     /* 000C */ TSLink<CMapObjDefMapObjDefGroupLink> m_refLink;
     /* 0014 */ TSLink<CMapObjDefMapObjDefGroupLink> m_ownerLink;
-};
-
-enum EGxVertexBufferFormat {
-    GxVBF_P = 0,
-    GxVBF_PN = 1,
-    GxVBF_PNC = 2,
-    GxVBF_PNT = 3,
-    GxVBF_PNCT = 4,
-    GxVBF_PNT2 = 5,
-    GxVBF_PNCT2 = 6,
-    GxVBF_PC = 7,
-    GxVBF_PCT = 8,
-    GxVBF_PCT2 = 9,
-    GxVBF_PT = 10,
-    GxVBF_PT2 = 11,
-    GxVBF_PBNT2 = 12,
-    GxVBF_PNC2T2 = 13,
-    GxVertexBufferFormats_Last = 14,
 };
 
 enum Enables : uint32_t {

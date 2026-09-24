@@ -7,7 +7,7 @@
 #include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
-struct CGxBuf;
+class CGxBuf;
 class CGxPool;
 
 class CGxPool : public TSLinkedNode<CGxPool> {
@@ -21,6 +21,9 @@ class CGxPool : public TSLinkedNode<CGxPool> {
     /* 0020 */ TSList<CGxBuf> m_bufList;
     /* 002C */ EGxPoolHintBits m_hint;
     /* 0030 */ const char* m_name;
+
+    void Discard();
+    void Invalidate();
 };
 
 #endif

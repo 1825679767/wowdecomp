@@ -130,7 +130,7 @@ uint32_t CFrustum::Cull(const C3Vector& center, float radius) {
     return this->Cull(sphere);
 }
 
-// VERIFY: 5a0e57a8 manual
+// VERIFY: 6f48db85 manual
 // OFFSET: 0x00983FE0
 CFrustum::CFrustum(const C3Vector* corners) {
     for (uint32_t i = 0; i < 6; i++) {
@@ -139,22 +139,6 @@ CFrustum::CFrustum(const C3Vector* corners) {
         this->planes[i].n.z = 1.0f;
         this->planes[i].d = 0.0f;
     }
-
-    for (uint32_t i = 0; i < 8; i++) {
-        this->corners[i].x = 0.0f;
-        this->corners[i].y = 0.0f;
-        this->corners[i].z = 0.0f;
-    }
-
-    this->lookPos.x = 0.0f;
-    this->lookPos.y = 0.0f;
-    this->lookPos.z = 0.0f;
-    this->lookAt.x = 0.0f;
-    this->lookAt.y = 0.0f;
-    this->lookAt.z = 0.0f;
-    this->lookUp.x = 0.0f;
-    this->lookUp.y = 0.0f;
-    this->lookUp.z = 0.0f;
 
     for (uint32_t i = 0; i < 8; i++) {
         this->corners[i] = corners[i];

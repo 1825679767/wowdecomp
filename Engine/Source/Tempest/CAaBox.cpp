@@ -45,15 +45,9 @@ bool CAaBox::Intersects(const CAaBox& box) const {
     return this->t.x >= box.b.x && this->t.y >= box.b.y && this->t.z >= box.b.z && this->b.x <= box.t.x && this->b.y <= box.t.y && this->b.z <= box.t.z;
 }
 
-// VERIFY: 9a50eb4e auto
+// VERIFY: 77b1dfb8 auto
 // OFFSET: 0x0078F480
 CAaBox::CAaBox(const C3Vector& b, const C3Vector& t) {
-    this->b.x = 0.0f;
-    this->b.y = 0.0f;
-    this->b.z = 0.0f;
-    this->t.x = 0.0f;
-    this->t.y = 0.0f;
-    this->t.z = 0.0f;
     this->b = b;
     this->t = t;
 }
@@ -121,18 +115,12 @@ CAaBox CAaBox::Transform(const CAaBox& box, const C44Matrix& m) {
     return result;
 }
 
-// VERIFY: 25b0a180 manual
+// VERIFY: d22b3ba3 manual
 // OFFSET: 0x00984930
 CAaBox CAaBox::Bounding(const C3Vector* points, uint32_t count) {
     CAaBox result;
 
     if (!count) {
-        result.b.x = 0.0f;
-        result.b.y = 0.0f;
-        result.b.z = 0.0f;
-        result.t.x = 0.0f;
-        result.t.y = 0.0f;
-        result.t.z = 0.0f;
         return result;
     }
 

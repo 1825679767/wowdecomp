@@ -1,7 +1,7 @@
 #include <cmath>
 #include "Engine/Source/Tempest/C3Ray.h"
 
-// VERIFY: a45ca653 manual
+// VERIFY: a5d6e75f manual
 // OFFSET: 0x00985200
 C3Ray C3Ray::FromStartEnd(const C3Vector& start, const C3Vector& end, bool normalize) {
     float x = end.x - start.x;
@@ -16,12 +16,6 @@ C3Ray C3Ray::FromStartEnd(const C3Vector& start, const C3Vector& end, bool norma
     }
 
     C3Ray result;
-    result.origin.x = 0.0f;
-    result.origin.y = 0.0f;
-    result.origin.z = 0.0f;
-    result.dir.x = 0.0f;
-    result.dir.y = 0.0f;
-    result.dir.z = 0.0f;
     result.origin = start;
     result.dir.x = x;
     result.dir.y = y;

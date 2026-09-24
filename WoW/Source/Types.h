@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Gx/Types.h"
 
 class CGxFormat;
 struct CpuHardware;
@@ -32,16 +33,6 @@ struct DefaultSettings {
     /* 0038 */ uint32_t m_numChannels;
     /* 003C */ bool m_fivePointOne;
     /* 003D */ uint8_t unk_003D[3];
-};
-
-enum EGxApi {
-    GxApi_OpenGl = 0,
-    GxApi_D3d9 = 1,
-    GxApi_D3d9Ex = 2,
-    GxApi_D3d10 = 3,
-    GxApi_D3d11 = 4,
-    GxApi_GLL = 5,
-    GxApis_Last = 6,
 };
 
 struct Hardware {

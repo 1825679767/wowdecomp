@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Gx/Types.h"
 
 class CAaBspNode {
     public:
@@ -20,23 +21,6 @@ enum EGxTexCommand {
     GxTex_Unlock = 2,
     GxTex_3 = 3,
     GxTexCommands_Last = 4,
-};
-
-enum EGxTexFormat {
-    GxTex_Unknown = 0,
-    GxTex_Abgr8888 = 1,
-    GxTex_Argb8888 = 2,
-    GxTex_Argb4444 = 3,
-    GxTex_Argb1555 = 4,
-    GxTex_Rgb565 = 5,
-    GxTex_Dxt1 = 6,
-    GxTex_Dxt3 = 7,
-    GxTex_Dxt5 = 8,
-    GxTex_Uv88 = 9,
-    GxTex_Gr1616F = 10,
-    GxTex_R32F = 11,
-    GxTex_D24X8 = 12,
-    GxTexFormats_Last = 13,
 };
 
 #endif

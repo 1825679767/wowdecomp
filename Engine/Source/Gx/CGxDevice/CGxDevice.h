@@ -6,6 +6,7 @@
 #include "Engine/Source/Gx/CGxDevice/Types.h"
 #include "Engine/Source/Gx/CGxFormat.h"
 #include "Engine/Source/Gx/CGxGammaRamp.h"
+#include "Engine/Source/Gx/CGxLight.h"
 #include "Engine/Source/Gx/CGxMatrixStack.h"
 #include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Tempest/C2Vector.h"
@@ -22,27 +23,14 @@
 #include "_Triage/EmergencyMem.h"
 
 class CGxAppRenderState;
-struct CGxBuf;
-struct CGxPool;
-struct CGxQuery;
-struct CGxShader;
+class CGxBuf;
+class CGxPool;
+class CGxQuery;
+class CGxShader;
 class CGxStateBom;
-struct CGxTex;
-struct CImVector;
+class CGxTex;
+class CImVector;
 struct HASHKEY_STR;
-
-class CGxApiLight {
-    public:
-    /* 0000 */ C4Vector m_dir;
-    /* 0010 */ C3Vector m_ambColor;
-    /* 001C */ C3Vector m_dirColor;
-    /* 0028 */ C3Vector m_specColor;
-    /* 0034 */ float m_constantAttenuation;
-    /* 0038 */ float m_linearAttenuation;
-    /* 003C */ float m_quadraticAttenuation;
-    /* 0040 */ int32_t m_enable;
-    /* 0044 */ uint32_t m_flags;
-};
 
 class CGxStateBom {
     public:

@@ -3,7 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "_Triage/C2iVector.h"
+#include "Engine/Source/Tempest/C2iVector.h"
 
 class CGxFormat {
     public:
@@ -39,6 +39,8 @@ class CGxFormat {
     /* 0035 */ uint8_t unk_0035[3];
     /* 0038 */ int32_t m_fixedFunction [6];
     /* 0050 */ C2iVector m_pos;
+
+    CGxFormat();
 };
 
 #endif

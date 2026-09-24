@@ -23,7 +23,8 @@ class C3Vector {
     /* 0004 */ float y;
     /* 0008 */ float z;
 
-    C3Vector() = default;
+    C3Vector();
+    C3Vector(float x, float y, float z);
     C3Vector(const C4Vector& v);
     C3Vector(const CImVector& color);
     EAxis MajorAxis() const;
@@ -41,5 +42,19 @@ C3Vector operator+(const C3Vector& l, const C3Vector& r);
 C3Vector operator-(const C3Vector& l, const C3Vector& r);
 bool operator==(const C3Vector& l, const C3Vector& r);
 bool operator!=(const C3Vector& l, const C3Vector& r);
+
+// INLINED
+inline C3Vector::C3Vector() {
+    this->x = 0.0f;
+    this->y = 0.0f;
+    this->z = 0.0f;
+}
+
+// INLINED
+inline C3Vector::C3Vector(float x, float y, float z) {
+    this->x = x;
+    this->y = y;
+    this->z = z;
+}
 
 #endif

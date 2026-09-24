@@ -10,6 +10,51 @@ class CGxBuf;
 class CGxPool;
 class CGxQuery;
 
+enum EGxApi {
+    GxApi_OpenGl = 0,
+    GxApi_D3d9 = 1,
+    GxApi_D3d9Ex = 2,
+    GxApi_D3d10 = 3,
+    GxApi_D3d11 = 4,
+    GxApi_GLL = 5,
+    GxApis_Last = 6,
+};
+
+enum EGxTexFormat {
+    GxTex_Unknown = 0,
+    GxTex_Abgr8888 = 1,
+    GxTex_Argb8888 = 2,
+    GxTex_Argb4444 = 3,
+    GxTex_Argb1555 = 4,
+    GxTex_Rgb565 = 5,
+    GxTex_Dxt1 = 6,
+    GxTex_Dxt3 = 7,
+    GxTex_Dxt5 = 8,
+    GxTex_Uv88 = 9,
+    GxTex_Gr1616F = 10,
+    GxTex_R32F = 11,
+    GxTex_D24X8 = 12,
+    GxTexFormats_Last = 13,
+};
+
+enum EGxVertexBufferFormat {
+    GxVBF_P = 0,
+    GxVBF_PN = 1,
+    GxVBF_PNC = 2,
+    GxVBF_PNT = 3,
+    GxVBF_PNCT = 4,
+    GxVBF_PNT2 = 5,
+    GxVBF_PNCT2 = 6,
+    GxVBF_PC = 7,
+    GxVBF_PCT = 8,
+    GxVBF_PCT2 = 9,
+    GxVBF_PT = 10,
+    GxVBF_PT2 = 11,
+    GxVBF_PBNT2 = 12,
+    GxVBF_PNC2T2 = 13,
+    GxVertexBufferFormats_Last = 14,
+};
+
 class CGxBatch {
     public:
     /* 0000 */ EGxPrim m_primType;

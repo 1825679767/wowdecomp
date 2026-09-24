@@ -197,14 +197,11 @@ bool NTempest::Intersect2dBoxSphere(const float* minB, const float* maxB, const 
     return false;
 }
 
-// VERIFY: 3ca06372 auto
+// VERIFY: 3ff8cd75 auto
 // OFFSET: 0x00982F30
 bool NTempest::Intersect(const C3Ray& ray, const CAaBox& box, float* t, C3Vector* hit) {
     float tStorage;
     C3Vector hitStorage;
-    hitStorage.x = 0.0f;
-    hitStorage.y = 0.0f;
-    hitStorage.z = 0.0f;
 
     if (!t) {
         t = &tStorage;
