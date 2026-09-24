@@ -29,6 +29,8 @@ class IOUnit {
 
 class IORangeUnit : public IOUnit {
     public:
+    static IORangeUnit* Create(IOUnitContainer* container, int64_t start, int64_t end, IOUnit* next);
+
     /* 0010 */ int64_t m_start;
     /* 0018 */ int64_t m_end;
 
@@ -46,6 +48,7 @@ class IOLockUnit : public IOUnit {
     public:
     static IOLockUnit* Create(IOUnitContainer* container, uint32_t flags, IOUnit* next);
     static IOLockUnit* Create(IOUnitContainer* container, IOUnit* next);
+    static bool ReplaceNext(IOUnit* lock, IOUnit* next);
 
     /* 0010 */ Blizzard::Lock::Mutex* m_mutex;
     /* 0014 */ Blizzard::Lock::Mutex m_ownMutex;

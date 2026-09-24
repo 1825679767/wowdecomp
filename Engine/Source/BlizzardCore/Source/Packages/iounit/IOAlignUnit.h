@@ -40,6 +40,9 @@ class IOAlignUnit : public IOUnit {
     virtual ~IOAlignUnit();
     virtual bool Close();
 
+    static IOAlignUnit* Create(IOUnitContainer* container, int64_t base, uint32_t blockSize, uint32_t blockCount, bool largeTransfers, bool exactSize, uint32_t bufferAlign, bool skipCleanOnWrite, IOUnit* next);
+    static IOAlignUnit* Create(IOUnitContainer* container, int64_t base, uint32_t blockSize, uint32_t blockCount, bool largeTransfers, bool exactSize, uint32_t bufferAlign, IOUnit* next);
+
     IOAlignUnit(int64_t base, uint32_t blockSize, uint32_t blockCount, bool largeTransfers, bool exactSize, uint32_t bufferAlign, bool skipCleanOnWrite, int64_t size, bool ownsMemory, IOUnit* next);
     void AllocateBuffer();
     bool CleanCache();

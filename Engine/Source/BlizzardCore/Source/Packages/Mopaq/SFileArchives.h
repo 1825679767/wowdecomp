@@ -19,8 +19,8 @@ struct BLOCKENTRY {
     /* 0008 */ uint32_t m_compressedSize;
     /* 000C */ uint32_t m_fileSize;
     /* 0010 */ uint32_t m_flags;
-    /* 0014 */ uint32_t m_crc;
-    /* 0018 */ uint64_t m_fileTime;
+    /* 0014 */ uint64_t m_fileTime;
+    /* 001C */ uint32_t m_crc;
     /* 0020 */ Blizzard::Util::Digest<16> m_md5;
     /* 0030 */ bool m_md5Check;
 };
@@ -156,7 +156,9 @@ class ARCHIVEREC {
     /* 01CC */ std::map<Blizzard::Util::Digest<16>, uint32_t> m_blockKeys;
     /* 01D8 */ bool m_blockKeysBuilt;
     /* 01D9 */ bool m_tablesInitialized;
-    /* 01DA */ uint8_t unk_01DA[6];
+    /* 01DA */ uint16_t m_locale;
+    /* 01DC */ uint8_t m_platform;
+    /* 01DD */ uint8_t unk_01DD[3];
     /* 01E0 */ uint32_t unk_01E0;
     /* 01E4 */ std::vector<uint16_t> unk_01E4;
     /* 01F4 */ uint32_t unk_01F4;
@@ -174,13 +176,26 @@ class ARCHIVEREC {
 
     ARCHIVEREC();
     ~ARCHIVEREC();
+    void BuildBlockKeys();
     void BuildBlockTable();
     void ConvertToNewHashTableFormat();
     bool FillNewHashTable(int32_t hashBits);
+    BLOCKENTRY GetBlockEntry(uint32_t index);
     void InitializeTables();
     void PackBlockTable();
     bool ReadAdditionalAttributes();
     bool RemoveInternalArchiveRef();
+    void SetBlockEntry(uint32_t index, const BLOCKENTRY& entry);
+    void SetMD5Check(uint32_t index, bool enabled);
+};
+
+struct FileLookup {
+    /* 0000 */ bool m_checkedDisk;
+    /* 0001 */ uint8_t unk_0001[3];
+    /* 0004 */ ARCHIVEREC* m_archive;
+    /* 0008 */ uint32_t m_hashIndex;
+    /* 000C */ uint32_t m_blockIndex;
+    /* 0010 */ char* m_path;
 };
 
 class ArchivePtr {
@@ -207,19 +222,26 @@ extern Blizzard::Util::Digest<16> s_emptyMd5;
 extern Blizzard::Lock::Atomic s_nextArchiveId;
 extern uint32_t s_lastError;
 
+bool CheckFileExistsOnDisk(const char* name, uint32_t flags, char* result);
 void ConvertRelativePathName(const char* path, char* result);
+uint32_t FindBlockEntry(ARCHIVEREC* archive, const Blizzard::Util::Digest<16>& md5, bool* deleted);
 ARCHIVEREC* GetArchivePtr(ARCHIVEREC* handle, bool addRef);
 bool InitEmptyTables(ARCHIVEREC* archive, uint32_t hashCount);
 bool OpenDirectPathAsArchive(const char* path, int32_t priority, uint32_t flags, ARCHIVEREC** result);
 bool s_OpenArchive(ARCHIVEREC* archive, uint32_t flags, ARCHIVEREC** result);
+uint32_t SearchHashTable(ARCHIVEREC* archive, const char* name, bool matchNeutral, bool* deleted);
 
 }
+
+int32_t FindFileInOneArchive(System_SFile::ARCHIVEREC* archive, const char* name, const uint64_t& hash, const Blizzard::Util::Digest<16>& md5, uint32_t flags, System_SFile::FileLookup* lookup);
+int32_t GetFileBlockEntry(System_SFile::ARCHIVEREC* handle, const char* name, const Blizzard::Util::Digest<16>& md5, uint32_t flags, System_SFile::ARCHIVEREC** archiveOut, System_SFile::ARCHIVEREC** recordOut, uint32_t* blockIndex, uint32_t* hashIndex, char* path);
 
 namespace Blizzard {
 namespace Mopaq {
 
 bool SFileCloseArchive(System_SFile::ARCHIVEREC* handle);
 bool SFileEnableDirectAccess(uint32_t enable);
+int32_t SFileFileExists(System_SFile::ARCHIVEREC* handle, const char* name, uint32_t flags, System_SFile::ARCHIVEREC** archiveOut);
 uint32_t SFileGetLastError();
 bool SFileOpenArchive(const char* path, int32_t priority, uint32_t flags, System_SFile::ARCHIVEREC** result);
 bool SFileOpenArchive(IOUnit* file, const char* name, int32_t priority, uint32_t flags, System_SFile::ARCHIVEREC** result);

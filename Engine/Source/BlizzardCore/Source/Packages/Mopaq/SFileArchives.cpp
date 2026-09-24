@@ -1213,3 +1213,361 @@ hashError:
 
     InitEmptyTables(this, 1);
 }
+
+// VERIFY: 30fc5178 manual
+// OFFSET: 0x0042C3F0
+System_SFile::BLOCKENTRY System_SFile::ARCHIVEREC::GetBlockEntry(uint32_t index) {
+    BlockEntryTable* blocks = this->m_blockEntryTable;
+
+    if (!blocks) {
+        return this->m_blockTable[index];
+    }
+
+    BLOCKENTRY entry;
+    blocks->UnpackEntry(index, &entry);
+
+    if (this->m_flags & 0x80) {
+        entry.m_crc = this->m_blockEntryTable->m_crcs[index];
+    }
+
+    if (this->m_flags & 0x40) {
+        entry.m_md5 = this->m_blockEntryTable->m_md5s[index];
+    }
+
+    if (this->m_flags & 0x100) {
+        entry.m_fileTime = this->m_blockEntryTable->m_fileTimes[index];
+    }
+
+    return entry;
+}
+
+// VERIFY: 913cd4bd manual
+// OFFSET: 0x0042C7E0
+uint32_t System_SFile::SearchHashTable(ARCHIVEREC* archive, const char* name, bool matchNeutral, bool* deleted) {
+    archive->InitializeTables();
+
+    uint16_t locale = archive->m_locale;
+    uint8_t platform = archive->m_platform;
+    std::vector<HASHENTRY>& table = archive->m_hashTable;
+    uint32_t mask = static_cast<uint32_t>(table.size()) - 1;
+    uint32_t index = System_MPQEncrypt::Hash(name, 0) & mask;
+    uint32_t found = -1;
+    HASHENTRY* entry = &table[index];
+
+    if (entry->m_blockIndex == -1) {
+        return -1;
+    }
+
+    uint32_t hashA = System_MPQEncrypt::Hash(name, 1);
+    uint32_t hashB = System_MPQEncrypt::Hash(name, 2);
+    uint32_t start = index;
+
+    while (true) {
+        if (entry->m_hashA == hashA && entry->m_hashB == hashB && entry->m_blockIndex != -2) {
+            if (entry->m_locale == locale && entry->m_platform == platform) {
+                found = index;
+                break;
+            }
+
+            if (matchNeutral && (!entry->m_locale || entry->m_locale == locale) && (!entry->m_platform || entry->m_platform == platform)) {
+                found = index;
+            }
+        }
+
+        index = (index + 1) & mask;
+
+        if (index == start) {
+            break;
+        }
+
+        entry = &table[index];
+
+        if (entry->m_blockIndex == -1) {
+            break;
+        }
+    }
+
+    if (found != -1 && deleted) {
+        *deleted = (archive->GetBlockEntry(table[found].m_blockIndex).m_flags & 0x2000000) != 0;
+    }
+
+    return found;
+}
+
+// VERIFY: a62931d4 manual
+// OFFSET: 0x00454120
+bool System_SFile::CheckFileExistsOnDisk(const char* name, uint32_t flags, char* result) {
+    char buffer[260];
+
+    if (!(flags & 3)) {
+        return false;
+    }
+
+    if (!result) {
+        result = buffer;
+    }
+
+    if (flags & 2) {
+        ConvertRelativePathName(Blizzard::String::FindFilename(name), result);
+
+        if (Blizzard::File::Exists(result) == 1) {
+            return true;
+        }
+    }
+
+    if (!(flags & 1)) {
+        return false;
+    }
+
+    if (Blizzard::File::GetRootChars(name)) {
+        Blizzard::String::Copy(result, name, 260);
+    } else {
+        ConvertRelativePathName(name, result);
+    }
+
+    return Blizzard::File::Exists(result) == 1;
+}
+
+// VERIFY: 138e567c manual
+// OFFSET: 0x0045BED0
+void System_SFile::ARCHIVEREC::BuildBlockKeys() {
+    if (!this->m_tablesInitialized) {
+        this->InitializeTables();
+    }
+
+    if (this->m_blockKeysBuilt) {
+        return;
+    }
+
+    ArchivePtr archive(GetArchivePtr(this, true));
+
+    if (this->m_blockKeys.empty()) {
+        for (uint32_t i = 0; i < this->m_header.m_blockTableSize; i++) {
+            this->m_blockKeys.insert(std::make_pair(this->m_blockTable[i].m_md5, i));
+        }
+
+        this->m_blockKeysBuilt = true;
+    }
+}
+
+// VERIFY: 520c5718 manual
+// OFFSET: 0x0045C880
+uint32_t System_SFile::FindBlockEntry(ARCHIVEREC* archive, const Blizzard::Util::Digest<16>& md5, bool* deleted) {
+    archive->BuildBlockKeys();
+
+    std::map<Blizzard::Util::Digest<16>, uint32_t>::iterator it = archive->m_blockKeys.find(md5);
+
+    if (it == archive->m_blockKeys.end()) {
+        return -1;
+    }
+
+    *deleted = (archive->GetBlockEntry(it->second).m_flags & 0x2000000) != 0;
+
+    return it->second;
+}
+
+// VERIFY: 962c3879 manual
+// OFFSET: 0x0045F7D0
+int32_t FindFileInOneArchive(System_SFile::ARCHIVEREC* archive, const char* name, const uint64_t& hash, const Blizzard::Util::Digest<16>& md5, uint32_t flags, System_SFile::FileLookup* lookup) {
+    if (!(flags & 0x10) && (archive->m_externalRefs.m_value <= 0 || archive->unk_0200 > 0)) {
+        return 0;
+    }
+
+    bool deleted = false;
+
+    if (md5 != System_SFile::s_emptyMd5) {
+        lookup->m_blockIndex = System_SFile::FindBlockEntry(archive, md5, &deleted);
+    }
+
+    if (name && lookup->m_blockIndex == -1 && md5 == System_SFile::s_emptyMd5) {
+        char path[260];
+        uint32_t prefix;
+        bool prefixed = false;
+
+        if (archive->m_directPath.empty()) {
+            prefix = 0;
+        } else {
+            prefix = Blizzard::String::Copy(path, archive->m_directPath.c_str(), 260);
+            Blizzard::String::Copy(&path[prefix], name, 260 - prefix);
+            name = path;
+            prefixed = true;
+        }
+
+        if (!archive->m_file) {
+            if (!lookup->m_checkedDisk || prefix) {
+                if (System_SFile::CheckFileExistsOnDisk(name, 1, lookup->m_path)) {
+                    lookup->m_archive = archive;
+                    return 2;
+                }
+
+                if (!prefix) {
+                    lookup->m_checkedDisk = true;
+                }
+            }
+
+            return 0;
+        }
+
+        if (archive->m_parent) {
+            archive = archive->m_parent;
+        }
+
+        if (prefix && (flags & 1)) {
+            if (System_SFile::CheckFileExistsOnDisk(name, 1, lookup->m_path)) {
+                return 3;
+            }
+        }
+
+        archive->InitializeTables();
+
+        if (archive->m_hashTable.empty()) {
+            uint64_t key = prefixed ? System_SFile::HashEntryTable::CalculateHash(name) : hash;
+            lookup->m_blockIndex = archive->m_hashEntryTable->GetEntry(key, archive->m_blockEntryTable);
+
+            if (lookup->m_blockIndex == -1) {
+                return 0;
+            }
+
+            deleted = (archive->GetBlockEntry(lookup->m_blockIndex).m_flags & 0x2000000) != 0;
+        } else {
+            lookup->m_hashIndex = System_SFile::SearchHashTable(archive, name, true, &deleted);
+
+            if (lookup->m_hashIndex != -1) {
+                lookup->m_blockIndex = archive->m_hashTable[lookup->m_hashIndex].m_blockIndex;
+            }
+        }
+    }
+
+    if (deleted) {
+        return 4;
+    }
+
+    if (lookup->m_blockIndex == -1) {
+        return 0;
+    }
+
+    lookup->m_archive = archive;
+
+    return 1;
+}
+
+// VERIFY: b9bc5aa5 manual
+// OFFSET: 0x0045FA10
+int32_t GetFileBlockEntry(System_SFile::ARCHIVEREC* handle, const char* name, const Blizzard::Util::Digest<16>& md5, uint32_t flags, System_SFile::ARCHIVEREC** archiveOut, System_SFile::ARCHIVEREC** recordOut, uint32_t* blockIndex, uint32_t* hashIndex, char* path) {
+    if (archiveOut) {
+        *archiveOut = nullptr;
+    }
+
+    if (recordOut) {
+        *recordOut = nullptr;
+    }
+
+    if (blockIndex) {
+        *blockIndex = 0;
+    }
+
+    if (hashIndex) {
+        *hashIndex = -1;
+    }
+
+    System_SFile::ArchivePtr archive(System_SFile::GetArchivePtr(handle, true));
+
+    if (handle && !archive.m_archive) {
+        return 0;
+    }
+
+    System_SFile::FileLookup lookup;
+    lookup.m_hashIndex = -1;
+    lookup.m_blockIndex = -1;
+    int32_t result = 0;
+    lookup.m_checkedDisk = false;
+    lookup.m_archive = nullptr;
+    lookup.m_path = path;
+
+    if (flags & 3) {
+        lookup.m_checkedDisk = true;
+
+        if (System_SFile::CheckFileExistsOnDisk(name, flags, path)) {
+            result = 3;
+        }
+    }
+
+    if (!(flags & 8)) {
+        if (!result) {
+            Blizzard::Lock::ScopedMutex lock(System_MPQGlobals::GetArchiveLock()->m_mutex);
+            uint64_t hash = System_SFile::HashEntryTable::CalculateHash(name);
+
+            if (archive.m_archive) {
+                result = FindFileInOneArchive(archive.m_archive, name, hash, md5, flags, &lookup);
+            } else {
+                System_MPQGlobals::ArchiveList* list = System_MPQGlobals::GetArchiveList();
+
+                for (System_MPQGlobals::ArchiveList::iterator it = list->begin(); it != list->end(); ++it) {
+                    result = FindFileInOneArchive(*it, name, hash, md5, flags, &lookup);
+
+                    if (result) {
+                        handle = *it;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (result == 1 || result == 2) {
+            if (recordOut) {
+                lookup.m_archive->m_internalRefs.Increment();
+                *recordOut = lookup.m_archive;
+            }
+
+            if (archiveOut) {
+                *archiveOut = handle;
+            }
+
+            if (result == 1) {
+                if (hashIndex) {
+                    *hashIndex = lookup.m_hashIndex;
+                }
+
+                if (blockIndex) {
+                    *blockIndex = lookup.m_blockIndex;
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+// VERIFY: adbb7274 manual
+// OFFSET: 0x00460EA0
+int32_t Blizzard::Mopaq::SFileFileExists(System_SFile::ARCHIVEREC* handle, const char* name, uint32_t flags, System_SFile::ARCHIVEREC** archiveOut) {
+    Blizzard::Util::Digest<16> md5 = System_SFile::s_emptyMd5;
+    int32_t result = GetFileBlockEntry(handle, name, md5, flags, archiveOut, nullptr, nullptr, nullptr, nullptr);
+
+    if (result == 4) {
+        return 0;
+    }
+
+    return result;
+}
+
+// VERIFY: 2e816731 manual
+// OFFSET: 0x0042C680
+void System_SFile::ARCHIVEREC::SetMD5Check(uint32_t index, bool enabled) {
+    BlockEntryTable* blocks = this->m_blockEntryTable;
+
+    if (blocks) {
+        if ((this->m_flags & 0x200) && (blocks->m_tableFlags & 0x200)) {
+            uint8_t bit = enabled;
+            blocks->m_entries->WriteBits(blocks->m_md5Bit + index * blocks->m_entryBits, blocks->m_md5Bits, &bit, 1);
+        }
+    } else {
+        this->m_blockTable[index].m_md5Check = enabled;
+    }
+}
+
+// VERIFY: 42f50f1a manual
+// OFFSET: 0x00431A20
+void System_SFile::ARCHIVEREC::SetBlockEntry(uint32_t index, const BLOCKENTRY& entry) {
+    this->m_blockTable[index] = entry;
+}

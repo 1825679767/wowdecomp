@@ -15,7 +15,7 @@ bool System_MPQGlobals::ArchiveLess::operator()(const System_SFile::ARCHIVEREC* 
     return a->m_priority > b->m_priority;
 }
 
-// VERIFY: df235665 manual
+// VERIFY: 4886183c manual
 // OFFSET: 0x0044FFF0
 System_MPQGlobals::Globals::Globals() {
     this->m_mopaq.m_directAccess = 0;
@@ -24,9 +24,9 @@ System_MPQGlobals::Globals::Globals() {
         this->m_mopaq.m_basePath[0] = '\0';
     }
 
-    this->m_mopaq.unk_0108 = 0;
-    this->m_mopaq.unk_010C = 0;
-    this->m_mopaq.unk_0110 = 0;
+    this->m_mopaq.m_openCallback = nullptr;
+    this->m_mopaq.m_openCallbackParam = nullptr;
+    this->m_mopaq.m_md5Mode = 0;
 }
 
 // VERIFY: e5b01062 manual
@@ -57,4 +57,69 @@ Blizzard::Lock::RMutex* System_MPQGlobals::GetMopaqGlobalsLock() {
 // OFFSET: 0x00451E80
 System_MPQGlobals::WorkerPool* System_MPQGlobals::GetWorkerPool() {
     return &s_globals.Get()->m_workerPool;
+}
+
+// VERIFY: af26db8a manual
+// OFFSET: 0x0042BA60
+uint32_t System_MPQGlobals::Worker::ThreadProc(void* param) {
+    Worker* worker = static_cast<Worker*>(param);
+
+    Blizzard::Lock::EventWaitForever(worker->m_start.m_event);
+
+    while (worker->m_proc) {
+        worker->m_proc(worker->m_param);
+        worker->m_proc = nullptr;
+        worker->m_param = nullptr;
+        Blizzard::Lock::EventSet(worker->m_done.m_event);
+        Blizzard::Lock::EventWaitForever(worker->m_start.m_event);
+    }
+
+    return 0;
+}
+
+// VERIFY: ab9a819e manual
+// OFFSET: 0x00451200
+System_MPQGlobals::Worker::Worker() {
+    this->m_proc = nullptr;
+    this->m_param = nullptr;
+    Blizzard::Thread::Create(ThreadProc, this, &this->m_thread, "", 0, 0x40000);
+}
+
+// VERIFY: 7d61b910 manual
+// OFFSET: 0x00451A30
+void System_MPQGlobals::WorkerPool::Acquire(uint32_t count, Worker** workers) {
+    uint32_t i = 0;
+
+    if (!count) {
+        return;
+    }
+
+    Blizzard::Lock::MutexEnter(this->m_mutex.m_mutex);
+
+    for (; i < count && !this->m_workers.empty(); i++) {
+        workers[i] = this->m_workers.back();
+        this->m_workers.pop_back();
+    }
+
+    for (; i < count; i++) {
+        workers[i] = new Worker();
+    }
+
+    Blizzard::Lock::MutexLeave(this->m_mutex.m_mutex);
+}
+
+// VERIFY: d764e194 manual
+// OFFSET: 0x00446060
+void System_MPQGlobals::WorkerPool::Release(uint32_t count, Worker** workers) {
+    if (!count) {
+        return;
+    }
+
+    Blizzard::Lock::MutexEnter(this->m_mutex.m_mutex);
+
+    do {
+        this->m_workers.push_back(*workers++);
+    } while (--count);
+
+    Blizzard::Lock::MutexLeave(this->m_mutex.m_mutex);
 }

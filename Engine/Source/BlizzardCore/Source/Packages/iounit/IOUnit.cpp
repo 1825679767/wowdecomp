@@ -250,3 +250,37 @@ void* IOLockUnit::Win32Handle() {
     Blizzard::Lock::ScopedMutex lock(*this->m_mutex);
     return this->m_next->Win32Handle();
 }
+
+// VERIFY: 4926450f manual
+// OFFSET: 0x00435050
+IORangeUnit* IORangeUnit::Create(IOUnitContainer* container, int64_t start, int64_t end, IOUnit* next) {
+    if (!next) {
+        return nullptr;
+    }
+
+    if (start > end) {
+        next->Release();
+        return nullptr;
+    }
+
+    bool ownsMemory;
+    void* memory = IOUnitContainer::Alloc(container, sizeof(IORangeUnit), &ownsMemory);
+
+    if (!memory) {
+        return nullptr;
+    }
+
+    return new (memory) IORangeUnit(start, end, ownsMemory, next);
+}
+
+// VERIFY: dfd9ee20 manual
+// OFFSET: 0x00429A20
+bool IOLockUnit::ReplaceNext(IOUnit* lock, IOUnit* next) {
+    if (!lock || !next || lock->GetType() != 'lock' || next->m_next != lock->m_next) {
+        return false;
+    }
+
+    lock->m_next = next;
+
+    return true;
+}

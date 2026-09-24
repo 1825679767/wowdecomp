@@ -8,6 +8,7 @@
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SFileArchives.h"
 #include "Engine/Source/BlizzardCore/Source/System/Lock/Lock.h"
 #include "Engine/Source/BlizzardCore/Source/System/Memory/AllocSTL.h"
+#include "Engine/Source/BlizzardCore/Source/System/Thread/Thread.h"
 
 namespace System_MPQGlobals {
 
@@ -20,15 +21,32 @@ typedef std::set<System_SFile::ARCHIVEREC*, ArchiveLess, Blizzard::Memory::Alloc
 struct MopaqGlobals {
     /* 0000 */ uint32_t m_directAccess;
     /* 0004 */ char m_basePath[260];
-    /* 0108 */ uint32_t unk_0108;
-    /* 010C */ uint32_t unk_010C;
-    /* 0110 */ uint32_t unk_0110;
-    /* 0114 */ uint32_t unk_0114;
+    /* 0108 */ void (*m_openCallback)(const char* name, void* param);
+    /* 010C */ void* m_openCallbackParam;
+    /* 0110 */ uint32_t m_md5Mode;
+    /* 0114 */ bool (*m_md5Callback)(void* context, const uint8_t* md5);
 };
 
-struct WorkerPool {
+class Worker {
+    public:
+    static uint32_t ThreadProc(void* param);
+
+    /* 0000 */ Blizzard::Thread::ThreadRecord* m_thread;
+    /* 0004 */ Blizzard::Lock::EventObject m_start;
+    /* 0008 */ Blizzard::Lock::EventObject m_done;
+    /* 000C */ void (*m_proc)(void* param);
+    /* 0010 */ void* m_param;
+
+    Worker();
+};
+
+class WorkerPool {
+    public:
     /* 0000 */ Blizzard::Lock::RMutex m_mutex;
-    /* 0018 */ std::vector<void*> m_workers;
+    /* 0018 */ std::vector<Worker*> m_workers;
+
+    void Acquire(uint32_t count, Worker** workers);
+    void Release(uint32_t count, Worker** workers);
 };
 
 class Globals {

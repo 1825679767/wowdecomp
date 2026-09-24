@@ -1,7 +1,9 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <new>
 #include "Engine/Source/BlizzardCore/Source/Packages/iounit/IOAlignUnit.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/iounit/IOUnitContainer.h"
 #include "Engine/Source/BlizzardCore/Source/System/File/File.h"
 #include "Engine/Source/Storm/H/storm.h"
 
@@ -406,4 +408,38 @@ bool IOAlignUnit::Close() {
     bool result = this->CleanCache();
     SMemFree(this->m_buffer, __FILE__, __LINE__, 0);
     return result;
+}
+
+// VERIFY: c897ffe8 manual
+// OFFSET: 0x00434B90
+IOAlignUnit* IOAlignUnit::Create(IOUnitContainer* container, int64_t base, uint32_t blockSize, uint32_t blockCount, bool largeTransfers, bool exactSize, uint32_t bufferAlign, bool skipCleanOnWrite, IOUnit* next) {
+    if (!next) {
+        return nullptr;
+    }
+
+    int64_t size;
+
+    if (!next->GetFileSize(&size)) {
+        next->Release();
+        return nullptr;
+    }
+
+    if (!blockSize) {
+        blockSize = 1;
+    }
+
+    bool ownsMemory;
+    void* memory = IOUnitContainer::Alloc(container, sizeof(IOAlignUnit), &ownsMemory);
+
+    if (!memory) {
+        return nullptr;
+    }
+
+    return new (memory) IOAlignUnit(base, blockSize, blockCount, largeTransfers, exactSize, bufferAlign, skipCleanOnWrite, size, ownsMemory, next);
+}
+
+// VERIFY: 5e8cfd60 auto
+// OFFSET: 0x00434C60
+IOAlignUnit* IOAlignUnit::Create(IOUnitContainer* container, int64_t base, uint32_t blockSize, uint32_t blockCount, bool largeTransfers, bool exactSize, uint32_t bufferAlign, IOUnit* next) {
+    return IOAlignUnit::Create(container, base, blockSize, blockCount, largeTransfers, exactSize, bufferAlign, true, next);
 }
