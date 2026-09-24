@@ -1,4 +1,6 @@
+#include <cstdarg>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include "Engine/Source/BlizzardCore/Source/System/Debug/Debug.h"
 #include "Engine/Source/BlizzardCore/Source/System/String/Path.h"
@@ -41,4 +43,30 @@ char* Blizzard::Debug::CanonicalStr(const char* src, char* dst, uint32_t maxchar
     }
 
     return dst;
+}
+
+// VERIFY: db22e266 manual
+// OFFSET: 0x00426FF0
+void Blizzard::Debug::StderrOutput(const char* text) {
+    if (text) {
+        fputs(text, stderr);
+    }
+}
+
+// VERIFY: 409e37fb manual
+// OFFSET: 0x0042CE40
+void Blizzard::Debug::Printf(void (*output)(const char*), const char* format, ...) {
+    char buffer[4096];
+
+    if (format) {
+        va_list args;
+        va_start(args, format);
+        vsnoprintf(buffer, sizeof(buffer), format, args);
+        va_end(args);
+        buffer[sizeof(buffer) - 1] = '\0';
+    } else {
+        buffer[0] = '\0';
+    }
+
+    output(buffer);
 }

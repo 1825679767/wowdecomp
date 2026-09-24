@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include "Engine/Source/BlizzardCore/Source/System/Debug/ErrorStack.h"
 #include "Engine/Source/BlizzardCore/Source/System/File/File.h"
+#include "Engine/Source/BlizzardCore/Source/System/Memory/MemoryStorm.h"
 #include "Engine/Source/BlizzardCore/Source/System/String/String.h"
 #include "Engine/Source/BlizzardCore/Source/System/Thread/ThreadLocalStorage.h"
 
@@ -961,4 +962,63 @@ void Blizzard::File::AddToLastErrorStack(int32_t errCode, const char* errStr, in
     if (stack) {
         SetLastErrorStack(stack);
     }
+}
+
+// VERIFY: c5aaecb9 auto
+// OFFSET: 0x004541F0
+void Blizzard::File::SetLastError(int32_t errorCode) {
+    System_File::FileError& error = System_File::s_error;
+    error.m_lastError = errorCode;
+}
+
+// VERIFY: fa086660 manual
+// OFFSET: 0x00432CF0
+bool System_File::LoadFile(Blizzard::File::StreamRecord* file, void** data, uint32_t* bytes) {
+    Blizzard::File::FileInfo info;
+
+    if (!Blizzard::File::GetFileInfo(file, &info)) {
+        return false;
+    }
+
+    if (info.m_size < 0) {
+        return false;
+    }
+
+    uint32_t size = static_cast<uint32_t>(info.m_size);
+
+    if (info.m_size <= 0) {
+        return false;
+    }
+
+    *data = Blizzard::Memory::Allocate(size + 1);
+    int32_t count = size;
+
+    if (Blizzard::File::Read(file, *data, 0, &count) && count == size) {
+        static_cast<char*>(*data)[size] = '\0';
+
+        if (bytes) {
+            *bytes = size;
+        }
+
+        return true;
+    }
+
+    Blizzard::Memory::Free(*data);
+
+    return false;
+}
+
+// VERIFY: d195c793 manual
+// OFFSET: 0x00435B30
+bool System_File::LoadFile(const char* filename, void** data, uint32_t* bytes, int32_t flags) {
+    Blizzard::File::StreamRecord* file;
+
+    if (!Blizzard::File::Open(filename, flags | 0x1001, file)) {
+        return false;
+    }
+
+    bool result = LoadFile(file, data, bytes);
+    Blizzard::File::Close(file);
+
+    return result;
 }

@@ -30,7 +30,8 @@ struct FileInfo {
     /* 0020 */ Blizzard::Time::Timestamp m_modTime;
     /* 0028 */ Blizzard::Time::Timestamp m_accessTime;
     /* 0030 */ int32_t m_existence;
-    /* 0034 */ int32_t m_regularFile;
+    /* 0034 */ bool m_regularFile;
+    /* 0035 */ uint8_t unk_0035[3];
 };
 }
 }
