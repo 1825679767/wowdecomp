@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Net/NetClient/NetClient.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 

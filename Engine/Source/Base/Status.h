@@ -4,8 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Base/Types.h"
-#include "Storm/H/stpl.h"
-#include "Storm/H/storm.h"
+#include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/storm.h"
 
 class CStatus {
     public:

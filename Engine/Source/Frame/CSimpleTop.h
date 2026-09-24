@@ -7,7 +7,7 @@
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Frame/CLayoutFrame.h"
 #include "Engine/Source/Tempest/C2Vector.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 class CFrameStrata;
 class CFrameStrataNode;

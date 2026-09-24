@@ -7,7 +7,7 @@
 #include "Engine/Source/Frame/CSimpleAnim.h"
 #include "Engine/Source/Frame/CSimpleFont.h"
 #include "Engine/Source/Frame/CSimpleFrame.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "_Triage/CRect.h"
 
 struct CSimpleFontString;

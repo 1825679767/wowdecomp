@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <windows.h>
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/WGUID.h"
 
 class CPassenger {

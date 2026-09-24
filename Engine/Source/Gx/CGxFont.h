@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <windows.h>
 #include "Engine/Source/Gxu/GxuFontMiscClasses.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Common/TextureCache.h"
 
 struct CGxString;

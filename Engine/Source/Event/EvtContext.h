@@ -7,8 +7,8 @@
 #include "Engine/Source/Base/Types.h"
 #include "Engine/Source/Event/EvtTimer.h"
 #include "Engine/Source/Event/Types.h"
-#include "Storm/H/stpl.h"
-#include "Storm/Source/W32/SLock.h"
+#include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Storm/Source/W32/SLock.h"
 
 class EvtContext;
 struct EvtHandler;

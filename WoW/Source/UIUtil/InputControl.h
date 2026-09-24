@@ -3,7 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/UIUtil/Types.h"
 
 struct HASHKEY_STRI;

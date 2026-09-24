@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "_Triage/CRect.h"
 
 class CColor;

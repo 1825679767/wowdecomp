@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/Object.h"
 #include "WoW/Source/Ui/DBCACHEHASH_NAME.h"
 

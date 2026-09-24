@@ -8,7 +8,7 @@
 #include "Engine/Source/Tempest/c4quaternion.h"
 #include "Engine/Source/Tempest/caabox.h"
 #include "Engine/Source/Tempest/cimvector.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 class C3Vector;
 class C4Plane;

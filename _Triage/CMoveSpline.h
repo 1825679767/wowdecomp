@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Spline_CatmullRom.h"
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 class CMoveSpline {
     public:

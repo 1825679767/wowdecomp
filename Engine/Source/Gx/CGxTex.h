@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Gx/CGxTexFlags.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "_Triage/CiRect.h"
 
 class CGxTex;

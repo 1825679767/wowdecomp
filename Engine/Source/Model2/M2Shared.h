@@ -6,7 +6,7 @@
 #include <windows.h>
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/caabox.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 struct CAsyncObject;
 class CGxBuf;

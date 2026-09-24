@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <windows.h>
 #include "Engine/Source/Tempest/c44matrix.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/GameObject.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 #include "WoW/Source/Object/Passenger.h"

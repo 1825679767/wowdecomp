@@ -7,7 +7,7 @@
 #include "Engine/Source/Frame/CScriptRegion.h"
 #include "Engine/Source/Frame/CSimpleAnim.h"
 #include "Engine/Source/Tempest/C2Vector.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "_Triage/CRect.h"
 
 class CBackdropGenerator;

@@ -6,7 +6,7 @@
 #include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/caasphere.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 class CGxBuf;
 class CMapChunk;

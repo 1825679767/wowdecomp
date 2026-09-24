@@ -6,7 +6,7 @@
 #include <windows.h>
 #include <d3d9.h>
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 struct CGxTex;
 

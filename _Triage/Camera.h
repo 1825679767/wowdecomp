@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/c34matrix.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/UIUtil/CSimpleCamera.h"
 #include "_Triage/CAngle.h"

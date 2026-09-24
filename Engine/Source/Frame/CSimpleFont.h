@@ -7,7 +7,7 @@
 #include "Engine/Source/Frame/CSimpleAnim.h"
 #include "Engine/Source/Frame/CSimpleFontStringAttributes.h"
 #include "Engine/Source/Frame/CSimpleFontable.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 struct CSimpleFontable;
 

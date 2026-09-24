@@ -14,7 +14,7 @@
 #include "Engine/Source/Tempest/c44matrix.h"
 #include "Engine/Source/Tempest/c4plane.h"
 #include "Engine/Source/Tempest/cimvector.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Types.h"
 #include "WoW/Source/WorldClient/Types.h"
 #include "WoW/Source/WorldClient/World.h"

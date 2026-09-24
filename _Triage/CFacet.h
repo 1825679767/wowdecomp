@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/c4plane.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 class CFacet;
 

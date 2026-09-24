@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Tempest/C4Vector.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/WorldClient/World.h"
 
 class CSortTable {

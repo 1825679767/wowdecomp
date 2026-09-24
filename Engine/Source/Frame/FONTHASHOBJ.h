@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Base/Handle.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 struct CGxFont;
 struct FONTHASHOBJ;

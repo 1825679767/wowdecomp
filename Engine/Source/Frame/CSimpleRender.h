@@ -8,7 +8,7 @@
 #include "Engine/Source/Frame/CSimpleRegion.h"
 #include "Engine/Source/Frame/Types.h"
 #include "Engine/Source/Tempest/C2Vector.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 struct CSimpleTexture;
 struct FONTHASHOBJ;

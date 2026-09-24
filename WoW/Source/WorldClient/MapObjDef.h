@@ -8,7 +8,7 @@
 #include "Engine/Source/Tempest/c44matrix.h"
 #include "Engine/Source/Tempest/caabox.h"
 #include "Engine/Source/Tempest/caasphere.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/WorldClient/MapBaseObj.h"
 
 class CMapObj;

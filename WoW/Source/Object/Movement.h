@@ -6,7 +6,7 @@
 #include <windows.h>
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/MovementShared.h"
 
 struct CGUnit_C;

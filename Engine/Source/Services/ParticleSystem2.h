@@ -7,7 +7,7 @@
 #include "Engine/Source/Tempest/c44matrix.h"
 #include "Engine/Source/Tempest/c4quaternion.h"
 #include "Engine/Source/Tempest/caabox.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 class CM2Model;
 class CParticle2;

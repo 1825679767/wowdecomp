@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/Gx/CGxDevice/Types.h"
 #include "Engine/Source/Gx/Types.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 struct CGxBuf;
 class CGxPool;

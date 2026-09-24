@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/Passenger.h"
 
 struct CMoveSpline;
