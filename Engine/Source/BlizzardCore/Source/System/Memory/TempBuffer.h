@@ -15,6 +15,7 @@ class TempBuffer {
 
     TempBuffer(uint32_t count);
     ~TempBuffer();
+    void Resize(uint32_t count);
 };
 
 }
@@ -34,6 +35,39 @@ Blizzard::Memory::TempBuffer<T, N>::~TempBuffer() {
     if (this->m_data != this->m_buffer) {
         delete[] this->m_data;
     }
+}
+
+// VERIFY: 019cc2c0 manual
+// OFFSET: 0x0042EC20
+template <class T, uint32_t N>
+void Blizzard::Memory::TempBuffer<T, N>::Resize(uint32_t count) {
+    if (count > N) {
+        if (count != this->m_count) {
+            T* data = new T[count];
+            uint32_t copy = this->m_count >= count ? count : this->m_count;
+
+            for (uint32_t i = 0; i < copy; i++) {
+                data[i] = this->m_data[i];
+            }
+
+            if (this->m_data != this->m_buffer) {
+                delete[] this->m_data;
+            }
+
+            this->m_data = data;
+        }
+    } else if (this->m_data != this->m_buffer) {
+        uint32_t copy = this->m_count >= count ? count : this->m_count;
+
+        for (uint32_t i = 0; i < copy; i++) {
+            this->m_buffer[i] = this->m_data[i];
+        }
+
+        delete[] this->m_data;
+        this->m_data = this->m_buffer;
+    }
+
+    this->m_count = count;
 }
 
 #endif

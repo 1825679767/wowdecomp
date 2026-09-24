@@ -5,7 +5,13 @@
 
 namespace System_SFile {
 
-extern Blizzard::Thread::LocalObject<bool> s_retryNativeRead;
+struct RawReadInfo {
+    /* 0000 */ bool m_retryNative;
+
+    RawReadInfo();
+};
+
+extern Blizzard::Thread::LocalObject<RawReadInfo> s_rawReadInfo;
 
 }
 
