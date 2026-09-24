@@ -1631,3 +1631,28 @@ void CGxDevice::ShaderDestroy(CGxShader*& shader) {
 
     shader = nullptr;
 }
+
+// VERIFY: 4f26ed72 manual
+// OFFSET: 0x00684FE0
+void CGxDevice::DeviceOverride(EGxOverride override, uint32_t value) {
+    CGxDevice::Log("CGxDevice::DeviceOverride(): %d set to %d", override, value);
+
+    if (override == GxOverride_Unk8) {
+        int32_t enable = value > 1;
+        this->m_caps.m_pointParameters = enable;
+        this->m_caps.m_pointSprite = enable;
+        this->m_caps.m_pointScaleMax = static_cast<float>(value);
+    }
+}
+
+// VERIFY: 0ed001fc manual
+// OFFSET: 0x006845B0
+void CGxDevice::PrimDrawElements() {
+    this->m_inBeginEnd = 0;
+
+    if (this->m_primVertexArray.Count()) {
+        GxPrimLockVertexPtrs(this->m_primVertexArray.Count(), this->m_primVertexArray.m_data, sizeof(C3Vector), this->m_primNormalArray.m_data, sizeof(C3Vector), this->m_primColorArray.m_data, sizeof(CImVector), nullptr, 0, this->m_primTexCoordArray[0].m_data, sizeof(C2Vector), this->m_primTexCoordArray[1].m_data, sizeof(C2Vector));
+        GxPrimLockIndexPtr(this->m_primType, this->m_primIndexArray.Count(), this->m_primIndexArray.m_data);
+        GxDrawLockedElements();
+    }
+}
