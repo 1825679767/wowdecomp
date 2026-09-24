@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/Base/Types.h"
 #include "Engine/Source/Event/EvtTimer.h"
 #include "Engine/Source/Event/Types.h"
 #include "Storm/H/stpl.h"
@@ -14,7 +15,6 @@ struct EvtHandler;
 struct EvtKeyDown;
 struct EvtMessage;
 struct EvtTimer;
-struct HPROPCONTEXT__;
 
 template <class T>
 class CSBasePriorityQueue {
@@ -79,8 +79,6 @@ struct TSPriorityQueue : public CSBasePriority {
 struct EvtTimerQueue : public TSPriorityQueue<EvtTimer> {
 };
 
-typedef HPROPCONTEXT__* HPROPCONTEXT;
-
 template <class T>
 struct EvtIdTable {
     /* 0000 */ TSGrowableArray<T> m_allocArray;
@@ -124,10 +122,6 @@ class EvtContext : public TSingletonInstanceId<EvtContext> {
     /* 026C */ int32_t unk_026C;
     /* 0270 */ void* m_callContext;
     /* 0274 */ uint32_t m_startWatchdog;
-};
-
-struct HPROPCONTEXT__ {
-    /* 0000 */ int32_t m_unused;
 };
 
 template <class T>
