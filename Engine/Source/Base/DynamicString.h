@@ -1,23 +1,24 @@
 #ifndef ENGINE_SOURCE_BASE_DYNAMICSTRING_H
 #define ENGINE_SOURCE_BASE_DYNAMICSTRING_H
 
-#include <cstddef>
 #include <cstdint>
 
 class CDynamicString {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-};
+    /* 0000 */ int32_t m_length;
+    /* 0004 */ int32_t m_capacity;
+    /* 0008 */ char* m_buffer;
 
-class DynamicString {
-    public:
-    /* 0000 */ uint8_t unk_0000;
-    /* 0001 */ uint8_t unk_0001;
-    /* 0002 */ uint16_t unk_0002;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
+    CDynamicString();
+    ~CDynamicString();
+    void Append(const char* src, int32_t count);
+    void Free();
+    void Grow();
+    void SetCapacity(int32_t capacity);
+    CDynamicString& operator=(const char* str);
+    void operator+=(const char* str);
+    void operator+=(char c);
+    void operator+=(int32_t value);
 };
 
 #endif
