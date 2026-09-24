@@ -213,6 +213,16 @@ char* Int64ToString(int64_t num, char* buf, size_t destsize);
 int32_t vsnoprintf(char* out, size_t outSize, const char* format, va_list argumentList);
 int32_t vsoprintf(char* out, const char* format, va_list argumentList);
 
+void* SCreateThread(uint32_t dwStackSize, uint32_t (STORMAPI* lpStartAddress)(void*), void* lpParameter, uint32_t dwCreationFlags, uint32_t* lpThreadId, char* threadName);
+void* STORMAPI SCreateThread(uint32_t (STORMAPI* lpStartAddress)(void*), void* lpParameter, uint32_t* lpThreadId, void* linuxData, char* threadName, uint32_t stackSize);
+int32_t STORMAPI SCreateProcess(const char* appName, char* commandLine, void (*callbackWhenProcessCompletes)(void*), void* callbackData);
+uint32_t STORMAPI SGetCurrentProcessId();
+uint32_t STORMAPI SGetCurrentThreadId();
+int32_t STORMAPI SGetCurrentThreadPriority();
+int32_t STORMAPI SGetThreadName(uint32_t threadId, char* buffer, int32_t bufferchars);
+int32_t STORMAPI SSetCurrentProcessAffinityMask(size_t mask);
+int32_t STORMAPI SSetCurrentThreadPriority(int32_t priority);
+
 int32_t STORMAPI SUniConvertUTF16to8(char* dst, uint32_t dstmaxchars, const uint16_t* src, uint32_t srcmaxchars, uint32_t* dstchars, uint32_t* srcchars);
 int32_t STORMAPI SUniConvertUTF8to16(uint16_t* dst, uint32_t dstmaxchars, const char* src, uint32_t srcmaxchars, uint32_t* dstchars, uint32_t* srcchars);
 int32_t STORMAPI SUniConvertUTF8to16Len(const char* src, uint32_t srcmaxchars, uint32_t* srcchars);

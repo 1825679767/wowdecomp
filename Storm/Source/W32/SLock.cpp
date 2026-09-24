@@ -64,6 +64,14 @@ int32_t SEvent::Reset() {
     return ResetEvent(this->m_opaqueData);
 }
 
+// VERIFY: 168187ad auto
+// OFFSET: 0x00774740
+int32_t SThread::Create(uint32_t (STORMAPI* threadProc)(void*), void* param, SThread& thread, char* threadName, uint32_t stackSize) {
+    uint32_t threadId;
+    thread.m_opaqueData = SCreateThread(threadProc, param, &threadId, nullptr, nullptr, stackSize);
+    return thread.m_opaqueData != nullptr;
+}
+
 // VERIFY: a1d57e69 auto
 // OFFSET: 0x00774770
 int32_t SThread::SetPriority(int32_t priority) {
