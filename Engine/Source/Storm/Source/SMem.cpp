@@ -108,6 +108,10 @@ void operator delete(void* ptr) noexcept {
     SMemFree(ptr, "delete", SLOG_FUNCTION, 0);
 }
 
+void operator delete[](void* ptr) noexcept {
+    SMemFree(ptr, "delete[]", SLOG_FUNCTION, 0);
+}
+
 int32_t STORMAPI SMemDestroy() {
     return 1;
 }

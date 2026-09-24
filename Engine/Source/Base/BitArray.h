@@ -1,16 +1,19 @@
 #ifndef ENGINE_SOURCE_BASE_BITARRAY_H
 #define ENGINE_SOURCE_BASE_BITARRAY_H
 
-#include <cstddef>
 #include <cstdint>
 
 class CBitArray {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008;
-    /* 0009 */ uint8_t unk_0009[23];
-    /* 0020 */ uint8_t unk_0020;
+    /* 0000 */ char* m_array;
+    /* 0004 */ uint32_t m_size;
+    /* 0008 */ bool unk_0008;
+
+    CBitArray();
+    ~CBitArray();
+    int32_t Get(uint32_t bitIdx) const;
+    void Set(uint32_t bitIdx, bool value);
+    void SetRawData(char* data, uint32_t size, bool owned);
 };
 
 #endif
