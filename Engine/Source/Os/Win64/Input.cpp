@@ -3,12 +3,17 @@
 #include <cstdint>
 #include <windows.h>
 #include <imm.h>
+#include <malloc.h>
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Os/Gui.h"
 #include "Engine/Source/Os/Input.h"
+#include "Engine/Source/Os/Joystick.h"
 #include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/C2iVector.h"
 #include "WoW/Source/Console/Types.h"
+
+#define WM_POPUPSYSTEMMENU 0x313
 
 // STATIC: 0x00B1C228
 static uint32_t s_latin1lookup[32] = {
@@ -167,6 +172,9 @@ static int32_t s_appActive = 1;
 // STATIC: 0x00B1D2A8
 static uint32_t s_rshiftScanCode = 0x100;
 
+// STATIC: 0x00D413D0
+static int16_t s_numLockState;
+
 // STATIC: 0x00D413D4
 static RECT s_dragRect;
 
@@ -203,6 +211,9 @@ static int32_t s_releasingCapture;
 // STATIC: 0x00D41554
 static uint32_t s_osButtonState;
 
+// STATIC: 0x00D41558
+static RECT s_defaultWindowRect;
+
 // STATIC: 0x00D41568
 static intptr_t s_windowSize;
 
@@ -238,6 +249,9 @@ static BOOL (WINAPI* s_getPhysicalCursorPos)(POINT* point);
 
 // STATIC: 0x00D41594
 static BOOL (WINAPI* s_setPhysicalCursorPos)(int32_t x, int32_t y);
+
+// STATIC: 0x00D41598
+static void (WINAPI* s_logicalToPhysicalPoint)(HWND hwnd, POINT* point);
 
 // OFFSET: 0x00868C10
 static BOOL OsGetPhysicalCursorPos(POINT* point) {
@@ -281,6 +295,26 @@ static BOOL OsSetPhysicalCursorPos(int32_t x, int32_t y) {
     return s_setPhysicalCursorPos(x, y);
 }
 
+static void WINAPI LogicalToPhysicalPointNop(HWND hwnd, POINT* point) {
+}
+
+// OFFSET: 0x00868CE0
+static void OsLogicalToPhysicalPoint(HWND hwnd, POINT* point) {
+    if (!s_logicalToPhysicalPoint) {
+        HMODULE user32 = LoadLibraryA("user32.dll");
+        if (user32) {
+            s_logicalToPhysicalPoint = reinterpret_cast<decltype(s_logicalToPhysicalPoint)>(GetProcAddress(user32, "LogicalToPhysicalPoint"));
+            FreeLibrary(user32);
+        }
+
+        if (!s_logicalToPhysicalPoint) {
+            s_logicalToPhysicalPoint = LogicalToPhysicalPointNop;
+        }
+    }
+
+    s_logicalToPhysicalPoint(hwnd, point);
+}
+
 // OFFSET: 0x00868D40
 void OsQueuePut(OSINPUT id, int32_t param0, int32_t param1, int32_t param2, int32_t param3) {
     int32_t next = s_queueTail == 15 ? 0 : s_queueTail + 1;
@@ -297,6 +331,24 @@ void OsQueuePut(OSINPUT id, int32_t param0, int32_t param1, int32_t param2, int3
     event.param[3] = OsGetAsyncTimeMs();
 
     s_queueTail = next;
+}
+
+// OFFSET: 0x00868DB0
+int32_t OsQueueGet(OSINPUT* id, int32_t* param0, int32_t* param1, int32_t* param2, int32_t* param3) {
+    if (s_queueHead == s_queueTail) {
+        return 0;
+    }
+
+    OSEVENT& event = s_queue[s_queueHead];
+    *id = event.id;
+    *param0 = event.param[0];
+    *param1 = event.param[1];
+    *param2 = event.param[2];
+    *param3 = event.param[3];
+
+    s_queueHead = s_queueHead == 15 ? 0 : s_queueHead + 1;
+
+    return 1;
 }
 
 // OFFSET: 0x00868E30
@@ -488,6 +540,195 @@ static int32_t ConvertKeyCode(uint32_t vkey, KEY* key) {
     }
 }
 
+// OFFSET: 0x008691C0
+static int32_t ConvertKeyToVirtualKey(KEY key, uint32_t* vkey) {
+    if (key >= KEY_F1 && key <= KEY_F12) {
+        *vkey = key - (KEY_F1 - VK_F1);
+        return 1;
+    }
+
+    if (key >= KEY_0 && key <= KEY_9) {
+        *vkey = key;
+        return 1;
+    }
+
+    switch (key) {
+        case KEY_LSHIFT:
+            *vkey = VK_LSHIFT;
+            return 1;
+
+        case KEY_RSHIFT:
+            *vkey = VK_RSHIFT;
+            return 1;
+
+        case KEY_LCONTROL:
+            *vkey = VK_LCONTROL;
+            return 1;
+
+        case KEY_RCONTROL:
+            *vkey = VK_RCONTROL;
+            return 1;
+
+        case KEY_LALT:
+            *vkey = VK_LMENU;
+            return 1;
+
+        case KEY_RALT:
+            *vkey = VK_RMENU;
+            return 1;
+
+        case KEY_SPACE:
+            *vkey = VK_SPACE;
+            return 1;
+
+        case KEY_NUMPAD0:
+            *vkey = VK_NUMPAD0;
+            return 1;
+
+        case KEY_NUMPAD1:
+            *vkey = VK_NUMPAD1;
+            return 1;
+
+        case KEY_NUMPAD2:
+            *vkey = VK_NUMPAD2;
+            return 1;
+
+        case KEY_NUMPAD3:
+            *vkey = VK_NUMPAD3;
+            return 1;
+
+        case KEY_NUMPAD4:
+            *vkey = VK_NUMPAD4;
+            return 1;
+
+        case KEY_NUMPAD5:
+            *vkey = VK_NUMPAD5;
+            return 1;
+
+        case KEY_NUMPAD6:
+            *vkey = VK_NUMPAD6;
+            return 1;
+
+        case KEY_NUMPAD7:
+            *vkey = VK_NUMPAD7;
+            return 1;
+
+        case KEY_NUMPAD8:
+            *vkey = VK_NUMPAD8;
+            return 1;
+
+        case KEY_NUMPAD9:
+            *vkey = VK_NUMPAD9;
+            return 1;
+
+        case KEY_NUMPAD_PLUS:
+            *vkey = VK_ADD;
+            return 1;
+
+        case KEY_NUMPAD_MINUS:
+            *vkey = VK_SUBTRACT;
+            return 1;
+
+        case KEY_NUMPAD_MULTIPLY:
+            *vkey = VK_MULTIPLY;
+            return 1;
+
+        case KEY_NUMPAD_DIVIDE:
+            *vkey = VK_DIVIDE;
+            return 1;
+
+        case KEY_NUMPAD_DECIMAL:
+            *vkey = VK_DECIMAL;
+            return 1;
+
+        case KEY_ESCAPE:
+            *vkey = VK_ESCAPE;
+            return 1;
+
+        case KEY_ENTER:
+            *vkey = VK_RETURN;
+            return 1;
+
+        case KEY_BACKSPACE:
+            *vkey = VK_BACK;
+            return 1;
+
+        case KEY_TAB:
+            *vkey = VK_TAB;
+            return 1;
+
+        case KEY_LEFT:
+            *vkey = VK_LEFT;
+            return 1;
+
+        case KEY_UP:
+            *vkey = VK_UP;
+            return 1;
+
+        case KEY_RIGHT:
+            *vkey = VK_RIGHT;
+            return 1;
+
+        case KEY_DOWN:
+            *vkey = VK_DOWN;
+            return 1;
+
+        case KEY_INSERT:
+            *vkey = VK_INSERT;
+            return 1;
+
+        case KEY_DELETE:
+            *vkey = VK_DELETE;
+            return 1;
+
+        case KEY_HOME:
+            *vkey = VK_HOME;
+            return 1;
+
+        case KEY_END:
+            *vkey = VK_END;
+            return 1;
+
+        case KEY_PAGEUP:
+            *vkey = VK_PRIOR;
+            return 1;
+
+        case KEY_PAGEDOWN:
+            *vkey = VK_NEXT;
+            return 1;
+
+        case KEY_CAPSLOCK:
+            *vkey = VK_CAPITAL;
+            return 1;
+
+        case KEY_NUMLOCK:
+            *vkey = VK_NUMLOCK;
+            return 1;
+
+        case KEY_SCROLLLOCK:
+            *vkey = VK_SCROLL;
+            return 1;
+
+        case KEY_PAUSE:
+            *vkey = VK_PAUSE;
+            return 1;
+
+        case KEY_PRINTSCREEN:
+            *vkey = VK_SNAPSHOT;
+            return 1;
+
+        default: {
+            uint32_t vk = VkKeyScanA(static_cast<CHAR>(key)) & 0xFF;
+            *vkey = vk;
+            if (vk == 0 || vk > 0xFF) {
+                return 0;
+            }
+
+            return 1;
+        }
+    }
+}
+
 // OFFSET: 0x008694E0
 static int32_t ConvertButton(uint32_t message, uintptr_t wparam, MOUSEBUTTON* button) {
     switch (message) {
@@ -539,6 +780,17 @@ static int32_t ConvertButton(uint32_t message, uintptr_t wparam, MOUSEBUTTON* bu
     return 0;
 }
 
+// OFFSET: 0x008695B0
+static void RestoreMouse() {
+    POINT point;
+    point.x = s_mousePos.x;
+    point.y = s_mousePos.y;
+
+    ClientToScreen(s_mouseWnd, &point);
+    OsLogicalToPhysicalPoint(s_mouseWnd, &point);
+    OsSetPhysicalCursorPos(point.x, point.y);
+}
+
 // OFFSET: 0x00869600
 static void SaveMouse(HWND hwnd, const POINT& point) {
     if (s_osMouseMode == OS_MOUSE_MODE_RELATIVE) {
@@ -548,6 +800,71 @@ static void SaveMouse(HWND hwnd, const POINT& point) {
     s_mouseWnd = hwnd;
     s_mousePos.x = point.x;
     s_mousePos.y = point.y;
+}
+
+// OFFSET: 0x00869620
+void OsInputSetWindowResizeLock(int32_t resizeLock) {
+    s_WindowResizeLock = resizeLock;
+}
+
+// OFFSET: 0x00869630
+float OsInputGetMouseSpeed() {
+    return s_mouseSpeed * 0.1f;
+}
+
+// OFFSET: 0x00869640
+int32_t OsInputIsKeyDown(KEY key) {
+    uint32_t vkey;
+    if (!ConvertKeyToVirtualKey(key, &vkey)) {
+        return 0;
+    }
+
+    return (GetAsyncKeyState(vkey) >> 15) & 1;
+}
+
+// OFFSET: 0x00869670
+int32_t OsInputIsMouseButtonDown(MOUSEBUTTON button) {
+    switch (button) {
+        case MOUSE_BUTTON_LEFT:
+            return (GetAsyncKeyState(VK_LBUTTON) >> 15) & 1;
+
+        case MOUSE_BUTTON_MIDDLE:
+            return (GetAsyncKeyState(VK_MBUTTON) >> 15) & 1;
+
+        case MOUSE_BUTTON_RIGHT:
+            return (GetAsyncKeyState(VK_RBUTTON) >> 15) & 1;
+
+        case MOUSE_BUTTON_XBUTTON1:
+            return (GetAsyncKeyState(VK_XBUTTON1) >> 15) & 1;
+
+        case MOUSE_BUTTON_XBUTTON2:
+            return (GetAsyncKeyState(VK_XBUTTON2) >> 15) & 1;
+
+        default:
+            return 0;
+    }
+}
+
+// OFFSET: 0x00869720
+void OsInputInitialize() {
+    s_numLockState = GetAsyncKeyState(VK_NUMLOCK);
+    s_savedMouseSpeed = 10;
+    SystemParametersInfoA(SPI_GETMOUSESPEED, 0, &s_savedMouseSpeed, 0);
+    s_mouseSpeed = s_savedMouseSpeed;
+}
+
+// OFFSET: 0x00869760
+void OsInputDestroy() {
+    if (GetAsyncKeyState(VK_NUMLOCK) != s_numLockState) {
+        INPUT input = {};
+        input.type = INPUT_KEYBOARD;
+        input.ki.wVk = VK_NUMLOCK;
+        SendInput(1, &input, sizeof(input));
+    }
+
+    if (s_appActive && s_mouseSpeed != s_savedMouseSpeed) {
+        SystemParametersInfoA(SPI_SETMOUSESPEED, 0, reinterpret_cast<void*>(static_cast<intptr_t>(s_savedMouseSpeed)), 0);
+    }
 }
 
 // OFFSET: 0x008697E0
@@ -808,6 +1125,11 @@ static bool DispatchMouseButtonChanges(HWND hwnd, uint32_t message, uintptr_t wp
     return true;
 }
 
+// OFFSET: 0x00869D90
+void OsInputSetEventPollProc(void (*pollProc)()) {
+    s_eventPollProc = pollProc;
+}
+
 // OFFSET: 0x00869DA0
 static void CALLBACK OsInputCallEventPollProc(HWND hwnd, UINT message, UINT_PTR id, DWORD time) {
     s_eventPollProc();
@@ -821,6 +1143,154 @@ static void CenterMouse() {
     s_centerMousePos.x = rect.right / 2;
     s_centerMousePos.y = rect.bottom / 2;
     OsSetPhysicalCursorPos(s_centerMousePos.x, s_centerMousePos.y);
+}
+
+// OFFSET: 0x00869E00
+int32_t OsInputGet(OSINPUT* id, int32_t* param0, int32_t* param1, int32_t* param2, int32_t* param3) {
+    *id = static_cast<OSINPUT>(-1);
+
+    if (s_windowSize && !IsIconic(static_cast<HWND>(OsGuiGetWindow(0)))) {
+        s_windowSize = 0;
+
+        RECT windowRect;
+        GetWindowRect(static_cast<HWND>(OsGuiGetWindow(0)), &windowRect);
+
+        RECT adjust = { 0, 0, 0, 0 };
+        AdjustWindowRectEx(&adjust, GetWindowLongA(static_cast<HWND>(OsGuiGetWindow(0)), GWL_STYLE), FALSE, 0);
+
+        int32_t width = (windowRect.right - adjust.right) - (windowRect.left - adjust.left);
+        int32_t height = (windowRect.bottom - adjust.bottom) - (windowRect.top - adjust.top);
+
+        if (width != s_defaultWindowRect.right || height != s_defaultWindowRect.bottom) {
+            s_defaultWindowRect.left = 0;
+            s_defaultWindowRect.top = 0;
+            s_defaultWindowRect.right = width;
+            s_defaultWindowRect.bottom = height;
+
+            *id = OS_INPUT_SIZE;
+            *param0 = width;
+            *param1 = height;
+            *param2 = 0;
+            *param3 = 0;
+
+            return 1;
+        }
+    }
+
+    if (s_queueHead == s_queueTail) {
+        OsJoystickPoll(s_appActive);
+
+        MSG msg;
+        BOOL available = PeekMessageA(&msg, nullptr, 0, 0, PM_NOREMOVE);
+
+        while (s_queueHead == s_queueTail) {
+            if (!available) {
+                return 0;
+            }
+
+            if (!GetMessageA(&msg, nullptr, 0, 0)) {
+                *id = OS_INPUT_SHUTDOWN;
+                return 1;
+            }
+
+            if (OsGuiProcessMessage(&msg) || s_queueHead != s_queueTail) {
+                break;
+            }
+
+            TranslateMessage(&msg);
+            DispatchMessageA(&msg);
+
+            if (s_queueHead != s_queueTail) {
+                break;
+            }
+
+            available = PeekMessageA(&msg, nullptr, 0, 0, PM_NOREMOVE);
+        }
+    }
+
+    OsQueueGet(id, param0, param1, param2, param3);
+
+    return 1;
+}
+
+// OFFSET: 0x0086A020
+void OsInputSetMouseMode(OS_MOUSE_MODE mode) {
+    if (mode >= OS_MOUSE_MODES) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    if (mode == s_osMouseMode) {
+        return;
+    }
+
+    if (mode == OS_MOUSE_MODE_RELATIVE) {
+        s_osMouseMode = mode;
+        CenterMouse();
+    } else if (s_osMouseMode == OS_MOUSE_MODE_RELATIVE) {
+        s_osMouseMode = OS_MOUSE_MODE_NORMAL;
+        RestoreMouse();
+    }
+}
+
+// OFFSET: 0x0086A070
+void OsInputSetMouseSpeed(float speed) {
+    float clamped = speed < 0.1f ? 0.1f : (speed >= 2.0f ? 2.0f : speed);
+    s_mouseSpeed = static_cast<int32_t>(clamped * 10.0f);
+
+    if (s_appActive) {
+        SystemParametersInfoA(SPI_SETMOUSESPEED, 0, reinterpret_cast<void*>(static_cast<intptr_t>(s_mouseSpeed)), 0);
+    }
+}
+
+// OFFSET: 0x0086A0D0
+void OsInputGetMousePosition(int32_t* x, int32_t* y) {
+    HWND hwnd = static_cast<HWND>(OsGuiGetWindow(0));
+
+    POINT point;
+    GetCursorPos(&point);
+    ScreenToClient(hwnd, &point);
+    SaveMouse(hwnd, point);
+
+    if (x) {
+        *x = point.x;
+    }
+
+    if (y) {
+        *y = point.y;
+    }
+}
+
+// OFFSET: 0x0086A130
+void OsInputSetMousePosition(int32_t x, int32_t y) {
+    HWND hwnd = static_cast<HWND>(OsGuiGetWindow(0));
+
+    POINT point;
+    point.x = x;
+    point.y = y;
+    SaveMouse(hwnd, point);
+
+    ClientToScreen(hwnd, &point);
+    OsLogicalToPhysicalPoint(s_mouseWnd, &point);
+    OsSetPhysicalCursorPos(point.x, point.y);
+}
+
+// OFFSET: 0x0086A1A0
+int32_t OsGetDefaultWindowRect(tagRECT* rect) {
+    if (!rect) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    if (!s_defaultWindowRect.right || !s_defaultWindowRect.bottom) {
+        if (!GetClientRect(static_cast<HWND>(OsGuiGetWindow(0)), &s_defaultWindowRect)) {
+            return 0;
+        }
+    }
+
+    *rect = s_defaultWindowRect;
+
+    return 1;
 }
 
 // OFFSET: 0x0086A210
@@ -979,7 +1449,7 @@ intptr_t OsWindowProc(void* window, uint32_t message, uintptr_t wparam, intptr_t
 
         case WM_NCRBUTTONDOWN:
         case WM_NCRBUTTONUP:
-        case 0x313:
+        case WM_POPUPSYSTEMMENU:
             if (s_eventPollProc) {
                 timer = SetTimer(hwnd, 0, 33, OsInputCallEventPollProc);
             }
@@ -1123,7 +1593,7 @@ intptr_t OsWindowProc(void* window, uint32_t message, uintptr_t wparam, intptr_t
         case WM_IME_SELECT:
             return 0;
 
-        case 0x403: {
+        case WM_USER + 3: {
             int32_t xbutton;
             if (DispatchMouseButtonChanges(hwnd, message, wparam, &xbutton)) {
                 return xbutton;

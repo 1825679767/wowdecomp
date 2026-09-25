@@ -2,6 +2,10 @@
 #define ENGINE_SOURCE_OS_INPUT_H
 
 #include <cstdint>
+#include "Engine/Source/Event/Types.h"
+#include "WoW/Source/Console/Types.h"
+
+struct tagRECT;
 
 enum OSINPUT {
     OS_INPUT_CAPTURE_CHANGED = 0,
@@ -37,7 +41,21 @@ struct OSEVENT {
     /* 0004 */ int32_t param[4];
 };
 
+int32_t OsQueueGet(OSINPUT* id, int32_t* param0, int32_t* param1, int32_t* param2, int32_t* param3);
 void OsQueuePut(OSINPUT id, int32_t param0, int32_t param1, int32_t param2, int32_t param3);
+int32_t OsInputIsKeyDown(KEY key);
+int32_t OsInputIsMouseButtonDown(MOUSEBUTTON button);
+void OsInputSetWindowResizeLock(int32_t resizeLock);
+float OsInputGetMouseSpeed();
+void OsInputInitialize();
+void OsInputDestroy();
+void OsInputSetEventPollProc(void (*pollProc)());
+int32_t OsInputGet(OSINPUT* id, int32_t* param0, int32_t* param1, int32_t* param2, int32_t* param3);
+void OsInputSetMouseMode(OS_MOUSE_MODE mode);
+void OsInputSetMouseSpeed(float speed);
+void OsInputGetMousePosition(int32_t* x, int32_t* y);
+void OsInputSetMousePosition(int32_t x, int32_t y);
+int32_t OsGetDefaultWindowRect(tagRECT* rect);
 intptr_t OsWindowProc(void* window, uint32_t message, uintptr_t wparam, intptr_t lparam);
 
 #endif
