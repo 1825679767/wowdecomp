@@ -2098,6 +2098,7 @@ static float *vwin[8] = {
 /*
     Added by brett.
 */
+// OFFSET: 0x00470200
 void _FMOD_vorbis_window_init()
 {
     int i;
@@ -2153,6 +2154,7 @@ void _FMOD_vorbis_window_init()
     }
 }
 
+// OFFSET: 0x004703D0
 float *_FMOD_vorbis_window_get(int n){
   return vwin[n];
 }

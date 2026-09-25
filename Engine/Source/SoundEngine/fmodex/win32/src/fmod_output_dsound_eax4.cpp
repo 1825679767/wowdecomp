@@ -31,6 +31,7 @@ bool gFXslot3set = false;
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094FEB0
 bool OutputDSound::querySupportEAX4(FMOD_GUID guid, unsigned long ulProperty)
 {
     HRESULT       hr;
@@ -74,6 +75,7 @@ bool OutputDSound::querySupportEAX4(FMOD_GUID guid, unsigned long ulProperty)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094FF10
 bool OutputDSound::initEAX4()
 {
     FMOD_RESULT             result;
@@ -182,6 +184,7 @@ bool OutputDSound::initEAX4()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009501A0
 FMOD_RESULT OutputDSound::closeEAX4()
 {
     GUID guid;
@@ -225,6 +228,7 @@ FMOD_RESULT OutputDSound::closeEAX4()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00950280
 FMOD_RESULT OutputDSound::setPropertiesEAX4(const FMOD_REVERB_PROPERTIES *prop)
 {
     HRESULT hr;

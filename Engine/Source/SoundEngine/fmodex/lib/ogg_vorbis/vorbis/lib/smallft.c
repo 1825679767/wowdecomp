@@ -1246,6 +1246,7 @@ void drft_init(void *context, drft_lookup *l,int n){
   fdrffti(n, l->trigcache, l->splitcache);
 }
 
+// OFFSET: 0x00470120
 void drft_clear(void *context, drft_lookup *l){
   if(l){
     if(l->trigcache)_ogg_free(l->trigcache);

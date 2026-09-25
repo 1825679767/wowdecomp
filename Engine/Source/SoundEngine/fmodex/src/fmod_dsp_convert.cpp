@@ -37,6 +37,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093CD10
 FMOD_RESULT DSPI::convert(void *outbuffer, void *inbuffer, FMOD_SOUND_FORMAT outformat, FMOD_SOUND_FORMAT informat, unsigned int length, int destchannelstep, int srcchannelstep, float volume)
 {  
     bool  supportssimd;

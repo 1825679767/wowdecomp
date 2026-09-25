@@ -36,6 +36,7 @@ namespace FMOD
 
       public:
         
+        // OFFSET: 0x0093AA60
         ChannelDSound() {}
 
         FMOD_RESULT  init                 (int index, SystemI *system, Output *output, DSPI *dspmixtarget);

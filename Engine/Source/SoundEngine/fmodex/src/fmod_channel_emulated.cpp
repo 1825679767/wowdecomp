@@ -28,6 +28,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00944A70
 ChannelEmulated::ChannelEmulated()
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -52,6 +53,7 @@ ChannelEmulated::ChannelEmulated()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00944AB0
 FMOD_RESULT ChannelEmulated::init(int index, SystemI *system, Output *output, DSPI *dspmixtarget)
 {
     ChannelReal::init(index, system, output, dspmixtarget);
@@ -114,6 +116,7 @@ FMOD_RESULT ChannelEmulated::init(int index, SystemI *system, Output *output, DS
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009447D0
 FMOD_RESULT ChannelEmulated::alloc()
 {
     FMOD_RESULT result;
@@ -162,6 +165,7 @@ FMOD_RESULT ChannelEmulated::alloc()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00944820
 FMOD_RESULT ChannelEmulated::stop()
 {  
 #ifdef FMOD_SUPPORT_STREAMING
@@ -232,6 +236,7 @@ FMOD_RESULT ChannelEmulated::stop()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009448C0
 FMOD_RESULT ChannelEmulated::close()
 {
     FMOD_RESULT result;
@@ -269,6 +274,7 @@ FMOD_RESULT ChannelEmulated::close()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009448F0
 FMOD_RESULT ChannelEmulated::update(int delta)
 {
     FMOD_RESULT result;
@@ -398,6 +404,7 @@ FMOD_RESULT ChannelEmulated::update(int delta)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00944A20
 FMOD_RESULT ChannelEmulated::isVirtual(bool *isvirtual)
 {
     if (!isvirtual)
@@ -426,6 +433,7 @@ FMOD_RESULT ChannelEmulated::isVirtual(bool *isvirtual)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00944A40
 FMOD_RESULT ChannelEmulated::getDSPHead(DSPI **dsp)
 {
     if (!dsp)

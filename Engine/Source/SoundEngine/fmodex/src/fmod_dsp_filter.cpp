@@ -33,6 +33,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00919CE0
 FMOD_RESULT DSPFilter::release(bool freethis)
 {
     stopBuffering();
@@ -367,6 +368,7 @@ FMOD_RESULT DSPFilter::read(float **outbuffer, int *outchannels, unsigned int *l
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00919C00
 FMOD_RESULT DSPFilter::startBuffering()
 {
     FMOD_RESULT result;
@@ -430,6 +432,7 @@ FMOD_RESULT DSPFilter::startBuffering()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00919CA0
 FMOD_RESULT DSPFilter::getHistoryBuffer(float **buffer, unsigned int *position, unsigned int *length)
 {
     if (buffer)

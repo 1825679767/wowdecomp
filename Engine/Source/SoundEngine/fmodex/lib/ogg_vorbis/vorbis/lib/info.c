@@ -64,12 +64,14 @@ static void _v_writestring(oggpack_buffer *o,const char *s, int bytes){
 }
 #endif
 
+// OFFSET: 0x0046C090
 static void _v_readstring(oggpack_buffer *o,char *buf,int bytes){
   while(bytes--){
     *buf++=(char)FMOD_oggpack_read(o,8);
   }
 }
 
+// OFFSET: 0x0046C0C0
 void FMOD_vorbis_comment_init(vorbis_comment *vc){
   FMOD_memset(vc,0,sizeof(*vc));
 }
@@ -142,6 +144,7 @@ static int tagcompare(const char *s1, const char *s2, int n){
 //  return count;
 //}
 
+// OFFSET: 0x0046C0E0
 void FMOD_vorbis_comment_clear(void *context, vorbis_comment *vc){
   if(vc){
     ogg_int32_t i;
@@ -158,12 +161,14 @@ void FMOD_vorbis_comment_clear(void *context, vorbis_comment *vc){
 
 /* blocksize 0 is guaranteed to be short, 1 is guaranteed to be long.
    They may be equal, but short will never ge greater than long */
+// OFFSET: 0x0046C180
 int FMOD_vorbis_info_blocksize(vorbis_info *vi,int zo){
   codec_setup_info *ci = vi->codec_setup;
   return ci ? ci->blocksizes[zo] : -1;
 }
 
 /* used by synthesis, which has a full, alloced vi */
+// OFFSET: 0x0046C1A0
 int FMOD_vorbis_info_init(void *context, vorbis_info *vi){
   FMOD_memset(vi,0,sizeof(*vi));
   vi->codec_setup=_ogg_calloc(1,sizeof(codec_setup_info));
@@ -175,6 +180,7 @@ int FMOD_vorbis_info_init(void *context, vorbis_info *vi){
   return 0;
 }
 
+// OFFSET: 0x0046C1F0
 void FMOD_vorbis_info_clear(void *context, vorbis_info *vi){
   codec_setup_info     *ci=vi->codec_setup;
   int i;
@@ -224,6 +230,7 @@ void FMOD_vorbis_info_clear(void *context, vorbis_info *vi){
 
 /* Header packing/unpacking ********************************************/
 
+// OFFSET: 0x0046C3A0
 static int _FMOD_vorbis_unpack_info(void *context, vorbis_info *vi,oggpack_buffer *opb){
   codec_setup_info     *ci=vi->codec_setup;
   if(!ci)return(OV_EFAULT);
@@ -255,6 +262,7 @@ static int _FMOD_vorbis_unpack_info(void *context, vorbis_info *vi,oggpack_buffe
   return(OV_EBADHEADER);
 }
 
+// OFFSET: 0x0046C470
 static int _vorbis_unpack_comment(void *context, vorbis_comment *vc,oggpack_buffer *opb){
   int i,err = OV_EBADHEADER;
   int vendorlen=FMOD_oggpack_read(opb,32);
@@ -309,6 +317,7 @@ static int _vorbis_unpack_comment(void *context, vorbis_comment *vc,oggpack_buff
 
 /* all of the real encoding details are here.  The modes, books,
    everything */
+// OFFSET: 0x0046C5A0
 static int _vorbis_unpack_books(void *context, vorbis_info *vi,oggpack_buffer *opb){
   codec_setup_info     *ci=vi->codec_setup;
   int i,err = OV_EBADHEADER;
@@ -408,6 +417,7 @@ static int _vorbis_unpack_books(void *context, vorbis_info *vi,oggpack_buffer *o
 }
 
 /* Is this packet a vorbis ID header? */
+// OFFSET: 0x0046C890
 int FMOD_vorbis_synthesis_idheader(ogg_packet *op){
   oggpack_buffer opb;
   char buffer[6];
@@ -437,6 +447,7 @@ int FMOD_vorbis_synthesis_idheader(ogg_packet *op){
    with bitstream comments and a third packet that holds the
    codebook. */
 
+// OFFSET: 0x0046C9B0
 int FMOD_vorbis_synthesis_headerin(void *context, vorbis_info *vi,vorbis_comment *vc,ogg_packet *op){
   oggpack_buffer opb;
 

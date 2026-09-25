@@ -78,6 +78,7 @@ FMOD_DSP_PARAMETERDESC dspitecho_param[5] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB330
 FMOD_DSP_DESCRIPTION_EX *DSPITEcho::getDescriptionEx()
 {
 #ifndef PLATFORM_PS3_SPU
@@ -168,6 +169,7 @@ FMOD_RESULT DSPITEcho::createInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EAC50
 FMOD_RESULT DSPITEcho::releaseInternal()
 {
     int count;
@@ -202,6 +204,7 @@ FMOD_RESULT DSPITEcho::releaseInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EACA0
 FMOD_RESULT DSPITEcho::resetInternal()
 {
     mEchoPosition[0] = 0;
@@ -238,6 +241,7 @@ FMOD_RESULT DSPITEcho::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EAD00
 FMOD_RESULT DSPITEcho::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {   
     unsigned int count;
@@ -410,6 +414,7 @@ FMOD_RESULT DSPITEcho::readInternal(float *inbuffer, float *outbuffer, unsigned 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EAF20
 FMOD_RESULT DSPITEcho::setParameterInternal(int index, float value)
 {
     FMOD_RESULT result;
@@ -540,6 +545,7 @@ FMOD_RESULT DSPITEcho::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB0C0
 FMOD_RESULT DSPITEcho::getParameterInternal(int index, float *value, char *valuestr)
 {
     switch (index)
@@ -669,6 +675,7 @@ FMOD_RESULT F_CALLBACK DSPITEcho::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB230
 FMOD_RESULT F_CALLBACK DSPITEcho::releaseCallback(FMOD_DSP_STATE *dsp)
 {
     DSPITEcho *echo = (DSPITEcho *)dsp;
@@ -693,6 +700,7 @@ FMOD_RESULT F_CALLBACK DSPITEcho::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB260
 FMOD_RESULT F_CALLBACK DSPITEcho::resetCallback(FMOD_DSP_STATE *dsp)
 {
     DSPITEcho *echo = (DSPITEcho *)dsp;
@@ -718,6 +726,7 @@ FMOD_RESULT F_CALLBACK DSPITEcho::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB290
 FMOD_RESULT F_CALLBACK DSPITEcho::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPITEcho *echo = (DSPITEcho *)dsp;
@@ -743,6 +752,7 @@ FMOD_RESULT F_CALLBACK DSPITEcho::readCallback(FMOD_DSP_STATE *dsp, float *inbuf
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB2C0
 FMOD_RESULT F_CALLBACK DSPITEcho::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPITEcho *echo = (DSPITEcho *)dsp;
@@ -767,6 +777,7 @@ FMOD_RESULT F_CALLBACK DSPITEcho::setParameterCallback(FMOD_DSP_STATE *dsp, int 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB300
 FMOD_RESULT F_CALLBACK DSPITEcho::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
     DSPITEcho *echo = (DSPITEcho *)dsp;

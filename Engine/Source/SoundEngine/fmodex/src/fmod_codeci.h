@@ -117,11 +117,15 @@ namespace FMOD
         bool                        mXMASeekable;
         #endif
 
+        // OFFSET: 0x008F3850
         static FMOD_INLINE FMOD_RESULT F_CALLBACK defaultFileRead     (void *handle, void *buffer, unsigned int size, unsigned int *read, void *userdata) { return ((File *)handle)->read(buffer, 1, size, read); }
+        // OFFSET: 0x008F3870
         static FMOD_INLINE FMOD_RESULT F_CALLBACK defaultFileSeek     (void *handle, unsigned int pos, void *userdata) { return ((File *)handle)->seek(pos, SEEK_SET); }
 #ifndef PLATFORM_PS3_SPU
+        // OFFSET: 0x008F3890
         static FMOD_INLINE FMOD_RESULT F_CALLBACK defaultMetaData     (FMOD_CODEC_STATE *codec, FMOD_TAGTYPE type, char *name, void *data, unsigned int datalen, FMOD_TAGDATATYPE datatype, int unique) { return ((Codec *)codec)->metaData(type, name, data, datalen, datatype, unique == 1 ? true : false); }
 #endif
+        // OFFSET: 0x008E84B0
         static FMOD_INLINE FMOD_RESULT F_CALLBACK defaultGetWaveFormat(FMOD_CODEC_STATE *codec, int index, FMOD_CODEC_WAVEFORMAT *waveformat_out)
         {
             if (!codec->waveformat)
@@ -141,6 +145,7 @@ namespace FMOD
 
       public:
 
+        // OFFSET: [0x008F40E0, 0x008F4440]
         Codec()
         {
             mType         = FMOD_SOUND_TYPE_UNKNOWN;
@@ -170,6 +175,7 @@ namespace FMOD
         FMOD_RESULT getPosition(unsigned int *position, FMOD_TIMEUNIT postype);
         FMOD_RESULT metaData(FMOD_TAGTYPE type, const char *name, void *data, unsigned int datalen, FMOD_TAGDATATYPE datatype, bool unique);
         FMOD_RESULT getMetadataFromFile();
+        // OFFSET: 0x008D26F0
         FMOD_RESULT canPointTo() 
         {
             if (mDescription.canpoint)
@@ -182,6 +188,7 @@ namespace FMOD
             }
         }
 #endif
+        // OFFSET: 0x008D2710
         FMOD_RESULT reset() 
         { 
             mPCMBufferOffsetBytes = 0; 

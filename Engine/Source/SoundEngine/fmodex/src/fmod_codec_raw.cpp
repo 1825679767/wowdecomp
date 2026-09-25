@@ -69,6 +69,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5760
 FMOD_CODEC_DESCRIPTION_EX *CodecRaw::getDescriptionEx()
 {
 #ifndef PLATFORM_PS3_SPU
@@ -115,6 +116,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecRaw::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5440
 FMOD_RESULT CodecRaw::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     FMOD_RESULT     result = FMOD_OK;
@@ -282,6 +284,7 @@ FMOD_RESULT CodecRaw::readInternal(void *buffer, unsigned int sizebytes, unsigne
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5340
 FMOD_RESULT CodecRaw::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     FMOD_RESULT result;
@@ -346,6 +349,7 @@ FMOD_RESULT CodecRaw::canPointInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5720
 FMOD_RESULT F_CALLBACK CodecRaw::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecRaw *raw = (CodecRaw *)codec;
@@ -395,6 +399,7 @@ FMOD_RESULT F_CALLBACK CodecRaw::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F53A0
 FMOD_RESULT F_CALLBACK CodecRaw::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     CodecRaw *raw = (CodecRaw *)codec;
@@ -419,6 +424,7 @@ FMOD_RESULT F_CALLBACK CodecRaw::readCallback(FMOD_CODEC_STATE *codec, void *buf
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5410
 FMOD_RESULT F_CALLBACK CodecRaw::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     CodecRaw *raw = (CodecRaw *)codec;

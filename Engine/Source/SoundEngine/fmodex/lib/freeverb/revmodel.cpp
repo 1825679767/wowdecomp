@@ -6,6 +6,7 @@
 
 #include "revmodel.h"
 
+// OFFSET: 0x00929300
 revmodel::revmodel()
 {
 	// Tie the components to their buffers
@@ -54,6 +55,7 @@ revmodel::revmodel()
 	mute();
 }
 
+// OFFSET: 0x009292A0
 void revmodel::mute()
 {
 	int i;
@@ -73,6 +75,7 @@ void revmodel::mute()
 	}
 }
 
+// OFFSET: 0x00928CE0
 void revmodel::processreplace(float *inputL, float *inputR, float *outputL, float *outputR, long numsamples, int skip, unsigned short speakermask)
 {
 	float outL,outR,input;
@@ -198,6 +201,7 @@ void revmodel::processmix(float *inputL, float *inputR, float *outputL, float *o
 	}
 }
 
+// OFFSET: 0x009290C0
 void revmodel::update()
 {
 // Recalculate internal values after parameter change
@@ -238,66 +242,78 @@ void revmodel::update()
 // because as you develop the reverb model, you may
 // wish to take dynamic action when they are called.
 
+// OFFSET: 0x00929180
 void revmodel::setroomsize(float value)
 {
 	roomsize = (value*scaleroom) + offsetroom;
 	update();
 }
 
+// OFFSET: 0x009291A0
 float revmodel::getroomsize()
 {
 	return (roomsize-offsetroom)/scaleroom;
 }
 
+// OFFSET: 0x009291B0
 void revmodel::setdamp(float value)
 {
 	damp = value*scaledamp;
 	update();
 }
 
+// OFFSET: 0x009291D0
 float revmodel::getdamp()
 {
 	return damp/scaledamp;
 }
 
+// OFFSET: 0x009291E0
 void revmodel::setwet(float value)
 {
 	wet = value*scalewet;
 	update();
 }
 
+// OFFSET: 0x00929200
 float revmodel::getwet()
 {
 	return wet/scalewet;
 }
 
+// OFFSET: 0x00929210
 void revmodel::setdry(float value)
 {
 	dry = value*scaledry;
 }
 
+// OFFSET: 0x00929220
 float revmodel::getdry()
 {
 	return dry/scaledry;
 }
 
+// OFFSET: 0x00929230
 void revmodel::setwidth(float value)
 {
 	width = value;
 	update();
 }
 
+// OFFSET: 0x00929250
 float revmodel::getwidth()
 {
 	return width;
 }
 
+// OFFSET: 0x00929260
 void revmodel::setmode(float value)
 {
 	mode = value;
 	update();
 }
 
+// OFFSET: 0x00929280
 float revmodel::getmode()
 {
 	if (mode >= freezemode)

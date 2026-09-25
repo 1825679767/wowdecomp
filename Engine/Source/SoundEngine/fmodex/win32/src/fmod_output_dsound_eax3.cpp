@@ -26,6 +26,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009506C0
 bool OutputDSound::querySupportEAX3(unsigned int ulQuery)
 {
     unsigned long ulSupport = 0;
@@ -71,6 +72,7 @@ bool OutputDSound::querySupportEAX3(unsigned int ulQuery)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00950740
 bool OutputDSound::initEAX3()
 {
     FMOD_RESULT             result;
@@ -187,6 +189,7 @@ bool OutputDSound::initEAX3()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00950A50
 FMOD_RESULT OutputDSound::closeEAX3()
 {
 	if (mBufferReverb)
@@ -231,6 +234,7 @@ FMOD_RESULT OutputDSound::closeEAX3()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00950AF0
 FMOD_RESULT OutputDSound::setPropertiesEAX3(const FMOD_REVERB_PROPERTIES *prop)
 {
     if (!prop)

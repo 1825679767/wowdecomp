@@ -136,6 +136,7 @@ int      CodecMPEG::gIntWinBase[] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F6CC0
 FMOD_CODEC_DESCRIPTION_EX *CodecMPEG::getDescriptionEx()
 {
     FMOD_memset(&mpegcodec, 0, sizeof(FMOD_CODEC_DESCRIPTION_EX));
@@ -172,6 +173,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecMPEG::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F57E0
 FMOD_RESULT CodecMPEG::makeTables(int scaleval)
 {
 	int i,j,k,kr,divv;
@@ -247,6 +249,7 @@ FMOD_RESULT CodecMPEG::makeTables(int scaleval)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5C70
 FMOD_RESULT CodecMPEG::initAll() 
 {
     FMOD_RESULT result;
@@ -359,6 +362,7 @@ FMOD_RESULT CodecMPEG::closeAll()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5CA0
 FMOD_RESULT CodecMPEG::getPCMLength() 
 {
     FMOD_RESULT     result;
@@ -449,6 +453,7 @@ FMOD_RESULT CodecMPEG::getPCMLength()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F64F0
 FMOD_RESULT CodecMPEG::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     FMOD_RESULT     result = FMOD_OK;
@@ -914,6 +919,7 @@ FMOD_RESULT CodecMPEG::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5E20
 FMOD_RESULT CodecMPEG::closeInternal()
 {
     if (mPCMBufferMemory)
@@ -959,6 +965,7 @@ FMOD_RESULT CodecMPEG::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5EE0
 FMOD_RESULT CodecMPEG::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     int channel;
@@ -1273,6 +1280,7 @@ FMOD_RESULT CodecMPEG::readInternal(void *buffer, unsigned int sizebytes, unsign
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F60E0
 FMOD_RESULT CodecMPEG::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
 #ifndef PLATFORM_PS3_SPU_STREAMDECODE
@@ -1504,6 +1512,7 @@ FMOD_RESULT CodecMPEG::setPositionInternal(int subsound, unsigned int position, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F6360
 FMOD_RESULT CodecMPEG::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 {
 #ifndef PLATFORM_PS3_SPU
@@ -1548,6 +1557,7 @@ FMOD_RESULT CodecMPEG::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F6C80
 FMOD_RESULT F_CALLBACK CodecMPEG::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecMPEG *mpeg = (CodecMPEG *)codec;
@@ -1572,6 +1582,7 @@ FMOD_RESULT F_CALLBACK CodecMPEG::openCallback(FMOD_CODEC_STATE *codec, FMOD_MOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F63F0
 FMOD_RESULT F_CALLBACK CodecMPEG::closeCallback(FMOD_CODEC_STATE *codec)
 {
     CodecMPEG *mpeg = (CodecMPEG *)codec;
@@ -1596,6 +1607,7 @@ FMOD_RESULT F_CALLBACK CodecMPEG::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F6420
 FMOD_RESULT F_CALLBACK CodecMPEG::soundCreateCallback(FMOD_CODEC_STATE *codec, int subsound, FMOD_SOUND *sound)
 {
     CodecMPEG *mpeg = (CodecMPEG *)codec;    
@@ -1622,6 +1634,7 @@ FMOD_RESULT F_CALLBACK CodecMPEG::soundCreateCallback(FMOD_CODEC_STATE *codec, i
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F6460
 FMOD_RESULT F_CALLBACK CodecMPEG::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     CodecMPEG *mpeg = (CodecMPEG *)codec;
@@ -1645,6 +1658,7 @@ FMOD_RESULT F_CALLBACK CodecMPEG::readCallback(FMOD_CODEC_STATE *codec, void *bu
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F6490
 FMOD_RESULT F_CALLBACK CodecMPEG::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     CodecMPEG *mpeg = (CodecMPEG *)codec;
@@ -1668,6 +1682,7 @@ FMOD_RESULT F_CALLBACK CodecMPEG::setPositionCallback(FMOD_CODEC_STATE *codec, i
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F64C0
 FMOD_RESULT F_CALLBACK CodecMPEG::resetCallback(FMOD_CODEC_STATE *codec)
 {
     CodecMPEG *mpeg = (CodecMPEG *)codec;    

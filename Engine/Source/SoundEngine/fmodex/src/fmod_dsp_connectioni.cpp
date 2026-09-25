@@ -75,6 +75,7 @@ FMOD_RESULT DSPConnectionI::validate(DSPConnection *dspconnection, DSPConnection
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00923020
 FMOD_RESULT DSPConnectionI::init(DSP_LEVEL_TYPE * &levelmemory, int maxoutputlevels, int maxinputlevels)
 {  
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -212,6 +213,7 @@ FMOD_RESULT DSPConnectionI::getOutput(DSPI **output)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009230A0
 FMOD_RESULT DSPConnectionI::reset()
 {
     int count, count2;
@@ -253,6 +255,7 @@ FMOD_RESULT DSPConnectionI::reset()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00923130
 FMOD_RESULT DSPConnectionI::setUnity()
 {
     int count, count2;
@@ -295,6 +298,7 @@ FMOD_RESULT DSPConnectionI::setUnity()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00923D50
 FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RESTRICT inbuffer, int outchannels, int inchannels, unsigned int length)
 {
     unsigned int count;
@@ -1384,6 +1388,7 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009231B0
 FMOD_RESULT DSPConnectionI::mixAndRamp(float * FMOD_RESTRICT outbuffer, float * FMOD_RESTRICT inbuffer, int outchannels, int inchannels, unsigned int length)
 {
     unsigned int count;
@@ -1482,6 +1487,7 @@ FMOD_RESULT DSPConnectionI::mixAndRamp(float * FMOD_RESTRICT outbuffer, float * 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00923300
 FMOD_RESULT DSPConnectionI::rampTo()
 {
     int   count;
@@ -1557,6 +1563,7 @@ FMOD_RESULT DSPConnectionI::rampTo()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00923470
 FMOD_RESULT DSPConnectionI::checkUnity(int outchannels, int inchannels)
 {
     int count, count2;
@@ -1651,6 +1658,7 @@ FMOD_RESULT DSPConnectionI::checkMono(int outchannels, int inchannels)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00923500
 FMOD_RESULT DSPConnectionI::setPan(float pan, int outchannels, int inchannels, FMOD_SPEAKERMODE speakermode)
 {
     int count, count2;
@@ -2132,6 +2140,7 @@ FMOD_RESULT DSPConnectionI::getLevels(float *levels, int numinputlevels)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00923A20
 FMOD_RESULT DSPConnectionI::setMix(float volume)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -2361,6 +2370,7 @@ FMOD_RESULT DSPConnectionI::getUserData(void **userdata)
 ]
 */
 #ifdef FMOD_SUPPORT_SOFTWARE
+// OFFSET: 0x00923C50
 FMOD_RESULT DSPConnectionI::copy(DSPConnectionI *source)
 {
     int count, count2;

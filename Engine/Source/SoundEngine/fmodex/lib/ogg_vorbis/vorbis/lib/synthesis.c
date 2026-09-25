@@ -23,6 +23,7 @@
 #include "misc.h"
 #include "os.h"
 
+// OFFSET: 0x0046CB40
 int FMOD_vorbis_synthesis(void *context, vorbis_block *vb,ogg_packet *op){
   vorbis_dsp_state     *vd=vb->vd;
   private_state        *b=vd->backend_state;
@@ -95,6 +96,7 @@ int FMOD_vorbis_synthesis(void *context, vorbis_block *vb,ogg_packet *op){
 
 /* used to track pcm position without actually performing decode.
    Useful for sequential 'fast forward' */
+// OFFSET: 0x0046CCB0
 int FMOD_vorbis_synthesis_trackonly(void *context, vorbis_block *vb,ogg_packet *op){
   vorbis_dsp_state     *vd=vb->vd;
   private_state        *b=vd->backend_state;
@@ -145,6 +147,7 @@ int FMOD_vorbis_synthesis_trackonly(void *context, vorbis_block *vb,ogg_packet *
   return(0);
 }
 
+// OFFSET: 0x0046CD90
 ogg_int32_t FMOD_vorbis_packet_blocksize(vorbis_info *vi,ogg_packet *op){
   codec_setup_info     *ci=vi->codec_setup;
   oggpack_buffer       opb;

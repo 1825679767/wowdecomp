@@ -673,6 +673,7 @@ static int _01forward(oggpack_buffer *opb,
 #endif
 
 /* a truncated packet here just means 'stop working'; it's not an error */
+// OFFSET: 0x00470F70
 static int _FMOD_01inverse(void *context, vorbis_block *vb,vorbis_look_residue *vl,
                       float **in,int ch,
                       ogg_int32_t (*decodepart)(codebook *, float *,

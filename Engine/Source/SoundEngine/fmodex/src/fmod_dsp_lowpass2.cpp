@@ -71,6 +71,7 @@ FMOD_DSP_PARAMETERDESC dsplowpass2_param[2] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2A00
 FMOD_DSP_DESCRIPTION_EX *DSPLowPass2::getDescriptionEx()
 {
 #ifndef PLATFORM_PS3_SPU
@@ -122,6 +123,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPLowPass2::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2930
 FMOD_RESULT DSPLowPass2::createInternal()
 {
     int count;
@@ -199,6 +201,7 @@ FMOD_RESULT DSPLowPass2::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2260
 FMOD_RESULT DSPLowPass2::updateCoefficients(float resonance, float cutoff)
 {
     int   outputrate;
@@ -267,6 +270,7 @@ FMOD_RESULT DSPLowPass2::updateCoefficients(float resonance, float cutoff)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2360
 FMOD_RESULT DSPLowPass2::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     static float dc = (float)1E-20;
@@ -699,6 +703,7 @@ FMOD_RESULT DSPLowPass2::getMemoryUsedImpl(MemoryTracker *tracker)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F29D0
 FMOD_RESULT F_CALLBACK DSPLowPass2::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPLowPass2 *lowpass2 = (DSPLowPass2 *)dsp;
@@ -723,6 +728,7 @@ FMOD_RESULT F_CALLBACK DSPLowPass2::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2880
 FMOD_RESULT F_CALLBACK DSPLowPass2::resetCallback(FMOD_DSP_STATE *dsp)
 {
     DSPLowPass2 *lowpass2 = (DSPLowPass2 *)dsp;
@@ -748,6 +754,7 @@ FMOD_RESULT F_CALLBACK DSPLowPass2::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F28C0
 FMOD_RESULT F_CALLBACK DSPLowPass2::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPLowPass2 *lowpass2 = (DSPLowPass2 *)dsp;
@@ -773,6 +780,7 @@ FMOD_RESULT F_CALLBACK DSPLowPass2::readCallback(FMOD_DSP_STATE *dsp, float *inb
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F28F0
 FMOD_RESULT F_CALLBACK DSPLowPass2::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPLowPass2 *lowpass2 = (DSPLowPass2 *)dsp;

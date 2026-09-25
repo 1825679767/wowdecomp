@@ -39,6 +39,7 @@ extern "C"
     FMOD_DEBUGLEVEL
 ]
 */
+// OFFSET: 0x008D0750
 FMOD_RESULT F_API FMOD_Debug_SetLevel(FMOD_DEBUGLEVEL level)
 {
     #ifdef FMOD_DEBUG

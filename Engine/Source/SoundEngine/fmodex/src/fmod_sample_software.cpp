@@ -32,6 +32,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093D7F0
 SampleSoftware::SampleSoftware()
 {
     mBuffer = 0;
@@ -55,6 +56,7 @@ SampleSoftware::SampleSoftware()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093D820
 FMOD_RESULT SampleSoftware::release(bool freethis)
 {
     FMOD_RESULT result;

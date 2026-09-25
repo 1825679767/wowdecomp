@@ -182,7 +182,9 @@ namespace FMOD
         FMOD_RESULT             isBusy(bool *isbusy, unsigned int *percent) { if (isbusy) *isbusy = (mFlags & FMOD_FILE_BUSY ? true : false); if (percent) *percent = mPercentBuffered; return FMOD_OK; }
         FMOD_RESULT             isStarving(bool *starving) { if (!starving) return FMOD_ERR_INVALID_PARAM; *starving = (mFlags & FMOD_FILE_STARVING ? true : false); return FMOD_OK; }
                                 
+        // OFFSET: 0x008D26C0
         virtual FMOD_RESULT     getMetadata(Metadata **metadata) { return FMOD_ERR_TAGNOTFOUND; }
+        // OFFSET: 0x008D26D0
         virtual FMOD_RESULT     getSize(unsigned int *size) { *size = mLength; return FMOD_OK; }                               
         virtual FMOD_RESULT     reallyOpen(const char *name_or_data, unsigned int *filesize) = 0;
         virtual FMOD_RESULT     reallyClose() = 0;

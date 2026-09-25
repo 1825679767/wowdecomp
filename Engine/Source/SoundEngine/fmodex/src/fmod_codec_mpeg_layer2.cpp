@@ -229,6 +229,7 @@ struct al_table CodecMPEG::gAlloc4[] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009317C0
 FMOD_RESULT CodecMPEG::initLayer2()
 {
 	float mulmul[27] = 
@@ -304,6 +305,7 @@ FMOD_RESULT CodecMPEG::initLayer2()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00931A60
 FMOD_RESULT CodecMPEG::II_step_one(unsigned int *bit_alloc,int *scale)
 {
     int				stereo   = mMemoryBlock->mFrame.stereo-1;
@@ -407,6 +409,7 @@ FMOD_RESULT CodecMPEG::II_step_one(unsigned int *bit_alloc,int *scale)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00931C90
 FMOD_RESULT CodecMPEG::II_step_two(unsigned int *bit_alloc,float fraction[2][4][SBLIMIT],int *scale,int x1)
 {
     int				i,j,k,ba;
@@ -523,6 +526,7 @@ FMOD_RESULT CodecMPEG::II_step_two(unsigned int *bit_alloc,float fraction[2][4][
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009320D0
 FMOD_RESULT CodecMPEG::getIIStuff()
 {
 	int translate[3][2][16] = 
@@ -575,6 +579,7 @@ FMOD_RESULT CodecMPEG::getIIStuff()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00932380
 FMOD_RESULT CodecMPEG::decodeLayer2(void *pcm_sample, unsigned int *outlen)
 {
 	int				i,j = 0;

@@ -56,6 +56,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7BC0
 FMOD_CODEC_DESCRIPTION_EX *CodecPlaylist::getDescriptionEx()
 {
     FMOD_memset(&playlistcodec, 0, sizeof(FMOD_CODEC_DESCRIPTION_EX));
@@ -91,6 +92,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecPlaylist::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7990
 FMOD_RESULT CodecPlaylist::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     FMOD_RESULT   result = FMOD_ERR_FORMAT;
@@ -228,6 +230,7 @@ FMOD_RESULT CodecPlaylist::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXIN
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7470
 FMOD_RESULT CodecPlaylist::readASX()
 {
     FMOD_RESULT result;
@@ -567,6 +570,7 @@ FMOD_RESULT CodecPlaylist::readB4S()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F6DD0
 FMOD_RESULT CodecPlaylist::getNextXMLTag(char *tagname, int *tagnamesize, char *tagdata, int *tagdatasize)
 {
     FMOD_RESULT     result;
@@ -699,6 +703,7 @@ FMOD_RESULT CodecPlaylist::getNextXMLTag(char *tagname, int *tagnamesize, char *
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F6EF0
 FMOD_RESULT CodecPlaylist::readM3U()
 {
     FMOD_RESULT     result;
@@ -879,6 +884,7 @@ FMOD_RESULT CodecPlaylist::readM3U()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F76F0
 FMOD_RESULT CodecPlaylist::readPLS()
 {
     FMOD_RESULT   result;
@@ -990,6 +996,7 @@ FMOD_RESULT CodecPlaylist::readPLS()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7180
 FMOD_RESULT CodecPlaylist::getPLSToken(char *buffer, int length, int *tokensize)
 {
     FMOD_RESULT     result = FMOD_OK;
@@ -1132,6 +1139,7 @@ FMOD_RESULT CodecPlaylist::getPLSToken(char *buffer, int length, int *tokensize)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7910
 FMOD_RESULT CodecPlaylist::readSimple()
 {
     FMOD_RESULT result;
@@ -1181,6 +1189,7 @@ FMOD_RESULT CodecPlaylist::readSimple()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7330
 FMOD_RESULT CodecPlaylist::readLine(char *buffer, int length, int *linelength)
 {
     FMOD_RESULT     result;
@@ -1235,6 +1244,7 @@ FMOD_RESULT CodecPlaylist::readLine(char *buffer, int length, int *linelength)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F73C0
 FMOD_RESULT CodecPlaylist::skipSimpleComments()
 {
     FMOD_RESULT     result = FMOD_OK;
@@ -1357,6 +1367,7 @@ FMOD_RESULT CodecPlaylist::getQuoteData(const char *tag, char *buffer, int *data
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F6D50
 FMOD_RESULT CodecPlaylist::skipWhiteSpace(int *numwhitespaces)
 {
     FMOD_RESULT   result;
@@ -1478,6 +1489,7 @@ FMOD_RESULT CodecPlaylist::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7B80
 FMOD_RESULT F_CALLBACK CodecPlaylist::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecPlaylist *playlist = (CodecPlaylist *)codec;

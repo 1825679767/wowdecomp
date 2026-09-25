@@ -218,6 +218,7 @@ void GeometryI::setToBeUpdated()
     [SEE_ALSO]
 ]
 */
+// OFFSET: 0x00919EC0
 bool GeometryI::octreeLineTestCallback(OctreeNode* item, void* data)
 {
     LineTestData        *lineTestData = (LineTestData*)data;
@@ -920,6 +921,7 @@ FMOD_RESULT GeometryI::getPolygonAttributes(int polygonIndex, float *directOcclu
     [SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091A2C0
 FMOD_RESULT GeometryI::flush()
 {
     /*
@@ -1743,6 +1745,7 @@ FMOD_RESULT GeometryI::getUserData(void **userdata)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091A5A0
 bool GeometryI::lineTest(LineTestData* lineTestData)
 {
     FMOD_VECTOR startBck = lineTestData->start;

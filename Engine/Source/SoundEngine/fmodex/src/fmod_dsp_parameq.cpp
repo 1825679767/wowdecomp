@@ -71,6 +71,7 @@ FMOD_DSP_PARAMETERDESC dspparameq_param[3] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EEC70
 FMOD_DSP_DESCRIPTION_EX *DSPParamEq::getDescriptionEx()
 {
 #ifndef PLATFORM_PS3_SPU
@@ -124,6 +125,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPParamEq::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EEB20
 FMOD_RESULT DSPParamEq::createInternal()
 {
     int count;
@@ -208,6 +210,7 @@ FMOD_RESULT DSPParamEq::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EDF40
 FMOD_RESULT DSPParamEq::updateCoefficients(float center, float bandwidth, float gain)
 {
     int outputrate;
@@ -282,6 +285,7 @@ FMOD_RESULT DSPParamEq::updateCoefficients(float center, float bandwidth, float 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EDFC0
 FMOD_RESULT DSPParamEq::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     unsigned int count;
@@ -743,6 +747,7 @@ FMOD_RESULT DSPParamEq::readInternal(float *inbuffer, float *outbuffer, unsigned
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EE930
 FMOD_RESULT DSPParamEq::setParameterInternal(int index, float value)
 {
     FMOD_RESULT result;
@@ -796,6 +801,7 @@ FMOD_RESULT DSPParamEq::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EE9B0
 FMOD_RESULT DSPParamEq::getParameterInternal(int index, float *value, char *valuestr)
 {
     switch (index)
@@ -879,6 +885,7 @@ FMOD_RESULT DSPParamEq::getMemoryUsedImpl(MemoryTracker *tracker)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EEC40
 FMOD_RESULT F_CALLBACK DSPParamEq::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPParamEq *parameq = (DSPParamEq *)dsp;
@@ -903,6 +910,7 @@ FMOD_RESULT F_CALLBACK DSPParamEq::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EEA40
 FMOD_RESULT F_CALLBACK DSPParamEq::resetCallback(FMOD_DSP_STATE *dsp)
 {
     DSPParamEq *parameq = (DSPParamEq *)dsp;
@@ -928,6 +936,7 @@ FMOD_RESULT F_CALLBACK DSPParamEq::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EEA80
 FMOD_RESULT F_CALLBACK DSPParamEq::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPParamEq *parameq = (DSPParamEq *)dsp;
@@ -953,6 +962,7 @@ FMOD_RESULT F_CALLBACK DSPParamEq::readCallback(FMOD_DSP_STATE *dsp, float *inbu
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EEAB0
 FMOD_RESULT F_CALLBACK DSPParamEq::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPParamEq *parameq = (DSPParamEq *)dsp;
@@ -977,6 +987,7 @@ FMOD_RESULT F_CALLBACK DSPParamEq::setParameterCallback(FMOD_DSP_STATE *dsp, int
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EEAF0
 FMOD_RESULT F_CALLBACK DSPParamEq::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
     DSPParamEq *parameq = (DSPParamEq *)dsp;

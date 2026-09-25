@@ -66,6 +66,7 @@ namespace FMOD
         public:
             ReverbI();
 #ifdef PLATFORM_PS2
+            // OFFSET: 0x008E6530
             virtual ~ReverbI() {}
 #endif
 

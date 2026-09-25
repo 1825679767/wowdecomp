@@ -10,6 +10,7 @@ namespace FMOD
 /*$ preserve end $*/
 
 
+// OFFSET: 0x008D1970
 FMOD_RESULT Sound::release()
 {
     FMOD_RESULT result;
@@ -44,6 +45,7 @@ FMOD_RESULT Sound::getSystemObject(System **system)
 }
 
 
+// OFFSET: 0x008D19A0
 FMOD_RESULT Sound::lock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     FMOD_RESULT result;
@@ -65,6 +67,7 @@ FMOD_RESULT Sound::lock(unsigned int offset, unsigned int length, void **ptr1, v
 }
 
 
+// OFFSET: 0x008D19F0
 FMOD_RESULT Sound::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
     FMOD_RESULT result;
@@ -365,6 +368,7 @@ FMOD_RESULT Sound::setSubSoundSentence(int *subsoundlist, int numsubsounds)
 }
 
 
+// OFFSET: 0x008D1A40
 FMOD_RESULT Sound::getName(char *name, int namelen)
 {
     FMOD_RESULT result;
@@ -386,6 +390,7 @@ FMOD_RESULT Sound::getName(char *name, int namelen)
 }
 
 
+// OFFSET: 0x008D1A80
 FMOD_RESULT Sound::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
 {
     FMOD_RESULT result;
@@ -550,6 +555,7 @@ FMOD_RESULT Sound::seekData(unsigned int pcm)
 }
 
 
+// OFFSET: 0x008D1AC0
 FMOD_RESULT Sound::setSoundGroup(SoundGroup *soundgroup)
 {
     FMOD_RESULT result;
@@ -907,6 +913,7 @@ FMOD_RESULT Sound::setUserData(void *_userdata)
 }
 
 
+// OFFSET: 0x008D1B00
 FMOD_RESULT Sound::getUserData(void **_userdata)
 {
     FMOD_RESULT result;

@@ -22,6 +22,7 @@ AJS*/
 /*$ preserve end $*/
 
 
+// OFFSET: 0x008D1150
 FMOD_RESULT System::release()
 {
     FMOD_RESULT result;
@@ -39,6 +40,7 @@ FMOD_RESULT System::release()
 }
 
 
+// OFFSET: 0x008D1180
 FMOD_RESULT System::setOutput(FMOD_OUTPUTTYPE output)
 {
     FMOD_RESULT result;
@@ -56,6 +58,7 @@ FMOD_RESULT System::setOutput(FMOD_OUTPUTTYPE output)
 }
 
 
+// OFFSET: 0x008D11B0
 FMOD_RESULT System::getOutput(FMOD_OUTPUTTYPE *output)
 {
     FMOD_RESULT result;
@@ -73,6 +76,7 @@ FMOD_RESULT System::getOutput(FMOD_OUTPUTTYPE *output)
 }
 
 
+// OFFSET: 0x008D11E0
 FMOD_RESULT System::getNumDrivers(int *numdrivers)
 {
     FMOD_RESULT result;
@@ -124,6 +128,7 @@ FMOD_RESULT System::getDriverInfoW(int id, short *name, int namelen, FMOD_GUID *
 }
 
 
+// OFFSET: 0x008D1240
 FMOD_RESULT System::getDriverCaps(int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode)
 {
     FMOD_RESULT result;
@@ -141,6 +146,7 @@ FMOD_RESULT System::getDriverCaps(int id, FMOD_CAPS *caps, int *minfrequency, in
 }
 
 
+// OFFSET: 0x008D1280
 FMOD_RESULT System::setDriver(int driver)
 {
     FMOD_RESULT result;
@@ -175,6 +181,7 @@ FMOD_RESULT System::getDriver(int *driver)
 }
 
 
+// OFFSET: 0x008D12B0
 FMOD_RESULT System::setHardwareChannels(int min2d, int max2d, int min3d, int max3d)
 {
     FMOD_RESULT result;
@@ -192,6 +199,7 @@ FMOD_RESULT System::setHardwareChannels(int min2d, int max2d, int min3d, int max
 }
 
 
+// OFFSET: 0x008D12F0
 FMOD_RESULT System::setSoftwareChannels(int numsoftwarechannels)
 {
     FMOD_RESULT result;
@@ -226,6 +234,7 @@ FMOD_RESULT System::getSoftwareChannels(int *numsoftwarechannels)
 }
 
 
+// OFFSET: 0x008D1320
 FMOD_RESULT System::setSoftwareFormat(int samplerate, FMOD_SOUND_FORMAT format, int numoutputchannels, int maxinputchannels, FMOD_DSP_RESAMPLER resamplemethod)
 {
     FMOD_RESULT result;
@@ -260,6 +269,7 @@ FMOD_RESULT System::getSoftwareFormat(int *samplerate, FMOD_SOUND_FORMAT *format
 }
 
 
+// OFFSET: 0x008D1360
 FMOD_RESULT System::setDSPBufferSize(unsigned int bufferlength, int numbuffers)
 {
     FMOD_RESULT result;
@@ -362,6 +372,7 @@ FMOD_RESULT System::getAdvancedSettings(FMOD_ADVANCEDSETTINGS *settings)
 }
 
 
+// OFFSET: 0x008D1390
 FMOD_RESULT System::setSpeakerMode(FMOD_SPEAKERMODE speakermode)
 {
     FMOD_RESULT result;
@@ -396,6 +407,7 @@ FMOD_RESULT System::getSpeakerMode(FMOD_SPEAKERMODE *speakermode)
 }
 
 
+// OFFSET: 0x008D13C0
 FMOD_RESULT System::setCallback(FMOD_SYSTEM_CALLBACK callback)
 {
     FMOD_RESULT result;
@@ -583,6 +595,7 @@ FMOD_RESULT System::createCodec(FMOD_CODEC_DESCRIPTION *description, unsigned in
 }
 
 
+// OFFSET: 0x008D13F0
 FMOD_RESULT System::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriverdata)
 {
     FMOD_RESULT result;
@@ -600,6 +613,7 @@ FMOD_RESULT System::init(int maxchannels, FMOD_INITFLAGS flags, void *extradrive
 }
 
 
+// OFFSET: 0x008D1420
 FMOD_RESULT System::close()
 {
     FMOD_RESULT result;
@@ -617,6 +631,7 @@ FMOD_RESULT System::close()
 }
 
 
+// OFFSET: 0x008D1450
 FMOD_RESULT System::update()
 {
     FMOD_RESULT result;
@@ -634,6 +649,7 @@ FMOD_RESULT System::update()
 }
 
 
+// OFFSET: 0x008D1480
 FMOD_RESULT System::set3DSettings(float dopplerscale, float distancefactor, float rolloffscale)
 {
     FMOD_RESULT result;
@@ -702,6 +718,7 @@ FMOD_RESULT System::get3DNumListeners(int *numlisteners)
 }
 
 
+// OFFSET: 0x008D14C0
 FMOD_RESULT System::set3DListenerAttributes(int listener, const FMOD_VECTOR *pos, const FMOD_VECTOR *vel, const FMOD_VECTOR *forward, const FMOD_VECTOR *up)
 {
     FMOD_RESULT result;
@@ -719,6 +736,7 @@ FMOD_RESULT System::set3DListenerAttributes(int listener, const FMOD_VECTOR *pos
 }
 
 
+// OFFSET: 0x008D1500
 FMOD_RESULT System::get3DListenerAttributes(int listener, FMOD_VECTOR *pos, FMOD_VECTOR *vel, FMOD_VECTOR *forward, FMOD_VECTOR *up)
 {
     FMOD_RESULT result;
@@ -736,6 +754,7 @@ FMOD_RESULT System::get3DListenerAttributes(int listener, FMOD_VECTOR *pos, FMOD
 }
 
 
+// OFFSET: 0x008D1540
 FMOD_RESULT System::set3DRolloffCallback(FMOD_3D_ROLLOFFCALLBACK callback)
 {
     FMOD_RESULT result;
@@ -821,6 +840,7 @@ FMOD_RESULT System::getStreamBufferSize(unsigned int *filebuffersize, FMOD_TIMEU
 }
 
 
+// OFFSET: 0x008D1570
 FMOD_RESULT System::getVersion(unsigned int *version)
 {
     FMOD_RESULT result;
@@ -872,6 +892,7 @@ FMOD_RESULT System::getChannelsPlaying(int *channels)
 }
 
 
+// OFFSET: 0x008D15A0
 FMOD_RESULT System::getHardwareChannels(int *num2d, int *num3d, int *total)
 {
     FMOD_RESULT result;
@@ -991,6 +1012,7 @@ FMOD_RESULT System::getWaveData(float *wavearray, int numvalues, int channeloffs
 }
 
 
+// OFFSET: 0x008D15D0
 FMOD_RESULT System::createSound(const char *name_or_data, FMOD_MODE mode, FMOD_CREATESOUNDEXINFO *exinfo, Sound **sound)
 {
     FMOD_RESULT result;
@@ -1008,6 +1030,7 @@ FMOD_RESULT System::createSound(const char *name_or_data, FMOD_MODE mode, FMOD_C
 }
 
 
+// OFFSET: 0x008D1610
 FMOD_RESULT System::createStream(const char *name_or_data, FMOD_MODE mode, FMOD_CREATESOUNDEXINFO *exinfo, Sound **sound)
 {
     FMOD_RESULT result;
@@ -1025,6 +1048,7 @@ FMOD_RESULT System::createStream(const char *name_or_data, FMOD_MODE mode, FMOD_
 }
 
 
+// OFFSET: 0x008D1650
 FMOD_RESULT System::createDSP(FMOD_DSP_DESCRIPTION *description, DSP **dsp)
 {
     FMOD_RESULT result;
@@ -1042,6 +1066,7 @@ FMOD_RESULT System::createDSP(FMOD_DSP_DESCRIPTION *description, DSP **dsp)
 }
 
 
+// OFFSET: 0x008D1680
 FMOD_RESULT System::createDSPByType(FMOD_DSP_TYPE type, DSP **dsp)
 {
     FMOD_RESULT result;
@@ -1059,6 +1084,7 @@ FMOD_RESULT System::createDSPByType(FMOD_DSP_TYPE type, DSP **dsp)
 }
 
 
+// OFFSET: 0x008D16B0
 FMOD_RESULT System::createChannelGroup(const char *name, ChannelGroup **channelgroup)
 {
     FMOD_RESULT result;
@@ -1076,6 +1102,7 @@ FMOD_RESULT System::createChannelGroup(const char *name, ChannelGroup **channelg
 }
 
 
+// OFFSET: 0x008D16E0
 FMOD_RESULT System::createSoundGroup(const char *name, SoundGroup **soundgroup)
 {
     FMOD_RESULT result;
@@ -1110,6 +1137,7 @@ FMOD_RESULT System::createReverb(Reverb **reverb)
 }
 
 
+// OFFSET: 0x008D1710
 FMOD_RESULT System::playSound(FMOD_CHANNELINDEX channelid, Sound *sound, bool paused, Channel **channel)
 {
     FMOD_RESULT result;
@@ -1127,6 +1155,7 @@ FMOD_RESULT System::playSound(FMOD_CHANNELINDEX channelid, Sound *sound, bool pa
 }
 
 
+// OFFSET: 0x008D1750
 FMOD_RESULT System::playDSP(FMOD_CHANNELINDEX channelid, DSP *dsp, bool paused, Channel **channel)
 {
     FMOD_RESULT result;
@@ -1144,6 +1173,7 @@ FMOD_RESULT System::playDSP(FMOD_CHANNELINDEX channelid, DSP *dsp, bool paused, 
 }
 
 
+// OFFSET: 0x008D1790
 FMOD_RESULT System::getChannel(int channelid, Channel **channel)
 {
     FMOD_RESULT result;
@@ -1195,6 +1225,7 @@ FMOD_RESULT System::getMasterSoundGroup(SoundGroup **soundgroup)
 }
 
 
+// OFFSET: 0x008D17C0
 FMOD_RESULT System::setReverbProperties(const FMOD_REVERB_PROPERTIES *prop)
 {
     FMOD_RESULT result;
@@ -1348,6 +1379,7 @@ FMOD_RESULT System::getDSPClock(unsigned int *hi, unsigned int *lo)
 }
 
 
+// OFFSET: 0x008D1820
 FMOD_RESULT System::getRecordNumDrivers(int *numdrivers)
 {
     FMOD_RESULT result;
@@ -1416,6 +1448,7 @@ FMOD_RESULT System::getRecordDriverCaps(int id, FMOD_CAPS *caps, int *minfrequen
 }
 
 
+// OFFSET: 0x008D1880
 FMOD_RESULT System::getRecordPosition(int id, unsigned int *position)
 {
     FMOD_RESULT result;
@@ -1433,6 +1466,7 @@ FMOD_RESULT System::getRecordPosition(int id, unsigned int *position)
 }
 
 
+// OFFSET: 0x008D18B0
 FMOD_RESULT System::recordStart(int id, Sound *sound, bool loop)
 {
     FMOD_RESULT result;
@@ -1450,6 +1484,7 @@ FMOD_RESULT System::recordStart(int id, Sound *sound, bool loop)
 }
 
 
+// OFFSET: 0x008D18E0
 FMOD_RESULT System::recordStop(int id)
 {
     FMOD_RESULT result;
@@ -1467,6 +1502,7 @@ FMOD_RESULT System::recordStop(int id)
 }
 
 
+// OFFSET: 0x008D1910
 FMOD_RESULT System::isRecording(int id, bool *recording)
 {
     FMOD_RESULT result;

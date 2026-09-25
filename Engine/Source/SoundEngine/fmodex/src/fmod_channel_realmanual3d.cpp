@@ -28,6 +28,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094BD30
 ChannelRealManual3D::ChannelRealManual3D()
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -76,6 +77,7 @@ FMOD_RESULT ChannelRealManual3D::alloc()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094BD50
 FMOD_RESULT ChannelRealManual3D::set2DFreqVolumePanFor3D()
 {
 #ifdef FMOD_SUPPORT_3DSOUND

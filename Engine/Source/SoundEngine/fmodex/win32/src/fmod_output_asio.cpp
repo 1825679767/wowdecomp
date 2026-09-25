@@ -55,6 +55,7 @@ OutputASIO *gASIOObject = 0;
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00937280
 FMOD_OUTPUT_DESCRIPTION_EX *OutputASIO::getDescriptionEx()
 {
     FMOD_memset(&asiooutput, 0, sizeof(FMOD_OUTPUT_DESCRIPTION_EX));
@@ -107,6 +108,7 @@ FMOD_OUTPUT_DESCRIPTION_EX *OutputASIO::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00936910
 void OutputASIO::bufferSwitch(long index, ASIOBool processNow)
 {
 	ASIOTime  timeInfo;
@@ -161,6 +163,7 @@ void OutputASIO::sampleRateDidChange(ASIOSampleRate sRate)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00935E20
 long OutputASIO::asioMessage(long selector, long value, void* message, double* opt)
 {
 	// currently the parameters "value", "message" and "opt" are not used.
@@ -242,6 +245,7 @@ long OutputASIO::asioMessage(long selector, long value, void* message, double* o
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00935E90
 FMOD_RESULT OutputASIO::updateMixer(ASIOTime* params, long doubleBufferIndex, ASIOBool directProcess)
 {
     FMOD_RESULT result;
@@ -629,6 +633,7 @@ FMOD_RESULT OutputASIO::updateMixer(ASIOTime* params, long doubleBufferIndex, AS
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009363C0
 ASIOTime * OutputASIO::bufferSwitchTimeInfo(ASIOTime* params, long doubleBufferIndex, ASIOBool directProcess)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -656,6 +661,7 @@ ASIOTime * OutputASIO::bufferSwitchTimeInfo(ASIOTime* params, long doubleBufferI
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009363E0
 FMOD_RESULT OutputASIO::getNumDrivers(int *numdrivers)
 {
     /*
@@ -695,6 +701,7 @@ FMOD_RESULT OutputASIO::getNumDrivers(int *numdrivers)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00936450
 FMOD_RESULT OutputASIO::getDriverName(int driver, char *name, int namelen)
 {
     Plugin::init(); /* Set up gGlobal - for debug / file / memory access by this plugin. */
@@ -734,6 +741,7 @@ FMOD_RESULT OutputASIO::getDriverName(int driver, char *name, int namelen)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009364C0
 FMOD_RESULT OutputASIO::getDriverCaps(int id, FMOD_CAPS *caps)
 {
     Plugin::init(); /* Set up gGlobal - for debug / file / memory access by this plugin. */
@@ -774,6 +782,7 @@ FMOD_RESULT OutputASIO::getDriverCaps(int id, FMOD_CAPS *caps)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00936970
 FMOD_RESULT OutputASIO::init(int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
     ASIODriverInfo      asioinf;
@@ -995,6 +1004,7 @@ FMOD_RESULT OutputASIO::init(int selecteddriver, FMOD_INITFLAGS flags, int *outp
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00936530
 FMOD_RESULT OutputASIO::close()
 {
     /*
@@ -1154,6 +1164,7 @@ FMOD_RESULT OutputASIO::stop()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00936630
 FMOD_RESULT OutputASIO::recordGetNumDrivers(int *numdrivers)
 {
     if (!mHandle)
@@ -1194,6 +1205,7 @@ FMOD_RESULT OutputASIO::recordGetNumDrivers(int *numdrivers)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009366A0
 FMOD_RESULT OutputASIO::recordGetDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid)
 {
     if (id < 0 || id >= 1)
@@ -1235,6 +1247,7 @@ FMOD_RESULT OutputASIO::recordGetDriverInfo(int id, char *name, int namelen, FMO
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00936F50
 FMOD_RESULT OutputASIO::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *sound, bool loop)
 {
     SoundI *soundi;
@@ -1349,6 +1362,7 @@ FMOD_RESULT OutputASIO::recordGetPosition(FMOD_RECORDING_INFO *recordinfo, unsig
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00936FD0
 FMOD_RESULT OutputASIO::recordLock(FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     FMOD_RESULT result;
@@ -1448,6 +1462,7 @@ FMOD_RESULT OutputASIO::recordUnlock(FMOD_RECORDING_INFO *recordinfo, void *ptr1
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00936740
 FMOD_RESULT F_CALLBACK OutputASIO::getNumDriversCallback(FMOD_OUTPUT_STATE *output, int *numdrivers)
 {
     OutputASIO *asio = (OutputASIO *)output;
@@ -1473,6 +1488,7 @@ FMOD_RESULT F_CALLBACK OutputASIO::getNumDriversCallback(FMOD_OUTPUT_STATE *outp
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00936770
 FMOD_RESULT F_CALLBACK OutputASIO::getDriverNameCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
     OutputASIO *asio = (OutputASIO *)output;
@@ -1498,6 +1514,7 @@ FMOD_RESULT F_CALLBACK OutputASIO::getDriverNameCallback(FMOD_OUTPUT_STATE *outp
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009367A0
 FMOD_RESULT OutputASIO::getDriverCapsCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_CAPS *caps)
 {
     OutputASIO *asio = (OutputASIO *)output;
@@ -1523,6 +1540,7 @@ FMOD_RESULT OutputASIO::getDriverCapsCallback(FMOD_OUTPUT_STATE *output, int id,
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009371D0
 FMOD_RESULT F_CALLBACK OutputASIO::initCallback(FMOD_OUTPUT_STATE *output, int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
     OutputASIO *asio = (OutputASIO *)output;
@@ -1548,6 +1566,7 @@ FMOD_RESULT F_CALLBACK OutputASIO::initCallback(FMOD_OUTPUT_STATE *output, int s
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009367E0
 FMOD_RESULT F_CALLBACK OutputASIO::closeCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputASIO *asio = (OutputASIO *)output;
@@ -1573,6 +1592,7 @@ FMOD_RESULT F_CALLBACK OutputASIO::closeCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00936810
 FMOD_RESULT F_CALLBACK OutputASIO::startCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputASIO *asio = (OutputASIO *)output;
@@ -1623,6 +1643,7 @@ FMOD_RESULT F_CALLBACK OutputASIO::stopCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00936830
 FMOD_RESULT F_CALLBACK OutputASIO::getHandleCallback(FMOD_OUTPUT_STATE *output, void **handle)
 {
     OutputASIO *asio = (OutputASIO *)output;
@@ -1649,6 +1670,7 @@ FMOD_RESULT F_CALLBACK OutputASIO::getHandleCallback(FMOD_OUTPUT_STATE *output, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00936870
 FMOD_RESULT F_CALLBACK OutputASIO::recordGetNumDriversCallback(FMOD_OUTPUT_STATE *output, int *numdrivers)
 {
     OutputASIO *asio = (OutputASIO *)output;
@@ -1674,6 +1696,7 @@ FMOD_RESULT F_CALLBACK OutputASIO::recordGetNumDriversCallback(FMOD_OUTPUT_STATE
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009368A0
 FMOD_RESULT F_CALLBACK OutputASIO::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen, FMOD_GUID *guid)
 {
     OutputASIO *asio = (OutputASIO *)output;
@@ -1699,6 +1722,7 @@ FMOD_RESULT F_CALLBACK OutputASIO::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00937210
 FMOD_RESULT F_CALLBACK OutputASIO::recordStartCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, FMOD_SOUND *sound, int loop)
 {
     OutputASIO *asio = (OutputASIO *)output;
@@ -1749,6 +1773,7 @@ FMOD_RESULT F_CALLBACK OutputASIO::recordStopCallback(FMOD_OUTPUT_STATE *output,
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009368D0
 FMOD_RESULT F_CALLBACK OutputASIO::recordGetPositionCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm)
 {
     OutputASIO *asio = (OutputASIO *)output;
@@ -1774,6 +1799,7 @@ FMOD_RESULT F_CALLBACK OutputASIO::recordGetPositionCallback(FMOD_OUTPUT_STATE *
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00937240
 FMOD_RESULT F_CALLBACK OutputASIO::recordLockCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     OutputASIO *asio = (OutputASIO *)output;

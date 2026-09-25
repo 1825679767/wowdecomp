@@ -347,6 +347,7 @@ OCCLUSION_TASK* OcclusionThread::retrieveOcclusion(unsigned int index)
     [SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E54D0
 GeometryMgr::GeometryMgr()
 {
     mSystem = 0;
@@ -466,6 +467,7 @@ void GeometryMgr::releaseMainOctree()
     [SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E54F0
 bool GeometryMgr::mainOctreeLineTestCallback(OctreeNode* item, void* data)
 {
     GeometryI::SpatialData* spatialdata = (GeometryI::SpatialData*)item;
@@ -551,6 +553,7 @@ FMOD_RESULT GeometryMgr::setWorldSize(float worldSize)
     [SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E5550
 FMOD_RESULT GeometryMgr::lineTestAll(const FMOD_VECTOR* start, const FMOD_VECTOR* end, float* directOcclusion, float* reverbOcclusion)
 {
 #ifdef FMOD_SUPPORT_GEOMETRY_THREADED

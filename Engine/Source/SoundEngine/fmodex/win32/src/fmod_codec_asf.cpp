@@ -63,6 +63,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F8B60
 FMOD_CODEC_DESCRIPTION_EX *CodecASF::getDescriptionEx()
 {
     FMOD_memset(&asfcodec, 0, sizeof(FMOD_CODEC_DESCRIPTION_EX));
@@ -101,6 +102,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecASF::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7C40
 FMOD_RESULT CodecASF::getStreamNumbers(IWMProfile* pProfile)
 {
     HRESULT          hr = S_OK;
@@ -182,6 +184,7 @@ FMOD_RESULT CodecASF::getStreamNumbers(IWMProfile* pProfile)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F8260
 FMOD_RESULT CodecASF::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     FMOD_RESULT             result = FMOD_OK;
@@ -561,6 +564,7 @@ FMOD_RESULT CodecASF::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7D50
 FMOD_RESULT CodecASF::closeInternal()
 {   
     if (mReader)
@@ -616,6 +620,7 @@ FMOD_RESULT CodecASF::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7DD0
 FMOD_RESULT CodecASF::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     HRESULT       hr           = S_OK;
@@ -687,6 +692,7 @@ FMOD_RESULT CodecASF::readInternal(void *buffer, unsigned int sizebytes, unsigne
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7E80
 FMOD_RESULT CodecASF::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     HRESULT hr;
@@ -821,6 +827,7 @@ HRESULT CROStream::Open( LPCTSTR ptszURL )
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7F40
 HRESULT CROStream::Read( void *pv, ULONG cb, ULONG *pcbRead )
 {
     FMOD_RESULT result;
@@ -852,6 +859,7 @@ HRESULT CROStream::Read( void *pv, ULONG cb, ULONG *pcbRead )
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7F70
 HRESULT CROStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *plibNewPosition)
 {
     FMOD_RESULT result;
@@ -911,6 +919,7 @@ HRESULT CROStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F7FF0
 HRESULT CROStream::Stat( STATSTG *pstatstg, DWORD grfStatFlag )
 {
     FMOD_RESULT result;
@@ -953,6 +962,7 @@ HRESULT CROStream::Stat( STATSTG *pstatstg, DWORD grfStatFlag )
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F8050
 HRESULT CROStream::QueryInterface( REFIID riid, void **ppv )
 {
     if( ( IID_IUnknown == riid ) || ( IID_IStream == riid ) )
@@ -983,6 +993,7 @@ HRESULT CROStream::QueryInterface( REFIID riid, void **ppv )
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F80A0
 ULONG CROStream::AddRef()
 {
     return( InterlockedIncrement( &m_cRefs ) );
@@ -1005,6 +1016,7 @@ ULONG CROStream::AddRef()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F80C0
 ULONG CROStream::Release()
 {
     if( 0 == InterlockedDecrement( &m_cRefs ) )
@@ -1034,6 +1046,7 @@ ULONG CROStream::Release()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F8100
 FMOD_RESULT CodecASF::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 {
     FMOD_RESULT  result = FMOD_OK;
@@ -1072,6 +1085,7 @@ FMOD_RESULT CodecASF::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F8B20
 FMOD_RESULT F_CALLBACK CodecASF::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecASF *asf = (CodecASF *)codec;
@@ -1096,6 +1110,7 @@ FMOD_RESULT F_CALLBACK CodecASF::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F8190
 FMOD_RESULT F_CALLBACK CodecASF::closeCallback(FMOD_CODEC_STATE *codec)
 {
     CodecASF *asf = (CodecASF *)codec;
@@ -1120,6 +1135,7 @@ FMOD_RESULT F_CALLBACK CodecASF::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F81C0
 FMOD_RESULT F_CALLBACK CodecASF::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     CodecASF *asf = (CodecASF *)codec;
@@ -1144,6 +1160,7 @@ FMOD_RESULT F_CALLBACK CodecASF::readCallback(FMOD_CODEC_STATE *codec, void *buf
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F81F0
 FMOD_RESULT F_CALLBACK CodecASF::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     CodecASF *asf = (CodecASF *)codec;
@@ -1168,6 +1185,7 @@ FMOD_RESULT F_CALLBACK CodecASF::setPositionCallback(FMOD_CODEC_STATE *codec, in
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F8220
 FMOD_RESULT F_CALLBACK CodecASF::soundCreateCallback(FMOD_CODEC_STATE *codec, int subsound, FMOD_SOUND *sound)
 {
     CodecASF *asf = (CodecASF *)codec;    

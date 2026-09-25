@@ -274,6 +274,7 @@ FLAC_API const char * const FLAC__StreamDecoderErrorStatusString[] = {
  * Class constructor/destructor
  *
  ***********************************************************************/
+// OFFSET: 0x00952F70
 FLAC_API FLAC__StreamDecoder *FLAC__stream_decoder_new(void)
 {
 	FLAC__StreamDecoder *decoder;
@@ -337,6 +338,7 @@ FLAC_API FLAC__StreamDecoder *FLAC__stream_decoder_new(void)
 	return decoder;
 }
 
+// OFFSET: 0x00954660
 FLAC_API void FLAC__stream_decoder_delete(void *context, FLAC__StreamDecoder *decoder)
 {
 	unsigned i;
@@ -367,6 +369,7 @@ FLAC_API void FLAC__stream_decoder_delete(void *context, FLAC__StreamDecoder *de
  *
  ***********************************************************************/
 
+// OFFSET: 0x00954DA0
 static FLAC__StreamDecoderInitStatus init_stream_internal_(
     void *context, 
 	FLAC__StreamDecoder *decoder,
@@ -480,6 +483,7 @@ static FLAC__StreamDecoderInitStatus init_stream_internal_(
 	return FLAC__STREAM_DECODER_INIT_STATUS_OK;
 }
 
+// OFFSET: 0x00954F80
 FLAC_API FLAC__StreamDecoderInitStatus FLAC__stream_decoder_init_stream(
     void *context,
 	FLAC__StreamDecoder *decoder,
@@ -672,6 +676,7 @@ FLAC_API FLAC__StreamDecoderInitStatus FLAC__stream_decoder_init_ogg_file(
 	return init_file_internal_(context, decoder, filename, write_callback, metadata_callback, error_callback, client_data, /*is_ogg=*/true);
 }
 
+// OFFSET: 0x00953170
 FLAC_API FLAC__bool FLAC__stream_decoder_finish(void *context, FLAC__StreamDecoder *decoder)
 {
 	FLAC__bool md5_failed = false;
@@ -755,6 +760,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_set_ogg_serial_number(FLAC__StreamDecod
 #endif
 }
 
+// OFFSET: 0x00951D10
 FLAC_API FLAC__bool FLAC__stream_decoder_set_md5_checking(FLAC__StreamDecoder *decoder, FLAC__bool value)
 {
 	FLAC__ASSERT(0 != decoder);
@@ -765,6 +771,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_set_md5_checking(FLAC__StreamDecoder *d
 	return true;
 }
 
+// OFFSET: 0x00951D30
 FLAC_API FLAC__bool FLAC__stream_decoder_set_metadata_respond(FLAC__StreamDecoder *decoder, FLAC__MetadataType type)
 {
 	FLAC__ASSERT(0 != decoder);
@@ -881,6 +888,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_set_metadata_ignore_all(FLAC__StreamDec
 	return true;
 }
 
+// OFFSET: 0x00951D70
 FLAC_API FLAC__StreamDecoderState FLAC__stream_decoder_get_state(const FLAC__StreamDecoder *decoder)
 {
 	FLAC__ASSERT(0 != decoder);
@@ -900,6 +908,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_get_md5_checking(const FLAC__StreamDeco
 	return decoder->protected_->md5_checking;
 }
 
+// OFFSET: 0x00951D80
 FLAC_API FLAC__uint64 FLAC__stream_decoder_get_total_samples(const FLAC__StreamDecoder *decoder)
 {
 	FLAC__ASSERT(0 != decoder);
@@ -942,6 +951,7 @@ FLAC_API unsigned FLAC__stream_decoder_get_blocksize(const FLAC__StreamDecoder *
 	return decoder->protected_->blocksize;
 }
 
+// OFFSET: 0x00953370
 FLAC_API FLAC__bool FLAC__stream_decoder_get_decode_position(void *context, const FLAC__StreamDecoder *decoder, FLAC__uint64 *position)
 {
 	FLAC__ASSERT(0 != decoder);
@@ -964,6 +974,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_get_decode_position(void *context, cons
 	return true;
 }
 
+// OFFSET: 0x00951DB0
 FLAC_API FLAC__bool FLAC__stream_decoder_flush(FLAC__StreamDecoder *decoder)
 {
 	FLAC__ASSERT(0 != decoder);
@@ -987,6 +998,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_flush(FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// OFFSET: 0x00951E30
 FLAC_API FLAC__bool FLAC__stream_decoder_reset(FLAC__StreamDecoder *decoder)
 {
 	FLAC__ASSERT(0 != decoder);
@@ -1084,6 +1096,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_process_single(void *context, FLAC__Str
 	}
 }
 
+// OFFSET: 0x009546E0
 FLAC_API FLAC__bool FLAC__stream_decoder_process_until_end_of_metadata(void *context, FLAC__StreamDecoder *decoder)
 {
 	FLAC__ASSERT(0 != decoder);
@@ -1176,6 +1189,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_skip_single_frame(void *context, FLAC__
 	}
 }
 
+// OFFSET: 0x00955DC0
 FLAC_API FLAC__bool FLAC__stream_decoder_seek_absolute(void *context, FLAC__StreamDecoder *decoder, FLAC__uint64 sample)
 {
 	FLAC__uint64 length;
@@ -1263,6 +1277,7 @@ unsigned FLAC__stream_decoder_get_input_bytes_unconsumed(const FLAC__StreamDecod
  *
  ***********************************************************************/
 
+// OFFSET: 0x00951F30
 void set_defaults_(FLAC__StreamDecoder *decoder)
 {
 #if FLAC__HAS_OGG
@@ -1310,6 +1325,7 @@ FILE *get_binary_stdin_(void)
 	return stdin;
 }
 
+// OFFSET: 0x00951FB0
 FLAC__bool allocate_output_(FLAC__StreamDecoder *decoder, unsigned size, unsigned channels)
 {
 	unsigned i;
@@ -1361,6 +1377,7 @@ FLAC__bool allocate_output_(FLAC__StreamDecoder *decoder, unsigned size, unsigne
 	return true;
 }
 
+// OFFSET: 0x009520E0
 FLAC__bool has_id_filtered_(FLAC__StreamDecoder *decoder, FLAC__byte *id)
 {
 	size_t i;
@@ -1375,6 +1392,7 @@ FLAC__bool has_id_filtered_(FLAC__StreamDecoder *decoder, FLAC__byte *id)
 	return false;
 }
 
+// OFFSET: 0x009533E0
 FLAC__bool find_metadata_(void *context, FLAC__StreamDecoder *decoder)
 {
 	FLAC__uint32 x;
@@ -1606,6 +1624,7 @@ FLAC__bool read_metadata_(void *context, FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// OFFSET: 0x009521D0
 FLAC__bool read_metadata_streaminfo_(void *context, FLAC__StreamDecoder *decoder, FLAC__bool is_last, unsigned length)
 {
 	FLAC__uint32 x;
@@ -1677,6 +1696,7 @@ FLAC__bool read_metadata_streaminfo_(void *context, FLAC__StreamDecoder *decoder
 	return true;
 }
 
+// OFFSET: 0x009523C0
 FLAC__bool read_metadata_seektable_(void *context, FLAC__StreamDecoder *decoder, FLAC__bool is_last, unsigned length)
 {
 	FLAC__uint32 i, x;
@@ -1719,6 +1739,7 @@ FLAC__bool read_metadata_seektable_(void *context, FLAC__StreamDecoder *decoder,
 	return true;
 }
 
+// OFFSET: 0x00952560
 FLAC__bool read_metadata_vorbiscomment_(void *context, FLAC__StreamDecoder *decoder, FLAC__StreamMetadata_VorbisComment *obj)
 {
 	FLAC__uint32 i;
@@ -1776,6 +1797,7 @@ FLAC__bool read_metadata_vorbiscomment_(void *context, FLAC__StreamDecoder *deco
 	return true;
 }
 
+// OFFSET: 0x009526E0
 FLAC__bool read_metadata_cuesheet_(void *context, FLAC__StreamDecoder *decoder, FLAC__StreamMetadata_CueSheet *obj)
 {
 	FLAC__uint32 i, j, x;
@@ -1859,6 +1881,7 @@ FLAC__bool read_metadata_cuesheet_(void *context, FLAC__StreamDecoder *decoder, 
 	return true;
 }
 
+// OFFSET: 0x00952A00
 FLAC__bool read_metadata_picture_(void *context, FLAC__StreamDecoder *decoder, FLAC__StreamMetadata_Picture *obj)
 {
 	FLAC__uint32 x;
@@ -1927,6 +1950,7 @@ FLAC__bool read_metadata_picture_(void *context, FLAC__StreamDecoder *decoder, F
 	return true;
 }
 
+// OFFSET: 0x00952BD0
 FLAC__bool skip_id3v2_tag_(void *context, FLAC__StreamDecoder *decoder)
 {
 	FLAC__uint32 x;
@@ -1949,6 +1973,7 @@ FLAC__bool skip_id3v2_tag_(void *context, FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// OFFSET: 0x00953A80
 FLAC__bool frame_sync_(void *context, FLAC__StreamDecoder *decoder)
 {
 	FLAC__uint32 x;
@@ -2004,6 +2029,7 @@ FLAC__bool frame_sync_(void *context, FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// OFFSET: 0x00955200
 FLAC__bool read_frame_(void *context, FLAC__StreamDecoder *decoder, FLAC__bool *got_a_frame, FLAC__bool do_full_decode)
 {
 	unsigned channel;
@@ -2149,6 +2175,7 @@ FLAC__bool read_frame_(void *context, FLAC__StreamDecoder *decoder, FLAC__bool *
 	return true;
 }
 
+// OFFSET: 0x00953BF0
 FLAC__bool read_frame_header_(void *context, FLAC__StreamDecoder *decoder)
 {
 	FLAC__uint32 x;
@@ -2458,6 +2485,7 @@ FLAC__bool read_frame_header_(void *context, FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// OFFSET: 0x00954FC0
 FLAC__bool read_subframe_(void *context, FLAC__StreamDecoder *decoder, unsigned channel, unsigned bps, FLAC__bool do_full_decode)
 {
 	FLAC__uint32 x;
@@ -2528,6 +2556,7 @@ FLAC__bool read_subframe_(void *context, FLAC__StreamDecoder *decoder, unsigned 
 	return true;
 }
 
+// OFFSET: 0x00952C50
 FLAC__bool read_subframe_constant_(void *context, FLAC__StreamDecoder *decoder, unsigned channel, unsigned bps, FLAC__bool do_full_decode)
 {
 	FLAC__Subframe_Constant *subframe = &decoder->private_->frame.subframes[channel].data.constant;
@@ -2551,6 +2580,7 @@ FLAC__bool read_subframe_constant_(void *context, FLAC__StreamDecoder *decoder, 
 	return true;
 }
 
+// OFFSET: 0x00954750
 FLAC__bool read_subframe_fixed_(void *context, FLAC__StreamDecoder *decoder, unsigned channel, unsigned bps, const unsigned order, FLAC__bool do_full_decode)
 {
 	FLAC__Subframe_Fixed *subframe = &decoder->private_->frame.subframes[channel].data.fixed;
@@ -2608,6 +2638,7 @@ FLAC__bool read_subframe_fixed_(void *context, FLAC__StreamDecoder *decoder, uns
 	return true;
 }
 
+// OFFSET: 0x00954930
 FLAC__bool read_subframe_lpc_(void *context, FLAC__StreamDecoder *decoder, unsigned channel, unsigned bps, const unsigned order, FLAC__bool do_full_decode)
 {
 	FLAC__Subframe_LPC *subframe = &decoder->private_->frame.subframes[channel].data.lpc;
@@ -2700,6 +2731,7 @@ FLAC__bool read_subframe_lpc_(void *context, FLAC__StreamDecoder *decoder, unsig
 	return true;
 }
 
+// OFFSET: 0x00952CD0
 FLAC__bool read_subframe_verbatim_(void *context, FLAC__StreamDecoder *decoder, unsigned channel, unsigned bps, FLAC__bool do_full_decode)
 {
 	FLAC__Subframe_Verbatim *subframe = &decoder->private_->frame.subframes[channel].data.verbatim;
@@ -2723,6 +2755,7 @@ FLAC__bool read_subframe_verbatim_(void *context, FLAC__StreamDecoder *decoder, 
 	return true;
 }
 
+// OFFSET: 0x00954390
 FLAC__bool read_residual_partitioned_rice_(void *context, FLAC__StreamDecoder *decoder, unsigned predictor_order, unsigned partition_order, FLAC__EntropyCodingMethod_PartitionedRiceContents *partitioned_rice_contents, FLAC__int32 *residual, FLAC__bool is_extended)
 {
 	FLAC__uint32 rice_parameter;
@@ -2781,6 +2814,7 @@ FLAC__bool read_residual_partitioned_rice_(void *context, FLAC__StreamDecoder *d
 	return true;
 }
 
+// OFFSET: 0x00954570
 FLAC__bool read_zero_padding_(void *context, FLAC__StreamDecoder *decoder)
 {
 	if(!FLAC__bitreader_is_consumed_byte_aligned(decoder->private_->input)) {
@@ -2795,6 +2829,7 @@ FLAC__bool read_zero_padding_(void *context, FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// OFFSET: 0x00954CB0
 FLAC__bool read_callback_(void *context, FLAC__byte buffer[], size_t *bytes, void *client_data)
 {
 	FLAC__StreamDecoder *decoder = (FLAC__StreamDecoder *)client_data;
@@ -2876,6 +2911,7 @@ FLAC__bool read_callback_(void *context, FLAC__byte buffer[], size_t *bytes, voi
 }
 
 #if FLAC__HAS_OGG
+// OFFSET: 0x009545F0
 FLAC__StreamDecoderReadStatus read_callback_ogg_aspect_(void *context, const FLAC__StreamDecoder *decoder, FLAC__byte buffer[], size_t *bytes)
 {
 	switch(FLAC__ogg_decoder_aspect_read_callback_wrapper(context, &decoder->protected_->ogg_decoder_aspect, buffer, bytes, read_callback_proxy_, decoder, decoder->private_->client_data)) {
@@ -2902,6 +2938,7 @@ FLAC__StreamDecoderReadStatus read_callback_ogg_aspect_(void *context, const FLA
 	}
 }
 
+// OFFSET: 0x00952D80
 FLAC__OggDecoderAspectReadStatus read_callback_proxy_(const void *void_decoder, FLAC__byte buffer[], size_t *bytes, void *client_data)
 {
 	FLAC__StreamDecoder *decoder = (FLAC__StreamDecoder*)void_decoder;
@@ -2921,6 +2958,7 @@ FLAC__OggDecoderAspectReadStatus read_callback_proxy_(const void *void_decoder, 
 }
 #endif
 
+// OFFSET: 0x00952DC0
 FLAC__StreamDecoderWriteStatus write_audio_frame_to_client_(FLAC__StreamDecoder *decoder, const FLAC__Frame *frame, const FLAC__int32 * const buffer[])
 {
 	if(decoder->private_->is_seeking) {
@@ -2981,6 +3019,7 @@ void send_error_to_client_(const FLAC__StreamDecoder *decoder, FLAC__StreamDecod
 		decoder->private_->unparseable_frame_count++;
 }
 
+// OFFSET: 0x009555C0
 FLAC__bool seek_to_absolute_sample_(void *context, FLAC__StreamDecoder *decoder, FLAC__uint64 stream_length, FLAC__uint64 target_sample)
 {
 	FLAC__uint64 first_frame_offset = decoder->private_->first_frame_offset, lower_bound, upper_bound, lower_bound_sample, upper_bound_sample, this_frame_sample;
@@ -3196,6 +3235,7 @@ FLAC__bool seek_to_absolute_sample_(void *context, FLAC__StreamDecoder *decoder,
 }
 
 #if FLAC__HAS_OGG
+// OFFSET: 0x00955B60
 FLAC__bool seek_to_absolute_sample_ogg_(void *context, FLAC__StreamDecoder *decoder, FLAC__uint64 stream_length, FLAC__uint64 target_sample)
 {
 	FLAC__uint64 left_pos = 0, right_pos = stream_length;

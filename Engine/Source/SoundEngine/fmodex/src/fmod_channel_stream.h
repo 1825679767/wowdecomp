@@ -46,6 +46,7 @@ namespace FMOD
         FMOD_RESULT  setDSPClockDelay    ();
         FMOD_RESULT  setSpeakerMix       (float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright);
         FMOD_RESULT  setSpeakerLevels    (int speaker, float *levels, int numlevels);
+        // OFFSET: 0x0091F6F0
         FMOD_RESULT  setPosition         (unsigned int position, FMOD_TIMEUNIT postype) { return setPositionEx(position, postype); }
         FMOD_RESULT  setPositionEx       (unsigned int position, FMOD_TIMEUNIT postype, bool fromasync = false);
         FMOD_RESULT  getPosition         (unsigned int *position, FMOD_TIMEUNIT postype);

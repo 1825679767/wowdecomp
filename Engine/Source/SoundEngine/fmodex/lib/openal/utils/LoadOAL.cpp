@@ -29,6 +29,7 @@
 
 HINSTANCE g_hOpenALDLL = NULL;
 
+// OFFSET: 0x009499D0
 ALboolean LoadOALLibrary(char *szOALFullPathName, LPOPENALFNTABLE lpOALFnTable)
 {
 	if (!lpOALFnTable)
@@ -451,6 +452,7 @@ ALboolean LoadOALLibrary(char *szOALFullPathName, LPOPENALFNTABLE lpOALFnTable)
 	return AL_TRUE;
 }
 
+// OFFSET: 0x0094A0E0
 ALvoid UnloadOALLibrary()
 {
 	// Unload the dll

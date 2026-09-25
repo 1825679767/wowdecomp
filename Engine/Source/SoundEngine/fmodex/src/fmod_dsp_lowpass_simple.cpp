@@ -75,6 +75,7 @@ FMOD_DSP_PARAMETERDESC dsplowpass_simple_param[1] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F21C0
 FMOD_DSP_DESCRIPTION_EX *DSPLowPassSimple::getDescriptionEx()
 {
 #ifndef PLATFORM_PS3_SPU
@@ -127,6 +128,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPLowPassSimple::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2100
 FMOD_RESULT DSPLowPassSimple::createInternal()
 {
     int count;
@@ -204,6 +206,7 @@ FMOD_RESULT DSPLowPassSimple::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F19F0
 FMOD_RESULT DSPLowPassSimple::updateCoefficients(float cutoffhz)
 {
     /*
@@ -262,6 +265,7 @@ FMOD_RESULT DSPLowPassSimple::updateCoefficients(float cutoffhz)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F1AA0
 FMOD_RESULT DSPLowPassSimple::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     static float dc = (float)1E-20;
@@ -711,6 +715,7 @@ FMOD_RESULT DSPLowPassSimple::getMemoryUsedImpl(MemoryTracker *tracker)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2190
 FMOD_RESULT F_CALLBACK DSPLowPassSimple::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPLowPassSimple *lowpass_simple = (DSPLowPassSimple *)dsp;
@@ -735,6 +740,7 @@ FMOD_RESULT F_CALLBACK DSPLowPassSimple::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2010
 FMOD_RESULT F_CALLBACK DSPLowPassSimple::resetCallback(FMOD_DSP_STATE *dsp)
 {
     DSPLowPassSimple *lowpass_simple = (DSPLowPassSimple *)dsp;
@@ -760,6 +766,7 @@ FMOD_RESULT F_CALLBACK DSPLowPassSimple::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2050
 FMOD_RESULT F_CALLBACK DSPLowPassSimple::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPLowPassSimple *lowpass_simple = (DSPLowPassSimple *)dsp;
@@ -785,6 +792,7 @@ FMOD_RESULT F_CALLBACK DSPLowPassSimple::readCallback(FMOD_DSP_STATE *dsp, float
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2080
 FMOD_RESULT F_CALLBACK DSPLowPassSimple::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPLowPassSimple *lowpass_simple = (DSPLowPassSimple *)dsp;
@@ -809,6 +817,7 @@ FMOD_RESULT F_CALLBACK DSPLowPassSimple::setParameterCallback(FMOD_DSP_STATE *ds
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F20B0
 FMOD_RESULT F_CALLBACK DSPLowPassSimple::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
     DSPLowPassSimple *lowpass_simple = (DSPLowPassSimple *)dsp;

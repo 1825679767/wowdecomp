@@ -41,6 +41,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00916EC0
 Output::Output()
 {
     mEnumerated             = false;
@@ -81,6 +82,7 @@ Output::Output()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00916090
 FMOD_RESULT Output::release()
 {
     if (mDescription.close)
@@ -118,6 +120,7 @@ FMOD_RESULT Output::release()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00916120
 FMOD_RESULT Output::recordRead(FMOD_RECORDING_INFO *recordinfo, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     FMOD_RESULT          result        = FMOD_OK;
@@ -212,6 +215,7 @@ FMOD_RESULT Output::recordRead(FMOD_RECORDING_INFO *recordinfo, float *inbuffer,
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009165A0
 FMOD_RESULT F_CALLBACK Output::recordResamplerReadCallback(FMOD_DSP_STATE *dsp_state, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPResampler  *resampler  = (DSPResampler *)dsp_state;
@@ -236,6 +240,7 @@ FMOD_RESULT F_CALLBACK Output::recordResamplerReadCallback(FMOD_DSP_STATE *dsp_s
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009165F0
 FMOD_RESULT Output::recordFill(FMOD_RECORDING_INFO *recordinfo, unsigned int length)
 {
     FMOD_RESULT          result;
@@ -379,6 +384,7 @@ FMOD_RESULT Output::recordFill(FMOD_RECORDING_INFO *recordinfo, unsigned int len
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00916B30
 FMOD_RESULT Output::recordUpdate()
 {
     FMOD_RESULT             result  = FMOD_OK;
@@ -636,6 +642,7 @@ FMOD_RESULT Output::recordStop(FMOD_RECORDING_INFO *recordinfo)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00916BC0
 FMOD_RESULT Output::mix(void *buffer, unsigned int numsamples)
 {
     FMOD_RESULT           result;
@@ -796,6 +803,7 @@ FMOD_RESULT Output::mix(void *buffer, unsigned int numsamples)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009160B0
 FMOD_RESULT Output::getFreeChannel(FMOD_MODE mode, ChannelReal **realchannel, int numchannels, int numsoundchannels, int *found, bool ignorereserved)
 {
     FMOD_RESULT result;
@@ -889,6 +897,7 @@ FMOD_RESULT Output::reserveVoice(int voice, bool reserved)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00916E80
 FMOD_RESULT F_CALLBACK Output::mixCallback(FMOD_OUTPUT_STATE *output, void *buffer, unsigned int length)
 {
     Output *out = (Output *)output;

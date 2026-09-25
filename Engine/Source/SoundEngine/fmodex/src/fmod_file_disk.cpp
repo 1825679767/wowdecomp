@@ -26,6 +26,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E80A0
 FMOD_RESULT DiskFile::reallyOpen(const char *name_or_data, unsigned int *filesize)
 {
     FMOD_RESULT result;
@@ -99,6 +100,7 @@ FMOD_RESULT DiskFile::reallyOpen(const char *name_or_data, unsigned int *filesiz
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8140
 FMOD_RESULT DiskFile::reallyClose()
 {
     FMOD_RESULT result = FMOD_OK;
@@ -126,6 +128,7 @@ FMOD_RESULT DiskFile::reallyClose()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8170
 FMOD_RESULT DiskFile::reallyRead(void *buffer, unsigned int size, unsigned int *rd)
 {
     FMOD_RESULT result;
@@ -174,6 +177,7 @@ FMOD_RESULT DiskFile::reallyRead(void *buffer, unsigned int size, unsigned int *
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8200
 FMOD_RESULT DiskFile::reallySeek(unsigned int pos)
 {   
 	return FMOD_OS_File_Seek(mHandle, pos);
@@ -193,6 +197,7 @@ FMOD_RESULT DiskFile::reallySeek(unsigned int pos)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8220
 FMOD_RESULT DiskFile::reallyCancel()
 {
     return FMOD_OS_File_Cancel(mHandle);

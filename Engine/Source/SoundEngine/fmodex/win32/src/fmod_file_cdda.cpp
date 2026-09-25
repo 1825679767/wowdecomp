@@ -28,6 +28,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009219A0
 CddaFile::CddaFile()
 {
     mDevice           = 0;
@@ -50,6 +51,7 @@ CddaFile::CddaFile()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921030
 FMOD_RESULT CddaFile::init(bool force_aspi, bool jitter_correction)
 {
     mJitterCorrection = jitter_correction;
@@ -70,6 +72,7 @@ FMOD_RESULT CddaFile::init(bool force_aspi, bool jitter_correction)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921050
 FMOD_RESULT CddaFile::shutDown()
 {
     return FMOD_OS_CDDA_Shutdown();
@@ -89,6 +92,7 @@ FMOD_RESULT CddaFile::shutDown()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921690
 FMOD_RESULT CddaFile::reallyOpen(const char *name_or_data, unsigned int *filesize)
 {
     int numtracks;
@@ -200,6 +204,7 @@ FMOD_RESULT CddaFile::reallyOpen(const char *name_or_data, unsigned int *filesiz
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921060
 FMOD_RESULT CddaFile::reallyClose()
 {
     FMOD_RESULT result = FMOD_OK;
@@ -239,6 +244,7 @@ FMOD_RESULT CddaFile::reallyClose()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921850
 FMOD_RESULT CddaFile::reallyRead(void *buffer, unsigned int size, unsigned int *rd)
 {
     int          bytestocopy, count;
@@ -338,6 +344,7 @@ FMOD_RESULT CddaFile::reallyRead(void *buffer, unsigned int size, unsigned int *
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009210F0
 FMOD_RESULT CddaFile::doJitterCorrection(unsigned int sectors_to_read)
 {
     if (!mJitterBufEmpty)
@@ -429,6 +436,7 @@ FMOD_RESULT CddaFile::doJitterCorrection(unsigned int sectors_to_read)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009213D0
 FMOD_RESULT CddaFile::reallySeek(unsigned int pos)
 {
     unsigned int num_sectors;
@@ -465,6 +473,7 @@ FMOD_RESULT CddaFile::reallySeek(unsigned int pos)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921460
 FMOD_RESULT CddaFile::getNumTracks(int *numtracks)
 {
     if (!numtracks || !mDevice)
@@ -495,6 +504,7 @@ FMOD_RESULT CddaFile::getNumTracks(int *numtracks)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009214A0
 FMOD_RESULT CddaFile::getTrackLength(unsigned int track, unsigned int *tracklength)
 {
     if (!tracklength || !mDevice || (track >= (mDevice->toc.num_tracks - 1)))
@@ -521,6 +531,7 @@ FMOD_RESULT CddaFile::getTrackLength(unsigned int track, unsigned int *trackleng
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009214F0
 FMOD_RESULT CddaFile::openTrack(unsigned int track)
 {
     unsigned int starttime, thistime;
@@ -577,6 +588,7 @@ FMOD_RESULT CddaFile::openTrack(unsigned int track)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921620
 FMOD_RESULT CddaFile::getMetadata(Metadata **metadata)
 {
     if (!mDevice || !metadata)

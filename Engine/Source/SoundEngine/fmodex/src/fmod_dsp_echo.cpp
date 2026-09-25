@@ -61,6 +61,7 @@ FMOD_DSP_PARAMETERDESC dspecho_param[5] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F0910
 FMOD_DSP_DESCRIPTION_EX *DSPEcho::getDescriptionEx()
 {
     FMOD_memset(&dspecho_desc, 0, sizeof(FMOD_DSP_DESCRIPTION_EX));
@@ -105,6 +106,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPEcho::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EFEB0
 FMOD_RESULT DSPEcho::createInternal()
 {
     int count;
@@ -250,6 +252,7 @@ FMOD_RESULT DSPEcho::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EFF00
 FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {   
     unsigned int count;
@@ -744,6 +747,7 @@ FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned in
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F0530
 FMOD_RESULT DSPEcho::setParameterInternal(int index, float value)
 {
     FMOD_RESULT result;
@@ -806,6 +810,7 @@ FMOD_RESULT DSPEcho::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F06D0
 FMOD_RESULT DSPEcho::getParameterInternal(int index, float *value, char *valuestr)
 {
     switch (index)
@@ -904,6 +909,7 @@ FMOD_RESULT DSPEcho::getMemoryUsedImpl(MemoryTracker *tracker)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F07B0
 FMOD_RESULT F_CALLBACK DSPEcho::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPEcho *echo = (DSPEcho *)dsp;
@@ -928,6 +934,7 @@ FMOD_RESULT F_CALLBACK DSPEcho::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F07E0
 FMOD_RESULT F_CALLBACK DSPEcho::releaseCallback(FMOD_DSP_STATE *dsp)
 {
     DSPEcho *echo = (DSPEcho *)dsp;
@@ -952,6 +959,7 @@ FMOD_RESULT F_CALLBACK DSPEcho::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F0830
 FMOD_RESULT F_CALLBACK DSPEcho::resetCallback(FMOD_DSP_STATE *dsp)
 {
     DSPEcho *echo = (DSPEcho *)dsp;
@@ -976,6 +984,7 @@ FMOD_RESULT F_CALLBACK DSPEcho::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F0870
 FMOD_RESULT F_CALLBACK DSPEcho::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPEcho *echo = (DSPEcho *)dsp;
@@ -1000,6 +1009,7 @@ FMOD_RESULT F_CALLBACK DSPEcho::readCallback(FMOD_DSP_STATE *dsp, float *inbuffe
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F08A0
 FMOD_RESULT F_CALLBACK DSPEcho::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPEcho *echo = (DSPEcho *)dsp;
@@ -1024,6 +1034,7 @@ FMOD_RESULT F_CALLBACK DSPEcho::setParameterCallback(FMOD_DSP_STATE *dsp, int in
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F08E0
 FMOD_RESULT F_CALLBACK DSPEcho::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
     DSPEcho *echo = (DSPEcho *)dsp;

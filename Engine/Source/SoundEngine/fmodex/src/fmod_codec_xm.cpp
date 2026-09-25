@@ -62,6 +62,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009075F0
 FMOD_CODEC_DESCRIPTION_EX *CodecXM::getDescriptionEx()
 {
     FMOD_memset(&xmcodec, 0, sizeof(FMOD_CODEC_DESCRIPTION_EX));
@@ -105,6 +106,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecXM::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00905E30
 FMOD_RESULT CodecXM::calculateLength()
 {
     waveformat[0].lengthpcm = 0;
@@ -149,6 +151,7 @@ FMOD_RESULT CodecXM::calculateLength()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00903AA0
 FMOD_RESULT CodecXM::spawnNewChannel(MusicChannel *cptr, MusicVirtualChannel *oldvcptr, MusicSample *sptr, MusicVirtualChannel **newvcptr)
 {
     if (oldvcptr == &gDummyVirtualChannel) /* bugfix - fmod 3.11 - instrument starting with no channel was just ignoring settings. */
@@ -189,6 +192,7 @@ FMOD_RESULT CodecXM::spawnNewChannel(MusicChannel *cptr, MusicVirtualChannel *ol
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00903AE0
 FMOD_RESULT CodecXM::updateFlags(MusicChannel *cptr, MusicVirtualChannel *vcptr, MusicSample *sptr)
 {   
     if (!(vcptr->mFrequency + vcptr->mFrequencyDelta)) 
@@ -297,6 +301,7 @@ FMOD_RESULT CodecXM::updateFlags(MusicChannel *cptr, MusicVirtualChannel *vcptr,
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00903C30
 FMOD_RESULT MusicChannelXM::portamento()
 {
     MusicVirtualChannel *vcptr = (MusicVirtualChannel *)mVirtualChannelHead.getNext();
@@ -353,6 +358,7 @@ FMOD_RESULT MusicChannelXM::portamento()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00903CA0
 FMOD_RESULT MusicChannelXM::vibrato() 
 {
 	int delta;
@@ -414,6 +420,7 @@ FMOD_RESULT MusicChannelXM::vibrato()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00903D40
 FMOD_RESULT MusicChannelXM::tremolo() 
 {
 	unsigned char temp;
@@ -482,6 +489,7 @@ FMOD_RESULT MusicChannelXM::tremolo()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00903E50
 FMOD_RESULT CodecXM::processEnvelope(MusicEnvelopeState *env, MusicVirtualChannel *vcptr, int Inumpoints, unsigned short *points, int type, int loopstart, int loopend, unsigned char ISustain, unsigned char control)
 {
 	if (env->mPosition < Inumpoints) 
@@ -585,6 +593,7 @@ FMOD_RESULT CodecXM::processEnvelope(MusicEnvelopeState *env, MusicVirtualChanne
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00903F70
 FMOD_RESULT MusicChannelXM::instrumentVibrato(MusicInstrument *iptr) 
 {
     MusicVirtualChannel *vcptr = (MusicVirtualChannel *)mVirtualChannelHead.getNext();
@@ -651,6 +660,7 @@ FMOD_RESULT MusicChannelXM::instrumentVibrato(MusicInstrument *iptr)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009040B0
 FMOD_RESULT MusicChannelXM::processVolumeByte(unsigned char volume)
 {
     MusicVirtualChannel *vcptr = (MusicVirtualChannel *)mVirtualChannelHead.getNext();
@@ -763,6 +773,7 @@ FMOD_RESULT MusicChannelXM::processVolumeByte(unsigned char volume)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00904220
 FMOD_RESULT CodecXM::getAmigaPeriod(int note, int finetune, int *period)
 {
 	*period = gPeriodTable[note];
@@ -802,6 +813,7 @@ FMOD_RESULT CodecXM::getAmigaPeriod(int note, int finetune, int *period)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00904270
 FMOD_RESULT CodecXM::processNote(MusicNote *current, MusicChannelXM *cptr, MusicVirtualChannel *vcptr, MusicInstrument *iptr, MusicSample *sptr)
 {
 	/*
@@ -911,6 +923,7 @@ FMOD_RESULT CodecXM::processNote(MusicNote *current, MusicChannelXM *cptr, Music
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00904440
 FMOD_RESULT CodecXM::updateNote(bool audible)
 {
 	MusicNote  *current;
@@ -1568,6 +1581,7 @@ FMOD_RESULT CodecXM::updateNote(bool audible)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00904F00
 FMOD_RESULT CodecXM::updateEffects() 
 {
 	MusicNote  *current;
@@ -2101,6 +2115,7 @@ FMOD_RESULT CodecXM::updateEffects()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009059C0
 FMOD_RESULT CodecXM::update(bool audible)
 {
     //FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "CodecXM::update", "tick %d row %d\n", mTick, mRow));
@@ -2380,6 +2395,7 @@ int CodecXM::EncodeVAG_pcm2vag(unsigned char *vag, short *wave, int sample_len, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00906270
 FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
 	unsigned short	filenumpatterns=0;
@@ -3577,6 +3593,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00905B00
 FMOD_RESULT CodecXM::closeInternal()
 {
     int count;
@@ -3689,6 +3706,7 @@ FMOD_RESULT CodecXM::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00905E80
 FMOD_RESULT CodecXM::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     FMOD_RESULT     result = FMOD_OK;
@@ -3791,6 +3809,7 @@ FMOD_RESULT CodecXM::readInternal(void *buffer, unsigned int sizebytes, unsigned
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00905D30
 FMOD_RESULT CodecXM::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     if (postype == FMOD_TIMEUNIT_MODORDER)
@@ -3856,6 +3875,7 @@ FMOD_RESULT CodecXM::setPositionInternal(int subsound, unsigned int position, FM
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009075B0
 FMOD_RESULT F_CALLBACK CodecXM::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecXM *cxm = (CodecXM *)codec;
@@ -3879,6 +3899,7 @@ FMOD_RESULT F_CALLBACK CodecXM::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00905DD0
 FMOD_RESULT F_CALLBACK CodecXM::closeCallback(FMOD_CODEC_STATE *codec)
 {
     CodecXM *cxm = (CodecXM *)codec;
@@ -3902,6 +3923,7 @@ FMOD_RESULT F_CALLBACK CodecXM::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00906240
 FMOD_RESULT F_CALLBACK CodecXM::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     CodecXM *cxm = (CodecXM *)codec;
@@ -3925,6 +3947,7 @@ FMOD_RESULT F_CALLBACK CodecXM::readCallback(FMOD_CODEC_STATE *codec, void *buff
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00905E00
 FMOD_RESULT F_CALLBACK CodecXM::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype   )
 {
     CodecXM *cxm = (CodecXM *)codec;

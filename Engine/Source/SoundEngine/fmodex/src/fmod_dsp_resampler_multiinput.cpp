@@ -295,6 +295,7 @@ FMOD_RESULT DSPResamplerMultiInput::read(float **outbuffer, int *outchannels, un
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00929BD0
 FMOD_RESULT DSPResamplerMultiInput::addInput(DSPI *target)
 {
     FMOD_RESULT result;

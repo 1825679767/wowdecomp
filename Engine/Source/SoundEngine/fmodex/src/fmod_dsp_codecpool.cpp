@@ -73,6 +73,7 @@ private:
     int mPoolSize;
 };
 
+// OFFSET: 0x008E86B0
 FMOD_RESULT DSPCodecPool::init(FMOD_DSP_CATEGORY category, int resamplerpcmblocksize, int numdspcodecs)
 {
     int count;
@@ -320,6 +321,7 @@ FMOD_RESULT DSPCodecPool::init(FMOD_DSP_CATEGORY category, int resamplerpcmblock
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8510
 FMOD_RESULT DSPCodecPool::close()
 {
     if (mPool)
@@ -377,6 +379,7 @@ FMOD_RESULT DSPCodecPool::close()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E85F0
 FMOD_RESULT DSPCodecPool::alloc(DSPCodec **dspcodec)
 {
     int count;
@@ -413,6 +416,7 @@ FMOD_RESULT DSPCodecPool::alloc(DSPCodec **dspcodec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8660
 FMOD_RESULT DSPCodecPool::areAnyFree()
 {
     int count;

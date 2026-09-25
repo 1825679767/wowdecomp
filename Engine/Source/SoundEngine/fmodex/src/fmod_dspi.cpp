@@ -42,6 +42,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DC390
 FMOD_RESULT DSPI::doesUnitExist(DSPI *target, bool protect)
 {
 #ifndef PLATFORM_PS3_SPU
@@ -96,6 +97,7 @@ FMOD_RESULT DSPI::doesUnitExist(DSPI *target, bool protect)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DA410
 FMOD_RESULT DSPI::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 {
 #ifndef PLATFORM_PS3_SPU
@@ -197,6 +199,7 @@ FMOD_RESULT DSPI::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBEF0
 FMOD_RESULT DSPI::getInput(int index, DSPI **inputdsp, DSPConnectionI **input, bool protect)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -270,6 +273,7 @@ FMOD_RESULT DSPI::getInput(int index, DSPI **inputdsp, DSPConnectionI **input, b
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBF90
 FMOD_RESULT DSPI::getOutput(int index, DSPI **outputdsp, DSPConnectionI **output, bool protect)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -1107,6 +1111,7 @@ FMOD_RESULT DSPI::run(float **outbuffer, int *outchannels, unsigned int *length,
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DA520
 FMOD_RESULT DSPI::validate(DSP *dsp, DSPI **dspi)
 {
     if (!dspi)
@@ -1140,6 +1145,7 @@ FMOD_RESULT DSPI::validate(DSP *dsp, DSPI **dspi)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DC420
 FMOD_RESULT DSPI::setPosition(unsigned int position, bool processinputs)
 {
     FMOD_RESULT result;
@@ -1190,6 +1196,7 @@ FMOD_RESULT DSPI::setPosition(unsigned int position, bool processinputs)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DA550
 FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright, FMOD_SPEAKERMODE speakermode, int channels, FMOD_SPEAKERMAPTYPE speakermap, float *outlevels, int *numinputlevels)
 {
     *numinputlevels = 0;
@@ -2118,6 +2125,7 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DC4A0
 DSPI::DSPI()
 {
     mBuffer             = 0;
@@ -2158,6 +2166,7 @@ DSPI::DSPI()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DC540
 FMOD_RESULT DSPI::release(bool freethis)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -2300,6 +2309,7 @@ FMOD_RESULT DSPI::getSystemObject(System **system)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DB720
 FMOD_RESULT DSPI::updateTreeLevel(int level)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -2459,6 +2469,7 @@ FMOD_RESULT DSPI::releaseHistoryBuffer(float *ptr)
 ]
 */
 
+// OFFSET: 0x008DC600
 FMOD_RESULT DSPI::addInputInternal(DSPI *target, bool checkcircular, DSPConnectionI *connection, DSPConnectionI **connection_out, bool protect)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -2629,6 +2640,7 @@ FMOD_RESULT DSPI::addInputInternal(DSPI *target, bool checkcircular, DSPConnecti
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DCC10
 FMOD_RESULT DSPI::addInput(DSPI *target, DSPConnectionI **connection)
 {
     if (!mSystem)
@@ -2659,6 +2671,7 @@ FMOD_RESULT DSPI::addInput(DSPI *target, DSPConnectionI **connection)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DC820
 FMOD_RESULT DSPI::addInputQueued(DSPI *target, bool checkcircular, DSPConnectionI *connection_old, DSPConnectionI **connection_out)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -2777,6 +2790,7 @@ FMOD_RESULT DSPI::addInputQueued(DSPI *target, bool checkcircular, DSPConnection
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DC030
 FMOD_RESULT DSPI::disconnectFromInternal(DSPI *target, DSPConnectionI *connection, bool protect)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -2921,6 +2935,7 @@ FMOD_RESULT DSPI::disconnectFromInternal(DSPI *target, DSPConnectionI *connectio
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DB830
 FMOD_RESULT DSPI::disconnectFrom(DSPI *target, DSPConnectionI *connection)
 {    
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -2979,6 +2994,7 @@ FMOD_RESULT DSPI::disconnectFrom(DSPI *target, DSPConnectionI *connection)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DC950
 FMOD_RESULT DSPI::disconnectAllInternal(bool inputs, bool outputs, bool protect)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -3064,6 +3080,7 @@ FMOD_RESULT DSPI::disconnectAllInternal(bool inputs, bool outputs, bool protect)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DC340
 FMOD_RESULT DSPI::disconnectAll(bool inputs, bool outputs)
 {    
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -3334,6 +3351,7 @@ FMOD_RESULT DSPI::insertInputBetweenInternal(DSPI *dsp, int inputindex, bool sea
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DCAC0
 FMOD_RESULT DSPI::remove()
 {
     return removeInternal();
@@ -3441,6 +3459,7 @@ FMOD_RESULT DSPI::removeInternal(bool protect)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DB990
 FMOD_RESULT DSPI::getNumInputs(int *numinputs, bool protect)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -3492,6 +3511,7 @@ FMOD_RESULT DSPI::getNumInputs(int *numinputs, bool protect)
 ]
 */
 
+// OFFSET: 0x008DB9E0
 FMOD_RESULT DSPI::getNumOutputs(int *numoutputs, bool protect)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -3542,6 +3562,7 @@ FMOD_RESULT DSPI::getNumOutputs(int *numoutputs, bool protect)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBA30
 FMOD_RESULT DSPI::reset()
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -3578,6 +3599,7 @@ FMOD_RESULT DSPI::reset()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBA50
 FMOD_RESULT DSPI::setParameter(int index, float value)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -3643,6 +3665,7 @@ FMOD_RESULT DSPI::setParameter(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBAD0
 FMOD_RESULT DSPI::getParameter(int index, float *value, char *valuestr, int valuestrlen)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -3730,6 +3753,7 @@ FMOD_RESULT DSPI::getNumParameters(int *numparams)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBB60
 FMOD_RESULT DSPI::getParameterInfo(int index, char *name, char *label, char *description, int descriptionlen, float *min, float *max)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -3788,6 +3812,7 @@ FMOD_RESULT DSPI::getParameterInfo(int index, char *name, char *label, char *des
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBC40
 FMOD_RESULT DSPI::showConfigDialog(void *hwnd, bool show)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -3829,6 +3854,7 @@ FMOD_RESULT DSPI::showConfigDialog(void *hwnd, bool show)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBC70
 FMOD_RESULT DSPI::getInfo(char *name, unsigned int *version, int *channels, int *configwidth, int *configheight)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -3884,6 +3910,7 @@ FMOD_RESULT DSPI::getInfo(char *name, unsigned int *version, int *channels, int 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBCD0
 FMOD_RESULT DSPI::getType(FMOD_DSP_TYPE *type)
 {
     if (type)
@@ -3909,6 +3936,7 @@ FMOD_RESULT DSPI::getType(FMOD_DSP_TYPE *type)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBCF0
 FMOD_RESULT DSPI::setDefaults(float frequency, float volume, float pan, int priority)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -3971,6 +3999,7 @@ FMOD_RESULT DSPI::setDefaults(float frequency, float volume, float pan, int prio
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBD80
 FMOD_RESULT DSPI::getDefaults(float *frequency, float *volume, float *pan, int *priority)
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -4019,6 +4048,7 @@ FMOD_RESULT DSPI::getDefaults(float *frequency, float *volume, float *pan, int *
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBDD0
 FMOD_RESULT DSPI::setUserData(void *userdata)
 {
 #ifndef PLATFORM_PS3_SPU
@@ -4043,6 +4073,7 @@ FMOD_RESULT DSPI::setUserData(void *userdata)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBDF0
 FMOD_RESULT DSPI::getUserData(void **userdata)
 {
 #ifndef PLATFORM_PS3_SPU
@@ -4072,6 +4103,7 @@ FMOD_RESULT DSPI::getUserData(void **userdata)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBEA0
 FMOD_RESULT DSPI::setTargetFrequency(int frequency)
 {
 #ifndef PLATFORM_PS3_SPU
@@ -4096,6 +4128,7 @@ FMOD_RESULT DSPI::setTargetFrequency(int frequency)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DBEB0
 FMOD_RESULT DSPI::getTargetFrequency(int *frequency)
 {
 #ifndef PLATFORM_PS3_SPU

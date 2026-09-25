@@ -9,6 +9,7 @@ namespace FMOD
 /*$ preserve end $*/
 
 
+// OFFSET: 0x008D0760
 FMOD_RESULT DSP::release()
 {
     FMOD_RESULT result;
@@ -43,6 +44,7 @@ FMOD_RESULT DSP::getSystemObject(System **system)
 }
 
 
+// OFFSET: 0x008D0790
 FMOD_RESULT DSP::addInput(DSP *target, DSPConnection **connection)
 {
     FMOD_RESULT result;
@@ -77,6 +79,7 @@ FMOD_RESULT DSP::disconnectFrom(DSP *target)
 }
 
 
+// OFFSET: 0x008D07C0
 FMOD_RESULT DSP::disconnectAll(bool inputs, bool outputs)
 {
     FMOD_RESULT result;
@@ -94,6 +97,7 @@ FMOD_RESULT DSP::disconnectAll(bool inputs, bool outputs)
 }
 
 
+// OFFSET: 0x008D07F0
 FMOD_RESULT DSP::remove()
 {
     FMOD_RESULT result;
@@ -162,6 +166,7 @@ FMOD_RESULT DSP::getInput(int index, DSP **input, DSPConnection **inputconnectio
 }
 
 
+// OFFSET: 0x008D0820
 FMOD_RESULT DSP::getOutput(int index, DSP **output, DSPConnection **outputconnection)
 {
     FMOD_RESULT result;
@@ -179,6 +184,7 @@ FMOD_RESULT DSP::getOutput(int index, DSP **output, DSPConnection **outputconnec
 }
 
 
+// OFFSET: 0x008D0850
 FMOD_RESULT DSP::setActive(bool active)
 {
     FMOD_RESULT result;
@@ -213,6 +219,7 @@ FMOD_RESULT DSP::getActive(bool *active)
 }
 
 
+// OFFSET: 0x008D0890
 FMOD_RESULT DSP::setBypass(bool bypass)
 {
     FMOD_RESULT result;
@@ -298,6 +305,7 @@ FMOD_RESULT DSP::reset()
 }
 
 
+// OFFSET: 0x008D08D0
 FMOD_RESULT DSP::setParameter(int index, float value)
 {
     FMOD_RESULT result;
@@ -468,6 +476,7 @@ FMOD_RESULT DSP::setUserData(void *_userdata)
 }
 
 
+// OFFSET: 0x008D0900
 FMOD_RESULT DSP::getUserData(void **_userdata)
 {
     FMOD_RESULT result;

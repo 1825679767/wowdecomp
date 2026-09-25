@@ -54,6 +54,7 @@
  * reflect the addition of 16 longwords of new data.  MD5Update blocks
  * the data and converts bytes into longwords for this routine.
  */
+// OFFSET: 0x009573E0
 static void FLAC__MD5Transform(FLAC__uint32 buf[4], FLAC__uint32 const in[16])
 {
 	register FLAC__uint32 a, b, c, d;
@@ -139,6 +140,7 @@ static void FLAC__MD5Transform(FLAC__uint32 buf[4], FLAC__uint32 const in[16])
 
 #if WORDS_BIGENDIAN
 //@@@@@@ OPT: use bswap/intrinsics
+// OFFSET: 0x00957A80
 static void byteSwap(FLAC__uint32 *buf, unsigned words)
 {
 	register FLAC__uint32 x;
@@ -178,6 +180,7 @@ static void byteSwapX16(FLAC__uint32 *buf)
  * Update context to reflect the concatenation of another buffer full
  * of bytes.
  */
+// OFFSET: 0x00957B10
 static void FLAC__MD5Update(FLAC__MD5Context *ctx, FLAC__byte const *buf, unsigned len)
 {
 	FLAC__uint32 t;
@@ -217,6 +220,7 @@ static void FLAC__MD5Update(FLAC__MD5Context *ctx, FLAC__byte const *buf, unsign
  * Start MD5 accumulation.  Set bit count to 0 and buffer to mysterious
  * initialization constants.
  */
+// OFFSET: 0x00957AD0
 void FLAC__MD5Init(FLAC__MD5Context *ctx)
 {
 	ctx->buf[0] = 0x67452301;
@@ -235,6 +239,7 @@ void FLAC__MD5Init(FLAC__MD5Context *ctx)
  * Final wrapup - pad to 64-byte boundary with the bit pattern
  * 1 0* (64-bit count of bits processed, MSB-first)
  */
+// OFFSET: 0x00957D20
 void FLAC__MD5Final(FLAC__byte digest[16], FLAC__MD5Context *ctx)
 {
 	int count = ctx->bytes[0] & 0x3f;	/* Number of bytes in ctx->in */
@@ -395,6 +400,7 @@ static void format_input_(FLAC__byte *buf, const FLAC__int32 * const signal[], u
 /*
  * Convert the incoming audio signal to a byte stream and FLAC__MD5Update it.
  */
+// OFFSET: 0x00957BE0
 FLAC__bool FLAC__MD5Accumulate(FLAC__MD5Context *ctx, const FLAC__int32 * const signal[], unsigned channels, unsigned samples, unsigned bytes_per_sample)
 {
 	const size_t bytes_needed = (size_t)channels * (size_t)samples * (size_t)bytes_per_sample;

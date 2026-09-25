@@ -71,6 +71,7 @@ FMOD_DSP_PARAMETERDESC dspnormalize_param[3] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF1B0
 FMOD_DSP_DESCRIPTION_EX *DSPNormalize::getDescriptionEx()
 {
 #ifndef PLATFORM_PS3_SPU
@@ -124,6 +125,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPNormalize::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EED10
 FMOD_RESULT DSPNormalize::createInternal()
 {
     FMOD_RESULT result;
@@ -217,6 +219,7 @@ FMOD_RESULT DSPNormalize::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EED80
 FMOD_RESULT DSPNormalize::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {   
     unsigned int count, count2;
@@ -295,6 +298,7 @@ FMOD_RESULT DSPNormalize::readInternal(float *inbuffer, float *outbuffer, unsign
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EEF90
 FMOD_RESULT DSPNormalize::setParameterInternal(int index, float value)
 {
     switch (index)
@@ -344,6 +348,7 @@ FMOD_RESULT DSPNormalize::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF010
 FMOD_RESULT DSPNormalize::getParameterInternal(int index, float *value, char *valuestr)
 {
     switch (index)
@@ -425,6 +430,7 @@ FMOD_RESULT DSPNormalize::getMemoryUsedImpl(MemoryTracker *tracker)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF0A0
 FMOD_RESULT F_CALLBACK DSPNormalize::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPNormalize *normalize = (DSPNormalize *)dsp;
@@ -473,6 +479,7 @@ FMOD_RESULT F_CALLBACK DSPNormalize::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF0D0
 FMOD_RESULT F_CALLBACK DSPNormalize::resetCallback(FMOD_DSP_STATE *dsp)
 {
     DSPNormalize *normalize = (DSPNormalize *)dsp;
@@ -498,6 +505,7 @@ FMOD_RESULT F_CALLBACK DSPNormalize::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF110
 FMOD_RESULT F_CALLBACK DSPNormalize::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPNormalize *normalize = (DSPNormalize *)dsp;
@@ -523,6 +531,7 @@ FMOD_RESULT F_CALLBACK DSPNormalize::readCallback(FMOD_DSP_STATE *dsp, float *in
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF140
 FMOD_RESULT F_CALLBACK DSPNormalize::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPNormalize *normalize = (DSPNormalize *)dsp;
@@ -547,6 +556,7 @@ FMOD_RESULT F_CALLBACK DSPNormalize::setParameterCallback(FMOD_DSP_STATE *dsp, i
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF180
 FMOD_RESULT F_CALLBACK DSPNormalize::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
     DSPNormalize *normalize = (DSPNormalize *)dsp;

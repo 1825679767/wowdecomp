@@ -27,6 +27,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00922210
 OutputEmulated::OutputEmulated()
 {
     FMOD_memset(&mDescription, 0, sizeof(FMOD_OUTPUT_DESCRIPTION_EX));
@@ -52,6 +53,7 @@ OutputEmulated::OutputEmulated()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00922250
 FMOD_RESULT OutputEmulated::init(int maxchannels)
 {
     FMOD_RESULT  result;
@@ -114,6 +116,7 @@ FMOD_RESULT OutputEmulated::init(int maxchannels)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00922330
 FMOD_RESULT OutputEmulated::release()
 {
     if (mChannelPool)

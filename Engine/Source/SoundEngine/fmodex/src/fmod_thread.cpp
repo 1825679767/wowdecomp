@@ -24,6 +24,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E5190
 THREAD_RETURNTYPE THREAD_CALLCONV Thread::callback(void *data)
 {
     FMOD_UINT_NATIVE id;
@@ -110,6 +111,7 @@ FMOD_RESULT Thread::threadFunc()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E5260
 Thread::Thread()
 {
     mHandle       = 0;
@@ -138,6 +140,7 @@ Thread::Thread()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E52A0
 FMOD_RESULT Thread::initThread(const char *name, void (*func)(void *userdata), void *userdata, PRIORITY priority, void *stack, int stacksize, bool usesemaphore, int sleepperiod, SystemI *system)
 {
     FMOD_RESULT result;
@@ -275,6 +278,7 @@ FMOD_RESULT Thread::initThread(const char *name, void (*func)(void *userdata), v
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E53C0
 FMOD_RESULT Thread::closeThread()
 {
     if (mRunning)
@@ -373,6 +377,7 @@ FMOD_RESULT Thread::getCurrentThreadID(FMOD_UINT_NATIVE *id)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E54A0
 FMOD_RESULT Thread::wakeupThread(bool frominterrupt)
 {
     if (mSema)

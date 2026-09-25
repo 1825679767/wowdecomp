@@ -64,6 +64,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00927000
 FMOD_DSP_DESCRIPTION_EX *DSPCodec::getDescriptionEx()
 {
     FMOD_memset(&dspcodec, 0, sizeof(FMOD_DSP_DESCRIPTION_EX));
@@ -132,6 +133,7 @@ FMOD_RESULT DSPCodec::createInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00926C20
 FMOD_RESULT DSPCodec::release(bool freethis)
 {
     FMOD_RESULT result;
@@ -365,6 +367,7 @@ void DSPCodec_dmasubsoundlist(SoundI **soundi, void *soundimem, void *soundlistm
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00926CD0
 FMOD_RESULT DSPCodec::readInternal(signed short *inbuffer, signed short *outbuffer, unsigned int length, int inchannels, int outchannels)
 {   
     FMOD_RESULT result;
@@ -767,6 +770,7 @@ FMOD_RESULT DSPCodec::getParameterInternal(int index, float *value, char *values
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00926C70
 FMOD_RESULT F_CALLBACK DSPCodec::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPCodec *dspcodec = (DSPCodec *)dsp;
@@ -836,6 +840,7 @@ FMOD_RESULT F_CALLBACK DSPCodec::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00926FD0
 FMOD_RESULT F_CALLBACK DSPCodec::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPCodec *dspcodec = (DSPCodec *)dsp;
@@ -859,6 +864,7 @@ FMOD_RESULT F_CALLBACK DSPCodec::readCallback(FMOD_DSP_STATE *dsp, float *inbuff
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00926CA0
 FMOD_RESULT F_CALLBACK DSPCodec::setPositionCallback(FMOD_DSP_STATE *dsp, unsigned int pos)
 {
     DSPCodec *dspcodec = (DSPCodec *)dsp;

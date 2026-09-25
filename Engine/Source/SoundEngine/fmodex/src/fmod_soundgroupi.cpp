@@ -58,6 +58,7 @@ FMOD_RESULT SoundGroupI::validate(SoundGroup *soundgroup, SoundGroupI **soundgro
 ]
 */
 
+// OFFSET: 0x008E47E0
 SoundGroupI::SoundGroupI()
 {  
     mMaxAudible = -1;
@@ -83,6 +84,7 @@ SoundGroupI::SoundGroupI()
 ]
 */
 
+// OFFSET: 0x008E4810
 FMOD_RESULT SoundGroupI::release()
 {  
     if (this == mSystem->mSoundGroup)
@@ -159,6 +161,7 @@ FMOD_RESULT SoundGroupI::release()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E46D0
 FMOD_RESULT SoundGroupI::releaseInternal()
 {  
     if (mName)
@@ -217,6 +220,7 @@ FMOD_RESULT SoundGroupI::getSystemObject(System **system)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E4730
 FMOD_RESULT SoundGroupI::setMaxAudible(int maxaudible)
 {
     if (maxaudible < -1)
@@ -274,6 +278,7 @@ FMOD_RESULT SoundGroupI::getMaxAudible(int *maxaudible)
 ]
 */
 
+// OFFSET: 0x008E4750
 FMOD_RESULT SoundGroupI::setMaxAudibleBehavior(FMOD_SOUNDGROUP_BEHAVIOR behavior)
 {
     if (behavior < FMOD_SOUNDGROUP_BEHAVIOR_FAIL || behavior >= FMOD_SOUNDGROUP_BEHAVIOR_MAX)
@@ -358,6 +363,7 @@ FMOD_RESULT SoundGroupI::getMaxAudibleBehavior(FMOD_SOUNDGROUP_BEHAVIOR *behavio
 ]
 */
 
+// OFFSET: 0x008E4770
 FMOD_RESULT SoundGroupI::setMuteFadeSpeed(float speed)
 {
     if (speed < 0)
@@ -640,6 +646,7 @@ FMOD_RESULT SoundGroupI::getSound(int index, Sound **sound)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E47A0
 FMOD_RESULT SoundGroupI::getNumPlaying(int *numplaying)
 {
     LinkedListNode *current;

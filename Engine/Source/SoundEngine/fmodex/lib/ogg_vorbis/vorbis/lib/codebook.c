@@ -147,6 +147,7 @@ int vorbis_staticbook_pack(const static_codebook *c,oggpack_buffer *opb){
 
 /* unpacks a codebook from the packet buffer into the codebook struct,
    readies the codebook auxiliary structures for decode *************/
+// OFFSET: 0x0046ED10
 int FMOD_vorbis_staticbook_unpack(void *context, oggpack_buffer *opb,static_codebook *s){
   ogg_int32_t i,j;
   int err = -1;
@@ -321,6 +322,7 @@ int FMOD_vorbis_book_encodev(codebook *book,int best,float *a,oggpack_buffer *b)
    be.  The first-stage decode table catches most words so that
    bitreverse is not in the main execution path. */
 
+// OFFSET: 0x0046EFC0
 static ogg_uint32_t bitreverse(ogg_uint32_t x){
   x=    ((x>>16)&0x0000ffff) | ((x<<16)&0xffff0000);
   x=    ((x>> 8)&0x00ff00ff) | ((x<< 8)&0xff00ff00);
@@ -329,6 +331,7 @@ static ogg_uint32_t bitreverse(ogg_uint32_t x){
   return((x>> 1)&0x55555555) | ((x<< 1)&0xaaaaaaaa);
 }
 
+// OFFSET: 0x0046F020
 STIN ogg_int32_t decode_packed_entry_number(codebook *book, oggpack_buffer *b){
   int  read=book->dec_maxlength;
   ogg_int32_t lo,hi;
@@ -391,6 +394,7 @@ STIN ogg_int32_t decode_packed_entry_number(codebook *book, oggpack_buffer *b){
    addmul==2 -> multiplicitive */
 
 /* returns the [original, not compacted] entry number or -1 on eof *********/
+// OFFSET: 0x0046F150
 ogg_int32_t FMOD_vorbis_book_decode(codebook *book, oggpack_buffer *b){
   if(book->used_entries>0){
     ogg_int32_t packed_entry=decode_packed_entry_number(book,b);
@@ -403,6 +407,7 @@ ogg_int32_t FMOD_vorbis_book_decode(codebook *book, oggpack_buffer *b){
 }
 
 /* returns 0 on OK or -1 on eof *************************************/
+// OFFSET: 0x0046F180
 ogg_int32_t FMOD_vorbis_book_decodevs_add(codebook *book,float *a,oggpack_buffer *b,int n){
   if(book->used_entries>0){
     int step=n/book->dim;
@@ -422,6 +427,7 @@ ogg_int32_t FMOD_vorbis_book_decodevs_add(codebook *book,float *a,oggpack_buffer
   return(0);
 }
 
+// OFFSET: 0x0046F2F0
 ogg_int32_t FMOD_vorbis_book_decodev_add(codebook *book,float *a,oggpack_buffer *b,int n){
   if(book->used_entries>0){
     int i,j,entry;
@@ -467,6 +473,7 @@ ogg_int32_t FMOD_vorbis_book_decodev_add(codebook *book,float *a,oggpack_buffer 
   return(0);
 }
 
+// OFFSET: 0x0046F460
 ogg_int32_t FMOD_vorbis_book_decodev_set(codebook *book,float *a,oggpack_buffer *b,int n){
   if(book->used_entries>0){
     int i,j,entry;
@@ -490,6 +497,7 @@ ogg_int32_t FMOD_vorbis_book_decodev_set(codebook *book,float *a,oggpack_buffer 
   return(0);
 }
 
+// OFFSET: 0x0046F500
 ogg_int32_t FMOD_vorbis_book_decodevv_add(codebook *book,float **a,ogg_int32_t offset,int ch,
                               oggpack_buffer *b,int n){
 

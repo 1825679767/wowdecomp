@@ -20,6 +20,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8C70
 FMOD_RESULT NullFile::reallyOpen(const char *name_or_data, unsigned int *filesize)
 {
 	mPosition = 0;
@@ -62,6 +63,7 @@ FMOD_RESULT NullFile::reallyClose()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8C90
 FMOD_RESULT NullFile::reallyRead(void *buffer, unsigned int size, unsigned int *read)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -94,6 +96,7 @@ FMOD_RESULT NullFile::reallyRead(void *buffer, unsigned int size, unsigned int *
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8080
 FMOD_RESULT NullFile::reallySeek(unsigned int pos)
 {
     mPosition = pos;

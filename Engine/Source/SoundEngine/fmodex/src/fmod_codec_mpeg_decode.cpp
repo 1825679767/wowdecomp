@@ -57,6 +57,7 @@ int CodecMPEG::gFreqs[9] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0092C240
 unsigned int CodecMPEG::getBits(int number_of_bits)
 {
 	unsigned int rval;
@@ -96,6 +97,7 @@ unsigned int CodecMPEG::getBits(int number_of_bits)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0092C2C0
 unsigned int CodecMPEG::getBitsFast(int number_of_bits)
 {
 	unsigned int rval;
@@ -132,6 +134,7 @@ unsigned int CodecMPEG::getBitsFast(int number_of_bits)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0092C330
 FMOD_RESULT CodecMPEG::decodeHeader(void *in, int *samplerate, int *channels, int *framesize)
 {
 #ifdef FMOD_SUPPORT_MPEG_SONYDECODER
@@ -521,6 +524,7 @@ FMOD_RESULT CodecMPEG::decodeHeader(void *in, int *samplerate, int *channels, in
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0092C670
 FMOD_RESULT CodecMPEG::decodeXingHeader(unsigned char *in, unsigned char *toc, unsigned int *numframes)
 {
     int i, flags = 0;
@@ -618,6 +622,7 @@ FMOD_RESULT CodecMPEG::decodeXingHeader(unsigned char *in, unsigned char *toc, u
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0092C780
 FMOD_RESULT CodecMPEG::decodeFrame(unsigned char *in, void *out, unsigned int *outlen)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -696,6 +701,7 @@ FMOD_RESULT CodecMPEG::decodeFrame(unsigned char *in, void *out, unsigned int *o
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0092C880
 FMOD_RESULT CodecMPEG::resetFrame()
 {
     if (mMemoryBlock)
@@ -746,6 +752,7 @@ FMOD_RESULT CodecMPEG::resetFrame()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0092C930
 void CodecMPEG::dct64(float *out0,float *out1,float *samples)
 {
     float b1[32], b2[32];
@@ -1061,6 +1068,7 @@ void CodecMPEG::dct64(float *out0,float *out1,float *samples)
   else if( (sum) < -32768.0f) { *(samples) = -0x8000; } \
   else { *(samples) = (short)sum; }
 
+// OFFSET: 0x0094B920
 FMOD_RESULT CodecMPEG::synthC(float *b0, int bo1, int channelskip, signed short *samples)
 {
     register int j;
@@ -1182,6 +1190,7 @@ FMOD_RESULT CodecMPEG::synthC(float *b0, int bo1, int channelskip, signed short 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0092D300
 FMOD_RESULT CodecMPEG::synth(void *samples, float *bandPtr, int channels, int channelskip)
 {	
 	int		count;

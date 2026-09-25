@@ -27,6 +27,7 @@
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00915FC0
 FMOD_RESULT FMOD_OS_Output_Register(FMOD::PluginFactory *pluginfactory)
 {
 #ifdef FMOD_USE_PLUGINS
@@ -76,6 +77,7 @@ FMOD_RESULT FMOD_OS_Output_Register(FMOD::PluginFactory *pluginfactory)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00916030
 FMOD_RESULT FMOD_OS_Output_GetDefault(FMOD_OUTPUTTYPE *outputtype)
 {  
     if (!outputtype)

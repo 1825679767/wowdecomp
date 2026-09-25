@@ -60,6 +60,7 @@ FMOD_DSP_PARAMETERDESC dspreverb_param[6] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB900
 FMOD_DSP_DESCRIPTION_EX *DSPReverb::getDescriptionEx()
 {
     FMOD_memset(&dspreverb, 0, sizeof(FMOD_DSP_DESCRIPTION_EX));
@@ -102,6 +103,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPReverb::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB3E0
 FMOD_RESULT DSPReverb::createInternal()
 {
     int count;
@@ -231,6 +233,7 @@ FMOD_RESULT DSPReverb::readInternal(float *inbuffer, float *outbuffer, unsigned 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB440
 FMOD_RESULT DSPReverb::setParameterInternal(int index, float value)
 {
     mSystem->lockDSP();
@@ -338,6 +341,7 @@ FMOD_RESULT DSPReverb::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB680
 FMOD_RESULT DSPReverb::getParameterInternal(int index, float *value, char *valuestr)
 {
     switch (index)
@@ -445,6 +449,7 @@ FMOD_RESULT DSPReverb::getMemoryUsedImpl(MemoryTracker *tracker)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB7F0
 FMOD_RESULT F_CALLBACK DSPReverb::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPReverb *reverb = (DSPReverb *)dsp;
@@ -514,6 +519,7 @@ FMOD_RESULT F_CALLBACK DSPReverb::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB820
 FMOD_RESULT F_CALLBACK DSPReverb::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPReverb *reverb = (DSPReverb *)dsp;
@@ -537,6 +543,7 @@ FMOD_RESULT F_CALLBACK DSPReverb::readCallback(FMOD_DSP_STATE *dsp, float *inbuf
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB890
 FMOD_RESULT F_CALLBACK DSPReverb::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPReverb *reverb = (DSPReverb *)dsp;
@@ -560,6 +567,7 @@ FMOD_RESULT F_CALLBACK DSPReverb::setParameterCallback(FMOD_DSP_STATE *dsp, int 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB8D0
 FMOD_RESULT F_CALLBACK DSPReverb::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
     DSPReverb *reverb = (DSPReverb *)dsp;

@@ -21,6 +21,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8010
 FMOD_RESULT MemoryFile::reallyOpen(const char *name_or_data, unsigned int *filesize)
 {
 	mMem             = (signed char *)name_or_data;
@@ -62,6 +63,7 @@ FMOD_RESULT MemoryFile::reallyClose()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8030
 FMOD_RESULT MemoryFile::reallyRead(void *buffer, unsigned int size, unsigned int *read)
 {
     FMOD_RESULT result = FMOD_OK;

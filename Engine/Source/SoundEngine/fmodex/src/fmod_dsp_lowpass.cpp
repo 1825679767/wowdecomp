@@ -71,6 +71,7 @@ FMOD_DSP_PARAMETERDESC dsplowpass_param[2] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3790
 FMOD_DSP_DESCRIPTION_EX *DSPLowPass::getDescriptionEx()
 {
 #ifndef PLATFORM_PS3_SPU
@@ -123,6 +124,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPLowPass::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2E00
 FMOD_RESULT DSPLowPass::createInternal()
 {
     int count;
@@ -591,6 +593,7 @@ FMOD_RESULT DSPLowPass::process(float *inbuffer, float *outbuffer, unsigned int 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2EE0
 FMOD_RESULT DSPLowPass::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     if (!inbuffer)
@@ -797,6 +800,7 @@ FMOD_RESULT DSPLowPass::prewarp(float *a0, float *a1, float *a2, float fc, float
  *             On return, set coef z-domain coefficients
  * ----------------------------------------------------------
  */
+// OFFSET: 0x008F2AA0
 FMOD_RESULT DSPLowPass::bilinear(
     float a0, float a1, float a2,    /* numerator coefficients */
     float b0, float b1, float b2,    /* denominator coefficients */
@@ -842,6 +846,7 @@ FMOD_RESULT DSPLowPass::bilinear(
  * Note: frequencies are in Hz.
  * ----------------------------------------------------------
  */
+// OFFSET: 0x008F2B70
 FMOD_RESULT DSPLowPass::szxform(
     float *a0, float *a1, float *a2, /* numerator coefficients */
     float *b0, float *b1, float *b2, /* denominator coefficients */
@@ -911,6 +916,7 @@ FMOD_RESULT DSPLowPass::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2C00
 FMOD_RESULT DSPLowPass::getParameterInternal(int index, float *value, char *valuestr)
 {
     switch (index)
@@ -951,6 +957,7 @@ FMOD_RESULT DSPLowPass::getParameterInternal(int index, float *value, char *valu
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2C70
 FMOD_RESULT DSPLowPass::updateState(float resonance, float cutoff)
 {
     FMOD_RESULT result;
@@ -1077,6 +1084,7 @@ FMOD_RESULT DSPLowPass::getMemoryUsedImpl(MemoryTracker *tracker)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3730
 FMOD_RESULT F_CALLBACK DSPLowPass::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPLowPass *lowpass = (DSPLowPass *)dsp;
@@ -1102,6 +1110,7 @@ FMOD_RESULT F_CALLBACK DSPLowPass::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3760
 FMOD_RESULT F_CALLBACK DSPLowPass::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPLowPass *lowpass = (DSPLowPass *)dsp;
@@ -1127,6 +1136,7 @@ FMOD_RESULT F_CALLBACK DSPLowPass::readCallback(FMOD_DSP_STATE *dsp, float *inbu
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2D90
 FMOD_RESULT F_CALLBACK DSPLowPass::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPLowPass *lowpass = (DSPLowPass *)dsp;
@@ -1151,6 +1161,7 @@ FMOD_RESULT F_CALLBACK DSPLowPass::setParameterCallback(FMOD_DSP_STATE *dsp, int
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F2DD0
 FMOD_RESULT F_CALLBACK DSPLowPass::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
     DSPLowPass *lowpass = (DSPLowPass *)dsp;

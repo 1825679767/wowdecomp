@@ -39,6 +39,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DCD60
 FMOD_RESULT F_API ChannelI::validate(Channel *channel, ChannelI **channeli)
 {
     unsigned int    handle   = (unsigned int)((FMOD_UINT_NATIVE)channel);
@@ -114,6 +115,7 @@ FMOD_RESULT F_API ChannelI::validate(Channel *channel, ChannelI **channeli)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DCE10
 FMOD_RESULT ChannelI::returnToFreeList()
 {
     SystemI *systemi;
@@ -155,6 +157,7 @@ FMOD_RESULT ChannelI::returnToFreeList()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DF300
 FMOD_RESULT ChannelI::setDefaults()
 {
     float realfrequency, realvolume, realpan;    
@@ -290,6 +293,7 @@ FMOD_RESULT ChannelI::setDefaults()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DCE80
 FMOD_RESULT ChannelI::referenceStamp(bool newstamp)
 {
     unsigned int sysindex, index, refcount;
@@ -335,6 +339,7 @@ FMOD_RESULT ChannelI::referenceStamp(bool newstamp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E05E0
 FMOD_RESULT ChannelI::updatePosition()
 {
     unsigned int oldlistposition, oldsglistposition;
@@ -417,6 +422,7 @@ FMOD_RESULT ChannelI::updatePosition()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E0460
 FMOD_RESULT ChannelI::forceVirtual(bool force)
 {
     FMOD_RESULT result;
@@ -514,6 +520,7 @@ FMOD_RESULT ChannelI::forceVirtual(bool force)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DFE20
 FMOD_RESULT ChannelI::getChannelInfo(FMOD_CHANNEL_INFO *info)
 {        
     info->mRealChannel      = mRealChannel[0];
@@ -561,6 +568,7 @@ FMOD_RESULT ChannelI::getChannelInfo(FMOD_CHANNEL_INFO *info)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DFFC0
 FMOD_RESULT ChannelI::setChannelInfo(FMOD_CHANNEL_INFO *info)
 {
     int count;                           
@@ -682,6 +690,7 @@ FMOD_RESULT ChannelI::setChannelInfo(FMOD_CHANNEL_INFO *info)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DCEE0
 FMOD_RESULT ChannelI::getRealChannel(ChannelReal **realchan, int *subchannels)
 {
 #ifdef FMOD_SUPPORT_STREAMING
@@ -742,6 +751,7 @@ FMOD_RESULT ChannelI::getRealChannel(ChannelReal **realchan, int *subchannels)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DCF80
 FMOD_RESULT ChannelI::calcVolumeAndPitchFor3D(int delta)
 {
     float pitch3d = 1.0f, vol3d = 1.0f, conevol = 1.0f;
@@ -1029,6 +1039,7 @@ FMOD_RESULT ChannelI::calcVolumeAndPitchFor3D(int delta)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DF530
 ChannelI::ChannelI()
 {
     init();
@@ -1050,6 +1061,7 @@ ChannelI::ChannelI()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DF570
 ChannelI::ChannelI(int index, SystemI *system)
 {
     init();
@@ -1077,6 +1089,7 @@ ChannelI::ChannelI(int index, SystemI *system)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DD530
 FMOD_RESULT ChannelI::init()
 {
     int count;
@@ -1194,6 +1207,7 @@ FMOD_RESULT ChannelI::getSystemObject(System **system)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E0200
 FMOD_RESULT ChannelI::play(SoundI *sound, bool paused, bool reset, bool startmuted)
 {
     FMOD_RESULT result;
@@ -1355,6 +1369,7 @@ FMOD_RESULT ChannelI::play(SoundI *sound, bool paused, bool reset, bool startmut
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E0360
 FMOD_RESULT ChannelI::play(DSPI *dsp, bool paused, bool reset, bool startmuted)
 {  
     FMOD_RESULT result;
@@ -1479,6 +1494,7 @@ FMOD_RESULT ChannelI::play(DSPI *dsp, bool paused, bool reset, bool startmuted)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DD670
 FMOD_RESULT ChannelI::alloc(SoundI *sound, bool reset)
 {  
     FMOD_RESULT result;
@@ -1655,6 +1671,7 @@ FMOD_RESULT ChannelI::alloc(SoundI *sound, bool reset)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DD870
 FMOD_RESULT ChannelI::alloc(DSPI *dsp, bool reset)
 {  
     int count;
@@ -1752,6 +1769,7 @@ FMOD_RESULT ChannelI::alloc(DSPI *dsp, bool reset)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DDA10
 FMOD_RESULT ChannelI::start()
 {
     FMOD_RESULT result;
@@ -1799,6 +1817,7 @@ FMOD_RESULT ChannelI::start()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DF5E0
 FMOD_RESULT ChannelI::updateSyncPoints(bool seeking)
 {
     FMOD_RESULT result;
@@ -1955,6 +1974,7 @@ FMOD_RESULT ChannelI::updateSyncPoints(bool seeking)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E0850
 FMOD_RESULT ChannelI::update(int delta, bool updategeometrynow)
 {  
     FMOD_RESULT result;
@@ -2237,6 +2257,7 @@ FMOD_RESULT ChannelI::update(int delta, bool updategeometrynow)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DDA70
 FMOD_RESULT ChannelI::calculate3DReverbGain(ReverbI *reverb, FMOD_VECTOR *channelpos, float *gain)
 {
     if (!gain)
@@ -2323,6 +2344,7 @@ FMOD_RESULT ChannelI::updateStream()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E0440
 FMOD_RESULT ChannelI::stop()
 {
     return stopEx(CHANNELI_STOPFLAG_REFSTAMP | 
@@ -2349,6 +2371,7 @@ FMOD_RESULT ChannelI::stop()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DF810
 FMOD_RESULT ChannelI::stopEx(FMOD_CHANNEL_STOPFLAG stopflag)
 {
     FMOD_RESULT result;
@@ -2538,6 +2561,7 @@ FMOD_RESULT ChannelI::stopEx(FMOD_CHANNEL_STOPFLAG stopflag)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DDB00
 FMOD_RESULT ChannelI::setPaused(bool paused)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -2672,6 +2696,7 @@ FMOD_RESULT ChannelI::getPaused(bool *paused)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DDB90
 FMOD_RESULT ChannelI::setVolume(float volume, bool forceupdatepos)
 {
     FMOD_RESULT   result = FMOD_OK;
@@ -2754,6 +2779,7 @@ FMOD_RESULT ChannelI::setVolume(float volume, bool forceupdatepos)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DDC90
 FMOD_RESULT ChannelI::getVolume(float *volume)
 {
     if (!volume)
@@ -2787,6 +2813,7 @@ FMOD_RESULT ChannelI::getVolume(float *volume)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DDCC0
 FMOD_RESULT ChannelI::setFrequency(float frequency)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -2845,6 +2872,7 @@ FMOD_RESULT ChannelI::setFrequency(float frequency)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DDD60
 FMOD_RESULT ChannelI::getFrequency(float *frequency)
 {
     if (!frequency)
@@ -2878,6 +2906,7 @@ FMOD_RESULT ChannelI::getFrequency(float *frequency)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DDD90
 FMOD_RESULT ChannelI::setPan(float pan, bool calldriver)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -2992,6 +3021,7 @@ FMOD_RESULT ChannelI::getPan(float *pan)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DDEA0
 FMOD_RESULT ChannelI::setDelay(FMOD_DELAYTYPE delaytype, unsigned int delayhi, unsigned int delaylo)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -3154,6 +3184,7 @@ FMOD_RESULT ChannelI::getDelay(FMOD_DELAYTYPE delaytype, unsigned int *delayhi, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DDF00
 FMOD_RESULT ChannelI::setSpeakerMix(float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright, bool calldriver)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -3272,6 +3303,7 @@ FMOD_RESULT ChannelI::getSpeakerMix(float *frontleft, float *frontright, float *
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DE100
 FMOD_RESULT ChannelI::setSpeakerLevels(FMOD_SPEAKER speaker, float *levels, int numlevels, bool calldriver)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -3442,6 +3474,7 @@ FMOD_RESULT ChannelI::setSpeakerLevels(FMOD_SPEAKER speaker, float *levels, int 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DE460
 FMOD_RESULT ChannelI::getSpeakerLevels(FMOD_SPEAKER speaker, float *levels, int numlevels)
 {
     int count;
@@ -3607,6 +3640,7 @@ FMOD_RESULT ChannelI::getInputChannelMix(float *levels, int numlevels)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DE5A0
 FMOD_RESULT ChannelI::setMute(bool mute)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -3723,6 +3757,7 @@ FMOD_RESULT ChannelI::getMute(bool *mute)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E0700
 FMOD_RESULT ChannelI::setPriority(int priority)
 {
     if (priority < 0 || priority > FMOD_MAXPRIORITIES)
@@ -3751,6 +3786,7 @@ FMOD_RESULT ChannelI::setPriority(int priority)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DE660
 FMOD_RESULT ChannelI::getPriority(int *priority)
 {
     if (!priority)
@@ -3862,6 +3898,7 @@ FMOD_RESULT ChannelI::getLowPassGain(float *gain)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DE680
 FMOD_RESULT ChannelI::set3DAttributes(const FMOD_VECTOR *pos, const FMOD_VECTOR *vel)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -3978,6 +4015,7 @@ FMOD_RESULT ChannelI::set3DAttributes(const FMOD_VECTOR *pos, const FMOD_VECTOR 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DE7B0
 FMOD_RESULT ChannelI::get3DAttributes(FMOD_VECTOR *pos, FMOD_VECTOR *vel)
 {
     if (!mRealChannel[0])
@@ -4023,6 +4061,7 @@ FMOD_RESULT ChannelI::get3DAttributes(FMOD_VECTOR *pos, FMOD_VECTOR *vel)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E0CC0
 FMOD_RESULT ChannelI::set3DMinMaxDistance(float mindistance, float maxdistance)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -4103,6 +4142,7 @@ FMOD_RESULT ChannelI::set3DMinMaxDistance(float mindistance, float maxdistance)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DE820
 FMOD_RESULT ChannelI::get3DMinMaxDistance(float *mindistance, float *maxdistance)
 {
     if (!mRealChannel[0])
@@ -4144,6 +4184,7 @@ FMOD_RESULT ChannelI::get3DMinMaxDistance(float *mindistance, float *maxdistance
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DE870
 FMOD_RESULT ChannelI::set3DConeSettings(float insideconeangle, float outsideconeangle, float outsidevolume)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -4242,6 +4283,7 @@ FMOD_RESULT ChannelI::get3DConeSettings(float *insideconeangle, float *outsideco
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DE8F0
 FMOD_RESULT ChannelI::set3DConeOrientation(FMOD_VECTOR *orientation)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -4399,6 +4441,7 @@ FMOD_RESULT ChannelI::get3DCustomRolloff(FMOD_VECTOR **points, int *numpoints)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E0730
 FMOD_RESULT ChannelI::set3DOcclusionInternal(float direct, float reverb, bool resettarget)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -4665,6 +4708,7 @@ FMOD_RESULT ChannelI::get3DSpread(float *angle)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E0E00
 FMOD_RESULT ChannelI::set3DPanLevel(float level)
 {
     if (!mRealChannel[0])
@@ -4707,6 +4751,7 @@ FMOD_RESULT ChannelI::set3DPanLevel(float level)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DE950
 FMOD_RESULT ChannelI::get3DPanLevel(float *level)
 {
     if (!mRealChannel[0])
@@ -4821,6 +4866,7 @@ FMOD_RESULT ChannelI::get3DDopplerLevel(float *level)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DE990
 FMOD_RESULT ChannelI::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -4861,6 +4907,7 @@ FMOD_RESULT ChannelI::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTIES *p
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DE9F0
 FMOD_RESULT ChannelI::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -4902,6 +4949,7 @@ FMOD_RESULT ChannelI::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DEA50
 FMOD_RESULT ChannelI::setChannelGroupInternal(ChannelGroupI *channelgroup, bool resetattributes, bool forcedspreconnect)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -5022,6 +5070,7 @@ FMOD_RESULT ChannelI::setChannelGroupInternal(ChannelGroupI *channelgroup, bool 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DECC0
 FMOD_RESULT ChannelI::setChannelGroup(ChannelGroupI *channelgroup)
 {
     return setChannelGroupInternal(channelgroup, true);
@@ -5071,6 +5120,7 @@ FMOD_RESULT ChannelI::getChannelGroup(ChannelGroupI **channelgroup)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DECE0
 FMOD_RESULT ChannelI::isPlaying(bool *isplaying)
 {
     FMOD_RESULT result;
@@ -5168,6 +5218,7 @@ FMOD_RESULT ChannelI::isPlaying(bool *isplaying)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DEDE0
 FMOD_RESULT ChannelI::isVirtual(bool *isvirtual)
 {
     if (!isvirtual)
@@ -5282,6 +5333,7 @@ FMOD_RESULT F_API ChannelI::getFinalFrequency(float *frequency)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DEE20
 FMOD_RESULT  ChannelI::getAudibility(float *audibility)
 {
     return getAudibilityInternal(audibility, true);
@@ -5303,6 +5355,7 @@ FMOD_RESULT  ChannelI::getAudibility(float *audibility)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DEEC0
 FMOD_RESULT ChannelI::getCurrentSound(SoundI **sound)
 {
     if (!sound)
@@ -5344,6 +5397,7 @@ FMOD_RESULT ChannelI::getCurrentSound(SoundI **sound)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DEF10
 FMOD_RESULT ChannelI::getCurrentDSP(DSPI **dsp)
 {
     if (!dsp)
@@ -5487,6 +5541,7 @@ FMOD_RESULT ChannelI::getIndex(int *index)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DEF40
 FMOD_RESULT ChannelI::setCallback(FMOD_CHANNEL_CALLBACK callback)
 {
     if (!mRealChannel[0])
@@ -5532,6 +5587,7 @@ FMOD_RESULT ChannelI::setCallback(FMOD_CHANNEL_CALLBACK callback)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DFA80
 FMOD_RESULT ChannelI::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -5768,6 +5824,7 @@ FMOD_RESULT ChannelI::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DEFD0
 FMOD_RESULT ChannelI::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {   
     if (!position)
@@ -5831,6 +5888,7 @@ FMOD_RESULT ChannelI::getDSPHead(DSPI **dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DF010
 FMOD_RESULT ChannelI::addDSP(DSPI *dsp, DSPConnectionI **dspconnection)
 {   
     FMOD_RESULT result;
@@ -5887,6 +5945,7 @@ FMOD_RESULT ChannelI::addDSP(DSPI *dsp, DSPConnectionI **dspconnection)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E0E90
 FMOD_RESULT ChannelI::setMode(FMOD_MODE mode)
 {
     FMOD_RESULT result;
@@ -6050,6 +6109,7 @@ FMOD_RESULT ChannelI::setMode(FMOD_MODE mode)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DF270
 FMOD_RESULT ChannelI::getMode(FMOD_MODE *mode)
 {
     if (!mode)
@@ -6083,6 +6143,7 @@ FMOD_RESULT ChannelI::getMode(FMOD_MODE *mode)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008DF2A0
 FMOD_RESULT ChannelI::setLoopCount(int loopcount)
 {
     FMOD_RESULT result = FMOD_OK;

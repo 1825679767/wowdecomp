@@ -51,6 +51,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F4130
 PluginFactory::PluginFactory()
 {
     mSystem = 0;
@@ -79,6 +80,7 @@ PluginFactory::PluginFactory()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F4190
 FMOD_RESULT PluginFactory::release()
 {
     FMOD_RESULT result;
@@ -172,6 +174,7 @@ FMOD_RESULT PluginFactory::release()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F38D0
 FMOD_RESULT PluginFactory::setSystem(SystemI *system)  
 { 
     mSystem = system;  
@@ -217,6 +220,7 @@ FMOD_RESULT PluginFactory::getSystem(SystemI **system)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F38F0
 FMOD_RESULT PluginFactory::setPluginPath(const char *path)
 {
     if (FMOD_strlen(path) >= FMOD_STRING_MAXPATHLEN)
@@ -667,6 +671,7 @@ FMOD_RESULT PluginFactory::unloadPlugin(unsigned int handle)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3930
 FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION_EX *description, unsigned int *handle, unsigned int priority)
 {
     FMOD_CODEC_DESCRIPTION_EX *newdesc;
@@ -800,6 +805,7 @@ FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION *description, un
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3A30
 FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION_EX *description, unsigned int *handle)
 {
     FMOD_DSP_DESCRIPTION_EX *newdesc;
@@ -940,6 +946,7 @@ FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION *description, unsign
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3B60
 FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION_EX *description, unsigned int *handle)
 {
     FMOD_OUTPUT_DESCRIPTION_EX *newdesc;
@@ -1085,6 +1092,7 @@ FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION *description, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3D00
 FMOD_RESULT PluginFactory::getNumCodecs(int *numcodecs)
 {
     if (!numcodecs)
@@ -1113,6 +1121,7 @@ FMOD_RESULT PluginFactory::getNumCodecs(int *numcodecs)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3D50
 FMOD_RESULT PluginFactory::getNumDSPs(int *numdsps)
 {
     if (!numdsps)
@@ -1141,6 +1150,7 @@ FMOD_RESULT PluginFactory::getNumDSPs(int *numdsps)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3DA0
 FMOD_RESULT PluginFactory::getNumOutputs(int *numoutputs)
 {
     if (!numoutputs)
@@ -1277,6 +1287,7 @@ FMOD_RESULT PluginFactory::getOutputHandle(int index, unsigned int *handle)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3DF0
 FMOD_RESULT PluginFactory::getCodec(unsigned int handle, FMOD_CODEC_DESCRIPTION_EX **codecdesc)
 {
     FMOD_CODEC_DESCRIPTION_EX *head, *current;
@@ -1320,6 +1331,7 @@ FMOD_RESULT PluginFactory::getCodec(unsigned int handle, FMOD_CODEC_DESCRIPTION_
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3E60
 FMOD_RESULT PluginFactory::getDSP(unsigned int handle, FMOD_DSP_DESCRIPTION_EX **dspdesc)
 {
     FMOD_DSP_DESCRIPTION_EX *head, *current;
@@ -1363,6 +1375,7 @@ FMOD_RESULT PluginFactory::getDSP(unsigned int handle, FMOD_DSP_DESCRIPTION_EX *
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3ED0
 FMOD_RESULT PluginFactory::getOutput(unsigned int handle, FMOD_OUTPUT_DESCRIPTION_EX **outputdesc)
 {
     FMOD_OUTPUT_DESCRIPTION_EX *head, *current;
@@ -1406,6 +1419,7 @@ FMOD_RESULT PluginFactory::getOutput(unsigned int handle, FMOD_OUTPUT_DESCRIPTIO
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F43B0
 FMOD_RESULT PluginFactory::createCodec(FMOD_CODEC_DESCRIPTION_EX *codecdesc, Codec **codec)
 {
     Codec *newcodec;
@@ -1460,6 +1474,7 @@ FMOD_RESULT PluginFactory::createCodec(FMOD_CODEC_DESCRIPTION_EX *codecdesc, Cod
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F4670
 FMOD_RESULT PluginFactory::createDSP(FMOD_DSP_DESCRIPTION_EX *dspdesc, DSPI **dsp)
 {
     FMOD_RESULT result;
@@ -1941,6 +1956,7 @@ FMOD_RESULT PluginFactory::createDSP(FMOD_DSP_DESCRIPTION_EX *dspdesc, DSPI **ds
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F3FC0
 FMOD_RESULT PluginFactory::createOutput(FMOD_OUTPUT_DESCRIPTION_EX *outputdesc, Output **output)
 {
     Output *newoutput;

@@ -52,6 +52,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00915030
 FMOD_OUTPUT_DESCRIPTION_EX *OutputNoSound::getDescriptionEx()
 {
     FMOD_memset(&nosoundoutput, 0, sizeof(FMOD_OUTPUT_DESCRIPTION_EX));
@@ -174,6 +175,7 @@ FMOD_RESULT OutputNoSound::getDriverCaps(int id, FMOD_CAPS *caps)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00914E40
 FMOD_RESULT OutputNoSound::init(int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
     Plugin::init(); /* Set up gGlobal - for debug / file / memory access by this plugin. */
@@ -286,6 +288,7 @@ FMOD_RESULT OutputNoSound::getPosition(unsigned int *pcm)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00914CE0
 FMOD_RESULT OutputNoSound::lock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
 	offset %= mBlockLengthBytes;
@@ -335,6 +338,7 @@ FMOD_RESULT OutputNoSound::lock(unsigned int offset, unsigned int length, void *
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009152B0
 FMOD_RESULT F_CALLBACK OutputNoSound::getNumDriversCallback(FMOD_OUTPUT_STATE *output, int *numdrivers)
 {
     OutputNoSound *nosound = (OutputNoSound *)output;
@@ -360,6 +364,7 @@ FMOD_RESULT F_CALLBACK OutputNoSound::getNumDriversCallback(FMOD_OUTPUT_STATE *o
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00914D70
 FMOD_RESULT F_CALLBACK OutputNoSound::getDriverNameCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
     OutputNoSound *nosound = (OutputNoSound *)output;
@@ -385,6 +390,7 @@ FMOD_RESULT F_CALLBACK OutputNoSound::getDriverNameCallback(FMOD_OUTPUT_STATE *o
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00914D90
 FMOD_RESULT OutputNoSound::getDriverCapsCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_CAPS *caps)
 {
     OutputNoSound *nosound = (OutputNoSound *)output;
@@ -410,6 +416,7 @@ FMOD_RESULT OutputNoSound::getDriverCapsCallback(FMOD_OUTPUT_STATE *output, int 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00914FF0
 FMOD_RESULT F_CALLBACK OutputNoSound::initCallback(FMOD_OUTPUT_STATE *output, int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
     OutputNoSound *nosound = (OutputNoSound *)output;
@@ -435,6 +442,7 @@ FMOD_RESULT F_CALLBACK OutputNoSound::initCallback(FMOD_OUTPUT_STATE *output, in
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00914DB0
 FMOD_RESULT F_CALLBACK OutputNoSound::closeCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputNoSound *nosound = (OutputNoSound *)output;
@@ -460,6 +468,7 @@ FMOD_RESULT F_CALLBACK OutputNoSound::closeCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00915AA0
 FMOD_RESULT F_CALLBACK OutputNoSound::getPositionCallback(FMOD_OUTPUT_STATE *output, unsigned int *pcm)
 {
     OutputNoSound *nosound = (OutputNoSound *)output;
@@ -485,6 +494,7 @@ FMOD_RESULT F_CALLBACK OutputNoSound::getPositionCallback(FMOD_OUTPUT_STATE *out
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00914E00
 FMOD_RESULT F_CALLBACK OutputNoSound::lockCallback(FMOD_OUTPUT_STATE *output, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     OutputNoSound *nosound = (OutputNoSound *)output;

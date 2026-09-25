@@ -23,6 +23,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00923000
 FMOD_RESULT Plugin::release()
 {
     FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "Plugin::release", "(%p)\n", this));

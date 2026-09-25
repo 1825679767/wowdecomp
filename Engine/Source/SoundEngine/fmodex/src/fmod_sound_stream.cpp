@@ -29,6 +29,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091E480
 Stream::Stream()
 {
     mLastPos          = 0;
@@ -55,6 +56,7 @@ Stream::Stream()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091DE80
 FMOD_RESULT Stream::fill(unsigned int offset, unsigned int length, unsigned int *read_out, bool calledfromsentence)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -442,6 +444,7 @@ FMOD_RESULT Stream::fill(unsigned int offset, unsigned int length, unsigned int 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091E1D0
 FMOD_RESULT Stream::flush()
 {
     if (mSample)
@@ -491,6 +494,7 @@ FMOD_RESULT Stream::flush()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091E200
 FMOD_RESULT Stream::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -639,6 +643,7 @@ FMOD_RESULT Stream::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091E4D0
 FMOD_RESULT Stream::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {
     FMOD_RESULT result;
@@ -700,6 +705,7 @@ FMOD_RESULT Stream::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091E450
 FMOD_RESULT Stream::setLoopCount(int loopcount)
 {
     if (mOpenState != FMOD_OPENSTATE_READY && mOpenState != FMOD_OPENSTATE_SETPOSITION)

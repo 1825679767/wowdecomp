@@ -85,6 +85,7 @@ static int ilog2(unsigned int v){
 #define WORD_ALIGN 8
 #endif
 
+// OFFSET: 0x0046CE10
 int FMOD_vorbis_block_init(void *context, vorbis_dsp_state *v, vorbis_block *vb){
   int i = 0;
   FMOD_memset(vb,0,sizeof(*vb));
@@ -118,6 +119,7 @@ int FMOD_vorbis_block_init(void *context, vorbis_dsp_state *v, vorbis_block *vb)
   return(0);
 }
 
+// OFFSET: 0x0046CE40
 void *_FMOD_vorbis_block_alloc(void *context, vorbis_block *vb,ogg_int32_t bytes){
   bytes=(bytes+(WORD_ALIGN-1)) & ~(WORD_ALIGN-1);
   if(bytes+vb->localtop>vb->localalloc){
@@ -150,6 +152,7 @@ void *_FMOD_vorbis_block_alloc(void *context, vorbis_block *vb,ogg_int32_t bytes
 }
 
 /* reap the chain, pull the ripcord */
+// OFFSET: 0x0046CED0
 int _FMOD_vorbis_block_ripcord(void *context, vorbis_block *vb){
   int ret = 0;
   /* reap the chain */
@@ -176,6 +179,7 @@ int _FMOD_vorbis_block_ripcord(void *context, vorbis_block *vb){
   return ret;
 }
 
+// OFFSET: 0x0046CF60
 int FMOD_vorbis_block_clear(void *context, vorbis_block *vb){
 //  int i;
 //  vorbis_block_internal *vbi=vb->internal;
@@ -205,6 +209,7 @@ int FMOD_vorbis_block_clear(void *context, vorbis_block *vb){
    here and not in analysis.c (which is for analysis transforms only).
    The init is here because some of it is shared */
 
+// OFFSET: 0x0046CFA0
 static int _vds_shared_init(void *context, vorbis_dsp_state *v,vorbis_info *vi,int encp){
   int i;
   codec_setup_info *ci=vi->codec_setup;
@@ -380,6 +385,7 @@ static int _vds_shared_init(void *context, vorbis_dsp_state *v,vorbis_info *vi,i
 //  return(0);
 //}
 
+// OFFSET: 0x0046D310
 void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
   int i;
   if(v){
@@ -757,6 +763,7 @@ void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
 //  return(1);
 //}
 
+// OFFSET: 0x0046D5F0
 int FMOD_vorbis_synthesis_restart(vorbis_dsp_state *v){
   vorbis_info *vi=v->vi;
   codec_setup_info *ci;
@@ -780,6 +787,7 @@ int FMOD_vorbis_synthesis_restart(vorbis_dsp_state *v){
   return(0);
 }
 
+// OFFSET: 0x0046D650
 int FMOD_vorbis_synthesis_init(void *context, vorbis_dsp_state *v,vorbis_info *vi){
   int ret = _vds_shared_init(context, v,vi,0);
   
@@ -795,6 +803,7 @@ int FMOD_vorbis_synthesis_init(void *context, vorbis_dsp_state *v,vorbis_info *v
    block.  The time domain envelope is not yet handled at the point of
    calling (as it relies on the previous block). */
 
+// OFFSET: 0x0046D680
 int FMOD_vorbis_synthesis_blockin(vorbis_dsp_state *v,vorbis_block *vb){
   vorbis_info *vi=v->vi;
   codec_setup_info *ci=vi->codec_setup;
@@ -982,6 +991,7 @@ int FMOD_vorbis_synthesis_blockin(vorbis_dsp_state *v,vorbis_block *vb){
 }
 
 /* pcm==NULL indicates we just want the pending samples, no more */
+// OFFSET: 0x0046DFE0
 int FMOD_vorbis_synthesis_pcmout(vorbis_dsp_state *v,float ***pcm){
   vorbis_info *vi=v->vi;
 
@@ -997,6 +1007,7 @@ int FMOD_vorbis_synthesis_pcmout(vorbis_dsp_state *v,float ***pcm){
   return(0);
 }
 
+// OFFSET: 0x0046E040
 int FMOD_vorbis_synthesis_read(vorbis_dsp_state *v,int n){
   if(n && v->pcm_returned+n>v->pcm_current)return(OV_EINVAL);
   v->pcm_returned+=n;

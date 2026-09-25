@@ -37,6 +37,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00922950
 OutputPolled::OutputPolled()
 {
     mCursorBlock = 0;
@@ -59,6 +60,7 @@ OutputPolled::OutputPolled()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00922B00
 FMOD_RESULT OutputPolled::threadFunc()
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
@@ -207,6 +209,7 @@ FMOD_RESULT OutputPolled::threadFunc()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00922990
 FMOD_RESULT OutputPolled::start()
 {
     FMOD_RESULT  result;
@@ -297,6 +300,7 @@ FMOD_RESULT OutputPolled::start()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00922A90
 FMOD_RESULT OutputPolled::stop()
 {
     FMOD_RESULT result;

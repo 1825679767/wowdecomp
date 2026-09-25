@@ -62,6 +62,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090A5A0
 FMOD_CODEC_DESCRIPTION_EX *CodecS3M::getDescriptionEx()
 {
     FMOD_memset(&s3mcodec, 0, sizeof(FMOD_CODEC_DESCRIPTION_EX));
@@ -104,6 +105,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecS3M::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00908EF0
 FMOD_RESULT CodecS3M::calculateLength()
 {
     waveformat[0].lengthpcm = 0;
@@ -137,6 +139,7 @@ FMOD_RESULT CodecS3M::calculateLength()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00907680
 FMOD_RESULT MusicChannelS3M::volumeSlide() 
 {
 	MusicVirtualChannel *vcptr = (MusicVirtualChannel *)mVirtualChannelHead.getNext();
@@ -305,6 +308,7 @@ FMOD_RESULT MusicChannelS3M::vibrato()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00907750
 FMOD_RESULT MusicChannelS3M::tremolo() 
 {
 	int 			delta;
@@ -378,6 +382,7 @@ FMOD_RESULT MusicChannelS3M::tremolo()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00907830
 FMOD_RESULT MusicChannelS3M::fineVibrato() 
 {
 	int				delta;
@@ -443,6 +448,7 @@ FMOD_RESULT MusicChannelS3M::fineVibrato()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009078F0
 FMOD_RESULT CodecS3M::updateNote(bool audible)
 {
 	MusicNote   *current;
@@ -1070,6 +1076,7 @@ FMOD_RESULT CodecS3M::updateNote(bool audible)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00908320
 FMOD_RESULT CodecS3M::updateEffects() 
 {
 	MusicNote   *current;
@@ -1443,6 +1450,7 @@ FMOD_RESULT CodecS3M::updateEffects()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00908AF0
 FMOD_RESULT CodecS3M::update(bool audible)
 {
 	if (mTick == 0)									/* new note */
@@ -1532,6 +1540,7 @@ FMOD_RESULT CodecS3M::update(bool audible)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00909330
 FMOD_RESULT CodecS3M::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
 	unsigned char	remap[32], st3pan, mastervol, temp[4];
@@ -2507,6 +2516,7 @@ FMOD_RESULT CodecS3M::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00908C10
 FMOD_RESULT CodecS3M::closeInternal()
 {
     int count;
@@ -2602,6 +2612,7 @@ FMOD_RESULT CodecS3M::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00908F40
 FMOD_RESULT CodecS3M::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     FMOD_RESULT           result = FMOD_OK;
@@ -2705,6 +2716,7 @@ FMOD_RESULT CodecS3M::readInternal(void *buffer, unsigned int sizebytes, unsigne
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00908DF0
 FMOD_RESULT CodecS3M::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     if (postype == FMOD_TIMEUNIT_MODORDER)
@@ -2771,6 +2783,7 @@ FMOD_RESULT CodecS3M::setPositionInternal(int subsound, unsigned int position, F
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090A560
 FMOD_RESULT F_CALLBACK CodecS3M::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecS3M *cs3m = (CodecS3M *)codec;
@@ -2795,6 +2808,7 @@ FMOD_RESULT F_CALLBACK CodecS3M::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00908E90
 FMOD_RESULT F_CALLBACK CodecS3M::closeCallback(FMOD_CODEC_STATE *codec)
 {
     CodecS3M *cs3m = (CodecS3M *)codec;
@@ -2819,6 +2833,7 @@ FMOD_RESULT F_CALLBACK CodecS3M::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00909300
 FMOD_RESULT F_CALLBACK CodecS3M::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     CodecS3M *cs3m = (CodecS3M *)codec;
@@ -2842,6 +2857,7 @@ FMOD_RESULT F_CALLBACK CodecS3M::readCallback(FMOD_CODEC_STATE *codec, void *buf
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00908EC0
 FMOD_RESULT F_CALLBACK CodecS3M::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype   )
 {
     CodecS3M *cs3m = (CodecS3M *)codec;

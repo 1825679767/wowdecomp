@@ -35,6 +35,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094A7C0
 FMOD_RESULT OutputTimer::timerFunc()
 {
     FMOD_RESULT         result          = FMOD_OK;
@@ -191,6 +192,7 @@ FMOD_RESULT OutputTimer::timerFunc()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094AC80
 FMOD_RESULT OutputTimer::start()
 {
     FMOD_RESULT   result       = FMOD_OK;
@@ -269,6 +271,7 @@ FMOD_RESULT OutputTimer::start()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094A760
 FMOD_RESULT OutputTimer::stop()
 {
     FMOD_RESULT fResult = FMOD_OK;
@@ -315,6 +318,7 @@ FMOD_RESULT OutputTimer::stop()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094AC40
 void CALLBACK OutputTimer::timerFuncCallback(UINT uTimerID, UINT uMsg, UINT_PTR dwUser, UINT_PTR dw1, UINT_PTR dw2)
 {
     OutputTimer *outputTimer = (OutputTimer *)dwUser;

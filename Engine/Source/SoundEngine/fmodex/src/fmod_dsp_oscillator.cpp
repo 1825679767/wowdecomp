@@ -72,6 +72,7 @@ FMOD_DSP_PARAMETERDESC dsposcillator_param[2] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F52A0
 FMOD_DSP_DESCRIPTION_EX *DSPOscillator::getDescriptionEx()
 {
 #ifndef PLATFORM_PS3_SPU
@@ -126,6 +127,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPOscillator::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EAC00
 FMOD_RESULT DSPOscillator::createInternal()
 {
     int count;
@@ -187,6 +189,7 @@ FMOD_RESULT DSPOscillator::releaseInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F4920
 FMOD_RESULT DSPOscillator::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     unsigned int count;
@@ -346,6 +349,7 @@ FMOD_RESULT DSPOscillator::readInternal(float *inbuffer, float *outbuffer, unsig
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5090
 FMOD_RESULT DSPOscillator::setParameterInternal(int index, float value)
 {
     FMOD_RESULT result;
@@ -394,6 +398,7 @@ FMOD_RESULT DSPOscillator::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F50F0
 FMOD_RESULT DSPOscillator::getParameterInternal(int index, float *value, char *valuestr)
 {   
     switch (index)
@@ -449,6 +454,7 @@ FMOD_RESULT DSPOscillator::getParameterInternal(int index, float *value, char *v
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EB200
 FMOD_RESULT F_CALLBACK DSPOscillator::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPOscillator *osc = (DSPOscillator *)dsp;
@@ -498,6 +504,7 @@ FMOD_RESULT F_CALLBACK DSPOscillator::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5200
 FMOD_RESULT F_CALLBACK DSPOscillator::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPOscillator *osc = (DSPOscillator *)dsp;
@@ -523,6 +530,7 @@ FMOD_RESULT F_CALLBACK DSPOscillator::readCallback(FMOD_DSP_STATE *dsp, float *i
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5230
 FMOD_RESULT F_CALLBACK DSPOscillator::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPOscillator *osc = (DSPOscillator *)dsp;
@@ -547,6 +555,7 @@ FMOD_RESULT F_CALLBACK DSPOscillator::setParameterCallback(FMOD_DSP_STATE *dsp, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F5270
 FMOD_RESULT F_CALLBACK DSPOscillator::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
     DSPOscillator *osc = (DSPOscillator *)dsp;

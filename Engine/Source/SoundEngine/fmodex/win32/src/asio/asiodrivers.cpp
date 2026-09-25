@@ -88,11 +88,13 @@ void AsioDrivers::removeCurrentDriver()
 
 extern IASIO* theAsioDriver;
 
+// OFFSET: 0x0094DB20
 AsioDrivers::AsioDrivers() : AsioDriverList()
 {
 	curIndex = -1;
 }
 
+// OFFSET: 0x0094DB40
 bool AsioDrivers::close()
 {
     AsioDriverList::close();
@@ -114,6 +116,7 @@ long AsioDrivers::getDriverNames(char **names, long maxDrivers)
 	return asioGetNumDev() < maxDrivers ? asioGetNumDev() : maxDrivers;
 }
 
+// OFFSET: 0x0094DB70
 bool AsioDrivers::loadDriver(char *name)
 {
 	char dname[64];
@@ -144,6 +147,7 @@ bool AsioDrivers::loadDriver(char *name)
 	return false;
 }
 
+// OFFSET: 0x0094DB50
 void AsioDrivers::removeCurrentDriver()
 {
 	if(curIndex != -1)

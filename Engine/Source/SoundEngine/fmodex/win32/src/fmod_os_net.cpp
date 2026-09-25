@@ -23,6 +23,7 @@ FMOD_OS_CRITICALSECTION         *gResolveCrit            = 0;
 
 	[SEE_ALSO]
 */
+// OFFSET: 0x009266E0
 FMOD_RESULT FMOD_OS_Net_Init()
 {
     FMOD_RESULT result;
@@ -58,6 +59,7 @@ FMOD_RESULT FMOD_OS_Net_Init()
 
 	[SEE_ALSO]
 */
+// OFFSET: 0x00926730
 FMOD_RESULT FMOD_OS_Net_Shutdown()
 {
     if (FMOD_OS_Net_Init_Count > 0)
@@ -87,6 +89,7 @@ FMOD_RESULT FMOD_OS_Net_Shutdown()
 
 	[SEE_ALSO]
 */
+// OFFSET: 0x00926760
 FMOD_RESULT FMOD_OS_Net_Connect(const char *host, const unsigned short port, void **handle)
 {
     struct sockaddr_in   server;
@@ -212,6 +215,7 @@ FMOD_RESULT FMOD_OS_Net_Connect(const char *host, const unsigned short port, voi
 
 	[SEE_ALSO]
 */
+// OFFSET: 0x00926960
 FMOD_RESULT FMOD_OS_Net_Listen(const unsigned short port, void **listenhandle)
 {
 	SOCKET          listensocket;
@@ -266,6 +270,7 @@ FMOD_RESULT FMOD_OS_Net_Listen(const unsigned short port, void **listenhandle)
 
 	[SEE_ALSO]
 */
+// OFFSET: 0x00926A00
 FMOD_RESULT FMOD_OS_Net_Accept(const void *listenhandle, void **clienthandle)
 {
     SOCKET listensocket = (SOCKET)listenhandle;
@@ -307,6 +312,7 @@ FMOD_RESULT FMOD_OS_Net_Accept(const void *listenhandle, void **clienthandle)
 
 	[SEE_ALSO]
 */
+// OFFSET: 0x00926A50
 FMOD_RESULT FMOD_OS_Net_Close(const void *handle)
 {
     SOCKET sock = (SOCKET)handle;
@@ -331,6 +337,7 @@ FMOD_RESULT FMOD_OS_Net_Close(const void *handle)
 
 	[SEE_ALSO]
 */
+// OFFSET: 0x00926A70
 FMOD_RESULT FMOD_OS_Net_Write(const void *handle, const char *buf, const unsigned int len, unsigned int *byteswritten)
 {
     SOCKET sock = (SOCKET)handle;
@@ -381,6 +388,7 @@ FMOD_RESULT FMOD_OS_Net_Write(const void *handle, const char *buf, const unsigne
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00926AE0
 FMOD_RESULT FMOD_OS_Net_Read(const void *handle, char *buf, const unsigned int len, unsigned int *bytesread)
 {
     SOCKET sock = (SOCKET)handle;
@@ -446,6 +454,7 @@ FMOD_RESULT FMOD_OS_Net_Read(const void *handle, char *buf, const unsigned int l
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00926B70
 FMOD_RESULT FMOD_OS_Net_ReadLine(const void *handle, char *buf, const unsigned int len)
 {
     unsigned int pos, read;

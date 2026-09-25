@@ -61,6 +61,7 @@ FMOD_RESULT ChannelGroupI::validate(ChannelGroup *channelgroup, ChannelGroupI **
 ]
 */
 
+// OFFSET: 0x008E4D40
 FMOD_RESULT ChannelGroupI::release()
 {  
     if (this == mSystem->mChannelGroup)
@@ -86,6 +87,7 @@ FMOD_RESULT ChannelGroupI::release()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E4C10
 FMOD_RESULT ChannelGroupI::releaseInternal(bool releasechildren)
 {  
     if (mGroupHead && releasechildren)
@@ -233,6 +235,7 @@ FMOD_RESULT ChannelGroupI::getSystemObject(System **system)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E4AD0
 FMOD_RESULT ChannelGroupI::setVolume(float volume)
 {
     FMOD_RESULT result;
@@ -273,6 +276,7 @@ FMOD_RESULT ChannelGroupI::setVolume(float volume)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E48A0
 FMOD_RESULT ChannelGroupI::setVolumeInternal()
 {
     LinkedListNode *current;
@@ -395,6 +399,7 @@ FMOD_RESULT ChannelGroupI::setPitch(float pitch)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E4930
 FMOD_RESULT ChannelGroupI::setPitchInternal()
 {
     LinkedListNode *current;
@@ -593,6 +598,7 @@ FMOD_RESULT ChannelGroupI::get3DOcclusion(float *directOcclusion, float *reverbO
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E49B0
 FMOD_RESULT ChannelGroupI::setPaused(bool paused, bool setpausedflag)
 {
     LinkedListNode *current;
@@ -676,6 +682,7 @@ FMOD_RESULT ChannelGroupI::getPaused(bool *paused)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E4A20
 FMOD_RESULT ChannelGroupI::setMute(bool mute, bool setmuteflag)
 {
     LinkedListNode *current;
@@ -1165,6 +1172,7 @@ FMOD_RESULT ChannelGroupI::updateChildMixTarget(DSPI *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E4B10
 FMOD_RESULT ChannelGroupI::addGroup(ChannelGroupI *group)
 {
     FMOD_RESULT result;
@@ -1532,6 +1540,7 @@ FMOD_RESULT ChannelGroupI::getName(char *name, int namelen)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E4AB0
 FMOD_RESULT ChannelGroupI::getNumChannels(int *numchannels)
 {
     if (!numchannels)

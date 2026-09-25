@@ -112,6 +112,7 @@ namespace FMOD
       public:
 
         ChannelReal();
+        // OFFSET: 0x0093BE70
         virtual ~ChannelReal() { }
 
         virtual FMOD_RESULT  init                 (int index, SystemI *system, Output *output, DSPI *dspmixtarget);

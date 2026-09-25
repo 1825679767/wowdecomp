@@ -24,6 +24,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091D2F0
 FMOD_RESULT Codec::release()
 {
     FMOD_RESULT result;
@@ -85,6 +86,7 @@ FMOD_RESULT Codec::release()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091DD50
 FMOD_RESULT Codec::read(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -182,6 +184,7 @@ FMOD_RESULT Codec::read(void *buffer, unsigned int sizebytes, unsigned int *byte
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091DCD0
 FMOD_RESULT Codec::getMetadataFromFile()
 {
     FMOD_RESULT  result = FMOD_OK;
@@ -224,6 +227,7 @@ FMOD_RESULT Codec::getMetadataFromFile()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091D390
 FMOD_RESULT Codec::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
 {
     FMOD_RESULT result;
@@ -275,6 +279,7 @@ FMOD_RESULT Codec::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091D4B0
 FMOD_RESULT Codec::setPosition(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     FMOD_RESULT result;
@@ -388,6 +393,7 @@ FMOD_RESULT Codec::setPosition(int subsound, unsigned int position, FMOD_TIMEUNI
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091D400
 FMOD_RESULT Codec::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {
     FMOD_RESULT result;
@@ -445,6 +451,7 @@ FMOD_RESULT Codec::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
     FMOD_TAGDATATYPE
 ]
 */
+// OFFSET: 0x0091DC30
 FMOD_RESULT Codec::metaData(FMOD_TAGTYPE type, const char *name, void *data, unsigned int datalen, FMOD_TAGDATATYPE datatype, bool unique)
 {
     if (!mMetadata)

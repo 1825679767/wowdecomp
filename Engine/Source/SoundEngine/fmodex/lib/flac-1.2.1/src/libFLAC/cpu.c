@@ -152,6 +152,7 @@ static const unsigned FLAC__CPUINFO_IA32_CPUID_EXTENDED_AMD_EXTMMX = 0x00400000;
 #endif
 
 
+// OFFSET: 0x00958D60
 void FLAC__cpu_info(FLAC__CPUInfo *info)
 {
 /*

@@ -358,6 +358,7 @@ static const float FLOOR1_fromdB_LOOKUP[256]={
   0.82788260F, 0.88168307F, 0.9389798F, 1.F,
 };
 
+// OFFSET: 0x004718C0
 static void render_line(int n, int x0,int x1,int y0,int y1,float *d){
   int dy=y1-y0;
   int adx=x1-x0;

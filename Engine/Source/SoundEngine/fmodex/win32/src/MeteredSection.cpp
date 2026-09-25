@@ -22,6 +22,7 @@ void ReleaseMeteredSectionLock(LPMETERED_SECTION lpMetSect);
 /*
  * CreateMeteredSection
  */
+// OFFSET: 0x008E50C0
 LPMETERED_SECTION CreateMeteredSection(LONG lInitialCount, 
       LONG lMaximumCount, LPCTSTR lpName)
 {
@@ -84,6 +85,7 @@ LPMETERED_SECTION OpenMeteredSection(LPCTSTR lpName)
 /*
  * EnterMeteredSection
  */
+// OFFSET: 0x008E4F40
 DWORD EnterMeteredSection(LPMETERED_SECTION lpMetSect, 
       DWORD dwMilliseconds)
 {
@@ -115,6 +117,7 @@ DWORD EnterMeteredSection(LPMETERED_SECTION lpMetSect,
 /*
  * LeaveMeteredSection
  */
+// OFFSET: 0x008E4FD0
 BOOL LeaveMeteredSection(LPMETERED_SECTION lpMetSect, LONG lReleaseCount, 
          LPLONG lpPreviousCount)
 {
@@ -157,6 +160,7 @@ BOOL LeaveMeteredSection(LPMETERED_SECTION lpMetSect, LONG lReleaseCount,
 /*
  * CloseMeteredSection
  */
+// OFFSET: 0x008E4D60
 void CloseMeteredSection(LPMETERED_SECTION lpMetSect)
 {
     if (lpMetSect)
@@ -177,6 +181,7 @@ void CloseMeteredSection(LPMETERED_SECTION lpMetSect)
 /*
  * InitMeteredSection
  */
+// OFFSET: 0x008E5070
 BOOL InitMeteredSection(LPMETERED_SECTION lpMetSect, 
          LONG lInitialCount, LONG lMaximumCount,
                         LPCTSTR lpName, BOOL bOpenOnly)
@@ -207,6 +212,7 @@ BOOL InitMeteredSection(LPMETERED_SECTION lpMetSect,
 /*
  * CreateMetSectEvent
  */
+// OFFSET: 0x008E4DC0
 BOOL CreateMetSectEvent(LPMETERED_SECTION lpMetSect, 
          LPCTSTR lpName, BOOL bOpenOnly)
 {
@@ -241,6 +247,7 @@ BOOL CreateMetSectEvent(LPMETERED_SECTION lpMetSect,
 /*
  * CreateMetSectFileView
  */
+// OFFSET: 0x008E4E20
 BOOL CreateMetSectFileView(LPMETERED_SECTION lpMetSect, 
          LONG lInitialCount, LONG lMaximumCount,
                            LPCTSTR lpName, BOOL bOpenOnly)
@@ -305,6 +312,7 @@ BOOL CreateMetSectFileView(LPMETERED_SECTION lpMetSect,
 /*
  * GetMeteredSectionLock
  */
+// OFFSET: 0x008E4F00
 void GetMeteredSectionLock(LPMETERED_SECTION lpMetSect)
 {
 #if FILEMAPPING

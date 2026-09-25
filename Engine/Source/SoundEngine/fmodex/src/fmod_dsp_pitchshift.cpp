@@ -100,6 +100,7 @@ FMOD_DSP_PARAMETERDESC dsppitchshift_param[4] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EDE90
 FMOD_DSP_DESCRIPTION_EX *DSPPitchShift::getDescriptionEx()
 {
     FMOD_memset(&dsppitchshift, 0, sizeof(FMOD_DSP_DESCRIPTION_EX));
@@ -738,6 +739,7 @@ void DSPPitchShiftSMB::fft(float *fftBuffer, int sign)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EC450
 void DSPPitchShiftSMB::smbInit()
 {   
 	/* initialize our static arrays */
@@ -773,6 +775,7 @@ void DSPPitchShiftSMB::smbInit()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EC520
 FMOD_RESULT DSPPitchShift::createInternal()
 {
     FMOD_RESULT result;
@@ -1436,6 +1439,7 @@ static float vwin1024[513] = {
 #define kINVPI2 0.1591549430918F
 
 
+// OFFSET: 0x008ECF60
 void DSPPitchShiftSMB::smbPitchShift(float pitchShift, int numSampsToProcess, int osamp, float sampleRate, float *indata, float *outdata, int channel, int numchannels)
 {
 	float   window;
@@ -1795,6 +1799,7 @@ void DSPPitchShiftSMB::smbPitchShift(float pitchShift, int numSampsToProcess, in
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EC5C0
 void DSPPitchShiftSMB::smbFft(float *fftBuffer, int sign)
 {
 	float wr, wi, arg, *p1, *p2, temp;
@@ -1950,6 +1955,7 @@ void DSPPitchShiftSMB::setResetPhaseFlag()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EC8A0
 FMOD_RESULT DSPPitchShift::resetInternal()
 {
     if (mPitchShift)
@@ -1989,6 +1995,7 @@ FMOD_RESULT DSPPitchShift::resetInternal()
 ]
 */
 
+// OFFSET: 0x008EDD90
 FMOD_RESULT DSPPitchShift::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     int count;
@@ -2069,6 +2076,7 @@ FMOD_RESULT DSPPitchShift::readInternal(float *inbuffer, float *outbuffer, unsig
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EC900
 FMOD_RESULT DSPPitchShift::setParameterInternal(int index, float value)
 {
     FMOD_RESULT result;
@@ -2364,6 +2372,7 @@ FMOD_RESULT DSPPitchShift::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008ECD60
 FMOD_RESULT DSPPitchShift::getParameterInternal(int index, float *value, char *valuestr)
 {
     switch (index)
@@ -2482,6 +2491,7 @@ FMOD_RESULT DSPPitchShift::getMemoryUsedImpl(MemoryTracker *tracker)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008ECE40
 FMOD_RESULT F_CALLBACK DSPPitchShift::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPPitchShift *pitchshift = (DSPPitchShift *)dsp;
@@ -2506,6 +2516,7 @@ FMOD_RESULT F_CALLBACK DSPPitchShift::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008ECE70
 FMOD_RESULT F_CALLBACK DSPPitchShift::releaseCallback(FMOD_DSP_STATE *dsp)
 {
     DSPPitchShift *pitchshift = (DSPPitchShift *)dsp;
@@ -2530,6 +2541,7 @@ FMOD_RESULT F_CALLBACK DSPPitchShift::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008ECEC0
 FMOD_RESULT F_CALLBACK DSPPitchShift::resetCallback(FMOD_DSP_STATE *dsp)
 {
     DSPPitchShift *pitchshift = (DSPPitchShift *)dsp;
@@ -2554,6 +2566,7 @@ FMOD_RESULT F_CALLBACK DSPPitchShift::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EDE60
 FMOD_RESULT F_CALLBACK DSPPitchShift::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPPitchShift *pitchshift = (DSPPitchShift *)dsp;
@@ -2579,6 +2592,7 @@ FMOD_RESULT F_CALLBACK DSPPitchShift::readCallback(FMOD_DSP_STATE *dsp, float *i
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008ECEF0
 FMOD_RESULT F_CALLBACK DSPPitchShift::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPPitchShift *pitchshift = (DSPPitchShift *)dsp;
@@ -2603,6 +2617,7 @@ FMOD_RESULT F_CALLBACK DSPPitchShift::setParameterCallback(FMOD_DSP_STATE *dsp, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008ECF30
 FMOD_RESULT F_CALLBACK DSPPitchShift::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
     DSPPitchShift *pitchshift = (DSPPitchShift *)dsp;

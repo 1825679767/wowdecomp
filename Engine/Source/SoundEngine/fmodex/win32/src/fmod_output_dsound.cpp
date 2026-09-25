@@ -84,6 +84,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093CBD0
 FMOD_OUTPUT_DESCRIPTION_EX *OutputDSound::getDescriptionEx()
 {
     FMOD_memset(&dsoundoutput, 0, sizeof(FMOD_OUTPUT_DESCRIPTION_EX));
@@ -146,6 +147,7 @@ FMOD_OUTPUT_DESCRIPTION_EX *OutputDSound::getDescriptionEx()
 
 	[SEE_ALSO]
 */
+// OFFSET: 0x0093AAE0
 FMOD_RESULT OutputDSound::registerDLL()
 {
     char szPath[512];
@@ -249,6 +251,7 @@ FMOD_RESULT OutputDSound::registerDLL()
 
 	[SEE_ALSO]
 */
+// OFFSET: 0x0093ACA0
 BOOL CALLBACK FMOD_Output_DSound_EnumProc(LPGUID lpGUID, LPCWSTR lpszDesc, LPCWSTR lpszDrvName, LPVOID lpContext)
 {
     FMOD::OutputDSound *outputdsound = (FMOD::OutputDSound *)lpContext;
@@ -301,6 +304,7 @@ BOOL CALLBACK FMOD_Output_DSound_EnumProc(LPGUID lpGUID, LPCWSTR lpszDesc, LPCWS
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093AD80
 FMOD_RESULT OutputDSound::enumerate()
 {
     FMOD_RESULT result;
@@ -500,6 +504,7 @@ FMOD_RESULT OutputDSound::getDriverInfoW(int driver, short *name, int namelen, F
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BEA0
 FMOD_RESULT OutputDSound::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode, int *num2dchannels, int *num3dchannels, int *totalchannels)
 {
     FMOD_RESULT result;
@@ -785,6 +790,7 @@ FMOD_RESULT OutputDSound::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequ
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093C180
 FMOD_RESULT OutputDSound::init(int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, FMOD_SPEAKERMODE *speakermode, int dspbufferlength, int dspnumbuffers, int max2dchannels, int max3dchannels, void *extradriverdata)
 {
     FMOD_RESULT           result;
@@ -1324,6 +1330,7 @@ FMOD_RESULT OutputDSound::init(int selecteddriver, FMOD_INITFLAGS flags, int *ou
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093AE60
 FMOD_RESULT OutputDSound::close()
 {
     int count;
@@ -1506,6 +1513,7 @@ FMOD_RESULT OutputDSound::getHandle(void **handle)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093B020
 FMOD_RESULT OutputDSound::update()
 {
     HRESULT        hr;
@@ -1666,6 +1674,7 @@ FMOD_RESULT OutputDSound::update()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093B2C0
 FMOD_RESULT OutputDSound::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *waveformat, Sample **sample)
 {
 	WAVE_FORMATEXTENSIBLE pcmwf;
@@ -2139,6 +2148,7 @@ FMOD_RESULT OutputDSound::getReverbProperties(FMOD_REVERB_PROPERTIES *prop)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093B8D0
 FMOD_RESULT OutputDSound::start()
 {
     FMOD_RESULT             result;
@@ -2295,6 +2305,7 @@ FMOD_RESULT OutputDSound::stop()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093C7F0
 FMOD_RESULT OutputDSound::getPosition(unsigned int *pcm)
 {
     SampleDSound   *sample;
@@ -2569,6 +2580,7 @@ FMOD_RESULT OutputDSound::getMemoryUsedImpl(MemoryTracker *tracker)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093B9F0
 FMOD_RESULT F_CALLBACK OutputDSound::getNumDriversCallback(FMOD_OUTPUT_STATE *output, int *numdrivers)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2644,6 +2656,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::getDriverInfoWCallback(FMOD_OUTPUT_STATE *o
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093CB10
 FMOD_RESULT OutputDSound::getDriverCapsExCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode, int *num2dchannels, int *num3dchannels, int *totalchannels)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2669,6 +2682,7 @@ FMOD_RESULT OutputDSound::getDriverCapsExCallback(FMOD_OUTPUT_STATE *output, int
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093CB50
 FMOD_RESULT F_CALLBACK OutputDSound::initExCallback(FMOD_OUTPUT_STATE *output, int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, FMOD_SPEAKERMODE *speakermode, int dspbufferlength, int dspnumbuffers, int max2dchannels, int max3dchannels, void *extradriverdata)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2694,6 +2708,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::initExCallback(FMOD_OUTPUT_STATE *output, i
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BA60
 FMOD_RESULT F_CALLBACK OutputDSound::closeCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2719,6 +2734,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::closeCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BA90
 FMOD_RESULT F_CALLBACK OutputDSound::startCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2744,6 +2760,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::startCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BAC0
 FMOD_RESULT F_CALLBACK OutputDSound::stopCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2769,6 +2786,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::stopCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BB20
 FMOD_RESULT F_CALLBACK OutputDSound::updateCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2794,6 +2812,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::updateCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BB50
 FMOD_RESULT F_CALLBACK OutputDSound::getHandleCallback(FMOD_OUTPUT_STATE *output, void **handle)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2819,6 +2838,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::getHandleCallback(FMOD_OUTPUT_STATE *output
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093CBA0
 FMOD_RESULT F_CALLBACK OutputDSound::getPositionCallback(FMOD_OUTPUT_STATE *output, unsigned int *pcm)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2844,6 +2864,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::getPositionCallback(FMOD_OUTPUT_STATE *outp
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BB80
 FMOD_RESULT F_CALLBACK OutputDSound::lockCallback(FMOD_OUTPUT_STATE *output, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2869,6 +2890,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::lockCallback(FMOD_OUTPUT_STATE *output, uns
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BBD0
 FMOD_RESULT F_CALLBACK OutputDSound::unlockCallback(FMOD_OUTPUT_STATE *output, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2894,6 +2916,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::unlockCallback(FMOD_OUTPUT_STATE *output, v
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BC20
 FMOD_RESULT F_CALLBACK OutputDSound::createSampleCallback(FMOD_OUTPUT_STATE *output, FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *waveformat, Sample **sample)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2919,6 +2942,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::createSampleCallback(FMOD_OUTPUT_STATE *out
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BC50
 FMOD_RESULT F_CALLBACK OutputDSound::getSoundRAMCallback(FMOD_OUTPUT_STATE *output, int *currentalloced, int *maxalloced, int *total)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2945,6 +2969,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::getSoundRAMCallback(FMOD_OUTPUT_STATE *outp
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BCA0
 FMOD_RESULT F_CALLBACK OutputDSound::recordGetNumDriversCallback(FMOD_OUTPUT_STATE *output, int *numdrivers)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -2970,6 +2995,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordGetNumDriversCallback(FMOD_OUTPUT_STA
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BCD0
 FMOD_RESULT F_CALLBACK OutputDSound::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen, FMOD_GUID *guid)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -3020,6 +3046,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordGetDriverInfoWCallback(FMOD_OUTPUT_ST
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BD00
 FMOD_RESULT F_CALLBACK OutputDSound::recordStartCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, FMOD_SOUND *sound, int loop)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -3045,6 +3072,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordStartCallback(FMOD_OUTPUT_STATE *outp
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BD30
 FMOD_RESULT F_CALLBACK OutputDSound::recordStopCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -3070,6 +3098,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordStopCallback(FMOD_OUTPUT_STATE *outpu
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BD60
 FMOD_RESULT F_CALLBACK OutputDSound::recordGetPositionCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -3095,6 +3124,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordGetPositionCallback(FMOD_OUTPUT_STATE
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BD90
 FMOD_RESULT F_CALLBACK OutputDSound::recordLockCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -3120,6 +3150,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordLockCallback(FMOD_OUTPUT_STATE *outpu
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BDD0
 FMOD_RESULT F_CALLBACK OutputDSound::recordUnlockCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -3146,6 +3177,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordUnlockCallback(FMOD_OUTPUT_STATE *out
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BE00
 FMOD_RESULT F_CALLBACK OutputDSound::setReverbPropertiesCallback(FMOD_OUTPUT_STATE *output, const FMOD_REVERB_PROPERTIES *prop)
 {
     OutputDSound *dsound = (OutputDSound *)output;
@@ -3171,6 +3203,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::setReverbPropertiesCallback(FMOD_OUTPUT_STA
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093BE50
 int F_CALLBACK OutputDSound::getSampleMaxChannelsCallback(FMOD_OUTPUT_STATE *output, FMOD_MODE mode, FMOD_SOUND_FORMAT format)
 {
     OutputDSound *dsound = (OutputDSound *)output;

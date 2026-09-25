@@ -74,6 +74,7 @@ FMOD_DSP_PARAMETERDESC dspcompressor_param[4] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EAB70
 FMOD_DSP_DESCRIPTION_EX *DSPCompressor::getDescriptionEx()
 {
 #ifndef PLATFORM_PS3_SPU
@@ -124,6 +125,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPCompressor::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EA4C0
 FMOD_RESULT DSPCompressor::createInternal()
 {
     init();
@@ -165,6 +167,7 @@ FMOD_RESULT DSPCompressor::createInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EA580
 FMOD_RESULT DSPCompressor::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     unsigned int sample;
@@ -371,6 +374,7 @@ FMOD_RESULT DSPCompressor::readInternal(float *inbuffer, float *outbuffer, unsig
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EA8D0
 FMOD_RESULT DSPCompressor::setParameterInternal(int index, float value)
 {
     FMOD_RESULT result;
@@ -454,6 +458,7 @@ FMOD_RESULT DSPCompressor::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EA9F0
 FMOD_RESULT DSPCompressor::getParameterInternal(int index, float *value, char *valuestr)
 {
 
@@ -542,6 +547,7 @@ FMOD_RESULT DSPCompressor::getMemoryUsedImpl(MemoryTracker *tracker)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EAAA0
 FMOD_RESULT F_CALLBACK DSPCompressor::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPCompressor *compressor = (DSPCompressor *)dsp;
@@ -567,6 +573,7 @@ FMOD_RESULT F_CALLBACK DSPCompressor::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EAAD0
 FMOD_RESULT F_CALLBACK DSPCompressor::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPCompressor *compressor = (DSPCompressor *)dsp;
@@ -592,6 +599,7 @@ FMOD_RESULT F_CALLBACK DSPCompressor::readCallback(FMOD_DSP_STATE *dsp, float *i
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EAB00
 FMOD_RESULT F_CALLBACK DSPCompressor::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPCompressor *compressor = (DSPCompressor *)dsp;
@@ -616,6 +624,7 @@ FMOD_RESULT F_CALLBACK DSPCompressor::setParameterCallback(FMOD_DSP_STATE *dsp, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EAB40
 FMOD_RESULT F_CALLBACK DSPCompressor::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
     DSPCompressor *compressor = (DSPCompressor *)dsp;

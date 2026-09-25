@@ -33,6 +33,7 @@ bool gEAX5LockedOALFxSlot3 = false;
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094A100
 FMOD_RESULT	OutputOpenAL::setupSessionEAX5()
 {
     GUID                  guid;
@@ -73,6 +74,7 @@ FMOD_RESULT	OutputOpenAL::setupSessionEAX5()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094A170
 FMOD_RESULT OutputOpenAL::getSpeakerModeEAX5(FMOD_SPEAKERMODE *speakerMode)
 {
     EAXGet                eaxGet          = NULL;
@@ -165,6 +167,7 @@ FMOD_RESULT OutputOpenAL::getSpeakerModeEAX5(FMOD_SPEAKERMODE *speakerMode)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094A2C0
 FMOD_RESULT OutputOpenAL::lockSlotEAX5(GUID &slotGUID)
 {
     int                  slotIsLocked;
@@ -237,6 +240,7 @@ FMOD_RESULT OutputOpenAL::lockSlotEAX5(GUID &slotGUID)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094A440
 FMOD_RESULT OutputOpenAL::setPropertiesEAX5(const FMOD_REVERB_PROPERTIES *prop)
 {
     GUID                 slotGUID;

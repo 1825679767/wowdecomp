@@ -15,6 +15,7 @@
 
 //-----------------------------------------------------------------------------
 
+// OFFSET: 0x009287F0
 int ASfxDsp::init(float rate)
 {
 	int delayLine;
@@ -108,6 +109,7 @@ int ASfxDsp::init(float rate)
 	return 0;
 }
 
+// OFFSET: 0x00927560
 void ASfxDsp::close()
 {
 	if (mInBuffMemory)
@@ -123,6 +125,7 @@ void ASfxDsp::close()
 }
 
 
+// OFFSET: 0x00927600
 int ASfxDsp::AllocateLateDelays(int numDelays, float *delaySec, float sampleRate)
 {
 	int delaySamples;
@@ -150,6 +153,7 @@ int ASfxDsp::AllocateLateDelays(int numDelays, float *delaySec, float sampleRate
 	return 0;
 }
 
+// OFFSET: 0x00927740
 int ASfxDsp::AllocateEarlyLateDelay(float *delaySec, float sampleRate)
 {
 	// Allocate it to the max Ref & Rev delays, so we don't have to reallocate it if the delays change.
@@ -175,6 +179,7 @@ int ASfxDsp::AllocateEarlyLateDelay(float *delaySec, float sampleRate)
 	return 0;
 }
 
+// OFFSET: 0x00927810
 int ASfxDsp::AllocateAllpassDelays(int numDelays, float *delaySec, float sampleRate)
 {
 	int		delaySamples;
@@ -201,6 +206,7 @@ int ASfxDsp::AllocateAllpassDelays(int numDelays, float *delaySec, float sampleR
 	return 0;
 }
 
+// OFFSET: 0x00927950
 int ASfxDsp::AllocateEarlyDelay(float delaySec, float sampleRate)
 {
 	int delaySamples = (int)(delaySec * sampleRate) + 1;
@@ -228,6 +234,7 @@ int	ASfxDsp::NextPowerOf2(int delaySamples)
 }
 
 
+// OFFSET: 0x009270B0
 void ASfxDsp::DeallocateLateDelays()
 {
 	for (int delayLine=0; delayLine<kNumLateReverbDelays; delayLine++)
@@ -241,6 +248,7 @@ void ASfxDsp::DeallocateLateDelays()
 	}
 }
 
+// OFFSET: 0x00927130
 void ASfxDsp::DeallocateAllpassDelays()
 {
 	for (int delayLine=0; delayLine<kNumAllpassDelays; delayLine++)
@@ -276,6 +284,7 @@ void ASfxDsp::DeallocateEarlyLateDelay()
 
 //-----------------------------------------------------------------------------
 //#pragma export(UpdateBufferSize)
+// OFFSET: 0x009271B0
 int ASfxDsp::UpdateBufferSize(int newMaxBlockSize)
 {
 	// nothing to do if the maximum number of samples per processing block hasn't changed
@@ -305,6 +314,7 @@ int ASfxDsp::UpdateBufferSize(int newMaxBlockSize)
 
 //-----------------------------------------------------------------------------
 //#pragma export (ASfxDsp::ClearBuffers)
+// OFFSET: 0x00927A10
 void ASfxDsp::ClearBuffers()
 {
 	ClearInBuff();
@@ -327,6 +337,7 @@ void ASfxDsp::ClearInBuff()
 
 
 //-----------------------------------------------------------------------------
+// OFFSET: 0x00927220
 void ASfxDsp::ClearReverbInternalBuffers()
 {
 	int delayLine;
@@ -380,6 +391,7 @@ void ASfxDsp::ClearReverbInternalBuffers()
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ DoDSPProcessing ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// OFFSET: 0x00927A40
 void ASfxDsp::DoDSPProcessing (float * inAudio, float * outAudio, int channels, unsigned int l_sampframes,
 							float rate, float drymix, unsigned short speakermask)
 {
@@ -822,6 +834,7 @@ void ASfxDsp::DoDSPProcessing (float * inAudio, float * outAudio, int channels, 
 
 
 // Copy input into our input buffer. This may be faster than doing it inside the big loop (?).
+// OFFSET: 0x00927340
 void ASfxDsp::BlockProcessInput(unsigned int sampframes, int channels, float *inAudio, float rate)
 {
 	unsigned int i;
@@ -880,6 +893,7 @@ void ASfxDsp::BlockProcessInput(unsigned int sampframes, int channels, float *in
 
 
 
+// OFFSET: 0x00927400
 void ASfxDsp::SetLate_EarlyLateDelayTaps(float refPlusRevDelaySec, float nextLengthSec, float delayRatio, float rate)	
 {
     mEarlyLateSec[kNumEarly_EarlyLateDelayTaps] = refPlusRevDelaySec;       // Tap 1 = Ref+Rev delay
@@ -899,6 +913,7 @@ void ASfxDsp::SetLate_EarlyLateDelayTaps(float refPlusRevDelaySec, float nextLen
 	}
 }
 
+// OFFSET: 0x00927470
 void ASfxDsp::SetAllpassDelays(float rate)
 {
 	mAllpassDelayLenSec[0] = kAllpassDelayLenSec0;
@@ -924,6 +939,7 @@ void ASfxDsp::SetEarlyDelay(float nextLengthSec, float delayRatio, float rate)
 	}
 }
 
+// OFFSET: 0x009274C0
 void ASfxDsp::SetLateDelays(float nextLengthSec, float delayRatio, float nextLengthBSec, float delayRatioB, float rate)
 {
 	float	nextLengthSamples;

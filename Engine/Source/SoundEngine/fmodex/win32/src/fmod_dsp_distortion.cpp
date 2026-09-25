@@ -62,6 +62,7 @@ extern "C"
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF4E0
 FMOD_DSP_DESCRIPTION_EX *DSPDistortion::getDescriptionEx()
 {
     FMOD_memset(&dspdistortion, 0, sizeof(FMOD_DSP_DESCRIPTION_EX));
@@ -106,6 +107,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPDistortion::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF260
 FMOD_RESULT DSPDistortion::createInternal()
 {
     int count;
@@ -191,6 +193,7 @@ FMOD_RESULT DSPDistortion::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF2C0
 FMOD_RESULT DSPDistortion::readInternal(float * inbuffer, float * outbuffer, unsigned int length, int inchannels, int outchannels)
 {   
     float k;
@@ -454,6 +457,7 @@ FMOD_RESULT DSPDistortion::getMemoryUsedImpl(MemoryTracker *tracker)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF410
 FMOD_RESULT F_CALLBACK DSPDistortion::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPDistortion *distortion = (DSPDistortion *)dsp;
@@ -526,6 +530,7 @@ FMOD_RESULT F_CALLBACK DSPDistortion::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF440
 FMOD_RESULT F_CALLBACK DSPDistortion::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPDistortion *distortion = (DSPDistortion *)dsp;
@@ -550,6 +555,7 @@ FMOD_RESULT F_CALLBACK DSPDistortion::readCallback(FMOD_DSP_STATE *dsp, float *i
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF470
 FMOD_RESULT F_CALLBACK DSPDistortion::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPDistortion *distortion = (DSPDistortion *)dsp;
@@ -574,6 +580,7 @@ FMOD_RESULT F_CALLBACK DSPDistortion::setParameterCallback(FMOD_DSP_STATE *dsp, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF4A0
 FMOD_RESULT F_CALLBACK DSPDistortion::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
     DSPDistortion *distortion = (DSPDistortion *)dsp;

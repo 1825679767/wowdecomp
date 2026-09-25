@@ -125,6 +125,7 @@ static unsigned int HighestBit(unsigned int value)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00925520
 void aabbAdd(FMOD_AABB& a, FMOD_AABB& b, FMOD_AABB& dst)
 {    
     dst.xMin = MIN(a.xMin, b.xMin);
@@ -208,6 +209,7 @@ Octree::~Octree()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009262C0
 void Octree::insertItem(OctreeNode* item)
 {
 //    checkTree(mRoot);
@@ -263,6 +265,7 @@ void Octree::insertItem(OctreeNode* item)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009263F0
 void Octree::deleteItem(OctreeNode* item)
 {
     checkTree(mRoot);
@@ -419,6 +422,7 @@ void Octree::deleteItem(OctreeNode* item)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00926580
 void Octree::updateItem(OctreeNode* item)
 {
     // this function must be called if an items aabb has been changed.
@@ -460,6 +464,7 @@ void Octree::updateItem(OctreeNode* item)
     insertItem(item);
 }
 
+// OFFSET: 0x009255C0
 void Octree::getAABB(FMOD_AABB* aabb)
 {
     if (mRoot)
@@ -480,6 +485,7 @@ void Octree::getAABB(FMOD_AABB* aabb)
     }
 }
 
+// OFFSET: 0x00925E20
 void Octree::addInternalNode(OctreeNode* item)
 {
     ASSERT(item);
@@ -776,6 +782,7 @@ void Octree::setMaxSize(float maxSize)
     mScale = 1.0f / maxSize;
 }
 
+// OFFSET: 0x00925E60
 bool Octree::testLine(bool (*octreeLineTestCallback)(OctreeNode* item, void* data), void* data, const FMOD_VECTOR& a, const FMOD_VECTOR& b)
 {
     ASSERT(octreeLineTestCallback);    
@@ -1187,6 +1194,7 @@ public:
 TestClass testClass;*/
 #endif
 
+// OFFSET: 0x00925EE0
 void Octree::insertInternal(OctreeNode* node, OctreeNode* item)
 {
     for (;;)
@@ -1429,6 +1437,7 @@ OctreeNode* Octree::getFreeNode()
     return node;
 }
 
+// OFFSET: 0x00925640
 void Octree::adjustAABBs(OctreeNode* node)
 {
     while (node)
@@ -1499,6 +1508,7 @@ void Octree::removeListItem(OctreeNode* node)
     node->flags &= ~OCTREE_FLAG_EXTRA_NODE;
 }
 
+// OFFSET: 0x009256E0
 void Octree::addListItem(OctreeNode* list, OctreeNode* node)
 {
     // add to list, sorted by extent
@@ -1568,6 +1578,7 @@ void Octree::addListItem(OctreeNode* list, OctreeNode* node)
     ASSERT(node->nextItem != node);
 }
 
+// OFFSET: 0x00925790
 void Octree::testLine(OctreeNode* node, FMOD_VECTOR a, FMOD_VECTOR b, RecursionData* recursionData)
 {
     float t;

@@ -30,20 +30,24 @@
 
 extern "C"
 {
+    // OFFSET: 0x008D0220
     void *FMOD_Memory_allocC(int len, const char *file, const int line)
     {
         return FMOD::gGlobal->gSystemPool->alloc(len, file, line);
     }
+    // OFFSET: 0x008D0250
     void *FMOD_Memory_callocC(int len, const char *file, const int line)
     {
         return FMOD::gGlobal->gSystemPool->calloc(len, file, line);
     }
 
+    // OFFSET: 0x008D0280
     void *FMOD_Memory_reallocC(void *ptr, int len, const char *file, const int line)
     {
         return FMOD::gGlobal->gSystemPool->realloc(ptr, len, file, line);
     }
 
+    // OFFSET: 0x008D02B0
     void FMOD_Memory_freeC(void *ptr, const char *file, const int line)
     {
         FMOD::gGlobal->gSystemPool->free(ptr, file, line);
@@ -55,6 +59,7 @@ namespace FMOD
 {
 
 
+// OFFSET: 0x008D02D0
 void *MemSingleton::alloc(int len, const char *file, const int line)
 {
     if (!mRefCount)
@@ -67,6 +72,7 @@ void *MemSingleton::alloc(int len, const char *file, const int line)
     return mBuffer;
 }
 
+// OFFSET: 0x008D0310
 void MemSingleton::free(const char *file, const int line)
 {
     if (mRefCount)
@@ -88,14 +94,17 @@ void MemSingleton::free(const char *file, const int line)
 /*
     The wrapper is needed to handle stdcall callbacks when malloc/free is normally cdecl
 */
+// OFFSET: 0x008CFAA0
 void * F_CALLBACK Memory_DefaultMalloc(unsigned int size, FMOD_MEMORY_TYPE type)
 {
     return FMOD_OS_Memory_Alloc(size, type);
 }
+// OFFSET: 0x008CFAC0
 void * F_CALLBACK Memory_DefaultRealloc(void *data, unsigned int size, FMOD_MEMORY_TYPE type)
 {
     return FMOD_OS_Memory_Realloc(data, size, type);
 }
+// OFFSET: 0x008CFAE0
 void F_CALLBACK   Memory_DefaultFree(void *ptr, FMOD_MEMORY_TYPE type)
 {
     FMOD_OS_Memory_Free(ptr, type);
@@ -172,6 +181,7 @@ MemPool::~MemPool()
 	[REMARKS]
 ]
 */
+// OFFSET: 0x008D0400
 FMOD_RESULT MemPool::init(void *poolmem, int poolsize, int blocksize)
 {
     FMOD_RESULT result;
@@ -334,6 +344,7 @@ FMOD_RESULT MemPool::initCustom(void *poolmem, int poolsize, int blocksize)
 	[REMARKS]
 ]
 */
+// OFFSET: 0x008D0360
 void MemPool::close()
 {
     int count;
@@ -384,6 +395,7 @@ void MemPool::close()
 	[REMARKS]
 ]
 */
+// OFFSET: 0x008CFC10
 void MemPool::set(int blockoffset, int value, int numblocks)
 {
     #ifdef FMOD_MEMORY_USEBITS
@@ -505,6 +517,7 @@ void MemPool::set(int blockoffset, int value, int numblocks)
 	[REMARKS]
 ]
 */
+// OFFSET: 0x008CFB60
 int MemPool::findFreeBlocks(int offset, int to, int numblocks)
 {
     int found = 0;
@@ -585,6 +598,7 @@ int MemPool::findFreeBlocks(int offset, int to, int numblocks)
 	[REMARKS]
 ]
 */
+// OFFSET: 0x008CFDA0
 void *MemPool::alloc(int len, const char *file, const int line, FMOD_MEMORY_TYPE type, bool clear)
 {
 #ifdef FMOD_DEBUG
@@ -783,6 +797,7 @@ void *MemPool::alloc(int len, const char *file, const int line, FMOD_MEMORY_TYPE
 	[REMARKS]
 ]
 */
+// OFFSET: 0x008CFF30
 void MemPool::free(void *ptr, const char *file, const int line, FMOD_MEMORY_TYPE type)
 {
 	MemBlockHeader *block = (MemBlockHeader *)ptr;
@@ -870,6 +885,7 @@ void MemPool::free(void *ptr, const char *file, const int line, FMOD_MEMORY_TYPE
 	[REMARKS]
 ]
 */
+// OFFSET: 0x008CFFF0
 void *MemPool::calloc(int len, const char *file, const int line, FMOD_MEMORY_TYPE type)
 {
 	void *ptr;
@@ -891,6 +907,7 @@ void *MemPool::calloc(int len, const char *file, const int line, FMOD_MEMORY_TYP
 	[REMARKS]
 ]
 */
+// OFFSET: 0x008D0010
 void *MemPool::realloc(void *ptr, int len, const char *file, const int line, FMOD_MEMORY_TYPE type)
 {
 	MemBlockHeader *block = (MemBlockHeader *)ptr;

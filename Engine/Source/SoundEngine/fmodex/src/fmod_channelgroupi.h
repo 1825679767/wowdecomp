@@ -48,6 +48,7 @@ namespace FMOD
 
       public:
 
+        // OFFSET: 0x008D51C0
         ChannelGroupI() 
         {
             mVolume = mRealVolume = 1;

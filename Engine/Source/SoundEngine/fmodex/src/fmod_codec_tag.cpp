@@ -96,6 +96,7 @@ typedef struct
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00914990
 FMOD_CODEC_DESCRIPTION_EX *CodecTag::getDescriptionEx()
 {
     FMOD_memset(&tagcodec, 0, sizeof(FMOD_CODEC_DESCRIPTION_EX));
@@ -131,6 +132,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecTag::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00914890
 FMOD_RESULT CodecTag::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     FMOD_RESULT  result = FMOD_OK;
@@ -230,6 +232,7 @@ FMOD_RESULT CodecTag::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00914550
 FMOD_RESULT CodecTag::readTags()
 {
     FMOD_RESULT  result = FMOD_OK;
@@ -438,6 +441,7 @@ FMOD_RESULT CodecTag::readTags()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009134A0
 FMOD_RESULT CodecTag::readID3v1()
 {
     FMOD_RESULT  result;
@@ -561,6 +565,7 @@ FMOD_RESULT CodecTag::readID3v1()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00913800
 FMOD_RESULT CodecTag::readID3v2()
 {
     FMOD_RESULT     result;
@@ -780,6 +785,7 @@ FMOD_RESULT CodecTag::readID3v2()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00913BE0
 FMOD_RESULT CodecTag::readID3v2FromFooter()
 {
     FMOD_RESULT     result;
@@ -871,6 +877,7 @@ FMOD_RESULT CodecTag::readID3v2FromFooter()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00913CE0
 FMOD_RESULT CodecTag::readASF()
 {
     FMOD_RESULT  result;
@@ -1235,6 +1242,7 @@ FMOD_RESULT CodecTag::readASF()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00914950
 FMOD_RESULT F_CALLBACK CodecTag::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecTag *tag = (CodecTag *)codec;

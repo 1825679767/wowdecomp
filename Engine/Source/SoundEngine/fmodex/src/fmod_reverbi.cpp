@@ -31,6 +31,7 @@ namespace FMOD
 #define kREVERB_GAIN_COEF            0.002f         // Coefficient for warping the power law for additive gain (see below)
 #define kREVERB_GAIN_COEF_INV        500.0f         // Reciprocal of kREVERB_GAIN_COEF (depends on the above)
 
+// OFFSET: 0x008E63A0
 ReverbI::ReverbI()
 {
     int count;
@@ -105,6 +106,7 @@ FMOD_RESULT ReverbI::validate(Reverb *reverb, ReverbI **reverbi)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E6540
 FMOD_RESULT ReverbI::init(SystemI* system, bool is_3d, FMOD_REVERB_MODE mode)
 {
     FMOD_REVERB_PROPERTIES prop = FMOD_PRESET_OFF;             // then initialise them to 'off'
@@ -186,6 +188,7 @@ FMOD_RESULT ReverbI::init(SystemI* system, bool is_3d, FMOD_REVERB_MODE mode)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E6410
 FMOD_RESULT ReverbI::release(bool freethis)
 {
     int count;
@@ -250,6 +253,7 @@ FMOD_RESULT ReverbI::release(bool freethis)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E55D0
 FMOD_RESULT ReverbI::createDSP(int instance)
 {
     if (instance < 0 || instance >= FMOD_REVERB_MAXINSTANCES)
@@ -398,6 +402,7 @@ FMOD_RESULT ReverbI::releaseDSP(int instance)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E56B0
 FMOD_RESULT ReverbI::getChanProperties(int instance, const int index, FMOD_REVERB_CHANNELPROPERTIES *props, DSPConnectionI **connection)
 {
     if (instance < 0 || instance >= FMOD_REVERB_MAXINSTANCES)
@@ -457,6 +462,7 @@ FMOD_RESULT ReverbI::getChanProperties(int instance, const int index, FMOD_REVER
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E5710
 FMOD_RESULT ReverbI::setChanProperties(int instance, const int index, const FMOD_REVERB_CHANNELPROPERTIES *props, DSPConnectionI *connection)
 {
     if (instance < 0 || instance >= FMOD_REVERB_MAXINSTANCES || !mInstance[instance].mChannelData)
@@ -612,6 +618,7 @@ FMOD_RESULT ReverbI::set3DAttributes(const FMOD_VECTOR *position, float mindista
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E5770
 FMOD_RESULT ReverbI::get3DAttributes(FMOD_VECTOR *position, float *mindistance, float *maxdistance)
 { 
     if (position)
@@ -649,6 +656,7 @@ FMOD_RESULT ReverbI::get3DAttributes(FMOD_VECTOR *position, float *mindistance, 
 ]
 */
 
+// OFFSET: 0x008E57C0
 FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
 {
     FMOD_REVERB_PROPERTIES oldprops;
@@ -878,6 +886,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E5EB0
 FMOD_RESULT ReverbI::getProperties(FMOD_REVERB_PROPERTIES* properties)
 {
     if (!properties)
@@ -933,6 +942,7 @@ FMOD_RESULT ReverbI::setActive(bool active)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E5EE0
 FMOD_RESULT ReverbI::getActive(bool *active)
 { 
     if (!active)
@@ -1042,6 +1052,7 @@ void ReverbI::setDisableIfNoEnvironment(bool dis)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E5F10
 void ReverbI::calculateDistanceGain(FMOD_VECTOR *p, float *linear_gain, float *linear_coeff)
 {
     FMOD_VECTOR a_vector; 
@@ -1122,6 +1133,7 @@ void ReverbI::calculateDistanceGain(FMOD_VECTOR *p, float *linear_gain, float *l
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E6000
 FMOD_RESULT ReverbI::setPresenceGain(int instance, int index, float lingain) 
 {
     if (instance < 0 || instance >= FMOD_REVERB_MAXINSTANCES)
@@ -1154,6 +1166,7 @@ FMOD_RESULT ReverbI::setPresenceGain(int instance, int index, float lingain)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E6030
 FMOD_RESULT ReverbI::getPresenceGain(int instance, int index, float *lingain)
 {
     if (instance < 0 || instance >= FMOD_REVERB_MAXINSTANCES)
@@ -1192,6 +1205,7 @@ FMOD_RESULT ReverbI::getPresenceGain(int instance, int index, float *lingain)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E6070
 void ReverbI::sumRoomProps(FMOD_REVERB_STDPROPERTIES *accprops, FMOD_REVERB_PROPERTIES *addprops, float factor)
 {
     if (accprops && addprops)
@@ -1216,6 +1230,7 @@ void ReverbI::sumRoomProps(FMOD_REVERB_STDPROPERTIES *accprops, FMOD_REVERB_PROP
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E60B0
 void ReverbI::sumProps(FMOD_REVERB_STDPROPERTIES *accprops, FMOD_REVERB_PROPERTIES *addprops, float factor)
 {
     if (accprops && addprops)
@@ -1253,6 +1268,7 @@ void ReverbI::sumProps(FMOD_REVERB_STDPROPERTIES *accprops, FMOD_REVERB_PROPERTI
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E6220
 void ReverbI::factorProps(FMOD_REVERB_PROPERTIES *quotientprops, FMOD_REVERB_STDPROPERTIES *divprops, float factor)
 {
     FMOD_memset(quotientprops, 0, sizeof(FMOD_REVERB_PROPERTIES));

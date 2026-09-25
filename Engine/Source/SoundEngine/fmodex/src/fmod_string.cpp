@@ -6,6 +6,7 @@
 
 using namespace FMOD;
      
+// OFFSET: 0x008D22C0
 int FMOD_strlen(const char * s)
 {
     const char *sc;
@@ -15,6 +16,7 @@ int FMOD_strlen(const char * s)
     return (int)(sc - s);
 }
 
+// OFFSET: 0x008D22E0
 char * FMOD_strcpy(char * dest,const char *src)
 {
     char *tmp = dest;
@@ -24,6 +26,7 @@ char * FMOD_strcpy(char * dest,const char *src)
     return tmp;
 }
 
+// OFFSET: 0x008D2310
 char * FMOD_strncpy(char * dest, const char *src, int count)
 {
     char *tmp = dest;
@@ -34,6 +37,7 @@ char * FMOD_strncpy(char * dest, const char *src, int count)
 }
 
 
+// OFFSET: 0x008D2340
 char * FMOD_strcat(char * dest, const char * src)
 {
     char *tmp = dest;
@@ -44,6 +48,7 @@ char * FMOD_strcat(char * dest, const char * src)
     return tmp;
 }
 
+// OFFSET: 0x008D2380
 char * FMOD_strncat(char *dest, const char *src, int count)
 {
     char *tmp = dest;
@@ -75,6 +80,7 @@ char FMOD_tolower(char in)
     return in;
 }
 
+// OFFSET: 0x008D23D0
 char *FMOD_strupr(char *string)
 {
     char * cp;
@@ -105,6 +111,7 @@ char *FMOD_strlwr(char *string)
     return(string);
 }
 
+// OFFSET: 0x008D2400
 int FMOD_strcmp( const char *string1, const char *string2 )
 {
     register char c1, c2;
@@ -118,6 +125,7 @@ int FMOD_strcmp( const char *string1, const char *string2 )
 }
 
 
+// OFFSET: 0x008D2430
 int FMOD_strncmp( const char *string1, const char *string2, int len )
 {
     register char c1, c2;
@@ -133,6 +141,7 @@ int FMOD_strncmp( const char *string1, const char *string2, int len )
 }
 
 
+// OFFSET: 0x008D2470
 int FMOD_stricmp( const char *string1, const char *string2 )
 {
     register char c1, c2;
@@ -145,6 +154,7 @@ int FMOD_stricmp( const char *string1, const char *string2 )
     return c1 - c2;
 }
 
+// OFFSET: 0x008D24C0
 int FMOD_strnicmp( const char *string1, const char *string2, int len )
 {
     register char c1, c2;
@@ -176,6 +186,7 @@ char * FMOD_strchr(const char * s1, int c)
     return (char *)0;
 }
 
+// OFFSET: 0x008D2600
 char * FMOD_strstr(const char * s1,const char * s2)
 {
     int l1, l2;
@@ -214,6 +225,7 @@ int FMOD_memcmp(const void * cs,const void * ct, int count)
 }
 
 
+// OFFSET: 0x008D2510
 void * FMOD_memmove(void * dest,const void *src, int count)
 {
     char *tmp, *s;
@@ -235,6 +247,7 @@ void * FMOD_memmove(void * dest,const void *src, int count)
 }
 
 
+// OFFSET: 0x008D2570
 char *FMOD_strdup(const char * src)
 {
     char *ret = 0;
@@ -249,6 +262,7 @@ char *FMOD_strdup(const char * src)
 }
 
 
+// OFFSET: 0x008D25D0
 char *FMOD_eatwhite(const char *string)
 {
     for (;*string && FMOD_isspace(*string);string++) ;

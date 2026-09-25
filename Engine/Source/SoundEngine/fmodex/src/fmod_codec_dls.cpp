@@ -53,6 +53,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F9F60
 FMOD_CODEC_DESCRIPTION_EX *CodecDLS::getDescriptionEx()
 {
     FMOD_memset(&dlscodec, 0, sizeof(FMOD_CODEC_DESCRIPTION_EX));
@@ -88,6 +89,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecDLS::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F8E40
 FMOD_RESULT CodecDLS::parseChunk(char *parentchunk, unsigned int chunksize)
 {
 	unsigned int    offset, fileoffset;
@@ -628,6 +630,7 @@ FMOD_RESULT CodecDLS::parseChunk(char *parentchunk, unsigned int chunksize)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F9C00
 FMOD_RESULT CodecDLS::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     FMOD_RESULT     result = FMOD_OK;
@@ -710,6 +713,7 @@ FMOD_RESULT CodecDLS::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F8BE0
 FMOD_RESULT CodecDLS::closeInternal()
 {
     if (waveformat)
@@ -777,6 +781,7 @@ FMOD_RESULT CodecDLS::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F8D70
 FMOD_RESULT CodecDLS::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -834,6 +839,7 @@ FMOD_RESULT CodecDLS::readInternal(void *buffer, unsigned int sizebytes, unsigne
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F9D00
 FMOD_RESULT CodecDLS::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -887,6 +893,7 @@ FMOD_RESULT CodecDLS::setPositionInternal(int subsound, unsigned int position, F
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F9EF0
 FMOD_RESULT F_CALLBACK CodecDLS::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecDLS *dls = (CodecDLS *)codec;    
@@ -911,6 +918,7 @@ FMOD_RESULT F_CALLBACK CodecDLS::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F8DE0
 FMOD_RESULT F_CALLBACK CodecDLS::closeCallback(FMOD_CODEC_STATE *codec)
 {
     CodecDLS *dls = (CodecDLS *)codec;    
@@ -935,6 +943,7 @@ FMOD_RESULT F_CALLBACK CodecDLS::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F8E10
 FMOD_RESULT F_CALLBACK CodecDLS::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     CodecDLS *dls = (CodecDLS *)codec;    
@@ -958,6 +967,7 @@ FMOD_RESULT F_CALLBACK CodecDLS::readCallback(FMOD_CODEC_STATE *codec, void *buf
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008F9F30
 FMOD_RESULT F_CALLBACK CodecDLS::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     CodecDLS *dls = (CodecDLS *)codec;    

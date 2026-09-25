@@ -34,6 +34,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091AA80
 OutputSoftware::OutputSoftware()
 {
     FMOD_memset(&mDescription, 0, sizeof(FMOD_OUTPUT_DESCRIPTION_EX));
@@ -69,6 +70,7 @@ OutputSoftware::OutputSoftware()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091A930
 FMOD_RESULT OutputSoftware::init(int maxchannels)
 {
     FMOD_RESULT     result;
@@ -130,6 +132,7 @@ FMOD_RESULT OutputSoftware::init(int maxchannels)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091AA20
 FMOD_RESULT OutputSoftware::release()
 {
     if (mChannelPool)
@@ -162,6 +165,7 @@ FMOD_RESULT OutputSoftware::release()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091AB00
 FMOD_RESULT OutputSoftware::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *waveformat, Sample **sample)
 {
     FMOD_RESULT      result;

@@ -55,6 +55,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8F30
 FMOD_CODEC_DESCRIPTION_EX *CodecUser::getDescriptionEx()
 {
     FMOD_memset(&usercodec, 0, sizeof(FMOD_CODEC_DESCRIPTION_EX));
@@ -90,6 +91,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecUser::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8CF0
 FMOD_RESULT CodecUser::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     FMOD_RESULT     result = FMOD_OK;
@@ -246,6 +248,7 @@ FMOD_RESULT CodecUser::setPositionInternal(int subsound, unsigned int position, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8EF0
 FMOD_RESULT F_CALLBACK CodecUser::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecUser *cuser = (CodecUser *)codec;
@@ -294,6 +297,7 @@ FMOD_RESULT F_CALLBACK CodecUser::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8CD0
 FMOD_RESULT F_CALLBACK CodecUser::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     CodecUser *cuser = (CodecUser *)codec;

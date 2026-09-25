@@ -24,6 +24,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00918D30
 DSPFFT::DSPFFT()
 {
 #ifdef USECOSTAB
@@ -136,6 +137,7 @@ FMOD_INLINE const unsigned int DSPFFT::reverse(unsigned int val, int bits)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00918D70
 FMOD_RESULT DSPFFT::process(int bits)
 {
     register int    count, count2, count3;
@@ -202,6 +204,7 @@ FMOD_RESULT DSPFFT::process(int bits)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009190A0
 FMOD_RESULT DSPFFT::getSpectrum(float *pcmbuffer, unsigned int pcmposition, unsigned int pcmlength, float *spectrum, int length, int channel, int numchannels, FMOD_DSP_FFT_WINDOW windowtype)
 {
     int count, bits, bitslength, nyquist;

@@ -29,6 +29,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00947E10
 FMOD_RESULT ChannelOpenALEAX4::setupChannel()
 {
     EAXACTIVEFXSLOTS           eaxSlots;
@@ -116,6 +117,7 @@ FMOD_RESULT ChannelOpenALEAX4::setupChannel()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00947F90
 FMOD_RESULT ChannelOpenALEAX4::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
     EAXSOURCEPROPERTIES eaxSourceProperties;
@@ -273,6 +275,7 @@ FMOD_RESULT ChannelOpenALEAX4::setReverbProperties(const FMOD_REVERB_CHANNELPROP
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009482C0
 FMOD_RESULT ChannelOpenALEAX4::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
     EAXSOURCEPROPERTIES  eaxSourceProperties;

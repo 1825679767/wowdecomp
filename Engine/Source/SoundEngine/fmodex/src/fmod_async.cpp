@@ -26,6 +26,7 @@ LinkedListNode AsyncThread::gAsyncHead;
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921FC0
 void asyncThreadFunc(void *data)
 {
     AsyncThread *asyncThread = (AsyncThread *)data;
@@ -46,6 +47,7 @@ void asyncThreadFunc(void *data)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921FD0
 AsyncThread::AsyncThread()
 {
     mCrit         = 0;
@@ -68,6 +70,7 @@ AsyncThread::AsyncThread()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00922040
 FMOD_RESULT AsyncThread::shutDown()
 {
     if (FMOD::gGlobal->gAsyncCrit)
@@ -216,6 +219,7 @@ FMOD_RESULT AsyncThread::removeCallback(FMOD_ASYNC_CALLBACK callback)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009220A0
 FMOD_RESULT AsyncThread::init(bool owned, SystemI *system)
 {
     FMOD_RESULT result;
@@ -288,6 +292,7 @@ FMOD_RESULT AsyncThread::release()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921C60
 FMOD_RESULT AsyncThread::reallyRelease()
 {
     FMOD_OS_CriticalSection_Enter(mCrit);
@@ -364,6 +369,7 @@ FMOD_RESULT AsyncThread::wakeupThread()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921D30
 FMOD_RESULT AsyncThread::update()
 {
     if (FMOD::gGlobal->gAsyncCrit)
@@ -407,6 +413,7 @@ FMOD_RESULT AsyncThread::update()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921D80
 FMOD_RESULT AsyncThread::threadFunc()
 {
     FMOD_RESULT     result = FMOD_OK;
@@ -607,6 +614,7 @@ FMOD_RESULT AsyncThread::threadFunc()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00922130
 FMOD_RESULT AsyncThread::getAsyncThread(SoundI *sound)
 {
     FMOD_RESULT     result;

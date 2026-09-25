@@ -84,6 +84,7 @@ void operator delete(void *ptr)
     System::close
 ]
 */
+// OFFSET: 0x008D0550
 FMOD_RESULT F_API FMOD_Memory_Initialize(void *poolmem, int poollen, FMOD_MEMORY_ALLOCCALLBACK useralloc, FMOD_MEMORY_REALLOCCALLBACK userrealloc, FMOD_MEMORY_FREECALLBACK userfree, FMOD_MEMORY_TYPE memtypeflags)
 {
     if (!FMOD::gGlobal->gSystemHead->isEmpty())
@@ -237,6 +238,7 @@ FMOD_RESULT F_API FMOD_Memory_GetStats(int *currentalloced, int *maxalloced, FMO
     System::release
 ]
 */
+// OFFSET: 0x008D0660
 FMOD_RESULT F_API FMOD_System_Create(FMOD_SYSTEM **system)
 {
     FMOD::SystemI *sys, *current;

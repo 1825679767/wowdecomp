@@ -66,6 +66,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009394E0
 FMOD_OUTPUT_DESCRIPTION_EX *OutputWASAPI::getDescriptionEx()
 {
     FMOD_memset(&wasapioutput, 0, sizeof(FMOD_OUTPUT_DESCRIPTION_EX));
@@ -123,6 +124,7 @@ FMOD_OUTPUT_DESCRIPTION_EX *OutputWASAPI::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00937370
 FMOD_RESULT OutputWASAPI::enumerateDefaultDevices(IMMDeviceEnumerator *pEnumerator)
 {
     HRESULT         hResult                                 = S_OK;
@@ -234,6 +236,7 @@ Exit:
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009376C0
 FMOD_RESULT OutputWASAPI::enumerate()
 {   
     HRESULT                 hResult         = S_OK;
@@ -618,6 +621,7 @@ FMOD_RESULT OutputWASAPI::getDriverInfoW(int driver, short *name, int namelen, F
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00937BE0
 FMOD_RESULT OutputWASAPI::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode)
 {
     FMOD_RESULT           fResult            = FMOD_OK;
@@ -719,6 +723,7 @@ Exit:
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00937D60
 FMOD_RESULT OutputWASAPI::initEx(int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, FMOD_SPEAKERMODE *speakermode, int dspbufferlength, int dspnumbuffers, int max2dchannels, int max3dchannels, void *extradriverdata)
 {
     FMOD_RESULT             fResult               = FMOD_OK;
@@ -999,6 +1004,7 @@ Exit:
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009381B0
 FMOD_RESULT OutputWASAPI::close()
 {
     Plugin::init(); /* Set up gGlobal - for debug / file / memory access by this plugin. */
@@ -1715,6 +1721,7 @@ FMOD_RESULT OutputWASAPI::recordGetNumDrivers(int *numdrivers)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00938640
 FMOD_RESULT OutputWASAPI::recordGetDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid)
 {
     if (!mEnumerated)
@@ -1824,6 +1831,7 @@ FMOD_RESULT OutputWASAPI::recordGetDriverInfoW(int id, short *name, int namelen,
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009386A0
 FMOD_RESULT OutputWASAPI::recordGetDriverCaps(int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency)
 {
     FMOD_RESULT           fResult            = FMOD_OK;
@@ -1907,6 +1915,7 @@ Exit:
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009387C0
 FMOD_RESULT OutputWASAPI::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *sound, bool loop)
 {
     FMOD_RESULT                 fResult             = FMOD_OK;
@@ -2087,6 +2096,7 @@ Exit:
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00938C60
 FMOD_RESULT OutputWASAPI::recordStop(FMOD_RECORDING_INFO *recordinfo)
 {
     FMOD_RESULT fResult = FMOD_OK;
@@ -2142,6 +2152,7 @@ FMOD_RESULT OutputWASAPI::recordStop(FMOD_RECORDING_INFO *recordinfo)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00938440
 FMOD_RESULT OutputWASAPI::recordUpdate()
 {
     FMOD_RESULT fResult = FMOD_OK;
@@ -2350,6 +2361,7 @@ FMOD_RESULT OutputWASAPI::recordGetPosition(FMOD_RECORDING_INFO *recordinfo, uns
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00938D10
 FMOD_RESULT OutputWASAPI::recordLock(FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {  
     FMOD_WASAPIRecordMembers   *recordMembers   = (FMOD_WASAPIRecordMembers *)recordinfo->mRecordPlatformSpecific;
@@ -2460,6 +2472,7 @@ FMOD_RESULT OutputWASAPI::getMemoryUsedImpl(MemoryTracker *tracker)
     ==============================================================================================================
 */
 
+// OFFSET: 0x00938DD0
 FMOD_RESULT F_CALLBACK OutputWASAPI::getNumDriversCallback(FMOD_OUTPUT_STATE *output, int *numdrivers)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;
@@ -2484,6 +2497,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::getDriverInfoWCallback(FMOD_OUTPUT_STATE *o
 }
 
 
+// OFFSET: 0x00938E40
 FMOD_RESULT F_CALLBACK OutputWASAPI::getDriverCapsExCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;
@@ -2492,6 +2506,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::getDriverCapsExCallback(FMOD_OUTPUT_STATE *
 }
 
 
+// OFFSET: 0x00938E70
 FMOD_RESULT F_CALLBACK OutputWASAPI::initExCallback(FMOD_OUTPUT_STATE *output, int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, FMOD_SPEAKERMODE *speakermode, int dspbufferlength, int dspnumbuffers, int max2dchannels, int max3dchannels, void *extradriverdata)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;
@@ -2500,6 +2515,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::initExCallback(FMOD_OUTPUT_STATE *output, i
 }
 
 
+// OFFSET: 0x00938EC0
 FMOD_RESULT F_CALLBACK OutputWASAPI::closeCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;
@@ -2508,6 +2524,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::closeCallback(FMOD_OUTPUT_STATE *output)
 }
 
 
+// OFFSET: 0x00938EF0
 FMOD_RESULT F_CALLBACK OutputWASAPI::startCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;
@@ -2516,6 +2533,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::startCallback(FMOD_OUTPUT_STATE *output)
 }
 
 
+// OFFSET: 0x00938F30
 FMOD_RESULT F_CALLBACK OutputWASAPI::stopCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;
@@ -2560,6 +2578,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::mixerResampleReadCallback(FMOD_DSP_STATE *d
 
 
 #ifdef FMOD_SUPPORT_RECORDING
+// OFFSET: 0x00938FE0
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetNumDriversCallback(FMOD_OUTPUT_STATE *output, int *numdrivers)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;
@@ -2568,6 +2587,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetNumDriversCallback(FMOD_OUTPUT_STA
 }
 
 
+// OFFSET: 0x00939020
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen, FMOD_GUID *guid)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;
@@ -2584,6 +2604,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetDriverInfoWCallback(FMOD_OUTPUT_ST
 }
 
 
+// OFFSET: 0x00939050
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetDriverCapsCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;
@@ -2592,6 +2613,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetDriverCapsCallback(FMOD_OUTPUT_STA
 }
 
 
+// OFFSET: 0x00939080
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordStartCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, FMOD_SOUND *sound, int loop)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;
@@ -2600,6 +2622,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::recordStartCallback(FMOD_OUTPUT_STATE *outp
 }
 
 
+// OFFSET: 0x009390B0
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordStopCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;
@@ -2616,6 +2639,7 @@ void OutputWASAPI::recordThreadCallback(void *data)
 }
 
 
+// OFFSET: 0x00915B60
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetPositionCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;
@@ -2624,6 +2648,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetPositionCallback(FMOD_OUTPUT_STATE
 }
 
 
+// OFFSET: 0x009390E0
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordLockCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     OutputWASAPI *wasapi = (OutputWASAPI *)output;

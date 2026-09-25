@@ -55,6 +55,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090E2E0
 FMOD_CODEC_DESCRIPTION_EX *CodecAIFF::getDescriptionEx()
 {
     FMOD_memset(&aiffcodec, 0, sizeof(FMOD_CODEC_DESCRIPTION_EX));
@@ -80,6 +81,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecAIFF::getDescriptionEx()
 /****************************************************************
  * Extended precision IEEE floating-point conversion routine.
  ****************************************************************/
+// OFFSET: 0x0090D700
 float ConvertFromIeeeExtended(unsigned char *bytes)
 {
     float    f;
@@ -141,6 +143,7 @@ float ConvertFromIeeeExtended(unsigned char *bytes)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090D990
 FMOD_RESULT CodecAIFF::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     FMOD_RESULT     result = FMOD_OK;
@@ -555,6 +558,7 @@ FMOD_RESULT CodecAIFF::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090D7D0
 FMOD_RESULT CodecAIFF::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     FMOD_RESULT result;
@@ -694,6 +698,7 @@ FMOD_RESULT CodecAIFF::readInternal(void *buffer, unsigned int sizebytes, unsign
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090E0B0
 FMOD_RESULT CodecAIFF::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     FMOD_RESULT result;
@@ -730,6 +735,7 @@ FMOD_RESULT CodecAIFF::setPositionInternal(int subsound, unsigned int position, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090E270
 FMOD_RESULT F_CALLBACK CodecAIFF::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecAIFF *aiff = (CodecAIFF *)codec;
@@ -778,6 +784,7 @@ FMOD_RESULT F_CALLBACK CodecAIFF::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090D960
 FMOD_RESULT F_CALLBACK CodecAIFF::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     CodecAIFF *aiff = (CodecAIFF *)codec;
@@ -801,6 +808,7 @@ FMOD_RESULT F_CALLBACK CodecAIFF::readCallback(FMOD_CODEC_STATE *codec, void *bu
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090E2B0
 FMOD_RESULT F_CALLBACK CodecAIFF::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     CodecAIFF *aiff = (CodecAIFF *)codec;

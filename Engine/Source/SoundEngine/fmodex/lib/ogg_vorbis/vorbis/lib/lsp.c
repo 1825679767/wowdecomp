@@ -245,6 +245,7 @@ void FMOD_vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int 
    fraction of a dB precision */
 
 /* side effect: changes *lsp to cosines of lsp */
+// OFFSET: 0x004723F0
 void FMOD_vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
                             float amp,float ampoffset){
   int i;

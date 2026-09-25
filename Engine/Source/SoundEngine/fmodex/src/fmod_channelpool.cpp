@@ -27,6 +27,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8960
 ChannelPool::ChannelPool()
 {
     mChannel      = 0;
@@ -52,6 +53,7 @@ ChannelPool::ChannelPool()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8980
 FMOD_RESULT ChannelPool::init(SystemI *system, Output *output, int numchannels)
 {
     if (numchannels < 0)
@@ -91,6 +93,7 @@ FMOD_RESULT ChannelPool::init(SystemI *system, Output *output, int numchannels)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E89E0
 FMOD_RESULT ChannelPool::release()
 {
     int count;
@@ -129,6 +132,7 @@ FMOD_RESULT ChannelPool::release()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8A50
 FMOD_RESULT ChannelPool::allocateChannel(ChannelReal **realchannel, int index, int numchannels, int *found_out, bool ignorereserved)
 {
     int count;
@@ -230,6 +234,7 @@ FMOD_RESULT ChannelPool::allocateChannel(ChannelReal **realchannel, int index, i
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8BB0
 FMOD_RESULT ChannelPool::getNumChannels(int *numchannels)
 {
     if (!numchannels)
@@ -258,6 +263,7 @@ FMOD_RESULT ChannelPool::getNumChannels(int *numchannels)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8BD0
 FMOD_RESULT ChannelPool::getChannelsUsed(int *numchannels)
 {
     if (!numchannels)
@@ -286,6 +292,7 @@ FMOD_RESULT ChannelPool::getChannelsUsed(int *numchannels)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8BF0
 FMOD_RESULT ChannelPool::setChannel(int index, ChannelReal *channel, DSPI *dspmixtarget)
 {
     if (!channel || index < 0 || index >= mNumChannels)
@@ -315,6 +322,7 @@ FMOD_RESULT ChannelPool::setChannel(int index, ChannelReal *channel, DSPI *dspmi
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E8C40
 FMOD_RESULT ChannelPool::getChannel(int index, ChannelReal **channel)
 {
     if (!channel || index < 0 || index >= mNumChannels)

@@ -51,6 +51,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091C460
 DSPResampler::DSPResampler()
 {
     mResampleBufferMemory    = 0;
@@ -89,6 +90,7 @@ DSPResampler::DSPResampler()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091C360
 FMOD_RESULT DSPResampler::release(bool freethis)
 {
     DSPI::release(false);
@@ -141,6 +143,7 @@ FMOD_RESULT DSPResampler::release(bool freethis)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091C4D0
 FMOD_RESULT DSPResampler::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 {
     FMOD_RESULT result;
@@ -1166,6 +1169,7 @@ FMOD_RESULT DSPResampler::addInput(DSPI *target)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091C3C0
 FMOD_RESULT DSPResampler::setFrequency(float frequency)
 {
     if (frequency < 0)
@@ -1229,6 +1233,7 @@ FMOD_RESULT DSPResampler::getFrequency(float *frequency)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091C400
 FMOD_RESULT DSPResampler::setPosition(unsigned int position, bool processinputs)
 {
     FMOD_RESULT result;

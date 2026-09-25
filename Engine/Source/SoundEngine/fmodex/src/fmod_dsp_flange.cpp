@@ -72,6 +72,7 @@ FMOD_DSP_PARAMETERDESC dspflange_param[4] =
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EFE00
 FMOD_DSP_DESCRIPTION_EX *DSPFlange::getDescriptionEx()
 {
 #ifndef PLATFORM_PS3_SPU
@@ -183,6 +184,7 @@ FMOD_INLINE const float DSPFlange::sine(float x)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF590
 FMOD_RESULT DSPFlange::createInternal()
 {
     FMOD_RESULT  result;
@@ -326,6 +328,7 @@ FMOD_RESULT DSPFlange::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EF6A0
 FMOD_RESULT DSPFlange::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {   
     unsigned int count;
@@ -431,6 +434,7 @@ FMOD_RESULT DSPFlange::readInternal(float *inbuffer, float *outbuffer, unsigned 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EFAC0
 FMOD_RESULT DSPFlange::setParameterInternal(int index, float value)
 {
     float olddepth;
@@ -499,6 +503,7 @@ FMOD_RESULT DSPFlange::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EFBD0
 FMOD_RESULT DSPFlange::getParameterInternal(int index, float *value, char *valuestr)
 {
     switch (index)
@@ -593,6 +598,7 @@ FMOD_RESULT DSPFlange::getMemoryUsedImpl(MemoryTracker *tracker)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EFCA0
 FMOD_RESULT F_CALLBACK DSPFlange::createCallback(FMOD_DSP_STATE *dsp)
 {
     DSPFlange *flange = (DSPFlange *)dsp;
@@ -617,6 +623,7 @@ FMOD_RESULT F_CALLBACK DSPFlange::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EFCD0
 FMOD_RESULT F_CALLBACK DSPFlange::releaseCallback(FMOD_DSP_STATE *dsp)
 {
     DSPFlange *flange = (DSPFlange *)dsp;
@@ -641,6 +648,7 @@ FMOD_RESULT F_CALLBACK DSPFlange::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EFD20
 FMOD_RESULT F_CALLBACK DSPFlange::resetCallback(FMOD_DSP_STATE *dsp)
 {
     DSPFlange *flange = (DSPFlange *)dsp;
@@ -666,6 +674,7 @@ FMOD_RESULT F_CALLBACK DSPFlange::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EFD60
 FMOD_RESULT F_CALLBACK DSPFlange::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     DSPFlange *flange = (DSPFlange *)dsp;
@@ -691,6 +700,7 @@ FMOD_RESULT F_CALLBACK DSPFlange::readCallback(FMOD_DSP_STATE *dsp, float *inbuf
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EFD90
 FMOD_RESULT F_CALLBACK DSPFlange::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
     DSPFlange *flange = (DSPFlange *)dsp;
@@ -715,6 +725,7 @@ FMOD_RESULT F_CALLBACK DSPFlange::setParameterCallback(FMOD_DSP_STATE *dsp, int 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008EFDD0
 FMOD_RESULT F_CALLBACK DSPFlange::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
     DSPFlange *flange = (DSPFlange *)dsp;

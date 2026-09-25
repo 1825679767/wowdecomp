@@ -6,24 +6,28 @@
 
 #include "comb.h"
 
+// OFFSET: 0x009450D0
 comb::comb()
 {
 	filterstore = 0;
 	bufidx = 0;
 }
 
+// OFFSET: 0x009450E0
 void comb::setbuffer(float *buf, int size) 
 {
 	buffer = buf; 
 	bufsize = size;
 }
 
+// OFFSET: 0x00945100
 void comb::mute()
 {
 	for (int i=0; i<bufsize; i++)
 		buffer[i]=0;
 }
 
+// OFFSET: 0x00945120
 void comb::setdamp(float val) 
 {
 	damp1 = val; 

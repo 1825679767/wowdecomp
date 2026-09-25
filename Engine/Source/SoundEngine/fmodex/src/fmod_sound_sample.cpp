@@ -22,6 +22,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091AF20
 Sample::Sample()
 {
     mNumSubSamples = 0;
@@ -44,6 +45,7 @@ Sample::Sample()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091B2E0
 FMOD_RESULT Sample::lock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {   
     int count;
@@ -354,6 +356,7 @@ FMOD_RESULT Sample::lock(unsigned int offset, unsigned int length, void **ptr1, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091BB80
 FMOD_RESULT Sample::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
     int count;
@@ -623,6 +626,7 @@ FMOD_RESULT Sample::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned i
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091AF70
 FMOD_RESULT Sample::release(bool freethis)
 {
     int count;
@@ -676,6 +680,7 @@ FMOD_RESULT Sample::release(bool freethis)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091B000
 FMOD_RESULT Sample::setDefaults(float frequency, float volume, float pan, int priority)
 {
     FMOD_RESULT result;
@@ -711,6 +716,7 @@ FMOD_RESULT Sample::setDefaults(float frequency, float volume, float pan, int pr
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091B080
 FMOD_RESULT Sample::setVariations(float frequencyvar, float volumevar, float panvar)
 {
     FMOD_RESULT result;
@@ -746,6 +752,7 @@ FMOD_RESULT Sample::setVariations(float frequencyvar, float volumevar, float pan
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091B0F0
 FMOD_RESULT Sample::set3DMinMaxDistance(float min, float max)
 {
     FMOD_RESULT result;
@@ -782,6 +789,7 @@ FMOD_RESULT Sample::set3DMinMaxDistance(float min, float max)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091B160
 FMOD_RESULT Sample::set3DConeSettings(float insideconeangle, float outsideconeangle, float outsidevolume)
 {
     FMOD_RESULT result;
@@ -818,6 +826,7 @@ FMOD_RESULT Sample::set3DConeSettings(float insideconeangle, float outsideconean
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091B1D0
 FMOD_RESULT  Sample::setMode(FMOD_MODE mode)
 {
     FMOD_RESULT result;
@@ -854,6 +863,7 @@ FMOD_RESULT  Sample::setMode(FMOD_MODE mode)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091B220
 FMOD_RESULT  Sample::setLoopCount(int loopcount)
 {
     FMOD_RESULT result;
@@ -889,6 +899,7 @@ FMOD_RESULT  Sample::setLoopCount(int loopcount)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091B270
 FMOD_RESULT Sample::setLoopPoints(unsigned int loopstart, FMOD_TIMEUNIT loopstarttype, unsigned int loopend, FMOD_TIMEUNIT loopendtype)
 {
     FMOD_RESULT result;

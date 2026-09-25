@@ -42,6 +42,7 @@ static const FMOD_GUID KSDATAFORMAT_SUBTYPE_IEEE_FLOAT      = { 0x00000003, 0x00
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009512C0
 BOOL CALLBACK FMOD_Output_DSound_RecordEnumProc(LPGUID lpGUID, LPCWSTR lpszDesc, LPCWSTR lpszDrvName, LPVOID lpContext)
 {
     FMOD::OutputDSound *outputdsound = (FMOD::OutputDSound *)lpContext;
@@ -94,6 +95,7 @@ BOOL CALLBACK FMOD_Output_DSound_RecordEnumProc(LPGUID lpGUID, LPCWSTR lpszDesc,
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009513A0
 FMOD_RESULT OutputDSound::recordEnumerate()
 {
     FMOD_RESULT result;
@@ -147,6 +149,7 @@ FMOD_RESULT OutputDSound::recordEnumerate()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00951420
 FMOD_RESULT OutputDSound::recordGetNumDrivers(int *numdrivers)
 {
     if (!numdrivers)
@@ -188,6 +191,7 @@ FMOD_RESULT OutputDSound::recordGetNumDrivers(int *numdrivers)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00951450
 FMOD_RESULT OutputDSound::recordGetDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid)
 {
     if (!mRecordEnumerated)
@@ -291,6 +295,7 @@ FMOD_RESULT OutputDSound::recordGetDriverInfoW(int id, short *name, int namelen,
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009514B0
 FMOD_RESULT OutputDSound::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *sound, bool loop)
 {
     FMOD_RESULT                 result;
@@ -395,6 +400,7 @@ FMOD_RESULT OutputDSound::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *so
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00951690
 FMOD_RESULT OutputDSound::recordStop(FMOD_RECORDING_INFO *recordinfo)
 {
     FMOD_DSoundRecordMembers *recordMembers = (FMOD_DSoundRecordMembers *)recordinfo->mRecordPlatformSpecific;
@@ -439,6 +445,7 @@ FMOD_RESULT OutputDSound::recordStop(FMOD_RECORDING_INFO *recordinfo)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009516E0
 FMOD_RESULT OutputDSound::recordGetPosition(FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm)
 {
     FMOD_RESULT         result;
@@ -507,6 +514,7 @@ FMOD_RESULT OutputDSound::recordGetPosition(FMOD_RECORDING_INFO *recordinfo, uns
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00951780
 FMOD_RESULT OutputDSound::recordLock(FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     FMOD_DSoundRecordMembers *recordMembers = (FMOD_DSoundRecordMembers *)recordinfo->mRecordPlatformSpecific;
@@ -533,6 +541,7 @@ FMOD_RESULT OutputDSound::recordLock(FMOD_RECORDING_INFO *recordinfo, unsigned i
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009517C0
 FMOD_RESULT OutputDSound::recordUnlock(FMOD_RECORDING_INFO *recordinfo, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
     FMOD_DSoundRecordMembers *recordMembers = (FMOD_DSoundRecordMembers *)recordinfo->mRecordPlatformSpecific;

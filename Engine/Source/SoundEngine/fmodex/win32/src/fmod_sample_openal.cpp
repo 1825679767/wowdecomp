@@ -27,6 +27,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094B7F0
 SampleOpenAL::SampleOpenAL()
 {
     mBuffer = 0;
@@ -50,6 +51,7 @@ SampleOpenAL::SampleOpenAL()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094B820
 FMOD_RESULT SampleOpenAL::release(bool freethis)
 {
     FMOD_RESULT result;
@@ -112,6 +114,7 @@ FMOD_RESULT SampleOpenAL::release(bool freethis)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093E150
 FMOD_RESULT SampleOpenAL::setMode(FMOD_MODE mode)
 {
     FMOD_RESULT result;
@@ -147,6 +150,7 @@ FMOD_RESULT SampleOpenAL::setMode(FMOD_MODE mode)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093E170
 FMOD_RESULT SampleOpenAL::lockInternal(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     FMOD_RESULT result;
@@ -237,6 +241,7 @@ FMOD_RESULT SampleOpenAL::lockInternal(unsigned int offset, unsigned int length,
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093E460
 FMOD_RESULT SampleOpenAL::unlockInternal(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
     FMOD_RESULT result;
@@ -266,6 +271,7 @@ FMOD_RESULT SampleOpenAL::unlockInternal(void *ptr1, void *ptr2, unsigned int le
 	[SEE_ALSO]
 ]
 */        
+// OFFSET: 0x0094B8F0
 FMOD_RESULT SampleOpenAL::setBufferData(void *data) 
 { 
     mBuffer = data; 
@@ -321,6 +327,7 @@ FMOD_RESULT SampleOpenAL::setLoopPoints(unsigned int loopstart, unsigned int loo
 	[SEE_ALSO]
 ]
 */        
+// OFFSET: 0x0093D8F0
 FMOD_RESULT SampleOpenAL::setLoopPointData()
 {
     FMOD_RESULT result;
@@ -459,6 +466,7 @@ FMOD_RESULT SampleOpenAL::setLoopPointData()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0093DEB0
 FMOD_RESULT SampleOpenAL::restoreLoopPointData()
 {
     FMOD_RESULT result;

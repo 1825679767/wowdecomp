@@ -2,6 +2,7 @@
 #include "fmod_stringw.h"
 #include "fmod_memory.h"
 
+// OFFSET: 0x0091CCC0
 int FMOD_strlenW(const short * s)
 {
     const short *sc;
@@ -20,6 +21,7 @@ short * FMOD_strcpyW(short * dest,const short *src)
     return tmp;
 }
 
+// OFFSET: 0x0091CCE0
 short * FMOD_strncpyW(short * dest, const short *src, int count)
 {
     short *tmp = dest;

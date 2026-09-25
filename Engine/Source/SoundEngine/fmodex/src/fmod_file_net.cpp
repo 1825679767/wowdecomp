@@ -33,6 +33,7 @@ static const unsigned int SIZEOF_METABUF = (255 * 16) + 1;
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00920FA0
 NetFile::NetFile()
 {
     mHandle           = (void *)-1;
@@ -82,6 +83,7 @@ FMOD_RESULT NetFile::init()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091FA30
 FMOD_RESULT NetFile::shutDown()
 {
     return FMOD_OS_Net_Shutdown();
@@ -101,6 +103,7 @@ FMOD_RESULT NetFile::shutDown()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091FA40
 FMOD_RESULT NetFile::parseUrl(char *url, char *host, int hostlen, char *auth, int authlen, unsigned short *port, char *file, const int filelen, bool *mms)
 {
     char *p;
@@ -252,6 +255,7 @@ FMOD_RESULT NetFile::parseUrl(char *url, char *host, int hostlen, char *auth, in
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091FCA0
 FMOD_RESULT NetFile::openAsHTTP(const char *name_or_data, char *host, char *file, char *auth, unsigned short port, unsigned int *filesize)
 {
     FMOD_RESULT result;
@@ -766,6 +770,7 @@ FMOD_RESULT NetFile::openAsMMS(const char *name_or_data, char *host, char *file,
 ]
 */
 
+// OFFSET: 0x00920920
 FMOD_RESULT NetFile::reallyOpen(const char *name_or_data, unsigned int *filesize)
 {
     FMOD_RESULT result;
@@ -822,6 +827,7 @@ FMOD_RESULT NetFile::reallyOpen(const char *name_or_data, unsigned int *filesize
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009209E0
 FMOD_RESULT NetFile::reallyClose()
 {
     FMOD_RESULT result;
@@ -859,6 +865,7 @@ FMOD_RESULT NetFile::reallyClose()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00920A40
 FMOD_RESULT NetFile::reallyRead(void *buffer, unsigned int size, unsigned int *rd)
 {
     FMOD_RESULT result;
@@ -1076,6 +1083,7 @@ AGAIN:
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00920D90
 FMOD_RESULT NetFile::reallySeek(unsigned int pos)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -1223,6 +1231,7 @@ FMOD_RESULT NetFile::reallyCancel()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00920F70
 FMOD_RESULT NetFile::getMetadata(Metadata **metadata)
 {
     if (!metadata)

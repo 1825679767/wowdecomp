@@ -19,6 +19,7 @@
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00942FE0
 void FMOD_Resampler_NoInterp(float *out, int outlength, void *src, FMOD_SOUND_FORMAT srcformat, FMOD_UINT64P *position, FMOD_SINT64P *speed, int channels)
 {
     float scale = 1.0f;

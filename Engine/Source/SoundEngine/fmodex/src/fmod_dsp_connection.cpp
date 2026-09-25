@@ -79,6 +79,7 @@ FMOD_RESULT DSPConnection::getMix(float *volume)
 }
 
 
+// OFFSET: 0x00923A70
 FMOD_RESULT DSPConnection::setLevels(FMOD_SPEAKER speaker, float *levels, int numlevels)
 {
     FMOD_RESULT result;
@@ -96,6 +97,7 @@ FMOD_RESULT DSPConnection::setLevels(FMOD_SPEAKER speaker, float *levels, int nu
 }
 
 
+// OFFSET: 0x00923BC0
 FMOD_RESULT DSPConnection::getLevels(FMOD_SPEAKER speaker, float *levels, int numlevels)
 {
     FMOD_RESULT result;

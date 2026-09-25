@@ -27,6 +27,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00922780
 FMOD_RESULT DSPConnectionPool::init(SystemI *system, int numconnections, int numoutputlevels, int numinputlevels)
 {
     DSP_LEVEL_TYPE *leveldata;
@@ -120,6 +121,7 @@ FMOD_RESULT DSPConnectionPool::init(SystemI *system, int numconnections, int num
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00922380
 FMOD_RESULT DSPConnectionPool::close()
 {
     int i;
@@ -166,6 +168,7 @@ FMOD_RESULT DSPConnectionPool::close()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00922420
 FMOD_RESULT DSPConnectionPool::alloc(DSPConnectionI **connection, bool protect)
 {
     LocalCriticalSection crit(mSystem->mDSPConnectionCrit);
@@ -288,6 +291,7 @@ FMOD_RESULT DSPConnectionPool::alloc(DSPConnectionI **connection, bool protect)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009226B0
 FMOD_RESULT DSPConnectionPool::free(DSPConnectionI *connection, bool protect)
 {
     LocalCriticalSection crit(mSystem->mDSPConnectionCrit);

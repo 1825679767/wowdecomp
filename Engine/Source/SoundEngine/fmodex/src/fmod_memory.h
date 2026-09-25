@@ -107,6 +107,7 @@ namespace FMOD
         void            free   (void *ptr,           const char *file = "", const int line = 0, FMOD_MEMORY_TYPE type = FMOD_MEMORY_NORMAL);
         int             getSize(void *ptr,           const char *file = "", const int line = 0);
 
+        // OFFSET: 0x008D0520
         inline FMOD_RESULT setCallbacks(FMOD_MEMORY_ALLOCCALLBACK useralloc, FMOD_MEMORY_REALLOCCALLBACK userrealloc, FMOD_MEMORY_FREECALLBACK userfree)
         {
             mAlloc   = useralloc;
@@ -124,6 +125,7 @@ namespace FMOD
         {
             return mCurrentAllocatedSecondary;
         }
+        // OFFSET: 0x008CF9E0
         inline unsigned int getCurrentThreadID(FMOD_UINT_NATIVE threadid = 0)
         {
             unsigned int count;
@@ -150,6 +152,7 @@ namespace FMOD
 
             return count;
         }
+        // OFFSET: 0x008E5150
         inline void clearThreadID(FMOD_UINT_NATIVE id)
         {
             int count;

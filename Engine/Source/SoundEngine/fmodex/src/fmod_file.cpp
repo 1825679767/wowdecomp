@@ -68,6 +68,7 @@ extern "C"
     File_GetDiskBusy
 ]
 */
+// OFFSET: 0x008E6B10
 FMOD_RESULT F_API FMOD_File_SetDiskBusy(int busy)
 {
     #ifdef PLATFORM_PS2_EE
@@ -156,6 +157,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7D80
 void fileThreadFunc(void *data)
 {
     FileThread *fileThread = (FileThread *)data;
@@ -224,6 +226,7 @@ FMOD_RESULT FileThread::threadFunc()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7BC0
 FileThread::FileThread()
 {
     mFileListCrit    = 0;
@@ -247,6 +250,7 @@ FileThread::FileThread()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7D90
 FMOD_RESULT FileThread::init(int devicetype, bool owned, SystemI *system)
 {
     FMOD_RESULT result;
@@ -296,6 +300,7 @@ FMOD_RESULT FileThread::init(int devicetype, bool owned, SystemI *system)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E6B60
 FMOD_RESULT FileThread::release()
 {
     removeNode();
@@ -333,6 +338,7 @@ FMOD_RESULT FileThread::release()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7E10
 FMOD_RESULT File::getFileThread()
 {
     FMOD_RESULT     result;
@@ -417,6 +423,7 @@ FMOD_RESULT File::getFileThread()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7C10
 File::File()
 {
     mFlags               = FMOD_FILE_BUFFERISSTRING | FMOD_FILE_SEEKABLE;
@@ -436,6 +443,7 @@ File::File()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E6BC0
 FMOD_RESULT File::init(SystemI *system, unsigned int filesize, int blocksize)
 {
     mBlockSize           = blocksize;
@@ -488,6 +496,7 @@ FMOD_RESULT File::init(SystemI *system, unsigned int filesize, int blocksize)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E6C80
 FMOD_RESULT File::shutDown()
 {
     LinkedListNode *current, *next;
@@ -540,6 +549,7 @@ FMOD_RESULT File::shutDown()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E6D20
 FMOD_RESULT File::open(const char *name_or_data, unsigned int length, bool unicode, const char *encryptionkey)
 {
     FMOD_RESULT result;
@@ -650,6 +660,7 @@ FMOD_RESULT File::open(const char *name_or_data, unsigned int length, bool unico
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7C40
 FMOD_RESULT File::close()
 {
     FMOD_RESULT result;
@@ -730,6 +741,7 @@ FMOD_RESULT File::close()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E6F00
 FMOD_RESULT File::cancel()
 {
     mFlags |= FMOD_FILE_EXIT;
@@ -753,6 +765,7 @@ FMOD_RESULT File::cancel()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E6F20
 FMOD_RESULT File::flip(bool frommainthread)
 {
     FMOD_RESULT   result = FMOD_OK;
@@ -878,6 +891,7 @@ FMOD_RESULT File::flip(bool frommainthread)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E70E0
 FMOD_RESULT File::seekAndReset()
 {
     FMOD_RESULT result;
@@ -942,6 +956,7 @@ FMOD_RESULT File::seekAndReset()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7180
 FMOD_RESULT File::checkBufferedStatus()
 {
     FMOD_RESULT result;
@@ -1117,6 +1132,7 @@ FMOD_RESULT File::checkBufferedStatus()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E73C0
 FMOD_RESULT File::read(void *buffer, unsigned int size, unsigned int count, unsigned int *rd)
 {
     FMOD_RESULT  result = FMOD_OK;
@@ -1367,6 +1383,7 @@ FMOD_RESULT File::read(void *buffer, unsigned int size, unsigned int count, unsi
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E77C0
 FMOD_RESULT File::getByte(unsigned char *val)
 {
     FMOD_RESULT result;
@@ -1397,6 +1414,7 @@ FMOD_RESULT File::getByte(unsigned char *val)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7760
 FMOD_RESULT File::getByte(unsigned short *val)
 {
     FMOD_RESULT result;
@@ -1427,6 +1445,7 @@ FMOD_RESULT File::getByte(unsigned short *val)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7790
 FMOD_RESULT File::getByte(unsigned int *val)
 {
     FMOD_RESULT result;
@@ -1517,6 +1536,7 @@ FMOD_RESULT File::getByte(signed short *val)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E77F0
 FMOD_RESULT File::getByte(signed int *val)
 {
     FMOD_RESULT result;
@@ -1547,6 +1567,7 @@ FMOD_RESULT File::getByte(signed int *val)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7820
 FMOD_RESULT File::getWord(unsigned short *val)
 {
     FMOD_RESULT result;
@@ -1577,6 +1598,7 @@ FMOD_RESULT File::getWord(unsigned short *val)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7850
 FMOD_RESULT File::getWord(unsigned int *val)
 {
     FMOD_RESULT result;
@@ -1637,6 +1659,7 @@ FMOD_RESULT File::getWord(signed short *val)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7880
 FMOD_RESULT File::getWord(signed int *val)
 {
     FMOD_RESULT result;
@@ -1667,6 +1690,7 @@ FMOD_RESULT File::getWord(signed int *val)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E78B0
 FMOD_RESULT File::getDword(unsigned int *val)
 {    
     FMOD_RESULT result;
@@ -1728,6 +1752,7 @@ FMOD_RESULT File::getDword(signed int *val)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E78E0
 FMOD_RESULT File::seek(int pos, int mode)
 {
     FMOD_RESULT  result = FMOD_OK;
@@ -1840,6 +1865,7 @@ FMOD_RESULT File::seek(int pos, int mode)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7A20
 FMOD_RESULT File::tell(unsigned int *pos)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -1872,6 +1898,7 @@ FMOD_RESULT File::tell(unsigned int *pos)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7A50
 FMOD_RESULT File::setStartOffset(unsigned int offset)
 {
     mStartOffset = offset;
@@ -1900,6 +1927,7 @@ FMOD_RESULT File::setStartOffset(unsigned int offset)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7A80
 FMOD_RESULT File::getStartOffset(unsigned int *offset)
 {
     if (!offset)
@@ -1926,6 +1954,7 @@ FMOD_RESULT File::getStartOffset(unsigned int *offset)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7EE0
 FMOD_RESULT File::enableDoubleBuffer(unsigned int sizebytes, void *oldbuffer)
 {
     FMOD_RESULT result;
@@ -2066,6 +2095,7 @@ FMOD_RESULT File::enableDoubleBuffer(unsigned int sizebytes, void *oldbuffer)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7AB0
 FMOD_RESULT File::getName(char **name)
 {
     if (name)
@@ -2090,6 +2120,7 @@ FMOD_RESULT File::getName(char **name)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008E7AD0
 FMOD_RESULT File::setName(char *name)
 {
     if (!name)

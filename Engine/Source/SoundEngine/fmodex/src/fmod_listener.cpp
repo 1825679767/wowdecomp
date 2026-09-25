@@ -23,6 +23,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00921C20
 Listener::Listener()
 {
     mPosition.x = 0;

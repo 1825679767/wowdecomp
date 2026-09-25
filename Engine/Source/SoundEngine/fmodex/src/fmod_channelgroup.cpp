@@ -11,6 +11,7 @@ namespace FMOD
 /*$ preserve end $*/
 
 
+// OFFSET: 0x008D1BF0
 FMOD_RESULT ChannelGroup::release()
 {
     FMOD_RESULT result;
@@ -45,6 +46,7 @@ FMOD_RESULT ChannelGroup::getSystemObject(System **system)
 }
 
 
+// OFFSET: 0x008D1C20
 FMOD_RESULT ChannelGroup::setVolume(float volume)
 {
     FMOD_RESULT result;
@@ -402,6 +404,7 @@ FMOD_RESULT ChannelGroup::getParentGroup(ChannelGroup **group)
 }
 
 
+// OFFSET: 0x008D1C50
 FMOD_RESULT ChannelGroup::getDSPHead(DSP **dsp)
 {
     FMOD_RESULT result;
@@ -453,6 +456,7 @@ FMOD_RESULT ChannelGroup::getName(char *name, int namelen)
 }
 
 
+// OFFSET: 0x008D1C80
 FMOD_RESULT ChannelGroup::getNumChannels(int *numchannels)
 {
     FMOD_RESULT result;

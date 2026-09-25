@@ -90,6 +90,7 @@ typedef enum {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094DCA0
 FMOD_RESULT ChannelDSound::init(int index, SystemI *system, Output *output, DSPI *dspmixtarget)
 {
     FMOD_RESULT result;
@@ -126,6 +127,7 @@ FMOD_RESULT ChannelDSound::init(int index, SystemI *system, Output *output, DSPI
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094DD00
 FMOD_RESULT ChannelDSound::alloc()
 {
     FMOD_MODE       mode;
@@ -272,6 +274,7 @@ FMOD_RESULT ChannelDSound::alloc()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094DF50
 FMOD_RESULT ChannelDSound::start()
 {
     SampleDSound   *sampledsound;
@@ -363,6 +366,7 @@ FMOD_RESULT ChannelDSound::start()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094DFD0
 FMOD_RESULT ChannelDSound::stop()
 {
     bool releasebuffers = true;
@@ -428,6 +432,7 @@ FMOD_RESULT ChannelDSound::stop()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094E070
 FMOD_RESULT ChannelDSound::setPaused(bool paused)
 {
     FMOD_RESULT result = FMOD_OK;
@@ -535,6 +540,7 @@ FMOD_RESULT ChannelDSound::setPaused(bool paused)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094E130
 FMOD_RESULT ChannelDSound::setVolume(float volume)
 {  
 	if (mBuffer) 
@@ -620,6 +626,7 @@ FMOD_RESULT ChannelDSound::setVolume(float volume)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094E230
 FMOD_RESULT ChannelDSound::setFrequency(float frequency)
 {
     if (mSound && !mOutputDSound)
@@ -660,6 +667,7 @@ FMOD_RESULT ChannelDSound::setFrequency(float frequency)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094E2B0
 FMOD_RESULT ChannelDSound::setPan(float pan, float fbpan)
 {
 	int hwpan;
@@ -725,6 +733,7 @@ FMOD_RESULT ChannelDSound::setPan(float pan, float fbpan)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094E910
 FMOD_RESULT ChannelDSound::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 {
     HRESULT         hr;
@@ -780,6 +789,7 @@ FMOD_RESULT ChannelDSound::setPosition(unsigned int position, FMOD_TIMEUNIT post
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094EC00
 FMOD_RESULT ChannelDSound::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {
 	DWORD             dwPlay, dwWrite;
@@ -846,6 +856,7 @@ FMOD_RESULT ChannelDSound::getPosition(unsigned int *position, FMOD_TIMEUNIT pos
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094E370
 FMOD_RESULT ChannelDSound::set3DAttributes()
 {
     FMOD_RESULT   result;
@@ -1005,6 +1016,7 @@ FMOD_RESULT ChannelDSound::set3DAttributes()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094E670
 FMOD_RESULT ChannelDSound::set3DMinMaxDistance()
 {
     int  deferred = DS3D_IMMEDIATE;
@@ -1069,6 +1081,7 @@ FMOD_RESULT ChannelDSound::set3DMinMaxDistance()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094E720
 FMOD_RESULT ChannelDSound::set3DOcclusion(float directOcclusion, float reverbOcclusion)
 {
     if (mOutputDSound->mReverbVersion != REVERB_VERSION_NONE)
@@ -1124,6 +1137,7 @@ FMOD_RESULT ChannelDSound::set3DOcclusion(float directOcclusion, float reverbOcc
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094E800
 FMOD_RESULT ChannelDSound::isPlaying(bool *isplaying, bool includethreadlatency)
 {
     if (mFlags & CHANNELREAL_FLAG_ALLOCATED || mFlags & CHANNELREAL_FLAG_PAUSED)
@@ -1177,6 +1191,7 @@ FMOD_RESULT ChannelDSound::isPlaying(bool *isplaying, bool includethreadlatency)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0094E890
 FMOD_RESULT ChannelDSound::setMode(FMOD_MODE mode)
 {
     int deferred = DS3D_IMMEDIATE;

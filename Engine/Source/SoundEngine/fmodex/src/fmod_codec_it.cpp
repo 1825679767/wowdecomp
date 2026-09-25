@@ -65,6 +65,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00903A10
 FMOD_CODEC_DESCRIPTION_EX *CodecIT::getDescriptionEx()
 {
     FMOD_memset(&itcodec, 0, sizeof(FMOD_CODEC_DESCRIPTION_EX));
@@ -107,6 +108,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecIT::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00900F50
 FMOD_RESULT CodecIT::calculateLength()
 {
     waveformat[0].lengthpcm = 0;
@@ -144,6 +146,7 @@ FMOD_RESULT CodecIT::calculateLength()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FD3C0
 FMOD_RESULT CodecIT::readBits(unsigned char b, unsigned int *result)	/* reads b bits from the stream */
 {
 	unsigned int value,value2;
@@ -217,6 +220,7 @@ FMOD_RESULT CodecIT::readBits(unsigned char b, unsigned int *result)	/* reads b 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FD470
 FMOD_RESULT CodecIT::readBlock(signed char **buff)  /* gets block of compressed data from file */
 {
 	unsigned short size;
@@ -283,6 +287,7 @@ FMOD_RESULT CodecIT::freeBlock()            /* frees that block again */
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FD4F0
 FMOD_RESULT CodecIT::decompress8(void **src, void *dst, int len, bool it215, int channels)
 { 
 	signed char		*destbuf;   /* the destination buffer which will be returned */
@@ -416,6 +421,7 @@ FMOD_RESULT CodecIT::decompress8(void **src, void *dst, int len, bool it215, int
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FD6F0
 FMOD_RESULT CodecIT::decompress16(void **src, void *dst, int len, bool it215, int channels)
 {
 	short			*destbuf;   /* the destination buffer which will be returned */
@@ -555,6 +561,7 @@ FMOD_RESULT CodecIT::decompress16(void **src, void *dst, int len, bool it215, in
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FD900
 FMOD_RESULT MusicChannelIT::volumeSlide() 
 {
     MusicVirtualChannel *vcptr = (MusicVirtualChannel *)mVirtualChannelHead.getNext();
@@ -669,6 +676,7 @@ You just add to the speed +1 if there are 2.  There is a flag you have to set li
 
 
 */
+// OFFSET: 0x008FD960
 FMOD_RESULT MusicChannelIT::portamento()
 {
     MusicVirtualChannel *vcptr = (MusicVirtualChannel *)mVirtualChannelHead.getNext();
@@ -749,6 +757,7 @@ FMOD_RESULT MusicChannelIT::portamento()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FDA10
 FMOD_RESULT MusicChannelIT::vibrato() 
 {
 	int delta;
@@ -834,6 +843,7 @@ FMOD_RESULT MusicChannelIT::vibrato()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FDAF0
 FMOD_RESULT MusicChannelIT::fineVibrato() 
 {
 	int delta;
@@ -919,6 +929,7 @@ FMOD_RESULT MusicChannelIT::fineVibrato()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FDBC0
 FMOD_RESULT MusicChannelIT::tremolo() 
 {
 	unsigned char temp;
@@ -1001,6 +1012,7 @@ FMOD_RESULT MusicChannelIT::tremolo()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FDCB0
 FMOD_RESULT MusicChannelIT::panbrello() 
 {
     MusicVirtualChannel *vcptr = (MusicVirtualChannel *)mVirtualChannelHead.getNext();
@@ -1084,6 +1096,7 @@ FMOD_RESULT MusicChannelIT::panbrello()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FDDB0
 FMOD_RESULT CodecIT::processEnvelope(MusicEnvelopeState *env, MusicVirtualChannel *vcptr, int Inumpoints, MusicEnvelopeNode *v, int type, int mLoopStart, int loopend, int susmLoopStart, int susloopend, unsigned char control)
 {
 	if (env->mPosition < Inumpoints) 
@@ -1200,6 +1213,7 @@ FMOD_RESULT CodecIT::processEnvelope(MusicEnvelopeState *env, MusicVirtualChanne
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FDF30
 FMOD_RESULT CodecIT::processPitchEnvelope(MusicVirtualChannel *vcptr, MusicInstrument *iptr, int note)
 {
 	/*
@@ -1407,6 +1421,7 @@ FMOD_RESULT CodecIT::processPitchEnvelope(MusicVirtualChannel *vcptr, MusicInstr
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FE4D0
 FMOD_RESULT CodecIT::sampleVibrato(MusicVirtualChannel *vcptr) 
 {
 	int delta = 0;
@@ -1463,6 +1478,7 @@ FMOD_RESULT CodecIT::sampleVibrato(MusicVirtualChannel *vcptr)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FE5C0
 FMOD_RESULT MusicChannelIT::processVolumeByte(MusicNote *current, bool newrow)
 {
     MusicVirtualChannel *vcptr = (MusicVirtualChannel *)mVirtualChannelHead.getNext();
@@ -1713,6 +1729,7 @@ FMOD_RESULT MusicChannelIT::processVolumeByte(MusicNote *current, bool newrow)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FE800
 FMOD_RESULT CodecIT::unpackRow() 
 {
 	unsigned char	channelvariable;
@@ -1807,6 +1824,7 @@ FMOD_RESULT CodecIT::unpackRow()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x008FE980
 FMOD_RESULT CodecIT::updateRow(bool audible)
 {
 	MusicNote    *current;
@@ -3947,6 +3965,7 @@ FMOD_RESULT CodecIT::updateRow(bool audible)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009008D0
 FMOD_RESULT CodecIT::update(bool audible)
 {
 	if (mTick == 0)		/* new note */
@@ -4088,6 +4107,7 @@ FMOD_RESULT CodecIT::update(bool audible)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00900AD0
 FMOD_RESULT CodecIT::play(bool fromopen)
 {
     MusicSong::play(fromopen);
@@ -4138,6 +4158,7 @@ FMOD_RESULT CodecIT::play(bool fromopen)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009013B0
 FMOD_RESULT CodecIT::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
 	int 			count, highestorder;
@@ -6221,6 +6242,7 @@ FMOD_RESULT CodecIT::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00900B40
 FMOD_RESULT CodecIT::closeInternal()
 {
     int count;
@@ -6365,6 +6387,7 @@ FMOD_RESULT CodecIT::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00900FC0
 FMOD_RESULT CodecIT::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     FMOD_RESULT     result = FMOD_OK;
@@ -6463,6 +6486,7 @@ FMOD_RESULT CodecIT::readInternal(void *buffer, unsigned int sizebytes, unsigned
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00900E50
 FMOD_RESULT CodecIT::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     if (postype == FMOD_TIMEUNIT_MODORDER)
@@ -6529,6 +6553,7 @@ FMOD_RESULT CodecIT::setPositionInternal(int subsound, unsigned int position, FM
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009039D0
 FMOD_RESULT F_CALLBACK CodecIT::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecIT *cit = (CodecIT *)codec;
@@ -6553,6 +6578,7 @@ FMOD_RESULT F_CALLBACK CodecIT::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00900EF0
 FMOD_RESULT F_CALLBACK CodecIT::closeCallback(FMOD_CODEC_STATE *codec)
 {
     CodecIT *cit = (CodecIT *)codec;
@@ -6577,6 +6603,7 @@ FMOD_RESULT F_CALLBACK CodecIT::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00901380
 FMOD_RESULT F_CALLBACK CodecIT::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     CodecIT *cit = (CodecIT *)codec;
@@ -6600,6 +6627,7 @@ FMOD_RESULT F_CALLBACK CodecIT::readCallback(FMOD_CODEC_STATE *codec, void *buff
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00900F20
 FMOD_RESULT F_CALLBACK CodecIT::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     CodecIT *cit = (CodecIT *)codec;

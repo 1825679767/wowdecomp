@@ -61,6 +61,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00913420
 FMOD_CODEC_DESCRIPTION_EX *CodecCDDA::getDescriptionEx()
 {
     FMOD_memset(&cddacodec, 0, sizeof(FMOD_CODEC_DESCRIPTION_EX));
@@ -96,6 +97,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecCDDA::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00913260
 FMOD_RESULT CodecCDDA::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     int          count;
@@ -234,6 +236,7 @@ FMOD_RESULT CodecCDDA::readInternal(void *buffer, unsigned int sizebytes, unsign
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00912FF0
 FMOD_RESULT CodecCDDA::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     CddaFile    *cddafile;
@@ -290,6 +293,7 @@ FMOD_RESULT CodecCDDA::setPositionInternal(int subsound, unsigned int position, 
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009133E0
 FMOD_RESULT F_CALLBACK CodecCDDA::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecCDDA *cdda = (CodecCDDA *)codec;
@@ -314,6 +318,7 @@ FMOD_RESULT F_CALLBACK CodecCDDA::openCallback(FMOD_CODEC_STATE *codec, FMOD_MOD
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00912F70
 FMOD_RESULT F_CALLBACK CodecCDDA::closeCallback(FMOD_CODEC_STATE *codec)
 {
     CodecCDDA *cdda = (CodecCDDA *)codec;
@@ -338,6 +343,7 @@ FMOD_RESULT F_CALLBACK CodecCDDA::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00912FC0
 FMOD_RESULT F_CALLBACK CodecCDDA::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     CodecCDDA *cdda = (CodecCDDA *)codec;
@@ -361,6 +367,7 @@ FMOD_RESULT F_CALLBACK CodecCDDA::readCallback(FMOD_CODEC_STATE *codec, void *bu
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00913230
 FMOD_RESULT F_CALLBACK CodecCDDA::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     CodecCDDA *cdda = (CodecCDDA *)codec;

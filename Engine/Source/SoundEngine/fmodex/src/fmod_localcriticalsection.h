@@ -29,6 +29,7 @@ namespace FMOD
                 enter();
             }
         }
+        // OFFSET: 0x008DBED0
         ~LocalCriticalSection() 
         { 
             if (mEntered)
@@ -42,6 +43,7 @@ namespace FMOD
             FMOD_OS_CriticalSection_Enter(mCrit);
             mEntered = true;
         }
+        // OFFSET: 0x008DA3F0
         void leave()
         {
             FMOD_OS_CriticalSection_Leave(mCrit);

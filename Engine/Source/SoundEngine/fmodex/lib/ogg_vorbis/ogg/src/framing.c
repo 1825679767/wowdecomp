@@ -30,18 +30,22 @@ int FMOD_ogg_page_version(const ogg_page *og){
   return((int)(og->header[4]));
 }
 
+// OFFSET: 0x00472600
 int FMOD_ogg_page_continued(const ogg_page *og){
   return((int)(og->header[5]&0x01));
 }
 
+// OFFSET: 0x00472620
 int FMOD_ogg_page_bos(const ogg_page *og){
   return((int)(og->header[5]&0x02));
 }
 
+// OFFSET: 0x00472640
 int FMOD_ogg_page_eos(const ogg_page *og){
   return((int)(og->header[5]&0x04));
 }
 
+// OFFSET: 0x00472660
 ogg_int64_t FMOD_ogg_page_granulepos(const ogg_page *og){
   unsigned char *page=og->header;
   ogg_int64_t granulepos=page[13]&(0xff);
@@ -55,6 +59,7 @@ ogg_int64_t FMOD_ogg_page_granulepos(const ogg_page *og){
   return(granulepos);
 }
 
+// OFFSET: 0x004726F0
 int FMOD_ogg_page_serialno(const ogg_page *og){
   return(og->header[14] |
          (og->header[15]<<8) |
@@ -163,6 +168,7 @@ static const ogg_uint32_t crc_lookup[256]={
 
 /* init the encode/decode logical stream state */
 
+// OFFSET: 0x00472720
 int FMOD_ogg_stream_init(void *context, ogg_stream_state *os,int serialno){
   if(os){
     FMOD_memset(os,0,sizeof(*os));
@@ -198,6 +204,7 @@ int FMOD_ogg_stream_check(ogg_stream_state *os){
 }
 
 /* _clear does not free os, only the non-flat storage within */
+// OFFSET: 0x004727C0
 int FMOD_ogg_stream_clear(void *context, ogg_stream_state *os){
   if(os){
     if(os->body_data)_ogg_free(os->body_data);
@@ -235,6 +242,7 @@ static int _os_body_expand(void *context, ogg_stream_state *os,int needed){
   return 0;
 }
 
+// OFFSET: 0x00472830
 static int _os_lacing_expand(void *context, ogg_stream_state *os,int needed){
   if(os->lacing_storage<=os->lacing_fill+needed){
     void *ret;
@@ -261,6 +269,7 @@ static int _os_lacing_expand(void *context, ogg_stream_state *os,int needed){
 /* Direct table CRC; note that this will be faster in the future if we
    perform the checksum silmultaneously with other copies */
 
+// OFFSET: 0x00472890
 void FMOD_ogg_page_checksum_set(ogg_page *og){
   if(og){
     ogg_uint32_t crc_reg=0;
@@ -515,6 +524,7 @@ int FMOD_ogg_stream_eos(ogg_stream_state *os){
    ogg_stream_state. */
 
 /* initialize the struct to a known state */
+// OFFSET: 0x00472930
 int FMOD_ogg_sync_init(ogg_sync_state *oy){
   if(oy){
     oy->storage = -1; /* used as a readiness flag */
@@ -524,6 +534,7 @@ int FMOD_ogg_sync_init(ogg_sync_state *oy){
 }
 
 /* clear non-flat storage within */
+// OFFSET: 0x00472960
 int FMOD_ogg_sync_clear(void *context, ogg_sync_state *oy){
   if(oy){
     if(oy->data)_ogg_free(oy->data);
@@ -545,6 +556,7 @@ int FMOD_ogg_sync_check(ogg_sync_state *oy){
   return 0;
 }
 
+// OFFSET: 0x004729A0
 char *FMOD_ogg_sync_buffer(void *context, ogg_sync_state *oy, ogg_int32_t size){
   if(FMOD_ogg_sync_check(oy)) return NULL;
 
@@ -578,6 +590,7 @@ char *FMOD_ogg_sync_buffer(void *context, ogg_sync_state *oy, ogg_int32_t size){
   return((char *)oy->data+oy->fill);
 }
 
+// OFFSET: 0x00472A30
 int FMOD_ogg_sync_wrote(ogg_sync_state *oy, ogg_int32_t bytes){
   if(FMOD_ogg_sync_check(oy))return -1;
   if(oy->fill+bytes>oy->storage)return -1;
@@ -595,6 +608,7 @@ int FMOD_ogg_sync_wrote(ogg_sync_state *oy, ogg_int32_t bytes){
    
 */
 
+// OFFSET: 0x00472A50
 ogg_int32_t FMOD_ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
   unsigned char *page=oy->data+oy->returned;
   unsigned char *next;
@@ -693,6 +707,7 @@ ogg_int32_t FMOD_ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
    Returns pointers into buffered data; invalidated by next call to
    _stream, _clear, _init, or _buffer */
 
+// OFFSET: 0x00472CD0
 int FMOD_ogg_sync_pageout(ogg_sync_state *oy, ogg_page *og){
 
   if(FMOD_ogg_sync_check(oy))return 0;
@@ -726,6 +741,7 @@ int FMOD_ogg_sync_pageout(ogg_sync_state *oy, ogg_page *og){
 /* add the incoming page to the stream state; we decompose the page
    into packet segments here as well. */
 
+// OFFSET: 0x00472D20
 int FMOD_ogg_stream_pagein(void *context, ogg_stream_state *os, ogg_page *og){
   unsigned char *header=og->header;
   unsigned char *body=og->body;
@@ -855,6 +871,7 @@ int FMOD_ogg_stream_pagein(void *context, ogg_stream_state *os, ogg_page *og){
 }
 
 /* clear things to an initial state.  Good to call, eg, before seeking */
+// OFFSET: 0x00473010
 int FMOD_ogg_sync_reset(ogg_sync_state *oy){
   if(FMOD_ogg_sync_check(oy))return -1;
 
@@ -866,6 +883,7 @@ int FMOD_ogg_sync_reset(ogg_sync_state *oy){
   return(0);
 }
 
+// OFFSET: 0x00473030
 int FMOD_ogg_stream_reset(ogg_stream_state *os){
   if(FMOD_ogg_stream_check(os)) return -1;
 
@@ -887,6 +905,7 @@ int FMOD_ogg_stream_reset(ogg_stream_state *os){
   return(0);
 }
 
+// OFFSET: 0x00473080
 int FMOD_ogg_stream_reset_serialno(ogg_stream_state *os,int serialno){
   if(FMOD_ogg_stream_check(os)) return -1;
   FMOD_ogg_stream_reset(os);
@@ -894,6 +913,7 @@ int FMOD_ogg_stream_reset_serialno(ogg_stream_state *os,int serialno){
   return(0);
 }
 
+// OFFSET: 0x004730E0
 static int _packetout(ogg_stream_state *os,ogg_packet *op,int adv){
 
   /* The last part of decode. We have the stream broken into packet
@@ -948,11 +968,13 @@ static int _packetout(ogg_stream_state *os,ogg_packet *op,int adv){
   return(1);
 }
 
+// OFFSET: 0x00473200
 int FMOD_ogg_stream_packetout(ogg_stream_state *os,ogg_packet *op){
   if(FMOD_ogg_stream_check(os)) return 0;
   return _packetout(os,op,1);
 }
 
+// OFFSET: 0x00473220
 int FMOD_ogg_stream_packetpeek(ogg_stream_state *os,ogg_packet *op){
   if(FMOD_ogg_stream_check(os)) return 0;
   return _packetout(os,op,0);

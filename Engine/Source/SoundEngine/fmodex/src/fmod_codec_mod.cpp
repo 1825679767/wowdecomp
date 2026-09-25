@@ -61,6 +61,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090CD00
 FMOD_CODEC_DESCRIPTION_EX *CodecMOD::getDescriptionEx()
 {
     FMOD_memset(&modcodec, 0, sizeof(FMOD_CODEC_DESCRIPTION_EX));
@@ -102,6 +103,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecMOD::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090B960
 FMOD_RESULT CodecMOD::calculateLength()
 {
     waveformat[0].lengthpcm = 0;
@@ -157,6 +159,7 @@ int CodecMOD::getAmigaPeriod(int note, int middlec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x009076E0
 FMOD_RESULT MusicChannelMOD::portamento()
 {
 	MusicVirtualChannel *vcptr = (MusicVirtualChannel *)mVirtualChannelHead.getNext();
@@ -214,6 +217,7 @@ FMOD_RESULT MusicChannelMOD::portamento()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090A630
 FMOD_RESULT MusicChannelMOD::vibrato() 
 {
 	int delta;
@@ -279,6 +283,7 @@ FMOD_RESULT MusicChannelMOD::vibrato()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090A6F0
 FMOD_RESULT MusicChannelMOD::tremolo() 
 {
 	int delta;
@@ -350,6 +355,7 @@ FMOD_RESULT MusicChannelMOD::tremolo()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090A7C0
 FMOD_RESULT CodecMOD::updateNote(bool audible)
 {
 	MusicNote   *current;
@@ -825,6 +831,7 @@ FMOD_RESULT CodecMOD::updateNote(bool audible)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090AF70
 FMOD_RESULT CodecMOD::updateEffects() 
 {
 	MusicNote   *current;
@@ -1139,6 +1146,7 @@ FMOD_RESULT CodecMOD::updateEffects()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090B540
 FMOD_RESULT CodecMOD::update(bool audible)
 {
 	if (mTick == 0)									/* new note */
@@ -1236,6 +1244,7 @@ FMOD_RESULT CodecMOD::update(bool audible)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090BDA0
 FMOD_RESULT CodecMOD::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     FMOD_RESULT     result = FMOD_OK;
@@ -1956,6 +1965,7 @@ FMOD_RESULT CodecMOD::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090B680
 FMOD_RESULT CodecMOD::closeInternal()
 {
     int count;
@@ -2050,6 +2060,7 @@ FMOD_RESULT CodecMOD::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090B9B0
 FMOD_RESULT CodecMOD::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     FMOD_RESULT           result = FMOD_OK;
@@ -2151,6 +2162,7 @@ FMOD_RESULT CodecMOD::readInternal(void *buffer, unsigned int sizebytes, unsigne
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090B860
 FMOD_RESULT CodecMOD::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     if (postype == FMOD_TIMEUNIT_MODORDER)
@@ -2216,6 +2228,7 @@ FMOD_RESULT CodecMOD::setPositionInternal(int subsound, unsigned int position, F
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090CCC0
 FMOD_RESULT F_CALLBACK CodecMOD::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
     CodecMOD *cmod = (CodecMOD *)codec;
@@ -2239,6 +2252,7 @@ FMOD_RESULT F_CALLBACK CodecMOD::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090B900
 FMOD_RESULT F_CALLBACK CodecMOD::closeCallback(FMOD_CODEC_STATE *codec)
 {
     CodecMOD *cmod = (CodecMOD *)codec;
@@ -2262,6 +2276,7 @@ FMOD_RESULT F_CALLBACK CodecMOD::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090BD70
 FMOD_RESULT F_CALLBACK CodecMOD::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     CodecMOD *cmod = (CodecMOD *)codec;
@@ -2285,6 +2300,7 @@ FMOD_RESULT F_CALLBACK CodecMOD::readCallback(FMOD_CODEC_STATE *codec, void *buf
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0090B930
 FMOD_RESULT F_CALLBACK CodecMOD::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype   )
 {
     CodecMOD *cmod = (CodecMOD *)codec;
