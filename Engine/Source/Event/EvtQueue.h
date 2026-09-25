@@ -10,6 +10,7 @@ class EvtContext;
 int32_t IEvtQueueCheckSyncKeyState(EvtContext* context, KEY key);
 int32_t IEvtQueueCheckSyncMouseState(EvtContext* context, MOUSEBUTTON button);
 void IEvtQueueDestroy();
+void IEvtQueueInitialize();
 void IEvtQueueDispatch(EvtContext* context, EVENTID id, const void* data);
 void IEvtQueueDispatchAll(EvtContext* context);
 void IEvtQueuePost(EvtContext* context, EVENTID id, const void* data, uint32_t bytes);

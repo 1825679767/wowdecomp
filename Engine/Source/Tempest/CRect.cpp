@@ -1,6 +1,12 @@
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/CRect.h"
 
+// VERIFY: 58e5bdcd auto
+// OFFSET: 0x0047FC40
+bool CRect::ContainsPoint(const C2Vector& point) const {
+    return this->minX < point.x && this->maxX > point.x && this->minY < point.y && this->maxY > point.y;
+}
+
 // VERIFY: 9e372182 manual
 // OFFSET: 0x00488D40
 bool CRect::IsPointInside(const C2Vector& point) const {

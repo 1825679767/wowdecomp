@@ -212,6 +212,24 @@ struct EVENT_DATA_TIMER {
     /* 0004 */ uint32_t m_time;
 };
 
+struct EVENT_DATA_IME {
+    /* 0000 */ int32_t m_action;
+    /* 0004 */ int32_t unk_0004;
+    /* 0008 */ int32_t m_param;
+    /* 000C */ uint32_t m_codePage;
+};
+
+struct EVENT_DATA_JOYSTICK {
+    /* 0000 */ uint32_t unk_0000;
+    /* 0004 */ int32_t m_id;
+    /* 0008 */ int32_t m_state;
+    /* 000C */ float m_value;
+    /* 0010 */ float m_angle;
+    /* 0014 */ float m_x;
+    /* 0018 */ float m_y;
+    /* 001C */ uint32_t m_time;
+};
+
 struct EVENT_DATA_KEY {
     /* 0000 */ KEY m_key;
     /* 0004 */ uint32_t m_metaKeyState;

@@ -9,6 +9,9 @@
 // STATIC: 0x00B41850
 static TExtraInstanceRecycler<EvtMessage> s_messageRecycler(64, 64, 256);
 
+void IEvtQueueInitialize() {
+}
+
 // VERIFY: 9c1e12ce auto
 // OFFSET: 0x004804B0
 void IEvtQueueDestroy() {

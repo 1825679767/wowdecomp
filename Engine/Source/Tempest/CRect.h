@@ -13,6 +13,7 @@ class CRect {
     /* 0008 */ float maxY;
     /* 000C */ float maxX;
 
+    bool ContainsPoint(const C2Vector& point) const;
     bool IsPointInside(const C2Vector& point) const;
 };
 
