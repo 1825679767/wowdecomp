@@ -14,6 +14,18 @@ uint8_t CBLPFile::s_eightBitAlphaLookup[16] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x
 // STATIC: 0x00AD90C0
 uint8_t CBLPFile::s_oneBitAlphaLookup[2] = { 0x00, 0xFF };
 
+// STATIC: 0x00AD90C4
+static uint16_t s_oneBitAlpha4444[2] = { 0x0000, 0xF000 };
+
+// STATIC: 0x00AD9188
+static uint8_t s_twoBitAlphaMask[4] = { 0x03, 0x0C, 0x30, 0xC0 };
+
+// STATIC: 0x00AD918C
+static uint32_t s_twoBitAlphaShift[4] = { 0, 2, 4, 6 };
+
+// STATIC: 0x00AD91A0
+static uint32_t s_fourBitAlphaShift[2] = { 2, 6 };
+
 // STATIC: 0x00C79610
 static TSGrowableArray<uint8_t> s_blpFileLoadBuffer;
 
@@ -160,6 +172,403 @@ void CBLPFile::DecompPalARGB8888(uint8_t* out, const void* in, uint32_t count) {
             for (uint32_t i = 0; i < count; i++) {
                 pixels[i].m_pad = *alpha;
                 alpha++;
+            }
+
+            break;
+        }
+    }
+}
+
+// VERIFY: 5667d883 manual
+// OFFSET: 0x006AEBA0
+void CBLPFile::DecompPalARGB4444DitherFloydSteinberg(uint8_t* out, const void* in, uint32_t width, uint32_t height) {
+    // STATIC: 0x00C61550
+    static int32_t s_errors[2][1026][3];
+
+    uint16_t* pixels = reinterpret_cast<uint16_t*>(out);
+    const uint8_t* indices = static_cast<const uint8_t*>(in);
+
+    memset(s_errors, 0, (width + 2) * sizeof(s_errors[0][0]));
+
+    for (uint32_t y = 0; y < height; y++) {
+        int32_t (*next)[3] = &s_errors[(y - 1) & 1][1];
+        int32_t (*current)[3] = &s_errors[y & 1][1];
+
+        next[-1][1] = 0;
+        next[-1][2] = 0;
+        next[-1][0] = 0;
+        next[0][2] = 0;
+        next[0][1] = 0;
+        next[0][0] = 0;
+
+        for (uint32_t x = 0; x < width; x++) {
+            const BlpPalPixel& color = this->m_header.m_extended.m_palette[indices[x]];
+
+            int32_t r = (current[x][0] >> 4) + (color.m_r << 16);
+            int32_t g = (current[x][1] >> 4) + (color.m_g << 16);
+            int32_t b = (current[x][2] >> 4) + (color.m_b << 16);
+
+            int32_t quantB = (b + 0x80000) & 0xFFF00000;
+            int32_t quantG = (g + 0x80000) & 0xFFF00000;
+            int32_t quantR = (r + 0x80000) & 0xFFF00000;
+
+            int32_t outR = quantR >> 20;
+            int32_t outG = quantG >> 20;
+            int32_t outB = quantB >> 20;
+
+            outR = outR < 0 ? 0 : (outR > 15 ? 15 : outR);
+            outG = outG < 0 ? 0 : (outG > 15 ? 15 : outG);
+            outB = outB < 0 ? 0 : (outB > 15 ? 15 : outB);
+
+            pixels[x] = static_cast<uint16_t>((((outR << 4) | outG) << 4) | outB);
+
+            int32_t errorR = r - quantR;
+            int32_t errorG = g - quantG;
+            int32_t errorB = b - quantB;
+
+            current[x + 1][0] += 7 * errorR;
+            current[x + 1][1] += 7 * errorG;
+            current[x + 1][2] += 7 * errorB;
+            next[x - 1][0] += 5 * errorR;
+            next[x - 1][1] += 5 * errorG;
+            next[x - 1][2] += 5 * errorB;
+            next[x][0] += 3 * errorR;
+            next[x][1] += 3 * errorG;
+            next[x][2] += 3 * errorB;
+            next[x + 1][1] = errorG;
+            next[x + 1][2] = errorB;
+            next[x + 1][0] = errorR;
+        }
+
+        indices += width;
+        pixels += width;
+    }
+
+    uint32_t count = width * height;
+    uint16_t* pixel = reinterpret_cast<uint16_t*>(out);
+    const uint8_t* alpha = indices;
+
+    switch (this->m_header.m_alphaSize) {
+        case 1: {
+            uint32_t mask = 1;
+
+            for (; count; count--) {
+                *pixel |= s_oneBitAlpha4444[*alpha & mask];
+                mask += mask;
+                pixel++;
+
+                if (mask >= 0x100) {
+                    mask = 1;
+                    alpha++;
+                }
+            }
+
+            break;
+        }
+
+        case 4: {
+            for (uint32_t i = 0; i < count; i++) {
+                if (i & 1) {
+                    *pixel |= (*alpha & 0xF0) << 8;
+                    alpha++;
+                } else {
+                    *pixel |= static_cast<uint16_t>(*alpha << 12);
+                }
+
+                pixel++;
+            }
+
+            break;
+        }
+
+        case 8: {
+            for (; count; count--) {
+                *pixel |= (*alpha & 0xF0) << 8;
+                pixel++;
+                alpha++;
+            }
+
+            break;
+        }
+    }
+}
+
+// VERIFY: 65e1ecfd manual
+// OFFSET: 0x006AEE70
+void CBLPFile::DecompPalARGB1555DitherFloydSteinberg(uint8_t* out, const void* in, uint32_t width, uint32_t height) {
+    // STATIC: 0x00C67580
+    static int32_t s_errors[2][1026][3];
+
+    uint16_t* pixels = reinterpret_cast<uint16_t*>(out);
+    const uint8_t* indices = static_cast<const uint8_t*>(in);
+
+    memset(s_errors, 0, (width + 2) * sizeof(s_errors[0][0]));
+
+    for (uint32_t y = 0; y < height; y++) {
+        int32_t (*next)[3] = &s_errors[(y - 1) & 1][1];
+        int32_t (*current)[3] = &s_errors[y & 1][1];
+
+        next[-1][1] = 0;
+        next[-1][2] = 0;
+        next[-1][0] = 0;
+        next[0][2] = 0;
+        next[0][1] = 0;
+        next[0][0] = 0;
+
+        for (uint32_t x = 0; x < width; x++) {
+            const BlpPalPixel& color = this->m_header.m_extended.m_palette[indices[x]];
+
+            int32_t r = (current[x][0] >> 4) + (color.m_r << 16);
+            int32_t g = (current[x][1] >> 4) + (color.m_g << 16);
+            int32_t b = (current[x][2] >> 4) + (color.m_b << 16);
+
+            int32_t quantB = (b + 0x40000) & 0xFFF80000;
+            int32_t quantG = (g + 0x40000) & 0xFFF80000;
+            int32_t quantR = (r + 0x40000) & 0xFFF80000;
+
+            int32_t outR = quantR >> 19;
+            int32_t outG = quantG >> 19;
+            int32_t outB = quantB >> 19;
+
+            outR = outR < 0 ? 0 : (outR > 31 ? 31 : outR);
+            outG = outG < 0 ? 0 : (outG > 31 ? 31 : outG);
+            outB = outB < 0 ? 0 : (outB > 31 ? 31 : outB);
+
+            pixels[x] = static_cast<uint16_t>((((outR << 5) | outG) << 5) | outB);
+
+            int32_t errorR = r - quantR;
+            int32_t errorG = g - quantG;
+            int32_t errorB = b - quantB;
+
+            current[x + 1][0] += 7 * errorR;
+            current[x + 1][1] += 7 * errorG;
+            current[x + 1][2] += 7 * errorB;
+            next[x - 1][0] += 5 * errorR;
+            next[x - 1][1] += 5 * errorG;
+            next[x - 1][2] += 5 * errorB;
+            next[x][0] += 3 * errorR;
+            next[x][1] += 3 * errorG;
+            next[x][2] += 3 * errorB;
+            next[x + 1][1] = errorG;
+            next[x + 1][2] = errorB;
+            next[x + 1][0] = errorR;
+        }
+
+        indices += width;
+        pixels += width;
+    }
+
+    uint32_t count = width * height;
+    uint16_t* pixel = reinterpret_cast<uint16_t*>(out);
+    const uint8_t* alpha = indices;
+    uint32_t shift = 0;
+
+    switch (this->m_header.m_alphaSize) {
+        case 1: {
+            for (; count; count--) {
+                *pixel |= static_cast<uint16_t>((*alpha & (1 << shift)) << (15 - shift));
+                shift++;
+                pixel++;
+
+                if (shift >= 8) {
+                    shift = 0;
+                    alpha++;
+                }
+            }
+
+            break;
+        }
+
+        case 4: {
+            for (; count; count--) {
+                if (shift) {
+                    shift = 0;
+                    *pixel |= (*alpha & 0x80) << 8;
+                    alpha++;
+                } else {
+                    *pixel |= static_cast<uint16_t>((*alpha & 0xFFF8) << 12);
+                    shift = this->m_header.m_alphaSize;
+                }
+
+                pixel++;
+            }
+
+            break;
+        }
+
+        case 8: {
+            for (; count; count--) {
+                *pixel |= (*alpha & 0x80) << 8;
+                pixel++;
+                alpha++;
+            }
+
+            break;
+        }
+    }
+}
+
+// VERIFY: af8db2da manual
+// OFFSET: 0x006AF140
+void CBLPFile::DecompPalARGB565DitherFloydSteinberg(uint8_t* out, const void* in, uint32_t width, uint32_t height) {
+    // STATIC: 0x00C6D5B0
+    static int32_t s_errors[2][1026][3];
+
+    uint16_t* pixels = reinterpret_cast<uint16_t*>(out);
+    const uint8_t* indices = static_cast<const uint8_t*>(in);
+
+    memset(s_errors, 0, (width + 2) * sizeof(s_errors[0][0]));
+
+    for (uint32_t y = 0; y < height; y++) {
+        int32_t (*next)[3] = &s_errors[(y - 1) & 1][1];
+        int32_t (*current)[3] = &s_errors[y & 1][1];
+
+        next[-1][1] = 0;
+        next[-1][2] = 0;
+        next[-1][0] = 0;
+        next[0][2] = 0;
+        next[0][1] = 0;
+        next[0][0] = 0;
+
+        for (uint32_t x = 0; x < width; x++) {
+            const BlpPalPixel& color = this->m_header.m_extended.m_palette[indices[x]];
+
+            int32_t r = (current[x][0] >> 4) + (color.m_r << 16);
+            int32_t g = (current[x][1] >> 4) + (color.m_g << 16);
+            int32_t b = (current[x][2] >> 4) + (color.m_b << 16);
+
+            int32_t quantB = (b + 0x40000) & 0xFFF80000;
+            int32_t quantG = (g + 0x20000) & 0xFFFC0000;
+            int32_t quantR = (r + 0x40000) & 0xFFF80000;
+
+            int32_t outR = quantR >> 19;
+            int32_t outG = quantG >> 18;
+            int32_t outB = quantB >> 19;
+
+            outR = outR < 0 ? 0 : (outR > 31 ? 31 : outR);
+            outG = outG < 0 ? 0 : (outG > 63 ? 63 : outG);
+            outB = outB < 0 ? 0 : (outB > 31 ? 31 : outB);
+
+            pixels[x] = static_cast<uint16_t>((((outR << 6) | outG) << 5) | outB);
+
+            int32_t errorR = r - quantR;
+            int32_t errorG = g - quantG;
+            int32_t errorB = b - quantB;
+
+            current[x + 1][0] += 7 * errorR;
+            current[x + 1][1] += 7 * errorG;
+            current[x + 1][2] += 7 * errorB;
+            next[x - 1][0] += 5 * errorR;
+            next[x - 1][1] += 5 * errorG;
+            next[x - 1][2] += 5 * errorB;
+            next[x][0] += 3 * errorR;
+            next[x][1] += 3 * errorG;
+            next[x][2] += 3 * errorB;
+            next[x + 1][1] = errorG;
+            next[x + 1][0] = errorR;
+            next[x + 1][2] = errorB;
+        }
+
+        indices += width;
+        pixels += width;
+    }
+}
+
+// VERIFY: f87ef902 manual
+// OFFSET: 0x006AF340
+void CBLPFile::DecompPalARGB2565DitherFloydSteinberg(uint8_t* out, const void* in, uint32_t width, uint32_t height) {
+    // STATIC: 0x00C735E0
+    static int32_t s_errors[2][1026][3];
+
+    uint16_t* pixels = reinterpret_cast<uint16_t*>(out);
+    const uint8_t* indices = static_cast<const uint8_t*>(in);
+
+    memset(s_errors, 0, (width + 2) * sizeof(s_errors[0][0]));
+
+    for (uint32_t y = 0; y < height; y++) {
+        int32_t (*next)[3] = &s_errors[(y - 1) & 1][1];
+        int32_t (*current)[3] = &s_errors[y & 1][1];
+
+        next[-1][1] = 0;
+        next[-1][2] = 0;
+        next[-1][0] = 0;
+        next[0][2] = 0;
+        next[0][1] = 0;
+        next[0][0] = 0;
+
+        for (uint32_t x = 0; x < width; x++) {
+            const BlpPalPixel& color = this->m_header.m_extended.m_palette[indices[x]];
+
+            int32_t r = (current[x][0] >> 4) + (color.m_r << 16);
+            int32_t g = (current[x][1] >> 4) + (color.m_g << 16);
+            int32_t b = (current[x][2] >> 4) + (color.m_b << 16);
+
+            int32_t quantB = (b + 0x40000) & 0xFFF80000;
+            int32_t quantG = (g + 0x20000) & 0xFFFC0000;
+            int32_t quantR = (r + 0x40000) & 0xFFF80000;
+
+            int32_t outR = quantR >> 19;
+            int32_t outG = quantG >> 18;
+            int32_t outB = quantB >> 19;
+
+            outR = outR < 0 ? 0 : (outR > 31 ? 31 : outR);
+            outG = outG < 0 ? 0 : (outG > 63 ? 63 : outG);
+            outB = outB < 0 ? 0 : (outB > 31 ? 31 : outB);
+
+            pixels[x] = static_cast<uint16_t>((((outR << 6) | outG) << 5) | outB);
+
+            int32_t errorR = r - quantR;
+            int32_t errorG = g - quantG;
+            int32_t errorB = b - quantB;
+
+            current[x + 1][0] += 7 * errorR;
+            current[x + 1][1] += 7 * errorG;
+            current[x + 1][2] += 7 * errorB;
+            next[x - 1][0] += 5 * errorR;
+            next[x - 1][1] += 5 * errorG;
+            next[x - 1][2] += 5 * errorB;
+            next[x][0] += 3 * errorR;
+            next[x][1] += 3 * errorG;
+            next[x][2] += 3 * errorB;
+            next[x + 1][1] = errorG;
+            next[x + 1][2] = errorB;
+            next[x + 1][0] = errorR;
+        }
+
+        indices += width;
+        pixels += width;
+    }
+
+    uint32_t count = width * height;
+    uint8_t* alphaOut = reinterpret_cast<uint8_t*>(pixels);
+    const uint8_t* alpha = indices;
+
+    switch (this->m_header.m_alphaSize) {
+        case 1: {
+            for (uint32_t i = 0; i < count; i++) {
+                uint8_t* dest = alphaOut + (i >> 2);
+                uint8_t value = static_cast<uint8_t>(((alpha[i >> 3] >> (i & 7)) * 2) << s_twoBitAlphaShift[i & 3]);
+                *dest = (*dest & ~s_twoBitAlphaMask[i & 3]) | value;
+            }
+
+            break;
+        }
+
+        case 4: {
+            for (uint32_t i = 0; i < count; i++) {
+                uint8_t* dest = alphaOut + (i >> 2);
+                uint8_t value = static_cast<uint8_t>((alpha[i >> 1] >> s_fourBitAlphaShift[i & 1]) << s_twoBitAlphaShift[i & 3]);
+                *dest = (*dest & ~s_twoBitAlphaMask[i & 3]) | value;
+            }
+
+            break;
+        }
+
+        case 8: {
+            for (uint32_t i = 0; i < count; i++) {
+                uint8_t* dest = alphaOut + (i >> 2);
+                uint8_t value = static_cast<uint8_t>((alpha[i] >> 6) << s_twoBitAlphaShift[i & 3]);
+                *dest = (*dest & ~s_twoBitAlphaMask[i & 3]) | value;
             }
 
             break;
