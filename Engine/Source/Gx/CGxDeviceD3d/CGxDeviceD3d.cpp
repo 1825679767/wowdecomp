@@ -83,6 +83,139 @@ static D3DLIGHT9 s_d3dLight;
 // STATIC: 0x00C60760
 static int32_t s_isIdent;
 
+// VERIFY: 271a03c4 manual
+// OFFSET: 0x0068FA60
+void CGxDeviceD3d::IBufUnlock(CGxBuf* buf) {
+    CGxPool* pool = buf->m_pool;
+    EmergencyMem& emergencyMem = this->m_emergencyMem[pool->m_target];
+
+    if (emergencyMem.m_lock) {
+        emergencyMem.Unlock();
+        buf->unk_001D = 0;
+        this->m_intF5C = 1;
+        return;
+    }
+
+    HRESULT result = S_OK;
+
+    switch (pool->m_target) {
+        case GxPoolTarget_Vertex:
+            result = static_cast<LPDIRECT3DVERTEXBUFFER9>(pool->m_apiSpecific)->Unlock();
+            break;
+
+        case GxPoolTarget_Index:
+            result = static_cast<LPDIRECT3DINDEXBUFFER9>(pool->m_apiSpecific)->Unlock();
+            break;
+
+        default:
+            break;
+    }
+
+    buf->unk_001D = SUCCEEDED(result);
+}
+
+// VERIFY: 32fdd761 auto
+// OFFSET: 0x0068FAE0
+int32_t CGxDeviceD3d::BufUnlock(CGxBuf* buf, uint32_t size) {
+    CGxDevice::BufUnlock(buf, size);
+    this->IBufUnlock(buf);
+
+    return 1;
+}
+
+// VERIFY: e175e4e3 manual
+// OFFSET: 0x0068FB10
+char* CGxDeviceD3d::IBufLock(CGxBuf* buf) {
+    CGxPool* pool = buf->m_pool;
+
+    if (!this->m_context) {
+        return static_cast<char*>(this->m_emergencyMem[pool->m_target].Lock(buf->m_size));
+    }
+
+    DWORD flags = 0;
+
+    if (pool->m_usage == GxPoolUsage_Stream) {
+        uint32_t index = (buf->m_itemSize + pool->unk_001C - 1) - (buf->m_itemSize + pool->unk_001C - 1) % buf->m_itemSize;
+
+        if (index + buf->m_size > static_cast<uint32_t>(pool->m_size)) {
+            flags = D3DLOCK_DISCARD;
+            pool->Discard();
+            buf->m_index = 0;
+            pool->unk_001C = buf->m_size;
+        } else {
+            flags = D3DLOCK_NOOVERWRITE;
+            buf->m_index = index;
+            pool->unk_001C = index + buf->m_size;
+        }
+    } else if (pool->m_usage == GxPoolUsage_Dynamic) {
+        flags = D3DLOCK_NOOVERWRITE;
+    }
+
+    char* data = nullptr;
+
+    if (!pool->m_apiSpecific) {
+        this->CreatePoolAPI(pool);
+    }
+
+    if (!pool->m_apiSpecific) {
+        return static_cast<char*>(this->m_emergencyMem[pool->m_target].Lock(buf->m_size));
+    }
+
+    HRESULT result = S_OK;
+
+    switch (pool->m_target) {
+        case GxPoolTarget_Vertex:
+            result = static_cast<LPDIRECT3DVERTEXBUFFER9>(pool->m_apiSpecific)->Lock(buf->m_index, buf->m_size, reinterpret_cast<void**>(&data), flags);
+            break;
+
+        case GxPoolTarget_Index:
+            result = static_cast<LPDIRECT3DINDEXBUFFER9>(pool->m_apiSpecific)->Lock(buf->m_index, buf->m_size, reinterpret_cast<void**>(&data), flags);
+            break;
+
+        default:
+            break;
+    }
+
+    if (SUCCEEDED(result) && buf->m_size) {
+        __try {
+            volatile char* probe = data;
+
+            if (pool->m_usage == GxPoolUsage_Stream) {
+                *probe = 0;
+            } else {
+                *probe = *probe;
+            }
+        } __except (EXCEPTION_EXECUTE_HANDLER) {
+            result = E_FAIL;
+        }
+    }
+
+    if (FAILED(result)) {
+        this->IBufUnlock(buf);
+        return static_cast<char*>(this->m_emergencyMem[pool->m_target].Lock(buf->m_size));
+    }
+
+    return data;
+}
+
+// VERIFY: 14c57719 auto
+// OFFSET: 0x0068FCE0
+char* CGxDeviceD3d::BufLock(CGxBuf* buf) {
+    CGxDevice::BufLock(buf);
+
+    return this->IBufLock(buf);
+}
+
+// VERIFY: aa2288d7 auto
+// OFFSET: 0x0068FD00
+void CGxDeviceD3d::BufData(CGxBuf* buf, const void* data, uint32_t size, uint32_t offset) {
+    CGxDevice::BufData(buf, data, size, offset);
+
+    char* dst = this->IBufLock(buf);
+    memcpy(dst + offset, data, size);
+    this->IBufUnlock(buf);
+}
+
 // VERIFY: c3d9f239 auto
 // OFFSET: 0x0068FD50
 CGxDeviceD3d::CGxDeviceD3d() : m_desktopDisplayMode() {
@@ -232,6 +365,36 @@ void CGxDeviceD3d::CursorSetVisible(int32_t visible) {
 void CGxDeviceD3d::CursorUnlock(uint32_t x, uint32_t y) {
     CGxDevice::CursorUnlock(x, y);
     this->m_hwCursorDirty = 1;
+}
+
+// VERIFY: ec65e113 auto
+// OFFSET: 0x0068E810
+void CGxDeviceD3d::ICursorDraw() {
+    if (!this->m_hwCursor) {
+        this->ISceneBegin();
+    }
+
+    CGxDevice::ICursorDraw();
+
+    if (!this->m_hwCursor) {
+        this->ISceneEnd();
+    }
+
+    if (!this->m_hwCursor || !this->m_hwCursorDirty || !this->m_hwCursorBitmap || !this->m_context) {
+        return;
+    }
+
+    D3DLOCKED_RECT lockedRect;
+    if (SUCCEEDED(this->m_hwCursorBitmap->LockRect(&lockedRect, nullptr, 0))) {
+        for (uint32_t y = 0; y < 32; y++) {
+            memcpy(static_cast<uint8_t*>(lockedRect.pBits) + y * lockedRect.Pitch, &this->m_cursor[y * 32], 32 * sizeof(uint32_t));
+        }
+
+        this->m_hwCursorBitmap->UnlockRect();
+        this->m_d3dDevice->SetCursorProperties(this->m_cursorHotspotX, this->m_cursorHotspotY, this->m_hwCursorBitmap);
+    }
+
+    this->m_hwCursorDirty = 0;
 }
 
 // VERIFY: 79dfb7f5 auto
@@ -400,6 +563,25 @@ LPDIRECT3DVERTEXBUFFER9 CGxDeviceD3d::ICreateD3dVB(EGxPoolUsage usage, uint32_t 
     HRESULT hr = this->m_d3dDevice->CreateVertexBuffer(size, d3dUsage, 0, d3dPool, &vertexBuffer, nullptr);
 
     return SUCCEEDED(hr) ? vertexBuffer : nullptr;
+}
+
+// VERIFY: 24701c91 auto
+// OFFSET: 0x0069FB70
+int32_t CGxDeviceD3d::CreatePoolAPI(CGxPool* pool) {
+    switch (pool->m_target) {
+        case GxPoolTarget_Vertex:
+            pool->m_apiSpecific = this->ICreateD3dVB(pool->m_usage, pool->m_size);
+            break;
+
+        case GxPoolTarget_Index:
+            pool->m_apiSpecific = this->ICreateD3dIB(pool->m_usage, pool->m_size);
+            break;
+
+        default:
+            break;
+    }
+
+    return 1;
 }
 
 // VERIFY: 2ee2e8ff auto

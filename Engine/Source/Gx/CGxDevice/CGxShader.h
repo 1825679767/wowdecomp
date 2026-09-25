@@ -25,6 +25,7 @@ class CGxShader : public TSHashObject<CGxShader, HASHKEY_STRI> {
     virtual void Load(SFileImpl* file);
 
     CGxShader();
+    int32_t Valid();
     ~CGxShader();
 };
 

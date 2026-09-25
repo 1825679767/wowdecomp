@@ -329,7 +329,10 @@ class CGxDeviceD3d : public CGxDevice {
     void DsSet(EDeviceState state, uint32_t value);
     void IBindPixelShader(CGxShader* shader);
     void IBindVertexShader(CGxShader* shader);
+    char* IBufLock(CGxBuf* buf);
+    void IBufUnlock(CGxBuf* buf);
     LPDIRECT3DVERTEXDECLARATION9 ICreateD3dVertexDecl(const D3DVERTEXELEMENT9* elements, uint32_t count);
+    int32_t CreatePoolAPI(CGxPool* pool);
     int32_t ICreateD3d();
     int32_t ICreateD3dDevice(const CGxFormat& format);
     LPDIRECT3DINDEXBUFFER9 ICreateD3dIB(EGxPoolUsage usage, uint32_t size);

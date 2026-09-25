@@ -1,8 +1,19 @@
 #include <cstdint>
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDevice/CGxShader.h"
 
 // INLINED
 CGxShader::CGxShader() : m_refCount(0), m_apiSpecific(nullptr), m_target(0), unk_0028(0), m_valid(0), m_loaded(0), unk_0034(0), m_patched(0) {
+}
+
+// VERIFY: 089de908 manual
+// OFFSET: 0x00689A50
+int32_t CGxShader::Valid() {
+    if (!this->m_loaded) {
+        g_theGxDevicePtr->IShaderCreate(this);
+    }
+
+    return this->m_valid;
 }
 
 // VERIFY: 0031218a manual

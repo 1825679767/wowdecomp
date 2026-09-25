@@ -11,6 +11,7 @@
 #include "Engine/Source/Gx/CGxDevice/CGxShader.h"
 #include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Os/Input.h"
 #include "Engine/Source/Os/Path.h"
 #include "Engine/Source/Os/Processor.h"
 #include "Engine/Source/Os/TimeManager.h"
@@ -47,6 +48,9 @@ static const char* s_computeShaderTargetNames[4] = { "none", "cs_5_0", "cs_cuda"
 
 // STATIC: 0x00AD8890
 static const char** s_shaderTargetNames[GxShTargets_Last] = { s_vertexShaderTargetNames, s_hullShaderTargetNames, s_domainShaderTargetNames, s_geometryShaderTargetNames, s_pixelShaderTargetNames, s_computeShaderTargetNames };
+
+// STATIC: 0x00AD8B7C
+uint32_t CGxDevice::s_alphaRef[12] = { 0, 224, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 };
 
 // STATIC: 0x00AD8BAC
 int32_t s_streamVertexPoolSize = 0x2C0000;
@@ -430,6 +434,160 @@ void CGxDevice::QueryDestroy(CGxQuery*& query) {
     query->m_link.Unlink();
     delete query;
     query = nullptr;
+}
+
+// VERIFY: 79028de3 manual
+// OFFSET: 0x00687A90
+void CGxDevice::ICursorDraw() {
+    if (!this->m_cursorVisible || this->m_hwCursor) {
+        return;
+    }
+
+    int32_t x;
+    int32_t y;
+    OsInputGetMousePosition(&x, &y);
+
+    if (x < 0 || y < 0 || !(x < this->m_curWindowRect.maxX) || !(y < this->m_curWindowRect.maxY)) {
+        return;
+    }
+
+    g_theGxDevicePtr->RsPush();
+
+    GxRsSet(GxRs_PolygonOffset, 0);
+    GxRsSet(GxRs_NormalizeNormals, 0);
+    GxRsSet(GxRs_BlendingMode, 1);
+    GxUpdateAlphaRef(GxRs_AlphaRef);
+    GxRsSet(GxRs_Lighting, 0);
+    GxRsSet(GxRs_Fog, 0);
+    GxRsSet(GxRs_DepthTest, 0);
+    GxRsSet(GxRs_DepthWrite, 0);
+    GxRsSet(GxRs_ColorWrite, 15);
+    GxRsSet(GxRs_Culling, 0);
+    GxRsSet(GxRs_ClipPlaneMask, 0);
+    GxRsSet(GxRs_Texture0, this->m_cursorTexture);
+    GxRsSet(GxRs_Texture1, nullptr);
+    GxRsSet(GxRs_ColorOp0, 0);
+    GxRsSet(GxRs_AlphaOp0, 0);
+    GxRsSet(GxRs_TexGen0, 0);
+    GxRsSet(GxRs_TextureShader0, 0);
+
+    C44Matrix world;
+    GxXformPush(GxXform_World, world);
+
+    float depth = 1.0f;
+    C44Matrix projection;
+
+    if (this->StereoEnabled() && CGxDevice::s_uiVertexShader[1] && CGxDevice::s_uiVertexShader[1]->Valid() && CGxDevice::s_uiPixelShader && CGxDevice::s_uiPixelShader->Valid()) {
+        depth = this->m_cursorDepth;
+
+        float minX;
+        float maxX;
+        float minY;
+        float maxY;
+        float minZ;
+        float maxZ;
+        GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
+        GxXformProjection(projection);
+
+        C44Matrix ortho;
+        ortho.a0 = 2.0f / (maxX - minX);
+        ortho.a1 = 0.0f;
+        ortho.a2 = 0.0f;
+        ortho.a3 = 0.0f;
+        ortho.b0 = 0.0f;
+        ortho.b1 = 2.0f / (maxY - minY);
+        ortho.b2 = 0.0f;
+        ortho.b3 = 0.0f;
+        ortho.c0 = 0.0f;
+        ortho.c1 = 0.0f;
+        ortho.c2 = 1.00008f;
+        ortho.c3 = 1.0f;
+        ortho.d0 = -((maxX + minX) / (maxX - minX));
+        ortho.d1 = -((maxY + minY) / (maxY - minY));
+        ortho.d2 = -0.400016f;
+        ortho.d3 = 0.0f;
+        GxXformSetProjection(ortho);
+
+        GxRsSet(GxRs_VertexShader, CGxDevice::s_uiVertexShader[1]);
+        GxRsSet(GxRs_PixelShader, CGxDevice::s_uiPixelShader);
+
+        C44Matrix viewProj;
+        GxXformViewProjNativeTranspose(viewProj);
+        GxShaderConstantsSet(GxSh_Vertex, 0, reinterpret_cast<const float*>(&viewProj), 4);
+    } else {
+        GxRsSet(GxRs_VertexShader, 0);
+        GxRsSet(GxRs_PixelShader, 0);
+    }
+
+    CGxBuf* buf = GxBufStream(GxPoolTarget_Vertex, 24, 4);
+    uint32_t* vertices = reinterpret_cast<uint32_t*>(GxBufLock(buf));
+    if (!vertices) {
+        return;
+    }
+
+    float invWidth = this->m_curWindowRect.maxX > 0.0f ? 1.0f / this->m_curWindowRect.maxX : 0.0f;
+    float invHeight = this->m_curWindowRect.maxY > 0.0f ? 1.0f / this->m_curWindowRect.maxY : 0.0f;
+
+    float left = static_cast<float>(x - this->m_cursorHotspotX) * invWidth;
+    float right = static_cast<float>(x - this->m_cursorHotspotX + 32) * invWidth;
+    float top = 1.0f - static_cast<float>(y - this->m_cursorHotspotY) * invHeight;
+    float bottom = 1.0f - static_cast<float>(y - this->m_cursorHotspotY + 32) * invHeight;
+
+    if (this->m_api == GxApi_D3d9 || this->m_api == GxApi_D3d9Ex) {
+        left -= invWidth * 0.5f;
+        right -= invWidth * 0.5f;
+        top += invHeight * 0.5f;
+        bottom += invHeight * 0.5f;
+    }
+
+    float* v = reinterpret_cast<float*>(vertices);
+
+    v[0] = left;
+    v[1] = top;
+    v[2] = depth;
+    vertices[3] = 0xFFFFFFFF;
+    v[4] = 0.0f;
+    v[5] = 0.0f;
+
+    v[6] = left;
+    v[7] = bottom;
+    v[8] = depth;
+    vertices[9] = 0xFFFFFFFF;
+    v[10] = 0.0f;
+    v[11] = 1.0f;
+
+    v[12] = right;
+    v[13] = top;
+    v[14] = depth;
+    vertices[15] = 0xFFFFFFFF;
+    v[16] = 1.0f;
+    v[17] = 0.0f;
+
+    v[18] = right;
+    v[19] = bottom;
+    v[20] = depth;
+    vertices[21] = 0xFFFFFFFF;
+    v[22] = 1.0f;
+    v[23] = 1.0f;
+
+    GxBufUnlock(buf, 0);
+    GxPrimVertexPtr(buf, GxVBF_PCT);
+
+    CGxBatch batch;
+    batch.m_primType = GxPrim_TriangleStrip;
+    batch.m_start = 0;
+    batch.m_count = 4;
+    batch.m_minIndex = 0;
+    batch.m_maxIndex = 3;
+    GxDraw(&batch, 0);
+
+    GxXformPop(GxXform_World);
+
+    if (this->StereoEnabled()) {
+        GxXformSetProjection(projection);
+    }
+
+    g_theGxDevicePtr->RsPop();
 }
 
 // VERIFY: d0a23aa3 auto

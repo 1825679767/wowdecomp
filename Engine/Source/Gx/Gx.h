@@ -58,6 +58,7 @@ void GxQueryDestroy(CGxQuery*& query);
 void GxRsSet(EGxRenderState which, void* value);
 void GxRsSet(EGxRenderState which, int32_t value);
 void GxRsSet(EGxRenderState which, float value);
+void GxUpdateAlphaRef(EGxRenderState which);
 void GxSceneClear(uint32_t mask, CImVector color);
 void GxTexSetFlags(CGxTex* texId, CGxTexFlags flags);
 void GxTexSetWrap(CGxTex* texId, EGxTexWrapMode wrapU, EGxTexWrapMode wrapV);

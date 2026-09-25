@@ -642,6 +642,22 @@ void GxRsSet(EGxRenderState which, int32_t value) {
     }
 }
 
+// VERIFY: d06b58a9 manual
+// OFFSET: 0x00408C30
+void GxUpdateAlphaRef(EGxRenderState which) {
+    if (which != GxRs_AlphaRef || !g_theGxDevicePtr->m_context) {
+        return;
+    }
+
+    int32_t value = CGxDevice::s_alphaRef[g_theGxDevicePtr->m_appRenderStates[GxRs_BlendingMode].m_value.m_data.i[0]];
+    CGxAppRenderState& state = g_theGxDevicePtr->m_appRenderStates[GxRs_AlphaRef];
+
+    if (state.m_value.m_data.i[0] != value) {
+        g_theGxDevicePtr->IRsDirty(GxRs_AlphaRef);
+        state.m_value.m_data.i[0] = value;
+    }
+}
+
 // VERIFY: 3f036f15 auto
 // OFFSET: 0x00763C70
 void GxRsSet(EGxRenderState which, float value) {

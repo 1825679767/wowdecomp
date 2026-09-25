@@ -252,6 +252,7 @@ class CGxDevice {
     static CGxShader* s_uiPixelShader;
     static CGxShader* s_uiVertexShader[2];
     static ShadowConstants s_shadowConstants[2];
+    static uint32_t s_alphaRef[12];
     static const uint32_t s_texFormatBitDepth[GxTexFormats_Last];
     static const uint32_t s_texFormatBytesPerBlock[GxTexFormats_Last];
     static uint32_t m_logBytes;

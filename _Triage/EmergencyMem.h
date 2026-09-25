@@ -12,6 +12,8 @@ class EmergencyMem {
     /* 0011 */ uint8_t unk_0011[3];
 
     EmergencyMem();
+    void* Lock(uint32_t size);
+    void Unlock();
 };
 
 #endif
