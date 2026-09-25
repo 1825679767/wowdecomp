@@ -73,6 +73,7 @@ class SFile {
     static const char* GetDataPath();
     static const char* GetErrorDetails();
     static int32_t Initialize();
+    static int32_t IsStreamingMode();
     static int32_t STORMAPI LoadFile(const char* name, void** data, uint32_t* size, uint32_t extra, SOVERLAPPED* overlapped);
     static int32_t STORMAPI OpenArchive(const char* path, int32_t priority, uint32_t flags, SArchive** archive);
     static int32_t STORMAPI OpenEx(SArchive* archive, const char* name, uint32_t flags, SFileImpl** result);

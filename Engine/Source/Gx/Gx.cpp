@@ -259,6 +259,12 @@ int32_t GxTexCopy(CGxTex* dest, CGxTex* source, const C2iVector& pos, const C2iV
     return 0;
 }
 
+// VERIFY: 1ff03c68 auto
+// OFFSET: 0x00681580
+int32_t GxTexReusable(CGxTex* texId) {
+    return texId && texId->m_char5D && texId->m_depth == 0 && !texId->m_flags.m_generateMipMaps && !texId->m_flags.m_renderTarget && texId->m_target == GxTex_2d && texId->m_format <= GxTex_Dxt5;
+}
+
 // VERIFY: d90f6ed2 auto
 // OFFSET: 0x006815C0
 int32_t GxTexReusable(CGxTexParms& parms) {

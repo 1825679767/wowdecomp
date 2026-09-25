@@ -25,3 +25,9 @@ CGxTexFlags::CGxTexFlags(EGxTexFilter filter, uint32_t wrapU, uint32_t wrapV, ui
 bool CGxTexFlags::operator!=(const CGxTexFlags& flags) const {
     return memcmp(this, &flags, sizeof(CGxTexFlags)) != 0;
 }
+
+// VERIFY: f82cbd59 manual
+// OFFSET: 0x004B5820
+bool CGxTexFlags::operator==(const CGxTexFlags& flags) const {
+    return memcmp(this, &flags, sizeof(CGxTexFlags)) == 0;
+}

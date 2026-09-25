@@ -49,6 +49,24 @@ static BlitFormat GetBlitFormat(PIXEL_FORMAT format) {
 }
 
 // INLINED
+CBLPFile::CBLPFile() {
+    this->m_images = nullptr;
+    this->m_quality = 100;
+    memset(&this->m_header, 0, sizeof(this->m_header));
+    this->m_header.m_hasMips &= ~0x10;
+    this->m_header.m_magic = 0x32504C42;
+    this->m_header.m_formatVersion = 1;
+    this->m_header.m_preferredFormat = 2;
+    this->m_inMemoryImage = nullptr;
+    this->m_mipMapAlgorithm = MMA_BOX;
+}
+
+// INLINED
+CBLPFile::~CBLPFile() {
+    this->Close();
+}
+
+// INLINED
 uint32_t CBLPFile::HasMips() const {
     return this->m_header.m_hasMips & 0xF;
 }

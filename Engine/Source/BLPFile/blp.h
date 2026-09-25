@@ -23,6 +23,9 @@ class CBLPFile {
 
     static int32_t ValidateHeader(const BLPHeader& header);
 
+    CBLPFile();
+    ~CBLPFile();
+
     void Close();
     int32_t GetFormatSize(PIXEL_FORMAT format, uint32_t mipLevel, uint32_t* size, uint32_t* stride) const;
     uint32_t HasMips() const;

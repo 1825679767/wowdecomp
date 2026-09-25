@@ -68,6 +68,7 @@ void GxShaderConstantsSet(EGxShTarget target, uint32_t index, const float* const
 int32_t GxTexCopy(CGxTex* dest, CGxTex* source, const C2iVector& pos, const C2iVector& size, uint32_t level, uint32_t plane);
 void GxTexDestroy(CGxTex* texId);
 int32_t GxTexReusable(CGxTexParms& parms);
+int32_t GxTexReusable(CGxTex* texId);
 void GxXformPop(EGxXform xf);
 void GxXformProjection(C44Matrix& matrix);
 void GxXformPush(EGxXform xf);

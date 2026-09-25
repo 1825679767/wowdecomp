@@ -22,8 +22,8 @@ class CStatus {
 
     virtual ~CStatus();
     virtual void Display();
-    virtual void Add(const CStatus& source);
     virtual void Add(STATUS_TYPE severity, const char* format, ...);
+    virtual void Add(const CStatus& source);
     virtual void Prepend(STATUS_TYPE severity, const char* format, ...);
 
     CStatus();
