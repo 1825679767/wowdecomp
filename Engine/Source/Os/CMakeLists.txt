@@ -8,3 +8,10 @@ target_include_directories(Os
     PUBLIC
         ${CMAKE_SOURCE_DIR}
 )
+
+if(WIN32)
+    target_link_libraries(Os
+        PUBLIC
+            imm32
+    )
+endif()
