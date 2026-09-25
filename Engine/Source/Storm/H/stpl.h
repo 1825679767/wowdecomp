@@ -49,6 +49,7 @@ class TSList {
     ~TSList();
     void ChangeLinkOffset(ptrdiff_t linkoffset);
     void Clear();
+    void Combine(TSList<T, TGetLink>* list, uint32_t linktype, T* existingptr);
     T* DeleteNode(T* ptr);
     T* Head();
     void InitializeTerminator();
@@ -488,6 +489,47 @@ void TSList<T, TGetLink>::UnlinkAll() {
     while ((node = this->Head()) != nullptr) {
         this->UnlinkNode(node);
     }
+}
+
+// INLINED
+template <class T, class TGetLink>
+void TSList<T, TGetLink>::Combine(TSList<T, TGetLink>* list, uint32_t linktype, T* existingptr) {
+    if (!list) {
+        DebugValidate("list");
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    if (list == this) {
+        DebugValidate("list != this");
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    if (list->m_linkoffset != this->m_linkoffset) {
+        DebugValidate("list->m_linkoffset == m_linkoffset");
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    if (list->m_terminator.m_prevLink == &list->m_terminator) {
+        return;
+    }
+
+    TSLink<T>* link = existingptr ? this->Link(existingptr) : &this->m_terminator;
+
+    if (linktype == 1) {
+        link = link->NextLink(this->m_linkoffset);
+    }
+
+    TSLink<T>* prev = link->m_prevLink;
+    T* next = prev->m_next;
+    prev->m_next = list->m_terminator.m_next;
+    link->m_prevLink = list->m_terminator.m_prevLink;
+    list->m_terminator.NextLink(this->m_linkoffset)->m_prevLink = prev;
+    list->m_terminator.m_prevLink->m_next = next;
+    list->m_terminator.m_prevLink = &list->m_terminator;
+    list->m_terminator.m_next = reinterpret_cast<T*>(reinterpret_cast<uintptr_t>(&list->m_terminator) | 1);
 }
 
 // VERIFY: 58dea224 auto

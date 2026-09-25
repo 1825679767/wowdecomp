@@ -22,13 +22,6 @@ class CFrameStrata {
     /* 000C */ TSFixedArray<CFrameStrataNode*> m_levels;
 };
 
-struct EVENT_DATA_KEY {
-    /* 0000 */ KEY m_key;
-    /* 0004 */ uint32_t m_metaKeyState;
-    /* 0008 */ uint32_t m_repeat;
-    /* 000C */ uint32_t m_time;
-};
-
 class CKeyEvent {
     public:
     /* 0000 */ uint32_t m_vftable;

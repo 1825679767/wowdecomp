@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/CRect.h"
 
@@ -45,11 +46,6 @@ class CSortEntry {
     /* 0048 */ TSList<void> m_unkList7;
     /* 0054 */ TSList<void> m_holedChunkList;
     /* 0060 */ TSList<void> m_unkList9;
-};
-
-struct EVENT_DATA_UPDATE {
-    /* 0000 */ float m_elapsedSec;
-    /* 0004 */ uint32_t m_time;
 };
 
 struct OcclusionVolumeData {

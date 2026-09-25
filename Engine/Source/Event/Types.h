@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Tempest/C2Vector.h"
+#include "WoW/Source/Console/Types.h"
 
 enum KEY : uint32_t {
     KEY_NONE = 0xFFFFFFFFFFFFFFFF,
@@ -135,6 +136,98 @@ struct MouseEventData {
     /* 0014 */ C2Vector m_mousePosition;
     /* 001C */ uint32_t m_wheelAmount;
     /* 0020 */ uint32_t m_eventTime;
+};
+
+enum EVENTID {
+    EVENT_ID_0 = 0,
+    EVENT_ID_CHAR = 1,
+    EVENT_ID_FOCUS = 2,
+    EVENT_ID_3 = 3,
+    EVENT_ID_DESTROY = 4,
+    EVENT_ID_UPDATE = 5,
+    EVENT_ID_IDLE = 6,
+    EVENT_ID_POLL = 7,
+    EVENT_ID_INITIALIZE = 8,
+    EVENT_ID_KEYDOWN = 9,
+    EVENT_ID_KEYUP = 10,
+    EVENT_ID_KEYDOWN_REPEATING = 11,
+    EVENT_ID_MOUSEDOWN = 12,
+    EVENT_ID_MOUSEMOVE = 13,
+    EVENT_ID_MOUSEMOVE_RELATIVE = 14,
+    EVENT_ID_MOUSEUP = 15,
+    EVENT_ID_MOUSEMODE_CHANGED = 16,
+    EVENT_ID_MOUSEWHEEL = 17,
+    EVENT_ID_18 = 18,
+    EVENT_ID_19 = 19,
+    EVENT_ID_20 = 20,
+    EVENT_ID_21 = 21,
+    EVENT_ID_22 = 22,
+    EVENT_ID_PAINT = 23,
+    EVENT_ID_NET_DATA = 24,
+    EVENT_ID_NET_CONNECT = 25,
+    EVENT_ID_NET_DISCONNECT = 26,
+    EVENT_ID_NET_CANTCONNECT = 27,
+    EVENT_ID_NET_DESTROY = 28,
+    EVENT_ID_NET_AUTH_CHALLENGE = 29,
+    EVENT_ID_30 = 30,
+    EVENT_ID_31 = 31,
+    EVENT_ID_32 = 32,
+    EVENT_ID_33 = 33,
+    EVENT_ID_IME = 34,
+    EVENT_ID_SIZE = 35,
+    EVENTIDS = 36,
+};
+
+typedef int32_t (*EVENTHANDLERFUNC)(const void* data, void* param);
+typedef int32_t (*EVENTHANDLERGUIDFUNC)(const void* data, uint64_t guid, void* param);
+
+struct EVENT_DATA_CHAR {
+    /* 0000 */ int32_t m_ch;
+    /* 0004 */ uint32_t m_metaKeyState;
+    /* 0008 */ uint32_t m_repeat;
+};
+
+struct EVENT_DATA_FOCUS {
+    /* 0000 */ int32_t m_focus;
+};
+
+struct EVENT_DATA_IDLE {
+    /* 0000 */ float m_elapsedSec;
+    /* 0004 */ uint32_t m_time;
+};
+
+struct EVENT_DATA_UPDATE {
+    /* 0000 */ float m_elapsedSec;
+    /* 0004 */ uint32_t m_time;
+};
+
+struct EVENT_DATA_TIMER {
+    /* 0000 */ float m_timeout;
+    /* 0004 */ uint32_t m_time;
+};
+
+struct EVENT_DATA_KEY {
+    /* 0000 */ KEY m_key;
+    /* 0004 */ uint32_t m_metaKeyState;
+    /* 0008 */ uint32_t m_repeat;
+    /* 000C */ uint32_t m_time;
+};
+
+struct EVENT_DATA_MOUSE {
+    /* 0000 */ MOUSEMODE m_mode;
+    /* 0004 */ MOUSEBUTTON m_button;
+    /* 0008 */ uint32_t m_buttonState;
+    /* 000C */ uint32_t m_metaKeyState;
+    /* 0010 */ uint32_t m_flags;
+    /* 0014 */ float m_x;
+    /* 0018 */ float m_y;
+    /* 001C */ int32_t m_wheelDistance;
+    /* 0020 */ uint32_t m_time;
+};
+
+struct EVENT_DATA_SIZE {
+    /* 0000 */ int32_t m_w;
+    /* 0004 */ int32_t m_h;
 };
 
 #endif

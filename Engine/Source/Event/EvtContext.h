@@ -3,35 +3,16 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
+#include "Engine/Source/Base/TExtraInstanceRecycler.h"
 #include "Engine/Source/Base/Types.h"
-#include "Engine/Source/Event/EvtTimer.h"
+#include "Engine/Source/Event/CSBasePriorityQueue.h"
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Storm/Source/SLock.h"
 
-class EvtContext;
-struct EvtHandler;
-struct EvtKeyDown;
-struct EvtMessage;
-struct EvtTimer;
-
-template <class T>
-class CSBasePriorityQueue {
-    public:
-    /* 0000 */ TSGrowableArray<T> m_array;
-    /* 0010 */ uint32_t m_linkOffset;
-};
-
-class CSBasePriority {
-    public:
-    /* 0000 */ CSBasePriorityQueue<void>* m_queue;
-    /* 0004 */ uint32_t m_index;
-};
-
 struct EvtHandler {
     /* 0000 */ TSLink<EvtHandler> m_link;
-    /* 0008 */ int32_t (__stdcall* m_func )(const void*, void*);
+    /* 0008 */ EVENTHANDLERFUNC m_func;
     /* 000C */ void* m_param;
     /* 0010 */ float m_priority;
     /* 0014 */ int32_t m_marker;
@@ -42,47 +23,33 @@ struct EvtKeyDown {
     /* 0008 */ KEY m_key;
 };
 
-struct TExtraInstanceRecyclable {
-    /* 0000 */ uint32_t m_recycleBytes;
-};
-
 struct EvtMessage : public TExtraInstanceRecyclable {
     /* 0004 */ TSLink<EvtMessage> m_link;
-    /* 000C */ uint8_t m_id[4];
-    /* 0010 */ char m_data [4];
-};
-
-class TSTimerPriority_uint32_t : public CSBasePriority {
-    public:
-    /* 000C */ uint32_t m_val;
-
-    virtual ~TSTimerPriority_uint32_t();
+    /* 000C */ EVENTID m_id;
+    /* 0010 */ char m_data[4];
 };
 
 struct EvtTimer {
     /* 0000 */ uint32_t m_id;
-    /* 0004 */ TSTimerPriority_uint32_t m_targetTime;
+    /* 0004 */ TSTimerPriority<uint32_t> m_targetTime;
     /* 0014 */ float m_timeout;
-    /* 0018 */ int32_t (__stdcall* m_handler )(const void*, void*);
+    /* 0018 */ EVENTHANDLERFUNC m_handler;
     /* 001C */ void* m_param;
-    /* 0020 */ int32_t (__stdcall* m_guidHandler )(const void*, uint64_t, void*);
-    /* 0024 */ uint8_t unk_0024[4];
+    /* 0020 */ EVENTHANDLERGUIDFUNC m_guidHandler;
+    /* 0024 */ uint32_t unk_0024;
     /* 0028 */ uint64_t m_guidParam;
     /* 0030 */ void* m_guidParam2;
-    /* 0034 */ uint8_t unk_0034[4];
+    /* 0034 */ uint32_t unk_0034;
 };
 
 template <class T>
-struct TSPriorityQueue : public CSBasePriority {
-};
-
-struct EvtTimerQueue : public TSPriorityQueue<EvtTimer> {
-};
-
-template <class T>
-struct EvtIdTable {
+class EvtIdTable {
+    public:
     /* 0000 */ TSGrowableArray<T> m_allocArray;
     /* 0010 */ TSGrowableArray<uint32_t> m_freeArray;
+
+    uint32_t Alloc();
+    void Free(uint32_t id);
 };
 
 template <class T>
@@ -93,16 +60,16 @@ class TInstanceId : public TSLinkedNode<T> {
     virtual ~TInstanceId();
 };
 
-template <class T>
-struct TSingletonInstanceId : public TInstanceId<T> {
+template <class T, int bucketCount>
+class TSingletonInstanceId : public TInstanceId<T> {
 };
 
-class EvtContext : public TSingletonInstanceId<EvtContext> {
+class EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     public:
     /* 0010 */ SCritSect m_critsect;
     /* 0038 */ uint32_t m_currTime;
     /* 003C */ SCHEDSTATE m_schedState;
-    /* 0040 */ TSTimerPriority_uint32_t m_schedNextWakeTime;
+    /* 0040 */ TSTimerPriority<uint32_t> m_schedNextWakeTime;
     /* 0050 */ uint32_t m_schedLastIdle;
     /* 0054 */ uint32_t m_schedFlags;
     /* 0058 */ uint32_t m_schedIdleTime;
@@ -110,27 +77,42 @@ class EvtContext : public TSingletonInstanceId<EvtContext> {
     /* 0060 */ uint32_t m_schedWeight;
     /* 0064 */ uint32_t m_schedSmoothWeight;
     /* 0068 */ int32_t m_schedRebalance;
-    /* 006C */ TSExplicitList<EvtHandler> m_queueHandlerList [36];
-    /* 021C */ TSExplicitList<EvtMessage> m_queueMessageList;
+    /* 006C */ TSExplicitList<EvtHandler, offsetof(EvtHandler, m_link)> m_queueHandlerList[EVENTIDS];
+    /* 021C */ TSExplicitList<EvtMessage, offsetof(EvtMessage, m_link)> m_queueMessageList;
     /* 0228 */ uint32_t m_queueSyncButtonState;
-    /* 022C */ TSExplicitList<EvtKeyDown> m_queueSyncKeyDownList;
+    /* 022C */ TSExplicitList<EvtKeyDown, offsetof(EvtKeyDown, m_link)> m_queueSyncKeyDownList;
     /* 0238 */ EvtIdTable<EvtTimer*> m_timerIdTable;
-    /* 0258 */ EvtTimerQueue m_timerQueue;
-    /* 0260 */ HPROPCONTEXT m_propContext;
-    /* 0264 */ int32_t unk_0264;
-    /* 0268 */ int32_t unk_0268;
-    /* 026C */ int32_t unk_026C;
+    /* 0258 */ TSPriorityQueue<EvtTimer> m_timerQueue;
+    /* 026C */ HPROPCONTEXT m_propContext;
     /* 0270 */ void* m_callContext;
     /* 0274 */ uint32_t m_startWatchdog;
 };
 
+// INLINED
 template <class T>
-struct TInstanceIdTable {
-    /* 0000 */ SCritSect m_idCritSect;
-    /* 0028 */ uint32_t m_id;
-    /* 002C */ int32_t m_idWrapped;
-    /* 0030 */ CSRWLock m_idLock [8];
-    /* 0090 */ TSList<T> m_idList [8];
-};
+uint32_t EvtIdTable<T>::Alloc() {
+    uint32_t id;
+
+    if (this->m_freeArray.Count()) {
+        id = this->m_freeArray.m_data[this->m_freeArray.Count() - 1];
+        this->m_freeArray.SetCount(this->m_freeArray.Count() - 1);
+    } else {
+        id = this->m_allocArray.Count();
+
+        if (id < 1) {
+            id = 1;
+        }
+
+        this->m_allocArray.GrowToFit(id, 1);
+    }
+
+    return id;
+}
+
+// INLINED
+template <class T>
+void EvtIdTable<T>::Free(uint32_t id) {
+    this->m_freeArray.New(id);
+}
 
 #endif
