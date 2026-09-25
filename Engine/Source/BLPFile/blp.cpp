@@ -179,7 +179,7 @@ void CBLPFile::DecompPalARGB8888(uint8_t* out, const void* in, uint32_t count) {
     }
 }
 
-// VERIFY: 5667d883 manual
+// VERIFY: 3802cef8 manual
 // OFFSET: 0x006AEBA0
 void CBLPFile::DecompPalARGB4444DitherFloydSteinberg(uint8_t* out, const void* in, uint32_t width, uint32_t height) {
     // STATIC: 0x00C61550
@@ -229,9 +229,9 @@ void CBLPFile::DecompPalARGB4444DitherFloydSteinberg(uint8_t* out, const void* i
             current[x + 1][0] += 7 * errorR;
             current[x + 1][1] += 7 * errorG;
             current[x + 1][2] += 7 * errorB;
-            next[x - 1][0] += 5 * errorR;
-            next[x - 1][1] += 5 * errorG;
-            next[x - 1][2] += 5 * errorB;
+            (next + x)[-1][0] += 5 * errorR;
+            (next + x)[-1][1] += 5 * errorG;
+            (next + x)[-1][2] += 5 * errorB;
             next[x][0] += 3 * errorR;
             next[x][1] += 3 * errorG;
             next[x][2] += 3 * errorB;
@@ -293,7 +293,7 @@ void CBLPFile::DecompPalARGB4444DitherFloydSteinberg(uint8_t* out, const void* i
     }
 }
 
-// VERIFY: 65e1ecfd manual
+// VERIFY: c92f17c6 manual
 // OFFSET: 0x006AEE70
 void CBLPFile::DecompPalARGB1555DitherFloydSteinberg(uint8_t* out, const void* in, uint32_t width, uint32_t height) {
     // STATIC: 0x00C67580
@@ -343,9 +343,9 @@ void CBLPFile::DecompPalARGB1555DitherFloydSteinberg(uint8_t* out, const void* i
             current[x + 1][0] += 7 * errorR;
             current[x + 1][1] += 7 * errorG;
             current[x + 1][2] += 7 * errorB;
-            next[x - 1][0] += 5 * errorR;
-            next[x - 1][1] += 5 * errorG;
-            next[x - 1][2] += 5 * errorB;
+            (next + x)[-1][0] += 5 * errorR;
+            (next + x)[-1][1] += 5 * errorG;
+            (next + x)[-1][2] += 5 * errorB;
             next[x][0] += 3 * errorR;
             next[x][1] += 3 * errorG;
             next[x][2] += 3 * errorB;
@@ -408,7 +408,7 @@ void CBLPFile::DecompPalARGB1555DitherFloydSteinberg(uint8_t* out, const void* i
     }
 }
 
-// VERIFY: af8db2da manual
+// VERIFY: 87e7bd46 manual
 // OFFSET: 0x006AF140
 void CBLPFile::DecompPalARGB565DitherFloydSteinberg(uint8_t* out, const void* in, uint32_t width, uint32_t height) {
     // STATIC: 0x00C6D5B0
@@ -458,9 +458,9 @@ void CBLPFile::DecompPalARGB565DitherFloydSteinberg(uint8_t* out, const void* in
             current[x + 1][0] += 7 * errorR;
             current[x + 1][1] += 7 * errorG;
             current[x + 1][2] += 7 * errorB;
-            next[x - 1][0] += 5 * errorR;
-            next[x - 1][1] += 5 * errorG;
-            next[x - 1][2] += 5 * errorB;
+            (next + x)[-1][0] += 5 * errorR;
+            (next + x)[-1][1] += 5 * errorG;
+            (next + x)[-1][2] += 5 * errorB;
             next[x][0] += 3 * errorR;
             next[x][1] += 3 * errorG;
             next[x][2] += 3 * errorB;
@@ -474,7 +474,7 @@ void CBLPFile::DecompPalARGB565DitherFloydSteinberg(uint8_t* out, const void* in
     }
 }
 
-// VERIFY: f87ef902 manual
+// VERIFY: 696ab781 manual
 // OFFSET: 0x006AF340
 void CBLPFile::DecompPalARGB2565DitherFloydSteinberg(uint8_t* out, const void* in, uint32_t width, uint32_t height) {
     // STATIC: 0x00C735E0
@@ -524,9 +524,9 @@ void CBLPFile::DecompPalARGB2565DitherFloydSteinberg(uint8_t* out, const void* i
             current[x + 1][0] += 7 * errorR;
             current[x + 1][1] += 7 * errorG;
             current[x + 1][2] += 7 * errorB;
-            next[x - 1][0] += 5 * errorR;
-            next[x - 1][1] += 5 * errorG;
-            next[x - 1][2] += 5 * errorB;
+            (next + x)[-1][0] += 5 * errorR;
+            (next + x)[-1][1] += 5 * errorG;
+            (next + x)[-1][2] += 5 * errorB;
             next[x][0] += 3 * errorR;
             next[x][1] += 3 * errorG;
             next[x][2] += 3 * errorB;
