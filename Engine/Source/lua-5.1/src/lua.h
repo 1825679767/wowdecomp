@@ -104,10 +104,30 @@ typedef LUA_INTEGER lua_Integer;
 
 
 
+LUA_API const char *lua_tainted;
+LUA_API int lua_taintexpected;
+LUA_API int lua_taintedclosure;
+LUA_API const char *lua_closuretaint;
+LUA_API const char *lua_gctag;
+
+typedef void (*lua_TaintEventCallback) (lua_State *L, int event, const char *name, const char *taint);
+LUA_API lua_TaintEventCallback lua_tainteventcallback;
+
+LUA_API void (lua_setdecimalconversion) (int convert);
+LUA_API void (lua_convertdecimal) (char *s);
+LUA_API void (lua_settaint) (lua_State *L, int idx, const char *taint);
+LUA_API void (lua_gcupdatesizes) (lua_State *L);
+LUA_API size_t (lua_gcgetsize) (lua_State *L, const char *tag);
+LUA_API void (lua_gcupdatetimes) (lua_State *L);
+LUA_API double (lua_gcgettime) (lua_State *L, const char *tag);
+LUA_API void (lua_gcgetfunctiontime) (lua_State *L, double *time, double *totaltime, int *calls);
+LUA_API void (lua_gcresettimes) (lua_State *L);
+
+
 /*
 ** state manipulation
 */
-LUA_API lua_State *(lua_newstate) (lua_Alloc f, void *ud);
+LUA_API lua_State *(lua_newstate) (lua_Alloc f, void *ud, int profile);
 LUA_API void       (lua_close) (lua_State *L);
 LUA_API lua_State *(lua_newthread) (lua_State *L);
 
@@ -273,7 +293,7 @@ LUA_API void lua_setallocf (lua_State *L, lua_Alloc f, void *ud);
 #define lua_pushliteral(L, s)	\
 	lua_pushlstring(L, "" s, (sizeof(s)/sizeof(char))-1)
 
-#define lua_setglobal(L,s)	lua_setfield(L, LUA_GLOBALSINDEX, (s))
+#define lua_setglobal(L,s)	(lua_pushstring(L, s), lua_insert(L, -2), lua_rawset(L, LUA_GLOBALSINDEX))
 #define lua_getglobal(L,s)	lua_getfield(L, LUA_GLOBALSINDEX, (s))
 
 #define lua_tostring(L,i)	lua_tolstring(L, (i), NULL)

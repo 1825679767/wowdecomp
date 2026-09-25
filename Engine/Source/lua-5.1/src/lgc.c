@@ -22,6 +22,11 @@
 #include "ltable.h"
 #include "ltm.h"
 
+#include "Engine/Source/Os/TimeManager.h"
+
+
+// STATIC: 0x00D413C8
+static double divisor;
 
 #define GCSTEPSIZE	1024u
 #define GCSWEEPMAX	40
@@ -66,6 +71,7 @@ static void removeentry (Node *n) {
 }
 
 
+// VERIFY: c0a6f86e auto
 // OFFSET: 0x0085A7D0
 static void reallymarkobject (global_State *g, GCObject *o) {
   lua_assert(iswhite(o) && !isdead(g, o));
@@ -126,6 +132,7 @@ static void marktmu (global_State *g) {
 
 
 /* move `dead' udata that need finalization to list `tmudata' */
+// VERIFY: fb07e94a manual
 // OFFSET: 0x0085A8B0
 size_t luaC_separateudata (lua_State *L, int all) {
   global_State *g = G(L);
@@ -157,6 +164,7 @@ size_t luaC_separateudata (lua_State *L, int all) {
 }
 
 
+// VERIFY: 8a283b13 manual
 // OFFSET: 0x0085A960
 static int traversetable (global_State *g, Table *h) {
   int i;
@@ -203,6 +211,7 @@ static int traversetable (global_State *g, Table *h) {
 ** All marks are conditional because a GC may happen while the
 ** prototype is still being created
 */
+// VERIFY: 46fdbba6 auto
 // OFFSET: 0x0085AB10
 static void traverseproto (global_State *g, Proto *f) {
   int i;
@@ -225,6 +234,7 @@ static void traverseproto (global_State *g, Proto *f) {
 
 
 
+// VERIFY: e41c76a9 auto
 // OFFSET: 0x0085ABE0
 static void traverseclosure (global_State *g, Closure *cl) {
   markobject(g, cl->c.env);
@@ -258,6 +268,7 @@ static void checkstacksizes (lua_State *L, StkId max) {
 }
 
 
+// VERIFY: 830a44d4 manual
 // OFFSET: 0x0085AC90
 static void traversestack (global_State *g, lua_State *l) {
   StkId o, lim;
@@ -280,6 +291,7 @@ static void traversestack (global_State *g, lua_State *l) {
 ** traverse one gray object, turning it to black.
 ** Returns `quantity' traversed.
 */
+// VERIFY: 575860f1 manual
 // OFFSET: 0x0085AD80
 static l_mem propagatemark (global_State *g) {
   GCObject *o = g->gray;
@@ -355,6 +367,7 @@ static int iscleared (const TValue *o, int iskey) {
 /*
 ** clear collected entries from weaktables
 */
+// VERIFY: 8a6f1806 manual
 // OFFSET: 0x0085AE80
 static void cleartable (GCObject *l) {
   while (l) {
@@ -383,6 +396,7 @@ static void cleartable (GCObject *l) {
 }
 
 
+// VERIFY: 287dad0c manual
 // OFFSET: 0x0085AF90
 static void freeobj (lua_State *L, GCObject *o) {
   switch (o->gch.tt) {
@@ -408,11 +422,104 @@ static void freeobj (lua_State *L, GCObject *o) {
   }
 }
 
+// VERIFY: ca60516c auto
+// OFFSET: 0x0085B030
+static lu_mem sizeobj (GCObject *o) {
+  switch (o->gch.tt) {
+    case LUA_TSTRING:
+      return sizestring(gco2ts(o));
+    case LUA_TTABLE: {
+      Table *h = gco2h(o);
+      return sizeof(Table) + sizeof(TValue) * h->sizearray + sizeof(Node) * sizenode(h);
+    }
+    case LUA_TFUNCTION: {
+      Closure *cl = gco2cl(o);
+      if (cl->c.isC)
+        return sizeCclosure(cl->c.nupvalues);
+      return sizeLclosure(cl->l.nupvalues) + (cl->l.profile ? sizeof(Profile) : 0);
+    }
+    case LUA_TUSERDATA:
+      return sizeudata(gco2u(o));
+    case LUA_TTHREAD: {
+      lua_State *th = gco2th(o);
+      return sizeof(lua_State) + sizeof(TValue) * th->stacksize + sizeof(CallInfo) * th->size_ci;
+    }
+    case LUA_TPROTO: {
+      Proto *p = gco2p(o);
+      return sizeof(Proto) + sizeof(Instruction) * p->sizecode + sizeof(Proto *) * p->sizep +
+             sizeof(TValue) * p->sizek + sizeof(int) * p->sizelineinfo +
+             sizeof(LocVar) * p->sizelocvars + sizeof(TString *) * p->sizeupvalues;
+    }
+    case LUA_TUPVAL:
+      return sizeof(UpVal);
+    default:
+      return 0;
+  }
+}
+
+
+// VERIFY: dd628a7b auto
+// OFFSET: 0x0085B0F0
+static void updatesizes (lua_State *L, GCObject *o) {
+  for (; o; o = o->gch.next) {
+    const char *tag = o->gch.taint;
+    if (tag) {
+      lu_mem size = sizeobj(o);
+      global_State *g = G(L);
+      GCUsage *u;
+      for (u = g->gcusage; u; u = u->next) {
+        if (u->tag == tag)
+          break;
+      }
+      if (u)
+        u->usage += size;
+      else {
+        u = luaM_new(L, GCUsage);
+        u->next = g->gcusage;
+        u->tag = tag;
+        u->usage = size;
+        g->gcusage = u;
+      }
+    }
+  }
+}
+
+
+// VERIFY: 7bbb4677 auto
+// OFFSET: 0x0085B160
+static void addtimetotag (lua_State *L, const char *tag, __int64 time) {
+  global_State *g = G(L);
+  GCTime *t;
+  for (t = g->gctime; t; t = t->next) {
+    if (t->tag == tag) {
+      t->time += time;
+      return;
+    }
+  }
+  t = luaM_new(L, GCTime);
+  t->next = g->gctime;
+  t->tag = tag;
+  t->time = time;
+  g->gctime = t;
+}
+
+
+// VERIFY: 9bce24e3 auto
+// OFFSET: 0x0085B1C0
+static void updatetimes (lua_State *L, GCObject *o) {
+  for (; o; o = o->gch.next) {
+    if (o->gch.taint && o->gch.tt == LUA_TFUNCTION)
+      addtimetotag(L, o->gch.taint, gco2cl(o)->l.profile->time);
+  }
+}
+
+
 
 
 #define sweepwholelist(L,p)	sweeplist(L,p,MAX_LUMEM)
 
 
+// VERIFY: 5e5e0256 manual
 // OFFSET: 0x0085B200
 static GCObject **sweeplist (lua_State *L, GCObject **p, lu_mem count) {
   GCObject *curr;
@@ -438,6 +545,7 @@ static GCObject **sweeplist (lua_State *L, GCObject **p, lu_mem count) {
 }
 
 
+// VERIFY: 153439af auto
 // OFFSET: 0x0085B290
 static void checkSizes (lua_State *L) {
   global_State *g = G(L);
@@ -453,6 +561,7 @@ static void checkSizes (lua_State *L) {
 }
 
 
+// VERIFY: 3785e316 manual
 // OFFSET: 0x0085B300
 static void GCTM (lua_State *L) {
   global_State *g = G(L);
@@ -486,6 +595,7 @@ static void GCTM (lua_State *L) {
 /*
 ** Call all GC tag methods
 */
+// VERIFY: 226cae54 auto
 // OFFSET: 0x0085B410
 void luaC_callGCTM (lua_State *L) {
   while (G(L)->tmudata)
@@ -493,6 +603,7 @@ void luaC_callGCTM (lua_State *L) {
 }
 
 
+// VERIFY: 0fdcdcbf auto
 // OFFSET: 0x0085B440
 void luaC_freeall (lua_State *L) {
   global_State *g = G(L);
@@ -501,9 +612,95 @@ void luaC_freeall (lua_State *L) {
   sweepwholelist(L, &g->rootgc);
   for (i = 0; i < g->strt.size; i++)  /* free all string lists */
     sweepwholelist(L, &g->strt.hash[i]);
+  while (G(L)->gcusage) {
+    GCUsage *u = G(L)->gcusage;
+    G(L)->gcusage = u->next;
+    luaM_free(L, u);
+  }
+  while (G(L)->gctime) {
+    GCTime *t = G(L)->gctime;
+    G(L)->gctime = t->next;
+    luaM_free(L, t);
+  }
+}
+
+// VERIFY: 8f3c5ead auto
+// OFFSET: 0x0085B4E0
+void luaC_sizeall (lua_State *L) {
+  global_State *g = G(L);
+  GCUsage *u;
+  int i;
+  for (u = g->gcusage; u; u = u->next)
+    u->usage = 0;
+  updatesizes(L, g->rootgc);
+  for (i = 0; i < g->strt.size; i++)
+    updatesizes(L, g->strt.hash[i]);
 }
 
 
+// VERIFY: 36d76bcf auto
+// OFFSET: 0x0085B530
+lu_mem luaC_getsize (lua_State *L, const char *tag) {
+  GCUsage *u;
+  for (u = G(L)->gcusage; u; u = u->next) {
+    if (u->tag == tag)
+      return u->usage;
+  }
+  return 0;
+}
+
+
+// VERIFY: 9fa4fdca manual
+// OFFSET: 0x0085B560
+void luaC_timeall (lua_State *L) {
+  global_State *g = G(L);
+  if (g->profile) {
+    GCTime *t;
+    for (t = g->gctime; t; t = t->next)
+      t->time = 0;
+    updatetimes(L, g->rootgc);
+  }
+}
+
+
+// VERIFY: fb2b57ed auto
+// OFFSET: 0x0085B5A0
+double luaC_gettime (lua_State *L, const char *tag) {
+  GCTime *t;
+  for (t = G(L)->gctime; t; t = t->next) {
+    if (t->tag == tag) {
+      if (divisor == 0.0)
+        divisor = 1000.0 / OsGetAsyncClocksPerSecond();
+      return divisor * t->time;
+    }
+  }
+  return 0.0;
+}
+
+
+// VERIFY: aa59cfad manual
+// OFFSET: 0x0085B610
+void luaC_timereset (lua_State *L) {
+  global_State *g = G(L);
+  if (g->profile) {
+    GCTime *t;
+    GCObject *o;
+    for (t = g->gctime; t; t = t->next)
+      t->time = 0;
+    for (o = g->rootgc; o; o = o->gch.next) {
+      if (o->gch.tt == LUA_TFUNCTION) {
+        Profile *p = gco2cl(o)->l.profile;
+        p->time = 0;
+        p->totaltime = 0;
+        p->calls = 0;
+      }
+    }
+  }
+}
+
+
+
+// VERIFY: cdf2fa44 auto
 // OFFSET: 0x0085B660
 static void markmt (global_State *g) {
   int i;
@@ -513,6 +710,7 @@ static void markmt (global_State *g) {
 
 
 /* mark root set */
+// VERIFY: 74d5129b auto
 // OFFSET: 0x0085B6A0
 static void markroot (lua_State *L) {
   global_State *g = G(L);
@@ -528,6 +726,7 @@ static void markroot (lua_State *L) {
 }
 
 
+// VERIFY: c21055d8 auto
 // OFFSET: 0x0085B710
 static void remarkupvals (global_State *g) {
   UpVal *uv;
@@ -539,6 +738,7 @@ static void remarkupvals (global_State *g) {
 }
 
 
+// VERIFY: f77f8002 manual
 // OFFSET: 0x0085B750
 static void atomic (lua_State *L) {
   global_State *g = G(L);
@@ -571,6 +771,7 @@ static void atomic (lua_State *L) {
 }
 
 
+// VERIFY: 93839d13 auto
 // OFFSET: 0x0085B850
 static l_mem singlestep (lua_State *L) {
   global_State *g = G(L);
@@ -626,6 +827,7 @@ static l_mem singlestep (lua_State *L) {
 }
 
 
+// VERIFY: b74879d2 auto
 // OFFSET: 0x0085B950
 void luaC_step (lua_State *L) {
   global_State *g = G(L);
@@ -653,6 +855,7 @@ void luaC_step (lua_State *L) {
 }
 
 
+// VERIFY: c33bfb16 auto
 // OFFSET: 0x0085B9E0
 void luaC_fullgc (lua_State *L) {
   global_State *g = G(L);
@@ -680,6 +883,7 @@ void luaC_fullgc (lua_State *L) {
 }
 
 
+// VERIFY: e4249e4b auto
 // OFFSET: 0x0085BA50
 void luaC_barrierf (lua_State *L, GCObject *o, GCObject *v) {
   global_State *g = G(L);
@@ -694,6 +898,7 @@ void luaC_barrierf (lua_State *L, GCObject *o, GCObject *v) {
 }
 
 
+// VERIFY: 52adbc03 auto
 // OFFSET: 0x0085BA90
 void luaC_barrierback (lua_State *L, Table *t) {
   global_State *g = G(L);
@@ -706,6 +911,7 @@ void luaC_barrierback (lua_State *L, Table *t) {
 }
 
 
+// VERIFY: 9b0e295d auto
 // OFFSET: 0x0085BAB0
 void luaC_link (lua_State *L, GCObject *o, lu_byte tt) {
   global_State *g = G(L);
@@ -713,9 +919,11 @@ void luaC_link (lua_State *L, GCObject *o, lu_byte tt) {
   g->rootgc = o;
   o->gch.marked = luaC_white(g);
   o->gch.tt = tt;
+  o->gch.taint = (lua_tainted && lua_gctag) ? lua_gctag : lua_tainted;
 }
 
 
+// VERIFY: 6cf5c95e auto
 // OFFSET: 0x0085BB00
 void luaC_linkupval (lua_State *L, UpVal *uv) {
   global_State *g = G(L);

@@ -19,12 +19,15 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "Engine/Source/Base/ConvertUTF.h"
+
 
 /* macro to `unsign' a character */
 #define uchar(c)        ((unsigned char)(c))
 
 
 
+// VERIFY: e3174524 auto
 // OFFSET: 0x00852400
 static int str_len (lua_State *L) {
   size_t l;
@@ -40,6 +43,7 @@ static ptrdiff_t posrelat (ptrdiff_t pos, size_t len) {
 }
 
 
+// VERIFY: 6a340463 manual
 // OFFSET: 0x00852430
 static int str_sub (lua_State *L) {
   size_t l;
@@ -55,6 +59,7 @@ static int str_sub (lua_State *L) {
 }
 
 
+// VERIFY: 374d96af manual
 // OFFSET: 0x008524E0
 static int str_reverse (lua_State *L) {
   size_t l;
@@ -67,33 +72,60 @@ static int str_reverse (lua_State *L) {
 }
 
 
+// VERIFY: 3a9f7a03 manual
 // OFFSET: 0x00852580
 static int str_lower (lua_State *L) {
   size_t l;
   size_t i;
+  int n;
   luaL_Buffer b;
   const char *s = luaL_checklstring(L, 1, &l);
   luaL_buffinit(L, &b);
-  for (i=0; i<l; i++)
-    luaL_addchar(&b, tolower(uchar(s[i])));
+  for (i=0; i<l; i+=n) {
+    char buff[8];
+    char *e;
+    char *p;
+    unsigned int c = sgetu8((const unsigned char *)(s+i), &n);
+    if ((c >= 'A' && c <= 'Z') || (c >= 0xC0 && c <= 0xDE) || (c >= 0x410 && c <= 0x42F))
+      c += 32;
+    else if (c == 0x401)
+      c = 0x451;
+    e = sputu8(c, buff);
+    for (p=buff; p<e; p++)
+      luaL_addchar(&b, *p);
+  }
   luaL_pushresult(&b);
   return 1;
 }
 
 
+// VERIFY: 98f0067d manual
 // OFFSET: 0x00852680
 static int str_upper (lua_State *L) {
   size_t l;
   size_t i;
+  int n;
   luaL_Buffer b;
   const char *s = luaL_checklstring(L, 1, &l);
   luaL_buffinit(L, &b);
-  for (i=0; i<l; i++)
-    luaL_addchar(&b, toupper(uchar(s[i])));
+  for (i=0; i<l; i+=n) {
+    char buff[8];
+    char *e;
+    char *p;
+    unsigned int c = sgetu8((const unsigned char *)(s+i), &n);
+    if ((c >= 'a' && c <= 'z') || (c >= 0xE0 && c <= 0xFE) || (c >= 0x430 && c <= 0x44F))
+      c -= 32;
+    else if (c == 0x451)
+      c = 0x401;
+    e = sputu8(c, buff);
+    for (p=buff; p<e; p++)
+      luaL_addchar(&b, *p);
+  }
   luaL_pushresult(&b);
   return 1;
 }
 
+// VERIFY: 25e1b629 auto
 // OFFSET: 0x00852780
 static int str_rep (lua_State *L) {
   size_t l;
@@ -108,6 +140,7 @@ static int str_rep (lua_State *L) {
 }
 
 
+// VERIFY: df336ad7 manual
 // OFFSET: 0x00852800
 static int str_byte (lua_State *L) {
   size_t l;
@@ -128,6 +161,7 @@ static int str_byte (lua_State *L) {
 }
 
 
+// VERIFY: 7f35c383 auto
 // OFFSET: 0x008528D0
 static int str_char (lua_State *L) {
   int n = lua_gettop(L);  /* number of arguments */
@@ -144,6 +178,7 @@ static int str_char (lua_State *L) {
 }
 
 
+// VERIFY: 32bb9f85 auto
 // OFFSET: 0x00852980
 static int writer (lua_State *L, const void* b, size_t size, void* B) {
   (void)L;
@@ -152,6 +187,7 @@ static int writer (lua_State *L, const void* b, size_t size, void* B) {
 }
 
 
+// VERIFY: a5e385b1 auto
 // OFFSET: 0x008529A0
 static int str_dump (lua_State *L) {
   luaL_Buffer b;
@@ -208,6 +244,7 @@ static int capture_to_close (MatchState *ms) {
 }
 
 
+// VERIFY: d5075fa1 manual
 // OFFSET: 0x00852A10
 static const char *classend (MatchState *ms, const char *p) {
   switch (*p++) {
@@ -233,6 +270,7 @@ static const char *classend (MatchState *ms, const char *p) {
 }
 
 
+// VERIFY: 69cf7ea3 auto
 // OFFSET: 0x00852A80
 static int match_class (int c, int cl) {
   int res;
@@ -253,6 +291,7 @@ static int match_class (int c, int cl) {
 }
 
 
+// VERIFY: 0679d656 manual
 // OFFSET: 0x00852B90
 static int matchbracketclass (int c, const char *p, const char *ec) {
   int sig = 1;
@@ -290,6 +329,7 @@ static int singlematch (int c, const char *p, const char *ep) {
 static const char *match (MatchState *ms, const char *s, const char *p);
 
 
+// VERIFY: 878589c3 auto
 // OFFSET: 0x00852C30
 static const char *matchbalance (MatchState *ms, const char *s,
                                    const char *p) {
@@ -311,6 +351,7 @@ static const char *matchbalance (MatchState *ms, const char *s,
 }
 
 
+// VERIFY: 9ad530d8 auto
 // OFFSET: 0x00852CA0
 static const char *max_expand (MatchState *ms, const char *s,
                                  const char *p, const char *ep) {
@@ -327,6 +368,7 @@ static const char *max_expand (MatchState *ms, const char *s,
 }
 
 
+// VERIFY: 3a00659b manual
 // OFFSET: 0x00852D40
 static const char *min_expand (MatchState *ms, const char *s,
                                  const char *p, const char *ep) {
@@ -341,6 +383,7 @@ static const char *min_expand (MatchState *ms, const char *s,
 }
 
 
+// VERIFY: ead0fa13 auto
 // OFFSET: 0x00852DD0
 static const char *start_capture (MatchState *ms, const char *s,
                                     const char *p, int what) {
@@ -356,6 +399,7 @@ static const char *start_capture (MatchState *ms, const char *s,
 }
 
 
+// VERIFY: b7ef1913 manual
 // OFFSET: 0x00852E20
 static const char *end_capture (MatchState *ms, const char *s,
                                   const char *p) {
@@ -368,6 +412,7 @@ static const char *end_capture (MatchState *ms, const char *s,
 }
 
 
+// VERIFY: cfd67672 manual
 // OFFSET: 0x00852E80
 static const char *match_capture (MatchState *ms, const char *s, int l) {
   size_t len;
@@ -380,6 +425,7 @@ static const char *match_capture (MatchState *ms, const char *s, int l) {
 }
 
 
+// VERIFY: 68f5a323 manual
 // OFFSET: 0x00852F60
 static const char *match (MatchState *ms, const char *s, const char *p) {
   init: /* using goto's to optimize tail recursion */
@@ -460,6 +506,7 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
 
 
 
+// VERIFY: 331b52e7 manual
 // OFFSET: 0x00853240
 static const char *lmemfind (const char *s1, size_t l1,
                                const char *s2, size_t l2) {
@@ -483,6 +530,7 @@ static const char *lmemfind (const char *s1, size_t l1,
 }
 
 
+// VERIFY: 798663fb auto
 // OFFSET: 0x00853340
 static void push_onecapture (MatchState *ms, int i, const char *s,
                                                     const char *e) {
@@ -503,6 +551,7 @@ static void push_onecapture (MatchState *ms, int i, const char *s,
 }
 
 
+// VERIFY: c087736e auto
 // OFFSET: 0x008533C0
 static int push_captures (MatchState *ms, const char *s, const char *e) {
   int i;
@@ -514,6 +563,7 @@ static int push_captures (MatchState *ms, const char *s, const char *e) {
 }
 
 
+// VERIFY: e5d2a346 manual
 // OFFSET: 0x00853410
 static int str_find_aux (lua_State *L, int find) {
   size_t l1, l2;
@@ -558,18 +608,21 @@ static int str_find_aux (lua_State *L, int find) {
 }
 
 
+// VERIFY: df27aaa8 auto
 // OFFSET: 0x008535B0
 static int str_find (lua_State *L) {
   return str_find_aux(L, 1);
 }
 
 
+// VERIFY: 298e71b9 auto
 // OFFSET: 0x008535D0
 static int str_match (lua_State *L) {
   return str_find_aux(L, 0);
 }
 
 
+// VERIFY: 4cb5ec54 manual
 // OFFSET: 0x008535F0
 static int gmatch_aux (lua_State *L) {
   MatchState ms;
@@ -597,6 +650,7 @@ static int gmatch_aux (lua_State *L) {
 }
 
 
+// VERIFY: 255ed5a6 auto
 // OFFSET: 0x00853710
 static int gmatch (lua_State *L) {
   luaL_checkstring(L, 1);
@@ -608,6 +662,7 @@ static int gmatch (lua_State *L) {
 }
 
 
+// VERIFY: c1bfcc98 manual
 // OFFSET: 0x00853760
 static int gfind_nodef (lua_State *L) {
   return luaL_error(L, LUA_QL("string.gfind") " was renamed to "
@@ -615,6 +670,7 @@ static int gfind_nodef (lua_State *L) {
 }
 
 
+// VERIFY: e0a39cb8 auto
 // OFFSET: 0x00853780
 static void add_s (MatchState *ms, luaL_Buffer *b, const char *s,
                                                    const char *e) {
@@ -638,6 +694,7 @@ static void add_s (MatchState *ms, luaL_Buffer *b, const char *s,
 }
 
 
+// VERIFY: 134d9a45 auto
 // OFFSET: 0x00853860
 static void add_value (MatchState *ms, luaL_Buffer *b, const char *s,
                                                        const char *e) {
@@ -675,6 +732,7 @@ static void add_value (MatchState *ms, luaL_Buffer *b, const char *s,
 }
 
 
+// VERIFY: 1c17da5f manual
 // OFFSET: 0x00853980
 static int str_gsub (lua_State *L) {
   size_t srcl;
@@ -724,6 +782,7 @@ static int str_gsub (lua_State *L) {
 #define MAX_FORMAT	(sizeof(FLAGS) + sizeof(LUA_INTFRMLEN) + 10)
 
 
+// VERIFY: 8f221840 manual
 // OFFSET: 0x00853AF0
 static void addquoted (lua_State *L, luaL_Buffer *b, int arg) {
   size_t l;
@@ -754,28 +813,6 @@ static void addquoted (lua_State *L, luaL_Buffer *b, int arg) {
   luaL_addchar(b, '"');
 }
 
-static const char *scanformat (lua_State *L, const char *strfrmt, char *form) {
-  const char *p = strfrmt;
-  while (strchr(FLAGS, *p)) p++;  /* skip flags */
-  if ((size_t)(p - strfrmt) >= sizeof(FLAGS))
-    luaL_error(L, "invalid format (repeated flags)");
-  if (isdigit(uchar(*p))) p++;  /* skip width */
-  if (isdigit(uchar(*p))) p++;  /* (2 digits at most) */
-  if (*p == '.') {
-    p++;
-    if (isdigit(uchar(*p))) p++;  /* skip precision */
-    if (isdigit(uchar(*p))) p++;  /* (2 digits at most) */
-  }
-  if (isdigit(uchar(*p)))
-    luaL_error(L, "invalid format (width or precision too long)");
-  *(form++) = '%';
-  strncpy(form, strfrmt, p - strfrmt + 1);
-  form += p - strfrmt + 1;
-  *form = '\0';
-  return p;
-}
-
-
 static void addintlen (char *form) {
   size_t l = strlen(form);
   char spec = form[l - 1];
@@ -785,6 +822,7 @@ static void addintlen (char *form) {
 }
 
 
+// VERIFY: 17947359 manual
 // OFFSET: 0x00853C50
 static int str_format (lua_State *L) {
   int arg = 1;
@@ -801,8 +839,31 @@ static int str_format (lua_State *L) {
     else { /* format item */
       char form[MAX_FORMAT];  /* to store the format (`%...') */
       char buff[MAX_ITEM];  /* to store the formatted item */
+      const char *p = strfrmt;
+      const char *e;
+      MatchState ms;
+      if (isdigit(uchar(*strfrmt))) {
+        if (strfrmt[1] == '$') {
+          arg = *strfrmt - '0';
+          p = strfrmt + 2;
+        }
+        else if (isdigit(uchar(strfrmt[1])) && strfrmt[2] == '$') {
+          arg = (strfrmt[0] - '0') * 10 + (strfrmt[1] - '0');
+          p = strfrmt + 3;
+        }
+      }
       arg++;
-      strfrmt = scanformat(L, strfrmt, form);
+      ms.L = L;
+      ms.src_init = strfrmt;
+      ms.src_end = strfrmt + strlen(strfrmt) + 1;
+      ms.level = 0;
+      e = match(&ms, p, "[-+ #0]*(%d*)%.?(%d*)");
+      if (ms.capture[0].len > 2 || ms.capture[1].len > 2 || (size_t)(e - p) > 16)
+        luaL_error(L, "invalid format (width or precision too long)");
+      form[0] = L_ESC;
+      strncpy(form + 1, p, e - p + 1);
+      form[e - p + 2] = '\0';
+      strfrmt = e;
       switch (*strfrmt++) {
         case 'c': {
           sprintf(buff, form, (int)luaL_checknumber(L, arg));
@@ -823,6 +884,14 @@ static int str_format (lua_State *L) {
           sprintf(buff, form, (double)luaL_checknumber(L, arg));
           break;
         }
+        case 'F': {
+          char *f;
+          for (f = form; *f; f++)
+            if (*f == 'F') *f = 'f';
+          sprintf(buff, form, (double)luaL_checknumber(L, arg));
+          lua_convertdecimal(buff);
+          break;
+        }
         case 'q': {
           addquoted(L, &b, arg);
           continue;  /* skip the 'addsize' at the end */
@@ -830,7 +899,7 @@ static int str_format (lua_State *L) {
         case 's': {
           size_t l;
           const char *s = luaL_checklstring(L, arg, &l);
-          if (!strchr(form, '.') && l >= 100) {
+          if (ms.capture[1].len == 0 && l >= 100) {
             /* no precision and string is too long to be formatted;
                keep original string */
             lua_pushvalue(L, arg);
@@ -843,8 +912,7 @@ static int str_format (lua_State *L) {
           }
         }
         default: {  /* also treat cases `pnLlh' */
-          return luaL_error(L, "invalid option " LUA_QL("%%%c") " to "
-                               LUA_QL("format"), *(strfrmt - 1));
+          return luaL_error(L, "invalid option in `format'");
         }
       }
       luaL_addlstring(&b, buff, strlen(buff));
@@ -875,6 +943,7 @@ static const luaL_Reg strlib[] = {
 };
 
 
+// VERIFY: 94f001c1 auto
 // OFFSET: 0x00854070
 static void createmetatable (lua_State *L) {
   lua_createtable(L, 0, 1);  /* create metatable for strings */
@@ -891,6 +960,7 @@ static void createmetatable (lua_State *L) {
 /*
 ** Open string library
 */
+// VERIFY: 6c58c0c9 auto
 // OFFSET: 0x008540D0
 LUALIB_API int luaopen_string (lua_State *L) {
   luaL_register(L, LUA_STRLIBNAME, strlib);

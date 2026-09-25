@@ -32,6 +32,7 @@ const TValue luaO_nilobject_ = {{NULL}, LUA_TNIL};
 ** (eeeeexxx), where the real value is (1xxx) * 2^(eeeee - 1) if
 ** eeeee != 0 and (xxx) otherwise.
 */
+// VERIFY: 9209c4f8 auto
 // OFFSET: 0x0084D390
 int luaO_int2fb (unsigned int x) {
   int e = 0;  /* expoent */
@@ -45,6 +46,7 @@ int luaO_int2fb (unsigned int x) {
 
 
 /* converts back */
+// VERIFY: 29b4d7b5 auto
 // OFFSET: 0x0084D3D0
 int luaO_fb2int (int x) {
   int e = (x >> 3) & 31;
@@ -53,6 +55,7 @@ int luaO_fb2int (int x) {
 }
 
 
+// VERIFY: a3663083 auto
 // OFFSET: 0x0084D3F0
 int luaO_log2 (unsigned int x) {
   static const lu_byte log_2[256] = {
@@ -72,6 +75,7 @@ int luaO_log2 (unsigned int x) {
 }
 
 
+// VERIFY: 9c0b82bc auto
 // OFFSET: 0x0084D420
 int luaO_rawequalObj (const TValue *t1, const TValue *t2) {
   if (ttype(t1) != ttype(t2)) return 0;
@@ -91,6 +95,7 @@ int luaO_rawequalObj (const TValue *t1, const TValue *t2) {
 }
 
 
+// VERIFY: 3b9b2152 manual
 // OFFSET: 0x0084D480
 int luaO_str2d (const char *s, lua_Number *result) {
   char *endptr;
@@ -106,14 +111,17 @@ int luaO_str2d (const char *s, lua_Number *result) {
 
 
 
+// VERIFY: 7e4542e0 auto
 // OFFSET: 0x0084D520
 static void pushstr (lua_State *L, const char *str) {
+  if (str == NULL) str = "(null)";
   setsvalue2s(L, L->top, luaS_new(L, str));
   incr_top(L);
 }
 
 
 /* this function handles only `%d', `%c', %f, %p, and `%s' formats */
+// VERIFY: 0f78e490 manual
 // OFFSET: 0x0084D580
 const char *luaO_pushvfstring (lua_State *L, const char *fmt, va_list argp) {
   int n = 1;
@@ -176,6 +184,7 @@ const char *luaO_pushvfstring (lua_State *L, const char *fmt, va_list argp) {
 }
 
 
+// VERIFY: 5f15ec17 auto
 // OFFSET: 0x0084D840
 const char *luaO_pushfstring (lua_State *L, const char *fmt, ...) {
   const char *msg;
@@ -187,6 +196,7 @@ const char *luaO_pushfstring (lua_State *L, const char *fmt, ...) {
 }
 
 
+// VERIFY: 0300c26e manual
 // OFFSET: 0x0084D860
 void luaO_chunkid (char *out, const char *source, size_t bufflen) {
   if (*source == '=') {

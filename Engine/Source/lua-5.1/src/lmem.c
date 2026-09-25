@@ -43,6 +43,7 @@
 #define MINSIZEARRAY	4
 
 
+// VERIFY: 3bc1b402 manual
 // OFFSET: 0x0085D740
 void *luaM_growaux_ (lua_State *L, void *block, int *size, size_t size_elems,
                      int limit, const char *errormsg) {
@@ -64,6 +65,8 @@ void *luaM_growaux_ (lua_State *L, void *block, int *size, size_t size_elems,
 }
 
 
+// VERIFY: fcfa9ba9 manual
+// OFFSET: 0x0085D6D0
 void *luaM_toobig (lua_State *L) {
   luaG_runerror(L, "memory allocation error: block too big");
   return NULL;  /* to avoid warnings */
@@ -74,6 +77,7 @@ void *luaM_toobig (lua_State *L) {
 /*
 ** generic allocation routine.
 */
+// VERIFY: 64876ea5 auto
 // OFFSET: 0x0085D6F0
 void *luaM_realloc_ (lua_State *L, void *block, size_t osize, size_t nsize) {
   global_State *g = G(L);

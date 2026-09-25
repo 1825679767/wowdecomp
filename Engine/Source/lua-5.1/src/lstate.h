@@ -65,10 +65,25 @@ typedef struct CallInfo {
 /*
 ** `global state', shared by all threads of this state
 */
+typedef struct GCUsage {
+  const char *tag;
+  lu_mem usage;
+  struct GCUsage *next;
+} GCUsage;
+
+
+typedef struct GCTime {
+  const char *tag;
+  __int64 time;
+  struct GCTime *next;
+} GCTime;
+
+
 typedef struct global_State {
   stringtable strt;  /* hash table for strings */
   lua_Alloc frealloc;  /* function to reallocate memory */
   void *ud;         /* auxiliary data to `frealloc' */
+  lu_byte profile;
   lu_byte currentwhite;
   lu_byte gcstate;  /* state of garbage collector */
   int sweepstrgc;  /* position of sweep in `strt' */
@@ -85,6 +100,8 @@ typedef struct global_State {
   lu_mem gcdept;  /* how much GC is `behind schedule' */
   int gcpause;  /* size of pause between successive GCs */
   int gcstepmul;  /* GC `granularity' */
+  GCUsage *gcusage;
+  GCTime *gctime;
   lua_CFunction panic;  /* to be called in unprotected errors */
   TValue l_registry;
   struct lua_State *mainthread;
@@ -123,6 +140,7 @@ struct lua_State {
   GCObject *gclist;
   struct lua_longjmp *errorJmp;  /* current error recover point */
   ptrdiff_t errfunc;  /* current error handling function (stack index) */
+  int externalabort;
 };
 
 

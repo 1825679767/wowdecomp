@@ -29,6 +29,33 @@
 #include "lundump.h"
 #include "lvm.h"
 
+#include "Engine/Source/Os/TimeManager.h"
+
+
+
+// STATIC: 0x00D4139C
+const char *lua_tainted;
+
+// STATIC: 0x00D413A0
+int lua_taintexpected;
+
+// STATIC: 0x00D413A4
+int lua_taintedclosure;
+
+// STATIC: 0x00D413A8
+const char *lua_closuretaint;
+
+// STATIC: 0x00D413AC
+const char *lua_gctag;
+
+// STATIC: 0x00D413B0
+lua_TaintEventCallback lua_tainteventcallback;
+
+// STATIC: 0x00D413B8
+static int lua_decimalconvert;
+
+// STATIC: 0x00D413C0
+static double divisor;
 
 
 const char lua_ident[] =
@@ -46,6 +73,7 @@ const char lua_ident[] =
 
 
 
+// VERIFY: 1dd43771 auto
 // OFFSET: 0x0084D9C0
 static TValue *index2adr (lua_State *L, int idx) {
   if (idx > 0) {
@@ -87,6 +115,7 @@ static Table *getcurrenv (lua_State *L) {
 }
 
 
+// VERIFY: d17915ee auto
 // OFFSET: 0x0084DA50
 void luaA_pushobject (lua_State *L, const TValue *o) {
   setobj2s(L, L->top, o);
@@ -94,6 +123,7 @@ void luaA_pushobject (lua_State *L, const TValue *o) {
 }
 
 
+// VERIFY: bd829ab2 auto
 // OFFSET: 0x0084DAB0
 LUA_API int lua_checkstack (lua_State *L, int size) {
   int res;
@@ -111,6 +141,7 @@ LUA_API int lua_checkstack (lua_State *L, int size) {
 }
 
 
+// VERIFY: a69e2f34 auto
 // OFFSET: 0x0084DB10
 LUA_API void lua_xmove (lua_State *from, lua_State *to, int n) {
   int i;
@@ -137,6 +168,7 @@ LUA_API lua_CFunction lua_atpanic (lua_State *L, lua_CFunction panicf) {
 }
 
 
+// VERIFY: 8788f0a2 auto
 // OFFSET: 0x0084DB90
 LUA_API lua_State *lua_newthread (lua_State *L) {
   lua_State *L1;
@@ -157,12 +189,14 @@ LUA_API lua_State *lua_newthread (lua_State *L) {
 */
 
 
+// VERIFY: 32643dea auto
 // OFFSET: 0x0084DBD0
 LUA_API int lua_gettop (lua_State *L) {
   return cast_int(L->top - L->base);
 }
 
 
+// VERIFY: 1e7a16af manual
 // OFFSET: 0x0084DBF0
 LUA_API void lua_settop (lua_State *L, int idx) {
   lua_lock(L);
@@ -180,6 +214,7 @@ LUA_API void lua_settop (lua_State *L, int idx) {
 }
 
 
+// VERIFY: 06656fc6 manual
 // OFFSET: 0x0084DC50
 LUA_API void lua_remove (lua_State *L, int idx) {
   StkId p;
@@ -192,6 +227,7 @@ LUA_API void lua_remove (lua_State *L, int idx) {
 }
 
 
+// VERIFY: 2be38194 manual
 // OFFSET: 0x0084DCC0
 LUA_API void lua_insert (lua_State *L, int idx) {
   StkId p;
@@ -205,6 +241,7 @@ LUA_API void lua_insert (lua_State *L, int idx) {
 }
 
 
+// VERIFY: 714e46d6 manual
 // OFFSET: 0x0084DD70
 LUA_API void lua_replace (lua_State *L, int idx) {
   StkId o;
@@ -231,6 +268,7 @@ LUA_API void lua_replace (lua_State *L, int idx) {
 }
 
 
+// VERIFY: aa5e9297 auto
 // OFFSET: 0x0084DE50
 LUA_API void lua_pushvalue (lua_State *L, int idx) {
   lua_lock(L);
@@ -246,6 +284,7 @@ LUA_API void lua_pushvalue (lua_State *L, int idx) {
 */
 
 
+// VERIFY: 68a46d83 auto
 // OFFSET: 0x0084DEB0
 LUA_API int lua_type (lua_State *L, int idx) {
   StkId o = index2adr(L, idx);
@@ -253,6 +292,7 @@ LUA_API int lua_type (lua_State *L, int idx) {
 }
 
 
+// VERIFY: 8d49994f auto
 // OFFSET: 0x0084DED0
 LUA_API const char *lua_typename (lua_State *L, int t) {
   UNUSED(L);
@@ -260,6 +300,7 @@ LUA_API const char *lua_typename (lua_State *L, int t) {
 }
 
 
+// VERIFY: 286449f1 auto
 // OFFSET: 0x0084DEF0
 LUA_API int lua_iscfunction (lua_State *L, int idx) {
   StkId o = index2adr(L, idx);
@@ -267,6 +308,7 @@ LUA_API int lua_iscfunction (lua_State *L, int idx) {
 }
 
 
+// VERIFY: eaa88f68 auto
 // OFFSET: 0x0084DF20
 LUA_API int lua_isnumber (lua_State *L, int idx) {
   TValue n;
@@ -275,6 +317,7 @@ LUA_API int lua_isnumber (lua_State *L, int idx) {
 }
 
 
+// VERIFY: 029b8d17 auto
 // OFFSET: 0x0084DF60
 LUA_API int lua_isstring (lua_State *L, int idx) {
   int t = lua_type(L, idx);
@@ -288,6 +331,7 @@ LUA_API int lua_isuserdata (lua_State *L, int idx) {
 }
 
 
+// VERIFY: 0d65ac16 auto
 // OFFSET: 0x0084DF90
 LUA_API int lua_rawequal (lua_State *L, int index1, int index2) {
   StkId o1 = index2adr(L, index1);
@@ -297,7 +341,6 @@ LUA_API int lua_rawequal (lua_State *L, int index1, int index2) {
 }
 
 
-// OFFSET: 0x0084DFE0
 LUA_API int lua_equal (lua_State *L, int index1, int index2) {
   StkId o1, o2;
   int i;
@@ -310,6 +353,8 @@ LUA_API int lua_equal (lua_State *L, int index1, int index2) {
 }
 
 
+// VERIFY: 3bbf3971 auto
+// OFFSET: 0x0084DFE0
 LUA_API int lua_lessthan (lua_State *L, int index1, int index2) {
   StkId o1, o2;
   int i;
@@ -324,6 +369,7 @@ LUA_API int lua_lessthan (lua_State *L, int index1, int index2) {
 
 
 
+// VERIFY: 286b3139 auto
 // OFFSET: 0x0084E030
 LUA_API lua_Number lua_tonumber (lua_State *L, int idx) {
   TValue n;
@@ -335,6 +381,7 @@ LUA_API lua_Number lua_tonumber (lua_State *L, int idx) {
 }
 
 
+// VERIFY: db96ea7b auto
 // OFFSET: 0x0084E070
 LUA_API lua_Integer lua_tointeger (lua_State *L, int idx) {
   TValue n;
@@ -350,6 +397,7 @@ LUA_API lua_Integer lua_tointeger (lua_State *L, int idx) {
 }
 
 
+// VERIFY: 3fdfc853 auto
 // OFFSET: 0x0084E0B0
 LUA_API int lua_toboolean (lua_State *L, int idx) {
   const TValue *o = index2adr(L, idx);
@@ -357,6 +405,7 @@ LUA_API int lua_toboolean (lua_State *L, int idx) {
 }
 
 
+// VERIFY: b35c5c22 auto
 // OFFSET: 0x0084E0E0
 LUA_API const char *lua_tolstring (lua_State *L, int idx, size_t *len) {
   StkId o = index2adr(L, idx);
@@ -376,6 +425,7 @@ LUA_API const char *lua_tolstring (lua_State *L, int idx, size_t *len) {
 }
 
 
+// VERIFY: d5420752 auto
 // OFFSET: 0x0084E150
 LUA_API size_t lua_objlen (lua_State *L, int idx) {
   StkId o = index2adr(L, idx);
@@ -401,6 +451,7 @@ LUA_API lua_CFunction lua_tocfunction (lua_State *L, int idx) {
 }
 
 
+// VERIFY: a1507ea5 auto
 // OFFSET: 0x0084E1C0
 LUA_API void *lua_touserdata (lua_State *L, int idx) {
   StkId o = index2adr(L, idx);
@@ -412,6 +463,7 @@ LUA_API void *lua_touserdata (lua_State *L, int idx) {
 }
 
 
+// VERIFY: 9c47046f auto
 // OFFSET: 0x0084E1F0
 LUA_API lua_State *lua_tothread (lua_State *L, int idx) {
   StkId o = index2adr(L, idx);
@@ -419,6 +471,7 @@ LUA_API lua_State *lua_tothread (lua_State *L, int idx) {
 }
 
 
+// VERIFY: 01b101f3 auto
 // OFFSET: 0x0084E210
 LUA_API const void *lua_topointer (lua_State *L, int idx) {
   StkId o = index2adr(L, idx);
@@ -440,6 +493,7 @@ LUA_API const void *lua_topointer (lua_State *L, int idx) {
 */
 
 
+// VERIFY: 2b02b23c auto
 // OFFSET: 0x0084E280
 LUA_API void lua_pushnil (lua_State *L) {
   lua_lock(L);
@@ -449,6 +503,7 @@ LUA_API void lua_pushnil (lua_State *L) {
 }
 
 
+// VERIFY: 2ed64d07 auto
 // OFFSET: 0x0084E2A0
 LUA_API void lua_pushnumber (lua_State *L, lua_Number n) {
   lua_lock(L);
@@ -458,6 +513,7 @@ LUA_API void lua_pushnumber (lua_State *L, lua_Number n) {
 }
 
 
+// VERIFY: 8d42aac7 auto
 // OFFSET: 0x0084E2D0
 LUA_API void lua_pushinteger (lua_State *L, lua_Integer n) {
   lua_lock(L);
@@ -467,6 +523,7 @@ LUA_API void lua_pushinteger (lua_State *L, lua_Integer n) {
 }
 
 
+// VERIFY: bc8f5431 auto
 // OFFSET: 0x0084E300
 LUA_API void lua_pushlstring (lua_State *L, const char *s, size_t len) {
   lua_lock(L);
@@ -477,6 +534,7 @@ LUA_API void lua_pushlstring (lua_State *L, const char *s, size_t len) {
 }
 
 
+// VERIFY: a749f6bf manual
 // OFFSET: 0x0084E350
 LUA_API void lua_pushstring (lua_State *L, const char *s) {
   if (s == NULL)
@@ -486,6 +544,7 @@ LUA_API void lua_pushstring (lua_State *L, const char *s) {
 }
 
 
+// VERIFY: b5aefec9 auto
 // OFFSET: 0x0084E3A0
 LUA_API const char *lua_pushvfstring (lua_State *L, const char *fmt,
                                       va_list argp) {
@@ -498,6 +557,7 @@ LUA_API const char *lua_pushvfstring (lua_State *L, const char *fmt,
 }
 
 
+// VERIFY: 93b40940 auto
 // OFFSET: 0x0084E3D0
 LUA_API const char *lua_pushfstring (lua_State *L, const char *fmt, ...) {
   const char *ret;
@@ -512,6 +572,7 @@ LUA_API const char *lua_pushfstring (lua_State *L, const char *fmt, ...) {
 }
 
 
+// VERIFY: acb69a7d manual
 // OFFSET: 0x0084E400
 LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
   Closure *cl;
@@ -530,6 +591,7 @@ LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
 }
 
 
+// VERIFY: 4ea5d166 auto
 // OFFSET: 0x0084E4D0
 LUA_API void lua_pushboolean (lua_State *L, int b) {
   lua_lock(L);
@@ -539,6 +601,7 @@ LUA_API void lua_pushboolean (lua_State *L, int b) {
 }
 
 
+// VERIFY: 8614060b auto
 // OFFSET: 0x0084E500
 LUA_API void lua_pushlightuserdata (lua_State *L, void *p) {
   lua_lock(L);
@@ -548,6 +611,7 @@ LUA_API void lua_pushlightuserdata (lua_State *L, void *p) {
 }
 
 
+// VERIFY: 30d1f5e9 auto
 // OFFSET: 0x0084E530
 LUA_API int lua_pushthread (lua_State *L) {
   lua_lock(L);
@@ -564,6 +628,7 @@ LUA_API int lua_pushthread (lua_State *L) {
 */
 
 
+// VERIFY: 89cab4ee auto
 // OFFSET: 0x0084E560
 LUA_API void lua_gettable (lua_State *L, int idx) {
   StkId t;
@@ -575,6 +640,7 @@ LUA_API void lua_gettable (lua_State *L, int idx) {
 }
 
 
+// VERIFY: e08b04e7 auto
 // OFFSET: 0x0084E590
 LUA_API void lua_getfield (lua_State *L, int idx, const char *k) {
   StkId t;
@@ -589,6 +655,7 @@ LUA_API void lua_getfield (lua_State *L, int idx, const char *k) {
 }
 
 
+// VERIFY: e439afa2 manual
 // OFFSET: 0x0084E600
 LUA_API void lua_rawget (lua_State *L, int idx) {
   StkId t;
@@ -600,6 +667,7 @@ LUA_API void lua_rawget (lua_State *L, int idx) {
 }
 
 
+// VERIFY: 14f1bd9e auto
 // OFFSET: 0x0084E670
 LUA_API void lua_rawgeti (lua_State *L, int idx, int n) {
   StkId o;
@@ -612,6 +680,7 @@ LUA_API void lua_rawgeti (lua_State *L, int idx, int n) {
 }
 
 
+// VERIFY: 05a10d3c auto
 // OFFSET: 0x0084E6E0
 LUA_API void lua_createtable (lua_State *L, int narray, int nrec) {
   lua_lock(L);
@@ -622,6 +691,7 @@ LUA_API void lua_createtable (lua_State *L, int narray, int nrec) {
 }
 
 
+// VERIFY: 7f534bb7 auto
 // OFFSET: 0x0084E730
 LUA_API int lua_getmetatable (lua_State *L, int objindex) {
   const TValue *obj;
@@ -652,6 +722,7 @@ LUA_API int lua_getmetatable (lua_State *L, int objindex) {
 }
 
 
+// VERIFY: cf0dffc5 manual
 // OFFSET: 0x0084E7A0
 LUA_API void lua_getfenv (lua_State *L, int idx) {
   StkId o;
@@ -660,7 +731,17 @@ LUA_API void lua_getfenv (lua_State *L, int idx) {
   api_checkvalidindex(L, o);
   switch (ttype(o)) {
     case LUA_TFUNCTION:
-      sethvalue(L, L->top, clvalue(o)->c.env);
+      if (clvalue(o)->c.isC) {
+        sethvalue(L, L->top, clvalue(o)->c.env);
+      }
+      else {
+        const char *oldtaint = lua_tainted;
+        if (clvalue(o)->l.taint && lua_taintexpected && !lua_taintedclosure)
+          lua_tainted = clvalue(o)->l.taint;
+        sethvalue(L, L->top, clvalue(o)->l.env);
+        if (lua_taintexpected && !lua_taintedclosure)
+          lua_tainted = oldtaint;
+      }
       break;
     case LUA_TUSERDATA:
       sethvalue(L, L->top, uvalue(o)->env);
@@ -682,6 +763,7 @@ LUA_API void lua_getfenv (lua_State *L, int idx) {
 */
 
 
+// VERIFY: 8fce564e auto
 // OFFSET: 0x0084E8D0
 LUA_API void lua_settable (lua_State *L, int idx) {
   StkId t;
@@ -695,6 +777,7 @@ LUA_API void lua_settable (lua_State *L, int idx) {
 }
 
 
+// VERIFY: f9e6cb9a auto
 // OFFSET: 0x0084E900
 LUA_API void lua_setfield (lua_State *L, int idx, const char *k) {
   StkId t;
@@ -710,6 +793,7 @@ LUA_API void lua_setfield (lua_State *L, int idx, const char *k) {
 }
 
 
+// VERIFY: 7caa96c6 auto
 // OFFSET: 0x0084E970
 LUA_API void lua_rawset (lua_State *L, int idx) {
   StkId t;
@@ -724,6 +808,7 @@ LUA_API void lua_rawset (lua_State *L, int idx) {
 }
 
 
+// VERIFY: f0d23e03 manual
 // OFFSET: 0x0084EA00
 LUA_API void lua_rawseti (lua_State *L, int idx, int n) {
   StkId o;
@@ -738,6 +823,7 @@ LUA_API void lua_rawseti (lua_State *L, int idx, int n) {
 }
 
 
+// VERIFY: 7367d60f auto
 // OFFSET: 0x0084EA90
 LUA_API int lua_setmetatable (lua_State *L, int objindex) {
   TValue *obj;
@@ -776,6 +862,7 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
 }
 
 
+// VERIFY: 1fed53c2 manual
 // OFFSET: 0x0084EB40
 LUA_API int lua_setfenv (lua_State *L, int idx) {
   StkId o;
@@ -788,6 +875,8 @@ LUA_API int lua_setfenv (lua_State *L, int idx) {
   switch (ttype(o)) {
     case LUA_TFUNCTION:
       clvalue(o)->c.env = hvalue(L->top - 1);
+      if (ttisfunction(o) && !clvalue(o)->c.isC && !clvalue(o)->l.taint)
+        clvalue(o)->l.taint = lua_tainted;
       break;
     case LUA_TUSERDATA:
       uvalue(o)->env = hvalue(L->top - 1);
@@ -819,6 +908,7 @@ LUA_API int lua_setfenv (lua_State *L, int idx) {
      api_check(L, (nr) == LUA_MULTRET || (L->ci->top - L->top >= (nr) - (na)))
 	
 
+// VERIFY: 6e4f76d9 auto
 // OFFSET: 0x0084EBF0
 LUA_API void lua_call (lua_State *L, int nargs, int nresults) {
   StkId func;
@@ -842,6 +932,7 @@ struct CallS {  /* data to `f_call' */
 };
 
 
+// VERIFY: b72ccd0c auto
 // OFFSET: 0x0084EC30
 static void f_call (lua_State *L, void *ud) {
   struct CallS *c = cast(struct CallS *, ud);
@@ -850,6 +941,7 @@ static void f_call (lua_State *L, void *ud) {
 
 
 
+// VERIFY: 22bbabd1 auto
 // OFFSET: 0x0084EC50
 LUA_API int lua_pcall (lua_State *L, int nargs, int nresults, int errfunc) {
   struct CallS c;
@@ -908,6 +1000,7 @@ LUA_API int lua_cpcall (lua_State *L, lua_CFunction func, void *ud) {
 }
 
 
+// VERIFY: 7d58b942 auto
 // OFFSET: 0x0084ECC0
 LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,
                       const char *chunkname) {
@@ -922,6 +1015,7 @@ LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,
 }
 
 
+// VERIFY: fb196121 manual
 // OFFSET: 0x0084ED00
 LUA_API int lua_dump (lua_State *L, lua_Writer writer, void *data) {
   int status;
@@ -938,6 +1032,7 @@ LUA_API int lua_dump (lua_State *L, lua_Writer writer, void *data) {
 }
 
 
+// VERIFY: 679cc239 auto
 // OFFSET: 0x0084ED40
 LUA_API int  lua_status (lua_State *L) {
   return L->status;
@@ -948,6 +1043,7 @@ LUA_API int  lua_status (lua_State *L) {
 ** Garbage-collection function
 */
 
+// VERIFY: 96f61d18 auto
 // OFFSET: 0x0084ED50
 LUA_API int lua_gc (lua_State *L, int what, int data) {
   int res = 0;
@@ -1004,6 +1100,61 @@ LUA_API int lua_gc (lua_State *L, int what, int data) {
   return res;
 }
 
+// VERIFY: 3455df8e auto
+// OFFSET: 0x0084EE50
+LUA_API void lua_gcupdatesizes (lua_State *L) {
+  luaC_sizeall(L);
+}
+
+
+// VERIFY: ebf06783 auto
+// OFFSET: 0x0084EE60
+LUA_API lu_mem lua_gcgetsize (lua_State *L, const char *tag) {
+  return luaC_getsize(L, tag);
+}
+
+
+// VERIFY: cfe5c0a3 auto
+// OFFSET: 0x0084EE70
+LUA_API void lua_gcupdatetimes (lua_State *L) {
+  luaC_timeall(L);
+}
+
+
+// VERIFY: 539a8d2d auto
+// OFFSET: 0x0084EE80
+LUA_API double lua_gcgettime (lua_State *L, const char *tag) {
+  return luaC_gettime(L, tag);
+}
+
+
+// VERIFY: d06fe92f manual
+// OFFSET: 0x0084EE90
+LUA_API void lua_gcgetfunctiontime (lua_State *L, double *time, double *totaltime, int *calls) {
+  TValue *o = L->top - 1;
+  if (G(L)->profile && ttisfunction(o)) {
+    Profile *p = clvalue(o)->l.profile;
+    if (divisor == 0.0)
+      divisor = 1000.0 / OsGetAsyncClocksPerSecond();
+    *time = p->time * divisor;
+    *totaltime = divisor * p->totaltime;
+    *calls = p->calls;
+  }
+  else {
+    *time = 0.0;
+    *totaltime = 0.0;
+    *calls = 0;
+  }
+}
+
+
+// VERIFY: 2cfb52a7 auto
+// OFFSET: 0x0084EF20
+LUA_API void lua_gcresettimes (lua_State *L) {
+  luaC_timereset(L);
+}
+
+
 
 
 /*
@@ -1011,6 +1162,7 @@ LUA_API int lua_gc (lua_State *L, int what, int data) {
 */
 
 
+// VERIFY: 2d6ea67c manual
 // OFFSET: 0x0084EF30
 LUA_API int lua_error (lua_State *L) {
   lua_lock(L);
@@ -1021,6 +1173,7 @@ LUA_API int lua_error (lua_State *L) {
 }
 
 
+// VERIFY: 94e6d464 manual
 // OFFSET: 0x0084EF50
 LUA_API int lua_next (lua_State *L, int idx) {
   StkId t;
@@ -1039,6 +1192,7 @@ LUA_API int lua_next (lua_State *L, int idx) {
 }
 
 
+// VERIFY: 2398dde4 auto
 // OFFSET: 0x0084EF90
 LUA_API void lua_concat (lua_State *L, int n) {
   lua_lock(L);
@@ -1055,6 +1209,45 @@ LUA_API void lua_concat (lua_State *L, int n) {
   /* else n == 1; nothing to do */
   lua_unlock(L);
 }
+
+// VERIFY: 409b28d7 auto
+// OFFSET: 0x0084F010
+LUA_API void lua_setdecimalconversion (int convert) {
+  lua_decimalconvert = (convert != 0);
+}
+
+
+// VERIFY: 4e57f306 manual
+// OFFSET: 0x0084F030
+LUA_API void lua_convertdecimal (char *s) {
+  if (lua_decimalconvert) {
+    char *end = s + strlen(s);
+    while (*s && s < end) {
+      if (*s >= '0' && *s <= '9') {
+        while ((*s >= '0' && *s <= '9') || *s == '.' || *s == ',') {
+          if (*s == ',') {
+            if (s[1] >= '0' && s[1] <= '9')
+              *s = '.';
+          }
+          else if (*s == '.') {
+            if (s[1] >= '0' && s[1] <= '9')
+              *s = ',';
+          }
+          s++;
+        }
+      }
+      s++;
+    }
+  }
+}
+
+
+// VERIFY: b97c4645 auto
+// OFFSET: 0x0084F0D0
+LUA_API void lua_settaint (lua_State *L, int idx, const char *taint) {
+  index2adr(L, idx)->taint = taint;
+}
+
 
 
 LUA_API lua_Alloc lua_getallocf (lua_State *L, void **ud) {
@@ -1075,6 +1268,7 @@ LUA_API void lua_setallocf (lua_State *L, lua_Alloc f, void *ud) {
 }
 
 
+// VERIFY: e0042c5e auto
 // OFFSET: 0x0084F0F0
 LUA_API void *lua_newuserdata (lua_State *L, size_t size) {
   Udata *u;
@@ -1108,6 +1302,7 @@ static const char *aux_upvalue (StkId fi, int n, TValue **val) {
 }
 
 
+// VERIFY: 4d682a7e manual
 // OFFSET: 0x0084F150
 LUA_API const char *lua_getupvalue (lua_State *L, int funcindex, int n) {
   const char *name;

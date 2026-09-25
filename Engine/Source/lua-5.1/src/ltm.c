@@ -27,6 +27,7 @@ const char *const luaT_typenames[] = {
 };
 
 
+// VERIFY: 906a05c7 auto
 // OFFSET: 0x0085BB70
 void luaT_init (lua_State *L) {
   static const char *const luaT_eventname[] = {  /* ORDER TM */
@@ -48,6 +49,7 @@ void luaT_init (lua_State *L) {
 ** function to be used with macro "fasttm": optimized for absence of
 ** tag methods
 */
+// VERIFY: 78511cd5 auto
 // OFFSET: 0x0085BBE0
 const TValue *luaT_gettm (Table *events, TMS event, TString *ename) {
   const TValue *tm = luaH_getstr(events, ename);
@@ -60,6 +62,7 @@ const TValue *luaT_gettm (Table *events, TMS event, TString *ename) {
 }
 
 
+// VERIFY: c9dbc6d4 auto
 // OFFSET: 0x0085BC10
 const TValue *luaT_gettmbyobj (lua_State *L, const TValue *o, TMS event) {
   Table *mt;

@@ -19,6 +19,7 @@
 
 
 
+// VERIFY: d46cd6e1 manual
 // OFFSET: 0x00856AF0
 void luaS_resize (lua_State *L, int newsize) {
   GCObject **newhash;
@@ -48,6 +49,7 @@ void luaS_resize (lua_State *L, int newsize) {
 }
 
 
+// VERIFY: 5d05abd3 auto
 // OFFSET: 0x00856BC0
 static TString *newlstr (lua_State *L, const char *str, size_t l,
                                        unsigned int h) {
@@ -60,6 +62,7 @@ static TString *newlstr (lua_State *L, const char *str, size_t l,
   ts->tsv.hash = h;
   ts->tsv.marked = luaC_white(G(L));
   ts->tsv.tt = LUA_TSTRING;
+  ts->tsv.taint = (lua_tainted && lua_gctag) ? lua_gctag : lua_tainted;
   ts->tsv.reserved = 0;
   memcpy(ts+1, str, l*sizeof(char));
   ((char *)(ts+1))[l] = '\0';  /* ending 0 */
@@ -74,6 +77,7 @@ static TString *newlstr (lua_State *L, const char *str, size_t l,
 }
 
 
+// VERIFY: d0824852 manual
 // OFFSET: 0x00856C80
 TString *luaS_newlstr (lua_State *L, const char *str, size_t l) {
   GCObject *o;
@@ -96,6 +100,7 @@ TString *luaS_newlstr (lua_State *L, const char *str, size_t l) {
 }
 
 
+// VERIFY: 9451fe49 auto
 // OFFSET: 0x00856DD0
 Udata *luaS_newudata (lua_State *L, size_t s, Table *e) {
   Udata *u;
@@ -104,6 +109,7 @@ Udata *luaS_newudata (lua_State *L, size_t s, Table *e) {
   u = cast(Udata *, luaM_malloc(L, s + sizeof(Udata)));
   u->uv.marked = luaC_white(G(L));  /* is not finalized */
   u->uv.tt = LUA_TUSERDATA;
+  u->uv.taint = (lua_tainted && lua_gctag) ? lua_gctag : lua_tainted;
   u->uv.len = s;
   u->uv.metatable = NULL;
   u->uv.env = e;

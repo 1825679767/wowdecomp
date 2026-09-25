@@ -81,6 +81,7 @@ static const Node dummynode_ = {
 /*
 ** hash for lua_Numbers
 */
+// VERIFY: 494a25a9 auto
 // OFFSET: 0x0085BC70
 static Node *hashnum (const Table *t, lua_Number n) {
   unsigned int a[numints];
@@ -98,6 +99,7 @@ static Node *hashnum (const Table *t, lua_Number n) {
 ** returns the `main' position of an element in a table (that is, the index
 ** of its hash value)
 */
+// VERIFY: 94126f53 auto
 // OFFSET: 0x0085BCB0
 static Node *mainposition (const Table *t, const TValue *key) {
   switch (ttype(key)) {
@@ -136,6 +138,7 @@ static int arrayindex (const TValue *key) {
 ** elements in the array part, then elements in the hash part. The
 ** beginning of a traversal is signalled by -1.
 */
+// VERIFY: 83083ac7 manual
 // OFFSET: 0x0085BD70
 static int findindex (lua_State *L, Table *t, StkId key) {
   int i;
@@ -162,6 +165,7 @@ static int findindex (lua_State *L, Table *t, StkId key) {
 }
 
 
+// VERIFY: b364618e auto
 // OFFSET: 0x0085BE30
 int luaH_next (lua_State *L, Table *t, StkId key) {
   int i = findindex(L, t, key);  /* find original element */
@@ -190,6 +194,7 @@ int luaH_next (lua_State *L, Table *t, StkId key) {
 */
 
 
+// VERIFY: 0b4dfe9e manual
 // OFFSET: 0x0085BFD0
 static int computesizes (int nums[], int *narray) {
   int i;
@@ -224,6 +229,7 @@ static int countint (const TValue *key, int *nums) {
 }
 
 
+// VERIFY: 446ee671 manual
 // OFFSET: 0x0085C050
 static int numusearray (const Table *t, int *nums) {
   int lg;
@@ -250,6 +256,7 @@ static int numusearray (const Table *t, int *nums) {
 }
 
 
+// VERIFY: 7ceef321 manual
 // OFFSET: 0x0085C0D0
 static int numusehash (const Table *t, int *nums, int *pnasize) {
   int totaluse = 0;  /* total number of elements */
@@ -267,6 +274,7 @@ static int numusehash (const Table *t, int *nums, int *pnasize) {
 }
 
 
+// VERIFY: 7df452d2 manual
 // OFFSET: 0x0085C190
 static void setarrayvector (lua_State *L, Table *t, int size) {
   int i;
@@ -277,6 +285,7 @@ static void setarrayvector (lua_State *L, Table *t, int size) {
 }
 
 
+// VERIFY: 60f7338e manual
 // OFFSET: 0x0085C200
 static void setnodevector (lua_State *L, Table *t, int size) {
   int lsize;
@@ -294,7 +303,7 @@ static void setnodevector (lua_State *L, Table *t, int size) {
     for (i=0; i<size; i++) {
       Node *n = gnode(t, i);
       gnext(n) = NULL;
-      setnilvalue(gkey(n));
+      setnilvalue(key2tval(n));
       setnilvalue(gval(n));
     }
   }
@@ -303,12 +312,17 @@ static void setnodevector (lua_State *L, Table *t, int size) {
 }
 
 
+// VERIFY: 3bc59fc2 manual
 // OFFSET: 0x0085C6F0
 static void resize (lua_State *L, Table *t, int nasize, int nhsize) {
   int i;
   int oldasize = t->sizearray;
   int oldhsize = t->lsizenode;
   Node *nold = t->node;  /* save old hash ... */
+  int oldexpected = lua_taintexpected;
+  const char *oldtaint = lua_tainted;
+  lua_taintexpected = 0;
+  lua_tainted = NULL;
   if (nasize > oldasize)  /* array part must grow? */
     setarrayvector(L, t, nasize);
   /* create new hash part with appropriate size */
@@ -331,9 +345,12 @@ static void resize (lua_State *L, Table *t, int nasize, int nhsize) {
   }
   if (nold != dummynode)
     luaM_freearray(L, nold, twoto(oldhsize), Node);  /* free old array */
+  lua_tainted = oldtaint;
+  lua_taintexpected = oldexpected;
 }
 
 
+// VERIFY: d3ad83eb manual
 // OFFSET: 0x0085C960
 void luaH_resizearray (lua_State *L, Table *t, int nasize) {
   int nsize = (t->node == dummynode) ? 0 : sizenode(t);
@@ -341,6 +358,7 @@ void luaH_resizearray (lua_State *L, Table *t, int nasize) {
 }
 
 
+// VERIFY: 8ba09363 manual
 // OFFSET: 0x0085C9B0
 static void rehash (lua_State *L, Table *t, const TValue *ek) {
   int nasize, na;
@@ -367,6 +385,7 @@ static void rehash (lua_State *L, Table *t, const TValue *ek) {
 */
 
 
+// VERIFY: 5980269e manual
 // OFFSET: 0x0085C2E0
 Table *luaH_new (lua_State *L, int narray, int nhash) {
   Table *t = luaM_new(L, Table);
@@ -384,6 +403,7 @@ Table *luaH_new (lua_State *L, int narray, int nhash) {
 }
 
 
+// VERIFY: c2c96774 manual
 // OFFSET: 0x0085C340
 void luaH_free (lua_State *L, Table *t) {
   if (t->node != dummynode)
@@ -410,6 +430,7 @@ static Node *getfreepos (Table *t) {
 ** put new key in its main position; otherwise (colliding node is in its main 
 ** position), new key goes to an empty position. 
 */
+// VERIFY: 87a10331 manual
 // OFFSET: 0x0085CAB0
 static TValue *newkey (lua_State *L, Table *t, const TValue *key) {
   Node *mp = mainposition(t, key);
@@ -447,6 +468,7 @@ static TValue *newkey (lua_State *L, Table *t, const TValue *key) {
 /*
 ** search function for integers
 */
+// VERIFY: 618e0105 auto
 // OFFSET: 0x0085C3A0
 const TValue *luaH_getnum (Table *t, int key) {
   /* (1 <= key && key <= t->sizearray) */
@@ -468,6 +490,7 @@ const TValue *luaH_getnum (Table *t, int key) {
 /*
 ** search function for strings
 */
+// VERIFY: 66b1ffe7 auto
 // OFFSET: 0x0085C430
 const TValue *luaH_getstr (Table *t, TString *key) {
   Node *n = hashstr(t, key);
@@ -483,6 +506,7 @@ const TValue *luaH_getstr (Table *t, TString *key) {
 /*
 ** main search function
 */
+// VERIFY: 1c0749e3 auto
 // OFFSET: 0x0085C470
 const TValue *luaH_get (Table *t, const TValue *key) {
   switch (ttype(key)) {
@@ -509,6 +533,7 @@ const TValue *luaH_get (Table *t, const TValue *key) {
 }
 
 
+// VERIFY: 32007b3c manual
 // OFFSET: 0x0085C520
 TValue *luaH_set (lua_State *L, Table *t, const TValue *key) {
   const TValue *p = luaH_get(t, key);
@@ -524,6 +549,7 @@ TValue *luaH_set (lua_State *L, Table *t, const TValue *key) {
 }
 
 
+// VERIFY: 6c82f50e auto
 // OFFSET: 0x0085C590
 TValue *luaH_setnum (lua_State *L, Table *t, int key) {
   const TValue *p = luaH_getnum(t, key);
@@ -537,6 +563,7 @@ TValue *luaH_setnum (lua_State *L, Table *t, int key) {
 }
 
 
+// VERIFY: 969b1564 auto
 // OFFSET: 0x0085CBC0
 TValue *luaH_setstr (lua_State *L, Table *t, TString *key) {
   const TValue *p = luaH_getstr(t, key);
@@ -550,6 +577,7 @@ TValue *luaH_setstr (lua_State *L, Table *t, TString *key) {
 }
 
 
+// VERIFY: 0db1730b auto
 // OFFSET: 0x0085C5E0
 static int unbound_search (Table *t, unsigned int j) {
   unsigned int i = j;  /* i is zero or a present index */
@@ -579,6 +607,7 @@ static int unbound_search (Table *t, unsigned int j) {
 ** Try to find a boundary in table `t'. A `boundary' is an integer index
 ** such that t[i] is non-nil and t[i+1] is nil (and 0 if t[1] is nil).
 */
+// VERIFY: ade11de4 manual
 // OFFSET: 0x0085C690
 int luaH_getn (Table *t) {
   unsigned int j = t->sizearray;

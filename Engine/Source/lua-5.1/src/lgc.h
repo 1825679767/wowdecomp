@@ -99,6 +99,11 @@
 LUAI_FUNC size_t luaC_separateudata (lua_State *L, int all);
 LUAI_FUNC void luaC_callGCTM (lua_State *L);
 LUAI_FUNC void luaC_freeall (lua_State *L);
+LUAI_FUNC void luaC_sizeall (lua_State *L);
+LUAI_FUNC lu_mem luaC_getsize (lua_State *L, const char *tag);
+LUAI_FUNC void luaC_timeall (lua_State *L);
+LUAI_FUNC double luaC_gettime (lua_State *L, const char *tag);
+LUAI_FUNC void luaC_timereset (lua_State *L);
 LUAI_FUNC void luaC_step (lua_State *L);
 LUAI_FUNC void luaC_fullgc (lua_State *L);
 LUAI_FUNC void luaC_link (lua_State *L, GCObject *o, lu_byte tt);

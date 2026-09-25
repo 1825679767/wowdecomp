@@ -39,6 +39,7 @@ typedef struct LG {
   
 
 
+// VERIFY: e41fde60 auto
 // OFFSET: 0x00855090
 static void stack_init (lua_State *L1, lua_State *L) {
   /* initialize CallInfo array */
@@ -68,6 +69,7 @@ static void freestack (lua_State *L, lua_State *L1) {
 /*
 ** open parts that may cause memory-allocation errors
 */
+// VERIFY: 3be76c95 manual
 // OFFSET: 0x00855120
 static void f_luaopen (lua_State *L, void *ud) {
   global_State *g = G(L);
@@ -100,10 +102,12 @@ static void preinit_state (lua_State *L, global_State *g) {
   L->base_ci = L->ci = NULL;
   L->savedpc = NULL;
   L->errfunc = 0;
+  L->externalabort = 0;
   setnilvalue(gt(L));
 }
 
 
+// VERIFY: 8117eaae manual
 // OFFSET: 0x008551B0
 static void close_state (lua_State *L) {
   global_State *g = G(L);
@@ -119,6 +123,7 @@ static void close_state (lua_State *L) {
 }
 
 
+// VERIFY: 4a875a74 manual
 // OFFSET: 0x00855240
 lua_State *luaE_newthread (lua_State *L) {
   lua_State *L1 = tostate(luaM_malloc(L, state_size(lua_State)));
@@ -135,6 +140,7 @@ lua_State *luaE_newthread (lua_State *L) {
 }
 
 
+// VERIFY: 912021b9 manual
 // OFFSET: 0x00855310
 void luaE_freethread (lua_State *L, lua_State *L1) {
   luaF_close(L1, L1->stack);  /* close all upvalues for this thread */
@@ -145,8 +151,9 @@ void luaE_freethread (lua_State *L, lua_State *L1) {
 }
 
 
+// VERIFY: fdf620e9 manual
 // OFFSET: 0x00855370
-LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
+LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, int profile) {
   int i;
   lua_State *L;
   global_State *g;
@@ -156,7 +163,9 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g = &((LG *)L)->g;
   L->next = NULL;
   L->tt = LUA_TTHREAD;
+  L->taint = (lua_tainted && lua_gctag) ? lua_gctag : lua_tainted;
   g->currentwhite = bit2mask(WHITE0BIT, FIXEDBIT);
+  g->profile = (profile != 0);
   L->marked = luaC_white(g);
   set2bits(L->marked, FIXEDBIT, SFIXEDBIT);
   preinit_state(L, g);
@@ -196,6 +205,7 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
 }
 
 
+// VERIFY: 428df4f0 auto
 // OFFSET: 0x008554F0
 static void callallgcTM (lua_State *L, void *ud) {
   UNUSED(ud);
@@ -203,6 +213,7 @@ static void callallgcTM (lua_State *L, void *ud) {
 }
 
 
+// VERIFY: 6dce8f12 auto
 // OFFSET: 0x00855510
 LUA_API void lua_close (lua_State *L) {
   L = G(L)->mainthread;  /* only the main thread can be closed */

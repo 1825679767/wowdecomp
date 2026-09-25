@@ -19,6 +19,7 @@
 #define aux_getn(L,n)	(luaL_checktype(L, n, LUA_TTABLE), luaL_getn(L, n))
 
 
+// VERIFY: 95512ac3 auto
 // OFFSET: 0x008517C0
 static int foreachi (lua_State *L) {
   int i;
@@ -37,6 +38,7 @@ static int foreachi (lua_State *L) {
 }
 
 
+// VERIFY: 148a87d7 auto
 // OFFSET: 0x00851850
 static int foreach (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -55,6 +57,7 @@ static int foreach (lua_State *L) {
 }
 
 
+// VERIFY: dcfec438 auto
 // OFFSET: 0x008518E0
 static int maxn (lua_State *L) {
   lua_Number max = 0;
@@ -72,6 +75,7 @@ static int maxn (lua_State *L) {
 }
 
 
+// VERIFY: 7ae20129 auto
 // OFFSET: 0x00851980
 static int getn (lua_State *L) {
   lua_pushinteger(L, aux_getn(L, 1));
@@ -79,6 +83,7 @@ static int getn (lua_State *L) {
 }
 
 
+// VERIFY: 84ba01f6 manual
 // OFFSET: 0x008519B0
 static int setn (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -92,6 +97,7 @@ static int setn (lua_State *L) {
 }
 
 
+// VERIFY: e33fbef7 auto
 // OFFSET: 0x008519E0
 static int tinsert (lua_State *L) {
   int e = aux_getn(L, 1) + 1;  /* first empty element */
@@ -121,6 +127,7 @@ static int tinsert (lua_State *L) {
 }
 
 
+// VERIFY: 4b813f67 auto
 // OFFSET: 0x00851A90
 static int tremove (lua_State *L) {
   int e = aux_getn(L, 1);
@@ -138,6 +145,32 @@ static int tremove (lua_State *L) {
 }
 
 
+// VERIFY: f621cee7 manual
+// OFFSET: 0x00851B20
+static int tremovemulti (lua_State *L) {
+  int e = aux_getn(L, 1);
+  int pos = luaL_optint(L, 2, e);
+  int n = luaL_optint(L, 3, 1);
+  int i;
+  if (e == 0) return 0;
+  if (pos <= 0 || n < 0 || pos > e || pos + n - 1 > e)
+    luaL_error(L, "parameters out of bounds");
+  lua_checkstack(L, n);
+  for (i = pos; i < pos + n; i++)
+    lua_rawgeti(L, 1, i);
+  for ( ; pos < e; pos++) {
+    lua_rawgeti(L, 1, pos + n);
+    lua_rawseti(L, 1, pos);
+  }
+  for ( ; pos < e + n; pos++) {
+    lua_pushnil(L);
+    lua_rawseti(L, 1, pos);
+  }
+  return n;
+}
+
+
+// VERIFY: 371cb669 auto
 // OFFSET: 0x00851C30
 static int tconcat (lua_State *L) {
   luaL_Buffer b;
@@ -189,6 +222,7 @@ static int sort_comp (lua_State *L, int a, int b) {
     return lua_lessthan(L, a, b);
 }
 
+// VERIFY: 4db52c72 auto
 // OFFSET: 0x00851D20
 static void auxsort (lua_State *L, int l, int u) {
   while (l < u) {  /* for tail recursion */
@@ -253,6 +287,7 @@ static void auxsort (lua_State *L, int l, int u) {
   }  /* repeat the routine for the larger one */
 }
 
+// VERIFY: 2636f99f auto
 // OFFSET: 0x00852120
 static int sort (lua_State *L) {
   int n = aux_getn(L, 1);
@@ -262,6 +297,22 @@ static int sort (lua_State *L) {
   lua_settop(L, 2);  /* make sure there is two arguments */
   auxsort(L, 1, n);
   return 0;
+}
+
+
+// VERIFY: 3133ac54 auto
+// OFFSET: 0x00852180
+static int twipe (lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+  luaL_checkstack(L, 3, "");
+  lua_pushnil(L);
+  while (lua_next(L, -2)) {
+    lua_pop(L, 1);
+    lua_pushvalue(L, -1);
+    lua_pushnil(L);
+    lua_rawset(L, 1);
+  }
+  return 1;
 }
 
 /* }====================================================== */
@@ -275,12 +326,15 @@ static const luaL_Reg tab_funcs[] = {
   {"maxn", maxn},
   {"insert", tinsert},
   {"remove", tremove},
+  {"removemulti", tremovemulti},
   {"setn", setn},
   {"sort", sort},
+  {"wipe", twipe},
   {NULL, NULL}
 };
 
 
+// VERIFY: 59d8400c auto
 // OFFSET: 0x008521F0
 LUALIB_API int luaopen_table (lua_State *L) {
   luaL_register(L, LUA_TABLIBNAME, tab_funcs);

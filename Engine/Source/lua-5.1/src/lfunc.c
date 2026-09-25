@@ -6,6 +6,7 @@
 
 
 #include <stddef.h>
+#include <string.h>
 
 #define lfunc_c
 #define LUA_CORE
@@ -20,10 +21,17 @@
 
 
 
+// VERIFY: 1ee59e51 auto
 // OFFSET: 0x0085CC10
 Closure *luaF_newCclosure (lua_State *L, int nelems, Table *e) {
   Closure *c = cast(Closure *, luaM_malloc(L, sizeCclosure(nelems)));
   luaC_link(L, obj2gco(c), LUA_TFUNCTION);
+  if (G(L)->profile) {
+    c->c.profile = luaM_new(L, Profile);
+    memset(c->c.profile, 0, sizeof(Profile));
+  }
+  else
+    c->c.profile = NULL;
   c->c.isC = 1;
   c->c.env = e;
   c->c.nupvalues = cast_byte(nelems);
@@ -31,18 +39,28 @@ Closure *luaF_newCclosure (lua_State *L, int nelems, Table *e) {
 }
 
 
+// VERIFY: 4eecb7b8 manual
 // OFFSET: 0x0085CC90
 Closure *luaF_newLclosure (lua_State *L, int nelems, Table *e) {
   Closure *c = cast(Closure *, luaM_malloc(L, sizeLclosure(nelems)));
   luaC_link(L, obj2gco(c), LUA_TFUNCTION);
+  if (G(L)->profile) {
+    c->l.profile = luaM_new(L, Profile);
+    memset(c->l.profile, 0, sizeof(Profile));
+  }
+  else
+    c->l.profile = NULL;
   c->l.isC = 0;
   c->l.env = e;
   c->l.nupvalues = cast_byte(nelems);
+  if (!c->l.taint)
+    c->l.taint = lua_closuretaint;
   while (nelems--) c->l.upvals[nelems] = NULL;
   return c;
 }
 
 
+// VERIFY: f15c35bb manual
 // OFFSET: 0x0085CD40
 UpVal *luaF_newupval (lua_State *L) {
   UpVal *uv = luaM_new(L, UpVal);
@@ -53,6 +71,7 @@ UpVal *luaF_newupval (lua_State *L) {
 }
 
 
+// VERIFY: d386263e auto
 // OFFSET: 0x0085CD80
 UpVal *luaF_findupval (lua_State *L, StkId level) {
   global_State *g = G(L);
@@ -70,6 +89,7 @@ UpVal *luaF_findupval (lua_State *L, StkId level) {
   }
   uv = luaM_new(L, UpVal);  /* not found: create a new one */
   uv->tt = LUA_TUPVAL;
+  uv->taint = (lua_tainted && lua_gctag) ? lua_gctag : lua_tainted;
   uv->marked = luaC_white(g);
   uv->v = level;  /* current value lives in the stack */
   uv->next = *pp;  /* chain it in the proper position */
@@ -90,6 +110,7 @@ static void unlinkupval (UpVal *uv) {
 }
 
 
+// VERIFY: 86834f1b auto
 // OFFSET: 0x0085CE30
 void luaF_freeupval (lua_State *L, UpVal *uv) {
   if (uv->v != &uv->u.value)  /* is it open? */
@@ -98,6 +119,7 @@ void luaF_freeupval (lua_State *L, UpVal *uv) {
 }
 
 
+// VERIFY: d8bbf93f auto
 // OFFSET: 0x0085CE70
 void luaF_close (lua_State *L, StkId level) {
   UpVal *uv;
@@ -118,6 +140,7 @@ void luaF_close (lua_State *L, StkId level) {
 }
 
 
+// VERIFY: 7ea424c2 manual
 // OFFSET: 0x0085CF40
 Proto *luaF_newproto (lua_State *L) {
   Proto *f = luaM_new(L, Proto);
@@ -145,6 +168,7 @@ Proto *luaF_newproto (lua_State *L) {
 }
 
 
+// VERIFY: 2374cc79 manual
 // OFFSET: 0x0085CFB0
 void luaF_freeproto (lua_State *L, Proto *f) {
   luaM_freearray(L, f->code, f->sizecode, Instruction);
@@ -157,10 +181,13 @@ void luaF_freeproto (lua_State *L, Proto *f) {
 }
 
 
+// VERIFY: dbbdd064 manual
 // OFFSET: 0x0085D050
 void luaF_freeclosure (lua_State *L, Closure *c) {
   int size = (c->c.isC) ? sizeCclosure(c->c.nupvalues) :
                           sizeLclosure(c->l.nupvalues);
+  if (c->c.profile)
+    luaM_free(L, c->c.profile);
   luaM_freemem(L, c, size);
 }
 
@@ -169,6 +196,7 @@ void luaF_freeclosure (lua_State *L, Closure *c) {
 ** Look for n-th local variable at line `line' in function `func'.
 ** Returns NULL if not found.
 */
+// VERIFY: 1b95f164 auto
 // OFFSET: 0x0085D0A0
 const char *luaF_getlocalname (const Proto *f, int local_number, int pc) {
   int i;

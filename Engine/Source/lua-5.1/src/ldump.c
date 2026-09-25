@@ -58,6 +58,7 @@ static void DumpVector(const void* b, int n, size_t size, DumpState* D)
  DumpMem(b,n,size,D);
 }
 
+// VERIFY: 50bd014a manual
 // OFFSET: 0x0085D1D0
 static void DumpString(const TString* s, DumpState* D)
 {
@@ -78,6 +79,7 @@ static void DumpString(const TString* s, DumpState* D)
 
 static void DumpFunction(const Proto* f, const TString* p, DumpState* D);
 
+// VERIFY: d8142fa1 manual
 // OFFSET: 0x0085D260
 static void DumpConstants(const Proto* f, DumpState* D)
 {
@@ -110,6 +112,7 @@ static void DumpConstants(const Proto* f, DumpState* D)
  for (i=0; i<n; i++) DumpFunction(f->p[i],f->source,D);
 }
 
+// VERIFY: b9f4489c manual
 // OFFSET: 0x0085D390
 static void DumpDebug(const Proto* f, DumpState* D)
 {
@@ -129,6 +132,7 @@ static void DumpDebug(const Proto* f, DumpState* D)
  for (i=0; i<n; i++) DumpString(f->upvalues[i],D);
 }
 
+// VERIFY: dac789ab manual
 // OFFSET: 0x0085D500
 static void DumpFunction(const Proto* f, const TString* p, DumpState* D)
 {
@@ -154,6 +158,7 @@ static void DumpHeader(DumpState* D)
 /*
 ** dump Lua function as precompiled chunk
 */
+// VERIFY: ccdf9cd8 auto
 // OFFSET: 0x0085D660
 int luaU_dump (lua_State* L, const Proto* f, lua_Writer w, void* data, int strip)
 {

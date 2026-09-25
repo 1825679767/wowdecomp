@@ -28,28 +28,7 @@
 ** model but changing `fputs' to put the strings at a proper place
 ** (a console window or a log file, for instance).
 */
-static int luaB_print (lua_State *L) {
-  int n = lua_gettop(L);  /* number of arguments */
-  int i;
-  lua_getglobal(L, "tostring");
-  for (i=1; i<=n; i++) {
-    const char *s;
-    lua_pushvalue(L, -1);  /* function to be called */
-    lua_pushvalue(L, i);   /* value to print */
-    lua_call(L, 1, 1);
-    s = lua_tostring(L, -1);  /* get result */
-    if (s == NULL)
-      return luaL_error(L, LUA_QL("tostring") " must return a string to "
-                           LUA_QL("print"));
-    if (i>1) fputs("\t", stdout);
-    fputs(s, stdout);
-    lua_pop(L, 1);  /* pop result */
-  }
-  fputs("\n", stdout);
-  return 0;
-}
-
-
+// VERIFY: 3c8229bb auto
 // OFFSET: 0x00854100
 static int luaB_tonumber (lua_State *L) {
   int base = luaL_optint(L, 2, 10);
@@ -79,6 +58,7 @@ static int luaB_tonumber (lua_State *L) {
 }
 
 
+// VERIFY: 54d046ae auto
 // OFFSET: 0x00854210
 static int luaB_error (lua_State *L) {
   int level = luaL_optint(L, 2, 1);
@@ -92,6 +72,7 @@ static int luaB_error (lua_State *L) {
 }
 
 
+// VERIFY: b50c4dbd auto
 // OFFSET: 0x00854270
 static int luaB_getmetatable (lua_State *L) {
   luaL_checkany(L, 1);
@@ -104,6 +85,7 @@ static int luaB_getmetatable (lua_State *L) {
 }
 
 
+// VERIFY: ea9aabde auto
 // OFFSET: 0x008542C0
 static int luaB_setmetatable (lua_State *L) {
   int t = lua_type(L, 2);
@@ -118,6 +100,7 @@ static int luaB_setmetatable (lua_State *L) {
 }
 
 
+// VERIFY: 4e03b9ba auto
 // OFFSET: 0x00854340
 static void getfunc (lua_State *L) {
   if (lua_isfunction(L, 1)) lua_pushvalue(L, 1);
@@ -135,6 +118,7 @@ static void getfunc (lua_State *L) {
 }
 
 
+// VERIFY: 9bb620ce auto
 // OFFSET: 0x008543E0
 static int luaB_getfenv (lua_State *L) {
   getfunc(L);
@@ -146,6 +130,7 @@ static int luaB_getfenv (lua_State *L) {
 }
 
 
+// VERIFY: ad37b7cf auto
 // OFFSET: 0x00854430
 static int luaB_setfenv (lua_State *L) {
   luaL_checktype(L, 2, LUA_TTABLE);
@@ -165,6 +150,7 @@ static int luaB_setfenv (lua_State *L) {
 }
 
 
+// VERIFY: 644cb64e auto
 // OFFSET: 0x008544D0
 static int luaB_rawequal (lua_State *L) {
   luaL_checkany(L, 1);
@@ -174,6 +160,7 @@ static int luaB_rawequal (lua_State *L) {
 }
 
 
+// VERIFY: 5803d7fd auto
 // OFFSET: 0x00854510
 static int luaB_rawget (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -183,6 +170,7 @@ static int luaB_rawget (lua_State *L) {
   return 1;
 }
 
+// VERIFY: 2b21d651 auto
 // OFFSET: 0x00854550
 static int luaB_rawset (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -194,6 +182,7 @@ static int luaB_rawset (lua_State *L) {
 }
 
 
+// VERIFY: dc14cad0 auto
 // OFFSET: 0x00854590
 static int luaB_gcinfo (lua_State *L) {
   lua_pushinteger(L, lua_getgccount(L));
@@ -201,6 +190,7 @@ static int luaB_gcinfo (lua_State *L) {
 }
 
 
+// VERIFY: 6e948561 auto
 // OFFSET: 0x008545C0
 static int luaB_collectgarbage (lua_State *L) {
   static const char *const opts[] = {"stop", "restart", "collect",
@@ -228,6 +218,7 @@ static int luaB_collectgarbage (lua_State *L) {
 }
 
 
+// VERIFY: 3b5d3cc8 auto
 // OFFSET: 0x00854660
 static int luaB_type (lua_State *L) {
   luaL_checkany(L, 1);
@@ -236,6 +227,7 @@ static int luaB_type (lua_State *L) {
 }
 
 
+// VERIFY: c971adad auto
 // OFFSET: 0x00854690
 static int luaB_next (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -249,6 +241,7 @@ static int luaB_next (lua_State *L) {
 }
 
 
+// VERIFY: e90cf26c auto
 // OFFSET: 0x008546E0
 static int luaB_pairs (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -259,6 +252,7 @@ static int luaB_pairs (lua_State *L) {
 }
 
 
+// VERIFY: 7fdb7dfa auto
 // OFFSET: 0x00854720
 static int ipairsaux (lua_State *L) {
   int i = luaL_checkint(L, 2);
@@ -270,6 +264,7 @@ static int ipairsaux (lua_State *L) {
 }
 
 
+// VERIFY: 899a16ea auto
 // OFFSET: 0x00854770
 static int luaB_ipairs (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -291,6 +286,7 @@ static int load_aux (lua_State *L, int status) {
 }
 
 
+// VERIFY: 434f2d35 auto
 // OFFSET: 0x008547B0
 static int luaB_loadstring (lua_State *L) {
   size_t l;
@@ -300,55 +296,13 @@ static int luaB_loadstring (lua_State *L) {
 }
 
 
-static int luaB_loadfile (lua_State *L) {
-  const char *fname = luaL_optstring(L, 1, NULL);
-  return load_aux(L, luaL_loadfile(L, fname));
-}
-
-
 /*
 ** Reader for generic `load' function: `lua_load' uses the
 ** stack for internal stuff, so the reader cannot change the
 ** stack top. Instead, it keeps its resulting string in a
 ** reserved slot inside the stack.
 */
-static const char *generic_reader (lua_State *L, void *ud, size_t *size) {
-  (void)ud;  /* to avoid warnings */
-  luaL_checkstack(L, 2, "too many nested functions");
-  lua_pushvalue(L, 1);  /* get function */
-  lua_call(L, 0, 1);  /* call it */
-  if (lua_isnil(L, -1)) {
-    *size = 0;
-    return NULL;
-  }
-  else if (lua_isstring(L, -1)) {
-    lua_replace(L, 3);  /* save string in a reserved stack slot */
-    return lua_tolstring(L, 3, size);
-  }
-  else luaL_error(L, "reader function must return a string");
-  return NULL;  /* to avoid warnings */
-}
-
-
-static int luaB_load (lua_State *L) {
-  int status;
-  const char *cname = luaL_optstring(L, 2, "=(load)");
-  luaL_checktype(L, 1, LUA_TFUNCTION);
-  lua_settop(L, 3);  /* function, eventual name, plus one reserved slot */
-  status = lua_load(L, generic_reader, NULL, cname);
-  return load_aux(L, status);
-}
-
-
-static int luaB_dofile (lua_State *L) {
-  const char *fname = luaL_optstring(L, 1, NULL);
-  int n = lua_gettop(L);
-  if (luaL_loadfile(L, fname) != 0) lua_error(L);
-  lua_call(L, 0, LUA_MULTRET);
-  return lua_gettop(L) - n;
-}
-
-
+// VERIFY: ebcb532b auto
 // OFFSET: 0x00854810
 static int luaB_assert (lua_State *L) {
   luaL_checkany(L, 1);
@@ -358,6 +312,7 @@ static int luaB_assert (lua_State *L) {
 }
 
 
+// VERIFY: 164ddea6 auto
 // OFFSET: 0x00854860
 static int luaB_unpack (lua_State *L) {
   int i, e, n;
@@ -373,6 +328,7 @@ static int luaB_unpack (lua_State *L) {
 }
 
 
+// VERIFY: afedc8d2 manual
 // OFFSET: 0x008548F0
 static int luaB_select (lua_State *L) {
   int n = lua_gettop(L);
@@ -390,6 +346,7 @@ static int luaB_select (lua_State *L) {
 }
 
 
+// VERIFY: 9ed031d0 auto
 // OFFSET: 0x00854980
 static int luaB_pcall (lua_State *L) {
   int status;
@@ -401,6 +358,7 @@ static int luaB_pcall (lua_State *L) {
 }
 
 
+// VERIFY: 94aee231 auto
 // OFFSET: 0x008549D0
 static int luaB_xpcall (lua_State *L) {
   int status;
@@ -414,6 +372,7 @@ static int luaB_xpcall (lua_State *L) {
 }
 
 
+// VERIFY: 5f2f55da auto
 // OFFSET: 0x00854A20
 static int luaB_tostring (lua_State *L) {
   luaL_checkany(L, 1);
@@ -440,6 +399,7 @@ static int luaB_tostring (lua_State *L) {
 }
 
 
+// VERIFY: 8f89d889 auto
 // OFFSET: 0x00854B20
 static int luaB_newproxy (lua_State *L) {
   lua_settop(L, 1);
@@ -470,17 +430,13 @@ static int luaB_newproxy (lua_State *L) {
 static const luaL_Reg base_funcs[] = {
   {"assert", luaB_assert},
   {"collectgarbage", luaB_collectgarbage},
-  {"dofile", luaB_dofile},
   {"error", luaB_error},
   {"gcinfo", luaB_gcinfo},
   {"getfenv", luaB_getfenv},
   {"getmetatable", luaB_getmetatable},
-  {"loadfile", luaB_loadfile},
-  {"load", luaB_load},
   {"loadstring", luaB_loadstring},
   {"next", luaB_next},
   {"pcall", luaB_pcall},
-  {"print", luaB_print},
   {"rawequal", luaB_rawequal},
   {"rawget", luaB_rawget},
   {"rawset", luaB_rawset},
@@ -502,6 +458,7 @@ static const luaL_Reg base_funcs[] = {
 ** =======================================================
 */
 
+// VERIFY: 432e452a auto
 // OFFSET: 0x00854C00
 static int auxresume (lua_State *L, lua_State *co, int narg) {
   int status;
@@ -527,6 +484,7 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
 }
 
 
+// VERIFY: f90b2a6d manual
 // OFFSET: 0x00854CB0
 static int luaB_coresume (lua_State *L) {
   lua_State *co = lua_tothread(L, 1);
@@ -546,6 +504,7 @@ static int luaB_coresume (lua_State *L) {
 }
 
 
+// VERIFY: 4d8cf541 auto
 // OFFSET: 0x00854D30
 static int luaB_auxwrap (lua_State *L) {
   lua_State *co = lua_tothread(L, lua_upvalueindex(1));
@@ -562,6 +521,7 @@ static int luaB_auxwrap (lua_State *L) {
 }
 
 
+// VERIFY: 5058c77f auto
 // OFFSET: 0x00854DA0
 static int luaB_cocreate (lua_State *L) {
   lua_State *NL = lua_newthread(L);
@@ -573,6 +533,7 @@ static int luaB_cocreate (lua_State *L) {
 }
 
 
+// VERIFY: a091d708 auto
 // OFFSET: 0x00854E00
 static int luaB_cowrap (lua_State *L) {
   luaB_cocreate(L);
@@ -581,12 +542,14 @@ static int luaB_cowrap (lua_State *L) {
 }
 
 
+// VERIFY: 7765fcfb auto
 // OFFSET: 0x00854E30
 static int luaB_yield (lua_State *L) {
   return lua_yield(L, lua_gettop(L));
 }
 
 
+// VERIFY: a53a83f9 auto
 // OFFSET: 0x00854E50
 static int luaB_costatus (lua_State *L) {
   lua_State *co = lua_tothread(L, 1);
@@ -616,6 +579,7 @@ static int luaB_costatus (lua_State *L) {
 }
 
 
+// VERIFY: 07aecc61 auto
 // OFFSET: 0x00854F20
 static int luaB_corunning (lua_State *L) {
   if (lua_pushthread(L))
@@ -646,6 +610,7 @@ static void auxopen (lua_State *L, const char *name,
 }
 
 
+// VERIFY: b222b118 auto
 // OFFSET: 0x00854F40
 static void base_open (lua_State *L) {
   /* set global _G */
@@ -669,6 +634,7 @@ static void base_open (lua_State *L) {
 }
 
 
+// VERIFY: 44afe790 auto
 // OFFSET: 0x00855060
 LUALIB_API int luaopen_base (lua_State *L) {
   base_open(L);

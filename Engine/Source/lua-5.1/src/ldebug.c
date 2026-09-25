@@ -41,6 +41,7 @@ static int currentpc (lua_State *L, CallInfo *ci) {
 }
 
 
+// VERIFY: 798feef7 auto
 // OFFSET: 0x0084FDF0
 static int currentline (lua_State *L, CallInfo *ci) {
   int pc = currentpc(L, ci);
@@ -82,6 +83,7 @@ LUA_API int lua_gethookcount (lua_State *L) {
 }
 
 
+// VERIFY: 04595f21 auto
 // OFFSET: 0x0084FE40
 LUA_API int lua_getstack (lua_State *L, int level, lua_Debug *ar) {
   int status;
@@ -111,6 +113,7 @@ static Proto *getluaproto (CallInfo *ci) {
 }
 
 
+// VERIFY: 28a2e081 auto
 // OFFSET: 0x0084FEC0
 static const char *findlocal (lua_State *L, CallInfo *ci, int n) {
   const char *name;
@@ -127,6 +130,7 @@ static const char *findlocal (lua_State *L, CallInfo *ci, int n) {
 }
 
 
+// VERIFY: f61d8da8 auto
 // OFFSET: 0x0084FF30
 LUA_API const char *lua_getlocal (lua_State *L, const lua_Debug *ar, int n) {
   CallInfo *ci = L->base_ci + ar->i_ci;
@@ -151,6 +155,7 @@ LUA_API const char *lua_setlocal (lua_State *L, const lua_Debug *ar, int n) {
 }
 
 
+// VERIFY: 436034fc manual
 // OFFSET: 0x0084FF80
 static void funcinfo (lua_Debug *ar, Closure *cl) {
   if (cl->c.isC) {
@@ -179,6 +184,7 @@ static void info_tailcall (lua_Debug *ar) {
 }
 
 
+// VERIFY: 67c79abf auto
 // OFFSET: 0x00850000
 static void collectvalidlines (lua_State *L, Closure *f) {
   if (f == NULL || f->c.isC) {
@@ -196,6 +202,7 @@ static void collectvalidlines (lua_State *L, Closure *f) {
 }
 
 
+// VERIFY: ade29135 manual
 // OFFSET: 0x00850950
 static int auxgetinfo (lua_State *L, const char *what, lua_Debug *ar,
                     Closure *f, CallInfo *ci) {
@@ -236,6 +243,7 @@ static int auxgetinfo (lua_State *L, const char *what, lua_Debug *ar,
 }
 
 
+// VERIFY: ab0f6a89 manual
 // OFFSET: 0x00850A90
 LUA_API int lua_getinfo (lua_State *L, const char *what, lua_Debug *ar) {
   int status;
@@ -256,7 +264,7 @@ LUA_API int lua_getinfo (lua_State *L, const char *what, lua_Debug *ar) {
   }
   status = auxgetinfo(L, what, ar, f, ci);
   if (strchr(what, 'f')) {
-    if (f == NULL) setnilvalue(L->top);
+    if (f == NULL) { setnilvalue(L->top); }
     else setclvalue(L, L->top, f);
     incr_top(L);
   }
@@ -295,6 +303,7 @@ static int precheck (const Proto *pt) {
 
 #define checkopenop(pt,pc)	luaG_checkopenop((pt)->code[(pc)+1])
 
+// VERIFY: 0f00de52 manual
 // OFFSET: 0x008500B0
 int luaG_checkopenop (Instruction i) {
   switch (GET_OPCODE(i)) {
@@ -310,6 +319,7 @@ int luaG_checkopenop (Instruction i) {
 }
 
 
+// VERIFY: 0c4dc1b7 auto
 // OFFSET: 0x008500E0
 static int checkArgMode (const Proto *pt, int r, enum OpArgMask mode) {
   switch (mode) {
@@ -324,6 +334,7 @@ static int checkArgMode (const Proto *pt, int r, enum OpArgMask mode) {
 }
 
 
+// VERIFY: f11df706 manual
 // OFFSET: 0x00850130
 static Instruction symbexec (const Proto *pt, int lastpc, int reg) {
   int pc;
@@ -479,6 +490,7 @@ int luaG_checkcode (const Proto *pt) {
 }
 
 
+// VERIFY: 7672832d auto
 // OFFSET: 0x00850570
 static const char *kname (Proto *p, int c) {
   if (ISK(c) && ttisstring(&p->k[INDEXK(c)]))
@@ -488,6 +500,7 @@ static const char *kname (Proto *p, int c) {
 }
 
 
+// VERIFY: e0094cee manual
 // OFFSET: 0x008505A0
 static const char *getobjname (lua_State *L, CallInfo *ci, int stackpos,
                                const char **name) {
@@ -536,6 +549,7 @@ static const char *getobjname (lua_State *L, CallInfo *ci, int stackpos,
 }
 
 
+// VERIFY: 213bbc04 manual
 // OFFSET: 0x00850720
 static const char *getfuncname (lua_State *L, CallInfo *ci, const char **name) {
   Instruction i;
@@ -560,6 +574,7 @@ static int isinstack (CallInfo *ci, const TValue *o) {
 }
 
 
+// VERIFY: 86d0d989 auto
 // OFFSET: 0x00850B60
 void luaG_typeerror (lua_State *L, const TValue *o, const char *op) {
   const char *name = NULL;
@@ -575,6 +590,7 @@ void luaG_typeerror (lua_State *L, const TValue *o, const char *op) {
 }
 
 
+// VERIFY: 9514a4be auto
 // OFFSET: 0x00850BF0
 void luaG_concaterror (lua_State *L, StkId p1, StkId p2) {
   if (ttisstring(p1)) p1 = p2;
@@ -583,6 +599,7 @@ void luaG_concaterror (lua_State *L, StkId p1, StkId p2) {
 }
 
 
+// VERIFY: bef69465 auto
 // OFFSET: 0x00850C20
 void luaG_aritherror (lua_State *L, const TValue *p1, const TValue *p2) {
   TValue temp;
@@ -592,6 +609,7 @@ void luaG_aritherror (lua_State *L, const TValue *p1, const TValue *p2) {
 }
 
 
+// VERIFY: 36b4bf1c auto
 // OFFSET: 0x00850C60
 int luaG_ordererror (lua_State *L, const TValue *p1, const TValue *p2) {
   const char *t1 = luaT_typenames[ttype(p1)];
@@ -604,6 +622,7 @@ int luaG_ordererror (lua_State *L, const TValue *p1, const TValue *p2) {
 }
 
 
+// VERIFY: 8ec78b46 manual
 // OFFSET: 0x008507C0
 static void addinfo (lua_State *L, const char *msg) {
   CallInfo *ci = L->ci;
@@ -616,6 +635,7 @@ static void addinfo (lua_State *L, const char *msg) {
 }
 
 
+// VERIFY: f631dd92 manual
 // OFFSET: 0x00850830
 void luaG_errormsg (lua_State *L) {
   if (L->errfunc != 0) {  /* is there an error handling function? */
@@ -630,6 +650,7 @@ void luaG_errormsg (lua_State *L) {
 }
 
 
+// VERIFY: 67b86ee1 auto
 // OFFSET: 0x00850920
 void luaG_runerror (lua_State *L, const char *fmt, ...) {
   va_list argp;

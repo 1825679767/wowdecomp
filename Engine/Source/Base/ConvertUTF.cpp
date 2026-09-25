@@ -222,7 +222,7 @@ int32_t ConvertUTF8toUTF16(uint16_t* dst, uint32_t dstmaxchars, const char* src,
 }
 
 // VERIFY: e60cd645 manual
-// OFFSET: 0x0047BD40
+// OFFSET: [0x0047BD40, 0x00852210]
 uint32_t sgetu8(const uint8_t* strptr, int32_t* chars) {
     if (chars) {
         *chars = 0;
@@ -287,7 +287,7 @@ uint32_t sgetu8(const uint8_t* strptr, int32_t* chars) {
 }
 
 // VERIFY: 1fa47a7d manual
-// OFFSET: 0x0047BE50
+// OFFSET: [0x0047BE50, 0x00852320]
 char* sputu8(uint32_t c, char* strptr) {
     if (!strptr) {
         return strptr;

@@ -68,6 +68,7 @@ static void error_expected (LexState *ls, int token) {
 }
 
 
+// VERIFY: 251d1b4e auto
 // OFFSET: 0x0085ED20
 static void errorlimit (FuncState *fs, int limit, const char *what) {
   const char *msg = (fs->f->linedefined == 0) ?
@@ -78,6 +79,7 @@ static void errorlimit (FuncState *fs, int limit, const char *what) {
 }
 
 
+// VERIFY: 641ed38f auto
 // OFFSET: 0x0085ED70
 static int testnext (LexState *ls, int c) {
   if (ls->t.token == c) {
@@ -103,6 +105,7 @@ static void checknext (LexState *ls, int c) {
 
 
 
+// VERIFY: d8f6aeec auto
 // OFFSET: 0x0085ED90
 static void check_match (LexState *ls, int what, int who, int where) {
   if (!testnext(ls, what)) {
@@ -133,18 +136,21 @@ static void init_exp (expdesc *e, expkind k, int i) {
 }
 
 
+// VERIFY: 4bdb896e auto
 // OFFSET: 0x0085EE00
 static void codestring (LexState *ls, expdesc *e, TString *s) {
   init_exp(e, VK, luaK_stringK(ls->fs, s));
 }
 
 
+// VERIFY: 9652ea85 auto
 // OFFSET: 0x0085EE20
 static void checkname(LexState *ls, expdesc *e) {
   codestring(ls, e, str_checkname(ls));
 }
 
 
+// VERIFY: 4bade465 manual
 // OFFSET: 0x0085EE80
 static int registerlocalvar (LexState *ls, TString *varname) {
   FuncState *fs = ls->fs;
@@ -170,6 +176,7 @@ static void new_localvar (LexState *ls, TString *name, int n) {
 }
 
 
+// VERIFY: 92b494c8 auto
 // OFFSET: 0x0085EF30
 static void adjustlocalvars (LexState *ls, int nvars) {
   FuncState *fs = ls->fs;
@@ -180,6 +187,7 @@ static void adjustlocalvars (LexState *ls, int nvars) {
 }
 
 
+// VERIFY: fa0847bb manual
 // OFFSET: 0x0085EF70
 static void removevars (LexState *ls, int tolevel) {
   FuncState *fs = ls->fs;
@@ -188,6 +196,7 @@ static void removevars (LexState *ls, int tolevel) {
 }
 
 
+// VERIFY: 9afe60ea auto
 // OFFSET: 0x0085EFB0
 static int indexupvalue (FuncState *fs, TString *name, expdesc *v) {
   int i;
@@ -230,6 +239,7 @@ static void markupval (FuncState *fs, int level) {
 }
 
 
+// VERIFY: 52a0f384 auto
 // OFFSET: 0x0085F100
 static int singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
   if (fs == NULL) {  /* no more levels? */
@@ -255,6 +265,7 @@ static int singlevaraux (FuncState *fs, TString *n, expdesc *var, int base) {
 }
 
 
+// VERIFY: a20ba1d1 auto
 // OFFSET: 0x0085F1F0
 static void singlevar (LexState *ls, expdesc *var) {
   TString *varname = str_checkname(ls);
@@ -264,6 +275,7 @@ static void singlevar (LexState *ls, expdesc *var) {
 }
 
 
+// VERIFY: 85d4db83 manual
 // OFFSET: 0x0085F250
 static void adjust_assign (LexState *ls, int nvars, int nexps, expdesc *e) {
   FuncState *fs = ls->fs;
@@ -305,6 +317,7 @@ static void enterblock (FuncState *fs, BlockCnt *bl, lu_byte isbreakable) {
 }
 
 
+// VERIFY: eb60dbd1 auto
 // OFFSET: 0x0085F2C0
 static void leaveblock (FuncState *fs) {
   BlockCnt *bl = fs->bl;
@@ -320,6 +333,7 @@ static void leaveblock (FuncState *fs) {
 }
 
 
+// VERIFY: ed4dc3dc manual
 // OFFSET: 0x0085F310
 static void pushclosure (LexState *ls, FuncState *func, expdesc *v) {
   FuncState *fs = ls->fs;
@@ -339,6 +353,7 @@ static void pushclosure (LexState *ls, FuncState *func, expdesc *v) {
 }
 
 
+// VERIFY: 6ee8cacb auto
 // OFFSET: 0x0085F410
 static void open_func (LexState *ls, FuncState *fs) {
   lua_State *L = ls->L;
@@ -368,6 +383,7 @@ static void open_func (LexState *ls, FuncState *fs) {
 }
 
 
+// VERIFY: 51baea49 manual
 // OFFSET: 0x0085F4E0
 static void close_func (LexState *ls) {
   lua_State *L = ls->L;
@@ -396,6 +412,7 @@ static void close_func (LexState *ls) {
 }
 
 
+// VERIFY: a0a4435a auto
 // OFFSET: 0x00861AD0
 Proto *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff, const char *name) {
   struct LexState lexstate;
@@ -432,6 +449,7 @@ static void field (LexState *ls, expdesc *v) {
 }
 
 
+// VERIFY: 5e43705a auto
 // OFFSET: 0x0085F6C0
 static void yindex (LexState *ls, expdesc *v) {
   /* index -> '[' expr ']' */
@@ -458,6 +476,7 @@ struct ConsControl {
 };
 
 
+// VERIFY: 961f8564 auto
 // OFFSET: 0x0085F710
 static void recfield (LexState *ls, struct ConsControl *cc) {
   /* recfield -> (NAME | `['exp1`]') = exp1 */
@@ -491,6 +510,7 @@ static void closelistfield (FuncState *fs, struct ConsControl *cc) {
 }
 
 
+// VERIFY: e1e230ca auto
 // OFFSET: 0x0085F7E0
 static void lastlistfield (FuncState *fs, struct ConsControl *cc) {
   if (cc->tostore == 0) return;
@@ -515,6 +535,7 @@ static void listfield (LexState *ls, struct ConsControl *cc) {
 }
 
 
+// VERIFY: 1c42aa53 manual
 // OFFSET: 0x0085F840
 static void constructor (LexState *ls, expdesc *t) {
   /* constructor -> ?? */
@@ -561,6 +582,7 @@ static void constructor (LexState *ls, expdesc *t) {
 
 
 
+// VERIFY: 3070dabc manual
 // OFFSET: 0x0085FAA0
 static void parlist (LexState *ls) {
   /* parlist -> [ param { `,' param } ] */
@@ -595,6 +617,7 @@ static void parlist (LexState *ls) {
 }
 
 
+// VERIFY: cbcd6830 manual
 // OFFSET: 0x0085FBD0
 static void body (LexState *ls, expdesc *e, int needself, int line) {
   /* body ->  `(' parlist `)' chunk END */
@@ -616,6 +639,7 @@ static void body (LexState *ls, expdesc *e, int needself, int line) {
 }
 
 
+// VERIFY: b9e04529 auto
 // OFFSET: 0x0085FD10
 static int explist1 (LexState *ls, expdesc *v) {
   /* explist1 -> expr { `,' expr } */
@@ -630,6 +654,7 @@ static int explist1 (LexState *ls, expdesc *v) {
 }
 
 
+// VERIFY: 4c392e50 auto
 // OFFSET: 0x0085FD50
 static void funcargs (LexState *ls, expdesc *f) {
   FuncState *fs = ls->fs;
@@ -689,6 +714,7 @@ static void funcargs (LexState *ls, expdesc *f) {
 */
 
 
+// VERIFY: e5dce860 auto
 // OFFSET: 0x0085FE90
 static void prefixexp (LexState *ls, expdesc *v) {
   /* prefixexp -> NAME | '(' expr ')' */
@@ -713,6 +739,7 @@ static void prefixexp (LexState *ls, expdesc *v) {
 }
 
 
+// VERIFY: 18ba2668 manual
 // OFFSET: 0x0085FF00
 static void primaryexp (LexState *ls, expdesc *v) {
   /* primaryexp ->
@@ -751,6 +778,7 @@ static void primaryexp (LexState *ls, expdesc *v) {
 }
 
 
+// VERIFY: c2ffa1de manual
 // OFFSET: 0x008601E0
 static void simpleexp (LexState *ls, expdesc *v) {
   /* simpleexp -> NUMBER | STRING | NIL | true | false | ... |
@@ -813,6 +841,7 @@ static UnOpr getunopr (int op) {
 }
 
 
+// VERIFY: 37c0c307 auto
 // OFFSET: 0x008603C0
 static BinOpr getbinopr (int op) {
   switch (op) {
@@ -854,6 +883,7 @@ static const struct {
 ** subexpr -> (simpleexp | unop subexpr) { binop subexpr }
 ** where `binop' is any binary operator with a priority higher than `limit'
 */
+// VERIFY: b24fdfdf manual
 // OFFSET: 0x00860570
 static BinOpr subexpr (LexState *ls, expdesc *v, unsigned int limit) {
   BinOpr op;
@@ -908,6 +938,7 @@ static int block_follow (int token) {
 }
 
 
+// VERIFY: 3205c680 auto
 // OFFSET: 0x00860680
 static void block (LexState *ls) {
   /* block -> chunk */
@@ -936,6 +967,7 @@ struct LHS_assign {
 ** local value in a safe place and use this safe copy in the previous
 ** assignment.
 */
+// VERIFY: abfb6f9e auto
 // OFFSET: 0x00860700
 static void check_conflict (LexState *ls, struct LHS_assign *lh, expdesc *v) {
   FuncState *fs = ls->fs;
@@ -960,6 +992,7 @@ static void check_conflict (LexState *ls, struct LHS_assign *lh, expdesc *v) {
 }
 
 
+// VERIFY: 0679eb88 manual
 // OFFSET: 0x00860760
 static void assignment (LexState *ls, struct LHS_assign *lh, int nvars) {
   expdesc e;
@@ -1003,6 +1036,7 @@ static int cond (LexState *ls) {
 }
 
 
+// VERIFY: dc0a1f4f auto
 // OFFSET: 0x00860890
 static void breakstat (LexState *ls) {
   FuncState *fs = ls->fs;
@@ -1020,6 +1054,7 @@ static void breakstat (LexState *ls) {
 }
 
 
+// VERIFY: 969fd4bc manual
 // OFFSET: 0x008608F0
 static void whilestat (LexState *ls, int line) {
   /* whilestat -> WHILE cond DO block END */
@@ -1040,6 +1075,7 @@ static void whilestat (LexState *ls, int line) {
 }
 
 
+// VERIFY: 601f0d4d auto
 // OFFSET: 0x00860A10
 static void repeatstat (LexState *ls, int line) {
   /* repeatstat -> REPEAT block UNTIL cond */
@@ -1077,6 +1113,7 @@ static int exp1 (LexState *ls) {
 }
 
 
+// VERIFY: f8c587c4 auto
 // OFFSET: 0x00860B50
 static void forbody (LexState *ls, int base, int line, int nvars, int isnum) {
   /* forbody -> DO block */
@@ -1099,6 +1136,7 @@ static void forbody (LexState *ls, int base, int line, int nvars, int isnum) {
 }
 
 
+// VERIFY: 2589dc53 manual
 // OFFSET: 0x00860CE0
 static void fornum (LexState *ls, TString *varname, int line) {
   /* fornum -> NAME = exp1,exp1[,exp1] forbody */
@@ -1122,6 +1160,7 @@ static void fornum (LexState *ls, TString *varname, int line) {
 }
 
 
+// VERIFY: 07096f20 manual
 // OFFSET: 0x00860F10
 static void forlist (LexState *ls, TString *indexname) {
   /* forlist -> NAME {,NAME} IN explist1 forbody */
@@ -1146,6 +1185,7 @@ static void forlist (LexState *ls, TString *indexname) {
 }
 
 
+// VERIFY: d7e59c1b manual
 // OFFSET: 0x00861190
 static void forstat (LexState *ls, int line) {
   /* forstat -> FOR (fornum | forlist) END */
@@ -1165,6 +1205,7 @@ static void forstat (LexState *ls, int line) {
 }
 
 
+// VERIFY: a7f69301 auto
 // OFFSET: 0x008612B0
 static int test_then_block (LexState *ls) {
   /* test_then_block -> [IF | ELSEIF] cond THEN block */
@@ -1177,6 +1218,7 @@ static int test_then_block (LexState *ls) {
 }
 
 
+// VERIFY: 9b44f0b0 auto
 // OFFSET: 0x00861330
 static void ifstat (LexState *ls, int line) {
   /* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
@@ -1202,6 +1244,7 @@ static void ifstat (LexState *ls, int line) {
 }
 
 
+// VERIFY: caa5ac31 manual
 // OFFSET: 0x008613F0
 static void localfunc (LexState *ls) {
   expdesc v, b;
@@ -1217,6 +1260,7 @@ static void localfunc (LexState *ls) {
 }
 
 
+// VERIFY: 11a5141c manual
 // OFFSET: 0x00861500
 static void localstat (LexState *ls) {
   /* stat -> LOCAL NAME {`,' NAME} [`=' explist1] */
@@ -1237,6 +1281,7 @@ static void localstat (LexState *ls) {
 }
 
 
+// VERIFY: 740f0322 manual
 // OFFSET: 0x00861620
 static int funcname (LexState *ls, expdesc *v) {
   /* funcname -> NAME {field} [`:' NAME] */
@@ -1252,6 +1297,7 @@ static int funcname (LexState *ls, expdesc *v) {
 }
 
 
+// VERIFY: 0d1c3aaa auto
 // OFFSET: 0x00861710
 static void funcstat (LexState *ls, int line) {
   /* funcstat -> FUNCTION funcname body */
@@ -1265,6 +1311,7 @@ static void funcstat (LexState *ls, int line) {
 }
 
 
+// VERIFY: e9ab0961 auto
 // OFFSET: 0x00861760
 static void exprstat (LexState *ls) {
   /* stat -> func | assignment */
@@ -1280,6 +1327,7 @@ static void exprstat (LexState *ls) {
 }
 
 
+// VERIFY: 701a88f7 manual
 // OFFSET: 0x008617C0
 static void retstat (LexState *ls) {
   /* stat -> RETURN explist */
@@ -1314,6 +1362,7 @@ static void retstat (LexState *ls) {
 }
 
 
+// VERIFY: 5f951872 manual
 // OFFSET: 0x008618E0
 static int statement (LexState *ls) {
   int line = ls->linenumber;  /* may be needed for error messages */
@@ -1369,6 +1418,7 @@ static int statement (LexState *ls) {
 }
 
 
+// VERIFY: ed6868c7 manual
 // OFFSET: 0x00861A20
 static void chunk (LexState *ls) {
   /* chunk -> { stat [`;'] } */
