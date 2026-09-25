@@ -207,6 +207,7 @@ Proto* luaU_undump (lua_State* L, ZIO* Z, Mbuffer* buff, const char* name)
 /*
 * make header
 */
+// OFFSET: 0x00861B90
 void luaU_header (char* h)
 {
  int x=1;

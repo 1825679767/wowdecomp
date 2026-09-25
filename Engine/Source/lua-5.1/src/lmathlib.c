@@ -23,76 +23,91 @@
 
 
 
+// OFFSET: 0x00851040
 static int math_abs (lua_State *L) {
   lua_pushnumber(L, fabs(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x00851070
 static int math_sin (lua_State *L) {
   lua_pushnumber(L, sin(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x008510A0
 static int math_sinh (lua_State *L) {
   lua_pushnumber(L, sinh(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x008510D0
 static int math_cos (lua_State *L) {
   lua_pushnumber(L, cos(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x00851100
 static int math_cosh (lua_State *L) {
   lua_pushnumber(L, cosh(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x00851130
 static int math_tan (lua_State *L) {
   lua_pushnumber(L, tan(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x00851160
 static int math_tanh (lua_State *L) {
   lua_pushnumber(L, tanh(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x00851190
 static int math_asin (lua_State *L) {
   lua_pushnumber(L, asin(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x008511C0
 static int math_acos (lua_State *L) {
   lua_pushnumber(L, acos(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x008511F0
 static int math_atan (lua_State *L) {
   lua_pushnumber(L, atan(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x00851220
 static int math_atan2 (lua_State *L) {
   lua_pushnumber(L, atan2(luaL_checknumber(L, 1), luaL_checknumber(L, 2)));
   return 1;
 }
 
+// OFFSET: 0x00851260
 static int math_ceil (lua_State *L) {
   lua_pushnumber(L, ceil(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x00851290
 static int math_floor (lua_State *L) {
   lua_pushnumber(L, floor(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x008512C0
 static int math_fmod (lua_State *L) {
   lua_pushnumber(L, fmod(luaL_checknumber(L, 1), luaL_checknumber(L, 2)));
   return 1;
 }
 
+// OFFSET: 0x00851310
 static int math_modf (lua_State *L) {
   double ip;
   double fp = modf(luaL_checknumber(L, 1), &ip);
@@ -101,41 +116,49 @@ static int math_modf (lua_State *L) {
   return 2;
 }
 
+// OFFSET: 0x00851360
 static int math_sqrt (lua_State *L) {
   lua_pushnumber(L, sqrt(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x00851390
 static int math_pow (lua_State *L) {
   lua_pushnumber(L, pow(luaL_checknumber(L, 1), luaL_checknumber(L, 2)));
   return 1;
 }
 
+// OFFSET: 0x008513E0
 static int math_log (lua_State *L) {
   lua_pushnumber(L, log(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x00851410
 static int math_log10 (lua_State *L) {
   lua_pushnumber(L, log10(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x00851440
 static int math_exp (lua_State *L) {
   lua_pushnumber(L, exp(luaL_checknumber(L, 1)));
   return 1;
 }
 
+// OFFSET: 0x00851480
 static int math_deg (lua_State *L) {
   lua_pushnumber(L, luaL_checknumber(L, 1)/RADIANS_PER_DEGREE);
   return 1;
 }
 
+// OFFSET: 0x008514B0
 static int math_rad (lua_State *L) {
   lua_pushnumber(L, luaL_checknumber(L, 1)*RADIANS_PER_DEGREE);
   return 1;
 }
 
+// OFFSET: 0x008514E0
 static int math_frexp (lua_State *L) {
   int e;
   lua_pushnumber(L, frexp(luaL_checknumber(L, 1), &e));
@@ -143,6 +166,7 @@ static int math_frexp (lua_State *L) {
   return 2;
 }
 
+// OFFSET: 0x00851520
 static int math_ldexp (lua_State *L) {
   lua_pushnumber(L, ldexp(luaL_checknumber(L, 1), luaL_checkint(L, 2)));
   return 1;
@@ -150,6 +174,7 @@ static int math_ldexp (lua_State *L) {
 
 
 
+// OFFSET: 0x00851560
 static int math_min (lua_State *L) {
   int n = lua_gettop(L);  /* number of arguments */
   lua_Number dmin = luaL_checknumber(L, 1);
@@ -164,6 +189,7 @@ static int math_min (lua_State *L) {
 }
 
 
+// OFFSET: 0x008515D0
 static int math_max (lua_State *L) {
   int n = lua_gettop(L);  /* number of arguments */
   lua_Number dmax = luaL_checknumber(L, 1);
@@ -178,6 +204,7 @@ static int math_max (lua_State *L) {
 }
 
 
+// OFFSET: 0x00851640
 static int math_random (lua_State *L) {
   /* the `%' avoids the (rare) case of r==1, and is needed also because on
      some systems (SunOS!) `rand()' may return a value larger than RAND_MAX */
@@ -248,6 +275,7 @@ static const luaL_Reg mathlib[] = {
 /*
 ** Open math library
 */
+// OFFSET: 0x00851760
 LUALIB_API int luaopen_math (lua_State *L) {
   luaL_register(L, LUA_MATHLIBNAME, mathlib);
   lua_pushnumber(L, PI);

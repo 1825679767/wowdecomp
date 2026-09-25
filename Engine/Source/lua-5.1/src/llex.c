@@ -48,6 +48,7 @@ const char *const luaX_tokens [] = {
 #define save_and_next(ls) (save(ls, ls->current), next(ls))
 
 
+// OFFSET: 0x0085D810
 static void save (LexState *ls, int c) {
   Mbuffer *b = ls->buff;
   if (b->n + 1 > b->buffsize) {
@@ -61,6 +62,7 @@ static void save (LexState *ls, int c) {
 }
 
 
+// OFFSET: 0x0085D890
 void luaX_init (lua_State *L) {
   int i;
   for (i=0; i<NUM_RESERVED; i++) {
@@ -75,6 +77,7 @@ void luaX_init (lua_State *L) {
 #define MAXSRC          80
 
 
+// OFFSET: 0x0085D8E0
 const char *luaX_token2str (LexState *ls, int token) {
   if (token < FIRST_RESERVED) {
     lua_assert(token == cast(unsigned char, token));
@@ -99,6 +102,7 @@ static const char *txtToken (LexState *ls, int token) {
 }
 
 
+// OFFSET: 0x0085D940
 void luaX_lexerror (LexState *ls, const char *msg, int token) {
   char buff[MAXSRC];
   luaO_chunkid(buff, getstr(ls->source), MAXSRC);
@@ -109,11 +113,13 @@ void luaX_lexerror (LexState *ls, const char *msg, int token) {
 }
 
 
+// OFFSET: 0x0085D9E0
 void luaX_syntaxerror (LexState *ls, const char *msg) {
   luaX_lexerror(ls, msg, ls->t.token);
 }
 
 
+// OFFSET: 0x0085DA00
 TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
   lua_State *L = ls->L;
   TString *ts = luaS_newlstr(L, str, l);
@@ -124,6 +130,7 @@ TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
 }
 
 
+// OFFSET: 0x0085DA50
 static void inclinenumber (LexState *ls) {
   int old = ls->current;
   lua_assert(currIsNewline(ls));
@@ -135,6 +142,7 @@ static void inclinenumber (LexState *ls) {
 }
 
 
+// OFFSET: 0x0085DAE0
 void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source) {
   ls->decpoint = '.';
   ls->L = L;
@@ -158,6 +166,7 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source) {
 
 
 
+// OFFSET: 0x0085DB70
 static int check_next (LexState *ls, const char *set) {
   if (!strchr(set, ls->current))
     return 0;
@@ -174,6 +183,7 @@ static void buffreplace (LexState *ls, char from, char to) {
 }
 
 
+// OFFSET: 0x0085DBD0
 static void trydecpoint (LexState *ls, SemInfo *seminfo) {
   /* format error: try to update decimal point separator */
   struct lconv *cv = localeconv();
@@ -189,6 +199,7 @@ static void trydecpoint (LexState *ls, SemInfo *seminfo) {
 
 
 /* LUA_NUMBER */
+// OFFSET: 0x0085DCB0
 static void read_numeral (LexState *ls, SemInfo *seminfo) {
   lua_assert(isdigit(ls->current));
   do {
@@ -205,6 +216,7 @@ static void read_numeral (LexState *ls, SemInfo *seminfo) {
 }
 
 
+// OFFSET: 0x0085DDD0
 static int skip_sep (LexState *ls) {
   int count = 0;
   int s = ls->current;
@@ -218,6 +230,7 @@ static int skip_sep (LexState *ls) {
 }
 
 
+// OFFSET: 0x0085DE70
 static void read_long_string (LexState *ls, SemInfo *seminfo, int sep) {
   int cont = 0;
   (void)(cont);  /* avoid warnings when `cont' is not used */
@@ -273,6 +286,7 @@ static void read_long_string (LexState *ls, SemInfo *seminfo, int sep) {
 }
 
 
+// OFFSET: 0x0085E160
 static void read_string (LexState *ls, int del, SemInfo *seminfo) {
   save_and_next(ls);
   while (ls->current != del) {
@@ -329,6 +343,7 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
 }
 
 
+// OFFSET: 0x0085E600
 static int llex (LexState *ls, SemInfo *seminfo) {
   luaZ_resetbuffer(ls->buff);
   for (;;) {
@@ -443,6 +458,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
 }
 
 
+// OFFSET: 0x0085ECB0
 void luaX_next (LexState *ls) {
   ls->lastline = ls->linenumber;
   if (ls->lookahead.token != TK_EOS) {  /* is there a look-ahead token? */
@@ -454,6 +470,7 @@ void luaX_next (LexState *ls) {
 }
 
 
+// OFFSET: 0x0085ED00
 void luaX_lookahead (LexState *ls) {
   lua_assert(ls->lookahead.token == TK_EOS);
   ls->lookahead.token = llex(ls, &ls->lookahead.seminfo);

@@ -19,6 +19,7 @@
 #define aux_getn(L,n)	(luaL_checktype(L, n, LUA_TTABLE), luaL_getn(L, n))
 
 
+// OFFSET: 0x008517C0
 static int foreachi (lua_State *L) {
   int i;
   int n = aux_getn(L, 1);
@@ -36,6 +37,7 @@ static int foreachi (lua_State *L) {
 }
 
 
+// OFFSET: 0x00851850
 static int foreach (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checktype(L, 2, LUA_TFUNCTION);
@@ -53,6 +55,7 @@ static int foreach (lua_State *L) {
 }
 
 
+// OFFSET: 0x008518E0
 static int maxn (lua_State *L) {
   lua_Number max = 0;
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -69,12 +72,14 @@ static int maxn (lua_State *L) {
 }
 
 
+// OFFSET: 0x00851980
 static int getn (lua_State *L) {
   lua_pushinteger(L, aux_getn(L, 1));
   return 1;
 }
 
 
+// OFFSET: 0x008519B0
 static int setn (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
 #ifndef luaL_setn
@@ -87,6 +92,7 @@ static int setn (lua_State *L) {
 }
 
 
+// OFFSET: 0x008519E0
 static int tinsert (lua_State *L) {
   int e = aux_getn(L, 1) + 1;  /* first empty element */
   int pos;  /* where to insert new element */
@@ -115,6 +121,7 @@ static int tinsert (lua_State *L) {
 }
 
 
+// OFFSET: 0x00851A90
 static int tremove (lua_State *L) {
   int e = aux_getn(L, 1);
   int pos = luaL_optint(L, 2, e);
@@ -131,6 +138,7 @@ static int tremove (lua_State *L) {
 }
 
 
+// OFFSET: 0x00851C30
 static int tconcat (lua_State *L) {
   luaL_Buffer b;
   size_t lsep;
@@ -181,6 +189,7 @@ static int sort_comp (lua_State *L, int a, int b) {
     return lua_lessthan(L, a, b);
 }
 
+// OFFSET: 0x00851D20
 static void auxsort (lua_State *L, int l, int u) {
   while (l < u) {  /* for tail recursion */
     int i, j;
@@ -244,6 +253,7 @@ static void auxsort (lua_State *L, int l, int u) {
   }  /* repeat the routine for the larger one */
 }
 
+// OFFSET: 0x00852120
 static int sort (lua_State *L) {
   int n = aux_getn(L, 1);
   luaL_checkstack(L, 40, "");  /* assume array is smaller than 2^40 */
@@ -271,6 +281,7 @@ static const luaL_Reg tab_funcs[] = {
 };
 
 
+// OFFSET: 0x008521F0
 LUALIB_API int luaopen_table (lua_State *L) {
   luaL_register(L, LUA_TABLIBNAME, tab_funcs);
   return 1;

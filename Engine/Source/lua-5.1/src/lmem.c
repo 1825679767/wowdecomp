@@ -43,6 +43,7 @@
 #define MINSIZEARRAY	4
 
 
+// OFFSET: 0x0085D740
 void *luaM_growaux_ (lua_State *L, void *block, int *size, size_t size_elems,
                      int limit, const char *errormsg) {
   void *newblock;
@@ -73,6 +74,7 @@ void *luaM_toobig (lua_State *L) {
 /*
 ** generic allocation routine.
 */
+// OFFSET: 0x0085D6F0
 void *luaM_realloc_ (lua_State *L, void *block, size_t osize, size_t nsize) {
   global_State *g = G(L);
   lua_assert((osize == 0) == (block == NULL));

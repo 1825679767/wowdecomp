@@ -66,6 +66,7 @@ static void removeentry (Node *n) {
 }
 
 
+// OFFSET: 0x0085A7D0
 static void reallymarkobject (global_State *g, GCObject *o) {
   lua_assert(iswhite(o) && !isdead(g, o));
   white2gray(o);
@@ -125,6 +126,7 @@ static void marktmu (global_State *g) {
 
 
 /* move `dead' udata that need finalization to list `tmudata' */
+// OFFSET: 0x0085A8B0
 size_t luaC_separateudata (lua_State *L, int all) {
   global_State *g = G(L);
   size_t deadmem = 0;
@@ -155,6 +157,7 @@ size_t luaC_separateudata (lua_State *L, int all) {
 }
 
 
+// OFFSET: 0x0085A960
 static int traversetable (global_State *g, Table *h) {
   int i;
   int weakkey = 0;
@@ -200,6 +203,7 @@ static int traversetable (global_State *g, Table *h) {
 ** All marks are conditional because a GC may happen while the
 ** prototype is still being created
 */
+// OFFSET: 0x0085AB10
 static void traverseproto (global_State *g, Proto *f) {
   int i;
   if (f->source) stringmark(f->source);
@@ -221,6 +225,7 @@ static void traverseproto (global_State *g, Proto *f) {
 
 
 
+// OFFSET: 0x0085ABE0
 static void traverseclosure (global_State *g, Closure *cl) {
   markobject(g, cl->c.env);
   if (cl->c.isC) {
@@ -253,6 +258,7 @@ static void checkstacksizes (lua_State *L, StkId max) {
 }
 
 
+// OFFSET: 0x0085AC90
 static void traversestack (global_State *g, lua_State *l) {
   StkId o, lim;
   CallInfo *ci;
@@ -274,6 +280,7 @@ static void traversestack (global_State *g, lua_State *l) {
 ** traverse one gray object, turning it to black.
 ** Returns `quantity' traversed.
 */
+// OFFSET: 0x0085AD80
 static l_mem propagatemark (global_State *g) {
   GCObject *o = g->gray;
   lua_assert(isgray(o));
@@ -348,6 +355,7 @@ static int iscleared (const TValue *o, int iskey) {
 /*
 ** clear collected entries from weaktables
 */
+// OFFSET: 0x0085AE80
 static void cleartable (GCObject *l) {
   while (l) {
     Table *h = gco2h(l);
@@ -375,6 +383,7 @@ static void cleartable (GCObject *l) {
 }
 
 
+// OFFSET: 0x0085AF90
 static void freeobj (lua_State *L, GCObject *o) {
   switch (o->gch.tt) {
     case LUA_TPROTO: luaF_freeproto(L, gco2p(o)); break;
@@ -404,6 +413,7 @@ static void freeobj (lua_State *L, GCObject *o) {
 #define sweepwholelist(L,p)	sweeplist(L,p,MAX_LUMEM)
 
 
+// OFFSET: 0x0085B200
 static GCObject **sweeplist (lua_State *L, GCObject **p, lu_mem count) {
   GCObject *curr;
   global_State *g = G(L);
@@ -428,6 +438,7 @@ static GCObject **sweeplist (lua_State *L, GCObject **p, lu_mem count) {
 }
 
 
+// OFFSET: 0x0085B290
 static void checkSizes (lua_State *L) {
   global_State *g = G(L);
   /* check size of string hash */
@@ -442,6 +453,7 @@ static void checkSizes (lua_State *L) {
 }
 
 
+// OFFSET: 0x0085B300
 static void GCTM (lua_State *L) {
   global_State *g = G(L);
   GCObject *o = g->tmudata->gch.next;  /* get first element */
@@ -474,12 +486,14 @@ static void GCTM (lua_State *L) {
 /*
 ** Call all GC tag methods
 */
+// OFFSET: 0x0085B410
 void luaC_callGCTM (lua_State *L) {
   while (G(L)->tmudata)
     GCTM(L);
 }
 
 
+// OFFSET: 0x0085B440
 void luaC_freeall (lua_State *L) {
   global_State *g = G(L);
   int i;
@@ -490,6 +504,7 @@ void luaC_freeall (lua_State *L) {
 }
 
 
+// OFFSET: 0x0085B660
 static void markmt (global_State *g) {
   int i;
   for (i=0; i<NUM_TAGS; i++)
@@ -498,6 +513,7 @@ static void markmt (global_State *g) {
 
 
 /* mark root set */
+// OFFSET: 0x0085B6A0
 static void markroot (lua_State *L) {
   global_State *g = G(L);
   g->gray = NULL;
@@ -512,6 +528,7 @@ static void markroot (lua_State *L) {
 }
 
 
+// OFFSET: 0x0085B710
 static void remarkupvals (global_State *g) {
   UpVal *uv;
   for (uv = g->uvhead.u.l.next; uv != &g->uvhead; uv = uv->u.l.next) {
@@ -522,6 +539,7 @@ static void remarkupvals (global_State *g) {
 }
 
 
+// OFFSET: 0x0085B750
 static void atomic (lua_State *L) {
   global_State *g = G(L);
   size_t udsize;  /* total size of userdata to be finalized */
@@ -553,6 +571,7 @@ static void atomic (lua_State *L) {
 }
 
 
+// OFFSET: 0x0085B850
 static l_mem singlestep (lua_State *L) {
   global_State *g = G(L);
   /*lua_checkmemory(L);*/
@@ -607,6 +626,7 @@ static l_mem singlestep (lua_State *L) {
 }
 
 
+// OFFSET: 0x0085B950
 void luaC_step (lua_State *L) {
   global_State *g = G(L);
   l_mem lim = (GCSTEPSIZE/100) * g->gcstepmul;
@@ -633,6 +653,7 @@ void luaC_step (lua_State *L) {
 }
 
 
+// OFFSET: 0x0085B9E0
 void luaC_fullgc (lua_State *L) {
   global_State *g = G(L);
   if (g->gcstate <= GCSpropagate) {
@@ -659,6 +680,7 @@ void luaC_fullgc (lua_State *L) {
 }
 
 
+// OFFSET: 0x0085BA50
 void luaC_barrierf (lua_State *L, GCObject *o, GCObject *v) {
   global_State *g = G(L);
   lua_assert(isblack(o) && iswhite(v) && !isdead(g, v) && !isdead(g, o));
@@ -672,6 +694,7 @@ void luaC_barrierf (lua_State *L, GCObject *o, GCObject *v) {
 }
 
 
+// OFFSET: 0x0085BA90
 void luaC_barrierback (lua_State *L, Table *t) {
   global_State *g = G(L);
   GCObject *o = obj2gco(t);
@@ -683,6 +706,7 @@ void luaC_barrierback (lua_State *L, Table *t) {
 }
 
 
+// OFFSET: 0x0085BAB0
 void luaC_link (lua_State *L, GCObject *o, lu_byte tt) {
   global_State *g = G(L);
   o->gch.next = g->rootgc;
@@ -692,6 +716,7 @@ void luaC_link (lua_State *L, GCObject *o, lu_byte tt) {
 }
 
 
+// OFFSET: 0x0085BB00
 void luaC_linkupval (lua_State *L, UpVal *uv) {
   global_State *g = G(L);
   GCObject *o = obj2gco(uv);

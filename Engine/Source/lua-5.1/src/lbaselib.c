@@ -50,6 +50,7 @@ static int luaB_print (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854100
 static int luaB_tonumber (lua_State *L) {
   int base = luaL_optint(L, 2, 10);
   if (base == 10) {  /* standard conversion */
@@ -78,6 +79,7 @@ static int luaB_tonumber (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854210
 static int luaB_error (lua_State *L) {
   int level = luaL_optint(L, 2, 1);
   lua_settop(L, 1);
@@ -90,6 +92,7 @@ static int luaB_error (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854270
 static int luaB_getmetatable (lua_State *L) {
   luaL_checkany(L, 1);
   if (!lua_getmetatable(L, 1)) {
@@ -101,6 +104,7 @@ static int luaB_getmetatable (lua_State *L) {
 }
 
 
+// OFFSET: 0x008542C0
 static int luaB_setmetatable (lua_State *L) {
   int t = lua_type(L, 2);
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -114,6 +118,7 @@ static int luaB_setmetatable (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854340
 static void getfunc (lua_State *L) {
   if (lua_isfunction(L, 1)) lua_pushvalue(L, 1);
   else {
@@ -130,6 +135,7 @@ static void getfunc (lua_State *L) {
 }
 
 
+// OFFSET: 0x008543E0
 static int luaB_getfenv (lua_State *L) {
   getfunc(L);
   if (lua_iscfunction(L, -1))  /* is a C function? */
@@ -140,6 +146,7 @@ static int luaB_getfenv (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854430
 static int luaB_setfenv (lua_State *L) {
   luaL_checktype(L, 2, LUA_TTABLE);
   getfunc(L);
@@ -158,6 +165,7 @@ static int luaB_setfenv (lua_State *L) {
 }
 
 
+// OFFSET: 0x008544D0
 static int luaB_rawequal (lua_State *L) {
   luaL_checkany(L, 1);
   luaL_checkany(L, 2);
@@ -166,6 +174,7 @@ static int luaB_rawequal (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854510
 static int luaB_rawget (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checkany(L, 2);
@@ -174,6 +183,7 @@ static int luaB_rawget (lua_State *L) {
   return 1;
 }
 
+// OFFSET: 0x00854550
 static int luaB_rawset (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   luaL_checkany(L, 2);
@@ -184,12 +194,14 @@ static int luaB_rawset (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854590
 static int luaB_gcinfo (lua_State *L) {
   lua_pushinteger(L, lua_getgccount(L));
   return 1;
 }
 
 
+// OFFSET: 0x008545C0
 static int luaB_collectgarbage (lua_State *L) {
   static const char *const opts[] = {"stop", "restart", "collect",
     "count", "step", "setpause", "setstepmul", NULL};
@@ -216,6 +228,7 @@ static int luaB_collectgarbage (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854660
 static int luaB_type (lua_State *L) {
   luaL_checkany(L, 1);
   lua_pushstring(L, luaL_typename(L, 1));
@@ -223,6 +236,7 @@ static int luaB_type (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854690
 static int luaB_next (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   lua_settop(L, 2);  /* create a 2nd argument if there isn't one */
@@ -235,6 +249,7 @@ static int luaB_next (lua_State *L) {
 }
 
 
+// OFFSET: 0x008546E0
 static int luaB_pairs (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   lua_pushvalue(L, lua_upvalueindex(1));  /* return generator, */
@@ -244,6 +259,7 @@ static int luaB_pairs (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854720
 static int ipairsaux (lua_State *L) {
   int i = luaL_checkint(L, 2);
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -254,6 +270,7 @@ static int ipairsaux (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854770
 static int luaB_ipairs (lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   lua_pushvalue(L, lua_upvalueindex(1));  /* return generator, */
@@ -274,6 +291,7 @@ static int load_aux (lua_State *L, int status) {
 }
 
 
+// OFFSET: 0x008547B0
 static int luaB_loadstring (lua_State *L) {
   size_t l;
   const char *s = luaL_checklstring(L, 1, &l);
@@ -331,6 +349,7 @@ static int luaB_dofile (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854810
 static int luaB_assert (lua_State *L) {
   luaL_checkany(L, 1);
   if (!lua_toboolean(L, 1))
@@ -339,6 +358,7 @@ static int luaB_assert (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854860
 static int luaB_unpack (lua_State *L) {
   int i, e, n;
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -353,6 +373,7 @@ static int luaB_unpack (lua_State *L) {
 }
 
 
+// OFFSET: 0x008548F0
 static int luaB_select (lua_State *L) {
   int n = lua_gettop(L);
   if (lua_type(L, 1) == LUA_TSTRING && *lua_tostring(L, 1) == '#') {
@@ -369,6 +390,7 @@ static int luaB_select (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854980
 static int luaB_pcall (lua_State *L) {
   int status;
   luaL_checkany(L, 1);
@@ -379,6 +401,7 @@ static int luaB_pcall (lua_State *L) {
 }
 
 
+// OFFSET: 0x008549D0
 static int luaB_xpcall (lua_State *L) {
   int status;
   luaL_checkany(L, 2);
@@ -391,6 +414,7 @@ static int luaB_xpcall (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854A20
 static int luaB_tostring (lua_State *L) {
   luaL_checkany(L, 1);
   if (luaL_callmeta(L, 1, "__tostring"))  /* is there a metafield? */
@@ -416,6 +440,7 @@ static int luaB_tostring (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854B20
 static int luaB_newproxy (lua_State *L) {
   lua_settop(L, 1);
   lua_newuserdata(L, 0);  /* create proxy */
@@ -477,6 +502,7 @@ static const luaL_Reg base_funcs[] = {
 ** =======================================================
 */
 
+// OFFSET: 0x00854C00
 static int auxresume (lua_State *L, lua_State *co, int narg) {
   int status;
   if (!lua_checkstack(co, narg))
@@ -501,6 +527,7 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
 }
 
 
+// OFFSET: 0x00854CB0
 static int luaB_coresume (lua_State *L) {
   lua_State *co = lua_tothread(L, 1);
   int r;
@@ -519,6 +546,7 @@ static int luaB_coresume (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854D30
 static int luaB_auxwrap (lua_State *L) {
   lua_State *co = lua_tothread(L, lua_upvalueindex(1));
   int r = auxresume(L, co, lua_gettop(L));
@@ -534,6 +562,7 @@ static int luaB_auxwrap (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854DA0
 static int luaB_cocreate (lua_State *L) {
   lua_State *NL = lua_newthread(L);
   luaL_argcheck(L, lua_isfunction(L, 1) && !lua_iscfunction(L, 1), 1,
@@ -544,6 +573,7 @@ static int luaB_cocreate (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854E00
 static int luaB_cowrap (lua_State *L) {
   luaB_cocreate(L);
   lua_pushcclosure(L, luaB_auxwrap, 1);
@@ -551,11 +581,13 @@ static int luaB_cowrap (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854E30
 static int luaB_yield (lua_State *L) {
   return lua_yield(L, lua_gettop(L));
 }
 
 
+// OFFSET: 0x00854E50
 static int luaB_costatus (lua_State *L) {
   lua_State *co = lua_tothread(L, 1);
   luaL_argcheck(L, co, 1, "coroutine expected");
@@ -584,6 +616,7 @@ static int luaB_costatus (lua_State *L) {
 }
 
 
+// OFFSET: 0x00854F20
 static int luaB_corunning (lua_State *L) {
   if (lua_pushthread(L))
     return 0;  /* main thread is not a coroutine */
@@ -613,6 +646,7 @@ static void auxopen (lua_State *L, const char *name,
 }
 
 
+// OFFSET: 0x00854F40
 static void base_open (lua_State *L) {
   /* set global _G */
   lua_pushvalue(L, LUA_GLOBALSINDEX);
@@ -635,6 +669,7 @@ static void base_open (lua_State *L) {
 }
 
 
+// OFFSET: 0x00855060
 LUALIB_API int luaopen_base (lua_State *L) {
   base_open(L);
   luaL_register(L, LUA_COLIBNAME, co_funcs);

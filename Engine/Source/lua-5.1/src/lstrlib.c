@@ -25,6 +25,7 @@
 
 
 
+// OFFSET: 0x00852400
 static int str_len (lua_State *L) {
   size_t l;
   luaL_checklstring(L, 1, &l);
@@ -39,6 +40,7 @@ static ptrdiff_t posrelat (ptrdiff_t pos, size_t len) {
 }
 
 
+// OFFSET: 0x00852430
 static int str_sub (lua_State *L) {
   size_t l;
   const char *s = luaL_checklstring(L, 1, &l);
@@ -53,6 +55,7 @@ static int str_sub (lua_State *L) {
 }
 
 
+// OFFSET: 0x008524E0
 static int str_reverse (lua_State *L) {
   size_t l;
   luaL_Buffer b;
@@ -64,6 +67,7 @@ static int str_reverse (lua_State *L) {
 }
 
 
+// OFFSET: 0x00852580
 static int str_lower (lua_State *L) {
   size_t l;
   size_t i;
@@ -77,6 +81,7 @@ static int str_lower (lua_State *L) {
 }
 
 
+// OFFSET: 0x00852680
 static int str_upper (lua_State *L) {
   size_t l;
   size_t i;
@@ -89,6 +94,7 @@ static int str_upper (lua_State *L) {
   return 1;
 }
 
+// OFFSET: 0x00852780
 static int str_rep (lua_State *L) {
   size_t l;
   luaL_Buffer b;
@@ -102,6 +108,7 @@ static int str_rep (lua_State *L) {
 }
 
 
+// OFFSET: 0x00852800
 static int str_byte (lua_State *L) {
   size_t l;
   const char *s = luaL_checklstring(L, 1, &l);
@@ -121,6 +128,7 @@ static int str_byte (lua_State *L) {
 }
 
 
+// OFFSET: 0x008528D0
 static int str_char (lua_State *L) {
   int n = lua_gettop(L);  /* number of arguments */
   int i;
@@ -136,6 +144,7 @@ static int str_char (lua_State *L) {
 }
 
 
+// OFFSET: 0x00852980
 static int writer (lua_State *L, const void* b, size_t size, void* B) {
   (void)L;
   luaL_addlstring((luaL_Buffer*) B, (const char *)b, size);
@@ -143,6 +152,7 @@ static int writer (lua_State *L, const void* b, size_t size, void* B) {
 }
 
 
+// OFFSET: 0x008529A0
 static int str_dump (lua_State *L) {
   luaL_Buffer b;
   luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -198,6 +208,7 @@ static int capture_to_close (MatchState *ms) {
 }
 
 
+// OFFSET: 0x00852A10
 static const char *classend (MatchState *ms, const char *p) {
   switch (*p++) {
     case L_ESC: {
@@ -222,6 +233,7 @@ static const char *classend (MatchState *ms, const char *p) {
 }
 
 
+// OFFSET: 0x00852A80
 static int match_class (int c, int cl) {
   int res;
   switch (tolower(cl)) {
@@ -241,6 +253,7 @@ static int match_class (int c, int cl) {
 }
 
 
+// OFFSET: 0x00852B90
 static int matchbracketclass (int c, const char *p, const char *ec) {
   int sig = 1;
   if (*(p+1) == '^') {
@@ -277,6 +290,7 @@ static int singlematch (int c, const char *p, const char *ep) {
 static const char *match (MatchState *ms, const char *s, const char *p);
 
 
+// OFFSET: 0x00852C30
 static const char *matchbalance (MatchState *ms, const char *s,
                                    const char *p) {
   if (*p == 0 || *(p+1) == 0)
@@ -297,6 +311,7 @@ static const char *matchbalance (MatchState *ms, const char *s,
 }
 
 
+// OFFSET: 0x00852CA0
 static const char *max_expand (MatchState *ms, const char *s,
                                  const char *p, const char *ep) {
   ptrdiff_t i = 0;  /* counts maximum expand for item */
@@ -312,6 +327,7 @@ static const char *max_expand (MatchState *ms, const char *s,
 }
 
 
+// OFFSET: 0x00852D40
 static const char *min_expand (MatchState *ms, const char *s,
                                  const char *p, const char *ep) {
   for (;;) {
@@ -325,6 +341,7 @@ static const char *min_expand (MatchState *ms, const char *s,
 }
 
 
+// OFFSET: 0x00852DD0
 static const char *start_capture (MatchState *ms, const char *s,
                                     const char *p, int what) {
   const char *res;
@@ -339,6 +356,7 @@ static const char *start_capture (MatchState *ms, const char *s,
 }
 
 
+// OFFSET: 0x00852E20
 static const char *end_capture (MatchState *ms, const char *s,
                                   const char *p) {
   int l = capture_to_close(ms);
@@ -350,6 +368,7 @@ static const char *end_capture (MatchState *ms, const char *s,
 }
 
 
+// OFFSET: 0x00852E80
 static const char *match_capture (MatchState *ms, const char *s, int l) {
   size_t len;
   l = check_capture(ms, l);
@@ -361,6 +380,7 @@ static const char *match_capture (MatchState *ms, const char *s, int l) {
 }
 
 
+// OFFSET: 0x00852F60
 static const char *match (MatchState *ms, const char *s, const char *p) {
   init: /* using goto's to optimize tail recursion */
   switch (*p) {
@@ -440,6 +460,7 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
 
 
 
+// OFFSET: 0x00853240
 static const char *lmemfind (const char *s1, size_t l1,
                                const char *s2, size_t l2) {
   if (l2 == 0) return s1;  /* empty strings are everywhere */
@@ -462,6 +483,7 @@ static const char *lmemfind (const char *s1, size_t l1,
 }
 
 
+// OFFSET: 0x00853340
 static void push_onecapture (MatchState *ms, int i, const char *s,
                                                     const char *e) {
   if (i >= ms->level) {
@@ -481,6 +503,7 @@ static void push_onecapture (MatchState *ms, int i, const char *s,
 }
 
 
+// OFFSET: 0x008533C0
 static int push_captures (MatchState *ms, const char *s, const char *e) {
   int i;
   int nlevels = (ms->level == 0 && s) ? 1 : ms->level;
@@ -491,6 +514,7 @@ static int push_captures (MatchState *ms, const char *s, const char *e) {
 }
 
 
+// OFFSET: 0x00853410
 static int str_find_aux (lua_State *L, int find) {
   size_t l1, l2;
   const char *s = luaL_checklstring(L, 1, &l1);
@@ -534,16 +558,19 @@ static int str_find_aux (lua_State *L, int find) {
 }
 
 
+// OFFSET: 0x008535B0
 static int str_find (lua_State *L) {
   return str_find_aux(L, 1);
 }
 
 
+// OFFSET: 0x008535D0
 static int str_match (lua_State *L) {
   return str_find_aux(L, 0);
 }
 
 
+// OFFSET: 0x008535F0
 static int gmatch_aux (lua_State *L) {
   MatchState ms;
   size_t ls;
@@ -570,6 +597,7 @@ static int gmatch_aux (lua_State *L) {
 }
 
 
+// OFFSET: 0x00853710
 static int gmatch (lua_State *L) {
   luaL_checkstring(L, 1);
   luaL_checkstring(L, 2);
@@ -580,12 +608,14 @@ static int gmatch (lua_State *L) {
 }
 
 
+// OFFSET: 0x00853760
 static int gfind_nodef (lua_State *L) {
   return luaL_error(L, LUA_QL("string.gfind") " was renamed to "
                        LUA_QL("string.gmatch"));
 }
 
 
+// OFFSET: 0x00853780
 static void add_s (MatchState *ms, luaL_Buffer *b, const char *s,
                                                    const char *e) {
   size_t l, i;
@@ -608,6 +638,7 @@ static void add_s (MatchState *ms, luaL_Buffer *b, const char *s,
 }
 
 
+// OFFSET: 0x00853860
 static void add_value (MatchState *ms, luaL_Buffer *b, const char *s,
                                                        const char *e) {
   lua_State *L = ms->L;
@@ -644,6 +675,7 @@ static void add_value (MatchState *ms, luaL_Buffer *b, const char *s,
 }
 
 
+// OFFSET: 0x00853980
 static int str_gsub (lua_State *L) {
   size_t srcl;
   const char *src = luaL_checklstring(L, 1, &srcl);
@@ -692,6 +724,7 @@ static int str_gsub (lua_State *L) {
 #define MAX_FORMAT	(sizeof(FLAGS) + sizeof(LUA_INTFRMLEN) + 10)
 
 
+// OFFSET: 0x00853AF0
 static void addquoted (lua_State *L, luaL_Buffer *b, int arg) {
   size_t l;
   const char *s = luaL_checklstring(L, arg, &l);
@@ -752,6 +785,7 @@ static void addintlen (char *form) {
 }
 
 
+// OFFSET: 0x00853C50
 static int str_format (lua_State *L) {
   int arg = 1;
   size_t sfl;
@@ -841,6 +875,7 @@ static const luaL_Reg strlib[] = {
 };
 
 
+// OFFSET: 0x00854070
 static void createmetatable (lua_State *L) {
   lua_createtable(L, 0, 1);  /* create metatable for strings */
   lua_pushliteral(L, "");  /* dummy string */
@@ -856,6 +891,7 @@ static void createmetatable (lua_State *L) {
 /*
 ** Open string library
 */
+// OFFSET: 0x008540D0
 LUALIB_API int luaopen_string (lua_State *L) {
   luaL_register(L, LUA_STRLIBNAME, strlib);
 #if defined(LUA_COMPAT_GFIND)

@@ -20,6 +20,7 @@
 
 
 
+// OFFSET: 0x0085CC10
 Closure *luaF_newCclosure (lua_State *L, int nelems, Table *e) {
   Closure *c = cast(Closure *, luaM_malloc(L, sizeCclosure(nelems)));
   luaC_link(L, obj2gco(c), LUA_TFUNCTION);
@@ -30,6 +31,7 @@ Closure *luaF_newCclosure (lua_State *L, int nelems, Table *e) {
 }
 
 
+// OFFSET: 0x0085CC90
 Closure *luaF_newLclosure (lua_State *L, int nelems, Table *e) {
   Closure *c = cast(Closure *, luaM_malloc(L, sizeLclosure(nelems)));
   luaC_link(L, obj2gco(c), LUA_TFUNCTION);
@@ -41,6 +43,7 @@ Closure *luaF_newLclosure (lua_State *L, int nelems, Table *e) {
 }
 
 
+// OFFSET: 0x0085CD40
 UpVal *luaF_newupval (lua_State *L) {
   UpVal *uv = luaM_new(L, UpVal);
   luaC_link(L, obj2gco(uv), LUA_TUPVAL);
@@ -50,6 +53,7 @@ UpVal *luaF_newupval (lua_State *L) {
 }
 
 
+// OFFSET: 0x0085CD80
 UpVal *luaF_findupval (lua_State *L, StkId level) {
   global_State *g = G(L);
   GCObject **pp = &L->openupval;
@@ -86,6 +90,7 @@ static void unlinkupval (UpVal *uv) {
 }
 
 
+// OFFSET: 0x0085CE30
 void luaF_freeupval (lua_State *L, UpVal *uv) {
   if (uv->v != &uv->u.value)  /* is it open? */
     unlinkupval(uv);  /* remove from open list */
@@ -93,6 +98,7 @@ void luaF_freeupval (lua_State *L, UpVal *uv) {
 }
 
 
+// OFFSET: 0x0085CE70
 void luaF_close (lua_State *L, StkId level) {
   UpVal *uv;
   global_State *g = G(L);
@@ -112,6 +118,7 @@ void luaF_close (lua_State *L, StkId level) {
 }
 
 
+// OFFSET: 0x0085CF40
 Proto *luaF_newproto (lua_State *L) {
   Proto *f = luaM_new(L, Proto);
   luaC_link(L, obj2gco(f), LUA_TPROTO);
@@ -138,6 +145,7 @@ Proto *luaF_newproto (lua_State *L) {
 }
 
 
+// OFFSET: 0x0085CFB0
 void luaF_freeproto (lua_State *L, Proto *f) {
   luaM_freearray(L, f->code, f->sizecode, Instruction);
   luaM_freearray(L, f->p, f->sizep, Proto *);
@@ -149,6 +157,7 @@ void luaF_freeproto (lua_State *L, Proto *f) {
 }
 
 
+// OFFSET: 0x0085D050
 void luaF_freeclosure (lua_State *L, Closure *c) {
   int size = (c->c.isC) ? sizeCclosure(c->c.nupvalues) :
                           sizeLclosure(c->l.nupvalues);
@@ -160,6 +169,7 @@ void luaF_freeclosure (lua_State *L, Closure *c) {
 ** Look for n-th local variable at line `line' in function `func'.
 ** Returns NULL if not found.
 */
+// OFFSET: 0x0085D0A0
 const char *luaF_getlocalname (const Proto *f, int local_number, int pc) {
   int i;
   for (i = 0; i<f->sizelocvars && f->locvars[i].startpc <= pc; i++) {

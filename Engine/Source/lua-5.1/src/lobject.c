@@ -32,6 +32,7 @@ const TValue luaO_nilobject_ = {{NULL}, LUA_TNIL};
 ** (eeeeexxx), where the real value is (1xxx) * 2^(eeeee - 1) if
 ** eeeee != 0 and (xxx) otherwise.
 */
+// OFFSET: 0x0084D390
 int luaO_int2fb (unsigned int x) {
   int e = 0;  /* expoent */
   while (x >= 16) {
@@ -44,6 +45,7 @@ int luaO_int2fb (unsigned int x) {
 
 
 /* converts back */
+// OFFSET: 0x0084D3D0
 int luaO_fb2int (int x) {
   int e = (x >> 3) & 31;
   if (e == 0) return x;
@@ -51,6 +53,7 @@ int luaO_fb2int (int x) {
 }
 
 
+// OFFSET: 0x0084D3F0
 int luaO_log2 (unsigned int x) {
   static const lu_byte log_2[256] = {
     0,1,2,2,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
@@ -69,6 +72,7 @@ int luaO_log2 (unsigned int x) {
 }
 
 
+// OFFSET: 0x0084D420
 int luaO_rawequalObj (const TValue *t1, const TValue *t2) {
   if (ttype(t1) != ttype(t2)) return 0;
   else switch (ttype(t1)) {
@@ -87,6 +91,7 @@ int luaO_rawequalObj (const TValue *t1, const TValue *t2) {
 }
 
 
+// OFFSET: 0x0084D480
 int luaO_str2d (const char *s, lua_Number *result) {
   char *endptr;
   *result = lua_str2number(s, &endptr);
@@ -101,6 +106,7 @@ int luaO_str2d (const char *s, lua_Number *result) {
 
 
 
+// OFFSET: 0x0084D520
 static void pushstr (lua_State *L, const char *str) {
   setsvalue2s(L, L->top, luaS_new(L, str));
   incr_top(L);
@@ -108,6 +114,7 @@ static void pushstr (lua_State *L, const char *str) {
 
 
 /* this function handles only `%d', `%c', %f, %p, and `%s' formats */
+// OFFSET: 0x0084D580
 const char *luaO_pushvfstring (lua_State *L, const char *fmt, va_list argp) {
   int n = 1;
   pushstr(L, "");
@@ -169,6 +176,7 @@ const char *luaO_pushvfstring (lua_State *L, const char *fmt, va_list argp) {
 }
 
 
+// OFFSET: 0x0084D840
 const char *luaO_pushfstring (lua_State *L, const char *fmt, ...) {
   const char *msg;
   va_list argp;
@@ -179,6 +187,7 @@ const char *luaO_pushfstring (lua_State *L, const char *fmt, ...) {
 }
 
 
+// OFFSET: 0x0084D860
 void luaO_chunkid (char *out, const char *source, size_t bufflen) {
   if (*source == '=') {
     strncpy(out, source+1, bufflen);  /* remove first char */
