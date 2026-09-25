@@ -21,7 +21,6 @@
 #ifndef FMOD_STATICFORPLUGINS
 #include "fmod_dsp_distortion.h"
 #include "fmod_dsp_echo.h"
-#include "fmod_dsp_delay.h"
 #include "fmod_dsp_fft.h"
 #include "fmod_dsp_filter.h"
 #include "fmod_dsp_flange.h"
@@ -37,7 +36,6 @@
 #include "fmod_dsp_parameq.h"
 #include "fmod_dsp_pitchshift.h"
 #include "fmod_dsp_reverb.h"
-#include "fmod_dsp_tremolo.h"
 #endif
 
 #include "fmod_dsp_resampler.h"

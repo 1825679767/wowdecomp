@@ -184,7 +184,6 @@
 #define FMOD_SUPPORT_MPEG
 #define FMOD_SUPPORT_MPEG_LAYER2
 #define FMOD_SUPPORT_MPEG_LAYER3
-#define FMOD_SUPPORT_CELT
 #define FMOD_SUPPORT_OGGVORBIS
 /* #define FMOD_SUPPORT_TREMOR */
 #define FMOD_SUPPORT_PLAYLIST
@@ -210,8 +209,6 @@
 #define FMOD_SUPPORT_3DSOUND
 #define FMOD_SUPPORT_GETSPECTRUM
 #define FMOD_SUPPORT_MEMORYMANAGEMENT       /* Advice is to leave this on unless you really know why you want to remove this */
-#define FMOD_SUPPORT_DLMALLOC               /* Use Doug lea's memory manager instead of our own. */
-#define FMOD_SUPPORT_MEMORYTRACKER          /* Support memory tracking in debug/logging builds */
 #define FMOD_SUPPORT_NET
 #define FMOD_SUPPORT_FILE
 #define FMOD_SUPPORT_WAVWRITER
@@ -236,15 +233,6 @@
 #endif
 
 /* #define FMOD_SUPPORT_CMDLOG */
-#define FMOD_SUPPORT_PROFILE
-#ifdef FMOD_SUPPORT_PROFILE
-    #define FMOD_SUPPORT_PROFILE_DSP
-    #define FMOD_SUPPORT_PROFILE_DSP_VOLUMELEVELS
-    /* #define FMOD_SUPPORT_PROFILE_MEMORY */
-    #define FMOD_SUPPORT_PROFILE_CPU
-    #define FMOD_SUPPORT_PROFILE_CHANNEL
-    #define FMOD_SUPPORT_PROFILE_CODEC
-#endif
 
 #define FMOD_SUPPORT_SPEAKERMODE_RAW
 #define FMOD_SUPPORT_SPEAKERMODE_MONO
@@ -266,9 +254,7 @@
     #define FMOD_SUPPORT_LOWPASS_SIMPLE
     #define FMOD_SUPPORT_HIGHPASS
     #define FMOD_SUPPORT_ECHO
-    #define FMOD_SUPPORT_DELAY
     #define FMOD_SUPPORT_FLANGE
-    #define FMOD_SUPPORT_TREMOLO
     #define FMOD_SUPPORT_DISTORTION
     #define FMOD_SUPPORT_NORMALIZE
     #define FMOD_SUPPORT_PARAMEQ
@@ -373,9 +359,7 @@
         #define FMOD_SUPPORT_OPENAL
     #endif
     #define FMOD_SUPPORT_EAX
-    #define FMOD_SUPPORT_I3DL2
     #define FMOD_SUPPORT_PRAGMAPACK
-    #define FMOD_SUPPORT_NEURAL
 
     #undef FMOD_SUPPORT_CELT
 
@@ -392,11 +376,8 @@
     #define FMOD_SUPPORT_ASIO             /* Asio support */
     #define FMOD_SUPPORT_EAX
     /* #define FMOD_SUPPORT_I3DL2 */
-    #define FMOD_SUPPORT_VSTPLUGIN
-    #define FMOD_SUPPORT_WINAMPPLUGIN
     #define FMOD_SUPPORT_PRAGMAPACK
     #define FMOD_SUPPORT_SIMD
-    #define FMOD_SUPPORT_NEURAL
 
     #ifdef __MINGW32__
         #undef FMOD_SUPPORT_ASF
