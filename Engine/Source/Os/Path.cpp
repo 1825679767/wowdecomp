@@ -34,6 +34,52 @@ uint32_t OsPathGetRootChars(const char* path) {
     return length;
 }
 
+// VERIFY: 1756afaa auto
+// OFFSET: 0x0086BCA0
+uint32_t GetExecutablePathUTF8(char* path, uint32_t size) {
+    return GetModuleFileNameUTF8(nullptr, path, size);
+}
+
+// VERIFY: b2787fd1 auto
+// OFFSET: 0x0086BCC0
+char* IOsPathFindExtension(char* path, int32_t offset) {
+    char* extension = nullptr;
+
+    while (true) {
+        switch (*path) {
+            case '\0':
+                return extension ? extension : path;
+
+            case '.':
+                extension = path + offset;
+                path++;
+                break;
+
+            case '/':
+            case '\\':
+                extension = nullptr;
+                path++;
+                break;
+
+            default:
+                path++;
+                break;
+        }
+    }
+}
+
+// VERIFY: 0e83d15a auto
+// OFFSET: 0x0086BD60
+char* OsPathFindExtensionWithoutDot(char* path) {
+    return IOsPathFindExtension(path, 1);
+}
+
+// VERIFY: 57238f7e auto
+// OFFSET: 0x0086BD80
+void OsBuildFontFilePath(const char* fontName, char* path, uint32_t size) {
+    SStrPrintf(path, size, "%s\\%s", "Fonts", fontName);
+}
+
 // VERIFY: 8de68232 manual
 // OFFSET: 0x0086BE50
 void OsPathStripFilename(char* path) {
