@@ -13,5 +13,6 @@ if(WIN32)
     target_link_libraries(Os
         PUBLIC
             imm32
+            wininet
     )
 endif()
