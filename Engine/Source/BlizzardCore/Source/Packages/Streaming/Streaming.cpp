@@ -9,6 +9,12 @@ bool Blizzard::Streaming::s_streamingReady;
 // STATIC: 0x00B38181
 bool Blizzard::Streaming::s_isStreamingTrial;
 
+// VERIFY: 43a5806e auto
+// OFFSET: 0x00428000
+bool Blizzard::Streaming::IsStreamingMode() {
+    return Blizzard::Streaming::s_streamingReady;
+}
+
 // VERIFY: f236703c manual
 // OFFSET: 0x00428010
 bool CheckIfStreamingAndTrial() {

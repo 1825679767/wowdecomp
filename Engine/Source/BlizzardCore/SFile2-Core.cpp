@@ -115,6 +115,20 @@ int32_t STORMAPI SFile::EnableDirectAccess(uint32_t flags) {
     return 1;
 }
 
+// VERIFY: eb299239 auto
+// OFFSET: 0x00421850
+int32_t STORMAPI SFile::GetActualFileName(SFileImpl* file, char* buffer, uint32_t size) {
+    const char* name = static_cast<const char*>(file->unk_0010);
+
+    if (!name) {
+        name = file->m_name;
+    }
+
+    Blizzard::String::Copy(buffer, name, size);
+
+    return 1;
+}
+
 // VERIFY: 0594ecab auto
 // OFFSET: 0x00421880
 int32_t STORMAPI SFile::GetBasePath(char* path, uint32_t size) {
@@ -226,6 +240,16 @@ int32_t STORMAPI SFile::SetDataPathAlternate(const char* path) {
     }
 
     return 1;
+}
+
+// VERIFY: 3e9c3828 auto
+// OFFSET: 0x00422130
+int32_t SFile::IsStreamingMode() {
+    return Blizzard::Streaming::IsStreamingMode();
+}
+
+// VERIFY: 2e559d16 auto
+void STORMAPI SFile::SetFilePriority(SFileImpl* file, int32_t urgent, int32_t unused) {
 }
 
 // VERIFY: be859ae3 auto

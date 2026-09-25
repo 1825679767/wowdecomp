@@ -6,19 +6,20 @@
 #include "Engine/Source/Storm/H/stpl.h"
 
 class CAsyncObject;
-struct CAsyncQueue;
+class CAsyncQueue;
+class SFileImpl;
 
 class CAsyncObject {
     public:
-    /* 0000 */ void* m_file;
+    /* 0000 */ SFileImpl* m_file;
     /* 0004 */ void* m_buffer;
     /* 0008 */ uint32_t m_size;
     /* 000C */ void* m_userArg;
     /* 0010 */ void* m_userPostloadCallback;
     /* 0014 */ void* m_userPostUnloadCallback;
     /* 0018 */ CAsyncQueue* m_queue;
-    /* 001C */ void* unk_001C;
-    /* 0020 */ int8_t m_priority;
+    /* 001C */ uint32_t unk_001C;
+    /* 0020 */ uint8_t m_priority;
     /* 0021 */ int8_t m_isProcessed;
     /* 0022 */ int8_t m_isRead;
     /* 0023 */ int8_t m_isCurrent;

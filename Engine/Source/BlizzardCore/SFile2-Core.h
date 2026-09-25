@@ -69,12 +69,15 @@ class SFile {
     static void DisableSFileCheckDisk();
     static int32_t STORMAPI EnableDirectAccess(uint32_t flags);
     static int32_t STORMAPI FileExists(const char* name);
+    static int32_t STORMAPI FileIsLocal(SFileImpl* file, int32_t flags);
+    static int32_t STORMAPI GetActualFileName(SFileImpl* file, char* buffer, uint32_t size);
     static int32_t STORMAPI GetBasePath(char* path, uint32_t size);
     static const char* GetDataPath();
     static const char* GetErrorDetails();
     static int32_t Initialize();
     static int32_t IsStreamingMode();
     static int32_t STORMAPI LoadFile(const char* name, void** data, uint32_t* size, uint32_t extra, SOVERLAPPED* overlapped);
+    static int32_t STORMAPI MakeFileLocal(SFileImpl* file, int32_t priority, bool wait);
     static int32_t STORMAPI OpenArchive(const char* path, int32_t priority, uint32_t flags, SArchive** archive);
     static int32_t STORMAPI OpenEx(SArchive* archive, const char* name, uint32_t flags, SFileImpl** result);
     static int32_t STORMAPI OpenPathAsArchive(SArchive* archive, const char* path, int32_t priority, uint32_t flags, SArchive** result);
@@ -84,6 +87,7 @@ class SFile {
     static int32_t STORMAPI SetDataPath(const char* path);
     static int32_t STORMAPI SetDataPathAlternate(const char* path);
     static int32_t STORMAPI SetFilePointer(SFileImpl* file, int32_t distance, int32_t* distanceHigh, uint32_t method);
+    static void STORMAPI SetFilePriority(SFileImpl* file, int32_t urgent, int32_t unused);
     static int32_t STORMAPI Unload(void* data);
 
     /* 0000 */ uint8_t unk_0000[1];

@@ -110,6 +110,7 @@ CGxTex* TextureAllocGxTex(EGxTexTarget target, uint32_t width, uint32_t height, 
 int32_t TextureBuildAliasPath(char* buffer, const char* fileName);
 CTexture* TextureCacheGetTexture(char* fileName, char* extension, CGxTexFlags texFlags);
 CTexture* TextureCacheGetTexture(const CImVector& color);
+void TextureCacheUpdate();
 void TextureCacheNewTexture(CTexture* texture, CGxTexFlags texFlags);
 void TextureCacheNewTexture(CTexture* texture, const CImVector& color);
 uint32_t TextureCalcGxTexSize(EGxTexFormat format, uint32_t width, uint32_t height, EGxTexFilter filter);
