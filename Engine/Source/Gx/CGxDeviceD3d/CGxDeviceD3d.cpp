@@ -2460,12 +2460,12 @@ void CGxDeviceD3d::IReleaseD3dResources(int32_t freeTextures) {
     }
 }
 
-// VERIFY: 40e1c97b manual
+// VERIFY: 2f85a8b3 manual
 // OFFSET: 0x00690230
 int32_t CGxDeviceD3d::DeviceWM(EGxWM wm, uintptr_t param1, uintptr_t param2) {
     switch (wm) {
         case GxWM_Size:
-            if (param2 == SIZE_MINIMIZED || param2 == SIZE_MAXHIDE) {
+            if (param2 == 1 || param2 == 2) {
                 this->m_windowVisible = 0;
                 break;
             }
@@ -2981,4 +2981,194 @@ void CGxDeviceD3d::SceneClear(uint32_t mask, CImVector color) {
 void CGxDeviceD3d::DeviceSetBaseMipLevel(uint32_t level) {
     this->ITexForceRecreation(1);
     CGxDevice::DeviceSetBaseMipLevel(level);
+}
+
+// VERIFY: bc1bdcba manual
+// OFFSET: 0x006A0360
+LRESULT CALLBACK CGxDeviceD3d::WindowProcD3d(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
+    CGxDeviceD3d* device = reinterpret_cast<CGxDeviceD3d*>(GetWindowLongPtrA(hwnd, GWLP_USERDATA));
+
+    switch (message) {
+        case WM_CREATE:
+            SetWindowLongPtrA(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(reinterpret_cast<CREATESTRUCTA*>(lparam)->lpCreateParams));
+            return 0;
+
+        case WM_DESTROY:
+            device->DeviceWM(GxWM_Destroy, 0, 0);
+            return 0;
+
+        case WM_SIZE: {
+            CRect rect;
+            rect.minY = 0.0f;
+            rect.minX = 0.0f;
+            rect.maxY = HIWORD(lparam);
+            rect.maxX = LOWORD(lparam);
+
+            uint32_t resizeType = 0;
+
+            if (wparam == SIZE_MINIMIZED) {
+                resizeType = 1;
+            } else if (wparam == SIZE_MAXHIDE) {
+                resizeType = 2;
+            }
+
+            device->DeviceWM(GxWM_Size, reinterpret_cast<uintptr_t>(&rect), resizeType);
+            break;
+        }
+
+        case WM_ACTIVATE:
+            if (LOWORD(wparam) == WA_INACTIVE) {
+                if (!device->IDevIsWindowed()) {
+                    CRect rect;
+                    rect.minY = 0.0f;
+                    rect.minX = 0.0f;
+                    rect.maxY = 0.0f;
+                    rect.maxX = 0.0f;
+                    device->DeviceWM(GxWM_Size, reinterpret_cast<uintptr_t>(&rect), 1);
+                }
+            } else if (LOWORD(wparam) == WA_ACTIVE && !device->IDevIsWindowed()) {
+                CRect rect;
+                rect.minY = 0.0f;
+                rect.minX = 0.0f;
+                rect.maxY = 0.0f;
+                rect.maxX = 0.0f;
+                GxCapsWindowSizeInScreenCoords(rect);
+                device->DeviceWM(GxWM_Size, reinterpret_cast<uintptr_t>(&rect), 3);
+            }
+
+            break;
+
+        case WM_SETFOCUS:
+            device->DeviceWM(GxWM_SetFocus, 0, 0);
+            return 0;
+
+        case WM_KILLFOCUS:
+            device->DeviceWM(GxWM_KillFocus, 0, 0);
+            return 0;
+
+        case WM_PAINT: {
+            PAINTSTRUCT paint;
+            BeginPaint(hwnd, &paint);
+            EndPaint(hwnd, &paint);
+            return 0;
+        }
+
+        case WM_ERASEBKGND:
+            return 0;
+
+        case WM_SETCURSOR:
+            if (!device) {
+                return DefWindowProcA(hwnd, message, wparam, lparam);
+            }
+
+            if (device->m_d3dDevice && LOWORD(lparam) == HTCLIENT) {
+                SetCursor(nullptr);
+                device->m_d3dDevice->ShowCursor(device->m_cursorVisible && device->m_hwCursor);
+                return 1;
+            }
+
+            break;
+
+        case WM_DISPLAYCHANGE:
+            if (!device->IDevIsWindowed()) {
+                CRect rect;
+                rect.minY = 0.0f;
+                rect.minX = 0.0f;
+                rect.maxY = HIWORD(lparam);
+                rect.maxX = LOWORD(lparam);
+                device->DeviceWM(GxWM_DisplayChange, reinterpret_cast<uintptr_t>(&rect), 0);
+            }
+
+            break;
+
+        case WM_SYSCOMMAND:
+            if (wparam == SC_SCREENSAVE || wparam == SC_MONITORPOWER) {
+                return 0;
+            }
+
+            break;
+
+        case WM_SIZING: {
+            RECT* sizingRect = reinterpret_cast<RECT*>(lparam);
+
+            CiRect rect;
+            rect.minX = sizingRect->left;
+            rect.minY = sizingRect->top;
+            rect.maxX = sizingRect->right;
+            rect.maxY = sizingRect->bottom;
+
+            if (rect.maxX - rect.minX <= 0 || rect.maxY - rect.minY <= 0) {
+                return 0;
+            }
+
+            switch (wparam) {
+                case WMSZ_LEFT:
+                    CGxDevice::ClampRectLeft(rect);
+                    CGxDevice::ClampRectTopByAspect(rect);
+                    break;
+
+                case WMSZ_RIGHT:
+                    CGxDevice::ClampRectRight(rect);
+                    CGxDevice::ClampRectBottomByAspect(rect);
+                    break;
+
+                case WMSZ_TOP:
+                    CGxDevice::ClampRectTop(rect);
+                    CGxDevice::ClampRectLeftByAspect(rect);
+                    break;
+
+                case WMSZ_TOPLEFT:
+                    CGxDevice::ClampRectTop(rect);
+                    CGxDevice::ClampRectLeft(rect);
+                    CGxDevice::ClampRectTopByAspect(rect);
+                    CGxDevice::ClampRectLeftByAspect(rect);
+                    break;
+
+                case WMSZ_TOPRIGHT:
+                    CGxDevice::ClampRectTop(rect);
+                    CGxDevice::ClampRectRight(rect);
+                    CGxDevice::ClampRectTopByAspect(rect);
+                    CGxDevice::ClampRectRightByAspect(rect);
+                    break;
+
+                case WMSZ_BOTTOM:
+                    CGxDevice::ClampRectBottom(rect);
+                    CGxDevice::ClampRectRightByAspect(rect);
+                    break;
+
+                case WMSZ_BOTTOMLEFT:
+                    CGxDevice::ClampRectBottom(rect);
+                    CGxDevice::ClampRectLeft(rect);
+                    CGxDevice::ClampRectLeftByAspect(rect);
+                    CGxDevice::ClampRectBottomByAspect(rect);
+                    break;
+
+                case WMSZ_BOTTOMRIGHT:
+                    CGxDevice::ClampRectBottom(rect);
+                    CGxDevice::ClampRectRight(rect);
+                    CGxDevice::ClampRectBottomByAspect(rect);
+                    CGxDevice::ClampRectRightByAspect(rect);
+                    break;
+
+                default:
+                    break;
+            }
+
+            sizingRect->left = rect.minX;
+            sizingRect->bottom = rect.maxY;
+            sizingRect->top = rect.minY;
+            sizingRect->right = rect.maxX;
+
+            return 1;
+        }
+
+        default:
+            break;
+    }
+
+    if (device && device->m_windowProc) {
+        return device->m_windowProc(hwnd, message, wparam, lparam);
+    }
+
+    return DefWindowProcA(hwnd, message, wparam, lparam);
 }
