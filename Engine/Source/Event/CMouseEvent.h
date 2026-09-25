@@ -3,17 +3,14 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
+#include "Engine/Source/Event/CEvent.h"
 #include "Engine/Source/Event/Types.h"
-#include "Engine/Source/Tempest/C2Vector.h"
 
-class CMouseEvent {
+class CMouseEvent : public CEvent {
     public:
-    /* 0000 */ void* m_vtable;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t m_id;
-    /* 000C */ uint32_t unk_000C;
     /* 0010 */ MouseEventData m_data;
+
+    CMouseEvent& operator=(const EVENT_DATA_MOUSE& data);
 };
 
 #endif

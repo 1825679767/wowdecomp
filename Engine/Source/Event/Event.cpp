@@ -10,6 +10,7 @@
 #include "Engine/Source/Os/Input.h"
 #include "Engine/Source/Storm/H/storm.h"
 
+// VERIFY: 849b60d4 auto
 // OFFSET: 0x0047CFF0
 void EventInitialize(uint32_t threadCount, int32_t netServer) {
     ObserverInitialize();
