@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/BLPFile/Types.h"
 
 namespace BSN {
 struct BSNPrimitiveEncoder {
@@ -12,13 +13,6 @@ struct BSNPrimitiveEncoder {
     /* 0050 */ int32_t unk_0050;
 };
 }
-
-struct C4Pixel {
-    /* 0000 */ uint8_t m_b;
-    /* 0001 */ uint8_t m_g;
-    /* 0002 */ uint8_t m_r;
-    /* 0003 */ uint8_t m_a;
-};
 
 enum EGxuDrawListCategory {
     GxuCat_0 = 0,

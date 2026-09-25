@@ -8,10 +8,12 @@
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Gxu/Gxu.h"
+#include "Engine/Source/Images/tga.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Services/AsyncFile.h"
 #include "Engine/Source/Services/SysMessage.h"
 #include "Engine/Source/Services/TextureBlob.h"
+#include "Engine/Source/Services/TextureInt.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "_Triage/MippedImg.h"
 
@@ -20,6 +22,9 @@ static const uint16_t s_texFormatBitDepth[GxTexFormats_Last] = { 0, 32, 32, 16, 
 
 // STATIC: 0x009F1058
 static const uint16_t s_texFormatBytesPerBlock[GxTexFormats_Last] = { 0, 0, 0, 0, 0, 0, 8, 16, 16, 0, 0, 0, 0 };
+
+// STATIC: 0x009F1074
+static const int32_t s_pixelFormatToMipBitsCache[NUM_PIXEL_FORMATS] = { -1, -1, -1, 0, 0, 0, -1, -1, -1, 1 };
 
 // STATIC: 0x009F1120
 static const uint32_t s_texFormatBytesPerTexel[GxTexFormats_Last] = { 0, 4, 4, 2, 2, 2, 8, 16, 16, 2, 4, 4, 4 };
@@ -47,6 +52,9 @@ static uint32_t s_defaultColor = 0xFF00FF00;
 
 // STATIC: 0x00AC3358
 static TSExplicitList<CGxTexCache, offsetof(CGxTexCache, m_link)> s_gxTexCacheFree;
+
+// STATIC: 0x00AC3364
+static TSExplicitList<CMipBitsCache, offsetof(CMipBitsCache, m_link)> s_mipBitsCacheFree;
 
 // STATIC: 0x00AC3370
 static TSExplicitList<CTextureAtlas, offsetof(CTextureAtlas, m_link)> s_atlasList;
@@ -90,6 +98,9 @@ static TSHashTableReuse<CTexture, HASHKEY_TEXTUREFILE> s_textureCache;
 // STATIC: 0x00B49CD8
 static TSExplicitList<CGxTexCache, offsetof(CGxTexCache, m_link)> s_gxTexCache[6][6];
 
+// STATIC: 0x00B49E88
+static TSExplicitList<CMipBitsCache, offsetof(CMipBitsCache, m_link)> s_mipBitsCache[6][6][2];
+
 // INLINED
 HASHKEY_TEXTUREFILE::HASHKEY_TEXTUREFILE() {
     this->m_filename = nullptr;
@@ -101,9 +112,27 @@ bool HASHKEY_TEXTUREFILE::operator==(const HASHKEY_TEXTUREFILE& key) const {
     return !SStrCmpI(this->m_filename, key.m_filename, 260) && (this->m_anyTexFlags || key.m_anyTexFlags || this->m_texFlags == key.m_texFlags);
 }
 
+// INLINED
+CMipBitsCache::CMipBitsCache() {
+    this->m_bits = nullptr;
+}
+
+// INLINED
+CMipBitsCache::~CMipBitsCache() {
+    if (this->m_bits) {
+        SMemFree(this->m_bits, __FILE__, __LINE__, 0);
+    }
+}
+
 // VERIFY: c74642f9 manual
 // OFFSET: 0x005EEB70
 void GxTexNullUserFunc(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t face, uint32_t level, void* userArg, uint32_t& texelStrideInBytes, const void*& texels) {
+}
+
+// VERIFY: 9d282c43 auto
+// OFFSET: 0x004B50C0
+EGxTexFormat TexturePixelFormatToGxTexFormat(PIXEL_FORMAT format) {
+    return s_pixelFormatToGxTexFormat[format];
 }
 
 // VERIFY: 10032e81 auto
@@ -202,6 +231,89 @@ void AsyncTextureFailureCallback(CTexture* texture) {
     SMemFree(buffer, __FILE__, __LINE__, 0);
 }
 
+// VERIFY: 83041e31 auto
+// OFFSET: 0x004B5340
+SFileImpl* TextureCreateOpenFile(const char* fileName, int32_t flags) {
+    SFileImpl* file = nullptr;
+    SErrSetLastError(0);
+
+    if (SFile::OpenEx(nullptr, fileName, flags != 0, &file)) {
+        return file;
+    }
+
+    if (!SErrGetLastError()) {
+        SErrSetLastError(STORM_ERROR_FILE_NOT_FOUND);
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 693ca984 manual
+// OFFSET: 0x004B5510
+int32_t TextureCalcMipCount(uint32_t width, uint32_t height) {
+    int32_t count = 1;
+
+    while (width > 1 || height > 1) {
+        width >>= 1;
+        count++;
+
+        if (!width) {
+            width = 1;
+        }
+
+        height >>= 1;
+
+        if (!height) {
+            height = 1;
+        }
+    }
+
+    return count;
+}
+
+// VERIFY: 2866c66e manual
+// OFFSET: 0x004B5550
+void TextureGenerateMips(uint32_t width, uint32_t height, uint32_t firstLevel, uint32_t levelCount, MipBits* images) {
+    uint32_t sourceWidth = width;
+    uint32_t sourceHeight = height;
+    uint32_t sourceLevel = 0;
+
+    if (firstLevel) {
+        sourceWidth = width >> (firstLevel - 1);
+        sourceHeight = height >> (firstLevel - 1);
+        sourceLevel = firstLevel - 1;
+    }
+
+    for (uint32_t level = 1; level < levelCount; level++) {
+        width = width >> 1 ? width >> 1 : 1;
+        height = height >> 1 ? height >> 1 : 1;
+
+        if (level >= firstLevel) {
+            FullShrink(images->m_mip[level], width, height, images->m_mip[sourceLevel], sourceWidth, sourceHeight);
+        }
+    }
+}
+
+// VERIFY: 806f5e3e manual
+// OFFSET: 0x004B55E0
+void TextureFreeMippedImg(MipBits* bits) {
+    if (bits) {
+        SMemFree(bits, __FILE__, __LINE__, 0);
+    }
+}
+
+// VERIFY: 4ee5ff1e auto
+// OFFSET: 0x004B5780
+int32_t TextureLoadBlob(const char* fileName) {
+    return CTextureBlob::Load(fileName);
+}
+
+// VERIFY: 669249b5 auto
+// OFFSET: 0x004B5790
+int32_t TextureUnloadBlob(const char* fileName) {
+    return CTextureBlob::Unload(fileName);
+}
+
 // VERIFY: 762ce4de manual
 // OFFSET: 0x004B5930
 void ResolveMipLevel(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t face, uint32_t level, void* userArg, uint32_t& texelStrideInBytes, const void*& texels) {
@@ -244,6 +356,64 @@ void ResolveMipLevel(EGxTexCommand command, uint32_t width, uint32_t height, uin
 
             break;
     }
+}
+
+// VERIFY: 30b88d54 manual
+// OFFSET: 0x004B5A00
+uint32_t LoadPredrawnMips(CTgaFile* image, const char* format, int32_t flags, MipBits* images) {
+    uint32_t level = 1;
+    uint32_t count = TextureCalcMipCount(image->Width(), image->Height()) - 1;
+    uint32_t width = image->Width() >> 1;
+    uint32_t height = image->Height() >> 1;
+
+    if (!count) {
+        return level;
+    }
+
+    int32_t onDisk = flags != 0;
+
+    do {
+        char fileName[260];
+        SStrPrintf(fileName, sizeof(fileName), format, level);
+
+        if (!SFile::FileExistsEx(fileName, onDisk)) {
+            break;
+        }
+
+        CTgaFile mip;
+
+        if (!mip.Open(fileName, flags) || width != mip.Width() || height != mip.Height() || !mip.LoadImageData(2)) {
+            return level;
+        }
+
+        if (!mip.AlphaBits()) {
+            mip.AddAlphaChannel(nullptr);
+        }
+
+        mip.SetTopDown(1);
+
+        const TGA32Pixel* source = mip.ImageTGA32Pixel();
+        C4Pixel* dest = images->m_mip[level++];
+
+        for (uint32_t pixels = width * height; pixels; pixels--) {
+            dest->m_b = source->m_b;
+            dest->m_g = source->m_g;
+            dest->m_r = source->m_r;
+            dest->m_a = source->m_a;
+            dest++;
+            source++;
+        }
+
+        if (width > 1) {
+            width >>= 1;
+        }
+
+        if (height > 1) {
+            height >>= 1;
+        }
+    } while (--count);
+
+    return level;
 }
 
 // VERIFY: 7a812510 auto
@@ -955,6 +1125,91 @@ int32_t TextureUpdate(const void* data, void* param) {
     return 1;
 }
 
+// VERIFY: fea7fb26 manual
+// OFFSET: 0x004B7220
+MipBits* TextureAllocMippedImg(PIXEL_FORMAT format, uint32_t width, uint32_t height) {
+    int32_t cache = s_pixelFormatToMipBitsCache[format];
+
+    if (width < 8 || height < 8 || width > 256 || height > 256 || cache == -1) {
+        return MippedImgAllocA(format, width, height, __FILE__, __LINE__);
+    }
+
+    uint32_t w = width >> 3;
+    uint32_t h = height >> 3;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    if (!(width & 8)) {
+        do {
+            w >>= 1;
+            x++;
+        } while (!(w & 1));
+    }
+
+    if (!(height & 8)) {
+        do {
+            h >>= 1;
+            y++;
+        } while (!(h & 1));
+    }
+
+    CMipBitsCache* entry = s_mipBitsCache[x][y][cache].Head();
+
+    if (!entry) {
+        return MippedImgAllocA(format, width, height, __FILE__, __LINE__);
+    }
+
+    entry->m_link.Unlink();
+    MipBits* bits = entry->m_bits;
+    entry->m_bits = nullptr;
+    s_mipBitsCacheFree.LinkToTail(entry);
+
+    return bits;
+}
+
+// VERIFY: 8f6a0308 manual
+// OFFSET: 0x004B7300
+void TextureFreeMippedImg(MipBits* bits, PIXEL_FORMAT format, uint32_t width, uint32_t height) {
+    int32_t cache = s_pixelFormatToMipBitsCache[format];
+
+    if (width < 8 || height < 8 || width > 256 || height > 256 || cache == -1) {
+        if (bits) {
+            SMemFree(bits, __FILE__, __LINE__, 0);
+        }
+
+        return;
+    }
+
+    uint32_t w = width >> 3;
+    uint32_t h = height >> 3;
+    uint32_t x = 0;
+    uint32_t y = 0;
+
+    if (!(width & 8)) {
+        do {
+            w >>= 1;
+            x++;
+        } while (!(w & 1));
+    }
+
+    if (!(height & 8)) {
+        do {
+            h >>= 1;
+            y++;
+        } while (!(h & 1));
+    }
+
+    CMipBitsCache* entry = s_mipBitsCacheFree.Head();
+
+    if (!entry) {
+        entry = s_mipBitsCacheFree.NewNode(2, 0, 0);
+        entry->m_link.Unlink();
+    }
+
+    entry->m_bits = bits;
+    s_mipBitsCache[x][y][cache].LinkToTail(entry);
+}
+
 // VERIFY: a81fc586 manual
 // OFFSET: 0x004B76E0
 CTextureAtlas::~CTextureAtlas() {
@@ -1013,6 +1268,155 @@ CTextureAtlas* CTextureAtlas::Get(CTexture* texture) {
     atlas->m_textures[texture->m_atlasBlockIndex] = texture;
 
     return atlas;
+}
+
+// VERIFY: b9a802ce manual
+// OFFSET: 0x004B78A0
+int32_t LoadTgaMips(char* fileName, char* extension, int32_t flags, MipBits** images, uint32_t* width, uint32_t* height, EGxTexFormat* gxTexFormat, int32_t* opaque, uint32_t* alphaBits, PIXEL_FORMAT* pixelFormat) {
+    if (extension) {
+        strcpy(extension, ".tga");
+    }
+
+    CTgaFile image;
+
+    if (!image.Open(fileName, flags)) {
+        return 0;
+    }
+
+    if (opaque) {
+        *opaque = image.AlphaBits() == 0;
+    }
+
+    if (!image.LoadImageData(3)) {
+        return 0;
+    }
+
+    image.SetTopDown(1);
+
+    uint32_t imageWidth = image.Width();
+    uint32_t imageHeight = image.Height();
+    uint32_t mipCount = TextureCalcMipCount(imageWidth, imageHeight);
+
+    if (*images) {
+        MippedImgSet(PIXEL_ARGB8888, imageWidth, imageHeight, *images);
+    } else {
+        *images = TextureAllocMippedImg(PIXEL_ARGB8888, imageWidth, imageHeight);
+    }
+
+    const TGA32Pixel* source = image.ImageTGA32Pixel();
+    C4Pixel* dest = (*images)->m_mip[0];
+
+    for (uint32_t pixels = imageWidth * imageHeight; pixels; pixels--) {
+        dest->m_b = source->m_b;
+        dest->m_g = source->m_g;
+        dest->m_r = source->m_r;
+        dest->m_a = source->m_a;
+        dest++;
+        source++;
+    }
+
+    image.Close();
+
+    char mipName[260];
+    SStrCopy(mipName, fileName, sizeof(mipName));
+    char* dot = SStrChrR(mipName, '.');
+
+    if (dot) {
+        *dot = '\0';
+    }
+
+    SStrPack(mipName, "_mip%d.tga", sizeof(mipName));
+    uint32_t predrawn = LoadPredrawnMips(&image, mipName, flags, *images);
+    TextureGenerateMips(image.Width(), image.Height(), predrawn, mipCount, *images);
+
+    if (width) {
+        *width = image.Width();
+    }
+
+    if (height) {
+        *height = image.Height();
+    }
+
+    if (gxTexFormat) {
+        *gxTexFormat = GxTex_Argb8888;
+    }
+
+    if (alphaBits) {
+        *alphaBits = image.AlphaBits();
+    }
+
+    if (pixelFormat) {
+        *pixelFormat = PIXEL_ARGB8888;
+    }
+
+    return 1;
+}
+
+// VERIFY: 8ee83473 manual
+// OFFSET: 0x004B7AA0
+void UpdateTgaTexture(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t face, uint32_t level, void* userArg, uint32_t& texelStrideInBytes, const void*& texels) {
+    CTexture* texture = static_cast<CTexture*>(userArg);
+
+    switch (command) {
+        case GxTex_Lock:
+            if (!s_pumping) {
+                char* extension = texture->m_filename + SStrLen(texture->m_filename);
+                int32_t result = LoadTgaMips(texture->m_filename, extension, texture->m_flags & 2, &s_mipBits, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+                *extension = '\0';
+
+                if (!result) {
+                    GetDefaultTexture(width, height);
+                    GetGlobalStatusObj().Add(STATUS_ERROR, "Texture %s not loaded -- replaced with default.\n", texture->m_filename);
+                }
+            }
+
+            break;
+
+        case GxTex_Latch: {
+            texelStrideInBytes = 4 * width;
+
+            const uint8_t* bits = reinterpret_cast<const uint8_t*>(s_mipBits[level].m_mip[0]);
+            texels = bits;
+
+            if (texture->m_gxTexTarget == GxTex_CubeMap) {
+                uint32_t order = face;
+
+                switch (face) {
+                    case 0:
+                        order = 0;
+                        break;
+
+                    case 1:
+                        order = 2;
+                        break;
+
+                    case 2:
+                        order = 4;
+                        break;
+
+                    case 3:
+                        order = 5;
+                        break;
+
+                    case 4:
+                        order = 3;
+                        break;
+
+                    case 5:
+                        order = 1;
+                        break;
+                }
+
+                texels = bits + order * texelStrideInBytes;
+                texelStrideInBytes *= 6;
+            }
+
+            break;
+        }
+
+        default:
+            break;
+    }
 }
 
 // VERIFY: c0a503e5 manual
@@ -1368,6 +1772,56 @@ CTexture* CreateBlpTexture(const char* fileName, char* extension, uint32_t flags
     return reinterpret_cast<CTexture*>(HandleCreate(texture, "HTEXTURE"));
 }
 
+// VERIFY: 42c19e46 manual
+// OFFSET: 0x004B8D70
+CTexture* TextureCreateBlob(char* fileName, CGxTexFlags texFlags, CStatus* status, int32_t defaultFilter) {
+    if (!fileName) {
+        DebugValidate("fileName");
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return nullptr;
+    }
+
+    if (!fileName[0]) {
+        DebugValidate("fileName[0]");
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return nullptr;
+    }
+
+    if (!status) {
+        DebugValidate("status");
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return nullptr;
+    }
+
+    if (defaultFilter) {
+        texFlags.m_filter = s_filterMode;
+    }
+
+    texFlags.m_maxAnisotropy = texFlags.m_filter == GxTex_Anisotropic ? s_maxAnisotropy : 1;
+    char* extension = OsPathFindExtensionWithDot(fileName);
+
+    if (extension) {
+        *extension = '\0';
+    }
+
+    CTextureBlobTexture* blobTexture = CTextureBlob::GetTexture(fileName);
+    CTexture* handle = nullptr;
+
+    if (blobTexture) {
+        CTexture* texture = new ("HTEXTURE", SLOG_OBJECT) CTexture;
+        texture->m_gxTexFlags = texFlags;
+        SStrCopy(texture->m_filename, fileName, STORM_MAX_STR);
+        CTextureBlob::CreateTexture(texture, blobTexture);
+        handle = reinterpret_cast<CTexture*>(HandleCreate(texture, "HTEXTURE"));
+    }
+
+    if (extension) {
+        *extension = '.';
+    }
+
+    return handle;
+}
+
 // VERIFY: 07bcfe26 manual
 // OFFSET: 0x004B9480
 void TextureCacheNewTexture(CTexture* texture, CGxTexFlags texFlags) {
@@ -1408,6 +1862,69 @@ CTexture* TextureCreateSolid(const CImVector& color) {
     TextureCacheNewTexture(handle, color);
 
     return handle;
+}
+
+// VERIFY: ea203deb manual
+// OFFSET: 0x004B95B0
+CTexture* CreateTgaTexture(const char* fileName, char* extension, int32_t flags, CGxTexFlags texFlags, CStatus* status) {
+    if (extension) {
+        SStrCopy(extension, ".tga", STORM_MAX_STR);
+    }
+
+    CTgaFile image;
+
+    if (!image.Open(fileName, flags)) {
+        return nullptr;
+    }
+
+    uint32_t width = image.Width();
+    uint32_t height = image.Height();
+    EGxTexTarget target = GxTex_2d;
+
+    if (width == 6 * height) {
+        target = GxTex_CubeMap;
+        width /= 6;
+    }
+
+    if (width < 8 || height < 8) {
+        status->Add(STATUS_FATAL, "Error loading file \"%s\": Texture size must be at least %dx%d\n", fileName, 8, 8);
+        return TextureCreateSolid(*reinterpret_cast<const CImVector*>(&s_defaultColor));
+    }
+
+    CTexture* texture = new ("HTEXTURE", SLOG_OBJECT) CTexture;
+
+    if (!texture) {
+        return nullptr;
+    }
+
+    texture->m_alphaBits = image.AlphaBits();
+
+    if (!texture->m_alphaBits) {
+        texture->m_flags |= 1;
+    }
+
+    if (flags) {
+        texture->m_flags |= 2;
+    }
+
+    if (extension) {
+        *extension = '\0';
+    }
+
+    SStrCopy(texture->m_filename, fileName, sizeof(texture->m_filename));
+    texture->m_gxTex = TextureAllocGxTex(target, width, height, 0, GxTex_Argb8888, texFlags, texture, UpdateTgaTexture, GxTex_Argb8888, texture->m_filename);
+
+    if (!texture->m_gxTex) {
+        texture->~CTexture();
+        SMemFree(texture, __FILE__, __LINE__, 0);
+        return nullptr;
+    }
+
+    texture->m_gxTexTarget = target;
+    texture->m_gxWidth = width;
+    texture->m_gxHeight = height;
+
+    return reinterpret_cast<CTexture*>(HandleCreate(texture, "HTEXTURE"));
 }
 
 // VERIFY: 8821b223 manual

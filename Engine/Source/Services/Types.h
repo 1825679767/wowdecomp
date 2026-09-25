@@ -43,11 +43,4 @@ enum PIXEL_FORMAT {
     NUM_PIXEL_FORMATS = 10,
 };
 
-struct TGA32Pixel {
-    /* 0000 */ uint8_t m_b;
-    /* 0001 */ uint8_t m_g;
-    /* 0002 */ uint8_t m_r;
-    /* 0003 */ uint8_t m_a;
-};
-
 #endif

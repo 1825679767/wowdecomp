@@ -831,6 +831,15 @@ bool System_SFile2::FindFile(const char* name, char* path, uint32_t size, uint32
     return false;
 }
 
+// VERIFY: 6401cce4 auto
+// OFFSET: 0x00424B10
+int32_t STORMAPI SFile::FileExistsEx(const char* name, uint32_t flags) {
+    char path[260];
+    uint32_t type;
+
+    return System_SFile2::FindFile(name, path, sizeof(path), flags, &type, nullptr);
+}
+
 // VERIFY: 8c71c618 manual
 // OFFSET: 0x00424B50
 int32_t STORMAPI SFile::OpenEx(SArchive* archive, const char* name, uint32_t flags, SFileImpl** result) {
