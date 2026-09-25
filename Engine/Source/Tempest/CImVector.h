@@ -14,6 +14,7 @@ class CImVector {
     /* 0003 */ uint8_t a;
 
     CImVector();
+    void InterpColor(int32_t t, const CImVector* src);
     void Set(float a, float r, float g, float b);
     CImVector& operator=(const C3Vector& color);
 };

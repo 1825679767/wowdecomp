@@ -12,6 +12,23 @@ void CImVector::Set(float a, float r, float g, float b) {
     this->b = static_cast<uint8_t>(CMath::ftol_round_0_255_(b));
 }
 
+// VERIFY: abf2e53e auto
+// OFFSET: 0x006ACC50
+void CImVector::InterpColor(int32_t t, const CImVector* src) {
+    uint32_t& value = *reinterpret_cast<uint32_t*>(this);
+
+    if (t == 255) {
+        value = (value & 0xFF000000) | (*reinterpret_cast<const uint32_t*>(src) & 0x00FFFFFF);
+        return;
+    }
+
+    uint8_t r = this->r + ((static_cast<uint32_t>(src->r - this->r) * t) >> 8);
+    uint8_t g = this->g + ((static_cast<uint32_t>(src->g - this->g) * t) >> 8);
+    uint8_t b = this->b + ((static_cast<uint32_t>(src->b - this->b) * t) >> 8);
+
+    value = (value & 0xFF000000) | (r << 16) | (g << 8) | b;
+}
+
 // VERIFY: 5249a0a5 manual
 // OFFSET: 0x009851A0
 CImVector& CImVector::operator=(const C3Vector& color) {

@@ -252,6 +252,8 @@ class CGxDevice {
     static CGxShader* s_uiPixelShader;
     static CGxShader* s_uiVertexShader[2];
     static ShadowConstants s_shadowConstants[2];
+    static const uint32_t s_texFormatBitDepth[GxTexFormats_Last];
+    static const uint32_t s_texFormatBytesPerBlock[GxTexFormats_Last];
     static uint32_t m_logBytes;
 
     static int32_t AdjustWindowRectToWorkArea(float aspectRatio, C2iVector* adjust, tagRECT* rect);
@@ -308,6 +310,7 @@ class CGxDevice {
     void DeviceSetDefWindow(const CRect& rect);
     int32_t IDevIsWindowed();
     void InitLights();
+    void ITexWHDStartEnd(CGxTex* texId, uint32_t& width, uint32_t& height, uint32_t& baseMip, uint32_t& mipCount);
     void LightEnable(uint32_t index, int32_t enable);
     void LightSet(uint32_t index, const CGxLight& light, const C3Vector& pos);
     int32_t MasterEnable(EGxMasterEnables state);

@@ -15,6 +15,12 @@
 #include "Engine/Source/Os/Processor.h"
 #include "Engine/Source/Os/TimeManager.h"
 
+// STATIC: 0x00A2DAF8
+const uint32_t CGxDevice::s_texFormatBitDepth[GxTexFormats_Last] = { 0, 32, 32, 16, 16, 16, 4, 8, 8, 16, 32, 32, 32 };
+
+// STATIC: 0x00A2DB60
+const uint32_t CGxDevice::s_texFormatBytesPerBlock[GxTexFormats_Last] = { 0, 4, 4, 2, 2, 2, 8, 16, 16, 2, 4, 4, 4 };
+
 // STATIC: 0x00AD8B4C
 static uint32_t s_primVertsPerPrim[GxPrims_Last] = { 1, 2, 1, 3, 1, 1 };
 
@@ -1693,4 +1699,43 @@ void CGxDevice::WaitForFPSCap() {
     }
 
     s_nextFrameTime = now + frameMs;
+}
+
+// VERIFY: c1bc4801 manual
+// OFFSET: 0x006A5EF0
+void CGxDevice::ITexWHDStartEnd(CGxTex* texId, uint32_t& width, uint32_t& height, uint32_t& baseMip, uint32_t& mipCount) {
+    width = texId->m_width;
+    height = texId->m_height;
+
+    if ((texId->m_flags.m_filter == GxTex_Nearest || texId->m_flags.m_filter == GxTex_Linear || texId->m_flags.m_generateMipMaps) && !texId->m_flags.m_forceMipTracking) {
+        baseMip = 0;
+        mipCount = 1;
+        return;
+    }
+
+    if (texId->m_format == GxTex_Dxt1 || texId->m_format == GxTex_Dxt3 || texId->m_format == GxTex_Dxt5) {
+        uint32_t size = texId->m_width < texId->m_height ? texId->m_width : texId->m_height;
+        mipCount = 1;
+
+        while (size > 4) {
+            size >>= 1;
+            mipCount++;
+        }
+    } else {
+        uint32_t size = texId->m_width > texId->m_height ? texId->m_width : texId->m_height;
+        mipCount = 1;
+
+        while (size != 1) {
+            size >>= 1;
+            mipCount++;
+        }
+    }
+
+    baseMip = this->m_baseMipLevel < mipCount - 1 ? this->m_baseMipLevel : mipCount - 1;
+    width >>= baseMip;
+    height >>= baseMip;
+
+    if (texId->m_flags.m_forceMipTracking) {
+        mipCount = baseMip + 1;
+    }
 }

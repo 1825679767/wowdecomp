@@ -2,6 +2,7 @@
 #include <cstring>
 #include <malloc.h>
 #include "Engine/Source/Gx/CGxDeviceD3d/CGxDeviceD3d.h"
+#include "Engine/Source/Gx/Blit.h"
 #include "Engine/Source/Gx/CGxBuf.h"
 #include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/CGxTex.h"
@@ -21,6 +22,12 @@ const uint32_t CGxDeviceD3d::s_gxAttribToD3dAttribSize[7] = { 4, 4, 4, 8, 12, 4,
 
 // STATIC: 0x00A2E4E4
 static const D3DQUERYTYPE s_d3dQueryTypes[1] = { D3DQUERYTYPE_OCCLUSION };
+
+// STATIC: 0x00A2F7E8
+const EGxTexFormat CGxDeviceD3d::s_tolerableTexFmtMapping[GxTexFormats_Last] = { GxTex_Unknown, GxTex_Argb4444, GxTex_Argb4444, GxTex_Argb4444, GxTex_Argb4444, GxTex_Argb4444, GxTex_Dxt1, GxTex_Dxt3, GxTex_Dxt5, GxTex_Uv88, GxTex_Gr1616F, GxTex_R32F, GxTex_D24X8 };
+
+// STATIC: 0x00A2F850
+const D3DCUBEMAP_FACES CGxDeviceD3d::s_faceTypes[6] = { D3DCUBEMAP_FACE_POSITIVE_X, D3DCUBEMAP_FACE_NEGATIVE_X, D3DCUBEMAP_FACE_POSITIVE_Y, D3DCUBEMAP_FACE_NEGATIVE_Y, D3DCUBEMAP_FACE_POSITIVE_Z, D3DCUBEMAP_FACE_NEGATIVE_Z };
 
 // STATIC: 0x00A2F81C
 const D3DFORMAT CGxDeviceD3d::s_GxTexFmtToD3dFmt[GxTexFormats_Last] = { D3DFMT_UNKNOWN, D3DFMT_A8B8G8R8, D3DFMT_A8R8G8B8, D3DFMT_A4R4G4B4, D3DFMT_A1R5G5B5, D3DFMT_R5G6B5, D3DFMT_DXT1, D3DFMT_DXT3, D3DFMT_DXT5, D3DFMT_V8U8, D3DFMT_G16R16F, D3DFMT_R32F, D3DFMT_D24X8 };
@@ -54,6 +61,9 @@ const D3DCMPFUNC CGxDeviceD3d::s_cmpFunc[4] = { D3DCMP_LESSEQUAL, D3DCMP_EQUAL, 
 
 // STATIC: 0x00A2FA24
 const D3DCULL CGxDeviceD3d::s_cullMode[3] = { D3DCULL_NONE, D3DCULL_CW, D3DCULL_CCW };
+
+// STATIC: 0x00AD8EF0
+EGxTexFormat CGxDeviceD3d::s_GxTexFormatToUse[GxTexFormats_Last] = { GxTex_Unknown, GxTex_Abgr8888, GxTex_Argb8888, GxTex_Argb4444, GxTex_Argb1555, GxTex_Rgb565, GxTex_Dxt1, GxTex_Dxt3, GxTex_Dxt5, GxTex_Uv88, GxTex_Gr1616F, GxTex_R32F, GxTex_D24X8 };
 
 // STATIC: 0x00AD8F24
 D3DDECLTYPE CGxDeviceD3d::s_gxAttribToD3dAttribType[7] = { D3DDECLTYPE_D3DCOLOR, D3DDECLTYPE_UBYTE4, D3DDECLTYPE_UBYTE4N, D3DDECLTYPE_FLOAT2, D3DDECLTYPE_FLOAT3, D3DDECLTYPE_SHORT2, D3DDECLTYPE_FLOAT1 };
@@ -2753,6 +2763,206 @@ void CGxDeviceD3d::ITexForceRecreation(int32_t all) {
 
     if (this->m_hwnd && this->m_d3dDevice) {
         this->NotifyOnTextureRecreation();
+    }
+}
+
+// VERIFY: d8c0bcf5 auto
+// OFFSET: 0x006A2BB0
+void CGxDeviceD3d::TexDestroy(CGxTex* texId) {
+    if (!texId->m_needsCreation && (texId->m_apiSpecificData || texId->m_apiSpecificData2)) {
+        static_cast<IDirect3DBaseTexture9*>(texId->m_apiSpecificData)->Release();
+        texId->m_apiSpecificData = nullptr;
+    }
+
+    CGxDevice::TexDestroy(texId);
+}
+
+// VERIFY: 571fccbe manual
+// OFFSET: 0x006A2C00
+void CGxDeviceD3d::ITexCreate(CGxTex* texId) {
+    uint32_t width;
+    uint32_t height;
+    uint32_t baseMip;
+    uint32_t mipCount;
+    this->ITexWHDStartEnd(texId, width, height, baseMip, mipCount);
+
+    texId->m_format = s_GxTexFormatToUse[texId->m_format];
+
+    DWORD usage = 0;
+    D3DPOOL pool = D3DPOOL_MANAGED;
+
+    if (texId->m_flags.m_renderTarget) {
+        usage = D3DUSAGE_RENDERTARGET;
+        pool = D3DPOOL_DEFAULT;
+    }
+
+    if (texId->m_flags.m_generateMipMaps) {
+        usage |= D3DUSAGE_AUTOGENMIPMAP;
+    }
+
+    if (texId->m_target == GxTex_CubeMap) {
+        LPDIRECT3DCUBETEXTURE9 cubeTexture = nullptr;
+        if (FAILED(this->m_d3dDevice->CreateCubeTexture(width, mipCount - baseMip, usage, s_GxTexFmtToD3dFmt[texId->m_format], pool, &cubeTexture, nullptr))) {
+            return;
+        }
+
+        texId->m_apiSpecificData = cubeTexture;
+    } else {
+        LPDIRECT3DTEXTURE9 texture = nullptr;
+
+        if (texId->m_format == GxTex_D24X8) {
+            if (FAILED(this->m_d3dDevice->CreateTexture(width, height, 1, D3DUSAGE_DEPTHSTENCIL, D3DFMT_D24X8, pool, &texture, nullptr))) {
+                return;
+            }
+        } else {
+            uint32_t levels = mipCount - baseMip;
+
+            if (FAILED(this->m_d3dDevice->CreateTexture(width, height, levels, usage, s_GxTexFmtToD3dFmt[texId->m_format], pool, &texture, nullptr))) {
+                if (texId->m_flags.m_renderTarget) {
+                    return;
+                }
+
+                s_GxTexFormatToUse[texId->m_format] = s_tolerableTexFmtMapping[texId->m_format];
+                texId->m_format = s_GxTexFormatToUse[texId->m_format];
+
+                if (FAILED(this->m_d3dDevice->CreateTexture(width, height, levels, usage, s_GxTexFmtToD3dFmt[texId->m_format], pool, &texture, nullptr))) {
+                    return;
+                }
+            }
+        }
+
+        texId->m_apiSpecificData = texture;
+    }
+
+    texId->m_needsCreation = 0;
+}
+
+// VERIFY: 70dd0433 manual
+// OFFSET: 0x006A2D80
+void CGxDeviceD3d::ITexUpload(CGxTex* texId) {
+    uint32_t texelStrideInBytes;
+    const void* texels = nullptr;
+    texId->m_userFunc(GxTex_Lock, texId->m_width, texId->m_height, 0, 0, texId->m_userArg, texelStrideInBytes, texels);
+
+    uint32_t width;
+    uint32_t height;
+    uint32_t baseMip;
+    uint32_t mipCount;
+    this->ITexWHDStartEnd(texId, width, height, baseMip, mipCount);
+
+    int32_t compressed = texId->m_dataFormat >= GxTex_Dxt1 && texId->m_dataFormat <= GxTex_Dxt5;
+    uint32_t faceCount = texId->m_target == GxTex_CubeMap ? 6 : 1;
+
+    for (uint32_t face = 0; face < faceCount; face++) {
+        uint32_t mipWidth = width;
+        uint32_t mipHeight = height;
+        uint32_t level = 0;
+
+        for (uint32_t mip = baseMip; mip != mipCount; mip++, level++) {
+            texels = nullptr;
+            texId->m_userFunc(GxTex_Latch, mipWidth, mipHeight, face, mip, texId->m_userArg, texelStrideInBytes, texels);
+
+            if (texels && !texId->m_flags.m_renderTarget) {
+                IDirect3DSurface9* surface = nullptr;
+                HRESULT result;
+
+                if (texId->m_target == GxTex_CubeMap) {
+                    result = static_cast<IDirect3DCubeTexture9*>(texId->m_apiSpecificData)->GetCubeMapSurface(s_faceTypes[face], level, &surface);
+                } else {
+                    result = static_cast<IDirect3DTexture9*>(texId->m_apiSpecificData)->GetSurfaceLevel(level, &surface);
+                }
+
+                if (FAILED(result)) {
+                    goto done;
+                }
+
+                RECT rect;
+                rect.left = texId->m_updateRect.minX >> mip;
+                rect.top = texId->m_updateRect.minY >> mip;
+                rect.bottom = rect.top + 1 > texId->m_updateRect.maxY >> mip ? rect.top + 1 : texId->m_updateRect.maxY >> mip;
+                rect.right = rect.left + 1 > texId->m_updateRect.maxX >> mip ? rect.left + 1 : texId->m_updateRect.maxX >> mip;
+
+                if (static_cast<uint32_t>(texId->m_format - GxTex_Dxt1) <= 2) {
+                    rect.left &= ~3;
+                    rect.top &= ~3;
+                    rect.right = (rect.right + 3) & ~3;
+                    rect.bottom = (rect.bottom + 3) & ~3;
+
+                    if (rect.bottom > static_cast<int32_t>(mipHeight)) {
+                        rect.bottom = mipHeight;
+                    }
+
+                    if (rect.right > static_cast<int32_t>(mipWidth)) {
+                        rect.right = mipWidth;
+                    }
+                }
+
+                D3DLOCKED_RECT lockedRect;
+                if (FAILED(surface->LockRect(&lockedRect, &rect, 0))) {
+                    surface->Release();
+                    goto done;
+                }
+
+                const uint8_t* src = static_cast<const uint8_t*>(texels);
+
+                if (!texId->m_flags.m_bit15) {
+                    EGxTexFormat dataFormat = texId->m_dataFormat;
+
+                    if (compressed) {
+                        src += s_texFormatBytesPerBlock[dataFormat] * (rect.left >> 2) + texelStrideInBytes * (rect.top >> 2);
+                    } else {
+                        src += ((rect.left * s_texFormatBitDepth[dataFormat]) >> 3) + texelStrideInBytes * rect.top;
+                    }
+                }
+
+                C2iVector size;
+                size.x = rect.right - rect.left;
+                size.y = rect.bottom - rect.top;
+                Blit(size, BlitAlpha_0, src, texelStrideInBytes, GxGetBlitFormat(texId->m_dataFormat), lockedRect.pBits, lockedRect.Pitch, GxGetBlitFormat(texId->m_format));
+
+                surface->UnlockRect();
+                surface->Release();
+            }
+
+            mipHeight >>= 1;
+            mipWidth >>= 1;
+
+            if (!mipWidth) {
+                mipWidth = 1;
+            }
+
+            if (!mipHeight) {
+                mipHeight = 1;
+            }
+        }
+    }
+
+done:
+    texels = nullptr;
+    texId->m_userFunc(GxTex_Unlock, texId->m_width, texId->m_height, 0, 0, texId->m_userArg, texelStrideInBytes, texels);
+
+    if (!texId->m_flags.m_renderTarget) {
+        static_cast<IDirect3DBaseTexture9*>(texId->m_apiSpecificData)->PreLoad();
+    }
+}
+
+// VERIFY: e0a4f6e8 manual
+// OFFSET: 0x006A3070
+void CGxDeviceD3d::ITexMarkAsUpdated(CGxTex* texId) {
+    if (!texId->m_needsUpdate || !this->m_context) {
+        return;
+    }
+
+    if (texId->m_needsCreation || (!texId->m_apiSpecificData && !texId->m_apiSpecificData2)) {
+        this->ITexCreate(texId);
+    }
+
+    if (!texId->m_needsCreation && (texId->m_apiSpecificData || texId->m_apiSpecificData2)) {
+        if (texId->m_userFunc) {
+            this->ITexUpload(texId);
+        }
+
+        CGxDevice::ITexMarkAsUpdated(texId);
     }
 }
 
