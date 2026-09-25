@@ -1,0 +1,15 @@
+#ifndef TRIAGE_MIPPEDIMG_H
+#define TRIAGE_MIPPEDIMG_H
+
+#include <cstdint>
+#include "Engine/Source/BLPFile/Types.h"
+
+uint32_t CalcLevelCount(uint32_t width, uint32_t height);
+uint32_t CalcLevelOffset(uint32_t level, uint32_t width, uint32_t height, uint32_t format);
+uint32_t CalcLevelSize(uint32_t level, uint32_t width, uint32_t height, uint32_t format);
+uint32_t GetBitDepth(uint32_t format);
+MipBits* MippedImgAllocA(uint32_t format, uint32_t width, uint32_t height, const char* fileName, int32_t lineNumber);
+uint32_t MippedImgCalcSize(uint32_t format, uint32_t width, uint32_t height);
+void MippedImgSet(uint32_t format, uint32_t width, uint32_t height, MipBits* images);
+
+#endif

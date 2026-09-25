@@ -13,6 +13,28 @@ struct BlpPalPixel {
     /* 0003 */ uint8_t m_pad;
 };
 
+struct BLPJPEGHeader {
+    /* 0000 */ uint32_t m_headerSize;
+    /* 0004 */ uint8_t m_headerData[1020];
+};
+
+struct BLPHeader {
+    /* 0000 */ uint32_t m_magic;
+    /* 0004 */ uint32_t m_formatVersion;
+    /* 0008 */ uint8_t m_colorEncoding;
+    /* 0009 */ uint8_t m_alphaSize;
+    /* 000A */ uint8_t m_preferredFormat;
+    /* 000B */ uint8_t m_hasMips;
+    /* 000C */ uint32_t m_width;
+    /* 0010 */ uint32_t m_height;
+    /* 0014 */ uint32_t m_mipOffsets[16];
+    /* 0054 */ uint32_t m_mipSizes[16];
+    /* 0094 */ union {
+        BlpPalPixel m_palette[256];
+        BLPJPEGHeader m_jpeg;
+    } m_extended;
+};
+
 struct MipBits {
     /* 0000 */ C4Pixel* m_mip [1];
 };

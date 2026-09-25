@@ -171,6 +171,26 @@ static void Blit_Dxt35_Dxt35(const C2iVector& size, const void* in, uint32_t inS
     }
 }
 
+// VERIFY: 3b76b950 auto
+// OFFSET: 0x006AC130
+uint32_t CalcRowStride(BlitFormat format, uint32_t width, uint32_t height) {
+    // STATIC: 0x00AD9038
+    static const uint32_t BYTES_PER_BLOCK[BlitFormats_Last] = { 0, 4, 4, 2, 2, 2, 8, 16, 16, 2, 4, 4, 4 };
+
+    // STATIC: 0x00AD906C
+    static const uint32_t PIXELS_PER_BLOCK_SHIFT[BlitFormats_Last] = { 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0 };
+
+    if (format >= BlitFormat_Dxt1 && format <= BlitFormat_Dxt5) {
+        if (width == 6 * height) {
+            width = 6 * (height > 4 ? height : 4);
+        } else if (width <= 4) {
+            width = 4;
+        }
+    }
+
+    return BYTES_PER_BLOCK[format] * (width >> PIXELS_PER_BLOCK_SHIFT[format]);
+}
+
 // VERIFY: 5c2ff0f7 manual
 // OFFSET: 0x006AC190
 static void CopyGeneric32(const C2iVector& size, const void* in, uint32_t inStride, void* out, uint32_t outStride) {
