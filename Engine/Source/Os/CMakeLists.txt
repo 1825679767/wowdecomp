@@ -15,5 +15,7 @@ if(WIN32)
             imm32
             wininet
             ws2_32
+            dinput8
+            dxguid
     )
 endif()

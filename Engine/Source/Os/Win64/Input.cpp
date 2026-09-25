@@ -1178,7 +1178,7 @@ int32_t OsInputGet(OSINPUT* id, int32_t* param0, int32_t* param1, int32_t* param
     }
 
     if (s_queueHead == s_queueTail) {
-        OsJoystickPoll(s_appActive);
+        OsPollJoysticks(s_appActive);
 
         MSG msg;
         BOOL available = PeekMessageA(&msg, nullptr, 0, 0, PM_NOREMOVE);

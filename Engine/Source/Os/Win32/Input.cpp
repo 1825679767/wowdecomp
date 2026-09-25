@@ -1174,7 +1174,7 @@ static void CenterMouse() {
     OsSetPhysicalCursorPos(s_centerMousePos.x, s_centerMousePos.y);
 }
 
-// VERIFY: 0dc9c9b5 auto
+// VERIFY: 0ffe5fb1 auto
 // OFFSET: 0x00869E00
 int32_t OsInputGet(OSINPUT* id, int32_t* param0, int32_t* param1, int32_t* param2, int32_t* param3) {
     *id = static_cast<OSINPUT>(-1);
@@ -1208,7 +1208,7 @@ int32_t OsInputGet(OSINPUT* id, int32_t* param0, int32_t* param1, int32_t* param
     }
 
     if (s_queueHead == s_queueTail) {
-        OsJoystickPoll(s_appActive);
+        OsPollJoysticks(s_appActive);
 
         MSG msg;
         BOOL available = PeekMessageA(&msg, nullptr, 0, 0, PM_NOREMOVE);
