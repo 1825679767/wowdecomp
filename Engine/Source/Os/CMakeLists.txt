@@ -14,5 +14,6 @@ if(WIN32)
         PUBLIC
             imm32
             wininet
+            ws2_32
     )
 endif()
