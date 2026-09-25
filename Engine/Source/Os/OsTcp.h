@@ -45,4 +45,6 @@ class OsNet {
     /* 0610 */ uint32_t unk_0610;
 };
 
+void OsNetPump(uint32_t timeout);
+
 #endif

@@ -11,6 +11,7 @@ class CSBasePriorityQueue : public TSGrowableArray<void*> {
     public:
     /* 0010 */ uint32_t m_linkOffset;
 
+    ~CSBasePriorityQueue();
     void Enqueue(void* ptr);
     void Remove(uint32_t index);
 
@@ -31,6 +32,7 @@ class CSBasePriority {
 template <class T>
 class TSPriorityQueue : public CSBasePriorityQueue {
     public:
+    TSPriorityQueue(uint32_t linkOffset);
     T* Dequeue();
     T* Head();
 };
@@ -61,6 +63,12 @@ inline CSBasePriority::~CSBasePriority() {
     if (this->m_queue) {
         this->m_queue->Remove(this->m_index);
     }
+}
+
+// INLINED
+template <class T>
+TSPriorityQueue<T>::TSPriorityQueue(uint32_t linkOffset) {
+    this->m_linkOffset = linkOffset;
 }
 
 // INLINED

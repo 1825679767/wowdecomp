@@ -53,3 +53,7 @@ void PropSet(PROPERTY id, void* value) {
 HPROPCONTEXT PropCreateContext() {
     return static_cast<HPROPCONTEXT>(SMemAlloc(PROPERTIES * sizeof(void*), __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY));
 }
+
+void PropDeleteContext(HPROPCONTEXT context) {
+    delete context;
+}

@@ -268,4 +268,14 @@ void DebugLog(const char* format, ...);
 void DebugLog(int32_t target, const char* format, ...);
 void DebugValidate(const char* expression);
 
+// INLINED
+inline void* operator new[](size_t bytes, const char* filename, int32_t linenumber) {
+    return SMemAlloc(bytes, filename, linenumber, 0);
+}
+
+// INLINED
+inline void operator delete[](void* ptr, const char* filename, int32_t linenumber) {
+    SMemFree(ptr, filename, linenumber, 0);
+}
+
 #endif

@@ -1,6 +1,16 @@
 #include <cstdint>
 #include "Engine/Source/Event/CSBasePriorityQueue.h"
 
+// VERIFY: 95aa06ab auto
+// OFFSET: 0x0047DE10
+CSBasePriorityQueue::~CSBasePriorityQueue() {
+    for (uint32_t i = 0; i < this->Count(); i++) {
+        CSBasePriority* priority = this->Link(this->m_data[i]);
+        priority->m_queue = nullptr;
+        priority->m_index = 0;
+    }
+}
+
 // VERIFY: 3c6be56a auto
 // OFFSET: 0x0047E120
 void CSBasePriorityQueue::Enqueue(void* ptr) {

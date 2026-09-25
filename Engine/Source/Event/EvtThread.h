@@ -19,6 +19,12 @@ class EvtThread : public TSLinkedNode<EvtThread> {
     /* 001C */ uint32_t m_rebalance;
     /* 0020 */ SEvent m_wakeEvent;
     /* 0024 */ EvtContextQueue m_contextQueue;
+
+    EvtThread();
 };
+
+// INLINED
+inline EvtThread::EvtThread() : m_wakeEvent(0, 0) {
+}
 
 #endif

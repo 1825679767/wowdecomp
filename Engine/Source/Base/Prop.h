@@ -4,6 +4,7 @@
 #include "Engine/Source/Base/Types.h"
 
 HPROPCONTEXT PropCreateContext();
+void PropDeleteContext(HPROPCONTEXT context);
 void PropDestroy();
 void* PropGet(PROPERTY id);
 HPROPCONTEXT PropGetSelectedContext();

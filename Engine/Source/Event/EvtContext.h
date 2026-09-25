@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Base/TExtraInstanceRecycler.h"
+#include "Engine/Source/Base/TInstanceIdTable.h"
 #include "Engine/Source/Base/Types.h"
 #include "Engine/Source/Event/CSBasePriorityQueue.h"
 #include "Engine/Source/Event/Types.h"
@@ -57,11 +58,14 @@ class TInstanceId : public TSLinkedNode<T> {
     public:
     /* 000C */ uint32_t m_id;
 
+    TInstanceId();
     virtual ~TInstanceId();
 };
 
 template <class T, int bucketCount>
 class TSingletonInstanceId : public TInstanceId<T> {
+    public:
+    static TInstanceIdTable<T, bucketCount> s_idTable;
 };
 
 class EvtContext : public TSingletonInstanceId<EvtContext, 8> {
@@ -85,8 +89,26 @@ class EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     /* 0258 */ TSPriorityQueue<EvtTimer> m_timerQueue;
     /* 026C */ HPROPCONTEXT m_propContext;
     /* 0270 */ void* m_callContext;
-    /* 0274 */ uint32_t m_startWatchdog;
+    /* 0274 */ int32_t m_startWatchdog;
+
+    EvtContext(uint32_t flags, uint32_t idleTime, uint32_t schedWeight, void* callContext, int32_t startWatchdog);
+    ~EvtContext();
 };
+
+// INLINED
+template <class T>
+TInstanceId<T>::TInstanceId() {
+    this->m_id = 0;
+}
+
+// INLINED
+template <class T>
+TInstanceId<T>::~TInstanceId() {
+}
+
+// STATIC: 0x00B41670
+template <class T, int bucketCount>
+TInstanceIdTable<T, bucketCount> TSingletonInstanceId<T, bucketCount>::s_idTable;
 
 // INLINED
 template <class T>

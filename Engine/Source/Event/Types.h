@@ -181,6 +181,12 @@ enum EVENTID {
 typedef int32_t (*EVENTHANDLERFUNC)(const void* data, void* param);
 typedef int32_t (*EVENTHANDLERGUIDFUNC)(const void* data, uint64_t guid, void* param);
 
+struct HEVENTCONTEXT__ {
+    /* 0000 */ int32_t m_unused;
+};
+
+typedef HEVENTCONTEXT__* HEVENTCONTEXT;
+
 struct EVENT_DATA_CHAR {
     /* 0000 */ int32_t m_ch;
     /* 0004 */ uint32_t m_metaKeyState;

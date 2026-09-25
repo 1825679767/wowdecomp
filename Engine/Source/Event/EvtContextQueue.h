@@ -9,6 +9,11 @@ class EvtContext;
 
 class EvtContextQueue : public TSPriorityQueue<EvtContext> {
     public:
+    EvtContextQueue();
 };
+
+// INLINED
+inline EvtContextQueue::EvtContextQueue() : TSPriorityQueue<EvtContext>(offsetof(EvtContext, m_schedNextWakeTime)) {
+}
 
 #endif
