@@ -69,7 +69,7 @@ struct CGxAppRenderState {
 };
 
 typedef void (__fastcall* GxDeviceCallback)();
-typedef intptr_t (__stdcall* GxWindowProc)(void* window, uint32_t message, uintptr_t wparam, intptr_t lparam);
+typedef intptr_t (*GxWindowProc)(void* window, uint32_t message, uintptr_t wparam, intptr_t lparam);
 
 class CGxDevice {
     public:
