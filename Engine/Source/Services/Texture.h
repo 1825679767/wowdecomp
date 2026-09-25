@@ -14,9 +14,16 @@
 #include "Engine/Source/Tempest/CImVector.h"
 
 class CTexture;
+class C2Vector;
 class CTextureAtlas;
 class CTextureBlobTexture;
 class CTgaFile;
+
+enum TEXFILETYPE {
+    TEXFILE_UNKNOWN = 0,
+    TEXFILE_TGA = 1,
+    TEXFILE_BLP = 2,
+};
 
 class CGxTexCache {
     public:
@@ -101,6 +108,7 @@ CTexture* CreateBlpTexture(const char* fileName, char* extension, uint32_t flags
 CTexture* CreateTgaTexture(const char* fileName, char* extension, int32_t flags, CGxTexFlags texFlags, CStatus* status);
 void FillInSolidTexture(const CImVector& color, CTexture* texture);
 MipBits* GetDefaultTexture(uint32_t width, uint32_t height);
+int32_t LoadBlpMips(char* fileName, char* extension, int32_t flags, MipBits** images, uint32_t* width, uint32_t* height, int32_t* opaque, uint32_t* alphaBits, PIXEL_FORMAT* pixelFormat);
 int32_t LoadBlpWithAlias(char* fileName, int32_t flags, MipBits** images);
 uint32_t LoadPredrawnMips(CTgaFile* image, const char* format, int32_t flags, MipBits* images);
 int32_t LoadTgaMips(char* fileName, char* extension, int32_t flags, MipBits** images, uint32_t* width, uint32_t* height, EGxTexFormat* gxTexFormat, int32_t* opaque, uint32_t* alphaBits, PIXEL_FORMAT* pixelFormat);
@@ -115,26 +123,58 @@ int32_t TextureBuildAliasPath(char* buffer, const char* fileName);
 CTexture* TextureCacheGetTexture(char* fileName, char* extension, CGxTexFlags texFlags);
 CTexture* TextureCacheGetTexture(const CImVector& color);
 void TextureCacheUpdate();
+void TextureCacheNewTexture(CTexture* texture);
 void TextureCacheNewTexture(CTexture* texture, CGxTexFlags texFlags);
 void TextureCacheNewTexture(CTexture* texture, const CImVector& color);
+uint32_t TextureCacheGetMaxSize();
+CTexture* TextureCacheGetTexture(const char* fileName);
 uint32_t TextureCalcGxTexSize(EGxTexFormat format, uint32_t width, uint32_t height, EGxTexFilter filter);
 int32_t TextureCalcMipCount(uint32_t width, uint32_t height);
+int32_t TextureCanUpdate(CTexture* texture);
+void TextureComputeLoadProgress(CTexture* texture, int64_t& loaded, int64_t& total);
 CTexture* TextureCreate(const char* fileName, CGxTexFlags texFlags, CStatus* status, uint32_t flags);
+CTexture* TextureCreate(EGxTexTarget target, uint32_t width, uint32_t height, uint32_t depth, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags texFlags, void* userArg, GxTexUserFunc userFunc, const char* name, int32_t defaultFilter);
+CTexture* TextureCreate(uint32_t width, uint32_t height, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags texFlags, void* userArg, GxTexUserFunc userFunc, const char* name, int32_t defaultFilter);
 CTexture* TextureCreateBlob(char* fileName, CGxTexFlags texFlags, CStatus* status, int32_t defaultFilter);
 SFileImpl* TextureCreateOpenFile(const char* fileName, int32_t flags);
 CTexture* TextureCreateSolid(const CImVector& color);
+void TextureDestroy();
+TEXFILETYPE TextureDiscoverFileType(const char* fileName);
+void TextureEnableAtlas(int32_t enable);
 void TextureFreeGxTex(CGxTex* gxTex, const char* name);
 void TextureFreeMippedImg(MipBits* bits);
 void TextureFreeMippedImg(MipBits* bits, PIXEL_FORMAT format, uint32_t width, uint32_t height);
 void TextureGenerateMips(uint32_t width, uint32_t height, uint32_t firstLevel, uint32_t levelCount, MipBits* images);
 CGxTex* TextureGetGxTex(CTexture* texture, int32_t wait, CStatus* status);
+int32_t TextureGetAtlasOffsetAndScale(CTexture* texture, C2Vector& offset, float& scale);
+uint32_t TextureGetBytesPerBlock(PIXEL_FORMAT format);
+int32_t TextureGetDimensions(CTexture* texture, uint32_t* width, uint32_t* height, int32_t wait);
+const char* TextureGetFilename(CTexture* texture);
+void TextureGetGxTexFlags(CTexture* texture, CGxTexFlags* texFlags);
+int32_t TextureGetRefCnt(CTexture* texture);
 void TextureGetTextureFormats(PIXEL_FORMAT& pixelFormat, EGxTexFormat& gxTexFormat, PIXEL_FORMAT preferredFormat, uint32_t alphaBits);
+void TextureGxCacheClear();
+void TextureGxCacheFlush();
 void TextureIncreasePriority(CTexture* texture);
+int32_t TextureIsBlob(CTexture* texture);
+int32_t TextureIsLoaded(CTexture* texture);
+int32_t TextureIsOpaque(CTexture* texture);
+int32_t TextureIsReadyNow(CTexture* texture);
+int32_t TextureIsSame(CTexture* texture, const char* fileName);
 void TextureInitialize();
 int32_t TextureLoadBlob(const char* fileName);
 int32_t TextureLoadBlpMips(char* fileName, char* extension, int32_t flags, MipBits** images, uint32_t* width, uint32_t* height, EGxTexFormat* gxTexFormat, int32_t* opaque, uint32_t* alphaBits, PIXEL_FORMAT* pixelFormat);
+MipBits* TextureLoadImage(const char* fileName, uint32_t* width, uint32_t* height, PIXEL_FORMAT* dataFormat, int32_t* opaque, CStatus* status, uint32_t* alphaBits, int32_t flags);
+void TextureNotifyGxRestart();
+int32_t TextureOnAtlas(CTexture* texture);
+TEXFILETYPE TexturePickAlternateFilename(const char* fileName, TEXFILETYPE type, char* buffer, uint32_t size);
 EGxTexFormat TexturePixelFormatToGxTexFormat(PIXEL_FORMAT format);
 void TextureReportLoadError(const char* type, const char* fileName, CStatus* status);
+void TextureSetCacheSize(int32_t size);
+void TextureSetFilterMode(EGxTexFilter filter);
+void TextureSetMaxAnisotropy(uint32_t maxAnisotropy);
+void TextureSetTextureSubstitutions(const char* from, const char* to);
+void TextureSetUserData(CTexture* texture, GxTexUserFunc userFunc, void* userArg);
 int32_t TextureUnloadBlob(const char* fileName);
 int32_t TextureUpdate(const void* data, void* param);
 void UpdateBlpTextureAsync(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t face, uint32_t level, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);

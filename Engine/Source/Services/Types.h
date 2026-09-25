@@ -27,6 +27,8 @@ class CAsyncObject {
     /* 0025 */ int8_t m_char25;
     /* 0026 */ uint16_t m_padding;
     /* 0028 */ TSLink<CAsyncObject> m_link;
+
+    int32_t IsPending();
 };
 
 enum PIXEL_FORMAT {

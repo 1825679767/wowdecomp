@@ -72,6 +72,12 @@ static TSGrowableArray<int32_t (*)()> s_asyncStatusHandlers;
 // STATIC: 0x00B4A240
 SCritSect g_queueLock;
 
+// VERIFY: 5a8ab5a9 auto
+// OFFSET: 0x004B50A0
+int32_t CAsyncObject::IsPending() {
+    return !this->m_isCurrent && !this->m_isRead && !this->m_isProcessed;
+}
+
 // VERIFY: 6305e7e3 auto
 // OFFSET: 0x004B9910
 void AsyncFileReadSetProgressCallback(void (*callback)(float, void*), void* param) {

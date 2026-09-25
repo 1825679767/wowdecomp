@@ -9,13 +9,18 @@
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Gxu/Gxu.h"
 #include "Engine/Source/Images/tga.h"
+#include "Engine/Source/Os/System.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Services/AsyncFile.h"
 #include "Engine/Source/Services/SysMessage.h"
 #include "Engine/Source/Services/TextureBlob.h"
 #include "Engine/Source/Services/TextureInt.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Tempest/C2Vector.h"
 #include "_Triage/MippedImg.h"
+
+// STATIC: 0x009F1028
+static const uint16_t s_pixelFormatBytesPerBlock[NUM_PIXEL_FORMATS] = { 8, 16, 0, 0, 0, 0, 0, 16, 0, 0 };
 
 // STATIC: 0x009F103C
 static const uint16_t s_texFormatBitDepth[GxTexFormats_Last] = { 0, 32, 32, 16, 16, 16, 4, 8, 8, 16, 32, 32, 32 };
@@ -248,6 +253,89 @@ SFileImpl* TextureCreateOpenFile(const char* fileName, int32_t flags) {
     return nullptr;
 }
 
+// VERIFY: 47fab888 auto
+// OFFSET: 0x004B5390
+void TextureEnableAtlas(int32_t enable) {
+    s_atlasEnable = enable;
+}
+
+// VERIFY: dd850258 auto
+// OFFSET: 0x004B53A0
+int32_t TextureIsSame(CTexture* texture, const char* fileName) {
+    char name[260];
+    uint32_t length = SStrCopy(name, fileName, sizeof(name));
+
+    if (length >= 4 && name[length - 4] == '.') {
+        length -= 4;
+    }
+
+    char* extension = &name[length];
+
+    if (*extension == '.') {
+        SStrLower(extension + 1);
+        *extension = '\0';
+    }
+
+    if (!texture) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    return SStrCmpI(name, texture->m_filename, sizeof(texture->m_filename)) == 0;
+}
+
+// VERIFY: f5c866d4 auto
+// OFFSET: 0x004B5430
+void TextureSetUserData(CTexture* texture, GxTexUserFunc userFunc, void* userArg) {
+    if (!texture) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    GxTexSetUserData(texture->m_gxTex, userFunc, userArg);
+}
+
+// VERIFY: 2db96900 auto
+// OFFSET: 0x004B5460
+int32_t TextureOnAtlas(CTexture* texture) {
+    if (!texture) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    return texture->m_atlas != nullptr;
+}
+
+// VERIFY: 26865c8c auto
+// OFFSET: 0x004B5490
+int32_t TextureGetAtlasOffsetAndScale(CTexture* texture, C2Vector& offset, float& scale) {
+    if (!texture) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    if (!texture->m_atlas) {
+        return 0;
+    }
+
+    scale = 0.125f;
+    offset.x = 0.125f * (texture->m_atlasBlockIndex & 7);
+    offset.y = ((texture->m_atlasBlockIndex >> 3) & 7) * scale;
+
+    return 1;
+}
+
+// VERIFY: 71c27d9c auto
+// OFFSET: 0x004B54F0
+int32_t TextureIsOpaque(CTexture* texture) {
+    if (!texture) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    return texture->m_flags & 1;
+}
+
 // VERIFY: 693ca984 manual
 // OFFSET: 0x004B5510
 int32_t TextureCalcMipCount(uint32_t width, uint32_t height) {
@@ -302,6 +390,93 @@ void TextureFreeMippedImg(MipBits* bits) {
     }
 }
 
+// VERIFY: 118d04a4 auto
+// OFFSET: 0x004B5600
+TEXFILETYPE TextureDiscoverFileType(const char* fileName) {
+    const char* extension = SStrChrR(const_cast<char*>(fileName), '.');
+
+    if (!extension || SStrLen(extension) != 4) {
+        return TEXFILE_UNKNOWN;
+    }
+
+    if (!SStrCmpI(extension, ".TGA", STORM_MAX_STR)) {
+        return TEXFILE_TGA;
+    }
+
+    return SStrCmpI(extension, ".BLP", STORM_MAX_STR) ? TEXFILE_UNKNOWN : TEXFILE_BLP;
+}
+
+// VERIFY: 813fa654 auto
+// OFFSET: 0x004B5670
+TEXFILETYPE TexturePickAlternateFilename(const char* fileName, TEXFILETYPE type, char* buffer, uint32_t size) {
+    if (fileName != buffer) {
+        SStrCopy(buffer, fileName, size);
+    }
+
+    if (!type) {
+        return TEXFILE_UNKNOWN;
+    }
+
+    char* extension = SStrChrR(buffer, '.');
+
+    if (extension) {
+        *extension = '\0';
+    }
+
+    if (type == TEXFILE_TGA) {
+        SStrPack(buffer, ".BLP", size);
+        return TEXFILE_BLP;
+    }
+
+    if (type == TEXFILE_BLP) {
+        SStrPack(buffer, ".TGA", size);
+        return TEXFILE_TGA;
+    }
+
+    return type;
+}
+
+// VERIFY: a342abd9 auto
+// OFFSET: 0x004B56F0
+const char* TextureGetFilename(CTexture* texture) {
+    if (!texture) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return nullptr;
+    }
+
+    return texture->m_filename;
+}
+
+// VERIFY: 2c853d09 manual
+// OFFSET: 0x004B5710
+int32_t TextureIsLoaded(CTexture* texture) {
+    return texture && !texture->m_asyncObject;
+}
+
+// VERIFY: b492d3ae auto
+// OFFSET: 0x004B5730
+void TextureSetTextureSubstitutions(const char* from, const char* to) {
+    s_substituteFrom = const_cast<char*>(from);
+    s_substituteTo = const_cast<char*>(to);
+}
+
+// VERIFY: f55f749a auto
+// OFFSET: 0x004B5750
+void TextureGetGxTexFlags(CTexture* texture, CGxTexFlags* texFlags) {
+    if (!texture) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    *texFlags = texture->m_gxTexFlags;
+}
+
+// VERIFY: 2f2ecfb3 auto
+// OFFSET: 0x004B5770
+uint32_t TextureGetBytesPerBlock(PIXEL_FORMAT format) {
+    return s_pixelFormatBytesPerBlock[format];
+}
+
 // VERIFY: 4ee5ff1e auto
 // OFFSET: 0x004B5780
 int32_t TextureLoadBlob(const char* fileName) {
@@ -312,6 +487,27 @@ int32_t TextureLoadBlob(const char* fileName) {
 // OFFSET: 0x004B5790
 int32_t TextureUnloadBlob(const char* fileName) {
     return CTextureBlob::Unload(fileName);
+}
+
+// VERIFY: 3e458c99 manual
+// OFFSET: 0x004B57A0
+void TextureComputeLoadProgress(CTexture* texture, int64_t& loaded, int64_t& total) {
+    char* extension = texture->m_filename + SStrLen(texture->m_filename);
+    strcpy(extension, ".blp");
+    SFile::FileGetIsLocalAmount(texture->m_filename, loaded, total);
+    total++;
+
+    if (!texture->m_asyncObject) {
+        loaded++;
+    }
+
+    *extension = '\0';
+}
+
+// VERIFY: d1f055eb auto
+// OFFSET: 0x004B5800
+int32_t TextureIsBlob(CTexture* texture) {
+    return texture->m_asyncObject && texture->m_gxTex;
 }
 
 // VERIFY: 762ce4de manual
@@ -695,6 +891,78 @@ void TextureGetTextureFormats(PIXEL_FORMAT& pixelFormat, EGxTexFormat& gxTexForm
     }
 }
 
+// VERIFY: 7e1eb12e manual
+// OFFSET: 0x004B6180
+uint32_t TextureCacheGetMaxSize() {
+    uint32_t size = 0x4000000;
+
+    if (OsGetPhysicalMemory() <= 0x40000000) {
+        size = 0x2000000;
+    }
+
+    return g_theGxDevicePtr->DeviceApi() == GxApi_D3d9Ex ? 0 : size;
+}
+
+// VERIFY: 3db7e996 auto
+// OFFSET: 0x004B61C0
+void TextureSetFilterMode(EGxTexFilter filter) {
+    if (filter >= GxTex_LinearMipLinear && !g_theGxDevicePtr->Caps().m_texFilterTrilinear) {
+        s_maxAnisotropy = 1;
+        s_filterMode = GxTex_LinearMipNearest;
+    } else if (filter >= GxTex_Anisotropic && !g_theGxDevicePtr->Caps().m_texFilterAnisotropic) {
+        s_maxAnisotropy = 1;
+        s_filterMode = GxTex_LinearMipLinear;
+    } else {
+        s_filterMode = filter;
+    }
+}
+
+// VERIFY: dadff56b auto
+// OFFSET: 0x004B6230
+void TextureSetMaxAnisotropy(uint32_t maxAnisotropy) {
+    if (s_filterMode != GxTex_Anisotropic) {
+        s_maxAnisotropy = 1;
+        return;
+    }
+
+    if (maxAnisotropy > g_theGxDevicePtr->Caps().m_maxTexAnisotropy) {
+        maxAnisotropy = g_theGxDevicePtr->Caps().m_maxTexAnisotropy;
+    }
+
+    s_maxAnisotropy = maxAnisotropy;
+}
+
+// VERIFY: 930620f8 auto
+// OFFSET: 0x004B6280
+int32_t TextureGetRefCnt(CTexture* texture) {
+    if (!texture) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    return texture->m_refcount;
+}
+
+// VERIFY: 6b2323f9 auto
+// OFFSET: 0x004B62A0
+int32_t TextureIsReadyNow(CTexture* texture) {
+    if (!texture || !texture->m_gxTex) {
+        return 0;
+    }
+
+    return g_theGxDevicePtr->TexIsReadyNow(texture->m_gxTex);
+}
+
+// VERIFY: ebac48aa auto
+// OFFSET: 0x004B62D0
+int32_t TextureCanUpdate(CTexture* texture) {
+    if (!texture || !texture->m_gxTex) {
+        return 0;
+    }
+
+    return g_theGxDevicePtr->TexCanUpdate(texture->m_gxTex);
+}
+
 // VERIFY: 835e236e auto
 // OFFSET: 0x004B6300
 uint32_t TextureCalcGxTexSize(EGxTexFormat format, uint32_t width, uint32_t height, EGxTexFilter filter) {
@@ -775,6 +1043,67 @@ void AsyncTextureWait(CTexture* texture) {
 
         AsyncFileReadWait(texture->m_asyncObject);
     }
+}
+
+// VERIFY: 6e25a772 manual
+// OFFSET: 0x004B6580
+void TextureSetCacheSize(int32_t size) {
+    uint32_t maxSize = 0x4000000;
+
+    if (OsGetPhysicalMemory() <= 0x40000000) {
+        maxSize = 0x2000000;
+    }
+
+    if (g_theGxDevicePtr->DeviceApi() == GxApi_D3d9Ex) {
+        maxSize = 0;
+    }
+
+    if (size < 0) {
+        s_gxTexCacheMaxSize = 0;
+        return;
+    }
+
+    s_gxTexCacheMaxSize = maxSize;
+
+    if (size <= static_cast<int32_t>(maxSize)) {
+        s_gxTexCacheMaxSize = size;
+    }
+}
+
+// VERIFY: 579a09eb auto
+// OFFSET: 0x004B65E0
+void TextureNotifyGxRestart() {
+    for (CTextureAtlas* atlas = s_atlasList.Head(); atlas; atlas = atlas->m_link.Next()) {
+        atlas->Reload();
+    }
+}
+
+// VERIFY: 7a43e0c3 auto
+// OFFSET: 0x004B6610
+int32_t TextureGetDimensions(CTexture* texture, uint32_t* width, uint32_t* height, int32_t wait) {
+    CAsyncObject* object = texture->m_asyncObject;
+
+    if (object) {
+        if (!wait) {
+            return 0;
+        }
+
+        if (!object->m_buffer) {
+            AsyncTextureProcess(object, 1);
+        }
+
+        AsyncFileReadWait(texture->m_asyncObject);
+    }
+
+    if (width) {
+        *width = texture->m_gxWidth;
+    }
+
+    if (height) {
+        *height = texture->m_gxHeight;
+    }
+
+    return 1;
 }
 
 // VERIFY: b2a5ecf0 manual
@@ -1031,6 +1360,22 @@ CTextureAtlas* CTextureAtlas::Alloc(uint32_t width, uint32_t height, EGxTexForma
     return atlas;
 }
 
+// VERIFY: a49b1a09 auto
+// OFFSET: 0x004B6F30
+CTexture* TextureCacheGetTexture(const char* fileName) {
+    uint32_t hashval = SStrHashHT(fileName);
+    HASHKEY_TEXTUREFILE key;
+    key.m_anyTexFlags = 1;
+    key.m_filename = const_cast<char*>(fileName);
+    CTexture* texture = s_textureCache.Ptr(hashval, key);
+
+    if (!texture) {
+        return nullptr;
+    }
+
+    return reinterpret_cast<CTexture*>(HandleCreate(texture, "HTEXTURE"));
+}
+
 // VERIFY: 841c7f74 auto
 // OFFSET: 0x004B6FA0
 CTexture* TextureCacheGetTexture(char* fileName, char* extension, CGxTexFlags texFlags) {
@@ -1220,7 +1565,7 @@ CTextureAtlas::~CTextureAtlas() {
     this->m_link.Unlink();
 }
 
-// VERIFY: f80ba6e6 manual
+// VERIFY: cb110af1 manual
 // OFFSET: 0x004B7770
 CTextureAtlas* CTextureAtlas::Get(CTexture* texture) {
     uint16_t width = texture->m_gxWidth;
@@ -1234,7 +1579,7 @@ CTextureAtlas* CTextureAtlas::Get(CTexture* texture) {
     texFlags.m_bit15 = 1;
     CTextureAtlas* best = nullptr;
 
-    for (CTextureAtlas* atlas = s_atlasList.Head(); atlas; atlas = s_atlasList.Next(atlas)) {
+    for (CTextureAtlas* atlas = s_atlasList.Head(); atlas; atlas = atlas->m_link.Next()) {
         if (atlas->m_format == texture->m_gxTexFormat && atlas->m_texFlags == texFlags && atlas->m_dataFormat == texture->m_dataFormat && atlas->m_width == width && atlas->m_height == height) {
             if (static_cast<int32_t>(atlas->m_used) < static_cast<int32_t>(atlas->m_capacity) && (!best || static_cast<int32_t>(atlas->m_used) > static_cast<int32_t>(best->m_used))) {
                 best = atlas;
@@ -1554,6 +1899,165 @@ void TextureInitialize() {
     EventRegisterEx(EVENT_ID_POLL, TextureUpdate, nullptr, 0.0f);
 }
 
+// VERIFY: 7711ba71 manual
+// OFFSET: 0x004B8000
+void TextureGxCacheClear() {
+    for (int32_t x = 0; x < 6; x++) {
+        for (int32_t y = 0; y < 6; y++) {
+            for (CGxTexCache* entry = s_gxTexCache[x][y].Head(); !s_gxTexCache[x][y].IsEnd(entry); entry = entry->m_link.RawNext()) {
+                s_gxTexCacheSize -= entry->m_size;
+            }
+
+            s_gxTexCache[x][y].Clear();
+        }
+    }
+}
+
+// VERIFY: f2cfa4ab auto
+// OFFSET: 0x004B8060
+void TextureGxCacheFlush() {
+    TextureGxCacheClear();
+    s_gxTexCacheFree.Clear();
+}
+
+// VERIFY: 2bc4b3ae manual
+// OFFSET: 0x004B8070
+int32_t LoadBlpMips(char* fileName, char* extension, int32_t flags, MipBits** images, uint32_t* width, uint32_t* height, int32_t* opaque, uint32_t* alphaBits, PIXEL_FORMAT* pixelFormat) {
+    if (extension) {
+        strcpy(extension, ".blp");
+    }
+
+    CBLPFile image;
+
+    if (!image.Open(fileName, flags)) {
+        return 0;
+    }
+
+    uint32_t alphaSize = image.m_header.m_alphaSize;
+    uint32_t imageWidth = image.m_header.m_width;
+    uint32_t imageHeight = image.m_header.m_height;
+    PIXEL_FORMAT format;
+
+    if (!pixelFormat || (format = *pixelFormat) == PIXEL_UNSPECIFIED) {
+        if (image.m_header.m_alphaSize) {
+            format = image.m_header.m_alphaSize != 1 ? PIXEL_ARGB4444 : PIXEL_ARGB1555;
+        } else {
+            format = PIXEL_RGB565;
+        }
+    }
+
+    *images = TextureAllocMippedImg(format, image.m_header.m_width, image.m_header.m_height);
+
+    if (!image.LockChain2(fileName, format, *images, 0, 0)) {
+        return 0;
+    }
+
+    if (width) {
+        *width = imageWidth;
+    }
+
+    if (height) {
+        *height = imageHeight;
+    }
+
+    if (opaque) {
+        *opaque = alphaSize == 0;
+    }
+
+    if (alphaBits) {
+        *alphaBits = alphaSize;
+    }
+
+    if (pixelFormat) {
+        *pixelFormat = format;
+    }
+
+    return 1;
+}
+
+// VERIFY: 604826aa manual
+// OFFSET: 0x004B81D0
+MipBits* TextureLoadImage(const char* fileName, uint32_t* width, uint32_t* height, PIXEL_FORMAT* dataFormat, int32_t* opaque, CStatus* status, uint32_t* alphaBits, int32_t flags) {
+    if (!fileName) {
+        DebugValidate("filename");
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return nullptr;
+    }
+
+    if (!width) {
+        DebugValidate("width");
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return nullptr;
+    }
+
+    if (!height) {
+        DebugValidate("height");
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return nullptr;
+    }
+
+    if (!dataFormat) {
+        DebugValidate("dataFormat");
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return nullptr;
+    }
+
+    DebugLog("TextureLoadImage() blocking load: %s.\n", fileName);
+
+    MipBits* images = nullptr;
+    char name[260];
+    strcpy(name, fileName);
+    char* extension = OsPathFindExtensionWithDot(name);
+    *extension = '\0';
+
+    int32_t type = 1;
+
+    for (int32_t tries = 0; tries < 2; tries++) {
+        if (type == 0) {
+            LoadTgaMips(name, extension, flags, &images, width, height, nullptr, opaque, alphaBits, dataFormat);
+        } else if (type == 1) {
+            LoadBlpMips(name, extension, flags, &images, width, height, opaque, alphaBits, dataFormat);
+        }
+
+        if (images) {
+            return images;
+        }
+
+        type = (type + 1) % 2;
+    }
+
+    if (status) {
+        status->Add(STATUS_FATAL, "Error loading texure file \"%s\": unsupported image format\n", fileName);
+    }
+
+    return images;
+}
+
+// VERIFY: 83c488d3 manual
+// OFFSET: 0x004B8420
+void TextureDestroy() {
+    CTextureBlob::UnloadAll();
+    TextureGxCacheClear();
+    s_gxTexCacheFree.Clear();
+    SMemFree(s_mipBits, __FILE__, __LINE__, 0);
+    s_mipBits = nullptr;
+
+    for (int32_t x = 0; x < 6; x++) {
+        for (int32_t y = 0; y < 6; y++) {
+            s_mipBitsCache[x][y][0].Clear();
+            s_mipBitsCache[x][y][1].Clear();
+        }
+    }
+
+    s_mipBitsCacheFree.Clear();
+
+    for (CTexture* texture = s_textureList.Head(); !s_textureList.IsEnd(texture); texture = s_textureList.RawNext(texture)) {
+        DebugLog("TextureDestroy() found unfreed texture: %s\n", texture->m_filename);
+    }
+
+    EventUnregisterEx(EVENT_ID_POLL, TextureUpdate, nullptr, 0xFFFFFFFF);
+}
+
 // VERIFY: 3e889496 manual
 // OFFSET: 0x004B8720
 void CTextureAtlas::Free(CTextureAtlas* atlas, CTexture* texture) {
@@ -1772,6 +2276,29 @@ CTexture* CreateBlpTexture(const char* fileName, char* extension, uint32_t flags
     return reinterpret_cast<CTexture*>(HandleCreate(texture, "HTEXTURE"));
 }
 
+// VERIFY: b54359c2 manual
+// OFFSET: 0x004B8C80
+CTexture* TextureCreate(EGxTexTarget target, uint32_t width, uint32_t height, uint32_t depth, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags texFlags, void* userArg, GxTexUserFunc userFunc, const char* name, int32_t defaultFilter) {
+    CTexture* texture = new ("HTEXTURE", SLOG_OBJECT) CTexture;
+
+    if (defaultFilter) {
+        texFlags.m_filter = s_filterMode;
+    }
+
+    texFlags.m_maxAnisotropy = texFlags.m_filter == GxTex_Anisotropic ? s_maxAnisotropy : 1;
+    texture->m_gxTex = TextureAllocGxTex(target, width, height, depth, format, texFlags, userArg, userFunc, dataFormat, name);
+    texture->m_dataFormat = dataFormat;
+    texture->m_gxWidth = width;
+    texture->m_gxTexFormat = format;
+    texture->m_gxTexTarget = target;
+    texture->m_gxHeight = height;
+    texture->m_gxTexFlags = texFlags;
+    texture->m_asyncObject = nullptr;
+    SStrCopy(texture->m_filename, name ? name : "UniqueTexture", sizeof(texture->m_filename));
+
+    return reinterpret_cast<CTexture*>(HandleCreate(texture, "HTEXTURE"));
+}
+
 // VERIFY: 42c19e46 manual
 // OFFSET: 0x004B8D70
 CTexture* TextureCreateBlob(char* fileName, CGxTexFlags texFlags, CStatus* status, int32_t defaultFilter) {
@@ -1820,6 +2347,23 @@ CTexture* TextureCreateBlob(char* fileName, CGxTexFlags texFlags, CStatus* statu
     }
 
     return handle;
+}
+
+// VERIFY: c357de66 auto
+// OFFSET: 0x004B9200
+CTexture* TextureCreate(uint32_t width, uint32_t height, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags texFlags, void* userArg, GxTexUserFunc userFunc, const char* name, int32_t defaultFilter) {
+    return TextureCreate(GxTex_2d, width, height, 0, format, dataFormat, texFlags, userArg, userFunc, name, defaultFilter);
+}
+
+// VERIFY: 70b37ccc auto
+// OFFSET: 0x004B9420
+void TextureCacheNewTexture(CTexture* texture) {
+    uint32_t hashval = SStrHashHT(texture->m_filename);
+    HASHKEY_TEXTUREFILE key;
+    key.m_anyTexFlags = 0;
+    key.m_texFlags = texture->m_gxTexFlags;
+    key.m_filename = texture->m_filename;
+    s_textureCache.Insert(texture, hashval, key);
 }
 
 // VERIFY: 07bcfe26 manual

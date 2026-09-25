@@ -48,7 +48,8 @@ static BlitFormat GetBlitFormat(PIXEL_FORMAT format) {
     return blitFmt[format];
 }
 
-// INLINED
+// VERIFY: 57cc221c manual
+// OFFSET: 0x004B58D0
 CBLPFile::CBLPFile() {
     this->m_images = nullptr;
     this->m_quality = 100;
