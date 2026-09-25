@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <malloc.h>
 #include <windows.h>
-#include "Engine/Source/BlizzardCore/Source/System/File/File.h"
 #include "Engine/Source/Os/Path.h"
 #include "Engine/Source/Storm/H/storm.h"
 
@@ -25,29 +24,6 @@ uint32_t GetModuleFileNameUTF8(void* module, char* path, uint32_t size) {
     }
 
     return written;
-}
-
-// VERIFY: 2158e20e manual
-// OFFSET: 0x00461DB0
-bool OsSetCurrentDirectory(const char* path) {
-    if (path) {
-        return Blizzard::File::SetWorkingDirectory(path) != 0;
-    }
-
-    SetLastError(ERROR_INVALID_PARAMETER);
-
-    return false;
-}
-
-// VERIFY: 2416cdb3 auto
-// OFFSET: 0x00461D10
-int32_t OsCreateDirectory(const char* path, int32_t recursive) {
-    if (!path) {
-        SetLastError(ERROR_INVALID_PARAMETER);
-        return 0;
-    }
-
-    return Blizzard::File::CreateDirectory(path, recursive != 0) != 0;
 }
 
 #endif

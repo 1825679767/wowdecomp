@@ -2,6 +2,7 @@
 #include "Client.h"
 #include "Engine/Source/Base/CmdLine.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Os/Path.h"
 
 // STATIC: 0x00AB6158

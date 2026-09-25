@@ -12,7 +12,7 @@
 #include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Os/Input.h"
-#include "Engine/Source/Os/Path.h"
+#include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Os/Processor.h"
 #include "Engine/Source/Os/TimeManager.h"
 
