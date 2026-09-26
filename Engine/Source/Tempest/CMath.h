@@ -19,7 +19,11 @@ class CMath {
     static uint32_t sqrt_(uint32_t n);
 };
 
+bool fequal(float a, float b);
+int32_t fequalz(float a, float b, float z);
 uint32_t CeilToInt64(float value);
+int32_t FloatToInt64(float value);
+bool fnotequal(float a, float b);
 int32_t IsNaN(double value);
 
 // INLINED

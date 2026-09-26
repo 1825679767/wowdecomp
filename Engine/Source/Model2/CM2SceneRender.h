@@ -3,46 +3,76 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
+#include "Engine/Source/Gx/Types.h"
+#include "Engine/Source/Model2/M2Data.h"
+#include "Engine/Source/Model2/Types.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 
-struct CM2Cache;
-struct CM2Scene;
+class C3Vector;
+class CM2Cache;
+class CM2Lighting;
+class CM2Model;
+class CM2Scene;
+class CM2Shared;
+class CParticleEmitter2;
+class CShaderEffect;
+class M2Element;
+struct CGxBuf;
 
 class CM2SceneRender {
     public:
     /* 0000 */ C44Matrix m_matrix;
     /* 0040 */ CM2Scene* m_scene;
     /* 0044 */ CM2Cache* m_cache;
-    /* 0048 */ uint32_t unk_0048;
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050;
-    /* 0054 */ uint32_t unk_0054;
-    /* 0058 */ uint32_t unk_0058;
-    /* 005C */ uint32_t unk_005C;
-    /* 0060 */ uint32_t unk_0060;
-    /* 0064 */ uint32_t unk_0064;
-    /* 0068 */ uint32_t unk_0068;
-    /* 006C */ uint32_t unk_006C;
-    /* 0070 */ uint32_t unk_0070;
-    /* 0074 */ uint32_t unk_0074;
-    /* 0078 */ uint32_t unk_0078;
-    /* 007C */ uint32_t unk_007C;
-    /* 0080 */ uint32_t unk_0080;
-    /* 0084 */ uint32_t unk_0084;
-    /* 0088 */ uint32_t unk_0088;
-    /* 008C */ uint32_t unk_008C;
-    /* 0090 */ uint32_t unk_0090;
-    /* 0094 */ uint32_t unk_0094;
-    /* 0098 */ uint32_t unk_0098;
-    /* 009C */ uint32_t unk_009C;
-    /* 00A0 */ uint32_t unk_00A0;
-    /* 00A4 */ uint32_t unk_00A4;
-    /* 00A8 */ uint32_t unk_00A8;
-    /* 00AC */ uint32_t unk_00AC;
-    /* 00B0 */ uint32_t unk_00B0;
-    /* 00B4 */ uint32_t unk_00B4;
-    /* 00B8 */ uint32_t unk_00B8;
+    /* 0048 */ M2Data* m_data;
+    /* 004C */ M2PASS m_pass;
+    /* 0050 */ M2Element* m_curElement;
+    /* 0054 */ M2Element* m_prevElement;
+    /* 0058 */ int32_t m_curType;
+    /* 005C */ int32_t m_prevType;
+    /* 0060 */ CM2Model* m_curModel;
+    /* 0064 */ CM2Model* m_prevModel;
+    /* 0068 */ CM2Shared* m_curShared;
+    /* 006C */ CM2Shared* m_prevShared;
+    /* 0070 */ CM2Lighting* m_curLighting;
+    /* 0074 */ CM2Lighting* m_prevLighting;
+    /* 0078 */ int32_t m_curLocalLighting;
+    /* 007C */ int32_t m_prevLocalLighting;
+    /* 0080 */ uint32_t m_curFogMode;
+    /* 0084 */ uint32_t m_prevFogMode;
+    /* 0088 */ M2Batch* m_curBatch;
+    /* 008C */ M2Batch* m_prevBatch;
+    /* 0090 */ M2SkinSection* m_curSkinSection;
+    /* 0094 */ M2SkinSection* m_prevSkinSection;
+    /* 0098 */ M2Material* m_curMaterial;
+    /* 009C */ M2Material* m_prevMaterial;
+    /* 00A0 */ CShaderEffect* m_particleEffect;
+    /* 00A4 */ CShaderEffect* m_particleUnlitEffect;
+    /* 00A8 */ CShaderEffect* m_projectedModModEffect;
+    /* 00AC */ CShaderEffect* m_projectedModModUnlitEffect;
+    /* 00B0 */ CShaderEffect* m_projectedModAddEffect;
+    /* 00B4 */ CShaderEffect* m_projectedModAddUnlitEffect;
+    /* 00B8 */ M2Material m_defaultMaterial;
+
+    static void EndFixed();
+    static int32_t LightingColorsMatch(const CM2Lighting* a, const CM2Lighting* b);
+
+    CM2SceneRender(CM2Scene* scene);
+    void BeginFixed(const C3Vector& position);
+    void Draw(M2PASS pass, M2Element* elements, uint32_t* indices, uint32_t count);
+    void DrawBatch();
+    uint32_t DrawBatchedParticle(uint32_t index, M2Element* elements, uint32_t* indices, uint32_t count);
+    void DrawBatchDoodad(M2Element* elements, uint32_t* indices);
+    void DrawBatchProj();
+    void DrawCallback();
+    uint32_t DrawParticle(uint32_t index, M2Element* elements, uint32_t* indices, uint32_t count);
+    void DrawRibbon();
+    void RenderBatchedParticle(CParticleEmitter2* emitter, CGxBuf* buf, EGxVertexBufferFormat format, uint32_t vertexCount, uint32_t indexCount);
+    void SetBatchVertices(int32_t sharedVertices);
+    void SetupBillboardView(const C3Vector& position);
+    void SetupLighting();
+    void SetupMaterial();
+    void SetupTextures();
 };
 
 #endif

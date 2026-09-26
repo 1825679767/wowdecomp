@@ -9,8 +9,8 @@
 
 struct C3Vector;
 struct CImVector;
-struct CM2Model;
-struct CM2Scene;
+class CM2Model;
+class CM2Scene;
 struct CTexture;
 namespace DayNight { struct DNPlanet; }
 class LightRec;

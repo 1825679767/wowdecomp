@@ -3,14 +3,13 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
-#include "Engine/Source/Model2/Types.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C4Plane.h"
 #include "Engine/Source/Tempest/CAaSphere.h"
+#include "Engine/Source/Model2/Types.h"
 
 class CM2Light;
-struct CM2Scene;
+class CM2Scene;
 
 class CM2Light {
     public:
@@ -29,6 +28,16 @@ class CM2Light {
     /* 0060 */ uint32_t m_visible;
     /* 0064 */ CM2Light** m_lightPrev;
     /* 0068 */ CM2Light* m_lightNext;
+
+    CM2Light();
+    void GxLightSet(uint32_t index);
+    void Initialize(CM2Scene* scene);
+    void Link();
+    void SetDirection(const C3Vector& dir);
+    void SetLightType(M2LIGHTTYPE type);
+    void SetPosition(const C3Vector& pos);
+    void SetVisible(int32_t visible);
+    void Unlink();
 };
 
 class CM2Lighting {
@@ -55,7 +64,19 @@ class CM2Lighting {
     /* 00B8 */ C3Vector m_fogColor;
     /* 00C4 */ C4Plane m_liquidPlane;
 
+    CM2Lighting();
+    void AddAmbient(const C3Vector& color);
+    void AddDiffuse(const C3Vector& color, const C3Vector& dir);
+    void AddLight(CM2Light* light);
+    void CameraSpace();
+    int32_t GetPointLight(uint32_t index, C3Vector& pos, C3Vector& color, C3Vector& attenuation);
+    int32_t GetSunLight(C3Vector& dir, C3Vector& ambient, C3Vector& diffuse, C3Vector& specular);
+    void Initialize(CM2Scene* scene, const CAaSphere& sphere);
+    void SetFog(const C3Vector& color, float start, float end);
+    void SetFog(const C3Vector& color, float start, float end, float density);
+    void SetupGxFog();
     void SetupGxLights(const C3Vector* origin);
+    void SetupSunlight();
 };
 
 #endif

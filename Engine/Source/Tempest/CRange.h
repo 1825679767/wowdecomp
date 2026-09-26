@@ -10,4 +10,10 @@ class CRange {
     /* 0004 */ float m_h;
 };
 
+class CiRange {
+    public:
+    /* 0000 */ int32_t m_l;
+    /* 0004 */ int32_t m_h;
+};
+
 #endif

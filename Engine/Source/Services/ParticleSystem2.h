@@ -3,7 +3,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Tempest/C3Spline_Bezier3.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/C4Quaternion.h"
 #include "Engine/Source/Tempest/CAaBox.h"
@@ -12,6 +14,16 @@
 class CM2Model;
 class CParticle2;
 class CParticle2_Model;
+class CParticleEmitter2;
+class C2Vector;
+class CImVector;
+class fixed16;
+template <class T>
+class M2PartTrack;
+class CM2Scene;
+class CRange;
+class CTexture;
+struct CGxBuf;
 
 class CParticle2 {
     public:
@@ -30,8 +42,18 @@ class CParticle2_Model {
     /* 003C */ CM2Model* m_model;
 };
 
+class CParticleMat {
+    public:
+    /* 0000 */ uint32_t m_blendMode;
+    /* 0004 */ uint32_t m_flags;
+};
+
 class CParticleEmitter2 {
     public:
+    static void Destroy();
+    static void Init();
+    static void RenderParticleVertices(CGxBuf* buf, EGxVertexBufferFormat format, uint32_t vertexCount, uint32_t indexCount);
+
     /* 0004 */ int32_t m_refCount;
     /* 0008 */ uint32_t m_emitAccumulator;
     /* 000C */ uint32_t m_textureCellShift;
@@ -47,7 +69,7 @@ class CParticleEmitter2 {
     /* 004C */ TSGrowableArray<uint32_t> m_liveList;
     /* 005C */ TSGrowableArray<uint32_t> m_freeList;
     /* 006C */ uint32_t m_childEmitterCount;
-    /* 0070 */ uint32_t m_childEmitters [4];
+    /* 0070 */ CParticleEmitter2* m_childEmitters [4];
     /* 0080 */ uint32_t m_model;
     /* 0084 */ uint32_t m_scene;
     /* 0088 */ uint32_t m_childModel;
@@ -70,13 +92,13 @@ class CParticleEmitter2 {
     /* 00CC */ float m_spin;
     /* 00D0 */ uint32_t m_materialBlend;
     /* 00D4 */ uint32_t m_materialFlags;
-    /* 00D8 */ uint32_t m_colorTrack;
-    /* 00DC */ uint32_t m_alphaTrack;
-    /* 00E0 */ uint32_t m_scaleTrack;
+    /* 00D8 */ const M2PartTrack<C3Vector>* m_colorTrack;
+    /* 00DC */ const M2PartTrack<fixed16>* m_alphaTrack;
+    /* 00E0 */ const M2PartTrack<C2Vector>* m_scaleTrack;
     /* 00E4 */ float m_scaleVariationX;
     /* 00E8 */ float m_scaleVariationY;
-    /* 00EC */ uint32_t m_headCellTrack;
-    /* 00F0 */ uint32_t m_tailCellTrack;
+    /* 00EC */ const M2PartTrack<uint16_t>* m_headCellTrack;
+    /* 00F0 */ const M2PartTrack<uint16_t>* m_tailCellTrack;
     /* 00F4 */ uint32_t m_replacementColors;
     /* 00F8 */ uint32_t unk_00F8;
     /* 00FC */ uint32_t unk_00FC;
@@ -90,9 +112,9 @@ class CParticleEmitter2 {
     /* 011C */ uint32_t m_simpleKeys;
     /* 0120 */ uint32_t m_textureCols;
     /* 0124 */ uint32_t m_textureRows;
-    /* 0128 */ uint32_t m_texture;
+    /* 0128 */ CTexture* m_texture;
     /* 012C */ uint32_t unk_012C;
-    /* 0130 */ uint32_t m_alphaScale;
+    /* 0130 */ float m_alphaScale;
     /* 0134 */ uint32_t m_flags;
     /* 0138 */ uint32_t m_batchFlags;
     /* 013C */ float m_twinkleFPS;
@@ -132,7 +154,91 @@ class CParticleEmitter2 {
     /* 0218 */ CAaBox m_worldBounds;
     /* 0230 */ uint32_t unk_0230;
 
+    virtual void Sync();
+    virtual void CreateParticle(CParticle2& particle, float time, const C44Matrix& transform);
+    virtual void CreateParticle(CParticle2_Model& particle, float time, const C44Matrix& transform);
+    virtual void Unk0C(int32_t a1);
+    virtual CParticleEmitter2* Clone(int32_t a1) = 0;
     virtual ~CParticleEmitter2();
+    virtual void SetWidth(float width) = 0;
+    virtual void SetHeight(float height) = 0;
+    virtual void SetLatitude(float latitude) = 0;
+    virtual void SetLongitude(float longitude) = 0;
+    virtual void SetEmissionRate(float rate);
+
+    void ChangeFrameOfReference(const C44Matrix* matrix);
+    void CreateChildEmittersFromModel(CM2Scene* scene, const char* name);
+    void DetermineIfSimple();
+    uint32_t GetNumBatches();
+    uint32_t GetNumParticleModels();
+    uint32_t GetNumPrimitives();
+    CM2Model* GetParticleModelInternal(uint32_t& index);
+    void GetReplacementColors(CImVector& color0, CImVector& color1, CImVector& color2);
+    int32_t HasLiveParticles();
+    void SetChooseRandomTexture(int32_t choose);
+    void SetFollowParams(float speed1, float scale1, float speed2, float scale2);
+    void SetMaterial(const CParticleMat& material, CTexture* texture);
+    void SetModel(CM2Scene* scene, const char* name);
+    void SetParticleStyle(int32_t a1, int32_t a2, float tailLength, int32_t a4);
+    void SetTextureDimensions(uint32_t rows, uint32_t cols);
+    void SetTwinkleScale(const CRange& scale);
+    void SetZsource(float zsource);
+    void Update(float deltaTime, const C44Matrix& transform, const C3Vector& viewPos, const C44Matrix* frameOfReference);
+    const CAaBox& WorldBounds() const;
+    void SetParticleColors(const CImVector& color0, const CImVector& color1, const CImVector& color2);
+    void SetTexture(CTexture* texture);
+    void Render(void* frameOfReference, uint8_t* buffer, int32_t first);
+};
+
+class CPlaneParticleEmitter : public CParticleEmitter2 {
+    public:
+    /* 0234 */ float m_width;
+    /* 0238 */ float m_height;
+    /* 023C */ float m_latitude;
+    /* 0240 */ float m_longitude;
+
+    CPlaneParticleEmitter();
+    CParticleEmitter2* Clone(int32_t a1) override;
+    void SetWidth(float width) override;
+    void SetHeight(float height) override;
+    void SetLatitude(float latitude) override;
+    void SetLongitude(float longitude) override;
+};
+
+class CSphereParticleEmitter : public CParticleEmitter2 {
+    public:
+    /* 0234 */ float m_minRadius;
+    /* 0238 */ float m_maxRadius;
+    /* 023C */ float m_radiusSpan;
+    /* 0240 */ float m_longitude;
+    /* 0244 */ float unk_0244;
+
+    CSphereParticleEmitter();
+    CParticleEmitter2* Clone(int32_t a1) override;
+    void SetWidth(float width) override;
+    void SetHeight(float height) override;
+    void SetLatitude(float latitude) override;
+    void SetLongitude(float longitude) override;
+};
+
+class CSplineParticleEmitter : public CParticleEmitter2 {
+    public:
+    /* 0234 */ float m_ratePerUnit;
+    /* 0238 */ float m_width;
+    /* 023C */ float m_splineLength;
+    /* 0240 */ float unk_0240;
+    /* 0244 */ float unk_0244;
+    /* 0248 */ float unk_0248;
+    /* 024C */ C3Spline_Bezier3 m_spline;
+
+    CSplineParticleEmitter();
+    CParticleEmitter2* Clone(int32_t a1) override;
+    void SetWidth(float width) override;
+    void SetHeight(float height) override;
+    void SetLatitude(float latitude) override;
+    void SetLongitude(float longitude) override;
+    void SetEmissionRate(float rate) override;
+    void SetSpline(const C3Vector* points, uint32_t count);
 };
 
 #endif

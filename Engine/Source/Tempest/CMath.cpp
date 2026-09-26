@@ -181,9 +181,37 @@ int32_t IsNaN(double value) {
     return _isnan(value);
 }
 
+// VERIFY: 2ff13d8c auto
+// OFFSET: 0x00482870
+int32_t fequalz(float a, float b, float z) {
+    return fabsf(a - b) < z;
+}
+
+// VERIFY: 20bdea3e auto
+// OFFSET: 0x00482890
+bool fequal(float a, float b) {
+    return fabsf(a - b) < 0.00000023841858f;
+}
+
 // OFFSET: 0x00493B60
 uint32_t CeilToInt64(float value) {
     return static_cast<uint32_t>(static_cast<int64_t>(value + 0.99995f));
+}
+
+// VERIFY: dd4c8f48 manual
+// OFFSET: 0x00407930
+int32_t FloatToInt64(float value) {
+    if (value > 0.0f) {
+        return static_cast<int32_t>(static_cast<int64_t>(value));
+    }
+
+    return static_cast<int32_t>(value);
+}
+
+// VERIFY: 5f91affb manual
+// OFFSET: 0x00482900
+bool fnotequal(float a, float b) {
+    return fabsf(a - b) >= 0.00000023841858f;
 }
 
 // VERIFY: f84f50e9 manual

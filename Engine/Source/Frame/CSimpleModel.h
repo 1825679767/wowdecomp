@@ -9,8 +9,8 @@
 #include "Engine/Source/Model2/M2Light.h"
 #include "Engine/Source/Tempest/CImVector.h"
 
-struct CM2Model;
-struct CM2Scene;
+class CM2Model;
+class CM2Scene;
 
 class CSimpleModel : public CSimpleFrame {
     public:
