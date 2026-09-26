@@ -14,8 +14,8 @@ CDataRecycler::CDataRecycler(uint32_t nodesPerBlock, int32_t maxNodes) {
     this->m_nodesPerBlock = this->m_nodesPerBlock >= static_cast<uint32_t>(this->m_nodesRecyclable) ? this->m_nodesRecyclable : this->m_nodesPerBlock;
 }
 
-// VERIFY: d99656c0 manual
-// OFFSET: 0x0095CD70
+// VERIFY: d99656c0 auto
+// OFFSET: [0x0095CD70, 0x0095CE00]
 CDataRecycler::~CDataRecycler() {
 }
 

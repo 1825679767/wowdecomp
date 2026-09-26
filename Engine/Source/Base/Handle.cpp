@@ -16,6 +16,12 @@ const char* CHandleObject::GetObjectName() {
     return nullptr;
 }
 
+// VERIFY: baa00fb6 auto
+// OFFSET: 0x0047BF20
+int32_t HandleCompare(HOBJECT a, HOBJECT b) {
+    return static_cast<int32_t>(a - b);
+}
+
 // VERIFY: 436d38d9 manual
 // OFFSET: 0x0047BF30
 void HandleClose(HOBJECT handle) {

@@ -11,6 +11,7 @@ void TRefCnt::DeleteSelf() {
     delete this;
 }
 
-// INLINED
+// VERIFY: 38418086 manual
+// OFFSET: 0x00480E40
 TRefCnt::~TRefCnt() {
 }

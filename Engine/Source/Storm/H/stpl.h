@@ -135,6 +135,8 @@ class TSHashObject {
     /* 0004 */ TSLink<T> m_linktoslot;
     /* 000C */ TSLink<T> m_linktofull;
     /* 0014 */ TKey m_key;
+
+    ~TSHashObject();
 };
 
 template <class T, class TKey>
@@ -952,6 +954,12 @@ void TSGrowableArray<T>::SetCount(uint32_t count) {
     }
 
     this->m_count = count;
+}
+
+// VERIFY: 8457e24c auto
+// OFFSET: 0x0047C560
+template <class T, class TKey>
+TSHashObject<T, TKey>::~TSHashObject() {
 }
 
 // VERIFY: fcbebc9d auto
