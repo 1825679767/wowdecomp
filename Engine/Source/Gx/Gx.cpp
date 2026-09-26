@@ -321,6 +321,22 @@ BlitFormat GxGetBlitFormat(EGxTexFormat format) {
     return s_blitFormats[format];
 }
 
+// VERIFY: 286a063f auto
+// OFFSET: 0x00681890
+void CGxDevice::XformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
+    if (minX == this->m_viewport.m_x.m_l && maxX == this->m_viewport.m_x.m_h && minY == this->m_viewport.m_y.m_l && maxY == this->m_viewport.m_y.m_h && minZ == this->m_viewport.m_z.m_l && maxZ == this->m_viewport.m_z.m_h) {
+        return;
+    }
+
+    this->m_viewportDirty = 1;
+    this->m_viewport.m_x.m_l = minX;
+    this->m_viewport.m_x.m_h = maxX;
+    this->m_viewport.m_y.m_l = minY;
+    this->m_viewport.m_y.m_h = maxY;
+    this->m_viewport.m_z.m_l = minZ;
+    this->m_viewport.m_z.m_h = maxZ;
+}
+
 // VERIFY: 08ab74c6 manual
 // OFFSET: 0x00681A20
 void GxBufData(CGxBuf* buf, const void* data, uint32_t size, uint32_t offset) {
@@ -346,6 +362,47 @@ void GxDrawLockedElements() {
     batch.m_minIndex = 0;
     batch.m_maxIndex = static_cast<uint16_t>(s_lockVertexCount - 1);
     g_theGxDevicePtr->Draw(&batch, 1);
+}
+
+// VERIFY: 2f4f1ca9 auto
+// OFFSET: 0x00681F60
+void GxXformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
+    float cleanMinX = minX > 0.0f ? minX : 0.0f;
+    float cleanMaxX = maxX < 1.0f ? maxX : 1.0f;
+    float cleanMinY = minY > 0.0f ? minY : 0.0f;
+    float cleanMaxY = maxY < 1.0f ? maxY : 1.0f;
+
+    if (!(cleanMinX < cleanMaxX)) {
+        DebugLog("\"%s\", %s = %g, %s = %g", "cleanMinX < cleanMaxX", "minX", minX, "maxX", maxX);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    if (!(cleanMinY < cleanMaxY)) {
+        DebugLog("\"%s\", %s = %g, %s = %g", "cleanMinY < cleanMaxY", "minY", minY, "maxY", maxY);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    if (!(minZ <= maxZ)) {
+        DebugLog("\"%s\", %s = %g, %s = %g", "minZ <= maxZ", "minZ", minZ, "maxZ", maxZ);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    if (!(minZ >= 0.0f)) {
+        DebugLog("\"%s\", %s = %g", "minZ >= 0.0f", "minZ", minZ);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    if (!(maxZ <= 1.0f)) {
+        DebugLog("\"%s\", %s = %g", "maxZ <= 1.0f", "maxZ", maxZ);
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    g_theGxDevicePtr->XformSetViewport(cleanMinX, cleanMaxX, cleanMinY, cleanMaxY, minZ, maxZ);
 }
 
 // VERIFY: 2b10a3f5 manual

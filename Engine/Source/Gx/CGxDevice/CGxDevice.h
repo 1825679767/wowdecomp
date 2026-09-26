@@ -334,6 +334,7 @@ class CGxDevice {
     void WaitForFPSCap();
     void XformPush(EGxXform xf);
     void XformPushAndSet(EGxXform xf, const C44Matrix& matrix);
+    void XformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ);
 };
 
 extern CGxDevice* g_theGxDevicePtr;

@@ -24,6 +24,7 @@ class CM2Scene;
 class CRange;
 class CTexture;
 struct CGxBuf;
+struct CGxPool;
 
 class CParticle2 {
     public:
@@ -50,6 +51,11 @@ class CParticleMat {
 
 class CParticleEmitter2 {
     public:
+    static CGxBuf* s_indexBuf;
+    static CGxPool* s_indexPool;
+    static uint32_t s_initCount;
+    static uint8_t s_noIndexBuffer;
+
     static void Destroy();
     static void Init();
     static void RenderParticleVertices(CGxBuf* buf, EGxVertexBufferFormat format, uint32_t vertexCount, uint32_t indexCount);

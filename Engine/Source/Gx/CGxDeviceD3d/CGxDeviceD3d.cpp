@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <malloc.h>
@@ -755,6 +756,42 @@ void CGxDeviceD3d::CapsWindowSizeInScreenCoords(CRect& rect) {
     } else {
         rect = this->DeviceCurWindow();
     }
+}
+
+// VERIFY: 616797ae manual
+// OFFSET: 0x006A9B40
+void CGxDeviceD3d::XformSetProjection(const C44Matrix& matrix) {
+    CGxDevice::XformSetProjection(matrix);
+
+    C44Matrix projNative = matrix;
+
+    if (!(fabs(projNative.c3 - 1.0f) < 0.00000023841858f) && !(fabs(projNative.c3) < 0.00000023841858f)) {
+        projNative *= 1.0f / projNative.c3;
+    }
+
+    if (projNative.d3 == 0.0f) {
+        float minZ = -(projNative.d2 / (projNative.c2 + 1.0f));
+        float maxZ = -(projNative.d2 / (projNative.c2 - 1.0f));
+        projNative.c2 = maxZ / (maxZ - minZ);
+        projNative.d2 = maxZ * minZ / (minZ - maxZ);
+    } else {
+        float invC2 = 1.0f / projNative.c2;
+        float minZ = (-1.0f - projNative.d2) * invC2;
+        float maxZ = (1.0f - projNative.d2) * invC2;
+        projNative.c2 = 1.0f / (maxZ - minZ);
+        projNative.d2 = minZ / (minZ - maxZ);
+    }
+
+    if (!(this->m_appMasterEnables & (1 << GxMasterEnable_NormalProjection)) && projNative.d3 != 1.0f) {
+        C44Matrix scale;
+        scale.a0 = 0.2f;
+        scale.b1 = 0.2f;
+        scale.c2 = 0.2f;
+        projNative = projNative * scale;
+    }
+
+    this->m_xforms[GxXform_Projection].m_dirty = 1;
+    this->m_projNative = projNative;
 }
 
 // VERIFY: 146386db manual

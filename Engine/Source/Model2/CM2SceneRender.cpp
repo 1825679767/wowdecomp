@@ -26,9 +26,6 @@ const uint32_t s_fogModes[7] = { 1, 1, 1, 2, 2, 3, 4 };
 // STATIC: 0x00AF58A8
 static C44Matrix s_identity;
 
-extern const uint32_t s_localLighting[7];
-extern const uint32_t s_blendModes[3][7];
-
 // VERIFY: 6a3520ef manual
 // OFFSET: 0x0081F330
 CM2SceneRender::CM2SceneRender(CM2Scene* scene) {
