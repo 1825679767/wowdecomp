@@ -60,6 +60,7 @@ class TSList {
     void LinkToTail(T* ptr);
     T* NewNode(uint32_t location, size_t extrabytes, uint32_t flags);
     T* Next(T* ptr);
+    T* Prev(T* ptr);
     T* RawNext(T* ptr);
     void SetLinkOffset(ptrdiff_t linkoffset);
     T* Tail();
@@ -151,6 +152,7 @@ class TSHashTable {
     TSHashTable();
     void Clear();
     void Delete(T* ptr);
+    T* DeleteNode(T* ptr);
     void GrowListArray(uint32_t newarraysize);
     void Initialize();
     void Insert(T* ptr, uint32_t hashval, const TKey& key);
@@ -163,6 +165,7 @@ class TSHashTable {
     T* New(uint32_t hashval, const TKey& key, size_t extrabytes, uint32_t flags);
     T* New(uint32_t hashval, const char* str, size_t extrabytes, uint32_t flags);
     T* New(const char* str, size_t extrabytes, uint32_t flags);
+    T* Next(T* ptr);
     T* Ptr(uint32_t hashval, const TKey& key);
     T* Ptr(const char* str);
     void Unlink(T* ptr);
@@ -171,6 +174,11 @@ class TSHashTable {
 struct HASHKEY_CONSTSTR {
     /* 0000 */ const char* m_str;
 
+    bool operator==(const char* str);
+};
+
+struct HASHKEY_CONSTSTRI : public HASHKEY_CONSTSTR {
+    HASHKEY_CONSTSTRI& operator=(const char* str);
     bool operator==(const char* str);
 };
 
@@ -460,6 +468,12 @@ T* TSList<T, TGetLink>::NewNode(uint32_t location, size_t extrabytes, uint32_t f
 template <class T, class TGetLink>
 T* TSList<T, TGetLink>::Next(T* ptr) {
     return this->Link(ptr)->Next();
+}
+
+// INLINED
+template <class T, class TGetLink>
+T* TSList<T, TGetLink>::Prev(T* ptr) {
+    return this->Link(ptr)->Prev();
 }
 
 // VERIFY: 230ebf8d auto
@@ -974,6 +988,24 @@ void TSHashTable<T, TKey>::Delete(T* ptr) {
     this->InternalDelete(ptr);
 }
 
+// VERIFY: 5884344f manual
+// OFFSET: 0x007671D0
+template <class T, class TKey>
+T* TSHashTable<T, TKey>::DeleteNode(T* ptr) {
+    T* next = this->m_fulllist.Next(ptr);
+    this->Unlink(ptr);
+    this->InternalDelete(ptr);
+
+    return next;
+}
+
+// VERIFY: fecb3f7f manual
+// OFFSET: 0x00767000
+template <class T, class TKey>
+T* TSHashTable<T, TKey>::Next(T* ptr) {
+    return this->m_fulllist.Next(ptr);
+}
+
 // VERIFY: 35086749 auto
 // OFFSET: [0x00492C70, 0x00496CE0, 0x004B9000, 0x004BB800, 0x004BCB50, 0x004BCD20, 0x004BE750, 0x004C0A20, 0x004CAF90, 0x004CCFC0, 0x004CD190, 0x004CE550, 0x004CF720, 0x004D6800, 0x004F3660, 0x00506AB0, 0x00506D40, 0x00506F10, 0x005070E0, 0x00529D90, 0x00529F60, 0x0052A240, 0x0052F590, 0x0053F900, 0x005491D0, 0x0055A6A0, 0x0055A870, 0x00561270, 0x00561440, 0x00561610, 0x005617E0, 0x005619B0, 0x005679A0, 0x005764C0, 0x00593110, 0x005B68B0, 0x005B6A80, 0x005C1AA0, 0x005C1C70, 0x005C8A40, 0x005C8C10, 0x005D2950, 0x005F09E0, 0x005F4270, 0x005F66B0, 0x005F6880, 0x005F6A50, 0x005FD000, 0x00618AF0, 0x00618CC0, 0x00618EF0, 0x00675AB0, 0x006773F0, 0x006775C0, 0x00677790, 0x00677960, 0x00677B30, 0x00677D00, 0x00677ED0, 0x006780A0, 0x00678270, 0x00678440, 0x00678610, 0x006787E0, 0x006789B0, 0x00678B80, 0x00678D50, 0x006894C0, 0x006BC520, 0x006C3370, 0x006C3540, 0x006C5B40, 0x006C87B0, 0x006E74A0, 0x006E7670, 0x006F4B80, 0x006F4D50, 0x006F4F20, 0x006F50F0, 0x006F52C0, 0x006F5490, 0x006F5660, 0x0070A310, 0x0070A540, 0x007378D0, 0x00767D50, 0x00768E90, 0x0076D430, 0x00777120, 0x007B09F0, 0x007BE580, 0x007BE760, 0x007DDC50, 0x007DDE20, 0x007E0670, 0x007F2E50, 0x007F5590, 0x0080A840, 0x0080AA10, 0x00811720, 0x008118F0, 0x00811AC0, 0x00813700, 0x008138D0, 0x0081B160, 0x0084BB00, 0x0084BCD0, 0x0086F280, 0x00876970, 0x0087C230]
 template <class T, class TKey>
@@ -1369,6 +1401,17 @@ void TSExportTableSyncReuse<T, THandle, TLockedHandle, TSync>::Unlock(TLockedHan
 // INLINED
 inline bool HASHKEY_CONSTSTR::operator==(const char* str) {
     return this->m_str == str || SStrCmp(this->m_str, str, STORM_MAX_STR) == 0;
+}
+
+// INLINED
+inline HASHKEY_CONSTSTRI& HASHKEY_CONSTSTRI::operator=(const char* str) {
+    this->m_str = str;
+    return *this;
+}
+
+// INLINED
+inline bool HASHKEY_CONSTSTRI::operator==(const char* str) {
+    return this->m_str == str || SStrCmpI(this->m_str, str, STORM_MAX_STR) == 0;
 }
 
 // INLINED

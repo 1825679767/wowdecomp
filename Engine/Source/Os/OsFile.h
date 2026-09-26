@@ -9,8 +9,11 @@ typedef HOSFILE__* HOSFILE;
 
 #define OS_CREATE_ALWAYS 2
 #define OS_FILE_ATTRIBUTE_NORMAL 0x80
+#define OS_FILE_ATTRIBUTE_DIRECTORY 0x10
 #define OS_FILE_TYPE_ANY 0x3F3F3F3F
+#define OS_GENERIC_READ 0x80000000
 #define OS_GENERIC_WRITE 0x40000000
+#define OS_OPEN_EXISTING 3
 #define OS_INVALID_FILE reinterpret_cast<HOSFILE>(static_cast<intptr_t>(-1))
 
 struct OS_FILE_DATA {
