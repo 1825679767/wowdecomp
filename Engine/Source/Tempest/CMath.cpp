@@ -180,3 +180,28 @@ float CMath::normalizeAngleNegPiToPi_(float angle) {
 int32_t IsNaN(double value) {
     return _isnan(value);
 }
+
+// OFFSET: 0x00493B60
+uint32_t CeilToInt64(float value) {
+    return static_cast<uint32_t>(static_cast<int64_t>(value + 0.99995f));
+}
+
+// VERIFY: f84f50e9 manual
+// OFFSET: 0x00493B90
+uint32_t CMath::fuint_pi(float f) {
+    if (f > 0.0f) {
+        return static_cast<uint32_t>(f + 0.99995f);
+    }
+
+    return static_cast<int32_t>(f);
+}
+
+// VERIFY: 5b628ede manual
+// OFFSET: 0x005773B0
+int32_t CMath::fint_n(float f) {
+    if (f > 0.0f) {
+        return static_cast<uint32_t>(f + 0.5f);
+    }
+
+    return static_cast<int32_t>(f - 0.5f);
+}

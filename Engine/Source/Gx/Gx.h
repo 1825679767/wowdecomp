@@ -21,6 +21,7 @@ class CRect;
 
 char* GxBufLock(CGxBuf* buf);
 void GxBufUnlock(CGxBuf* buf, uint32_t size);
+void GxBufDestroy(CGxBuf* buf);
 void GxBufData(CGxBuf* buf, const void* data, uint32_t size, uint32_t offset);
 CGxBuf* GxBufStream(EGxPoolTarget target, uint32_t itemSize, uint32_t itemCount);
 void GxPrimIndexPtr(uint32_t indexCount, const uint16_t* indices);
@@ -39,6 +40,7 @@ int32_t GxTexCreate(EGxTexTarget target, uint32_t width, uint32_t height, uint32
 int32_t GxTexCreate(uint32_t width, uint32_t height, EGxTexFormat format, CGxTexFlags flags, void* userArg, GxTexUserFunc userFunc, CGxTex*& texId);
 void GxXformPush(EGxXform xf, const C44Matrix& matrix);
 void GxCapsWindowSizeInScreenCoords(CRect& rect);
+void GxFormatColor(CImVector& color);
 void GxDraw(CGxBatch* batch, int32_t count);
 void GxDrawLockedElements();
 extern const char* g_gxApiNames[GxApis_Last];
@@ -75,6 +77,7 @@ void GxXformPush(EGxXform xf);
 void GxXformScale(EGxXform xf, const C3Vector& scale);
 void GxXformSetProjection(const C44Matrix& matrix);
 void GxXformSetView(const C44Matrix& matrix);
+void GxXformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ);
 void GxXformTranslate(EGxXform xf, const C3Vector& move);
 void GxXformView(C44Matrix& matrix);
 void GxXformViewport(float& minX, float& maxX, float& minY, float& maxY, float& minZ, float& maxZ);

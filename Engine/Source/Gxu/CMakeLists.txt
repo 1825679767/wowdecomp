@@ -8,3 +8,8 @@ target_include_directories(Gxu
     PUBLIC
         ${CMAKE_SOURCE_DIR}
 )
+
+target_link_libraries(Gxu
+    PUBLIC
+        freetype
+)

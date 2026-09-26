@@ -9,14 +9,17 @@ class CMath {
     public:
     static double exp2_(double x);
     static int32_t fint_(float f);
+    static int32_t fint_n(float f);
     static int32_t ftol_round_0_255_(float f);
     static double log2_(double x);
     static float normalizeAngleNegPiToPi_(float angle);
     static float normalizeangle0to2pi_(float angle);
     static bool solvequad_(float a, float b, float c, float& r0, float& r1);
+    static uint32_t fuint_pi(float f);
     static uint32_t sqrt_(uint32_t n);
 };
 
+uint32_t CeilToInt64(float value);
 int32_t IsNaN(double value);
 
 // INLINED

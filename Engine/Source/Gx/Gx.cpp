@@ -729,3 +729,24 @@ void GxLogCrashInfo(char* buffer, uint32_t size) {
     g_theGxDevicePtr->LogCrashInfo(buffer, size);
     SStrPack(buffer, "\r\n", size);
 }
+
+// VERIFY: a9e848ff auto
+// OFFSET: 0x006C42B0
+void GxBufDestroy(CGxBuf* buf) {
+    if (buf && buf != g_theGxDevicePtr->BufStream(buf->m_pool->m_target, 0, 0)) {
+        g_theGxDevicePtr->BufDestroy(buf);
+    }
+}
+
+// VERIFY: a44ff4ef auto
+// OFFSET: 0x006C42F0
+void GxFormatColor(CImVector& color) {
+    if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+        CImVector formatted;
+        formatted.b = color.r;
+        formatted.g = color.g;
+        formatted.r = color.b;
+        formatted.a = color.a;
+        color = formatted;
+    }
+}

@@ -31,6 +31,7 @@ class C3Vector {
     EAxis MinorAxis() const;
     void Normalize();
     void NormalizeSafe();
+    float SquaredMag() const;
     void Zero();
     C3Vector operator-() const;
     C3Vector& operator+=(const C3Vector& v);

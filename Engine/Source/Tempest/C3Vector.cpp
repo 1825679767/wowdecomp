@@ -192,3 +192,8 @@ C3Vector::EAxis C3Vector::MinorAxis() const {
 
     return AXIS_X;
 }
+
+// INLINED
+float C3Vector::SquaredMag() const {
+    return this->y * this->y + this->x * this->x + this->z * this->z;
+}
