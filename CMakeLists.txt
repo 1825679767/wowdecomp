@@ -10,6 +10,9 @@ endif ()
 
 project(wowdecomp CXX C)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
     message(FATAL_ERROR "wowdecomp targets Windows only.")
 endif ()
