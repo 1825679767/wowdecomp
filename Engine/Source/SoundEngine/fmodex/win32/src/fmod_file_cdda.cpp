@@ -622,14 +622,6 @@ FMOD_RESULT CddaFile::getMetadata(Metadata **metadata)
 	[SEE_ALSO]
 ]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-FMOD_RESULT CddaFile::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_FILE, sizeof(CddaFile));    
-
-    return File::getMemoryUsedImpl(tracker);
-}
-#endif
 
 }
 

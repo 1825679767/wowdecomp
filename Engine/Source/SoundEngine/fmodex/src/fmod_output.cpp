@@ -3,7 +3,6 @@
 #include "fmod_channel_real.h"
 #include "fmod_channel_software.h"
 #include "fmod_channelpool.h"
-#include "fmod_downmix.h"
 #include "fmod_dspi.h"
 #include "fmod_dsp_resampler_linear.h"
 #include "fmod_localcriticalsection.h"
@@ -13,14 +12,7 @@
 #include "fmod_soundi.h"
 #include "fmod_string.h"
 
-#ifdef PLATFORM_PS3_SPU
-    #include <cell/dma.h>
-    #include "fmod_systemi_spu.h"
-    #include "fmod_spu_printf.h"
-    #include "fmod_common_spu.h"
-#else
-    #include "fmod_systemi.h"
-#endif
+#include "fmod_systemi.h"
 
 namespace FMOD
 {
@@ -45,24 +37,15 @@ namespace FMOD
 Output::Output()
 {
     mEnumerated             = false;
-    mPolling                = false;
-    mSystem                 = 0;
+    mChannelPool            = 0;
     mChannelPool3D          = 0;
-    mMixAheadBlocks         = 0;
+#ifdef FMOD_SUPPORT_RECORDING
+    mRecordLoop             = false;
+#endif
     mMusicChannelGroup      = 0;
     mNum2DChannelsFromCaps  = 0;
     mNum3DChannelsFromCaps  = 0;
     mTotalChannelsFromCaps  = 0;
-    mDSPTick                = 1;
-
-#ifdef FMOD_SUPPORT_RECORDING
-    mRecordEnumerated       = false;
-    mRecordNumActive        = 0;
-    mRecordInfoForResampler = 0;
-
-    FMOD_OS_CriticalSection_Create(&mRecordInfoCrit);
-    mRecordInfoHead.initNode();
-#endif
 }
 
 
@@ -85,22 +68,8 @@ Output::Output()
 // OFFSET: 0x00916090
 FMOD_RESULT Output::release()
 {
-    if (mDescription.close)
-    {
-#ifdef FMOD_SUPPORT_SOFTWARE
-        readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#else
-        readfrommixer = 0;
-#endif
-
-        mDescription.close(this);
-    }
-
-#ifdef FMOD_SUPPORT_RECORDING
-    FMOD_OS_CriticalSection_Free(mRecordInfoCrit);
-#endif
-    
     FMOD_Memory_Free(this);
+
     return FMOD_OK;
 }
 
@@ -121,7 +90,7 @@ FMOD_RESULT Output::release()
 ]
 */
 // OFFSET: 0x00916120
-FMOD_RESULT Output::recordRead(FMOD_RECORDING_INFO *recordinfo, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
+FMOD_RESULT Output::recordRead(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     FMOD_RESULT          result        = FMOD_OK;
     char                *rptr1         = NULL;
@@ -133,27 +102,23 @@ FMOD_RESULT Output::recordRead(FMOD_RECORDING_INFO *recordinfo, float *inbuffer,
     unsigned int         rlenbytes     = 0;
     unsigned int         rblockalign   = 0;
 
-    SoundI::getBytesFromSamples(recordinfo->mRecordLastCursorPos, &roffsetbytes, outchannels, recordinfo->mRecordFormat);
-    SoundI::getBytesFromSamples(length,                           &rlenbytes,    outchannels, recordinfo->mRecordFormat);
-    SoundI::getBytesFromSamples(1,                                &rblockalign,  outchannels, recordinfo->mRecordFormat);
+    SoundI::getBytesFromSamples(mRecordLastCursorPos, &roffsetbytes, outchannels, mRecordFormat);
+    SoundI::getBytesFromSamples(length,               &rlenbytes,    outchannels, mRecordFormat);
+    SoundI::getBytesFromSamples(1,                    &rblockalign,  outchannels, mRecordFormat);
 
-	result = mDescription.record_lock((FMOD_OUTPUT_STATE *)this, recordinfo, roffsetbytes, rlenbytes, (void **)&rptr1, (void **)&rptr2, &rlen1, &rlen2);
+	result = mDescription.record_lock((FMOD_OUTPUT_STATE *)this, roffsetbytes, rlenbytes, (void **)&rptr1, (void **)&rptr2, &rlen1, &rlen2);
     if (result != FMOD_OK)
     {
         return result;
     }
 
-    /*
-        PCM8 is recorded in unsigned 8-bit, so convert it to signed 8-bit for FMOD
-    */
-    if (recordinfo->mRecordFormat == FMOD_SOUND_FORMAT_PCM8)
+    if (mRecordFormat == FMOD_SOUND_FORMAT_PCM8)
     {
         unsigned char *rptr = NULL;
-        
+
         if (rptr1 && rlen1)
         {
             rptr = (unsigned char *)rptr1;
-
             for (unsigned int count = 0; count < rlen1; count++)
             {
                 *rptr++ ^= 128;
@@ -162,7 +127,6 @@ FMOD_RESULT Output::recordRead(FMOD_RECORDING_INFO *recordinfo, float *inbuffer,
         if (rptr2 && rlen2)
         {
             rptr = (unsigned char *)rptr2;
-
             for (unsigned int count = 0; count < rlen2; count++)
             {
                 *rptr++ ^= 128;
@@ -170,32 +134,29 @@ FMOD_RESULT Output::recordRead(FMOD_RECORDING_INFO *recordinfo, float *inbuffer,
         }
     }
 
-    /*
-        Copy data from hardware and convert to float.
-    */
     if (rptr1 && rlen1)
     {
-        DSPI::convert(destptr, rptr1, FMOD_SOUND_FORMAT_PCMFLOAT, recordinfo->mRecordFormat, (rlen1 / rblockalign) * outchannels, 1, 1, 1.0f);
+        DSPI::convert(destptr, rptr1, FMOD_SOUND_FORMAT_PCMFLOAT, mRecordFormat, (rlen1 / rblockalign) * outchannels, 1, 1, 1.0f);
         destptr += ((rlen1 / rblockalign) * outchannels);
-    }    
+    }
     if (rptr2 && rlen2)
     {
-        DSPI::convert(destptr, rptr2, FMOD_SOUND_FORMAT_PCMFLOAT, recordinfo->mRecordFormat, (rlen2 / rblockalign) * outchannels, 1, 1, 1.0f);
+        DSPI::convert(destptr, rptr2, FMOD_SOUND_FORMAT_PCMFLOAT, mRecordFormat, (rlen2 / rblockalign) * outchannels, 1, 1, 1.0f);
     }
 
     if (mDescription.record_unlock)
-    {		
-	    result = mDescription.record_unlock((FMOD_OUTPUT_STATE *)this, recordinfo, rptr1, rptr2, rlen1, rlen2);
+    {
+	    result = mDescription.record_unlock((FMOD_OUTPUT_STATE *)this, rptr1, rptr2, rlen1, rlen2);
         if (result != FMOD_OK)
         {
             return result;
         }
     }
 
-    recordinfo->mRecordLastCursorPos += length;
-    if (recordinfo->mRecordLastCursorPos >= recordinfo->mRecordBufferLength)
+    mRecordLastCursorPos += length;
+    if (mRecordLastCursorPos >= mRecordBufferLength)
     {
-        recordinfo->mRecordLastCursorPos -= recordinfo->mRecordBufferLength;
+        mRecordLastCursorPos -= mRecordBufferLength;
     }
 
     return FMOD_OK;
@@ -220,10 +181,10 @@ FMOD_RESULT F_CALLBACK Output::recordResamplerReadCallback(FMOD_DSP_STATE *dsp_s
 {
     DSPResampler  *resampler  = (DSPResampler *)dsp_state;
     Output        *output     = NULL;
-        
+
     resampler->getUserData((void **)&output);
 
-    return output->recordRead(output->mRecordInfoForResampler, inbuffer, outbuffer, length, inchannels, outchannels);
+    return output->recordRead(inbuffer, outbuffer, length, inchannels, outchannels);
 }
 
 
@@ -241,7 +202,7 @@ FMOD_RESULT F_CALLBACK Output::recordResamplerReadCallback(FMOD_DSP_STATE *dsp_s
 ]
 */
 // OFFSET: 0x009165F0
-FMOD_RESULT Output::recordFill(FMOD_RECORDING_INFO *recordinfo, unsigned int length)
+FMOD_RESULT Output::recordFill(unsigned int length)
 {
     FMOD_RESULT          result;
     int                  channels;
@@ -249,119 +210,92 @@ FMOD_RESULT Output::recordFill(FMOD_RECORDING_INFO *recordinfo, unsigned int len
     unsigned int         plen1 = 0, plen2 = 0, poffsetbytes, soundlength, plength, plengthbytes, pblockalign, totalplength;
     FMOD_SOUND_FORMAT    pformat;
 
-    result = recordinfo->mRecordSound->getFormat(0, &pformat, &channels, 0);
+    result = mRecordSound->getFormat(0, &pformat, &channels, 0);
     if (result != FMOD_OK)
     {
         return result;
     }
-    result = recordinfo->mRecordSound->getLength(&soundlength, FMOD_TIMEUNIT_PCM);
+
+    result = mRecordSound->getLength(&soundlength, FMOD_TIMEUNIT_PCM);
     if (result != FMOD_OK)
     {
         return result;
     }
+
     result = SoundI::getBytesFromSamples(1, &pblockalign, channels, pformat);
     if (result != FMOD_OK)
     {
         return result;
     }
 
-    totalplength = (unsigned int)((length * recordinfo->mRecordSound->mDefaultFrequency) / recordinfo->mRecordRate);
+    totalplength = (unsigned int)((length * mRecordSound->mDefaultFrequency) / mRecordRate);
+
     while (totalplength)
     {
-        /*
-            Work in blocks so we dont overflow our record resample buffer.
-        */
         plength = totalplength;
-        if (plength > recordinfo->mRecordTempBufferLength)
+        if (plength > mRecordTempBufferLength)
         {
-            plength = recordinfo->mRecordTempBufferLength;
+            plength = mRecordTempBufferLength;
         }
 
-        SoundI::getBytesFromSamples(recordinfo->mRecordOffset, &poffsetbytes, channels, pformat);
+        SoundI::getBytesFromSamples(mRecordOffset, &poffsetbytes, channels, pformat);
         SoundI::getBytesFromSamples(plength,       &plengthbytes, channels, pformat);
 
-        /*
-            Fill one block into the temporary float buffer.
-        */
-        if (recordinfo->mRecordResamplerDSP)
+        if (mRecordResample)
         {
-            mRecordInfoForResampler = recordinfo;
-            result = recordinfo->mRecordResamplerDSP->read(&recordinfo->mRecordTempBuffer, &channels, &plength, (FMOD_SPEAKERMODE)0, channels, mDSPTick);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-            mDSPTick++;
+            result = mRecordResamplerDSP.execute(mRecordTempBuffer, &mRecordTempBuffer, &plength, channels, &channels, (FMOD_SPEAKERMODE)0);
         }
         else
         {
-            result = recordRead(recordinfo, recordinfo->mRecordTempBuffer, recordinfo->mRecordTempBuffer, plength, channels, channels);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
+            result = recordRead(mRecordTempBuffer, mRecordTempBuffer, plength, channels, channels);
         }
-
-        /*
-            Now lock the destination sample and write to it.
-        */
-        result = recordinfo->mRecordSound->lock(poffsetbytes, plengthbytes, (void **)&pptr1, (void **)&pptr2, &plen1, &plen2);
         if (result != FMOD_OK)
         {
             return result;
         }
 
-        /*
-            Convert from float to the destination sound format, and handle wrapping.
-        */
+        result = mRecordSound->lock(poffsetbytes, plengthbytes, (void **)&pptr1, (void **)&pptr2, &plen1, &plen2);
+        if (result != FMOD_OK)
         {
-            float *srcptr = recordinfo->mRecordTempBuffer;
+            return result;
+        }
+
+        {
+            float *srcptr = mRecordTempBuffer;
 
             if (pptr1 && plen1)
             {
                 DSPI::convert(pptr1, srcptr, pformat, FMOD_SOUND_FORMAT_PCMFLOAT, (plen1 / pblockalign) * channels, 1, 1, 1.0f);
                 srcptr += ((plen1 / pblockalign) * channels);
-            }    
+            }
             if (pptr2 && plen2)
             {
                 DSPI::convert(pptr2, srcptr, pformat, FMOD_SOUND_FORMAT_PCMFLOAT, (plen2 / pblockalign) * channels, 1, 1, 1.0f);
             }
         }
 
-        result = recordinfo->mRecordSound->unlock(pptr1, pptr2, plen1, plen2);
+        result = mRecordSound->unlock(pptr1, pptr2, plen1, plen2);
         if (result != FMOD_OK)
         {
             return result;
         }
 
-        /*
-            Now that the data has been copied, update the destination sound's cursor.
-        */
-        recordinfo->mRecordOffset += plength;
-
-        /*
-            Stop the recording if it reaches the end of the sample.
-        */
-        if (plen2 || recordinfo->mRecordOffset >= (int)soundlength)
+        mRecordOffset += plength;
+        if (plen2 || mRecordOffset >= (int)soundlength)
         {
-            if (recordinfo->mRecordLoop)
+            if (!mRecordLoop)
             {
-	            recordinfo->mRecordOffset -= soundlength;
-                if (recordinfo->mRecordOffset < 0)
-                {
-                    recordinfo->mRecordOffset = 0;
-                }
+                mSystem->recordStop();
+                return FMOD_OK;
             }
-            else
+
+	        mRecordOffset -= soundlength;
+            if (mRecordOffset < 0)
             {
-                /*
-                    Mark this recording device for stopping in system update
-                */
-                recordinfo->mRecordFinished = true;
-                break;
+                mRecordOffset = 0;
             }
         }
-        
+
         totalplength -= plength;
     }
 
@@ -387,241 +321,60 @@ FMOD_RESULT Output::recordFill(FMOD_RECORDING_INFO *recordinfo, unsigned int len
 // OFFSET: 0x00916B30
 FMOD_RESULT Output::recordUpdate()
 {
-    FMOD_RESULT             result  = FMOD_OK;
-    FMOD_RECORDING_INFO    *current = NULL;
-    LocalCriticalSection    recordInfoCrit(mRecordInfoCrit, true);
+    FMOD_RESULT  result;
+    unsigned int cursorpos = 0;
+    int          length;
 
     if (!mDescription.record_getposition)
     {
         return FMOD_OK;
     }
 
-    current = SAFE_CAST(FMOD_RECORDING_INFO, mRecordInfoHead.getNext());
-    while (current != &mRecordInfoHead)
-    {
-        unsigned int         cursorpos = 0;
-        int                  length    = 0;
-        FMOD_RECORDING_INFO *next      = SAFE_CAST(FMOD_RECORDING_INFO, current->getNext());
-
-        if (!current->mRecordBufferLength || current->mRecordFinished)
-        {
-            current = next;
-            continue;
-        }
-
-	    result = mDescription.record_getposition((FMOD_OUTPUT_STATE *)this, current, &cursorpos);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-
-	    length = cursorpos - current->mRecordLastCursorPos;
-	    if (length < 0)
-        {
-		    length += current->mRecordBufferLength;
-        }
-        if (length < 0 || length > (int)current->mRecordBufferLength)   /* Handle bad values coming back from getposition. */
-        {
-            length = 0;
-        }
-
-        if (current->mRecordResamplerDSP)
-        {
-            int blocklength = current->mRecordResamplerDSP->mDescription.mResamplerBlockLength;
-            
-            /*
-                We need at least 3 blocks of data. The resampler double buffer + 1 due to
-                the read request at end of first resample buffer.
-            */
-            if (length < blocklength * 3)
-            {
-                current = next;
-                continue;
-            }
-
-            length /= blocklength;   /* Round length to record block size. */
-            length *= blocklength;
-            
-            length -= blocklength;   /* Fill output record sample with n - 1 blocks, otherwise resampler will pull more data that we have. */
-        }
-        else
-        {
-            /*
-                We need at least some data to record
-            */
-            if (length <= 0)
-            {
-                current = next;
-                continue;
-            }
-        }
-    
-        result = recordFill(current, length);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-
-        current = next;
-    }
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    FMOD_OK
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT Output::recordGetInfo(int id, FMOD_RECORDING_INFO **info)
-{
-    FMOD_RESULT             result  = FMOD_OK;
-    FMOD_RECORDING_INFO    *current = NULL;
-    FMOD_GUID               guid    = {0};
-
-    if (!info)
+    if (!mRecordBufferLength)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    *info = 0;
-
-    result = mSystem->getRecordDriverInfo(id, NULL, 0, &guid);
-    CHECK_RESULT(result);
-
-    current = SAFE_CAST(FMOD_RECORDING_INFO, mRecordInfoHead.getNext());
-    while (current != &mRecordInfoHead)
+	result = mDescription.record_getposition((FMOD_OUTPUT_STATE *)this, &cursorpos);
+    if (result != FMOD_OK)
     {
-        FMOD_RECORDING_INFO *next = SAFE_CAST(FMOD_RECORDING_INFO, current->getNext());
-        
-        if (FMOD_memcmp(&guid, &current->mRecordGUID, sizeof(FMOD_GUID)) == 0)
+        return result;
+    }
+
+	length = cursorpos - mRecordLastCursorPos;
+	if (length < 0)
+    {
+		length += mRecordBufferLength;
+    }
+    if (length < 0 || length > (int)mRecordBufferLength)
+    {
+        length = 0;
+    }
+
+    if (mRecordResample)
+    {
+        int blocklength = mRecordResamplerDSP.mDescription.mResamplerBlockLength;
+
+        if (length < blocklength * 3)
         {
-            *info = current;
-            break;
-        }
-        current = next;
-    }
-
-    return FMOD_OK;
-}
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT Output::recordStopAll(bool finishedonly)
-{
-    FMOD_RECORDING_INFO *currentrecordinfo = NULL;
-
-    currentrecordinfo = SAFE_CAST(FMOD_RECORDING_INFO, mRecordInfoHead.getNext());
-    while (currentrecordinfo != &mRecordInfoHead)
-    {
-        FMOD_RECORDING_INFO *next = SAFE_CAST(FMOD_RECORDING_INFO, currentrecordinfo->getNext());
-        
-        if (!finishedonly || currentrecordinfo->mRecordFinished)
-        {
-            recordStop(currentrecordinfo);
-        }
-        
-        currentrecordinfo = next;
-    }
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT Output::recordStop(FMOD_RECORDING_INFO *recordinfo)
-{
-    FMOD_RESULT result = FMOD_OK;
-
-    if (!recordinfo)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-    
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "Output::recordStop", "\n"));
-
-    /*
-        Make the record device "dead" by removing it from the list
-    */
-    FMOD_OS_CriticalSection_Enter(mRecordInfoCrit);
-    {
-        recordinfo->removeNode();
-        mRecordNumActive--;
-    }
-    FMOD_OS_CriticalSection_Leave(mRecordInfoCrit);  
-
-    if (mDescription.record_stop)
-    {
-#ifdef FMOD_SUPPORT_SOFTWARE
-        readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#else
-        readfrommixer = 0;
-#endif
-
-        result = mDescription.record_stop(this, recordinfo);
-        CHECK_RESULT(result);
-    }
-
-    if (recordinfo->mRecordTempBuffer)
-    {
-        FMOD_Memory_Free(recordinfo->mRecordTempBuffer);
-        recordinfo->mRecordTempBuffer       = NULL;
-        recordinfo->mRecordTempBufferLength = 0;
-    }
-
-    if (recordinfo->mRecordResamplerDSP)
-    {
-        if (recordinfo->mRecordResamplerDSP->mResampleBufferMemory)
-        {
-            FMOD_Memory_Free(recordinfo->mRecordResamplerDSP->mResampleBufferMemory);
-            recordinfo->mRecordResamplerDSP->mResampleBufferMemory = NULL;
+            return FMOD_OK;
         }
 
-        FMOD_Memory_Free(recordinfo->mRecordResamplerDSP);
-        recordinfo->mRecordResamplerDSP = NULL;
+        length /= blocklength;
+        length -= 1;
+        length *= blocklength;
+    }
+    else
+    {
+        if (length <= 0)
+        {
+            return FMOD_OK;
+        }
     }
 
-    FMOD_Memory_Free(recordinfo);
-
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "Output::recordStop", "done\n"));
-
-    return FMOD_OK;
+    return recordFill(length);
 }
+
 
 #endif  /* FMOD_SUPPORT_RECORDING */
 
@@ -648,13 +401,10 @@ FMOD_RESULT Output::mix(void *buffer, unsigned int numsamples)
     FMOD_RESULT           result;
     unsigned int          blockalign = 0;
     unsigned int          offset = 0;
-    #ifndef PLATFORM_PS3_SPU
     LocalCriticalSection  criticalsection(mSystem->mDSPCrit);
     LocalCriticalSection  lockdspcriticalsection(mSystem->mDSPLockCrit);
-    #endif
     FMOD_SOUND_FORMAT     outputformat;
     int                   outputchannels;
-    int                   outputchannelsmixer;
     DSPI                 *dsphead;
 
     if (!buffer || !numsamples)
@@ -662,106 +412,57 @@ FMOD_RESULT Output::mix(void *buffer, unsigned int numsamples)
         return FMOD_ERR_INVALID_PARAM;
     }
 
-#ifdef PLATFORM_PS3_SPU
-    mSystem = &gSystem;
+    mSystem->getSoftwareFormat(0, &outputformat, &outputchannels, 0, 0, 0);
 
-    outputformat = FMOD_SOUND_FORMAT_PCMFLOAT;
-    outputchannelsmixer = 8;
-#else
-    result = mSystem->getSoftwareFormat(0, &outputformat, &outputchannelsmixer, 0, 0, 0);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-#endif
-
-    outputchannels = outputchannelsmixer;
-
-#if !defined(PLATFORM_PS3)
-    if (mSystem->mDownmix)
-    {
-        mSystem->mDownmix->getOutputChannels(&outputchannels);
-    }
-#endif
-
-#if defined(PLATFORM_PS2)
-    blockalign = 8;
-#elif defined(PLATFORM_PS3_SPU)
-    blockalign = 32;
-#else
     result = SoundI::getBytesFromSamples(1, &blockalign, outputchannels, outputformat);
     if (result != FMOD_OK)
     {
         return result;
     }
-#endif
-
-
-#ifdef PLATFORM_PS3_SPU
-    cellDmaGet((void *)gDMAMemorySoundCard, (uint64_t)gDSPSoundCardMram, gDSPSoundCardSize, TAG1, TID, RID);
-    cellDmaWaitTagStatusAll(1<<TAG1);
-
-    dsphead = (DSPI *)gDMAMemorySoundCard;
-
-    FMOD_PS3_SPU_DSPPointersToLS(dsphead, false);
-#else
 
     dsphead = mSystem->mDSPSoundCard;
     if (!dsphead)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-#endif
 
-#if !defined(PLATFORM_PS3)
     mSystem->flushDSPConnectionRequests(false);
-#endif
 
-#if !defined(PLATFORM_PS2) && !defined(PLATFORM_PS3_SPU)
     lockdspcriticalsection.enter();
     criticalsection.enter();
-#endif
 
 #ifdef FMOD_SUPPORT_RECORDING
-    if (mRecordNumActive)
+    if (mRecording)
     {
-        recordUpdate(); 
+        recordUpdate();
     }
 #endif
 
-    /*
-        ================================================================================================
-        Update Mixer
-        ================================================================================================
-    */
     do
     {
         void *outbuffer = (char *)buffer + (offset * blockalign);
+        void *mixbuffer = outbuffer;
         unsigned int len = numsamples;
 
         mSystem->mDSPActive = true;
-        {   
-            #ifdef FMOD_SUPPORT_MIXER_NONRECURSIVE /* Can't use virtual function on a class DMA'd in from PPU */
-            result = dsphead->run((float **)&outbuffer, &outputchannelsmixer, &len, mSystem->mSpeakerMode, outputchannelsmixer, mDSPTick);
+        mSystem->mDSPTempBuffIndex = 0;
 
-            if (outbuffer != buffer)
-            {
-                FMOD_memcpy(buffer, outbuffer, sizeof(float) * len * outputchannelsmixer);
-            }
-            #else
-            result = dsphead->read(outbuffer, &len, mSystem->mSpeakerMode, outputchannelsmixer, mDSPTick);
-            #endif
+        dsphead->execute(outbuffer, &mixbuffer, &len, outputchannels, &outputchannels, mSystem->mSpeakerMode);
 
-            mDSPTick++;
-        }
         mSystem->mDSPActive = false;
 
-        numsamples -= len;
-        offset += len;
-    }
-    while (numsamples > 0);
+        if (mixbuffer != outbuffer)
+        {
+            FMOD_memcpy(outbuffer, mixbuffer, blockalign * len);
+        }
 
-#if !defined(PLATFORM_PS2) && !defined(PLATFORM_PS3_SPU)
+        dsphead->resetVisited();
+
+        offset += len;
+        numsamples -= len;
+    }
+    while (numsamples);
+
 	if (mDescription.postmixcallback)
 	{
 		mDescription.postmixcallback(this);
@@ -769,18 +470,13 @@ FMOD_RESULT Output::mix(void *buffer, unsigned int numsamples)
 
     criticalsection.leave();
     lockdspcriticalsection.leave();
-#endif
 
-#if !defined(PLATFORM_PS3)
-    mSystem->mDSPClock.mValue += offset;
-#endif
+    {
+        float delta = (float)mSystem->mDSPBlockSize / (float)mSystem->mOutputRate * 1000.0f;    // ms
 
-#ifndef PLATFORM_PS3_SPU
-    float delta = (float)mSystem->mDSPBlockSize / (float)mSystem->mOutputRate * 1000.0f;    // ms
-
-	FMOD::gGlobal->gDSPClock.mValue += (FMOD_UINT64)(delta * 4294967296.0f);
-    FMOD_OS_Time_GetMs(&FMOD::gGlobal->gDSPClockTimeStamp);
-#endif
+	    FMOD::gGlobal->gDSPClock.mValue += (FMOD_UINT64)(delta * 4294967296.0f);
+        FMOD_OS_Time_GetMs(&FMOD::gGlobal->gDSPClockTimeStamp);
+    }
 
     return FMOD_OK;
 }
@@ -804,14 +500,14 @@ FMOD_RESULT Output::mix(void *buffer, unsigned int numsamples)
 ]
 */
 // OFFSET: 0x009160B0
-FMOD_RESULT Output::getFreeChannel(FMOD_MODE mode, ChannelReal **realchannel, int numchannels, int numsoundchannels, int *found, bool ignorereserved)
+FMOD_RESULT Output::getFreeChannel(FMOD_MODE mode, ChannelReal **realchannel, int numchannels, int numsoundchannels, int *found)
 {
     FMOD_RESULT result;
 
     if (!realchannel)
     {
         return FMOD_ERR_INVALID_PARAM;
-    } 
+    }
 
     if (mode & FMOD_3D)
     {
@@ -820,7 +516,7 @@ FMOD_RESULT Output::getFreeChannel(FMOD_MODE mode, ChannelReal **realchannel, in
             return FMOD_ERR_CHANNEL_ALLOC;
         }
 
-        result = mChannelPool3D->allocateChannel(realchannel, FMOD_CHANNEL_FREE, numchannels, found, ignorereserved);
+        result = mChannelPool3D->allocateChannel(realchannel, FMOD_CHANNEL_FREE, numchannels, found);
         if (result != FMOD_OK)
         {
             return result;
@@ -833,50 +529,14 @@ FMOD_RESULT Output::getFreeChannel(FMOD_MODE mode, ChannelReal **realchannel, in
             return FMOD_ERR_CHANNEL_ALLOC;
         }
 
-        result = mChannelPool->allocateChannel(realchannel, FMOD_CHANNEL_FREE, numchannels, found, ignorereserved);
+        result = mChannelPool->allocateChannel(realchannel, FMOD_CHANNEL_FREE, numchannels, found);
         if (result != FMOD_OK)
         {
             return result;
         }
     }
-    
+
     return FMOD_OK;
-}
-#endif
-
-#ifdef FMOD_SUPPORT_HARDWAREXM
-/*
-[API]
-[
-	[DESCRIPTION]
-    Reserves a physical SPU2 hardware voice so that it is not used by FMOD.
-
-	[PARAMETERS]
-    'voice'          Hardware voice number.  Values accepted are in the range 0 to 47.
-    'reserved'       1 = reserve voice.  0 = unreserve voice.
- 
-	[RETURN_VALUE]
-    FMOD_RESULT
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT Output::reserveVoice(int voice, bool reserved)
-{
-    FMOD_RESULT result;
-    FMOD::ChannelReal *channel;
-
-    result = mChannelPool->getChannel(voice, (FMOD::ChannelReal**)&channel);    
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    return channel->setReserved(reserved);
 }
 #endif
 
@@ -1305,45 +965,5 @@ FMOD_RESULT F_CALLBACK FMOD_OUTPUT_READFROMMIXER(FMOD_OUTPUT_STATE *output_state
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT Output::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    if (mChannelPool)
-    {
-        CHECK_RESULT(mChannelPool->getMemoryUsed(tracker));
-    }
-
-    if (mChannelPool3D && (mChannelPool3D != mChannelPool))
-    {
-        CHECK_RESULT(mChannelPool3D->getMemoryUsed(tracker));
-    }
-
-#ifdef FMOD_SUPPORT_RECORDING
-    FMOD_RECORDING_INFO *current = SAFE_CAST(FMOD_RECORDING_INFO, mRecordInfoHead.getNext());
-    while (current != &mRecordInfoHead)
-    {
-        FMOD_RECORDING_INFO *next = SAFE_CAST(FMOD_RECORDING_INFO, current->getNext());
-        
-        if (current->mRecordSound)
-        {
-            CHECK_RESULT(current->mRecordSound->getMemoryUsed(tracker));
-
-            if (current->mRecordTempBuffer)
-            {
-                unsigned int bufferlengthbytes = 0;
-                SoundI::getBytesFromSamples(FMOD_RECORD_TEMPBUFFERSIZE, &bufferlengthbytes, current->mRecordSound->mChannels, FMOD_SOUND_FORMAT_PCMFLOAT);
-                tracker->add(false, FMOD_MEMBITS_RECORDBUFFER, bufferlengthbytes);
-            }
-        }
-
-        current = next;
-    }
-#endif
-
-    return FMOD_OK;
-}
-
-#endif
 
 }

@@ -361,7 +361,7 @@ FMOD_RESULT CodecAIFF::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
                 }
 			}
 
-            if (!(mFile->mFlags & FMOD_FILE_SEEKABLE))
+            if (!(mFile->mSeekable))
             {
                 done = true;
             }

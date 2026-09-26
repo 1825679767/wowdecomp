@@ -131,6 +131,7 @@ void GeometryI::calculateMatrix()
     [SEE_ALSO]
 ]
 */
+// OFFSET: 0x00919D30
 void GeometryI::updateSpatialData()
 {
     // find world aabb
@@ -286,22 +287,8 @@ bool GeometryI::octreeLineTestCallback(OctreeNode* item, void* data)
     }
     if (side == (polygon.flags & FMOD_POLYGON_NUM_VERTICES_MASK))
     {
-        if (lineTestData->geometryI->mGeometryMgr->mSystem->mFlags & FMOD_INIT_GEOMETRY_USECLOSEST)
-        {
-            float newDirectTransmission = (1.0f - polygon.directOcclusion);
-            float newReverbTransmission = (1.0f - polygon.reverbOcclusion);
-
-            if (newDirectTransmission < lineTestData->directTransmission || (newDirectTransmission == lineTestData->directTransmission && newReverbTransmission < lineTestData->reverbTransmission))
-            {
-                lineTestData->directTransmission = newDirectTransmission;
-                lineTestData->reverbTransmission = newReverbTransmission;
-            }
-        }
-        else
-        {
-            lineTestData->directTransmission *= (1.0f - polygon.directOcclusion);
-            lineTestData->reverbTransmission *= (1.0f - polygon.reverbOcclusion);
-        }
+        lineTestData->directTransmission *= (1.0f - polygon.directOcclusion);
+        lineTestData->reverbTransmission *= (1.0f - polygon.reverbOcclusion);
 
 #if defined(FMOD_GEOMETRY_DEBUGGING)
         // for function testLineTestForEachPolygon to see if this
@@ -387,9 +374,6 @@ GeometryI::GeometryI(GeometryMgr* geometryMgr) : LinkedListNode(), mOctree(geome
 */
 FMOD_RESULT GeometryI::release()
 {      
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
    // mGeometryMgr->flushAll();
 
     // find out if we are in the "to be updated" list and remove us.
@@ -472,9 +456,6 @@ FMOD_RESULT GeometryI::release()
 FMOD_RESULT GeometryI::alloc(int maxNumPolygons, int maxNumVertices)
 {    
     FMOD_RESULT result;
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
 
     if (mPolygonData || mPolygonOffsets )
     {
@@ -543,9 +524,6 @@ FMOD_RESULT GeometryI::addPolygon(float directOcclusion, float reverbOcclusion, 
     ASSERT(numVertices >= 3);
     ASSERT(mNumPolygons < mMaxNumPolygons);
     ASSERT(mNumVertices + numVertices <= mMaxNumVertices);
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
     
     if (vertices == 0)
     {
@@ -713,9 +691,6 @@ FMOD_RESULT GeometryI::getPolygonNumVertices    (int polygonIndex, int *numVerti
 */
 FMOD_RESULT GeometryI::setPolygonVertex(int polygonIndex, int vertexIndex, const FMOD_VECTOR *vertex)
 {    
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
     ASSERT(polygonIndex >= 0);
     ASSERT(polygonIndex < mNumPolygons);
     ASSERT(mPolygonOffsets[polygonIndex] >= 0);
@@ -824,9 +799,6 @@ FMOD_RESULT GeometryI::getPolygonVertex(int polygonIndex, int vertexIndex, FMOD_
 */
 FMOD_RESULT GeometryI::setPolygonAttributes(int polygonIndex, float directOcclusion, float reverbOcclusion, bool doubleSided)
 {
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
     ASSERT(polygonIndex >= 0);
     ASSERT(polygonIndex < mNumPolygons);
     ASSERT(mPolygonOffsets[polygonIndex] >= 0);
@@ -882,9 +854,6 @@ FMOD_RESULT GeometryI::getPolygonAttributes(int polygonIndex, float *directOcclu
     }
 
     {
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-        LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
         FMOD_POLYGON &polygon = *(FMOD_POLYGON*)&mPolygonData[mPolygonOffsets[polygonIndex]];
     
         if (directOcclusion)
@@ -925,9 +894,6 @@ FMOD_RESULT GeometryI::getPolygonAttributes(int polygonIndex, float *directOcclu
 FMOD_RESULT GeometryI::flush()
 {
     /*
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
     */
     int vertex;
 
@@ -1097,9 +1063,6 @@ FMOD_RESULT GeometryI::getActive(bool *active)
 */
 FMOD_RESULT GeometryI::setRotation(const FMOD_VECTOR* forward, const FMOD_VECTOR* up)
 {
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
 
     if (!forward)
     {
@@ -1177,9 +1140,6 @@ FMOD_RESULT GeometryI::getRotation(FMOD_VECTOR* forward, FMOD_VECTOR* up)
 */
 FMOD_RESULT GeometryI::setPosition(const FMOD_VECTOR* position)
 {
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
 
     if (!position)
     {
@@ -1247,9 +1207,6 @@ FMOD_RESULT GeometryI::getPosition(FMOD_VECTOR* position)
 */
 FMOD_RESULT GeometryI::setScale(const FMOD_VECTOR* scale)
 {
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
 
     if (!scale)
     {
@@ -1361,9 +1318,6 @@ FMOD_RESULT GeometryI::save(void *data, int *dataSize)
 */
 FMOD_RESULT GeometryI::load(const void *data, int dataSize)
 {   
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
 
     if (!data)
     {
@@ -1792,9 +1746,6 @@ bool GeometryI::lineTest(LineTestData* lineTestData)
 */
 FMOD_RESULT GeometryI::setWorldSize(float worldSize)
 {
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
     mOctree.setMaxSize(worldSize);
     int poly;
     for (poly = 0; poly < mNumPolygons; poly++)
@@ -1833,9 +1784,6 @@ FMOD_RESULT GeometryI::setWorldSize(float worldSize)
 */
 void GeometryI::removeFromTree()
 {
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    LocalCriticalSection crit(mGeometryMgr->mGeometryCrit, true);
-#endif
     mGeometryMgr->mainOctree()->deleteItem(&mSpatialData->octreeNode);
 }
 
@@ -1929,28 +1877,6 @@ FMOD_RESULT GeometryI::validate(Geometry *geometry, GeometryI **geometryi)
 }
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT GeometryI::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    GETMEMORYINFO_IMPL
-#else
-    return FMOD_ERR_UNIMPLEMENTED;
-#endif
-}
-
 
 /*
 [
@@ -1968,17 +1894,6 @@ FMOD_RESULT GeometryI::getMemoryInfo(unsigned int memorybits, unsigned int event
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT GeometryI::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    //AJS incomplete
-    tracker->add(false, FMOD_MEMBITS_GEOMETRY, sizeof(*this));
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 }

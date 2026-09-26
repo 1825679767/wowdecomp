@@ -121,6 +121,7 @@ FMOD_RESULT DSPConnectionPool::init(SystemI *system, int numconnections, int num
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ab1649c1 auto
 // OFFSET: 0x00922380
 FMOD_RESULT DSPConnectionPool::close()
 {
@@ -169,7 +170,7 @@ FMOD_RESULT DSPConnectionPool::close()
 ]
 */
 // OFFSET: 0x00922420
-FMOD_RESULT DSPConnectionPool::alloc(DSPConnectionI **connection, bool protect)
+FMOD_RESULT DSPConnectionPool::alloc(DSPConnectionI **connection)
 {
     LocalCriticalSection crit(mSystem->mDSPConnectionCrit);
     DSPConnectionI *newconnection;
@@ -185,10 +186,7 @@ FMOD_RESULT DSPConnectionPool::alloc(DSPConnectionI **connection, bool protect)
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (protect)
-    {
-        crit.enter();
-    }
+    crit.enter();
 
     if (mFreeListHead.isEmpty())
     {
@@ -264,10 +262,7 @@ FMOD_RESULT DSPConnectionPool::alloc(DSPConnectionI **connection, bool protect)
     newconnection->mNode->removeNode();
     newconnection->mNode->addAfter(&mUsedListHead);
 
-    if (protect)
-    {
-        crit.leave();
-    }
+    crit.leave();
 
     *connection = newconnection;
 
@@ -292,7 +287,7 @@ FMOD_RESULT DSPConnectionPool::alloc(DSPConnectionI **connection, bool protect)
 ]
 */
 // OFFSET: 0x009226B0
-FMOD_RESULT DSPConnectionPool::free(DSPConnectionI *connection, bool protect)
+FMOD_RESULT DSPConnectionPool::free(DSPConnectionI *connection)
 {
     LocalCriticalSection crit(mSystem->mDSPConnectionCrit);
 
@@ -301,10 +296,7 @@ FMOD_RESULT DSPConnectionPool::free(DSPConnectionI *connection, bool protect)
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (protect)
-    {
-        crit.enter();
-    }
+    crit.enter();
 
     connection->mInputNode.removeNode();
     connection->mOutputNode.removeNode();
@@ -316,10 +308,7 @@ FMOD_RESULT DSPConnectionPool::free(DSPConnectionI *connection, bool protect)
     connection->mNode->addAfter(&mFreeListHead);
     connection->mNode->setData(connection);
 
-    if (protect)
-    {
-        crit.leave();
-    }
+    crit.leave();
 
     return FMOD_OK;
 }
@@ -341,44 +330,6 @@ FMOD_RESULT DSPConnectionPool::free(DSPConnectionI *connection, bool protect)
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPConnectionPool::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    for (int i=0; i < DSP_MAX_CONNECTION_BLOCKS; i++)
-    {
-        if (mConnectionMemory[i])
-        {
-            tracker->add(false, FMOD_MEMBITS_DSPCONNECTION, mNumConnections * sizeof(DSPConnectionI) + 16);
-        }
-
-        if (mNodeMemory[i])
-        {
-            tracker->add(false, FMOD_MEMBITS_DSPCONNECTION, mNumConnections * sizeof(LinkedListNode));
-        }
-
-        if (mLevelDataMemory[i])
-        {
-            unsigned int alignment = 0;
-
-            #ifdef PLATFORM_PS3
-            alignment = 128;
-            #endif
-
-            tracker->add(false, FMOD_MEMBITS_DSPCONNECTION, mNumConnections                                                     /* How many connections are we going to allow maximum. */
-                                                    * (mNumOutputLevels < 2 ? 2 : mNumOutputLevels)                             /* Number of rows.  This should be at least 2 for panning. */
-                                                    * (mNumInputLevels < mNumOutputLevels ? mNumOutputLevels : mNumInputLevels) /* Because pan matricies can be [outputlevels][outputlevels] we need to have at least this */
-                                                    * sizeof(DSP_LEVEL_TYPE)                                                    /* Float values of course.  Maybe lower? */
-                                                    * 3                                                                         /* *3 = mLevel, mLevelCurrent, mLevelDelta */
-                                                    + alignment                                                                 /* PS3 - 128 byte aligned for DMA */
-                                                   );
-        }
-    }
-
-    return FMOD_OK;
-}
-
-#endif
 
 }
 

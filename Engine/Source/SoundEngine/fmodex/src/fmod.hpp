@@ -78,6 +78,7 @@ namespace FMOD
         FMOD_RESULT F_API getAdvancedSettings    (FMOD_ADVANCEDSETTINGS *settings);
         FMOD_RESULT F_API setSpeakerMode         (FMOD_SPEAKERMODE speakermode);
         FMOD_RESULT F_API getSpeakerMode         (FMOD_SPEAKERMODE *speakermode);
+        FMOD_RESULT F_API setCallback            (FMOD_SYSTEM_CALLBACKTYPE type, FMOD_SYSTEM_CALLBACK callback);
                                                 
         // Plug-in support                       
         FMOD_RESULT F_API setPluginPath          (const char *path);
@@ -312,6 +313,7 @@ namespace FMOD
         FMOD_RESULT F_API isPlaying              (bool *isplaying);
         FMOD_RESULT F_API isVirtual              (bool *isvirtual);
         FMOD_RESULT F_API getAudibility          (float *audibility);
+        FMOD_RESULT F_API getFadeVolume          (float *fadevolume);
         FMOD_RESULT F_API getCurrentSound        (Sound **sound);
         FMOD_RESULT F_API getSpectrum            (float *spectrumarray, int numvalues, int channeloffset, FMOD_DSP_FFT_WINDOW windowtype);
         FMOD_RESULT F_API getWaveData            (float *wavearray, int numvalues, int channeloffset);

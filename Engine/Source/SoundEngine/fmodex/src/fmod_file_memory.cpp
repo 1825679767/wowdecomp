@@ -26,7 +26,7 @@ FMOD_RESULT MemoryFile::reallyOpen(const char *name_or_data, unsigned int *files
 {
 	mMem             = (signed char *)name_or_data;
 	mPosition        = 0;
-    mFlags          &= ~FMOD_FILE_BUFFERISSTRING;
+    mBufferIsString  = false;
 	return FMOD_OK;
 }
 
@@ -128,14 +128,6 @@ FMOD_RESULT MemoryFile::reallySeek(unsigned int pos)
 	[SEE_ALSO]
 ]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-FMOD_RESULT MemoryFile::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_FILE, sizeof(MemoryFile));
-
-    return File::getMemoryUsedImpl(tracker);
-}
-#endif
 
 }
 

@@ -108,7 +108,6 @@ namespace FMOD
         float           mVolume;
         void           *mUserData;
 
- static FMOD_RESULT     validate    (DSPConnection *dspconnection, DSPConnectionI **dspconnectioni);
                                     
         FMOD_RESULT     init        (DSP_LEVEL_TYPE * &levelmemory, int maxoutputlevels, int maxinputlevels);
                                     
@@ -134,7 +133,6 @@ namespace FMOD
 
         FMOD_RESULT     copy       (DSPConnectionI *source);
 
-        FMOD_RESULT     getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details);
     };
 
 }

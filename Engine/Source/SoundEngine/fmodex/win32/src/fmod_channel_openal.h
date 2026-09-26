@@ -24,7 +24,7 @@ namespace FMOD
         DSPResampler  *mDSPResampler;       // Connected between mDSPHead and mDSPWaveTable sometimes
         DSPI          *mDSPLowPass;         // Optional if the user specifies FMOD_INIT_SOFTWARE_OCCLUSION
         DSPCodec      *mDSPCodec;
-        DSPConnection *mDSPConnection;
+        DSPConnectionI *mDSPConnection;
 
 		OutputOpenAL  *mOutputOAL;
 		int            mNumSources;
@@ -32,7 +32,6 @@ namespace FMOD
 		short		  *mBuffer;
 		float		  *mTempBuffer;
         bool           mInitialFill;
-        unsigned int   mDSPTick;
       
       public:
         
@@ -43,7 +42,7 @@ namespace FMOD
         FMOD_RESULT  alloc                ();
         FMOD_RESULT  alloc                (DSPI *dsp);
         FMOD_RESULT  start                ();
-        FMOD_RESULT  stop                 ();
+        FMOD_RESULT  stop                 (bool ignoreenddelay, bool resetstate, bool force);
         FMOD_RESULT  setVolume            (float volume);
         FMOD_RESULT  setFrequency         (float frequency);
         FMOD_RESULT  setPan               (float pan, float fbpan = 1);

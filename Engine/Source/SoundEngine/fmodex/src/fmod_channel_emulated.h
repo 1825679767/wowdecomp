@@ -22,15 +22,14 @@ namespace FMOD
         ChannelEmulated();
 
         FMOD_RESULT  init(int index, SystemI *system, Output *output, DSPI *dspmixtarget);
-        FMOD_RESULT  alloc();
-        FMOD_RESULT  stop();
         FMOD_RESULT  close();
+        FMOD_RESULT  alloc();
         FMOD_RESULT  update(int delta);
+        FMOD_RESULT  stop(bool ignoreenddelay, bool resetstate);
+        FMOD_RESULT  stop(bool ignoreenddelay, bool resetstate, bool force);
+        FMOD_RESULT  setSpeakerLevels(int speaker, float *levels, int numlevels);
         FMOD_RESULT  isVirtual(bool *isvirtual);
         FMOD_RESULT  getDSPHead(DSPI **dsp);
-        FMOD_RESULT  setSpeakerLevels(int speaker, float *levels, int numlevels);
-        FMOD_RESULT  setSpeakerMix(float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright);
-        FMOD_RESULT  moveChannelGroup(ChannelGroupI *oldchannelgroup, ChannelGroupI *newchannelgroup);
     };
 }
 

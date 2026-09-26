@@ -14,10 +14,6 @@ extern "C" {
 #endif // __cplusplus
 
 #ifndef OPENAL
-#include <dxsdkver.h>
-#if (_DXSDK_PRODUCT_MAJOR < 9 || (_DXSDK_PRODUCT_MAJOR == 9 && _DXSDK_PRODUCT_MINOR < 21))
-    #include <dplay.h>  /* This defines DWORD_PTR for dsound.h to use. */
-#endif
 	#include <dsound.h>
 	/*
 	* EAX Wrapper Interface (using Direct X 7) {4FF53B81-1CE0-11d3-AAB8-00A0C95949D5}

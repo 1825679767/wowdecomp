@@ -240,6 +240,14 @@ typedef struct
     float im;
 } FMOD_COMPLEX;
 
+typedef struct
+{
+    unsigned int   Data1;
+    unsigned short Data2;
+    unsigned short Data3;
+    unsigned char  Data4[8];
+} FMOD_GUID;
+
 #ifdef FMOD_SUPPORT_PRAGMAPACK
 #pragma pack(1)
 #endif
@@ -274,33 +282,7 @@ typedef struct
                              (x) |= (__tmp & 0x40) >> 5;    \
                              (x) |= (__tmp & 0x80) >> 7; }
 
-#define FMOD_DECRYPT(x, y) { unsigned char __tmp = (x);        \
-                             (x) = 0;                           \
-                             (x) |= (__tmp & 0x01) << 7;        \
-                             (x) |= (__tmp & 0x02) << 5;        \
-                             (x) |= (__tmp & 0x04) << 3;        \
-                             (x) |= (__tmp & 0x08) << 1;        \
-                             (x) |= (__tmp & 0x10) >> 1;        \
-                             (x) |= (__tmp & 0x20) >> 3;        \
-                             (x) |= (__tmp & 0x40) >> 5;        \
-                             (x) |= (__tmp & 0x80) >> 7;        \
-                             (x) ^= (y); }
-
-/* Simply reverses the bits the xor's it with the input. */
-#define FMOD_ENCRYPT_OLD(x, y) { unsigned char __tmp = (x);     \
-                             (x) = 0;                       \
-                             (x) |= (__tmp & 0x01) << 7;    \
-                             (x) |= (__tmp & 0x02) << 5;    \
-                             (x) |= (__tmp & 0x04) << 3;    \
-                             (x) |= (__tmp & 0x08) << 1;    \
-                             (x) |= (__tmp & 0x10) >> 1;    \
-                             (x) |= (__tmp & 0x20) >> 3;    \
-                             (x) |= (__tmp & 0x40) >> 5;    \
-                             (x) |= (__tmp & 0x80) >> 7;    \
-                             (x) ^= (y); }
-
-
-#define FMOD_DECRYPT_OLD(x, y) { unsigned char __tmp = (x) ^ (y);   \
+#define FMOD_DECRYPT(x, y) { unsigned char __tmp = (x) ^ (y);   \
                              (x) = 0;                           \
                              (x) |= (__tmp & 0x01) << 7;        \
                              (x) |= (__tmp & 0x02) << 5;        \
@@ -377,8 +359,10 @@ typedef struct
     #endif
 #endif
 
-#define FMOD_SRAND(_seed)   ( FMOD::gGlobal->gRandomValue = _seed )     /* From MSVC CRT code. */
-#define FMOD_RAND()         ( ((FMOD::gGlobal->gRandomValue = gGlobal->gRandomValue * 214013L  + 2531011L) >> 16) & 0x7fff )     /* From MSVC CRT code. */
+#include <stdlib.h>
+
+#define FMOD_SRAND(_seed)   srand(_seed)
+#define FMOD_RAND()         rand()
 
 #define FMOD_FUZZYEQ(_a, _b) (FMOD_FABS((_a) - (_b)) < 1e-5)
 

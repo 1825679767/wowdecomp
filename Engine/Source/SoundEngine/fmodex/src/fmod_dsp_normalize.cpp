@@ -71,6 +71,7 @@ FMOD_DSP_PARAMETERDESC dspnormalize_param[3] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 92e0ea35 auto
 // OFFSET: 0x008EF1B0
 FMOD_DSP_DESCRIPTION_EX *DSPNormalize::getDescriptionEx()
 {
@@ -93,9 +94,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPNormalize::getDescriptionEx()
     dspnormalize.paramdesc     = dspnormalize_param;
     dspnormalize.setparameter  = DSPNormalize::setParameterCallback;
     dspnormalize.getparameter  = DSPNormalize::getParameterCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dspnormalize.getmemoryused = &DSPNormalize::getMemoryUsedCallback;
-#endif
 
     dspnormalize.mType         = FMOD_DSP_TYPE_NORMALIZE;
     dspnormalize.mCategory     = FMOD_DSP_CATEGORY_FILTER;
@@ -125,6 +123,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPNormalize::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a27fd623 auto
 // OFFSET: 0x008EED10
 FMOD_RESULT DSPNormalize::createInternal()
 {
@@ -227,17 +226,6 @@ FMOD_RESULT DSPNormalize::readInternal(float *inbuffer, float *outbuffer, unsign
     float threshold     = mThreshold;
     float maxamp        = mMaxAmp;
 
-    if (!inbuffer)
-    {
-        return FMOD_OK;
-    }
-
-	if (!(speakermask & ((1 << inchannels)-1))) /*No speaker channels are active, copy in buffer to out buffer and skip the DSP*/
-	{
-		FMOD_memcpy(outbuffer, inbuffer, sizeof(float)*length*inchannels);
-		return FMOD_OK;
-	}
-
     for (count = 0; count < length; count++)
     {
         float scale;
@@ -250,7 +238,7 @@ FMOD_RESULT DSPNormalize::readInternal(float *inbuffer, float *outbuffer, unsign
 
         for (count2 = 0; count2 < (unsigned int)inchannels; count2++)
         {
-			if (((1 << count2) & speakermask) && FMOD_FABS(inbuffer[(count * inchannels) + count2]) > mMaximum)
+			if (FMOD_FABS(inbuffer[(count * inchannels) + count2]) > mMaximum)
 			{
 				mMaximum = FMOD_FABS(inbuffer[(count * inchannels) + count2]);
 			}
@@ -265,14 +253,7 @@ FMOD_RESULT DSPNormalize::readInternal(float *inbuffer, float *outbuffer, unsign
 
         for (count2 = 0; count2 < (unsigned int)inchannels; count2++)
         {
-			if (!((1 << count2) & speakermask))
-			{
-				outbuffer[(count * inchannels) + count2] = inbuffer[(count * inchannels) + count2];
-			}
-			else
-			{
-				outbuffer[(count * inchannels) + count2] = inbuffer[(count * inchannels) + count2] * scale;
-			}
+			outbuffer[(count * inchannels) + count2] = inbuffer[(count * inchannels) + count2] * scale;
         }
 	}
     
@@ -298,6 +279,7 @@ FMOD_RESULT DSPNormalize::readInternal(float *inbuffer, float *outbuffer, unsign
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 14eb8520 auto
 // OFFSET: 0x008EEF90
 FMOD_RESULT DSPNormalize::setParameterInternal(int index, float value)
 {
@@ -348,6 +330,7 @@ FMOD_RESULT DSPNormalize::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b26f3b82 auto
 // OFFSET: 0x008EF010
 FMOD_RESULT DSPNormalize::getParameterInternal(int index, float *value, char *valuestr)
 {
@@ -393,16 +376,6 @@ FMOD_RESULT DSPNormalize::getParameterInternal(int index, float *value, char *va
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPNormalize::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    // Size of this class is already accounted for (via description.mSize). Just add extra allocated memory here.
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 /*
@@ -505,6 +478,7 @@ FMOD_RESULT F_CALLBACK DSPNormalize::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a493d8ac auto
 // OFFSET: 0x008EF110
 FMOD_RESULT F_CALLBACK DSPNormalize::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -556,6 +530,7 @@ FMOD_RESULT F_CALLBACK DSPNormalize::setParameterCallback(FMOD_DSP_STATE *dsp, i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 40a25992 auto
 // OFFSET: 0x008EF180
 FMOD_RESULT F_CALLBACK DSPNormalize::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
@@ -565,29 +540,6 @@ FMOD_RESULT F_CALLBACK DSPNormalize::getParameterCallback(FMOD_DSP_STATE *dsp, i
 }
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPNormalize::getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker)
-{
-    DSPNormalize *normalize = (DSPNormalize *)dsp;    
-
-    return normalize->DSPNormalize::getMemoryUsed(tracker);
-}
-#endif
 
 #endif // !PLATFORM_PS3_SPU
 

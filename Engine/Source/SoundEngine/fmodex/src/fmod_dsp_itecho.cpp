@@ -100,9 +100,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPITEcho::getDescriptionEx()
     dspitecho.paramdesc     = dspitecho_param;
     dspitecho.setparameter  = DSPITEcho::setParameterCallback;
     dspitecho.getparameter  = DSPITEcho::getParameterCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dspitecho.getmemoryused = &DSPITEcho::getMemoryUsedCallback;
-#endif
 
     dspitecho.mType         = FMOD_DSP_TYPE_ITECHO;
     dspitecho.mCategory     = FMOD_DSP_CATEGORY_FILTER;
@@ -134,7 +131,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPITEcho::getDescriptionEx()
 FMOD_RESULT DSPITEcho::createInternal()
 {
     int count;
-	mOldSpeakerMask = 0xFFFF;
 
     init();
     
@@ -243,153 +239,93 @@ FMOD_RESULT DSPITEcho::resetInternal()
 */
 // OFFSET: 0x008EAD00
 FMOD_RESULT DSPITEcho::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
-{   
+{
     unsigned int count;
     int channel;
-	int inchannels2 = (inchannels > 2) ? 2 : inchannels;
 
-    if (!inbuffer)
-    {
-        return FMOD_OK;
-    }
-
-    if (speakermask != mOldSpeakerMask) /* A speaker has been disabled: clear the echo buffer for that speaker to prevent artifacts if/when the speaker is reenabled   */
-	{
-		unsigned short diff = (mOldSpeakerMask ^ speakermask);
-
-		for (channel = 0; channel < inchannels2 ; channel++)
-		{
-			if (diff & (1 << channel))
-			{
-				FMOD_memset(mEchoBuffer[channel], 0, mEchoBufferLengthBytes[channel]);
-			}
-		}
-		mOldSpeakerMask = speakermask;
-	}
-
-    if (!(speakermask & ((1 << inchannels2)-1)))
-    {
-        FMOD_memcpy(outbuffer, inbuffer, length * outchannels * sizeof(float));
-        return FMOD_OK;
-    }
-
-    // Prevent output buffer crosstalk by ensuring every sample is set
     if (inchannels > 2)
     {
         // Prevent output buffer crosstalk by ensuring every sample is set
         FMOD_memcpy(outbuffer, inbuffer, inchannels*length*sizeof(float));
     }
 
-    for (channel = 0; channel < inchannels2; channel++)
+    for (channel = 0; channel < inchannels && channel < 2; channel++)
     {
         unsigned int len;
         float *out, *in;
 
         in  = inbuffer + channel;
         out = outbuffer + channel;
-		if (!((1 << channel) & speakermask))
-		{
-			int inc, offset1, offset2, offset3;
-			len = length >> 2;
-			offset1 = inchannels2;
-			offset2 = inchannels2 * 2;
-			offset3 = inchannels2 * 3;
-			inc = inchannels2 << 2;
-			while (len)
-			{
-				out[0] = in[0];
-				out[offset1] = in[offset1];
-				out[offset2] = in[offset2];
-				out[offset3] = in[offset3];
 
-				in+=inc;
-				out+=inc;
-				len--;
-			}
+        #ifdef USETEMPBUFFERS
+        float tempbuff_m[8 * 256 + 4];   // 8k
+        float *tempbuff = (float *)FMOD_ALIGNPOINTER(tempbuff_m, 16);
 
-			len = length & 3;
-			while (len)
-			{    
-				out[0] = in[0];
-				len--;
-				in += inchannels2;
-				out += inchannels2;
-			}
-			continue; 
-		}
-		else
-		{
-            #ifdef USETEMPBUFFERS
-            float tempbuff_m[8 * 256 + 4];   // 8k
-            float *tempbuff = (float *)FMOD_ALIGNPOINTER(tempbuff_m, 16);
+        unsigned int oldpos = mEchoPosition[channel];
 
-            unsigned int oldpos = mEchoPosition[channel];
+        #ifdef PLATFORM_PS3_SPU
 
-            #ifdef PLATFORM_PS3_SPU
+        cellDmaGet((void *)tempbuff, (uint64_t)(mEchoBuffer[channel] + mEchoPosition[channel]), length * sizeof(float), TAG1, TID, RID);
+        cellDmaWaitTagStatusAll(MASK1);
 
-            cellDmaGet((void *)tempbuff, (uint64_t)(mEchoBuffer[channel] + mEchoPosition[channel]), length * sizeof(float), TAG1, TID, RID);
-            cellDmaWaitTagStatusAll(MASK1);
+        #else
 
-            #else
-            
-            FMOD_memcpy((void *)tempbuff, mEchoBuffer[channel] + mEchoPosition[channel], length * sizeof(float));
-            
-            #endif
+        FMOD_memcpy((void *)tempbuff, mEchoBuffer[channel] + mEchoPosition[channel], length * sizeof(float));
 
-            #endif
+        #endif
 
-			len = length;
+        #endif
 
-			while (len)
-			{
-				unsigned int len2 = len;
-				float *echobuff;
-	        
-                #ifdef USETEMPBUFFERS
-                echobuff = tempbuff;
-                #else
-				echobuff = mEchoBuffer[channel] + mEchoPosition[channel];
-                #endif
+        len = length;
 
-				if (mEchoPosition[channel] + len > mEchoLength[channel])
-				{
-					len2 = mEchoLength[channel] - mEchoPosition[channel];
-				}
-
-				for (count = 0; count < len2; count++) 
-				{
-					float in0 = in[0];
-					out[0]      = (in0 * (1.0f - mWetDryMix)) + (echobuff[0] * mWetDryMix);
-					echobuff[0] = (in0                      ) + (echobuff[0] * mFeedback);
-
-					in  +=inchannels;
-					out +=inchannels;
-					echobuff++;
-				}
-
-				mEchoPosition[channel] += len2;
-				if (mEchoPosition[channel] >= mEchoLength[channel])
-				{
-					mEchoPosition[channel] = 0;
-				}
-				len -= len2;
-			}
+        while (len)
+        {
+            unsigned int len2 = len;
+            float *echobuff;
 
             #ifdef USETEMPBUFFERS
-
-            #ifdef PLATFORM_PS3_SPU
-
-            cellDmaPut((void *)tempbuff, (uint64_t)(mEchoBuffer[channel] + oldpos), length * sizeof(float), TAG1, TID, RID);
-            cellDmaWaitTagStatusAll(MASK1);
-
+            echobuff = tempbuff;
             #else
-
-            FMOD_memcpy((void *)(mEchoBuffer[channel] + oldpos), (void *)tempbuff, length * sizeof(float));
-
-            #endif
+            echobuff = mEchoBuffer[channel] + mEchoPosition[channel];
             #endif
 
-		}
+            if (mEchoPosition[channel] + len > mEchoLength[channel])
+            {
+                len2 = mEchoLength[channel] - mEchoPosition[channel];
+            }
+
+            for (count = 0; count < len2; count++)
+            {
+                float in0 = in[0];
+                out[0]      = (in0 * (1.0f - mWetDryMix)) + (echobuff[0] * mWetDryMix);
+                echobuff[0] = (in0                      ) + (echobuff[0] * mFeedback);
+
+                in  +=inchannels;
+                out +=inchannels;
+                echobuff++;
+            }
+
+            mEchoPosition[channel] += len2;
+            if (mEchoPosition[channel] >= mEchoLength[channel])
+            {
+                mEchoPosition[channel] = 0;
+            }
+            len -= len2;
+        }
+
+        #ifdef USETEMPBUFFERS
+
+        #ifdef PLATFORM_PS3_SPU
+
+        cellDmaPut((void *)tempbuff, (uint64_t)(mEchoBuffer[channel] + oldpos), length * sizeof(float), TAG1, TID, RID);
+        cellDmaWaitTagStatusAll(MASK1);
+
+        #else
+
+        FMOD_memcpy((void *)(mEchoBuffer[channel] + oldpos), (void *)tempbuff, length * sizeof(float));
+
+        #endif
+        #endif
     }
 
     return FMOD_OK;
@@ -545,6 +481,7 @@ FMOD_RESULT DSPITEcho::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0befce1b auto
 // OFFSET: 0x008EB0C0
 FMOD_RESULT DSPITEcho::getParameterInternal(int index, float *value, char *valuestr)
 {
@@ -602,28 +539,6 @@ FMOD_RESULT DSPITEcho::getParameterInternal(int index, float *value, char *value
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPITEcho::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    // Size of this class is already accounted for (via description.mSize). Just add extra allocated memory here.
-
-    for (int channel = 0; channel < 2; channel++)
-    {
-        if (mEchoBufferMem[channel])
-        {
-            #ifdef PLATFORM_PS3
-            tracker->add(false, FMOD_MEMBITS_DSP, mEchoBufferLengthBytes[channel] + 128);
-            #else
-            tracker->add(false, FMOD_MEMBITS_DSP, mEchoBufferLengthBytes[channel]);
-            #endif
-        }
-    }
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 /*
@@ -726,6 +641,7 @@ FMOD_RESULT F_CALLBACK DSPITEcho::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a1fd0658 auto
 // OFFSET: 0x008EB290
 FMOD_RESULT F_CALLBACK DSPITEcho::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -777,6 +693,7 @@ FMOD_RESULT F_CALLBACK DSPITEcho::setParameterCallback(FMOD_DSP_STATE *dsp, int 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 31d4f2ba auto
 // OFFSET: 0x008EB300
 FMOD_RESULT F_CALLBACK DSPITEcho::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
@@ -786,29 +703,6 @@ FMOD_RESULT F_CALLBACK DSPITEcho::getParameterCallback(FMOD_DSP_STATE *dsp, int 
 }
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPITEcho::getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker)
-{
-    DSPITEcho *itecho = (DSPITEcho *)dsp;    
-
-    return itecho->DSPITEcho::getMemoryUsed(tracker);
-}
-#endif
 
 #endif
 

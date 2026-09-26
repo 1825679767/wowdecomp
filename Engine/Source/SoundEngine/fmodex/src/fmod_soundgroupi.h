@@ -27,12 +27,12 @@ namespace FMOD
         SystemI                  *mSystem;
         void                     *mUserData;
         LinkedListNode            mSoundHead;
-        SortedLinkedListNode      mChannelListHead;
         char                     *mName;
         int                       mMaxAudible;
         FMOD_SOUNDGROUP_BEHAVIOR  mMaxAudibleBehavior;
 
         int                       mPlayCount;
+        int                       mNumPlaying;
         float                     mFadeSpeed;
         float                     mVolume;
 
@@ -65,7 +65,6 @@ namespace FMOD
         FMOD_RESULT setUserData          (void *userdata);
         FMOD_RESULT getUserData          (void **userdata);
 
-        FMOD_RESULT getMemoryInfo        (unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details);
     };
 }
 

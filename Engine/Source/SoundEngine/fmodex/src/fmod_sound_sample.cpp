@@ -631,16 +631,6 @@ FMOD_RESULT Sample::release(bool freethis)
 {
     int count;
     
-    if (mFlags & FMOD_SOUND_FLAG_PRELOADEDFSB)
-    {
-        return FMOD_ERR_PRELOADED;
-    }
-
-    if (mFlags & FMOD_SOUND_FLAG_PROGRAMMERSOUND)
-    {
-        return FMOD_ERR_PROGRAMMERSOUND;
-    }
-
     if (mSystem)
     {
         mSystem->stopSound(this);
@@ -935,15 +925,5 @@ FMOD_RESULT Sample::setLoopPoints(unsigned int loopstart, FMOD_TIMEUNIT loopstar
 	[SEE_ALSO]
 ]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT Sample::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_SOUND, sizeof(Sample) - sizeof(SoundI));
-
-    return SoundI::getMemoryUsedImpl(tracker);
-}
-
-#endif
 
 }

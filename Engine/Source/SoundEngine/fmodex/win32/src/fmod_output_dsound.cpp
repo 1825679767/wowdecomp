@@ -13,18 +13,12 @@
 #include "fmod_channel_dsound_eax3.h"
 #include "fmod_channel_dsound_eax4.h"
 #include "fmod_channel_dsound_i3dl2.h"
-#include "fmod_downmix.h"
 #include "fmod_output_dsound.h"
 #include "fmod_sample_dsound.h"
 #include "fmod_speakermap.h"
-#include "fmod_stringw.h"
 #include "fmod_systemi.h"
 #include "fmod_os_misc.h"
 
-#include <dxsdkver.h>
-#if (_DXSDK_PRODUCT_MAJOR < 9 || (_DXSDK_PRODUCT_MAJOR == 9 && _DXSDK_PRODUCT_MINOR < 21))
-    #include <dplay.h>  /* This defines DWORD_PTR for dsound.h to use. */
-#endif
 #include <dsound.h>
 
 namespace FMOD
@@ -36,8 +30,8 @@ namespace FMOD
 
 static const FMOD_GUID IID_IDirectSound3DListener           = { 0x279AFA84, 0x4981, 0x11CE, { 0xA5,0x21,0x00,0x20,0xAF,0x0B,0xE5,0x60} };
 static const FMOD_GUID IID_IDirectSound3DBuffer             = { 0x279AFA86, 0x4981, 0x11CE, { 0xA5,0x21,0x00,0x20,0xAF,0x0B,0xE5,0x60} };
-static const FMOD_GUID KSDATAFORMAT_SUBTYPE_PCM             = { 0x00000001, 0x0000, 0x0010, { 0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71} };
-static const FMOD_GUID KSDATAFORMAT_SUBTYPE_IEEE_FLOAT      = { 0x00000003, 0x0000, 0x0010, { 0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71} };
+static const FMOD_GUID _KSDATAFORMAT_SUBTYPE_PCM            = { 0x00000001, 0x0000, 0x0010, { 0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71} };
+static const FMOD_GUID _KSDATAFORMAT_SUBTYPE_IEEE_FLOAT     = { 0x00000003, 0x0000, 0x0010, { 0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71} };
 
 static const FMOD_GUID DS3DALG_NO_VIRTUALIZATION            = { 0xc241333f, 0x1c1b, 0x11d2, { 0x94,0xf5,0x00,0xc0,0x4f,0xc2,0x8a,0xca} };
 static const FMOD_GUID DS3DALG_HRTF_LIGHT                   = { 0xc2413342, 0x1c1b, 0x11d2, { 0x94,0xf5,0x00,0xc0,0x4f,0xc2,0x8a,0xca} };
@@ -93,8 +87,7 @@ FMOD_OUTPUT_DESCRIPTION_EX *OutputDSound::getDescriptionEx()
     dsoundoutput.version                = 0x00010100;
     dsoundoutput.polling                = true;
     dsoundoutput.getnumdrivers          = &OutputDSound::getNumDriversCallback;
-    dsoundoutput.getdriverinfo          = &OutputDSound::getDriverInfoCallback;
-    dsoundoutput.getdriverinfow         = &OutputDSound::getDriverInfoWCallback;
+    dsoundoutput.getdrivername          = &OutputDSound::getDriverNameCallback;
     dsoundoutput.close                  = &OutputDSound::closeCallback;
     dsoundoutput.start                  = &OutputDSound::startCallback;
     dsoundoutput.stop                   = &OutputDSound::stopCallback;
@@ -114,8 +107,7 @@ FMOD_OUTPUT_DESCRIPTION_EX *OutputDSound::getDescriptionEx()
     dsoundoutput.getsoundram            = &OutputDSound::getSoundRAMCallback;
 #ifdef FMOD_SUPPORT_RECORDING
     dsoundoutput.record_getnumdrivers   = &OutputDSound::recordGetNumDriversCallback;
-    dsoundoutput.record_getdriverinfo   = &OutputDSound::recordGetDriverInfoCallback;
-    dsoundoutput.record_getdriverinfow  = &OutputDSound::recordGetDriverInfoWCallback;
+    dsoundoutput.record_getdrivername   = &OutputDSound::recordGetDriverInfoCallback;
     dsoundoutput.record_start           = &OutputDSound::recordStartCallback;
     dsoundoutput.record_stop            = &OutputDSound::recordStopCallback;
     dsoundoutput.record_getposition     = &OutputDSound::recordGetPositionCallback;
@@ -124,9 +116,6 @@ FMOD_OUTPUT_DESCRIPTION_EX *OutputDSound::getDescriptionEx()
 #endif
     dsoundoutput.reverb_setproperties   = &OutputDSound::setReverbPropertiesCallback;
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dsoundoutput.getmemoryused          = &OutputDSound::getMemoryUsedCallback;
-#endif
 
     dsoundoutput.mType                  = FMOD_OUTPUTTYPE_DSOUND;
     dsoundoutput.mSize                  = sizeof(OutputDSound);
@@ -192,7 +181,7 @@ FMOD_RESULT OutputDSound::registerDLL()
         }        
     }
 
-    mDirectSoundEnumerate = (PFN_DSENUMERATE)GetProcAddress(mDSoundModule,"DirectSoundEnumerateW");
+    mDirectSoundEnumerate = (PFN_DSENUMERATE)GetProcAddress(mDSoundModule,"DirectSoundEnumerateA");
 
     if (mDirectXVersion >= 8 && GetSystemDirectory( szPath, MAX_PATH ) != 0 )
     {
@@ -203,7 +192,6 @@ FMOD_RESULT OutputDSound::registerDLL()
         FMOD_strcpy( szFile, szPath );
         FMOD_strcat( szFile, "\\d3d9.dll");
 
-        fp->init(mSystem, 0,0);
         result = fp->open(szFile, 0);
         if (result == FMOD_OK)
         {
@@ -227,7 +215,7 @@ FMOD_RESULT OutputDSound::registerDLL()
         mDirectSoundCaptureCreate = (PFN_DSCCREATE8)GetProcAddress(mDSoundModule, "DirectSoundCaptureCreate");
     }
 
-	mDirectSoundCaptureEnumerate = (PFN_DSCENUMERATE)GetProcAddress(mDSoundModule, "DirectSoundCaptureEnumerateW");
+	mDirectSoundCaptureEnumerate = (PFN_DSCENUMERATE)GetProcAddress(mDSoundModule, "DirectSoundCaptureEnumerateA");
 
 	mDLLInitialized = true;
 
@@ -252,36 +240,33 @@ FMOD_RESULT OutputDSound::registerDLL()
 	[SEE_ALSO]
 */
 // OFFSET: 0x0093ACA0
-BOOL CALLBACK FMOD_Output_DSound_EnumProc(LPGUID lpGUID, LPCWSTR lpszDesc, LPCWSTR lpszDrvName, LPVOID lpContext)
+BOOL CALLBACK FMOD_Output_DSound_EnumProc(LPGUID lpGUID, LPCSTR lpszDesc, LPCSTR lpszDrvName, LPVOID lpContext)
 {
     FMOD::OutputDSound *outputdsound = (FMOD::OutputDSound *)lpContext;
 
-    // Don't allow more drivers than the maximum number of drivers
-	if (outputdsound->mNumDrivers < FMOD_OUTPUT_MAXDRIVERS)
+	if (outputdsound->mNumDrivers >= FMOD_OUTPUT_MAXDRIVERS)
 	{
-        // Don't add pseudo driver "Primary..." (no GUID), it is just a dupe anyway
-        if (lpGUID)
-        {
-            outputdsound->mDriverName[outputdsound->mNumDrivers] = (short *)FMOD_Memory_Calloc((FMOD_strlenW((short *)lpszDesc) + 1) * sizeof(short));
-            if (outputdsound->mDriverName[outputdsound->mNumDrivers])
-            {
-                FMOD_strncpyW(outputdsound->mDriverName[outputdsound->mNumDrivers], (short *)lpszDesc, FMOD_strlenW((short *)lpszDesc));
-            }
+        return TRUE;
+    }
 
-            FMOD_memcpy(&outputdsound->mGUID[outputdsound->mNumDrivers], lpGUID, sizeof(GUID));
-	        
-            {
-                short driverName[FMOD_STRING_MAXNAMELEN] = {0};
+    if (!lpGUID)
+    {
+        return TRUE;
+    }
 
-                FMOD_strncpyW(driverName, (short *)lpszDesc, FMOD_STRING_MAXNAMELEN);
-                FMOD_wtoa(driverName);
-                
-                FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "FMOD_Output_DSound_EnumProc", "Enumerating \"%s\"\n", driverName));
-            }
-	        
-            outputdsound->mNumDrivers++;
-        }
-	}
+    outputdsound->mDriverName[outputdsound->mNumDrivers] = (char *)FMOD_Memory_Calloc(FMOD_strlen(lpszDesc) + 1);
+    if (!outputdsound->mDriverName[outputdsound->mNumDrivers])
+    {
+        return TRUE;
+    }
+
+    strncpy(outputdsound->mDriverName[outputdsound->mNumDrivers], lpszDesc, FMOD_strlen(lpszDesc));
+
+    FMOD_memcpy(&outputdsound->mGUID[outputdsound->mNumDrivers], lpGUID, sizeof(GUID));
+
+    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "FMOD_Output_DSound_EnumProc", "Enumerating \"%s\"\n", lpszDesc));
+
+    outputdsound->mNumDrivers++;
 
 	return TRUE;
 }
@@ -309,11 +294,6 @@ FMOD_RESULT OutputDSound::enumerate()
 {
     FMOD_RESULT result;
 
-    if (mEnumerated)
-    {
-        return FMOD_OK;
-    }
-
     result = registerDLL();
     if (result != FMOD_OK)
     {
@@ -332,10 +312,8 @@ FMOD_RESULT OutputDSound::enumerate()
 
     if (mDirectSoundEnumerate)
     {
-		(*mDirectSoundEnumerate)((LPDSENUMCALLBACKW)FMOD_Output_DSound_EnumProc, (void *)this);
+		(*mDirectSoundEnumerate)(FMOD_Output_DSound_EnumProc, (void *)this);
     }
-
-    mEnumerated = true;
 
     return FMOD_OK;
 }
@@ -360,20 +338,17 @@ FMOD_RESULT OutputDSound::enumerate()
 */
 FMOD_RESULT OutputDSound::getNumDrivers(int *numdrivers)
 {
+    FMOD_RESULT result;
+
     if (!numdrivers)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (!mEnumerated)
+    result = enumerate();
+    if (result != FMOD_OK)
     {
-        FMOD_RESULT result;
-
-        result = enumerate();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
+        return result;
     }
 
     *numdrivers = mNumDrivers;
@@ -399,17 +374,20 @@ FMOD_RESULT OutputDSound::getNumDrivers(int *numdrivers)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT OutputDSound::getDriverInfo(int driver, char *name, int namelen, FMOD_GUID *guid)
+// OFFSET: 0x0093AE00
+FMOD_RESULT OutputDSound::getDriverName(int driver, char *name, int namelen)
 {
-    if (!mEnumerated)
-    {
-        FMOD_RESULT result;
+    FMOD_RESULT result;
 
-        result = enumerate();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
+    if (!name || namelen < 1)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    result = enumerate();
+    if (result != FMOD_OK)
+    {
+        return result;
     }
 
     if (driver < 0 || driver >= mNumDrivers)
@@ -417,71 +395,7 @@ FMOD_RESULT OutputDSound::getDriverInfo(int driver, char *name, int namelen, FMO
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (name && namelen >= 1)
-    {
-        short driverName[FMOD_STRING_MAXNAMELEN] = {0};
-
-        FMOD_strncpyW(driverName, mDriverName[driver], FMOD_STRING_MAXNAMELEN - 1);
-        FMOD_wtoa(driverName);
-        
-        FMOD_strncpy(name, (char *)driverName, namelen - 1);
-        name[namelen - 1] = 0;
-    }
-
-    if (guid)
-    {
-        FMOD_memcpy(guid, &mGUID[driver], sizeof(FMOD_GUID));
-    }
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    FMOD_OK
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT OutputDSound::getDriverInfoW(int driver, short *name, int namelen, FMOD_GUID *guid)
-{
-    if (!mEnumerated)
-    {
-        FMOD_RESULT result;
-
-        result = enumerate();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-    }
-
-    if (driver < 0 || driver >= mNumDrivers)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    if (name && namelen >= 1)
-    {
-        FMOD_strncpyW(name, mDriverName[driver], namelen - 1);
-        name[namelen - 1] = 0;
-    }
-
-    if (guid)
-    {
-        FMOD_memcpy(guid, &mGUID[driver], sizeof(FMOD_GUID));
-    }
+    FMOD_strncpy(name, mDriverName[driver], namelen - 1);
 
     return FMOD_OK;
 }
@@ -539,11 +453,8 @@ FMOD_RESULT OutputDSound::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequ
 	if (!mCoInitialized)
 	{
 		FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputDSound::getDriverCapsEx", "CoInitialize\n"));
-		hr = CoInitialize(0);
-        if (hr == S_OK || hr == S_FALSE)
-        {
-		    mCoInitialized = true;
-        }
+		CoInitialize(0);
+		mCoInitialized = true;
 	}
 
     /*
@@ -608,22 +519,11 @@ FMOD_RESULT OutputDSound::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequ
 #endif
     }
 
-    if (!mSystem->mMaxHardwareChannels3D)
-    {
-		FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputDSound::getDriverCapsEx", "User set max hardware channels to 0.  Avoiding any hardware calls.\n"));
-    	*num3dchannels = 0;
-    }
-	else if (dscaps.dwMaxHw3DAllBuffers == 0 || dscaps.dwMaxHw3DAllBuffers > 200 || (dscaps.dwFlags & DSCAPS_EMULDRIVER))	/* > 200 has gotta be a lie (some drivers report 256 hw channels then crash on the dx voice manager code.. reject them) Also reject cards that have emulated drivers. */
+	if (dscaps.dwMaxHw3DAllBuffers == 0 || dscaps.dwMaxHw3DAllBuffers > 200 || (dscaps.dwFlags & DSCAPS_EMULDRIVER))	/* > 200 has gotta be a lie (some drivers report 256 hw channels then crash on the dx voice manager code.. reject them) Also reject cards that have emulated drivers. */
 	{
 		FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputDSound::getDriverCapsEx", "Bad Caps or emulated driver.  Reverting back to software\n"));
     	*num3dchannels = 0;
 	}
-    else if ((id >= 0) && !FMOD_strcmpW(mDriverName[id], (short *)L"Realtek HD"))
-    {
-        // Realtek HA Audio EAX2 initialization causes memory corruption (32-bit XP64, driver 5.10.0.5657); disable 3D as a work-around.
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputDSound::getDriverCapsEx", "Realtek HD Audio EAX2 bug work-around.  Reverting back to software\n"));
-        *num3dchannels = 0;
-    }
     else
     {
     	*num3dchannels = dscaps.dwFreeHw3DStreamingBuffers;
@@ -719,7 +619,6 @@ FMOD_RESULT OutputDSound::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequ
 
         hr= mDirectSound->GetSpeakerConfig(&speakermode);
 
-        speakermode &= 0xFFFF;
 
         switch (speakermode)
         {
@@ -834,11 +733,8 @@ FMOD_RESULT OutputDSound::init(int selecteddriver, FMOD_INITFLAGS flags, int *ou
 	if (!mCoInitialized)
 	{
 		FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputDSound::init", "CoInitialize\n"));
-		hr = CoInitialize(0);
-        if (hr == S_OK || hr == S_FALSE)
-        {
-		    mCoInitialized = true;
-        }
+		CoInitialize(0);
+		mCoInitialized = true;
 	}
 
     mInitFlags = flags;
@@ -880,61 +776,7 @@ FMOD_RESULT OutputDSound::init(int selecteddriver, FMOD_INITFLAGS flags, int *ou
     /*
 	    FIND DIRECTSOUND SPEAKERMODE
 	*/
-    #if 1
-    mSpeakerMode = *speakermode;
-    #else
-	{
-        DWORD speakermode = 0;
-
-        hr= mDirectSound->GetSpeakerConfig(&speakermode);
-
-        speakermode &= 0xFFFF;
-
-        switch (speakermode)
-        {
-            case DSSPEAKER_DIRECTOUT:
-            {
-                break;
-            }
-            case DSSPEAKER_HEADPHONE:
-            {
-                mSpeakerMode = FMOD_SPEAKERMODE_STEREO;
-                break;
-            }
-            case DSSPEAKER_MONO:
-            {
-                mSpeakerMode = FMOD_SPEAKERMODE_MONO;
-                break;
-            }
-            case DSSPEAKER_STEREO:
-            {
-                mSpeakerMode = FMOD_SPEAKERMODE_STEREO;
-                break;
-            }
-            case DSSPEAKER_QUAD:
-            {
-                mSpeakerMode = FMOD_SPEAKERMODE_QUAD;
-                break;
-            }
-            case DSSPEAKER_SURROUND:
-            {
-                mSpeakerMode = FMOD_SPEAKERMODE_SURROUND;
-                break;
-            }
-            case DSSPEAKER_5POINT1:
-            {
-                mSpeakerMode = FMOD_SPEAKERMODE_5POINT1;
-                break;
-            }
-            case DSSPEAKER_7POINT1:
-            case 8:
-            {
-                mSpeakerMode = FMOD_SPEAKERMODE_7POINT1;
-                break;
-            }
-        }
-    }
-    #endif
+    mSpeakerMode = mSystem->mSpeakerMode;
 
     /*
 	    PROCESS DIRECTSOUND CAPS FOR THIS CARD
@@ -970,22 +812,11 @@ FMOD_RESULT OutputDSound::init(int selecteddriver, FMOD_INITFLAGS flags, int *ou
         mUseSoftware3DBuffers = false;
     }
 
-    if (!mSystem->mMaxHardwareChannels3D)
-    {
-		FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputDSound::init", "User set max hardware channels to 0.  Avoiding any hardware calls.\n"));
-    	num3dchannels = 0;
-    }
-	else if (dscaps.dwMaxHw3DAllBuffers == 0 || dscaps.dwMaxHw3DAllBuffers > 200 || (dscaps.dwFlags & DSCAPS_EMULDRIVER))	/* > 200 has gotta be a lie (some drivers report 256 hw channels then crash on the dx voice manager code.. reject them) Also reject cards that have emulated drivers. */
+	if (dscaps.dwMaxHw3DAllBuffers == 0 || dscaps.dwMaxHw3DAllBuffers > 200 || (dscaps.dwFlags & DSCAPS_EMULDRIVER))	/* > 200 has gotta be a lie (some drivers report 256 hw channels then crash on the dx voice manager code.. reject them) Also reject cards that have emulated drivers. */
 	{
 		FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputDSound::init", "Bad Caps or emulated driver.  Reverting back to software\n"));
     	num3dchannels = 0;
 	}
-    else if ((selecteddriver >= 0) && !FMOD_strcmpW(mDriverName[selecteddriver], (short *)L"Realtek HD"))
-    {
-        // Realtek HD Audio EAX2 initialization causes memory corruption (32-bit XP64, driver 5.10.0.5657); disable 3D as a work-around.
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputDSound::init", "Realtek HD Audio EAX2 bug work-around.  Reverting back to software\n"));
-        num3dchannels = 0;
-    }
     else
     {
         #ifdef USE_SOFTWAREBUFFERS
@@ -1196,7 +1027,7 @@ FMOD_RESULT OutputDSound::init(int selecteddriver, FMOD_INITFLAGS flags, int *ou
         for (count = 0; count < num2dchannels; count++)
         {
             new (&mChannel2D[count]) ChannelDSound;
-            CHECK_RESULT(mChannelPool->setChannel(count, &mChannel2D[count], 0));
+            mChannelPool->setChannel(count, &mChannel2D[count], 0);
         }
     }
 
@@ -1297,7 +1128,7 @@ FMOD_RESULT OutputDSound::init(int selecteddriver, FMOD_INITFLAGS flags, int *ou
                 }
             }
 
-            CHECK_RESULT(mChannelPool3D->setChannel(count, &mChannel3D[count]));
+            mChannelPool3D->setChannel(count, &mChannel3D[count], 0);
         }
     }
 
@@ -1335,7 +1166,6 @@ FMOD_RESULT OutputDSound::close()
 {
     int count;
 
-    Plugin::init(); /* Set up gGlobal - for debug / file / memory access by this plugin. */
 
     FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputDSound::close", "\n"));
 
@@ -1437,7 +1267,6 @@ FMOD_RESULT OutputDSound::close()
          }
     }
     
-    mEnumerated = false;
     mNumDrivers = 0;
 
 #ifdef FMOD_SUPPORT_RECORDING
@@ -1450,15 +1279,9 @@ FMOD_RESULT OutputDSound::close()
          }
     }
     
-    mRecordEnumerated = false;
     mRecordNumDrivers = 0;
 #endif
 
-    if (mCoInitialized)
-    {
-        CoUninitialize();
-        mCoInitialized = false;
-    }
 
     FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputDSound::close", "done\n"));
 
@@ -1723,7 +1546,7 @@ FMOD_RESULT OutputDSound::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wa
         newsample = FMOD_Object_Calloc(SampleDSound);
         if (!newsample)
         {
-            return FMOD_ERR_MEMORY;
+            return FMOD_ERR_INVALID_PARAM;
         }
     }
     else
@@ -1802,7 +1625,7 @@ FMOD_RESULT OutputDSound::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wa
         /*
             Use software buffer if channelcount > 2 or it is a nonstandard bitdepth, hardware is bound to die if this is attempted.
         */
-        if (!mUseSoftware2DBuffers && waveformat->channels <= 2 && (waveformat->format == FMOD_SOUND_FORMAT_PCM8 || waveformat->format == FMOD_SOUND_FORMAT_PCM16))        if (!mUseSoftware2DBuffers)
+        if (!mUseSoftware2DBuffers && waveformat->channels <= 2 && (waveformat->format == FMOD_SOUND_FORMAT_PCM8 || waveformat->format == FMOD_SOUND_FORMAT_PCM16))
         {
             newsample->mLOCSoftware = false;
         }
@@ -1904,11 +1727,11 @@ FMOD_RESULT OutputDSound::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wa
 
         if (waveformat->format == FMOD_SOUND_FORMAT_PCMFLOAT)
         {
-            FMOD_memcpy(&pcmwf.SubFormat, &KSDATAFORMAT_SUBTYPE_IEEE_FLOAT, sizeof(GUID));
+            FMOD_memcpy(&pcmwf.SubFormat, &_KSDATAFORMAT_SUBTYPE_IEEE_FLOAT, sizeof(GUID));
         }
         else
         {
-            FMOD_memcpy(&pcmwf.SubFormat, &KSDATAFORMAT_SUBTYPE_PCM, sizeof(GUID));
+            FMOD_memcpy(&pcmwf.SubFormat, &_KSDATAFORMAT_SUBTYPE_PCM, sizeof(GUID));
         }        
     }
 
@@ -2169,11 +1992,6 @@ FMOD_RESULT OutputDSound::start()
    
     oldusesoftware = mUseSoftware2DBuffers;
 
-    if (mSystem->mDownmix)
-    {
-        mSystem->mDownmix->getOutputChannels(&waveformat.channels);
-    }
-
     #if 0
     mUseSoftware2DBuffers = true;   /* Force it to use software buffers?  On creative cards this screws 5.1/7.1 mixing - it only works if you use hardware buffers. */
     #endif
@@ -2337,9 +2155,6 @@ FMOD_RESULT OutputDSound::getPosition(unsigned int *pcm)
 	{
 		FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "OutputDSound::start", "IDirectSoundBuffer::Play returned errcode %08X\n", hr));
 
-        sample->mBuffer->Restore();
-        sample->mBuffer->Play(0, 0, DSBPLAY_LOOPING);
-
         return FMOD_ERR_OUTPUT_DRIVERCALL;
 	}
 
@@ -2456,103 +2271,6 @@ int OutputDSound::getSampleMaxChannels(FMOD_MODE mode, FMOD_SOUND_FORMAT format)
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT OutputDSound::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    int i;
-
-    tracker->add(false, FMOD_MEMBITS_OUTPUT, sizeof(*this));
-
-    if (mSampleReverb)
-    {
-        CHECK_RESULT(mSampleReverb->getMemoryUsed(tracker));
-    }
-
-    if (mChannel2D)
-    {
-        int num2dchannels = 0;
-
-        if (mChannelPool)
-        {
-            CHECK_RESULT(mChannelPool->getNumChannels(&num2dchannels));
-        }
-
-        tracker->add(false, FMOD_MEMBITS_CHANNEL, sizeof(ChannelDSound) * num2dchannels);
-    }
-
-    if (mChannel3D)
-    {
-        int num3dchannels = 0;
-
-        if (mChannelPool3D)
-        {
-            CHECK_RESULT(mChannelPool3D->getNumChannels(&num3dchannels));
-        }
-
-        switch(mReverbVersion)
-        {
-#if defined(FMOD_SUPPORT_EAX)
-            case REVERB_VERSION_EAX4:
-            {
-                tracker->add(false, FMOD_MEMBITS_CHANNEL, sizeof(ChannelDSoundEAX4) * num3dchannels);
-                break;
-            }
-            case REVERB_VERSION_EAX3:
-            {
-                tracker->add(false, FMOD_MEMBITS_CHANNEL, sizeof(ChannelDSoundEAX3) * num3dchannels);
-                break;
-            }
-            case REVERB_VERSION_EAX2:
-            {
-                tracker->add(false, FMOD_MEMBITS_CHANNEL, sizeof(ChannelDSoundEAX2) * num3dchannels);
-                break;
-            }
-#endif
-#if defined(FMOD_SUPPORT_I3DL2)
-            case REVERB_VERSION_I3DL2:
-            {
-                tracker->add(false, FMOD_MEMBITS_CHANNEL, sizeof(ChannelDSoundI3DL2) * num3dchannels);
-                break;
-            }
-#endif
-            default:
-            {
-                tracker->add(false, FMOD_MEMBITS_CHANNEL, sizeof(ChannelDSound) * num3dchannels);
-                break;
-            }
-        }
-    }
-
-    if (mSample)
-    {
-        CHECK_RESULT(mSample->getMemoryUsed(tracker));
-    }
-
-    for (i=0; i < mNumDrivers; i++)
-    {
-        if (mDriverName[i])
-        {
-            tracker->add(false, FMOD_MEMBITS_STRING, (FMOD_strlenW(mDriverName[i]) + 1) * sizeof(short));
-        }
-    }
-
-#ifdef FMOD_SUPPORT_RECORDING
-    for (i=0; i < mRecordNumDrivers; i++)
-    {
-        if (mRecordDriverName[i])
-        {
-            tracker->add(false, FMOD_MEMBITS_STRING, (FMOD_strlenW(mRecordDriverName[i]) + 1) * sizeof(short));
-        }
-    }
-#endif
-
-    CHECK_RESULT(OutputPolled::getMemoryUsedImpl(tracker));
-
-    return FMOD_OK;
-}
-
-#endif
 
 /*
     ==============================================================================================================
@@ -2606,36 +2324,12 @@ FMOD_RESULT F_CALLBACK OutputDSound::getNumDriversCallback(FMOD_OUTPUT_STATE *ou
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT F_CALLBACK OutputDSound::getDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen, FMOD_GUID *guid)
+// OFFSET: 0x0093BA30
+FMOD_RESULT F_CALLBACK OutputDSound::getDriverNameCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
     OutputDSound *dsound = (OutputDSound *)output;
 
-    return dsound->getDriverInfo(id, name, namelen, guid);
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    FMOD_OK
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK OutputDSound::getDriverInfoWCallback(FMOD_OUTPUT_STATE *output, int id, short *name, int namelen, FMOD_GUID *guid)
-{
-    OutputDSound *dsound = (OutputDSound *)output;
-
-    return dsound->getDriverInfoW(id, name, namelen, guid);
+    return dsound->getDriverName(id, name, namelen);
 }
 
 
@@ -2996,36 +2690,11 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordGetNumDriversCallback(FMOD_OUTPUT_STA
 ]
 */
 // OFFSET: 0x0093BCD0
-FMOD_RESULT F_CALLBACK OutputDSound::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen, FMOD_GUID *guid)
+FMOD_RESULT F_CALLBACK OutputDSound::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
     OutputDSound *dsound = (OutputDSound *)output;
 
-    return dsound->recordGetDriverInfo(id, name, namelen, guid);
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    FMOD_OK
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK OutputDSound::recordGetDriverInfoWCallback(FMOD_OUTPUT_STATE *output, int id, short *name, int namelen, FMOD_GUID *guid)
-{
-    OutputDSound *dsound = (OutputDSound *)output;
-
-    return dsound->recordGetDriverInfoW(id, name, namelen, guid);
+    return dsound->recordGetDriverInfo(id, name, namelen);
 }
 
 
@@ -3047,11 +2716,11 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordGetDriverInfoWCallback(FMOD_OUTPUT_ST
 ]
 */
 // OFFSET: 0x0093BD00
-FMOD_RESULT F_CALLBACK OutputDSound::recordStartCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, FMOD_SOUND *sound, int loop)
+FMOD_RESULT F_CALLBACK OutputDSound::recordStartCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_SOUND *sound, int loop)
 {
     OutputDSound *dsound = (OutputDSound *)output;
 
-    return dsound->recordStart(recordinfo, (Sound *)sound, loop ? true : false);
+    return dsound->recordStart(id, (Sound *)sound, loop ? true : false);
 }
 
 
@@ -3073,11 +2742,11 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordStartCallback(FMOD_OUTPUT_STATE *outp
 ]
 */
 // OFFSET: 0x0093BD30
-FMOD_RESULT F_CALLBACK OutputDSound::recordStopCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo)
+FMOD_RESULT F_CALLBACK OutputDSound::recordStopCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputDSound *dsound = (OutputDSound *)output;
 
-    return dsound->recordStop(recordinfo);
+    return dsound->recordStop();
 }
 
 
@@ -3099,11 +2768,11 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordStopCallback(FMOD_OUTPUT_STATE *outpu
 ]
 */
 // OFFSET: 0x0093BD60
-FMOD_RESULT F_CALLBACK OutputDSound::recordGetPositionCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm)
+FMOD_RESULT F_CALLBACK OutputDSound::recordGetPositionCallback(FMOD_OUTPUT_STATE *output, unsigned int *pcm)
 {
     OutputDSound *dsound = (OutputDSound *)output;
 
-    return dsound->recordGetPosition(recordinfo, pcm);
+    return dsound->recordGetPosition(pcm);
 }
 
 
@@ -3125,11 +2794,11 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordGetPositionCallback(FMOD_OUTPUT_STATE
 ]
 */
 // OFFSET: 0x0093BD90
-FMOD_RESULT F_CALLBACK OutputDSound::recordLockCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
+FMOD_RESULT F_CALLBACK OutputDSound::recordLockCallback(FMOD_OUTPUT_STATE *output, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     OutputDSound *dsound = (OutputDSound *)output;
 
-    return dsound->recordLock(recordinfo, offset, length, ptr1, ptr2, len1, len2);
+    return dsound->recordLock(offset, length, ptr1, ptr2, len1, len2);
 }
 
 
@@ -3151,11 +2820,11 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordLockCallback(FMOD_OUTPUT_STATE *outpu
 ]
 */
 // OFFSET: 0x0093BDD0
-FMOD_RESULT F_CALLBACK OutputDSound::recordUnlockCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
+FMOD_RESULT F_CALLBACK OutputDSound::recordUnlockCallback(FMOD_OUTPUT_STATE *output, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
     OutputDSound *dsound = (OutputDSound *)output;
 
-    return dsound->recordUnlock(recordinfo, ptr1, ptr2, len1, len2);
+    return dsound->recordUnlock(ptr1, ptr2, len1, len2);
 }
 #endif
 
@@ -3228,16 +2897,6 @@ int F_CALLBACK OutputDSound::getSampleMaxChannelsCallback(FMOD_OUTPUT_STATE *out
 	[SEE_ALSO]
 ]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT F_CALLBACK OutputDSound::getMemoryUsedCallback(FMOD_OUTPUT_STATE *output, MemoryTracker *tracker)
-{
-    OutputDSound *dsound = (OutputDSound *)output;
-
-    return dsound->getMemoryUsed(tracker);
-}
-
-#endif
 
 }
 

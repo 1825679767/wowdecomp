@@ -77,7 +77,7 @@ FMOD_OUTPUT_DESCRIPTION_EX *OutputASIO::getDescriptionEx()
     */
 #ifdef FMOD_SUPPORT_RECORDING
     asiooutput.record_getnumdrivers   = &OutputASIO::recordGetNumDriversCallback;
-    asiooutput.record_getdriverinfo   = &OutputASIO::recordGetDriverInfoCallback;
+    asiooutput.record_getdrivername   = &OutputASIO::recordGetDriverInfoCallback;
     asiooutput.record_start           = &OutputASIO::recordStartCallback;
     asiooutput.record_stop            = &OutputASIO::recordStopCallback;
     asiooutput.record_getposition     = &OutputASIO::recordGetPositionCallback;
@@ -251,22 +251,15 @@ FMOD_RESULT OutputASIO::updateMixer(ASIOTime* params, long doubleBufferIndex, AS
     FMOD_RESULT result;
     int count, channels;
   
-    if (mSystem->mDownmix)
+    result = mSystem->getSoftwareFormat(0, 0, &channels, 0, 0, 0);
+    if (result != FMOD_OK)
     {
-        mSystem->mDownmix->getOutputChannels(&channels);
-    }
-    else
-    {
-        result = mSystem->getSoftwareFormat(0, 0, &channels, 0, 0, 0);
-        if (result != FMOD_OK)
-        {
-            return FMOD_OK;
-        }
+        return FMOD_OK;
     }
 
 #ifdef FMOD_SUPPORT_RECORDING
 
-    if (mRecordNumActive && mRecordSound)
+    if (mRecording && mRecordSound)
     {
         /*
             Interleave ASIO record buffers to the FMOD style (normal) interleaved buffer,
@@ -389,7 +382,7 @@ FMOD_RESULT OutputASIO::updateMixer(ASIOTime* params, long doubleBufferIndex, AS
             }
             else
             {
-                mRecordNumActive = 0;
+                mRecording = false;
             }
         }
 
@@ -1206,26 +1199,28 @@ FMOD_RESULT OutputASIO::recordGetNumDrivers(int *numdrivers)
 ]
 */
 // OFFSET: 0x009366A0
-FMOD_RESULT OutputASIO::recordGetDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid)
+FMOD_RESULT OutputASIO::recordGetDriverInfo(int id, char *name, int namelen)
 {
-    if (id < 0 || id >= 1)
+    if (!name || namelen < 1)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (name && namelen >= 1)
-    {    
+    if (id)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    if (!mHandle)
+    {
+        mHandle = FMOD_Object_Calloc(AsioDrivers);
         if (!mHandle)
         {
-            mHandle = FMOD_Object_Calloc(AsioDrivers);
-            if (!mHandle)
-            {
-                return FMOD_ERR_MEMORY;
-            }
+            return FMOD_ERR_MEMORY;
         }
-
-        mHandle->asioGetDriverName(id, name, namelen);
     }
+
+    mHandle->asioGetDriverName(id, name, namelen);
 
     return FMOD_OK;
 }
@@ -1248,7 +1243,7 @@ FMOD_RESULT OutputASIO::recordGetDriverInfo(int id, char *name, int namelen, FMO
 ]
 */
 // OFFSET: 0x00936F50
-FMOD_RESULT OutputASIO::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *sound, bool loop)
+FMOD_RESULT OutputASIO::recordStart(int id, Sound *sound, bool loop)
 {
     SoundI *soundi;
     unsigned int lenbytes;
@@ -1259,24 +1254,11 @@ FMOD_RESULT OutputASIO::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *soun
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    /*
-        ASIO has multiple channels instead of lots of different drivers for
-        different mics
-    */
-    if (mRecordNumActive)
-    {
-        return FMOD_ERR_UNSUPPORTED;
-    }
+    mRecordBufferLength = mBufferPreferredSize * 2;
+    mRecordFormat       = FMOD_SOUND_FORMAT_PCMFLOAT;
+    mRecordLoop         = loop;
 
-    /*
-        Allocate an interleaved output buffer for the mixer, that we can deinterleave later in the asio callback.
-    */  
-    recordinfo->mRecordBufferLength = mRecordBufferLength = mBufferPreferredSize * 2;
-    recordinfo->mRecordFormat       = mRecordFormat       =FMOD_SOUND_FORMAT_PCMFLOAT;
-    mRecordLoop                     = loop;
-    recordinfo->mRecordSound        = mRecordSound = soundi;
-
-    SoundI::getBytesFromSamples(recordinfo->mRecordBufferLength, &lenbytes, soundi->mChannels, FMOD_SOUND_FORMAT_PCMFLOAT);
+    SoundI::getBytesFromSamples(mRecordBufferLength, &lenbytes, soundi->mChannels, FMOD_SOUND_FORMAT_PCMFLOAT);
 
     mInterleavedRecordBuffer = (float *)FMOD_Memory_Calloc(lenbytes);
     if (!mInterleavedRecordBuffer)
@@ -1307,10 +1289,8 @@ FMOD_RESULT OutputASIO::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *soun
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT OutputASIO::recordStop(FMOD_RECORDING_INFO *recordinfo)
+FMOD_RESULT OutputASIO::recordStop()
 {
-    mRecordSound = 0;
-
     return FMOD_OK;
 }
 
@@ -1332,7 +1312,7 @@ FMOD_RESULT OutputASIO::recordStop(FMOD_RECORDING_INFO *recordinfo)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT OutputASIO::recordGetPosition(FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm)
+FMOD_RESULT OutputASIO::recordGetPosition(unsigned int *pcm)
 {
     if (!pcm)
     {
@@ -1363,7 +1343,7 @@ FMOD_RESULT OutputASIO::recordGetPosition(FMOD_RECORDING_INFO *recordinfo, unsig
 ]
 */
 // OFFSET: 0x00936FD0
-FMOD_RESULT OutputASIO::recordLock(FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
+FMOD_RESULT OutputASIO::recordLock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     FMOD_RESULT result;
     char *src = 0;
@@ -1430,7 +1410,7 @@ FMOD_RESULT OutputASIO::recordLock(FMOD_RECORDING_INFO *recordinfo, unsigned int
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT OutputASIO::recordUnlock(FMOD_RECORDING_INFO *recordinfo, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
+FMOD_RESULT OutputASIO::recordUnlock(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
     return FMOD_OK;
 }
@@ -1697,11 +1677,11 @@ FMOD_RESULT F_CALLBACK OutputASIO::recordGetNumDriversCallback(FMOD_OUTPUT_STATE
 ]
 */
 // OFFSET: 0x009368A0
-FMOD_RESULT F_CALLBACK OutputASIO::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen, FMOD_GUID *guid)
+FMOD_RESULT F_CALLBACK OutputASIO::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
     OutputASIO *asio = (OutputASIO *)output;
 
-    return asio->recordGetDriverInfo(id, name, namelen, guid);
+    return asio->recordGetDriverInfo(id, name, namelen);
 }
 
 
@@ -1723,11 +1703,11 @@ FMOD_RESULT F_CALLBACK OutputASIO::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE
 ]
 */
 // OFFSET: 0x00937210
-FMOD_RESULT F_CALLBACK OutputASIO::recordStartCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, FMOD_SOUND *sound, int loop)
+FMOD_RESULT F_CALLBACK OutputASIO::recordStartCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_SOUND *sound, int loop)
 {
     OutputASIO *asio = (OutputASIO *)output;
 
-    return asio->recordStart(recordinfo, (Sound *)sound, loop ? true : false);
+    return asio->recordStart(id, (Sound *)sound, loop ? true : false);
 }
 
 
@@ -1748,11 +1728,11 @@ FMOD_RESULT F_CALLBACK OutputASIO::recordStartCallback(FMOD_OUTPUT_STATE *output
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT F_CALLBACK OutputASIO::recordStopCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo)
+FMOD_RESULT F_CALLBACK OutputASIO::recordStopCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputASIO *asio = (OutputASIO *)output;
 
-    return asio->recordStop(recordinfo);
+    return asio->recordStop();
 }
 
 
@@ -1774,11 +1754,11 @@ FMOD_RESULT F_CALLBACK OutputASIO::recordStopCallback(FMOD_OUTPUT_STATE *output,
 ]
 */
 // OFFSET: 0x009368D0
-FMOD_RESULT F_CALLBACK OutputASIO::recordGetPositionCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm)
+FMOD_RESULT F_CALLBACK OutputASIO::recordGetPositionCallback(FMOD_OUTPUT_STATE *output, unsigned int *pcm)
 {
     OutputASIO *asio = (OutputASIO *)output;
 
-    return asio->recordGetPosition(recordinfo, pcm);
+    return asio->recordGetPosition(pcm);
 }
 
 
@@ -1800,11 +1780,11 @@ FMOD_RESULT F_CALLBACK OutputASIO::recordGetPositionCallback(FMOD_OUTPUT_STATE *
 ]
 */
 // OFFSET: 0x00937240
-FMOD_RESULT F_CALLBACK OutputASIO::recordLockCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
+FMOD_RESULT F_CALLBACK OutputASIO::recordLockCallback(FMOD_OUTPUT_STATE *output, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     OutputASIO *asio = (OutputASIO *)output;
 
-    return asio->recordLock(recordinfo, offset, length, ptr1, ptr2, len1, len2);
+    return asio->recordLock(offset, length, ptr1, ptr2, len1, len2);
 }
 
 
@@ -1825,11 +1805,11 @@ FMOD_RESULT F_CALLBACK OutputASIO::recordLockCallback(FMOD_OUTPUT_STATE *output,
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT F_CALLBACK OutputASIO::recordUnlockCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
+FMOD_RESULT F_CALLBACK OutputASIO::recordUnlockCallback(FMOD_OUTPUT_STATE *output, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
     OutputASIO *asio = (OutputASIO *)output;
 
-    return asio->recordUnlock(recordinfo, ptr1, ptr2, len1, len2);
+    return asio->recordUnlock(ptr1, ptr2, len1, len2);
 }
 #endif
 

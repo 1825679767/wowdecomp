@@ -16,9 +16,6 @@ namespace FMOD
     typedef ALenum (*EAXSet)(const GUID*, ALuint, ALuint, ALvoid*, ALuint);
     typedef ALenum (*EAXGet)(const GUID*, ALuint, ALuint, ALvoid*, ALuint);
     
-	typedef ALboolean (*EAXSetBufferMode)(ALsizei n, ALuint *buffers, ALint value);
-	typedef ALenum (*EAXGetBufferMode)(ALuint buffer, ALint *value);
-
     typedef struct
 	{
 		bool	used;
@@ -67,9 +64,6 @@ namespace FMOD
         
         EAXSet             mEAXSet;
         EAXGet             mEAXGet;
-		EAXSetBufferMode   mEAXSetBufferMode;
-		EAXGetBufferMode   mEAXGetBufferMode;
-		
         // Private methods
         FMOD_RESULT  registerDLL          ();
         FMOD_RESULT  enumerate            ();

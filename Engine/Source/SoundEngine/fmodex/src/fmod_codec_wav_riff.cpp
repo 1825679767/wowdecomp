@@ -121,7 +121,7 @@ FMOD_RESULT CodecWav::parseChunk(unsigned int chunksize)
                     FMOD_Memory_Free(mSyncPoint);
                 }
 
-                mSyncPoint = (SyncPointNamed *)FMOD_Memory_Calloc(mNumSyncPoints * sizeof(SyncPointNamed));
+                mSyncPoint = (SyncPoint *)FMOD_Memory_Calloc(mNumSyncPoints * sizeof(SyncPoint));
                 if (!mSyncPoint)
                 {
                     return FMOD_ERR_MEMORY;
@@ -130,7 +130,7 @@ FMOD_RESULT CodecWav::parseChunk(unsigned int chunksize)
                 for (count=0; count < mNumSyncPoints; count++)
                 {
                     WAVE_CUEPOINT    cue;
-                    SyncPointNamed  *point = &mSyncPoint[count];
+                    SyncPoint  *point = &mSyncPoint[count];
 
                     result = mFile->read(&cue, 1, sizeof(WAVE_CUEPOINT), 0);
                     if (result != FMOD_OK)
@@ -138,7 +138,6 @@ FMOD_RESULT CodecWav::parseChunk(unsigned int chunksize)
                         break;
                     }
 
-                    point->mName = point->mNameMemory;
 
                     #ifdef PLATFORM_ENDIAN_BIG
                     cue.dwSampleOffset = FMOD_SWAPENDIAN_DWORD(cue.dwSampleOffset);
@@ -279,7 +278,7 @@ FMOD_RESULT CodecWav::parseChunk(unsigned int chunksize)
                 }
             }
 
-            if (mFile->mFlags & FMOD_FILE_SEEKABLE)
+            if (mFile->mSeekable)
             {
                 result = mFile->seek(chunk.size, SEEK_CUR);
                 if (result != FMOD_OK)

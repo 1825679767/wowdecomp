@@ -329,9 +329,6 @@ namespace FMOD
         FMOD_RESULT         closeInternal();
         FMOD_RESULT         readInternal(void *buffer, unsigned int size, unsigned int *read);
         FMOD_RESULT         setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype);
-        FMOD_RESULT         getMusicNumChannelsInternal(int *numchannels);
-        FMOD_RESULT         setMusicChannelVolumeInternal(int channel, float volume);
-        FMOD_RESULT         getMusicChannelVolumeInternal(int channel, float *volume);
 
         static CodecMIDIDLSCache gDLSCacheHead;
         
@@ -343,9 +340,6 @@ namespace FMOD
         static FMOD_RESULT F_CALLBACK closeCallback(FMOD_CODEC_STATE *codec);
         static FMOD_RESULT F_CALLBACK readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread);
         static FMOD_RESULT F_CALLBACK setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype);
-        static FMOD_RESULT F_CALLBACK getMusicNumChannelsCallback(FMOD_CODEC_STATE *codec, int *numchannels);
-        static FMOD_RESULT F_CALLBACK setMusicChannelVolumeCallback(FMOD_CODEC_STATE *codec, int channel, float volume);
-        static FMOD_RESULT F_CALLBACK getMusicChannelVolumeCallback(FMOD_CODEC_STATE *codec, int channel, float *volume);
 
         static FMOD_CODEC_DESCRIPTION_EX *getDescriptionEx();  
         

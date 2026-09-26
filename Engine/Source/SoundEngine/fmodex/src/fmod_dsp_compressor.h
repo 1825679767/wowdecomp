@@ -43,9 +43,6 @@ namespace FMOD
         static FMOD_RESULT F_CALLBACK seekCallback(FMOD_DSP_STATE *dsp, unsigned int seeklen);
         static FMOD_RESULT F_CALLBACK setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value);
         static FMOD_RESULT F_CALLBACK getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr);
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-        static FMOD_RESULT F_CALLBACK getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker);
-#endif
     };
 }
 

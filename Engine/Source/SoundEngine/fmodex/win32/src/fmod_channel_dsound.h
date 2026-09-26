@@ -43,7 +43,7 @@ namespace FMOD
         FMOD_RESULT  alloc                ();
         FMOD_RESULT  start                ();
 
-        FMOD_RESULT  stop                 ();
+        FMOD_RESULT  stop                 (bool ignoreenddelay, bool resetstate);
         FMOD_RESULT  setVolume            (float volume);
         FMOD_RESULT  setFrequency         (float frequency);
         FMOD_RESULT  setPan               (float pan, float fbpan = 1);

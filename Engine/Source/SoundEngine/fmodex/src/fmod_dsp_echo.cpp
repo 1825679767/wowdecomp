@@ -61,6 +61,7 @@ FMOD_DSP_PARAMETERDESC dspecho_param[5] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 99467b23 auto
 // OFFSET: 0x008F0910
 FMOD_DSP_DESCRIPTION_EX *DSPEcho::getDescriptionEx()
 {
@@ -77,9 +78,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPEcho::getDescriptionEx()
     dspecho_desc.paramdesc     = dspecho_param;
     dspecho_desc.setparameter  = DSPEcho::setParameterCallback;
     dspecho_desc.getparameter  = DSPEcho::getParameterCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dspecho_desc.getmemoryused = &DSPEcho::getMemoryUsedCallback;
-#endif
 
     dspecho_desc.mType         = FMOD_DSP_TYPE_ECHO;
     dspecho_desc.mCategory     = FMOD_DSP_CATEGORY_FILTER;
@@ -106,15 +104,15 @@ FMOD_DSP_DESCRIPTION_EX *DSPEcho::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 81af4d9d auto
 // OFFSET: 0x008EFEB0
 FMOD_RESULT DSPEcho::createInternal()
 {
     int count;
 
     init();
-    
+
     mChannels = 0;
-	mOldSpeakerMask = 0xFFFF;
 
     for (count = 0; count < mDescription.numparameters; count++)
     {
@@ -125,52 +123,6 @@ FMOD_RESULT DSPEcho::createInternal()
         {
             return result;
         }
-    }
-
-    /*
-        Do a forced update here to make sure everything is calculated correctly first.
-    */
-    mChannels   = mChannelsUpdate;
-    mDelay      = mDelayUpdate;
-    mDecayRatio = mDecayRatioUpdate;
-    mDryMix     = mDryMixUpdate;
-    mWetMix     = mWetMixUpdate;
-    {
-        int outputrate = 0;
-
-        mSystem->getSoftwareFormat(&outputrate, 0, 0, 0, 0, 0);
-
-        mEchoLength = (int)((float)outputrate * mDelay) / 1000;
-
-        if (mEchoBufferMemory)
-        {
-            FMOD_Memory_Free(mEchoBufferMemory);
-            mEchoBufferMemory = mEchoBuffer = 0;
-        }
-
-        mEchoBufferLengthBytes = mEchoLength;
-        mEchoBufferLengthBytes *= mChannels;
-
-        if (!mEchoBufferMemory)
-        {
-            #ifdef ECHO_USEFLOAT
-            mEchoBufferLengthBytes *= sizeof(float);
-
-            mEchoBufferMemory = (float *)FMOD_Memory_Calloc(mEchoBufferLengthBytes + 16);
-            mEchoBuffer = (float *)FMOD_ALIGNPOINTER(mEchoBufferMemory, 16);
-            #else
-            mEchoBufferLengthBytes *= sizeof(signed short);
-
-            mEchoBufferMemory = (signed short *)FMOD_Memory_Calloc(mEchoBufferLengthBytes + 16);
-            mEchoBuffer = (signed short *)FMOD_ALIGNPOINTER(mEchoBufferMemory, 16);
-            #endif
-        }
-        if (!mEchoBufferMemory)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-
-        resetInternal();
     }
 
     return FMOD_OK;
@@ -195,10 +147,10 @@ FMOD_RESULT DSPEcho::createInternal()
 */
 FMOD_RESULT DSPEcho::releaseInternal()
 {
-    if (mEchoBufferMemory)
+    if (mEchoBuffer)
     {
-        FMOD_Memory_Free(mEchoBufferMemory);
-        mEchoBufferMemory = mEchoBuffer = 0;
+        FMOD_Memory_Free(mEchoBuffer);
+        mEchoBuffer = 0;
     }
 
     return FMOD_OK;
@@ -254,115 +206,20 @@ FMOD_RESULT DSPEcho::resetInternal()
 */
 // OFFSET: 0x008EFF00
 FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
-{   
+{
     unsigned int count;
-    bool reallocbuffer = false;
 
-    #define OO_32767 (1.0f / 32767.0f)
-
-    if (!inbuffer)
-    {
-        return FMOD_OK;
-    }
-
-    /*
-        Update parameters
-    */
-    if (mChannels != mChannelsUpdate)
-    {
-        mChannels = mChannelsUpdate;
-
-        reallocbuffer = true;
-    }
-    if (mDelay != mDelayUpdate)
-    {
-        mDelay = mDelayUpdate;
-
-        reallocbuffer = true;
-    }
-    if (mDecayRatio != mDecayRatioUpdate)
-    {
-        mDecayRatio = mDecayRatioUpdate;
-    }
-    if (mDryMix != mDryMixUpdate)
-    {
-        mDryMix = mDryMixUpdate;
-    }
-    if (mWetMix != mWetMixUpdate)
-    {
-        mWetMix = mWetMixUpdate;
-    }
-
-    if (reallocbuffer || !mEchoBuffer)
-    {
-        int outputrate = 0;
-
-        mSystem->getSoftwareFormat(&outputrate, 0, 0, 0, 0, 0);
-
-        mEchoLength = (int)((float)outputrate * mDelay) / 1000;
-
-        if (mEchoBufferMemory)
-        {
-            FMOD_Memory_Free(mEchoBufferMemory);
-            mEchoBufferMemory = mEchoBuffer = 0;
-        }
-
-        mEchoBufferLengthBytes = mEchoLength;
-        mEchoBufferLengthBytes *= mChannels;
-
-        if (!mEchoBufferMemory)
-        {
-            #ifdef ECHO_USEFLOAT
-            mEchoBufferLengthBytes *= sizeof(float);
-
-            mEchoBufferMemory = (float *)FMOD_Memory_Calloc(mEchoBufferLengthBytes + 16);
-            mEchoBuffer = (float *)FMOD_ALIGNPOINTER(mEchoBufferMemory, 16);
-            #else
-            mEchoBufferLengthBytes *= sizeof(signed short);
-
-            mEchoBufferMemory = (signed short *)FMOD_Memory_Calloc(mEchoBufferLengthBytes + 16);
-            mEchoBuffer = (signed short *)FMOD_ALIGNPOINTER(mEchoBufferMemory, 16);
-            #endif
-        }
-        if (!mEchoBufferMemory)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-
-        resetInternal();
-    }
-
-
-	if (speakermask != mOldSpeakerMask) /* A speaker has been disabled: clear the echo buffer for that speaker to prevent artifacts if/when the speaker is reenabled   */
-	{
-		int count2;
-		unsigned short diff = (mOldSpeakerMask ^ speakermask);
-
-		for (count = 0; count < (unsigned int)inchannels; count++)
-		{
-			if (diff & (1 << count))
-			{
-				int len = mEchoLength * inchannels;
-				for(count2 = count; count2 < len; count2 += inchannels)
-				{
-					mEchoBuffer[count2] = 0;
-				}
-			}
-		}
-		mOldSpeakerMask = speakermask;
-	}
-
-    if ((inchannels > mChannels) || !mEchoBuffer || !(speakermask & ((1 << inchannels)-1)) )
+    if (inchannels > mChannels || !mEchoBuffer)
     {
         FMOD_memcpy(outbuffer, inbuffer, length * outchannels * sizeof(float));
         return FMOD_OK;
     }
 
-    if (inchannels == 1 && (speakermask & 1))
+    if (inchannels == 1)
     {
         unsigned int len;
         float *out, *in;
-        
+
         in  = inbuffer;
         out = outbuffer;
 
@@ -370,12 +227,8 @@ FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned in
         while (len)
         {
             unsigned int len2 = len;
-#ifdef ECHO_USEFLOAT
             float *echobuff;
-#else
-            short *echobuff;
-#endif
-            
+
             echobuff = mEchoBuffer + (mEchoPosition * 1);
 
             if (mEchoPosition + len > mEchoLength)
@@ -383,21 +236,13 @@ FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned in
                 len2 = mEchoLength - mEchoPosition;
             }
 
-            for (count = 0; count < len2; count++) 
+            for (count = 0; count < len2; count++)
             {
                 float in0 = in[0];
 
-#ifdef ECHO_USEFLOAT
                 out[0]      = (in0 * mDryMix) + (echobuff[0] * mWetMix);
                 echobuff[0] = (in0          ) + (echobuff[0] * mDecayRatio);
-#else
-                float e0 = (float)echobuff[0] * OO_32767; 
 
-                out[0]      =                (in0 * mDryMix) + (e0 * mWetMix);
-
-                e0 = in0 + (e0 * mDecayRatio);
-                echobuff[0] = e0 > 1.0f ? 32767 : e0 < -1.0f ? -32768: (signed short)(e0 * 32767.0f);
-#endif
                 in++;
                 out++;
                 echobuff++;
@@ -411,11 +256,11 @@ FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned in
             len -= len2;
         }
     }
-    else if (inchannels == 2 && (speakermask & 0x3)==0x3)
+    else if (inchannels == 2)
     {
         unsigned int len;
         float *out, *in;
-        
+
         in  = inbuffer;
         out = outbuffer;
 
@@ -423,11 +268,8 @@ FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned in
         while (len)
         {
             unsigned int len2 = len;
-#ifdef ECHO_USEFLOAT
             float *echobuff;
-#else
-            short *echobuff;
-#endif     
+
             echobuff = mEchoBuffer + (mEchoPosition * 2);
 
             if (mEchoPosition + len > mEchoLength)
@@ -435,27 +277,15 @@ FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned in
                 len2 = mEchoLength - mEchoPosition;
             }
 
-            for (count = 0; count < len2; count++) 
+            for (count = 0; count < len2; count++)
             {
                 float in0 = in[0];
                 float in1 = in[1];
 
-#ifdef ECHO_USEFLOAT
                 out[0] = (in0 * mDryMix) + (echobuff[0] * mWetMix);
                 out[1] = (in1 * mDryMix) + (echobuff[1] * mWetMix);
                 echobuff[0] = in0 + (echobuff[0] * mDecayRatio);
                 echobuff[1] = in1 + (echobuff[1] * mDecayRatio);
-#else
-                float e0 = (float)echobuff[0] * OO_32767;
-                float e1 = (float)echobuff[1] * OO_32767;
-
-                out[0]      =                (in0 * mDryMix) + (e0 * mWetMix);
-                out[1]      =                (in1 * mDryMix) + (e1 * mWetMix);
-                e0 = in0 + (e0 * mDecayRatio);
-                e1 = in1 + (e1 * mDecayRatio);
-                echobuff[0] = e0 > 1.0f ? 32767 : e0 < -1.0f ? -32768: (signed short)(e0 * 32767.0f);;
-                echobuff[1] = e1 > 1.0f ? 32767 : e1 < -1.0f ? -32768: (signed short)(e1 * 32767.0f);;
-#endif
 
                 in+=2;
                 out+=2;
@@ -470,202 +300,11 @@ FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned in
             len -= len2;
         }
     }
-    else if (inchannels == 6 && (speakermask & 0x3F)==0x3F)
-    {
-        unsigned int len;
-        float *out, *in;
-        
-        in  = inbuffer;
-        out = outbuffer;
-
-        len = length;
-        while (len)
-        {
-            unsigned int len2 = len;
-#ifdef ECHO_USEFLOAT
-            float *echobuff;
-#else
-            short *echobuff;
-#endif
-            echobuff = mEchoBuffer + (mEchoPosition * 6);
-
-            if (mEchoPosition + len > mEchoLength)
-            {
-                len2 = mEchoLength - mEchoPosition;
-            }
-
-            for (count = 0; count < len2; count++) 
-            {
-                float in0 = in[0];
-                float in1 = in[1];
-                float in2 = in[2];
-                float in3 = in[3];
-                float in4 = in[4];
-                float in5 = in[5];
-
-#ifdef ECHO_USEFLOAT
-                out[0] = (in0 * mDryMix) + (echobuff[0] * mWetMix);
-                out[1] = (in1 * mDryMix) + (echobuff[1] * mWetMix);
-                out[2] = (in2 * mDryMix) + (echobuff[2] * mWetMix);
-                out[3] = (in3 * mDryMix) + (echobuff[3] * mWetMix);
-                out[4] = (in4 * mDryMix) + (echobuff[4] * mWetMix);
-                out[5] = (in5 * mDryMix) + (echobuff[5] * mWetMix);
-                echobuff[0] = in0 + (echobuff[0] * mDecayRatio);
-                echobuff[1] = in1 + (echobuff[1] * mDecayRatio);
-                echobuff[2] = in2 + (echobuff[2] * mDecayRatio);
-                echobuff[3] = in3 + (echobuff[3] * mDecayRatio);
-                echobuff[4] = in4 + (echobuff[4] * mDecayRatio);
-                echobuff[5] = in5 + (echobuff[5] * mDecayRatio);
-#else
-                float e0 = (float)echobuff[0] * OO_32767;
-                float e1 = (float)echobuff[1] * OO_32767;
-                float e2 = (float)echobuff[2] * OO_32767;
-                float e3 = (float)echobuff[3] * OO_32767;
-                float e4 = (float)echobuff[4] * OO_32767;
-                float e5 = (float)echobuff[5] * OO_32767;
-
-                out[0] = (in0 * mDryMix) + (e0 * mWetMix);
-                out[1] = (in1 * mDryMix) + (e1 * mWetMix);
-                out[2] = (in2 * mDryMix) + (e2 * mWetMix);
-                out[3] = (in3 * mDryMix) + (e3 * mWetMix);
-                out[4] = (in4 * mDryMix) + (e4 * mWetMix);
-                out[5] = (in5 * mDryMix) + (e5 * mWetMix);
-
-                e0 = in0 + (e0 * mDecayRatio);
-                e1 = in1 + (e1 * mDecayRatio);
-                e2 = in2 + (e2 * mDecayRatio);
-                e3 = in3 + (e3 * mDecayRatio);
-                e4 = in4 + (e4 * mDecayRatio);
-                e5 = in5 + (e5 * mDecayRatio);
-                echobuff[0] = e0 > 1.0f ? 32767 : e0 < -1.0f ? -32768: (signed short)(e0 * 32767.0f);
-                echobuff[1] = e1 > 1.0f ? 32767 : e1 < -1.0f ? -32768: (signed short)(e1 * 32767.0f);
-                echobuff[2] = e2 > 1.0f ? 32767 : e2 < -1.0f ? -32768: (signed short)(e2 * 32767.0f);
-                echobuff[3] = e3 > 1.0f ? 32767 : e3 < -1.0f ? -32768: (signed short)(e3 * 32767.0f);
-                echobuff[4] = e4 > 1.0f ? 32767 : e4 < -1.0f ? -32768: (signed short)(e4 * 32767.0f);
-                echobuff[5] = e5 > 1.0f ? 32767 : e5 < -1.0f ? -32768: (signed short)(e5 * 32767.0f);
-#endif
-
-                in+=6;
-                out+=6;
-                echobuff+=6;
-	        }
-
-		    mEchoPosition += len2;
-		    if (mEchoPosition >= mEchoLength)
-            {
-                mEchoPosition = 0;
-            }
-            len -= len2;
-        }
-    }
-    else if (inchannels == 8 && (speakermask & 0xFF)==0xFF)
-    {
-        unsigned int len;
-        float *out, *in;
-        
-        in  = inbuffer;
-        out = outbuffer;
-
-        len = length;
-        while (len)
-        {
-            unsigned int len2 = len;
-#ifdef ECHO_USEFLOAT
-            float *echobuff;
-#else
-            short *echobuff;
-#endif     
-            echobuff = mEchoBuffer + (mEchoPosition * 8);
-
-            if (mEchoPosition + len > mEchoLength)
-            {
-                len2 = mEchoLength - mEchoPosition;
-            }
-
-            for (count = 0; count < len2; count++) 
-            {
-                float in0 = in[0];
-                float in1 = in[1];
-                float in2 = in[2];
-                float in3 = in[3];
-                float in4 = in[4];
-                float in5 = in[5];
-                float in6 = in[6];
-                float in7 = in[7];
-
-#ifdef ECHO_USEFLOAT
-                out[0] = (in0 * mDryMix) + (echobuff[0] * mWetMix);
-                out[1] = (in1 * mDryMix) + (echobuff[1] * mWetMix);
-                out[2] = (in2 * mDryMix) + (echobuff[2] * mWetMix);
-                out[3] = (in3 * mDryMix) + (echobuff[3] * mWetMix);
-                out[4] = (in4 * mDryMix) + (echobuff[4] * mWetMix);
-                out[5] = (in5 * mDryMix) + (echobuff[5] * mWetMix);
-                out[6] = (in6 * mDryMix) + (echobuff[6] * mWetMix);
-                out[7] = (in7 * mDryMix) + (echobuff[7] * mWetMix);
-
-                echobuff[0] = in0 + (echobuff[0] * mDecayRatio);
-                echobuff[1] = in1 + (echobuff[1] * mDecayRatio);
-                echobuff[2] = in2 + (echobuff[2] * mDecayRatio);
-                echobuff[3] = in3 + (echobuff[3] * mDecayRatio);
-                echobuff[4] = in4 + (echobuff[4] * mDecayRatio);
-                echobuff[5] = in5 + (echobuff[5] * mDecayRatio);
-                echobuff[6] = in6 + (echobuff[6] * mDecayRatio);
-                echobuff[7] = in7 + (echobuff[7] * mDecayRatio);
-#else
-                float e0 = (float)echobuff[0] * OO_32767;
-                float e1 = (float)echobuff[1] * OO_32767;
-                float e2 = (float)echobuff[2] * OO_32767;
-                float e3 = (float)echobuff[3] * OO_32767;
-                float e4 = (float)echobuff[4] * OO_32767;
-                float e5 = (float)echobuff[5] * OO_32767;
-                float e6 = (float)echobuff[6] * OO_32767;
-                float e7 = (float)echobuff[7] * OO_32767;
-
-                out[0]      =                (in0 * mDryMix) + (e0 * mWetMix);
-                out[1]      =                (in1 * mDryMix) + (e1 * mWetMix);
-                out[2]      =                (in2 * mDryMix) + (e2 * mWetMix);
-                out[3]      =                (in3 * mDryMix) + (e3 * mWetMix);
-                out[4]      =                (in4 * mDryMix) + (e4 * mWetMix);
-                out[5]      =                (in5 * mDryMix) + (e5 * mWetMix);
-                out[6]      =                (in6 * mDryMix) + (e6 * mWetMix);
-                out[7]      =                (in7 * mDryMix) + (e7 * mWetMix);
-
-                e0 = in0 + (e0 * mDecayRatio);
-                e1 = in1 + (e1 * mDecayRatio);
-                e2 = in2 + (e2 * mDecayRatio);
-                e3 = in3 + (e3 * mDecayRatio);
-                e4 = in4 + (e4 * mDecayRatio);
-                e5 = in5 + (e5 * mDecayRatio);
-                e6 = in6 + (e6 * mDecayRatio);
-                e7 = in7 + (e7 * mDecayRatio);
-
-                echobuff[0] = e0 > 1.0f ? 32767 : e0 < -1.0f ? -32768: (signed short)(e0 * 32767.0f);
-                echobuff[1] = e1 > 1.0f ? 32767 : e1 < -1.0f ? -32768: (signed short)(e1 * 32767.0f);
-                echobuff[2] = e2 > 1.0f ? 32767 : e2 < -1.0f ? -32768: (signed short)(e2 * 32767.0f);
-                echobuff[3] = e3 > 1.0f ? 32767 : e3 < -1.0f ? -32768: (signed short)(e3 * 32767.0f);
-                echobuff[4] = e4 > 1.0f ? 32767 : e4 < -1.0f ? -32768: (signed short)(e4 * 32767.0f);
-                echobuff[5] = e5 > 1.0f ? 32767 : e5 < -1.0f ? -32768: (signed short)(e5 * 32767.0f);
-                echobuff[6] = e6 > 1.0f ? 32767 : e6 < -1.0f ? -32768: (signed short)(e6 * 32767.0f);
-                echobuff[7] = e7 > 1.0f ? 32767 : e7 < -1.0f ? -32768: (signed short)(e7 * 32767.0f);
-#endif
-                in+=8;
-                out+=8;
-                echobuff+=8;
-	        }
-
-		    mEchoPosition += len2;
-		    if (mEchoPosition >= mEchoLength)
-            {
-                mEchoPosition = 0;
-            }
-            len -= len2;
-        }
-    }
     else
     {
         unsigned int len;
         float *out, *in;
-        
+
         in  = inbuffer;
         out = outbuffer;
 
@@ -674,42 +313,23 @@ FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned in
         {
             int count2;
             unsigned int len2 = len;
-#ifdef ECHO_USEFLOAT
             float *echobuff;
-#else
-            short *echobuff;
-#endif
-            
+
             echobuff = mEchoBuffer + (mEchoPosition * inchannels);
 
-            if (mEchoPosition + len > mEchoLength) /* if (position + echo length) exceed the size of the echo buffer.. */
+            if (mEchoPosition + len > mEchoLength)
             {
                 len2 = mEchoLength - mEchoPosition;
             }
 
-            for (count = 0; count < len2; count++) 
+            for (count = 0; count < len2; count++)
             {
                 for (count2 = 0; count2 < inchannels; count2++)
                 {
-					if (!((1 << count2) & speakermask)) 
-					{
-						out[count2] = in[count2];
-					}
-					else
-					{
-						float in0 = in[count2];
+                    float in0 = in[count2];
 
-#ifdef ECHO_USEFLOAT
-						out[count2]      =                (in0 * mDryMix) + (echobuff[count2] * mWetMix);
-						echobuff[count2] =                (in0          ) + (echobuff[count2] * mDecayRatio);
-#else
-						float e0 = (float)echobuff[count2] * OO_32767;
-
-						out[count2]      =                (in0 * mDryMix) + (e0 * mWetMix);
-						e0 = in0 + (e0 * mDecayRatio);
-						echobuff[count2] = e0 > 1.0f ? 32767 : e0 < -1.0f ? -32768: (signed short)(e0 * 32767.0f);
-#endif
-					}
+                    out[count2]      = (in0 * mDryMix) + (echobuff[count2] * mWetMix);
+                    echobuff[count2] = (in0          ) + (echobuff[count2] * mDecayRatio);
                 }
 
                 in+=inchannels;
@@ -723,7 +343,7 @@ FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned in
                 mEchoPosition = 0;
             }
             len -= len2;
-        }    
+        }
     }
 
     return FMOD_OK;
@@ -750,24 +370,23 @@ FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned in
 // OFFSET: 0x008F0530
 FMOD_RESULT DSPEcho::setParameterInternal(int index, float value)
 {
-    FMOD_RESULT result;
+    float olddelay    = mDelay;
+    int   oldchannels = mChannels;
 
-    result = mSystem->getSoftwareFormat(0, 0, &mChannelsUpdate, 0, 0, 0);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
+    mSystem->getSoftwareFormat(&mOutputRate, 0, &mChannels, 0, 0, 0);
+
+    mSystem->lockDSP();
 
     switch (index)
     {
         case FMOD_DSP_ECHO_DELAY:
         {
-            mDelayUpdate = value;
+            mDelay = value;
             break;
         }
         case FMOD_DSP_ECHO_DECAYRATIO:
         {
-            mDecayRatioUpdate = value;
+            mDecayRatio = value;
             break;
         }
         case FMOD_DSP_ECHO_MAXCHANNELS:
@@ -775,21 +394,46 @@ FMOD_RESULT DSPEcho::setParameterInternal(int index, float value)
             mMaxChannels = (int)value;
             if (mMaxChannels)
             {
-                mChannelsUpdate = mMaxChannels;
+                mChannels = mMaxChannels;
             }
             break;
         }
         case FMOD_DSP_ECHO_DRYMIX:
         {
-            mDryMixUpdate = value;
+            mDryMix = value;
             break;
         }
         case FMOD_DSP_ECHO_WETMIX:
         {
-            mWetMixUpdate = value;
+            mWetMix = value;
             break;
         }
     }
+
+    if (mDelay != olddelay || mChannels != oldchannels || !mEchoBuffer)
+    {
+        mEchoLength = (int)((float)mOutputRate * mDelay) / 1000;
+
+        if (mEchoBuffer)
+        {
+            FMOD_Memory_Free(mEchoBuffer);
+        }
+
+        mEchoBufferLengthBytes = mEchoLength;
+        mEchoBufferLengthBytes *= mChannels;
+        mEchoBufferLengthBytes *= sizeof(float);
+
+        mEchoBuffer = (float *)FMOD_Memory_Calloc(mEchoBufferLengthBytes);
+        if (!mEchoBuffer)
+        {
+            mSystem->unlockDSP();
+            return FMOD_ERR_MEMORY;
+        }
+
+        resetInternal();
+    }
+
+    mSystem->unlockDSP();
 
     return FMOD_OK;
 }
@@ -810,6 +454,7 @@ FMOD_RESULT DSPEcho::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: df8aaa8a auto
 // OFFSET: 0x008F06D0
 FMOD_RESULT DSPEcho::getParameterInternal(int index, float *value, char *valuestr)
 {
@@ -817,14 +462,14 @@ FMOD_RESULT DSPEcho::getParameterInternal(int index, float *value, char *valuest
     {
         case FMOD_DSP_ECHO_DELAY:
         {
-            *value = mDelayUpdate;
-            sprintf(valuestr, "%.02f", mDelayUpdate);
+            *value = mDelay;
+            sprintf(valuestr, "%.02f", mDelay);
             break;
         }
         case FMOD_DSP_ECHO_DECAYRATIO:
         {
-            *value = mDecayRatioUpdate;
-            sprintf(valuestr, "%.1f", mDecayRatioUpdate * 100.0f);
+            *value = mDecayRatio;
+            sprintf(valuestr, "%.1f", mDecayRatio * 100.0f);
             break;
         }
         case FMOD_DSP_ECHO_MAXCHANNELS:
@@ -835,14 +480,14 @@ FMOD_RESULT DSPEcho::getParameterInternal(int index, float *value, char *valuest
         }
         case FMOD_DSP_ECHO_DRYMIX:
         {
-            *value = mDryMixUpdate;
-            sprintf(valuestr, "%.1f", mDryMixUpdate * 100.0f);
+            *value = mDryMix;
+            sprintf(valuestr, "%.1f", mDryMix * 100.0f);
             break;
         }
         case FMOD_DSP_ECHO_WETMIX:
         {
-            *value = mWetMixUpdate;
-            sprintf(valuestr, "%.1f", mWetMixUpdate * 100.0f);
+            *value = mWetMix;
+            sprintf(valuestr, "%.1f", mWetMix * 100.0f);
             break;
         }
     }
@@ -867,21 +512,6 @@ FMOD_RESULT DSPEcho::getParameterInternal(int index, float *value, char *valuest
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPEcho::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    // Size of this class is already accounted for (via description.mSize). Just add extra allocated memory here.
-
-    if (mEchoBufferMemory)
-    {
-        tracker->add(false, FMOD_MEMBITS_DSP, mEchoBufferLengthBytes + 16);
-    }  
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 /*
@@ -984,6 +614,7 @@ FMOD_RESULT F_CALLBACK DSPEcho::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 389787ac auto
 // OFFSET: 0x008F0870
 FMOD_RESULT F_CALLBACK DSPEcho::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -1034,6 +665,7 @@ FMOD_RESULT F_CALLBACK DSPEcho::setParameterCallback(FMOD_DSP_STATE *dsp, int in
 	[SEE_ALSO]
 ]
 */
+// VERIFY: de75c5bb auto
 // OFFSET: 0x008F08E0
 FMOD_RESULT F_CALLBACK DSPEcho::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
@@ -1043,29 +675,6 @@ FMOD_RESULT F_CALLBACK DSPEcho::getParameterCallback(FMOD_DSP_STATE *dsp, int in
 }
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPEcho::getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker)
-{
-    DSPEcho *echo = (DSPEcho *)dsp;    
-
-    return echo->DSPEcho::getMemoryUsed(tracker);
-}
-#endif
 
 
 }

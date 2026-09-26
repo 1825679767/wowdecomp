@@ -28,7 +28,6 @@ namespace FMOD
         float           FMOD_PPCALIGN16(mResonanceUpdate);
         float           FMOD_PPCALIGN16(mCutoffHz);
         float           FMOD_PPCALIGN16(mCutoffHzUpdate);
-		float			FMOD_PPCALIGN16(mCutoffHzMaximum);
         float           FMOD_PPCALIGN16(mGainFactor[LOWPASS_FILTER_SECTIONS]);
         float           FMOD_PPCALIGN16(mHistory[DSP_MAXLEVELS_MAX][2 * LOWPASS_FILTER_SECTIONS]);   /* history in filter */
         float           FMOD_PPCALIGN16(mCoefficients[4 * LOWPASS_FILTER_SECTIONS + 1]);             /* pointer to coefficients of filter */
@@ -49,7 +48,6 @@ namespace FMOD
                                 float *coef);                              /* pointer to 4 iir coefficients */
 
         FMOD_RESULT     createInternal();
-        FMOD_RESULT     process(float *inbuffer, float *outbuffer, unsigned int length, int channels);
         FMOD_RESULT     readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels);
         FMOD_RESULT     setParameterInternal(int index, float value);
         FMOD_RESULT     getParameterInternal(int index, float *value, char *valuestr);
@@ -64,9 +62,6 @@ namespace FMOD
         static FMOD_RESULT F_CALLBACK seekCallback(FMOD_DSP_STATE *dsp, unsigned int seeklen);
         static FMOD_RESULT F_CALLBACK setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value);
         static FMOD_RESULT F_CALLBACK getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr);
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-        static FMOD_RESULT F_CALLBACK getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker);
-#endif
     };
 }
 

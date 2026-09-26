@@ -11,7 +11,7 @@
 
 namespace FMOD
 {
-    class SyncPointNamed;
+    class SyncPoint;
 
     class CodecTremor : public Codec
     {
@@ -20,7 +20,7 @@ namespace FMOD
         OggVorbis_File        mVf;
         static bool           gInitialized;
                              
-        SyncPointNamed       *mSyncPoint;
+        SyncPoint       *mSyncPoint;
         int                   mNumSyncPoints;
         FMOD_CODEC_WAVEFORMAT mWaveFormat;
 

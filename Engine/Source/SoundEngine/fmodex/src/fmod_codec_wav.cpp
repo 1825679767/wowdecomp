@@ -901,8 +901,7 @@ FMOD_RESULT CodecWav::setPositionInternal(int subsound, unsigned int position, F
 // OFFSET: 0x0090FAF0
 FMOD_RESULT CodecWav::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 {
-    FMOD_RESULT  result = FMOD_OK;
-    SoundI       *s = (SoundI *)sound;
+    SoundI *s = (SoundI *)sound;
 
     if (mNumSyncPoints && mSyncPoint)
     {
@@ -910,17 +909,14 @@ FMOD_RESULT CodecWav::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 
         for (count = 0; count < mNumSyncPoints; count++)
         {
-            SyncPointNamed *point = &mSyncPoint[count];
-            s->addSyncPointInternal(point->mOffset, FMOD_TIMEUNIT_PCM, point->mName, (FMOD_SYNCPOINT **)&point, 0, false);
+            s->addSyncPoint(mSyncPoint[count].mOffset, FMOD_TIMEUNIT_PCM, mSyncPoint[count].mName, 0);
         }
 
-        s->syncPointFixIndicies();
-
-        s->mSyncPointMemory = mSyncPoint;       /* Transfer pointer into the sound.  Sound will free it. */
+        FMOD_Memory_Free(mSyncPoint);
         mSyncPoint = 0;
     }
 
-    return result;
+    return FMOD_OK;
 }
 
 /*

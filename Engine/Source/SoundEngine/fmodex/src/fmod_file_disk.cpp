@@ -32,7 +32,7 @@ FMOD_RESULT DiskFile::reallyOpen(const char *name_or_data, unsigned int *filesiz
     FMOD_RESULT result;
     char path[2048];
 
-	if (mFlags & FMOD_FILE_UNICODE)
+	if (mUnicode)
 	{
 		if (!FMOD_strlenW((short *)name_or_data))
 		{
@@ -66,16 +66,7 @@ FMOD_RESULT DiskFile::reallyOpen(const char *name_or_data, unsigned int *filesiz
         return result;
     }
 
-#ifdef PLATFORM_PS3
-    if (mFlags & FMOD_FILE_STREAMING)
-    {
-    	result = FMOD_OS_File_Open((const char *)name_or_data, (char *)"s", mFlags & FMOD_FILE_UNICODE ? 1 : 0, filesize, &mHandle);
-    }
-    else
-#endif
-    {
-    	result = FMOD_OS_File_Open((const char *)name_or_data, (char *)"rb", mFlags & FMOD_FILE_UNICODE ? 1 : 0, filesize, &mHandle);
-    }
+    result = FMOD_OS_File_Open((const char *)name_or_data, (char *)"rb", mUnicode, filesize, &mHandle);
 
 	if (result != FMOD_OK)
 	{
@@ -217,14 +208,6 @@ FMOD_RESULT DiskFile::reallyCancel()
 	[SEE_ALSO]
 ]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-FMOD_RESULT DiskFile::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_FILE, sizeof(DiskFile));
-
-    return File::getMemoryUsedImpl(tracker);
-}
-#endif
 
 
 }

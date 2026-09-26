@@ -2,7 +2,6 @@
 
 #include "fmod.h"
 #include "fmod_debug.h"
-#include "fmod_downmix.h"
 #include "fmod_output_polled.h"
 #include "fmod_memory.h"
 #include "fmod_systemi.h"
@@ -114,13 +113,6 @@ FMOD_RESULT OutputPolled::threadFunc()
             block += numblocks;
         }
 
-#if !defined(PLATFORM_PS3)
-        if (mSystem->mDownmix)
-        {
-            mSystem->mDownmix->getOutputChannels(&outputchannels);
-        }
-#endif
-
         result = SoundI::getBytesFromSamples(blocksize, &lenbytes, outputchannels, outputformat);
         if (result != FMOD_OK)
         {
@@ -223,7 +215,7 @@ FMOD_RESULT OutputPolled::start()
     {
         FLOG((FMOD_DEBUG_TYPE_THREAD, __FILE__, __LINE__, "OutputPolled::start", "Starting thread to be triggered from System::update\n"));
 
-        result = initThread("FMOD mixer thread", 0, 0, MIXER_THREADPRIORITY, 0, MIXER_STACKSIZE, true, 0, mSystem);
+        result = initThread("FMOD mixer thread", 0, 0, MIXER_THREADPRIORITY, 0, MIXER_STACKSIZE, true, 0);
         if (result != FMOD_OK)
         {
             return result;
@@ -269,7 +261,7 @@ FMOD_RESULT OutputPolled::start()
 
         FLOG((FMOD_DEBUG_TYPE_THREAD, __FILE__, __LINE__, "OutputPolled::start", "Starting thread that automatically wakes up every %d ms\n", (int)ms));
 
-        result = initThread("FMOD mixer thread", 0, 0, MIXER_THREADPRIORITY, 0, MIXER_STACKSIZE, false, (int)ms, mSystem);
+        result = initThread("FMOD mixer thread", 0, 0, MIXER_THREADPRIORITY, 0, MIXER_STACKSIZE, false, (int)ms);
         if (result != FMOD_OK)
         {
             return result;
@@ -350,18 +342,5 @@ FMOD_RESULT OutputPolled::stop()
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT OutputPolled::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    if (mFinishedSema)
-    {
-        tracker->add(false, FMOD_MEMBITS_OUTPUT, gSizeofSemaphore);
-    }
-
-    return Output::getMemoryUsedImpl(tracker);
-}
-
-#endif
 
 }

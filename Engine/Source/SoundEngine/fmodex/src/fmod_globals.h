@@ -9,21 +9,11 @@
 #include "fmod_linkedlist.h"
 #include "fmod_os_misc.h"
 
-#ifdef FMOD_SUPPORT_DLMALLOC
-    #include "../lib/dlmalloc/dlmalloc.h"
-#endif
 
 namespace FMOD
 {
     class SystemI;
 	class MemPool;
-#ifdef FMOD_SUPPORT_PROFILE
-    class Profile;
-    class ProfileCodec;
-    class ProfileChannel;
-    class ProfileCpu;
-    class ProfileDsp;
-#endif
 
     class Global
     {
@@ -53,27 +43,6 @@ namespace FMOD
         FMOD_UINT64P             gDSPClock;                 // The number of times Output::mix() has been called
         unsigned int             gDSPClockTimeStamp;        // System time in ms of when the last call to Output::mix() completed
         int                      gFileBusy;
-        FMOD_SYSTEM_CALLBACK     gSystemCallback;
-        FMOD_MEMORY_TYPE         gMemoryTypeFlags;
-        
-        LinkedListNode           gFileThreadHead;
-        FMOD_OS_CRITICALSECTION *gFileCrit;
-
-        FMOD_OS_CRITICALSECTION *gAsyncCrit;
-
-#ifdef FMOD_SUPPORT_DLMALLOC
-        struct malloc_params     gDLMalloc_mparams;
-#endif
-
-#ifdef FMOD_SUPPORT_PROFILE
-        Profile              *gProfile;
-        ProfileCodec         *gProfileCodec;
-        ProfileChannel       *gProfileChannel;
-        ProfileCpu           *gProfileCpu;
-        ProfileDsp           *gProfileDsp;
-#endif
-        
-        int                   gRandomValue;
     };
 
     extern Global *gGlobal;

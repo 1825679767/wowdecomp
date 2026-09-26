@@ -100,6 +100,7 @@ FMOD_DSP_PARAMETERDESC dsppitchshift_param[4] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8b7e2957 auto
 // OFFSET: 0x008EDE90
 FMOD_DSP_DESCRIPTION_EX *DSPPitchShift::getDescriptionEx()
 {
@@ -116,9 +117,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPPitchShift::getDescriptionEx()
     dsppitchshift.paramdesc     = dsppitchshift_param;
     dsppitchshift.setparameter  = DSPPitchShift::setParameterCallback;
     dsppitchshift.getparameter  = DSPPitchShift::getParameterCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dsppitchshift.getmemoryused = &DSPPitchShift::getMemoryUsedCallback;
-#endif
 
     dsppitchshift.mType         = FMOD_DSP_TYPE_PITCHSHIFT;
     dsppitchshift.mCategory     = FMOD_DSP_CATEGORY_FILTER;
@@ -739,6 +737,7 @@ void DSPPitchShiftSMB::fft(float *fftBuffer, int sign)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a15ad283 auto
 // OFFSET: 0x008EC450
 void DSPPitchShiftSMB::smbInit()
 {   
@@ -1955,6 +1954,7 @@ void DSPPitchShiftSMB::setResetPhaseFlag()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dba2c6c3 auto
 // OFFSET: 0x008EC8A0
 FMOD_RESULT DSPPitchShift::resetInternal()
 {
@@ -2000,12 +2000,7 @@ FMOD_RESULT DSPPitchShift::readInternal(float *inbuffer, float *outbuffer, unsig
 {
     int count;
 
-    if (!inbuffer)
-    {
-        return FMOD_OK;
-    }
-
-    if (inchannels > mChannels || !mPitchShift || !(speakermask & ((1 << inchannels)-1)))
+    if (inchannels > mChannels || !mPitchShift)
     {
         FMOD_memcpy(outbuffer, inbuffer, length * outchannels * sizeof(float));
         return FMOD_OK;
@@ -2013,46 +2008,9 @@ FMOD_RESULT DSPPitchShift::readInternal(float *inbuffer, float *outbuffer, unsig
 	
 	for (count = 0; count < inchannels; count++)
 	{
-		if (!((1 << count) & speakermask))
-		{
-			int offset1, offset2, offset3;
-			float *out = outbuffer + count;
-			float *in = inbuffer + count;
-			unsigned int len = length >> 2;
-			int inc = inchannels << 2;
-
-			offset1 = inchannels;
-			offset2 = inchannels*2;
-			offset3 = inchannels*3;
-
-			while(len)
-			{
-				out[0]=in[0];
-				out[offset1]=in[offset1];
-				out[offset2]=in[offset2];
-				out[offset3]=in[offset3];
-
-				len--;
-				in += inc;
-				out += inc;
-			}
-
-			len = length & 3;
-
-			while(len)
-			{
-				out[0]=in[0];
-				len--;
-				in +=inchannels;
-				out += inchannels;
-			}
-		}
-		else
-		{
-			mPitchShift[count].mFFTFrameSize = mFFTSize;
-			mPitchShift[count].mFFTFrameBits = mFFTFrameBits;
-			mPitchShift[count].smbPitchShift(mPitch, length, mOverlap, (float)mOutputRate, inbuffer, outbuffer, count, inchannels);
-		}
+		mPitchShift[count].mFFTFrameSize = mFFTSize;
+		mPitchShift[count].mFFTFrameBits = mFFTFrameBits;
+		mPitchShift[count].smbPitchShift(mPitch, length, mOverlap, (float)mOutputRate, inbuffer, outbuffer, count, inchannels);
 	}
 
     return FMOD_OK;
@@ -2372,6 +2330,7 @@ FMOD_RESULT DSPPitchShift::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3a41558c auto
 // OFFSET: 0x008ECD60
 FMOD_RESULT DSPPitchShift::getParameterInternal(int index, float *value, char *valuestr)
 {
@@ -2447,23 +2406,6 @@ FMOD_RESULT DSPPitchShift::getParameterInternal(int index, float *value, char *v
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPPitchShift::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    // Size of this class is already accounted for (via description.mSize). Just add extra allocated memory here.
-
-#if !defined(PLATFORM_PS3) && !defined(PLATFORM_WINDOWS_PS3MODE)
-    if (mPitchShift)
-    {
-        tracker->add(false, FMOD_MEMBITS_DSP, sizeof(DSPPitchShiftSMB) * mChannels);
-    }
-#endif
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 /*
@@ -2566,6 +2508,7 @@ FMOD_RESULT F_CALLBACK DSPPitchShift::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: eccd0176 auto
 // OFFSET: 0x008EDE60
 FMOD_RESULT F_CALLBACK DSPPitchShift::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -2617,6 +2560,7 @@ FMOD_RESULT F_CALLBACK DSPPitchShift::setParameterCallback(FMOD_DSP_STATE *dsp, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3967643d auto
 // OFFSET: 0x008ECF30
 FMOD_RESULT F_CALLBACK DSPPitchShift::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
@@ -2626,29 +2570,6 @@ FMOD_RESULT F_CALLBACK DSPPitchShift::getParameterCallback(FMOD_DSP_STATE *dsp, 
 }
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPPitchShift::getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker)
-{
-    DSPPitchShift *pitchshift = (DSPPitchShift *)dsp;    
-
-    return pitchshift->DSPPitchShift::getMemoryUsed(tracker);
-}
-#endif
 
 }
 

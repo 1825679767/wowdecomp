@@ -245,7 +245,7 @@ FMOD_RESULT CodecCDDA::setPositionInternal(int subsound, unsigned int position, 
 
     if (subsound < 0 || (numsubsounds && subsound >= numsubsounds))
     {
-        return FMOD_ERR_INVALID_POSITION;
+        return FMOD_ERR_INVALID_PARAM;
     }
 
     cddafile = SAFE_CAST(CddaFile, mFile);

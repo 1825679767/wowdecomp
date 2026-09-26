@@ -287,7 +287,7 @@ FMOD_RESULT Codec::setPosition(int subsound, unsigned int position, FMOD_TIMEUNI
 
     if (numsubsounds && subsound >= numsubsounds)
     {
-        return FMOD_ERR_INVALID_POSITION;
+        return FMOD_ERR_INVALID_PARAM;
     }
 
     if (!mDescription.setposition)
@@ -485,26 +485,6 @@ FMOD_RESULT Codec::metaData(FMOD_TAGTYPE type, const char *name, void *data, uns
 ]
 */
 
-#if defined(FMOD_SUPPORT_MEMORYTRACKER) && !defined(PLATFORM_PS3_SPU)
-
-FMOD_RESULT Codec::getMemoryUsedImpl(MemoryTracker *tracker)
-{    
-    tracker->add(false, FMOD_MEMBITS_CODEC, mDescription.mSize);
-
-    if (mFile)
-    {
-        CHECK_RESULT(((FMOD::DiskFile *)mFile)->getMemoryUsed(tracker));
-    }
-
-    if (mDescription.getmemoryused)
-    {
-        CHECK_RESULT(mDescription.getmemoryused(this, tracker));
-    }
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 /*

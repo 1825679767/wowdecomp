@@ -393,7 +393,7 @@ void ASfxDsp::ClearReverbInternalBuffers()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ DoDSPProcessing ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // OFFSET: 0x00927A40
 void ASfxDsp::DoDSPProcessing (float * inAudio, float * outAudio, int channels, unsigned int l_sampframes,
-							float rate, float drymix, unsigned short speakermask)
+							float rate, float drymix)
 {
 	unsigned int	i;
 	int				ch;	
@@ -798,33 +798,26 @@ void ASfxDsp::DoDSPProcessing (float * inAudio, float * outAudio, int channels, 
 
 		for (ch=0; ch<channels; ch++)		// for each channel
 		{
-			if (!((1 << ch) & speakermask))
+			float lruSum = 0.0f;				
+			float eruSum = 0.0f;
+			int nextDelay = ch;
+
+			for (int delay=0; delay<(kNumLateReverbDelays/channels); delay++)
 			{
-				outAudio[i*channels+ch] = inAudio[i*channels+ch];
+				mLateReadPointerB[nextDelay] = --mLateReadPointerB[nextDelay] & mLateMask[nextDelay];
+				lruSum += mLateDelays[nextDelay][mLateReadPointerB[nextDelay]];
+				
+				eruSum += eruOut[nextDelay];
+				nextDelay += channels;
+			}
+									
+			if (drymix == 0.0f)
+			{
+				outAudio[i*channels+ch] = eruSum + lruSum;	
 			}
 			else
 			{
-				float lruSum = 0.0f;				
-				float eruSum = 0.0f;
-				int nextDelay = ch;
-
-				for (int delay=0; delay<(kNumLateReverbDelays/channels); delay++)
-				{
-					mLateReadPointerB[nextDelay] = --mLateReadPointerB[nextDelay] & mLateMask[nextDelay];
-					lruSum += mLateDelays[nextDelay][mLateReadPointerB[nextDelay]];
-					
-					eruSum += eruOut[nextDelay];
-					nextDelay += channels;
-				}
-										
-				if (drymix == 0.0f)
-				{
-					outAudio[i*channels+ch] = eruSum + lruSum;	
-				}
-				else
-				{
-					outAudio[i*channels+ch] = (inAudio[i*channels+ch] * drymix) + eruSum + lruSum;	
-				}
+				outAudio[i*channels+ch] = (inAudio[i*channels+ch] * drymix) + eruSum + lruSum;	
 			}
 
 		}	// end for each channel

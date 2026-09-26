@@ -11,15 +11,12 @@ namespace FMOD
     {
         friend class ChannelSoftware;
 
-#ifdef FMOD_SUPPORT_SOFTWARE
         float           mAngleToListener;
-#endif
 
       public:
 
         ChannelRealManual3D();
 
-        FMOD_RESULT     alloc();
         FMOD_RESULT     set2DFreqVolumePanFor3D();
     };
 }

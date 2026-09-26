@@ -126,33 +126,23 @@ namespace FMOD
 
       #else
 
+        int					mFrameSize;
+        int					mFrameSizeOld;
+	    MPEG_FRAME	        mFrame;
+	    unsigned int 		mFrameHeader;
+        unsigned int        mNumFrames;
+	    unsigned int       *mFrameOffset;
+	    int					mPcmPoint;
+	    int					mLayer;
         unsigned char		mBSSpace[2][MAXFRAMESIZE+512];      /* 4608 */
-	    float				mSynthBuffsMem[(2 * 576) + 16];     /* 4608 */
-	    float			   *mSynthBuffs;                        
+	    int					mBSNum;
+	    float				mSynthBuffs[2 * 576];               /* 4608 */
+        int					mSynthBo;
+	    bitstream_info		mBSI;
 	    float				mBlock[2][2][SBLIMIT * SSLIMIT];    /* 9216 */
-
-        int					mFrameSize;       
-        int					mFrameSizeOld;    
-	    MPEG_FRAME	        mFrame;           
-	    unsigned int 		mFrameHeader;     
-
-	    int					mPcmPoint;         
-	    int					mBSNum;           
-        int					mSynthBo;         
-	    bitstream_info		mBSI;             
     	int                 mBlc[2];
-
-        #ifdef PLATFORM_PS3
-        char                mPad[4];
-        #endif
-
       #endif
-
-	    int					mLayer;  
-        unsigned int        mNumFrames;       
-	    unsigned int       *mFrameOffset;  
-
-        unsigned char       mXingToc[100];    
+        unsigned char       mXingToc[100];
         bool                mHasXingNumFrames;
         bool                mHasXingToc;
     };

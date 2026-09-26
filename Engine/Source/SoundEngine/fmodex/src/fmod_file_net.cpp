@@ -44,7 +44,7 @@ NetFile::NetFile()
     mBytesBeforeMeta  = 0;
     mMetabuf          = 0;
     mMetaFormat       = FMOD_TAGTYPE_UNKNOWN;
-    mFlags           &= ~FMOD_FILE_SEEKABLE;
+    mSeekable        = false;
     mChunked          = false;
     mBytesLeftInChunk = 0;
     mDeviceType       = DEVICE_NET;
@@ -785,7 +785,7 @@ FMOD_RESULT NetFile::reallyOpen(const char *name_or_data, unsigned int *filesize
 
     FMOD_memset(auth, 0, 4096);
 
-    if (mFlags & FMOD_FILE_UNICODE)
+    if (mUnicode)
     {
         FMOD_strncpyW((short*)url, (const short*)name_or_data, FMOD_STRING_MAXPATHLEN / 2);
         FMOD_wtoa((short*)url);
@@ -1259,14 +1259,6 @@ FMOD_RESULT NetFile::getMetadata(Metadata **metadata)
 	[SEE_ALSO]
 ]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-FMOD_RESULT NetFile::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_FILE, sizeof(NetFile));
-
-    return File::getMemoryUsedImpl(tracker);
-}
-#endif
 
 
 }

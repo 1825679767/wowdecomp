@@ -353,20 +353,5 @@ FMOD_RESULT ChannelPool::getChannel(int index, ChannelReal **channel)
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT ChannelPool::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_CHANNEL, sizeof(*this));
-
-    if (mChannel)
-    {
-        tracker->add(false, FMOD_MEMBITS_CHANNEL, mNumChannels * sizeof(ChannelReal *));
-    }
-
-    return FMOD_OK;
-}
-
-#endif
 
 }

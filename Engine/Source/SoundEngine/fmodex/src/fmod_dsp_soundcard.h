@@ -13,8 +13,14 @@ namespace FMOD
 {
     class DSPSoundCard : public DSPFilter
     {            
+      public:
+
+        float          *mConvertBuffer;
+        void           *mConvertBufferMemory;
+
         FMOD_RESULT     alloc(FMOD_DSP_DESCRIPTION_EX *description);
-        FMOD_RESULT     read(void *outbuffer, unsigned int *length, FMOD_SPEAKERMODE speakermode, int speakermodechannels, unsigned int tick);
+        FMOD_RESULT     release(bool freethis = true);
+        FMOD_RESULT     execute(void *inbuffer, void **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode);
     };
 }
 

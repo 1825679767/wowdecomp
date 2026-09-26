@@ -334,7 +334,7 @@ signed short gITFineTuneTable[FMUSIC_ITFINETUNETABLESIZE] =
 ]
 */
 // OFFSET: 0x00935520
-FMOD_RESULT MusicSong::play(bool fromopen)
+FMOD_RESULT MusicSong::play()
 {
     FMOD_RESULT result;
 	int count;
@@ -349,27 +349,19 @@ FMOD_RESULT MusicSong::play(bool fromopen)
  	mSpeed              = mDefaultSpeed;
 	mRow                = 0;
 	mOrder              = 0;
-	mNextOrder          = 0;         /* make it 'jump' to order 0, mainly for callback triggers */
-	mNextRow            = 0;           /* make it 'jump' to row 0, mainly for callback triggers */
+	mNextOrder          = 0;
+	mNextRow            = 0;
 	mMixerSamplesLeft   = 0;
 	mTick               = 0;
 	mPatternDelay       = 0;
 	mPatternDelayTicks  = 0;
     mPCMOffset          = 0;
 	mFinished           = false;
-    if (fromopen)
-    {
-        mDSPTick            = 1;
-    }
 
-    /*
-        Need to explicitly construct the ChannelGroupI here because MusicSong doesn't have a constructor
-    */
     new (&mChannelGroup) ChannelGroupI();
-    mChannelGroup.mDSPHead = mDSPHead;
-    mChannelGroup.mDSPMixTarget = mDSPHead;
     mChannelGroup.mVolume  = 1.0f;
-    
+    mChannelGroup.mDSPHead = mDSPHead;
+
     if (mVisited)
     {
         FMOD_memset(mVisited, 0, sizeof(bool) * mNumOrders * FMUSIC_MAXROWS);
@@ -383,32 +375,15 @@ FMOD_RESULT MusicSong::play(bool fromopen)
 
 	    for (count = 0; count < mNumChannels; count++)
 	    {
-            float oldmastervolume;
-
 		    cptr = mMusicChannel[count];
 
-            oldmastervolume = cptr->mMasterVolume;
-
             FMOD_memset(cptr, 0, sizeof(MusicChannel));
-
             cptr->mVirtualChannelHead.initNode();
-
-		    /*
-                Music system channel initialization
-            */
 		    cptr->mGlobalVolume = mDefaultVolume[count];
 		    cptr->mPan          = mDefaultPan[count];
-
-            if (fromopen)
-            {
-                cptr->mMasterVolume = 1.0f;
-            }
-            else
-            {
-                cptr->mMasterVolume = oldmastervolume;
-            }
 	    }
     }
+
     if (mNumVirtualChannels)
     {
     	MusicVirtualChannel *vcptr;
@@ -419,24 +394,9 @@ FMOD_RESULT MusicSong::play(bool fromopen)
 
             FMOD_memset(vcptr, 0, sizeof(MusicVirtualChannel));
             vcptr->mChannel.init();
-            vcptr->mChannel.mFlags |= CHANNELI_FLAG_MUSICOWNED;
             vcptr->mIndex = count;
             vcptr->mChannel.mIndex = count;
             vcptr->mSong = this;
-
-            #ifdef FMOD_SUPPORT_HARDWAREXM
-            if (!fromopen)
-            {
-                #ifdef FMOD_SUPPORT_SOFTWARE
-                if (!mChannelSoftware)
-                #endif
-                {
-                    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "MusicSong::play", "RESERVING HW VOICE %d / %d\n", count, mNumVirtualChannels));        
-
-                    mSystem->mOutput->reserveVoice(count, true);
-                }
-            }
-            #endif
 	    }
     }
 
@@ -649,7 +609,7 @@ FMOD_RESULT MusicSong::stop()
                 while (!cptr->mVirtualChannelHead.isEmpty())
                 {
                     MusicVirtualChannel *vcptr = (MusicVirtualChannel *)cptr->mVirtualChannelHead.getNext();
-		            vcptr->mChannel.stopEx(CHANNELI_STOPFLAG_RESETCALLBACKS);           /* stop this channel */
+		            vcptr->mChannel.stopEx(false, false, true, true, false, false, false);           /* stop this channel */
                     vcptr->mChannel.mRealChannel[0] = 0;
                     if (mLowPass)
                     {
@@ -710,12 +670,6 @@ FMOD_RESULT MusicSong::playSound(MusicSample *sample, MusicVirtualChannel *vcptr
     ChannelI    *channel = &vcptr->mChannel;
     ChannelReal *realchannel = channel->mRealChannel[0];
 
-#ifdef PLATFORM_PSP
-    if (!mChannelSoftware)
-    {
-        result = channel->stopEx(CHANNELI_STOPFLAG_RESETCALLBACKS);
-    }
-#endif
 
     result = mChannelPool->allocateChannel(&realchannel, vcptr->mFlip ? vcptr->mIndex + mNumVirtualChannels : vcptr->mIndex, 1, 0);
     if (result != FMOD_OK)
@@ -725,12 +679,7 @@ FMOD_RESULT MusicSong::playSound(MusicSample *sample, MusicVirtualChannel *vcptr
 
     //FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "MusicSong::playSound", "use vcptr->mIndex %d : flip = %d.\n", vcptr->mIndex, vcptr->mFlip));        
 
-#ifdef FMOD_SUPPORT_SOFTWARE
-    if (mChannelSoftware)
-    {
-        vcptr->mFlip = !vcptr->mFlip;
-    }
-#endif
+    vcptr->mFlip = !vcptr->mFlip;
 
     if (channel->mRealChannel[0])
     {
@@ -749,12 +698,11 @@ FMOD_RESULT MusicSong::playSound(MusicSample *sample, MusicVirtualChannel *vcptr
     {
         channel->mChannelGroup = &mChannelGroup;
     }
-    channel->mSpeakerMode = FMOD_SPEAKERMODE_STEREO_LINEAR;
 
     result = channel->play(sample->mSound, true, true, false);
     if (result != FMOD_OK)
     {
-        channel->stopEx(CHANNELI_STOPFLAG_RESETCALLBACKS);
+        channel->stopEx(false, false, true, true, false, false, false);
         return result;
     }
     if (vcptr->mSampleOffset > 0)
@@ -768,7 +716,7 @@ FMOD_RESULT MusicSong::playSound(MusicSample *sample, MusicVirtualChannel *vcptr
         mLowPass[channel->mIndex]->remove();
         if (addfilter)
         {
-            channel->addDSP(mLowPass[channel->mIndex], 0);
+            channel->addDSP(mLowPass[channel->mIndex]);
         }
     }
 
@@ -778,12 +726,7 @@ FMOD_RESULT MusicSong::playSound(MusicSample *sample, MusicVirtualChannel *vcptr
         It would be nice if this only did the ones that were connected in the mod player instead of flushing everything.
         If we dont do this the connects/disconnects dont happen until the main sfx mixer feels like it.
     */
-#ifdef FMOD_SUPPORT_SOFTWARE
-    if (mChannelSoftware)
-    {
-        mSystem->flushDSPConnectionRequests();
-    }
-#endif
+    mSystem->flushDSPConnectionRequests();
 
     return FMOD_OK;    
 }
@@ -935,264 +878,6 @@ FMOD_RESULT MusicSong::getPositionInternal(unsigned int *position, FMOD_TIMEUNIT
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT MusicSong::getMusicNumChannelsInternal(int *numchannels)
-{
-    if (!numchannels)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    *numchannels = mNumChannels;
-
-    return FMOD_OK;
-}
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT MusicSong::setMusicChannelVolumeInternal(int channel, float volume)
-{
-    if (channel < 0 || channel >= mNumChannels || volume < 0.0f || volume > 1.0f)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    mMusicChannel[channel]->mMasterVolume = volume;
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT MusicSong::getMusicChannelVolumeInternal(int channel, float *volume)
-{
-    if (channel < 0 || channel >= mNumChannels || !volume)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    *volume = mMusicChannel[channel]->mMasterVolume;
-
-    return FMOD_OK;
-}
-
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT MusicSong::getHardwareMusicChannel(ChannelReal **realchannel) 
-{
-    if (!realchannel)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-    
-    new (&mHardwareMusicChannel) ChannelMusic();
-     
-    *realchannel = &mHardwareMusicChannel; 
- 
-    mHardwareMusicChannel.mFlags |= CHANNELREAL_FLAG_ALLOCATED;
-    mHardwareMusicChannel.mMusic = this;
-    
-    return FMOD_OK; 
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT ChannelMusic::updateStream()
-{
-    bool paused;
-
-    mMusic->mChannelGroup.getPaused(&paused);
-
-    if (!paused)
-    {
-        mMusic->mDescription.update(mMusic);
-    }
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT ChannelMusic::stop()
-{
-    return mMusic->stop();
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT ChannelMusic::start()
-{
-    return mMusic->play();
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT ChannelMusic::setPaused(bool paused)
-{
-    if (mMusic->mMusicChannel)
-    {
-        mMusic->mChannelGroup.setPaused(paused);
-        int count;
-
-	    /*
-            Stop everything playing
-        */
-	    for (count = 0; count < mMusic->mNumChannels; count++)
-	    {
-            MusicChannel *cptr;
-
-		    cptr = mMusic->mMusicChannel[count];
-
-            if (cptr && cptr->mVirtualChannelHead.getNext())
-            {       
-                MusicVirtualChannel *vcptr = (MusicVirtualChannel *)cptr->mVirtualChannelHead.getNext();
-		        vcptr->mChannel.setPaused(paused);
-            }
-	    }
-    }
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT ChannelMusic::setVolume(float volume)
-{
-    if (mMusic->mMusicChannel)
-    {
-        mMusic->mChannelGroup.setVolume(volume);
-    }
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
 // OFFSET: 0x00935470
 FMOD_RESULT F_CALLBACK MusicSong::getLengthCallback(FMOD_CODEC_STATE *codec, unsigned int *length, FMOD_TIMEUNIT lengthtype)
 {
@@ -1224,96 +909,6 @@ FMOD_RESULT F_CALLBACK MusicSong::getPositionCallback(FMOD_CODEC_STATE *codec, u
 
     return cmusic->getPositionInternal(position, postype);
 }
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK MusicSong::getMusicNumChannelsCallback(FMOD_CODEC_STATE *codec, int *numchannels)
-{
-    MusicSong *cmusic = (MusicSong *)codec;
-
-    return cmusic->getMusicNumChannelsInternal(numchannels);
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK MusicSong::setMusicChannelVolumeCallback(FMOD_CODEC_STATE *codec, int channel, float volume)
-{
-    MusicSong *cmusic = (MusicSong *)codec;
-
-    return cmusic->setMusicChannelVolumeInternal(channel, volume);
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK MusicSong::getMusicChannelVolumeCallback(FMOD_CODEC_STATE *codec, int channel, float *volume)
-{
-    MusicSong *cmusic = (MusicSong *)codec;
-
-    return cmusic->getMusicChannelVolumeInternal(channel, volume);
-}
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK MusicSong::getHardwareMusicChannelCallback(FMOD_CODEC_STATE *codec, ChannelReal **realchannel)
-{
-    MusicSong *cmusic = (MusicSong *)codec;
-
-    return cmusic->getHardwareMusicChannel(realchannel);
-}
-
 
 #endif
 

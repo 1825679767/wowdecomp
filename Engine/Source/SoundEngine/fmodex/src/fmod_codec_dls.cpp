@@ -846,10 +846,10 @@ FMOD_RESULT CodecDLS::setPositionInternal(int subsound, unsigned int position, F
 
     if (subsound < 0 || (numsubsounds && subsound >= numsubsounds))
     {
-        return FMOD_ERR_INVALID_POSITION;
+        return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (mFile->mFlags & FMOD_FILE_SEEKABLE)
+    if (mFile->mSeekable)
     {
         unsigned int posbytes;
 

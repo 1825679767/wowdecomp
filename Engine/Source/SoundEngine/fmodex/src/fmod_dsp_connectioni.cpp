@@ -28,36 +28,6 @@ extern "C"
 #endif
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPConnectionI::validate(DSPConnection *dspconnection, DSPConnectionI **dspconnectioni)
-{
-    if (!dspconnectioni)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    if (!dspconnection)
-    {
-        return FMOD_ERR_INVALID_HANDLE;
-    }
-
-    *dspconnectioni = (DSPConnectionI *)dspconnection;
-
-    return FMOD_OK;
-}
-
 
 /*
 [
@@ -2011,6 +1981,7 @@ FMOD_RESULT DSPConnectionI::setPan(float pan, int outchannels, int inchannels, F
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x00923A70
 FMOD_RESULT DSPConnectionI::setLevels(float *levels, int numinputlevels)
 {
     int count, count2;
@@ -2094,6 +2065,8 @@ FMOD_RESULT DSPConnectionI::setLevels(float *levels, int numinputlevels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5a43afdb auto
+// OFFSET: 0x00923BC0
 FMOD_RESULT DSPConnectionI::getLevels(float *levels, int numinputlevels)
 {
     int count, count2;
@@ -2140,6 +2113,7 @@ FMOD_RESULT DSPConnectionI::getLevels(float *levels, int numinputlevels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e19d1c73 auto
 // OFFSET: 0x00923A20
 FMOD_RESULT DSPConnectionI::setMix(float volume)
 {
@@ -2395,28 +2369,6 @@ FMOD_RESULT DSPConnectionI::copy(DSPConnectionI *source)
 #endif
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPConnectionI::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    GETMEMORYINFO_IMPL
-#else
-    return FMOD_ERR_UNIMPLEMENTED;
-#endif
-}
-
 
 /*
 [
@@ -2434,27 +2386,6 @@ FMOD_RESULT DSPConnectionI::getMemoryInfo(unsigned int memorybits, unsigned int 
 ]
 */
 
-#if defined(FMOD_SUPPORT_MEMORYTRACKER) && !defined(PLATFORM_PS3_SPU)
-
-FMOD_RESULT DSPConnectionI::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_DSPCONNECTION, sizeof(*this));
-
-//        LinkedListNode   mInputNode;
-//        LinkedListNode   mOutputNode;
-//        LinkedListNode  *mNode;         /* Make it a pointer so we can store the node data externally.  PS3 will corrupt it otherwise. */
-
-//        DSP_LEVEL_TYPE *mLevel[DSP_MAXLEVELS_OUT];
-//        DSP_LEVEL_TYPE *mLevelCurrent[DSP_MAXLEVELS_OUT];
-//        DSP_LEVEL_TYPE *mLevelDelta[DSP_MAXLEVELS_OUT];
-
-//        DSPI           *mInputUnit;
-//        DSPI           *mOutputUnit;
-
-    return FMOD_OK;
-}
-
-#endif
 
 #if (DSP_LEVEL_PRECISION == 16) && !defined(PLATFORM_XENON)
 /*

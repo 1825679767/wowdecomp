@@ -97,10 +97,6 @@ FMOD_CODEC_DESCRIPTION_EX *CodecMIDI::getDescriptionEx()
     midicodec.read            = &CodecMIDI::readCallback;
     midicodec.setposition     = &CodecMIDI::setPositionCallback;
 
-    midicodec.getmusicnumchannels    = &CodecMIDI::getMusicNumChannelsCallback;
-    midicodec.setmusicchannelvolume  = &CodecMIDI::setMusicChannelVolumeCallback;
-    midicodec.getmusicchannelvolume  = &CodecMIDI::getMusicChannelVolumeCallback;
-
     midicodec.mType = FMOD_SOUND_TYPE_MIDI;
     midicodec.mSize = sizeof(CodecMIDI);
 
@@ -884,7 +880,7 @@ FMOD_RESULT CodecMIDISubChannel::setUpArticulators()
 // OFFSET: 0x008FA810
 FMOD_RESULT CodecMIDISubChannel::stop()
 {
-    mChannel.stopEx(CHANNELI_STOPFLAG_RESETCALLBACKS);
+    mChannel.stopEx(false, false, true, true, false, false, false);
     mInstrument  = 0;
     mKeyOff      = false;
     mCurrentNote = -1;       
@@ -3134,7 +3130,6 @@ FMOD_RESULT CodecMIDI::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
     {
         mMIDISubChannel[count].initNode();
         mMIDISubChannel[count].mChannel.init();        
-        mMIDISubChannel[count].mChannel.mFlags |= CHANNELI_FLAG_MUSICOWNED;
         mMIDISubChannel[count].mMIDI = this;
         mMIDISubChannel[count].mChannel.mChannelGroup = &mChannelGroup;
     }
@@ -3511,14 +3506,12 @@ FMOD_RESULT CodecMIDI::closeInternal()
 // OFFSET: 0x008FC430
 FMOD_RESULT CodecMIDI::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
-    FMOD_RESULT           result = FMOD_OK;
-    unsigned int          numsamples;
-    int                   numchannels;
-    LocalCriticalSection  criticalsection(mSystem->mDSPCrit);
+    FMOD_RESULT              result = FMOD_OK;
+    unsigned int             numsamples;
+    int                      numchannels;
+    FMOD_OS_CRITICALSECTION *crit = mSystem->mDSPCrit;
 
     numchannels = waveformat[0].channels;
-    
-    // If no notes have played, this buffer is returned from dspHeadExecute unchanged, so clear it for silence
     FMOD_memset(buffer, 0, sizebytes);
 
     SoundI::getSamplesFromBytes(sizebytes, &numsamples, numchannels, waveformat[0].format);
@@ -3527,16 +3520,12 @@ FMOD_RESULT CodecMIDI::readInternal(void *buffer, unsigned int sizebytes, unsign
 		unsigned int    mixedsofar = 0;
 		unsigned int    mixedleft = mMixerSamplesLeft;
 		unsigned int    samplestomix;
-        char           *destptr;
-
-		/*
-            Keep resetting the mix pointer to the beginning of this portion of the ring buffer
-        */
-        destptr = (char *)buffer;
+        char           *destptr = (char *)buffer;
 
 		while (mixedsofar < numsamples)
 		{
             unsigned int read, bytes;
+            void        *outbuffer = destptr;
 
 			if (!mixedleft)
 			{
@@ -3549,57 +3538,55 @@ FMOD_RESULT CodecMIDI::readInternal(void *buffer, unsigned int sizebytes, unsign
 				samplestomix = mMixerSamplesPerTick;
 				mixedleft = samplestomix;
 			}
-			else 
+			else
             {
 				samplestomix = mixedleft;
             }
 
-			if (mixedsofar + samplestomix > numsamples) 
+			if (mixedsofar + samplestomix > numsamples)
             {
 				samplestomix = numsamples - mixedsofar;
             }
 
             read = samplestomix;
 
-            #ifdef FMOD_SUPPORT_SOFTWARE
             mSystem->flushDSPConnectionRequests();
-            #endif
-            
-            criticalsection.enter();
+
+            FMOD_OS_CriticalSection_Enter(crit);
             if (buffer)
 			{
-                result = mDSPHead->read(destptr, &read, FMOD_SPEAKERMODE_STEREO, 2, mDSPTick);
+                result = mDSPHead->execute(outbuffer, &outbuffer, &read, numchannels, &numchannels, FMOD_SPEAKERMODE_STEREO);
                 if (result != FMOD_OK)
                 {
+                    FMOD_OS_CriticalSection_Leave(crit);
                     return result;
                 }
-                mDSPTick++;
+
+                mDSPHead->resetVisited();
             }
+            FMOD_OS_CriticalSection_Leave(crit);
 
             SoundI::getBytesFromSamples(read, &bytes, numchannels, waveformat[0].format);
-            
-            /* 
-                Buffer returned from the DSP head execute may not be the one we sent in (it may be
-                one of the global buffers). Don't leave mDSPCrit until after we have copied data out
-            */
-            criticalsection.leave();
 
-			mixedsofar += read;
-			destptr    += bytes;
+            if (destptr != outbuffer && buffer)
+            {
+                FMOD_memcpy(destptr, outbuffer, bytes);
+            }
+
 			mixedleft  -= read;
+			destptr    += bytes;
+			mixedsofar += read;
 		}
 
 		mMixerSamplesLeft = mixedleft;
 	}
 
     if (bytesread)
-    {    
+    {
         *bytesread = sizebytes;
     }
-   
-//    printf("chans %d\n", mNumSubChannels - mChannelFreeListHead.count());
 
-    return result;	
+    return FMOD_OK;
 }
 
 
@@ -3641,127 +3628,6 @@ FMOD_RESULT CodecMIDI::setPositionInternal(int subsound, unsigned int position, 
     }
 
     return result;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT CodecMIDI::getMusicNumChannelsInternal(int *numchannels)
-{
-    int totalNumChannels = 0;
-
-    if (!numchannels)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    for (int channelIndex = 0; channelIndex < 16; channelIndex++)
-    {
-        if (mMIDIChannel[channelIndex].mTrack)
-        {
-            totalNumChannels++;
-        }
-    }
-
-    *numchannels = totalNumChannels;
-
-    return FMOD_OK;
-}
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT CodecMIDI::setMusicChannelVolumeInternal(int channel, float volume)
-{
-    int totalNumChannels = 0;
-
-    if (channel < 0 || channel >= 16 || volume < 0.0f || volume > 1.0f)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    for (int channelIndex = 0; channelIndex < 16; channelIndex++)
-    {
-        if (mMIDIChannel[channelIndex].mTrack)
-        {
-            if (channel == totalNumChannels)
-            {
-                mMIDIChannel[channelIndex].mMasterVolume = volume;
-                break;
-            }
-            totalNumChannels++;
-        }
-    }
-
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT CodecMIDI::getMusicChannelVolumeInternal(int channel, float *volume)
-{
-    int totalNumChannels = 0;
-
-    if (channel < 0 || channel >= 16 || !volume)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    for (int channelIndex = 0; channelIndex < 16; channelIndex++)
-    {
-        // If the channel has been assigned a track, then this channel has played at least once
-        if (mMIDIChannel[channelIndex].mTrack)
-        {
-            if (channel == totalNumChannels)
-            {
-                *volume = mMIDIChannel[channelIndex].mMasterVolume;
-                break;
-            }
-            totalNumChannels++;
-        }
-    }  
-
-    return FMOD_OK;
 }
 
 
@@ -3858,75 +3724,6 @@ FMOD_RESULT F_CALLBACK CodecMIDI::setPositionCallback(FMOD_CODEC_STATE *codec, i
 
     return cmidi->setPositionInternal(subsound, position, postype);
 }
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK CodecMIDI::getMusicNumChannelsCallback(FMOD_CODEC_STATE *codec, int *numchannels)
-{
-    CodecMIDI *cmusic = (CodecMIDI *)codec;
-
-    return cmusic->getMusicNumChannelsInternal(numchannels);
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK CodecMIDI::setMusicChannelVolumeCallback(FMOD_CODEC_STATE *codec, int channel, float volume)
-{
-    CodecMIDI *cmusic = (CodecMIDI *)codec;
-
-    return cmusic->setMusicChannelVolumeInternal(channel, volume);
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK CodecMIDI::getMusicChannelVolumeCallback(FMOD_CODEC_STATE *codec, int channel, float *volume)
-{
-    CodecMIDI *cmusic = (CodecMIDI *)codec;
-
-    return cmusic->getMusicChannelVolumeInternal(channel, volume);
-}
-
 
 }
 

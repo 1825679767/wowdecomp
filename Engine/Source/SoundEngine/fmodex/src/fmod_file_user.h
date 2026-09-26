@@ -21,6 +21,11 @@ namespace FMOD
         void    *mUserData;
 
       public:
+
+        static FMOD_FILE_OPENCALLBACK  gOpenCallback;
+        static FMOD_FILE_CLOSECALLBACK gCloseCallback;
+        static FMOD_FILE_READCALLBACK  gReadCallback;
+        static FMOD_FILE_SEEKCALLBACK  gSeekCallback;
         
         // OFFSET: 0x008D2770
         UserFile() 

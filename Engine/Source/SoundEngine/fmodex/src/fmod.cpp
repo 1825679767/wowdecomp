@@ -85,7 +85,7 @@ void operator delete(void *ptr)
 ]
 */
 // OFFSET: 0x008D0550
-FMOD_RESULT F_API FMOD_Memory_Initialize(void *poolmem, int poollen, FMOD_MEMORY_ALLOCCALLBACK useralloc, FMOD_MEMORY_REALLOCCALLBACK userrealloc, FMOD_MEMORY_FREECALLBACK userfree, FMOD_MEMORY_TYPE memtypeflags)
+FMOD_RESULT F_API FMOD_Memory_Initialize(void *poolmem, int poollen, FMOD_MEMORY_ALLOCCALLBACK useralloc, FMOD_MEMORY_REALLOCCALLBACK userrealloc, FMOD_MEMORY_FREECALLBACK userfree)
 {
     if (!FMOD::gGlobal->gSystemHead->isEmpty())
     {
@@ -111,9 +111,6 @@ FMOD_RESULT F_API FMOD_Memory_Initialize(void *poolmem, int poollen, FMOD_MEMORY
         return FMOD_ERR_INVALID_ADDRESS;
     }
     #endif
-
-    FMOD::gGlobal->gMemoryTypeFlags  = memtypeflags;
-    FMOD::gGlobal->gMemoryTypeFlags |= FMOD_MEMORY_XBOX360_PHYSICAL;    /* Make sure FMOD_MEMORY_XBOX360_PHYSICAL is always on by default. */
 
     if (poollen && poolmem)
     {
@@ -185,23 +182,8 @@ FMOD_RESULT F_API FMOD_Memory_Initialize(void *poolmem, int poollen, FMOD_MEMORY
     Memory_Initialize
 ]
 */
-FMOD_RESULT F_API FMOD_Memory_GetStats(int *currentalloced, int *maxalloced, FMOD_BOOL blocking)
+FMOD_RESULT F_API FMOD_Memory_GetStats(int *currentalloced, int *maxalloced)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-    FMOD::SystemI *current;
-
-    /*
-        First flush out any queued threaded mallocs.
-    */
-    if (blocking)
-    {
-        for (current = (FMOD::SystemI *)(FMOD::gGlobal->gSystemHead->getNext()); current != FMOD::gGlobal->gSystemHead; current = (FMOD::SystemI *)(current->getNext()))
-        {
-            current->flushDSPConnectionRequests();
-        }
-    }
-#endif
-
     if (currentalloced)
     {
 	    *currentalloced = FMOD::gGlobal->gSystemPool->getCurrentAllocated();
@@ -443,77 +425,17 @@ FMOD_RESULT F_API FMOD_System_GetNumDrivers(FMOD_SYSTEM *system, int *numdrivers
 }
 
 
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieves identification information about a sound device specified by its index, and specific to the output mode set with System::setOutput.
-
-    [PARAMETERS]
-    'id'          Index of the sound driver device.  The total number of devices can be found with System::getNumDrivers.
-    'name'        Address of a variable that receives the name of the device. Optional. Specify 0 or NULL to ignore.
-    'namelen'     Length in bytes of the target buffer to receieve the string. Required if name parameter is not NULL.
-    'guid'        Address of a variable that receives the GUID that uniquely identifies the device. Optional. Specify 0 or NULL to ignore.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    System::getNumDrivers
-    System::setOutput
-]
-*/
-FMOD_RESULT F_API FMOD_System_GetDriverInfo(FMOD_SYSTEM *system, int id, char *name, int namelen, FMOD_GUID *guid)
+FMOD_RESULT F_API FMOD_System_GetDriverName(FMOD_SYSTEM *system, int id, char *name, int namelen)
 {
-    FMOD::System *_system = (FMOD::System *)system;
+    FMOD::System *sys = (FMOD::System *)system;
 
-    if (!FMOD::gGlobal->gSystemHead->exists((FMOD::SystemI *)_system))
+    FMOD_RESULT result = sys->release();
+    if (result != FMOD_OK)
     {
-        return FMOD_ERR_INVALID_PARAM;
+        return result;
     }
 
-    return _system->getDriverInfo(id, name, namelen, guid);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieves identification information about a sound device specified by its index, and specific to the output mode set with System::setOutput.
-
-    [PARAMETERS]
-    'id'          Index of the sound driver device.  The total number of devices can be found with System::getNumDrivers.
-    'name'        Address of a variable that receives the name of the device in wide chars. Optional. Specify 0 or NULL to ignore.
-    'namelen'     Length in bytes of the target buffer to receieve the string. Required if name parameter is not NULL.
-    'guid'        Address of a variable that receives the GUID that uniquely identifies the device. Optional. Specify 0 or NULL to ignore.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64
-
-    [SEE_ALSO]
-    System::getNumDrivers
-    System::setOutput
-]
-*/
-FMOD_RESULT F_API FMOD_System_GetDriverInfoW(FMOD_SYSTEM *system, int id, short *name, int namelen, FMOD_GUID *guid)
-{
-    FMOD::System *_system = (FMOD::System *)system;
-
-    if (!FMOD::gGlobal->gSystemHead->exists((FMOD::SystemI *)_system))
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _system->getDriverInfoW(id, name, namelen, guid);
+    return sys->getDriverName(id, name, namelen);
 }
 
 
@@ -1360,7 +1282,7 @@ FMOD_RESULT F_API FMOD_System_GetSpeakerMode(FMOD_SYSTEM *system, FMOD_SPEAKERMO
     FMOD_SYSTEM_CALLBACKTYPE
 ]
 */
-FMOD_RESULT F_API FMOD_System_SetCallback(FMOD_SYSTEM *system, FMOD_SYSTEM_CALLBACK callback)
+FMOD_RESULT F_API FMOD_System_SetCallback(FMOD_SYSTEM *system, FMOD_SYSTEM_CALLBACKTYPE type, FMOD_SYSTEM_CALLBACK callback)
 {
     FMOD::System *_system = (FMOD::System *)system;
 
@@ -1369,7 +1291,7 @@ FMOD_RESULT F_API FMOD_System_SetCallback(FMOD_SYSTEM *system, FMOD_SYSTEM_CALLB
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _system->setCallback(callback);
+    return _system->setCallback(type, callback);
 }
 
 
@@ -1478,7 +1400,7 @@ FMOD_RESULT F_API FMOD_System_SetPluginPath(FMOD_SYSTEM *system, const char *pat
     System::createSound
 ]
 */
-FMOD_RESULT F_API FMOD_System_LoadPlugin(FMOD_SYSTEM *system, const char *filename, unsigned int *handle, unsigned int priority)
+FMOD_RESULT F_API FMOD_System_LoadPlugin(FMOD_SYSTEM *system, const char *filename, FMOD_PLUGINTYPE *plugintype, int *index)
 {
     FMOD::System *_system = (FMOD::System *)system;
 
@@ -1487,7 +1409,7 @@ FMOD_RESULT F_API FMOD_System_LoadPlugin(FMOD_SYSTEM *system, const char *filena
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _system->loadPlugin(filename, handle, priority);
+    return _system->loadPlugin(filename, plugintype, index);
 }
 
 
@@ -1511,7 +1433,7 @@ FMOD_RESULT F_API FMOD_System_LoadPlugin(FMOD_SYSTEM *system, const char *filena
     System::loadPlugin
 ]
 */
-FMOD_RESULT F_API FMOD_System_UnloadPlugin(FMOD_SYSTEM *system, unsigned int handle)
+FMOD_RESULT F_API FMOD_System_UnloadPlugin(FMOD_SYSTEM *system, FMOD_PLUGINTYPE plugintype, int index)
 {
     FMOD::System *_system = (FMOD::System *)system;
 
@@ -1520,7 +1442,7 @@ FMOD_RESULT F_API FMOD_System_UnloadPlugin(FMOD_SYSTEM *system, unsigned int han
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _system->unloadPlugin(handle);
+    return _system->unloadPlugin(plugintype, index);
 }
 
 
@@ -1563,40 +1485,6 @@ FMOD_RESULT F_API FMOD_System_GetNumPlugins(FMOD_SYSTEM *system, FMOD_PLUGINTYPE
 [API]
 [
     [DESCRIPTION]
-    Retrieves the handle of a plugin based on its type and relative index.  Use System::getNumPlugins to enumerate plugins.
-
-    [PARAMETERS]
-    'plugintype'    The type of plugin type such as FMOD_PLUGINTYPE_OUTPUT, FMOD_PLUGINTYPE_CODEC or FMOD_PLUGINTYPE_DSP.
-    'index'         The relative index for the type of plugin.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    System::getNumPlugins
-]
-*/
-FMOD_RESULT F_API FMOD_System_GetPluginHandle(FMOD_SYSTEM *system, FMOD_PLUGINTYPE plugintype, int index, unsigned int *handle)
-{
-    FMOD::System *_system = (FMOD::System *)system;
-
-    if (!FMOD::gGlobal->gSystemHead->exists((FMOD::SystemI *)_system))
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _system->getPluginHandle(plugintype, index, handle);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
     Retrieves information to display for the selected plugin.
 
     [PARAMETERS]
@@ -1617,7 +1505,7 @@ FMOD_RESULT F_API FMOD_System_GetPluginHandle(FMOD_SYSTEM *system, FMOD_PLUGINTY
     System::getNumPlugins
 ]
 */
-FMOD_RESULT F_API FMOD_System_GetPluginInfo(FMOD_SYSTEM *system, unsigned int handle, FMOD_PLUGINTYPE *plugintype, char *name, int namelen, unsigned int *version)
+FMOD_RESULT F_API FMOD_System_GetPluginInfo(FMOD_SYSTEM *system, FMOD_PLUGINTYPE plugintype, int index, char *name, int namelen, unsigned int *version)
 {
     FMOD::System *_system = (FMOD::System *)system;
 
@@ -1626,7 +1514,7 @@ FMOD_RESULT F_API FMOD_System_GetPluginInfo(FMOD_SYSTEM *system, unsigned int ha
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _system->getPluginInfo(handle, plugintype, name, namelen, version);
+    return _system->getPluginInfo(plugintype, index, name, namelen, version);
 }
 
 
@@ -1656,7 +1544,7 @@ FMOD_RESULT F_API FMOD_System_GetPluginInfo(FMOD_SYSTEM *system, unsigned int ha
     System::close
 ]
 */
-FMOD_RESULT F_API FMOD_System_SetOutputByPlugin(FMOD_SYSTEM *system, unsigned int handle)
+FMOD_RESULT F_API FMOD_System_SetOutputByPlugin(FMOD_SYSTEM *system, int index)
 {
     FMOD::System *_system = (FMOD::System *)system;
 
@@ -1665,7 +1553,7 @@ FMOD_RESULT F_API FMOD_System_SetOutputByPlugin(FMOD_SYSTEM *system, unsigned in
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _system->setOutputByPlugin(handle);
+    return _system->setOutputByPlugin(index);
 }
 
 
@@ -1691,7 +1579,7 @@ FMOD_RESULT F_API FMOD_System_SetOutputByPlugin(FMOD_SYSTEM *system, unsigned in
     System::setOutput
 ]
 */
-FMOD_RESULT F_API FMOD_System_GetOutputByPlugin(FMOD_SYSTEM *system, unsigned int *handle)
+FMOD_RESULT F_API FMOD_System_GetOutputByPlugin(FMOD_SYSTEM *system, int *index)
 {
     FMOD::System *_system = (FMOD::System *)system;
 
@@ -1700,52 +1588,7 @@ FMOD_RESULT F_API FMOD_System_GetOutputByPlugin(FMOD_SYSTEM *system, unsigned in
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _system->getOutputByPlugin(handle);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Creates a DSP unit object which is either built in or loaded as a plugin, to be inserted into a DSP network, for the purposes of sound filtering or sound generation.<br>
-    This function creates a DSP unit that can be enumerated by using System::getNumPlugins and System::getPluginInfo.
-
-    [PARAMETERS]
-    'handle'        Handle to a pre-existing DSP plugin.
-    'dsp'           Address of a variable to receive a newly created FMOD::DSP object.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    A DSP unit can generate or filter incoming data.<br>  
-    To be active, a unit must be inserted into the FMOD DSP network to be heard.  Use functions such as System::addDSP, Channel::addDSP or DSP::addInput to do this.<br>
-    For more information and a detailed description (with diagrams) see the tutorial on the DSP system in the documentation.<br>
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    System::getNumPlugins
-    System::getPluginInfo
-    System::createDSPByType
-    System::createDSP
-    System::addDSP
-    Channel::addDSP
-    DSP::addInput
-    DSP::setActive    
-]
-*/
-FMOD_RESULT F_API FMOD_System_CreateDSPByPlugin(FMOD_SYSTEM *system, unsigned int handle, FMOD_DSP **dsp)
-{
-    FMOD::System *_system = (FMOD::System *)system;
-
-    if (!FMOD::gGlobal->gSystemHead->exists((FMOD::SystemI *)_system))
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _system->createDSPByPlugin(handle, (FMOD::DSP **)dsp);
+    return _system->getOutputByPlugin(index);
 }
 
 
@@ -1801,7 +1644,7 @@ FMOD_RESULT F_API FMOD_System_CreateDSPByPlugin(FMOD_SYSTEM *system, unsigned in
     FMOD_CODEC_DESCRIPTION
 ]
 */
-FMOD_RESULT F_API FMOD_System_CreateCodec(FMOD_SYSTEM *system, FMOD_CODEC_DESCRIPTION *description, unsigned int priority)
+FMOD_RESULT F_API FMOD_System_CreateCodec(FMOD_SYSTEM *system, FMOD_CODEC_DESCRIPTION *description)
 {
     FMOD::System *_system = (FMOD::System *)system;
 
@@ -1810,7 +1653,7 @@ FMOD_RESULT F_API FMOD_System_CreateCodec(FMOD_SYSTEM *system, FMOD_CODEC_DESCRI
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _system->createCodec(description, priority);
+    return _system->createCodec(description);
 }
 
 
@@ -2634,7 +2477,7 @@ FMOD_RESULT F_API FMOD_System_GetHardwareChannels(FMOD_SYSTEM *system, int *num2
     System::update
 ]
 */
-FMOD_RESULT F_API FMOD_System_GetCPUUsage(FMOD_SYSTEM *system, float *dsp, float *stream, float *geometry, float *update, float *total)
+FMOD_RESULT F_API FMOD_System_GetCPUUsage(FMOD_SYSTEM *system, float *dsp, float *stream, float *update, float *total)
 {
     FMOD::System *_system = (FMOD::System *)system;
 
@@ -2643,7 +2486,7 @@ FMOD_RESULT F_API FMOD_System_GetCPUUsage(FMOD_SYSTEM *system, float *dsp, float
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _system->getCPUUsage(dsp, stream, geometry, update, total);
+    return _system->getCPUUsage(dsp, stream, update, total);
 }
 
 
@@ -3076,6 +2919,20 @@ FMOD_RESULT F_API FMOD_System_CreateDSPByType(FMOD_SYSTEM *system, FMOD_DSP_TYPE
     }
 
     return _system->createDSPByType(type, (FMOD::DSP **)dsp);
+}
+
+
+FMOD_RESULT F_API FMOD_System_CreateDSPByIndex(FMOD_SYSTEM *system, int index, FMOD_DSP **dsp)
+{
+    FMOD::System *sys = (FMOD::System *)system;
+
+    FMOD_RESULT result = sys->release();
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    return sys->createDSPByIndex(index, (FMOD::DSP **)dsp);
 }
 
 
@@ -3654,7 +3511,7 @@ FMOD_RESULT F_API FMOD_System_GetDSPHead(FMOD_SYSTEM *system, FMOD_DSP **dsp)
     DSP::remove
 ]
 */
-FMOD_RESULT F_API FMOD_System_AddDSP(FMOD_SYSTEM *system, FMOD_DSP *dsp, FMOD_DSPCONNECTION **connection)
+FMOD_RESULT F_API FMOD_System_AddDSP(FMOD_SYSTEM *system, FMOD_DSP *dsp)
 {
     FMOD::System *_system = (FMOD::System *)system;
 
@@ -3663,7 +3520,7 @@ FMOD_RESULT F_API FMOD_System_AddDSP(FMOD_SYSTEM *system, FMOD_DSP *dsp, FMOD_DS
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _system->addDSP((FMOD::DSP *)dsp, (FMOD::DSPConnection **)connection);
+    return _system->addDSP((FMOD::DSP *)dsp);
 }
 
 
@@ -3736,43 +3593,31 @@ FMOD_RESULT F_API FMOD_System_UnlockDSP(FMOD_SYSTEM *system)
 }
 
 
-/*
-[API]
-[
-    [DESCRIPTION]
-    Return the current 64bit DSP clock value which counts up by the number of samples per second in the software mixer, every second.
-    Ie if the default sample rate is 48khz, the DSP clock increments by 48000 per second.
-
-    [PARAMETERS]
-    'hi'    The most significant 32bits of the 64bit DSP clock value.
-    'lo'    The least significant 32bits of the 64bit DSP clock value.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    Use result with Channel::setDelay to play a sound on an exact tick in the future.<br>
-    Use Channel::getDelay after playing a sound to work out what DSP clock value a sound started on.<br>
-    <br>
-    Use FMOD_64BIT_ADD or FMOD_64BIT_SUB helper macros from fmod.h to add a hi/lo combination together and cope with wraparound.<br>
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    Channel::setDelay
-    Channel::getDelay
-]
-*/
-FMOD_RESULT F_API FMOD_System_GetDSPClock(FMOD_SYSTEM *system, unsigned int *hi, unsigned int *lo)
+FMOD_RESULT F_API FMOD_System_SetRecordDriver(FMOD_SYSTEM *system, int driver)
 {
-    FMOD::System *_system = (FMOD::System *)system;
+    FMOD::System *sys = (FMOD::System *)system;
 
-    if (!FMOD::gGlobal->gSystemHead->exists((FMOD::SystemI *)_system))
+    FMOD_RESULT result = sys->release();
+    if (result != FMOD_OK)
     {
-        return FMOD_ERR_INVALID_PARAM;
+        return result;
     }
 
-    return _system->getDSPClock(hi, lo);
+    return sys->setRecordDriver(driver);
+}
+
+
+FMOD_RESULT F_API FMOD_System_GetRecordDriver(FMOD_SYSTEM *system, int *driver)
+{
+    FMOD::System *sys = (FMOD::System *)system;
+
+    FMOD_RESULT result = sys->release();
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    return sys->getRecordDriver(driver);
 }
 
 
@@ -3809,77 +3654,17 @@ FMOD_RESULT F_API FMOD_System_GetRecordNumDrivers(FMOD_SYSTEM *system, int *numd
 }
 
 
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieves identification information about a sound device specified by its index, and specific to the output mode set with System::setOutput.
-
-    [PARAMETERS]
-    'id'          Index into the enumerated list of record devices up to the value returned by System::getRecordNumDrivers.
-    'name'        Address of a variable that receives the name of the recording device. Optional. Specify 0 or NULL to ignore.
-    'namelen'     Length in bytes of the target buffer to receieve the string. Required if name parameter is not NULL.
-    'guid'        Address of a variable that receives the GUID that uniquely identifies the device. Optional. Specify 0 or NULL to ignore.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh360, PlayStation 3, Solaris, iPhone
-
-    [SEE_ALSO]
-    System::setOutput
-    System::getRecordNumDrivers
-]
-*/
-FMOD_RESULT F_API FMOD_System_GetRecordDriverInfo(FMOD_SYSTEM *system, int id, char *name, int namelen, FMOD_GUID *guid)
+FMOD_RESULT F_API FMOD_System_GetRecordDriverName(FMOD_SYSTEM *system, int id, char *name, int namelen)
 {
-    FMOD::System *_system = (FMOD::System *)system;
+    FMOD::System *sys = (FMOD::System *)system;
 
-    if (!FMOD::gGlobal->gSystemHead->exists((FMOD::SystemI *)_system))
+    FMOD_RESULT result = sys->release();
+    if (result != FMOD_OK)
     {
-        return FMOD_ERR_INVALID_PARAM;
+        return result;
     }
 
-    return _system->getRecordDriverInfo(id, name, namelen, guid);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieves identification information about a sound device specified by its index, and specific to the output mode set with System::setOutput.
-
-    [PARAMETERS]
-    'id'          Index into the enumerated list of record devices up to the value returned by System::getRecordNumDrivers.
-    'name'        Address of a variable that receives the name of the recording device in wide chars. Optional. Specify 0 or NULL to ignore.
-    'namelen'     Length in bytes of the target buffer to receieve the string. Required if name parameter is not NULL.
-    'guid'        Address of a variable that receives the GUID that uniquely identifies the device. Optional. Specify 0 or NULL to ignore.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64
-
-    [SEE_ALSO]
-    System::setOutput
-    System::getRecordNumDrivers
-]
-*/
-FMOD_RESULT F_API FMOD_System_GetRecordDriverInfoW(FMOD_SYSTEM *system, int id, short *name, int namelen, FMOD_GUID *guid)
-{
-    FMOD::System *_system = (FMOD::System *)system;
-
-    if (!FMOD::gGlobal->gSystemHead->exists((FMOD::SystemI *)_system))
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _system->getRecordDriverInfoW(id, name, namelen, guid);
+    return sys->getRecordDriverName(id, name, namelen);
 }
 
 
@@ -3940,7 +3725,7 @@ FMOD_RESULT F_API FMOD_System_GetRecordDriverCaps(FMOD_SYSTEM *system, int id, F
     [SEE_ALSO]
 ]
 */
-FMOD_RESULT F_API FMOD_System_GetRecordPosition(FMOD_SYSTEM *system, int id, unsigned int *position)
+FMOD_RESULT F_API FMOD_System_GetRecordPosition(FMOD_SYSTEM *system, unsigned int *position)
 {
     FMOD::System *_system = (FMOD::System *)system;
 
@@ -3949,7 +3734,7 @@ FMOD_RESULT F_API FMOD_System_GetRecordPosition(FMOD_SYSTEM *system, int id, uns
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _system->getRecordPosition(id, position);
+    return _system->getRecordPosition(position);
 }
 
 
@@ -3975,7 +3760,7 @@ FMOD_RESULT F_API FMOD_System_GetRecordPosition(FMOD_SYSTEM *system, int id, uns
     System::recordStop
 ]
 */
-FMOD_RESULT F_API FMOD_System_RecordStart(FMOD_SYSTEM *system, int id, FMOD_SOUND *sound, FMOD_BOOL loop)
+FMOD_RESULT F_API FMOD_System_RecordStart(FMOD_SYSTEM *system, FMOD_SOUND *sound, FMOD_BOOL loop)
 {
     FMOD::System *_system = (FMOD::System *)system;
 
@@ -3984,7 +3769,7 @@ FMOD_RESULT F_API FMOD_System_RecordStart(FMOD_SYSTEM *system, int id, FMOD_SOUN
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _system->recordStart(id, (FMOD::Sound *)sound, loop ? true : false);
+    return _system->recordStart((FMOD::Sound *)sound, loop ? true : false);
 }
 
 
@@ -4008,7 +3793,7 @@ FMOD_RESULT F_API FMOD_System_RecordStart(FMOD_SYSTEM *system, int id, FMOD_SOUN
     System::recordStart
 ]
 */
-FMOD_RESULT F_API FMOD_System_RecordStop(FMOD_SYSTEM *system, int id)
+FMOD_RESULT F_API FMOD_System_RecordStop(FMOD_SYSTEM *system)
 {
     FMOD::System *_system = (FMOD::System *)system;
 
@@ -4017,7 +3802,7 @@ FMOD_RESULT F_API FMOD_System_RecordStop(FMOD_SYSTEM *system, int id)
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _system->recordStop(id);
+    return _system->recordStop();
 }
 
 
@@ -4044,7 +3829,7 @@ FMOD_RESULT F_API FMOD_System_RecordStop(FMOD_SYSTEM *system, int id)
     System::recordStop
 ]
 */
-FMOD_RESULT F_API FMOD_System_IsRecording(FMOD_SYSTEM *system, int id, FMOD_BOOL *recording)
+FMOD_RESULT F_API FMOD_System_IsRecording(FMOD_SYSTEM *system, FMOD_BOOL *recording)
 {
     FMOD_RESULT result;
     bool recording2;
@@ -4055,7 +3840,7 @@ FMOD_RESULT F_API FMOD_System_IsRecording(FMOD_SYSTEM *system, int id, FMOD_BOOL
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    result = _system->isRecording(id, &recording2);
+    result = _system->isRecording(&recording2);
     if (result == FMOD_OK)
     {
         if (recording)
@@ -4222,45 +4007,6 @@ FMOD_RESULT F_API FMOD_System_LoadGeometry(FMOD_SYSTEM *system, const void *data
     }
 
     return _system->loadGeometry(data, datasize, (FMOD::Geometry **)geometry);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Calculates geometry occlusion between a listener and a sound source.
-
-    [PARAMETERS]
-    'listener'  The listener position.
-    'source'    The source position.
-    'direct'    Optional. Specify 0 to ignore. Address of a variable to receive the direct occlusion value.
-    'reverb'    Optional. Specify 0 to ignore. Address of a variable to receive the reverb occlusion value.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    If single sided polygons have been created, it is important to get the source
-    and listener positions round the right way, as the occlusion from point A to
-    point B may not be the same as the occlusion from point B to point A.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    System::createGeometry
-]
-*/
-FMOD_RESULT F_API FMOD_System_GetGeometryOcclusion(FMOD_SYSTEM *system, const FMOD_VECTOR *listener, const FMOD_VECTOR *source, float *direct, float *reverb)
-{
-    FMOD::System *_system = (FMOD::System *)system;
-
-    if (!FMOD::gGlobal->gSystemHead->exists((FMOD::SystemI *)_system))
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _system->getGeometryOcclusion(listener, source, direct, reverb);
 }
 
 
@@ -4465,95 +4211,6 @@ FMOD_RESULT F_API FMOD_System_GetUserData(FMOD_SYSTEM *system, void **userdata)
     return _system->getUserData(userdata);
 }
 
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieve detailed memory usage information about this object.
-
-    [PARAMETERS]
-    'memorybits'            Memory usage bits for FMOD Ex. See FMOD_MEMBITS.
-    'event_memorybits'      Memory usage bits for FMOD Event System. See FMOD_EVENT_MEMBITS.
-    'memoryused'            Optional. Specify 0 to ignore. Address of a variable to receive how much memory is being used by this object given the specified "memorybits" and "event_memorybits".
-    'memoryused_details'    Optional. Specify 0 to ignore. Address of a user-allocated FMOD_MEMORY_USAGE_DETAILS structure to be filled with detailed memory usage information about this object.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    Every public FMOD class has a getMemoryInfo function which can be used to get detailed information on what memory resources are associated with the object in question. 
-    The getMemoryInfo function can be used in two different ways :
-    <p>&nbsp;<p>
-
-    <li>Use "memorybits" and "event_memorybits" to specify what memory usage you'd like to query and receive one number back in "memoryused".
-    <li>Provide an FMOD_MEMORY_USAGE_DETAILS structure for FMOD to fill with memory usage values for <b>all</b> types of memory usage.
-    <p>&nbsp;<p>
-
-
-    You can use the FMOD_MEMBITS_xxx and FMOD_EVENT_MEMBITS_xxx defines to get FMOD to add up the memory usage numbers you're interested in :
-
-    <p><blockquote><pre>
-        FMOD::ChannelGroup *channelgroup;
-        unsigned int        usedvalue;
-        <p>
-        (create channelgroup here...)
-        <p>
-        // By specifying FMOD_MEMBITS_DSPI and FMOD_MEMBITS_CHANNELGROUP here we're asking that "usedvalue"
-        // only counts FMOD_MEMBITS_DSPI and FMOD_MEMBITS_CHANNELGROUP type memory usage.
-        result = channelgroup->getMemoryInfo(FMOD_MEMBITS_DSPI | FMOD_MEMBITS_CHANNELGROUP, 0, &usedvalue, 0);
-        if (result != FMOD_OK)
-        {
-            (handle error...)
-        }
-        <p>
-        printf("This FMOD::ChannelGroup is currently using %d bytes for DSP units and the ChannelGroup object itself\n", usedvalue);
-    </pre></blockquote><p>
-    <p>&nbsp;<p>
-
-
-    Alternatively, the FMOD_MEMORY_USAGE_DETAILS structure can be used to find out the memory usage of each type within a object :
-
-    <p><blockquote><pre>
-        FMOD::ChannelGroup *channelgroup;
-        FMOD_MEMORY_USAGE_DETAILS memused_details;
-        unsigned int        channelgroupused;
-        <p>
-        (create channelgroup here...)
-        <p>
-        // By specitying a "FMOD_MEMORY_USAGE_DETAILS" struct here, we're asking FMOD to fill in the structure 
-        // with memory usage values for all types of memory associated with this object.
-        result = channelgroup->getMemoryInfo(0, 0, 0, &memused_details);
-        if (result != FMOD_OK)
-        {
-            (handle error...)
-        }
-        <p>
-        channelgroupused = memused_details.dsp + memused_details.channelgroup;
-        <p>
-        printf("This FMOD::ChannelGroup is currently using %d bytes for DSP units and the ChannelGroup object itself\n", channelgroupused);
-    </pre></blockquote><p>
-
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    FMOD_MEMBITS
-    FMOD_EVENT_MEMBITS
-    FMOD_MEMORY_USAGE_DETAILS
-]
-*/
-FMOD_RESULT F_API FMOD_System_GetMemoryInfo(FMOD_SYSTEM *system, unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD::System *_system = (FMOD::System *)system;
-
-    if (!FMOD::gGlobal->gSystemHead->exists((FMOD::SystemI *)_system))
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _system->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-}
 
 
 /*
@@ -6147,112 +5804,6 @@ FMOD_RESULT F_API FMOD_Sound_GetLoopPoints(FMOD_SOUND *sound, unsigned int *loop
 [API]
 [
     [DESCRIPTION]
-    Gets the number of music channels inside a MOD/S3M/XM/IT/MIDI file.
-
-    [PARAMETERS]
-    'numchannels'   Number of music channels used in the song.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    Sound::setMusicChannelVolume
-    Sound::getMusicChannelVolume
-]
-*/
-FMOD_RESULT F_API FMOD_Sound_GetMusicNumChannels(FMOD_SOUND *sound, int *numchannels)
-{
-    FMOD::Sound *_sound = (FMOD::Sound *)sound;
-
-    if (!_sound)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _sound->getMusicNumChannels(numchannels);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Sets the volume of a MOD/S3M/XM/IT/MIDI music channel volume.
-
-    [PARAMETERS]
-    'channel'   MOD/S3M/XM/IT/MIDI music subchannel to set a linear volume for.
-    'volume'    Volume of the channel from 0.0 to 1.0.  Default = 1.0.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    Use Sound::getMusicNumChannels to get the maximum number of music channels in the song.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    Sound::getMusicNumChannels
-    Sound::getMusicChannelVolume
-]
-*/
-FMOD_RESULT F_API FMOD_Sound_SetMusicChannelVolume(FMOD_SOUND *sound, int channel, float volume)
-{
-    FMOD::Sound *_sound = (FMOD::Sound *)sound;
-
-    if (!_sound)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _sound->setMusicChannelVolume(channel, volume);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieves the volume of a MOD/S3M/XM/IT/MIDI music channel volume.
-
-    [PARAMETERS]
-    'channel'   MOD/S3M/XM/IT/MIDI music subchannel to retrieve the volume for.
-    'volume'    Address of a variable to receive the volume of the channel from 0.0 to 1.0.  Default = 1.0.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    Use Sound::getMusicNumChannels to get the maximum number of music channels in the song.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    Sound::getMusicNumChannels
-    Sound::setMusicChannelVolume
-]
-*/
-FMOD_RESULT F_API FMOD_Sound_GetMusicChannelVolume(FMOD_SOUND *sound, int channel, float *volume)
-{
-    FMOD::Sound *_sound = (FMOD::Sound *)sound;
-
-    if (!_sound)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _sound->getMusicChannelVolume(channel, volume);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
     Sets a user value that the Sound object will store internally.  Can be retrieved with Sound::getUserData.
 
     [PARAMETERS]
@@ -6316,46 +5867,6 @@ FMOD_RESULT F_API FMOD_Sound_GetUserData(FMOD_SOUND *sound, void **userdata)
     return _sound->getUserData(userdata);
 }
 
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieve detailed memory usage information about this object.
-
-    [PARAMETERS]
-    'memorybits'            Memory usage bits for FMOD Ex. See FMOD_MEMBITS.
-    'event_memorybits'      Memory usage bits for FMOD Event System. See FMOD_EVENT_MEMBITS.
-    'memoryused'            Optional. Specify 0 to ignore. Address of a variable to receive how much memory is being used by this object given the specified "memorybits" and "event_memorybits".
-    'memoryused_details'    Optional. Specify 0 to ignore. Address of a user-allocated FMOD_MEMORY_USAGE_DETAILS structure to be filled with detailed memory usage information about this object.
-
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    See System::getMemoryInfo for more details.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    FMOD_MEMBITS
-    FMOD_EVENT_MEMBITS
-    FMOD_MEMORY_USAGE_DETAILS
-    System::getMemoryInfo
-]
-*/
-FMOD_RESULT F_API FMOD_Sound_GetMemoryInfo(FMOD_SOUND *sound, unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD::Sound *_sound = (FMOD::Sound *)sound;
-
-    if (!_sound)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _sound->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-}
 
 
 /*
@@ -6752,7 +6263,7 @@ FMOD_RESULT F_API FMOD_Channel_GetPan(FMOD_CHANNEL *channel, float *pan)
     Channel::isPlaying
 ]
 */
-FMOD_RESULT F_API FMOD_Channel_SetDelay(FMOD_CHANNEL *channel, FMOD_DELAYTYPE delaytype, unsigned int delayhi, unsigned int delaylo)
+FMOD_RESULT F_API FMOD_Channel_SetDelay(FMOD_CHANNEL *channel, unsigned int startdelay, unsigned int enddelay)
 {
     FMOD::Channel *_channel = (FMOD::Channel *)channel;
 
@@ -6761,7 +6272,7 @@ FMOD_RESULT F_API FMOD_Channel_SetDelay(FMOD_CHANNEL *channel, FMOD_DELAYTYPE de
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _channel->setDelay(delaytype, delayhi, delaylo);
+    return _channel->setDelay(startdelay, enddelay);
 }
 
 
@@ -6795,7 +6306,7 @@ FMOD_RESULT F_API FMOD_Channel_SetDelay(FMOD_CHANNEL *channel, FMOD_DELAYTYPE de
     System::playSound
 ]
 */
-FMOD_RESULT F_API FMOD_Channel_GetDelay(FMOD_CHANNEL *channel, FMOD_DELAYTYPE delaytype, unsigned int *delayhi, unsigned int *delaylo)
+FMOD_RESULT F_API FMOD_Channel_GetDelay(FMOD_CHANNEL *channel, unsigned int *startdelay, unsigned int *enddelay)
 {
     FMOD::Channel *_channel = (FMOD::Channel *)channel;
 
@@ -6804,7 +6315,7 @@ FMOD_RESULT F_API FMOD_Channel_GetDelay(FMOD_CHANNEL *channel, FMOD_DELAYTYPE de
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _channel->getDelay(delaytype, delayhi, delaylo);
+    return _channel->getDelay(startdelay, enddelay);
 }
 
 
@@ -7377,72 +6888,6 @@ FMOD_RESULT F_API FMOD_Channel_GetReverbProperties(FMOD_CHANNEL *channel, FMOD_R
 [API]
 [
     [DESCRIPTION]
-    Sets the gain of the dry signal when lowpass filtering is applied.
-
-    [PARAMETERS]
-    'gain'        A linear gain level, from 0.0 to 1.0 inclusive.  0.0 = silent, 1.0 = full volume.  Default = 1.0.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    Channel::getLowPassGain
-]
-*/
-FMOD_RESULT F_API FMOD_Channel_SetLowPassGain(FMOD_CHANNEL *channel, float gain)
-{
-    FMOD::Channel *_channel = (FMOD::Channel *)channel;
-
-    if (!_channel)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _channel->setLowPassGain(gain);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieves the gain of the dry signal when lowpass filtering is applied.
-
-    [PARAMETERS]
-    'gain'        Address of a variable to receive the gain level, from 0.0 to 1.0 inclusive.  0.0 = silent, 1.0 = full volume.  Default = 1.0.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    Channel::setLowPassGain
-]
-*/
-FMOD_RESULT F_API FMOD_Channel_GetLowPassGain(FMOD_CHANNEL *channel, float *gain)
-{
-    FMOD::Channel *_channel = (FMOD::Channel *)channel;
-
-    if (!_channel)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _channel->getLowPassGain(gain);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
     Sets a channel to belong to a specified channel group.  A channelgroup can contain many channels.<br>
 
     [PARAMETERS]
@@ -7544,7 +6989,7 @@ FMOD_RESULT F_API FMOD_Channel_GetChannelGroup(FMOD_CHANNEL *channel, FMOD_CHANN
     FMOD_CHANNEL_CALLBACKTYPE
 ]
 */
-FMOD_RESULT F_API FMOD_Channel_SetCallback(FMOD_CHANNEL *channel, FMOD_CHANNEL_CALLBACK callback)
+FMOD_RESULT F_API FMOD_Channel_SetCallback(FMOD_CHANNEL *channel, FMOD_CHANNEL_CALLBACKTYPE type, FMOD_CHANNEL_CALLBACK callback, int command)
 {
     FMOD::Channel *_channel = (FMOD::Channel *)channel;
 
@@ -7553,7 +6998,7 @@ FMOD_RESULT F_API FMOD_Channel_SetCallback(FMOD_CHANNEL *channel, FMOD_CHANNEL_C
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _channel->setCallback(callback);
+    return _channel->setCallback(type, callback, command);
 }
 
 
@@ -8330,7 +7775,7 @@ FMOD_RESULT F_API FMOD_Channel_GetDSPHead(FMOD_CHANNEL *channel, FMOD_DSP **dsp)
     DSP::remove
 ]
 */
-FMOD_RESULT F_API FMOD_Channel_AddDSP(FMOD_CHANNEL *channel, FMOD_DSP *dsp, FMOD_DSPCONNECTION **connection)
+FMOD_RESULT F_API FMOD_Channel_AddDSP(FMOD_CHANNEL *channel, FMOD_DSP *dsp)
 {
     FMOD::Channel *_channel = (FMOD::Channel *)channel;
 
@@ -8339,7 +7784,7 @@ FMOD_RESULT F_API FMOD_Channel_AddDSP(FMOD_CHANNEL *channel, FMOD_DSP *dsp, FMOD
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _channel->addDSP((FMOD::DSP *)dsp, (FMOD::DSPConnection **)connection);
+    return _channel->addDSP((FMOD::DSP *)dsp);
 }
 
 
@@ -8987,45 +8432,6 @@ FMOD_RESULT F_API FMOD_Channel_GetUserData(FMOD_CHANNEL *channel, void **userdat
     return _channel->getUserData(userdata);
 }
 
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieve detailed memory usage information about this object.
-
-    [PARAMETERS]
-    'memorybits'            Memory usage bits for FMOD Ex. See FMOD_MEMBITS.
-    'event_memorybits'      Memory usage bits for FMOD Event System. See FMOD_EVENT_MEMBITS.
-    'memoryused'            Optional. Specify 0 to ignore. Address of a variable to receive how much memory is being used by this object given the specified "memorybits" and "event_memorybits".
-    'memoryused_details'    Optional. Specify 0 to ignore. Address of a user-allocated FMOD_MEMORY_USAGE_DETAILS structure to be filled with detailed memory usage information about this object.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    See System::getMemoryInfo for more details.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    FMOD_MEMBITS
-    FMOD_EVENT_MEMBITS
-    FMOD_MEMORY_USAGE_DETAILS
-    System::getMemoryInfo
-]
-*/
-FMOD_RESULT F_API FMOD_Channel_GetMemoryInfo(FMOD_CHANNEL *channel, unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD::Channel *_channel = (FMOD::Channel *)channel;
-
-    if (!_channel)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _channel->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-}
 
 
 /*
@@ -10006,7 +9412,7 @@ FMOD_RESULT F_API FMOD_ChannelGroup_GetDSPHead(FMOD_CHANNELGROUP *channelgroup, 
     DSP::remove
 ]
 */
-FMOD_RESULT F_API FMOD_ChannelGroup_AddDSP(FMOD_CHANNELGROUP *channelgroup, FMOD_DSP *dsp, FMOD_DSPCONNECTION **connection)
+FMOD_RESULT F_API FMOD_ChannelGroup_AddDSP(FMOD_CHANNELGROUP *channelgroup, FMOD_DSP *dsp)
 {
     FMOD::ChannelGroup *_group = (FMOD::ChannelGroup *)channelgroup;
 
@@ -10015,7 +9421,7 @@ FMOD_RESULT F_API FMOD_ChannelGroup_AddDSP(FMOD_CHANNELGROUP *channelgroup, FMOD
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _group->addDSP((FMOD::DSP *)dsp, (FMOD::DSPConnection **)connection);
+    return _group->addDSP((FMOD::DSP *)dsp);
 }
 
 
@@ -10305,45 +9711,6 @@ FMOD_RESULT F_API FMOD_ChannelGroup_GetUserData(FMOD_CHANNELGROUP *channelgroup,
     return _group->getUserData(userdata);
 }
 
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieve detailed memory usage information about this object.
-
-    [PARAMETERS]
-    'memorybits'            Memory usage bits for FMOD Ex. See FMOD_MEMBITS.
-    'event_memorybits'      Memory usage bits for FMOD Event System. See FMOD_EVENT_MEMBITS.
-    'memoryused'            Optional. Specify 0 to ignore. Address of a variable to receive how much memory is being used by this object given the specified "memorybits" and "event_memorybits".
-    'memoryused_details'    Optional. Specify 0 to ignore. Address of a user-allocated FMOD_MEMORY_USAGE_DETAILS structure to be filled with detailed memory usage information about this object.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    See System::getMemoryInfo for more details.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    FMOD_MEMBITS
-    FMOD_EVENT_MEMBITS
-    FMOD_MEMORY_USAGE_DETAILS
-    System::getMemoryInfo
-]
-*/
-FMOD_RESULT F_API FMOD_ChannelGroup_GetMemoryInfo(FMOD_CHANNELGROUP *channelgroup, unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD::ChannelGroup *_group = (FMOD::ChannelGroup *)channelgroup;
-
-    if (!_group)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _group->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-}
 
 
 /*
@@ -10975,45 +10342,6 @@ FMOD_RESULT F_API FMOD_SoundGroup_GetUserData(FMOD_SOUNDGROUP *soundgroup, void 
 }
 
 
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieve detailed memory usage information about this object.
-
-    [PARAMETERS]
-    'memorybits'            Memory usage bits for FMOD Ex. See FMOD_MEMBITS.
-    'event_memorybits'      Memory usage bits for FMOD Event System. See FMOD_EVENT_MEMBITS.
-    'memoryused'            Optional. Specify 0 to ignore. Address of a variable to receive how much memory is being used by this object given the specified "memorybits" and "event_memorybits".
-    'memoryused_details'    Optional. Specify 0 to ignore. Address of a user-allocated FMOD_MEMORY_USAGE_DETAILS structure to be filled with detailed memory usage information about this object.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    See System::getMemoryInfo for more details.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    FMOD_MEMBITS
-    FMOD_EVENT_MEMBITS
-    FMOD_MEMORY_USAGE_DETAILS
-    System::getMemoryInfo
-]
-*/
-FMOD_RESULT F_API FMOD_SoundGroup_GetMemoryInfo(FMOD_SOUNDGROUP *soundgroup, unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD::SoundGroup *_group = (FMOD::SoundGroup *)soundgroup;
-
-    if (!_group)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _group->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-}
-
 
 /*
 [API]
@@ -11120,7 +10448,7 @@ FMOD_RESULT F_API FMOD_DSP_GetSystemObject(FMOD_DSP *dsp, FMOD_SYSTEM **system)
     DSP::disconnectFrom
 ]
 */
-FMOD_RESULT F_API FMOD_DSP_AddInput(FMOD_DSP *dsp, FMOD_DSP *target, FMOD_DSPCONNECTION **connection)
+FMOD_RESULT F_API FMOD_DSP_AddInput(FMOD_DSP *dsp, FMOD_DSP *target)
 {
     FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
 
@@ -11129,7 +10457,7 @@ FMOD_RESULT F_API FMOD_DSP_AddInput(FMOD_DSP *dsp, FMOD_DSP *target, FMOD_DSPCON
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _dsp->addInput((FMOD::DSP *)target, (FMOD::DSPConnection **)connection);
+    return _dsp->addInput((FMOD::DSP *)target);
 }
 
 
@@ -11358,7 +10686,7 @@ FMOD_RESULT F_API FMOD_DSP_GetNumOutputs(FMOD_DSP *dsp, int *numoutputs)
     DSPConnection::setMix
 ]
 */
-FMOD_RESULT F_API FMOD_DSP_GetInput(FMOD_DSP *dsp, int index, FMOD_DSP **input, FMOD_DSPCONNECTION **inputconnection)
+FMOD_RESULT F_API FMOD_DSP_GetInput(FMOD_DSP *dsp, int index, FMOD_DSP **input)
 {
     FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
 
@@ -11367,7 +10695,7 @@ FMOD_RESULT F_API FMOD_DSP_GetInput(FMOD_DSP *dsp, int index, FMOD_DSP **input, 
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _dsp->getInput(index, (FMOD::DSP **)input, (FMOD::DSPConnection **)inputconnection);
+    return _dsp->getInput(index, (FMOD::DSP **)input);
 }
 
 
@@ -11403,7 +10731,7 @@ FMOD_RESULT F_API FMOD_DSP_GetInput(FMOD_DSP *dsp, int index, FMOD_DSP **input, 
     DSPConnection::setMix
 ]
 */
-FMOD_RESULT F_API FMOD_DSP_GetOutput(FMOD_DSP *dsp, int index, FMOD_DSP **output, FMOD_DSPCONNECTION **outputconnection)
+FMOD_RESULT F_API FMOD_DSP_GetOutput(FMOD_DSP *dsp, int index, FMOD_DSP **output)
 {
     FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
 
@@ -11412,7 +10740,111 @@ FMOD_RESULT F_API FMOD_DSP_GetOutput(FMOD_DSP *dsp, int index, FMOD_DSP **output
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    return _dsp->getOutput(index, (FMOD::DSP **)output, (FMOD::DSPConnection **)outputconnection);
+    return _dsp->getOutput(index, (FMOD::DSP **)output);
+}
+
+
+FMOD_RESULT F_API FMOD_DSP_SetInputMix(FMOD_DSP *dsp, int index, float volume)
+{
+    FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
+
+    if (!_dsp)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    return _dsp->setInputMix(index, volume);
+}
+
+
+FMOD_RESULT F_API FMOD_DSP_GetInputMix(FMOD_DSP *dsp, int index, float *volume)
+{
+    FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
+
+    if (!_dsp)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    return _dsp->getInputMix(index, volume);
+}
+
+
+FMOD_RESULT F_API FMOD_DSP_SetInputLevels(FMOD_DSP *dsp, int index, FMOD_SPEAKER speaker, float *levels, int numlevels)
+{
+    FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
+
+    if (!_dsp)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    return _dsp->setInputLevels(index, speaker, levels, numlevels);
+}
+
+
+FMOD_RESULT F_API FMOD_DSP_GetInputLevels(FMOD_DSP *dsp, int index, FMOD_SPEAKER speaker, float *levels, int numlevels)
+{
+    FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
+
+    if (!_dsp)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    return _dsp->getInputLevels(index, speaker, levels, numlevels);
+}
+
+
+FMOD_RESULT F_API FMOD_DSP_SetOutputMix(FMOD_DSP *dsp, int index, float volume)
+{
+    FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
+
+    if (!_dsp)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    return _dsp->setOutputMix(index, volume);
+}
+
+
+FMOD_RESULT F_API FMOD_DSP_GetOutputMix(FMOD_DSP *dsp, int index, float *volume)
+{
+    FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
+
+    if (!_dsp)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    return _dsp->getOutputMix(index, volume);
+}
+
+
+FMOD_RESULT F_API FMOD_DSP_SetOutputLevels(FMOD_DSP *dsp, int index, FMOD_SPEAKER speaker, float *levels, int numlevels)
+{
+    FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
+
+    if (!_dsp)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    return _dsp->setOutputLevels(index, speaker, levels, numlevels);
+}
+
+
+FMOD_RESULT F_API FMOD_DSP_GetOutputLevels(FMOD_DSP *dsp, int index, FMOD_SPEAKER speaker, float *levels, int numlevels)
+{
+    FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
+
+    if (!_dsp)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    return _dsp->getOutputLevels(index, speaker, levels, numlevels);
 }
 
 
@@ -11574,89 +11006,6 @@ FMOD_RESULT F_API FMOD_DSP_GetBypass(FMOD_DSP *dsp, FMOD_BOOL *bypass)
         if (bypass)
         {
             *bypass = bypass2 ? 1 : 0;
-        }
-    }
-
-    return result;
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Enables or disables the DSP effect on the given speaker channel. This is used to reduce the overhead of DSP effect <br>
-	by only applying the effect to the speaker channels where it is needed.
-    
-    [PARAMETERS]
-    'speaker'		The speaker channel that is being set.
-    'active'        Boolean to cause the DSP to be active/inactive on a given speaker channel.  Default = true.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-	If a speaker channel is deactivated it will not have the DSP effect applied to it.    
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone    
-
-    [SEE_ALSO]
-    DSP::getSpeakerActive
-    DSP::setActive
-]
-*/
-FMOD_RESULT F_API FMOD_DSP_SetSpeakerActive(FMOD_DSP *dsp, FMOD_SPEAKER speaker, FMOD_BOOL active)
-{
-    FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
-
-    if (!_dsp)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _dsp->setSpeakerActive(speaker, active ? true : false);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieves the active state of the effect on the given speaker.
-
-    [PARAMETERS]
-	'speaker'		The speaker channel that is being checked
-    'active'        Address of a variable that receieves the active state for a DSP unit.  true = DSP unit is active on that speakerchannel, false = DSP unit is not active on that speaker channel.  Default = true.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    DSP::setSpeakerActive
-    DSP::getActive
-]
-*/
-FMOD_RESULT F_API FMOD_DSP_GetSpeakerActive(FMOD_DSP *dsp, FMOD_SPEAKER speaker, FMOD_BOOL *active)
-{
-    FMOD_RESULT result;
-    bool active2;
-    FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
-
-    if (!_dsp)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    result = _dsp->getSpeakerActive(speaker, &active2);
-    if (result == FMOD_OK)
-    {
-        if (active)
-        {
-            *active = active2 ? 1 : 0;
         }
     }
 
@@ -12101,380 +11450,6 @@ FMOD_RESULT F_API FMOD_DSP_GetUserData(FMOD_DSP *dsp, void **userdata)
     return _dsp->getUserData(userdata);
 }
 
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieve detailed memory usage information about this object.
-
-    [PARAMETERS]
-    'memorybits'            Memory usage bits for FMOD Ex. See FMOD_MEMBITS.
-    'event_memorybits'      Memory usage bits for FMOD Event System. See FMOD_EVENT_MEMBITS.
-    'memoryused'            Optional. Specify 0 to ignore. Address of a variable to receive how much memory is being used by this object given the specified "memorybits" and "event_memorybits".
-    'memoryused_details'    Optional. Specify 0 to ignore. Address of a user-allocated FMOD_MEMORY_USAGE_DETAILS structure to be filled with detailed memory usage information about this object.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    See System::getMemoryInfo for more details.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    FMOD_MEMBITS
-    FMOD_EVENT_MEMBITS
-    FMOD_MEMORY_USAGE_DETAILS
-    System::getMemoryInfo
-]
-*/
-FMOD_RESULT F_API FMOD_DSP_GetMemoryInfo(FMOD_DSP *dsp, unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD::DSP *_dsp = (FMOD::DSP *)dsp;
-
-    if (!_dsp)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _dsp->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieves the DSP unit that is the input of this connection.  
-
-    [PARAMETERS]
-    'input'     Address of a pointer that receives the pointer to the DSP unit that is the input of this connection.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    A DSPConnection joins 2 DSP units together (think of it as the line between 2 circles).<br>
-    Each DSPConnection has 1 input and 1 output.<br>    
-    <br>
-    <b>Note!<b> If a DSP::addInput just occured, the connection might not be ready because the DSP system is still queued to connect in the background.  If so the function will return FMOD_ERR_NOTREADY and the input will be null.  Poll until it is ready.<br>
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    DSPConnection::getOutput
-    DSP::addInput
-]
-*/
-FMOD_RESULT F_API FMOD_DSPConnection_GetInput(FMOD_DSPCONNECTION *dspconnection, FMOD_DSP **input)
-{
-    FMOD::DSPConnection *_dspconnection = (FMOD::DSPConnection *)dspconnection;
-
-    if (!_dspconnection)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _dspconnection->getInput((FMOD::DSP **)input);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieves the DSP unit that is the output of this connection.  
-
-    [PARAMETERS]
-    'output'     Address of a pointer that receives the pointer to the DSP unit that is the output of this connection.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    A DSPConnection joins 2 DSP units together (think of it as the line between 2 circles).<br>
-    Each DSPConnection has 1 input and 1 output.<br>
-    <br>
-    <b>Note!<b> If a DSP::addInput just occured, the connection might not be ready because the DSP system is still queued to connect in the background.  If so the function will return FMOD_ERR_NOTREADY and the input will be null.  Poll until it is ready.<br>
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    DSPConnection::getInput
-    DSP::addInput
-]
-*/
-FMOD_RESULT F_API FMOD_DSPConnection_GetOutput(FMOD_DSPCONNECTION *dspconnection, FMOD_DSP **output)
-{
-    FMOD::DSPConnection *_dspconnection = (FMOD::DSPConnection *)dspconnection;
-
-    if (!_dspconnection)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _dspconnection->getOutput((FMOD::DSP **)output);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Sets the volume of the connection so that the input is scaled by this value before being passed to the output.
-
-    [PARAMETERS]
-    'volume'    Volume or mix level of the connection.  0.0 = silent, 1.0 = full volume.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    DSPConnection::getMix
-    DSP::getInput
-    DSP::getOutput
-]
-*/
-FMOD_RESULT F_API FMOD_DSPConnection_SetMix(FMOD_DSPCONNECTION *dspconnection, float volume)
-{
-    FMOD::DSPConnection *_dspconnection = (FMOD::DSPConnection *)dspconnection;
-
-    if (!_dspconnection)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _dspconnection->setMix(volume);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieves the volume of the connection - the scale level of the input before being passed to the output.
-
-    [PARAMETERS]
-    'volume'    Address of a variable to receive the volume or mix level of the specified input.  0.0 = silent, 1.0 = full volume.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    DSPConnection::setMix
-    DSP::getInput
-    DSP::getOutput
-]
-*/
-FMOD_RESULT F_API FMOD_DSPConnection_GetMix(FMOD_DSPCONNECTION *dspconnection, float *volume)
-{
-    FMOD::DSPConnection *_dspconnection = (FMOD::DSPConnection *)dspconnection;
-
-    if (!_dspconnection)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _dspconnection->getMix(volume);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    For a particular speaker, the levels of the incoming channels of the connection are set so that they will be scaled before being passed to the output.
-
-    [PARAMETERS]
-    'speaker'       The target speaker to modify the levels for.  This can be cast to an integer if you are using a device with more than the pre-defined speaker range.
-    'levels'        An array of floating point numbers from 0.0 to 1.0 representing the volume of each input channel of a sound.  See remarks for more.
-    'numlevels'     The number of floats within the levels parameter being passed to this function.  In the case of the above mono or stereo sound, 1 or 2 could be used respectively.  If the sound being played was an 8 channel multichannel sound then 8 levels would be used.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    As an example of usage of this function, if the sound played on this speaker was mono, only 1 level would be needed. <br>
-    If the sound played on this channel was stereo, then an array of 2 floats could be specified.  For example { 0, 1 } on a channel playing a stereo sound would mute the left part of the stereo sound when it is played on this speaker.<br>
-    <br>
-    Note!  To conserve memory the levels are converted from floating point to 16bit integers (4.12 fixed point).  This means when using DSPConnection::getLevels the values may not come back exactly as they were set.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    DSPConnection::getLevels
-    DSPConnection::getInput
-    DSPConnection::getOutput
-    DSPConnection::setMix
-]
-*/
-FMOD_RESULT F_API FMOD_DSPConnection_SetLevels(FMOD_DSPCONNECTION *dspconnection, FMOD_SPEAKER speaker, float *levels, int numlevels)
-{
-    FMOD::DSPConnection *_dspconnection = (FMOD::DSPConnection *)dspconnection;
-
-    if (!_dspconnection)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _dspconnection->setLevels(speaker, levels, numlevels);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieves the speaker mix for a DSP connection for a particular output speaker.
-
-    [PARAMETERS]
-    'speaker'       The target speaker to get the levels from.  This can be cast to an integer if you are using a device with more than the pre-defined speaker range.
-    'levels'        Address of an array of floating point numbers to get the speaker levels of an input.
-    'numlevels'     The number of floats within the levels parameter being passed to this function.  In the case of the above mono or stereo sound, 1 or 2 could be used respectively.  If the sound being played was an 8 channel multichannel sound then 8 levels would be used.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    Note!  To conserve memory the stored levels are converted from floating point to 16bit integers (4.12 fixed point).  This means when using DSP::getInputLevels the values may not come back exactly as they were set.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    DSPConnection::setLevels
-    DSPConnection::getInput
-    DSPConnection::getOutput
-    DSPConnection::setMix
-]
-*/
-FMOD_RESULT F_API FMOD_DSPConnection_GetLevels(FMOD_DSPCONNECTION *dspconnection, FMOD_SPEAKER speaker, float *levels, int numlevels)
-{
-    FMOD::DSPConnection *_dspconnection = (FMOD::DSPConnection *)dspconnection;
-
-    if (!_dspconnection)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _dspconnection->getLevels(speaker, levels, numlevels);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Sets a user value that the DSPConnection object will store internally.  Can be retrieved with DSPConnection::getUserData.
-
-    [PARAMETERS]
-    'userdata'      Address of user data that the user wishes stored within the DSPConnection object.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    This function is primarily used in case the user wishes to 'attach' data to an FMOD object.<br>
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    DSPConnection::getUserData
-]
-*/
-FMOD_RESULT F_API FMOD_DSPConnection_SetUserData(FMOD_DSPCONNECTION *dspconnection, void *userdata)
-{
-    FMOD::DSPConnection *_dspconnection = (FMOD::DSPConnection *)dspconnection;
-
-    if (!_dspconnection)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _dspconnection->setUserData(userdata);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Sets a user value that the DSPConnection object will store internally.  Can be retrieved with DSPConnection::getUserData.
-
-    [PARAMETERS]
-    'userdata'      Address of user data that the user wishes stored within the DSPConnection object.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    This function is primarily used in case the user wishes to 'attach' data to an FMOD object.<br>
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    DSPConnection::getUserData
-]
-*/
-FMOD_RESULT F_API FMOD_DSPConnection_GetUserData(FMOD_DSPCONNECTION *dspconnection, void **userdata)
-{
-    FMOD::DSPConnection *_dspconnection = (FMOD::DSPConnection *)dspconnection;
-
-    if (!_dspconnection)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _dspconnection->getUserData(userdata);
-}
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieve detailed memory usage information about this object.
-
-    [PARAMETERS]
-    'memorybits'            Memory usage bits for FMOD Ex. See FMOD_MEMBITS.
-    'event_memorybits'      Memory usage bits for FMOD Event System. See FMOD_EVENT_MEMBITS.
-    'memoryused'            Optional. Specify 0 to ignore. Address of a variable to receive how much memory is being used by this object given the specified "memorybits" and "event_memorybits".
-    'memoryused_details'    Optional. Specify 0 to ignore. Address of a user-allocated FMOD_MEMORY_USAGE_DETAILS structure to be filled with detailed memory usage information about this object.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    See System::getMemoryInfo for more details.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    FMOD_MEMBITS
-    FMOD_EVENT_MEMBITS
-    FMOD_MEMORY_USAGE_DETAILS
-    System::getMemoryInfo
-]
-*/
-FMOD_RESULT F_API FMOD_DSPConnection_GetMemoryInfo(FMOD_DSPCONNECTION *dspconnection, unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD::DSPConnection *_dspconnection = (FMOD::DSPConnection *)dspconnection;
-
-    if (!_dspconnection)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _dspconnection->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-}
 
 
 /*
@@ -13300,49 +12275,6 @@ FMOD_RESULT F_API FMOD_Geometry_GetUserData(FMOD_GEOMETRY *geometry, void **user
 }
 
 
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieve detailed memory usage information about this object.
-
-    [PARAMETERS]
-    'memorybits'            Memory usage bits for FMOD Ex. See FMOD_MEMBITS.
-    'event_memorybits'      Memory usage bits for FMOD Event System. See FMOD_EVENT_MEMBITS.
-    'memoryused'            Optional. Specify 0 to ignore. Address of a variable to receive how much memory is being used by this object given the specified "memorybits" and "event_memorybits".
-    'memoryused_details'    Optional. Specify 0 to ignore. Address of a user-allocated FMOD_MEMORY_USAGE_DETAILS structure to be filled with detailed memory usage information about this object.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    See System::getMemoryInfo for more details.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    FMOD_MEMBITS
-    FMOD_EVENT_MEMBITS
-    FMOD_MEMORY_USAGE_DETAILS
-    System::getMemoryInfo
-]
-*/
-FMOD_RESULT F_API FMOD_Geometry_GetMemoryInfo(FMOD_GEOMETRY *geometry, unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-#ifdef FMOD_SUPPORT_GEOMETRY
-    FMOD::Geometry *_geometry = (FMOD::Geometry *)geometry;
-
-    if (!_geometry)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _geometry->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-#else
-    return FMOD_ERR_UNSUPPORTED;
-#endif
-}
-
 
 /*
 [API]
@@ -13709,49 +12641,4 @@ FMOD_RESULT F_API FMOD_Reverb_GetUserData(FMOD_REVERB *reverb, void **userdata)
     return FMOD_ERR_UNSUPPORTED;
 #endif
 }
-
-
-/*
-[API]
-[
-    [DESCRIPTION]
-    Retrieve detailed memory usage information about this object.
-
-    [PARAMETERS]
-    'memorybits'            Memory usage bits for FMOD Ex. See FMOD_MEMBITS.
-    'event_memorybits'      Memory usage bits for FMOD Event System. See FMOD_EVENT_MEMBITS.
-    'memoryused'            Optional. Specify 0 to ignore. Address of a variable to receive how much memory is being used by this object given the specified "memorybits" and "event_memorybits".
-    'memoryused_details'    Optional. Specify 0 to ignore. Address of a user-allocated FMOD_MEMORY_USAGE_DETAILS structure to be filled with detailed memory usage information about this object.
-
-    [RETURN_VALUE]
-
-    [REMARKS]
-    See System::getMemoryInfo for more details.
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Linux64, Macintosh, Xbox360, PlayStation 2, PlayStation Portable, PlayStation 3, Wii, Solaris, iPhone
-
-    [SEE_ALSO]
-    FMOD_MEMBITS
-    FMOD_EVENT_MEMBITS
-    FMOD_MEMORY_USAGE_DETAILS
-    System::getMemoryInfo
-]
-*/
-FMOD_RESULT F_API FMOD_Reverb_GetMemoryInfo(FMOD_REVERB *reverb, unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-#ifdef FMOD_SUPPORT_SFXREVERB
-    FMOD::Reverb *_reverb = (FMOD::Reverb *)reverb;
-
-    if (!_reverb)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    return _reverb->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-#else
-    return FMOD_ERR_UNSUPPORTED;
-#endif
-}
-
 

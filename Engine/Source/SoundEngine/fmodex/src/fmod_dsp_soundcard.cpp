@@ -40,6 +40,20 @@ FMOD_RESULT DSPSoundCard::alloc(FMOD_DSP_DESCRIPTION_EX *description)
         return result;
     }
 
+    if (description->mFormat == FMOD_SOUND_FORMAT_PCMFLOAT)
+    {
+        mConvertBuffer = 0;
+    }
+    else
+    {
+        mConvertBufferMemory = FMOD_Memory_Calloc((mSystem->mDSPBlockSize * description->channels * sizeof(float)) + 16);
+        if (!mConvertBufferMemory)
+        {
+            return FMOD_ERR_MEMORY;
+        }
+        mConvertBuffer = (float *)FMOD_ALIGNPOINTER(mConvertBufferMemory, 16);
+    }
+
     updateTreeLevel(0); /* Soundcard units always start at level 0 */
 
     return FMOD_OK;
@@ -64,109 +78,67 @@ FMOD_RESULT DSPSoundCard::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT DSPSoundCard::read(void *outbuffer, unsigned int *length, FMOD_SPEAKERMODE speakermode, int speakermodechannels, unsigned int tick)
+// OFFSET: 0x00929D00
+FMOD_RESULT DSPSoundCard::execute(void *inbuffer, void **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode)
 {
-    FMOD_RESULT   result       = FMOD_OK;
-    float        *readbuffer   = 0;
-    int           outchannels  = 0;
-	unsigned int  starttime    = 0;
-	unsigned int  endtime      = 0;
+    FMOD_RESULT result;
+    float      *readbuffer;
 
-    result = DSPFilter::read(&readbuffer, &outchannels, length, speakermode, speakermodechannels, tick);
+    if (!mConvertBuffer)
+    {
+        result = DSPFilter::execute((float *)inbuffer, (float **)outbuffer, length, inchannels, outchannels, speakermode);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+        return FMOD_OK;
+    }
+
+    readbuffer = 0;
+
+    result = DSPFilter::execute(mConvertBuffer, &readbuffer, length, inchannels, outchannels, speakermode);
     if (result != FMOD_OK)
     {
         return result;
     }
 
-    if (mSystem->mFlags & FMOD_INIT_ENABLE_PROFILE)
-    {   
-        FMOD_OS_Time_GetNs(&starttime);
-    }
-
-    #if !defined(PLATFORM_PS3)
-    if (mSystem->mDownmix)
+    result = convert(*outbuffer, readbuffer, mDescription.mFormat, FMOD_SOUND_FORMAT_PCMFLOAT, *length * *outchannels, 1, 1, 1.0f);
+    if (result != FMOD_OK)
     {
-        mSystem->mDownmix->getOutputChannels(&outchannels);
-    }
-    else
-    #endif
-    {
-        outchannels = speakermodechannels;
-    }
-
-    if (mFlags & FMOD_DSP_FLAG_IDLE)
-    {
-        unsigned int lenbytes;
-
-        SoundI::getBytesFromSamples(*length, &lenbytes, outchannels, mDescription.mFormat);
-
-        memset(outbuffer, 0, lenbytes);
-
-#if defined(FMOD_SUPPORT_PROFILE_DSP_VOLUMELEVELS) && !defined(PLATFORM_PS3)
-        if (mSystem->mFlags & FMOD_INIT_ENABLE_PROFILE)
-        {  
-            mNumPeakVolumeChans = outchannels;
-            memset(mPeakVolume, 0, sizeof(mPeakVolume));
-        }
-#endif
-    }
-    else
-    {
-        float *src;
-        bool convertformat = (mDescription.mFormat != FMOD_SOUND_FORMAT_PCMFLOAT);
-
-        #if !defined(PLATFORM_PS3)
-        if (mSystem->mDownmix && this == mSystem->mDSPSoundCard)
-        {
-            src = convertformat ? mSystem->mDSPTempBuff : (float *)outbuffer;
-            mSystem->mDownmix->encode(readbuffer, src, *length);
-        }
-        else
-        #endif
-        {
-            src = readbuffer;
-        }
-
-#if defined(FMOD_SUPPORT_PROFILE_DSP_VOLUMELEVELS) && !defined(PLATFORM_PS3)
-        if (mSystem->mFlags & FMOD_INIT_ENABLE_PROFILE)
-        {  
-            calculatePeaks(src, *length, outchannels);
-        }
-#endif
-
-        /*
-            mBuffer being true means the format is not the same so it needs to read as float first, then convert to the soundcard format.
-        */
-        if (convertformat)
-        {
-            result = convert(outbuffer, src, mDescription.mFormat, FMOD_SOUND_FORMAT_PCMFLOAT, *length * outchannels, 1, 1, 1.0f);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-        }
-        else if (src != outbuffer)
-        {
-            unsigned int lenbytes;
-
-            SoundI::getBytesFromSamples(*length, &lenbytes, outchannels, mDescription.mFormat);
-
-            memcpy(outbuffer, src, lenbytes);
-        }
-    }
-
-    mDSPTick = tick;
-
-    if (mSystem->mFlags & FMOD_INIT_ENABLE_PROFILE)
-    {  
-	    FMOD_OS_Time_GetNs(&endtime);
-        mCPUUsageTemp += endtime - starttime;
-
-        mCPUUsage = mCPUUsageTemp;
-        mCPUUsageTemp = 0;
+        return result;
     }
 
     return FMOD_OK;
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+ 
+	[RETURN_VALUE]
+    FMOD_OK
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+// OFFSET: 0x00929CB0
+FMOD_RESULT DSPSoundCard::release(bool freethis)
+{
+    if (mConvertBufferMemory)
+    {
+        FMOD_Memory_Free(mConvertBufferMemory);
+        mConvertBuffer       = 0;
+        mConvertBufferMemory = 0;
+    }
+
+    return DSPFilter::release(freethis);
 }
 
 }

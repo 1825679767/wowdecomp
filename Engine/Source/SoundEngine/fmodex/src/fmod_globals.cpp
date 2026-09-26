@@ -74,17 +74,7 @@ void Global::init()
     gDSPClockTimeStamp         = 0;
     gSystemInitCount           = 0;
     gFileBusy                  = 0;
-    gSystemCallback            = 0;
-    gMemoryTypeFlags           = 0xFFFFFFFF;
-    gFileCrit                  = 0;
 
-#ifdef FMOD_SUPPORT_PROFILE
-    gProfile                   = 0;
-    gProfileCodec              = 0;
-    gProfileChannel            = 0;
-    gProfileCpu                = 0;
-    gProfileDsp                = 0;
-#endif
 
 }
 

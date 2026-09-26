@@ -123,7 +123,6 @@ FMOD_RESULT ChannelOpenAL::init(int index, SystemI *system, Output *output, DSPI
     descriptionex.channels      = 1;
     descriptionex.mCategory     = FMOD_DSP_CATEGORY_WAVETABLE;
     descriptionex.mFormat       = FMOD_SOUND_FORMAT_PCMFLOAT;
-    descriptionex.mDSPSoundCard = mDSPHead;
 
     descriptionex.read          = NULL;                                  /* DSPWavetable uses DSPWaveTable::execute not a read callback. */
     descriptionex.setparameter  = DSPWaveTable::setParameterCallback;
@@ -250,16 +249,15 @@ FMOD_RESULT ChannelOpenAL::close()
 FMOD_RESULT ChannelOpenAL::setupDSPCodec(DSPI *dsp)
 {
 #ifdef FMOD_SUPPORT_DSPCODEC
-    FMOD_RESULT     result      = FMOD_OK;
-    DSPCodec       *dspcodec    = NULL;
-    Codec          *codec       = NULL;
-    Codec          *soundcodec  = NULL;
-    SampleOpenAL   *sample      = NULL;
- 
+    FMOD_RESULT     result;
+    DSPCodec       *dspcodec;
+    Codec          *codec, *soundcodec;
+    SampleOpenAL   *sample;
+
+    sample     = SAFE_CAST(SampleOpenAL, mSound);
     dspcodec   = SAFE_CAST(DSPCodec, dsp);
     codec      = SAFE_CAST(Codec, dspcodec->mCodec);
-    soundcodec = mSound->mCodec ? mSound->mCodec : mSound->mSubSoundParent->mCodec;
-    sample     = SAFE_CAST(SampleOpenAL, mSound);
+    soundcodec = sample->mCodec ? sample->mCodec : sample->mSubSoundParent->mCodec;
 
     if (!soundcodec)
     {
@@ -277,20 +275,16 @@ FMOD_RESULT ChannelOpenAL::setupDSPCodec(DSPI *dsp)
     soundcodec->mDescription.getwaveformat(soundcodec, mSound->mSubSoundIndex, codec->waveformat);
 
     codec->mFlags = soundcodec->mFlags;
+
     dspcodec->mCodec->mFile = &dspcodec->mMemoryFile;
-
-    dspcodec->mMemoryFile.init(mSystem, mSound->mLengthBytes, 0);
-
+    dspcodec->mMemoryFile.init(mSound->mLengthBytes, 0);
     dspcodec->mMemoryFile.mMem = sample->mBuffer;
 
-    /*
-        Copy codec specific things from the source sound to the dspcodec used in this channel.
-    */
     if (0)
     {
     }
     #if defined(FMOD_SUPPORT_WAV) && defined(FMOD_SUPPORT_IMAADPCM)
-    if (mSound->mType == FMOD_SOUND_TYPE_WAV && mSound->mFormat == FMOD_SOUND_FORMAT_IMAADPCM)
+    else if (mSound->mType == FMOD_SOUND_TYPE_WAV && mSound->mFormat == FMOD_SOUND_FORMAT_IMAADPCM)
     {
         CodecWav *srcwav  = (CodecWav *)soundcodec;
         CodecWav *destwav = (CodecWav *)codec;
@@ -320,9 +314,8 @@ FMOD_RESULT ChannelOpenAL::setupDSPCodec(DSPI *dsp)
         #if defined(FMOD_SUPPORT_MPEG)
         else if (mSound->mFormat == FMOD_SOUND_FORMAT_MPEG)
         {
-            CodecMPEG *srcmpeg  = (CodecMPEG *)fsb->mMPEG;
             CodecMPEG *destmpeg = (CodecMPEG *)codec;
-    
+
             destmpeg->mPCMFrameLengthBytes = codec->waveformat[0].channels * 2304;
         }
         #endif
@@ -336,7 +329,7 @@ FMOD_RESULT ChannelOpenAL::setupDSPCodec(DSPI *dsp)
             destwav->mReadBufferLength     = codec->waveformat[0].channels * 36;
         }
         #endif
-    
+
         fsb->mDescription.getwaveformat(fsb, mSound->mSubSoundIndex, codec->waveformat);
     }
     #endif
@@ -350,24 +343,22 @@ FMOD_RESULT ChannelOpenAL::setupDSPCodec(DSPI *dsp)
     }
     #endif
 
-    dsp->mDescription.channels = mSound->mChannels;        
+    dsp->mDescription.channels = mSound->mChannels;
 
     result = dsp->setTargetFrequency((int)mParent->mChannelGroup->mDSPHead->mDefaultFrequency);
     if (result != FMOD_OK)
     {
         return result;
     }
- 
-    mMinFrequency                = 0;
+
     mDSPCodec                    = dspcodec;
+    mMinFrequency                = 0;
     mDSPCodec->mLength           = mSound->mLength;
-    mDSPCodec->mDefaultFrequency = mSound->mDefaultFrequency;
+    mDSPCodec->mLoopStart        = mLoopStart;
+    mDSPCodec->mLoopLength       = mLoopLength;
     mDSPCodec->mLoopCount        = mLoopCount;
-
-    mDSPCodec->mNoDMA->mLoopStart  = mLoopStart;
-    mDSPCodec->mNoDMA->mLoopLength = mLoopLength;
-    mDSPCodec->mNoDMA->mMode       = mMode;
-
+    mDSPCodec->mMode             = mMode;
+    mDSPCodec->mDefaultFrequency = mSound->mDefaultFrequency;
 #endif
 
     return FMOD_OK;
@@ -394,10 +385,8 @@ FMOD_RESULT ChannelOpenAL::setupDSPCodec(DSPI *dsp)
 FMOD_RESULT ChannelOpenAL::alloc()
 {
     FMOD_RESULT result;
+    int         requiredSources;
 
-    /*
-        Standard PCM *wavetable* playback.
-    */
     if (!(mMode & FMOD_CREATECOMPRESSEDSAMPLE))
     {
         DSPWaveTable *dspwave = SAFE_CAST(DSPWaveTable, mDSPWaveTable);
@@ -408,23 +397,20 @@ FMOD_RESULT ChannelOpenAL::alloc()
 
         mDSPCodec = 0;
 
-        /*
-            Disconnect existing nodes first.
-        */
-        result = mDSPHead->disconnectFromInternal(0, false);
+        result = mDSPHead->disconnectFromInternal(0);
         if (result != FMOD_OK)
         {
             return result;
         }
         if (mDSPLowPass)
         {
-            result = mDSPLowPass->disconnectFromInternal(0, false);
+            result = mDSPLowPass->disconnectFromInternal(0);
             if (result != FMOD_OK)
             {
                 return result;
             }
         }
-        result = mDSPWaveTable->disconnectFromInternal(0, false);
+        result = mDSPWaveTable->disconnectFromInternal(0);
         if (result != FMOD_OK)
         {
             return result;
@@ -432,12 +418,12 @@ FMOD_RESULT ChannelOpenAL::alloc()
 
         if (mDSPLowPass)
         {
-            result = mDSPHead->addInputInternal(mDSPLowPass, false, 0, 0, false);
+            result = mDSPHead->addInputInternal(mDSPLowPass, false);
             if (result != FMOD_OK)
             {
                 return result;
             }
-            result = mDSPLowPass->addInputInternal(mDSPWaveTable, false, 0, 0, false);
+            result = mDSPLowPass->addInputInternal(mDSPWaveTable, false);
             if (result != FMOD_OK)
             {
                 return result;
@@ -445,7 +431,7 @@ FMOD_RESULT ChannelOpenAL::alloc()
         }
         else
         {
-            result = mDSPHead->addInputInternal(mDSPWaveTable, false, 0, 0, false);
+            result = mDSPHead->addInputInternal(mDSPWaveTable, false);
             if (result != FMOD_OK)
             {
                 return result;
@@ -465,46 +451,40 @@ FMOD_RESULT ChannelOpenAL::alloc()
         dspwave->mPosition.mHi = 0;
         dspwave->mPosition.mLo = 0;
         dspwave->mDirection    = DSPWAVETABLE_SPEEDDIR_FORWARDS;
+
+        mDSPHead->setFinished(false, false);
         mDSPHead->setActive(false);
         if (mDSPLowPass)
         {
+            mDSPLowPass->setFinished(false, false);
             mDSPLowPass->setActive(false);
         }
-        mDSPWaveTable->setFinished(false);
+        mDSPWaveTable->setFinished(false, false);
         mDSPWaveTable->setActive(false);
     }
     else
-    /*
-        Advanced - Compressed codec playback with external resampler unit.
-    */
     {
 #ifdef FMOD_SUPPORT_DSPCODEC
         DSPCodec       *dsp;
         bool            dspfinished = true;
-        
+
         if (mDSPCodec)
         {
             mDSPCodec->getFinished(&dspfinished);
+            if (!dspfinished)
+            {
+                mSystem->flushDSPConnectionRequests(true);
+            }
         }
 
-        #ifdef FMOD_DSP_QUEUED
-        if (!dspfinished)   /* Still active.  Must have queued up a disconnect in a stop/start scenario. */
-        {
-            mSystem->flushDSPConnectionRequests();
-        }
-        #endif
-
-        /*
-            Disconnect existing nodes first.
-        */
-        result = mDSPHead->disconnectFromInternal(0, false);
+        result = mDSPHead->disconnectFromInternal(0);
         if (result != FMOD_OK)
         {
             return result;
         }
         if (mDSPLowPass)
         {
-            result = mDSPLowPass->disconnectFromInternal(0, false);
+            result = mDSPLowPass->disconnectFromInternal(0);
             if (result != FMOD_OK)
             {
                 return result;
@@ -512,29 +492,24 @@ FMOD_RESULT ChannelOpenAL::alloc()
         }
         if (mDSPWaveTable)
         {
-            result = mDSPWaveTable->disconnectFromInternal(0, false);
+            result = mDSPWaveTable->disconnectFromInternal(0);
             if (result != FMOD_OK)
             {
                 return result;
             }
         }
 
-        /*
-            Grab a codec from the pool based on format.
-        */
-        result = mSystem->allocateDSPCodec(mSound->mFormat, &dsp);
+        result = mSystem->allocDSPCodec(mSound->mFormat, &dsp);
         if (result != FMOD_OK)
         {
             return result;
-        }      
-
-        if (!dspfinished)
-        {      
-            FMOD_OS_CriticalSection_Enter(mSystem->mDSPCrit);
         }
 
+        if (!dspfinished)
+        {
+            FMOD_OS_CriticalSection_Enter(mSystem->mDSPCrit);
+        }
         result = setupDSPCodec(dsp);
-
         if (!dspfinished)
         {
             FMOD_OS_CriticalSection_Leave(mSystem->mDSPCrit);
@@ -546,12 +521,12 @@ FMOD_RESULT ChannelOpenAL::alloc()
 
         if (mDSPLowPass)
         {
-            result = mDSPHead->addInputInternal(mDSPLowPass, false, 0, 0, false);
+            result = mDSPHead->addInputInternal(mDSPLowPass, false);
             if (result != FMOD_OK)
             {
                 return result;
             }
-            result = mDSPLowPass->addInputInternal(dsp, false, 0, 0, false);
+            result = mDSPLowPass->addInputInternal(dsp, false);
             if (result != FMOD_OK)
             {
                 return result;
@@ -559,35 +534,25 @@ FMOD_RESULT ChannelOpenAL::alloc()
         }
         else
         {
-            result = mDSPHead->addInputInternal(dsp, false, 0, 0, false);
+            result = mDSPHead->addInputInternal(dsp, false);
             if (result != FMOD_OK)
             {
                 return result;
             }
         }
 
+        mDSPHead->setFinished(false, false);
         mDSPHead->setActive(false);
-
-        dsp->setFinished(false);
-        dsp->setActive(true);           
+        dsp->setFinished(false, false);
+        dsp->setActive(true);
 #else
         return FMOD_ERR_INTERNAL;
 #endif
     }
-    
-    /*
-        Assign OpenAL sources to the channel
-    */
-    FMOD_SPEAKERMODE  speakerMode      = FMOD_SPEAKERMODE_STEREO;
-    int               requiredSources  = 2;
 
-    /* Maximum number of sources needed is equal to the speaker mode since
-       the DSP network will mix to that before it gets to the OpenALChannel */
-    switch (mParent->mSpeakerMode)
+    switch (mSystem->mSpeakerMode)
     {
         case FMOD_SPEAKERMODE_MONO    : requiredSources = 1;
-                                        break;
-        case FMOD_SPEAKERMODE_STEREO  : requiredSources = 2;
                                         break;
         case FMOD_SPEAKERMODE_QUAD    : requiredSources = 4;
                                         break;
@@ -599,23 +564,18 @@ FMOD_RESULT ChannelOpenAL::alloc()
                                         break;
     }
 
-    /* If the number of channels in the source is less than the speaker mode
-       then we only need enough sources for the sound source */
     if (mSound->mChannels < requiredSources)
     {
         requiredSources = mSound->mChannels;
     }
 
-    // Find enough sources for the number of sound channels required
     for (int i = 0; i < mOutputOAL->mNumSources; i++)
 	{
         if (!mOutputOAL->mSources[i].used)
 		{
-			// Store the source in the channel
             mSources[mNumSources] = (SourceOpenAL*)&mOutputOAL->mSources[i];
 			mSources[mNumSources]->used = true;
-			
-            // Check if we have found enough sources
+
             if (++mNumSources == requiredSources)
             {
 				break;
@@ -623,7 +583,6 @@ FMOD_RESULT ChannelOpenAL::alloc()
 		}
 	}
 
-    // Setup the channel with any EAX version specific initialisation
 	setupChannel();
 
     if (mDSPResampler || mDSPCodec)
@@ -632,7 +591,7 @@ FMOD_RESULT ChannelOpenAL::alloc()
 
 #ifdef FMOD_SUPPORT_DSPCODEC
         if (mDSPCodec)
-        {           
+        {
             dspresampler = SAFE_CAST(DSPResampler, mDSPCodec);
         }
         else
@@ -644,13 +603,13 @@ FMOD_RESULT ChannelOpenAL::alloc()
         {
             return FMOD_ERR_INVALID_PARAM;
         }
-   
+
         return dspresampler->setFrequency(mSound->mDefaultFrequency);
     }
     else
     {
         DSPWaveTable *dspwave;
-    
+
         dspwave = SAFE_CAST(DSPWaveTable, mDSPWaveTable);
         if (!dspwave)
         {
@@ -659,8 +618,6 @@ FMOD_RESULT ChannelOpenAL::alloc()
 
         return dspwave->setFrequency(mSound->mDefaultFrequency);
     }
-
-    return FMOD_OK;
 }
 
 
@@ -682,25 +639,21 @@ FMOD_RESULT ChannelOpenAL::alloc()
 // OFFSET: 0x00947040
 FMOD_RESULT ChannelOpenAL::alloc(DSPI *dsp)
 {
-    FMOD_RESULT          result;
-    FMOD_SOUND_FORMAT    format;
-    int                  channels;
+    FMOD_RESULT result;
+    int         requiredSources;
 
     mDSPCodec = 0;
 
-    format   = dsp->mDescription.mFormat;
-    channels = dsp->mDescription.channels;
-          
     {
         FMOD_DSP_DESCRIPTION_EX descriptionex;
 
         FMOD_memset(&descriptionex, 0, sizeof(FMOD_DSP_DESCRIPTION_EX));
         FMOD_strcpy(descriptionex.name, "FMOD Resampler Unit");
         descriptionex.version       = 0x00010100;
-        descriptionex.channels      = 0; 
+        descriptionex.channels      = 0;
         descriptionex.mCategory     = FMOD_DSP_CATEGORY_RESAMPLER;
 
-        result = mSystem->createDSP(&descriptionex, (DSPI **)&mDSPResampler);
+        result = mSystem->createDSP(&descriptionex, (DSPI **)&mDSPResampler, true);
         if (result != FMOD_OK)
         {
             return result;
@@ -721,35 +674,31 @@ FMOD_RESULT ChannelOpenAL::alloc(DSPI *dsp)
         mMinFrequency = 0;
     }
 
-
-    /*
-        Connect the mixer to the resampler and the resampler to the reader
-    */
-    result = mDSPHead->disconnectFromInternal(0, false);
+    result = mDSPHead->disconnectFromInternal(0);
     if (result != FMOD_OK)
     {
         return result;
     }
     if (mDSPLowPass)
     {
-        result = mDSPLowPass->disconnectFromInternal(0, false);
+        result = mDSPLowPass->disconnectFromInternal(0);
         if (result != FMOD_OK)
         {
             return result;
         }
     }
-    result = mDSPWaveTable->disconnectFromInternal(0, false);
+    result = mDSPWaveTable->disconnectFromInternal(0);
     if (result != FMOD_OK)
     {
         return result;
     }
 
-    result = mDSPHead->addInputInternal(mDSPResampler, false, 0, 0, false);
+    result = mDSPHead->addInputInternal(mDSPResampler, false);
     if (result != FMOD_OK)
     {
         return result;
     }
-    result = mDSPResampler->addInputInternal(dsp, false, 0, 0, false);
+    result = mDSPResampler->addInputInternal(dsp, false);
     if (result != FMOD_OK)
     {
         return result;
@@ -757,12 +706,12 @@ FMOD_RESULT ChannelOpenAL::alloc(DSPI *dsp)
 
     {
         DSPResampler *resampler = SAFE_CAST(DSPResampler, mDSPResampler);
-     
-        resampler->mLength             = mLength;
-        resampler->mLoopCount          = mLoopCount;
-        resampler->mNoDMA->mLoopStart  = mLoopStart;
-        resampler->mNoDMA->mLoopLength = mLoopLength;
-        resampler->mNoDMA->mMode       = mMode;
+
+        resampler->mLength     = mLength;
+        resampler->mLoopStart  = mLoopStart;
+        resampler->mLoopLength = mLoopLength;
+        resampler->mLoopCount  = mLoopCount;
+        resampler->mMode       = mMode;
 
         DSPWaveTable *dspwave = SAFE_CAST(DSPWaveTable, mDSPWaveTable);
         if (!dspwave)
@@ -772,25 +721,16 @@ FMOD_RESULT ChannelOpenAL::alloc(DSPI *dsp)
         dspwave->mSound = 0;
     }
 
+    mDSPHead->setFinished(false, false);
     mDSPHead->setActive(false);
-    mDSPResampler->setFinished(false);
+    mDSPResampler->setFinished(false, false);
     mDSPResampler->setActive(false);
-
+    dsp->setFinished(false, false);
     dsp->setActive(false);
 
-    /*
-        Assign OpenAL sources to the channel
-    */
-    FMOD_SPEAKERMODE  speakerMode      = FMOD_SPEAKERMODE_STEREO;
-    int               requiredSources  = 2;
-
-    /* Maximum number of sources needed is equal to the speaker mode since
-       the DSP network will mix to that before it gets to the OpenALChannel */
-    switch (mParent->mSpeakerMode)
+    switch (mSystem->mSpeakerMode)
     {
         case FMOD_SPEAKERMODE_MONO    : requiredSources = 1;
-                                        break;
-        case FMOD_SPEAKERMODE_STEREO  : requiredSources = 2;
                                         break;
         case FMOD_SPEAKERMODE_QUAD    : requiredSources = 4;
                                         break;
@@ -802,23 +742,18 @@ FMOD_RESULT ChannelOpenAL::alloc(DSPI *dsp)
                                         break;
     }
 
-    /* If the number of channels in the source is less than the speaker mode
-       then we only need enough sources for the sound source */
     if (mSound->mChannels < requiredSources)
     {
         requiredSources = mSound->mChannels;
     }
 
-    // Find enough sources for the number of sound channels required
     for (int i = 0; i < mOutputOAL->mNumSources; i++)
 	{
         if (!mOutputOAL->mSources[i].used)
 		{
-			// Store the source in the channel
             mSources[mNumSources] = (SourceOpenAL*)&mOutputOAL->mSources[i];
 			mSources[mNumSources]->used = true;
-			
-            // Check if we have found enough sources
+
             if (++mNumSources == requiredSources)
             {
 				break;
@@ -826,7 +761,6 @@ FMOD_RESULT ChannelOpenAL::alloc(DSPI *dsp)
 		}
 	}
 
-    // Setup the channel with any EAX version specific initialisation
 	setupChannel();
 
     if (mDSPResampler || mDSPCodec)
@@ -835,7 +769,7 @@ FMOD_RESULT ChannelOpenAL::alloc(DSPI *dsp)
 
 #ifdef FMOD_SUPPORT_DSPCODEC
         if (mDSPCodec)
-        {           
+        {
             dspresampler = SAFE_CAST(DSPResampler, mDSPCodec);
         }
         else
@@ -847,13 +781,13 @@ FMOD_RESULT ChannelOpenAL::alloc(DSPI *dsp)
         {
             return FMOD_ERR_INVALID_PARAM;
         }
-   
+
         return dspresampler->setFrequency(mSound->mDefaultFrequency);
     }
     else
     {
         DSPWaveTable *dspwave;
-    
+
         dspwave = SAFE_CAST(DSPWaveTable, mDSPWaveTable);
         if (!dspwave)
         {
@@ -862,8 +796,6 @@ FMOD_RESULT ChannelOpenAL::alloc(DSPI *dsp)
 
         return dspwave->setFrequency(mSound->mDefaultFrequency);
     }
-
-	return FMOD_OK;
 }
 
 
@@ -1057,14 +989,20 @@ FMOD_RESULT ChannelOpenAL::start()
 ]
 */
 // OFFSET: 0x00945CD0
-FMOD_RESULT ChannelOpenAL::stop()
+FMOD_RESULT ChannelOpenAL::stop(bool ignoreenddelay, bool resetstate, bool force)
 {
     FMOD_RESULT result;
     int count;
 	int i;
-   
+
+    if (mFlags & CHANNELREAL_FLAG_ENDDELAY && !ignoreenddelay)
+    {
+        return FMOD_OK;
+    }
+
     if (mDSPHead)
     {
+        mDSPHead->setFinished(true, true);
         mDSPHead->setActive(false);
         mDSPHead->disconnectAll(false, true);
     }
@@ -1073,11 +1011,13 @@ FMOD_RESULT ChannelOpenAL::stop()
     if (mDSPCodec)
     {
         mDSPCodec->setFinished(true, true);
-        result = mDSPCodec->disconnectFromInternal(0, false);  /* If we leave it hanging in there something else might double connect to it, causing an alloc. */
+
+        result = mDSPCodec->disconnectFromInternal(0);
         if (result != FMOD_OK)
         {
             return result;
-        }   
+        }
+
         mDSPCodec->setActive(false);
         mDSPCodec->freeFromPool();
         mDSPCodec = 0;
@@ -1088,7 +1028,6 @@ FMOD_RESULT ChannelOpenAL::stop()
     {
         mDSPResampler->setFinished(true, true);
         mDSPResampler->setActive(false);
-
         mDSPResampler->release();
         mDSPResampler = 0;
     }
@@ -1104,7 +1043,7 @@ FMOD_RESULT ChannelOpenAL::stop()
         DSPI *prev;
         int numoutputs;
 
-        result = mDSP->getNumOutputs(&numoutputs, false);
+        result = mDSP->getNumOutputs(&numoutputs);
         if (result != FMOD_OK)
         {
             return result;
@@ -1112,19 +1051,18 @@ FMOD_RESULT ChannelOpenAL::stop()
 
         for(count = 0; count < numoutputs; count++)
         {
-            result = mDSP->getOutput(count, &prev, 0, false);
+            result = mDSP->getOutput(count, &prev);
             if (result == FMOD_OK)
             {
-                result = prev->disconnectFromInternal(mDSP, false);
+                result = prev->disconnectFromInternal(mDSP);
                 if (result != FMOD_OK)
                 {
                     return result;
                 }
             }
-        }        
+        }
     }
 
-	// Since this updates the channel's mSources it needs to be syncronized with the updateChannel call (called from mixer)
     FMOD_OS_CriticalSection_Enter(mOutputOAL->mSystem->mDSPCrit);
 
     for(i = 0; i < mNumSources; i++)
@@ -1134,12 +1072,13 @@ FMOD_RESULT ChannelOpenAL::stop()
 		mSources[i]->used = false;
 		mSources[i] = NULL;
 	}
-
 	mNumSources = 0;
 
     FMOD_OS_CriticalSection_Leave(mOutputOAL->mSystem->mDSPCrit);
 
-    return ChannelReal::stop();
+    ChannelReal::stop(ignoreenddelay, true);
+
+    return FMOD_OK;
 }
 
 
@@ -1227,18 +1166,10 @@ FMOD_RESULT ChannelOpenAL::setVolume(float volume)
 {
     int count;
 
-    if (mParent->mFlags & CHANNELI_FLAG_REALMUTE)
-    {
-        volume = 0;
-    }
-
     if (mOutputOAL->mReverbVersion == REVERB_VERSION_NONE)
     {
-		volume *= (1.0f - mParent->mDirectOcclusion) *
-			      (1.0f - mParent->mUserDirectOcclusion) *
-                  mParent->mChannelGroup->mRealDirectOcclusionVolume;
+		volume = mParent->mChannelGroup->mRealDirectOcclusionVolume * mParent->mDirectOcclusionVolume * volume;
 	}
-
     volume *= mParent->mChannelGroup->mRealVolume;
     if (mMode & FMOD_3D)
     {
@@ -1253,8 +1184,6 @@ FMOD_RESULT ChannelOpenAL::setVolume(float volume)
     {
         volume *= mSound->mSoundGroup->mVolume;
     }
-    volume *= mParent->mFadeVolume;
-
 	for (count = 0; count < mNumSources; count++)
 	{
 		mOutputOAL->mOALFnTable.alSourcef(mSources[count]->sid, AL_GAIN, volume);
@@ -1455,7 +1384,7 @@ FMOD_RESULT ChannelOpenAL::setPosition(unsigned int position, FMOD_TIMEUNIT post
 
     if (pcm > endpoint)
     {
-        return FMOD_ERR_INVALID_POSITION;
+        return FMOD_ERR_INVALID_PARAM;
     }
         
     /*
@@ -1604,8 +1533,8 @@ FMOD_RESULT ChannelOpenAL::setLoopPoints(unsigned int loopstart, unsigned int lo
 
     if (mDSPCodec)
     {    
-        mDSPCodec->mNoDMA->mLoopStart  = mLoopStart;
-        mDSPCodec->mNoDMA->mLoopLength = mLoopLength;
+        mDSPCodec->mLoopStart  = mLoopStart;
+        mDSPCodec->mLoopLength = mLoopLength;
     }   
 
 #endif
@@ -1683,7 +1612,7 @@ FMOD_RESULT ChannelOpenAL::setMode(FMOD_MODE mode)
 
     if (mDSPCodec)
     {    
-       mDSPCodec->mNoDMA->mMode = mMode;
+       mDSPCodec->mMode = mMode;
     }   
 
 #endif
@@ -2044,37 +1973,68 @@ FMOD_RESULT ChannelOpenAL::isPlaying(bool *isplaying, bool includethreadlatency)
     if (mFlags & CHANNELREAL_FLAG_ALLOCATED)
     {
         *isplaying = true;
+        return FMOD_OK;
+    }
+
+#ifdef FMOD_SUPPORT_DSPCODEC
+    if (mDSPCodec)
+    {
+        mDSPCodec->getFinished(isplaying);
+        *isplaying = !*isplaying;
+    }
+    else
+#endif
+    if (mDSPResampler)
+    {
+        int numinputs, count, numfinished = 0;
+
+        if (mDSPResampler->getNumInputs(&numinputs) != FMOD_OK)
+        {
+            *isplaying = false;
+        }
+        else
+        {
+            for (count = 0; count < numinputs; count++)
+            {
+                DSPI *input;
+                bool  finished;
+
+                if (mDSPResampler->getInput(count, &input) != FMOD_OK)
+                {
+                    break;
+                }
+
+                input->getFinished(&finished);
+                if (finished)
+                {
+                    numfinished++;
+                }
+            }
+
+            *isplaying = (count == numinputs && numfinished != numinputs);
+        }
+    }
+    else if (mSound || mDSP)
+    {
+        mDSPWaveTable->getFinished(isplaying);
+        *isplaying = !*isplaying;
     }
     else
     {
-#ifdef FMOD_SUPPORT_DSPCODEC
-        if (mDSPCodec)
-        {
-            mDSPCodec->getFinished(isplaying);
-            *isplaying = !*isplaying;
-        }
-        else
-#endif
-        if (mDSPResampler)
-        {
-            mDSPResampler->getFinished(isplaying);
-            *isplaying = !*isplaying;
-        }
-        else
-        {
-            if (!mSound && !mDSP)
-            {
-                *isplaying = false;
-            }
-            else
-            {
-                mDSPWaveTable->getFinished(isplaying);
-                *isplaying = !*isplaying;
-            }
-        }
+        *isplaying = false;
     }
 
-    if (!*isplaying)
+    if (*isplaying)
+    {
+        return FMOD_OK;
+    }
+
+    if (mDelayEnd)
+    {
+        mFlags |= CHANNELREAL_FLAG_ENDDELAY;
+        *isplaying = true;
+    }
+    else
     {
         mFlags &= ~(CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PLAYING);
     }
@@ -2164,7 +2124,7 @@ FMOD_RESULT ChannelOpenAL::getSpectrum(float *spectrumarray, int numvalues, int 
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    result = dsphead->startBuffering();
+    result = dsphead->startBuffering(16384);
     if (result != FMOD_OK)
     {
         return result;
@@ -2267,7 +2227,7 @@ FMOD_RESULT ChannelOpenAL::getWaveData(float *wavearray, int numvalues, int chan
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    result = dsphead->startBuffering();
+    result = dsphead->startBuffering(16384);
     if (result != FMOD_OK)
     {
         return result;
@@ -2385,16 +2345,17 @@ FMOD_RESULT ChannelOpenAL::updateChannel()
 			Fill buffer with data
 		*/
 		mSystem->mDSPActive = true;
-		{           
-            result = mDSPHead->read(&interleavedData, &outputChannels, &outputSamples, channelsToSpeakermode[outputChannels], outputChannels, mDSPTick);
-			if (result != FMOD_OK)
-			{
-				return result;
-			}
+        mSystem->mDSPTempBuffIndex = 0;
 
-            mDSPTick++;
+        result = mDSPHead->execute(0, &interleavedData, &outputSamples, outputChannels, &outputChannels, channelsToSpeakermode[outputChannels]);
+		if (result != FMOD_OK)
+		{
+			return result;
 		}
+
 		mSystem->mDSPActive = false;
+
+        mDSPHead->resetVisited();
 
 		/*
 			Update all sources on this channel

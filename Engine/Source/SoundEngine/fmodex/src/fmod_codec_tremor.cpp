@@ -144,7 +144,7 @@ int FMOD_Tremor_SeekCallback(void *datasource, ogg_int64_t offset, int whence)
 {
 	File *fp = (File *)datasource;
 
-    if (fp->mFlags & FMOD_FILE_SEEKABLE)
+    if (fp->mSeekable)
     {
 	    return fp->seek((int)offset, (signed char)whence);
     }
@@ -516,7 +516,7 @@ FMOD_RESULT CodecTremor::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO
         waveformat[0].lengthbytes -= mSrcDataOffset;
     }
 
-    if (mFile->mFlags & FMOD_FILE_SEEKABLE)
+    if (mFile->mSeekable)
     {
         int count, streams = ov_streams(&mVf);
 

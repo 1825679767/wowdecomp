@@ -1,7 +1,5 @@
 #include "fmod_settings.h"
 
-#ifndef PLATFORM_WINDOWS_PS3MODE
-
 #ifdef FMOD_SUPPORT_SOFTWARE
 
 #include "fmod_dsp_resampler_nointerp.h"
@@ -30,38 +28,39 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT DSPResamplerMultiInput::read(float **outbuffer, int *outchannels, unsigned int *length, FMOD_SPEAKERMODE speakermode, int speakermodechannels, unsigned int tick)
+// OFFSET: 0x009297E0
+FMOD_RESULT DSPResamplerMultiInput::execute(float *inbuffer, float **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode)
 {
-    FMOD_RESULT result = FMOD_OK;
+    FMOD_RESULT   result   = FMOD_OK;
+    int           channels = 0;
+    float        *readbuffer;
 
-    if (tick >= mNoDMA->mDSPFinishTick)
+    if (mFlags & FMOD_DSP_FLAG_FINISHED)
     {
         return FMOD_OK;
     }
-   
-    mFlags |= FMOD_DSP_FLAG_IDLE;
 
-    if (mDSPTick != tick)
+    mFlags &= ~FMOD_DSP_FLAG_IDLE;
+
+    if (mFlags & FMOD_DSP_FLAG_VISITED)
     {
-        float        *readbuffer  = mBuffer;
-        int           inlength    = *length;
-        int           readoffset  = 0;
-	    unsigned int  starttime   = 0;
-	    unsigned int  endtime     = 0;
+        readbuffer = mBuffer;        /* Return the already processed buffer */
+    }
+    else
+    {
+        int           inlength       = *length;
+        int           readoffset     = 0;
+        int           tempbuffindex  = mSystem->mDSPTempBuffIndex;
         FMOD_SINT64P  speed;
 
-        if (mSystem->mFlags & FMOD_INIT_ENABLE_PROFILE)
-        {
-            FMOD_OS_Time_GetNs(&starttime);
-        }
-
-        speed.mValue = mSpeed.mValue;      
+        readbuffer   = mBuffer;
+        speed.mValue = mSpeed.mValue;
 
         if (!mBuffer)
         {
             return FMOD_ERR_INTERNAL;
         }
-      
+
         do
         {
             unsigned int        rlength;
@@ -69,52 +68,35 @@ FMOD_RESULT DSPResamplerMultiInput::read(float **outbuffer, int *outchannels, un
 
             while (mFill)
             {
-                unsigned int readlen, oldresamplebufferpos;
-                
-                /*
-                    Before a fill happens, write the end of the second block to the negative buffer area.
-                */
-                oldresamplebufferpos = mResampleBufferPos;
+                unsigned int  oldresamplebufferpos = mResampleBufferPos;
+                float        *resamplebuff         = (float *)mResampleBuffer + (mResampleBufferPos * mResampleBufferChannels);
+                unsigned int  readlen              = mResampleBlockLength;
+                float        *outbuff;
+                int           outch;
 
-                /*
-                    Now call the input and convert it to float.
-                */
-                readlen = mResampleBlockLength;
-                
+                resetVisited();    /* Reset the visited flags so we can execute the children again. */
+
+                mSystem->mDSPTempBuffIndex = tempbuffindex;
+
+                result = DSPFilter::execute(resamplebuff, &outbuff, &readlen, inchannels, &outch, speakermode);
+                if (result != FMOD_OK)
                 {
-                    float  *resamplebuff = (float *)mResampleBuffer + (mResampleBufferPos * mResampleBufferChannels);
-                    float  *outbuff = 0;
-                    int     outch;             
+                    outbuff = resamplebuff;
+                    FMOD_memset(outbuff, 0, readlen * mResampleBufferChannels * sizeof(float));
+                    mResampleFinishPos = mResampleBufferPos;
+                }
 
-                    updateDSPTick(tick - 1);    /* Reset the visited flags so we can execute the children again. */
+                mResampleBufferChannels = outch;
 
-                    if (mSystem->mFlags & FMOD_INIT_ENABLE_PROFILE)
-                    {
-                        FMOD_OS_Time_GetNs(&endtime);
-                        mCPUUsageTemp += endtime - starttime;
-                    }
-
-                    result = DSPFilter::read(&outbuff, &outch, &readlen, speakermode, speakermodechannels, tick);
-                    if (result != FMOD_OK)
-                    {
-                        outbuff = resamplebuff;
-                        FMOD_memset(outbuff, 0, readlen * mResampleBufferChannels * sizeof(float));
-                        mResampleFinishPos = mResampleBufferPos;
-                    }
-
-                    if (mSystem->mFlags & FMOD_INIT_ENABLE_PROFILE)
-                    {
-                        FMOD_OS_Time_GetNs(&starttime);
-                    }
-
-                    mResampleBufferChannels = outch;
+                if (outbuff != resamplebuff)
+                {
                     FMOD_memcpy(resamplebuff, outbuff, readlen * mResampleBufferChannels * sizeof(float));
+                }
 
-                    mResampleBufferPos += readlen;
-                    if (mResampleBufferPos >= mResampleBufferLength)
-                    {
-                        mResampleBufferPos = 0;
-                    }
+                mResampleBufferPos += readlen;
+                if (mResampleBufferPos >= mResampleBufferLength)
+                {
+                    mResampleBufferPos = 0;
                 }
 
                 /*
@@ -137,11 +119,11 @@ FMOD_RESULT DSPResamplerMultiInput::read(float **outbuffer, int *outchannels, un
                 Work out what is going to end first.  The source data or the output?
             */
             rlength = inlength;     /* Start it off defaulting to the amount requested */
+
             if (speed.mValue > 0x100)
             {
                 FMOD_UINT64P mixesleft, fracleft;
                 int nextpos;
-                bool endofsound = false;
 
                 nextpos  = mResamplePosition.mHi - mOverflowLength;
                 nextpos /= (int)mResampleBlockLength;
@@ -151,27 +133,11 @@ FMOD_RESULT DSPResamplerMultiInput::read(float **outbuffer, int *outchannels, un
 
                 mixesleft.mHi = nextpos;
                 mixesleft.mLo = 0;
-		    	mixesleft.mValue -= mResamplePosition.mValue;
-/*
-                if (connection->mInputUnit->mFinished)
-                {
-                    FMOD_UINT64P mixeslefttofinish;
-
-                    mixeslefttofinish.mHi = mResampleFinishPos;
-                    mixeslefttofinish.mLo = 0;
-                    mixeslefttofinish.mValue -= mPosition.mValue;
-
-                    if (mixeslefttofinish.mValue <= mixesleft.mValue)
-                    {
-                        mixesleft.mValue = mixeslefttofinish.mValue;
-                        endofsound = true;
-                    }
-                }
-*/
+				mixesleft.mValue -= mResamplePosition.mValue;
 
 				fracleft.mValue = mixesleft.mValue % speed.mValue;
 				mixesleft.mValue /= speed.mValue;
-				
+
                 if (fracleft.mValue)						/* round the count up (this could be done better) */
                 {
 					mixesleft.mValue++;
@@ -179,25 +145,17 @@ FMOD_RESULT DSPResamplerMultiInput::read(float **outbuffer, int *outchannels, un
 
 				if (mixesleft.mValue <= rlength)
     			{
-                    if (endofsound)
-                    {
-                        endflag = FMOD_RESAMPLER_END_SOUND;
-                    }
-                    else
-                    {
-                        endflag = FMOD_RESAMPLER_END_RESAMPLEBUFFER;
-                    }
+                    endflag = FMOD_RESAMPLER_END_RESAMPLEBUFFER;
 					rlength = mixesleft.mLo;
 				}
             }
-            
+
             /*
                 Resample the src buffer into the destination.
             */
             if (speed.mHi == 1 && speed.mLo == 0)
             {
                 FMOD_memcpy(readbuffer + (readoffset * mResampleBufferChannels), (float *)mResampleBuffer + (mResamplePosition.mHi * mResampleBufferChannels), rlength * sizeof(float) * mResampleBufferChannels);
-
                 mResamplePosition.mValue += speed.mValue * rlength;
             }
             else
@@ -214,20 +172,16 @@ FMOD_RESULT DSPResamplerMultiInput::read(float **outbuffer, int *outchannels, un
                         FMOD_Resampler_Linear(readbuffer + (readoffset * mResampleBufferChannels), rlength, mResampleBuffer, FMOD_SOUND_FORMAT_PCMFLOAT, &mResamplePosition, &speed, mResampleBufferChannels);
                         break;
                     }
-#ifdef FMOD_SUPPORT_RESAMPLER_CUBIC
                     case FMOD_DSP_RESAMPLER_CUBIC:
                     {
                         FMOD_Resampler_Cubic(readbuffer + (readoffset * mResampleBufferChannels), rlength, mResampleBuffer, FMOD_SOUND_FORMAT_PCMFLOAT, &mResamplePosition, &speed, mResampleBufferChannels);
                         break;
                     }
-#endif
-#ifdef FMOD_SUPPORT_RESAMPLER_SPLINE
                     case FMOD_DSP_RESAMPLER_SPLINE:
                     {
                         FMOD_Resampler_Spline(readbuffer + (readoffset * mResampleBufferChannels), rlength, mResampleBuffer, FMOD_SOUND_FORMAT_PCMFLOAT, &mResamplePosition, &speed, mResampleBufferChannels);
                         break;
                     }
-#endif
                     default:
                     {
                         FMOD_Resampler_Linear(readbuffer + (readoffset * mResampleBufferChannels), rlength, mResampleBuffer, FMOD_SOUND_FORMAT_PCMFLOAT, &mResamplePosition, &speed, mResampleBufferChannels);
@@ -235,7 +189,7 @@ FMOD_RESULT DSPResamplerMultiInput::read(float **outbuffer, int *outchannels, un
                     }
                 }
             }
-             
+
             if (mResamplePosition.mHi >= (mResampleBufferLength + mOverflowLength))
             {
                 mResamplePosition.mHi -= mResampleBufferLength;
@@ -244,38 +198,22 @@ FMOD_RESULT DSPResamplerMultiInput::read(float **outbuffer, int *outchannels, un
             inlength   -= rlength;
             readoffset += rlength;
 
-            mFlags &= ~FMOD_DSP_FLAG_IDLE;
-
             if (endflag == FMOD_RESAMPLER_END_SOUND)
             {
-                mNoDMA->mDSPFinishTick = tick;
+                mFlags |= FMOD_DSP_FLAG_FINISHED;
                 break;
             }
             else if (endflag == FMOD_RESAMPLER_END_RESAMPLEBUFFER)
             {
                 mFill++;
             }
-
         } while (inlength > 0);
-        
-        *outbuffer = readbuffer;
-        *outchannels = mResampleBufferChannels;
 
-        if (mSystem->mFlags & FMOD_INIT_ENABLE_PROFILE)
-        {  
-	        FMOD_OS_Time_GetNs(&endtime);
-            mCPUUsageTemp += endtime - starttime;
+        channels = mResampleBufferChannels;
+    }
 
-            mCPUUsage = mCPUUsageTemp;
-            mCPUUsageTemp = 0;
-        }
-    }
-    else
-    {
-        *outbuffer = mBuffer;        /* Return the already processed buffer */
-        *outchannels = mResampleBufferChannels;
-        mFlags &= ~FMOD_DSP_FLAG_IDLE;
-    }
+    *outbuffer   = readbuffer;
+    *outchannels = channels;
 
     return result;
 }
@@ -318,5 +256,3 @@ FMOD_RESULT DSPResamplerMultiInput::addInput(DSPI *target)
 }
 
 #endif
-#endif
-

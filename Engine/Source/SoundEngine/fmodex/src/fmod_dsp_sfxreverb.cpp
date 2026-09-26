@@ -132,6 +132,7 @@ FMOD_DSP_PARAMETERDESC dspsfxreverb_param[] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c9b74d0b auto
 // OFFSET: 0x008EA410
 FMOD_DSP_DESCRIPTION_EX *DSPSfxReverb::getDescriptionEx()
 {
@@ -154,10 +155,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPSfxReverb::getDescriptionEx()
     dspsfxreverb.paramdesc     = dspsfxreverb_param;
     dspsfxreverb.setparameter  = DSPSfxReverb::setParameterCallback;
     dspsfxreverb.getparameter  = DSPSfxReverb::getParameterCallback;
-    dspsfxreverb.update        = DSPSfxReverb::updateCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dspsfxreverb.getmemoryused = &DSPSfxReverb::getMemoryUsedCallback;
-#endif
 
     dspsfxreverb.mType         = FMOD_DSP_TYPE_SFXREVERB;
     dspsfxreverb.mCategory     = FMOD_DSP_CATEGORY_FILTER;
@@ -190,7 +187,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPSfxReverb::getDescriptionEx()
 
 
 #define FIRELIGHT_OFF \
- -10000, -10000, 0.0f, 1.0f, 1.0f, -2602, 0.007f, 200, 0.011f, 0.0f, 0.0f, 5000.0f
+ -600, 0, 0.0f, 20.0f, 0.1f, 1000, 0.3f, 0, 0.1f, 100.0f, 100.0f, 5000.0f
 
 #define FIRELIGHT_SATURATION \
  -600, 0, 0.0f, 20.0f, 0.1f, 1000, 0.3f, 0000, 0.1f, 100.0f, 100.0f, 5000.0f
@@ -238,81 +235,46 @@ FMOD_DSP_DESCRIPTION_EX *DSPSfxReverb::getDescriptionEx()
 FMOD_RESULT DSPSfxReverb::createInternal()
 {
     FMOD_RESULT result;
-	I3DL2_LISTENERPROPERTIES props = 
+	I3DL2_LISTENERPROPERTIES props =
     {
         FIRELIGHT_OFF
     };
     int count;
-    
-    init();
-    mOldSpeakerMask = 0xFFFF;
 
-    result = mSystem->getSoftwareFormat(&mOutputRate, 0, 0, 0, 0, 0);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
+    init();
+
+    mSystem->getSoftwareFormat(&mOutputRate, 0, 0, 0, 0, 0);
 
     /*
         Initial properties (will get overridden)
     */
     mDryLevelLin    = 0.0f;
     mDryLevelmB     = -100000.0f;
+    mRoomLF         = FMODLISTENER_DEFAULTROOMLF;
+    mLFReference    = FMODLISTENER_DEFAULTLFREFERENCE;
+    mUpdate         = false;
 
-#ifdef PLATFORM_PS3
-    mProps = (I3DL2_LISTENERPROPERTIES *)FMOD_Memory_Calloc(sizeof(I3DL2_LISTENERPROPERTIES));
-    if (!mProps)
-    {
-        return FMOD_ERR_MEMORY;
-    }
-    mUpdateProps = (I3DL2_LISTENERPROPERTIES *)FMOD_Memory_Calloc(sizeof(I3DL2_LISTENERPROPERTIES));
-    if (!mUpdateProps)
-    {
-        return FMOD_ERR_MEMORY;
-    }
-
-    mLFProps = (SFX_REVERB_LFPROPS *)FMOD_Memory_Calloc(sizeof(SFX_REVERB_LFPROPS));
-    if (!mLFProps)
-    {
-        return FMOD_ERR_MEMORY;
-    }
-
-    mUpdateLFProps = (SFX_REVERB_LFPROPS *)FMOD_Memory_Calloc(sizeof(SFX_REVERB_LFPROPS));
-    if (!mUpdateLFProps)
-    {
-        return FMOD_ERR_MEMORY;
-    }
-#else
-    mProps          = &mPropsMemory;
-    mUpdateProps    = &mUpdatePropsMemory;
-    mLFProps        = &mLFPropsMemory;
-    mUpdateLFProps  = &mUpdateLFPropsMemory;
-#endif
-
-    FMOD_memcpy(mProps, &props, sizeof(I3DL2_LISTENERPROPERTIES));
-    FMOD_memcpy(mUpdateProps, &props, sizeof(I3DL2_LISTENERPROPERTIES));
-
-    mLFProps->mRoomLF      = mUpdateLFProps->mRoomLF      = FMODLISTENER_DEFAULTROOMLF;
-    mLFProps->mLFReference = mUpdateLFProps->mLFReference = FMODLISTENER_DEFAULTLFREFERENCE;
+    FMOD_memcpy(&mProps, &props, sizeof(I3DL2_LISTENERPROPERTIES));
 
     /*
         Create DSP processing object and initialise
     */
-    if (mpSfxDsp.init((float)mOutputRate) )
+    mpSfxDsp = (ASfxDsp *)FMOD_Memory_Alloc(sizeof(ASfxDsp));
+    if (!mpSfxDsp)
     {
         return FMOD_ERR_MEMORY;
     }
 
-    mpSfxDsp.mSystem = mSystem;
-    
-    if (mpSfxDsp.UpdateBufferSize(mSystem->mDSPBlockSize))
+    if (mpSfxDsp->init((float)mOutputRate))
     {
         return FMOD_ERR_MEMORY;
     }
 
-	mpSfxDsp.mNumLateReverbDelays = kNumLateReverbDelays;
-	mpSfxDsp.mNumMatrixStages = int(FMOD_LOG((float)mpSfxDsp.mNumLateReverbDelays) / FMOD_LOG(2.0f) + 0.5f);;
-    mpSfxDsp.ClearBuffers();
+    mpSfxDsp->UpdateBufferSize(mSystem->mDSPBlockSize);
+
+	mpSfxDsp->mNumLateReverbDelays = kNumLateReverbDelays;
+	mpSfxDsp->mNumMatrixStages = int(FMOD_LOG((float)mpSfxDsp->mNumLateReverbDelays) / FMOD_LOG(2.0f) + 0.5f);
+    mpSfxDsp->ClearBuffers();
 
     /*
         Initialise reverb parameters
@@ -329,25 +291,24 @@ FMOD_RESULT DSPSfxReverb::createInternal()
     /*
         Do a forced update here to make sure everything is calculated correctly first.
     */
-    FMOD_memcpy(mProps, mUpdateProps, sizeof(I3DL2_LISTENERPROPERTIES));
+    mLFReference = mLFReferenceUpdate;
+    FMOD_memcpy(&mProps, &mUpdateProps, sizeof(I3DL2_LISTENERPROPERTIES));
+    mRoomLF      = mRoomLFUpdate;
+    mUpdate      = false;
 
-    mLFProps->mRoomLF      = mUpdateLFProps->mRoomLF;
-    mLFProps->mLFReference = mUpdateLFProps->mLFReference;
-
-    SetRoom(mProps);
-    SetRoomHF(mProps);
-    SetRoomRolloffFactor(mProps);
-    SetDecayTime(mProps);
-    SetDecayHFRatio(mProps);
-    SetReflectionsLevel(mProps);
-    SetReflectionsDelay(mProps);
-    SetReverbLevel(mProps);
-    SetReverbDelay(mProps);
-    SetDiffusion(mProps);
-    SetDensity(mProps);
-    SetHFReference(mProps);
-    SetRoomLF(mLFProps);
-    SetLFReference(mLFProps);
+    SetRoom(&mProps);
+    SetRoomHF(&mProps);
+    SetDecayTime(&mProps);
+    SetDecayHFRatio(&mProps);
+    SetReflectionsLevel(&mProps);
+    SetReflectionsDelay(&mProps);
+    SetReverbLevel(&mProps);
+    SetReverbDelay(&mProps);
+    SetDiffusion(&mProps);
+    SetDensity(&mProps);
+    SetHFReference(&mProps);
+    SetRoomLF(mRoomLF);
+    SetLFReference(mLFReference);
 
     return FMOD_OK;
 }
@@ -371,30 +332,10 @@ FMOD_RESULT DSPSfxReverb::createInternal()
 */
 FMOD_RESULT DSPSfxReverb::releaseInternal()
 {
-    mpSfxDsp.close();  
+    mpSfxDsp->close();
 
-#ifdef PLATFORM_PS3
-    if (mProps)
-    {
-        FMOD_Memory_Free(mProps);
-        mProps = 0;
-    }
-    if (mUpdateProps)
-    {
-        FMOD_Memory_Free(mUpdateProps);
-        mUpdateProps = 0;
-    }
-    if (mLFProps)
-    {
-        FMOD_Memory_Free(mLFProps);
-        mLFProps = 0;
-    }
-    if (mUpdateLFProps)
-    {
-        FMOD_Memory_Free(mUpdateLFProps);
-        mUpdateLFProps = 0;
-    }
-#endif
+    FMOD_Memory_Free(mpSfxDsp);
+    mpSfxDsp = 0;
 
     return FMOD_OK;
 }
@@ -418,12 +359,9 @@ FMOD_RESULT DSPSfxReverb::releaseInternal()
 */
 FMOD_RESULT DSPSfxReverb::resetInternal()
 {
-    if (mpSfxDsp.UpdateBufferSize(mSystem->mDSPBlockSize))
-    {
-        return FMOD_ERR_MEMORY;
-    }
+    mpSfxDsp->UpdateBufferSize(1024);
 
-    mpSfxDsp.ClearBuffers();
+    mpSfxDsp->ClearBuffers();
 
     return FMOD_OK;
 }
@@ -447,41 +385,100 @@ FMOD_RESULT DSPSfxReverb::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 88abcc14 auto
 // OFFSET: 0x008EA170
 FMOD_RESULT DSPSfxReverb::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
-    #ifndef PLATFORM_PS3
-
-    if (!inbuffer)
+    if (mUpdate)
     {
-        return FMOD_OK;
+        if (mProps.lRoom != mUpdateProps.lRoom)
+        {
+            mProps.lRoom = mUpdateProps.lRoom;
+            SetRoom(&mProps);
+        }
+
+        if (mProps.lRoomHF != mUpdateProps.lRoomHF)
+        {
+            mProps.lRoomHF = mUpdateProps.lRoomHF;
+            SetRoomHF(&mProps);
+        }
+
+        if (mProps.flRoomRolloffFactor != mUpdateProps.flRoomRolloffFactor)
+        {
+            mProps.flRoomRolloffFactor = mUpdateProps.flRoomRolloffFactor;
+        }
+
+        if (mProps.flDecayTime != mUpdateProps.flDecayTime)
+        {
+            mProps.flDecayTime = mUpdateProps.flDecayTime;
+            SetDecayTime(&mProps);
+        }
+
+        if (mProps.flDecayHFRatio != mUpdateProps.flDecayHFRatio)
+        {
+            mProps.flDecayHFRatio = mUpdateProps.flDecayHFRatio;
+            SetDecayHFRatio(&mProps);
+        }
+
+        if (mProps.lReflections != mUpdateProps.lReflections)
+        {
+            mProps.lReflections = mUpdateProps.lReflections;
+            SetReflectionsLevel(&mProps);
+        }
+
+        if (mProps.flReflectionsDelay != mUpdateProps.flReflectionsDelay)
+        {
+            mProps.flReflectionsDelay = mUpdateProps.flReflectionsDelay;
+            SetReflectionsDelay(&mProps);
+        }
+
+        if (mProps.lReverb != mUpdateProps.lReverb)
+        {
+            mProps.lReverb = mUpdateProps.lReverb;
+            SetReverbLevel(&mProps);
+        }
+
+        if (mProps.flReverbDelay != mUpdateProps.flReverbDelay)
+        {
+            mProps.flReverbDelay = mUpdateProps.flReverbDelay;
+            SetReverbDelay(&mProps);
+        }
+
+        if (mProps.flDiffusion != mUpdateProps.flDiffusion)
+        {
+            mProps.flDiffusion = mUpdateProps.flDiffusion;
+            SetDiffusion(&mProps);
+        }
+
+        if (mProps.flDensity != mUpdateProps.flDensity)
+        {
+            mProps.flDensity = mUpdateProps.flDensity;
+            SetDensity(&mProps);
+        }
+
+        if (mProps.flHFReference != mUpdateProps.flHFReference)
+        {
+            mProps.flHFReference = mUpdateProps.flHFReference;
+            SetHFReference(&mProps);
+        }
+
+        if (mRoomLF != mRoomLFUpdate)
+        {
+            mRoomLF = mRoomLFUpdate;
+            SetRoomLF(mRoomLF);
+        }
+
+        if (mLFReference != mLFReferenceUpdate)
+        {
+            mLFReference = mLFReferenceUpdate;
+            SetLFReference(mLFReference);
+        }
+
+        mUpdate = false;
     }
 
-	if (!(speakermask & ((1 << inchannels) - 1))) /* all speaker channels have been disabled, skip the DSP */
-	{
-		FMOD_memcpy(outbuffer, inbuffer, inchannels*length*sizeof(float));
+	mpSfxDsp->DoDSPProcessing(inbuffer, outbuffer, (int)inchannels, (unsigned int)length, (float)mOutputRate, mDryLevelLin);
 
-        if (mOldSpeakerMask & ((1 << inchannels) - 1))
-        {
-            mOldSpeakerMask = speakermask;
-		    return resetInternal();
-        }
-        else
-        {
-            return FMOD_OK;
-        }
-	}
-
-    mOldSpeakerMask = speakermask;
-
-    #endif
-
-#if 0
-    FMOD_memset(outbuffer, 0, length * inchannels * sizeof(float));
-#else
-	mpSfxDsp.DoDSPProcessing(inbuffer, outbuffer, (int)inchannels, (unsigned int)length, (float)mOutputRate, mDryLevelLin, speakermask);   
-#endif
- 
     return FMOD_OK;
 }
 
@@ -505,113 +502,7 @@ FMOD_RESULT DSPSfxReverb::readInternal(float *inbuffer, float *outbuffer, unsign
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT DSPSfxReverb::updateInternal()
-{
-    if (mProps->lRoom != mUpdateProps->lRoom)
-    {
-        mProps->lRoom = mUpdateProps->lRoom;
-        SetRoom(mProps);
-    }
-
-    if (mProps->lRoomHF != mUpdateProps->lRoomHF)
-    {
-        mProps->lRoomHF = mUpdateProps->lRoomHF;
-        SetRoomHF(mProps);
-    }
-
-    if (mProps->flRoomRolloffFactor != mUpdateProps->flRoomRolloffFactor)
-    {
-        mProps->flRoomRolloffFactor = mUpdateProps->flRoomRolloffFactor;
-        SetRoomRolloffFactor(mProps);
-    }
-
-    if (mProps->flDecayTime != mUpdateProps->flDecayTime)
-    {
-        mProps->flDecayTime = mUpdateProps->flDecayTime;
-        SetDecayTime(mProps);
-    }
-
-    if (mProps->flDecayHFRatio != mUpdateProps->flDecayHFRatio)
-    {
-        mProps->flDecayHFRatio = mUpdateProps->flDecayHFRatio;
-        SetDecayHFRatio(mProps);
-    }
-
-    if (mProps->lReflections != mUpdateProps->lReflections)
-    {
-        mProps->lReflections = mUpdateProps->lReflections;
-        SetReflectionsLevel(mProps);
-    }
-
-    if (mProps->flReflectionsDelay != mUpdateProps->flReflectionsDelay)
-    {
-        mProps->flReflectionsDelay = mUpdateProps->flReflectionsDelay;
-        SetReflectionsDelay(mProps);
-    }
-
-    if (mProps->lReverb != mUpdateProps->lReverb)
-    {
-        mProps->lReverb = mUpdateProps->lReverb;
-        SetReverbLevel(mProps);
-    }
-
-    if (mProps->flReverbDelay != mUpdateProps->flReverbDelay)
-    {
-        mProps->flReverbDelay = mUpdateProps->flReverbDelay;
-        SetReverbDelay(mProps);
-    }
-
-    if (mProps->flDiffusion != mUpdateProps->flDiffusion)
-    {
-        mProps->flDiffusion = mUpdateProps->flDiffusion;
-        SetDiffusion(mProps);
-    }
-
-    if (mProps->flDensity != mUpdateProps->flDensity)
-    {
-        mProps->flDensity = mUpdateProps->flDensity;
-        SetDensity(mProps);
-    }
-
-    if (mProps->flHFReference != mUpdateProps->flHFReference)
-    {
-        mProps->flHFReference = mUpdateProps->flHFReference;
-        SetHFReference(mProps);
-    }
-
-    if (mLFProps->mRoomLF != mUpdateLFProps->mRoomLF)
-    {
-        mLFProps->mRoomLF = mUpdateLFProps->mRoomLF;
-        SetRoomLF(mLFProps);
-    }
-
-    if (mLFProps->mLFReference != mUpdateLFProps->mLFReference)
-    {
-        mLFProps->mLFReference = mUpdateLFProps->mLFReference;
-        SetLFReference(mLFProps);
-    }
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    FMOD_OK
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Macintosh, XBox, PlayStation 2, GameCube
-
-	[SEE_ALSO]
-]
-*/
+// VERIFY: 0f365b7d auto
 // OFFSET: 0x008E8FB0
 FMOD_RESULT DSPSfxReverb::setParameterInternal(int index, float value)
 {
@@ -627,72 +518,84 @@ FMOD_RESULT DSPSfxReverb::setParameterInternal(int index, float value)
         }
         case FMOD_DSP_SFXREVERB_ROOM:
         {
-            mUpdateProps->lRoom = (int)(value < 0 ? value - 0.5f : value + 0.5f);
+            mUpdateProps.lRoom = (int)(value + 0.5f);
+            mUpdate = true;
             break;
         }
         case FMOD_DSP_SFXREVERB_ROOMHF:
         {
-            mUpdateProps->lRoomHF = (int)(value < 0 ? value - 0.5f : value + 0.5f);
+            mUpdateProps.lRoomHF = (int)(value + 0.5f);
+            mUpdate = true;
             break;
         }
         case FMOD_DSP_SFXREVERB_ROOMROLLOFFFACTOR:
         {
-            mUpdateProps->flRoomRolloffFactor = value;
+            mUpdateProps.flRoomRolloffFactor = value;
+            mUpdate = true;
             break;
         }
         case FMOD_DSP_SFXREVERB_DECAYTIME:
         {
-            mUpdateProps->flDecayTime = value;
+            mUpdateProps.flDecayTime = value;
+            mUpdate = true;
             break;
         }
         case FMOD_DSP_SFXREVERB_DECAYHFRATIO:
         {
-            mUpdateProps->flDecayHFRatio = value;
+            mUpdateProps.flDecayHFRatio = value;
+            mUpdate = true;
             break;
         }        
         case FMOD_DSP_SFXREVERB_REFLECTIONSLEVEL:
         {
-            mUpdateProps->lReflections = (int)(value < 0 ? value - 0.5f : value + 0.5f); 
+            mUpdateProps.lReflections = (int)(value + 0.5f); 
             break;
         }        
         case FMOD_DSP_SFXREVERB_REFLECTIONSDELAY:
         {
-            mUpdateProps->flReflectionsDelay = value;
+            mUpdateProps.flReflectionsDelay = value;
+            mUpdate = true;
             break;
         }        
         case FMOD_DSP_SFXREVERB_REVERBLEVEL:
         {
-            mUpdateProps->lReverb = (int)(value < 0 ? value - 0.5f : value + 0.5f); 
+            mUpdateProps.lReverb = (int)(value + 0.5f); 
             break;
         }        
         case FMOD_DSP_SFXREVERB_REVERBDELAY:
         {
-            mUpdateProps->flReverbDelay = value;
+            mUpdateProps.flReverbDelay = value;
+            mUpdate = true;
             break;
         }        
         case FMOD_DSP_SFXREVERB_DIFFUSION:
         {
-            mUpdateProps->flDiffusion = value;
+            mUpdateProps.flDiffusion = value;
+            mUpdate = true;
             break;
         }        
         case FMOD_DSP_SFXREVERB_DENSITY:
         {
-            mUpdateProps->flDensity = value;
+            mUpdateProps.flDensity = value;
+            mUpdate = true;
             break;
         }        
         case FMOD_DSP_SFXREVERB_HFREFERENCE:
         {
-            mUpdateProps->flHFReference = value;
+            mUpdateProps.flHFReference = value;
+            mUpdate = true;
             break;
         }
         case FMOD_DSP_SFXREVERB_ROOMLF:
         {            
-            mUpdateLFProps->mRoomLF = (int)(value < 0 ? value - 0.5f : value + 0.5f);
+            mRoomLFUpdate = (int)(value + 0.5f);
+            mUpdate = true;
             break;
         }
         case FMOD_DSP_SFXREVERB_LFREFERENCE:
         {
-            mUpdateLFProps->mLFReference = value;
+            mLFReferenceUpdate = value;
+            mUpdate = true;
             break;
         }
         default:
@@ -700,28 +603,6 @@ FMOD_RESULT DSPSfxReverb::setParameterInternal(int index, float value)
            result = FMOD_ERR_INVALID_PARAM;
            break;
         } 
-    }
-
-    if (result == FMOD_OK)
-    {
-        FMOD_OS_CriticalSection_Enter(mSystem->mDSPConnectionCrit);
-        {
-            DSPConnectionRequest *request;
-
-            if (mSystem->mConnectionRequestFreeHead.isEmpty())
-            {
-                mSystem->flushDSPConnectionRequests();
-            }
-
-            request = (DSPConnectionRequest *)mSystem->mConnectionRequestFreeHead.getNext();
-
-            request->removeNode();        
-            request->addBefore(&mSystem->mConnectionRequestUsedHead);
-
-            request->mThis = this;
-            request->mRequest = DSPCONNECTION_REQUEST_REVERBUPDATEPARAMETERS;
-        }
-        FMOD_OS_CriticalSection_Leave(mSystem->mDSPConnectionCrit);
     }
 
     return result;
@@ -743,6 +624,7 @@ FMOD_RESULT DSPSfxReverb::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3b5dbf48 auto
 // OFFSET: 0x008E91D0
 FMOD_RESULT DSPSfxReverb::getParameterInternal(int index, float *value, char *valuestr)
 {
@@ -760,113 +642,113 @@ FMOD_RESULT DSPSfxReverb::getParameterInternal(int index, float *value, char *va
         case FMOD_DSP_SFXREVERB_ROOM:
         {
             if (value)
-                *value = (float)mProps->lRoom;
+                *value = (float)mProps.lRoom;
             if (valuestr)
-                sprintf(valuestr, "%d", (int)mProps->lRoom);
+                sprintf(valuestr, "%d", (int)mProps.lRoom);
             break;
         }
         case FMOD_DSP_SFXREVERB_ROOMHF:
         {            
             if (value)
-                *value = (float)mProps->lRoomHF;
+                *value = (float)mProps.lRoomHF;
             if (valuestr)
-                sprintf(valuestr, "%d", (int)mProps->lRoomHF);
+                sprintf(valuestr, "%d", (int)mProps.lRoomHF);
             break;
         }
         case FMOD_DSP_SFXREVERB_ROOMROLLOFFFACTOR:
         {
             if (value)
-                *value = (float)mProps->flRoomRolloffFactor;
+                *value = (float)mProps.flRoomRolloffFactor;
             if (valuestr)
-                sprintf(valuestr, "%f", mProps->flRoomRolloffFactor);
+                sprintf(valuestr, "%f", mProps.flRoomRolloffFactor);
             break;
         }
         case FMOD_DSP_SFXREVERB_DECAYTIME:
         {
             if (value)
-                *value = (float)mProps->flDecayTime;
+                *value = (float)mProps.flDecayTime;
             if (valuestr)
-                sprintf(valuestr, "%f", mProps->flDecayTime);
+                sprintf(valuestr, "%f", mProps.flDecayTime);
             break;
         }
         case FMOD_DSP_SFXREVERB_DECAYHFRATIO:
         {
             if (value)
-                *value = (float)mProps->flDecayHFRatio;
+                *value = (float)mProps.flDecayHFRatio;
             if (valuestr)
-                sprintf(valuestr, "%f", mProps->flDecayHFRatio);
+                sprintf(valuestr, "%f", mProps.flDecayHFRatio);
             break;
         }        
         case FMOD_DSP_SFXREVERB_REFLECTIONSLEVEL:
         {
             if (value)
-                *value = (float)mProps->lReflections;
+                *value = (float)mProps.lReflections;
             if (valuestr)
-                sprintf(valuestr, "%d", (int)mProps->lReflections);
+                sprintf(valuestr, "%d", (int)mProps.lReflections);
             break;
         }        
         case FMOD_DSP_SFXREVERB_REFLECTIONSDELAY:
         {
             if (value)
-                *value = (float)mProps->flReflectionsDelay;
+                *value = (float)mProps.flReflectionsDelay;
             if (valuestr)
-                sprintf(valuestr, "%f", mProps->flReflectionsDelay);
+                sprintf(valuestr, "%f", mProps.flReflectionsDelay);
             break;
         }        
         case FMOD_DSP_SFXREVERB_REVERBLEVEL:
         {
             if (value)
-                *value = (float)mProps->lReverb;
+                *value = (float)mProps.lReverb;
             if (valuestr)
-                sprintf(valuestr, "%d", (int)mProps->lReverb);
+                sprintf(valuestr, "%d", (int)mProps.lReverb);
             break;
         }        
         case FMOD_DSP_SFXREVERB_REVERBDELAY:
         {
             if (value)
-                *value = (float)mProps->flReverbDelay;
+                *value = (float)mProps.flReverbDelay;
             if (valuestr)
-                sprintf(valuestr, "%f", mProps->flReverbDelay);
+                sprintf(valuestr, "%f", mProps.flReverbDelay);
             break;
         }        
         case FMOD_DSP_SFXREVERB_DIFFUSION:
         {
             if (value)
-                *value = (float)mProps->flDiffusion;
+                *value = (float)mProps.flDiffusion;
             if (valuestr)
-                sprintf(valuestr, "%f", mProps->flDiffusion);
+                sprintf(valuestr, "%f", mProps.flDiffusion);
             break;
         }        
         case FMOD_DSP_SFXREVERB_DENSITY:
         {
             if (value)
-                *value = (float)mProps->flDensity;
+                *value = (float)mProps.flDensity;
             if (valuestr)
-                sprintf(valuestr, "%f", mProps->flDensity);
+                sprintf(valuestr, "%f", mProps.flDensity);
             break;
         }        
         case FMOD_DSP_SFXREVERB_HFREFERENCE:
         {
             if (value)
-                *value = (float)mProps->flHFReference;
+                *value = (float)mProps.flHFReference;
             if (valuestr)
-                sprintf(valuestr, "%f", mProps->flHFReference);
+                sprintf(valuestr, "%f", mProps.flHFReference);
             break;
         }
         case FMOD_DSP_SFXREVERB_ROOMLF:
         {            
             if (value)
-                *value = (float)mLFProps->mRoomLF;
+                *value = (float)mRoomLF;
             if (valuestr)
-                sprintf(valuestr, "%d", (int)mLFProps->mRoomLF);
+                sprintf(valuestr, "%d", (int)mRoomLF);
             break;
         }
         case FMOD_DSP_SFXREVERB_LFREFERENCE:
         {
             if (value)
-                *value = mLFProps->mLFReference;
+                *value = mLFReference;
             if (valuestr)
-                sprintf(valuestr, "%f", mLFProps->mLFReference);
+                sprintf(valuestr, "%f", mLFReference);
             break;
         }
         default:
@@ -879,6 +761,7 @@ FMOD_RESULT DSPSfxReverb::getParameterInternal(int index, float *value, char *va
 }
 
 // Adjust intensity level for the room effect (i.e. both the early reflections and the late reverberation).
+// VERIFY: a77396c4 auto
 // OFFSET: 0x008E98E0
 bool DSPSfxReverb::SetRoom(I3DL2_LISTENERPROPERTIES *pProps)					    // [-10000, 0]      default: -10000 mB
 {
@@ -887,7 +770,7 @@ bool DSPSfxReverb::SetRoom(I3DL2_LISTENERPROPERTIES *pProps)					    // [-10000,
 	else if (pProps->lRoom > I3DL2LISTENER_MAXROOM)
 		pProps->lRoom = I3DL2LISTENER_MAXROOM;
 		
-	mProps->lRoom = pProps->lRoom;
+	mProps.lRoom = pProps->lRoom;
     bool err = SetReflectionsLevel(pProps);
 	err |= SetReverbLevel(pProps);
 	
@@ -904,7 +787,7 @@ bool DSPSfxReverb::SetRoomHF(I3DL2_LISTENERPROPERTIES *pProps)						// [-10000, 
 	else if (pProps->lRoomHF > I3DL2LISTENER_MAXROOMHF)
 		pProps->lRoomHF = I3DL2LISTENER_MAXROOMHF;
 		
-	mProps->lRoomHF = pProps->lRoomHF;
+	mProps.lRoomHF = pProps->lRoomHF;
     
     float gainDB = (float)pProps->lRoomHF * 0.01f / 2.0f;	// Convert to dB. 
 											// 2 filters in series, so each has half the attenuation
@@ -913,7 +796,7 @@ bool DSPSfxReverb::SetRoomHF(I3DL2_LISTENERPROPERTIES *pProps)						// [-10000, 
 	float K;
 	
 	bool err = Calculate1stOrderLowpassCoeff(gain, pProps->flHFReference, (float)mOutputRate, &K);
-	mpSfxDsp.mRoomHF = 1.0f - K;
+	mpSfxDsp->mRoomHF = 1.0f - K;
 	
 	return err;
 }
@@ -965,26 +848,28 @@ bool DSPSfxReverb::Calculate1stOrderLowpassCoeff(float gain, float cutoff, float
 // Adjust low-pass filter for the room effect (i.e. both the early reflections and the late reverberation).
 // Room_HF is defined as the attenuation at high frequencies relative to the intensity at low frequencies.
 // OFFSET: 0x008E99C0
-bool DSPSfxReverb::SetRoomLF(SFX_REVERB_LFPROPS *pLFProps)						// [-10000, 0]      default: 0 mB
-{	
-	if (pLFProps->mRoomLF < FMODLISTENER_MINROOMLF)
+bool DSPSfxReverb::SetRoomLF(int roomLF)						// [-10000, 0]      default: 0 mB
+{
+	if (roomLF < FMODLISTENER_MINROOMLF)
     {
-		pLFProps->mRoomLF = FMODLISTENER_MINROOMLF;
+		roomLF = FMODLISTENER_MINROOMLF;
     }
-	else if (pLFProps->mRoomLF > FMODLISTENER_MAXROOMLF)
+	else if (roomLF > FMODLISTENER_MAXROOMLF)
     {
-        pLFProps->mRoomLF = FMODLISTENER_MAXROOMLF;
+        roomLF = FMODLISTENER_MAXROOMLF;
     }
-		
-    mpSfxDsp.mRoomLF = pLFProps->mRoomLF / 100.0f;
-   	
-	bool err = CalculateShelfCoeffs(mpSfxDsp.mRoomLF , pLFProps->mLFReference, (float)mOutputRate, 
-                                    &mpSfxDsp.mRoomLFcoeffs.a0, &mpSfxDsp.mRoomLFcoeffs.a1, &mpSfxDsp.mRoomLFcoeffs.a2,
-                                    &mpSfxDsp.mRoomLFcoeffs.b1, &mpSfxDsp.mRoomLFcoeffs.b2);
+
+    mRoomLF = roomLF;
+    mpSfxDsp->mRoomLF = roomLF / 100.0f;
+
+	bool err = CalculateShelfCoeffs(mpSfxDsp->mRoomLF , mLFReference, (float)mOutputRate,
+                                    &mpSfxDsp->mRoomLFcoeffs.a0, &mpSfxDsp->mRoomLFcoeffs.a1, &mpSfxDsp->mRoomLFcoeffs.a2,
+                                    &mpSfxDsp->mRoomLFcoeffs.b1, &mpSfxDsp->mRoomLFcoeffs.b2);
 	return err;
 }
 
 
+// VERIFY: cf4ae94a auto
 // OFFSET: 0x008E9560
 bool DSPSfxReverb::CalculateShelfCoeffs(float gain, float cutoff, float sampleRate, float *a0, float *a1, float *a2, float *b1, float *b2)
 {
@@ -1011,7 +896,7 @@ bool DSPSfxReverb::CalculateShelfCoeffs(float gain, float cutoff, float sampleRa
 // of distance.
 bool DSPSfxReverb::SetRoomRolloffFactor(I3DL2_LISTENERPROPERTIES *pProps)     // [0.0, 10.0]      default: 0.0
 {
-	mProps->flRoomRolloffFactor = pProps->flRoomRolloffFactor;
+	mProps.flRoomRolloffFactor = pProps->flRoomRolloffFactor;
     return 0;
 }
 
@@ -1035,23 +920,23 @@ bool DSPSfxReverb::SetDecayTime(I3DL2_LISTENERPROPERTIES *pProps)				// [0.1, 20
 		pProps->flDecayTime = NEW_MAX_DECAY_TIME;
 	}
 
-	mProps->flDecayTime = pProps->flDecayTime;	
+	mProps.flDecayTime = pProps->flDecayTime;	
     
-	for (delayLine=0; delayLine<mpSfxDsp.mNumLateReverbDelays; delayLine++)
+	for (delayLine=0; delayLine<mpSfxDsp->mNumLateReverbDelays; delayLine++)
 	{
 		if (pProps->flDecayTime)
 		{
 			// At low frequencies, each delay line should decay by 60 dB in flDecayTime seconds.
 			// Attenuation each time through the delay line
-			float attenuationDB = (-60.f / pProps->flDecayTime) * mpSfxDsp.mLateDelayLenSec[delayLine];
+			float attenuationDB = (-60.f / pProps->flDecayTime) * mpSfxDsp->mLateDelayLenSec[delayLine];
 
 			// Convert to linear
 			float feedback = (float)FMOD_POW(10.0f, attenuationDB / 20.0f);
-			mpSfxDsp.mFeedback[delayLine] = feedback;
+			mpSfxDsp->mFeedback[delayLine] = feedback;
 
 			// Also handle HF decay
 			// At the HF reference frequency, each delay line should decay by 60 dB in flDecayHFRatio * flDecayTime seconds.
-			float attenuationDB_HF = (-60.0f / (pProps->flDecayHFRatio * pProps->flDecayTime)) * mpSfxDsp.mLateDelayLenSec[delayLine];
+			float attenuationDB_HF = (-60.0f / (pProps->flDecayHFRatio * pProps->flDecayTime)) * mpSfxDsp->mLateDelayLenSec[delayLine];
 
 			// Subtract the DC attenuation to get the filter attenuation
 			attenuationDB_HF -= attenuationDB;
@@ -1060,11 +945,11 @@ bool DSPSfxReverb::SetDecayTime(I3DL2_LISTENERPROPERTIES *pProps)				// [0.1, 20
 			float attenuation_HF = (float)FMOD_POW(10.0f, attenuationDB_HF / 20.0f);
 
 			err |= Calculate1stOrderLowpassCoeff(attenuation_HF, pProps->flHFReference, (float)mOutputRate, &K);
-			mpSfxDsp.mDecayHF[delayLine] = 1.0f - K;
+			mpSfxDsp->mDecayHF[delayLine] = 1.0f - K;
 		}
 	}
     // NEW
-    SetReverbLevel(mProps);	// Adjust the reverb gain to correspond to the new decay time, 
+    SetReverbLevel(&mProps);	// Adjust the reverb gain to correspond to the new decay time, 
 							    // to keep the energy constant.
     // \NEW
 	/*
@@ -1086,11 +971,12 @@ Calculate1stOrderLowpassCoeff(0.000037, 5000.000000, 48000.000000)
 #define	SHORT_DELAY_LINE_RATIO					(1.61f)
 */
 
+// VERIFY: 34087620 auto
 // OFFSET: 0x008E9B90
 bool DSPSfxReverb::SetDelayLineLengths(I3DL2_LISTENERPROPERTIES *pProps)
 {
 	/*
-	mpSfxDsp.SetLateDelays(LOWEST_DELAY_LINE_LENGTH_SEC, DELAY_LINE_RATIO, 
+	mpSfxDsp->SetLateDelays(LOWEST_DELAY_LINE_LENGTH_SEC, DELAY_LINE_RATIO, 
 							LOWEST_DELAY_LINE_LENGTH_B_SEC, DELAY_LINE_RATIO_B, 
 							(float)mOutputRate);
     */
@@ -1128,7 +1014,7 @@ bool DSPSfxReverb::SetDelayLineLengths(I3DL2_LISTENERPROPERTIES *pProps)
 	
 	float	lowestDelayLenSec = LOWEST_DELAY_LINE_LENGTH_SEC * density;
 	
-	mpSfxDsp.SetLateDelays(lowestDelayLenSec, DELAY_LINE_RATIO, 
+	mpSfxDsp->SetLateDelays(lowestDelayLenSec, DELAY_LINE_RATIO, 
 							LOWEST_DELAY_LINE_LENGTH_B_SEC, DELAY_LINE_RATIO_B, 
 							(float)mOutputRate);
 	
@@ -1148,7 +1034,7 @@ bool DSPSfxReverb::SetDecayHFRatio(I3DL2_LISTENERPROPERTIES *pProps)		// [0.1, 2
 	else if (pProps->flDecayHFRatio > I3DL2LISTENER_MAXDECAYHFRATIO)	// Do we support >1? 
 		pProps->flDecayHFRatio = I3DL2LISTENER_MAXDECAYHFRATIO;
 
-	mProps->flDecayHFRatio = pProps->flDecayHFRatio;
+	mProps.flDecayHFRatio = pProps->flDecayHFRatio;
 
 	bool err = SetDecayTime(pProps);		// This also handles HF decay
 	
@@ -1164,7 +1050,7 @@ bool DSPSfxReverb::SetReflectionsLevel(I3DL2_LISTENERPROPERTIES *pProps)		// [-1
 	else if (pProps->lReflections > I3DL2LISTENER_MAXREFLECTIONS)	
 		pProps->lReflections = I3DL2LISTENER_MAXREFLECTIONS;
 
-	mProps->lReflections = pProps->lReflections;
+	mProps.lReflections = pProps->lReflections;
 
 	float reflectionsLevelDB = (float)(pProps->lReflections + pProps->lRoom) * 0.01f;	// Add Room level, convert to dB
 
@@ -1172,7 +1058,7 @@ bool DSPSfxReverb::SetReflectionsLevel(I3DL2_LISTENERPROPERTIES *pProps)		// [-1
 	float ampGain = FMOD_POW(10.0f, reflectionsLevelDB / 20.0f);		
 	
 	// If we have 8 outputs, scale the gain by sqrt(1/8).
-	mpSfxDsp.mERgain = ampGain * FMOD_SQRT(1.0f/(float)(kNumEarlyDelayTaps + 1.0f));
+	mpSfxDsp->mERgain = ampGain * FMOD_SQRT(1.0f/(float)(kNumEarlyDelayTaps + 1.0f));
 
 	return 0;
 }
@@ -1186,19 +1072,19 @@ bool DSPSfxReverb::SetReflectionsDelay(I3DL2_LISTENERPROPERTIES *pProps)	// [0.0
 	else if (pProps->flReflectionsDelay > I3DL2LISTENER_MAXREFLECTIONSDELAY)	
 		pProps->flReflectionsDelay = I3DL2LISTENER_MAXREFLECTIONSDELAY;
 
-    mProps->flReflectionsDelay = pProps->flReflectionsDelay;
-	mpSfxDsp.mEarlyLateSec[0] = mProps->flReflectionsDelay;
+    mProps.flReflectionsDelay = pProps->flReflectionsDelay;
+	mpSfxDsp->mEarlyLateSec[0] = mProps.flReflectionsDelay;
 	
-	int refDelaySamples = (int)((float)mOutputRate * mProps->flReflectionsDelay);
+	int refDelaySamples = (int)((float)mOutputRate * mProps.flReflectionsDelay);
 	
 	if (refDelaySamples == 0)
 	{
 		refDelaySamples++;		// Avoid long wrap-around delay
 	}
 	
-	mpSfxDsp.mEarlyLateSamples[0] = refDelaySamples;
+	mpSfxDsp->mEarlyLateSamples[0] = refDelaySamples;
 	
-	SetReverbDelay(mProps);		// This affects the absolute position of the reverb delay.
+	SetReverbDelay(&mProps);		// This affects the absolute position of the reverb delay.
 	
 	return 0;
 }
@@ -1214,7 +1100,7 @@ bool DSPSfxReverb::SetReverbLevel(I3DL2_LISTENERPROPERTIES *pProps)					// [-100
 	else if (pProps->lReverb > I3DL2LISTENER_MAXREVERB)	
 		pProps->lReverb = I3DL2LISTENER_MAXREVERB;
 
-	mProps->lReverb = pProps->lReverb;
+	mProps.lReverb = pProps->lReverb;
     
     float	reverbLevelDB = (float)(pProps->lReverb + pProps->lRoom) * 0.01f;	// Add room level, convert to dB
 	float	reverbGain = (float)FMOD_POW(10.0f, reverbLevelDB / 20.0f);						// convert to linear
@@ -1225,13 +1111,13 @@ bool DSPSfxReverb::SetReverbLevel(I3DL2_LISTENERPROPERTIES *pProps)					// [-100
 	// First, calculate the average feedback power gain, and the average scatter power gain:
 	float aveFeedbackPowerGain = 0;
 	
-	for (delayLine = 0; delayLine<mpSfxDsp.mNumLateReverbDelays; delayLine++)
+	for (delayLine = 0; delayLine<mpSfxDsp->mNumLateReverbDelays; delayLine++)
 	{
-		float feedbackGain = mpSfxDsp.mFeedback[delayLine];
+		float feedbackGain = mpSfxDsp->mFeedback[delayLine];
 		aveFeedbackPowerGain += (feedbackGain * feedbackGain); 
 	}
 	
-	aveFeedbackPowerGain /= mpSfxDsp.mNumLateReverbDelays;
+	aveFeedbackPowerGain /= mpSfxDsp->mNumLateReverbDelays;
 	
 	// Power gain = power gain of first pass + loop gain
 	// = 1 + Feedback / (1-Feedback)
@@ -1257,13 +1143,14 @@ bool DSPSfxReverb::SetReverbLevel(I3DL2_LISTENERPROPERTIES *pProps)					// [-100
     }
 	
 	// If we have 8 outs, scale gain by sqrt(1/8)
-	mpSfxDsp.mLRgain = ampGain * FMOD_SQRT(1.0/(float)kNumLateReverbDelays);
+	mpSfxDsp->mLRgain = ampGain * FMOD_SQRT(1.0/(float)kNumLateReverbDelays);
 	
 	return 0;
 }
 
 // Defines the time limit between the early reflections and the late reverberation (relative to the time
 // of the first reflection).
+// VERIFY: d7a71fe5 auto
 // OFFSET: 0x008E9770
 bool DSPSfxReverb::SetReverbDelay(I3DL2_LISTENERPROPERTIES *pProps)				// [0.0, 0.1]       default: 0.04 s
 {
@@ -1272,11 +1159,11 @@ bool DSPSfxReverb::SetReverbDelay(I3DL2_LISTENERPROPERTIES *pProps)				// [0.0, 
 	else if (pProps->flReverbDelay > I3DL2LISTENER_MAXREVERBDELAY)	
 		pProps->flReverbDelay = I3DL2LISTENER_MAXREVERBDELAY;
 
-	mProps->flReverbDelay = pProps->flReverbDelay;
+	mProps.flReverbDelay = pProps->flReverbDelay;
 	
-	float	refPlusRevDelaySec = mProps->flReflectionsDelay + mProps->flReverbDelay;
+	float	refPlusRevDelaySec = mProps.flReflectionsDelay + mProps.flReverbDelay;
 
-	mpSfxDsp.SetLate_EarlyLateDelayTaps(refPlusRevDelaySec, kEarlyLateNextLengthSec, kEarlyLateDelayRatio, (float)mOutputRate);
+	mpSfxDsp->SetLate_EarlyLateDelayTaps(refPlusRevDelaySec, kEarlyLateNextLengthSec, kEarlyLateDelayRatio, (float)mOutputRate);
 
 	return 0;
 }
@@ -1290,12 +1177,12 @@ bool DSPSfxReverb::SetDiffusion(I3DL2_LISTENERPROPERTIES *pProps)					// [0.0, 1
 	else if (pProps->flDiffusion > I3DL2LISTENER_MAXDIFFUSION)	
 		pProps->flDiffusion = I3DL2LISTENER_MAXDIFFUSION;
 
-	mProps->flDiffusion = pProps->flDiffusion;
+	mProps.flDiffusion = pProps->flDiffusion;
     
     // Set the gains inside the matrix
 	float diffusion = pProps->flDiffusion * 0.01f;
 	diffusion = diffusion * FMOD_PI / 4.0f;
-	mpSfxDsp.mHadamard = (float)FMOD_TAN(diffusion);
+	mpSfxDsp->mHadamard = (float)FMOD_TAN(diffusion);
 	
 	// Compensate for the matrix gain
 	// A ----------cos() ----------- C
@@ -1322,8 +1209,8 @@ bool DSPSfxReverb::SetDiffusion(I3DL2_LISTENERPROPERTIES *pProps)					// [0.0, 1
 	// 1 = diffScale^2 * (1 + Hadamard^2)
 	// For full diffusion, Hadamard = 1; diff = 0.707 = cos(PI/4) (sinusoidal rotation matrix)
 	// Apply this gain for each stage of the matrix.
-	float diffusionScale = (float)FMOD_POW(FMOD_COS(diffusion), mpSfxDsp.mNumMatrixStages); 
-	mpSfxDsp.mDiffusionScale = diffusionScale;		// * diffusionScale;	// 2 matrices
+	float diffusionScale = (float)FMOD_POW(FMOD_COS(diffusion), mpSfxDsp->mNumMatrixStages); 
+	mpSfxDsp->mDiffusionScale = diffusionScale;		// * diffusionScale;	// 2 matrices
 
 	return 0;
 }
@@ -1337,7 +1224,7 @@ bool DSPSfxReverb::SetDensity(I3DL2_LISTENERPROPERTIES *pProps)						// [0.0, 10
 	else if (pProps->flDensity > I3DL2LISTENER_MAXDENSITY)	
 		pProps->flDensity = I3DL2LISTENER_MAXDENSITY;
 
-	mProps->flDensity = pProps->flDensity;
+	mProps.flDensity = pProps->flDensity;
 
 	bool err = SetDelayLineLengths(pProps);	
 
@@ -1345,6 +1232,7 @@ bool DSPSfxReverb::SetDensity(I3DL2_LISTENERPROPERTIES *pProps)						// [0.0, 10
 }
 
 // Reference high frequency.
+// VERIFY: 5611bf94 auto
 // OFFSET: 0x008E9E10
 bool DSPSfxReverb::SetHFReference(I3DL2_LISTENERPROPERTIES *pProps)				// [20.0, 20000.0]  default: 5000.0 Hz
 {
@@ -1353,26 +1241,29 @@ bool DSPSfxReverb::SetHFReference(I3DL2_LISTENERPROPERTIES *pProps)				// [20.0,
 	else if (pProps->flHFReference > I3DL2LISTENER_MAXHFREFERENCE)	
 		pProps->flHFReference = I3DL2LISTENER_MAXHFREFERENCE;
 
-	mProps->flHFReference = pProps->flHFReference;
-    SetRoomHF(mProps);
-    SetDecayTime(mProps);	
+	mProps.flHFReference = pProps->flHFReference;
+    SetRoomHF(&mProps);
+    SetDecayTime(&mProps);	
     return 0;
 }
 
 // Reference low frequency.
+// VERIFY: 6b529cdf auto
 // OFFSET: 0x008E9E70
-bool DSPSfxReverb::SetLFReference(SFX_REVERB_LFPROPS *pLFProps)				// [20.0, 20000.0]  default: 5000.0 Hz
+bool DSPSfxReverb::SetLFReference(float lfReference)				// [20.0, 20000.0]  default: 5000.0 Hz
 {
-	if (pLFProps->mLFReference < FMODLISTENER_MINLFREFERENCE)
+	if (lfReference < FMODLISTENER_MINLFREFERENCE)
     {
-		pLFProps->mLFReference = FMODLISTENER_MINLFREFERENCE;
+		lfReference = FMODLISTENER_MINLFREFERENCE;
     }
-	else if (pLFProps->mLFReference > FMODLISTENER_MAXLFREFERENCE)
+	else if (lfReference > FMODLISTENER_MAXLFREFERENCE)
     {
-		pLFProps->mLFReference = FMODLISTENER_MAXLFREFERENCE;
+		lfReference = FMODLISTENER_MAXLFREFERENCE;
     }
 
-    SetRoomLF(pLFProps);
+    mLFReference = lfReference;
+
+    SetRoomLF(mRoomLF);
     return 0;
 }
 
@@ -1393,70 +1284,6 @@ bool DSPSfxReverb::SetLFReference(SFX_REVERB_LFPROPS *pLFProps)				// [20.0, 200
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPSfxReverb::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    // Size of this class is already accounted for (via description.mSize). Just add extra allocated memory here.
-
-#ifdef PLATFORM_PS3
-    if (mProps)
-    {
-        tracker->add(false, FMOD_MEMBITS_DSP, sizeof(I3DL2_LISTENERPROPERTIES));
-    }
-
-    if (mUpdateProps)
-    {
-        tracker->add(false, FMOD_MEMBITS_DSP, sizeof(I3DL2_LISTENERPROPERTIES));
-    }
-
-    if (mLFProps)
-    {
-        tracker->add(false, FMOD_MEMBITS_DSP, sizeof(SFX_REVERB_LFPROPS));
-    }
-
-    if (mUpdateLFProps)
-    {
-        tracker->add(false, FMOD_MEMBITS_DSP, sizeof(SFX_REVERB_LFPROPS));
-    }
-#endif
-
-    int delayLine;
-	for (delayLine=0; delayLine<kNumLateReverbDelays; delayLine++)
-	{
-        if (mpSfxDsp.mLateDelays[delayLine])
-        {
-		    tracker->add(false, FMOD_MEMBITS_DSP, mpSfxDsp.mLateDelaySamplesAllocated[delayLine] * sizeof(float));
-        }
-    }
-
-    if (mpSfxDsp.mEarlyLateDelay)
-    {
-        tracker->add(false, FMOD_MEMBITS_DSP, mpSfxDsp.mEarlyLateSamplesAllocated * sizeof(float));
-    }
-
-	for (delayLine=0; delayLine<kNumAllpassDelays; delayLine++)
-	{
-        if (mpSfxDsp.mAllpassDelays[delayLine])
-        {
-            tracker->add(false, FMOD_MEMBITS_DSP, mpSfxDsp.mAllpassSamplesAllocated[delayLine] * sizeof(float));
-        }
-    }
-
-    if (mpSfxDsp.mEarlyDelay)
-    {
-        tracker->add(false, FMOD_MEMBITS_DSP, mpSfxDsp.mEarlyDelaySamplesAllocated * sizeof(float));
-    }
-
-    if (mpSfxDsp.mInBuffMemory)
-    {
-        tracker->add(false, FMOD_MEMBITS_DSP, (mpSfxDsp.mNumAllocatedInBuffSamples * sizeof(float)) + 16);
-    }
-
-    return FMOD_OK;
-}
-
-#endif
 
 #endif
 
@@ -1562,6 +1389,7 @@ FMOD_RESULT F_CALLBACK DSPSfxReverb::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3f4270f0 auto
 // OFFSET: 0x008EA3E0
 FMOD_RESULT F_CALLBACK DSPSfxReverb::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -1613,6 +1441,7 @@ FMOD_RESULT F_CALLBACK DSPSfxReverb::setParameterCallback(FMOD_DSP_STATE *dsp, i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 00c65d10 auto
 // OFFSET: 0x008E98B0
 FMOD_RESULT F_CALLBACK DSPSfxReverb::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
@@ -1621,54 +1450,6 @@ FMOD_RESULT F_CALLBACK DSPSfxReverb::getParameterCallback(FMOD_DSP_STATE *dsp, i
     return sfxreverb->getParameterInternal(index, value, valuestr);
 }
 
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Macintosh, XBox, PlayStation 2, GameCube
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPSfxReverb::updateCallback(FMOD_DSP_STATE *dsp)
-{
-    DSPSfxReverb *sfxreverb = (DSPSfxReverb *)dsp;
-
-    return sfxreverb->updateInternal();
-}
-
-
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPSfxReverb::getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker)
-{
-    DSPSfxReverb *sfxreverb = (DSPSfxReverb *)dsp;    
-
-    return sfxreverb->DSPSfxReverb::getMemoryUsed(tracker);
-}
-#endif
 
 #endif
 

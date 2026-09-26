@@ -78,12 +78,6 @@ FMOD_CODEC_DESCRIPTION_EX *CodecXM::getDescriptionEx()
     xmcodec.setposition     = &CodecXM::setPositionCallback;
     xmcodec.getposition     = &MusicSong::getPositionCallback;
 
-    xmcodec.getmusicnumchannels     = &MusicSong::getMusicNumChannelsCallback;
-    xmcodec.setmusicchannelvolume   = &MusicSong::setMusicChannelVolumeCallback;
-    xmcodec.getmusicchannelvolume   = &MusicSong::getMusicChannelVolumeCallback;
-    xmcodec.gethardwaremusicchannel = &MusicSong::getHardwareMusicChannelCallback;
-    xmcodec.update                  = CodecXM::updateCallback;
-
     xmcodec.mType = FMOD_SOUND_TYPE_XM;
     xmcodec.mSize = sizeof(CodecXM);
 
@@ -237,7 +231,7 @@ FMOD_RESULT CodecXM::updateFlags(MusicChannel *cptr, MusicVirtualChannel *vcptr,
         */
    	    finalvol *= (1.0f / (64.0f * 64.0f * 65536.0f * 64.0f) * 0.5f);
         #endif
-	    vcptr->mChannel.setVolume(finalvol * cptr->mMasterVolume);
+	    vcptr->mChannel.setVolume(finalvol);
     }
     if (vcptr->mNoteControl & FMUSIC_PAN)
     {
@@ -277,7 +271,7 @@ FMOD_RESULT CodecXM::updateFlags(MusicChannel *cptr, MusicVirtualChannel *vcptr,
     }
     if (vcptr->mNoteControl & FMUSIC_STOP)		
     {
-	    vcptr->mChannel.stopEx(CHANNELI_STOPFLAG_RESETCALLBACKS);
+	    vcptr->mChannel.stopEx(false, false, true, true, false, false, false);
         #ifdef FMOD_SUPPORT_SOFTWARE
         mSystem->flushDSPConnectionRequests();
         #endif
@@ -2405,7 +2399,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
     unsigned char   temp;
     FMOD_RESULT     result = FMOD_OK;
 
-    if (!(mFile->mFlags & FMOD_FILE_SEEKABLE))
+    if (!(mFile->mSeekable))
     {
         return FMOD_ERR_FORMAT;
     }
@@ -2953,6 +2947,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
                 FMOD_MODE           sample_mode;
                 unsigned int        sample_length;
                 int                 sample_channels;
+                FMOD_SOUND_FORMAT   sample_format;
 				unsigned char	    dat;
 
 				sptr = &iptr->mSample[count2];
@@ -2990,7 +2985,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
                 */
 	        	sample_mode             = FMOD_SOFTWARE | FMOD_2D;
                 sample_channels         = 1;
-                sptr->mOriginalFormat   = FMOD_SOUND_FORMAT_PCM8;
+                sample_format   = FMOD_SOUND_FORMAT_PCM8;
     
 				result = mFile->getByte(&dat);
                 if (result != FMOD_OK)
@@ -3008,7 +3003,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
 				}
 				if (dat & 16)
                 {
-                    sptr->mOriginalFormat = FMOD_SOUND_FORMAT_PCM16;
+                    sample_format = FMOD_SOUND_FORMAT_PCM16;
                 }
 				if (dat & 32)
                 {
@@ -3032,8 +3027,8 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
 				}
 
                 sptr->mRawLength  = sample_length;
-				sptr->mLoopStart  = sptr->mLoopStart  / (sptr->mOriginalFormat == FMOD_SOUND_FORMAT_PCM8 ? 1 : 2) / sample_channels;
-				sptr->mLoopLength = sptr->mLoopLength / (sptr->mOriginalFormat == FMOD_SOUND_FORMAT_PCM8 ? 1 : 2) / sample_channels;
+				sptr->mLoopStart  = sptr->mLoopStart  / (sample_format == FMOD_SOUND_FORMAT_PCM8 ? 1 : 2) / sample_channels;
+				sptr->mLoopLength = sptr->mLoopLength / (sample_format == FMOD_SOUND_FORMAT_PCM8 ? 1 : 2) / sample_channels;
 
 				result = mFile->getByte(&sptr->mDefaultPan);
                 if (result != FMOD_OK)
@@ -3085,7 +3080,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
                     exinfo.length           = sample_length;
                     exinfo.numchannels      = 1;
                     exinfo.defaultfrequency = 44100;
-                    exinfo.format           = sptr->mOriginalFormat;
+                    exinfo.format           = sample_format;
 
                     #ifdef FMOD_SUPPORT_HARDWAREXM
                     if (usermode & FMOD_HARDWARE)
@@ -3101,7 +3096,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
                             exinfo.length <<= 1;    /* fake bidi by doubling length and flipping 2nd half. */
                         }
 
-                        if (sptr->mOriginalFormat == FMOD_SOUND_FORMAT_PCM16)
+                        if (sample_format == FMOD_SOUND_FORMAT_PCM16)
                         {
                             exinfo.length >>= 1;
                         }
@@ -3152,11 +3147,12 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
 				MusicSample        *sptr = &iptr->mSample[count2];
 				unsigned int        lenbytes = 0;
                 int                 channels;
+                FMOD_SOUND_FORMAT   format;
                 
                 if (sptr->mSound)
                 {
                     lenbytes = sptr->mRawLength;
-                    result = sptr->mSound->getFormat(0, 0, &channels, 0);
+                    result = sptr->mSound->getFormat(0, &format, &channels, 0);
                 }
 
 				if (lenbytes)
@@ -3228,7 +3224,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
 		                unsigned int count3;
 
                         #ifdef PLATFORM_ENDIAN_BIG
-    	                if (sptr->mOriginalFormat == FMOD_SOUND_FORMAT_PCM16)
+    	                if (format == FMOD_SOUND_FORMAT_PCM16)
                         {
 			                unsigned int count3;
 			                signed short *wptr = (signed short *)buff;
@@ -3242,7 +3238,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
 
 
 		                oldval = 0;
-		                if (sptr->mOriginalFormat == FMOD_SOUND_FORMAT_PCM8)
+		                if (format == FMOD_SOUND_FORMAT_PCM8)
 		                {
     		                unsigned char *bptr = (unsigned char *)buff;
 			                for (count3 = 0; count3 < lenbytes; count3++) 
@@ -3288,7 +3284,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
                             }
                             #endif
 		                }
-		                else if (sptr->mOriginalFormat == FMOD_SOUND_FORMAT_PCM16)
+		                else if (format == FMOD_SOUND_FORMAT_PCM16)
 		                {
     		                unsigned short	*wptr = (unsigned short *)buff;
 			                for (count3 = 0; count3 < lenbytes>>1; count3++) 
@@ -3521,14 +3517,13 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
     if (usermode & FMOD_HARDWARE)
     {
         mChannelPool = mSystem->mOutput->mChannelPool;
-        mChannelPoolMemory = 0;
     }
     else
     #endif
     {
         int numrealchannels = mNumVirtualChannels * 2;
 
-        mChannelPoolMemory = mChannelPool = FMOD_Object_Calloc(ChannelPool);
+        mChannelPool = FMOD_Object_Calloc(ChannelPool);
         if (!mChannelPool)
         {
             return FMOD_ERR_MEMORY;
@@ -3572,7 +3567,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
 
     numsubsounds  = 0;
 
-    play(true);
+    play();
 
     return result;
 }
@@ -3598,26 +3593,11 @@ FMOD_RESULT CodecXM::closeInternal()
 {
     int count;
 
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "CodecXM::closeInternal", "%d\n", __LINE__));
-
     stop();
-
-    if (mChannelPoolMemory)
-    {
-        mChannelPoolMemory->release();
-        mChannelPoolMemory = 0;
-    }
-    mChannelPool = 0;
-
-    if (mDSPHead)
-    {
-        mDSPHead->release();
-        mDSPHead = 0;
-    }
 
     if (mSample)
     {
-	    for (count = 0; count < mNumSamples; count++) 
+	    for (count = 0; count < mNumSamples; count++)
 	    {
             if (mSample[count] && mSample[count]->mSound)
             {
@@ -3643,15 +3623,21 @@ FMOD_RESULT CodecXM::closeInternal()
         mVirtualChannel = 0;
     }
 
+    if (mChannelPool)
+    {
+        mChannelPool->release();
+        mChannelPool = 0;
+    }
+
     if (mChannelSoftware)
     {
         FMOD_Memory_Free(mChannelSoftware);
         mChannelSoftware = 0;
     }
-        
+
     if (mPattern)
     {
-	    for (count = 0; count < mNumPatternsMem; count++) 
+	    for (count = 0; count < mNumPatterns; count++)
 	    {
             if (mPattern[count].mData)
             {
@@ -3664,7 +3650,7 @@ FMOD_RESULT CodecXM::closeInternal()
         mPattern = 0;
     }
 
-	for (count = 0; count < mNumChannels; count++) 
+	for (count = 0; count < mNumChannels; count++)
 	{
         if (mMusicChannel[count])
         {
@@ -3678,14 +3664,12 @@ FMOD_RESULT CodecXM::closeInternal()
         FMOD_Memory_Free(mVisited);
         mVisited = 0;
     }
-    
-    if (mWaveFormatMemory)
-    {
-        FMOD_Memory_Free(mWaveFormatMemory);
-        mWaveFormatMemory = 0;
-    }
 
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "CodecXM::closeInternal", "done\n"));
+    if (mDSPHead)
+    {
+        mDSPHead->release();
+        mDSPHead = 0;
+    }
 
     return FMOD_OK;
 }
@@ -3709,10 +3693,10 @@ FMOD_RESULT CodecXM::closeInternal()
 // OFFSET: 0x00905E80
 FMOD_RESULT CodecXM::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
-    FMOD_RESULT     result = FMOD_OK;
-    unsigned int    numsamples;
-    int             numchannels;
-    LocalCriticalSection  criticalsection(mSystem->mDSPCrit);
+    FMOD_RESULT              result = FMOD_OK;
+    unsigned int             numsamples;
+    int                      numchannels;
+    FMOD_OS_CRITICALSECTION *crit = mSystem->mDSPCrit;
 
     numchannels = waveformat[0].channels;
 
@@ -3723,20 +3707,16 @@ FMOD_RESULT CodecXM::readInternal(void *buffer, unsigned int sizebytes, unsigned
 		unsigned int    mixedsofar = 0;
 		unsigned int    mixedleft = mMixerSamplesLeft;
 		unsigned int    samplestomix;
-        char           *destptr;
-
-		/*
-            Keep resetting the mix pointer to the beginning of this portion of the ring buffer
-        */
-        destptr = (char *)buffer;
+        char           *destptr = (char *)buffer;
 
 		while (mixedsofar < numsamples)
 		{
             unsigned int read, bytes;
+            void        *outbuffer = destptr;
 
 			if (!mixedleft)
 			{
-                result = CodecXM::update(true);
+                result = update(true);
                 if (result != FMOD_OK)
                 {
                     return result;
@@ -3745,52 +3725,53 @@ FMOD_RESULT CodecXM::readInternal(void *buffer, unsigned int sizebytes, unsigned
 				samplestomix = mMixerSamplesPerTick;
 				mixedleft = samplestomix;
 			}
-			else 
+			else
             {
 				samplestomix = mixedleft;
             }
 
-			if (mixedsofar + samplestomix > numsamples) 
+			if (mixedsofar + samplestomix > numsamples)
             {
 				samplestomix = numsamples - mixedsofar;
             }
 
             read = samplestomix;
 
-            criticalsection.enter();
+            FMOD_OS_CriticalSection_Enter(crit);
             if (buffer)
 			{
-                result = mDSPHead->read(destptr, &read, FMOD_SPEAKERMODE_STEREO_LINEAR, 2, mDSPTick);
+                result = mDSPHead->execute(outbuffer, &outbuffer, &read, numchannels, &numchannels, FMOD_SPEAKERMODE_STEREO_LINEAR);
                 if (result != FMOD_OK)
                 {
+                    FMOD_OS_CriticalSection_Leave(crit);
                     return result;
                 }
-                mDSPTick++;
+
+                mDSPHead->resetVisited();
             }
+            FMOD_OS_CriticalSection_Leave(crit);
 
             SoundI::getBytesFromSamples(read, &bytes, numchannels, waveformat[0].format);
 
+            if (destptr != outbuffer && buffer)
+            {
+                FMOD_memcpy(destptr, outbuffer, bytes);
+            }
 
-            /* 
-                Buffer returned from the DSP head execute may not be the one we sent in (it may be
-                one of the global buffers). Don't leave mDSPCrit until after we have copied data out
-            */
-            criticalsection.leave();
-
-			mixedsofar += read;
-			destptr    += bytes;
 			mixedleft  -= read;
+			destptr    += bytes;
+			mixedsofar += read;
 		}
 
 		mMixerSamplesLeft = mixedleft;
 	}
 
     if (bytesread)
-    {    
+    {
         *bytesread = sizebytes;
     }
 
-    return result;	
+    return FMOD_OK;
 }
 
 
@@ -3955,28 +3936,6 @@ FMOD_RESULT F_CALLBACK CodecXM::setPositionCallback(FMOD_CODEC_STATE *codec, int
     return cxm->setPositionInternal(subsound, position, postype);
 }
 
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK CodecXM::updateCallback(FMOD_CODEC_STATE *codec)
-{
-    CodecXM *cxm = (CodecXM *)codec;
-
-    return cxm->update(true);
-}
 
 }
 

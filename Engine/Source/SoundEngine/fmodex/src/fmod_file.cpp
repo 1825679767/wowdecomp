@@ -71,31 +71,15 @@ extern "C"
 // OFFSET: 0x008E6B10
 FMOD_RESULT F_API FMOD_File_SetDiskBusy(int busy)
 {
-    #ifdef PLATFORM_PS2_EE
-    {
-        FMOD_RESULT result;
-        struct
-        {
-            int busy;
-        } cmd = { busy };
-
-        result = FMOD_Command_Send(2, FMOD::FMOD_CMD_SETDISKBUSY, &cmd, sizeof(cmd), 0, 0, 0, true);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-    }
-    #endif
-
     if (busy)
     {
-        FMOD_OS_CriticalSection_Enter(FMOD::gGlobal->gFileCrit);
+        FMOD_OS_CriticalSection_Enter(FMOD::File::gFileCrit);
         FMOD::gGlobal->gFileBusy = true;
     }
     else
     {
         FMOD::gGlobal->gFileBusy = false;
-        FMOD_OS_CriticalSection_Leave(FMOD::gGlobal->gFileCrit);
+        FMOD_OS_CriticalSection_Leave(FMOD::File::gFileCrit);
     }
 
     return FMOD_OK;
@@ -141,6 +125,11 @@ FMOD_RESULT F_API FMOD_File_GetDiskBusy(int *busy)
 
 namespace FMOD
 {
+
+LinkedListNode           File::gFileThreadHead;
+FMOD_OS_CRITICALSECTION *File::gFileCrit          = 0;
+bool                     File::gUsesUserCallbacks = false;
+int                      File::gBufferSize        = FILE_SECTORSIZE;
 
 #ifndef PLATFORM_PS3_SPU
 
@@ -194,7 +183,7 @@ FMOD_RESULT FileThread::threadFunc()
             mFileListNext = mFileListCurrent->getNext();
 
             file = SAFE_CAST(File, mFileListCurrent);
-            if (file->mFlags & FMOD_FILE_FLIPPING)
+            if (file->mFlipping)
             {
                 FMOD_OS_CriticalSection_Leave(mFileListCrit);
         
@@ -251,12 +240,9 @@ FileThread::FileThread()
 ]
 */
 // OFFSET: 0x008E7D90
-FMOD_RESULT FileThread::init(int devicetype, bool owned, SystemI *system)
+FMOD_RESULT FileThread::init(int devicetype, bool owned)
 {
     FMOD_RESULT result;
-
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "FileThread::init", "created thread for %p\n", this));
-    FLOG_INDENT(4);
 
     mDeviceType = devicetype;
     mOwned      = owned;
@@ -264,24 +250,18 @@ FMOD_RESULT FileThread::init(int devicetype, bool owned, SystemI *system)
     result = FMOD_OS_CriticalSection_Create(&mFileListCrit);
     if (result != FMOD_OK)
     {
-        FLOG_INDENT(-4);
         return result;
     }
 
-    result = mThread.initThread("FMOD file thread", fileThreadFunc, this, FILE_THREADPRIORITY, 0, FILE_STACKSIZE, true, 0, system);
+    result = mThread.initThread("FMOD file thread", fileThreadFunc, this, FILE_THREADPRIORITY, 0, FILE_STACKSIZE, true, 0);
     if (result != FMOD_OK)
     {
-        FLOG_INDENT(-4);
-        FMOD_OS_CriticalSection_Free(mFileListCrit);
         return result;
     }
 
     mThreadActive = true;
 
-    addAfter(&FMOD::gGlobal->gFileThreadHead);
-
-    FLOG_INDENT(-4);
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "FileThread::init", "done\n", this));
+    addAfter(&File::gFileThreadHead);
 
     return FMOD_OK;
 }
@@ -316,8 +296,6 @@ FMOD_RESULT FileThread::release()
 
     FMOD_Memory_Free(this);
 
-    FLOG((FMOD_DEBUG_USER_ANDREW, __FILE__, __LINE__, "FileThread::release", "released thread for %p\n", this));
-
     return FMOD_OK;
 }
 
@@ -346,8 +324,6 @@ FMOD_RESULT File::getFileThread()
     int             devicetype;
     bool            found, owned;
     FileThread     *filethread = 0;
-   
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::getFileThread", "creating file thread\n"));
 
     devicetype = DEVICE_DISK;
     owned      = false;
@@ -370,8 +346,8 @@ FMOD_RESULT File::getFileThread()
     found = false;
     if (devicetype == DEVICE_DISK)
     {
-        current = FMOD::gGlobal->gFileThreadHead.getNext();
-        while (current != &FMOD::gGlobal->gFileThreadHead)
+        current = gFileThreadHead.getNext();
+        while (current != &gFileThreadHead)
         {
             filethread = SAFE_CAST(FileThread, current);
 
@@ -393,17 +369,14 @@ FMOD_RESULT File::getFileThread()
             return FMOD_ERR_MEMORY;
         }
 
-        result = filethread->init(devicetype, owned, mSystem);
+        result = filethread->init(devicetype, owned);
         if (result != FMOD_OK)
         {
-            FMOD_Memory_Free(filethread);
             return result;
         }
     }
 
     mFileThread = filethread;
-
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::getFileThread", "done\n"));
 
     return FMOD_OK;
 }
@@ -426,7 +399,7 @@ FMOD_RESULT File::getFileThread()
 // OFFSET: 0x008E7C10
 File::File()
 {
-    mFlags               = FMOD_FILE_BUFFERISSTRING | FMOD_FILE_SEEKABLE;
+    init(0, gBufferSize);
 }
 
 
@@ -444,34 +417,33 @@ File::File()
 ]
 */
 // OFFSET: 0x008E6BC0
-FMOD_RESULT File::init(SystemI *system, unsigned int filesize, int blocksize)
+FMOD_RESULT File::init(unsigned int filesize, int blocksize)
 {
     mBlockSize           = blocksize;
-    mLength              = 0;
+    mBufferIsString      = true;
+    mSeekable            = true;
+    mBusy                = false;
+    mFlipping            = false;
     mFileThread          = 0;
     mRiderHandle         = 0;
     mRiderUserData       = 0;
-    mSystem              = system;
+    mSystem              = 0;
+    mBigEndian           = false;
     mStartOffset         = 0;
-    mBuffer              = 0;
-    mBufferMemory        = 0;
-#ifdef PLATFORM_PS3
-    mBufferSize          = mBlockSize;
-#else
-    mBufferSize          = 0;
-#endif
     mCurrentPosition     = 0;
     mNextPosition        = 0;
     mNextPositionDisplay = 0;
     mBlockOffset         = 0;
+    mBuffer              = 0;
     mBufferPos           = 0;
     mBufferSkip          = 0;
     mAsyncError          = FMOD_OK;
+    mExit                = false;
+    mStarving            = false;
     mEncryptionKeyLength = 0;
-    mEncryptionKeyIndex  = 0;	
+    mEncryptionKeyIndex  = 0;
     mSema                = 0;
     mPercentBuffered     = 0;
-    
     mLengthOriginal      = filesize;
     mLength              = filesize;
     mFileSize            = filesize;
@@ -501,10 +473,8 @@ FMOD_RESULT File::shutDown()
 {
     LinkedListNode *current, *next;
 
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::shutDown","\n"));
-
-    current = FMOD::gGlobal->gFileThreadHead.getNext();
-    while (current != &FMOD::gGlobal->gFileThreadHead)
+    current = gFileThreadHead.getNext();
+    while (current != &gFileThreadHead)
     {
         FileThread *filethread;
 
@@ -519,18 +489,15 @@ FMOD_RESULT File::shutDown()
 #ifdef FMOD_SUPPORT_NET
     NetFile::shutDown();
 #endif
-
 #ifdef FMOD_SUPPORT_CDDA
     CddaFile::shutDown();
 #endif
 
-    if (FMOD::gGlobal->gFileCrit)
+    if (gFileCrit)
     {
-        FMOD_OS_CriticalSection_Free(FMOD::gGlobal->gFileCrit);
-        FMOD::gGlobal->gFileCrit = 0;
+        FMOD_OS_CriticalSection_Free(gFileCrit);
+        gFileCrit = 0;
     }
-
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::shutDown","done\n"));
 
     return FMOD_OK;
 }
@@ -554,26 +521,23 @@ FMOD_RESULT File::open(const char *name_or_data, unsigned int length, bool unico
 {
     FMOD_RESULT result;
 
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::open", "name %s : length %d : unicode %s\n", name_or_data, length, unicode ? "YES" : "NO"));
-
-    mFlags              &= ~FMOD_FILE_BIGENDIAN;
+    mUnicode             = unicode;
+    mBigEndian           = false;
     mStartOffset         = 0;
     mCurrentPosition     = 0;
     mNextPosition        = 0;
     mNextPositionDisplay = 0;
     mBlockOffset         = 0;
+    mBuffer              = 0;
     mBufferPos           = 0;
     mBufferSkip          = 0;
     mAsyncError          = FMOD_OK;
-    mFlags              &= ~FMOD_FILE_EXIT;
-    mFlags              &= ~FMOD_FILE_STARVING;
+    mExit                = false;
+    mStarving            = false;
     mEncryptionKeyLength = 0;
-    mEncryptionKeyIndex  = 0;	
-
+    mEncryptionKeyIndex  = 0;
     mLength              = length;
-    mFileSize            = length;    
-
-    unicode ? mFlags |= FMOD_FILE_UNICODE : mFlags &= ~FMOD_FILE_UNICODE;
+    mFileSize            = length;
 
     if (encryptionkey)
     {
@@ -586,62 +550,44 @@ FMOD_RESULT File::open(const char *name_or_data, unsigned int length, bool unico
         FMOD_memset(mEncryptionKey, 0, 32);
         FMOD_strncpy(mEncryptionKey, encryptionkey, mEncryptionKeyLength);
     }
-    
-    mBufferSize = mBlockSize;           /* Blocking single buffer */    
-    if (mBufferSize && !mBuffer)
+
+    mBufferSize = mBlockSize;           /* Blocking single buffer */
+    if (mBufferSize)
     {
-        mBufferMemory = FMOD_Memory_Calloc(mBufferSize + FMOD_FILE_ALIGN);
-        if (!mBufferMemory)
+        mBuffer = FMOD_Memory_Calloc(mBufferSize);
+        if (!mBuffer)
         {
             return FMOD_ERR_MEMORY;
         }
-        
-        #if (FMOD_FILE_ALIGN > 0)
-        mBuffer = (void *)FMOD_ALIGNPOINTER(mBufferMemory, FMOD_FILE_ALIGN);
-        #else
-        mBuffer = mBufferMemory;
-        #endif
     }
 
     result = reallyOpen(name_or_data, &mFileSize);
     if (result != FMOD_OK)
     {
-        if (mBufferMemory)
+        if (mBuffer)
         {
-            FMOD_Memory_Free(mBufferMemory);
-            mBuffer = mBufferMemory = 0;
-        }      
+            FMOD_Memory_Free(mBuffer);
+            mBuffer = 0;
+        }
         return result;
     }
 
-    if (name_or_data && mFlags & FMOD_FILE_BUFFERISSTRING)
+    if (name_or_data && mBufferIsString)
     {
-        if (mFlags & FMOD_FILE_UNICODE)
-        {
-            FMOD_strncpyW((short*)mName, (short*)name_or_data, FMOD_STRING_MAXNAMELEN / 2);
-            FMOD_wtoa((short*)mName);
-        }
-        else
-        {
-            FMOD_strncpy(mName, name_or_data, FMOD_STRING_MAXNAMELEN);
-        }
-        mName[FMOD_STRING_MAXNAMELEN - 1] = 0; //null terminator
+        FMOD_strncpy(mName, name_or_data, FMOD_STRING_MAXNAMELEN);
+        mName[FMOD_STRING_MAXNAMELEN - 1] = 0;
     }
 
-    #ifndef PLATFORM_PS3_SPU
-    if (mSystem && mSystem->mOpenRiderCallback)
+    if (mSystem && mSystem->mOpenCallback)
     {
-        mSystem->mOpenRiderCallback(name_or_data, unicode, &mFileSize, &mRiderHandle, &mRiderUserData);
+        mSystem->mOpenCallback(name_or_data, unicode, &mFileSize, &mRiderHandle, &mRiderUserData);
     }
-    #endif
 
     if (!mLength)
     {
         mLength = mFileSize;
     }
     mLengthOriginal = mLength;
-
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::open", "done.  handle %p.  File size = %d\n", this, mLength));
 
     return FMOD_OK;
 }
@@ -665,30 +611,28 @@ FMOD_RESULT File::close()
 {
     FMOD_RESULT result;
 
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::close", "handle %p\n", this));
-    
     /*
         Cancel any pending file requests.
         This is needed for Wii / GC and to cancel net reads.
     */
     cancel();
 
-    #ifndef PLATFORM_PS3_SPU
-    if (mSema && mFlags & FMOD_FILE_BUSY)
+    if (mSema && mBusy)
     {
         FMOD_OS_Semaphore_Wait(mSema);
         FMOD_OS_Semaphore_Signal(mSema);
     }
-    #endif
 
     if (mFileThread)
     {
         FMOD_OS_CriticalSection_Enter(mFileThread->mFileListCrit);
+
         if (this == mFileThread->mFileListNext)
         {
             mFileThread->mFileListNext = getNext();
         }
         removeNode();
+
         FMOD_OS_CriticalSection_Leave(mFileThread->mFileListCrit);
 
         if (mFileThread->mOwned)
@@ -706,23 +650,16 @@ FMOD_RESULT File::close()
         FMOD_OS_Semaphore_Free(mSema);
     }
 
-    #ifndef PLATFORM_PS3_SPU
-    if (mSystem && mSystem->mCloseRiderCallback)
+    if (mSystem && mSystem->mCloseCallback)
     {
-        FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::close", "calling rider callback\n"));
-
-        mSystem->mCloseRiderCallback(mRiderHandle, mRiderUserData);
-    }
-    #endif
-
-    if (mBufferMemory)
-    {
-        FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::close", "free mBuffer (mBuffer = %p, mBufferMemory = %p)\n", mBuffer, mBufferMemory));
-        FMOD_Memory_Free(mBufferMemory);
-        mBuffer = mBufferMemory = 0;
+        mSystem->mCloseCallback(mRiderHandle, mRiderUserData);
     }
 
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::close", "handle %p done\n", this));
+    if (mBuffer)
+    {
+        FMOD_Memory_Free(mBuffer);
+        mBuffer = 0;
+    }
 
     return result;
 }
@@ -744,9 +681,28 @@ FMOD_RESULT File::close()
 // OFFSET: 0x008E6F00
 FMOD_RESULT File::cancel()
 {
-    mFlags |= FMOD_FILE_EXIT;
-
+    mExit = true;
     return reallyCancel();
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+	[SEE_ALSO]
+]
+*/
+// OFFSET: 0x008E6EE0
+bool File::readyForClose()
+{
+    return !mSema || !mBusy;
 }
 
 #endif // !PLATFORM_PS3_SPU
@@ -774,30 +730,18 @@ FMOD_RESULT File::flip(bool frommainthread)
     {
         FMOD_OS_Semaphore_Wait(mSema);
     }
+
     {
         unsigned int  bytestoread = mBlockSize - mBufferSkip;
-        unsigned int  bytestoreadorig;
-        unsigned int  bytesread   = 0;
         char         *destptr     = (char *)mBuffer + mBlockOffset + mBufferSkip;
 
-        mFlags |= FMOD_FILE_BUSY;
-
-        FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::flip", "%p    **** fill   to %d with %d bytes.  mBlockOffset %d mBufferSkip %d\n", this, mBlockOffset + mBufferSkip, bytestoread, mBlockOffset, mBufferSkip));
-
-        bytestoreadorig = bytestoread;
+        mBusy = true;
 
         while (bytestoread)
         {
-            unsigned int  read;
             unsigned int  r = 0;
 
-            read = bytestoread;
-
-            #ifdef PLATFORM_PS3_SPU
-            result = FMOD_DmaFile_ReadCallback(this, destptr, read, &r);
-            #else
-            result = reallyRead(destptr, read, &r);
-            #endif
+            result = reallyRead(destptr, bytestoread, &r);
             if (result != FMOD_OK)
             {
                 bytestoread = r;
@@ -811,51 +755,32 @@ FMOD_RESULT File::flip(bool frommainthread)
                 }
             }
 
-            #ifndef PLATFORM_PS3_SPU
-            if (mSystem && mSystem->mReadRiderCallback)
+            if (mSystem && mSystem->mReadCallback)
             {
-                mSystem->mReadRiderCallback(mRiderHandle, destptr, r, 0, mRiderUserData);
+                mSystem->mReadCallback(mRiderHandle, destptr, r, 0, mRiderUserData);
             }
-            #endif
 
             if (!r || r > bytestoread)
             {
-                if (r > bytestoread)
-                {
-                    FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "File::flip", "    BAD LENGTH RETURNED FROM FILE READ FUNCTION, TERMINATING.\n"));
-                }
                 break;
             }
 
+            mNextPositionDisplay += r;
             bytestoread          -= r;
             destptr              += r;
-            bytesread            += r;
-            mNextPositionDisplay += r;
 
-            mPercentBuffered = (int)(((float)mNextPositionDisplay - (float)mCurrentPosition) / (float)mBufferSize * 100.0f);
+            mPercentBuffered = (int)((float)(mNextPositionDisplay - mCurrentPosition) / (float)mBufferSize * 100.0f);
             if (mPercentBuffered < 0)
             {
                 mPercentBuffered = 0;
             }
 
-            if (mFlags & FMOD_FILE_EXIT)
+            if (mExit)
             {
-                mFlags &= ~FMOD_FILE_EXIT;
                 break;
             }
         }
 
-        FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::flip", "%p    **** filled to %8d got  %8d bytes\n", this, mBlockOffset + mBufferSkip, bytesread));
-
-        if (!mBlockOffset)
-        {
-            mFlags |= FMOD_FILE_FRONTBUFFERFULL;
-        }
-        else
-        {
-            mFlags |= FMOD_FILE_BACKBUFFERFULL;
-        }
-        
         mBlockOffset += mBlockSize;
         if (mBlockOffset >= mBufferSize)
         {
@@ -863,11 +788,11 @@ FMOD_RESULT File::flip(bool frommainthread)
         }
 
         mBufferSkip = 0;
-        mAsyncError = result;        
-        mFlags &= ~FMOD_FILE_FLIPPING;
+        mAsyncError = result;
+        mFlipping = false;
     }
 
-    mFlags &= ~FMOD_FILE_BUSY;
+    mBusy = false;
 
     if (mSema)
     {
@@ -897,17 +822,15 @@ FMOD_RESULT File::seekAndReset()
     FMOD_RESULT result;
     unsigned int alignedpos;
 
-    #ifndef PLATFORM_PS3_SPU
-    if (mSema && mFlags & FMOD_FILE_BUSY)
+    if (mSema && mBusy)
     {
         FMOD_OS_Semaphore_Wait(mSema);
         FMOD_OS_Semaphore_Signal(mSema);
     }
-    #endif
 
     alignedpos = mCurrentPosition;
     alignedpos /= mBufferSize;      /* We are seeking resetting to the start of the WHOLE buffer */
-    alignedpos *= mBufferSize;       
+    alignedpos *= mBufferSize;
 
     mBufferPos           = mCurrentPosition - alignedpos;
     mBlockOffset         = 0;
@@ -915,29 +838,12 @@ FMOD_RESULT File::seekAndReset()
     mNextPositionDisplay = mNextPosition;
     mBufferSkip          = 0;
 
-    mFlags &= ~FMOD_FILE_FRONTBUFFERFULL;   /* Reset state of buffers. */
-    mFlags &= ~FMOD_FILE_BACKBUFFERFULL;
-
-
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::seekAndReset", "%p    seek to %d\n", this, alignedpos));
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::seekAndReset", "%p    reset mBufferPos to %d\n", this, mBufferPos));
-
-    #ifdef PLATFORM_PS3_SPU
-
-    result = FMOD_DmaFile_SeekCallback(this, alignedpos);
-
-    #else
-
     result = reallySeek(alignedpos);
 
-    #endif
-
-    #ifndef PLATFORM_PS3_SPU
-    if (mSystem && mSystem->mSeekRiderCallback)
+    if (mSystem && mSystem->mSeekCallback)
     {
-        mSystem->mSeekRiderCallback(mRiderHandle, alignedpos, mRiderUserData);
+        mSystem->mSeekCallback(mRiderHandle, alignedpos, mRiderUserData);
     }
-    #endif
 
     return result;
 }
@@ -962,23 +868,18 @@ FMOD_RESULT File::checkBufferedStatus()
     FMOD_RESULT result;
     int diff;
 
-    #ifndef PLATFORM_PS3_SPU
-
-    if (mAsyncError != FMOD_OK && mAsyncError != FMOD_ERR_FILE_EOF && mAsyncError != FMOD_ERR_FILE_DISKEJECTED)
+    if (mAsyncError != FMOD_OK && mAsyncError != FMOD_ERR_FILE_EOF)
     {
         return mAsyncError;
     }
-    
-    #endif
 
-    if (mNextPosition < mCurrentPosition ||     /* If the position after the buffer */
-        (mBufferSize > mBlockSize && !(mFlags & (FMOD_FILE_BACKBUFFERFULL | FMOD_FILE_FLIPPING)) && mCurrentPosition < mNextPosition - mBlockSize))    /* or behind the buffer. */
+    if (mNextPosition < mCurrentPosition)     /* If the position after the buffer */
     {
-        diff = -1;       
+        diff = -1;
     }
     else
     {
-        mPercentBuffered = (int)(((float)mNextPositionDisplay - (float)mCurrentPosition) / (float)mBufferSize * 100.0f);
+        mPercentBuffered = (int)((float)(mNextPositionDisplay - mCurrentPosition) / (float)mBufferSize * 100.0f);
         if (mPercentBuffered < 0 || mBufferSkip)
         {
             mPercentBuffered = 0;
@@ -986,8 +887,8 @@ FMOD_RESULT File::checkBufferedStatus()
 
         diff = mNextPosition - mCurrentPosition;
         diff += (mBlockSize - 1);
-        diff /= mBlockSize;
-    }	
+        diff /= (int)mBlockSize;
+    }
 
     if (mBufferSkip)
     {
@@ -1003,36 +904,24 @@ FMOD_RESULT File::checkBufferedStatus()
         }
     }
 
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::checkBufferedStatus", "%p    mCurrentPosition %d mNextPosition %d nextpos diffbytes %d diff %d\n", this, mCurrentPosition, mNextPosition, mNextPosition - mCurrentPosition, diff));
-
     if (diff != 2)
     {
-        #ifndef PLATFORM_PS3_SPU
-        if (mFlags & FMOD_FILE_BUSY)
+        mStarving = true;
+        if (mBusy)
         {
-            mFlags |= FMOD_FILE_STARVING;
-        
             FMOD_OS_Semaphore_Wait(mSema);
             FMOD_OS_Semaphore_Signal(mSema);
-
-            mFlags &= ~FMOD_FILE_STARVING;
         }
-        #endif
+        mStarving = false;
     }
 
-    /* 
+    /*
         If diff = 1, then we are reading from the front buffer, so non blocking fill the back buffer.
     */
-    if(0)
+    if (diff == 1 && mBufferSize > mBlockSize)  /* This case is only for double buffered (buffsize > blocksize) */
     {
-    }
-#ifndef PLATFORM_PS3_SPU
-    else if (diff == 1 && mBufferSize > mBlockSize)  /* This case is only for double buffered (buffsize > blocksize) */
-    {
-        FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::checkBufferedStatus", "%p    issue non blocking flip\n", this));
-    
-        mFlags |= FMOD_FILE_BUSY;
-        mFlags |= FMOD_FILE_FLIPPING;
+        mBusy = true;
+        mFlipping = true;
 
         FMOD_OS_Semaphore_Wait(mSema);      /* ENTER */
 
@@ -1043,8 +932,7 @@ FMOD_RESULT File::checkBufferedStatus()
 
         return FMOD_OK;
     }
-#endif
-    /* 
+    /*
         If diff = 2, then we are reading from the front buffer and the fill is more than 1 ahead, so there is no current danger of undderun.
         This means we can just exit.
     */
@@ -1057,7 +945,7 @@ FMOD_RESULT File::checkBufferedStatus()
     */
     else
     {
-        if (diff && mFlags & FMOD_FILE_SEEKABLE)  /* was there a seek */
+        if (diff && mSeekable)  /* was there a seek */
         {
             result = seekAndReset();
             if (result != FMOD_OK)
@@ -1069,18 +957,11 @@ FMOD_RESULT File::checkBufferedStatus()
         /*
             Fill the front buffer.
         */
-        FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::checkBufferedStatus", "%p    FORCIBLY FILL FRONTBUFFER\n", this));
-        
         result = flip(true);
         if (result != FMOD_OK && result != FMOD_ERR_FILE_EOF)
         {
-            if (result == FMOD_ERR_FILE_DISKEJECTED)
-            {
-                mFlags |= FMOD_FILE_STARVING;
-            }
             return result;
         }
-        mFlags &= ~FMOD_FILE_STARVING;
 
         if (mBufferSize == mBlockSize && result == FMOD_ERR_FILE_EOF && (int)mLength == -1)
         {
@@ -1095,27 +976,18 @@ FMOD_RESULT File::checkBufferedStatus()
         */
         if (mBufferPos >= mBlockSize)
         {
-            FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::checkBufferedStatus", "%p    FORCIBLY FILL BACKBUFFER\n", this));
-            
             result = flip(true);
             if (result != FMOD_OK && result != FMOD_ERR_FILE_EOF)
             {
-                if (result == FMOD_ERR_FILE_DISKEJECTED)
-                {
-                    mFlags |= FMOD_FILE_STARVING;
-                }
                 return result;
             }
-            mFlags &= ~FMOD_FILE_STARVING;
 
             mNextPositionDisplay = mNextPosition;
             mNextPosition += mBlockSize;
         }
-        
+
         return result;
     }
-
-    return FMOD_ERR_INTERNAL;
 }
 
 
@@ -1143,16 +1015,13 @@ FMOD_RESULT File::read(void *buffer, unsigned int size, unsigned int count, unsi
 
     if (!buffer)
     {
-        return FMOD_ERR_INVALID_PARAM; 
+        return FMOD_ERR_INVALID_PARAM;
     }
 
     if ((int)(size * count) < 0)
     {
-        FLOG(((FMOD_DEBUGLEVEL)(FMOD_DEBUG_TYPE_FILE | FMOD_DEBUG_LEVEL_ERROR), __FILE__, __LINE__, "File::read", "Tried to read %d bytes\n", size * count));
         return FMOD_ERR_INVALID_PARAM;
     }
-
-    mFlags &= ~FMOD_FILE_EXIT;
 
     size *= count;
 
@@ -1164,14 +1033,10 @@ FMOD_RESULT File::read(void *buffer, unsigned int size, unsigned int count, unsi
         }
         else
         {
-            size = 0;
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "File::read", "(mCurrentPosition + size) > mStartOffset + mLength\n"));
             return FMOD_ERR_FILE_BAD;
         }
         eof = true;
     }
-
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::read", "%p----> want to read %d\n", this, size));
 
     bytesleft = size;
 
@@ -1179,20 +1044,11 @@ FMOD_RESULT File::read(void *buffer, unsigned int size, unsigned int count, unsi
     {
         size = bytesleft;
 
-        #ifndef PLATFORM_PS3_SPU
         /*
             Direct read - single buffered only.
         */
-        if ((mBlockSize == mBufferSize && size > mBlockSize && !mBufferPos && mFlags & FMOD_FILE_SEEKABLE)
-            #if defined(PLATFORM_GC) || defined(PLATFORM_WII)
-            &&
-            ((mDeviceType == DEVICE_DISK || mDeviceType == DEVICE_USER) ? (((FMOD_UINT_NATIVE)((char *)buffer + r) & (FMOD_FILE_ALIGN - 1)) ? false : true) : true)  /* Dest must be 32 byte aligned (if it is a disk file) */
-            #endif
-        )
+        if (mBlockSize == mBufferSize && size > mBlockSize && !mBufferPos && mSeekable)
         {
-            FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::read", "%p    mCurrentPosition %d mNextPosition %d nextpos diffbytes %d\n", this, mCurrentPosition, mNextPosition, mNextPosition - mCurrentPosition));
-            FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::read", "%p    DIRECT READ want %d bytes\n", this, size));
-
             if (mBlockSize)
             {
                 if (mCurrentPosition != mNextPosition)
@@ -1208,50 +1064,38 @@ FMOD_RESULT File::read(void *buffer, unsigned int size, unsigned int count, unsi
                 size *= mBlockSize;
             }
 
-            #ifdef PLATFORM_PS3_SPU
-            result = FMOD_DmaFile_ReadCallback(this, (char *)buffer + r, size, &size);
-            #else
             result = reallyRead((char *)buffer + r, size, &size);
-            #endif
 
-            mFlags &= ~FMOD_FILE_BUSY;
+            mBusy = false;
 
-            #ifndef PLATFORM_PS3_SPU
-            if (mSystem && mSystem->mReadRiderCallback)
+            if (mSystem && mSystem->mReadCallback)
             {
-                mSystem->mReadRiderCallback(mRiderHandle, (char *)buffer + r, size, 0, mRiderUserData);
+                mSystem->mReadCallback(mRiderHandle, (char *)buffer + r, size, 0, mRiderUserData);
             }
-            #endif
 
             if (result != FMOD_OK && result != FMOD_ERR_FILE_EOF)
             {
                 return result;
             }
 
-            FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::read", "%p    DIRECT READ got  %d bytes\n", this, size));
-
             mNextPositionDisplay = mNextPosition;
             mNextPosition += size;
-            
+
             if (!size)
             {
                 result = FMOD_ERR_FILE_EOF;
             }
-            
             if (result == FMOD_ERR_FILE_EOF)
             {
                 break;
             }
         }
-
         /*
             Buffered read - single or double buffered.
         */
         else
-        #endif
         {
-            result = checkBufferedStatus();             
-
+            result = checkBufferedStatus();
             if (result == FMOD_ERR_FILE_EOF && !(mBlockSize == mBufferSize && (int)mLength == -1))
             {
                 result = FMOD_OK;           /* We dont care about the EOF for the flip status, we determine EOF ourselves. */
@@ -1268,58 +1112,45 @@ FMOD_RESULT File::read(void *buffer, unsigned int size, unsigned int count, unsi
 
             FMOD_memcpy((char *)buffer + r, (char *)mBuffer + mBufferPos, size);
 
-            FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::read", "%p    copied %d bytes from mBufferPos = %d\n", this, size, mBufferPos));
-
             mBufferPos += size;
             if (mBufferPos >= mBufferSize)
             {
-                FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::read", "%p    buffer wrap\n", this));           
                 mBufferPos = 0;
             }
         }
 
         mCurrentPosition += size;
-        bytesleft -= size;
         r += size;
+        bytesleft -= size;
     }
 
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::read", "%p<---- done\n", this));
-
     if (oldsize == 2)
-    {    
+    {
         unsigned short *wptr = (unsigned short *)buffer;
         unsigned int i;
 
-        #ifdef PLATFORM_ENDIAN_LITTLE
-        if (mFlags & FMOD_FILE_BIGENDIAN)
-        #else
-        if (!(mFlags & FMOD_FILE_BIGENDIAN))
-        #endif
+        for (i=0; i < (r / oldsize); i++)
         {
-            for (i=0; i < (r / oldsize); i++)
+            if (mBigEndian)
             {
                 wptr[i] = FMOD_SWAPENDIAN_WORD(wptr[i]);
             }
         }
     }
     else if (oldsize == 4)
-    {    
+    {
         unsigned int *dptr = (unsigned int *)buffer;
         unsigned int i;
 
-        #ifdef PLATFORM_ENDIAN_LITTLE
-        if (mFlags & FMOD_FILE_BIGENDIAN)
-        #else
-        if (!(mFlags & FMOD_FILE_BIGENDIAN))
-        #endif
+        for (i=0; i < (r / oldsize); i++)
         {
-            for (i=0; i < (r / oldsize); i++)
+            if (mBigEndian)
             {
                 dptr[i] = FMOD_SWAPENDIAN_DWORD(dptr[i]);
             }
         }
     }
-    
+
     r /= oldsize;
 
     if (mEncryptionKeyLength)
@@ -1327,30 +1158,14 @@ FMOD_RESULT File::read(void *buffer, unsigned int size, unsigned int count, unsi
         unsigned char *val = (unsigned char *)buffer;
         unsigned int count;
 
-        if (mFlags & FMOD_FILE_USEOLDDECRYPT)
+        for (count = 0; count < r; count++)
         {
-            for (count = 0; count < r; count++)
-            {
-                FMOD_DECRYPT_OLD(val[count], mEncryptionKey[mEncryptionKeyIndex]);
+            FMOD_DECRYPT(val[count], mEncryptionKey[mEncryptionKeyIndex]);
 
-                mEncryptionKeyIndex++;
-                if (mEncryptionKeyIndex >= mEncryptionKeyLength)
-                {
-                    mEncryptionKeyIndex = 0;
-                }
-            }
-        }
-        else
-        {
-            for (count = 0; count < r; count++)
+            mEncryptionKeyIndex++;
+            if (mEncryptionKeyIndex >= mEncryptionKeyLength)
             {
-                FMOD_DECRYPT(val[count], mEncryptionKey[mEncryptionKeyIndex]);
-
-                mEncryptionKeyIndex++;
-                if (mEncryptionKeyIndex >= mEncryptionKeyLength)
-                {
-                    mEncryptionKeyIndex = 0;
-                }
+                mEncryptionKeyIndex = 0;
             }
         }
     }
@@ -1757,20 +1572,12 @@ FMOD_RESULT File::seek(int pos, int mode)
 {
     FMOD_RESULT  result = FMOD_OK;
     unsigned int newpos = 0;
-    int          delta;
 
-	if (mode != SEEK_SET && mode != SEEK_CUR && mode != SEEK_END)
-    {
-		return FMOD_ERR_INVALID_PARAM;
-    }
-
-    mFlags &= ~FMOD_FILE_EXIT;
-
-	if (mode == SEEK_SET) 
+	if (mode == SEEK_SET)
     {
         newpos = mStartOffset + pos;
     }
-	else if (mode == SEEK_CUR) 
+	else if (mode == SEEK_CUR)
     {
         newpos = mCurrentPosition + pos;
     }
@@ -1778,7 +1585,11 @@ FMOD_RESULT File::seek(int pos, int mode)
     {
         newpos = mStartOffset + mLength + pos;
     }
-    
+    else
+    {
+		return FMOD_ERR_INVALID_PARAM;
+    }
+
     if (newpos > mStartOffset + mLength)
     {
         if (pos >= 0)
@@ -1794,15 +1605,15 @@ FMOD_RESULT File::seek(int pos, int mode)
     /*
         If no read has been done and not seekable and we are trying to seek beyond the first (future) read size, return an error.
     */
-    if (!mNextPosition && !(mFlags & FMOD_FILE_SEEKABLE) && newpos >= mBlockSize)
+    if (!mNextPosition && !mSeekable && newpos >= mBlockSize)
     {
         return FMOD_ERR_FILE_COULDNOTSEEK;
     }
 
-    /* 
-        Single buffered, not seekable, dont allow seeks outside the current buffer 
+    /*
+        Single buffered, not seekable, dont allow seeks outside the current buffer
     */
-    if ((mBlockSize == mBufferSize) && !(mFlags & FMOD_FILE_SEEKABLE) && (mNextPosition >= mBlockSize))   
+    if ((mBlockSize == mBufferSize) && !mSeekable && (mNextPosition >= mBlockSize))
     {
         if (mNextPosition && newpos < mNextPosition - mBlockSize)
         {
@@ -1814,8 +1625,6 @@ FMOD_RESULT File::seek(int pos, int mode)
         }
     }
 
-    delta = newpos - mCurrentPosition;
-
     mCurrentPosition = newpos;
 
     if (mEncryptionKeyLength)
@@ -1823,30 +1632,20 @@ FMOD_RESULT File::seek(int pos, int mode)
         mEncryptionKeyIndex = mCurrentPosition % mEncryptionKeyLength;
     }
 
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::seek", "%p seek %d bytes to %d\n",this, delta, newpos));
-
     if (mBufferSize)
     {
         mBufferPos = mCurrentPosition % mBufferSize;    /* We are seeking resetting to the start of the WHOLE buffer */
     }
     else
     {
-        #ifdef PLATFORM_PS3_SPU
-
-        result = FMOD_DmaFile_SeekCallback(this, newpos);
-
-        #else
-
         result = reallySeek(newpos);
 
-        if (mSystem && mSystem->mSeekRiderCallback)
+        if (mSystem && mSystem->mSeekCallback)
         {
-            mSystem->mSeekRiderCallback(mRiderHandle, newpos, mRiderUserData);
+            mSystem->mSeekCallback(mRiderHandle, newpos, mRiderUserData);
         }
-
-        #endif
     }
-    
+
     return result;
 }
 
@@ -1874,8 +1673,6 @@ FMOD_RESULT File::tell(unsigned int *pos)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-
-    mFlags &= ~FMOD_FILE_EXIT;
 
     *pos = mCurrentPosition;
     *pos -= mStartOffset;
@@ -1955,26 +1752,22 @@ FMOD_RESULT File::getStartOffset(unsigned int *offset)
 ]
 */
 // OFFSET: 0x008E7EE0
-FMOD_RESULT File::enableDoubleBuffer(unsigned int sizebytes, void *oldbuffer)
+FMOD_RESULT File::enableDoubleBuffer(unsigned int sizebytes)
 {
     FMOD_RESULT result;
-    unsigned int oldblocksize, oldbuffersize;
-
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::enableDoubleBuffer", "%p buffersize = %d bytes\n", this, sizebytes));
+    unsigned int oldblocksize;
 
     if (!mBlockSize)
     {
         return FMOD_OK;
     }
 
-    #ifndef PLATFORM_PS3_SPU
     result = FMOD_OS_Semaphore_Create(&mSema);
     if (result != FMOD_OK)
     {
         return result;
     }
     FMOD_OS_Semaphore_Signal(mSema);    /* Put it up to 1 */
-    #endif
 
     if (sizebytes < FILE_SECTORSIZE)
     {
@@ -1986,7 +1779,6 @@ FMOD_RESULT File::enableDoubleBuffer(unsigned int sizebytes, void *oldbuffer)
     }
 
     oldblocksize = mBlockSize;
-    oldbuffersize = mBufferSize;
 
     mBlockSize = sizebytes;
     mBlockSize /= oldblocksize;
@@ -2000,30 +1792,11 @@ FMOD_RESULT File::enableDoubleBuffer(unsigned int sizebytes, void *oldbuffer)
     mBufferSize = mBlockSize;
     mBufferSize *= 2;              /* Make it a double buffer */
 
-    if (oldbuffer)
+    mBuffer = FMOD_Memory_ReAlloc(mBuffer, mBufferSize);
+    if (!mBuffer)
     {
-        mBufferMemory = FMOD_Memory_CallocType(mBufferSize + FMOD_FILE_ALIGN, FMOD_MEMORY_STREAM_FILE);
-        if (!mBufferMemory)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-        FMOD_memcpy(mBufferMemory, oldbuffer, oldbuffersize);
+        return FMOD_ERR_MEMORY;
     }
-    else
-    {
-        mBufferMemory = FMOD_Memory_ReAllocType(mBufferMemory, mBufferSize + FMOD_FILE_ALIGN, FMOD_MEMORY_STREAM_FILE);
-        if (!mBufferMemory)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-    }
-
-    #if (FMOD_FILE_ALIGN > 0)
-    mBuffer = (void *)FMOD_ALIGNPOINTER(mBufferMemory, FMOD_FILE_ALIGN);
-    #else
-    mBuffer = mBufferMemory;
-    #endif
-
 
     result = getFileThread();
     if (result != FMOD_OK)
@@ -2035,48 +1808,11 @@ FMOD_RESULT File::enableDoubleBuffer(unsigned int sizebytes, void *oldbuffer)
     addAfter(&mFileThread->mFileListHead);
     FMOD_OS_CriticalSection_Leave(mFileThread->mFileListCrit);
 
-    #if 0
-    {
-        FILE *fp;
-        unsigned int offset = 0;
-
-        printf("-------------------------------------------------------\n");
-   
-        fp = fopen(mName, "rb");
-
-        srand(1);
-
-        do
-        {
-            unsigned char buff1[4096], buff2[4096];
-            unsigned int size;
-            
-            offset = 0; //FMOD_RAND() % mLength;
-            size = 1; //FMOD_RAND() % 4096;
-
-            fseek(fp, offset, SEEK_SET);
-            fread(buff1, size, 1, fp);
-
-            seek(offset, SEEK_SET);
-            read(buff2, size, 1, 0);
-            
-            if (memcmp(buff1, buff2, size))
-            {
-                size = size;
-            }
-
-            offset++;
-        } while (offset < mStartOffset + mLength);       
-    }
-    #endif
-
     result = checkBufferedStatus();
     if (result != FMOD_OK && result != FMOD_ERR_FILE_EOF)
     {
         return result;
     }
-
-    FLOG((FMOD_DEBUG_TYPE_FILE, __FILE__, __LINE__, "File::enableDoubleBuffer", "%p done\n", this));
 
     return FMOD_OK;
 }
@@ -2138,21 +1874,6 @@ FMOD_RESULT File::setName(char *name)
 
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-FMOD_RESULT File::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    #ifndef PLATFORM_PS3_SPU
-    if (mSema)
-    {
-        tracker->add(false, FMOD_MEMBITS_FILE, gSizeofSemaphore);
-    }
-
-    tracker->add(false, FMOD_MEMBITS_FILE, mBufferSize + FMOD_FILE_ALIGN);    /* mSyncPointHead & mSyncPointTail */
-    #endif
-
-    return FMOD_OK;
-}
-#endif
 
 
 /*

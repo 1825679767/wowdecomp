@@ -63,16 +63,6 @@ FMOD_RESULT SampleDSound::release(bool freethis)
         return FMOD_ERR_UNINITIALIZED;
     }
     
-    if (mFlags & FMOD_SOUND_FLAG_PRELOADEDFSB)
-    {
-        return FMOD_ERR_PRELOADED;
-    }
-
-    if (mFlags & FMOD_SOUND_FLAG_PROGRAMMERSOUND)
-    {
-        return FMOD_ERR_PROGRAMMERSOUND;
-    }
-
     while (mOpenState != FMOD_OPENSTATE_READY && mOpenState != FMOD_OPENSTATE_ERROR)
     {
         FMOD_OS_Time_Sleep(2);
@@ -244,16 +234,6 @@ FMOD_RESULT SampleDSound::unlockInternal(void *ptr1, void *ptr2, unsigned int le
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT SampleDSound::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_SOUND, sizeof(SampleDSound) - sizeof(Sample));     // only the SampleDSound members...
-
-    return Sample::getMemoryUsedImpl(tracker);                                          // all the base class members
-}
-
-#endif
 
 }
 

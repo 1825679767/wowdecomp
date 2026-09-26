@@ -258,21 +258,5 @@ FMOD_RESULT HistoryBufferPool::release()
 	[SEE_ALSO]
 ]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT HistoryBufferPool::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    if (mMemoryBlock)
-    {
-        //mMemoryBlock
-        tracker->add(false, FMOD_MEMBITS_CHANNEL, mMaxHistoryBuffers * mBufferSize);
-        //mBufferPool
-        tracker->add(false, FMOD_MEMBITS_CHANNEL, mMaxHistoryBuffers * sizeof(BufferInfo));
-    }
-
-    return FMOD_OK;
-}
-
-#endif
 
 }

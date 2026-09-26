@@ -81,12 +81,6 @@
 #include "fmod_output_openal.h"
 #endif
 #include "fmod_downmix.h"
-#ifdef FMOD_SUPPORT_NEURAL
-#include "fmod_downmix_neuralthx.h"
-#endif
-#ifdef FMOD_SUPPORT_MYEARS
-#include "fmod_downmix_myears.h"
-#endif
 
 /*
     Codecs
@@ -135,9 +129,6 @@
 #endif
 #ifdef FMOD_SUPPORT_OGGVORBIS
 #include "fmod_codec_oggvorbis.h"
-#endif
-#ifdef FMOD_SUPPORT_CELT
-#include "fmod_codec_celt.h"
 #endif
 #ifdef FMOD_SUPPORT_PLAYLIST
 #include "fmod_codec_playlist.h"
@@ -200,24 +191,6 @@
 /*
     Profiler modules
 */
-#ifdef FMOD_SUPPORT_PROFILE
-#include "fmod_profile.h"
-#endif
-#if defined(FMOD_SUPPORT_PROFILE) && defined(FMOD_SUPPORT_PROFILE_DSP)
-#include "fmod_profile_dsp.h"
-#endif
-#if defined(FMOD_SUPPORT_PROFILE) && defined(FMOD_SUPPORT_PROFILE_MEMORY)
-#include "fmod_profile_memory.h"
-#endif
-#if defined(FMOD_SUPPORT_PROFILE) && defined(FMOD_SUPPORT_PROFILE_CPU)
-#include "fmod_profile_cpu.h"
-#endif
-#if defined(FMOD_SUPPORT_PROFILE) && defined(FMOD_SUPPORT_PROFILE_CHANNEL)
-#include "fmod_profile_channel.h"
-#endif
-#if defined(FMOD_SUPPORT_PROFILE) && defined(FMOD_SUPPORT_PROFILE_CODEC)
-#include "fmod_profile_codec.h"
-#endif
 
 #include "fmod_speakermap.h"    /* Must be after mmreg include from codec wav */
 
@@ -327,7 +300,7 @@ FMOD_RESULT SystemI::validate(System *system, SystemI **systemi)
 void SystemI::streamThread(void *data)
 {
     SystemI *system = (SystemI *)data;
-   
+
     system->updateStreams();
 }
 
@@ -361,22 +334,17 @@ FMOD_RESULT SystemI::updateStreams()
 {
     mStreamTimeStamp.stampIn();
 
-    /*
-        Process Stream Channel list.  Stream channels are added and removed with ChannelStream::alloc and ChannelStream::stop
-    */
     FMOD_OS_CriticalSection_Enter(mStreamListCrit);
     {
         mStreamListChannelCurrent = mStreamListChannelHead.getNext();
         while (mStreamListChannelCurrent != &mStreamListChannelHead)
         {
             ChannelStream *channelstream = (ChannelStream *)mStreamListChannelCurrent->getData();
+
             mStreamListChannelNext = mStreamListChannelCurrent->getNext();
 
             FMOD_OS_CriticalSection_Leave(mStreamListCrit);
 
-            /*
-                Update the stream channel.
-            */
             FMOD_OS_CriticalSection_Enter(mStreamUpdateCrit);
             if (!channelstream->mFinished)
             {
@@ -384,19 +352,13 @@ FMOD_RESULT SystemI::updateStreams()
             }
             FMOD_OS_CriticalSection_Leave(mStreamUpdateCrit);
 
-
-            FMOD_OS_CriticalSection_Enter(mStreamListCrit);            
-
+            FMOD_OS_CriticalSection_Enter(mStreamListCrit);
             mStreamListChannelCurrent = mStreamListChannelNext;
         }
         mStreamListChannelNext = 0;
     }
     FMOD_OS_CriticalSection_Leave(mStreamListCrit);
 
-    /*
-        Process stream sound list.  Stream sounds are added at System::createSound and Sound::release.
-        Channel will always be valid until the sound is flagged as finished.
-    */
     FMOD_OS_CriticalSection_Enter(mStreamListCrit);
     {
         LinkedListNode *current = mStreamListSoundHead.getNext();
@@ -404,21 +366,11 @@ FMOD_RESULT SystemI::updateStreams()
         {
             Stream *stream = (Stream *)current->getData();
 
-            if ((stream->mChannel && stream->mChannel->mFinished))
+            if (stream->mChannel && stream->mChannel->mFinished)
             {
-                stream->mFlags |= FMOD_SOUND_FLAG_THREADFINISHED; /* Main thread will wait for this flag while releasing. */
-                if (stream->mSubSound)
-                {
-                    if (stream->mSubSoundShared)
-                    {
-                        stream->mSubSoundShared->mFlags |= FMOD_SOUND_FLAG_THREADFINISHED;
-                    }
-                    else if (stream->mSubSound[stream->mSubSoundIndex])
-                    {
-                        stream->mSubSound[stream->mSubSoundIndex]->mFlags |= FMOD_SOUND_FLAG_THREADFINISHED;
-                    }
-                }
+                stream->mFlags |= FMOD_SOUND_FLAG_FINISHED;
             }
+
             current = current->getNext();
         }
     }
@@ -455,40 +407,35 @@ FMOD_RESULT SystemI::updateChannels(int delta)
     int       emulatedused;
     ChannelI *current;
 
-    /*
-        If the channel has stop, put it at the end of the list.
-    */
     current = SAFE_CAST(ChannelI, mChannelUsedListHead.getNext());
     while (current != &mChannelUsedListHead)
     {
-        FMOD_RESULT  result;
         ChannelI    *next = SAFE_CAST(ChannelI, current->getNext());
         bool         playing = false;
 
-        result = current->isPlaying(&playing);
+        current->isPlaying(&playing);
         if (playing)
         {
+            FMOD_MODE mode;
+
             current->update(delta);
+
+            current->getMode(&mode);
+            if (!(mode & FMOD_VIRTUAL_PLAYFROMSTART))
+            {
+                current->mFlags &= ~CHANNELI_FLAG_JUSTWENTVIRTUAL;
+            }
         }
 
-        result = current->isPlaying(&playing);
+        current->isPlaying(&playing);
         if (!playing)
         {
-            current->stopEx(CHANNELI_STOPFLAG_REFSTAMP | 
-                            CHANNELI_STOPFLAG_UPDATELIST | 
-                            CHANNELI_STOPFLAG_RESETCALLBACKS | 
-                            CHANNELI_STOPFLAG_CALLENDCALLBACK | 
-                            CHANNELI_STOPFLAG_RESETCHANNELGROUP |
-                            CHANNELI_STOPFLAG_PROCESSENDDELAY |
-                            CHANNELI_STOPFLAG_UPDATESYNCPOINTS);  /* Reset, return to freelist and call end callback. */
+            current->stopEx(true, true, true, true, true, true, false);
         }
-      
+
         current = next;
     }
 
-    /*
-        Now swap any emulated channels that have made it to the front of the list with real channels
-    */
     if (mEmulated)
     {
         mEmulated->mChannelPool->getChannelsUsed(&emulatedused);
@@ -496,7 +443,7 @@ FMOD_RESULT SystemI::updateChannels(int delta)
         if (emulatedused)
         {
             LinkedListNode *emucurrent, *realcurrent[CHANNELREAL_TYPE_MAX];
-            int       count;
+            int             count;
 
             emucurrent = mChannelSortedListHead.getNext();
 
@@ -504,7 +451,7 @@ FMOD_RESULT SystemI::updateChannels(int delta)
             {
                 realcurrent[count] = &mChannelSortedListHead;
             }
-        
+
             do
             {
                 FMOD_RESULT     result = FMOD_OK;
@@ -516,62 +463,48 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                 int             realchannelsneeded, realchannelsfound, channelsfound;
                 bool            isvirtual;
 
-                /*
-                    Search for an emulated channel from the head of the importance list.
-                */
                 isvirtual = false;
                 do
                 {
                     emuchannel = (ChannelI *)emucurrent->getData();
                     if (!emuchannel)
                     {
-                        /*
-                            Back to head of list, didn't find anything. Don't crash.
-                        */
                         break;
                     }
-                       
+
                     result = emuchannel->isVirtual(&isvirtual);
                     if (isvirtual && !(emuchannel->mFlags & CHANNELI_FLAG_FORCEVIRTUAL))
                     {
                         break;
                     }
- 
-                    emucurrent = (ChannelI *)emucurrent->getNext();
+
+                    emucurrent = emucurrent->getNext();
+
                 } while (emucurrent != &mChannelSortedListHead);
 
-                if (emucurrent == &mChannelSortedListHead || 
-                    emucurrent == realcurrent[0] || 
-                    emucurrent == realcurrent[1] || 
-                    emucurrent == realcurrent[2] || 
+                if (emucurrent == &mChannelSortedListHead ||
+                    emucurrent == realcurrent[0] ||
+                    emucurrent == realcurrent[1] ||
+                    emucurrent == realcurrent[2] ||
                     result != FMOD_OK)
                 {
                     break;
                 }
 
-                /*
-                    Now we've found an emulated channel, see if there are any free 
-                    or lower priority channels that we can swap with of the same type
-                */
-                channelsfound = 0;          /* ChannelIs */
-                realchannelsfound = 0;      /* RealChannels */
+                channelsfound = 0;
+                realchannelsfound = 0;
 
                 result = emuchannel->getRealChannel(emuchannelreal, 0);
                 if (result != FMOD_OK)
                 {
                     break;
                 }
-                               
-                mode = emuchannelreal[0]->mMode;
 
-                /*
-                    Find out how many subsamples we have to query the number of real channels we need for this emulated voice.
-                */
+                mode = emuchannelreal[0]->mMode;
 
                 if (emuchannelreal[0]->mSound)
                 {
     #ifdef FMOD_SUPPORT_STREAMING
-
                     if (emuchannelreal[0]->mSound->isStream())
                     {
                         Stream *stream = SAFE_CAST(Stream, emuchannelreal[0]->mSound);
@@ -580,12 +513,16 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                         realchannelsneeded = sample->mNumSubSamples;
                     }
                     else
-
     #endif
                     {
                         Sample *sample = SAFE_CAST(Sample, emuchannelreal[0]->mSound);
 
                         realchannelsneeded = sample->mNumSubSamples;
+                    }
+
+                    if (realchannelsneeded < 1)
+                    {
+                        realchannelsneeded = 1;
                     }
                 }
                 else if (emuchannelreal[0]->mDSP)
@@ -594,18 +531,9 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                 }
                 else
                 {
-                    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::updateChannels", "emuchannelreal[0] has no mSound or mDSP\n"));
                     return FMOD_ERR_INTERNAL;
                 }
 
-                if (realchannelsneeded < 1)
-                {
-                    realchannelsneeded = 1;
-                }
-
-                /*
-                    First try and find free real voices for this virtual channel, so we can swap with them.
-                */
                 if (realchannelsfound < realchannelsneeded)
                 {
                     int found = 0;
@@ -615,7 +543,7 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                     {
                         if (emuchannelreal[0]->mSound)
                         {
-                            result = mOutput->getFreeChannel(mode, tempchannelreal, realchannelsneeded, emuchannelreal[0]->mSound->mChannels, &found, true);
+                            result = mOutput->getFreeChannel(mode, tempchannelreal, realchannelsneeded, emuchannelreal[0]->mSound->mChannels, &found);
                         }
                         else
                         {
@@ -625,14 +553,7 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                     else
                     {
     #ifdef FMOD_SUPPORT_SOFTWARE
-                        /*
-                            Before looking for a software channel (which there might be available), see if it is a realtime compressed sample.
-                        */
-                        if (mode & FMOD_CREATECOMPRESSEDSAMPLE
-    #if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-                            || (emuchannelreal[0]->mSound && emuchannelreal[0]->mSound->mFormat == FMOD_SOUND_FORMAT_PCM16)
-    #endif
-                            )
+                        if (mode & FMOD_CREATECOMPRESSEDSAMPLE)
                         {
                             Sample *sample = SAFE_CAST(Sample, emuchannelreal[0]->mSound);
 
@@ -641,15 +562,9 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                             }
     #ifdef FMOD_SUPPORT_DSPCODEC
                             #ifdef FMOD_SUPPORT_MPEG
-                            if (sample->mFormat == FMOD_SOUND_FORMAT_MPEG)
+                            else if (sample->mFormat == FMOD_SOUND_FORMAT_MPEG)
                             {
                                 result = mDSPCodecPool_MPEG.areAnyFree();
-                            }
-                            #endif
-                            #ifdef FMOD_SUPPORT_XMA
-                            else if (sample->mFormat == FMOD_SOUND_FORMAT_XMA)
-                            {
-                                result = mDSPCodecPool_XMA.areAnyFree();
                             }
                             #endif
                             #ifdef FMOD_SUPPORT_IMAADPCM
@@ -658,27 +573,11 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                                 result = mDSPCodecPool_ADPCM.areAnyFree();
                             }
                             #endif
-                            #ifdef FMOD_SUPPORT_CELT
-                            else if (sample->mFormat == FMOD_SOUND_FORMAT_CELT)
-                            {
-                                result = mDSPCodecPool_CELT.areAnyFree();
-                            }
-                            #endif
-                            #ifdef FMOD_SUPPORT_RAWCODEC
-                            else if (sample->mFormat == FMOD_SOUND_FORMAT_PCM16)
-                            {
-                                result = mDSPCodecPool_RAW.areAnyFree();
-                            }
-                            #endif
     #endif
                             else
                             {
                                 result = FMOD_ERR_FORMAT;
                             }
-                        }
-                        else if (mode & (FMOD_CREATESTREAM | FMOD_NONBLOCKING) && emuchannelreal[0]->mSound && emuchannelreal[0]->mSound->mOpenState == FMOD_OPENSTATE_SETPOSITION)
-                        {
-                            result = FMOD_ERR_NOTREADY;
                         }
                         else
                         {
@@ -689,11 +588,11 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                         {
                             if (emuchannelreal[0]->mSound)
                             {
-                                result = mSoftware->getFreeChannel(mode, tempchannelreal, realchannelsneeded, emuchannelreal[0]->mSound->mChannels, &found, true);
+                                result = mSoftware->getFreeChannel(mode, tempchannelreal, realchannelsneeded, emuchannelreal[0]->mSound->mChannels, &found);
                             }
-                            else if(emuchannelreal[0]->mDSP)
+                            else if (emuchannelreal[0]->mDSP)
                             {
-                                result = mSoftware->getFreeChannel(mode, tempchannelreal, realchannelsneeded, 1, &found, true);
+                                result = mSoftware->getFreeChannel(mode, tempchannelreal, realchannelsneeded, 1, &found);
                             }
                             else
                             {
@@ -713,13 +612,10 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                 }
 
     tryformore:
-                /*
-                    If there are not enough stopped real channels lying around, find a real channel to swap with the virtual channel.
-                */
                 if (realchannelsfound < realchannelsneeded)
                 {
                     CHANNELREAL_TYPE realtype;
-                
+
                     if (mOutput->mChannelPool == mOutput->mChannelPool3D)
                     {
                         realtype = mode & FMOD_SOFTWARE ? CHANNELREAL_TYPE_SW : CHANNELREAL_TYPE_HW;
@@ -728,7 +624,7 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                     {
                         realtype = mode & FMOD_SOFTWARE ? CHANNELREAL_TYPE_SW : mode & FMOD_3D ? CHANNELREAL_TYPE_HW3D : CHANNELREAL_TYPE_HW2D;
                     }
-            
+
                     if (realcurrent[realtype] == &mChannelSortedListHead)
                     {
                         realcurrent[realtype] = realcurrent[realtype]->getPrev();
@@ -741,35 +637,21 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                             result = FMOD_ERR_CHANNEL_ALLOC;
                             break;
                         }
-                   
-                        realchannel[channelsfound] = (ChannelI *)realcurrent[realtype]->getData();
 
-                        /*
-                            TEMPORARY FIX, ARE VOICES BEING SWAPPED AROUND AND THE EMUCURRENT/REALCURRENT pointing to the wrong places?
-                        */
+                        realchannel[channelsfound] = (ChannelI *)realcurrent[realtype]->getData();
                         if (realcurrent[realtype] == &mChannelSortedListHead)
                         {
                             result = FMOD_ERR_CHANNEL_ALLOC;
                             break;
                         }
 
-                        /*
-                            Only want a real channel channel
-                        */
                         realchannel[channelsfound]->isVirtual(&isvirtual);
-                        if (isvirtual)
-                        {
-                            realchannel[channelsfound]->mFlags &= ~CHANNELI_FLAG_JUSTWENTVIRTUAL;   /* Ok, it didnt swap, its going to come in virtual now. */
-                        }
-                        else
+                        if (!isvirtual)
                         {
                             FMOD_MODE        currentmode;
                             CHANNELREAL_TYPE currentrealtype;
 
-                            /*
-                                Only want a channel of the same type.
-                            */
-                            realchannel[channelsfound]->getMode(&currentmode);                           
+                            realchannel[channelsfound]->getMode(&currentmode);
 
                             if (mOutput->mChannelPool == mOutput->mChannelPool3D)
                             {
@@ -782,94 +664,50 @@ FMOD_RESULT SystemI::updateChannels(int delta)
 
                             if (realtype == currentrealtype)
                             {
-                                /*
-                                    AJS 20/09/06  If a FMOD_CREATECOMPRESSEDSAMPLE is going from virtual to real then we need to make sure there's
-                                                  a dspcodec free for it to use. To ensure this, we make sure FMOD_CREATECOMPRESSEDSAMPLE only steals
-                                                  FMOD_CREATECOMPRESSEDSAMPLE channels of the same format. This is so a dspcodec is freed for us to use.
-                                */
-                                if (realtype == CHANNELREAL_TYPE_SW)
+                                if (realtype == CHANNELREAL_TYPE_SW && mode & FMOD_CREATECOMPRESSEDSAMPLE)
                                 {
-                                    if (mode & FMOD_CREATECOMPRESSEDSAMPLE
-    #if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-                                        || (emuchannelreal[0]->mSound && emuchannelreal[0]->mSound->mFormat == FMOD_SOUND_FORMAT_PCM16)
-    #endif
-                                        )
+                                    Sample *sample = SAFE_CAST(Sample, emuchannelreal[0]->mSound);
+
+                                    if (0)
                                     {
-                                        Sample *sample = SAFE_CAST(Sample, emuchannelreal[0]->mSound);
-
-                                        if (0)
-                                        {
-                                        }
-    #ifdef FMOD_SUPPORT_DSPCODEC
-                                        #ifdef FMOD_SUPPORT_MPEG
-                                        if (sample->mFormat == FMOD_SOUND_FORMAT_MPEG)
-                                        {
-                                            result = mDSPCodecPool_MPEG.areAnyFree();
-                                        }
-                                        #endif
-                                        #ifdef FMOD_SUPPORT_XMA
-                                        else if (sample->mFormat == FMOD_SOUND_FORMAT_XMA)
-                                        {
-                                            result = mDSPCodecPool_XMA.areAnyFree();
-                                        }
-                                        #endif
-                                        #ifdef FMOD_SUPPORT_IMAADPCM
-                                        else if (sample->mFormat == FMOD_SOUND_FORMAT_IMAADPCM)
-                                        {
-                                            result = mDSPCodecPool_ADPCM.areAnyFree();
-                                        }
-                                        #endif
-                                        #ifdef FMOD_SUPPORT_CELT
-                                        else if (sample->mFormat == FMOD_SOUND_FORMAT_CELT)
-                                        {
-                                            result = mDSPCodecPool_CELT.areAnyFree();
-                                        }
-                                        #endif
-                                        #ifdef FMOD_SUPPORT_RAWCODEC
-                                        else if (sample->mFormat == FMOD_SOUND_FORMAT_PCM16)
-                                        {
-                                            result = mDSPCodecPool_RAW.areAnyFree();
-                                        }
-                                        #endif
-    #endif
-                                        else
-                                        {
-                                            result = FMOD_ERR_FORMAT;
-                                        }
-
-                                        if (result == FMOD_OK)
-                                        {
-                                            break;
-                                        }
-                                        else
-                                        {
-                                            /*
-                                                If we stole this channel would it free up a dspcodec of the same type that we want?
-                                            */
-                                            if (currentmode & FMOD_CREATECOMPRESSEDSAMPLE
-    #if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-                                                || (emuchannelreal[0]->mSound && emuchannelreal[0]->mSound->mFormat == FMOD_SOUND_FORMAT_PCM16)
-    #endif
-                                                )
-                                            {
-                                                ChannelReal *tempcr[FMOD_CHANNEL_MAXREALSUBCHANNELS] = { 0 };
-
-                                                realchannel[channelsfound]->getRealChannel(tempcr, 0);
-
-                                                Sample *currentsample = SAFE_CAST(Sample, tempcr[0]->mSound);
-
-                                                if (currentsample->mFormat == sample->mFormat)
-                                                {
-                                                    result = FMOD_OK;
-                                                    break;
-                                                }
-                                            }
-                                        }
                                     }
+    #ifdef FMOD_SUPPORT_DSPCODEC
+                                    #ifdef FMOD_SUPPORT_MPEG
+                                    else if (sample->mFormat == FMOD_SOUND_FORMAT_MPEG)
+                                    {
+                                        result = mDSPCodecPool_MPEG.areAnyFree();
+                                    }
+                                    #endif
+                                    #ifdef FMOD_SUPPORT_IMAADPCM
+                                    else if (sample->mFormat == FMOD_SOUND_FORMAT_IMAADPCM)
+                                    {
+                                        result = mDSPCodecPool_ADPCM.areAnyFree();
+                                    }
+                                    #endif
+    #endif
                                     else
                                     {
-                                        result = FMOD_OK;
+                                        result = FMOD_ERR_FORMAT;
+                                    }
+
+                                    if (result == FMOD_OK)
+                                    {
                                         break;
+                                    }
+
+                                    if (currentmode & FMOD_CREATECOMPRESSEDSAMPLE)
+                                    {
+                                        ChannelReal *tempcr[FMOD_CHANNEL_MAXREALSUBCHANNELS] = { 0 };
+
+                                        realchannel[channelsfound]->getRealChannel(tempcr, 0);
+
+                                        Sample *currentsample = SAFE_CAST(Sample, tempcr[0]->mSound);
+
+                                        if (currentsample->mFormat == sample->mFormat)
+                                        {
+                                            result = FMOD_OK;
+                                            break;
+                                        }
                                     }
                                 }
                                 else
@@ -896,12 +734,9 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                             realchannelreal[realchannelsfound] = tempchannelreal[count];
                             realchannelsfound ++;
                         }
+
                         channelsfound++;
 
-                        /*
-                            Ok, if we havent got enough 'realchannelreal's for this virtual channel to become active still, 
-                            start stealing multiple 'realchannel's (and their child 'realchannelreal's) :|
-                        */
                         if (realchannelsfound < realchannelsneeded)
                         {
                             realcurrent[realtype] = realcurrent[realtype]->getPrev();
@@ -913,12 +748,7 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                         realchannel[channelsfound] = 0;
                     }
                 }
-           
-                /*
-                    ============================================================================
-                    SWAP THE REALCHANNELS AROUND
-                    ============================================================================
-                */
+
                 if (realchannelsfound >= realchannelsneeded)
                 {
                     FMOD_CHANNEL_INFO emuinfo;
@@ -927,48 +757,31 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                     int               emulatedtoswap = channelsfound;
 
                     emuchannel->getMode(&mode);
-                    
-                    /*
-                        ============================================================================
-                        Step 1.  Get information from the real and emulated channel before swapping.
-                        ============================================================================
-                    */
+                    if (mode & FMOD_VIRTUAL_PLAYFROMSTART)
+                    {
+                        current->mFlags &= ~CHANNELI_FLAG_JUSTWENTVIRTUAL;
+                    }
 
-                    /*
-                        If there is a real voice involved, stop it.
-                    */
-                    if (channelsfound)  
+                    if (channelsfound)
                     {
                         for (count = 0; count < channelsfound; count++)
                         {
                             realchannel[count]->getChannelInfo(&realinfo[count]);
-                            realchannel[count]->stopEx(CHANNELI_STOPFLAG_DONTFREELEVELS);
+                            realchannel[count]->stopEx(false, false, false, true, false, false, false);
                         }
 
-                        /*
-                            Kill off any extra voices that we stole but aren't used, this will put them back in the 'free' pool.
-                        */
                         for (count = realchannelsneeded; count < realchannelsfound; count++)
                         {
-                            realchannelreal[count]->mFlags &= ~(CHANNELREAL_FLAG_IN_USE | CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PLAYING | CHANNELREAL_FLAG_PAUSED);
+                            realchannelreal[count]->mFlags &= ~(CHANNELREAL_FLAG_IN_USE | CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PLAYING | CHANNELREAL_FLAG_PAUSED | CHANNELREAL_FLAG_PAUSEDFORSETPOS | CHANNELREAL_FLAG_ENDDELAY);
                             realchannelreal[count]->mFlags |=  CHANNELREAL_FLAG_STOPPED;
                         }
                     }
                     else
                     {
                         emuchannel->getChannelInfo(&emuinfo);
-                        emuchannel->stopEx(CHANNELI_STOPFLAG_DONTFREELEVELS);
+                        emuchannel->stopEx(false, false, false, true, false, false, true);
 
-                        /*
-                            ====================================================================
-                            Step 2.  Convert 'emulatedchannel' to 'real' and re-start it.
-                
-                            Note: After this 'realchannel' will be pointing to an emulated voice 
-                            and 'emuchannel' will be pointing to a real voice!
-                            ====================================================================
-                        */
         #ifdef FMOD_SUPPORT_STREAMING
-                        // STREAM SPECIAL CASE GOING FROM EMULATED TO REAL.
                         if (emuinfo.mSound && emuinfo.mSound->mMode & FMOD_CREATESTREAM)
                         {
                             Stream *stream = SAFE_CAST(Stream, emuinfo.mSound);
@@ -979,15 +792,13 @@ FMOD_RESULT SystemI::updateChannels(int delta)
                             channelstream->mNumRealChannels = realchannelsneeded;
                             for (count = 0; count < realchannelsneeded; count++)
                             {
-                                channelstream->mRealChannel[count] = realchannelreal[count];   /* Set the channelstream's realchannel (the dsound/software/emu channel). */
+                                channelstream->mRealChannel[count] = realchannelreal[count];
                                 channelstream->mRealChannel[count]->mSubChannelIndex = count;
                             }
                         }
                         else
         #endif
                         {
-                            // ORDINARY SAMPLE GOING FROM EMULATED TO REAL.
-                            emuchannel->mFlags &= ~CHANNELI_FLAG_JUSTWENTVIRTUAL;
                             emuchannel->mNumRealChannels = realchannelsneeded;
                             for (count = 0; count < realchannelsneeded; count++)
                             {
@@ -998,64 +809,45 @@ FMOD_RESULT SystemI::updateChannels(int delta)
 
                         if (emuinfo.mDSP)
                         {
-                            result = emuchannel->play(emuinfo.mDSP, true, false, false);
+                            emuchannel->play(emuinfo.mDSP, true, false, false);
                         }
                         else
                         {
-                            result = emuchannel->play(emuinfo.mSound, true, false, false);
+                            emuchannel->play(emuinfo.mSound, true, false, false);
                         }
-                        if (result != FMOD_OK)
-                        {
-                            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::updateChannels", "swapped channel failed to play. ZOMBIE CHANNEL!\n"));
-                        }
+
                         emuchannel->setChannelInfo(&emuinfo);
                         emuchannel->setChannelGroup(emuchannel->mChannelGroup);
                         emuchannel->setPaused(emuinfo.mPaused);
                     }
 
-                    /*
-                        ====================================================================
-                        Step 3.  Convert 'realchannel' to 'emulated' and re-start it.
-                        ====================================================================
-                    */
                     for (count = 0; count < emulatedtoswap; count++)
                     {
-                        /*
-                            ok we've done a swap with an emulated voice, now we'll have to create new emulated voices
-                        */
-                        result = mEmulated->getFreeChannel(mode, emuchannelreal, 1, 1, 0);
+                        mEmulated->getFreeChannel(mode, emuchannelreal, 1, 1, 0);
 
-                        /* 
-                            This channel is going from real to emulated, so just give it 1 subchannel and point it to 1 emulated voice 
-                        */
                         realchannel[count]->mNumRealChannels = 1;
                         realchannel[count]->mRealChannel[0] = emuchannelreal[0];
 
                         if (realinfo[count].mSound)
                         {
-                            result = realchannel[count]->play(realinfo[count].mSound->mSubSampleParent, true, false, false);
+                            realchannel[count]->play(realinfo[count].mSound->mSubSampleParent, true, false, false);
                             realchannel[count]->setChannelInfo(&realinfo[count]);
                             realchannel[count]->setChannelGroup(realchannel[count]->mChannelGroup);
                             realchannel[count]->setPaused(realinfo[count].mPaused);
                         }
                         else if (realinfo[count].mDSP)
                         {
-                            result = realchannel[count]->play(realinfo[count].mDSP, true, false, false);
+                            realchannel[count]->play(realinfo[count].mDSP, true, false, false);
                             realchannel[count]->setChannelInfo(&realinfo[count]);
                             realchannel[count]->setChannelGroup(realchannel[count]->mChannelGroup);
                             realchannel[count]->setPaused(realinfo[count].mPaused);
                         }
 
-                        emucurrent = (ChannelI *)emucurrent->getNext();     /* Don't let it try and swap the same channel again. */
+                        emucurrent = emucurrent->getNext();
                     }
                 }
-                else
-                {
-                    emuchannel->mFlags &= ~CHANNELI_FLAG_JUSTWENTVIRTUAL;   /* Ok, it didnt swap, its going to come in virtual now. */
-                }
-
             } while (1);
-        }       
+        }
     }
 
     return FMOD_OK;
@@ -1081,35 +873,47 @@ FMOD_RESULT SystemI::updateChannels(int delta)
 FMOD_RESULT SystemI::updateSoundGroups(int delta)
 {
     SoundGroupI *soundgroup;
+    bool         mute = false;
 
-    FMOD_OS_CriticalSection_Enter(gSoundListCrit);
+    soundgroup = (SoundGroupI *)mSoundGroupUsedHead.getNext();
+    while (soundgroup != &mSoundGroupUsedHead)
     {
-        soundgroup = (SoundGroupI *)mSoundGroupUsedHead.getNext();
-        while (soundgroup != &mSoundGroupUsedHead)
-        {
-            int numaudible = 0;
-            SoundGroupI *next = (SoundGroupI *)soundgroup->getNext();
+        SoundGroupI *next = (SoundGroupI *)soundgroup->getNext();
 
-            soundgroup->mPlayCount = 0;
-        
+        soundgroup->mPlayCount = 0;
+        soundgroup->getNumPlaying(&soundgroup->mNumPlaying);
+
+        if (soundgroup->mNumPlaying)
+        {
             if (soundgroup->mMaxAudibleBehavior == FMOD_SOUNDGROUP_BEHAVIOR_MUTE)
             {
-                soundgroup->getNumPlaying(&numaudible);
+                mute = true;
             }
+        }
+        else
+        {
+            soundgroup->removeNode();
+            soundgroup->addAfter(&mSoundGroupFreeHead);
+        }
 
-            if (numaudible)
+        soundgroup = next;
+    }
+
+    if (mute)
+    {
+        LinkedListNode *current = mChannelSortedListHead.getNext();
+
+        while (current != &mChannelSortedListHead)
+        {
+            ChannelI       *channel = (ChannelI *)current->getData();
+            LinkedListNode *next = current->getNext();
+
+            if (channel->mRealChannel[0] && channel->mRealChannel[0]->mSound)
             {
-                LinkedListNode *current;
-                
-                current = soundgroup->mChannelListHead.getNext();
-                while (current != &soundgroup->mChannelListHead)
+                SoundGroupI *soundgroup = channel->mRealChannel[0]->mSound->mSoundGroup;
+
+                if (soundgroup)
                 {
-                    ChannelI *channel;
-                    LinkedListNode *next;
-
-                    channel = (ChannelI *)current->getData();
-                    next = current->getNext();        
-
                     if (soundgroup->mMaxAudibleBehavior == FMOD_SOUNDGROUP_BEHAVIOR_MUTE && soundgroup->mMaxAudible >= 0)
                     {
                         soundgroup->mPlayCount++;
@@ -1122,7 +926,7 @@ FMOD_RESULT SystemI::updateSoundGroups(int delta)
                             channel->mFadeTarget = 1.0f;
                         }
                     }
-                 
+
                     if (channel->mFadeVolume != channel->mFadeTarget)
                     {
                         if (soundgroup->mFadeSpeed < 0.001f)
@@ -1149,24 +953,14 @@ FMOD_RESULT SystemI::updateSoundGroups(int delta)
                             }
                         }
 
-                        channel->setVolume(channel->mVolume, true);
+                        channel->setVolume(channel->mVolume, false);
                     }
-
-                    current = next;
                 }
             }
-            else
-            {
-                /*
-                    Put back on the free list.
-                */
-                soundgroup->removeNode();
-                soundgroup->addAfter(&mSoundGroupFreeHead);
-            }
-            soundgroup = next;
+
+            current = next;
         }
     }
-    FMOD_OS_CriticalSection_Leave(gSoundListCrit);
 
     return FMOD_OK;
 }
@@ -1252,9 +1046,11 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, SoundI *sound, ChannelI *
         return result;
     }
 
-    /*
-        If the sound is unique, stop any instances of it
-    */
+    if (sound->mNumSubSounds && !(mode & FMOD_CREATESTREAM))
+    {
+        return FMOD_ERR_SUBSOUNDS;
+    }
+
     if (mode & FMOD_UNIQUE)
 	{
         result = stopSound(sound);
@@ -1267,7 +1063,6 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, SoundI *sound, ChannelI *
     if (id == FMOD_CHANNEL_REUSE)
     {
         chan = *channel;
-
         if (!chan)
         {
             id = FMOD_CHANNEL_FREE;
@@ -1280,46 +1075,42 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, SoundI *sound, ChannelI *
             }
             else
             {
-                chan->stopEx(CHANNELI_STOPFLAG_CALLENDCALLBACK | CHANNELI_STOPFLAG_RESETCHANNELGROUP);
+                chan->stopEx(false, false, false, true, true, true, false);
             }
         }
     }
 
-    if (id != FMOD_CHANNEL_REUSE)   /* id might be changed above, so it is not a simple else statement. */
+    if (id != FMOD_CHANNEL_REUSE)
     {
         *channel = 0;
 
         if (id != FMOD_CHANNEL_FREE)
         {
-            if (id < 0 || id >= mNumChannels)
-            {
-                return FMOD_ERR_INVALID_PARAM;
-            }
             chan = &mChannel[id];
             chan->stop();
         }
         else
-        {           
+        {
             if (!mChannelFreeListHead.isEmpty())
             {
                 chan = SAFE_CAST(ChannelI, mChannelFreeListHead.getNext());
             }
-            else    /* There would be no stopped voices otherwise they would be in the freelist, so find the lowest priority channel and steal it. */
-            {           
-                LinkedListNode *node = SAFE_CAST(LinkedListNode, mChannelSortedListHead.getPrev());
+            else
+            {
+                LinkedListNode *node;
 
                 if (mChannelSortedListHead.isEmpty())
                 {
-                    return FMOD_ERR_CHANNEL_ALLOC;      /* This usually only happens if someone sets System::init to 0 channels. */
+                    return FMOD_ERR_CHANNEL_ALLOC;
                 }
-                
-                node = SAFE_CAST(LinkedListNode, mChannelSortedListHead.getPrev());
 
+                node = mChannelSortedListHead.getPrev();
                 chan = (ChannelI *)node->getData();
-                chan->stopEx(CHANNELI_STOPFLAG_REFSTAMP | CHANNELI_STOPFLAG_RESETCALLBACKS | CHANNELI_STOPFLAG_CALLENDCALLBACK | CHANNELI_STOPFLAG_RESETCHANNELGROUP);
+
+                chan->stopEx(true, false, true, true, true, true, false);
             }
         }
-        
+
         chan->removeNode();
         chan->addBefore(&mChannelUsedListHead);
     }
@@ -1336,7 +1127,7 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, SoundI *sound, ChannelI *
         }
         else
         {
-            subchannels = 0;
+            subchannels = 1;
         }
     }
     else
@@ -1346,26 +1137,14 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, SoundI *sound, ChannelI *
 
         subchannels = sample->mNumSubSamples;
     }
-    
+
     if (!subchannels)
     {
         subchannels = 1;
     }
 
-    /*
-        Assign a 'REAL' channel to the virtual channel
-    */
-    if (((mode & FMOD_SOFTWARE || mOutputType == FMOD_OUTPUTTYPE_OPENAL) && mode & FMOD_CREATECOMPRESSEDSAMPLE)
-#if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-        || (sound->mFormat == FMOD_SOUND_FORMAT_PCM16)
-#endif
-    )
+    if ((mode & FMOD_SOFTWARE || mOutputType == FMOD_OUTPUTTYPE_OPENAL) && mode & FMOD_CREATECOMPRESSEDSAMPLE)
     {
-        #ifdef FMOD_SUPPORT_SOFTWARE
-       
-        /*
-            Before looking for a software channel (which there might be available), see if it is a realtime compressed sample.
-        */
         if (0)
         {
         }
@@ -1376,28 +1155,10 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, SoundI *sound, ChannelI *
             result = mDSPCodecPool_MPEG.areAnyFree();
         }
         #endif
-        #ifdef FMOD_SUPPORT_XMA
-        else if (sound->mFormat == FMOD_SOUND_FORMAT_XMA)
-        {
-            result = mDSPCodecPool_XMA.areAnyFree();
-        }
-        #endif
         #ifdef FMOD_SUPPORT_IMAADPCM
         else if (sound->mFormat == FMOD_SOUND_FORMAT_IMAADPCM)
         {
             result = mDSPCodecPool_ADPCM.areAnyFree();
-        }
-        #endif
-        #ifdef FMOD_SUPPORT_CELT
-        else if (sound->mFormat == FMOD_SOUND_FORMAT_CELT)
-        {
-            result = mDSPCodecPool_CELT.areAnyFree();
-        }
-        #endif
-        #ifdef FMOD_SUPPORT_RAWCODEC
-        else if (sound->mFormat == FMOD_SOUND_FORMAT_PCM16)
-        {
-            result = mDSPCodecPool_RAW.areAnyFree();
         }
         #endif
 #endif
@@ -1407,26 +1168,12 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, SoundI *sound, ChannelI *
         }
     }
 
-    if ((mode & FMOD_CREATESTREAM) && sound->mCodec->mFlags & FMOD_CODEC_HARDWAREMUSICVOICES)
-    {      
-        result = sound->mCodec->getHardwareMusicChannel(&realchannel[0]);
-        if (result == FMOD_OK)
-        {
-            found = 1;
-        }
-    }
-    else if (mode & FMOD_SOFTWARE || !mOutput->mDescription.createsample)
+    if (mode & FMOD_SOFTWARE || !mOutput->mDescription.createsample)
 	{
         if (result == FMOD_OK)
         {
             result = mSoftware->getFreeChannel(mode, realchannel, subchannels, sound->mChannels, &found);
         }
-        
-        #else
-        
-        result = FMOD_ERR_NEEDSSOFTWARE;
-        
-        #endif
     }
     else
     {
@@ -1436,11 +1183,12 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, SoundI *sound, ChannelI *
     if (result != FMOD_OK || found != subchannels)
     {
         subchannels = 1;
+
         result = mEmulated->getFreeChannel(mode, realchannel, subchannels, sound->mChannels, 0);
-    }
-    if (result != FMOD_OK)
-    {
-        return result;
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
     }
 
     if (realchannel[0]->mOutput == mEmulated)
@@ -1448,7 +1196,7 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, SoundI *sound, ChannelI *
         chan->mFlags |= CHANNELI_FLAG_JUSTWENTVIRTUAL;
     }
 
-    #ifdef FMOD_SUPPORT_STREAMING
+#ifdef FMOD_SUPPORT_STREAMING
     if (mode & FMOD_CREATESTREAM)
     {
         if (realchannel[0]->mOutput == mEmulated)
@@ -1462,26 +1210,29 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, SoundI *sound, ChannelI *
             Stream *stream = SAFE_CAST(Stream, sound);
             ChannelStream *channelstream = stream->mChannel;
 
+            chan->mRealChannel[0] = channelstream;
             chan->mNumRealChannels = 1;
-            chan->mRealChannel[0] = channelstream;   /* Set the ChannelI's realchannel (the channelstream). */
 
             channelstream->mNumRealChannels = subchannels;
             channelstream->mSubChannelIndex = 0;
+
             for (count = 0; count < subchannels; count++)
             {
-                channelstream->mRealChannel[count] = realchannel[count];     /* Set the channelstream's realchannel (the dsound/software/emu channel). */
+                channelstream->mRealChannel[count] = realchannel[count];
                 channelstream->mRealChannel[count]->mSubChannelIndex = count;
             }
         }
     }
     else
-    #endif
+#endif
     {
         chan->mNumRealChannels = subchannels;
+
         for (count = 0; count < subchannels; count++)
         {
             chan->mRealChannel[count] = realchannel[count];
             chan->mRealChannel[count]->mSubChannelIndex = count;
+            chan->mRealChannel[count]->mNumRealChannels = 1;
         }
     }
 
@@ -1521,7 +1272,6 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, DSPI *dsp, ChannelI **cha
     if (id == FMOD_CHANNEL_REUSE)
     {
         chan = *channel;
-
         if (!chan)
         {
             id = FMOD_CHANNEL_FREE;
@@ -1534,12 +1284,12 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, DSPI *dsp, ChannelI **cha
             }
             else
             {
-                chan->stopEx(CHANNELI_STOPFLAG_RESETCHANNELGROUP);
+                chan->stopEx(false, false, false, true, false, true, false);
             }
         }
     }
 
-    if (id != FMOD_CHANNEL_REUSE)   /* id might be changed above, so it is not a simple else statement. */
+    if (id != FMOD_CHANNEL_REUSE)
     {
         *channel = 0;
 
@@ -1554,48 +1304,41 @@ FMOD_RESULT SystemI::findChannel(FMOD_CHANNELINDEX id, DSPI *dsp, ChannelI **cha
             {
                 chan = SAFE_CAST(ChannelI, mChannelFreeListHead.getNext());
             }
-            else    /* There would be no stopped voices otherwise they would be in the freelist, so find the lowest priority channel and steal it. */
-            {           
-                LinkedListNode *node = SAFE_CAST(LinkedListNode, mChannelSortedListHead.getPrev());                
-                
+            else
+            {
+                LinkedListNode *node;
+
                 if (mChannelSortedListHead.isEmpty())
                 {
-                    return FMOD_ERR_CHANNEL_ALLOC;      /* This usually only happens if someone sets System::init to 0 channels. */
+                    return FMOD_ERR_CHANNEL_ALLOC;
                 }
 
-                node = SAFE_CAST(LinkedListNode, mChannelSortedListHead.getPrev());
-
+                node = mChannelSortedListHead.getPrev();
                 chan = (ChannelI *)node->getData();
-                               
-                chan->stopEx(CHANNELI_STOPFLAG_REFSTAMP | CHANNELI_STOPFLAG_RESETCALLBACKS | CHANNELI_STOPFLAG_RESETCHANNELGROUP);
+
+                chan->stopEx(true, false, true, true, false, true, false);
             }
         }
-        
+
         chan->removeNode();
         chan->addBefore(&mChannelUsedListHead);
     }
 
-    /*
-        Assign a 'REAL' channel to the virtual channel
-    */
-#ifdef FMOD_SUPPORT_SOFTWARE
     result = mSoftware->getFreeChannel(FMOD_SOFTWARE, realchannel, 1, 1, 0);
     if (result != FMOD_OK)
-#endif
     {
         result = mEmulated->getFreeChannel(FMOD_SOFTWARE, realchannel, 1, 1, 0);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
     }
 
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    chan->mRealChannel[0]  = realchannel[0];
+    chan->mRealChannel[0] = realchannel[0];
     chan->mNumRealChannels = 1;
 
     *channel = chan;
-    
+
     return FMOD_OK;
 }
 
@@ -1621,11 +1364,8 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
     FMOD_RESULT  result;
     Output      *output;
     Sample      *sample = 0;
-    AutoRelease<Sample> sample_cleanup;
     int          channels, subsamples, count;
     unsigned int loopstart = 0, loopend = 0;
-
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSample", "mode %08x length %d samples, lengthbytes %d\n", mode, waveformat ? waveformat->lengthpcm : 0, waveformat ? waveformat->lengthbytes : 0));
 
     if (!sample_out)
     {
@@ -1637,27 +1377,16 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
         return FMOD_ERR_MEMORY;
     }
 
-    /*
-        Check hardware/software bits in user mode and waveformat mode.
-    */
     if (!(mode & (FMOD_HARDWARE | FMOD_SOFTWARE)))
     {
         int num2d, num3d;
 
         mode |= (waveformat->mode & (FMOD_HARDWARE | FMOD_SOFTWARE | FMOD_2D | FMOD_3D));
 
-        #if defined(PLATFORM_PS2)
-        if (waveformat->format != FMOD_SOUND_FORMAT_VAG)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSample", "Sound format = %d, not VAG so using software.\n", waveformat->format));
-            mode  |= FMOD_SOFTWARE;
-        }
-        #endif
-      
         getHardwareChannels(&num2d, &num3d, 0);
 
         if (mode & FMOD_HARDWARE)
-        {        
+        {
             if (mode & FMOD_3D)
             {
                 if (!num3d)
@@ -1679,19 +1408,13 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
 
     if (mode & FMOD_SOFTWARE)
     {
-#ifdef FMOD_SUPPORT_SOFTWARE
         if (!mSoftware)
         {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSample", "ERROR - Software not initialized\n"));
             return FMOD_ERR_NEEDSSOFTWARE;
         }
 
         mode &= ~FMOD_HARDWARE;
         output = mSoftware;
-#else
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSample", "ERROR - Software is disabled.  Tried to create a software sample.\n"));
-        return FMOD_ERR_NEEDSSOFTWARE;
-#endif
     }
     else
     {
@@ -1699,14 +1422,10 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
         output = mOutput;
     }
 
-    /*
-        Check 2D/3D bits in user mode and waveformat mode.
-    */
     if (!(mode & (FMOD_2D | FMOD_3D)))
     {
         mode |= (waveformat->mode & (FMOD_2D | FMOD_3D));
     }
-
     if (mode & FMOD_3D)
     {
         mode &= ~FMOD_2D;
@@ -1716,53 +1435,39 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
         mode |= FMOD_2D;
     }
 
-    /*
-        Check loop bits in user mode and waveformat mode
-    */
     if (!(mode & (FMOD_LOOP_OFF | FMOD_LOOP_NORMAL | FMOD_LOOP_BIDI)))
     {
         mode |= (waveformat->mode & (FMOD_LOOP_OFF | FMOD_LOOP_NORMAL | FMOD_LOOP_BIDI));
     }
-
     if (mode & FMOD_LOOP_NORMAL)
     {
         mode &= ~FMOD_LOOP_OFF;
         mode &= ~FMOD_LOOP_BIDI;
         mode |= FMOD_LOOP_NORMAL;
-    }           
+    }
     else if (mode & FMOD_LOOP_BIDI)
     {
         mode &= ~FMOD_LOOP_OFF;
         mode |= FMOD_LOOP_BIDI;
-    }           
-    else 
+    }
+    else
     {
         mode |= FMOD_LOOP_OFF;
     }
-    
+
     if (waveformat->mode & FMOD_CREATECOMPRESSEDSAMPLE)
     {
         mode |= FMOD_CREATECOMPRESSEDSAMPLE;
         mode &= ~FMOD_CREATESAMPLE;
     }
 
-    /*
-        Create the sample
-    */
     channels = waveformat->channels;
 
-    /*
-        Check for valid number of channels
-    */
     if (channels > FMOD_CHANNEL_MAXREALSUBCHANNELS && channels > (output->mDescription.getsamplemaxchannels ? output->mDescription.getsamplemaxchannels(output, mode, waveformat->format) : 1))
     {
         return FMOD_ERR_TOOMANYCHANNELS;
     }
 
-    /* 
-        If a voice is 3d and hardware, and cannot support multichannel input, then make it a multi-mono sample sound.
-        When these samples are played, they take up multiple mono voices.
-    */    
     if (channels > 1 && channels > (output->mDescription.getsamplemaxchannels ? output->mDescription.getsamplemaxchannels(output, mode, waveformat->format) : 1))
     {
         subsamples = channels;
@@ -1774,11 +1479,10 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
         else
         {
             sample = FMOD_Object_Calloc(Sample);
-            sample_cleanup = sample;
-        }
-        if (!sample)
-        {
-            return FMOD_ERR_MEMORY;
+            if (!sample)
+            {
+                return FMOD_ERR_MEMORY;
+            }
         }
 
         sample->mNumSubSamples = channels;
@@ -1791,14 +1495,11 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
                 return FMOD_ERR_MEMORY;
             }
         }
-
-        /*
-            Set the default values
-        */        
         if (sample->mName)
         {
             FMOD_strcpy(sample->mName,  waveformat->name);
         }
+
         sample->mDefaultFrequency   = (float)waveformat->frequency;
         sample->mDefaultChannelMask = waveformat->channelmask;
         sample->mLength             = waveformat->lengthpcm;
@@ -1806,12 +1507,12 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
         sample->mLoopStart          = 0;
         sample->mLoopLength         = sample->mLength;
         sample->mFormat             = waveformat->format;
-        sample->mChannels           = channels;
         sample->mCodec              = 0;
+        sample->mChannels           = channels;
         sample->mType               = FMOD_SOUND_TYPE_USER;
         sample->mSystem             = this;
         sample->mMinDistance        = 1.0f     * mDistanceScale;
-        sample->mMaxDistance        = 10000.0f * mDistanceScale;  
+        sample->mMaxDistance        = 10000.0f * mDistanceScale;
         sample->mLockBuffer         = mMultiSubSampleLockBuffer.alloc(SOUND_READCHUNKSIZE);
         if (!sample->mLockBuffer)
         {
@@ -1825,52 +1526,26 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
         subsamples = 1;
     }
 
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSample", "subsamples = %d, channels = %d\n", subsamples, channels));
-
     for (count = 0; count < subsamples; count++)
     {
         Sample *subsample = subsamples == 1 ? *sample_out : 0;
         FMOD_CODEC_WAVEFORMAT subsamplewaveformat;
-
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSample", "subsample %d.  output = %p\n", count, output));
 
         FMOD_memcpy(&subsamplewaveformat, waveformat, sizeof(FMOD_CODEC_WAVEFORMAT));
         subsamplewaveformat.channels = channels;
 
         if (output->mDescription.createsample)
         {
-#ifdef FMOD_SUPPORT_SOFTWARE
-            output->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#endif
-
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSample", "use hw\n", count));
+            output->readfrommixer = Output::mixCallback;
 
             result = output->mDescription.createsample(output, mode, &subsamplewaveformat, &subsample);
-            mCreatedHardwareSample = true;
         }
         else
         {
-#ifdef FMOD_SUPPORT_SOFTWARE
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSample", "mSoftware = %p\n", mSoftware));
-
             result = mSoftware->createSample(mode, &subsamplewaveformat, &subsample);
-#else
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSample", "ERROR - Software is disabled.  Tried to create a software sample.\n"));
-            result = FMOD_ERR_NEEDSSOFTWARE;
-#endif
         }
         if (result != FMOD_OK)
         {
-            if(subsamples > 1)
-            {
-                /* free the other subsamples created in this loop */
-                sample->release(false);
-            }
-            else if (subsample && subsample != *sample_out)
-            {
-                /* don't free sample_out that was passed in */
-                subsample->release();
-            }
             return result;
         }
 
@@ -1880,10 +1555,6 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
         }
         else
         {
-            if (subsample != *sample_out)
-            {
-                sample_cleanup = subsample;
-            }
             sample = subsample;
 
             if (!sample->mName && !(mode & FMOD_LOWMEM))
@@ -1896,13 +1567,11 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
             }
         }
 
-        /*
-            Set the default values
-        */        
         if (subsample->mName)
         {
             FMOD_strcpy(subsample->mName,  waveformat->name);
         }
+
         subsample->mDefaultFrequency   = (float)waveformat->frequency;
         subsample->mDefaultChannelMask = waveformat->channelmask;
         subsample->mMode               = mode;
@@ -1914,7 +1583,7 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
         subsample->mType               = FMOD_SOUND_TYPE_USER;
         subsample->mSystem             = this;
         subsample->mMinDistance        = 1.0f     * mDistanceScale;
-        subsample->mMaxDistance        = 10000.0f * mDistanceScale; 
+        subsample->mMaxDistance        = 10000.0f * mDistanceScale;
         subsample->mSubSampleParent    = sample;
     }
 
@@ -1924,12 +1593,10 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
     {
         loopend = sample->mLength - 1;
     }
+
     sample->setLoopPoints(loopstart, FMOD_TIMEUNIT_PCM, loopend, FMOD_TIMEUNIT_PCM);
 
     *sample_out = sample;
-    sample_cleanup.releasePtr();
-
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSample", "done\n"));
 
     return FMOD_OK;
 }
@@ -1951,18 +1618,14 @@ FMOD_RESULT SystemI::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wavefor
 ]
 */
 // OFFSET: 0x008D67D0
-FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mode_in, unsigned int buffersize, FMOD_TIMEUNIT buffersizetype, FMOD_CREATESOUNDEXINFO *exinfo, bool calledfromasync, SoundI **sound)
+FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mode_in, FMOD_CREATESOUNDEXINFO *exinfo, bool calledfromasync, SoundI **sound)
 {
     FMOD_RESULT            result;
     SoundI               **subsound    = 0;
-    AutoFree               subsound_cleanup;
     SoundI                *soundi      = 0;
     Codec                 *codec       = 0;
-    AutoRelease<Codec>     codec_cleanup;
     Metadata              *metadata    = 0;
     File                  *file        = 0;
-    AutoFree               file_cleanup;
-    AutoClose<File>        file_closer;
     FMOD_CODEC_WAVEFORMAT  waveformat;
     bool                   netfile     = false;
     int                    count;
@@ -1970,134 +1633,7 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
     int                    numcodecs;
     int                    maxchannels = 0;
     FMOD_MODE              originalmode = mode_in;
-    void                  *filebufferstack = 0;
-    char                   filebufferstackmem[(16*1024) + 32];   /* +32 for wii/gc alignment */
-
-    #ifdef FMOD_DEBUG
-    if (mode_in & (FMOD_OPENMEMORY | FMOD_OPENMEMORY_POINT))
-    {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "memory = %p : mode %08x\n", name_or_data, mode_in));
-    }
-    else
-    {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "filename = %s : mode %08x\n", name_or_data ? name_or_data : "", mode_in));
-    }
-    if (exinfo)
-    {
-        if (exinfo->cbsize)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->cbsize             = %d\n", exinfo->cbsize));
-        }                                                                                                               
-        if (exinfo->length)                                                                                             
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->length             = %d\n", exinfo->length));
-        }                                                                                                               
-        if (exinfo->fileoffset)                                                                                         
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->fileoffset         = %d\n", exinfo->fileoffset));
-        }                                                                                                               
-        if (exinfo->numchannels)                                                                                        
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->numchannels        = %d\n", exinfo->numchannels));
-        }                                                                                                               
-        if (exinfo->defaultfrequency)                                                                                   
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->defaultfrequency   = %d\n", exinfo->defaultfrequency));
-        }                                                                                                               
-        if (exinfo->format)                                                                                             
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->format             = %d\n", exinfo->format));
-        }                                                                                                               
-        if (exinfo->decodebuffersize)                                                                                   
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->decodebuffersize   = %d\n", exinfo->decodebuffersize));
-        }                                                                                                               
-        if (exinfo->initialsubsound)                                                                                    
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->initialsubsound    = %d\n", exinfo->initialsubsound));
-        }                                                                                                               
-        if (exinfo->numsubsounds)                                                                                       
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->numsubsounds       = %d\n", exinfo->numsubsounds));
-        }                                                                                                               
-        if (exinfo->inclusionlist)                                                                                      
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->inclusionlist      = %p\n", exinfo->inclusionlist));
-        }                                                                                                               
-        if (exinfo->inclusionlistnum)                                                                                   
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->inclusionlistnum   = %d\n", exinfo->inclusionlistnum));
-        }                                                                                                               
-        if (exinfo->pcmreadcallback)                                                                                    
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->pcmreadcallback    = %p\n", exinfo->pcmreadcallback));
-        }                                                                                                               
-        if (exinfo->pcmsetposcallback)                                                                                  
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->pcmsetposcallback  = %p\n", exinfo->pcmsetposcallback));
-        }                                                                                                               
-        if (exinfo->nonblockcallback)                                                                                   
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->nonblockcallback   = %p\n", exinfo->nonblockcallback));
-        }                                                                                                               
-        if (exinfo->dlsname)                                                                                            
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->dlsname            = %s\n", exinfo->dlsname));
-        }                                                                                                               
-        if (exinfo->encryptionkey)                                                                                      
-        {                                                                                                               
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->encryptionkey      = %s\n", exinfo->encryptionkey));
-        }
-        if (exinfo->maxpolyphony)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->maxpolyphony       = %d\n", exinfo->maxpolyphony));
-        }
-        if (exinfo->userdata)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->userdata           = %p\n", exinfo->userdata));
-        }
-        if (exinfo->suggestedsoundtype)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->suggestedsoundtype = %d\n", exinfo->suggestedsoundtype));
-        }
-        if (exinfo->userdata)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->userdata           = %p\n", exinfo->userdata));
-        }
-        if (exinfo->useropen)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->useropen           = %p\n", exinfo->useropen));
-        }
-        if (exinfo->userclose)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->userclose          = %p\n", exinfo->userclose));
-        }
-        if (exinfo->userread)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->userread           = %p\n", exinfo->userread));
-        }
-        if (exinfo->userseek)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->userseek           = %p\n", exinfo->userseek));
-        }
-        if (exinfo->speakermap)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->speakermap         = %d\n", exinfo->speakermap));
-        }
-        if (exinfo->initialsoundgroup)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->initialsoundgroup  = %d\n", exinfo->initialsoundgroup));
-        }
-        if (exinfo->initialseekposition)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->initialseekposition = %d\n", exinfo->initialseekposition));
-        }
-        if (exinfo->initialseekpostype)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "exinfo->initialseekpostype = %d\n", exinfo->initialseekpostype));
-        }
-    }
-    #endif
+    LocalMemoryCounter     memcounter;
 
     if (!sound)
     {
@@ -2109,53 +1645,34 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         *sound = 0;
     }
 
-    /*
-        Check this is a valid exinfo structure.  Future revisions may want to set version numbers 
-        here to account for backwards compatibility.
-    */
     if (exinfo && exinfo->cbsize != sizeof(FMOD_CREATESOUNDEXINFO))
     {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "VERSION MISMATCH : cbsize in code (%d) does not match cbsize in lib (%d).  Make sure you are not mixing library and header versions of FMOD!\n", exinfo->cbsize, sizeof(FMOD_CREATESOUNDEXINFO)));
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    /*
-        1. Stream overrides sample && realtime sample.
-        2. Realtime sample overrides sample.
-    */
     if (mode_in & FMOD_CREATESTREAM)
     {
         mode_in &= ~FMOD_CREATESAMPLE;
-        mode_in &= ~FMOD_CREATECOMPRESSEDSAMPLE;    /* Decode to PCM through stream thread. */
+        mode_in &= ~FMOD_CREATECOMPRESSEDSAMPLE;
     }
     else if (mode_in & FMOD_CREATECOMPRESSEDSAMPLE)
     {
         mode_in &= ~FMOD_CREATESAMPLE;
     }
 
-    /*
-        Turn off 3d flags if 2d is set
-    */
     if (mode_in & FMOD_2D)
     {
         mode_in &= ~(FMOD_3D_HEADRELATIVE | FMOD_3D_WORLDRELATIVE | FMOD_3D_LOGROLLOFF | FMOD_3D_LINEARROLLOFF | FMOD_3D_CUSTOMROLLOFF);
     }
-
-    /*
-        Turn on 3d if one of the 3d flags is used.
-    */
     if (mode_in & (FMOD_3D_HEADRELATIVE | FMOD_3D_WORLDRELATIVE | FMOD_3D_LOGROLLOFF | FMOD_3D_LINEARROLLOFF | FMOD_3D_CUSTOMROLLOFF))
     {
         mode_in |= FMOD_3D;
     }
 
-    /*
-        Fall back to software if hardware doesnt exist.
-    */
     if (!(mode_in & FMOD_SOFTWARE))
-    {   
+    {
         int num2d, num3d;
-        
+
         getHardwareChannels(&num2d, &num3d, 0);
 
         if (mode_in & FMOD_3D)
@@ -2182,7 +1699,8 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         {
             return FMOD_ERR_INVALID_PARAM;
         }
-        if (exinfo->format == FMOD_SOUND_FORMAT_NONE || 
+
+        if (exinfo->format == FMOD_SOUND_FORMAT_NONE ||
             exinfo->numchannels <= 0 ||
             exinfo->defaultfrequency == 0)
         {
@@ -2190,153 +1708,129 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         }
     }
 
-    /*
-        First open the file
-    */
     if (mode_in & (FMOD_OPENMEMORY | FMOD_OPENMEMORY_POINT))
     {
-        file_cleanup = file = FMOD_Object_Alloc(MemoryFile);
-        CHECK_RESULT(file == NULL ? FMOD_ERR_MEMORY : FMOD_OK);
+        file = FMOD_Object_Alloc(MemoryFile);
+        if (!file)
+        {
+            return FMOD_ERR_MEMORY;
+        }
 
-        file->init(this, 0, 0); /* Set blocksize to 0 to stop it buffering, we don't need it. */
+        file->mBlockSize = 0;
     }
     else if (mode_in & FMOD_OPENUSER)
     {
-        file_cleanup = file = FMOD_Object_Alloc(NullFile);
-        CHECK_RESULT(file == NULL ? FMOD_ERR_MEMORY : FMOD_OK);
+        file = FMOD_Object_Alloc(NullFile);
+        if (!file)
+        {
+            return FMOD_ERR_MEMORY;
+        }
 
-        file->init(this, 0, mBufferSize);
-        mode_in &= ~FMOD_OPENRAW;   /* Just in case the user passed this in. */
+        mode_in &= ~FMOD_OPENRAW;
     }
     else
     {
-        if (exinfo && exinfo->useropen && exinfo->userclose && exinfo->userread && exinfo->userseek && !exinfo->ignoresetfilesystem)
+        if (exinfo && exinfo->useropen && exinfo->userclose && exinfo->userread && exinfo->userseek)
         {
-            file_cleanup = file = FMOD_Object_Alloc(UserFile);
-            CHECK_RESULT(file == NULL ? FMOD_ERR_MEMORY : FMOD_OK);
+            UserFile *userfile = FMOD_Object_Alloc(UserFile);
+            if (!userfile)
+            {
+                return FMOD_ERR_MEMORY;
+            }
 
-            result = ((UserFile *)file)->setUserCallbacks(exinfo->useropen, exinfo->userclose, exinfo->userread, exinfo->userseek);
-            CHECK_RESULT(result);
+            result = userfile->setUserCallbacks(exinfo->useropen, exinfo->userclose, exinfo->userread, exinfo->userseek);
+            if (result != FMOD_OK)
+            {
+                return result;
+            }
 
-            file->init(this, 0, mBufferSize);
+            file = userfile;
         }
-        else if (mUsesUserCallbacks && (!exinfo || !exinfo->ignoresetfilesystem))
+        else if (File::gUsesUserCallbacks)
         {
-            file_cleanup = file = FMOD_Object_Alloc(UserFile);
-            CHECK_RESULT(file == NULL ? FMOD_ERR_MEMORY : FMOD_OK);
-
-            file->init(this, 0, mBufferSize);
+            file = FMOD_Object_Alloc(UserFile);
+            if (!file)
+            {
+                return FMOD_ERR_MEMORY;
+            }
         }
 #ifdef FMOD_SUPPORT_NET
-        else if ((mode_in & FMOD_UNICODE &&
-                 (!FMOD_strnicmpW((const short *)(L"http://"),      (const short *)name_or_data, 7) || 
-                  !FMOD_strnicmpW((const short *)(L"http:\\\\"),    (const short *)name_or_data, 7) || 
-                  !FMOD_strnicmpW((const short *)(L"https://"),     (const short *)name_or_data, 8) || 
-                  !FMOD_strnicmpW((const short *)(L"https:\\\\"),   (const short *)name_or_data, 8) || 
-                  !FMOD_strnicmpW((const short *)(L"mms://"),       (const short *)name_or_data, 6) ||
-                  !FMOD_strnicmpW((const short *)(L"mms:\\\\"),     (const short *)name_or_data, 6))) ||
-                 (!FMOD_strnicmp("http://",                         name_or_data, 7) || 
-                  !FMOD_strnicmp("http:\\\\",                       name_or_data, 7) || 
-                  !FMOD_strnicmp("https://",                        name_or_data, 8) || 
-                  !FMOD_strnicmp("https:\\\\",                      name_or_data, 8) || 
-                  !FMOD_strnicmp("mms://",                          name_or_data, 6) ||
-                  !FMOD_strnicmp("mms:\\\\",                        name_or_data, 6)))
+        else if (!FMOD_strnicmp("http://",   name_or_data, 7) ||
+                 !FMOD_strnicmp("http:\\\\", name_or_data, 7) ||
+                 !FMOD_strnicmp("https://",  name_or_data, 8) ||
+                 !FMOD_strnicmp("https:\\\\", name_or_data, 8) ||
+                 !FMOD_strnicmp("mms://",    name_or_data, 6) ||
+                 !FMOD_strnicmp("mms:\\\\",  name_or_data, 6))
         {
-            file_cleanup = file = FMOD_Object_Alloc(NetFile);
-            CHECK_RESULT(file == NULL ? FMOD_ERR_MEMORY : FMOD_OK);
-            
-            file->init(this, 0, mBufferSize);
+            file = FMOD_Object_Alloc(NetFile);
+            if (!file)
+            {
+                return FMOD_ERR_MEMORY;
+            }
+
             netfile = true;
         }
 #endif
 #ifdef FMOD_SUPPORT_CDDA
         else if (FMOD_OS_CDDA_IsDeviceName((char *)name_or_data))
         {
-            file_cleanup = file = FMOD_Object_Alloc(CddaFile);
-            CHECK_RESULT(file == NULL ? FMOD_ERR_MEMORY : FMOD_OK);
+            CddaFile *cddafile = FMOD_Object_Alloc(CddaFile);
+            if (!cddafile)
+            {
+                return FMOD_ERR_MEMORY;
+            }
 
-            result = ((CddaFile *)file)->init((mode_in & FMOD_CDDA_FORCEASPI) ? true : false, (mode_in & FMOD_CDDA_JITTERCORRECT) ? true : false);
-            CHECK_RESULT(result);
+            cddafile->init((mode_in & FMOD_CDDA_FORCEASPI) ? true : false, (mode_in & FMOD_CDDA_JITTERCORRECT) ? true : false);
 
-            file->init(this, 0, mBufferSize);
+            file = cddafile;
         }
 #endif
         else
         {
-            file_cleanup = file = FMOD_Object_Alloc(DiskFile);
-            CHECK_RESULT(file == NULL ? FMOD_ERR_MEMORY : FMOD_OK);
-
-            file->init(this, 0, mBufferSize);
+            file = FMOD_Object_Alloc(DiskFile);
+            if (!file)
+            {
+                return FMOD_ERR_MEMORY;
+            }
         }
     }
+
+    file->mSystem = this;
 
     if (*sound && netfile)
     {
         (*sound)->mOpenState = FMOD_OPENSTATE_CONNECTING;
     }
 
-    if (mode_in & FMOD_CREATESTREAM && file->mBlockSize && file->mBlockSize <= (16*1024))
-    {
-        filebufferstack = (void *)FMOD_ALIGNPOINTER(filebufferstackmem, 32);
-
-        /*
-            Stop it from doing an alloc, so that it doesn't fragment memory when it reallocs later.
-            If it failed (not enough stack) it will just do the normal realloc/heap thing.
-        */
-        file->setBuffer(filebufferstack);
-    }
-
-    if (mode_in & FMOD_CREATESTREAM)
-    {
-        /*
-            Set the streaming flag. This is for PS3 FIOS.
-        */
-        file->mFlags |= FMOD_FILE_STREAMING;
-    }
-
-    result = file->open(name_or_data, exinfo ? exinfo->length : 0, (mode_in & FMOD_UNICODE) ? 1 : 0, exinfo ? exinfo->encryptionkey : 0);
+    result = file->open(name_or_data, exinfo ? exinfo->length : 0, (mode_in & FMOD_UNICODE) ? true : false, exinfo ? exinfo->encryptionkey : 0);
     if (result != FMOD_OK)
     {
+        FMOD_Memory_Free(file);
         return result;
     }
-    file_closer = file;
 
     if (*sound && netfile)
     {
         (*sound)->mOpenState = FMOD_OPENSTATE_BUFFERING;
     }
 
-    result = file->setStartOffset(exinfo ? exinfo->fileoffset: 0);
+    result = file->setStartOffset(exinfo ? exinfo->fileoffset : 0);
     if (result != FMOD_OK)
     {
         return result;
     }
-   
-    /*
-        If the file exists, search for the appropriate codec.
-    */
+
     result = mPluginFactory->getNumCodecs(&numcodecs);
     if (result != FMOD_OK)
     {
         return result;
     }
 
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "%d codecs found.  Scan all until one succeeds\n", numcodecs));
-
-    result = FMOD_ERR_FORMAT;
-
     for (count = 0; count < numcodecs; count++)
     {
         FMOD_CODEC_DESCRIPTION_EX *codecdesc;
-        unsigned int handle;
 
-        result = mPluginFactory->getCodecHandle(count, &handle);
-        if (result != FMOD_OK)
-        {
-            continue;
-        }
-
-        result = mPluginFactory->getCodec(handle, &codecdesc);
+        result = mPluginFactory->getCodec(count, &codecdesc);
         if (result != FMOD_OK)
         {
             continue;
@@ -2345,18 +1839,10 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         if (exinfo)
         {
             int memberoffset = (int)((FMOD_UINT_NATIVE)&exinfo->suggestedsoundtype - (FMOD_UINT_NATIVE)exinfo);
-            
+
             if (exinfo->cbsize > memberoffset && exinfo->suggestedsoundtype && !(mode_in & FMOD_OPENUSER))
             {
-                /*
-                    Ignore any codec that isn't the suggested type, except when the suggested type
-                    is MPEG, we want to allow the tag codec to process any tags in the file first
-                */
-                if (codecdesc->mType != exinfo->suggestedsoundtype 
-#ifdef FMOD_SUPPORT_TAGS
-                    && !(exinfo->suggestedsoundtype == FMOD_SOUND_TYPE_MPEG && codecdesc->mType == FMOD_SOUND_TYPE_TAG)
-#endif
-                    )
+                if (codecdesc->mType != exinfo->suggestedsoundtype)
                 {
                     continue;
                 }
@@ -2391,13 +1877,13 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         result = mPluginFactory->createCodec(codecdesc, &codec);
         if (result != FMOD_OK)
         {
-            if (result == FMOD_ERR_MEMORY)  /* Better not just skip this error. */
+            if (result == FMOD_ERR_MEMORY)
             {
                 return result;
             }
             continue;
         }
-        
+
         codec->mFile           = file;
         codec->mMode           = mode_in;
         codec->mOriginalMode   = originalmode;
@@ -2405,19 +1891,18 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         codec->filesize        = file->mLength;
         codec->mSystem         = this;
         codec->mFlags         |= FMOD_CODEC_ACCURATELENGTH;
-                   
-        result = codec->mDescription.open(codec, mode_in, exinfo);
 
+        result = codec->mDescription.open(codec, mode_in, exinfo);
         if (result == FMOD_OK)
         {
-            mode_in = codec->mMode; /* The codec wanted to change the mode. */
-            
+            mode_in = codec->mMode;
+
             result = codec->mDescription.getwaveformat(codec, 0, &waveformat);
             if (result != FMOD_OK)
             {
                 return result;
             }
-                              
+
             if (mode_in & FMOD_OPENUSER)
             {
                 waveformat.format    = exinfo->format;
@@ -2430,7 +1915,7 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                     return result;
                 }
 
-                waveformat.blockalign = codec->waveformat[0].blockalign = 1;    /* user codec can reference codec->waveformat here because it exists. */
+                waveformat.blockalign = codec->waveformat[0].blockalign = 1;
             }
             else if (mode_in & FMOD_OPENRAW)
             {
@@ -2438,9 +1923,9 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
 
                 file->getSize(&filesize);
 
-                waveformat.format    = codec->waveformat[0].format    = exinfo->format;             /* raw codec can reference codec->waveformat here because it exists. */
-                waveformat.channels  = codec->waveformat[0].channels  = exinfo->numchannels;        /* raw codec can reference codec->waveformat here because it exists. */
-                waveformat.frequency = codec->waveformat[0].frequency = exinfo->defaultfrequency;   /* raw codec can reference codec->waveformat here because it exists. */
+                waveformat.format    = codec->waveformat[0].format    = exinfo->format;
+                waveformat.channels  = codec->waveformat[0].channels  = exinfo->numchannels;
+                waveformat.frequency = codec->waveformat[0].frequency = exinfo->defaultfrequency;
 
                 result = SoundI::getSamplesFromBytes(filesize, &waveformat.lengthpcm, exinfo->numchannels, exinfo->format);
                 if (result != FMOD_OK)
@@ -2450,7 +1935,7 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
             }
 
             maxchannels = waveformat.channels;
-            codec->mBlockAlign = waveformat.blockalign; /* keep the first one always */
+            codec->mBlockAlign = waveformat.blockalign;
 
             if (codec->numsubsounds && mode_in & FMOD_CREATESTREAM)
             {
@@ -2470,21 +1955,7 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                         codec->mBlockAlign = waveformat2.blockalign;
                     }
                 }
-            }           
-
-            #ifdef FMOD_SUPPORT_RAWCODEC
-            if (waveformat.format == FMOD_SOUND_FORMAT_PCM16)
-            {                  
-                if (!mDSPCodecPool_RAW.mNumDSPCodecs)
-                {
-                    result = mDSPCodecPool_RAW.init(FMOD_DSP_CATEGORY_DSPCODECRAW, 256, mAdvancedSettings.maxPCMcodecs ? mAdvancedSettings.maxPCMcodecs : FMOD_ADVANCEDSETTINGS_MAXPCMCODECS);
-                    if (result != FMOD_OK)
-                    {
-                        return result;
-                    }
-                }
             }
-            #endif
             break;
         }
 
@@ -2495,26 +1966,29 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         }
 #endif
 
-        codec->mFile = 0;   /* Dont let the release close the file */
+        codec->mFile = 0;
         codec->mMetadata = 0;
         codec->release();
         codec = 0;
 
         if (result != FMOD_ERR_FORMAT && result != FMOD_ERR_FILE_EOF)
         {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "System::createSoundInternal", "Fatal error (%d) scanning the codecs.  (ie not FMOD_ERR_FORMAT or FMOD_ERR_FILE_EOF)\n", result));
+            file->close();
+            FMOD_Memory_Free(file);
 
             if (metadata)
             {
                 metadata->release();
             }
-
             return result;
         }
     }
 
     if (!codec)
     {
+        file->close();
+        FMOD_Memory_Free(file);
+
         if (metadata)
         {
             metadata->release();
@@ -2534,16 +2008,10 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         else
         {
             codec->mMetadata = metadata;
-        }    
+        }
     }
 
     codec->getMetadataFromFile();
-
-    file_closer.releasePtr();
-    file_cleanup.releasePtr();
-    codec_cleanup = codec;    
-
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "Format has %d subsounds.\n", numsubsounds));
 
     if (numsubsounds > 0)
     {
@@ -2552,10 +2020,8 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         {
             return FMOD_ERR_MEMORY;
         }
-
-        subsound_cleanup = subsound;
     }
-   
+
     result = codec->mDescription.getwaveformat(codec, 0, &waveformat);
     if (result != FMOD_OK)
     {
@@ -2567,26 +2033,14 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         return FMOD_ERR_TOOMANYCHANNELS;
     }
 
-    /*
-        Load as a stream if the codec told us to.
-    */
     if (codec->mDescription.defaultasstream && !(mode_in & FMOD_CREATESAMPLE))
     {
         mode_in |= FMOD_CREATESTREAM;
     }
 
-    /*
-        The file has now been successfully opened via the codec, now load it or prepare a stream.
-    */
     if (codec->mType == FMOD_SOUND_TYPE_PLAYLIST)
     {
-        /*
-            Just create an empty sound container if a playlist was loaded
-        */  
-        SoundI             *soundcontainer = 0;
-        AutoRelease<SoundI> soundcontainer_cleanup;
-
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "Create sample for playlist\n"));
+        SoundI *soundcontainer = 0;
 
         if (mode_in & FMOD_NONBLOCKING)
         {
@@ -2599,7 +2053,6 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
             {
                 return FMOD_ERR_MEMORY;
             }
-            soundcontainer_cleanup = soundcontainer;
         }
 
         if (!soundcontainer->mName && !(mode_in & FMOD_LOWMEM))
@@ -2610,8 +2063,6 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                 return FMOD_ERR_MEMORY;
             }
         }
-
-        codec_cleanup.releasePtr();
 
         soundcontainer->mSystem                  = this;
         soundcontainer->mPostReadCallback        = exinfo ? exinfo->pcmreadcallback : 0;
@@ -2626,7 +2077,6 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         soundcontainer->mSubSoundIndex           = -1;
         soundcontainer->mUserData                = exinfo ? exinfo->userdata : 0;
 
-        soundcontainer_cleanup.releasePtr();
         *sound = soundcontainer;
     }
     else
@@ -2634,14 +2084,11 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
     if (mode_in & FMOD_CREATESTREAM)
     {
         unsigned int          decodebuffersize;
-        unsigned int          blocksize = 0;
+        unsigned int          blocksize;
         Stream               *stream;
         Sample               *sample      = 0;
         FMOD_MODE             sample_mode = mode_in & ~(FMOD_CREATECOMPRESSEDSAMPLE);
         FMOD_CODEC_WAVEFORMAT waveformatstream;
-        AutoRelease<Stream>   stream_cleanup;
-        
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "Create as FMOD_CREATESTREAM\n"));
 
         if (mode_in & FMOD_NONBLOCKING)
         {
@@ -2652,138 +2099,116 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
             stream = FMOD_Object_Calloc(Stream);
             if (!stream)
             {
+                if (subsound)
+                {
+                    FMOD_Memory_Free(subsound);
+                }
+                codec->release();
                 return FMOD_ERR_MEMORY;
             }
-            stream_cleanup = stream;
-        }       
+        }
 
         if (!stream->mName && !(mode_in & FMOD_LOWMEM))
         {
             stream->mName = (char *)FMOD_Memory_Calloc(FMOD_STRING_MAXNAMELEN);
             if (!stream->mName)
             {
+                if (subsound)
+                {
+                    FMOD_Memory_Free(subsound);
+                }
+                codec->release();
                 return FMOD_ERR_MEMORY;
             }
         }
-
-        codec_cleanup.releasePtr();        
-        subsound_cleanup.releasePtr();
 
         stream->mSubSound     = subsound;
         stream->mNumSubSounds = numsubsounds;
         stream->mCodec        = codec;
         stream->mSystem       = this;
 
-        if (!(codec->mFlags & FMOD_CODEC_HARDWAREMUSICVOICES))
+        SoundI::getSamplesFromBytes(waveformat.blockalign, &blocksize, maxchannels, waveformat.format);   // VERIFY
+
+        decodebuffersize = exinfo ? exinfo->decodebuffersize : 0;
+        if (!decodebuffersize)
         {
-            stream->getSamplesFromBytes(codec->mBlockAlign, &blocksize, maxchannels, waveformat.format);
+            decodebuffersize  = 400;
+            decodebuffersize *= waveformat.frequency;
+            decodebuffersize /= 1000;
+        }
 
-            /*
-                Calculate the PCM Buffersize in samples based on the user setting.
-            */
-            decodebuffersize = exinfo ? exinfo->decodebuffersize : 0;
+        if (!blocksize)
+        {
+            blocksize = decodebuffersize;
+        }
 
-            if (!decodebuffersize)
+        if (blocksize < 256)
+        {
+            if (blocksize <= 0)
             {
-                decodebuffersize  = mAdvancedSettings.defaultDecodeBufferSize;
-                decodebuffersize *= waveformat.frequency;
-                decodebuffersize /= 1000;
+                blocksize = 1;
             }
+            blocksize = ((256 + (blocksize - 1)) / blocksize) * blocksize;
+        }
 
-            if (!blocksize)
+        decodebuffersize /= blocksize;
+        decodebuffersize *= blocksize;
+        if (decodebuffersize <= blocksize)
+        {
+            decodebuffersize = blocksize * 2;
+        }
+
+        sample_mode &= ~FMOD_LOOP_OFF;
+        sample_mode &= ~FMOD_LOOP_BIDI;
+        sample_mode &= ~FMOD_OPENMEMORY_POINT;
+        sample_mode |=  FMOD_LOOP_NORMAL;
+
+        FMOD_memcpy(&waveformatstream, &waveformat, sizeof(FMOD_CODEC_WAVEFORMAT));
+
+        if (exinfo && exinfo->speakermap)
+        {
+            if (exinfo->speakermap == FMOD_SPEAKERMAPTYPE_ALLMONO)
             {
-                blocksize = decodebuffersize;
+                waveformatstream.channelmask = SPEAKER_ALLMONO;
             }
-
-            if (blocksize < 256)
+            else if (exinfo->speakermap == FMOD_SPEAKERMAPTYPE_ALLSTEREO)
             {
-                if (blocksize <= 0)
-                {
-                    blocksize = 1;
-                }
-
-                blocksize = ((256 + (blocksize - 1)) / blocksize) * blocksize;
-            }
-
-            decodebuffersize /= blocksize;
-            decodebuffersize *= blocksize;
-            if (decodebuffersize <= blocksize)
-            {
-                decodebuffersize = blocksize * 2;
-            }
-
-            if (!(mode_in & FMOD_OPENUSER) && numsubsounds == 0 && waveformat.lengthpcm <= decodebuffersize && sample_mode & FMOD_SOFTWARE)
-            {
-                decodebuffersize = waveformat.lengthpcm;
-            }
-
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "System::createSoundInternal", "decode buffersize = %d : blocksize = %d : format = %d\n", decodebuffersize, blocksize, waveformat.format));
-
-            /*
-                Create a small streaming sample to double buffer into
-            */
-            sample_mode &= ~FMOD_LOOP_OFF;
-            sample_mode &= ~FMOD_LOOP_BIDI;
-            sample_mode &= ~FMOD_OPENMEMORY_POINT;
-            sample_mode |=  FMOD_LOOP_NORMAL;
-
-            FMOD_memcpy(&waveformatstream, &waveformat, sizeof(FMOD_CODEC_WAVEFORMAT));
-
-            if (exinfo && exinfo->speakermap)
-            {
-                if (exinfo->speakermap == FMOD_SPEAKERMAPTYPE_ALLMONO)
-                {
-                    waveformatstream.channelmask = SPEAKER_ALLMONO;
-                }
-                else if (exinfo->speakermap == FMOD_SPEAKERMAPTYPE_ALLSTEREO)
-                {
-                    waveformatstream.channelmask = SPEAKER_ALLSTEREO;
-                }
-                else if (exinfo->speakermap == FMOD_SPEAKERMAPTYPE_51_PROTOOLS)
-                {
-                    waveformatstream.channelmask = SPEAKER_PROTOOLS;
-                }
-            }
-
-            waveformatstream.lengthpcm = decodebuffersize;
-            waveformatstream.channels  = maxchannels;
-            waveformatstream.loopstart = 0;
-            waveformatstream.loopend   = waveformatstream.lengthpcm - 1;
-                
-            result = createSample(sample_mode, &waveformatstream, &sample);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-
-            /*
-                Put in any post sample create info from the user. 
-            */
-            sample->mPostReadCallback        = exinfo ? exinfo->pcmreadcallback : 0;
-            sample->mPostSetPositionCallback = exinfo ? exinfo->pcmsetposcallback : 0;
-            sample->mUserData                = exinfo ? exinfo->userdata : 0;
-            sample->mPostCallbackSound       = (FMOD_SOUND *)stream;
-            sample->mCodec                   = codec;
-
-            if (sample->mNumSubSamples)
-            {
-                for (int count = 0; count < sample->mNumSubSamples; count++)
-                {
-                    sample->mSubSample[count]->mCodec = codec;
-                }
+                waveformatstream.channelmask = SPEAKER_ALLSTEREO;
             }
         }
 
-        /*
-            Set up stream members.
-        */
+        waveformatstream.lengthpcm = decodebuffersize;
+        waveformatstream.loopend   = decodebuffersize - 1;
+        waveformatstream.channels  = maxchannels;
+        waveformatstream.loopstart = 0;
+
+        result = createSample(sample_mode, &waveformatstream, &sample);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+
+        sample->mPostReadCallback        = exinfo ? exinfo->pcmreadcallback : 0;
+        sample->mPostSetPositionCallback = exinfo ? exinfo->pcmsetposcallback : 0;
+        sample->mUserData                = exinfo ? exinfo->userdata : 0;
+        sample->mPostCallbackSound       = (FMOD_SOUND *)stream;
+        sample->mCodec                   = codec;
+
+        if (sample->mNumSubSamples)
+        {
+            for (int count = 0; count < sample->mNumSubSamples; count++)
+            {
+                sample->mSubSample[count]->mCodec = codec;
+            }
+        }
+
         stream->mSample                  = sample;
         stream->mSubSoundIndex           = 0;
         stream->mLength                  = waveformat.lengthpcm;
         stream->mLengthBytes             = waveformat.lengthbytes;
         stream->mDefaultFrequency        = (float)waveformat.frequency;
         stream->mMode                    = sample_mode | FMOD_UNIQUE | FMOD_CREATESTREAM;
-        stream->mMode                    = stream->mMode & ~FMOD_LOOP_NORMAL;    /* Don't inherit the loop mode */
+        stream->mMode                    = stream->mMode & ~FMOD_LOOP_NORMAL;
         stream->mFormat                  = waveformat.format;
         stream->mChannels                = maxchannels;
         stream->mSystem                  = this;
@@ -2795,43 +2220,31 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         stream->mMinDistance             = 1.0f     * mDistanceScale;
         stream->mMaxDistance             = 10000.0f * mDistanceScale;
         stream->mUserData                = exinfo ? exinfo->userdata : 0;
+
         if (stream->mName)
         {
             FMOD_strcpy(stream->mName, waveformat.name);
         }
 
-        if (sample)
+        if (exinfo && exinfo->speakermap)
         {
-            if (exinfo && exinfo->speakermap)
+            if (exinfo->speakermap == FMOD_SPEAKERMAPTYPE_ALLMONO)
             {
-                if (exinfo->speakermap == FMOD_SPEAKERMAPTYPE_ALLMONO)
-                {
-                    sample->mDefaultChannelMask = SPEAKER_ALLMONO;
-                }
-                else if (exinfo->speakermap == FMOD_SPEAKERMAPTYPE_ALLSTEREO)
-                {
-                    sample->mDefaultChannelMask = SPEAKER_ALLSTEREO;
-                }
-                else if (exinfo->speakermap == FMOD_SPEAKERMAPTYPE_51_PROTOOLS)
-                {
-                    sample->mDefaultChannelMask = SPEAKER_PROTOOLS;
-                }
+                sample->mDefaultChannelMask = SPEAKER_ALLMONO;
             }
-            else
+            else if (exinfo->speakermap == FMOD_SPEAKERMAPTYPE_ALLSTEREO)
             {
-                sample->mDefaultChannelMask = waveformat.channelmask;
+                sample->mDefaultChannelMask = SPEAKER_ALLSTEREO;
             }
-
-            /*
-                Fix up the hardware/software and 2d/3d bits of the mode.
-            */
-            stream->mMode &= ~(FMOD_2D | FMOD_3D | FMOD_HARDWARE | FMOD_SOFTWARE);
-            stream->mMode |= (sample->mMode & (FMOD_2D | FMOD_3D | FMOD_HARDWARE | FMOD_SOFTWARE));
         }
-         
-        /*
-            Loop information.
-        */
+        else
+        {
+            sample->mDefaultChannelMask = waveformat.channelmask;
+        }
+
+        stream->mMode &= ~(FMOD_2D | FMOD_3D | FMOD_HARDWARE | FMOD_SOFTWARE);
+        stream->mMode |= (sample->mMode & (FMOD_2D | FMOD_3D | FMOD_HARDWARE | FMOD_SOFTWARE));
+
         if (waveformat.mode & FMOD_LOOP_OFF || mode_in & FMOD_LOOP_OFF)
         {
             stream->mMode |= FMOD_LOOP_OFF;
@@ -2844,6 +2257,7 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
         {
             stream->mMode |= FMOD_LOOP_OFF;
         }
+
         stream->setLoopPoints(waveformat.loopstart, FMOD_TIMEUNIT_PCM, waveformat.loopend, FMOD_TIMEUNIT_PCM);
 
         if (!stream->mSoundGroupNode.getData())
@@ -2855,55 +2269,54 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
             }
         }
 
-        /*
-            Allocate stream channel
-        */
         stream->mChannel = FMOD_Object_Calloc(ChannelStream);
         if (!stream->mChannel)
         {
+            if (!(stream->mMode & FMOD_NONBLOCKING))
+            {
+                stream->release();
+            }
             return FMOD_ERR_MEMORY;
         }
 
-        stream->mChannel->mSystem = this;
-
-        FMOD_OS_CriticalSection_Enter(SystemI::mStreamListCrit);
+        FMOD_OS_CriticalSection_Enter(mStreamListCrit);
         {
             stream->mStreamNode.setData(stream);
             stream->mStreamNode.addBefore(&mStreamListSoundHead);
         }
-        FMOD_OS_CriticalSection_Leave(SystemI::mStreamListCrit);    
+        FMOD_OS_CriticalSection_Leave(mStreamListCrit);
 
         if (numsubsounds > 0 && !(mode_in & FMOD_OPENUSER))
         {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "System::createSoundInternal", "%d subsounds detected.\n", numsubsounds));
-
-            Stream *substream = 0;
-
-            substream = (Stream *)FMOD_Object_Calloc(Stream);
+            Stream *substream = FMOD_Object_Calloc(Stream);
             if (!substream)
             {
+                if (!(stream->mMode & FMOD_NONBLOCKING))
+                {
+                    stream->release();
+                }
                 return FMOD_ERR_MEMORY;
             }
-            AutoRelease<Stream> substream_cleanup(substream);
 
-            if (numsubsounds > 1)
-            {
-                stream->mSubSoundShared = substream;
-            }
+            stream->mSubSoundShared = substream;
 
             if (!(mode_in & FMOD_LOWMEM))
             {
                 substream->mName = (char *)FMOD_Memory_Calloc(FMOD_STRING_MAXNAMELEN);
                 if (!substream->mName)
                 {
+                    if (!(stream->mMode & FMOD_NONBLOCKING))
+                    {
+                        stream->release();
+                    }
                     return FMOD_ERR_MEMORY;
                 }
             }
 
-            substream->mSystem           = this;
             substream->mSample           = sample;
+            substream->mSystem           = this;
             substream->mCodec            = codec;
-            substream->mSubSoundIndex    = 0;
+            substream->mSubSoundIndex    = count;   // VERIFY
             substream->mChannel          = stream->mChannel;
             substream->mMode             = stream->mMode;
             substream->mType             = stream->mType;
@@ -2912,24 +2325,25 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
             substream->mMaxDistance      = 10000.0f * mDistanceScale;
             substream->mBlockSize        = blocksize;
             substream->mSubSoundParent   = stream;
-            if (numsubsounds > 1)
-            {
-                substream->mSubSoundShared = substream;
-            }
+            substream->mSubSoundShared   = substream;
 
             if (!substream->mSoundGroupNode.getData())
             {
                 result = substream->setSoundGroup(mSoundGroup);
                 if (result != FMOD_OK)
                 {
+                    if (!(stream->mMode & FMOD_NONBLOCKING))
+                    {
+                        stream->release();
+                    }
                     return result;
                 }
             }
 
-            for (count=0; count < numsubsounds; count++)
+            for (count = 0; count < numsubsounds; count++)
             {
                 subsound[count] = substream;
-            
+
                 if (count < codec->numsubsounds)
                 {
                     FMOD_CODEC_WAVEFORMAT waveformat2;
@@ -2944,15 +2358,16 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                     {
                         FMOD_strcpy(substream->mName,  waveformat2.name);
                     }
-                    substream->mSubSoundIndex      = count;
-                    substream->mFormat             = waveformat2.format;
-                    substream->mChannels           = waveformat2.channels;
-                    substream->mDefaultFrequency   = (float)waveformat2.frequency;
+
                     substream->mDefaultChannelMask = waveformat2.channelmask;
-                    substream->mLoopStart          = waveformat2.loopstart;
+                    substream->mDefaultFrequency   = (float)waveformat2.frequency;
+                    substream->mChannels           = waveformat2.channels;
+                    substream->mFormat             = waveformat2.format;
                     substream->mLoopLength         = waveformat2.loopend - waveformat2.loopstart + 1;
                     substream->mLength             = waveformat2.lengthpcm;
                     substream->mLengthBytes        = waveformat2.lengthbytes;
+                    substream->mLoopStart          = waveformat2.loopstart;
+
                     substream->setLoopPoints(waveformat2.loopstart, FMOD_TIMEUNIT_PCM, waveformat2.loopend, FMOD_TIMEUNIT_PCM);
 
                     if (codec->mDescription.soundcreate)
@@ -2968,19 +2383,15 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                 stream->mNumActiveSubSounds++;
             }
 
-            if (codec->numsubsounds && substream->mSubSoundShared)
+            if (codec->numsubsounds)
             {
                 substream->updateSubSound(0, false);
             }
 
-            if (stream->mType == FMOD_SOUND_TYPE_CDDA && !(mode_in & FMOD_LOWMEM) && !(exinfo && exinfo->initialsubsound))
+            if (!(mode_in & FMOD_LOWMEM) && !(exinfo && exinfo->initialsubsound))
             {
-                FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "System::createSoundInternal", "Setting up parent sound to contain a sentence of all subsounds.\n"));
-
                 stream->setSubSoundSentence(0, numsubsounds);
             }
-
-            substream_cleanup.releasePtr();
         }
         else
         {
@@ -2994,19 +2405,19 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
             }
         }
 
-        /*
-            Convert the initial position time unit to PCM
-        */
         if (exinfo)
         {
             switch (exinfo->initialseekpostype)
             {
-                case 0:     // Defaults to FMOD_TIMEUNIT_PCM
+                case 0:
+                case FMOD_TIMEUNIT_PCM:
                 {
                     break;
                 }
-                case FMOD_TIMEUNIT_PCM: 
+                case FMOD_TIMEUNIT_MS:
                 {
+                    exinfo->initialseekposition = (unsigned int)((float)exinfo->initialseekposition * stream->mDefaultFrequency / 1000.0f);
+                    exinfo->initialseekpostype = FMOD_TIMEUNIT_PCM;
                     break;
                 }
                 case FMOD_TIMEUNIT_PCMBYTES:
@@ -3015,109 +2426,104 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                     exinfo->initialseekpostype = FMOD_TIMEUNIT_PCM;
                     break;
                 }
-                case FMOD_TIMEUNIT_MS: 
-                {
-                    exinfo->initialseekposition = (unsigned int)((float)exinfo->initialseekposition / 1000.0f * stream->mDefaultFrequency);
-                    exinfo->initialseekpostype = FMOD_TIMEUNIT_PCM;
-                    break;
-                }
-                default:    // Non-supported time unit chosen
+                default:
                 {
                     return FMOD_ERR_INVALID_PARAM;
                 }
             }
         }
-         
+
         if (exinfo && exinfo->initialsubsound && stream->mSubSound)
         {
             Stream *substream = 0;
 
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "System::createSoundInternal", "Setting initial subsound. exinfo->initialsubsound = %d, stream->mNumSubSounds = %d.\n", exinfo->initialsubsound, stream->mNumSubSounds));
-
             if (exinfo->initialsubsound < 0 || exinfo->initialsubsound >= stream->mNumSubSounds)
             {
+                if (!(stream->mMode & FMOD_NONBLOCKING))
+                {
+                    stream->release();
+                }
                 return FMOD_ERR_INVALID_PARAM;
             }
 
-            stream->mSubSoundIndex                  = exinfo->initialsubsound;
-            stream->mChannel->mSubSoundListCurrent  = exinfo->initialsubsound;
+            stream->mSubSoundIndex       = exinfo->initialsubsound;
+            stream->mSubSoundListCurrent = exinfo->initialsubsound;
 
             substream = SAFE_CAST(Stream, stream->mSubSound[stream->mSubSoundIndex]);
             if (substream)
             {
-                substream->mSubSoundIndex                 = exinfo->initialsubsound;
-                substream->mChannel->mSubSoundListCurrent = exinfo->initialsubsound;
+                substream->mSubSoundIndex       = exinfo->initialsubsound;
+                substream->mSubSoundListCurrent = exinfo->initialsubsound;
 
                 if (substream->mSubSoundShared)
                 {
                     result = substream->updateSubSound(exinfo->initialsubsound, false);
                     if (result != FMOD_OK)
                     {
+                        if (!(stream->mMode & FMOD_NONBLOCKING))
+                        {
+                            stream->release();
+                        }
                         return result;
                     }
 				}
 
                 stream->mInitialPosition = exinfo->initialseekposition;
+
                 result = substream->setPosition(exinfo->initialseekposition, FMOD_TIMEUNIT_PCM);
                 if (result != FMOD_OK)
                 {
+                    if (!(stream->mMode & FMOD_NONBLOCKING))
+                    {
+                        stream->release();
+                    }
                     return result;
                 }
             }
         }
         else
         {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "System::createSoundInternal", "Seek stream to start\n"));
-
-            /*
-                Seek and pre-flush the buffer.
-            */
             stream->mInitialPosition = exinfo ? exinfo->initialseekposition : 0;
+
             result = stream->setPosition(exinfo ? exinfo->initialseekposition : 0, FMOD_TIMEUNIT_PCM);
             if (result != FMOD_OK)
             {
+                if (!(stream->mMode & FMOD_NONBLOCKING))
+                {
+                    stream->release();
+                }
                 return result;
             }
         }
-        
-        if (!(mode_in & FMOD_OPENONLY) && !(codec->mFlags & FMOD_CODEC_HARDWAREMUSICVOICES))
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "System::createSoundInternal", "flush stream buffer\n"));
 
+        if (!(mode_in & FMOD_OPENONLY))
+        {
             result = stream->flush();
             if (result != FMOD_OK)
             {
+                if (!(stream->mMode & FMOD_NONBLOCKING))
+                {
+                    stream->release();
+                }
                 return result;
-            }           
-
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "System::createSoundInternal", "flush successful.\n"));
+            }
         }
 
-        /*
-            Change from a blocking single buffered sector sized file to a large doublebuffered file.
-            Dont do it for mod files, they dont have a file buffer at runtime anyway.
-        */
-        if (!(mode_in & FMOD_OPENUSER) && !(codec->mFlags & FMOD_CODEC_HARDWAREMUSICVOICES) 
-            && codec->mType != FMOD_SOUND_TYPE_IT
-            && codec->mType != FMOD_SOUND_TYPE_XM
-            && codec->mType != FMOD_SOUND_TYPE_S3M
-            && codec->mType != FMOD_SOUND_TYPE_MOD
-            && codec->mType != FMOD_SOUND_TYPE_MIDI)
         {
-            unsigned int sizebytes = 0; 
-
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "System::createSoundInternal", "switch file handle from small blocking single buffered to large nonblocking doublebuffered.\n"));
+            unsigned int sizebytes = 0;
+            unsigned int buffersize = mStreamFileBufferSize;
+            FMOD_TIMEUNIT buffersizetype = mStreamFileBufferSizeType;
 
             if (buffersizetype == FMOD_TIMEUNIT_RAWBYTES)
             {
                 sizebytes = buffersize;
             }
-            else 
+            else
             {
                 unsigned int pcm = buffersize;
 
                 if (buffersizetype == FMOD_TIMEUNIT_MS)
-                {                
+                {
                     pcm = buffersize * (unsigned int)stream->mDefaultFrequency / 1000;
                 }
                 else if (buffersizetype == FMOD_TIMEUNIT_PCMBYTES)
@@ -3125,18 +2531,14 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                     stream->getSamplesFromBytes(buffersize, &pcm);
                 }
 
-                /*
-                    This section tries to guess the size in bytes (sizebytes) it would take with 
-                    this compressed format, to read the buffersize worth of output samples (pcm).
-                */
                 if (stream->mLength == (unsigned int)-1 || file->mLength == (unsigned int)-1)
                 {
-                    stream->getBytesFromSamples(pcm, &sizebytes);   /* In this case, length is infinite, so make a rough guess based on PCM bytes. */
+                    stream->getBytesFromSamples(pcm, &sizebytes);
                 }
                 else
                 {
                     float frac;
-                    
+
                     if (stream->mLengthBytes)
                     {
                         frac = (float)stream->mLengthBytes / (float)stream->mLength;
@@ -3146,33 +2548,34 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                         frac = (float)file->mLength / (float)stream->mLength;
                     }
 
-                    sizebytes = (unsigned int)((float)pcm * frac);
+                    sizebytes = (unsigned int)(frac * (float)pcm);
                 }
             }
 
-            result = file->enableDoubleBuffer(sizebytes, filebufferstack);    /* Now double buffered, size determined by user */
-            if (result != FMOD_OK)
+            if (!(mode_in & FMOD_OPENUSER))
             {
-                return result;
+                result = file->enableDoubleBuffer(sizebytes);
+                if (result != FMOD_OK)
+                {
+                    if (!(stream->mMode & FMOD_NONBLOCKING))
+                    {
+                        stream->release();
+                    }
+                    return result;
+                }
             }
         }
 
-        stream_cleanup.releasePtr();
         *sound = stream;
     }
-    else    /* ^^^^^^ (mode_in & FMOD_CREATESTREAM) ^^^^^^ */
+    else
 #endif
     {
-        Sample *sample = 0, *samplecontainer = 0;        
-        AutoRelease<Sample> samplecontainer_cleanup;
+        Sample *sample = 0, *samplecontainer = 0;
         bool realtimesample = false;
-
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "Create as FMOD_CREATESAMPLE\n"));
 
         if (numsubsounds > 0)
         {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "Multi-sample sound (%d subsounds), create a sample container.\n", numsubsounds));
-
             if (mode_in & FMOD_NONBLOCKING)
             {
                 samplecontainer = SAFE_CAST(Sample, *sound);
@@ -3184,7 +2587,6 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                 {
                     return FMOD_ERR_MEMORY;
                 }
-                samplecontainer_cleanup = samplecontainer;
             }
 
             if (!samplecontainer->mName && !(mode_in & FMOD_LOWMEM))
@@ -3195,8 +2597,6 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                     return FMOD_ERR_MEMORY;
                 }
             }
-            codec_cleanup.releasePtr();
-            subsound_cleanup.releasePtr();
 
             samplecontainer->mSystem                  = this;
             samplecontainer->mPostReadCallback        = exinfo ? exinfo->pcmreadcallback : 0;
@@ -3210,9 +2610,7 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
             samplecontainer->mNumSubSounds            = numsubsounds;
             samplecontainer->mSubSoundIndex           = -1;
             samplecontainer->mUserData                = exinfo ? exinfo->userdata : 0;
-            samplecontainer->mMode                    = mode_in;
-            samplecontainer->mDefaultFrequency        = (float)waveformat.frequency;
-        }                                             
+        }
 
         for (count = 0; (count < (numsubsounds == 0 ? 1 : numsubsounds)) && (count < (numsubsounds == 0 ? 1 : codec->numsubsounds)); count++)
         {
@@ -3234,9 +2632,6 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                 sample = 0;
             }
 
-            /*
-                Check the user passed in inclusion list if this sample should be loaded or not.
-            */
             if (numsubsounds > 0 && exinfo && exinfo->inclusionlist)
             {
                 bool found = false;
@@ -3267,60 +2662,49 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                 {
                     waveformat2.channelmask = SPEAKER_ALLSTEREO;
                 }
-                else if (exinfo->speakermap == FMOD_SPEAKERMAPTYPE_51_PROTOOLS)
-                {
-                    waveformat2.channelmask = SPEAKER_PROTOOLS;
-                }
             }
 
-            if (sample_mode & FMOD_CREATECOMPRESSEDSAMPLE)
+            if (mode_in & FMOD_CREATECOMPRESSEDSAMPLE)
             {
-                if (waveformat2.format == FMOD_SOUND_FORMAT_MPEG || 
-                    waveformat2.format == FMOD_SOUND_FORMAT_IMAADPCM || 
-                    waveformat2.format == FMOD_SOUND_FORMAT_XMA ||
-                    waveformat2.format == FMOD_SOUND_FORMAT_CELT)       /* Only allow these formats through as realtime samples. */
+                if (waveformat2.format == FMOD_SOUND_FORMAT_MPEG ||
+                    waveformat2.format == FMOD_SOUND_FORMAT_IMAADPCM ||
+                    waveformat2.format == FMOD_SOUND_FORMAT_XMA)
                 {
                     realtimesample = true;
                 }
                 else
                 {
                     sample_mode &= ~FMOD_CREATECOMPRESSEDSAMPLE;
-
-                    if (samplecontainer)
-                    {
-                        samplecontainer->mMode &= ~FMOD_CREATECOMPRESSEDSAMPLE;
-                    }
                 }
             }
 
             if (!realtimesample && mode_in & FMOD_OPENMEMORY_POINT)
-            {               
+            {
                 result = codec->canPointTo();
                 if (result != FMOD_OK)
-                {              
+                {
                     return result;
                 }
             }
 
-            /*
-                Create the sample
-            */
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "creating subsound %d/%d\n", count, numsubsounds));
-
             result = createSample(sample_mode, &waveformat2, &sample);
             if (result != FMOD_OK)
             {
+                if (samplecontainer)
+                {
+                    samplecontainer->release();
+                }
+                else if (codec)
+                {
+                    codec->release();
+                }
                 return result;
             }
 
-            /*
-                Put in any post sample create info from the user. 
-            */
-            codec_cleanup.releasePtr();
             sample->mSubSoundIndex  = count;
             sample->mSubSoundParent = samplecontainer;
             sample->mType           = codec->mType;
-            sample->mCodec          = codec;            
+            sample->mCodec          = codec;
             sample->mMinDistance    = 1.0f     * mDistanceScale;
             sample->mMaxDistance    = 10000.0f * mDistanceScale;
             sample->mUserData       = exinfo ? exinfo->userdata : 0;
@@ -3342,10 +2726,7 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                     return result;
                 }
             }
-            
-            /*
-                Now load it.
-            */
+
             if (!numsubsounds && count == 0)
             {
                 sample->mPostReadCallback        = exinfo ? exinfo->pcmreadcallback : 0;
@@ -3355,16 +2736,14 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
 
             if (codec->mDescription.soundcreate)
             {
-                SoundI *s = SAFE_CAST(SoundI, sample);
-
-                result = codec->mDescription.soundcreate(codec, count, (FMOD_SOUND *)s);
+                result = codec->mDescription.soundcreate(codec, count, (FMOD_SOUND *)sample);
                 if (result != FMOD_OK)
                 {
                     return result;
                 }
             }
 
-            result = codec->reset();    /* Reset the codec if it needs resetting, and clear PCM Buffer and reset it. */
+            result = codec->reset();
             if (result != FMOD_OK)
             {
                 return result;
@@ -3373,18 +2752,14 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
             if (waveformat2.mode & FMOD_CREATECOMPRESSEDSAMPLE || sample_mode & FMOD_CREATECOMPRESSEDSAMPLE)
             {
                 result = codec->setPosition(count, 0, FMOD_TIMEUNIT_RAWBYTES);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
             }
             else
             {
                 result = codec->setPosition(count, 0, FMOD_TIMEUNIT_PCM);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }            
+            }
+            if (result != FMOD_OK)
+            {
+                return result;
             }
 
             if (sample->mPostSetPositionCallback)
@@ -3399,41 +2774,21 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                 }
             }
 
-            /*
-                Get the data for the sample (from the file or just point to it).
-            */
-            if (sample_mode & FMOD_OPENMEMORY_POINT)   /* If we are simply pointing to the user's memory address. */
+            if (sample_mode & FMOD_OPENMEMORY_POINT)
             {
-                if (codec->mNonInterleaved && sample->mNumSubSamples)
+                result = sample->setBufferData((char *)name_or_data + codec->mFile->mCurrentPosition);
+                if (result != FMOD_OK)
                 {
-                    unsigned int onechanlengthbytes = 0;
-
-                    sample->getBytesFromSamples(sample->mLength / sample->mNumSubSamples, &onechanlengthbytes);
-
-                    for (int count = 0; count < sample->mNumSubSamples; count++)
+                    if (samplecontainer)
                     {
-                        result = ((Sample *)(sample->mSubSample[count]))->setBufferData((char *)name_or_data + codec->mFile->mCurrentPosition + (onechanlengthbytes * count));
-                        if (result != FMOD_OK)
-                        {
-                            if (samplecontainer || codec)
-                            {
-                                sample->release();              /* Release it here because it hasnt been made a subsound yet. */
-                            }
-                            return result;
-                        }
+                        sample->release();
+                        samplecontainer->release();
                     }
-                }
-                else
-                {
-                    result = sample->setBufferData((char *)name_or_data + codec->mFile->mCurrentPosition);
-                    if (result != FMOD_OK)
+                    else if (codec)
                     {
-                        if (samplecontainer || codec)
-                        {
-                            sample->release();              /* Release it here because it hasnt been made a subsound yet. */
-                        }
-                        return result;
+                        sample->release();
                     }
+                    return result;
                 }
             }
             else if (!(sample_mode & FMOD_OPENONLY))
@@ -3457,21 +2812,26 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                 result = sample->read(0, samplelength, &read);
    	            if (result != FMOD_OK && result != FMOD_ERR_FILE_EOF)
                 {
-                    if (!(sample->mMode & FMOD_NONBLOCKING) && (samplecontainer || codec))
+                    if (!(sample->mMode & FMOD_NONBLOCKING))
                     {
-                        sample->release();              /* Release it here because it hasnt been made a subsound yet. */
+                        if (samplecontainer)
+                        {
+                            sample->release();
+                            samplecontainer->release();
+                        }
+                        else if (codec)
+                        {
+                            sample->release();
+                        }
                     }
                     return result;
                 }
-               
+
                 if (samplelength != read && sample->mLoopLength == sample->mLength)
                 {
                     sample->mLoopLength = read;
                 }
 
-                /*
-                    Now after the read, set the position back to 0 again.
-                */            
                 result = sample->setPositionInternal(0);
                 if (result != FMOD_OK && result != FMOD_ERR_FILE_EOF)
                 {
@@ -3482,34 +2842,20 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
             if (numsubsounds > 0)
             {
                 subsound[count] = sample;
-                
                 samplecontainer->mNumActiveSubSounds++;
             }
         }
 
-        // Don't close the file handle for DLS files with inclusion lists, MIDI will
-        // need to specify which sub sounds to load after the DLS is created.
-        if (!(mode_in & FMOD_OPENONLY) && !(codec->mType == FMOD_SOUND_TYPE_DLS && numsubsounds > 0 && exinfo && exinfo->inclusionlist))
+        if (!(mode_in & FMOD_OPENONLY))
         {
-            if (file)
-            {
-                file->close();
-                FMOD_Memory_Free(file);
-            }
+            file->close();
+            FMOD_Memory_Free(file);
+
             codec->mFile = 0;
-#if 0
-            if (!(mode_in & FMOD_CREATECOMPRESSEDSAMPLE))
-            {
-                codec->release();
-                codec = 0;
-                sample->mCodec = 0;
-            }
-#endif
         }
 
         if (numsubsounds > 0)
-        {            
-            samplecontainer_cleanup.releasePtr();
+        {
             *sound = samplecontainer;
         }
         else
@@ -3519,36 +2865,26 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
     }
 
     soundi = SAFE_CAST(SoundI, *sound);
+
     FMOD_OS_CriticalSection_Enter(gSoundListCrit);
     {
         soundi->addAfter(&mSoundListHead);
     }
-    FMOD_OS_CriticalSection_Leave(gSoundListCrit);    
-    
+    FMOD_OS_CriticalSection_Leave(gSoundListCrit);
+
 	if (result != FMOD_OK && result != FMOD_ERR_FILE_EOF)
     {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "System::createSoundInternal", "sound open failed with error %d\n", result));
-    
         if (!(mode_in & FMOD_NONBLOCKING))
         {
             *sound = 0;
         }
-
         return result;
     }
 
-    /*
-        Put the name of the sound into the name field.
-    */
     if (soundi->mName && ((mode_in & FMOD_UNICODE && !((short *)soundi->mName)[0]) || !soundi->mName[0]))
     {
         bool usefilename = true;
 
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "No name found in file, use filename.\n"));
-
-        /*
-            First look for the name in a tag.
-        */
         if (codec->mMetadata)
         {
             FMOD_TAG tag;
@@ -3559,9 +2895,6 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                 FMOD_strncpy(soundi->mName, (char *)tag.data, FMOD_STRING_MAXNAMELEN);
                 usefilename = false;
 
-                /*
-                    Update tag so it is set back to "updated" status
-                */
                 codec->mMetadata->addTag(tag.type, "TITLE", tag.data, tag.datalen, tag.datatype, true);
             }
             else
@@ -3572,10 +2905,7 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                     FMOD_strncpy(soundi->mName, (char *)tag.data, FMOD_STRING_MAXNAMELEN);
                     usefilename = false;
 
-                    /*
-                        Update tag so it is set back to "updated" status
-                    */
-                    codec->mMetadata->addTag(tag.type, "TT2", tag.data, tag.datalen, tag.datatype, true); 
+                    codec->mMetadata->addTag(tag.type, "TT2", tag.data, tag.datalen, tag.datatype, true);
                 }
             }
         }
@@ -3597,7 +2927,7 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                     count = 0;
                 }
 
-                FMOD_strncpyW((short *)soundi->mName, (short *)name_or_data + count, FMOD_STRING_MAXNAMELEN / 2); 
+                FMOD_strncpyW((short *)soundi->mName, (short *)name_or_data + count, FMOD_STRING_MAXNAMELEN / 2);
             }
             else
             {
@@ -3614,80 +2944,22 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
                     count = 0;
                 }
 
-                FMOD_strncpy(soundi->mName, (char *)name_or_data + count, FMOD_STRING_MAXNAMELEN); 
+                FMOD_strncpy(soundi->mName, (char *)name_or_data + count, FMOD_STRING_MAXNAMELEN);
             }
         }
     }
 
     if (!calledfromasync)
     {
-        soundi->mOpenState   = FMOD_OPENSTATE_READY;
+        soundi->mOpenState = FMOD_OPENSTATE_READY;
     }
 
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSoundInternal", "done.  OpenState now = FMOD_OPENSTATE_READY.\n\n"));
+    soundi->mMemoryUsed += memcounter.getMemoryUsed();
 
     return FMOD_OK;
 }
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::checkDriverList(bool fromsystemupdate)
-{
-    const unsigned int  UPDATEFREQUENCYMS   = 1000;
-    FMOD_RESULT         result              = FMOD_OK;
-    bool                devicelistchanged   = false;
-    unsigned int        timestamp           = 0;
-
-    if (fromsystemupdate && !mCallback)
-    {
-        return FMOD_OK;
-    }    
-    
-    FMOD_OS_Time_GetMs(&timestamp);
-    if (!fromsystemupdate || ((timestamp - mDeviceListLastCheckedTime) >= UPDATEFREQUENCYMS))
-    {
-        mDeviceListLastCheckedTime = timestamp;
-
-        result = FMOD_OS_CheckDriverList(&devicelistchanged);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-
-        if (devicelistchanged)
-        {
-            mDeviceListChanged = true;
-
-            /*
-                Force the output mode to re-enumerate on next driver list related call.
-            */
-            mOutput->mEnumerated        = false;
-            #ifdef FMOD_SUPPORT_RECORDING            
-		    mOutput->mRecordEnumerated  = false;
-            #endif
-        }
-    }
-
-    if (fromsystemupdate && mDeviceListChanged)
-    {
-        mCallback((FMOD_SYSTEM *)this, FMOD_SYSTEM_CALLBACKTYPE_DEVICELISTCHANGED, 0, 0);
-        mDeviceListChanged = false;
-    }
-
-    return FMOD_OK;
-}
 
 /*
     ====================================================================================
@@ -3718,18 +2990,12 @@ FMOD_RESULT SystemI::checkDriverList(bool fromsystemupdate)
 FMOD_RESULT SystemI::setUpPlugins()
 {
     FMOD_RESULT result;
-    AutoReleaseClear<PluginFactory*> pluginFactoryCleanup;
 
-    /*
-        Create the plugin factory here, because it is needed pre-init for output plugins!
-    */
     mPluginFactory = FMOD_Object_Alloc(FMOD::PluginFactory);
     if (!mPluginFactory)
     {
         return FMOD_ERR_MEMORY;
     }
-
-    pluginFactoryCleanup = &mPluginFactory;
 
     result = mPluginFactory->setSystem(this);
     if (result != FMOD_OK)
@@ -3737,256 +3003,130 @@ FMOD_RESULT SystemI::setUpPlugins()
         return result;
     }
 
-    /*
-        Register plugins for fmod to use
-    */
     mPluginFactory->setPluginPath(mPluginPath);
 
-    /* 
-        Register platform specific outputs 
-    */
-    CHECK_RESULT(FMOD_OS_Output_Register(mPluginFactory));
-
-    /* 
-        Register cross platform outputs 
-    */
-#ifdef FMOD_USE_PLUGINS
-
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("output_wavwriter"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("output_wavwriter_nrt"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("output_nosound")); 
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("output_nosound_nrt")); 
-
-#else
+    FMOD_OS_Output_Register(mPluginFactory);
 
     #ifdef FMOD_SUPPORT_WAVWRITER
-    CHECK_RESULT(mPluginFactory->registerOutput(FMOD::OutputWavWriter::getDescriptionEx()));
+    mPluginFactory->registerOutput(FMOD::OutputWavWriter::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_WAVWRITER_NRT
-    CHECK_RESULT(mPluginFactory->registerOutput(FMOD::OutputWavWriter_NRT::getDescriptionEx()));
+    mPluginFactory->registerOutput(FMOD::OutputWavWriter_NRT::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_NOSOUND
-    CHECK_RESULT(mPluginFactory->registerOutput(FMOD::OutputNoSound::getDescriptionEx()));
+    mPluginFactory->registerOutput(FMOD::OutputNoSound::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_NOSOUND_NRT
-    CHECK_RESULT(mPluginFactory->registerOutput(FMOD::OutputNoSound_NRT::getDescriptionEx()));
+    mPluginFactory->registerOutput(FMOD::OutputNoSound_NRT::getDescriptionEx());
     #endif
 
-#endif
-   
-
-
-
-
-#ifdef FMOD_USE_PLUGINS
-    /*
-        Register file format codec plugins
-    */
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_tag", 0, true, 100));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_cdda", 0, true, 200));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_fsb", &mFSBPluginHandle, true, 300));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_vag", 0, true, 500));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_wav", &mWAVPluginHandle, true, 600));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_oggvorbis", 0, true, 800));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_tremor", 0, true, 900));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_aiff", 0, true, 1000));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_flac", 0, true, 1100));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_mod", 0, true, 1200));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_s3m", 0, true, 1300));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_xm", 0, true, 1400));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_it", 0, true, 1500));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_midi", 0, true, 1600));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_dls", 0, true, 1700));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_sf2", 0, true, 1800));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_asf", 0, true, 1900));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_mpeg", &mMPEGPluginHandle, true, 2400));   /* Second last, due to slow 4k bytescan if mpeg format header isn't found */
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_playlist", 0, true, 2450));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("codec_celt", &mCELTPluginHandle, true, 2500));
-
-    #ifdef FMOD_SUPPORT_RAW
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecRaw::getDescriptionEx()));
-    #endif
-
-    /*
-        Register DSP plugins.
-    */
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_oscillator"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_fft"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_lowpass"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_lowpass2"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_lowpass_simple"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_highpass"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_echo"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_delay"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_flange"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_tremolo"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_distortion"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_normalize"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_parameq"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_pitchshift"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_chorus"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_reverb"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_sfxreverb"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_itecho"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_compressor"));
-    CHECK_RESULT(mPluginFactory->tryLoadPlugin("dsp_dolbyheadphones"));
-
-#else
-    
-    /*
-        Register file format codecs
-    */   
     #ifdef FMOD_SUPPORT_TAGS
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecTag::getDescriptionEx(), 0, 100));
+    mPluginFactory->registerCodec(CodecTag::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_CDDA
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecCDDA::getDescriptionEx(), 0, 200));
-    #endif  
-    #ifdef FMOD_SUPPORT_FSB
-        CHECK_RESULT(mPluginFactory->registerCodec(CodecFSB::getDescriptionEx(), &mFSBPluginHandle, 300));
-        #ifdef FMOD_FSB_USEHEADERCACHE
-        CodecFSB::gCacheHead.initNode();
-        #endif
+    mPluginFactory->registerCodec(CodecCDDA::getDescriptionEx());
     #endif
-    #ifdef FMOD_SUPPORT_GCADPCM_DSP
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecDSP::getDescriptionEx(), 0, 400));
+    #ifdef FMOD_SUPPORT_FSB
+    mPluginFactory->registerCodec(CodecFSB::getDescriptionEx(), 0, &mFSBPluginHandle);
     #endif
     #ifdef FMOD_SUPPORT_VAG
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecVAG::getDescriptionEx(), 0, 500));
+    mPluginFactory->registerCodec(CodecVAG::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_WAV
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecWav::getDescriptionEx(), &mWAVPluginHandle, 600)); 
-    #endif
-    #ifdef FMOD_SUPPORT_AT3
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecAT3::getDescriptionEx(), 0, 700));
+    mPluginFactory->registerCodec(CodecWav::getDescriptionEx(), 0, &mWAVPluginHandle);
     #endif
     #ifdef FMOD_SUPPORT_OGGVORBIS
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecOggVorbis::getDescriptionEx(), 0, 800));
-    #endif
-    #ifdef FMOD_SUPPORT_TREMOR
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecTremor::getDescriptionEx(), 0, 900));
+    mPluginFactory->registerCodec(CodecOggVorbis::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_AIFF
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecAIFF::getDescriptionEx(), 0, 1000));
+    mPluginFactory->registerCodec(CodecAIFF::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_FLAC
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecFLAC::getDescriptionEx(), 0, 1100));
+    mPluginFactory->registerCodec(CodecFLAC::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_MOD
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecMOD::getDescriptionEx(), 0, 1200));
+    mPluginFactory->registerCodec(CodecMOD::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_S3M
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecS3M::getDescriptionEx(), 0, 1300));
+    mPluginFactory->registerCodec(CodecS3M::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_XM
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecXM::getDescriptionEx(), 0, 1400));
+    mPluginFactory->registerCodec(CodecXM::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_IT
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecIT::getDescriptionEx(), 0, 1500));
+    mPluginFactory->registerCodec(CodecIT::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_MIDI
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecMIDI::getDescriptionEx(), 0, 1600));
+    mPluginFactory->registerCodec(CodecMIDI::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_DLS
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecDLS::getDescriptionEx(), 0, 1700));
-    #endif
-    #ifdef FMOD_SUPPORT_SF2
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecSF2::getDescriptionEx(), 0, 1800));
+    mPluginFactory->registerCodec(CodecDLS::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_ASF
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecASF::getDescriptionEx(), 0, 1900));
-    #endif
-    #ifdef FMOD_SUPPORT_XMA
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecXMA::getDescriptionEx(), 0, 2000));
-    #endif
-    #ifdef FMOD_SUPPORT_XWMA
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecXWMA::getDescriptionEx(), 0, 2100));
-    #endif
-    #ifdef FMOD_SUPPORT_MPEGPSP
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecMPEGPSP::getDescriptionEx(), 0, 2300));
-    #endif
-    #ifdef FMOD_SUPPORT_MPEG
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecMPEG::getDescriptionEx(), &mMPEGPluginHandle, 2400));   /* Last, due to slow 4k bytescan if mpeg format header isn't found */
+    mPluginFactory->registerCodec(CodecASF::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_PLAYLIST
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecPlaylist::getDescriptionEx(), 0, 2450));
+    mPluginFactory->registerCodec(CodecPlaylist::getDescriptionEx());
+    #endif
+    #ifdef FMOD_SUPPORT_MPEG
+    mPluginFactory->registerCodec(CodecMPEG::getDescriptionEx(), 0, &mMPEGPluginHandle);
     #endif
     #ifdef FMOD_SUPPORT_RAW
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecRaw::getDescriptionEx(), 0, 2500));
-    #endif
-    #ifdef FMOD_SUPPORT_CELT
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecCELT::getDescriptionEx(), &mCELTPluginHandle, 2600));
+    mPluginFactory->registerCodec(CodecRaw::getDescriptionEx());
     #endif
 
-
-    /*
-        Register DSP plugins.
-    */
     #ifdef FMOD_SUPPORT_OSCILLATOR
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPOscillator::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPOscillator::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_LOWPASS
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPLowPass::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPLowPass::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_LOWPASS2
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPLowPass2::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPLowPass2::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_LOWPASS_SIMPLE
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPLowPassSimple::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPLowPassSimple::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_HIGHPASS
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPHighPass::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPHighPass::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_ECHO
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPEcho::getDescriptionEx()));
-    #endif
-    #ifdef FMOD_SUPPORT_DELAY
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPDelay::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPEcho::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_FLANGE
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPFlange::getDescriptionEx()));
-    #endif
-    #ifdef FMOD_SUPPORT_TREMOLO
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPTremolo::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPFlange::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_DISTORTION
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPDistortion::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPDistortion::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_NORMALIZE
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPNormalize::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPNormalize::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_PARAMEQ
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPParamEq::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPParamEq::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_PITCHSHIFT
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPPitchShift::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPPitchShift::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_CHORUS
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPChorus::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPChorus::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_FREEVERB
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPReverb::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPReverb::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_ITECHO
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPITEcho::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPITEcho::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_COMPRESSOR
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPCompressor::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPCompressor::getDescriptionEx());
     #endif
     #ifdef FMOD_SUPPORT_SFXREVERB
-    CHECK_RESULT(mPluginFactory->registerDSP(DSPSfxReverb::getDescriptionEx()));
+    mPluginFactory->registerDSP(DSPSfxReverb::getDescriptionEx());
     #endif
 
-#endif
-
-    /*
-        Create the built in 'user' codec.  This is for when people create a sound with FMOD_CREATEUSER
-    */
     #ifdef FMOD_SUPPORT_USERCODEC
-    CHECK_RESULT(mPluginFactory->registerCodec(CodecUser::getDescriptionEx(), 0, 2600));
+    mPluginFactory->registerCodec(CodecUser::getDescriptionEx());
     #endif
-
-    pluginFactoryCleanup.releasePtr();
 
     mPluginsLoaded = true;
 
@@ -4020,26 +3160,21 @@ FMOD_RESULT SystemI::sortSpeakerList()
         return FMOD_OK;
     }
 
-    /*
-        Make a sorted speaker list based on the angles.
-    */
     for (count = 0; count < FMOD_SPEAKER_MAX; count++)
     {
         mSpeakerList[count] =0;
     }
-
     FMOD_memset(used, 0, sizeof(bool) * FMOD_SPEAKER_MAX);
 
     outputchannels = mMaxOutputChannels;
     if (mSpeakerMode == FMOD_SPEAKERMODE_QUAD || mSpeakerMode == FMOD_SPEAKERMODE_PROLOGIC)
     {
-        outputchannels = 6; /* 3d pretends it has rear right/rear left for SetSpeakerMix, so 5 instead of 4. */
+        outputchannels = 6;
     }
 
     for (count = 0; count < outputchannels; count++)
     {
-        /* initialise to some high value */
-        float lowest = 2 * FMOD_ANGLESORT_REVOLUTION;
+        int lowest = 361;
 
         for (count2 = 0; count2 < outputchannels; count2++)
         {
@@ -4062,113 +3197,16 @@ FMOD_RESULT SystemI::sortSpeakerList()
                 mSpeakerList[count] = &mSpeaker[count2];
             }
         }
+
         if (mSpeakerList[count])
         {
             used[mSpeakerList[count]->mSpeaker] = true;
         }
     }
 
-    return prepareSpeakerPairs();
-}
-
-
-FMOD_RESULT SystemI::prepareSpeakerPairs()
-{
-    int speaker = 0;
-    FMOD_SPEAKERCONFIG *spkA, *spkB;
-
-    /*
-        Step 1:
-        - Calculate speaker angles and normals
-    */
-    while (mSpeakerList[speaker])
-    {
-        mSpeakerList[speaker]->mXZNormal = mSpeakerList[speaker]->mPosition;
-        mSpeakerList[speaker]->mXZNormal.y = 0;
-        FMOD_Vector_Normalize(&mSpeakerList[speaker]->mXZNormal);
-
-        mSpeakerList[speaker]->mXZAngle = FMOD_AngleSort_GetValue(mSpeakerList[speaker]->mXZNormal.x, mSpeakerList[speaker]->mXZNormal.z);
-
-        ++speaker;
-    }
-
-    /*
-        Step 2:
-        - Limit speaker separation to a maximum of 180 degrees so that sources at poles
-          are rendered hard left or hard right.
-    */
-    speaker = 0;
-    while (mSpeakerList[speaker])
-    {
-        spkA = mSpeakerList[speaker++];
-        if (mSpeakerList[speaker])
-        {
-            spkB = mSpeakerList[speaker];
-        }
-        else
-        {
-            spkB = mSpeakerList[0];
-        }
-    
-        if (spkA->mXZAngle == spkB->mXZAngle)   /* 2 speakers are at the same location so skip to the next pair */
-        {
-            continue;
-        }
-
-        if (FMOD_AngleSort_IsReflex(spkA->mXZAngle, spkB->mXZAngle))
-        {
-            FMOD_VECTOR lateral;
-            FMOD_Vector_Subtract(&spkA->mXZNormal, &spkB->mXZNormal, &lateral);
-            FMOD_Vector_Normalize(&lateral);
-            spkA->mXZNormal = lateral;
-            FMOD_Vector_Scale(&lateral, -1.0f, &spkB->mXZNormal);
-            spkA->mXZAngle = FMOD_AngleSort_GetValue(spkA->mXZNormal.x, spkA->mXZNormal.z);
-            spkB->mXZAngle = FMOD_AngleSort_GetValue(spkB->mXZNormal.x, spkB->mXZNormal.z);
-
-            // only possible to have one pair of reflex speakers
-            break;
-        }
-    }
-
-
-    /*
-        Step 3:
-        - Determine whether pairs will use VBAP or lateral panning only
-        - Precalculate some constants for panning
-    */
-    speaker = 0;
-    while (mSpeakerList[speaker])
-    {
-        spkA = mSpeakerList[speaker++];
-        if (mSpeakerList[speaker])
-        {
-            spkB = mSpeakerList[speaker];
-        }
-        else
-        {
-            spkB = mSpeakerList[0];
-        }
-
-        if (spkA->mXZAngle == spkB->mXZAngle)   /* 2 speakers are at the same location so skip to the next pair */
-        {
-            continue;
-        }
-        
-        spkA->mPairUseVBAP = !FMOD_AngleSort_IsStraight(spkA->mXZAngle, spkB->mXZAngle);
-        if(spkA->mPairUseVBAP)
-        {
-            /*
-                we would normally use the determinant to solve the speaker gains however this is a waste
-                cpu as the gains are normalised for power. We need to keep its sign however so that gains
-                are always positive.
-            */
-            float determinant = spkA->mXZNormal.x * spkB->mXZNormal.z - spkB->mXZNormal.x * spkA->mXZNormal.z;
-            spkA->mPairVBAPSign = determinant > 0.0f ? 1.0f : -1.0f;
-        }
-    }
-
     return FMOD_OK;
 }
+
 
 
 #ifdef FMOD_SUPPORT_DSPCODEC
@@ -4185,7 +3223,8 @@ FMOD_RESULT SystemI::prepareSpeakerPairs()
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT SystemI::allocateDSPCodec(FMOD_SOUND_FORMAT format, DSPCodec **dsp)
+// OFFSET: 0x008D3A70
+FMOD_RESULT SystemI::allocDSPCodec(FMOD_SOUND_FORMAT format, DSPCodec **dsp)
 {
     if (0)
     {
@@ -4196,28 +3235,10 @@ FMOD_RESULT SystemI::allocateDSPCodec(FMOD_SOUND_FORMAT format, DSPCodec **dsp)
         return mDSPCodecPool_MPEG.alloc(dsp);
     }
 #endif
-#ifdef FMOD_SUPPORT_XMA
-    else if (format == FMOD_SOUND_FORMAT_XMA)
-    {
-        return mDSPCodecPool_XMA.alloc(dsp);
-    }
-#endif
 #ifdef FMOD_SUPPORT_IMAADPCM
     else if (format == FMOD_SOUND_FORMAT_IMAADPCM)
     {
         return mDSPCodecPool_ADPCM.alloc(dsp);
-    }
-#endif
-#ifdef FMOD_SUPPORT_CELT
-    else if (format == FMOD_SOUND_FORMAT_CELT)
-    {
-        return mDSPCodecPool_CELT.alloc(dsp);
-    }
-#endif
-#ifdef FMOD_SUPPORT_RAWCODEC
-    else if (format == FMOD_SOUND_FORMAT_PCM16)
-    {
-        return mDSPCodecPool_RAW.alloc(dsp);
     }
 #endif
 
@@ -4246,6 +3267,9 @@ SystemI::SystemI()
     mPluginsLoaded              = false;
     mOutputType                 = FMOD_OUTPUTTYPE_AUTODETECT;
     mOutput                     = 0;
+#ifdef FMOD_SUPPORT_SOFTWARE
+    mSoftware                   = 0;
+#endif
     mEmulated                   = 0;
     mMainThreadID               = 0;
     mChannel                    = 0;
@@ -4253,42 +3277,22 @@ SystemI::SystemI()
     mLastTimeStamp              = 0;
     mStreamFileBufferSize       = 16*1024;
     mStreamFileBufferSizeType   = FMOD_TIMEUNIT_RAWBYTES;
-    mDeviceListLastCheckedTime  = 0;
-    mDeviceListChanged          = false;
     mUserData                   = 0;
-
-    mNumSoftwareChannels        = 32;
+    mNumSoftwareChannels        = 64;
     mMinHardwareChannels2D      = 0;
     mMaxHardwareChannels2D      = 1000;
     mMinHardwareChannels3D      = 0;
     mMaxHardwareChannels3D      = 1000;
-    mCreatedHardwareSample      = false;
-    mBufferSize                 = FILE_SECTORSIZE;
-    mUsesUserCallbacks          = false;
-                                
-#if defined(PLATFORM_XENON) || defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-    mDSPBlockSize               = 256;
+    mDSPBlockSize               = 1024;
     mDSPBufferSize              = mDSPBlockSize * 4;
-#else
-    mDSPBlockSize               = 1024;                  
-    mDSPBufferSize              = mDSPBlockSize * 4;     
-#endif
-
 #ifdef FMOD_SUPPORT_SOFTWARE
-    mSoftware                   = 0;
-
-    mDSPTempBuff                = 0;
-    mDSPTempBuffMem             = 0;
-
-    for (int count = 0; count < FMOD_DSP_MAXTREEDEPTH; count++)
-    {
-        mDSPMixBuff[count] = 0;
-    }
-     
-    mDSPClock.mHi = 0;
-    mDSPClock.mLo = 0;
+    mDSPTempBuff[0]             = 0;
+    mDSPTempBuff[1]             = 0;
+    mDSPTempBuffMem[0]          = 0;
+    mDSPTempBuffMem[1]          = 0;
+    mDSPTempBuffIndex           = 0;
+    FMOD_memset(mDSPMixBuff, 0, sizeof(mDSPMixBuff));
 #endif
-
     mMaxInputChannels           = DSP_DEFAULTLEVELS_IN;
     mMaxOutputChannels          = 0;
 
@@ -4298,41 +3302,22 @@ SystemI::SystemI()
     set3DSpeakerPosition(FMOD_SPEAKER_LOW_FREQUENCY,  0.0f,  0.0f);
     set3DSpeakerPosition(FMOD_SPEAKER_BACK_LEFT,     -1.0f, -1.0f);
     set3DSpeakerPosition(FMOD_SPEAKER_BACK_RIGHT,     1.0f, -1.0f);
-
-#ifdef PLATFORM_PS3
-    set3DSpeakerPosition(FMOD_SPEAKER_SIDE_LEFT,     -0.4f,  -1.0f);
-    set3DSpeakerPosition(FMOD_SPEAKER_SIDE_RIGHT,     0.4f,  -1.0f);
-#else
     set3DSpeakerPosition(FMOD_SPEAKER_SIDE_LEFT,     -1.0f,  0.0f);
     set3DSpeakerPosition(FMOD_SPEAKER_SIDE_RIGHT,     1.0f,  0.0f);
-#endif
 
-#if defined(PLATFORM_XENON)
-    mOutputFormat               = FMOD_SOUND_FORMAT_PCMFLOAT;
-
-    setSpeakerMode(FMOD_SPEAKERMODE_5POINT1);
-#elif defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-    mOutputFormat               = FMOD_SOUND_FORMAT_PCMFLOAT;
-
-    setSpeakerMode(FMOD_SPEAKERMODE_7POINT1);
-#else    
     mOutputFormat               = FMOD_SOUND_FORMAT_PCM16;
-
     setSpeakerMode(FMOD_SPEAKERMODE_STEREO);
-#endif    
-#if defined(PLATFORM_IPHONE)
-    mOutputRate                 = 24000;
-#else
+
     mOutputRate                 = 48000;
-#endif
     mOutputHandle               = 0;
     mSelectedDriver             = 0;
+    mRecordDriver               = 0;
     mResampleMethod             = FMOD_DSP_RESAMPLER_LINEAR;
-                                
     mNumListeners               = 1;
 	mDistanceScale              = 1;
 	mRolloffScale               = 1;
 	mDopplerScale               = 1;
+
 #ifdef FMOD_SUPPORT_MULTIREVERB
     mReverb3DActive           = false;
     FMOD_REVERB_PROPERTIES prop = FMOD_PRESET_OFF;
@@ -4340,7 +3325,7 @@ SystemI::SystemI()
 #endif
 
 #ifdef FMOD_SUPPORT_GEOMETRY
- 	mGeometryList         = 0;	
+ 	mGeometryList         = 0;
     mGeometryMgr.mSystem = this;
 #endif
 
@@ -4349,7 +3334,6 @@ SystemI::SystemI()
     mAdvancedSettings.maxXMAcodecs            = 0;
     mAdvancedSettings.maxADPCMcodecs          = 0;
     mAdvancedSettings.maxMPEGcodecs           = 0;
-    mAdvancedSettings.maxCELTcodecs            = 0;
     mAdvancedSettings.maxPCMcodecs            = 0;
     mAdvancedSettings.max3DReverbDSPs         = FMOD_ADVANCEDSETTINGS_MAX3DREVERBDSPS;
     mAdvancedSettings.HRTFMinAngle            = 180;
@@ -4357,8 +3341,6 @@ SystemI::SystemI()
     mAdvancedSettings.HRTFFreq                = 4000;
     mAdvancedSettings.vol0virtualvol          = 0.0f;
     mAdvancedSettings.eventqueuesize          = 32;
-    mAdvancedSettings.defaultDecodeBufferSize = FMOD_STREAMDECODEBUFFERSIZE_DEFAULT;
-    mAdvancedSettings.geometryMaxFadeTime     = 0;
 
     mMPEGPluginHandle = 0xFFFFFFFF;
     mFSBPluginHandle = 0xFFFFFFFF;
@@ -4371,32 +3353,17 @@ SystemI::SystemI()
     #ifdef FMOD_SUPPORT_IMAADPCM
     mDSPCodecPool_ADPCM.mSystem = this;
     #endif
-    #ifdef FMOD_SUPPORT_XMA
-    mDSPCodecPool_XMA.mSystem = this;
-    #endif
-    #ifdef FMOD_SUPPORT_CELT
-    mDSPCodecPool_CELT.mSystem = this;
-    #endif
-    #ifdef FMOD_SUPPORT_RAWCODEC
-    mDSPCodecPool_RAW.mSystem = this;
-    #endif
 #endif
 
 #ifdef FMOD_SUPPORT_ASIO
     mASIOSpeakerList[0]  = FMOD_SPEAKER_FRONT_LEFT;
     mASIOSpeakerList[1]  = FMOD_SPEAKER_FRONT_RIGHT;
-    #if (DSP_MAXLEVELS_OUT > 2)
     mASIOSpeakerList[2]  = FMOD_SPEAKER_FRONT_CENTER;
     mASIOSpeakerList[3]  = FMOD_SPEAKER_LOW_FREQUENCY;
     mASIOSpeakerList[4]  = FMOD_SPEAKER_BACK_LEFT;
     mASIOSpeakerList[5]  = FMOD_SPEAKER_BACK_RIGHT;
-    #endif
-    #if (DSP_MAXLEVELS_OUT > 6)
     mASIOSpeakerList[6]  = FMOD_SPEAKER_SIDE_LEFT;
     mASIOSpeakerList[7]  = FMOD_SPEAKER_SIDE_RIGHT;
-    #endif
-
-    #if (DSP_MAXLEVELS_OUT > 8)
     mASIOSpeakerList[8]  = FMOD_SPEAKER_FRONT_LEFT;
     mASIOSpeakerList[9]  = FMOD_SPEAKER_FRONT_RIGHT;
     mASIOSpeakerList[10] = FMOD_SPEAKER_FRONT_LEFT;
@@ -4405,10 +3372,7 @@ SystemI::SystemI()
     mASIOSpeakerList[13] = FMOD_SPEAKER_FRONT_RIGHT;
     mASIOSpeakerList[14] = FMOD_SPEAKER_FRONT_LEFT;
     mASIOSpeakerList[15] = FMOD_SPEAKER_FRONT_RIGHT;
-    #endif
 #endif
-
-    mDownmix = 0;
 }
 
 
@@ -4432,27 +3396,23 @@ FMOD_RESULT SystemI::release()
 
     if (mInitialized)
     {
-        result = close();
+        result = closeEx(false);
         if (result != FMOD_OK)
         {
             return result;
         }
     }
 
-    if (mOutput)
+    if (mPluginFactory)
     {
-        mOutput->release();
-        mOutput = 0;
+        mPluginFactory->release();
+        mPluginFactory = 0;
     }
-    
-    #if defined(FMOD_SUPPORT_GEOMETRY) && defined(FMOD_SUPPORT_GEOMETRY_THREADED)
-    mGeometryMgr.releaseOcclusionThread();
-    #endif
 
     removeNode();
 
     FMOD_Memory_Free(this);
-    
+
     return FMOD_OK;
 }
 
@@ -4490,8 +3450,7 @@ FMOD_RESULT SystemI::setOutput(FMOD_OUTPUTTYPE outputtype)
             return FMOD_OK;
         }
 
-        mOutput->release();
-        mOutput = 0;
+        FMOD_Memory_Free(mOutput);
     }
 
     if (!mPluginsLoaded)
@@ -4503,9 +3462,6 @@ FMOD_RESULT SystemI::setOutput(FMOD_OUTPUTTYPE outputtype)
         }
     }
 
-    /*
-        Scan plugin list and find an equal type.
-    */
     result = mPluginFactory->getNumOutputs(&numoutputs);
     if (result != FMOD_OK)
     {
@@ -4520,15 +3476,8 @@ FMOD_RESULT SystemI::setOutput(FMOD_OUTPUTTYPE outputtype)
     for (count = 0; count < numoutputs; count++)
     {
         FMOD_OUTPUT_DESCRIPTION_EX *outputdesc = 0;
-        unsigned int handle;
 
-        result = mPluginFactory->getOutputHandle(count, &handle);
-        if (result != FMOD_OK)
-        {
-            continue;
-        }
-
-        result = mPluginFactory->getOutput(handle, &outputdesc);
+        result = mPluginFactory->getOutput(count, &outputdesc);
         if (result != FMOD_OK)
         {
             continue;
@@ -4542,8 +3491,8 @@ FMOD_RESULT SystemI::setOutput(FMOD_OUTPUTTYPE outputtype)
                 return result;
             }
 
+            mOutputHandle = count;
             mOutputType = mOutput->mDescription.mType;
-            mOutputHandle = mOutput->mDescription.mHandle;
 
             return FMOD_OK;
         }
@@ -4604,28 +3553,21 @@ FMOD_RESULT SystemI::setSoftwareFormat(int samplerate, FMOD_SOUND_FORMAT format,
 		return FMOD_ERR_INITIALIZED;
 	}
 
-    if (samplerate < 8000 || samplerate > 192000)
+    if (samplerate < 8000)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (maxinputchannels > DSP_MAXLEVELS_IN || numoutputchannels > DSP_MAXLEVELS_OUT)
-    {
-        return FMOD_ERR_TOOMANYCHANNELS;
-    }
+    mOutputRate     = samplerate;
+    mOutputFormat   = format;
+    mResampleMethod = resamplermethod;
 
-    mOutputRate      = samplerate;
-    mOutputFormat    = format;
-    mResampleMethod  = resamplermethod;
-
-    #ifndef PLATFORM_PS3
     if (numoutputchannels)
     {
-        mMaxOutputChannels  = numoutputchannels;
-
-        mSpeakerMode = FMOD_SPEAKERMODE_RAW;
+        mMaxOutputChannels = numoutputchannels;
+        mSpeakerMode       = FMOD_SPEAKERMODE_RAW;
     }
-    #endif
+
     if (maxinputchannels > 0)
     {
         mMaxInputChannels = maxinputchannels;
@@ -4670,7 +3612,6 @@ FMOD_RESULT SystemI::getNumDrivers(int *numdrivers)
         }
     }
 
-    result = checkDriverList(false);
     if (result != FMOD_OK)
     {
         return result;
@@ -4708,7 +3649,8 @@ FMOD_RESULT SystemI::getNumDrivers(int *numdrivers)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT SystemI::getDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid)
+// OFFSET: 0x008D3CE0
+FMOD_RESULT SystemI::getDriverName(int id, char *name, int namelen)
 {
     FMOD_RESULT result;
     int numdrivers;
@@ -4731,17 +3673,6 @@ FMOD_RESULT SystemI::getDriverInfo(int id, char *name, int namelen, FMOD_GUID *g
         {
             return result;
         }
-    }
-
-    if (mOutput->mDescription.getdriverinfo)
-    {
-#ifdef FMOD_SUPPORT_SOFTWARE
-        mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#else
-        mOutput->readfrommixer = 0;
-#endif
-
-        return mOutput->mDescription.getdriverinfo(mOutput, id, name, namelen, guid);
     }
 
     if (mOutput->mDescription.getdrivername)
@@ -4753,61 +3684,6 @@ FMOD_RESULT SystemI::getDriverInfo(int id, char *name, int namelen, FMOD_GUID *g
 #endif
 
         return mOutput->mDescription.getdrivername(mOutput, id, name, namelen);
-    }
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::getDriverInfoW(int id, short *name, int namelen, FMOD_GUID *guid)
-{
-    FMOD_RESULT result;
-    int numdrivers;
-
-    result = getNumDrivers(&numdrivers);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    if (id < 0 || id >= numdrivers)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    if (!mInitialized)
-    {
-        result = setOutput(mOutputType);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-    }
-
-    if (mOutput->mDescription.getdriverinfow)
-    {
-#ifdef FMOD_SUPPORT_SOFTWARE
-        mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#else
-        mOutput->readfrommixer = 0;
-#endif
-
-        return mOutput->mDescription.getdriverinfow(mOutput, id, name, namelen, guid);
     }
 
     return FMOD_OK;
@@ -4961,6 +3837,11 @@ FMOD_RESULT SystemI::setDriver(int driver)
     FMOD_RESULT        result       = FMOD_OK;
     int                numdrivers   = 0;
 
+    if (mInitialized)
+	{
+		return FMOD_ERR_INITIALIZED;
+	}
+
     result = getNumDrivers(&numdrivers);
     if (result != FMOD_OK)
     {
@@ -4977,149 +3858,8 @@ FMOD_RESULT SystemI::setDriver(int driver)
         driver = 0;
     }
 
-    /*
-        If the driver is already initialised, we need to reset it
-    */
-    if (mInitialized)
-	{
-#ifdef FMOD_SUPPORT_SOFTWARE
-        int                samplerate   = 0;
-        FMOD_SOUND_FORMAT  soundformat  = FMOD_SOUND_FORMAT_NONE;
-        FMOD_SPEAKERMODE   speakermode  = FMOD_SPEAKERMODE_STEREO;
-
-        if (mCreatedHardwareSample)
-#endif
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::setDriver", "Cannot change driver when hardware samples have been created.\n"));
-            return FMOD_ERR_NEEDSSOFTWARE;
-        }
-
-#ifdef FMOD_SUPPORT_RECORDING
-        if (mOutput->mRecordNumActive)
-        {
-            result = mOutput->recordStopAll(false);
-            CHECK_RESULT(result);
-        }
-#endif
-
-#ifdef FMOD_SUPPORT_SOFTWARE
-        /*
-            Stop the current driver
-        */
-        if (mOutput->mDescription.stop)
-        {
-            mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-
-            mOutput->mDescription.stop(mOutput);
-        }
-        else if (mOutput->mDescription.polling)
-        {
-            OutputPolled *outputpolled = SAFE_CAST(OutputPolled, mOutput);
-        
-            outputpolled->stop();
-        }
-
-        /*
-            Close the current driver
-        */
-        if (mOutput->mDescription.close)
-        {
-            mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-
-            mOutput->mDescription.close(mOutput);
-        }
-     
-        /*
-            Initialise the new driver
-        */
-        speakermode = mSpeakerMode;
-        samplerate  = mOutputRate;
-        soundformat = mOutputFormat;
-
-        if (mOutput->mDescription.initex)
-        {
-            mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-            
-            result = mOutput->mDescription.initex(mOutput, driver, mFlags, &samplerate, mMaxOutputChannels, &soundformat, &speakermode, mDSPBlockSize, mDSPBufferSize / mDSPBlockSize, 0, 0, NULL);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-        }
-        else if (mOutput->mDescription.init)
-        {
-            mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-
-            result = mOutput->mDescription.init(mOutput, driver, mFlags, &samplerate, mMaxOutputChannels, &soundformat, mDSPBlockSize, mDSPBufferSize / mDSPBlockSize, NULL);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-        }
-
-        /*
-            Check if output mode changed the sample rate, format or speaker mode
-        */
-        if (speakermode != mSpeakerMode || samplerate != mOutputRate || soundformat != mOutputFormat)
-        {
-            /*
-                Stop the new driver
-            */
-            if (mOutput->mDescription.stop)
-            {
-                mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-
-                mOutput->mDescription.stop(mOutput);
-            }
-            else if (mOutput->mDescription.polling)
-            {
-                OutputPolled *outputpolled = SAFE_CAST(OutputPolled, mOutput);
-            
-                outputpolled->stop();
-            }
-
-            /*
-                Close the new driver
-            */
-            if (mOutput->mDescription.close)
-            {
-                mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-
-                mOutput->mDescription.close(mOutput);
-            }
-
-            // The new driver is not compatible with the current FMOD state, user must now choose a driver that is compatible (possibly the original one if it is still connected)
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::setDriver", "Selected driver does not support current output format, sample rate or number of channels.\n"));
-            return FMOD_ERR_OUTPUT_INIT;
-        }
-        
-        /*
-            Start the new driver
-        */
-        if (mOutput->mDescription.start)
-        {
-            mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-
-            result = mOutput->mDescription.start(mOutput);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-        }
-        else if (mOutput->mDescription.polling)
-        {
-            OutputPolled *outputpolled = SAFE_CAST(OutputPolled, mOutput);
-        
-            result = outputpolled->start();
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-        }
-#endif
-	}
-
     mSelectedDriver = driver;
+
     return FMOD_OK;
 }
 
@@ -5428,11 +4168,16 @@ FMOD_RESULT SystemI::getDSPBufferSize(unsigned int *bufferlength, int *numbuffer
 */
 FMOD_RESULT SystemI::setFileSystem(FMOD_FILE_OPENCALLBACK useropen, FMOD_FILE_CLOSECALLBACK userclose, FMOD_FILE_READCALLBACK userread, FMOD_FILE_SEEKCALLBACK userseek, int blockalign)
 {
-    setGlobalUserCallbacks(useropen, userclose, userread, userseek);
+    UserFile::gOpenCallback  = useropen;
+    UserFile::gCloseCallback = userclose;
+    UserFile::gReadCallback  = userread;
+    UserFile::gSeekCallback  = userseek;
+
+    File::gUsesUserCallbacks = (useropen && userclose && userread && userseek);
 
     if (blockalign >= 0)
     {
-        mBufferSize = blockalign;
+        File::gBufferSize = blockalign;
     }
 
     return FMOD_OK;
@@ -5456,10 +4201,10 @@ FMOD_RESULT SystemI::setFileSystem(FMOD_FILE_OPENCALLBACK useropen, FMOD_FILE_CL
 */
 FMOD_RESULT SystemI::attachFileSystem(FMOD_FILE_OPENCALLBACK useropen, FMOD_FILE_CLOSECALLBACK userclose, FMOD_FILE_READCALLBACK userread, FMOD_FILE_SEEKCALLBACK userseek)
 {
-    mOpenRiderCallback  = useropen;
-    mCloseRiderCallback = userclose;
-    mReadRiderCallback  = userread;
-    mSeekRiderCallback  = userseek;
+    mOpenCallback  = useropen;
+    mCloseCallback = userclose;
+    mReadCallback  = userread;
+    mSeekCallback  = userseek;
 
     return FMOD_OK;
 }
@@ -5511,10 +4256,6 @@ FMOD_RESULT SystemI::setAdvancedSettings(FMOD_ADVANCEDSETTINGS *settings)
         return FMOD_ERR_INVALID_PARAM;
     }
     if (settings->maxXMAcodecs < 0 || settings->maxXMAcodecs > 65535)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-    if (settings->maxCELTcodecs < 0 || settings->maxCELTcodecs > 65535)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
@@ -5576,31 +4317,7 @@ FMOD_RESULT SystemI::setAdvancedSettings(FMOD_ADVANCEDSETTINGS *settings)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-    if (settings->debugLogFilename && FMOD_strlen(settings->debugLogFilename) >= 255)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-#ifdef FMOD_DEBUG
-    if (settings->debugLogFilename)
-    {
-        FMOD_strcpy(FMOD::gGlobal->gDebugFilename, settings->debugLogFilename);
-    }
-#endif
-
-    if ((settings->defaultDecodeBufferSize == 0) || (settings->defaultDecodeBufferSize > 30000))
-    {
-        settings->defaultDecodeBufferSize = mAdvancedSettings.defaultDecodeBufferSize;
-    }
-
     FMOD_memcpy(&mAdvancedSettings, settings, settings->cbsize);
-
-#ifdef FMOD_DEBUG
-    if (settings->debugLogFilename) /* Dont store a pointer to the user name, set it back to mAdvancedSettings debuglog filename here. */
-    {
-        mAdvancedSettings.debugLogFilename = FMOD::gGlobal->gDebugFilename;
-    }
-#endif
 
 #ifdef FMOD_SUPPORT_ASIO
     if (settings->ASIOSpeakerList)
@@ -5640,7 +4357,6 @@ FMOD_RESULT SystemI::getAdvancedSettings(FMOD_ADVANCEDSETTINGS *settings)
     int           usercbsize;
     int           asioNumChannels;
     FMOD_SPEAKER *speakerlist;
-    char         *debuglogfilename; 
 
     if (!settings)
     {
@@ -5654,21 +4370,11 @@ FMOD_RESULT SystemI::getAdvancedSettings(FMOD_ADVANCEDSETTINGS *settings)
     usercbsize = settings->cbsize;
     speakerlist = settings->ASIOSpeakerList;
     asioNumChannels = settings->ASIONumChannels;
-    debuglogfilename = settings->debugLogFilename; 
 
     FMOD_memcpy(settings, &mAdvancedSettings, usercbsize);
 
     settings->cbsize = usercbsize;
     settings->ASIOSpeakerList = speakerlist;
-    settings->debugLogFilename = debuglogfilename;
-
-#ifdef FMOD_DEBUG
-    if (settings->debugLogFilename)
-    {
-        FMOD_strcpy(settings->debugLogFilename, FMOD::gGlobal->gDebugFilename);
-    }
-#endif
-
 	#ifdef FMOD_SUPPORT_ASIO
     if (settings->ASIONumChannels > DSP_MAXLEVELS_OUT)
     {
@@ -5711,14 +4417,13 @@ FMOD_RESULT SystemI::setSpeakerMode(FMOD_SPEAKERMODE speakermode)
 	{
 		return FMOD_ERR_INITIALIZED;
 	}
-    
+
     mSpeakerMode = speakermode;
 
     switch (mSpeakerMode)
     {
         case FMOD_SPEAKERMODE_RAW:
         {
-            /* Dont change mMaxOutputChannels */
             return FMOD_OK;
         }
         case FMOD_SPEAKERMODE_MONO:
@@ -5729,7 +4434,6 @@ FMOD_RESULT SystemI::setSpeakerMode(FMOD_SPEAKERMODE speakermode)
         case FMOD_SPEAKERMODE_STEREO:
         {
             mMaxOutputChannels = 2;
-            
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_LEFT,    -1.0f,  0.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_RIGHT,    1.0f,  0.0f);
             break;
@@ -5737,7 +4441,6 @@ FMOD_RESULT SystemI::setSpeakerMode(FMOD_SPEAKERMODE speakermode)
         case FMOD_SPEAKERMODE_QUAD:
         {
             mMaxOutputChannels = 4;
-
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_LEFT,    -1.0f,  1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_RIGHT,    1.0f,  1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_BACK_LEFT,     -1.0f, -1.0f);
@@ -5747,7 +4450,6 @@ FMOD_RESULT SystemI::setSpeakerMode(FMOD_SPEAKERMODE speakermode)
         case FMOD_SPEAKERMODE_SURROUND:
         {
             mMaxOutputChannels = 5;
-
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_LEFT,    -1.0f,  1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_RIGHT,    1.0f,  1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_CENTER,   0.0f,  1.0f);
@@ -5758,54 +4460,28 @@ FMOD_RESULT SystemI::setSpeakerMode(FMOD_SPEAKERMODE speakermode)
         case FMOD_SPEAKERMODE_5POINT1:
         {
             mMaxOutputChannels = 6;
-
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_LEFT,    -1.0f,  1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_RIGHT,    1.0f,  1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_CENTER,   0.0f,  1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_BACK_LEFT,     -1.0f, -1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_BACK_RIGHT,     1.0f, -1.0f);
             break;
-
         }
         case FMOD_SPEAKERMODE_7POINT1:
         {
             mMaxOutputChannels = 8;
-            
-            #if defined(FMOD_SUPPORT_MYEARS) && !defined(PLATFORM_PS3)
-            /* MyEars uses standard 7.1 speaker positioning whereas FMOD dos not */
-
-            set3DSpeakerPosition(FMOD_SPEAKER_FRONT_LEFT,    -0.5f,  0.866f);
-            set3DSpeakerPosition(FMOD_SPEAKER_FRONT_RIGHT,    0.5f,  0.866f);
-            set3DSpeakerPosition(FMOD_SPEAKER_FRONT_CENTER,   0.0f,  1.0f);
-            set3DSpeakerPosition(FMOD_SPEAKER_BACK_LEFT,     -0.707f, -0.707f);
-            set3DSpeakerPosition(FMOD_SPEAKER_BACK_RIGHT,     0.707f, -0.707f);
-            set3DSpeakerPosition(FMOD_SPEAKER_SIDE_LEFT,     -1.0f,  0.0f);
-            set3DSpeakerPosition(FMOD_SPEAKER_SIDE_RIGHT,     1.0f,  0.0f);
-
-            #else
-
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_LEFT,    -1.0f,  1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_RIGHT,    1.0f,  1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_CENTER,   0.0f,  1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_BACK_LEFT,     -1.0f, -1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_BACK_RIGHT,     1.0f, -1.0f);
-            
-            #ifdef PLATFORM_PS3
-            set3DSpeakerPosition(FMOD_SPEAKER_SIDE_LEFT,     -0.4f,  -1.0f);
-            set3DSpeakerPosition(FMOD_SPEAKER_SIDE_RIGHT,     0.4f,  -1.0f);
-            #else
             set3DSpeakerPosition(FMOD_SPEAKER_SIDE_LEFT,     -1.0f,  0.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_SIDE_RIGHT,     1.0f,  0.0f);
-            #endif
-
-            #endif
-
             break;
         }
         case FMOD_SPEAKERMODE_PROLOGIC:
         {
             mMaxOutputChannels = 2;
-
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_LEFT,    -1.0f,  1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_RIGHT,    1.0f,  1.0f);
             set3DSpeakerPosition(FMOD_SPEAKER_FRONT_CENTER,   0.0f,  1.0f);
@@ -5839,10 +4515,14 @@ FMOD_RESULT SystemI::setSpeakerMode(FMOD_SPEAKERMODE speakermode)
 ]
 */
 // OFFSET: 0x008D4150
-FMOD_RESULT SystemI::setCallback(FMOD_SYSTEM_CALLBACK callback)
+FMOD_RESULT SystemI::setCallback(FMOD_SYSTEM_CALLBACKTYPE type, FMOD_SYSTEM_CALLBACK callback)
 {
-    FMOD::gGlobal->gSystemCallback = callback;
-    mCallback = callback;
+    if (type >= FMOD_SYSTEM_CALLBACKTYPE_MAX)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    mCallback[type] = callback;
 
     return FMOD_OK;
 }
@@ -5901,7 +4581,7 @@ FMOD_RESULT SystemI::setPluginPath(const char *path)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT SystemI::loadPlugin(const char *filename, unsigned int *handle, unsigned int priority)
+FMOD_RESULT SystemI::loadPlugin(const char *filename, FMOD_PLUGINTYPE *plugintype, int *index)
 {
 #ifdef FMOD_SUPPORT_DLLS
     FMOD_RESULT result;
@@ -5915,9 +4595,8 @@ FMOD_RESULT SystemI::loadPlugin(const char *filename, unsigned int *handle, unsi
         }
     }
 
-    return mPluginFactory->loadPlugin(filename, handle, false, priority);
-
-#else   
+    return mPluginFactory->loadPlugin(filename, plugintype, index);
+#else
     return FMOD_ERR_UNSUPPORTED;
 #endif
 }
@@ -5983,44 +4662,6 @@ FMOD_RESULT SystemI::getNumPlugins(FMOD_PLUGINTYPE type, int *numplugins)
 }
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::getPluginHandle(FMOD_PLUGINTYPE plugintype, int index, unsigned int *handle)
-{
-    switch (plugintype)
-    {
-        case FMOD_PLUGINTYPE_CODEC:
-        {
-            return mPluginFactory->getCodecHandle(index, handle);
-        }
-        case FMOD_PLUGINTYPE_DSP:
-        {
-            return mPluginFactory->getDSPHandle(index, handle);
-        }
-        case FMOD_PLUGINTYPE_OUTPUT:
-        {
-            return mPluginFactory->getOutputHandle(index, handle);
-        }
-        default:
-        {
-            return FMOD_ERR_INVALID_PARAM;
-        }
-    }
-}
-
 
 /*
 [
@@ -6037,12 +4678,9 @@ FMOD_RESULT SystemI::getPluginHandle(FMOD_PLUGINTYPE plugintype, int index, unsi
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT SystemI::getPluginInfo(unsigned int handle, FMOD_PLUGINTYPE *plugintype, char *name, int namelen, unsigned int *version)
+FMOD_RESULT SystemI::getPluginInfo(FMOD_PLUGINTYPE plugintype, int index, char *name, int namelen, unsigned int *version)
 {
     FMOD_RESULT result;
-    FMOD_OUTPUT_DESCRIPTION_EX *outputdesc;
-    FMOD_CODEC_DESCRIPTION_EX *codecdesc;
-    FMOD_DSP_DESCRIPTION_EX *dspdesc;
 
     if (!mPluginsLoaded)
     {
@@ -6051,29 +4689,38 @@ FMOD_RESULT SystemI::getPluginInfo(unsigned int handle, FMOD_PLUGINTYPE *plugint
         {
             return result;
         }
-    }       
-    
-    result = mPluginFactory->getOutput(handle, &outputdesc);
-    if (result == FMOD_OK)
-    {
-        if (name)
-        {
-            FMOD_strncpy(name, outputdesc->name, namelen);
-        }
-        if (version)
-        {
-            *version = outputdesc->version;
-        }
-        if (plugintype)
-        {
-            *plugintype = FMOD_PLUGINTYPE_OUTPUT;
-        }
     }
-    else if (result == FMOD_ERR_PLUGIN_MISSING)
+
+    switch (plugintype)
     {
-        result = mPluginFactory->getCodec(handle, &codecdesc);
-        if (result == FMOD_OK)
+        case FMOD_PLUGINTYPE_OUTPUT:
         {
+            FMOD_OUTPUT_DESCRIPTION_EX *outputdesc;
+
+            result = mPluginFactory->getOutput(index, &outputdesc);
+            if (result != FMOD_OK)
+            {
+                return result;
+            }
+            if (name)
+            {
+                FMOD_strncpy(name, outputdesc->name, namelen);
+            }
+            if (version)
+            {
+                *version = outputdesc->version;
+            }
+            break;
+        }
+        case FMOD_PLUGINTYPE_CODEC:
+        {
+            FMOD_CODEC_DESCRIPTION_EX *codecdesc;
+
+            result = mPluginFactory->getCodec(index, &codecdesc);
+            if (result != FMOD_OK)
+            {
+                return result;
+            }
             if (name)
             {
                 FMOD_strncpy(name, codecdesc->name, namelen);
@@ -6082,124 +4729,32 @@ FMOD_RESULT SystemI::getPluginInfo(unsigned int handle, FMOD_PLUGINTYPE *plugint
             {
                 *version = codecdesc->version;
             }
-            if (plugintype)
+            break;
+        }
+        case FMOD_PLUGINTYPE_DSP:
+        {
+            FMOD_DSP_DESCRIPTION_EX *dspdesc;
+
+            result = mPluginFactory->getDSP(index, &dspdesc);
+            if (result != FMOD_OK)
             {
-                *plugintype = FMOD_PLUGINTYPE_CODEC;
+                return result;
             }
-        }
-        else if (result == FMOD_ERR_PLUGIN_MISSING)
-        {
-            result = mPluginFactory->getDSP(handle, &dspdesc);
-            if (result == FMOD_OK)
+            if (name)
             {
-                if (name)
-                {
-                    FMOD_strncpy(name, dspdesc->name, namelen);
-                }
-                if (version)
-                {
-                    *version = dspdesc->version;
-                }
-                if (plugintype)
-                {
-                    *plugintype = FMOD_PLUGINTYPE_DSP;
-                }
+                FMOD_strncpy(name, dspdesc->name, namelen);
             }
+            if (version)
+            {
+                *version = dspdesc->version;
+            }
+            break;
         }
-    }
-
-    return result;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::unloadPlugin(unsigned int handle)
-{
-    FMOD_RESULT result;
-
-    if (!mPluginsLoaded)
-    {
-        result = setUpPlugins();
-        if (result != FMOD_OK)
+        default:
         {
-            return result;
+            return FMOD_ERR_INVALID_PARAM;
         }
     }
-
-    return mPluginFactory->unloadPlugin(handle);
-}
-
-
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::setOutputByPlugin(unsigned int handle)
-{
-    FMOD_RESULT                 result = FMOD_OK;
-    FMOD_OUTPUT_DESCRIPTION_EX *outputdesc = 0;
-
-    if (mInitialized)
-	{
-		return FMOD_ERR_INITIALIZED;
-	}
-
-    if (mOutput)
-    {
-        mOutput->release();
-        mOutput = 0;
-    }
-
-    if (!mPluginsLoaded)
-    {
-        result = setUpPlugins();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-    }
-
-    result = mPluginFactory->getOutput(handle, &outputdesc);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    result = mPluginFactory->createOutput(outputdesc, &mOutput);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    mOutputType = mOutput->mDescription.mType;
-    mOutputHandle = mOutput->mDescription.mHandle;
 
     return FMOD_OK;
 }
@@ -6220,14 +4775,107 @@ FMOD_RESULT SystemI::setOutputByPlugin(unsigned int handle)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT SystemI::getOutputByPlugin(unsigned int *handle)
+FMOD_RESULT SystemI::unloadPlugin(FMOD_PLUGINTYPE plugintype, int index)
 {
-    if (!handle)
+    FMOD_RESULT result;
+
+    if (!mPluginsLoaded)
+    {
+        result = setUpPlugins();
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+    }
+
+    return mPluginFactory->unloadPlugin(plugintype, index);
+}
+
+
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+ 
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+FMOD_RESULT SystemI::setOutputByPlugin(int index)
+{
+    FMOD_RESULT                 result = FMOD_OK;
+    FMOD_OUTPUT_DESCRIPTION_EX *outputdesc = 0;
+
+    if (mInitialized)
+	{
+		return FMOD_ERR_INITIALIZED;
+	}
+
+    if (mOutput)
+    {
+        FMOD_Memory_Free(mOutput);
+        mOutput = 0;
+    }
+
+    if (!mPluginsLoaded)
+    {
+        result = setUpPlugins();
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+    }
+
+    result = mPluginFactory->getOutput(index, &outputdesc);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    result = mPluginFactory->createOutput(outputdesc, &mOutput);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    mOutputHandle = index;
+    mOutputType   = mOutput->mDescription.mType;
+
+    return FMOD_OK;
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+ 
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+FMOD_RESULT SystemI::getOutputByPlugin(int *index)
+{
+    if (!index)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    *handle = mOutputHandle;
+    *index = mOutputHandle;
 
     return FMOD_OK;
 }
@@ -6290,12 +4938,6 @@ public:
             }
             mSystem->close();
             
-#ifdef FMOD_SUPPORT_PROFILE
-            if (FMOD::gGlobal->gSystemInitCount == 0 && mProfilerInitialized)
-            {
-                FMOD_Profile_Release();
-            }
-#endif
         }
         if(mAsyncCrit)
         {
@@ -6332,21 +4974,11 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
     int count;
     FMOD_RESULT result;
     int channellimit = (int)(1 << CHANINDEX_BITS);
-    FMOD_SPEAKERMODE speakerMode;
-    AutoCleanup<bool, SystemInitCleanup> initCleanup(true);
-
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::init", "FMOD Ex Version: %08x\n", FMOD_VERSION));
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::init", "maxchannels = %d, flags = %08x, extradriverdata = %p\n", maxchannels, flags, extradriverdata));
 
     if (maxchannels < 0 || maxchannels >= channellimit)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-
-	if (mInitialized)
-	{
-		return FMOD_ERR_INITIALIZED;
-	}
 
     result = closeEx(true);
     if (result != FMOD_OK)
@@ -6354,145 +4986,46 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
         return result;
     }
 
-    initCleanup.setSystem(this);
-
     mFlags = flags;
+
     FMOD_OS_Thread_GetCurrentID(&mMainThreadID);
 
-    /*
-        Set up output driver for this system
-    */
     result = setOutput(mOutputType);
     if (result != FMOD_OK)
     {
         return result;
     }
 
-#if defined(FMOD_SUPPORT_MYEARS) && !defined(PLATFORM_PS3)
-    bool enablemyears = !(mFlags & FMOD_INIT_DISABLE_MYEARS) && !mDownmix && DownmixMyEars::dataExists();
-    if (enablemyears)
-    {
-        mOutputRate = DownmixMyEars::getSampleRate();
-    }
-#endif
-
     if (mOutput->mDescription.initex)
     {
-#ifdef FMOD_SUPPORT_SOFTWARE
-        mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#else
-        mOutput->readfrommixer = 0;
-#endif
-        speakerMode = mSpeakerMode;
-        result = mOutput->mDescription.initex(mOutput, mSelectedDriver, flags, &mOutputRate, mMaxOutputChannels, &mOutputFormat, &speakerMode, mDSPBlockSize, mDSPBufferSize / mDSPBlockSize, 0, 0, extradriverdata);
+        FMOD_SPEAKERMODE speakermode;
+
+        mOutput->readfrommixer = Output::mixCallback;
+
+        speakermode = mSpeakerMode;
+
+        result = mOutput->mDescription.initex(mOutput, mSelectedDriver, flags, &mOutputRate, mMaxOutputChannels, &mOutputFormat, &speakermode, mDSPBlockSize, mDSPBufferSize / mDSPBlockSize, 0, 0, extradriverdata);
         if (result != FMOD_OK)
         {
             return result;
         }
 
-        if (speakerMode != mSpeakerMode)
+        if (speakermode != mSpeakerMode)
         {
-            setSpeakerMode(speakerMode);
+            setSpeakerMode(speakermode);
         }
     }
     else if (mOutput->mDescription.init)
     {
-        int outputchannels = mMaxOutputChannels;
+        mOutput->readfrommixer = Output::mixCallback;
 
-#ifdef FMOD_SUPPORT_SOFTWARE
-        mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#else
-        mOutput->readfrommixer = 0;
-#endif
-        result = mOutput->mDescription.init(mOutput, mSelectedDriver, flags, &mOutputRate, outputchannels, &mOutputFormat, mDSPBlockSize, mDSPBufferSize / mDSPBlockSize, extradriverdata);
+        result = mOutput->mDescription.init(mOutput, mSelectedDriver, flags, &mOutputRate, mMaxOutputChannels, &mOutputFormat, mDSPBlockSize, mDSPBufferSize / mDSPBlockSize, extradriverdata);
         if (result != FMOD_OK)
         {
             return result;
         }
     }
 
-#if defined(FMOD_SUPPORT_NEURAL) && !defined(PLATFORM_PS3)
-    if ((flags & FMOD_INIT_DTS_NEURALSURROUND) && (mSpeakerMode == FMOD_SPEAKERMODE_STEREO || mSpeakerMode == FMOD_SPEAKERMODE_5POINT1) && !mDownmix)
-    {
-        mDownmix = FMOD_Object_Calloc(DownmixNeural);
-        if (!mDownmix)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-
-        result = mDownmix->init(mDSPBufferSize, mOutputRate, mSpeakerMode);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-
-        /*
-            Software mixer should always be mixing in 7.1 if we are using Neural
-        */
-        setSpeakerMode(FMOD_SPEAKERMODE_7POINT1);
-    }
-#endif
-    
-#if defined(FMOD_SUPPORT_MYEARS) && !defined(PLATFORM_PS3)
-    /*
-        MyEars will be enabled by default as long as the data exists
-        and another downmixer such as NEURALSURROUND has not been set.
-    */
-    if (enablemyears && !mDownmix)
-    {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::init", "Load MyEars data\n"));
-
-        mDownmix = FMOD_Object_Calloc(DownmixMyEars);
-        if (!mDownmix)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-
-        result = mDownmix->init(mDSPBufferSize, mOutputRate, mSpeakerMode, 0);
-        if (result != FMOD_OK)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::init", "Failed to initialise MyEars. Returned error (%d)\n", result));
-
-            mDownmix->shutdown();
-
-            FMOD_Memory_Free(mDownmix);
-            mDownmix = 0;
-            enablemyears = false;
-        }
-        else
-        {
-            /*
-                Software mixer should always be mixing in 7.1 if we are using MyEars (or 5.1 for testing)
-            */
-            int inputchannels;
-            mDownmix->getInputChannels(&inputchannels);
-            switch(inputchannels)
-            {
-            case 8:
-                setSpeakerMode(FMOD_SPEAKERMODE_7POINT1);
-                break;
-            case 6:
-                setSpeakerMode(FMOD_SPEAKERMODE_5POINT1);
-                break;
-            default:
-                result = mDownmix->shutdown();
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-                FMOD_Memory_Free(mDownmix);
-                mDownmix = 0;
-                return FMOD_ERR_INTERNAL;
-            }
-
-            /*
-                Override software HRTF to false when using MyEars
-            */
-            mFlags &= ~FMOD_INIT_SOFTWARE_HRTF;
-        }
-    }
-#endif
-  
 #ifdef FMOD_SUPPORT_SOFTWARE
     if (!(mFlags & FMOD_INIT_SOFTWARE_DISABLE))
     {
@@ -6500,17 +5033,15 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
         FMOD_DSP_DESCRIPTION_EX descriptionex;
         FMOD_SOUND_FORMAT       bufferformat;
         int                     bufferchannels;
+        FMOD_SPEAKERMODE        speakermode;
 
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::init", "Set up software engine\n"));
-
-        /*
-            Set up the 'software' output object.
-        */
         mSoftware = FMOD_Object_Alloc(OutputSoftware);
         if (!mSoftware)
         {
+            closeEx(false);
             return FMOD_ERR_MEMORY;
-        }   
+        }
+
         mSoftware->mSystem = this;
 
         if (!mDSPCrit)
@@ -6521,6 +5052,7 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
                 return result;
             }
         }
+
         if (!mDSPLockCrit)
         {
             result = FMOD_OS_CriticalSection_Create(&mDSPLockCrit);
@@ -6529,6 +5061,7 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
                 return result;
             }
         }
+
         if (!mDSPConnectionCrit)
         {
             result = FMOD_OS_CriticalSection_Create(&mDSPConnectionCrit);
@@ -6537,16 +5070,15 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
                 return result;
             }
         }
-#ifdef FMOD_NEED_DSPCODECPOOLINITCRIT
-        if(!mDSPCodecPoolInitCrit)
+
+        if (!mDSPRequestCrit)
         {
-            result = FMOD_OS_CriticalSection_Create(&mDSPCodecPoolInitCrit);
+            result = FMOD_OS_CriticalSection_Create(&mDSPRequestCrit);
             if (result != FMOD_OK)
             {
                 return result;
             }
         }
-#endif
 
         mConnectionRequestUsedHead.initNode();
         mConnectionRequestFreeHead.initNode();
@@ -6557,7 +5089,6 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
 
             request->initNode();
             request->addBefore(&mConnectionRequestFreeHead);
-
         }
 
         result = getSoftwareFormat(0, &bufferformat, &bufferchannels, 0, 0, 0);
@@ -6571,32 +5102,22 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
             mMaxInputChannels = bufferchannels;
         }
 
-        /*
-            Create a global intermediate pair of buffers for the DSP engine to use.  
-        */
-        mDSPTempBuffMem = (float *)FMOD_Memory_Calloc((mDSPBlockSize * (bufferchannels < mMaxInputChannels ? mMaxInputChannels : bufferchannels) * sizeof(float)) + 16);
-        if (!mDSPTempBuffMem)
+        for (count = 0; count < 2; count++)
         {
-            return FMOD_ERR_MEMORY;
+            mDSPTempBuffMem[count] = (float *)FMOD_Memory_Calloc((mDSPBlockSize * (bufferchannels < mMaxInputChannels ? mMaxInputChannels : bufferchannels) * sizeof(float)) + 16);
+            if (!mDSPTempBuffMem[count])
+            {
+                return FMOD_ERR_MEMORY;
+            }
+            mDSPTempBuff[count] = (float *)FMOD_ALIGNPOINTER(mDSPTempBuffMem[count], 16);
         }
-        mDSPTempBuff = (float *)FMOD_ALIGNPOINTER(mDSPTempBuffMem, 16);
 
-        /*
-            Create a pool of connections so we dont have to use malloc/free each time a connection/disconnection happens.
-            Usually with the default software engine it is:
-            1 for soundcard to mixer.
-            'mNumSoftwareChannels' for mixer to channel head(s)
-            'mNumSoftwareChannels' for channelhead(s) to wavetable(s)/generator(s).
-        */
         result = mDSPConnectionPool.init(this, 1 + (mNumSoftwareChannels * 2), bufferchannels < 2 ? 2 : bufferchannels, mMaxInputChannels);
         if (result != FMOD_OK)
         {
             return result;
         }
 
-        /*
-            Create the soundcard unit and main mixer unit then connect them together.
-        */
         FMOD_memset(&descriptionex, 0, sizeof(FMOD_DSP_DESCRIPTION_EX));
         FMOD_strcpy(descriptionex.name, "FMOD SoundCard Unit");
         descriptionex.version      = 0x00010100;
@@ -6607,15 +5128,13 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
         descriptionex.setposition  = 0;
         descriptionex.mCategory    = FMOD_DSP_CATEGORY_SOUNDCARD;
         descriptionex.mFormat      = bufferformat;
+
         result = createDSP(&descriptionex, &mDSPSoundCard);
         if (result != FMOD_OK)
         {
             return result;
         }
 
-        #if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-        mDSPSoundCard->updateTreeLevel(0);  /* Set root to 0 to get initial tree level for rest of network to base off. */
-        #endif
         mDSPSoundCard->setActive(true);
 
         FMOD_memset(&description, 0, sizeof(FMOD_DSP_DESCRIPTION));
@@ -6626,6 +5145,7 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
         description.release      = 0;
         description.read         = 0;
         description.setposition  = 0;
+
         result = createDSP(&description, &mDSPChannelGroupTarget);
         if (result != FMOD_OK)
         {
@@ -6634,6 +5154,12 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
 
         mDSPChannelGroupTarget->setDefaults((float)mOutputRate, -1, -1, -1);
         mDSPChannelGroupTarget->setActive(true);
+
+        result = getSpeakerMode(&speakermode);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
 
         result = mDSPSoundCard->addInput(mDSPChannelGroupTarget);
         if (result != FMOD_OK)
@@ -6664,14 +5190,9 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
             return result;
         }
 
-        /*
-            If the user wants to add extra code around the polled start, 
-            check here for overriden start function.
-            Plugin writer must call OutputPolled::start.
-        */
         if (mOutput->mDescription.start)
         {
-            mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
+            mOutput->readfrommixer = Output::mixCallback;
 
             result = mOutput->mDescription.start(mOutput);
             if (result != FMOD_OK)
@@ -6682,7 +5203,7 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
         else if (mOutput->mDescription.polling)
         {
             OutputPolled *outputpolled = SAFE_CAST(OutputPolled, mOutput);
-        
+
             result = outputpolled->start();
             if (result != FMOD_OK)
             {
@@ -6692,19 +5213,15 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
     }
 #endif
 
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::init", "Set up emulated output\n"));
-
-    /*
-        Set up emulated output for virtual channels
-    */
     if (maxchannels > 0)
-    {       
+    {
         mEmulated = FMOD_Object_Alloc(OutputEmulated);
         if (!mEmulated)
         {
+            closeEx(false);
             return FMOD_ERR_MEMORY;
         }
-        
+
         mEmulated->mSystem = this;
 
         result = mEmulated->init(maxchannels);
@@ -6714,11 +5231,8 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
         }
     }
 
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::init", "create the channel pool\n"));
+    mNumChannels = maxchannels;
 
-    /*
-        Create a pool of channels the user will interface with, that will contain pointers to real or virtual channels
-    */
     if (maxchannels)
     {
         mChannel = (ChannelI *)FMOD_Memory_Calloc(sizeof(ChannelI) * maxchannels);
@@ -6727,20 +5241,15 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
             return FMOD_ERR_MEMORY;
         }
 
-        mNumChannels = maxchannels;
-
         for (count = 0; count < mNumChannels; count++)
         {
             new (&mChannel[count]) ChannelI(count, this);
-            
+
             mChannel[count].addAfter(&mChannelFreeListHead);
-            mChannel[count].setChannelGroup(mChannelGroup);                 /* Put channels into primary channel group */
+            mChannel[count].setChannelGroup(mChannelGroup);
         }
     }
 
-    /*
-        Global list of sounds critical section
-    */
     if (!gSoundListCrit)
     {
         result = FMOD_OS_CriticalSection_Create(&gSoundListCrit);
@@ -6748,13 +5257,17 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
         {
             return result;
         }
-
-        initCleanup.setSoundListCrit(&gSoundListCrit);
     }
 
-    /*
-        Sound lock critical section
-    */
+    if (!mReadDataCrit)
+    {
+        result = FMOD_OS_CriticalSection_Create(&mReadDataCrit);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+    }
+
     if (!mMultiSubSampleLockBufferCrit)
     {
         result = FMOD_OS_CriticalSection_Create(&mMultiSubSampleLockBufferCrit);
@@ -6765,81 +5278,51 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
     }
 
 #ifdef FMOD_SUPPORT_STREAMING
-
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::init", "Set up streamer\n"));
-
-    /*
-        Create stream thread.
-    */
-    if (!mStreamThreadActive && !(mFlags & FMOD_INIT_STREAM_FROM_UPDATE))  /* Single buffered is not nonblocking! */
+    if (!mStreamThreadActive && !(mFlags & FMOD_INIT_STREAM_FROM_UPDATE))
     {
-        AutoFreeCrit realchanCritCleanup;
-        AutoFreeCrit updateCritCleanup;
-        AutoFreeCrit listCritCleanup;
-
         result = FMOD_OS_CriticalSection_Create(&mStreamRealchanCrit);
         if (result != FMOD_OK)
         {
             return result;
         }
-        realchanCritCleanup = mStreamRealchanCrit;
+
         result = FMOD_OS_CriticalSection_Create(&mStreamUpdateCrit);
         if (result != FMOD_OK)
         {
             return result;
         }
-        updateCritCleanup = mStreamUpdateCrit;
+
         result = FMOD_OS_CriticalSection_Create(&mStreamListCrit);
         if (result != FMOD_OK)
         {
             return result;
         }
-        listCritCleanup = mStreamListCrit;
 
-        result = mStreamThread.initThread("FMOD stream thread", streamThread, this, STREAM_THREADPRIORITY, 0, STREAM_STACKSIZE, false, 10, this);
+        result = mStreamThread.initThread("FMOD stream thread", streamThread, this, STREAM_THREADPRIORITY, 0, STREAM_STACKSIZE, false, 10);
         if (result != FMOD_OK)
         {
             return result;
         }
+
         mStreamThreadActive = true;
-        realchanCritCleanup.releasePtr();
-        updateCritCleanup.releasePtr();
-        listCritCleanup.releasePtr();
     }
-
-    if (!FMOD::gGlobal->gFileCrit)
-    {
-        result = FMOD_OS_CriticalSection_Create(&FMOD::gGlobal->gFileCrit);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-        initCleanup.setFileCrit(&FMOD::gGlobal->gFileCrit);
-    }
-
-    if (!FMOD::gGlobal->gAsyncCrit)
-    {
-        result = FMOD_OS_CriticalSection_Create(&FMOD::gGlobal->gAsyncCrit);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-        initCleanup.setAsyncCrit(&FMOD::gGlobal->gAsyncCrit);
-    }
-
 #endif
 
-    /*
-        Initialize codecs up front if specified.
-    */
+    if (!File::gFileCrit)
+    {
+        result = FMOD_OS_CriticalSection_Create(&File::gFileCrit);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+    }
+
 #ifdef FMOD_SUPPORT_DSPCODEC
     if (!(mFlags & FMOD_INIT_SOFTWARE_DISABLE))
     {
         #ifdef FMOD_SUPPORT_IMAADPCM
         if (mAdvancedSettings.maxADPCMcodecs)
         {
-            int count;
-
             result = mDSPCodecPool_ADPCM.init(FMOD_DSP_CATEGORY_DSPCODECADPCM, 64, mAdvancedSettings.maxADPCMcodecs);
             if (result != FMOD_OK)
             {
@@ -6854,14 +5337,13 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
                 wav->mSrcFormat  = &wav->mSrcFormatMemory;
                 wav->mReadBuffer = mDSPCodecPool_ADPCM.mReadBuffer;
                 wav->mSrcFormat->Format.wFormatTag = WAVE_FORMAT_IMA_ADPCM;
-            }       
+            }
         }
         #endif
+
         #ifdef FMOD_SUPPORT_MPEG
         if (mAdvancedSettings.maxMPEGcodecs)
         {
-            int count;
-
             result = mDSPCodecPool_MPEG.init(FMOD_DSP_CATEGORY_DSPCODECMPEG, 1152, mAdvancedSettings.maxMPEGcodecs);
             if (result != FMOD_OK)
             {
@@ -6873,90 +5355,15 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
                 DSPCodec *dspcodec = SAFE_CAST(DSPCodec, mDSPCodecPool_MPEG.mPool[count]);
                 CodecMPEG *mpeg    = (CodecMPEG *)dspcodec->mCodec;
 
-                mpeg->mSrcDataOffset    = 0;    /* Raw data will start at 0. */
-                mpeg->mWaveFormatMemory = 0;    /* This will be set up upon play. */
-                mpeg->reset();            
-            }       
-        }
-        #endif
-        #ifdef FMOD_SUPPORT_XMA
-        if (mAdvancedSettings.maxXMAcodecs)
-        {
-            int count;
-
-            result = mDSPCodecPool_XMA.init(FMOD_DSP_CATEGORY_DSPCODECXMA, 512, mAdvancedSettings.maxXMAcodecs);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-
-            for (count = 0; count < mDSPCodecPool_XMA.mNumDSPCodecs; count++)
-            {
-                DSPCodec *dspcodec = SAFE_CAST(DSPCodec, mDSPCodecPool_XMA.mPool[count]);
-                CodecXMA *xma      = (CodecXMA *)dspcodec->mCodec;
-
-                xma->mSrcDataOffset = 0;    /* Raw data will start at 0. */
-                xma->mWaveFormatMemory = 0;    /* This will be set up upon play. */
-                
-                result = xma->XMAInit(1);           
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-            }       
-        }
-        #endif
-        #ifdef FMOD_SUPPORT_CELT
-        if (mAdvancedSettings.maxCELTcodecs)
-        {
-            int count;
-            FMOD_CODEC_DESCRIPTION_EX *desc;
-
-            result = mPluginFactory->getCodec(mCELTPluginHandle, &desc);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-
-            result = mDSPCodecPool_CELT.init(FMOD_DSP_CATEGORY_DSPCODECCELT, FMOD_CELT_FRAMESIZESAMPLES, mAdvancedSettings.maxCELTcodecs);
-            if (result != FMOD_OK)
-            {
-                close();
-                return result;
-            }
-
-            for (count = 0; count < mDSPCodecPool_CELT.mNumDSPCodecs; count++)
-            {
-                DSPCodec  *dspcodec = SAFE_CAST(DSPCodec, mDSPCodecPool_CELT.mPool[count]);
-                CodecCELT *celt     = (CodecCELT *)dspcodec->mCodec;
-
-                celt->mSrcDataOffset = 0;       /* Raw data will start at 0. */
-                celt->mWaveFormatMemory = 0;    /* This will be set up upon play. */
-
-                result = desc->init(celt, 1);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-            }     
-        }
-        #endif
-        #ifdef FMOD_SUPPORT_RAWCODEC
-        if (mAdvancedSettings.maxPCMcodecs)
-        {
-            result = mDSPCodecPool_RAW.init(FMOD_DSP_CATEGORY_DSPCODECRAW, 256, mAdvancedSettings.maxPCMcodecs);
-            if (result != FMOD_OK)
-            {
-                return result;
+                mpeg->mSrcDataOffset    = 0;
+                mpeg->mWaveFormatMemory = 0;
+                mpeg->reset();
             }
         }
         #endif
     }
 #endif
 
-    /*
-        Initialize 2D and 3D reverb masters
-    */
     {
         const FMOD_REVERB_PROPERTIES prop = FMOD_PRESET_OFF;
 
@@ -6989,73 +5396,16 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
 #endif
     }
 
-    if (mFlags & FMOD_INIT_ENABLE_PROFILE)
-    {    
-#ifdef FMOD_SUPPORT_PROFILE
-        result = FMOD_Profile_Create(mAdvancedSettings.profileport);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-        initCleanup.profilerInitialized();
-#endif
-
-#if defined(FMOD_SUPPORT_PROFILE) && defined(FMOD_SUPPORT_PROFILE_DSP)
-        result = FMOD_ProfileDsp_Create();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-#endif
-#if defined(FMOD_SUPPORT_PROFILE) && defined(FMOD_SUPPORT_PROFILE_MEMORY)
-        result = FMOD_ProfileMemory_Create();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-#endif
-#if defined(FMOD_SUPPORT_PROFILE) && defined(FMOD_SUPPORT_PROFILE_CPU)
-        result = FMOD_ProfileCpu_Create();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-#endif
-#if defined(FMOD_SUPPORT_PROFILE) && defined(FMOD_SUPPORT_PROFILE_CHANNEL)
-        result = FMOD_ProfileChannel_Create();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-#endif
-#if defined(FMOD_SUPPORT_PROFILE) && defined(FMOD_SUPPORT_PROFILE_CODEC)
-        result = FMOD_ProfileCodec_Create();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-#endif
+    if (mFlags & FMOD_INIT_ENABLE_DSPNET)
+    {
+        mDSPNet.init();
     }
-
-
-#ifdef FMOD_SUPPORT_VSTPLUGIN
-    mVSTPluginsListHead.initNode();
-#endif
 
     mSpeakerLevelsPool.mSystem = this;
-    result = mHistoryBufferPool.init(mAdvancedSettings.maxSpectrumWaveDataBuffers, FMOD_MAX(mMaxOutputChannels, mMaxInputChannels) );
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
 
     mInitialized = true;
-    
+
     gGlobal->gSystemInitCount++;
-
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::init", "done\n\n"));
-
-    initCleanup.releasePtr();
 
     return FMOD_OK;
 }
@@ -7104,103 +5454,62 @@ FMOD_RESULT SystemI::closeEx(bool calledfrominit)
     FMOD_RESULT result;
     int count;
 
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "\n"));
+    recordStop();
 
-    update();   /* Execute an update to make sure everything is in sync. */
-
-#ifdef FMOD_SUPPORT_RECORDING
-    if (mOutput && mOutput->mRecordNumActive)
+    if (!calledfrominit)
     {
-        result = mOutput->recordStopAll(false);
-        CHECK_RESULT(result);
-    }
-#endif
+        for (count = 0; count < mNumChannels; count++)
+        {
+            Channel *channel;
 
-    /*
-        Stop all sounds
-    */
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "Stop all sounds\n"));
-    for (count = 0; count < mNumChannels; count++)
-    {
-        mChannel[count].stopEx(CHANNELI_STOPFLAG_REFSTAMP | CHANNELI_STOPFLAG_UPDATELIST | CHANNELI_STOPFLAG_RESETCALLBACKS | CHANNELI_STOPFLAG_RESETCHANNELGROUP |CHANNELI_STOPFLAG_UPDATESYNCPOINTS);
-    }
+            if (((System *)this)->getChannel(count, &channel) == FMOD_OK)
+            {
+                channel->stop();
+            }
+        }
 
-    update();   /* For ps2 it needs to execute an update to get the channel commands to execute. */
+        update();
 
     #ifdef FMOD_SUPPORT_STREAMING
-    if (mStreamThreadActive)
-    {
-        mStreamThread.closeThread();
-        mStreamThreadActive = false;
+        if (mStreamThreadActive)
+        {
+            mStreamThread.closeThread();
+            mStreamThreadActive = false;
 
-        FMOD_OS_CriticalSection_Free(mStreamRealchanCrit);
-        mStreamRealchanCrit = 0;
-
-        FMOD_OS_CriticalSection_Free(mStreamUpdateCrit);
-        mStreamUpdateCrit = 0;
-
-        FMOD_OS_CriticalSection_Free(mStreamListCrit);
-        mStreamListCrit = 0;
-
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "Stream thread destroyed\n"));
-    }
+            FMOD_OS_CriticalSection_Free(mStreamRealchanCrit);
+            mStreamRealchanCrit = 0;
+            FMOD_OS_CriticalSection_Free(mStreamUpdateCrit);
+            mStreamUpdateCrit = 0;
+            FMOD_OS_CriticalSection_Free(mStreamListCrit);
+            mStreamListCrit = 0;
+        }
     #endif
 
-    /*
-        Shut down streamer and async thread, only if this is the last instance of a system object.
-    */
-    if (gGlobal->gSystemInitCount == 1 && mInitialized)
-    {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "Shut down streamer and FMOD_NONBLOCKING and FileSystem thread.\n"));
-
-        #ifdef FMOD_SUPPORT_NONBLOCKING
-        result = AsyncThread::shutDown();
-        if (result!= FMOD_OK)
+        if (gGlobal->gSystemInitCount == 1 && mInitialized)
         {
-            return result;
-        }
-        #endif
-
-        if (FMOD::gGlobal->gAsyncCrit)
-        {
-            FMOD_OS_CriticalSection_Free(FMOD::gGlobal->gAsyncCrit);
-            FMOD::gGlobal->gAsyncCrit = 0;
-        }
-
-        if (gSoundListCrit)
-        {
-            FMOD_OS_CriticalSection_Free(gSoundListCrit);
-            gSoundListCrit = 0;
-        }
-    
-        if (mFlags & FMOD_INIT_ENABLE_PROFILE)
-        {
-#ifdef FMOD_SUPPORT_PROFILE
-            result = FMOD_Profile_Release();
+            result = AsyncThread::shutDown();
             if (result != FMOD_OK)
             {
                 return result;
             }
-#endif
-        }
-        
 
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "Shut down file system.\n"));
-        result = File::shutDown();
-        if (result != FMOD_OK)
-        {
-            return result;
+            if (gSoundListCrit)
+            {
+                FMOD_OS_CriticalSection_Free(gSoundListCrit);
+                gSoundListCrit = 0;
+            }
+
+            result = File::shutDown();
+            if (result != FMOD_OK)
+            {
+                return result;
+            }
         }
     }
 
-    /*
-        Recursively remove all channelgroups.
-    */    
     if (mChannelGroup)
     {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "Free master channel group.\n"));
-
-        result = mChannelGroup->releaseInternal(true);
+        result = mChannelGroup->releaseInternal();
         if (result != FMOD_OK)
         {
             return result;
@@ -7208,13 +5517,19 @@ FMOD_RESULT SystemI::closeEx(bool calledfrominit)
         mChannelGroup = 0;
     }
 
-    /*
-        Remove 'main' sound group.
-    */    
+    while (!mChannelGroupHead.isEmpty())
+    {
+        ChannelGroupI *channelgroup = (ChannelGroupI *)mChannelGroupHead.getNext();
+
+        result = channelgroup->release();
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+    }
+
     if (mSoundGroup)
     {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "Remove 'master' sound group.\n"));
-
         result = mSoundGroup->releaseInternal();
         if (result != FMOD_OK)
         {
@@ -7223,118 +5538,86 @@ FMOD_RESULT SystemI::closeEx(bool calledfrominit)
         mSoundGroup = 0;
     }
 
-    if (mOutput)
+    if (mOutput && !calledfrominit)
     {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "Shut down output.\n"));
-
         if (mOutput->mDescription.stop)
         {
-#ifdef FMOD_SUPPORT_SOFTWARE
-            mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#else
-            mOutput->readfrommixer = 0;
-#endif
-
+            mOutput->readfrommixer = Output::mixCallback;
             mOutput->mDescription.stop(mOutput);
         }
         else if (mOutput->mDescription.polling)
         {
             OutputPolled *outputpolled = SAFE_CAST(OutputPolled, mOutput);
-        
+
             outputpolled->stop();
         }
-	}
 
 #ifdef FMOD_SUPPORT_SOFTWARE
-    if (mDSPChannelGroupTarget)
-    {
-        result = mDSPChannelGroupTarget->release();
-        mDSPChannelGroupTarget = 0;
-    }
+        if (mDSPChannelGroupTarget)
+        {
+            mDSPChannelGroupTarget->release();
+            mDSPChannelGroupTarget = 0;
+        }
+
+        if (mDSPSoundCard)
+        {
+            mDSPSoundCard->release();
+            mDSPSoundCard = 0;
+        }
 #endif
 
 #ifdef FMOD_SUPPORT_MULTIREVERB
-    set3DReverbActive(false);  /* Stop it from creating new reverbs inside update functions. */
-
-    ReverbI *reverb_c = SAFE_CAST(ReverbI, mReverb3DHead.getNext());
-    ReverbI *reverb_tmp;
-    
-    while (reverb_c != &mReverb3DHead)
-    {
-        reverb_tmp = reverb_c;
-        reverb_c = SAFE_CAST(ReverbI, reverb_c->getNext());
-        reverb_tmp->release(true);
-    }
-    mReverb3D.release(false);
-#endif
-
-    mReverbGlobal.release(false);
-
-#ifdef FMOD_SUPPORT_SOFTWARE
-    if (mDSPTempBuffMem)
-    {
-        FMOD_Memory_Free(mDSPTempBuffMem);
-        mDSPTempBuff = mDSPTempBuffMem = 0;
-    }
-#endif
-	if (mOutput)
-	{
-	    /*
-		    Dont clean up the output if it is coming from init, because the user set up the output pre-init.
-	    */
-        if (calledfrominit)
+        ReverbI *reverb_c = SAFE_CAST(ReverbI, mReverb3DHead.getNext());
+        while (reverb_c != &mReverb3DHead)
         {
-            if (mOutput->mDescription.close)
-            {
-#ifdef FMOD_SUPPORT_SOFTWARE
-                mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#else
-                mOutput->readfrommixer = 0;
-#endif
+            ReverbI *reverb_tmp = reverb_c;
 
-                mOutput->mDescription.close(mOutput);
+            reverb_c = SAFE_CAST(ReverbI, reverb_c->getNext());
+            reverb_tmp->release(true);
+        }
+        mReverb3D.release(false);
+#endif
+        mReverbGlobal.release(false);
+
+#ifdef FMOD_SUPPORT_SOFTWARE
+        for (count = 0; count < 2; count++)
+        {
+            if (mDSPTempBuffMem[count])
+            {
+                FMOD_Memory_Free(mDSPTempBuffMem[count]);
+                mDSPTempBuffMem[count] = 0;
+                mDSPTempBuff[count] = 0;
             }
         }
-        else
-        {
+#endif
 
-            result = mOutput->release();
-			mOutput = 0;
-		}
+        if (mOutput->mDescription.close)
+        {
+            mOutput->readfrommixer = Output::mixCallback;
+            mOutput->mDescription.close(mOutput);
+        }
+
+        mOutput->release();
+        mOutput = 0;
     }
-   
+
 #ifdef FMOD_SUPPORT_SOFTWARE
     if (mSoftware)
     {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "Free software output.\n"));
-
-        result = mSoftware->release();
+        mSoftware->release();
         mSoftware = 0;
     }
 #endif
 
     if (mEmulated)
     {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "Free emulated output.\n"));
-
-        result = mEmulated->release();
+        mEmulated->release();
         mEmulated = 0;
     }
 
-
-    /*
-        Free codec pools for FMOD_CREATECOMPRESSEDSAMPLE.
-    */    
 #ifdef FMOD_SUPPORT_DSPCODEC
     #ifdef FMOD_SUPPORT_MPEG
     result = mDSPCodecPool_MPEG.close();
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    #endif
-    #ifdef FMOD_SUPPORT_XMA
-    result = mDSPCodecPool_XMA.close();
     if (result != FMOD_OK)
     {
         return result;
@@ -7347,21 +5630,10 @@ FMOD_RESULT SystemI::closeEx(bool calledfrominit)
         return result;
     }
     #endif
-    #ifdef FMOD_SUPPORT_RAWCODEC
-    result = mDSPCodecPool_RAW.close();
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    #endif
 #endif
 
     if (mChannel)
     {
-        int count;
-
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "Free channel pool.\n"));
-
         for (count = 0; count < mNumChannels; count++)
         {
             if (mChannel[count].mLevels)
@@ -7373,27 +5645,11 @@ FMOD_RESULT SystemI::closeEx(bool calledfrominit)
 
         FMOD_Memory_Free(mChannel);
         mChannel = 0;
-        mNumChannels = 0;
     }
 
     mChannelFreeListHead.initNode();
 
 #ifdef FMOD_SUPPORT_SOFTWARE
-
-    if (mDSPSoundCard)
-    {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "Remove DSP Soundcard unit.\n"));
-
-        result = mDSPSoundCard->release();  /* Release last because some things above point to it. */
-        mDSPSoundCard = 0;
-    }
-
-    /*
-        Remove miscllaneous DSP stuff
-    */
-
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "Remove miscllaneous DSP stuff.\n"));
-
     result = mDSPConnectionPool.close();
     if (result != FMOD_OK)
     {
@@ -7418,6 +5674,7 @@ FMOD_RESULT SystemI::closeEx(bool calledfrominit)
         }
         mDSPCrit = 0;
     }
+
     if (mDSPLockCrit)
     {
         result = FMOD_OS_CriticalSection_Free(mDSPLockCrit);
@@ -7427,6 +5684,7 @@ FMOD_RESULT SystemI::closeEx(bool calledfrominit)
         }
         mDSPLockCrit = 0;
     }
+
     if (mDSPConnectionCrit)
     {
         result = FMOD_OS_CriticalSection_Free(mDSPConnectionCrit);
@@ -7436,62 +5694,43 @@ FMOD_RESULT SystemI::closeEx(bool calledfrominit)
         }
         mDSPConnectionCrit = 0;
     }
-#ifdef FMOD_NEED_DSPCODECPOOLINITCRIT
-    if (mDSPCodecPoolInitCrit)
+
+    if (mDSPRequestCrit)
     {
-        result = FMOD_OS_CriticalSection_Free(mDSPCodecPoolInitCrit);
+        result = FMOD_OS_CriticalSection_Free(mDSPRequestCrit);
         if (result != FMOD_OK)
         {
             return result;
         }
-        mDSPCodecPoolInitCrit = 0;
+        mDSPRequestCrit = 0;
     }
 #endif
 
-#endif
+    if (mFlags & FMOD_INIT_ENABLE_DSPNET)
+    {
+        mDSPNet.release();
+    }
 
-#ifdef FMOD_SUPPORT_MPEG_SPU
-    CodecMPEG::closeAll();
-#endif
-
-    /*
-        Sound lock critical section
-    */
     if (mMultiSubSampleLockBufferCrit)
     {
         FMOD_OS_CriticalSection_Free(mMultiSubSampleLockBufferCrit);
         mMultiSubSampleLockBufferCrit = 0;
     }
-    
+
+    if (mReadDataCrit)
+    {
+        FMOD_OS_CriticalSection_Free(mReadDataCrit);
+        mReadDataCrit = 0;
+    }
+
     mSpeakerLevelsPool.release();
-    mHistoryBufferPool.release();
 
-    if (mDownmix)
+    if (!calledfrominit && mInitialized)
     {
-        result = mDownmix->shutdown();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-        FMOD_Memory_Free(mDownmix);
-        mDownmix = 0;
-    }
-
-    if (mPluginFactory && !calledfrominit)
-    {
-        CHECK_RESULT(mPluginFactory->release());
-        mPluginFactory = 0;
-        mPluginsLoaded = false;
-    }
-
-    if (mInitialized)
-    {    
         gGlobal->gSystemInitCount--;
     }
 
     mInitialized = false;
-    
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::close", "done.\n\n"));
 
     return FMOD_OK;
 }
@@ -7515,36 +5754,18 @@ FMOD_RESULT SystemI::closeEx(bool calledfrominit)
 // OFFSET: 0x008D8FD0
 FMOD_RESULT SystemI::update()
 {
-    FMOD_RESULT result;
+    FMOD_RESULT  result;
     unsigned int currenttimestamp;
-    int delta, count;
+    int          delta, count;
+    bool         devicelistchanged;
 
     if (!mInitialized)
     {
         return FMOD_ERR_UNINITIALIZED;
     }
-   
-    #ifdef FMOD_DEBUG
-    {
-        FMOD_UINT_NATIVE id;
-
-        FMOD_OS_Thread_GetCurrentID(&id);
-        
-        if (id != mMainThreadID)
-        {
-            FLOG((FMOD_DEBUG_TYPE_THREAD, __FILE__, __LINE__, "SystemI::update", "Warning!  You are calling FMOD from different threads! This is not safe!\n"));
-        }
-    }
-    #endif
 
     mUpdateTimeStamp.stampIn();
 
-//    unsigned int a, b;
-//    FMOD_OS_Time_GetNs(&a);
-
-    /*
-        Calculate the time delta since this was last called.
-    */
     if (!mLastTimeStamp)
     {
         FMOD_OS_Time_GetMs(&mLastTimeStamp);
@@ -7558,17 +5779,11 @@ FMOD_RESULT SystemI::update()
     }
     else
     {
-        /*
-            Timestamp has wrapped around?
-        */
         delta = currenttimestamp;
     }
 
     mLastTimeStamp = currenttimestamp;
 
-    /*
-        Update emulated output object.
-    */
     if (mEmulated)
     {
         result = mEmulated->update();
@@ -7579,9 +5794,6 @@ FMOD_RESULT SystemI::update()
     }
 
 #ifdef FMOD_SUPPORT_MULTIREVERB
-    /*
-        Update reverb-specific details
-    */
     result = update3DReverbs();
     if (result != FMOD_OK)
     {
@@ -7589,18 +5801,12 @@ FMOD_RESULT SystemI::update()
     }
 #endif
 
-    /*
-        Update per channel stuff including virtual voice swapping.
-    */
     result = updateChannels(delta);
     if (result != FMOD_OK)
     {
         return result;
     }
 
-    /*
-        Update any fading or volume logic by sound groups.
-    */
     result = updateSoundGroups(delta);
     if (result != FMOD_OK)
     {
@@ -7613,55 +5819,29 @@ FMOD_RESULT SystemI::update()
     {
         FMOD_OS_Time_GetMs(&FMOD::gGlobal->gDSPClockTimeStamp);
         FMOD::gGlobal->gDSPClock.mHi += delta;
-    
-        mDSPClock.mValue += ((FMOD_UINT64)delta * (FMOD_UINT64)mOutputRate / (FMOD_UINT64)1000);
     }
 
-    /*
-        Update hardware output object.
-    */
     if (mOutput && mOutput->mDescription.update)
     {
         mUpdateTimeStamp.setPaused(true);
-    
-#ifdef FMOD_SUPPORT_SOFTWARE
-        mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#else
-        mOutput->readfrommixer = 0;
-#endif
+
+        mOutput->readfrommixer = Output::mixCallback;
 
         result = mOutput->mDescription.update(mOutput);
         if (result != FMOD_OK)
         {
             return result;
         }
-    
+
         mUpdateTimeStamp.setPaused(false);
     }
 
-    /*
-        Determine if the device list has changed
-    */
-    result = checkDriverList(true);
-    if (result != FMOD_OK)
+    FMOD_OS_CheckDriverList(&devicelistchanged);
+    if (devicelistchanged && mCallback[FMOD_SYSTEM_CALLBACKTYPE_DEVICELISTCHANGED])
     {
-        return result;
+        mCallback[FMOD_SYSTEM_CALLBACKTYPE_DEVICELISTCHANGED]((FMOD_SYSTEM *)this, FMOD_SYSTEM_CALLBACKTYPE_DEVICELISTCHANGED, 0, 0);
     }
 
-#ifdef FMOD_SUPPORT_RECORDING
-    /*
-        Clean up recording device list, stop finished devices
-    */
-    if (mOutput && mOutput->mRecordNumActive)
-    {
-        result = mOutput->recordStopAll(true);
-        CHECK_RESULT(result);
-    }
-#endif
-
-    /*
-        Clear moved flag from listeners.
-    */
     for (count = 0; count < mNumListeners; count++)
     {
         mListener[count].mMoved = false;
@@ -7672,15 +5852,13 @@ FMOD_RESULT SystemI::update()
 	mGeometryMgr.mMoved = false;
 #endif
 
-#ifdef FMOD_SUPPORT_NONBLOCKING
     result = AsyncThread::update();
     if (result != FMOD_OK)
     {
         return result;
     }
-#endif
 
-    mUpdateTimeStamp.stampOut(95);    
+    mUpdateTimeStamp.stampOut(95);
 
 #ifdef FMOD_SUPPORT_STREAMING
     if (mFlags & FMOD_INIT_STREAM_FROM_UPDATE)
@@ -7691,7 +5869,7 @@ FMOD_RESULT SystemI::update()
 
     if (mFlags & FMOD_INIT_SYNCMIXERWITHUPDATE)
     {
-        if(mOutput->mDescription.polling)
+        if (mOutput->mDescription.polling)
         {
             OutputPolled *outputpolled = (OutputPolled *)mOutput;
 
@@ -7699,20 +5877,10 @@ FMOD_RESULT SystemI::update()
         }
     }
 
-#ifdef FMOD_SUPPORT_PROFILE
-    if (mFlags & FMOD_INIT_ENABLE_PROFILE)
+    if (mFlags & FMOD_INIT_ENABLE_DSPNET)
     {
-        result = FMOD_Profile_Update(this, delta);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
+        mDSPNet.update(this, delta);
     }
-#endif
-
-#ifdef FMOD_SUPPORT_VSTPLUGIN
-    updateVSTPlugins();
-#endif
 
     return FMOD_OK;
 }
@@ -7803,7 +5971,7 @@ FMOD_RESULT SystemI::set3DNumListeners(int numlisteners)
 // OFFSET: 0x008D41E0
 FMOD_RESULT SystemI::set3DListenerAttributes(int listener, const FMOD_VECTOR *pos, const FMOD_VECTOR *vel, const FMOD_VECTOR *forward, const FMOD_VECTOR *up)
 {
-    if (listener < 0 || listener >= LISTENER_MAX)
+    if (listener >= LISTENER_MAX)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
@@ -8036,7 +6204,7 @@ FMOD_RESULT SystemI::set3DRolloffCallback(FMOD_3D_ROLLOFFCALLBACK callback)
 // OFFSET: 0x008D44C0
 FMOD_RESULT SystemI::set3DSpeakerPosition(FMOD_SPEAKER speaker, float x, float y, bool active)
 {
-    if (speaker < 0 || speaker >= FMOD_SPEAKER_MAX)
+    if (speaker >= FMOD_SPEAKER_MAX)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
@@ -8044,11 +6212,9 @@ FMOD_RESULT SystemI::set3DSpeakerPosition(FMOD_SPEAKER speaker, float x, float y
     mSpeaker[speaker].mSpeaker    = speaker;
     mSpeaker[speaker].mPosition.x = x;
     mSpeaker[speaker].mPosition.y = 0;
-    mSpeaker[speaker].mPosition.z = y;
     mSpeaker[speaker].mActive     = active;
-
-    /* calculate XZ angle for sorting */
-    mSpeaker[speaker].mXZAngle = FMOD_AngleSort_GetValue(mSpeaker[speaker].mPosition.x, mSpeaker[speaker].mPosition.z);
+    mSpeaker[speaker].mPosition.z = y;
+    mSpeaker[speaker].mXZAngle    = FMOD_Cart2Angle((int)(x * 256.0f), (int)(y * 256.0f));
 
     return sortSpeakerList();
 }
@@ -8142,7 +6308,7 @@ FMOD_RESULT SystemI::get3DNumListeners(int *numlisteners)
 // OFFSET: 0x008D4630
 FMOD_RESULT SystemI::get3DListenerAttributes(int listener, FMOD_VECTOR *pos, FMOD_VECTOR *vel, FMOD_VECTOR *forward, FMOD_VECTOR *up)
 {
-    if (listener < 0 || listener >= LISTENER_MAX)
+    if (listener >= LISTENER_MAX)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
@@ -8322,7 +6488,7 @@ FMOD_RESULT SystemI::getChannelsPlaying(int *channels)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT SystemI::getCPUUsage(float *dsp, float *stream, float *geometry, float *update, float *total)
+FMOD_RESULT SystemI::getCPUUsage(float *dsp, float *stream, float *update, float *total)
 {
     FMOD_RESULT result;
     float       totalcpu, usage;
@@ -8365,23 +6531,6 @@ FMOD_RESULT SystemI::getCPUUsage(float *dsp, float *stream, float *geometry, flo
     }
 #endif
 
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-    result = mGeometryTimeStamp.getCPUUsage(&usage);
-    if (result == FMOD_OK)
-    {
-        totalcpu += usage;
-
-        if (geometry)
-        {
-            *geometry = usage;
-        }
-    }
-#else
-    if (geometry)
-    {
-        *geometry = 0;
-    }
-#endif
 
     result = mUpdateTimeStamp.getCPUUsage(&usage);
     if (result == FMOD_OK)
@@ -8580,7 +6729,7 @@ FMOD_RESULT SystemI::getSpectrum(float *spectrumarray, int numvalues, int channe
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    result = soundcard->startBuffering();
+    result = soundcard->startBuffering(16384);
     if (result != FMOD_OK)
     {
         return result;
@@ -8673,7 +6822,7 @@ FMOD_RESULT SystemI::getWaveData(float *wavearray, int numvalues, int channeloff
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    result = soundcard->startBuffering();
+    result = soundcard->startBuffering(16384);
     if (result != FMOD_OK)
     {
         return result;
@@ -8742,19 +6891,12 @@ FMOD_RESULT SystemI::createSound(const char *name_or_data, FMOD_MODE mode_in, FM
     {
         return FMOD_ERR_INVALID_PARAM;
     }
+
     if (!name_or_data && !(mode_in & FMOD_OPENUSER))
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-    if (mode_in & FMOD_NONBLOCKING && !(mode_in & (FMOD_SOFTWARE | FMOD_HARDWARE)))
-    {
-        /*
-            When using nonblocking, we can't rely on the codec to determine hardware or software if
-            neither is specified. Since the sample is created of the type of the output mode and
-            returned to the caller, we can't change it later if the codec requires it.
-        */
-        mode_in |= FMOD_HARDWARE;
-    }
+
     if (!(mode_in & FMOD_SOFTWARE))
     {
         if (!mOutput)
@@ -8763,33 +6905,18 @@ FMOD_RESULT SystemI::createSound(const char *name_or_data, FMOD_MODE mode_in, FM
         }
     }
 
-    #if !defined(PLATFORM_WII) && !defined(PLATFORM_PSP)  // We can allow this on the Wii, and PSP
     if (mode_in & FMOD_HARDWARE && mode_in & FMOD_OPENMEMORY_POINT && !(mode_in & FMOD_CREATESTREAM))
     {
         return FMOD_ERR_NEEDSSOFTWARE;
     }
-    #endif
 
     *sound = 0;
 
 #ifdef FMOD_SUPPORT_NONBLOCKING
-
     if (mode_in & FMOD_NONBLOCKING)
     {
         SoundI            *soundi;
-
-        #ifdef FMOD_DEBUG
-        if (mode_in & (FMOD_OPENMEMORY | FMOD_OPENMEMORY_POINT))
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSound", "memory = %p : mode %08x\n", name_or_data, mode_in));
-        }
-        else
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSound", "filename = %s : mode %08x\n", name_or_data, mode_in));
-        }
-        #endif
-
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSound", "FMOD_NONBLOCKING specified.  Putting into queue to be opened asynchronously!\n"));
+        LocalMemoryCounter memcounter;
 
 #ifdef FMOD_SUPPORT_STREAMING
         if (mode_in & FMOD_CREATESTREAM)
@@ -8799,7 +6926,6 @@ FMOD_RESULT SystemI::createSound(const char *name_or_data, FMOD_MODE mode_in, FM
             {
                 return FMOD_ERR_MEMORY;
             }
-
             *sound = stream;
         }
         else
@@ -8809,29 +6935,19 @@ FMOD_RESULT SystemI::createSound(const char *name_or_data, FMOD_MODE mode_in, FM
             int     hwchannels = 0;
 
             if (!(mode_in & FMOD_SOFTWARE))
-            {   
+            {
                 getHardwareChannels(0, 0, &hwchannels);
             }
 
             if (hwchannels && mOutput->mDescription.createsample)
             {
-#ifdef FMOD_SUPPORT_SOFTWARE
-                mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#else
-                mOutput->readfrommixer = 0;
-#endif
+                mOutput->readfrommixer = Output::mixCallback;
 
                 result = mOutput->mDescription.createsample(mOutput, (FMOD_MODE)0, 0, &sample);
-                mCreatedHardwareSample = true;
             }
             else
             {
-#ifdef FMOD_SUPPORT_SOFTWARE
                 result = mSoftware->createSample((FMOD_MODE)0, 0, &sample);
-#else
-                result = FMOD_ERR_NEEDSSOFTWARE;
-                FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSound", "ERROR - Software not initialized\n"));
-#endif
             }
             if (result != FMOD_OK)
             {
@@ -8843,34 +6959,11 @@ FMOD_RESULT SystemI::createSound(const char *name_or_data, FMOD_MODE mode_in, FM
 
         soundi = SAFE_CAST(SoundI, *sound);
 
-        /*
-            Calculate the size of the AsyncData plus any data that's pointed to by the exinfo struct.
-            We need to do a deep copy of this exinfo struct soon.
-        */
-        int sizeof_asyncdata = sizeof(AsyncData);
-
-        if (exinfo)
-        {
-            sizeof_asyncdata += (exinfo->inclusionlistnum * sizeof(int));
-
-            if (exinfo->dlsname)
-            {
-                sizeof_asyncdata += (FMOD_strlen(exinfo->dlsname) + 1);
-            }
-
-            if (exinfo->encryptionkey)
-            {
-                sizeof_asyncdata += (FMOD_strlen(exinfo->encryptionkey) + 1);
-            }
-        }
-
-        soundi->mAsyncData = (AsyncData *)FMOD_Memory_Calloc(sizeof_asyncdata);
+        soundi->mAsyncData = (AsyncData *)FMOD_Memory_Calloc(sizeof(AsyncData));
         if (!soundi->mAsyncData)
         {
             return FMOD_ERR_MEMORY;
         }
-
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSound", "allocated async data mem\n"));
 
         if (mode_in & (FMOD_OPENMEMORY | FMOD_OPENMEMORY_POINT))
         {
@@ -8880,21 +6973,18 @@ FMOD_RESULT SystemI::createSound(const char *name_or_data, FMOD_MODE mode_in, FM
         {
             if (mode_in & FMOD_UNICODE)
             {
-                // don't need to divide FMOD_STRING_MAXNAMELEN by 2 here, as AsyncData::mName is big enough
-                FMOD_strncpyW((short *)soundi->mAsyncData->mName, (short *)name_or_data, FMOD_STRING_MAXNAMELEN); 
+                FMOD_strncpyW((short *)soundi->mAsyncData->mName, (short *)name_or_data, FMOD_STRING_MAXNAMELEN);
             }
             else
             {
-                FMOD_strncpy(soundi->mAsyncData->mName, name_or_data, FMOD_STRING_MAXNAMELEN); 
+                FMOD_strncpy(soundi->mAsyncData->mName, name_or_data, FMOD_STRING_MAXNAMELEN);
             }
         }
-
-        soundi->mAsyncData->mBufferSize = mStreamFileBufferSize;
-        soundi->mAsyncData->mBufferSizeType = mStreamFileBufferSizeType;
 
         soundi->mMode       = mode_in;
         soundi->mSystem     = this;
         soundi->mOpenState  = FMOD_OPENSTATE_LOADING;
+        soundi->mMemoryUsed = memcounter.getMemoryUsed();
 
         if (exinfo)
         {
@@ -8905,82 +6995,35 @@ FMOD_RESULT SystemI::createSound(const char *name_or_data, FMOD_MODE mode_in, FM
             {
                 soundi->setSoundGroup((FMOD::SoundGroupI *)exinfo->initialsoundgroup);
             }
-
-            /*
-                Now do a deep copy of things that are pointed to by the exinfo struct by tacking them
-                on the end of the soundi->mAsyncData memory block that we previously allocated and diddling
-                the pointers to them. We calculated the size of this block to take into account this extra 
-                stuff so we're not going to stomp on memory.
-            */
-            char *p = (char *)(soundi->mAsyncData + 1); // Pointer arithmetic. This puts us at the first byte after the end of the mAsyncData struct
-
-            if (soundi->mAsyncData->mExInfo.inclusionlistnum)
-            {
-                FMOD_memcpy(p, soundi->mAsyncData->mExInfo.inclusionlist, soundi->mAsyncData->mExInfo.inclusionlistnum * sizeof(int));
-                soundi->mAsyncData->mExInfo.inclusionlist = (int *)p;
-                p += (soundi->mAsyncData->mExInfo.inclusionlistnum * sizeof(int));
-            }
-
-            if (soundi->mAsyncData->mExInfo.dlsname)
-            {
-                FMOD_strcpy(p, soundi->mAsyncData->mExInfo.dlsname);
-                soundi->mAsyncData->mExInfo.dlsname = p;
-                p += (FMOD_strlen(soundi->mAsyncData->mExInfo.dlsname) + 1);
-            }
-
-            if (soundi->mAsyncData->mExInfo.encryptionkey)
-            {
-                FMOD_strcpy(p, soundi->mAsyncData->mExInfo.encryptionkey);
-                soundi->mAsyncData->mExInfo.encryptionkey = p;
-                p += (FMOD_strlen(soundi->mAsyncData->mExInfo.encryptionkey) + 1);
-            }
         }
         else
         {
             soundi->mAsyncData->mExInfoExists = false;
         }
 
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSound", "getasyncthread\n"));
-
         result = AsyncThread::getAsyncThread(soundi);
         if (result != FMOD_OK)
         {
-            soundi->mOpenState = FMOD_OPENSTATE_ERROR;  /* Stop it from hanging in release because state is 'loading'. */
+            soundi->mOpenState = FMOD_OPENSTATE_ERROR;
             soundi->release();
             *sound = 0;
             return result;
         }
 
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSound", "setdata soundi = %p : node = %p\n", soundi, &soundi->mAsyncData->mNode));
-
         FMOD_OS_CriticalSection_Enter(soundi->mAsyncData->mThread->mCrit);
         {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSound", "add node to async list : head = %p.  list count = %d\n", &soundi->mAsyncData->mThread->mHead, soundi->mAsyncData->mThread->mHead.count()));
             soundi->mAsyncData->mNode.setData(soundi);
             soundi->mAsyncData->mNode.addBefore(&soundi->mAsyncData->mThread->mHead);
         }
         FMOD_OS_CriticalSection_Leave(soundi->mAsyncData->mThread->mCrit);
 
         soundi->mAsyncData->mThread->mThread.wakeupThread();
-    
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SystemI::createSound", "done\n"));
     }
     else
 #endif
     {
-        if (exinfo)
-        {
-            FMOD_CREATESOUNDEXINFO exinfo_copy;
-        
-            memcpy(&exinfo_copy, exinfo, sizeof(FMOD_CREATESOUNDEXINFO));   /* Just in case the createSoundInternal modifies the exinfo struct internally somewhere. */
-            
-            result = createSoundInternal(name_or_data, mode_in, mStreamFileBufferSize, mStreamFileBufferSizeType, &exinfo_copy, false, sound);
-        }
-        else
-        {
-            result = createSoundInternal(name_or_data, mode_in, mStreamFileBufferSize, mStreamFileBufferSizeType, exinfo, false, sound);
-        }
-        
+        result = createSoundInternal(name_or_data, mode_in, exinfo, false, sound);
+
         if (*sound && exinfo && exinfo->initialsoundgroup)
         {
             (*sound)->setSoundGroup((FMOD::SoundGroupI *)exinfo->initialsoundgroup);
@@ -9033,7 +7076,7 @@ FMOD_RESULT SystemI::createStream(const char *name_or_data, FMOD_MODE mode_in, F
 	[SEE_ALSO]
 ]
 */                                    
-FMOD_RESULT SystemI::createCodec(FMOD_CODEC_DESCRIPTION *description, unsigned int priority)
+FMOD_RESULT SystemI::createCodec(FMOD_CODEC_DESCRIPTION *description)
 {   
     if (!description)
     {
@@ -9069,7 +7112,7 @@ FMOD_RESULT SystemI::createCodec(FMOD_CODEC_DESCRIPTION *description, unsigned i
         descriptionex.mModule         = 0;
         descriptionex.reset           = 0;
 
-        result = mPluginFactory->registerCodec(&descriptionex, 0, priority);
+        result = mPluginFactory->registerCodec(&descriptionex);
         if (result != FMOD_OK)
         {
             return result;
@@ -9141,7 +7184,6 @@ FMOD_RESULT SystemI::createDSP(FMOD_DSP_DESCRIPTION *description, DSPI **dsp)
         descriptionex.configwidth           = description->configwidth;
         descriptionex.configheight          = description->configheight;
         descriptionex.userdata              = description->userdata;
-        descriptionex.getmemoryused         = 0;
 
         descriptionex.mSize                 = 0;
         descriptionex.mCategory             = FMOD_DSP_CATEGORY_FILTER;
@@ -9152,7 +7194,6 @@ FMOD_RESULT SystemI::createDSP(FMOD_DSP_DESCRIPTION *description, DSPI **dsp)
 #endif
         descriptionex.mResamplerBlockLength = 0;
         descriptionex.mType                 = FMOD_DSP_TYPE_UNKNOWN;
-        descriptionex.mDSPSoundCard         = mDSPSoundCard;
 
         result = mPluginFactory->createDSP(&descriptionex, dsp);
         if (result != FMOD_OK)
@@ -9185,7 +7226,10 @@ FMOD_RESULT SystemI::createDSP(FMOD_DSP_DESCRIPTION *description, DSPI **dsp)
 */                                    
 // OFFSET: 0x008D5DE0
 FMOD_RESULT SystemI::createDSP(FMOD_DSP_DESCRIPTION_EX *description, DSPI **dsp, bool allocate)
-{   
+{
+    FMOD_RESULT             result;
+    FMOD_DSP_DESCRIPTION_EX descriptionex;
+
     if (!dsp)
     {
         return FMOD_ERR_INVALID_PARAM;
@@ -9201,59 +7245,92 @@ FMOD_RESULT SystemI::createDSP(FMOD_DSP_DESCRIPTION_EX *description, DSPI **dsp,
         return FMOD_ERR_INVALID_PARAM;
     }
 
-#ifdef FMOD_SUPPORT_SOFTWARE
     if (mFlags & FMOD_INIT_SOFTWARE_DISABLE)
-#endif
     {
         return FMOD_ERR_NEEDSSOFTWARE;
     }
 
-#ifdef FMOD_SUPPORT_SOFTWARE
-    {
-        FMOD_RESULT result;
-        FMOD_DSP_DESCRIPTION_EX descriptionex;
-
-        FMOD_strcpy(descriptionex.name, description->name);
-        descriptionex.version               = description->version;
-        descriptionex.channels              = description->channels;
-        descriptionex.create                = description->create;
-        descriptionex.release               = description->release;
-        descriptionex.reset                 = description->reset;
-        descriptionex.read                  = description->read;
-        descriptionex.setposition           = description->setposition;
-                                            
-        descriptionex.numparameters         = description->numparameters;
-        descriptionex.paramdesc             = description->paramdesc;
-        descriptionex.setparameter          = description->setparameter;
-        descriptionex.getparameter          = description->getparameter;
-        descriptionex.config                = description->config;
-        descriptionex.configwidth           = description->configwidth;
-        descriptionex.configheight          = description->configheight;
-        descriptionex.userdata              = description->userdata;
-        descriptionex.getmemoryused         = description->getmemoryused;
-                                            
-        descriptionex.mSize                 = description->mSize;
-        descriptionex.mCategory             = description->mCategory;
-        descriptionex.mFormat               = description->mFormat;
+    FMOD_strcpy(descriptionex.name, description->name);
+    descriptionex.version               = description->version;
+    descriptionex.channels              = description->channels;
+    descriptionex.create                = description->create;
+    descriptionex.release               = description->release;
+    descriptionex.reset                 = description->reset;
+    descriptionex.read                  = description->read;
+    descriptionex.setposition           = description->setposition;
+    descriptionex.numparameters         = description->numparameters;
+    descriptionex.paramdesc             = description->paramdesc;
+    descriptionex.setparameter          = description->setparameter;
+    descriptionex.getparameter          = description->getparameter;
+    descriptionex.config                = description->config;
+    descriptionex.configwidth           = description->configwidth;
+    descriptionex.configheight          = description->configheight;
+    descriptionex.userdata              = description->userdata;
+    descriptionex.mFormat               = description->mFormat;
+    descriptionex.mType                 = description->mType;
+    descriptionex.mSize                 = description->mSize;
+    descriptionex.mCategory             = description->mCategory;
 #ifdef FMOD_SUPPORT_DLLS
-        descriptionex.mModule               = 0;
-        descriptionex.mAEffect              = description->mAEffect;
+    descriptionex.mModule               = 0;
+    descriptionex.mAEffect              = description->mAEffect;
 #endif
-        descriptionex.mResamplerBlockLength = description->mResamplerBlockLength;
-        descriptionex.mType                 = description->mType;
-        descriptionex.mDSPSoundCard         = description->mDSPSoundCard;
+    descriptionex.mResamplerBlockLength = description->mResamplerBlockLength;
 
-        result = mPluginFactory->createDSP(&descriptionex, dsp);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-
-        (*dsp)->mSystem = this;
+    result = mPluginFactory->createDSP(&descriptionex, dsp);
+    if (result != FMOD_OK)
+    {
+        return result;
     }
-#endif
-   
+
+    (*dsp)->mSystem = this;
+
     return FMOD_OK;
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+FMOD_RESULT SystemI::createDSPByIndex(int index, DSPI **dsp)
+{
+#ifdef FMOD_SUPPORT_SOFTWARE
+    FMOD_RESULT              result;
+    FMOD_DSP_DESCRIPTION_EX *descriptionex = 0;
+
+    if (!mPluginFactory)
+    {
+        return FMOD_ERR_UNINITIALIZED;
+    }
+
+    if (!dsp)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    *dsp = 0;
+
+    result = mPluginFactory->getDSP(index, &descriptionex);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    return mPluginFactory->createDSP(descriptionex, dsp);
+#else
+    return FMOD_ERR_NEEDSSOFTWARE;
+#endif
 }
 
 
@@ -9275,9 +7352,9 @@ FMOD_RESULT SystemI::createDSP(FMOD_DSP_DESCRIPTION_EX *description, DSPI **dsp,
 // OFFSET: 0x008D5F10
 FMOD_RESULT SystemI::createDSPByType(FMOD_DSP_TYPE type, DSPI **dsp)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
     FMOD_RESULT result;
-    
+    int         count, numdsps;
+
     if (!mPluginFactory)
     {
         return FMOD_ERR_UNINITIALIZED;
@@ -9295,245 +7372,30 @@ FMOD_RESULT SystemI::createDSPByType(FMOD_DSP_TYPE type, DSPI **dsp)
         FMOD_DSP_DESCRIPTION desc;
 
         FMOD_memset(&desc, 0, sizeof(FMOD_DSP_DESCRIPTION));
-
         FMOD_strcpy(desc.name, "FMOD Mixer unit");
 
-        result = createDSP(&desc, dsp);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-
-        (*dsp)->mDescription.mType = FMOD_DSP_TYPE_MIXER;
+        return createDSP(&desc, dsp);
     }
-    else
+
+    result = mPluginFactory->getNumDSPs(&numdsps);
+    if (result != FMOD_OK)
     {
-        int count, numdsps;
-
-        result = mPluginFactory->getNumDSPs(&numdsps);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-
-        for (count = 0; count < numdsps; count++)
-        {
-            FMOD_DSP_DESCRIPTION_EX *descriptionex = 0;
-            unsigned int handle;
-
-            result = mPluginFactory->getDSPHandle(count, &handle);
-            if (result != FMOD_OK)
-            {
-                continue;
-            }
-
-            result = mPluginFactory->getDSP(handle, &descriptionex);
-            if (result != FMOD_OK)
-            {
-                continue;
-            }
-
-            if (descriptionex->mType == type)
-            {
-                result = mPluginFactory->createDSP(descriptionex, dsp);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-
-                return FMOD_OK;
-            }
-        }
-        
-        return FMOD_ERR_PLUGIN_MISSING;
+        return result;
     }
 
-    return FMOD_OK;
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
+    for (count = 0; count < numdsps; count++)
+    {
+        FMOD_DSP_DESCRIPTION_EX *descriptionex = 0;
+
+        if (mPluginFactory->getDSP(count, &descriptionex) == FMOD_OK && descriptionex->mType == type)
+        {
+            return mPluginFactory->createDSP(descriptionex, dsp);
+        }
+    }
+
+    return FMOD_ERR_PLUGIN_MISSING;
 }
   
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::createDSPByPlugin(unsigned int handle, DSPI **dsp)
-{
-#ifdef FMOD_SUPPORT_SOFTWARE
-    FMOD_DSP_DESCRIPTION_EX *descriptionex = 0;
-    FMOD_RESULT result;
-    
-    if (!mPluginFactory)
-    {
-        return FMOD_ERR_UNINITIALIZED;
-    }
-
-    if (!dsp)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    *dsp = 0;
-
-    result = mPluginFactory->getDSP(handle, &descriptionex);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    result = mPluginFactory->createDSP(descriptionex, dsp);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    return FMOD_OK;
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::createChannelGroupInternal(const char *name, ChannelGroupI **channelgroup, bool createdsp, bool storenameinchannelgroup)
-{
-    ChannelGroupI *newchannelgroup;
-    AutoRelease<ChannelGroupI> newchannelgroupauto;
-
-    if (!channelgroup)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-    
-#ifdef FMOD_SUPPORT_SOFTWARE
-    if (mSoftware && createdsp)
-    {
-        newchannelgroup = FMOD_Object_Calloc(ChannelGroupSoftware);
-    }
-    else
-#endif
-    {
-        newchannelgroup = FMOD_Object_Calloc(ChannelGroupI);
-    }
-
-    if (!newchannelgroup)
-    {
-        return FMOD_ERR_MEMORY;
-    }
-
-    newchannelgroupauto = newchannelgroup;
-
-    newchannelgroup->addAfter(&mChannelGroupHead);
-    newchannelgroup->mSystem = this;
-
-    if (name && storenameinchannelgroup)
-    {
-        newchannelgroup->mName = FMOD_strdup(name);
-        if (!newchannelgroup->mName)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-    }
-    else
-    {
-        newchannelgroup->mName = 0;
-    }
-
-    /*
-        Create a DSP unit for this channelgroup then add it to the soundcard unit.
-    */
-#ifdef FMOD_SUPPORT_SOFTWARE
-    if (mSoftware)
-    {
-        if (createdsp)
-        {
-            FMOD_RESULT             result;
-            FMOD_DSP_DESCRIPTION_EX description;
-
-            FMOD_memset(&description, 0, sizeof(FMOD_DSP_DESCRIPTION_EX));
-
-            FMOD_strcpy(description.name, "ChannelGroup");
-            if (name)
-            {
-                FMOD_strcat(description.name, ":");
-                /*
-                    description.name is hardwired to 32 so don't overflow it
-                */
-                FMOD_strncat(description.name, name, 18);
-            }
-            description.version      = 0x00010100;
-
-            newchannelgroup->mDSPHead = &((ChannelGroupSoftware *)newchannelgroup)->mDSPHeadMemory;
-    #if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-            newchannelgroup->mDSPHead = (DSPI *)FMOD_ALIGNPOINTER(newchannelgroup->mDSPHead, 128); 
-            new (newchannelgroup->mDSPHead) DSPFilter;
-    #endif
-
-            result = createDSP(&description, (DSPI **)&newchannelgroup->mDSPHead, false);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-            newchannelgroup->mDSPHead->setDefaults((float)mOutputRate, -1, -1, -1);
-            newchannelgroup->mDSPHead->setActive(true);
-
-            result = mDSPChannelGroupTarget->addInputQueued(newchannelgroup->mDSPHead, false, 0, 0);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-
-            newchannelgroup->mDSPMixTarget = newchannelgroup->mDSPHead;
-        }
-        else
-        {
-            newchannelgroup->mDSPMixTarget = mDSPChannelGroupTarget;
-        }
-    }
-#endif
-
-    newchannelgroupauto.releasePtr();
-
-    if (name && !FMOD_stricmp("music", name))
-    {
-        /*
-            Store pointer to "music" channelgroup.
-        */
-
-        mOutput->mMusicChannelGroup = newchannelgroup;
-    }
-
-    *channelgroup = newchannelgroup;
-
-    return FMOD_OK;
-}
 
 
 /*
@@ -9554,20 +7416,81 @@ FMOD_RESULT SystemI::createChannelGroupInternal(const char *name, ChannelGroupI 
 // OFFSET: 0x008D6000
 FMOD_RESULT SystemI::createChannelGroup(const char *name, ChannelGroupI **channelgroup)
 {
+    ChannelGroupI *newchannelgroup;
+
     if (!channelgroup)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-    
+
+    newchannelgroup = FMOD_Object_Calloc(ChannelGroupI);
+    if (!newchannelgroup)
+    {
+        return FMOD_ERR_MEMORY;
+    }
+
+    newchannelgroup->addAfter(&mChannelGroupHead);
+    newchannelgroup->mSystem = this;
+
+    if (name)
+    {
+        newchannelgroup->mName = FMOD_strdup(name);
+        if (!newchannelgroup->mName)
+        {
+            return FMOD_ERR_MEMORY;
+        }
+    }
+    else
+    {
+        newchannelgroup->mName = 0;
+    }
+
 #ifdef FMOD_SUPPORT_SOFTWARE
     if (mSoftware)
     {
-        return createChannelGroupInternal(name, channelgroup, true, true);
+        FMOD_RESULT          result;
+        FMOD_DSP_DESCRIPTION description;
+
+        FMOD_strcpy(description.name, "ChannelGroup");
+        if (name)
+        {
+            FMOD_strcat(description.name, ":");
+            FMOD_strncat(description.name, name, 18);
+        }
+        description.version      = 0x00010100;
+        description.channels     = 0;
+        description.create       = 0;
+        description.release      = 0;
+        description.read         = 0;
+        description.setposition  = 0;
+
+        result = createDSP(&description, &newchannelgroup->mDSPHead);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+
+        newchannelgroup->mDSPHead->setDefaults((float)mOutputRate, -1, -1, -1);
+        newchannelgroup->mDSPHead->setActive(true);
+
+        result = mDSPChannelGroupTarget->addInputQueued(newchannelgroup->mDSPHead, false, 0, 0);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+
+        newchannelgroup->mDSPMixTarget = newchannelgroup->mDSPHead;
     }
-    else
 #endif
 
-    return createChannelGroupInternal(name, channelgroup, false, true);
+    if (name && !FMOD_strcmp("music", name))
+    {
+        mOutput->mMusicChannelGroup = newchannelgroup;
+    }
+
+    *channelgroup = newchannelgroup;
+
+    return FMOD_OK;
 }
 
 
@@ -9591,27 +7514,20 @@ FMOD_RESULT SystemI::createChannelGroup(const char *name, ChannelGroupI **channe
 FMOD_RESULT SystemI::createSoundGroup(const char *name, SoundGroupI **soundgroup)
 {
     SoundGroupI *newsoundgroup;
-    AutoCritRelease<SoundGroupI> autonewsoundgroup(gSoundListCrit);
 
     if (!soundgroup)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-    
+
     newsoundgroup = FMOD_Object_Calloc(SoundGroupI);
     if (!newsoundgroup)
     {
         return FMOD_ERR_MEMORY;
     }
 
-    FMOD_OS_CriticalSection_Enter(gSoundListCrit);
-    {
-        newsoundgroup->addAfter(&mSoundGroupFreeHead);
-        newsoundgroup->mSystem = this;
-    }
-    FMOD_OS_CriticalSection_Leave(gSoundListCrit);
-
-    autonewsoundgroup = newsoundgroup;
+    newsoundgroup->addAfter(&mSoundGroupFreeHead);
+    newsoundgroup->mSystem = this;
 
     if (name)
     {
@@ -9625,8 +7541,6 @@ FMOD_RESULT SystemI::createSoundGroup(const char *name, SoundGroupI **soundgroup
     {
         newsoundgroup->mName = 0;
     }
-
-    autonewsoundgroup.releasePtr();
 
     *soundgroup = newsoundgroup;
 
@@ -9656,12 +7570,9 @@ FMOD_RESULT SystemI::playSound(FMOD_CHANNELINDEX channelid, SoundI *sound, bool 
     ChannelI    *chan = 0;
     bool         mute = false;
 
-    if (channel)
+    if (channel && channelid == FMOD_CHANNEL_REUSE)
     {
-        if (channelid == FMOD_CHANNEL_REUSE)
-        {
-            result = ChannelI::validate((Channel *)*channel, &chan);
-        }
+        ChannelI::validate((Channel *)*channel, &chan);
     }
 
     if (!sound)
@@ -9672,7 +7583,7 @@ FMOD_RESULT SystemI::playSound(FMOD_CHANNELINDEX channelid, SoundI *sound, bool 
         }
         return FMOD_ERR_INVALID_PARAM;
     }
-   
+
     if (sound->mOpenState != FMOD_OPENSTATE_READY)
     {
         if (channel)
@@ -9687,7 +7598,6 @@ FMOD_RESULT SystemI::playSound(FMOD_CHANNELINDEX channelid, SoundI *sound, bool 
         return FMOD_ERR_FORMAT;
     }
 
-#ifndef FMOD_STATICFORPLUGINS
     if (sound->mSoundGroup && sound->mSoundGroup->mMaxAudible >= 0)
     {
         int numplaying;
@@ -9714,36 +7624,16 @@ FMOD_RESULT SystemI::playSound(FMOD_CHANNELINDEX channelid, SoundI *sound, bool 
                 case FMOD_SOUNDGROUP_BEHAVIOR_STEALLOWEST:
                 {
                     LinkedListNode *current;
-                    float lowest = 9999.0f;
 
-                    /*
-                        Find least important sound and replace it.
-                    */
-                    current = mChannelUsedListHead.getNext();
-                    while (current != &mChannelUsedListHead)
+                    for (current = mChannelSortedListHead.getNext(); current != &mChannelSortedListHead; current = current->getNext())
                     {
-                        ChannelI *channel = (ChannelI *)current; 
+                        ChannelI *channeli = (ChannelI *)current->getData();
 
-                        if (channel->mRealChannel[0] && channel->mRealChannel[0]->mSound)
+                        if (channeli->mRealChannel[0] && channeli->mRealChannel[0]->mSound && channeli->mRealChannel[0]->mSound->mSoundGroup == sound->mSoundGroup)
                         {
-                            SoundGroupI *soundgroup = channel->mRealChannel[0]->mSound->mSoundGroup;
-
-                            if (soundgroup == sound->mSoundGroup)
-                            {
-                                float audibility;
-
-                                channel->getAudibility(&audibility);
-
-                                if (audibility < lowest)
-                                {
-                                    chan = channel;
-                                    lowest = audibility;
-                                    channelid = (FMOD_CHANNELINDEX)chan->mIndex;
-                                }
-                            }
+                            chan = channeli;
+                            channelid = FMOD_CHANNEL_REUSE;
                         }
-
-                        current = current->getNext();
                     }
                     break;
                 }
@@ -9754,11 +7644,7 @@ FMOD_RESULT SystemI::playSound(FMOD_CHANNELINDEX channelid, SoundI *sound, bool 
             };
         }
     }
-#endif
 
-    /*
-        First find a channel
-    */
     result = findChannel(channelid, sound, &chan);
     if (result != FMOD_OK)
     {
@@ -9771,12 +7657,12 @@ FMOD_RESULT SystemI::playSound(FMOD_CHANNELINDEX channelid, SoundI *sound, bool 
 
     result = chan->play(sound, paused, true, mute);
     if (result != FMOD_OK)
-    {       
+    {
         if (channel)
         {
             *channel = 0;
         }
-        chan->stopEx(CHANNELI_STOPFLAG_UPDATELIST | CHANNELI_STOPFLAG_RESETCALLBACKS | CHANNELI_STOPFLAG_RESETCHANNELGROUP | CHANNELI_STOPFLAG_UPDATESYNCPOINTS);
+        chan->stopEx(false, true, true, true, false, true, false);
         return result;
     }
 
@@ -9848,15 +7734,10 @@ FMOD_RESULT SystemI::playDSP(FMOD_CHANNELINDEX channelid, DSPI *dsp, bool paused
         {
             ChannelI::validate((Channel *)*channel, &chan);
         }
-        if (channel)
-        {
-            *channel = 0;
-        }
+
+        *channel = 0;
     }
 
-    /*
-        First find a channel
-    */
     result = findChannel(channelid, dsp, &chan);
     if (result != FMOD_OK)
     {
@@ -9866,7 +7747,7 @@ FMOD_RESULT SystemI::playDSP(FMOD_CHANNELINDEX channelid, DSPI *dsp, bool paused
     result = chan->play(dsp, paused, true, false);
     if (result != FMOD_OK)
     {
-        chan->stopEx(CHANNELI_STOPFLAG_UPDATELIST | CHANNELI_STOPFLAG_RESETCALLBACKS | CHANNELI_STOPFLAG_RESETCHANNELGROUP | CHANNELI_STOPFLAG_UPDATESYNCPOINTS);
+        chan->stopEx(false, true, true, true, false, true, false);
         return result;
     }
 
@@ -10217,91 +8098,52 @@ FMOD_RESULT SystemI::setReverbProperties(const FMOD_REVERB_PROPERTIES *prop, boo
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (prop->Instance < 0 || prop->Instance >= FMOD_REVERB_MAXINSTANCES)
-    {
-        return FMOD_ERR_REVERB_INSTANCE;
-    }
-
-    int instance = prop->Instance;
-
 #ifdef FMOD_SUPPORT_SOFTWARE
-    /*
-        Create DSP if necessary
-    */
-    if ((!mReverbGlobal.mInstance[instance].mDSP) && (force_create || (prop->Environment!=-1)) && mSoftware)
+    if (!mReverbGlobal.mDSP && (force_create || prop->Environment != -1))
     {
-        /*
-            Create
-        */
-        result = mReverbGlobal.createDSP(instance);
-        if (result == FMOD_OK)
+        result = mReverbGlobal.createDSP();
+        if (result != FMOD_OK)
         {
-            /*
-                Link into network
-            */
-            if (mDSPChannelGroupTarget)
-            {
-                result = mDSPChannelGroupTarget->addInput(mReverbGlobal.mInstance[instance].mDSP);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-                mReverbGlobal.setGain(1.0f);
-            }
-            else 
-            {
-                return FMOD_ERR_UNINITIALIZED;
-            }
-
-            /*
-                Connect all channels to the reverb input
-            */
-            ChannelI *channel_c = SAFE_CAST(ChannelI, mChannelUsedListHead.getNext());
-
-            while (channel_c != &mChannelUsedListHead)
-            {
-                FMOD_RESULT  result;
-                FMOD_REVERB_CHANNELPROPERTIES cprops;
-                
-                FMOD_memset(&cprops, 0, sizeof(FMOD_REVERB_CHANNELPROPERTIES));
-
-                cprops.Flags |= (instance == 0 ? FMOD_REVERB_CHANNELFLAGS_INSTANCE0 : 
-                                instance == 1 ? FMOD_REVERB_CHANNELFLAGS_INSTANCE1 : 
-                                instance == 2 ? FMOD_REVERB_CHANNELFLAGS_INSTANCE2 : 
-                                instance == 3 ? FMOD_REVERB_CHANNELFLAGS_INSTANCE3 : 0);
-
-                /*
-                    Flush the channel properties through
-                */
-                result = channel_c->getReverbProperties(&cprops);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-                result = channel_c->setReverbProperties( &cprops);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-               
-                channel_c = SAFE_CAST(ChannelI, channel_c->getNext());            
-            }
-
-            mReverbGlobal.mInstance[instance].mDSP->setActive(true);
+            return result;
         }
+
+        if (!mDSPChannelGroupTarget)
+        {
+            return FMOD_ERR_UNINITIALIZED;
+        }
+
+        result = mDSPChannelGroupTarget->addInput(mReverbGlobal.mDSP);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+
+        mReverbGlobal.setGain(1.0f);
+
+        ChannelI *channel_c = SAFE_CAST(ChannelI, mChannelUsedListHead.getNext());
+        while (channel_c != &mChannelUsedListHead)
+        {
+            FMOD_REVERB_CHANNELPROPERTIES cprops;
+
+            result = channel_c->getReverbProperties(&cprops);
+            if (result != FMOD_OK)
+            {
+                return result;
+            }
+            result = channel_c->setReverbProperties(&cprops);
+            if (result != FMOD_OK)
+            {
+                return result;
+            }
+
+            channel_c = SAFE_CAST(ChannelI, channel_c->getNext());
+        }
+
+        mReverbGlobal.mDSP->setActive(true);
     }
 #endif
 
-    /*
-        Set DSP (sw/hw handled by ReverbI)
-    */
-    result = mReverbGlobal.setProperties(prop);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    return FMOD_OK;
+    return mReverbGlobal.setProperties(prop);
 #else
     return FMOD_ERR_UNSUPPORTED;
 #endif
@@ -10329,11 +8171,6 @@ FMOD_RESULT SystemI::getReverbProperties(FMOD_REVERB_PROPERTIES *prop)
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (prop->Instance < 0 || prop->Instance >= FMOD_REVERB_MAXINSTANCES)
-    {
-        return FMOD_ERR_REVERB_INSTANCE;
-    }
-
     return mReverbGlobal.getProperties(prop);
 }
 
@@ -10356,85 +8193,63 @@ FMOD_RESULT SystemI::getReverbProperties(FMOD_REVERB_PROPERTIES *prop)
 // OFFSET: 0x008D4AD0
 FMOD_RESULT SystemI::set3DReverbProperties(const FMOD_REVERB_PROPERTIES *prop, bool force_create)
 {
+#if defined(FMOD_SUPPORT_REVERB) && defined(FMOD_SUPPORT_MULTIREVERB)
     FMOD_RESULT result;
-    int instance = 0;
 
     if (!prop)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    /*
-        Create DSP if necessary
-    */
-    if ((!mReverb3D.mInstance[instance].mDSP) && (force_create || (prop->Environment!=-1)))
+#ifdef FMOD_SUPPORT_SOFTWARE
+    if (!mReverb3D.mDSP && (force_create || prop->Environment != -1))
     {
-        /*
-            Create
-        */
-        result = mReverb3D.createDSP(instance);
+        result = mReverb3D.createDSP();
         if (result != FMOD_OK)
         {
             return result;
         }
 
-        /*
-            Link into network
-        */
-        if (mDSPChannelGroupTarget)
-        {
-            result = mDSPChannelGroupTarget->addInput(mReverb3D.mInstance[instance].mDSP);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-            mReverb3D.setGain(1.0f);
-        }
-        else 
+        if (!mDSPChannelGroupTarget)
         {
             return FMOD_ERR_UNINITIALIZED;
         }
 
-        /*
-            Connect all channels to the reverb input
-        */
-        ChannelI* channel_c = SAFE_CAST(ChannelI, mChannelUsedListHead.getNext());
-        while (channel_c != &mChannelUsedListHead)
-        {           
-            /*
-                Flush the channel properties through
-            */
-            FMOD_REVERB_CHANNELPROPERTIES cprops;
+        result = mDSPChannelGroupTarget->addInput(mReverb3D.mDSP);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
 
-            FMOD_memset(&cprops, 0, sizeof(FMOD_REVERB_CHANNELPROPERTIES));
+        mReverb3D.setGain(1.0f);
+
+        ChannelI *channel_c = SAFE_CAST(ChannelI, mChannelUsedListHead.getNext());
+        while (channel_c != &mChannelUsedListHead)
+        {
+            FMOD_REVERB_CHANNELPROPERTIES cprops;
 
             result = channel_c->getReverbProperties(&cprops);
             if (result != FMOD_OK)
             {
                 return result;
             }
-            result = channel_c->setReverbProperties( &cprops);
+            result = channel_c->setReverbProperties(&cprops);
             if (result != FMOD_OK)
             {
                 return result;
             }
-                       
+
             channel_c = SAFE_CAST(ChannelI, channel_c->getNext());
         }
 
-        mReverb3D.mInstance[instance].mDSP->setActive(true);
+        mReverb3D.mDSP->setActive(true);
     }
+#endif
 
-    /*
-        Set DSP (sw/hw handled by ReverbI)
-    */
-    result = mReverb3D.setProperties(prop);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    return FMOD_OK;
+    return mReverb3D.setProperties(prop);
+#else
+    return FMOD_ERR_UNSUPPORTED;
+#endif
 }
 #endif
 
@@ -10454,10 +8269,6 @@ FMOD_RESULT SystemI::set3DReverbProperties(const FMOD_REVERB_PROPERTIES *prop, b
 ]
 */
 #ifdef FMOD_SUPPORT_MULTIREVERB
-FMOD_RESULT SystemI::get3DReverbProperties(FMOD_REVERB_PROPERTIES *prop)
-{
-    return mReverb3D.getProperties(prop);
-}
 #endif
 
 #endif
@@ -10511,28 +8322,78 @@ FMOD_RESULT SystemI::getDSPHead(DSPI **dsp)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT SystemI::addDSP(DSPI *dsp, DSPConnectionI **dspconnection)
+FMOD_RESULT SystemI::addDSP(DSPI *dsp)
 {
     FMOD_RESULT result;
-    DSPI *dsphead = 0;
- 
+    DSPI       *dsphead = 0;
+    DSPI       *inputdsp;
+    int         numinputs;
+
     if (!dsp)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-   
+
     result = getDSPHead(&dsphead);
     if (result != FMOD_OK)
     {
         return result;
     }
- 
-    result = dsphead->insertInputBetween(dsp, 0, false, dspconnection);
+
+    result = dsphead->getNumInputs(&numinputs);
     if (result != FMOD_OK)
     {
         return result;
     }
-  
+    if (numinputs > 1)
+    {
+        return FMOD_ERR_DSP_TOOMANYCONNECTIONS;
+    }
+
+    if (dsp->mFlags & FMOD_DSP_FLAG_USEDADDDSP)
+    {
+        result = dsp->remove();
+    }
+    else
+    {
+        result = dsp->disconnectFrom(0);
+    }
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    if (dsphead->getInput(0, &inputdsp) != FMOD_OK)
+    {
+        inputdsp = 0;
+    }
+    else
+    {
+        result = dsphead->disconnectFrom(inputdsp);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+    }
+
+    result = dsphead->addInput(dsp);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    if (inputdsp)
+    {
+        result = dsp->addInput(inputdsp);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+    }
+
+    dsp->reset();
+    dsp->mFlags |= FMOD_DSP_FLAG_ACTIVE | FMOD_DSP_FLAG_USEDADDDSP;
+
     return FMOD_OK;
 }
 
@@ -10594,35 +8455,6 @@ FMOD_RESULT SystemI::unlockDSP()
 }
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::getDSPClock(unsigned int *hi, unsigned int *lo)
-{
-    if (hi)
-    {
-        *hi = mDSPClock.mHi;
-    }
-    if (lo)
-    {
-        *lo = mDSPClock.mLo;
-    }
-
-    return FMOD_OK;
-}
-
 
 /*
 [
@@ -10643,8 +8475,6 @@ FMOD_RESULT SystemI::getDSPClock(unsigned int *hi, unsigned int *lo)
 FMOD_RESULT SystemI::getRecordNumDrivers(int *numdrivers)
 {
 #ifdef FMOD_SUPPORT_RECORDING
-    FMOD_RESULT result = FMOD_OK;
-
 	if (!mOutput)
 	{
 		return FMOD_ERR_UNINITIALIZED;
@@ -10654,22 +8484,19 @@ FMOD_RESULT SystemI::getRecordNumDrivers(int *numdrivers)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-    
-    result = checkDriverList(false);
-    CHECK_RESULT(result);
 
     if (mOutput->mDescription.record_getnumdrivers)
     {
 #ifdef FMOD_SUPPORT_SOFTWARE
-        mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
+        mOutput->readfrommixer = Output::mixCallback;
 #else
         mOutput->readfrommixer = 0;
 #endif
-
         return mOutput->mDescription.record_getnumdrivers(mOutput, numdrivers);
     }
 
     *numdrivers = 0;
+
     return FMOD_OK;
 #else
     return FMOD_ERR_UNSUPPORTED;
@@ -10692,38 +8519,32 @@ FMOD_RESULT SystemI::getRecordNumDrivers(int *numdrivers)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT SystemI::getRecordDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid)
+// OFFSET: 0x008D6380
+FMOD_RESULT SystemI::setRecordDriver(int driver)
 {
 #ifdef FMOD_SUPPORT_RECORDING
-    FMOD_RESULT result      = FMOD_OK;
-    int         numdrivers  = 0;
+    FMOD_RESULT result;
+    int         numdrivers;
 
-	if (!mOutput)
-	{
-		return FMOD_ERR_UNINITIALIZED;
-	}
-    
     result = getRecordNumDrivers(&numdrivers);
-    CHECK_RESULT(result);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
 
-    if (id < 0 || id >= numdrivers)
+    if (driver < -1 || driver >= numdrivers)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (mOutput->mDescription.record_getdriverinfo)
+    if (driver == -1)
     {
-#ifdef FMOD_SUPPORT_SOFTWARE
-        mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#else
-        mOutput->readfrommixer = 0;
-#endif
-
-        return mOutput->mDescription.record_getdriverinfo(mOutput, id, name, namelen, guid);
+        driver = 0;
     }
 
-    return FMOD_OK;
+    mRecordDriver = driver;
 
+    return FMOD_OK;
 #else
     return FMOD_ERR_UNSUPPORTED;
 #endif
@@ -10735,7 +8556,7 @@ FMOD_RESULT SystemI::getRecordDriverInfo(int id, char *name, int namelen, FMOD_G
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
@@ -10745,7 +8566,40 @@ FMOD_RESULT SystemI::getRecordDriverInfo(int id, char *name, int namelen, FMOD_G
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT SystemI::getRecordDriverInfoW(int id, short *name, int namelen, FMOD_GUID *guid)
+FMOD_RESULT SystemI::getRecordDriver(int *driver)
+{
+#ifdef FMOD_SUPPORT_RECORDING
+    if (!driver)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    *driver = mRecordDriver;
+
+    return FMOD_OK;
+#else
+    return FMOD_ERR_UNSUPPORTED;
+#endif
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+// OFFSET: 0x008D4C90
+FMOD_RESULT SystemI::getRecordDriverName(int id, char *name, int namelen)
 {
 #ifdef FMOD_SUPPORT_RECORDING
     FMOD_RESULT result      = FMOD_OK;
@@ -10755,7 +8609,7 @@ FMOD_RESULT SystemI::getRecordDriverInfoW(int id, short *name, int namelen, FMOD
 	{
 		return FMOD_ERR_UNINITIALIZED;
 	}
-    
+
     result = getRecordNumDrivers(&numdrivers);
     CHECK_RESULT(result);
 
@@ -10764,7 +8618,7 @@ FMOD_RESULT SystemI::getRecordDriverInfoW(int id, short *name, int namelen, FMOD
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (mOutput->mDescription.record_getdriverinfow)
+    if (mOutput->mDescription.record_getdrivername)
     {
 #ifdef FMOD_SUPPORT_SOFTWARE
         mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
@@ -10772,7 +8626,7 @@ FMOD_RESULT SystemI::getRecordDriverInfoW(int id, short *name, int namelen, FMOD
         mOutput->readfrommixer = 0;
 #endif
 
-        return mOutput->mDescription.record_getdriverinfow(mOutput, id, name, namelen, guid);
+        return mOutput->mDescription.record_getdrivername(mOutput, id, name, namelen);
     }
 
     return FMOD_OK;
@@ -10867,12 +8721,10 @@ FMOD_RESULT SystemI::getRecordDriverCaps(int id, FMOD_CAPS *caps, int *minfreque
 ]
 */
 // OFFSET: 0x008D63D0
-FMOD_RESULT SystemI::recordStart(int id, SoundI *sound, bool loop)
+FMOD_RESULT SystemI::recordStart(SoundI *sound, bool loop)
 {
 #ifdef FMOD_SUPPORT_RECORDING
-    int                     numdrivers  = 0;
-    FMOD_RESULT             result      = FMOD_OK;
-    FMOD_RECORDING_INFO    *recordinfo  = NULL;
+    FMOD_RESULT result;
 
 	if (!mInitialized)
 	{
@@ -10884,115 +8736,68 @@ FMOD_RESULT SystemI::recordStart(int id, SoundI *sound, bool loop)
 		return FMOD_ERR_INVALID_PARAM;
 	}
 
-    result = getRecordNumDrivers(&numdrivers);
-    CHECK_RESULT(result);
+	recordStop();
 
-    if (id < 0 || id >= numdrivers)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-	recordStop(id);
-
-    /*
-        Create recording info for this record instance
-    */
-    recordinfo = FMOD_Object_Calloc(FMOD_RECORDING_INFO);
-    if (!recordinfo)
-    {
-        return FMOD_ERR_MEMORY;
-    }
-
-    recordinfo->mRecordId       = id;
-    recordinfo->mRecordDriver   = -1;
-    recordinfo->mRecordLoop     = loop;
-    recordinfo->mRecordSound    = sound;
-    recordinfo->mRecordRate     = (int)sound->mDefaultFrequency;  /* This will get set to what the hardware can do in the driver */
-
-    /*
-        Multi-mic support requires GUIDs to be implemented for the platform
-    */
-    result = getRecordDriverInfo(id, NULL, 0, &recordinfo->mRecordGUID);
-    CHECK_RESULT(result);
+    mOutput->mRecordSound           = sound;
+    mOutput->mRecordOffset          = 0;
+    mOutput->mRecordLoop            = loop;
+    mOutput->mRecordLastCursorPos   = 0;
+    mOutput->mRecordBufferLength    = 0;
+    mOutput->mRecordRate            = (int)sound->mDefaultFrequency;
 
     if (mOutput->mDescription.record_start)
     {
-#ifdef FMOD_SUPPORT_SOFTWARE
-        mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
-#else
-        mOutput->readfrommixer = 0;
-#endif
+        mOutput->readfrommixer = Output::mixCallback;
 
-        result = mOutput->mDescription.record_start(mOutput, recordinfo, (FMOD_SOUND *)sound, loop);
-        CHECK_RESULT(result);
+        result = mOutput->mDescription.record_start(mOutput, mRecordDriver, (FMOD_SOUND *)sound, loop);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
     }
 
-    /*
-        Create a temp buffer to assist in moving data from hardware to sound sample
-    */
     {
         unsigned int bufferlengthbytes = 0;
 
         SoundI::getBytesFromSamples(FMOD_RECORD_TEMPBUFFERSIZE, &bufferlengthbytes, sound->mChannels, FMOD_SOUND_FORMAT_PCMFLOAT);
-        recordinfo->mRecordTempBufferLength = FMOD_RECORD_TEMPBUFFERSIZE;
-        
-        recordinfo->mRecordTempBuffer = (float*)FMOD_Memory_Calloc(bufferlengthbytes);
-        if (!recordinfo->mRecordTempBuffer)
+
+        mOutput->mRecordTempBufferLength = FMOD_RECORD_TEMPBUFFERSIZE;
+        mOutput->mRecordTempBuffer = (float *)FMOD_Memory_Calloc(bufferlengthbytes);
+        if (!mOutput->mRecordTempBuffer)
         {
             return FMOD_ERR_MEMORY;
         }
     }
-    
-    /*
-        Setup a DSPResampler to handle record resampling if required
-    */
-    if (recordinfo->mRecordRate != sound->mDefaultFrequency)
-    {
-#ifdef FMOD_SUPPORT_SOFTWARE
-        unsigned int             blocklength = 0;
-        FMOD_DSP_DESCRIPTION_EX  description;
 
-        /*
-            Total latency for resampling is ~30ms, we need 3 blocks for the resampler,
-            so each block will be ~10ms.
-        */
-        blocklength = (int)(0.01f * recordinfo->mRecordRate);
-        blocklength /= 16;  /* Round down to nearest 16 bytes. */
+    mOutput->mRecordResample = false;
+
+    if (mOutput->mRecordRate != sound->mDefaultFrequency)
+    {
+        unsigned int             blocklength;
+        FMOD_DSP_DESCRIPTION_EX  description;
+        DSPResampler            *resampler = &mOutput->mRecordResamplerDSP;
+
+        blocklength = (unsigned int)(0.01f * mOutput->mRecordRate);
+        blocklength /= 16;
         blocklength *= 16;
-        
+
         FMOD_memset(&description, 0, sizeof(FMOD_DSP_DESCRIPTION_EX));
+
         description.channels               = sound->mChannels;
-        description.mFormat                = FMOD_SOUND_FORMAT_PCMFLOAT;    /* Record read callback will always give floats. */
+        description.mFormat                = FMOD_SOUND_FORMAT_PCMFLOAT;
         description.userdata               = mOutput;
         description.read                   = Output::recordResamplerReadCallback;
         description.mResamplerBlockLength  = blocklength;
 
-        recordinfo->mRecordResamplerDSP = FMOD_Object_Calloc(DSPResampler);
-        if (!recordinfo->mRecordResamplerDSP)
-        {
-            return FMOD_ERR_MEMORY;
-        }
+        resampler->mSystem = this;
+        resampler->alloc(&description);
+        resampler->mTargetFrequency = (int)sound->mDefaultFrequency;
+        resampler->setFrequency((float)mOutput->mRecordRate);
 
-        recordinfo->mRecordResamplerDSP->mSystem = this;
-        recordinfo->mRecordResamplerDSP->mBuffer = recordinfo->mRecordTempBuffer;
-        recordinfo->mRecordResamplerDSP->alloc(&description);
-        recordinfo->mRecordResamplerDSP->mTargetFrequency = (int)sound->mDefaultFrequency;
-        recordinfo->mRecordResamplerDSP->setFrequency((float)recordinfo->mRecordRate);
-        recordinfo->mRecordResamplerDSP->setFinished(false);
-#else
-        return FMOD_ERR_NEEDSSOFTWARE;
-#endif
+        mOutput->mRecordResample = true;
     }
 
-    /*
-        Make the new record device "live" by putting in the list
-    */
-    FMOD_OS_CriticalSection_Enter(mOutput->mRecordInfoCrit);
-    {
-        recordinfo->addAfter(&mOutput->mRecordInfoHead);
-        mOutput->mRecordNumActive++;
-    }
-    FMOD_OS_CriticalSection_Leave(mOutput->mRecordInfoCrit);
+    mOutput->mRecording = true;
 
 	return FMOD_OK;
 #else
@@ -11017,36 +8822,36 @@ FMOD_RESULT SystemI::recordStart(int id, SoundI *sound, bool loop)
 ]
 */
 // OFFSET: 0x008D4D20
-FMOD_RESULT SystemI::recordStop(int id)
+FMOD_RESULT SystemI::recordStop()
 {
 #ifdef FMOD_SUPPORT_RECORDING
-    FMOD_RESULT             result              = FMOD_OK;
-    int                     numdrivers          = 0;
-    FMOD_RECORDING_INFO    *currentrecordinfo   = 0;
+    FMOD_RESULT result = FMOD_OK;
 
 	if (!mInitialized)
 	{
 		return FMOD_ERR_UNINITIALIZED;
 	}
 
-    result = getRecordNumDrivers(&numdrivers);
-    CHECK_RESULT(result);
+    FMOD_OS_CriticalSection_Enter(mDSPLockCrit);
+    mOutput->mRecording = false;
+    mOutput->mRecordSound = 0;
+    FMOD_OS_CriticalSection_Leave(mDSPLockCrit);
 
-    if (id < 0 || id >= numdrivers)
+    if (mOutput->mDescription.record_stop)
     {
-        return FMOD_ERR_INVALID_PARAM;
+        mOutput->readfrommixer = Output::mixCallback;
+
+        result = mOutput->mDescription.record_stop(mOutput);
     }
 
-    result = mOutput->recordGetInfo(id, &currentrecordinfo);
-    CHECK_RESULT(result);
-
-    if (currentrecordinfo)
+    if (mOutput->mRecordTempBuffer)
     {
-        result = mOutput->recordStop(currentrecordinfo);
-        CHECK_RESULT(result);
+        FMOD_Memory_Free(mOutput->mRecordTempBuffer);
+        mOutput->mRecordTempBuffer = 0;
+        mOutput->mRecordTempBufferLength = 0;
     }
 
-    return FMOD_OK;
+    return result;
 #else
     return FMOD_ERR_UNSUPPORTED;
 #endif
@@ -11069,40 +8874,15 @@ FMOD_RESULT SystemI::recordStop(int id)
 ]
 */
 // OFFSET: 0x008D4DE0
-FMOD_RESULT SystemI::getRecordPosition(int id, unsigned int *position)
+FMOD_RESULT SystemI::getRecordPosition(unsigned int *position)
 {
 #ifdef FMOD_SUPPORT_RECORDING
-    FMOD_RESULT             result      = FMOD_OK;
-    FMOD_RECORDING_INFO    *info        = NULL;
-    int                     numdrivers  = 0;
-
     if (!mInitialized)
 	{
 		return FMOD_ERR_UNINITIALIZED;
 	}
 
-    if (!position)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    result = getRecordNumDrivers(&numdrivers);
-    CHECK_RESULT(result);
-
-    if (id < 0 || id >= numdrivers)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    mOutput->recordGetInfo(id, &info);
-    if (info)
-    {
-        *position = info->mRecordOffset;
-    }
-    else
-    {
-        *position = 0;
-    }
+    *position = mOutput->mRecordOffset;
 
     return FMOD_OK;
 #else
@@ -11127,40 +8907,20 @@ FMOD_RESULT SystemI::getRecordPosition(int id, unsigned int *position)
 ]
 */
 // OFFSET: 0x008D4E10
-FMOD_RESULT SystemI::isRecording(int id, bool *recording)
+FMOD_RESULT SystemI::isRecording(bool *recording)
 {
 #ifdef FMOD_SUPPORT_RECORDING
-    FMOD_RESULT             result      = FMOD_OK;
-    FMOD_RECORDING_INFO    *info        = NULL;
-    int                     numdrivers  = 0;
-
     if (!mInitialized)
 	{
 		return FMOD_ERR_UNINITIALIZED;
 	}
-    
+
     if (!recording)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    result = getRecordNumDrivers(&numdrivers);
-    CHECK_RESULT(result);
-
-    if (id < 0 || id >= numdrivers)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    mOutput->recordGetInfo(id, &info);
-    if (info)
-    {
-        *recording = true;
-    }
-    else
-    {
-        *recording = false;
-    }
+    *recording = mOutput->mRecording;
 
     return FMOD_OK;
 #else
@@ -11385,35 +9145,6 @@ FMOD_RESULT SystemI::loadGeometry(const void *data, int dataSize, GeometryI **ge
 #endif
 }
 
-FMOD_RESULT SystemI::getGeometryOcclusion(const FMOD_VECTOR *listener,
-                                          const FMOD_VECTOR *source,
-                                          float *direct, float *reverb)
-{
-    if(!source || !listener)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    float direct_occlusion = 0.0f, reverb_occlusion = 0.0f;
-
-#ifdef FMOD_SUPPORT_GEOMETRY
-    CHECK_RESULT(mGeometryMgr.lineTestAll(listener, source,
-                                          &direct_occlusion, &reverb_occlusion));
-#endif
-
-    if(direct)
-    {
-        *direct = direct_occlusion;
-    }
-
-    if(reverb)
-    {
-        *reverb = reverb_occlusion;
-    }
-
-    return FMOD_OK;
-}
-
 
 /*
 [
@@ -11634,33 +9365,6 @@ FMOD_RESULT SystemI::getUserData(void **userdata)
 }
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::getSoundList(SoundI **sound)
-{
-    if (!sound)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    *sound = &mSoundListHead;
-
-    return FMOD_OK;
-}
-
 
 /*
 [
@@ -11685,25 +9389,9 @@ FMOD_RESULT SystemI::stopSound(SoundI *sound)
     bool      streamstopped = false;
 
 #ifdef FMOD_SUPPORT_RECORDING
-    /*
-        If this sound is currently recording, stop the recording
-    */    
-    if (mOutput && mOutput->mRecordNumActive)
+    if (mOutput && sound == mOutput->mRecordSound)
     {
-        FMOD_RECORDING_INFO *currentrecordinfo = NULL;
-
-        currentrecordinfo = SAFE_CAST(FMOD_RECORDING_INFO, mOutput->mRecordInfoHead.getNext());
-        while (currentrecordinfo != &mOutput->mRecordInfoHead)
-        {
-            FMOD_RECORDING_INFO *next = SAFE_CAST(FMOD_RECORDING_INFO, currentrecordinfo->getNext());
-            
-            if (currentrecordinfo->mRecordSound == sound)
-            {
-                mOutput->recordStop(currentrecordinfo);
-                break;
-            }
-            currentrecordinfo = next;
-        }
+        recordStop();
     }
 #endif
 
@@ -11716,76 +9404,41 @@ FMOD_RESULT SystemI::stopSound(SoundI *sound)
         {
             LinkedListNode *current;
             Stream *stream = SAFE_CAST(Stream, sound);
-            
+
             current = mStreamListChannelHead.getNext();
             while (current != &mStreamListChannelHead)
             {
                 ChannelStream  *channelstream = (ChannelStream *)current->getData();
                 Stream         *currentstream = SAFE_CAST(Stream, channelstream->mSound);
                 LinkedListNode *next = current->getNext();
-                
+
                 streamstopped = false;
-                
-                /*
-                    Might not have been played yet.
-                */
+
                 if (!currentstream)
                 {
                     current = next;
                     continue;
                 }
-        
-                /*
-                    If this channel is playing this stream, stop the channel.
-                */
+
                 if (currentstream == stream)
                 {
                     FMOD_OS_CriticalSection_Leave(mStreamListCrit);
-                                
                     channelstream->mParent->stop();
                     streamstopped = true;
-                    
                     FMOD_OS_CriticalSection_Enter(mStreamListCrit);
                 }
-
-                /*
-                    If this channel is playing a sentence and it is the sound that is currently playing, stop the channel.
-                */
 #ifdef FMOD_SUPPORT_SENTENCING
                 else if (currentstream->mSubSoundList)
                 {
-                    if (currentstream->mSubSound[currentstream->mSubSoundList[channelstream->mSubSoundListCurrent].mIndex] == sound)
+                    if (currentstream->mSubSound[currentstream->mSubSoundList[currentstream->mSubSoundListCurrent]] == sound)
                     {
                         FMOD_OS_CriticalSection_Leave(mStreamListCrit);
-                                    
                         channelstream->mParent->stop();
                         streamstopped = true;
-                        
-                        FMOD_OS_CriticalSection_Enter(mStreamListCrit);                        
-                    }
-                    else
-                    {
-                        int count;
-
-                        for (count = 0; count < currentstream->mNumSubSounds; count++)
-                        {
-                            if (currentstream->mSubSound[count] == sound)
-                            {
-                                if (!(currentstream->mCodec && currentstream->mCodec->mFlags & FMOD_CODEC_USERLENGTH))
-                                {
-                                    currentstream->mLength -= sound->mLength;
-                                }
-                                currentstream->mSubSound[count] = 0;
-                                break;              /* found it, so break out of subsound search. */
-                            }
-                        }
+                        FMOD_OS_CriticalSection_Enter(mStreamListCrit);
                     }
                 }
 #endif
-
-                /*
-                    If this channel is playing a substream, stop the channel.
-                */
                 else if (currentstream->mSubSound)
                 {
                     int count;
@@ -11795,101 +9448,60 @@ FMOD_RESULT SystemI::stopSound(SoundI *sound)
                         if (currentstream->mSubSound[count] == sound)
                         {
                             FMOD_OS_CriticalSection_Leave(mStreamListCrit);
-                                        
                             channelstream->mParent->stop();
                             streamstopped = true;
-                            
-                            FMOD_OS_CriticalSection_Enter(mStreamListCrit);                            
-                            break;              /* found it, so break out of subsound search. */
+                            FMOD_OS_CriticalSection_Enter(mStreamListCrit);
+                            break;
                         }
                     }
                 }
-
-                /* 
-                    If this channel is using this stream's sample:  Stop that channel.
-                */
                 else if (currentstream->mSample == stream->mSample)
                 {
                     FMOD_OS_CriticalSection_Leave(mStreamListCrit);
-                    
                     channelstream->mParent->stop();
                     streamstopped = true;
-                    
                     FMOD_OS_CriticalSection_Enter(mStreamListCrit);
                 }
 
                 current = next;
             }
         }
-        
+
         FMOD_OS_CriticalSection_Leave(mStreamListCrit);
     }
 #endif
 
-    /*
-        Note that release/stopSound() can be called from the event system, on sounds that have never played before.  
-        So don't let these sounds execute an async channel loop, it will crash.  The 'Played' flag is never set on these types of sound, they're just temporary storage.
-    */
-    if (sound->mFlags & FMOD_SOUND_FLAG_PLAYED && !streamstopped)
+    if (!streamstopped)
     {
-        if (sound->mNumAudible)                 /* Channel::stop hasn't been called on all instances of this sound yet.  Let's do it for them. */
+        if (sound->mMode & FMOD_SOFTWARE)
         {
-            if (sound->mMode & FMOD_SOFTWARE)   /* This is slow, but they didn't stop the sound.  Make sure the mixer is not continuing to do things with the channel after we stop. */
-            {
-                lockDSP();
-            }
+            FMOD_OS_CriticalSection_Enter(mDSPLockCrit);
+        }
 
-            current = SAFE_CAST(ChannelI, mChannelUsedListHead.getNext());
-            while (current != &mChannelUsedListHead)
-            {
-                ChannelI *next = SAFE_CAST(ChannelI, current->getNext());
+        current = SAFE_CAST(ChannelI, mChannelUsedListHead.getNext());
+        while (current != &mChannelUsedListHead)
+        {
+            ChannelI *next = SAFE_CAST(ChannelI, current->getNext());
 
-                if (current->mRealChannel[0])
+            if (current->mRealChannel[0])
+            {
+                SoundI *channelsound = 0;
+
+                current->getCurrentSound(&channelsound);
+                if (channelsound == sound)
                 {
-                    SoundI *channelsound = 0;
-
-                    current->getCurrentSound(&channelsound);
-                    if (channelsound == sound)
-                    {
-                        /*
-                            Same call as current->stop, except we dont want end callbacks when releasing.
-                        */
-                        current->stopEx(CHANNELI_STOPFLAG_REFSTAMP | CHANNELI_STOPFLAG_UPDATELIST | CHANNELI_STOPFLAG_RESETCALLBACKS | CHANNELI_STOPFLAG_RESETCHANNELGROUP | CHANNELI_STOPFLAG_UPDATESYNCPOINTS);
-                    }
+                    current->stop();
                 }
-
-                current = next;
             }
 
-            if (sound->mMode & FMOD_SOFTWARE)
-            {
-                unlockDSP();
-            }
-
-        }
-        else if (sound->mMode & FMOD_SOFTWARE)                    /* Apparently all instances of this voice have been stopped, BUT!  Are they still active in the mixer? */
-        {
-            FMOD_OPENSTATE openstate;
-
-            sound->getOpenState(&openstate, 0,0);
-            
-            if (openstate == FMOD_OPENSTATE_STREAMING)
-            {
-                lockDSP();      /* Just stall for 1 DSP tick. */
-                unlockDSP();
-            }   
+            current = next;
         }
 
-        if (!sound->isStream())
+        if (sound->mMode & FMOD_SOFTWARE)
         {
-            sound->mFlags &= ~FMOD_SOUND_FLAG_PLAYED;   /* For sample banks, avoid constant dsp locks over and over again for nothing. */
+            FMOD_OS_CriticalSection_Leave(mDSPLockCrit);
         }
     }
-
-    #ifdef PLATFORM_PS2
-    update();
-    #endif
-
 
     return FMOD_OK;
 }
@@ -11912,7 +9524,7 @@ FMOD_RESULT SystemI::stopSound(SoundI *sound)
 */
 // OFFSET: 0x008D5020
 FMOD_RESULT SystemI::stopDSP(DSPI *dsp)
-{   
+{
     ChannelI *current;
 
     current = SAFE_CAST(ChannelI, mChannelUsedListHead.getNext());
@@ -11965,46 +9577,6 @@ FMOD_RESULT SystemI::getListenerObject(int listener, Listener **listenerobject)
 }
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    On success, FMOD_OK is returned.
-    On failure, an error code is returned.
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::setGlobalUserCallbacks(FMOD_FILE_OPENCALLBACK open, FMOD_FILE_CLOSECALLBACK close, FMOD_FILE_READCALLBACK read, FMOD_FILE_SEEKCALLBACK seek)
-{
-    if (!open || !close || !read || !seek)
-    {
-        open = 0;
-        close = 0;
-        read = 0;
-        seek = 0;
-
-        mUsesUserCallbacks = false;
-    }
-    else
-    {
-        mUsesUserCallbacks = true;
-    }
-
-    mOpenCallback  = open;
-    mCloseCallback = close;
-    mReadCallback  = read;
-    mSeekCallback  = seek;
-
-    return FMOD_OK;
-}
 
 #ifdef FMOD_SUPPORT_SOFTWARE
 /*
@@ -12025,118 +9597,59 @@ FMOD_RESULT SystemI::setGlobalUserCallbacks(FMOD_FILE_OPENCALLBACK open, FMOD_FI
 // OFFSET: 0x008D50A0
 FMOD_RESULT SystemI::flushDSPConnectionRequests(bool calledfrommainthread)
 {
-    FMOD_OS_CriticalSection_Enter(mDSPConnectionCrit);
+    DSPConnectionRequest *request;
+
+    FMOD_OS_CriticalSection_Enter(mDSPRequestCrit);
+
+    if (mConnectionRequestFlushing)
     {
-        DSPConnectionRequest *request;
-
-        if (mConnectionRequestFlushing)
-        {
-            FMOD_OS_CriticalSection_Leave(mDSPConnectionCrit);
-            return FMOD_OK;             /* addinput and disconnect can trigger this function to recursively execute. */
-        }
-
-        if (!mConnectionRequestUsedHead.isEmpty())
-        {               
-            mConnectionRequestFlushing = true;
-
-            if (calledfrommainthread)
-            {
-                FMOD_OS_CriticalSection_Enter(mDSPCrit);
-            }
-
-            request = (DSPConnectionRequest *)mConnectionRequestUsedHead.getNext();
-            while (request != &mConnectionRequestUsedHead)
-            {   
-                switch (request->mRequest)
-                {
-                    case DSPCONNECTION_REQUEST_ADDINPUT: 
-                    {
-                        request->mThis->addInputInternal(request->mTarget, false, request->mConnection, 0, false);
-                        break;
-                    }
-                    case DSPCONNECTION_REQUEST_ADDINPUT_ERRCHECK: 
-                    {
-                        request->mThis->addInputInternal(request->mTarget, true, request->mConnection, 0, false);
-                        break;
-                    }
-                    case DSPCONNECTION_REQUEST_DISCONNECTFROM: 
-                    {
-                        request->mThis->disconnectFromInternal(request->mTarget, request->mConnection, false);
-                        if (request->mTarget)
-                        {
-                            request->mTarget->mFlags &= ~FMOD_DSP_FLAG_QUEUEDFORDISCONNECT;
-                        }
-                        else
-                        {
-                            request->mThis->mFlags &= ~FMOD_DSP_FLAG_QUEUEDFORDISCONNECT;
-                        }
-                        break;
-                    }
-                    case DSPCONNECTION_REQUEST_DISCONNECTALLINPUTS:
-                    {
-                        request->mThis->disconnectAllInternal(true, false, false);
-                        break;
-                    }
-                    case DSPCONNECTION_REQUEST_DISCONNECTALLOUTPUTS:
-                    {
-                        request->mThis->disconnectAllInternal(false, true, false);
-                        request->mThis->mFlags &= ~FMOD_DSP_FLAG_QUEUEDFORDISCONNECT;
-                        break;
-                    }
-                    case DSPCONNECTION_REQUEST_DISCONNECTALL:
-                    {
-                        request->mThis->disconnectAllInternal(true, true, false);
-                        request->mThis->mFlags &= ~FMOD_DSP_FLAG_QUEUEDFORDISCONNECT;
-                        break;
-                    }
-                    case DSPCONNECTION_REQUEST_INSERTINBETWEEN:
-                    case DSPCONNECTION_REQUEST_INSERTINBETWEEN_SEARCH:
-                    {
-                        request->mThis->insertInputBetweenInternal(request->mTarget, request->mInputIndex, request->mRequest == DSPCONNECTION_REQUEST_INSERTINBETWEEN_SEARCH ? true : false, request->mConnection, false);
-                        request->mTarget->mFlags |= FMOD_DSP_FLAG_USEDADDDSP;
-                        request->mTarget->reset();
-                        request->mTarget->setActive(true);
-                        break;
-                    }
-                    case DSPCONNECTION_REQUEST_REVERBUPDATEPARAMETERS:
-                    {
-    #ifdef FMOD_SUPPORT_SFXREVERB 
-                        DSPI *reverb = (DSPI *)request->mThis;
-                        if (reverb->mDescription.update)
-                        {                    
-                            reverb->mDescription.update((FMOD_DSP_STATE *)reverb);
-                        }
-    #endif
-                        break;
-                    }
-    #ifdef FMOD_DSP_NONBLOCKING_REMOVE_RELEASE
-                    case DSPCONNECTION_REQUEST_REMOVE:
-                    {
-                        request->mThis->removeInternal(false);
-                        break;
-                    }
-                    case DSPCONNECTION_REQUEST_RELEASE:
-                    {
-                        request->mThis->releaseInternal(request->mTarget ? true : false, false);
-                        break;
-                    }
-    #endif
-                }        
-
-                request->removeNode();
-                request->addBefore(&mConnectionRequestFreeHead);   /* Put back on free list. */
-    
-                request = (DSPConnectionRequest *)mConnectionRequestUsedHead.getNext();
-            }
-            mConnectionRequestFlushing = false;
-
-            if (calledfrommainthread)
-            {
-                FMOD_OS_CriticalSection_Leave(mDSPCrit);
-            }
-        }
+        FMOD_OS_CriticalSection_Leave(mDSPRequestCrit);
+        return FMOD_OK;
     }
-    FMOD_OS_CriticalSection_Leave(mDSPConnectionCrit);
+
+    mConnectionRequestFlushing = true;
+
+    request = (DSPConnectionRequest *)mConnectionRequestUsedHead.getNext();
+    while (request != &mConnectionRequestUsedHead)
+    {
+        switch (request->mRequest)
+        {
+            case DSPCONNECTION_REQUEST_ADDINPUT:
+            {
+                request->mThis->addInputInternal(request->mTarget, false, request->mConnection, 0);
+                break;
+            }
+            case DSPCONNECTION_REQUEST_DISCONNECTFROM:
+            {
+                request->mThis->disconnectFromInternal(request->mTarget);
+                break;
+            }
+            case DSPCONNECTION_REQUEST_DISCONNECTALLINPUTS:
+            {
+                request->mThis->disconnectAllInternal(true, false);
+                break;
+            }
+            case DSPCONNECTION_REQUEST_DISCONNECTALLOUTPUTS:
+            {
+                request->mThis->disconnectAllInternal(false, true);
+                break;
+            }
+            case DSPCONNECTION_REQUEST_DISCONNECTALL:
+            {
+                request->mThis->disconnectAllInternal(true, true);
+                break;
+            }
+        }
+
+        request->removeNode();
+        request->addBefore(&mConnectionRequestFreeHead);
+
+        request = (DSPConnectionRequest *)mConnectionRequestUsedHead.getNext();
+    }
+
+    mConnectionRequestFlushing = false;
+
+    FMOD_OS_CriticalSection_Leave(mDSPRequestCrit);
 
     return FMOD_OK;
 }
@@ -12219,34 +9732,21 @@ FMOD_RESULT SystemI::update3DReverbs()
     float        t = 0.0f;
     bool         reverb3d_active;
     ReverbI     *reverb_c;
-      
-    //
-    // Standardised properties are all in floating point form for correct arithmetic
-    //
     FMOD_REVERB_STDPROPERTIES stdprops;
+
     FMOD_memset(&stdprops, 0, sizeof(FMOD_REVERB_STDPROPERTIES));
 
-    //
-    // For all General mode reverbs, set the level of the listener gain
-    //
     for (reverb_c = SAFE_CAST(ReverbI, mReverb3DHead.getNext()); reverb_c != &mReverb3DHead; reverb_c = SAFE_CAST(ReverbI, reverb_c->getNext()))
     {
         float distance_gain, distance_coeff;
         bool active;
 
         reverb_c->getActive(&active);
-
         if (active)
         {
-            /*
-                Find listener-reverb distance gain
-            */
             reverb_c->calculateDistanceGain(&mListener[0].mPosition, &distance_gain, &distance_coeff);
 
 #ifdef FMOD_SUPPORT_GEOMETRY
-            /*
-                Find reverb occlusion gain of the listener-reverb path
-            */
             if (distance_gain > 0.0f)
             {
                 float direct_occlusion, reverb_occlusion;
@@ -12255,19 +9755,17 @@ FMOD_RESULT SystemI::update3DReverbs()
 
                 reverb_c->get3DAttributes(&pos, 0, 0);
 
-                result = mGeometryMgr.lineTestAll(&mListener[0].mPosition, &pos, &direct_occlusion, &reverb_occlusion); 
+                result = mGeometryMgr.lineTestAll(&mListener[0].mPosition, &pos, &direct_occlusion, &reverb_occlusion);
                 if (result != FMOD_OK)
                 {
                     return result;
                 }
+
                 distance_gain *= (1.0f - reverb_occlusion);
                 distance_coeff *= (1.0f - reverb_occlusion);
             }
 #endif
 
-            /*
-               Reverb modules - ones which have DSP : set the presence gain
-            */
             if (reverb_c->getMode() == FMOD_REVERB_PHYSICAL)
             {
                 if (distance_gain != reverb_c->getGain())
@@ -12275,19 +9773,13 @@ FMOD_RESULT SystemI::update3DReverbs()
                     reverb_c->setGain(distance_gain);
                 }
             }
-            //
-            // Virtual reverbs - ones without DSP and just have properties and geometry : add to running average
-            //
             else if (reverb_c->getMode() == FMOD_REVERB_VIRTUAL)
             {
                 if (distance_coeff >= 0.001f)
                 {
                     FMOD_REVERB_PROPERTIES reverbprops;
 
-                    FMOD_memset(&reverbprops, 0, sizeof(FMOD_REVERB_PROPERTIES));
-
                     reverb_c->getProperties(&reverbprops);
-
                     ReverbI::sumProps(&stdprops, &reverbprops, distance_coeff);
                     t += distance_coeff;
                 }
@@ -12296,14 +9788,10 @@ FMOD_RESULT SystemI::update3DReverbs()
     }
 
     get3DReverbActive(&reverb3d_active);
-
     if (reverb3d_active)
     {
         FMOD_REVERB_PROPERTIES qprops;
 
-        /*
-            Complement with ambient setting if there's not enough reverb presence
-        */
         if (t < 1.0f)
         {
             FMOD_REVERB_PROPERTIES ambience;
@@ -12312,23 +9800,21 @@ FMOD_RESULT SystemI::update3DReverbs()
 
             if (ambience.Environment == -1)
             {
-                ambience.Room = -10000; 
+                ambience.Room = -10000;
                 ReverbI::sumRoomProps(&stdprops, &ambience, 1.0f - t);
             }
             else
             {
                 ReverbI::sumProps(&stdprops, &ambience, 1.0f - t);
             }
-
             t = 1.0f;
         }
 
-        /*
-            Normalise the properties with the accumulated t value
-        */
-        ReverbI::factorProps(&qprops, &stdprops, 1.0f/t); 
+        ReverbI::factorProps(&qprops, &stdprops, 1.0f/t);
+
         set3DReverbProperties(&qprops, true);
     }
+
     return FMOD_OK;
 }
 
@@ -12546,276 +10032,5 @@ FMOD_RESULT F_CALLBACK FMOD_SYSTEM_CALLBACK(FMOD_SYSTEM *system, FMOD_SYSTEM_CAL
 */
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    GETMEMORYINFO_IMPL
-#else
-    return FMOD_ERR_UNIMPLEMENTED;
-#endif
-}
-
-
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    FMOD_RESULT     result = FMOD_OK;
-
-#ifndef FMOD_STATICFORPLUGINS
-    LinkedListNode *node;
-    int             count;
-
-    tracker->add(false, FMOD_MEMBITS_SYSTEM, sizeof(*this));
-
-    for (node = mSoundListHead.getNext(); node != &mSoundListHead; node = node->getNext())
-    {
-        SoundI *soundi = (SoundI *)node;
-        CHECK_RESULT(soundi->getMemoryUsed(tracker));
-    }
-
-    if (gSoundListCrit)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofCriticalSection);
-    }
-
-    if (mChannel)
-    {
-        for (count=0; count < mNumChannels; count++)
-        {
-            CHECK_RESULT(mChannel[count].getMemoryUsed(tracker));
-        }
-    }
-
-    if (mOutput && mOutput->mDescription.getmemoryused)
-    {
-        CHECK_RESULT(mOutput->mDescription.getmemoryused(mOutput, tracker));
-    }
-
-    if (mEmulated)
-    {
-        CHECK_RESULT(mEmulated->getMemoryUsed(tracker));
-    }
-
-#ifdef FMOD_SUPPORT_SOFTWARE
-    if (mDSPTempBuffMem)
-    {
-        int bufferchannels;
-        result = getSoftwareFormat(0, 0, &bufferchannels, 0, 0, 0);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, (mDSPBlockSize * (bufferchannels < mMaxInputChannels ? mMaxInputChannels : bufferchannels) * sizeof(float)) + 16);
-    }
-
-    for (count = 0; count < FMOD_DSP_MAXTREEDEPTH; count++)
-    {
-        if (mDSPMixBuff[count])
-        {
-            tracker->add(false, FMOD_MEMBITS_SYSTEM, (mDSPBlockSize * (mMaxOutputChannels < mMaxInputChannels ? mMaxInputChannels : mMaxOutputChannels) * sizeof(float)) + 16);
-        }
-    }
-
-    CHECK_RESULT(mDSPConnectionPool.getMemoryUsed(tracker));
-
-    if (mDSPCrit)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofCriticalSection);
-    }
-
-    if (mDSPLockCrit)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofCriticalSection);
-    }
-
-    if (mDSPConnectionCrit)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofCriticalSection);
-    }
-
-#ifdef FMOD_NEED_DSPCODECPOOLINITCRIT
-    if (mDSPCodecPoolInitCrit)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofCriticalSection);
-    }
-#endif
-
-//    FMOD_OS_GetMemoryUsed(tracker);
-
-    {
-        LinkedListNode *current;
-
-        current = FMOD::gGlobal->gFileThreadHead.getNext();
-        while (current != &FMOD::gGlobal->gFileThreadHead)
-        {
-            tracker->add(false, FMOD_MEMBITS_FILE, sizeof(FileThread));
-            tracker->add(false, FMOD_MEMBITS_FILE, gSizeofSemaphore);
-            tracker->add(false, FMOD_MEMBITS_FILE, gSizeofCriticalSection);
-            current = current->getNext();
-        }
-    }
-
-    if (mDSPSoundCard)
-    {
-#ifdef PLATFORM_PS3
-        CHECK_RESULT(((DSPI *)mDSPSoundCard)->getMemoryUsed(tracker));
-#else
-        CHECK_RESULT(((DSPSoundCard *)mDSPSoundCard)->getMemoryUsed(tracker));
-#endif
-    }
-
-    if (mDSPChannelGroupTarget)
-    {
-        CHECK_RESULT(mDSPChannelGroupTarget->getMemoryUsed(tracker));
-    }
-
-    if (mSoftware)
-    {
-        CHECK_RESULT(mSoftware->getMemoryUsed(tracker));
-    }
-#endif
-
-    if (mPluginFactory)
-    {
-        CHECK_RESULT(mPluginFactory->getMemoryUsed(tracker));
-    }
-
-    for (node = mChannelGroupHead.getNext(); node != &mChannelGroupHead; node = node->getNext())
-    {
-        ChannelGroupI *channelgroupi = (ChannelGroupI *)node;
-        CHECK_RESULT(channelgroupi->getMemoryUsed(tracker));
-    }
-
-    if (mSoundGroup)
-    {
-        CHECK_RESULT(mSoundGroup->getMemoryUsed(tracker));
-    }
-
-//        MemSingleton                    mMultiSubSampleLockBuffer;
-
-    if (mMultiSubSampleLockBufferCrit)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofCriticalSection);
-    }
-
-    if (FMOD::gGlobal->gFileCrit)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofCriticalSection);
-    }
-
-    if (FMOD::gGlobal->gAsyncCrit)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofCriticalSection);
-    }
-
-    CHECK_RESULT(mSpeakerLevelsPool.getMemoryUsed(tracker));
-    CHECK_RESULT(mHistoryBufferPool.getMemoryUsed(tracker));
-
-#ifdef FMOD_SUPPORT_STREAMING
-//        LinkedListNode                  mStreamListSoundHead;
-    CHECK_RESULT(mStreamThread.getMemoryUsed(tracker));
-
-    if (mStreamRealchanCrit)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofCriticalSection);
-    }
-
-    if (mStreamUpdateCrit)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofCriticalSection);
-    }
-
-    if (mStreamListCrit)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofCriticalSection);
-    }
-#endif
-
-#ifdef FMOD_SUPPORT_DSPCODEC
-    #ifdef FMOD_SUPPORT_MPEG
-    CHECK_RESULT(mDSPCodecPool_MPEG.getMemoryUsed(tracker));
-    #endif
-    #ifdef FMOD_SUPPORT_IMAADPCM
-    CHECK_RESULT(mDSPCodecPool_ADPCM.getMemoryUsed(tracker));
-    #endif
-    #ifdef FMOD_SUPPORT_XMA
-    CHECK_RESULT(mDSPCodecPool_XMA.getMemoryUsed(tracker));
-    #endif
-    #ifdef FMOD_SUPPORT_CELT
-    CHECK_RESULT(mDSPCodecPool_CELT.getMemoryUsed(tracker));
-    #endif
-    #ifdef FMOD_SUPPORT_RAWCODEC
-    CHECK_RESULT(mDSPCodecPool_RAW.getMemoryUsed(tracker));
-    #endif
-#endif
-
-#ifdef FMOD_SUPPORT_GEOMETRY
-//		GeometryI					   *mGeometryList;
-//		GeometryMgr                     mGeometryMgr;
-#endif
-
-    CHECK_RESULT(mReverbGlobal.getMemoryUsed(tracker));
-
-#ifdef FMOD_SUPPORT_MULTIREVERB
-    CHECK_RESULT(mReverb3D.getMemoryUsed(tracker));
-
-    for (node = mReverb3DHead.getNext(); node != &mReverb3DHead; node = node->getNext())
-    {
-        CHECK_RESULT(((ReverbI *)node)->getMemoryUsed(tracker));
-    }
-#endif
-  
-    #ifdef FMOD_SUPPORT_PROFILE
-    if (gGlobal->gProfile)
-    {
-        CHECK_RESULT(gGlobal->gProfile->getMemoryUsed(tracker));
-    }
-    #endif
-
-
-    tracker->add(false, FMOD_MEMBITS_SYSTEM, FMOD_OS_GetMemoryUsed());
-    
-    #ifdef FMOD_SUPPORT_PROFILE
-    if (gGlobal->gProfile)
-    {
-        CHECK_RESULT(gGlobal->gProfile->getMemoryUsed(tracker));
-    }
-    #endif
-
-#endif  // #ifndef FMOD_STATICFORPLUGINS
-
-    return FMOD_OK;
-}
-
-#endif
 
 }

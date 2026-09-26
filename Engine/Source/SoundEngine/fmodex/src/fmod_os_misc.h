@@ -47,10 +47,9 @@ FMOD_RESULT     FMOD_OS_Time_Sleep(unsigned int ms);
 */
 
 #if defined(PLATFORM_WINDOWS)
-    #include <process.h>
     typedef unsigned int THREAD_RETURNTYPE;
-    #define THREAD_RETURN _endthreadex( 0 ); return 0;
-    #define THREAD_CALLCONV __stdcall
+    #define THREAD_RETURN return 0;
+    #define THREAD_CALLCONV
 #elif defined(PLATFORM_PS2)
     typedef void THREAD_RETURNTYPE;
     #define THREAD_RETURN
@@ -111,7 +110,7 @@ FMOD_RESULT     FMOD_OS_Thread_Destroy(void *handle);
 typedef struct  FMOD_OS_CRITICALSECTION FMOD_OS_CRITICALSECTION;
 
 FMOD_RESULT     FMOD_OS_CriticalSection_Create(FMOD_OS_CRITICALSECTION **crit, bool memorycrit = false);
-FMOD_RESULT     FMOD_OS_CriticalSection_Free(FMOD_OS_CRITICALSECTION *crit, bool memorycrit = false);
+FMOD_RESULT     FMOD_OS_CriticalSection_Free(FMOD_OS_CRITICALSECTION *crit);
 FMOD_RESULT     FMOD_OS_CriticalSection_Enter(FMOD_OS_CRITICALSECTION *crit);
 FMOD_RESULT     FMOD_OS_CriticalSection_Leave(FMOD_OS_CRITICALSECTION *crit);
 

@@ -6,6 +6,7 @@
 
 #include "comb.h"
 
+// VERIFY: 1ac812b2 auto
 // OFFSET: 0x009450D0
 comb::comb()
 {
@@ -13,6 +14,7 @@ comb::comb()
 	bufidx = 0;
 }
 
+// VERIFY: 984df88f auto
 // OFFSET: 0x009450E0
 void comb::setbuffer(float *buf, int size) 
 {
@@ -20,6 +22,7 @@ void comb::setbuffer(float *buf, int size)
 	bufsize = size;
 }
 
+// VERIFY: 47f33d47 auto
 // OFFSET: 0x00945100
 void comb::mute()
 {
@@ -27,6 +30,7 @@ void comb::mute()
 		buffer[i]=0;
 }
 
+// VERIFY: 079b42a3 auto
 // OFFSET: 0x00945120
 void comb::setdamp(float val) 
 {

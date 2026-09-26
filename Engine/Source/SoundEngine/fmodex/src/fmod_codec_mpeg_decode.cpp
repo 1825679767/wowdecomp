@@ -722,7 +722,6 @@ FMOD_RESULT CodecMPEG::resetFrame()
 
             mMemoryBlock[count].mSynthBo = 1;
             mMemoryBlock[count].mFrameSizeOld = -1;     
-            mMemoryBlock[count].mSynthBuffs = (float *)FMOD_ALIGNPOINTER(mMemoryBlock[count].mSynthBuffsMem, 16);
 
             #endif
         }

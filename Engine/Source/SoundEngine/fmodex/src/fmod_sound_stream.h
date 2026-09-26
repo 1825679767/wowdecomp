@@ -34,7 +34,7 @@ namespace FMOD
 
         Stream();
 
-        FMOD_RESULT     fill(unsigned int offset, unsigned int length, unsigned int *read = 0, bool calledfromsentence = false);
+        FMOD_RESULT     fill(unsigned int offset, unsigned int length);
         FMOD_RESULT     flush();
         FMOD_RESULT     setPosition(unsigned int position, FMOD_TIMEUNIT postype);
         FMOD_RESULT     getPosition(unsigned int *position, FMOD_TIMEUNIT postype);

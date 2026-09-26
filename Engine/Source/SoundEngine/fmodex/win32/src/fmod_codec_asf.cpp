@@ -497,7 +497,7 @@ FMOD_RESULT CodecASF::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 
             mNumSyncPoints = markercount;
 
-            mSyncPoint = (SyncPointNamed *)FMOD_Memory_Alloc(mNumSyncPoints * sizeof(SyncPointNamed));
+            mSyncPoint = (SyncPoint *)FMOD_Memory_Alloc(mNumSyncPoints * sizeof(SyncPoint));
             if (!mSyncPoint)
             {
                 return FMOD_ERR_MEMORY;
@@ -505,12 +505,11 @@ FMOD_RESULT CodecASF::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 
             for (count=0; count < mNumSyncPoints; count++)
             { 
-                SyncPointNamed *point = &mSyncPoint[count];
+                SyncPoint *point = &mSyncPoint[count];
                 WCHAR name[256];
                 WORD  len = 256;
                 QWORD offset;
 
-                point->mName = point->mNameMemory;
 
                 headerinfo->GetMarker(count, name, &len, &offset); 
 
@@ -1049,8 +1048,7 @@ ULONG CROStream::Release()
 // OFFSET: 0x008F8100
 FMOD_RESULT CodecASF::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 {
-    FMOD_RESULT  result = FMOD_OK;
-    SoundI       *s = (SoundI *)sound;
+    SoundI *s = (SoundI *)sound;
 
     if (mNumSyncPoints && mSyncPoint)
     {
@@ -1058,14 +1056,14 @@ FMOD_RESULT CodecASF::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 
         for (count = 0; count < mNumSyncPoints; count++)
         {
-            s->addSyncPointInternal(mSyncPoint[count].mOffset, FMOD_TIMEUNIT_PCM, mSyncPoint[count].mName, 0);
+            s->addSyncPoint(mSyncPoint[count].mOffset, FMOD_TIMEUNIT_PCM, mSyncPoint[count].mName, 0);
         }
 
         FMOD_Memory_Free(mSyncPoint);
         mSyncPoint = 0;
     }
 
-    return result;
+    return FMOD_OK;
 }
 
 

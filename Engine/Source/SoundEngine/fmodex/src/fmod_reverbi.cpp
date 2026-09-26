@@ -34,19 +34,14 @@ namespace FMOD
 // OFFSET: 0x008E63A0
 ReverbI::ReverbI()
 {
-    int count;
-
-    for (count = 0; count < FMOD_REVERB_MAXINSTANCES; count++)
-    {
-        mInstance[count].mDSP  = 0;
-        mInstance[count].mChannelData = 0;
-    }
-
+    mDSP                    = 0;
+    mChannelData            = 0;
+    mPresenceGain           = 0;
     mSystem                 = 0;
     mPosition.x             = 0;
     mPosition.y             = 0;
-    mPosition.z             = 0.0f; 
-    mMinRadius              = 0.0f; 
+    mPosition.z             = 0.0f;
+    mMinRadius              = 0.0f;
     mMaxRadius              = 0.0f;
     mMinMaxDistance         = 0.0f;
     mGain                   = 0.0f;
@@ -110,49 +105,38 @@ FMOD_RESULT ReverbI::validate(Reverb *reverb, ReverbI **reverbi)
 FMOD_RESULT ReverbI::init(SystemI* system, bool is_3d, FMOD_REVERB_MODE mode)
 {
     FMOD_REVERB_PROPERTIES prop = FMOD_PRESET_OFF;             // then initialise them to 'off'
-    int instance;
+    int channel;
 
     release(false);                                            /* Release any resources */
 
     mSystem     = system;
     mMode       = mode;
 
-    for (instance = 0; instance < FMOD_REVERB_MAXINSTANCES; instance++)
+    FMOD_memset(&mProps, 0xcc, sizeof(FMOD_REVERB_PROPERTIES));     /* invalidate properties */
+    setProperties(&prop);
+
+    mChannelData = (FMOD_REVERB_CHANNELDATA *)FMOD_Memory_Calloc(mSystem->mNumChannels * sizeof(FMOD_REVERB_CHANNELDATA));
+    if (!mChannelData)
     {
-        FMOD_memset(&mInstance[instance].mProps, 0xcc, sizeof(FMOD_REVERB_PROPERTIES));     /* invalidate properties */
-        mInstance[instance].mProps.Instance = instance;
-        setProperties(&prop);
+        return FMOD_ERR_MEMORY;
     }
 
-
-    /*
-        Create the first instance's channeldata.
-    */
-    instance = 0;
-    if (!mInstance[instance].mChannelData)
+    for (channel=0; channel < mSystem->mNumChannels; channel++)
     {
-        int channel;
-        FMOD_REVERB_CHANNELPROPERTIES defaultprop = { 0, 0, 0, 0, 0, 0, 0, 0.25f, 1.5f, 1.0f, 0, 1.0f, 0, 0, 0, 0, 1.0f, FMOD_REVERB_CHANNELFLAGS_DEFAULT };
-
-        defaultprop.Flags &= ~FMOD_REVERB_CHANNELFLAGS_INSTANCE0;  /* FMOD_REVERB_CHANNELFLAGS_DEFAULT has instance 0 set. */
-        defaultprop.Flags |=  FMOD_REVERB_CHANNELFLAGS_INSTANCE0 << instance;
-
-        mInstance[instance].mChannelData = (FMOD_REVERB_CHANNELDATA *)FMOD_Memory_Calloc(mSystem->mNumChannels * sizeof(FMOD_REVERB_CHANNELDATA));
-        if (!mInstance[instance].mChannelData)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-
-        for (channel=0; channel < mSystem->mNumChannels; channel++)
-        {
-            FMOD_memcpy(&mInstance[instance].mChannelData[channel].mChanProps, &defaultprop, sizeof(FMOD_REVERB_CHANNELPROPERTIES));
-            mInstance[instance].mChannelData[channel].mDSPConnection = 0;
-            mInstance[instance].mChannelData[channel].mPresenceGain = 0;
-        }
+        FMOD_memset(&mChannelData[channel].mChanProps, 0, sizeof(FMOD_REVERB_CHANNELPROPERTIES));
+        mChannelData[channel].mChanProps.Room   = 0;
+        mChannelData[channel].mChanProps.Direct = 0;
     }
 
-    mPosition.x = mPosition.y = mPosition.z = 0.0f; 
-    mMinRadius      = 0.0f; 
+    mPresenceGain = (float *)FMOD_Memory_Calloc(mSystem->mNumChannels * sizeof(float));
+    if (!mPresenceGain)
+    {
+        return FMOD_ERR_MEMORY;
+    }
+    FMOD_memset(mPresenceGain, 0, mSystem->mNumChannels * sizeof(float));
+
+    mPosition.x = mPosition.y = mPosition.z = 0.0f;
+    mMinRadius      = 0.0f;
     mMaxRadius      = 0.0f;
     mMinMaxDistance = 0.0f;
     mGain           = 0.0f;
@@ -191,40 +175,37 @@ FMOD_RESULT ReverbI::init(SystemI* system, bool is_3d, FMOD_REVERB_MODE mode)
 // OFFSET: 0x008E6410
 FMOD_RESULT ReverbI::release(bool freethis)
 {
-    int count;
-   
-    for (count = 0; count < FMOD_REVERB_MAXINSTANCES; count++)
+    if (mPresenceGain)
     {
-        if (mInstance[count].mChannelData)
-        {
-            FMOD_Memory_Free(mInstance[count].mChannelData);
-            mInstance[count].mChannelData = 0;
-        }
-        releaseDSP(count);
+        FMOD_Memory_Free(mPresenceGain);
+        mPresenceGain = 0;
     }
+
+    if (mChannelData)
+    {
+        FMOD_Memory_Free(mChannelData);
+        mChannelData = 0;
+    }
+
+    releaseDSP();
 
     removeNode();
 
 #ifdef FMOD_SUPPORT_MULTIREVERB
-    if (mSystem)
+    /*
+        If no more reverbs left feeding into 3D reverb, make sure it's not active on environment -1
+    */
+    if (mSystem && !mSystem->count3DPhysicalReverbs())
     {
-        mSystem->update3DReverbs();
+        mSystem->mReverb3D.setDisableIfNoEnvironment(true);
+    }
 
-        /*
-            If no more reverbs left feeding into 3D reverb, make sure it's not active on environment -1
-        */
-        if (mSystem && !mSystem->count3DPhysicalReverbs())
-        {
-            mSystem->mReverb3D.setDisableIfNoEnvironment(true);
-        }
-    
-        /*
-            If no more virtuals: turn morphing off.
-        */
-        if (!mSystem->count3DVirtualReverbs())
-        {
-            mSystem->set3DReverbActive(false);
-        }
+    /*
+        If no more virtuals: turn morphing off.
+    */
+    if (mSystem && !mSystem->count3DVirtualReverbs())
+    {
+        mSystem->set3DReverbActive(false);
     }
 #endif
 
@@ -254,38 +235,15 @@ FMOD_RESULT ReverbI::release(bool freethis)
 ]
 */
 // OFFSET: 0x008E55D0
-FMOD_RESULT ReverbI::createDSP(int instance)
+FMOD_RESULT ReverbI::createDSP()
 {
-    if (instance < 0 || instance >= FMOD_REVERB_MAXINSTANCES)
-    {
-        return FMOD_ERR_REVERB_INSTANCE;
-    }
-
     if (!mSystem)
     {
         return FMOD_ERR_INITIALIZATION;
     }
 
-    if (!mInstance[instance].mChannelData)
-    {
-        int channel;
-
-        mInstance[instance].mChannelData = (FMOD_REVERB_CHANNELDATA *)FMOD_Memory_Calloc(mSystem->mNumChannels * sizeof(FMOD_REVERB_CHANNELDATA));
-        if (!mInstance[instance].mChannelData)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-
-        for (channel=0; channel < mSystem->mNumChannels; channel++)
-        {
-            resetChanProperties(instance, channel);
-            resetConnectionPointer(instance, channel);
-
-        }
-    }
-
 #ifdef FMOD_SUPPORT_SOFTWARE
-    if (!mInstance[instance].mDSP)
+    if (!mDSP)
     {
         FMOD_RESULT result;
         int count, numdsps;
@@ -299,15 +257,8 @@ FMOD_RESULT ReverbI::createDSP(int instance)
         for (count = 0; count < numdsps; count++)
         {
             FMOD_DSP_DESCRIPTION_EX *descriptionex = 0;
-            unsigned int handle;
 
-            result = mSystem->mPluginFactory->getDSPHandle(count, &handle);
-            if (result != FMOD_OK)
-            {
-                continue;
-            }
-
-            result = mSystem->mPluginFactory->getDSP(handle, &descriptionex);
+            result = mSystem->mPluginFactory->getDSP(count, &descriptionex);
             if (result != FMOD_OK)
             {
                 continue;
@@ -315,31 +266,28 @@ FMOD_RESULT ReverbI::createDSP(int instance)
 
             if (descriptionex->mType == FMOD_DSP_TYPE_SFXREVERB)
             {
-                result = mSystem->mPluginFactory->createDSP(descriptionex, &mInstance[instance].mDSP);
+                FMOD_DSP_DESCRIPTION_EX description;
+
+                FMOD_memcpy(&description, descriptionex, sizeof(FMOD_DSP_DESCRIPTION_EX));
+
+                description.channels = mSystem->mMaxOutputChannels;
+
+                result = mSystem->mPluginFactory->createDSP(&description, &mDSP);
                 if (result != FMOD_OK)
                 {
                     return result;
                 }
 
-                result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_DRYLEVEL, -10000.0f);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-
-                return FMOD_OK;
+                return mDSP->setParameter(FMOD_DSP_SFXREVERB_DRYLEVEL, -10000.0f);
             }
         }
-        
+
         return FMOD_ERR_PLUGIN_MISSING;
     }
 
     return FMOD_OK;
-
 #else
-
     return FMOD_ERR_UNSUPPORTED;
-
 #endif
 }
 
@@ -359,30 +307,25 @@ FMOD_RESULT ReverbI::createDSP(int instance)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT ReverbI::releaseDSP(int instance)
+FMOD_RESULT ReverbI::releaseDSP()
 {
-    if (instance < 0 || instance >= FMOD_REVERB_MAXINSTANCES)
-    {
-        return FMOD_ERR_REVERB_INSTANCE;
-    }
-
-    if (mInstance[instance].mDSP)
+    if (mDSP)
     {
         FMOD_RESULT result;
 
-        result = mInstance[instance].mDSP->disconnectFrom(0);
+        result = mDSP->disconnectFrom(0);
         if (result != FMOD_OK)
         {
             return result;
         }
 
-        result = mInstance[instance].mDSP->release();
+        result = mDSP->release();
         if (result != FMOD_OK)
         {
             return result;
         }
-        mInstance[instance].mDSP = 0;
-    }  
+        mDSP = 0;
+    }
     return FMOD_OK;
 }
 
@@ -403,45 +346,20 @@ FMOD_RESULT ReverbI::releaseDSP(int instance)
 ]
 */
 // OFFSET: 0x008E56B0
-FMOD_RESULT ReverbI::getChanProperties(int instance, const int index, FMOD_REVERB_CHANNELPROPERTIES *props, DSPConnectionI **connection)
+FMOD_RESULT ReverbI::getChanProperties(const int index, FMOD_REVERB_CHANNELPROPERTIES *props, DSPConnectionI **connection)
 {
-    if (instance < 0 || instance >= FMOD_REVERB_MAXINSTANCES)
+    if (index < 0 || index >= mSystem->mNumChannels)
     {
-        if (connection)
-        {
-            *connection = 0;
-        }
-        return FMOD_ERR_REVERB_INSTANCE;
-    }
-
-    if (!mInstance[instance].mChannelData)
-    {
-        if (connection)
-        {
-            *connection = 0;
-        }
-        return FMOD_ERR_REVERB_INSTANCE;
-    }
-
-    if ((index >= 0) && (index < mSystem->mNumChannels))
-    {
-        if (props)
-        {
-            FMOD_memcpy(props, &mInstance[instance].mChannelData[index].mChanProps, sizeof(FMOD_REVERB_CHANNELPROPERTIES));
-        }
-
-        if (connection)
-        {
-            *connection = mInstance[instance].mChannelData[index].mDSPConnection;
-        }
-    }
-    else
-    {
-        if (connection)
-        {
-            *connection = 0;
-        }
         return FMOD_ERR_INVALID_PARAM;
+    }
+
+    if (props)
+    {
+        FMOD_memcpy(props, &mChannelData[index].mChanProps, sizeof(FMOD_REVERB_CHANNELPROPERTIES));
+    }
+    if (connection)
+    {
+        *connection = mChannelData[index].mDSPConnection;
     }
 
     return FMOD_OK;
@@ -463,34 +381,20 @@ FMOD_RESULT ReverbI::getChanProperties(int instance, const int index, FMOD_REVER
 ]
 */
 // OFFSET: 0x008E5710
-FMOD_RESULT ReverbI::setChanProperties(int instance, const int index, const FMOD_REVERB_CHANNELPROPERTIES *props, DSPConnectionI *connection)
+FMOD_RESULT ReverbI::setChanProperties(const int index, const FMOD_REVERB_CHANNELPROPERTIES *props, DSPConnectionI *connection)
 {
-    if (instance < 0 || instance >= FMOD_REVERB_MAXINSTANCES || !mInstance[instance].mChannelData)
-    {
-        return FMOD_ERR_REVERB_INSTANCE;
-    }
-
-    if ((index >= 0) && (index < mSystem->mNumChannels))
-    {
-        if (props)
-        {
-            FMOD_memcpy(&mInstance[instance].mChannelData[index].mChanProps, props, sizeof(FMOD_REVERB_CHANNELPROPERTIES));
-
-            mInstance[instance].mChannelData[index].mChanProps.Flags &= ~(FMOD_REVERB_CHANNELFLAGS_INSTANCE0 |
-                                                                          FMOD_REVERB_CHANNELFLAGS_INSTANCE1 |
-                                                                          FMOD_REVERB_CHANNELFLAGS_INSTANCE2 |
-                                                                          FMOD_REVERB_CHANNELFLAGS_INSTANCE3);
-            mInstance[instance].mChannelData[index].mChanProps.Flags |= (FMOD_REVERB_CHANNELFLAGS_INSTANCE0 << instance);
-        }
-
-        if (connection)
-        {
-            mInstance[instance].mChannelData[index].mDSPConnection = connection;
-        }
-    }
-    else
+    if (index < 0 || index >= mSystem->mNumChannels)
     {
         return FMOD_ERR_INVALID_PARAM;
+    }
+
+    if (props)
+    {
+        FMOD_memcpy(&mChannelData[index].mChanProps, props, sizeof(FMOD_REVERB_CHANNELPROPERTIES));
+    }
+    if (connection)
+    {
+        mChannelData[index].mDSPConnection = connection;
     }
 
     return FMOD_OK;
@@ -512,23 +416,19 @@ FMOD_RESULT ReverbI::setChanProperties(int instance, const int index, const FMOD
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT ReverbI::resetChanProperties(int instance, int channel)
+FMOD_RESULT ReverbI::resetChanProperties(int channel)
 {
     FMOD_REVERB_CHANNELPROPERTIES defaultprop = { 0, 0, 0, 0, 0, 0, 0, 0.25f, 1.5f, 1.0f, 0, 1.0f, 0, 0, 0, 0, 1.0f, 0 };
 
-    if (!mInstance[instance].mChannelData)
+    if (!mChannelData)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    defaultprop.Flags &= ~FMOD_REVERB_CHANNELFLAGS_INSTANCE0;  /* FMOD_REVERB_CHANNELFLAGS_DEFAULT has instance 0 set. */
-    defaultprop.Flags |=  FMOD_REVERB_CHANNELFLAGS_INSTANCE0 << instance;
+    FMOD_memcpy(&mChannelData[channel].mChanProps, &defaultprop, sizeof(FMOD_REVERB_CHANNELPROPERTIES));
+    mPresenceGain[channel] = 0;
 
-    FMOD_memcpy(&mInstance[instance].mChannelData[channel].mChanProps, &defaultprop, sizeof(FMOD_REVERB_CHANNELPROPERTIES));
-
-    mInstance[instance].mChannelData[channel].mPresenceGain = 0;
-
-    return resetConnectionPointer(instance, channel);
+    return resetConnectionPointer(channel);
 }
 
 
@@ -548,14 +448,14 @@ FMOD_RESULT ReverbI::resetChanProperties(int instance, int channel)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT ReverbI::resetConnectionPointer(int instance, int channel)
+FMOD_RESULT ReverbI::resetConnectionPointer(int channel)
 {
-    if (!mInstance[instance].mChannelData)
+    if (!mChannelData)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
     
-    mInstance[instance].mChannelData[channel].mDSPConnection = 0;
+    mChannelData[channel].mDSPConnection = 0;
     
     return FMOD_OK;
 }
@@ -661,14 +561,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
 {
     FMOD_REVERB_PROPERTIES oldprops;
     FMOD_REVERB_PROPERTIES *newprops;
-    int instance = prop_source->Instance;
-
-    if (instance < 0 || instance >= FMOD_REVERB_MAXINSTANCES)
-    {
-        return FMOD_ERR_REVERB_INSTANCE;
-    }
-
-    newprops = &mInstance[instance].mProps;
+    newprops = &mProps;
     FMOD_memcpy(&oldprops, newprops, sizeof(FMOD_REVERB_PROPERTIES));
 
     newprops->Instance          = prop_source->Instance          < 0       ? 0       : prop_source->Instance         > 3       ? 3       : prop_source->Instance          ; /* [in]     0     , 3     , 0      , EAX4/GameCube only. Environment Instance. 3 (2 for GameCube) seperate reverbs simultaneously are possible. This specifies which one to set. (win32/gamecube) */
@@ -705,7 +598,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
 
 
 #ifdef FMOD_SUPPORT_SFXREVERB
-    if (mInstance[instance].mDSP)
+    if (mDSP)
     {
         FMOD_RESULT result;
         bool reverb3d_active = false;
@@ -721,26 +614,26 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         {
             if (newprops->Environment == -1)
             {
-                mInstance[instance].mDSP->setActive(reverb3d_active);
+                mDSP->setActive(reverb3d_active);
                 if (!reverb3d_active)
                 {
-                    mInstance[instance].mDSP->reset();
+                    mDSP->reset();
                 }
             }
             else
             {
-                mInstance[instance].mDSP->setActive(true);
+                mDSP->setActive(true);
             }
         }
         else
         {
-            mInstance[instance].mDSP->setActive(true);
+            mDSP->setActive(true);
         }
 
 
         if (newprops->Room != oldprops.Room)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_ROOM, (float)newprops->Room);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_ROOM, (float)newprops->Room);
             if (result != FMOD_OK)
             {
                 return result;
@@ -748,7 +641,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->RoomHF != oldprops.RoomHF)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_ROOMHF, (float)newprops->RoomHF);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_ROOMHF, (float)newprops->RoomHF);
             if (result != FMOD_OK)
             {
                 return result;
@@ -756,7 +649,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->RoomRolloffFactor != oldprops.RoomRolloffFactor)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_ROOMROLLOFFFACTOR, newprops->RoomRolloffFactor);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_ROOMROLLOFFFACTOR, newprops->RoomRolloffFactor);
             if (result != FMOD_OK)
             {
                 return result;
@@ -764,7 +657,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->DecayTime != oldprops.DecayTime)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_DECAYTIME, newprops->DecayTime);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_DECAYTIME, newprops->DecayTime);
             if (result != FMOD_OK)
             {
                 return result;
@@ -772,7 +665,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->DecayHFRatio != oldprops.DecayHFRatio)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_DECAYHFRATIO, newprops->DecayHFRatio);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_DECAYHFRATIO, newprops->DecayHFRatio);
             if (result != FMOD_OK)
             {
                 return result;
@@ -780,7 +673,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->Reflections != oldprops.Reflections)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_REFLECTIONSLEVEL, (float)newprops->Reflections);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_REFLECTIONSLEVEL, (float)newprops->Reflections);
             if (result != FMOD_OK)
             {
                 return result;
@@ -788,7 +681,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->ReflectionsDelay != oldprops.ReflectionsDelay)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_REFLECTIONSDELAY, newprops->ReflectionsDelay);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_REFLECTIONSDELAY, newprops->ReflectionsDelay);
             if (result != FMOD_OK)
             {
                 return result;
@@ -796,7 +689,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->Reverb != oldprops.Reverb)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_REVERBLEVEL, (float)newprops->Reverb);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_REVERBLEVEL, (float)newprops->Reverb);
             if (result != FMOD_OK)
             {
                 return result;
@@ -804,7 +697,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->ReverbDelay != oldprops.ReverbDelay)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_REVERBDELAY, newprops->ReverbDelay);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_REVERBDELAY, newprops->ReverbDelay);
             if (result != FMOD_OK)
             {
                 return result;
@@ -812,7 +705,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->Diffusion != oldprops.Diffusion)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_DIFFUSION, newprops->Diffusion);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_DIFFUSION, newprops->Diffusion);
             if (result != FMOD_OK)
             {
                 return result;
@@ -820,7 +713,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->Density != oldprops.Density)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_DENSITY, newprops->Density);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_DENSITY, newprops->Density);
             if (result != FMOD_OK)
             {
                 return result;
@@ -828,7 +721,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->HFReference != oldprops.HFReference)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_HFREFERENCE, newprops->HFReference);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_HFREFERENCE, newprops->HFReference);
             if (result != FMOD_OK)
             {
                 return result;
@@ -836,7 +729,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->RoomLF != oldprops.RoomLF)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_ROOMLF, (float)newprops->RoomLF);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_ROOMLF, (float)newprops->RoomLF);
             if (result != FMOD_OK)
             {
                 return result;
@@ -844,7 +737,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
         }
         if (newprops->LFReference != oldprops.LFReference)
         {
-            result = mInstance[instance].mDSP->setParameter(FMOD_DSP_SFXREVERB_LFREFERENCE, newprops->LFReference);
+            result = mDSP->setParameter(FMOD_DSP_SFXREVERB_LFREFERENCE, newprops->LFReference);
             if (result != FMOD_OK)
             {
                 return result;
@@ -864,7 +757,7 @@ FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
 #ifdef FMOD_SUPPORT_SOFTWARE
             mSystem->mOutput->readfrommixer = Output::mixCallback;   /* Reset 'read only' variable in FMOD_OUTPUT_STATE in case the user changed it. */
 #endif
-            return mSystem->mOutput->mDescription.reverb_setproperties(mSystem->mOutput, &mInstance[instance].mProps);
+            return mSystem->mOutput->mDescription.reverb_setproperties(mSystem->mOutput, &mProps);
         }
     }
 
@@ -893,13 +786,8 @@ FMOD_RESULT ReverbI::getProperties(FMOD_REVERB_PROPERTIES* properties)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-    
-    if (properties->Instance < 0 || properties->Instance >= FMOD_REVERB_MAXINSTANCES)
-    {
-        return FMOD_ERR_REVERB_INSTANCE;
-    }
 
-    *properties = mInstance[properties->Instance].mProps;
+    *properties = mProps;
 
     return FMOD_OK;
 }
@@ -1022,18 +910,12 @@ FMOD_RESULT ReverbI::getUserData(void **userdata)
 */
 void ReverbI::setDisableIfNoEnvironment(bool dis)
 {
-    int count;
+    FMOD_REVERB_PROPERTIES props;
 
-    mDisableIfNoEnvironment = dis; 
+    mDisableIfNoEnvironment = dis;
 
-    for (count = 0; count < FMOD_REVERB_MAXINSTANCES; count++)
-    {
-        FMOD_REVERB_PROPERTIES props;
-
-        props.Instance = count;
-        getProperties(&props);
-        setProperties(&props);
-    }
+    getProperties(&props);
+    setProperties(&props);
 }
 
 
@@ -1134,19 +1016,14 @@ void ReverbI::calculateDistanceGain(FMOD_VECTOR *p, float *linear_gain, float *l
 ]
 */
 // OFFSET: 0x008E6000
-FMOD_RESULT ReverbI::setPresenceGain(int instance, int index, float lingain) 
+FMOD_RESULT ReverbI::setPresenceGain(int index, float lingain)
 {
-    if (instance < 0 || instance >= FMOD_REVERB_MAXINSTANCES)
-    {
-        return FMOD_ERR_REVERB_INSTANCE;
-    }
-
     if (index < 0 || index >= mSystem->mNumChannels)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    mInstance[instance].mChannelData[index].mPresenceGain = lingain; 
+    mPresenceGain[index] = lingain;
 
     return FMOD_OK;
 }
@@ -1167,26 +1044,16 @@ FMOD_RESULT ReverbI::setPresenceGain(int instance, int index, float lingain)
 ]
 */
 // OFFSET: 0x008E6030
-FMOD_RESULT ReverbI::getPresenceGain(int instance, int index, float *lingain)
+FMOD_RESULT ReverbI::getPresenceGain(int index, float *lingain)
 {
-    if (instance < 0 || instance >= FMOD_REVERB_MAXINSTANCES)
-    {
-        return FMOD_ERR_REVERB_INSTANCE;
-    }
-
-    if (index < 0 || index >= mSystem->mNumChannels)
+    if (index < 0 || index >= mSystem->mNumChannels || !lingain)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (!lingain)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
+    *lingain = mPresenceGain[index];
 
-    *lingain = mInstance[instance].mChannelData[index].mPresenceGain; 
-
-    return FMOD_OK;   
+    return FMOD_OK;
 }
 
 
@@ -1295,28 +1162,6 @@ void ReverbI::factorProps(FMOD_REVERB_PROPERTIES *quotientprops, FMOD_REVERB_STD
 }
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT ReverbI::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    GETMEMORYINFO_IMPL
-#else
-    return FMOD_ERR_UNIMPLEMENTED;
-#endif
-}
-
 
 /*
 [
@@ -1333,37 +1178,6 @@ FMOD_RESULT ReverbI::getMemoryInfo(unsigned int memorybits, unsigned int event_m
 	[SEE_ALSO]
 ]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT ReverbI::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-//AJS it's static in SystemI::mReverbGlobal
-//    tracker->add(MEMTYPE_REVERBI, sizeof(*this));
-
-    for (int i=0; i < FMOD_REVERB_MAXINSTANCES; i++)
-    {
-        FMOD_REVERB_INSTANCE *reverbinstance = &mInstance[i];
-
-        if (reverbinstance->mDSP)
-        {
-            CHECK_RESULT(reverbinstance->mDSP->getMemoryUsed(tracker));
-        }
-
-        if (reverbinstance->mChannelData)
-        {
-            tracker->add(false, FMOD_MEMBITS_REVERB, mSystem->mNumChannels * sizeof(FMOD_REVERB_CHANNELDATA));
-
-            if (reverbinstance->mChannelData->mDSPConnection)
-            {
-                CHECK_RESULT(reverbinstance->mChannelData->mDSPConnection->getMemoryUsed(tracker));
-            }
-        }
-    }
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 } // \namespace FMOD

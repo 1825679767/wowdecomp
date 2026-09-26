@@ -25,11 +25,6 @@
 #include "fmod_os_misc.h"
 #include "fmod_systemi.h"
 
-#ifdef PLATFORM_PS3
-#include "fmod_codec_mpeg_pic.h"
-#include "fmod_common_spu.h"
-#include "fmod_output_ps3.h"
-#endif
 
 #include <stdio.h>
 
@@ -55,7 +50,6 @@ namespace FMOD
 PluginFactory::PluginFactory()
 {
     mSystem = 0;
-    mCurrentPluginHandle = 1;
     FMOD_memset(mPluginPath, 0, FMOD_STRING_MAXPATHLEN);
 
     mDSPHead.initNode();
@@ -97,11 +91,7 @@ FMOD_RESULT PluginFactory::release()
 
     for (count = 0; count < num; count++)
     {
-        unsigned int handle;
-
-        getCodecHandle(0, &handle);
-
-        result = unloadPlugin(handle);
+        result = unloadPlugin(FMOD_PLUGINTYPE_CODEC, 0);
         if (result != FMOD_OK)
         {
             return result;
@@ -119,11 +109,7 @@ FMOD_RESULT PluginFactory::release()
 
     for (count = 0; count < num; count++)
     {
-        unsigned int handle;
-
-        getDSPHandle(0, &handle);
-
-        result = unloadPlugin(handle);
+        result = unloadPlugin(FMOD_PLUGINTYPE_DSP, 0);
         if (result != FMOD_OK)
         {
             return result;
@@ -141,11 +127,7 @@ FMOD_RESULT PluginFactory::release()
 
     for (count = 0; count < num; count++)
     {
-        unsigned int handle;
-
-        getOutputHandle(0, &handle);
-
-        result = unloadPlugin(handle);
+        result = unloadPlugin(FMOD_PLUGINTYPE_OUTPUT, 0);
         if (result != FMOD_OK)
         {
             return result;
@@ -235,19 +217,6 @@ FMOD_RESULT PluginFactory::setPluginPath(const char *path)
 
 #ifdef FMOD_SUPPORT_DLLS
 
-FMOD_RESULT PluginFactory::tryLoadPlugin(const char *dllname, unsigned int *handle, bool calledinternally, unsigned int priority)
-{
-    FMOD_RESULT result = loadPlugin(dllname, handle, calledinternally, priority);
-
-    if (result != FMOD_ERR_FILE_NOTFOUND && result != FMOD_ERR_FILE_BAD)
-    {
-        CHECK_RESULT(result);
-    }
-
-    return FMOD_OK;
-}
-
-
 /*
 [
 	[DESCRIPTION]
@@ -263,7 +232,7 @@ FMOD_RESULT PluginFactory::tryLoadPlugin(const char *dllname, unsigned int *hand
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT PluginFactory::loadPlugin(const char *dllname, unsigned int *handle, bool calledinternally, unsigned int priority)
+FMOD_RESULT PluginFactory::loadPlugin(const char *dllname, FMOD_PLUGINTYPE *plugintype, int *handle)
 {
     FMOD_RESULT                 result;
     FMOD_OS_LIBRARY            *dllhandle;
@@ -290,13 +259,6 @@ FMOD_RESULT PluginFactory::loadPlugin(const char *dllname, unsigned int *handle,
         FMOD_strcat(path, "/");
     }
     FMOD_strcat(path, dllname);
-
-    #if defined(PLATFORM_WINDOWS64) || defined(PLATFORM_LINUX64)
-    if (calledinternally)
-    {
-        FMOD_strcat(path, "64");
-    }
-    #endif
 
     if (FMOD_strlen(path))
     {
@@ -327,17 +289,7 @@ FMOD_RESULT PluginFactory::loadPlugin(const char *dllname, unsigned int *handle,
     result = FMOD_OS_Library_Load(path, &dllhandle);
     if (result != FMOD_OK)
     {
-        #if defined(PLATFORM_WINDOWS64) || defined(PLATFORM_LINUX64)
-        if (calledinternally)
-        {
-            char dllname64[64]; /* No internal FMOD plugin names are more than 62 characters */
-            FMOD_strcpy(dllname64, dllname);
-            FMOD_strcat(dllname64, "64");
-            result = FMOD_OS_Library_Load(dllname64, &dllhandle);    /* Try without the search path, in case they were actually using a relative path to the app */
-        }
-        #else
         result = FMOD_OS_Library_Load(dllname, &dllhandle);    /* Try without the search path, in case they were actually using a relative path to the app */
-        #endif
         if (result != FMOD_OK)
         {
             return result;
@@ -363,42 +315,42 @@ FMOD_RESULT PluginFactory::loadPlugin(const char *dllname, unsigned int *handle,
     result = FMOD_OS_Library_GetProcAddress(dllhandle, symbol, (void **)&getcodecdesc);
     if (result == FMOD_OK)
     {
-        return registerCodec(getcodecdesc(), handle, priority);
+        return registerCodec(getcodecdesc(), plugintype, handle);
     }
 
     sprintf(symbol, "%sFMODGetCodecDescriptionEx%s", beginning, end);
     result = FMOD_OS_Library_GetProcAddress(dllhandle, symbol, (void **)&getcodecdescex);
     if (result == FMOD_OK)
     {
-        return registerCodec(getcodecdescex(), handle, priority);
+        return registerCodec(getcodecdescex(), plugintype, handle);
     }
 
     sprintf(symbol, "%sFMODGetDSPDescription%s", beginning, end);
     result = FMOD_OS_Library_GetProcAddress(dllhandle, symbol, (void **)&getdspdesc);
     if (result == FMOD_OK)
     {
-        return registerDSP(getdspdesc(), handle);
+        return registerDSP(getdspdesc(), plugintype, handle);
     }
 
     sprintf(symbol, "%sFMODGetDSPDescriptionEx%s", beginning, end);
     result = FMOD_OS_Library_GetProcAddress(dllhandle, symbol, (void **)&getdspdescex);
     if (result == FMOD_OK)
     {
-        return registerDSP(getdspdescex(), handle);
+        return registerDSP(getdspdescex(), plugintype, handle);
     }
 
     sprintf(symbol, "%sFMODGetOutputDescription%s", beginning, end);
     result = FMOD_OS_Library_GetProcAddress(dllhandle, symbol, (void **)&getoutputdesc);
     if (result == FMOD_OK)
     {
-        return registerOutput(getoutputdesc(), handle);
+        return registerOutput(getoutputdesc(), plugintype, handle);
     }
 
     sprintf(symbol, "%sFMODGetOutputDescriptionEx%s", beginning, end);
     result = FMOD_OS_Library_GetProcAddress(dllhandle, symbol, (void **)&getoutputdescex);
     if (result == FMOD_OK)
     {
-        return registerOutput(getoutputdescex(), handle);
+        return registerOutput(getoutputdescex(), plugintype, handle);
     }
 
 #ifdef FMOD_SUPPORT_VSTPLUGIN
@@ -492,7 +444,7 @@ FMOD_RESULT PluginFactory::loadPlugin(const char *dllname, unsigned int *handle,
             dspdesc->paramdesc      = dspparams;
             dspdesc->numparameters  = effect->numParams;
 
-            return registerDSP(dspdesc, handle);
+            return registerDSP(dspdesc, plugintype, handle);
         }
     }
 #endif
@@ -566,7 +518,7 @@ FMOD_RESULT PluginFactory::loadPlugin(const char *dllname, unsigned int *handle,
 
             dspdesc->numparameters  = 0;
 
-            result = registerDSP(dspdesc, handle);
+            result = registerDSP(dspdesc, plugintype, handle);
         }
     }
 #endif
@@ -591,31 +543,42 @@ FMOD_RESULT PluginFactory::loadPlugin(const char *dllname, unsigned int *handle,
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT PluginFactory::unloadPlugin(unsigned int handle)
+FMOD_RESULT PluginFactory::unloadPlugin(FMOD_PLUGINTYPE plugintype, int handle)
 {
     FMOD_RESULT result;
-    FMOD_OUTPUT_DESCRIPTION_EX *output;
-    FMOD_CODEC_DESCRIPTION_EX *codec;
-    FMOD_DSP_DESCRIPTION_EX *dsp;
 
-    result = getOutput(handle, &output);
-    if (result == FMOD_OK)
+    switch (plugintype)
     {
-        #ifdef FMOD_SUPPORT_DLLS
-        if (output->mModule)
+        case FMOD_PLUGINTYPE_OUTPUT:
         {
-            FMOD_OS_Library_Free(output->mModule);
+            FMOD_OUTPUT_DESCRIPTION_EX *output;
+
+            result = getOutput(handle, &output);
+            if (result != FMOD_OK)
+            {
+                return result;
+            }
+
+            #ifdef FMOD_SUPPORT_DLLS
+            if (output->mModule)
+            {
+                FMOD_OS_Library_Free(output->mModule);
+            }
+            #endif
+            output->removeNode();
+            FMOD_Memory_Free(output);
+            break;
         }
-        #endif
-        output->removeNode();
-        FMOD_Memory_Free(output);
-        return FMOD_OK;
-    }
-    else if (result == FMOD_ERR_PLUGIN_MISSING)
-    {
-        result = getCodec(handle, &codec);
-        if (result == FMOD_OK)
+        case FMOD_PLUGINTYPE_CODEC:
         {
+            FMOD_CODEC_DESCRIPTION_EX *codec;
+
+            result = getCodec(handle, &codec);
+            if (result != FMOD_OK)
+            {
+                return result;
+            }
+
             #ifdef FMOD_SUPPORT_DLLS
             if (codec->mModule)
             {
@@ -624,35 +587,45 @@ FMOD_RESULT PluginFactory::unloadPlugin(unsigned int handle)
             #endif
             codec->removeNode();
             FMOD_Memory_Free(codec);
+            break;
         }
-        else if (result == FMOD_ERR_PLUGIN_MISSING)
+        case FMOD_PLUGINTYPE_DSP:
         {
-            result = getDSP(handle, &dsp);
-            if (result == FMOD_OK)
-            {
-                #ifdef FMOD_SUPPORT_DLLS
-                if (dsp->mAEffect)
-                {
-                    if (dsp->paramdesc)
-                    {
-                        FMOD_Memory_Free(dsp->paramdesc);
-                    }
-                }
-                #endif
+            FMOD_DSP_DESCRIPTION_EX *dsp;
 
-                #ifdef FMOD_SUPPORT_DLLS
-                if (dsp->mModule)
-                {
-                    FMOD_OS_Library_Free(dsp->mModule);
-                }
-                #endif
-                dsp->removeNode();
-                FMOD_Memory_Free(dsp);
+            result = getDSP(handle, &dsp);
+            if (result != FMOD_OK)
+            {
+                return result;
             }
+
+            #ifdef FMOD_SUPPORT_DLLS
+            if (dsp->mAEffect)
+            {
+                if (dsp->paramdesc)
+                {
+                    FMOD_Memory_Free(dsp->paramdesc);
+                }
+            }
+            #endif
+
+            #ifdef FMOD_SUPPORT_DLLS
+            if (dsp->mModule)
+            {
+                FMOD_OS_Library_Free(dsp->mModule);
+            }
+            #endif
+            dsp->removeNode();
+            FMOD_Memory_Free(dsp);
+            break;
+        }
+        default:
+        {
+            return FMOD_ERR_INVALID_PARAM;
         }
     }
 
-    return result;
+    return FMOD_OK;
 }
 
 
@@ -672,7 +645,7 @@ FMOD_RESULT PluginFactory::unloadPlugin(unsigned int handle)
 ]
 */
 // OFFSET: 0x008F3930
-FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION_EX *description, unsigned int *handle, unsigned int priority)
+FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION_EX *description, FMOD_PLUGINTYPE *plugintype, int *handle)
 {
     FMOD_CODEC_DESCRIPTION_EX *newdesc;
 
@@ -704,20 +677,16 @@ FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION_EX *description,
     newdesc->mModule                 = description->mModule;
     newdesc->reset                   = description->reset;
     newdesc->canpoint                = description->canpoint;
-    newdesc->getmusicnumchannels     = description->getmusicnumchannels;
-    newdesc->setmusicchannelvolume   = description->setmusicchannelvolume;
-    newdesc->getmusicchannelvolume   = description->getmusicchannelvolume;
-    newdesc->gethardwaremusicchannel = description->gethardwaremusicchannel;
-    newdesc->update                  = description->update;
-    newdesc->getmemoryused           = description->getmemoryused;
-    newdesc->mHandle                 = mCurrentPluginHandle++;
-    newdesc->init                    = description->init;
- 
-    newdesc->addAt(&mCodecHead, &mCodecHead, priority);
-    
+
+    newdesc->addBefore(&mCodecHead);
+
+    if (plugintype)
+    {
+        *plugintype = FMOD_PLUGINTYPE_CODEC;
+    }
     if (handle)
     {
-        *handle = newdesc->mHandle;
+        *handle = mCodecHead.getNodeIndex(newdesc);
     }
 
     return FMOD_OK;
@@ -739,7 +708,7 @@ FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION_EX *description,
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION *description, unsigned int *handle, unsigned int priority)
+FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION *description, FMOD_PLUGINTYPE *plugintype, int *handle)
 {
     FMOD_CODEC_DESCRIPTION_EX *newdesc;
 
@@ -771,19 +740,16 @@ FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION *description, un
     newdesc->mModule                 = 0;
     newdesc->reset                   = 0;
     newdesc->canpoint                = 0;
-    newdesc->getmusicnumchannels     = 0;
-    newdesc->setmusicchannelvolume   = 0;
-    newdesc->getmusicchannelvolume   = 0;
-    newdesc->gethardwaremusicchannel = 0;
-    newdesc->update                  = 0;
-    newdesc->getmemoryused           = 0;
-    newdesc->mHandle                 = mCurrentPluginHandle++;
- 
-    newdesc->addAt(&mCodecHead, &mCodecHead, priority);
-    
+
+    newdesc->addBefore(&mCodecHead);
+
+    if (plugintype)
+    {
+        *plugintype = FMOD_PLUGINTYPE_CODEC;
+    }
     if (handle)
     {
-        *handle = newdesc->mHandle;
+        *handle = mCodecHead.getNodeIndex(newdesc);
     }
 
     return FMOD_OK;
@@ -806,7 +772,7 @@ FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION *description, un
 ]
 */
 // OFFSET: 0x008F3A30
-FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION_EX *description, unsigned int *handle)
+FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION_EX *description, FMOD_PLUGINTYPE *plugintype, int *handle)
 {
     FMOD_DSP_DESCRIPTION_EX *newdesc;
 
@@ -829,7 +795,7 @@ FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION_EX *description, uns
     newdesc->reset                = description->reset;
     newdesc->read                 = description->read;
     newdesc->setposition          = description->setposition;
-                                  
+
     newdesc->numparameters         = description->numparameters;
     newdesc->paramdesc             = description->paramdesc;
     newdesc->setparameter          = description->setparameter;
@@ -838,7 +804,7 @@ FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION_EX *description, uns
     newdesc->configwidth           = description->configwidth;
     newdesc->configheight          = description->configheight;
     newdesc->userdata              = description->userdata;
-                                   
+
     newdesc->mType                 = description->mType;
     newdesc->mCategory             = description->mCategory;
     newdesc->mSize                 = description->mSize;
@@ -848,19 +814,16 @@ FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION_EX *description, uns
 #endif
     newdesc->mFormat               = description->mFormat;
     newdesc->mResamplerBlockLength = description->mResamplerBlockLength;
-    newdesc->getmemoryused         = description->getmemoryused;
-    newdesc->update                = description->update;
-    newdesc->mHandle               = mCurrentPluginHandle++;
-
-#ifdef FMOD_SUPPORT_DLLS
-    newdesc->configidle            = description->configidle;
-#endif
 
     newdesc->addBefore(&mDSPHead);
 
+    if (plugintype)
+    {
+        *plugintype = FMOD_PLUGINTYPE_DSP;
+    }
     if (handle)
     {
-        *handle = newdesc->mHandle;
+        *handle = mDSPHead.getNodeIndex(newdesc);
     }
 
     return FMOD_OK;
@@ -882,7 +845,7 @@ FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION_EX *description, uns
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION *description, unsigned int *handle)
+FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION *description, FMOD_PLUGINTYPE *plugintype, int *handle)
 {
     FMOD_DSP_DESCRIPTION_EX *newdesc;
 
@@ -905,7 +868,7 @@ FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION *description, unsign
     newdesc->reset                 = description->reset;
     newdesc->read                  = description->read;
     newdesc->setposition           = description->setposition;
-                                   
+
     newdesc->numparameters         = description->numparameters;
     newdesc->paramdesc             = description->paramdesc;
     newdesc->setparameter          = description->setparameter;
@@ -914,17 +877,20 @@ FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION *description, unsign
     newdesc->configwidth           = description->configwidth;
     newdesc->configheight          = description->configheight;
     newdesc->userdata              = description->userdata;
-                                   
+
     newdesc->mType                 = FMOD_DSP_TYPE_UNKNOWN;
     newdesc->mSize                 = sizeof(DSPI);
     newdesc->mFormat               = FMOD_SOUND_FORMAT_PCMFLOAT;
-    newdesc->mHandle               = mCurrentPluginHandle++;
 
     newdesc->addBefore(&mDSPHead);
 
+    if (plugintype)
+    {
+        *plugintype = FMOD_PLUGINTYPE_DSP;
+    }
     if (handle)
     {
-        *handle = newdesc->mHandle;
+        *handle = mDSPHead.getNodeIndex(newdesc);
     }
 
     return FMOD_OK;
@@ -947,7 +913,7 @@ FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION *description, unsign
 ]
 */
 // OFFSET: 0x008F3B60
-FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION_EX *description, unsigned int *handle)
+FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION_EX *description, FMOD_PLUGINTYPE *plugintype, int *handle)
 {
     FMOD_OUTPUT_DESCRIPTION_EX *newdesc;
 
@@ -979,8 +945,6 @@ FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION_EX *descriptio
     newdesc->unlock                 = description->unlock;
 
     newdesc->getsamplemaxchannels   = description->getsamplemaxchannels;
-    newdesc->getdriverinfo          = description->getdriverinfo;
-    newdesc->getdriverinfow         = description->getdriverinfow;
     newdesc->getdrivercapsex        = description->getdrivercapsex;
     newdesc->getdrivercapsex2       = description->getdrivercapsex2;
     newdesc->initex                 = description->initex;
@@ -990,8 +954,7 @@ FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION_EX *descriptio
     newdesc->createsample           = description->createsample;
     newdesc->getsoundram            = description->getsoundram;
     newdesc->record_getnumdrivers   = description->record_getnumdrivers;
-    newdesc->record_getdriverinfo   = description->record_getdriverinfo;
-    newdesc->record_getdriverinfow  = description->record_getdriverinfow;
+    newdesc->record_getdrivername   = description->record_getdrivername;
     newdesc->record_getdrivercaps   = description->record_getdrivercaps;
     newdesc->record_start           = description->record_start;
     newdesc->record_stop            = description->record_stop;
@@ -1003,14 +966,16 @@ FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION_EX *descriptio
     newdesc->mType                  = description->mType;
     newdesc->mSize                  = description->mSize;
     newdesc->mModule                = description->mModule;
-    newdesc->getmemoryused          = description->getmemoryused;
-    newdesc->mHandle                = mCurrentPluginHandle++;
 
     newdesc->addBefore(&mOutputHead);
 
+    if (plugintype)
+    {
+        *plugintype = FMOD_PLUGINTYPE_OUTPUT;
+    }
     if (handle)
     {
-        *handle = newdesc->mHandle;
+        *handle = mOutputHead.getNodeIndex(newdesc);
     }
 
     return FMOD_OK;
@@ -1032,7 +997,7 @@ FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION_EX *descriptio
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION *description, unsigned int *handle)
+FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION *description, FMOD_PLUGINTYPE *plugintype, int *handle)
 {
     FMOD_OUTPUT_DESCRIPTION_EX *newdesc;
 
@@ -1052,6 +1017,7 @@ FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION *description, 
     newdesc->polling        = description->polling;
     newdesc->getnumdrivers  = description->getnumdrivers;
     newdesc->getdrivername  = description->getdrivername;
+    newdesc->getdrivercaps  = description->getdrivercaps;
     newdesc->init           = description->init;
     newdesc->close          = description->close;
     newdesc->update         = description->update;
@@ -1063,14 +1029,16 @@ FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION *description, 
     newdesc->mType          = FMOD_OUTPUTTYPE_UNKNOWN;
     newdesc->mSize          = sizeof(Output);
     newdesc->mModule        = 0;
-    newdesc->getmemoryused  = 0;
-    newdesc->mHandle        = mCurrentPluginHandle++;
 
     newdesc->addBefore(&mOutputHead);
 
+    if (plugintype)
+    {
+        *plugintype = FMOD_PLUGINTYPE_OUTPUT;
+    }
     if (handle)
     {
-        *handle = newdesc->mHandle;
+        *handle = mOutputHead.getNodeIndex(newdesc);
     }
 
     return FMOD_OK;
@@ -1095,12 +1063,21 @@ FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION *description, 
 // OFFSET: 0x008F3D00
 FMOD_RESULT PluginFactory::getNumCodecs(int *numcodecs)
 {
+    FMOD_CODEC_DESCRIPTION_EX *current;
+
     if (!numcodecs)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-    
-    *numcodecs = mCodecHead.count();
+
+    *numcodecs = 0;
+
+    current = (FMOD_CODEC_DESCRIPTION_EX *)mCodecHead.getNext();
+    while (current != &mCodecHead)
+    {
+        (*numcodecs)++;
+        current = (FMOD_CODEC_DESCRIPTION_EX *)current->getNext();
+    }
 
     return FMOD_OK;
 }
@@ -1124,12 +1101,21 @@ FMOD_RESULT PluginFactory::getNumCodecs(int *numcodecs)
 // OFFSET: 0x008F3D50
 FMOD_RESULT PluginFactory::getNumDSPs(int *numdsps)
 {
+    FMOD_DSP_DESCRIPTION_EX *current;
+
     if (!numdsps)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    *numdsps = mDSPHead.count();
+    *numdsps = 0;
+
+    current = (FMOD_DSP_DESCRIPTION_EX *)mDSPHead.getNext();
+    while (current != &mDSPHead)
+    {
+        (*numdsps)++;
+        current = (FMOD_DSP_DESCRIPTION_EX *)current->getNext();
+    }
 
     return FMOD_OK;
 }
@@ -1153,120 +1139,21 @@ FMOD_RESULT PluginFactory::getNumDSPs(int *numdsps)
 // OFFSET: 0x008F3DA0
 FMOD_RESULT PluginFactory::getNumOutputs(int *numoutputs)
 {
+    FMOD_OUTPUT_DESCRIPTION_EX *current;
+
     if (!numoutputs)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-    
-    *numoutputs = mOutputHead.count();
 
-    return FMOD_OK;
-}
+    *numoutputs = 0;
 
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT PluginFactory::getCodecHandle(int index, unsigned int *handle)
-{
-    LinkedListNode *node;
-
-    if (!handle)
+    current = (FMOD_OUTPUT_DESCRIPTION_EX *)mOutputHead.getNext();
+    while (current != &mOutputHead)
     {
-        return FMOD_ERR_INVALID_PARAM;
+        (*numoutputs)++;
+        current = (FMOD_OUTPUT_DESCRIPTION_EX *)current->getNext();
     }
-    
-    node = mCodecHead.getNodeByIndex(index);
-    if (!node)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-    
-    *handle = ((FMOD_CODEC_DESCRIPTION_EX *)node)->mHandle;      
-    
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT PluginFactory::getDSPHandle(int index, unsigned int *handle)
-{
-    LinkedListNode *node;
-
-    if (!handle)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-    
-    node = mDSPHead.getNodeByIndex(index);
-    if (!node)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-    
-    *handle = ((FMOD_DSP_DESCRIPTION_EX *)node)->mHandle;      
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT PluginFactory::getOutputHandle(int index, unsigned int *handle)
-{
-    LinkedListNode *node;
-
-    if (!handle)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-    
-    node = mOutputHead.getNodeByIndex(index);
-    if (!node)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    *handle = ((FMOD_OUTPUT_DESCRIPTION_EX *)node)->mHandle;      
 
     return FMOD_OK;
 }
@@ -1288,30 +1175,32 @@ FMOD_RESULT PluginFactory::getOutputHandle(int index, unsigned int *handle)
 ]
 */
 // OFFSET: 0x008F3DF0
-FMOD_RESULT PluginFactory::getCodec(unsigned int handle, FMOD_CODEC_DESCRIPTION_EX **codecdesc)
+FMOD_RESULT PluginFactory::getCodec(int handle, FMOD_CODEC_DESCRIPTION_EX **codecdesc)
 {
-    FMOD_CODEC_DESCRIPTION_EX *head, *current;
+    FMOD_CODEC_DESCRIPTION_EX *current;
+    int count;
 
     if (!codecdesc)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-    
+
     *codecdesc = 0;
 
-    head = &mCodecHead;
-    current = (FMOD_CODEC_DESCRIPTION_EX *)(head->getNext());
-    while (current != head)
+    count = 0;
+    current = (FMOD_CODEC_DESCRIPTION_EX *)mCodecHead.getNext();
+    while (current != &mCodecHead)
     {
-        if (current->mHandle == handle)
+        if (count == handle)
         {
             *codecdesc = current;
             return FMOD_OK;
         }
 
-        current = (FMOD_CODEC_DESCRIPTION_EX *)(current->getNext());
+        count++;
+        current = (FMOD_CODEC_DESCRIPTION_EX *)current->getNext();
     }
-       
+
     return FMOD_ERR_PLUGIN_MISSING;
 }
 
@@ -1332,9 +1221,10 @@ FMOD_RESULT PluginFactory::getCodec(unsigned int handle, FMOD_CODEC_DESCRIPTION_
 ]
 */
 // OFFSET: 0x008F3E60
-FMOD_RESULT PluginFactory::getDSP(unsigned int handle, FMOD_DSP_DESCRIPTION_EX **dspdesc)
+FMOD_RESULT PluginFactory::getDSP(int handle, FMOD_DSP_DESCRIPTION_EX **dspdesc)
 {
-    FMOD_DSP_DESCRIPTION_EX *head, *current;
+    FMOD_DSP_DESCRIPTION_EX *current;
+    int count;
 
     if (!dspdesc)
     {
@@ -1343,17 +1233,18 @@ FMOD_RESULT PluginFactory::getDSP(unsigned int handle, FMOD_DSP_DESCRIPTION_EX *
 
     *dspdesc = 0;
 
-    head     = &mDSPHead;
-    current  = (FMOD_DSP_DESCRIPTION_EX *)(head->getNext());
-    while (current != head)
+    count = 0;
+    current = (FMOD_DSP_DESCRIPTION_EX *)mDSPHead.getNext();
+    while (current != &mDSPHead)
     {
-        if (current->mHandle == handle)
+        if (count == handle)
         {
             *dspdesc = current;
             return FMOD_OK;
         }
 
-        current = (FMOD_DSP_DESCRIPTION_EX *)(current->getNext());
+        count++;
+        current = (FMOD_DSP_DESCRIPTION_EX *)current->getNext();
     }
 
     return FMOD_ERR_PLUGIN_MISSING;
@@ -1376,30 +1267,32 @@ FMOD_RESULT PluginFactory::getDSP(unsigned int handle, FMOD_DSP_DESCRIPTION_EX *
 ]
 */
 // OFFSET: 0x008F3ED0
-FMOD_RESULT PluginFactory::getOutput(unsigned int handle, FMOD_OUTPUT_DESCRIPTION_EX **outputdesc)
+FMOD_RESULT PluginFactory::getOutput(int handle, FMOD_OUTPUT_DESCRIPTION_EX **outputdesc)
 {
-    FMOD_OUTPUT_DESCRIPTION_EX *head, *current;
+    FMOD_OUTPUT_DESCRIPTION_EX *current;
+    int count;
 
     if (!outputdesc)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    *outputdesc = 0;    
+    *outputdesc = 0;
 
-    head = &mOutputHead;
-    current = (FMOD_OUTPUT_DESCRIPTION_EX *)(head->getNext());
-    while (current != head)
+    count = 0;
+    current = (FMOD_OUTPUT_DESCRIPTION_EX *)mOutputHead.getNext();
+    while (current != &mOutputHead)
     {
-        if (current->mHandle == handle)
+        if (count == handle)
         {
             *outputdesc = current;
             return FMOD_OK;
         }
 
-        current = (FMOD_OUTPUT_DESCRIPTION_EX *)(current->getNext());
+        count++;
+        current = (FMOD_OUTPUT_DESCRIPTION_EX *)current->getNext();
     }
-        
+
     return FMOD_ERR_PLUGIN_MISSING;
 }
 
@@ -1426,22 +1319,15 @@ FMOD_RESULT PluginFactory::createCodec(FMOD_CODEC_DESCRIPTION_EX *codecdesc, Cod
 
     if (!codecdesc || !codec)
     {
-        return FMOD_ERR_INVALID_PARAM;      
+        return FMOD_ERR_INVALID_PARAM;
     }
 
-    /*
-        Maybe this should call an 'alloc callback' to let the codec allocate itself?
-        This would allow the object to use proper inheritence etc.  'Codec' is not good enough.
-
-        the 'Ex' stuff could possibly be deleted if it did this, as the hidden stuff could just
-        be a member of the codec class and the codecs just derive from it anyway?
-    */
     newcodec = FMOD_Object_CallocSize(Codec, (unsigned int)codecdesc->mSize);
     if (!newcodec)
     {
         return FMOD_ERR_MEMORY;
     }
-    
+
     /*
         Copy the description out of the source codec to the new codec.
     */
@@ -1478,15 +1364,12 @@ FMOD_RESULT PluginFactory::createCodec(FMOD_CODEC_DESCRIPTION_EX *codecdesc, Cod
 FMOD_RESULT PluginFactory::createDSP(FMOD_DSP_DESCRIPTION_EX *dspdesc, DSPI **dsp)
 {
     FMOD_RESULT result;
-    #ifdef PLATFORM_PS3
-    DSPI *newdspmemory = 0;
-    #endif
     DSPI *newdsp;
     unsigned int size = 0;
 
     if (!dspdesc || !dsp)
     {
-        return FMOD_ERR_INVALID_PARAM;      
+        return FMOD_ERR_INVALID_PARAM;
     }
 
     size = dspdesc->mSize;
@@ -1500,230 +1383,33 @@ FMOD_RESULT PluginFactory::createDSP(FMOD_DSP_DESCRIPTION_EX *dspdesc, DSPI **ds
         switch (dspdesc->mCategory)
         {
             case FMOD_DSP_CATEGORY_SOUNDCARD:
-#if !defined(PLATFORM_PS3) && !defined(PLATFORM_WINDOWS_PS3MODE)
             {
-                dspdesc->mSize = dspdesc->mSize < sizeof(DSPSoundCard) ? sizeof(DSPSoundCard) : (int)size;
-
-                newdsp = FMOD_Object_CallocSize(DSPSoundCard, (unsigned int)dspdesc->mSize);
+                newdsp = FMOD_Object_CallocSize(DSPSoundCard, size);
                 break;
             }
-#endif
             case FMOD_DSP_CATEGORY_FILTER:
             {
-                #ifdef PLATFORM_PS3
-
-                size = dspdesc->mSize < (int)sizeof(DSPFilter) ? sizeof(DSPFilter) : dspdesc->mSize;
-                size = (size + 15) & ~15;
-
-                if (size > DSPSIZE)
-                {
-                    FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "PluginFactory::createDSP", "DSP unit of size %d is too big! Must be <= %d\n", size, DSPSIZE));
-                    return FMOD_ERR_INTERNAL;
-                }
-
-                dspdesc->mSize = size;
-
-                newdspmemory = (DSPI *)FMOD_Memory_Calloc(size + 128);
-                if (!newdspmemory)
-                {
-                    return FMOD_ERR_MEMORY;
-                }
-                newdsp = (DSPI *)FMOD_ALIGNPOINTER(newdspmemory, 128);
-
-                if (
-                     FMOD_strcmp ("FMOD SoundCard Unit", dspdesc->name)           && 
-                     FMOD_strcmp ("FMOD ChannelGroup Target Unit", dspdesc->name) &&
-                     FMOD_strcmp ("FMOD Mixer unit", dspdesc->name)               &&
-                     FMOD_strncmp("ChannelGroup", dspdesc->name, 12)              &&
-                    (FMOD_strncmp("FMOD IT", dspdesc->name, 7) || dspdesc->mType == FMOD_DSP_TYPE_ITLOWPASS || dspdesc->mType == FMOD_DSP_TYPE_ITECHO)    /* It DSP units remain on PPU, IT lowpass can be used as a normal effect on SPU */
-                    )
-                {                
-                    /*
-                        Is an FMOD effect, or USER effect that needs to be streamed onto SPU
-                    */
-                    int totalsize = 0;
-                    int clearsize = 0;
-
-                    // FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "PluginFactory::createDSP", "Getting SPU PIC details for %s\n", dspdesc->name));
-
-                    /*
-                        Get info about the pic
-                    */
-                    result = OutputPS3::getSPUPICProperties((unsigned int)dspdesc->read, &newdsp->mCodeMramAddress, &newdsp->mCodeEntryAddress, &newdsp->mCodeSize, &newdsp->mCodeLSOffset, &newdsp->mCodeFillLocation, &newdsp->mCodeFillSize, &newdsp->mCodeFillValue);
-                    if (result != FMOD_OK)
-                    {
-                        FMOD_Memory_Free(newdspmemory);
-                        return result;
-                    }
-
-                    clearsize = newdsp->mCodeFillLocation - newdsp->mCodeSize + newdsp->mCodeFillSize;
-                    clearsize = clearsize < 0 ? 0 : clearsize;
-                    totalsize = dspdesc->mSize + newdsp->mCodeSize + clearsize;
-
-                    if (totalsize > DSPSIZE)
-                    {
-                        FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "PluginFactory::createDSP", "DSP unit (+ PIC code) of size %d is too big! Must be <= %d\n", totalsize, DSPSIZE));
-                        return FMOD_ERR_INTERNAL;
-                    }
-
-                    // FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "PluginFactory::createDSP", "DSP unit (+ PIC code) size: %d\n", totalsize));
-
-                    dspdesc->config = (FMOD_DSP_DIALOGCALLBACK)1;    /* Tell SPU to upload code */
-                }
-                else
-                {
-                    dspdesc->config = (FMOD_DSP_DIALOGCALLBACK)0;
-                }
-
-                #else
-            
-                dspdesc->mSize = size < sizeof(DSPFilter) ? sizeof(DSPFilter) : size;
-
-                newdsp = (DSPI *)FMOD_Memory_Calloc(dspdesc->mSize);
+                size = size < sizeof(DSPFilter) ? sizeof(DSPFilter) : size;
+                newdsp = (DSPI *)FMOD_Memory_Calloc(size);
                 if (!newdsp)
                 {
                     return FMOD_ERR_MEMORY;
                 }
-
-                #endif
-
                 new (newdsp) DSPFilter;
-                
                 break;
             }
 #ifdef FMOD_SUPPORT_DSPCODEC
             case FMOD_DSP_CATEGORY_DSPCODECMPEG:
             case FMOD_DSP_CATEGORY_DSPCODECADPCM:
             case FMOD_DSP_CATEGORY_DSPCODECXMA:
-            case FMOD_DSP_CATEGORY_DSPCODECCELT:
             case FMOD_DSP_CATEGORY_DSPCODECRAW:
             {
-            #ifdef PLATFORM_PS3
-                size = dspdesc->mSize < (int)sizeof(DSPCodec) ? sizeof(DSPCodec) : dspdesc->mSize;
-                size = (size + 15) & ~15;
-
-                if (size > DSPSIZE)
-                {
-                    FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "PluginFactory::createDSP", "DSP unit of size %d is too big! Must be <= %d\n", size, DSPSIZE));
-                    return FMOD_ERR_INTERNAL;
-                }
-
-                dspdesc->mSize = size;
-
-                newdspmemory = (DSPI *)FMOD_Memory_CallocType(size + 16, FMOD_MEMORY_PERSISTENT);
-                if (!newdspmemory)
-                {
-                    return FMOD_ERR_MEMORY;
-                }
-
-                newdsp = (DSPI *)FMOD_ALIGNPOINTER(newdspmemory, 16);
-
-                {                
-                    int totalsize = 0;
-                    unsigned int codec_entry = 0;
-
-                    /*
-                        Get code address from codec
-                    */
-                    
-                    switch(dspdesc->mCategory)
-                    {
-                    #ifdef FMOD_SUPPORT_RAW
-                    case FMOD_DSP_CATEGORY_DSPCODECRAW:
-                        {
-                            CodecRaw codecraw;
-                            codec_entry = (unsigned int)codecraw.getDescriptionEx()->mModule;
-
-                            //FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "PluginFactory::createDSP", "Getting SPU PIC details for %s (%s)\n", dspdesc->name, codecraw.getDescriptionEx()->name));
-
-                            /*
-                                Get info about the pic
-                            */
-                            result = OutputPS3::getSPUPICProperties(codec_entry, &newdsp->mCodeMramAddress, &newdsp->mCodeEntryAddress, &newdsp->mCodeSize, &newdsp->mCodeLSOffset, &newdsp->mCodeFillLocation, &newdsp->mCodeFillSize, &newdsp->mCodeFillValue);
-                            if (result != FMOD_OK)
-                            {
-                                FMOD_Memory_Free(newdspmemory);
-                                return result;
-                            }
-                            break;
-                        }
-                    #endif
-                    #ifdef FMOD_SUPPORT_IMAADPCM
-                    case FMOD_DSP_CATEGORY_DSPCODECADPCM:
-                        {
-                            CodecWav codecwav;
-                            codec_entry = (unsigned int)codecwav.getDescriptionEx()->mModule;
-
-                            
-                            //FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "PluginFactory::createDSP", "Getting SPU PIC details for %s (%s)\n", dspdesc->name, codecwav.getDescriptionEx()->name));
-
-                            /*
-                                Get info about the pic
-                            */
-                            result = OutputPS3::getSPUPICProperties(codec_entry, &newdsp->mCodeMramAddress, &newdsp->mCodeEntryAddress, &newdsp->mCodeSize, &newdsp->mCodeLSOffset, &newdsp->mCodeFillLocation, &newdsp->mCodeFillSize, &newdsp->mCodeFillValue);
-                            if (result != FMOD_OK)
-                            {
-                                FMOD_Memory_Free(newdspmemory);
-                                return result;
-                            }
-                            break;
-                        }
-                    #endif
-                    #if defined(FMOD_SUPPORT_MPEG) && defined(FMOD_SUPPORT_MPEG_LAYER3) && !defined(FMOD_SUPPORT_MPEG_SONYDECODER)
-                    case FMOD_DSP_CATEGORY_DSPCODECMPEG:
-                        {
-                            CodecMPEG codecmpeg;
-
-                            codec_entry = (unsigned int)FMODGetMPEGFunctionsPICDescriptionEx()->entry;
-   
-                            //FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "PluginFactory::createDSP", "Getting SPU PIC details for %s (%s)\n", dspdesc->name, codecmpeg.getDescriptionEx()->name));
-
-                            /*
-                                Get info about the pic
-                            */
-                            result = OutputPS3::getSPUPICProperties(codec_entry, &newdsp->mCodeMramAddress, &newdsp->mCodeEntryAddress, &newdsp->mCodeSize, &newdsp->mCodeLSOffset, &newdsp->mCodeFillLocation, &newdsp->mCodeFillSize, &newdsp->mCodeFillValue);
-                            if (result != FMOD_OK)
-                            {
-                                FMOD_Memory_Free(newdspmemory);
-                                return result;
-                            }
-                            break;
-                        }
-                    #endif
-                    default:
-                        break;
-                    }
-
-                    totalsize = dspdesc->mSize + newdsp->mCodeSize + newdsp->mCodeFillSize;
-
-                    if (totalsize > DSPSIZE)
-                    {
-                        FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "PluginFactory::createDSP", "DSP unit (+ PIC code) of size %d is too big! Must be <= %d\n", totalsize, DSPSIZE));
-                        return FMOD_ERR_INTERNAL;
-                    }
-
-                    //FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "PluginFactory::createDSP", "DSP unit (+ PIC code) size: %d\n", totalsize));
-                }
-            #else
-                FMOD_MEMORY_TYPE memtype;
-           
                 size = size < sizeof(DSPCodec) ? sizeof(DSPCodec) : size;
-
-                memtype = FMOD_MEMORY_PERSISTENT;
-               
-                #ifdef PLATFORM_XENON
-                if (dspdesc->mCategory == FMOD_DSP_CATEGORY_DSPCODECXMA)
-                {
-                    memtype |= FMOD_MEMORY_XBOX360_PHYSICAL;
-                }
-                #endif
-               
-                newdsp = (DSPI *)FMOD_Memory_CallocType(size, memtype);
+                newdsp = (DSPI *)FMOD_Memory_Calloc(size);
 				if (!newdsp)
                 {
                     return FMOD_ERR_MEMORY;
-                }          
-            #endif
+                }
 
                 if (0)
                 {
@@ -1746,12 +1432,6 @@ FMOD_RESULT PluginFactory::createDSP(FMOD_DSP_DESCRIPTION_EX *dspdesc, DSPI **ds
                     new (newdsp) DSPCodecXMA;
                 }
                 #endif
-                #ifdef FMOD_SUPPORT_CELT
-                else if (dspdesc->mCategory == FMOD_DSP_CATEGORY_DSPCODECCELT)
-                {
-                    new (newdsp) DSPCodecCELT;
-                }
-                #endif
                 #ifdef FMOD_SUPPORT_RAW
                 else if (dspdesc->mCategory == FMOD_DSP_CATEGORY_DSPCODECRAW)
                 {
@@ -1767,88 +1447,24 @@ FMOD_RESULT PluginFactory::createDSP(FMOD_DSP_DESCRIPTION_EX *dspdesc, DSPI **ds
 #endif
             case FMOD_DSP_CATEGORY_RESAMPLER:
             {
-                #ifdef PLATFORM_PS3
-
-                size = size < sizeof(DSPResamplerPS3) ? sizeof(DSPResamplerPS3) : size;
-                size = (size + 15) & ~15;
-
-                if (size > DSPSIZE)
-                {
-                    FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "PluginFactory::createDSP", "DSP unit of size %d is too big! Must be <= %d\n", size));
-                    return FMOD_ERR_MEMORY;
-                }
-
-                dspdesc->mSize = size;
-
-                newdspmemory = (DSPI *)FMOD_Memory_Calloc(size + 16);
-                if (!newdspmemory)
-                {
-                    return FMOD_ERR_MEMORY;
-                }
-
-                newdsp = (DSPI *)FMOD_ALIGNPOINTER(newdspmemory, 16);
-            
-                #else
-            
-                #ifdef PLATFORM_WINDOWS_PS3MODE
-                size = size < sizeof(DSPResampler) ? sizeof(DSPResampler) : size;
-                #else
                 size = size < sizeof(DSPResamplerMultiInput) ? sizeof(DSPResamplerMultiInput) : size;
-                #endif
-
                 newdsp = (DSPI *)FMOD_Memory_Calloc(size);
                 if (!newdsp)
                 {
                     return FMOD_ERR_MEMORY;
                 }
-            
-                #endif
-
-                #if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-                new (newdsp) DSPResampler;
-                #else
                 new (newdsp) DSPResamplerMultiInput;
-                #endif
-
                 break;
             }
             case FMOD_DSP_CATEGORY_WAVETABLE:
             {
-                #ifdef PLATFORM_PS3
-
-                size = dspdesc->mSize < (int)sizeof(DSPWaveTable) ? sizeof(DSPWaveTable) : dspdesc->mSize;
-                size = (size + 15) & ~15;
-
-                if (size > DSPSIZE)
-                {
-                    FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "PluginFactory::createDSP", "DSP unit of size %d is too big! Must be <= %d\n", size));
-                    return FMOD_ERR_INTERNAL;
-                }
-
-                dspdesc->mSize = size;
-
-                newdspmemory = (DSPI *)FMOD_Memory_Calloc(size + 16);
-                if (!newdspmemory)
-                {
-                    return FMOD_ERR_MEMORY;
-                }
-
-                newdsp = (DSPI *)FMOD_ALIGNPOINTER(newdspmemory, 16);
-            
-                #else
-            
                 size = size < sizeof(DSPWaveTable) ? sizeof(DSPWaveTable) : size;
-
                 newdsp = (DSPI *)FMOD_Memory_Calloc(size);
                 if (!newdsp)
                 {
                     return FMOD_ERR_MEMORY;
                 }
-            
-                #endif
-
                 new (newdsp) DSPWaveTable;
-
                 break;
             }
             default:
@@ -1865,15 +1481,11 @@ FMOD_RESULT PluginFactory::createDSP(FMOD_DSP_DESCRIPTION_EX *dspdesc, DSPI **ds
     }
 
     newdsp->mSystem = mSystem;
-       
+
     result = newdsp->alloc(dspdesc);
     if (result != FMOD_OK)
     {
-        #ifdef PLATFORM_PS3
-        FMOD_Memory_Free(newdspmemory);
-        #else
         FMOD_Memory_Free(newdsp);
-        #endif
         return result;
     }
 
@@ -1889,19 +1501,9 @@ FMOD_RESULT PluginFactory::createDSP(FMOD_DSP_DESCRIPTION_EX *dspdesc, DSPI **ds
                 if (effect->magic == kEffectMagic)
                 {
                     ((DSPVSTPlugin *)newdsp)->mEffect = effect;
-
-                    LinkedListNode *newvstnode = FMOD_Object_Calloc(LinkedListNode);
-                    if (!newvstnode)
-                    {
-                        return FMOD_ERR_MEMORY;
-                    }
-
-                    newvstnode->setData((void *)newdsp);
-                    newvstnode->addAfter(&mSystem->mVSTPluginsListHead);
                 }
             }
             #endif
-
             #ifdef FMOD_SUPPORT_WINAMPPLUGIN
             {
                 winampDSPModule *effect = (winampDSPModule *)dspdesc->mAEffect;
@@ -1920,19 +1522,10 @@ FMOD_RESULT PluginFactory::createDSP(FMOD_DSP_DESCRIPTION_EX *dspdesc, DSPI **ds
         result = dspdesc->create((FMOD_DSP_STATE *)newdsp);
         if (result != FMOD_OK)
         {
-            #ifdef PLATFORM_PS3
-            FMOD_Memory_Free(newdspmemory);
-            #else
             FMOD_Memory_Free(newdsp);
-            #endif
             return result;
         }
     }
-
-    #ifdef PLATFORM_PS3
-    newdsp->mMemory      = newdspmemory;
-    newdsp->mMramAddress = (unsigned int)newdsp;
-    #endif
 
     *dsp = newdsp;
 
@@ -2021,32 +1614,5 @@ FMOD_RESULT PluginFactory::createOutput(FMOD_OUTPUT_DESCRIPTION_EX *outputdesc, 
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT PluginFactory::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    LinkedListNode *node;
-
-    tracker->add(false, FMOD_MEMBITS_PLUGINS, sizeof(*this));
-
-    for (node = mCodecHead.getNext(); node != &mCodecHead; node = node->getNext())
-    {
-        tracker->add(false, FMOD_MEMBITS_PLUGINS, sizeof(FMOD_CODEC_DESCRIPTION_EX));
-    }
-
-    for (node = mDSPHead.getNext(); node != &mDSPHead; node = node->getNext())
-    {
-        tracker->add(false, FMOD_MEMBITS_PLUGINS, sizeof(FMOD_DSP_DESCRIPTION_EX));
-    }
-
-    for (node = mOutputHead.getNext(); node != &mOutputHead; node = node->getNext())
-    {
-        tracker->add(false, FMOD_MEMBITS_PLUGINS, sizeof(FMOD_OUTPUT_DESCRIPTION_EX));
-    }
-
-    return FMOD_OK;
-}
-
-#endif
 
 }

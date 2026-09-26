@@ -679,7 +679,7 @@ FMOD_RESULT CodecFLAC::setPositionInternal(int subsound, unsigned int position, 
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (mFile->mFlags & FMOD_FILE_SEEKABLE)
+    if (mFile->mSeekable)
     {  
         /*
             NOTE!  I think there is a stack corruption in this function.

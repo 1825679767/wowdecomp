@@ -74,6 +74,7 @@ FMOD_DSP_PARAMETERDESC dspcompressor_param[4] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ac8f2ea9 auto
 // OFFSET: 0x008EAB70
 FMOD_DSP_DESCRIPTION_EX *DSPCompressor::getDescriptionEx()
 {
@@ -94,9 +95,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPCompressor::getDescriptionEx()
     dspcompressor.paramdesc     = dspcompressor_param;
     dspcompressor.setparameter  = DSPCompressor::setParameterCallback;
     dspcompressor.getparameter  = DSPCompressor::getParameterCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dspcompressor.getmemoryused = &DSPCompressor::getMemoryUsedCallback;
-#endif
 
     dspcompressor.mType         = FMOD_DSP_TYPE_COMPRESSOR;
     dspcompressor.mCategory     = FMOD_DSP_CATEGORY_FILTER;
@@ -125,6 +123,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPCompressor::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dce2b16d auto
 // OFFSET: 0x008EA4C0
 FMOD_RESULT DSPCompressor::createInternal()
 {
@@ -179,175 +178,66 @@ FMOD_RESULT DSPCompressor::readInternal(float *inbuffer, float *outbuffer, unsig
     float release_constant = mRelease_constant;
     float gainmakeup_lin   = mGainMakeup_lin;
 
-    if (!inbuffer)
+    for (sample = 0; sample < length; sample++)
     {
-        return FMOD_OK;
-    }
+        unsigned int  base       = sample * inchannels;
+        float        *sample_in  = &(inbuffer[base]);
+        float        *sample_out = &(outbuffer[base]);
+        float         in_max     = 0.0f;
+        float         over;
 
-	if (!(speakermask & ((1 << inchannels)-1))) /*No speaker channels are active, copy in buffer to out buffer and skip the DSP*/
-	{
-		FMOD_memcpy(outbuffer, inbuffer, sizeof(float)*length*inchannels);
-		return FMOD_OK;
-	}
-    /*
-		if ( (++peakTimer_ >= peakHold_) || (keyLink > maxPeak_) ) {
-			// if either condition is met:
-			peakTimer_ = 0;		// reset peak timer
-			maxPeak_ = keyLink;	// assign new peak to max peak
-		}
-		// attack/release
-		if ( maxPeak_ > env_ )
-			att_.run( maxPeak_, env_ );		// run attack phase
-		else
-			rel_.run( maxPeak_, env_ );		// run release phase
-    */
-
-    if ((speakermask & ((1 << inchannels)-1)) != ((1 << inchannels)-1))
-    {
-        for (sample = 0; sample < length; sample++)
+        for (channel = 0; channel < inchannels; channel++)
         {
-            unsigned int  base       = sample * inchannels;
-            float        *sample_in  = &(inbuffer[base]);
-            float        *sample_out = &(outbuffer[base]);
-            float         in_max     = 0.0f;
-            float         over;
+            float *m;
 
-            for (channel = 0; channel < inchannels; channel++)
+            x = sample_in[channel];
+            m = &(mMaxChannelIn[channel]);
+
+            in_abs = (x<0.0f) ? -x : x;          // ABS input
+
+            *m -= holdconstant;                 // Leak hold
+
+            if (in_abs > *m)                     // Hold new max
             {
-                if ((1 << channel) & speakermask)
-				{
-                    float *m;
-
-                    x = sample_in[channel];
-                    m = &(mMaxChannelIn[channel]);
-
-                    in_abs = (x<0.0f) ? -x : x;          // ABS input
-
-                    *m -= holdconstant;                 // Leak hold
-
-                    if (in_abs > *m)                     // Hold new max
-                    {
-                        *m = in_abs;
-                    }
-
-                    if (*m > in_max)                     // Update total max
-                    {
-                        in_max = *m;
-                    }
-                }
+                *m = in_abs;
             }
 
-            // Note: This uses linear gain curves, not dB
-            // dB is better but more costly
-
-            // Over = linear ratio of input:threshold
-            over = in_max/threshold_lin;
-            
-            // Apply attack or release curve to over
-            // to obtain gain reduction
-            if (over > 1.0f)
+            if (*m > in_max)                     // Update total max
             {
-                mGain = over + attack_constant * (mGain-over);
-            }
-            else
-            {
-                mGain = over + release_constant * (mGain-over);
-            }
-
-            // Apply gain reduction to output if reduction exists.
-            if (mGain > 1.0f)
-            {
-                for (channel = 0; channel < inchannels; channel++)
-                {
-				    if (!((1 << channel) & speakermask))
-				    {
-					    sample_out[channel] = sample_in[channel];
-				    }
-				    else
-				    {
-					    sample_out[channel] = gainmakeup_lin * sample_in[channel] / mGain;
-				    }
-                }
-            }
-            else
-            {
-                for (channel = 0; channel < inchannels; channel++)
-                {
-				    if (!((1 << channel) & speakermask))
-				    {
-					    sample_out[channel] = sample_in[channel];
-				    }
-				    else
-				    {
-					    sample_out[channel] = gainmakeup_lin * sample_in[channel];
-				    }
-                }
+                in_max = *m;
             }
         }
-    }
-    else
-    {
-        for (sample = 0; sample < length; sample++)
-        {
-            unsigned int  base       = sample * inchannels;
-            float        *sample_in  = &(inbuffer[base]);
-            float        *sample_out = &(outbuffer[base]);
-            float         in_max     = 0.0f;
-            float         over;
 
+        // Note: This uses linear gain curves, not dB
+        // dB is better but more costly
+
+        // Over = linear ratio of input:threshold
+        over = in_max/threshold_lin;
+        
+        // Apply attack or release curve to over
+        // to obtain gain reduction
+        if (over > 1.0f)
+        {
+            mGain = over + attack_constant * (mGain-over);
+        }
+        else
+        {
+            mGain = over + release_constant * (mGain-over);
+        }
+
+        // Apply gain reduction to output if reduction exists.
+        if (mGain > 1.0f)
+        {
             for (channel = 0; channel < inchannels; channel++)
             {
-                float *m;
-
-                x = sample_in[channel];
-                m = &(mMaxChannelIn[channel]);
-
-                in_abs = (x<0.0f) ? -x : x;          // ABS input
-
-                *m -= holdconstant;                 // Leak hold
-
-                if (in_abs > *m)                     // Hold new max
-                {
-                    *m = in_abs;
-                }
-
-                if (*m > in_max)                     // Update total max
-                {
-                    in_max = *m;
-                }
+					sample_out[channel] = sample_in[channel] / mGain * gainmakeup_lin;
             }
-
-            // Note: This uses linear gain curves, not dB
-            // dB is better but more costly
-
-            // Over = linear ratio of input:threshold
-            over = in_max/threshold_lin;
-            
-            // Apply attack or release curve to over
-            // to obtain gain reduction
-            if (over > 1.0f)
+        }
+        else
+        {
+            for (channel = 0; channel < inchannels; channel++)
             {
-                mGain = over + attack_constant * (mGain-over);
-            }
-            else
-            {
-                mGain = over + release_constant * (mGain-over);
-            }
-
-            // Apply gain reduction to output if reduction exists.
-            if (mGain > 1.0f)
-            {
-                for (channel = 0; channel < inchannels; channel++)
-                {
-					sample_out[channel] = gainmakeup_lin * sample_in[channel] / mGain;
-                }
-            }
-            else
-            {
-                for (channel = 0; channel < inchannels; channel++)
-                {
 					sample_out[channel] = gainmakeup_lin * sample_in[channel];
-                }
             }
         }
     }
@@ -374,6 +264,7 @@ FMOD_RESULT DSPCompressor::readInternal(float *inbuffer, float *outbuffer, unsig
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fd98750c auto
 // OFFSET: 0x008EA8D0
 FMOD_RESULT DSPCompressor::setParameterInternal(int index, float value)
 {
@@ -458,6 +349,7 @@ FMOD_RESULT DSPCompressor::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 35ddee41 auto
 // OFFSET: 0x008EA9F0
 FMOD_RESULT DSPCompressor::getParameterInternal(int index, float *value, char *valuestr)
 {
@@ -510,16 +402,6 @@ FMOD_RESULT DSPCompressor::getParameterInternal(int index, float *value, char *v
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPCompressor::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    // Size of this class is already accounted for (via description.mSize). Just add extra allocated memory here.
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 /*
@@ -573,6 +455,7 @@ FMOD_RESULT F_CALLBACK DSPCompressor::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1c349ee6 auto
 // OFFSET: 0x008EAAD0
 FMOD_RESULT F_CALLBACK DSPCompressor::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -624,6 +507,7 @@ FMOD_RESULT F_CALLBACK DSPCompressor::setParameterCallback(FMOD_DSP_STATE *dsp, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f1c679cc auto
 // OFFSET: 0x008EAB40
 FMOD_RESULT F_CALLBACK DSPCompressor::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
@@ -633,29 +517,6 @@ FMOD_RESULT F_CALLBACK DSPCompressor::getParameterCallback(FMOD_DSP_STATE *dsp, 
 }
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPCompressor::getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker)
-{
-    DSPCompressor *compressor = (DSPCompressor *)dsp;
-
-    return compressor->DSPCompressor::getMemoryUsed(tracker);
-}
-#endif
 
 #endif //!PLATFORM_PS3_SPU
 

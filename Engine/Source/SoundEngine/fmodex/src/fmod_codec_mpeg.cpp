@@ -582,14 +582,13 @@ FMOD_RESULT CodecMPEG::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
     }
     mMemoryBlock = (CodecMPEG_MemoryBlock *)FMOD_ALIGNPOINTER(mMemoryBlockMemory, 16);
 
-    mMemoryBlock->mHasXingNumFrames  = false;
-    mMemoryBlock->mHasXingToc        = false;
-
     #ifndef FMOD_SUPPORT_MPEG_SONYDECODER
     mMemoryBlock->mFrameSizeOld      = -1;
 	mMemoryBlock->mSynthBo           = 1;
-    mMemoryBlock->mSynthBuffs        = (float *)FMOD_ALIGNPOINTER(mMemoryBlock->mSynthBuffsMem, 16);
     #endif
+
+    mMemoryBlock->mHasXingNumFrames  = false;
+    mMemoryBlock->mHasXingToc        = false;
 
 	/*
 	    Scan the next 4k or more for a valid header..(arent i nice)
@@ -784,7 +783,7 @@ FMOD_RESULT CodecMPEG::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
     framesize += 1;
 	framesize &= ~1;
 
-	if (usermode & FMOD_ACCURATETIME && mFile->mFlags & FMOD_FILE_SEEKABLE)
+	if (usermode & FMOD_ACCURATETIME && mFile->mSeekable)
 	{
 		result = mFile->seek(mSrcDataOffset, SEEK_SET);
 
@@ -1078,7 +1077,7 @@ FMOD_RESULT CodecMPEG::readInternal(void *buffer, unsigned int sizebytes, unsign
 				    result = FMOD_ERR_FILE_BAD;
                 }
 
-                if (mFile->mFlags & FMOD_FILE_SEEKABLE)
+                if (mFile->mSeekable)
                 {
                     mFile->seek(oldpos, SEEK_SET);
                 }
@@ -1515,9 +1514,7 @@ FMOD_RESULT CodecMPEG::setPositionInternal(int subsound, unsigned int position, 
 // OFFSET: 0x008F6360
 FMOD_RESULT CodecMPEG::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 {
-#ifndef PLATFORM_PS3_SPU
-    FMOD_RESULT  result = FMOD_OK;
-    SoundI      *s = (SoundI *)sound;
+    SoundI *s = (SoundI *)sound;
 
     if (mNumSyncPoints && mSyncPoint)
     {
@@ -1525,19 +1522,14 @@ FMOD_RESULT CodecMPEG::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 
         for (count = 0; count < mNumSyncPoints; count++)
         {
-            s->addSyncPointInternal(mSyncPoint[count].mOffset, FMOD_TIMEUNIT_PCM, mSyncPoint[count].mName, 0, 0, false);
+            s->addSyncPoint(mSyncPoint[count].mOffset, FMOD_TIMEUNIT_PCM, mSyncPoint[count].mName, 0);
         }
-
-        s->syncPointFixIndicies();
 
         FMOD_Memory_Free(mSyncPoint);
         mSyncPoint = 0;
     }
 
-    return result;
-#else
     return FMOD_OK;
-#endif
 }
 
 

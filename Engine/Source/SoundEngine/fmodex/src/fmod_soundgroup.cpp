@@ -304,22 +304,6 @@ FMOD_RESULT SoundGroup::getUserData(void **_userdata)
 }
 
 
-FMOD_RESULT SoundGroup::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD_RESULT result;
-    SoundGroupI *soundgroupi;
-
-    result = SoundGroupI::validate(this, &soundgroupi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return soundgroupi->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-    }
-}
-
 
 /*$ preserve start $*/
 }

@@ -352,22 +352,6 @@ FMOD_RESULT Geometry::getUserData(void **_userdata)
 }
 
 
-FMOD_RESULT Geometry::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD_RESULT result;
-    GeometryI *geometryi;
-
-    result = GeometryI::validate(this, &geometryi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return geometryi->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-    }
-}
-
 
 /*$ preserve start $*/
 }

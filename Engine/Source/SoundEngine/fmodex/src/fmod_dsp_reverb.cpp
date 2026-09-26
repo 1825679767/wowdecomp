@@ -60,6 +60,7 @@ FMOD_DSP_PARAMETERDESC dspreverb_param[6] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9bb548f5 auto
 // OFFSET: 0x008EB900
 FMOD_DSP_DESCRIPTION_EX *DSPReverb::getDescriptionEx()
 {
@@ -76,9 +77,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPReverb::getDescriptionEx()
     dspreverb.paramdesc     = dspreverb_param;
     dspreverb.setparameter  = DSPReverb::setParameterCallback;
     dspreverb.getparameter  = DSPReverb::getParameterCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dspreverb.getmemoryused = &DSPReverb::getMemoryUsedCallback;
-#endif
 
     dspreverb.mType         = FMOD_DSP_TYPE_REVERB;
     dspreverb.mCategory     = FMOD_DSP_CATEGORY_FILTER;
@@ -103,6 +101,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPReverb::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 24a21389 auto
 // OFFSET: 0x008EB3E0
 FMOD_RESULT DSPReverb::createInternal()
 {
@@ -194,24 +193,13 @@ FMOD_RESULT DSPReverb::readInternal(float *inbuffer, float *outbuffer, unsigned 
     float *outleft = outbuffer;
     float *outright = outbuffer + 1;
 
-    if (!inbuffer)
-    {
-        return FMOD_OK;
-    }
-    
-    if ((speakermask & 0x3) == 0) /* Both speaker channels have been set to inactive */
-    {
-        FMOD_memcpy(outbuffer, inbuffer, inchannels*length*sizeof(float));
-        return FMOD_OK;
-    }
-
-    if (inchannels > 2 || ((speakermask & 0x3) != 0x3))
+    if (inchannels > 2)
     {
         // Prevent output buffer crosstalk by ensuring every sample is set
         FMOD_memcpy(outbuffer, inbuffer, inchannels*length*sizeof(float));
     }
     
-    mReverb.processreplace(inleft, inright, outleft, outright, length, inchannels, speakermask);
+    mReverb.processreplace(inleft, inright, outleft, outright, length, inchannels);
 
     return FMOD_OK;
 }
@@ -233,6 +221,7 @@ FMOD_RESULT DSPReverb::readInternal(float *inbuffer, float *outbuffer, unsigned 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 352133d3 auto
 // OFFSET: 0x008EB440
 FMOD_RESULT DSPReverb::setParameterInternal(int index, float value)
 {
@@ -413,16 +402,6 @@ FMOD_RESULT DSPReverb::getParameterInternal(int index, float *value, char *value
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPReverb::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    // Size of this class is already accounted for (via description.mSize). Just add extra allocated memory here.
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 /*
@@ -567,6 +546,7 @@ FMOD_RESULT F_CALLBACK DSPReverb::setParameterCallback(FMOD_DSP_STATE *dsp, int 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b9219c87 auto
 // OFFSET: 0x008EB8D0
 FMOD_RESULT F_CALLBACK DSPReverb::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
@@ -576,29 +556,6 @@ FMOD_RESULT F_CALLBACK DSPReverb::getParameterCallback(FMOD_DSP_STATE *dsp, int 
 }
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPReverb::getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker)
-{
-    DSPReverb *reverb = (DSPReverb *)dsp;    
-
-    return reverb->DSPReverb::getMemoryUsed(tracker);
-}
-#endif
 
 }
 

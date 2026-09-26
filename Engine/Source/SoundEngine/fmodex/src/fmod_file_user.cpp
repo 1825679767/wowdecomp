@@ -9,6 +9,11 @@
 namespace FMOD
 {
 
+FMOD_FILE_OPENCALLBACK  UserFile::gOpenCallback  = 0;
+FMOD_FILE_CLOSECALLBACK UserFile::gCloseCallback = 0;
+FMOD_FILE_READCALLBACK  UserFile::gReadCallback  = 0;
+FMOD_FILE_SEEKCALLBACK  UserFile::gSeekCallback  = 0;
+
 /*
 [
 	[DESCRIPTION]
@@ -29,22 +34,13 @@ FMOD_RESULT UserFile::reallyOpen(const char *name_or_data, unsigned int *filesiz
 
  	if (mOpenCallback)
     {
-		result = mOpenCallback(name_or_data, mFlags & FMOD_FILE_UNICODE ? 1 : 0, filesize, &mHandle, &mUserData);
+		result = mOpenCallback(name_or_data, mUnicode, filesize, &mHandle, &mUserData);
     }
- 	else if (mSystem->mOpenCallback)
+ 	else if (gOpenCallback)
     {
-		result = mSystem->mOpenCallback(name_or_data, mFlags & FMOD_FILE_UNICODE ? 1 : 0, filesize, &mHandle, &mUserData);
+		result = gOpenCallback(name_or_data, mUnicode, filesize, &mHandle, &mUserData);
     }
 
-    if (result == FMOD_OK)
-    {
-        result = reallySeek(0);
-        if (result == FMOD_ERR_FILE_COULDNOTSEEK)
-        {
-            mFlags &= ~FMOD_FILE_SEEKABLE;
-            result = FMOD_OK;
-        }
-    }
     	
     if (!mHandle)
 	{
@@ -75,9 +71,9 @@ FMOD_RESULT UserFile::reallyClose()
     {
 		mCloseCallback(mHandle, mUserData);
     }
-	else if (mSystem->mCloseCallback)
+	else if (gCloseCallback)
     {
-		mSystem->mCloseCallback(mHandle, mUserData);
+		gCloseCallback(mHandle, mUserData);
     }
     else
     {
@@ -110,9 +106,9 @@ FMOD_RESULT UserFile::reallyRead(void *buffer, unsigned int size, unsigned int *
     {
 		result = mReadCallback(mHandle, buffer, size, rd, mUserData);
     }
-	else if (mSystem->mReadCallback)
+	else if (gReadCallback)
     {
-		result = mSystem->mReadCallback(mHandle, buffer, size, rd, mUserData);
+		result = gReadCallback(mHandle, buffer, size, rd, mUserData);
     }
     else
     {
@@ -149,11 +145,11 @@ FMOD_RESULT UserFile::reallySeek(unsigned int pos)
             return result;
         }
     }
-	else if (mSystem->mSeekCallback)
+	else if (gSeekCallback)
     {
         FMOD_RESULT result;
 
-		result = mSystem->mSeekCallback(mHandle, pos, mUserData);
+		result = gSeekCallback(mHandle, pos, mUserData);
         if (result != FMOD_OK)
         {
             return result;
@@ -182,14 +178,6 @@ FMOD_RESULT UserFile::reallySeek(unsigned int pos)
 	[SEE_ALSO]
 ]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-FMOD_RESULT UserFile::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_FILE, sizeof(UserFile));
-
-    return File::getMemoryUsedImpl(tracker);
-}
-#endif
 
 }
 

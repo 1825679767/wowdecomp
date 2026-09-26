@@ -169,7 +169,7 @@ int FMOD_OggVorbis_SeekCallback(void *datasource, ogg_int64_t offset, int whence
 {
 	File *fp = (File *)datasource;
 
-    if (fp->mFlags & FMOD_FILE_SEEKABLE)
+    if (fp->mSeekable)
     {
 	    return fp->seek((int)offset, (signed char)whence);
     }
@@ -234,9 +234,6 @@ FMOD_CODEC_DESCRIPTION_EX *CodecOggVorbis::getDescriptionEx()
     oggvorbiscodec.close       = &CodecOggVorbis::closeCallback;
     oggvorbiscodec.read        = &CodecOggVorbis::readCallback;
     oggvorbiscodec.setposition = &CodecOggVorbis::setPositionCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    oggvorbiscodec.getmemoryused = &CodecOggVorbis::getMemoryUsedCallback;
-#endif
 
     oggvorbiscodec.mType       = FMOD_SOUND_TYPE_OGGVORBIS;
     oggvorbiscodec.mSize       = sizeof(CodecOggVorbis);
@@ -461,7 +458,7 @@ FMOD_RESULT CodecOggVorbis::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXI
         waveformat[0].lengthbytes -= mSrcDataOffset;
     }
 
-    if (mFile->mFlags & FMOD_FILE_SEEKABLE)
+    if (mFile->mSeekable)
     {
         int count, streams = ov_streams(&mVf);
 
@@ -684,31 +681,6 @@ FMOD_RESULT CodecOggVorbis::readVorbisComments()
 }
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT CodecOggVorbis::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_CODEC, mMemUsed);
-    
-    return FMOD_OK;
-}
-
-#endif
 
 
 /*
@@ -806,29 +778,6 @@ FMOD_RESULT F_CALLBACK CodecOggVorbis::setPositionCallback(FMOD_CODEC_STATE *cod
 }
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK CodecOggVorbis::getMemoryUsedCallback(FMOD_CODEC_STATE *codec, MemoryTracker *tracker)
-{
-    CodecOggVorbis *ogg = (CodecOggVorbis *)codec;    
-
-    return ogg->getMemoryUsed(tracker);
-}
-#endif
 
 
 }

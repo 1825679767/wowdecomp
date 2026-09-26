@@ -12,7 +12,7 @@ namespace FMOD
     {            
       public:
 
-        FMOD_RESULT     read(float **outbuffer, int *outchannels, unsigned int *length, FMOD_SPEAKERMODE speakermode, int speakermodechannels, unsigned int tick);
+        FMOD_RESULT     execute(float *inbuffer, float **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode);
         FMOD_RESULT     addInput(DSPI *target);
     };
 }

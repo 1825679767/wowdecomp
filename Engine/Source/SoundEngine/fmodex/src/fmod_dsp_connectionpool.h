@@ -9,7 +9,7 @@
 #include "fmod_memorytracker.h"
 #endif
 
-#define DSP_MAX_CONNECTION_BLOCKS 128
+#define DSP_MAX_CONNECTION_BLOCKS 32
 
 namespace FMOD
 {
@@ -39,8 +39,8 @@ namespace FMOD
         FMOD_RESULT     init(SystemI *system, int numconnections, int numoutputlevels, int numinputlevels);
         FMOD_RESULT     close();
 
-        FMOD_RESULT     alloc(DSPConnectionI **connection, bool protect = true);
-        FMOD_RESULT     free(DSPConnectionI *connection, bool protect = true);
+        FMOD_RESULT     alloc(DSPConnectionI **connection);
+        FMOD_RESULT     free(DSPConnectionI *connection);
     };
 }
 

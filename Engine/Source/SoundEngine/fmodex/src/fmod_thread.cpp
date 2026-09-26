@@ -1,6 +1,5 @@
 #include "fmod_settings.h"
 
-#include "fmod_autocleanup.h"
 #include "fmod_debug.h"
 #include "fmod_thread.h"
 #include "fmod_memory.h"
@@ -141,38 +140,27 @@ Thread::Thread()
 ]
 */
 // OFFSET: 0x008E52A0
-FMOD_RESULT Thread::initThread(const char *name, void (*func)(void *userdata), void *userdata, PRIORITY priority, void *stack, int stacksize, bool usesemaphore, int sleepperiod, SystemI *system)
+FMOD_RESULT Thread::initThread(const char *name, void (*func)(void *userdata), void *userdata, PRIORITY priority, void *stack, int stacksize, bool usesemaphore, int sleepperiod)
 {
     FMOD_RESULT result;
     FMOD_THREAD_PRIORITY pri;
-    AutoFreeSema endsema_cleanup;
-    AutoFreeSema sema_cleanup;
 
     FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "Thread::initThread", "Initializing %s.  priority %d\n", name ? name : "(null)", priority));
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "Thread::initThread", "- Stacksize %d.  Stack pointer %p : usesemaphore = %d : sleeptime = %d\n", stacksize, stack, usesemaphore ? 1 : 0, sleepperiod));
 
     mUserCallback = func;
     mUserData     = userdata;
     mPeriod       = sleepperiod;
     mRunning      = false;
 
-    result = FMOD_OS_Semaphore_Create(&mEndSema);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    endsema_cleanup = mEndSema;
-
     if (usesemaphore)
     {
         result = FMOD_OS_Semaphore_Create(&mSema);
         if (result != FMOD_OK)
         {
-            return result;        
+            return result;
         }
-        sema_cleanup = mSema;
     }
-   
+
     switch(priority)
     {
         case PRIORITY_VERYLOW:
@@ -210,7 +198,7 @@ FMOD_RESULT Thread::initThread(const char *name, void (*func)(void *userdata), v
             return FMOD_ERR_INVALID_PARAM;
         }
     }
-    
+
     if (name)
     {
         FMOD_strncpy(mName, name, FMOD_STRING_MAXNAMELEN);
@@ -220,26 +208,10 @@ FMOD_RESULT Thread::initThread(const char *name, void (*func)(void *userdata), v
         FMOD_strcpy(mName, "?????");
     }
 
-    #ifdef PLATFORM_PS2_EE
-    if (!stack)
-    {
-        #define ALIGNMENT 16
-        stack = mStack = FMOD_Memory_Calloc(stacksize + ALIGNMENT);
-        if (!stack)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-        stack = (void *)FMOD_ALIGNPOINTER(stack, ALIGNMENT);
-        #undef ALIGNMENT
-        
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "Thread::initThread", "allocated a thread from the heap.  Address = %p.\n", mStack));
-    }
-    #endif
-
     result = FMOD_OS_Thread_Create(name, callback, this, pri, stack, stacksize, &mHandle);
     if (result != FMOD_OK)
     {
-        return result;        
+        return result;
     }
 
     /*
@@ -249,15 +221,6 @@ FMOD_RESULT Thread::initThread(const char *name, void (*func)(void *userdata), v
     {
         FMOD_OS_Time_Sleep(1);
     }
-
-    if (FMOD::gGlobal->gSystemCallback)
-    {
-        FMOD::gGlobal->gSystemCallback((FMOD_SYSTEM *)system, FMOD_SYSTEM_CALLBACKTYPE_THREADCREATED, mHandle, (void*)name);
-    }
-
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "Thread::initThread", "done.\n"));
-    sema_cleanup.releasePtr();
-    endsema_cleanup.releasePtr();
 
     return FMOD_OK;
 }
@@ -284,6 +247,12 @@ FMOD_RESULT Thread::closeThread()
     if (mRunning)
     {
         FMOD_RESULT result;
+
+        result = FMOD_OS_Semaphore_Create(&mEndSema);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
 
         mRunning = false;
 
@@ -331,8 +300,6 @@ FMOD_RESULT Thread::closeThread()
             FMOD_Memory_Free(mStack);
             mStack = 0;
         }
-    
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "Thread::close","%s thread destroyed\n", mName));
     }
 
     return FMOD_OK;
@@ -405,25 +372,5 @@ FMOD_RESULT Thread::wakeupThread(bool frominterrupt)
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT Thread::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-//AJS        void                *mStack;
-
-    if (mSema)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofSemaphore);
-    }
-
-    if (mEndSema)
-    {
-        tracker->add(false, FMOD_MEMBITS_SYSTEM, gSizeofSemaphore);
-    }
-
-    return FMOD_OK;
-}
-
-#endif
 
 }

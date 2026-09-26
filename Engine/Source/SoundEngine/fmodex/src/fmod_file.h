@@ -58,19 +58,6 @@ namespace FMOD
         DEVICE_DISK
     };
 
-    #define FMOD_FILE_SEEKABLE        0x00000001
-    #define FMOD_FILE_BUFFERISSTRING  0x00000002
-    #define FMOD_FILE_UNICODE         0x00000004
-    #define FMOD_FILE_BIGENDIAN       0x00000008
-    #define FMOD_FILE_BUSY            0x00000010
-    #define FMOD_FILE_STARVING        0x00000020
-    #define FMOD_FILE_EXIT            0x00000040
-    #define FMOD_FILE_FLIPPING        0x00000080
-    #define FMOD_FILE_FRONTBUFFERFULL 0x00000100
-    #define FMOD_FILE_BACKBUFFERFULL  0x00000200
-    #define FMOD_FILE_USEOLDDECRYPT   0x00000400
-    #define FMOD_FILE_STREAMING       0x00000800  /* PS3 - If using FIOS, we can set streaming file reads to higher priority */
-
     #if defined(PLATFORM_WII) || defined(PLATFORM_GC)
         #define FMOD_FILE_ALIGN 32
     #else
@@ -95,7 +82,7 @@ namespace FMOD
 
         FileThread();
 
-        FMOD_RESULT     init(int devicetype, bool owned, SystemI *system);
+        FMOD_RESULT     init(int devicetype, bool owned);
         FMOD_RESULT     release();
 #endif
     };
@@ -107,57 +94,60 @@ namespace FMOD
         friend class FileThread;
 
       protected:
-                                
+
 	    unsigned int             mLength;
         unsigned int             mLengthOriginal;
         unsigned int             mFileSize;
+        bool                     mBufferIsString;
         void                    *mRiderUserData;
         void                    *mRiderHandle;
+        bool                     mUnicode;
         int                      mDeviceType;
-                                
-      private:                  
-                                
-		FMOD_PPCALIGN16(char               mName[FMOD_STRING_MAXNAMELEN]);
-        FMOD_PPCALIGN16(char               mEncryptionKey[32]);
-        FMOD_PPCALIGN16(int                mEncryptionKeyLength);
-        FMOD_PPCALIGN16(int                mEncryptionKeyIndex);
-        FMOD_PPCALIGN16(unsigned int       mBufferPos);
-        FMOD_PPCALIGN16(unsigned int       mBufferSize);
-        FMOD_PPCALIGN16(unsigned int       mBufferSkip);
-        FMOD_PPCALIGN16(unsigned int       mBlockSize);
-        FMOD_PPCALIGN16(unsigned int       mBlockOffset);
-        FMOD_PPCALIGN16(unsigned int       mCurrentPosition);
-        FMOD_PPCALIGN16(unsigned int       mNextPosition);
-        FMOD_PPCALIGN16(unsigned int       mNextPositionDisplay);
-        FMOD_PPCALIGN16(unsigned int       mStartOffset);
-        FMOD_PPCALIGN16(int                mPercentBuffered);
-        FMOD_PPCALIGN16(FMOD_RESULT        mAsyncError);
-        FMOD_PPCALIGN16(FileThread        *mFileThread);
-        FMOD_PPCALIGN16(FMOD_OS_SEMAPHORE *mSema);
-                                       
+
+      private:
+
+		char                     mName[FMOD_STRING_MAXNAMELEN];
+        char                     mEncryptionKey[32];
+        int                      mEncryptionKeyLength;
+        int                      mEncryptionKeyIndex;
+        unsigned int             mBufferPos;
+        unsigned int             mBufferSize;
+        unsigned int             mBufferSkip;
+        unsigned int             mBlockSize;
+        unsigned int             mBlockOffset;
+        unsigned int             mCurrentPosition;
+        unsigned int             mNextPosition;
+        unsigned int             mNextPositionDisplay;
+        unsigned int             mStartOffset;
+        bool                     mBigEndian;
+        bool                     mBusy;
+        bool                     mStarving;
+        bool                     mExit;
+        int                      mPercentBuffered;
+        FMOD_RESULT              mAsyncError;
+        bool                     mFlipping;
+        FileThread              *mFileThread;
+        FMOD_OS_SEMAPHORE       *mSema;
+
         FMOD_RESULT              flip(bool frommainthread);
         FMOD_RESULT              checkBufferedStatus();
         FMOD_RESULT              seekAndReset();
-#ifndef PLATFORM_PS3_SPU         
         FMOD_RESULT              getFileThread();
-#endif
-                               
-      public:                  
-                               
-        unsigned int             mFlags;
+
+      public:
+
+        bool                     mSeekable;
         SystemI                 *mSystem;
-
-        #ifdef PLATFORM_PS3
-        char                     mBufferMemoryPS3[PS3_DMAFILE_BLOCKSIZE]  __attribute__((aligned(16)));
-        #endif
-
         void                    *mBuffer;
-        void                    *mBufferMemory;
+
+        static LinkedListNode           gFileThreadHead;
+        static FMOD_OS_CRITICALSECTION *gFileCrit;
+        static bool                     gUsesUserCallbacks;
+        static int                      gBufferSize;
 
         File();
-        
-        FMOD_RESULT             init(SystemI *system, unsigned int size, int blocksize);
 
+        FMOD_RESULT             init(unsigned int filesize, int blocksize);
         FMOD_RESULT             getByte(unsigned char  *byte = 0);
         FMOD_RESULT             getByte(unsigned short *byte);
         FMOD_RESULT             getByte(unsigned int   *byte);
@@ -170,22 +160,20 @@ namespace FMOD
         FMOD_RESULT             getWord(signed int     *word);
         FMOD_RESULT             getDword(unsigned int  *dword = 0);
         FMOD_RESULT             getDword(signed int    *dword);
-                                
         FMOD_RESULT             setStartOffset(unsigned int offset);
         FMOD_RESULT             getStartOffset(unsigned int *offset);
-        FMOD_RESULT             setBuffer(void *buffer) { mBuffer = buffer; return FMOD_OK; }
-        FMOD_RESULT             enableDoubleBuffer(unsigned int sizebytes, void *oldbuffer = 0);
-                                
+        FMOD_RESULT             enableDoubleBuffer(unsigned int sizebytes);
         FMOD_RESULT             getName(char **name);
         FMOD_RESULT             setName(char *name);
-        FMOD_RESULT             setBigEndian(bool bigendian) { bigendian ? mFlags |= FMOD_FILE_BIGENDIAN : mFlags &= ~FMOD_FILE_BIGENDIAN; return FMOD_OK; }
-        FMOD_RESULT             isBusy(bool *isbusy, unsigned int *percent) { if (isbusy) *isbusy = (mFlags & FMOD_FILE_BUSY ? true : false); if (percent) *percent = mPercentBuffered; return FMOD_OK; }
-        FMOD_RESULT             isStarving(bool *starving) { if (!starving) return FMOD_ERR_INVALID_PARAM; *starving = (mFlags & FMOD_FILE_STARVING ? true : false); return FMOD_OK; }
-                                
+        FMOD_RESULT             setBigEndian(bool bigendian) { mBigEndian = bigendian; return FMOD_OK; }
+        FMOD_RESULT             isBusy(bool *isbusy, unsigned int *percent) { if (isbusy) *isbusy = mBusy; if (percent) *percent = mPercentBuffered; return FMOD_OK; }
+        FMOD_RESULT             isStarving(bool *starving) { if (!starving) return FMOD_ERR_INVALID_PARAM; *starving = mStarving; return FMOD_OK; }
+        bool                    readyForClose();
+
         // OFFSET: 0x008D26C0
         virtual FMOD_RESULT     getMetadata(Metadata **metadata) { return FMOD_ERR_TAGNOTFOUND; }
         // OFFSET: 0x008D26D0
-        virtual FMOD_RESULT     getSize(unsigned int *size) { *size = mLength; return FMOD_OK; }                               
+        virtual FMOD_RESULT     getSize(unsigned int *size) { *size = mLength; return FMOD_OK; }
         virtual FMOD_RESULT     reallyOpen(const char *name_or_data, unsigned int *filesize) = 0;
         virtual FMOD_RESULT     reallyClose() = 0;
         virtual FMOD_RESULT     reallyRead(void *buffer, unsigned int size, unsigned int *read) = 0;
@@ -198,14 +186,12 @@ namespace FMOD
         FMOD_RESULT             read(void *buffer, unsigned int size, unsigned int count, unsigned int *read = 0);
         FMOD_RESULT             seek(int pos, int mode);
         FMOD_RESULT             tell(unsigned int *pos);
-        
+
       protected:
 
         friend class SystemI;
 
-        #ifndef PLATFORM_PS3_SPU
         static FMOD_RESULT shutDown();
-        #endif
    };
 }
 

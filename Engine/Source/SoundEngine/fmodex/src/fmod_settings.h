@@ -201,9 +201,6 @@
 */
 #define FMOD_SUPPORT_SOFTWARE
 #define FMOD_SUPPORT_GEOMETRY
-#ifdef FMOD_SUPPORT_GEOMETRY
-# define FMOD_SUPPORT_GEOMETRY_THREADED
-#endif
 #define FMOD_SUPPORT_REVERB
 #define FMOD_SUPPORT_RECORDING
 #define FMOD_SUPPORT_3DSOUND
@@ -991,7 +988,7 @@
 */
 
 #if defined(FMOD_SUPPORT_MPEG) || defined(FMOD_SUPPORT_CELT)   /* Mpeg uses about 10k in local arrays in CodecMPEG::decodeLayer3 which is hard to remove. */
-    #define STREAM_STACKSIZE       (48 * 1024)
+    #define STREAM_STACKSIZE       (32 * 1024)
     #ifdef FMOD_DEBUG
         #define ASYNC_STACKSIZE    (64 * 1024)
     #else

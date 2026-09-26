@@ -173,27 +173,5 @@ FMOD_RESULT OutputEmulated::update()
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT OutputEmulated::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_OUTPUT, sizeof(*this));
-
-    if (mChannel)
-    {
-        int numchannels = 0;
-
-        if (mChannelPool)
-        {
-            CHECK_RESULT(mChannelPool->getNumChannels(&numchannels));
-        }
-
-        tracker->add(false, FMOD_MEMBITS_CHANNEL, sizeof(ChannelEmulated) * numchannels);
-    }
-
-    return Output::getMemoryUsedImpl(tracker);
-}
-
-#endif
 
 }

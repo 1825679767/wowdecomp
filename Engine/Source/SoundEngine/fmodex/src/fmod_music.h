@@ -129,7 +129,6 @@ namespace FMOD
 	    unsigned char	    mVibDepth;		    /* vibrato depth 0-64  */
 	    unsigned char	    mVibType;		    /* vibrato type 0=sine, 1=rampdown, 2=square, 3=random */
 	    unsigned char	    mVibRate;		    /* vibrato rate 0-64 (like sweep?)  */
-        FMOD_SOUND_FORMAT   mOriginalFormat;
     };
 
     class MusicEnvelopeState
@@ -281,7 +280,6 @@ namespace FMOD
         unsigned int        mSampleOffset;              /* sample offset for this channel in SAMPLES */
                                                         
         int                 mGlobalVolume;              /* global volume for this channel */
-        float               mMasterVolume;              /* Master volume for this channel */
         unsigned char       mPortaUpDown;               /* last porta up or down value (S3M / IT) */
         unsigned char       mPortaDown;                 /* last porta down value (XM)  */
         unsigned char       mPortaUp;                   /* last porta up value (XM)  */
@@ -332,18 +330,6 @@ namespace FMOD
         unsigned char       mVolumeColumnVolumeSlide;   /* volume column parameter remembered for volume sliding (IT)  */
     };
 
-    class ChannelMusic : public ChannelReal
-    {
-      public:
-        MusicSong   *mMusic;
-
-        FMOD_RESULT     updateStream();
-        FMOD_RESULT     stop();
-        FMOD_RESULT     start();
-        FMOD_RESULT     setPaused(bool paused);
-        FMOD_RESULT     setVolume(float volume);
-    };
-
     
     /*
         Single note type - contains info on 1 note in a pattern
@@ -379,9 +365,6 @@ namespace FMOD
       private:
         FMOD_RESULT getLengthInternal(unsigned int *length, FMOD_TIMEUNIT lengthtype);
         FMOD_RESULT getPositionInternal(unsigned int *position, FMOD_TIMEUNIT postype);
-        FMOD_RESULT getMusicNumChannelsInternal(int *numchannels);
-        FMOD_RESULT setMusicChannelVolumeInternal(int channel, float volume);
-        FMOD_RESULT getMusicChannelVolumeInternal(int channel, float *volume);
 
       public:
         char                 mSongName[FMOD_STRING_MAXNAMELEN];
@@ -401,7 +384,6 @@ namespace FMOD
         ChannelSoftware     *mChannelSoftware;      /* Array of FMOD Ex low level real channels.  Each one of these lives in a ChannelI channel.  */
         DSPI               **mLowPass;              /* Array of lowpass filters to be used on .IT files */
         ChannelGroupI        mChannelGroup;
-        ChannelMusic         mHardwareMusicChannel;
 
         /*
             Mixing stuff
@@ -409,7 +391,6 @@ namespace FMOD
         int             mMixerSamplesLeft;
         int             mMixerSamplesPerTick;
         unsigned int    mPCMOffset;
-        unsigned int    mDSPTick;
 
         /* 
             Defaults 
@@ -462,19 +443,14 @@ namespace FMOD
         FMOD_RESULT     spawnNewVirtualChannel(MusicChannel *cptr, MusicSample *sptr, MusicVirtualChannel **newvcptr);
 
         FMOD_RESULT     setBPM(int bpm);
-        FMOD_RESULT     play(bool fromopen = false);
+        FMOD_RESULT     play();
         FMOD_RESULT     stop();
         FMOD_RESULT     playSound(MusicSample *sample, MusicVirtualChannel *vcptr, bool addfilter, SNDMIXPLUGIN *plugin = 0);
         FMOD_RESULT     fineTune2Hz(unsigned char ft, unsigned int *hz);
-        FMOD_RESULT     getHardwareMusicChannel(ChannelReal **realchannel);
 
         static FMOD_RESULT F_CALLBACK getLengthCallback(FMOD_CODEC_STATE *codec, unsigned int *length, FMOD_TIMEUNIT lengthtype);
         static FMOD_RESULT F_CALLBACK setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype);
         static FMOD_RESULT F_CALLBACK getPositionCallback(FMOD_CODEC_STATE *codec, unsigned int *position, FMOD_TIMEUNIT postype);
-        static FMOD_RESULT F_CALLBACK getMusicNumChannelsCallback(FMOD_CODEC_STATE *codec, int *numchannels);
-        static FMOD_RESULT F_CALLBACK setMusicChannelVolumeCallback(FMOD_CODEC_STATE *codec, int channel, float volume);
-        static FMOD_RESULT F_CALLBACK getMusicChannelVolumeCallback(FMOD_CODEC_STATE *codec, int channel, float *volume);
-        static FMOD_RESULT F_CALLBACK getHardwareMusicChannelCallback(FMOD_CODEC_STATE *codec, ChannelReal **realchannel);
     };
 
     extern unsigned char        gSineTable[];

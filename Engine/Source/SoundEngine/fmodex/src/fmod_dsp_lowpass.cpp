@@ -71,6 +71,7 @@ FMOD_DSP_PARAMETERDESC dsplowpass_param[2] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6a2d1b66 auto
 // OFFSET: 0x008F3790
 FMOD_DSP_DESCRIPTION_EX *DSPLowPass::getDescriptionEx()
 {
@@ -91,9 +92,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPLowPass::getDescriptionEx()
     dsplowpass.paramdesc     = dsplowpass_param;
     dsplowpass.setparameter  = DSPLowPass::setParameterCallback;
     dsplowpass.getparameter  = DSPLowPass::getParameterCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dsplowpass.getmemoryused = &DSPLowPass::getMemoryUsedCallback;
-#endif
 
     dsplowpass.mType         = FMOD_DSP_TYPE_LOWPASS;
     dsplowpass.mCategory     = FMOD_DSP_CATEGORY_FILTER;
@@ -124,6 +122,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPLowPass::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 23fd43e5 auto
 // OFFSET: 0x008F2E00
 FMOD_RESULT DSPLowPass::createInternal()
 {
@@ -151,17 +150,6 @@ FMOD_RESULT DSPLowPass::createInternal()
 	mProtoCoef[1].b1 = 1.847759f;
 	mProtoCoef[1].b2 = 1.0f;
 	mGainFactor[1] = 1.0f;
-
-    /*
-        Calculat the max cutoff rate
-    */
-	int outputrate = 0;
-	FMOD_RESULT result = mSystem->getSoftwareFormat(&outputrate, 0, 0, 0, 0, 0);
-	if (result != FMOD_OK)
-	{
-		return result;
-	}
-	mCutoffHzMaximum = ((float)outputrate / 2.0f) - 10.0f;
 
     for (count = 0; count < mDescription.numparameters; count++)
     {
@@ -267,12 +255,21 @@ FMOD_INLINE float DSPLowPass::filter(float input, int channel)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT DSPLowPass::process(float *inbuffer, float *outbuffer, unsigned int length, int channels)
+// OFFSET: 0x008F2EE0
+FMOD_RESULT DSPLowPass::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     unsigned int count;
     static float dc = (float)1E-20;
 
-	if (channels == 1 && (speakermask & 1))
+    if (mResonance != mResonanceUpdate || mCutoffHz != mCutoffHzUpdate)
+    {
+        mResonance = mResonanceUpdate;
+        mCutoffHz  = mCutoffHzUpdate;
+
+        updateState(mResonance, mCutoffHz);
+    }
+
+	if (inchannels == 1)
 	{
 		float *history;
 
@@ -299,7 +296,7 @@ FMOD_RESULT DSPLowPass::process(float *inbuffer, float *outbuffer, unsigned int 
 			outbuffer[-1] = a + b + c;
 		}
 	} 
-	else if (channels == 2 && ((speakermask & 0x03) == 0x03))
+	else if (inchannels == 2)
 	{
 		float *historyL;
 		float *historyR;
@@ -337,7 +334,7 @@ FMOD_RESULT DSPLowPass::process(float *inbuffer, float *outbuffer, unsigned int 
 			outbuffer[-1] = aR + bR + cR;        
 		}
 	}
-	else if (channels == 6 && ((speakermask & 0x3F) == 0x3F))
+	else if (inchannels == 6)
 	{
 		float *history0 = mHistory[0];
 		float *history1 = mHistory[1];
@@ -412,164 +409,18 @@ FMOD_RESULT DSPLowPass::process(float *inbuffer, float *outbuffer, unsigned int 
 			outbuffer[-1] = a5 + b5 + c5;    
 		}
 	}
-	else if (channels == 8 && ((speakermask & 0xFF) == 0xFF))
-	{
-		float *history0 = mHistory[0];
-		float *history1 = mHistory[1];
-		float *history2 = mHistory[2];
-		float *history3 = mHistory[3];
-		float *history4 = mHistory[4];
-		float *history5 = mHistory[5];
-		float *history6 = mHistory[6];
-		float *history7 = mHistory[7];
-
-		while (length)
-		{
-			float a0,b0,c0;
-			float a1,b1,c1;
-			float a2,b2,c2;
-			float a3,b3,c3;
-			float a4,b4,c4;
-			float a5,b5,c5;
-			float a6,b6,c6;
-			float a7,b7,c7;
-
-			a0 = ((inbuffer[0] + dc) * mCoefficients[0]) - (history0[0] * mCoefficients[1]) - (history0[1] * mCoefficients[2]);
-			a1 = ((inbuffer[1] + dc) * mCoefficients[0]) - (history1[0] * mCoefficients[1]) - (history1[1] * mCoefficients[2]);
-			a2 = ((inbuffer[2] + dc) * mCoefficients[0]) - (history2[0] * mCoefficients[1]) - (history2[1] * mCoefficients[2]);
-			a3 = ((inbuffer[3] + dc) * mCoefficients[0]) - (history3[0] * mCoefficients[1]) - (history3[1] * mCoefficients[2]);
-			a4 = ((inbuffer[4] + dc) * mCoefficients[0]) - (history4[0] * mCoefficients[1]) - (history4[1] * mCoefficients[2]);
-			a5 = ((inbuffer[5] + dc) * mCoefficients[0]) - (history5[0] * mCoefficients[1]) - (history5[1] * mCoefficients[2]);
-			a6 = ((inbuffer[6] + dc) * mCoefficients[0]) - (history6[0] * mCoefficients[1]) - (history6[1] * mCoefficients[2]);
-			a7 = ((inbuffer[7] + dc) * mCoefficients[0]) - (history7[0] * mCoefficients[1]) - (history7[1] * mCoefficients[2]);
-			b0 =        (history0[0] * mCoefficients[3]) + (history0[1] * mCoefficients[4]) - (history0[2] * mCoefficients[5]) - (history0[3] * mCoefficients[6]);
-			b1 =        (history1[0] * mCoefficients[3]) + (history1[1] * mCoefficients[4]) - (history1[2] * mCoefficients[5]) - (history1[3] * mCoefficients[6]);
-			b2 =        (history2[0] * mCoefficients[3]) + (history2[1] * mCoefficients[4]) - (history2[2] * mCoefficients[5]) - (history2[3] * mCoefficients[6]);
-			b3 =        (history3[0] * mCoefficients[3]) + (history3[1] * mCoefficients[4]) - (history3[2] * mCoefficients[5]) - (history3[3] * mCoefficients[6]);
-			b4 =        (history4[0] * mCoefficients[3]) + (history4[1] * mCoefficients[4]) - (history4[2] * mCoefficients[5]) - (history4[3] * mCoefficients[6]);
-			b5 =        (history5[0] * mCoefficients[3]) + (history5[1] * mCoefficients[4]) - (history5[2] * mCoefficients[5]) - (history5[3] * mCoefficients[6]);
-			b6 =        (history6[0] * mCoefficients[3]) + (history6[1] * mCoefficients[4]) - (history6[2] * mCoefficients[5]) - (history6[3] * mCoefficients[6]);
-			b7 =        (history7[0] * mCoefficients[3]) + (history7[1] * mCoefficients[4]) - (history7[2] * mCoefficients[5]) - (history7[3] * mCoefficients[6]);
-			c0 =        (history0[2] * mCoefficients[7]) + (history0[3] * mCoefficients[8]);
-			c1 =        (history1[2] * mCoefficients[7]) + (history1[3] * mCoefficients[8]);
-			c2 =        (history2[2] * mCoefficients[7]) + (history2[3] * mCoefficients[8]);
-			c3 =        (history3[2] * mCoefficients[7]) + (history3[3] * mCoefficients[8]);
-			c4 =        (history4[2] * mCoefficients[7]) + (history4[3] * mCoefficients[8]);
-			c5 =        (history5[2] * mCoefficients[7]) + (history5[3] * mCoefficients[8]);
-			c6 =        (history6[2] * mCoefficients[7]) + (history6[3] * mCoefficients[8]);
-			c7 =        (history7[2] * mCoefficients[7]) + (history7[3] * mCoefficients[8]);
-
-			dc = -dc;
-			length--;
-			inbuffer+=8;
-			outbuffer+=8; 
-
-			history0[1] = history0[0];
-			history0[3] = history0[2];
-			history0[0]  = a0;
-			history0[2]  = a0 + b0;
-			history1[1] = history1[0];
-			history1[3] = history1[2];
-			history1[0]  = a1;
-			history1[2]  = a1 + b1;
-			history2[1] = history2[0];
-			history2[3] = history2[2];
-			history2[0]  = a2;
-			history2[2]  = a2 + b2;
-			history3[1] = history3[0];
-			history3[3] = history3[2];
-			history3[0]  = a3;
-			history3[2]  = a3 + b3;
-			history4[1] = history4[0];
-			history4[3] = history4[2];
-			history4[0]  = a4;
-			history4[2]  = a4 + b4;
-			history5[1] = history5[0];
-			history5[3] = history5[2];
-			history5[0]  = a5;
-			history5[2]  = a5 + b5;
-			history6[1] = history6[0];
-			history6[3] = history6[2];
-			history6[0]  = a6;
-			history6[2]  = a6 + b6;
-			history7[1] = history7[0];
-			history7[3] = history7[2];
-			history7[0]  = a7;
-			history7[2]  = a7 + b7;
-            
-			outbuffer[-8] = a0 + b0 + c0;    
-			outbuffer[-7] = a1 + b1 + c1;    
-			outbuffer[-6] = a2 + b2 + c2;    
-			outbuffer[-5] = a3 + b3 + c3;    
-			outbuffer[-4] = a4 + b4 + c4;    
-			outbuffer[-3] = a5 + b5 + c5;    
-			outbuffer[-2] = a6 + b6 + c6;    
-			outbuffer[-1] = a7 + b7 + c7;    
-		}
-	}
 	else
 	{
-		for (count = 0; count < (unsigned int)channels; count++)
-		{	
-			unsigned int len;
-			int offset1, offset2, offset3, inc;
-			float *in = inbuffer + count;
-			float *out = outbuffer + count;
-			offset1 = channels;
-			offset2 = channels * 2;
-			offset3 = channels * 3;
-			inc = channels << 2;
-			len = length >> 2;
-
-			if (!((1 << count) & speakermask))
+		while (length)
+		{
+			for (count = 0; count < (unsigned int)inchannels; count++)
 			{
-				while (len)
-				{    
-					out[0] = in[0];	
-					out[offset1] = in[offset1];
-					out[offset2] = in[offset2];
-					out[offset3] = in[offset3];
-					
-					len--;
-					in += inc;
-					out += inc;
-				}
-				
-				len = length & 3;
-
-				while (len)
-				{    
-					out[0] = in[0];
-					len--;
-					in += channels;
-					out += channels;
-				}
-				continue; 
+				outbuffer[count] = filter(inbuffer[count], count);
 			}
-			else
-			{
-				while(len)
-				{
-					out[0] = filter(in[0], count);	
-					out[offset1] = filter(in[offset1], count);	
-					out[offset2] = filter(in[offset2], count);	
-					out[offset3] = filter(in[offset3], count);	
 
-					out += inc;
-					in += inc;
-					len--;
-				}
-
-				len = length & 3;
-
-				while (len)
-				{    
-					out[0] = filter(in[0],count);
-					len--;
-					in += channels;
-					out += channels;
-				}
-			}			
+			length--;
+			inbuffer += inchannels;
+			outbuffer += inchannels;
 		}
 	}
 
@@ -593,93 +444,6 @@ FMOD_RESULT DSPLowPass::process(float *inbuffer, float *outbuffer, unsigned int 
 	[SEE_ALSO]
 ]
 */
-// OFFSET: 0x008F2EE0
-FMOD_RESULT DSPLowPass::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
-{
-    if (!inbuffer)
-    {
-        return FMOD_OK;
-    }
-
-    while (mResonance != mResonanceUpdate || mCutoffHz != mCutoffHzUpdate)
-    {
-        float cutoffdelta = 10.0f + (mCutoffHz / 100.0f);
-        
-        if (mResonance < mResonanceUpdate)
-        {
-            mResonance += 1.0f;
-            if (mResonance >= mResonanceUpdate)
-            {
-                mResonance = mResonanceUpdate;
-            }           
-        }
-        else if (mResonance > mResonanceUpdate)
-        {
-            mResonance -= 1.0f;
-            if (mResonance <= mResonanceUpdate)
-            {
-                mResonance = mResonanceUpdate;
-            }           
-        }
-        if (mCutoffHz < mCutoffHzUpdate)
-        {
-            mCutoffHz += cutoffdelta;
-            if (mCutoffHz >= mCutoffHzUpdate)
-            {
-                mCutoffHz = mCutoffHzUpdate;
-            }           
-        }
-        else if (mCutoffHz > mCutoffHzUpdate)
-        {
-            mCutoffHz -= cutoffdelta;
-            if (mCutoffHz <= mCutoffHzUpdate)
-            {
-                mCutoffHz = mCutoffHzUpdate;
-            }           
-        }
-
-        updateState(mResonance, mCutoffHz);
-        
-        process(inbuffer, outbuffer, 1, inchannels);
-
-        inbuffer+=inchannels;
-        outbuffer+=inchannels;
-        length--;
-        if (!length)
-        {
-            return FMOD_OK;
-        }
-    }
-
-	if (!(speakermask & ((1 << inchannels)-1))) /*No channels are active, copy in buffer to out buffer and skip the DSP*/
-	{
-		FMOD_memcpy(outbuffer, inbuffer, sizeof(float)*length*inchannels);
-		return FMOD_OK;
-	}
-
-	if (mCutoffHz >= mCutoffHzMaximum)
-	{
-		FMOD_memcpy(outbuffer, inbuffer, sizeof(float)*length*inchannels);
-		return FMOD_OK;
-	}
-	else if (mCutoffHz < 10.0f)
-	{
-		int count;
-
-		FMOD_memset(outbuffer, 0, sizeof(float)*length*inchannels);
-
-		for (count = 0; count < inchannels; count++)
-		{
-			for ( int i = 0; i < 2 * LOWPASS_FILTER_SECTIONS; i++ )
-			{
-				mHistory[count][i] = 0;
-			}			
-		}
-		return FMOD_OK;
-	}
-
-    return process(inbuffer, outbuffer, length, inchannels);
-}
 
 
 /*
@@ -886,10 +650,6 @@ FMOD_RESULT DSPLowPass::setParameterInternal(int index, float value)
     if (index == FMOD_DSP_LOWPASS_CUTOFF)
     {
         mCutoffHzUpdate  = value;
-		if (mCutoffHzUpdate >= mCutoffHzMaximum)
-		{
-			mCutoffHzUpdate = mCutoffHzMaximum;
-		}
     }
     else if (index == FMOD_DSP_LOWPASS_RESONANCE)
     {
@@ -988,11 +748,6 @@ FMOD_RESULT DSPLowPass::updateState(float resonance, float cutoff)
 	    coef   = mCoefficients + 1;         /* Skip k, or gain */
 	    fs     = (float)outputrate;         /* Sampling frequency (Hz) */
 
-        if (cutoff > fs / 2)
-        {
-            cutoff = (fs / 2) - 10.0f;       /* Don't go above Nyquist Frequency */
-        }
-
         /*
          * Compute z-domain coefficients for each biquad section
          * for new Cutoff Frequency and Resonance
@@ -1046,16 +801,6 @@ FMOD_RESULT DSPLowPass::updateState(float resonance, float cutoff)
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPLowPass::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    // Size of this class is already accounted for (via description.mSize). Just add extra allocated memory here.
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 /*
@@ -1110,6 +855,7 @@ FMOD_RESULT F_CALLBACK DSPLowPass::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 77600a46 auto
 // OFFSET: 0x008F3760
 FMOD_RESULT F_CALLBACK DSPLowPass::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -1136,6 +882,7 @@ FMOD_RESULT F_CALLBACK DSPLowPass::readCallback(FMOD_DSP_STATE *dsp, float *inbu
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6c15eb5c auto
 // OFFSET: 0x008F2D90
 FMOD_RESULT F_CALLBACK DSPLowPass::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
@@ -1161,6 +908,7 @@ FMOD_RESULT F_CALLBACK DSPLowPass::setParameterCallback(FMOD_DSP_STATE *dsp, int
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9edbeb1d auto
 // OFFSET: 0x008F2DD0
 FMOD_RESULT F_CALLBACK DSPLowPass::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
@@ -1169,29 +917,6 @@ FMOD_RESULT F_CALLBACK DSPLowPass::getParameterCallback(FMOD_DSP_STATE *dsp, int
     return lowpass->getParameterInternal(index, value, valuestr);
 }
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPLowPass::getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker)
-{
-    DSPLowPass *lowpass = (DSPLowPass *)dsp;    
-
-    return lowpass->DSPLowPass::getMemoryUsed(tracker);
-}
-#endif
 
 #endif
 

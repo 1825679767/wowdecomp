@@ -401,15 +401,14 @@ FMOD_RESULT FMOD_OS_Thread_GetCurrentID(FMOD_UINT_NATIVE *id)
 // OFFSET: 0x008D2110
 FMOD_RESULT FMOD_OS_Thread_Create(const char *name, THREAD_RETURNTYPE (THREAD_CALLCONV *func)(void *param), void *param, FMOD_THREAD_PRIORITY priority, void *stack, int stacksize, void **handle)
 {
-    HRESULT hr;
-	unsigned int id;
+    DWORD id;
 
     if (!handle)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-	*handle = (void *)_beginthreadex(NULL, stacksize, func, param,0, (unsigned int *)&id);
+    *handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)func, param, 0, &id);
     if (!*handle)
     {
         return FMOD_ERR_MEMORY;
@@ -418,28 +417,60 @@ FMOD_RESULT FMOD_OS_Thread_Create(const char *name, THREAD_RETURNTYPE (THREAD_CA
 	switch (priority)
 	{
 		case FMOD_THREAD_PRIORITY_VERYLOW:
-			hr = SetThreadPriority(*handle, THREAD_PRIORITY_LOWEST);
+        {
+			SetThreadPriority(*handle, THREAD_PRIORITY_LOWEST);
 			break;
+        }
 		case FMOD_THREAD_PRIORITY_LOW:
-			hr = SetThreadPriority(*handle, THREAD_PRIORITY_BELOW_NORMAL);
+        {
+			SetThreadPriority(*handle, THREAD_PRIORITY_BELOW_NORMAL);
 			break;
+        }
 		case FMOD_THREAD_PRIORITY_NORMAL:
-			hr = SetThreadPriority(*handle, THREAD_PRIORITY_NORMAL);
+        {
+			SetThreadPriority(*handle, THREAD_PRIORITY_NORMAL);
 			break;
+        }
 		case FMOD_THREAD_PRIORITY_HIGH:
-			hr = SetThreadPriority(*handle, THREAD_PRIORITY_ABOVE_NORMAL);
+        {
+			SetThreadPriority(*handle, THREAD_PRIORITY_ABOVE_NORMAL);
 			break;
+        }
 		case FMOD_THREAD_PRIORITY_VERYHIGH:
-			hr = SetThreadPriority(*handle, THREAD_PRIORITY_HIGHEST);
+        {
+			SetThreadPriority(*handle, THREAD_PRIORITY_HIGHEST);
 			break;
+        }
 		case FMOD_THREAD_PRIORITY_CRITICAL:
-			hr = SetThreadPriority(*handle, THREAD_PRIORITY_TIME_CRITICAL);
-			break;
-	};
+        {
+            FMOD_OS_LIBRARY *avrt = 0;
 
-#if defined(FMOD_DEBUG) && !defined(PLATFORM_WINDOWS64)
-    SetThreadName(id, name);
-#endif
+			SetThreadPriority(*handle, THREAD_PRIORITY_TIME_CRITICAL);
+
+            if (FMOD_OS_Library_Load("avrt.dll", &avrt) == FMOD_OK)
+            {
+                FMOD_RESULT result;
+                HANDLE (WINAPI *setmmthreadcharacteristics)(LPCSTR taskname, LPDWORD taskindex);
+                DWORD taskindex;
+
+                result = FMOD_OS_Library_GetProcAddress(avrt, "AvSetMmThreadCharacteristicsA", (void **)&setmmthreadcharacteristics);
+                if (result != FMOD_OK)
+                {
+                    return result;
+                }
+
+                taskindex = 0;
+                setmmthreadcharacteristics("Pro Audio", &taskindex);
+
+                result = FMOD_OS_Library_Free(avrt);
+                if (result != FMOD_OK)
+                {
+                    return result;
+                }
+            }
+			break;
+        }
+	};
 
     return FMOD_OK;
 }
@@ -518,7 +549,7 @@ FMOD_RESULT FMOD_OS_CriticalSection_Create(FMOD_OS_CRITICALSECTION **crit, bool 
 	[SEE_ALSO]
 */
 // OFFSET: 0x008D1F40
-FMOD_RESULT FMOD_OS_CriticalSection_Free(FMOD_OS_CRITICALSECTION *crit, bool memorycrit)
+FMOD_RESULT FMOD_OS_CriticalSection_Free(FMOD_OS_CRITICALSECTION *crit)
 {
     if (!crit)
     {
@@ -527,12 +558,10 @@ FMOD_RESULT FMOD_OS_CriticalSection_Free(FMOD_OS_CRITICALSECTION *crit, bool mem
 
     DeleteCriticalSection((CRITICAL_SECTION *)crit);
 
-    if (memorycrit)
+    if (crit != (FMOD_OS_CRITICALSECTION *)&gMemoryCrit)
     {
-        return FMOD_OK;
+        FMOD_Memory_Free(crit);
     }
-
-    FMOD_Memory_Free(crit);
 
     return FMOD_OK;
 }
@@ -834,20 +863,3 @@ FMOD_RESULT FMOD_OS_CheckDriverList(bool *devicelistchanged)
 
 	[SEE_ALSO]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-extern FMOD_OS_CRITICALSECTION *gResolveCrit;
-
-int FMOD_OS_GetMemoryUsed()
-{
-    int total = 0;
-
-    if (gResolveCrit)
-    {
-        total += gSizeofCriticalSection;
-    }
-    
-    return total;
-}
-
-#endif

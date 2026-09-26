@@ -20,25 +20,19 @@ namespace FMOD
 
         float          *mHistoryBuffer;
         unsigned int    mHistoryPosition;
+        unsigned int    mHistoryLength;
         int             mBufferChannels;
 
-      protected:                                            
-        
+      protected:
+
         FMOD_RESULT     release(bool freethis = true);
-        
-#ifndef FMOD_SUPPORT_MIXER_NONRECURSIVE
-        virtual FMOD_RESULT read(float **outbuffer, int *outchannels, unsigned int *length, FMOD_SPEAKERMODE speakermode, int speakermodechannels, unsigned int tick);
-#endif
+        FMOD_RESULT     execute(float *inbuffer, float **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode);
 
       public:
-                  
-        #if !defined(PLATFORM_PS3) && !defined(PLATFORM_WINDOWS_PS3MODE)
 
-        FMOD_RESULT     startBuffering();
+        FMOD_RESULT     startBuffering(unsigned int historylength);
         FMOD_RESULT     getHistoryBuffer(float **buffer, unsigned int *position, unsigned int *length);
         FMOD_RESULT     stopBuffering();
-
-        #endif
     };
 }
 

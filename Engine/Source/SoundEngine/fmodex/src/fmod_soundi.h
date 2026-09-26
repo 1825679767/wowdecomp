@@ -31,23 +31,13 @@ namespace FMOD
     typedef unsigned int FMOD_SOUND_FLAG;
 
     #define FMOD_SOUND_FLAG_DONOTRELEASE    0x00000001
+    #define FMOD_SOUND_FLAG_READDATA        0x00000002
     #define FMOD_SOUND_FLAG_PLAYED          0x00000004
     #define FMOD_SOUND_FLAG_FINISHED        0x00000008
     #define FMOD_SOUND_FLAG_WANTSTOFLUSH    0x00000010
-    #define FMOD_SOUND_FLAG_RELEASING       0x00000020
-    #define FMOD_SOUND_FLAG_THREADFINISHED  0x00000040
-    #define FMOD_SOUND_FLAG_FULLYBUFFERED   0x00000080
-    #define FMOD_SOUND_FLAG_PRELOADEDFSB    0x00000100
-    #define FMOD_SOUND_FLAG_PROGRAMMERSOUND 0x00000200
-    #define FMOD_SOUND_FLAG_SETPOS_SAFE     0x00000400
 
     #define FMOD_PS3_SUBSOUNDLISTMAXITEMS   512             // 4k max for PS3
 
-    struct SoundSentenceEntry
-    {
-        int          mIndex;
-        unsigned int mLength;
-    };
 
     class SoundI : public LinkedListNode
     {
@@ -99,46 +89,31 @@ namespace FMOD
         SoundI                 *mSubSoundParent;
         int                     mSubSoundIndex;
 #ifdef FMOD_SUPPORT_SENTENCING
-        SoundSentenceEntry     *mSubSoundList;
+        int                    *mSubSoundList;
         int                     mSubSoundListNum;
+        int                     mSubSoundListCurrent;
 #endif
-
         SoundI                 *mSubSampleParent;       /* Pointer to parent subsample if multisample sound. */
-        int                     mNumSubSamples;
-        SoundI                 *mSubSample[FMOD_CHANNEL_MAXREALSUBCHANNELS];
-        bool                    mLockCanRead;
-
         void                   *mUserData;
-        void                   *mUserDataInternal;
         SystemI                *mSystem;
         unsigned int            mMemoryUsed;
-
         int                     mNumSyncPoints;
-        SyncPoint              *mSyncPointHead, *mSyncPointTail;
-        SyncPoint              *mSyncPointMemory;
-                              
+        SyncPoint              *mSyncPointHead;
         AsyncData              *mAsyncData;             /* Data for async loading. */
         FMOD_OPENSTATE          mOpenState;
         SoundGroupI            *mSoundGroup;
         LinkedListNode          mSoundGroupNode;
         int                     mNumAudible;
-        FMOD_UINT64             mLastAudibleDSPClock;
-
         FMOD_SOUND_PCMREADCALLBACK     mPostReadCallback;
         FMOD_SOUND_PCMSETPOSCALLBACK   mPostSetPositionCallback;
         FMOD_SOUND                    *mPostCallbackSound;
-                           
+
         FMOD_RESULT             loadSubSound(int index, FMOD_MODE mode);
         FMOD_RESULT             read(unsigned int offset, unsigned int numsamples, unsigned int *read);
         FMOD_RESULT             seek(int subsound, unsigned int position);
         FMOD_RESULT             clear(unsigned int offset, unsigned int numsamples);
         FMOD_RESULT             setPositionInternal(unsigned int pcm);
         FMOD_RESULT             updateSubSound(int index, bool updateinfoonly);
-        FMOD_RESULT F_API       setUserDataInternal(void *userdata);
-        FMOD_RESULT F_API       getUserDataInternal(void **userdata);
-        FMOD_RESULT             syncPointFixIndicies();
-        FMOD_RESULT             deleteSyncPointInternal(FMOD_SYNCPOINT *point, bool ignoresubsoundindices);
-        FMOD_RESULT             setSubSoundInternal(int index, SoundI  *subsound, bool calledfromrelease);
 
 
         static FMOD_RESULT  validate(Sound *sound, SoundI **soundi);
@@ -166,7 +141,6 @@ namespace FMOD
                     case FMOD_SOUND_FORMAT_VAG      : { *bytes = ((samples + (roundup ? 27 : 0)) / 28) * 16; break; }
                     case FMOD_SOUND_FORMAT_XMA      : { *bytes = samples; return FMOD_OK; }
                     case FMOD_SOUND_FORMAT_MPEG     : { *bytes = samples; return FMOD_OK; }
-                    case FMOD_SOUND_FORMAT_CELT     : { *bytes = samples; return FMOD_OK; }
 					case FMOD_SOUND_FORMAT_NONE		: { *bytes = 0; break; }
                     default : return FMOD_ERR_FORMAT;
                 }
@@ -205,7 +179,6 @@ namespace FMOD
                     case FMOD_SOUND_FORMAT_VAG      : { *samples = bytes * 28 / 16; break; }
                     case FMOD_SOUND_FORMAT_XMA      : { *samples = bytes; return FMOD_OK; }
                     case FMOD_SOUND_FORMAT_MPEG     : { *samples = bytes; return FMOD_OK; }
-                    case FMOD_SOUND_FORMAT_CELT     : { *samples = bytes; return FMOD_OK; }
 					case FMOD_SOUND_FORMAT_NONE		: { *samples = 0; break; }
                     default : return FMOD_ERR_FORMAT;
                 }
@@ -234,7 +207,6 @@ namespace FMOD
                 case FMOD_SOUND_FORMAT_XMA      : { *bits = 0; break; }
                 case FMOD_SOUND_FORMAT_VAG      : { *bits = 0; break; }
                 case FMOD_SOUND_FORMAT_MPEG     : { *bits = 0; break; }
-                case FMOD_SOUND_FORMAT_CELT     : { *bits = 0; break; }
 				case FMOD_SOUND_FORMAT_NONE		: {	*bits = 0; break; }
                 default : return FMOD_ERR_FORMAT;
             }
@@ -253,9 +225,6 @@ namespace FMOD
             return FMOD_OK;
         }
         virtual bool isStream() { return false; }
-
-        virtual FMOD_RESULT  setPosition          (unsigned int pcm);
-        virtual FMOD_RESULT  getPosition          (unsigned int *pcm);
 
       public:
 
@@ -295,8 +264,7 @@ namespace FMOD
         virtual FMOD_RESULT  getNumSyncPoints     (int *numsyncpoints);
         virtual FMOD_RESULT  getSyncPoint         (int index, FMOD_SYNCPOINT **point);
         virtual FMOD_RESULT  getSyncPointInfo     (FMOD_SYNCPOINT *point, char *name, int namelen, unsigned int *offset, FMOD_TIMEUNIT offsettype);
-        virtual FMOD_RESULT  addSyncPoint         (unsigned int offset, FMOD_TIMEUNIT offsettype, const char *name, FMOD_SYNCPOINT **point, int subsound = -1, bool fixupindicies = true);
-        virtual FMOD_RESULT  addSyncPointInternal (unsigned int offset, FMOD_TIMEUNIT offsettype, const char *name, FMOD_SYNCPOINT **point, int subsound = -1, bool fixupindicies = true);
+        virtual FMOD_RESULT  addSyncPoint         (unsigned int offset, FMOD_TIMEUNIT offsettype, const char *name, FMOD_SYNCPOINT **point);
         virtual FMOD_RESULT  deleteSyncPoint      (FMOD_SYNCPOINT *point);
 
         virtual FMOD_RESULT  setMode              (FMOD_MODE mode);
@@ -305,15 +273,12 @@ namespace FMOD
         virtual FMOD_RESULT  getLoopCount         (int *loopcount);
         virtual FMOD_RESULT  setLoopPoints        (unsigned int loopstart, FMOD_TIMEUNIT loopstarttype, unsigned int loopend, FMOD_TIMEUNIT loopendtype);
         virtual FMOD_RESULT  getLoopPoints        (unsigned int *loopstart, FMOD_TIMEUNIT loopstarttype, unsigned int *loopend, FMOD_TIMEUNIT loopendtype);
-
-        virtual FMOD_RESULT  getMusicNumChannels  (int *numchannels);
-        virtual FMOD_RESULT  setMusicChannelVolume(int channel, float volume);
-        virtual FMOD_RESULT  getMusicChannelVolume(int channel, float *volume);
+        virtual FMOD_RESULT  setPosition          (unsigned int pcm);
+        virtual FMOD_RESULT  getPosition          (unsigned int *pcm);
 
         virtual FMOD_RESULT  setUserData          (void *userdata);
         virtual FMOD_RESULT  getUserData          (void **userdata);
 
-        virtual FMOD_RESULT  getMemoryInfo        (unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details);
     };
 }
 

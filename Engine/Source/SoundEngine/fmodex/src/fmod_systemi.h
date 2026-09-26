@@ -9,6 +9,7 @@
 #include "fmod_channelgroupi.h"
 #include "fmod_dsp_connectionpool.h"
 #include "fmod_dsp_codecpool.h"
+#include "fmod_dspnet.h"
 #include "fmod_dspi.h"
 #include "fmod_listener.h"
 #include "fmod_soundi.h"
@@ -23,10 +24,7 @@
 #include "fmod_memorytracker.h"
 #endif
 
-#define FMOD_NEED_DSPCODECPOOLINITCRIT \
-    defined(FMOD_SUPPORT_DSPCODEC) && \
-    (defined(FMOD_SUPPORT_MPEG) || defined(FMOD_SUPPORT_IMAADPCM) || \
-     defined(FMOD_SUPPORT_XMA) || defined(FMOD_SUPPORT_RAWCODEC) || defined(FMOD_SUPPORT_CELT)
+#define FMOD_INIT_SYNCMIXERWITHUPDATE  0x00400000
 
 namespace FMOD
 {
@@ -37,18 +35,14 @@ namespace FMOD
 	class GeometryI;
     class MemPool;
     class ReverbI;
-    class Downmix;
 
     typedef struct
     {
         FMOD_SPEAKER    mSpeaker;
         FMOD_VECTOR     mPosition;
-        FMOD_VECTOR     mXZNormal;
-        float           mXZAngle;
+        int             mXZAngle;
         float           mDistance;
         bool            mActive;
-        bool            mPairUseVBAP;
-        float           mPairVBAPSign;
     } FMOD_SPEAKERCONFIG;
 
     const FMOD_SPEAKERMODE FMOD_SPEAKERMODE_STEREO_LINEAR       = (FMOD_SPEAKERMODE)1000; /* The speakers are stereo with non constant power (linear) panning. */
@@ -79,17 +73,16 @@ namespace FMOD
       public:
         bool                            mInitialized;
         bool                            mPluginsLoaded;
-        FMOD_UINT_NATIVE                mMainThreadID;                                       
-        FMOD_INITFLAGS                  mFlags;                                                                            
+        FMOD_UINT_NATIVE                mMainThreadID;
+        FMOD_INITFLAGS                  mFlags;
         SoundI                          mSoundListHead;
         static FMOD_OS_CRITICALSECTION *gSoundListCrit;     // This protects mSoundListHead, mSoundGroupUsedHead, mSoundGroupFreeHead
-
 
         /*
             Channels & channel management
         */
         int                             mNumChannels;
-        ChannelI                       *mChannel;                                  
+        ChannelI                       *mChannel;
         ChannelI                        mChannelUsedListHead;
         ChannelI                        mChannelFreeListHead;
         SortedLinkedListNode            mChannelSortedListHead;
@@ -98,7 +91,7 @@ namespace FMOD
             Output variables.
         */
         Output                         *mOutput;
-        FMOD_OUTPUTTYPE                 mOutputType;                                      
+        FMOD_OUTPUTTYPE                 mOutputType;
         FMOD_SOUND_FORMAT               mOutputFormat;
         int                             mOutputRate;
         int                             mOutputHandle;
@@ -106,59 +99,52 @@ namespace FMOD
         int                             mMaxOutputChannels;
         int                             mSelectedDriver;
         OutputEmulated                 *mEmulated;
-                                       
-        /*                             
-            DSP system                 
-        */                             
+        int                             mRecordDriver;
+
+        /*
+            DSP system
+        */
         unsigned int                    mDSPBlockSize;
         unsigned int                    mDSPBufferSize;
-#ifdef FMOD_SUPPORT_SOFTWARE
-        float                          *mDSPTempBuff;
-        float                          *mDSPTempBuffMem;
+        float                          *mDSPTempBuff[2];
+        float                          *mDSPTempBuffMem[2];
         float                          *mDSPMixBuff[FMOD_DSP_MAXTREEDEPTH];
         DSPConnectionPool               mDSPConnectionPool;
         FMOD_OS_CRITICALSECTION        *mDSPCrit;
         FMOD_OS_CRITICALSECTION        *mDSPLockCrit;
         FMOD_OS_CRITICALSECTION        *mDSPConnectionCrit;
-        /* one crit for all codec pools; this means e.g. ADPCM can block MPEG
-           unnecessarily, but this is a very rare situation anyway
-        */
-        FMOD_OS_CRITICALSECTION        *mDSPCodecPoolInitCrit;
+        FMOD_OS_CRITICALSECTION        *mDSPRequestCrit;
         bool                            mDSPActive;
         DSPI                           *mDSPSoundCard;
         DSPI                           *mDSPChannelGroupTarget;
         TimeStamp                       mDSPTimeStamp;
+        int                             mDSPTempBuffIndex;
         DSPConnectionRequest            mConnectionRequest[FMOD_DSP_CONNECTION_REQUEST_MAX];
         DSPConnectionRequest            mConnectionRequestUsedHead;
         DSPConnectionRequest            mConnectionRequestFreeHead;
         bool                            mConnectionRequestFlushing;
-        OutputSoftware                 *mSoftware;
-#endif
-        
-        FMOD_PPCALIGN16(FMOD_UINT64P    mDSPClock);
-                                      
-        /*                             
-            3D Controls                
-        */                             
+
+        /*
+            3D Controls
+        */
         Listener                        mListener[LISTENER_MAX];
         int                             mNumListeners;
         float                           mDistanceScale;
         float                           mRolloffScale;
         float                           mDopplerScale;
         FMOD_3D_ROLLOFFCALLBACK         mRolloffCallback;
-                                       
-        /*                             
+
+        /*
             Plugins
         */
         PluginFactory                  *mPluginFactory;
         char                            mPluginPath[FMOD_STRING_MAXPATHLEN];
-        unsigned int                    mFSBPluginHandle;
-        unsigned int                    mWAVPluginHandle;
-        unsigned int                    mMPEGPluginHandle;
-        unsigned int                    mCELTPluginHandle;
-                                       
-        /*                             
-            Miscellaneous              
+        int                             mFSBPluginHandle;
+        int                             mWAVPluginHandle;
+        int                             mMPEGPluginHandle;
+
+        /*
+            Miscellaneous
         */
         FMOD_ADVANCEDSETTINGS           mAdvancedSettings;
         void                           *mUserData;
@@ -170,9 +156,6 @@ namespace FMOD
         int                             mMaxHardwareChannels2D;
         int                             mMinHardwareChannels3D;
         int                             mMaxHardwareChannels3D;
-        unsigned int                    mDeviceListLastCheckedTime;
-        bool                            mDeviceListChanged;
-        bool                            mCreatedHardwareSample;
         ChannelGroupI                  *mChannelGroup;
         ChannelGroupI                   mChannelGroupHead;
         SoundGroupI                    *mSoundGroup;
@@ -181,23 +164,16 @@ namespace FMOD
         FMOD_DSP_RESAMPLER              mResampleMethod;
         MemSingleton                    mMultiSubSampleLockBuffer;
         FMOD_OS_CRITICALSECTION        *mMultiSubSampleLockBufferCrit;
-        bool                            mUsesUserCallbacks;
-        unsigned int                    mBufferSize;
+        FMOD_OS_CRITICALSECTION        *mReadDataCrit;
 
         FMOD_FILE_OPENCALLBACK          mOpenCallback;
         FMOD_FILE_CLOSECALLBACK         mCloseCallback;
         FMOD_FILE_READCALLBACK          mReadCallback;
         FMOD_FILE_SEEKCALLBACK          mSeekCallback;
 
-        FMOD_FILE_OPENCALLBACK          mOpenRiderCallback;
-        FMOD_FILE_CLOSECALLBACK         mCloseRiderCallback;
-        FMOD_FILE_READCALLBACK          mReadRiderCallback;
-        FMOD_FILE_SEEKCALLBACK          mSeekRiderCallback;
-
-        FMOD_SYSTEM_CALLBACK            mCallback;
+        FMOD_SYSTEM_CALLBACK            mCallback[32];
 
         SpeakerLevelsPool               mSpeakerLevelsPool;
-        HistoryBufferPool               mHistoryBufferPool;
 
         /*
             Stream thread handles etc.
@@ -212,26 +188,6 @@ namespace FMOD
         FMOD_SPEAKERCONFIG              mSpeaker[FMOD_SPEAKER_MAX];
         FMOD_SPEAKERCONFIG             *mSpeakerList[FMOD_SPEAKER_MAX];
 
-        /*
-            Standard global reverb 
-        */
-        ReverbI                         mReverbGlobal;
-
-        Downmix                        *mDownmix;
-
-        /*
-            /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
-
-            =======================================================
-            WARNING!!!  Don't #ifdef stuff (ABOVE THIS LINE) here 
-            that might be included in  the static version of 
-            fmodex.dll and not in the plugin version of fmodex.dll!  
-            If you do the shared class will be out of sync and it 
-            will crash!
-            =======================================================
-
-            \/ \/ \/ \/ \/ \/ ok to ifdef stuff \/ \/ \/ \/ \/ \/
-        */
 #ifdef FMOD_SUPPORT_STREAMING
         static void                     streamThread(void *data);
         LinkedListNode                  mStreamListChannelHead;
@@ -246,6 +202,8 @@ namespace FMOD
         TimeStamp                       mStreamTimeStamp;
 #endif
 
+        OutputSoftware                 *mSoftware;
+
         /*
             Output variables.
         */
@@ -255,7 +213,7 @@ namespace FMOD
 
         /*
             DSP Codec pools.
-        */        
+        */
 
 #ifdef FMOD_SUPPORT_DSPCODEC
         #ifdef FMOD_SUPPORT_MPEG
@@ -267,24 +225,23 @@ namespace FMOD
         #ifdef FMOD_SUPPORT_XMA
         DSPCodecPool                   mDSPCodecPool_XMA;
         #endif
-        #ifdef FMOD_SUPPORT_CELT
-        DSPCodecPool                   mDSPCodecPool_CELT;
-        #endif
         #ifdef FMOD_SUPPORT_RAWCODEC
         DSPCodecPool                   mDSPCodecPool_RAW;
         #endif
 #endif
 
-        /*                             
-            Geometry                 
-        */ 
+        /*
+            Geometry
+        */
 #ifdef FMOD_SUPPORT_GEOMETRY
 		GeometryI					   *mGeometryList;
 		GeometryMgr                     mGeometryMgr;
-#ifdef FMOD_SUPPORT_GEOMETRY_THREADED
-        TimeStamp                       mGeometryTimeStamp;
-#endif
 #endif // FMOD_SUPPORT_GEOMETRY
+
+        /*
+            Standard global reverb
+        */
+        ReverbI                         mReverbGlobal;
 
 #ifdef FMOD_SUPPORT_MULTIREVERB
         /*
@@ -297,9 +254,6 @@ namespace FMOD
         bool                            mReverb3DActive;
         FMOD_REVERB_PROPERTIES          mReverb3DAmbientProperties;
         FMOD_RESULT                     set3DReverbProperties(const FMOD_REVERB_PROPERTIES *prop, bool force_create=false);
-        FMOD_RESULT                     get3DReverbProperties(FMOD_REVERB_PROPERTIES *prop);
-        FMOD_RESULT                     set3DReverbProperties  (int instance, const FMOD_REVERB_PROPERTIES *prop, const FMOD_VECTOR *pos, const float mindistance, const float maxdistance);
-        FMOD_RESULT                     get3DReverbProperties  (int instance, FMOD_REVERB_PROPERTIES *prop, FMOD_VECTOR *pos, float *mindistance, float *maxdistance);
         FMOD_RESULT                     setReverbAmbientProperties(FMOD_REVERB_PROPERTIES* prop);
         FMOD_RESULT                     getReverbAmbientProperties(FMOD_REVERB_PROPERTIES* prop);
         FMOD_RESULT                     update3DReverbs();
@@ -307,11 +261,14 @@ namespace FMOD
         FMOD_RESULT                     get3DReverbActive(bool *reverb_active);
         unsigned int                    count3DPhysicalReverbs();
         unsigned int                    count3DVirtualReverbs();
-        
-#else 
+#else
         FMOD_RESULT                     setReverbAmbientProperties(FMOD_REVERB_PROPERTIES *prop) { return FMOD_ERR_UNSUPPORTED; }
         FMOD_RESULT                     getReverbAmbientProperties(FMOD_REVERB_PROPERTIES *prop) { return FMOD_ERR_UNSUPPORTED; }
 #endif
+
+        DSPNet                          mDSPNet;
+
+
 
         /*
             Internal member functions.
@@ -330,13 +287,11 @@ namespace FMOD
         FMOD_RESULT                     findChannel(FMOD_CHANNELINDEX id, DSPI *dsp, ChannelI **channel);
         FMOD_RESULT                     createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *waveformat, Sample **sample);
         FMOD_RESULT                     createDSP(FMOD_DSP_DESCRIPTION_EX *description, DSPI **dsp, bool allocate = true);
-        FMOD_RESULT                     createSoundInternal(const char *name_or_data, FMOD_MODE mode, unsigned int buffersize, FMOD_TIMEUNIT buffersizetype, FMOD_CREATESOUNDEXINFO *exinfo, bool calledfromasync, SoundI **sound);
-        FMOD_RESULT                     checkDriverList(bool fromsystemupdate);
+        FMOD_RESULT                     createSoundInternal(const char *name_or_data, FMOD_MODE mode_in, FMOD_CREATESOUNDEXINFO *exinfo, bool calledfromasync, SoundI **sound);
         FMOD_RESULT                     setUpPlugins();
         FMOD_RESULT                     sortSpeakerList();
-        FMOD_RESULT                     prepareSpeakerPairs();
 #ifdef FMOD_SUPPORT_DSPCODEC
-        FMOD_RESULT                     allocateDSPCodec(FMOD_SOUND_FORMAT format, DSPCodec **dsp);
+        FMOD_RESULT                     allocDSPCodec(FMOD_SOUND_FORMAT format, DSPCodec **dsp);
 #endif
         // OFFSET: 0x008D1050
         FMOD_RESULT                     getSoftwareFormat(int *samplerate, FMOD_SOUND_FORMAT *format, int *numoutputchannels, int *maxinputchannels, FMOD_DSP_RESAMPLER *resamplemethod, int *bits)
@@ -370,7 +325,6 @@ namespace FMOD
 
 
         SystemI();
-        virtual ~SystemI() {}
 
         FMOD_RESULT       release                ();
                                                  
@@ -378,8 +332,7 @@ namespace FMOD
         FMOD_RESULT       setOutput              (FMOD_OUTPUTTYPE output);
         FMOD_RESULT       getOutput              (FMOD_OUTPUTTYPE *output);
         FMOD_RESULT       getNumDrivers          (int *numdrivers);
-        FMOD_RESULT       getDriverInfo          (int id, char *name, int namelen, FMOD_GUID *guid);
-        FMOD_RESULT       getDriverInfoW         (int id, short *name, int namelen, FMOD_GUID *guid);
+        FMOD_RESULT       getDriverName          (int id, char *name, int namelen);
         FMOD_RESULT       getDriverCaps          (int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode);
         FMOD_RESULT       setDriver              (int driver);
         FMOD_RESULT       getDriver              (int *driver);
@@ -398,19 +351,17 @@ namespace FMOD
         FMOD_RESULT       setSpeakerMode         (FMOD_SPEAKERMODE speakermode);
         // OFFSET: 0x008D1120
         FMOD_RESULT       getSpeakerMode         (FMOD_SPEAKERMODE *speakermode) { if (!speakermode) { return FMOD_ERR_INVALID_PARAM; } *speakermode = mSpeakerMode; return FMOD_OK; }
-        FMOD_RESULT       setCallback            (FMOD_SYSTEM_CALLBACK callback);
+        FMOD_RESULT       setCallback            (FMOD_SYSTEM_CALLBACKTYPE type, FMOD_SYSTEM_CALLBACK callback);
 
         // Plug-in support                       
         FMOD_RESULT       setPluginPath          (const char *path);
-        FMOD_RESULT       loadPlugin             (const char *filename, unsigned int *handle, unsigned int priority);
-        FMOD_RESULT       unloadPlugin           (unsigned int handle);
+        FMOD_RESULT       loadPlugin             (const char *filename, FMOD_PLUGINTYPE *plugintype, int *index);
+        FMOD_RESULT       unloadPlugin           (FMOD_PLUGINTYPE plugintype, int index);
         FMOD_RESULT       getNumPlugins          (FMOD_PLUGINTYPE plugintype, int *numplugins);
-        FMOD_RESULT       getPluginHandle        (FMOD_PLUGINTYPE plugintype, int index, unsigned int *handle);
-        FMOD_RESULT       getPluginInfo          (unsigned int handle, FMOD_PLUGINTYPE *plugintype, char *name, int namelen, unsigned int *version);
-        FMOD_RESULT       setOutputByPlugin      (unsigned int handle);
-        FMOD_RESULT       getOutputByPlugin      (unsigned int *handle);
-        FMOD_RESULT       createDSPByPlugin      (unsigned int handle, DSPI **dsp);
-        FMOD_RESULT       createCodec            (FMOD_CODEC_DESCRIPTION *description, unsigned int priority);
+        FMOD_RESULT       getPluginInfo          (FMOD_PLUGINTYPE plugintype, int index, char *name, int namelen, unsigned int *version);
+        FMOD_RESULT       setOutputByPlugin      (int index);
+        FMOD_RESULT       getOutputByPlugin      (int *index);
+        FMOD_RESULT       createCodec            (FMOD_CODEC_DESCRIPTION *description);
                                                  
         // Init/Close                            
         FMOD_RESULT       init                   (int maxchannels, FMOD_INITFLAGS flags, void *extradriverdata);
@@ -436,7 +387,7 @@ namespace FMOD
         FMOD_RESULT       getVersion             (unsigned int *version);
         FMOD_RESULT       getOutputHandle        (void **handle);
         FMOD_RESULT       getChannelsPlaying     (int *channels);
-        FMOD_RESULT       getCPUUsage            (float *dsp, float *stream, float *geometry, float *update, float *total);
+        FMOD_RESULT       getCPUUsage            (float *dsp, float *stream, float *update, float *total);
         FMOD_RESULT       getSoundRAM            (int *currentalloced, int *maxalloced, int *total);
         FMOD_RESULT       getNumCDROMDrives      (int *numdrives);
         FMOD_RESULT       getCDROMDriveName      (int drive, char *drivename, int drivenamelen, char *scsiname, int scsinamelen, char *devicename, int devicenamelen);
@@ -448,6 +399,7 @@ namespace FMOD
         FMOD_RESULT       createStream           (const char *name_or_data, FMOD_MODE mode, FMOD_CREATESOUNDEXINFO *exinfo, SoundI **sound);
         FMOD_RESULT       createDSP              (FMOD_DSP_DESCRIPTION *description, DSPI **dsp);
         FMOD_RESULT       createDSPByType        (FMOD_DSP_TYPE type, DSPI **dsp);
+        FMOD_RESULT       createDSPByIndex       (int index, DSPI **dsp);
         FMOD_RESULT       createChannelGroup     (const char *name, ChannelGroupI **channelgroup);
         FMOD_RESULT       createSoundGroup       (const char *name, SoundGroupI **soundgroup);
         FMOD_RESULT       createReverb           (ReverbI **reverb);
@@ -464,28 +416,27 @@ namespace FMOD
                                                    
         // System level DSP access.
         FMOD_RESULT       getDSPHead             (DSPI **dsp);
-        FMOD_RESULT       addDSP                 (DSPI *dsp, DSPConnectionI **connection);
+        FMOD_RESULT       addDSP                 (DSPI *dsp);
 		FMOD_RESULT       lockDSP                ();
 		FMOD_RESULT       unlockDSP              ();
-        FMOD_RESULT       getDSPClock            (unsigned int *hi, unsigned int *lo);
 
         // Recording api                         
         FMOD_RESULT       getRecordNumDrivers    (int *numdrivers);
-        FMOD_RESULT       getRecordDriverInfo    (int id, char *name, int namelen, FMOD_GUID *guid);
-        FMOD_RESULT       getRecordDriverInfoW   (int id, short *name, int namelen, FMOD_GUID *guid);
+        FMOD_RESULT       setRecordDriver        (int driver);
+        FMOD_RESULT       getRecordDriver        (int *driver);
+        FMOD_RESULT       getRecordDriverName    (int id, char *name, int namelen);
         FMOD_RESULT       getRecordDriverCaps    (int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency);
-        FMOD_RESULT       getRecordPosition      (int id, unsigned int *position);  
+        FMOD_RESULT       getRecordPosition      (unsigned int *position);  
 
-        FMOD_RESULT       recordStart            (int id, SoundI *sound, bool loop);
-        FMOD_RESULT       recordStop             (int id);
-        FMOD_RESULT       isRecording            (int id, bool *recording);
+        FMOD_RESULT       recordStart            (SoundI *sound, bool loop);
+        FMOD_RESULT       recordStop             ();
+        FMOD_RESULT       isRecording            (bool *recording);
 
 		// Geometry api
 		FMOD_RESULT       createGeometry		 (int maxpolygons, int maxvertices, GeometryI **geometry);
 		FMOD_RESULT       setGeometrySettings    (float maxworldsize);
 		FMOD_RESULT       getGeometrySettings    (float *maxworldsize);
         FMOD_RESULT       loadGeometry           (const void *data, int datasize, GeometryI **geometry);
-        FMOD_RESULT       getGeometryOcclusion   (const FMOD_VECTOR *listener, const FMOD_VECTOR *source, float *direct, float *reverb);
                                                  
         // Network functions.
         FMOD_RESULT       setNetworkProxy        (const char *proxy);
@@ -497,20 +448,16 @@ namespace FMOD
         FMOD_RESULT       setUserData            (void *userdata);
         FMOD_RESULT       getUserData            (void **userdata);
 
-        FMOD_RESULT       getMemoryInfo          (unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details);
 
         // ===================================================================================================
         // Functions not exposed in FMOD::System.
         // ===================================================================================================
 
-        FMOD_RESULT F_API getSoundList                  (SoundI   **sound);
-        FMOD_RESULT F_API createChannelGroupInternal    (const char *name, ChannelGroupI **channelgroup, bool createdsp, bool storenameinchannelgroup);
                                                  
         FMOD_RESULT       stopSound              (SoundI *sound);
         FMOD_RESULT       stopDSP                (DSPI   *dsp);
         FMOD_RESULT       getListenerObject      (int listener, Listener **listenerobject);
 
-        FMOD_RESULT       setGlobalUserCallbacks (FMOD_FILE_OPENCALLBACK open, FMOD_FILE_CLOSECALLBACK close, FMOD_FILE_READCALLBACK read, FMOD_FILE_SEEKCALLBACK seek);
 
 #ifdef FMOD_SUPPORT_SOFTWARE
         FMOD_RESULT       flushDSPConnectionRequests(bool calledfrommainthread = true);

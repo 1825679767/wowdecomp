@@ -55,6 +55,7 @@ revmodel::revmodel()
 	mute();
 }
 
+// VERIFY: 386d0619 auto
 // OFFSET: 0x009292A0
 void revmodel::mute()
 {
@@ -76,92 +77,39 @@ void revmodel::mute()
 }
 
 // OFFSET: 0x00928CE0
-void revmodel::processreplace(float *inputL, float *inputR, float *outputL, float *outputR, long numsamples, int skip, unsigned short speakermask)
+void revmodel::processreplace(float *inputL, float *inputR, float *outputL, float *outputR, long numsamples, int skip)
 {
 	float outL,outR,input;
 	int i;
 
-	if ((speakermask & 0x3) != 0x3)
+	while(numsamples-- > 0)
 	{
-		while(numsamples-- > 0)
+		outL = outR = 0;
+		input = (*inputL + *inputR) * gain;
+
+		// Accumulate comb filters in parallel
+		for(i=0; i<numcombs; i++)
 		{
-			outL = outR = 0;
-			input = (*inputL + *inputR) * gain;
-
-			// Accumulate comb filters in parallel
-			for(i=0; i<numcombs; i++)
-			{
-				if (speakermask & 1)
-				{
-					outL += combL[i].process(input);
-				}
-				if (speakermask & 2)
-				{
-					outR += combR[i].process(input);
-				}
-			}
-
-			// Feed through allpasses in series
-			for(i=0; i<numallpasses; i++)
-			{
-				if (speakermask & 1)
-				{
-					outL = allpassL[i].process(outL);
-				}
-				if (speakermask & 2)
-				{
-					outR = allpassR[i].process(outR);
-				}
-			}
-
-			// Calculate output REPLACING anything already there			
-			if (speakermask & 1)
-			{
-				*outputL = outL*wet1 + outR*wet2 + *inputL*dry;
-			}
-			if (speakermask & 2)
-			{
-				*outputR = outR*wet1 + outL*wet2 + *inputR*dry;
-			}
-
-			// Increment sample pointers, allowing for interleave (if any)
-			inputL += skip;
-			inputR += skip;
-			outputL += skip;
-			outputR += skip;
+			outL += combL[i].process(input);
+			outR += combR[i].process(input);
 		}
-	}
-	else
-	{
-		while(numsamples-- > 0)
+
+		// Feed through allpasses in series
+		for(i=0; i<numallpasses; i++)
 		{
-			outL = outR = 0;
-			input = (*inputL + *inputR) * gain;
-
-			// Accumulate comb filters in parallel
-			for(i=0; i<numcombs; i++)
-			{
-				outL += combL[i].process(input);
-				outR += combR[i].process(input);
-			}
-
-			// Feed through allpasses in series
-			for(i=0; i<numallpasses; i++)
-			{
-				outL = allpassL[i].process(outL);
-				outR = allpassR[i].process(outR);
-			}
-
-			// Calculate output REPLACING anything already there		
-			*outputL = outL*wet1 + outR*wet2 + *inputL*dry;
-			*outputR = outR*wet1 + outL*wet2 + *inputR*dry;
-
-			// Increment sample pointers, allowing for interleave (if any)
-			inputL += skip;
-			inputR += skip;
-			outputL += skip;
-			outputR += skip;
+			outL = allpassL[i].process(outL);
+			outR = allpassR[i].process(outR);
 		}
+
+		// Calculate output REPLACING anything already there		
+		*outputL = outL*wet1 + outR*wet2 + *inputL*dry;
+		*outputR = outR*wet1 + outL*wet2 + *inputR*dry;
+
+		// Increment sample pointers, allowing for interleave (if any)
+		inputL += skip;
+		inputR += skip;
+		outputL += skip;
+		outputR += skip;
 	}
 }
 
@@ -201,6 +149,7 @@ void revmodel::processmix(float *inputL, float *inputR, float *outputL, float *o
 	}
 }
 
+// VERIFY: c51bc301 auto
 // OFFSET: 0x009290C0
 void revmodel::update()
 {
@@ -242,6 +191,7 @@ void revmodel::update()
 // because as you develop the reverb model, you may
 // wish to take dynamic action when they are called.
 
+// VERIFY: c1d3f8c8 auto
 // OFFSET: 0x00929180
 void revmodel::setroomsize(float value)
 {
@@ -249,12 +199,14 @@ void revmodel::setroomsize(float value)
 	update();
 }
 
+// VERIFY: d6b231c4 auto
 // OFFSET: 0x009291A0
 float revmodel::getroomsize()
 {
 	return (roomsize-offsetroom)/scaleroom;
 }
 
+// VERIFY: c65d39f9 auto
 // OFFSET: 0x009291B0
 void revmodel::setdamp(float value)
 {
@@ -262,12 +214,14 @@ void revmodel::setdamp(float value)
 	update();
 }
 
+// VERIFY: 476a372d auto
 // OFFSET: 0x009291D0
 float revmodel::getdamp()
 {
 	return damp/scaledamp;
 }
 
+// VERIFY: 6c8abe55 auto
 // OFFSET: 0x009291E0
 void revmodel::setwet(float value)
 {
@@ -275,24 +229,28 @@ void revmodel::setwet(float value)
 	update();
 }
 
+// VERIFY: 160d6af2 auto
 // OFFSET: 0x00929200
 float revmodel::getwet()
 {
 	return wet/scalewet;
 }
 
+// VERIFY: 971fc8f3 auto
 // OFFSET: 0x00929210
 void revmodel::setdry(float value)
 {
 	dry = value*scaledry;
 }
 
+// VERIFY: bf7987b5 auto
 // OFFSET: 0x00929220
 float revmodel::getdry()
 {
 	return dry/scaledry;
 }
 
+// VERIFY: ba3845c9 auto
 // OFFSET: 0x00929230
 void revmodel::setwidth(float value)
 {
@@ -300,12 +258,14 @@ void revmodel::setwidth(float value)
 	update();
 }
 
+// VERIFY: 863ac853 auto
 // OFFSET: 0x00929250
 float revmodel::getwidth()
 {
 	return width;
 }
 
+// VERIFY: e33a705a auto
 // OFFSET: 0x00929260
 void revmodel::setmode(float value)
 {
@@ -313,6 +273,7 @@ void revmodel::setmode(float value)
 	update();
 }
 
+// VERIFY: 9922625a auto
 // OFFSET: 0x00929280
 float revmodel::getmode()
 {

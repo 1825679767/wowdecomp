@@ -128,14 +128,6 @@ FMOD_RESULT NullFile::reallySeek(unsigned int pos)
 	[SEE_ALSO]
 ]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-FMOD_RESULT NullFile::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_FILE, sizeof(NullFile));
-
-    return File::getMemoryUsedImpl(tracker);
-}
-#endif
 
 }
 

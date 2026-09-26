@@ -41,12 +41,13 @@ namespace FMOD
         LinkedListNode                  mCallbackHead;
 
         FMOD_RESULT                     threadFunc();
-        FMOD_RESULT                     init(bool owned, SystemI *system);
+        FMOD_RESULT                     init(bool owned);
         FMOD_RESULT                     reallyRelease();
 
 
       public :
 
+        static FMOD_OS_CRITICALSECTION *gAsyncCrit;
         static LinkedListNode           gAsyncHead;
 
         AsyncThread();
@@ -63,18 +64,12 @@ namespace FMOD
 
     struct AsyncData
     {
-        char                    mName[FMOD_STRING_MAXNAMELEN * 2]; // doubled to allow for Unicode strings
-        unsigned int            mBufferSize;
-        FMOD_TIMEUNIT           mBufferSizeType;
+        char                    mName[FMOD_STRING_MAXNAMELEN];
         AsyncThread            *mThread;
         LinkedListNode          mNode;
         void                   *mNameData;
         FMOD_CREATESOUNDEXINFO  mExInfo;
         bool                    mExInfoExists;
-#ifdef FMOD_SUPPORT_NONBLOCKSETPOS
-        unsigned int            mPosition;
-        FMOD_TIMEUNIT           mPositionType;
-#endif
 
         FMOD_RESULT             mResult;
     };

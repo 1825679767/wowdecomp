@@ -81,10 +81,6 @@ FMOD_CODEC_DESCRIPTION_EX *CodecIT::getDescriptionEx()
     itcodec.setposition     = &CodecIT::setPositionCallback;
     itcodec.getposition     = &MusicSong::getPositionCallback;
 
-    itcodec.getmusicnumchannels    = &MusicSong::getMusicNumChannelsCallback;
-    itcodec.setmusicchannelvolume  = &MusicSong::setMusicChannelVolumeCallback;
-    itcodec.getmusicchannelvolume  = &MusicSong::getMusicChannelVolumeCallback;
-
     itcodec.mType = FMOD_SOUND_TYPE_IT;
     itcodec.mSize = sizeof(CodecIT);
 
@@ -3810,7 +3806,7 @@ FMOD_RESULT CodecIT::updateRow(bool audible)
 					finalvol *= (1.0f / (64.0f * 64.0f * 64.0f * 128.0f * 128.0f) * 0.5f);
 				}
 
-        	    vcptr->mChannel.setVolume(finalvol * cptr->mMasterVolume);
+        	    vcptr->mChannel.setVolume(finalvol);
 			}
 			if (vcptr->mNoteControl & FMUSIC_PAN)
 			{
@@ -3933,7 +3929,7 @@ FMOD_RESULT CodecIT::updateRow(bool audible)
                 {
                     mLowPass[vcptr->mChannel.mIndex]->remove();
                 }
-	            vcptr->mChannel.stopEx(CHANNELI_STOPFLAG_RESETCALLBACKS);
+	            vcptr->mChannel.stopEx(false, false, true, true, false, false, false);
                 #ifdef FMOD_SUPPORT_SOFTWARE
                 mSystem->flushDSPConnectionRequests();
                 #endif
@@ -4108,9 +4104,9 @@ FMOD_RESULT CodecIT::update(bool audible)
 ]
 */
 // OFFSET: 0x00900AD0
-FMOD_RESULT CodecIT::play(bool fromopen)
+FMOD_RESULT CodecIT::play()
 {
-    MusicSong::play(fromopen);
+    MusicSong::play();
 
 #ifdef FMUSIC_PLAYPACKED
     int pattern;
@@ -4176,7 +4172,7 @@ FMOD_RESULT CodecIT::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
     int             messageoffset;
     int             messagelength;
 
-    if (!(mFile->mFlags & FMOD_FILE_SEEKABLE))
+    if (!(mFile->mSeekable))
     {
         return FMOD_ERR_FORMAT;
     }
@@ -6218,7 +6214,7 @@ FMOD_RESULT CodecIT::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
     */
     numsubsounds  = 0;
 
-    play(true);
+    play();
 
     FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "CodecIT::openInternal", "done.\n"));
 
@@ -6390,10 +6386,10 @@ FMOD_RESULT CodecIT::closeInternal()
 // OFFSET: 0x00900FC0
 FMOD_RESULT CodecIT::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
-    FMOD_RESULT     result = FMOD_OK;
-    unsigned int    numsamples;
-    int             numchannels;
-    LocalCriticalSection  criticalsection(mSystem->mDSPCrit);
+    FMOD_RESULT              result = FMOD_OK;
+    unsigned int             numsamples;
+    int                      numchannels;
+    FMOD_OS_CRITICALSECTION *crit = mSystem->mDSPCrit;
 
     numchannels = waveformat[0].channels;
 
@@ -6404,11 +6400,12 @@ FMOD_RESULT CodecIT::readInternal(void *buffer, unsigned int sizebytes, unsigned
 		unsigned int    mixedsofar = 0;
 		unsigned int    mixedleft = mMixerSamplesLeft;
 		unsigned int    samplestomix;
-        char           *destptr = (char *)buffer; /* Keep resetting the mix pointer to the beginning of this portion of the ring buffer */
+        char           *destptr = (char *)buffer;
 
 		while (mixedsofar < numsamples)
 		{
-            unsigned int read = 0, bytes;
+            unsigned int read, bytes;
+            void        *outbuffer = destptr;
 
 			if (!mixedleft)
 			{
@@ -6421,52 +6418,53 @@ FMOD_RESULT CodecIT::readInternal(void *buffer, unsigned int sizebytes, unsigned
 				samplestomix = mMixerSamplesPerTick;
 				mixedleft = samplestomix;
 			}
-			else 
+			else
             {
 				samplestomix = mixedleft;
             }
 
-			if (mixedsofar + samplestomix > numsamples) 
+			if (mixedsofar + samplestomix > numsamples)
             {
 				samplestomix = numsamples - mixedsofar;
             }
 
             read = samplestomix;
 
-            criticalsection.enter();
+            FMOD_OS_CriticalSection_Enter(crit);
             if (buffer)
 			{
-                result = mDSPFinalHead->read(destptr, &read, FMOD_SPEAKERMODE_STEREO_LINEAR, 2, mDSPTick);
+                result = mDSPFinalHead->execute(outbuffer, &outbuffer, &read, numchannels, &numchannels, FMOD_SPEAKERMODE_STEREO_LINEAR);
                 if (result != FMOD_OK)
                 {
+                    FMOD_OS_CriticalSection_Leave(crit);
                     return result;
                 }
 
-                mDSPTick++;
+                mDSPFinalHead->resetVisited();
             }
+            FMOD_OS_CriticalSection_Leave(crit);
 
             SoundI::getBytesFromSamples(read, &bytes, numchannels, waveformat[0].format);
 
-            /* 
-                Buffer returned from the DSP head execute may not be the one we sent in (it may be
-                one of the global buffers). Don't leave mDSPCrit until after we have copied data out
-            */
-            criticalsection.leave();
+            if (destptr != outbuffer && buffer)
+            {
+                FMOD_memcpy(destptr, outbuffer, bytes);
+            }
 
-			mixedsofar += read;
-			destptr    += bytes;
 			mixedleft  -= read;
+			destptr    += bytes;
+			mixedsofar += read;
 		}
 
 		mMixerSamplesLeft = mixedleft;
 	}
 
     if (bytesread)
-    {    
+    {
         *bytesread = sizebytes;
     }
 
-    return result;	
+    return FMOD_OK;
 }
 
 

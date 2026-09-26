@@ -20,20 +20,15 @@ extern "C++" /* in case it included inside an extern "C" */
 #define FMOD_MEMORY_THREADSAFE
 #define FMOD_MEMORY_USEBITS
 
-#ifdef FMOD_SUPPORT_DLMALLOC
-    #include "../lib/dlmalloc/dlmalloc.h"
-    #define FMOD_MEMORY_DEFAULTBLOCKSIZE  256
-#else
     #if defined(FMOD_MEMORY_USEBITS)
         #ifdef PLATFORM_PS3
             #define FMOD_MEMORY_DEFAULTBLOCKSIZE 32     /* 16 is incredibly slow on the PS3 for some reason */
         #else
-            #define FMOD_MEMORY_DEFAULTBLOCKSIZE 16
+            #define FMOD_MEMORY_DEFAULTBLOCKSIZE 64
         #endif
     #else
         #define FMOD_MEMORY_DEFAULTBLOCKSIZE  256
     #endif
-#endif
 
 #define FMOD_MEMORY_MAXTHREADS 32
 
@@ -52,9 +47,6 @@ namespace FMOD
     */
     class MemPool
     {
-        #if defined(FMOD_SUPPORT_PROFILE) && defined(FMOD_SUPPORT_PROFILE_MEMORY)
-        friend class ProfileMemory;
-        #endif
 
       private:
         unsigned char               *mBitmap;
@@ -68,8 +60,6 @@ namespace FMOD
         unsigned int                 mCurrentAllocated[FMOD_MEMORY_MAXTHREADS + 1];
         unsigned int                 mCurrentAllocatedThreadID[FMOD_MEMORY_MAXTHREADS]; /* id 0 means all threads. */
         unsigned int                 mMaxAllocated;
-        unsigned int                 mMaxAllocatedSecondary;
-        unsigned int                 mCurrentAllocatedSecondary;
         int                          mActualMaxBytes;
         int                          mWastage;
         int                          mFirstFreeBlock;
@@ -77,15 +67,9 @@ namespace FMOD
         FMOD_MEMORY_REALLOCCALLBACK  mRealloc;
         FMOD_MEMORY_FREECALLBACK     mFree;
 
-#ifdef FMOD_SUPPORT_DLMALLOC
-        mspace                       mDLMallocSpace;
-#endif
 
 #ifdef FMOD_MEMORY_THREADSAFE
         FMOD_OS_CRITICALSECTION      *mCrit;
-#endif
-#ifdef FMOD_DEBUG
-        int                          mAllocCount;
 #endif
         inline int               findFreeBlocks(int offset, int to, int numblocks);
 
@@ -120,10 +104,6 @@ namespace FMOD
         inline unsigned int getCurrentAllocated(unsigned int threadid = 0)   
         { 
             return mCurrentAllocated[threadid];
-        }
-        inline unsigned int getCurrentAllocatedSecondary()
-        {
-            return mCurrentAllocatedSecondary;
         }
         // OFFSET: 0x008CF9E0
         inline unsigned int getCurrentThreadID(FMOD_UINT_NATIVE threadid = 0)
@@ -169,7 +149,6 @@ namespace FMOD
         }
 
         inline unsigned int     getMaxAllocated()          { return mMaxAllocated; }
-        inline unsigned int     getMaxAllocatedSecondary() { return mMaxAllocatedSecondary; }
         inline unsigned char   *getData()                  { return mData; }
         inline int              getSizeBytes()             { return mSizeBytes; }       
     };
@@ -190,6 +169,17 @@ namespace FMOD
         void *alloc(int len, const char *file = "", const int line = 0);
         void  free(const char *file = "", const int line = 0);
         void *getData() { return mBuffer; }
+    };
+
+    class LocalMemoryCounter
+    {
+      public:
+
+        unsigned int mUsageAtStart;
+
+        LocalMemoryCounter();
+
+        int getMemoryUsed();
     };
 
     void * F_CALLBACK Memory_DefaultMalloc(unsigned int size, FMOD_MEMORY_TYPE type);

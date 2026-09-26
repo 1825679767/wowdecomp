@@ -71,6 +71,7 @@ FMOD_DSP_PARAMETERDESC dspparameq_param[3] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ca858cf3 auto
 // OFFSET: 0x008EEC70
 FMOD_DSP_DESCRIPTION_EX *DSPParamEq::getDescriptionEx()
 {
@@ -92,9 +93,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPParamEq::getDescriptionEx()
     dspparameq.paramdesc     = dspparameq_param;
     dspparameq.setparameter  = DSPParamEq::setParameterCallback;
     dspparameq.getparameter  = DSPParamEq::getParameterCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dspparameq.getmemoryused = &DSPParamEq::getMemoryUsedCallback;
-#endif
 
     dspparameq.mType         = FMOD_DSP_TYPE_PARAMEQ;
     dspparameq.mCategory     = FMOD_DSP_CATEGORY_FILTER;
@@ -292,17 +290,6 @@ FMOD_RESULT DSPParamEq::readInternal(float *inbuffer, float *outbuffer, unsigned
     int count2;
     static float dc = (float)1E-20;
 
-    if (!inbuffer)
-    {
-        return FMOD_OK;
-    }
-
-	if (!(speakermask & ((1 << inchannels)-1))) /*No channels are active, copy in buffer to out buffer and skip the DSP*/
-	{
-		FMOD_memcpy(outbuffer, inbuffer, sizeof(float)*length*inchannels);
-		return FMOD_OK;
-	}
-
     if (mCenter != mCenterUpdate || mBandwidth != mBandwidthUpdate || mGain != mGainUpdate)
     {
         mCenter    = mCenterUpdate;
@@ -315,7 +302,7 @@ FMOD_RESULT DSPParamEq::readInternal(float *inbuffer, float *outbuffer, unsigned
     float   a0 = 1.0f / mCoefficient_a0, a1 = mCoefficient_a1, a2 = mCoefficient_a2;       /* numerator coefficients */
     float   b0 =        mCoefficient_b0, b1 = mCoefficient_b1, b2 = mCoefficient_b2;       /* denominator coefficients */      
     
-    if (inchannels == 1 && (speakermask & 1))
+    if (inchannels == 1)
     {
         float in1 = mFilterIn[0][0];
         float in2 = mFilterIn[0][1];
@@ -344,7 +331,7 @@ FMOD_RESULT DSPParamEq::readInternal(float *inbuffer, float *outbuffer, unsigned
         mFilterOut[0][0] = out1;
         mFilterOut[0][1] = out2;       
     }
-    else if (inchannels == 2 && (speakermask & 0x3)==0x3)
+    else if (inchannels == 2)
     {
         float in1L  = mFilterIn[0][0];
         float in1R  = mFilterIn[1][0];
@@ -393,7 +380,7 @@ FMOD_RESULT DSPParamEq::readInternal(float *inbuffer, float *outbuffer, unsigned
         mFilterOut[0][1] = out2L;
         mFilterOut[1][1] = out2R;        
     }
-    else if (inchannels == 6 && ((speakermask & 0x3F) == 0x3F))
+    else if (inchannels == 6)
     {
         float in1A  = mFilterIn[0][0];
         float in1B  = mFilterIn[1][0];
@@ -506,151 +493,6 @@ FMOD_RESULT DSPParamEq::readInternal(float *inbuffer, float *outbuffer, unsigned
         mFilterOut[4][1] = out2E;
         mFilterOut[5][1] = out2F;        
     }
-	else if (inchannels == 8 && ((speakermask & 0xFF) == 0xFF))
-    {
-        float in1A  = mFilterIn[0][0];
-        float in1B  = mFilterIn[1][0];
-        float in1C  = mFilterIn[2][0];
-        float in1D  = mFilterIn[3][0];
-        float in1E  = mFilterIn[4][0];
-        float in1F  = mFilterIn[5][0];
-		float in1G  = mFilterIn[6][0];
-        float in1H  = mFilterIn[7][0];
-        float in2A  = mFilterIn[0][1];
-        float in2B  = mFilterIn[1][1];
-        float in2C  = mFilterIn[2][1];
-        float in2D  = mFilterIn[3][1];
-        float in2E  = mFilterIn[4][1];
-        float in2F  = mFilterIn[5][1];
-		float in2G  = mFilterIn[6][1];
-        float in2H  = mFilterIn[7][1];
-        float out1A = mFilterOut[0][0];
-        float out1B = mFilterOut[1][0];
-        float out1C = mFilterOut[2][0];
-        float out1D = mFilterOut[3][0];
-        float out1E = mFilterOut[4][0];
-        float out1F = mFilterOut[5][0];
-		float out1G = mFilterOut[6][0];
-        float out1H = mFilterOut[7][0];
-        float out2A = mFilterOut[0][1];
-        float out2B = mFilterOut[1][1];
-        float out2C = mFilterOut[2][1];
-        float out2D = mFilterOut[3][1];
-        float out2E = mFilterOut[4][1];
-        float out2F = mFilterOut[5][1];
-		float out2G = mFilterOut[6][1];
-        float out2H = mFilterOut[7][1];
-
-        while (length)
-        {
-            float in0A, out0A;
-            float in0B, out0B;
-            float in0C, out0C;
-            float in0D, out0D;
-            float in0E, out0E;
-            float in0F, out0F;
-			float in0G, out0G;
-            float in0H, out0H;
-            
-            in0A = inbuffer[0] + dc;
-            in0B = inbuffer[1] + dc;
-            in0C = inbuffer[2] + dc;
-            in0D = inbuffer[3] + dc;
-            in0E = inbuffer[4] + dc;
-            in0F = inbuffer[5] + dc;
-			in0G = inbuffer[6] + dc;
-            in0H = inbuffer[7] + dc;
-            
-            out0A = (b0 * in0A + b1 * in1A + b2 * in2A - a1 * out1A - a2 * out2A) * a0;
-            out0B = (b0 * in0B + b1 * in1B + b2 * in2B - a1 * out1B - a2 * out2B) * a0;
-            out0C = (b0 * in0C + b1 * in1C + b2 * in2C - a1 * out1C - a2 * out2C) * a0;
-            out0D = (b0 * in0D + b1 * in1D + b2 * in2D - a1 * out1D - a2 * out2D) * a0;
-            out0E = (b0 * in0E + b1 * in1E + b2 * in2E - a1 * out1E - a2 * out2E) * a0;
-            out0F = (b0 * in0F + b1 * in1F + b2 * in2F - a1 * out1F - a2 * out2F) * a0;
-			out0G = (b0 * in0G + b1 * in1G + b2 * in2G - a1 * out1G - a2 * out2G) * a0;
-            out0H = (b0 * in0H + b1 * in1H + b2 * in2H - a1 * out1H - a2 * out2H) * a0;
-
-	        in2A = in1A;
-	        in2B = in1B;
-	        in2C = in1C;
-	        in2D = in1D;
-	        in2E = in1E;
-	        in2F = in1F;
-			in2G = in1G;
-	        in2H = in1H;
-            in1A = in0A;
-            in1B = in0B;
-            in1C = in0C;
-            in1D = in0D;
-            in1E = in0E;
-            in1F = in0F;
-			in1G = in0G;
-            in1H = in0H;
-
-            out2A = out1A;
-            out2B = out1B;
-            out2C = out1C;
-            out2D = out1D;
-            out2E = out1E;
-            out2F = out1F;
-			out2G = out1G;
-            out2H = out1H;
-            out1A = out0A;
-            out1B = out0B;
-            out1C = out0C;
-            out1D = out0D;
-            out1E = out0E;
-            out1F = out0F;
-			out1G = out0G;
-            out1H = out0H;
-
-            outbuffer[0] = out0A;
-            outbuffer[1] = out0B;
-            outbuffer[2] = out0C;
-            outbuffer[3] = out0D;
-            outbuffer[4] = out0E;
-            outbuffer[5] = out0F;
-			outbuffer[6] = out0G;
-            outbuffer[7] = out0H;
-
-            dc = -dc;
-            outbuffer+=8;
-            inbuffer+=8;
-            length--;
-        }
-        mFilterIn[0][0] = in1A;
-        mFilterIn[1][0] = in1B;
-        mFilterIn[2][0] = in1C;
-        mFilterIn[3][0] = in1D;
-        mFilterIn[4][0] = in1E;
-        mFilterIn[5][0] = in1F;
-		mFilterIn[6][0] = in1G;
-        mFilterIn[7][0] = in1H;
-        mFilterIn[0][1] = in2A;
-        mFilterIn[1][1] = in2B;
-        mFilterIn[2][1] = in2C;
-        mFilterIn[3][1] = in2D;
-        mFilterIn[4][1] = in2E;
-        mFilterIn[5][1] = in2F;
-		mFilterIn[6][1] = in2G;
-        mFilterIn[7][1] = in2H;
-        mFilterOut[0][0] = out1A;
-        mFilterOut[1][0] = out1B;
-        mFilterOut[2][0] = out1C;
-        mFilterOut[3][0] = out1D;
-        mFilterOut[4][0] = out1E;
-        mFilterOut[5][0] = out1F;
-		mFilterOut[6][0] = out1G;
-        mFilterOut[7][0] = out1H;
-        mFilterOut[0][1] = out2A;
-        mFilterOut[1][1] = out2B;
-        mFilterOut[2][1] = out2C;
-        mFilterOut[3][1] = out2D;
-        mFilterOut[4][1] = out2E;
-        mFilterOut[5][1] = out2F;        
-		mFilterOut[6][1] = out2G;
-        mFilterOut[7][1] = out2H;        
-    }
     else
     {
         for (count2 = 0; count2 < inchannels; count2++)
@@ -660,68 +502,33 @@ FMOD_RESULT DSPParamEq::readInternal(float *inbuffer, float *outbuffer, unsigned
             float *in = inbuffer + count2;
             float *out = outbuffer + count2;
 			
-			if (!((1 << count2) & speakermask))
+			len = length;
+			float in1  = mFilterIn[count2][0];
+			float in2  = mFilterIn[count2][1];
+			float out1 = mFilterOut[count2][0];
+			float out2 = mFilterOut[count2][1];
+			while (len)
 			{
-				int offset1, offset2, offset3, inc;
+				float in0, out0;
+            
+				in0 = in[0] + dc;
+				out0 = (b0 * in0 + b1 * in1 + b2 * in2 - a1 * out1 - a2 * out2) * a0;
+				in2 = in1;
+				in1 = in0;
+				out2 = out1;
+				out1 = out0;
+				out[0] = out0;
 
-				offset1 = inchannels;
-				offset2 = inchannels * 2;
-				offset3 = inchannels * 3;
-				len = length >> 2;
-				inc = inchannels << 2;
-
-				while (len)
-				{	
-					out[0] = in[0];
-					out[offset1] = in[offset1];
-					out[offset2] = in[offset2];
-					out[offset3] = in[offset3];
-
-					in += inc;
-					out += inc;
-					len--;
-				}
-
-				len = length & 3;
-				while (len)
-				{    
-					out[0] = in[0];
-					len--;
-					in += inchannels;
-					out += inchannels;
-				}
-				continue; 
+				in += inchannels;
+				out += inchannels;
+				len--;
+				dc = -dc;
 			}
-			else
-			{
-				len = length;
-				float in1  = mFilterIn[count2][0];
-				float in2  = mFilterIn[count2][1];
-				float out1 = mFilterOut[count2][0];
-				float out2 = mFilterOut[count2][1];
-				while (len)
-				{
-					float in0, out0;
-	            
-					in0 = in[0] + dc;
-					out0 = (b0 * in0 + b1 * in1 + b2 * in2 - a1 * out1 - a2 * out2) * a0;
-					in2 = in1;
-					in1 = in0;
-					out2 = out1;
-					out1 = out0;
-					out[0] = out0;
-
-					in += inchannels;
-					out += inchannels;
-					len--;
-					dc = -dc;
-				}
-	            
-				mFilterIn[count2][0] = in1;
-				mFilterIn[count2][1] = in2;
-				mFilterOut[count2][0] = out1;
-				mFilterOut[count2][1] = out2;
-			}
+            
+			mFilterIn[count2][0] = in1;
+			mFilterIn[count2][1] = in2;
+			mFilterOut[count2][0] = out1;
+			mFilterOut[count2][1] = out2;
         }        
     }
 
@@ -747,6 +554,7 @@ FMOD_RESULT DSPParamEq::readInternal(float *inbuffer, float *outbuffer, unsigned
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f35a3686 auto
 // OFFSET: 0x008EE930
 FMOD_RESULT DSPParamEq::setParameterInternal(int index, float value)
 {
@@ -801,6 +609,7 @@ FMOD_RESULT DSPParamEq::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d3826967 auto
 // OFFSET: 0x008EE9B0
 FMOD_RESULT DSPParamEq::getParameterInternal(int index, float *value, char *valuestr)
 {
@@ -846,16 +655,6 @@ FMOD_RESULT DSPParamEq::getParameterInternal(int index, float *value, char *valu
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPParamEq::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    // Size of this class is already accounted for (via description.mSize). Just add extra allocated memory here.
-
-    return FMOD_OK;
-}
-
-#endif
 
 #endif // !PLATFORM_PS3_SPU
 
@@ -936,6 +735,7 @@ FMOD_RESULT F_CALLBACK DSPParamEq::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: df48cec1 auto
 // OFFSET: 0x008EEA80
 FMOD_RESULT F_CALLBACK DSPParamEq::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -987,6 +787,7 @@ FMOD_RESULT F_CALLBACK DSPParamEq::setParameterCallback(FMOD_DSP_STATE *dsp, int
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 121f5f9d auto
 // OFFSET: 0x008EEAF0
 FMOD_RESULT F_CALLBACK DSPParamEq::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
@@ -996,29 +797,6 @@ FMOD_RESULT F_CALLBACK DSPParamEq::getParameterCallback(FMOD_DSP_STATE *dsp, int
 }
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPParamEq::getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker)
-{
-    DSPParamEq *parameq = (DSPParamEq *)dsp;    
-
-    return parameq->DSPParamEq::getMemoryUsed(tracker);
-}
-#endif
 
 #endif // !PLATFORM_PS3_SPU
 

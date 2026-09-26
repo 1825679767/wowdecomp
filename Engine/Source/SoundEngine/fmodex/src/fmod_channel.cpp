@@ -207,7 +207,7 @@ FMOD_RESULT Channel::getPan(float *pan)
 }
 
 
-FMOD_RESULT Channel::setDelay(FMOD_DELAYTYPE delaytype, unsigned int delayhi, unsigned int delaylo)
+FMOD_RESULT Channel::setDelay(unsigned int startdelay, unsigned int enddelay)
 {
     FMOD_RESULT result;
     ChannelI *channeli;
@@ -219,12 +219,12 @@ FMOD_RESULT Channel::setDelay(FMOD_DELAYTYPE delaytype, unsigned int delayhi, un
     }
     else
     {
-        return channeli->setDelay(delaytype, delayhi, delaylo);
+        return channeli->setDelay(startdelay, enddelay);
     }
 }
 
 
-FMOD_RESULT Channel::getDelay(FMOD_DELAYTYPE delaytype, unsigned int *delayhi, unsigned int *delaylo)
+FMOD_RESULT Channel::getDelay(unsigned int *startdelay, unsigned int *enddelay)
 {
     FMOD_RESULT result;
     ChannelI *channeli;
@@ -232,19 +232,19 @@ FMOD_RESULT Channel::getDelay(FMOD_DELAYTYPE delaytype, unsigned int *delayhi, u
     result = ChannelI::validate(this, &channeli);
     if (result != FMOD_OK)
     {
-        if (delayhi)
+        if (startdelay)
         {
-            *delayhi = 0;
+            *startdelay = 0;
         }
-        if (delaylo)
+        if (enddelay)
         {
-            *delaylo = 0;
+            *enddelay = 0;
         }
         return result;
     }
     else
     {
-        return channeli->getDelay(delaytype, delayhi, delaylo);
+        return channeli->getDelay(startdelay, enddelay);
     }
 }
 
@@ -544,46 +544,6 @@ FMOD_RESULT Channel::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
         return channeli->getReverbProperties(prop);
     }
 }
-
-
-FMOD_RESULT Channel::setLowPassGain(float gain)
-{
-    FMOD_RESULT result;
-    ChannelI *channeli;
-
-    result = ChannelI::validate(this, &channeli);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return channeli->setLowPassGain(gain);
-    }
-}
-
-
-FMOD_RESULT Channel::getLowPassGain(float *gain)
-{
-    FMOD_RESULT result;
-    ChannelI *channeli;
-
-    result = ChannelI::validate(this, &channeli);
-    if (result != FMOD_OK)
-    {
-        if (gain)
-        {
-            *gain = 0.0f;
-        }
-        return result;
-    }
-    else
-    {
-        return channeli->getLowPassGain(gain);
-    }
-}
-
-
 // OFFSET: 0x008D0C10
 FMOD_RESULT Channel::setChannelGroup(ChannelGroup *channelgroup)
 {
@@ -624,7 +584,7 @@ FMOD_RESULT Channel::getChannelGroup(ChannelGroup **channelgroup)
 
 
 // OFFSET: 0x008D0C40
-FMOD_RESULT Channel::setCallback(FMOD_CHANNEL_CALLBACK callback)
+FMOD_RESULT Channel::setCallback(FMOD_CHANNEL_CALLBACKTYPE type, FMOD_CHANNEL_CALLBACK callback, int command)
 {
     FMOD_RESULT result;
     ChannelI *channeli;
@@ -636,7 +596,7 @@ FMOD_RESULT Channel::setCallback(FMOD_CHANNEL_CALLBACK callback)
     }
     else
     {
-        return channeli->setCallback(callback);
+        return channeli->setCallback(type, callback, command);
     }
 }
 
@@ -1037,7 +997,7 @@ FMOD_RESULT Channel::getDSPHead(DSP **dsp)
 
 
 // OFFSET: 0x008D0E70
-FMOD_RESULT Channel::addDSP(DSP *dsp, DSPConnection **connection)
+FMOD_RESULT Channel::addDSP(DSP *dsp)
 {
     FMOD_RESULT result;
     ChannelI *channeli;
@@ -1049,7 +1009,7 @@ FMOD_RESULT Channel::addDSP(DSP *dsp, DSPConnection **connection)
     }
     else
     {
-        return channeli->addDSP((DSPI *)dsp, (DSPConnectionI **)connection);
+        return channeli->addDSP((DSPI *)dsp);
     }
 }
 
@@ -1116,6 +1076,28 @@ FMOD_RESULT Channel::getAudibility(float *audibility)
     else
     {
         return channeli->getAudibility(audibility);
+    }
+}
+
+
+// OFFSET: 0x008D0F60
+FMOD_RESULT Channel::getFadeVolume(float *fadevolume)
+{
+    FMOD_RESULT result;
+    ChannelI *channeli;
+
+    result = ChannelI::validate(this, &channeli);
+    if (result != FMOD_OK)
+    {
+        if (fadevolume)
+        {
+            *fadevolume = 0.0f;
+        }
+        return result;
+    }
+    else
+    {
+        return channeli->getFadeVolume(fadevolume);
     }
 }
 
@@ -1362,30 +1344,6 @@ FMOD_RESULT Channel::getUserData(void **_userdata)
     }
 }
 
-
-FMOD_RESULT Channel::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD_RESULT result;
-    ChannelI *channeli;
-
-    result = ChannelI::validate(this, &channeli);
-    if (result != FMOD_OK)
-    {
-        if (memoryused)
-        {
-            *memoryused = 0;
-        }
-        if (memoryused_details)
-        {
-            FMOD_memset(memoryused_details, 0, sizeof(FMOD_MEMORY_USAGE_DETAILS));
-        }
-        return result;
-    }
-    else
-    {
-        return channeli->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-    }
-}
 
 
 /*$ preserve start $*/

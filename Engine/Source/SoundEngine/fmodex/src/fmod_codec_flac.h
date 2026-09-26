@@ -33,9 +33,6 @@ namespace FMOD
         static FMOD_RESULT F_CALLBACK closeCallback(FMOD_CODEC_STATE *codec);
         static FMOD_RESULT F_CALLBACK readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread);
         static FMOD_RESULT F_CALLBACK setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype);
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-        static FMOD_RESULT F_CALLBACK getMemoryUsedCallback(FMOD_CODEC_STATE *codec, MemoryTracker *tracker);
-#endif
 
         static FMOD_CODEC_DESCRIPTION_EX *getDescriptionEx();       
     };

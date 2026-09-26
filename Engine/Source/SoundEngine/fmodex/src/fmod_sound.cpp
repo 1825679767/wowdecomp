@@ -58,7 +58,7 @@ FMOD_RESULT Sound::lock(unsigned int offset, unsigned int length, void **ptr1, v
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -80,7 +80,7 @@ FMOD_RESULT Sound::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned in
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -101,7 +101,7 @@ FMOD_RESULT Sound::setDefaults(float frequency, float volume, float pan, int pri
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -122,7 +122,7 @@ FMOD_RESULT Sound::getDefaults(float *frequency, float *volume, float *pan, int 
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -143,7 +143,7 @@ FMOD_RESULT Sound::setVariations(float frequencyvar, float volumevar, float panv
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -164,7 +164,7 @@ FMOD_RESULT Sound::getVariations(float *frequencyvar, float *volumevar, float *p
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -185,7 +185,7 @@ FMOD_RESULT Sound::set3DMinMaxDistance(float min, float max)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -206,7 +206,7 @@ FMOD_RESULT Sound::get3DMinMaxDistance(float *min, float *max)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -227,7 +227,7 @@ FMOD_RESULT Sound::set3DConeSettings(float insideconeangle, float outsideconeang
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -248,7 +248,7 @@ FMOD_RESULT Sound::get3DConeSettings(float *insideconeangle, float *outsideconea
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -269,7 +269,7 @@ FMOD_RESULT Sound::set3DCustomRolloff(FMOD_VECTOR *points, int numpoints)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -290,7 +290,7 @@ FMOD_RESULT Sound::get3DCustomRolloff(FMOD_VECTOR **points, int *numpoints)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -311,7 +311,7 @@ FMOD_RESULT Sound::setSubSound(int index, Sound *subsound)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -359,7 +359,7 @@ FMOD_RESULT Sound::setSubSoundSentence(int *subsoundlist, int numsubsounds)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -381,7 +381,7 @@ FMOD_RESULT Sound::getName(char *name, int namelen)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -403,7 +403,7 @@ FMOD_RESULT Sound::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -424,7 +424,7 @@ FMOD_RESULT Sound::getFormat(FMOD_SOUND_TYPE *type, FMOD_SOUND_FORMAT *format, i
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -445,7 +445,7 @@ FMOD_RESULT Sound::getNumSubSounds(int *numsubsounds)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -466,7 +466,7 @@ FMOD_RESULT Sound::getNumTags(int *numtags, int *numtagsupdated)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -487,7 +487,7 @@ FMOD_RESULT Sound::getTag(const char *name, int index, FMOD_TAG *tag)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -525,7 +525,7 @@ FMOD_RESULT Sound::readData(void *buffer, unsigned int lenbytes, unsigned int *r
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -546,7 +546,7 @@ FMOD_RESULT Sound::seekData(unsigned int pcm)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -568,7 +568,7 @@ FMOD_RESULT Sound::setSoundGroup(SoundGroup *soundgroup)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -589,7 +589,7 @@ FMOD_RESULT Sound::getSoundGroup(SoundGroup **soundgroup)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -610,7 +610,7 @@ FMOD_RESULT Sound::getNumSyncPoints(int *numsyncpoints)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -631,7 +631,7 @@ FMOD_RESULT Sound::getSyncPoint(int index, FMOD_SYNCPOINT **point)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -652,7 +652,7 @@ FMOD_RESULT Sound::getSyncPointInfo(FMOD_SYNCPOINT *point, char *name, int namel
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -673,7 +673,7 @@ FMOD_RESULT Sound::addSyncPoint(unsigned int offset, FMOD_TIMEUNIT offsettype, c
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -694,7 +694,7 @@ FMOD_RESULT Sound::deleteSyncPoint(FMOD_SYNCPOINT *point)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -715,7 +715,7 @@ FMOD_RESULT Sound::setMode(FMOD_MODE mode)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -736,7 +736,7 @@ FMOD_RESULT Sound::getMode(FMOD_MODE *mode)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -757,7 +757,7 @@ FMOD_RESULT Sound::setLoopCount(int loopcount)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -778,7 +778,7 @@ FMOD_RESULT Sound::getLoopCount(int *loopcount)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -799,7 +799,7 @@ FMOD_RESULT Sound::setLoopPoints(unsigned int loopstart, FMOD_TIMEUNIT loopstart
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -820,78 +820,13 @@ FMOD_RESULT Sound::getLoopPoints(unsigned int *loopstart, FMOD_TIMEUNIT loopstar
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
         return soundi->getLoopPoints(loopstart, loopstarttype, loopend, loopendtype);
     }
 }
-
-
-FMOD_RESULT Sound::getMusicNumChannels(int *numchannels)
-{
-    FMOD_RESULT result;
-    SoundI *soundi;
-
-    result = SoundI::validate(this, &soundi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
-        {
-            return FMOD_ERR_NOTREADY;
-        }
-        return soundi->getMusicNumChannels(numchannels);
-    }
-}
-
-
-FMOD_RESULT Sound::setMusicChannelVolume(int channel, float volume)
-{
-    FMOD_RESULT result;
-    SoundI *soundi;
-
-    result = SoundI::validate(this, &soundi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
-        {
-            return FMOD_ERR_NOTREADY;
-        }
-        return soundi->setMusicChannelVolume(channel, volume);
-    }
-}
-
-
-FMOD_RESULT Sound::getMusicChannelVolume(int channel, float *volume)
-{
-    FMOD_RESULT result;
-    SoundI *soundi;
-
-    result = SoundI::validate(this, &soundi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
-        {
-            return FMOD_ERR_NOTREADY;
-        }
-        return soundi->getMusicChannelVolume(channel, volume);
-    }
-}
-
-
 FMOD_RESULT Sound::setUserData(void *_userdata)
 {
     FMOD_RESULT result;
@@ -904,7 +839,7 @@ FMOD_RESULT Sound::setUserData(void *_userdata)
     }
     else
     {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
+        if (soundi->mOpenState != FMOD_OPENSTATE_READY)
         {
             return FMOD_ERR_NOTREADY;
         }
@@ -930,26 +865,6 @@ FMOD_RESULT Sound::getUserData(void **_userdata)
     }
 }
 
-
-FMOD_RESULT Sound::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD_RESULT result;
-    SoundI *soundi;
-
-    result = SoundI::validate(this, &soundi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        if (soundi->mOpenState != FMOD_OPENSTATE_READY && soundi->mOpenState != FMOD_OPENSTATE_SETPOSITION)
-        {
-            return FMOD_ERR_NOTREADY;
-        }
-        return soundi->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-    }
-}
 
 
 /*$ preserve start $*/

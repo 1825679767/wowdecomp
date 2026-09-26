@@ -128,7 +128,6 @@ namespace FMOD
       private:
         
         MusicSample   **mSample;
-        ChannelPool    *mChannelPoolMemory;    /* ChannelPool */
 
         FMOD_RESULT     calculateLength();
 
@@ -161,7 +160,6 @@ namespace FMOD
         static FMOD_RESULT F_CALLBACK closeCallback(FMOD_CODEC_STATE *codec);
         static FMOD_RESULT F_CALLBACK readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread);
         static FMOD_RESULT F_CALLBACK setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype);
-        static FMOD_RESULT F_CALLBACK updateCallback(FMOD_CODEC_STATE *codec);
     };
 }
 

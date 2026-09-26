@@ -62,7 +62,7 @@
 #define FSOUND_IGNORETAGS            0x40000000  /* Skips id3v2 etc tag checks when opening a stream, to reduce seek/read overhead when opening files (helps with CD performance) */
 #define FSOUND_SYNCPOINTS            0x80000000  /* Specifies that syncpoints are present */
 
-#define FSOUND_CHANNELMODE_MASK      (FSOUND_CHANNELMODE_ALLMONO | FSOUND_CHANNELMODE_ALLSTEREO | FSOUND_CHANNELMODE_PROTOOLS)  
+#define FSOUND_CHANNELMODE_MASK      (FSOUND_CHANNELMODE_ALLMONO | FSOUND_CHANNELMODE_ALLSTEREO)  
 #define FSOUND_CHANNELMODE_DEFAULT   0x00000000  /* Determine channel assignment automatically from channel count. */
 #define FSOUND_CHANNELMODE_RESERVED  0x00000C00  
 
@@ -92,8 +92,8 @@ namespace FMOD
 
         unsigned int    version;        /* extended fsb version */
         unsigned int    mode;           /* flags that apply to all samples in the fsb */
-        FMOD_UINT64     hash;           /* trunacted MD5 hash generated using only information which would break FEV/FSB combatibility */
-        FMOD_GUID       guid;           /* Unique identifier. */
+        char            zero[8];
+        unsigned char   hash[16];
 
     } FMOD_FSB_HEADER; /* 48 bytes */
 
@@ -116,7 +116,7 @@ namespace FMOD
     #ifndef FMOD_FSB_FORCE_3_0
 	    float           mindistance;
 	    float           maxdistance;
-        unsigned int    size_32bits;
+        int             varfreq;
         unsigned short  varvol;
         short           varpan;
     #endif
@@ -149,9 +149,7 @@ namespace FMOD
         FMOD_FSB_SAMPLE_HEADER       **mShdr;               /* array of sample header pointers */
         FMOD_FSB_SAMPLE_HEADER_BASIC **mShdrb;              /* array of sample header pointers */
         char                          *mShdrData;           /* Pointer to data block */
-        unsigned int                  *mDataOffset;         /* array of offsets to raw sample data */
         int                            mShareCount;
-        bool                           mStillLoading;
     };
 #endif
 
@@ -176,25 +174,11 @@ namespace FMOD
         CodecFSBCache                 *mCacheEntry;
 #endif
    
-        char                         **mSyncPointData;
-
-        #ifdef FMOD_SUPPORT_XMA
-        CodecXMA                      *mXMA;
-        bool                           mDecodeXMA;
-        #endif
-        #ifdef FMOD_SUPPORT_IMAADPCM
+        int                           *mNumSyncPoints;
+        SyncPoint                    **mSyncPoint;
         CodecWav                      *mADPCM;
         bool                           mDecodeADPCM;
-        #endif
-        #ifdef FMOD_SUPPORT_MPEG
         CodecMPEG                     *mMPEG;
-        #endif
-        #ifdef FMOD_SUPPORT_VAG
-        CodecVAG                      *mVAG;
-        #endif
-        #ifdef FMOD_SUPPORT_CELT
-        CodecCELT                     *mCELT;
-        #endif
 
         int                            mChannels;
         FMOD_MODE                      mUserMode;
@@ -208,8 +192,6 @@ namespace FMOD
         FMOD_RESULT getWaveFormatInternal(int index, FMOD_CODEC_WAVEFORMAT *waveformat);
         FMOD_RESULT resetInternal();
         FMOD_RESULT canPointInternal();
-        FMOD_RESULT getNumSyncPoints(int subsound, int *numsyncpoints);
-        FMOD_RESULT getSyncPointData(int subsound, int index, char **name, int *offset);
 
       public:
 
@@ -222,9 +204,6 @@ namespace FMOD
         static FMOD_RESULT F_CALLBACK getWaveFormatCallback(FMOD_CODEC_STATE *codec_state, int index, FMOD_CODEC_WAVEFORMAT *waveformat);
         static FMOD_RESULT F_CALLBACK resetCallback(FMOD_CODEC_STATE *codec_state);
         static FMOD_RESULT F_CALLBACK canPointCallback(FMOD_CODEC_STATE *codec_state);
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-        static FMOD_RESULT F_CALLBACK getMemoryUsedCallback(FMOD_CODEC_STATE *codec, MemoryTracker *tracker);
-#endif
 
         static FMOD_CODEC_DESCRIPTION_EX *getDescriptionEx();        
 
@@ -233,7 +212,6 @@ namespace FMOD
 #endif
 
         FMOD_FSB_SAMPLE_HEADER **getShdr() { return mShdr; }
-        FMOD_UINT64 getHash() { return mHeader.hash; }
     };
 }
 

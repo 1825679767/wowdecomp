@@ -75,6 +75,7 @@ FMOD_DSP_PARAMETERDESC dsplowpass_simple_param[1] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0eb7cdc5 auto
 // OFFSET: 0x008F21C0
 FMOD_DSP_DESCRIPTION_EX *DSPLowPassSimple::getDescriptionEx()
 {
@@ -96,9 +97,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPLowPassSimple::getDescriptionEx()
     dsplowpass_simple.paramdesc     = dsplowpass_simple_param;
     dsplowpass_simple.setparameter  = DSPLowPassSimple::setParameterCallback;
     dsplowpass_simple.getparameter  = DSPLowPassSimple::getParameterCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dsplowpass_simple.getmemoryused = &DSPLowPassSimple::getMemoryUsedCallback;
-#endif
 
     dsplowpass_simple.mType         = FMOD_DSP_TYPE_LOWPASS_SIMPLE;
     dsplowpass_simple.mCategory     = FMOD_DSP_CATEGORY_FILTER;
@@ -206,6 +204,7 @@ FMOD_RESULT DSPLowPassSimple::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 976c72e5 auto
 // OFFSET: 0x008F19F0
 FMOD_RESULT DSPLowPassSimple::updateCoefficients(float cutoffhz)
 {
@@ -270,18 +269,13 @@ FMOD_RESULT DSPLowPassSimple::readInternal(float *inbuffer, float *outbuffer, un
 {
     static float dc = (float)1E-20;
 
-    if (!inbuffer)
-    {
-        return FMOD_OK;
-    }
-    
     if (mCutoffHz != mCutoffHzUpdate)
     {
         mCutoffHz = mCutoffHzUpdate;
         updateCoefficients(mCutoffHz);
     }
 
-    if (mFilter_tc == 1.0f || !(speakermask & ((1 << inchannels)-1)))
+    if (mFilter_tc == 1.0f)
     {
         FMOD_memcpy(outbuffer, inbuffer, sizeof(float)*length*inchannels);
         return FMOD_OK;
@@ -299,7 +293,7 @@ FMOD_RESULT DSPLowPassSimple::readInternal(float *inbuffer, float *outbuffer, un
         return FMOD_OK;
     }
 	
-	if (inchannels == 1 && (speakermask & 1))
+	if (inchannels == 1)
 	{
 		float fy1 = mFilter_Y[0][0];
 		float fy2 = mFilter_Y[0][1];
@@ -322,7 +316,7 @@ FMOD_RESULT DSPLowPassSimple::readInternal(float *inbuffer, float *outbuffer, un
 		mFilter_Y[0][0] = fy1;
 		mFilter_Y[0][1] = fy2;
 	}
-	else if (inchannels == 2 && ((speakermask & 0x03) == 0x03))
+	else if (inchannels == 2)
 	{
 		float fyL1 = mFilter_Y[0][0];
 		float fyL2 = mFilter_Y[0][1];
@@ -358,7 +352,7 @@ FMOD_RESULT DSPLowPassSimple::readInternal(float *inbuffer, float *outbuffer, un
 		mFilter_Y[1][0] = fyR1;
 		mFilter_Y[1][1] = fyR2;
 	}
-	else if (inchannels == 6 && ((speakermask & 0x3F) == 0x3F))
+	else if (inchannels == 6)
 	{
 		float fyA1 = mFilter_Y[0][0];
 		float fyA2 = mFilter_Y[0][1];
@@ -431,97 +425,6 @@ FMOD_RESULT DSPLowPassSimple::readInternal(float *inbuffer, float *outbuffer, un
 		mFilter_Y[5][0] = fyF1;
 		mFilter_Y[5][1] = fyF2;
 	}
-	else if (inchannels == 8 && ((speakermask & 0xFF) == 0xFF))
-	{
-		float fyA1 = mFilter_Y[0][0];
-		float fyA2 = mFilter_Y[0][1];
-		float fyB1 = mFilter_Y[1][0];
-		float fyB2 = mFilter_Y[1][1];
-		float fyC1 = mFilter_Y[2][0];
-		float fyC2 = mFilter_Y[2][1];
-		float fyD1 = mFilter_Y[3][0];
-		float fyD2 = mFilter_Y[3][1];
-		float fyE1 = mFilter_Y[4][0];
-		float fyE2 = mFilter_Y[4][1];
-		float fyF1 = mFilter_Y[5][0];
-		float fyF2 = mFilter_Y[5][1];
-		float fyG1 = mFilter_Y[6][0];
-		float fyG2 = mFilter_Y[6][1];
-		float fyH1 = mFilter_Y[7][0];
-		float fyH2 = mFilter_Y[7][1];
-
-		float fyA,fyB,fyC,fyD,fyE,fyF,fyG,fyH;
-		while (length)
-		{
-            
-			fyA =  mFilter_tc * (inbuffer[0]+dc) + mFilter_oneminus_tc * fyA1;        
-			fyB =  mFilter_tc * (inbuffer[1]+dc) + mFilter_oneminus_tc * fyB1;        
-			fyC =  mFilter_tc * (inbuffer[2]+dc) + mFilter_oneminus_tc * fyC1;        
-			fyD =  mFilter_tc * (inbuffer[3]+dc) + mFilter_oneminus_tc * fyD1;        
-			fyE =  mFilter_tc * (inbuffer[4]+dc) + mFilter_oneminus_tc * fyE1;        
-			fyF =  mFilter_tc * (inbuffer[5]+dc) + mFilter_oneminus_tc * fyF1;
-			fyG =  mFilter_tc * (inbuffer[6]+dc) + mFilter_oneminus_tc * fyG1;        
-			fyH =  mFilter_tc * (inbuffer[7]+dc) + mFilter_oneminus_tc * fyH1;
-            
-			fyA1 = fyA;
-			fyB1 = fyB;	        
-			fyC1 = fyC;	        
-			fyD1 = fyD;	        
-			fyE1 = fyE;	        
-			fyF1 = fyF;	        
-			fyG1 = fyG;	        
-			fyH1 = fyH;	        
-           
-			fyA =  mFilter_tc * fyA + mFilter_oneminus_tc * fyA2;        
-			fyB =  mFilter_tc * fyB + mFilter_oneminus_tc * fyB2;        
-			fyC =  mFilter_tc * fyC + mFilter_oneminus_tc * fyC2;        
-			fyD =  mFilter_tc * fyD + mFilter_oneminus_tc * fyD2;        
-			fyE =  mFilter_tc * fyE + mFilter_oneminus_tc * fyE2;        
-			fyF =  mFilter_tc * fyF + mFilter_oneminus_tc * fyF2;
-			fyG =  mFilter_tc * fyG + mFilter_oneminus_tc * fyG2;        
-			fyH =  mFilter_tc * fyH + mFilter_oneminus_tc * fyH2;
-            
-			fyA2 = fyA;	        
-			fyB2 = fyB;	        
-			fyC2 = fyC;	        
-			fyD2 = fyD;	        
-			fyE2 = fyE;	        
-			fyF2 = fyF;	        
-			fyG2 = fyG;	        
-			fyH2 = fyH;	        
-
-			outbuffer[0] = fyA;
-			outbuffer[1] = fyB;
-			outbuffer[2] = fyC;
-			outbuffer[3] = fyD;
-			outbuffer[4] = fyE;
-			outbuffer[5] = fyF;
-			outbuffer[6] = fyG;
-			outbuffer[7] = fyH;
-
-			dc = -dc;
-			length--;
-			outbuffer+=8;
-			inbuffer+=8;
-		}
-
-		mFilter_Y[0][0] = fyA1;
-		mFilter_Y[0][1] = fyA2;
-		mFilter_Y[1][0] = fyB1;
-		mFilter_Y[1][1] = fyB2;
-		mFilter_Y[2][0] = fyC1;
-		mFilter_Y[2][1] = fyC2;
-		mFilter_Y[3][0] = fyD1;
-		mFilter_Y[3][1] = fyD2;
-		mFilter_Y[4][0] = fyE1;
-		mFilter_Y[4][1] = fyE2;
-		mFilter_Y[5][0] = fyF1;
-		mFilter_Y[5][1] = fyF2;
-		mFilter_Y[6][0] = fyG1;
-		mFilter_Y[6][1] = fyG2;
-		mFilter_Y[7][0] = fyH1;
-		mFilter_Y[7][1] = fyH2;
-	}
 	else
 	{
 		int count2;
@@ -533,62 +436,26 @@ FMOD_RESULT DSPLowPassSimple::readInternal(float *inbuffer, float *outbuffer, un
 			int len;
 			
             
-			if (!((1 << count2) & speakermask))
-			{	
-				int inc;
-				int offset1, offset2, offset3;
-				
-				offset1 = inchannels;  
-				offset2 = inchannels * 2;  
-				offset3 = inchannels * 3; 
-				
-				len = length >> 2;
-				inc = inchannels << 2;
-				while (len)
-				{    
-					out[0] = in[0];	
-					out[offset1] = in[offset1];
-					out[offset2] = in[offset2];
-					out[offset3] = in[offset3];
-					
-					len--;
-					in += inc;
-					out += inc;
-				}
-				
-				len = length & 3;
-				while (len)
-				{    
-					out[0] = in[0];
-					len--;
-					in += inchannels;
-					out += inchannels;
-				}
-				continue; 
+			float fy1 = mFilter_Y[count2][0];
+			float fy2 = mFilter_Y[count2][1];
+			float fy;
+			len = length;
+			while (len)
+			{    
+				fy =  mFilter_tc * (in[0]+dc) + mFilter_oneminus_tc * fy1;        
+				fy1 = fy;	        
+				fy =  mFilter_tc * fy + mFilter_oneminus_tc * fy2;        
+				fy2 = fy;
+				out[0] = fy;
+                
+				dc = -dc;
+				len--;
+				in += inchannels;
+				out += inchannels;
 			}
-			else
-			{
-				float fy1 = mFilter_Y[count2][0];
-				float fy2 = mFilter_Y[count2][1];
-				float fy;
-				len = length;
-				while (len)
-				{    
-					fy =  mFilter_tc * (in[0]+dc) + mFilter_oneminus_tc * fy1;        
-					fy1 = fy;	        
-					fy =  mFilter_tc * fy + mFilter_oneminus_tc * fy2;        
-					fy2 = fy;
-					out[0] = fy;
-	                
-					dc = -dc;
-					len--;
-					in += inchannels;
-					out += inchannels;
-				}
 
-				mFilter_Y[count2][0] = fy1;
-				mFilter_Y[count2][1] = fy2;
-			}
+			mFilter_Y[count2][0] = fy1;
+			mFilter_Y[count2][1] = fy2;
 		}
 	}
     return FMOD_OK;
@@ -677,16 +544,6 @@ FMOD_RESULT DSPLowPassSimple::getParameterInternal(int index, float *value, char
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPLowPassSimple::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    // Size of this class is already accounted for (via description.mSize). Just add extra allocated memory here.
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 /*
@@ -766,6 +623,7 @@ FMOD_RESULT F_CALLBACK DSPLowPassSimple::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 50c61e6d auto
 // OFFSET: 0x008F2050
 FMOD_RESULT F_CALLBACK DSPLowPassSimple::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -826,29 +684,6 @@ FMOD_RESULT F_CALLBACK DSPLowPassSimple::getParameterCallback(FMOD_DSP_STATE *ds
 }
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPLowPassSimple::getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker)
-{
-    DSPLowPassSimple *lowpasssimple = (DSPLowPassSimple *)dsp;    
-
-    return lowpasssimple->DSPLowPassSimple::getMemoryUsed(tracker);
-}
-#endif
 
 #endif
 

@@ -422,7 +422,7 @@ FMOD_RESULT ChannelGroup::getDSPHead(DSP **dsp)
 }
 
 
-FMOD_RESULT ChannelGroup::addDSP(DSP *dsp, DSPConnection **connection)
+FMOD_RESULT ChannelGroup::addDSP(DSP *dsp)
 {
     FMOD_RESULT result;
     ChannelGroupI *channelgroupi;
@@ -434,7 +434,7 @@ FMOD_RESULT ChannelGroup::addDSP(DSP *dsp, DSPConnection **connection)
     }
     else
     {
-        return channelgroupi->addDSP((DSPI *)dsp, (DSPConnectionI **)connection);
+        return channelgroupi->addDSP((DSPI *)dsp);
     }
 }
 
@@ -558,22 +558,6 @@ FMOD_RESULT ChannelGroup::getUserData(void **_userdata)
     }
 }
 
-
-FMOD_RESULT ChannelGroup::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD_RESULT result;
-    ChannelGroupI *channelgroupi;
-
-    result = ChannelGroupI::validate(this, &channelgroupi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return channelgroupi->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-    }
-}
 
 
 /*$ preserve start $*/

@@ -4,10 +4,6 @@
 #ifndef _3DL2_H_INCLUDED
 #define _3DL2_H_INCLUDED
 
-#include <dxsdkver.h>
-#if (_DXSDK_PRODUCT_MAJOR < 9 || (_DXSDK_PRODUCT_MAJOR == 9 && _DXSDK_PRODUCT_MINOR < 21))
-    #include <dplay.h>  /* This defines DWORD_PTR for dsound.h to use. */
-#endif
 #include <dsound.h>
 
 #define FLOAT   float

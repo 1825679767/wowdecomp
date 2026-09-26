@@ -27,9 +27,9 @@ namespace FMOD
         static FMOD_RESULT validate(ChannelGroup *channelgroup, ChannelGroupI **channelgroupi);
         
         SystemI        *mSystem;
-        void           *mUserData;
         DSPI           *mDSPHead;
         DSPI           *mDSPMixTarget;        /* By default this just points to mDSPHead unless dsp effects are added. */
+        void           *mUserData;
         ChannelGroupI  *mParent;
         ChannelGroupI  *mGroupHead;
         LinkedListNode  mChannelHead;
@@ -44,8 +44,6 @@ namespace FMOD
         bool            mMute;
         bool            mPaused;
 
-        FMOD_RESULT     updateChildMixTarget(DSPI *dsp);
-
       public:
 
         // OFFSET: 0x008D51C0
@@ -58,7 +56,7 @@ namespace FMOD
         }
                                
         FMOD_RESULT     release                ();
-        FMOD_RESULT     releaseInternal        (bool releasechildren = false);
+        FMOD_RESULT     releaseInternal        ();
         FMOD_RESULT     getSystemObject        (System **system);
 
         // Channelgroup scale values.  (changes attributes relative to the channels, doesn't overwrite them)
@@ -93,7 +91,7 @@ namespace FMOD
 
         // DSP functionality only for channel groups playing sounds created with FMOD_SOFTWARE.
         FMOD_RESULT     getDSPHead             (DSPI **dsp);
-        FMOD_RESULT     addDSP                 (DSPI *dsp, DSPConnectionI **connection);
+        FMOD_RESULT     addDSP                 (DSPI *dsp);
 
         // Information only functions.
         FMOD_RESULT     getName                (char *name, int namelen);
@@ -106,21 +104,7 @@ namespace FMOD
         FMOD_RESULT     setUserData            (void *userdata);
         FMOD_RESULT     getUserData            (void **userdata);
 
-        FMOD_RESULT     getMemoryInfo          (unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details);
     };
-
-#ifdef FMOD_SUPPORT_SOFTWARE
-    class ChannelGroupSoftware : public ChannelGroupI
-    {
-        DECLARE_MEMORYTRACKER
-
-      public:
-        DSPFilter       mDSPHeadMemory;
-#if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-        char            mAlign[128];
-#endif
-    };
-#endif
 
 }
 

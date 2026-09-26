@@ -10,10 +10,6 @@
 #include "fmod_systemi.h"
 #include "fmod_3d.h"
 
-#include <dxsdkver.h>
-#if (_DXSDK_PRODUCT_MAJOR < 9 || (_DXSDK_PRODUCT_MAJOR == 9 && _DXSDK_PRODUCT_MINOR < 21))
-    #include <dplay.h>  /* This defines DWORD_PTR for dsound.h to use. */
-#endif
 #include <dsound.h>
 #include <stdio.h>
 
@@ -367,50 +363,51 @@ FMOD_RESULT ChannelDSound::start()
 ]
 */
 // OFFSET: 0x0094DFD0
-FMOD_RESULT ChannelDSound::stop()
+FMOD_RESULT ChannelDSound::stop(bool ignoreenddelay, bool resetstate)
 {
     bool releasebuffers = true;
 
-	if (mBuffer)
+    if (!(mFlags & CHANNELREAL_FLAG_ENDDELAY) || ignoreenddelay)
     {
-	    mBuffer->Stop();
-	    mBuffer->SetCurrentPosition(0);
-    }
-   
-	if (mBufferReverb)
-    {
-		mBufferReverb->Release();
-        mBufferReverb = 0;
-    }
-
-    if (mSound && mSound->mMode & FMOD_UNIQUE)
-    {
-        releasebuffers = false;
-    }
-
-    if (releasebuffers)
-    {
-	    if (mBuffer3D)
-        {
-		    mBuffer3D->Release();
-        }
-
 	    if (mBuffer)
         {
-		    mBuffer->Release();
+	        mBuffer->Stop();
+	        mBuffer->SetCurrentPosition(0);
         }
-        
-        #ifdef FMOD_CHANNEL_DSOUND_QUALITY
-        if (mBufferQuality)
-        {
-            mBufferQuality->Release();
-        }
-        #endif
-    }
 
-    mBuffer = 0;
-    mBuffer3D = 0;
-    mBufferQuality = 0;
+	    if (mBufferReverb)
+        {
+		    mBufferReverb->Release();
+            mBufferReverb = 0;
+        }
+
+        if (mSound && mSound->mMode & FMOD_UNIQUE)
+        {
+            releasebuffers = false;
+        }
+
+        if (releasebuffers)
+        {
+	        if (mBuffer3D)
+            {
+		        mBuffer3D->Release();
+            }
+	        if (mBuffer)
+            {
+		        mBuffer->Release();
+            }
+            #ifdef FMOD_CHANNEL_DSOUND_QUALITY
+            if (mBufferQuality)
+            {
+                mBufferQuality->Release();
+            }
+            #endif
+        }
+
+        mBuffer = 0;
+        mBuffer3D = 0;
+        mBufferQuality = 0;
+    }
 
     return FMOD_OK;
 }
@@ -449,11 +446,9 @@ FMOD_RESULT ChannelDSound::setPaused(bool paused)
 
 	if (paused)
 	{
-        result = ChannelReal::setPaused(paused);
-
 		mBuffer->Stop();
 
-        return result;
+        return ChannelReal::setPaused(paused);
 	}
 	else
 	{
@@ -547,16 +542,9 @@ FMOD_RESULT ChannelDSound::setVolume(float volume)
 	{
         HRESULT hr;
 
-        if (mParent->mFlags & CHANNELI_FLAG_REALMUTE)
-        {
-            volume = 0;
-        }
-
         if (mOutputDSound->mReverbVersion == REVERB_VERSION_NONE)
         {
-			volume *= (1.0f - mParent->mDirectOcclusion) *
-			          (1.0f - mParent->mUserDirectOcclusion) *
-                      mParent->mChannelGroup->mRealDirectOcclusionVolume;
+			volume = mParent->mChannelGroup->mRealDirectOcclusionVolume * mParent->mDirectOcclusionVolume * volume;
 		}
 
         volume *= mParent->mChannelGroup->mRealVolume;
@@ -573,7 +561,6 @@ FMOD_RESULT ChannelDSound::setVolume(float volume)
         {
             volume *= mSound->mSoundGroup->mVolume;
         }
-        volume *= mParent->mFadeVolume;
 
         if (volume == 1.0f)
         {
@@ -815,6 +802,12 @@ FMOD_RESULT ChannelDSound::getPosition(unsigned int *position, FMOD_TIMEUNIT pos
 
     isPlaying(&playing);
 
+    if (!playing || mFlags & CHANNELREAL_FLAG_ENDDELAY)
+    {
+        mSound->getLength(position, FMOD_TIMEUNIT_PCM);
+        return FMOD_OK;
+    }
+
     hr = mBuffer->GetCurrentPosition(&dwPlay, &dwWrite);
 	if (hr != DS_OK)
 	{
@@ -980,7 +973,7 @@ FMOD_RESULT ChannelDSound::set3DAttributes()
 
     // if (mOutputDSound->mInitFlags & FMOD_INIT_DSOUND_DEFERRED)
     {
-        if (mFlags & CHANNELREAL_FLAG_ALLOCATED || mFlags & CHANNELREAL_FLAG_PAUSED)
+        if (mFlags & (CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PAUSED) || mFlags & CHANNELREAL_FLAG_ENDDELAY)
         {
             deferred = DS3D_IMMEDIATE;
         }
@@ -1039,7 +1032,7 @@ FMOD_RESULT ChannelDSound::set3DMinMaxDistance()
     {
         //if (mOutputDSound->mInitFlags & FMOD_INIT_DSOUND_DEFERRED)
         {
-            if (mFlags & CHANNELREAL_FLAG_ALLOCATED || mFlags & CHANNELREAL_FLAG_PAUSED)
+            if (mFlags & (CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PAUSED) || mFlags & CHANNELREAL_FLAG_ENDDELAY)
             {
                 deferred = DS3D_IMMEDIATE;
             }
@@ -1140,13 +1133,12 @@ FMOD_RESULT ChannelDSound::set3DOcclusion(float directOcclusion, float reverbOcc
 // OFFSET: 0x0094E800
 FMOD_RESULT ChannelDSound::isPlaying(bool *isplaying, bool includethreadlatency)
 {
-    if (mFlags & CHANNELREAL_FLAG_ALLOCATED || mFlags & CHANNELREAL_FLAG_PAUSED)
+    if (mFlags & (CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PAUSED) || mFlags & CHANNELREAL_FLAG_ENDDELAY)
     {
         if (isplaying)
         {
             *isplaying = true;
         }
-
         return FMOD_OK;
     }
 
@@ -1159,7 +1151,7 @@ FMOD_RESULT ChannelDSound::isPlaying(bool *isplaying, bool includethreadlatency)
 		    return FMOD_ERR_OUTPUT_DRIVERCALL;
 	    }
 
-    	*isplaying = (flags & DSBSTATUS_PLAYING);
+    	*isplaying = (flags & DSBSTATUS_PLAYING) ? true : false;
     }
     else
     {
@@ -1168,7 +1160,15 @@ FMOD_RESULT ChannelDSound::isPlaying(bool *isplaying, bool includethreadlatency)
 
     if (!*isplaying)
     {
-        mFlags &= (CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PLAYING);
+        if (mDelayEnd)
+        {
+            mFlags |= CHANNELREAL_FLAG_ENDDELAY;
+            *isplaying = true;
+        }
+        else
+        {
+            mFlags &= ~(CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PLAYING);
+        }
     }
 
     return FMOD_OK;
@@ -1227,7 +1227,7 @@ FMOD_RESULT ChannelDSound::setMode(FMOD_MODE mode)
 
         //if (mOutputDSound->mInitFlags & FMOD_INIT_DSOUND_DEFERRED)
         {
-            if (mFlags & CHANNELREAL_FLAG_ALLOCATED || mFlags & CHANNELREAL_FLAG_PAUSED)
+            if (mFlags & (CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PAUSED) || mFlags & CHANNELREAL_FLAG_ENDDELAY)
             {
                 deferred = DS3D_IMMEDIATE;
             }

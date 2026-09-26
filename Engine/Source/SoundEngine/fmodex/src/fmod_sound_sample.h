@@ -18,9 +18,12 @@ namespace FMOD
 
       public:
 
+        int           mNumSubSamples;
+        Sample       *mSubSample[FMOD_CHANNEL_MAXREALSUBCHANNELS];
         void         *mLockBuffer;
         unsigned int  mLockLength;
         unsigned int  mLockOffset;
+        bool          mLockCanRead;
 
       public:
 

@@ -170,20 +170,20 @@ namespace FMOD
         }
 
         // OFFSET: 0x008DCD20
-        void addAt(SortedLinkedListNode *head, SortedLinkedListNode *tail, unsigned int priority)
+        void addAt(SortedLinkedListNode *head, unsigned int priority)
         {
             SortedLinkedListNode *current = SAFE_CAST(SortedLinkedListNode, head->mNodeNext);
             
             do
             {
-                if (priority < current->mNodePriority)
+                if (priority <= current->mNodePriority)
                 {
                     mNodePriority = priority;
                     addBefore(current);
                     return;
                 }
                 current = SAFE_CAST(SortedLinkedListNode, current->mNodeNext);
-            } while (current->mNodePrev != tail);
+            } while (current->mNodePrev != head);
         }
     };
 

@@ -6,12 +6,14 @@
 
 #include "allpass.h"
 
+// VERIFY: ebfd92d9 auto
 // OFFSET: 0x00945150
 allpass::allpass()
 {
 	bufidx = 0;
 }
 
+// VERIFY: 7bd3ba61 auto
 // OFFSET: 0x00945160
 void allpass::setbuffer(float *buf, int size) 
 {
@@ -19,6 +21,7 @@ void allpass::setbuffer(float *buf, int size)
 	bufsize = size;
 }
 
+// VERIFY: 3df7356d auto
 // OFFSET: 0x00945180
 void allpass::mute()
 {
@@ -26,6 +29,7 @@ void allpass::mute()
 		buffer[i]=0;
 }
 
+// VERIFY: 92ab74ed auto
 // OFFSET: 0x00945140
 void allpass::setfeedback(float val) 
 {

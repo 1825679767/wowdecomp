@@ -37,7 +37,7 @@ SampleSoftware::SampleSoftware()
 {
     mBuffer = 0;
     mBufferMemory = 0;
-    mLoopPointDataEndOffset = 0;
+    mDataEndCopied = false;
 }
 
 
@@ -60,56 +60,29 @@ SampleSoftware::SampleSoftware()
 FMOD_RESULT SampleSoftware::release(bool freethis)
 {
     FMOD_RESULT result;
-    
-    if (mFlags & FMOD_SOUND_FLAG_PRELOADEDFSB)
+
+    if (!mSystem)
     {
-        return FMOD_ERR_PRELOADED;
-    }
-    
-    if (mFlags & FMOD_SOUND_FLAG_PROGRAMMERSOUND)
-    {
-        return FMOD_ERR_PROGRAMMERSOUND;
+        return FMOD_ERR_UNINITIALIZED;
     }
 
-    /*
-        The reason there is a sleep loop here and not a criticalsection is that we don't want one sound release stalling on other non blocking sounds, 
-        and we also don't want the non blocking thread stalling on release calls (not such a huge issue but it slows loading down unescessarily).
-    */
     while ((mOpenState != FMOD_OPENSTATE_READY && mOpenState != FMOD_OPENSTATE_ERROR) || (mFlags & FMOD_SOUND_FLAG_DONOTRELEASE))
     {
         FMOD_OS_Time_Sleep(2);
     }
 
-    if (mSystem)
+    result = mSystem->stopSound(this);
+    if (result != FMOD_OK)
     {
-        result = mSystem->stopSound(this);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
+        return result;
     }
 
 	if (mBufferMemory)
 	{
-        if (0)
-        {}
-        #ifdef PLATFORM_PS3
-        else if ((mMode & FMOD_LOADSECONDARYRAM) && OutputPS3::mRSXPoolInitialised)
-        {
-            OutputPS3::mRSXPool.free(mBufferMemory, __FILE__, __LINE__);
-        }
-        #endif
-        else if ((mMode & FMOD_LOADSECONDARYRAM) && (FMOD::gGlobal->gMemoryTypeFlags & FMOD_MEMORY_SECONDARY))
-        {
-            FMOD_Memory_FreeType(mBufferMemory, FMOD_MEMORY_SECONDARY);
-        }
-        else
-        {
-            FMOD_Memory_Free(mBufferMemory);
-        }
+        FMOD_Memory_Free(mBufferMemory);
         mBufferMemory = 0;
 	}
-	
+
 	if (mLoopPointDataEnd && mLoopPointDataEnd != mLoopPointDataEndMemory)
 	{
 	    FMOD_Memory_Free(mLoopPointDataEnd);
@@ -202,7 +175,7 @@ FMOD_RESULT SampleSoftware::lockInternal(unsigned int offset, unsigned int lengt
 
     src = (char *)mBuffer;
         
-    if (offset >= mLengthBytes || offset < 0 || length < 0 || length > mLengthBytes) 
+    if (offset >= mLengthBytes || offset < 0 || length < 0) 
 	{
 		*ptr1 = 0;
         if (ptr2)
@@ -237,14 +210,8 @@ FMOD_RESULT SampleSoftware::lockInternal(unsigned int offset, unsigned int lengt
 	{
         *ptr1 = src + offset;
 		*len1 = mLengthBytes - offset;
-        if (ptr2)
-        {
-            *ptr2 = src;
-        }
-        if (len2)
-        {
-            *len2 = length - (mLengthBytes - offset);
-        }
+		*ptr2 = src;
+		*len2 = length - (mLengthBytes - offset);
 	}
     
     return FMOD_OK;
@@ -297,14 +264,6 @@ FMOD_RESULT SampleSoftware::unlockInternal(void *ptr1, void *ptr2, unsigned int 
 */        
 FMOD_RESULT SampleSoftware::setBufferData(void *data) 
 { 
-    #ifdef PLATFORM_PS3
-    if ((unsigned int)data % 16)
-    {
-        FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "SampleSoftware::setBufferData", "data: %08x not 16 byte aligned!\n", data));
-        return FMOD_ERR_MEMORY_CANTPOINT;
-    }
-    #endif
-
     mBuffer = data; 
     return FMOD_OK; 
 }
@@ -393,7 +352,7 @@ FMOD_RESULT SampleSoftware::setLoopPointData()
         int count;
 
         FMOD_memcpy(mLoopPointDataEnd, (char *)mBuffer + pointB, overflowbytes); /* backup the data first */
-        mLoopPointDataEndOffset = pointB;
+        mDataEndCopied = true;
 
         switch (mFormat)
         {
@@ -464,22 +423,16 @@ FMOD_RESULT SampleSoftware::setLoopPointData()
     }
     else if (mMode & FMOD_LOOP_NORMAL)
     {
-        if (mLoopPointDataEndOffset)
-        {
-            FMOD_memcpy((char *)mBuffer + mLoopPointDataEndOffset, mLoopPointDataEnd, overflowbytes);
-        }
-
         FMOD_memcpy(mLoopPointDataEnd, (char *)mBuffer + pointB, overflowbytes);
-        mLoopPointDataEndOffset = pointB;
+        mDataEndCopied = true;
 
         FMOD_memcpy((char *)mBuffer + pointB, (char *)mBuffer + pointA, overflowbytes);
     }
     else if (mMode & FMOD_LOOP_OFF)
     {
-        if (mLoopPointDataEndOffset)
+        if(mDataEndCopied)
         {
-            FMOD_memcpy((char *)mBuffer + mLoopPointDataEndOffset, mLoopPointDataEnd, overflowbytes);
-            mLoopPointDataEndOffset = 0;
+            FMOD_memcpy((char *)mBuffer + pointB, mLoopPointDataEnd,overflowbytes);
         }
     }
    
@@ -532,10 +485,9 @@ FMOD_RESULT SampleSoftware::restoreLoopPointData()
         return result;
     }
 
-    if (mLoopPointDataEndOffset)
+    if(mDataEndCopied)
     {
-        FMOD_memcpy((char *)mBuffer + mLoopPointDataEndOffset, mLoopPointDataEnd, overflowbytes);
-        mLoopPointDataEndOffset = 0;
+        FMOD_memcpy((char *)mBuffer + pointB, mLoopPointDataEnd,overflowbytes);
     }
 
     return FMOD_OK;
@@ -557,55 +509,6 @@ FMOD_RESULT SampleSoftware::restoreLoopPointData()
 	[SEE_ALSO]
 ]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT SampleSoftware::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_SOUND, sizeof(SampleSoftware) - sizeof(Sample));
-
-    if (mBuffer)
-    {
-        unsigned int overflowbytes;
-
-        if (mFormat == FMOD_SOUND_FORMAT_IMAADPCM || mFormat == FMOD_SOUND_FORMAT_XMA || mFormat == FMOD_SOUND_FORMAT_MPEG)
-        {
-            overflowbytes = 0;
-        }
-        else
-        {
-            SoundI::getBytesFromSamples(FMOD_DSP_RESAMPLER_OVERFLOWLENGTH, &overflowbytes, mChannels, mFormat);
-        }
-        
-        if (0){}
-        #ifdef PLATFORM_PS3
-        else if ((mMode & FMOD_LOADSECONDARYRAM) && OutputPS3::mRSXPoolInitialised)
-        {
-            tracker->add(false, FMOD_MEMBITS_SOUND_SECONDARYRAM, mLengthBytes + (overflowbytes * 2) + 16);
-        }
-        #endif
-        else if ((mMode & FMOD_LOADSECONDARYRAM) && (FMOD::gGlobal->gMemoryTypeFlags & FMOD_MEMORY_SECONDARY))
-        {
-            tracker->add(false, FMOD_MEMBITS_SOUND_SECONDARYRAM, mLengthBytes + (overflowbytes * 2) + 16);
-        }
-        else if (!(mMode & FMOD_OPENMEMORY_POINT))
-        {
-            tracker->add(false, FMOD_MEMBITS_SOUND, mLengthBytes + (overflowbytes * 2) + 16);
-        }
-    }
-
-    if (mLoopPointDataEnd != mLoopPointDataEndMemory)
-    {
-        unsigned int overflowbytes = 0;
-
-        SoundI::getBytesFromSamples(FMOD_DSP_RESAMPLER_OVERFLOWLENGTH, &overflowbytes, mChannels, mFormat);
-
-        tracker->add(false, FMOD_MEMBITS_SOUND, overflowbytes);
-    }
-
-    return Sample::getMemoryUsedImpl(tracker);
-}
-
-#endif
 
 }
 

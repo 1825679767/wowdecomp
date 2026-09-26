@@ -15,16 +15,6 @@
     #include <assert.h>
 #endif
 
-//#define FMOD_MEMORY_ALLOC_FAIL_RANDOM 30
-//#define FMOD_MEMORY_ALLOC_FAIL_AFTER  822
-#ifdef FMOD_MEMORY_ALLOC_FAIL_AFTER
-   static int FMOD_Memory_FailCount = 0;
-#endif
-
-#ifdef FMOD_MEMORY_ALLOC_FAIL_RANDOM
-    #include <time.h>
-#endif
-
 #define FMOD_MEMORY_BYTESTOBLOCKS(_pool, _bytes) (((_bytes) + (mBlockSize - 1)) / mBlockSize)
 
 
@@ -92,6 +82,42 @@ void MemSingleton::free(const char *file, const int line)
 
 
 /*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+
+ 	[RETURN_VALUE]
+
+	[REMARKS]
+]
+*/
+// OFFSET: 0x008CFA40
+LocalMemoryCounter::LocalMemoryCounter()
+{
+    mUsageAtStart = gGlobal->gSystemPool->getCurrentAllocated(gGlobal->gSystemPool->getCurrentThreadID());
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+
+ 	[RETURN_VALUE]
+
+	[REMARKS]
+]
+*/
+// OFFSET: 0x008CFA70
+int LocalMemoryCounter::getMemoryUsed()
+{
+    return gGlobal->gSystemPool->getCurrentAllocated(gGlobal->gSystemPool->getCurrentThreadID()) - mUsageAtStart;
+}
+
+
+/*
     The wrapper is needed to handle stdcall callbacks when malloc/free is normally cdecl
 */
 // OFFSET: 0x008CFAA0
@@ -133,21 +159,12 @@ MemPool::MemPool()
 #ifdef FMOD_MEMORY_THREADSAFE
     mCrit       = 0;
 #endif
+
     for (count = 0; count < FMOD_MEMORY_MAXTHREADS; count++)
     {
         mCurrentAllocated[count] = 0;
         mCurrentAllocatedThreadID[count] = 0;
     }
-
-    mCurrentAllocatedSecondary = 0;
-    mMaxAllocatedSecondary     = 0;
-
-#ifdef FMOD_SUPPORT_DLMALLOC
-    mDLMallocSpace = 0;
-#endif
-#ifdef FMOD_DEBUG
-    mAllocCount = 0;
-#endif
 }
 
 
@@ -184,9 +201,9 @@ MemPool::~MemPool()
 // OFFSET: 0x008D0400
 FMOD_RESULT MemPool::init(void *poolmem, int poolsize, int blocksize)
 {
-    FMOD_RESULT result;
     void *oldpoolmem = poolmem;
     int   count;
+    int   bitmapsize;
 
     if (!poolmem || !poolsize)
     {
@@ -196,29 +213,13 @@ FMOD_RESULT MemPool::init(void *poolmem, int poolsize, int blocksize)
     close();
 
     #define ALIGNMENT   256
-
-    /*
-        Align the pool memory and reduce the pool size by the number of bytes we had to align by.
-    */
     poolmem = (unsigned char *)FMOD_ALIGNPOINTER(poolmem, ALIGNMENT);
     poolsize -= (int)((FMOD_SINT_NATIVE)poolmem - (FMOD_SINT_NATIVE)oldpoolmem);
     poolsize &= ~((unsigned int)blocksize-1);
 
-#ifdef FMOD_SUPPORT_DLMALLOC
-    mDLMallocSpace = create_mspace_with_base(poolmem, poolsize, 0);
-    if (!mDLMallocSpace)
-    {
-        return FMOD_ERR_MEMORY;
-    }
-#else
-    int bitmapsize;
-
     mBlockSize  = blocksize;
-    #ifdef FMOD_MEMORY_USEBITS
+
     bitmapsize       = FMOD_MEMORY_BYTESTOBLOCKS(pool, (poolsize + 7) / 8);
-    #else
-    bitmapsize       = FMOD_MEMORY_BYTESTOBLOCKS(pool, poolsize);
-    #endif
     bitmapsize      +=  (blocksize-1);
     bitmapsize      &= ~(blocksize-1);
 
@@ -230,31 +231,21 @@ FMOD_RESULT MemPool::init(void *poolmem, int poolsize, int blocksize)
     set(0, 0, mSizeBlocks);
 
     FMOD_memset(mData, 0, mSizeBytes);
-#endif
 
     mNumBlocks                 = 0;
     mMaxBlocks                 = 0;
     mMaxAllocated              = 0;
-    mMaxAllocatedSecondary     = 0;
     mActualMaxBytes            = 0;
     mWastage                   = 0;
     mFirstFreeBlock            = 0;
-    mCurrentAllocatedSecondary = 0;
+
     for (count = 0; count < FMOD_MEMORY_MAXTHREADS; count++)
     {
         mCurrentAllocated[count] = 0;
         mCurrentAllocatedThreadID[count] = 0;
     }
 
-#ifdef FMOD_MEMORY_THREADSAFE
-    result = FMOD_OS_CriticalSection_Create(&mCrit, true);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-#endif
-
-    return FMOD_OK;
+    return FMOD_OS_CriticalSection_Create(&mCrit, true);
 }
 
 
@@ -361,7 +352,7 @@ void MemPool::close()
     mNumBlocks    = 0;
     mMaxBlocks    = 0;
     mMaxAllocated = 0;
-    
+
     for (count = 0; count < FMOD_MEMORY_MAXTHREADS; count++)
     {
         mCurrentAllocated[count] = 0;
@@ -376,7 +367,7 @@ void MemPool::close()
 #ifdef FMOD_MEMORY_THREADSAFE
     if (mCrit)
     {
-        FMOD_OS_CriticalSection_Free(mCrit, true);
+        FMOD_OS_CriticalSection_Free(mCrit);
         mCrit = 0;
     }
 #endif
@@ -601,66 +592,19 @@ int MemPool::findFreeBlocks(int offset, int to, int numblocks)
 // OFFSET: 0x008CFDA0
 void *MemPool::alloc(int len, const char *file, const int line, FMOD_MEMORY_TYPE type, bool clear)
 {
-#ifdef FMOD_DEBUG
-    ++mAllocCount;
-#endif
 	MemBlockHeader *block = 0;
     int numblocks = 0, reallen = len;
 
-    {          
-        #ifdef FMOD_MEMORY_ALLOC_FAIL_RANDOM
-        srand(clock());
-        if (
-        #ifdef FMOD_MEMORY_ALLOC_FAIL_AFTER
-             FMOD_Memory_FailCount >= FMOD_MEMORY_ALLOC_FAIL_AFTER && 
-        #endif
-             !(FMOD_RAND() % FMOD_MEMORY_ALLOC_FAIL_RANDOM))
-        {
-            FLOG(((FMOD_DEBUGLEVEL)(FMOD_DEBUG_TYPE_MEMORY | FMOD_DEBUG_LEVEL_ERROR), __FILE__, __LINE__, "MemPool::alloc", "Failed allocating %-45s line %5d.  Wanted %d bytes, current %d/%d (rounding wastage = %d bytes)\n", file, line, len, mCurrentAllocated[0], mSizeBytes, mWastage));
-
-            if (FMOD::gGlobal->gSystemCallback)
-            {
-                char fileLine[256];
-                sprintf(fileLine, "%s (%d)", file, line);
-
-                FMOD::gGlobal->gSystemCallback(NULL, FMOD_SYSTEM_CALLBACKTYPE_MEMORYALLOCATIONFAILED, (void*)fileLine, (void*)len);
-            }
-
-            return 0;
-        }
-        #elif defined(FMOD_MEMORY_ALLOC_FAIL_AFTER) 
-        if (FMOD_Memory_FailCount >= FMOD_MEMORY_ALLOC_FAIL_AFTER)
-        {
-            FLOG(((FMOD_DEBUGLEVEL)(FMOD_DEBUG_TYPE_MEMORY | FMOD_DEBUG_LEVEL_ERROR), __FILE__, __LINE__, "MemPool::alloc", "Failed allocating %-45s line %5d.  Wanted %d bytes, current %d/%d (rounding wastage = %d bytes)\n", file, line, len, mCurrentAllocated[0], mSizeBytes, mWastage));
-
-            if (FMOD::gGlobal->gSystemCallback)
-            {
-                char fileLine[256];
-                sprintf(fileLine, "%s (%d)", file, line);
-
-                FMOD::gGlobal->gSystemCallback(NULL, FMOD_SYSTEM_CALLBACKTYPE_MEMORYALLOCATIONFAILED, (void*)fileLine, (void*)len);
-            }
-
-            FMOD_Memory_FailCount = 0;
-            return 0;
-        }
-        #endif
-        #ifdef FMOD_MEMORY_ALLOC_FAIL_AFTER
-        FMOD_Memory_FailCount++;
-        #endif
-    }
-    
 #ifdef FMOD_MEMORY_THREADSAFE
     if (!mCrit)
     {
         FMOD_RESULT result = FMOD_OS_CriticalSection_Create(&mCrit, true);
         if (result != FMOD_OK)
         {
-            FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "MemPool::alloc", "Error creating critical section!\n"));
-
             return 0;
         }
     }
+
     FMOD_OS_CriticalSection_Enter(mCrit);
 #endif
 
@@ -668,94 +612,52 @@ void *MemPool::alloc(int len, const char *file, const int line, FMOD_MEMORY_TYPE
     {
         reallen += sizeof(MemBlockHeader);
     }
-   	
+
     if (mAlloc)
     {
-        /*
-            Only want the flags that have been specified.
-        */
-        type &= FMOD::gGlobal->gMemoryTypeFlags;
-
         block = (MemBlockHeader *)mAlloc(reallen, type);
     }
     else
     {
-#ifdef FMOD_SUPPORT_DLMALLOC
-        if (!mCustomPool)
-        {
-            block = (MemBlockHeader *)FMOD::mspace_malloc(mDLMallocSpace, reallen);
-        }
-        else
-#endif
-        {
-            numblocks = FMOD_MEMORY_BYTESTOBLOCKS(pool, reallen);
-        
-            /* 
-                Simple search for a free block in our memory pool.  First fit.
-            */    
-            {
-                int offset;
-                
-                offset = findFreeBlocks(mFirstFreeBlock, mSizeBlocks, numblocks);
-                if (offset >= 0)
-                {
-                    set(offset, 1, numblocks);
+        int offset;
 
-                    if (mCustomPool)
-                    {
-                        block = (MemBlockHeader *)FMOD_Memory_Alloc(sizeof(MemBlockHeader));
-                    }
-                    else
-                    {
-                        block = (MemBlockHeader *)(mData + (offset * mBlockSize));
-                    }
-                    block->mBlockOffset = offset;
-                }
+        numblocks = FMOD_MEMORY_BYTESTOBLOCKS(pool, reallen);
+
+        offset = findFreeBlocks(mFirstFreeBlock, mSizeBlocks, numblocks);
+        if (offset >= 0)
+        {
+            set(offset, 1, numblocks);
+
+            if (mCustomPool)
+            {
+                block = (MemBlockHeader *)FMOD_Memory_Alloc(sizeof(MemBlockHeader));
             }
+            else
+            {
+                block = (MemBlockHeader *)(mData + (offset * mBlockSize));
+            }
+
+            block->mBlockOffset = offset;
         }
     }
-    
+
 	if (!block)
     {
-        FLOG(((FMOD_DEBUGLEVEL)(FMOD_DEBUG_TYPE_MEMORY | FMOD_DEBUG_LEVEL_ERROR), __FILE__, __LINE__, "MemPool::alloc", "Failed allocating %-45s line %5d.  Wanted %d bytes, current %d/%d (rounding wastage = %d bytes)\n", file, line, len, mCurrentAllocated[0], mSizeBytes, mWastage));
-        
 #ifdef FMOD_MEMORY_THREADSAFE
         FMOD_OS_CriticalSection_Leave(mCrit);
 #endif
-        
-        if (FMOD::gGlobal->gSystemCallback)
-        {
-            char fileLine[256];
-            sprintf(fileLine, "%s (%d)", file, line);
-
-            FMOD::gGlobal->gSystemCallback(NULL, FMOD_SYSTEM_CALLBACKTYPE_MEMORYALLOCATIONFAILED, (void*)fileLine, (void*)len);
-        }
-        
         return 0;
     }
-			
+
 	block->mSize      = len;
-    block->mNumBlocks = numblocks;  
+    block->mNumBlocks = numblocks;
     block->mThreadID  = getCurrentThreadID();
 
-    if (type & FMOD_MEMORY_SECONDARY)
+    mCurrentAllocated[0]                += block->mSize;
+    mCurrentAllocated[block->mThreadID] += block->mSize;
+    if (mCurrentAllocated[0] > mMaxAllocated)
     {
-        mCurrentAllocatedSecondary += block->mSize;
-
-        if (mCurrentAllocatedSecondary > mMaxAllocatedSecondary)
-        {
-            mMaxAllocatedSecondary = mCurrentAllocatedSecondary;
-        }
-    }
-    else
-    {
-	    mCurrentAllocated[0]                += block->mSize; /* All threads. */
-	    mCurrentAllocated[block->mThreadID] += block->mSize;
-
-	    if (mCurrentAllocated[0] > mMaxAllocated)
-        {
-		    mMaxAllocated = mCurrentAllocated[0];
-        }
+	    mMaxAllocated = mCurrentAllocated[0];
     }
 
 	mNumBlocks += block->mNumBlocks;
@@ -768,7 +670,7 @@ void *MemPool::alloc(int len, const char *file, const int line, FMOD_MEMORY_TYPE
 
     if (!mCustomPool)
     {
-        block++;    /* return pointer to actual data, not our memory block header */
+        block++;
 
         if (clear && block)
         {
@@ -779,8 +681,6 @@ void *MemPool::alloc(int len, const char *file, const int line, FMOD_MEMORY_TYPE
 #ifdef FMOD_MEMORY_THREADSAFE
     FMOD_OS_CriticalSection_Leave(mCrit);
 #endif
-
-    FLOG((FMOD_DEBUG_TYPE_MEMORY, file, line, "MemPool::alloc", "%6d bytes (%p) (alloc %d)\n", len, block, mAllocCount));
 
     return block;
 }
@@ -808,59 +708,30 @@ void MemPool::free(void *ptr, const char *file, const int line, FMOD_MEMORY_TYPE
         FMOD_RESULT result = FMOD_OS_CriticalSection_Create(&mCrit, true);
         if (result != FMOD_OK)
         {
-            FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "MemPool::free", "Error creating critical section!\n"));
-
             return;
         }
     }
+
     FMOD_OS_CriticalSection_Enter(mCrit);
 #endif
 
     if (!mCustomPool)
     {
-        block--;     /* Find the actual block header */
+        block--;
     }
 
-    FLOG((FMOD_DEBUG_TYPE_MEMORY, file, line, "MemPool::free", "%6d bytes (%p)\n", block->mSize, ptr));
-
-    #ifdef DEBUG
-    assert(block->mThreadID);   /* If this is 0, it must have already been freed? */
-    #endif
-
-    if (type & FMOD_MEMORY_SECONDARY)
-    {
-        mCurrentAllocatedSecondary -= block->mSize;
-    }
-    else
-    {
-        mCurrentAllocated[0]                -= block->mSize;
-        mCurrentAllocated[block->mThreadID] -= block->mSize;
-    }
-
-    mNumBlocks -= block->mNumBlocks;    
+    mCurrentAllocated[0]                -= block->mSize;
+    mCurrentAllocated[block->mThreadID] -= block->mSize;
+    mNumBlocks                          -= block->mNumBlocks;
     block->mThreadID = 0;
 
     if (mFree)
     {
-        /*
-            Only want the flags that have been specified.
-        */
-        type &= FMOD::gGlobal->gMemoryTypeFlags;
-
         mFree(block, type);
     }
     else
     {
-#ifdef FMOD_SUPPORT_DLMALLOC
-        if (!mCustomPool)
-        {
-            mspace_free(mDLMallocSpace, block);
-        }
-        else
-#endif
-        {
-            set(block->mBlockOffset, 0, block->mNumBlocks);
-        }
+        set(block->mBlockOffset, 0, block->mNumBlocks);
     }
 
 #ifdef FMOD_MEMORY_THREADSAFE
@@ -912,53 +783,10 @@ void *MemPool::realloc(void *ptr, int len, const char *file, const int line, FMO
 {
 	MemBlockHeader *block = (MemBlockHeader *)ptr;
     int reallen = len, numblocks = 0;
-    
+
     if (!ptr)
     {
         return MemPool::alloc(len, file, line);
-    }
-
-    {          
-        #ifdef FMOD_MEMORY_ALLOC_FAIL_RANDOM
-        srand(clock());
-        if (
-        #ifdef FMOD_MEMORY_ALLOC_FAIL_AFTER
-             FMOD_Memory_FailCount >= FMOD_MEMORY_ALLOC_FAIL_AFTER && 
-        #endif
-             !(FMOD_RAND() % FMOD_MEMORY_ALLOC_FAIL_RANDOM))
-        {
-            FLOG(((FMOD_DEBUGLEVEL)(FMOD_DEBUG_TYPE_MEMORY | FMOD_DEBUG_LEVEL_ERROR), __FILE__, __LINE__, "MemPool::realloc", "Failed allocating %-45s line %5d.  Wanted %d bytes, current %d/%d (rounding wastage = %d bytes)\n", file, line, len, mCurrentAllocated[0], mSizeBytes, mWastage));
-
-            if (FMOD::gGlobal->gSystemCallback)
-            {
-                char fileLine[256];
-                sprintf(fileLine, "%s (%d)", file, line);
-
-                FMOD::gGlobal->gSystemCallback(NULL, FMOD_SYSTEM_CALLBACKTYPE_MEMORYALLOCATIONFAILED, (void*)fileLine, (void*)len);
-            }
-
-            return 0;
-        }
-        #elif defined(FMOD_MEMORY_ALLOC_FAIL_AFTER) 
-        if (FMOD_Memory_FailCount >= FMOD_MEMORY_ALLOC_FAIL_AFTER)
-        {
-            FLOG(((FMOD_DEBUGLEVEL)(FMOD_DEBUG_TYPE_MEMORY | FMOD_DEBUG_LEVEL_ERROR), __FILE__, __LINE__, "MemPool::realloc", "Failed allocating %-45s line %5d.  Wanted %d bytes, current %d/%d (rounding wastage = %d bytes)\n", file, line, len, mCurrentAllocated[0], mSizeBytes, mWastage));
-
-            if (FMOD::gGlobal->gSystemCallback)
-            {
-                char fileLine[256];
-                sprintf(fileLine, "%s (%d)", file, line);
-
-                FMOD::gGlobal->gSystemCallback(NULL, FMOD_SYSTEM_CALLBACKTYPE_MEMORYALLOCATIONFAILED, (void*)fileLine, (void*)len);
-            }
-
-            FMOD_Memory_FailCount = 0;
-            return 0;
-        }
-        #endif
-        #ifdef FMOD_MEMORY_ALLOC_FAIL_AFTER
-        FMOD_Memory_FailCount++;
-        #endif
     }
 
 #ifdef FMOD_MEMORY_THREADSAFE
@@ -967,11 +795,10 @@ void *MemPool::realloc(void *ptr, int len, const char *file, const int line, FMO
         FMOD_RESULT result = FMOD_OS_CriticalSection_Create(&mCrit, true);
         if (result != FMOD_OK)
         {
-            FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "MemPool::realloc", "Error creating critical section!\n"));
-
             return 0;
         }
     }
+
     FMOD_OS_CriticalSection_Enter(mCrit);
 #endif
 
@@ -981,103 +808,69 @@ void *MemPool::realloc(void *ptr, int len, const char *file, const int line, FMO
     	block--;
     }
 
-    FLOG((FMOD_DEBUG_TYPE_MEMORY, file, line, "MemPool::realloc", "from %6d to %6d bytes\n", block->mSize, len));
-
-    mCurrentAllocated[0]                -= block->mSize;    /* All threads. */
+    mCurrentAllocated[0]                -= block->mSize;
     mCurrentAllocated[block->mThreadID] -= block->mSize;
     mNumBlocks                          -= block->mNumBlocks;
 
     if (mRealloc)
     {
-        /*
-            Only want the flags that have been specified.
-        */
-        type &= FMOD::gGlobal->gMemoryTypeFlags;
-
     	block = (MemBlockHeader *)mRealloc(block, reallen, type);
     }
     else
     {
-#ifdef FMOD_SUPPORT_DLMALLOC
-        if (!mCustomPool)
+        int offset;
+
+        numblocks = FMOD_MEMORY_BYTESTOBLOCKS(pool, reallen);
+
+        set(block->mBlockOffset, 0, block->mNumBlocks);
+
+        offset = findFreeBlocks(block->mBlockOffset, block->mBlockOffset + numblocks, numblocks);
+        if (offset >= 0)
         {
-            block = (MemBlockHeader *)mspace_realloc(mDLMallocSpace, block, reallen);
+            set(offset, 1, numblocks);
+
+            block = (MemBlockHeader *)(mData + (offset * mBlockSize));
+            block->mBlockOffset = offset;
         }
         else
-#endif
         {
-            int offset;
-
-            numblocks = FMOD_MEMORY_BYTESTOBLOCKS(pool, reallen);
-
-            set(block->mBlockOffset, 0, block->mNumBlocks);
-
-            offset = findFreeBlocks(block->mBlockOffset, block->mBlockOffset + numblocks, numblocks);
-
+            offset = findFreeBlocks(mFirstFreeBlock, mSizeBlocks, numblocks);
             if (offset >= 0)
             {
-                /*
-                    We are able to simply extend the block
-                */
+            	MemBlockHeader *newblock;
+
                 set(offset, 1, numblocks);
-                block = (MemBlockHeader *)(mData + (offset * mBlockSize));
-                block->mBlockOffset = offset;
-            }
-            else
-            {
-                /*
-                    We have to find a new place and move the data
-                */
-                offset = findFreeBlocks(mFirstFreeBlock, mSizeBlocks, numblocks);
-                if (offset >= 0)
+
+                if (mCustomPool)
                 {
-            	    MemBlockHeader *newblock;
-
-                    set(offset, 1, numblocks);
-
-                    if (mCustomPool)
-                    {
-                        newblock = block;
-                    }
-                    else
-                    {
-                        newblock = (MemBlockHeader *)(mData + (offset * mBlockSize));
-                    }
-
-                    newblock->mBlockOffset = offset;
-                    
-                    if (!mCustomPool)
-                    {
-                        FMOD_memmove(newblock + 1, block + 1, block->mSize);
-                    }
-
-                    block = newblock;
-
+                    newblock = block;
                 }
                 else
                 {
-                    block = 0;
+                    newblock = (MemBlockHeader *)(mData + (offset * mBlockSize));
                 }
+
+                newblock->mBlockOffset = offset;
+
+                if (!mCustomPool)
+                {
+                    FMOD_memmove(newblock + 1, block + 1, block->mSize);
+                }
+
+                block = newblock;
+            }
+            else
+            {
+                block = 0;
             }
         }
     }
 
 	if (!block)
     {
-        FLOG(((FMOD_DEBUGLEVEL)(FMOD_DEBUG_TYPE_MEMORY | FMOD_DEBUG_LEVEL_ERROR), __FILE__, __LINE__, "MemPool::realloc", "Failed allocating %-45s line %5d.  Wanted %d bytes, current %d/%d (rounding wastage = %d bytes)\n", file, line, len, mCurrentAllocated[0], mSizeBytes, mWastage));
-
 #ifdef FMOD_MEMORY_THREADSAFE
         FMOD_OS_CriticalSection_Leave(mCrit);
 #endif
-
-        if (FMOD::gGlobal->gSystemCallback)
-        {
-            char fileLine[256];
-            sprintf(fileLine, "%s (%d)", file, line);
-
-            FMOD::gGlobal->gSystemCallback(NULL, FMOD_SYSTEM_CALLBACKTYPE_MEMORYALLOCATIONFAILED, (void*)fileLine, (void*)len);
-        }
-
 		return 0;
     }
 
@@ -1085,9 +878,8 @@ void *MemPool::realloc(void *ptr, int len, const char *file, const int line, FMO
     block->mNumBlocks = numblocks;
     block->mThreadID  = getCurrentThreadID();
 
-    mCurrentAllocated[0]                += block->mSize; /* All threads. */
+    mCurrentAllocated[0]                += block->mSize;
     mCurrentAllocated[block->mThreadID] += block->mSize;
-
 	if (mCurrentAllocated[0] > mMaxAllocated)
     {
 		mMaxAllocated = mCurrentAllocated[0];
@@ -1103,7 +895,7 @@ void *MemPool::realloc(void *ptr, int len, const char *file, const int line, FMO
 
     if (!mCustomPool)
     {
-        block++;    /* return pointer to actual data, not our memory block header */
+        block++;
     }
 
 #ifdef FMOD_MEMORY_THREADSAFE
@@ -1248,6 +1040,8 @@ void F_CALLBACK FMOD_MEMORY_FREECALLBACK(void *ptr, FMOD_MEMORY_TYPE type)
 #endif
 }
 */
+
+
 
 
 

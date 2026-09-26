@@ -124,7 +124,6 @@ SoundI::SoundI()
     mRolloffPoint            = 0;
     mNumRolloffPoints        = 0;
     mSyncPointHead           = 0;
-    mSyncPointTail           = 0;
     mPostReadCallback        = 0;
     mPostSetPositionCallback = 0;
     mPostCallbackSound       = 0;
@@ -199,6 +198,7 @@ FMOD_RESULT SoundI::loadSubSound(int index, FMOD_MODE mode)
     {
         return result;
     }
+
     if (mPostSetPositionCallback)
     {
         mPostSetPositionCallback((FMOD_SOUND *)this, index, 0, FMOD_TIMEUNIT_PCM);
@@ -213,18 +213,13 @@ FMOD_RESULT SoundI::loadSubSound(int index, FMOD_MODE mode)
         }
     }
 
-//    mSubSound[index] = sample;
     result = setSubSound(index, sample);
     if (result != FMOD_OK)
     {
         return result;
     }
-    
-    result = sample->setPositionInternal(0);
-    if (result != FMOD_OK && result != FMOD_ERR_FILE_EOF)
-    {
-        return result;
-    }
+
+    sample->setPositionInternal(0);
 
     return FMOD_OK;
 }
@@ -261,12 +256,11 @@ FMOD_RESULT SoundI::read(unsigned int offset, unsigned int numsamples, unsigned 
     }
     else
     {
-        getBytesFromSamples(offset, &offbytes, false);
-        getBytesFromSamples(numsamples, &numbytes, false);
+        getBytesFromSamples(offset, &offbytes);
+        getBytesFromSamples(numsamples, &numbytes);
     }
-        
-    readbytes = 0;
 
+    readbytes = 0;
     if (read)
     {
         *read = 0;
@@ -279,14 +273,12 @@ FMOD_RESULT SoundI::read(unsigned int offset, unsigned int numsamples, unsigned 
     }
 
     chunksize = SOUND_READCHUNKSIZE;
-    
     if (mMode & FMOD_CREATESTREAM)
     {
         if (mCodec->mBlockAlign)
         {
             chunksize /= mCodec->mBlockAlign;
             chunksize *= mCodec->mBlockAlign;
-
             if (!chunksize)
             {
                 chunksize = mCodec->mBlockAlign;
@@ -299,7 +291,6 @@ FMOD_RESULT SoundI::read(unsigned int offset, unsigned int numsamples, unsigned 
         {
             chunksize /= waveformat.blockalign;
             chunksize *= waveformat.blockalign;
-
             if (!chunksize)
             {
                 chunksize = waveformat.blockalign;
@@ -307,160 +298,66 @@ FMOD_RESULT SoundI::read(unsigned int offset, unsigned int numsamples, unsigned 
         }
     }
 
-    if (chunksize > SOUND_READCHUNKSIZE)
+    while (numbytes)
     {
-        FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "SoundI::read", "ERROR - Contact support.  A codec has specified a block alignment of %d which is bigger than the maximum codec read size of %d\n", waveformat.blockalign, SOUND_READCHUNKSIZE));
-        return FMOD_ERR_INTERNAL;
-    }
+        FMOD_RESULT     result2;
+        int             size = numbytes > chunksize ? chunksize : numbytes;
+        unsigned int    bytesreadtotal = 0;
+        void           *ptr1, *ptr2;
+        unsigned int    len1, len2;
 
-    if (mCodec->mNonInterleaved && mNumSubSamples)
-    {
-        numsamples /= mNumSubSamples;
-        offset     /= mNumSubSamples;
-
-        for(int count = 0; count < mNumSubSamples; count++)
+        result = lock(offbytes, size, &ptr1, &ptr2, &len1, &len2);
+        if (result != FMOD_OK)
         {
-            getBytesFromSamples(offset, &offbytes);
-            numbytes = mSubSample[count]->mLengthBytes;
-
-            while (numbytes)
-            {
-                FMOD_RESULT     result2;
-                int             size = numbytes > chunksize ? chunksize : numbytes;
-                unsigned int    bytesreadtotal = 0;
-                void           *ptr1, *ptr2;
-                unsigned int    len1, len2;
-
-                result = mSubSample[count]->lock(offbytes, size, &ptr1, &ptr2, &len1, &len2);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-
-                if (!len1 && !len2)
-                {
-                    mSubSample[count]->unlock(ptr1, ptr2, len1, len2); /* Unlock the resource before returning. */
-                    FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "SoundI::read", "Lock error.  len1 was 0 and len2 was 0.\n"));
-                    return FMOD_ERR_FILE_BAD;
-                }
-
-                if (ptr1 && len1)
-                {
-                    unsigned int bytesread = 0;
-
-                    result = readData(ptr1, len1, &bytesread);
-                    if ((result != FMOD_OK) && (result != FMOD_ERR_FILE_EOF))
-                    {
-                        mSubSample[count]->unlock(ptr1, ptr2, len1, len2); /* Unlock the resource before returning. */
-                        return result;
-                    }
-
-                    bytesreadtotal += bytesread;
-                }
-
-                if (ptr2 && len2)
-                {
-                    unsigned int bytesread = 0;
-
-                    result = readData(ptr2, len2, &bytesread);
-                    if ((result != FMOD_OK) && (result != FMOD_ERR_FILE_EOF))
-                    {
-                        mSubSample[count]->unlock(ptr1, ptr2, len1, len2); /* Unlock the resource before returning. */
-                        return result;
-                    }
-
-                    bytesreadtotal += bytesread;
-                }
-
-                /*
-                    File was truncated somehow, but allow it to load.
-                */
-                if (result == FMOD_ERR_FILE_EOF)
-                {
-                    numbytes = bytesreadtotal;
-                }
-
-                result2 = mSubSample[count]->unlock(ptr1, ptr2, len1, len2);
-                if (result2 != FMOD_OK)
-                {
-                    return result2;
-                }
-
-                numbytes  -= bytesreadtotal;
-                offbytes  += bytesreadtotal;
-                readbytes += bytesreadtotal;
-            }
+            return result;
         }
-    }
-    else
-    {
-        while (numbytes)
-        {
-            FMOD_RESULT     result2;
-            int             size = numbytes > chunksize ? chunksize : numbytes;
-            unsigned int    bytesreadtotal = 0;
-            void           *ptr1, *ptr2;
-            unsigned int    len1, len2;
 
-            result = lock(offbytes, size, &ptr1, &ptr2, &len1, &len2);
-            if (result != FMOD_OK)
+        if (!len1 && !len2)
+        {
+            unlock(ptr1, ptr2, len1, len2);
+            return FMOD_ERR_FILE_BAD;
+        }
+
+        if (ptr1 && len1)
+        {
+            unsigned int bytesread = 0;
+
+            result = readData(ptr1, len1, &bytesread);
+            if ((result != FMOD_OK) && (result != FMOD_ERR_FILE_EOF))
             {
+                unlock(ptr1, ptr2, len1, len2);
                 return result;
             }
-
-            if (!len1 && !len2)
-            {
-                unlock(ptr1, ptr2, len1, len2); /* Unlock the resource before returning. */
-                FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SoundI::read", "Lock error.  len1 was 0 and len2 was 0.\n"));
-                return FMOD_ERR_FILE_BAD;
-            }
-
-            if (ptr1 && len1)
-            {
-                unsigned int bytesread = 0;
-
-                result = readData(ptr1, len1, &bytesread);
-                if ((result != FMOD_OK) && (result != FMOD_ERR_FILE_EOF))
-                {
-                    unlock(ptr1, ptr2, len1, len2); /* Unlock the resource before returning. */
-                    return result;
-                }
-
-                bytesreadtotal += bytesread;
-            }
-
-            if (ptr2 && len2)
-            {
-                unsigned int bytesread = 0;
-
-                result = readData(ptr2, len2, &bytesread);
-                if ((result != FMOD_OK) && (result != FMOD_ERR_FILE_EOF))
-                {
-                    unlock(ptr1, ptr2, len1, len2); /* Unlock the resource before returning. */
-                    return result;
-                }
-
-                bytesreadtotal += bytesread;
-            }
-
-            /*
-                File was truncated somehow, but allow it to load.
-            */
-            if (result == FMOD_ERR_FILE_EOF)
-            {
-                numbytes = bytesreadtotal;
-            }
-
-            result2 = unlock(ptr1, ptr2, len1, len2);
-            if (result2 != FMOD_OK)
-            {
-                return result2;
-            }
-
-            numbytes  -= bytesreadtotal;
-            offbytes  += bytesreadtotal;
-            readbytes += bytesreadtotal;
+            bytesreadtotal += bytesread;
         }
+
+        if (ptr2 && len2)
+        {
+            unsigned int bytesread = 0;
+
+            result = readData(ptr2, len2, &bytesread);
+            if ((result != FMOD_OK) && (result != FMOD_ERR_FILE_EOF))
+            {
+                unlock(ptr1, ptr2, len1, len2);
+                return result;
+            }
+            bytesreadtotal += bytesread;
+        }
+
+        if (result == FMOD_ERR_FILE_EOF)
+        {
+            numbytes = bytesreadtotal;
+        }
+
+        result2 = unlock(ptr1, ptr2, len1, len2);
+        if (result2 != FMOD_OK)
+        {
+            return result2;
+        }
+
+        numbytes  -= bytesreadtotal;
+        offbytes  += bytesreadtotal;
+        readbytes += bytesreadtotal;
     }
 
     if (read)
@@ -538,66 +435,19 @@ FMOD_RESULT SoundI::clear(unsigned int offset, unsigned int numsamples)
     FMOD_RESULT result;
     unsigned int offbytes, numbytes;
     void *ptr1, *ptr2;
-    unsigned int len1, len2, chunksize;
-    FMOD_CODEC_WAVEFORMAT waveformat;
+    unsigned int len1, len2;
 
-    mPosition = offset;
-
-    if (mMode & FMOD_CREATECOMPRESSEDSAMPLE)
+    if (!numsamples)
     {
-        offbytes = offset;
-        numbytes = numsamples;
-    }
-    else
-    {
-        getBytesFromSamples(offset, &offbytes, false);
-        getBytesFromSamples(numsamples, &numbytes, false);
-    }
-        
-    result = mCodec->mDescription.getwaveformat(mCodec, mCodec->mSubSoundIndex, &waveformat);
-    if (result != FMOD_OK)
-    {
-        return result;
+        return FMOD_OK;
     }
 
-    chunksize = SOUND_READCHUNKSIZE;
-    
-    if (mMode & FMOD_CREATESTREAM)
-    {
-        if (mCodec->mBlockAlign)
-        {
-            chunksize /= mCodec->mBlockAlign;
-            chunksize *= mCodec->mBlockAlign;
-
-            if (!chunksize)
-            {
-                chunksize = mCodec->mBlockAlign;
-            }
-        }
-    }
-    else
-    {
-        if (waveformat.blockalign)
-        {
-            chunksize /= waveformat.blockalign;
-            chunksize *= waveformat.blockalign;
-
-            if (!chunksize)
-            {
-                chunksize = waveformat.blockalign;
-            }
-        }
-    }
-
-    if (chunksize > SOUND_READCHUNKSIZE)
-    {
-        FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "SoundI::read", "ERROR - Contact support.  A codec has specified a block alignment of %d which is bigger than the maximum codec read size of %d\n", waveformat.blockalign, SOUND_READCHUNKSIZE));
-        return FMOD_ERR_INTERNAL;
-    }
+    getBytesFromSamples(offset, &offbytes);
+    getBytesFromSamples(numsamples, &numbytes);
 
     while (numbytes)
     {
-        int size = numbytes > chunksize ? chunksize : numbytes, bytesreadtotal = 0;
+        int size = numbytes > SOUND_READCHUNKSIZE ? SOUND_READCHUNKSIZE : numbytes, bytesreadtotal = 0;
 
         result = lock(offbytes, size, &ptr1, &ptr2, &len1, &len2);
         if (result != FMOD_OK)
@@ -610,7 +460,6 @@ FMOD_RESULT SoundI::clear(unsigned int offset, unsigned int numsamples)
             FMOD_memset(ptr1, 0, len1);
             bytesreadtotal += len1;
         }
-
         if (ptr2 && len2)
         {
             FMOD_memset(ptr2, 0, len2);
@@ -649,34 +498,13 @@ FMOD_RESULT SoundI::clear(unsigned int offset, unsigned int numsamples)
 // OFFSET: 0x008E1FC0
 FMOD_RESULT SoundI::release(bool freethis)
 {
-    FMOD_RESULT           result;
-    Codec                *oldcodec;
-    AsyncData            *oldasyncdata;
-    ChannelReal          *oldstreamchannel;
+    FMOD_RESULT              result;
+    Codec                   *oldcodec;
+    AsyncData               *oldasyncdata;
+    ChannelStream           *oldstreamchannel;
+    FMOD_OS_CRITICALSECTION *readdatacrit = mSystem->mReadDataCrit;
+    bool                     readdatacritentered = false;
 
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SoundI::release", "%s (%p)\n", mName ? mName : "(null)", this));
-
-    if (mFlags & FMOD_SOUND_FLAG_RELEASING)
-    {
-        return FMOD_ERR_INVALID_HANDLE;     /* If it gets recursive because stopsound below calls a channel callback which tries to release it again, return. */
-    }
-    
-    if (mFlags & FMOD_SOUND_FLAG_PRELOADEDFSB)
-    {
-        return FMOD_ERR_PRELOADED;
-    }
-
-    if (mFlags & FMOD_SOUND_FLAG_PROGRAMMERSOUND)
-    {
-        return FMOD_ERR_PROGRAMMERSOUND;
-    }
-
-    mFlags |= FMOD_SOUND_FLAG_RELEASING;
-
-    /*
-        The reason there is a sleep loop here and not a criticalsection is that we don't want one sound release stalling on other non blocking sounds, 
-        and we also don't want the non blocking thread stalling on release calls (not such a huge issue but it slows loading down unescessarily).
-    */
     while ((mOpenState != FMOD_OPENSTATE_READY && mOpenState != FMOD_OPENSTATE_ERROR) || (mFlags & FMOD_SOUND_FLAG_DONOTRELEASE))
     {
         FMOD_OS_Time_Sleep(2);
@@ -684,21 +512,14 @@ FMOD_RESULT SoundI::release(bool freethis)
 
     if (mCodec)
     {
-        /*
-            Cancel any pending file requests.
-            This is needed for Wii / GC.
-        */
         if (mCodec->mFile)
         {
             mCodec->mFile->cancel();
         }
     }
 
-    /*
-        Stop any channels that are playing this sound.
-    */
     if (mSystem)
-    {       
+    {
         result = mSystem->stopSound(this);
         if (result != FMOD_OK)
         {
@@ -706,109 +527,73 @@ FMOD_RESULT SoundI::release(bool freethis)
         }
     }
 
-    /*
-        Delete all syncpoints if they exist.
-    */
-    if (mSyncPointHead)
+    if (isStream() && (mFlags & FMOD_SOUND_FLAG_READDATA) && !(mFlags & FMOD_SOUND_FLAG_PLAYED))
     {
-        SyncPoint *point = SAFE_CAST(SyncPoint, mSyncPointHead->getNext());
-
-        while (point != mSyncPointTail)
-        {
-            deleteSyncPointInternal((FMOD_SYNCPOINT *)point, true);
-
-            point = SAFE_CAST(SyncPoint, mSyncPointHead->getNext());
-        }
-
-        FMOD_Memory_Free(mSyncPointHead);   // mSyncPointTail is part of this memory block as well
-        mSyncPointHead = 0;
-        mSyncPointTail = 0;
+        FMOD_OS_CriticalSection_Enter(readdatacrit);
+        readdatacritentered = true;
     }
 
-    if (mSyncPointMemory)
+    if (mSyncPointHead)
     {
-        FMOD_Memory_Free(mSyncPointMemory);
-        mSyncPointMemory = 0;
+        while (mSyncPointHead->getNext() != mSyncPointHead)
+        {
+            deleteSyncPoint((FMOD_SYNCPOINT *)mSyncPointHead->getNext());
+        }
+
+        FMOD_Memory_Free(mSyncPointHead);
+        mSyncPointHead = 0;
     }
 
     oldcodec = mCodec;
     oldasyncdata = mAsyncData;
     oldstreamchannel = 0;
 
-    /*
-        Release the stream samples if this is a stream
-    */
     #ifdef FMOD_SUPPORT_STREAMING
     if (isStream() && mCodec && (!mSubSoundParent || mSubSoundParent == this || (mSubSoundParent && mCodec != mSubSoundParent->mCodec)))
     {
         Stream *stream = SAFE_CAST(Stream, this);
 
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SoundI::release", "remove stream samples. (%p)\n", this));
-
-        /*
-            Wait for the stream to be totally done with before removing.
-        */
         if (stream->mChannel)
         {
-            stream->mChannel->mFinished = true; /* Make the thread set the finished flag. */
-            
-            if (!(mFlags & FMOD_SOUND_FLAG_PLAYED))
-            {
-                stream->mFlags |= FMOD_SOUND_FLAG_THREADFINISHED;
-            }
+            stream->mChannel->mFinished = true;
         }
 
         if (!(mSystem->mFlags & FMOD_INIT_STREAM_FROM_UPDATE) && !stream->mStreamNode.isEmpty())
         {
-            while (!(stream->mFlags & FMOD_SOUND_FLAG_THREADFINISHED))
+            while (!(stream->mFlags & FMOD_SOUND_FLAG_FINISHED))
             {
                 FMOD_OS_Time_Sleep(2);
             }
         }
 
-        /*
-            Safely remove from list. (fast)
-        */
         FMOD_OS_CriticalSection_Enter(mSystem->mStreamListCrit);
         {
             stream->mStreamNode.removeNode();
             stream->mStreamNode.setData(0);
         }
-        FMOD_OS_CriticalSection_Leave(mSystem->mStreamListCrit);                
+        FMOD_OS_CriticalSection_Leave(mSystem->mStreamListCrit);
 
         oldstreamchannel = stream->mChannel;
 
         if (stream->mSample)
         {
             stream->mSample->mCodec = 0;
-            FLOG_INDENT(4);
-            {
-                stream->mSample->release();
-            }
-            FLOG_INDENT(-4);
+            stream->mSample->release();
             stream->mSample = 0;
         }
     }
     #endif
 
-    /*
-        Remove all subsounds of this sound if they exist!
-    */
     if (mNumSubSounds && mSubSound)
     {
         int count;
 
         if (mNumActiveSubSounds)
         {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SoundI::release", "release subsounds. (%p)\n", this));
-            FLOG_INDENT(4);
             for (count = 0; count < mNumSubSounds; count++)
             {
                 if (mSubSound[count])
                 {
-                    /*
-                        Points to the same codec as the parent sound so don't release it more than once
-                    */
                     if (mSubSound[count]->mCodec == oldcodec)
                     {
                         mSubSound[count]->mCodec = 0;
@@ -830,7 +615,7 @@ FMOD_RESULT SoundI::release(bool freethis)
                     }
                     #endif
 
-                    if (mSubSound[count]->mSubSoundShared)  /* Null out all the other shared pointers that point to this address. */
+                    if (mSubSound[count]->mSubSoundShared)
                     {
                         int count2;
 
@@ -847,28 +632,22 @@ FMOD_RESULT SoundI::release(bool freethis)
                     mSubSound[count] = 0;
                 }
             }
-            FLOG_INDENT(-4);
         }
 
         FMOD_Memory_Free(mSubSound);
-        mSubSound = 0;       
+        mSubSound = 0;
 
         if (mSubSoundShared)
         {
             FMOD_Memory_Free(mSubSoundShared);
-            mSubSoundShared = 0;       
+            mSubSoundShared = 0;
         }
     }
 
-    /*
-        Release the codec if it exists
-    */
     if (mCodec)
     {
-        if (!mSubSoundParent || mSubSoundParent == this || (mSubSoundParent && mCodec != mSubSoundParent->mCodec)) /* Don't release the parent's codec. */
+        if (!mSubSoundParent || mSubSoundParent == this || (mSubSoundParent && mCodec != mSubSoundParent->mCodec))
         {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SoundI::release", "release codec. (%p)\n", this));
-
             mCodec->release();
             mCodec = 0;
         }
@@ -882,10 +661,9 @@ FMOD_RESULT SoundI::release(bool freethis)
 
         if (parentstream && parentstream->mChannel == stream->mChannel)
         {
-            stream->mChannel = 0;   /* Don't free the parent's channel object. */
+            stream->mChannel = 0;
         }
-
-        if (stream->mChannel)   /* This must be freed after sample release, as stream->mSample tries to stopSound as well (and reference the channel). */
+        if (stream->mChannel)
         {
             FMOD_Memory_Free(stream->mChannel);
             stream->mChannel = 0;
@@ -902,9 +680,6 @@ FMOD_RESULT SoundI::release(bool freethis)
         mAsyncData = 0;
     }
 
-    /*
-        Null out any parent references to this sound if this sound is a subsound of another sound.
-    */
     if (mSubSoundParent)
     {
         int count;
@@ -913,7 +688,7 @@ FMOD_RESULT SoundI::release(bool freethis)
         {
             if (mSubSoundParent->mSubSound && mSubSoundParent->mSubSound[count] == this)
             {
-                mSubSoundParent->setSubSoundInternal(count, 0, true);
+                mSubSoundParent->setSubSound(count, 0);
                 break;
             }
         }
@@ -933,8 +708,6 @@ FMOD_RESULT SoundI::release(bool freethis)
         mName = 0;
     }
 
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SoundI::release", "free this. (%p)\n", this));
-
     FMOD_OS_CriticalSection_Enter(mSystem->gSoundListCrit);
     {
         removeNode();
@@ -943,11 +716,14 @@ FMOD_RESULT SoundI::release(bool freethis)
     FMOD_OS_CriticalSection_Leave(mSystem->gSoundListCrit);
 
     if (freethis && !mSubSoundShared)
-    {   
+    {
         FMOD_Memory_Free(this);
     }
 
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SoundI::release", "done (%p)\n", this));
+    if (readdatacritentered)
+    {
+        FMOD_OS_CriticalSection_Leave(readdatacrit);
+    }
 
     return FMOD_OK;
 }
@@ -1439,29 +1215,9 @@ FMOD_RESULT SoundI::get3DCustomRolloff(FMOD_VECTOR **points, int *numpoints)
 // OFFSET: 0x008E14D0
 FMOD_RESULT SoundI::setSubSound(int index, SoundI *subsound)
 {
-    return setSubSoundInternal(index, subsound, false);
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SoundI::setSubSoundInternal(int index, SoundI *subsound, bool calledfromrelease)
-{
     int count;
-    unsigned int oldlength = 0, newlength = 0;
+    SoundI *oldsubsound;
+    bool blockstream = false;
 
     if (index < 0 || index >= mNumSubSounds)
     {
@@ -1473,50 +1229,7 @@ FMOD_RESULT SoundI::setSubSoundInternal(int index, SoundI *subsound, bool called
         return FMOD_ERR_SUBSOUND_ALLOCATED;
     }
 
-    /*
-        Cannot detach or replace a subsound if the parent stream shares subsounds
-    */
-    if (mSubSoundShared)
-    {
-        return FMOD_ERR_SUBSOUND_CANTMOVE;
-    }
-
-#ifdef FMOD_SUPPORT_SENTENCING
-    /*
-        Do error checking that the new subsound is valid
-    */
-    if (subsound && mSubSoundList)
-    {
-        if (subsound->isStream() != isStream())
-        {
-            return FMOD_ERR_SUBSOUND_MODE;     /* Tried to mix a stream and a sample. */
-        }
-
-        if ((subsound->mMode & FMOD_CREATECOMPRESSEDSAMPLE) != (mMode & FMOD_CREATECOMPRESSEDSAMPLE))
-        {
-            return FMOD_ERR_SUBSOUND_MODE;
-        }
-
-        if (subsound->mFormat != mFormat)
-        {
-            return FMOD_ERR_FORMAT;     /* Tried to mix different sample formats. */
-        }
-        
-        if (subsound->mChannels != mChannels)
-        {
-            return FMOD_ERR_FORMAT;     /* Tried to mix different channel counts. */
-        }
-
-        if (!(subsound->mMode & FMOD_SOFTWARE) && !subsound->isStream())
-        {
-            return FMOD_ERR_NEEDSSOFTWARE;
-        }
-    }
-#endif
-
 #ifdef FMOD_SUPPORT_STREAMING
-    bool blockstream = false;
-
     if (isStream())
     {
         SoundI *soundi = this;
@@ -1533,96 +1246,39 @@ FMOD_RESULT SoundI::setSubSoundInternal(int index, SoundI *subsound, bool called
         if (soundi && soundi->mFlags & FMOD_SOUND_FLAG_PLAYED && !(soundi->mFlags & FMOD_SOUND_FLAG_FINISHED))
         {
             blockstream = true;
+            FMOD_OS_CriticalSection_Enter(mSystem->mStreamUpdateCrit);
         }
-    }
-
-    if (blockstream)
-    {
-        FMOD_OS_CriticalSection_Enter(mSystem->mStreamUpdateCrit);
     }
 #endif
 
-#ifdef FMOD_SUPPORT_SOFTWARE
-    bool blockdsp = false;
+    oldsubsound = mSubSound[index];
 
-    if (mMode & FMOD_SOFTWARE && !calledfromrelease)
-    {
-        blockdsp = true;
-    }
-
-    if (blockdsp)
-    {
-        FMOD_OS_CriticalSection_Enter(mSystem->mDSPCrit);
-    }
-#endif
-
-    SoundI *oldsubsound = mSubSound[index];
-
-    if (oldsubsound)
-    {
-        if (oldsubsound->mSubSoundShared)
-        {
-            FMOD_CODEC_WAVEFORMAT waveformat;
-        
-            mCodec->mDescription.getwaveformat(mCodec, index, &waveformat);
-
-            oldlength = waveformat.lengthpcm;
-        }
-        else
-        {
-            oldlength = oldsubsound->mLength;
-        }
-    }
-
-    /*
-        Setup the new subsound
-    */
     if (subsound)
     {
         if (!subsound->isStream())
         {
             Sample *sample = (Sample *)subsound;
 
-            for (int i = 0; i < sample->mNumSubSamples; i++)
+            for (count = 0; count < sample->mNumSubSamples; count++)
             {
-                sample->mSubSample[i]->mCodec           = mCodec;
-
+                sample->mSubSample[count]->mCodec = mCodec;
                 if (oldsubsound)
                 {
                     Sample *oldsample = (Sample *)oldsubsound;
 
-                    sample->mSubSample[i]->mSubSampleParent = oldsample->mSubSampleParent;
+                    sample->mSubSample[count]->mSubSampleParent = oldsample->mSubSampleParent;
                 }
             }
         }
 
         subsound->mSubSoundIndex   = index;
         subsound->mSubSoundParent  = this;
-
-        if (subsound->mSubSoundShared)
-        {
-            FMOD_CODEC_WAVEFORMAT waveformat;
-        
-            subsound->mCodec->mDescription.getwaveformat(mCodec, subsound->mSubSoundIndex, &waveformat);
-
-            newlength = waveformat.lengthpcm;
-        }
-        else
-        {
-            newlength = subsound->mLength;
-        }
     }
 
-    /*
-        If there was an old subsound here, remove the link to this parent.
-    */
+    mSubSound[index] = subsound;
+
     if (oldsubsound)
     {
-        if (!isStream() && oldsubsound->mSubSoundParent->mCodec == oldsubsound->mCodec)
-        {
-            oldsubsound->mCodec = 0;
-        }
-
         oldsubsound->mSubSoundParent = 0;
 
         if (!subsound)
@@ -1638,25 +1294,16 @@ FMOD_RESULT SoundI::setSubSoundInternal(int index, SoundI *subsound, bool called
         }
     }
 
-    mSubSound[index] = subsound;
-
-    /*
-        Recalculate the length of the sentence if one exists.
-    */
 #ifdef FMOD_SUPPORT_SENTENCING
     if (mSubSoundListNum)
-    {       
-        if (!(mCodec && mCodec->mFlags & FMOD_CODEC_USERLENGTH))
-        {
-            mLength -= oldlength;
-            mLength += newlength;
-        }
+    {
+        mLength = 0;
 
         for (count = 0; count < mSubSoundListNum; count++)
         {
-            if (mSubSoundList[count].mIndex == index)
+            if (mSubSound[mSubSoundList[count]])
             {
-                mSubSoundList[count].mLength = newlength;
+                mLength += mSubSound[mSubSoundList[count]]->mLength;
             }
         }
     }
@@ -1668,80 +1315,18 @@ FMOD_RESULT SoundI::setSubSoundInternal(int index, SoundI *subsound, bool called
 #ifdef FMOD_SUPPORT_STREAMING
     if (isStream())
     {
-        Stream *stream = SAFE_CAST(Stream, this);
-
-        stream->mChannel->setLoopPoints(0, mLength - 1);
-    }
-#endif
-
-#ifndef PLATFORM_PS3
-    /*
-        For wavetable pcm, a shift of mPosition is needed to adjust for subsound changes if the sentence is already playing.
-        PS3 doesn't use wavetable for PCM, it uses a codec instead.
-    */
-#ifdef FMOD_SUPPORT_STREAMING
-    else
-#endif
-    if (mMode & FMOD_SOFTWARE && mFormat >= FMOD_SOUND_FORMAT_PCM8 && mFormat <= FMOD_SOUND_FORMAT_PCMFLOAT && oldlength != newlength)
-    {
-        for (count = 0; count < mSystem->mNumChannels; count++)
-        {
-            FMOD::SoundI *soundi = 0;
-
-            mSystem->mChannel[count].getCurrentSound(&soundi);
-
-            if (soundi == this)
-            {
-                unsigned int pos, currsubsound;
-
-                mSystem->mChannel[count].setLoopPoints(mLoopStart, FMOD_TIMEUNIT_PCM, mLoopLength - 1, FMOD_TIMEUNIT_PCM);
-
-                /*
-                    Now adjust the channel's position by how much the sentence has been shifted by.
-                */
-                mSystem->mChannel[count].getPosition(&pos, FMOD_TIMEUNIT_PCM);
-                mSystem->mChannel[count].getPosition(&currsubsound, FMOD_TIMEUNIT_SENTENCE_SUBSOUND);
-
-                if (currsubsound > (unsigned int)index)
-                {
-                    pos -= oldlength;
-                    pos += newlength;
-
-                    mSystem->mChannel[count].setPosition(pos, FMOD_TIMEUNIT_PCM);
-                }
-            }
-        }
-    }
-#endif
-
-
-#ifdef FMOD_SUPPORT_SOFTWARE
-    if (blockdsp)
-    {
-        FMOD_OS_CriticalSection_Leave(mSystem->mDSPCrit);
-    }
-#endif
-
-#ifdef FMOD_SUPPORT_STREAMING
-    if (isStream())
-    {
-        Stream *stream = SAFE_CAST(Stream, this);
-        
-        /*
-            If there is a new subsound, and a new playsound occurs, tell the stream to reflush its buffer.
-        */
         if (subsound)
         {
-            stream->mFlags |= FMOD_SOUND_FLAG_WANTSTOFLUSH;
+            mFlags |= FMOD_SOUND_FLAG_WANTSTOFLUSH;
         }
 
         if (blockstream)
-        {        
+        {
             FMOD_OS_CriticalSection_Leave(mSystem->mStreamUpdateCrit);
         }
     }
 #endif
-    
+
     return FMOD_OK;
 }
 
@@ -1771,23 +1356,11 @@ FMOD_RESULT SoundI::getSubSound(int index, SoundI **subsound)
 
     *subsound = 0;
 
-    #ifdef FMOD_DEBUG
-    if (isStream())
-    {
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SoundI::getSubSound", "sound %p.  Subsound index %d / %d\n", this, index, mNumSubSounds));
-    }
-    #endif
-    
-    if (index < 0)
+    if (index < 0 || index >= mNumSubSounds)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (index >= mNumSubSounds)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-    
     *subsound = mSubSound[index];
 
 #ifdef FMOD_SUPPORT_NONBLOCKING
@@ -1804,64 +1377,39 @@ FMOD_RESULT SoundI::getSubSound(int index, SoundI **subsound)
     {
         mSubSound[index]->updateSubSound(index, false);
     }
-    
-    if (mSubSound[index])
+
+#if defined(FMOD_SUPPORT_STREAMING) && defined(FMOD_SUPPORT_NONBLOCKING)
+    if (mSubSound[index] && mMode & FMOD_NONBLOCKING && mSubSound[index]->isStream())
     {
-#ifdef FMOD_SUPPORT_STREAMING
-        if (mSubSound[index]->isStream())
+        FMOD_RESULT result;
+        Stream *stream = SAFE_CAST(Stream, *subsound);
+        Stream *streamParent = SAFE_CAST(Stream, stream->mSubSoundParent);
+
+        if ((index == stream->mSubSoundParent->mSubSoundIndex && (stream->mPosition == streamParent->mInitialPosition + stream->mSample->mLength || (stream->mLength < stream->mSample->mLength && stream->mPosition == streamParent->mInitialPosition + stream->mLength))) && !(stream->mFlags & FMOD_SOUND_FLAG_WANTSTOFLUSH))
         {
-            Stream *stream = SAFE_CAST(Stream, *subsound);
-
-            #ifdef FMOD_SUPPORT_NONBLOCKING
-            if (mMode & FMOD_NONBLOCKING)
-            {
-                FMOD_RESULT result;
-                Stream *streamParent = SAFE_CAST(Stream, stream->mSubSoundParent);
-
-                if ((index == stream->mSubSoundParent->mSubSoundIndex && (stream->mPosition == streamParent->mInitialPosition + stream->mSample->mLength || (stream->mLength < stream->mSample->mLength && stream->mPosition == streamParent->mInitialPosition + stream->mLength))) && !(stream->mFlags & FMOD_SOUND_FLAG_WANTSTOFLUSH))
-                {
-                    return FMOD_OK;
-                }
-
-                FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SoundI::getSubSound", "starting non blocking seek and setting sound to not ready state\n"));
-
-                stream->mOpenState = FMOD_OPENSTATE_SEEKING;
-                mOpenState         = FMOD_OPENSTATE_SEEKING;
-            
-                result = AsyncThread::getAsyncThread(stream);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-
-                FMOD_OS_CriticalSection_Enter(stream->mAsyncData->mThread->mCrit);
-                {
-                    stream->mAsyncData->mNode.setData(stream);
-                    stream->mAsyncData->mNode.addBefore(&stream->mAsyncData->mThread->mHead);
-                }
-                FMOD_OS_CriticalSection_Leave(stream->mAsyncData->mThread->mCrit);
-
-                stream->mAsyncData->mThread->mThread.wakeupThread();
-
-                FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SoundI::getSubSound", "finished preparing nonblocking getSubSound seek\n"));
-            }
-            else
-            #endif
-            {
-                if (stream->mSubSoundIndex != stream->mCodec->mSubSoundIndex)
-                {
-                    FMOD_RESULT result;
-
-                    result = stream->setPosition(0, FMOD_TIMEUNIT_PCM);
-                    if (result == FMOD_OK)
-                    {
-                        stream->flush();
-                    }
-                }
-            }
+            return FMOD_OK;
         }
-#endif
+
+        stream->mOpenState = FMOD_OPENSTATE_SEEKING;
+        mOpenState         = FMOD_OPENSTATE_SEEKING;
+
+        result = AsyncThread::getAsyncThread(stream);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+
+        stream->mAsyncData->mNode.setData(stream);
+
+        FMOD_OS_CriticalSection_Enter(stream->mAsyncData->mThread->mCrit);
+        {
+            stream->mAsyncData->mNode.addBefore(&stream->mAsyncData->mThread->mHead);
+        }
+        FMOD_OS_CriticalSection_Leave(stream->mAsyncData->mThread->mCrit);
+
+        stream->mAsyncData->mThread->mThread.wakeupThread();
     }
+#endif
 
     return FMOD_OK;
 }
@@ -1885,12 +1433,8 @@ FMOD_RESULT SoundI::getSubSound(int index, SoundI **subsound)
 // OFFSET: 0x008E1690
 FMOD_RESULT SoundI::setSubSoundSentence(int *subsoundlist, int numsubsounds)
 {
-    FMOD_RESULT result;
 #ifdef FMOD_SUPPORT_SENTENCING
     int count;
-#ifndef FMOD_STATICFORPLUGINS
-    LocalCriticalSection crit(mSystem->mStreamUpdateCrit, true);
-#endif
 
     if (!mNumSubSounds)
     {
@@ -1902,107 +1446,35 @@ FMOD_RESULT SoundI::setSubSoundSentence(int *subsoundlist, int numsubsounds)
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (!(mMode & FMOD_SOFTWARE) && !isStream())
+    if (!isStream())
     {
-        return FMOD_ERR_NEEDSSOFTWARE;
+        return FMOD_ERR_FORMAT;
     }
 
-    #ifdef PLATFORM_PS3
-    if (numsubsounds > FMOD_PS3_SUBSOUNDLISTMAXITEMS)
-    {
-        FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "SoundI::setSubSoundSentence", "Maximum number of subsound sentences (%d) reached for PS3!", FMOD_PS3_SUBSOUNDLISTMAXITEMS));
-        return FMOD_ERR_INTERNAL;
-    }
-    #endif
-  
-    result = mSystem->stopSound(this); 
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-  
-    /*
-        Do error checking that the subsounds within the parent are valid.
-    */
     if (subsoundlist)
     {
-        if (!isStream())    /* Samples are more flexible, there is no stream buffer to worry about.  Reset the mode here */
-        {
-            mFormat   = FMOD_SOUND_FORMAT_NONE;
-            mChannels = 0;
-        }
-
         for (count = 0; count < numsubsounds; count++)
         {
-            SoundI *subsound;
+            int index = subsoundlist[count];
 
-            if (subsoundlist[count] < 0 || subsoundlist[count] >= mNumSubSounds)
+            if (index < 0 || index >= mNumSubSounds)
             {
                 return FMOD_ERR_INVALID_PARAM;
             }
-
-            subsound = mSubSound[subsoundlist[count]];
-            if(!subsound)
+            if (!mSubSound[index])
             {
-                continue;
+                return FMOD_ERR_INVALID_PARAM;
             }
-
-            if (subsound->isStream() != isStream())
+            if (mSubSound[index]->isStream() != isStream())
             {
-                return FMOD_ERR_SUBSOUND_MODE;     /* Tried to mix a stream and a sample. */
+                return FMOD_ERR_FORMAT;
             }
-
-            if ((subsound->mMode & FMOD_CREATECOMPRESSEDSAMPLE) != (mMode & FMOD_CREATECOMPRESSEDSAMPLE))
+            if (isStream())
             {
-                return FMOD_ERR_SUBSOUND_MODE;
-            }
-
-            if (mSubSoundShared)
-            {
-                FMOD_CODEC_WAVEFORMAT waveformat;
-                
-                mCodec->mDescription.getwaveformat(mCodec, subsoundlist[count], &waveformat);
-
-                if (!mFormat && !mChannels)
+                if (mFormat != mSubSound[index]->mFormat || mChannels != mSubSound[index]->mChannels)
                 {
-                    mFormat  = waveformat.format;
-                    mChannels = waveformat.channels;
+                    return FMOD_ERR_FORMAT;
                 }
-                else 
-                {
-                    if (mFormat != waveformat.format)
-                    {
-                        return FMOD_ERR_FORMAT;     /* Tried to mix different sample formats. */
-                    }
-                    if (mChannels != waveformat.channels)
-                    {
-                        return FMOD_ERR_FORMAT;     /* Tried to mix different channel counts. */
-                    }
-                }
-            }
-            else 
-            {
-                if (!mFormat && !mChannels)
-                {
-                    mFormat = subsound->mFormat;
-                    mChannels = subsound->mChannels;
-                }
-                else 
-                {
-                    if (mFormat != subsound->mFormat)
-                    {
-                        return FMOD_ERR_FORMAT;     /* Tried to mix different sample formats. */
-                    }
-                    if (mChannels != subsound->mChannels)
-                    {
-                        return FMOD_ERR_FORMAT;     /* Tried to mix different channel counts. */
-                    }
-                }
-            }
-
-            if (!(subsound->mMode & FMOD_SOFTWARE) && !subsound->isStream())
-            {
-                return FMOD_ERR_NEEDSSOFTWARE;
             }
         }
     }
@@ -2010,123 +1482,57 @@ FMOD_RESULT SoundI::setSubSoundSentence(int *subsoundlist, int numsubsounds)
     if (mSubSoundList)
     {
         FMOD_Memory_Free(mSubSoundList);
-        mSubSoundList = NULL;
     }
 
     mSubSoundListNum = numsubsounds;
 
     if (mSubSoundListNum)
     {
-        mSubSoundList = (SoundSentenceEntry *)FMOD_Memory_Calloc(sizeof(SoundSentenceEntry) * mSubSoundListNum);
+        mSubSoundList = (int *)FMOD_Memory_Calloc(mSubSoundListNum * sizeof(int));
         if (!mSubSoundList)
         {
             return FMOD_ERR_MEMORY;
         }
 
-        if (!(mCodec && mCodec->mFlags & FMOD_CODEC_USERLENGTH))
-        {
-            mLength = 0;
-        }
+        mLength = 0;
 
         for (count = 0; count < mSubSoundListNum; count++)
         {
             if (subsoundlist)
             {
-                mSubSoundList[count].mIndex = subsoundlist[count];
+                mSubSoundList[count] = subsoundlist[count];
             }
             else
             {
-                mSubSoundList[count].mIndex = count;
+                mSubSoundList[count] = count;
             }
 
-            if (mSubSound[mSubSoundList[count].mIndex])
+            if (mSubSound[mSubSoundList[count]])
             {
-                if (mSubSoundShared)
-                {
-                    FMOD_CODEC_WAVEFORMAT waveformat;
-                    
-                    mCodec->mDescription.getwaveformat(mCodec, mSubSoundList[count].mIndex, &waveformat);
-
-                    mSubSoundList[count].mLength = waveformat.lengthpcm;
-                }
-                else
-                {
-                    mSubSoundList[count].mLength = mSubSound[mSubSoundList[count].mIndex]->mLength;
-                }
-
-                if (!(mCodec && mCodec->mFlags & FMOD_CODEC_USERLENGTH))
-                {
-                    mLength += mSubSoundList[count].mLength;
-                }
-            }
-            else
-            {
-                mSubSoundList[count].mLength = 0;
+                mLength += mSubSound[mSubSoundList[count]]->mLength;
             }
         }
     }
 
-    if (!(mCodec && mCodec->mFlags & FMOD_CODEC_USERLENGTH))
-    {
-        mLoopStart           = 0;
-        mLoopLength          = mLength;
-    }
+    mLoopStart           = 0;
+    mLoopLength          = mLength;
+    mSubSoundListCurrent = 0;
 
 #ifdef FMOD_SUPPORT_STREAMING
-    if (isStream() && mSubSoundList)
+    if (isStream())
     {
-        Stream *parent    = SAFE_CAST(Stream, this);
-        Stream *substream = SAFE_CAST(Stream, mSubSound[mSubSoundList[0].mIndex]);
+        SoundI *subsound = mSubSound[mSubSoundList[mSubSoundListCurrent]];
 
-        if (!substream)
+        if (subsound)
         {
-            return FMOD_OK;
-        }
-        
-        parent->mFlags &= ~FMOD_SOUND_FLAG_FULLYBUFFERED;
+            Stream *stream = SAFE_CAST(Stream, this);
 
-        #ifdef FMOD_SUPPORT_NONBLOCKING
-        if (mMode & FMOD_NONBLOCKING)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SoundI::getSubSound", "starting non blocking seek and setting sound to not ready state\n"));
-
-            substream->mOpenState = FMOD_OPENSTATE_SEEKING;
-            mOpenState         = FMOD_OPENSTATE_SEEKING;
-        
-            result = AsyncThread::getAsyncThread(this);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-
-            mAsyncData->mNode.setData(this);
-
-            FMOD_OS_CriticalSection_Enter(mAsyncData->mThread->mCrit);
-            {
-                mAsyncData->mNode.addBefore(&mAsyncData->mThread->mHead);
-            }
-            FMOD_OS_CriticalSection_Leave(mAsyncData->mThread->mCrit);
-
-            mAsyncData->mThread->mThread.wakeupThread();
-
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "SoundI::getSubSound", "finished preparing nonblocking getSubSound seek\n"));
-        }
-        else
-        #endif
-        {
-            FMOD_RESULT result;
-            
-            mFlags &= ~FMOD_SOUND_FLAG_FULLYBUFFERED;
-
-            result = parent->setPosition(0, FMOD_TIMEUNIT_PCM);
-            if (result == FMOD_OK)
-            {
-                parent->flush();
-            }
+            stream->mSample->mCodec = subsound->mCodec;
+            mFlags |= FMOD_SOUND_FLAG_WANTSTOFLUSH;
         }
     }
 #endif
-    
+
     return FMOD_OK;
 #else
     return FMOD_ERR_UNSUPPORTED;
@@ -2164,25 +1570,11 @@ FMOD_RESULT SoundI::getName(char *name, int namelen)
 
     if (mName)
     {
-        if (mMode & FMOD_UNICODE)
-        {
-            FMOD_strncpyW((short *)name, (short *)mName, namelen / 2);
-        }
-        else
-        {
-            FMOD_strncpy(name, mName, namelen);
-        }
+        FMOD_strncpy(name, mName, namelen);
     }
     else
     {
-        if (mMode & FMOD_UNICODE)
-        {
-            FMOD_strncpyW((short *)name, (const short *)L"(null)", namelen / 2);
-        }
-        else
-        {
-            FMOD_strncpy(name, "(null)", namelen);
-        }
+        FMOD_strncpy(name, "(null)", namelen);
     }
 
     return FMOD_OK;
@@ -2217,7 +1609,39 @@ FMOD_RESULT SoundI::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
     {
         *length = mSubSoundListNum;
     }
-    else 
+    else if (lengthtype == FMOD_TIMEUNIT_SENTENCE_MS)
+    {
+        if (!mSubSoundList)
+        {
+            return FMOD_ERR_INVALID_PARAM;
+        }
+
+        if (mSubSoundShared)
+        {
+            FMOD_RESULT result;
+            FMOD_CODEC_WAVEFORMAT waveformat;
+
+            result = mCodec->mDescription.getwaveformat(mCodec, mSubSoundList[mSubSoundListCurrent], &waveformat);
+            if (result != FMOD_OK)
+            {
+                return result;
+            }
+
+            *length = (unsigned int)(waveformat.lengthpcm * 1000 / mDefaultFrequency);
+        }
+        else
+        {
+            SoundI *subsound = mSubSound[mSubSoundList[mSubSoundListCurrent]];
+
+            if (!subsound)
+            {
+                return FMOD_ERR_INVALID_PARAM;
+            }
+
+            *length = (unsigned int)(subsound->mLength * 1000 / mDefaultFrequency);
+        }
+    }
+    else
 #endif
     if (lengthtype == FMOD_TIMEUNIT_PCM)
     {
@@ -2235,7 +1659,7 @@ FMOD_RESULT SoundI::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
         }
         else
         {
-            *length = (unsigned int)((FMOD_UINT64)mLength * (FMOD_UINT64)1000 / (FMOD_UINT64)mDefaultFrequency);
+            *length = (unsigned int)(mLength * 1000 / mDefaultFrequency);
         }
     }
     else if (lengthtype == FMOD_TIMEUNIT_PCMBYTES)
@@ -2259,7 +1683,6 @@ FMOD_RESULT SoundI::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
         {
             return FMOD_ERR_INVALID_PARAM;
         }
-
         return mCodec->getLength(length, lengthtype);
     }
 
@@ -2430,39 +1853,10 @@ FMOD_RESULT SoundI::getOpenState(FMOD_OPENSTATE *openstate, unsigned int *percen
     if (openstate)
     {
         *openstate = mOpenState;
+
         if (mOpenState == FMOD_OPENSTATE_READY && (mFlags & FMOD_SOUND_FLAG_DONOTRELEASE))
         {
             *openstate = FMOD_OPENSTATE_BUFFERING;
-        }
-        
-        if (mFlags & FMOD_SOUND_FLAG_PLAYED)
-        {
-            #ifdef FMOD_SUPPORT_STREAMING    
-            if (isStream())
-            {
-                if (*openstate == FMOD_OPENSTATE_READY && mCodec && !(mSystem->mFlags & FMOD_INIT_STREAM_FROM_UPDATE))
-                {
-                    bool busy = false;
-
-                    if (mCodec && mCodec->mFile)
-                    {
-                        mCodec->mFile->isBusy(&busy, 0);
-                    }
-           
-                    if (!(mFlags & FMOD_SOUND_FLAG_THREADFINISHED) || busy)
-                    {
-                        *openstate = FMOD_OPENSTATE_STREAMING;
-                    }                       
-                }
-            }
-            else
-            #endif // #ifdef FMOD_SUPPORT_STREAMING       
-            {
-                if (mNumAudible || mLastAudibleDSPClock == mSystem->mDSPClock.mValue)
-                {
-                    *openstate = FMOD_OPENSTATE_STREAMING;
-                }
-            }
         }
     }
 
@@ -2514,6 +1908,7 @@ FMOD_RESULT SoundI::readData(void *buffer, unsigned int numbytes, unsigned int *
     FMOD_RESULT           result;
     unsigned int          offbytes, readbytes, scale, position = 0, chunksize, blockalign;
     int                   bits;
+    FMOD_UINT_NATIVE      threadid;
     FMOD_CODEC_WAVEFORMAT waveformat;
 
     if (!mCodec)
@@ -2532,16 +1927,20 @@ FMOD_RESULT SoundI::readData(void *buffer, unsigned int numbytes, unsigned int *
         return result;
     }
 
-    if (!mCodec)
-    {
-        return FMOD_ERR_UNSUPPORTED;
-    }
+    LocalCriticalSection crit(mSystem->mReadDataCrit);
 
     if (!mCodec->mFile)
     {
         return FMOD_ERR_UNSUPPORTED;
     }
-   
+
+    FMOD_OS_Thread_GetCurrentID(&threadid);
+    if (threadid != mSystem->mMainThreadID)
+    {
+        mFlags |= (FMOD_SOUND_FLAG_DONOTRELEASE | FMOD_SOUND_FLAG_READDATA);
+        crit.enter();
+    }
+
     result = mCodec->mDescription.getwaveformat(mCodec, mCodec->mSubSoundIndex, &waveformat);
     if (result != FMOD_OK)
     {
@@ -2551,16 +1950,16 @@ FMOD_RESULT SoundI::readData(void *buffer, unsigned int numbytes, unsigned int *
 
     offbytes  = 0;
     readbytes = 0;
-
     scale = 1;
+
     if (mChannels != waveformat.channels && mChannels == 1)
     {
         scale = waveformat.channels;
     }
 
     chunksize = SOUND_READCHUNKSIZE;
-
     blockalign = 1;
+
     if (mMode & FMOD_CREATESTREAM)
     {
         if (mCodec->mBlockAlign)
@@ -2589,7 +1988,7 @@ FMOD_RESULT SoundI::readData(void *buffer, unsigned int numbytes, unsigned int *
         unsigned int    bytesreadtotal = 0, bytesread = 0;
         void           *ptr;
 
-        ptr = (char *)buffer + offbytes; 
+        ptr = (char *)buffer + offbytes;
 
         if (mMode & FMOD_CREATECOMPRESSEDSAMPLE)
         {
@@ -2617,9 +2016,6 @@ FMOD_RESULT SoundI::readData(void *buffer, unsigned int numbytes, unsigned int *
 
         bytesreadtotal += (bytesread / scale);
 
-        /*
-            File was truncated somehow, but allow it to load.
-        */
         if (result == FMOD_ERR_FILE_EOF)
         {
             numbytes = bytesreadtotal;
@@ -2630,8 +2026,8 @@ FMOD_RESULT SoundI::readData(void *buffer, unsigned int numbytes, unsigned int *
         readbytes += bytesreadtotal;
 
         getSamplesFromBytes(bytesreadtotal, &position);
-        mPosition += position;
 
+        mPosition += position;
         if (mPosition > mLength)
         {
             mPosition = mLength;
@@ -2694,31 +2090,10 @@ FMOD_RESULT SoundI::seekData(unsigned int position)
 // OFFSET: 0x008E1AC0
 FMOD_RESULT SoundI::setSoundGroup(SoundGroupI *soundgroup)
 {
-    Sample *streamsample = 0;
-
-    #ifdef FMOD_SUPPORT_STREAMING
-    if (isStream())
-    {
-        Stream *stream = SAFE_CAST(Stream, this);
-        
-        streamsample = stream->mSample;
-    }
-    #endif
-
     mSoundGroup = soundgroup;
-    if (streamsample)
-    {
-        streamsample->mSoundGroup = soundgroup;
-    }
-
-
     if (!mSoundGroup)
     {
         mSoundGroup = mSystem->mSoundGroup;
-        if (streamsample)
-        {
-            streamsample->mSoundGroup = mSystem->mSoundGroup;
-        }
     }
 
     FMOD_OS_CriticalSection_Enter(mSystem->gSoundListCrit);
@@ -2726,11 +2101,11 @@ FMOD_RESULT SoundI::setSoundGroup(SoundGroupI *soundgroup)
         mSoundGroupNode.removeNode();
         mSoundGroupNode.addBefore(&mSoundGroup->mSoundHead);
         mSoundGroupNode.setData(this);
-
-        mSoundGroup->removeNode();
-        mSoundGroup->addAfter(&mSystem->mSoundGroupUsedHead);
     }
     FMOD_OS_CriticalSection_Leave(mSystem->gSoundListCrit);
+
+    mSoundGroup->removeNode();
+    mSoundGroup->addAfter(&mSystem->mSoundGroupUsedHead);
 
     return FMOD_OK;
 }
@@ -2788,29 +2163,7 @@ FMOD_RESULT SoundI::getNumSyncPoints(int *numsyncpoints)
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (mSubSoundShared)    /* The syncpoint list is global to the shared sound, so we have to manually scan and find out how many belong to this subsound. */
-    {
-        *numsyncpoints = 0;
-
-        if (mSyncPointHead)
-        {
-            SyncPoint *current = SAFE_CAST(SyncPoint, mSyncPointHead->getNext());
-
-            while (current != mSyncPointTail)
-            {
-                if (current->mSubSoundIndex == mSubSoundIndex)
-                {
-                    (*numsyncpoints)++;
-                }
-
-                current = SAFE_CAST(SyncPoint, current->getNext());
-            }
-        }
-    }
-    else
-    {
-        *numsyncpoints = mNumSyncPoints;
-    }
+    *numsyncpoints = mNumSyncPoints;
 
     return FMOD_OK;
 }
@@ -2834,44 +2187,21 @@ FMOD_RESULT SoundI::getNumSyncPoints(int *numsyncpoints)
 // OFFSET: 0x008E1C00
 FMOD_RESULT SoundI::getSyncPoint(int index, FMOD_SYNCPOINT **point)
 {
-    FMOD_RESULT result;
     SyncPoint *current;
-    int count, numsyncpoints;
+    int count;
 
-    result = getNumSyncPoints(&numsyncpoints);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    if (index < 0 || index >= numsyncpoints || !point)
+    if (index < 0 || index >= mNumSyncPoints || !point)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
     current = SAFE_CAST(SyncPoint, mSyncPointHead->getNext());
-
-    count = 0;
-    while (current != mSyncPointTail)
+    for (count = 0; count < index; count++)
     {
-        bool execute = true;
-
-        if (mSubSoundShared && current->mSubSoundIndex != mSubSoundIndex)
-        {
-            execute = false;
-        }
-
-        if (execute)
-        {
-            if (count >= index)
-            {
-                *point = (FMOD_SYNCPOINT *)current;
-                break;
-            }
-            count++;
-        }
         current = SAFE_CAST(SyncPoint, current->getNext());
     }
+
+    *point = (FMOD_SYNCPOINT *)current;
 
     return FMOD_OK;
 }
@@ -2897,11 +2227,6 @@ FMOD_RESULT SoundI::getSyncPointInfo(FMOD_SYNCPOINT *point, char *name, int name
 {
     SyncPoint *spoint = (SyncPoint *)point;
 
-    if (!point)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
     if (!name && !offset)
     {
         return FMOD_ERR_INVALID_PARAM;
@@ -2909,14 +2234,7 @@ FMOD_RESULT SoundI::getSyncPointInfo(FMOD_SYNCPOINT *point, char *name, int name
 
     if (name)
     {
-        if (spoint->mName)
-        {
-            FMOD_strncpy(name, spoint->mName, namelen);
-        }
-        else
-        {
-            FMOD_strncpy(name, "", namelen);
-        }
+        FMOD_strncpy(name, spoint->mName, namelen);
     }
 
     if (offset)
@@ -2931,7 +2249,7 @@ FMOD_RESULT SoundI::getSyncPointInfo(FMOD_SYNCPOINT *point, char *name, int name
         }
         else if (offsettype == FMOD_TIMEUNIT_MS)
         {
-            *offset = (unsigned int)((float)spoint->mOffset * 1000.0f / mDefaultFrequency);
+            *offset = (unsigned int)((float)spoint->mOffset / mDefaultFrequency * 1000.0f);
         }
     }
 
@@ -2955,99 +2273,32 @@ FMOD_RESULT SoundI::getSyncPointInfo(FMOD_SYNCPOINT *point, char *name, int name
 ]
 */
 // OFFSET: 0x008E4300
-FMOD_RESULT SoundI::addSyncPoint(unsigned int offset, FMOD_TIMEUNIT offsettype, const char *name, FMOD_SYNCPOINT **syncpoint, int subsound, bool fixupindicies)
+FMOD_RESULT SoundI::addSyncPoint(unsigned int offset, FMOD_TIMEUNIT offsettype, const char *name, FMOD_SYNCPOINT **syncpoint)
 {
-    if (syncpoint)
-    {
-        *syncpoint = 0;
-    }
-
-    return addSyncPointInternal(offset, offsettype, name, syncpoint, subsound, fixupindicies);
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SoundI::addSyncPointInternal(unsigned int offset, FMOD_TIMEUNIT offsettype, const char *name, FMOD_SYNCPOINT **syncpoint, int subsound, bool fixupindicies)
-{
-    unsigned int pcm = 0;
-    SyncPoint *point = 0;
+    unsigned int pcm = offset;
+    SyncPoint *point;
 
     if (!mSyncPointHead)
     {
-        mSyncPointHead = (SyncPoint *)FMOD_Memory_Calloc(sizeof(SyncPoint) * 2);
+        mSyncPointHead = FMOD_Object_Alloc(SyncPoint);
         if (!mSyncPointHead)
         {
             return FMOD_ERR_MEMORY;
         }
-        mSyncPointTail = mSyncPointHead + 1;
 
-        new (mSyncPointHead) SyncPoint;
-        new (mSyncPointTail) SyncPoint;
-
-        mSyncPointHead->mOffset = (unsigned int)0;
-        mSyncPointHead->mName = 0;
-        mSyncPointTail->mOffset = (unsigned int)-1;
-        mSyncPointTail->mName = 0;
-
-        mSyncPointTail->addAfter(mSyncPointHead);
+        mSyncPointHead->mOffset = (unsigned int)-1;
+        FMOD_strcpy(mSyncPointHead->mName, "head");
     }
 
-    if (syncpoint && *syncpoint)
+    point = FMOD_Object_Alloc(SyncPoint);
+    if (!point)
     {
-        point = (SyncPoint *)*syncpoint;
-
-        if (name)
-        {
-            new (point) SyncPointNamed;
-        }
-        else
-        {
-            new (point) SyncPoint;
-        }
-
-        point->mStatic = 1;
+        return FMOD_ERR_MEMORY;
     }
-    else
+
+    if (syncpoint)
     {
-        if (name)
-        {
-            point = FMOD_Object_Alloc(SyncPointNamed);
-            if (!point)
-            {
-                return FMOD_ERR_MEMORY;
-            }
-            point->mName = ((SyncPointNamed *)point)->mNameMemory;
-        }
-        else
-        {
-            point = FMOD_Object_Alloc(SyncPoint);
-            if (!point)
-            {
-                return FMOD_ERR_MEMORY;
-            }
-            point->mName = 0;
-        }
-
-        if (syncpoint)
-        {
-            *syncpoint = (FMOD_SYNCPOINT *)point;
-        }
-
-        point->mStatic = 0;
+        *syncpoint = (FMOD_SYNCPOINT *)point;
     }
 
     if (offsettype == FMOD_TIMEUNIT_PCM)
@@ -3060,85 +2311,18 @@ FMOD_RESULT SoundI::addSyncPointInternal(unsigned int offset, FMOD_TIMEUNIT offs
     }
     else if (offsettype == FMOD_TIMEUNIT_MS)
     {
-        pcm = (unsigned int)((float)offset / 1000.0f * mDefaultFrequency);
+        pcm = (unsigned int)((float)offset * mDefaultFrequency * 0.001f);
     }
     else
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-    
-    if (point->mName && name)
-    {
-        FMOD_strncpy(point->mName, name, FMOD_STRING_MAXNAMELEN);
-    }
+
+    FMOD_strncpy(point->mName, name, FMOD_STRING_MAXNAMELEN);
     point->mOffset = pcm;
-
-    point->addAt(mSyncPointHead, mSyncPointTail, pcm);
-
-    if (subsound == -1)
-    {
-        subsound = mSubSoundIndex;
-    }
-
-    point->mSubSoundIndex = subsound;
-    point->mSound         = this;
+    point->addAt(mSyncPointHead, pcm);
 
     mNumSyncPoints++;
-
-    /*
-        Fix up indicies.
-    */
-    if (fixupindicies)
-    {
-        syncPointFixIndicies();
-    }
- 
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SoundI::deleteSyncPointInternal(FMOD_SYNCPOINT *point, bool ignoresubsoundindices)
-{
-    SyncPoint *spoint = (SyncPoint *)point;
-
-    if (!point)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    if (this != spoint->mSound)
-    {
-        return FMOD_ERR_INVALID_SYNCPOINT;
-    }
-
-    spoint->removeNode();
-
-    if (!spoint->mStatic)
-    {
-        FMOD_Memory_Free(point);
-    }
-
-    mNumSyncPoints--;
-
-    if (!ignoresubsoundindices)
-    {
-        syncPointFixIndicies();     /* Resort/shuffle syncpoints. */
-    }
 
     return FMOD_OK;
 }
@@ -3162,7 +2346,20 @@ FMOD_RESULT SoundI::deleteSyncPointInternal(FMOD_SYNCPOINT *point, bool ignoresu
 // OFFSET: 0x008E1C40
 FMOD_RESULT SoundI::deleteSyncPoint(FMOD_SYNCPOINT *point)
 {
-    return deleteSyncPointInternal(point, false);
+    SyncPoint *spoint = (SyncPoint *)point;
+
+    if (!point)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    spoint->removeNode();
+
+    FMOD_Memory_Free(point);
+
+    mNumSyncPoints--;
+
+    return FMOD_OK;
 }
 
 
@@ -3184,9 +2381,6 @@ FMOD_RESULT SoundI::deleteSyncPoint(FMOD_SYNCPOINT *point)
 // OFFSET: 0x008E1CB0
 FMOD_RESULT SoundI::setMode(FMOD_MODE mode)
 {
-    /*
-        Allow switching between loop modes.
-    */
     if (mode & (FMOD_LOOP_OFF | FMOD_LOOP_NORMAL | FMOD_LOOP_BIDI))
     {
         mMode &= ~(FMOD_LOOP_OFF | FMOD_LOOP_NORMAL | FMOD_LOOP_BIDI);
@@ -3195,45 +2389,26 @@ FMOD_RESULT SoundI::setMode(FMOD_MODE mode)
         {
             mMode |= FMOD_LOOP_OFF;
         }
-        else if (mode & FMOD_LOOP_NORMAL)
+        else
         {
-            mMode |= FMOD_LOOP_NORMAL;
-        }
-        else if (mode & FMOD_LOOP_BIDI)
-        {
-            mMode |= FMOD_LOOP_BIDI;
-        }
+            if (mode & FMOD_LOOP_NORMAL)
+            {
+                mMode |= FMOD_LOOP_NORMAL;
+            }
+            else if (mode & FMOD_LOOP_BIDI)
+            {
+                mMode |= FMOD_LOOP_BIDI;
+            }
 
 #ifdef FMOD_SUPPORT_STREAMING
-        if (isStream())
-        {
-            Stream *stream = SAFE_CAST(Stream, this);
-
-            if (!stream)
+            if (isStream())
             {
-                return FMOD_ERR_INTERNAL;
+                mFlags &= ~FMOD_SOUND_FLAG_FINISHED;
             }
-
-            /* Don't clear FMOD_SOUND_FLAG_FINISHED if we are fully buffered since we have already read everything required to loop */
-            if ((mode & (FMOD_LOOP_NORMAL | FMOD_LOOP_BIDI)) && !(stream->mFlags & FMOD_SOUND_FLAG_FULLYBUFFERED))
-            {
-                stream->mFlags &= ~(FMOD_SOUND_FLAG_FINISHED | FMOD_SOUND_FLAG_THREADFINISHED);
-                if (stream->mSubSoundParent)
-                {
-                    stream->mSubSoundParent->mFlags &= ~(FMOD_SOUND_FLAG_FINISHED | FMOD_SOUND_FLAG_THREADFINISHED);
-                }
-            }
-
-            stream->mChannel->mMode &= ~(FMOD_LOOP_OFF | FMOD_LOOP_NORMAL | FMOD_LOOP_BIDI);
-            stream->mChannel->mMode |= (mMode & (FMOD_LOOP_OFF | FMOD_LOOP_NORMAL | FMOD_LOOP_BIDI));
-        }
 #endif
-
+        }
     }
 
-    /*
-        Allow switching between head relative and world relative.
-    */
     if (mode & FMOD_3D_HEADRELATIVE)
     {
         mMode &= ~FMOD_3D_WORLDRELATIVE;
@@ -3245,9 +2420,6 @@ FMOD_RESULT SoundI::setMode(FMOD_MODE mode)
         mMode |=  FMOD_3D_WORLDRELATIVE;
     }
 
-    /*
-        Allow switching between linear/log/custom rolloff.
-    */
     if (mode & FMOD_3D_LOGROLLOFF)
     {
         mMode &= ~FMOD_3D_LINEARROLLOFF;
@@ -3285,13 +2457,7 @@ FMOD_RESULT SoundI::setMode(FMOD_MODE mode)
         mMode &= ~FMOD_VIRTUAL_PLAYFROMSTART;
     }
 
-
-    /*
-        Allow switching between 2D and 3D only in software.
-    */
-#if !defined( PLATFORM_GC ) && !defined( PLATFORM_WII ) && !defined( PLATFORM_PSP ) && !defined( PLATFORM_PS2 )
     if (!(mMode & FMOD_HARDWARE))
-#endif
     {
         if (mode & FMOD_2D)
         {
@@ -3356,9 +2522,19 @@ FMOD_RESULT SoundI::getMode(FMOD_MODE *mode)
 // OFFSET: 0x008E1E00
 FMOD_RESULT SoundI::setLoopCount(int loopcount)
 {
-    if (loopcount < -1)
+    FMOD_RESULT result;
+
+    if (loopcount)
     {
-        return FMOD_ERR_INVALID_PARAM;
+        result = setMode(FMOD_LOOP_NORMAL);
+    }
+    else
+    {
+        result = setMode(FMOD_LOOP_OFF);
+    }
+    if (result != FMOD_OK)
+    {
+        return result;
     }
 
     mLoopCount = loopcount;
@@ -3416,8 +2592,11 @@ FMOD_RESULT SoundI::setLoopPoints(unsigned int loopstart, FMOD_TIMEUNIT loopstar
 {
     unsigned int loopstartpcm = 0, loopendpcm = 0;
 
-    if ((loopstarttype != FMOD_TIMEUNIT_MS && loopstarttype != FMOD_TIMEUNIT_PCM && loopstarttype != FMOD_TIMEUNIT_PCMBYTES) || 
-        (loopendtype   != FMOD_TIMEUNIT_MS && loopendtype   != FMOD_TIMEUNIT_PCM && loopendtype   != FMOD_TIMEUNIT_PCMBYTES))
+    if (loopstarttype != FMOD_TIMEUNIT_MS && loopstarttype != FMOD_TIMEUNIT_PCM && loopstarttype != FMOD_TIMEUNIT_PCMBYTES)
+    {
+        return FMOD_ERR_FORMAT;
+    }
+    if (loopendtype != FMOD_TIMEUNIT_MS && loopendtype != FMOD_TIMEUNIT_PCM && loopendtype != FMOD_TIMEUNIT_PCMBYTES)
     {
         return FMOD_ERR_FORMAT;
     }
@@ -3432,7 +2611,7 @@ FMOD_RESULT SoundI::setLoopPoints(unsigned int loopstart, FMOD_TIMEUNIT loopstar
     }
     else if (loopstarttype == FMOD_TIMEUNIT_MS)
     {
-        loopstartpcm = (unsigned int)((float)loopstart / 1000.0f * mDefaultFrequency);
+        loopstartpcm = (unsigned int)((float)loopstart * mDefaultFrequency * 0.001f);
     }
 
     if (loopendtype == FMOD_TIMEUNIT_PCM)
@@ -3445,9 +2624,9 @@ FMOD_RESULT SoundI::setLoopPoints(unsigned int loopstart, FMOD_TIMEUNIT loopstar
     }
     else if (loopendtype == FMOD_TIMEUNIT_MS)
     {
-        loopendpcm = (unsigned int)((float)loopend / 1000.0f * mDefaultFrequency);
+        loopendpcm = (unsigned int)((float)loopend * mDefaultFrequency * 0.001f);
     }
-    
+
     if (loopstartpcm >= mLength)
     {
         loopstartpcm = 0;
@@ -3456,7 +2635,6 @@ FMOD_RESULT SoundI::setLoopPoints(unsigned int loopstart, FMOD_TIMEUNIT loopstar
     {
         loopendpcm = mLength - 1;
     }
-
     if (!loopendpcm)
     {
         loopendpcm = mLength - 1;
@@ -3467,13 +2645,8 @@ FMOD_RESULT SoundI::setLoopPoints(unsigned int loopstart, FMOD_TIMEUNIT loopstar
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    mLoopStart = loopstartpcm;
     mLoopLength = loopendpcm - loopstartpcm + 1;
-
-    if (isStream() && (mLoopStart != 0 || mLoopLength != mLength) && mMode & (FMOD_LOOP_NORMAL | FMOD_LOOP_BIDI))
-    {
-        mFlags |= FMOD_SOUND_FLAG_WANTSTOFLUSH;
-    }
+    mLoopStart = loopstartpcm;
 
     return FMOD_OK;
 }
@@ -3515,7 +2688,7 @@ FMOD_RESULT SoundI::getLoopPoints(unsigned int *loopstart, FMOD_TIMEUNIT loopsta
         }
         else if (loopstarttype == FMOD_TIMEUNIT_MS)
         {
-            *loopstart = (unsigned int)((float)mLoopStart * 1000.0f / mDefaultFrequency);
+            *loopstart = (unsigned int)((float)mLoopStart / mDefaultFrequency * 1000.0f);
         }
     }
 
@@ -3533,7 +2706,7 @@ FMOD_RESULT SoundI::getLoopPoints(unsigned int *loopstart, FMOD_TIMEUNIT loopsta
         }
         else if (loopendtype == FMOD_TIMEUNIT_MS)
         {
-            *loopend = (unsigned int)((float)lend * 1000.0f / mDefaultFrequency);
+            *loopend = (unsigned int)((float)lend / mDefaultFrequency * 1000.0f);
         }
     }
 
@@ -3556,9 +2729,10 @@ FMOD_RESULT SoundI::getLoopPoints(unsigned int *loopstart, FMOD_TIMEUNIT loopsta
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT SoundI::setPosition(unsigned int pos)
+FMOD_RESULT SoundI::setPosition(unsigned int pcm)
 {
-    return setPositionInternal(pos);
+    mPosition = pcm;
+    return FMOD_OK;
 }
 
 
@@ -3610,82 +2784,6 @@ FMOD_RESULT SoundI::getPosition(unsigned int *pcm)
     *pcm = mPosition;
 
     return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SoundI::getMusicNumChannels(int *numchannels)
-{
-    if (mCodec && mCodec->mDescription.getmusicnumchannels)
-    {
-        return mCodec->mDescription.getmusicnumchannels(mCodec, numchannels);
-    }
-
-    return FMOD_ERR_FORMAT;
-}
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SoundI::setMusicChannelVolume(int channel, float volume)
-{
-    if (mCodec && mCodec->mDescription.setmusicchannelvolume)
-    {
-        return mCodec->mDescription.setmusicchannelvolume(mCodec, channel, volume);
-    }
-
-    return FMOD_ERR_FORMAT;
-}
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SoundI::getMusicChannelVolume(int channel, float *volume)
-{
-    if (mCodec && mCodec->mDescription.getmusicchannelvolume)
-    {
-        return mCodec->mDescription.getmusicchannelvolume(mCodec, channel, volume);
-    }
-
-    return FMOD_ERR_FORMAT;
 }
 
 
@@ -3757,119 +2855,52 @@ FMOD_RESULT SoundI::getUserData(void **userdata)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT SoundI::setUserDataInternal(void *userdata)
-{
-    mUserDataInternal = userdata;
-    
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SoundI::getUserDataInternal(void **userdata)
-{
-    if (!userdata)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    *userdata = mUserDataInternal;
-    
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
 // OFFSET: 0x008E2FA0
 FMOD_RESULT SoundI::updateSubSound(int index, bool updateinfoonly)
 {
     FMOD_RESULT result;
     FMOD_CODEC_WAVEFORMAT waveformat;
-#ifndef FMOD_STATICFORPLUGINS
-    LocalCriticalSection crit(mSystem->mStreamUpdateCrit);
-    bool frommainthread = true;
+    FMOD_OS_CRITICALSECTION *crit = mSystem->mStreamUpdateCrit;
+    bool critentered = false;
     FMOD_UINT_NATIVE threadid;
-       
-    FMOD_OS_Thread_GetCurrentID(&threadid);
-    if (threadid != mSystem->mMainThreadID)
-    {
-        frommainthread = false;
-    }
 
-    /* 
-        If it is playing, we can't replace it while it is still running. 
-    */
-    if (frommainthread && !updateinfoonly)
+    FMOD_OS_Thread_GetCurrentID(&threadid);
+    if (threadid == mSystem->mMainThreadID && !updateinfoonly)
     {
         mSubSoundIndex = index;
-    
-        mSystem->stopSound(this);  
+        mSystem->stopSound(this);
 
-        /* 
-            Just stop only if false, async thread will do stream swap later. 
-        */
         if (mMode & FMOD_NONBLOCKING && isStream())
         {
             return FMOD_OK;
         }
     }
-   
+
+#ifdef FMOD_SUPPORT_STREAMING
     if (isStream() && (mFlags & FMOD_SOUND_FLAG_PLAYED))
     {
         Stream *stream = (Stream *)this;
-        
-        if (!(stream->mFlags & FMOD_SOUND_FLAG_FINISHED))    
+
+        if (!(mFlags & FMOD_SOUND_FLAG_FINISHED))
         {
-            crit.enter();   /* Ok, in async thread, so lets fully block this against the stream thread. */
+            FMOD_OS_CriticalSection_Enter(crit);
+            critentered = true;
         }
 
         stream->mChannel->mFinished = false;
     }
 #endif
-    
-    mFlags &= ~(FMOD_SOUND_FLAG_FINISHED | FMOD_SOUND_FLAG_THREADFINISHED);
-    mFlags &= ~FMOD_SOUND_FLAG_PLAYED;
-    if (mSubSoundParent)
-    {
-        mSubSoundParent->mFlags &= ~(FMOD_SOUND_FLAG_FINISHED | FMOD_SOUND_FLAG_THREADFINISHED);
 
-        mMode &= ~(FMOD_LOOP_OFF | FMOD_LOOP_NORMAL | FMOD_LOOP_BIDI);
-        mMode |= (mSubSoundParent->mMode & (FMOD_LOOP_OFF | FMOD_LOOP_NORMAL | FMOD_LOOP_BIDI));
-    }
-
+    mFlags &= ~FMOD_SOUND_FLAG_FINISHED;
     mSubSoundIndex = index;
 
     result = mCodec->mDescription.getwaveformat(mCodec, index, &waveformat);
     if (result != FMOD_OK)
     {
+        if (critentered)
+        {
+            FMOD_OS_CriticalSection_Leave(crit);
+        }
         return result;
     }
 
@@ -3877,63 +2908,20 @@ FMOD_RESULT SoundI::updateSubSound(int index, bool updateinfoonly)
     {
         FMOD_strcpy(mName,  waveformat.name);
     }
-    mFormat             = waveformat.format;
+
     mChannels           = waveformat.channels;
     mDefaultFrequency   = (float)waveformat.frequency;
+    mFormat             = waveformat.format;
     mDefaultChannelMask = waveformat.channelmask;
+    mLength             = waveformat.lengthpcm;
     mLoopStart          = waveformat.loopstart;
     mLoopLength         = waveformat.loopend - waveformat.loopstart + 1;
-    mLength             = waveformat.lengthpcm;
 
     setLoopPoints(waveformat.loopstart, FMOD_TIMEUNIT_PCM, waveformat.loopend, FMOD_TIMEUNIT_PCM);
-    
-#ifndef FMOD_STATICFORPLUGINS
-    if (isStream())
+
+    if (critentered)
     {
-        Stream *stream = (Stream *)this;
-
-        // The channel gets the channelmask from mSample, so set it correctly here
-        stream->mSample->mDefaultChannelMask = waveformat.channelmask;
-    }
-#endif
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SoundI::syncPointFixIndicies()
-{
-    int count, numsyncpoints = 0;
-    FMOD_RESULT result;
-
-    result = getNumSyncPoints(&numsyncpoints);
-    if (result == FMOD_OK)
-    {
-        for (count = 0; count < numsyncpoints; count++)
-        {
-            SyncPoint *point;
-
-            result = getSyncPoint(count, (FMOD_SYNCPOINT **)&point);
-            if (result == FMOD_OK)
-            {
-                point->mIndex = count;
-            }
-        }
+        FMOD_OS_CriticalSection_Leave(crit);
     }
 
     return FMOD_OK;
@@ -4057,28 +3045,6 @@ FMOD_RESULT F_CALLBACK FMOD_SOUND_NONBLOCKCALLBACK(FMOD_SOUND *sound, FMOD_RESUL
 */
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SoundI::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    GETMEMORYINFO_IMPL
-#else
-    return FMOD_ERR_UNIMPLEMENTED;
-#endif
-}
-
 
 /*
 [
@@ -4096,99 +3062,6 @@ FMOD_RESULT SoundI::getMemoryInfo(unsigned int memorybits, unsigned int event_me
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT SoundI::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_SOUND, sizeof(SoundI));
-
-    if (mName)
-    {
-        tracker->add(false, FMOD_MEMBITS_STRING, FMOD_STRING_MAXNAMELEN);
-    }
-
-    if (mSyncPointHead)
-    {
-        SyncPoint *point = SAFE_CAST(SyncPoint, mSyncPointHead->getNext());
-
-        while (point != mSyncPointTail)
-        {
-            if (point->mName)
-            {
-                tracker->add(false, FMOD_MEMBITS_SYNCPOINT, sizeof(SyncPointNamed));
-            }
-            else
-            {
-                tracker->add(false, FMOD_MEMBITS_SYNCPOINT, sizeof(SyncPoint));
-            }
-               
-            point = SAFE_CAST(SyncPoint, point->getNext());
-        }
-
-        tracker->add(false, FMOD_MEMBITS_SYNCPOINT, sizeof(SyncPoint) * 2);    /* mSyncPointHead & mSyncPointTail */
-    }
-
-#ifdef FMOD_SUPPORT_STREAMING
-    if (isStream() && mCodec && (!mSubSoundParent || mSubSoundParent == this || (mSubSoundParent && mCodec != mSubSoundParent->mCodec)))
-    {
-        Stream *stream = SAFE_CAST(Stream, this);
-
-        if (mCodec)
-        {
-            CHECK_RESULT(mCodec->getMemoryUsed(tracker));
-        }
-    }
-    else
-#endif
-    {
-        if (mCodec && ((mSubSoundParent && mCodec != mSubSoundParent->mCodec) || !mSubSoundParent))
-        {
-            CHECK_RESULT(mCodec->getMemoryUsed(tracker));
-        }
-    }
-
-    /*
-        Remove all subsounds of this sound if they exist!
-    */
-    if (mNumSubSounds && mSubSound)
-    {
-        int count;
-
-        if (mNumActiveSubSounds)
-        {
-            for (count = 0; count < mNumSubSounds; count++)
-            {
-                if (mSubSound[count] && mSubSound[count] != mSubSoundShared)
-                {
-                    mSubSound[count]->getMemoryUsed(tracker);
-                }
-            }
-        }
-
-        tracker->add(false, FMOD_MEMBITS_SOUND, mNumSubSounds * sizeof(SoundI *));    /* mSubSound */
-    
-        if (mSubSoundShared)
-        {
-            mSubSoundShared->getMemoryUsed(tracker);
-        }
-    }
-
-    if (mAsyncData)
-    {
-        tracker->add(false, FMOD_MEMBITS_SOUND, sizeof(mAsyncData));
-    }
-
-#ifdef FMOD_SUPPORT_SENTENCING
-    if (mSubSoundList)
-    {
-        tracker->add(false, FMOD_MEMBITS_SOUND, sizeof(SoundSentenceEntry) * mSubSoundListNum);
-    }
-#endif
-
-    return FMOD_OK;
-}
-
-#endif
 
 #endif
 

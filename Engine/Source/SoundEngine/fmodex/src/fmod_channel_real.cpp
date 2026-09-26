@@ -33,13 +33,21 @@ namespace FMOD
 // OFFSET: 0x00943900
 ChannelReal::ChannelReal()
 {
+    int count;
+
+    for (count = 0; count < FMOD_CHANNEL_MAXREALSUBCHANNELS; count++)
+    {
+        mRealChannel[count] = 0;
+    }
+
+    mMinFrequency       = 100.0f;
     mSound              = 0;
+    mMaxFrequency       = 1000000.0f;
     mSystem             = 0;
     mOutput             = 0;
     mPool               = 0;
     mLoopCount          = -1;
-    mMinFrequency       = 100.0f;
-    mMaxFrequency       = 1000000.0f;
+    mNumRealChannels    = 1;
 }
 
 
@@ -66,21 +74,13 @@ FMOD_RESULT ChannelReal::init(int index, SystemI *system, Output *output, DSPI *
     mMode               = (FMOD_MODE)0;
     mPosition           = 0;
     mDirection          = CHANNELREAL_PLAYDIR_FORWARDS;
-    mLoopCount          = -1;
+    mDelayStart         = 0;
+    mDelayEnd           = 0;
     mOutput             = output;
-    mSystem             = system;
     mIndex              = index;
-
-    #ifdef PLATFORM_WII
-    mControllerSpeaker  = 0;
-    mBiquadActive       = false;
-    mBiquadB0           = 0;
-    mBiquadB1           = 0;
-    mBiquadB2           = 0;
-    mBiquadA1           = 0;
-    mBiquadA2           = 0;
-    mLPFCutoff          = -1;
-    #endif
+    mLoopCount          = -1;
+    mSystem             = system;
+    mNumRealChannels    = 1;
 
     return FMOD_OK;
 }
@@ -103,7 +103,7 @@ FMOD_RESULT ChannelReal::init(int index, SystemI *system, Output *output, DSPI *
 // OFFSET: 0x009439C0
 FMOD_RESULT ChannelReal::close()
 {
-    return stop();
+    return stop(true, true);
 }
 
 
@@ -182,10 +182,27 @@ FMOD_RESULT ChannelReal::alloc(DSPI *dsp)
 */
 FMOD_RESULT ChannelReal::set2DFreqVolumePanFor3D()
 {
-    /*
-        Channel types that have their own 3d system (ie dsound3d or xbox) will call this,
-        software and others use the stereo panning method defined in ChannelRealManual3D.
-    */
+    return FMOD_OK;
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+ 
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+FMOD_RESULT ChannelReal::moveChannelGroup(ChannelGroupI *oldchannelgroup, ChannelGroupI *newchannelgroup)
+{
     return FMOD_OK;
 }
 
@@ -268,33 +285,50 @@ FMOD_RESULT ChannelReal::start()
 	[SEE_ALSO]
 ]
 */
-// OFFSET: 0x00943A10
-FMOD_RESULT ChannelReal::stop()
+// OFFSET: 0x0091E5A0
+FMOD_RESULT ChannelReal::stop(bool ignoreenddelay, bool resetstate, bool force)
 {
-//    mSound = 0;   /* ChannelI or ChannelStream will clear this out in its stop call. */
-//    mDSP   = 0;   /* ChannelI or ChannelStream will clear this out in its stop call. */
+    return stop(ignoreenddelay, resetstate);
+}
 
-    if (mPool)  /* Channel might not belong to a pool */
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+// OFFSET: 0x00943A10
+FMOD_RESULT ChannelReal::stop(bool ignoreenddelay, bool resetstate)
+{
+    if (!ignoreenddelay && mDelayEnd)
+    {
+        mFlags |= CHANNELREAL_FLAG_ENDDELAY;
+        return FMOD_OK;
+    }
+
+    if (mPool)
     {
         mPool->mChannelsUsed--;
     }
 
-    mFlags = (CHANNELREAL_FLAG)(mFlags & ~CHANNELREAL_FLAG_ALLOCATED);
-    mFlags = (CHANNELREAL_FLAG)(mFlags & ~CHANNELREAL_FLAG_PLAYING);
-    mFlags = (CHANNELREAL_FLAG)(mFlags & ~CHANNELREAL_FLAG_PAUSED);
+    if (resetstate)
+    {
+        mFlags = (CHANNELREAL_FLAG)(mFlags & ~(CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PAUSED | CHANNELREAL_FLAG_PLAYING | CHANNELREAL_FLAG_PAUSEDFORSETPOS | CHANNELREAL_FLAG_ENDDELAY));
+        mFlags = (CHANNELREAL_FLAG)(mFlags | CHANNELREAL_FLAG_STOPPED);
+    }
 
-    mFlags = (CHANNELREAL_FLAG)(mFlags |  CHANNELREAL_FLAG_STOPPED);
-
-    #ifdef PLATFORM_WII
-    mControllerSpeaker  = 0;
-    mBiquadActive       = false;
-    mBiquadB0           = 0;
-    mBiquadB1           = 0;
-    mBiquadB2           = 0;
-    mBiquadA1           = 0;
-    mBiquadA2           = 0;
-    mLPFCutoff          = -1;
-    #endif
+    mDelayStart = 0;
+    mDelayEnd   = 0;
 
     return FMOD_OK;
 }
@@ -437,8 +471,12 @@ FMOD_RESULT ChannelReal::setPan(float pan, float fbpan)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT ChannelReal::setDSPClockDelay()
+// OFFSET: 0x00943AC0
+FMOD_RESULT ChannelReal::setDelay(unsigned int startdelay, unsigned int enddelay)
 {
+    mDelayStart = startdelay;
+    mDelayEnd   = enddelay;
+
     return FMOD_OK;
 }
 
@@ -463,11 +501,6 @@ FMOD_RESULT ChannelReal::setSpeakerMix(float frontleft, float frontright, float 
 {
     int numsubchannels = 0;
 
-    if (mDSP)
-    {
-        return FMOD_OK;     /* Only ChannelSoftware supports DSP. */
-    }
-
     if (mSound)
     {
         if (mSound->mSubSampleParent)
@@ -479,84 +512,62 @@ FMOD_RESULT ChannelReal::setSpeakerMix(float frontleft, float frontright, float 
             numsubchannels = mSound->mChannels;
         }
     }
+    else if (mDSP)
+    {
+        numsubchannels = mDSP->mDescription.channels;
+    }
 
     if (numsubchannels > 1)
     {
-        if (mSound->mDefaultChannelMask & SPEAKER_ALLMONO)
+        switch (mSubChannelIndex)
         {
-            setPan(0.0f, 1.0f);
-            setVolume(center * mParent->mVolume);
-        }
-        else if (mSound->mDefaultChannelMask & SPEAKER_ALLSTEREO)
-        {
-            switch (mSubChannelIndex % 2)
+            case 0:
             {
-                case 0:
-                {
-                    setPan(-1.0f, 1.0f);
-                    setVolume(frontleft * mParent->mVolume);
-                    break;
-                }
-                case 1:
-                {
-                    setPan(1.0f, 1.0f);
-                    setVolume(frontright * mParent->mVolume);
-                    break;
-                }
+                setPan(-1.0f, 1.0f);
+                setVolume(frontleft);
+                break;
             }
-        }
-        else
-        {
-            switch (mSubChannelIndex)
+            case 1:
             {
-                case 0:
-                {
-                    setPan(-1.0f, 1.0f);
-                    setVolume(frontleft * mParent->mVolume);
-                    break;
-                }
-                case 1:
-                {
-                    setPan(1.0f, 1.0f);
-                    setVolume(frontright * mParent->mVolume);
-                    break;
-                }
-                case 2:
-                {
-                    setPan(0.0f, 1.0f);
-                    setVolume(center * mParent->mVolume);
-                    break;
-                }
-                case 3:
-                {
-                    setPan(0.0f, 0.0f);
-                    setVolume(lfe * mParent->mVolume);
-                    break;
-                }
-                case 4:
-                {
-                    setPan(-1.0f, -1.0f);
-                    setVolume(backleft * mParent->mVolume);
-                    break;
-                }
-                case 5:
-                {
-                    setPan(1.0f, -1.0f);
-                    setVolume(backright * mParent->mVolume);
-                    break;
-                }
-                case 6:
-                {
-                    setPan(-1.0f, 0.0f);
-                    setVolume(sideleft * mParent->mVolume);
-                    break;
-                }
-                case 7:
-                {
-                    setPan(1.0f, 0.0f);
-                    setVolume(sideright * mParent->mVolume);
-                    break;
-                }
+                setPan(1.0f, 1.0f);
+                setVolume(frontright);
+                break;
+            }
+            case 2:
+            {
+                setPan(-1.0f, 1.0f);
+                setVolume(center);
+                break;
+            }
+            case 3:
+            {
+                setPan(1.0f, 1.0f);
+                setVolume(lfe);
+                break;
+            }
+            case 4:
+            {
+                setPan(-1.0f, 1.0f);
+                setVolume(backleft);
+                break;
+            }
+            case 5:
+            {
+                setPan(1.0f, 1.0f);
+                setVolume(backright);
+                break;
+            }
+            case 6:
+            {
+                setPan(-1.0f, 1.0f);
+                setVolume(sideleft);
+                break;
+            }
+            case 7:
+            {
+                setPan(1.0f, 1.0f);
+                setVolume(sideright);
+                break;
             }
         }
     }
@@ -573,36 +584,6 @@ FMOD_RESULT ChannelReal::setSpeakerMix(float frontleft, float frontright, float 
         vol += sideleft;
         vol += sideright;
 
-        #if 0
-
-        float sqrtsumsq;
-        /*
-            Normalise
-        */
-        sqrtsumsq = frontleft*frontleft + frontright*frontright + backleft*backleft + backright*backright + sideleft*sideleft + sideright*sideright;
-        sqrtsumsq = FMOD_SQRT(sqrtsumsq);
-
-        lrpan -= frontleft  / sqrtsumsq;
-        lrpan += frontright / sqrtsumsq;
-        lrpan -= backleft   / sqrtsumsq;
-        lrpan += backright  / sqrtsumsq;
-        lrpan -= sideleft   / sqrtsumsq;
-        lrpan += sideright  / sqrtsumsq;
-        
-        /*
-            Normalise
-        */
-        sqrtsumsq = frontleft*frontleft + frontright*frontright + backleft*backleft + backright*backright + center*center;
-        sqrtsumsq = FMOD_SQRT(sqrtsumsq);
-
-        fbpan += frontleft  / sqrtsumsq;
-        fbpan += frontright / sqrtsumsq;
-        fbpan += center     / sqrtsumsq;
-        fbpan -= backleft   / sqrtsumsq;
-        fbpan -= backright  / sqrtsumsq;
-
-        #else
-        
         lrpan -= frontleft;
         lrpan += frontright;
         lrpan -= backleft;
@@ -616,11 +597,10 @@ FMOD_RESULT ChannelReal::setSpeakerMix(float frontleft, float frontright, float 
         fbpan -= backleft;
         fbpan -= backright;
 
-        #endif
-
         vol = vol > 1.0f ? 1.0f : vol;
+
         setVolume(vol * mParent->mVolume);
-        setPan(lrpan < -1.0f ? -1.0f : lrpan > 1.0f ? 1.0f : lrpan, 
+        setPan(lrpan < -1.0f ? -1.0f : lrpan > 1.0f ? 1.0f : lrpan,
                fbpan < -1.0f ? -1.0f : fbpan > 1.0f ? 1.0f : fbpan);
     }
 
@@ -651,32 +631,6 @@ FMOD_RESULT ChannelReal::setSpeakerLevels(int speaker, float *levels, int numlev
         return FMOD_OK;
     }
 
-    if (!mParent->mLevels)
-    {
-        mSystem->mSpeakerLevelsPool.alloc(&mParent->mLevels);
-        if (!mParent->mLevels)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-    }
-
-    for (int count = 0; count < numlevels; count++)
-    {
-        float volume = levels[count];
-
-        if (volume < 0)
-        {
-            volume = 0;
-        }
-        if (volume > 1.0f)
-        {
-            volume = 1.0f;
-        }
-
-        mParent->mLevels[(speaker * mSystem->mMaxInputChannels) + count] = volume;
-    }
-
-
     return updateSpeakerLevels(mParent->mVolume);
 }
 
@@ -702,42 +656,13 @@ FMOD_RESULT ChannelReal::updateSpeakerLevels(float volume)
     if (mParent && mParent->mLevels)
     {
         int count;
-        float vol = 0, pan = 0, fbpan = 0;
-        float sumsq = 0.0f, sqrtsumsq;
-        int outputchannels = mSystem->mMaxOutputChannels;
+        float vol = 0, pan = 0;
 
-        if (mParent->mSpeakerMode == FMOD_SPEAKERMODE_PROLOGIC)
-        {
-            outputchannels = 6;
-        }
-
-        for (count = 0; count < outputchannels; count++)
-        {
-            if (count == FMOD_SPEAKER_FRONT_CENTER || count == FMOD_SPEAKER_LOW_FREQUENCY)
-            {
-                continue;
-            }
-
-            float val = FMOD_FABS(mParent->mLevels[(count * mSystem->mMaxInputChannels) + mSubChannelIndex]);
-
-            sumsq += val*val;
-        }
-
-        sqrtsumsq = FMOD_SQRT(sumsq);
-        vol       = sqrtsumsq;
-
-        for (count = 0; count < outputchannels; count++)
+        for (count = 0; count < mSystem->mMaxOutputChannels; count++)
         {
             float val = FMOD_FABS(mParent->mLevels[(count * mSystem->mMaxInputChannels) + mSubChannelIndex]);
-            
-            if (sqrtsumsq)
-            {
-                val /= sqrtsumsq;
-            }
-            else
-            {
-                val = 0;
-            }
+
+            vol += val;
 
             if (count == FMOD_SPEAKER_FRONT_LEFT || count == FMOD_SPEAKER_BACK_LEFT || count == FMOD_SPEAKER_SIDE_LEFT)
             {
@@ -747,20 +672,12 @@ FMOD_RESULT ChannelReal::updateSpeakerLevels(float volume)
             {
                 pan += val;
             }
-
-            if (count == FMOD_SPEAKER_FRONT_LEFT || count == FMOD_SPEAKER_FRONT_RIGHT )
-            {
-                fbpan += val;
-            }
-            else if (count == FMOD_SPEAKER_BACK_LEFT || count == FMOD_SPEAKER_BACK_RIGHT)
-            {
-                fbpan -= val;
-            }
         }
-    
+
         vol = vol > 1.0f ? 1.0f : vol;
+
         setVolume(vol * volume);
-        setPan(pan < -1.0f ? -1.0f : pan > 1.0f ? 1.0f : pan, fbpan < -1.0f ? -1.0f : fbpan > 1.0f ? 1.0f : fbpan);
+        setPan(pan < -1.0f ? -1.0f : pan > 1.0f ? 1.0f : pan);
     }
 
     return FMOD_OK;
@@ -811,7 +728,7 @@ FMOD_RESULT ChannelReal::setPosition(unsigned int position, FMOD_TIMEUNIT postyp
         }
         else if (postype == FMOD_TIMEUNIT_MS)
         {
-            pcm = (unsigned int)((float)position / 1000.0f * mSound->mDefaultFrequency);
+            pcm = (unsigned int)((float)position * mSound->mDefaultFrequency * 0.001f);
         }
         
         if (pcm >= lengthpcm)
@@ -846,6 +763,9 @@ FMOD_RESULT ChannelReal::setPosition(unsigned int position, FMOD_TIMEUNIT postyp
 FMOD_RESULT ChannelReal::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {   
     bool getsubsoundtime = false;
+    int currentsubsoundid = 0;
+    int currentsentenceid = 0;
+    unsigned int pcmcurrent;
 
     if (!position)
     {
@@ -857,11 +777,8 @@ FMOD_RESULT ChannelReal::getPosition(unsigned int *position, FMOD_TIMEUNIT posty
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    postype = (FMOD_TIMEUNIT)(postype & ~FMOD_TIMEUNIT_BUFFERED); /* Not a stream, so buffering is irrelevant. */
+    postype = (FMOD_TIMEUNIT)(postype & ~FMOD_TIMEUNIT_BUFFERED); 
 
-    /*
-        First check for sentence stuff.
-    */
     if (postype == FMOD_TIMEUNIT_SENTENCE_MS)
     {
         postype = FMOD_TIMEUNIT_MS;
@@ -882,65 +799,53 @@ FMOD_RESULT ChannelReal::getPosition(unsigned int *position, FMOD_TIMEUNIT posty
         getsubsoundtime = true;
     }
 
-    if (getsubsoundtime
-#ifdef FMOD_SUPPORT_SENTENCING
-     && !mSound->mSubSoundList
-#endif
-        )
+    if (getsubsoundtime && !mSound->mSubSoundList)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (postype == FMOD_TIMEUNIT_MS || postype == FMOD_TIMEUNIT_PCM || postype == FMOD_TIMEUNIT_PCMBYTES || postype == FMOD_TIMEUNIT_SENTENCE || postype == FMOD_TIMEUNIT_SENTENCE_SUBSOUND)
+    if (postype != FMOD_TIMEUNIT_MS && postype != FMOD_TIMEUNIT_PCM && postype != FMOD_TIMEUNIT_PCMBYTES && postype != FMOD_TIMEUNIT_SENTENCE && postype != FMOD_TIMEUNIT_SENTENCE_SUBSOUND)
     {
-        int          currentsubsoundid = 0;
-        int          currentsentenceid = 0;
-        unsigned int pcmcurrent = mPosition;
+        return FMOD_ERR_FORMAT;
+    }
 
-#ifdef FMOD_SUPPORT_SENTENCING
-        if (getsubsoundtime)
+    pcmcurrent = mPosition;
+
+    if (getsubsoundtime)
+    {
+        for (currentsubsoundid = 0; currentsubsoundid < mSound->mSubSoundListNum; currentsubsoundid++)
         {
-            for (currentsubsoundid = 0; currentsubsoundid < mSound->mSubSoundListNum; currentsubsoundid++)
+            SoundI *sound = mSound->mSubSound[mSound->mSubSoundList[currentsubsoundid]];
+
+            if (pcmcurrent < sound->mLength)
             {
-                SoundI *sound = mSound->mSubSound[mSound->mSubSoundList[currentsubsoundid].mIndex];
-
-                if (sound && pcmcurrent >= sound->mLength)
-                {
-                    pcmcurrent -= sound->mLength;
-                    currentsentenceid++;
-                }
-                else
-                {
-                    break;
-                }
+                break;
             }
-        }
-#endif
 
-        if (postype == FMOD_TIMEUNIT_SENTENCE)
-        {
-            *position = currentsentenceid;
+            currentsentenceid++;
+            pcmcurrent -= sound->mLength;
         }
-        else if (postype == FMOD_TIMEUNIT_SENTENCE_SUBSOUND)
-        {
-            *position = currentsubsoundid;
-        }
-        else if (postype == FMOD_TIMEUNIT_PCM)
-        {
-            *position = pcmcurrent;
-        }
-        else if (postype == FMOD_TIMEUNIT_PCMBYTES)
-        {
-            SoundI::getBytesFromSamples(pcmcurrent, position, mSound->mChannels, mSound->mFormat);
-        }
-        else if (postype == FMOD_TIMEUNIT_MS)
-        {
-            *position = (unsigned int)((float)pcmcurrent / mSound->mDefaultFrequency * 1000.0f);
-        }
+    }
+
+    if (postype == FMOD_TIMEUNIT_SENTENCE)
+    {
+        *position = currentsentenceid;
+    }
+    else if (postype == FMOD_TIMEUNIT_SENTENCE_SUBSOUND)
+    {
+        *position = currentsubsoundid;
+    }
+    else if (postype == FMOD_TIMEUNIT_PCM)
+    {
+        *position = pcmcurrent;
+    }
+    else if (postype == FMOD_TIMEUNIT_PCMBYTES)
+    {
+        SoundI::getBytesFromSamples(pcmcurrent, position, mSound->mChannels, mSound->mFormat);
     }
     else
     {
-        return FMOD_ERR_FORMAT;
+        *position = (unsigned int)((float)pcmcurrent / mSound->mDefaultFrequency * 1000.0f);
     }
 
     return FMOD_OK;
@@ -974,13 +879,14 @@ FMOD_RESULT ChannelReal::setLoopPoints(unsigned int loopstart, unsigned int loop
     {
         return FMOD_ERR_INVALID_PARAM;
     }
+
     if (loopstart + looplength > mSound->mLength)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    mLoopStart = loopstart;
     mLoopLength = looplength;
+    mLoopStart  = loopstart;
 
     return FMOD_OK;
 }
@@ -1007,27 +913,6 @@ FMOD_RESULT ChannelReal::setLoopCount(int loopcount)
 {
     mLoopCount = loopcount;
 
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT ChannelReal::setLowPassGain(float gain)
-{
     return FMOD_OK;
 }
 
@@ -1120,53 +1005,17 @@ FMOD_RESULT ChannelReal::set3DOcclusion(float directOcclusion, float reverbOcclu
 // OFFSET: 0x00944070
 FMOD_RESULT ChannelReal::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
-#ifndef FMOD_STATICFORPLUGINS
     if (!prop)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    /*
-        Set the reverb's channel properties and update the reverb mix
-    */
     if (!mParent)
     {
         return FMOD_OK;
     }
 
-    FMOD_RESULT result;
-    int instance, numinstances = 0;
-    for (instance = 0; instance < FMOD_REVERB_MAXINSTANCES; instance++)
-    {
-        if (prop->Flags & (FMOD_REVERB_CHANNELFLAGS_INSTANCE0 << instance))
-        {
-            numinstances++;
-        }
-    }
-
-    for (instance = 0; instance < FMOD_REVERB_MAXINSTANCES; instance++)
-    {
-        if (prop->Flags & (FMOD_REVERB_CHANNELFLAGS_INSTANCE0 << instance) || (!numinstances && !instance))
-        {
-            result = mSystem->mReverbGlobal.setChanProperties(instance, mParent->mIndex, prop);
-            if (numinstances <= 1 && result != FMOD_OK)
-            {
-                return result;
-            }
-        }
-        else
-        {
-            // update direct mix on other instances (ignoring errors)
-            FMOD_REVERB_CHANNELPROPERTIES cprop;
-            result = mSystem->mReverbGlobal.getChanProperties(instance, mParent->mIndex, &cprop);
-            cprop.Direct = prop->Direct;
-            result = mSystem->mReverbGlobal.setChanProperties(instance, mParent->mIndex, &cprop);
-        }
-    }
-
-#endif
-
-    return FMOD_OK;
+    return mSystem->mReverbGlobal.setChanProperties(mParent->mIndex, prop, 0);
 }
 
 
@@ -1188,9 +1037,7 @@ FMOD_RESULT ChannelReal::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTIES
 // OFFSET: 0x009440B0
 FMOD_RESULT ChannelReal::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
-#ifndef FMOD_STATICFORPLUGINS
-
-    if(!prop)
+    if (!prop)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
@@ -1200,16 +1047,7 @@ FMOD_RESULT ChannelReal::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop
         return FMOD_OK;
     }
 
-    int instance = (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE1) ? 1 : 
-                   (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE2) ? 2 : 
-                   (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE3) ? 3 : 
-                   0;
-
-    return mSystem->mReverbGlobal.getChanProperties(instance, mParent->mIndex, prop, 0);
-
-#endif
-
-    return FMOD_OK;
+    return mSystem->mReverbGlobal.getChanProperties(mParent->mIndex, prop, 0);
 }
 /*
 [
@@ -1234,7 +1072,7 @@ FMOD_RESULT ChannelReal::isPlaying(bool *isplaying, bool includethreadlatency)
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (mFlags & CHANNELREAL_FLAG_PLAYING || mFlags & CHANNELREAL_FLAG_ALLOCATED)
+    if (mFlags & (CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PLAYING) || mFlags & CHANNELREAL_FLAG_ENDDELAY)
     {
         *isplaying = true;
     }
@@ -1339,8 +1177,7 @@ FMOD_RESULT ChannelReal::getWaveData(float *wavearray, int numvalues, int channe
 FMOD_RESULT ChannelReal::getDSPHead(DSPI **dsp)
 {   
     *dsp = 0;
-
-    return FMOD_ERR_NEEDSSOFTWARE;
+    return FMOD_ERR_DSP_NOTFOUND;
 }
 
 
@@ -1453,11 +1290,11 @@ FMOD_RESULT ChannelReal::setMode(FMOD_MODE mode)
 
             mMode &= ~FMOD_3D;
             mMode |=  FMOD_2D;
-            mParent->mVolume3D        = 1.0f;
-            mParent->mDirectOcclusion = 0.0f;
-            mParent->mReverbDryVolume = 1.0f;
-            mParent->mConeVolume3D    = 1.0f;
-            mParent->mPitch3D         = 1.0f;
+            mParent->mVolume3D              = 1.0f;
+            mParent->mDirectOcclusionVolume = 1.0f;
+            mParent->mReverbDryVolume       = 1.0f;
+            mParent->mConeVolume3D          = 1.0f;
+            mParent->mPitch3D               = 1.0f;
         }
         else if (mode & FMOD_3D)
         {

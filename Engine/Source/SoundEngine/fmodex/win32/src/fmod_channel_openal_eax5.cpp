@@ -357,19 +357,19 @@ FMOD_RESULT ChannelOpenALEAX5::setReverbProperties(const FMOD_REVERB_CHANNELPROP
         Only support a maximum 2 active slots per channel
     */
     numActiveSlots = 0;
-    if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE0)
+    if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT0)
     {
         numActiveSlots++; 
     }
-    if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE1)
+    if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT1)
     {
         numActiveSlots++;
     }
-    if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE2)
+    if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2)
     {
         numActiveSlots++;
     }
-    if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE3)
+    if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT3)
     {
         numActiveSlots++;
     }
@@ -386,46 +386,46 @@ FMOD_RESULT ChannelOpenALEAX5::setReverbProperties(const FMOD_REVERB_CHANNELPROP
     FMOD_memcpy(&eaxSlots.guidActiveFXSlots[2], &eaxFXSlotNull, sizeof(GUID));
     FMOD_memcpy(&eaxSlots.guidActiveFXSlots[3], &eaxFXSlotNull, sizeof(GUID));
 
-    if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE0)
+    if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT0)
     {
         FMOD_memcpy(&eaxSlots.guidActiveFXSlots[0], &eaxFXSlot0, sizeof(GUID));
 
-        if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE1)
+        if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT1)
         {
             FMOD_memcpy(&eaxSlots.guidActiveFXSlots[1], &eaxFXSlot1, sizeof(GUID));
         }
-        else if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE2)
+        else if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2)
         {
             FMOD_memcpy(&eaxSlots.guidActiveFXSlots[1], &eaxFXSlot2, sizeof(GUID));
         }
-        else if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE3)
+        else if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT3)
         {
             FMOD_memcpy(&eaxSlots.guidActiveFXSlots[1], &eaxFXSlot3, sizeof(GUID));
         }
     }
-    else if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE1)
+    else if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT1)
     {
         FMOD_memcpy(&eaxSlots.guidActiveFXSlots[0], &eaxFXSlot1, sizeof(GUID));
 
-        if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE2)
+        if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2)
         {
             FMOD_memcpy(&eaxSlots.guidActiveFXSlots[1], &eaxFXSlot2, sizeof(GUID));
         }
-        else if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE3)
+        else if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT3)
         {
             FMOD_memcpy(&eaxSlots.guidActiveFXSlots[1], &eaxFXSlot3, sizeof(GUID));
         }
     }
-    else if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE2)
+    else if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2)
     {
         FMOD_memcpy(&eaxSlots.guidActiveFXSlots[0], &eaxFXSlot2, sizeof(GUID));
 
-        if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE3)
+        if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT3)
         {
             FMOD_memcpy(&eaxSlots.guidActiveFXSlots[1], &eaxFXSlot3, sizeof(GUID));
         }
     }
-    else if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE3)
+    else if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT3)
     {
         FMOD_memcpy(&eaxSlots.guidActiveFXSlots[0], &eaxFXSlot3, sizeof(GUID));
     }
@@ -582,19 +582,19 @@ FMOD_RESULT ChannelOpenALEAX5::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES
     // Check active slot 0 for any of the 4 possible effect IDs
     if (!memcmp(&eaxSlots.guidActiveFXSlots[0], &eaxFXSlot0, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE0;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT0;
     }
     else if (!memcmp(&eaxSlots.guidActiveFXSlots[0], &eaxFXSlot1, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE1;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT1;
     }
     else if (!memcmp(&eaxSlots.guidActiveFXSlots[0], &eaxFXSlot2, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE2;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2;
     }
     else if (!memcmp(&eaxSlots.guidActiveFXSlots[0], &eaxFXSlot3, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE3;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT3;
     }
     else
     {
@@ -604,19 +604,19 @@ FMOD_RESULT ChannelOpenALEAX5::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES
     // Check active slot 1 for any of the 4 possible effect IDs
     if (!memcmp(&eaxSlots.guidActiveFXSlots[1], &eaxFXSlot0, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE0;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT0;
     }
     else if (!memcmp(&eaxSlots.guidActiveFXSlots[1], &eaxFXSlot1, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE1;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT1;
     }
     else if (!memcmp(&eaxSlots.guidActiveFXSlots[1], &eaxFXSlot2, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE2;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2;
     }
     else if (!memcmp(&eaxSlots.guidActiveFXSlots[1], &eaxFXSlot3, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE3;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT3;
     }
     else
     {
@@ -626,7 +626,7 @@ FMOD_RESULT ChannelOpenALEAX5::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES
     // If no slots have been assigned (max slots = 2), assign to slot 0
     if (numInactiveSlots == 2)
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE0;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT0;
     }
 
     return FMOD_OK;

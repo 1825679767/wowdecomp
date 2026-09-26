@@ -17,8 +17,8 @@
 namespace FMOD
 {
 
-static const FMOD_GUID KSDATAFORMAT_SUBTYPE_PCM        = { 0x00000001, 0x0000, 0x0010, { 0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71 } };
-static const FMOD_GUID KSDATAFORMAT_SUBTYPE_IEEE_FLOAT = { 0x00000003, 0x0000, 0x0010, { 0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71 } };
+static const FMOD_GUID _KSDATAFORMAT_SUBTYPE_PCM        = { 0x00000001, 0x0000, 0x0010, { 0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71 } };
+static const FMOD_GUID _KSDATAFORMAT_SUBTYPE_IEEE_FLOAT = { 0x00000003, 0x0000, 0x0010, { 0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71 } };
 
 FMOD_OUTPUT_DESCRIPTION_EX winmmoutput;
 
@@ -68,12 +68,8 @@ FMOD_OUTPUT_DESCRIPTION_EX *OutputWinMM::getDescriptionEx()
     winmmoutput.name                    = "FMOD WinMM Output";
     winmmoutput.version                 = 0x00010100;
     winmmoutput.polling                 = true;
-    winmmoutput.mType                   = FMOD_OUTPUTTYPE_WINMM;
-    winmmoutput.mSize                   = sizeof(OutputWinMM);
-
     winmmoutput.getnumdrivers           = &OutputWinMM::getNumDriversCallback;
-    winmmoutput.getdriverinfo           = &OutputWinMM::getDriverInfoCallback;
-    winmmoutput.getdriverinfow          = &OutputWinMM::getDriverInfoWCallback;
+    winmmoutput.getdrivername           = &OutputWinMM::getDriverNameCallback;
     winmmoutput.getdrivercaps           = &OutputWinMM::getDriverCapsCallback;
     winmmoutput.init                    = &OutputWinMM::initCallback;
     winmmoutput.close                   = &OutputWinMM::closeCallback;
@@ -85,14 +81,16 @@ FMOD_OUTPUT_DESCRIPTION_EX *OutputWinMM::getDescriptionEx()
 
 #ifdef FMOD_SUPPORT_RECORDING
     winmmoutput.record_getnumdrivers    = &OutputWinMM::recordGetNumDriversCallback;
-    winmmoutput.record_getdriverinfo    = &OutputWinMM::recordGetDriverInfoCallback;
-    winmmoutput.record_getdriverinfow   = &OutputWinMM::recordGetDriverInfoWCallback;
+    winmmoutput.record_getdrivername    = &OutputWinMM::recordGetDriverInfoCallback;
     winmmoutput.record_start            = &OutputWinMM::recordStartCallback;
     winmmoutput.record_stop             = &OutputWinMM::recordStopCallback;
     winmmoutput.record_getposition      = &OutputWinMM::recordGetPositionCallback;
     winmmoutput.record_lock             = &OutputWinMM::recordLockCallback;
     winmmoutput.record_unlock           = 0;
 #endif
+
+    winmmoutput.mType                   = FMOD_OUTPUTTYPE_WINMM;
+    winmmoutput.mSize                   = sizeof(OutputWinMM);
 
     return &winmmoutput;
 }
@@ -140,50 +138,12 @@ FMOD_RESULT OutputWinMM::getNumDrivers(int *numdrivers)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT OutputWinMM::getDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid)
+FMOD_RESULT OutputWinMM::getDriverName(int id, char *name, int namelen)
 {
 	WAVEOUTCAPSA waveoutcaps;
 
-    if (name && namelen >= 1)
-    {
-        waveOutGetDevCapsA(id, &waveoutcaps, sizeof(waveoutcaps));
-
-        FMOD_strncpy(name, waveoutcaps.szPname, namelen);
-        name[namelen - 1] = 0;
-    }
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    FMOD_OK
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT OutputWinMM::getDriverInfoW(int id, short *name, int namelen, FMOD_GUID *guid)
-{    
-	WAVEOUTCAPSW waveoutcaps;
-
-    if (name && namelen >= 1)
-    {
-        waveOutGetDevCapsW(id, &waveoutcaps, sizeof(waveoutcaps));
-
-        FMOD_strncpyW(name, (short *)waveoutcaps.szPname, namelen);
-        name[namelen - 1] = 0;
-    }	
+    waveOutGetDevCapsA(id, &waveoutcaps, sizeof(waveoutcaps));
+    FMOD_strncpy(name, waveoutcaps.szPname, namelen);
 
     return FMOD_OK;
 }
@@ -242,11 +202,11 @@ FMOD_RESULT OutputWinMM::testFormat(int id, FMOD_SOUND_FORMAT format, int channe
         pcmwf.dwChannelMask               = 0;      /* FIXME - this should be set according to mulchaud.rtf */
         if (format == FMOD_SOUND_FORMAT_PCMFLOAT)
         {
-            FMOD_memcpy(&pcmwf.SubFormat, &KSDATAFORMAT_SUBTYPE_IEEE_FLOAT, sizeof(GUID));
+            FMOD_memcpy(&pcmwf.SubFormat, &_KSDATAFORMAT_SUBTYPE_IEEE_FLOAT, sizeof(GUID));
         }
         else
         {
-            FMOD_memcpy(&pcmwf.SubFormat, &KSDATAFORMAT_SUBTYPE_PCM, sizeof(GUID));
+            FMOD_memcpy(&pcmwf.SubFormat, &_KSDATAFORMAT_SUBTYPE_PCM, sizeof(GUID));
         }        
     }
 
@@ -376,11 +336,11 @@ FMOD_RESULT OutputWinMM::init(int selecteddriver, FMOD_INITFLAGS flags, int *out
         pcmwf.dwChannelMask               = 0;      /* FIXME - this should be set according to mulchaud.rtf */
         if (*outputformat == FMOD_SOUND_FORMAT_PCMFLOAT)
         {
-            FMOD_memcpy(&pcmwf.SubFormat, &KSDATAFORMAT_SUBTYPE_IEEE_FLOAT, sizeof(GUID));
+            FMOD_memcpy(&pcmwf.SubFormat, &_KSDATAFORMAT_SUBTYPE_IEEE_FLOAT, sizeof(GUID));
         }
         else
         {
-            FMOD_memcpy(&pcmwf.SubFormat, &KSDATAFORMAT_SUBTYPE_PCM, sizeof(GUID));
+            FMOD_memcpy(&pcmwf.SubFormat, &_KSDATAFORMAT_SUBTYPE_PCM, sizeof(GUID));
         }        
     }
 
@@ -509,8 +469,6 @@ FMOD_RESULT OutputWinMM::close()
 {
     int count;
 
-    Plugin::init(); /* Set up gGlobal - for debug / file / memory access by this plugin. */
-
 	mRunning = false;
 
     if (mNumBlocks)
@@ -531,12 +489,6 @@ FMOD_RESULT OutputWinMM::close()
 	mBuffer = NULL;
 
 	waveOutClose(mHandle);
-
-    if (mCoInitialized)
-    {
-        CoUninitialize();
-        mCoInitialized = false;
-    }
 
     return FMOD_OK;
 }
@@ -692,11 +644,6 @@ FMOD_RESULT OutputWinMM::getPosition(unsigned int *pcm)
     if (result != FMOD_OK)
     {
         return result;
-    }
-
-    if (mSystem->mDownmix)
-    {
-        mSystem->mDownmix->getOutputChannels(&outputchannels);
     }
 
     mmt.u.cb = mmt.u.cb * 8 / bits;
@@ -898,50 +845,17 @@ FMOD_RESULT OutputWinMM::recordGetNumDrivers(int *numdrivers)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT OutputWinMM::recordGetDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid)
+FMOD_RESULT OutputWinMM::recordGetDriverInfo(int id, char *name, int namelen)
 {
     WAVEINCAPSA waveincaps;
 
-    if (name && namelen >= 1)
+    if (!name || namelen < 1)
     {
-        waveInGetDevCapsA(id, &waveincaps, sizeof(waveincaps));
-        
-	    FMOD_strncpy(name, waveincaps.szPname, namelen - 1);
-        name[namelen - 1] = 0;
+        return FMOD_ERR_INVALID_PARAM;
     }
 
-    return FMOD_OK;
-}
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    FMOD_OK
-
-	[REMARKS]
-    WinMM does not provide GUIDs
-
-    [PLATFORMS]
-    Win32, Win64
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT OutputWinMM::recordGetDriverInfoW(int id, short *name, int namelen, FMOD_GUID *guid)
-{
-    WAVEINCAPSW waveincaps;
-
-    if (name && namelen >= 1)
-    {
-        waveInGetDevCapsW(id, &waveincaps, sizeof(waveincaps));
-        
-        FMOD_strncpyW(name, (short *)waveincaps.szPname, namelen - 1);
-        name[namelen - 1] = 0;
-    }	
+    waveInGetDevCapsA(id, &waveincaps, sizeof(waveincaps));
+	FMOD_strncpy(name, waveincaps.szPname, namelen - 1);
 
     return FMOD_OK;
 }
@@ -964,14 +878,13 @@ FMOD_RESULT OutputWinMM::recordGetDriverInfoW(int id, short *name, int namelen, 
 ]
 */
 // OFFSET: 0x00939C60
-FMOD_RESULT OutputWinMM::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *sound, bool loop)
+FMOD_RESULT OutputWinMM::recordStart(int id, Sound *sound, bool loop)
 {
     FMOD_RESULT             result;
 	MMRESULT		        hr;
     WAVE_FORMATEXTENSIBLE   wfx;
 	WAVEHDR			       *wavehdr;
-    FMOD_MODE               mode;
-	int				        count, bits;
+	int				        count, bits, channels, rate;
     SoundI                 *soundi;
 
     soundi = (SoundI *)sound;
@@ -985,72 +898,38 @@ FMOD_RESULT OutputWinMM::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *sou
 		return FMOD_ERR_INVALID_PARAM;
 	}
 
-    /*
-        No multi recording with WinMM
-    */
-    if (mRecordNumActive)
-    {
-        return FMOD_ERR_UNSUPPORTED;
-    }
+    mRecordFormat = soundi->mFormat;
+    channels      = soundi->mChannels;
+    rate          = (int)soundi->mDefaultFrequency;
 
-
- 	// ========================================================================================================
-	// CREATE AND START CAPTURE BUFFER
-	// ========================================================================================================
-
-    recordinfo->mRecordFormat       = soundi->mFormat;
-    recordinfo->mRecordChannels     = soundi->mChannels;
-    mode                            = soundi->mMode;
-    recordinfo->mRecordRate         = (int)soundi->mDefaultFrequency;
-
-    SoundI::getBitsFromFormat(recordinfo->mRecordFormat, &bits);
+    SoundI::getBitsFromFormat(mRecordFormat, &bits);
 
     FMOD_memset(&wfx, 0, sizeof(WAVE_FORMATEXTENSIBLE));
+
     wfx.Format.wFormatTag            = WAVE_FORMAT_EXTENSIBLE;
-    wfx.Format.nChannels             = recordinfo->mRecordChannels;
+    wfx.Format.nChannels             = channels;
     wfx.Format.wBitsPerSample        = bits;
     wfx.Format.nBlockAlign           = wfx.Format.nChannels * wfx.Format.wBitsPerSample / 8;
-    wfx.Format.nSamplesPerSec        = recordinfo->mRecordRate;
+    wfx.Format.nSamplesPerSec        = rate;
     wfx.Format.nAvgBytesPerSec	     = wfx.Format.nSamplesPerSec * wfx.Format.nBlockAlign;
-    wfx.Format.cbSize                = 22;  // Designates extra data
+    wfx.Format.cbSize                = 22;
     wfx.Samples.wValidBitsPerSample  = bits;
-    FMOD_memcpy(&wfx.SubFormat, (soundi->mFormat == FMOD_SOUND_FORMAT_PCMFLOAT ? &KSDATAFORMAT_SUBTYPE_IEEE_FLOAT : &KSDATAFORMAT_SUBTYPE_PCM), sizeof(GUID));
+
+    FMOD_memcpy(&wfx.SubFormat, (soundi->mFormat == FMOD_SOUND_FORMAT_PCMFLOAT ? &_KSDATAFORMAT_SUBTYPE_IEEE_FLOAT : &_KSDATAFORMAT_SUBTYPE_PCM), sizeof(GUID));
 
 	mRecordBlockAlign = wfx.Format.nBlockAlign;
 
     mRecordBlockLenBytes  = RECORD_BLOCKLENMS;
-    mRecordBlockLenBytes *= recordinfo->mRecordRate;
+    mRecordBlockLenBytes *= rate;
     mRecordBlockLenBytes /= 1000;
 
-    recordinfo->mRecordBufferLength = mRecordBlockLenBytes * RECORD_MAXBLOCKS;
+    mRecordBufferLength = mRecordBlockLenBytes * RECORD_MAXBLOCKS;
 
     mRecordBlockLenBytes *= mRecordBlockAlign;
-    
-	hr = waveInOpen(&mRecordHandle, recordinfo->mRecordId, (WAVEFORMATEX*)&wfx, (unsigned long)&recordCallback, (DWORD)this, CALLBACK_FUNCTION);
-	if (hr) 
-	{
-		switch (hr) 
-		{
-			case MMSYSERR_BADDEVICEID :
-				FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "OutputWinMM::recordStart", "Specified device ID is out of range.\n"));
-				break;
-			case MMSYSERR_ALLOCATED :
-				FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "OutputWinMM::recordStart", "Specified resource is already allocated.\n"));
-				break;
-			case MMSYSERR_NOMEM :
-				FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "OutputWinMM::recordStart", "Unable to allocate or lock memory.\n"));
-				break;
-			case WAVERR_BADFORMAT :
-				FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "OutputWinMM::recordStart", "Attempted to open with an unsupported wave format.\n"));
-				break;
-			case WAVERR_SYNC :
-				FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "OutputWinMM::recordStart", "Attempted to open a synchronous driver without specifying the WAVE_ALLOWSYNC flag.\n"));
-				break;
-			default :
-				FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "OutputWinMM::recordStart", "Unknown Error trying to open wave device!."));
-				break;
-		};
 
+	hr = waveInOpen(&mRecordHandle, id, (WAVEFORMATEX*)&wfx, (DWORD_PTR)&recordCallback, (DWORD_PTR)this, CALLBACK_FUNCTION);
+	if (hr)
+	{
 		if (hr == MMSYSERR_ALLOCATED)
         {
 			return FMOD_ERR_OUTPUT_ALLOCATED;
@@ -1065,10 +944,6 @@ FMOD_RESULT OutputWinMM::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *sou
         }
 	}
 
-    /*
-        Allocate and set up wavein blocks
-    */
-
     mRecordData = (char *)FMOD_Memory_Calloc(mRecordBlockLenBytes * RECORD_MAXBLOCKS);
 
 	for (count=0; count < RECORD_MAXBLOCKS; count++)
@@ -1076,7 +951,7 @@ FMOD_RESULT OutputWinMM::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *sou
 		wavehdr = &mRecordBlock[count].wavehdr;
 
 		mRecordBlock[count].data = mRecordData + (mRecordBlockLenBytes * count);
-		
+
 		wavehdr->dwFlags			= 0;
 		wavehdr->lpData				= (LPSTR)mRecordBlock[count].data;
 		wavehdr->dwBufferLength		= mRecordBlockLenBytes;
@@ -1095,6 +970,7 @@ FMOD_RESULT OutputWinMM::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *sou
 		    mRecording = false;
 		    return FMOD_ERR_OUTPUT_CREATEBUFFER;
 	    }
+
 	    hr = waveInAddBuffer(mRecordHandle, wavehdr, sizeof(WAVEHDR));
 	    if (hr)
 	    {
@@ -1107,7 +983,7 @@ FMOD_RESULT OutputWinMM::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *sou
     mRecordNextBlock = 0;
 	mRecording = true;
 
-    result = mRecordThread.initThread("FMOD Record thread", recordThreadCallback, this, Thread::PRIORITY_CRITICAL, 0, 0, true, 0, mSystem);
+    result = mRecordThread.initThread("FMOD Record thread", recordThreadCallback, this, Thread::PRIORITY_CRITICAL, 0, 0, true, 0);
     if (result != FMOD_OK)
     {
         return result;
@@ -1142,7 +1018,7 @@ FMOD_RESULT OutputWinMM::recordStart(FMOD_RECORDING_INFO *recordinfo, Sound *sou
 ]
 */
 // OFFSET: 0x0093A050
-FMOD_RESULT OutputWinMM::recordStop(FMOD_RECORDING_INFO *recordinfo)
+FMOD_RESULT OutputWinMM::recordStop()
 {
 	int count;
 
@@ -1186,7 +1062,7 @@ FMOD_RESULT OutputWinMM::recordStop(FMOD_RECORDING_INFO *recordinfo)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT OutputWinMM::recordGetPosition(FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm)
+FMOD_RESULT OutputWinMM::recordGetPosition(unsigned int *pcm)
 {
     int currblock;
 
@@ -1226,7 +1102,7 @@ FMOD_RESULT OutputWinMM::recordGetPosition(FMOD_RECORDING_INFO *recordinfo, unsi
 ]
 */
 // OFFSET: 0x0093A0F0
-FMOD_RESULT OutputWinMM::recordLock(FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
+FMOD_RESULT OutputWinMM::recordLock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
 	unsigned int lenbytes = mRecordBlockLenBytes * RECORD_MAXBLOCKS;
 
@@ -1326,36 +1202,12 @@ FMOD_RESULT F_CALLBACK OutputWinMM::getNumDriversCallback(FMOD_OUTPUT_STATE *out
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT F_CALLBACK OutputWinMM::getDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen, FMOD_GUID *guid)
+// OFFSET: 0x0093A1D0
+FMOD_RESULT F_CALLBACK OutputWinMM::getDriverNameCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
     OutputWinMM *winmm = (OutputWinMM *)output;
 
-    return winmm->getDriverInfo(id, name, namelen, guid);
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    FMOD_OK
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK OutputWinMM::getDriverInfoWCallback(FMOD_OUTPUT_STATE *output, int id, short *name, int namelen, FMOD_GUID *guid)
-{
-    OutputWinMM *winmm = (OutputWinMM *)output;
-
-    return winmm->getDriverInfoW(id, name, namelen, guid);
+    return winmm->getDriverName(id, name, namelen);
 }
 
 
@@ -1611,36 +1463,11 @@ FMOD_RESULT F_CALLBACK OutputWinMM::recordGetNumDriversCallback(FMOD_OUTPUT_STAT
 ]
 */
 // OFFSET: 0x0093A3D0
-FMOD_RESULT F_CALLBACK OutputWinMM::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen, FMOD_GUID *guid)
+FMOD_RESULT F_CALLBACK OutputWinMM::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
     OutputWinMM *winmm = (OutputWinMM *)output;
 
-    return winmm->recordGetDriverInfo(id, name, namelen, guid);
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    FMOD_OK
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK OutputWinMM::recordGetDriverInfoWCallback(FMOD_OUTPUT_STATE *output, int id, short *name, int namelen, FMOD_GUID *guid)
-{
-    OutputWinMM *winmm = (OutputWinMM *)output;
-
-    return winmm->recordGetDriverInfoW(id, name, namelen, guid);
+    return winmm->recordGetDriverInfo(id, name, namelen);
 }
 
 
@@ -1662,11 +1489,11 @@ FMOD_RESULT F_CALLBACK OutputWinMM::recordGetDriverInfoWCallback(FMOD_OUTPUT_STA
 ]
 */
 // OFFSET: 0x0093A420
-FMOD_RESULT F_CALLBACK OutputWinMM::recordStartCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, FMOD_SOUND *sound, int loop)
+FMOD_RESULT F_CALLBACK OutputWinMM::recordStartCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_SOUND *sound, int loop)
 {
     OutputWinMM *winmm = (OutputWinMM *)output;
 
-    return winmm->recordStart(recordinfo, (Sound *)sound, loop ? true : false);
+    return winmm->recordStart(id, (Sound *)sound, loop ? true : false);
 }
 
 
@@ -1688,11 +1515,11 @@ FMOD_RESULT F_CALLBACK OutputWinMM::recordStartCallback(FMOD_OUTPUT_STATE *outpu
 ]
 */
 // OFFSET: 0x0093A450
-FMOD_RESULT F_CALLBACK OutputWinMM::recordStopCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo)
+FMOD_RESULT F_CALLBACK OutputWinMM::recordStopCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputWinMM *winmm = (OutputWinMM *)output;
 
-    return winmm->recordStop(recordinfo);
+    return winmm->recordStop();
 }
 
 
@@ -1714,11 +1541,11 @@ FMOD_RESULT F_CALLBACK OutputWinMM::recordStopCallback(FMOD_OUTPUT_STATE *output
 ]
 */
 // OFFSET: 0x0093A480
-FMOD_RESULT F_CALLBACK OutputWinMM::recordGetPositionCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm)
+FMOD_RESULT F_CALLBACK OutputWinMM::recordGetPositionCallback(FMOD_OUTPUT_STATE *output, unsigned int *pcm)
 {
     OutputWinMM *winmm = (OutputWinMM *)output;
 
-    return winmm->recordGetPosition(recordinfo, pcm);
+    return winmm->recordGetPosition(pcm);
 }
 
 
@@ -1740,11 +1567,11 @@ FMOD_RESULT F_CALLBACK OutputWinMM::recordGetPositionCallback(FMOD_OUTPUT_STATE 
 ]
 */
 // OFFSET: 0x0093A4E0
-FMOD_RESULT F_CALLBACK OutputWinMM::recordLockCallback(FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
+FMOD_RESULT F_CALLBACK OutputWinMM::recordLockCallback(FMOD_OUTPUT_STATE *output, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
     OutputWinMM *winmm = (OutputWinMM *)output;
 
-    return winmm->recordLock(recordinfo, offset, length, ptr1, ptr2, len1, len2);
+    return winmm->recordLock(offset, length, ptr1, ptr2, len1, len2);
 }
 #endif
 

@@ -2,7 +2,6 @@
 
 #ifdef FMOD_SUPPORT_SOFTWARE
 
-#include "fmod_autocleanup.h"
 #include "fmod_channel_software.h"
 #include "fmod_channelpool.h"
 #include "fmod_dsp_resampler.h"
@@ -11,10 +10,6 @@
 #include "fmod_sample_software.h"
 #include "fmod_string.h"
 #include "fmod_systemi.h"
-
-#ifdef PLATFORM_PS3
-#include "fmod_output_ps3.h"
-#endif
 
 namespace FMOD
 {
@@ -109,7 +104,7 @@ FMOD_RESULT OutputSoftware::init(int maxchannels)
         {
             new (&mChannel[count]) ChannelSoftware;
 
-            CHECK_RESULT(mChannelPool->setChannel(count, &mChannel[count], mSystem->mChannelGroup->mDSPHead));
+            mChannelPool->setChannel(count, &mChannel[count], mSystem->mChannelGroup->mDSPHead);
         }
     }
     
@@ -172,6 +167,7 @@ FMOD_RESULT OutputSoftware::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *
 	int              bits = 0;
     SampleSoftware  *newsample;
     unsigned int     overflowbytes = 0;
+    bool             allocated = false;
 
     FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputSoftware::createSample", "lengthpcm %d, lengthbytes %d, channels %d, format %d, mode %08x\n", waveformat ? waveformat->lengthpcm : 0, waveformat ? waveformat->lengthbytes : 0, waveformat ? waveformat->channels : 0, waveformat ? waveformat->format : FMOD_SOUND_FORMAT_NONE, mode));
 
@@ -189,7 +185,7 @@ FMOD_RESULT OutputSoftware::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *
         }
 
         if (!bits && waveformat->format != FMOD_SOUND_FORMAT_NONE
-            #ifdef FMOD_SUPPORT_DSPCODEC              
+            #ifdef FMOD_SUPPORT_DSPCODEC
                 #ifdef FMOD_SUPPORT_IMAADPCM
                 && waveformat->format != FMOD_SOUND_FORMAT_IMAADPCM
                 #endif
@@ -199,31 +195,13 @@ FMOD_RESULT OutputSoftware::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *
                 #ifdef FMOD_SUPPORT_MPEG
                 && waveformat->format != FMOD_SOUND_FORMAT_MPEG
                 #endif
-                #ifdef FMOD_SUPPORT_CELT
-                && waveformat->format != FMOD_SOUND_FORMAT_CELT
-                #endif
             #endif
         )
         {
-            #if defined(PLATFORM_PS2) || defined(PLATFORM_PSP)
-            if (waveformat->format == FMOD_SOUND_FORMAT_VAG)
-            {
-                FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputSoftware::createSample", "Tried to create an FMOD_SOFTWARE based sound with FMOD_SOUND_FORMAT_VAG.\n"));
-                return FMOD_ERR_NEEDSHARDWARE;
-            }
-            #endif
-            #if defined(PLATFORM_WII) || defined(PLATFORM_GC)
-            if (waveformat->format == FMOD_SOUND_FORMAT_GCADPCM)
-            {
-                FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputSoftware::createSample", "Tried to create an FMOD_SOFTWARE based sound with FMOD_SOUND_FORMAT_GCADPCM.\n"));
-                return FMOD_ERR_NEEDSHARDWARE;
-            }
-            #endif
-
             return FMOD_ERR_FORMAT;
         }
     }
-    AutoRelease<SampleSoftware> newsample_cleanup;
+
     if (*sample == 0)
     {
         newsample = FMOD_Object_Calloc(SampleSoftware);
@@ -231,7 +209,7 @@ FMOD_RESULT OutputSoftware::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *
         {
             return FMOD_ERR_MEMORY;
         }
-        newsample_cleanup = newsample;
+        allocated = true;
     }
     else
     {
@@ -241,13 +219,12 @@ FMOD_RESULT OutputSoftware::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *
     if (!waveformat)
     {
         *sample = newsample;
-        newsample_cleanup.releasePtr();
         return FMOD_OK;
     }
 
     newsample->mFormat = waveformat->format;
 
-    if (waveformat->format == FMOD_SOUND_FORMAT_IMAADPCM || waveformat->format == FMOD_SOUND_FORMAT_XMA || waveformat->format == FMOD_SOUND_FORMAT_MPEG || waveformat->format == FMOD_SOUND_FORMAT_CELT)
+    if (waveformat->format == FMOD_SOUND_FORMAT_IMAADPCM || waveformat->format == FMOD_SOUND_FORMAT_XMA || waveformat->format == FMOD_SOUND_FORMAT_MPEG)
     {
         newsample->mLengthBytes = waveformat->lengthbytes;
         newsample->mLoopPointDataEnd = 0;
@@ -266,7 +243,7 @@ FMOD_RESULT OutputSoftware::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *
         {
             return result;
         }
-        
+
         if (overflowbytes <= 8)
         {
             newsample->mLoopPointDataEnd = newsample->mLoopPointDataEndMemory;
@@ -288,61 +265,23 @@ FMOD_RESULT OutputSoftware::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *
     }
     else
     {
-        if (0)
-        {}
-        #ifdef PLATFORM_PS3
-        else if ((mode & FMOD_LOADSECONDARYRAM) && OutputPS3::mRSXPoolInitialised)
+        newsample->mBufferMemory = FMOD_Memory_Calloc(newsample->mLengthBytes + (overflowbytes * 2) + 16);
+        if (!newsample->mBufferMemory)
         {
-            newsample->mBufferMemory = OutputPS3::mRSXPool.calloc(newsample->mLengthBytes + (overflowbytes * 2) + 16, __FILE__, __LINE__);
-            if (!newsample->mBufferMemory)
+            if (allocated)
             {
-                return FMOD_ERR_MEMORY;
+                FMOD_Memory_Free(newsample);
             }
-            if (OutputPS3::mRSXPoolManagerInMRAM)
-            {
-                MemBlockHeader *block;
-                FMOD_UINT_NATIVE offset;
-
-                block  = (MemBlockHeader *)newsample->mBufferMemory;
-                offset = OutputPS3::mRSXPoolBase + (block->mBlockOffset * OutputPS3::mRSXPool.mBlockSize);
-
-                newsample->mBuffer = (char *)FMOD_ALIGNPOINTER(offset + overflowbytes, 16);
-            }
-            else
-            {
-                newsample->mBuffer = (char *)FMOD_ALIGNPOINTER((FMOD_UINT_NATIVE)newsample->mBufferMemory + overflowbytes, 16);
-            }
-
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputSoftware::createSample", "Allocated sample data in RSX memory pool at address %08x.\n", newsample->mBuffer));
+            return FMOD_ERR_MEMORY;
         }
-        #endif
-        else if ((mode & FMOD_LOADSECONDARYRAM) && (FMOD::gGlobal->gMemoryTypeFlags & FMOD_MEMORY_SECONDARY))
-        {
-            newsample->mBufferMemory = FMOD_Memory_CallocType(newsample->mLengthBytes + (overflowbytes * 2) + 16, FMOD_MEMORY_SECONDARY | (mode & FMOD_CREATESTREAM ? FMOD_MEMORY_STREAM_DECODE : 0));
-            if (!newsample->mBufferMemory)
-            {
-                return FMOD_ERR_MEMORY;
-            }
-            newsample->mBuffer = (char *)FMOD_ALIGNPOINTER((FMOD_UINT_NATIVE)newsample->mBufferMemory + overflowbytes, 16);
 
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputSoftware::createSample", "Allocated sample data in RSX memory at address %08x.\n", newsample->mBuffer));
-        }
-        else
-        {
-            newsample->mBufferMemory = FMOD_Memory_CallocType(newsample->mLengthBytes + (overflowbytes * 2) + 16, mode & FMOD_CREATESTREAM ? FMOD_MEMORY_STREAM_DECODE : 0);
-            if (!newsample->mBufferMemory)
-            {
-                return FMOD_ERR_MEMORY;
-            }
-            newsample->mBuffer = (char *)FMOD_ALIGNPOINTER((FMOD_UINT_NATIVE)newsample->mBufferMemory + overflowbytes, 16);
-        }
+        newsample->mBuffer = (char *)FMOD_ALIGNPOINTER((FMOD_UINT_NATIVE)newsample->mBufferMemory + overflowbytes, 16);
     }
 
     newsample->mFormat = waveformat->format;
     newsample->mLength = waveformat->lengthpcm;
 
     *sample = newsample;
-    newsample_cleanup.releasePtr();
 
     FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputSoftware::createSample", "done\n"));
 
@@ -365,6 +304,7 @@ FMOD_RESULT OutputSoftware::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *
 	[SEE_ALSO]
 ]
 */
+// INLINED
 int OutputSoftware::getSampleMaxChannels(FMOD_MODE mode, FMOD_SOUND_FORMAT format)
 {
     return 16;       /* 2D and 3D voices can be panned without needing to split them up.  Allow up to 16 channel wide. */
@@ -386,6 +326,7 @@ int OutputSoftware::getSampleMaxChannels(FMOD_MODE mode, FMOD_SOUND_FORMAT forma
 	[SEE_ALSO]
 ]
 */
+// OFFSET: 0x0091AA70
 int F_CALLBACK OutputSoftware::getSampleMaxChannelsCallback(FMOD_OUTPUT_STATE *output, FMOD_MODE mode, FMOD_SOUND_FORMAT format)
 {
     OutputSoftware *outputsoftware = (OutputSoftware *)output;
@@ -410,51 +351,6 @@ int F_CALLBACK OutputSoftware::getSampleMaxChannelsCallback(FMOD_OUTPUT_STATE *o
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT OutputSoftware::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_OUTPUT, sizeof(*this));
-
-    if (mChannel)
-    {
-        int count, numchannels = 0;
-
-        if (mChannelPool)
-        {
-            CHECK_RESULT(mChannelPool->getNumChannels(&numchannels));
-
-            for (count = 0; count < numchannels; count++)
-            {
-                FMOD_RESULT result;
-
-                ChannelSoftware *channelsoftware;
-
-                result = mChannelPool->getChannel(count, (ChannelReal **)&channelsoftware);
-                if (result == FMOD_OK)
-                {
-                    tracker->add(false, FMOD_MEMBITS_CHANNEL, sizeof(ChannelSoftware));
-                
-                    if (channelsoftware->mDSPLowPass)
-                    {
-                        if (channelsoftware->mDSPLowPass->mDescription.getmemoryused)
-                        {
-                            channelsoftware->mDSPLowPass->mDescription.getmemoryused(channelsoftware->mDSPLowPass, tracker);    /* Access through plugin. */
-                        }
-                    }
-                    if (channelsoftware->mDSPResampler)
-                    {
-                        channelsoftware->mDSPResampler->getMemoryUsed(tracker); /* No plugin stuff. */
-                    }
-                }
-            }
-        }
-    }
-
-    return Output::getMemoryUsedImpl(tracker);
-}
-
-#endif
 
 }
 

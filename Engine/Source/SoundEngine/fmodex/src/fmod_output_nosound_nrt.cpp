@@ -230,8 +230,6 @@ FMOD_RESULT OutputNoSound_NRT::init(int selecteddriver, FMOD_INITFLAGS flags, in
 */
 FMOD_RESULT OutputNoSound_NRT::close()
 {
-    Plugin::init(); /* Set up gGlobal - for debug / file / memory access by this plugin. */
-
     if (mBuffer)
     {
         FMOD_Memory_Free(mBuffer);

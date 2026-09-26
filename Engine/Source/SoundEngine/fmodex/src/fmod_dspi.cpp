@@ -42,10 +42,10 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 47224ec8 auto
 // OFFSET: 0x008DC390
-FMOD_RESULT DSPI::doesUnitExist(DSPI *target, bool protect)
+FMOD_RESULT DSPI::doesUnitExist(DSPI *target)
 {
-#ifndef PLATFORM_PS3_SPU
     FMOD_RESULT result;
     int count;
     int numinputs;
@@ -55,7 +55,7 @@ FMOD_RESULT DSPI::doesUnitExist(DSPI *target, bool protect)
         return FMOD_OK;
     }
 
-    result = getNumInputs(&numinputs, protect);
+    result = getNumInputs(&numinputs);
     if (result != FMOD_OK)
     {
         return FMOD_ERR_INVALID_PARAM;
@@ -65,19 +65,19 @@ FMOD_RESULT DSPI::doesUnitExist(DSPI *target, bool protect)
     {
         DSPConnectionI *connection;
 
-        result = getInput(count, 0, &connection, protect);
+        result = getInput(count, &connection, 0);
         if (result != FMOD_OK)
         {
             return result;
-        }        
+        }
 
-        result = connection->mInputUnit->doesUnitExist(target, protect);
+        result = connection->mInputUnit->doesUnitExist(target);
         if (result == FMOD_OK)
         {
             return result;
         }
     }
-#endif
+
     return FMOD_ERR_INVALID_PARAM;
 }
 
@@ -97,12 +97,12 @@ FMOD_RESULT DSPI::doesUnitExist(DSPI *target, bool protect)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 38c9e444 auto
 // OFFSET: 0x008DA410
 FMOD_RESULT DSPI::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 {
-#ifndef PLATFORM_PS3_SPU
     FMOD_RESULT result;
-    int inputchannels,rate;
+    int outputchannels,rate;
 
     if (!description)
     {
@@ -113,7 +113,7 @@ FMOD_RESULT DSPI::alloc(FMOD_DSP_DESCRIPTION_EX *description)
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    result = mSystem->getSoftwareFormat(&rate, 0, 0, &inputchannels, 0, 0);
+    result = mSystem->getSoftwareFormat(&rate, 0, &outputchannels, 0, 0, 0);
     if (result != FMOD_OK)
     {
         return result;
@@ -126,7 +126,7 @@ FMOD_RESULT DSPI::alloc(FMOD_DSP_DESCRIPTION_EX *description)
     {
         case FMOD_DSP_CATEGORY_FILTER:
         {
-            if (description->channels > inputchannels)
+            if (description->channels > outputchannels)
             {
                 return FMOD_ERR_TOOMANYCHANNELS;
             }
@@ -135,7 +135,6 @@ FMOD_RESULT DSPI::alloc(FMOD_DSP_DESCRIPTION_EX *description)
         case FMOD_DSP_CATEGORY_DSPCODECMPEG:
         case FMOD_DSP_CATEGORY_DSPCODECRAW:
         case FMOD_DSP_CATEGORY_DSPCODECXMA:
-        case FMOD_DSP_CATEGORY_DSPCODECCELT:
         case FMOD_DSP_CATEGORY_DSPCODECADPCM:
         {
             if (!description->channels)
@@ -168,17 +167,8 @@ FMOD_RESULT DSPI::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 
     FMOD_memcpy(&mDescription, description, sizeof(FMOD_DSP_DESCRIPTION_EX));
 
-    mDSPTick = 0;
-
     mFlags &= ~FMOD_DSP_FLAG_ACTIVE;
     mFlags &= ~FMOD_DSP_FLAG_USEDADDDSP;
-	speakermask = 0xFFFF;
-
-    #if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-    mFlagsMramAddress = (unsigned int)&mFlags;
-    #endif
-
-#endif
 
     return FMOD_OK;
 }
@@ -199,24 +189,19 @@ FMOD_RESULT DSPI::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 423a3035 auto
 // OFFSET: 0x008DBEF0
-FMOD_RESULT DSPI::getInput(int index, DSPI **inputdsp, DSPConnectionI **input, bool protect)
+FMOD_RESULT DSPI::getInput(int index, DSPConnectionI **input, DSPI **inputdsp)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-#ifndef PLATFORM_PS3_SPU
     LocalCriticalSection crit(mSystem->mDSPConnectionCrit);
-
-    if (protect)
-    {
-        mSystem->flushDSPConnectionRequests();
-
-        crit.enter();
-    }
-
     int count;
     LinkedListNode *current;
     DSPConnectionI *connection;
-    
+
+    mSystem->flushDSPConnectionRequests();
+
+    crit.enter();
+
     if (index >= mNumInputs)
     {
         return FMOD_ERR_INVALID_PARAM;
@@ -235,7 +220,7 @@ FMOD_RESULT DSPI::getInput(int index, DSPI **inputdsp, DSPConnectionI **input, b
         count++;
     }
     connection = (DSPConnectionI *)current->getData();
-    
+
     if (input)
     {
         *input = connection;
@@ -245,16 +230,32 @@ FMOD_RESULT DSPI::getInput(int index, DSPI **inputdsp, DSPConnectionI **input, b
         *inputdsp = connection->mInputUnit;
     }
 
-    if (protect)
-    {
-        crit.leave();
-    }
-#endif
+    crit.leave();
 
     return FMOD_OK;
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+// VERIFY: 831d5a23 auto
+// OFFSET: 0x008DC350
+FMOD_RESULT DSPI::getInput(int index, DSPI **inputdsp)
+{
+    return getInput(index, 0, inputdsp);
 }
 
 
@@ -273,23 +274,18 @@ FMOD_RESULT DSPI::getInput(int index, DSPI **inputdsp, DSPConnectionI **input, b
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7d0964e2 auto
 // OFFSET: 0x008DBF90
-FMOD_RESULT DSPI::getOutput(int index, DSPI **outputdsp, DSPConnectionI **output, bool protect)
+FMOD_RESULT DSPI::getOutput(int index, DSPConnectionI **output, DSPI **outputdsp)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-#ifndef PLATFORM_PS3_SPU
     LocalCriticalSection crit(mSystem->mDSPConnectionCrit);
-
-    if (protect)
-    {
-        mSystem->flushDSPConnectionRequests();
-
-        crit.enter();
-    }
-
     int count;
     LinkedListNode *current;
     DSPConnectionI *connection;
+
+    mSystem->flushDSPConnectionRequests();
+
+    crit.enter();
 
     if (index >= mNumOutputs)
     {
@@ -309,7 +305,7 @@ FMOD_RESULT DSPI::getOutput(int index, DSPI **outputdsp, DSPConnectionI **output
         count++;
     }
     connection = (DSPConnectionI *)current->getData();
-    
+
     if (output)
     {
         *output = connection;
@@ -319,82 +315,7 @@ FMOD_RESULT DSPI::getOutput(int index, DSPI **outputdsp, DSPConnectionI **output
         *outputdsp = connection->mOutputUnit;
     }
 
-    if (protect)
-    {
-        crit.leave();
-    }
-#endif
-    return FMOD_OK;
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
-}
-
-
-#ifndef FMOD_SUPPORT_MIXER_NONRECURSIVE
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::read(float **outbuffer, int *outchannels, unsigned int *length, FMOD_SPEAKERMODE speakermode, int speakermodechannels, unsigned int tick)
-{
-    return FMOD_ERR_INTERNAL;
-}
-
-#endif
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::read(void  *outbuffer, unsigned int *length, FMOD_SPEAKERMODE speakermode, int speakermodechannels, unsigned int tick)
-{
-    return read(0, 0, length, speakermode, speakermodechannels, tick);
-}
-
-
-#ifdef FMOD_SUPPORT_MIXER_NONRECURSIVE
-
-#ifdef PLATFORM_WINDOWS_PS3MODE
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
-  
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::stepBack(LinkedListNode *&current, DSPConnectionI *&connection, DSPI *&t, LinkedListNode *&next, bool dspionly)
-{
-    current = t->mPrevious;                             // Reading from LS, making current point to mainRAM address.
-    connection = (DSPConnectionI *)current->getData();   // Point to LS           
-    t = connection->mOutputUnit;                        // Point to LS
-    next = connection->mInputNode.getNext();            // Next points to MainRAM
+    crit.leave();
 
     return FMOD_OK;
 }
@@ -405,695 +326,178 @@ FMOD_RESULT DSPI::stepBack(LinkedListNode *&current, DSPConnectionI *&connection
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
-	[RETURN_VALUE]
 
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::stepForwards(LinkedListNode *&current, DSPConnectionI *&connection, DSPConnectionI *&prevconnection, DSPI *&t, LinkedListNode *&next)
-{
-    connection = (DSPConnectionI *)current->getData();           // Point to LS
-    t = connection->mInputUnit;                                 // Point to LS
-    next = connection->mInputNode.getNext();                    // next points to MainRAM
-    t->mPrevious = current;                                     // LS variable pointing to MainRAM address.
-    prevconnection = connection;
-    current = t->mInputHead.getNext();                          // Point to MainRAM
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::updateHistory(DSPI *t, float *buffer, int length, int channels)
-{
-    float *srcptr, *destptr;
-    int len;
-
-    destptr = t->mHistoryBuffer;
-    srcptr = (float *)buffer;
-
-    len = length;
-    while (len)
-    { 
-        int size = len;
-        if (t->mHistoryPosition + size > FMOD_HISTORYBUFFERLEN)
-        {
-            size = FMOD_HISTORYBUFFERLEN - t->mHistoryPosition;
-        }
-
-        FMOD_memcpy(destptr + (t->mHistoryPosition * channels), srcptr, size * channels * sizeof(float));
-
-        len -= size;
-        srcptr += (size * channels);
-    
-        t->mHistoryPosition += size;
-        if (t->mHistoryPosition >= FMOD_HISTORYBUFFERLEN)
-        {
-            t->mHistoryPosition = 0;
-        }
-    }
-
-    return FMOD_OK;
-}
-
-#endif
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    Win32, Win64, Linux, Macintosh, XBox, PlayStation 2, GameCube
 
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT DSPI::run(float **outbuffer, int *outchannels, unsigned int *length, FMOD_SPEAKERMODE speakermode, int speakermodechannels, unsigned int tick)
+// VERIFY: d6e6e8a0 auto
+// OFFSET: 0x008DC370
+FMOD_RESULT DSPI::getOutput(int index, DSPI **outputdsp)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-    FMOD_RESULT result = FMOD_OK;
-    DSPI *t = this;
-    LinkedListNode *current   = mInputHead.getNext();
-    DSPConnectionI *connection = 0, *prevconnection = 0;
+    return getOutput(index, 0, outputdsp);
+}
 
-#ifdef PLATFORM_PS3_SPU
-    unsigned int starttime, endtime;
 
-    FMOD_memcpy((void *)gDMAMemoryDSP, (void *)gDMAMemorySoundCard, t->mDescription.mSize);
-    t = (DSPI *)gDMAMemoryDSP;
+/*
+[
+	[DESCRIPTION]
 
-    *outbuffer = (float *)gTargetMixBuffer;
-#else
-    if (mBuffer)
+	[PARAMETERS]
+
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+// VERIFY: 379314dc auto
+// OFFSET: 0x008DA4A0
+FMOD_RESULT DSPI::execute(float *inbuffer, float **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode)
+{
+    return FMOD_ERR_INTERNAL;
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+// OFFSET: 0x008DA4B0
+FMOD_RESULT DSPI::execute(void *inbuffer, void **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode)
+{
+    return execute((float *)inbuffer, (float **)outbuffer, length, inchannels, outchannels, speakermode);
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+// VERIFY: c8b00d3a auto
+// OFFSET: 0x008DA4C0
+FMOD_RESULT DSPI::resetVisited()
+{
+    LinkedListNode *current;
+
+    current = mInputHead.getNext();
+    while (current != &mInputHead)
     {
-        *outbuffer = mBuffer;
-    }
-#endif
+        DSPConnectionI *connection = (DSPConnectionI *)current->getData();
 
-    t->mFlags |= FMOD_DSP_FLAG_FIRSTMIX;
-
-    while (current != mInputHeadAddress)
-    {
-        /*
-            ==============================================================================================
-            Stepping forwards through DSP tree
-            ==============================================================================================
-        */
-#ifdef PLATFORM_PS3_SPU
-        if (gSystemFlags & FMOD_INIT_ENABLE_PROFILE)
+        if (!connection)
         {
-            FMOD_PS3_SPU_DSP_timer_start(&starttime);
+            break;
         }
-#endif
 
-        if (current != t->mInputHeadAddress)
+        connection->mInputUnit->resetVisited();
+
+        current = current->getNext();
+    }
+
+    mFlags &= ~FMOD_DSP_FLAG_VISITED;
+
+    if (*mWantsToFinish)
+    {
+        mFlags |= FMOD_DSP_FLAG_FINISHED;
+        *mWantsToFinish = 0;
+    }
+
+    return FMOD_OK;
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+// VERIFY: 978b605a auto
+// OFFSET: 0x008DBE20
+FMOD_RESULT DSPI::setFinished(bool finished, bool force)
+{
+    if (!finished)
+    {
+        *mWantsToFinish = 0;
+        mFlags &= ~FMOD_DSP_FLAG_FINISHED;
+    }
+
+    if (force)
+    {
+        FMOD_OS_CriticalSection_Enter(mSystem->mDSPCrit);
+
+        *mWantsToFinish = 0;
+
+        if (finished)
         {
-            bool goback = false;
-            LinkedListNode *next;
-
-            if (t->mDSPTick == tick)
-            {
-                goback = true;
-            }
-            else if (t->mDescription.mCategory == FMOD_DSP_CATEGORY_RESAMPLER || 
-                     t->mDescription.mCategory == FMOD_DSP_CATEGORY_DSPCODECMPEG ||
-                     t->mDescription.mCategory == FMOD_DSP_CATEGORY_DSPCODECRAW ||
-                     t->mDescription.mCategory == FMOD_DSP_CATEGORY_DSPCODECADPCM)
-            {
-#if defined(PLATFORM_PS3_SPU)
-                FMOD_SPU_PROFILE_START(gProfileResults[FMOD_SPU_PROFILE_LAZYDMA1]);
-
-                cellDmaLargeGet((void *)(gDMAMemoryDSP + gDSPISize), t->mMramAddress + gDSPISize, t->mDescription.mSize - gDSPISize, TAG1, TID, RID);
-                cellDmaWaitTagStatusAll(MASK1);
-                FMOD_PS3_SPU_DSPPointersToLS(t, false);
-
-                t = (DSPI *)gDMAMemoryDSP;
-
-                FMOD_SPU_PROFILE_STOP(gProfileResults[FMOD_SPU_PROFILE_LAZYDMA1]);
-#endif
-                DSPResampler *resampler = SAFE_CAST(DSPResampler, t);
-                if (!resampler->mFill)
-                {
-                    goback = true;
-                }
-            }
-
-            if (goback)
-            {
-                prevconnection = 0;
-                current = t->mInputHeadAddress;
-                t->mLastChannels = *outchannels;
-                continue;
-            }
-
-#ifdef PLATFORM_PS3_SPU
-            if (gSystemFlags & FMOD_INIT_ENABLE_PROFILE)
-            {
-                FMOD_PS3_SPU_DSP_timer_end(starttime, &t->mCPUUsageTemp);
-            }
-#endif
-
-            t->mBufferChannels = speakermodechannels;
-
-            stepForwards(current, connection, prevconnection, t, next);
-
-            t->mFlags |= FMOD_DSP_FLAG_IDLE;
-
-            if (mDSPTick != tick)
-            {
-                /*
-                    Reset CPU usage of dsp node if it is the first time
-                    it has been stepped into.
-                */
-                t->mCPUUsage = t->mCPUUsageTemp;
-                t->mCPUUsageTemp = 0;
-            }
-
-            connection = 0;
-
-            if (!(t->mFlags & FMOD_DSP_FLAG_ACTIVE) || t->mFlags & (FMOD_DSP_FLAG_FINISHED | FMOD_DSP_FLAG_QUEUEDFORDISCONNECT))
-            {
-                t->mDSPTick = tick;
-
-#ifdef PLATFORM_PS3_SPU
-                cellDmaPutUint32(t->mFlags, t->mFlagsMramAddress, TAG1, TID, RID);
-#endif
-
-                stepBack(current, connection, t, next, true);
-
-                if (t->mLastChannels > 0)
-                {
-                    *outchannels = t->mLastChannels;
-                }
-                else
-                {
-                    *outchannels = speakermodechannels;
-                }
-
-                /*
-                    Clear the buffer if first input was inactive
-                */
-                if (t->mBuffer && (t->mFlags & FMOD_DSP_FLAG_FIRSTMIX))
-                {
-                    t->mFlags &= ~FMOD_DSP_FLAG_FIRSTMIX;
-#ifdef PLATFORM_PS3_SPU
-                    *outbuffer = (float *)gTargetMixBuffer;
-            
-                    FMOD_memset(*outbuffer, 0, *length * *outchannels * sizeof(float));
-
-                    cellDmaPut((void *)*outbuffer, (uint64_t)t->mBuffer, *length * *outchannels * sizeof(float), TAG1, TID, RID);
-                    cellDmaWaitTagStatusAll(MASK1);
-#else
-                    FMOD_memset(t->mBuffer, 0, *length * *outchannels * sizeof(float));
-                    *outbuffer = t->mBuffer;
-#endif
-                }
-                current = next;
-                continue;
-            }            
-
-            t->mFlags |= FMOD_DSP_FLAG_FIRSTMIX;
-
-#ifdef PLATFORM_PS3_SPU
-            cellDmaPutUint32(t->mFlags, t->mFlagsMramAddress, TAG1, TID, RID);
-#endif
+            mFlags |= FMOD_DSP_FLAG_FINISHED;
         }
         else
         {
-            /*
-                ==============================================================================================
-                Stepping backwards through DSP tree
-                ==============================================================================================
-            */
-            LinkedListNode *next;
-            bool wholedspdma = false;
-
-#ifdef PLATFORM_PS3_SPU
-            if (gSystemFlags & FMOD_INIT_ENABLE_PROFILE)
-            {
-                FMOD_PS3_SPU_DSP_timer_start(&starttime);
-            }
-#endif
-            if (t->mDSPTick == tick)
-            {
-#ifdef PLATFORM_PS3_SPU
-                if (t->mBuffer)
-                {
-                    cellDmaGet((void *)gTargetMixBuffer, (uint64_t)t->mBuffer, MIXBUFFERSIZE, TAG1, TID, RID);
-                    cellDmaWaitTagStatusAll(MASK1);
-                }
-
-                *outbuffer = (float *)gTargetMixBuffer;
-#else
-                if (t->mBuffer)
-                {
-                    *outbuffer = t->mBuffer;
-                }
-#endif
-                *outchannels = t->mBufferChannels;
-                t->mFlags &= ~FMOD_DSP_FLAG_IDLE;
-            }
-            else
-            {
-                if (t->mDescription.mCategory == FMOD_DSP_CATEGORY_RESAMPLER || 
-                    t->mDescription.mCategory == FMOD_DSP_CATEGORY_DSPCODECMPEG ||
-                    t->mDescription.mCategory == FMOD_DSP_CATEGORY_DSPCODECRAW ||
-                    t->mDescription.mCategory == FMOD_DSP_CATEGORY_DSPCODECADPCM)
-                {
-#if defined(PLATFORM_PS3_SPU)
-                    FMOD_SPU_PROFILE_START(gProfileResults[FMOD_SPU_PROFILE_LAZYDMA2]);
-
-                    /*
-                        Need to DMA in the whole unit
-                    */
-                    cellDmaLargeGet((void *)(gDMAMemoryDSP + gDSPISize), t->mMramAddress + gDSPISize, t->mDescription.mSize - gDSPISize, TAG1, TID, RID);
-                    cellDmaWaitTagStatusAll(MASK1);
-
-                    FMOD_PS3_SPU_DSPPointersToLS(t, false);
-
-                    t = (DSPI *)gDMAMemoryDSP;
-
-                    FMOD_SPU_PROFILE_STOP(gProfileResults[FMOD_SPU_PROFILE_LAZYDMA2]);
-
-                    wholedspdma = true;
-#endif
-                    DSPResampler *resampler = SAFE_CAST(DSPResampler, t);
-
-                    FMOD_SPU_PROFILE_START(gProfileResults[FMOD_SPU_PROFILE_RESAMPLE]);
-
-                    result = resampler->update(*length, outchannels, (void **)outbuffer, tick);
-
-                    FMOD_SPU_PROFILE_STOP(gProfileResults[FMOD_SPU_PROFILE_RESAMPLE]);
-
-                    t->mBufferChannels = *outchannels;
-
-                    if (result == FMOD_ERR_FILE_EOF)
-                    {              
-#if defined(PLATFORM_PS3_SPU)
-                        FMOD_PS3_SPU_DSPPointersToMRAM(t, false);
-                        cellDmaLargePut((void *)gDMAMemoryDSP, t->mMramAddress, t->mDescription.mSize, TAG1, TID, RID);
-                        cellDmaWaitTagStatusAll(MASK1);
-#endif
-                        current = t->mInputHead.getNext();  /* Make it start again on the subtree */
-
-#ifdef PLATFORM_PS3_SPU
-                        if (gSystemFlags & FMOD_INIT_ENABLE_PROFILE)
-                        {
-                            FMOD_PS3_SPU_DSP_timer_end(starttime, &t->mCPUUsageTemp);
-                        }
-#endif
-                        continue;
-                    }
-                    else
-                    {
-                        if (gSystemFlags & FMOD_INIT_ENABLE_PROFILE)
-                        {
-                            #if defined(FMOD_SUPPORT_PROFILE_DSP_VOLUMELEVELS)          
-                            if (t->mDescription.mCategory != FMOD_DSP_CATEGORY_SOUNDCARD)
-                            {
-                                calculatePeaks(*outbuffer, *length, *outchannels, t);
-                            }
-                            #endif
-                        }
-                    }
-
-#ifdef PLATFORM_PS3_SPU
-                    if (t->mBuffer)
-                    {
-                        FMOD_SPU_PROFILE_START(gProfileResults[FMOD_SPU_PROFILE_DMA3]);
-
-                        cellDmaPut((void *)*outbuffer, (uint64_t)t->mBuffer, *length * *outchannels * sizeof(float), TAG1, TID, RID);
-                        cellDmaWaitTagStatusAll(MASK1);
-
-                        FMOD_SPU_PROFILE_STOP(gProfileResults[FMOD_SPU_PROFILE_DMA3]);
-                    }
-#endif
-                }
-
-                /*
-                    Call the plugin callback to actually process or generate the data for this unit.
-
-                    mSystem->mDSPTempBuff actually just points to gSourceMixBuffer
-                */
-                if (t->mDescription.read && !(t->mFlags & FMOD_DSP_FLAG_BYPASS) && t->mDescription.mCategory != FMOD_DSP_CATEGORY_DSPCODECMPEG && t->mDescription.mCategory != FMOD_DSP_CATEGORY_DSPCODECADPCM && t->mDescription.mCategory != FMOD_DSP_CATEGORY_DSPCODECRAW)
-                {
-                    if (t->mDescription.channels)
-                    {
-                        *outchannels = t->mDescription.channels;
-                        FMOD_memset(mSystem->mDSPTempBuff, 0, *length * t->mDescription.channels * sizeof(float));
-                    }
-                    else if (!t->mNumInputs)
-                    {
-                        *outbuffer = mSystem->mDSPTempBuff; /* mSystem->mDSPTempBuff actually just points to gSourceMixBuffer */
-                        FMOD_memset(*outbuffer, 0, *length * *outchannels * sizeof(float));
-                    }
-
-#if defined(PLATFORM_PS3_SPU)
-                    FMOD_SPU_PROFILE_START(gProfileResults[FMOD_SPU_PROFILE_LAZYDMA3]);
-                    cellDmaLargeGet((void *)(gDMAMemoryDSP + gDSPISize), t->mMramAddress + gDSPISize, t->mDescription.mSize - gDSPISize, TAG1, TID, RID);
-                    cellDmaWaitTagStatusAll(MASK1);
-                    FMOD_SPU_PROFILE_STOP(gProfileResults[FMOD_SPU_PROFILE_LAZYDMA3]);
-
-                    t = (DSPI *)gDMAMemoryDSP;
-                    FMOD_PS3_SPU_DSPPointersToLS(t, false);
-                    wholedspdma = true;
-#endif
-                    t->instance = (FMOD_DSP *)t;
-                    FMOD_SPU_PROFILE_START(gProfileResults[FMOD_SPU_PROFILE_DSPREAD]);
-                    t->mDescription.read((FMOD_DSP_STATE *)t, (float *)*outbuffer, (float *)mSystem->mDSPTempBuff, *length, *outchannels, *outchannels);
-                    FMOD_SPU_PROFILE_STOP(gProfileResults[FMOD_SPU_PROFILE_DSPREAD]);
-
-                    *outbuffer = mSystem->mDSPTempBuff;
-                    t->mFlags &= ~FMOD_DSP_FLAG_IDLE;                    
-                }
-
-                t->mDSPTick = tick;
-
-                t->mLastChannels = *outchannels;
-
-#ifdef PLATFORM_PS3_SPU
-                if (gSystemFlags & FMOD_INIT_ENABLE_PROFILE)
-                {
-                    FMOD_PS3_SPU_DSP_timer_end(starttime, &t->mCPUUsageTemp);
-                }
-#endif
-            }
-
-            if (t->mFlags & FMOD_DSP_FLAG_IDLE)
-            {
-                t->mDSPTick = tick;
-
-                stepBack(current, connection, t, next, !wholedspdma);
-    
-                if (t->mLastChannels)
-                {
-                    *outchannels = t->mLastChannels;
-                }
-                else
-                {
-                    *outchannels = speakermodechannels;
-                }
-
-                if (t->mFlags & FMOD_DSP_FLAG_FIRSTMIX)
-                {
-#ifdef PLATFORM_PS3_SPU
-                    FMOD_memset((void *)gSourceMixBuffer, 0, *length * *outchannels * sizeof(float));
-                    
-                    cellDmaPut((void *)gSourceMixBuffer, (uint64_t)t->mBuffer, *length * *outchannels * sizeof(float), TAG1, TID, RID);
-                    cellDmaWaitTagStatusAll(MASK1);
-                    *outbuffer = (float *)gSourceMixBuffer;
-#else
-                    FMOD_memset((void *)t->mBuffer, 0, *length * *outchannels * sizeof(float));
-#endif
-                    t->mFlags &= ~FMOD_DSP_FLAG_FIRSTMIX;
-                }
-                else
-                {
-                    /*
-                        Re-get the source buffer from this level, otherwise we're just returning the idle buffer.
-                    */
-#ifdef PLATFORM_PS3_SPU
-                    cellDmaGet((void *)gSourceMixBuffer, (uint64_t)t->mBuffer, *length * *outchannels * sizeof(float), TAG1, TID, RID);
-                    cellDmaWaitTagStatusAll(MASK1);
-                    *outbuffer = (float *)gSourceMixBuffer;
-#else
-                    *outbuffer = t->mBuffer;
-#endif
-                }           
-            }
-            else
-            {
-                t->mDSPTick = tick;
-
-                stepBack(current, connection, t, next, !wholedspdma);
-
-                t->mFlags &= ~FMOD_DSP_FLAG_IDLE;
-
-#ifdef PLATFORM_PS3_SPU
-                if (gSystemFlags & FMOD_INIT_ENABLE_PROFILE)
-                {
-                    FMOD_PS3_SPU_DSP_timer_start(&starttime);
-                }
-                /*
-                    Bring in the connection levels
-                */
-                cellDmaGet((void *)gDMAMemoryConnectionLevels, (uint64_t)connection->mMramAddressLevels, connection->mMaxOutputLevels * connection->mMaxInputLevels * 3 * sizeof(DSP_LEVEL_TYPE), TAG1, TID, RID);
-                cellDmaWaitTagStatusAll(MASK1);
-                FMOD_PS3_SPU_ConnectionLevelsToLS(connection);
-#endif
-
-                /*
-                    Now that we know how many channels are coming in from the input, does the pan need updating?
-                */
-                bool passthru = false;
-                if (t->mNumInputs <= 1 && connection->mVolume == 1.0f &&
-                   ((!connection->mSetLevelsUsed && t->mDescription.mCategory != FMOD_DSP_CATEGORY_SOUNDCARD) || connection->checkUnity(*outchannels, speakermodechannels) == FMOD_OK))
-                {
-                    passthru = true;
-                }
-
-                if (t->mDescription.read && t->mDescription.channels && t->mDescription.channels != *outchannels)
-                {
-                    passthru = false;
-                }
-
-                /*
-                    Now either do a 'pass through' if the data is 1:1 and unscaled by volume, or do a mix.
-                */
-                if (passthru)
-                {
-                    if (t->mNumOutputs > 1 && t->mDescription.mCategory != FMOD_DSP_CATEGORY_RESAMPLER) /* A multiinput resampler doesnt need its mbuffer stomped on. */
-                    {
-#ifdef PLATFORM_PS3_SPU
-                        if (*outbuffer)
-                        {
-                            if (*outbuffer != gTargetMixBuffer)
-                            {
-                                FMOD_memcpy((void *)gTargetMixBuffer, *outbuffer, *length * *outchannels * sizeof(float));
-                            }
-                        }
-                        else
-                        {
-                            FMOD_memset((void *)gTargetMixBuffer, 0, *length * *outchannels * sizeof(float));
-                        }
-                        *outbuffer = (float *)gTargetMixBuffer;
-
-                        cellDmaPut((void *)*outbuffer, (uint64_t)t->mBuffer, *length * *outchannels * sizeof(float), TAG1, TID, RID);
-                        cellDmaWaitTagStatusAll(MASK1);
-#else
-                        if (*outbuffer)
-                        {
-                            FMOD_memcpy(t->mBuffer, (float *)*outbuffer, *length * *outchannels * sizeof(float));
-                        }
-                        else
-                        {
-                            FMOD_memset(t->mBuffer, 0, *length * *outchannels * sizeof(float));
-                        }
-
-                        *outbuffer = t->mBuffer;        /* Return the already processed buffer */
-#endif
-                        t->mBufferChannels = *outchannels;
-                    }
-                    if (connection->mRampCount)
-                    {
-                        int count, count2;
-
-                        for (count = 0; count < connection->mMaxOutputLevels; count++)
-                        {
-                            for (count2 = 0; count2 < connection->mMaxInputLevels; count2++)
-                            {
-                                connection->mLevelCurrent[count][count2] = connection->mLevel[count][count2];
-                                connection->mLevelDelta  [count][count2] = 0;
-                            }
-                        }
-                        connection->mRampCount = 0;
-
-#ifdef PLATFORM_PS3_SPU
-                        cellDmaPut((void *)gDMAMemoryConnectionLevels, (uint64_t)connection->mMramAddressLevels, connection->mMaxOutputLevels * connection->mMaxInputLevels * 3 * sizeof(DSP_LEVEL_TYPE), TAG1, TID, RID);
-                        cellDmaWaitTagStatusAll(MASK1);
-#endif
-                    }
-                }
-                else
-                {
-#ifdef PLATFORM_PS3_SPU
-                    float *mixbuffer = (float *)gTargetMixBuffer;
-
-                    if (*outbuffer == gTargetMixBuffer)
-                    {
-                        FMOD_memcpy((void *)gSourceMixBuffer, (void *)gTargetMixBuffer, *length * *outchannels * sizeof(float));
-
-                        *outbuffer = (float *)gSourceMixBuffer;
-                    }
-                    if (t->mBuffer)
-                    {
-                        cellDmaGet((void *)gTargetMixBuffer, (uint64_t)t->mBuffer, *length * speakermodechannels * sizeof(float), TAG1, TID, RID);
-                        cellDmaWaitTagStatusAll(MASK1);
-                    }
-#else               
-                    float *mixbuffer = t->mBuffer;                
-            
-                    if (!mixbuffer)
-                    {
-                        mixbuffer = mSystem->mDSPTempBuff;
-                    }
-#endif
-
-                    /*
-                        If a new connection happened and no pan has been set, set it here.
-                    */
-                    if (!connection->mSetLevelsUsed)
-                    {
-                        if (speakermodechannels == *outchannels  && connection->mVolume == 1.0f)
-                        {
-                            connection->setUnity();
-                        }
-                        else
-                        {
-                            connection->setPan(0.0f, speakermodechannels, *outchannels, speakermode);
-                        }
-                        connection->mSetLevelsUsed = true;
-                    }
-
-                    /*
-                        If it is the first input, give it a blank buffer to mix to.
-                    */
-                    if (t->mFlags & FMOD_DSP_FLAG_FIRSTMIX)
-                    {
-                        FMOD_memset(mixbuffer, 0, *length * speakermodechannels * sizeof(float));
-                        t->mFlags &= ~FMOD_DSP_FLAG_FIRSTMIX;
-                    }
-
-                    FMOD_SPU_PROFILE_START(gProfileResults[FMOD_SPU_PROFILE_MIX]);
-                                    // out          // in
-                    connection->mix(mixbuffer, (float *)*outbuffer, speakermodechannels, *outchannels, *length);
-
-                    FMOD_SPU_PROFILE_STOP(gProfileResults[FMOD_SPU_PROFILE_MIX]);
-
-                    *outbuffer   = mixbuffer;
-                    *outchannels = speakermodechannels;
-#ifdef PLATFORM_PS3_SPU
-                    FMOD_SPU_PROFILE_START(gProfileResults[FMOD_SPU_PROFILE_DMA4]);
-                    unsigned int waitmask = 0;
-                    if (t->mBuffer)
-                    {
-                        cellDmaPut((void *)*outbuffer, (uint64_t)t->mBuffer, *length * *outchannels * sizeof(float), TAG1, TID, RID);
-                        cellDmaWaitTagStatusAll(MASK1);
-                        waitmask |= MASK1;
-                    }
-                    cellDmaPut((void *)gDMAMemoryConnectionLevels, (uint64_t)connection->mMramAddressLevels, connection->mMaxOutputLevels * connection->mMaxInputLevels * 3 * sizeof(DSP_LEVEL_TYPE), TAG2, TID, RID);
-                    waitmask |= MASK2;
-                    cellDmaWaitTagStatusAll(waitmask);
-                    FMOD_SPU_PROFILE_STOP(gProfileResults[FMOD_SPU_PROFILE_DMA4]);
- #endif
-                }
-
-                /*
-                    DMA connection and DSP unit back to MRAM
-                */
-#ifdef PLATFORM_PS3_SPU
-                unsigned int waitmask = 0;
-                FMOD_SPU_PROFILE_START(gProfileResults[FMOD_SPU_PROFILE_DMAUNITSBACK]);
-
-                FMOD_PS3_SPU_ConnectionLevelsToMRAM(connection);
-
-                if (connection->mMramAddress)
-                {
-                    cellDmaPut((void *)gDMAMemoryConnection, (uint64_t)connection->mMramAddress, gDSPConnectionSize, TAG1, TID, RID);
-                    waitmask |= MASK1;
-                }
-                FMOD_PS3_SPU_DSPPointersToMRAM(t, true);
-                {
-                    cellDmaLargePut((void *)gDMAMemoryDSP, (uint64_t)t->mMramAddress, gDSPISize, TAG2, TID, RID);
-                    waitmask |= MASK2;
-                    cellDmaWaitTagStatusAll(waitmask);
-                }
-                FMOD_PS3_SPU_DSPPointersToLS(t, true);
-
-                FMOD_SPU_PROFILE_STOP(gProfileResults[FMOD_SPU_PROFILE_DMAUNITSBACK]);
-
-                if (gSystemFlags & FMOD_INIT_ENABLE_PROFILE)
-                {
-                    FMOD_PS3_SPU_DSP_timer_end(starttime, &t->mCPUUsageTemp);
-
-                    #if defined(FMOD_SUPPORT_PROFILE_DSP_VOLUMELEVELS)          
-                    if (t->mDescription.mCategory != FMOD_DSP_CATEGORY_SOUNDCARD)
-                    {
-                        calculatePeaks(*outbuffer, *length, *outchannels, t);
-                    }
-                    #endif
-                }
-#endif
-            }
-
-            /*
-                If the history buffer option is set, buffer off this data into a separate ring buffer.
-            */
-            if (t->mHistoryBuffer)
-            {
-                updateHistory(t, *outbuffer, *length, *outchannels);
-            }
-
-            current = next;
+            mFlags &= ~FMOD_DSP_FLAG_FINISHED;
         }
-    };
 
-    /*
-        THIS IS FOR DSP SOUNDCARD UNIT, since its not part of the above loop
-
-        If the history buffer option is set, buffer off this data into a separate ring buffer.
-    */
-    if (mHistoryBuffer)
-    {
-        updateHistory(this, *outbuffer, *length, *outchannels);
+        FMOD_OS_CriticalSection_Leave(mSystem->mDSPCrit);
     }
-    
-    if (gSystemFlags & FMOD_INIT_ENABLE_PROFILE)
+    else
     {
-        calculatePeaks(*outbuffer, *length, *outchannels);
-
-        mCPUUsage = mCPUUsageTemp;
-        mCPUUsageTemp = 0;
-
-        FMOD_PS3_SPU_DSPPointersToMRAM(this, true);
-
-        cellDmaPut((void *)gDMAMemorySoundCard, (uint64_t)gDSPSoundCardMram, gDSPSoundCardSize, TAG1, TID, RID);
-        cellDmaWaitTagStatusAll(1<<TAG1);
+        *mWantsToFinish = finished;
     }
 
-    mDSPTick = tick;
-
-#ifdef PLATFORM_PS3_SPU
-    cellDmaPutUint32(mDSPTick, gDSPSoundCardDSPTickMram, TAG1, TID, RID);
-#endif
-
-    return result;
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
+    return FMOD_OK;
 }
+
+
+#ifndef FMOD_SUPPORT_MIXER_NONRECURSIVE
+
+#endif
+
+#ifdef FMOD_SUPPORT_MIXER_NONRECURSIVE
+
+#ifdef PLATFORM_WINDOWS_PS3MODE
+
+#endif
+
 
 #endif
 
@@ -1111,6 +515,7 @@ FMOD_RESULT DSPI::run(float **outbuffer, int *outchannels, unsigned int *length,
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7449cc04 auto
 // OFFSET: 0x008DA520
 FMOD_RESULT DSPI::validate(DSP *dsp, DSPI **dspi)
 {
@@ -1145,39 +550,41 @@ FMOD_RESULT DSPI::validate(DSP *dsp, DSPI **dspi)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f19a7781 auto
 // OFFSET: 0x008DC420
 FMOD_RESULT DSPI::setPosition(unsigned int position, bool processinputs)
 {
-    FMOD_RESULT result;
-
     if (processinputs)
     {
-        int count, numinputs = 0;
-    
+        FMOD_RESULT result;
+        int numinputs, count;
+
+        numinputs = 0;
+
         result = getNumInputs(&numinputs);
         if (result != FMOD_OK)
         {
             return result;
         }
-    
+
         for (count = 0; count < numinputs; count++)
         {
-            DSPI *dsp = 0;
-        
-            getInput(count, &dsp);
-        
-            dsp->setPosition(position, true);
+            DSPI *input = 0;
+
+            getInput(count, 0, &input);
+
+            input->setPosition(position, true);
         }
     }
 
-    if (!mDescription.setposition)
+    if (mDescription.setposition)
     {
-        return FMOD_OK;
+        instance = (FMOD_DSP *)this;
+
+        return mDescription.setposition((FMOD_DSP_STATE *)this, position);
     }
-    
-    instance = (FMOD_DSP *)this;
-    
-    return mDescription.setposition((FMOD_DSP_STATE *)this, position);
+
+    return FMOD_OK;
 }
 
  
@@ -1383,24 +790,13 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                 }
                 case 6:
                 {
-                    if (speakermap == FMOD_SPEAKERMAPTYPE_51_PROTOOLS)
-                    {
-                        float levels[2][6] = 
-                        {    /*  FL      C              FR          BL             BR             LFE         */
-                            { frontleft, center * 0.5f, 0,          backleft*0.5f, 0,              lfe * 0.5f },    // FL
-                            { 0,         center * 0.5f, frontright, 0,             backright*0.5f, lfe * 0.5f },    // FR
-                        };
-                        FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    }
-                    else
-                    {
-                        float levels[2][6] = 
-                        {    /*  FL      FR          C              LFE         BL             BR             */
-                            { frontleft, 0,          center * 0.5f, lfe * 0.5f, backleft*0.5f, 0              },    // FL
-                            { 0,         frontright, center * 0.5f, lfe * 0.5f, 0,             backright*0.5f },    // FR
-                        };
-                        FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    }
+                    float levels[2][6] = 
+                    {    /*  FL      FR          C              LFE         BL             BR             */
+                        { frontleft, 0,          center * 0.5f, lfe * 0.5f, backleft*0.5f, 0              },    // FL
+                        { 0,         frontright, center * 0.5f, lfe * 0.5f, 0,             backright*0.5f },    // FR
+                    };
+                    FMOD_memcpy(outlevels, levels, sizeof(levels));
+                
                     *numinputlevels = 6;
                     break;
                 }
@@ -1506,28 +902,15 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                 }
                 case 6:
                 {
-                    if (speakermap == FMOD_SPEAKERMAPTYPE_51_PROTOOLS)
-                    {
-                        float levels[4][6] = 
-                        {    /*  FL            C                 FR                BL                BR         LFE               */
-                            { frontleft,       center * 0.5f,    0,                0,                0,         lfe * 0.25f      },    // FL
-                            { 0,               center * 0.5f,    frontright,       0,                0,         lfe * 0.25f      },    // FR
-                            { 0,               0,                0,                backleft,         0,         lfe * 0.25f      },    // RL
-                            { 0,               0,                0,                0,                backright, lfe * 0.25f      },    // RR
-                        };
-                        FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    }
-                    else
-                    {
-                        float levels[4][6] = 
-                        {    /*  FL            FR                C                 LFE               BL                BR       */
-                            { frontleft,       0,                center * 0.5f,    lfe * 0.25f,      0,                0        },    // FL
-                            { 0,               frontright,       center * 0.5f,    lfe * 0.25f,      0,                0        },    // FR
-                            { 0,               0,                0,                lfe * 0.25f,      backleft,         0        },    // RL
-                            { 0,               0,                0,                lfe * 0.25f,      0,                backright},    // RR
-                        };
-                        FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    }
+                    float levels[4][6] = 
+                    {    /*  FL            FR                C                 LFE               BL                BR       */
+                        { frontleft,       0,                center * 0.5f,    lfe * 0.25f,      0,                0        },    // FL
+                        { 0,               frontright,       center * 0.5f,    lfe * 0.25f,      0,                0        },    // FR
+                        { 0,               0,                0,                lfe * 0.25f,      backleft,         0        },    // RL
+                        { 0,               0,                0,                lfe * 0.25f,      0,                backright},    // RR
+                    };
+                    FMOD_memcpy(outlevels, levels, sizeof(levels));
+                
                     *numinputlevels = 6;
                     break;
                 }
@@ -1637,30 +1020,16 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                 }
                 case 6:
                 {
-                    if (speakermap == FMOD_SPEAKERMAPTYPE_51_PROTOOLS)
-                    {
-                        float levels[5][6] = 
-                        {    /*  FL            C                 FR                BL                BR                LFE              */
-                            { frontleft,       0,                0,                0,                0,                0          },    // FL
-                            { 0,               0,                frontright,       0,                0,                0          },    // FR
-                            { 0,               center,           0,                0,                0,                0          },    // C
-                            { 0,               0,                0,                backleft,         0,                0          },    // RL
-                            { 0,               0,                0,                0,                backright,        0          }     // RR
-                        };
-                        FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    }
-                    else
-                    {
-                        float levels[5][6] = 
-                        {    /*  FL            FR                C                 LFE               BL                BR               */
-                            { frontleft,       0,                0,                0,                0,                0          },    // FL
-                            { 0,               frontright,       0,                0,                0,                0          },    // FR
-                            { 0,               0,                center,           0,                0,                0          },    // C
-                            { 0,               0,                0,                0,                backleft,         0          },    // RL
-                            { 0,               0,                0,                0,                0,                backright  }     // RR
-                        };
-                        FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    }
+                    float levels[5][6] = 
+                    {    /*  FL            FR                C                 LFE               BL                BR               */
+                        { frontleft,       0,                0,                0,                0,                0          },    // FL
+                        { 0,               frontright,       0,                0,                0,                0          },    // FR
+                        { 0,               0,                center,           0,                0,                0          },    // C
+                        { 0,               0,                0,                0,                backleft,         0          },    // RL
+                        { 0,               0,                0,                0,                0,                backright  }     // RR
+                    };
+                    FMOD_memcpy(outlevels, levels, sizeof(levels));
+                
                     *numinputlevels = 6;
                     break;
                 }
@@ -1774,32 +1143,17 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                 }
                 case 6:
                 {
-                    if (speakermap == FMOD_SPEAKERMAPTYPE_51_PROTOOLS)
-                    {
-                        float levels[6][6] = 
-                        {    /*  FL            C                 FR                BL                BR               LFE         */
-                            { frontleft,       0,                0,                0,                0,               0           },    // FL
-                            { 0,               0,                frontright,       0,                0,               0           },    // FR
-                            { 0,               center,           0,                0,                0,               0           },    // C
-                            { 0,               0,                0,                0,                0,               lfe         },    // LFE
-                            { 0,               0,                0,                backleft,         0,               0           },    // RL
-                            { 0,               0,                0,                0,                backright,       0           }     // RR
-                        };
-                        FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    }
-                    else
-                    {
-                        float levels[6][6] = 
-                        {    /*  FL            FR                C                 LFE               BL                BR         */
-                            { frontleft,       0,                0,                0,                0,                0          },    // FL
-                            { 0,               frontright,       0,                0,                0,                0          },    // FR
-                            { 0,               0,                center,           0,                0,                0          },    // C
-                            { 0,               0,                0,                lfe,              0,                0          },    // LFE
-                            { 0,               0,                0,                0,                backleft,         0          },    // RL
-                            { 0,               0,                0,                0,                0,                backright  }     // RR
-                        };
-                        FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    }
+                    float levels[6][6] = 
+                    {    /*  FL            FR                C                 LFE               BL                BR         */
+                        { frontleft,       0,                0,                0,                0,                0          },    // FL
+                        { 0,               frontright,       0,                0,                0,                0          },    // FR
+                        { 0,               0,                center,           0,                0,                0          },    // C
+                        { 0,               0,                0,                lfe,              0,                0          },    // LFE
+                        { 0,               0,                0,                0,                backleft,         0          },    // RL
+                        { 0,               0,                0,                0,                0,                backright  }     // RR
+                    };
+                    FMOD_memcpy(outlevels, levels, sizeof(levels));
+                
                     *numinputlevels = 6;
                     break;
                 }
@@ -1922,38 +1276,20 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                 }
                 case 6:
                 {
-                    if (speakermap == FMOD_SPEAKERMAPTYPE_51_PROTOOLS)
-                    {                
-                        float levels[8][6] = 
-                        {    /*  FL            C                 FR                BL                BR               LFE               */
-                            { frontleft,       0,                0,                0,                0,               0                 },    // FL
-                            { 0,               0,                frontright,       0,                0,               0                 },    // FR
-                            { 0,               center,           0,                0,                0,               0                 },    // C
-                            { 0,               0,                0,                0,                0,               lfe               },    // LFE
-                            { 0,               0,                0,                backleft,         0,               0                 },    // RL
-                            { 0,               0,                0,                0,                backright,       0                 },    // RR
-                            { sideleft * 0.5f, 0,                0,                sideleft * 0.5f,  0,               0                 },    // SL
-                            { 0,               0,                sideright * 0.5f, 0,                sideleft * 0.5f, 0                 },    // SR
-                        };
+                    float levels[8][6] = 
+                    {    /*  FL            FR                C                 LFE               BL                BR               */
+                        { frontleft,       0,                0,                0,                0,                0                },    // FL
+                        { 0,               frontright,       0,                0,                0,                0                },    // FR
+                        { 0,               0,                center,           0,                0,                0                },    // C
+                        { 0,               0,                0,                lfe,              0,                0                },    // LFE
+                        { 0,               0,                0,                0,                backleft,         0                },    // RL
+                        { 0,               0,                0,                0,                0,                backright        },    // RR
+                        { sideleft * 0.5f, 0,                0,                0,                sideleft * 0.5f,  0                },    // SL
+                        { 0,               sideright * 0.5f, 0,                0,                0,                sideleft * 0.5f  },    // SR
+                    };
 
-                        FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    }
-                    else
-                    {
-                        float levels[8][6] = 
-                        {    /*  FL            FR                C                 LFE               BL                BR               */
-                            { frontleft,       0,                0,                0,                0,                0                },    // FL
-                            { 0,               frontright,       0,                0,                0,                0                },    // FR
-                            { 0,               0,                center,           0,                0,                0                },    // C
-                            { 0,               0,                0,                lfe,              0,                0                },    // LFE
-                            { 0,               0,                0,                0,                backleft,         0                },    // RL
-                            { 0,               0,                0,                0,                0,                backright        },    // RR
-                            { sideleft * 0.5f, 0,                0,                0,                sideleft * 0.5f,  0                },    // SL
-                            { 0,               sideright * 0.5f, 0,                0,                0,                sideleft * 0.5f  },    // SR
-                        };
-
-                        FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    }
+                    FMOD_memcpy(outlevels, levels, sizeof(levels));
+                
                     *numinputlevels = 6;
                     break;
                 }
@@ -2070,26 +1406,14 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                 }
                 case 6:
                 {
-                    if (speakermap == FMOD_SPEAKERMAPTYPE_51_PROTOOLS)
-                    {                
-                        float levels[2][6] = 
-                        {    /*  FL            C                 FR           BL                BR         LFE          */
-                            { fl2,             c2 * 0.5f,        0,           bl2,              0,         lfe * 0.5f  },    // FL
-                            { 0,               c2 * 0.5f,        fr2,         0,                br2,       lfe * 0.5f  },    // FR
-                        };
+                    float levels[2][6] = 
+                    {    /*  FL            FR           C                 LFE               BL                BR       */
+                        { fl2,             0,           c2 * 0.5f,        lfe * 0.5f,       bl2,              0},      // FL
+                        { 0,               fr2,         c2 * 0.5f,        lfe * 0.5f,       0,                br2},    // FR
+                    };
 
-                        FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    }
-                    else
-                    {
-                        float levels[2][6] = 
-                        {    /*  FL            FR           C                 LFE               BL                BR       */
-                            { fl2,             0,           c2 * 0.5f,        lfe * 0.5f,       bl2,              0},      // FL
-                            { 0,               fr2,         c2 * 0.5f,        lfe * 0.5f,       0,                br2},    // FR
-                        };
-
-                        FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    }
+                    FMOD_memcpy(outlevels, levels, sizeof(levels));
+                
                     *numinputlevels = 6;
                     break;
                 }
@@ -2129,25 +1453,19 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
 DSPI::DSPI()
 {
     mBuffer             = 0;
-    mOutputBuffer       = 0;
+    mBufferMemory       = 0;
     mFlags              = 0;
-                        
+    mWantsToFinish      = &mWantsToFinishMem;
+    *mWantsToFinish     = 0;
+
     mNumInputs          = 0;
     mNumOutputs         = 0;
     mTreeLevel          = -1;
-#if defined(FMOD_SUPPORT_MIXER_NONRECURSIVE) || defined(PLATFORM_PS3)
-    mLastChannels       = 0;
-#endif
-                        
+
     mDefaultVolume      = 1.0f;
     mDefaultFrequency   = DEFAULT_FREQUENCY;
     mDefaultPan         = 0.0f;
     mDefaultPriority    = FMOD_CHANNEL_DEFAULTPRIORITY;
-
-#if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-    mMemory             = 0;
-    mInputHeadAddress   = &mInputHead;
-#endif
 }
 
 
@@ -2169,10 +1487,6 @@ DSPI::DSPI()
 // OFFSET: 0x008DC540
 FMOD_RESULT DSPI::release(bool freethis)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-    
-    #ifndef PLATFORM_PS3_SPU
-    
     FMOD_RESULT result;
 
     if (mSystem)
@@ -2184,22 +1498,22 @@ FMOD_RESULT DSPI::release(bool freethis)
         }
     }
 
-    mSystem->flushDSPConnectionRequests();  /* If we're about to free DSP memory, dont leave any in queue! */
-
-    result = removeInternal(true);
+    result = remove();
     if (result != FMOD_OK)
     {
-        result = disconnectFromInternal(0, 0, true);
+        result = disconnectFromQueued(0);
         if (result != FMOD_OK)
         {
             return result;
         }
     }
 
-    if (mOutputBuffer)
+    mSystem->flushDSPConnectionRequests();  /* If we're about to free DSP memory, dont leave any in queue! */
+
+    if (mBufferMemory)
     {
-        FMOD_Memory_Free(mOutputBuffer);
-        mOutputBuffer = 0;
+        FMOD_Memory_Free(mBufferMemory);
+        mBufferMemory = 0;
     }
 
     removeNode();
@@ -2207,62 +1521,15 @@ FMOD_RESULT DSPI::release(bool freethis)
     if (mDescription.release)
     {
         instance = (FMOD_DSP *)this;
-
         mDescription.release((FMOD_DSP_STATE *)this);
     }
 
-    #if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-    stopBuffering();
-    #endif
-
-    #ifdef FMOD_SUPPORT_VSTPLUGIN
-    if (mDescription.mType == FMOD_DSP_TYPE_VSTPLUGIN)
-    {
-        if (!mSystem->mVSTPluginsListHead.isEmpty())
-        {
-            LinkedListNode *dspvstnode = mSystem->mVSTPluginsListHead.getNext();
-            while (dspvstnode != &mSystem->mVSTPluginsListHead)
-            {
-                DSPI *dspvst = (DSPI *)dspvstnode->getData();
-
-                /*
-                    Check if this is the node associated with this dsp unit.
-                    If so, then remove it and free it.
-                */
-                if (dspvst == this)
-                {
-                    dspvstnode->removeNode();
-                    FMOD_Memory_Free(dspvstnode);
-                    break;
-                }
-
-                dspvstnode = dspvstnode->getNext();
-            }
-        }
-    }
-    #endif
-
     if (freethis)
     {
-        #ifdef PLATFORM_PS3
-        if (mMemory)
-        {
-            FMOD_Memory_Free(mMemory);
-        }
-        else
-        #endif
-        {
-            FMOD_Memory_Free(this);
-        }
+        FMOD_Memory_Free(this);
     }
-    
-    #endif
-    
-    return FMOD_OK;
 
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
+    return FMOD_OK;
 }
 
 
@@ -2312,8 +1579,6 @@ FMOD_RESULT DSPI::getSystemObject(System **system)
 // OFFSET: 0x008DB720
 FMOD_RESULT DSPI::updateTreeLevel(int level)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-#ifndef PLATFORM_PS3_SPU
     LinkedListNode *current;
 
     if (mNumOutputs > 1 && level < mTreeLevel)  /* Don't make it move backwards if it is already connected to something else that is deeper. */
@@ -2321,29 +1586,17 @@ FMOD_RESULT DSPI::updateTreeLevel(int level)
         return FMOD_OK;
     }
 
-    if (level >= FMOD_DSP_MAXTREEDEPTH)
-    {
-        FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "DSPI::addInputInteral", "ERROR.  Exceeded maximum DSP tree depth.  Either added too many DSP effects by accident or encountered a recursive add.\n"));
-        
-        if (mSystem->mCallback)
-        {
-            mSystem->mCallback((FMOD_SYSTEM *)mSystem, FMOD_SYSTEM_CALLBACKTYPE_BADDSPLEVEL, (FMOD_DSP *)this, 0);
-        }
-
-        return FMOD_ERR_DSP_CONNECTION;
-    }
-
     mTreeLevel = level;
 
-    if (!mOutputBuffer || (FMOD_UINT_NATIVE)mBuffer != FMOD_ALIGNPOINTER(mOutputBuffer, 16))
+    if ((!mBufferMemory || (FMOD_UINT_NATIVE)mBuffer != FMOD_ALIGNPOINTER(mBufferMemory, 16)) && level > 0)
     {
-        if (!mSystem->mDSPMixBuff[level])
+        if (!mSystem->mDSPMixBuff[level - 1])
         {
-            mSystem->mDSPMixBuff[level] = (float *)FMOD_Memory_CallocType((mSystem->mDSPBlockSize * (mSystem->mMaxOutputChannels < mSystem->mMaxInputChannels ? mSystem->mMaxInputChannels : mSystem->mMaxOutputChannels) * sizeof(float)) + 16, FMOD_MEMORY_PERSISTENT);
-            if (!mSystem->mDSPMixBuff[level])
+            mSystem->mDSPMixBuff[level - 1] = (float *)FMOD_Memory_Calloc((mSystem->mDSPBlockSize * (mSystem->mMaxOutputChannels < mSystem->mMaxInputChannels ? mSystem->mMaxInputChannels : mSystem->mMaxOutputChannels) * sizeof(float)) + 16);
+            if (!mSystem->mDSPMixBuff[level - 1])
             {
                 return FMOD_ERR_MEMORY;
-            }           
+            }
         }
     }
 
@@ -2357,49 +1610,9 @@ FMOD_RESULT DSPI::updateTreeLevel(int level)
         current = current->getNext();
     }
 
-    if (!mOutputBuffer || (FMOD_UINT_NATIVE)mBuffer != FMOD_ALIGNPOINTER(mOutputBuffer, 16))
+    if (!mBufferMemory || (FMOD_UINT_NATIVE)mBuffer != FMOD_ALIGNPOINTER(mBufferMemory, 16))
     {
         mBuffer = (float *)FMOD_ALIGNPOINTER(mSystem->mDSPMixBuff[mTreeLevel], 16);
-    }
-
-#endif
-    return FMOD_OK;
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
-}
-
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::updateDSPTick(unsigned int tick)
-{
-    LinkedListNode *current;
-
-    mDSPTick = tick;
-
-    current = mInputHead.getNext();
-    while (current != &mInputHead)
-    {
-        DSPConnectionI *connection = (DSPConnectionI *)current->getData();
-
-        connection->mInputUnit->updateDSPTick(tick);
-
-        current = current->getNext();
     }
 
     return FMOD_OK;
@@ -2408,47 +1621,6 @@ FMOD_RESULT DSPI::updateDSPTick(unsigned int tick)
 
 
 #ifndef PLATFORM_PS3_SPU
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::createHistoryBuffer(float **ptr, int numchannels)
-{
-    return mSystem->mHistoryBufferPool.alloc(ptr, numchannels);
-}
-
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::releaseHistoryBuffer(float *ptr)
-{
-    return mSystem->mHistoryBufferPool.free(ptr);
-}
 #endif
 
 
@@ -2470,158 +1642,91 @@ FMOD_RESULT DSPI::releaseHistoryBuffer(float *ptr)
 */
 
 // OFFSET: 0x008DC600
-FMOD_RESULT DSPI::addInputInternal(DSPI *target, bool checkcircular, DSPConnectionI *connection, DSPConnectionI **connection_out, bool protect)
+FMOD_RESULT DSPI::addInputInternal(DSPI *target, bool checkcircular, DSPConnectionI *connection, DSPConnectionI **connection_out)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-
-#ifndef PLATFORM_PS3_SPU
-    FMOD_RESULT             result;
-    LocalCriticalSection    crit_dsp(mSystem->mDSPCrit);
-    LocalCriticalSection    crit_dspconnect(mSystem->mDSPConnectionCrit);
-    bool                    reset = false;
+    FMOD_RESULT result;
+    LocalCriticalSection crit(mSystem->mDSPCrit);
+    LocalCriticalSection crit2(mSystem->mDSPConnectionCrit);
+    bool allocated = false;
 
     if (!target)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    /*
-        Resamplers cant connect to something that already has an output.
-    */
-    if (mDescription.mCategory == FMOD_DSP_CATEGORY_RESAMPLER && target->mNumOutputs)
+    if ((mDescription.mCategory == FMOD_DSP_CATEGORY_RESAMPLER && target->mNumOutputs) || target->mDescription.mCategory == FMOD_DSP_CATEGORY_SOUNDCARD)
     {
         return FMOD_ERR_DSP_CONNECTION;
     }
 
-    /*
-        Generators dont have inputs.
-    */
-//    if (mDescription.mCategory == FMOD_DSP_CATEGORY_GENERATOR)
-//    {
-//        return FMOD_ERR_DSP_CONNECTION;
-//    }
-
-    /*
-        Soundcards cant be connected to.
-    */
-#if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-    if (target->mTreeLevel == 0)
-    {
-        return FMOD_ERR_DSP_CONNECTION;
-    }
-#else
-    if (target->mDescription.mCategory == FMOD_DSP_CATEGORY_SOUNDCARD)
-    {
-        return FMOD_ERR_DSP_CONNECTION;
-    }
-#endif
-
-    /*
-        Dont allow a connection to this target if it is a child of a resampler.
-    */
-
-    /*
-        Dont allow connections to be circular!
-    */
     if (checkcircular)
     {
-        result = target->doesUnitExist(this, protect);
-        if (result == FMOD_OK)
+        if (target->doesUnitExist(this) == FMOD_OK)
         {
-            FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "DSPI::addInputInteral", "ERROR.  Tried to make a circular connection!.\n"));
-            
-            if (mSystem->mCallback)
-            {
-                mSystem->mCallback((FMOD_SYSTEM *)mSystem, FMOD_SYSTEM_CALLBACKTYPE_BADDSPCONNECTION, (FMOD_DSP *)this, (FMOD_DSP *)target);
-            }
-
             return FMOD_ERR_DSP_CONNECTION;
         }
     }
 
-    if (protect)
+    crit.enter();
+    crit2.enter();
+
+    if (!connection)
     {
-        crit_dsp.enter();
-        crit_dspconnect.enter();
-    }
-    {
-        if (!connection)
+        result = mSystem->mDSPConnectionPool.alloc(&connection);
+        if (result != FMOD_OK)
         {
-            /*
-                Create a new connection for this unit.
-            */
-            result = mSystem->mDSPConnectionPool.alloc(&connection);
-            if (result != FMOD_OK)
+            return result;
+        }
+
+        allocated = true;
+    }
+
+    connection->mInputNode.addBefore(&mInputHead);
+    mNumInputs++;
+
+    connection->mOutputNode.addBefore(&target->mOutputHead);
+    target->mNumOutputs++;
+
+    connection->mInputUnit  = target;
+    connection->mOutputUnit = this;
+
+    if (allocated)
+    {
+        connection->reset();
+    }
+
+    if (mTreeLevel >= 0)
+    {
+        target->updateTreeLevel(mTreeLevel + 1);
+    }
+
+    if (!mBufferMemory)
+    {
+        mBuffer = (float *)FMOD_ALIGNPOINTER(mSystem->mDSPMixBuff[mTreeLevel], 16);
+    }
+
+    if (target->mNumOutputs > 1)
+    {
+        if (!target->mBufferMemory)
+        {
+            target->mBufferMemory = (float *)FMOD_Memory_Calloc((mSystem->mDSPBlockSize * (mSystem->mMaxOutputChannels < mSystem->mMaxInputChannels ? mSystem->mMaxInputChannels : mSystem->mMaxOutputChannels) * sizeof(float)) + 15);
+            if (!target->mBufferMemory)
             {
-                return result;
+                return FMOD_ERR_MEMORY;
             }
-
-            reset = true;
         }
-
-        connection->mInputNode.addBefore(&mInputHead);
-        mNumInputs++;
-        connection->mOutputNode.addBefore(&target->mOutputHead);
-        target->mNumOutputs++;
-
-        connection->mInputUnit = target;
-        connection->mOutputUnit = this;
-    #ifdef PLATFORM_PS3
-        connection->mInputUnitSize = target->mDescription.mSize;
-        connection->mOutputUnitSize = mDescription.mSize;
-    #endif
-
-        if (reset)
-        {
-            connection->reset();
-        }
-
-        if (mTreeLevel >= 0)
-        {
-            target->updateTreeLevel(mTreeLevel + 1);
-        }
-        if (!mOutputBuffer)
-        {
-            mBuffer = (float *)FMOD_ALIGNPOINTER(mSystem->mDSPMixBuff[mTreeLevel], 16);
-        }
-
-        /*
-            Allocate mBuffer for the target if it now has more than 1 input or output
-        */
-        if (target->mNumOutputs > 1)
-        {
-            if (!target->mOutputBuffer)
-            {
-                target->mOutputBuffer = (float *)FMOD_Memory_Calloc((mSystem->mDSPBlockSize * (mSystem->mMaxOutputChannels < mSystem->mMaxInputChannels ? mSystem->mMaxInputChannels : mSystem->mMaxOutputChannels) * sizeof(float)) + 16);
-                if (!target->mOutputBuffer)
-                {
-                    return FMOD_ERR_MEMORY;
-                }
-            }
-
-            target->mBuffer = (float *)FMOD_ALIGNPOINTER(target->mOutputBuffer, 16);
-        }
+        target->mBuffer = (float *)FMOD_ALIGNPOINTER(target->mBufferMemory, 16);
     }
-    if (protect)
-    {
-        crit_dsp.leave();
-        crit_dspconnect.leave();
-    }
-      
+
+    crit.leave();
+    crit2.leave();
+
     if (connection_out)
     {
         *connection_out = connection;
     }
 
-#endif
     return FMOD_OK;
-
-#else
-
-    return FMOD_ERR_NEEDSSOFTWARE;
-
-#endif
-
 }
 
 
@@ -2641,18 +1746,59 @@ FMOD_RESULT DSPI::addInputInternal(DSPI *target, bool checkcircular, DSPConnecti
 ]
 */
 // OFFSET: 0x008DCC10
-FMOD_RESULT DSPI::addInput(DSPI *target, DSPConnectionI **connection)
+FMOD_RESULT DSPI::addInput(DSPI *target)
 {
+    FMOD_RESULT result;
+    DSPConnectionI *connection;
+    DSPConnectionRequest *request;
+
     if (!mSystem)
     {
         return FMOD_ERR_UNINITIALIZED;
     }
 
-#ifndef PLATFORM_PS3_SPU
-    return addInputQueued(target, true, 0, connection);
-#else
+    if (!target)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    if ((mDescription.mCategory == FMOD_DSP_CATEGORY_RESAMPLER && target->mNumOutputs) || target->mDescription.mCategory == FMOD_DSP_CATEGORY_SOUNDCARD)
+    {
+        return FMOD_ERR_DSP_CONNECTION;
+    }
+
+    if (target->doesUnitExist(this) == FMOD_OK)
+    {
+        return FMOD_ERR_DSP_CONNECTION;
+    }
+
+    result = mSystem->mDSPConnectionPool.alloc(&connection);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    connection->reset();
+
+    FMOD_OS_CriticalSection_Enter(mSystem->mDSPRequestCrit);
+    {
+        if (mSystem->mConnectionRequestFreeHead.isEmpty())
+        {
+            mSystem->flushDSPConnectionRequests();
+        }
+
+        request = (DSPConnectionRequest *)mSystem->mConnectionRequestFreeHead.getNext();
+        request->removeNode();
+        request->addBefore(&mSystem->mConnectionRequestUsedHead);
+
+        request->mThis       = this;
+        request->mTarget     = target;
+        request->mConnection = connection;
+        request->mRequest    = DSPCONNECTION_REQUEST_ADDINPUT;
+    }
+    FMOD_OS_CriticalSection_Leave(mSystem->mDSPRequestCrit);
+
     return FMOD_OK;
-#endif
 }
 
 
@@ -2674,51 +1820,28 @@ FMOD_RESULT DSPI::addInput(DSPI *target, DSPConnectionI **connection)
 // OFFSET: 0x008DC820
 FMOD_RESULT DSPI::addInputQueued(DSPI *target, bool checkcircular, DSPConnectionI *connection_old, DSPConnectionI **connection_out)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-
-#ifndef PLATFORM_PS3_SPU
-    FMOD_RESULT             result;
-    DSPConnectionI         *connection;
+    FMOD_RESULT result;
+    DSPConnectionI *connection;
+    DSPConnectionRequest *request;
 
     if (!target)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    /*
-        Resamplers cant connect to something that already has an output.
-    */
-    if (mDescription.mCategory == FMOD_DSP_CATEGORY_RESAMPLER && target->mNumOutputs)
+    if ((mDescription.mCategory == FMOD_DSP_CATEGORY_RESAMPLER && target->mNumOutputs) || target->mDescription.mCategory == FMOD_DSP_CATEGORY_SOUNDCARD)
     {
         return FMOD_ERR_DSP_CONNECTION;
     }
 
-    /*
-        Generators dont have inputs.
-    */
-//    if (mDescription.mCategory == FMOD_DSP_CATEGORY_GENERATOR)
-//    {
-//        return FMOD_ERR_DSP_CONNECTION;
-//    }
-
-    /*
-        Soundcards cant be connected to.
-    */
-#if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-    if (target->mTreeLevel == 0)
+    if (checkcircular)
     {
-        return FMOD_ERR_DSP_CONNECTION;
+        if (target->doesUnitExist(this) == FMOD_OK)
+        {
+            return FMOD_ERR_DSP_CONNECTION;
+        }
     }
-#else
-    if (target->mDescription.mCategory == FMOD_DSP_CATEGORY_SOUNDCARD)
-    {
-        return FMOD_ERR_DSP_CONNECTION;
-    }
-#endif
 
-    /*
-        Create a new connection for this unit.
-    */
     result = mSystem->mDSPConnectionPool.alloc(&connection);
     if (result != FMOD_OK)
     {
@@ -2730,48 +1853,34 @@ FMOD_RESULT DSPI::addInputQueued(DSPI *target, bool checkcircular, DSPConnection
         connection->copy(connection_old);
     }
     else
-    {    
+    {
         connection->reset();
     }
 
-    FMOD_OS_CriticalSection_Enter(mSystem->mDSPConnectionCrit);
+    FMOD_OS_CriticalSection_Enter(mSystem->mDSPRequestCrit);
     {
-        DSPConnectionRequest *request;
-
         if (mSystem->mConnectionRequestFreeHead.isEmpty())
         {
             mSystem->flushDSPConnectionRequests();
         }
 
         request = (DSPConnectionRequest *)mSystem->mConnectionRequestFreeHead.getNext();
-
-        request->removeNode();        
+        request->removeNode();
         request->addBefore(&mSystem->mConnectionRequestUsedHead);
 
-        request->mThis = this;
-        request->mTarget = target;
+        request->mThis       = this;
+        request->mTarget     = target;
         request->mConnection = connection;
-        if (checkcircular)
-        {
-            request->mRequest = DSPCONNECTION_REQUEST_ADDINPUT_ERRCHECK;
-        }
-        else
-        {
-            request->mRequest = DSPCONNECTION_REQUEST_ADDINPUT;
-        }
+        request->mRequest    = DSPCONNECTION_REQUEST_ADDINPUT;
     }
-    FMOD_OS_CriticalSection_Leave(mSystem->mDSPConnectionCrit);
+    FMOD_OS_CriticalSection_Leave(mSystem->mDSPRequestCrit);
 
     if (connection_out)
     {
         *connection_out = connection;
     }
-#endif
-    return FMOD_OK;
 
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
+    return FMOD_OK;
 }
 
 
@@ -2791,131 +1900,117 @@ FMOD_RESULT DSPI::addInputQueued(DSPI *target, bool checkcircular, DSPConnection
 ]
 */
 // OFFSET: 0x008DC030
-FMOD_RESULT DSPI::disconnectFromInternal(DSPI *target, DSPConnectionI *connection, bool protect)
+FMOD_RESULT DSPI::disconnectFromInternal(DSPI *target)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-#ifndef PLATFORM_PS3_SPU
     FMOD_RESULT result;
-    LocalCriticalSection    crit_dsp(mSystem->mDSPCrit);
-    LocalCriticalSection    crit_dspconnect(mSystem->mDSPConnectionCrit);
+    FMOD_OS_CRITICALSECTION *dspcrit = mSystem->mDSPCrit;
+    FMOD_OS_CRITICALSECTION *dspconnectioncrit = mSystem->mDSPConnectionCrit;
 
     if (!target)
     {
         int numinputs = 0, numoutputs = 0;
 
-        /*
-            Disconnect all inputs connecting to this unit.
-        */
-        getNumInputs(&numinputs, protect);
+        getNumInputs(&numinputs);
         while (numinputs)
         {
             DSPI *input;
-            DSPConnectionI *inputconnection;
 
-            result = getInput(0, &input, &inputconnection, protect);
+            result = getInput(0, 0, &input);
             if (result != FMOD_OK)
             {
                 return result;
             }
-            disconnectFromInternal(input, inputconnection, protect);
 
-            getNumInputs(&numinputs, protect);
+            disconnectFromInternal(input);
+
+            getNumInputs(&numinputs);
         }
 
-        /*
-            Disconnect outputs connecting to this unit.
-        */
-        getNumOutputs(&numoutputs, protect);
+        getNumOutputs(&numoutputs);
         while (numoutputs)
         {
             DSPI *output;
-            DSPConnectionI *outputconnection;
 
-            result = getOutput(0, &output, &outputconnection, protect);
+            result = getOutput(0, 0, &output);
             if (result != FMOD_OK)
             {
                 return result;
             }
-            output->disconnectFromInternal(this, outputconnection, protect);
-            
-            getNumOutputs(&numoutputs, protect);
-        }       
+
+            output->disconnectFromInternal(this);
+
+            getNumOutputs(&numoutputs);
+        }
 
         return FMOD_OK;
     }
-
-    if (protect)
-    {
-        crit_dspconnect.enter();
-        crit_dsp.enter();
-    }
-
-    if (!connection)
+    else
     {
         int count;
-        DSPConnectionI *inputconnection;
+        DSPConnectionI *connection = 0;
 
-        for (count=0; count < mNumInputs; count++)
+        FMOD_OS_CriticalSection_Enter(dspconnectioncrit);
+        FMOD_OS_CriticalSection_Enter(dspcrit);
+
+        for (count = 0; count < mNumInputs; count++)
         {
-            result = getInput(count, 0, &inputconnection, protect);
+            result = getInput(count, &connection, 0);
             if (result != FMOD_OK)
             {
+                FMOD_OS_CriticalSection_Leave(dspconnectioncrit);
+                FMOD_OS_CriticalSection_Leave(dspcrit);
                 return result;
             }
 
-            if (inputconnection->mInputUnit == target)
+            if (connection->mInputUnit == target)
             {
-                connection = inputconnection;
                 break;
             }
         }
-    }
 
-    if (!connection)
-    {
-        return FMOD_ERR_DSP_NOTFOUND;
-    }
-
-    if (!connection->mInputUnit && !connection->mOutputUnit)
-    {
-        return FMOD_OK; /* Already been disconnected, must have been a double disconnect. */
-    }
-
-    connection->mInputNode.removeNode();
-    mNumInputs--;         
-    if (mOutputBuffer && mNumOutputs <= 1)
-    {
-        FMOD_Memory_Free(mOutputBuffer);
-
-        if ((FMOD_UINT_NATIVE)mBuffer == FMOD_ALIGNPOINTER(mOutputBuffer, 16))
+        if (count == mNumInputs)
         {
-            mBuffer = (float *)FMOD_ALIGNPOINTER(mSystem->mDSPMixBuff[mTreeLevel], 16);
+            FMOD_OS_CriticalSection_Leave(dspcrit);
+            FMOD_OS_CriticalSection_Leave(dspconnectioncrit);
+            return FMOD_ERR_DSP_NOTFOUND;
         }
 
-        mOutputBuffer = 0;
+        connection->mInputNode.removeNode();
+        mNumInputs--;
+
+        if (mBufferMemory && mNumOutputs <= 1)
+        {
+            FMOD_Memory_Free(mBufferMemory);
+            mBufferMemory = 0;
+        }
+
+        connection->mOutputNode.removeNode();
+        target->mNumOutputs--;
+
+        if (*mWantsToFinish)
+        {
+            mFlags |= FMOD_DSP_FLAG_FINISHED;
+            *mWantsToFinish = 0;
+        }
+        if (*target->mWantsToFinish)
+        {
+            target->mFlags |= FMOD_DSP_FLAG_FINISHED;
+            *target->mWantsToFinish = 0;
+        }
+
+        result = mSystem->mDSPConnectionPool.free(connection);
+        if (result != FMOD_OK)
+        {
+            FMOD_OS_CriticalSection_Leave(dspconnectioncrit);
+            FMOD_OS_CriticalSection_Leave(dspcrit);
+            return result;
+        }
+
+        FMOD_OS_CriticalSection_Leave(dspconnectioncrit);
+        FMOD_OS_CriticalSection_Leave(dspcrit);
     }
 
-    connection->mOutputNode.removeNode();
-    target->mNumOutputs--;
-
-    result = mSystem->mDSPConnectionPool.free(connection, protect);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    if (protect)
-    {
-        crit_dsp.leave();
-        crit_dspconnect.leave();
-    }
-
-#endif
     return FMOD_OK;
-
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
 }
 
 
@@ -2936,12 +2031,9 @@ FMOD_RESULT DSPI::disconnectFromInternal(DSPI *target, DSPConnectionI *connectio
 ]
 */
 // OFFSET: 0x008DB830
-FMOD_RESULT DSPI::disconnectFrom(DSPI *target, DSPConnectionI *connection)
-{    
-#ifdef FMOD_SUPPORT_SOFTWARE
-#ifndef PLATFORM_PS3_SPU
-
-    FMOD_OS_CriticalSection_Enter(mSystem->mDSPConnectionCrit);
+FMOD_RESULT DSPI::disconnectFromQueued(DSPI *target)
+{
+    FMOD_OS_CriticalSection_Enter(mSystem->mDSPRequestCrit);
     {
         DSPConnectionRequest *request;
 
@@ -2951,31 +2043,39 @@ FMOD_RESULT DSPI::disconnectFrom(DSPI *target, DSPConnectionI *connection)
         }
 
         request = (DSPConnectionRequest *)mSystem->mConnectionRequestFreeHead.getNext();
-
-        request->removeNode();        
+        request->removeNode();
         request->addBefore(&mSystem->mConnectionRequestUsedHead);
 
-        request->mThis = this;
-        request->mTarget = target;
-        request->mConnection = connection;
+        request->mThis    = this;
+        request->mTarget  = target;
         request->mRequest = DSPCONNECTION_REQUEST_DISCONNECTFROM;
-
-        if (target)
-        {
-            request->mTarget->mFlags |= FMOD_DSP_FLAG_QUEUEDFORDISCONNECT;
-        }
-        else
-        {
-            request->mThis->mFlags |= FMOD_DSP_FLAG_QUEUEDFORDISCONNECT;
-        }
     }
-    FMOD_OS_CriticalSection_Leave(mSystem->mDSPConnectionCrit);
+    FMOD_OS_CriticalSection_Leave(mSystem->mDSPRequestCrit);
 
-#endif
     return FMOD_OK;
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+// VERIFY: b9d22179 auto
+// OFFSET: 0x008DC330
+FMOD_RESULT DSPI::disconnectFrom(DSPI *target)
+{
+    return disconnectFromQueued(target);
 }
 
 
@@ -2994,17 +2094,18 @@ FMOD_RESULT DSPI::disconnectFrom(DSPI *target, DSPConnectionI *connection)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0f27bba7 auto
 // OFFSET: 0x008DC950
-FMOD_RESULT DSPI::disconnectAllInternal(bool inputs, bool outputs, bool protect)
+FMOD_RESULT DSPI::disconnectAllInternal(bool inputs, bool outputs)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-#ifndef PLATFORM_PS3_SPU
     FMOD_RESULT result;
-    int count, numinputs, numoutputs;
+    int count;
 
     if (inputs)
     {
-        result = getNumInputs(&numinputs, protect);
+        int numinputs;
+
+        result = getNumInputs(&numinputs);
         if (result != FMOD_OK)
         {
             return result;
@@ -3013,15 +2114,14 @@ FMOD_RESULT DSPI::disconnectAllInternal(bool inputs, bool outputs, bool protect)
         for (count = 0; count < numinputs; count++)
         {
             DSPI *input;
-            DSPConnectionI *inputconnection;
 
-            result = getInput(0, &input, &inputconnection, protect);    // keep getting the first one.
+            result = getInput(0, 0, &input);
             if (result != FMOD_OK)
             {
                 return result;
             }
 
-            result = disconnectFromInternal(input, inputconnection, protect);
+            result = disconnectFromInternal(input);
             if (result != FMOD_OK)
             {
                 return result;
@@ -3031,7 +2131,9 @@ FMOD_RESULT DSPI::disconnectAllInternal(bool inputs, bool outputs, bool protect)
 
     if (outputs)
     {
-        result = getNumOutputs(&numoutputs, protect);
+        int numoutputs;
+
+        result = getNumOutputs(&numoutputs);
         if (result != FMOD_OK)
         {
             return result;
@@ -3040,28 +2142,22 @@ FMOD_RESULT DSPI::disconnectAllInternal(bool inputs, bool outputs, bool protect)
         for (count = 0; count < numoutputs; count++)
         {
             DSPI *output;
-            DSPConnectionI *outputconnection;
 
-            result = getOutput(0, &output, &outputconnection, protect);    // keep getting the first one.
+            result = getOutput(0, 0, &output);
             if (result != FMOD_OK)
             {
                 return result;
             }
 
-            result = output->disconnectFromInternal(this, outputconnection, protect);
+            result = output->disconnectFromInternal(this);
             if (result != FMOD_OK)
             {
                 return result;
             }
         }
     }
-#endif
 
     return FMOD_OK;
-
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
 }
 
 
@@ -3080,18 +2176,15 @@ FMOD_RESULT DSPI::disconnectAllInternal(bool inputs, bool outputs, bool protect)
 	[SEE_ALSO]
 ]
 */
-// OFFSET: 0x008DC340
-FMOD_RESULT DSPI::disconnectAll(bool inputs, bool outputs)
-{    
-#ifdef FMOD_SUPPORT_SOFTWARE
-#ifndef PLATFORM_PS3_SPU
-
+// OFFSET: 0x008DB8D0
+FMOD_RESULT DSPI::disconnectAllQueued(bool inputs, bool outputs)
+{
     if (!inputs && !outputs)
     {
         return FMOD_OK;
     }
 
-    FMOD_OS_CriticalSection_Enter(mSystem->mDSPConnectionCrit);
+    FMOD_OS_CriticalSection_Enter(mSystem->mDSPRequestCrit);
     {
         DSPConnectionRequest *request;
 
@@ -3101,16 +2194,15 @@ FMOD_RESULT DSPI::disconnectAll(bool inputs, bool outputs)
         }
 
         request = (DSPConnectionRequest *)mSystem->mConnectionRequestFreeHead.getNext();
-
-        request->removeNode();        
+        request->removeNode();
         request->addBefore(&mSystem->mConnectionRequestUsedHead);
 
-        request->mThis = this;
-        request->mTarget = 0;
+        request->mThis    = this;
+        request->mTarget  = 0;
+
         if (inputs && outputs)
         {
             request->mRequest = DSPCONNECTION_REQUEST_DISCONNECTALL;
-            request->mThis->mFlags |= FMOD_DSP_FLAG_QUEUEDFORDISCONNECT;
         }
         else if (inputs)
         {
@@ -3119,20 +2211,12 @@ FMOD_RESULT DSPI::disconnectAll(bool inputs, bool outputs)
         else
         {
             request->mRequest = DSPCONNECTION_REQUEST_DISCONNECTALLOUTPUTS;
-            request->mThis->mFlags |= FMOD_DSP_FLAG_QUEUEDFORDISCONNECT;
         }
     }
-    FMOD_OS_CriticalSection_Leave(mSystem->mDSPConnectionCrit);
+    FMOD_OS_CriticalSection_Leave(mSystem->mDSPRequestCrit);
 
-#endif
     return FMOD_OK;
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
 }
-
-
-
 
 
 /*
@@ -3140,7 +2224,7 @@ FMOD_RESULT DSPI::disconnectAll(bool inputs, bool outputs)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
@@ -3150,190 +2234,15 @@ FMOD_RESULT DSPI::disconnectAll(bool inputs, bool outputs)
 	[SEE_ALSO]
 ]
 */
-FMOD_RESULT DSPI::insertInputBetween(DSPI *dsptoinsert, int inputindex, bool search, DSPConnectionI **connection_out)
-{    
-#ifdef FMOD_SUPPORT_SOFTWARE
-#ifndef PLATFORM_PS3_SPU
-    DSPConnectionI *connection;
-    FMOD_RESULT result;
-
-    /*
-        Create a new connection for this unit.
-    */
-    result = mSystem->mDSPConnectionPool.alloc(&connection);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    
-    connection->reset();
-
-    FMOD_OS_CriticalSection_Enter(mSystem->mDSPConnectionCrit);
-    {
-        DSPConnectionRequest *request;
-
-        if (mSystem->mConnectionRequestFreeHead.isEmpty())
-        {
-            mSystem->flushDSPConnectionRequests();
-        }
-
-        request = (DSPConnectionRequest *)mSystem->mConnectionRequestFreeHead.getNext();
-
-        request->removeNode();        
-        request->addBefore(&mSystem->mConnectionRequestUsedHead);
-
-        request->mThis = this;
-        request->mTarget = dsptoinsert;
-        request->mConnection = connection;
-        request->mInputIndex = inputindex;
-        request->mRequest = search ? DSPCONNECTION_REQUEST_INSERTINBETWEEN_SEARCH : DSPCONNECTION_REQUEST_INSERTINBETWEEN;
-        
-        dsptoinsert->mFlags |= FMOD_DSP_FLAG_USEDADDDSP;
-    }
-    FMOD_OS_CriticalSection_Leave(mSystem->mDSPConnectionCrit);
-
-    if (connection_out)
-    {
-        *connection_out = connection;
-    }
-
-#endif
-    return FMOD_OK;
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::insertInputBetweenInternal(DSPI *dsp, int inputindex, bool search, DSPConnectionI *connection, bool protect)
+// VERIFY: 28c096c9 auto
+// OFFSET: 0x008DC340
+FMOD_RESULT DSPI::disconnectAll(bool inputs, bool outputs)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-#ifndef PLATFORM_PS3_SPU
-    FMOD_RESULT result;
-    DSPI *target = 0;
-    DSPConnectionI *targetconnection;
-
-    /*
-        Disconnect it from wherever it used to be.
-    */
-    if (dsp->mFlags & FMOD_DSP_FLAG_USEDADDDSP)
-    {
-        DSPI *current = dsp;
-
-        current->disconnectAllInternal(false, true, protect);   /* Disconnect outputs from start of chain. */
-
-        while (1)
-        {
-            DSPI *next;
-
-            result = current->getInput(0, &next, 0, protect);
-            if (result != FMOD_OK)
-            {
-                break;
-            }
-
-            if (!(next->mFlags & FMOD_DSP_FLAG_USEDADDDSP))
-            {
-                break;
-            }
-
-            current = next;
-        }        
-
-        current->disconnectAllInternal(true, false, protect);   /* Disconnect outputs from end of chain. */
-    }
-    else
-    {
-        result = dsp->disconnectFromInternal(0, 0, protect);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-    }
-
-    /*
-        Find the next unit to insert between.  If not found, we'll just add it to the end.
-    */
-    getInput(inputindex, &target, &targetconnection, protect);
-
-    /*
-        Disconnect the head from its first input.
-    */     
-    if (target)
-    {
-        result = disconnectFromInternal(target, targetconnection, protect);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-    }
-
-    /*
-        Add the new input to the head.
-    */
-    result = addInputInternal(dsp, false, connection, 0, protect);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    /*
-        If more than 1 unit, move the pointer forward to the end so we can reconnect the 'target' onto the end of this subchain.
-    */
-    if (search)
-    {
-        while (1)
-        {
-            DSPI *next;
-
-            result = dsp->getInput(0, &next, 0, protect);
-            if (result != FMOD_OK)
-            {
-                break;
-            }
-
-            if (!(next->mFlags & FMOD_DSP_FLAG_USEDADDDSP))
-            {
-                break;
-            }
-
-            dsp = next;
-        }
-    }
-
-    /*
-        Add the old first input to this new unit.
-    */
-    if (target)
-    { 
-        result = dsp->addInputInternal(target, false, 0, 0, protect);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-    }
-
-#endif
-    return FMOD_OK;
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
+    return disconnectAllQueued(inputs, outputs);
 }
+
+
+
 
 
 /*
@@ -3351,94 +2260,59 @@ FMOD_RESULT DSPI::insertInputBetweenInternal(DSPI *dsp, int inputindex, bool sea
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a50253d1 auto
 // OFFSET: 0x008DCAC0
 FMOD_RESULT DSPI::remove()
 {
-    return removeInternal();
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::removeInternal(bool protect)
-{
-#ifndef PLATFORM_PS3_SPU
     FMOD_RESULT result;
-    DSPI *output, *input;
     int numinputs, numoutputs;
 
-    if (!(mFlags & FMOD_DSP_FLAG_USEDADDDSP))
-    {
-        return disconnectFromInternal(0, 0, protect);
-    }
+    getNumInputs(&numinputs);
 
-    result = getNumInputs(&numinputs, protect);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    result = getNumOutputs(&numoutputs, protect);
+    result = getNumOutputs(&numoutputs);
     if (result != FMOD_OK)
     {
         return result;
     }
 
-    if (!numinputs && !numoutputs)
-    {        
-        return FMOD_OK;
-    }
+    if (numinputs == 1 && numoutputs == 1)
+    {
+        DSPI *input, *output;
 
-    if (numinputs != 1 || numoutputs != 1)
-    {        
+        mFlags &= ~FMOD_DSP_FLAG_ACTIVE;
+
+        result = getInput(0, 0, &input);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+
+        result = getOutput(0, 0, &output);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+
+        result = disconnectFromQueued(0);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+
+        result = output->addInput(input);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
+    }
+    else
+    {
         mFlags &= ~FMOD_DSP_FLAG_USEDADDDSP;
-        return disconnectFromInternal(0, 0, protect);
-    }
 
-    result = setActive(false);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    result = getInput(0, &input, 0, protect);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    result = getOutput(0, &output, 0, protect);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    result = disconnectFromInternal(0, 0, protect);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    result = output->addInputInternal(input, false, 0, 0, protect);
-    if (result != FMOD_OK)
-    {
-        return result;
+        return disconnectFromQueued(0);
     }
 
     mFlags &= ~FMOD_DSP_FLAG_USEDADDDSP;
-#endif
 
     return FMOD_OK;
 }
@@ -3459,39 +2333,22 @@ FMOD_RESULT DSPI::removeInternal(bool protect)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c26fc1e3 auto
 // OFFSET: 0x008DB990
-FMOD_RESULT DSPI::getNumInputs(int *numinputs, bool protect)
+FMOD_RESULT DSPI::getNumInputs(int *numinputs)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-    
-    #ifndef PLATFORM_PS3_SPU
-    
     if (!numinputs)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (protect)
-    {
-        mSystem->flushDSPConnectionRequests();
+    mSystem->flushDSPConnectionRequests();
 
-        FMOD_OS_CriticalSection_Enter(mSystem->mDSPConnectionCrit);
-    }
-
+    FMOD_OS_CriticalSection_Enter(mSystem->mDSPConnectionCrit);
     *numinputs = mNumInputs;
+    FMOD_OS_CriticalSection_Leave(mSystem->mDSPConnectionCrit);
 
-    if (protect)
-    {
-        FMOD_OS_CriticalSection_Leave(mSystem->mDSPConnectionCrit);
-    }
-    
-    #endif
-    
     return FMOD_OK;
-
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
 }
 
 
@@ -3511,39 +2368,22 @@ FMOD_RESULT DSPI::getNumInputs(int *numinputs, bool protect)
 ]
 */
 
+// VERIFY: 3b712902 auto
 // OFFSET: 0x008DB9E0
-FMOD_RESULT DSPI::getNumOutputs(int *numoutputs, bool protect)
+FMOD_RESULT DSPI::getNumOutputs(int *numoutputs)
 {
-#ifdef FMOD_SUPPORT_SOFTWARE
-    
-    #ifndef PLATFORM_PS3_SPU
-    
     if (!numoutputs)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (protect)
-    {
-        mSystem->flushDSPConnectionRequests();
+    mSystem->flushDSPConnectionRequests();
 
-        FMOD_OS_CriticalSection_Enter(mSystem->mDSPConnectionCrit);
-    }
-
+    FMOD_OS_CriticalSection_Enter(mSystem->mDSPConnectionCrit);
     *numoutputs = mNumOutputs;
+    FMOD_OS_CriticalSection_Leave(mSystem->mDSPConnectionCrit);
 
-    if (protect)
-    {
-        FMOD_OS_CriticalSection_Leave(mSystem->mDSPConnectionCrit);
-    }
-    
-    #endif
-    
     return FMOD_OK;
-
-#else
-    return FMOD_ERR_NEEDSSOFTWARE;
-#endif
 }
 
 
@@ -3562,6 +2402,7 @@ FMOD_RESULT DSPI::getNumOutputs(int *numoutputs, bool protect)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f6ff7c02 auto
 // OFFSET: 0x008DBA30
 FMOD_RESULT DSPI::reset()
 {
@@ -3599,6 +2440,7 @@ FMOD_RESULT DSPI::reset()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 62f9d92b auto
 // OFFSET: 0x008DBA50
 FMOD_RESULT DSPI::setParameter(int index, float value)
 {
@@ -3665,6 +2507,7 @@ FMOD_RESULT DSPI::setParameter(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e332c590 auto
 // OFFSET: 0x008DBAD0
 FMOD_RESULT DSPI::getParameter(int index, float *value, char *valuestr, int valuestrlen)
 {
@@ -3753,6 +2596,7 @@ FMOD_RESULT DSPI::getNumParameters(int *numparams)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6d6faa71 auto
 // OFFSET: 0x008DBB60
 FMOD_RESULT DSPI::getParameterInfo(int index, char *name, char *label, char *description, int descriptionlen, float *min, float *max)
 {
@@ -3812,6 +2656,7 @@ FMOD_RESULT DSPI::getParameterInfo(int index, char *name, char *label, char *des
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a520ca60 auto
 // OFFSET: 0x008DBC40
 FMOD_RESULT DSPI::showConfigDialog(void *hwnd, bool show)
 {
@@ -3854,6 +2699,7 @@ FMOD_RESULT DSPI::showConfigDialog(void *hwnd, bool show)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c6fb155b auto
 // OFFSET: 0x008DBC70
 FMOD_RESULT DSPI::getInfo(char *name, unsigned int *version, int *channels, int *configwidth, int *configheight)
 {
@@ -3910,6 +2756,7 @@ FMOD_RESULT DSPI::getInfo(char *name, unsigned int *version, int *channels, int 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a6efdf8a auto
 // OFFSET: 0x008DBCD0
 FMOD_RESULT DSPI::getType(FMOD_DSP_TYPE *type)
 {
@@ -3999,6 +2846,7 @@ FMOD_RESULT DSPI::setDefaults(float frequency, float volume, float pan, int prio
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0bf2c3e3 auto
 // OFFSET: 0x008DBD80
 FMOD_RESULT DSPI::getDefaults(float *frequency, float *volume, float *pan, int *priority)
 {
@@ -4048,6 +2896,7 @@ FMOD_RESULT DSPI::getDefaults(float *frequency, float *volume, float *pan, int *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 37835d2d auto
 // OFFSET: 0x008DBDD0
 FMOD_RESULT DSPI::setUserData(void *userdata)
 {
@@ -4073,6 +2922,7 @@ FMOD_RESULT DSPI::setUserData(void *userdata)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d9add7fa auto
 // OFFSET: 0x008DBDF0
 FMOD_RESULT DSPI::getUserData(void **userdata)
 {
@@ -4103,6 +2953,7 @@ FMOD_RESULT DSPI::getUserData(void **userdata)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 33a02789 auto
 // OFFSET: 0x008DBEA0
 FMOD_RESULT DSPI::setTargetFrequency(int frequency)
 {
@@ -4128,6 +2979,7 @@ FMOD_RESULT DSPI::setTargetFrequency(int frequency)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 65b83dd4 auto
 // OFFSET: 0x008DBEB0
 FMOD_RESULT DSPI::getTargetFrequency(int *frequency)
 {
@@ -4143,303 +2995,10 @@ FMOD_RESULT DSPI::getTargetFrequency(int *frequency)
 }
 
 
-#ifdef FMOD_SUPPORT_PROFILE_DSP_VOLUMELEVELS
-/*
-[
-	[DESCRIPTION]
 
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::calculatePeaks(const float *buffer, unsigned int length, unsigned int numchannels, DSPI *t)
-{
-    float           peakvolume[16]  = { 0 };
-    unsigned int    sampleoffset    = 0;
-    unsigned int    channeloffset   = 0;
-
-    if (!t)
-    {
-        t = this;
-    }
-
-    FMOD_memset(t->mPeakVolume, 0, sizeof(t->mPeakVolume));
-    
-    if (buffer == NULL)
-    {
-        t->mNumPeakVolumeChans = 0;    
-        return FMOD_OK;
-    }
-
-    while (sampleoffset < length)
-    {
-        float absValue = buffer[sampleoffset] < 0 ? -buffer[sampleoffset] : buffer[sampleoffset];
-
-        if (absValue > peakvolume[channeloffset])
-        {
-            peakvolume[channeloffset] = absValue;
-        }
-        
-        sampleoffset++;
-        channeloffset++;
-
-        if (channeloffset >= numchannels)
-        {
-            channeloffset = 0;
-        }
-    }
-
-    for (channeloffset = 0; channeloffset < DSP_MAXLEVELS_MAX; channeloffset++)
-    {
-        unsigned short peakvalue = 0;
-
-        /* Channel is really silent (not mearly very quiet) */
-        if (peakvolume[channeloffset] <= DSP_LEVEL_SMALLVAL)
-        {
-            peakvalue = 0;
-        }
-        /* Channel volume has clipped our maximum */
-        else if (peakvolume[channeloffset] > 1.0f)
-        {
-            peakvalue = 31;
-        }
-        /* Convert volume to dB (1 to 30 represents -2 to -60 dB) */
-        else
-        {
-            float dB = FMOD_LOG10(peakvolume[channeloffset]) * 20.0f;
-
-            peakvalue = (short)(-dB + 0.5f);
-            peakvalue = peakvalue / 2;
-            peakvalue = (peakvalue > 30) ? 30 : (peakvalue < 1) ? 1 : peakvalue;
-        }
-
-        /* Pack result value, 5-bits per value, stored big endian */
-        {
-            unsigned char   bitoffset   = channeloffset * 5;
-            unsigned char   byteoffset  = bitoffset >> 3;
-            unsigned char   excessbits  = bitoffset & 7;
-            unsigned char   upperbound  = sizeof(t->mPeakVolume) - sizeof(short);
-            unsigned short *peakdata    = NULL;
-
-            /* Our sliding window is type short, so don't slide off the end of the array */
-            excessbits  = (byteoffset > upperbound) ? excessbits + 8 : excessbits;
-            byteoffset  = (byteoffset > upperbound) ? upperbound : byteoffset;
-
-            peakvalue <<= excessbits;
-
-            #ifdef PLATFORM_ENDIAN_LITTLE
-            peakvalue = FMOD_SWAPENDIAN_WORD(peakvalue);
-            #endif
-
-            peakdata    = (unsigned short *)&t->mPeakVolume[upperbound - byteoffset];
-            peakvalue  |= *peakdata;
-            
-            /* 
-                This should be: *peakdata = peakvalue;
-                Cannot do above because PS3 SPU seems to treat *peakdata as a char instead of
-                a short, so we will manually assign the two bytes of the short. 
-                This is because the short needs to be 2 byte aligned on the SPU.
-            */
-            {
-                unsigned char *p = (unsigned char *)peakdata;
-                unsigned char *v = (unsigned char *)&peakvalue;
-                
-                p[0] = v[0];
-                p[1] = v[1];
-            }
-        }
-    }
-
-    t->mNumPeakVolumeChans = numchannels;
-    return FMOD_OK;
-}
-#endif
-
-#if !defined(PLATFORM_PS3_SPU) && (defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE))
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Macintosh, XBox, PlayStation 2, GameCube
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::startBuffering()
-{
-    FMOD_RESULT result;
-    int channels;
-    LocalCriticalSection  criticalsection(mSystem->mDSPCrit);
-
-    if (mHistoryBuffer)
-    {
-        return FMOD_OK;
-    }
-
-    criticalsection.enter();
-
-    result = mSystem->getSoftwareFormat(0, 0, &channels, 0, 0, 0);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    if (mHistoryBufferMemory)
-    {
-        result = releaseHistoryBuffer(mHistoryBufferMemory);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-    }
-
-    result = createHistoryBuffer(&mHistoryBufferMemory, channels);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    mHistoryBuffer = (float *)FMOD_ALIGNPOINTER(mHistoryBufferMemory, 16);
-
-    mHistoryPosition = 0;
-
-    criticalsection.leave();
-
-    return FMOD_OK;
-}
 
 
 /*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Macintosh, XBox, PlayStation 2, GameCube
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::getHistoryBuffer(float **buffer, unsigned int *position, unsigned int *length)
-{
-    if (buffer)
-    {
-        *buffer = mHistoryBuffer;
-    }
-
-    if (position)
-    {
-        *position = mHistoryPosition;
-    }
-
-    if (length)
-    {
-        *length = FMOD_HISTORYBUFFERLEN;
-    }
-
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32, Win64, Linux, Macintosh, XBox, PlayStation 2, GameCube
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::stopBuffering()
-{
-    if (mHistoryBufferMemory)
-    {
-        FMOD_RESULT result;
-        LocalCriticalSection  criticalsection(mSystem->mDSPCrit, true);
-
-        result = releaseHistoryBuffer(mHistoryBufferMemory);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-        mHistoryBuffer = mHistoryBufferMemory = 0;
-    }
-
-    return FMOD_OK;
-}
-
-#else
-
-
-FMOD_RESULT DSPI::stopBuffering()
-{
-    return FMOD_OK;
-}
-
-#endif
-
-
-/*
-#if defined(FMOD_SUPPORT_MEMORYTRACKER) && !defined(PLATFORM_PS3_SPU)
-
-FMOD_RESULT DSPI::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(MEMTYPE_DSPI, sizeof(*this));
-
-//        LinkedListNode          mInputHead;
-//        LinkedListNode          mOutputHead;
-//        int                     mNumInputs;
-//        int                     mNumOutputs;
-
-//        float                  *mOutputBuffer;
-        #if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-//        LinkedListNode         *mPrevious;
-        #endif
-
-//		static FMOD_OS_CRITICALSECTION *gCrit;
-
-//        FMOD_DSP_DESCRIPTION_EX mDescription;
-//        float                  *mBuffer;
-//        int                     mBufferChannels;
-//        char                   *mWantsToFinish;
-
-#if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-//        DSPI                   *mMemory;
-//        LinkedListNode         *mInputHeadAddress;
-
-//        float                  *mHistoryBuffer;
-//        float                  *mHistoryBufferMemory;
-#endif
-
-    return FMOD_OK;
-}
-
-#endif
 
 */
 /*
@@ -4753,28 +3312,6 @@ FMOD_RESULT F_CALLBACK FMOD_DSP_GETPARAMCALLBACK(FMOD_DSP_STATE *dsp_state, int 
 */
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPI::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    GETMEMORYINFO_IMPL
-#else
-    return FMOD_ERR_UNIMPLEMENTED;
-#endif
-}
-
 
 /*
 [
@@ -4793,35 +3330,245 @@ FMOD_RESULT DSPI::getMemoryInfo(unsigned int memorybits, unsigned int event_memo
 ]
 */
 
-#if defined(FMOD_SUPPORT_MEMORYTRACKER) && !defined(PLATFORM_PS3_SPU)
 
-FMOD_RESULT DSPI::getMemoryUsedImpl(MemoryTracker *tracker)
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+ 
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+FMOD_RESULT DSPI::setInputMix(int index, float volume)
 {
-    tracker->add(false, FMOD_MEMBITS_DSP, mDescription.mSize);
+    FMOD_RESULT result;
+    DSPConnectionI *connection;
 
-    if (mOutputBuffer)
+    result = getInput(index, &connection, 0);
+    if (result != FMOD_OK)
     {
-        tracker->add(false, FMOD_MEMBITS_DSP, (mSystem->mDSPBlockSize * (mSystem->mMaxOutputChannels < mSystem->mMaxInputChannels ? mSystem->mMaxInputChannels : mSystem->mMaxOutputChannels) * sizeof(float)) + 16);
+        return result;
     }
 
-#if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-
-    if (mHistoryBufferMemory)
-    {
-        int channels;
-        CHECK_RESULT(mSystem->getSoftwareFormat(0, 0, &channels, 0, 0, 0));
-        tracker->add(false, FMOD_MEMBITS_DSP, FMOD_HISTORYBUFFERLEN * channels * sizeof(float) + 16);
-    }
-#endif
-
-    if (mDescription.getmemoryused)
-    {
-        CHECK_RESULT(mDescription.getmemoryused(this, tracker));
-    }
-
-    return FMOD_OK;
+    return connection->setMix(volume);
 }
 
-#endif
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+ 
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+FMOD_RESULT DSPI::getInputMix(int index, float *volume)
+{
+    FMOD_RESULT result;
+    DSPConnectionI *connection;
+
+    result = getInput(index, &connection, 0);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    return connection->getMix(volume);
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+ 
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+FMOD_RESULT DSPI::setInputLevels(int index, FMOD_SPEAKER speaker, float *levels, int numlevels)
+{
+    FMOD_RESULT result;
+    DSPConnectionI *connection;
+
+    result = getInput(index, &connection, 0);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    return connection->setLevels(speaker, levels, numlevels);
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+ 
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+FMOD_RESULT DSPI::getInputLevels(int index, FMOD_SPEAKER speaker, float *levels, int numlevels)
+{
+    FMOD_RESULT result;
+    DSPConnectionI *connection;
+
+    result = getInput(index, &connection, 0);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    return connection->getLevels(speaker, levels, numlevels);
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+ 
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+FMOD_RESULT DSPI::setOutputMix(int index, float volume)
+{
+    FMOD_RESULT result;
+    DSPConnectionI *connection;
+
+    result = getOutput(index, &connection, 0);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    return connection->setMix(volume);
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+ 
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+FMOD_RESULT DSPI::getOutputMix(int index, float *volume)
+{
+    FMOD_RESULT result;
+    DSPConnectionI *connection;
+
+    result = getOutput(index, &connection, 0);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    return connection->getMix(volume);
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+ 
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+FMOD_RESULT DSPI::setOutputLevels(int index, FMOD_SPEAKER speaker, float *levels, int numlevels)
+{
+    FMOD_RESULT result;
+    DSPConnectionI *connection;
+
+    result = getOutput(index, &connection, 0);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    return connection->setLevels(speaker, levels, numlevels);
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+ 
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
+	[SEE_ALSO]
+]
+*/
+FMOD_RESULT DSPI::getOutputLevels(int index, FMOD_SPEAKER speaker, float *levels, int numlevels)
+{
+    FMOD_RESULT result;
+    DSPConnectionI *connection;
+
+    result = getOutput(index, &connection, 0);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    return connection->getLevels(speaker, levels, numlevels);
+}
+
 
 }

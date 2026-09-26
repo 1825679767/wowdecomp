@@ -72,6 +72,7 @@ FMOD_DSP_PARAMETERDESC dspflange_param[4] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e7e4d1eb auto
 // OFFSET: 0x008EFE00
 FMOD_DSP_DESCRIPTION_EX *DSPFlange::getDescriptionEx()
 {
@@ -94,9 +95,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPFlange::getDescriptionEx()
     dspflange.paramdesc     = dspflange_param;
     dspflange.setparameter  = DSPFlange::setParameterCallback;
     dspflange.getparameter  = DSPFlange::getParameterCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dspflange.getmemoryused = &DSPFlange::getMemoryUsedCallback;
-#endif
 
     dspflange.mType         = FMOD_DSP_TYPE_FLANGE;
     dspflange.mCategory     = FMOD_DSP_CATEGORY_FILTER;
@@ -334,17 +332,6 @@ FMOD_RESULT DSPFlange::readInternal(float *inbuffer, float *outbuffer, unsigned 
     unsigned int count;
     float        halfdepth = mDepth * 0.5f;
 
-    if (!inbuffer)
-    {
-        return FMOD_OK;
-    }
-	
-	if (!(speakermask & ((1 << inchannels)-1))) /*No speaker channels are active, copy in buffer to out buffer and skip the DSP*/
-	{
-		FMOD_memcpy(outbuffer, inbuffer, sizeof(float)*length*inchannels);
-		return FMOD_OK;
-	}
-
 	for (count = 0; count < length; count++) 
     {
 		unsigned int p1, p2;
@@ -359,33 +346,25 @@ FMOD_RESULT DSPFlange::readInternal(float *inbuffer, float *outbuffer, unsigned 
         for (count2 = 0; count2 < inchannels; count2++)
         {
 			int offset = (count * inchannels) + count2;
-    		
-			if (!(speakermask & (1<<count2)))
-			{
-				outbuffer[offset] = inbuffer[offset];
-			}
-			else
-			{
-				float val;
+			float val;
 
-				val = inbuffer[offset] * mDryMix;
+			val = inbuffer[offset] * mDryMix;
 
-				#ifdef FLANGE_USEFLOAT
-	            
-				val += ((mFlangeBuffer[(p1 * inchannels) + count2] * (1.0f - frac)) + (mFlangeBuffer[(p2 * inchannels) + count2] * frac)) * mWetMix;
+			#ifdef FLANGE_USEFLOAT
+            
+			val += ((mFlangeBuffer[(p1 * inchannels) + count2] * (1.0f - frac)) + (mFlangeBuffer[(p2 * inchannels) + count2] * frac)) * mWetMix;
 
-				mFlangeBuffer[(mFlangeBufferPosition * inchannels) + count2] = inbuffer[offset];
-	            
-                #else
+			mFlangeBuffer[(mFlangeBufferPosition * inchannels) + count2] = inbuffer[offset];
+            
+            #else
 
-				val += (((mFlangeBuffer[(p1 * inchannels) + count2] / 32768.0f) * (1.0f - frac)) + ((mFlangeBuffer[(p2 * inchannels) + count2] / 32768.0f) * frac)) * mWetMix;
+			val += (((mFlangeBuffer[(p1 * inchannels) + count2] / 32768.0f) * (1.0f - frac)) + ((mFlangeBuffer[(p2 * inchannels) + count2] / 32768.0f) * frac)) * mWetMix;
 
-				mFlangeBuffer[(mFlangeBufferPosition * inchannels) + count2] = (signed short)(inbuffer[offset] * 32768.0f);
+			mFlangeBuffer[(mFlangeBufferPosition * inchannels) + count2] = (signed short)(inbuffer[offset] * 32768.0f);
 
-				#endif
-			    
-				outbuffer[offset] = val;
-			}
+			#endif
+		    
+			outbuffer[offset] = val;
         }
 
         if (!mFlangeBufferPosition)
@@ -503,6 +482,7 @@ FMOD_RESULT DSPFlange::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f91ee0ed auto
 // OFFSET: 0x008EFBD0
 FMOD_RESULT DSPFlange::getParameterInternal(int index, float *value, char *valuestr)
 {
@@ -554,23 +534,6 @@ FMOD_RESULT DSPFlange::getParameterInternal(int index, float *value, char *value
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPFlange::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    // Size of this class is already accounted for (via description.mSize). Just add extra allocated memory here.
-
-    #if !defined(PLATFORM_PS3) && !defined(PLATFORM_WINDOWS_PS3MODE)
-    if (mFlangeBuffer)
-    {
-        tracker->add(false, FMOD_MEMBITS_DSP, mFlangeBufferLengthBytes);
-    }
-    #endif
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 /*
@@ -674,6 +637,7 @@ FMOD_RESULT F_CALLBACK DSPFlange::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7ddfa3ab auto
 // OFFSET: 0x008EFD60
 FMOD_RESULT F_CALLBACK DSPFlange::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -725,6 +689,7 @@ FMOD_RESULT F_CALLBACK DSPFlange::setParameterCallback(FMOD_DSP_STATE *dsp, int 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a407c4b1 auto
 // OFFSET: 0x008EFDD0
 FMOD_RESULT F_CALLBACK DSPFlange::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
@@ -734,29 +699,6 @@ FMOD_RESULT F_CALLBACK DSPFlange::getParameterCallback(FMOD_DSP_STATE *dsp, int 
 }
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPFlange::getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker)
-{
-    DSPFlange *flange = (DSPFlange *)dsp;    
-
-    return flange->DSPFlange::getMemoryUsed(tracker);
-}
-#endif
 
 #endif //!PLATFORM_PS3_SPU
 

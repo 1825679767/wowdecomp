@@ -18,7 +18,7 @@ namespace FMOD
     class File;
     class MemPool;
 
-    class Plugin : public SortedLinkedListNode
+    class Plugin : public LinkedListNode
     {
         friend class SystemI;
 

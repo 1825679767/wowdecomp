@@ -99,9 +99,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPOscillator::getDescriptionEx()
     dsposcillator.mSize         = sizeof(DSPOscillator);
     dsposcillator.mCategory     = FMOD_DSP_CATEGORY_FILTER;
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dsposcillator.getmemoryused = &DSPI::getMemoryUsedCallback;
-#endif
 
 #else
     dsposcillator.read          = DSPOscillator::readCallback;                  /* We only care about read function on SPU */

@@ -164,22 +164,6 @@ FMOD_RESULT Reverb::getUserData(void **_userdata)
 }
 
 
-FMOD_RESULT Reverb::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD_RESULT result;
-    ReverbI *reverbi;
-
-    result = ReverbI::validate(this, &reverbi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return reverbi->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-    }
-}
-
 
 /*$ preserve start $*/
 }

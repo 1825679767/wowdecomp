@@ -61,16 +61,6 @@ FMOD_RESULT SampleOpenAL::release(bool freethis)
         return FMOD_ERR_UNINITIALIZED;
     }
     
-    if (mFlags & FMOD_SOUND_FLAG_PRELOADEDFSB)
-    {
-        return FMOD_ERR_PRELOADED;
-    }
-
-    if (mFlags & FMOD_SOUND_FLAG_PROGRAMMERSOUND)
-    {
-        return FMOD_ERR_PROGRAMMERSOUND;
-    }
-
     while (mOpenState != FMOD_OPENSTATE_READY && mOpenState != FMOD_OPENSTATE_ERROR)
     {
         FMOD_OS_Time_Sleep(2);

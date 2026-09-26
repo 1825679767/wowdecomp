@@ -94,7 +94,7 @@ FMOD_RESULT System::getNumDrivers(int *numdrivers)
 }
 
 
-FMOD_RESULT System::getDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid)
+FMOD_RESULT System::getDriverName(int id, char *name, int namelen)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -106,28 +106,9 @@ FMOD_RESULT System::getDriverInfo(int id, char *name, int namelen, FMOD_GUID *gu
     }
     else
     {
-        return systemi->getDriverInfo(id, name, namelen, guid);
+        return systemi->getDriverName(id, name, namelen);
     }
 }
-
-
-FMOD_RESULT System::getDriverInfoW(int id, short *name, int namelen, FMOD_GUID *guid)
-{
-    FMOD_RESULT result;
-    SystemI *systemi;
-
-    result = SystemI::validate(this, &systemi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return systemi->getDriverInfoW(id, name, namelen, guid);
-    }
-}
-
-
 // OFFSET: 0x008D1240
 FMOD_RESULT System::getDriverCaps(int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode)
 {
@@ -408,7 +389,7 @@ FMOD_RESULT System::getSpeakerMode(FMOD_SPEAKERMODE *speakermode)
 
 
 // OFFSET: 0x008D13C0
-FMOD_RESULT System::setCallback(FMOD_SYSTEM_CALLBACK callback)
+FMOD_RESULT System::setCallback(FMOD_SYSTEM_CALLBACKTYPE type, FMOD_SYSTEM_CALLBACK callback)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -420,7 +401,7 @@ FMOD_RESULT System::setCallback(FMOD_SYSTEM_CALLBACK callback)
     }
     else
     {
-        return systemi->setCallback(callback);
+        return systemi->setCallback(type, callback);
     }
 }
 
@@ -442,7 +423,7 @@ FMOD_RESULT System::setPluginPath(const char *path)
 }
 
 
-FMOD_RESULT System::loadPlugin(const char *filename, unsigned int *handle, unsigned int priority)
+FMOD_RESULT System::loadPlugin(const char *filename, FMOD_PLUGINTYPE *plugintype, int *index)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -454,12 +435,12 @@ FMOD_RESULT System::loadPlugin(const char *filename, unsigned int *handle, unsig
     }
     else
     {
-        return systemi->loadPlugin(filename, handle, priority);
+        return systemi->loadPlugin(filename, plugintype, index);
     }
 }
 
 
-FMOD_RESULT System::unloadPlugin(unsigned int handle)
+FMOD_RESULT System::unloadPlugin(FMOD_PLUGINTYPE plugintype, int index)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -471,7 +452,7 @@ FMOD_RESULT System::unloadPlugin(unsigned int handle)
     }
     else
     {
-        return systemi->unloadPlugin(handle);
+        return systemi->unloadPlugin(plugintype, index);
     }
 }
 
@@ -491,9 +472,7 @@ FMOD_RESULT System::getNumPlugins(FMOD_PLUGINTYPE plugintype, int *numplugins)
         return systemi->getNumPlugins(plugintype, numplugins);
     }
 }
-
-
-FMOD_RESULT System::getPluginHandle(FMOD_PLUGINTYPE plugintype, int index, unsigned int *handle)
+FMOD_RESULT System::getPluginInfo(FMOD_PLUGINTYPE plugintype, int index, char *name, int namelen, unsigned int *version)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -505,12 +484,12 @@ FMOD_RESULT System::getPluginHandle(FMOD_PLUGINTYPE plugintype, int index, unsig
     }
     else
     {
-        return systemi->getPluginHandle(plugintype, index, handle);
+        return systemi->getPluginInfo(plugintype, index, name, namelen, version);
     }
 }
 
 
-FMOD_RESULT System::getPluginInfo(unsigned int handle, FMOD_PLUGINTYPE *plugintype, char *name, int namelen, unsigned int *version)
+FMOD_RESULT System::setOutputByPlugin(int index)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -522,12 +501,12 @@ FMOD_RESULT System::getPluginInfo(unsigned int handle, FMOD_PLUGINTYPE *pluginty
     }
     else
     {
-        return systemi->getPluginInfo(handle, plugintype, name, namelen, version);
+        return systemi->setOutputByPlugin(index);
     }
 }
 
 
-FMOD_RESULT System::setOutputByPlugin(unsigned int handle)
+FMOD_RESULT System::getOutputByPlugin(int *index)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -539,12 +518,10 @@ FMOD_RESULT System::setOutputByPlugin(unsigned int handle)
     }
     else
     {
-        return systemi->setOutputByPlugin(handle);
+        return systemi->getOutputByPlugin(index);
     }
 }
-
-
-FMOD_RESULT System::getOutputByPlugin(unsigned int *handle)
+FMOD_RESULT System::createCodec(FMOD_CODEC_DESCRIPTION *description)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -556,41 +533,7 @@ FMOD_RESULT System::getOutputByPlugin(unsigned int *handle)
     }
     else
     {
-        return systemi->getOutputByPlugin(handle);
-    }
-}
-
-
-FMOD_RESULT System::createDSPByPlugin(unsigned int handle, DSP **dsp)
-{
-    FMOD_RESULT result;
-    SystemI *systemi;
-
-    result = SystemI::validate(this, &systemi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return systemi->createDSPByPlugin(handle, (DSPI **)dsp);
-    }
-}
-
-
-FMOD_RESULT System::createCodec(FMOD_CODEC_DESCRIPTION *description, unsigned int priority)
-{
-    FMOD_RESULT result;
-    SystemI *systemi;
-
-    result = SystemI::validate(this, &systemi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return systemi->createCodec(description, priority);
+        return systemi->createCodec(description);
     }
 }
 
@@ -910,7 +853,7 @@ FMOD_RESULT System::getHardwareChannels(int *num2d, int *num3d, int *total)
 }
 
 
-FMOD_RESULT System::getCPUUsage(float *dsp, float *stream, float *geometry, float *update, float *total)
+FMOD_RESULT System::getCPUUsage(float *dsp, float *stream, float *update, float *total)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -922,7 +865,7 @@ FMOD_RESULT System::getCPUUsage(float *dsp, float *stream, float *geometry, floa
     }
     else
     {
-        return systemi->getCPUUsage(dsp, stream, geometry, update, total);
+        return systemi->getCPUUsage(dsp, stream, update, total);
     }
 }
 
@@ -1080,6 +1023,23 @@ FMOD_RESULT System::createDSPByType(FMOD_DSP_TYPE type, DSP **dsp)
     else
     {
         return systemi->createDSPByType(type, (DSPI **)dsp);
+    }
+}
+
+
+FMOD_RESULT System::createDSPByIndex(int index, DSP **dsp)
+{
+    FMOD_RESULT result;
+    SystemI *systemi;
+
+    result = SystemI::validate(this, &systemi);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+    else
+    {
+        return systemi->createDSPByIndex(index, (DSPI **)dsp);
     }
 }
 
@@ -1311,7 +1271,7 @@ FMOD_RESULT System::getDSPHead(DSP **dsp)
 }
 
 
-FMOD_RESULT System::addDSP(DSP *dsp, DSPConnection **connection)
+FMOD_RESULT System::addDSP(DSP *dsp)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -1323,7 +1283,7 @@ FMOD_RESULT System::addDSP(DSP *dsp, DSPConnection **connection)
     }
     else
     {
-        return systemi->addDSP((DSPI *)dsp, (DSPConnectionI **)connection);
+        return systemi->addDSP((DSPI *)dsp);
     }
 }
 
@@ -1362,7 +1322,7 @@ FMOD_RESULT System::unlockDSP()
 }
 
 
-FMOD_RESULT System::getDSPClock(unsigned int *hi, unsigned int *lo)
+FMOD_RESULT System::setRecordDriver(int driver)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -1374,11 +1334,26 @@ FMOD_RESULT System::getDSPClock(unsigned int *hi, unsigned int *lo)
     }
     else
     {
-        return systemi->getDSPClock(hi, lo);
+        return systemi->setRecordDriver(driver);
     }
 }
 
 
+FMOD_RESULT System::getRecordDriver(int *driver)
+{
+    FMOD_RESULT result;
+    SystemI *systemi;
+
+    result = SystemI::validate(this, &systemi);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+    else
+    {
+        return systemi->getRecordDriver(driver);
+    }
+}
 // OFFSET: 0x008D1820
 FMOD_RESULT System::getRecordNumDrivers(int *numdrivers)
 {
@@ -1397,7 +1372,7 @@ FMOD_RESULT System::getRecordNumDrivers(int *numdrivers)
 }
 
 
-FMOD_RESULT System::getRecordDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid)
+FMOD_RESULT System::getRecordDriverName(int id, char *name, int namelen)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -1409,28 +1384,9 @@ FMOD_RESULT System::getRecordDriverInfo(int id, char *name, int namelen, FMOD_GU
     }
     else
     {
-        return systemi->getRecordDriverInfo(id, name, namelen, guid);
+        return systemi->getRecordDriverName(id, name, namelen);
     }
 }
-
-
-FMOD_RESULT System::getRecordDriverInfoW(int id, short *name, int namelen, FMOD_GUID *guid)
-{
-    FMOD_RESULT result;
-    SystemI *systemi;
-
-    result = SystemI::validate(this, &systemi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return systemi->getRecordDriverInfoW(id, name, namelen, guid);
-    }
-}
-
-
 FMOD_RESULT System::getRecordDriverCaps(int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency)
 {
     FMOD_RESULT result;
@@ -1449,7 +1405,7 @@ FMOD_RESULT System::getRecordDriverCaps(int id, FMOD_CAPS *caps, int *minfrequen
 
 
 // OFFSET: 0x008D1880
-FMOD_RESULT System::getRecordPosition(int id, unsigned int *position)
+FMOD_RESULT System::getRecordPosition(unsigned int *position)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -1461,13 +1417,13 @@ FMOD_RESULT System::getRecordPosition(int id, unsigned int *position)
     }
     else
     {
-        return systemi->getRecordPosition(id, position);
+        return systemi->getRecordPosition(position);
     }
 }
 
 
 // OFFSET: 0x008D18B0
-FMOD_RESULT System::recordStart(int id, Sound *sound, bool loop)
+FMOD_RESULT System::recordStart(Sound *sound, bool loop)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -1479,13 +1435,13 @@ FMOD_RESULT System::recordStart(int id, Sound *sound, bool loop)
     }
     else
     {
-        return systemi->recordStart(id, (SoundI *)sound, loop);
+        return systemi->recordStart((SoundI *)sound, loop);
     }
 }
 
 
 // OFFSET: 0x008D18E0
-FMOD_RESULT System::recordStop(int id)
+FMOD_RESULT System::recordStop()
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -1497,13 +1453,13 @@ FMOD_RESULT System::recordStop(int id)
     }
     else
     {
-        return systemi->recordStop(id);
+        return systemi->recordStop();
     }
 }
 
 
 // OFFSET: 0x008D1910
-FMOD_RESULT System::isRecording(int id, bool *recording)
+FMOD_RESULT System::isRecording(bool *recording)
 {
     FMOD_RESULT result;
     SystemI *systemi;
@@ -1515,7 +1471,7 @@ FMOD_RESULT System::isRecording(int id, bool *recording)
     }
     else
     {
-        return systemi->isRecording(id, recording);
+        return systemi->isRecording(recording);
     }
 }
 
@@ -1586,25 +1542,6 @@ FMOD_RESULT System::loadGeometry(const void *data, int datasize, Geometry **geom
         return systemi->loadGeometry(data, datasize, (GeometryI **)geometry);
     }
 }
-
-
-FMOD_RESULT System::getGeometryOcclusion(const FMOD_VECTOR *listener, const FMOD_VECTOR *source, float *direct, float *reverb)
-{
-    FMOD_RESULT result;
-    SystemI *systemi;
-
-    result = SystemI::validate(this, &systemi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return systemi->getGeometryOcclusion(listener, source, direct, reverb);
-    }
-}
-
-
 FMOD_RESULT System::setNetworkProxy(const char *proxy)
 {
     FMOD_RESULT result;
@@ -1706,22 +1643,6 @@ FMOD_RESULT System::getUserData(void **_userdata)
     }
 }
 
-
-FMOD_RESULT System::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD_RESULT result;
-    SystemI *systemi;
-
-    result = SystemI::validate(this, &systemi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return systemi->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-    }
-}
 
 
 /*$ preserve start $*/

@@ -158,7 +158,7 @@ namespace FMOD
         FMOD_RESULT     processEnvelope(MusicEnvelopeState *env, MusicVirtualChannel *vcptr, int Inumpoints, MusicEnvelopeNode *v, int type, int loopstart, int loopend, int susloopstart, int susloopend, unsigned char control);
         FMOD_RESULT     processPitchEnvelope(MusicVirtualChannel *vcptr, MusicInstrument *iptr, int note);
         FMOD_RESULT     sampleVibrato(MusicVirtualChannel *vcptr);
-        FMOD_RESULT     play(bool fromopen = false);
+        FMOD_RESULT     play();
 
         FMOD_RESULT     openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo);
         FMOD_RESULT     closeInternal();

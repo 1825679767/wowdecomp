@@ -88,7 +88,7 @@ namespace FMOD
 
     typedef HRESULT (STDMETHODCALLTYPE *PFN_WMCREATESYNCREADER)( IUnknown* pUnkCert, DWORD dwRights, IWMSyncReader **ppSyncReader );
 
-    class SyncPointNamed;
+    class SyncPoint;
 
     static const unsigned int FMOD_ASF_MAXIMUM_SEEK_POS_MS = 2000;
 
@@ -104,7 +104,7 @@ namespace FMOD
         QWORD           mSampleTime;
         bool            mSeekable;
         int             mNumSyncPoints;
-        SyncPointNamed *mSyncPoint;
+        SyncPoint *mSyncPoint;
         unsigned int    mExcessBytes;
 
         static PFN_WMCREATESYNCREADER gWMCreateSyncReader;

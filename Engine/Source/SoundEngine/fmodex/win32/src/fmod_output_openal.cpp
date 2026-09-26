@@ -117,7 +117,6 @@ FMOD_OUTPUT_DESCRIPTION_EX *OutputOpenAL::getDescriptionEx()
 OutputOpenAL::OutputOpenAL()
 {
     mDLLInitialised  = false;
-    mEnumerated      = false;
     mInitialised     = false;
     mNumDrivers      = 0;
 }
@@ -186,23 +185,10 @@ FMOD_RESULT OutputOpenAL::enumerate()
     ALCdevice   *device        = NULL;
     ALCcontext  *context       = NULL;
 
-    /*
-        Set up gGlobal - for debug / file / memory access by this plugin.
-    */
-    Plugin::init();
-
-    // Check if already enumerated
-    if (mEnumerated)
-    {
-        return FMOD_OK;
-    }
-
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputOpenAL::enumerate", "Enumerating...\n"));
-
-    // Do one time initialisation code
 	if (!mSetupOnce)
 	{
-        // Ensure the DLL is loaded
+        Plugin::init();
+
         result = registerDLL();
         if (result != FMOD_OK)
         {
@@ -212,77 +198,61 @@ FMOD_RESULT OutputOpenAL::enumerate()
         mSetupOnce = true;
 	}
 
-    // Clean up any driver enumeration (may have enumerated once already)
     for (int i = 0; i < mNumDrivers; i++)
     {
         SAFE_FREE(mDriverNames[i]);
     }
     mNumDrivers = 0;
 
-    // Get a list of all devices, each device is NULL terminated, list is double NULL terminated
     deviceList = (char *)mOALFnTable.alcGetString(NULL, ALC_DEVICE_SPECIFIER);
+
 	while (*deviceList != NULL && mNumDrivers < FMOD_OUTPUT_MAXDRIVERS)
     {
-        // Open the device
         device = mOALFnTable.alcOpenDevice(deviceList);
         if (device == NULL)
         {
-            // Couldn't open device, move onto the next
-            deviceList += FMOD_strlen(deviceList) + 1;
             continue;
         }
 
-        // Create a context for the device
         context = mOALFnTable.alcCreateContext(device, NULL);
         if (context == NULL)
         {
-            // Couldn't create context, move onto the next
             mOALFnTable.alcCloseDevice(device);
-            deviceList += FMOD_strlen(deviceList) + 1;
             continue;
         }
 
-        // Make context active
 	    mOALFnTable.alcGetError(device);
 	    mOALFnTable.alcMakeContextCurrent(context);
 	    if (mOALFnTable.alcGetError(device) != ALC_NO_ERROR)
 	    {
-            // Couldn't set context as current, move onto the next
             mOALFnTable.alcDestroyContext(context);
             mOALFnTable.alcCloseDevice(device);
-            deviceList += FMOD_strlen(deviceList) + 1;
             continue;
         }
 
-        // Get the version of OpenAL the device supports
         int majorVersion = 0;
         int minorVersion = 0;
+
         mOALFnTable.alcGetIntegerv(device, ALC_MAJOR_VERSION, sizeof(int), &majorVersion);
         mOALFnTable.alcGetIntegerv(device, ALC_MINOR_VERSION, sizeof(int), &minorVersion);
         mOALFnTable.alcGetError(device);
 
-        // Only add devices that are OpenAL 1.1 compliant or greater
         if (majorVersion >= 1 && minorVersion >= 1)
         {
-	        // Get the name of this device (may be different to name in above list due to fallback support)
             const char  *deviceName = mOALFnTable.alcGetString(device, ALC_DEVICE_SPECIFIER);
             bool         dupeFound  = false;
 
-            // Check the list if this device is a duplicate
             for (int i = 0; i < mNumDrivers; i++)
             {
                 if (FMOD_strcmp(deviceName, mDriverNames[i]) == 0)
                 {
-                    // Found a device already in the list, ignore it (e.g. may have fallen back from hardware to software)
                     dupeFound = true;
                     break;
                 }
             }
 
-            // Only add if not a duplicate entry
             if (!dupeFound)
             {
-                // Allocate memory for the device name
                 mDriverNames[mNumDrivers] = (char *)FMOD_Memory_Calloc(FMOD_strlen(deviceName) + 1);
                 if (mDriverNames[mNumDrivers] == NULL)
                 {
@@ -292,24 +262,19 @@ FMOD_RESULT OutputOpenAL::enumerate()
                     return FMOD_ERR_MEMORY;
                 }
 
-                // Add the new device to the list of useable enumerated devices
                 FMOD_strcpy(mDriverNames[mNumDrivers], deviceName);
                 mNumDrivers++;
-
-                FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputOpenAL::enumerate", "Found Driver: \"%s\"\n", deviceName));
             }
         }
 
-	    // Clean up and move onto the next device in the list
         mOALFnTable.alcMakeContextCurrent(NULL);
         mOALFnTable.alcDestroyContext(context);
 		mOALFnTable.alcCloseDevice(device);
+
         deviceList += FMOD_strlen(deviceList) + 1;
     }
 
-    FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputOpenAL::enumerate", "Done.\n"));
-    mEnumerated = true;
-    return FMOD_OK;    
+    return FMOD_OK;
 }
 
 
@@ -333,20 +298,17 @@ FMOD_RESULT OutputOpenAL::enumerate()
 */
 FMOD_RESULT OutputOpenAL::getNumDrivers(int *numdrivers)
 {
+    FMOD_RESULT result;
+
     if (!numdrivers)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (!mEnumerated)
+    result = enumerate();
+    if (result != FMOD_OK)
     {
-        FMOD_RESULT result;
-
-        result = enumerate();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
+        return result;
     }
 
     *numdrivers = mNumDrivers;
@@ -376,15 +338,17 @@ FMOD_RESULT OutputOpenAL::getNumDrivers(int *numdrivers)
 // OFFSET: 0x0092A610
 FMOD_RESULT OutputOpenAL::getDriverName(int driver, char *name, int namelen)
 {
-    if (!mEnumerated)
-    {
-        FMOD_RESULT result;
+    FMOD_RESULT result;
 
-        result = enumerate();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
+    if (!name || namelen < 1)
+    {
+        return FMOD_ERR_INVALID_PARAM;
+    }
+
+    result = enumerate();
+    if (result != FMOD_OK)
+    {
+        return result;
     }
 
     if (driver < 0 || driver >= mNumDrivers)
@@ -392,11 +356,7 @@ FMOD_RESULT OutputOpenAL::getDriverName(int driver, char *name, int namelen)
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (name && namelen >= 1)
-    {    
-        FMOD_strncpy(name, mDriverNames[driver], namelen - 1);
-        name[namelen - 1] = 0;
-    }
+    FMOD_strncpy(name, mDriverNames[driver], namelen - 1);
 
     return FMOD_OK;
 }
@@ -427,13 +387,10 @@ FMOD_RESULT OutputOpenAL::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequ
     ALCcontext *context      = NULL;
     FMOD_RESULT result       = FMOD_OK;
 
-    if (!mEnumerated)
+    result = enumerate();
+    if (result != FMOD_OK)
     {
-        result = enumerate();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
+        return result;
     }
 
     // Check if using the software mode (fallback from hardware is already considered in the enumeration)
@@ -594,19 +551,6 @@ FMOD_RESULT OutputOpenAL::initEAX()
         mReverbVersion = REVERB_VERSION_NONE;
     }
 
-    // Determine if board with XRAM
-    if (mOALFnTable.alIsExtensionPresent("EAX-RAM"))
-    {
-		// Load EAX GetBufferMode and SetBufferMode functions
-		mEAXGetBufferMode = (EAXGetBufferMode)mOALFnTable.alGetProcAddress("EAXGetBufferMode");
-		mEAXSetBufferMode = (EAXSetBufferMode)mOALFnTable.alGetProcAddress("EAXSetBufferMode");
-		if (!mEAXGetBufferMode || !mEAXSetBufferMode)
-		{
-			// Will fail on none XFi XRAM cards
-		}
-        FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputOpenAL::initEAX", "EAX-RAM detected\n"));
-	}    
-
     // EAX5.0 Requires you to setup a session before making any EAX5.0 calls
 	if (mReverbVersion == REVERB_VERSION_EAX5)
 	{
@@ -654,16 +598,10 @@ FMOD_RESULT OutputOpenAL::init(int selecteddriver, FMOD_INITFLAGS flags, int *ou
     mMixerReverbDisabled  = false;
     mEAXSet               = NULL;
     mEAXGet               = NULL;
-	mEAXSetBufferMode     = NULL;
-	mEAXGetBufferMode     = NULL;
-
 	FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputOpenAL::init", "Initialising...\n"));
     
-    if (!mEnumerated)
-    {
-        result = enumerate();
-        EXIT_ON_CONDITION(result != FMOD_OK, result);
-    }
+    result = enumerate();
+    EXIT_ON_CONDITION(result != FMOD_OK, result);
 
     if (mNumDrivers <= 0)
 	{
@@ -789,15 +727,6 @@ FMOD_RESULT OutputOpenAL::init(int selecteddriver, FMOD_INITFLAGS flags, int *ou
                 break;  // Could not create OpenAL buffer
             }
 
-			if (mEAXSetBufferMode)
-			{
-				mEAXSetBufferMode(1, &mSources[mNumSources].bid[i], mOALFnTable.alGetEnumValue("AL_STORAGE_ACCESSIBLE"));
-				if (mOALFnTable.alGetError() != AL_NO_ERROR)
-				{
-					break;  // Could not change OpenAL buffer mode
-				}
-			}
-
 			mOALFnTable.alBufferData(mSources[mNumSources].bid[i], AL_FORMAT_MONO16, mBufferData, mBufferLength * (formatBits / 8), mRate);
             if (mOALFnTable.alGetError() != AL_NO_ERROR)
 		    {
@@ -896,8 +825,7 @@ FMOD_RESULT OutputOpenAL::init(int selecteddriver, FMOD_INITFLAGS flags, int *ou
         }
 
         // Apply the channel to the channel pool
-        result = mChannelPool3D->setChannel(i, &mChannels[i]);
-        EXIT_ON_CONDITION(result != FMOD_OK, result);
+        mChannelPool3D->setChannel(i, &mChannels[i], 0);
     }
 
     // 2D channel pool is the same as the 3D pool
@@ -957,11 +885,6 @@ FMOD_RESULT OutputOpenAL::init(int selecteddriver, FMOD_INITFLAGS flags, int *ou
 // OFFSET: 0x0092A9B0
 FMOD_RESULT OutputOpenAL::close()
 { 
-    /*
-        Set up gGlobal - for debug / file / memory access by this plugin.
-    */
-    Plugin::init();
-
     FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputOpenAL::close", "Closing...\n"));
 
     // Release the channel pool, (both pools are the same)
@@ -1013,7 +936,6 @@ FMOD_RESULT OutputOpenAL::close()
     UnloadOALLibrary();
 
     mDLLInitialised       = false;
-    mEnumerated           = false;
     mSetupOnce            = false;
     mNumDrivers           = 0;
     FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputOpenAL::close", "Done.\n"));

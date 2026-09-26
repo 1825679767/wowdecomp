@@ -34,8 +34,8 @@ extern "C" {
 
 #endif  /* PLUGIN_EXPORTS */
 
-static const FMOD_GUID KSDATAFORMAT_SUBTYPE_IEEE_FLOAT = { 0x00000003, 0x0000, 0x0010, { 0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71 } };
-static const FMOD_GUID KSDATAFORMAT_SUBTYPE_PCM        = { 0x00000001, 0x0000, 0x0010, { 0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71 } };
+static const FMOD_GUID _KSDATAFORMAT_SUBTYPE_IEEE_FLOAT = { 0x00000003, 0x0000, 0x0010, { 0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71 } };
+static const FMOD_GUID _KSDATAFORMAT_SUBTYPE_PCM        = { 0x00000001, 0x0000, 0x0010, { 0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71 } };
 
 /*
 [
@@ -285,7 +285,6 @@ FMOD_RESULT OutputWavWriter_NRT::update()
 {
 #ifdef FMOD_SUPPORT_SOFTWARE
     FMOD_RESULT     result  = FMOD_OK;
-    unsigned int    count   = 0;
 
     result = mix(mBuffer, mBufferLength);
     if (result != FMOD_OK)
@@ -293,39 +292,10 @@ FMOD_RESULT OutputWavWriter_NRT::update()
         return FMOD_OK;
     }
 
-    if (mFormat == FMOD_SOUND_FORMAT_PCM8)
-    {
-        signed char *ptr = (signed char *)mBuffer;
-        
-        for (count = 0; count < mBufferLengthBytes; count++)
-        {
-            ptr[count] ^= 128;
-        }
-    }
-#ifdef PLATFORM_ENDIAN_BIG
-    else if (mFormat == FMOD_SOUND_FORMAT_PCM16)
-    {
-        signed short *wptr = (signed short *)mBuffer;
-        
-        for (count = 0; count < mBufferLengthBytes >> 1; count++)
-        {
-            wptr[count] = FMOD_SWAPENDIAN_WORD(wptr[count]);
-        }
-    }
-    else if (mFormat == FMOD_SOUND_FORMAT_PCM32 || mFormat == FMOD_SOUND_FORMAT_PCMFLOAT)
-    {
-        signed int *dwptr = (signed int *)mBuffer;
-        
-        for (count = 0; count < mBufferLengthBytes >> 2; count++)
-        {
-            dwptr[count] = FMOD_SWAPENDIAN_DWORD(dwptr[count]);
-        }
-    }
+    fwrite(mBuffer, mBufferLengthBytes, 1, mFP);
+    mLengthBytes += mBufferLengthBytes;
 #endif
-             
-    int written = fwrite(mBuffer, 1, mBufferLengthBytes, mFP);
-    mLengthBytes += written;
-#endif
+
     return FMOD_OK;
 }
 
@@ -391,11 +361,11 @@ FMOD_RESULT OutputWavWriter_NRT::writeWavHeader()
             Fmt.dwChannelMask               = 0;      /* FIXME - this should be set according to mulchaud.rtf */
             if (mFormat == FMOD_SOUND_FORMAT_PCMFLOAT)
             {
-                FMOD_memcpy(&Fmt.SubFormat, &KSDATAFORMAT_SUBTYPE_IEEE_FLOAT, sizeof(FMOD_GUID));
+                FMOD_memcpy(&Fmt.SubFormat, &_KSDATAFORMAT_SUBTYPE_IEEE_FLOAT, sizeof(FMOD_GUID));
             }
             else
             {
-                FMOD_memcpy(&Fmt.SubFormat, &KSDATAFORMAT_SUBTYPE_PCM, sizeof(FMOD_GUID));
+                FMOD_memcpy(&Fmt.SubFormat, &_KSDATAFORMAT_SUBTYPE_PCM, sizeof(FMOD_GUID));
             }        
         }
 

@@ -119,7 +119,7 @@ namespace FMOD
         #endif
     #endif
 
-    class SyncPointNamed;
+    class SyncPoint;
     class ChannelSoftware;
 	class ChannelOpenAL;
 
@@ -146,7 +146,7 @@ namespace FMOD
     	WAVE_FORMATEXTENSIBLE   mDestFormat;
 
         int                     mNumSyncPoints;
-        SyncPointNamed         *mSyncPoint;
+        SyncPoint         *mSyncPoint;
         int                     mSamplesPerADPCMBlock;
 
         FMOD_RESULT parseChunk(unsigned int chunksize);

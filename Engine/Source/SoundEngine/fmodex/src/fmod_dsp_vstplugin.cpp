@@ -301,12 +301,6 @@ FMOD_RESULT DSPVSTPlugin::readInternal(float *inbuffer, float *outbuffer, unsign
         return FMOD_OK;
     }
 
-	if (!(speakermask & ((1 << outchannels)-1)))
-	{
-		FMOD_memcpy(outbuffer, inbuffer, length * outchannels * sizeof(float));
-        return FMOD_OK;	
-	}
-
     /*
         Downmix to mono if thats what the vst plugin wants
     */
@@ -404,14 +398,7 @@ FMOD_RESULT DSPVSTPlugin::readInternal(float *inbuffer, float *outbuffer, unsign
             {
                 for (j = 0; j < outchannels; j++)
                 {
-					if (!((1 << j) & speakermask))
-					{
-						*outbuffer++ = mDeInterleavedInputBuffer[0][i];
-					}
-					else
-					{
-						*outbuffer++ = mDeInterleavedOutputBuffer[0][i];
-					}
+					*outbuffer++ = mDeInterleavedOutputBuffer[0][i];
                 }
             }
         }
@@ -421,14 +408,7 @@ FMOD_RESULT DSPVSTPlugin::readInternal(float *inbuffer, float *outbuffer, unsign
             {
                 for (j = 0; j < outchannels; j++)
                 {
-					if (!((1 << j) & speakermask))
-					{
-						*outbuffer++ = *in;
-					}
-					else
-					{
-						*outbuffer++ = mDeInterleavedOutputBuffer[j][i];
-					}
+					*outbuffer++ = mDeInterleavedOutputBuffer[j][i];
 					in++;
                 }
             }

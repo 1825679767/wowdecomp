@@ -216,8 +216,6 @@ FMOD_RESULT OutputNoSound::init(int selecteddriver, FMOD_INITFLAGS flags, int *o
 */
 FMOD_RESULT OutputNoSound::close()
 {
-    Plugin::init(); /* Set up gGlobal - for debug / file / memory access by this plugin. */
-
     if (mBuffer)
     {
         FMOD_Memory_Free(mBuffer);

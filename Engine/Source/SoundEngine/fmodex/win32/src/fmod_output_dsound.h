@@ -29,10 +29,10 @@
     Directsound function pointers definitions.
 */
 typedef HRESULT (WINAPI * PFN_DSCREATE)		(LPGUID lpguid, LPDIRECTSOUND * ppDS, IUnknown FAR * pUnkOuter);
-typedef BOOL	(WINAPI * PFN_DSENUMERATE)	(LPDSENUMCALLBACKW lpDSEnumCallback, LPVOID lpContext);
+typedef BOOL	(WINAPI * PFN_DSENUMERATE)	(LPDSENUMCALLBACKA lpDSEnumCallback, LPVOID lpContext);
 typedef HRESULT (WINAPI * PFN_DSCREATE8)	(LPCGUID lpcGuidDevice, LPDIRECTSOUND8 * ppDS8, LPUNKNOWN pUnkOuter);
 typedef HRESULT (WINAPI * PFN_DSCCREATE)	(LPGUID lpGUID, LPDIRECTSOUNDCAPTURE *lplpDSC,LPUNKNOWN pUnkOuter);
-typedef BOOL	(WINAPI * PFN_DSCENUMERATE)	(LPDSENUMCALLBACKW lpDSEnumCallback,LPVOID lpContext);
+typedef BOOL	(WINAPI * PFN_DSCENUMERATE)	(LPDSENUMCALLBACKA lpDSEnumCallback,LPVOID lpContext);
 typedef HRESULT (WINAPI * PFN_DSCCREATE8)	(LPCGUID lpcGUID, LPDIRECTSOUNDCAPTURE8 *lplpDSC, LPUNKNOWN pUnkOuter);
 
 static const FMOD_GUID FMOD_DSPROPSETID_I3DL2_ListenerProperties = { 0xDA0F0520, 0x300A, 0x11D3, { 0x8A, 0x2B, 0x00, 0x60, 0x97, 0x0D, 0xB0, 0x11 } };
@@ -74,12 +74,6 @@ namespace FMOD
         REVERB_VERSION_I3DL2
     } REVERB_VERSION;
 
-    typedef struct FMOD_DSoundRecordMembers
-    {
-        IDirectSoundCapture8       *mDirectSoundCapture;
-        IDirectSoundCaptureBuffer  *mDirectSoundCaptureBuffer;
-    } FMOD_DSoundRecordMembers;
-
 #ifdef FMOD_OUTPUT_DSOUND_USETIMER
     class OutputDSound : public OutputTimer
 #else
@@ -114,6 +108,10 @@ namespace FMOD
 
         PFN_DSCENUMERATE	        mDirectSoundCaptureEnumerate;
         PFN_DSCCREATE8              mDirectSoundCaptureCreate;
+#ifdef FMOD_SUPPORT_RECORDING
+        IDirectSoundCapture8       *mDirectSoundCapture;
+        IDirectSoundCaptureBuffer  *mDirectSoundCaptureBuffer;
+#endif
 
         REVERB_VERSION              mReverbVersion;
         unsigned int                mFeaturesReverb;
@@ -170,15 +168,14 @@ namespace FMOD
       public:                      
                                   
         int                         mNumDrivers;                            /* Public for C callback access */
-        short                      *mDriverName[FMOD_OUTPUT_MAXDRIVERS];    /* Public for C callback access */
+        char                       *mDriverName[FMOD_OUTPUT_MAXDRIVERS];    /* Public for C callback access */
         GUID                        mGUID[FMOD_OUTPUT_MAXDRIVERS];
 
         static FMOD_OUTPUT_DESCRIPTION_EX *getDescriptionEx();  
 
         FMOD_RESULT              enumerate();
         FMOD_RESULT              getNumDrivers(int *numdrivers);
-        FMOD_RESULT              getDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid);
-        FMOD_RESULT              getDriverInfoW(int id, short *name, int namelen, FMOD_GUID *guid);
+        FMOD_RESULT              getDriverName(int id, char *name, int namelen);
         FMOD_RESULT              getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode, int *num2dchannels, int *num3dchannels, int *totalchannels);
 	    FMOD_RESULT              init(int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, FMOD_SPEAKERMODE *speakermode, int dspbufferlength, int dspnumbuffers, int max2dchannels, int max3dchannels, void *extradriverdata);
 	    FMOD_RESULT              close();
@@ -197,23 +194,21 @@ namespace FMOD
 
 #ifdef FMOD_SUPPORT_RECORDING
         int                      mRecordNumDrivers;                            /* Public for C callback access */
-        short                   *mRecordDriverName[FMOD_OUTPUT_MAXDRIVERS];    /* Public for C callback access */
+        char                    *mRecordDriverName[FMOD_OUTPUT_MAXDRIVERS];    /* Public for C callback access */
         GUID                     mRecordGUID[FMOD_OUTPUT_MAXDRIVERS];
 
         FMOD_RESULT              recordEnumerate();
         FMOD_RESULT              recordGetNumDrivers(int *numdrivers);
-        FMOD_RESULT              recordGetDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid);
-        FMOD_RESULT              recordGetDriverInfoW(int id, short *name, int namelen, FMOD_GUID *guid);
-        FMOD_RESULT              recordStart        (FMOD_RECORDING_INFO *recordinfo, Sound *sound, bool loop);
-        FMOD_RESULT              recordStop         (FMOD_RECORDING_INFO *recordinfo);
-        FMOD_RESULT              recordGetPosition  (FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm);
-        FMOD_RESULT              recordLock         (FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2);
-        FMOD_RESULT              recordUnlock       (FMOD_RECORDING_INFO *recordinfo, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2);
+        FMOD_RESULT              recordGetDriverInfo(int id, char *name, int namelen);
+        FMOD_RESULT              recordStart        (int id, Sound *sound, bool loop);
+        FMOD_RESULT              recordStop         ();
+        FMOD_RESULT              recordGetPosition  (unsigned int *pcm);
+        FMOD_RESULT              recordLock         (unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2);
+        FMOD_RESULT              recordUnlock       (void *ptr1, void *ptr2, unsigned int len1, unsigned int len2);
 #endif
 
         static FMOD_RESULT F_CALLBACK getNumDriversCallback          (FMOD_OUTPUT_STATE *output, int *numdrivers);
-        static FMOD_RESULT F_CALLBACK getDriverInfoCallback          (FMOD_OUTPUT_STATE *output, int id, char *name, int namelen, FMOD_GUID *guid);
-        static FMOD_RESULT F_CALLBACK getDriverInfoWCallback         (FMOD_OUTPUT_STATE *output, int id, short *name, int namelen, FMOD_GUID *guid);
+        static FMOD_RESULT F_CALLBACK getDriverNameCallback          (FMOD_OUTPUT_STATE *output, int id, char *name, int namelen);
         static FMOD_RESULT F_CALLBACK getDriverCapsExCallback        (FMOD_OUTPUT_STATE *output, int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode, int *num2dchannels, int *num3dchannels, int *totalchannels);
         static FMOD_RESULT F_CALLBACK initExCallback                 (FMOD_OUTPUT_STATE *output, int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, FMOD_SPEAKERMODE *speakermode, int dspbufferlength, int dspnumbuffers, int max2dchannels, int max3dchannels, void *extradriverdata);
         static FMOD_RESULT F_CALLBACK closeCallback                  (FMOD_OUTPUT_STATE *output);
@@ -231,18 +226,14 @@ namespace FMOD
 
 #ifdef FMOD_SUPPORT_RECORDING
         static FMOD_RESULT F_CALLBACK recordGetNumDriversCallback    (FMOD_OUTPUT_STATE *output, int *numdrivers);
-        static FMOD_RESULT F_CALLBACK recordGetDriverInfoCallback    (FMOD_OUTPUT_STATE *output, int id, char *name, int namelen, FMOD_GUID *guid);
-        static FMOD_RESULT F_CALLBACK recordGetDriverInfoWCallback   (FMOD_OUTPUT_STATE *output, int id, short *name, int namelen, FMOD_GUID *guid);
-        static FMOD_RESULT F_CALLBACK recordStartCallback            (FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, FMOD_SOUND *sound, int loop);
-        static FMOD_RESULT F_CALLBACK recordStopCallback             (FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo);
-        static FMOD_RESULT F_CALLBACK recordGetPositionCallback      (FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm);
-        static FMOD_RESULT F_CALLBACK recordLockCallback             (FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2);
-        static FMOD_RESULT F_CALLBACK recordUnlockCallback           (FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2);
+        static FMOD_RESULT F_CALLBACK recordGetDriverInfoCallback    (FMOD_OUTPUT_STATE *output, int id, char *name, int namelen);
+        static FMOD_RESULT F_CALLBACK recordStartCallback            (FMOD_OUTPUT_STATE *output, int id, FMOD_SOUND *sound, int loop);
+        static FMOD_RESULT F_CALLBACK recordStopCallback             (FMOD_OUTPUT_STATE *output);
+        static FMOD_RESULT F_CALLBACK recordGetPositionCallback      (FMOD_OUTPUT_STATE *output, unsigned int *pcm);
+        static FMOD_RESULT F_CALLBACK recordLockCallback             (FMOD_OUTPUT_STATE *output, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2);
+        static FMOD_RESULT F_CALLBACK recordUnlockCallback           (FMOD_OUTPUT_STATE *output, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2);
 #endif
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-        static FMOD_RESULT F_CALLBACK getMemoryUsedCallback          (FMOD_OUTPUT_STATE *output, MemoryTracker *tracker);
-#endif
 
     };
 }

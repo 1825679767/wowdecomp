@@ -45,7 +45,7 @@ FMOD_RESULT DSP::getSystemObject(System **system)
 
 
 // OFFSET: 0x008D0790
-FMOD_RESULT DSP::addInput(DSP *target, DSPConnection **connection)
+FMOD_RESULT DSP::addInput(DSP *target)
 {
     FMOD_RESULT result;
     DSPI *dspi;
@@ -57,7 +57,7 @@ FMOD_RESULT DSP::addInput(DSP *target, DSPConnection **connection)
     }
     else
     {
-        return dspi->addInput((DSPI *)target, (DSPConnectionI **)connection);
+        return dspi->addInput((DSPI *)target);
     }
 }
 
@@ -149,7 +149,7 @@ FMOD_RESULT DSP::getNumOutputs(int *numoutputs)
 }
 
 
-FMOD_RESULT DSP::getInput(int index, DSP **input, DSPConnection **inputconnection)
+FMOD_RESULT DSP::getInput(int index, DSP **input)
 {
     FMOD_RESULT result;
     DSPI *dspi;
@@ -161,13 +161,13 @@ FMOD_RESULT DSP::getInput(int index, DSP **input, DSPConnection **inputconnectio
     }
     else
     {
-        return dspi->getInput(index, (DSPI **)input, (DSPConnectionI **)inputconnection);
+        return dspi->getInput(index, (DSPI **)input);
     }
 }
 
 
 // OFFSET: 0x008D0820
-FMOD_RESULT DSP::getOutput(int index, DSP **output, DSPConnection **outputconnection)
+FMOD_RESULT DSP::getOutput(int index, DSP **output)
 {
     FMOD_RESULT result;
     DSPI *dspi;
@@ -179,7 +179,143 @@ FMOD_RESULT DSP::getOutput(int index, DSP **output, DSPConnection **outputconnec
     }
     else
     {
-        return dspi->getOutput(index, (DSPI **)output, (DSPConnectionI **)outputconnection);
+        return dspi->getOutput(index, (DSPI **)output);
+    }
+}
+
+
+FMOD_RESULT DSP::setInputMix(int index, float volume)
+{
+    FMOD_RESULT result;
+    DSPI *dspi;
+
+    result = DSPI::validate(this, &dspi);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+    else
+    {
+        return dspi->setInputMix(index, volume);
+    }
+}
+
+
+FMOD_RESULT DSP::getInputMix(int index, float *volume)
+{
+    FMOD_RESULT result;
+    DSPI *dspi;
+
+    result = DSPI::validate(this, &dspi);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+    else
+    {
+        return dspi->getInputMix(index, volume);
+    }
+}
+
+
+FMOD_RESULT DSP::setInputLevels(int index, FMOD_SPEAKER speaker, float *levels, int numlevels)
+{
+    FMOD_RESULT result;
+    DSPI *dspi;
+
+    result = DSPI::validate(this, &dspi);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+    else
+    {
+        return dspi->setInputLevels(index, speaker, levels, numlevels);
+    }
+}
+
+
+FMOD_RESULT DSP::getInputLevels(int index, FMOD_SPEAKER speaker, float *levels, int numlevels)
+{
+    FMOD_RESULT result;
+    DSPI *dspi;
+
+    result = DSPI::validate(this, &dspi);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+    else
+    {
+        return dspi->getInputLevels(index, speaker, levels, numlevels);
+    }
+}
+
+
+FMOD_RESULT DSP::setOutputMix(int index, float volume)
+{
+    FMOD_RESULT result;
+    DSPI *dspi;
+
+    result = DSPI::validate(this, &dspi);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+    else
+    {
+        return dspi->setOutputMix(index, volume);
+    }
+}
+
+
+FMOD_RESULT DSP::getOutputMix(int index, float *volume)
+{
+    FMOD_RESULT result;
+    DSPI *dspi;
+
+    result = DSPI::validate(this, &dspi);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+    else
+    {
+        return dspi->getOutputMix(index, volume);
+    }
+}
+
+
+FMOD_RESULT DSP::setOutputLevels(int index, FMOD_SPEAKER speaker, float *levels, int numlevels)
+{
+    FMOD_RESULT result;
+    DSPI *dspi;
+
+    result = DSPI::validate(this, &dspi);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+    else
+    {
+        return dspi->setOutputLevels(index, speaker, levels, numlevels);
+    }
+}
+
+
+FMOD_RESULT DSP::getOutputLevels(int index, FMOD_SPEAKER speaker, float *levels, int numlevels)
+{
+    FMOD_RESULT result;
+    DSPI *dspi;
+
+    result = DSPI::validate(this, &dspi);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+    else
+    {
+        return dspi->getOutputLevels(index, speaker, levels, numlevels);
     }
 }
 
@@ -252,42 +388,6 @@ FMOD_RESULT DSP::getBypass(bool *bypass)
         return dspi->getBypass(bypass);
     }
 }
-
-
-FMOD_RESULT DSP::setSpeakerActive(FMOD_SPEAKER speaker, bool active)
-{
-    FMOD_RESULT result;
-    DSPI *dspi;
-
-    result = DSPI::validate(this, &dspi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return dspi->setSpeakerActive(speaker, active);
-    }
-}
-
-
-FMOD_RESULT DSP::getSpeakerActive(FMOD_SPEAKER speaker, bool *active)
-{
-    FMOD_RESULT result;
-    DSPI *dspi;
-
-    result = DSPI::validate(this, &dspi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return dspi->getSpeakerActive(speaker, active);
-    }
-}
-
-
 FMOD_RESULT DSP::reset()
 {
     FMOD_RESULT result;
@@ -493,22 +593,6 @@ FMOD_RESULT DSP::getUserData(void **_userdata)
     }
 }
 
-
-FMOD_RESULT DSP::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-    FMOD_RESULT result;
-    DSPI *dspi;
-
-    result = DSPI::validate(this, &dspi);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-    else
-    {
-        return dspi->getMemoryInfo(memorybits, event_memorybits, memoryused, memoryused_details);
-    }
-}
 
 
 /*$ preserve start $*/

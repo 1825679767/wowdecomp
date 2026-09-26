@@ -61,10 +61,10 @@ FMOD_RESULT SoundGroupI::validate(SoundGroup *soundgroup, SoundGroupI **soundgro
 // OFFSET: 0x008E47E0
 SoundGroupI::SoundGroupI()
 {  
-    mMaxAudible = -1;
-    mName = 0;
     mFadeSpeed = 0.0f;
+    mMaxAudible = -1;
     mVolume = 1.0f;
+    mName = 0;
 }
 
 
@@ -95,50 +95,12 @@ FMOD_RESULT SoundGroupI::release()
     /*
         First move all sounds back to the main group
     */
-    if (mSystem->mSoundGroup && this != mSystem->mSoundGroup)
+    if (mSystem->mSoundGroup)
     {
-        LinkedListNode *currentchannel = mChannelListHead.getNext();
-
-        /*
-            Reset playing channels in this group.
-        */
-        while (currentchannel != &mChannelListHead)
-        {
-            LinkedListNode *next = currentchannel->getNext();
-            ChannelI *channeli = (ChannelI *)currentchannel->getData();
-            channeli->mSoundGroupSortedListNode.removeNode();            
-      
-            channeli->mFadeVolume = 1.0f;
-            channeli->mFadeTarget = 1.0f;
-            channeli->mSoundGroupListPosition = 0;
-
-            currentchannel->removeNode();            
-            currentchannel = next;
-        }
-
         while (mSoundHead.getNext() != &mSoundHead)
         {
             SoundI *sound = (SoundI *)mSoundHead.getNext()->getData();
             sound->setSoundGroup(mSystem->mSoundGroup);
-        }
-
-        /*
-            Reset playing channels in this group.
-        */
-        {
-            LinkedListNode *currentchannel = mSystem->mChannelSortedListHead.getNext();
-
-            while (currentchannel != &mSystem->mChannelSortedListHead)
-            {
-                ChannelI *channeli = (ChannelI *)currentchannel->getData();
-
-                if (channeli->mSoundGroupListPosition == 0)
-                {              
-                    channeli->setVolume(channeli->mVolume, true);
-                }
-                
-                currentchannel = currentchannel->getNext();
-            }
         }
     }
 
@@ -281,37 +243,9 @@ FMOD_RESULT SoundGroupI::getMaxAudible(int *maxaudible)
 // OFFSET: 0x008E4750
 FMOD_RESULT SoundGroupI::setMaxAudibleBehavior(FMOD_SOUNDGROUP_BEHAVIOR behavior)
 {
-    if (behavior < FMOD_SOUNDGROUP_BEHAVIOR_FAIL || behavior >= FMOD_SOUNDGROUP_BEHAVIOR_MAX)
+    if (behavior >= FMOD_SOUNDGROUP_BEHAVIOR_MAX)
     {
         return FMOD_ERR_INVALID_PARAM;
-    }
-
-    /*
-        Remove all the playing muted channels.  Everything besides mute dissalows playing channels.
-    */
-    if (mMaxAudibleBehavior == FMOD_SOUNDGROUP_BEHAVIOR_MUTE && behavior !=FMOD_SOUNDGROUP_BEHAVIOR_MUTE)
-    {
-        int count = 0;
-        LinkedListNode *currentchannel = mChannelListHead.getNext();
-
-        while (currentchannel != &mChannelListHead)
-        {
-            ChannelI *channeli;
-            LinkedListNode *next = currentchannel->getNext();
-            channeli = (ChannelI *)currentchannel->getData();
-
-            count++;
-        
-            channeli->mFadeVolume = 1.0f;
-            channeli->mFadeTarget = 1.0f;
-
-            if (count > mMaxAudible)
-            {
-                channeli->stop();
-            }
-
-            currentchannel = next;
-        }
     }
 
     mMaxAudibleBehavior = behavior;
@@ -724,28 +658,6 @@ FMOD_RESULT SoundGroupI::getUserData(void **userdata)
 }
 
 
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SoundGroupI::getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details)
-{
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    GETMEMORYINFO_IMPL
-#else
-    return FMOD_ERR_UNIMPLEMENTED;
-#endif
-}
-
 
 /*
 [
@@ -763,20 +675,5 @@ FMOD_RESULT SoundGroupI::getMemoryInfo(unsigned int memorybits, unsigned int eve
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT SoundGroupI::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    tracker->add(false, FMOD_MEMBITS_SOUNDGROUP, sizeof(*this));
-
-    if (mName)
-    {
-        tracker->add(false, FMOD_MEMBITS_STRING, FMOD_strlen(mName) + 1);
-    }
-
-    return FMOD_OK;
-}
-
-#endif
 
 }

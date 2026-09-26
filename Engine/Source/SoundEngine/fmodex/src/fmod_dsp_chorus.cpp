@@ -64,6 +64,7 @@ FMOD_DSP_PARAMETERDESC dspchorus_param[8] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1c6fd531 auto
 // OFFSET: 0x008EC3A0
 FMOD_DSP_DESCRIPTION_EX *DSPChorus::getDescriptionEx()
 {
@@ -80,9 +81,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPChorus::getDescriptionEx()
     dspchorus.paramdesc     = dspchorus_param;
     dspchorus.setparameter  = DSPChorus::setParameterCallback;
     dspchorus.getparameter  = DSPChorus::getParameterCallback;
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-    dspchorus.getmemoryused = &DSPChorus::getMemoryUsedCallback;
-#endif
 
     dspchorus.mType         = FMOD_DSP_TYPE_CHORUS;
     dspchorus.mCategory     = FMOD_DSP_CATEGORY_FILTER;
@@ -172,7 +170,6 @@ FMOD_RESULT DSPChorus::createInternal()
     int          inchannels, outchannels, channels, count;
 
     init();
-	mOldSpeakerMask = 0xFFFF;
 
 #ifdef DSP_CHORUS_USECOSTAB
     {
@@ -295,35 +292,6 @@ FMOD_RESULT DSPChorus::readInternal(float *inbuffer, float *outbuffer, unsigned 
     int      halfchorusbufferlength = mChorusBufferLength / 2;
     float    halfdepth = mDepth * 0.5f;
     
-    if (!inbuffer)
-    {
-        return FMOD_OK;
-    }
-
-	if (speakermask != mOldSpeakerMask) /* a channel has been deactivated: clear the buffer for that channels so that there isn't any artifacts if/when it is reenabled. */
-	{
-		unsigned int diff = mOldSpeakerMask ^ speakermask;
-		for (count = 0; count < (unsigned int)inchannels; count++)
-		{
-			if (diff & (1 << count))
-			{
-				short *buff = mChorusBuffer + count;
-				for (count=0; count < mChorusBufferLength; count++) 
-				{
-					buff[0]=0;
-					buff += inchannels;
-				}
-			}
-		}
-		mOldSpeakerMask = speakermask;
-	}
-	
-	if (!(speakermask & ((1 << inchannels)-1))) /*No channels are active, copy in buffer to out buffer and skip the DSP*/
-	{
-		FMOD_memcpy(outbuffer, inbuffer, sizeof(float)*length*inchannels);
-		return FMOD_OK;
-	}
-
 	for (count=0; count < length; count++) 
     {
 		unsigned int p1[3], p2[3];
@@ -344,38 +312,27 @@ FMOD_RESULT DSPChorus::readInternal(float *inbuffer, float *outbuffer, unsigned 
         for (count2 = 0; count2 < inchannels; count2++)
         {
 			int offset = (count * inchannels) + count2;
-			
-			if (!((1 << count2) & speakermask))
-			{
-				outbuffer[offset] = inbuffer[offset];
-			}
-			else
-			{
-    			float val;
-				float chorusval;
+			float val;
+			float chorusval;
 
-				val = inbuffer[offset] * mDryMix * 32768.0f;
+			val = inbuffer[offset] * mDryMix * 32768.0f;
 
-				val += ((mChorusBuffer[(p1[0] * inchannels) + count2] * (1.0f - frac[0])) + (mChorusBuffer[(p2[0] * inchannels) + count2] * frac[0])) * mWetMix1;
-				val += ((mChorusBuffer[(p1[1] * inchannels) + count2] * (1.0f - frac[1])) + (mChorusBuffer[(p2[1] * inchannels) + count2] * frac[1])) * mWetMix2;
-				val += ((mChorusBuffer[(p1[2] * inchannels) + count2] * (1.0f - frac[2])) + (mChorusBuffer[(p2[2] * inchannels) + count2] * frac[2])) * mWetMix3;
+			val += ((mChorusBuffer[(p1[0] * inchannels) + count2] * (1.0f - frac[0])) + (mChorusBuffer[(p2[0] * inchannels) + count2] * frac[0])) * mWetMix1;
+			val += ((mChorusBuffer[(p1[1] * inchannels) + count2] * (1.0f - frac[1])) + (mChorusBuffer[(p2[1] * inchannels) + count2] * frac[1])) * mWetMix2;
+			val += ((mChorusBuffer[(p1[2] * inchannels) + count2] * (1.0f - frac[2])) + (mChorusBuffer[(p2[2] * inchannels) + count2] * frac[2])) * mWetMix3;
 
-				chorusval = (inbuffer[offset] * 32767.0f) + val * mFeedback;
+			chorusval = (inbuffer[offset] * 32767.0f) + val * mFeedback;
 
-				mChorusBuffer[(mChorusBufferPosition * inchannels) + count2] = chorusval < -32768.0f ? -32768 : chorusval > 32767.0f ? 32767 : (signed short)chorusval;
+			mChorusBuffer[(mChorusBufferPosition * inchannels) + count2] = chorusval < -32768.0f ? -32768 : chorusval > 32767.0f ? 32767 : (signed short)chorusval;
 
-				outbuffer[offset] = val / 32767.0f;
-			}
+			outbuffer[offset] = val / 32767.0f;
 		}
 
         if (!mChorusBufferPosition)
         {
             for (count2 = 0; count2 < inchannels; count2++)
             {
-				if ((1 << count2) & speakermask)
-				{
-					mChorusBuffer[(mChorusBufferLength * inchannels) + count2] = mChorusBuffer[count2];
-				}
+				mChorusBuffer[(mChorusBufferLength * inchannels) + count2] = mChorusBuffer[count2];
             }
         }
 
@@ -507,6 +464,7 @@ FMOD_RESULT DSPChorus::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dff428b6 auto
 // OFFSET: 0x008EC130
 FMOD_RESULT DSPChorus::getParameterInternal(int index, float *value, char *valuestr)
 {
@@ -582,21 +540,6 @@ FMOD_RESULT DSPChorus::getParameterInternal(int index, float *value, char *value
 ]
 */
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT DSPChorus::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    // Size of this class is already accounted for (via description.mSize). Just add extra allocated memory here.
-
-    if (mChorusBuffer)
-    {
-        tracker->add(false, FMOD_MEMBITS_DSP, mChorusBufferLengthBytes);
-    }
-
-    return FMOD_OK;
-}
-
-#endif
 
 
 /*
@@ -695,6 +638,7 @@ FMOD_RESULT F_CALLBACK DSPChorus::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9145735f auto
 // OFFSET: 0x008EC300
 FMOD_RESULT F_CALLBACK DSPChorus::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -743,6 +687,7 @@ FMOD_RESULT F_CALLBACK DSPChorus::setParameterCallback(FMOD_DSP_STATE *dsp, int 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 47385c62 auto
 // OFFSET: 0x008EC370
 FMOD_RESULT F_CALLBACK DSPChorus::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {
@@ -752,29 +697,6 @@ FMOD_RESULT F_CALLBACK DSPChorus::getParameterCallback(FMOD_DSP_STATE *dsp, int 
 }
 
 
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPChorus::getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker)
-{
-    DSPChorus *chorus = (DSPChorus *)dsp;
-
-    return chorus->DSPChorus::getMemoryUsed(tracker);
-}
-#endif
 
 
 }

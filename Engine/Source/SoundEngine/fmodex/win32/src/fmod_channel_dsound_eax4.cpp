@@ -74,9 +74,9 @@ FMOD_RESULT ChannelDSoundEAX4::setReverbProperties(const FMOD_REVERB_CHANNELPROP
     /*
         Set the target FX slot(s) for this source
     */
-    if ((flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE0) &&
-        (flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE1) &&
-        (flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE2))
+    if ((flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT0) &&
+        (flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT1) &&
+        (flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2))
     {
         return FMOD_ERR_UNSUPPORTED;
     }
@@ -84,40 +84,40 @@ FMOD_RESULT ChannelDSoundEAX4::setReverbProperties(const FMOD_REVERB_CHANNELPROP
     /*
         Set ACTIVE FX slot(s)
     */
-    if (flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE0)
+    if (flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT0)
     {
         FMOD_memcpy(&eaxslots.guidActiveFXSlots[0], &FMOD_EAXPROPERTYID_EAX40_FXSlot0, sizeof(GUID));
         FMOD_memcpy(&eaxslots.guidActiveFXSlots[1], &FMOD_EAX_NULL_GUID, sizeof(GUID));
-        flags = (flags & ~FMOD_REVERB_CHANNELFLAGS_INSTANCE0);
+        flags = (flags & ~FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT0);
 
-        if (flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE1)
+        if (flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT1)
         {
             FMOD_memcpy(&eaxslots.guidActiveFXSlots[1], &FMOD_EAXPROPERTYID_EAX40_FXSlot2, sizeof(GUID));
-            flags = (flags & ~FMOD_REVERB_CHANNELFLAGS_INSTANCE1);
+            flags = (flags & ~FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT1);
         }
-        else if (flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE2)
+        else if (flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2)
         {
             FMOD_memcpy(&eaxslots.guidActiveFXSlots[1], &FMOD_EAXPROPERTYID_EAX40_FXSlot3, sizeof(GUID));
-            flags = (flags & ~FMOD_REVERB_CHANNELFLAGS_INSTANCE2);
+            flags = (flags & ~FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2);
         }
     }
-    else if (flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE1)
+    else if (flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT1)
     {
         FMOD_memcpy(&eaxslots.guidActiveFXSlots[0], &FMOD_EAXPROPERTYID_EAX40_FXSlot2, sizeof(GUID));
         FMOD_memcpy(&eaxslots.guidActiveFXSlots[1], &FMOD_EAX_NULL_GUID, sizeof(GUID));
-        flags = (flags & ~FMOD_REVERB_CHANNELFLAGS_INSTANCE1);
+        flags = (flags & ~FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT1);
 
-        if (flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE2)
+        if (flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2)
         {
             FMOD_memcpy(&eaxslots.guidActiveFXSlots[1], &FMOD_EAXPROPERTYID_EAX40_FXSlot3, sizeof(GUID));
-            flags = (flags & ~FMOD_REVERB_CHANNELFLAGS_INSTANCE2);
+            flags = (flags & ~FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2);
         }
     }
-    else if (flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE2)
+    else if (flags & FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2)
     {
         FMOD_memcpy(&eaxslots.guidActiveFXSlots[0], &FMOD_EAXPROPERTYID_EAX40_FXSlot3, sizeof(GUID));
         FMOD_memcpy(&eaxslots.guidActiveFXSlots[1], &FMOD_EAX_NULL_GUID, sizeof(GUID));
-        flags = (flags & ~FMOD_REVERB_CHANNELFLAGS_INSTANCE2);
+        flags = (flags & ~FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2);
     }
     else    // Set to Slot 0 by default
     {
@@ -271,15 +271,15 @@ FMOD_RESULT ChannelDSoundEAX4::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES
 
     if (!memcmp(&eaxslots.guidActiveFXSlots[0], &guidfx0, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE0;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT0;
     }
     else if (!memcmp(&eaxslots.guidActiveFXSlots[0], &guidfx2, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE1;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT1;
     }
     else if (!memcmp(&eaxslots.guidActiveFXSlots[0], &guidfx3, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE2;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2;
     }
     else
     {
@@ -288,15 +288,15 @@ FMOD_RESULT ChannelDSoundEAX4::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES
 
     if (!memcmp(&eaxslots.guidActiveFXSlots[1], &guidfx0, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE0;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT0;
     }
     else if (!memcmp(&eaxslots.guidActiveFXSlots[1], &guidfx2, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE1;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT1;
     }
     else if (!memcmp(&eaxslots.guidActiveFXSlots[1], &guidfx3, sizeof(GUID)))
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE2;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT2;
     }
     else
     {
@@ -305,7 +305,7 @@ FMOD_RESULT ChannelDSoundEAX4::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES
 
     if (noActiveSlots == 2)  // If no slots have been assigned, assign to slot 0
     {
-        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_INSTANCE0;
+        prop->Flags |= FMOD_REVERB_CHANNELFLAGS_ENVIRONMENT0;
     }
 
     return FMOD_OK;

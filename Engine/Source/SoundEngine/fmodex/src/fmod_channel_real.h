@@ -34,10 +34,11 @@ namespace FMOD
     #define CHANNELREAL_FLAG_PLAYING            0x00000040
     #define CHANNELREAL_FLAG_STOPPED            0x00000080
     #define CHANNELREAL_FLAG_IN_USE             0x00000100
+    #define CHANNELREAL_FLAG_PAUSEDFORSETPOS    0x00000200
+    #define CHANNELREAL_FLAG_ENDDELAY           0x00000400
     #define CHANNELREAL_FLAG_NOREVERB           0x00000800
     #define CHANNELREAL_FLAG_RESERVED           0x00001000
     #define CHANNELREAL_FLAG_HASPLAYED          0x00002000
-    #define CHANNELREAL_FLAG_PAUSEDFORSETPOS    0x00004000
     #define CHANNELREAL_FLAG_MAX                0xFFFFFFFF
 
     typedef enum
@@ -71,16 +72,16 @@ namespace FMOD
       protected:
 
         SystemI                *mSystem;
+        int                     mNumRealChannels;
+        ChannelReal            *mRealChannel[FMOD_CHANNEL_MAXREALSUBCHANNELS];
         int                     mSubChannelIndex;
         ChannelPool            *mPool;
         ChannelI               *mParent;
-
         Output                 *mOutput;
         SoundI                 *mSound;
         DSPI                   *mDSP;
         FMOD_MODE               mMode;
         CHANNELREAL_FLAG        mFlags;
-
         int                     mIndex;
         unsigned int            mPosition;
         int                     mDirection;
@@ -88,56 +89,42 @@ namespace FMOD
         unsigned int            mLoopStart;
         unsigned int            mLoopLength;
         unsigned int            mLength;
+        unsigned int            mDelayStart;
+        unsigned int            mDelayEnd;
         float                   mMaxFrequency;
         float                   mMinFrequency;
-        int                     mSubSoundListCurrent;
-        
-        #ifdef PLATFORM_WII
-        int                     mLPFCutoff;
-        bool                    mBiquadActive;
-        unsigned short          mBiquadB0;
-        unsigned short          mBiquadB1;
-        unsigned short          mBiquadB2;
-        unsigned short          mBiquadA1;
-        unsigned short          mBiquadA2;
-        unsigned int            mControllerSpeaker;
-        #endif
-
-        FMOD_RESULT             init();
-        FMOD_RESULT             calcVolumeAndPitchFor3D();
-        virtual FMOD_RESULT     set2DFreqVolumePanFor3D();
-        virtual bool            isStream() { return false; }
-        virtual FMOD_RESULT     moveChannelGroup(ChannelGroupI *oldchannelgroup, ChannelGroupI *newchannelgroup, bool forcedspreconnect) { return FMOD_OK; }
 
       public:
 
         ChannelReal();
-        // OFFSET: 0x0093BE70
-        virtual ~ChannelReal() { }
 
         virtual FMOD_RESULT  init                 (int index, SystemI *system, Output *output, DSPI *dspmixtarget);
+        virtual FMOD_RESULT  set2DFreqVolumePanFor3D();
+        virtual bool         isStream             () { return false; }
+        virtual FMOD_RESULT  moveChannelGroup     (ChannelGroupI *oldchannelgroup, ChannelGroupI *newchannelgroup);
+        // OFFSET: 0x0093BE70
+        virtual ~ChannelReal() { }
         virtual FMOD_RESULT  close                ();
         virtual FMOD_RESULT  alloc                ();
         virtual FMOD_RESULT  alloc                (DSPI *dsp);
         virtual FMOD_RESULT  start                ();
         virtual FMOD_RESULT  update               (int delta);
         virtual FMOD_RESULT  updateStream         ();
-        virtual FMOD_RESULT  stop                 ();
+        virtual FMOD_RESULT  stop                 (bool ignoreenddelay, bool resetstate);
+        virtual FMOD_RESULT  stop                 (bool ignoreenddelay, bool resetstate, bool force);
         virtual FMOD_RESULT  setPaused            (bool paused);
         virtual FMOD_RESULT  getPaused            (bool *paused);
         virtual FMOD_RESULT  setVolume            (float volume);
         virtual FMOD_RESULT  setFrequency         (float frequency);
         virtual FMOD_RESULT  setPan               (float pan, float fbpan = 1);
-        virtual FMOD_RESULT  setDSPClockDelay     ();
+        virtual FMOD_RESULT  setDelay             (unsigned int startdelay, unsigned int enddelay);
         virtual FMOD_RESULT  setSpeakerMix        (float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright);
         virtual FMOD_RESULT  setSpeakerLevels     (int speaker, float *levels, int numlevels);
         virtual FMOD_RESULT  updateSpeakerLevels  (float volume);
         virtual FMOD_RESULT  setPosition          (unsigned int position, FMOD_TIMEUNIT postype);
-        virtual FMOD_RESULT  setPositionEx        (unsigned int position, FMOD_TIMEUNIT postype, bool fromasync) { return setPosition(position, postype); }
         virtual FMOD_RESULT  getPosition          (unsigned int *position, FMOD_TIMEUNIT postype);
         virtual FMOD_RESULT  setLoopPoints        (unsigned int loopstart, unsigned int looplength);
         virtual FMOD_RESULT  setLoopCount         (int loopcount);
-        virtual FMOD_RESULT  setLowPassGain       (float gain);
         virtual FMOD_RESULT  set3DAttributes      ();
         virtual FMOD_RESULT  set3DMinMaxDistance  ();
         virtual FMOD_RESULT  set3DOcclusion       (float directOcclusion, float reverbOcclusion);
@@ -150,14 +137,6 @@ namespace FMOD
         virtual FMOD_RESULT  getDSPHead           (DSPI **dsp);
         virtual FMOD_RESULT  setMode              (FMOD_MODE mode);
 
-#ifdef PLATFORM_WII
-        virtual FMOD_RESULT  setLowPassFilter     (int cutoff);
-        virtual FMOD_RESULT  getLowPassFilter     (int *cutoff);
-        virtual FMOD_RESULT  setBiquadFilter      (bool active, unsigned short b0, unsigned short b1, unsigned short b2, unsigned short a1, unsigned short a2);
-        virtual FMOD_RESULT  getBiquadFilter      (bool *active, unsigned short *b0, unsigned short *b1, unsigned short *b2, unsigned short *a1, unsigned short *a2);
-        virtual FMOD_RESULT  setControllerSpeaker (unsigned int controllerspeaker, int subchannel = -1);
-        virtual FMOD_RESULT  getControllerSpeaker (unsigned int *controllerspeaker);
-#endif
         FMOD_RESULT setReserved(bool reserved) 
         { 
             if (mFlags & (CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_IN_USE)) return FMOD_ERR_CHANNEL_ALLOC; 

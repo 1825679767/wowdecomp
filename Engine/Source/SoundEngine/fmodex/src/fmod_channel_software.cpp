@@ -11,12 +11,12 @@
 #ifdef FMOD_SUPPORT_MPEG
 #include "fmod_codec_mpeg.h"
 #endif
-#ifdef FMOD_SUPPORT_XMA
-#include "fmod_codec_xma.h"
-#endif
 #if defined(FMOD_SUPPORT_WAV) && defined(FMOD_SUPPORT_IMAADPCM)
 #include "fmod_codec_wav.h"
 #include "fmod_codec_wav_imaadpcm.h"
+#endif
+#if defined(FMOD_SUPPORT_RAW) && defined(FMOD_SUPPORT_IMAADPCM)
+#include "fmod_codec_raw.h"
 #endif
 #include "fmod_dsp_codec.h"
 #include "fmod_dsp_fft.h"
@@ -24,6 +24,7 @@
 #include "fmod_dsp_wavetable.h"
 #include "fmod_dspi.h"
 #include "fmod_sample_software.h"
+#include "fmod_soundgroupi.h"
 #include "fmod_speakermap.h"
 #include "fmod_systemi.h"
 
@@ -35,13 +36,13 @@ namespace FMOD
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -52,6 +53,7 @@ ChannelSoftware::ChannelSoftware()
     mDSPHead          = 0;
     mDSPResampler     = 0;
     mDSPCodec         = 0;
+    mDSPCodecStopped  = 0;
     mDSPLowPass       = 0;
     mDSP              = 0;
     mDSPConnection    = 0;
@@ -64,13 +66,13 @@ ChannelSoftware::ChannelSoftware()
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -81,7 +83,7 @@ FMOD_RESULT ChannelSoftware::init(int index, SystemI *system, Output *output, DS
     FMOD_DSP_DESCRIPTION_EX descriptionex;
 
     ChannelReal::init(index, system, output, dspmixtarget);
-   
+
     /*
         Create a head unit that things can connect to.
     */
@@ -91,12 +93,7 @@ FMOD_RESULT ChannelSoftware::init(int index, SystemI *system, Output *output, DS
     descriptionex.mCategory = FMOD_DSP_CATEGORY_FILTER;
     descriptionex.mFormat   = FMOD_SOUND_FORMAT_PCMFLOAT;
 
-    #ifdef PLATFORM_PS3
-    mDSPHead = (DSPI *)FMOD_ALIGNPOINTER(&mDSPHeadMemory, 16);
-    mDSPHead = new (mDSPHead) (DSPFilter);    
-    #else
     mDSPHead = &mDSPHeadMemory;
-    #endif
 
     result = mSystem->createDSP(&descriptionex, &mDSPHead, false);
     if (result != FMOD_OK)
@@ -104,13 +101,8 @@ FMOD_RESULT ChannelSoftware::init(int index, SystemI *system, Output *output, DS
         return result;
     }
 
-    #ifdef PLATFORM_PS3
-    mDSPHead->mMramAddress       = (unsigned int)mDSPHead;
-    mDSPHead->mDescription.mSize = (sizeof(DSPFilter) + 15) & ~15;
-    #endif
-
     /*
-        Create a lowpass unit 
+        Create a lowpass unit
     */
     if (mSystem->mFlags & FMOD_INIT_SOFTWARE_OCCLUSION || mSystem->mFlags & FMOD_INIT_SOFTWARE_HRTF)
     {
@@ -133,11 +125,9 @@ FMOD_RESULT ChannelSoftware::init(int index, SystemI *system, Output *output, DS
     descriptionex.setparameter  = DSPWaveTable::setParameterCallback;
     descriptionex.getparameter  = DSPWaveTable::getParameterCallback;
     descriptionex.setposition   = DSPWaveTable::setPositionCallback;
-    descriptionex.reset         = DSPWaveTable::resetCallback;
 
     descriptionex.mCategory     = FMOD_DSP_CATEGORY_WAVETABLE;
     descriptionex.mFormat       = dspmixtarget->mDescription.mFormat;
-    descriptionex.mDSPSoundCard = dspmixtarget;
 
     mDSPWaveTable = &mDSPWaveTableMemory;
 
@@ -146,7 +136,6 @@ FMOD_RESULT ChannelSoftware::init(int index, SystemI *system, Output *output, DS
     {
         return result;
     }
-    mDSPWaveTable->setFinished(true, true);
 
     result = mDSPWaveTable->setUserData((void **)this);
     if (result != FMOD_OK)
@@ -170,13 +159,13 @@ FMOD_RESULT ChannelSoftware::init(int index, SystemI *system, Output *output, DS
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -184,16 +173,6 @@ FMOD_RESULT ChannelSoftware::init(int index, SystemI *system, Output *output, DS
 FMOD_RESULT ChannelSoftware::close()
 {
     FMOD_RESULT result;
-
-    if (mDSPWaveTable)
-    {
-        mDSPWaveTable->mDSPSoundCard = 0;
-    }
-
-    if (mDSPResampler)
-    {
-        mDSPResampler->mDSPSoundCard = 0;
-    }
 
     result = ChannelReal::close();
     if (result != FMOD_OK)
@@ -225,7 +204,8 @@ FMOD_RESULT ChannelSoftware::close()
         mDSPLowPass = 0;
     }
 
-    mDSPCodec = 0;  /* Don't free, it points to a pool codec. */
+    mDSPCodec        = 0;  /* Don't free, it points to a pool codec. */
+    mDSPCodecStopped = 0;
 
     return FMOD_OK;
 }
@@ -236,13 +216,13 @@ FMOD_RESULT ChannelSoftware::close()
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -254,18 +234,8 @@ FMOD_RESULT ChannelSoftware::setupDSPCodec(DSPI *dsp)
     DSPCodec       *dspcodec;
     Codec          *codec, *soundcodec;
     SampleSoftware *sample;
-    
-#ifdef FMOD_SUPPORT_SENTENCING
-    if (mSound->mSubSoundList)
-    {
-        sample = SAFE_CAST(SampleSoftware, mSound->mSubSound[mSound->mSubSoundList[mSubSoundListCurrent].mIndex]);
-    }
-    else
-#endif
-    {
-        sample = SAFE_CAST(SampleSoftware, mSound);
-    }
 
+    sample     = SAFE_CAST(SampleSoftware, mSound);
     dspcodec   = SAFE_CAST(DSPCodec, dsp);
     codec      = SAFE_CAST(Codec, dspcodec->mCodec);
     soundcodec = sample->mCodec ? sample->mCodec : sample->mSubSoundParent->mCodec;
@@ -275,14 +245,8 @@ FMOD_RESULT ChannelSoftware::setupDSPCodec(DSPI *dsp)
         return FMOD_ERR_INTERNAL;
     }
 
-    #ifdef PLATFORM_PS3
-    /*  These need to be 0 so Codec::read doesn't try and read into mPCMBuffer on the SPU. */
-    codec->mPCMBufferLength      = 0; //soundcodec->mPCMBufferLength;
-    codec->mPCMBufferLengthBytes = 0; //soundcodec->mPCMBufferLength * sizeof(short) * dsp->mDescription.channels;
-    #else
     codec->mPCMBufferLength      = soundcodec->mPCMBufferLength;
     codec->mPCMBufferLengthBytes = soundcodec->mPCMBufferLength * sizeof(short) * dsp->mDescription.channels;
-    #endif
 
     if (!codec->waveformat)
     {
@@ -293,17 +257,9 @@ FMOD_RESULT ChannelSoftware::setupDSPCodec(DSPI *dsp)
 
     codec->mFlags = soundcodec->mFlags;
     dspcodec->mNewPosition = 0xFFFFFFFF;
-    dspcodec->mNoDMA->mNewPosition = 0xFFFFFFFF;
     dspcodec->mCodec->mFile = &dspcodec->mMemoryFile;
 
-    #ifdef PLATFORM_PS3
-    dspcodec->mMemoryFile.init(mSystem, sample->mLengthBytes, PS3_DMAFILE_BLOCKSIZE);
-    dspcodec->mMemoryFile.mFlags |= FMOD_FILE_BIGENDIAN;
-    #else
-    dspcodec->mMemoryFile.init(mSystem, sample->mLengthBytes, 0);
-    #endif
-
-    dspcodec->mMemoryFile.mPosition = 0;    
+    dspcodec->mMemoryFile.init(sample->mLengthBytes, 0);
     dspcodec->mMemoryFile.mMem = sample->mBuffer;
 
     /*
@@ -313,7 +269,7 @@ FMOD_RESULT ChannelSoftware::setupDSPCodec(DSPI *dsp)
     {
     }
     #if defined(FMOD_SUPPORT_WAV) && defined(FMOD_SUPPORT_IMAADPCM)
-    if (sample->mType == FMOD_SOUND_TYPE_WAV && sample->mFormat == FMOD_SOUND_FORMAT_IMAADPCM)
+    else if (sample->mType == FMOD_SOUND_TYPE_WAV && sample->mFormat == FMOD_SOUND_FORMAT_IMAADPCM)
     {
         CodecWav *srcwav  = (CodecWav *)soundcodec;
         CodecWav *destwav = (CodecWav *)codec;
@@ -340,26 +296,11 @@ FMOD_RESULT ChannelSoftware::setupDSPCodec(DSPI *dsp)
         if (0)
         {
         }
-        #if defined(FMOD_SUPPORT_XMA)
-        else if (sample->mFormat == FMOD_SOUND_FORMAT_XMA)
-        {
-            CodecXMA *destxma = (CodecXMA *)codec;
-            int **seektable = (int **)fsb->plugindata;
-
-            if (destxma->mXMASeekable)
-            {
-                destxma->mSeekTable = seektable[sample->mSubSoundIndex];
-            }
-            #ifdef FMOD_SUPPORT_XMA_NEWHAL
-            destxma->mBlockSize = 32*1024;  // FSBank always encodes to 32kb blocks now, using XMA2.
-            #endif            
-        }
-        #endif
         #if defined(FMOD_SUPPORT_MPEG)
         else if (sample->mFormat == FMOD_SOUND_FORMAT_MPEG)
         {
             CodecMPEG *destmpeg = (CodecMPEG *)codec;
-    
+
             destmpeg->mPCMFrameLengthBytes = codec->waveformat[0].channels * 2304;
         }
         #endif
@@ -373,30 +314,8 @@ FMOD_RESULT ChannelSoftware::setupDSPCodec(DSPI *dsp)
             destwav->mReadBufferLength     = codec->waveformat[0].channels * 36;
         }
         #endif
-        #if defined(FMOD_SUPPORT_CELT)
-        else if (sample->mFormat == FMOD_SOUND_FORMAT_CELT)
-        {
-            CodecCELT *destcelt = (CodecCELT *)codec;
 
-            destcelt->mPCMFrameLengthBytes = codec->waveformat[0].channels * FMOD_CELT_FRAMESIZESAMPLES * sizeof(short);
-        }
-        #endif
-    
         fsb->mDescription.getwaveformat(fsb, sample->mSubSoundIndex, codec->waveformat);
-    }
-    #endif
-    #if defined(FMOD_SUPPORT_XMA)
-    else if (sample->mFormat == FMOD_SOUND_FORMAT_XMA)
-    {
-        CodecXMA *srcxma  = (CodecXMA *)soundcodec;
-        CodecXMA *destxma = (CodecXMA *)codec;
-        if (destxma->mXMASeekable)
-        {
-            destxma->mSeekTable = srcxma->mSeekTable;
-        }
-        #ifdef FMOD_SUPPORT_XMA_NEWHAL
-        destxma->mBlockSize = srcxma->mBlockSize;
-        #endif
     }
     #endif
     #if defined(FMOD_SUPPORT_MPEG)
@@ -409,67 +328,22 @@ FMOD_RESULT ChannelSoftware::setupDSPCodec(DSPI *dsp)
     }
     #endif
 
-    /*
-        If the codec is a pcm codec, fix up the blockalign and compressed bytes values.
-    */
-    #if defined(FMOD_SUPPORT_RAW)
-    if (sample->mFormat == FMOD_SOUND_FORMAT_PCM16)
-    {
-        mMinFrequency = -mMaxFrequency;
+    dsp->mDescription.channels = sample->mChannels;
 
-        dspcodec->mWaveFormat.blockalign = sizeof(short) * dspcodec->mWaveFormat.channels;
-        dspcodec->mWaveFormat.lengthbytes = dspcodec->mWaveFormat.lengthpcm * dspcodec->mWaveFormat.blockalign;
-    }
-    #endif
-
-    dsp->mDescription.channels = sample->mChannels;        
-
-    result = dsp->setTargetFrequency((int)mParent->mChannelGroup->mDSPMixTarget->mDefaultFrequency);
+    result = dsp->setTargetFrequency((int)mParent->mChannelGroup->mDSPHead->mDefaultFrequency);
     if (result != FMOD_OK)
     {
         return result;
     }
- 
-#if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-    if (sample->mFormat != FMOD_SOUND_FORMAT_PCM16)
-#endif
-    {
-        mMinFrequency = 0;
-    }
-    
-    mDSPCodec                               = dspcodec;
-    mDSPCodec->mLength                      = mSound->mLength;
-    mDSPCodec->mDefaultFrequency            = sample->mDefaultFrequency;
-    mDSPCodec->mLoopCount                   = mLoopCount;
-    mDSPCodec->mPosition                    = 0;
-    mDSPCodec->DSPResampler::mPosition.mHi  = 0;
-    mDSPCodec->DSPResampler::mPosition.mLo  = 0;
-    mDSPCodec->mNoDMA->mLoopStart           = mLoopStart;
-    mDSPCodec->mNoDMA->mLoopLength          = mLoopLength;
-    mDSPCodec->mNoDMA->mMode                = mMode;
-    mDSPCodec->mNoDMA->mDSPClockStart.mHi   = 0;
-    mDSPCodec->mNoDMA->mDSPClockStart.mLo   = 0;
-    mDSPCodec->mNoDMA->mDSPClockEnd.mHi     = 0;
-    mDSPCodec->mNoDMA->mDSPClockEnd.mLo     = 0;
-    mDSPCodec->mNoDMA->mDSPClockPause.mHi   = 0;
-    mDSPCodec->mNoDMA->mDSPClockPause.mLo   = 0;
-    mDSPCodec->mNoDMA->mNewLoopCount        = -2;
 
-#ifdef FMOD_SUPPORT_SENTENCING
-    if (mSound->mSubSoundList)
-    {
-        result = mDSPCodec->setUserData((void **)mSound);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-
-        mDSPCodec->mSubSoundListCurrent = 0;
-        mDSPCodec->mSubSoundListNum     = mSound->mSubSoundListNum;
-    }
-#endif
-
-
+    mDSPCodec                   = dspcodec;
+    mMinFrequency               = 0;
+    mDSPCodec->mLength          = mSound->mLength;
+    mDSPCodec->mLoopStart       = mLoopStart;
+    mDSPCodec->mLoopLength      = mLoopLength;
+    mDSPCodec->mLoopCount       = mLoopCount;
+    mDSPCodec->mMode            = mMode;
+    mDSPCodec->mDefaultFrequency = mSound->mDefaultFrequency;
 #endif
 
     return FMOD_OK;
@@ -481,13 +355,13 @@ FMOD_RESULT ChannelSoftware::setupDSPCodec(DSPI *dsp)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -496,7 +370,7 @@ FMOD_RESULT ChannelSoftware::alloc()
 {
     FMOD_RESULT result;
 
-    result = ChannelRealManual3D::alloc();
+    result = ChannelReal::alloc();
     if (result != FMOD_OK)
     {
         return result;
@@ -505,19 +379,16 @@ FMOD_RESULT ChannelSoftware::alloc()
     /*
         Standard PCM *wavetable* playback.
     */
-    if (!(mMode & FMOD_CREATECOMPRESSEDSAMPLE)
-#if defined(PLATFORM_PS3) || defined(PLATFORM_WINDOWS_PS3MODE)
-         && (mParent->mFlags & CHANNELI_FLAG_MUSICOWNED)
-#endif          
-        )
+    if (!(mMode & FMOD_CREATECOMPRESSEDSAMPLE))
     {
         DSPWaveTable *dspwave = SAFE_CAST(DSPWaveTable, mDSPWaveTable);
         if (!dspwave)
         {
             return FMOD_ERR_INTERNAL;
         }
-        
-        mDSPCodec = 0;
+
+        mDSPCodec        = 0;
+        mDSPCodecStopped = 0;
 
         /*
             Disconnect existing nodes first.
@@ -546,7 +417,7 @@ FMOD_RESULT ChannelSoftware::alloc()
         */
         if (mDSPLowPass)
         {
-            result = mParent->mChannelGroup->mDSPMixTarget->addInputQueued(mDSPHead, false, 0, &mDSPConnection);
+            result = mParent->mChannelGroup->mDSPHead->addInputQueued(mDSPHead, false, 0, &mDSPConnection);
             if (result != FMOD_OK)
             {
                 return result;
@@ -564,7 +435,7 @@ FMOD_RESULT ChannelSoftware::alloc()
         }
         else
         {
-            result = mParent->mChannelGroup->mDSPMixTarget->addInputQueued(mDSPHead, false, 0, &mDSPConnection);
+            result = mParent->mChannelGroup->mDSPHead->addInputQueued(mDSPHead, false, 0, &mDSPConnection);
             if (result != FMOD_OK)
             {
                 return result;
@@ -596,28 +467,20 @@ FMOD_RESULT ChannelSoftware::alloc()
 
         mMinFrequency = -mMaxFrequency;
 
-        dspwave->mSpeed.mHi         = 0;
-        dspwave->mSpeed.mLo         = 0;
-        dspwave->mPosition.mHi      = 0;
-        dspwave->mPosition.mLo      = 0;
-        dspwave->mDSPClockStart.mHi = 0;
-        dspwave->mDSPClockStart.mLo = 0;
-        dspwave->mDSPClockEnd.mHi   = 0;
-        dspwave->mDSPClockEnd.mLo   = 0;
-        dspwave->mDSPClockPause.mHi = 0;
-        dspwave->mDSPClockPause.mLo = 0;
-
         dspwave->mChannel           = this;
         dspwave->mSound             = mSound;
-
+        dspwave->mPosition.mHi      = 0;
+        dspwave->mPosition.mLo      = 0;
         dspwave->mDirection         = DSPWAVETABLE_SPEEDDIR_FORWARDS;
 
+        mDSPHead->setFinished(false, false);
         mDSPHead->setActive(false);
         if (mDSPLowPass)
         {
+            mDSPLowPass->setFinished(false, false);
             mDSPLowPass->setActive(false);
         }
-        mDSPWaveTable->setFinished(false);
+        mDSPWaveTable->setFinished(false, false);
         mDSPWaveTable->setActive(false);
     }
     else
@@ -626,7 +489,24 @@ FMOD_RESULT ChannelSoftware::alloc()
     */
     {
 #ifdef FMOD_SUPPORT_DSPCODEC
-        DSPCodec       *dsp;
+        DSPCodec *dsp;
+        bool      finished = true;
+
+        /*
+            Wait for the mixer to let go of the codec that was stopped last.
+        */
+        if (mDSPCodecStopped)
+        {
+            mDSPCodecStopped->getFinished(&finished);
+            if (!finished)
+            {
+                mSystem->flushDSPConnectionRequests(true);
+            }
+            else
+            {
+                mDSPCodecStopped = 0;
+            }
+        }
 
         /*
             Disconnect existing nodes first.
@@ -657,38 +537,32 @@ FMOD_RESULT ChannelSoftware::alloc()
         /*
             Grab a codec from the pool based on format.
         */
-        result = mSystem->allocateDSPCodec(mSound->mFormat, &dsp);
+        result = mSystem->allocDSPCodec(mSound->mFormat, &dsp);
         if (result != FMOD_OK)
         {
             return result;
-        }      
-
-#ifdef FMOD_SUPPORT_XMA
-        /*
-            If its XMA, set whether there is a seektable or not
-        */
-        if (mSound->mFormat == FMOD_SOUND_FORMAT_XMA)
-        {
-            DSPCodec *dspcodec   = SAFE_CAST(DSPCodec, dsp);
-            CodecXMA *xma        = (CodecXMA *)dspcodec->mCodec;
-
-			xma->mXMASeekable = mSound->mCodec ? mSound->mCodec->mXMASeekable : mSound->mSubSoundParent->mCodec->mXMASeekable;
         }
-#endif
+
+        if (!finished)
+        {
+            FMOD_OS_CriticalSection_Enter(mSystem->mDSPCrit);
+        }
+
         result = setupDSPCodec(dsp);
+
+        if (!finished)
+        {
+            FMOD_OS_CriticalSection_Leave(mSystem->mDSPCrit);
+        }
+
         if (result != FMOD_OK)
         {
             return result;
         }
-
-        mDSPHead->setActive(false);
-
-        dsp->setFinished(false);
-        dsp->setActive(false);
 
         if (mDSPLowPass)
         {
-            result = mParent->mChannelGroup->mDSPMixTarget->addInputQueued(mDSPHead, false, 0, &mDSPConnection);
+            result = mParent->mChannelGroup->mDSPHead->addInputQueued(mDSPHead, false, 0, &mDSPConnection);
             if (result != FMOD_OK)
             {
                 return result;
@@ -706,7 +580,7 @@ FMOD_RESULT ChannelSoftware::alloc()
         }
         else
         {
-            result = mParent->mChannelGroup->mDSPMixTarget->addInputQueued(mDSPHead, false, 0, &mDSPConnection);
+            result = mParent->mChannelGroup->mDSPHead->addInputQueued(mDSPHead, false, 0, &mDSPConnection);
             if (result != FMOD_OK)
             {
                 return result;
@@ -728,11 +602,17 @@ FMOD_RESULT ChannelSoftware::alloc()
                 return result;
             }
         }
+
+        mDSPHead->setFinished(false, false);
+        mDSPHead->setActive(false);
+
+        dsp->setFinished(false, false);
+        dsp->setActive(true);
 #else
         return FMOD_ERR_INTERNAL;
 #endif
     }
-   
+
 	return FMOD_OK;
 }
 
@@ -742,22 +622,20 @@ FMOD_RESULT ChannelSoftware::alloc()
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
 // OFFSET: 0x00934300
 FMOD_RESULT ChannelSoftware::alloc(DSPI *dsp)
 {
-    FMOD_RESULT          result;
-    FMOD_SOUND_FORMAT    format;
-    int                  channels;
+    FMOD_RESULT result;
 
     result = ChannelReal::alloc();
     if (result != FMOD_OK)
@@ -767,19 +645,16 @@ FMOD_RESULT ChannelSoftware::alloc(DSPI *dsp)
 
     mDSPCodec = 0;
 
-    format   = dsp->mDescription.mFormat;
-    channels = dsp->mDescription.channels;
-          
     {
         FMOD_DSP_DESCRIPTION_EX descriptionex;
 
         FMOD_memset(&descriptionex, 0, sizeof(FMOD_DSP_DESCRIPTION_EX));
         FMOD_strcpy(descriptionex.name, "FMOD Resampler Unit");
         descriptionex.version       = 0x00010100;
-        descriptionex.channels      = 0; 
+        descriptionex.channels      = 0;
         descriptionex.mCategory     = FMOD_DSP_CATEGORY_RESAMPLER;
 
-        result = mSystem->createDSP(&descriptionex, (DSPI **)&mDSPResampler);
+        result = mSystem->createDSP(&descriptionex, (DSPI **)&mDSPResampler, true);
         if (result != FMOD_OK)
         {
             return result;
@@ -791,7 +666,7 @@ FMOD_RESULT ChannelSoftware::alloc(DSPI *dsp)
             return result;
         }
 
-        result = mDSPResampler->setTargetFrequency((int)mParent->mChannelGroup->mDSPMixTarget->mDefaultFrequency);
+        result = mDSPResampler->setTargetFrequency((int)mParent->mChannelGroup->mDSPHead->mDefaultFrequency);
         if (result != FMOD_OK)
         {
             return result;
@@ -817,13 +692,10 @@ FMOD_RESULT ChannelSoftware::alloc(DSPI *dsp)
             return result;
         }
     }
-    if (mDSPWaveTable)
+    result = mDSPWaveTable->disconnectFrom(0);
+    if (result != FMOD_OK)
     {
-        result = mDSPWaveTable->disconnectFrom(0);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
+        return result;
     }
 
     result = mDSPHead->addInputQueued(mDSPResampler, false, 0, 0);
@@ -836,7 +708,7 @@ FMOD_RESULT ChannelSoftware::alloc(DSPI *dsp)
     {
         return result;
     }
-    result = mParent->mChannelGroup->mDSPMixTarget->addInputQueued(mDSPHead, false, 0, &mDSPConnection);
+    result = mParent->mChannelGroup->mDSPHead->addInputQueued(mDSPHead, false, 0, &mDSPConnection);
     if (result != FMOD_OK)
     {
         return result;
@@ -850,36 +722,28 @@ FMOD_RESULT ChannelSoftware::alloc(DSPI *dsp)
         return result;
     }
 
-    {
-        DSPResampler *resampler = SAFE_CAST(DSPResampler, mDSPResampler);
-     
-        resampler->mLength                    = mLength;
-        resampler->mLoopCount                 = mLoopCount;
-        resampler->mNoDMA->mLoopStart         = mLoopStart;
-        resampler->mNoDMA->mLoopLength        = mLoopLength;
-        resampler->mNoDMA->mMode              = mMode;
-        resampler->mNoDMA->mDSPClockStart.mHi = 0;
-        resampler->mNoDMA->mDSPClockStart.mLo = 0;
-        resampler->mNoDMA->mDSPClockEnd.mHi   = 0;
-        resampler->mNoDMA->mDSPClockEnd.mLo   = 0;
-        resampler->mNoDMA->mDSPClockPause.mHi = 0;
-        resampler->mNoDMA->mDSPClockPause.mLo = 0;
-        resampler->mNoDMA->mNewLoopCount      = -2;
+    mDSPResampler->mLength     = mLength;
+    mDSPResampler->mLoopStart  = mLoopStart;
+    mDSPResampler->mLoopLength = mLoopLength;
+    mDSPResampler->mLoopCount  = mLoopCount;
+    mDSPResampler->mMode       = mMode;
 
-        DSPWaveTable *dspwave = SAFE_CAST(DSPWaveTable, mDSPWaveTable);
-        if (dspwave)
-        {
-            dspwave->mSound = 0;
-        }
+    if (!mDSPWaveTable)
+    {
+        return FMOD_ERR_INTERNAL;
     }
 
+    mDSPWaveTable->mSound = 0;
+
+    mDSPHead->setFinished(false, false);
     mDSPHead->setActive(false);
 
-    mDSPResampler->setFinished(false);
+    mDSPResampler->setFinished(false, false);
     mDSPResampler->setActive(false);
 
+    dsp->setFinished(false, false);
     dsp->setActive(false);
-    
+
 	return FMOD_OK;
 }
 
@@ -889,13 +753,13 @@ FMOD_RESULT ChannelSoftware::alloc(DSPI *dsp)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -905,29 +769,29 @@ FMOD_RESULT ChannelSoftware::start()
     if (!(mFlags & CHANNELREAL_FLAG_PAUSED))
     {
         mDSPHead->setActive(true);
+    }
 
-        if (mSound && mDSPWaveTable)
-        {
-            mDSPWaveTable->setActive(true);
-        }
-        if (mDSPResampler)
-        {
-            mDSPResampler->setActive(true);
-        }
-        if (mDSPLowPass)
-        {
-            mDSPLowPass->setActive(true);
-        }
-    #ifdef FMOD_SUPPORT_DSPCODEC
-        if (mDSPCodec)
-        {
-            mDSPCodec->setActive(true);
-        }
-    #endif
-        if (mDSP)
-        {
-            mDSP->setActive(true);
-        }       
+    if (mSound)
+    {
+        mDSPWaveTable->setActive(true);
+    }
+    if (mDSPResampler)
+    {
+        mDSPResampler->setActive(true);
+    }
+    if (mDSPLowPass)
+    {
+        mDSPLowPass->setActive(true);
+    }
+#ifdef FMOD_SUPPORT_DSPCODEC
+    if (mDSPCodec)
+    {
+        mDSPCodec->setActive(true);
+    }
+#endif
+    if (mDSP)
+    {
+        mDSP->setActive(true);
     }
 
  	return FMOD_OK;
@@ -939,89 +803,50 @@ FMOD_RESULT ChannelSoftware::start()
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
 // OFFSET: 0x00932BE0
-FMOD_RESULT ChannelSoftware::stop()
+FMOD_RESULT ChannelSoftware::stop(bool ignoreenddelay, bool resetstate, bool force)
 {
     FMOD_RESULT result;
     int count;
-   
+
+    if (mFlags & CHANNELREAL_FLAG_ENDDELAY && !ignoreenddelay)
+    {
+        return FMOD_OK;
+    }
+
     if (mDSPHead)
     {
-        mDSPHead->setActive(false);
         mDSPHead->disconnectAll(false, true);
-        mDSPHead->stopBuffering();
+        mDSPHead->setFinished(true, force);
+        mDSPHead->setActive(false);
     }
 
 #ifdef FMOD_SUPPORT_DSPCODEC
     if (mDSPCodec)
-    {       
-        mDSPCodec->setFinished(true, false);
-        mDSPCodec->setActive(false);
-        mDSPCodec->disconnectAll(false, true);      /* Just outputs, there are no inputs. */
-        
-        mDSPCodec->freeFromPool();
-        mDSPCodec = 0;
-    }
-#endif
-
-#ifndef FMOD_STATICFORPLUGINS
-    /*
-        Clear up reverb pointers.
-    */
-    if (mParent && !(mParent->mFlags & CHANNELI_FLAG_MUSICOWNED) && mDSPReverb)
     {
-        int instance;  
+        mDSPCodec->disconnectAll(false, true);      /* Just outputs, there are no inputs. */
+        mDSPCodec->setFinished(true, force);
+        mDSPCodec->setActive(false);
+        mDSPCodec->freeFromPool();
 
-        for (instance = 0; instance < FMOD_REVERB_MAXINSTANCES; instance++)
-        {
-            if (mSystem->mReverbGlobal.mInstance[instance].mDSP)
-            {
-                DSPConnectionI *connection = 0;
-
-                result = mSystem->mReverbGlobal.getChanProperties(instance, mParent->mIndex, 0, &connection);
-
-                result = mSystem->mReverbGlobal.mInstance[instance].mDSP->disconnectFrom(mDSPReverb, connection);
-            }
-
-            mSystem->mReverbGlobal.resetConnectionPointer(instance, mParent->mIndex);
-        }
-
-#ifdef FMOD_SUPPORT_MULTIREVERB
-        if (mSystem->mReverb3D.mInstance[0].mDSP)
-        {
-            mSystem->mReverb3D.mInstance[0].mDSP->disconnectFrom(mDSPReverb);
-            mSystem->mReverb3D.resetConnectionPointer(0, mParent->mIndex);
-        }
-        
-        ReverbI *reverb_c = SAFE_CAST(ReverbI, mSystem->mReverb3DHead.getNext());
-        while (reverb_c != &(mSystem->mReverb3DHead))
-        {      
-            if (reverb_c->mInstance[0].mDSP)
-            {
-                reverb_c->mInstance[0].mDSP->disconnectFrom(mDSPReverb);
-                reverb_c->resetConnectionPointer(0, mParent->mIndex);
-            }
-            reverb_c = SAFE_CAST(ReverbI, reverb_c->getNext());
-        }
-#endif
-
-        mDSPReverb = 0;
+        mDSPCodecStopped = mDSPCodec;
+        mDSPCodec = 0;
     }
 #endif
 
     if (mDSPResampler)
     {
-        mDSPResampler->setFinished(true, false);
+        mDSPResampler->setFinished(true, force);
         mDSPResampler->setActive(false);
         mDSPResampler->release();
         mDSPResampler = 0;
@@ -1029,10 +854,10 @@ FMOD_RESULT ChannelSoftware::stop()
 
     if (mDSPWaveTable)
     {
-        mDSPWaveTable->reset();
-        mDSPWaveTable->setFinished(true, false);
-        mDSPWaveTable->setActive(false);
         mDSPWaveTable->disconnectAll(false, true);      /* Just outputs, there are no inputs. */
+        mDSPWaveTable->setFinished(true, force);
+        mDSPWaveTable->setActive(false);
+        mDSPWaveTable->mFlags &= ~FMOD_DSP_FLAG_VISITED;
     }
 
     if (mDSP)
@@ -1057,10 +882,12 @@ FMOD_RESULT ChannelSoftware::stop()
                     return result;
                 }
             }
-        }        
+        }
     }
 
-    ChannelReal::stop();
+    mDSPReverb = 0;
+
+    ChannelReal::stop(ignoreenddelay, true);
 
     return FMOD_OK;
 }
@@ -1071,51 +898,49 @@ FMOD_RESULT ChannelSoftware::stop()
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
+	[SEE_ALSO]
+]
+*/
+// OFFSET: 0x00933F20
+FMOD_RESULT ChannelSoftware::stop(bool ignoreenddelay, bool resetstate)
+{
+    return stop(ignoreenddelay, resetstate, false);
+}
+
+
+/*
+[
+	[DESCRIPTION]
+
+	[PARAMETERS]
+
+	[RETURN_VALUE]
+
+	[REMARKS]
+
+    [PLATFORMS]
+
 	[SEE_ALSO]
 ]
 */
 // OFFSET: 0x00932D70
 FMOD_RESULT ChannelSoftware::setPaused(bool paused)
-{   
-    FMOD_RESULT result;
+{
+    mDSPHead->setActive(!paused);
 
-    result = mDSPHead->setActive(!paused);
-    if (result != FMOD_OK)
+    if (mDSPReverb)
     {
-        return result;
-    }
-
-    if (mSound && mDSPWaveTable)
-    {
-        mDSPWaveTable->setActive(!paused);
-    }
-    if (mDSPResampler)
-    {
-        mDSPResampler->setActive(!paused);
-    }
-    if (mDSPLowPass)
-    {
-        mDSPLowPass->setActive(!paused);
-    }
-#ifdef FMOD_SUPPORT_DSPCODEC
-    if (mDSPCodec)
-    {
-        mDSPCodec->setActive(!paused);
-    }
-#endif
-    if (mDSP)
-    {
-        mDSP->setActive(!paused);
+        mDSPReverb->setActive(!paused);
     }
 
-	return ChannelReal::setPaused(paused);	
+	return ChannelReal::setPaused(paused);
 }
 
 
@@ -1124,93 +949,13 @@ FMOD_RESULT ChannelSoftware::setPaused(bool paused)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT ChannelSoftware::getPaused(bool *paused)
-{   
-    FMOD_RESULT result;
-    bool active;
 
-    result = mDSPHead->getActive(&active);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    if (!active)
-    {
-        *paused = true;
-        return FMOD_OK;
-    }
-
-    if (mSound && mDSPWaveTable)
-    {
-        mDSPWaveTable->getActive(&active);
-
-        if (!active)
-        {
-            *paused = true;
-            return FMOD_OK;
-        }
-
-    }
-    if (mDSPResampler)
-    {
-        mDSPResampler->getActive(&active);
-
-        if (!active)
-        {
-            *paused = true;
-            return FMOD_OK;
-        }
-    }
-
-#ifdef FMOD_SUPPORT_DSPCODEC
-    if (mDSPCodec)
-    {
-        mDSPCodec->getActive(&active);
-        if (!active)
-        {
-            *paused = true;
-            return FMOD_OK;
-        }
-    }
-#endif
-
-    if (mDSP)
-    {
-        mDSP->getActive(&active);
-        if (!active)
-        {
-            *paused = true;
-            return FMOD_OK;
-        }
-    }
-
-	return ChannelReal::getPaused(paused);	
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    
-	[REMARKS]
-
-    [PLATFORMS]
-    
 	[SEE_ALSO]
 ]
 */
@@ -1221,76 +966,11 @@ FMOD_RESULT ChannelSoftware::setReverbProperties(const FMOD_REVERB_CHANNELPROPER
     FMOD_RESULT result;
     DSPConnectionI *connection;
     float lindirect;
-    int instance;
 
     if (!prop)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-
-    if (prop->ConnectionPoint && mDSPReverb != (DSPI *)prop->ConnectionPoint)
-    {
-        FMOD_RESULT result;
-        int          instance;
-
-        /*
-            Add an input to standard reverb
-        */
-        for (instance = 0; instance < FMOD_REVERB_MAXINSTANCES; instance++)
-        {
-            if (mSystem->mReverbGlobal.mInstance[instance].mDSP)
-            {
-                DSPConnectionI *connection = 0;
-
-                result = mSystem->mReverbGlobal.getChanProperties(instance, mParent->mIndex, 0, &connection);
-
-                result = mSystem->mReverbGlobal.mInstance[instance].mDSP->disconnectFrom(mDSPReverb, connection);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-            }
-        }
-
-#ifdef FMOD_SUPPORT_MULTIREVERB        
-        /*
-            Add an input to 3d reverb
-        */
-        if (mSystem->mReverb3D.mInstance[0].mDSP)
-        {
-            result = mSystem->mReverb3D.mInstance[0].mDSP->disconnectFrom(mDSPReverb);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-        }
-
-        /*
-            Traverse reverb list and add an input to each one that has a DSP
-        */
-        ReverbI *reverb_c = SAFE_CAST(ReverbI, mSystem->mReverb3DHead.getNext());
-        while (reverb_c != &(mSystem->mReverb3DHead))
-        {      
-            if (reverb_c->mInstance[0].mDSP)
-            {
-                result = reverb_c->mInstance[0].mDSP->disconnectFrom(mDSPReverb);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-            }
-            reverb_c = SAFE_CAST(ReverbI, reverb_c->getNext());
-        }
-#endif
-        mDSPReverb = (DSPI *)prop->ConnectionPoint;
-
-        result = addToReverbs(mDSPReverb);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-    }
-
 
     lindirect = FMOD_POW(10.0f, prop->Direct / 2000.0f); // Convert to linear gain
 
@@ -1301,60 +981,29 @@ FMOD_RESULT ChannelSoftware::setReverbProperties(const FMOD_REVERB_CHANNELPROPER
     }
 
     /*
-        How many instances is the user trying to set.  Just use this for error checking later.
-        Setting just one instance will return an error if it doesnt exist.  If the user sets 
-        something like 0xFFFFFFFF dont bail out as they probably want to set all instances.
+        Set main reverb's channel properties and update the reverb mix
     */
-    int numinstances = 0;
-    for (instance = 0; instance < FMOD_REVERB_MAXINSTANCES; instance++)
+    result = mSystem->mReverbGlobal.setChanProperties(mParent->mIndex, prop);
+    if (result != FMOD_OK)
     {
-        if (prop->Flags & (FMOD_REVERB_CHANNELFLAGS_INSTANCE0 << instance))
-        {
-            numinstances++;
-        }
+        return result;
     }
 
-    for (instance = 0; instance < FMOD_REVERB_MAXINSTANCES; instance++)
+    if (mSystem->mReverbGlobal.mDSP)
     {
-        if (prop->Flags & (FMOD_REVERB_CHANNELFLAGS_INSTANCE0 << instance) || (!numinstances && !instance))
+        mSystem->mReverbGlobal.getChanProperties(mParent->mIndex, 0, &connection);
+        if (!connection)
         {
-            /*
-                Set main reverb's channel properties and update the reverb mix
-            */
-            result = mSystem->mReverbGlobal.setChanProperties(instance, mParent->mIndex, prop);
-            if (numinstances <= 1 && result != FMOD_OK)
-            {
-                return result;
-            }
+            if      (mDSPCodec)     mDSPReverb = mDSPCodec;
+            else if (mDSPResampler) mDSPReverb = mDSPResampler;
+            else                    mDSPReverb = mDSPWaveTable;
 
-            if (mSystem->mReverbGlobal.mInstance[instance].mDSP)
-            {
-                mSystem->mReverbGlobal.getChanProperties(instance, mParent->mIndex, 0, &connection);
-   	            if (!connection)
-                {  
-                    if (!mDSPReverb)
-                    {
-    			        if      (mDSPCodec)     mDSPReverb = mDSPCodec;
-                        else if (mDSPResampler) mDSPReverb = mDSPResampler;
-                        else                    mDSPReverb = mDSPWaveTable;
-                    }
-
-                    addToReverbs(mDSPReverb);
-                }
-                result = updateReverbMix(&mSystem->mReverbGlobal, mParent->mVolume);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-            }
+            addToReverbs(mDSPReverb);
         }
-        else
+        result = updateReverbMix(&mSystem->mReverbGlobal, mParent->mVolume);
+        if (result != FMOD_OK)
         {
-            // update direct mix on other instances (ignoring errors)
-            FMOD_REVERB_CHANNELPROPERTIES cprop;
-            result = mSystem->mReverbGlobal.getChanProperties(instance, mParent->mIndex, &cprop);
-            cprop.Direct = prop->Direct;
-            result = mSystem->mReverbGlobal.setChanProperties(instance, mParent->mIndex, &cprop);
+            return result;
         }
     }
 
@@ -1362,30 +1011,20 @@ FMOD_RESULT ChannelSoftware::setReverbProperties(const FMOD_REVERB_CHANNELPROPER
     /*
         Also for 3D master reverb
     */
-    
-    /*
-		Only apply 3D reverb property to instance #0.  If user specified nothing (default to instance 0), or instance 0 flag.
-    */
-	if (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE0 || !numinstances)
+    result = mSystem->mReverb3D.setChanProperties(mParent->mIndex, prop);
+    if (result != FMOD_OK)
     {
-        result = mSystem->mReverb3D.setChanProperties(0, mParent->mIndex, prop);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
+        return result;
     }
 
-    if (mSystem->mReverb3D.mInstance[0].mDSP)
+    if (mSystem->mReverb3D.mDSP)
     {
-        mSystem->mReverb3D.getChanProperties(0, mParent->mIndex, 0, &connection);
-   	    if (!connection)
-        {  
-            if (!mDSPReverb)
-            {
-    			if      (mDSPCodec)     mDSPReverb = mDSPCodec;
-                else if (mDSPResampler) mDSPReverb = mDSPResampler;
-                else                    mDSPReverb = mDSPWaveTable;
-            }
+        mSystem->mReverb3D.getChanProperties(mParent->mIndex, 0, &connection);
+        if (!connection)
+        {
+            if      (mDSPCodec)     mDSPReverb = mDSPCodec;
+            else if (mDSPResampler) mDSPReverb = mDSPResampler;
+            else                    mDSPReverb = mDSPWaveTable;
 
             addToReverbs(mDSPReverb);
         }
@@ -1402,21 +1041,18 @@ FMOD_RESULT ChannelSoftware::setReverbProperties(const FMOD_REVERB_CHANNELPROPER
     ReverbI *reverb_c;
     for (reverb_c = SAFE_CAST(ReverbI, mSystem->mReverb3DHead.getNext()); reverb_c != &mSystem->mReverb3DHead; reverb_c = SAFE_CAST(ReverbI, reverb_c->getNext()))
     {
-        if(reverb_c->getMode() == FMOD_REVERB_PHYSICAL)
+        if (reverb_c->getMode() == FMOD_REVERB_PHYSICAL)
         {
-            reverb_c->setChanProperties(0, mParent->mIndex, prop);
+            reverb_c->setChanProperties(mParent->mIndex, prop);
 
-            if( reverb_c->mInstance[0].mDSP)
+            if (reverb_c->mDSP)
             {
-                reverb_c->getChanProperties(0, mParent->mIndex, 0, &connection);
-   	            if (!connection)
-                {  
-                    if (!mDSPReverb)
-                    {
-    			        if      (mDSPCodec)     mDSPReverb = mDSPCodec;
-                        else if (mDSPResampler) mDSPReverb = mDSPResampler;
-                        else                    mDSPReverb = mDSPWaveTable;
-                    }
+                reverb_c->getChanProperties(mParent->mIndex, 0, &connection);
+                if (!connection)
+                {
+                    if      (mDSPCodec)     mDSPReverb = mDSPCodec;
+                    else if (mDSPResampler) mDSPReverb = mDSPResampler;
+                    else                    mDSPReverb = mDSPWaveTable;
 
                     addToReverbs(mDSPReverb);
                 }
@@ -1425,7 +1061,7 @@ FMOD_RESULT ChannelSoftware::setReverbProperties(const FMOD_REVERB_CHANNELPROPER
                 {
                     return result;
                 }
-            } 
+            }
         }
     }
 #endif
@@ -1443,26 +1079,20 @@ FMOD_RESULT ChannelSoftware::setReverbProperties(const FMOD_REVERB_CHANNELPROPER
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
-    
+
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
 // OFFSET: 0x00932DC0
 FMOD_RESULT ChannelSoftware::updateDirectMix(float volume)
 {
-    FMOD_RESULT    result;
-    float          gainlin;
-
-    if (mParent->mFlags & CHANNELI_FLAG_REALMUTE)
-    {
-        volume = 0;
-    }
+    float gainlin;
 
     /*
        Calculate level based on current state
@@ -1478,15 +1108,11 @@ FMOD_RESULT ChannelSoftware::updateDirectMix(float volume)
         gainlin *= mSound->mSoundGroup->mVolume;
     }
 
-    float transmission = (1.0f - mParent->mDirectOcclusion) *
-			             (1.0f - mParent->mUserDirectOcclusion) *
-                         mParent->mChannelGroup->mRealDirectOcclusionVolume;
+    float transmission = mParent->mChannelGroup->mRealDirectOcclusionVolume * mParent->mDirectOcclusionVolume;
 
     if (mDSPLowPass)
     {
         float hrtf_cutoff = 22050.0f;
-
-        transmission *= mParent->mLowPassGain;
 
         if (mSystem->mFlags & FMOD_INIT_SOFTWARE_HRTF)
         {
@@ -1495,11 +1121,11 @@ FMOD_RESULT ChannelSoftware::updateDirectMix(float volume)
             float abs_angle = (mAngleToListener <= 180.0f) ? mAngleToListener : 360.0f-mAngleToListener;
 
             if (abs_angle <= hrtf_min_angle)
-            {                
+            {
                 hrtf_cutoff = 22050.0f;        /* Max cutoff frequency - i.e. no filter. */
             }
             else if (abs_angle >= hrtf_max_angle)
-            {               
+            {
                 hrtf_cutoff = (float)mSystem->mAdvancedSettings.HRTFFreq;        /* Min cutoff frequency - i.e. maximum filter */
             }
             else
@@ -1509,7 +1135,7 @@ FMOD_RESULT ChannelSoftware::updateDirectMix(float volume)
                 */
                 float filter_strength = (abs_angle - hrtf_min_angle) / (hrtf_max_angle - hrtf_min_angle);
                 float range = 22050.0f - mSystem->mAdvancedSettings.HRTFFreq;
-                
+
                 hrtf_cutoff = mSystem->mAdvancedSettings.HRTFFreq + range * (1.0f - filter_strength);
             }
         }
@@ -1525,13 +1151,13 @@ FMOD_RESULT ChannelSoftware::updateDirectMix(float volume)
             cutoff = 22050.0f * transmission * transmission;
 
             /*
-                Try to override the occlusion 
+                Try to override the occlusion
             */
             if (hrtf_cutoff < cutoff)
             {
                 cutoff = hrtf_cutoff;
             }
-            
+
             mDSPLowPass->setParameter(FMOD_DSP_LOWPASS_SIMPLE_CUTOFF, cutoff);
         }
         else
@@ -1544,13 +1170,7 @@ FMOD_RESULT ChannelSoftware::updateDirectMix(float volume)
         gainlin *= transmission;
     }
 
-    result = mDSPConnection->setMix(gainlin);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-    return FMOD_OK;
+    return mDSPConnection->setMix(gainlin);
 }
 
 
@@ -1559,13 +1179,13 @@ FMOD_RESULT ChannelSoftware::updateDirectMix(float volume)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
-    
+
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -1573,189 +1193,128 @@ FMOD_RESULT ChannelSoftware::updateDirectMix(float volume)
 FMOD_RESULT ChannelSoftware::updateReverbMix(ReverbI* reverb, float volume)
 {
 #ifdef FMOD_SUPPORT_REVERB
-    int instance;
+    FMOD_RESULT result;
+    FMOD_REVERB_CHANNELPROPERTIES props;
+    DSPConnectionI *connection;
+    float gainlin = 0.0f;
+    bool morphing = false;
 
     if (!reverb)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (mParent->mFlags & CHANNELI_FLAG_REALMUTE)
+    if (!reverb->mDSP)
     {
-        volume = 0;
+        return FMOD_OK;
     }
 
-    for (instance = 0; instance < FMOD_REVERB_MAXINSTANCES; instance++)
+    /*
+        Get properties
+    */
+    result = reverb->getChanProperties(mParent->mIndex, &props, &connection);
+    if (result != FMOD_OK)
     {
-        if (reverb->mInstance[instance].mDSP)
+        return result;
+    }
+
+    if (!connection)
+    {
+       return FMOD_OK;
+    }
+
+    result = mSystem->get3DReverbActive(&morphing);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    float transmission = (1.0f - mParent->mReverbOcclusion) * mParent->mChannelGroup->mRealReverbOcclusionVolume;
+
+    /*
+        Main reverb
+    */
+    if (reverb == &mSystem->mReverbGlobal)
+    {
+        if (!(mMode & FMOD_3D))
         {
-            FMOD_RESULT result;
-            FMOD_REVERB_CHANNELPROPERTIES props;
-            DSPConnectionI *connection;
-            float gainlin = 0.0f;
-            bool morphing = false;
+            gainlin  = (float)FMOD_POW(10.0f, props.Room / 2000.0f);
+            gainlin *= mParent->mChannelGroup->mRealVolume;
 
-            /*
-                Get properties
-            */
-            result = reverb->getChanProperties(instance, mParent->mIndex, &props, &connection);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-
-            if (!connection)
-            {
-               return FMOD_OK;
-            }
-
-#ifdef FMOD_SUPPORT_MULTIREVERB
-            result = mSystem->get3DReverbActive(&morphing);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-#endif
-
-            float transmission = (1.0f - mParent->mReverbOcclusion) *
-			                     (1.0f - mParent->mUserReverbOcclusion) *
-                                 mParent->mChannelGroup->mRealReverbOcclusionVolume;
-
-            /*
-                Main reverb
-            */
-            if (reverb == &mSystem->mReverbGlobal)
-            {
-                if (mMode & FMOD_3D)
-                {
-                    if (morphing)
-                    {
-                        gainlin = 0.0f;
-                    }
-                    else
-                    {
-                        gainlin = (float)FMOD_POW(10.0f, props.Room / 2000.0f); // Convert to linear gain
-
-                        if (!props.ConnectionPoint)
-                        {
-                            gainlin *= transmission;
-                            gainlin *= mParent->mFadeVolume;
-                            gainlin *= mParent->mVolume3D;
-                            gainlin *= mParent->mChannelGroup->mRealVolume;
-                            if (mSound && mSound->mSoundGroup)
-                            {
-                                gainlin *= mSound->mSoundGroup->mVolume;
-                            }
-                            gainlin *= volume;
-                        }
-                    }
-                }
-                else
-                {
-                    gainlin = (float)FMOD_POW(10.0f, props.Room / 2000.0f); 
-
-                    if (!props.ConnectionPoint)
-                    {
-                        gainlin *= mParent->mChannelGroup->mRealVolume;
-                        gainlin *= volume;
-                    }
-                }
-            }
-
-#ifdef FMOD_SUPPORT_MULTIREVERB
-            /*
-                Main 3D reverb
-            */
-            else if (reverb == &mSystem->mReverb3D )
-            {
-                if (mMode & FMOD_3D) // 3D channel
-                {
-                    gainlin = (float)FMOD_POW(10.0f, props.Room / 2000.0f); // Convert to linear gain
-
-                    if (!props.ConnectionPoint)
-                    {
-                        gainlin *= transmission;
-                        gainlin *= mParent->mFadeVolume;
-                        gainlin *= mParent->mVolume3D;
-                        gainlin *= mParent->mChannelGroup->mRealVolume;
-                        if (mSound && mSound->mSoundGroup)
-                        {
-                            gainlin *= mSound->mSoundGroup->mVolume;
-                        }
-
-                        gainlin *= volume;
-                    }
-                }
-                else    // 2D channels contribute nothing
-                {
-                    gainlin = 0.0f;
-                }
-            }
-            /*
-                Physical 3D reverbs
-            */
-            else
-            {
-                // 2D channel : no contribution
-                //
-                if (mMode & FMOD_2D)
-                {
-                    gainlin = 0.0f;
-                }
-                else
-                {
-                    /*
-                        Positioned 3D reverbs, including 3D main module if present
-                    */
-
-                    /*
-                        Find listener and source components
-                    */
-                    float source_gain;
-                    reverb->getPresenceGain(0, mParent->mIndex, &source_gain);
-            
-                    /*
-                        Take the maximum of source presence and listener presence components
-                    */
-                    float listener_gain = reverb->getGain();
-                    gainlin = (listener_gain > source_gain) ? listener_gain : source_gain;
-
-                    /*
-                        Apply other gains
-                    */
-                    gainlin *= (float)FMOD_POW(10.0f, props.Room / 2000.0f); /* Convert to linear gain  */
-
-                    if (!props.ConnectionPoint)
-                    {
-                        gainlin *= transmission;
-                        gainlin *= mParent->mFadeVolume;
-                        gainlin *= mParent->mVolume3D;
-                        gainlin *= mParent->mChannelGroup->mRealVolume;
-                        if (mSound && mSound->mSoundGroup)
-                        {
-                            gainlin *= mSound->mSoundGroup->mVolume;
-                        }
-
-                        gainlin *= volume;
-                    }
-                }
-            }
-#endif
-
-            /*
-                Find connection and set channel's reverb input level as appropriate
-            */
-            result = connection->setMix(gainlin);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
+            return connection->setMix(gainlin * volume);
         }
+
+        if (morphing)
+        {
+            return connection->setMix(0.0f);
+        }
+
+        gainlin  = (float)FMOD_POW(10.0f, props.Room / 2000.0f); // Convert to linear gain
+        gainlin *= transmission;
+        gainlin *= mParent->mFadeVolume;
+        gainlin *= mParent->mVolume3D;
+        gainlin *= mParent->mChannelGroup->mRealVolume;
+    }
+    /*
+        Main 3D reverb
+    */
+    else if (reverb == &mSystem->mReverb3D)
+    {
+        if (!(mMode & FMOD_3D))
+        {
+            return connection->setMix(0.0f);
+        }
+
+        gainlin  = (float)FMOD_POW(10.0f, props.Room / 2000.0f); // Convert to linear gain
+        gainlin *= transmission;
+        gainlin *= mParent->mFadeVolume;
+        gainlin *= mParent->mVolume3D;
+        gainlin *= mParent->mChannelGroup->mRealVolume;
+    }
+    /*
+        Physical 3D reverbs
+    */
+    else
+    {
+        if (mMode & FMOD_2D)
+        {
+            return connection->setMix(0.0f);
+        }
+
+        /*
+            Find listener and source components
+        */
+        float source_gain;
+        reverb->getPresenceGain(mParent->mIndex, &source_gain);
+
+        /*
+            Take the maximum of source presence and listener presence components
+        */
+        float listener_gain = reverb->getGain();
+        gainlin = (listener_gain > source_gain) ? listener_gain : source_gain;
+
+        /*
+            Apply other gains
+        */
+        gainlin *= (float)FMOD_POW(10.0f, props.Room / 2000.0f); /* Convert to linear gain  */
+        gainlin *= transmission;
+        gainlin *= mParent->mFadeVolume;
+        gainlin *= mParent->mVolume3D;
+        gainlin *= mParent->mChannelGroup->mRealVolume;
     }
 
-#endif
-    
+    if (mSound && mSound->mSoundGroup)
+    {
+        gainlin *= mSound->mSoundGroup->mVolume;
+    }
+
+    /*
+        Find connection and set channel's reverb input level as appropriate
+    */
+    return connection->setMix(gainlin * volume);
+#else
     return FMOD_OK;
+#endif
 }
 
 /*
@@ -1763,45 +1322,25 @@ FMOD_RESULT ChannelSoftware::updateReverbMix(ReverbI* reverb, float volume)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
-    
+
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
 // OFFSET: 0x00933140
 FMOD_RESULT ChannelSoftware::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
-#ifdef FMOD_SUPPORT_REVERB
-    FMOD_RESULT result;
-    int instance = 0;
-
-    if(!prop)
+    if (!prop)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    /*
-        The first instance set is always returned (so 0|1|2|3 will return 0, 2|3 will return 2 etc).
-    */
-    instance = (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE0) ? 0 :
-               (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE1) ? 1 : 
-               (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE2) ? 2 : 
-               (prop->Flags & FMOD_REVERB_CHANNELFLAGS_INSTANCE3) ? 3 : 
-               0;
-
-    result = mSystem->mReverbGlobal.getChanProperties(instance, mParent->mIndex, prop);
-    if(result != FMOD_OK)
-    {
-        return result;
-    }
-#endif
-
-    return FMOD_OK;
+    return mSystem->mReverbGlobal.getChanProperties(mParent->mIndex, prop);
 }
 
 
@@ -1810,37 +1349,13 @@ FMOD_RESULT ChannelSoftware::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
-    
+
 	[REMARKS]
 
     [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT ChannelSoftware::setLowPassGain(float gain)
-{
-    /*
-        Need to flush the mLowPassGain value set in parent (via updateDirectMix)
-    */
-    return setVolume(mParent->mVolume);
-}
 
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    
-	[REMARKS]
-
-    [PLATFORMS]
-    
 	[SEE_ALSO]
 ]
 */
@@ -1848,7 +1363,7 @@ FMOD_RESULT ChannelSoftware::setLowPassGain(float gain)
 FMOD_RESULT ChannelSoftware::set3DOcclusion(float directOcclusion, float reverbOcclusion)
 {
     FMOD_RESULT    result;
-    
+
     if (mSubChannelIndex > 0)
     {
         return FMOD_OK;
@@ -1860,9 +1375,10 @@ FMOD_RESULT ChannelSoftware::set3DOcclusion(float directOcclusion, float reverbO
     mParent->mReverbOcclusion = reverbOcclusion;
 
     /*
-        Set direct occlusion factors 
+        Set direct occlusion factors
     */
-    mParent->mDirectOcclusion = directOcclusion;
+    mParent->mDirectOcclusion       = directOcclusion;
+    mParent->mDirectOcclusionVolume = 1.0f - directOcclusion;
 
     /*
         Update direct and listener reverb mix levels
@@ -1897,19 +1413,19 @@ FMOD_RESULT ChannelSoftware::set3DOcclusion(float directOcclusion, float reverbO
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
 // OFFSET: 0x00933210
 FMOD_RESULT ChannelSoftware::setVolume(float volume)
-{   
+{
     FMOD_RESULT    result;
 
     if (mSubChannelIndex > 0)
@@ -1932,7 +1448,7 @@ FMOD_RESULT ChannelSoftware::setVolume(float volume)
         if (result != FMOD_OK)
         {
             return result;
-    
+
         }
 
         #ifdef FMOD_SUPPORT_MULTIREVERB
@@ -1969,13 +1485,13 @@ FMOD_RESULT ChannelSoftware::setVolume(float volume)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -1988,7 +1504,7 @@ FMOD_RESULT ChannelSoftware::setFrequency(float frequency)
 
 #ifdef FMOD_SUPPORT_DSPCODEC
         if (mDSPCodec)
-        {           
+        {
             dspresampler = SAFE_CAST(DSPResampler, mDSPCodec);
         }
         else
@@ -2000,18 +1516,16 @@ FMOD_RESULT ChannelSoftware::setFrequency(float frequency)
         {
             return FMOD_ERR_INVALID_PARAM;
         }
-   
-        frequency *= ((1.0f - mParent->m3DPanLevel) + (mParent->mPitch3D * mParent->m3DPanLevel));
+
+        frequency *= ((mParent->mPitch3D * mParent->m3DPanLevel) + (1.0f - mParent->m3DPanLevel));
         frequency *= mParent->mChannelGroup->mRealPitch;
 
         if (frequency > mMaxFrequency)
         {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "ChannelSoftware::setFrequency", "Warning!!! Extreme frequency being set (%.02f hz).  Possibly because of bad velocity in set3DAttributes call.\n", frequency));
             frequency = mMaxFrequency;
         }
         if (frequency < mMinFrequency)
         {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "ChannelSoftware::setFrequency", "Warning!!! Extreme frequency being set (%.02f hz).  Possibly because of bad velocity in set3DAttributes call.\n", frequency));
             frequency = mMinFrequency;
         }
 
@@ -2019,32 +1533,22 @@ FMOD_RESULT ChannelSoftware::setFrequency(float frequency)
     }
     else if (mDSPWaveTable)
     {
-        DSPWaveTable *dspwave;
-    
-        dspwave = SAFE_CAST(DSPWaveTable, mDSPWaveTable);
-        if (!dspwave)
-        {
-            return FMOD_ERR_INTERNAL;
-        }
-
-        frequency *= ((1.0f - mParent->m3DPanLevel) + (mParent->mPitch3D * mParent->m3DPanLevel));
+        frequency *= ((mParent->mPitch3D * mParent->m3DPanLevel) + (1.0f - mParent->m3DPanLevel));
         frequency *= mParent->mChannelGroup->mRealPitch;
 
         if (frequency > mMaxFrequency)
         {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "ChannelSoftware::setFrequency", "Warning!!! Extreme frequency being set (%.02f hz).  Possibly because of bad velocity in set3DAttributes call.\n", frequency));
             frequency = mMaxFrequency;
         }
         if (frequency < mMinFrequency)
         {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "ChannelSoftware::setFrequency", "Warning!!! Extreme frequency being set (%.02f hz).  Possibly because of bad velocity in set3DAttributes call.\n", frequency));
             frequency = mMinFrequency;
         }
-    
-        return dspwave->setFrequency(frequency);
+
+        return mDSPWaveTable->setFrequency(frequency);
     }
 
-    return FMOD_OK;
+    return FMOD_ERR_INVALID_PARAM;
 }
 
 
@@ -2053,13 +1557,13 @@ FMOD_RESULT ChannelSoftware::setFrequency(float frequency)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -2087,20 +1591,12 @@ FMOD_RESULT ChannelSoftware::setPan(float lrpan, float fbpan)
 
     if (numchannels == 1)
     {
-        if (mParent->mSpeakerMode == FMOD_SPEAKERMODE_STEREO_LINEAR)
-        {
-            l = 1.0f - pan;
-            r = pan;
-        }
-        else
-        {
-            l = FMOD_SQRT(1.0f - pan);
-            r = FMOD_SQRT(pan);
-        }
-        
+        l = FMOD_SQRT(1.0f - pan);
+        r = FMOD_SQRT(pan);
+
         return setSpeakerMix(l, r, 0, 0, 0, 0, 0, 0);
     }
-    else 
+    else
     {
         /*
             Stereo source panning is 0 = 1.0:0.0.  0.5 = 1.0:1.0.  1.0 = 0:1.0.
@@ -2115,7 +1611,7 @@ FMOD_RESULT ChannelSoftware::setPan(float lrpan, float fbpan)
             l = (1.0f - pan) * 2.0f;
             r = 1.0f;
         }
-        
+
         if (numchannels == 2 && !(channelmask & SPEAKER_ALLMONO))
         {
             return setSpeakerMix(l, r, 0, 0, 0, 0, 0, 0);
@@ -2133,61 +1629,13 @@ FMOD_RESULT ChannelSoftware::setPan(float lrpan, float fbpan)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
-	[RETURN_VALUE]
-    
-	[REMARKS]
 
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT ChannelSoftware::setDSPClockDelay()
-{
-#ifdef FMOD_STATICFORPLUGINS
-    return FMOD_ERR_UNSUPPORTED;
-#else
-    if (mDSPWaveTable)
-    {
-        DSPWaveTable *dspwave = SAFE_CAST(DSPWaveTable, mDSPWaveTable);
-
-        dspwave->mDSPClockStart.mHi = mParent->mDSPClockDelay.mHi;
-        dspwave->mDSPClockStart.mLo = mParent->mDSPClockDelay.mLo;
-        dspwave->mDSPClockEnd.mHi = mParent->mDSPClockEnd.mHi;
-        dspwave->mDSPClockEnd.mLo = mParent->mDSPClockEnd.mLo;
-        dspwave->mDSPClockPause.mHi = mParent->mDSPClockPause.mHi;
-        dspwave->mDSPClockPause.mLo = mParent->mDSPClockPause.mLo;
-    }
-    if (mDSPCodec || mDSPResampler)
-    {
-        DSPResampler *resampler = SAFE_CAST(DSPResampler, mDSPCodec ? mDSPCodec : mDSPResampler);
-
-        resampler->mNoDMA->mDSPClockStart.mHi = mParent->mDSPClockDelay.mHi;
-        resampler->mNoDMA->mDSPClockStart.mLo = mParent->mDSPClockDelay.mLo;
-        resampler->mNoDMA->mDSPClockEnd.mHi   = mParent->mDSPClockEnd.mHi;
-        resampler->mNoDMA->mDSPClockEnd.mLo   = mParent->mDSPClockEnd.mLo;
-        resampler->mNoDMA->mDSPClockPause.mHi = mParent->mDSPClockPause.mHi;
-        resampler->mNoDMA->mDSPClockPause.mLo = mParent->mDSPClockPause.mLo;
-    }
-
-    return FMOD_OK;
-#endif
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -2200,7 +1648,7 @@ FMOD_RESULT ChannelSoftware::setSpeakerMix(float frontleft, float frontright, fl
     int                 numchannels;
     int                 count, count2;
     FMOD_SPEAKERMAPTYPE speakermap = FMOD_SPEAKERMAPTYPE_DEFAULT;
-       
+
     if (mSubChannelIndex > 0)
     {
         return FMOD_OK;
@@ -2218,18 +1666,6 @@ FMOD_RESULT ChannelSoftware::setSpeakerMix(float frontleft, float frontright, fl
         {
             speakermap = FMOD_SPEAKERMAPTYPE_ALLSTEREO;
         }
-        else if (mSound->mDefaultChannelMask & SPEAKER_PROTOOLS)
-        {
-            speakermap = FMOD_SPEAKERMAPTYPE_51_PROTOOLS;
-        }
-        /*
-            Special case for quad sounds inside a 6 or 8 channel stream so that 
-            DSPI::calculateSpeakerLevels() maps the channels in the correct order.
-        */
-        else if (mSound->mDefaultChannelMask == SPEAKER_QUAD)
-        {
-            numchannels = 4;
-        }
     }
     else if (mDSP)
     {
@@ -2240,14 +1676,7 @@ FMOD_RESULT ChannelSoftware::setSpeakerMix(float frontleft, float frontright, fl
         return FMOD_ERR_INVALID_HANDLE;
     }
 
-    if ((mSound && mSound->mMode & FMOD_3D) && (mParent->mSpeakerMode == FMOD_SPEAKERMODE_PROLOGIC))
-    {
-        result = DSPI::calculateSpeakerLevels(frontleft, frontright, center, lfe, backleft, backright, sideleft, sideright, FMOD_SPEAKERMODE_STEREO, numchannels, speakermap, &levels[0], &numinputlevels);
-    }
-    else
-    {
-        result = DSPI::calculateSpeakerLevels(frontleft, frontright, center, lfe, backleft, backright, sideleft, sideright, mParent->mSpeakerMode, numchannels, speakermap, &levels[0], &numinputlevels);
-    }
+    result = DSPI::calculateSpeakerLevels(frontleft, frontright, center, lfe, backleft, backright, sideleft, sideright, mSystem->mSpeakerMode, numchannels, speakermap, &levels[0], &numinputlevels);
     if (result != FMOD_OK)
 	{
         return result;
@@ -2264,84 +1693,7 @@ FMOD_RESULT ChannelSoftware::setSpeakerMix(float frontleft, float frontright, fl
         }
     }
 
-    result = mDSPConnection->setLevels(&levels[0], numinputlevels);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-#ifdef FMOD_SUPPORT_REVERB
-    int instance;
-    FMOD_REVERB_CHANNELPROPERTIES props;
-
-    for (instance = 0; instance < FMOD_REVERB_MAXINSTANCES; instance++)
-    {
-        if (mSystem->mReverbGlobal.mInstance[instance].mDSP)
-        {
-            FMOD_RESULT result;
-            DSPConnectionI *connection;
-
-            /*
-                Get connection
-            */
-            mSystem->mReverbGlobal.getChanProperties(instance, mParent->mIndex, &props, &connection);
-            if (connection && (connection->mInputUnit == mDSPCodec || connection->mInputUnit == mDSPWaveTable || connection->mInputUnit == mDSPResampler) && !props.ConnectionPoint)
-            {
-                result = connection->setLevels(&levels[0], numinputlevels);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-            }
-        }
-    }
-
-#ifdef FMOD_SUPPORT_MULTIREVERB
-    if (mSystem->mReverb3D.mInstance[0].mDSP)
-    {
-        DSPConnectionI *connection;
-
-        mSystem->mReverb3D.getChanProperties(0, mParent->mIndex, &props, &connection);
-        if (connection && (connection->mInputUnit == mDSPCodec || connection->mInputUnit == mDSPWaveTable || connection->mInputUnit == mDSPResampler) && !props.ConnectionPoint)
-        {
-            result = connection->setLevels(&levels[0], numinputlevels);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-        }
-    }
-
-    /*
-        Also for physicals in 3D reverb list
-    */
-    for (ReverbI* reverb_c  = SAFE_CAST(ReverbI, mSystem->mReverb3DHead.getNext());
-                  reverb_c != &mSystem->mReverb3DHead;
-                  reverb_c  = SAFE_CAST(ReverbI, reverb_c->getNext()))
-    {
-        if (reverb_c->getMode() == FMOD_REVERB_PHYSICAL)
-        {
-            if (reverb_c->mInstance[0].mDSP)
-            {
-                DSPConnectionI *connection;
-
-                reverb_c->getChanProperties(0, mParent->mIndex, &props, &connection);
-                if (connection && (connection->mInputUnit == mDSPCodec || connection->mInputUnit == mDSPWaveTable || connection->mInputUnit == mDSPResampler) && !props.ConnectionPoint)
-                {
-                    result = connection->setLevels(&levels[0], numinputlevels);
-                    if (result != FMOD_OK)
-                    {
-                        return result;
-                    }
-                }
-            } 
-        }
-    }
-#endif
-
-#endif
-
-    return FMOD_OK;
+    return mDSPConnection->setLevels(&levels[0], numinputlevels);
 }
 
 
@@ -2350,13 +1702,13 @@ FMOD_RESULT ChannelSoftware::setSpeakerMix(float frontleft, float frontright, fl
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -2366,7 +1718,7 @@ FMOD_RESULT ChannelSoftware::setSpeakerLevels(int speaker, float *levels, int nu
     FMOD_RESULT     result;
     float           clevels[DSP_MAXLEVELS_OUT][DSP_MAXLEVELS_IN];
     int             count;
-       
+
     if (mSubChannelIndex > 0)
     {
         return FMOD_OK;
@@ -2383,84 +1735,7 @@ FMOD_RESULT ChannelSoftware::setSpeakerLevels(int speaker, float *levels, int nu
         clevels[speaker][count] = levels[count] * mParent->mInputMix[count];
     }
 
-    result = mDSPConnection->setLevels(&clevels[0][0], DSP_MAXLEVELS_IN);
-    if (result != FMOD_OK)
-    {
-        return result;
-    }
-
-#ifdef FMOD_SUPPORT_REVERB
-    int instance;
-    FMOD_REVERB_CHANNELPROPERTIES props;
-
-
-    for (instance = 0; instance < FMOD_REVERB_MAXINSTANCES; instance++)
-    {
-        if (mSystem->mReverbGlobal.mInstance[instance].mDSP)
-        {
-            FMOD_RESULT result;
-            DSPConnectionI *connection;
-
-            /*
-                Get connection
-            */
-            result = mSystem->mReverbGlobal.getChanProperties(instance, mParent->mIndex, &props, &connection);
-            if (connection && (connection->mInputUnit == mDSPCodec || connection->mInputUnit == mDSPWaveTable || connection->mInputUnit == mDSPResampler) && !props.ConnectionPoint)
-            {
-                result = connection->setLevels(&clevels[0][0], DSP_MAXLEVELS_IN);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-            }
-        }
-    }
-
-#ifdef FMOD_SUPPORT_MULTIREVERB
-    if (mSystem->mReverb3D.mInstance[0].mDSP)
-    {
-        DSPConnectionI *connection;
-
-        mSystem->mReverb3D.getChanProperties(0, mParent->mIndex, &props, &connection);
-        if (connection && (connection->mInputUnit == mDSPCodec || connection->mInputUnit == mDSPWaveTable || connection->mInputUnit == mDSPResampler) && !props.ConnectionPoint)
-        {
-            result = connection->setLevels(&clevels[0][0], DSP_MAXLEVELS_IN);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-        }
-    }
-
-    /*
-        Also for physicals in 3D reverb list
-    */
-    ReverbI *reverb_c;
-    for (reverb_c = SAFE_CAST(ReverbI, mSystem->mReverb3DHead.getNext()); reverb_c != &mSystem->mReverb3DHead; reverb_c = SAFE_CAST(ReverbI, reverb_c->getNext()))
-    {
-        if (reverb_c->getMode() == FMOD_REVERB_PHYSICAL)
-        {
-            if (reverb_c->mInstance[0].mDSP)
-            {
-                DSPConnectionI *connection;
-
-                reverb_c->getChanProperties(0, mParent->mIndex, &props, &connection);
-                if (connection && (connection->mInputUnit == mDSPCodec || connection->mInputUnit == mDSPWaveTable || connection->mInputUnit == mDSPResampler) && !props.ConnectionPoint)
-                {
-                    result = connection->setLevels(&clevels[0][0], DSP_MAXLEVELS_IN);
-                    if (result != FMOD_OK)
-                    {
-                        return result;
-                    }
-                }
-            } 
-        }
-    }
-#endif
-
-#endif
-
-    return FMOD_OK;
+    return mDSPConnection->setLevels(&clevels[0][0], DSP_MAXLEVELS_IN);
 }
 
 
@@ -2469,19 +1744,19 @@ FMOD_RESULT ChannelSoftware::setSpeakerLevels(int speaker, float *levels, int nu
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
 // OFFSET: 0x00934760
 FMOD_RESULT ChannelSoftware::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
-{ 
+{
     unsigned int      pcm = 0, endpoint;
     int               channels;
     FMOD_SOUND_FORMAT format;
@@ -2500,7 +1775,7 @@ FMOD_RESULT ChannelSoftware::setPosition(unsigned int position, FMOD_TIMEUNIT po
     else if (mDSPCodec)
     {
         channels    = mDSPCodec->mDescription.channels;
-        format      = mDSPCodec->mDescription.mFormat;
+        format      = FMOD_SOUND_FORMAT_PCMFLOAT;
         frequency   = mDSPCodec->mDefaultFrequency;
     }
 #endif
@@ -2516,7 +1791,7 @@ FMOD_RESULT ChannelSoftware::setPosition(unsigned int position, FMOD_TIMEUNIT po
         format      = FMOD_SOUND_FORMAT_PCMFLOAT;
         frequency   = mDSPResampler->mDefaultFrequency;
     }
-    else 
+    else
     {
         return FMOD_ERR_INVALID_HANDLE;
     }
@@ -2531,9 +1806,9 @@ FMOD_RESULT ChannelSoftware::setPosition(unsigned int position, FMOD_TIMEUNIT po
     }
     else if (postype == FMOD_TIMEUNIT_MS)
     {
-        pcm = (unsigned int)((float)position / 1000.0f * frequency);
+        pcm = (unsigned int)((float)position * frequency / 1000.0f);
     }
-   
+
     if (mSound)
     {
         if (mMode & FMOD_LOOP_OFF)
@@ -2552,9 +1827,9 @@ FMOD_RESULT ChannelSoftware::setPosition(unsigned int position, FMOD_TIMEUNIT po
 
     if (pcm > endpoint)
     {
-        return FMOD_ERR_INVALID_POSITION;
+        return FMOD_ERR_INVALID_PARAM;
     }
-        
+
     /*
         Recurse through channel head downwards calling setposition to all dsp units.
     */
@@ -2567,10 +1842,6 @@ FMOD_RESULT ChannelSoftware::setPosition(unsigned int position, FMOD_TIMEUNIT po
         return mDSPCodec->setPosition(pcm, false);
     }
 #endif
-    else if (mDSP)
-    {
-        return mDSP->setPosition(pcm, true);
-    }
     else if (mDSPWaveTable)
     {
         return mDSPWaveTable->setPosition(pcm, false);
@@ -2579,12 +1850,8 @@ FMOD_RESULT ChannelSoftware::setPosition(unsigned int position, FMOD_TIMEUNIT po
     {
         return mDSPResampler->setPosition(pcm, true);
     }
-    else 
-    {
-        return mDSPHead->setPosition(pcm, true);  /* Channel based sound is always wavetable, dspcodec, or resampler.  If this is called they must have done a dsp connection and it will flush. */
-    }
 
-    return FMOD_OK;
+    return mDSPHead->setPosition(pcm, true);  /* Channel based sound is always wavetable, dspcodec, or resampler.  If this is called they must have done a dsp connection and it will flush. */
 }
 
 
@@ -2593,13 +1860,13 @@ FMOD_RESULT ChannelSoftware::setPosition(unsigned int position, FMOD_TIMEUNIT po
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -2609,145 +1876,64 @@ FMOD_RESULT ChannelSoftware::getPosition(unsigned int *position, FMOD_TIMEUNIT p
     int channels;
     FMOD_SOUND_FORMAT format;
     float frequency;
-    bool getsubsoundtime = false;
-    unsigned int pcmcurrent;
-    int subsoundlistcurrent = mSubSoundListCurrent;
 
     if (!position)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    postype &= ~FMOD_TIMEUNIT_BUFFERED; /* Don't need that crap. */
-
-    if (postype == FMOD_TIMEUNIT_SENTENCE_MS)
-    {
-        postype = FMOD_TIMEUNIT_MS;
-        getsubsoundtime = true;
-    }
-    else if (postype == FMOD_TIMEUNIT_SENTENCE_PCM)
-    {
-        postype = FMOD_TIMEUNIT_PCM;
-        getsubsoundtime = true;
-    }
-    else if (postype == FMOD_TIMEUNIT_SENTENCE_PCMBYTES)
-    {
-        postype = FMOD_TIMEUNIT_PCMBYTES;
-        getsubsoundtime = true;
-    }
-    else if (postype == FMOD_TIMEUNIT_SENTENCE || postype == FMOD_TIMEUNIT_SENTENCE_SUBSOUND)
-    {
-        getsubsoundtime = true;
-    }
-    else if (postype != FMOD_TIMEUNIT_MS && postype != FMOD_TIMEUNIT_PCM && postype != FMOD_TIMEUNIT_PCMBYTES)
+    if (postype != FMOD_TIMEUNIT_MS && postype != FMOD_TIMEUNIT_PCM && postype != FMOD_TIMEUNIT_PCMBYTES)
     {
         return FMOD_ERR_FORMAT;
-    }
-    
-    if (getsubsoundtime 
-#ifdef FMOD_SUPPORT_SENTENCING
-        && !mSound->mSubSoundList
-#endif
-        )
-    {
-        return FMOD_ERR_INVALID_PARAM;
     }
 
 #ifdef FMOD_SUPPORT_DSPCODEC
     if (mDSPCodec)
     {
-        DSPResampler *dspcodec = SAFE_CAST(DSPResampler, mDSPCodec);
-        if (!dspcodec)
-        {
-            return FMOD_ERR_INVALID_PARAM;
-        }
-
         channels    = mDSPCodec->mDescription.channels;
-        format      = mDSPCodec->mDescription.mFormat;
+        format      = FMOD_SOUND_FORMAT_PCMFLOAT;
         frequency   = mSound->mDefaultFrequency;
 
-        mPosition = dspcodec->mPosition.mHi;
-        subsoundlistcurrent = mDSPCodec->mSubSoundListCurrent;
-    }    
+        mPosition = mDSPCodec->DSPResampler::mPosition.mHi;
+    }
     else
 #endif
-    if (mSound && mDSPWaveTable)
+    if (mSound)
     {
-        DSPWaveTable *dspwave = SAFE_CAST(DSPWaveTable, mDSPWaveTable);
-        if (!dspwave)
+        if (!mDSPWaveTable)
         {
-            return FMOD_ERR_INTERNAL;
+            return FMOD_ERR_INVALID_PARAM;
         }
 
         channels    = mSound->mChannels;
         format      = mSound->mFormat;
         frequency   = mSound->mDefaultFrequency;
-    
-        if (dspwave->mNewPosition != 0xFFFFFFFF)
-        {
-            mPosition = dspwave->mNewPosition;
-        }
-        else
-        {
-            mPosition = dspwave->mPosition.mHi;
-        }
+
+        mPosition = mDSPWaveTable->mPosition.mHi;
     }
     else if (mDSPResampler)
     {
         channels    = mDSPResampler->mDescription.channels;
         format      = FMOD_SOUND_FORMAT_PCMFLOAT;
         frequency   = mDSPResampler->mDefaultFrequency;
-    }    
+    }
     else
     {
         return FMOD_ERR_INVALID_HANDLE;
     }
 
-    pcmcurrent = mPosition;
-
-#ifdef FMOD_SUPPORT_SENTENCING
-    if (getsubsoundtime)
-    {
-        int count = 0;
-
-        for (count = 0; count < mSound->mSubSoundListNum; count++)
-        {
-            unsigned int length = mSound->mSubSoundList[count].mLength;
-
-            if (pcmcurrent >= length)
-            {
-                pcmcurrent -= length;
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-#endif
-
     if (postype == FMOD_TIMEUNIT_PCM)
     {
-        *position = pcmcurrent;
+        *position = mPosition;
     }
     else if (postype == FMOD_TIMEUNIT_PCMBYTES)
     {
-        SoundI::getBytesFromSamples(pcmcurrent, position, channels, format);
+        SoundI::getBytesFromSamples(mPosition, position, channels, format);
     }
-    else if (postype == FMOD_TIMEUNIT_MS)
+    else
     {
-        *position = (unsigned int)((float)pcmcurrent / frequency * 1000.0f);
+        *position = (unsigned int)((float)mPosition / frequency * 1000.0f);
     }
-    else if (postype == FMOD_TIMEUNIT_SENTENCE)
-    {
-        *position = mSubSoundListCurrent;
-    }
-#ifdef FMOD_SUPPORT_SENTENCING
-    else if (postype == FMOD_TIMEUNIT_SENTENCE_SUBSOUND)
-    {
-        *position = mSound->mSubSoundList[subsoundlistcurrent].mIndex;
-    }
-#endif
 
     return FMOD_OK;
 }
@@ -2758,13 +1944,13 @@ FMOD_RESULT ChannelSoftware::getPosition(unsigned int *position, FMOD_TIMEUNIT p
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -2772,23 +1958,21 @@ FMOD_RESULT ChannelSoftware::getPosition(unsigned int *position, FMOD_TIMEUNIT p
 FMOD_RESULT ChannelSoftware::setLoopPoints(unsigned int loopstart, unsigned int looplength)
 {
     FMOD_RESULT result;
-    
+
     result = ChannelReal::setLoopPoints(loopstart, looplength);
     if (result != FMOD_OK)
     {
         return result;
     }
-    
+
 #ifdef FMOD_SUPPORT_DSPCODEC
-
     if (mDSPCodec)
-    {    
-        mDSPCodec->mNoDMA->mLoopStart  = mLoopStart;
-        mDSPCodec->mNoDMA->mLoopLength = mLoopLength;
-    }   
-
+    {
+        mDSPCodec->mLoopStart  = mLoopStart;
+        mDSPCodec->mLoopLength = mLoopLength;
+    }
 #endif
-    
+
     return FMOD_OK;
 }
 
@@ -2797,13 +1981,13 @@ FMOD_RESULT ChannelSoftware::setLoopPoints(unsigned int loopstart, unsigned int 
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -2811,7 +1995,7 @@ FMOD_RESULT ChannelSoftware::setLoopPoints(unsigned int loopstart, unsigned int 
 FMOD_RESULT ChannelSoftware::setLoopCount(int loopcount)
 {
     FMOD_RESULT result;
-    
+
     result = ChannelReal::setLoopCount(loopcount);
     if (result != FMOD_OK)
     {
@@ -2819,15 +2003,12 @@ FMOD_RESULT ChannelSoftware::setLoopCount(int loopcount)
     }
 
 #ifdef FMOD_SUPPORT_DSPCODEC
-
     if (mDSPCodec)
-    {    
-        mDSPCodec->mNoDMA->mNewLoopCount = mLoopCount;
-        mDSPCodec->mNoDMA->mLoopCountIncrement++;
-    }   
-
+    {
+        mDSPCodec->mLoopCount = mLoopCount;
+    }
 #endif
-    
+
     return FMOD_OK;
 }
 
@@ -2837,13 +2018,13 @@ FMOD_RESULT ChannelSoftware::setLoopCount(int loopcount)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -2851,7 +2032,7 @@ FMOD_RESULT ChannelSoftware::setLoopCount(int loopcount)
 FMOD_RESULT ChannelSoftware::setMode(FMOD_MODE mode)
 {
     FMOD_RESULT result;
-    
+
     result = ChannelReal::setMode(mode);
     if (result != FMOD_OK)
     {
@@ -2859,14 +2040,12 @@ FMOD_RESULT ChannelSoftware::setMode(FMOD_MODE mode)
     }
 
 #ifdef FMOD_SUPPORT_DSPCODEC
-
     if (mDSPCodec)
-    {    
-        mDSPCodec->mNoDMA->mMode = mMode;
-    }   
-
+    {
+        mDSPCodec->mMode = mMode;
+    }
 #endif
- 
+
     return FMOD_OK;
 }
 
@@ -2875,13 +2054,13 @@ FMOD_RESULT ChannelSoftware::setMode(FMOD_MODE mode)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
@@ -2896,44 +2075,80 @@ FMOD_RESULT ChannelSoftware::isPlaying(bool *isplaying, bool includethreadlatenc
     if (mFlags & CHANNELREAL_FLAG_ALLOCATED)
     {
         *isplaying = true;
+        return FMOD_OK;
+    }
+
+#ifdef FMOD_SUPPORT_DSPCODEC
+    if (mDSPCodec)
+    {
+        mDSPCodec->getFinished(isplaying);
+        *isplaying = !*isplaying;
+    }
+    else if (mDSPCodecStopped && includethreadlatency)
+    {
+        mDSPCodecStopped->getFinished(isplaying);
+        *isplaying = !*isplaying;
+        if (!*isplaying)
+        {
+            mDSPCodecStopped = 0;
+        }
+    }
+    else
+#endif
+    if (mDSPResampler)
+    {
+        int numinputs, count, numfinished = 0;
+
+        *isplaying = false;
+
+        if (mDSPResampler->getNumInputs(&numinputs) == FMOD_OK)
+        {
+            for (count = 0; count < numinputs; count++)
+            {
+                DSPI *inputdsp;
+                bool  finished;
+
+                if (mDSPResampler->getInput(count, &inputdsp) != FMOD_OK)
+                {
+                    break;
+                }
+
+                inputdsp->getFinished(&finished);
+                if (finished)
+                {
+                    numfinished++;
+                }
+            }
+
+            if (count >= numinputs && numfinished != numinputs)
+            {
+                *isplaying = true;
+            }
+        }
+    }
+    else if (mSound || mDSP)
+    {
+        mDSPWaveTable->getFinished(isplaying);
+        *isplaying = !*isplaying;
     }
     else
     {
-#ifdef FMOD_SUPPORT_DSPCODEC
-        if (mDSPCodec)
-        {
-            mDSPCodec->getFinished(isplaying);
-            *isplaying = !*isplaying;
-        }
-        else
-#endif
-        if (mDSPResampler)
-        {
-            mDSPResampler->getFinished(isplaying);
-            *isplaying = !*isplaying;
-        }
-        else if (mDSPWaveTable)
-        {
-            if (!mSound)
-            {
-                *isplaying = false;
-            }
-            else
-            {
-                mDSPWaveTable->getFinished(isplaying);
-                *isplaying = !*isplaying;
-            }
-        }
-        else
-        {
-            *isplaying = false;
-        }
+        *isplaying = false;
     }
 
-    if (!*isplaying)
+    if (*isplaying)
     {
-        mFlags &= ~(CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PLAYING);
+        return FMOD_OK;
     }
+
+    if (mDelayEnd)
+    {
+        mFlags |= CHANNELREAL_FLAG_ENDDELAY;
+        *isplaying = true;
+        return FMOD_OK;
+    }
+
+    mFlags &= ~(CHANNELREAL_FLAG_ALLOCATED | CHANNELREAL_FLAG_PLAYING);
 
     return FMOD_OK;
 }
@@ -2949,7 +2164,7 @@ FMOD_RESULT ChannelSoftware::isPlaying(bool *isplaying, bool includethreadlatenc
     'windowsize'        Number of PCM samples to analyze.  The resulting spectrum placed in the spectrumarray parameter will be HALF the size of this value (ie 1024 will place 512 floats in spectrumarray).  Must be a power of 2. (ie 128/256/512 etc).  Min = 128.  Max = 16384.
     'channeloffset'     Channel to analyze.  If the signal is multichannel (such as a stereo output), then this value represents which channel to analyze.  On a stereo signal 0 = left, 1 = right.
     'windowtype'        Pre-FFT window method.  This filters the PCM data before entering the spectrum analyzer to reduce transient frequency error for more accurate results.  See FMOD_DSP_FFT_WINDOW for different types of fft window techniques possible and for a more detailed explanation.
-     
+
 	[RETURN_VALUE]
 
 	[REMARKS]
@@ -2959,7 +2174,7 @@ FMOD_RESULT ChannelSoftware::isPlaying(bool *isplaying, bool includethreadlatenc
     To get the spectrum for both channels of a stereo signal, call this function twice, once with channeloffset = 0, and again with channeloffset = 1.  Then add the spectrums together and divide by 2 to get the average spectrum for both channels.<br>
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
     FMOD_DSP_FFT_WINDOW
 ]
@@ -2968,14 +2183,7 @@ FMOD_RESULT ChannelSoftware::isPlaying(bool *isplaying, bool includethreadlatenc
 FMOD_RESULT ChannelSoftware::getSpectrum(float *spectrumarray, int numvalues, int channeloffset, FMOD_DSP_FFT_WINDOW windowtype)
 {
 #ifdef FMOD_SUPPORT_GETSPECTRUM
-    FMOD_RESULT result;
-
-#ifdef FMOD_STATICFORPLUGINS
-
-    result = FMOD_ERR_UNSUPPORTED;
-
-#else
-
+    FMOD_RESULT     result;
     DSPFilter      *dsphead;
     float          *buffer;
     unsigned int    position, length, bufferlength;
@@ -3020,7 +2228,7 @@ FMOD_RESULT ChannelSoftware::getSpectrum(float *spectrumarray, int numvalues, in
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    result = dsphead->startBuffering();
+    result = dsphead->startBuffering(16384);
     if (result != FMOD_OK)
     {
         return result;
@@ -3037,18 +2245,15 @@ FMOD_RESULT ChannelSoftware::getSpectrum(float *spectrumarray, int numvalues, in
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    result = mSystem->getDSPBufferSize(&bufferlength, 0);
-    
+    mSystem->getDSPBufferSize(&bufferlength, 0);
+
     position -= windowsize;
     if ((int)position < 0)
     {
         position += length;
     }
 
-    result = fft.getSpectrum(buffer, position, length, spectrumarray, windowsize, channeloffset, numchannels, windowtype);
-
-#endif
-    return result;
+    return fft.getSpectrum(buffer, position, length, spectrumarray, windowsize, channeloffset, numchannels, windowtype);
 #else
     return FMOD_ERR_UNSUPPORTED;
 #endif // FMOD_SUPPORT_GETSPECTRUM
@@ -3065,7 +2270,7 @@ FMOD_RESULT ChannelSoftware::getSpectrum(float *spectrumarray, int numvalues, in
     'windowsize'        Number of PCM samples to analyze.  The resulting spectrum placed in the spectrumarray parameter will be HALF the size of this value (ie 1024 will place 512 floats in spectrumarray).  Must be a power of 2. (ie 128/256/512 etc).  Min = 128.  Max = 16384.
     'channeloffset'     Channel to analyze.  If the signal is multichannel (such as a stereo output), then this value represents which channel to analyze.  On a stereo signal 0 = left, 1 = right.
     'windowtype'        Pre-FFT window method.  This filters the PCM data before entering the spectrum analyzer to reduce transient frequency error for more accurate results.  See FMOD_DSP_FFT_WINDOW for different types of fft window techniques possible and for a more detailed explanation.
-     
+
 	[RETURN_VALUE]
 
 	[REMARKS]
@@ -3075,7 +2280,7 @@ FMOD_RESULT ChannelSoftware::getSpectrum(float *spectrumarray, int numvalues, in
     To get the spectrum for both channels of a stereo signal, call this function twice, once with channeloffset = 0, and again with channeloffset = 1.  Then add the spectrums together and divide by 2 to get the average spectrum for both channels.<br>
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
     FMOD_DSP_FFT_WINDOW
 ]
@@ -3083,14 +2288,7 @@ FMOD_RESULT ChannelSoftware::getSpectrum(float *spectrumarray, int numvalues, in
 // OFFSET: 0x00933AB0
 FMOD_RESULT ChannelSoftware::getWaveData(float *wavearray, int numvalues, int channeloffset)
 {
-    FMOD_RESULT result;
-
-#ifdef FMOD_STATICFORPLUGINS
-
-    result = FMOD_ERR_UNSUPPORTED;
-
-#else
-
+    FMOD_RESULT     result;
     DSPFilter      *dsphead;
     float          *buffer;
     unsigned int    position, length;
@@ -3120,7 +2318,7 @@ FMOD_RESULT ChannelSoftware::getWaveData(float *wavearray, int numvalues, int ch
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    result = dsphead->startBuffering();
+    result = dsphead->startBuffering(16384);
     if (result != FMOD_OK)
     {
         return result;
@@ -3136,7 +2334,7 @@ FMOD_RESULT ChannelSoftware::getWaveData(float *wavearray, int numvalues, int ch
     {
         return FMOD_ERR_INVALID_PARAM;
     }
-   
+
     position -= numvalues;
     if ((int)position < 0)
     {
@@ -3153,8 +2351,7 @@ FMOD_RESULT ChannelSoftware::getWaveData(float *wavearray, int numvalues, int ch
         }
     }
 
-#endif
-    return result;
+    return FMOD_OK;
 }
 
 
@@ -3163,19 +2360,19 @@ FMOD_RESULT ChannelSoftware::getWaveData(float *wavearray, int numvalues, int ch
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
 
     [PLATFORMS]
-    
+
 	[SEE_ALSO]
 ]
 */
 // OFFSET: 0x00933C40
 FMOD_RESULT ChannelSoftware::getDSPHead(DSPI **dsp)
-{   
+{
     *dsp = mDSPHead;
 
     return FMOD_OK;
@@ -3187,7 +2384,7 @@ FMOD_RESULT ChannelSoftware::getDSPHead(DSPI **dsp)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
@@ -3201,8 +2398,9 @@ FMOD_RESULT ChannelSoftware::getDSPHead(DSPI **dsp)
 FMOD_RESULT ChannelSoftware::addToReverbs(DSPI *dsptarget)
 {
 #ifdef FMOD_SUPPORT_REVERB
-    FMOD_RESULT result;
-    int          instance;
+    FMOD_RESULT                   result;
+    DSPConnectionI               *connection;
+    FMOD_REVERB_CHANNELPROPERTIES props = { 0, 0, 0, 0, 0, 0.0f, 0, 0.25f, 1.5f, 1.0f, 0, 1.0f, 0, 0.0f, 0.0f, 0.0f, 1.0f, 0 };
 
     if (!dsptarget)
     {
@@ -3212,39 +2410,32 @@ FMOD_RESULT ChannelSoftware::addToReverbs(DSPI *dsptarget)
     /*
         Add an input to standard reverb
     */
-    for (instance = 0; instance < FMOD_REVERB_MAXINSTANCES; instance++)
+    if (mSystem->mReverbGlobal.mDSP)
     {
-        if (mSystem->mReverbGlobal.mInstance[instance].mDSP)
+        result = mSystem->mReverbGlobal.mDSP->addInputQueued(dsptarget, false, 0, &connection);
+        if (result != FMOD_OK)
         {
-            DSPConnectionI *connection;
-
-            result = mSystem->mReverbGlobal.mInstance[instance].mDSP->addInputQueued(dsptarget, false, 0, &connection);
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
-
-            mSystem->mReverbGlobal.setChanProperties(instance, mParent->mIndex, 0, connection);
-            mSystem->mReverbGlobal.setPresenceGain(instance, mParent->mIndex, 1.0f);
+            return result;
         }
+
+        mSystem->mReverbGlobal.setChanProperties(mParent->mIndex, &props, connection);
+        mSystem->mReverbGlobal.setPresenceGain(mParent->mIndex, 1.0f);
     }
 
 #ifdef FMOD_SUPPORT_MULTIREVERB
     /*
         Add an input to 3d reverb
     */
-    if (mSystem->mReverb3D.mInstance[0].mDSP)
+    if (mSystem->mReverb3D.mDSP)
     {
-        DSPConnectionI *connection;
-
-        result = mSystem->mReverb3D.mInstance[0].mDSP->addInputQueued(dsptarget, false, 0, &connection);
+        result = mSystem->mReverb3D.mDSP->addInputQueued(dsptarget, false, 0, &connection);
         if (result != FMOD_OK)
         {
             return result;
         }
 
-        mSystem->mReverb3D.setChanProperties(0, mParent->mIndex, 0, connection);
-        mSystem->mReverb3D.setPresenceGain(0, mParent->mIndex, 1.0f);
+        mSystem->mReverb3D.setChanProperties(mParent->mIndex, &props, connection);
+        mSystem->mReverb3D.setPresenceGain(mParent->mIndex, 1.0f);
     }
 
     /*
@@ -3252,25 +2443,23 @@ FMOD_RESULT ChannelSoftware::addToReverbs(DSPI *dsptarget)
     */
     ReverbI *reverb_c = SAFE_CAST(ReverbI, mSystem->mReverb3DHead.getNext());
     while (reverb_c != &(mSystem->mReverb3DHead))
-    {      
-        if (reverb_c->mInstance[0].mDSP)
+    {
+        if (reverb_c->mDSP)
         {
-            DSPConnectionI *connection;
-
-            result = reverb_c->mInstance[0].mDSP->addInputQueued(dsptarget, false, 0, &connection);
+            result = reverb_c->mDSP->addInputQueued(dsptarget, false, 0, &connection);
             if (result != FMOD_OK)
             {
                 return result;
             }
 
-            reverb_c->setChanProperties(0, mParent->mIndex, 0, connection);
-            reverb_c->setPresenceGain(0, mParent->mIndex, 1.0f);
+            reverb_c->setChanProperties(mParent->mIndex, &props, connection);
+            reverb_c->setPresenceGain(mParent->mIndex, 1.0f);
         }
         reverb_c = SAFE_CAST(ReverbI, reverb_c->getNext());
     }
 #endif
 
-#endif    
+#endif
     return FMOD_OK;
 }
 
@@ -3280,7 +2469,7 @@ FMOD_RESULT ChannelSoftware::addToReverbs(DSPI *dsptarget)
 	[DESCRIPTION]
 
 	[PARAMETERS]
- 
+
 	[RETURN_VALUE]
 
 	[REMARKS]
@@ -3291,34 +2480,54 @@ FMOD_RESULT ChannelSoftware::addToReverbs(DSPI *dsptarget)
 ]
 */
 // OFFSET: 0x00933E00
-FMOD_RESULT ChannelSoftware::moveChannelGroup(ChannelGroupI *oldchannelgroup, ChannelGroupI *newchannelgroup, bool forcedspreconnect)
+FMOD_RESULT ChannelSoftware::moveChannelGroup(ChannelGroupI *oldchannelgroup, ChannelGroupI *newchannelgroup)
 {
     FMOD_RESULT result;
 
-    if (oldchannelgroup == newchannelgroup && !forcedspreconnect)
+    if (oldchannelgroup == newchannelgroup)
     {
         return FMOD_OK;
     }
 
-    /*
-        1. disconnect from previous channel group's head.
-    */
-    if (oldchannelgroup && oldchannelgroup->mDSPMixTarget)
+    if (mDSPLowPass)
     {
-        result = oldchannelgroup->mDSPMixTarget->disconnectFrom(mDSPHead); 
+        /*
+            1. disconnect from previous channel group's head.
+        */
+        if (oldchannelgroup && oldchannelgroup->mDSPMixTarget)
+        {
+            result = oldchannelgroup->mDSPMixTarget->disconnectFrom(mDSPHead);
+            if (result != FMOD_OK)
+            {
+                return result;
+            }
+        }
+
+        /*
+            2. reconnect to DSP group's head.
+        */
+        result = newchannelgroup->mDSPMixTarget->addInputQueued(mDSPHead, false, mDSPConnection, &mDSPConnection);
         if (result != FMOD_OK)
         {
             return result;
         }
     }
-
-    /*
-        2. reconnect to DSP group's head.
-    */
-    result = newchannelgroup->mDSPMixTarget->addInputQueued(mDSPHead, false, mDSPConnection, &mDSPConnection);
-    if (result != FMOD_OK)
+    else
     {
-        return result;
+        if (oldchannelgroup && oldchannelgroup->mDSPMixTarget)
+        {
+            result = oldchannelgroup->mDSPMixTarget->disconnectFrom(mDSPHead);
+            if (result != FMOD_OK)
+            {
+                return result;
+            }
+        }
+
+        result = newchannelgroup->mDSPMixTarget->addInputQueued(mDSPHead, false, mDSPConnection, &mDSPConnection);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
     }
 
     return FMOD_OK;

@@ -25,7 +25,6 @@ namespace FMOD
         FMOD_REVERB_VIRTUAL     = 0x2,
     } FMOD_REVERB_MODE;
 
-    #define FMOD_REVERB_MAXINSTANCES 4
     typedef struct FMOD_REVERB_STDPROPERTIES
     {                                  
         int          Environment;       
@@ -49,15 +48,8 @@ namespace FMOD
     {
         FMOD_REVERB_CHANNELPROPERTIES  mChanProps;     // Channel properties which determine input levels
         DSPConnectionI                *mDSPConnection;
-        float                          mPresenceGain;
     };
 
-    struct FMOD_REVERB_INSTANCE
-    {
-        DSPI                           *mDSP;             // DSP which implements the reverb
-        FMOD_REVERB_CHANNELDATA        *mChannelData;     // Channeldata for each instance
-        FMOD_REVERB_PROPERTIES          mProps;           // ID3L2 listener properties determines nature of reverb
-    };
 
     class ReverbI : public LinkedListNode
     {
@@ -86,19 +78,18 @@ namespace FMOD
             // Userdata set/get.
             FMOD_RESULT             setUserData(void *userdata);
             FMOD_RESULT             getUserData(void **userdata);    
-            FMOD_RESULT             getMemoryInfo(unsigned int memorybits, unsigned int event_memorybits, unsigned int *memoryused, FMOD_MEMORY_USAGE_DETAILS *memoryused_details);
 
         public:
 
-            FMOD_RESULT             setChanProperties(int instance, const int index, const FMOD_REVERB_CHANNELPROPERTIES* props, DSPConnectionI *connection = 0);
-            FMOD_RESULT             getChanProperties(int instance, const int index, FMOD_REVERB_CHANNELPROPERTIES* props, DSPConnectionI **connection = 0);
-            FMOD_RESULT             resetChanProperties(int instance, int channel);
-            FMOD_RESULT             resetConnectionPointer(int instance, int channel);
+            FMOD_RESULT             setChanProperties(const int index, const FMOD_REVERB_CHANNELPROPERTIES* props, DSPConnectionI *connection = 0);
+            FMOD_RESULT             getChanProperties(const int index, FMOD_REVERB_CHANNELPROPERTIES* props, DSPConnectionI **connection = 0);
+            FMOD_RESULT             resetChanProperties(int channel);
+            FMOD_RESULT             resetConnectionPointer(int channel);
 
-            FMOD_RESULT             createDSP(int instance);
-            FMOD_RESULT             releaseDSP(int instance);
-            FMOD_RESULT             setPresenceGain(int instance, int index, float lingain);
-            FMOD_RESULT             getPresenceGain(int instance, int index, float *lingain);
+            FMOD_RESULT             createDSP();
+            FMOD_RESULT             releaseDSP();
+            FMOD_RESULT             setPresenceGain(int index, float lingain);
+            FMOD_RESULT             getPresenceGain(int index, float *lingain);
 
             bool                    is3d()                  { return m3D;}
             FMOD_RESULT             setGain(float lingain)  { mGain = lingain; return FMOD_OK;}
@@ -112,13 +103,16 @@ namespace FMOD
             static void             sumProps(FMOD_REVERB_STDPROPERTIES *accprops, FMOD_REVERB_PROPERTIES *addprops, float factor);
             static void             factorProps(FMOD_REVERB_PROPERTIES *quotientprops, FMOD_REVERB_STDPROPERTIES *divprops, float factor);
 
-            FMOD_REVERB_INSTANCE    mInstance[FMOD_REVERB_MAXINSTANCES];
-
         private:
             SystemI                *mSystem;        // Instance of the system
+        public:
+            DSPI                   *mDSP;           // DSP which implements the reverb
+            FMOD_REVERB_CHANNELDATA *mChannelData;  // Channel properties and connection for each channel
+            FMOD_REVERB_PROPERTIES  mProps;         // ID3L2 listener properties determines nature of reverb
+        private:
             void                   *mUserData;
+            float                  *mPresenceGain;  // Presence gain for each channel
             float                   mGain;          // Linear gain of component for listener's locale
-
             bool                    mDisableIfNoEnvironment; // Call setActive() with truth value of (environment==-1)
             bool                    m3D;            // Use this reverb as a 3D per-channel effect. Set by any of the radius/position functions. Cannot be unset!
             bool                    mActive;

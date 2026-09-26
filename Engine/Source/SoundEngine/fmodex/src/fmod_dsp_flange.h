@@ -8,6 +8,8 @@
 #include "fmod.h"
 #include "fmod_dsp_filter.h"
 
+#define FLANGE_USEFLOAT
+
 namespace FMOD
 {   
     const int DSP_FLANGE_COSTABBITS = 13;
@@ -75,9 +77,6 @@ namespace FMOD
         static FMOD_RESULT F_CALLBACK readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels);
         static FMOD_RESULT F_CALLBACK setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value);
         static FMOD_RESULT F_CALLBACK getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr);
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-        static FMOD_RESULT F_CALLBACK getMemoryUsedCallback(FMOD_DSP_STATE *dsp, MemoryTracker *tracker);
-#endif
     };
 }
 

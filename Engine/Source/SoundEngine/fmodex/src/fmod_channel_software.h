@@ -28,18 +28,13 @@ namespace FMOD
 
         DSPI           *mDSPHead;
         DSPFilter       mDSPHeadMemory;
-#ifdef PLATFORM_PS3
-        char            mDSPHeadMemoryPad[16];
-#endif
         DSPWaveTable   *mDSPWaveTable;
         DSPWaveTable    mDSPWaveTableMemory;
-#ifdef PLATFORM_PS3
-        char            mDSPWaveTableMemoryPad[16];
-#endif
         DSPResampler   *mDSPResampler;     /* mDSPResampler is connected between mDSPHead and mDSPWaveTable sometimes.  */
         DSPI           *mDSPLowPass;       /* Optional if the user specifies FMOD_INIT_OCCLUSION_LOWPASS. */
         DSPI           *mDSPReverb;        /* Points to the unit the reverb unit is connected to. */
         DSPCodec       *mDSPCodec;
+        DSPCodec       *mDSPCodecStopped;
         DSPConnectionI *mDSPConnection;
 
       public:
@@ -52,21 +47,19 @@ namespace FMOD
         FMOD_RESULT  alloc                (DSPI *dsp);
         FMOD_RESULT  start                ();
 
-        FMOD_RESULT  stop                 ();
+        FMOD_RESULT  stop                 (bool ignoreenddelay, bool resetstate);
+        FMOD_RESULT  stop                 (bool ignoreenddelay, bool resetstate, bool force);
         FMOD_RESULT  setVolume            (float volume);
         FMOD_RESULT  setFrequency         (float frequency);
         FMOD_RESULT  setPan               (float pan, float fbpan = 1);
-        FMOD_RESULT  setDSPClockDelay     ();
         FMOD_RESULT  setSpeakerMix        (float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright);
         FMOD_RESULT  setSpeakerLevels     (int speaker, float *levels, int numlevels);
         FMOD_RESULT  setPaused            (bool paused);
-        FMOD_RESULT  getPaused            (bool *paused);
         FMOD_RESULT  setPosition          (unsigned int position, FMOD_TIMEUNIT postype);
         FMOD_RESULT  getPosition          (unsigned int *position, FMOD_TIMEUNIT postype);
         FMOD_RESULT  setLoopPoints        (unsigned int loopstart, unsigned int looplength);
         FMOD_RESULT  setLoopCount         (int loopcount);
         FMOD_RESULT  setMode              (FMOD_MODE mode);      
-        FMOD_RESULT  setLowPassGain       (float gain);
         FMOD_RESULT  set3DOcclusion       (float directOcclusion, float reverbOcclusion);
         FMOD_RESULT  isPlaying            (bool *isplaying, bool includethreadlatency = false);
         FMOD_RESULT  getSpectrum          (float *spectrumarray, int numentries, int channeloffset, FMOD_DSP_FFT_WINDOW windowtype);
@@ -74,13 +67,11 @@ namespace FMOD
         FMOD_RESULT  getDSPHead           (DSPI **dsp);
         FMOD_RESULT  setReverbProperties  (const FMOD_REVERB_CHANNELPROPERTIES *prop);
         FMOD_RESULT  getReverbProperties  (FMOD_REVERB_CHANNELPROPERTIES *prop);
-        FMOD_RESULT  setReverbMix         (ReverbI* reverb, float gainlin);
         FMOD_RESULT  updateDirectMix      (float volume);
         FMOD_RESULT  updateReverbMix      (ReverbI* reverb, float volume);
-		FMOD_RESULT  addToReverbs		  (DSPI *dsp);
-        FMOD_RESULT  moveChannelGroup     (ChannelGroupI *oldchannelgroup, ChannelGroupI *newchannelgroup, bool forcedspreconnect);
+        FMOD_RESULT  addToReverbs         (DSPI *dsp);
+        FMOD_RESULT  moveChannelGroup     (ChannelGroupI *oldchannelgroup, ChannelGroupI *newchannelgroup);
         FMOD_RESULT  setupDSPCodec        (DSPI *dsp);
-        FMOD_RESULT  getDSPCodec          (DSPCodec **dsp) { *dsp = mDSPCodec; return FMOD_OK; }
     };
 }
 

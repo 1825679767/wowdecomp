@@ -19,32 +19,17 @@ namespace FMOD
     class ChannelReal;
     class MemoryTracker;
 
-    typedef FMOD_RESULT (F_CALLBACK *FMOD_CODEC_INITCALLBACK) (FMOD_CODEC_STATE *codec, int numstreams);
     typedef FMOD_RESULT (F_CALLBACK *FMOD_CODEC_RESETCALLBACK)(FMOD_CODEC_STATE *codec);
     typedef FMOD_RESULT (F_CALLBACK *FMOD_CODEC_CANPOINTCALLBACK)(FMOD_CODEC_STATE *codec);
-    typedef FMOD_RESULT (F_CALLBACK *FMOD_CODEC_GETMUSICNUMCHANNELS)(FMOD_CODEC_STATE *codec, int *numchannels);
-    typedef FMOD_RESULT (F_CALLBACK *FMOD_CODEC_SETMUSICCHANNELVOLUME)(FMOD_CODEC_STATE *codec, int channel, float volume);
-    typedef FMOD_RESULT (F_CALLBACK *FMOD_CODEC_GETMUSICCHANNELVOLUME)(FMOD_CODEC_STATE *codec, int channel, float *volume);
-    typedef FMOD_RESULT (F_CALLBACK *FMOD_CODEC_GETHARDWAREMUSICHANNEL)(FMOD_CODEC_STATE *codec, ChannelReal **realchannel);
-    typedef FMOD_RESULT (F_CALLBACK *FMOD_CODEC_UPDATE)(FMOD_CODEC_STATE *codec);
-    typedef FMOD_RESULT (F_CALLBACK *FMOD_CODEC_GETMEMORYUSED)(FMOD_CODEC_STATE *codec, MemoryTracker *tracker);
 
-    struct FMOD_CODEC_DESCRIPTION_EX : public FMOD_CODEC_DESCRIPTION, public SortedLinkedListNode
+    struct FMOD_CODEC_DESCRIPTION_EX : public FMOD_CODEC_DESCRIPTION, public LinkedListNode
     {
         FMOD_SOUND_TYPE         mType;        
         int                     mSize;
         FMOD_OS_LIBRARY        *mModule;
-        unsigned int            mHandle;
 
-        FMOD_CODEC_INITCALLBACK             init;
         FMOD_CODEC_RESETCALLBACK            reset;
         FMOD_CODEC_CANPOINTCALLBACK         canpoint;
-        FMOD_CODEC_GETMUSICNUMCHANNELS      getmusicnumchannels;
-        FMOD_CODEC_SETMUSICCHANNELVOLUME    setmusicchannelvolume;
-        FMOD_CODEC_GETMUSICCHANNELVOLUME    getmusicchannelvolume;
-        FMOD_CODEC_GETHARDWAREMUSICHANNEL   gethardwaremusicchannel;
-        FMOD_CODEC_UPDATE                   update;
-        FMOD_CODEC_GETMEMORYUSED            getmemoryused;
     };
 
 
@@ -111,7 +96,6 @@ namespace FMOD
         FMOD_MODE                   mOriginalMode;          /* Original mode as passed in to createSound by user */
         Metadata                   *mMetadata;
         File                       *mFile;
-        bool                        mNonInterleaved;
 
         #ifdef FMOD_SUPPORT_XMA
         bool                        mXMASeekable;
@@ -204,17 +188,6 @@ namespace FMOD
         }
         FMOD_RESULT read(void *buffer, unsigned int size, unsigned int *bytesread);
         FMOD_RESULT setPosition(int subsound, unsigned int position, FMOD_TIMEUNIT postype);
-        FMOD_RESULT getHardwareMusicChannel(ChannelReal **realchannel) 
-        {
-            if (mDescription.gethardwaremusicchannel)
-            {
-                return mDescription.gethardwaremusicchannel(this, realchannel);
-            }
-            else
-            {
-                return FMOD_ERR_INVALID_HANDLE; 
-            }
-        }
     };
 }
 

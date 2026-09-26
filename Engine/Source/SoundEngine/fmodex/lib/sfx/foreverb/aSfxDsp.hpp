@@ -78,7 +78,7 @@ public:
 	int AllocateLateDelays(int numDelays, float *delaySec, float sampleRate);
 	int	 NextPowerOf2(int delaySamples);
 	
-  	void DoDSPProcessing (float *inAudio, float *outAudio, int channels, unsigned int sampleframes, float rate, float drymix, unsigned short speakermask);
+  	void DoDSPProcessing (float *inAudio, float *outAudio, int channels, unsigned int sampleframes, float rate, float drymix);
 	void BlockProcessInput(unsigned int sampframes, int channels, float *inAudio, float rate);
 
 public:	

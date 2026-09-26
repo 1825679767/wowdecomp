@@ -50,7 +50,7 @@ FMOD_RESULT SpeakerLevelsPool::alloc(float **levels)
 
     if (!mLevelsPool)
     {
-        mLevelsPool = (LevelsInfo *)FMOD_Memory_CallocType(sizeof(LevelsInfo) * mSystem->mNumChannels, FMOD_MEMORY_PERSISTENT);
+        mLevelsPool = (LevelsInfo *)FMOD_Memory_Calloc(sizeof(LevelsInfo) * mSystem->mNumChannels);
         if (!mLevelsPool)
         {
             return FMOD_ERR_MEMORY;
@@ -95,7 +95,7 @@ FMOD_RESULT SpeakerLevelsPool::alloc(float **levels)
     /*
         Didn't find anything, alloc a new one
     */
-    mLevelsPool[freepos].levelsmemory = (float *)FMOD_Memory_CallocType(sizeof(float) * numoutputchannels * mSystem->mMaxInputChannels, FMOD_MEMORY_PERSISTENT);
+    mLevelsPool[freepos].levelsmemory = (float *)FMOD_Memory_Calloc(sizeof(float) * numoutputchannels * mSystem->mMaxInputChannels);
     if (!mLevelsPool[freepos].levelsmemory)
     {
         return FMOD_ERR_MEMORY;
@@ -194,36 +194,5 @@ FMOD_RESULT SpeakerLevelsPool::release()
 	[SEE_ALSO]
 ]
 */
-#ifdef FMOD_SUPPORT_MEMORYTRACKER
-
-FMOD_RESULT SpeakerLevelsPool::getMemoryUsedImpl(MemoryTracker *tracker)
-{
-    if (mLevelsPool)
-    {
-        tracker->add(false, FMOD_MEMBITS_CHANNEL, sizeof(LevelsInfo) * mSystem->mNumChannels);
-
-        int numoutputchannels = mSystem->mMaxOutputChannels;
-
-        /*
-            If it is PROLOGIC, we need enough room for 6 speakers, even though mMaxOutputChannels is 2
-        */
-        if (mSystem->mSpeakerMode == FMOD_SPEAKERMODE_PROLOGIC)
-        {
-            numoutputchannels = 6;
-        }
-
-        for (int i = 0; i < mSystem->mNumChannels; i++)
-        {
-            if (mLevelsPool[i].levelsmemory)
-            {
-                tracker->add(false, FMOD_MEMBITS_CHANNEL, sizeof(float) * numoutputchannels * mSystem->mMaxInputChannels);
-            }
-        }
-    }
-
-    return FMOD_OK;
-}
-
-#endif
 
 }

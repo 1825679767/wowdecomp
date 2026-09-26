@@ -25,7 +25,7 @@ namespace FMOD
         void            *mBufferMemory;
         char            *mLoopPointDataEnd;
         char             mLoopPointDataEndMemory[8];
-        unsigned int     mLoopPointDataEndOffset;
+        bool             mDataEndCopied;
 
       public:
 

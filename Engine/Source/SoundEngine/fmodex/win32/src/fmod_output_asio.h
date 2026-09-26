@@ -31,9 +31,6 @@ namespace FMOD
         float              *mInterleavedRecordBuffer;
         unsigned int        mInterleavedRecordBufferPos;
         bool                mRecordLoop;
-        SoundI             *mRecordSound;
-        FMOD_SOUND_FORMAT   mRecordFormat;
-        unsigned int        mRecordBufferLength;
 #endif
 
         ASIOCallbacks       mCallbacks;
@@ -67,12 +64,12 @@ namespace FMOD
 #ifdef FMOD_SUPPORT_RECORDING
         FMOD_RESULT              recordEnumerate();
         FMOD_RESULT              recordGetNumDrivers(int *numdrivers);
-        FMOD_RESULT              recordGetDriverInfo(int id, char *name, int namelen, FMOD_GUID *guid);
-        FMOD_RESULT              recordStart        (FMOD_RECORDING_INFO *recordinfo, Sound *sound, bool loop);
-        FMOD_RESULT              recordStop         (FMOD_RECORDING_INFO *recordinfo);
-        FMOD_RESULT              recordGetPosition  (FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm);
-        FMOD_RESULT              recordLock         (FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2);
-        FMOD_RESULT              recordUnlock       (FMOD_RECORDING_INFO *recordinfo, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2);
+        FMOD_RESULT              recordGetDriverInfo(int id, char *name, int namelen);
+        FMOD_RESULT              recordStart        (int id, Sound *sound, bool loop);
+        FMOD_RESULT              recordStop         ();
+        FMOD_RESULT              recordGetPosition  (unsigned int *pcm);
+        FMOD_RESULT              recordLock         (unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2);
+        FMOD_RESULT              recordUnlock       (void *ptr1, void *ptr2, unsigned int len1, unsigned int len2);
 #endif
 
         static FMOD_RESULT F_CALLBACK getNumDriversCallback      (FMOD_OUTPUT_STATE *output, int *numdrivers);
@@ -86,12 +83,12 @@ namespace FMOD
 
 #ifdef FMOD_SUPPORT_RECORDING
         static FMOD_RESULT F_CALLBACK recordGetNumDriversCallback(FMOD_OUTPUT_STATE *output, int *numdrivers);
-        static FMOD_RESULT F_CALLBACK recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen, FMOD_GUID *guid);
-        static FMOD_RESULT F_CALLBACK recordStartCallback        (FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, FMOD_SOUND *sound, int loop);
-        static FMOD_RESULT F_CALLBACK recordStopCallback         (FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo);
-        static FMOD_RESULT F_CALLBACK recordGetPositionCallback  (FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int *pcm);
-        static FMOD_RESULT F_CALLBACK recordLockCallback         (FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2);
-        static FMOD_RESULT F_CALLBACK recordUnlockCallback       (FMOD_OUTPUT_STATE *output, FMOD_RECORDING_INFO *recordinfo, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2);
+        static FMOD_RESULT F_CALLBACK recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen);
+        static FMOD_RESULT F_CALLBACK recordStartCallback        (FMOD_OUTPUT_STATE *output, int id, FMOD_SOUND *sound, int loop);
+        static FMOD_RESULT F_CALLBACK recordStopCallback         (FMOD_OUTPUT_STATE *output);
+        static FMOD_RESULT F_CALLBACK recordGetPositionCallback  (FMOD_OUTPUT_STATE *output, unsigned int *pcm);
+        static FMOD_RESULT F_CALLBACK recordLockCallback         (FMOD_OUTPUT_STATE *output, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2);
+        static FMOD_RESULT F_CALLBACK recordUnlockCallback       (FMOD_OUTPUT_STATE *output, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2);
 #endif
     };
 }
