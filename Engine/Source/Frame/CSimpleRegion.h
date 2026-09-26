@@ -7,6 +7,9 @@
 #include "Engine/Source/Frame/CScriptRegion.h"
 #include "Engine/Source/Frame/Types.h"
 
+class CStatus;
+class XMLNode;
+
 class CSimpleRegion : public CScriptRegion {
     public:
     /* 00A0 */ uint32_t m_alphaCount;
@@ -19,6 +22,8 @@ class CSimpleRegion : public CScriptRegion {
     /* 00C8 */ uint32_t m_regionUkn11;
     /* 00CC */ uint32_t m_regionUkn12;
     /* 00D0 */ uint32_t m_regionUkn13;
+
+    void PreLoadXML(XMLNode* node, CStatus* status);
 };
 
 #endif

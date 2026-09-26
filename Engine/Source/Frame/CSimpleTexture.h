@@ -4,11 +4,15 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleRegion.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 
+class CSimpleFrame;
+class CStatus;
 struct CTexture;
+class XMLNode;
 
 class CSimpleTexture : public CSimpleRegion {
     public:
@@ -30,6 +34,13 @@ class CSimpleTexture : public CSimpleRegion {
     /* 013C */ uint32_t m_textureUkn28;
     /* 0140 */ C2Vector m_texCoords [4];
     /* 0160 */ uint32_t m_textureFlags;
+
+    static CDataAllocator s_allocator;
+
+    CSimpleTexture(CSimpleFrame* frame, uint32_t drawLayer, int32_t show);
+    virtual int32_t GetScriptMetaTable();
+    virtual bool IsA(int32_t type);
+    void PostLoadXML(XMLNode* node, CStatus* status);
 };
 
 #endif

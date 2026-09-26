@@ -9,6 +9,13 @@
 class CScriptObject : public FrameScript_Object {
     public:
     /* 0014 */ RCString m_name;
+
+    static CScriptObject* GetScriptObjectByName(const char* name, int32_t type);
+
+    virtual const char* GetName();
+    virtual FrameScript_Object* GetScriptObjectParent();
+    virtual bool IsA(const char* typeName);
+    virtual const char* GetObjectTypeName();
 };
 
 #endif

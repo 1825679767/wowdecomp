@@ -3,7 +3,11 @@
 
 #include <cstdint>
 
-struct MD5_CTX;
+struct MD5_CTX {
+    /* 0000 */ uint32_t state[4];
+    /* 0010 */ uint32_t count[2];
+    /* 0018 */ uint8_t buffer[64];
+};
 
 class MD5 {
     public:
@@ -14,6 +18,8 @@ class MD5 {
     uint8_t* ToArray(uint8_t* array) const;
 };
 
+void MD5Final(uint8_t digest[16], MD5_CTX* context);
+void MD5Init(MD5_CTX* context);
 void MD5Update(MD5_CTX* context, const uint8_t* input, uint32_t inputLen);
 
 #endif

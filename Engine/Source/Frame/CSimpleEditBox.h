@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleAnim.h"
 #include "Engine/Source/Frame/CSimpleFont.h"
 #include "Engine/Source/Frame/CSimpleFrame.h"
@@ -82,6 +83,10 @@ class CSimpleEditBox : public CSimpleFrame {
     /* 03C0 */ FrameScript_Object::ScriptIx m_onEditFocusGained;
     /* 03C8 */ FrameScript_Object::ScriptIx m_onEditFocusLost;
     /* 03D0 */ FrameScript_Object::ScriptIx m_onCharComposition;
+
+    static CDataAllocator s_allocator;
+
+    CSimpleEditBox(CSimpleFrame* parent);
 };
 
 class CSimpleFontedFrameFont : public CSimpleFont {

@@ -4,15 +4,19 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleFontable.h"
 #include "Engine/Source/Frame/CSimpleRegion.h"
 #include "Engine/Source/Frame/Types.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
+class CSimpleFrame;
 struct CSimpleTexture;
+class CStatus;
 struct FONTHASHOBJ;
 struct TEXTBLOCK;
+class XMLNode;
 
 class CSimpleFontString : public CSimpleRegion {
     public:
@@ -38,6 +42,13 @@ class CSimpleFontString : public CSimpleRegion {
     /* 0130 */ uint32_t unk_0130;
     /* 0134 */ uint32_t unk_0134;
     /* 0138 */ TSList<CSimpleTexture> m_textures;
+
+    static CDataAllocator s_allocator;
+
+    CSimpleFontString(CSimpleFrame* frame, uint32_t drawLayer, bool show);
+    virtual int32_t GetScriptMetaTable();
+    virtual bool IsA(int32_t type);
+    void PostLoadXML(XMLNode* node, CStatus* status);
 };
 
 #endif

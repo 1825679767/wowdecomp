@@ -3,8 +3,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Base/CDataAllocator.h"
+#include "Engine/Source/Frame/CSimpleFrame.h"
 
-class CSimpleMessageFrame;
+class CSimpleMessageFrame : public CSimpleFrame {
+    public:
+    static CDataAllocator s_allocator;
+
+    CSimpleMessageFrame(CSimpleFrame* parent);
+};
 
 class CSimpleMessageFrameLineNode {
     public:

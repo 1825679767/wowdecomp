@@ -3,7 +3,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Base/CDataAllocator.h"
+#include "Engine/Source/Frame/CSimpleFrame.h"
 
-class CSimpleStatusBar;
+class CSimpleStatusBar : public CSimpleFrame {
+    public:
+    static CDataAllocator s_allocator;
+
+    CSimpleStatusBar(CSimpleFrame* parent);
+};
 
 #endif

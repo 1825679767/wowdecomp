@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleHyperlinkedFrame.h"
 
 class CSimpleHTML : public CSimpleHyperlinkedFrame {
@@ -24,6 +25,10 @@ class CSimpleHTML : public CSimpleHyperlinkedFrame {
     /* 02EC */ uint32_t m_simpleHtmlUkn15;
     /* 02F0 */ uint32_t m_simpleHtmlUkn16;
     /* 02F4 */ uint32_t m_simpleHtmlUkn17;
+
+    static CDataAllocator s_allocator;
+
+    CSimpleHTML(CSimpleFrame* parent);
 };
 
 #endif

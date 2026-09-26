@@ -9,6 +9,8 @@
 class CFramePoint;
 class CLayoutFrame;
 class CLayoutFrame_FRAMENODE;
+class CStatus;
+class XMLNode;
 
 class CLayoutFrame_FRAMENODE : public TSLink<CLayoutFrame_FRAMENODE> {
     public:
@@ -30,7 +32,10 @@ class CLayoutFrame {
     /* 0060 */ float m_layoutDepth;
     /* 0064 */ CRect m_resizeRect;
 
+    static void ResizePending();
+
     virtual ~CLayoutFrame();
+    virtual void LoadXML(XMLNode* node, CStatus* status);
 };
 
 #endif

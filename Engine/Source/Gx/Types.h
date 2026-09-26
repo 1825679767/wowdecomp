@@ -20,6 +20,14 @@ enum EGxApi {
     GxApis_Last = 6,
 };
 
+enum EGxBlend {
+    GxBlend_Opaque = 0,
+    GxBlend_AlphaKey = 1,
+    GxBlend_Alpha = 2,
+    GxBlend_Add = 3,
+    GxBlend_Mod = 4,
+};
+
 enum EGxTexFormat {
     GxTex_Unknown = 0,
     GxTex_Abgr8888 = 1,

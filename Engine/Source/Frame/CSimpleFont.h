@@ -10,6 +10,8 @@
 #include "Engine/Source/Storm/H/stpl.h"
 
 struct CSimpleFontable;
+class CStatus;
+class XMLNode;
 
 class CSimpleFont : public FrameScript_Object {
     public:
@@ -18,6 +20,10 @@ class CSimpleFont : public FrameScript_Object {
     /* 0058 */ char* m_name;
     /* 005C */ uint32_t unk_005C;
     /* 0060 */ TSList<CSimpleFontable> m_fontableList;
+
+    static CSimpleFont* GetFont(const char* name, int32_t create);
+
+    void LoadXML(XMLNode* node, CStatus* status);
 };
 
 #endif

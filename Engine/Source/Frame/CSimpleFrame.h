@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CScriptRegion.h"
 #include "Engine/Source/Frame/CSimpleAnim.h"
 #include "Engine/Source/Tempest/C2Vector.h"
@@ -16,6 +17,7 @@ class CSimpleFrame;
 struct CSimpleRegion;
 struct CSimpleTop;
 struct SIMPLEFRAMENODE;
+struct lua_State;
 
 class CSimpleFrame : public CScriptRegion {
     public:
@@ -80,6 +82,16 @@ class CSimpleFrame : public CScriptRegion {
     /* 0284 */ uint32_t m_framesLink [2];
     /* 028C */ uint32_t m_destroyedLink [2];
     /* 0294 */ uint32_t m_strataLink [2];
+
+    static CDataAllocator s_allocator;
+    static int32_t s_objectType;
+
+    CSimpleFrame(CSimpleFrame* parent);
+    virtual int32_t GetScriptMetaTable();
+    virtual bool IsA(int32_t type);
+    virtual void PreLoadXML(XMLNode* node, CStatus* status);
+    virtual int32_t GetScriptTime(lua_State* L, double* time, uint32_t* count, int32_t a4);
+    virtual void PostLoadXML(XMLNode* node, CStatus* status);
 };
 
 #endif

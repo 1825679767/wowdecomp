@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleAnim.h"
 #include "Engine/Source/Frame/CSimpleFrame.h"
 #include "Engine/Source/Model2/M2Light.h"
@@ -37,6 +38,10 @@ class CSimpleModel : public CSimpleFrame {
     /* 0354 */ float unk_0354;
     /* 0358 */ FrameScript_Object::ScriptIx m_onUpdateModel;
     /* 0360 */ FrameScript_Object::ScriptIx m_onAnimFinished;
+
+    static CDataAllocator s_allocator;
+
+    CSimpleModel(CSimpleFrame* parent);
 };
 
 #endif

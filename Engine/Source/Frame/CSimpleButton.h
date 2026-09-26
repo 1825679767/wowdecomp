@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleFrame.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 
@@ -31,6 +32,10 @@ class CSimpleButton : public CSimpleFrame {
     /* 02EC */ int32_t m_buttonUnk21;
     /* 02F0 */ int32_t m_onDoubleClick;
     /* 02F4 */ int32_t m_buttonUnk23;
+
+    static CDataAllocator s_allocator;
+
+    CSimpleButton(CSimpleFrame* parent);
 };
 
 #endif

@@ -3,7 +3,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Base/CDataAllocator.h"
+#include "Engine/Source/Frame/CSimpleFrame.h"
 
-class CSimpleColorSelect;
+class CSimpleColorSelect : public CSimpleFrame {
+    public:
+    static CDataAllocator s_allocator;
+
+    CSimpleColorSelect(CSimpleFrame* parent);
+};
 
 #endif

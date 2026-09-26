@@ -3,8 +3,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Base/CDataAllocator.h"
+#include "Engine/Source/Frame/CSimpleFrame.h"
 
-class CSimpleMessageScrollFrame;
+class CSimpleMessageScrollFrame : public CSimpleFrame {
+    public:
+    static CDataAllocator s_allocator;
+
+    CSimpleMessageScrollFrame(CSimpleFrame* parent, int32_t maxLines);
+};
 
 class CSimpleMessageScrollFrameDisplayNode {
     public:

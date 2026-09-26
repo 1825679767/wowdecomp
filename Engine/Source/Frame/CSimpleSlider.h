@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleFrame.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 
@@ -19,6 +20,10 @@ class CSimpleSlider : public CSimpleFrame {
     /* 02BC */ uint32_t m_simpleSliderUkn9;
     /* 02C0 */ uint32_t m_simpleSliderUkn10;
     /* 02C4 */ uint32_t m_simpleSliderUkn11;
+
+    static CDataAllocator s_allocator;
+
+    CSimpleSlider(CSimpleFrame* parent);
 };
 
 #endif
