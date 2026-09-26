@@ -49,6 +49,12 @@ static int32_t s_processorCores;
 // STATIC: 0x00D415B4
 static int32_t s_processorCount;
 
+// STATIC: 0x00D415B8
+static uintptr_t s_textStart;
+
+// STATIC: 0x00D415BC
+static uintptr_t s_textEnd;
+
 // STATIC: 0x00D415C0
 static int32_t s_cpuLogEnabled;
 
@@ -316,6 +322,40 @@ uint64_t OsGetPhysicalMemory() {
     GlobalMemoryStatusEx(&status);
 
     return status.ullTotalPhys;
+}
+
+// OFFSET: 0x0086B510
+void OsFindTextSectionBounds() {
+    uint8_t* image = reinterpret_cast<uint8_t*>(StormGetInstance());
+    IMAGE_NT_HEADERS* header = reinterpret_cast<IMAGE_NT_HEADERS*>(image + reinterpret_cast<IMAGE_DOS_HEADER*>(image)->e_lfanew);
+    IMAGE_SECTION_HEADER* sections = IMAGE_FIRST_SECTION(header);
+    uint16_t i;
+
+    for (i = 0; i < header->FileHeader.NumberOfSections; i++) {
+        if (!strncmp(reinterpret_cast<const char*>(sections[i].Name), ".text", 8)) {
+            break;
+        }
+    }
+
+    if (i >= header->FileHeader.NumberOfSections) {
+        SErrDisplayAppFatal("Unable to find .text section");
+    }
+
+    s_textStart = header->OptionalHeader.ImageBase + sections[i].VirtualAddress;
+    s_textEnd = header->OptionalHeader.ImageBase + sections[i].VirtualAddress + sections[i].Misc.VirtualSize;
+}
+
+// OFFSET: 0x0086B5A0
+void OsValidateFunctionPointer(const void* ptr) {
+    if (!s_textStart || !s_textEnd) {
+        OsFindTextSectionBounds();
+    }
+
+    if (reinterpret_cast<uintptr_t>(ptr) < s_textStart || reinterpret_cast<uintptr_t>(ptr) >= s_textEnd) {
+        char buffer[64];
+        SStrPrintf(buffer, sizeof(buffer), "Invalid function pointer: %p", ptr);
+        SErrDisplayAppFatal(buffer);
+    }
 }
 
 // OFFSET: 0x0086B600

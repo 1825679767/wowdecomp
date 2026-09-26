@@ -30,7 +30,7 @@
 #include "lvm.h"
 #include "lzio.h"
 
-#include "Engine/Source/FrameScript/FrameScript.h"
+#include "Engine/Source/Os/System.h"
 #include "Engine/Source/Os/TimeManager.h"
 
 
@@ -117,14 +117,14 @@ void luaD_throw (lua_State *L, int errcode) {
 }
 
 
-// VERIFY: c7d35834 auto
+// VERIFY: c2bb6fc5 auto
 // OFFSET: 0x00855AF0
 int luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud) {
   struct lua_longjmp lj;
   lj.status = 0;
   lj.previous = L->errorJmp;  /* chain new error handler */
   L->errorJmp = &lj;
-  FrameScript_InvalidPtrCheck((const void *)f);
+  OsValidateFunctionPointer((const void *)f);
   LUAI_TRY(L, &lj,
     (*f)(L, ud);
   );
@@ -198,7 +198,7 @@ static CallInfo *growCI (lua_State *L) {
 }
 
 
-// VERIFY: 0ee10297 auto
+// VERIFY: 2a4995ab auto
 // OFFSET: 0x00855D00
 void luaD_callhook (lua_State *L, int event, int line) {
   lua_Hook hook = L->hook;
@@ -217,7 +217,7 @@ void luaD_callhook (lua_State *L, int event, int line) {
     lua_assert(L->ci->top <= L->stack_last);
     L->allowhook = 0;  /* cannot call hooks inside a hook */
     lua_unlock(L);
-    FrameScript_InvalidPtrCheck((const void *)hook);
+    OsValidateFunctionPointer((const void *)hook);
     (*hook)(L, &ar);
     lua_lock(L);
     lua_assert(!L->allowhook);
@@ -288,7 +288,7 @@ static StkId tryfuncTM (lua_State *L, StkId func) {
    (condhardstacktests(luaD_reallocCI(L, L->size_ci)), ++L->ci))
 
 
-// VERIFY: b51b12b5 auto
+// VERIFY: d0e5b911 auto
 // OFFSET: 0x00856370
 int luaD_precall (lua_State *L, StkId func, int nresults) {
   LClosure *cl;
@@ -347,7 +347,7 @@ int luaD_precall (lua_State *L, StkId func, int nresults) {
       luaD_callhook(L, LUA_HOOKCALL, -1);
     lua_unlock(L);
     f = curr_func(L)->c.f;
-    FrameScript_InvalidPtrCheck((const void *)f);
+    OsValidateFunctionPointer((const void *)f);
     n = (*f)(L);  /* do the actual call */
     lua_lock(L);
     if (n < 0)  /* yielding? */
@@ -360,7 +360,7 @@ int luaD_precall (lua_State *L, StkId func, int nresults) {
 }
 
 
-// VERIFY: beb28cc5 auto
+// VERIFY: 98c41046 auto
 // OFFSET: 0x00856550
 int luaD_precall_profile (lua_State *L, StkId func, int nresults, __int64 start, __int64 *stop) {
   LClosure *cl;
@@ -420,7 +420,7 @@ int luaD_precall_profile (lua_State *L, StkId func, int nresults, __int64 start,
       luaD_callhook(L, LUA_HOOKCALL, -1);
     lua_unlock(L);
     f = curr_func(L)->c.f;
-    FrameScript_InvalidPtrCheck((const void *)f);
+    OsValidateFunctionPointer((const void *)f);
     n = (*f)(L);  /* do the actual call */
     *stop = OsGetAsyncTimeClocks();
     cl->profile->time += *stop - start;

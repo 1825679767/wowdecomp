@@ -40,6 +40,7 @@ int32_t IOsGetPowerProfFrequency();
 int32_t IOsGetProcessorFeatures(CpuIdInfo* info);
 int32_t IOsParseProcessorFrequency(const char* brand);
 void IOsSystemCpuLog(const CpuIdInfo* info);
+void OsFindTextSectionBounds();
 uint32_t OsGetBackgroundSleepMs();
 int32_t OsGetComputerName(char* buffer, uint32_t* size);
 uint32_t OsGetNumberOfProcessors();
@@ -55,5 +56,6 @@ void OsSetBackgroundSleepMs(uint32_t milliseconds);
 void OsSetSleepInBackground(int32_t sleep);
 int32_t OsSleepInBackground();
 void OsSystemEnableCpuLog();
+void OsValidateFunctionPointer(const void* ptr);
 
 #endif
