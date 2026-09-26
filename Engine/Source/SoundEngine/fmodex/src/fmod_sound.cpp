@@ -10,6 +10,27 @@ namespace FMOD
 /*$ preserve end $*/
 
 
+// VERIFY: 73f8d2c1 auto
+// OFFSET: 0x008D1940
+FMOD_RESULT Sound::readyForRelease(bool *ready)
+{
+    FMOD_RESULT result;
+    SoundI *soundi;
+
+    *ready = true;
+
+    result = SoundI::validate(this, &soundi);
+    if (result != FMOD_OK)
+    {
+        return result;
+    }
+
+    *ready = soundi->readyForRelease();
+
+    return FMOD_OK;
+}
+
+
 // VERIFY: e733cc13 auto
 // OFFSET: 0x008D1970
 FMOD_RESULT Sound::release()

@@ -190,6 +190,7 @@ namespace FMOD
                       Appropriate Sound creation or retrieval function must be used. */
       public:
 
+        FMOD_RESULT F_API readyForRelease        (bool *ready);
         FMOD_RESULT F_API release                ();
         FMOD_RESULT F_API getSystemObject        (System **system);
 

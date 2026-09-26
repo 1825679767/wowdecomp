@@ -787,9 +787,9 @@ void OutputWinMM::recordThreadCallback(void *data)
 
 	[SEE_ALSO]
 */
-// VERIFY: c8bd7d83 auto
+// VERIFY: 57c6de32 auto
 // OFFSET: 0x00939C30
-void CALLBACK OutputWinMM::recordCallback(HWAVEIN hwi, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2)
+void CALLBACK OutputWinMM::recordCallback(HWAVEIN hwi, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
 {
     OutputWinMM *winmm = (OutputWinMM *)dwInstance;
 

@@ -1459,7 +1459,7 @@ FMOD_RESULT OutputOpenAL::unlock(void *ptr1, void *ptr2, unsigned int len1, unsi
 	[SEE_ALSO]
 ]
 */
-// VERIFY: c6f4fa81 manual
+// VERIFY: 41a98657 manual
 // OFFSET: 0x0092BD30
 FMOD_RESULT OutputOpenAL::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *waveformat, Sample **sample)
 {
@@ -1578,7 +1578,7 @@ FMOD_RESULT OutputOpenAL::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *wa
         }
 
         // Move the memory pointer past the the front overflow and align to 16 byte boundry
-        newsample->mBuffer = (char *)(((unsigned int)newsample->mBufferMemory + overflowBytes + 15) & ~15);
+        newsample->mBuffer = (char *)(((size_t)newsample->mBufferMemory + overflowBytes + 15) & ~15);
     }
 
     newsample->mFormat = waveformat->format;

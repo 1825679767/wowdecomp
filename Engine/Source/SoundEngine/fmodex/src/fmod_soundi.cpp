@@ -750,6 +750,24 @@ FMOD_RESULT SoundI::release(bool freethis)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 69a7acc6 auto
+// OFFSET: 0x008E1110
+bool SoundI::readyForRelease()
+{
+    if (mCodec && !mCodec->readyForRelease())
+    {
+        return false;
+    }
+
+    if (isStream())
+    {
+        return (mFlags & FMOD_SOUND_FLAG_FINISHED) ? true : false;
+    }
+
+    return true;
+}
+
+
 // VERIFY: 1ef88b11 auto
 // OFFSET: 0x008E1140
 FMOD_RESULT SoundI::getSystemObject(System **system)
@@ -1800,6 +1818,8 @@ FMOD_RESULT SoundI::getNumSubSounds(int *numsubsounds)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8d8039fb auto
+// OFFSET: 0x008E1920
 FMOD_RESULT SoundI::getNumTags(int *numtags, int *numtagsupdated)
 {
     if (!numtags && !numtagsupdated)

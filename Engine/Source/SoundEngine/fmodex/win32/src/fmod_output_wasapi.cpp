@@ -406,6 +406,8 @@ FMOD_RESULT OutputWASAPI::getNumDrivers(int *numdrivers)
 }
 
 
+// VERIFY: 4a80cb3e manual
+// OFFSET: 0x00937B80
 FMOD_RESULT OutputWASAPI::getDriverName(int id, char *name, int namelen)
 {
     FMOD_RESULT result;

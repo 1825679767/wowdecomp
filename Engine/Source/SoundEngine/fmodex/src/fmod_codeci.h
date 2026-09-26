@@ -159,6 +159,7 @@ namespace FMOD
             return FMOD_OK;
         }
 
+        bool readyForRelease();
         FMOD_RESULT release();
         FMOD_RESULT getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype);
         FMOD_RESULT getPosition(unsigned int *position, FMOD_TIMEUNIT postype);

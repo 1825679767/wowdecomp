@@ -9,6 +9,19 @@ namespace FMOD
 {
 
 #ifndef PLATFORM_PS3_SPU
+// VERIFY: f3700c7c auto
+// OFFSET: 0x0091D2D0
+bool Codec::readyForRelease()
+{
+    if (mFile && !mFile->readyForClose())
+    {
+        return false;
+    }
+
+    return true;
+}
+
+
 /*
 [
 	[DESCRIPTION]

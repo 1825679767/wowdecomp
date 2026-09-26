@@ -230,6 +230,7 @@ namespace FMOD
 
         SoundI();
 
+        bool                 readyForRelease();
         virtual FMOD_RESULT  release              (bool freethis = true);
         virtual FMOD_RESULT  getSystemObject      (System **system);
         virtual FMOD_RESULT  lock                 (unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2);

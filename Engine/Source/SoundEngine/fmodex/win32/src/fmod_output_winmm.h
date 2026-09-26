@@ -52,7 +52,7 @@ namespace FMOD
         unsigned int       mRecordBlockLenBytes;
         int                mRecordBlockAlign;
 
-        static void CALLBACK recordCallback(HWAVEIN hwi, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2);
+        static void CALLBACK recordCallback(HWAVEIN hwi, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2);
         static void          recordThreadCallback(void *userdata);
         FMOD_RESULT          recordThread();
 #endif

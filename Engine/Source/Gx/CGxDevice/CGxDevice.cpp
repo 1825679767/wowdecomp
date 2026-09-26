@@ -1478,7 +1478,7 @@ void CGxDevice::ClampRectRightByAspect(CiRect& windowRect) {
     }
 }
 
-// VERIFY: 252d85a0 manual
+// VERIFY: 5e425514 manual
 // OFFSET: 0x00684BA0
 void CGxDevice::Log(const char* format, va_list args) {
     if (!CGxDevice::m_log) {
@@ -1486,7 +1486,7 @@ void CGxDevice::Log(const char* format, va_list args) {
     }
 
     char buffer[2048];
-    vsnprintf(buffer, sizeof(buffer), format, args);
+    _vsnprintf(buffer, sizeof(buffer), format, args);
 
     if (CGxDevice::m_logBytes < 0x200000) {
         SLogWrite(CGxDevice::m_log, buffer);

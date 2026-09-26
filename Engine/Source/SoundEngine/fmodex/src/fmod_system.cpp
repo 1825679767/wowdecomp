@@ -98,6 +98,8 @@ FMOD_RESULT System::getNumDrivers(int *numdrivers)
 }
 
 
+// VERIFY: 790a73b3 auto
+// OFFSET: 0x008D1210
 FMOD_RESULT System::getDriverName(int id, char *name, int namelen)
 {
     FMOD_RESULT result;
@@ -1353,6 +1355,8 @@ FMOD_RESULT System::unlockDSP()
 }
 
 
+// VERIFY: aabe8a88 auto
+// OFFSET: 0x008D17F0
 FMOD_RESULT System::setRecordDriver(int driver)
 {
     FMOD_RESULT result;
@@ -1404,6 +1408,8 @@ FMOD_RESULT System::getRecordNumDrivers(int *numdrivers)
 }
 
 
+// VERIFY: bdbcd8f4 auto
+// OFFSET: 0x008D1850
 FMOD_RESULT System::getRecordDriverName(int id, char *name, int namelen)
 {
     FMOD_RESULT result;

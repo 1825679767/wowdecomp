@@ -753,6 +753,8 @@ FMOD_RESULT F_CALLBACK OutputWavWriter::unlockCallback(FMOD_OUTPUT_STATE *output
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fcfadfe4 manual
+// OFFSET: 0x00915B60
 FMOD_RESULT F_CALLBACK OutputWavWriter::getHandleCallback(FMOD_OUTPUT_STATE *output, void **handle)
 {
     OutputWavWriter *wavwriter = (OutputWavWriter *)output;

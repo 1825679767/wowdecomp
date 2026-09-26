@@ -44,6 +44,7 @@ target_link_libraries(Wow
         Services
         ShaderEffect
         Tempest
+        SoundEngine
         Storm
         WoWCommon
         Battlenet

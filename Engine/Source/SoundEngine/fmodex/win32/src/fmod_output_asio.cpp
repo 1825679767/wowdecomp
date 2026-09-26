@@ -1607,6 +1607,8 @@ FMOD_RESULT F_CALLBACK OutputASIO::startCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: da703dd6 auto
+// OFFSET: 0x00936820
 FMOD_RESULT F_CALLBACK OutputASIO::stopCallback(FMOD_OUTPUT_STATE *output)
 {
     OutputASIO *asio = (OutputASIO *)output;

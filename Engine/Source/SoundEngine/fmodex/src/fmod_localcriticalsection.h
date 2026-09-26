@@ -38,6 +38,7 @@ namespace FMOD
             }
         }
 
+        // OFFSET: 0x008DA3D0
         void enter()
         {
             FMOD_OS_CriticalSection_Enter(mCrit);

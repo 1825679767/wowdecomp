@@ -862,7 +862,7 @@ FMOD_RESULT FMOD_OS_CDDA_GetDeviceName(int devicenum, char *name, int namelen, c
 
 	[SEE_ALSO]
 */
-// VERIFY: 476793e9 manual
+// VERIFY: db47d99e manual
 // OFFSET: 0x009184E0
 FMOD_RESULT FMOD_OS_CDDA_GetDriveFromLetter(int letter, FMOD_CDDA_DEVICE **device)
 {
@@ -920,7 +920,7 @@ FMOD_RESULT FMOD_OS_CDDA_GetDriveFromLetter(int letter, FMOD_CDDA_DEVICE **devic
             mciOpenParms.lpstrDeviceType = (LPCSTR)MCI_DEVTYPE_CD_AUDIO;
             drive_letter[0] = letter + 'A';
             mciOpenParms.lpstrElementName = drive_letter;
-            err = mciSendCommand(0, MCI_OPEN, MCI_OPEN_TYPE | MCI_OPEN_ELEMENT | MCI_OPEN_TYPE_ID, (DWORD)(LPVOID)&mciOpenParms);
+            err = mciSendCommand(0, MCI_OPEN, MCI_OPEN_TYPE | MCI_OPEN_ELEMENT | MCI_OPEN_TYPE_ID, (DWORD_PTR)(LPVOID)&mciOpenParms);
             if (err)
             {
                 FMOD_OS_CDDA_DEBUGPRINT("FMOD_OS_CDDA_GetDriveFromLetter: Open failed\n");
@@ -964,7 +964,7 @@ FMOD_RESULT FMOD_OS_CDDA_GetDriveFromLetter(int letter, FMOD_CDDA_DEVICE **devic
                         mciOpenParms.lpstrDeviceType = (LPCSTR)MCI_DEVTYPE_CD_AUDIO;
                         drive_letter[0] = letter + 'A';
                         mciOpenParms.lpstrElementName = drive_letter;
-                        err = mciSendCommand(0, MCI_OPEN, MCI_OPEN_TYPE | MCI_OPEN_ELEMENT | MCI_OPEN_TYPE_ID, (DWORD)(LPVOID)&mciOpenParms);
+                        err = mciSendCommand(0, MCI_OPEN, MCI_OPEN_TYPE | MCI_OPEN_ELEMENT | MCI_OPEN_TYPE_ID, (DWORD_PTR)(LPVOID)&mciOpenParms);
                         if (err)
                         {
                             FMOD_OS_CDDA_DEBUGPRINT("FMOD_OS_CDDA_GetDriveFromLetter: Open failed\n");
@@ -992,7 +992,7 @@ FMOD_RESULT FMOD_OS_CDDA_GetDriveFromLetter(int letter, FMOD_CDDA_DEVICE **devic
         mciOpenParms.lpstrDeviceType = (LPCSTR)MCI_DEVTYPE_CD_AUDIO;
         drive_letter[0] = letter + 'A';
         mciOpenParms.lpstrElementName = drive_letter;
-        err = mciSendCommand(0, MCI_OPEN, MCI_OPEN_TYPE | MCI_OPEN_ELEMENT | MCI_OPEN_TYPE_ID, (DWORD)(LPVOID)&mciOpenParms);
+        err = mciSendCommand(0, MCI_OPEN, MCI_OPEN_TYPE | MCI_OPEN_ELEMENT | MCI_OPEN_TYPE_ID, (DWORD_PTR)(LPVOID)&mciOpenParms);
         if (err)
         {
             FMOD_OS_CDDA_DEBUGPRINT("FMOD_OS_CDDA_GetDriveFromLetter: Open failed\n");
@@ -1002,7 +1002,7 @@ FMOD_RESULT FMOD_OS_CDDA_GetDriveFromLetter(int letter, FMOD_CDDA_DEVICE **devic
 
         FMOD_memset(&mciStatusParms, 0, sizeof(MCI_STATUS_PARMS));
         mciStatusParms.dwItem = MCI_STATUS_READY;
-        err = mciSendCommand(device_id, MCI_STATUS, MCI_STATUS_ITEM | MCI_WAIT, (DWORD)(LPVOID) &mciStatusParms);
+        err = mciSendCommand(device_id, MCI_STATUS, MCI_STATUS_ITEM | MCI_WAIT, (DWORD_PTR)(LPVOID)&mciStatusParms);
         if (err || (mciStatusParms.dwReturn == FALSE))
         {
             FMOD_OS_CDDA_DEBUGPRINT("FMOD_OS_CDDA_GetDriveFromLetter: Status ready failed\n");
@@ -1012,7 +1012,7 @@ FMOD_RESULT FMOD_OS_CDDA_GetDriveFromLetter(int letter, FMOD_CDDA_DEVICE **devic
 
         FMOD_memset(&mciStatusParms, 0, sizeof(MCI_STATUS_PARMS));
         mciStatusParms.dwItem = MCI_STATUS_NUMBER_OF_TRACKS;
-        err = mciSendCommand(device_id, MCI_STATUS, MCI_STATUS_ITEM | MCI_WAIT, (DWORD)(LPVOID)&mciStatusParms);
+        err = mciSendCommand(device_id, MCI_STATUS, MCI_STATUS_ITEM | MCI_WAIT, (DWORD_PTR)(LPVOID)&mciStatusParms);
         if (err || (mciStatusParms.dwReturn == 0))
         {
             FMOD_OS_CDDA_DEBUGPRINT("FMOD_OS_CDDA_GetDriveFromLetter: Number of tracks failed\n");
@@ -1026,7 +1026,7 @@ FMOD_RESULT FMOD_OS_CDDA_GetDriveFromLetter(int letter, FMOD_CDDA_DEVICE **devic
             FMOD_memset(&mciStatusParms, 0, sizeof(MCI_STATUS_PARMS));
             mciStatusParms.dwItem  = MCI_STATUS_POSITION;
             mciStatusParms.dwTrack = count;
-            err = mciSendCommand(device_id, MCI_STATUS, MCI_STATUS_ITEM | MCI_TRACK, (DWORD)(LPVOID)&mciStatusParms);
+            err = mciSendCommand(device_id, MCI_STATUS, MCI_STATUS_ITEM | MCI_TRACK, (DWORD_PTR)(LPVOID)&mciStatusParms);
             if (err)
             {
                 FMOD_OS_CDDA_DEBUGPRINT("FMOD_OS_CDDA_GetDriveFromLetter: Position failed\n");
@@ -1041,7 +1041,7 @@ FMOD_RESULT FMOD_OS_CDDA_GetDriveFromLetter(int letter, FMOD_CDDA_DEVICE **devic
         FMOD_memset(&mciStatusParms, 0, sizeof(MCI_STATUS_PARMS));
         mciStatusParms.dwItem  = MCI_STATUS_LENGTH;
         mciStatusParms.dwTrack = numtracks;
-        err = mciSendCommand(device_id, MCI_STATUS, MCI_STATUS_ITEM | MCI_TRACK, (DWORD)(LPVOID)&mciStatusParms);
+        err = mciSendCommand(device_id, MCI_STATUS, MCI_STATUS_ITEM | MCI_TRACK, (DWORD_PTR)(LPVOID)&mciStatusParms);
         if (err)
         {
             FMOD_OS_CDDA_DEBUGPRINT("FMOD_OS_CDDA_GetDriveFromLetter: Length failed\n");
