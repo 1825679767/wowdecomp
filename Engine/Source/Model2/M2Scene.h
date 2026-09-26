@@ -6,7 +6,6 @@
 #include <windows.h>
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Storm/H/stpl.h"
-#include "WoW/Source/DB/DBClient/DBClient.h"
 
 struct C3Vector;
 class CM2Cache;
@@ -16,6 +15,13 @@ struct CMapBaseObj;
 struct CShaderEffect;
 struct M2Batch;
 struct M2Element;
+
+struct M2HitRec {
+    /* 0000 */ CM2Model* m_model;
+    /* 0004 */ float m_tNear;
+    /* 0008 */ float m_tFar;
+    /* 000C */ uint32_t m_priority;
+};
 
 struct M2Element {
     /* 0000 */ int32_t m_type;

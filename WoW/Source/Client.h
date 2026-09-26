@@ -31,6 +31,8 @@ struct OBJALLOCGLOBALS {
     /* 0000 */ TSGrowableArray<CObjectHeapList> m_objects;
 };
 
+extern int32_t s_locale;
+
 void SetPaths();
 
 #endif

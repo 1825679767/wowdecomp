@@ -11,6 +11,9 @@ static const char* s_dataDirectories[3] = { "Data\\", "..\\Data\\", "Data\\" };
 // STATIC: 0x00B2FA10
 static uint32_t s_unk_B2FA10;
 
+// STATIC: 0x00C5DE9C
+int32_t s_locale;
+
 // VERIFY: 45dcce86 auto
 // OFFSET: 0x00402B20
 void SetPaths() {
