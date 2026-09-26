@@ -279,10 +279,6 @@ namespace FMOD
         FMOD_RESULT                     updateStreams();
         FMOD_RESULT                     updateChannels(int delta);
         FMOD_RESULT                     updateSoundGroups(int delta);
-#ifdef FMOD_SUPPORT_VSTPLUGIN
-        FMOD_RESULT                     updateVSTPlugins();
-        LinkedListNode                  mVSTPluginsListHead;
-#endif
         FMOD_RESULT                     findChannel(FMOD_CHANNELINDEX id, SoundI *sound, ChannelI **channel);
         FMOD_RESULT                     findChannel(FMOD_CHANNELINDEX id, DSPI *dsp, ChannelI **channel);
         FMOD_RESULT                     createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *waveformat, Sample **sample);

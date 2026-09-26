@@ -1,4 +1,4 @@
-%include "./FMOD_static/win32/src/c32.mac"
+%include "c32.mac"
 
 ; ==========================================================================================
 ; GLOBAL UNINITIALIZED DATA
@@ -25,6 +25,8 @@ section .text
 ; =================================================================================================================================
 ; void FMOD_DSP_Convert_FloatToPCM16(short *outbuffer, float *inbuffer, unsigned int length, int destchannelstep, int srcchannelstep, float volume);
 ; =================================================================================================================================
+; VERIFY: 87e240f3 auto
+; OFFSET: 0x00951810
 proc FMOD_DSP_Convert_FloatToPCM16
 
 		%$outbuffer       arg 

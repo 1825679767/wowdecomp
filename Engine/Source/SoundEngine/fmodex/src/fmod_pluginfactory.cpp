@@ -1374,6 +1374,7 @@ FMOD_RESULT PluginFactory::createCodec(FMOD_CODEC_DESCRIPTION_EX *codecdesc, Cod
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a545de65 manual
 // OFFSET: 0x008F4670
 FMOD_RESULT PluginFactory::createDSP(FMOD_DSP_DESCRIPTION_EX *dspdesc, DSPI **dsp)
 {

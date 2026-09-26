@@ -1,4 +1,4 @@
-%include "./FMOD_static/win32/src/c32.mac"
+%include "c32.mac"
 
 ; ==========================================================================================
 ; GLOBAL UNINITIALIZED DATA
@@ -18,6 +18,8 @@ distortion_fabsmask dd 7FFFFFFFh, 7FFFFFFFh, 7FFFFFFFh, 7FFFFFFFh
 ; =================================================================================================================================
 ; void FMOD_DSP_Distortion_SIMD(float * inbuffer, float * outbuffer, unsigned int length, int inchannels, int outchannels, float k);
 ; =================================================================================================================================
+; VERIFY: cfd29e0d auto
+; OFFSET: 0x00929700
 proc FMOD_DSP_Distortion_SIMD
 
 		%$inbuffer		arg 

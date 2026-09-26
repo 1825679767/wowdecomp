@@ -68,10 +68,6 @@ FMOD_DSP_DESCRIPTION_EX *DSPVSTPlugin::getDescriptionEx()
     dspvstplugin.setparameter       = DSPVSTPlugin::setParameterCallback;
     dspvstplugin.getparameter       = DSPVSTPlugin::getParameterCallback;
     dspvstplugin.config             = DSPVSTPlugin::configCallback;
-    
-    #ifdef FMOD_SUPPORT_DLLS
-    dspvstplugin.configidle         = DSPVSTPlugin::configIdleCallback;
-    #endif
 
     dspvstplugin.mType              = FMOD_DSP_TYPE_VSTPLUGIN;
     dspvstplugin.mCategory          = FMOD_DSP_CATEGORY_FILTER;
@@ -193,8 +189,6 @@ FMOD_RESULT DSPVSTPlugin::createInternal()
     }
 
     mDeInterleavedBufferCount++;
-
-    mCallIdle = false;
 
     return FMOD_OK;
 }
@@ -497,39 +491,11 @@ FMOD_RESULT DSPVSTPlugin::showConfigDialogInternal(void *hwnd, int show)
     if (mEffect->flags & effFlagsHasEditor)
     {
         mEffect->dispatcher(mEffect, (show ? effEditOpen : effEditClose), 0, 0, hwnd, 0);
-
-        mCallIdle = show ? true : false;
     }
     
     return FMOD_OK;
 }
 
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPVSTPlugin::configIdleInternal()
-{
-    if (mCallIdle)
-    {
-        mEffect->dispatcher(mEffect, effEditIdle, 0, 0, 0, 0);
-    }
-
-    return FMOD_OK;
-}
 
 /*
     ==============================================================================================================
@@ -705,30 +671,6 @@ FMOD_RESULT F_CALLBACK DSPVSTPlugin::configCallback(FMOD_DSP_STATE *dsp, void *h
     DSPVSTPlugin *vst = (DSPVSTPlugin *)dsp;
 
     return vst->showConfigDialogInternal(hwnd, show);
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    Win32
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT F_CALLBACK DSPVSTPlugin::configIdleCallback(FMOD_DSP_STATE *dsp)
-{
-    DSPVSTPlugin *vst = (DSPVSTPlugin *)dsp;
-
-    return vst->configIdleInternal();
 }
 }
 

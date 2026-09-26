@@ -373,6 +373,8 @@
     #define FMOD_SUPPORT_ASIO             /* Asio support */
     #define FMOD_SUPPORT_EAX
     /* #define FMOD_SUPPORT_I3DL2 */
+    #define FMOD_SUPPORT_VSTPLUGIN
+    #define FMOD_SUPPORT_WINAMPPLUGIN
     #define FMOD_SUPPORT_PRAGMAPACK
     #define FMOD_SUPPORT_SIMD
 

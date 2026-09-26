@@ -1201,7 +1201,7 @@ public:
 TestClass testClass;*/
 #endif
 
-// VERIFY: ef2c3bcf auto
+// VERIFY: ef2c3bcf manual
 // OFFSET: 0x00925EE0
 void Octree::insertInternal(OctreeNode* node, OctreeNode* item)
 {

@@ -973,50 +973,6 @@ FMOD_RESULT SystemI::updateSoundGroups(int delta)
 #endif
 
 
-#ifdef FMOD_SUPPORT_VSTPLUGIN
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT SystemI::updateVSTPlugins()
-{
-    if (!mVSTPluginsListHead.isEmpty())
-    {
-        LinkedListNode *dspvstnode = mVSTPluginsListHead.getNext();
-        while (dspvstnode != &mVSTPluginsListHead)
-        {
-            DSPVSTPlugin *dspvst = (DSPVSTPlugin *)dspvstnode->getData();
-
-            /*
-                Call VST idle function
-            */
-            #ifdef FMOD_SUPPORT_DLLS
-            if (dspvst->mDescription.configidle)
-            {
-                dspvst->mDescription.configidle((FMOD_DSP_STATE *)dspvst);
-            }
-            #endif
-
-            dspvstnode = dspvstnode->getNext();
-        }
-    }
-
-    return FMOD_OK;
-}
-
-#endif
-
 /*
 [
 	[DESCRIPTION]

@@ -1023,7 +1023,6 @@ void CodecMPEG::dct64(float *out0,float *out1,float *samples)
   else if( (sum) < -32768.0f) { *(samples) = -0x8000; } \
   else { *(samples) = (short)sum; }
 
-// OFFSET: 0x0094B920
 FMOD_RESULT CodecMPEG::synthC(float *b0, int bo1, int channelskip, signed short *samples)
 {
     register int j;
@@ -1145,7 +1144,7 @@ FMOD_RESULT CodecMPEG::synthC(float *b0, int bo1, int channelskip, signed short 
 	[SEE_ALSO]
 ]
 */
-// VERIFY: 1896da84 manual
+// VERIFY: 7c9bcf22 manual
 // OFFSET: 0x0092D300
 FMOD_RESULT CodecMPEG::synth(void *samples, float *bandPtr, int channels, int channelskip)
 {	
@@ -1187,7 +1186,7 @@ FMOD_RESULT CodecMPEG::synth(void *samples, float *bandPtr, int channels, int ch
     		#endif
         }
 
-        #ifdef FMOD_SUPPORT_MPEG_SIMD
+        #if defined(FMOD_SUPPORT_MPEG_SIMD) || (defined(PLATFORM_WINDOWS) && defined(PLATFORM_32BIT))
 		FMOD_Mpeg_Synth_FPU(b0, bo1, channelskip, (short *)samples + count);
         #else
 		synthC(b0, bo1, channelskip, (short *)samples + count);

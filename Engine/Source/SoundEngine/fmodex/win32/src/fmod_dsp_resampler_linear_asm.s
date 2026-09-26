@@ -1,4 +1,4 @@
-%include "./FMOD_static/win32/src/c32.mac"
+%include "c32.mac"
 
 ; ==========================================================================================
 ; GLOBAL UNINITIALIZED DATA
@@ -34,6 +34,8 @@ section .text
 ; =================================================================================================================================
 ; void FMOD_Resampler_Linear_PCM16_Mono(float *out, int outlength, void *src, FMOD_UINT64P *position, FMOD_SINT64P *speed);
 ; =================================================================================================================================
+; VERIFY: 87446a50 auto
+; OFFSET: 0x00951920
 proc FMOD_Resampler_Linear_PCM16_Mono
 
 		%$out           arg 
@@ -239,6 +241,8 @@ endproc
 ; =================================================================================================================================
 ; void FMOD_Resampler_Linear_PCM16_Stereo(float *out, int outlength, void *src, FMOD_UINT64P *position, FMOD_SINT64P *speed);
 ; =================================================================================================================================
+; VERIFY: beb36440 auto
+; OFFSET: 0x00951B04
 proc FMOD_Resampler_Linear_PCM16_Stereo
 
 		%$out           arg 

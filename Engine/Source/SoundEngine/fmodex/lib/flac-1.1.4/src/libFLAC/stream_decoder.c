@@ -370,6 +370,7 @@ FLAC_API void FLAC__stream_decoder_delete(FLAC__StreamDecoder *decoder)
  *
  ***********************************************************************/
 
+// VERIFY: 1b5ac566 auto
 // OFFSET: 0x00954DA0
 static FLAC__StreamDecoderInitStatus init_stream_internal_(
 	FLAC__StreamDecoder *decoder,

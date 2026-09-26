@@ -23,8 +23,6 @@ namespace FMOD
         static float   *mDeInterleavedOutputBuffer[DSP_MAXLEVELS_MAX];
         static int      mDeInterleavedBufferCount;
 
-        bool            mCallIdle;
-
         FMOD_RESULT     createInternal();
         FMOD_RESULT     releaseInternal();
         FMOD_RESULT     resetInternal();
@@ -32,7 +30,6 @@ namespace FMOD
         FMOD_RESULT     setParameterInternal(int index, float value);
         FMOD_RESULT     getParameterInternal(int index, float *value, char *valuestr);
         FMOD_RESULT     showConfigDialogInternal(void *hwnd, int show);
-        FMOD_RESULT     configIdleInternal();
 
       public:
         
@@ -49,7 +46,6 @@ namespace FMOD
         static FMOD_RESULT F_CALLBACK setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value);
         static FMOD_RESULT F_CALLBACK getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr);
         static FMOD_RESULT F_CALLBACK configCallback(FMOD_DSP_STATE *dsp, void *hwnd, int show);
-        static FMOD_RESULT F_CALLBACK configIdleCallback(FMOD_DSP_STATE *dsp);
     };
 }
 

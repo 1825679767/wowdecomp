@@ -1503,6 +1503,7 @@ FMOD_RESULT ChannelI::start()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6c83883c manual
 // OFFSET: 0x008DF5E0
 FMOD_RESULT ChannelI::updateSyncPoints(bool seeking)
 {
@@ -1604,7 +1605,7 @@ FMOD_RESULT ChannelI::updateSyncPoints(bool seeking)
     }
     else
     {
-        if ((mFrequency > 0 && position < mSyncPointCurrent->mOffset) || (mFrequency < 0 && position > mSyncPointCurrent->mOffset))
+        if ((mFrequency > 0 && (int)position < (int)mSyncPointCurrent->mOffset) || (mFrequency < 0 && position > mSyncPointCurrent->mOffset))
         {
             mSyncPointCurrent = head;
         }
@@ -1613,19 +1614,19 @@ FMOD_RESULT ChannelI::updateSyncPoints(bool seeking)
         {
             unsigned int current = mSyncPointCurrent->mOffset;
 
-            if ((point->mOffset > current && point->mOffset <= position) || (point->mOffset < current && point->mOffset >= position))
-            {
-                if (mCallback[FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT])
-                {
-                    mCallback[FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT]((FMOD_CHANNEL *)((FMOD_UINT_NATIVE)mHandleCurrent), FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT, mCallbackCommand[FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT], index, 0);
-                }
-
-                mSyncPointCurrent = point;
-                return FMOD_OK;
-            }
-
             if (mFrequency > 0)
             {
+                if (((int)point->mOffset > (int)current && point->mOffset <= position) || ((int)point->mOffset < (int)current && point->mOffset >= position))
+                {
+                    if (mCallback[FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT])
+                    {
+                        mCallback[FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT]((FMOD_CHANNEL *)((FMOD_UINT_NATIVE)mHandleCurrent), FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT, mCallbackCommand[FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT], index, 0);
+                    }
+
+                    mSyncPointCurrent = point;
+                    return FMOD_OK;
+                }
+
                 point = SAFE_CAST(SyncPoint, point->getNext());
 
                 index++;
@@ -1636,6 +1637,17 @@ FMOD_RESULT ChannelI::updateSyncPoints(bool seeking)
             }
             else
             {
+                if ((point->mOffset > current && point->mOffset <= position) || (point->mOffset < current && point->mOffset >= position))
+                {
+                    if (mCallback[FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT])
+                    {
+                        mCallback[FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT]((FMOD_CHANNEL *)((FMOD_UINT_NATIVE)mHandleCurrent), FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT, mCallbackCommand[FMOD_CHANNEL_CALLBACKTYPE_SYNCPOINT], index, 0);
+                    }
+
+                    mSyncPointCurrent = point;
+                    return FMOD_OK;
+                }
+
                 index--;
                 point = SAFE_CAST(SyncPoint, point->getPrev());
 
