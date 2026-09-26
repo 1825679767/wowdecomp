@@ -128,6 +128,7 @@ FMOD_RESULT DSPSoundCard::execute(void *inbuffer, void **outbuffer, unsigned int
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0e6ea6fb auto
 // OFFSET: 0x00929CB0
 FMOD_RESULT DSPSoundCard::release(bool freethis)
 {

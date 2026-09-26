@@ -65,6 +65,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 42fe6e4d auto
 // OFFSET: 0x0092C160
 FMOD_OUTPUT_DESCRIPTION_EX *OutputOpenAL::getDescriptionEx()
 {
@@ -506,6 +507,7 @@ FMOD_RESULT OutputOpenAL::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequ
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5a8858f9 auto
 // OFFSET: 0x0092A890
 FMOD_RESULT OutputOpenAL::initEAX()
 {
@@ -882,6 +884,7 @@ FMOD_RESULT OutputOpenAL::init(int selecteddriver, FMOD_INITFLAGS flags, int *ou
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dd0d6fe9 auto
 // OFFSET: 0x0092A9B0
 FMOD_RESULT OutputOpenAL::close()
 { 
@@ -1020,6 +1023,7 @@ FMOD_RESULT OutputOpenAL::start()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dbd4b728 auto
 // OFFSET: 0x0092AD20
 FMOD_RESULT OutputOpenAL::stop()
 {
@@ -1098,6 +1102,7 @@ FMOD_RESULT OutputOpenAL::getHandle(void **handle)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3d5f8812 auto
 // OFFSET: 0x0092ADB0
 FMOD_RESULT OutputOpenAL::update()
 {
@@ -1250,6 +1255,7 @@ FMOD_RESULT OutputOpenAL::update()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 96f9d076 auto
 // OFFSET: 0x0092B060
 FMOD_RESULT OutputOpenAL::postMix()
 {
@@ -1308,6 +1314,7 @@ FMOD_RESULT OutputOpenAL::postMix()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f5a2a938 auto
 // OFFSET: 0x0092B0E0
 FMOD_RESULT OutputOpenAL::getPosition(unsigned int *pcm)
 {
@@ -1775,6 +1782,7 @@ FMOD_RESULT OutputOpenAL::getFreeChannel(FMOD_MODE mode, ChannelReal **realchann
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9d0778a8 auto
 // OFFSET: 0x0092B3F0
 FMOD_RESULT F_CALLBACK OutputOpenAL::getNumDriversCallback(FMOD_OUTPUT_STATE *output, int *numdrivers)
 {
@@ -1801,6 +1809,7 @@ FMOD_RESULT F_CALLBACK OutputOpenAL::getNumDriversCallback(FMOD_OUTPUT_STATE *ou
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ef4ac265 auto
 // OFFSET: 0x0092B430
 FMOD_RESULT F_CALLBACK OutputOpenAL::getDriverNameCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
@@ -1827,6 +1836,7 @@ FMOD_RESULT F_CALLBACK OutputOpenAL::getDriverNameCallback(FMOD_OUTPUT_STATE *ou
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 010c47cd auto
 // OFFSET: 0x0092B460
 FMOD_RESULT OutputOpenAL::getDriverCapsExCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode, int *num2dchannels, int *num3dchannels, int *totalchannels)
 {
@@ -1853,6 +1863,7 @@ FMOD_RESULT OutputOpenAL::getDriverCapsExCallback(FMOD_OUTPUT_STATE *output, int
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4a60d5c9 auto
 // OFFSET: 0x0092C0F0
 FMOD_RESULT F_CALLBACK OutputOpenAL::initCallback(FMOD_OUTPUT_STATE *output, int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
@@ -2034,6 +2045,7 @@ FMOD_RESULT F_CALLBACK OutputOpenAL::getPositionCallback(FMOD_OUTPUT_STATE *outp
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f370d09a auto
 // OFFSET: 0x0092B590
 FMOD_RESULT F_CALLBACK OutputOpenAL::lockCallback(FMOD_OUTPUT_STATE *output, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -2060,6 +2072,7 @@ FMOD_RESULT F_CALLBACK OutputOpenAL::lockCallback(FMOD_OUTPUT_STATE *output, uns
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f260dfd0 auto
 // OFFSET: 0x0092B5E0
 FMOD_RESULT F_CALLBACK OutputOpenAL::unlockCallback(FMOD_OUTPUT_STATE *output, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
@@ -2086,6 +2099,7 @@ FMOD_RESULT F_CALLBACK OutputOpenAL::unlockCallback(FMOD_OUTPUT_STATE *output, v
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 574850e8 auto
 // OFFSET: 0x0092C130
 FMOD_RESULT F_CALLBACK OutputOpenAL::createSampleCallback(FMOD_OUTPUT_STATE *output, FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *waveformat, Sample **sample)
 {
@@ -2112,6 +2126,7 @@ FMOD_RESULT F_CALLBACK OutputOpenAL::createSampleCallback(FMOD_OUTPUT_STATE *out
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 57257375 auto
 // OFFSET: 0x0092B610
 FMOD_RESULT F_CALLBACK OutputOpenAL::setReverbPropertiesCallback(FMOD_OUTPUT_STATE *output, const FMOD_REVERB_PROPERTIES *prop)
 {

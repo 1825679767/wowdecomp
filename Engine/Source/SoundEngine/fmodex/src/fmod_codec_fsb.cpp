@@ -1220,6 +1220,7 @@ FMOD_RESULT CodecFSB::setPositionInternal(int subsound, unsigned int position, F
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bd168eea auto
 // OFFSET: 0x00911C70
 FMOD_RESULT CodecFSB::getPositionInternal(unsigned int *position, FMOD_TIMEUNIT postype)
 {
@@ -1639,6 +1640,7 @@ FMOD_RESULT CodecFSB::getWaveFormatInternal(int index, FMOD_CODEC_WAVEFORMAT *wa
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 18d9d68f auto
 // OFFSET: 0x009109D0
 FMOD_RESULT CodecFSB::resetInternal()
 {
@@ -1750,6 +1752,7 @@ FMOD_RESULT F_CALLBACK CodecFSB::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ce2b80f9 auto
 // OFFSET: 0x00911EF0
 FMOD_RESULT F_CALLBACK CodecFSB::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -1773,6 +1776,7 @@ FMOD_RESULT F_CALLBACK CodecFSB::readCallback(FMOD_CODEC_STATE *codec, void *buf
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 470487a2 auto
 // OFFSET: 0x00911F20
 FMOD_RESULT F_CALLBACK CodecFSB::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {

@@ -139,7 +139,7 @@ namespace FMOD
         FMOD_RESULT     processEnvelope(MusicEnvelopeState *env, MusicVirtualChannel *vcptr, int Inumpoints, unsigned short *points, int type, int loopstart, int loopend, unsigned char ISustain, unsigned char control);
         FMOD_RESULT     getAmigaPeriod(int note, int finetune, int *period);
         FMOD_RESULT     processNote(MusicNote *current, MusicChannelXM *cptr, MusicVirtualChannel *vcptr, MusicInstrument *iptr, MusicSample *sptr);
-        FMOD_RESULT     updateFlags(MusicChannel *cptr, MusicVirtualChannel *vcptr, MusicSample *sptr);
+        FMOD_RESULT     updateFlags(MusicVirtualChannel *vcptr, MusicSample *sptr);
 
 #ifdef FMOD_SUPPORT_VAG
         void            EncodeVAG_FindPredict( short *samples, float *d_samples, int *predict_nr, int *shift_factor );

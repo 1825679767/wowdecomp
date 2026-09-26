@@ -88,6 +88,7 @@ GeometryMgr* GeometryMgr::sThis = 0;
     [SEE_ALSO]
 ]
 */
+// VERIFY: b747c766 auto
 // OFFSET: 0x008E54D0
 GeometryMgr::GeometryMgr()
 {
@@ -204,6 +205,7 @@ void GeometryMgr::releaseMainOctree()
     [SEE_ALSO]
 ]
 */
+// VERIFY: c4a87836 auto
 // OFFSET: 0x008E54F0
 bool GeometryMgr::mainOctreeLineTestCallback(OctreeNode* item, void* data)
 {
@@ -290,6 +292,7 @@ FMOD_RESULT GeometryMgr::setWorldSize(float worldSize)
     [SEE_ALSO]
 ]
 */
+// VERIFY: 10e77dd3 auto
 // OFFSET: 0x008E5550
 FMOD_RESULT GeometryMgr::lineTestAll(const FMOD_VECTOR* start, const FMOD_VECTOR* end, float* directOcclusion, float* reverbOcclusion)
 {

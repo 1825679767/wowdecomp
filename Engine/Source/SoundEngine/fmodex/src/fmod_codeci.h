@@ -101,11 +101,13 @@ namespace FMOD
         bool                        mXMASeekable;
         #endif
 
+// VERIFY: 90c53e2f auto
         // OFFSET: 0x008F3850
         static FMOD_INLINE FMOD_RESULT F_CALLBACK defaultFileRead     (void *handle, void *buffer, unsigned int size, unsigned int *read, void *userdata) { return ((File *)handle)->read(buffer, 1, size, read); }
         // OFFSET: 0x008F3870
         static FMOD_INLINE FMOD_RESULT F_CALLBACK defaultFileSeek     (void *handle, unsigned int pos, void *userdata) { return ((File *)handle)->seek(pos, SEEK_SET); }
 #ifndef PLATFORM_PS3_SPU
+// VERIFY: bd6c1898 auto
         // OFFSET: 0x008F3890
         static FMOD_INLINE FMOD_RESULT F_CALLBACK defaultMetaData     (FMOD_CODEC_STATE *codec, FMOD_TAGTYPE type, char *name, void *data, unsigned int datalen, FMOD_TAGDATATYPE datatype, int unique) { return ((Codec *)codec)->metaData(type, name, data, datalen, datatype, unique == 1 ? true : false); }
 #endif
@@ -172,6 +174,7 @@ namespace FMOD
             }
         }
 #endif
+// VERIFY: 0ba2a32e auto
         // OFFSET: 0x008D2710
         FMOD_RESULT reset() 
         { 

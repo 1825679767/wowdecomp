@@ -87,6 +87,7 @@ BOOL CALLBACK FMOD_Output_DSound_RecordEnumProc(LPGUID lpGUID, LPCSTR lpszDesc, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 857dae51 auto
 // OFFSET: 0x009513A0
 FMOD_RESULT OutputDSound::recordEnumerate()
 {
@@ -134,6 +135,7 @@ FMOD_RESULT OutputDSound::recordEnumerate()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e1ed72fd auto
 // OFFSET: 0x00951420
 FMOD_RESULT OutputDSound::recordGetNumDrivers(int *numdrivers)
 {
@@ -314,6 +316,7 @@ FMOD_RESULT OutputDSound::recordStart(int id, Sound *sound, bool loop)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ec9d2748 auto
 // OFFSET: 0x00951690
 FMOD_RESULT OutputDSound::recordStop()
 {
@@ -419,6 +422,7 @@ FMOD_RESULT OutputDSound::recordGetPosition(unsigned int *pcm)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f778fecb auto
 // OFFSET: 0x00951780
 FMOD_RESULT OutputDSound::recordLock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -445,6 +449,7 @@ FMOD_RESULT OutputDSound::recordLock(unsigned int offset, unsigned int length, v
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 92e952b2 auto
 // OFFSET: 0x009517C0
 FMOD_RESULT OutputDSound::recordUnlock(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {

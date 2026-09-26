@@ -110,6 +110,7 @@ FMOD_RESULT Thread::threadFunc()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2cca6d4d auto
 // OFFSET: 0x008E5260
 Thread::Thread()
 {
@@ -139,6 +140,7 @@ Thread::Thread()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ea925780 auto
 // OFFSET: 0x008E52A0
 FMOD_RESULT Thread::initThread(const char *name, void (*func)(void *userdata), void *userdata, PRIORITY priority, void *stack, int stacksize, bool usesemaphore, int sleepperiod)
 {
@@ -344,6 +346,7 @@ FMOD_RESULT Thread::getCurrentThreadID(FMOD_UINT_NATIVE *id)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a9efda3d auto
 // OFFSET: 0x008E54A0
 FMOD_RESULT Thread::wakeupThread(bool frominterrupt)
 {

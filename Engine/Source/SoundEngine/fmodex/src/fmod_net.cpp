@@ -46,6 +46,7 @@ int   FMOD_Net_Timeout       = 5000;
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e224be9d auto
 // OFFSET: 0x0091A710
 FMOD_RESULT FMOD_Net_ParseHTTPStatus(char *buf, int buflen, int *version, int *statuscode)
 {
@@ -100,6 +101,7 @@ FMOD_RESULT FMOD_Net_ParseHTTPStatus(char *buf, int buflen, int *version, int *s
 */
 #define CHECK_LENGTH if (out_cnt == outbuflen) { return FMOD_ERR_INVALID_PARAM; }
 
+// VERIFY: 745e864b auto
 // OFFSET: 0x0091A7D0
 FMOD_RESULT FMOD_Net_EncodeBase64(char *inbuf, char *outbuf, int outbuflen)
 {

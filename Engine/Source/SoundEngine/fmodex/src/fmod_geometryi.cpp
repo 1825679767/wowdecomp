@@ -131,6 +131,7 @@ void GeometryI::calculateMatrix()
     [SEE_ALSO]
 ]
 */
+// VERIFY: c0ddaa05 auto
 // OFFSET: 0x00919D30
 void GeometryI::updateSpatialData()
 {

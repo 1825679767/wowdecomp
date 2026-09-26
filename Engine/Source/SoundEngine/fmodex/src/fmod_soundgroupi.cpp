@@ -58,6 +58,7 @@ FMOD_RESULT SoundGroupI::validate(SoundGroup *soundgroup, SoundGroupI **soundgro
 ]
 */
 
+// VERIFY: dc7d9263 auto
 // OFFSET: 0x008E47E0
 SoundGroupI::SoundGroupI()
 {  
@@ -84,6 +85,7 @@ SoundGroupI::SoundGroupI()
 ]
 */
 
+// VERIFY: f6011bec auto
 // OFFSET: 0x008E4810
 FMOD_RESULT SoundGroupI::release()
 {  
@@ -182,6 +184,7 @@ FMOD_RESULT SoundGroupI::getSystemObject(System **system)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 407520ce auto
 // OFFSET: 0x008E4730
 FMOD_RESULT SoundGroupI::setMaxAudible(int maxaudible)
 {
@@ -297,6 +300,7 @@ FMOD_RESULT SoundGroupI::getMaxAudibleBehavior(FMOD_SOUNDGROUP_BEHAVIOR *behavio
 ]
 */
 
+// VERIFY: 2529fbb8 auto
 // OFFSET: 0x008E4770
 FMOD_RESULT SoundGroupI::setMuteFadeSpeed(float speed)
 {

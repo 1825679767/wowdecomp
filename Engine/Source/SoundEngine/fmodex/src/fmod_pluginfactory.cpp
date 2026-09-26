@@ -46,6 +46,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5fc12a06 auto
 // OFFSET: 0x008F4130
 PluginFactory::PluginFactory()
 {
@@ -156,6 +157,7 @@ FMOD_RESULT PluginFactory::release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 176fa232 auto
 // OFFSET: 0x008F38D0
 FMOD_RESULT PluginFactory::setSystem(SystemI *system)  
 { 
@@ -202,6 +204,7 @@ FMOD_RESULT PluginFactory::getSystem(SystemI **system)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3ef3bd77 auto
 // OFFSET: 0x008F38F0
 FMOD_RESULT PluginFactory::setPluginPath(const char *path)
 {
@@ -1312,6 +1315,7 @@ FMOD_RESULT PluginFactory::getOutput(int handle, FMOD_OUTPUT_DESCRIPTION_EX **ou
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9343f814 auto
 // OFFSET: 0x008F43B0
 FMOD_RESULT PluginFactory::createCodec(FMOD_CODEC_DESCRIPTION_EX *codecdesc, Codec **codec)
 {

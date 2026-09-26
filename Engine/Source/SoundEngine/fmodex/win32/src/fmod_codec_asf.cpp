@@ -587,17 +587,7 @@ FMOD_RESULT CodecASF::closeInternal()
     }
     mPCMBufferLengthBytes = 0;
 
-    if (mWaveFormatMemory)
-    {
-        FMOD_Memory_Free(mWaveFormatMemory);
-        mWaveFormatMemory = 0;
-    }
 
-    if (mCoInitialized)
-    {
-        CoUninitialize();
-        mCoInitialized = false;
-    }
     
     return FMOD_OK;
 }
@@ -826,6 +816,7 @@ HRESULT CROStream::Open( LPCTSTR ptszURL )
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4d833d13 auto
 // OFFSET: 0x008F7F40
 HRESULT CROStream::Read( void *pv, ULONG cb, ULONG *pcbRead )
 {
@@ -858,6 +849,7 @@ HRESULT CROStream::Read( void *pv, ULONG cb, ULONG *pcbRead )
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 328299c9 auto
 // OFFSET: 0x008F7F70
 HRESULT CROStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *plibNewPosition)
 {
@@ -918,6 +910,7 @@ HRESULT CROStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7848f93b auto
 // OFFSET: 0x008F7FF0
 HRESULT CROStream::Stat( STATSTG *pstatstg, DWORD grfStatFlag )
 {
@@ -1045,6 +1038,7 @@ ULONG CROStream::Release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 61a55a61 auto
 // OFFSET: 0x008F8100
 FMOD_RESULT CodecASF::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 {
@@ -1133,6 +1127,7 @@ FMOD_RESULT F_CALLBACK CodecASF::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5d18b7f2 auto
 // OFFSET: 0x008F81C0
 FMOD_RESULT F_CALLBACK CodecASF::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -1158,6 +1153,7 @@ FMOD_RESULT F_CALLBACK CodecASF::readCallback(FMOD_CODEC_STATE *codec, void *buf
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 872f0dbf auto
 // OFFSET: 0x008F81F0
 FMOD_RESULT F_CALLBACK CodecASF::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {

@@ -72,6 +72,7 @@ FMOD_DSP_PARAMETERDESC dsposcillator_param[2] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8473d14d auto
 // OFFSET: 0x008F52A0
 FMOD_DSP_DESCRIPTION_EX *DSPOscillator::getDescriptionEx()
 {
@@ -124,6 +125,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPOscillator::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9ff1a8f8 auto
 // OFFSET: 0x008EAC00
 FMOD_RESULT DSPOscillator::createInternal()
 {
@@ -395,6 +397,7 @@ FMOD_RESULT DSPOscillator::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4df20866 auto
 // OFFSET: 0x008F50F0
 FMOD_RESULT DSPOscillator::getParameterInternal(int index, float *value, char *valuestr)
 {   
@@ -501,6 +504,7 @@ FMOD_RESULT F_CALLBACK DSPOscillator::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a80010f7 auto
 // OFFSET: 0x008F5200
 FMOD_RESULT F_CALLBACK DSPOscillator::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -552,6 +556,7 @@ FMOD_RESULT F_CALLBACK DSPOscillator::setParameterCallback(FMOD_DSP_STATE *dsp, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ab077c3c auto
 // OFFSET: 0x008F5270
 FMOD_RESULT F_CALLBACK DSPOscillator::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {

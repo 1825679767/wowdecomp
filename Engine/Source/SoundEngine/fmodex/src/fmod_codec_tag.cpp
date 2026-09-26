@@ -132,6 +132,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecTag::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 43b2a480 auto
 // OFFSET: 0x00914890
 FMOD_RESULT CodecTag::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -441,6 +442,7 @@ FMOD_RESULT CodecTag::readTags()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ef1058c8 auto
 // OFFSET: 0x009134A0
 FMOD_RESULT CodecTag::readID3v1()
 {
@@ -785,6 +787,7 @@ FMOD_RESULT CodecTag::readID3v2()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 52de6df8 auto
 // OFFSET: 0x00913BE0
 FMOD_RESULT CodecTag::readID3v2FromFooter()
 {

@@ -105,6 +105,7 @@ namespace FMOD
         { 
             return mCurrentAllocated[threadid];
         }
+// VERIFY: 961909ae auto
         // OFFSET: 0x008CF9E0
         inline unsigned int getCurrentThreadID(FMOD_UINT_NATIVE threadid = 0)
         {

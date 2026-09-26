@@ -23,6 +23,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 87ceaddc auto
 // OFFSET: 0x00921C20
 Listener::Listener()
 {

@@ -365,6 +365,7 @@ FMOD_RESULT OutputWavWriter::lock(unsigned int offset, unsigned int length, void
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 63eef41d auto
 // OFFSET: 0x00915840
 FMOD_RESULT OutputWavWriter::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
@@ -569,6 +570,7 @@ FMOD_RESULT F_CALLBACK OutputWavWriter::getNumDriversCallback(FMOD_OUTPUT_STATE 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 98a2cc99 auto
 // OFFSET: 0x00915A80
 FMOD_RESULT F_CALLBACK OutputWavWriter::getDriverNameCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
@@ -618,6 +620,7 @@ FMOD_RESULT OutputWavWriter::getDriverCapsCallback(FMOD_OUTPUT_STATE *output, in
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ff10e8cf auto
 // OFFSET: 0x00915EA0
 FMOD_RESULT F_CALLBACK OutputWavWriter::initCallback(FMOD_OUTPUT_STATE *output, int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
@@ -693,6 +696,7 @@ FMOD_RESULT F_CALLBACK OutputWavWriter::getPositionCallback(FMOD_OUTPUT_STATE *o
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b7575bb8 auto
 // OFFSET: 0x00915AF0
 FMOD_RESULT F_CALLBACK OutputWavWriter::lockCallback(FMOD_OUTPUT_STATE *output, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -719,6 +723,7 @@ FMOD_RESULT F_CALLBACK OutputWavWriter::lockCallback(FMOD_OUTPUT_STATE *output, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 136c04e0 auto
 // OFFSET: 0x00915B30
 FMOD_RESULT F_CALLBACK OutputWavWriter::unlockCallback(FMOD_OUTPUT_STATE *output, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {

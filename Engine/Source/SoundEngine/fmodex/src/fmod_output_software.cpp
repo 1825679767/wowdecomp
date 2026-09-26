@@ -127,6 +127,7 @@ FMOD_RESULT OutputSoftware::init(int maxchannels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 268d5542 auto
 // OFFSET: 0x0091AA20
 FMOD_RESULT OutputSoftware::release()
 {
@@ -326,6 +327,7 @@ int OutputSoftware::getSampleMaxChannels(FMOD_MODE mode, FMOD_SOUND_FORMAT forma
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 31f8b339 auto
 // OFFSET: 0x0091AA70
 int F_CALLBACK OutputSoftware::getSampleMaxChannelsCallback(FMOD_OUTPUT_STATE *output, FMOD_MODE mode, FMOD_SOUND_FORMAT format)
 {

@@ -52,6 +52,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 666faf10 auto
 // OFFSET: 0x00914C50
 FMOD_OUTPUT_DESCRIPTION_EX *OutputNoSound_NRT::getDescriptionEx()
 {
@@ -373,6 +374,7 @@ FMOD_RESULT OutputNoSound_NRT::getDriverCapsCallback(FMOD_OUTPUT_STATE *output, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f295a13f auto
 // OFFSET: 0x00914C10
 FMOD_RESULT F_CALLBACK OutputNoSound_NRT::initCallback(FMOD_OUTPUT_STATE *output, int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
@@ -425,6 +427,7 @@ FMOD_RESULT F_CALLBACK OutputNoSound_NRT::closeCallback(FMOD_OUTPUT_STATE *outpu
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c88f0c92 auto
 // OFFSET: 0x00914A60
 FMOD_RESULT F_CALLBACK OutputNoSound_NRT::updateCallback(FMOD_OUTPUT_STATE *output)
 {

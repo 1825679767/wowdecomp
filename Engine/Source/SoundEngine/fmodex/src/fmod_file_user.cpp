@@ -64,6 +64,7 @@ FMOD_RESULT UserFile::reallyOpen(const char *name_or_data, unsigned int *filesiz
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9cb8f498 auto
 // OFFSET: 0x008E8270
 FMOD_RESULT UserFile::reallyClose()
 {

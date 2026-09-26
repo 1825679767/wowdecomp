@@ -28,6 +28,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0cd676dc auto
 // OFFSET: 0x009510C0
 SampleDSound::SampleDSound()
 {
@@ -53,6 +54,7 @@ SampleDSound::SampleDSound()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cbd55ab6 auto
 // OFFSET: 0x009510E0
 FMOD_RESULT SampleDSound::release(bool freethis)
 {  

@@ -271,6 +271,7 @@ FMOD_RESULT OutputTimer::start()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 53d6c4a7 auto
 // OFFSET: 0x0094A760
 FMOD_RESULT OutputTimer::stop()
 {
@@ -318,6 +319,7 @@ FMOD_RESULT OutputTimer::stop()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e5ef8198 auto
 // OFFSET: 0x0094AC40
 void CALLBACK OutputTimer::timerFuncCallback(UINT uTimerID, UINT uMsg, UINT_PTR dwUser, UINT_PTR dw1, UINT_PTR dw2)
 {

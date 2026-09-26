@@ -83,6 +83,7 @@ FMOD_RESULT NetFile::init()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9aa4dc65 auto
 // OFFSET: 0x0091FA30
 FMOD_RESULT NetFile::shutDown()
 {
@@ -827,6 +828,7 @@ FMOD_RESULT NetFile::reallyOpen(const char *name_or_data, unsigned int *filesize
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9e719a12 auto
 // OFFSET: 0x009209E0
 FMOD_RESULT NetFile::reallyClose()
 {
@@ -1231,6 +1233,7 @@ FMOD_RESULT NetFile::reallyCancel()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 091bbe4e auto
 // OFFSET: 0x00920F70
 FMOD_RESULT NetFile::getMetadata(Metadata **metadata)
 {

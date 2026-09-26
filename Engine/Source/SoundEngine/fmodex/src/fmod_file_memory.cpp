@@ -21,6 +21,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 50225890 auto
 // OFFSET: 0x008E8010
 FMOD_RESULT MemoryFile::reallyOpen(const char *name_or_data, unsigned int *filesize)
 {

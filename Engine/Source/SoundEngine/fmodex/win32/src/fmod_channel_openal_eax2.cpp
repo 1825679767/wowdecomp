@@ -29,6 +29,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b0f83add auto
 // OFFSET: 0x0094B4E0
 FMOD_RESULT ChannelOpenALEAX2::setupChannel()
 {
@@ -93,6 +94,7 @@ FMOD_RESULT ChannelOpenALEAX2::setupChannel()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 89c25c66 auto
 // OFFSET: 0x0094B5D0
 FMOD_RESULT ChannelOpenALEAX2::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTIES *prop)
 {

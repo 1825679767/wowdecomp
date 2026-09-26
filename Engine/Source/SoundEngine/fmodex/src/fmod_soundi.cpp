@@ -148,6 +148,7 @@ SoundI::SoundI()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3faa35d2 auto
 // OFFSET: 0x008E4590
 FMOD_RESULT SoundI::loadSubSound(int index, FMOD_MODE mode)
 {
@@ -384,6 +385,7 @@ FMOD_RESULT SoundI::read(unsigned int offset, unsigned int numsamples, unsigned 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a98022ce auto
 // OFFSET: 0x008E10A0
 FMOD_RESULT SoundI::seek(int subsound, unsigned int position)
 {
@@ -744,6 +746,7 @@ FMOD_RESULT SoundI::release(bool freethis)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1ef88b11 auto
 // OFFSET: 0x008E1140
 FMOD_RESULT SoundI::getSystemObject(System **system)
 {
@@ -773,6 +776,7 @@ FMOD_RESULT SoundI::getSystemObject(System **system)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 285b601e auto
 // OFFSET: 0x008E1170
 FMOD_RESULT SoundI::lock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -795,6 +799,7 @@ FMOD_RESULT SoundI::lock(unsigned int offset, unsigned int length, void **ptr1, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c432ee50 auto
 // OFFSET: 0x008E1180
 FMOD_RESULT SoundI::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
@@ -869,6 +874,7 @@ FMOD_RESULT SoundI::setDefaults(float frequency, float volume, float pan, int pr
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1db94e29 auto
 // OFFSET: 0x008E1210
 FMOD_RESULT SoundI::getDefaults(float *frequency, float *volume, float *pan, int *priority)
 {
@@ -908,6 +914,7 @@ FMOD_RESULT SoundI::getDefaults(float *frequency, float *volume, float *pan, int
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9dbfc2da auto
 // OFFSET: 0x008E1250
 FMOD_RESULT SoundI::setVariations(float frequencyvar, float volumevar, float panvar)
 {
@@ -943,6 +950,7 @@ FMOD_RESULT SoundI::setVariations(float frequencyvar, float volumevar, float pan
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1b5760f2 auto
 // OFFSET: 0x008E12A0
 FMOD_RESULT SoundI::getVariations(float *frequencyvar, float *volumevar, float *panvar)
 {
@@ -980,6 +988,7 @@ FMOD_RESULT SoundI::getVariations(float *frequencyvar, float *volumevar, float *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: abbd7b44 auto
 // OFFSET: 0x008E12D0
 FMOD_RESULT SoundI::set3DMinMaxDistance(float min, float max)
 {
@@ -1011,6 +1020,7 @@ FMOD_RESULT SoundI::set3DMinMaxDistance(float min, float max)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 57957d67 auto
 // OFFSET: 0x008E1320
 FMOD_RESULT SoundI::get3DMinMaxDistance(float *min, float *max)
 {
@@ -1044,6 +1054,7 @@ FMOD_RESULT SoundI::get3DMinMaxDistance(float *min, float *max)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f8735e53 auto
 // OFFSET: 0x008E1350
 FMOD_RESULT SoundI::set3DConeSettings(float insideconeangle, float outsideconeangle, float outsidevolume)
 {
@@ -1096,6 +1107,7 @@ FMOD_RESULT SoundI::set3DConeSettings(float insideconeangle, float outsideconean
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 11f71946 auto
 // OFFSET: 0x008E13E0
 FMOD_RESULT SoundI::get3DConeSettings(float *insideconeangle, float *outsideconeangle, float *outsidevolume)
 {
@@ -1180,6 +1192,7 @@ FMOD_RESULT  SoundI::set3DCustomRolloff(FMOD_VECTOR *points, int numpoints)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c877355a auto
 // OFFSET: 0x008E14A0
 FMOD_RESULT SoundI::get3DCustomRolloff(FMOD_VECTOR **points, int *numpoints)
 {
@@ -1346,6 +1359,7 @@ FMOD_RESULT SoundI::setSubSound(int index, SoundI *subsound)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d1d25fde auto
 // OFFSET: 0x008E3A60
 FMOD_RESULT SoundI::getSubSound(int index, SoundI **subsound)
 {
@@ -1555,6 +1569,7 @@ FMOD_RESULT SoundI::setSubSoundSentence(int *subsoundlist, int numsubsounds)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 87805cb4 auto
 // OFFSET: 0x008E1890
 FMOD_RESULT SoundI::getName(char *name, int namelen)
 {
@@ -1815,6 +1830,7 @@ FMOD_RESULT SoundI::getNumTags(int *numtags, int *numtagsupdated)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 63c355f3 auto
 // OFFSET: 0x008E1970
 FMOD_RESULT SoundI::getTag(const char *name, int index, FMOD_TAG *tag)
 {
@@ -1847,6 +1863,7 @@ FMOD_RESULT SoundI::getTag(const char *name, int index, FMOD_TAG *tag)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cba9369d auto
 // OFFSET: 0x008E19C0
 FMOD_RESULT SoundI::getOpenState(FMOD_OPENSTATE *openstate, unsigned int *percentbuffered, bool *starving)
 {
@@ -2060,6 +2077,7 @@ FMOD_RESULT SoundI::readData(void *buffer, unsigned int numbytes, unsigned int *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bbf5773b auto
 // OFFSET: 0x008E1A60
 FMOD_RESULT SoundI::seekData(unsigned int position)
 {
@@ -2126,6 +2144,7 @@ FMOD_RESULT SoundI::setSoundGroup(SoundGroupI *soundgroup)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cbb4e9c8 auto
 // OFFSET: 0x008E1BA0
 FMOD_RESULT SoundI::getSoundGroup(SoundGroupI **soundgroup)
 {
@@ -2155,6 +2174,7 @@ FMOD_RESULT SoundI::getSoundGroup(SoundGroupI **soundgroup)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 517d9c96 auto
 // OFFSET: 0x008E1BD0
 FMOD_RESULT SoundI::getNumSyncPoints(int *numsyncpoints)
 {
@@ -2184,6 +2204,7 @@ FMOD_RESULT SoundI::getNumSyncPoints(int *numsyncpoints)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dcdd0332 auto
 // OFFSET: 0x008E1C00
 FMOD_RESULT SoundI::getSyncPoint(int index, FMOD_SYNCPOINT **point)
 {
@@ -2378,6 +2399,7 @@ FMOD_RESULT SoundI::deleteSyncPoint(FMOD_SYNCPOINT *point)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8c5c1a0e auto
 // OFFSET: 0x008E1CB0
 FMOD_RESULT SoundI::setMode(FMOD_MODE mode)
 {
@@ -2490,6 +2512,7 @@ FMOD_RESULT SoundI::setMode(FMOD_MODE mode)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a4637be6 auto
 // OFFSET: 0x008E1DE0
 FMOD_RESULT SoundI::getMode(FMOD_MODE *mode)
 {
@@ -2558,6 +2581,7 @@ FMOD_RESULT SoundI::setLoopCount(int loopcount)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a33f588b auto
 // OFFSET: 0x008E1E40
 FMOD_RESULT SoundI::getLoopCount(int *loopcount)
 {
@@ -2802,6 +2826,7 @@ FMOD_RESULT SoundI::getPosition(unsigned int *pcm)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c09aa4af auto
 // OFFSET: 0x008E1E80
 FMOD_RESULT SoundI::setUserData(void *userdata)
 {
@@ -2826,6 +2851,7 @@ FMOD_RESULT SoundI::setUserData(void *userdata)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fc6e17ba auto
 // OFFSET: 0x008E1EA0
 FMOD_RESULT SoundI::getUserData(void **userdata)
 {
@@ -2855,6 +2881,7 @@ FMOD_RESULT SoundI::getUserData(void **userdata)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: de4f6be1 auto
 // OFFSET: 0x008E2FA0
 FMOD_RESULT SoundI::updateSubSound(int index, bool updateinfoonly)
 {

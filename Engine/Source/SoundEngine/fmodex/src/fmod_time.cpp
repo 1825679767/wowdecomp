@@ -18,6 +18,7 @@ namespace FMOD
 
 	[SEE_ALSO]
 */
+// VERIFY: fab32a67 auto
 // OFFSET: 0x008E8330
 TimeStamp::TimeStamp()
 {
@@ -45,6 +46,7 @@ TimeStamp::TimeStamp()
 
 	[SEE_ALSO]
 */
+// VERIFY: 5abd71c5 auto
 // OFFSET: 0x008E8360
 FMOD_RESULT TimeStamp::stampIn()
 {
@@ -159,6 +161,7 @@ FMOD_RESULT TimeStamp::getCPUUsage(FMOD_UFLOAT *cpuusage)
 
 	[SEE_ALSO]
 */
+// VERIFY: 4a87c97f auto
 // OFFSET: 0x008E8440
 FMOD_RESULT TimeStamp::setPaused(bool paused)
 {

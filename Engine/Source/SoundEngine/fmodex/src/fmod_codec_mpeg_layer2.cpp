@@ -526,6 +526,7 @@ FMOD_RESULT CodecMPEG::II_step_two(unsigned int *bit_alloc,float fraction[2][4][
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0db3b09b auto
 // OFFSET: 0x009320D0
 FMOD_RESULT CodecMPEG::getIIStuff()
 {

@@ -575,6 +575,7 @@ FMOD_RESULT OutputWavWriter_NRT::getDriverCapsCallback(FMOD_OUTPUT_STATE *output
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b4db65ce auto
 // OFFSET: 0x009156C0
 FMOD_RESULT F_CALLBACK OutputWavWriter_NRT::initCallback(FMOD_OUTPUT_STATE *output, int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
@@ -650,6 +651,7 @@ FMOD_RESULT F_CALLBACK OutputWavWriter_NRT::startCallback(FMOD_OUTPUT_STATE *out
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b60bb3b6 auto
 // OFFSET: 0x00915370
 FMOD_RESULT F_CALLBACK OutputWavWriter_NRT::stopCallback(FMOD_OUTPUT_STATE *output)
 {

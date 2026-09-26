@@ -31,6 +31,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4e34843a auto
 // OFFSET: 0x00929DA0
 FMOD_RESULT DSPWaveTable::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 {
@@ -67,6 +68,7 @@ FMOD_RESULT DSPWaveTable::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1232faed auto
 // OFFSET: 0x00929DE0
 FMOD_RESULT DSPWaveTable::addInput(DSPI *target)
 {
@@ -399,6 +401,7 @@ FMOD_RESULT DSPWaveTable::getParameterInternal(int index, float *value, char *va
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c9e0222e auto
 // OFFSET: 0x0092A1E0
 FMOD_RESULT DSPWaveTable::setFrequency(float frequency)
 {
@@ -468,6 +471,7 @@ FMOD_RESULT DSPWaveTable::getFrequency(float *frequency)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 49223937 auto
 // OFFSET: 0x0092A250
 FMOD_RESULT F_CALLBACK DSPWaveTable::setPositionCallback(FMOD_DSP_STATE *dsp, unsigned int position)
 {
@@ -492,6 +496,7 @@ FMOD_RESULT F_CALLBACK DSPWaveTable::setPositionCallback(FMOD_DSP_STATE *dsp, un
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c239578a auto
 // OFFSET: 0x0092A2A0
 FMOD_RESULT F_CALLBACK DSPWaveTable::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
@@ -516,6 +521,7 @@ FMOD_RESULT F_CALLBACK DSPWaveTable::setParameterCallback(FMOD_DSP_STATE *dsp, i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f63fdcdf auto
 // OFFSET: 0x0092A2B0
 FMOD_RESULT F_CALLBACK DSPWaveTable::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {

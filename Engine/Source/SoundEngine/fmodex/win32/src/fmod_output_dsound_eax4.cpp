@@ -31,6 +31,7 @@ bool gFXslot3set = false;
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7ff3efa2 auto
 // OFFSET: 0x0094FEB0
 bool OutputDSound::querySupportEAX4(FMOD_GUID guid, unsigned long ulProperty)
 {
@@ -75,6 +76,7 @@ bool OutputDSound::querySupportEAX4(FMOD_GUID guid, unsigned long ulProperty)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: efc83e19 auto
 // OFFSET: 0x0094FF10
 bool OutputDSound::initEAX4()
 {
@@ -184,6 +186,7 @@ bool OutputDSound::initEAX4()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9bf7fcd8 auto
 // OFFSET: 0x009501A0
 FMOD_RESULT OutputDSound::closeEAX4()
 {

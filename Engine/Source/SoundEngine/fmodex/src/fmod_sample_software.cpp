@@ -32,6 +32,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a29055e7 auto
 // OFFSET: 0x0093D7F0
 SampleSoftware::SampleSoftware()
 {
@@ -56,6 +57,7 @@ SampleSoftware::SampleSoftware()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6b6eaf2f auto
 // OFFSET: 0x0093D820
 FMOD_RESULT SampleSoftware::release(bool freethis)
 {

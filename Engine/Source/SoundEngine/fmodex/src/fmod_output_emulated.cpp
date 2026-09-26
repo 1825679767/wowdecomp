@@ -27,6 +27,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e6166020 auto
 // OFFSET: 0x00922210
 OutputEmulated::OutputEmulated()
 {
@@ -116,6 +117,7 @@ FMOD_RESULT OutputEmulated::init(int maxchannels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0b4ab641 auto
 // OFFSET: 0x00922330
 FMOD_RESULT OutputEmulated::release()
 {

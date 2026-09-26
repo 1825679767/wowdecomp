@@ -27,6 +27,7 @@
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f1ada7ef auto
 // OFFSET: 0x00915FC0
 FMOD_RESULT FMOD_OS_Output_Register(FMOD::PluginFactory *pluginfactory)
 {

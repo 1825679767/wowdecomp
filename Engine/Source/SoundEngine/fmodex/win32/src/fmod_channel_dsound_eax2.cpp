@@ -114,6 +114,7 @@ FMOD_RESULT ChannelDSoundEAX2::setReverbProperties(const FMOD_REVERB_CHANNELPROP
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6863a2d3 auto
 // OFFSET: 0x0094F140
 FMOD_RESULT ChannelDSoundEAX2::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 {

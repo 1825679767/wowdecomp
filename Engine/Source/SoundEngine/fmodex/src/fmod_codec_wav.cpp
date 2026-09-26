@@ -898,6 +898,7 @@ FMOD_RESULT CodecWav::setPositionInternal(int subsound, unsigned int position, F
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9bea24ad auto
 // OFFSET: 0x0090FAF0
 FMOD_RESULT CodecWav::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 {
@@ -1088,6 +1089,7 @@ FMOD_RESULT F_CALLBACK CodecWav::canPointCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 37f39a5d auto
 // OFFSET: 0x0090FDF0
 FMOD_RESULT F_CALLBACK CodecWav::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -1112,6 +1114,7 @@ FMOD_RESULT F_CALLBACK CodecWav::readCallback(FMOD_CODEC_STATE *codec, void *buf
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 44ad3cb4 auto
 // OFFSET: 0x009101B0
 FMOD_RESULT F_CALLBACK CodecWav::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {

@@ -6,6 +6,7 @@
 
 using namespace FMOD;
      
+// VERIFY: 9737ad22 auto
 // OFFSET: 0x008D22C0
 int FMOD_strlen(const char * s)
 {
@@ -16,6 +17,7 @@ int FMOD_strlen(const char * s)
     return (int)(sc - s);
 }
 
+// VERIFY: 0d32f33c auto
 // OFFSET: 0x008D22E0
 char * FMOD_strcpy(char * dest,const char *src)
 {
@@ -26,6 +28,7 @@ char * FMOD_strcpy(char * dest,const char *src)
     return tmp;
 }
 
+// VERIFY: 93064d60 auto
 // OFFSET: 0x008D2310
 char * FMOD_strncpy(char * dest, const char *src, int count)
 {
@@ -37,6 +40,7 @@ char * FMOD_strncpy(char * dest, const char *src, int count)
 }
 
 
+// VERIFY: bce8eee8 auto
 // OFFSET: 0x008D2340
 char * FMOD_strcat(char * dest, const char * src)
 {
@@ -48,6 +52,7 @@ char * FMOD_strcat(char * dest, const char * src)
     return tmp;
 }
 
+// VERIFY: 39c2d3d4 auto
 // OFFSET: 0x008D2380
 char * FMOD_strncat(char *dest, const char *src, int count)
 {
@@ -141,6 +146,7 @@ int FMOD_strncmp( const char *string1, const char *string2, int len )
 }
 
 
+// VERIFY: c95b4aab auto
 // OFFSET: 0x008D2470
 int FMOD_stricmp( const char *string1, const char *string2 )
 {
@@ -154,6 +160,7 @@ int FMOD_stricmp( const char *string1, const char *string2 )
     return c1 - c2;
 }
 
+// VERIFY: f52be387 auto
 // OFFSET: 0x008D24C0
 int FMOD_strnicmp( const char *string1, const char *string2, int len )
 {
@@ -186,6 +193,7 @@ char * FMOD_strchr(const char * s1, int c)
     return (char *)0;
 }
 
+// VERIFY: 09b83d75 auto
 // OFFSET: 0x008D2600
 char * FMOD_strstr(const char * s1,const char * s2)
 {
@@ -262,6 +270,7 @@ char *FMOD_strdup(const char * src)
 }
 
 
+// VERIFY: 309d4fa3 auto
 // OFFSET: 0x008D25D0
 char *FMOD_eatwhite(const char *string)
 {

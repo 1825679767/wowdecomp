@@ -22,6 +22,7 @@ void ReleaseMeteredSectionLock(LPMETERED_SECTION lpMetSect);
 /*
  * CreateMeteredSection
  */
+// VERIFY: 4a220666 auto
 // OFFSET: 0x008E50C0
 LPMETERED_SECTION CreateMeteredSection(LONG lInitialCount, 
       LONG lMaximumCount, LPCTSTR lpName)
@@ -160,6 +161,7 @@ BOOL LeaveMeteredSection(LPMETERED_SECTION lpMetSect, LONG lReleaseCount,
 /*
  * CloseMeteredSection
  */
+// VERIFY: 942dd164 auto
 // OFFSET: 0x008E4D60
 void CloseMeteredSection(LPMETERED_SECTION lpMetSect)
 {
@@ -312,10 +314,11 @@ BOOL CreateMetSectFileView(LPMETERED_SECTION lpMetSect,
 /*
  * GetMeteredSectionLock
  */
+// VERIFY: 78301afe auto
 // OFFSET: 0x008E4F00
 void GetMeteredSectionLock(LPMETERED_SECTION lpMetSect)
 {
-#if FILEMAPPING
+#ifdef FILEMAPPING
     // Spin and get access to the metered section lock
     while (InterlockedExchange(&(lpMetSect->lpSharedInfo->lSpinLock), 1) != 0)
         Sleep(1);
@@ -329,7 +332,7 @@ void GetMeteredSectionLock(LPMETERED_SECTION lpMetSect)
  */
 void ReleaseMeteredSectionLock(LPMETERED_SECTION lpMetSect)
 {
-#if FILEMAPPING
+#ifdef FILEMAPPING
     InterlockedExchange(&(lpMetSect->lpSharedInfo->lSpinLock), 0);
 #else
     LeaveCriticalSection(&lpMetSect->hCrit);

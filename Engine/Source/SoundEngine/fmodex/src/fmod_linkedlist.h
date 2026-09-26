@@ -42,6 +42,7 @@ namespace FMOD
             mNodePrev = mNodeNext = this; 
             mNodeData = 0;
         }
+// VERIFY: 58be76e9 auto
         // OFFSET: 0x008D2680
         inline void removeNode()     
         { 

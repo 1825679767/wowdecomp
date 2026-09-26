@@ -33,9 +33,11 @@ namespace FMOD
         FMOD_RESULT  lock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2);
         FMOD_RESULT  unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2);
 
+// VERIFY: 952e1c12 auto
         // OFFSET: 0x0091AF50
         virtual FMOD_RESULT  lockInternal(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2) { return FMOD_ERR_SUBSOUNDS; } 
         virtual FMOD_RESULT  unlockInternal(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2) { return FMOD_OK; } 
+// VERIFY: 16f70288 auto
         // OFFSET: 0x0091AF60
         virtual FMOD_RESULT  setBufferData(void *data) { return FMOD_ERR_NEEDSSOFTWARE; }
         virtual FMOD_RESULT  setMode(FMOD_MODE mode);

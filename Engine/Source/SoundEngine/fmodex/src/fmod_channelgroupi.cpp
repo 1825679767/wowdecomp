@@ -61,6 +61,7 @@ FMOD_RESULT ChannelGroupI::validate(ChannelGroup *channelgroup, ChannelGroupI **
 ]
 */
 
+// VERIFY: e7bd42f4 auto
 // OFFSET: 0x008E4D40
 FMOD_RESULT ChannelGroupI::release()
 {  
@@ -201,6 +202,7 @@ FMOD_RESULT ChannelGroupI::getSystemObject(System **system)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f7b4cb92 auto
 // OFFSET: 0x008E4AD0
 FMOD_RESULT ChannelGroupI::setVolume(float volume)
 {
@@ -365,6 +367,7 @@ FMOD_RESULT ChannelGroupI::setPitch(float pitch)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d406474a auto
 // OFFSET: 0x008E4930
 FMOD_RESULT ChannelGroupI::setPitchInternal()
 {
@@ -1414,6 +1417,7 @@ FMOD_RESULT ChannelGroupI::getName(char *name, int namelen)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9b690eac auto
 // OFFSET: 0x008E4AB0
 FMOD_RESULT ChannelGroupI::getNumChannels(int *numchannels)
 {

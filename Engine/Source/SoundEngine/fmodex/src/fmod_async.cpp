@@ -27,6 +27,7 @@ LinkedListNode           AsyncThread::gAsyncHead;
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1108165e auto
 // OFFSET: 0x00921FC0
 void asyncThreadFunc(void *data)
 {
@@ -76,6 +77,7 @@ AsyncThread::AsyncThread()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 905f0f62 auto
 // OFFSET: 0x00922040
 FMOD_RESULT AsyncThread::shutDown()
 {
@@ -361,6 +363,7 @@ FMOD_RESULT AsyncThread::wakeupThread()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9532e982 auto
 // OFFSET: 0x00921D30
 FMOD_RESULT AsyncThread::update()
 {
@@ -405,6 +408,7 @@ FMOD_RESULT AsyncThread::update()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b3a96161 auto
 // OFFSET: 0x00921D80
 FMOD_RESULT AsyncThread::threadFunc()
 {
@@ -532,6 +536,7 @@ FMOD_RESULT AsyncThread::threadFunc()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d5e037a5 auto
 // OFFSET: 0x00922130
 FMOD_RESULT AsyncThread::getAsyncThread(SoundI *sound)
 {

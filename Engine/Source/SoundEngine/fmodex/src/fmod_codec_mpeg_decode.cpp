@@ -57,6 +57,7 @@ int CodecMPEG::gFreqs[9] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 45df0b72 auto
 // OFFSET: 0x0092C240
 unsigned int CodecMPEG::getBits(int number_of_bits)
 {
@@ -701,6 +702,7 @@ FMOD_RESULT CodecMPEG::decodeFrame(unsigned char *in, void *out, unsigned int *o
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 72108d06 auto
 // OFFSET: 0x0092C880
 FMOD_RESULT CodecMPEG::resetFrame()
 {
@@ -751,6 +753,7 @@ FMOD_RESULT CodecMPEG::resetFrame()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 485d574c auto
 // OFFSET: 0x0092C930
 void CodecMPEG::dct64(float *out0,float *out1,float *samples)
 {

@@ -297,6 +297,7 @@ FMOD_RESULT F_CALLBACK CodecUser::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 63b04397 auto
 // OFFSET: 0x008E8CD0
 FMOD_RESULT F_CALLBACK CodecUser::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {

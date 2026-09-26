@@ -289,6 +289,7 @@ BOOL CALLBACK FMOD_Output_DSound_EnumProc(LPGUID lpGUID, LPCSTR lpszDesc, LPCSTR
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b960cff2 auto
 // OFFSET: 0x0093AD80
 FMOD_RESULT OutputDSound::enumerate()
 {
@@ -1161,6 +1162,7 @@ FMOD_RESULT OutputDSound::init(int selecteddriver, FMOD_INITFLAGS flags, int *ou
 	[SEE_ALSO]
 ]
 */
+// VERIFY: aee2841b auto
 // OFFSET: 0x0093AE60
 FMOD_RESULT OutputDSound::close()
 {
@@ -2298,6 +2300,7 @@ int OutputDSound::getSampleMaxChannels(FMOD_MODE mode, FMOD_SOUND_FORMAT format)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 263d4c2b auto
 // OFFSET: 0x0093B9F0
 FMOD_RESULT F_CALLBACK OutputDSound::getNumDriversCallback(FMOD_OUTPUT_STATE *output, int *numdrivers)
 {
@@ -2324,6 +2327,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::getNumDriversCallback(FMOD_OUTPUT_STATE *ou
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cf6cdc75 auto
 // OFFSET: 0x0093BA30
 FMOD_RESULT F_CALLBACK OutputDSound::getDriverNameCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
@@ -2350,6 +2354,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::getDriverNameCallback(FMOD_OUTPUT_STATE *ou
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ddeace31 auto
 // OFFSET: 0x0093CB10
 FMOD_RESULT OutputDSound::getDriverCapsExCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode, int *num2dchannels, int *num3dchannels, int *totalchannels)
 {
@@ -2376,6 +2381,7 @@ FMOD_RESULT OutputDSound::getDriverCapsExCallback(FMOD_OUTPUT_STATE *output, int
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 341dc789 auto
 // OFFSET: 0x0093CB50
 FMOD_RESULT F_CALLBACK OutputDSound::initExCallback(FMOD_OUTPUT_STATE *output, int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, FMOD_SPEAKERMODE *speakermode, int dspbufferlength, int dspnumbuffers, int max2dchannels, int max3dchannels, void *extradriverdata)
 {
@@ -2454,6 +2460,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::startCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3e8a6c96 auto
 // OFFSET: 0x0093BAC0
 FMOD_RESULT F_CALLBACK OutputDSound::stopCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -2610,6 +2617,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::unlockCallback(FMOD_OUTPUT_STATE *output, v
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e07ebdb2 auto
 // OFFSET: 0x0093BC20
 FMOD_RESULT F_CALLBACK OutputDSound::createSampleCallback(FMOD_OUTPUT_STATE *output, FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *waveformat, Sample **sample)
 {
@@ -2636,6 +2644,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::createSampleCallback(FMOD_OUTPUT_STATE *out
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ba73cfe4 auto
 // OFFSET: 0x0093BC50
 FMOD_RESULT F_CALLBACK OutputDSound::getSoundRAMCallback(FMOD_OUTPUT_STATE *output, int *currentalloced, int *maxalloced, int *total)
 {
@@ -2689,6 +2698,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordGetNumDriversCallback(FMOD_OUTPUT_STA
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2a5aba39 auto
 // OFFSET: 0x0093BCD0
 FMOD_RESULT F_CALLBACK OutputDSound::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
@@ -2715,6 +2725,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordGetDriverInfoCallback(FMOD_OUTPUT_STA
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8741d5ed auto
 // OFFSET: 0x0093BD00
 FMOD_RESULT F_CALLBACK OutputDSound::recordStartCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_SOUND *sound, int loop)
 {
@@ -2793,6 +2804,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordGetPositionCallback(FMOD_OUTPUT_STATE
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1ea5dfad auto
 // OFFSET: 0x0093BD90
 FMOD_RESULT F_CALLBACK OutputDSound::recordLockCallback(FMOD_OUTPUT_STATE *output, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -2819,6 +2831,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordLockCallback(FMOD_OUTPUT_STATE *outpu
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1363c973 auto
 // OFFSET: 0x0093BDD0
 FMOD_RESULT F_CALLBACK OutputDSound::recordUnlockCallback(FMOD_OUTPUT_STATE *output, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
@@ -2846,6 +2859,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::recordUnlockCallback(FMOD_OUTPUT_STATE *out
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 43c647df auto
 // OFFSET: 0x0093BE00
 FMOD_RESULT F_CALLBACK OutputDSound::setReverbPropertiesCallback(FMOD_OUTPUT_STATE *output, const FMOD_REVERB_PROPERTIES *prop)
 {
@@ -2872,6 +2886,7 @@ FMOD_RESULT F_CALLBACK OutputDSound::setReverbPropertiesCallback(FMOD_OUTPUT_STA
 	[SEE_ALSO]
 ]
 */
+// VERIFY: de6d987a auto
 // OFFSET: 0x0093BE50
 int F_CALLBACK OutputDSound::getSampleMaxChannelsCallback(FMOD_OUTPUT_STATE *output, FMOD_MODE mode, FMOD_SOUND_FORMAT format)
 {

@@ -747,6 +747,7 @@ FMOD_RESULT CodecMPEG::initLayer3(int down_sample_sblimit)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dead98ae auto
 // OFFSET: 0x0092DDB0
 FMOD_RESULT CodecMPEG::III_get_side_info_1(struct III_sideinfo *si, int stereo, int ms_stereo, int sfreq)
 {
@@ -2487,6 +2488,7 @@ FMOD_RESULT CodecMPEG::III_antialias(float xr[SBLIMIT][SSLIMIT], struct gr_info_
 	[SEE_ALSO]
 ]
 */
+// VERIFY: da2205d5 auto
 // OFFSET: 0x00930950
 void CodecMPEG::dct36(float * inbuf, float * o1, float * o2, float * wintab, float * tsbuf)
 {

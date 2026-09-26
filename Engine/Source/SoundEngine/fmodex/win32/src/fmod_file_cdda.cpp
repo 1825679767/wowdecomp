@@ -51,6 +51,7 @@ CddaFile::CddaFile()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3276bbcc auto
 // OFFSET: 0x00921030
 FMOD_RESULT CddaFile::init(bool force_aspi, bool jitter_correction)
 {
@@ -72,6 +73,7 @@ FMOD_RESULT CddaFile::init(bool force_aspi, bool jitter_correction)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f18536b7 auto
 // OFFSET: 0x00921050
 FMOD_RESULT CddaFile::shutDown()
 {
@@ -204,6 +206,7 @@ FMOD_RESULT CddaFile::reallyOpen(const char *name_or_data, unsigned int *filesiz
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1a8d53e4 auto
 // OFFSET: 0x00921060
 FMOD_RESULT CddaFile::reallyClose()
 {
@@ -244,6 +247,7 @@ FMOD_RESULT CddaFile::reallyClose()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d8a5805f auto
 // OFFSET: 0x00921850
 FMOD_RESULT CddaFile::reallyRead(void *buffer, unsigned int size, unsigned int *rd)
 {
@@ -436,6 +440,7 @@ FMOD_RESULT CddaFile::doJitterCorrection(unsigned int sectors_to_read)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f253f445 auto
 // OFFSET: 0x009213D0
 FMOD_RESULT CddaFile::reallySeek(unsigned int pos)
 {
@@ -473,6 +478,7 @@ FMOD_RESULT CddaFile::reallySeek(unsigned int pos)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2d073c8c auto
 // OFFSET: 0x00921460
 FMOD_RESULT CddaFile::getNumTracks(int *numtracks)
 {
@@ -504,6 +510,7 @@ FMOD_RESULT CddaFile::getNumTracks(int *numtracks)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d1b03d2c auto
 // OFFSET: 0x009214A0
 FMOD_RESULT CddaFile::getTrackLength(unsigned int track, unsigned int *tracklength)
 {
@@ -588,6 +595,7 @@ FMOD_RESULT CddaFile::openTrack(unsigned int track)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d7af3b4d auto
 // OFFSET: 0x00921620
 FMOD_RESULT CddaFile::getMetadata(Metadata **metadata)
 {

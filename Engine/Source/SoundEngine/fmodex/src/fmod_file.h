@@ -170,8 +170,10 @@ namespace FMOD
         FMOD_RESULT             isStarving(bool *starving) { if (!starving) return FMOD_ERR_INVALID_PARAM; *starving = mStarving; return FMOD_OK; }
         bool                    readyForClose();
 
+// VERIFY: 424eafe5 auto
         // OFFSET: 0x008D26C0
         virtual FMOD_RESULT     getMetadata(Metadata **metadata) { return FMOD_ERR_TAGNOTFOUND; }
+// VERIFY: fceb7e48 auto
         // OFFSET: 0x008D26D0
         virtual FMOD_RESULT     getSize(unsigned int *size) { *size = mLength; return FMOD_OK; }
         virtual FMOD_RESULT     reallyOpen(const char *name_or_data, unsigned int *filesize) = 0;
@@ -180,12 +182,12 @@ namespace FMOD
         virtual FMOD_RESULT     reallySeek(unsigned int pos) = 0;
         virtual FMOD_RESULT     reallyCancel() { return FMOD_OK; }
 
-        FMOD_RESULT             open(const char *name_or_data, unsigned int length, bool unicode = false, const char *encryptionkey = 0);
-        FMOD_RESULT             close();
-        FMOD_RESULT             cancel();
-        FMOD_RESULT             read(void *buffer, unsigned int size, unsigned int count, unsigned int *read = 0);
-        FMOD_RESULT             seek(int pos, int mode);
-        FMOD_RESULT             tell(unsigned int *pos);
+        FMOD_RESULT F_API       open(const char *name_or_data, unsigned int length, bool unicode = false, const char *encryptionkey = 0);
+        FMOD_RESULT F_API       close();
+        FMOD_RESULT F_API       cancel();
+        FMOD_RESULT F_API       read(void *buffer, unsigned int size, unsigned int count, unsigned int *read = 0);
+        FMOD_RESULT F_API       seek(int pos, int mode);
+        FMOD_RESULT F_API       tell(unsigned int *pos);
 
       protected:
 

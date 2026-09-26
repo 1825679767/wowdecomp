@@ -137,6 +137,7 @@ FMOD_RESULT FMOD_OS_File_DriveStatus()
 
 	[SEE_ALSO]
 */
+// VERIFY: 0cb31481 auto
 // OFFSET: 0x008D1CD0
 FMOD_RESULT FMOD_OS_File_Open(const char *name, char *mode, int unicode, unsigned int *filesize, void **handle)
 {
@@ -178,6 +179,7 @@ FMOD_RESULT FMOD_OS_File_Open(const char *name, char *mode, int unicode, unsigne
 
 	[SEE_ALSO]
 */
+// VERIFY: 5b3204ec auto
 // OFFSET: 0x008D1D50
 FMOD_RESULT FMOD_OS_File_Close(void *handle)
 {
@@ -220,6 +222,7 @@ FMOD_RESULT FMOD_OS_File_Cancel(void *handle)
 
 	[SEE_ALSO]
 */
+// VERIFY: 93452c1c auto
 // OFFSET: 0x008D1D70
 FMOD_RESULT FMOD_OS_File_Read(void *handle, void *buf, unsigned int count, unsigned int *read)
 {
@@ -254,6 +257,7 @@ FMOD_RESULT FMOD_OS_File_Read(void *handle, void *buf, unsigned int count, unsig
 
 	[SEE_ALSO]
 */
+// VERIFY: 0122333c auto
 // OFFSET: 0x008D1DC0
 FMOD_RESULT FMOD_OS_File_Seek(void *handle, unsigned int offset)
 {
@@ -302,6 +306,7 @@ FMOD_RESULT FMOD_OS_Debug_OutputStr(const char *s)
 
 	[SEE_ALSO]
 */
+// VERIFY: dfe7462a auto
 // OFFSET: 0x008D1DF0
 FMOD_RESULT FMOD_OS_Time_GetNs(unsigned int *ns)
 {
@@ -337,6 +342,7 @@ FMOD_RESULT FMOD_OS_Time_GetNs(unsigned int *ns)
 
 	[SEE_ALSO]
 */
+// VERIFY: 9ccd9531 auto
 // OFFSET: 0x008D1E60
 FMOD_RESULT FMOD_OS_Time_GetMs(unsigned int *ms)
 {
@@ -357,6 +363,7 @@ FMOD_RESULT FMOD_OS_Time_GetMs(unsigned int *ms)
 
 	[SEE_ALSO]
 */
+// VERIFY: 8034e605 auto
 // OFFSET: 0x008D1E80
 FMOD_RESULT FMOD_OS_Time_Sleep(unsigned int ms)
 {
@@ -377,6 +384,7 @@ FMOD_RESULT FMOD_OS_Time_Sleep(unsigned int ms)
 
 	[SEE_ALSO]
 */
+// VERIFY: b7614508 auto
 // OFFSET: 0x008D1EA0
 FMOD_RESULT FMOD_OS_Thread_GetCurrentID(FMOD_UINT_NATIVE *id)
 {
@@ -398,6 +406,7 @@ FMOD_RESULT FMOD_OS_Thread_GetCurrentID(FMOD_UINT_NATIVE *id)
 
 	[SEE_ALSO]
 */
+// VERIFY: f43f741b auto
 // OFFSET: 0x008D2110
 FMOD_RESULT FMOD_OS_Thread_Create(const char *name, THREAD_RETURNTYPE (THREAD_CALLCONV *func)(void *param), void *param, FMOD_THREAD_PRIORITY priority, void *stack, int stacksize, void **handle)
 {
@@ -487,6 +496,7 @@ FMOD_RESULT FMOD_OS_Thread_Create(const char *name, THREAD_RETURNTYPE (THREAD_CA
 
 	[SEE_ALSO]
 */
+// VERIFY: 56b3a910 auto
 // OFFSET: 0x008D1EC0
 FMOD_RESULT FMOD_OS_Thread_Destroy(void *handle)
 {
@@ -548,6 +558,7 @@ FMOD_RESULT FMOD_OS_CriticalSection_Create(FMOD_OS_CRITICALSECTION **crit, bool 
 
 	[SEE_ALSO]
 */
+// VERIFY: 97ad1e9e auto
 // OFFSET: 0x008D1F40
 FMOD_RESULT FMOD_OS_CriticalSection_Free(FMOD_OS_CRITICALSECTION *crit)
 {
@@ -578,6 +589,7 @@ FMOD_RESULT FMOD_OS_CriticalSection_Free(FMOD_OS_CRITICALSECTION *crit)
 
 	[SEE_ALSO]
 */
+// VERIFY: 2c037747 auto
 // OFFSET: 0x008D1F80
 FMOD_RESULT FMOD_OS_CriticalSection_Enter(FMOD_OS_CRITICALSECTION *crit)
 {
@@ -603,6 +615,7 @@ FMOD_RESULT FMOD_OS_CriticalSection_Enter(FMOD_OS_CRITICALSECTION *crit)
 
 	[SEE_ALSO]
 */
+// VERIFY: 1dd986c8 auto
 // OFFSET: 0x008D1FA0
 FMOD_RESULT FMOD_OS_CriticalSection_Leave(FMOD_OS_CRITICALSECTION *crit)
 {
@@ -690,6 +703,7 @@ FMOD_RESULT FMOD_OS_Semaphore_Free(FMOD_OS_SEMAPHORE *sema)
 
 	[SEE_ALSO]
 */
+// VERIFY: 9d08e4c0 auto
 // OFFSET: 0x008D2010
 FMOD_RESULT FMOD_OS_Semaphore_Wait(FMOD_OS_SEMAPHORE *sema)
 {
@@ -748,6 +762,7 @@ FMOD_RESULT FMOD_OS_Semaphore_Signal(FMOD_OS_SEMAPHORE *sema, bool interrupt)
 
 	[SEE_ALSO]
 */
+// VERIFY: 85e899dc auto
 // OFFSET: 0x008D2060
 FMOD_RESULT FMOD_OS_Library_Load(const char *dllname, FMOD_OS_LIBRARY **handle)
 {

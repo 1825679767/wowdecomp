@@ -9,6 +9,7 @@
 namespace FMOD
 {
 
+// VERIFY: 07adf318 auto
 // OFFSET: 0x008E6750
 DSPNet::DSPNet()
 {
@@ -102,6 +103,7 @@ FMOD_RESULT DSPNet::release()
 }
 
 
+// VERIFY: cc6d1c15 auto
 // OFFSET: 0x008E6780
 FMOD_RESULT DSPNet::flush(bool more)
 {

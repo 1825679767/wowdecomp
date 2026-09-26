@@ -20,6 +20,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2a049646 auto
 // OFFSET: 0x008E8C70
 FMOD_RESULT NullFile::reallyOpen(const char *name_or_data, unsigned int *filesize)
 {
@@ -96,6 +97,7 @@ FMOD_RESULT NullFile::reallyRead(void *buffer, unsigned int size, unsigned int *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 832de1de auto
 // OFFSET: 0x008E8080
 FMOD_RESULT NullFile::reallySeek(unsigned int pos)
 {

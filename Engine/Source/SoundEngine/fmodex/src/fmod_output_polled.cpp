@@ -36,6 +36,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: edcb279c auto
 // OFFSET: 0x00922950
 OutputPolled::OutputPolled()
 {
@@ -201,6 +202,7 @@ FMOD_RESULT OutputPolled::threadFunc()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 50582eff auto
 // OFFSET: 0x00922990
 FMOD_RESULT OutputPolled::start()
 {
@@ -292,6 +294,7 @@ FMOD_RESULT OutputPolled::start()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0df28cba auto
 // OFFSET: 0x00922A90
 FMOD_RESULT OutputPolled::stop()
 {

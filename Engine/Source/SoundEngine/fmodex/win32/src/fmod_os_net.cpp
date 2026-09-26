@@ -23,6 +23,7 @@ FMOD_OS_CRITICALSECTION         *gResolveCrit            = 0;
 
 	[SEE_ALSO]
 */
+// VERIFY: c139d1ae auto
 // OFFSET: 0x009266E0
 FMOD_RESULT FMOD_OS_Net_Init()
 {
@@ -215,6 +216,7 @@ FMOD_RESULT FMOD_OS_Net_Connect(const char *host, const unsigned short port, voi
 
 	[SEE_ALSO]
 */
+// VERIFY: c70e6879 auto
 // OFFSET: 0x00926960
 FMOD_RESULT FMOD_OS_Net_Listen(const unsigned short port, void **listenhandle)
 {
@@ -270,6 +272,7 @@ FMOD_RESULT FMOD_OS_Net_Listen(const unsigned short port, void **listenhandle)
 
 	[SEE_ALSO]
 */
+// VERIFY: 3325434e auto
 // OFFSET: 0x00926A00
 FMOD_RESULT FMOD_OS_Net_Accept(const void *listenhandle, void **clienthandle)
 {
@@ -312,6 +315,7 @@ FMOD_RESULT FMOD_OS_Net_Accept(const void *listenhandle, void **clienthandle)
 
 	[SEE_ALSO]
 */
+// VERIFY: 89ff84e1 auto
 // OFFSET: 0x00926A50
 FMOD_RESULT FMOD_OS_Net_Close(const void *handle)
 {
@@ -454,6 +458,7 @@ FMOD_RESULT FMOD_OS_Net_Read(const void *handle, char *buf, const unsigned int l
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9bbba7de auto
 // OFFSET: 0x00926B70
 FMOD_RESULT FMOD_OS_Net_ReadLine(const void *handle, char *buf, const unsigned int len)
 {

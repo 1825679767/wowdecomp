@@ -630,6 +630,7 @@ FMOD_RESULT CodecDLS::parseChunk(char *parentchunk, unsigned int chunksize)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a71fc969 auto
 // OFFSET: 0x008F9C00
 FMOD_RESULT CodecDLS::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -781,6 +782,7 @@ FMOD_RESULT CodecDLS::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 62b8add7 auto
 // OFFSET: 0x008F8D70
 FMOD_RESULT CodecDLS::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -943,6 +945,7 @@ FMOD_RESULT F_CALLBACK CodecDLS::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 54101f48 auto
 // OFFSET: 0x008F8E10
 FMOD_RESULT F_CALLBACK CodecDLS::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -967,6 +970,7 @@ FMOD_RESULT F_CALLBACK CodecDLS::readCallback(FMOD_CODEC_STATE *codec, void *buf
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e646ee42 auto
 // OFFSET: 0x008F9F30
 FMOD_RESULT F_CALLBACK CodecDLS::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {

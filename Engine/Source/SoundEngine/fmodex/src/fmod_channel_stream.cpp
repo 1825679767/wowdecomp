@@ -75,6 +75,7 @@ FMOD_RESULT ChannelStream::setRealChannel(ChannelReal *realchan)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3ed980d0 auto
 // OFFSET: 0x0091E5C0
 FMOD_RESULT ChannelStream::set2DFreqVolumePanFor3D()
 {
@@ -105,6 +106,7 @@ FMOD_RESULT ChannelStream::set2DFreqVolumePanFor3D()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: aa7765f0 auto
 // OFFSET: 0x0091E5F0
 FMOD_RESULT ChannelStream::moveChannelGroup(ChannelGroupI *oldchannelgroup, ChannelGroupI *newchannelgroup)
 {
@@ -224,6 +226,7 @@ FMOD_RESULT ChannelStream::alloc()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 73435730 auto
 // OFFSET: 0x0091E7D0
 FMOD_RESULT ChannelStream::start()
 {
@@ -268,6 +271,7 @@ FMOD_RESULT ChannelStream::start()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 613ff4cc auto
 // OFFSET: 0x0091E830
 FMOD_RESULT ChannelStream::update(int delta)
 {
@@ -490,6 +494,7 @@ FMOD_RESULT ChannelStream::updateStream()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2ce93c67 auto
 // OFFSET: 0x0091E870
 FMOD_RESULT ChannelStream::setMode(FMOD_MODE mode)
 {
@@ -532,6 +537,7 @@ FMOD_RESULT ChannelStream::setMode(FMOD_MODE mode)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2df34548 auto
 // OFFSET: 0x0091E8E0
 FMOD_RESULT ChannelStream::stop(bool ignoreenddelay, bool resetstate, bool force)
 {
@@ -640,6 +646,7 @@ FMOD_RESULT ChannelStream::stop(bool ignoreenddelay, bool resetstate)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e0830747 auto
 // OFFSET: 0x0091EAA0
 FMOD_RESULT ChannelStream::setPaused(bool paused)
 {
@@ -670,6 +677,7 @@ FMOD_RESULT ChannelStream::setPaused(bool paused)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8d444d4e auto
 // OFFSET: 0x0091EAE0
 FMOD_RESULT ChannelStream::setVolume(float volume)
 {
@@ -710,6 +718,7 @@ FMOD_RESULT ChannelStream::setVolume(float volume)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 53886873 auto
 // OFFSET: 0x0091EB60
 FMOD_RESULT ChannelStream::setFrequency(float frequency)
 {
@@ -740,6 +749,7 @@ FMOD_RESULT ChannelStream::setFrequency(float frequency)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3e7a3457 auto
 // OFFSET: 0x0091EBA0
 FMOD_RESULT ChannelStream::setPan(float pan, float fbpan)
 {
@@ -775,6 +785,7 @@ FMOD_RESULT ChannelStream::setPan(float pan, float fbpan)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8e0ae62a auto
 // OFFSET: 0x0091EC10
 FMOD_RESULT ChannelStream::setDelay(unsigned int startdelay, unsigned int enddelay)
 {
@@ -835,6 +846,7 @@ FMOD_RESULT ChannelStream::setSpeakerMix(float frontleft, float frontright, floa
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 76ca593c auto
 // OFFSET: 0x0091ECC0
 FMOD_RESULT ChannelStream::setSpeakerLevels(int speaker, float *levels, int numlevels)
 {
@@ -1151,6 +1163,7 @@ FMOD_RESULT ChannelStream::getPosition(unsigned int *position, FMOD_TIMEUNIT pos
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b6c4e6dd auto
 // OFFSET: 0x0091ED00
 FMOD_RESULT ChannelStream::setLoopPoints(unsigned int loopstart, unsigned int looplength)
 {
@@ -1178,6 +1191,7 @@ FMOD_RESULT ChannelStream::setLoopPoints(unsigned int loopstart, unsigned int lo
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e8a78ba3 auto
 // OFFSET: 0x0091ED40
 FMOD_RESULT ChannelStream::setLoopCount(int loopcount)
 {
@@ -1205,6 +1219,7 @@ FMOD_RESULT ChannelStream::setLoopCount(int loopcount)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d23481fd auto
 // OFFSET: 0x0091ED70
 FMOD_RESULT ChannelStream::set3DAttributes()
 {
@@ -1235,6 +1250,7 @@ FMOD_RESULT ChannelStream::set3DAttributes()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c920e37f auto
 // OFFSET: 0x0091EDA0
 FMOD_RESULT ChannelStream::set3DMinMaxDistance()
 {
@@ -1265,6 +1281,7 @@ FMOD_RESULT ChannelStream::set3DMinMaxDistance()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6a1a6a93 auto
 // OFFSET: 0x0091EDD0
 FMOD_RESULT ChannelStream::set3DOcclusion(float directocclusion, float reverbocclusion)
 {
@@ -1295,6 +1312,7 @@ FMOD_RESULT ChannelStream::set3DOcclusion(float directocclusion, float reverbocc
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 98e75020 auto
 // OFFSET: 0x0091EE10
 FMOD_RESULT ChannelStream::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
@@ -1325,6 +1343,7 @@ FMOD_RESULT ChannelStream::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTI
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4425a2f7 auto
 // OFFSET: 0x0091EE50
 FMOD_RESULT ChannelStream::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
@@ -1355,6 +1374,7 @@ FMOD_RESULT ChannelStream::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *pr
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 69ac7322 auto
 // OFFSET: 0x0091EE90
 FMOD_RESULT ChannelStream::isPlaying(bool *isplaying, bool includethreadlatency)
 {

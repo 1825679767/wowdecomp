@@ -27,6 +27,7 @@ namespace FMOD
         static FMOD_FILE_READCALLBACK  gReadCallback;
         static FMOD_FILE_SEEKCALLBACK  gSeekCallback;
         
+// VERIFY: 58d56a3d auto
         // OFFSET: 0x008D2770
         UserFile() 
         {

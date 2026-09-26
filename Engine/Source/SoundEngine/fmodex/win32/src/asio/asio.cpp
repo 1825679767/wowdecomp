@@ -93,6 +93,7 @@ ASIOError ASIOInit(ASIODriverInfo *info)
 #endif	// !MAC
 }
 
+// VERIFY: 805532cb auto
 // OFFSET: 0x0094D2D0
 ASIOError ASIOExit(void)
 {
@@ -127,6 +128,7 @@ ASIOError ASIOStop(void)
 	return theAsioDriver->stop();
 }
 
+// VERIFY: 9bc81937 auto
 // OFFSET: 0x0094D340
 ASIOError ASIOGetChannels(long *numInputChannels, long *numOutputChannels)
 {
@@ -148,6 +150,7 @@ ASIOError ASIOGetLatencies(long *inputLatency, long *outputLatency)
 	return theAsioDriver->getLatencies(inputLatency, outputLatency);
 }
 
+// VERIFY: 0f8c0165 auto
 // OFFSET: 0x0094D370
 ASIOError ASIOGetBufferSize(long *minSize, long *maxSize, long *preferredSize, long *granularity)
 {
@@ -166,6 +169,7 @@ ASIOError ASIOCanSampleRate(ASIOSampleRate sampleRate)
 	return theAsioDriver->canSampleRate(sampleRate);
 }
 
+// VERIFY: c9f681ac auto
 // OFFSET: 0x0094D3C0
 ASIOError ASIOGetSampleRate(ASIOSampleRate *currentRate)
 {
@@ -198,6 +202,7 @@ ASIOError ASIOSetClockSource(long reference)
 	return theAsioDriver->setClockSource(reference);
 }
 
+// VERIFY: 78b6c2c1 auto
 // OFFSET: 0x0094D3F0
 ASIOError ASIOGetSamplePosition(ASIOSamples *sPos, ASIOTimeStamp *tStamp)
 {
@@ -206,6 +211,7 @@ ASIOError ASIOGetSamplePosition(ASIOSamples *sPos, ASIOTimeStamp *tStamp)
 	return theAsioDriver->getSamplePosition(sPos, tStamp);
 }
 
+// VERIFY: ea5fbb0c auto
 // OFFSET: 0x0094D420
 ASIOError ASIOGetChannelInfo(ASIOChannelInfo *info)
 {

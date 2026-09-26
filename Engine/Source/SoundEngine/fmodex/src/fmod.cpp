@@ -84,6 +84,7 @@ void operator delete(void *ptr)
     System::close
 ]
 */
+// VERIFY: ded72527 auto
 // OFFSET: 0x008D0550
 FMOD_RESULT F_API FMOD_Memory_Initialize(void *poolmem, int poollen, FMOD_MEMORY_ALLOCCALLBACK useralloc, FMOD_MEMORY_REALLOCCALLBACK userrealloc, FMOD_MEMORY_FREECALLBACK userfree)
 {

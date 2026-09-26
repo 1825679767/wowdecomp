@@ -233,6 +233,7 @@ FMOD_RESULT DSPResamplerMultiInput::execute(float *inbuffer, float **outbuffer, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5d79e23f auto
 // OFFSET: 0x00929BD0
 FMOD_RESULT DSPResamplerMultiInput::addInput(DSPI *target)
 {

@@ -134,6 +134,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2273d67f auto
 // OFFSET: 0x0090CE40
 static FLAC__StreamDecoderReadStatus FMOD_FLAC_ReadCallback(const FLAC__StreamDecoder *decoder, FLAC__byte buffer[], size_t *bytes, void *client_data)
 {
@@ -220,6 +221,7 @@ static FLAC__StreamDecoderWriteStatus FMOD_FLAC_WriteCallback(const FLAC__Stream
 }
 
 
+// VERIFY: 3d5fc1a4 auto
 // OFFSET: 0x0090CF60
 static FLAC__StreamDecoderSeekStatus FMOD_FLAC_SeekCallback(const FLAC__StreamDecoder *decoder, FLAC__uint64 absolute_byte_offset, void *client_data)
 {
@@ -238,6 +240,7 @@ static FLAC__StreamDecoderSeekStatus FMOD_FLAC_SeekCallback(const FLAC__StreamDe
 }
 
 
+// VERIFY: 5ad4e2cc auto
 // OFFSET: 0x0090CF80
 static FLAC__StreamDecoderTellStatus FMOD_FLAC_TellCallback(const FLAC__StreamDecoder *decoder, FLAC__uint64 *absolute_byte_offset, void *client_data)
 {
@@ -258,6 +261,7 @@ static FLAC__StreamDecoderTellStatus FMOD_FLAC_TellCallback(const FLAC__StreamDe
 }
 
 
+// VERIFY: 0d583ede auto
 // OFFSET: 0x0090CFC0
 static FLAC__StreamDecoderLengthStatus FMOD_FLAC_LengthCallback(const FLAC__StreamDecoder *decoder, FLAC__uint64 *stream_length, void *client_data)
 {
@@ -278,6 +282,7 @@ static FLAC__StreamDecoderLengthStatus FMOD_FLAC_LengthCallback(const FLAC__Stre
 }
 
 
+// VERIFY: 6c8e76f9 auto
 // OFFSET: 0x0090D000
 static FLAC__bool FMOD_FLAC_EofCallback(const FLAC__StreamDecoder *decoder, void *client_data)
 {
@@ -622,6 +627,7 @@ FMOD_RESULT CodecFLAC::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f9f00d1d auto
 // OFFSET: 0x0090D210
 FMOD_RESULT CodecFLAC::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -767,6 +773,7 @@ FMOD_RESULT F_CALLBACK CodecFLAC::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3a00b6d9 auto
 // OFFSET: 0x0090D2B0
 FMOD_RESULT F_CALLBACK CodecFLAC::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {

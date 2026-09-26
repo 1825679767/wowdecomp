@@ -24,6 +24,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0844ff2a auto
 // OFFSET: 0x0091D2F0
 FMOD_RESULT Codec::release()
 {
@@ -227,6 +228,7 @@ FMOD_RESULT Codec::getMetadataFromFile()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cdbc6dbf auto
 // OFFSET: 0x0091D390
 FMOD_RESULT Codec::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
 {
@@ -393,6 +395,7 @@ FMOD_RESULT Codec::setPosition(int subsound, unsigned int position, FMOD_TIMEUNI
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5b95f9b4 auto
 // OFFSET: 0x0091D400
 FMOD_RESULT Codec::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {

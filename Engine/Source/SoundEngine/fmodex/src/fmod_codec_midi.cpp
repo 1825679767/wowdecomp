@@ -376,6 +376,7 @@ FMOD_RESULT CodecMIDISubChannel::displayArticulators()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d2e946ac auto
 // OFFSET: 0x008F9FE0
 FMOD_RESULT CodecMIDISubChannel::findArticulator(int src, int dest)
 {
@@ -656,6 +657,7 @@ static float gTimeCentsTable[TIMECENTSTABLENUM] =
 
 #endif
 
+// VERIFY: a54d515d auto
 // OFFSET: 0x008FA390
 float CodecMIDISubChannel::getTimeCentsFromlScale(int lScale)
 {
@@ -692,6 +694,7 @@ float CodecMIDISubChannel::getTimeCentsFromlScale(int lScale)
 }
 
 
+// VERIFY: e4f97cd1 auto
 // OFFSET: 0x008FA400
 FMOD_RESULT CodecMIDISubChannel::setUpArticulators()
 {
@@ -2356,6 +2359,7 @@ FMOD_RESULT CodecMIDITrack::readVarLen(unsigned int *result)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 211ef286 auto
 // OFFSET: 0x008FB130
 FMOD_RESULT CodecMIDITrack::readByte(unsigned char *result)
 {
@@ -2386,6 +2390,7 @@ FMOD_RESULT CodecMIDITrack::readByte(unsigned char *result)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6a8f360f auto
 // OFFSET: 0x008FB160
 FMOD_RESULT CodecMIDITrack::read(void *buff, int length)
 {        
@@ -2426,6 +2431,7 @@ FMOD_RESULT CodecMIDITrack::read(void *buff, int length)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d3a9b570 auto
 // OFFSET: 0x008FB1B0
 FMOD_RESULT CodecMIDITrack::addTag(const char *name, int length, bool calledfromopen)
 {
@@ -3694,6 +3700,7 @@ FMOD_RESULT F_CALLBACK CodecMIDI::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dcca0603 auto
 // OFFSET: 0x008FC7D0
 FMOD_RESULT F_CALLBACK CodecMIDI::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {

@@ -101,6 +101,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecS3M::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d3cdfbb2 auto
 // OFFSET: 0x00908EF0
 FMOD_RESULT CodecS3M::calculateLength()
 {
@@ -304,6 +305,7 @@ FMOD_RESULT MusicChannelS3M::vibrato()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 121f8bf1 auto
 // OFFSET: 0x00907750
 FMOD_RESULT MusicChannelS3M::tremolo() 
 {
@@ -378,6 +380,7 @@ FMOD_RESULT MusicChannelS3M::tremolo()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: aef22d33 auto
 // OFFSET: 0x00907830
 FMOD_RESULT MusicChannelS3M::fineVibrato() 
 {
@@ -2710,6 +2713,7 @@ FMOD_RESULT CodecS3M::readInternal(void *buffer, unsigned int sizebytes, unsigne
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0967af0e auto
 // OFFSET: 0x00908DF0
 FMOD_RESULT CodecS3M::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -2827,6 +2831,7 @@ FMOD_RESULT F_CALLBACK CodecS3M::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 09301395 auto
 // OFFSET: 0x00909300
 FMOD_RESULT F_CALLBACK CodecS3M::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -2851,6 +2856,7 @@ FMOD_RESULT F_CALLBACK CodecS3M::readCallback(FMOD_CODEC_STATE *codec, void *buf
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7f543ae1 auto
 // OFFSET: 0x00908EC0
 FMOD_RESULT F_CALLBACK CodecS3M::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype   )
 {

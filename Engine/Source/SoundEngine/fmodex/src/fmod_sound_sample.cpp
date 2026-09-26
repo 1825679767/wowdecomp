@@ -22,6 +22,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 65d4c73e auto
 // OFFSET: 0x0091AF20
 Sample::Sample()
 {
@@ -626,6 +627,7 @@ FMOD_RESULT Sample::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a67435ce auto
 // OFFSET: 0x0091AF70
 FMOD_RESULT Sample::release(bool freethis)
 {
@@ -670,6 +672,7 @@ FMOD_RESULT Sample::release(bool freethis)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: efed93a3 auto
 // OFFSET: 0x0091B000
 FMOD_RESULT Sample::setDefaults(float frequency, float volume, float pan, int priority)
 {
@@ -706,6 +709,7 @@ FMOD_RESULT Sample::setDefaults(float frequency, float volume, float pan, int pr
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 304341aa auto
 // OFFSET: 0x0091B080
 FMOD_RESULT Sample::setVariations(float frequencyvar, float volumevar, float panvar)
 {
@@ -742,6 +746,7 @@ FMOD_RESULT Sample::setVariations(float frequencyvar, float volumevar, float pan
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 23b8e2f9 auto
 // OFFSET: 0x0091B0F0
 FMOD_RESULT Sample::set3DMinMaxDistance(float min, float max)
 {
@@ -779,6 +784,7 @@ FMOD_RESULT Sample::set3DMinMaxDistance(float min, float max)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a613c93c auto
 // OFFSET: 0x0091B160
 FMOD_RESULT Sample::set3DConeSettings(float insideconeangle, float outsideconeangle, float outsidevolume)
 {
@@ -816,6 +822,7 @@ FMOD_RESULT Sample::set3DConeSettings(float insideconeangle, float outsideconean
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4ba8f5aa auto
 // OFFSET: 0x0091B1D0
 FMOD_RESULT  Sample::setMode(FMOD_MODE mode)
 {
@@ -853,6 +860,7 @@ FMOD_RESULT  Sample::setMode(FMOD_MODE mode)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d9adf225 auto
 // OFFSET: 0x0091B220
 FMOD_RESULT  Sample::setLoopCount(int loopcount)
 {
@@ -889,6 +897,7 @@ FMOD_RESULT  Sample::setLoopCount(int loopcount)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 67e3442b auto
 // OFFSET: 0x0091B270
 FMOD_RESULT Sample::setLoopPoints(unsigned int loopstart, FMOD_TIMEUNIT loopstarttype, unsigned int loopend, FMOD_TIMEUNIT loopendtype)
 {

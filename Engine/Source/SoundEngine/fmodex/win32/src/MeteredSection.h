@@ -16,7 +16,7 @@ extern "C"
 {
 #endif // __cplusplus
 
-//#define FILEMAPPING
+#define FILEMAPPING
 
 // Shared info needed for metered section
 typedef struct _METSECT_SHARED_INFO {

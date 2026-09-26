@@ -65,6 +65,7 @@ Output::Output()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ac1cf3e7 auto
 // OFFSET: 0x00916090
 FMOD_RESULT Output::release()
 {
@@ -176,6 +177,7 @@ FMOD_RESULT Output::recordRead(float *inbuffer, float *outbuffer, unsigned int l
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2c9aa64b auto
 // OFFSET: 0x009165A0
 FMOD_RESULT F_CALLBACK Output::recordResamplerReadCallback(FMOD_DSP_STATE *dsp_state, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -318,6 +320,7 @@ FMOD_RESULT Output::recordFill(unsigned int length)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 64f26d7e auto
 // OFFSET: 0x00916B30
 FMOD_RESULT Output::recordUpdate()
 {

@@ -29,6 +29,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 46c0ca1d auto
 // OFFSET: 0x0091E480
 Stream::Stream()
 {
@@ -307,6 +308,7 @@ FMOD_RESULT Stream::fill(unsigned int offset, unsigned int length)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bf05cc98 auto
 // OFFSET: 0x0091E1D0
 FMOD_RESULT Stream::flush()
 {
@@ -550,6 +552,7 @@ FMOD_RESULT Stream::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 474b040b auto
 // OFFSET: 0x0091E450
 FMOD_RESULT Stream::setLoopCount(int loopcount)
 {

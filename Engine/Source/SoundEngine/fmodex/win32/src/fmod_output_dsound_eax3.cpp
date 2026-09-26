@@ -26,6 +26,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ba34dd52 auto
 // OFFSET: 0x009506C0
 bool OutputDSound::querySupportEAX3(unsigned int ulQuery)
 {
@@ -72,6 +73,7 @@ bool OutputDSound::querySupportEAX3(unsigned int ulQuery)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1aa4b8e4 auto
 // OFFSET: 0x00950740
 bool OutputDSound::initEAX3()
 {
@@ -189,6 +191,7 @@ bool OutputDSound::initEAX3()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 44db8f51 auto
 // OFFSET: 0x00950A50
 FMOD_RESULT OutputDSound::closeEAX3()
 {

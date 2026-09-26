@@ -84,6 +84,7 @@ FMOD_RESULT TagNode::init(FMOD_TAGTYPE type, const char *name, void *data, unsig
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6d564434 auto
 // OFFSET: 0x0091CDB0
 FMOD_RESULT TagNode::release()
 {
@@ -174,6 +175,7 @@ FMOD_RESULT TagNode::update(void *data, unsigned int datalen)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 78d6e61d auto
 // OFFSET: 0x0091CF40
 FMOD_RESULT Metadata::release()
 {
@@ -209,6 +211,7 @@ FMOD_RESULT Metadata::release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 82b299b7 auto
 // OFFSET: 0x0091CFF0
 FMOD_RESULT Metadata::getNumTags(int *numtags, int *numtagsupdated)
 {
@@ -375,6 +378,7 @@ FMOD_RESULT Metadata::getTag(const char *name, int index, FMOD_TAG *tag)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 43fdfdd9 auto
 // OFFSET: 0x0091D140
 FMOD_RESULT Metadata::add(Metadata *metadata)
 {

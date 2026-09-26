@@ -37,6 +37,7 @@ extern "C" {
 #endif  /* PLUGIN_EXPORTS */
 
 
+// VERIFY: 7471290d auto
 // OFFSET: 0x009394E0
 FMOD_OUTPUT_DESCRIPTION_EX *OutputWASAPI::getDescriptionEx()
 {
@@ -993,6 +994,7 @@ FMOD_RESULT OutputWASAPI::recordUpdate()
 }
 
 
+// VERIFY: d841336d auto
 // OFFSET: 0x00938600
 void CALLBACK OutputWASAPI::recordTimerCallback(UINT uTimerID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR dw2)
 {
@@ -1291,6 +1293,7 @@ Exit:
 }
 
 
+// VERIFY: 8a1f828c auto
 // OFFSET: 0x00938C60
 FMOD_RESULT OutputWASAPI::recordStop()
 {
@@ -1374,6 +1377,7 @@ FMOD_RESULT OutputWASAPI::recordLock(unsigned int offset, unsigned int length, v
 #endif
 
 
+// VERIFY: 295ab632 auto
 // OFFSET: 0x00938DD0
 FMOD_RESULT F_CALLBACK OutputWASAPI::getNumDriversCallback(FMOD_OUTPUT_STATE *output, int *numdrivers)
 {
@@ -1383,6 +1387,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::getNumDriversCallback(FMOD_OUTPUT_STATE *ou
 }
 
 
+// VERIFY: e16cf880 auto
 // OFFSET: 0x00938E10
 FMOD_RESULT F_CALLBACK OutputWASAPI::getDriverNameCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
@@ -1392,6 +1397,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::getDriverNameCallback(FMOD_OUTPUT_STATE *ou
 }
 
 
+// VERIFY: 34c78eff auto
 // OFFSET: 0x00938E40
 FMOD_RESULT F_CALLBACK OutputWASAPI::getDriverCapsExCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode)
 {
@@ -1401,6 +1407,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::getDriverCapsExCallback(FMOD_OUTPUT_STATE *
 }
 
 
+// VERIFY: 981f5a90 auto
 // OFFSET: 0x00938E70
 FMOD_RESULT F_CALLBACK OutputWASAPI::initExCallback(FMOD_OUTPUT_STATE *output, int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, FMOD_SPEAKERMODE *speakermode, int dspbufferlength, int dspnumbuffers, int max2dchannels, int max3dchannels, void *extradriverdata)
 {
@@ -1454,6 +1461,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::getPositionCallback(FMOD_OUTPUT_STATE *outp
 }
 
 
+// VERIFY: 330e8834 auto
 // OFFSET: 0x00939470
 FMOD_RESULT F_CALLBACK OutputWASAPI::lockCallback(FMOD_OUTPUT_STATE *output, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -1463,6 +1471,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::lockCallback(FMOD_OUTPUT_STATE *output, uns
 }
 
 
+// VERIFY: 9816ebc2 auto
 // OFFSET: 0x009394B0
 FMOD_RESULT F_CALLBACK OutputWASAPI::unlockCallback(FMOD_OUTPUT_STATE *output, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
@@ -1474,6 +1483,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::unlockCallback(FMOD_OUTPUT_STATE *output, v
 
 #ifdef FMOD_SUPPORT_RECORDING
 
+// VERIFY: 174774b6 auto
 // OFFSET: 0x00938FE0
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetNumDriversCallback(FMOD_OUTPUT_STATE *output, int *numdrivers)
 {
@@ -1483,6 +1493,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetNumDriversCallback(FMOD_OUTPUT_STA
 }
 
 
+// VERIFY: e888580f auto
 // OFFSET: 0x00939020
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
@@ -1492,6 +1503,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetDriverInfoCallback(FMOD_OUTPUT_STA
 }
 
 
+// VERIFY: 1d9b6649 auto
 // OFFSET: 0x00939050
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetDriverCapsCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency)
 {
@@ -1501,6 +1513,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetDriverCapsCallback(FMOD_OUTPUT_STA
 }
 
 
+// VERIFY: a95fc3dd auto
 // OFFSET: 0x00939080
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordStartCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_SOUND *sound, int loop)
 {
@@ -1527,6 +1540,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::recordGetPositionCallback(FMOD_OUTPUT_STATE
 }
 
 
+// VERIFY: 6b4cd25f auto
 // OFFSET: 0x009390E0
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordLockCallback(FMOD_OUTPUT_STATE *output, unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {

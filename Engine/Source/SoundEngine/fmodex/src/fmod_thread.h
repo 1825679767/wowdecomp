@@ -48,6 +48,7 @@ namespace FMOD
         } PRIORITY;
 
         Thread();
+// VERIFY: b316fd71 auto
         // OFFSET: 0x008D2230
         virtual ~Thread() { }
 

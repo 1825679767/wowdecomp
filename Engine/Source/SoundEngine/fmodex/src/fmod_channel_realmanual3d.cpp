@@ -28,6 +28,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 52433707 auto
 // OFFSET: 0x0094BD30
 ChannelRealManual3D::ChannelRealManual3D()
 {

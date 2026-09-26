@@ -38,7 +38,7 @@ namespace FMOD
         FMOD_RESULT     init(SystemI *system, Output *output, int numchannels);
         FMOD_RESULT     release();
         FMOD_RESULT     find(int id, Sound *sound, ChannelReal **channel, int excludeid, bool stopstreamable);
-        FMOD_RESULT     allocateChannel(ChannelReal **realchannel, int index, int numchannels, int *found, bool ignorereserved = false);
+        FMOD_RESULT     allocateChannel(ChannelReal **realchannel, int index, int numchannels, int *found);
         FMOD_RESULT     getNumChannels(int *numchannels);
 	    FMOD_RESULT     getChannelsUsed(int *numchannels);
         FMOD_RESULT     setChannel(int index, ChannelReal *channel, DSPI *dspmixtarget = 0);

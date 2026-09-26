@@ -2,6 +2,7 @@
 #include "fmod_stringw.h"
 #include "fmod_memory.h"
 
+// VERIFY: e2386f82 auto
 // OFFSET: 0x0091CCC0
 int FMOD_strlenW(const short * s)
 {
@@ -21,6 +22,7 @@ short * FMOD_strcpyW(short * dest,const short *src)
     return tmp;
 }
 
+// VERIFY: 041be19c auto
 // OFFSET: 0x0091CCE0
 short * FMOD_strncpyW(short * dest, const short *src, int count)
 {

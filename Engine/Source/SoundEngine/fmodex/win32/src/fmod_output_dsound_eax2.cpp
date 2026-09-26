@@ -25,6 +25,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5bac5638 auto
 // OFFSET: 0x00950C50
 bool OutputDSound::querySupportEAX2(unsigned int ulQuery)
 {
@@ -71,6 +72,7 @@ bool OutputDSound::querySupportEAX2(unsigned int ulQuery)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ab594de7 auto
 // OFFSET: 0x00950CD0
 bool OutputDSound::initEAX2()
 {
@@ -177,6 +179,7 @@ bool OutputDSound::initEAX2()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ffdd1e70 auto
 // OFFSET: 0x00950F20
 FMOD_RESULT OutputDSound::closeEAX2()
 {

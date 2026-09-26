@@ -884,6 +884,7 @@ FMOD_RESULT CodecPlaylist::readM3U()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dc63259a auto
 // OFFSET: 0x008F76F0
 FMOD_RESULT CodecPlaylist::readPLS()
 {
@@ -1139,6 +1140,7 @@ FMOD_RESULT CodecPlaylist::getPLSToken(char *buffer, int length, int *tokensize)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c951b1f8 auto
 // OFFSET: 0x008F7910
 FMOD_RESULT CodecPlaylist::readSimple()
 {
@@ -1367,6 +1369,7 @@ FMOD_RESULT CodecPlaylist::getQuoteData(const char *tag, char *buffer, int *data
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b7fb4a13 auto
 // OFFSET: 0x008F6D50
 FMOD_RESULT CodecPlaylist::skipWhiteSpace(int *numwhitespaces)
 {

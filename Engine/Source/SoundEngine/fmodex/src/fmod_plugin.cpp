@@ -23,6 +23,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c5095ca0 auto
 // OFFSET: 0x00923000
 FMOD_RESULT Plugin::release()
 {

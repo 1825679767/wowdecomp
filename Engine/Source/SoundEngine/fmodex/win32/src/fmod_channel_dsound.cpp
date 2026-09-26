@@ -86,6 +86,7 @@ typedef enum {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 444a402b auto
 // OFFSET: 0x0094DCA0
 FMOD_RESULT ChannelDSound::init(int index, SystemI *system, Output *output, DSPI *dspmixtarget)
 {
@@ -270,6 +271,7 @@ FMOD_RESULT ChannelDSound::alloc()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6e987adf auto
 // OFFSET: 0x0094DF50
 FMOD_RESULT ChannelDSound::start()
 {
@@ -535,6 +537,7 @@ FMOD_RESULT ChannelDSound::setPaused(bool paused)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a9005dc8 auto
 // OFFSET: 0x0094E130
 FMOD_RESULT ChannelDSound::setVolume(float volume)
 {  
@@ -654,6 +657,7 @@ FMOD_RESULT ChannelDSound::setFrequency(float frequency)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f0c2d3a0 auto
 // OFFSET: 0x0094E2B0
 FMOD_RESULT ChannelDSound::setPan(float pan, float fbpan)
 {
@@ -1074,6 +1078,7 @@ FMOD_RESULT ChannelDSound::set3DMinMaxDistance()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b428f22c auto
 // OFFSET: 0x0094E720
 FMOD_RESULT ChannelDSound::set3DOcclusion(float directOcclusion, float reverbOcclusion)
 {

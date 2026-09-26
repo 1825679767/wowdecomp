@@ -54,6 +54,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b362e9e0 auto
 // OFFSET: 0x00927000
 FMOD_DSP_DESCRIPTION_EX *DSPCodec::getDescriptionEx()
 {
@@ -120,6 +121,7 @@ FMOD_RESULT DSPCodec::createInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f5c3e87d auto
 // OFFSET: 0x00926C20
 FMOD_RESULT DSPCodec::release(bool freethis)
 {
@@ -211,6 +213,7 @@ FMOD_RESULT DSPCodec::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a533aa87 auto
 // OFFSET: 0x00926CD0
 FMOD_RESULT DSPCodec::readInternal(signed short *inbuffer, signed short *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -464,6 +467,7 @@ FMOD_RESULT F_CALLBACK DSPCodec::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: da7b32bc auto
 // OFFSET: 0x00926FD0
 FMOD_RESULT F_CALLBACK DSPCodec::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {

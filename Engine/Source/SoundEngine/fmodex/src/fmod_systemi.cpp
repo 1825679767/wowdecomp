@@ -213,6 +213,7 @@ FMOD_OS_CRITICALSECTION *SystemI::gSoundListCrit      = 0;
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f3f43be4 auto
 // OFFSET: 0x008D2800
 FMOD_RESULT SystemI::getInstance(unsigned int id, SystemI **sys)
 {
@@ -255,6 +256,7 @@ FMOD_RESULT SystemI::getInstance(unsigned int id, SystemI **sys)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b22da821 auto
 // OFFSET: 0x008D2850
 FMOD_RESULT SystemI::validate(System *system, SystemI **systemi)
 {
@@ -296,6 +298,7 @@ FMOD_RESULT SystemI::validate(System *system, SystemI **systemi)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 033e4f7a auto
 // OFFSET: 0x008D5200
 void SystemI::streamThread(void *data)
 {
@@ -329,6 +332,7 @@ void SystemI::streamThread(void *data)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 32885d29 auto
 // OFFSET: 0x008D2890
 FMOD_RESULT SystemI::updateStreams()
 {
@@ -2986,6 +2990,7 @@ FMOD_RESULT SystemI::createSoundInternal(const char *name_or_data, FMOD_MODE mod
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 06b9eea3 auto
 // OFFSET: 0x008D35C0
 FMOD_RESULT SystemI::setUpPlugins()
 {
@@ -3223,6 +3228,7 @@ FMOD_RESULT SystemI::sortSpeakerList()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cc61f75b auto
 // OFFSET: 0x008D3A70
 FMOD_RESULT SystemI::allocDSPCodec(FMOD_SOUND_FORMAT format, DSPCodec **dsp)
 {
@@ -3432,6 +3438,7 @@ FMOD_RESULT SystemI::release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 476d4a43 auto
 // OFFSET: 0x008D3AB0
 FMOD_RESULT SystemI::setOutput(FMOD_OUTPUTTYPE outputtype)
 {
@@ -3516,6 +3523,7 @@ FMOD_RESULT SystemI::setOutput(FMOD_OUTPUTTYPE outputtype)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ef8dd8d0 auto
 // OFFSET: 0x008D3BC0
 FMOD_RESULT SystemI::getOutput(FMOD_OUTPUTTYPE *output)
 {
@@ -3545,6 +3553,7 @@ FMOD_RESULT SystemI::getOutput(FMOD_OUTPUTTYPE *output)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 30a8e5cd auto
 // OFFSET: 0x008D3BF0
 FMOD_RESULT SystemI::setSoftwareFormat(int samplerate, FMOD_SOUND_FORMAT format, int numoutputchannels, int maxinputchannels, FMOD_DSP_RESAMPLER resamplermethod)
 {
@@ -3831,6 +3840,7 @@ FMOD_RESULT SystemI::getDriverCaps(int id, FMOD_CAPS *caps, int *minfrequency, i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: aba9797d auto
 // OFFSET: 0x008D3F30
 FMOD_RESULT SystemI::setDriver(int driver)
 {
@@ -3909,6 +3919,7 @@ FMOD_RESULT SystemI::getDriver(int *driver)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 828c662e auto
 // OFFSET: 0x008D3F90
 FMOD_RESULT SystemI::setHardwareChannels(int min2d, int max2d, int min3d, int max3d)
 {
@@ -3947,6 +3958,7 @@ FMOD_RESULT SystemI::setHardwareChannels(int min2d, int max2d, int min3d, int ma
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 76b9bcda auto
 // OFFSET: 0x008D3FF0
 FMOD_RESULT SystemI::getHardwareChannels(int *num2d, int *num3d, int *total)
 {
@@ -4029,6 +4041,7 @@ FMOD_RESULT SystemI::getHardwareChannels(int *num2d, int *num3d, int *total)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dd7ee6ee auto
 // OFFSET: 0x008D40A0
 FMOD_RESULT SystemI::setSoftwareChannels(int numsoftwarechannels)
 {
@@ -4092,6 +4105,7 @@ FMOD_RESULT SystemI::getSoftwareChannels(int *numsoftwarechannels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 61c61349 auto
 // OFFSET: 0x008D40D0
 FMOD_RESULT SystemI::setDSPBufferSize(unsigned int bufferlength, int numbuffers)
 {
@@ -4135,6 +4149,7 @@ FMOD_RESULT SystemI::setDSPBufferSize(unsigned int bufferlength, int numbuffers)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 17c82fc0 auto
 // OFFSET: 0x008D4110
 FMOD_RESULT SystemI::getDSPBufferSize(unsigned int *bufferlength, int *numbuffers)
 {
@@ -4410,6 +4425,7 @@ FMOD_RESULT SystemI::getAdvancedSettings(FMOD_ADVANCEDSETTINGS *settings)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d4ac9675 auto
 // OFFSET: 0x008D5A50
 FMOD_RESULT SystemI::setSpeakerMode(FMOD_SPEAKERMODE speakermode)
 {
@@ -5426,6 +5442,7 @@ FMOD_RESULT SystemI::init(int maxchannels, FMOD_INITFLAGS flags, void *extradriv
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dc7d2e9c auto
 // OFFSET: 0x008D9A20
 FMOD_RESULT SystemI::close()
 {
@@ -6176,6 +6193,7 @@ FMOD_RESULT SystemI::set3DListenerAttributes(int listener, const FMOD_VECTOR *po
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e83cc3fe auto
 // OFFSET: 0x008D44A0
 FMOD_RESULT SystemI::set3DRolloffCallback(FMOD_3D_ROLLOFFCALLBACK callback)
 {
@@ -6276,6 +6294,7 @@ FMOD_RESULT SystemI::get3DSpeakerPosition(FMOD_SPEAKER speaker, float *x, float 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ea1803b8 auto
 // OFFSET: 0x008D4600
 FMOD_RESULT SystemI::get3DNumListeners(int *numlisteners)
 {
@@ -6352,6 +6371,7 @@ FMOD_RESULT SystemI::get3DListenerAttributes(int listener, FMOD_VECTOR *pos, FMO
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bd2ac38c auto
 // OFFSET: 0x008D46F0
 FMOD_RESULT SystemI::get3DSettings(float *dopplerscale, float *distancescale, float *rolloffscale)
 {
@@ -6387,6 +6407,7 @@ FMOD_RESULT SystemI::get3DSettings(float *dopplerscale, float *distancescale, fl
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1e72d656 auto
 // OFFSET: 0x008D4730
 FMOD_RESULT SystemI::getVersion(unsigned int *version)
 {
@@ -7140,6 +7161,7 @@ FMOD_RESULT SystemI::createCodec(FMOD_CODEC_DESCRIPTION *description)
 	[SEE_ALSO]
 ]
 */                                    
+// VERIFY: a7c065a9 auto
 // OFFSET: 0x008D5CD0
 FMOD_RESULT SystemI::createDSP(FMOD_DSP_DESCRIPTION *description, DSPI **dsp)
 {   
@@ -7224,6 +7246,7 @@ FMOD_RESULT SystemI::createDSP(FMOD_DSP_DESCRIPTION *description, DSPI **dsp)
 	[SEE_ALSO]
 ]
 */                                    
+// VERIFY: 7acea14b auto
 // OFFSET: 0x008D5DE0
 FMOD_RESULT SystemI::createDSP(FMOD_DSP_DESCRIPTION_EX *description, DSPI **dsp, bool allocate)
 {
@@ -7349,6 +7372,7 @@ FMOD_RESULT SystemI::createDSPByIndex(int index, DSPI **dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2b6c920c auto
 // OFFSET: 0x008D5F10
 FMOD_RESULT SystemI::createDSPByType(FMOD_DSP_TYPE type, DSPI **dsp)
 {
@@ -7717,6 +7741,7 @@ FMOD_RESULT SystemI::playSound(FMOD_CHANNELINDEX channelid, SoundI *sound, bool 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6f3d25da auto
 // OFFSET: 0x008D47F0
 FMOD_RESULT SystemI::playDSP(FMOD_CHANNELINDEX channelid, DSPI *dsp, bool paused, ChannelI **channel)
 {
@@ -7798,6 +7823,7 @@ FMOD_RESULT SystemI::playDSP(FMOD_CHANNELINDEX channelid, DSPI *dsp, bool paused
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 99e40ce3 auto
 // OFFSET: 0x008D48E0
 FMOD_RESULT SystemI::getChannel(int id, ChannelI **channel)
 {
@@ -7835,6 +7861,7 @@ FMOD_RESULT SystemI::getChannel(int id, ChannelI **channel)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c0c22909 auto
 // OFFSET: 0x008D4920
 FMOD_RESULT SystemI::getMasterChannelGroup(ChannelGroupI **channelgroup)
 {
@@ -7968,6 +7995,7 @@ FMOD_RESULT SystemI::createReverb(ReverbI **reverb)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cc85fcf5 auto
 // OFFSET: 0x008D4950
 unsigned int SystemI::count3DPhysicalReverbs()
 {
@@ -8001,6 +8029,7 @@ unsigned int SystemI::count3DPhysicalReverbs()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1e436fa8 auto
 // OFFSET: 0x008D4980
 unsigned int SystemI::count3DVirtualReverbs()
 {
@@ -8034,6 +8063,7 @@ unsigned int SystemI::count3DVirtualReverbs()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 939c571f auto
 // OFFSET: 0x008D49B0
 FMOD_RESULT SystemI::set3DReverbActive(bool state)
 {
@@ -8058,6 +8088,7 @@ FMOD_RESULT SystemI::set3DReverbActive(bool state)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 758fba40 auto
 // OFFSET: 0x008D49D0
 FMOD_RESULT SystemI::get3DReverbActive(bool *state)
 {
@@ -8284,6 +8315,7 @@ FMOD_RESULT SystemI::set3DReverbProperties(const FMOD_REVERB_PROPERTIES *prop, b
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7b5a2d7c auto
 // OFFSET: 0x008D4BB0
 FMOD_RESULT SystemI::getDSPHead(DSPI **dsp)
 {
@@ -8414,6 +8446,7 @@ FMOD_RESULT SystemI::addDSP(DSPI *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bffe224c auto
 // OFFSET: 0x008D4BE0
 FMOD_RESULT SystemI::lockDSP()
 {
@@ -8442,6 +8475,7 @@ FMOD_RESULT SystemI::lockDSP()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7fb78cd6 auto
 // OFFSET: 0x008D4C00
 FMOD_RESULT SystemI::unlockDSP()
 {
@@ -8519,6 +8553,7 @@ FMOD_RESULT SystemI::getRecordNumDrivers(int *numdrivers)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: eb171e77 auto
 // OFFSET: 0x008D6380
 FMOD_RESULT SystemI::setRecordDriver(int driver)
 {
@@ -8873,6 +8908,7 @@ FMOD_RESULT SystemI::recordStop()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1fb4da68 auto
 // OFFSET: 0x008D4DE0
 FMOD_RESULT SystemI::getRecordPosition(unsigned int *position)
 {
@@ -8906,6 +8942,7 @@ FMOD_RESULT SystemI::getRecordPosition(unsigned int *position)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f15be579 auto
 // OFFSET: 0x008D4E10
 FMOD_RESULT SystemI::isRecording(bool *recording)
 {
@@ -9522,6 +9559,7 @@ FMOD_RESULT SystemI::stopSound(SoundI *sound)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 636c6830 auto
 // OFFSET: 0x008D5020
 FMOD_RESULT SystemI::stopDSP(DSPI *dsp)
 {
@@ -9563,6 +9601,7 @@ FMOD_RESULT SystemI::stopDSP(DSPI *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7802e3cd auto
 // OFFSET: 0x008D5060
 FMOD_RESULT SystemI::getListenerObject(int listener, Listener **listenerobject)
 {   
@@ -9726,6 +9765,7 @@ FMOD_RESULT F_API System_SetDebugMode(unsigned int mode)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 482d643e auto
 // OFFSET: 0x008D65E0
 FMOD_RESULT SystemI::update3DReverbs()
 {

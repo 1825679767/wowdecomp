@@ -326,6 +326,7 @@ FMOD_RESULT  ChannelOpenALEAX5::setSpeakerLevels(int speaker, float *levels, int
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6336fc60 auto
 // OFFSET: 0x00948F10
 FMOD_RESULT ChannelOpenALEAX5::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTIES *prop)
 {

@@ -125,6 +125,7 @@ static unsigned int HighestBit(unsigned int value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 383dec98 auto
 // OFFSET: 0x00925520
 void aabbAdd(FMOD_AABB& a, FMOD_AABB& b, FMOD_AABB& dst)
 {    
@@ -209,6 +210,7 @@ Octree::~Octree()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 454f2183 auto
 // OFFSET: 0x009262C0
 void Octree::insertItem(OctreeNode* item)
 {
@@ -464,6 +466,7 @@ void Octree::updateItem(OctreeNode* item)
     insertItem(item);
 }
 
+// VERIFY: a03a183c auto
 // OFFSET: 0x009255C0
 void Octree::getAABB(FMOD_AABB* aabb)
 {
@@ -485,6 +488,7 @@ void Octree::getAABB(FMOD_AABB* aabb)
     }
 }
 
+// VERIFY: 6d0a5201 auto
 // OFFSET: 0x00925E20
 void Octree::addInternalNode(OctreeNode* item)
 {
@@ -782,6 +786,7 @@ void Octree::setMaxSize(float maxSize)
     mScale = 1.0f / maxSize;
 }
 
+// VERIFY: 1c250df2 auto
 // OFFSET: 0x00925E60
 bool Octree::testLine(bool (*octreeLineTestCallback)(OctreeNode* item, void* data), void* data, const FMOD_VECTOR& a, const FMOD_VECTOR& b)
 {
@@ -1194,6 +1199,7 @@ public:
 TestClass testClass;*/
 #endif
 
+// VERIFY: ef2c3bcf auto
 // OFFSET: 0x00925EE0
 void Octree::insertInternal(OctreeNode* node, OctreeNode* item)
 {
@@ -1437,6 +1443,7 @@ OctreeNode* Octree::getFreeNode()
     return node;
 }
 
+// VERIFY: 5aa51e6e auto
 // OFFSET: 0x00925640
 void Octree::adjustAABBs(OctreeNode* node)
 {
@@ -1508,6 +1515,7 @@ void Octree::removeListItem(OctreeNode* node)
     node->flags &= ~OCTREE_FLAG_EXTRA_NODE;
 }
 
+// VERIFY: a0b8a458 auto
 // OFFSET: 0x009256E0
 void Octree::addListItem(OctreeNode* list, OctreeNode* node)
 {

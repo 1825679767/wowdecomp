@@ -261,7 +261,7 @@ namespace FMOD
         FMOD_RESULT         III_hybrid(float fsIn[SBLIMIT][SSLIMIT], float tsOut[SSLIMIT][SBLIMIT], int ch, struct gr_info_s *gr_info);
 
         FMOD_RESULT         synth(void *samples, float *bandPtr, int channels, int channelskip);
-        FMOD_RESULT         synthC(float *b0, int bo1, int channels, signed short *samples);
+        static FMOD_RESULT  synthC(float *b0, int bo1, int channels, signed short *samples);
 
         unsigned int        getBits(int number_of_bits);
         unsigned int        getBitsFast(int number_of_bits);

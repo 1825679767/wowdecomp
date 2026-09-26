@@ -498,6 +498,7 @@ FMOD_RESULT MusicSong::spawnNewVirtualChannel(MusicChannel *cptr, MusicSample *s
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d7a3402d auto
 // OFFSET: 0x00934F40
 FMOD_RESULT MusicVirtualChannel::cleanUp()
 {
@@ -536,6 +537,7 @@ FMOD_RESULT MusicVirtualChannel::cleanUp()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 46e32ffe auto
 // OFFSET: 0x00934FB0
 FMOD_RESULT MusicSong::setBPM(int bpm)
 {
@@ -746,6 +748,7 @@ FMOD_RESULT MusicSong::playSound(MusicSample *sample, MusicVirtualChannel *vcptr
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4424f7bb auto
 // OFFSET: 0x00935280
 FMOD_RESULT MusicSong::fineTune2Hz(unsigned char ft, unsigned int *hz) 
 {
@@ -794,6 +797,7 @@ FMOD_RESULT MusicSong::fineTune2Hz(unsigned char ft, unsigned int *hz)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d9aa76bc auto
 // OFFSET: 0x009353B0
 FMOD_RESULT MusicSong::getLengthInternal(unsigned int *length, FMOD_TIMEUNIT lengthtype)
 {
@@ -835,6 +839,7 @@ FMOD_RESULT MusicSong::getLengthInternal(unsigned int *length, FMOD_TIMEUNIT len
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6f65adfd auto
 // OFFSET: 0x00935410
 FMOD_RESULT MusicSong::getPositionInternal(unsigned int *position, FMOD_TIMEUNIT postype)
 {

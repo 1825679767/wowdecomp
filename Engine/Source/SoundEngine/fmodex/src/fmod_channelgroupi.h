@@ -46,6 +46,7 @@ namespace FMOD
 
       public:
 
+// VERIFY: e156f30b auto
         // OFFSET: 0x008D51C0
         ChannelGroupI() 
         {

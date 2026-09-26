@@ -100,6 +100,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecXM::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d23a93c6 auto
 // OFFSET: 0x00905E30
 FMOD_RESULT CodecXM::calculateLength()
 {
@@ -145,6 +146,7 @@ FMOD_RESULT CodecXM::calculateLength()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6e639ca4 auto
 // OFFSET: 0x00903AA0
 FMOD_RESULT CodecXM::spawnNewChannel(MusicChannel *cptr, MusicVirtualChannel *oldvcptr, MusicSample *sptr, MusicVirtualChannel **newvcptr)
 {
@@ -187,7 +189,7 @@ FMOD_RESULT CodecXM::spawnNewChannel(MusicChannel *cptr, MusicVirtualChannel *ol
 ]
 */
 // OFFSET: 0x00903AE0
-FMOD_RESULT CodecXM::updateFlags(MusicChannel *cptr, MusicVirtualChannel *vcptr, MusicSample *sptr)
+FMOD_RESULT CodecXM::updateFlags(MusicVirtualChannel *vcptr, MusicSample *sptr)
 {   
     if (!(vcptr->mFrequency + vcptr->mFrequencyDelta)) 
     {
@@ -272,9 +274,6 @@ FMOD_RESULT CodecXM::updateFlags(MusicChannel *cptr, MusicVirtualChannel *vcptr,
     if (vcptr->mNoteControl & FMUSIC_STOP)		
     {
 	    vcptr->mChannel.stopEx(false, false, true, true, false, false, false);
-        #ifdef FMOD_SUPPORT_SOFTWARE
-        mSystem->flushDSPConnectionRequests();
-        #endif
 	    vcptr->mSampleOffset = 0;	/* if this channel gets stolen it will be safe */
     }
 
@@ -352,6 +351,7 @@ FMOD_RESULT MusicChannelXM::portamento()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b3a46df2 auto
 // OFFSET: 0x00903CA0
 FMOD_RESULT MusicChannelXM::vibrato() 
 {
@@ -414,6 +414,7 @@ FMOD_RESULT MusicChannelXM::vibrato()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 35f930c4 auto
 // OFFSET: 0x00903D40
 FMOD_RESULT MusicChannelXM::tremolo() 
 {
@@ -654,6 +655,7 @@ FMOD_RESULT MusicChannelXM::instrumentVibrato(MusicInstrument *iptr)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a408f2e6 auto
 // OFFSET: 0x009040B0
 FMOD_RESULT MusicChannelXM::processVolumeByte(unsigned char volume)
 {
@@ -807,6 +809,7 @@ FMOD_RESULT CodecXM::getAmigaPeriod(int note, int finetune, int *period)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1a0284b9 auto
 // OFFSET: 0x00904270
 FMOD_RESULT CodecXM::processNote(MusicNote *current, MusicChannelXM *cptr, MusicVirtualChannel *vcptr, MusicInstrument *iptr, MusicSample *sptr)
 {
@@ -1555,7 +1558,7 @@ FMOD_RESULT CodecXM::updateNote(bool audible)
             INSTRUMENT VIBRATO
         */
 		cptr->instrumentVibrato(iptr);	/* this gets added to previous freqdeltas */
-		updateFlags(cptr, (MusicVirtualChannel *)cptr->mVirtualChannelHead.getNext(), sptr);
+		updateFlags((MusicVirtualChannel *)cptr->mVirtualChannelHead.getNext(), sptr);
 	}
 
     return FMOD_OK;
@@ -2089,7 +2092,7 @@ FMOD_RESULT CodecXM::updateEffects()
             INSTRUMENT VIBRATO
         */
 		cptr->instrumentVibrato(iptr);	/* this gets added to previous freqdeltas */
-        updateFlags(cptr, (MusicVirtualChannel *)cptr->mVirtualChannelHead.getNext(), sptr);
+        updateFlags((MusicVirtualChannel *)cptr->mVirtualChannelHead.getNext(), sptr);
 	}
 
     return FMOD_OK;
@@ -3588,6 +3591,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c348c0e8 auto
 // OFFSET: 0x00905B00
 FMOD_RESULT CodecXM::closeInternal()
 {
@@ -3790,6 +3794,7 @@ FMOD_RESULT CodecXM::readInternal(void *buffer, unsigned int sizebytes, unsigned
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4bffeec6 auto
 // OFFSET: 0x00905D30
 FMOD_RESULT CodecXM::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -3904,6 +3909,7 @@ FMOD_RESULT F_CALLBACK CodecXM::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d83b213b auto
 // OFFSET: 0x00906240
 FMOD_RESULT F_CALLBACK CodecXM::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -3928,6 +3934,7 @@ FMOD_RESULT F_CALLBACK CodecXM::readCallback(FMOD_CODEC_STATE *codec, void *buff
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5ed1ed98 auto
 // OFFSET: 0x00905E00
 FMOD_RESULT F_CALLBACK CodecXM::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype   )
 {

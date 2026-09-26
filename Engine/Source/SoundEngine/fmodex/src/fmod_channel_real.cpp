@@ -30,6 +30,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 38bec188 auto
 // OFFSET: 0x00943900
 ChannelReal::ChannelReal()
 {
@@ -66,6 +67,7 @@ ChannelReal::ChannelReal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e9d163c6 auto
 // OFFSET: 0x00943970
 FMOD_RESULT ChannelReal::init(int index, SystemI *system, Output *output, DSPI *dspmixtarget)
 {
@@ -100,6 +102,7 @@ FMOD_RESULT ChannelReal::init(int index, SystemI *system, Output *output, DSPI *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f6743d6c auto
 // OFFSET: 0x009439C0
 FMOD_RESULT ChannelReal::close()
 {
@@ -122,6 +125,7 @@ FMOD_RESULT ChannelReal::close()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a863b723 auto
 // OFFSET: 0x009439D0
 FMOD_RESULT ChannelReal::alloc()
 {
@@ -285,6 +289,7 @@ FMOD_RESULT ChannelReal::start()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3c5da353 auto
 // OFFSET: 0x0091E5A0
 FMOD_RESULT ChannelReal::stop(bool ignoreenddelay, bool resetstate, bool force)
 {
@@ -349,6 +354,7 @@ FMOD_RESULT ChannelReal::stop(bool ignoreenddelay, bool resetstate)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8ebeb7ca auto
 // OFFSET: 0x00943A70
 FMOD_RESULT ChannelReal::setPaused(bool paused)
 {
@@ -379,6 +385,7 @@ FMOD_RESULT ChannelReal::setPaused(bool paused)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 27f73680 auto
 // OFFSET: 0x00943A90
 FMOD_RESULT ChannelReal::getPaused(bool *paused)
 {
@@ -471,6 +478,7 @@ FMOD_RESULT ChannelReal::setPan(float pan, float fbpan)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e312c22e auto
 // OFFSET: 0x00943AC0
 FMOD_RESULT ChannelReal::setDelay(unsigned int startdelay, unsigned int enddelay)
 {
@@ -623,6 +631,7 @@ FMOD_RESULT ChannelReal::setSpeakerMix(float frontleft, float frontright, float 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6bb8e636 auto
 // OFFSET: 0x00943DA0
 FMOD_RESULT ChannelReal::setSpeakerLevels(int speaker, float *levels, int numlevels)
 {
@@ -908,6 +917,7 @@ FMOD_RESULT ChannelReal::setLoopPoints(unsigned int loopstart, unsigned int loop
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2a387531 auto
 // OFFSET: 0x00944040
 FMOD_RESULT ChannelReal::setLoopCount(int loopcount)
 {
@@ -974,6 +984,7 @@ FMOD_RESULT ChannelReal::set3DMinMaxDistance()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3b1a5c67 auto
 // OFFSET: 0x00944050
 FMOD_RESULT ChannelReal::set3DOcclusion(float directOcclusion, float reverbOcclusion)
 {
@@ -1002,6 +1013,7 @@ FMOD_RESULT ChannelReal::set3DOcclusion(float directOcclusion, float reverbOcclu
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dadd5551 auto
 // OFFSET: 0x00944070
 FMOD_RESULT ChannelReal::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
@@ -1034,6 +1046,7 @@ FMOD_RESULT ChannelReal::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTIES
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b7cdb91d auto
 // OFFSET: 0x009440B0
 FMOD_RESULT ChannelReal::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
@@ -1100,6 +1113,7 @@ FMOD_RESULT ChannelReal::isPlaying(bool *isplaying, bool includethreadlatency)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 67e9f329 auto
 // OFFSET: 0x00944130
 FMOD_RESULT ChannelReal::isVirtual(bool *isvirtual)
 {
@@ -1129,6 +1143,7 @@ FMOD_RESULT ChannelReal::isVirtual(bool *isvirtual)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 08d4dc51 auto
 // OFFSET: 0x00944150
 FMOD_RESULT ChannelReal::getSpectrum(float *spectrumarray, int numentries, int channeloffset, FMOD_DSP_FFT_WINDOW windowtype)
 {
@@ -1151,6 +1166,7 @@ FMOD_RESULT ChannelReal::getSpectrum(float *spectrumarray, int numentries, int c
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 26337a2b auto
 // OFFSET: 0x00944160
 FMOD_RESULT ChannelReal::getWaveData(float *wavearray, int numvalues, int channeloffset)
 {
@@ -1173,6 +1189,7 @@ FMOD_RESULT ChannelReal::getWaveData(float *wavearray, int numvalues, int channe
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c0fa54ea auto
 // OFFSET: 0x00944170
 FMOD_RESULT ChannelReal::getDSPHead(DSPI **dsp)
 {   
@@ -1196,6 +1213,7 @@ FMOD_RESULT ChannelReal::getDSPHead(DSPI **dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 16afbd51 auto
 // OFFSET: 0x00944190
 FMOD_RESULT ChannelReal::setMode(FMOD_MODE mode)
 {

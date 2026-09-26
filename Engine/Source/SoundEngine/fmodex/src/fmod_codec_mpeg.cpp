@@ -249,6 +249,7 @@ FMOD_RESULT CodecMPEG::makeTables(int scaleval)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 80031c2b auto
 // OFFSET: 0x008F5C70
 FMOD_RESULT CodecMPEG::initAll() 
 {
@@ -1511,6 +1512,7 @@ FMOD_RESULT CodecMPEG::setPositionInternal(int subsound, unsigned int position, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9966f43f auto
 // OFFSET: 0x008F6360
 FMOD_RESULT CodecMPEG::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 {
@@ -1626,6 +1628,7 @@ FMOD_RESULT F_CALLBACK CodecMPEG::soundCreateCallback(FMOD_CODEC_STATE *codec, i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: aa2100a2 auto
 // OFFSET: 0x008F6460
 FMOD_RESULT F_CALLBACK CodecMPEG::readCallback(FMOD_CODEC_STATE *codec, void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -1650,6 +1653,7 @@ FMOD_RESULT F_CALLBACK CodecMPEG::readCallback(FMOD_CODEC_STATE *codec, void *bu
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a9298521 auto
 // OFFSET: 0x008F6490
 FMOD_RESULT F_CALLBACK CodecMPEG::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {

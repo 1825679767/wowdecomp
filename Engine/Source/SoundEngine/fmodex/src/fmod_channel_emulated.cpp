@@ -53,6 +53,7 @@ ChannelEmulated::ChannelEmulated()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 25440ff2 auto
 // OFFSET: 0x00944AB0
 FMOD_RESULT ChannelEmulated::init(int index, SystemI *system, Output *output, DSPI *dspmixtarget)
 {
@@ -101,6 +102,7 @@ FMOD_RESULT ChannelEmulated::init(int index, SystemI *system, Output *output, DS
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7e4c6b66 auto
 // OFFSET: 0x009447D0
 FMOD_RESULT ChannelEmulated::alloc()
 {
@@ -149,6 +151,7 @@ FMOD_RESULT ChannelEmulated::alloc()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 35e48148 auto
 // OFFSET: 0x00944820
 FMOD_RESULT ChannelEmulated::stop(bool ignoreenddelay, bool resetstate, bool force)
 {
@@ -225,6 +228,7 @@ FMOD_RESULT ChannelEmulated::stop(bool ignoreenddelay, bool resetstate)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 16dfd87a auto
 // OFFSET: 0x009448C0
 FMOD_RESULT ChannelEmulated::close()
 {
@@ -347,6 +351,7 @@ FMOD_RESULT ChannelEmulated::update(int delta)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 649d0165 auto
 // OFFSET: 0x00944A20
 FMOD_RESULT ChannelEmulated::isVirtual(bool *isvirtual)
 {
@@ -376,6 +381,7 @@ FMOD_RESULT ChannelEmulated::isVirtual(bool *isvirtual)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9cf9b693 auto
 // OFFSET: 0x00944A40
 FMOD_RESULT ChannelEmulated::getDSPHead(DSPI **dsp)
 {

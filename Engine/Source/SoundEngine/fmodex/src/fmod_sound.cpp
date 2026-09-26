@@ -10,6 +10,7 @@ namespace FMOD
 /*$ preserve end $*/
 
 
+// VERIFY: e733cc13 auto
 // OFFSET: 0x008D1970
 FMOD_RESULT Sound::release()
 {
@@ -67,6 +68,7 @@ FMOD_RESULT Sound::lock(unsigned int offset, unsigned int length, void **ptr1, v
 }
 
 
+// VERIFY: 7f312a2b auto
 // OFFSET: 0x008D19F0
 FMOD_RESULT Sound::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
@@ -368,6 +370,7 @@ FMOD_RESULT Sound::setSubSoundSentence(int *subsoundlist, int numsubsounds)
 }
 
 
+// VERIFY: b01c64aa auto
 // OFFSET: 0x008D1A40
 FMOD_RESULT Sound::getName(char *name, int namelen)
 {
@@ -390,6 +393,7 @@ FMOD_RESULT Sound::getName(char *name, int namelen)
 }
 
 
+// VERIFY: 20e7e639 auto
 // OFFSET: 0x008D1A80
 FMOD_RESULT Sound::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
 {
@@ -555,6 +559,7 @@ FMOD_RESULT Sound::seekData(unsigned int pcm)
 }
 
 
+// VERIFY: c742f956 auto
 // OFFSET: 0x008D1AC0
 FMOD_RESULT Sound::setSoundGroup(SoundGroup *soundgroup)
 {
@@ -848,6 +853,7 @@ FMOD_RESULT Sound::setUserData(void *_userdata)
 }
 
 
+// VERIFY: 9373ca1d auto
 // OFFSET: 0x008D1B00
 FMOD_RESULT Sound::getUserData(void **_userdata)
 {

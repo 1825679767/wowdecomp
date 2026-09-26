@@ -102,6 +102,7 @@ static LPASIODRVSTRUCT newDrvStruct (HKEY hkey,char *keyname,int drvID,LPASIODRV
 	return lpdrv;
 }
 
+// VERIFY: 31c219b8 auto
 // OFFSET: 0x0094D880
 static void deleteDrvStruct (LPASIODRVSTRUCT lpdrv)
 {
@@ -132,6 +133,7 @@ static LPASIODRVSTRUCT getDrvStruct (int drvID,LPASIODRVSTRUCT lpdrv)
 // ******************************************************************
 //	AsioDriverList
 // ******************************************************************
+// VERIFY: 25e3b5d6 auto
 // OFFSET: 0x0094D8D0
 AsioDriverList::AsioDriverList ()
 {
@@ -164,6 +166,7 @@ AsioDriverList::AsioDriverList ()
 }
 
 
+// VERIFY: a47881b1 auto
 // OFFSET: 0x0094D990
 bool AsioDriverList::close()
 {
@@ -183,6 +186,7 @@ LONG AsioDriverList::asioGetNumDev (VOID)
 }
 
 
+// VERIFY: 5a0c1793 auto
 // OFFSET: 0x0094D9B0
 LONG AsioDriverList::asioOpenDriver (int drvID,LPVOID *asiodrv)
 {
@@ -209,6 +213,7 @@ LONG AsioDriverList::asioOpenDriver (int drvID,LPVOID *asiodrv)
 }
 
 
+// VERIFY: 65b20cbe auto
 // OFFSET: 0x0094DA30
 LONG AsioDriverList::asioCloseDriver (int drvID)
 {

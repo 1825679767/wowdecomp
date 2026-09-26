@@ -20,23 +20,27 @@
 
 extern "C"
 {
+// VERIFY: b3b7045f auto
     // OFFSET: 0x008D0220
     void *FMOD_Memory_allocC(int len, const char *file, const int line)
     {
         return FMOD::gGlobal->gSystemPool->alloc(len, file, line);
     }
+// VERIFY: dc17034a auto
     // OFFSET: 0x008D0250
     void *FMOD_Memory_callocC(int len, const char *file, const int line)
     {
         return FMOD::gGlobal->gSystemPool->calloc(len, file, line);
     }
 
+// VERIFY: e98787f4 auto
     // OFFSET: 0x008D0280
     void *FMOD_Memory_reallocC(void *ptr, int len, const char *file, const int line)
     {
         return FMOD::gGlobal->gSystemPool->realloc(ptr, len, file, line);
     }
 
+// VERIFY: 13ccf1d3 auto
     // OFFSET: 0x008D02B0
     void FMOD_Memory_freeC(void *ptr, const char *file, const int line)
     {
@@ -49,6 +53,7 @@ namespace FMOD
 {
 
 
+// VERIFY: 0de5ed40 auto
 // OFFSET: 0x008D02D0
 void *MemSingleton::alloc(int len, const char *file, const int line)
 {
@@ -62,6 +67,7 @@ void *MemSingleton::alloc(int len, const char *file, const int line)
     return mBuffer;
 }
 
+// VERIFY: 18c4f7f4 auto
 // OFFSET: 0x008D0310
 void MemSingleton::free(const char *file, const int line)
 {
@@ -120,16 +126,19 @@ int LocalMemoryCounter::getMemoryUsed()
 /*
     The wrapper is needed to handle stdcall callbacks when malloc/free is normally cdecl
 */
+// VERIFY: edcc743e auto
 // OFFSET: 0x008CFAA0
 void * F_CALLBACK Memory_DefaultMalloc(unsigned int size, FMOD_MEMORY_TYPE type)
 {
     return FMOD_OS_Memory_Alloc(size, type);
 }
+// VERIFY: d5fd5dd2 auto
 // OFFSET: 0x008CFAC0
 void * F_CALLBACK Memory_DefaultRealloc(void *data, unsigned int size, FMOD_MEMORY_TYPE type)
 {
     return FMOD_OS_Memory_Realloc(data, size, type);
 }
+// VERIFY: 6626c1bd auto
 // OFFSET: 0x008CFAE0
 void F_CALLBACK   Memory_DefaultFree(void *ptr, FMOD_MEMORY_TYPE type)
 {
@@ -756,6 +765,7 @@ void MemPool::free(void *ptr, const char *file, const int line, FMOD_MEMORY_TYPE
 	[REMARKS]
 ]
 */
+// VERIFY: 4d5e1655 auto
 // OFFSET: 0x008CFFF0
 void *MemPool::calloc(int len, const char *file, const int line, FMOD_MEMORY_TYPE type)
 {

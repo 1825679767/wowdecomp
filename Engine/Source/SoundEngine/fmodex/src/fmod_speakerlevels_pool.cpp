@@ -123,6 +123,7 @@ FMOD_RESULT SpeakerLevelsPool::alloc(float **levels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f3bae20c auto
 // OFFSET: 0x00921B50
 FMOD_RESULT SpeakerLevelsPool::free(float *levels)
 {
@@ -157,6 +158,7 @@ FMOD_RESULT SpeakerLevelsPool::free(float *levels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2c8260d3 auto
 // OFFSET: 0x00921BA0
 FMOD_RESULT SpeakerLevelsPool::release()
 {

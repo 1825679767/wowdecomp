@@ -247,6 +247,7 @@ FMOD_INLINE int IMAAdpcm_DecodeSample(int nEncodedSample, int nPredictedSample, 
 
 
 
+// VERIFY: 8dd38d39 auto
 // OFFSET: 0x009356E0
 FMOD_RESULT IMAAdpcm_DecodeM16(unsigned char *pbSrc, signed short *pbDst, unsigned int cBlocks,  unsigned int nBlockAlignment, unsigned int cSamplesPerBlock, int channels)
 {

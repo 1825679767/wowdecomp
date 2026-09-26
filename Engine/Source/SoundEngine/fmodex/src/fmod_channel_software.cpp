@@ -46,6 +46,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bf651e02 auto
 // OFFSET: 0x00933EB0
 ChannelSoftware::ChannelSoftware()
 {
@@ -76,6 +77,7 @@ ChannelSoftware::ChannelSoftware()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0661c4ba auto
 // OFFSET: 0x00934CD0
 FMOD_RESULT ChannelSoftware::init(int index, SystemI *system, Output *output, DSPI *dspmixtarget)
 {
@@ -632,6 +634,7 @@ FMOD_RESULT ChannelSoftware::alloc()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0e57346a auto
 // OFFSET: 0x00934300
 FMOD_RESULT ChannelSoftware::alloc(DSPI *dsp)
 {
@@ -763,6 +766,7 @@ FMOD_RESULT ChannelSoftware::alloc(DSPI *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5c85866b auto
 // OFFSET: 0x00932B70
 FMOD_RESULT ChannelSoftware::start()
 {
@@ -813,6 +817,7 @@ FMOD_RESULT ChannelSoftware::start()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c2b67d65 auto
 // OFFSET: 0x00932BE0
 FMOD_RESULT ChannelSoftware::stop(bool ignoreenddelay, bool resetstate, bool force)
 {
@@ -908,6 +913,7 @@ FMOD_RESULT ChannelSoftware::stop(bool ignoreenddelay, bool resetstate, bool for
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 52d72b0e auto
 // OFFSET: 0x00933F20
 FMOD_RESULT ChannelSoftware::stop(bool ignoreenddelay, bool resetstate)
 {
@@ -930,6 +936,7 @@ FMOD_RESULT ChannelSoftware::stop(bool ignoreenddelay, bool resetstate)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ba04da45 auto
 // OFFSET: 0x00932D70
 FMOD_RESULT ChannelSoftware::setPaused(bool paused)
 {
@@ -1089,6 +1096,7 @@ FMOD_RESULT ChannelSoftware::setReverbProperties(const FMOD_REVERB_CHANNELPROPER
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 80b87148 auto
 // OFFSET: 0x00932DC0
 FMOD_RESULT ChannelSoftware::updateDirectMix(float volume)
 {
@@ -1332,6 +1340,7 @@ FMOD_RESULT ChannelSoftware::updateReverbMix(ReverbI* reverb, float volume)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2e091aff auto
 // OFFSET: 0x00933140
 FMOD_RESULT ChannelSoftware::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
@@ -1359,6 +1368,7 @@ FMOD_RESULT ChannelSoftware::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 44b6f13c auto
 // OFFSET: 0x00933170
 FMOD_RESULT ChannelSoftware::set3DOcclusion(float directOcclusion, float reverbOcclusion)
 {
@@ -1954,6 +1964,7 @@ FMOD_RESULT ChannelSoftware::getPosition(unsigned int *position, FMOD_TIMEUNIT p
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cba638fe auto
 // OFFSET: 0x00933740
 FMOD_RESULT ChannelSoftware::setLoopPoints(unsigned int loopstart, unsigned int looplength)
 {
@@ -1991,6 +2002,7 @@ FMOD_RESULT ChannelSoftware::setLoopPoints(unsigned int loopstart, unsigned int 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 010b68a8 auto
 // OFFSET: 0x00933790
 FMOD_RESULT ChannelSoftware::setLoopCount(int loopcount)
 {
@@ -2028,6 +2040,7 @@ FMOD_RESULT ChannelSoftware::setLoopCount(int loopcount)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a0827641 auto
 // OFFSET: 0x009337C0
 FMOD_RESULT ChannelSoftware::setMode(FMOD_MODE mode)
 {
@@ -2179,6 +2192,7 @@ FMOD_RESULT ChannelSoftware::isPlaying(bool *isplaying, bool includethreadlatenc
     FMOD_DSP_FFT_WINDOW
 ]
 */
+// VERIFY: 512591c2 auto
 // OFFSET: 0x00933970
 FMOD_RESULT ChannelSoftware::getSpectrum(float *spectrumarray, int numvalues, int channeloffset, FMOD_DSP_FFT_WINDOW windowtype)
 {
@@ -2370,6 +2384,7 @@ FMOD_RESULT ChannelSoftware::getWaveData(float *wavearray, int numvalues, int ch
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 46b9799a auto
 // OFFSET: 0x00933C40
 FMOD_RESULT ChannelSoftware::getDSPHead(DSPI **dsp)
 {

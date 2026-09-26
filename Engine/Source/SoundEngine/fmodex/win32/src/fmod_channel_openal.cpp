@@ -43,6 +43,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d1dc045c auto
 // OFFSET: 0x00946FD0
 ChannelOpenAL::ChannelOpenAL()
 {
@@ -1161,6 +1162,7 @@ FMOD_RESULT ChannelOpenAL::setPaused(bool paused)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 294bb944 auto
 // OFFSET: 0x00945FA0
 FMOD_RESULT ChannelOpenAL::setVolume(float volume)
 {
@@ -1231,6 +1233,7 @@ FMOD_RESULT ChannelOpenAL::setSpeakerLevels(int speaker, float *levels, int numl
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 634a5f1a auto
 // OFFSET: 0x00946090
 FMOD_RESULT ChannelOpenAL::setFrequency(float frequency)
 {
@@ -1273,6 +1276,7 @@ FMOD_RESULT ChannelOpenAL::setFrequency(float frequency)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1ff35466 auto
 // OFFSET: 0x00946100
 FMOD_RESULT ChannelOpenAL::setPan(float pan, float fbpan)
 {
@@ -1518,6 +1522,7 @@ FMOD_RESULT ChannelOpenAL::getPosition(unsigned int *position, FMOD_TIMEUNIT pos
 	[SEE_ALSO]
 ]
 */
+// VERIFY: be55d107 auto
 // OFFSET: 0x00946190
 FMOD_RESULT ChannelOpenAL::setLoopPoints(unsigned int loopstart, unsigned int looplength)
 {
@@ -1558,6 +1563,7 @@ FMOD_RESULT ChannelOpenAL::setLoopPoints(unsigned int loopstart, unsigned int lo
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1c6e6002 auto
 // OFFSET: 0x009461E0
 FMOD_RESULT ChannelOpenAL::setLoopCount(int loopcount)
 {
@@ -1597,6 +1603,7 @@ FMOD_RESULT ChannelOpenAL::setLoopCount(int loopcount)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: aa34ae22 auto
 // OFFSET: 0x00946210
 FMOD_RESULT ChannelOpenAL::setMode(FMOD_MODE mode)
 {
@@ -1809,6 +1816,7 @@ FMOD_RESULT ChannelOpenAL::set3DAttributes()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ffa8ca1a auto
 // OFFSET: 0x00946720
 FMOD_RESULT ChannelOpenAL::set3DMinMaxDistance()
 {
@@ -1850,6 +1858,7 @@ FMOD_RESULT ChannelOpenAL::set3DMinMaxDistance()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a6777747 auto
 // OFFSET: 0x009467C0
 FMOD_RESULT ChannelOpenAL::set3DOcclusion(float directOcclusion, float reverbOcclusion)
 {
@@ -2068,6 +2077,7 @@ FMOD_RESULT ChannelOpenAL::isPlaying(bool *isplaying, bool includethreadlatency)
     FMOD_DSP_FFT_WINDOW
 ]
 */
+// VERIFY: b13a7f0e auto
 // OFFSET: 0x009469E0
 FMOD_RESULT ChannelOpenAL::getSpectrum(float *spectrumarray, int numvalues, int channeloffset, FMOD_DSP_FFT_WINDOW windowtype)
 {

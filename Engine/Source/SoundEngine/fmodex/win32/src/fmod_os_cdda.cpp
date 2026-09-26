@@ -1267,6 +1267,7 @@ FMOD_RESULT FMOD_OS_CDDA_CloseDevice(FMOD_CDDA_DEVICE *device)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ab1f8a85 auto
 // OFFSET: 0x00917AA0
 FMOD_RESULT FMOD_OS_CDDA_ReadSectors(FMOD_CDDA_DEVICE *device, char *buf, unsigned int start_sector, unsigned int num_sectors)
 {
@@ -1315,6 +1316,7 @@ FMOD_RESULT FMOD_OS_CDDA_ReadSectors(FMOD_CDDA_DEVICE *device, char *buf, unsign
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6f147c4f auto
 // OFFSET: 0x00917020
 static unsigned int FMOD_OS_CDDA_hmsf_to_lba(unsigned char hours, unsigned char minutes, unsigned char seconds, unsigned char frames)
 {
@@ -1335,6 +1337,7 @@ static unsigned int FMOD_OS_CDDA_hmsf_to_lba(unsigned char hours, unsigned char 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 33020b77 auto
 // OFFSET: 0x00917050
 void FMOD_CDDA_AddUserTocEntry(FMOD_CDDA_DEVICE *device, unsigned int sector)
 {
@@ -1746,6 +1749,7 @@ FMOD_RESULT FMOD_OS_CDDA_ReadToc(FMOD_CDDA_DEVICE *device, FMOD_CDDA_TOC *toc)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 105365d0 auto
 // OFFSET: 0x009170C0
 bool FMOD_CDDA_ScsiAbort(SRB_ExecSCSICmd *srb_to_abort, unsigned char adapter_id)
 {
@@ -2416,6 +2420,7 @@ bool FMOD_CDDA_NTSCSI_GetDriveInformation(int i, FMOD_CDDA_NTSCSIDRIVE *drive)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 28d5b0f1 auto
 // OFFSET: 0x009175C0
 FMOD_RESULT FMOD_CDDA_NTSCSI_Init()
 {
@@ -2503,6 +2508,7 @@ FMOD_RESULT FMOD_CDDA_NTSCSI_Init()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2b091936 auto
 // OFFSET: 0x009176B0
 bool FMOD_CDDA_NTSCSI_Shutdown()
 {
@@ -2542,6 +2548,7 @@ bool FMOD_CDDA_NTSCSI_Shutdown()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 91485c5a auto
 // OFFSET: 0x00917730
 int FMOD_CDDA_NTSCSI_GetDeviceIndex(unsigned char ha, unsigned char tgt, unsigned char lun)
 {
@@ -2577,6 +2584,7 @@ int FMOD_CDDA_NTSCSI_GetDeviceIndex(unsigned char ha, unsigned char tgt, unsigne
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5ccc7713 auto
 // OFFSET: 0x00917770
 DWORD FMOD_CDDA_NTSCSI_HAInquiry(SRB_HAInquiry *srb)
 {
@@ -2616,6 +2624,7 @@ DWORD FMOD_CDDA_NTSCSI_HAInquiry(SRB_HAInquiry *srb)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fef4538d auto
 // OFFSET: 0x00917810
 DWORD FMOD_CDDA_NTSCSI_GetDeviceType(SRB_GDEVBlock *srb)
 {
@@ -2652,6 +2661,7 @@ DWORD FMOD_CDDA_NTSCSI_GetDeviceType(SRB_GDEVBlock *srb)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ad952d6e auto
 // OFFSET: 0x00917860
 DWORD FMOD_CDDA_NTSCSI_ExecScsiCmd(SRB_ExecSCSICmd *srb, bool retrying)
 {
@@ -2769,6 +2779,7 @@ DWORD FMOD_CDDA_NTSCSI_ExecScsiCmd(SRB_ExecSCSICmd *srb, bool retrying)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7ffb92eb auto
 // OFFSET: 0x00917A20
 DWORD FMOD_CDDA_NTSCSI_GetASPI32SupportInfo()
 {

@@ -27,6 +27,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 24a0f8d6 auto
 // OFFSET: 0x008E8960
 ChannelPool::ChannelPool()
 {
@@ -93,6 +94,7 @@ FMOD_RESULT ChannelPool::init(SystemI *system, Output *output, int numchannels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9f6ca71f auto
 // OFFSET: 0x008E89E0
 FMOD_RESULT ChannelPool::release()
 {
@@ -133,7 +135,7 @@ FMOD_RESULT ChannelPool::release()
 ]
 */
 // OFFSET: 0x008E8A50
-FMOD_RESULT ChannelPool::allocateChannel(ChannelReal **realchannel, int index, int numchannels, int *found_out, bool ignorereserved)
+FMOD_RESULT ChannelPool::allocateChannel(ChannelReal **realchannel, int index, int numchannels, int *found_out)
 {
     int count;
     int found = 0;
@@ -156,7 +158,8 @@ FMOD_RESULT ChannelPool::allocateChannel(ChannelReal **realchannel, int index, i
         
             if (mChannel[count]->mFlags & CHANNELREAL_FLAG_ALLOCATED || 
                 mChannel[count]->mFlags & CHANNELREAL_FLAG_IN_USE ||
-               (mChannel[count]->mFlags & CHANNELREAL_FLAG_RESERVED && !ignorereserved))
+                mChannel[count]->mFlags & CHANNELREAL_FLAG_ENDDELAY ||
+                mChannel[count]->mFlags & CHANNELREAL_FLAG_RESERVED)
             {
                 continue;
             }
@@ -167,7 +170,6 @@ FMOD_RESULT ChannelPool::allocateChannel(ChannelReal **realchannel, int index, i
                 mChannel[count]->mFlags |= CHANNELREAL_FLAG_ALLOCATED;
                 mChannel[count]->mFlags |= CHANNELREAL_FLAG_IN_USE;
                 mChannel[count]->mFlags &= ~CHANNELREAL_FLAG_STOPPED;
-                mChannel[count]->mFlags &= ~CHANNELREAL_FLAG_RESERVED;
 
                 realchannel[found] = mChannel[count];
                 found++;
@@ -234,6 +236,7 @@ FMOD_RESULT ChannelPool::allocateChannel(ChannelReal **realchannel, int index, i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 079abb0e auto
 // OFFSET: 0x008E8BB0
 FMOD_RESULT ChannelPool::getNumChannels(int *numchannels)
 {
@@ -263,6 +266,7 @@ FMOD_RESULT ChannelPool::getNumChannels(int *numchannels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d007d6d4 auto
 // OFFSET: 0x008E8BD0
 FMOD_RESULT ChannelPool::getChannelsUsed(int *numchannels)
 {
@@ -292,6 +296,7 @@ FMOD_RESULT ChannelPool::getChannelsUsed(int *numchannels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 666de978 auto
 // OFFSET: 0x008E8BF0
 FMOD_RESULT ChannelPool::setChannel(int index, ChannelReal *channel, DSPI *dspmixtarget)
 {
@@ -322,6 +327,7 @@ FMOD_RESULT ChannelPool::setChannel(int index, ChannelReal *channel, DSPI *dspmi
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 554ca720 auto
 // OFFSET: 0x008E8C40
 FMOD_RESULT ChannelPool::getChannel(int index, ChannelReal **channel)
 {

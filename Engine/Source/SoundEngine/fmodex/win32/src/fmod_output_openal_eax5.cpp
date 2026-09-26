@@ -33,6 +33,7 @@ bool gEAX5LockedOALFxSlot3 = false;
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9c599770 auto
 // OFFSET: 0x0094A100
 FMOD_RESULT	OutputOpenAL::setupSessionEAX5()
 {
@@ -74,6 +75,7 @@ FMOD_RESULT	OutputOpenAL::setupSessionEAX5()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 60f22fe3 auto
 // OFFSET: 0x0094A170
 FMOD_RESULT OutputOpenAL::getSpeakerModeEAX5(FMOD_SPEAKERMODE *speakerMode)
 {
