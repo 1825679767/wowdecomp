@@ -2,9 +2,9 @@
 #include <cstdint>
 #include <cstring>
 #include <typeinfo>
+#include <expat.h>
 #include "Engine/Source/FrameXML/XMLTree.h"
 #include "Engine/Source/Base/CDataAllocator.h"
-#include "Engine/Source/FrameXML/Expat.h"
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00D3F710

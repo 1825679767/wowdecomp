@@ -90,3 +90,22 @@ target_include_directories(freetype
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/freetype/src
 )
+
+add_library(expat STATIC
+    expat/lib/xmlparse.c
+    expat/lib/xmlrole.c
+    expat/lib/xmltok.c
+)
+
+target_compile_definitions(expat
+    PUBLIC
+        _STATIC
+    PRIVATE
+        COMPILED_FROM_DSP
+        _LIB
+)
+
+target_include_directories(expat
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/expat/lib
+)
