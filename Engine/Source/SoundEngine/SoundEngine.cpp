@@ -1855,7 +1855,7 @@ SEChatSound::SEChatSound() {
 }
 
 // VERIFY: 8dda86da auto
-// OFFSET: 0x0087BEB0
+// OFFSET: [0x0087BEB0, 0x0087C480]
 SEChatSound::~SEChatSound() {
     if (s_chatSystem && this->m_dsp) {
         this->m_dsp->release();

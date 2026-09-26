@@ -45,6 +45,7 @@ struct CacheChunkRef {
 class CacheChunkRecycler : public CDataRecycler {
     public:
     CacheChunkRecycler(uint32_t nodesPerBlock, int32_t maxNodes);
+    virtual ~CacheChunkRecycler();
     virtual void Clear();
 };
 

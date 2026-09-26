@@ -90,6 +90,11 @@ void CacheChunkRecycler::Clear() {
     CDataRecycler::Clear();
 }
 
+// VERIFY: 742adbf6 manual
+// OFFSET: 0x00877410
+CacheChunkRecycler::~CacheChunkRecycler() {
+}
+
 // INLINED
 SoundCache::SoundCache() : m_using("Blizzard::Mopaq") {
     Blizzard::Using::StartUsing(this->m_using);
