@@ -329,6 +329,7 @@ extern "C" {
 extern float *FMOD_Mpeg_DecWin;
 
 void FMOD_Mpeg_Synth_FPU(float *b0, int bo1, int numchannels, short *samps);
+void FMOD_Mpeg_Synth_FPU_Float(float *b0, int bo1, int numchannels, float *out);
 void FMOD_Mpeg_DCT64(float *out0,float *out1,float *samples);
 
 #ifdef __cplusplus

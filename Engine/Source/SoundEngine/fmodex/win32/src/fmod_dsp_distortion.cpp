@@ -41,10 +41,12 @@ FMOD_DSP_PARAMETERDESC dspdistortion_param[1] =
     { 0.0f,     1.0f,   0.5, "Level",   "",     "Distortion value.  0.0 to 1.0.  Default = 0.5." },
 };
 
+#ifdef FMOD_SUPPORT_SIMD
 extern "C"
 {
     void FMOD_DSP_Distortion_SIMD(float * inbuffer, float * outbuffer, unsigned int length, int inchannels, int outchannels, float k);
 }
+#endif
 
 /*
 [
@@ -192,7 +194,7 @@ FMOD_RESULT DSPDistortion::resetInternal()
 	[SEE_ALSO]
 ]
 */
-// VERIFY: e0e33405 manual
+// VERIFY: 87857299 manual
 // OFFSET: 0x008EF2C0
 FMOD_RESULT DSPDistortion::readInternal(float * inbuffer, float * outbuffer, unsigned int length, int inchannels, int outchannels)
 {   
@@ -208,11 +210,13 @@ FMOD_RESULT DSPDistortion::readInternal(float * inbuffer, float * outbuffer, uns
         k = 2.0f * 0.9999f / (1.0f - 0.9999f);
     } 
 
+    #ifdef FMOD_SUPPORT_SIMD
     if (mSupportsSIMD)
     {
         FMOD_DSP_Distortion_SIMD(inbuffer, outbuffer, length, inchannels, outchannels, k);
     }
     else
+    #endif
     {
         unsigned int len;
         float *in = inbuffer;
