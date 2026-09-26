@@ -18,76 +18,33 @@
                                             // hopefully we won't get blocks that big in real life
 
 
-#ifdef PLUGIN_EXPORTS
 extern "C"
 {
+// VERIFY: 17a6fc8d auto
 // OFFSET: 0x0090CD90
-void * FMOD_FLAC_Malloc(void *context, int size)
+void * FMOD_FLAC_Malloc(int size)
 {
-    void *mem = FMOD_Memory_Alloc(size);
-    
-    if (mem)
-    {
-        FMOD::CodecFLAC *flac = (FMOD::CodecFLAC *)context;
-
-        flac->mMemUsed += size;
-    }
-
-    return mem;
+    return FMOD_Memory_Alloc(size);
 }
+// VERIFY: 4c1f8fb8 auto
 // OFFSET: 0x0090CDC0
-void * FMOD_FLAC_Calloc(void *context, int count, int size)
+void * FMOD_FLAC_Calloc(int count, int size)
 {
-    void *mem = FMOD_Memory_Calloc(count * size);
-    
-    if (mem)
-    {
-        FMOD::CodecFLAC *flac = (FMOD::CodecFLAC *)context;
-        flac->mMemUsed += (count * size);
-    }
-
-    return mem;
+    return FMOD_Memory_Calloc(count * size);
 }
+// VERIFY: 37417e18 auto
 // OFFSET: 0x0090CDF0
-void * FMOD_FLAC_ReAlloc(void *context, void *ptr, int size)
+void * FMOD_FLAC_ReAlloc(void *ptr, int size)
 {
-    void *mem;
-    FMOD::CodecFLAC *flac = (FMOD::CodecFLAC *)context;
-
-    if (ptr)
-    {
-    	FMOD::MemBlockHeader *block = (FMOD::MemBlockHeader *)ptr;
-
-        block--;
-
-        flac->mMemUsed -= block->mSize;
-    }
-    
-    mem = FMOD_Memory_ReAlloc(ptr, size);
-    if (mem)
-    {
-        flac->mMemUsed += size;
-    }
-
-    return mem;
+    return FMOD_Memory_ReAlloc(ptr, size);
 }
+// VERIFY: 3111e8db auto
 // OFFSET: 0x0090CE20
-void   FMOD_FLAC_Free(void *context, void *ptr)
+void   FMOD_FLAC_Free(void *ptr)
 {
-    if (ptr)
-    {
-    	FMOD::MemBlockHeader *block = (FMOD::MemBlockHeader *)ptr;
-        FMOD::CodecFLAC *flac = (FMOD::CodecFLAC *)context;
-
-        block--;
-
-        flac->mMemUsed -= block->mSize;
-    }
-
     FMOD_Memory_Free(ptr);
 }
 }
-#endif
 
 namespace FMOD
 {
@@ -369,6 +326,7 @@ static void FMOD_FLAC_MetadataCallback(const FLAC__StreamDecoder *decoder, const
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7f851df0 manual
 // OFFSET: 0x0090D680
 FMOD_CODEC_DESCRIPTION_EX *CodecFLAC::getDescriptionEx()
 {
@@ -405,6 +363,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecFLAC::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ce62ca33 manual
 // OFFSET: 0x0090D340
 FMOD_RESULT CodecFLAC::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -469,7 +428,7 @@ FMOD_RESULT CodecFLAC::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
         return FMOD_ERR_FILE_BAD;
     }
 
-    if (FLAC__stream_decoder_init_stream(this, 
+    if (FLAC__stream_decoder_init_stream(
                                          mDecoder,
                                          FMOD_FLAC_ReadCallback,
                                          FMOD_FLAC_SeekCallback,
@@ -494,7 +453,7 @@ FMOD_RESULT CodecFLAC::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
     /*
         Get the first block which is guaranteed to be a STREAMINFO metadata block
     */
-    FLAC__stream_decoder_process_until_end_of_metadata(this, mDecoder);
+    FLAC__stream_decoder_process_until_end_of_metadata(mDecoder);
 
 	/*
         Get size of file in bytes
@@ -566,14 +525,14 @@ FMOD_RESULT CodecFLAC::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
 	[SEE_ALSO]
 ]
 */
-// VERIFY: 7c01969c auto
+// VERIFY: 634493c4 auto
 // OFFSET: 0x0090D1B0
 FMOD_RESULT CodecFLAC::closeInternal()
 {
     if (mDecoder)
     {
-        FLAC__stream_decoder_finish(this, mDecoder);
-        FLAC__stream_decoder_delete(this, mDecoder);
+        FLAC__stream_decoder_finish(mDecoder);
+        FLAC__stream_decoder_delete(mDecoder);
         mDecoder = 0;
     }
 
@@ -606,7 +565,7 @@ FMOD_RESULT CodecFLAC::closeInternal()
 	[SEE_ALSO]
 ]
 */
-// VERIFY: f9f00d1d auto
+// VERIFY: eef15f0f auto
 // OFFSET: 0x0090D210
 FMOD_RESULT CodecFLAC::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -621,7 +580,7 @@ FMOD_RESULT CodecFLAC::readInternal(void *buffer, unsigned int sizebytes, unsign
     // Only get a new frame if there isn't one ready and waiting
     if (!mFrameReady)
     {
-        FLAC__stream_decoder_process_single(this, mDecoder);
+        FLAC__stream_decoder_process_single(mDecoder);
     }
 
     // These variables were already set directly via the FLAC Write Callback, but pass them
@@ -672,7 +631,7 @@ FMOD_RESULT CodecFLAC::setPositionInternal(int subsound, unsigned int position, 
             which was then pushed onto the stack before calling this function.
             When the stack was popped back into esi, the number was corrupted.
         */
-        if (!FLAC__stream_decoder_seek_absolute(this, mDecoder, position))
+        if (!FLAC__stream_decoder_seek_absolute(mDecoder, position))
         {
             return FMOD_ERR_INVALID_PARAM;
         }

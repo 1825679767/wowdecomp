@@ -63,8 +63,8 @@ typedef struct {
   DATA_TYPE scale;
 } mdct_lookup;
 
-extern int FMOD_mdct_init(void *context, mdct_lookup *lookup,int n);
-extern void FMOD_mdct_clear(void *context, mdct_lookup *l);
+extern int FMOD_mdct_init(mdct_lookup *lookup,int n);
+extern void FMOD_mdct_clear(mdct_lookup *l);
 extern void FMOD_mdct_forward(mdct_lookup *init, DATA_TYPE *in, DATA_TYPE *out);
 extern void FMOD_mdct_backward(mdct_lookup *init, DATA_TYPE *in, DATA_TYPE *out);
 

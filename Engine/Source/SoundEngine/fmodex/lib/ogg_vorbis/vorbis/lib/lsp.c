@@ -51,10 +51,9 @@
    work on a fully fixed point implementation for processors like the
    ARM family. */
 
-/* define either of these (preferably FLOAT_LOOKUP) to have faster
-   but less precise implementation. */
-#undef FLOAT_LOOKUP
-#undef INT_LOOKUP
+/* undefine both for the 'old' but more precise implementation */
+#define   FLOAT_LOOKUP
+#undef    INT_LOOKUP
 
 #ifdef FLOAT_LOOKUP
 #include "lookup.c" /* catch this in the build system; we #include for
@@ -62,6 +61,7 @@
                        modules */
 
 /* side effect: changes *lsp to cosines of lsp */
+// OFFSET: 0x004723F0
 void FMOD_vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
                             float amp,float ampoffset){
   int i;
@@ -101,8 +101,8 @@ void FMOD_vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int 
 
     q=FMOD_ogg_frexp(p+q,&qexp);
     q=FMOD_vorbis_fromdBlook(amp*
-                        vorbis_invsqlook(q)*
-                        vorbis_invsq2explook(qexp+m)-
+                        FMOD_vorbis_invsqlook(q)*
+                        FMOD_vorbis_invsq2explook(qexp+m)-
                         ampoffset);
 
     do{
@@ -245,7 +245,6 @@ void FMOD_vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int 
    fraction of a dB precision */
 
 /* side effect: changes *lsp to cosines of lsp */
-// OFFSET: 0x004723F0
 void FMOD_vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
                             float amp,float ampoffset){
   int i;

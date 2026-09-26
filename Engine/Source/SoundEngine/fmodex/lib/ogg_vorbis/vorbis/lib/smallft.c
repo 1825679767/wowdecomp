@@ -1239,7 +1239,7 @@ void drft_backward(drft_lookup *l,float *data){
   drftb1(l->n,data,l->trigcache,l->trigcache+l->n,l->splitcache);
 }
 
-void drft_init(void *context, drft_lookup *l,int n){
+void drft_init(drft_lookup *l,int n){
   l->n=n;
   l->trigcache=_ogg_calloc(3*n,sizeof(*l->trigcache));
   l->splitcache=_ogg_calloc(32,sizeof(*l->splitcache));
@@ -1247,7 +1247,7 @@ void drft_init(void *context, drft_lookup *l,int n){
 }
 
 // OFFSET: 0x00470120
-void drft_clear(void *context, drft_lookup *l){
+void drft_clear(drft_lookup *l){
   if(l){
     if(l->trigcache)_ogg_free(l->trigcache);
     if(l->splitcache)_ogg_free(l->splitcache);

@@ -7,7 +7,7 @@
 
 #include "fmod_codeci.h"
 
-#include "../lib/flac-1.2.1/include/FLAC/all.h"
+#include "../lib/flac-1.1.4/include/FLAC/all.h"
 
 namespace FMOD
 {
@@ -27,7 +27,6 @@ namespace FMOD
 
       public:
 
-        unsigned int          mMemUsed;
 
         static FMOD_RESULT F_CALLBACK openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo);
         static FMOD_RESULT F_CALLBACK closeCallback(FMOD_CODEC_STATE *codec);

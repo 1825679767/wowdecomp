@@ -24,21 +24,16 @@
 #include "os.h"
 
 // OFFSET: 0x0046CB40
-int FMOD_vorbis_synthesis(void *context, vorbis_block *vb,ogg_packet *op){
+int FMOD_vorbis_synthesis(vorbis_block *vb,ogg_packet *op){
   vorbis_dsp_state     *vd=vb->vd;
   private_state        *b=vd->backend_state;
   vorbis_info          *vi=vd->vi;
   codec_setup_info     *ci=vi->codec_setup;
   oggpack_buffer       *opb=&vb->opb;
-  int                   type,mode,i,ret;
+  int                   type,mode,i;
 
   /* first things first.  Make sure decode is ready */
-  ret = _FMOD_vorbis_block_ripcord(context, vb);
-  if (ret)
-  {
-    return ret;
-  }
-  
+  _FMOD_vorbis_block_ripcord(vb);
   FMOD_oggpack_readinit(opb,op->packet,op->bytes);
 
   /* Check the packet type */
@@ -72,7 +67,7 @@ int FMOD_vorbis_synthesis(void *context, vorbis_block *vb,ogg_packet *op){
 
   /* alloc pcm passback storage */
   vb->pcmend=ci->blocksizes[vb->W];
-  vb->pcm=_FMOD_vorbis_block_alloc(context, vb,sizeof(*vb->pcm)*vi->channels);
+  vb->pcm=_FMOD_vorbis_block_alloc(vb,sizeof(*vb->pcm)*vi->channels);
   if (!vb->pcm)
   {
     return(OV_EMEMORY);
@@ -80,7 +75,7 @@ int FMOD_vorbis_synthesis(void *context, vorbis_block *vb,ogg_packet *op){
   
   for(i=0;i<vi->channels;i++)
   {
-    vb->pcm[i]=_FMOD_vorbis_block_alloc(context, vb,vb->pcmend*sizeof(*vb->pcm[i]));
+    vb->pcm[i]=_FMOD_vorbis_block_alloc(vb,vb->pcmend*sizeof(*vb->pcm[i]));
     if (!vb->pcm[i])
     {
       return(OV_EMEMORY);
@@ -90,28 +85,23 @@ int FMOD_vorbis_synthesis(void *context, vorbis_block *vb,ogg_packet *op){
   /* unpack_header enforces range checking */
   type=ci->map_type[ci->mode_param[mode]->mapping];
 
-  return(_FMOD_mapping_P[type]->inverse(context, vb,ci->map_param[ci->mode_param[mode]->
+  return(_FMOD_mapping_P[type]->inverse(vb,ci->map_param[ci->mode_param[mode]->
                                                    mapping]));
 }
 
 /* used to track pcm position without actually performing decode.
    Useful for sequential 'fast forward' */
 // OFFSET: 0x0046CCB0
-int FMOD_vorbis_synthesis_trackonly(void *context, vorbis_block *vb,ogg_packet *op){
+int FMOD_vorbis_synthesis_trackonly(vorbis_block *vb,ogg_packet *op){
   vorbis_dsp_state     *vd=vb->vd;
   private_state        *b=vd->backend_state;
   vorbis_info          *vi=vd->vi;
   codec_setup_info     *ci=vi->codec_setup;
   oggpack_buffer       *opb=&vb->opb;
-  int                   mode,ret;
+  int                   mode;
 
   /* first things first.  Make sure decode is ready */
-  ret = _FMOD_vorbis_block_ripcord(context, vb);
-  if (ret)
-  {
-    return ret;
-  }
-  
+  _FMOD_vorbis_block_ripcord(vb);
   FMOD_oggpack_readinit(opb,op->packet,op->bytes);
 
   /* Check the packet type */

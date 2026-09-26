@@ -116,13 +116,13 @@ typedef struct codebook{
 
 } codebook;
 
-extern void FMOD_vorbis_staticbook_clear(void *context, static_codebook *b);
-extern void FMOD_vorbis_staticbook_destroy(void *context, static_codebook *b);
-//extern int FMOD_vorbis_book_init_encode(void *context, codebook *dest,const static_codebook *source);
-extern int FMOD_vorbis_book_init_decode(void *context, codebook *dest,const static_codebook *source);
-extern void FMOD_vorbis_book_clear(void *context, codebook *b);
+extern void FMOD_vorbis_staticbook_clear(static_codebook *b);
+extern void FMOD_vorbis_staticbook_destroy(static_codebook *b);
+//extern int FMOD_vorbis_book_init_encode(codebook *dest,const static_codebook *source);
+extern int FMOD_vorbis_book_init_decode(codebook *dest,const static_codebook *source);
+extern void FMOD_vorbis_book_clear(codebook *b);
 
-extern float *_FMOD_book_unquantize(void *context, const static_codebook *b,int n,int *map);
+extern float *_FMOD_book_unquantize(const static_codebook *b,int n,int *map);
 extern float *_FMOD_book_logdist(const static_codebook *b,float *vals);
 extern float _FMOD_float32_unpack(ogg_int32_t val);
 extern ogg_int32_t   _FMOD_float32_pack(float val);
@@ -137,7 +137,7 @@ extern ogg_int32_t FMOD_vorbis_book_codelen(codebook *book,int entry);
 
 
 extern int FMOD_vorbis_staticbook_pack(const static_codebook *c,oggpack_buffer *b);
-extern int FMOD_vorbis_staticbook_unpack(void *context, oggpack_buffer *b,static_codebook *c);
+extern int FMOD_vorbis_staticbook_unpack(oggpack_buffer *b,static_codebook *c);
 
 //extern int FMOD_vorbis_book_encode(codebook *book, int a, oggpack_buffer *b);
 extern int FMOD_vorbis_book_errorv(codebook *book, float *a);

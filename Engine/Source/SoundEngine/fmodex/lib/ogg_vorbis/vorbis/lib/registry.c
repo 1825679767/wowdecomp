@@ -30,7 +30,7 @@ extern const vorbis_func_residue   FMOD_residue2_exportbundle;
 extern const vorbis_func_mapping   FMOD_mapping0_exportbundle;
 
 const vorbis_func_floor     *const _FMOD_floor_P[]={
-  0, //&FMOD_floor0_exportbundle,    // REMOVED BY FMOD - OBSOLETE FORMAT - error check is in info.c
+  &FMOD_floor0_exportbundle,
   &FMOD_floor1_exportbundle,
 };
 

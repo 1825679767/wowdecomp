@@ -21,16 +21,12 @@
    different malloc than stdlib */
 #if 1
 
-extern void * FMOD_OggVorbis_Malloc(void *context, int size);
-extern void * FMOD_OggVorbis_Calloc(void *context, int count, int size);
-extern void * FMOD_OggVorbis_ReAlloc(void *context, void *ptr, int size);
-extern void   FMOD_OggVorbis_Free(void *context, void *ptr);
+#include "../../../../../src/fmod_memory.h"
 
-
-#define _ogg_malloc(_x)      FMOD_OggVorbis_Malloc(context, _x)
-#define _ogg_calloc(_x, _y)  FMOD_OggVorbis_Calloc(context, _x, _y)
-#define _ogg_realloc(_x, _y) FMOD_OggVorbis_ReAlloc(context, _x, _y)
-#define _ogg_free(_x)        FMOD_OggVorbis_Free(context, _x)
+#define _ogg_malloc(_x)      FMOD_Memory_Alloc(_x)
+#define _ogg_calloc(_x, _y)  FMOD_Memory_Calloc((_x) * (_y))
+#define _ogg_realloc(_x, _y) FMOD_Memory_ReAlloc(_x, _y)
+#define _ogg_free(_x)        FMOD_Memory_Free(_x)
 
 #include "../../../../../src/fmod_types.h" /* For FMOD_memset/memcpy */
 

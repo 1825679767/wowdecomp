@@ -148,16 +148,16 @@ typedef struct OggVorbis_File {
 } OggVorbis_File;
 
 
-extern int ov_clear(void *context, OggVorbis_File *vf);
-extern int ov_fopen(void *context, char *path,OggVorbis_File *vf);
-extern int ov_open(void *context, FILE *f,OggVorbis_File *vf,char *initial,ogg_int32_t ibytes);
-extern int ov_open_callbacks(void *context, void *datasource, OggVorbis_File *vf,
+extern int ov_clear(OggVorbis_File *vf);
+extern int ov_fopen(char *path,OggVorbis_File *vf);
+extern int ov_open(FILE *f,OggVorbis_File *vf,char *initial,ogg_int32_t ibytes);
+extern int ov_open_callbacks(void *datasource, OggVorbis_File *vf,
                 char *initial, ogg_int32_t ibytes, ov_callbacks callbacks);
 
-extern int ov_test(void *context, FILE *f,OggVorbis_File *vf,char *initial,ogg_int32_t ibytes);
-extern int ov_test_callbacks(void *context, void *datasource, OggVorbis_File *vf,
+extern int ov_test(FILE *f,OggVorbis_File *vf,char *initial,ogg_int32_t ibytes);
+extern int ov_test_callbacks(void *datasource, OggVorbis_File *vf,
                 char *initial, ogg_int32_t ibytes, ov_callbacks callbacks);
-extern int ov_test_open(void *context, OggVorbis_File *vf);
+extern int ov_test_open(OggVorbis_File *vf);
 
 extern ogg_int32_t ov_bitrate(OggVorbis_File *vf,int i);
 extern ogg_int32_t ov_bitrate_instant(OggVorbis_File *vf);
@@ -169,17 +169,17 @@ extern ogg_int64_t ov_raw_total(OggVorbis_File *vf,int i);
 extern ogg_int64_t ov_pcm_total(OggVorbis_File *vf,int i);
 extern float ov_time_total(OggVorbis_File *vf,int i);
 
-extern int ov_raw_seek(void *context, OggVorbis_File *vf,ogg_int64_t pos);
-extern int ov_pcm_seek(void *context, OggVorbis_File *vf,ogg_int64_t pos);
-extern int ov_pcm_seek_page(void *context, OggVorbis_File *vf,ogg_int64_t pos);
-extern int ov_time_seek(void *context, OggVorbis_File *vf,float pos);
-extern int ov_time_seek_page(void *context, OggVorbis_File *vf,float pos);
+extern int ov_raw_seek(OggVorbis_File *vf,ogg_int64_t pos);
+extern int ov_pcm_seek(OggVorbis_File *vf,ogg_int64_t pos);
+extern int ov_pcm_seek_page(OggVorbis_File *vf,ogg_int64_t pos);
+extern int ov_time_seek(OggVorbis_File *vf,float pos);
+extern int ov_time_seek_page(OggVorbis_File *vf,float pos);
 
-extern int ov_raw_seek_lap(void *context, OggVorbis_File *vf,ogg_int64_t pos);
-extern int ov_pcm_seek_lap(void *context, OggVorbis_File *vf,ogg_int64_t pos);
-extern int ov_pcm_seek_page_lap(void *context, OggVorbis_File *vf,ogg_int64_t pos);
-extern int ov_time_seek_lap(void *context, OggVorbis_File *vf,float pos);
-extern int ov_time_seek_page_lap(void *context, OggVorbis_File *vf,float pos);
+extern int ov_raw_seek_lap(OggVorbis_File *vf,ogg_int64_t pos);
+extern int ov_pcm_seek_lap(OggVorbis_File *vf,ogg_int64_t pos);
+extern int ov_pcm_seek_page_lap(OggVorbis_File *vf,ogg_int64_t pos);
+extern int ov_time_seek_lap(OggVorbis_File *vf,float pos);
+extern int ov_time_seek_page_lap(OggVorbis_File *vf,float pos);
 
 extern ogg_int64_t ov_raw_tell(OggVorbis_File *vf);
 extern ogg_int64_t ov_pcm_tell(OggVorbis_File *vf);
@@ -188,16 +188,16 @@ extern float ov_time_tell(OggVorbis_File *vf);
 extern vorbis_info *ov_info(OggVorbis_File *vf,int link);
 extern vorbis_comment *ov_comment(OggVorbis_File *vf,int link);
 
-extern ogg_int32_t ov_read_float(void *context, OggVorbis_File *vf,float ***pcm_channels,int samples,
+extern ogg_int32_t ov_read_float(OggVorbis_File *vf,float ***pcm_channels,int samples,
                           int *bitstream);
-extern ogg_int32_t ov_read_filter(void *context, OggVorbis_File *vf,char *buffer,int length,
+extern ogg_int32_t ov_read_filter(OggVorbis_File *vf,char *buffer,int length,
                           int bigendianp,int word,int sgned,int *bitstream,
                           void (*filter)(float **pcm,ogg_int32_t channels,ogg_int32_t samples,void *filter_param),void *filter_param);
-extern ogg_int32_t ov_read(void *context, OggVorbis_File *vf,char *buffer,int length,
+extern ogg_int32_t ov_read(OggVorbis_File *vf,char *buffer,int length,
                     int bigendianp,int word,int sgned,int *bitstream);
-extern int ov_crosslap(void *context, OggVorbis_File *vf1,OggVorbis_File *vf2);
+extern int ov_crosslap(OggVorbis_File *vf1,OggVorbis_File *vf2);
 
-extern int ov_halfrate(void *context, OggVorbis_File *vf,int flag);
+extern int ov_halfrate(OggVorbis_File *vf,int flag);
 extern int ov_halfrate_p(OggVorbis_File *vf);
 
 #ifdef __cplusplus

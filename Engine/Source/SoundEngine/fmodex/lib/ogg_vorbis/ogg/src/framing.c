@@ -5,14 +5,14 @@
  * GOVERNED BY A BSD-STYLE SOURCE LICENSE INCLUDED WITH THIS SOURCE *
  * IN 'COPYING'. PLEASE READ THESE TERMS BEFORE DISTRIBUTING.       *
  *                                                                  *
- * THE OggVorbis SOURCE CODE IS (C) COPYRIGHT 1994-2009             *
+ * THE OggVorbis SOURCE CODE IS (C) COPYRIGHT 1994-2002             *
  * by the Xiph.Org Foundation http://www.xiph.org/                  *
  *                                                                  *
  ********************************************************************
 
- function: code raw packets into framed OggSquish stream and
+ function: code raw [Vorbis] packets into framed OggSquish stream and
            decode Ogg streams back into raw packets
- last mod: $Id: framing.c 16051 2009-05-27 05:00:06Z xiphmont $
+ last mod: $Id: framing.c 9601 2005-07-23 00:19:14Z giles $
 
  note: The CRC code is directly derived from public domain code by
  Ross Williams (ross@guest.adelaide.edu.au).  See docs/framing.html
@@ -29,22 +29,18 @@
 int FMOD_ogg_page_version(const ogg_page *og){
   return((int)(og->header[4]));
 }
-
 // OFFSET: 0x00472600
 int FMOD_ogg_page_continued(const ogg_page *og){
   return((int)(og->header[5]&0x01));
 }
-
 // OFFSET: 0x00472620
 int FMOD_ogg_page_bos(const ogg_page *og){
   return((int)(og->header[5]&0x02));
 }
-
 // OFFSET: 0x00472640
 int FMOD_ogg_page_eos(const ogg_page *og){
   return((int)(og->header[5]&0x04));
 }
-
 // OFFSET: 0x00472660
 ogg_int64_t FMOD_ogg_page_granulepos(const ogg_page *og){
   unsigned char *page=og->header;
@@ -58,7 +54,6 @@ ogg_int64_t FMOD_ogg_page_granulepos(const ogg_page *og){
   granulepos= (granulepos<<8)|(page[6]&0xff);
   return(granulepos);
 }
-
 // OFFSET: 0x004726F0
 int FMOD_ogg_page_serialno(const ogg_page *og){
   return(og->header[14] |
@@ -66,7 +61,7 @@ int FMOD_ogg_page_serialno(const ogg_page *og){
          (og->header[16]<<16) |
          (og->header[17]<<24));
 }
- 
+
 ogg_int32_t FMOD_ogg_page_pageno(const ogg_page *og){
   return(og->header[18] |
          (og->header[19]<<8) |
@@ -83,13 +78,13 @@ ogg_int32_t FMOD_ogg_page_pageno(const ogg_page *og){
 /* NOTE:
 If a page consists of a packet begun on a previous page, and a new
 packet begun (but not completed) on this page, the return will be:
-  ogg_page_packets(page)   ==1, 
+  ogg_page_packets(page)   ==1,
   ogg_page_continued(page) !=0
 
 If a page happens to be a single packet that was begun on a
 previous page, and spans to the next page (in the case of a three or
-more page packet), the return will be: 
-  ogg_page_packets(page)   ==0, 
+more page packet), the return will be:
+  ogg_page_packets(page)   ==0,
   ogg_page_continued(page) !=0
 */
 
@@ -167,27 +162,28 @@ static const ogg_uint32_t crc_lookup[256]={
   0xbcb4666d,0xb8757bda,0xb5365d03,0xb1f740b4};
 
 /* init the encode/decode logical stream state */
-
 // OFFSET: 0x00472720
-int FMOD_ogg_stream_init(void *context, ogg_stream_state *os,int serialno){
+int FMOD_ogg_stream_init(ogg_stream_state *os,int serialno){
   if(os){
     FMOD_memset(os,0,sizeof(*os));
-
-#if 1
-    os->body_storage=(4*1024) + 512;
-    os->lacing_storage=64;
-#else
-    os->body_storage=16*1024;
-    os->lacing_storage=1024;
-#endif    
-
+    os->body_storage=(4*1024)+256;
     os->body_data=_ogg_malloc(os->body_storage*sizeof(*os->body_data));
-    os->lacing_vals=_ogg_malloc(os->lacing_storage*sizeof(*os->lacing_vals));
-    os->granule_vals=_ogg_malloc(os->lacing_storage*sizeof(*os->granule_vals));
+    if (!os->body_data)
+    {
+        return(-1);
+    }
 
-    if(!os->body_data || !os->lacing_vals || !os->granule_vals){
-      FMOD_ogg_stream_clear(context, os);
-      return -1;
+    os->lacing_storage=64;
+    os->lacing_vals=_ogg_malloc(os->lacing_storage*sizeof(*os->lacing_vals));
+    if (!os->lacing_vals)
+    {
+        return(-1);
+    }
+
+    os->granule_vals=_ogg_malloc(os->lacing_storage*sizeof(*os->granule_vals));
+    if (!os->granule_vals)
+    {
+        return(-1);
     }
 
     os->serialno=serialno;
@@ -195,80 +191,49 @@ int FMOD_ogg_stream_init(void *context, ogg_stream_state *os,int serialno){
     return(0);
   }
   return(-1);
-} 
-
-/* async/delayed error detection for the ogg_stream_state */
-int FMOD_ogg_stream_check(ogg_stream_state *os){
-  if(!os || !os->body_data) return -1;
-  return 0;
 }
-
 /* _clear does not free os, only the non-flat storage within */
 // OFFSET: 0x004727C0
-int FMOD_ogg_stream_clear(void *context, ogg_stream_state *os){
+int FMOD_ogg_stream_clear(ogg_stream_state *os){
   if(os){
     if(os->body_data)_ogg_free(os->body_data);
     if(os->lacing_vals)_ogg_free(os->lacing_vals);
     if(os->granule_vals)_ogg_free(os->granule_vals);
 
-    FMOD_memset(os,0,sizeof(*os));    
+    FMOD_memset(os,0,sizeof(*os));
   }
   return(0);
-} 
+}
 
-int FMOD_ogg_stream_destroy(void *context, ogg_stream_state *os){
+int FMOD_ogg_stream_destroy(ogg_stream_state *os){
   if(os){
-    FMOD_ogg_stream_clear(context, os);
+    FMOD_ogg_stream_clear(os);
     _ogg_free(os);
   }
   return(0);
-} 
+}
 
 /* Helpers for ogg_stream_encode; this keeps the structure and
    what's happening fairly clear */
 
-static int _os_body_expand(void *context, ogg_stream_state *os,int needed){
+static void _os_body_expand(ogg_stream_state *os,int needed){
   if(os->body_storage<=os->body_fill+needed){
-    void *ret;
-    ret=_ogg_realloc(os->body_data,(os->body_storage+needed+1024)*
-                     sizeof(*os->body_data));
-    if(!ret){
-      FMOD_ogg_stream_clear(context, os);
-      return -1;
-    }
     os->body_storage+=(needed+1024);
-    os->body_data=ret;
+    os->body_data=_ogg_realloc(os->body_data,os->body_storage*sizeof(*os->body_data));
   }
-  return 0;
 }
-
 // OFFSET: 0x00472830
-static int _os_lacing_expand(void *context, ogg_stream_state *os,int needed){
+static void _os_lacing_expand(ogg_stream_state *os,int needed){
   if(os->lacing_storage<=os->lacing_fill+needed){
-    void *ret;
-    ret=_ogg_realloc(os->lacing_vals,(os->lacing_storage+needed+32)*
-                     sizeof(*os->lacing_vals));
-    if(!ret){
-      FMOD_ogg_stream_clear(context, os);
-      return -1;
-    }
-    os->lacing_vals=ret;
-    ret=_ogg_realloc(os->granule_vals,(os->lacing_storage+needed+32)*
-                     sizeof(*os->granule_vals));
-    if(!ret){
-      FMOD_ogg_stream_clear(context, os);
-      return -1;
-    }
-    os->granule_vals=ret;
     os->lacing_storage+=(needed+32);
+    os->lacing_vals=_ogg_realloc(os->lacing_vals,os->lacing_storage*sizeof(*os->lacing_vals));
+    os->granule_vals=_ogg_realloc(os->granule_vals,os->lacing_storage*sizeof(*os->granule_vals));
   }
-  return 0;
 }
 
 /* checksum the page */
 /* Direct table CRC; note that this will be faster in the future if we
    perform the checksum silmultaneously with other copies */
-
 // OFFSET: 0x00472890
 void FMOD_ogg_page_checksum_set(ogg_page *og){
   if(og){
@@ -280,12 +245,12 @@ void FMOD_ogg_page_checksum_set(ogg_page *og){
     og->header[23]=0;
     og->header[24]=0;
     og->header[25]=0;
-    
+
     for(i=0;i<og->header_len;i++)
       crc_reg=(crc_reg<<8)^crc_lookup[((crc_reg >> 24)&0xff)^og->header[i]];
     for(i=0;i<og->body_len;i++)
       crc_reg=(crc_reg<<8)^crc_lookup[((crc_reg >> 24)&0xff)^og->body[i]];
-    
+
     og->header[22]=(unsigned char)(crc_reg&0xff);
     og->header[23]=(unsigned char)((crc_reg>>8)&0xff);
     og->header[24]=(unsigned char)((crc_reg>>16)&0xff);
@@ -293,72 +258,6 @@ void FMOD_ogg_page_checksum_set(ogg_page *og){
   }
 }
 
-/* submit data to the internal buffer of the framing engine */
-//int ogg_stream_iovecin(void *context, ogg_stream_state *os, ogg_iovec_t *iov, int count,
-//                       ogg_int32_t e_o_s, ogg_int64_t granulepos){
-//
-//  int bytes = 0, lacing_vals, i;
-//
-//  if(FMOD_ogg_stream_check(os)) return -1;
-//  if(!iov) return 0;
-// 
-//  for (i = 0; i < count; ++i) bytes += (int)iov[i].iov_len;
-//  lacing_vals=bytes/255+1;
-//
-//  if(os->body_returned){
-//    /* advance packet data according to the body_returned pointer. We
-//       had to keep it around to return a pointer into the buffer last
-//       call */
-//    
-//    os->body_fill-=os->body_returned;
-//    if(os->body_fill)
-//      memmove(os->body_data,os->body_data+os->body_returned,
-//              os->body_fill);
-//    os->body_returned=0;
-//  }
-// 
-//  /* make sure we have the buffer storage */
-//  if(_os_body_expand(context, os,bytes) || _os_lacing_expand(context, os,lacing_vals))
-//    return -1;
-//
-//  /* Copy in the submitted packet.  Yes, the copy is a waste; this is
-//     the liability of overly clean abstraction for the time being.  It
-//     will actually be fairly easy to eliminate the extra copy in the
-//     future */
-//
-//  for (i = 0; i < count; ++i) {
-//    FMOD_memcpy(os->body_data+os->body_fill, iov[i].iov_base, iov[i].iov_len);
-//    os->body_fill += (int)iov[i].iov_len;
-//  }
-//
-//  /* Store lacing vals for this packet */
-//  for(i=0;i<lacing_vals-1;i++){
-//    os->lacing_vals[os->lacing_fill+i]=255;
-//    os->granule_vals[os->lacing_fill+i]=os->granulepos;
-//  }
-//  os->lacing_vals[os->lacing_fill+i]=bytes%255;
-//  os->granulepos=os->granule_vals[os->lacing_fill+i]=granulepos;
-//
-//  /* flag the first segment as the beginning of the packet */
-//  os->lacing_vals[os->lacing_fill]|= 0x100;
-//
-//  os->lacing_fill+=lacing_vals;
-//
-//  /* for the sake of completeness */
-//  os->packetno++;
-//
-//  if(e_o_s)os->e_o_s=1;
-//
-//  return(0);
-//}
-//
-//int FMOD_ogg_stream_packetin(void *context, ogg_stream_state *os,ogg_packet *op){
-//  ogg_iovec_t iov;
-//  iov.iov_base = op->packet;
-//  iov.iov_len = op->bytes;
-//  return ogg_stream_iovecin(context, os, &iov, 1, op->e_o_s, op->granulepos);
-//}
-//
 ///* This will flush remaining packets into a page (returning nonzero),
 //   even if there is not enough data to trigger a flush normally
 //   (undersized page). If there are no packets or partial packets to
@@ -370,9 +269,8 @@ void FMOD_ogg_page_checksum_set(ogg_page *og){
 //
 //   since ogg_stream_flush will flush the last page in a stream even if
 //   it's undersized, you almost certainly want to use ogg_stream_pageout
-//   (and *not* ogg_stream_flush) unless you specifically need to flush 
+//   (and *not* ogg_stream_flush) unless you specifically need to flush
 //   an page regardless of size in the middle of a stream. */
-//
 //int FMOD_ogg_stream_flush(ogg_stream_state *os,ogg_page *og){
 //  int i;
 //  int vals=0;
@@ -381,12 +279,11 @@ void FMOD_ogg_page_checksum_set(ogg_page *og){
 //  ogg_int32_t acc=0;
 //  ogg_int64_t granule_pos=-1;
 //
-//  if(FMOD_ogg_stream_check(os)) return 0;
-//  if(maxvals==0)return 0;
-//  
+//  if(maxvals==0)return(0);
+//
 //  /* construct a page */
 //  /* decide how many segments to include */
-//  
+//
 //  /* If this is the initial header case, the first page must only include
 //     the initial header packet */
 //  if(os->b_o_s==0){  /* 'initial header page' case */
@@ -405,13 +302,13 @@ void FMOD_ogg_page_checksum_set(ogg_page *og){
 //        granule_pos=os->granule_vals[vals];
 //    }
 //  }
-//  
+//
 //  /* construct the header in temp storage */
 //  FMOD_memcpy(os->header,"OggS",4);
-//  
+//
 //  /* stream structure version */
 //  os->header[4]=0x00;
-//  
+//
 //  /* continued packet flag? */
 //  os->header[5]=0x00;
 //  if((os->lacing_vals[0]&0x100)==0)os->header[5]|=0x01;
@@ -450,61 +347,58 @@ void FMOD_ogg_page_checksum_set(ogg_page *og){
 //      pageno>>=8;
 //    }
 //  }
-//  
+//
 //  /* zero for computation; filled in later */
 //  os->header[22]=0;
 //  os->header[23]=0;
 //  os->header[24]=0;
 //  os->header[25]=0;
-//  
+//
 //  /* segment table */
 //  os->header[26]=(unsigned char)(vals&0xff);
 //  for(i=0;i<vals;i++)
 //    bytes+=os->header[i+27]=(unsigned char)(os->lacing_vals[i]&0xff);
-//  
+//
 //  /* set pointers in the ogg_page struct */
 //  og->header=os->header;
 //  og->header_len=os->header_fill=vals+27;
 //  og->body=os->body_data+os->body_returned;
 //  og->body_len=bytes;
-//  
+//
 //  /* advance the lacing data and set the body_returned pointer */
-//  
+//
 //  os->lacing_fill-=vals;
 //  memmove(os->lacing_vals,os->lacing_vals+vals,os->lacing_fill*sizeof(*os->lacing_vals));
 //  memmove(os->granule_vals,os->granule_vals+vals,os->lacing_fill*sizeof(*os->granule_vals));
 //  os->body_returned+=bytes;
-//  
+//
 //  /* calculate the checksum */
-//  
-//  ogg_page_checksum_set(og);
+//
+//  FMOD_ogg_page_checksum_set(og);
 //
 //  /* done */
 //  return(1);
 //}
 //
-//
 ///* This constructs pages from buffered packet segments.  The pointers
 //returned are to static buffers; do not free. The returned buffers are
 //good only until the next call (using the same ogg_stream_state) */
 //
-//int ogg_stream_pageout(ogg_stream_state *os, ogg_page *og){
-//  if(FMOD_ogg_stream_check(os)) return 0;
+//int FMOD_ogg_stream_pageout(ogg_stream_state *os, ogg_page *og){
 //
 //  if((os->e_o_s&&os->lacing_fill) ||          /* 'were done, now flush' case */
 //     os->body_fill-os->body_returned > 4096 ||/* 'page nominal size' case */
 //     os->lacing_fill>=255 ||                  /* 'segment table full' case */
 //     (os->lacing_fill&&!os->b_o_s)){          /* 'initial header page' case */
-//        
-//    return(ogg_stream_flush(os,og));
+//
+//    return(FMOD_ogg_stream_flush(os,og));
 //  }
-//  
+//
 //  /* not enough data to construct a page and not end of stream */
-//  return 0;
+//  return(0);
 //}
 
 int FMOD_ogg_stream_eos(ogg_stream_state *os){
-  if(FMOD_ogg_stream_check(os)) return 1;
   return os->e_o_s;
 }
 
@@ -527,7 +421,6 @@ int FMOD_ogg_stream_eos(ogg_stream_state *os){
 // OFFSET: 0x00472930
 int FMOD_ogg_sync_init(ogg_sync_state *oy){
   if(oy){
-    oy->storage = -1; /* used as a readiness flag */
     FMOD_memset(oy,0,sizeof(*oy));
   }
   return(0);
@@ -535,31 +428,24 @@ int FMOD_ogg_sync_init(ogg_sync_state *oy){
 
 /* clear non-flat storage within */
 // OFFSET: 0x00472960
-int FMOD_ogg_sync_clear(void *context, ogg_sync_state *oy){
+int FMOD_ogg_sync_clear(ogg_sync_state *oy){
   if(oy){
     if(oy->data)_ogg_free(oy->data);
-    FMOD_memset(oy,0,sizeof(*oy));
+    FMOD_ogg_sync_init(oy);
   }
   return(0);
 }
 
-int FMOD_ogg_sync_destroy(void *context, ogg_sync_state *oy){
+int FMOD_ogg_sync_destroy(ogg_sync_state *oy){
   if(oy){
-    FMOD_ogg_sync_clear(context, oy);
+    FMOD_ogg_sync_clear(oy);
     _ogg_free(oy);
   }
   return(0);
 }
 
-int FMOD_ogg_sync_check(ogg_sync_state *oy){
-  if(oy->storage<0) return -1;
-  return 0;
-}
-
 // OFFSET: 0x004729A0
-char *FMOD_ogg_sync_buffer(void *context, ogg_sync_state *oy, ogg_int32_t size){
-  if(FMOD_ogg_sync_check(oy)) return NULL;
-
+char *FMOD_ogg_sync_buffer(ogg_sync_state *oy, ogg_int32_t size){
   /* first, clear out any space that has been previously returned */
   if(oy->returned){
     oy->fill-=oy->returned;
@@ -570,19 +456,12 @@ char *FMOD_ogg_sync_buffer(void *context, ogg_sync_state *oy, ogg_int32_t size){
 
   if(size>oy->storage-oy->fill){
     /* We need to extend the internal buffer */
-    ogg_int32_t newsize=size+oy->fill+4096; /* an extra page to be nice */
-    void *ret;
+    ogg_int32_t newsize=size+oy->fill+16;
 
     if(oy->data)
-      ret=_ogg_realloc(oy->data,newsize);
+      oy->data=_ogg_realloc(oy->data,newsize);
     else
-      ret=_ogg_malloc(newsize);
-    oy->data = 0;                   /* Null out old pointer so clear doesnt fall over on bad/released data? */
-    if(!ret){
-      FMOD_ogg_sync_clear(context, oy);
-      return NULL;
-    }
-    oy->data=ret;
+      oy->data=_ogg_malloc(newsize);
     oy->storage=newsize;
   }
 
@@ -592,8 +471,7 @@ char *FMOD_ogg_sync_buffer(void *context, ogg_sync_state *oy, ogg_int32_t size){
 
 // OFFSET: 0x00472A30
 int FMOD_ogg_sync_wrote(ogg_sync_state *oy, ogg_int32_t bytes){
-  if(FMOD_ogg_sync_check(oy))return -1;
-  if(oy->fill+bytes>oy->storage)return -1;
+  if(oy->fill+bytes>oy->storage)return(-1);
   oy->fill+=bytes;
   return(0);
 }
@@ -605,7 +483,7 @@ int FMOD_ogg_sync_wrote(ogg_sync_state *oy, ogg_int32_t bytes){
   -n) skipped n bytes
    0) page not ready; more data (no bytes skipped)
    n) page synced at current location; page length n bytes
-   
+
 */
 
 // OFFSET: 0x00472A50
@@ -614,55 +492,53 @@ ogg_int32_t FMOD_ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
   unsigned char *next;
   ogg_int32_t bytes=oy->fill-oy->returned;
 
-  if(FMOD_ogg_sync_check(oy))return 0;
-  
   if(oy->headerbytes==0){
     int headerbytes,i;
     if(bytes<27)return(0); /* not enough for a header */
-    
+
     /* verify capture pattern */
     if(memcmp(page,"OggS",4))goto sync_fail;
-    
+
     headerbytes=page[26]+27;
     if(bytes<headerbytes)return(0); /* not enough for header + seg table */
-    
+
     /* count up body length in the segment table */
-    
+
     for(i=0;i<page[26];i++)
       oy->bodybytes+=page[27+i];
     oy->headerbytes=headerbytes;
   }
-  
+
   if(oy->bodybytes+oy->headerbytes>bytes)return(0);
-  
+
   /* The whole test page is buffered.  Verify the checksum */
   {
     /* Grab the checksum bytes, set the header field to zero */
     char chksum[4];
     ogg_page log;
-    
+
     FMOD_memcpy(chksum,page+22,4);
     FMOD_memset(page+22,0,4);
-    
+
     /* set up a temp page struct and recompute the checksum */
     log.header=page;
     log.header_len=oy->headerbytes;
     log.body=page+oy->headerbytes;
     log.body_len=oy->bodybytes;
     FMOD_ogg_page_checksum_set(&log);
-    
+
     /* Compare */
     if(memcmp(chksum,page+22,4)){
       /* D'oh.  Mismatch! Corrupt page (or miscapture and not a page
          at all) */
       /* replace the computed checksum with the one actually read in */
       FMOD_memcpy(page+22,chksum,4);
-      
+
       /* Bad checksum. Lose sync */
       goto sync_fail;
     }
   }
-  
+
   /* yes, have a whole page all ready to go */
   {
     unsigned char *page=oy->data+oy->returned;
@@ -681,12 +557,12 @@ ogg_int32_t FMOD_ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
     oy->bodybytes=0;
     return(bytes);
   }
-  
+
  sync_fail:
-  
+
   oy->headerbytes=0;
   oy->bodybytes=0;
-  
+
   /* search for possible capture */
   next=memchr(page+1,'O',bytes-1);
   if(!next)
@@ -710,8 +586,6 @@ ogg_int32_t FMOD_ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
 // OFFSET: 0x00472CD0
 int FMOD_ogg_sync_pageout(ogg_sync_state *oy, ogg_page *og){
 
-  if(FMOD_ogg_sync_check(oy))return 0;
-
   /* all we need to do is verify a page at the head of the stream
      buffer.  If it doesn't verify, we look for the next potential
      frame */
@@ -726,7 +600,7 @@ int FMOD_ogg_sync_pageout(ogg_sync_state *oy, ogg_page *og){
       /* need more data */
       return(0);
     }
-    
+
     /* head did not start a synced page... skipped some bytes */
     if(!oy->unsynced){
       oy->unsynced=1;
@@ -742,7 +616,7 @@ int FMOD_ogg_sync_pageout(ogg_sync_state *oy, ogg_page *og){
    into packet segments here as well. */
 
 // OFFSET: 0x00472D20
-int FMOD_ogg_stream_pagein(void *context, ogg_stream_state *os, ogg_page *og){
+int FMOD_ogg_stream_pagein(ogg_stream_state *os, ogg_page *og){
   unsigned char *header=og->header;
   unsigned char *body=og->body;
   ogg_int32_t           bodysize=og->body_len;
@@ -756,8 +630,6 @@ int FMOD_ogg_stream_pagein(void *context, ogg_stream_state *os, ogg_page *og){
   int serialno=FMOD_ogg_page_serialno(og);
   ogg_int32_t pageno=FMOD_ogg_page_pageno(og);
   int segments=header[26];
-  
-  if(FMOD_ogg_stream_check(os)) return -1;
 
   /* clean up 'returned data' */
   {
@@ -790,7 +662,7 @@ int FMOD_ogg_stream_pagein(void *context, ogg_stream_state *os, ogg_page *og){
   if(serialno!=os->serialno)return(-1);
   if(version>0)return(-1);
 
-  if(_os_lacing_expand(context, os,segments+1)) return -1;
+  _os_lacing_expand(os,segments+1);
 
   /* are we in sequence? */
   if(pageno!=os->pageno){
@@ -811,7 +683,7 @@ int FMOD_ogg_stream_pagein(void *context, ogg_stream_state *os, ogg_page *og){
   /* are we a 'continued packet' page?  If so, we may need to skip
      some segments */
   if(continued){
-    if(os->lacing_fill<1 || 
+    if(os->lacing_fill<1 ||
        os->lacing_vals[os->lacing_fill-1]==0x400){
       bos=0;
       for(;segptr<segments;segptr++){
@@ -825,9 +697,9 @@ int FMOD_ogg_stream_pagein(void *context, ogg_stream_state *os, ogg_page *og){
       }
     }
   }
-  
+
   if(bodysize){
-    if(_os_body_expand(context, os,bodysize)) return -1;
+    _os_body_expand(os,bodysize);
     FMOD_memcpy(os->body_data+os->body_fill,body,bodysize);
     os->body_fill+=bodysize;
   }
@@ -838,20 +710,20 @@ int FMOD_ogg_stream_pagein(void *context, ogg_stream_state *os, ogg_page *og){
       int val=header[27+segptr];
       os->lacing_vals[os->lacing_fill]=val;
       os->granule_vals[os->lacing_fill]=-1;
-      
+
       if(bos){
         os->lacing_vals[os->lacing_fill]|=0x100;
         bos=0;
       }
-      
+
       if(val<255)saved=os->lacing_fill;
-      
+
       os->lacing_fill++;
       segptr++;
-      
+
       if(val<255)os->lacing_packet=os->lacing_fill;
     }
-  
+
     /* set the granulepos on the last granuleval of the last full packet */
     if(saved!=-1){
       os->granule_vals[saved]=granulepos;
@@ -873,8 +745,6 @@ int FMOD_ogg_stream_pagein(void *context, ogg_stream_state *os, ogg_page *og){
 /* clear things to an initial state.  Good to call, eg, before seeking */
 // OFFSET: 0x00473010
 int FMOD_ogg_sync_reset(ogg_sync_state *oy){
-  if(FMOD_ogg_sync_check(oy))return -1;
-
   oy->fill=0;
   oy->returned=0;
   oy->unsynced=0;
@@ -885,8 +755,6 @@ int FMOD_ogg_sync_reset(ogg_sync_state *oy){
 
 // OFFSET: 0x00473030
 int FMOD_ogg_stream_reset(ogg_stream_state *os){
-  if(FMOD_ogg_stream_check(os)) return -1;
-
   os->body_fill=0;
   os->body_returned=0;
 
@@ -907,7 +775,6 @@ int FMOD_ogg_stream_reset(ogg_stream_state *os){
 
 // OFFSET: 0x00473080
 int FMOD_ogg_stream_reset_serialno(ogg_stream_state *os,int serialno){
-  if(FMOD_ogg_stream_check(os)) return -1;
   FMOD_ogg_stream_reset(os);
   os->serialno=serialno;
   return(0);
@@ -970,17 +837,15 @@ static int _packetout(ogg_stream_state *os,ogg_packet *op,int adv){
 
 // OFFSET: 0x00473200
 int FMOD_ogg_stream_packetout(ogg_stream_state *os,ogg_packet *op){
-  if(FMOD_ogg_stream_check(os)) return 0;
   return _packetout(os,op,1);
 }
 
 // OFFSET: 0x00473220
 int FMOD_ogg_stream_packetpeek(ogg_stream_state *os,ogg_packet *op){
-  if(FMOD_ogg_stream_check(os)) return 0;
   return _packetout(os,op,0);
 }
 
-void FMOD_ogg_packet_clear(void *context, ogg_packet *op) {
+void FMOD_ogg_packet_clear(ogg_packet *op) {
   _ogg_free(op->packet);
   FMOD_memset(op, 0, sizeof(*op));
 }

@@ -148,12 +148,9 @@ int vorbis_staticbook_pack(const static_codebook *c,oggpack_buffer *opb){
 /* unpacks a codebook from the packet buffer into the codebook struct,
    readies the codebook auxiliary structures for decode *************/
 // OFFSET: 0x0046ED10
-int FMOD_vorbis_staticbook_unpack(void *context, oggpack_buffer *opb,static_codebook *s){
+int FMOD_vorbis_staticbook_unpack(oggpack_buffer *opb,static_codebook *s){
   ogg_int32_t i,j;
-  int err = -1;
-  
   FMOD_memset(s,0,sizeof(*s));
-  s->allocedp=1;
 
   /* make sure alignment is correct */
   if(FMOD_oggpack_read(opb,24)!=0x564342)goto _eofout;
@@ -163,18 +160,12 @@ int FMOD_vorbis_staticbook_unpack(void *context, oggpack_buffer *opb,static_code
   s->entries=FMOD_oggpack_read(opb,24);
   if(s->entries==-1)goto _eofout;
 
-  if(_FMOD_ilog(s->dim)+_FMOD_ilog(s->entries)>24)goto _eofout;
-
   /* codeword ordering.... length ordered or unordered? */
   switch((int)FMOD_oggpack_read(opb,1)){
   case 0:
     /* unordered */
     s->lengthlist=_ogg_malloc(sizeof(*s->lengthlist)*s->entries);
-    if (!s->lengthlist)
-    {
-        err = OV_EMEMORY;
-        goto _errout;
-    }
+    if(!s->lengthlist)goto _errout;
 
     /* allocated but unused entries? */
     if(FMOD_oggpack_read(opb,1)){
@@ -203,11 +194,8 @@ int FMOD_vorbis_staticbook_unpack(void *context, oggpack_buffer *opb,static_code
     {
       ogg_int32_t length=FMOD_oggpack_read(opb,5)+1;
       s->lengthlist=_ogg_malloc(sizeof(*s->lengthlist)*s->entries);
-      if (!s->lengthlist)
-      {
-          err = OV_EMEMORY;
-          goto _errout;
-      }
+      if(!s->lengthlist)goto _errout;
+
       for(i=0;i<s->entries;){
         ogg_int32_t num=FMOD_oggpack_read(opb,_FMOD_ilog(s->entries-i));
         if(num==-1)goto _eofout;
@@ -235,13 +223,12 @@ int FMOD_vorbis_staticbook_unpack(void *context, oggpack_buffer *opb,static_code
     s->q_delta=FMOD_oggpack_read(opb,32);
     s->q_quant=FMOD_oggpack_read(opb,4)+1;
     s->q_sequencep=FMOD_oggpack_read(opb,1);
-    if(s->q_sequencep==-1)goto _eofout;
 
     {
       int quantvals=0;
       switch(s->maptype){
       case 1:
-        quantvals=(s->dim==0?0:_FMOD_book_maptype1_quantvals(s));
+        quantvals=_FMOD_book_maptype1_quantvals(s);
         break;
       case 2:
         quantvals=s->entries*s->dim;
@@ -250,11 +237,7 @@ int FMOD_vorbis_staticbook_unpack(void *context, oggpack_buffer *opb,static_code
 
       /* quantized values */
       s->quantlist=_ogg_malloc(sizeof(*s->quantlist)*quantvals);
-      if (!s->quantlist)
-      {
-        err = OV_EMEMORY;
-        goto _errout;
-      }
+      if(!s->quantlist)goto _errout;
       for(i=0;i<quantvals;i++)
         s->quantlist[i]=FMOD_oggpack_read(opb,s->q_quant);
 
@@ -270,8 +253,8 @@ int FMOD_vorbis_staticbook_unpack(void *context, oggpack_buffer *opb,static_code
 
  _errout:
  _eofout:
-  FMOD_vorbis_staticbook_clear(context, s);
-  return err;
+  FMOD_vorbis_staticbook_clear(s);
+  return(-1);
 }
 
 /* returns the number of bits ************************************************/
@@ -600,7 +583,7 @@ int main(){
   oggpack_buffer write;
   oggpack_buffer read;
   ogg_int32_t ptr=0,i;
-  FMOD_oggpack_writeinit(context, &write);
+  FMOD_oggpack_writeinit(&write);
 
   fprintf(stderr,"Testing codebook abstraction...:\n");
 

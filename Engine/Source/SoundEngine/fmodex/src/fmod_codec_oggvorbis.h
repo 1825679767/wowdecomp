@@ -34,7 +34,6 @@ namespace FMOD
 
       public:
 
-        unsigned int          mMemUsed;
 
         static FMOD_RESULT F_CALLBACK openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo);
         static FMOD_RESULT F_CALLBACK closeCallback(FMOD_CODEC_STATE *codec);

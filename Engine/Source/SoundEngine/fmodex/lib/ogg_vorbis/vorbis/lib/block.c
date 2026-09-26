@@ -86,7 +86,7 @@ static int ilog2(unsigned int v){
 #endif
 
 // OFFSET: 0x0046CE10
-int FMOD_vorbis_block_init(void *context, vorbis_dsp_state *v, vorbis_block *vb){
+int FMOD_vorbis_block_init(vorbis_dsp_state *v, vorbis_block *vb){
   int i = 0;
   FMOD_memset(vb,0,sizeof(*vb));
   vb->vd=v;
@@ -113,14 +113,14 @@ int FMOD_vorbis_block_init(void *context, vorbis_dsp_state *v, vorbis_block *vb)
   //          return -1;
   //        }
   //    }
-  //    FMOD_oggpack_writeinit(context, vbi->packetblob[i]);
+  //    FMOD_oggpack_writeinit(vbi->packetblob[i]);
   //  }
   //}
   return(0);
 }
 
 // OFFSET: 0x0046CE40
-void *_FMOD_vorbis_block_alloc(void *context, vorbis_block *vb,ogg_int32_t bytes){
+void *_FMOD_vorbis_block_alloc(vorbis_block *vb,ogg_int32_t bytes){
   bytes=(bytes+(WORD_ALIGN-1)) & ~(WORD_ALIGN-1);
   if(bytes+vb->localtop>vb->localalloc){
     /* can't just _ogg_realloc... there are outstanding pointers */
@@ -153,8 +153,7 @@ void *_FMOD_vorbis_block_alloc(void *context, vorbis_block *vb,ogg_int32_t bytes
 
 /* reap the chain, pull the ripcord */
 // OFFSET: 0x0046CED0
-int _FMOD_vorbis_block_ripcord(void *context, vorbis_block *vb){
-  int ret = 0;
+void _FMOD_vorbis_block_ripcord(vorbis_block *vb){
   /* reap the chain */
   struct alloc_chain *reap=vb->reap;
   while(reap){
@@ -167,7 +166,6 @@ int _FMOD_vorbis_block_ripcord(void *context, vorbis_block *vb){
   /* consolidate storage */
   if(vb->totaluse){
     vb->localstore=_ogg_realloc(vb->localstore,vb->totaluse+vb->localalloc);
-    if (!vb->localstore) ret = OV_EMEMORY;
     vb->localalloc+=vb->totaluse;
     vb->totaluse=0;
   }
@@ -175,31 +173,12 @@ int _FMOD_vorbis_block_ripcord(void *context, vorbis_block *vb){
   /* pull the ripcord */
   vb->localtop=0;
   vb->reap=NULL;
-  
-  return ret;
 }
 
 // OFFSET: 0x0046CF60
-int FMOD_vorbis_block_clear(void *context, vorbis_block *vb){
-//  int i;
-//  vorbis_block_internal *vbi=vb->internal;
-  int ret;
-  
-  ret = _FMOD_vorbis_block_ripcord(context, vb);
-  if (ret)
-  {
-    return ret;
-  }
-  
+int FMOD_vorbis_block_clear(vorbis_block *vb){
+  _FMOD_vorbis_block_ripcord(vb);
   if(vb->localstore)_ogg_free(vb->localstore);
-
-  //if(vbi){
-  //  for(i=0;i<PACKETBLOBS;i++){
-  //    FMOD_oggpack_writeclear(vbi->packetblob[i]);
-  //    if(i!=PACKETBLOBS/2)_ogg_free(vbi->packetblob[i]);
-  //  }
-  //  _ogg_free(vbi);
-  //}
 
   FMOD_memset(vb,0,sizeof(*vb));
   return(0);
@@ -210,7 +189,7 @@ int FMOD_vorbis_block_clear(void *context, vorbis_block *vb){
    The init is here because some of it is shared */
 
 // OFFSET: 0x0046CFA0
-static int _vds_shared_init(void *context, vorbis_dsp_state *v,vorbis_info *vi,int encp){
+static int _vds_shared_init(vorbis_dsp_state *v,vorbis_info *vi,int encp){
   int i;
   codec_setup_info *ci=vi->codec_setup;
   private_state *b=NULL;
@@ -221,112 +200,45 @@ static int _vds_shared_init(void *context, vorbis_dsp_state *v,vorbis_info *vi,i
 
   FMOD_memset(v,0,sizeof(*v));
   b=v->backend_state=_ogg_calloc(1,sizeof(*b));
-  if (!b)
-  {
-    return OV_EMEMORY;
-  }
 
   v->vi=vi;
   b->modebits=ilog2(ci->modes);
 
-  if (!(b->transform[0]=_ogg_calloc(VI_TRANSFORMB,sizeof(*b->transform[0]))))
-  {
-    return(OV_EMEMORY);
-  }
-  if (!(b->transform[1]=_ogg_calloc(VI_TRANSFORMB,sizeof(*b->transform[1]))))
-  {
-    return(OV_EMEMORY);
-  }
+  b->transform[0]=_ogg_calloc(VI_TRANSFORMB,sizeof(*b->transform[0]));
+  b->transform[1]=_ogg_calloc(VI_TRANSFORMB,sizeof(*b->transform[1]));
 
   /* MDCT is tranform 0 */
 
-  if (!(b->transform[0][0]=_ogg_calloc(1,sizeof(mdct_lookup))))
-  {
+  b->transform[0][0]=_ogg_calloc(1,sizeof(mdct_lookup));
+  b->transform[1][0]=_ogg_calloc(1,sizeof(mdct_lookup));
+  if(FMOD_mdct_init(b->transform[0][0],ci->blocksizes[0]>>hs) ||
+     FMOD_mdct_init(b->transform[1][0],ci->blocksizes[1]>>hs))
     return(OV_EMEMORY);
-  }  
-  if (!(b->transform[1][0]=_ogg_calloc(1,sizeof(mdct_lookup))))
-  {
-    return(OV_EMEMORY);
-  }  
-  if(FMOD_mdct_init(context, b->transform[0][0],ci->blocksizes[0]>>hs))
-  {
-    return(OV_EMEMORY);
-  }  
-  if(FMOD_mdct_init(context, b->transform[1][0],ci->blocksizes[1]>>hs))
-  {
-    return(OV_EMEMORY);
-  }  
 
   /* Vorbis I uses only window type 0 */
   b->window[0]=ilog2(ci->blocksizes[0])-6;
   b->window[1]=ilog2(ci->blocksizes[1])-6;
 
-  //if(encp){ /* encode/decode differ here */
-
-  //  /* analysis always needs an fft */
-  //  drft_init(&b->fft_look[0],ci->blocksizes[0]);
-  //  drft_init(&b->fft_look[1],ci->blocksizes[1]);
-
-  //  /* finish the codebooks */
-  //  if(!ci->fullbooks){
-  //    ci->fullbooks=_ogg_calloc(ci->books,sizeof(*ci->fullbooks));
-  //    for(i=0;i<ci->books;i++)
-  //      vorbis_book_init_encode(ci->fullbooks+i,ci->book_param[i]);
-  //  }
-
-  //  b->psy=_ogg_calloc(ci->psys,sizeof(*b->psy));
-  //  for(i=0;i<ci->psys;i++){
-  //    _vp_psy_init(b->psy+i,
-  //                 ci->psy_param[i],
-  //                 &ci->psy_g_param,
-  //                 ci->blocksizes[ci->psy_param[i]->blockflag]/2,
-  //                 vi->rate);
-  //  }
-
-  //  v->analysisp=1;
-  //}else{
-    /* finish the codebooks */
-    if(!ci->fullbooks){
-      ci->fullbooks=_ogg_calloc(ci->books,sizeof(*ci->fullbooks));
-      if (!ci->fullbooks)
-      {
-        return(OV_EMEMORY);
-      }
-      for(i=0;i<ci->books;i++){
-        if (FMOD_vorbis_book_init_decode(context, ci->fullbooks+i,ci->book_param[i]))
-        {
-            return(OV_EMEMORY);
-        }
-        /* decode codebooks are now standalone after init */
-        FMOD_vorbis_staticbook_destroy(context, ci->book_param[i]);
-        ci->book_param[i]=NULL;
-      }
+  /* finish the codebooks */
+  if(!ci->fullbooks){
+    ci->fullbooks=_ogg_calloc(ci->books,sizeof(*ci->fullbooks));
+    for(i=0;i<ci->books;i++){
+      FMOD_vorbis_book_init_decode(ci->fullbooks+i,ci->book_param[i]);
+      /* decode codebooks are now standalone after init */
+      FMOD_vorbis_staticbook_destroy(ci->book_param[i]);
+      ci->book_param[i]=NULL;
     }
-//  }
+  }
 
   /* initialize the storage vectors. blocksize[1] is small for encode,
      but the correct size for decode */
   v->pcm_storage=ci->blocksizes[1];
   v->pcm=_ogg_malloc(vi->channels*sizeof(*v->pcm));
-  if (!v->pcm)
-  {
-    return OV_EMEMORY;
-  }
   v->pcmret=_ogg_malloc(vi->channels*sizeof(*v->pcmret));
-  if (!v->pcmret)
-  {
-    return OV_EMEMORY;
-  }
   {
     int i;
     for(i=0;i<vi->channels;i++)
-    {
       v->pcm[i]=_ogg_calloc(v->pcm_storage,sizeof(*v->pcm[i]));
-      if (!v->pcm[i])
-      {
-        return OV_EMEMORY;
-      }
-    }
   }
 
   /* all 1 (large block) or 0 (small block) */
@@ -341,24 +253,15 @@ static int _vds_shared_init(void *context, vorbis_dsp_state *v,vorbis_info *vi,i
 
   /* initialize all the backend lookups */
   b->flr=_ogg_calloc(ci->floors,sizeof(*b->flr));
-  if (!b->flr)
-  {
-    return OV_EMEMORY;
-  }
-  
   b->residue=_ogg_calloc(ci->residues,sizeof(*b->residue));
-  if (!b->residue)
-  {
-    return OV_EMEMORY;
-  }
 
   for(i=0;i<ci->floors;i++)
     b->flr[i]=_FMOD_floor_P[ci->floor_type[i]]->
-      look(context, v,ci->floor_param[i]);
+      look(v,ci->floor_param[i]);
 
   for(i=0;i<ci->residues;i++)
     b->residue[i]=_FMOD_residue_P[ci->residue_type[i]]->
-      look(context, v,ci->residue_param[i]);
+      look(v,ci->residue_param[i]);
 
   return 0;
 }
@@ -386,7 +289,7 @@ static int _vds_shared_init(void *context, vorbis_dsp_state *v,vorbis_info *vi,i
 //}
 
 // OFFSET: 0x0046D310
-void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
+void FMOD_vorbis_dsp_clear(vorbis_dsp_state *v){
   int i;
   if(v){
     vorbis_info *vi=v->vi;
@@ -395,18 +298,18 @@ void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
 
     if(b){
 
-      //if(b->ve){
-      //  _ve_envelope_clear(context, b->ve);
-      //  _ogg_free(b->ve);
-      //}
+      if(b->ve){
+        _ve_envelope_clear(b->ve);
+        _ogg_free(b->ve);
+      }
 
       if(b->transform[0]){
-        FMOD_mdct_clear(context, b->transform[0][0]);
+        FMOD_mdct_clear(b->transform[0][0]);
         _ogg_free(b->transform[0][0]);
         _ogg_free(b->transform[0]);
       }
       if(b->transform[1]){
-        FMOD_mdct_clear(context, b->transform[1][0]);
+        FMOD_mdct_clear(b->transform[1][0]);
         _ogg_free(b->transform[1][0]);
         _ogg_free(b->transform[1]);
       }
@@ -415,28 +318,27 @@ void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
         if(ci)
           for(i=0;i<ci->floors;i++)
             _FMOD_floor_P[ci->floor_type[i]]->
-              free_look(context, b->flr[i]);
+              free_look(b->flr[i]);
         _ogg_free(b->flr);
       }
       if(b->residue){
         if(ci)
           for(i=0;i<ci->residues;i++)
             _FMOD_residue_P[ci->residue_type[i]]->
-              free_look(context, b->residue[i]);
+              free_look(b->residue[i]);
         _ogg_free(b->residue);
       }
-//      if(b->psy){
-//        if(ci)
-//          for(i=0;i<ci->psys;i++)
-//            _vp_psy_clear(context, b->psy+i);
-//        _ogg_free(b->psy);
-//      }
+      if(b->psy){
+        if(ci)
+          for(i=0;i<ci->psys;i++)
+            _vp_psy_clear(b->psy+i);
+        _ogg_free(b->psy);
+      }
 
-//      if(b->psy_g_look)_vp_global_free(context, b->psy_g_look);
-//      FMOD_vorbis_bitrate_clear(&b->bms);
+      if(b->psy_g_look)_vp_global_free(b->psy_g_look);
 
-//      drft_clear(context, &b->fft_look[0]);
-//      drft_clear(context, &b->fft_look[1]);
+      drft_clear(&b->fft_look[0]);
+      drft_clear(&b->fft_look[1]);
 
     }
 
@@ -450,9 +352,9 @@ void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
 
     if(b){
       /* free header, header1, header2 */
-      //if(b->header)_ogg_free(b->header);
-      //if(b->header1)_ogg_free(b->header1);
-      //if(b->header2)_ogg_free(b->header2);
+      if(b->header)_ogg_free(b->header);
+      if(b->header1)_ogg_free(b->header1);
+      if(b->header2)_ogg_free(b->header2);
       _ogg_free(b);
     }
 
@@ -460,7 +362,7 @@ void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
   }
 }
 
-//float **FMOD_vorbis_analysis_buffer(void *context, vorbis_dsp_state *v, int vals){
+//float **FMOD_vorbis_analysis_buffer(vorbis_dsp_state *v, int vals){
 //  int i;
 //  vorbis_info *vi=v->vi;
 //  private_state *b=v->backend_state;
@@ -531,7 +433,7 @@ void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
 //
 ///* call with val<=0 to set eof */
 //
-//int FMOD_vorbis_analysis_wrote(void *context, vorbis_dsp_state *v, int vals){
+//int FMOD_vorbis_analysis_wrote(vorbis_dsp_state *v, int vals){
 //  vorbis_info *vi=v->vi;
 //  codec_setup_info *ci=vi->codec_setup;
 //
@@ -550,7 +452,7 @@ void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
 //       amplitude off a cliff, creating spread spectrum noise that will
 //       suck to encode.  Extrapolate for the sake of cleanliness. */
 //
-//    FMOD_vorbis_analysis_buffer(context, v,ci->blocksizes[1]*3);
+//    FMOD_vorbis_analysis_buffer(v,ci->blocksizes[1]*3);
 //    v->eofflag=v->pcm_current;
 //    v->pcm_current+=ci->blocksizes[1]*3;
 //
@@ -595,7 +497,7 @@ void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
 //
 ///* do the deltas, envelope shaping, pre-echo and determine the size of
 //   the next block on which to continue analysis */
-//int FMOD_vorbis_analysis_blockout(void *context, vorbis_dsp_state *v,vorbis_block *vb){
+//int FMOD_vorbis_analysis_blockout(vorbis_dsp_state *v,vorbis_block *vb){
 //  int i;
 //  vorbis_info *vi=v->vi;
 //  codec_setup_info *ci=vi->codec_setup;
@@ -618,7 +520,7 @@ void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
 //     be throwing more bits at impulses, and envelope search handles
 //     marking impulses too. */
 //  {
-//    ogg_int32_t bp=_ve_envelope_search(context, v);
+//    ogg_int32_t bp=_ve_envelope_search(v);
 //    if(bp==-1){
 //
 //      if(v->eofflag==0)return(0); /* not enough data currently to search for a
@@ -653,7 +555,7 @@ void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
 //  /* fill in the block.  Note that for a short window, lW and nW are *short*
 //     regardless of actual settings in the stream */
 //
-//  _FMOD_vorbis_block_ripcord(context, vb);
+//  _FMOD_vorbis_block_ripcord(vb);
 //  vb->lW=v->lW;
 //  vb->W=v->W;
 //  vb->nW=v->nW;
@@ -691,14 +593,14 @@ void FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v){
 //  g->ampmax=_vp_ampmax_decay(g->ampmax,v);
 //  vbi->ampmax=g->ampmax;
 //
-//  vb->pcm=_FMOD_vorbis_block_alloc(context, vb,sizeof(*vb->pcm)*vi->channels);
+//  vb->pcm=_FMOD_vorbis_block_alloc(vb,sizeof(*vb->pcm)*vi->channels);
 //  if (!vb->pcm)
 //  {
 //    return OV_EMEMORY;
 //  }
-//  vbi->pcmdelay=_FMOD_vorbis_block_alloc(context, vb,sizeof(*vbi->pcmdelay)*vi->channels);
+//  vbi->pcmdelay=_FMOD_vorbis_block_alloc(vb,sizeof(*vbi->pcmdelay)*vi->channels);
 //  for(i=0;i<vi->channels;i++){
-//    vbi->pcmdelay[i]= _FMOD_vorbis_block_alloc(context, vb,(vb->pcmend+beginW)*sizeof(*vbi->pcmdelay[i]));
+//    vbi->pcmdelay[i]= _FMOD_vorbis_block_alloc(vb,(vb->pcmend+beginW)*sizeof(*vbi->pcmdelay[i]));
 //    if (vbi->pcmdelay[i])
 //    {
 //        return OV_EMEMORY;
@@ -788,14 +690,10 @@ int FMOD_vorbis_synthesis_restart(vorbis_dsp_state *v){
 }
 
 // OFFSET: 0x0046D650
-int FMOD_vorbis_synthesis_init(void *context, vorbis_dsp_state *v,vorbis_info *vi){
-  int ret = _vds_shared_init(context, v,vi,0);
-  
-  if (ret){
-    FMOD_vorbis_dsp_clear(context, v);
-    return ret;
-  }
+int FMOD_vorbis_synthesis_init(vorbis_dsp_state *v,vorbis_info *vi){
+  if(_vds_shared_init(v,vi,0)) return 1;
   FMOD_vorbis_synthesis_restart(v);
+
   return 0;
 }
 

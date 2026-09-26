@@ -37,7 +37,7 @@
    blocksize is set by the mode, and low backend lookups may require
    parameters from other areas of the mode/mapping */
 
-static void mapping0_free_info(void *context, vorbis_info_mapping *i){
+static void mapping0_free_info(vorbis_info_mapping *i){
   vorbis_info_mapping0 *info=(vorbis_info_mapping0 *)i;
   if(info){
     FMOD_memset(info,0,sizeof(*info));
@@ -101,7 +101,7 @@ static void mapping0_pack(vorbis_info *vi,vorbis_info_mapping *vm,
 #endif
 
 /* also responsible for range checking */
-static vorbis_info_mapping *mapping0_unpack(void *context, vorbis_info *vi,oggpack_buffer *opb){
+static vorbis_info_mapping *mapping0_unpack(vorbis_info *vi,oggpack_buffer *opb){
   int i,b;
   vorbis_info_mapping0 *info=_ogg_calloc(1,sizeof(*info));
   codec_setup_info     *ci=vi->codec_setup;
@@ -152,7 +152,7 @@ static vorbis_info_mapping *mapping0_unpack(void *context, vorbis_info *vi,oggpa
   return info;
 
  err_out:
-  mapping0_free_info(context, info);
+  mapping0_free_info(info);
   return(NULL);
 }
 
@@ -236,7 +236,7 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 
 #endif
 
-//static int mapping0_forward(void *context, vorbis_block *vb){
+//static int mapping0_forward(vorbis_block *vb){
 //  vorbis_dsp_state      *vd=vb->vd;
 //  vorbis_info           *vi=vd->vi;
 //  codec_setup_info      *ci=vi->codec_setup;
@@ -246,9 +246,9 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //  int i,j,k;
 //
 //  int    *nonzero    = alloca(sizeof(*nonzero)*vi->channels);
-//  float  **gmdct     = _FMOD_vorbis_block_alloc(context, vb,vi->channels*sizeof(*gmdct));
-//  int    **ilogmaskch= _FMOD_vorbis_block_alloc(context, vb,vi->channels*sizeof(*ilogmaskch));
-//  int ***floor_posts = _FMOD_vorbis_block_alloc(context, vb,vi->channels*sizeof(*floor_posts));
+//  float  **gmdct     = _FMOD_vorbis_block_alloc(vb,vi->channels*sizeof(*gmdct));
+//  int    **ilogmaskch= _FMOD_vorbis_block_alloc(vb,vi->channels*sizeof(*ilogmaskch));
+//  int ***floor_posts = _FMOD_vorbis_block_alloc(vb,vi->channels*sizeof(*floor_posts));
 //
 //  float global_ampmax=vbi->ampmax;
 //  float *local_ampmax=alloca(sizeof(*local_ampmax)*vi->channels);
@@ -268,7 +268,7 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //    float *pcm     =vb->pcm[i];
 //    float *logfft  =pcm;
 //
-//    gmdct[i]=_FMOD_vorbis_block_alloc(context, vb,n/2*sizeof(**gmdct));
+//    gmdct[i]=_FMOD_vorbis_block_alloc(vb,n/2*sizeof(**gmdct));
 //
 //    scale_dB=todB(&scale) + .345f; /* + .345 is a hack; the original
 //                                     todB estimation used on IEEE 754
@@ -369,8 +369,8 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //  }
 //
 //  {
-//    float   *noise        = _FMOD_vorbis_block_alloc(context, vb,n/2*sizeof(*noise));
-//    float   *tone         = _FMOD_vorbis_block_alloc(context, vb,n/2*sizeof(*tone));
+//    float   *noise        = _FMOD_vorbis_block_alloc(vb,n/2*sizeof(*noise));
+//    float   *tone         = _FMOD_vorbis_block_alloc(vb,n/2*sizeof(*tone));
 //
 //    for(i=0;i<vi->channels;i++){
 //      /* the encoder setup assumes that all the modes used by any
@@ -387,7 +387,7 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //
 //      vb->mode=modenumber;
 //
-//      floor_posts[i]=_FMOD_vorbis_block_alloc(context, vb,PACKETBLOBS*sizeof(**floor_posts));
+//      floor_posts[i]=_FMOD_vorbis_block_alloc(vb,PACKETBLOBS*sizeof(**floor_posts));
 //      FMOD_memset(floor_posts[i],0,sizeof(**floor_posts)*PACKETBLOBS);
 //
 //      for(j=0;j<n/2;j++)
@@ -507,7 +507,7 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //      if(ci->floor_type[info->floorsubmap[submap]]!=1)return(-1);
 //
 //      floor_posts[i][PACKETBLOBS/2]=
-//        floor1_fit(context, vb,b->flr[info->floorsubmap[submap]],
+//        floor1_fit(vb,b->flr[info->floorsubmap[submap]],
 //                   logmdct,
 //                   logmask);
 //
@@ -536,7 +536,7 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //#endif
 //
 //        floor_posts[i][PACKETBLOBS-1]=
-//          floor1_fit(context, vb,b->flr[info->floorsubmap[submap]],
+//          floor1_fit(vb,b->flr[info->floorsubmap[submap]],
 //                     logmdct,
 //                     logmask);
 //
@@ -561,7 +561,7 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //#endif
 //
 //        floor_posts[i][0]=
-//          floor1_fit(context, vb,b->flr[info->floorsubmap[submap]],
+//          floor1_fit(vb,b->flr[info->floorsubmap[submap]],
 //                     logmdct,
 //                     logmask);
 //
@@ -569,13 +569,13 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //           intermediate rates */
 //        for(k=1;k<PACKETBLOBS/2;k++)
 //          floor_posts[i][k]=
-//            floor1_interpolate_fit(context, vb,b->flr[info->floorsubmap[submap]],
+//            floor1_interpolate_fit(vb,b->flr[info->floorsubmap[submap]],
 //                                   floor_posts[i][0],
 //                                   floor_posts[i][PACKETBLOBS/2],
 //                                   k*65536/(PACKETBLOBS/2));
 //        for(k=PACKETBLOBS/2+1;k<PACKETBLOBS-1;k++)
 //          floor_posts[i][k]=
-//            floor1_interpolate_fit(context, vb,b->flr[info->floorsubmap[submap]],
+//            floor1_interpolate_fit(vb,b->flr[info->floorsubmap[submap]],
 //                                   floor_posts[i][PACKETBLOBS/2],
 //                                   floor_posts[i][PACKETBLOBS-1],
 //                                   (k-PACKETBLOBS/2)*65536/(PACKETBLOBS/2));
@@ -607,13 +607,13 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //    int **mag_sort=NULL;
 //
 //    if(info->coupling_steps){
-//      mag_memo=_vp_quantize_couple_memo(context, vb,
+//      mag_memo=_vp_quantize_couple_memo(vb,
 //                                        &ci->psy_g_param,
 //                                        psy_look,
 //                                        info,
 //                                        gmdct);
 //
-//      mag_sort=_vp_quantize_couple_sort(context, vb,
+//      mag_sort=_vp_quantize_couple_sort(vb,
 //                                        psy_look,
 //                                        info,
 //                                        mag_memo);
@@ -655,7 +655,7 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //        float *mdct    =gmdct[i];
 //        float *res     =vb->pcm[i];
 //        int   *ilogmask=ilogmaskch[i]=
-//          _FMOD_vorbis_block_alloc(context, vb,n/2*sizeof(**gmdct));
+//          _FMOD_vorbis_block_alloc(vb,n/2*sizeof(**gmdct));
 //
 //        nonzero[i]=floor1_encode(opb,vb,b->flr[info->floorsubmap[submap]],
 //                                 floor_posts[i][k],
@@ -727,7 +727,7 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //        }
 //
 //        classifications=_FMOD_residue_P[ci->residue_type[resnum]]->
-//          class(context, vb,b->residue[resnum],couple_bundle,zerobundle,ch_in_bundle);
+//          class(vb,b->residue[resnum],couple_bundle,zerobundle,ch_in_bundle);
 //
 //        /* couple_bundle is destructively overwritten by
 //           the class function if some but not all of the channels are
@@ -738,7 +738,7 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //            couple_bundle[ch_in_bundle++]=vb->pcm[j]+n/2;
 //
 //        _FMOD_residue_P[ci->residue_type[resnum]]->
-//          forward(context, opb,vb,b->residue[resnum],
+//          forward(opb,vb,b->residue[resnum],
 //                  couple_bundle,NULL,zerobundle,ch_in_bundle,classifications);
 //      }
 //
@@ -754,7 +754,7 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //  return(0);
 //}
 
-static int mapping0_inverse(void *context, vorbis_block *vb,vorbis_info_mapping *l){
+static int mapping0_inverse(vorbis_block *vb,vorbis_info_mapping *l){
   vorbis_dsp_state     *vd=vb->vd;
   vorbis_info          *vi=vd->vi;
   codec_setup_info     *ci=vi->codec_setup;
@@ -774,7 +774,7 @@ static int mapping0_inverse(void *context, vorbis_block *vb,vorbis_info_mapping 
   for(i=0;i<vi->channels;i++){
     int submap=info->chmuxlist[i];
     floormemo[i]=_FMOD_floor_P[ci->floor_type[info->floorsubmap[submap]]]->
-      inverse1(context, vb,b->flr[info->floorsubmap[submap]]);
+      inverse1(vb,b->flr[info->floorsubmap[submap]]);
     if(floormemo[i])
       nonzero[i]=1;
     else
@@ -805,7 +805,7 @@ static int mapping0_inverse(void *context, vorbis_block *vb,vorbis_info_mapping 
     }
 
     _FMOD_residue_P[ci->residue_type[info->residuesubmap[i]]]->
-      inverse(context, vb,b->residue[info->residuesubmap[i]],
+      inverse(vb,b->residue[info->residuesubmap[i]],
               pcmbundle,zerobundle,ch_in_bundle);
   }
 
@@ -842,7 +842,7 @@ static int mapping0_inverse(void *context, vorbis_block *vb,vorbis_info_mapping 
     float *pcm=vb->pcm[i];
     int submap=info->chmuxlist[i];
     _FMOD_floor_P[ci->floor_type[info->floorsubmap[submap]]]->
-      inverse2(context, vb,b->flr[info->floorsubmap[submap]],
+      inverse2(vb,b->flr[info->floorsubmap[submap]],
                floormemo[i],pcm);
   }
 

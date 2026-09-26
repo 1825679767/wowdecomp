@@ -72,7 +72,7 @@ float _FMOD_float32_unpack(ogg_int32_t val){
    for length ordered or unordered, always assigns the lowest valued
    codewords first.  Extended to handle unused entries (length 0) */
 // OFFSET: 0x0046E220
-ogg_uint32_t *_FMOD_make_words(void *context, ogg_int32_t *l,ogg_int32_t n,ogg_int32_t sparsecount){
+ogg_uint32_t *_FMOD_make_words(ogg_int32_t *l,ogg_int32_t n,ogg_int32_t sparsecount){
   ogg_int32_t i,j,count=0;
   ogg_uint32_t marker[33];
   ogg_uint32_t *r=_ogg_malloc((sparsecount?sparsecount:n)*sizeof(*r));
@@ -129,19 +129,6 @@ ogg_uint32_t *_FMOD_make_words(void *context, ogg_int32_t *l,ogg_int32_t n,ogg_i
           break;
     }else
       if(sparsecount==0)count++;
-  }
-
-  /* sanity check the huffman tree; an underpopulated tree must be
-     rejected. The only exception is the one-node pseudo-nil tree,
-     which appears to be underpopulated because the tree doesn't
-     really exist; there's only one possible 'codeword' or zero bits,
-     but the above tree-gen code doesn't mark that. */
-  if(sparsecount != 1){
-    for(i=1;i<33;i++)
-      if(marker[i] & (0xffffffffUL>>(32-i))){
-	_ogg_free(r);
-	return(NULL);
-      }
   }
 
   /* bitreverse the words because our bitwise packer/unpacker is LSb
@@ -201,7 +188,7 @@ ogg_int32_t _FMOD_book_maptype1_quantvals(const static_codebook *b){
    the values in the quant vector). in map type 2, all the values came
    in in an explicit list.  Both value lists must be unpacked */
 // OFFSET: 0x0046E430
-float *_FMOD_book_unquantize(void *context, const static_codebook *b,int n,int *sparsemap){
+float *_FMOD_book_unquantize(const static_codebook *b,int n,int *sparsemap){
   ogg_int32_t j,k,count=0;
   if(b->maptype==1 || b->maptype==2){
     int quantvals;
@@ -271,39 +258,21 @@ float *_FMOD_book_unquantize(void *context, const static_codebook *b,int n,int *
 }
 
 // OFFSET: 0x0046E670
-void FMOD_vorbis_staticbook_clear(void *context, static_codebook *b){
-  if(b->allocedp){
-    if(b->quantlist)_ogg_free(b->quantlist);
-    if(b->lengthlist)_ogg_free(b->lengthlist);
-    //if(b->nearest_tree){
-    //  _ogg_free(b->nearest_tree->ptr0);
-    //  _ogg_free(b->nearest_tree->ptr1);
-    //  _ogg_free(b->nearest_tree->p);
-    //  _ogg_free(b->nearest_tree->q);
-    //  FMOD_memset(b->nearest_tree,0,sizeof(*b->nearest_tree));
-    //  _ogg_free(b->nearest_tree);
-    //}
-    //if(b->thresh_tree){
-    //  _ogg_free(b->thresh_tree->quantthresh);
-    //  _ogg_free(b->thresh_tree->quantmap);
-    //  FMOD_memset(b->thresh_tree,0,sizeof(*b->thresh_tree));
-    //  _ogg_free(b->thresh_tree);
-    //}
+void FMOD_vorbis_staticbook_clear(static_codebook *b){
+  if(b->quantlist)_ogg_free(b->quantlist);
+  if(b->lengthlist)_ogg_free(b->lengthlist);
 
-    FMOD_memset(b,0,sizeof(*b));
-  }
+  FMOD_memset(b,0,sizeof(*b));
 }
 
 // OFFSET: 0x0046E6D0
-void FMOD_vorbis_staticbook_destroy(void *context, static_codebook *b){
-  if(b->allocedp){
-    FMOD_vorbis_staticbook_clear(context, b);
-    _ogg_free(b);
-  }
+void FMOD_vorbis_staticbook_destroy(static_codebook *b){
+  FMOD_vorbis_staticbook_clear(b);
+  _ogg_free(b);
 }
 
 // OFFSET: 0x0046E700
-void FMOD_vorbis_book_clear(void *context, codebook *b){
+void FMOD_vorbis_book_clear(codebook *b){
   /* static book is not cleared; we're likely called on the lookup and
      the static codebook belongs to the info struct */
   if(b->valuelist)_ogg_free(b->valuelist);
@@ -317,15 +286,15 @@ void FMOD_vorbis_book_clear(void *context, codebook *b){
 }
 
 #if 0
-int FMOD_vorbis_book_init_encode(void *context, codebook *c,const static_codebook *s){
+int FMOD_vorbis_book_init_encode(codebook *c,const static_codebook *s){
 
   FMOD_memset(c,0,sizeof(*c));
   c->c=s;
   c->entries=s->entries;
   c->used_entries=s->entries;
   c->dim=s->dim;
-  c->codelist=_FMOD_make_words(context, s->lengthlist,s->entries,0);
-  c->valuelist=_FMOD_book_unquantize(context, s,s->entries,NULL);
+  c->codelist=_FMOD_make_words(s->lengthlist,s->entries,0);
+  c->valuelist=_FMOD_book_unquantize(s,s->entries,NULL);
 
   return(0);
 }
@@ -347,7 +316,7 @@ static int sort32a(const void *a,const void *b){
 
 /* decode codebook arrangement is more heavily optimized than encode */
 // OFFSET: 0x0046E7D0
-int FMOD_vorbis_book_init_decode(void *context, codebook *c,const static_codebook *s){
+int FMOD_vorbis_book_init_decode(codebook *c,const static_codebook *s){
   int i,j,n=0,tabn;
   int *sortindex;
   FMOD_memset(c,0,sizeof(*c));
@@ -374,7 +343,7 @@ int FMOD_vorbis_book_init_decode(void *context, codebook *c,const static_codeboo
     by sorted bitreversed codeword to allow treeless decode. */
 
     /* perform sort */
-    ogg_uint32_t *codes=_FMOD_make_words(context, s->lengthlist,s->entries,c->used_entries);
+    ogg_uint32_t *codes=_FMOD_make_words(s->lengthlist,s->entries,c->used_entries);
     ogg_uint32_t **codep=alloca(sizeof(*codep)*n);
 
     if(codes==NULL)goto err_out;
@@ -403,7 +372,7 @@ int FMOD_vorbis_book_init_decode(void *context, codebook *c,const static_codeboo
     _ogg_free(codes);
 
 
-    c->valuelist=_FMOD_book_unquantize(context, s,n,sortindex);
+    c->valuelist=_FMOD_book_unquantize(s,n,sortindex);
     c->dec_index=_ogg_malloc(n*sizeof(*c->dec_index));
     if (!c->dec_index)
     {
@@ -476,7 +445,7 @@ int FMOD_vorbis_book_init_decode(void *context, codebook *c,const static_codeboo
 
   return(0);
  err_out:
-  FMOD_vorbis_book_clear(context, c);
+  FMOD_vorbis_book_clear(c);
   return(-1);
 }
 
@@ -746,7 +715,7 @@ static float test5_result[]={-3,-6,-9, 4, 1,-2, -1,-4,-7,
                               -3,-4,-5, 4, 3, 2, -1,-2,-3};
 
 void run_test(static_codebook *b,float *comp){
-  float *out=_FMOD_book_unquantize(context, b,b->entries,NULL);
+  float *out=_FMOD_book_unquantize(b,b->entries,NULL);
   int i;
 
   if(comp){

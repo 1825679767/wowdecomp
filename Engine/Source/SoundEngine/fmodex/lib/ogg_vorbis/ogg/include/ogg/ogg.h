@@ -115,7 +115,7 @@ typedef struct {
 
 /* Ogg BITSTREAM PRIMITIVES: bitstream ************************/
 
-//extern void  FMOD_oggpack_writeinit(void *context, oggpack_buffer *b);
+//extern void  FMOD_oggpack_writeinit(oggpack_buffer *b);
 //extern int   FMOD_oggpack_writecheck(oggpack_buffer *b);
 //extern void  FMOD_oggpack_writetrunc(oggpack_buffer *b,ogg_int32_t bits);
 //extern void  FMOD_oggpack_writealign(oggpack_buffer *b);
@@ -164,27 +164,25 @@ extern unsigned char *FMOD_oggpackB_get_buffer(oggpack_buffer *b);
 /* Ogg BITSTREAM PRIMITIVES: decoding **************************/
 
 extern int      FMOD_ogg_sync_init(ogg_sync_state *oy);
-extern int      FMOD_ogg_sync_clear(void *context, ogg_sync_state *oy);
+extern int      FMOD_ogg_sync_clear(ogg_sync_state *oy);
 extern int      FMOD_ogg_sync_reset(ogg_sync_state *oy);
-extern int      FMOD_ogg_sync_destroy(void *context, ogg_sync_state *oy);
-extern int      FMOD_ogg_sync_check(ogg_sync_state *oy);
+extern int      FMOD_ogg_sync_destroy(ogg_sync_state *oy);
 
-extern char    *FMOD_ogg_sync_buffer(void *context, ogg_sync_state *oy, ogg_int32_t size);
+extern char    *FMOD_ogg_sync_buffer(ogg_sync_state *oy, ogg_int32_t size);
 extern int      FMOD_ogg_sync_wrote(ogg_sync_state *oy, ogg_int32_t bytes);
 extern ogg_int32_t     FMOD_ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og);
 extern int      FMOD_ogg_sync_pageout(ogg_sync_state *oy, ogg_page *og);
-extern int      FMOD_ogg_stream_pagein(void *context, ogg_stream_state *os, ogg_page *og);
+extern int      FMOD_ogg_stream_pagein(ogg_stream_state *os, ogg_page *og);
 extern int      FMOD_ogg_stream_packetout(ogg_stream_state *os,ogg_packet *op);
 extern int      FMOD_ogg_stream_packetpeek(ogg_stream_state *os,ogg_packet *op);
 
 /* Ogg BITSTREAM PRIMITIVES: general ***************************/
 
-extern int      FMOD_ogg_stream_init(void *context, ogg_stream_state *os,int serialno);
-extern int      FMOD_ogg_stream_clear(void *context, ogg_stream_state *os);
+extern int      FMOD_ogg_stream_init(ogg_stream_state *os,int serialno);
+extern int      FMOD_ogg_stream_clear(ogg_stream_state *os);
 extern int      FMOD_ogg_stream_reset(ogg_stream_state *os);
 extern int      FMOD_ogg_stream_reset_serialno(ogg_stream_state *os,int serialno);
-extern int      FMOD_ogg_stream_destroy(void *context, ogg_stream_state *os);
-extern int      FMOD_ogg_stream_check(ogg_stream_state *os);
+extern int      FMOD_ogg_stream_destroy(ogg_stream_state *os);
 extern int      FMOD_ogg_stream_eos(ogg_stream_state *os);
 
 extern void     FMOD_ogg_page_checksum_set(ogg_page *og);
@@ -198,7 +196,7 @@ extern int      FMOD_ogg_page_serialno(const ogg_page *og);
 extern ogg_int32_t     FMOD_ogg_page_pageno(const ogg_page *og);
 extern int      FMOD_ogg_page_packets(const ogg_page *og);
 
-extern void     FMOD_ogg_packet_clear(void *context, ogg_packet *op);
+extern void     FMOD_ogg_packet_clear(ogg_packet *op);
 
 
 #ifdef __cplusplus

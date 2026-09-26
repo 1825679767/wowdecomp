@@ -15,69 +15,28 @@
 #include <string.h>
 
 
+// VERIFY: 9be74945 auto
 // OFFSET: 0x0090E3D0
-void * FMOD_OggVorbis_Malloc(void *context, int size)
+void * FMOD_OggVorbis_Malloc(int size)
 {
-    void *mem = FMOD_Memory_Alloc(size);
-    
-    if (mem && context)
-    {
-        FMOD::CodecOggVorbis *ogg = (FMOD::CodecOggVorbis *)context;
-
-        ogg->mMemUsed += size;
-    }
-
-    return mem;
+    return FMOD_Memory_Alloc(size);
 }
+// VERIFY: 0892c210 auto
 // OFFSET: 0x0090E400
-void * FMOD_OggVorbis_Calloc(void *context, int count, int size)
+void * FMOD_OggVorbis_Calloc(int count, int size)
 {
-    void *mem = FMOD_Memory_Calloc(count * size);
-    
-    if (mem && context)
-    {
-        FMOD::CodecOggVorbis *ogg = (FMOD::CodecOggVorbis *)context;
-        ogg->mMemUsed += (count * size);
-    }
-
-    return mem;
+    return FMOD_Memory_Calloc(count * size);
 }
+// VERIFY: 3f0a43cb auto
 // OFFSET: 0x0090E430
-void * FMOD_OggVorbis_ReAlloc(void *context, void *ptr, int size)
+void * FMOD_OggVorbis_ReAlloc(void *ptr, int size)
 {
-    void *mem;
-    FMOD::CodecOggVorbis *ogg = (FMOD::CodecOggVorbis *)context;
-
-    if (ptr && ogg)
-    {
-    	FMOD::MemBlockHeader *block = (FMOD::MemBlockHeader *)ptr;
-
-        block--;
-
-        ogg->mMemUsed -= block->mSize;
-    }
-    
-    mem = FMOD_Memory_ReAlloc(ptr, size);
-    if (mem && ogg)
-    {
-        ogg->mMemUsed += size;
-    }
-
-    return mem;
+    return FMOD_Memory_ReAlloc(ptr, size);
 }
+// VERIFY: 5a2400a6 auto
 // OFFSET: 0x0090E460
-void   FMOD_OggVorbis_Free(void *context, void *ptr)
+void   FMOD_OggVorbis_Free(void *ptr)
 {
-    if (ptr && context)
-    {
-    	FMOD::MemBlockHeader *block = (FMOD::MemBlockHeader *)ptr;
-        FMOD::CodecOggVorbis *ogg = (FMOD::CodecOggVorbis *)context;
-
-        block--;
-
-        ogg->mMemUsed -= block->mSize;
-    }
-
     FMOD_Memory_Free(ptr);
 }
 
@@ -225,6 +184,7 @@ ogg_int32_t FMOD_OggVorbis_TellCallback(void *datasource)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6a455e86 manual
 // OFFSET: 0x0090EB40
 FMOD_CODEC_DESCRIPTION_EX *CodecOggVorbis::getDescriptionEx()
 {
@@ -260,6 +220,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecOggVorbis::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3188a20b auto
 // OFFSET: 0x0090E6D0
 FMOD_RESULT CodecOggVorbis::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -422,7 +383,7 @@ FMOD_RESULT CodecOggVorbis::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXI
         return result;
     }
 
-    oggresult = ov_open_callbacks(this, mFile, &mVf, 0, 0, callbacks);
+    oggresult = ov_open_callbacks(mFile, &mVf, 0, 0, callbacks);
 	if (oggresult < 0)
 	{
         FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "CodecOggVorbis::openInternal", "failed to open as ogg, format error.\n"));
@@ -512,7 +473,7 @@ FMOD_RESULT CodecOggVorbis::closeInternal()
 {       
     mVf.datasource = 0;		/* this stops vorbis from trying to close our file */
 
-    ov_clear(this, &mVf);
+    ov_clear(&mVf);
     
     return FMOD_OK;
 }
@@ -533,6 +494,7 @@ FMOD_RESULT CodecOggVorbis::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9015a491 manual
 // OFFSET: 0x0090E490
 FMOD_RESULT CodecOggVorbis::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -547,7 +509,7 @@ FMOD_RESULT CodecOggVorbis::readInternal(void *buffer, unsigned int sizebytes, u
     bigendian = 0;
 #endif
 
-    *bytesread = ov_read(this, &mVf, (char *)buffer, sizebytes, bigendian, 2, 1, 0);
+    *bytesread = ov_read(&mVf, (char *)buffer, sizebytes, bigendian, 2, 1, 0);
     if (!*bytesread)
     {
         return FMOD_ERR_FILE_EOF;
@@ -576,7 +538,7 @@ FMOD_RESULT CodecOggVorbis::readInternal(void *buffer, unsigned int sizebytes, u
             metadata((FMOD_CODEC_STATE *)this, FMOD_TAGTYPE_VORBISCOMMENT, name, value, FMOD_strlen(value) + 1, FMOD_TAGDATATYPE_STRING, true);
         }
 
-        FMOD_vorbis_comment_clear(this, vc);
+        FMOD_vorbis_comment_clear(vc);
     }
 
     return FMOD_OK;	
@@ -600,7 +562,7 @@ FMOD_RESULT CodecOggVorbis::readInternal(void *buffer, unsigned int sizebytes, u
 */
 FMOD_RESULT CodecOggVorbis::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
-    int ret = ov_pcm_seek(this, &mVf, position);
+    int ret = ov_pcm_seek(&mVf, position);
     if (ret < 0)
     {
         return FMOD_ERR_MEMORY;
@@ -702,6 +664,7 @@ FMOD_RESULT F_CALLBACK CodecOggVorbis::openCallback(FMOD_CODEC_STATE *codec, FMO
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 95dd5315 manual
 // OFFSET: 0x0090E630
 FMOD_RESULT F_CALLBACK CodecOggVorbis::closeCallback(FMOD_CODEC_STATE *codec)
 {
@@ -750,6 +713,7 @@ FMOD_RESULT F_CALLBACK CodecOggVorbis::readCallback(FMOD_CODEC_STATE *codec, voi
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 25e6bef1 manual
 // OFFSET: 0x0090E690
 FMOD_RESULT F_CALLBACK CodecOggVorbis::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {

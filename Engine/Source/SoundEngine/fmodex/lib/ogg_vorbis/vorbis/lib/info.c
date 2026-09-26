@@ -76,7 +76,7 @@ void FMOD_vorbis_comment_init(vorbis_comment *vc){
   FMOD_memset(vc,0,sizeof(*vc));
 }
 
-//void FMOD_vorbis_comment_add(void *context, vorbis_comment *vc,const char *comment){
+//void FMOD_vorbis_comment_add(vorbis_comment *vc,const char *comment){
 //  vc->user_comments=_ogg_realloc(vc->user_comments,
 //                            (vc->comments+2)*sizeof(*vc->user_comments));
 //  vc->comment_lengths=_ogg_realloc(vc->comment_lengths,
@@ -88,12 +88,12 @@ void FMOD_vorbis_comment_init(vorbis_comment *vc){
 //  vc->user_comments[vc->comments]=NULL;
 //}
 //
-//void vorbis_comment_add_tag(void *context, vorbis_comment *vc, const char *tag, const char *contents){
+//void vorbis_comment_add_tag(vorbis_comment *vc, const char *tag, const char *contents){
 //  char *comment=alloca(ogg_strlen(tag)+ogg_strlen(contents)+2); /* +2 for = and \0 */
 //  ogg_strcpy(comment, tag);
 //  ogg_strcat(comment, "=");
 //  ogg_strcat(comment, contents);
-//  FMOD_vorbis_comment_add(context, vc, comment);
+//  FMOD_vorbis_comment_add(vc, comment);
 //}
 
 /* This is more or less the same as strncasecmp - but that doesn't exist
@@ -145,14 +145,12 @@ static int tagcompare(const char *s1, const char *s2, int n){
 //}
 
 // OFFSET: 0x0046C0E0
-void FMOD_vorbis_comment_clear(void *context, vorbis_comment *vc){
+void FMOD_vorbis_comment_clear(vorbis_comment *vc){
   if(vc){
     ogg_int32_t i;
-    if(vc->user_comments){
-      for(i=0;i<vc->comments;i++)
-        if(vc->user_comments[i])_ogg_free(vc->user_comments[i]);
-      _ogg_free(vc->user_comments);
-    }
+    for(i=0;i<vc->comments;i++)
+      if(vc->user_comments[i])_ogg_free(vc->user_comments[i]);
+    if(vc->user_comments)_ogg_free(vc->user_comments);
     if(vc->comment_lengths)_ogg_free(vc->comment_lengths);
     if(vc->vendor)_ogg_free(vc->vendor);
     FMOD_memset(vc,0,sizeof(*vc));
@@ -169,7 +167,7 @@ int FMOD_vorbis_info_blocksize(vorbis_info *vi,int zo){
 
 /* used by synthesis, which has a full, alloced vi */
 // OFFSET: 0x0046C1A0
-int FMOD_vorbis_info_init(void *context, vorbis_info *vi){
+int FMOD_vorbis_info_init(vorbis_info *vi){
   FMOD_memset(vi,0,sizeof(*vi));
   vi->codec_setup=_ogg_calloc(1,sizeof(codec_setup_info));
   if(!vi->codec_setup)
@@ -181,7 +179,7 @@ int FMOD_vorbis_info_init(void *context, vorbis_info *vi){
 }
 
 // OFFSET: 0x0046C1F0
-void FMOD_vorbis_info_clear(void *context, vorbis_info *vi){
+void FMOD_vorbis_info_clear(vorbis_info *vi){
   codec_setup_info     *ci=vi->codec_setup;
   int i;
 
@@ -194,33 +192,33 @@ void FMOD_vorbis_info_clear(void *context, vorbis_info *vi){
       if(ci->map_param[i]) /* this may be cleaning up an aborted
                               unpack, in which case the below type
                               cannot be trusted */
-        _FMOD_mapping_P[ci->map_type[i]]->free_info(context, ci->map_param[i]);
+        _FMOD_mapping_P[ci->map_type[i]]->free_info(ci->map_param[i]);
 
     for(i=0;i<ci->floors;i++) /* unpack does the range checking */
       if(ci->floor_param[i]) /* this may be cleaning up an aborted
                                 unpack, in which case the below type
                                 cannot be trusted */
-        _FMOD_floor_P[ci->floor_type[i]]->free_info(context, ci->floor_param[i]);
+        _FMOD_floor_P[ci->floor_type[i]]->free_info(ci->floor_param[i]);
 
     for(i=0;i<ci->residues;i++) /* unpack does the range checking */
       if(ci->residue_param[i]) /* this may be cleaning up an aborted
                                   unpack, in which case the below type
                                   cannot be trusted */
-        _FMOD_residue_P[ci->residue_type[i]]->free_info(context, ci->residue_param[i]);
+        _FMOD_residue_P[ci->residue_type[i]]->free_info(ci->residue_param[i]);
 
     for(i=0;i<ci->books;i++){
       if(ci->book_param[i]){
         /* knows if the book was not alloced */
-        FMOD_vorbis_staticbook_destroy(context, ci->book_param[i]);
+        FMOD_vorbis_staticbook_destroy(ci->book_param[i]);
       }
       if(ci->fullbooks)
-        FMOD_vorbis_book_clear(context, ci->fullbooks+i);
+        FMOD_vorbis_book_clear(ci->fullbooks+i);
     }
     if(ci->fullbooks)
         _ogg_free(ci->fullbooks);
 
-//    for(i=0;i<ci->psys;i++)
-//      _vi_psy_free(context, ci->psy_param[i]);
+    for(i=0;i<ci->psys;i++)
+      _vi_psy_free(ci->psy_param[i]);
 
     _ogg_free(ci);
   }
@@ -231,7 +229,7 @@ void FMOD_vorbis_info_clear(void *context, vorbis_info *vi){
 /* Header packing/unpacking ********************************************/
 
 // OFFSET: 0x0046C3A0
-static int _FMOD_vorbis_unpack_info(void *context, vorbis_info *vi,oggpack_buffer *opb){
+static int _FMOD_vorbis_unpack_info(vorbis_info *vi,oggpack_buffer *opb){
   codec_setup_info     *ci=vi->codec_setup;
   if(!ci)return(OV_EFAULT);
 
@@ -258,94 +256,60 @@ static int _FMOD_vorbis_unpack_info(void *context, vorbis_info *vi,oggpack_buffe
 
   return(0);
  err_out:
-  FMOD_vorbis_info_clear(context, vi);
+  FMOD_vorbis_info_clear(vi);
   return(OV_EBADHEADER);
 }
 
 // OFFSET: 0x0046C470
-static int _vorbis_unpack_comment(void *context, vorbis_comment *vc,oggpack_buffer *opb){
-  int i,err = OV_EBADHEADER;
+static int _vorbis_unpack_comment(vorbis_comment *vc,oggpack_buffer *opb){
+  int i;
   int vendorlen=FMOD_oggpack_read(opb,32);
   if(vendorlen<0)goto err_out;
-  if(vendorlen>opb->storage-8)goto err_out;
   vc->vendor=_ogg_calloc(vendorlen+1,1);
-  if (!vc->vendor)
-  {
-      err = OV_EMEMORY;
-      goto err_out;
-  }
+  if(!vc->vendor)goto err_out;
   _v_readstring(opb,vc->vendor,vendorlen);
-  i=FMOD_oggpack_read(opb,32);
-  if(i<0)goto err_out;
-  if(i>((opb->storage-FMOD_oggpack_bytes(opb))>>2))goto err_out;
-  vc->comments=i;
+  vc->comments=FMOD_oggpack_read(opb,32);
+  if(vc->comments<0)goto err_out;
   vc->user_comments=_ogg_calloc(vc->comments+1,sizeof(*vc->user_comments));
-  if (!vc->user_comments)
-  {
-      err = OV_EMEMORY;
-      goto err_out;
-  }
+  if(!vc->user_comments)goto err_out;
   vc->comment_lengths=_ogg_calloc(vc->comments+1, sizeof(*vc->comment_lengths));
-  if (!vc->comment_lengths)
-  {
-      err = OV_EMEMORY;
-      goto err_out;
-  }
-
+  if(!vc->comment_lengths)goto err_out;
 
   for(i=0;i<vc->comments;i++){
     int len=FMOD_oggpack_read(opb,32);
     if(len<0)goto err_out;
-    if(len>opb->storage-FMOD_oggpack_bytes(opb))goto err_out;
     vc->comment_lengths[i]=len;
     vc->user_comments[i]=_ogg_calloc(len+1,1);
-    if (!vc->user_comments[i])
-    {
-      err = OV_EMEMORY;
-      goto err_out;
-    }
-    
+    if(!vc->user_comments)goto err_out;
     _v_readstring(opb,vc->user_comments[i],len);
   }
   if(FMOD_oggpack_read(opb,1)!=1)goto err_out; /* EOP check */
 
   return(0);
  err_out:
-  FMOD_vorbis_comment_clear(context, vc);
-  return err;
+  FMOD_vorbis_comment_clear(vc);
+  return(OV_EBADHEADER);
 }
 
 /* all of the real encoding details are here.  The modes, books,
    everything */
 // OFFSET: 0x0046C5A0
-static int _vorbis_unpack_books(void *context, vorbis_info *vi,oggpack_buffer *opb){
+static int _vorbis_unpack_books(vorbis_info *vi,oggpack_buffer *opb){
   codec_setup_info     *ci=vi->codec_setup;
-  int i,err = OV_EBADHEADER;
+  int i;
   if(!ci)return(OV_EFAULT);
 
   /* codebooks */
   ci->books=FMOD_oggpack_read(opb,8)+1;
-  if(ci->books<=0)goto err_out;
   for(i=0;i<ci->books;i++){
-    int ret;
     ci->book_param[i]=_ogg_calloc(1,sizeof(*ci->book_param[i]));
-    if (!ci->book_param[i])
-    {
-      err = OV_EMEMORY;
-      goto err_out;
-    }
-    ret = FMOD_vorbis_staticbook_unpack(context, opb,ci->book_param[i]);
-    if(ret) 
-    {
-        err = ret;
-        goto err_out;
-    }
+    if(!ci->book_param[i])goto err_out;
+    if(FMOD_vorbis_staticbook_unpack(opb,ci->book_param[i]))goto err_out;
   }
 
   /* time backend settings; hooks are unused */
   {
     int times=FMOD_oggpack_read(opb,6)+1;
-    if(times<=0)goto err_out;
     for(i=0;i<times;i++){
       int test=FMOD_oggpack_read(opb,16);
       if(test<0 || test>=VI_TIMEB)goto err_out;
@@ -354,49 +318,36 @@ static int _vorbis_unpack_books(void *context, vorbis_info *vi,oggpack_buffer *o
 
   /* floor backend settings */
   ci->floors=FMOD_oggpack_read(opb,6)+1;
-  if(ci->floors<=0)goto err_out;
   for(i=0;i<ci->floors;i++){
     ci->floor_type[i]=FMOD_oggpack_read(opb,16);
-    if (ci->floor_type[i] == 0) 
-    {
-        err = OV_EVERSION;
-        goto err_out;       /* FMOD ADDED - NOT SUPPORTING FLOOR 0! */
-    }
     if(ci->floor_type[i]<0 || ci->floor_type[i]>=VI_FLOORB)goto err_out;
-    ci->floor_param[i]=_FMOD_floor_P[ci->floor_type[i]]->unpack(context, vi,opb);
+    ci->floor_param[i]=_FMOD_floor_P[ci->floor_type[i]]->unpack(vi,opb);
     if(!ci->floor_param[i])goto err_out;
   }
 
   /* residue backend settings */
   ci->residues=FMOD_oggpack_read(opb,6)+1;
-  if(ci->residues<=0)goto err_out;
   for(i=0;i<ci->residues;i++){
     ci->residue_type[i]=FMOD_oggpack_read(opb,16);
     if(ci->residue_type[i]<0 || ci->residue_type[i]>=VI_RESB)goto err_out;
-    ci->residue_param[i]=_FMOD_residue_P[ci->residue_type[i]]->unpack(context, vi,opb);
+    ci->residue_param[i]=_FMOD_residue_P[ci->residue_type[i]]->unpack(vi,opb);
     if(!ci->residue_param[i])goto err_out;
   }
 
   /* map backend settings */
   ci->maps=FMOD_oggpack_read(opb,6)+1;
-  if(ci->maps<=0)goto err_out;
   for(i=0;i<ci->maps;i++){
     ci->map_type[i]=FMOD_oggpack_read(opb,16);
     if(ci->map_type[i]<0 || ci->map_type[i]>=VI_MAPB)goto err_out;
-    ci->map_param[i]=_FMOD_mapping_P[ci->map_type[i]]->unpack(context, vi,opb);
+    ci->map_param[i]=_FMOD_mapping_P[ci->map_type[i]]->unpack(vi,opb);
     if(!ci->map_param[i])goto err_out;
   }
 
   /* mode settings */
   ci->modes=FMOD_oggpack_read(opb,6)+1;
-  if(ci->modes<=0)goto err_out;
   for(i=0;i<ci->modes;i++){
     ci->mode_param[i]=_ogg_calloc(1,sizeof(*ci->mode_param[i]));
-    if (!ci->mode_param[i])
-    {
-      err = OV_EMEMORY;
-      goto err_out;
-    }
+    if(!ci->mode_param[i])goto err_out;
     ci->mode_param[i]->blockflag=FMOD_oggpack_read(opb,1);
     ci->mode_param[i]->windowtype=FMOD_oggpack_read(opb,16);
     ci->mode_param[i]->transformtype=FMOD_oggpack_read(opb,16);
@@ -405,15 +356,14 @@ static int _vorbis_unpack_books(void *context, vorbis_info *vi,oggpack_buffer *o
     if(ci->mode_param[i]->windowtype>=VI_WINDOWB)goto err_out;
     if(ci->mode_param[i]->transformtype>=VI_WINDOWB)goto err_out;
     if(ci->mode_param[i]->mapping>=ci->maps)goto err_out;
-    if(ci->mode_param[i]->mapping<0)goto err_out;
   }
 
   if(FMOD_oggpack_read(opb,1)!=1)goto err_out; /* top level EOP check */
 
   return(0);
  err_out:
-  FMOD_vorbis_info_clear(context, vi);
-  return err;
+  FMOD_vorbis_info_clear(vi);
+  return(OV_EBADHEADER);
 }
 
 /* Is this packet a vorbis ID header? */
@@ -448,7 +398,7 @@ int FMOD_vorbis_synthesis_idheader(ogg_packet *op){
    codebook. */
 
 // OFFSET: 0x0046C9B0
-int FMOD_vorbis_synthesis_headerin(void *context, vorbis_info *vi,vorbis_comment *vc,ogg_packet *op){
+int FMOD_vorbis_synthesis_headerin(vorbis_info *vi,vorbis_comment *vc,ogg_packet *op){
   oggpack_buffer opb;
 
   if(op){
@@ -476,7 +426,7 @@ int FMOD_vorbis_synthesis_headerin(void *context, vorbis_info *vi,vorbis_comment
           return(OV_EBADHEADER);
         }
 
-        return(_FMOD_vorbis_unpack_info(context, vi,&opb));
+        return(_FMOD_vorbis_unpack_info(vi,&opb));
 
       case 0x03: /* least significant *bit* is read first */
         if(vi->rate==0){
@@ -484,7 +434,7 @@ int FMOD_vorbis_synthesis_headerin(void *context, vorbis_info *vi,vorbis_comment
           return(OV_EBADHEADER);
         }
 
-        return(_vorbis_unpack_comment(context, vc,&opb));
+        return(_vorbis_unpack_comment(vc,&opb));
 
       case 0x05: /* least significant *bit* is read first */
         if(vi->rate==0 || vc->vendor==NULL){
@@ -492,7 +442,7 @@ int FMOD_vorbis_synthesis_headerin(void *context, vorbis_info *vi,vorbis_comment
           return(OV_EBADHEADER);
         }
 
-        return(_vorbis_unpack_books(context, vi,&opb));
+        return(_vorbis_unpack_books(vi,&opb));
 
       default:
         /* Not a valid vorbis header type */
@@ -560,7 +510,7 @@ int FMOD_vorbis_synthesis_headerin(void *context, vorbis_info *vi,vorbis_comment
 //  return(0);
 //}
 //
-//static int _vorbis_pack_books(void *context, oggpack_buffer *opb,vorbis_info *vi){
+//static int _vorbis_pack_books(oggpack_buffer *opb,vorbis_info *vi){
 //  codec_setup_info     *ci=vi->codec_setup;
 //  int i;
 //  if(!ci)return(OV_EFAULT);
@@ -616,12 +566,12 @@ int FMOD_vorbis_synthesis_headerin(void *context, vorbis_info *vi,vorbis_comment
 //  return(-1);
 //}
 //
-//int vorbis_commentheader_out(void *context, vorbis_comment *vc,
+//int vorbis_commentheader_out(vorbis_comment *vc,
 //                                          ogg_packet *op){
 //
 //  oggpack_buffer opb;
 //
-//  FMOD_oggpack_writeinit(context, &opb);
+//  FMOD_oggpack_writeinit(&opb);
 //  if(_vorbis_pack_comment(&opb,vc)) return OV_EIMPL;
 //
 //  op->packet = _ogg_malloc(FMOD_oggpack_bytes(&opb));
@@ -653,7 +603,7 @@ int FMOD_vorbis_synthesis_headerin(void *context, vorbis_info *vi,vorbis_comment
 //
 //  /* first header packet **********************************************/
 //
-//  FMOD_oggpack_writeinit(context, &opb);
+//  FMOD_oggpack_writeinit(&opb);
 //  if(_vorbis_pack_info(&opb,vi))goto err_out;
 //
 //  /* build the packet */

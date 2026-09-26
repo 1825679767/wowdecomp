@@ -62,7 +62,7 @@ typedef struct {
 
 } vorbis_look_residue0;
 
-void FMOD_res0_free_info(void *context, vorbis_info_residue *i){
+void FMOD_res0_free_info(vorbis_info_residue *i){
   vorbis_info_residue0 *info=(vorbis_info_residue0 *)i;
   if(info){
     FMOD_memset(info,0,sizeof(*info));
@@ -70,7 +70,7 @@ void FMOD_res0_free_info(void *context, vorbis_info_residue *i){
   }
 }
 
-void FMOD_res0_free_look(void *context, vorbis_look_residue *i){
+void FMOD_res0_free_look(vorbis_look_residue *i){
   int j;
   if(i){
 
@@ -167,7 +167,7 @@ static int icount(unsigned int v){
 }
 
 #if 0
-void FMOD_res0_pack(void *context, vorbis_info_residue *vr,oggpack_buffer *opb){
+void FMOD_res0_pack(vorbis_info_residue *vr,oggpack_buffer *opb){
   vorbis_info_residue0 *info=(vorbis_info_residue0 *)vr;
   int j,acc=0;
   FMOD_oggpack_write(opb,info->begin,24);
@@ -198,7 +198,7 @@ void FMOD_res0_pack(void *context, vorbis_info_residue *vr,oggpack_buffer *opb){
 #endif
 
 /* vorbis_info is for range checking */
-vorbis_info_residue *FMOD_res0_unpack(void *context, vorbis_info *vi,oggpack_buffer *opb){
+vorbis_info_residue *FMOD_res0_unpack(vorbis_info *vi,oggpack_buffer *opb){
   int j,acc=0;
   vorbis_info_residue0 *info=_ogg_calloc(1,sizeof(*info));
   codec_setup_info     *ci=vi->codec_setup;
@@ -257,11 +257,11 @@ vorbis_info_residue *FMOD_res0_unpack(void *context, vorbis_info *vi,oggpack_buf
 
   return(info);
  errout:
-  FMOD_res0_free_info(context, info);
+  FMOD_res0_free_info(info);
   return(NULL);
 }
 
-vorbis_look_residue *FMOD_res0_look(void *context, vorbis_dsp_state *vd,
+vorbis_look_residue *FMOD_res0_look(vorbis_dsp_state *vd,
                                vorbis_info_residue *vr){
   vorbis_info_residue0 *info=(vorbis_info_residue0 *)vr;
   vorbis_look_residue0 *look=_ogg_calloc(1,sizeof(*look));
@@ -424,7 +424,7 @@ static int _encodepart(oggpack_buffer *opb,float *vec, int n,
 }
 #endif
 
-static ogg_int32_t **_FMOD_01class(void *context, vorbis_block *vb,vorbis_look_residue *vl,
+static ogg_int32_t **_FMOD_01class(vorbis_block *vb,vorbis_look_residue *vl,
                        float **in,int ch){
   ogg_int32_t i,j,k;
   vorbis_look_residue0 *look=(vorbis_look_residue0 *)vl;
@@ -436,7 +436,7 @@ static ogg_int32_t **_FMOD_01class(void *context, vorbis_block *vb,vorbis_look_r
   int n=info->end-info->begin;
 
   int partvals=n/samples_per_partition;
-  ogg_int32_t **partword=_FMOD_vorbis_block_alloc(context, vb,ch*sizeof(*partword));
+  ogg_int32_t **partword=_FMOD_vorbis_block_alloc(vb,ch*sizeof(*partword));
   float scale=100.0f/samples_per_partition;
 
   if (!partword)
@@ -449,7 +449,7 @@ static ogg_int32_t **_FMOD_01class(void *context, vorbis_block *vb,vorbis_look_r
      bit.  For now, clarity */
 
   for(i=0;i<ch;i++){
-    partword[i]=_FMOD_vorbis_block_alloc(context, vb,n/samples_per_partition*sizeof(*partword[i]));
+    partword[i]=_FMOD_vorbis_block_alloc(vb,n/samples_per_partition*sizeof(*partword[i]));
     if (!partword[i])
     {
       return(NULL);
@@ -501,7 +501,7 @@ static ogg_int32_t **_FMOD_01class(void *context, vorbis_block *vb,vorbis_look_r
 /* designed for stereo or other modes where the partition size is an
    integer multiple of the number of channels encoded in the current
    submap */
-static ogg_int32_t **_2class(void *context, vorbis_block *vb,vorbis_look_residue *vl,float **in,
+static ogg_int32_t **_2class(vorbis_block *vb,vorbis_look_residue *vl,float **in,
                       int ch){
   ogg_int32_t i,j,k,l;
   vorbis_look_residue0 *look=(vorbis_look_residue0 *)vl;
@@ -513,14 +513,14 @@ static ogg_int32_t **_2class(void *context, vorbis_block *vb,vorbis_look_residue
   int n=info->end-info->begin;
 
   int partvals=n/samples_per_partition;
-  ogg_int32_t **partword=_FMOD_vorbis_block_alloc(context, vb,sizeof(*partword));
+  ogg_int32_t **partword=_FMOD_vorbis_block_alloc(vb,sizeof(*partword));
 
 #if defined(TRAIN_RES) || defined (TRAIN_RESAUX)
   FILE *of;
   char buffer[80];
 #endif
 
-  partword[0]=_FMOD_vorbis_block_alloc(context, vb,n*ch/samples_per_partition*sizeof(*partword[0]));
+  partword[0]=_FMOD_vorbis_block_alloc(vb,n*ch/samples_per_partition*sizeof(*partword[0]));
   FMOD_memset(partword[0],0,n*ch/samples_per_partition*sizeof(*partword[0]));
 
   for(i=0,l=info->begin/ch;i<partvals;i++){
@@ -674,7 +674,7 @@ static int _01forward(oggpack_buffer *opb,
 
 /* a truncated packet here just means 'stop working'; it's not an error */
 // OFFSET: 0x00470F70
-static int _FMOD_01inverse(void *context, vorbis_block *vb,vorbis_look_residue *vl,
+static int _FMOD_01inverse(vorbis_block *vb,vorbis_look_residue *vl,
                       float **in,int ch,
                       ogg_int32_t (*decodepart)(codebook *, float *,
                                          oggpack_buffer *,int)){
@@ -697,7 +697,7 @@ static int _FMOD_01inverse(void *context, vorbis_block *vb,vorbis_look_residue *
 
     for(j=0;j<ch;j++)
     {
-      partword[j]=_FMOD_vorbis_block_alloc(context, vb,partwords*sizeof(*partword[j]));
+      partword[j]=_FMOD_vorbis_block_alloc(vb,partwords*sizeof(*partword[j]));
       if (!partword[j])
       {
         return(OV_EMEMORY);
@@ -788,20 +788,20 @@ int FMOD_res0_forward(vorbis_block *vb,vorbis_look_residue *vl,
 }
 #endif
 
-int FMOD_res0_inverse(void *context, vorbis_block *vb,vorbis_look_residue *vl,
+int FMOD_res0_inverse(vorbis_block *vb,vorbis_look_residue *vl,
                  float **in,int *nonzero,int ch){
   int i,used=0;
   for(i=0;i<ch;i++)
     if(nonzero[i])
       in[used++]=in[i];
   if(used)
-    return(_FMOD_01inverse(context, vb,vl,in,used,FMOD_vorbis_book_decodevs_add));
+    return(_FMOD_01inverse(vb,vl,in,used,FMOD_vorbis_book_decodevs_add));
   else
     return(0);
 }
 
 #if 0
-int FMOD_res1_forward(void *context, oggpack_buffer *opb,vorbis_block *vb,vorbis_look_residue *vl,
+int FMOD_res1_forward(oggpack_buffer *opb,vorbis_block *vb,vorbis_look_residue *vl,
                  float **in,float **out,int *nonzero,int ch,
                  ogg_int32_t **partword){
   int i,j,used=0,n=vb->pcmend/2;
@@ -831,38 +831,38 @@ int FMOD_res1_forward(void *context, oggpack_buffer *opb,vorbis_block *vb,vorbis
 }
 #endif
 
-ogg_int32_t **FMOD_res1_class(void *context, vorbis_block *vb,vorbis_look_residue *vl,
+ogg_int32_t **FMOD_res1_class(vorbis_block *vb,vorbis_look_residue *vl,
                   float **in,int *nonzero,int ch){
   int i,used=0;
   for(i=0;i<ch;i++)
     if(nonzero[i])
       in[used++]=in[i];
   if(used)
-    return(_FMOD_01class(context, vb,vl,in,used));
+    return(_FMOD_01class(vb,vl,in,used));
   else
     return(0);
 }
 
-int FMOD_res1_inverse(void *context, vorbis_block *vb,vorbis_look_residue *vl,
+int FMOD_res1_inverse(vorbis_block *vb,vorbis_look_residue *vl,
                  float **in,int *nonzero,int ch){
   int i,used=0;
   for(i=0;i<ch;i++)
     if(nonzero[i])
       in[used++]=in[i];
   if(used)
-    return(_FMOD_01inverse(context, vb,vl,in,used,FMOD_vorbis_book_decodev_add));
+    return(_FMOD_01inverse(vb,vl,in,used,FMOD_vorbis_book_decodev_add));
   else
     return(0);
 }
 
 #if 0
-ogg_int32_t **FMOD_res2_class(void *context, vorbis_block *vb,vorbis_look_residue *vl,
+ogg_int32_t **FMOD_res2_class(vorbis_block *vb,vorbis_look_residue *vl,
                   float **in,int *nonzero,int ch){
   int i,used=0;
   for(i=0;i<ch;i++)
     if(nonzero[i])used++;
   if(used)
-    return(_2class(context, vb,vl,in,ch));
+    return(_2class(vb,vl,in,ch));
   else
     return(0);
 }
@@ -870,7 +870,7 @@ ogg_int32_t **FMOD_res2_class(void *context, vorbis_block *vb,vorbis_look_residu
 /* res2 is slightly more different; all the channels are interleaved
    into a single vector and encoded. */
 
-int FMOD_res2_forward(void *context, oggpack_buffer *opb,
+int FMOD_res2_forward(oggpack_buffer *opb,
                  vorbis_block *vb,vorbis_look_residue *vl,
                  float **in,float **out,int *nonzero,int ch,
                  ogg_int32_t **partword){
@@ -879,7 +879,7 @@ int FMOD_res2_forward(void *context, oggpack_buffer *opb,
   /* don't duplicate the code; use a working vector hack for now and
      reshape ourselves into a single channel res1 */
   /* ugly; reallocs for each coupling pass :-( */
-  float *work=_FMOD_vorbis_block_alloc(context, vb,ch*n*sizeof(*work));
+  float *work=_FMOD_vorbis_block_alloc(vb,ch*n*sizeof(*work));
   
   for(i=0;i<ch;i++){
     float *pcm=in[i];
@@ -908,7 +908,7 @@ int FMOD_res2_forward(void *context, oggpack_buffer *opb,
 #endif
 
 /* duplicate code here as speed is somewhat more important */
-int FMOD_res2_inverse(void *context, vorbis_block *vb,vorbis_look_residue *vl,
+int FMOD_res2_inverse(vorbis_block *vb,vorbis_look_residue *vl,
                  float **in,int *nonzero,int ch){
   ogg_int32_t i,k,l,s;
   vorbis_look_residue0 *look=(vorbis_look_residue0 *)vl;
@@ -924,7 +924,7 @@ int FMOD_res2_inverse(void *context, vorbis_block *vb,vorbis_look_residue *vl,
   if(n>0){
     int partvals=n/samples_per_partition;
     int partwords=(partvals+partitions_per_word-1)/partitions_per_word;
-    int **partword=_FMOD_vorbis_block_alloc(context, vb,partwords*sizeof(*partword));
+    int **partword=_FMOD_vorbis_block_alloc(vb,partwords*sizeof(*partword));
     if (!partword)
     {
         return -1;

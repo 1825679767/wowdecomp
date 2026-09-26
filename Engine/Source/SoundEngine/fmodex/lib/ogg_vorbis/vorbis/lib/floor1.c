@@ -44,7 +44,7 @@ typedef struct lsfit_acc{
 
 /***********************************************/
 
-static void FMOD_floor1_free_info(void *context, vorbis_info_floor *i){
+static void FMOD_floor1_free_info(vorbis_info_floor *i){
   vorbis_info_floor1 *info=(vorbis_info_floor1 *)i;
   if(info){
     FMOD_memset(info,0,sizeof(*info));
@@ -52,7 +52,7 @@ static void FMOD_floor1_free_info(void *context, vorbis_info_floor *i){
   }
 }
 
-static void FMOD_floor1_free_look(void *context, vorbis_look_floor *i){
+static void FMOD_floor1_free_look(vorbis_look_floor *i){
   vorbis_look_floor1 *look=(vorbis_look_floor1 *)i;
   if(look){
     /*fprintf(stderr,"floor 1 bit usage %f:%f (%f total)\n",
@@ -125,7 +125,7 @@ static int icomp(const void *a,const void *b){
   return(**(int **)a-**(int **)b);
 }
 
-static vorbis_info_floor *FMOD_floor1_unpack (void *context, vorbis_info *vi,oggpack_buffer *opb){
+static vorbis_info_floor *FMOD_floor1_unpack (vorbis_info *vi,oggpack_buffer *opb){
   codec_setup_info     *ci=vi->codec_setup;
   int j,k,count=0,maxclass=-1,rangebits;
 
@@ -186,11 +186,11 @@ static vorbis_info_floor *FMOD_floor1_unpack (void *context, vorbis_info *vi,ogg
   return(info);
 
  err_out:
-  FMOD_floor1_free_info(context, info);
+  FMOD_floor1_free_info(info);
   return(NULL);
 }
 
-static vorbis_look_floor *FMOD_floor1_look(void *context, vorbis_dsp_state *vd,
+static vorbis_look_floor *FMOD_floor1_look(vorbis_dsp_state *vd,
                                       vorbis_info_floor *in){
 
   int *sortpointer[VIF_POSIT+2];
@@ -603,7 +603,7 @@ static int post_Y(int *A,int *B,int pos){
   return (A[pos]+B[pos])>>1;
 }
 
-//int *floor1_fit(void *context, vorbis_block *vb,vorbis_look_floor1 *look,
+//int *floor1_fit(vorbis_block *vb,vorbis_look_floor1 *look,
 //                          const float *logmdct,   /* in */
 //                          const float *logmask){
 //  ogg_int32_t i,j;
@@ -727,7 +727,7 @@ static int post_Y(int *A,int *B,int pos){
 //      }
 //    }
 //
-//    output=_FMOD_vorbis_block_alloc(context, vb,sizeof(*output)*posts);
+//    output=_FMOD_vorbis_block_alloc(vb,sizeof(*output)*posts);
 //
 //    output[0]=post_Y(fit_valueA,fit_valueB,0);
 //    output[1]=post_Y(fit_valueA,fit_valueB,1);
@@ -758,7 +758,7 @@ static int post_Y(int *A,int *B,int pos){
 //
 //}
 //
-//int *floor1_interpolate_fit(void *context, vorbis_block *vb,vorbis_look_floor1 *look,
+//int *floor1_interpolate_fit(vorbis_block *vb,vorbis_look_floor1 *look,
 //                          int *A,int *B,
 //                          int del){
 //
@@ -767,7 +767,7 @@ static int post_Y(int *A,int *B,int pos){
 //  int *output=NULL;
 //
 //  if(A && B){
-//    output=_FMOD_vorbis_block_alloc(context, vb,sizeof(*output)*posts);
+//    output=_FMOD_vorbis_block_alloc(vb,sizeof(*output)*posts);
 //
 //    /* overly simpleminded--- look again post 1.2 */
 //    for(i=0;i<posts;i++){
@@ -978,7 +978,7 @@ static int post_Y(int *A,int *B,int pos){
 //  }
 //}
 
-static void *FMOD_floor1_inverse1(void *context, vorbis_block *vb,vorbis_look_floor *in){
+static void *FMOD_floor1_inverse1(vorbis_block *vb,vorbis_look_floor *in){
   vorbis_look_floor1 *look=(vorbis_look_floor1 *)in;
   vorbis_info_floor1 *info=look->vi;
   codec_setup_info   *ci=vb->vd->vi->codec_setup;
@@ -988,7 +988,7 @@ static void *FMOD_floor1_inverse1(void *context, vorbis_block *vb,vorbis_look_fl
 
   /* unpack wrapped/predicted values from stream */
   if(FMOD_oggpack_read(&vb->opb,1)==1){
-    int *fit_value=_FMOD_vorbis_block_alloc(context, vb,(look->posts)*sizeof(*fit_value));
+    int *fit_value=_FMOD_vorbis_block_alloc(vb,(look->posts)*sizeof(*fit_value));
 
     fit_value[0]=FMOD_oggpack_read(&vb->opb,ilog(look->quant_q-1));
     fit_value[1]=FMOD_oggpack_read(&vb->opb,ilog(look->quant_q-1));
@@ -1064,7 +1064,7 @@ static void *FMOD_floor1_inverse1(void *context, vorbis_block *vb,vorbis_look_fl
   return(NULL);
 }
 
-static int FMOD_floor1_inverse2(void *context, vorbis_block *vb,vorbis_look_floor *in,void *memo,
+static int FMOD_floor1_inverse2(vorbis_block *vb,vorbis_look_floor *in,void *memo,
                           float *out){
   vorbis_look_floor1 *look=(vorbis_look_floor1 *)in;
   vorbis_info_floor1 *info=look->vi;

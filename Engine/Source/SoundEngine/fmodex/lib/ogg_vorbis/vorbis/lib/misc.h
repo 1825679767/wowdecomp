@@ -19,8 +19,8 @@
 #define _V_RANDOM_H_
 #include "vorbis/codec.h"
 
-extern void *_FMOD_vorbis_block_alloc(void *context, vorbis_block *vb,ogg_int32_t bytes);
-extern int _FMOD_vorbis_block_ripcord(void *context, vorbis_block *vb);
+extern void *_FMOD_vorbis_block_alloc(vorbis_block *vb,ogg_int32_t bytes);
+extern void _FMOD_vorbis_block_ripcord(vorbis_block *vb);
 
 #ifdef ANALYSIS
 extern int analysis_noisy;

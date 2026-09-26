@@ -57,7 +57,7 @@ typedef struct vorbis_info{
    analysis/synthesis state.  The DSP state belongs to a specific
    logical bitstream ****************************************************/
 typedef struct vorbis_dsp_state{
-//  int analysisp;
+  int analysisp;
   vorbis_info *vi;
 
   float **pcm;
@@ -115,7 +115,7 @@ typedef struct vorbis_block{
   ogg_int32_t floor_bits;
   ogg_int32_t res_bits;
 
-  //void *internal;
+  void *internal;
 
 } vorbis_block;
 
@@ -162,20 +162,20 @@ typedef struct vorbis_comment{
 
 /* Vorbis PRIMITIVES: general ***************************************/
 
-extern int      FMOD_vorbis_info_init(void *context, vorbis_info *vi);
-extern void     FMOD_vorbis_info_clear(void *context, vorbis_info *vi);
+extern int      FMOD_vorbis_info_init(vorbis_info *vi);
+extern void     FMOD_vorbis_info_clear(vorbis_info *vi);
 extern int      FMOD_vorbis_info_blocksize(vorbis_info *vi,int zo);
 extern void     FMOD_vorbis_comment_init(vorbis_comment *vc);
-//extern void     FMOD_vorbis_comment_add(void *context, vorbis_comment *vc, const char *comment);
-//extern void     FMOD_vorbis_comment_add_tag(void *context, vorbis_comment *vc,
+//extern void     FMOD_vorbis_comment_add(vorbis_comment *vc, const char *comment);
+//extern void     FMOD_vorbis_comment_add_tag(vorbis_comment *vc,
 //                                       const char *tag, const char *contents);
 //extern char    *FMOD_vorbis_comment_query(vorbis_comment *vc, const char *tag, int count);
 //extern int      FMOD_vorbis_comment_query_count(vorbis_comment *vc, const char *tag);
-extern void     FMOD_vorbis_comment_clear(void *context, vorbis_comment *vc);
+extern void     FMOD_vorbis_comment_clear(vorbis_comment *vc);
 
-extern int      FMOD_vorbis_block_init(void *context, vorbis_dsp_state *v, vorbis_block *vb);
-extern int      FMOD_vorbis_block_clear(void *context, vorbis_block *vb);
-extern void     FMOD_vorbis_dsp_clear(void *context, vorbis_dsp_state *v);
+extern int      FMOD_vorbis_block_init(vorbis_dsp_state *v, vorbis_block *vb);
+extern int      FMOD_vorbis_block_clear(vorbis_block *vb);
+extern void     FMOD_vorbis_dsp_clear(vorbis_dsp_state *v);
 extern float   FMOD_vorbis_granule_time(vorbis_dsp_state *v,
                                     ogg_int64_t granulepos);
 
@@ -189,9 +189,9 @@ extern const char *FMOD_vorbis_version_string(void);
 //                                          ogg_packet *op,
 //                                          ogg_packet *op_comm,
 //                                          ogg_packet *op_code);
-//extern float  **FMOD_vorbis_analysis_buffer(void *context, vorbis_dsp_state *v,int vals);
-//extern int      FMOD_vorbis_analysis_wrote(void *context, vorbis_dsp_state *v,int vals);
-//extern int      FMOD_vorbis_analysis_blockout(void *context, vorbis_dsp_state *v,vorbis_block *vb);
+//extern float  **FMOD_vorbis_analysis_buffer(vorbis_dsp_state *v,int vals);
+//extern int      FMOD_vorbis_analysis_wrote(vorbis_dsp_state *v,int vals);
+//extern int      FMOD_vorbis_analysis_blockout(vorbis_dsp_state *v,vorbis_block *vb);
 //extern int      FMOD_vorbis_analysis(vorbis_block *vb,ogg_packet *op);
 extern int      FMOD_vorbis_bitrate_addblock(vorbis_block *vb);
 extern int      FMOD_vorbis_bitrate_flushpacket(vorbis_dsp_state *vd,
@@ -199,13 +199,13 @@ extern int      FMOD_vorbis_bitrate_flushpacket(vorbis_dsp_state *vd,
 
 /* Vorbis PRIMITIVES: synthesis layer *******************************/
 extern int      FMOD_vorbis_synthesis_idheader(ogg_packet *op);
-extern int      FMOD_vorbis_synthesis_headerin(void *context, vorbis_info *vi,vorbis_comment *vc,
+extern int      FMOD_vorbis_synthesis_headerin(vorbis_info *vi,vorbis_comment *vc,
                                           ogg_packet *op);
 
-extern int      FMOD_vorbis_synthesis_init(void *context, vorbis_dsp_state *v,vorbis_info *vi);
+extern int      FMOD_vorbis_synthesis_init(vorbis_dsp_state *v,vorbis_info *vi);
 extern int      FMOD_vorbis_synthesis_restart(vorbis_dsp_state *v);
-extern int      FMOD_vorbis_synthesis(void *context, vorbis_block *vb,ogg_packet *op);
-extern int      FMOD_vorbis_synthesis_trackonly(void *context, vorbis_block *vb,ogg_packet *op);
+extern int      FMOD_vorbis_synthesis(vorbis_block *vb,ogg_packet *op);
+extern int      FMOD_vorbis_synthesis_trackonly(vorbis_block *vb,ogg_packet *op);
 extern int      FMOD_vorbis_synthesis_blockin(vorbis_dsp_state *v,vorbis_block *vb);
 extern int      FMOD_vorbis_synthesis_pcmout(vorbis_dsp_state *v,float ***pcm);
 extern int      FMOD_vorbis_synthesis_lapout(vorbis_dsp_state *v,float ***pcm);

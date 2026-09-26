@@ -50,12 +50,12 @@
    some window function algebra. */
 
 // OFFSET: 0x0046F5A0
-int FMOD_mdct_init(void *context, mdct_lookup *lookup,int n){
+int FMOD_mdct_init(mdct_lookup *lookup,int n){
   int   *bitrev=_ogg_malloc(sizeof(*bitrev)*(n/4));
   DATA_TYPE *T=_ogg_malloc(sizeof(*T)*(n+n/4));
   int i;
   int n2=n>>1;
-  int log2n=lookup->log2n=(int)(FMOD_ogg_rint(FMOD_ogg_log((float)n)/FMOD_ogg_log(2.f)));
+  int log2n=lookup->log2n=rint(log((float)n)/log(2.f));
 
   if (!bitrev || !T)
   {
@@ -69,14 +69,14 @@ int FMOD_mdct_init(void *context, mdct_lookup *lookup,int n){
 /* trig lookups... */
 
   for(i=0;i<n/4;i++){
-    T[i*2]=FLOAT_CONV(FMOD_ogg_cos((M_PI/n)*(4*i)));
-    T[i*2+1]=FLOAT_CONV(-FMOD_ogg_sin((M_PI/n)*(4*i)));
-    T[n2+i*2]=FLOAT_CONV(FMOD_ogg_cos((M_PI/(2*n))*(2*i+1)));
-    T[n2+i*2+1]=FLOAT_CONV(FMOD_ogg_sin((M_PI/(2*n))*(2*i+1)));
+    T[i*2]=FLOAT_CONV(cos((M_PI/n)*(4*i)));
+    T[i*2+1]=FLOAT_CONV(-sin((M_PI/n)*(4*i)));
+    T[n2+i*2]=FLOAT_CONV(cos((M_PI/(2*n))*(2*i+1)));
+    T[n2+i*2+1]=FLOAT_CONV(sin((M_PI/(2*n))*(2*i+1)));
   }
   for(i=0;i<n/8;i++){
-    T[n+i*2]=FLOAT_CONV(FMOD_ogg_cos((M_PI/n)*(4*i+2))*.5f);
-    T[n+i*2+1]=FLOAT_CONV(-FMOD_ogg_sin((M_PI/n)*(4*i+2))*.5f);
+    T[n+i*2]=FLOAT_CONV(cos((M_PI/n)*(4*i+2))*.5);
+    T[n+i*2+1]=FLOAT_CONV(-sin((M_PI/n)*(4*i+2))*.5);
   }
 
   /* bitreverse lookup... */
@@ -351,7 +351,7 @@ STIN void mdct_butterflies(mdct_lookup *init,
 }
 
 // OFFSET: 0x0046FD60
-void FMOD_mdct_clear(void *context, mdct_lookup *l){
+void FMOD_mdct_clear(mdct_lookup *l){
   if(l){
     if(l->trig)_ogg_free(l->trig);
     if(l->bitrev)_ogg_free(l->bitrev);
