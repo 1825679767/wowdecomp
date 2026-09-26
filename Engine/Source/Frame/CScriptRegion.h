@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Frame/CLayoutFrame.h"
-#include "_Triage/CScriptObject.h"
+#include "Engine/Source/Frame/CScriptObject.h"
 
 struct CScriptRegionAnimGroupNode;
 struct CSimpleFrame;

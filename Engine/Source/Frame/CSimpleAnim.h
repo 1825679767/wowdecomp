@@ -4,10 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/FrameScript/FrameScript_Object.h"
 #include "Engine/Source/Storm/H/stpl.h"
-
-struct EVENTLISTENERNODE;
-class FrameScript_Object;
 
 class CLCDConnection {
     public:
@@ -42,24 +40,5 @@ class CSimpleAnim {
 };
 
 class CSimpleAnimGroup;
-
-struct EVENTLISTENERNODE {
-    /* 0000 */ TSLink<EVENTLISTENERNODE> m_node;
-    /* 0008 */ FrameScript_Object* m_listener;
-};
-
-class FrameScript_Object {
-    public:
-    struct ScriptIx {
-        /* 0000 */ int32_t m_luaRef;
-        /* 0004 */ int8_t* m_tainted;
-    };
-
-    /* 0004 */ int32_t m_luaRegistered;
-    /* 0008 */ int32_t m_luaObjectRef;
-    /* 000C */ FrameScript_Object::ScriptIx m_onEvent;
-
-    virtual ~FrameScript_Object();
-};
 
 #endif

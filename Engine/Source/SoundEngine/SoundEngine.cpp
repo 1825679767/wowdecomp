@@ -596,7 +596,7 @@ bool SE2::GetInputDriverName(int32_t index, char* name, int32_t nameLength, int3
     }
 
     char text[64];
-    SStrCopy(text, FrameScript_GetText("SYSTEM_DEFAULT", -1, 0), sizeof(text));
+    SStrCopy(text, FrameScript_GetText("SYSTEM_DEFAULT", -1, GENDER_NOT_APPLICABLE), sizeof(text));
 
     if (text[0]) {
         SStrCopy(name, text, nameLength);
@@ -660,7 +660,7 @@ bool SE2::GetOutputDriverName(int32_t index, char* name, int32_t nameLength, int
     }
 
     char text[64];
-    SStrCopy(text, FrameScript_GetText("SYSTEM_DEFAULT", -1, 0), sizeof(text));
+    SStrCopy(text, FrameScript_GetText("SYSTEM_DEFAULT", -1, GENDER_NOT_APPLICABLE), sizeof(text));
 
     if (text[0]) {
         SStrCopy(name, text, nameLength);
@@ -765,7 +765,7 @@ bool SE2::GetInputDriverName_Cached(int32_t index, char* name, int32_t nameLengt
         return SE2::GetInputDriverName(index, name, nameLength, 0);
     }
 
-    const char* text = index ? s_chatInputDrivers[index].m_name : FrameScript_GetText("SYSTEM_DEFAULT", -1, 0);
+    const char* text = index ? s_chatInputDrivers[index].m_name : FrameScript_GetText("SYSTEM_DEFAULT", -1, GENDER_NOT_APPLICABLE);
     SStrCopy(name, text, nameLength);
 
     return true;
@@ -803,9 +803,9 @@ bool SE2::GetOutputDriverName_Cached(int32_t index, char* name, int32_t nameLeng
     const char* text;
 
     if (chatSystem) {
-        text = index ? s_chatOutputDrivers[index].m_name : FrameScript_GetText("SYSTEM_DEFAULT", -1, 0);
+        text = index ? s_chatOutputDrivers[index].m_name : FrameScript_GetText("SYSTEM_DEFAULT", -1, GENDER_NOT_APPLICABLE);
     } else {
-        text = index ? s_outputDrivers[index].m_name : FrameScript_GetText("SYSTEM_DEFAULT", -1, 0);
+        text = index ? s_outputDrivers[index].m_name : FrameScript_GetText("SYSTEM_DEFAULT", -1, GENDER_NOT_APPLICABLE);
     }
 
     SStrCopy(name, text, nameLength);

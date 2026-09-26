@@ -29,6 +29,8 @@ elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
     if (MSVC)
         add_compile_options(/arch:IA32 /fp:fast)
     endif ()
+    # 32-bit time_t like the original build: time/localtime/mktime resolve to _time32/_localtime32/_mktime32.
+    add_compile_definitions(_USE_32BIT_TIME_T)
 else ()
     message(FATAL_ERROR "Unsupported pointer size.")
 endif ()
