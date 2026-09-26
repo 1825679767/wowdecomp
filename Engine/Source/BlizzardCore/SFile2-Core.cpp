@@ -252,6 +252,12 @@ int32_t SFile::IsStreamingMode() {
 void STORMAPI SFile::SetFilePriority(SFileImpl* file, int32_t urgent, int32_t unused) {
 }
 
+// VERIFY: a1a7eed5 auto
+// OFFSET: 0x00422500
+void STORMAPI SFile::SetReadFatal(bool fatal) {
+    static_cast<System_SFile2::SFileFatalInfo&>(System_SFile2::s_fatalInfo).m_fatal = fatal;
+}
+
 // VERIFY: be859ae3 auto
 // OFFSET: 0x00422150
 const char* SFile::GetErrorDetails() {

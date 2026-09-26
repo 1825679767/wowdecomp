@@ -1,4 +1,38 @@
 #ifndef ENGINE_SOURCE_SOUNDENGINE_SOUNDCACHE_H
 #define ENGINE_SOURCE_SOUNDENGINE_SOUNDCACHE_H
 
+#include <cstddef>
+#include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
+
+class SFileImpl;
+
+struct CacheData : public TSHashObject<struct CacheData, HASHKEY_NONE> {
+    /* 0018 */ SFileImpl* m_file;
+    /* 001C */ void* m_chunks;
+    /* 0020 */ uint32_t unk_0020;
+    /* 0024 */ uint32_t unk_0024;
+    /* 0028 */ uint32_t unk_0028;
+    /* 002C */ uint32_t m_chunkCount;
+    /* 0030 */ uint32_t unk_0030;
+    /* 0034 */ int32_t m_refCount;
+    /* 0038 */ void* unk_0038;
+};
+
+class SoundCache {
+    public:
+    /* 0000 */ const char* m_using;
+    /* 0004 */ TSHashTable<struct CacheData, HASHKEY_NONE> m_table;
+    /* 002C */ uint32_t m_bytes;
+    /* 0030 */ uint32_t m_maxBytes;
+    /* 0034 */ uint32_t m_lastUpdate;
+    /* 0038 */ uint32_t m_startTime;
+
+    void Clear();
+    void Initialize();
+    void Update();
+};
+
+extern SoundCache g_soundCache;
+
 #endif

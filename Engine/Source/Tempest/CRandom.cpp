@@ -53,3 +53,15 @@ uint32_t CRandom::uint32_(CRndSeed& seed) {
     seed.rndacc = acc;
     return acc;
 }
+
+// INLINED
+CRndSeed::CRndSeed(uint32_t seed) {
+    this->SetSeed(seed);
+}
+
+// VERIFY: d644d7cb manual
+// OFFSET: 0x004C1510
+void CRndSeed::SetSeed(uint32_t seed) {
+    this->rndacc = seed;
+    this->rndvls = ((seed % 59) << 10) | ((seed % 61) << 2) | ((seed % 53) << 18) | ((seed % 47) << 26);
+}

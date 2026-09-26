@@ -1,3 +1,4 @@
+#include <cfloat>
 #include <cmath>
 #include <cstdint>
 #include "Engine/Source/Tempest/CMath.h"
@@ -172,4 +173,10 @@ float CMath::normalizeAngleNegPiToPi_(float angle) {
     }
 
     return static_cast<float>(result);
+}
+
+// VERIFY: a3991bed auto
+// OFFSET: 0x006E9360
+int32_t IsNaN(double value) {
+    return _isnan(value);
 }

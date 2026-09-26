@@ -78,6 +78,7 @@ class SFile {
     static const char* GetErrorDetails();
     static int32_t Initialize();
     static int32_t IsStreamingMode();
+    static int32_t IsTrial();
     static int32_t STORMAPI LoadFile(const char* name, void** data, uint32_t* size, uint32_t extra, SOVERLAPPED* overlapped);
     static int32_t STORMAPI MakeFileLocal(SFileImpl* file, int32_t priority, bool wait);
     static int32_t STORMAPI OpenArchive(const char* path, int32_t priority, uint32_t flags, SArchive** archive);
@@ -90,6 +91,7 @@ class SFile {
     static int32_t STORMAPI SetDataPathAlternate(const char* path);
     static int32_t STORMAPI SetFilePointer(SFileImpl* file, int32_t distance, int32_t* distanceHigh, uint32_t method);
     static void STORMAPI SetFilePriority(SFileImpl* file, int32_t urgent, int32_t unused);
+    static void STORMAPI SetReadFatal(bool fatal);
     static int32_t STORMAPI Unload(void* data);
 
     /* 0000 */ uint8_t unk_0000[1];

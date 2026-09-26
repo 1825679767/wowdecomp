@@ -11,6 +11,9 @@ struct HASHKEY_STRI;
 
 class CVar : public TSHashObject<CVar, HASHKEY_STRI> {
     public:
+    static CVar* Lookup(const char* name);
+    static CVar* Register(const char* name, const char* help, uint32_t flags, const char* value, bool (__stdcall* callback)(CVar*, const char*, const char*, void*), uint32_t category, bool setCommand, void* arg, bool unk);
+
     /* 0018 */ uint32_t m_category;
     /* 001C */ uint32_t m_flags;
     /* 0020 */ RCString m_stringValue;
@@ -23,6 +26,8 @@ class CVar : public TSHashObject<CVar, HASHKEY_STRI> {
     /* 005C */ RCString m_help;
     /* 0068 */ bool (__stdcall* m_callback )(CVar*, const char*, const char*, void*);
     /* 006C */ void* m_arg;
+
+    bool Set(const char* value, bool setValue, bool setReset, bool setDefault, bool unk);
 };
 
 class CVarArrayWrapper {

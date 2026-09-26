@@ -101,14 +101,18 @@ if (CMAKE_SIZEOF_VOID_P EQUAL 4)
     target_sources(fmodex PRIVATE ${FMODEX_ASM_OBJECTS})
 endif ()
 
-add_library(SoundEngine INTERFACE)
+file(GLOB SOUNDENGINE_SOURCES CONFIGURE_DEPENDS "*.cpp")
+
+add_library(SoundEngine STATIC
+    ${SOUNDENGINE_SOURCES}
+)
 
 target_include_directories(SoundEngine
-    INTERFACE
+    PUBLIC
         ${CMAKE_SOURCE_DIR}
 )
 
 target_link_libraries(SoundEngine
-    INTERFACE
+    PUBLIC
         fmodex
 )

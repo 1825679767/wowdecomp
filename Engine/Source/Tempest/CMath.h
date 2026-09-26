@@ -17,6 +17,8 @@ class CMath {
     static uint32_t sqrt_(uint32_t n);
 };
 
+int32_t IsNaN(double value);
+
 // INLINED
 inline int32_t CMath::fint_(float f) {
     return static_cast<int32_t>(lrintf(f));
