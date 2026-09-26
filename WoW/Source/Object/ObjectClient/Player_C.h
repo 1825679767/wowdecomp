@@ -10,8 +10,8 @@
 #include "WoW/Source/Object/WGUID.h"
 
 class C3Vector;
-struct SpellRec;
-struct SpellVisualKitRec;
+class SpellRec;
+class SpellVisualKitRec;
 
 class CGPlayer_C : public CGUnit_C, public CGPlayer {
     public:

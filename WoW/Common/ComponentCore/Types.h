@@ -5,7 +5,7 @@
 #include <cstdint>
 
 struct CharColorList;
-struct CharSectionsRec;
+class CharSectionsRec;
 
 enum COMPONENT_SECTIONS {
     SECTION_ARM_UPPER = 0,

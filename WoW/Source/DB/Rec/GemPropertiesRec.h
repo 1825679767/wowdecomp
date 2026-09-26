@@ -3,38 +3,25 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 
-struct GemPropertiesRec {
+class SFileImpl;
+
+class GemPropertiesRec {
+    public:
+    static const int32_t s_numColumns = 5;
+    static const int32_t s_rowSize = 20;
+    static const bool s_generatedID = false;
+
     /* 0000 */ int32_t m_id;
     /* 0004 */ int32_t m_enchantID;
     /* 0008 */ int32_t m_maxcountInv;
     /* 000C */ int32_t m_maxcountItem;
     /* 0010 */ int32_t m_type;
 
-// VERIFY: e625ac0e auto
-    // OFFSET: 0x008AFDE0
-    static const char* GetFilename() {
-        return "DBFilesClient\\GemProperties.dbc";
-    }
-
-    bool Read(SFileImpl* file, const char* stringBuffer) {
-        int32_t idRead = SFileReadFile(file, &this->m_id, sizeof(this->m_id), nullptr, nullptr, 0);
-        int32_t enchantIDRead = SFileReadFile(file, &this->m_enchantID, sizeof(this->m_enchantID), nullptr, nullptr, 0);
-        int32_t maxcountInvRead = SFileReadFile(file, &this->m_maxcountInv, sizeof(this->m_maxcountInv), nullptr, nullptr, 0);
-        int32_t maxcountItemRead = SFileReadFile(file, &this->m_maxcountItem, sizeof(this->m_maxcountItem), nullptr, nullptr, 0);
-        int32_t typeRead = SFileReadFile(file, &this->m_type, sizeof(this->m_type), nullptr, nullptr, 0);
-
-        if (!idRead
-            | !enchantIDRead
-            | !maxcountInvRead
-            | !maxcountItemRead
-            | !typeRead) {
-            return false;
-        }
-
-        return true;
-    }
+    GemPropertiesRec();
+    ~GemPropertiesRec();
+    static const char* GetFilename();
+    bool Read(SFileImpl* file, const char* stringBuffer);
 };
 
 #endif

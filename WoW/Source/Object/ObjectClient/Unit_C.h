@@ -14,12 +14,12 @@ struct CGNamePlateFrame;
 class CM2Model;
 class CMovementShared;
 class CharacterComponent;
-struct CreatureDisplayInfoExtraRec;
-struct CreatureDisplayInfoRec;
-struct CreatureModelDataRec;
-struct CreatureSoundDataRec;
+class CreatureDisplayInfoExtraRec;
+class CreatureDisplayInfoRec;
+class CreatureModelDataRec;
+class CreatureSoundDataRec;
 class CreatureStats_C;
-struct UnitBloodLevelsRec;
+class UnitBloodLevelsRec;
 
 struct AnimSlot {
     /* 0000 */ uint32_t m_animId;

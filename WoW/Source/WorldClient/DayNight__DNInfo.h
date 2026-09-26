@@ -9,7 +9,7 @@
 #include "Engine/Source/Storm/H/stpl.h"
 
 struct DNOverrideSky;
-struct LightRec;
+class LightRec;
 
 struct DNFogInfo {
     /* 0000 */ CImVector m_color;

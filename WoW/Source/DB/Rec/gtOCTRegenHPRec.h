@@ -3,27 +3,22 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 
-struct gtOCTRegenHPRec {
+class SFileImpl;
+
+class gtOCTRegenHPRec {
+    public:
+    static const int32_t s_numColumns = 1;
+    static const int32_t s_rowSize = 4;
+    static const bool s_generatedID = true;
+
     /* 0000 */ float m_data;
     /* 0004 */ int32_t m_generatedID;
 
-// VERIFY: 872321d4 auto
-    // OFFSET: 0x008B0020
-    static const char* GetFilename() {
-        return "DBFilesClient\\gtOCTRegenHP.dbc";
-    }
-
-    bool Read(SFileImpl* file, const char* stringBuffer) {
-        int32_t dataRead = SFileReadFile(file, &this->m_data, sizeof(this->m_data), nullptr, nullptr, 0);
-
-        if (!dataRead) {
-            return false;
-        }
-
-        return true;
-    }
+    gtOCTRegenHPRec();
+    ~gtOCTRegenHPRec();
+    static const char* GetFilename();
+    bool Read(SFileImpl* file, const char* stringBuffer);
 };
 
 #endif

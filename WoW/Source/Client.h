@@ -5,6 +5,8 @@
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Storm/Source/SThread.h"
+#include "WoW/Source/DB/WowClientDB.h"
+#include "WoW/Source/DB/Rec/Startup_StringsRec.h"
 
 class CAsyncObject;
 class CAsyncQueue;
@@ -32,6 +34,7 @@ struct OBJALLOCGLOBALS {
 };
 
 extern int32_t s_locale;
+extern WowClientDB<Startup_StringsRec> g_startup_StringsDB;
 
 void SetPaths();
 

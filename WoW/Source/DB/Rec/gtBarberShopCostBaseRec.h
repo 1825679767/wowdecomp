@@ -3,27 +3,22 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 
-struct gtBarberShopCostBaseRec {
+class SFileImpl;
+
+class gtBarberShopCostBaseRec {
+    public:
+    static const int32_t s_numColumns = 1;
+    static const int32_t s_rowSize = 4;
+    static const bool s_generatedID = true;
+
     /* 0000 */ float m_data;
     /* 0004 */ int32_t m_generatedID;
 
-// VERIFY: 07eb2989 auto
-    // OFFSET: 0x008AFF80
-    static const char* GetFilename() {
-        return "DBFilesClient\\gtBarberShopCostBase.dbc";
-    }
-
-    bool Read(SFileImpl* file, const char* stringBuffer) {
-        int32_t dataRead = SFileReadFile(file, &this->m_data, sizeof(this->m_data), nullptr, nullptr, 0);
-
-        if (!dataRead) {
-            return false;
-        }
-
-        return true;
-    }
+    gtBarberShopCostBaseRec();
+    ~gtBarberShopCostBaseRec();
+    static const char* GetFilename();
+    bool Read(SFileImpl* file, const char* stringBuffer);
 };
 
 #endif

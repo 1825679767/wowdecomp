@@ -3,29 +3,22 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 
-struct MovieFileDataRec {
-    /* 0000 */ int32_t m_fileDataID;
+class SFileImpl;
+
+class MovieFileDataRec {
+    public:
+    static const int32_t s_numColumns = 2;
+    static const int32_t s_rowSize = 8;
+    static const bool s_generatedID = false;
+
+    /* 0000 */ int32_t m_id;
     /* 0004 */ int32_t m_resolution;
 
-// VERIFY: b0934982 auto
-    // OFFSET: 0x008B47F0
-    static const char* GetFilename() {
-        return "DBFilesClient\\MovieFileData.dbc";
-    }
-
-    bool Read(SFileImpl* file, const char* stringBuffer) {
-        int32_t fileDataIDRead = SFileReadFile(file, &this->m_fileDataID, sizeof(this->m_fileDataID), nullptr, nullptr, 0);
-        int32_t resolutionRead = SFileReadFile(file, &this->m_resolution, sizeof(this->m_resolution), nullptr, nullptr, 0);
-
-        if (!fileDataIDRead
-            | !resolutionRead) {
-            return false;
-        }
-
-        return true;
-    }
+    MovieFileDataRec();
+    ~MovieFileDataRec();
+    static const char* GetFilename();
+    bool Read(SFileImpl* file, const char* stringBuffer);
 };
 
 #endif

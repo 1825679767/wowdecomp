@@ -3,6 +3,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/DB/WowClientDB.h"
+#include "WoW/Source/DB/Rec/VideoHardwareRec.h"
 
 struct CpuHardware {
     /* 0000 */ uint32_t m_farclipIdx;
@@ -18,5 +20,7 @@ struct SoundHardware {
     /* 0004 */ bool m_fivePointOne;
     /* 0005 */ uint8_t unk_0005[3];
 };
+
+extern WowClientDB<VideoHardwareRec> g_videoHardwareDB;
 
 #endif

@@ -3,85 +3,25 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
-#include "WoW/Source/Client.h"
 
-struct ItemRandomSuffixRec {
+class SFileImpl;
+
+class ItemRandomSuffixRec {
+    public:
+    static const int32_t s_numColumns = 29;
+    static const int32_t s_rowSize = 116;
+    static const bool s_generatedID = false;
+
     /* 0000 */ int32_t m_id;
     /* 0004 */ const char* m_name;
     /* 0008 */ const char* m_internalName;
     /* 000C */ int32_t m_enchantment [5];
     /* 0020 */ int32_t m_allocationPct [5];
 
-// VERIFY: cb609206 auto
-    // OFFSET: 0x008B09E0
-    static const char* GetFilename() {
-        return "DBFilesClient\\ItemRandomSuffix.dbc";
-    }
-
-// VERIFY: b18d00b4 auto
-    // OFFSET: 0x008B09F0
-    bool Read(SFileImpl* file, const char* stringBuffer) {
-        uint32_t nameOffset[16];
-        uint32_t nameFlags;
-        uint32_t internalNameOffset;
-
-        int32_t idRead = SFileReadFile(file, &this->m_id, sizeof(this->m_id), nullptr, nullptr, 0);
-        int32_t nameRead0 = SFileReadFile(file, &nameOffset[0], sizeof(nameOffset[0]), nullptr, nullptr, 0);
-        int32_t nameRead1 = SFileReadFile(file, &nameOffset[1], sizeof(nameOffset[1]), nullptr, nullptr, 0);
-        int32_t nameRead2 = SFileReadFile(file, &nameOffset[2], sizeof(nameOffset[2]), nullptr, nullptr, 0);
-        int32_t nameRead3 = SFileReadFile(file, &nameOffset[3], sizeof(nameOffset[3]), nullptr, nullptr, 0);
-        int32_t nameRead4 = SFileReadFile(file, &nameOffset[4], sizeof(nameOffset[4]), nullptr, nullptr, 0);
-        int32_t nameRead5 = SFileReadFile(file, &nameOffset[5], sizeof(nameOffset[5]), nullptr, nullptr, 0);
-        int32_t nameRead6 = SFileReadFile(file, &nameOffset[6], sizeof(nameOffset[6]), nullptr, nullptr, 0);
-        int32_t nameRead7 = SFileReadFile(file, &nameOffset[7], sizeof(nameOffset[7]), nullptr, nullptr, 0);
-        int32_t nameRead8 = SFileReadFile(file, &nameOffset[8], sizeof(nameOffset[8]), nullptr, nullptr, 0);
-        int32_t nameRead9 = SFileReadFile(file, &nameOffset[9], sizeof(nameOffset[9]), nullptr, nullptr, 0);
-        int32_t nameRead10 = SFileReadFile(file, &nameOffset[10], sizeof(nameOffset[10]), nullptr, nullptr, 0);
-        int32_t nameRead11 = SFileReadFile(file, &nameOffset[11], sizeof(nameOffset[11]), nullptr, nullptr, 0);
-        int32_t nameRead12 = SFileReadFile(file, &nameOffset[12], sizeof(nameOffset[12]), nullptr, nullptr, 0);
-        int32_t nameRead13 = SFileReadFile(file, &nameOffset[13], sizeof(nameOffset[13]), nullptr, nullptr, 0);
-        int32_t nameRead14 = SFileReadFile(file, &nameOffset[14], sizeof(nameOffset[14]), nullptr, nullptr, 0);
-        int32_t nameRead15 = SFileReadFile(file, &nameOffset[15], sizeof(nameOffset[15]), nullptr, nullptr, 0);
-        int32_t nameFlagsRead = SFileReadFile(file, &nameFlags, sizeof(nameFlags), nullptr, nullptr, 0);
-        int32_t internalNameRead = SFileReadFile(file, &internalNameOffset, sizeof(internalNameOffset), nullptr, nullptr, 0);
-        int32_t enchantmentRead = SFileReadFile(file, this->m_enchantment, sizeof(this->m_enchantment), nullptr, nullptr, 0);
-        int32_t allocationPctRead = SFileReadFile(file, this->m_allocationPct, sizeof(this->m_allocationPct), nullptr, nullptr, 0);
-
-        if (!idRead
-            | !nameRead0
-            | !nameRead1
-            | !nameRead2
-            | !nameRead3
-            | !nameRead4
-            | !nameRead5
-            | !nameRead6
-            | !nameRead7
-            | !nameRead8
-            | !nameRead9
-            | !nameRead10
-            | !nameRead11
-            | !nameRead12
-            | !nameRead13
-            | !nameRead14
-            | !nameRead15
-            | !nameFlagsRead
-            | !internalNameRead
-            | !enchantmentRead
-            | !allocationPctRead) {
-            return false;
-        }
-
-        if (stringBuffer) {
-            this->m_name = &stringBuffer[nameOffset[s_locale]];
-            this->m_internalName = &stringBuffer[internalNameOffset];
-        } else {
-            this->m_name = "";
-            this->m_internalName = "";
-        }
-
-        return true;
-    }
+    ItemRandomSuffixRec();
+    ~ItemRandomSuffixRec();
+    static const char* GetFilename();
+    bool Read(SFileImpl* file, const char* stringBuffer);
 };
 
 #endif

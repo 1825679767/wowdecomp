@@ -13,7 +13,7 @@ struct CM2Model;
 struct CM2Scene;
 struct CTexture;
 namespace DayNight { struct DNPlanet; }
-struct LightRec;
+class LightRec;
 
 struct AreaLightQueueEntry {
     /* 0000 */ float m_key;

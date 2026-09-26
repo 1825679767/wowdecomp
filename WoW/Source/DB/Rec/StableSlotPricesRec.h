@@ -3,29 +3,22 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 
-struct StableSlotPricesRec {
+class SFileImpl;
+
+class StableSlotPricesRec {
+    public:
+    static const int32_t s_numColumns = 2;
+    static const int32_t s_rowSize = 8;
+    static const bool s_generatedID = false;
+
     /* 0000 */ int32_t m_id;
     /* 0004 */ int32_t m_cost;
 
-// VERIFY: c170ace5 auto
-    // OFFSET: 0x008B97E0
-    static const char* GetFilename() {
-        return "DBFilesClient\\StableSlotPrices.dbc";
-    }
-
-    bool Read(SFileImpl* file, const char* stringBuffer) {
-        int32_t idRead = SFileReadFile(file, &this->m_id, sizeof(this->m_id), nullptr, nullptr, 0);
-        int32_t costRead = SFileReadFile(file, &this->m_cost, sizeof(this->m_cost), nullptr, nullptr, 0);
-
-        if (!idRead
-            | !costRead) {
-            return false;
-        }
-
-        return true;
-    }
+    StableSlotPricesRec();
+    ~StableSlotPricesRec();
+    static const char* GetFilename();
+    bool Read(SFileImpl* file, const char* stringBuffer);
 };
 
 #endif

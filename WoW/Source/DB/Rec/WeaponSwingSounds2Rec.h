@@ -3,35 +3,24 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 
-struct WeaponSwingSounds2Rec {
+class SFileImpl;
+
+class WeaponSwingSounds2Rec {
+    public:
+    static const int32_t s_numColumns = 4;
+    static const int32_t s_rowSize = 16;
+    static const bool s_generatedID = false;
+
     /* 0000 */ int32_t m_id;
     /* 0004 */ int32_t m_swingType;
     /* 0008 */ int32_t m_crit;
     /* 000C */ int32_t m_soundID;
 
-// VERIFY: 0517a504 auto
-    // OFFSET: 0x008BB6E0
-    static const char* GetFilename() {
-        return "DBFilesClient\\WeaponSwingSounds2.dbc";
-    }
-
-    bool Read(SFileImpl* file, const char* stringBuffer) {
-        int32_t idRead = SFileReadFile(file, &this->m_id, sizeof(this->m_id), nullptr, nullptr, 0);
-        int32_t swingTypeRead = SFileReadFile(file, &this->m_swingType, sizeof(this->m_swingType), nullptr, nullptr, 0);
-        int32_t critRead = SFileReadFile(file, &this->m_crit, sizeof(this->m_crit), nullptr, nullptr, 0);
-        int32_t soundIDRead = SFileReadFile(file, &this->m_soundID, sizeof(this->m_soundID), nullptr, nullptr, 0);
-
-        if (!idRead
-            | !swingTypeRead
-            | !critRead
-            | !soundIDRead) {
-            return false;
-        }
-
-        return true;
-    }
+    WeaponSwingSounds2Rec();
+    ~WeaponSwingSounds2Rec();
+    static const char* GetFilename();
+    bool Read(SFileImpl* file, const char* stringBuffer);
 };
 
 #endif

@@ -3,34 +3,23 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 
-struct EnvironmentalDamageRec {
+class SFileImpl;
+
+class EnvironmentalDamageRec {
+    public:
+    static const int32_t s_numColumns = 3;
+    static const int32_t s_rowSize = 12;
+    static const bool s_generatedID = false;
+
     /* 0000 */ int32_t m_id;
     /* 0004 */ int32_t m_enumID;
     /* 0008 */ int32_t m_visualkitID;
 
-// VERIFY: 2c3e47b5 auto
-    // OFFSET: 0x008AEEC0
-    static const char* GetFilename() {
-        return "DBFilesClient\\EnvironmentalDamage.dbc";
-    }
-
-// VERIFY: 5d36b411 manual
-    // OFFSET: 0x008B2AA0
-    bool Read(SFileImpl* file, const char* stringBuffer) {
-        int32_t idRead = SFileReadFile(file, &this->m_id, sizeof(this->m_id), nullptr, nullptr, 0);
-        int32_t enumIDRead = SFileReadFile(file, &this->m_enumID, sizeof(this->m_enumID), nullptr, nullptr, 0);
-        int32_t visualkitIDRead = SFileReadFile(file, &this->m_visualkitID, sizeof(this->m_visualkitID), nullptr, nullptr, 0);
-
-        if (!idRead
-            | !enumIDRead
-            | !visualkitIDRead) {
-            return false;
-        }
-
-        return true;
-    }
+    EnvironmentalDamageRec();
+    ~EnvironmentalDamageRec();
+    static const char* GetFilename();
+    bool Read(SFileImpl* file, const char* stringBuffer);
 };
 
 #endif

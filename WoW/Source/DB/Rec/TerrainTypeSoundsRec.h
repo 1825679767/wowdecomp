@@ -3,28 +3,21 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 
-struct TerrainTypeSoundsRec {
+class SFileImpl;
+
+class TerrainTypeSoundsRec {
+    public:
+    static const int32_t s_numColumns = 1;
+    static const int32_t s_rowSize = 4;
+    static const bool s_generatedID = false;
+
     /* 0000 */ int32_t m_id;
 
-// VERIFY: 3a32e0ef auto
-    // OFFSET: 0x008BA2B0
-    static const char* GetFilename() {
-        return "DBFilesClient\\TerrainTypeSounds.dbc";
-    }
-
-// VERIFY: 5c325423 auto
-    // OFFSET: 0x008AFFD0
-    bool Read(SFileImpl* file, const char* stringBuffer) {
-        int32_t idRead = SFileReadFile(file, &this->m_id, sizeof(this->m_id), nullptr, nullptr, 0);
-
-        if (!idRead) {
-            return false;
-        }
-
-        return true;
-    }
+    TerrainTypeSoundsRec();
+    ~TerrainTypeSoundsRec();
+    static const char* GetFilename();
+    bool Read(SFileImpl* file, const char* stringBuffer);
 };
 
 #endif

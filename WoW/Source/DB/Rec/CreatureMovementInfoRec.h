@@ -3,29 +3,22 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 
-struct CreatureMovementInfoRec {
+class SFileImpl;
+
+class CreatureMovementInfoRec {
+    public:
+    static const int32_t s_numColumns = 2;
+    static const int32_t s_rowSize = 8;
+    static const bool s_generatedID = false;
+
     /* 0000 */ int32_t m_id;
     /* 0004 */ float m_smoothFacingChaseRate;
 
-// VERIFY: 6b161e3f auto
-    // OFFSET: 0x008ADBA0
-    static const char* GetFilename() {
-        return "DBFilesClient\\CreatureMovementInfo.dbc";
-    }
-
-    bool Read(SFileImpl* file, const char* stringBuffer) {
-        int32_t idRead = SFileReadFile(file, &this->m_id, sizeof(this->m_id), nullptr, nullptr, 0);
-        int32_t smoothFacingChaseRateRead = SFileReadFile(file, &this->m_smoothFacingChaseRate, sizeof(this->m_smoothFacingChaseRate), nullptr, nullptr, 0);
-
-        if (!idRead
-            | !smoothFacingChaseRateRead) {
-            return false;
-        }
-
-        return true;
-    }
+    CreatureMovementInfoRec();
+    ~CreatureMovementInfoRec();
+    static const char* GetFilename();
+    bool Read(SFileImpl* file, const char* stringBuffer);
 };
 
 #endif

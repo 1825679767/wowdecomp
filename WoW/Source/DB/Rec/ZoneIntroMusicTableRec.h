@@ -3,48 +3,25 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 
-struct ZoneIntroMusicTableRec {
+class SFileImpl;
+
+class ZoneIntroMusicTableRec {
+    public:
+    static const int32_t s_numColumns = 5;
+    static const int32_t s_rowSize = 20;
+    static const bool s_generatedID = false;
+
     /* 0000 */ int32_t m_id;
     /* 0004 */ const char* m_name;
     /* 0008 */ int32_t m_soundID;
     /* 000C */ int32_t m_priority;
     /* 0010 */ int32_t m_minDelayMinutes;
 
-// VERIFY: 2d7f034f auto
-    // OFFSET: 0x008BCDB0
-    static const char* GetFilename() {
-        return "DBFilesClient\\ZoneIntroMusicTable.dbc";
-    }
-
-// VERIFY: cbc67cd2 manual
-    // OFFSET: 0x008BCDC0
-    bool Read(SFileImpl* file, const char* stringBuffer) {
-        uint32_t nameOffset;
-
-        int32_t idRead = SFileReadFile(file, &this->m_id, sizeof(this->m_id), nullptr, nullptr, 0);
-        int32_t nameRead = SFileReadFile(file, &nameOffset, sizeof(nameOffset), nullptr, nullptr, 0);
-        int32_t soundIDRead = SFileReadFile(file, &this->m_soundID, sizeof(this->m_soundID), nullptr, nullptr, 0);
-        int32_t priorityRead = SFileReadFile(file, &this->m_priority, sizeof(this->m_priority), nullptr, nullptr, 0);
-        int32_t minDelayMinutesRead = SFileReadFile(file, &this->m_minDelayMinutes, sizeof(this->m_minDelayMinutes), nullptr, nullptr, 0);
-
-        if (!idRead
-            | !nameRead
-            | !soundIDRead
-            | !priorityRead
-            | !minDelayMinutesRead) {
-            return false;
-        }
-
-        if (stringBuffer) {
-            this->m_name = &stringBuffer[nameOffset];
-        } else {
-            this->m_name = "";
-        }
-
-        return true;
-    }
+    ZoneIntroMusicTableRec();
+    ~ZoneIntroMusicTableRec();
+    static const char* GetFilename();
+    bool Read(SFileImpl* file, const char* stringBuffer);
 };
 
 #endif

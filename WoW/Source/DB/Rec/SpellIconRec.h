@@ -3,37 +3,22 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 
-struct SpellIconRec {
+class SFileImpl;
+
+class SpellIconRec {
+    public:
+    static const int32_t s_numColumns = 2;
+    static const int32_t s_rowSize = 8;
+    static const bool s_generatedID = false;
+
     /* 0000 */ int32_t m_id;
     /* 0004 */ const char* m_textureFilename;
 
-// VERIFY: 51e19e9e auto
-    // OFFSET: 0x008B7DC0
-    static const char* GetFilename() {
-        return "DBFilesClient\\SpellIcon.dbc";
-    }
-
-    bool Read(SFileImpl* file, const char* stringBuffer) {
-        uint32_t textureFilenameOffset;
-
-        int32_t idRead = SFileReadFile(file, &this->m_id, sizeof(this->m_id), nullptr, nullptr, 0);
-        int32_t textureFilenameRead = SFileReadFile(file, &textureFilenameOffset, sizeof(textureFilenameOffset), nullptr, nullptr, 0);
-
-        if (!idRead
-            | !textureFilenameRead) {
-            return false;
-        }
-
-        if (stringBuffer) {
-            this->m_textureFilename = &stringBuffer[textureFilenameOffset];
-        } else {
-            this->m_textureFilename = "";
-        }
-
-        return true;
-    }
+    SpellIconRec();
+    ~SpellIconRec();
+    static const char* GetFilename();
+    bool Read(SFileImpl* file, const char* stringBuffer);
 };
 
 #endif

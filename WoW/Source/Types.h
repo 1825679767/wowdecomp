@@ -8,7 +8,7 @@
 class CGxFormat;
 struct CpuHardware;
 struct SoundHardware;
-struct VideoHardwareRec;
+class VideoHardwareRec;
 
 struct DefaultSettings {
     /* 0000 */ float m_farClip;

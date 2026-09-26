@@ -8,6 +8,9 @@
 // STATIC: 0x00AB6158
 static const char* s_dataDirectories[3] = { "Data\\", "..\\Data\\", "Data\\" };
 
+// STATIC: 0x00AB6350
+WowClientDB<Startup_StringsRec> g_startup_StringsDB;
+
 // STATIC: 0x00B2FA10
 static uint32_t s_unk_B2FA10;
 
