@@ -443,7 +443,7 @@ void TSList<T, TGetLink>::LinkToTail(T* ptr) {
     this->LinkNode(ptr, 2, nullptr);
 }
 
-// VERIFY: 0fb37856 auto
+// VERIFY: 0fb37856 manual
 // OFFSET: [0x004B6E40, 0x004BFFC0, 0x004F3420, 0x0055A1D0, 0x00560A00, 0x005BDF00, 0x006329D0, 0x0066CCB0, 0x006705D0, 0x00671030, 0x006883B0, 0x00776BC0, 0x007FBC60]
 template <class T, class TGetLink>
 T* TSList<T, TGetLink>::NewNode(uint32_t location, size_t extrabytes, uint32_t flags) {
