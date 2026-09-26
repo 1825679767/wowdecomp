@@ -135,7 +135,7 @@ extern void _vp_global_free(vorbis_look_psy_global *look);
 
 
 typedef struct {
-//  int sorted_index[VIF_POSIT+2];
+  int sorted_index[VIF_POSIT+2];
   int forward_index[VIF_POSIT+2];
   int reverse_index[VIF_POSIT+2];
 

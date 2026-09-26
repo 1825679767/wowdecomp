@@ -2098,6 +2098,7 @@ static float *vwin[8] = {
 /*
     Added by brett.
 */
+// VERIFY: 91199ccb manual
 // OFFSET: 0x00470200
 void _FMOD_vorbis_window_init()
 {
@@ -2154,6 +2155,7 @@ void _FMOD_vorbis_window_init()
     }
 }
 
+// VERIFY: 2ad7c29c auto
 // OFFSET: 0x004703D0
 float *_FMOD_vorbis_window_get(int n){
   return vwin[n];

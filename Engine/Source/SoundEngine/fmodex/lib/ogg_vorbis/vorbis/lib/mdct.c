@@ -49,6 +49,7 @@
 /* build lookups for trig functions; also pre-figure scaling and
    some window function algebra. */
 
+// VERIFY: 726aa9e7 manual
 // OFFSET: 0x0046F5A0
 int FMOD_mdct_init(mdct_lookup *lookup,int n){
   int   *bitrev=_ogg_malloc(sizeof(*bitrev)*(n/4));
@@ -99,6 +100,7 @@ int FMOD_mdct_init(mdct_lookup *lookup,int n){
 }
 
 /* 8 point butterfly (in place, 4 register) */
+// VERIFY: 62b5d76e auto
 // OFFSET: 0x0046F790
 STIN void mdct_butterfly_8(DATA_TYPE *x){
   REG_TYPE r0   = x[6] + x[2];
@@ -124,6 +126,7 @@ STIN void mdct_butterfly_8(DATA_TYPE *x){
 }
 
 /* 16 point butterfly (in place, 4 register) */
+// VERIFY: a741c1a7 auto
 // OFFSET: 0x0046F800
 STIN void mdct_butterfly_16(DATA_TYPE *x){
   REG_TYPE r0     = x[1]  - x[9];
@@ -160,6 +163,7 @@ STIN void mdct_butterfly_16(DATA_TYPE *x){
 }
 
 /* 32 point butterfly (in place, 4 register) */
+// VERIFY: efc26d6b auto
 // OFFSET: 0x0046F8C0
 STIN void mdct_butterfly_32(DATA_TYPE *x){
   REG_TYPE r0     = x[30] - x[14];
@@ -225,6 +229,7 @@ STIN void mdct_butterfly_32(DATA_TYPE *x){
 }
 
 /* N point first stage butterfly (in place, 2 register) */
+// VERIFY: 4f2f3e41 manual
 // OFFSET: 0x0046FA70
 STIN void mdct_butterfly_first(DATA_TYPE *T,
                                         DATA_TYPE *x,
@@ -327,6 +332,7 @@ STIN void mdct_butterfly_generic(DATA_TYPE *T,
   }while(x2>=x);
 }
 
+// VERIFY: c03bbd04 manual
 // OFFSET: 0x0046FCA0
 STIN void mdct_butterflies(mdct_lookup *init,
                              DATA_TYPE *x,
@@ -350,6 +356,7 @@ STIN void mdct_butterflies(mdct_lookup *init,
 
 }
 
+// VERIFY: f520dc33 auto
 // OFFSET: 0x0046FD60
 void FMOD_mdct_clear(mdct_lookup *l){
   if(l){
@@ -359,6 +366,7 @@ void FMOD_mdct_clear(mdct_lookup *l){
   }
 }
 
+// VERIFY: 9b1822a6 manual
 // OFFSET: 0x0046FDC0
 STIN void mdct_bitreverse(mdct_lookup *init,
                             DATA_TYPE *x){
@@ -410,6 +418,7 @@ STIN void mdct_bitreverse(mdct_lookup *init,
   }while(w0<w1);
 }
 
+// VERIFY: 9fca8ad7 manual
 // OFFSET: 0x0046FED0
 void FMOD_mdct_backward(mdct_lookup *init, DATA_TYPE *in, DATA_TYPE *out){
   int n=init->n;

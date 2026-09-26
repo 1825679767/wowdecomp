@@ -58,6 +58,7 @@
  * ilog2(17) = 4
  * ilog2(18) = 4
  */
+// VERIFY: e8b4e0d8 auto
 // OFFSET: 0x00957FB0
 unsigned FLAC__bitmath_ilog2(FLAC__uint32 v)
 {

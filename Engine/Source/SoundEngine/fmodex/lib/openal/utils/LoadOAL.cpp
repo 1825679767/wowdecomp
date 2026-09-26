@@ -29,6 +29,7 @@
 
 HINSTANCE g_hOpenALDLL = NULL;
 
+// VERIFY: a2714079 manual
 // OFFSET: 0x009499D0
 ALboolean LoadOALLibrary(char *szOALFullPathName, LPOPENALFNTABLE lpOALFnTable)
 {
@@ -452,6 +453,7 @@ ALboolean LoadOALLibrary(char *szOALFullPathName, LPOPENALFNTABLE lpOALFnTable)
 	return AL_TRUE;
 }
 
+// VERIFY: 7871b7dc auto
 // OFFSET: 0x0094A0E0
 ALvoid UnloadOALLibrary()
 {

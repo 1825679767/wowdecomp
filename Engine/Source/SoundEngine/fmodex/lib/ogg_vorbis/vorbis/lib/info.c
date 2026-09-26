@@ -64,6 +64,7 @@ static void _v_writestring(oggpack_buffer *o,const char *s, int bytes){
 }
 #endif
 
+// VERIFY: 0dcc538f auto
 // OFFSET: 0x0046C090
 static void _v_readstring(oggpack_buffer *o,char *buf,int bytes){
   while(bytes--){
@@ -71,6 +72,7 @@ static void _v_readstring(oggpack_buffer *o,char *buf,int bytes){
   }
 }
 
+// VERIFY: 9ad0321d auto
 // OFFSET: 0x0046C0C0
 void FMOD_vorbis_comment_init(vorbis_comment *vc){
   FMOD_memset(vc,0,sizeof(*vc));
@@ -144,6 +146,7 @@ static int tagcompare(const char *s1, const char *s2, int n){
 //  return count;
 //}
 
+// VERIFY: 79a6fb5f auto
 // OFFSET: 0x0046C0E0
 void FMOD_vorbis_comment_clear(vorbis_comment *vc){
   if(vc){
@@ -159,6 +162,7 @@ void FMOD_vorbis_comment_clear(vorbis_comment *vc){
 
 /* blocksize 0 is guaranteed to be short, 1 is guaranteed to be long.
    They may be equal, but short will never ge greater than long */
+// VERIFY: 232d2834 auto
 // OFFSET: 0x0046C180
 int FMOD_vorbis_info_blocksize(vorbis_info *vi,int zo){
   codec_setup_info *ci = vi->codec_setup;
@@ -166,6 +170,7 @@ int FMOD_vorbis_info_blocksize(vorbis_info *vi,int zo){
 }
 
 /* used by synthesis, which has a full, alloced vi */
+// VERIFY: d23f2fb0 auto
 // OFFSET: 0x0046C1A0
 int FMOD_vorbis_info_init(vorbis_info *vi){
   FMOD_memset(vi,0,sizeof(*vi));
@@ -178,6 +183,7 @@ int FMOD_vorbis_info_init(vorbis_info *vi){
   return 0;
 }
 
+// VERIFY: e19c8e0f manual
 // OFFSET: 0x0046C1F0
 void FMOD_vorbis_info_clear(vorbis_info *vi){
   codec_setup_info     *ci=vi->codec_setup;
@@ -228,6 +234,7 @@ void FMOD_vorbis_info_clear(vorbis_info *vi){
 
 /* Header packing/unpacking ********************************************/
 
+// VERIFY: 2ca50442 auto
 // OFFSET: 0x0046C3A0
 static int _FMOD_vorbis_unpack_info(vorbis_info *vi,oggpack_buffer *opb){
   codec_setup_info     *ci=vi->codec_setup;
@@ -260,6 +267,7 @@ static int _FMOD_vorbis_unpack_info(vorbis_info *vi,oggpack_buffer *opb){
   return(OV_EBADHEADER);
 }
 
+// VERIFY: 09994433 manual
 // OFFSET: 0x0046C470
 static int _vorbis_unpack_comment(vorbis_comment *vc,oggpack_buffer *opb){
   int i;
@@ -293,6 +301,7 @@ static int _vorbis_unpack_comment(vorbis_comment *vc,oggpack_buffer *opb){
 
 /* all of the real encoding details are here.  The modes, books,
    everything */
+// VERIFY: 9a9e21d4 manual
 // OFFSET: 0x0046C5A0
 static int _vorbis_unpack_books(vorbis_info *vi,oggpack_buffer *opb){
   codec_setup_info     *ci=vi->codec_setup;
@@ -367,6 +376,7 @@ static int _vorbis_unpack_books(vorbis_info *vi,oggpack_buffer *opb){
 }
 
 /* Is this packet a vorbis ID header? */
+// VERIFY: 1dbc863f manual
 // OFFSET: 0x0046C890
 int FMOD_vorbis_synthesis_idheader(ogg_packet *op){
   oggpack_buffer opb;
@@ -397,6 +407,7 @@ int FMOD_vorbis_synthesis_idheader(ogg_packet *op){
    with bitstream comments and a third packet that holds the
    codebook. */
 
+// VERIFY: a973022c manual
 // OFFSET: 0x0046C9B0
 int FMOD_vorbis_synthesis_headerin(vorbis_info *vi,vorbis_comment *vc,ogg_packet *op){
   oggpack_buffer opb;

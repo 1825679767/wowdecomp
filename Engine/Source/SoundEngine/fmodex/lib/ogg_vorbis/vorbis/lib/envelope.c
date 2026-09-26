@@ -28,6 +28,7 @@
 #include "mdct.h"
 #include "misc.h"
 
+// VERIFY: e4e16996 auto
 // OFFSET: 0x00470170
 void _ve_envelope_clear(envelope_lookup *e){
   int i;

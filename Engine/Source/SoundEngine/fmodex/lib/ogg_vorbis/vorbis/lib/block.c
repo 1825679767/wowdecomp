@@ -85,6 +85,7 @@ static int ilog2(unsigned int v){
 #define WORD_ALIGN 8
 #endif
 
+// VERIFY: 93df0c01 manual
 // OFFSET: 0x0046CE10
 int FMOD_vorbis_block_init(vorbis_dsp_state *v, vorbis_block *vb){
   int i = 0;
@@ -119,6 +120,7 @@ int FMOD_vorbis_block_init(vorbis_dsp_state *v, vorbis_block *vb){
   return(0);
 }
 
+// VERIFY: 0c815608 manual
 // OFFSET: 0x0046CE40
 void *_FMOD_vorbis_block_alloc(vorbis_block *vb,ogg_int32_t bytes){
   bytes=(bytes+(WORD_ALIGN-1)) & ~(WORD_ALIGN-1);
@@ -152,6 +154,7 @@ void *_FMOD_vorbis_block_alloc(vorbis_block *vb,ogg_int32_t bytes){
 }
 
 /* reap the chain, pull the ripcord */
+// VERIFY: d9e9f11d auto
 // OFFSET: 0x0046CED0
 void _FMOD_vorbis_block_ripcord(vorbis_block *vb){
   /* reap the chain */
@@ -175,6 +178,7 @@ void _FMOD_vorbis_block_ripcord(vorbis_block *vb){
   vb->reap=NULL;
 }
 
+// VERIFY: 8f713205 auto
 // OFFSET: 0x0046CF60
 int FMOD_vorbis_block_clear(vorbis_block *vb){
   _FMOD_vorbis_block_ripcord(vb);
@@ -188,6 +192,7 @@ int FMOD_vorbis_block_clear(vorbis_block *vb){
    here and not in analysis.c (which is for analysis transforms only).
    The init is here because some of it is shared */
 
+// VERIFY: e2d42916 manual
 // OFFSET: 0x0046CFA0
 static int _vds_shared_init(vorbis_dsp_state *v,vorbis_info *vi,int encp){
   int i;
@@ -288,6 +293,7 @@ static int _vds_shared_init(vorbis_dsp_state *v,vorbis_info *vi,int encp){
 //  return(0);
 //}
 
+// VERIFY: cb212400 manual
 // OFFSET: 0x0046D310
 void FMOD_vorbis_dsp_clear(vorbis_dsp_state *v){
   int i;
@@ -665,6 +671,7 @@ void FMOD_vorbis_dsp_clear(vorbis_dsp_state *v){
 //  return(1);
 //}
 
+// VERIFY: 59abf398 auto
 // OFFSET: 0x0046D5F0
 int FMOD_vorbis_synthesis_restart(vorbis_dsp_state *v){
   vorbis_info *vi=v->vi;
@@ -689,6 +696,7 @@ int FMOD_vorbis_synthesis_restart(vorbis_dsp_state *v){
   return(0);
 }
 
+// VERIFY: a4439298 auto
 // OFFSET: 0x0046D650
 int FMOD_vorbis_synthesis_init(vorbis_dsp_state *v,vorbis_info *vi){
   if(_vds_shared_init(v,vi,0)) return 1;
@@ -701,6 +709,7 @@ int FMOD_vorbis_synthesis_init(vorbis_dsp_state *v,vorbis_info *vi){
    block.  The time domain envelope is not yet handled at the point of
    calling (as it relies on the previous block). */
 
+// VERIFY: 4e04a434 manual
 // OFFSET: 0x0046D680
 int FMOD_vorbis_synthesis_blockin(vorbis_dsp_state *v,vorbis_block *vb){
   vorbis_info *vi=v->vi;
@@ -889,6 +898,7 @@ int FMOD_vorbis_synthesis_blockin(vorbis_dsp_state *v,vorbis_block *vb){
 }
 
 /* pcm==NULL indicates we just want the pending samples, no more */
+// VERIFY: 526fb468 manual
 // OFFSET: 0x0046DFE0
 int FMOD_vorbis_synthesis_pcmout(vorbis_dsp_state *v,float ***pcm){
   vorbis_info *vi=v->vi;
@@ -905,6 +915,7 @@ int FMOD_vorbis_synthesis_pcmout(vorbis_dsp_state *v,float ***pcm){
   return(0);
 }
 
+// VERIFY: c6beb781 auto
 // OFFSET: 0x0046E040
 int FMOD_vorbis_synthesis_read(vorbis_dsp_state *v,int n){
   if(n && v->pcm_returned+n>v->pcm_current)return(OV_EINVAL);

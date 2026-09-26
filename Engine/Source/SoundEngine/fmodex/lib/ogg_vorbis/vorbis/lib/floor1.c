@@ -44,6 +44,8 @@ typedef struct lsfit_acc{
 
 /***********************************************/
 
+// VERIFY: 0c0e56bf auto
+// OFFSET: 0x004713E0
 static void FMOD_floor1_free_info(vorbis_info_floor *i){
   vorbis_info_floor1 *info=(vorbis_info_floor1 *)i;
   if(info){
@@ -52,6 +54,8 @@ static void FMOD_floor1_free_info(vorbis_info_floor *i){
   }
 }
 
+// VERIFY: 37681b74 auto
+// OFFSET: 0x00471410
 static void FMOD_floor1_free_look(vorbis_look_floor *i){
   vorbis_look_floor1 *look=(vorbis_look_floor1 *)i;
   if(look){
@@ -125,6 +129,8 @@ static int icomp(const void *a,const void *b){
   return(**(int **)a-**(int **)b);
 }
 
+// VERIFY: 8d1b3049 manual
+// OFFSET: 0x00471440
 static vorbis_info_floor *FMOD_floor1_unpack (vorbis_info *vi,oggpack_buffer *opb){
   codec_setup_info     *ci=vi->codec_setup;
   int j,k,count=0,maxclass=-1,rangebits;
@@ -136,7 +142,6 @@ static vorbis_info_floor *FMOD_floor1_unpack (vorbis_info *vi,oggpack_buffer *op
   info->partitions=FMOD_oggpack_read(opb,5); /* only 0 to 31 legal */
   for(j=0;j<info->partitions;j++){
     info->partitionclass[j]=FMOD_oggpack_read(opb,4); /* only 0 to 15 legal */
-    if(info->partitionclass[j]<0)goto err_out;
     if(maxclass<info->partitionclass[j])maxclass=info->partitionclass[j];
   }
 
@@ -159,7 +164,6 @@ static vorbis_info_floor *FMOD_floor1_unpack (vorbis_info *vi,oggpack_buffer *op
   /* read the post list */
   info->mult=FMOD_oggpack_read(opb,2)+1;     /* only 1,2,3,4 legal now */
   rangebits=FMOD_oggpack_read(opb,4);
-  if(rangebits<0)goto err_out;
 
   for(j=0,k=0;j<info->partitions;j++){
     count+=info->class_dim[info->partitionclass[j]];
@@ -172,17 +176,6 @@ static vorbis_info_floor *FMOD_floor1_unpack (vorbis_info *vi,oggpack_buffer *op
   info->postlist[0]=0;
   info->postlist[1]=1<<rangebits;
 
-  /* don't allow repeated values in post list as they'd result in
-     zero-length segments */
-  {
-    int *sortpointer[VIF_POSIT+2];
-    for(j=0;j<count+2;j++)sortpointer[j]=info->postlist+j;
-    qsort(sortpointer,count+2,sizeof(*sortpointer),icomp);
-
-    for(j=1;j<count+2;j++)
-      if(*sortpointer[j-1]==*sortpointer[j])goto err_out;
-  }
-
   return(info);
 
  err_out:
@@ -190,6 +183,8 @@ static vorbis_info_floor *FMOD_floor1_unpack (vorbis_info *vi,oggpack_buffer *op
   return(NULL);
 }
 
+// VERIFY: e2716d77 manual
+// OFFSET: 0x00471690
 static vorbis_look_floor *FMOD_floor1_look(vorbis_dsp_state *vd,
                                       vorbis_info_floor *in){
 
@@ -224,7 +219,7 @@ static vorbis_look_floor *FMOD_floor1_look(vorbis_dsp_state *vd,
   /* points from range order to sorted position */
   for(i=0;i<n;i++)look->reverse_index[look->forward_index[i]]=i;
   /* we actually need the post values too */
-//  for(i=0;i<n;i++)look->sorted_index[i]=info->postlist[look->forward_index[i]];
+  for(i=0;i<n;i++)look->sorted_index[i]=info->postlist[look->forward_index[i]];
 
   /* quantize values to multiplier spec */
   switch(info->mult){
@@ -358,6 +353,7 @@ static const float FLOOR1_fromdB_LOOKUP[256]={
   0.82788260F, 0.88168307F, 0.9389798F, 1.F,
 };
 
+// VERIFY: 0fd54f8b manual
 // OFFSET: 0x004718C0
 static void render_line(int n, int x0,int x1,int y0,int y1,float *d){
   int dy=y1-y0;
@@ -978,6 +974,8 @@ static int post_Y(int *A,int *B,int pos){
 //  }
 //}
 
+// VERIFY: 7cdda808 manual
+// OFFSET: 0x00471A30
 static void *FMOD_floor1_inverse1(vorbis_block *vb,vorbis_look_floor *in){
   vorbis_look_floor1 *look=(vorbis_look_floor1 *)in;
   vorbis_info_floor1 *info=look->vi;
@@ -989,6 +987,7 @@ static void *FMOD_floor1_inverse1(vorbis_block *vb,vorbis_look_floor *in){
   /* unpack wrapped/predicted values from stream */
   if(FMOD_oggpack_read(&vb->opb,1)==1){
     int *fit_value=_FMOD_vorbis_block_alloc(vb,(look->posts)*sizeof(*fit_value));
+    if(!fit_value)return(NULL);
 
     fit_value[0]=FMOD_oggpack_read(&vb->opb,ilog(look->quant_q-1));
     fit_value[1]=FMOD_oggpack_read(&vb->opb,ilog(look->quant_q-1));
@@ -1064,6 +1063,8 @@ static void *FMOD_floor1_inverse1(vorbis_block *vb,vorbis_look_floor *in){
   return(NULL);
 }
 
+// VERIFY: 6c47cd01 manual
+// OFFSET: 0x00471D20
 static int FMOD_floor1_inverse2(vorbis_block *vb,vorbis_look_floor *in,void *memo,
                           float *out){
   vorbis_look_floor1 *look=(vorbis_look_floor1 *)in;

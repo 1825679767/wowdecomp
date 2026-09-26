@@ -273,6 +273,7 @@ FLAC_API const char * const FLAC__StreamDecoderErrorStatusString[] = {
  * Class constructor/destructor
  *
  ***********************************************************************/
+// VERIFY: 79addee8 auto
 // OFFSET: 0x00952F70
 FLAC_API FLAC__StreamDecoder *FLAC__stream_decoder_new(void)
 {
@@ -337,6 +338,7 @@ FLAC_API FLAC__StreamDecoder *FLAC__stream_decoder_new(void)
 	return decoder;
 }
 
+// VERIFY: c4b8f5ed auto
 // OFFSET: 0x00954660
 FLAC_API void FLAC__stream_decoder_delete(FLAC__StreamDecoder *decoder)
 {
@@ -477,6 +479,7 @@ static FLAC__StreamDecoderInitStatus init_stream_internal_(
 	return FLAC__STREAM_DECODER_INIT_STATUS_OK;
 }
 
+// VERIFY: b67b99d1 auto
 // OFFSET: 0x00954F80
 FLAC_API FLAC__StreamDecoderInitStatus FLAC__stream_decoder_init_stream(
 	FLAC__StreamDecoder *decoder,
@@ -659,6 +662,7 @@ FLAC_API FLAC__StreamDecoderInitStatus FLAC__stream_decoder_init_ogg_file(
 	return init_file_internal_(decoder, filename, write_callback, metadata_callback, error_callback, client_data, /*is_ogg=*/true);
 }
 
+// VERIFY: b2dd49ce manual
 // OFFSET: 0x00953170
 FLAC_API FLAC__bool FLAC__stream_decoder_finish(FLAC__StreamDecoder *decoder)
 {
@@ -743,6 +747,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_set_ogg_serial_number(FLAC__StreamDecod
 #endif
 }
 
+// VERIFY: 624bb3e6 auto
 // OFFSET: 0x00951D10
 FLAC_API FLAC__bool FLAC__stream_decoder_set_md5_checking(FLAC__StreamDecoder *decoder, FLAC__bool value)
 {
@@ -754,6 +759,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_set_md5_checking(FLAC__StreamDecoder *d
 	return true;
 }
 
+// VERIFY: 5d6b36bd manual
 // OFFSET: 0x00951D30
 FLAC_API FLAC__bool FLAC__stream_decoder_set_metadata_respond(FLAC__StreamDecoder *decoder, FLAC__MetadataType type)
 {
@@ -871,6 +877,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_set_metadata_ignore_all(FLAC__StreamDec
 	return true;
 }
 
+// VERIFY: 030947df auto
 // OFFSET: 0x00951D70
 FLAC_API FLAC__StreamDecoderState FLAC__stream_decoder_get_state(const FLAC__StreamDecoder *decoder)
 {
@@ -891,6 +898,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_get_md5_checking(const FLAC__StreamDeco
 	return decoder->protected_->md5_checking;
 }
 
+// VERIFY: 4f8749cb auto
 // OFFSET: 0x00951D80
 FLAC_API FLAC__uint64 FLAC__stream_decoder_get_total_samples(const FLAC__StreamDecoder *decoder)
 {
@@ -934,6 +942,7 @@ FLAC_API unsigned FLAC__stream_decoder_get_blocksize(const FLAC__StreamDecoder *
 	return decoder->protected_->blocksize;
 }
 
+// VERIFY: 5b03d30c manual
 // OFFSET: 0x00953370
 FLAC_API FLAC__bool FLAC__stream_decoder_get_decode_position(const FLAC__StreamDecoder *decoder, FLAC__uint64 *position)
 {
@@ -957,6 +966,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_get_decode_position(const FLAC__StreamD
 	return true;
 }
 
+// VERIFY: c38e5755 auto
 // OFFSET: 0x00951DB0
 FLAC_API FLAC__bool FLAC__stream_decoder_flush(FLAC__StreamDecoder *decoder)
 {
@@ -983,6 +993,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_flush(FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// VERIFY: 01ef4070 manual
 // OFFSET: 0x00951E30
 FLAC_API FLAC__bool FLAC__stream_decoder_reset(FLAC__StreamDecoder *decoder)
 {
@@ -1039,6 +1050,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_reset(FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// VERIFY: f8ec582d auto
 // OFFSET: 0x00955530
 FLAC_API FLAC__bool FLAC__stream_decoder_process_single(FLAC__StreamDecoder *decoder)
 {
@@ -1077,6 +1089,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_process_single(FLAC__StreamDecoder *dec
 	}
 }
 
+// VERIFY: 0ececc13 auto
 // OFFSET: 0x009546E0
 FLAC_API FLAC__bool FLAC__stream_decoder_process_until_end_of_metadata(FLAC__StreamDecoder *decoder)
 {
@@ -1170,6 +1183,7 @@ FLAC_API FLAC__bool FLAC__stream_decoder_skip_single_frame(FLAC__StreamDecoder *
 	}
 }
 
+// VERIFY: c9ed4e4b manual
 // OFFSET: 0x00955DC0
 FLAC_API FLAC__bool FLAC__stream_decoder_seek_absolute(FLAC__StreamDecoder *decoder, FLAC__uint64 sample)
 {
@@ -1258,6 +1272,7 @@ unsigned FLAC__stream_decoder_get_input_bytes_unconsumed(const FLAC__StreamDecod
  *
  ***********************************************************************/
 
+// VERIFY: 21303df4 auto
 // OFFSET: 0x00951F30
 void set_defaults_(FLAC__StreamDecoder *decoder)
 {
@@ -1304,6 +1319,7 @@ FILE *get_binary_stdin_(void)
 	return stdin;
 }
 
+// VERIFY: 0790c05d manual
 // OFFSET: 0x00951FB0
 FLAC__bool allocate_output_(FLAC__StreamDecoder *decoder, unsigned size, unsigned channels)
 {
@@ -1356,6 +1372,7 @@ FLAC__bool allocate_output_(FLAC__StreamDecoder *decoder, unsigned size, unsigne
 	return true;
 }
 
+// VERIFY: b350be4e manual
 // OFFSET: 0x009520E0
 FLAC__bool has_id_filtered_(FLAC__StreamDecoder *decoder, FLAC__byte *id)
 {
@@ -1371,6 +1388,7 @@ FLAC__bool has_id_filtered_(FLAC__StreamDecoder *decoder, FLAC__byte *id)
 	return false;
 }
 
+// VERIFY: 4c277d2e manual
 // OFFSET: 0x009533E0
 FLAC__bool find_metadata_(FLAC__StreamDecoder *decoder)
 {
@@ -1433,6 +1451,7 @@ FLAC__bool find_metadata_(FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// VERIFY: 413ff6cb manual
 // OFFSET: 0x00953530
 FLAC__bool read_metadata_(FLAC__StreamDecoder *decoder)
 {
@@ -1599,6 +1618,7 @@ FLAC__bool read_metadata_(FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// VERIFY: 7d6dd820 auto
 // OFFSET: 0x009521D0
 FLAC__bool read_metadata_streaminfo_(FLAC__StreamDecoder *decoder, FLAC__bool is_last, unsigned length)
 {
@@ -1671,6 +1691,7 @@ FLAC__bool read_metadata_streaminfo_(FLAC__StreamDecoder *decoder, FLAC__bool is
 	return true;
 }
 
+// VERIFY: 11ceadc7 manual
 // OFFSET: 0x009523C0
 FLAC__bool read_metadata_seektable_(FLAC__StreamDecoder *decoder, FLAC__bool is_last, unsigned length)
 {
@@ -1714,6 +1735,7 @@ FLAC__bool read_metadata_seektable_(FLAC__StreamDecoder *decoder, FLAC__bool is_
 	return true;
 }
 
+// VERIFY: 20894ef8 manual
 // OFFSET: 0x00952560
 FLAC__bool read_metadata_vorbiscomment_(FLAC__StreamDecoder *decoder, FLAC__StreamMetadata_VorbisComment *obj)
 {
@@ -1772,6 +1794,7 @@ FLAC__bool read_metadata_vorbiscomment_(FLAC__StreamDecoder *decoder, FLAC__Stre
 	return true;
 }
 
+// VERIFY: 1275c188 manual
 // OFFSET: 0x009526E0
 FLAC__bool read_metadata_cuesheet_(FLAC__StreamDecoder *decoder, FLAC__StreamMetadata_CueSheet *obj)
 {
@@ -1856,6 +1879,7 @@ FLAC__bool read_metadata_cuesheet_(FLAC__StreamDecoder *decoder, FLAC__StreamMet
 	return true;
 }
 
+// VERIFY: c136545e auto
 // OFFSET: 0x00952A00
 FLAC__bool read_metadata_picture_(FLAC__StreamDecoder *decoder, FLAC__StreamMetadata_Picture *obj)
 {
@@ -1924,6 +1948,7 @@ FLAC__bool read_metadata_picture_(FLAC__StreamDecoder *decoder, FLAC__StreamMeta
 	return true;
 }
 
+// VERIFY: f64264a0 auto
 // OFFSET: 0x00952BD0
 FLAC__bool skip_id3v2_tag_(FLAC__StreamDecoder *decoder)
 {
@@ -1947,6 +1972,7 @@ FLAC__bool skip_id3v2_tag_(FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// VERIFY: 6c812f55 auto
 // OFFSET: 0x00953A80
 FLAC__bool frame_sync_(FLAC__StreamDecoder *decoder)
 {
@@ -2003,6 +2029,7 @@ FLAC__bool frame_sync_(FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// VERIFY: 914e173d manual
 // OFFSET: 0x00955200
 FLAC__bool read_frame_(FLAC__StreamDecoder *decoder, FLAC__bool *got_a_frame, FLAC__bool do_full_decode)
 {
@@ -2139,6 +2166,7 @@ FLAC__bool read_frame_(FLAC__StreamDecoder *decoder, FLAC__bool *got_a_frame, FL
 	return true;
 }
 
+// VERIFY: e60ebca6 manual
 // OFFSET: 0x00953BF0
 FLAC__bool read_frame_header_(FLAC__StreamDecoder *decoder)
 {
@@ -2443,6 +2471,7 @@ FLAC__bool read_frame_header_(FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// VERIFY: 716bd90a manual
 // OFFSET: 0x00954FC0
 FLAC__bool read_subframe_(FLAC__StreamDecoder *decoder, unsigned channel, unsigned bps, FLAC__bool do_full_decode)
 {
@@ -2514,6 +2543,7 @@ FLAC__bool read_subframe_(FLAC__StreamDecoder *decoder, unsigned channel, unsign
 	return true;
 }
 
+// VERIFY: 3ad27d12 auto
 // OFFSET: 0x00952C50
 FLAC__bool read_subframe_constant_(FLAC__StreamDecoder *decoder, unsigned channel, unsigned bps, FLAC__bool do_full_decode)
 {
@@ -2538,6 +2568,7 @@ FLAC__bool read_subframe_constant_(FLAC__StreamDecoder *decoder, unsigned channe
 	return true;
 }
 
+// VERIFY: e40cc5ed manual
 // OFFSET: 0x00954750
 FLAC__bool read_subframe_fixed_(FLAC__StreamDecoder *decoder, unsigned channel, unsigned bps, const unsigned order, FLAC__bool do_full_decode)
 {
@@ -2594,6 +2625,7 @@ FLAC__bool read_subframe_fixed_(FLAC__StreamDecoder *decoder, unsigned channel, 
 	return true;
 }
 
+// VERIFY: 80dae660 manual
 // OFFSET: 0x00954930
 FLAC__bool read_subframe_lpc_(FLAC__StreamDecoder *decoder, unsigned channel, unsigned bps, const unsigned order, FLAC__bool do_full_decode)
 {
@@ -2682,6 +2714,7 @@ FLAC__bool read_subframe_lpc_(FLAC__StreamDecoder *decoder, unsigned channel, un
 	return true;
 }
 
+// VERIFY: a9efd9f6 manual
 // OFFSET: 0x00952CD0
 FLAC__bool read_subframe_verbatim_(FLAC__StreamDecoder *decoder, unsigned channel, unsigned bps, FLAC__bool do_full_decode)
 {
@@ -2706,6 +2739,7 @@ FLAC__bool read_subframe_verbatim_(FLAC__StreamDecoder *decoder, unsigned channe
 	return true;
 }
 
+// VERIFY: fb61f059 manual
 // OFFSET: 0x00954390
 FLAC__bool read_residual_partitioned_rice_(FLAC__StreamDecoder *decoder, unsigned predictor_order, unsigned partition_order, FLAC__EntropyCodingMethod_PartitionedRiceContents *partitioned_rice_contents, FLAC__int32 *residual)
 {
@@ -2762,6 +2796,7 @@ FLAC__bool read_residual_partitioned_rice_(FLAC__StreamDecoder *decoder, unsigne
 	return true;
 }
 
+// VERIFY: edcbede2 manual
 // OFFSET: 0x00954570
 FLAC__bool read_zero_padding_(FLAC__StreamDecoder *decoder)
 {
@@ -2777,6 +2812,7 @@ FLAC__bool read_zero_padding_(FLAC__StreamDecoder *decoder)
 	return true;
 }
 
+// VERIFY: bbe49d21 auto
 // OFFSET: 0x00954CB0
 FLAC__bool read_callback_(FLAC__byte buffer[], size_t *bytes, void *client_data)
 {
@@ -2859,6 +2895,7 @@ FLAC__bool read_callback_(FLAC__byte buffer[], size_t *bytes, void *client_data)
 }
 
 #if FLAC__HAS_OGG
+// VERIFY: 006eb8fb auto
 // OFFSET: 0x009545F0
 FLAC__StreamDecoderReadStatus read_callback_ogg_aspect_(const FLAC__StreamDecoder *decoder, FLAC__byte buffer[], size_t *bytes)
 {
@@ -2886,6 +2923,7 @@ FLAC__StreamDecoderReadStatus read_callback_ogg_aspect_(const FLAC__StreamDecode
 	}
 }
 
+// VERIFY: 868d7da9 auto
 // OFFSET: 0x00952D80
 FLAC__OggDecoderAspectReadStatus read_callback_proxy_(const void *void_decoder, FLAC__byte buffer[], size_t *bytes, void *client_data)
 {
@@ -2906,6 +2944,7 @@ FLAC__OggDecoderAspectReadStatus read_callback_proxy_(const void *void_decoder, 
 }
 #endif
 
+// VERIFY: 791e9099 auto
 // OFFSET: 0x00952DC0
 FLAC__StreamDecoderWriteStatus write_audio_frame_to_client_(FLAC__StreamDecoder *decoder, const FLAC__Frame *frame, const FLAC__int32 * const buffer[])
 {
@@ -2967,6 +3006,7 @@ void send_error_to_client_(const FLAC__StreamDecoder *decoder, FLAC__StreamDecod
 		decoder->private_->unparseable_frame_count++;
 }
 
+// VERIFY: 1ec03b94 manual
 // OFFSET: 0x009555C0
 FLAC__bool seek_to_absolute_sample_(FLAC__StreamDecoder *decoder, FLAC__uint64 stream_length, FLAC__uint64 target_sample)
 {
@@ -3149,6 +3189,7 @@ FLAC__bool seek_to_absolute_sample_(FLAC__StreamDecoder *decoder, FLAC__uint64 s
 }
 
 #if FLAC__HAS_OGG
+// VERIFY: 04ed7715 manual
 // OFFSET: 0x00955B60
 FLAC__bool seek_to_absolute_sample_ogg_(FLAC__StreamDecoder *decoder, FLAC__uint64 stream_length, FLAC__uint64 target_sample)
 {

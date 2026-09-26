@@ -26,6 +26,7 @@
 #include "smallft.h"
 #include "misc.h"
 
+// VERIFY: 4d3d506b auto
 // OFFSET: 0x0046E070
 void _vp_global_free(vorbis_look_psy_global *look){
   if(look){
@@ -34,6 +35,7 @@ void _vp_global_free(vorbis_look_psy_global *look){
   }
 }
 
+// VERIFY: 446b6ca0 auto
 // OFFSET: 0x0046E0B0
 void _vi_psy_free(vorbis_info_psy *i){
   if(i){
@@ -42,6 +44,7 @@ void _vi_psy_free(vorbis_info_psy *i){
   }
 }
 
+// VERIFY: 17809a75 auto
 // OFFSET: 0x0046E0E0
 void _vp_psy_clear(vorbis_look_psy *p){
   int i,j;

@@ -61,6 +61,7 @@
                        modules */
 
 /* side effect: changes *lsp to cosines of lsp */
+// VERIFY: 3c4e458e manual
 // OFFSET: 0x004723F0
 void FMOD_vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
                             float amp,float ampoffset){

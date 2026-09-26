@@ -47,6 +47,7 @@ typedef struct {
 
 /***********************************************/
 
+// VERIFY: dfead52f auto
 // OFFSET: 0x00471E90
 static void floor0_free_info(vorbis_info_floor *i){
   vorbis_info_floor0 *info=(vorbis_info_floor0 *)i;
@@ -56,6 +57,7 @@ static void floor0_free_info(vorbis_info_floor *i){
   }
 }
 
+// VERIFY: 64c0bba2 auto
 // OFFSET: 0x00471EC0
 static void floor0_free_look(vorbis_look_floor *i){
   vorbis_look_floor0 *look=(vorbis_look_floor0 *)i;
@@ -73,6 +75,7 @@ static void floor0_free_look(vorbis_look_floor *i){
   }
 }
 
+// VERIFY: c702c4bd manual
 // OFFSET: 0x00471F50
 static vorbis_info_floor *floor0_unpack (vorbis_info *vi,oggpack_buffer *opb){
   codec_setup_info     *ci=vi->codec_setup;
@@ -111,6 +114,7 @@ static vorbis_info_floor *floor0_unpack (vorbis_info *vi,oggpack_buffer *opb){
    Note that the scale depends on the sampling rate as well as the
    linear block and mapping sizes */
 
+// VERIFY: 00fff5cc manual
 // OFFSET: 0x00472050
 static int floor0_map_lazy_init(vorbis_block      *vb,
                                 vorbis_info_floor *infoX,
@@ -148,6 +152,7 @@ static int floor0_map_lazy_init(vorbis_block      *vb,
   return(0);
 }
 
+// VERIFY: c2ffc530 auto
 // OFFSET: 0x004721C0
 static vorbis_look_floor *floor0_look(vorbis_dsp_state *vd,
                                       vorbis_info_floor *i){
@@ -164,6 +169,7 @@ static vorbis_look_floor *floor0_look(vorbis_dsp_state *vd,
   return look;
 }
 
+// VERIFY: c1702ef2 auto
 // OFFSET: 0x00472220
 static void *floor0_inverse1(vorbis_block *vb,vorbis_look_floor *i){
   vorbis_look_floor0 *look=(vorbis_look_floor0 *)i;
@@ -202,6 +208,7 @@ static void *floor0_inverse1(vorbis_block *vb,vorbis_look_floor *i){
   return(NULL);
 }
 
+// VERIFY: 055daa1b manual
 // OFFSET: 0x00472360
 static int floor0_inverse2(vorbis_block *vb,vorbis_look_floor *i,
                            void *memo,float *out){

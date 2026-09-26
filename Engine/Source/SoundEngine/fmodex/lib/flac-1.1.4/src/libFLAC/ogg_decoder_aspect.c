@@ -49,6 +49,7 @@
  *
  ***********************************************************************/
 
+// VERIFY: 3c0cd98f auto
 // OFFSET: 0x00955F00
 FLAC__bool FLAC__ogg_decoder_aspect_init(FLAC__OggDecoderAspect *aspect)
 {
@@ -70,6 +71,7 @@ FLAC__bool FLAC__ogg_decoder_aspect_init(FLAC__OggDecoderAspect *aspect)
 	return true;
 }
 
+// VERIFY: 4ce08718 manual
 // OFFSET: 0x00955F60
 void FLAC__ogg_decoder_aspect_finish(FLAC__OggDecoderAspect *aspect)
 {
@@ -83,12 +85,14 @@ void FLAC__ogg_decoder_aspect_set_serial_number(FLAC__OggDecoderAspect *aspect, 
 	aspect->serial_number = value;
 }
 
+// VERIFY: 92e36d4c auto
 // OFFSET: 0x00955F90
 void FLAC__ogg_decoder_aspect_set_defaults(FLAC__OggDecoderAspect *aspect)
 {
 	aspect->use_first_serial_number = true;
 }
 
+// VERIFY: 1e482d90 auto
 // OFFSET: 0x00955FA0
 void FLAC__ogg_decoder_aspect_flush(FLAC__OggDecoderAspect *aspect)
 {
@@ -98,6 +102,7 @@ void FLAC__ogg_decoder_aspect_flush(FLAC__OggDecoderAspect *aspect)
 	aspect->have_working_page = false;
 }
 
+// VERIFY: 3252dae7 auto
 // OFFSET: 0x00955FD0
 void FLAC__ogg_decoder_aspect_reset(FLAC__OggDecoderAspect *aspect)
 {
@@ -107,6 +112,7 @@ void FLAC__ogg_decoder_aspect_reset(FLAC__OggDecoderAspect *aspect)
 		aspect->need_serial_number = true;
 }
 
+// VERIFY: 2d9995b0 manual
 // OFFSET: 0x00956010
 FLAC__OggDecoderAspectReadStatus FLAC__ogg_decoder_aspect_read_callback_wrapper(FLAC__OggDecoderAspect *aspect, FLAC__byte buffer[], size_t *bytes, FLAC__OggDecoderAspectReadCallbackProxy read_callback, const FLAC__StreamDecoder *decoder, void *client_data)
 {

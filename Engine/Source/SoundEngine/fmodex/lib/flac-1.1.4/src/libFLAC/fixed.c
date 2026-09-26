@@ -392,6 +392,7 @@ void FLAC__fixed_compute_residual(const FLAC__int32 data[], unsigned data_len, u
 	}
 }
 
+// VERIFY: da0a5870 manual
 // OFFSET: 0x00957E70
 void FLAC__fixed_restore_signal(const FLAC__int32 residual[], unsigned data_len, unsigned order, FLAC__int32 data[])
 {

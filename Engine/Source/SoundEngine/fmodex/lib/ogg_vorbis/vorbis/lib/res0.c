@@ -62,6 +62,8 @@ typedef struct {
 
 } vorbis_look_residue0;
 
+// VERIFY: bb8ddb13 auto
+// OFFSET: 0x00470AC0
 void FMOD_res0_free_info(vorbis_info_residue *i){
   vorbis_info_residue0 *info=(vorbis_info_residue0 *)i;
   if(info){
@@ -70,6 +72,8 @@ void FMOD_res0_free_info(vorbis_info_residue *i){
   }
 }
 
+// VERIFY: 2f76a5b3 auto
+// OFFSET: 0x00470AF0
 void FMOD_res0_free_look(vorbis_look_residue *i){
   int j;
   if(i){
@@ -198,6 +202,8 @@ void FMOD_res0_pack(vorbis_info_residue *vr,oggpack_buffer *opb){
 #endif
 
 /* vorbis_info is for range checking */
+// VERIFY: 48abc639 auto
+// OFFSET: 0x00470BC0
 vorbis_info_residue *FMOD_res0_unpack(vorbis_info *vi,oggpack_buffer *opb){
   int j,acc=0;
   vorbis_info_residue0 *info=_ogg_calloc(1,sizeof(*info));
@@ -214,46 +220,20 @@ vorbis_info_residue *FMOD_res0_unpack(vorbis_info *vi,oggpack_buffer *opb){
   info->partitions=FMOD_oggpack_read(opb,6)+1;
   info->groupbook=FMOD_oggpack_read(opb,8);
 
-  /* check for premature EOP */
-  if(info->groupbook<0)goto errout;
-
   for(j=0;j<info->partitions;j++){
     int cascade=FMOD_oggpack_read(opb,3);
-    int cflag=FMOD_oggpack_read(opb,1);
-    if(cflag<0) goto errout;
-    if(cflag){
-      int c=FMOD_oggpack_read(opb,5);
-      if(c<0) goto errout;
-      cascade|=(c<<3);
-    }
+    if(FMOD_oggpack_read(opb,1))
+      cascade|=(FMOD_oggpack_read(opb,5)<<3);
     info->secondstages[j]=cascade;
 
     acc+=icount(cascade);
   }
-  for(j=0;j<acc;j++){
-    int book=FMOD_oggpack_read(opb,8);
-    if(book<0) goto errout;
-    info->booklist[j]=book;
-  }
+  for(j=0;j<acc;j++)
+    info->booklist[j]=FMOD_oggpack_read(opb,8);
 
   if(info->groupbook>=ci->books)goto errout;
-  for(j=0;j<acc;j++){
+  for(j=0;j<acc;j++)
     if(info->booklist[j]>=ci->books)goto errout;
-    if(ci->book_param[info->booklist[j]]->maptype==0)goto errout;
-  }
-
-  /* verify the phrasebook is not specifying an impossible or
-     inconsistent partitioning scheme. */
-  {
-    int entries = ci->book_param[info->groupbook]->entries;
-    int dim = ci->book_param[info->groupbook]->dim;
-    int partvals = 1;
-    while(dim>0){
-      partvals *= info->partitions;
-      if(partvals > entries) goto errout;
-      dim--;
-    }
-  }
 
   return(info);
  errout:
@@ -261,6 +241,8 @@ vorbis_info_residue *FMOD_res0_unpack(vorbis_info *vi,oggpack_buffer *opb){
   return(NULL);
 }
 
+// VERIFY: 33e87374 manual
+// OFFSET: 0x00470D20
 vorbis_look_residue *FMOD_res0_look(vorbis_dsp_state *vd,
                                vorbis_info_residue *vr){
   vorbis_info_residue0 *info=(vorbis_info_residue0 *)vr;
@@ -308,9 +290,7 @@ vorbis_look_residue *FMOD_res0_look(vorbis_dsp_state *vd,
     }
   }
 
-  look->partvals=1;
-  for(j=0;j<dim;j++)
-      look->partvals*=look->parts;
+  look->partvals=rint(pow((float)look->parts,(float)dim));
 
   look->stages=maxstage;
   look->decodemap=_ogg_malloc(look->partvals*sizeof(*look->decodemap));
@@ -673,6 +653,7 @@ static int _01forward(oggpack_buffer *opb,
 #endif
 
 /* a truncated packet here just means 'stop working'; it's not an error */
+// VERIFY: 4e341123 manual
 // OFFSET: 0x00470F70
 static int _FMOD_01inverse(vorbis_block *vb,vorbis_look_residue *vl,
                       float **in,int ch,
@@ -788,6 +769,8 @@ int FMOD_res0_forward(vorbis_block *vb,vorbis_look_residue *vl,
 }
 #endif
 
+// VERIFY: 9a20a7f6 auto
+// OFFSET: 0x00471180
 int FMOD_res0_inverse(vorbis_block *vb,vorbis_look_residue *vl,
                  float **in,int *nonzero,int ch){
   int i,used=0;
@@ -843,6 +826,8 @@ ogg_int32_t **FMOD_res1_class(vorbis_block *vb,vorbis_look_residue *vl,
     return(0);
 }
 
+// VERIFY: 62b4ad74 auto
+// OFFSET: 0x004711E0
 int FMOD_res1_inverse(vorbis_block *vb,vorbis_look_residue *vl,
                  float **in,int *nonzero,int ch){
   int i,used=0;
@@ -908,6 +893,8 @@ int FMOD_res2_forward(oggpack_buffer *opb,
 #endif
 
 /* duplicate code here as speed is somewhat more important */
+// VERIFY: a328a8fa manual
+// OFFSET: 0x00471240
 int FMOD_res2_inverse(vorbis_block *vb,vorbis_look_residue *vl,
                  float **in,int *nonzero,int ch){
   ogg_int32_t i,k,l,s;
@@ -927,7 +914,7 @@ int FMOD_res2_inverse(vorbis_block *vb,vorbis_look_residue *vl,
     int **partword=_FMOD_vorbis_block_alloc(vb,partwords*sizeof(*partword));
     if (!partword)
     {
-        return -1;
+        return(OV_EMEMORY);
     }
 
     for(i=0;i<ch;i++)if(nonzero[i])break;

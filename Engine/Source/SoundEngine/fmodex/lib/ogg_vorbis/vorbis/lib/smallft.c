@@ -1246,6 +1246,7 @@ void drft_init(drft_lookup *l,int n){
   fdrffti(n, l->trigcache, l->splitcache);
 }
 
+// VERIFY: 1be16df4 auto
 // OFFSET: 0x00470120
 void drft_clear(drft_lookup *l){
   if(l){

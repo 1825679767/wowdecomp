@@ -37,6 +37,8 @@
    blocksize is set by the mode, and low backend lookups may require
    parameters from other areas of the mode/mapping */
 
+// VERIFY: 531707bd auto
+// OFFSET: 0x004703E0
 static void mapping0_free_info(vorbis_info_mapping *i){
   vorbis_info_mapping0 *info=(vorbis_info_mapping0 *)i;
   if(info){
@@ -101,25 +103,23 @@ static void mapping0_pack(vorbis_info *vi,vorbis_info_mapping *vm,
 #endif
 
 /* also responsible for range checking */
+// VERIFY: e95af1bc auto
+// OFFSET: 0x00470410
 static vorbis_info_mapping *mapping0_unpack(vorbis_info *vi,oggpack_buffer *opb){
-  int i,b;
+  int i;
   vorbis_info_mapping0 *info=_ogg_calloc(1,sizeof(*info));
   codec_setup_info     *ci=vi->codec_setup;
+  if(!info)return(NULL);
   FMOD_memset(info,0,sizeof(*info));
 
-  b=FMOD_oggpack_read(opb,1);
-  if(b<0)goto err_out;
-  if(b){
+  if(FMOD_oggpack_read(opb,1))
     info->submaps=FMOD_oggpack_read(opb,4)+1;
-    if(info->submaps<=0)goto err_out;
-  }else
+  else
     info->submaps=1;
 
-  b=FMOD_oggpack_read(opb,1);
-  if(b<0)goto err_out;
-  if(b){
+  if(FMOD_oggpack_read(opb,1)){
     info->coupling_steps=FMOD_oggpack_read(opb,8)+1;
-    if(info->coupling_steps<=0)goto err_out;
+
     for(i=0;i<info->coupling_steps;i++){
       int testM=info->coupling_mag[i]=FMOD_oggpack_read(opb,ilog(vi->channels));
       int testA=info->coupling_ang[i]=FMOD_oggpack_read(opb,ilog(vi->channels));
@@ -133,20 +133,20 @@ static vorbis_info_mapping *mapping0_unpack(vorbis_info *vi,oggpack_buffer *opb)
 
   }
 
-  if(FMOD_oggpack_read(opb,2)!=0)goto err_out; /* 2,3:reserved */
+  if(FMOD_oggpack_read(opb,2)>0)goto err_out; /* 2,3:reserved */
 
   if(info->submaps>1){
     for(i=0;i<vi->channels;i++){
       info->chmuxlist[i]=FMOD_oggpack_read(opb,4);
-      if(info->chmuxlist[i]>=info->submaps || info->chmuxlist[i]<0)goto err_out;
+      if(info->chmuxlist[i]>=info->submaps)goto err_out;
     }
   }
   for(i=0;i<info->submaps;i++){
     FMOD_oggpack_read(opb,8); /* time submap unused */
     info->floorsubmap[i]=FMOD_oggpack_read(opb,8);
-    if(info->floorsubmap[i]>=ci->floors || info->floorsubmap[i]<0)goto err_out;
+    if(info->floorsubmap[i]>=ci->floors)goto err_out;
     info->residuesubmap[i]=FMOD_oggpack_read(opb,8);
-    if(info->residuesubmap[i]>=ci->residues || info->residuesubmap[i]<0)goto err_out;
+    if(info->residuesubmap[i]>=ci->residues)goto err_out;
   }
 
   return info;
@@ -754,6 +754,8 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 //  return(0);
 //}
 
+// VERIFY: bcabed81 manual
+// OFFSET: 0x00470630
 static int mapping0_inverse(vorbis_block *vb,vorbis_info_mapping *l){
   vorbis_dsp_state     *vd=vb->vd;
   vorbis_info          *vi=vd->vi;

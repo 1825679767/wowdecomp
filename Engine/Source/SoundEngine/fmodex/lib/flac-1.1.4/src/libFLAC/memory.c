@@ -59,6 +59,7 @@ void *FLAC__memory_alloc_aligned(size_t bytes, void **aligned_address)
 	return x;
 }
 
+// VERIFY: be0a9e2e manual
 // OFFSET: 0x00957DF0
 FLAC__bool FLAC__memory_alloc_aligned_int32_array(unsigned elements, FLAC__int32 **unaligned_pointer, FLAC__int32 **aligned_pointer)
 {

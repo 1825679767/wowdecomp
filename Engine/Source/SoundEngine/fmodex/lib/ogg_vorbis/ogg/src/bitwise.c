@@ -44,6 +44,7 @@ void FMOD_oggpackB_reset(oggpack_buffer *b){
   FMOD_oggpack_reset(b);
 }
 
+// VERIFY: 08e54945 auto
 // OFFSET: 0x00473240
 void FMOD_oggpack_readinit(oggpack_buffer *b,unsigned char *buf,int bytes){
   FMOD_memset(b,0,sizeof(*b));
@@ -56,6 +57,7 @@ void FMOD_oggpackB_readinit(oggpack_buffer *b,unsigned char *buf,int bytes){
 }
 
 /* Read in bits without advancing the bitptr; bits <= 32 */
+// VERIFY: d970ba23 auto
 // OFFSET: 0x00473260
 ogg_int32_t FMOD_oggpack_look(oggpack_buffer *b,int bits){
   ogg_uint32_t ret;
@@ -120,6 +122,7 @@ ogg_int32_t FMOD_oggpackB_look1(oggpack_buffer *b){
   return((b->ptr[0]>>(7-b->endbit))&1);
 }
 
+// VERIFY: e37b844e auto
 // OFFSET: 0x00473310
 void FMOD_oggpack_adv(oggpack_buffer *b,int bits){
   bits+=b->endbit;
@@ -145,6 +148,7 @@ void FMOD_oggpackB_adv1(oggpack_buffer *b){
 }
 
 /* bits <= 32 */
+// VERIFY: 975a6fa3 auto
 // OFFSET: 0x00473340
 ogg_int32_t FMOD_oggpack_read(oggpack_buffer *b,int bits){
   ogg_int32_t ret;

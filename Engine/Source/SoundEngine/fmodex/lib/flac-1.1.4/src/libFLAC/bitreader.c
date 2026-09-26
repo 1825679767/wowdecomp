@@ -162,6 +162,7 @@ static _inline FLAC__uint32 local_swap32_(FLAC__uint32 x)
 }
 #endif
 
+// VERIFY: 69fd413b manual
 // OFFSET: 0x00956410
 static FLaC__INLINE void crc16_update_word_(FLAC__BitReader *br, brword word)
 {
@@ -192,6 +193,7 @@ static FLaC__INLINE void crc16_update_word_(FLAC__BitReader *br, brword word)
 	br->crc16_align = 0;
 }
 
+// VERIFY: f7efb0c3 manual
 // OFFSET: 0x009564D0
 static FLAC__bool bitreader_read_from_client_(FLAC__BitReader *br)
 {
@@ -274,6 +276,7 @@ static FLAC__bool bitreader_read_from_client_(FLAC__BitReader *br)
  *
  ***********************************************************************/
 
+// VERIFY: 5add4552 auto
 // OFFSET: 0x009565F0
 FLAC__BitReader *FLAC__bitreader_new(void)
 {
@@ -291,6 +294,7 @@ FLAC__BitReader *FLAC__bitreader_new(void)
 	return br;
 }
 
+// VERIFY: 9e941158 auto
 // OFFSET: 0x00957320
 void FLAC__bitreader_delete(FLAC__BitReader *br)
 {
@@ -306,6 +310,7 @@ void FLAC__bitreader_delete(FLAC__BitReader *br)
  *
  ***********************************************************************/
 
+// VERIFY: 2208a320 auto
 // OFFSET: 0x00956600
 FLAC__bool FLAC__bitreader_init(FLAC__BitReader *br, FLAC__BitReaderReadCallback rcb, void *cd)
 {
@@ -323,6 +328,7 @@ FLAC__bool FLAC__bitreader_init(FLAC__BitReader *br, FLAC__BitReaderReadCallback
 	return true;
 }
 
+// VERIFY: a276e76e auto
 // OFFSET: 0x00956650
 void FLAC__bitreader_free(FLAC__BitReader *br)
 {
@@ -338,6 +344,7 @@ void FLAC__bitreader_free(FLAC__BitReader *br)
 	br->client_data = 0;
 }
 
+// VERIFY: b8d5751d auto
 // OFFSET: 0x00956690
 FLAC__bool FLAC__bitreader_clear(FLAC__BitReader *br)
 {
@@ -376,6 +383,7 @@ void FLAC__bitreader_dump(const FLAC__BitReader *br, FILE *out)
 	}
 }
 
+// VERIFY: 7af3ec33 auto
 // OFFSET: 0x009566B0
 void FLAC__bitreader_reset_read_crc16(FLAC__BitReader *br, FLAC__uint16 seed)
 {
@@ -387,6 +395,7 @@ void FLAC__bitreader_reset_read_crc16(FLAC__BitReader *br, FLAC__uint16 seed)
 	br->crc16_align = br->consumed_bits;
 }
 
+// VERIFY: 210a0575 manual
 // OFFSET: 0x009566D0
 FLAC__uint16 FLAC__bitreader_get_read_crc16(FLAC__BitReader *br)
 {
@@ -404,24 +413,28 @@ FLAC__uint16 FLAC__bitreader_get_read_crc16(FLAC__BitReader *br)
 	return br->read_crc16;
 }
 
+// VERIFY: 3161ef0a manual
 // OFFSET: 0x00956740
 FLaC__INLINE FLAC__bool FLAC__bitreader_is_consumed_byte_aligned(const FLAC__BitReader *br)
 {
 	return ((br->consumed_bits & 7) == 0);
 }
 
+// VERIFY: 8bb5cfe9 auto
 // OFFSET: 0x00956760
 FLaC__INLINE unsigned FLAC__bitreader_bits_left_for_byte_alignment(const FLAC__BitReader *br)
 {
 	return 8 - (br->consumed_bits & 7);
 }
 
+// VERIFY: 5f1b800b manual
 // OFFSET: 0x00956780
 FLaC__INLINE unsigned FLAC__bitreader_get_input_bits_unconsumed(const FLAC__BitReader *br)
 {
 	return (br->words-br->consumed_words)*FLAC__BITS_PER_WORD + br->bytes*8 - br->consumed_bits;
 }
 
+// VERIFY: 88314e3e manual
 // OFFSET: 0x009567A0
 FLaC__INLINE FLAC__bool FLAC__bitreader_read_raw_uint32(FLAC__BitReader *br, FLAC__uint32 *val, unsigned bits)
 {
@@ -502,6 +515,7 @@ FLaC__INLINE FLAC__bool FLAC__bitreader_read_raw_uint32(FLAC__BitReader *br, FLA
 	}
 }
 
+// VERIFY: 11d23ac7 auto
 // OFFSET: 0x00956920
 FLAC__bool FLAC__bitreader_read_raw_int32(FLAC__BitReader *br, FLAC__int32 *val, unsigned bits)
 {
@@ -514,6 +528,7 @@ FLAC__bool FLAC__bitreader_read_raw_int32(FLAC__BitReader *br, FLAC__int32 *val,
 	return true;
 }
 
+// VERIFY: f8f51ce3 manual
 // OFFSET: 0x00956960
 FLAC__bool FLAC__bitreader_read_raw_uint64(FLAC__BitReader *br, FLAC__uint64 *val, unsigned bits)
 {
@@ -536,6 +551,7 @@ FLAC__bool FLAC__bitreader_read_raw_uint64(FLAC__BitReader *br, FLAC__uint64 *va
 	return true;
 }
 
+// VERIFY: 8c6d7c6f manual
 // OFFSET: 0x00956A00
 FLaC__INLINE FLAC__bool FLAC__bitreader_read_uint32_little_endian(FLAC__BitReader *br, FLAC__uint32 *val)
 {
@@ -562,6 +578,7 @@ FLaC__INLINE FLAC__bool FLAC__bitreader_read_uint32_little_endian(FLAC__BitReade
 	return true;
 }
 
+// VERIFY: 40bd1ad9 manual
 // OFFSET: 0x00957360
 FLAC__bool FLAC__bitreader_skip_bits_no_crc(FLAC__BitReader *br, unsigned bits)
 {
@@ -598,6 +615,7 @@ FLAC__bool FLAC__bitreader_skip_bits_no_crc(FLAC__BitReader *br, unsigned bits)
 	return true;
 }
 
+// VERIFY: e127c7dd auto
 // OFFSET: 0x00956AA0
 FLAC__bool FLAC__bitreader_skip_byte_block_aligned_no_crc(FLAC__BitReader *br, unsigned nvals)
 {
@@ -634,6 +652,7 @@ FLAC__bool FLAC__bitreader_skip_byte_block_aligned_no_crc(FLAC__BitReader *br, u
 	return true;
 }
 
+// VERIFY: 4c720abe auto
 // OFFSET: 0x00956B40
 FLAC__bool FLAC__bitreader_read_byte_block_aligned_no_crc(FLAC__BitReader *br, FLAC__byte *val, unsigned nvals)
 {
@@ -691,6 +710,7 @@ FLAC__bool FLAC__bitreader_read_byte_block_aligned_no_crc(FLAC__BitReader *br, F
 	return true;
 }
 
+// VERIFY: 5db1c259 manual
 // OFFSET: 0x00956C10
 FLaC__INLINE FLAC__bool FLAC__bitreader_read_unary_unsigned(FLAC__BitReader *br, unsigned *val)
 #ifdef FLAC__NO_MANUAL_INLINING
@@ -812,6 +832,7 @@ FLAC__bool FLAC__bitreader_read_rice_signed(FLAC__BitReader *br, int *val, unsig
 
 /* this is by far the most heavily used reader call.  it ain't pretty but it's fast */
 /* a lot of the logic is copied, then adapted, from FLAC__bitreader_read_unary_unsigned() and FLAC__bitreader_read_raw_uint32() */
+// VERIFY: f51fec2e manual
 // OFFSET: 0x00956DC0
 FLAC__bool FLAC__bitreader_read_rice_signed_block(FLAC__BitReader *br, int vals[], unsigned nvals, unsigned parameter)
 {
@@ -1082,6 +1103,7 @@ FLAC__bool FLAC__bitreader_read_golomb_unsigned(FLAC__BitReader *br, unsigned *v
 #endif /* UNUSED */
 
 /* on return, if *val == 0xffffffff then the utf-8 sequence was invalid, but the return value will be true */
+// VERIFY: f5f3ae00 manual
 // OFFSET: 0x009570A0
 FLAC__bool FLAC__bitreader_read_utf8_uint32(FLAC__BitReader *br, FLAC__uint32 *val, FLAC__byte *raw, unsigned *rawlen)
 {
@@ -1138,6 +1160,7 @@ FLAC__bool FLAC__bitreader_read_utf8_uint32(FLAC__BitReader *br, FLAC__uint32 *v
 }
 
 /* on return, if *val == 0xffffffffffffffff then the utf-8 sequence was invalid, but the return value will be true */
+// VERIFY: bd29d768 manual
 // OFFSET: 0x009571D0
 FLAC__bool FLAC__bitreader_read_utf8_uint64(FLAC__BitReader *br, FLAC__uint64 *val, FLAC__byte *raw, unsigned *rawlen)
 {

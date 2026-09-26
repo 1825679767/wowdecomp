@@ -29,18 +29,22 @@
 int FMOD_ogg_page_version(const ogg_page *og){
   return((int)(og->header[4]));
 }
+// VERIFY: 36582d26 auto
 // OFFSET: 0x00472600
 int FMOD_ogg_page_continued(const ogg_page *og){
   return((int)(og->header[5]&0x01));
 }
+// VERIFY: 4c287d8b auto
 // OFFSET: 0x00472620
 int FMOD_ogg_page_bos(const ogg_page *og){
   return((int)(og->header[5]&0x02));
 }
+// VERIFY: 65943030 auto
 // OFFSET: 0x00472640
 int FMOD_ogg_page_eos(const ogg_page *og){
   return((int)(og->header[5]&0x04));
 }
+// VERIFY: 7b50e54c auto
 // OFFSET: 0x00472660
 ogg_int64_t FMOD_ogg_page_granulepos(const ogg_page *og){
   unsigned char *page=og->header;
@@ -54,6 +58,7 @@ ogg_int64_t FMOD_ogg_page_granulepos(const ogg_page *og){
   granulepos= (granulepos<<8)|(page[6]&0xff);
   return(granulepos);
 }
+// VERIFY: 8cee39b6 auto
 // OFFSET: 0x004726F0
 int FMOD_ogg_page_serialno(const ogg_page *og){
   return(og->header[14] |
@@ -162,6 +167,7 @@ static const ogg_uint32_t crc_lookup[256]={
   0xbcb4666d,0xb8757bda,0xb5365d03,0xb1f740b4};
 
 /* init the encode/decode logical stream state */
+// VERIFY: 46b3dbb4 manual
 // OFFSET: 0x00472720
 int FMOD_ogg_stream_init(ogg_stream_state *os,int serialno){
   if(os){
@@ -193,6 +199,7 @@ int FMOD_ogg_stream_init(ogg_stream_state *os,int serialno){
   return(-1);
 }
 /* _clear does not free os, only the non-flat storage within */
+// VERIFY: 2374ad2c auto
 // OFFSET: 0x004727C0
 int FMOD_ogg_stream_clear(ogg_stream_state *os){
   if(os){
@@ -222,6 +229,7 @@ static void _os_body_expand(ogg_stream_state *os,int needed){
     os->body_data=_ogg_realloc(os->body_data,os->body_storage*sizeof(*os->body_data));
   }
 }
+// VERIFY: 1b6dc756 manual
 // OFFSET: 0x00472830
 static void _os_lacing_expand(ogg_stream_state *os,int needed){
   if(os->lacing_storage<=os->lacing_fill+needed){
@@ -234,6 +242,7 @@ static void _os_lacing_expand(ogg_stream_state *os,int needed){
 /* checksum the page */
 /* Direct table CRC; note that this will be faster in the future if we
    perform the checksum silmultaneously with other copies */
+// VERIFY: 2b6977d1 auto
 // OFFSET: 0x00472890
 void FMOD_ogg_page_checksum_set(ogg_page *og){
   if(og){
@@ -418,6 +427,7 @@ int FMOD_ogg_stream_eos(ogg_stream_state *os){
    ogg_stream_state. */
 
 /* initialize the struct to a known state */
+// VERIFY: 0ec4c378 auto
 // OFFSET: 0x00472930
 int FMOD_ogg_sync_init(ogg_sync_state *oy){
   if(oy){
@@ -427,6 +437,7 @@ int FMOD_ogg_sync_init(ogg_sync_state *oy){
 }
 
 /* clear non-flat storage within */
+// VERIFY: dea8b561 auto
 // OFFSET: 0x00472960
 int FMOD_ogg_sync_clear(ogg_sync_state *oy){
   if(oy){
@@ -444,6 +455,7 @@ int FMOD_ogg_sync_destroy(ogg_sync_state *oy){
   return(0);
 }
 
+// VERIFY: 115902a6 auto
 // OFFSET: 0x004729A0
 char *FMOD_ogg_sync_buffer(ogg_sync_state *oy, ogg_int32_t size){
   /* first, clear out any space that has been previously returned */
@@ -469,6 +481,7 @@ char *FMOD_ogg_sync_buffer(ogg_sync_state *oy, ogg_int32_t size){
   return((char *)oy->data+oy->fill);
 }
 
+// VERIFY: c86cb89a auto
 // OFFSET: 0x00472A30
 int FMOD_ogg_sync_wrote(ogg_sync_state *oy, ogg_int32_t bytes){
   if(oy->fill+bytes>oy->storage)return(-1);
@@ -486,6 +499,7 @@ int FMOD_ogg_sync_wrote(ogg_sync_state *oy, ogg_int32_t bytes){
 
 */
 
+// VERIFY: 8bc0763e manual
 // OFFSET: 0x00472A50
 ogg_int32_t FMOD_ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
   unsigned char *page=oy->data+oy->returned;
@@ -583,6 +597,7 @@ ogg_int32_t FMOD_ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og){
    Returns pointers into buffered data; invalidated by next call to
    _stream, _clear, _init, or _buffer */
 
+// VERIFY: 59e4fc18 auto
 // OFFSET: 0x00472CD0
 int FMOD_ogg_sync_pageout(ogg_sync_state *oy, ogg_page *og){
 
@@ -615,6 +630,7 @@ int FMOD_ogg_sync_pageout(ogg_sync_state *oy, ogg_page *og){
 /* add the incoming page to the stream state; we decompose the page
    into packet segments here as well. */
 
+// VERIFY: 636c95d1 manual
 // OFFSET: 0x00472D20
 int FMOD_ogg_stream_pagein(ogg_stream_state *os, ogg_page *og){
   unsigned char *header=og->header;
@@ -743,6 +759,7 @@ int FMOD_ogg_stream_pagein(ogg_stream_state *os, ogg_page *og){
 }
 
 /* clear things to an initial state.  Good to call, eg, before seeking */
+// VERIFY: c6a7f026 auto
 // OFFSET: 0x00473010
 int FMOD_ogg_sync_reset(ogg_sync_state *oy){
   oy->fill=0;
@@ -753,6 +770,7 @@ int FMOD_ogg_sync_reset(ogg_sync_state *oy){
   return(0);
 }
 
+// VERIFY: b66c33bf auto
 // OFFSET: 0x00473030
 int FMOD_ogg_stream_reset(ogg_stream_state *os){
   os->body_fill=0;
@@ -773,6 +791,7 @@ int FMOD_ogg_stream_reset(ogg_stream_state *os){
   return(0);
 }
 
+// VERIFY: 9f6c187f auto
 // OFFSET: 0x00473080
 int FMOD_ogg_stream_reset_serialno(ogg_stream_state *os,int serialno){
   FMOD_ogg_stream_reset(os);
@@ -780,6 +799,7 @@ int FMOD_ogg_stream_reset_serialno(ogg_stream_state *os,int serialno){
   return(0);
 }
 
+// VERIFY: aeec37e4 auto
 // OFFSET: 0x004730E0
 static int _packetout(ogg_stream_state *os,ogg_packet *op,int adv){
 
@@ -835,11 +855,13 @@ static int _packetout(ogg_stream_state *os,ogg_packet *op,int adv){
   return(1);
 }
 
+// VERIFY: 8d1b4e12 auto
 // OFFSET: 0x00473200
 int FMOD_ogg_stream_packetout(ogg_stream_state *os,ogg_packet *op){
   return _packetout(os,op,1);
 }
 
+// VERIFY: 48207941 auto
 // OFFSET: 0x00473220
 int FMOD_ogg_stream_packetpeek(ogg_stream_state *os,ogg_packet *op){
   return _packetout(os,op,0);

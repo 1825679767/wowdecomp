@@ -537,6 +537,7 @@ unsigned FLAC__format_get_max_rice_partition_order_from_blocksize_limited_max_an
 	return max_rice_partition_order;
 }
 
+// VERIFY: 8167ce92 auto
 // OFFSET: 0x00956350
 void FLAC__format_entropy_coding_method_partitioned_rice_contents_init(FLAC__EntropyCodingMethod_PartitionedRiceContents *object)
 {
@@ -547,6 +548,7 @@ void FLAC__format_entropy_coding_method_partitioned_rice_contents_init(FLAC__Ent
 	object->capacity_by_order = 0;
 }
 
+// VERIFY: f155b245 auto
 // OFFSET: 0x00956370
 void FLAC__format_entropy_coding_method_partitioned_rice_contents_clear(FLAC__EntropyCodingMethod_PartitionedRiceContents *object)
 {
@@ -559,6 +561,7 @@ void FLAC__format_entropy_coding_method_partitioned_rice_contents_clear(FLAC__En
 	FLAC__format_entropy_coding_method_partitioned_rice_contents_init(object);
 }
 
+// VERIFY: 23e6c97d manual
 // OFFSET: 0x009563B0
 FLAC__bool FLAC__format_entropy_coding_method_partitioned_rice_contents_ensure_size(FLAC__EntropyCodingMethod_PartitionedRiceContents *object, unsigned max_partition_order)
 {

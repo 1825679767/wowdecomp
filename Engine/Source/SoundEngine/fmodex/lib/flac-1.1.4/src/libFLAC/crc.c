@@ -121,6 +121,7 @@ void FLAC__crc8_update_block(const FLAC__byte *data, unsigned len, FLAC__uint8 *
 		*crc = FLAC__crc8_table[*crc ^ *data++];
 }
 
+// VERIFY: 9c098842 auto
 // OFFSET: 0x00957E40
 FLAC__uint8 FLAC__crc8(const FLAC__byte *data, unsigned len)
 {
