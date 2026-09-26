@@ -160,15 +160,6 @@ namespace FMOD
     static const int MIDI_DEFAULTSUBCHANNELS        = 32;
     static const int MIDI_MINIMUMSAMPLEGRANULARITY  = 512;      // 10.66ms @ 48khz :S
 
-    class CodecMIDIDLSCache : public LinkedListNode
-    {
-      public:
-
-        char    mFilePath[FMOD_STRING_MAXPATHLEN];
-        SoundI *mDLSFile;
-        int     mRefCount;
-    };
-
     class CodecMIDISubChannel : public LinkedListNode
     {
       public:
@@ -290,7 +281,6 @@ namespace FMOD
         unsigned int        mMixerSamplesPerTick;
         float               mTimingScale;
         unsigned int        mPCMOffset;
-        unsigned int        mDSPTick;
                            
         int                 mNumTracks;
         MIDI_FORMAT         mMIDIFormat;
@@ -313,9 +303,7 @@ namespace FMOD
         unsigned int        mTempo;
         float               mTick;
         float               mMillisecondsPerTick;
-        float               mMillisecondsPlayed;    /* Only valid while loading */
                            
-        CodecMIDIDLSCache  *mDLSCache;
         SoundI             *mDLSSound;
         CodecDLS           *mDLS;
         bool               *mSampleInclusionList;
@@ -328,8 +316,6 @@ namespace FMOD
         FMOD_RESULT         closeInternal();
         FMOD_RESULT         readInternal(void *buffer, unsigned int size, unsigned int *read);
         FMOD_RESULT         setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype);
-
-        static CodecMIDIDLSCache gDLSCacheHead;
         
       public:
 

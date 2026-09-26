@@ -51,8 +51,6 @@ extern "C" {
 
 #endif  /* PLUGIN_EXPORTS */
 
-CodecMIDIDLSCache CodecMIDI::gDLSCacheHead;
-
 const char *note[128] =
 {
     "C0", "C#0", "D0", "D#0", "E0", "F0", "F#0", "G0", "G#0", "A0", "A#0", "B0",  
@@ -83,6 +81,7 @@ const char *note[128] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6fe7af46 manual
 // OFFSET: 0x008FD340
 FMOD_CODEC_DESCRIPTION_EX *CodecMIDI::getDescriptionEx()
 {
@@ -881,6 +880,7 @@ FMOD_RESULT CodecMIDISubChannel::setUpArticulators()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e83732ba auto
 // OFFSET: 0x008FA810
 FMOD_RESULT CodecMIDISubChannel::stop()
 {
@@ -1269,6 +1269,7 @@ FMOD_RESULT CodecMIDISubChannel::updatePan()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b28d471e auto
 // OFFSET: 0x008FAE00
 FMOD_RESULT CodecMIDIChannel::getSound(int key, SoundI **sound, CodecDLSInstrument **instrument, int *unitynote, int *finetune, int *sampleattenuation, bool *duplicateallowed, int *keygroup, int *numarticulators, DLS_CONNECTIONBLOCK **articulators)
 {
@@ -1376,6 +1377,7 @@ FMOD_RESULT CodecMIDIChannel::getSound(int key, SoundI **sound, CodecDLSInstrume
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d334e56c manual
 // OFFSET: 0x008FB560
 FMOD_RESULT CodecMIDIChannel::process(unsigned char event, bool reuse, unsigned char runningdata, bool calledfromopen)
 {
@@ -2194,6 +2196,7 @@ FMOD_RESULT CodecMIDIChannel::process(unsigned char event, bool reuse, unsigned 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9f6a687c manual
 // OFFSET: 0x008FB010
 FMOD_RESULT CodecMIDIChannel::update()
 {
@@ -2407,6 +2410,7 @@ FMOD_RESULT CodecMIDITrack::addTag(const char *name, int length, bool calledfrom
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 72520853 manual
 // OFFSET: 0x008FBD90
 FMOD_RESULT CodecMIDITrack::process(bool calledfromopen)
 {
@@ -2758,6 +2762,7 @@ FMOD_RESULT CodecMIDITrack::process(bool calledfromopen)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5214ef3f auto
 // OFFSET: 0x008FC3B0
 FMOD_RESULT CodecMIDI::update(bool audible)
 {
@@ -2799,6 +2804,7 @@ FMOD_RESULT CodecMIDI::update(bool audible)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cde44d1f auto
 // OFFSET: 0x008FB270
 FMOD_RESULT CodecMIDI::play()
 {
@@ -2838,7 +2844,6 @@ FMOD_RESULT CodecMIDI::play()
     mTick               = 0;
     mPCMOffset          = 0;
     mMixerSamplesLeft   = 0;
-    mMillisecondsPlayed = 0;
 
     return FMOD_OK;
 }
@@ -2859,6 +2864,7 @@ FMOD_RESULT CodecMIDI::play()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a5b8f5db manual
 // OFFSET: 0x008FC850
 FMOD_RESULT CodecMIDI::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -2988,47 +2994,16 @@ FMOD_RESULT CodecMIDI::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
         exinfo.inclusionlist = list;
         exinfo.inclusionlistnum = 1;
 
-        /*
-            Search the cache for the required DLS file, create if it doesn't exist
-        */
-        mDLSCache = NULL;
-        for (CodecMIDIDLSCache *current = (CodecMIDIDLSCache *)gDLSCacheHead.getNext(); current != &gDLSCacheHead; current = (CodecMIDIDLSCache *)current->getNext())
-		{
-            if (!FMOD_strncmp(current->mFilePath, dlsname, FMOD_STRING_MAXPATHLEN))
-			{
-                mDLSCache = current;
-                mDLSCache->mRefCount++;
-				break;
-			}
-		}
-
-        if (mDLSCache == NULL)
+        result = mSystem->createSound(dlsname, FMOD_2D, &exinfo, &mDLSSound);
+        if (result == FMOD_ERR_FILE_NOTFOUND)
         {
-            SoundI *dlsFile = NULL;
-
-            result = mSystem->createSound(dlsname, FMOD_2D, &exinfo, &dlsFile);
-            if (result == FMOD_ERR_FILE_NOTFOUND)
-            {
-                return FMOD_ERR_PLUGIN_RESOURCE;
-            }
-            else if (result != FMOD_OK)
-            {
-                return result;
-            }
-
-            mDLSCache = FMOD_Object_Alloc(CodecMIDIDLSCache);
-            if (mDLSCache == NULL)
-            {
-                return FMOD_ERR_MEMORY;
-            }
-
-            FMOD_strncpy(mDLSCache->mFilePath, dlsname, FMOD_STRING_MAXPATHLEN);
-            mDLSCache->mRefCount = 1;
-            mDLSCache->mDLSFile = dlsFile;
-            mDLSCache->addBefore(&gDLSCacheHead);
+            return FMOD_ERR_PLUGIN_RESOURCE;
+        }
+        else if (result != FMOD_OK)
+        {
+            return result;
         }
 
-        mDLSSound = mDLSCache->mDLSFile;
         mDLS = (CodecDLS *)mDLSSound->mCodec;
     }
 
@@ -3170,9 +3145,9 @@ FMOD_RESULT CodecMIDI::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
     mMixerSamplesPerTick = (int)(mMillisecondsPerTick / 1000.0f * waveformat[0].frequency);
     if (mMixerSamplesPerTick < (unsigned int)MIDI_MINIMUMSAMPLEGRANULARITY)
     {
-        mTimingScale         = MIDI_MINIMUMSAMPLEGRANULARITY / (mMillisecondsPerTick / 1000.0f * waveformat[0].frequency);
+        mTimingScale         = (float)MIDI_MINIMUMSAMPLEGRANULARITY / (float)mMixerSamplesPerTick;
         mMixerSamplesPerTick = MIDI_MINIMUMSAMPLEGRANULARITY;
-        mMillisecondsPerTick = MIDI_MINIMUMSAMPLEGRANULARITY * 1000.0f / waveformat[0].frequency;
+        mMillisecondsPerTick = mTimingScale * mMillisecondsPerTick;
     }
 
     /*
@@ -3190,6 +3165,7 @@ FMOD_RESULT CodecMIDI::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
         const float ticksPerStep    = 10.0f;
         int         finishedCount   = 0;
         float       msPerTick       = 0;
+        float       msPlayed        = 0;
 
         waveformat[0].lengthpcm = 0;
         
@@ -3210,12 +3186,12 @@ FMOD_RESULT CodecMIDI::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
 
             // Each slice process updates tempo, so calculate the time this slice would play for
             msPerTick = ((float)mTempo / (float)mDivision) / 1000.0f;
-            mMillisecondsPlayed += msPerTick * ticksPerStep;
+            msPlayed += msPerTick * ticksPerStep;
             mTick += ticksPerStep;
         }
 
         // Convert the time played into playback samples (time adjusted)
-        waveformat[0].lengthpcm = (int)((mMillisecondsPlayed / 1000.0f) * waveformat[0].frequency);
+        waveformat[0].lengthpcm = (int)((msPlayed / 1000.0f) * waveformat[0].frequency);
     }
 
     // Determine the maximum number of channels played in the MIDI file
@@ -3245,13 +3221,10 @@ FMOD_RESULT CodecMIDI::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
     {
         if (mSampleInclusionList[count])
         {
-            if (mDLSSound->mSubSound[count] == NULL)
+            result = mDLSSound->loadSubSound(count, FMOD_SOFTWARE | FMOD_2D);
+            if (result != FMOD_OK)
             {
-                result = mDLSSound->loadSubSound(count, FMOD_SOFTWARE | FMOD_2D);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
+                return result;
             }
         }
     }
@@ -3287,7 +3260,6 @@ FMOD_RESULT CodecMIDI::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
     }
     
     mChannelGroup.mDSPHead = mDSPHead;
-    mChannelGroup.mDSPMixTarget = mDSPHead;
     mChannelGroup.mVolume  = 1.0f;
 
     /*
@@ -3326,7 +3298,6 @@ FMOD_RESULT CodecMIDI::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
         Fill out base class members, also pointing to or allocating storage for them.
     */
     numsubsounds    = 0;
-    mDSPTick        = 1;
 
     return result;
 }
@@ -3347,33 +3318,11 @@ FMOD_RESULT CodecMIDI::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0fbf7f3f auto
 // OFFSET: 0x008FB410
 FMOD_RESULT CodecMIDI::closeInternal()
 {
     int count;
-
-    if (mChannelPool)
-    {
-        mChannelPool->release();
-        mChannelPool = 0;
-    }
-    if (mDSPHead)
-    {
-        mDSPHead->release();
-        mDSPHead = 0;
-    }
-    if (mDLSCache)
-    {
-        if (--mDLSCache->mRefCount == 0)
-        {
-            mDLSCache->mDLSFile->release();
-            mDLSCache->removeNode();
-            FMOD_Memory_Free(mDLSCache);
-        }
-        mDLSCache = 0;
-        mDLSSound = 0;
-        mDLS = 0;
-    }
 
     if (mTrack)
     {
@@ -3393,17 +3342,29 @@ FMOD_RESULT CodecMIDI::closeInternal()
         mMIDISubChannel = 0;
     }
 
-    if (mWaveFormatMemory)
+    if (mChannelPool)
     {
-        FMOD_Memory_Free(mWaveFormatMemory);
-        mMIDISubChannel = 0;        
+        mChannelPool->release();
+        mChannelPool = 0;
     }
 
     if (mChannelSoftware)
     {
         FMOD_Memory_Free(mChannelSoftware);
         mChannelSoftware = 0;
-    }          
+    }
+
+    if (mDSPHead)
+    {
+        mDSPHead->release();
+        mDSPHead = 0;
+    }
+
+    if (mDLSSound)
+    {
+        mDLSSound->release();
+        mDLSSound = 0;
+    }
 
     return FMOD_OK;
 }
