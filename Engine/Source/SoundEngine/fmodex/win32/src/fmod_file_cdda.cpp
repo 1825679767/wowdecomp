@@ -28,6 +28,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 624ef696 manual
 // OFFSET: 0x009219A0
 CddaFile::CddaFile()
 {
@@ -94,6 +95,7 @@ FMOD_RESULT CddaFile::shutDown()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1a54aeab auto
 // OFFSET: 0x00921690
 FMOD_RESULT CddaFile::reallyOpen(const char *name_or_data, unsigned int *filesize)
 {
@@ -348,6 +350,7 @@ FMOD_RESULT CddaFile::reallyRead(void *buffer, unsigned int size, unsigned int *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1a04310c manual
 // OFFSET: 0x009210F0
 FMOD_RESULT CddaFile::doJitterCorrection(unsigned int sectors_to_read)
 {
@@ -538,6 +541,7 @@ FMOD_RESULT CddaFile::getTrackLength(unsigned int track, unsigned int *trackleng
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b8c7a280 manual
 // OFFSET: 0x009214F0
 FMOD_RESULT CddaFile::openTrack(unsigned int track)
 {

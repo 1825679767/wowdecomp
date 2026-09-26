@@ -56,6 +56,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ee626622 manual
 // OFFSET: 0x008F7BC0
 FMOD_CODEC_DESCRIPTION_EX *CodecPlaylist::getDescriptionEx()
 {
@@ -92,6 +93,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecPlaylist::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 95a010bf auto
 // OFFSET: 0x008F7990
 FMOD_RESULT CodecPlaylist::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -149,23 +151,6 @@ FMOD_RESULT CodecPlaylist::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXIN
             return result;
         }
     }
-    else if (!FMOD_strnicmp("<?WPL VERSION", playlistid, 12))
-    {
-        result = readWPL();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-    }
-    else if (!FMOD_strnicmp("<?XML VERSION", playlistid, 12))  // "Note: <?XML VERSION" may not uniquely indentify B4S format if more formats are supported
-    {
-        result = readB4S();
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-    }
-
 
     /*
         It might be a "simple" pls or m3u which is just a text file with
@@ -230,6 +215,7 @@ FMOD_RESULT CodecPlaylist::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXIN
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d9f48159 manual
 // OFFSET: 0x008F7470
 FMOD_RESULT CodecPlaylist::readASX()
 {
@@ -570,6 +556,7 @@ FMOD_RESULT CodecPlaylist::readB4S()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a553db4d manual
 // OFFSET: 0x008F6DD0
 FMOD_RESULT CodecPlaylist::getNextXMLTag(char *tagname, int *tagnamesize, char *tagdata, int *tagdatasize)
 {
@@ -605,12 +592,9 @@ FMOD_RESULT CodecPlaylist::getNextXMLTag(char *tagname, int *tagnamesize, char *
             return result;
         }
 
-        if (count < *tagnamesize)
-        {
-            tagname[count++] = c;
-        }
+        tagname[count++] = c;
     }
-    while (c != '>');
+    while (c != '>' && count < *tagnamesize);
 
     *tagnamesize = count - 1;
 
@@ -703,6 +687,7 @@ FMOD_RESULT CodecPlaylist::getNextXMLTag(char *tagname, int *tagnamesize, char *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2df3be07 manual
 // OFFSET: 0x008F6EF0
 FMOD_RESULT CodecPlaylist::readM3U()
 {
@@ -724,9 +709,9 @@ FMOD_RESULT CodecPlaylist::readM3U()
     do
     {
         result = mFile->getByte(&c);
-        if (result != FMOD_OK || count >= MAX_TOKEN_SIZE)
+        if (result != FMOD_OK)
         {
-            return FMOD_ERR_FORMAT;
+            return result;
         }
 
         token[count++] = c;
@@ -762,12 +747,9 @@ FMOD_RESULT CodecPlaylist::readM3U()
                 break;
             }
 
-            if (count < MAX_TOKEN_SIZE)
-            {
-                token[count++] = c;
-            }
+            token[count++] = c;
         }
-        while (c != ':' && result == FMOD_OK);
+        while (c != ':');
 
         if (FMOD_strnicmp("#EXTINF", token, 7))
         {
@@ -792,12 +774,9 @@ FMOD_RESULT CodecPlaylist::readM3U()
                 break;
             }
 
-            if (count < (MAX_TOKEN_SIZE - 1))
-            {
-                token[count++] = c;
-            }
+            token[count++] = c;
         }
-        while (c != ',' && result == FMOD_OK);
+        while (c != ',');
 
          // Convert to int
         token[count - 1] = '\0';
@@ -823,7 +802,7 @@ FMOD_RESULT CodecPlaylist::readM3U()
                 break;
             }
 
-            if (c != '\n' && c != '\r' && count < (MAX_TOKEN_SIZE - 1))
+            if (c != '\n' && c != '\r')
             {
                 token[count++] = c;
             }
@@ -852,12 +831,12 @@ FMOD_RESULT CodecPlaylist::readM3U()
                 break;
             }
 
-            if (c != '\n' && c != '\r' && count < (MAX_TOKEN_SIZE - 1))
+            if (c != '\n' && c != '\r')
             {
                 token[count++] = c;
             }
         }
-        while (!isNewLine(c) && result == FMOD_OK);
+        while (!isNewLine(c));
 
         token[count] = '\0';
 
@@ -997,6 +976,7 @@ FMOD_RESULT CodecPlaylist::readPLS()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6772112b manual
 // OFFSET: 0x008F7180
 FMOD_RESULT CodecPlaylist::getPLSToken(char *buffer, int length, int *tokensize)
 {
@@ -1066,7 +1046,7 @@ FMOD_RESULT CodecPlaylist::getPLSToken(char *buffer, int length, int *tokensize)
 
             if (isNewLine(c))
             {
-                count--;
+                count++;
                 break;
             }
         }
@@ -1092,7 +1072,7 @@ FMOD_RESULT CodecPlaylist::getPLSToken(char *buffer, int length, int *tokensize)
             }
 
             /* seek back to where we were */
-            result = mFile->seek(count - 1, SEEK_CUR);
+            result = mFile->seek(count + 1, SEEK_CUR);
             if (result != FMOD_OK)
             {
                 return result;
@@ -1100,13 +1080,8 @@ FMOD_RESULT CodecPlaylist::getPLSToken(char *buffer, int length, int *tokensize)
 
             /* check if first character of line is a '[' */
             if (c == '[')
-            {                
-                result = mFile->seek(2, SEEK_CUR);
-                if (result != FMOD_OK)
-                {
-                    return result;
-                }
-
+            {
+                count++;
                 break;
             }
         }
@@ -1191,6 +1166,7 @@ FMOD_RESULT CodecPlaylist::readSimple()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1fe36eaa manual
 // OFFSET: 0x008F7330
 FMOD_RESULT CodecPlaylist::readLine(char *buffer, int length, int *linelength)
 {
@@ -1246,6 +1222,7 @@ FMOD_RESULT CodecPlaylist::readLine(char *buffer, int length, int *linelength)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1a4762e7 manual
 // OFFSET: 0x008F73C0
 FMOD_RESULT CodecPlaylist::skipSimpleComments()
 {
@@ -1325,17 +1302,14 @@ FMOD_RESULT CodecPlaylist::getQuoteData(const char *tag, char *buffer, int *data
     */
     do
     {
-        if (count1 < MAX_TOKEN_SIZE)
-        {
-            c = tag[count1++];
-        }      
+        c = tag[count1++];
     }
     while (c != '"');
 
     /*
         Find second quotation mark and copy data
     */
-    do
+    for (;;)
     {
         c = tag[count1++];
         if (c == '"')
@@ -1344,7 +1318,6 @@ FMOD_RESULT CodecPlaylist::getQuoteData(const char *tag, char *buffer, int *data
         }
         buffer[count2++] = c;
     }
-    while (count1 < (MAX_TOKEN_SIZE - 1));
 
     buffer[count2] = '\0';
     *datasize = count2;
@@ -1492,6 +1465,7 @@ FMOD_RESULT CodecPlaylist::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3f03016e manual
 // OFFSET: 0x008F7B80
 FMOD_RESULT F_CALLBACK CodecPlaylist::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {

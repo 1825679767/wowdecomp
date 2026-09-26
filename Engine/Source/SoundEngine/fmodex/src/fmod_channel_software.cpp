@@ -171,6 +171,7 @@ FMOD_RESULT ChannelSoftware::init(int index, SystemI *system, Output *output, DS
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5267f156 manual
 // OFFSET: 0x009328B0
 FMOD_RESULT ChannelSoftware::close()
 {
@@ -228,6 +229,7 @@ FMOD_RESULT ChannelSoftware::close()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5319d4c8 manual
 // OFFSET: 0x00932940
 FMOD_RESULT ChannelSoftware::setupDSPCodec(DSPI *dsp)
 {
@@ -367,6 +369,7 @@ FMOD_RESULT ChannelSoftware::setupDSPCodec(DSPI *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 28a8460f manual
 // OFFSET: 0x00933F40
 FMOD_RESULT ChannelSoftware::alloc()
 {
@@ -966,6 +969,7 @@ FMOD_RESULT ChannelSoftware::setPaused(bool paused)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6643abb7 manual
 // OFFSET: 0x00934520
 FMOD_RESULT ChannelSoftware::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
@@ -1197,6 +1201,7 @@ FMOD_RESULT ChannelSoftware::updateDirectMix(float volume)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e62e45e9 manual
 // OFFSET: 0x00932F90
 FMOD_RESULT ChannelSoftware::updateReverbMix(ReverbI* reverb, float volume)
 {
@@ -1433,6 +1438,7 @@ FMOD_RESULT ChannelSoftware::set3DOcclusion(float directOcclusion, float reverbO
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e07dea55 manual
 // OFFSET: 0x00933210
 FMOD_RESULT ChannelSoftware::setVolume(float volume)
 {
@@ -1505,6 +1511,7 @@ FMOD_RESULT ChannelSoftware::setVolume(float volume)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3f2b1690 manual
 // OFFSET: 0x009332D0
 FMOD_RESULT ChannelSoftware::setFrequency(float frequency)
 {
@@ -1577,6 +1584,7 @@ FMOD_RESULT ChannelSoftware::setFrequency(float frequency)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 61dee4ae auto
 // OFFSET: 0x009333D0
 FMOD_RESULT ChannelSoftware::setPan(float lrpan, float fbpan)
 {
@@ -1649,6 +1657,7 @@ FMOD_RESULT ChannelSoftware::setPan(float lrpan, float fbpan)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ce03b657 manual
 // OFFSET: 0x009334F0
 FMOD_RESULT ChannelSoftware::setSpeakerMix(float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright)
 {
@@ -1722,6 +1731,7 @@ FMOD_RESULT ChannelSoftware::setSpeakerMix(float frontleft, float frontright, fl
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c4cdfe12 manual
 // OFFSET: 0x00933640
 FMOD_RESULT ChannelSoftware::setSpeakerLevels(int speaker, float *levels, int numlevels)
 {
@@ -1764,6 +1774,7 @@ FMOD_RESULT ChannelSoftware::setSpeakerLevels(int speaker, float *levels, int nu
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 17c56eb6 manual
 // OFFSET: 0x00934760
 FMOD_RESULT ChannelSoftware::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -1880,6 +1891,7 @@ FMOD_RESULT ChannelSoftware::setPosition(unsigned int position, FMOD_TIMEUNIT po
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3883f8f8 manual
 // OFFSET: 0x00934A00
 FMOD_RESULT ChannelSoftware::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {
@@ -2077,6 +2089,7 @@ FMOD_RESULT ChannelSoftware::setMode(FMOD_MODE mode)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bd38a747 manual
 // OFFSET: 0x009337F0
 FMOD_RESULT ChannelSoftware::isPlaying(bool *isplaying, bool includethreadlatency)
 {
@@ -2299,6 +2312,7 @@ FMOD_RESULT ChannelSoftware::getSpectrum(float *spectrumarray, int numvalues, in
     FMOD_DSP_FFT_WINDOW
 ]
 */
+// VERIFY: f1b1f7a1 manual
 // OFFSET: 0x00933AB0
 FMOD_RESULT ChannelSoftware::getWaveData(float *wavearray, int numvalues, int channeloffset)
 {
@@ -2409,6 +2423,7 @@ FMOD_RESULT ChannelSoftware::getDSPHead(DSPI **dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d309c00b manual
 // OFFSET: 0x00933C60
 FMOD_RESULT ChannelSoftware::addToReverbs(DSPI *dsptarget)
 {
@@ -2494,6 +2509,7 @@ FMOD_RESULT ChannelSoftware::addToReverbs(DSPI *dsptarget)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2f109c1b manual
 // OFFSET: 0x00933E00
 FMOD_RESULT ChannelSoftware::moveChannelGroup(ChannelGroupI *oldchannelgroup, ChannelGroupI *newchannelgroup)
 {

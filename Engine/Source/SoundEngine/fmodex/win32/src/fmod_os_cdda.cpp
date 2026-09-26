@@ -478,6 +478,7 @@ char *FMOD_CDDA_GetString(unsigned int value, FMOD_CDDA_StringList *stringlist)
 
 	[SEE_ALSO]
 */
+// VERIFY: 5f1259a3 manual
 // OFFSET: 0x00918A70
 FMOD_RESULT FMOD_OS_CDDA_Init(bool force_aspi)
 {
@@ -667,6 +668,7 @@ FMOD_RESULT FMOD_OS_CDDA_Init(bool force_aspi)
 
 	[SEE_ALSO]
 */
+// VERIFY: f9449a79 manual
 // OFFSET: 0x00918460
 FMOD_RESULT FMOD_OS_CDDA_Shutdown()
 {
@@ -717,7 +719,7 @@ FMOD_RESULT FMOD_OS_CDDA_Shutdown()
 */
 bool FMOD_OS_CDDA_IsDriveLetter(char *name)
 {
-    if (((name[1] == ':') && (name[2] == 0)) || ((name[2] == ':') && (name[4] == 0)))
+    if ((name[1] == ':') && (name[2] == 0))
     {
         /*
             Drive letter style - "d:" (or wide char)
@@ -732,6 +734,7 @@ bool FMOD_OS_CDDA_IsDriveLetter(char *name)
 }
 
 
+// VERIFY: 41767b20 manual
 // OFFSET: 0x00916F20
 bool FMOD_OS_CDDA_IsDeviceName(char *name)
 {
@@ -859,6 +862,7 @@ FMOD_RESULT FMOD_OS_CDDA_GetDeviceName(int devicenum, char *name, int namelen, c
 
 	[SEE_ALSO]
 */
+// VERIFY: 476793e9 manual
 // OFFSET: 0x009184E0
 FMOD_RESULT FMOD_OS_CDDA_GetDriveFromLetter(int letter, FMOD_CDDA_DEVICE **device)
 {
@@ -1149,6 +1153,7 @@ FMOD_RESULT FMOD_OS_CDDA_GetDriveFromLetter(int letter, FMOD_CDDA_DEVICE **devic
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 85165690 manual
 // OFFSET: 0x00918990
 FMOD_RESULT FMOD_OS_CDDA_OpenDevice(char *name, FMOD_CDDA_DEVICE **device)
 {
@@ -1209,7 +1214,7 @@ FMOD_RESULT FMOD_OS_CDDA_OpenDevice(char *name, FMOD_CDDA_DEVICE **device)
     {
         FMOD_OS_CDDA_DEBUGPRINT("FMOD_OS_CDDA_OpenDevice: Couldn't access device %s\n", name);
         *device = 0;
-        return FMOD_ERR_FILE_NOTFOUND;
+        return FMOD_ERR_INVALID_PARAM;
     }
 
     FMOD_OS_CDDA_DEBUGPRINT("FMOD_OS_CDDA_OpenDevice: Opened %s\n", name);
@@ -1231,6 +1236,7 @@ FMOD_RESULT FMOD_OS_CDDA_OpenDevice(char *name, FMOD_CDDA_DEVICE **device)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0c45eecf manual
 // OFFSET: 0x00916FC0
 FMOD_RESULT FMOD_OS_CDDA_CloseDevice(FMOD_CDDA_DEVICE *device)
 {
@@ -1361,6 +1367,7 @@ void FMOD_CDDA_AddUserTocEntry(FMOD_CDDA_DEVICE *device, unsigned int sector)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 26cc7346 manual
 // OFFSET: 0x00917B50
 FMOD_RESULT FMOD_OS_CDDA_ReadTocRaw(FMOD_CDDA_DEVICE *device, FMOD_CDDA_TOC *toc)
 {
@@ -1635,6 +1642,7 @@ FMOD_RESULT FMOD_OS_CDDA_ReadTocRaw(FMOD_CDDA_DEVICE *device, FMOD_CDDA_TOC *toc
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4e81b315 manual
 // OFFSET: 0x00917EF0
 FMOD_RESULT FMOD_OS_CDDA_ReadToc(FMOD_CDDA_DEVICE *device, FMOD_CDDA_TOC *toc)
 {
@@ -1786,6 +1794,7 @@ bool FMOD_CDDA_ScsiAbort(SRB_ExecSCSICmd *srb_to_abort, unsigned char adapter_id
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2759896f manual
 // OFFSET: 0x00917100
 int FMOD_CDDA_IssueScsiCmd_Internal(FMOD_CDDA_DEVICE *cdrom, int flags, unsigned char *cdb_data, int cdb_len, char *buf, int buflen, unsigned char adapter_id, unsigned char target_id, unsigned char lun_id)
 {
@@ -1926,6 +1935,7 @@ int FMOD_CDDA_IssueScsiCmd(FMOD_CDDA_DEVICE *cdrom, int flags, unsigned char *cd
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 810c6383 manual
 // OFFSET: 0x009180F0
 FMOD_RESULT FMOD_CDDA_Close(FMOD_CDDA_DEVICE *cdrom)
 {
@@ -1963,6 +1973,7 @@ FMOD_RESULT FMOD_CDDA_Close(FMOD_CDDA_DEVICE *cdrom)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2066887f manual
 // OFFSET: 0x009181F0
 bool FMOD_CDDA_InquiryCommand(unsigned char adapter_id, unsigned char target_id, unsigned char lun_id)
 {
@@ -2082,6 +2093,7 @@ bool FMOD_CDDA_InquiryCommand(unsigned char adapter_id, unsigned char target_id,
 	[SEE_ALSO]
 ]
 */
+// VERIFY: be3f3d0c manual
 // OFFSET: 0x00917220
 bool FMOD_OS_CDDA_TestUnitReady(FMOD_CDDA_DEVICE *device)
 {
@@ -2159,6 +2171,7 @@ bool FMOD_CDDA_PreventMediaRemoval(FMOD_CDDA_DEVICE *cdrom, bool prevent)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 88b06765 manual
 // OFFSET: 0x00917280
 FMOD_RESULT FMOD_OS_CDDA_SetSpeed(FMOD_CDDA_DEVICE *cdrom, int speed)
 {
@@ -2216,6 +2229,7 @@ FMOD_RESULT FMOD_OS_CDDA_SetSpeed(FMOD_CDDA_DEVICE *cdrom, int speed)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 88ba97c5 manual
 // OFFSET: 0x00917320
 int FMOD_CDDA_NTSCSI_GetNumAdapters()
 {
@@ -2258,6 +2272,7 @@ int FMOD_CDDA_NTSCSI_GetNumAdapters()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2aaead6e manual
 // OFFSET: 0x009173B0
 HANDLE FMOD_CDDA_NTSCSI_GetFileHandle(int i)
 {
@@ -2316,6 +2331,7 @@ HANDLE FMOD_CDDA_NTSCSI_GetFileHandle(int i)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6d42a080 manual
 // OFFSET: 0x00917460
 bool FMOD_CDDA_NTSCSI_GetDriveInformation(int i, FMOD_CDDA_NTSCSIDRIVE *drive)
 {
@@ -2811,6 +2827,7 @@ DWORD FMOD_CDDA_NTSCSI_GetASPI32SupportInfo()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 84c70a56 manual
 // OFFSET: 0x00917A40
 DWORD FMOD_CDDA_NTSCSI_SendASPI32Command(SRB *srb)
 {

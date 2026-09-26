@@ -37,7 +37,7 @@ namespace FMOD
         #define DSP_LEVEL_PRECISION 32
     #endif
 
-    #define DSP_LEVEL_SMALLVAL 0.00002f
+    #define DSP_LEVEL_SMALLVAL 0.0001f
 
     #if (DSP_LEVEL_PRECISION == 32)
         #define DSP_LEVEL_TYPE float
@@ -106,7 +106,6 @@ namespace FMOD
         #endif
 
         float           mVolume;
-        void           *mUserData;
 
                                     
         FMOD_RESULT     init        (DSP_LEVEL_TYPE * &levelmemory, int maxoutputlevels, int maxinputlevels);
@@ -128,8 +127,6 @@ namespace FMOD
         FMOD_RESULT     getLevels   (float *levels, int numinputlevels);
         FMOD_RESULT     setLevels   (FMOD_SPEAKER speaker, float *levels, int numlevels);
         FMOD_RESULT     getLevels   (FMOD_SPEAKER speaker, float *levels, int numlevels);
-        FMOD_RESULT     setUserData (void *userdata);
-        FMOD_RESULT     getUserData (void **userdata);
 
         FMOD_RESULT     copy       (DSPConnectionI *source);
 

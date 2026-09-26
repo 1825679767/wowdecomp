@@ -125,6 +125,7 @@ FMOD_RESULT SoundGroupI::release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2ee25a3c auto
 // OFFSET: 0x008E46D0
 FMOD_RESULT SoundGroupI::releaseInternal()
 {  
@@ -243,10 +244,11 @@ FMOD_RESULT SoundGroupI::getMaxAudible(int *maxaudible)
 ]
 */
 
+// VERIFY: cee20409 auto
 // OFFSET: 0x008E4750
 FMOD_RESULT SoundGroupI::setMaxAudibleBehavior(FMOD_SOUNDGROUP_BEHAVIOR behavior)
 {
-    if (behavior >= FMOD_SOUNDGROUP_BEHAVIOR_MAX)
+    if (behavior < 0 || behavior >= FMOD_SOUNDGROUP_BEHAVIOR_MAX)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
@@ -584,6 +586,7 @@ FMOD_RESULT SoundGroupI::getSound(int index, Sound **sound)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 35ad500d manual
 // OFFSET: 0x008E47A0
 FMOD_RESULT SoundGroupI::getNumPlaying(int *numplaying)
 {

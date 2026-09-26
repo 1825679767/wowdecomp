@@ -267,6 +267,7 @@ void Octree::insertItem(OctreeNode* item)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dc64b5cd manual
 // OFFSET: 0x009263F0
 void Octree::deleteItem(OctreeNode* item)
 {
@@ -424,6 +425,7 @@ void Octree::deleteItem(OctreeNode* item)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ab66def8 manual
 // OFFSET: 0x00926580
 void Octree::updateItem(OctreeNode* item)
 {
@@ -1586,6 +1588,7 @@ void Octree::addListItem(OctreeNode* list, OctreeNode* node)
     ASSERT(node->nextItem != node);
 }
 
+// VERIFY: 3513f551 manual
 // OFFSET: 0x00925790
 void Octree::testLine(OctreeNode* node, FMOD_VECTOR a, FMOD_VECTOR b, RecursionData* recursionData)
 {

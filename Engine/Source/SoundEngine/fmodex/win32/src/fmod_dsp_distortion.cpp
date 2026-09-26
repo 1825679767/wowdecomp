@@ -192,6 +192,7 @@ FMOD_RESULT DSPDistortion::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e0e33405 manual
 // OFFSET: 0x008EF2C0
 FMOD_RESULT DSPDistortion::readInternal(float * inbuffer, float * outbuffer, unsigned int length, int inchannels, int outchannels)
 {   
@@ -340,6 +341,7 @@ FMOD_RESULT DSPDistortion::getParameterInternal(int index, float *value, char *v
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 62e46c7b manual
 // OFFSET: 0x008EF410
 FMOD_RESULT F_CALLBACK DSPDistortion::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -439,6 +441,7 @@ FMOD_RESULT F_CALLBACK DSPDistortion::readCallback(FMOD_DSP_STATE *dsp, float *i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cd66c699 manual
 // OFFSET: 0x008EF470
 FMOD_RESULT F_CALLBACK DSPDistortion::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
@@ -464,6 +467,7 @@ FMOD_RESULT F_CALLBACK DSPDistortion::setParameterCallback(FMOD_DSP_STATE *dsp, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2e631dc1 manual
 // OFFSET: 0x008EF4A0
 FMOD_RESULT F_CALLBACK DSPDistortion::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {

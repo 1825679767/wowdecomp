@@ -42,6 +42,7 @@ SpeakerLevelsPool::SpeakerLevelsPool()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6655e3db manual
 // OFFSET: 0x00921A10
 FMOD_RESULT SpeakerLevelsPool::alloc(float **levels)
 {

@@ -21,6 +21,7 @@
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 326ae538 manual
 // OFFSET: 0x009411A0
 void FMOD_Resampler_Cubic(float *out, int outlength, void *src, FMOD_SOUND_FORMAT srcformat, FMOD_UINT64P *position, FMOD_SINT64P *speed, int channels)
 {

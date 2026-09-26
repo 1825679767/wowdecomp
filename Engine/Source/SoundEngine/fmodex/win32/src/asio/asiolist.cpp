@@ -12,6 +12,7 @@
 // ******************************************************************
 // Local Functions 
 // ******************************************************************
+// VERIFY: 8687d120 manual
 // OFFSET: 0x0094D4F0
 static LONG findDrvPath (char *clsidstr,char *dllpath,int dllpathsize)
 {
@@ -57,6 +58,7 @@ static LONG findDrvPath (char *clsidstr,char *dllpath,int dllpathsize)
 }
 
 
+// VERIFY: 3fd96a89 manual
 // OFFSET: 0x0094D6C0
 static LPASIODRVSTRUCT newDrvStruct (HKEY hkey,char *keyname,int drvID,LPASIODRVSTRUCT lpdrv)
 {
@@ -231,6 +233,7 @@ LONG AsioDriverList::asioCloseDriver (int drvID)
 	return 0;
 }
 
+// VERIFY: 5617b728 manual
 // OFFSET: 0x0094DA80
 LONG AsioDriverList::asioGetDriverName (int drvID,char *drvname,int drvnamesize)
 {	

@@ -28,6 +28,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 439c3100 manual
 // OFFSET: 0x0094F5B0
 FMOD_RESULT ChannelDSoundEAX4::setReverbProperties(const FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
@@ -42,20 +43,10 @@ FMOD_RESULT ChannelDSoundEAX4::setReverbProperties(const FMOD_REVERB_CHANNELPROP
         return FMOD_ERR_UNINITIALIZED;
     }
 
-    if (!prop)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    if (!mBuffer3D)
-    {
-        return FMOD_ERR_UNSUPPORTED;
-    }
-
 	/*
 		OBTAIN REVERB INTERFACE
 	*/
-	if (!mBufferReverb)
+	if (mBuffer3D && !mBufferReverb)
 	{
   		if (mFlags & CHANNELREAL_FLAG_PAUSED && mOutputDSound->mDirectXVersion >= 8)
   		{
@@ -184,6 +175,7 @@ FMOD_RESULT ChannelDSoundEAX4::setReverbProperties(const FMOD_REVERB_CHANNELPROP
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bf015724 manual
 // OFFSET: 0x0094F910
 FMOD_RESULT ChannelDSoundEAX4::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 {
@@ -205,15 +197,10 @@ FMOD_RESULT ChannelDSoundEAX4::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (!mBuffer3D)
-    {
-        return FMOD_ERR_UNSUPPORTED;
-    }
-
 	/*
 		OBTAIN REVERB INTERFACE
 	*/
-	if (!mBufferReverb)
+	if (mBuffer3D && !mBufferReverb)
 	{
   		if (mFlags & CHANNELREAL_FLAG_PAUSED && mOutputDSound->mDirectXVersion >= 8)
   		{

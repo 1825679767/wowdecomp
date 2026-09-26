@@ -29,6 +29,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ab8a4448 manual
 // OFFSET: 0x00929C20
 FMOD_RESULT DSPSoundCard::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 {
@@ -78,6 +79,7 @@ FMOD_RESULT DSPSoundCard::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0273aeed manual
 // OFFSET: 0x00929D00
 FMOD_RESULT DSPSoundCard::execute(void *inbuffer, void **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode)
 {

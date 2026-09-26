@@ -204,6 +204,7 @@ FMOD_RESULT DSPEcho::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9a45ab9d manual
 // OFFSET: 0x008EFF00
 FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -367,6 +368,7 @@ FMOD_RESULT DSPEcho::readInternal(float *inbuffer, float *outbuffer, unsigned in
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ce8882df manual
 // OFFSET: 0x008F0530
 FMOD_RESULT DSPEcho::setParameterInternal(int index, float value)
 {
@@ -539,6 +541,7 @@ FMOD_RESULT DSPEcho::getParameterInternal(int index, float *value, char *valuest
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bd95d5a1 manual
 // OFFSET: 0x008F07B0
 FMOD_RESULT F_CALLBACK DSPEcho::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -564,6 +567,7 @@ FMOD_RESULT F_CALLBACK DSPEcho::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5cf90fbf manual
 // OFFSET: 0x008F07E0
 FMOD_RESULT F_CALLBACK DSPEcho::releaseCallback(FMOD_DSP_STATE *dsp)
 {
@@ -589,6 +593,7 @@ FMOD_RESULT F_CALLBACK DSPEcho::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 478d6ddb manual
 // OFFSET: 0x008F0830
 FMOD_RESULT F_CALLBACK DSPEcho::resetCallback(FMOD_DSP_STATE *dsp)
 {
@@ -640,6 +645,7 @@ FMOD_RESULT F_CALLBACK DSPEcho::readCallback(FMOD_DSP_STATE *dsp, float *inbuffe
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 49258adc manual
 // OFFSET: 0x008F08A0
 FMOD_RESULT F_CALLBACK DSPEcho::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {

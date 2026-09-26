@@ -87,6 +87,7 @@ FMOD_RESULT Codec::release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 82ec2bee manual
 // OFFSET: 0x0091DD50
 FMOD_RESULT Codec::read(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -185,6 +186,7 @@ FMOD_RESULT Codec::read(void *buffer, unsigned int sizebytes, unsigned int *byte
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f41fe9ef manual
 // OFFSET: 0x0091DCD0
 FMOD_RESULT Codec::getMetadataFromFile()
 {
@@ -281,6 +283,7 @@ FMOD_RESULT Codec::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: df3c4bc9 manual
 // OFFSET: 0x0091D4B0
 FMOD_RESULT Codec::setPosition(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -301,12 +304,6 @@ FMOD_RESULT Codec::setPosition(int subsound, unsigned int position, FMOD_TIMEUNI
     {
         subsound = mSubSoundIndex;
     }
-
-    if (!numsubsounds)
-    {
-        subsound = 0;
-    }
-
 
     result = mDescription.getwaveformat(this, subsound, &waveformat);
     if (result != FMOD_OK)
@@ -454,6 +451,7 @@ FMOD_RESULT Codec::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
     FMOD_TAGDATATYPE
 ]
 */
+// VERIFY: a8203f07 manual
 // OFFSET: 0x0091DC30
 FMOD_RESULT Codec::metaData(FMOD_TAGTYPE type, const char *name, void *data, unsigned int datalen, FMOD_TAGDATATYPE datatype, bool unique)
 {

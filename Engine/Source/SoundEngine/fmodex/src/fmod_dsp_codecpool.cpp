@@ -39,6 +39,7 @@ namespace FMOD
 ]
 */
 
+// VERIFY: 977542f8 manual
 // OFFSET: 0x008E86B0
 FMOD_RESULT DSPCodecPool::init(FMOD_DSP_CATEGORY category, int resamplerpcmblocksize, int numdspcodecs)
 {
@@ -206,6 +207,7 @@ FMOD_RESULT DSPCodecPool::init(FMOD_DSP_CATEGORY category, int resamplerpcmblock
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ec0072cf auto
 // OFFSET: 0x008E8510
 FMOD_RESULT DSPCodecPool::close()
 {
@@ -257,6 +259,7 @@ FMOD_RESULT DSPCodecPool::close()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d6c6ec42 manual
 // OFFSET: 0x008E85F0
 FMOD_RESULT DSPCodecPool::alloc(DSPCodec **dspcodec)
 {
@@ -294,6 +297,7 @@ FMOD_RESULT DSPCodecPool::alloc(DSPCodec **dspcodec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8cca9a7c manual
 // OFFSET: 0x008E8660
 FMOD_RESULT DSPCodecPool::areAnyFree()
 {

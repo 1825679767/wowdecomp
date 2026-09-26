@@ -120,6 +120,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPHighPass::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 359da32d manual
 // OFFSET: 0x008F1820
 FMOD_RESULT DSPHighPass::createInternal()
 {
@@ -168,6 +169,7 @@ FMOD_RESULT DSPHighPass::createInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9b8b8883 manual
 // OFFSET: 0x008F09C0
 FMOD_RESULT DSPHighPass::resetInternal()
 {
@@ -241,6 +243,7 @@ FMOD_RESULT DSPHighPass::updateCoefficients(float resonance, float cutoff)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c6a99045 manual
 // OFFSET: 0x008F0A60
 FMOD_RESULT DSPHighPass::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -420,6 +423,7 @@ FMOD_RESULT DSPHighPass::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5d9b7300 manual
 // OFFSET: 0x008F16D0
 FMOD_RESULT DSPHighPass::getParameterInternal(int index, float *value, char *valuestr)
 {
@@ -488,6 +492,7 @@ FMOD_RESULT DSPHighPass::getParameterInternal(int index, float *value, char *val
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1fb4d930 manual
 // OFFSET: 0x008F1920
 FMOD_RESULT F_CALLBACK DSPHighPass::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -512,6 +517,7 @@ FMOD_RESULT F_CALLBACK DSPHighPass::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dd9e7d4a manual
 // OFFSET: 0x008F1740
 FMOD_RESULT F_CALLBACK DSPHighPass::resetCallback(FMOD_DSP_STATE *dsp)
 {
@@ -563,6 +569,7 @@ FMOD_RESULT F_CALLBACK DSPHighPass::readCallback(FMOD_DSP_STATE *dsp, float *inb
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 59819236 manual
 // OFFSET: 0x008F17B0
 FMOD_RESULT F_CALLBACK DSPHighPass::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {

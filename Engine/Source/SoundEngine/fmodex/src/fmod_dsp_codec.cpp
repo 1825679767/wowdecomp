@@ -397,6 +397,7 @@ FMOD_RESULT DSPCodec::getParameterInternal(int index, float *value, char *values
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bbe3914f manual
 // OFFSET: 0x00926C70
 FMOD_RESULT F_CALLBACK DSPCodec::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -492,6 +493,7 @@ FMOD_RESULT F_CALLBACK DSPCodec::readCallback(FMOD_DSP_STATE *dsp, float *inbuff
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 03a5e511 manual
 // OFFSET: 0x00926CA0
 FMOD_RESULT F_CALLBACK DSPCodec::setPositionCallback(FMOD_DSP_STATE *dsp, unsigned int pos)
 {

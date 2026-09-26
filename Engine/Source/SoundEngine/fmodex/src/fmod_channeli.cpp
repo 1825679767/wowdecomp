@@ -109,6 +109,7 @@ FMOD_RESULT ChannelI::validate(Channel *channel, ChannelI **channeli)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e908bb3d manual
 // OFFSET: 0x008DCE10
 FMOD_RESULT ChannelI::returnToFreeList()
 {
@@ -274,6 +275,7 @@ FMOD_RESULT ChannelI::setDefaults()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7f7ea101 manual
 // OFFSET: 0x008DCE80
 FMOD_RESULT ChannelI::referenceStamp(bool newstamp)
 {
@@ -313,6 +315,7 @@ FMOD_RESULT ChannelI::referenceStamp(bool newstamp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: edb55259 manual
 // OFFSET: 0x008E05E0
 FMOD_RESULT ChannelI::updatePosition()
 {
@@ -371,6 +374,7 @@ FMOD_RESULT ChannelI::updatePosition()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f5eb5c0f manual
 // OFFSET: 0x008E0460
 FMOD_RESULT ChannelI::forceVirtual(bool force)
 {
@@ -455,6 +459,7 @@ FMOD_RESULT ChannelI::forceVirtual(bool force)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9c5e7a56 manual
 // OFFSET: 0x008DFE20
 FMOD_RESULT ChannelI::getChannelInfo(FMOD_CHANNEL_INFO *info)
 {
@@ -506,6 +511,7 @@ FMOD_RESULT ChannelI::getChannelInfo(FMOD_CHANNEL_INFO *info)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b939b069 manual
 // OFFSET: 0x008DFFC0
 FMOD_RESULT ChannelI::setChannelInfo(FMOD_CHANNEL_INFO *info)
 {
@@ -635,6 +641,7 @@ FMOD_RESULT ChannelI::getRealChannel(ChannelReal **realchan, int *subchannels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3f9477d7 manual
 // OFFSET: 0x008DCF80
 FMOD_RESULT ChannelI::calcVolumeAndPitchFor3D(int delta)
 {
@@ -886,6 +893,7 @@ FMOD_RESULT ChannelI::calcVolumeAndPitchFor3D(int delta)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f8da4d48 manual
 // OFFSET: 0x008DF530
 ChannelI::ChannelI()
 {
@@ -906,6 +914,7 @@ ChannelI::ChannelI()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 55ba9d37 manual
 // OFFSET: 0x008DF570
 ChannelI::ChannelI(int index, SystemI *system)
 {
@@ -931,6 +940,7 @@ ChannelI::ChannelI(int index, SystemI *system)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d98a99cf manual
 // OFFSET: 0x008DD530
 FMOD_RESULT ChannelI::init()
 {
@@ -1035,6 +1045,7 @@ FMOD_RESULT ChannelI::getSystemObject(System **system)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4be9f2ab manual
 // OFFSET: 0x008E0200
 FMOD_RESULT ChannelI::play(SoundI *sound, bool paused, bool reset, bool startmuted)
 {
@@ -1363,6 +1374,7 @@ FMOD_RESULT ChannelI::alloc(SoundI *sound, bool reset)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 129db19f manual
 // OFFSET: 0x008DD870
 FMOD_RESULT ChannelI::alloc(DSPI *dsp, bool reset)
 {
@@ -1652,6 +1664,7 @@ FMOD_RESULT ChannelI::updateSyncPoints(bool seeking)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0a5f49c9 manual
 // OFFSET: 0x008E0850
 FMOD_RESULT ChannelI::update(int delta)
 {
@@ -1905,6 +1918,7 @@ FMOD_RESULT ChannelI::stop()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8c769b1c manual
 // OFFSET: 0x008DF810
 FMOD_RESULT ChannelI::stopEx(bool refstamp, bool updatelist, bool resetcallbacks, bool resetstate, bool callendcallback, bool resetchannelgroup, bool force)
 {
@@ -2052,6 +2066,7 @@ FMOD_RESULT ChannelI::stopEx(bool refstamp, bool updatelist, bool resetcallbacks
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 936aa7f2 manual
 // OFFSET: 0x008DDB00
 FMOD_RESULT ChannelI::setPaused(bool paused)
 {
@@ -2153,6 +2168,7 @@ FMOD_RESULT ChannelI::getPaused(bool *paused)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: afb24016 manual
 // OFFSET: 0x008DDB90
 FMOD_RESULT ChannelI::setVolume(float volume, bool forceupdatepos)
 {
@@ -2256,6 +2272,7 @@ FMOD_RESULT ChannelI::getVolume(float *volume)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c08bac45 manual
 // OFFSET: 0x008DDCC0
 FMOD_RESULT ChannelI::setFrequency(float frequency)
 {
@@ -2523,6 +2540,7 @@ FMOD_RESULT ChannelI::getDelay(unsigned int *startdelay, unsigned int *enddelay)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5860909c auto
 // OFFSET: 0x008DDF00
 FMOD_RESULT ChannelI::setSpeakerMix(float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright, bool calldriver)
 {
@@ -2638,6 +2656,7 @@ FMOD_RESULT ChannelI::getSpeakerMix(float *frontleft, float *frontright, float *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 111d3274 manual
 // OFFSET: 0x008DE100
 FMOD_RESULT ChannelI::setSpeakerLevels(FMOD_SPEAKER speaker, float *levels, int numlevels, bool calldriver)
 {
@@ -2655,7 +2674,7 @@ FMOD_RESULT ChannelI::setSpeakerLevels(FMOD_SPEAKER speaker, float *levels, int 
         return FMOD_ERR_TOOMANYCHANNELS;
     }
 
-    if (speaker > FMOD_SPEAKER_SIDE_RIGHT)
+    if (speaker < 0 || speaker > FMOD_SPEAKER_SIDE_RIGHT)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
@@ -2787,6 +2806,7 @@ FMOD_RESULT ChannelI::setSpeakerLevels(FMOD_SPEAKER speaker, float *levels, int 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8fe91578 manual
 // OFFSET: 0x008DE460
 FMOD_RESULT ChannelI::getSpeakerLevels(FMOD_SPEAKER speaker, float *levels, int numlevels)
 {
@@ -2797,7 +2817,7 @@ FMOD_RESULT ChannelI::getSpeakerLevels(FMOD_SPEAKER speaker, float *levels, int 
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    if (speaker > FMOD_SPEAKER_SIDE_RIGHT)
+    if (speaker < 0 || speaker > FMOD_SPEAKER_SIDE_RIGHT)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
@@ -2945,6 +2965,7 @@ FMOD_RESULT ChannelI::getInputChannelMix(float *levels, int numlevels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 655af493 manual
 // OFFSET: 0x008DE5A0
 FMOD_RESULT ChannelI::setMute(bool mute)
 {
@@ -3104,6 +3125,7 @@ FMOD_RESULT ChannelI::getPriority(int *priority)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 521665cc manual
 // OFFSET: 0x008DE680
 FMOD_RESULT ChannelI::set3DAttributes(const FMOD_VECTOR *pos, const FMOD_VECTOR *vel)
 {
@@ -3348,6 +3370,7 @@ FMOD_RESULT ChannelI::get3DMinMaxDistance(float *mindistance, float *maxdistance
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 99fb2c3f manual
 // OFFSET: 0x008DE870
 FMOD_RESULT ChannelI::set3DConeSettings(float insideconeangle, float outsideconeangle, float outsidevolume)
 {
@@ -3585,6 +3608,7 @@ FMOD_RESULT ChannelI::get3DCustomRolloff(FMOD_VECTOR **points, int *numpoints)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c66be9ef manual
 // OFFSET: 0x008E0730
 FMOD_RESULT ChannelI::set3DOcclusionInternal(float direct, float reverb, bool resettarget)
 {
@@ -4024,6 +4048,7 @@ FMOD_RESULT ChannelI::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 158c71ec manual
 // OFFSET: 0x008DEA50
 FMOD_RESULT ChannelI::setChannelGroupInternal(ChannelGroupI *channelgroup, bool resetattributes)
 {
@@ -4185,6 +4210,7 @@ FMOD_RESULT ChannelI::getChannelGroup(ChannelGroupI **channelgroup)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6a5f51a8 manual
 // OFFSET: 0x008DECE0
 FMOD_RESULT ChannelI::isPlaying(bool *isplaying)
 {
@@ -4260,6 +4286,7 @@ FMOD_RESULT ChannelI::isPlaying(bool *isplaying)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8d58d807 manual
 // OFFSET: 0x008DEDE0
 FMOD_RESULT ChannelI::isVirtual(bool *isvirtual)
 {
@@ -4541,6 +4568,7 @@ FMOD_RESULT ChannelI::getIndex(int *index)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 77494d19 auto
 // OFFSET: 0x008DEF40
 FMOD_RESULT ChannelI::setCallback(FMOD_CHANNEL_CALLBACKTYPE type, FMOD_CHANNEL_CALLBACK callback, int command)
 {
@@ -4549,7 +4577,7 @@ FMOD_RESULT ChannelI::setCallback(FMOD_CHANNEL_CALLBACKTYPE type, FMOD_CHANNEL_C
         return FMOD_ERR_INVALID_HANDLE;
     }
 
-    if (type >= FMOD_CHANNEL_CALLBACKTYPE_MAX)
+    if (type < 0 || type >= FMOD_CHANNEL_CALLBACKTYPE_MAX)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
@@ -4588,6 +4616,7 @@ FMOD_RESULT ChannelI::setCallback(FMOD_CHANNEL_CALLBACKTYPE type, FMOD_CHANNEL_C
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 959f1972 manual
 // OFFSET: 0x008DFA80
 FMOD_RESULT ChannelI::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -4749,6 +4778,7 @@ FMOD_RESULT ChannelI::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: be82e40e manual
 // OFFSET: 0x008DEFD0
 FMOD_RESULT ChannelI::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {

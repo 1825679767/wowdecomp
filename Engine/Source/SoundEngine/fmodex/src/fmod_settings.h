@@ -992,7 +992,7 @@
     #ifdef FMOD_DEBUG
         #define ASYNC_STACKSIZE    (64 * 1024)
     #else
-        #define ASYNC_STACKSIZE    (48 * 1024)
+        #define ASYNC_STACKSIZE    (32 * 1024)
     #endif
     #define MIXER_STACKSIZE        (32 * 1024)
 #else

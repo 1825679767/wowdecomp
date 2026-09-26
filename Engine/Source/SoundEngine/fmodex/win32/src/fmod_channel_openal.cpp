@@ -73,6 +73,7 @@ ChannelOpenAL::ChannelOpenAL()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: eb7e5ba8 manual
 // OFFSET: 0x009478C0
 FMOD_RESULT ChannelOpenAL::init(int index, SystemI *system, Output *output, DSPI *dspmixtarget)
 {
@@ -184,6 +185,7 @@ FMOD_RESULT ChannelOpenAL::init(int index, SystemI *system, Output *output, DSPI
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 622da562 manual
 // OFFSET: 0x009451A0
 FMOD_RESULT ChannelOpenAL::close()
 {
@@ -246,6 +248,7 @@ FMOD_RESULT ChannelOpenAL::close()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a944ad46 manual
 // OFFSET: 0x00945260
 FMOD_RESULT ChannelOpenAL::setupDSPCodec(DSPI *dsp)
 {
@@ -382,6 +385,7 @@ FMOD_RESULT ChannelOpenAL::setupDSPCodec(DSPI *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 34314566 manual
 // OFFSET: 0x00945480
 FMOD_RESULT ChannelOpenAL::alloc()
 {
@@ -637,6 +641,7 @@ FMOD_RESULT ChannelOpenAL::alloc()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4327641d manual
 // OFFSET: 0x00947040
 FMOD_RESULT ChannelOpenAL::alloc(DSPI *dsp)
 {
@@ -816,6 +821,7 @@ FMOD_RESULT ChannelOpenAL::alloc(DSPI *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bb077191 manual
 // OFFSET: 0x00945890
 FMOD_RESULT ChannelOpenAL::start()
 {
@@ -989,6 +995,7 @@ FMOD_RESULT ChannelOpenAL::start()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2476c3a8 manual
 // OFFSET: 0x00945CD0
 FMOD_RESULT ChannelOpenAL::stop(bool ignoreenddelay, bool resetstate, bool force)
 {
@@ -1101,6 +1108,7 @@ FMOD_RESULT ChannelOpenAL::stop(bool ignoreenddelay, bool resetstate, bool force
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7d9628c8 manual
 // OFFSET: 0x00945ED0
 FMOD_RESULT ChannelOpenAL::setPaused(bool paused)
 {
@@ -1315,6 +1323,7 @@ FMOD_RESULT ChannelOpenAL::setPan(float pan, float fbpan)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 99fad7ba manual
 // OFFSET: 0x00947350
 FMOD_RESULT ChannelOpenAL::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -1367,7 +1376,7 @@ FMOD_RESULT ChannelOpenAL::setPosition(unsigned int position, FMOD_TIMEUNIT post
     }
     else if (postype == FMOD_TIMEUNIT_MS)
     {
-        pcm = (unsigned int)((float)position / 1000.0f * frequency);
+        pcm = (unsigned int)((float)position * frequency / 1000.0f);
     }
    
     if (mSound)
@@ -1431,6 +1440,7 @@ FMOD_RESULT ChannelOpenAL::setPosition(unsigned int position, FMOD_TIMEUNIT post
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d05b1e3a manual
 // OFFSET: 0x009475F0
 FMOD_RESULT ChannelOpenAL::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {
@@ -1644,6 +1654,7 @@ FMOD_RESULT ChannelOpenAL::setMode(FMOD_MODE mode)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c91a1387 manual
 // OFFSET: 0x00946240
 FMOD_RESULT ChannelOpenAL::set3DAttributes()
 {
@@ -1971,6 +1982,7 @@ FMOD_RESULT ChannelOpenAL::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *pr
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8745da6e manual
 // OFFSET: 0x009468C0
 FMOD_RESULT ChannelOpenAL::isPlaying(bool *isplaying, bool includethreadlatency)
 {
@@ -2197,6 +2209,7 @@ FMOD_RESULT ChannelOpenAL::getSpectrum(float *spectrumarray, int numvalues, int 
     FMOD_DSP_FFT_WINDOW
 ]
 */
+// VERIFY: 404a8c49 manual
 // OFFSET: 0x00946B20
 FMOD_RESULT ChannelOpenAL::getWaveData(float *wavearray, int numvalues, int channeloffset)
 {
@@ -2311,6 +2324,7 @@ FMOD_RESULT ChannelOpenAL::setupChannel()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3f40420f manual
 // OFFSET: 0x00946CB0
 FMOD_RESULT ChannelOpenAL::updateChannel()
 {

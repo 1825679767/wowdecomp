@@ -55,6 +55,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ef479b12 manual
 // OFFSET: 0x008E8F30
 FMOD_CODEC_DESCRIPTION_EX *CodecUser::getDescriptionEx()
 {
@@ -91,6 +92,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecUser::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b39686ad manual
 // OFFSET: 0x008E8CF0
 FMOD_RESULT CodecUser::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -134,16 +136,11 @@ FMOD_RESULT CodecUser::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
     */
 	mSrcDataOffset  = 0;
 
-    if (userexinfo->length)
-    {
-        mFlags |= FMOD_CODEC_USERLENGTH;
-    }
-
     waveformat[0].format     = userexinfo->format;
 	waveformat[0].channels   = userexinfo->numchannels;
     waveformat[0].frequency  = userexinfo->defaultfrequency;
 	SoundI::getSamplesFromBytes(userexinfo->length, &waveformat[0].lengthpcm, userexinfo->numchannels, userexinfo->format);
-	SoundI::getBytesFromSamples(1,  (unsigned int *)&waveformat[0].blockalign, userexinfo->numchannels, userexinfo->format);
+    waveformat[0].blockalign = waveformat[0].channels * 16 / 8;
 
     /*
         Fill out base class members, also pointing to or allocating storage for them.
@@ -248,6 +245,7 @@ FMOD_RESULT CodecUser::setPositionInternal(int subsound, unsigned int position, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6a2cac4b manual
 // OFFSET: 0x008E8EF0
 FMOD_RESULT F_CALLBACK CodecUser::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {

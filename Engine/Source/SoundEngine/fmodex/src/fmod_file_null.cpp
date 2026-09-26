@@ -64,6 +64,7 @@ FMOD_RESULT NullFile::reallyClose()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9a03ced8 manual
 // OFFSET: 0x008E8C90
 FMOD_RESULT NullFile::reallyRead(void *buffer, unsigned int size, unsigned int *read)
 {

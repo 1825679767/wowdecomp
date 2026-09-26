@@ -126,6 +126,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPLowPassSimple::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f65f5650 manual
 // OFFSET: 0x008F2100
 FMOD_RESULT DSPLowPassSimple::createInternal()
 {
@@ -264,6 +265,7 @@ FMOD_RESULT DSPLowPassSimple::updateCoefficients(float cutoffhz)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fa49e284 manual
 // OFFSET: 0x008F1AA0
 FMOD_RESULT DSPLowPassSimple::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -572,6 +574,7 @@ FMOD_RESULT DSPLowPassSimple::getParameterInternal(int index, float *value, char
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4642f97f manual
 // OFFSET: 0x008F2190
 FMOD_RESULT F_CALLBACK DSPLowPassSimple::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -597,6 +600,7 @@ FMOD_RESULT F_CALLBACK DSPLowPassSimple::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f9e089e9 manual
 // OFFSET: 0x008F2010
 FMOD_RESULT F_CALLBACK DSPLowPassSimple::resetCallback(FMOD_DSP_STATE *dsp)
 {
@@ -650,6 +654,7 @@ FMOD_RESULT F_CALLBACK DSPLowPassSimple::readCallback(FMOD_DSP_STATE *dsp, float
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dc521824 manual
 // OFFSET: 0x008F2080
 FMOD_RESULT F_CALLBACK DSPLowPassSimple::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
@@ -675,6 +680,7 @@ FMOD_RESULT F_CALLBACK DSPLowPassSimple::setParameterCallback(FMOD_DSP_STATE *ds
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7e5b50c6 manual
 // OFFSET: 0x008F20B0
 FMOD_RESULT F_CALLBACK DSPLowPassSimple::getParameterCallback(FMOD_DSP_STATE *dsp, int index, float *value, char *valuestr)
 {

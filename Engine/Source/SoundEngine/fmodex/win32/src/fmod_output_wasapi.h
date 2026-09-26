@@ -46,7 +46,7 @@ namespace FMOD
         IAudioCaptureClient      *mCaptureClient;
         BYTE                     *mRecordBuffer;
         int                       mRecordBlockAlign;
-        UINT                      mRecordTimerPeriod;
+        float                     mRecordTimerPeriod;
         int                       mRecordWritePosition;
         bool                      mRecordStereoToMono;
         FMOD_OS_CRITICALSECTION  *mRecordCrit;

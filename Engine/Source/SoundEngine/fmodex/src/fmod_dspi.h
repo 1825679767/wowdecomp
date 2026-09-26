@@ -100,8 +100,8 @@ namespace FMOD
         static  FMOD_RESULT     convert         (void *outbuffer, void *inbuffer, FMOD_SOUND_FORMAT outformat, FMOD_SOUND_FORMAT informat, unsigned int length, int destchannelstep, int srcchannelstep, float wetmix);
         static  FMOD_RESULT     validate        (DSP *dsp, DSPI **dspi);
 
-        virtual FMOD_RESULT     execute         (float *inbuffer, float **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode);
         virtual FMOD_RESULT     execute         (void *inbuffer, void **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode);
+        virtual FMOD_RESULT     execute         (float *inbuffer, float **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode);
         virtual FMOD_RESULT     alloc           (FMOD_DSP_DESCRIPTION_EX *description);
         virtual FMOD_RESULT     setPosition     (unsigned int position, bool processinputs);
         static  FMOD_RESULT     calculateSpeakerLevels(float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright, FMOD_SPEAKERMODE speakermode, int channels, FMOD_SPEAKERMAPTYPE speakermap, float *outlevels, int *numinputlevels);

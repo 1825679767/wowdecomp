@@ -221,6 +221,7 @@ FMOD_RESULT F_API FMOD_Memory_GetStats(int *currentalloced, int *maxalloced)
     System::release
 ]
 */
+// VERIFY: d7326b16 auto
 // OFFSET: 0x008D0660
 FMOD_RESULT F_API FMOD_System_Create(FMOD_SYSTEM **system)
 {

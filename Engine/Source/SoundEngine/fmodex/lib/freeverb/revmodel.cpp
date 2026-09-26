@@ -6,6 +6,7 @@
 
 #include "revmodel.h"
 
+// VERIFY: 4994be8e manual
 // OFFSET: 0x00929300
 revmodel::revmodel()
 {
@@ -76,6 +77,7 @@ void revmodel::mute()
 	}
 }
 
+// VERIFY: cdc39fc7 manual
 // OFFSET: 0x00928CE0
 void revmodel::processreplace(float *inputL, float *inputR, float *outputL, float *outputR, long numsamples, int skip)
 {

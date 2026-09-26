@@ -411,6 +411,7 @@ FMOD_RESULT CodecMIDISubChannel::findArticulator(int src, int dest)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 799ddfa2 manual
 // OFFSET: 0x008FA030
 FMOD_RESULT CodecMIDISubChannel::articulateDest(CONN_SRC_FLAGS srcflags, int dest, int *usDestination)
 {
@@ -956,6 +957,7 @@ static float gDBToLinearTable[(96*2) + 1] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 771b045f manual
 // OFFSET: 0x008FA880
 FMOD_RESULT CodecMIDISubChannel::updateVolume()
 {
@@ -973,25 +975,15 @@ FMOD_RESULT CodecMIDISubChannel::updateVolume()
 
             point = &mVolumeEnvelope.mPoint[mVolumeEnvelope.mPosition];
 
-            if (point->mTime > 0 && mVolumeEnvelope.mTime <= point->mTime)
-            {
-                src = point->mSrcValue + (((point->mDestValue - point->mSrcValue) / point->mTime) * mVolumeEnvelope.mTime);
-            }
-            else
-            {
-                src = point->mSrcValue;
-            }
+            src = point->mSrcValue + (((point->mDestValue - point->mSrcValue) / point->mTime) * mVolumeEnvelope.mTime);
 
             if (mVolumeEnvelope.mPosition == CODEC_DLS_ENVPOINT_ATTACK)
             {
                 /*
                     Turn the linear value into dB so it scales properly with the release segment which is logarithmic.
                 */
-                if (src > -96.0f)
-                {
-                    src = 1.0f - (src / -96.0f);                
-                    src = log10f(src) * 20.0f;
-                }
+                src = 1.0f - (src / -96.0f);                
+                src = log10f(src) * 20.0f;
             }            
             if (mVolumeEnvelope.mPosition == CODEC_DLS_ENVPOINT_DECAY && src < mVolumeEnvelope.mSustain)
             {
@@ -1001,16 +993,7 @@ FMOD_RESULT CodecMIDISubChannel::updateVolume()
             mVolumeEnvelope.mPosition = CODEC_DLS_ENVPOINT_RELEASE;
             point = &mVolumeEnvelope.mPoint[mVolumeEnvelope.mPosition];
 
-            if (point->mDestValue - point->mSrcValue != 0 && point->mTime != 0)
-            {
-                // Determine the time in release that gives the same volume as the original segment (avoids a click)
-                mVolumeEnvelope.mTime = (src - point->mSrcValue) / ((point->mDestValue - point->mSrcValue) / point->mTime);
-            }
-            else
-            {
-                // The release segment doesn't have a ramp, jump to initial volume for release segment
-                mVolumeEnvelope.mTime = 0;
-            }
+            mVolumeEnvelope.mTime = (src - point->mSrcValue) / ((point->mDestValue - point->mSrcValue) / point->mTime);
         }
 
         /*
@@ -1104,22 +1087,7 @@ FMOD_RESULT CodecMIDISubChannel::updateVolume()
         return stop();
     }
 
-    mChannel.setVolume(attenuation * mParent->mMasterVolume);
-
-    /*
-        Some sounds are one-shot (namely drums), the mode is set as non-looping by
-        the DLS so ignore the envelope and stop the sub channel. By convention the
-        envelope will be attack = 0, decay = max, release = max for one-shots.
-    */
-    {
-        bool isPlaying = true;
-    
-        mChannel.isPlaying(&isPlaying);
-        if (isPlaying == false)
-        {
-            return stop();
-        }
-    }
+    mChannel.setVolume(attenuation);
 
     return FMOD_OK;
 }
@@ -1140,6 +1108,7 @@ FMOD_RESULT CodecMIDISubChannel::updateVolume()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 74904710 manual
 // OFFSET: 0x008FAB40
 FMOD_RESULT CodecMIDISubChannel::updatePitch()
 {
@@ -1157,14 +1126,7 @@ FMOD_RESULT CodecMIDISubChannel::updatePitch()
 
             point = &mPitchEnvelope.mPoint[mPitchEnvelope.mPosition];
 
-            if (point->mTime > 0 && mPitchEnvelope.mTime <= point->mTime)
-            {
-                src = point->mSrcValue + (((point->mDestValue - point->mSrcValue) / point->mTime) * mPitchEnvelope.mTime);
-            }
-            else
-            {
-                src = point->mSrcValue;
-            }
+            src = point->mSrcValue + (((point->mDestValue - point->mSrcValue) / point->mTime) * mPitchEnvelope.mTime);
 
             if (mPitchEnvelope.mPosition == CODEC_DLS_ENVPOINT_DECAY && src < mPitchEnvelope.mSustain)
             {
@@ -1174,16 +1136,7 @@ FMOD_RESULT CodecMIDISubChannel::updatePitch()
             mPitchEnvelope.mPosition = CODEC_DLS_ENVPOINT_RELEASE;
             point = &mPitchEnvelope.mPoint[mPitchEnvelope.mPosition];
 
-            if (point->mDestValue - point->mSrcValue != 0 && point->mTime != 0)
-            {
-                // Determine the time in release that gives the same volume as the original segment (avoids a click)
-                mPitchEnvelope.mTime = (src - point->mSrcValue) / ((point->mDestValue - point->mSrcValue) / point->mTime);
-            }
-            else
-            {
-                // The release segment doesn't have a ramp, jump to initial volume for release segment
-                mPitchEnvelope.mTime = 0;
-            }
+            mPitchEnvelope.mTime = (src - point->mSrcValue) / ((point->mDestValue - point->mSrcValue) / point->mTime);
         }
 
         /*
@@ -1212,13 +1165,13 @@ FMOD_RESULT CodecMIDISubChannel::updatePitch()
         {
             CodecDLSEnvelopePoint *point = &mPitchEnvelope.mPoint[mPitchEnvelope.mPosition];
 
-            if (point->mTime > 0)
+            if (point->mTime == 0)
             {
-                eg2 = point->mSrcValue + (((point->mDestValue - point->mSrcValue) / point->mTime) * mPitchEnvelope.mTime);
+                eg2 = point->mSrcValue;
             }
             else
             {
-                eg2 = point->mSrcValue;
+                eg2 = point->mSrcValue + (((point->mDestValue - point->mSrcValue) / point->mTime) * mPitchEnvelope.mTime);
             }
 
             if (mPitchEnvelope.mPosition == CODEC_DLS_ENVPOINT_DECAY && eg2 < mPitchEnvelope.mSustain)
@@ -1283,6 +1236,7 @@ FMOD_RESULT CodecMIDISubChannel::updatePitch()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cffdb6bd auto
 // OFFSET: 0x008FADD0
 FMOD_RESULT CodecMIDISubChannel::updatePan()
 {                                
@@ -1328,7 +1282,7 @@ FMOD_RESULT CodecMIDIChannel::getSound(int key, SoundI **sound, CodecDLSInstrume
         {
             FMOD_RESULT  result   = FMOD_OK;            
             unsigned int region   = 0; 
-            int          sampleid = -1;
+            int          sampleid = 0;
     
             *instrument = inst;
 
@@ -1377,12 +1331,6 @@ FMOD_RESULT CodecMIDIChannel::getSound(int key, SoundI **sound, CodecDLSInstrume
 
                     break;
                 }
-            }
-
-            if (sampleid == -1)
-            {
-                FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "CodecMIDIChannel::getSound", "Cannot find sample for instrument %s (%d): Key %s (%d)\n", inst->mName, mIndex, note[key], key));
-                return FMOD_ERR_FILE_BAD;
             }
 
             result = mTrack->mMIDI->mDLSSound->getSubSound(sampleid, sound);
@@ -1488,7 +1436,7 @@ FMOD_RESULT CodecMIDIChannel::process(unsigned char event, bool reuse, unsigned 
         {
             unsigned char        keyonkey;
             int                  unitynote = 0, finetune = 0, sampleattenuation = 0, keygroup = 0;
-            bool                 noteoff = false, duplicateallowed = false;
+            bool                 duplicateallowed = false;
             SoundI              *sound = 0;
             CodecDLSInstrument  *instrument = 0;
             int                  numarticulators = 0;
@@ -1522,39 +1470,6 @@ FMOD_RESULT CodecMIDIChannel::process(unsigned char event, bool reuse, unsigned 
 
             if (result == FMOD_OK && sound)
             {
-                /*
-                    NoteOff is often implemented by doing a NoteOn with velocity 0, but NoteOff is also implied if
-                    the same note is played again with a valid velocity.
-                */                
-                if (!duplicateallowed)
-                {
-                    /*
-                        If a duplicate note occurs then keyoff the old note.
-                    */
-                    current = (CodecMIDISubChannel *)mChannelHead.getNext();
-                    while (current != &mChannelHead)
-                    {
-                        if (keyonkey == current->mCurrentNote)
-                        {
-//                            printf("keyoff duplicate %s : %s : subchan %d\n", instrument->mName, note[keyonkey], count);
-                            current->mKeyOff = true;
-                            current->mCurrentNote = -1;
-                            noteoff = true;
-                            break;
-                        }
-
-                        current = (CodecMIDISubChannel *)current->getNext();
-                    }
-
-                    /*
-                        Only break if this note is implmenting a NoteOff through a duplicate NoteOn with velocity 0
-                    */
-                    if (noteoff && mKeyOnVelocity == 0)
-                    {
-                        break;
-                    }
-                }
-
                 if (mKeyOnVelocity)
                 {
                     FMOD_RESULT  result;
@@ -1682,6 +1597,21 @@ FMOD_RESULT CodecMIDIChannel::process(unsigned char event, bool reuse, unsigned 
                     else
                     {
                         printf("ran out of FMOD channels?????\n");
+                    }
+                }
+                else
+                {
+                    current = (CodecMIDISubChannel *)mChannelHead.getNext();
+                    while (current != &mChannelHead)
+                    {
+                        if (keyonkey == current->mCurrentNote)
+                        {
+                            current->mKeyOff = true;
+                            current->mCurrentNote = -1;
+                            break;
+                        }
+
+                        current = (CodecMIDISubChannel *)current->getNext();
                     }
                 }
             }
@@ -2319,23 +2249,22 @@ FMOD_RESULT CodecMIDIChannel::update()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b683318b manual
 // OFFSET: 0x008FB0C0
 FMOD_RESULT CodecMIDITrack::readVarLen(unsigned int *result)
 {
     register unsigned int   value       = 0;
     register unsigned char  ch          = 0;
-    register unsigned char  byteCount   = 0;
 
 	do
 	{
-		if (mOffset >= mLength || byteCount == 4)
+		if (mOffset >= mLength)
 		{
 			mFinished = true;
 			return FMOD_ERR_FILE_EOF;
 		}
 
 		value = (value << 7) + ((ch = mData[mOffset++]) & 0x7F);
-		byteCount++;
 
 	} while (ch & 0x80); 
 
@@ -2599,13 +2528,7 @@ FMOD_RESULT CodecMIDITrack::process(bool calledfromopen)
                             }
                             case MIDI_METAEVENT_TEXT:
                             {
-                                int timeOffsetMs = (int)mMIDI->mMillisecondsPlayed;
-
                                 result = addTag("Text", length, calledfromopen);
-                                if (calledfromopen)
-                                {
-                                    result = mMIDI->metaData(FMOD_TAGTYPE_MIDI, "Text (Time Ms)", &timeOffsetMs, sizeof(int), FMOD_TAGDATATYPE_INT, false);
-                                }
                                 break;
                             }
                             case MIDI_METAEVENT_COPYRIGHT:
@@ -2660,10 +2583,7 @@ FMOD_RESULT CodecMIDITrack::process(bool calledfromopen)
                             }
                             case MIDI_METAEVENT_PORT:
                             {
-                                if (length)
-                                {
-                                    result = readByte(&mPort);
-                                }
+                                result = readByte(&mPort);
                                 break;
                             }
                             case MIDI_METAEVENT_ENDOFTRACK:
@@ -2688,9 +2608,9 @@ FMOD_RESULT CodecMIDITrack::process(bool calledfromopen)
 
                                 if (mMIDI->mMixerSamplesPerTick < (unsigned int)MIDI_MINIMUMSAMPLEGRANULARITY)
                                 {
-                                    mMIDI->mTimingScale          = MIDI_MINIMUMSAMPLEGRANULARITY / (mMIDI->mMillisecondsPerTick / 1000.0f * mMIDI->waveformat[0].frequency);
+                                    mMIDI->mTimingScale          = (float)MIDI_MINIMUMSAMPLEGRANULARITY / (float)mMIDI->mMixerSamplesPerTick;
                                     mMIDI->mMixerSamplesPerTick  = MIDI_MINIMUMSAMPLEGRANULARITY;
-                                    mMIDI->mMillisecondsPerTick  = MIDI_MINIMUMSAMPLEGRANULARITY * 1000.0f / mMIDI->waveformat[0].frequency;
+                                    mMIDI->mMillisecondsPerTick  = mMIDI->mTimingScale * mMIDI->mMillisecondsPerTick;
                                 }
 
                                 break;
@@ -2880,7 +2800,7 @@ FMOD_RESULT CodecMIDI::update(bool audible)
 ]
 */
 // OFFSET: 0x008FB270
-FMOD_RESULT CodecMIDI::play(bool fromopen)
+FMOD_RESULT CodecMIDI::play()
 {
     int count;
 
@@ -2912,12 +2832,7 @@ FMOD_RESULT CodecMIDI::play(bool fromopen)
         mMIDIChannel[count].mProgram              = 0;
         mMIDIChannel[count].mPitchBendSensitivity = 0x200;
         mMIDIChannel[count].mRPN                  = 0xFFFFFFFF;
-
-        if (fromopen)
-        {
-            mMIDIChannel[count].mTrack                = 0;
-            mMIDIChannel[count].mMasterVolume         = 1.0f;
-        }
+        mMIDIChannel[count].mTrack                = 0;
     }
 
     mTick               = 0;
@@ -3263,7 +3178,7 @@ FMOD_RESULT CodecMIDI::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
     /*
         Scan the midi to get the length and also to find what instruments are used.
     */   
-    play(true);
+    play();
 
     mSampleInclusionList = (bool *)FMOD_Memory_Calloc(sizeof(bool) * mDLSSound->mNumSubSounds);
     if (!mSampleInclusionList)
@@ -3400,12 +3315,12 @@ FMOD_RESULT CodecMIDI::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
         for (count = 0; count < mNumSubChannels; count++)
         {
             new (&mChannelSoftware[count]) ChannelSoftware;
-            CHECK_RESULT(mChannelPool->setChannel(count, &mChannelSoftware[count], mDSPHead));
-            CHECK_RESULT(mChannelSoftware[count].allowReverb(false));
+            mChannelPool->setChannel(count, &mChannelSoftware[count], mDSPHead);
+            mChannelSoftware[count].allowReverb(false);
         }
     }
 
-    play(false);
+    play();
 
     /*
         Fill out base class members, also pointing to or allocating storage for them.
@@ -3509,6 +3424,7 @@ FMOD_RESULT CodecMIDI::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b2af4bc8 auto
 // OFFSET: 0x008FC430
 FMOD_RESULT CodecMIDI::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -3625,7 +3541,7 @@ FMOD_RESULT CodecMIDI::setPositionInternal(int subsound, unsigned int position, 
     */
     if (position < mPCMOffset)
     {
-        play(false);
+        play();
     }
 
     while (mPCMOffset < position)
@@ -3652,6 +3568,7 @@ FMOD_RESULT CodecMIDI::setPositionInternal(int subsound, unsigned int position, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2d07abf3 manual
 // OFFSET: 0x008FD300
 FMOD_RESULT F_CALLBACK CodecMIDI::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -3676,6 +3593,7 @@ FMOD_RESULT F_CALLBACK CodecMIDI::openCallback(FMOD_CODEC_STATE *codec, FMOD_MOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 67e5094a manual
 // OFFSET: 0x008FB530
 FMOD_RESULT F_CALLBACK CodecMIDI::closeCallback(FMOD_CODEC_STATE *codec)
 {
@@ -3724,6 +3642,7 @@ FMOD_RESULT F_CALLBACK CodecMIDI::readCallback(FMOD_CODEC_STATE *codec, void *bu
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bf628a84 manual
 // OFFSET: 0x008FC800
 FMOD_RESULT F_CALLBACK CodecMIDI::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {

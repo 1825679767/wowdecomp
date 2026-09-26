@@ -33,6 +33,7 @@ static const unsigned int SIZEOF_METABUF = (255 * 16) + 1;
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bd50eb5b manual
 // OFFSET: 0x00920FA0
 NetFile::NetFile()
 {
@@ -104,6 +105,7 @@ FMOD_RESULT NetFile::shutDown()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8a1edad0 manual
 // OFFSET: 0x0091FA40
 FMOD_RESULT NetFile::parseUrl(char *url, char *host, int hostlen, char *auth, int authlen, unsigned short *port, char *file, const int filelen, bool *mms)
 {
@@ -256,15 +258,13 @@ FMOD_RESULT NetFile::parseUrl(char *url, char *host, int hostlen, char *auth, in
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 313e66fb manual
 // OFFSET: 0x0091FCA0
 FMOD_RESULT NetFile::openAsHTTP(const char *name_or_data, char *host, char *file, char *auth, unsigned short port, unsigned int *filesize)
 {
     FMOD_RESULT result;
-	char buf[8192], http_request[8192], agent[32];
+	char buf[8192], http_request[8192];
     int version, statuscode, redirect_count = 0;
-	bool fakeagent = false;
-
-	sprintf(agent, "FMODEx/%x.%02x.%02x", (FMOD_VERSION >> 16) & 0xff, (FMOD_VERSION >> 8) & 0xff, FMOD_VERSION & 0xff);
 
 CONNECT:
 
@@ -292,7 +292,7 @@ CONNECT:
     FMOD_strcat(http_request, buf);
     sprintf(buf, "Host: %s\r\n", host);
     FMOD_strcat(http_request, buf);
-    sprintf(buf, "User-Agent: %s\r\n", agent);
+    sprintf(buf, "User-Agent: FMOD/%d.%d\r\n", (FMOD_VERSION >> 8) & 0xff, FMOD_VERSION & 0xff);
     FMOD_strcat(http_request, buf);
     sprintf(buf, "Icy-MetaData:1\r\n");
     FMOD_strcat(http_request, buf);
@@ -640,17 +640,6 @@ CONNECT:
 
                 return FMOD_ERR_HTTP;
             }
-			else if (statuscode == 403 && fakeagent == false)
-			{
-				/*
-					Some shoutcast servers deny unknown user-agents, so lets
-					pretend to be winamp and try again
-				*/
-				sprintf(agent, "Winamp");
-				fakeagent = true;
-
-				goto CONNECT;
-			}
             else
             {
                 /*
@@ -771,11 +760,12 @@ FMOD_RESULT NetFile::openAsMMS(const char *name_or_data, char *host, char *file,
 ]
 */
 
+// VERIFY: f7ce5149 auto
 // OFFSET: 0x00920920
 FMOD_RESULT NetFile::reallyOpen(const char *name_or_data, unsigned int *filesize)
 {
     FMOD_RESULT result;
-    char host[FMOD_STRING_MAXPATHLEN], file[FMOD_STRING_MAXPATHLEN], url[FMOD_STRING_MAXPATHLEN];
+    char host[FMOD_STRING_MAXPATHLEN], file[FMOD_STRING_MAXPATHLEN];
     char auth[4096];
     unsigned short port;
     bool mms = false;
@@ -786,17 +776,7 @@ FMOD_RESULT NetFile::reallyOpen(const char *name_or_data, unsigned int *filesize
 
     FMOD_memset(auth, 0, 4096);
 
-    if (mUnicode)
-    {
-        FMOD_strncpyW((short*)url, (const short*)name_or_data, FMOD_STRING_MAXPATHLEN / 2);
-        FMOD_wtoa((short*)url);
-    }
-    else
-    {
-        FMOD_strncpy(url, name_or_data, FMOD_STRING_MAXPATHLEN);
-    }
-
-    result = parseUrl(url, host, FMOD_STRING_MAXNAMELEN-1, auth, 4096, &port, file, FMOD_STRING_MAXNAMELEN-1, &mms);
+    result = parseUrl((char *)name_or_data, host, FMOD_STRING_MAXNAMELEN-1, auth, 4096, &port, file, FMOD_STRING_MAXNAMELEN-1, &mms);
     if (result != FMOD_OK)
     {
         return result;
@@ -804,11 +784,11 @@ FMOD_RESULT NetFile::reallyOpen(const char *name_or_data, unsigned int *filesize
 
     if (mms)
     {
-        return openAsMMS(url, host, file, auth, port, filesize);
+        return openAsMMS(name_or_data, host, file, auth, port, filesize);
     }
     else
     {
-        return openAsHTTP(url, host, file, auth, port, filesize);
+        return openAsHTTP(name_or_data, host, file, auth, port, filesize);
     }
     
 	return FMOD_ERR_INTERNAL;
@@ -867,6 +847,7 @@ FMOD_RESULT NetFile::reallyClose()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d81d4c29 manual
 // OFFSET: 0x00920A40
 FMOD_RESULT NetFile::reallyRead(void *buffer, unsigned int size, unsigned int *rd)
 {
@@ -891,8 +872,7 @@ AGAIN:
                 return result;
             }
 
-            sscanf(chunksizestr, "%x", &mBytesLeftInChunk);
-            if (!mBytesLeftInChunk)
+            if (sscanf(chunksizestr, "%x", &mBytesLeftInChunk) < 0)
             {
                 return FMOD_ERR_FILE_EOF;
             }
@@ -1085,6 +1065,7 @@ AGAIN:
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 51420ad8 auto
 // OFFSET: 0x00920D90
 FMOD_RESULT NetFile::reallySeek(unsigned int pos)
 {

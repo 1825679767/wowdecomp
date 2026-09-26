@@ -96,6 +96,7 @@ typedef struct
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6a1ec5be manual
 // OFFSET: 0x00914990
 FMOD_CODEC_DESCRIPTION_EX *CodecTag::getDescriptionEx()
 {
@@ -233,6 +234,7 @@ FMOD_RESULT CodecTag::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ae9766b5 manual
 // OFFSET: 0x00914550
 FMOD_RESULT CodecTag::readTags()
 {
@@ -567,6 +569,7 @@ FMOD_RESULT CodecTag::readID3v1()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 064982d9 auto
 // OFFSET: 0x00913800
 FMOD_RESULT CodecTag::readID3v2()
 {
@@ -880,6 +883,7 @@ FMOD_RESULT CodecTag::readID3v2FromFooter()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f87c5c40 manual
 // OFFSET: 0x00913CE0
 FMOD_RESULT CodecTag::readASF()
 {
@@ -1006,14 +1010,9 @@ FMOD_RESULT CodecTag::readASF()
                             return result;
                         }
                         
-                        if (wcstombs(tmp2, (const wchar_t *)tmp, 4096) == ((title_length / 2) - 1))
-                        {
-                            result = metaData(FMOD_TAGTYPE_ASF, "TITLE", tmp2, (title_length / 2) - 1, FMOD_TAGDATATYPE_STRING, false);
-                        }
-                        else
-                        {
-                            result = metaData(FMOD_TAGTYPE_ASF, "TITLE", tmp, title_length - 2, FMOD_TAGDATATYPE_STRING_UTF16, false);
-                        }
+                        wcstombs(tmp2, (const wchar_t *)tmp, 4096);
+
+                        result = metaData(FMOD_TAGTYPE_ASF, "TITLE", tmp2, FMOD_strlen(tmp2) + 1, FMOD_TAGDATATYPE_STRING, false);
                         if (result != FMOD_OK)
                         {
                             return result;
@@ -1028,14 +1027,9 @@ FMOD_RESULT CodecTag::readASF()
                             return result;
                         }
 
-                        if (wcstombs(tmp2, (const wchar_t *)tmp, 4096) == ((author_length / 2) - 1))
-                        {
-                            result = metaData(FMOD_TAGTYPE_ASF, "AUTHOR", tmp2, (author_length / 2) - 1, FMOD_TAGDATATYPE_STRING, false);
-                        }
-                        else
-                        {
-                            result = metaData(FMOD_TAGTYPE_ASF, "AUTHOR", tmp, author_length - 2, FMOD_TAGDATATYPE_STRING_UTF16, false);
-                        }
+                        wcstombs(tmp2, (const wchar_t *)tmp, 4096);
+
+                        result = metaData(FMOD_TAGTYPE_ASF, "AUTHOR", tmp2, FMOD_strlen(tmp2) + 1, FMOD_TAGDATATYPE_STRING, false);
                         if (result != FMOD_OK)
                         {
                             return result;
@@ -1050,14 +1044,9 @@ FMOD_RESULT CodecTag::readASF()
                             return result;
                         }
 
-                        if (wcstombs(tmp2, (const wchar_t *)tmp, 4096) == ((copyright_length / 2) - 1))
-                        {
-                            result = metaData(FMOD_TAGTYPE_ASF, "COPYRIGHT", tmp2, (copyright_length / 2) - 1, FMOD_TAGDATATYPE_STRING, false);
-                        }
-                        else
-                        {
-                            result = metaData(FMOD_TAGTYPE_ASF, "COPYRIGHT", tmp, copyright_length - 2, FMOD_TAGDATATYPE_STRING_UTF16, false);
-                        }
+                        wcstombs(tmp2, (const wchar_t *)tmp, 4096);
+
+                        result = metaData(FMOD_TAGTYPE_ASF, "COPYRIGHT", tmp2, FMOD_strlen(tmp2) + 1, FMOD_TAGDATATYPE_STRING, false);
                         if (result != FMOD_OK)
                         {
                             return result;
@@ -1072,14 +1061,9 @@ FMOD_RESULT CodecTag::readASF()
                             return result;
                         }
 
-                        if (wcstombs(tmp2, (const wchar_t *)tmp, 4096) == ((description_length / 2) - 1))
-                        {
-                            result = metaData(FMOD_TAGTYPE_ASF, "DESCRIPTION", tmp2, (description_length / 2) - 1, FMOD_TAGDATATYPE_STRING, false);
-                        }
-                        else
-                        {
-                            result = metaData(FMOD_TAGTYPE_ASF, "DESCRIPTION", tmp, description_length - 2, FMOD_TAGDATATYPE_STRING_UTF16, false);
-                        }
+                        wcstombs(tmp2, (const wchar_t *)tmp, 4096);
+
+                        result = metaData(FMOD_TAGTYPE_ASF, "DESCRIPTION", tmp2, FMOD_strlen(tmp2) + 1, FMOD_TAGDATATYPE_STRING, false);
                         if (result != FMOD_OK)
                         {
                             return result;
@@ -1094,14 +1078,9 @@ FMOD_RESULT CodecTag::readASF()
                             return result;
                         }
 
-                        if (wcstombs(tmp2, (const wchar_t *)tmp, 4096) == ((rating_length / 2) - 1))
-                        {
-                            result = metaData(FMOD_TAGTYPE_ASF, "RATING", tmp2, (rating_length / 2) - 1, FMOD_TAGDATATYPE_STRING, false);
-                        }
-                        else
-                        {
-                            result = metaData(FMOD_TAGTYPE_ASF, "RATING", tmp, rating_length - 2, FMOD_TAGDATATYPE_STRING_UTF16, false);
-                        }
+                        wcstombs(tmp2, (const wchar_t *)tmp, 4096);
+
+                        result = metaData(FMOD_TAGTYPE_ASF, "RATING", tmp2, FMOD_strlen(tmp2) + 1, FMOD_TAGDATATYPE_STRING, false);
                         if (result != FMOD_OK)
                         {
                             return result;
@@ -1167,14 +1146,9 @@ FMOD_RESULT CodecTag::readASF()
                         {
                             case 0x0000:    /* Unicode String */
                             {
-                                if (wcstombs(tmp2, (const wchar_t *)Descriptor_Value, 4096) == ((Descriptor_Value_Length / 2) - 1))
-                                {
-                                    result = metaData(FMOD_TAGTYPE_ASF, tmp, tmp2, (Descriptor_Value_Length / 2) - 1, FMOD_TAGDATATYPE_STRING, false);
-                                }
-                                else
-                                {
-                                    result = metaData(FMOD_TAGTYPE_ASF, tmp, Descriptor_Value, Descriptor_Value_Length - 2, FMOD_TAGDATATYPE_STRING_UTF16, false);
-                                }
+                                wcstombs(tmp2, (const wchar_t *)Descriptor_Value, 4096);
+
+                                result = metaData(FMOD_TAGTYPE_ASF, tmp, tmp2, FMOD_strlen(tmp2) + 1, FMOD_TAGDATATYPE_STRING, false);
                                 if (result != FMOD_OK)
                                 {
                                     return result;
@@ -1245,6 +1219,7 @@ FMOD_RESULT CodecTag::readASF()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 30a22e53 manual
 // OFFSET: 0x00914950
 FMOD_RESULT F_CALLBACK CodecTag::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {

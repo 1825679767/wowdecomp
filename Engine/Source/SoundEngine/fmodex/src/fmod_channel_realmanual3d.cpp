@@ -51,6 +51,7 @@ ChannelRealManual3D::ChannelRealManual3D()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f1a4ae1a manual
 // OFFSET: 0x0094BD50
 FMOD_RESULT ChannelRealManual3D::set2DFreqVolumePanFor3D()
 {

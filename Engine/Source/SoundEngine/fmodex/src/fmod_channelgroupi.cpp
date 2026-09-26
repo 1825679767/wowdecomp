@@ -88,6 +88,7 @@ FMOD_RESULT ChannelGroupI::release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b536244b manual
 // OFFSET: 0x008E4C10
 FMOD_RESULT ChannelGroupI::releaseInternal()
 {
@@ -244,6 +245,7 @@ FMOD_RESULT ChannelGroupI::setVolume(float volume)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e1fea254 manual
 // OFFSET: 0x008E48A0
 FMOD_RESULT ChannelGroupI::setVolumeInternal()
 {
@@ -567,6 +569,7 @@ FMOD_RESULT ChannelGroupI::get3DOcclusion(float *directOcclusion, float *reverbO
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f502f2d5 manual
 // OFFSET: 0x008E49B0
 FMOD_RESULT ChannelGroupI::setPaused(bool paused, bool setpausedflag)
 {
@@ -647,6 +650,7 @@ FMOD_RESULT ChannelGroupI::getPaused(bool *paused)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 990d175e manual
 // OFFSET: 0x008E4A20
 FMOD_RESULT ChannelGroupI::setMute(bool mute, bool setmuteflag)
 {
@@ -1057,6 +1061,7 @@ FMOD_RESULT ChannelGroupI::overrideSpeakerMix(float frontleft, float frontright,
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c2965ead manual
 // OFFSET: 0x008E4B10
 FMOD_RESULT ChannelGroupI::addGroup(ChannelGroupI *group)
 {
@@ -1074,7 +1079,7 @@ FMOD_RESULT ChannelGroupI::addGroup(ChannelGroupI *group)
 
     if (group->mDSPHead)
     {
-        group->mDSPHead->disconnectAllInternal(false, true);
+        group->mDSPHead->disconnectAllQueued(false, true);
     }
 
     if (!mGroupHead)

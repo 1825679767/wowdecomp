@@ -166,6 +166,7 @@ FMOD_RESULT DSPCompressor::createInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1e4c4749 manual
 // OFFSET: 0x008EA580
 FMOD_RESULT DSPCompressor::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -429,6 +430,7 @@ FMOD_RESULT DSPCompressor::getParameterInternal(int index, float *value, char *v
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 17066cf8 manual
 // OFFSET: 0x008EAAA0
 FMOD_RESULT F_CALLBACK DSPCompressor::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -482,6 +484,7 @@ FMOD_RESULT F_CALLBACK DSPCompressor::readCallback(FMOD_DSP_STATE *dsp, float *i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f6a16be8 manual
 // OFFSET: 0x008EAB00
 FMOD_RESULT F_CALLBACK DSPCompressor::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {

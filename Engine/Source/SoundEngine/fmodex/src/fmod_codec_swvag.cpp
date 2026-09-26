@@ -55,6 +55,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8869d883 manual
 // OFFSET: 0x00910670
 FMOD_CODEC_DESCRIPTION_EX *CodecVAG::getDescriptionEx()
 {
@@ -91,6 +92,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecVAG::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7126edb5 auto
 // OFFSET: 0x00910270
 FMOD_RESULT CodecVAG::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -169,13 +171,7 @@ FMOD_RESULT CodecVAG::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 ]
 */
 FMOD_RESULT CodecVAG::closeInternal()
-{       
-    if (mWaveFormatMemory)
-    {
-        FMOD_Memory_Free(mWaveFormatMemory);
-        mWaveFormatMemory = 0;
-    }
-
+{
     return FMOD_OK;
 }
 
@@ -196,24 +192,23 @@ FMOD_RESULT CodecVAG::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e839c73e manual
 // OFFSET: 0x009103D0
 FMOD_RESULT CodecVAG::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     FMOD_RESULT result;
     char src[16];
     unsigned char *dest = (unsigned char *)buffer;
-    int channel;
-    
-    static float f[5][2] = 
-    { 
+
+    static float f[5][2] =
+    {
         {    0.0f,         0.0f           },
 		{	60.0f / 64.0f, 0.0f           },
 		{  115.0f / 64.0f, -52.0f / 64.0f },
 		{	98.0f / 64.0f, -55.0f / 64.0f },
-		{  122.0f / 64.0f, -60.0f / 64.0f } 
+		{  122.0f / 64.0f, -60.0f / 64.0f }
     };
 
-    channel = 0;
     while (sizebytes)
     {
 	    unsigned char *p;
@@ -276,27 +271,18 @@ FMOD_RESULT CodecVAG::readInternal(void *buffer, unsigned int sizebytes, unsigne
 			samples[i+1] = (float) ( s >> shift_factor);
 		}
 
-        unsigned char *destptr = dest + (channel * sizeof(signed short));
-
-		for ( i = 0; i < 28; i++ ) 
+		for ( i = 0; i < 28; i++ )
         {
-            samples[i] = samples[i] + mContext[channel].mS1 * f[predict_nr][0] + mContext[channel].mS2 * f[predict_nr][1];
-            mContext[channel].mS2 = mContext[channel].mS1;
-            mContext[channel].mS1 = samples[i];
+            samples[i] += mContext.mS1 * f[predict_nr][0] + mContext.mS2 * f[predict_nr][1];
+            mContext.mS2 = mContext.mS1;
+            mContext.mS1 = samples[i];
             d = (int) ( samples[i] + 0.5f );
-            destptr[0]=(d & 0xff);
-            destptr[1]=(d >> 8);
-            destptr += waveformat->channels * sizeof(signed short);
+            *dest++ = (d & 0xff);
+            *dest++ = (d >> 8);
 		}
 
-        sizebytes -= 56;
         *bytesread += 56;
-        channel ++;
-        if (channel >= waveformat->channels)
-        {
-            channel = 0;
-            dest += 28 * sizeof(short) * waveformat->channels;
-        }
+        sizebytes -= 56;
     }
 
     #ifdef PLATFORM_ENDIAN_BIG
@@ -332,11 +318,12 @@ FMOD_RESULT CodecVAG::readInternal(void *buffer, unsigned int sizebytes, unsigne
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f424901b auto
 // OFFSET: 0x009105A0
 FMOD_RESULT CodecVAG::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     FMOD_RESULT result;
-    int bits, count;
+    int bits;
     unsigned int bytes;
 
     result = SoundI::getBitsFromFormat(waveformat[0].format, &bits);
@@ -345,14 +332,11 @@ FMOD_RESULT CodecVAG::setPositionInternal(int subsound, unsigned int position, F
         return result;
     }
 
-    SoundI::getBytesFromSamples(position, &bytes, waveformat[0].channels, FMOD_SOUND_FORMAT_VAG);
+    SoundI::getBytesFromSamples(position, &bytes, 1, FMOD_SOUND_FORMAT_VAG);
 
     result = mFile->seek(mSrcDataOffset + bytes, SEEK_SET);
 
-    for (count = 0; count < 16; count++)
-    {
-        mContext[count].mS1 = mContext[count].mS2 = 0;
-    }
+    mContext.mS1 = mContext.mS2 = 0;
 
     return result;
 }
@@ -374,6 +358,7 @@ FMOD_RESULT CodecVAG::setPositionInternal(int subsound, unsigned int position, F
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fb3b813b manual
 // OFFSET: 0x00910530
 FMOD_RESULT F_CALLBACK CodecVAG::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {

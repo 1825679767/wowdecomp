@@ -54,6 +54,7 @@ static const FMOD_GUID _KSDATAFORMAT_SUBTYPE_PCM        = { 0x00000001, 0x0000, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 18d1b08d manual
 // OFFSET: 0x00915F10
 FMOD_OUTPUT_DESCRIPTION_EX *OutputWavWriter::getDescriptionEx()
 {
@@ -175,6 +176,7 @@ FMOD_RESULT OutputWavWriter::getDriverCaps(int id, FMOD_CAPS *caps)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dcdba99e manual
 // OFFSET: 0x00915BA0
 FMOD_RESULT OutputWavWriter::init(int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
@@ -241,11 +243,10 @@ FMOD_RESULT OutputWavWriter::init(int selecteddriver, FMOD_INITFLAGS flags, int 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 643efd55 auto
 // OFFSET: 0x00915E40
 FMOD_RESULT OutputWavWriter::close()
 {
-    Plugin::init(); /* Set up gGlobal - for debug / file / memory access by this plugin. */
-
     writeWavHeader();
 
     if (mFP)
@@ -324,6 +325,7 @@ FMOD_RESULT OutputWavWriter::getPosition(unsigned int *pcm)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 73a35640 manual
 // OFFSET: 0x009157B0
 FMOD_RESULT OutputWavWriter::lock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -424,6 +426,7 @@ FMOD_RESULT OutputWavWriter::getHandle(void **handle)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: eb529d65 manual
 // OFFSET: 0x009158A0
 FMOD_RESULT OutputWavWriter::writeWavHeader()
 {
@@ -646,6 +649,7 @@ FMOD_RESULT F_CALLBACK OutputWavWriter::initCallback(FMOD_OUTPUT_STATE *output, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bab56508 manual
 // OFFSET: 0x00915EE0
 FMOD_RESULT F_CALLBACK OutputWavWriter::closeCallback(FMOD_OUTPUT_STATE *output)
 {

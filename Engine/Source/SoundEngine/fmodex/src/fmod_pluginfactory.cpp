@@ -75,6 +75,7 @@ PluginFactory::PluginFactory()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7d1b8a8a manual
 // OFFSET: 0x008F4190
 FMOD_RESULT PluginFactory::release()
 {
@@ -647,6 +648,7 @@ FMOD_RESULT PluginFactory::unloadPlugin(FMOD_PLUGINTYPE plugintype, int handle)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 77af32c2 manual
 // OFFSET: 0x008F3930
 FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION_EX *description, FMOD_PLUGINTYPE *plugintype, int *handle)
 {
@@ -657,7 +659,7 @@ FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION_EX *description,
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    newdesc = FMOD_Object_Calloc(FMOD_CODEC_DESCRIPTION_EX);
+    newdesc = (FMOD_CODEC_DESCRIPTION_EX *)FMOD_Memory_Calloc(sizeof(FMOD_CODEC_DESCRIPTION_EX));
     if (!newdesc)
     {
         return FMOD_ERR_MEMORY;
@@ -720,7 +722,7 @@ FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION *description, FM
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    newdesc = FMOD_Object_Calloc(FMOD_CODEC_DESCRIPTION_EX);
+    newdesc = (FMOD_CODEC_DESCRIPTION_EX *)FMOD_Memory_Calloc(sizeof(FMOD_CODEC_DESCRIPTION_EX));
     if (!newdesc)
     {
         return FMOD_ERR_MEMORY;
@@ -774,6 +776,7 @@ FMOD_RESULT PluginFactory::registerCodec(FMOD_CODEC_DESCRIPTION *description, FM
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 73c34682 manual
 // OFFSET: 0x008F3A30
 FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION_EX *description, FMOD_PLUGINTYPE *plugintype, int *handle)
 {
@@ -784,7 +787,7 @@ FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION_EX *description, FMO
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    newdesc = FMOD_Object_Calloc(FMOD_DSP_DESCRIPTION_EX);
+    newdesc = (FMOD_DSP_DESCRIPTION_EX *)FMOD_Memory_Calloc(sizeof(FMOD_DSP_DESCRIPTION_EX));
     if (!newdesc)
     {
         return FMOD_ERR_MEMORY;
@@ -857,7 +860,7 @@ FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION *description, FMOD_P
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    newdesc = FMOD_Object_Calloc(FMOD_DSP_DESCRIPTION_EX);
+    newdesc = (FMOD_DSP_DESCRIPTION_EX *)FMOD_Memory_Calloc(sizeof(FMOD_DSP_DESCRIPTION_EX));
     if (!newdesc)
     {
         return FMOD_ERR_MEMORY;
@@ -915,6 +918,7 @@ FMOD_RESULT PluginFactory::registerDSP(FMOD_DSP_DESCRIPTION *description, FMOD_P
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b2045be1 manual
 // OFFSET: 0x008F3B60
 FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION_EX *description, FMOD_PLUGINTYPE *plugintype, int *handle)
 {
@@ -925,7 +929,7 @@ FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION_EX *descriptio
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    newdesc = FMOD_Object_Calloc(FMOD_OUTPUT_DESCRIPTION_EX);
+    newdesc = (FMOD_OUTPUT_DESCRIPTION_EX *)FMOD_Memory_Calloc(sizeof(FMOD_OUTPUT_DESCRIPTION_EX));
     if (!newdesc)
     {
         return FMOD_ERR_MEMORY;
@@ -1009,7 +1013,7 @@ FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION *description, 
         return FMOD_ERR_INVALID_PARAM;
     }
 
-    newdesc = FMOD_Object_Calloc(FMOD_OUTPUT_DESCRIPTION_EX);
+    newdesc = (FMOD_OUTPUT_DESCRIPTION_EX *)FMOD_Memory_Calloc(sizeof(FMOD_OUTPUT_DESCRIPTION_EX));
     if (!newdesc)
     {
         return FMOD_ERR_MEMORY;
@@ -1063,6 +1067,7 @@ FMOD_RESULT PluginFactory::registerOutput(FMOD_OUTPUT_DESCRIPTION *description, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 052ea932 manual
 // OFFSET: 0x008F3D00
 FMOD_RESULT PluginFactory::getNumCodecs(int *numcodecs)
 {
@@ -1101,6 +1106,7 @@ FMOD_RESULT PluginFactory::getNumCodecs(int *numcodecs)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7d93ae82 manual
 // OFFSET: 0x008F3D50
 FMOD_RESULT PluginFactory::getNumDSPs(int *numdsps)
 {
@@ -1139,6 +1145,7 @@ FMOD_RESULT PluginFactory::getNumDSPs(int *numdsps)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d89fe209 manual
 // OFFSET: 0x008F3DA0
 FMOD_RESULT PluginFactory::getNumOutputs(int *numoutputs)
 {
@@ -1177,6 +1184,7 @@ FMOD_RESULT PluginFactory::getNumOutputs(int *numoutputs)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: db4cb658 manual
 // OFFSET: 0x008F3DF0
 FMOD_RESULT PluginFactory::getCodec(int handle, FMOD_CODEC_DESCRIPTION_EX **codecdesc)
 {
@@ -1223,6 +1231,7 @@ FMOD_RESULT PluginFactory::getCodec(int handle, FMOD_CODEC_DESCRIPTION_EX **code
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 247d7f2f manual
 // OFFSET: 0x008F3E60
 FMOD_RESULT PluginFactory::getDSP(int handle, FMOD_DSP_DESCRIPTION_EX **dspdesc)
 {
@@ -1269,6 +1278,7 @@ FMOD_RESULT PluginFactory::getDSP(int handle, FMOD_DSP_DESCRIPTION_EX **dspdesc)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 326c50b3 manual
 // OFFSET: 0x008F3ED0
 FMOD_RESULT PluginFactory::getOutput(int handle, FMOD_OUTPUT_DESCRIPTION_EX **outputdesc)
 {
@@ -1553,6 +1563,7 @@ FMOD_RESULT PluginFactory::createDSP(FMOD_DSP_DESCRIPTION_EX *dspdesc, DSPI **ds
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2f77cebc auto
 // OFFSET: 0x008F3FC0
 FMOD_RESULT PluginFactory::createOutput(FMOD_OUTPUT_DESCRIPTION_EX *outputdesc, Output **output)
 {

@@ -98,6 +98,7 @@ void MemSingleton::free(const char *file, const int line)
 	[REMARKS]
 ]
 */
+// VERIFY: b6f32cf3 manual
 // OFFSET: 0x008CFA40
 LocalMemoryCounter::LocalMemoryCounter()
 {
@@ -116,6 +117,7 @@ LocalMemoryCounter::LocalMemoryCounter()
 	[REMARKS]
 ]
 */
+// VERIFY: 3859a1ae manual
 // OFFSET: 0x008CFA70
 int LocalMemoryCounter::getMemoryUsed()
 {
@@ -207,6 +209,7 @@ MemPool::~MemPool()
 	[REMARKS]
 ]
 */
+// VERIFY: eb15ca2f manual
 // OFFSET: 0x008D0400
 FMOD_RESULT MemPool::init(void *poolmem, int poolsize, int blocksize)
 {
@@ -344,6 +347,7 @@ FMOD_RESULT MemPool::initCustom(void *poolmem, int poolsize, int blocksize)
 	[REMARKS]
 ]
 */
+// VERIFY: 6b12c2d4 manual
 // OFFSET: 0x008D0360
 void MemPool::close()
 {
@@ -395,6 +399,7 @@ void MemPool::close()
 	[REMARKS]
 ]
 */
+// VERIFY: aa86ded4 manual
 // OFFSET: 0x008CFC10
 void MemPool::set(int blockoffset, int value, int numblocks)
 {
@@ -517,19 +522,21 @@ void MemPool::set(int blockoffset, int value, int numblocks)
 	[REMARKS]
 ]
 */
+// VERIFY: 4a416e09 auto
 // OFFSET: 0x008CFB60
 int MemPool::findFreeBlocks(int offset, int to, int numblocks)
 {
     int found = 0;
     #ifdef FMOD_MEMORY_USEBITS
-    int one_ls_bitoffset, byteoffset;
+    int one_ls_bitoffset, byteoffset, bitoffset;
     
-    byteoffset       = offset >> 3;
-    one_ls_bitoffset = (1 << (offset & 7));
+    byteoffset       = offset / 8;
+    bitoffset        = offset & 7;
+    one_ls_bitoffset = (1 << bitoffset);
 
-    while (found < numblocks && offset < to && offset < mSizeBlocks)
+    while (found < numblocks && (byteoffset * 8) + bitoffset < to && (byteoffset * 8) + bitoffset < mSizeBlocks)
     {
-        if (mBitmap[byteoffset] & one_ls_bitoffset || (!(offset & 31) && *((unsigned int *)&mBitmap[byteoffset]) == 0xFFFFFFFF))
+        if (mBitmap[byteoffset] & one_ls_bitoffset || (!bitoffset && !(byteoffset & 3) && *((unsigned int *)&mBitmap[byteoffset]) == 0xFFFFFFFF))
         {
             found = 0;
         }
@@ -538,23 +545,25 @@ int MemPool::findFreeBlocks(int offset, int to, int numblocks)
             found++;
         }
 
-        if (!(offset & 31) && *((unsigned int *)&mBitmap[byteoffset]) == 0xFFFFFFFF)
+        if (!bitoffset && !(byteoffset & 3) && *((unsigned int *)&mBitmap[byteoffset]) == 0xFFFFFFFF)
         {
             byteoffset += 4;
-            offset     += 32;
         }
         else
         {
-            offset++;
+            bitoffset++;
 
             one_ls_bitoffset *= 2;
-            if (!(offset & 7))
+            if (bitoffset >= 8)
             {
+                bitoffset        = 0;
                 one_ls_bitoffset = 1;
                 byteoffset++;
             }
         }
     }
+
+    offset = (byteoffset * 8) + bitoffset;
 
     #else
 
@@ -598,6 +607,7 @@ int MemPool::findFreeBlocks(int offset, int to, int numblocks)
 	[REMARKS]
 ]
 */
+// VERIFY: a80a9fb2 manual
 // OFFSET: 0x008CFDA0
 void *MemPool::alloc(int len, const char *file, const int line, FMOD_MEMORY_TYPE type, bool clear)
 {
@@ -706,6 +716,7 @@ void *MemPool::alloc(int len, const char *file, const int line, FMOD_MEMORY_TYPE
 	[REMARKS]
 ]
 */
+// VERIFY: 93a3c25d manual
 // OFFSET: 0x008CFF30
 void MemPool::free(void *ptr, const char *file, const int line, FMOD_MEMORY_TYPE type)
 {
@@ -788,6 +799,7 @@ void *MemPool::calloc(int len, const char *file, const int line, FMOD_MEMORY_TYP
 	[REMARKS]
 ]
 */
+// VERIFY: f7a6a277 manual
 // OFFSET: 0x008D0010
 void *MemPool::realloc(void *ptr, int len, const char *file, const int line, FMOD_MEMORY_TYPE type)
 {

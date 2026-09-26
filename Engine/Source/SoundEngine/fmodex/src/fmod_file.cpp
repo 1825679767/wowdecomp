@@ -147,6 +147,7 @@ int                      File::gBufferSize        = FILE_SECTORSIZE;
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dc844bab manual
 // OFFSET: 0x008E7D80
 void fileThreadFunc(void *data)
 {
@@ -320,6 +321,7 @@ FMOD_RESULT FileThread::release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0aabb186 manual
 // OFFSET: 0x008E7E10
 FMOD_RESULT File::getFileThread()
 {
@@ -421,6 +423,7 @@ File::File()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 614f432f manual
 // OFFSET: 0x008E6BC0
 FMOD_RESULT File::init(unsigned int filesize, int blocksize)
 {
@@ -522,6 +525,7 @@ FMOD_RESULT File::shutDown()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 53c39857 manual
 // OFFSET: 0x008E6D20
 FMOD_RESULT F_API File::open(const char *name_or_data, unsigned int length, bool unicode, const char *encryptionkey)
 {
@@ -873,6 +877,7 @@ FMOD_RESULT File::seekAndReset()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 762430c0 manual
 // OFFSET: 0x008E7180
 FMOD_RESULT File::checkBufferedStatus()
 {
@@ -1015,6 +1020,7 @@ FMOD_RESULT File::checkBufferedStatus()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ed4982e0 manual
 // OFFSET: 0x008E73C0
 FMOD_RESULT F_API File::read(void *buffer, unsigned int size, unsigned int count, unsigned int *rd)
 {
@@ -1586,6 +1592,7 @@ FMOD_RESULT File::getDword(signed int *val)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e3dab85b manual
 // OFFSET: 0x008E78E0
 FMOD_RESULT F_API File::seek(int pos, int mode)
 {
@@ -1773,6 +1780,7 @@ FMOD_RESULT File::getStartOffset(unsigned int *offset)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 69f93eae manual
 // OFFSET: 0x008E7EE0
 FMOD_RESULT File::enableDoubleBuffer(unsigned int sizebytes)
 {

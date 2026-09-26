@@ -237,6 +237,7 @@ FMOD_RESULT OutputDSound::closeEAX3()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e6ed0a8c manual
 // OFFSET: 0x00950AF0
 FMOD_RESULT OutputDSound::setPropertiesEAX3(const FMOD_REVERB_PROPERTIES *prop)
 {

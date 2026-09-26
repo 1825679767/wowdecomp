@@ -15,7 +15,6 @@ namespace FMOD
         float                     mMixerTimerPeriod;
         unsigned int              mMixerTimerID;
         bool                      mPlaying;
-        bool                      mThreadElevated;
         FMOD_OS_CRITICALSECTION  *mMixerCrit;
 
         FMOD_RESULT               timerFunc();

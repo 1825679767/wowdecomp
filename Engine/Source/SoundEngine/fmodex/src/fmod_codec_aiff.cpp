@@ -55,6 +55,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a945a395 manual
 // OFFSET: 0x0090E2E0
 FMOD_CODEC_DESCRIPTION_EX *CodecAIFF::getDescriptionEx()
 {
@@ -81,6 +82,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecAIFF::getDescriptionEx()
 /****************************************************************
  * Extended precision IEEE floating-point conversion routine.
  ****************************************************************/
+// VERIFY: e6af8ac5 manual
 // OFFSET: 0x0090D700
 float ConvertFromIeeeExtended(unsigned char *bytes)
 {
@@ -143,6 +145,7 @@ float ConvertFromIeeeExtended(unsigned char *bytes)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d6ceef30 manual
 // OFFSET: 0x0090D990
 FMOD_RESULT CodecAIFF::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -529,15 +532,7 @@ FMOD_RESULT CodecAIFF::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
 ]
 */
 FMOD_RESULT CodecAIFF::closeInternal()
-{       
-    if (mWaveFormatMemory)
-    {
-        FMOD_Memory_Free(mWaveFormatMemory);
-        mWaveFormatMemory = 0;
-    }
-
-    waveformat = 0;
-
+{
     return FMOD_OK;
 }
 
@@ -558,6 +553,7 @@ FMOD_RESULT CodecAIFF::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 22733bbf manual
 // OFFSET: 0x0090D7D0
 FMOD_RESULT CodecAIFF::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -698,6 +694,7 @@ FMOD_RESULT CodecAIFF::readInternal(void *buffer, unsigned int sizebytes, unsign
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5dea627a auto
 // OFFSET: 0x0090E0B0
 FMOD_RESULT CodecAIFF::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -735,6 +732,7 @@ FMOD_RESULT CodecAIFF::setPositionInternal(int subsound, unsigned int position, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bb777d46 manual
 // OFFSET: 0x0090E270
 FMOD_RESULT F_CALLBACK CodecAIFF::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {

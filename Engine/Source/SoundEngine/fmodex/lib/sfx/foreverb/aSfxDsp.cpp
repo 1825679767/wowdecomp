@@ -15,15 +15,18 @@
 
 //-----------------------------------------------------------------------------
 
+// VERIFY: 0c87e1df manual
 // OFFSET: 0x009287F0
 int ASfxDsp::init(float rate)
 {
 	int delayLine;
 	int error = 0;
 
+	mLateDelays = NULL;
 	mEarlyLateDelay = NULL;
 	mEarlyDelay = NULL;
-	
+	mAllpassDelays = NULL;
+
 	ZeroWritePointers();
 	
 	mEarlyLateSec[0] = 0.040f;
@@ -73,9 +76,7 @@ int ASfxDsp::init(float rate)
 
 	mNumAllocatedInBuffSamples = 0;
 	
-	mInBuff = mInBuffMemory = 0;	
-	mMatrix   = (float *)FMOD_ALIGNPOINTER(mMatrixMem, 16);
-	mzDecayHF = (float *)FMOD_ALIGNPOINTER(mzDecayHFMem, 16);
+	mInBuff = 0;
 			
 	for (delayLine=0; delayLine<kNumLateReverbDelays; delayLine++)
 	{
@@ -109,14 +110,15 @@ int ASfxDsp::init(float rate)
 	return 0;
 }
 
+// VERIFY: ff701bf7 auto
 // OFFSET: 0x00927560
 void ASfxDsp::close()
 {
-	if (mInBuffMemory)
+	if (mInBuff)
 	{
-		FMOD_Memory_Free(mInBuffMemory);
-    	mInBuffMemory = mInBuff = 0;
+		FMOD_Memory_Free(mInBuff);
 	}
+	mInBuff = 0;
 
 	DeallocateLateDelays();
 	DeallocateEarlyLateDelay();
@@ -125,13 +127,22 @@ void ASfxDsp::close()
 }
 
 
+// VERIFY: 600309cf manual
 // OFFSET: 0x00927600
 int ASfxDsp::AllocateLateDelays(int numDelays, float *delaySec, float sampleRate)
 {
 	int delaySamples;
 	
 	DeallocateLateDelays();		// *** But if it hasn't changed, we may want to skip all this... ***
-	
+
+	if (!mLateDelays)
+	{
+		if ((mLateDelays = (float**) FMOD_Memory_Calloc(kNumLateReverbDelays * sizeof(float *))) == NULL)
+		{
+			return REVERB_LATE_ALLOCATION_ERR;
+		}
+	}
+
 	for (int delayLine=0; delayLine<kNumLateReverbDelays; delayLine++)
 	{
 		delaySamples = (int)(delaySec[delayLine] * sampleRate) + 1;
@@ -153,6 +164,7 @@ int ASfxDsp::AllocateLateDelays(int numDelays, float *delaySec, float sampleRate
 	return 0;
 }
 
+// VERIFY: be8475b9 manual
 // OFFSET: 0x00927740
 int ASfxDsp::AllocateEarlyLateDelay(float *delaySec, float sampleRate)
 {
@@ -179,13 +191,22 @@ int ASfxDsp::AllocateEarlyLateDelay(float *delaySec, float sampleRate)
 	return 0;
 }
 
+// VERIFY: 6ce7917f manual
 // OFFSET: 0x00927810
 int ASfxDsp::AllocateAllpassDelays(int numDelays, float *delaySec, float sampleRate)
 {
 	int		delaySamples;
 	
 	DeallocateAllpassDelays();		// *** But if it hasn't changed, we may want to skip all this... ***
-	
+
+	if (!mAllpassDelays)
+	{
+		if ((mAllpassDelays = (float**) FMOD_Memory_Calloc(kNumAllpassDelays * sizeof(float *))) == NULL)
+		{
+			return REVERB_ALLPASS_ALLOCATION_ERR;
+		}
+	}
+
 	for (int delayLine=0; delayLine<kNumAllpassDelays; delayLine++)
 	{
 		delaySamples = (int)(delaySec[delayLine] * sampleRate) + 1;
@@ -206,6 +227,7 @@ int ASfxDsp::AllocateAllpassDelays(int numDelays, float *delaySec, float sampleR
 	return 0;
 }
 
+// VERIFY: 7642805b manual
 // OFFSET: 0x00927950
 int ASfxDsp::AllocateEarlyDelay(float delaySec, float sampleRate)
 {
@@ -234,32 +256,48 @@ int	ASfxDsp::NextPowerOf2(int delaySamples)
 }
 
 
+// VERIFY: 798766cc auto
 // OFFSET: 0x009270B0
 void ASfxDsp::DeallocateLateDelays()
 {
-	for (int delayLine=0; delayLine<kNumLateReverbDelays; delayLine++)
+	if (mLateDelays)
 	{
-		if (mLateDelays[delayLine])
+		for (int delayLine=0; delayLine<kNumLateReverbDelays; delayLine++)
 		{
-			FMOD_Memory_Free(mLateDelays[delayLine]);
+			if (mLateDelays[delayLine])
+			{
+				FMOD_Memory_Free(mLateDelays[delayLine]);
+			}
+
+			mLateDelays[delayLine] = NULL;
 		}
 
-		mLateDelays[delayLine] = NULL;
+		FMOD_Memory_Free(mLateDelays);
 	}
+
+	mLateDelays = NULL;
 }
 
+// VERIFY: 3364aaa0 auto
 // OFFSET: 0x00927130
 void ASfxDsp::DeallocateAllpassDelays()
 {
-	for (int delayLine=0; delayLine<kNumAllpassDelays; delayLine++)
+	if (mAllpassDelays)
 	{
-		if (mAllpassDelays[delayLine])
+		for (int delayLine=0; delayLine<kNumAllpassDelays; delayLine++)
 		{
-			FMOD_Memory_Free(mAllpassDelays[delayLine]);
+			if (mAllpassDelays[delayLine])
+			{
+				FMOD_Memory_Free(mAllpassDelays[delayLine]);
+			}
+
+			mAllpassDelays[delayLine] = NULL;
 		}
 
-		mAllpassDelays[delayLine] = NULL;
+		FMOD_Memory_Free(mAllpassDelays);
 	}
+
+	mAllpassDelays = NULL;
 }
 
 void ASfxDsp::DeallocateEarlyDelay()
@@ -284,36 +322,33 @@ void ASfxDsp::DeallocateEarlyLateDelay()
 
 //-----------------------------------------------------------------------------
 //#pragma export(UpdateBufferSize)
+// VERIFY: 72597f31 auto
 // OFFSET: 0x009271B0
-int ASfxDsp::UpdateBufferSize(int newMaxBlockSize)
+bool ASfxDsp::UpdateBufferSize(int newMaxBlockSize)
 {
 	// nothing to do if the maximum number of samples per processing block hasn't changed
 	if (newMaxBlockSize == mNumAllocatedInBuffSamples)
     {
-		return 0;	// buffer size wasn't changed
+		return false;	// buffer size wasn't changed
     }
 
 	// update with the new value
 	mNumAllocatedInBuffSamples = newMaxBlockSize;
 
 	// (re)allocate audio buffers in mInBuff
-	if (mInBuffMemory != NULL)
+	if (mInBuff != NULL)
 	{
-		FMOD_Memory_Free(mInBuffMemory);
+		FMOD_Memory_Free(mInBuff);
 	}
-	
-	mInBuffMemory = (float*) FMOD_Memory_Alloc((newMaxBlockSize * sizeof(float)) + 16); 
-    if (!mInBuffMemory)
-    {
-        return REVERB_INBUFF_ALLOCATION_ERR;
-    }
-    mInBuff = (float *)FMOD_ALIGNPOINTER(mInBuffMemory, 16);
 
-	return 0;	// buffer size changed
+	mInBuff = (float*) FMOD_Memory_Alloc(newMaxBlockSize * sizeof(float));
+
+	return true;	// buffer size changed
 }
 
 //-----------------------------------------------------------------------------
 //#pragma export (ASfxDsp::ClearBuffers)
+// VERIFY: dab940a9 auto
 // OFFSET: 0x00927A10
 void ASfxDsp::ClearBuffers()
 {
@@ -337,6 +372,7 @@ void ASfxDsp::ClearInBuff()
 
 
 //-----------------------------------------------------------------------------
+// VERIFY: 7c3496f7 manual
 // OFFSET: 0x00927220
 void ASfxDsp::ClearReverbInternalBuffers()
 {
@@ -411,18 +447,18 @@ void ASfxDsp::DoDSPProcessing (float * inAudio, float * outAudio, int channels, 
 	{
 		for (i=0; i < sampframes; i += 2)
         {
-			outAudio[ch+channels*i] = inAudio[ch+channels*i] + VERY_SMALL_BUT_NOT_DENORMAL_VALUE;
+			inAudio[ch+channels*i] += VERY_SMALL_BUT_NOT_DENORMAL_VALUE;
         }
 		for (i=1; i < sampframes; i += 2)
         {
-			outAudio[ch+channels*i] = inAudio[ch+channels*i] - VERY_SMALL_BUT_NOT_DENORMAL_VALUE;
+			inAudio[ch+channels*i] -= VERY_SMALL_BUT_NOT_DENORMAL_VALUE;
         }
 	}
 #undef VERY_SMALL_BUT_NOT_DENORMAL_VALUE
 #endif
 
     // Copy input into our input buffer. This may be faster than doing it inside the big loop.
-	BlockProcessInput(sampframes, channels, outAudio, rate);	
+	BlockProcessInput(sampframes, channels, inAudio, rate);
 
 	// Adjust the EarlyLate read pointers in case Ref or Rev delays have changed
 	for (delayTap=0; delayTap<kNumEarlyLateDelayTaps; delayTap++)
@@ -827,6 +863,7 @@ void ASfxDsp::DoDSPProcessing (float * inAudio, float * outAudio, int channels, 
 
 
 // Copy input into our input buffer. This may be faster than doing it inside the big loop (?).
+// VERIFY: c2997d28 manual
 // OFFSET: 0x00927340
 void ASfxDsp::BlockProcessInput(unsigned int sampframes, int channels, float *inAudio, float rate)
 {
@@ -836,38 +873,7 @@ void ASfxDsp::BlockProcessInput(unsigned int sampframes, int channels, float *in
 	{
        SfxDataMove(inAudio, mInBuff, sampframes*sizeof(float));
 	}
-    else if (channels == 6)
-    {
-        float *inptr = inAudio;
-        float *outptr = mInBuff;
-
-        for (i = 0; i < sampframes / 4; i++)    // for each sample
-        {
-            outptr[0] = inptr[0]  + inptr[1]  + inptr[2]  + inptr[3]  + inptr[4]  + inptr[5];
-            outptr[1] = inptr[6]  + inptr[7]  + inptr[8]  + inptr[9]  + inptr[10] + inptr[11];
-            outptr[2] = inptr[12] + inptr[13] + inptr[14] + inptr[15] + inptr[16] + inptr[17];
-            outptr[3] = inptr[18] + inptr[19] + inptr[20] + inptr[21] + inptr[22] + inptr[23];
-            inptr  += 24;
-            outptr += 4;
-        }
-    }
-    else if (channels == 8)
-    {
-        float *inptr = inAudio;
-        float *outptr = mInBuff;
-
-        for (i = 0; i < sampframes / 4; i++)    // for each sample
-        {
-            outptr[0] = inptr[0]  + inptr[1]  + inptr[2]  + inptr[3]  + inptr[4]  + inptr[5]  + inptr[6]  + inptr[7];
-            outptr[1] = inptr[8]  + inptr[9]  + inptr[10] + inptr[11] + inptr[12] + inptr[13] + inptr[14] + inptr[15];
-            outptr[2] = inptr[16] + inptr[17] + inptr[18] + inptr[19] + inptr[20] + inptr[21] + inptr[22] + inptr[23];
-            outptr[3] = inptr[24] + inptr[25] + inptr[26] + inptr[27] + inptr[28] + inptr[29] + inptr[30] + inptr[31];
-            inptr  += 32;
-            outptr += 4;
-
-        }
-    }
-	else 
+	else
 	{
     	int ch;
 
@@ -886,6 +892,7 @@ void ASfxDsp::BlockProcessInput(unsigned int sampframes, int channels, float *in
 
 
 
+// VERIFY: 23f97caa auto
 // OFFSET: 0x00927400
 void ASfxDsp::SetLate_EarlyLateDelayTaps(float refPlusRevDelaySec, float nextLengthSec, float delayRatio, float rate)	
 {
@@ -906,6 +913,7 @@ void ASfxDsp::SetLate_EarlyLateDelayTaps(float refPlusRevDelaySec, float nextLen
 	}
 }
 
+// VERIFY: 5b44cbf9 auto
 // OFFSET: 0x00927470
 void ASfxDsp::SetAllpassDelays(float rate)
 {
@@ -932,6 +940,7 @@ void ASfxDsp::SetEarlyDelay(float nextLengthSec, float delayRatio, float rate)
 	}
 }
 
+// VERIFY: 37367dfa manual
 // OFFSET: 0x009274C0
 void ASfxDsp::SetLateDelays(float nextLengthSec, float delayRatio, float nextLengthBSec, float delayRatioB, float rate)
 {

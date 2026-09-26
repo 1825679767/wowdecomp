@@ -19,6 +19,7 @@
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7a3c9c76 manual
 // OFFSET: 0x00942FE0
 void FMOD_Resampler_NoInterp(float *out, int outlength, void *src, FMOD_SOUND_FORMAT srcformat, FMOD_UINT64P *position, FMOD_SINT64P *speed, int channels)
 {
@@ -127,49 +128,6 @@ void FMOD_Resampler_NoInterp(float *out, int outlength, void *src, FMOD_SOUND_FO
                     len--;
                 } 
             }
-            else if (channels == 2)
-            {
-                float r1l,r2l,r3l,r4l;
-                float r1r,r2r,r3r,r4r;
-                int len;
-
-                len = outlength >> 2;
-                while (len)
-                {
-                    r1l = (float)inptr[(position->mHi<<1) + 0] * scale;
-                    r1r = (float)inptr[(position->mHi<<1) + 1] * scale;
-                    position->mValue += speed->mValue;
-                    r2l = (float)inptr[(position->mHi<<1) + 0] * scale;
-                    r2r = (float)inptr[(position->mHi<<1) + 1] * scale;
-                    position->mValue += speed->mValue;
-                    r3l = (float)inptr[(position->mHi<<1) + 0] * scale;
-                    r3r = (float)inptr[(position->mHi<<1) + 1] * scale;
-                    position->mValue += speed->mValue;
-                    r4l = (float)inptr[(position->mHi<<1) + 0] * scale;
-                    r4r = (float)inptr[(position->mHi<<1) + 1] * scale;
-                    position->mValue += speed->mValue;
-
-                    out[0] = r1l;
-                    out[1] = r1r;
-                    out[2] = r2l;
-                    out[3] = r2r;
-                    out[4] = r3l;
-                    out[5] = r3r;
-                    out[6] = r4l;
-                    out[7] = r4r;
-                    len--;
-                    out+=8;
-                } 
-
-                len = outlength & 3;
-                while (len)
-                {
-                    *out++ = (float)inptr[(position->mHi<<1) + 0] * scale;
-                    *out++ = (float)inptr[(position->mHi<<1) + 1] * scale;
-                    position->mValue += speed->mValue;
-                    len--;
-                } 
-            }            
             else
             {
                 while (outlength)

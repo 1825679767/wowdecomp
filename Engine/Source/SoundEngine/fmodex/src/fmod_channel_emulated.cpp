@@ -28,6 +28,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ef313627 manual
 // OFFSET: 0x00944A70
 ChannelEmulated::ChannelEmulated()
 {
@@ -267,6 +268,7 @@ FMOD_RESULT ChannelEmulated::close()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 998200ce manual
 // OFFSET: 0x009448F0
 FMOD_RESULT ChannelEmulated::update(int delta)
 {
@@ -280,13 +282,13 @@ FMOD_RESULT ChannelEmulated::update(int delta)
 
     if (!(mFlags & CHANNELREAL_FLAG_PAUSED) && !(mFlags & CHANNELREAL_FLAG_ENDDELAY) && mFlags & CHANNELREAL_FLAG_PLAYING)
     {
-        float frequency = mParent->mPitch3D * mParent->mFrequency;
-        int   step;
+        int frequency = (int)(mParent->mPitch3D * mParent->mFrequency);
+        int step;
 
-        step = (int)(delta * frequency / 1000);
+        step = frequency * delta / 1000;
         if (mDirection == CHANNELREAL_PLAYDIR_BACKWARDS)
         {
-            step = (int)(delta * frequency / -1000);
+            step = -step;
         }
 
         mPosition += step;

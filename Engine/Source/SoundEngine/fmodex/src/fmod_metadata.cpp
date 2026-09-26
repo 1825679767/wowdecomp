@@ -27,6 +27,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cb779e96 manual
 // OFFSET: 0x0091CD10
 FMOD_RESULT TagNode::init(FMOD_TAGTYPE type, const char *name, void *data, unsigned int datalen, FMOD_TAGDATATYPE datatype)
 {
@@ -43,10 +44,6 @@ FMOD_RESULT TagNode::init(FMOD_TAGTYPE type, const char *name, void *data, unsig
     {
         memsize += 1;
     }
-    else if (datatype == FMOD_TAGDATATYPE_STRING_UTF16 || datatype == FMOD_TAGDATATYPE_STRING_UTF16BE)
-    {
-        memsize += 2;
-    }
 
     //AJS double-buffered stuff!!!
 
@@ -57,7 +54,7 @@ FMOD_RESULT TagNode::init(FMOD_TAGTYPE type, const char *name, void *data, unsig
     }
     FMOD_memcpy(mData[0], data, datalen);
 
-    mDataLen       = memsize;
+    mDataLen       = datalen;
     mType          = type;
     mDataType      = datatype;
     mUpdated       = true;
@@ -124,6 +121,7 @@ FMOD_RESULT TagNode::release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2ef86b92 manual
 // OFFSET: 0x0091CE20
 FMOD_RESULT TagNode::update(void *data, unsigned int datalen)
 {
@@ -260,6 +258,7 @@ FMOD_RESULT Metadata::getNumTags(int *numtags, int *numtagsupdated)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9758c992 manual
 // OFFSET: 0x0091D030
 FMOD_RESULT Metadata::getTag(const char *name, int index, FMOD_TAG *tag)
 {
@@ -472,6 +471,7 @@ FMOD_RESULT Metadata::addTag(TagNode *node)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f844a4d8 manual
 // OFFSET: 0x0091D1E0
 FMOD_RESULT Metadata::addTag(FMOD_TAGTYPE type, const char *name, void *data, unsigned int datalen, FMOD_TAGDATATYPE datatype, bool unique)
 {

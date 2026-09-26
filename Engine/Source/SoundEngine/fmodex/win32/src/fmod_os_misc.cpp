@@ -64,6 +64,7 @@ static void SetThreadName(DWORD dwThreadID, LPCSTR szThreadName)
 
 	[SEE_ALSO]
 */
+// VERIFY: 230c986b manual
 // OFFSET: 0x008D1CB0
 void *FMOD_OS_Memory_Alloc(int size, FMOD_MEMORY_TYPE type)
 {
@@ -83,6 +84,7 @@ void *FMOD_OS_Memory_Alloc(int size, FMOD_MEMORY_TYPE type)
 
 	[SEE_ALSO]
 */
+// VERIFY: ad68686e manual
 // OFFSET: 0x008D1CC0
 void *FMOD_OS_Memory_Realloc(void *ptr, int size, FMOD_MEMORY_TYPE type)
 {
@@ -102,6 +104,7 @@ void *FMOD_OS_Memory_Realloc(void *ptr, int size, FMOD_MEMORY_TYPE type)
 
 	[SEE_ALSO]
 */
+// VERIFY: 083548c9 manual
 // OFFSET: 0x004A9CE0
 void FMOD_OS_Memory_Free(void *ptr, FMOD_MEMORY_TYPE type)
 {
@@ -519,6 +522,7 @@ CRITICAL_SECTION  gMemoryCrit;
 
 	[SEE_ALSO]
 */
+// VERIFY: e65249a0 auto
 // OFFSET: 0x008D1EE0
 FMOD_RESULT FMOD_OS_CriticalSection_Create(FMOD_OS_CRITICALSECTION **crit, bool memorycrit)
 {
@@ -641,6 +645,7 @@ FMOD_RESULT FMOD_OS_CriticalSection_Leave(FMOD_OS_CRITICALSECTION *crit)
 
 	[SEE_ALSO]
 */
+// VERIFY: 21da4d2b auto
 // OFFSET: 0x008D1FC0
 FMOD_RESULT FMOD_OS_Semaphore_Create(FMOD_OS_SEMAPHORE **sema)
 {
@@ -651,10 +656,6 @@ FMOD_RESULT FMOD_OS_Semaphore_Create(FMOD_OS_SEMAPHORE **sema)
 
 #ifdef USEMETEREDSECTIONS
     *sema = (FMOD_OS_SEMAPHORE *)CreateMeteredSection(0, 0xffff, NULL);
-    if (!*sema)
-    {
-        return FMOD_ERR_MEMORY;
-    }
 #else
     *sema = (FMOD_OS_SEMAPHORE *)CreateSemaphore(NULL, 0, 0xffff, NULL);
 #endif
@@ -674,10 +675,11 @@ FMOD_RESULT FMOD_OS_Semaphore_Create(FMOD_OS_SEMAPHORE **sema)
 
 	[SEE_ALSO]
 */
+// VERIFY: 90fda9b6 auto
 // OFFSET: 0x008D1FF0
 FMOD_RESULT FMOD_OS_Semaphore_Free(FMOD_OS_SEMAPHORE *sema)
 {
-    if (sema == INVALID_HANDLE_VALUE)
+    if (!sema)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
@@ -703,11 +705,11 @@ FMOD_RESULT FMOD_OS_Semaphore_Free(FMOD_OS_SEMAPHORE *sema)
 
 	[SEE_ALSO]
 */
-// VERIFY: 9d08e4c0 auto
+// VERIFY: 89a4c1f0 auto
 // OFFSET: 0x008D2010
 FMOD_RESULT FMOD_OS_Semaphore_Wait(FMOD_OS_SEMAPHORE *sema)
 {
-    if (sema == INVALID_HANDLE_VALUE)
+    if (!sema)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
@@ -733,10 +735,11 @@ FMOD_RESULT FMOD_OS_Semaphore_Wait(FMOD_OS_SEMAPHORE *sema)
 
 	[SEE_ALSO]
 */
+// VERIFY: 8bb869e7 auto
 // OFFSET: 0x008D2030
 FMOD_RESULT FMOD_OS_Semaphore_Signal(FMOD_OS_SEMAPHORE *sema, bool interrupt)
 {
-    if (sema == INVALID_HANDLE_VALUE)
+    if (!sema)
     {
         return FMOD_ERR_INVALID_PARAM;
     }
@@ -794,6 +797,7 @@ FMOD_RESULT FMOD_OS_Library_Load(const char *dllname, FMOD_OS_LIBRARY **handle)
 
 	[SEE_ALSO]
 */
+// VERIFY: ac9c9848 auto
 // OFFSET: 0x008D20A0
 FMOD_RESULT FMOD_OS_Library_GetProcAddress(FMOD_OS_LIBRARY *handle, const char *procname, void **address)
 {
@@ -805,7 +809,7 @@ FMOD_RESULT FMOD_OS_Library_GetProcAddress(FMOD_OS_LIBRARY *handle, const char *
     *address = (void *)GetProcAddress((HMODULE)handle, procname);
     if (!*address)
     {
-        return FMOD_ERR_FILE_BAD;
+        return FMOD_ERR_FORMAT;
     }
 
     return FMOD_OK;
@@ -823,6 +827,7 @@ FMOD_RESULT FMOD_OS_Library_GetProcAddress(FMOD_OS_LIBRARY *handle, const char *
 
 	[SEE_ALSO]
 */
+// VERIFY: c193f5df manual
 // OFFSET: 0x008D20E0
 FMOD_RESULT FMOD_OS_Library_Free(FMOD_OS_LIBRARY *handle)
 {

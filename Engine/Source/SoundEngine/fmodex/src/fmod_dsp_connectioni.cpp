@@ -45,6 +45,7 @@ extern "C"
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 543af1c7 manual
 // OFFSET: 0x00923020
 FMOD_RESULT DSPConnectionI::init(DSP_LEVEL_TYPE * &levelmemory, int maxoutputlevels, int maxinputlevels)
 {  
@@ -183,14 +184,13 @@ FMOD_RESULT DSPConnectionI::getOutput(DSPI **output)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: db23d968 manual
 // OFFSET: 0x009230A0
 FMOD_RESULT DSPConnectionI::reset()
 {
     int count, count2;
 
     mVolume = 1.0f;
-    mUserData = 0;
-    mRampCount = 0;
 
     for (count = 0; count < mMaxOutputLevels; count++)
     {
@@ -225,6 +225,7 @@ FMOD_RESULT DSPConnectionI::reset()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 337f59d7 manual
 // OFFSET: 0x00923130
 FMOD_RESULT DSPConnectionI::setUnity()
 {
@@ -268,6 +269,7 @@ FMOD_RESULT DSPConnectionI::setUnity()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a98529b3 manual
 // OFFSET: 0x00923D50
 FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RESTRICT inbuffer, int outchannels, int inchannels, unsigned int length)
 {
@@ -285,7 +287,6 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
     float        l66, l77;
 #endif
     bool         supportssimd;
-    float        levelcurrent[DSP_MAXLEVELS_OUT][DSP_MAXLEVELS_IN] = { 0 };
 
     if (!inbuffer)
     {
@@ -296,6 +297,7 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
 
     if (mRampCount)
     {
+        FMOD_RESULT  result;
         unsigned int len = mRampCount;
 
         if (len > length)
@@ -303,7 +305,11 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
             len = length;
         }
 
-        mixAndRamp(outbuffer, inbuffer, outchannels, inchannels, len);
+        result = mixAndRamp(outbuffer, inbuffer, outchannels, inchannels, len);
+        if (result != FMOD_OK)
+        {
+            return result;
+        }
 
         length -= len;
         outbuffer += (len * outchannels);
@@ -315,62 +321,45 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
         return FMOD_OK;
     }
 
-    if (FMOD_FABS(mVolume) < DSP_LEVEL_SMALLVAL)
+    if (mVolume == 0)
     {
         return FMOD_OK;
     }
     
-    for (count = 0; count < (unsigned int)mMaxOutputLevels; count++)
-    {
-        int count2;
-
-        if (mLevelCurrent[count])
-        {
-            for (count2 = 0; count2 < mMaxInputLevels; count2++)
-            {
-                levelcurrent[count][count2] = DSP_LEVEL_DECOMPRESS(mLevelCurrent[count][count2]);
-            }
-        }
-    }
-
-    /*
-        Because mLevelCurrent could be misaligned this could hopefully put the values into registers.  (confirmed on ps2).
-    */
-
-    l00 = levelcurrent[0][0];
-    l10 = levelcurrent[1][0];
+    l00 = mLevelCurrent[0] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[0][0]) : 0;
+    l10 = mLevelCurrent[1] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[1][0]) : 0;
 
 #if (DSP_MAXLEVELS_OUT > 2)
-    l20 = levelcurrent[2][0];
-    l30 = levelcurrent[3][0];
-    l40 = levelcurrent[4][0];
-    l50 = levelcurrent[5][0];
+    l20 = mLevelCurrent[2] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[2][0]) : 0;
+    l30 = mLevelCurrent[3] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[3][0]) : 0;
+    l40 = mLevelCurrent[4] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[4][0]) : 0;
+    l50 = mLevelCurrent[5] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[5][0]) : 0;
 #endif
 #if (DSP_MAXLEVELS_OUT > 6)
-    l60 = levelcurrent[6][0];
-    l70 = levelcurrent[7][0];
+    l60 = mLevelCurrent[6] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[6][0]) : 0;
+    l70 = mLevelCurrent[7] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[7][0]) : 0;
 #endif
 
-    l01 = levelcurrent[0][1];
-    l11 = levelcurrent[1][1];
+    l01 = mLevelCurrent[0] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[0][1]) : 0;
+    l11 = mLevelCurrent[1] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[1][1]) : 0;
 
 #if (DSP_MAXLEVELS_OUT > 2)
-    l21 = levelcurrent[2][1];
-    l31 = levelcurrent[3][1];
-    l41 = levelcurrent[4][1];
-    l51 = levelcurrent[5][1];
+    l21 = mLevelCurrent[2] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[2][1]) : 0;
+    l31 = mLevelCurrent[3] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[3][1]) : 0;
+    l41 = mLevelCurrent[4] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[4][1]) : 0;
+    l51 = mLevelCurrent[5] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[5][1]) : 0;
 
-    l22 = levelcurrent[2][2];
-    l33 = levelcurrent[3][3];
-    l44 = levelcurrent[4][4];
-    l55 = levelcurrent[5][5];
+    l22 = mLevelCurrent[2] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[2][2]) : 0;
+    l33 = mLevelCurrent[3] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[3][3]) : 0;
+    l44 = mLevelCurrent[4] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[4][4]) : 0;
+    l55 = mLevelCurrent[5] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[5][5]) : 0;
 #endif
 #if (DSP_MAXLEVELS_OUT > 6)
-    l61 = levelcurrent[6][1];
-    l71 = levelcurrent[7][1];
+    l61 = mLevelCurrent[6] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[6][1]) : 0;
+    l71 = mLevelCurrent[7] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[7][1]) : 0;
 
-    l66 = levelcurrent[6][6];
-    l77 = levelcurrent[7][7];
+    l66 = mLevelCurrent[6] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[6][6]) : 0;
+    l77 = mLevelCurrent[7] ? DSP_LEVEL_DECOMPRESS(mLevelCurrent[7][7]) : 0;
 #endif
 
     /*
@@ -391,7 +380,7 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
                 /*
                     First 16byte align destination for simd.
                 */
-                while ((((unsigned int)outbuffer & 0xF) || ((unsigned int)inbuffer & 0xF)) && length)
+                while ((unsigned int)outbuffer & 0xF && length)
                 {
                     outbuffer[0] += (inbuffer[0] * l00);
                     outbuffer[1] += (inbuffer[0] * l10);
@@ -436,7 +425,7 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
         {
             unsigned int len;
 
-            if (FMOD_FABS(l01) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l10) < DSP_LEVEL_SMALLVAL)     /* Pan matrix looks like [l 0] which is the normal way. */
+            if (l01 < DSP_LEVEL_SMALLVAL && l10 < DSP_LEVEL_SMALLVAL)     /* Pan matrix looks like [l 0] which is the normal way. */
             {                                       /*                       [0 r]                          */
                 #ifdef FMOD_SUPPORT_SIMD
                 if (supportssimd)
@@ -635,11 +624,11 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
             /*                       [0 0]                          */
             /*                       [0 0]                          */
             /*                       [0 0]                          */
-            if (FMOD_FABS(l01) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l10) < DSP_LEVEL_SMALLVAL && 
-                FMOD_FABS(l20) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l21) < DSP_LEVEL_SMALLVAL &&
-                FMOD_FABS(l30) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l31) < DSP_LEVEL_SMALLVAL &&
-                FMOD_FABS(l40) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l41) < DSP_LEVEL_SMALLVAL &&
-                FMOD_FABS(l50) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l51) < DSP_LEVEL_SMALLVAL)
+            if (l01 < DSP_LEVEL_SMALLVAL && l10 < DSP_LEVEL_SMALLVAL && 
+                l20 < DSP_LEVEL_SMALLVAL && l21 < DSP_LEVEL_SMALLVAL &&
+                l30 < DSP_LEVEL_SMALLVAL && l31 < DSP_LEVEL_SMALLVAL &&
+                l40 < DSP_LEVEL_SMALLVAL && l41 < DSP_LEVEL_SMALLVAL &&
+                l50 < DSP_LEVEL_SMALLVAL && l51 < DSP_LEVEL_SMALLVAL)
             {                                       
                 len = length >> 2;
                 while (len)
@@ -755,36 +744,16 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
         }
         else if (inchannels == 6)
         {
-            FMOD_RESULT unity = checkUnity(outchannels, inchannels);
-            FMOD_RESULT mono  = FMOD_ERR_TOOMANYCHANNELS;
-
-            if (unity != FMOD_OK)
-            {
-                mono = checkMono(outchannels, inchannels);
-            }
-
-            if (unity == FMOD_OK || mono == FMOD_OK)
+            if (checkUnity(outchannels, inchannels) == FMOD_OK)
             {
                 float l[6];
 
-                if (unity == FMOD_OK)
-                {
-                    l[0] = l00;
-                    l[1] = l11;
-                    l[2] = l22;
-                    l[3] = l33;
-                    l[4] = l44;
-                    l[5] = l55;
-                }
-                else
-                {
-                    l[0] = l00;
-                    l[1] = l10;
-                    l[2] = l20;
-                    l[3] = l30;
-                    l[4] = l40;
-                    l[5] = l50;
-                }
+                l[0] = l00;
+                l[1] = l11;
+                l[2] = l22;
+                l[3] = l33;
+                l[4] = l44;
+                l[5] = l55;
 
                 #ifdef FMOD_SUPPORT_SIMD
                 if (supportssimd)
@@ -885,7 +854,7 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
  
                         for (count3 = 0; count3 < inchannels; count3++)
                         {
-                            srcval += (inbuffer[count3] * levelcurrent[count2][count3]);
+                            srcval += (inbuffer[count3] * mLevelCurrent[count2][count3]);
                         }
  
                         destval += srcval;
@@ -899,52 +868,52 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
                 {
                     float srcval;
                     
-                    srcval  = (inbuffer[0] * levelcurrent[0][0]);
-                    srcval += (inbuffer[1] * levelcurrent[0][1]);
-                    srcval += (inbuffer[2] * levelcurrent[0][2]);
-                    srcval += (inbuffer[3] * levelcurrent[0][3]);
-                    srcval += (inbuffer[4] * levelcurrent[0][4]);
-                    srcval += (inbuffer[5] * levelcurrent[0][5]);
+                    srcval  = (inbuffer[0] * mLevelCurrent[0][0]);
+                    srcval += (inbuffer[1] * mLevelCurrent[0][1]);
+                    srcval += (inbuffer[2] * mLevelCurrent[0][2]);
+                    srcval += (inbuffer[3] * mLevelCurrent[0][3]);
+                    srcval += (inbuffer[4] * mLevelCurrent[0][4]);
+                    srcval += (inbuffer[5] * mLevelCurrent[0][5]);
                     outbuffer[0] += srcval;
 
-                    srcval  = (inbuffer[0] * levelcurrent[1][0]);
-                    srcval += (inbuffer[1] * levelcurrent[1][1]);
-                    srcval += (inbuffer[2] * levelcurrent[1][2]);
-                    srcval += (inbuffer[3] * levelcurrent[1][3]);
-                    srcval += (inbuffer[4] * levelcurrent[1][4]);
-                    srcval += (inbuffer[5] * levelcurrent[1][5]);
+                    srcval  = (inbuffer[0] * mLevelCurrent[1][0]);
+                    srcval += (inbuffer[1] * mLevelCurrent[1][1]);
+                    srcval += (inbuffer[2] * mLevelCurrent[1][2]);
+                    srcval += (inbuffer[3] * mLevelCurrent[1][3]);
+                    srcval += (inbuffer[4] * mLevelCurrent[1][4]);
+                    srcval += (inbuffer[5] * mLevelCurrent[1][5]);
                     outbuffer[1] += srcval;
 
-                    srcval  = (inbuffer[0] * levelcurrent[2][0]);
-                    srcval += (inbuffer[1] * levelcurrent[2][1]);
-                    srcval += (inbuffer[2] * levelcurrent[2][2]);
-                    srcval += (inbuffer[3] * levelcurrent[2][3]);
-                    srcval += (inbuffer[4] * levelcurrent[2][4]);
-                    srcval += (inbuffer[5] * levelcurrent[2][5]);
+                    srcval  = (inbuffer[0] * mLevelCurrent[2][0]);
+                    srcval += (inbuffer[1] * mLevelCurrent[2][1]);
+                    srcval += (inbuffer[2] * mLevelCurrent[2][2]);
+                    srcval += (inbuffer[3] * mLevelCurrent[2][3]);
+                    srcval += (inbuffer[4] * mLevelCurrent[2][4]);
+                    srcval += (inbuffer[5] * mLevelCurrent[2][5]);
                     outbuffer[2] += srcval;
 
-                    srcval  = (inbuffer[0] * levelcurrent[3][0]);
-                    srcval += (inbuffer[1] * levelcurrent[3][1]);
-                    srcval += (inbuffer[2] * levelcurrent[3][2]);
-                    srcval += (inbuffer[3] * levelcurrent[3][3]);
-                    srcval += (inbuffer[4] * levelcurrent[3][4]);
-                    srcval += (inbuffer[5] * levelcurrent[3][5]);
+                    srcval  = (inbuffer[0] * mLevelCurrent[3][0]);
+                    srcval += (inbuffer[1] * mLevelCurrent[3][1]);
+                    srcval += (inbuffer[2] * mLevelCurrent[3][2]);
+                    srcval += (inbuffer[3] * mLevelCurrent[3][3]);
+                    srcval += (inbuffer[4] * mLevelCurrent[3][4]);
+                    srcval += (inbuffer[5] * mLevelCurrent[3][5]);
                     outbuffer[3] += srcval;
 
-                    srcval  = (inbuffer[0] * levelcurrent[4][0]);
-                    srcval += (inbuffer[1] * levelcurrent[4][1]);
-                    srcval += (inbuffer[2] * levelcurrent[4][2]);
-                    srcval += (inbuffer[3] * levelcurrent[4][3]);
-                    srcval += (inbuffer[4] * levelcurrent[4][4]);
-                    srcval += (inbuffer[5] * levelcurrent[4][5]);
+                    srcval  = (inbuffer[0] * mLevelCurrent[4][0]);
+                    srcval += (inbuffer[1] * mLevelCurrent[4][1]);
+                    srcval += (inbuffer[2] * mLevelCurrent[4][2]);
+                    srcval += (inbuffer[3] * mLevelCurrent[4][3]);
+                    srcval += (inbuffer[4] * mLevelCurrent[4][4]);
+                    srcval += (inbuffer[5] * mLevelCurrent[4][5]);
                     outbuffer[4] += srcval;
 
-                    srcval  = (inbuffer[0] * levelcurrent[5][0]);
-                    srcval += (inbuffer[1] * levelcurrent[5][1]);
-                    srcval += (inbuffer[2] * levelcurrent[5][2]);
-                    srcval += (inbuffer[3] * levelcurrent[5][3]);
-                    srcval += (inbuffer[4] * levelcurrent[5][4]);
-                    srcval += (inbuffer[5] * levelcurrent[5][5]);
+                    srcval  = (inbuffer[0] * mLevelCurrent[5][0]);
+                    srcval += (inbuffer[1] * mLevelCurrent[5][1]);
+                    srcval += (inbuffer[2] * mLevelCurrent[5][2]);
+                    srcval += (inbuffer[3] * mLevelCurrent[5][3]);
+                    srcval += (inbuffer[4] * mLevelCurrent[5][4]);
+                    srcval += (inbuffer[5] * mLevelCurrent[5][5]);
                     outbuffer[5] += srcval;
 
                     outbuffer += 6;
@@ -1033,13 +1002,13 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
             /*                       [0 0]                          */
             /*                       [0 0]                          */
             /*                       [0 0]                          */
-            if (FMOD_FABS(l01) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l10) < DSP_LEVEL_SMALLVAL && 
-                FMOD_FABS(l20) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l21) < DSP_LEVEL_SMALLVAL &&
-                FMOD_FABS(l30) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l31) < DSP_LEVEL_SMALLVAL &&
-                FMOD_FABS(l40) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l41) < DSP_LEVEL_SMALLVAL &&
-                FMOD_FABS(l50) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l51) < DSP_LEVEL_SMALLVAL &&
-                FMOD_FABS(l60) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l61) < DSP_LEVEL_SMALLVAL &&
-                FMOD_FABS(l70) < DSP_LEVEL_SMALLVAL && FMOD_FABS(l71) < DSP_LEVEL_SMALLVAL)
+            if (l01 < DSP_LEVEL_SMALLVAL && l10 < DSP_LEVEL_SMALLVAL && 
+                l20 < DSP_LEVEL_SMALLVAL && l21 < DSP_LEVEL_SMALLVAL &&
+                l30 < DSP_LEVEL_SMALLVAL && l31 < DSP_LEVEL_SMALLVAL &&
+                l40 < DSP_LEVEL_SMALLVAL && l41 < DSP_LEVEL_SMALLVAL &&
+                l50 < DSP_LEVEL_SMALLVAL && l51 < DSP_LEVEL_SMALLVAL &&
+                l60 < DSP_LEVEL_SMALLVAL && l61 < DSP_LEVEL_SMALLVAL &&
+                l70 < DSP_LEVEL_SMALLVAL && l71 < DSP_LEVEL_SMALLVAL)
             {                                       
                 len = length >> 2;
                 while (len)
@@ -1186,47 +1155,18 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
         }
         else if (inchannels == 8)
         {
-#if 0        
-            if (mUnity)
-            {
-                mUnity = mUnity;
-            }
-            else
-#endif
-            FMOD_RESULT unity = checkUnity(outchannels, inchannels);
-            FMOD_RESULT mono  = FMOD_ERR_TOOMANYCHANNELS;
-
-            if (unity != FMOD_OK)
-            {
-                mono = checkMono(outchannels, inchannels);
-            }
-
-            if (unity == FMOD_OK || mono == FMOD_OK)
+            if (checkUnity(outchannels, inchannels) == FMOD_OK)
             {
                 float l[8];
 
-                if (unity == FMOD_OK)
-                {
-                    l[0] = l00;
-                    l[1] = l11;
-                    l[2] = l22;
-                    l[3] = l33;
-                    l[4] = l44;
-                    l[5] = l55;
-                    l[6] = l66;
-                    l[7] = l77;
-                }
-                else
-                {
-                    l[0] = l00;
-                    l[1] = l10;
-                    l[2] = l20;
-                    l[3] = l30;
-                    l[4] = l40;
-                    l[5] = l50;
-                    l[6] = l60;
-                    l[7] = l70;
-                }
+                l[0] = l00;
+                l[1] = l11;
+                l[2] = l22;
+                l[3] = l33;
+                l[4] = l44;
+                l[5] = l55;
+                l[6] = l66;
+                l[7] = l77;
 
                 #ifdef FMOD_SUPPORT_SIMD
                 if (supportssimd)
@@ -1302,7 +1242,7 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
 
                         for (count3 = 0; count3 < inchannels; count3++)
                         {
-                            srcval += (inbuffer[count3] * levelcurrent[count2][count3]);
+                            srcval += (inbuffer[count3] * mLevelCurrent[count2][count3]);
                         }
 
                         destval += srcval;
@@ -1328,7 +1268,7 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
  
                 for (count3 = 0; count3 < inchannels; count3++)
                 {
-                    srcval += (inbuffer[count3] * levelcurrent[count2][count3]);
+                    srcval += (inbuffer[count3] * mLevelCurrent[count2][count3]);
                 }
 
                 destval += srcval;
@@ -1358,6 +1298,7 @@ FMOD_RESULT DSPConnectionI::mix(float * FMOD_RESTRICT outbuffer, float * FMOD_RE
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bc3a7e5c manual
 // OFFSET: 0x009231B0
 FMOD_RESULT DSPConnectionI::mixAndRamp(float * FMOD_RESTRICT outbuffer, float * FMOD_RESTRICT inbuffer, int outchannels, int inchannels, unsigned int length)
 {
@@ -1421,22 +1362,6 @@ FMOD_RESULT DSPConnectionI::mixAndRamp(float * FMOD_RESTRICT outbuffer, float * 
 
     mRampCount -= length;
 
-    /*
-        Snap the current to the mlevel
-    */
-    if (!mRampCount)
-    {
-        int count, count2;
-    
-        for (count = 0; count < mMaxOutputLevels; count++)
-        {
-            for (count2 = 0; count2 < mMaxInputLevels; count2++)
-            {
-                mLevelCurrent[count][count2] = DSP_LEVEL_COMPRESS(DSP_LEVEL_DECOMPRESS(mLevel[count][count2]) * mVolume);
-            }
-        }
-    }
-
     return FMOD_OK;
 }
 
@@ -1457,6 +1382,7 @@ FMOD_RESULT DSPConnectionI::mixAndRamp(float * FMOD_RESTRICT outbuffer, float * 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1d1c307a manual
 // OFFSET: 0x00923300
 FMOD_RESULT DSPConnectionI::rampTo()
 {
@@ -1508,7 +1434,7 @@ FMOD_RESULT DSPConnectionI::rampTo()
         }
     }
 
-    if (DSP_LEVEL_COMPRESS(delta) >= 0.000001f)
+    if (DSP_LEVEL_COMPRESS(delta) > 0.000001f)
     {
         mRampCount = DSP_RAMPCOUNT;     /* Only trigger the ramp if anything has changed. */
     }
@@ -1533,22 +1459,13 @@ FMOD_RESULT DSPConnectionI::rampTo()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4582eab4 auto
 // OFFSET: 0x00923470
 FMOD_RESULT DSPConnectionI::checkUnity(int outchannels, int inchannels)
 {
     int count, count2;
 
-    if (inchannels != outchannels)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    if (mRampCount != 0)
-    {
-        return FMOD_ERR_PAN;
-    }
-
-    if (mVolume != 1.0f)
+    if (mVolume != 1.0f || inchannels != outchannels)
     {
         return FMOD_ERR_PAN;
     }
@@ -1628,6 +1545,7 @@ FMOD_RESULT DSPConnectionI::checkMono(int outchannels, int inchannels)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9ee92220 manual
 // OFFSET: 0x00923500
 FMOD_RESULT DSPConnectionI::setPan(float pan, int outchannels, int inchannels, FMOD_SPEAKERMODE speakermode)
 {
@@ -1981,6 +1899,7 @@ FMOD_RESULT DSPConnectionI::setPan(float pan, int outchannels, int inchannels, F
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 01217287 manual
 // OFFSET: 0x00923A70
 FMOD_RESULT DSPConnectionI::setLevels(float *levels, int numinputlevels)
 {
@@ -2283,57 +2202,6 @@ FMOD_RESULT DSPConnectionI::getLevels(FMOD_SPEAKER speaker, float *levels, int n
 	[PARAMETERS]
  
 	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPConnectionI::setUserData(void *userdata)
-{
-    mUserData = userdata;
-    
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
-
-	[REMARKS]
-
-    [PLATFORMS]
-    
-	[SEE_ALSO]
-]
-*/
-FMOD_RESULT DSPConnectionI::getUserData(void **userdata)
-{
-    if (!userdata)
-    {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    *userdata = mUserData;
-    
-    return FMOD_OK;
-}
-
-
-/*
-[
-	[DESCRIPTION]
-
-	[PARAMETERS]
- 
-	[RETURN_VALUE]
     FMOD_OK
 
 	[REMARKS]
@@ -2344,6 +2212,7 @@ FMOD_RESULT DSPConnectionI::getUserData(void **userdata)
 ]
 */
 #ifdef FMOD_SUPPORT_SOFTWARE
+// VERIFY: faf33a20 manual
 // OFFSET: 0x00923C50
 FMOD_RESULT DSPConnectionI::copy(DSPConnectionI *source)
 {

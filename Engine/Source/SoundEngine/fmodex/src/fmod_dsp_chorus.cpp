@@ -163,11 +163,12 @@ FMOD_INLINE const float DSPChorus::sine(float x)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6f28e6b4 manual
 // OFFSET: 0x008EB9B0
 FMOD_RESULT DSPChorus::createInternal()
 {
     FMOD_RESULT  result;
-    int          inchannels, outchannels, channels, count;
+    int          channels, count;
 
     init();
 
@@ -182,12 +183,11 @@ FMOD_RESULT DSPChorus::createInternal()
     }
 #endif
     
-    result = mSystem->getSoftwareFormat(&mOutputRate, 0, &outchannels, &inchannels, 0, 0);
+    result = mSystem->getSoftwareFormat(&mOutputRate, 0, &channels, 0, 0, 0);
     if (result != FMOD_OK)
     {
         return result;
     }
-    channels = inchannels > outchannels ? inchannels : outchannels;
 
     mChorusBufferLengthBytes = (int)((float)mOutputRate * DSP_CHORUS_MAXBUFFERLENGTHMS) / 1000;
     mChorusBufferLengthBytes *= channels;
@@ -285,6 +285,7 @@ FMOD_RESULT DSPChorus::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cc338952 manual
 // OFFSET: 0x008EBAC0
 FMOD_RESULT DSPChorus::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {   
@@ -378,6 +379,7 @@ FMOD_RESULT DSPChorus::readInternal(float *inbuffer, float *outbuffer, unsigned 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2dcfbf63 manual
 // OFFSET: 0x008EBFF0
 FMOD_RESULT DSPChorus::setParameterInternal(int index, float value)
 {
@@ -433,7 +435,7 @@ FMOD_RESULT DSPChorus::setParameterInternal(int index, float value)
 
     if (mDelay != olddelay)
     {
-        mChorusBufferLength = (int)((float)mOutputRate * mDelay / 1000.0f) * 2;
+        mChorusBufferLength = (unsigned int)((float)mOutputRate * mDelay / 1000.0f) * 2;
         if (mChorusBufferLength < 4)
         {
             mChorusBufferLength = 4;
@@ -566,6 +568,7 @@ FMOD_RESULT DSPChorus::getParameterInternal(int index, float *value, char *value
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 82ed0738 manual
 // OFFSET: 0x008EC240
 FMOD_RESULT F_CALLBACK DSPChorus::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -590,6 +593,7 @@ FMOD_RESULT F_CALLBACK DSPChorus::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4651ec5a manual
 // OFFSET: 0x008EC270
 FMOD_RESULT F_CALLBACK DSPChorus::releaseCallback(FMOD_DSP_STATE *dsp)
 {
@@ -614,6 +618,7 @@ FMOD_RESULT F_CALLBACK DSPChorus::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 609a8ba8 manual
 // OFFSET: 0x008EC2C0
 FMOD_RESULT F_CALLBACK DSPChorus::resetCallback(FMOD_DSP_STATE *dsp)
 {
@@ -663,6 +668,7 @@ FMOD_RESULT F_CALLBACK DSPChorus::readCallback(FMOD_DSP_STATE *dsp, float *inbuf
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a0524f3f manual
 // OFFSET: 0x008EC330
 FMOD_RESULT F_CALLBACK DSPChorus::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {

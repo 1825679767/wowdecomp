@@ -164,6 +164,7 @@ FMOD_RESULT ChannelOpenALEAX2::setReverbProperties(const FMOD_REVERB_CHANNELPROP
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 508d103e manual
 // OFFSET: 0x0094B6F0
 FMOD_RESULT ChannelOpenALEAX2::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 {

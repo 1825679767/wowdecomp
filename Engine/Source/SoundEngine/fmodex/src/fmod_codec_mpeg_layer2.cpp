@@ -229,6 +229,7 @@ struct al_table CodecMPEG::gAlloc4[] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 81c71921 manual
 // OFFSET: 0x009317C0
 FMOD_RESULT CodecMPEG::initLayer2()
 {
@@ -305,6 +306,7 @@ FMOD_RESULT CodecMPEG::initLayer2()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f32f7658 manual
 // OFFSET: 0x00931A60
 FMOD_RESULT CodecMPEG::II_step_one(unsigned int *bit_alloc,int *scale)
 {
@@ -409,6 +411,7 @@ FMOD_RESULT CodecMPEG::II_step_one(unsigned int *bit_alloc,int *scale)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b05f67c7 manual
 // OFFSET: 0x00931C90
 FMOD_RESULT CodecMPEG::II_step_two(unsigned int *bit_alloc,float fraction[2][4][SBLIMIT],int *scale,int x1)
 {
@@ -580,6 +583,7 @@ FMOD_RESULT CodecMPEG::getIIStuff()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7470f6b1 auto
 // OFFSET: 0x00932380
 FMOD_RESULT CodecMPEG::decodeLayer2(void *pcm_sample, unsigned int *outlen)
 {
@@ -589,10 +593,9 @@ FMOD_RESULT CodecMPEG::decodeLayer2(void *pcm_sample, unsigned int *outlen)
 	unsigned int	bit_alloc[64];
 	int				scale[192];
     int             inc = SBLIMIT * sizeof(signed short);
+    char           *pcm_start = (char *)pcm_sample;
 
 	II_step_one(bit_alloc, scale);
-
-    *outlen = 0;
 
 	for (i=0;i<SCALE_BLOCK;i++) 
 	{
@@ -600,12 +603,13 @@ FMOD_RESULT CodecMPEG::decodeLayer2(void *pcm_sample, unsigned int *outlen)
 
 		for (j=0;j<3;j++) 
 		{
-			synth(pcm_sample, fraction[0][j], channels, waveformat->channels > 2 ? waveformat->channels : channels);
+			synth(pcm_sample, fraction[0][j], channels, mChannels ? mChannels : channels);
 
-			pcm_sample = (char *)pcm_sample + inc * waveformat->channels;
-            *outlen += inc * channels;
+			pcm_sample = (char *)pcm_sample + inc * channels;
 		}
 	}
+
+    *outlen = (unsigned int)((char *)pcm_sample - pcm_start);
 	
 	return FMOD_OK;
 }

@@ -78,6 +78,7 @@ FMOD_DSP_PARAMETERDESC dspitecho_param[5] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d3fa2c33 auto
 // OFFSET: 0x008EB330
 FMOD_DSP_DESCRIPTION_EX *DSPITEcho::getDescriptionEx()
 {
@@ -165,6 +166,7 @@ FMOD_RESULT DSPITEcho::createInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 207b79b5 auto
 // OFFSET: 0x008EAC50
 FMOD_RESULT DSPITEcho::releaseInternal()
 {
@@ -172,10 +174,10 @@ FMOD_RESULT DSPITEcho::releaseInternal()
 
     for (count = 0; count < 2; count++)
     {
-        if (mEchoBufferMem[count])
+        if (mEchoBuffer[count])
         {
-            FMOD_Memory_Free(mEchoBufferMem[count]);
-            mEchoBuffer[count] = mEchoBufferMem[count] = 0;
+            FMOD_Memory_Free(mEchoBuffer[count]);
+            mEchoBuffer[count] = 0;
         }
     }
 
@@ -200,6 +202,7 @@ FMOD_RESULT DSPITEcho::releaseInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: db7d89c3 auto
 // OFFSET: 0x008EACA0
 FMOD_RESULT DSPITEcho::resetInternal()
 {
@@ -237,6 +240,7 @@ FMOD_RESULT DSPITEcho::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fa69a9a5 manual
 // OFFSET: 0x008EAD00
 FMOD_RESULT DSPITEcho::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -350,6 +354,7 @@ FMOD_RESULT DSPITEcho::readInternal(float *inbuffer, float *outbuffer, unsigned 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d8025596 manual
 // OFFSET: 0x008EAF20
 FMOD_RESULT DSPITEcho::setParameterInternal(int index, float value)
 {
@@ -420,36 +425,20 @@ FMOD_RESULT DSPITEcho::setParameterInternal(int index, float value)
             }
             #endif
 
-            if (mEchoBufferMem[channel])
+            if (mEchoBuffer[channel])
             {
-                FMOD_Memory_Free(mEchoBufferMem[channel]);
-                mEchoBuffer[channel] = mEchoBufferMem[channel] = 0;
+                FMOD_Memory_Free(mEchoBuffer[channel]);
             }
 
             mEchoBufferLengthBytes[channel] = mEchoLength[channel];
             mEchoBufferLengthBytes[channel] *= sizeof(float);
 
-            #ifdef PLATFORM_PS3
-
-            mEchoBufferMem[channel] = (float *)FMOD_Memory_Calloc(mEchoBufferLengthBytes[channel] + 128);
-            if (!mEchoBufferMem[channel])
+            mEchoBuffer[channel] = (float *)FMOD_Memory_Calloc(mEchoBufferLengthBytes[channel]);
+            if (!mEchoBuffer[channel])
             {
                 mSystem->unlockDSP();
                 return FMOD_ERR_MEMORY;
             }
-            mEchoBuffer[channel] = (float *)FMOD_ALIGNPOINTER(mEchoBufferMem[channel], 128);
-            
-            #else
-
-            mEchoBufferMem[channel] = (float *)FMOD_Memory_Calloc(mEchoBufferLengthBytes[channel]);
-            if (!mEchoBufferMem[channel])
-            {
-                mSystem->unlockDSP();
-                return FMOD_ERR_MEMORY;
-            }
-            mEchoBuffer[channel] = mEchoBufferMem[channel];
-
-            #endif
 
             reset = true;
         }
@@ -590,6 +579,7 @@ FMOD_RESULT F_CALLBACK DSPITEcho::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0bfcc057 manual
 // OFFSET: 0x008EB230
 FMOD_RESULT F_CALLBACK DSPITEcho::releaseCallback(FMOD_DSP_STATE *dsp)
 {
@@ -615,6 +605,7 @@ FMOD_RESULT F_CALLBACK DSPITEcho::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f0924318 manual
 // OFFSET: 0x008EB260
 FMOD_RESULT F_CALLBACK DSPITEcho::resetCallback(FMOD_DSP_STATE *dsp)
 {
@@ -668,6 +659,7 @@ FMOD_RESULT F_CALLBACK DSPITEcho::readCallback(FMOD_DSP_STATE *dsp, float *inbuf
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 52889295 manual
 // OFFSET: 0x008EB2C0
 FMOD_RESULT F_CALLBACK DSPITEcho::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {

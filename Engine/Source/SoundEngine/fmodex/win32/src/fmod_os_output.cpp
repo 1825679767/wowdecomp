@@ -78,6 +78,7 @@ FMOD_RESULT FMOD_OS_Output_Register(FMOD::PluginFactory *pluginfactory)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 94ba128a manual
 // OFFSET: 0x00916030
 FMOD_RESULT FMOD_OS_Output_GetDefault(FMOD_OUTPUTTYPE *outputtype)
 {

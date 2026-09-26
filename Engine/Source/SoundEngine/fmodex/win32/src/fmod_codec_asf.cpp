@@ -63,6 +63,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ce70856d manual
 // OFFSET: 0x008F8B60
 FMOD_CODEC_DESCRIPTION_EX *CodecASF::getDescriptionEx()
 {
@@ -102,6 +103,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecASF::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c9259e30 manual
 // OFFSET: 0x008F7C40
 FMOD_RESULT CodecASF::getStreamNumbers(IWMProfile* pProfile)
 {
@@ -184,6 +186,7 @@ FMOD_RESULT CodecASF::getStreamNumbers(IWMProfile* pProfile)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b472eeb0 manual
 // OFFSET: 0x008F8260
 FMOD_RESULT CodecASF::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -264,9 +267,9 @@ FMOD_RESULT CodecASF::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
     }
 
     hr = CoInitialize( NULL );
-    if (hr == S_OK || hr == S_FALSE)
+    if (FAILED( hr ))
     {
-        mCoInitialized = true;
+        return FMOD_ERR_COM;
     }
 
 
@@ -516,10 +519,8 @@ FMOD_RESULT CodecASF::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
                 wcstombs(point->mName, name, len);
 
                 point->mOffset = (unsigned int)(offset * mWaveFormatMemory->frequency / 10000000);
-            } 
+            }
         }
-
-        headerinfo->Release();
     }
 
     if (!mPCMBufferLengthBytes)
@@ -563,6 +564,7 @@ FMOD_RESULT CodecASF::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 03a9396f manual
 // OFFSET: 0x008F7D50
 FMOD_RESULT CodecASF::closeInternal()
 {   
@@ -609,6 +611,7 @@ FMOD_RESULT CodecASF::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 118f5ba9 auto
 // OFFSET: 0x008F7DD0
 FMOD_RESULT CodecASF::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -623,45 +626,25 @@ FMOD_RESULT CodecASF::readInternal(void *buffer, unsigned int sizebytes, unsigne
 
     *bytesread = 0;
 
-    while (*bytesread == 0)
+    hr = mReader->GetNextSample(mAudioStreamNum, &pSample, &mSampleTime, &cnsDuration, &dwFlags, &dwOutputNum, &wStreamNum);
+    if (FAILED(hr))
     {
-        hr = mReader->GetNextSample(mAudioStreamNum, &pSample, &mSampleTime, &cnsDuration, &dwFlags, &dwOutputNum, &wStreamNum);
-        if (FAILED(hr))
+        if (hr == NS_E_NO_MORE_SAMPLES)
         {
-            if (hr == NS_E_NO_MORE_SAMPLES)
-            {
-                return FMOD_ERR_FILE_EOF;
-            }
-            else if (hr == ASF_E_BADDATAUNIT)
-            {
-                // This should not happen at the end of files, because we seek FMOD_ASF_MAXIMUM_SEEK_POS_MS before the end
-                return FMOD_ERR_FILE_BAD;
-            }
-            else
-            {
-                return FMOD_ERR_FILE_BAD;
-            }
+            return FMOD_ERR_FILE_EOF;
         }
-        
-        pSample->GetBufferAndLength(&pdwBuffer, &dwLength);
-        
-        if (mExcessBytes >= dwLength)
-        {
-            mExcessBytes -= dwLength;
-        }
-        else
-        {
-            FMOD_memcpy(buffer, pdwBuffer + mExcessBytes, dwLength - mExcessBytes);
-            
-            *bytesread    = dwLength - mExcessBytes;
-            mExcessBytes  = 0;
-        }
-
-        pSample->Release();
-
+        return FMOD_ERR_FILE_BAD;
     }
 
-    return FMOD_OK;	
+    pSample->GetBufferAndLength(&pdwBuffer, &dwLength);
+
+    FMOD_memcpy(buffer, pdwBuffer, dwLength);
+
+    *bytesread = dwLength;
+
+    pSample->Release();
+
+    return FMOD_OK;
 }
 
 
@@ -681,31 +664,17 @@ FMOD_RESULT CodecASF::readInternal(void *buffer, unsigned int sizebytes, unsigne
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d2fecdfa manual
 // OFFSET: 0x008F7E80
 FMOD_RESULT CodecASF::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
     HRESULT hr;
     QWORD offset;
     int retries;
-    unsigned int lengthms;
 
     if (!mSeekable)
     {
         return FMOD_ERR_FILE_COULDNOTSEEK;
-    }
-
-    /*
-        Prevent GetNextSample errors by not seeking too close to the end of the file
-    */
-    mExcessBytes  = 0;
-    lengthms      = (unsigned int)((float)waveformat->lengthpcm / waveformat->frequency * 1000.0f);
-    if (position > lengthms - FMOD_ASF_MAXIMUM_SEEK_POS_MS)
-    {
-        mExcessBytes = position - (lengthms - FMOD_ASF_MAXIMUM_SEEK_POS_MS);                                 // MS
-        mExcessBytes = (unsigned int)((float)mExcessBytes / 1000.0f * waveformat->frequency);                // Samples
-        SoundI::getBytesFromSamples(mExcessBytes, &mExcessBytes, waveformat->channels, waveformat->format);  // Bytes
-
-        position = lengthms - FMOD_ASF_MAXIMUM_SEEK_POS_MS;
     }
 
     /*
@@ -954,6 +923,7 @@ HRESULT CROStream::Stat( STATSTG *pstatstg, DWORD grfStatFlag )
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1a68ff47 manual
 // OFFSET: 0x008F8050
 HRESULT CROStream::QueryInterface( REFIID riid, void **ppv )
 {
@@ -985,6 +955,7 @@ HRESULT CROStream::QueryInterface( REFIID riid, void **ppv )
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 92d206aa manual
 // OFFSET: 0x008F80A0
 ULONG CROStream::AddRef()
 {
@@ -1008,6 +979,7 @@ ULONG CROStream::AddRef()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 323ab5c1 manual
 // OFFSET: 0x008F80C0
 ULONG CROStream::Release()
 {
@@ -1077,6 +1049,7 @@ FMOD_RESULT CodecASF::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 220cf014 manual
 // OFFSET: 0x008F8B20
 FMOD_RESULT F_CALLBACK CodecASF::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -1102,6 +1075,7 @@ FMOD_RESULT F_CALLBACK CodecASF::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 14b7c71e manual
 // OFFSET: 0x008F8190
 FMOD_RESULT F_CALLBACK CodecASF::closeCallback(FMOD_CODEC_STATE *codec)
 {
@@ -1179,6 +1153,7 @@ FMOD_RESULT F_CALLBACK CodecASF::setPositionCallback(FMOD_CODEC_STATE *codec, in
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b9be3f16 manual
 // OFFSET: 0x008F8220
 FMOD_RESULT F_CALLBACK CodecASF::soundCreateCallback(FMOD_CODEC_STATE *codec, int subsound, FMOD_SOUND *sound)
 {

@@ -143,6 +143,7 @@ FMOD_RESULT SampleOpenAL::setMode(FMOD_MODE mode)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f896c377 auto
 // OFFSET: 0x0093E170
 FMOD_RESULT SampleOpenAL::lockInternal(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -322,6 +323,7 @@ FMOD_RESULT SampleOpenAL::setLoopPoints(unsigned int loopstart, unsigned int loo
 	[SEE_ALSO]
 ]
 */        
+// VERIFY: 664e6853 manual
 // OFFSET: 0x0093D8F0
 FMOD_RESULT SampleOpenAL::setLoopPointData()
 {
@@ -461,6 +463,7 @@ FMOD_RESULT SampleOpenAL::setLoopPointData()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e7b3981b auto
 // OFFSET: 0x0093DEB0
 FMOD_RESULT SampleOpenAL::restoreLoopPointData()
 {

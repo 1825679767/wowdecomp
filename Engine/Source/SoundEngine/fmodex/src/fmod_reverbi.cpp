@@ -31,6 +31,7 @@ namespace FMOD
 #define kREVERB_GAIN_COEF            0.002f         // Coefficient for warping the power law for additive gain (see below)
 #define kREVERB_GAIN_COEF_INV        500.0f         // Reciprocal of kREVERB_GAIN_COEF (depends on the above)
 
+// VERIFY: 5240cc87 manual
 // OFFSET: 0x008E63A0
 ReverbI::ReverbI()
 {
@@ -101,6 +102,7 @@ FMOD_RESULT ReverbI::validate(Reverb *reverb, ReverbI **reverbi)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0224edcb manual
 // OFFSET: 0x008E6540
 FMOD_RESULT ReverbI::init(SystemI* system, bool is_3d, FMOD_REVERB_MODE mode)
 {
@@ -172,6 +174,7 @@ FMOD_RESULT ReverbI::init(SystemI* system, bool is_3d, FMOD_REVERB_MODE mode)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d3431ed1 manual
 // OFFSET: 0x008E6410
 FMOD_RESULT ReverbI::release(bool freethis)
 {
@@ -560,6 +563,7 @@ FMOD_RESULT ReverbI::get3DAttributes(FMOD_VECTOR *position, float *mindistance, 
 ]
 */
 
+// VERIFY: 60d7d24b manual
 // OFFSET: 0x008E57C0
 FMOD_RESULT ReverbI::setProperties(const FMOD_REVERB_PROPERTIES* prop_source)
 {

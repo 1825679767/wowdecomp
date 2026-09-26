@@ -176,6 +176,7 @@ FMOD_RESULT OutputNoSound::getDriverCaps(int id, FMOD_CAPS *caps)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 09a42327 auto
 // OFFSET: 0x00914E40
 FMOD_RESULT OutputNoSound::init(int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
@@ -287,6 +288,7 @@ FMOD_RESULT OutputNoSound::getPosition(unsigned int *pcm)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d368a7e6 manual
 // OFFSET: 0x00914CE0
 FMOD_RESULT OutputNoSound::lock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -445,6 +447,7 @@ FMOD_RESULT F_CALLBACK OutputNoSound::initCallback(FMOD_OUTPUT_STATE *output, in
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c3f2d7c0 manual
 // OFFSET: 0x00914DB0
 FMOD_RESULT F_CALLBACK OutputNoSound::closeCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -471,6 +474,7 @@ FMOD_RESULT F_CALLBACK OutputNoSound::closeCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b2fe518e manual
 // OFFSET: 0x00915AA0
 FMOD_RESULT F_CALLBACK OutputNoSound::getPositionCallback(FMOD_OUTPUT_STATE *output, unsigned int *pcm)
 {

@@ -136,6 +136,7 @@ int      CodecMPEG::gIntWinBase[] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0e533083 manual
 // OFFSET: 0x008F6CC0
 FMOD_CODEC_DESCRIPTION_EX *CodecMPEG::getDescriptionEx()
 {
@@ -173,6 +174,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecMPEG::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bccbb689 manual
 // OFFSET: 0x008F57E0
 FMOD_RESULT CodecMPEG::makeTables(int scaleval)
 {
@@ -190,7 +192,7 @@ FMOD_RESULT CodecMPEG::makeTables(int scaleval)
         }
 	}
 
-	FMOD_Mpeg_DecWin = (float *)FMOD_ALIGNPOINTER(&gDecWinMem[0], 16);
+	FMOD_Mpeg_DecWin = (float *)((FMOD_UINT_NATIVE)&gDecWinMem[15] & ~15);
 
 	table = FMOD_Mpeg_DecWin;
 	scaleval = -scaleval;
@@ -249,7 +251,7 @@ FMOD_RESULT CodecMPEG::makeTables(int scaleval)
 	[SEE_ALSO]
 ]
 */
-// VERIFY: 80031c2b auto
+// VERIFY: 992e78a6 auto
 // OFFSET: 0x008F5C70
 FMOD_RESULT CodecMPEG::initAll() 
 {
@@ -268,7 +270,7 @@ FMOD_RESULT CodecMPEG::initAll()
 
     #ifndef FMOD_SUPPORT_MPEG_SONYDECODER
 
-	FMOD_Mpeg_DecWin = (float *)FMOD_ALIGNPOINTER(&gDecWinMem[0], 16);
+	FMOD_Mpeg_DecWin = (float *)((FMOD_UINT_NATIVE)&gDecWinMem[15] & ~15);
 
 	result = makeTables(1);
     if (result != FMOD_OK)
@@ -363,6 +365,7 @@ FMOD_RESULT CodecMPEG::closeAll()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6ef81068 manual
 // OFFSET: 0x008F5CA0
 FMOD_RESULT CodecMPEG::getPCMLength() 
 {
@@ -454,6 +457,7 @@ FMOD_RESULT CodecMPEG::getPCMLength()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 44691ff0 manual
 // OFFSET: 0x008F64F0
 FMOD_RESULT CodecMPEG::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -655,20 +659,16 @@ FMOD_RESULT CodecMPEG::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
         }
 
 	    result = mFile->read(header, 1, 4, 0);
-
-        if (result != FMOD_ERR_FILE_EOF)
+        if (result != FMOD_OK)
         {
-            if (result != FMOD_OK)
-            {
-                return result;
-            }
+            return result;
+        }
 
-	        result = decodeHeader(header, &frequency, &channels, 0);
-            if (result != FMOD_OK)
-            {
-   		        mSrcDataOffset++;
-                validheader = false;
-            }
+	    result = decodeHeader(header, &frequency, &channels, 0);
+        if (result != FMOD_OK)
+        {
+   		    mSrcDataOffset++;
+            validheader = false;
         }
 
     } while (!validheader);
@@ -919,6 +919,7 @@ FMOD_RESULT CodecMPEG::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 796a444f manual
 // OFFSET: 0x008F5E20
 FMOD_RESULT CodecMPEG::closeInternal()
 {
@@ -965,48 +966,37 @@ FMOD_RESULT CodecMPEG::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: deb4f183 manual
 // OFFSET: 0x008F5EE0
 FMOD_RESULT CodecMPEG::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
     int channel;
     FMOD_RESULT result = FMOD_OK;
-    unsigned char *decodebuffer = mPCMBuffer ? mPCMBuffer : (unsigned char *)buffer;
-    unsigned int bytesreadinternal = 0;
 
-    #if defined(PLATFORM_PS3_SPU) && defined(FMOD_SUPPORT_MPEG_SONYDECODER)
-    FMOD_PS3_SPU_TempStoreMixBuffers(true);
-    #endif
-
-    *bytesread = 0;
-
-    channel = 0;
-    do
+    for (channel = 0; channel < (waveformat->channels > 2 ? waveformat->channels : 1); channel++)
     {
-        int mpegchannels = 0;
-    #ifndef PLATFORM_PS3_SPU_STREAMDECODE
-        int  retries = 0, framesize = 0;
-
-    #ifdef FMOD_SUPPORT_MPEG_SPU       
-        unsigned char *readbuffer = (unsigned char *)gMpegReadBuffer;
-	    unsigned char readbuffertemp[MAXFRAMESIZE];
-    #else
-        unsigned char readbuffer[MAXFRAMESIZE];
-        FMOD_memset(readbuffer, 0, MAXFRAMESIZE);
-    #endif
+        int retries, framesize;
+        unsigned char readbuffer[3072];
+        unsigned char *decodebuffer;
 
         if (waveformat->channels > 2)
         {
-            mMemoryBlock = (CodecMPEG_MemoryBlock *)FMOD_ALIGNPOINTER(mMemoryBlockMemory, 16);
-            mMemoryBlock = &mMemoryBlock[channel];
+            mMemoryBlock = &mMemoryBlockMemory[channel];
+        }
+
+        retries = 0;
+        framesize = 0;
+        FMOD_memset(readbuffer, 0, 3072);
+
+        decodebuffer = mPCMBuffer ? mPCMBuffer : (unsigned char *)buffer;
+        if (waveformat->channels > 2)
+        {
+            decodebuffer += (sizeof(short) * channel);
         }
 
 	    do
 	    {
-            #ifdef FMOD_SUPPORT_MPEG_SPU
-		    result = mFile->read(readbuffertemp, 1, 4, 0);
-            #else
  		    result = mFile->read(readbuffer, 1, 4, 0);
-            #endif
 		    if (result != FMOD_OK)
 		    {
                 break;
@@ -1017,28 +1007,14 @@ FMOD_RESULT CodecMPEG::readInternal(void *buffer, unsigned int sizebytes, unsign
                 mMemoryBlock->mLayer = 0;
             }
 
-            #ifdef FMOD_SUPPORT_MPEG_SPU
-            /*
-                On the PPU for stream decoder
-            */
-            result = decodeHeader(readbuffertemp, 0, &mpegchannels, &framesize);
-            #else
-            /*
-                On the SPU
-            */
-            result = decodeHeader(readbuffer, 0, &mpegchannels, &framesize);
-            #endif
+            result = decodeHeader(readbuffer, 0, 0, &framesize);
 
 		    /*
                 If we had a bad header followed by a good header, be suspicious of it.
 		        Skip forward 1 frame to check for sure, and decode that header.
 		        Its nasty but it should only happen for bad data, and misaligned frame seeks.
             */
-		    if ((result == FMOD_OK) && (retries 
-#ifdef FMOD_SUPPORT_MPEG_LAYER2
-                || mFlags & FMOD_CODEC_SEEKING /* Make double sure so it doesn't try and decode an mp2 frame by accident thanks to random bytes) */
-#endif
-             ))
+		    if (result == FMOD_OK && retries)
 		    {
         	    unsigned int oldpos;
 			    unsigned int header;
@@ -1050,30 +1026,9 @@ FMOD_RESULT CodecMPEG::readInternal(void *buffer, unsigned int sizebytes, unsign
 		        }
 
 			    mFile->seek(framesize, SEEK_CUR);
-                if (result != FMOD_OK)
-                {
-                    break;
-                }
-
 			    mFile->read(&header, 1, 4, 0);
-                if (result != FMOD_OK)
-                {
-                    break;
-                }
 
-			    #ifndef PLATFORM_ENDIAN_BIG
-			    header = FMOD_SWAPENDIAN_DWORD(header);
-			    #endif
-
-                int nextlay = 4-((header>>17)&3);
-			    if (((header & 0xFFE00000) != 0xFFE00000) 
-                    ||
-                    #ifdef FMOD_SUPPORT_MPEG_SONYDECODER
-                    nextlay != mMemoryBlock->mLayer
-                    #else
-                    nextlay != mMemoryBlock->mFrame.lay
-                    #endif
-                    )
+			    if ((header & 0xFF) != 0xFF || (header & 0xE000) != 0xE000)
                 {
 				    result = FMOD_ERR_FILE_BAD;
                 }
@@ -1086,18 +1041,7 @@ FMOD_RESULT CodecMPEG::readInternal(void *buffer, unsigned int sizebytes, unsign
 
 		    if (result != FMOD_OK)
             {
-                #ifdef FMOD_SUPPORT_MPEG_SPU
-                if (!FMOD_strncmp((char *)readbuffertemp, "TAG", 3))
-                #else
-                if (!FMOD_strncmp((char *)readbuffer, "TAG", 3))
-                #endif
-                {
-                    mFile->seek(128-4, SEEK_CUR);    /* skip past an id3 tag */
-                }
-                else
-                {
-        	        mFile->seek(-3, SEEK_CUR);    /* increment a byte at a time! */
-                }
+        	    mFile->seek(-3, SEEK_CUR);    /* increment a byte at a time! */
             }
 
 		    retries++;
@@ -1106,120 +1050,13 @@ FMOD_RESULT CodecMPEG::readInternal(void *buffer, unsigned int sizebytes, unsign
 
         if (result == FMOD_OK)
         {
-        #ifdef FMOD_SUPPORT_MPEG_SPU
-		    result = mFile->read((char *)readbuffertemp+4, 1, framesize, 0);
-
-            FMOD_OS_CriticalSection_Enter(gDecodeCrit);    
-
-		    FMOD_memcpy(readbuffer, readbuffertemp, framesize + 4);
-        #else
 	        result = mFile->read((char *)readbuffer+4, 1, framesize, 0);
-        #endif
-
 	        if (result != FMOD_OK)
 	        {
-                #ifdef FMOD_SUPPORT_MPEG_SPU
-                FMOD_OS_CriticalSection_Leave(gDecodeCrit);
-                #endif            	   
                 return result;
 	        }
 
-        #ifdef FMOD_SUPPORT_MPEG_SPU
-            /*
-                Signal SPU to do decodeFrame
-            */
-            sys_event_t  event;
-            OutputPS3   *output;
-
-            output = (OutputPS3 *)mSystem->mOutput;
-
-            output->mMpegAddresses[0] = (unsigned int)mMemoryBlock;
-            output->mMpegAddresses[1] = (unsigned int)decodebuffer;
-            output->mMpegAddresses[2] = (unsigned int)&output->mMpegBytesRead;
-            output->mMpegAddresses[3] = (unsigned int)mChannels;
-            output->mMpegAddresses[4] = (unsigned int)channel;
-            output->mMpegAddresses[5] = (unsigned int)waveformat->channels;
-            output->mMpegAddresses[6] = bytesreadinternal;
-
-            #ifdef FMOD_SPURS
-            {
-                uint16_t waitmask = 0xffff;
-
-                /*
-                    SPURS TASK
-                */
-
-                if (output->mSPURSMode == FMOD_PS3_SPURSMODE_TWOTASKS)
-                {
-                    /*
-                        Wake up SPURS MPEG decode Task
-                    */
-                    cellSpursEventFlagSet(&output->mMpegEventFlagSPU, 0x01);
-                }
-                else
-                {
-                    /*
-                        Atomic increment to tell SPU to decode
-                    */
-                    cellAtomicIncr32((unsigned int *)&output->mStreamAtomic);
-
-                    if (output->mSPURSMode == FMOD_PS3_SPURSMODE_CREATECONTEXT)
-                    {
-                        /*
-                            Wake up SPURS Task
-                        */
-                        cellSpursEventFlagSet(&output->mMixEventFlagSPU, 0x01);
-                    }
-                }
-
-                /*
-                    Wait for message back from SPU to say decode is done.
-                */
-                cellSpursEventFlagWait(&output->mMpegEventFlag, &waitmask, CELL_SPURS_EVENT_FLAG_OR);
-
-                if (waitmask == 0xffff)
-                {
-                    waitmask = 0;
-                }
-
-                bytesreadinternal = waitmask;
-            }
-            #else
-            {
-                /*
-                    SPU THREAD
-                */
-                /*
-                    Atomic increment to tell SPU to decode
-                */
-                cellAtomicIncr32((unsigned int *)&output->mStreamAtomic);
-
-                /*
-                    Wake up SPU Thread
-                */
-                if (output->mSPURSMode == FMOD_PS3_SPURSMODE_TWOTASKS)
-                {
-                    sys_event_port_send(output->mMpegEventPortSPU, 0, 0, 0);
-                }
-                else
-                {
-                    sys_event_port_send(output->mEventPortMixSPU, 0, 0, 0);
-                }
-
-                /*
-                    Wait for message back from SPU to say decode is done, this can return the bytes read
-                */
-                sys_event_queue_receive(output->mMpegEventQueue, &event, SYS_NO_TIMEOUT);
-
-                bytesreadinternal = event.data3;
-            }
-            #endif
-
-            FMOD_OS_CriticalSection_Leave(gDecodeCrit);
-
-        #else   /* FMOD_SUPPORT_MPEG_SPU */
-
-            result = decodeFrame(readbuffer, decodebuffer, &bytesreadinternal);	
+            result = decodeFrame(readbuffer, decodebuffer, bytesread);
             if (result != FMOD_OK)
             {
                 /*
@@ -1227,38 +1064,13 @@ FMOD_RESULT CodecMPEG::readInternal(void *buffer, unsigned int sizebytes, unsign
                 */
                 result = FMOD_OK;
             }
-
-        #endif  /* FMOD_SUPPORT_MPEG_SPU */
-
-            *bytesread += bytesreadinternal;
         }
-        #endif  /* PLATFORM_PS3_SPU_STREAMDECODE */
-
-        /*
-            If there is an error, set mpegchannels, mpegchannels being 0 may cause
-            an infinite loop.
-        */
-        if (!mpegchannels)
-        {
-            mpegchannels = 1;
-        }
-
-        channel += mpegchannels;
-
-        #if !defined(PLATFORM_PS3) || defined(PLATFORM_PS3_SPU_STREAMDECODE)
-        decodebuffer += (sizeof(short) * mpegchannels);
-        #endif
     }
-    while (channel < waveformat->channels);
 
     if (waveformat->channels > 2)
     {
-        mMemoryBlock = (CodecMPEG_MemoryBlock *)FMOD_ALIGNPOINTER(mMemoryBlockMemory, 16);
+        mMemoryBlock = mMemoryBlockMemory;
     }
-
-    #if defined(PLATFORM_PS3_SPU) && defined(FMOD_SUPPORT_MPEG_SONYDECODER)
-    FMOD_PS3_SPU_TempStoreMixBuffers(false);
-    #endif
 
     return result;
 }
@@ -1280,6 +1092,7 @@ FMOD_RESULT CodecMPEG::readInternal(void *buffer, unsigned int sizebytes, unsign
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ede2d9c2 manual
 // OFFSET: 0x008F60E0
 FMOD_RESULT CodecMPEG::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -1288,7 +1101,6 @@ FMOD_RESULT CodecMPEG::setPositionInternal(int subsound, unsigned int position, 
     unsigned int raw = 0;
     unsigned int frame, pcmbytes, bytespersample;
     unsigned int excessbytes = 0;
-    int reset = 0;
 
     if (postype == FMOD_TIMEUNIT_RAWBYTES)
     {
@@ -1322,14 +1134,6 @@ FMOD_RESULT CodecMPEG::setPositionInternal(int subsound, unsigned int position, 
     {
         excessbytes = 0;
         position = 0;
-#if 0
-        int numframes = waveformat[0].lengthpcm / 1152;
-        unsigned int framerewind = mFlags & FMOD_CODEC_FROMFSB ? 3 : 9; /* FSB doesn't use bit reservoir. */
-        frame = numframes - framerewind;
-        position = waveformat[0].lengthpcm;
-        excessbytes += (1152 * bytespersample * framerewind);
-        reset = true;
-#endif
     }
 
 	if (mMode & FMOD_ACCURATETIME && mMemoryBlock->mFrameOffset)
@@ -1403,10 +1207,7 @@ FMOD_RESULT CodecMPEG::setPositionInternal(int subsound, unsigned int position, 
     {
         if (position  > (excessbytes / bytespersample))
         {
-//            int numframes = (int)(((waveformat[0].lengthpcm + 2304) * bytespersample) / mPCMFrameLengthBytes);    /* Old fsbank added 2 frames of pcm more than compressedbytes did. */
-            int numframes = (int)((waveformat[0].lengthpcm * bytespersample) / mPCMFrameLengthBytes);
-            int compressedframesize = waveformat[0].lengthbytes / numframes;
-            raw = frame * compressedframesize;
+            raw = (unsigned int)((FMOD_UINT64)(position - (excessbytes / bytespersample)) * (FMOD_UINT64)waveformat[0].lengthbytes / (FMOD_UINT64)waveformat[0].lengthpcm);
         }
         else
         {
@@ -1427,11 +1228,6 @@ FMOD_RESULT CodecMPEG::setPositionInternal(int subsound, unsigned int position, 
         return result;
     }
 
-    if (!(mFlags & FMOD_CODEC_FROMFSB))
-    {
-        mFlags |= FMOD_CODEC_SEEKING;
-    }
-
     while (excessbytes)
     {
         char buff[4608];
@@ -1448,15 +1244,6 @@ FMOD_RESULT CodecMPEG::setPositionInternal(int subsound, unsigned int position, 
             break;
         }
 
-        /*
-            During the first read after the seek, decode sometimes fails because the decoder
-            hasn't built up state yet, just push on, decoded frames are dropped anyway.
-        */
-        if (read == 0)
-        {
-            read = toread;
-        }
-
         if (excessbytes >= read)
         {
             excessbytes -= read;
@@ -1465,27 +1252,7 @@ FMOD_RESULT CodecMPEG::setPositionInternal(int subsound, unsigned int position, 
         {
             excessbytes = 0;
         }
-        
-        /*
-            If unbuffered, and if the amount left is smaller than a normal mpeg frame size dont keep reading, especially if it means going past the EOF.
-        */
-        if ((!mPCMBuffer || !mPCMBufferLengthBytes) && excessbytes < read)
-        {
-            excessbytes = 0;
-        }
     }
-
-
-    if (reset)
-    {
-        result = mFile->seek(mSrcDataOffset, SEEK_SET);
-        if (result != FMOD_OK)
-        {
-            return result;
-        }
-    }
-
-    mFlags &= ~FMOD_CODEC_SEEKING;
 
     return result;
 #else
@@ -1551,6 +1318,7 @@ FMOD_RESULT CodecMPEG::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 95821656 manual
 // OFFSET: 0x008F6C80
 FMOD_RESULT F_CALLBACK CodecMPEG::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -1576,6 +1344,7 @@ FMOD_RESULT F_CALLBACK CodecMPEG::openCallback(FMOD_CODEC_STATE *codec, FMOD_MOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 614306c6 manual
 // OFFSET: 0x008F63F0
 FMOD_RESULT F_CALLBACK CodecMPEG::closeCallback(FMOD_CODEC_STATE *codec)
 {
@@ -1601,6 +1370,7 @@ FMOD_RESULT F_CALLBACK CodecMPEG::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3d4c8041 manual
 // OFFSET: 0x008F6420
 FMOD_RESULT F_CALLBACK CodecMPEG::soundCreateCallback(FMOD_CODEC_STATE *codec, int subsound, FMOD_SOUND *sound)
 {
@@ -1678,6 +1448,7 @@ FMOD_RESULT F_CALLBACK CodecMPEG::setPositionCallback(FMOD_CODEC_STATE *codec, i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8db68826 manual
 // OFFSET: 0x008F64C0
 FMOD_RESULT F_CALLBACK CodecMPEG::resetCallback(FMOD_CODEC_STATE *codec)
 {

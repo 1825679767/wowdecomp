@@ -54,6 +54,7 @@ OutputEmulated::OutputEmulated()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1ade2770 manual
 // OFFSET: 0x00922250
 FMOD_RESULT OutputEmulated::init(int maxchannels)
 {

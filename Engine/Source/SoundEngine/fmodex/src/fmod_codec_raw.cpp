@@ -69,6 +69,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0027815b manual
 // OFFSET: 0x008F5760
 FMOD_CODEC_DESCRIPTION_EX *CodecRaw::getDescriptionEx()
 {
@@ -116,6 +117,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecRaw::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0872f47a manual
 // OFFSET: 0x008F5440
 FMOD_RESULT CodecRaw::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -350,6 +352,7 @@ FMOD_RESULT CodecRaw::canPointInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 74abc6f5 manual
 // OFFSET: 0x008F5720
 FMOD_RESULT F_CALLBACK CodecRaw::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {

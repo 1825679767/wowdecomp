@@ -117,6 +117,7 @@ FMOD_RESULT SampleDSound::release(bool freethis)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c910bc9e manual
 // OFFSET: 0x00951190
 FMOD_RESULT SampleDSound::lockInternal(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -176,6 +177,7 @@ FMOD_RESULT SampleDSound::lockInternal(unsigned int offset, unsigned int length,
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b5103a0e auto
 // OFFSET: 0x00951240
 FMOD_RESULT SampleDSound::unlockInternal(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {

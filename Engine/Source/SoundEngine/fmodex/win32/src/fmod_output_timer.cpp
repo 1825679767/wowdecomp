@@ -35,6 +35,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2e5b9ea5 manual
 // OFFSET: 0x0094A7C0
 FMOD_RESULT OutputTimer::timerFunc()
 {
@@ -49,28 +50,6 @@ FMOD_RESULT OutputTimer::timerFunc()
     if (!mPlaying)
     {
         return FMOD_OK;
-    }
-
-    // Attempt to apply a pro-audio thread characteristic to reduce stuttering
-    if (!mThreadElevated)
-    {
-        HANDLE (WINAPI *SetThreadTask)(LPCTSTR, LPDWORD);
-        FMOD_OS_LIBRARY  *avrtHandle  = NULL;
-        DWORD             taskIndex   = 0;
-
-        result = FMOD_OS_Library_Load("avrt.dll", &avrtHandle);
-        if (result == FMOD_OK)  // If this fails, OS does not support setting thread characteristics
-        {
-            result = FMOD_OS_Library_GetProcAddress(avrtHandle, "AvSetMmThreadCharacteristicsA", (void **)&SetThreadTask);
-            if (result == FMOD_OK)
-            {
-                SetThreadTask("Pro Audio", &taskIndex);
-                FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "OutputTimer::timerFunc", "Mixer thread set to 'Pro Audio' characteristic\n"));
-                FMOD_OS_Library_Free(avrtHandle);
-            }
-        }
-
-        mThreadElevated = true;  // This will prevent reattempting to elevate if already elevated and if the OS doesn't support it
     }
 
     mSystem->mDSPTimeStamp.stampIn();
@@ -192,6 +171,7 @@ FMOD_RESULT OutputTimer::timerFunc()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a57212e4 manual
 // OFFSET: 0x0094AC80
 FMOD_RESULT OutputTimer::start()
 {
@@ -239,7 +219,6 @@ FMOD_RESULT OutputTimer::start()
     }
 
     // Setup the timed callback event
-    mThreadElevated = false;
     mMixerTimerID = timeSetEvent((unsigned int)mMixerTimerPeriod, 0, (LPTIMECALLBACK)timerFuncCallback, (UINT_PTR)this, TIME_PERIODIC);
     if (!mMixerTimerID)
     {

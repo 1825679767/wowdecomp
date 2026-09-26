@@ -60,6 +60,7 @@ OutputPolled::OutputPolled()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3cb210ae manual
 // OFFSET: 0x00922B00
 FMOD_RESULT OutputPolled::threadFunc()
 {

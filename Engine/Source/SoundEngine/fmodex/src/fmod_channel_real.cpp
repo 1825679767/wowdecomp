@@ -155,6 +155,7 @@ FMOD_RESULT ChannelReal::alloc()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1e1959cf manual
 // OFFSET: 0x009439F0
 FMOD_RESULT ChannelReal::alloc(DSPI *dsp)
 {
@@ -312,6 +313,7 @@ FMOD_RESULT ChannelReal::stop(bool ignoreenddelay, bool resetstate, bool force)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 211cd794 manual
 // OFFSET: 0x00943A10
 FMOD_RESULT ChannelReal::stop(bool ignoreenddelay, bool resetstate)
 {
@@ -504,6 +506,7 @@ FMOD_RESULT ChannelReal::setDelay(unsigned int startdelay, unsigned int enddelay
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ee64c30e auto
 // OFFSET: 0x00943AE0
 FMOD_RESULT ChannelReal::setSpeakerMix(float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright)
 {
@@ -659,6 +662,7 @@ FMOD_RESULT ChannelReal::setSpeakerLevels(int speaker, float *levels, int numlev
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b8bc3f80 manual
 // OFFSET: 0x00943DC0
 FMOD_RESULT ChannelReal::updateSpeakerLevels(float volume)
 {
@@ -708,6 +712,7 @@ FMOD_RESULT ChannelReal::updateSpeakerLevels(float volume)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e4380c90 manual
 // OFFSET: 0x009442D0
 FMOD_RESULT ChannelReal::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -768,6 +773,7 @@ FMOD_RESULT ChannelReal::setPosition(unsigned int position, FMOD_TIMEUNIT postyp
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cb1c617d manual
 // OFFSET: 0x009444A0
 FMOD_RESULT ChannelReal::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {   
@@ -876,6 +882,7 @@ FMOD_RESULT ChannelReal::getPosition(unsigned int *position, FMOD_TIMEUNIT posty
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b58cbc88 manual
 // OFFSET: 0x00943FF0
 FMOD_RESULT ChannelReal::setLoopPoints(unsigned int loopstart, unsigned int looplength)
 {
@@ -1077,6 +1084,7 @@ FMOD_RESULT ChannelReal::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9b419852 manual
 // OFFSET: 0x009440F0
 FMOD_RESULT ChannelReal::isPlaying(bool *isplaying, bool includethreadlatency)
 {

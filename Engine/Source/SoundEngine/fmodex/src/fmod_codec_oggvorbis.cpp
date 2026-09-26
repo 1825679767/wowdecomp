@@ -422,19 +422,12 @@ FMOD_RESULT CodecOggVorbis::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXI
         return result;
     }
 
-    memset(&mVf, 0, sizeof(OggVorbis_File));    /* Just in case of an error code, it wont crash on invalid pointers trying to clean up. */
-
     oggresult = ov_open_callbacks(this, mFile, &mVf, 0, 0, callbacks);
 	if (oggresult < 0)
 	{
         FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "CodecOggVorbis::openInternal", "failed to open as ogg, format error.\n"));
 
-        if (oggresult == OV_EVERSION)
-        {
-            FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "CodecOggVorbis::openInternal", "OLD FLOOR0 TYPE OGG FILE.  Please re-encode sound with a newer encoder.\n"));
-            return FMOD_ERR_FORMAT;
-        }
-        else if (oggresult == OV_EMEMORY)
+        if (oggresult == OV_EMEMORY)
         {
             return FMOD_ERR_MEMORY;
         }
@@ -555,23 +548,9 @@ FMOD_RESULT CodecOggVorbis::readInternal(void *buffer, unsigned int sizebytes, u
 #endif
 
     *bytesread = ov_read(this, &mVf, (char *)buffer, sizebytes, bigendian, 2, 1, 0);
-    if (((int)(*bytesread)) <= 0)
+    if (!*bytesread)
     {
-        if ((int)*bytesread == OV_EINVAL)
-        {
-            *bytesread = 0;
-            return FMOD_ERR_INVALID_PARAM;
-        }
-        else if ((int)*bytesread == OV_EMEMORY)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-        else if ((int)*bytesread != OV_HOLE)   /* Don't bail if we encounter a hole. */
-        {
-            *bytesread = 0;
-            return FMOD_ERR_FILE_EOF;
-        }
-        *bytesread = 0;
+        return FMOD_ERR_FILE_EOF;
     }
 
     vc  = ov_comment(&mVf, -1);
@@ -624,11 +603,7 @@ FMOD_RESULT CodecOggVorbis::setPositionInternal(int subsound, unsigned int posit
     int ret = ov_pcm_seek(this, &mVf, position);
     if (ret < 0)
     {
-        if (ret == OV_EMEMORY)
-        {
-            return FMOD_ERR_MEMORY;
-        }
-        return FMOD_ERR_FILE_COULDNOTSEEK;
+        return FMOD_ERR_MEMORY;
     }
 
     return FMOD_OK;
@@ -648,6 +623,7 @@ FMOD_RESULT CodecOggVorbis::setPositionInternal(int subsound, unsigned int posit
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 91105ca1 manual
 // OFFSET: 0x0090E590
 FMOD_RESULT CodecOggVorbis::readVorbisComments()
 {
@@ -701,6 +677,7 @@ FMOD_RESULT CodecOggVorbis::readVorbisComments()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 75cc730a manual
 // OFFSET: 0x0090EB00
 FMOD_RESULT F_CALLBACK CodecOggVorbis::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {

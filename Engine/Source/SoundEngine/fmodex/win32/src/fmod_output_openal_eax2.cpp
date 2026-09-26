@@ -27,6 +27,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f5bc842a manual
 // OFFSET: 0x0094AD70
 FMOD_RESULT OutputOpenAL::setPropertiesEAX2(const FMOD_REVERB_PROPERTIES *prop)
 {

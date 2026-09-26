@@ -468,6 +468,7 @@ float         CodecMPEG::gPow2_2[2][16];
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f86032fd manual
 // OFFSET: 0x0092D450
 FMOD_RESULT CodecMPEG::initLayer3(int down_sample_sblimit)
 {
@@ -553,22 +554,10 @@ FMOD_RESULT CodecMPEG::initLayer3(int down_sample_sblimit)
 	{
 		float t = FMOD_TAN((float) i * FMOD_PI / 12.0f);
 
-        if ((float)(1.0f + t) == 0)
-        {
-            float one_plus_t = 1.19209e-007f;
-
-		    gTan1_1[i] = (float)t / one_plus_t;
-		    gTan2_1[i] = 1.0f / one_plus_t;
-		    gTan1_2[i] = (float)FMOD_SQRT2 * (float)t / one_plus_t;
-		    gTan2_2[i] = (float)FMOD_SQRT2 / one_plus_t;
-        }
-        else
-        {
-		    gTan1_1[i] = (float)t / (float)(1.0f + t);
-		    gTan2_1[i] = 1.0f / (float)(1.0f + t);
-		    gTan1_2[i] = (float)FMOD_SQRT2 * (float)t / (float)(1.0f + t);
-		    gTan2_2[i] = (float)FMOD_SQRT2 / (float)(1.0f + t);
-        }
+		gTan1_1[i] = (float)t / (float)(1.0f + t);
+		gTan2_1[i] = 1.0f / (float)(1.0f + t);
+		gTan1_2[i] = (float)FMOD_SQRT2 * (float)t / (float)(1.0f + t);
+		gTan2_2[i] = (float)FMOD_SQRT2 / (float)(1.0f + t);
 
 		for (j = 0; j < 2; j++)
 		{
@@ -863,6 +852,7 @@ FMOD_RESULT CodecMPEG::III_get_side_info_1(struct III_sideinfo *si, int stereo, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4643dfb2 manual
 // OFFSET: 0x0092E140
 FMOD_RESULT CodecMPEG::III_get_side_info_2(struct III_sideinfo *si, int stereo, int ms_stereo, int sfreq)
 {
@@ -970,6 +960,7 @@ FMOD_RESULT CodecMPEG::III_get_side_info_2(struct III_sideinfo *si, int stereo, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 93cace2a manual
 // OFFSET: 0x0092E470
 FMOD_RESULT CodecMPEG::III_get_scale_factors_1(int *scf,struct gr_info_s *gr_info, int *numbits)
 {
@@ -1087,6 +1078,7 @@ FMOD_RESULT CodecMPEG::III_get_scale_factors_1(int *scf,struct gr_info_s *gr_inf
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c907c17f manual
 // OFFSET: 0x0092E680
 FMOD_RESULT CodecMPEG::III_get_scale_factors_2(int *scf,struct gr_info_s *gr_info,int i_stereo, int *numbits)
 {
@@ -1204,6 +1196,7 @@ static int pretab2[22] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 302513a9 manual
 // OFFSET: 0x0092E790
 FMOD_RESULT CodecMPEG::III_dequantize_sample(float xr[SBLIMIT][SSLIMIT],int *scf, struct gr_info_s *gr_info,int sfreq,int part2bits)
 {
@@ -1659,6 +1652,7 @@ FMOD_RESULT CodecMPEG::III_dequantize_sample(float xr[SBLIMIT][SSLIMIT],int *scf
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a9b0f881 manual
 // OFFSET: 0x0092F3C0
 FMOD_RESULT CodecMPEG::III_dequantize_sample_ms(float xr[2][SBLIMIT][SSLIMIT], int *scf, struct gr_info_s *gr_info, int sfreq, int part2bits)
 {
@@ -2194,6 +2188,7 @@ FMOD_RESULT CodecMPEG::III_dequantize_sample_ms(float xr[2][SBLIMIT][SSLIMIT], i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a7765863 manual
 // OFFSET: 0x00930220
 FMOD_RESULT CodecMPEG::III_i_stereo(float xr_buf[2][SBLIMIT][SSLIMIT], int *scalefac, struct gr_info_s *gr_info, int sfreq, int ms_stereo, int lsf)
 {
@@ -2390,6 +2385,7 @@ FMOD_RESULT CodecMPEG::III_i_stereo(float xr_buf[2][SBLIMIT][SSLIMIT], int *scal
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 97a3c1b3 manual
 // OFFSET: 0x00930780
 FMOD_RESULT CodecMPEG::III_antialias(float xr[SBLIMIT][SSLIMIT], struct gr_info_s *gr_info)
 {
@@ -2406,10 +2402,6 @@ FMOD_RESULT CodecMPEG::III_antialias(float xr[SBLIMIT][SSLIMIT], struct gr_info_
 	else
 	{
 		sblim = gr_info->maxb - 1;
-        if (sblim < 0)
-        {
-            return FMOD_ERR_FILE_BAD;
-        }
 	}
 
 	/* 31 alias-reduction operations between each pair of sub-bands */
@@ -2652,6 +2644,7 @@ void CodecMPEG::dct36(float * inbuf, float * o1, float * o2, float * wintab, flo
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 17f52002 manual
 // OFFSET: 0x00930E80
 void CodecMPEG::dct12(float * in, float * rawout1, float * rawout2, register float * wi, register float * ts)
 {
@@ -2815,6 +2808,7 @@ void CodecMPEG::dct12(float * in, float * rawout1, float * rawout2, register flo
 	[SEE_ALSO]
 ]
 */
+// VERIFY: eaa44b53 manual
 // OFFSET: 0x00931270
 FMOD_RESULT CodecMPEG::III_hybrid(float fsIn[SBLIMIT][SSLIMIT], float tsOut[SSLIMIT][SBLIMIT], int ch, struct gr_info_s *gr_info)
 {
@@ -2902,6 +2896,7 @@ int scale[] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 70e73c48 manual
 // OFFSET: 0x00931460
 FMOD_RESULT CodecMPEG::decodeLayer3(void *pcm_sample, unsigned int *outlen)
 {
@@ -2913,7 +2908,7 @@ FMOD_RESULT CodecMPEG::decodeLayer3(void *pcm_sample, unsigned int *outlen)
 	int			sfreq	 = mMemoryBlock->mFrame.sampling_frequency;
 	int			ms_stereo, i_stereo;
 	int			granules;
-    int         inc = SBLIMIT * sizeof(signed short);
+    int         inc = SBLIMIT * sizeof(signed short) * (mChannels ? mChannels : channels);
     float       hybridout[2][SSLIMIT][SBLIMIT];
     float	    hybridin[2][SBLIMIT][SSLIMIT] = { 0 };
 
@@ -2988,7 +2983,7 @@ FMOD_RESULT CodecMPEG::decodeLayer3(void *pcm_sample, unsigned int *outlen)
         #endif
         if (result != FMOD_OK)
         {
-            return result;
+            break;
         }
 
 		if (channels == 2)
@@ -3058,12 +3053,14 @@ FMOD_RESULT CodecMPEG::decodeLayer3(void *pcm_sample, unsigned int *outlen)
 
 		for (ss = 0 ; ss < SSLIMIT ; ss++)
 		{	
-			synth(pcm_sample, hybridout[0][ss], channels, waveformat->channels > 2 ? waveformat->channels : channels);
-			pcm_sample = (char *)pcm_sample + (inc * waveformat->channels);
+			synth(pcm_sample, hybridout[0][ss], channels, mChannels ? mChannels : channels);
+			pcm_sample = (char *)pcm_sample + inc;
 		}
+
+        *outlen += inc * SSLIMIT;
 	}
 
-    *outlen = (inc * channels) * SSLIMIT  * granules;
+    *outlen = inc * SSLIMIT * granules;
 
 	return FMOD_OK;
 }

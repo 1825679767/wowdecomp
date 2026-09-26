@@ -62,6 +62,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ff379bfa manual
 // OFFSET: 0x0090A5A0
 FMOD_CODEC_DESCRIPTION_EX *CodecS3M::getDescriptionEx()
 {
@@ -136,6 +137,7 @@ FMOD_RESULT CodecS3M::calculateLength()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b49a6c2d manual
 // OFFSET: 0x00907680
 FMOD_RESULT MusicChannelS3M::volumeSlide() 
 {
@@ -447,6 +449,7 @@ FMOD_RESULT MusicChannelS3M::fineVibrato()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 38c111be manual
 // OFFSET: 0x009078F0
 FMOD_RESULT CodecS3M::updateNote(bool audible)
 {
@@ -1050,9 +1053,6 @@ FMOD_RESULT CodecS3M::updateNote(bool audible)
 			if (vcptr->mNoteControl & FMUSIC_STOP)		
 			{
                 vcptr->mChannel.stopEx(false, false, true, true, false, false, false);
-                #ifdef FMOD_SUPPORT_SOFTWARE
-                mSystem->flushDSPConnectionRequests();
-                #endif
                 vcptr->mSampleOffset = 0;	/* if this channel gets stolen it will be safe */
 			}
 		}
@@ -1075,6 +1075,7 @@ FMOD_RESULT CodecS3M::updateNote(bool audible)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8e41b498 manual
 // OFFSET: 0x00908320
 FMOD_RESULT CodecS3M::updateEffects() 
 {
@@ -1424,9 +1425,6 @@ FMOD_RESULT CodecS3M::updateEffects()
 			if (vcptr->mNoteControl & FMUSIC_STOP)		
 			{
                 vcptr->mChannel.stopEx(false, false, true, true, false, false, false);
-                #ifdef FMOD_SUPPORT_SOFTWARE
-                mSystem->flushDSPConnectionRequests();
-                #endif
 			    vcptr->mSampleOffset = 0;	/* if this channel gets stolen it will be safe */
 			}
 		}
@@ -1449,6 +1447,7 @@ FMOD_RESULT CodecS3M::updateEffects()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 358573ae manual
 // OFFSET: 0x00908AF0
 FMOD_RESULT CodecS3M::update(bool audible)
 {
@@ -1539,6 +1538,7 @@ FMOD_RESULT CodecS3M::update(bool audible)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 710b822c manual
 // OFFSET: 0x00909330
 FMOD_RESULT CodecS3M::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -1686,7 +1686,7 @@ FMOD_RESULT CodecS3M::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 		return FMOD_ERR_FORMAT;
 	}
 
-    result = mFile->getByte(&mDefaultGlobalVolume);
+    result = mFile->getByte(&mGlobalVolume);
     if (result != FMOD_OK)
     {
         return result;
@@ -2467,8 +2467,8 @@ FMOD_RESULT CodecS3M::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
         for (count = 0; count < numrealchannels; count++)
         {
             new (&mChannelSoftware[count]) ChannelSoftware;
-            CHECK_RESULT(mChannelPool->setChannel(count, &mChannelSoftware[count], mDSPHead));
-            CHECK_RESULT(mChannelSoftware[count].allowReverb(false));
+            mChannelPool->setChannel(count, &mChannelSoftware[count], mDSPHead);
+            mChannelSoftware[count].allowReverb(false);
         }
     }
 
@@ -2515,24 +2515,13 @@ FMOD_RESULT CodecS3M::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f0645717 auto
 // OFFSET: 0x00908C10
 FMOD_RESULT CodecS3M::closeInternal()
 {
     int count;
 
     stop();
-
-    if (mChannelPool)
-    {
-        mChannelPool->release();
-        mChannelPool = 0;
-    }
-
-    if (mDSPHead)
-    {
-        mDSPHead->release();
-        mDSPHead = 0;
-    }
 
     for (count = 0; count < mNumSamples; count++) 
 	{
@@ -2549,6 +2538,12 @@ FMOD_RESULT CodecS3M::closeInternal()
         mVirtualChannel = 0;
     }
 
+    if (mChannelPool)
+    {
+        mChannelPool->release();
+        mChannelPool = 0;
+    }
+
     if (mChannelSoftware)
     {
         FMOD_Memory_Free(mChannelSoftware);
@@ -2557,7 +2552,7 @@ FMOD_RESULT CodecS3M::closeInternal()
         
     if (mPattern)
     {
-	    for (count = 0; count < mNumPatternsMem; count++) 
+	    for (count = 0; count < mNumPatterns; count++) 
 	    {
             if (mPattern[count].mData)
             {
@@ -2584,11 +2579,11 @@ FMOD_RESULT CodecS3M::closeInternal()
         FMOD_Memory_Free(mVisited);
         mVisited = 0;
     }
-    
-    if (mWaveFormatMemory)
+
+    if (mDSPHead)
     {
-        FMOD_Memory_Free(mWaveFormatMemory);
-        mWaveFormatMemory = 0;
+        mDSPHead->release();
+        mDSPHead = 0;
     }
 
     return FMOD_OK;
@@ -2611,6 +2606,7 @@ FMOD_RESULT CodecS3M::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6747d9f4 manual
 // OFFSET: 0x00908F40
 FMOD_RESULT CodecS3M::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -2781,6 +2777,7 @@ FMOD_RESULT CodecS3M::setPositionInternal(int subsound, unsigned int position, F
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 621ceec4 manual
 // OFFSET: 0x0090A560
 FMOD_RESULT F_CALLBACK CodecS3M::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -2806,6 +2803,7 @@ FMOD_RESULT F_CALLBACK CodecS3M::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a9a13aba manual
 // OFFSET: 0x00908E90
 FMOD_RESULT F_CALLBACK CodecS3M::closeCallback(FMOD_CODEC_STATE *codec)
 {

@@ -14,10 +14,6 @@
     #define USEWINDOWTAB
 #endif
 
-#ifndef PLATFORM_PS3
-#define FASTER_DFT
-#endif
-
 namespace FMOD
 {   
     const int DSP_PITCHSHIFT_COSTABBITS = 13;

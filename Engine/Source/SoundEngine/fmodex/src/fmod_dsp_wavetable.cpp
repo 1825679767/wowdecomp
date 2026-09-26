@@ -91,6 +91,7 @@ FMOD_RESULT DSPWaveTable::addInput(DSPI *target)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ed9db0cd manual
 // OFFSET: 0x00929DF0
 FMOD_RESULT DSPWaveTable::execute(float *inbuffer, float **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode)
 {
@@ -192,7 +193,7 @@ FMOD_RESULT DSPWaveTable::execute(float *inbuffer, float **outbuffer, unsigned i
 					mixesleft.mValue++;
                 }
 
-				if (mixesleft.mValue <= outlength)
+				if (mixesleft.mLo <= outlength)
     			{
                     endflag = FMOD_RESAMPLER_END_SOUND;
 					rlength = mixesleft.mLo;

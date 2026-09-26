@@ -774,6 +774,7 @@ void DSPPitchShiftSMB::smbInit()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7454d61f manual
 // OFFSET: 0x008EC520
 FMOD_RESULT DSPPitchShift::createInternal()
 {
@@ -1438,6 +1439,7 @@ static float vwin1024[513] = {
 #define kINVPI2 0.1591549430918F
 
 
+// VERIFY: eed8bf26 manual
 // OFFSET: 0x008ECF60
 void DSPPitchShiftSMB::smbPitchShift(float pitchShift, int numSampsToProcess, int osamp, float sampleRate, float *indata, float *outdata, int channel, int numchannels)
 {
@@ -1798,6 +1800,7 @@ void DSPPitchShiftSMB::smbPitchShift(float pitchShift, int numSampsToProcess, in
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9b0ac4bd manual
 // OFFSET: 0x008EC5C0
 void DSPPitchShiftSMB::smbFft(float *fftBuffer, int sign)
 {
@@ -1995,6 +1998,7 @@ FMOD_RESULT DSPPitchShift::resetInternal()
 ]
 */
 
+// VERIFY: 313dbdf0 manual
 // OFFSET: 0x008EDD90
 FMOD_RESULT DSPPitchShift::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -2034,6 +2038,7 @@ FMOD_RESULT DSPPitchShift::readInternal(float *inbuffer, float *outbuffer, unsig
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8c53b3e9 manual
 // OFFSET: 0x008EC900
 FMOD_RESULT DSPPitchShift::setParameterInternal(int index, float value)
 {
@@ -2134,10 +2139,6 @@ FMOD_RESULT DSPPitchShift::setParameterInternal(int index, float value)
         }
     }
 
-    if (oldfftsize != mFFTSize)
-    {
-        mPitchShift->initFft(mFFTSize);
-    }
     //
     // Recalculate window coefficients if FFT size has changed
     //
@@ -2218,7 +2219,7 @@ FMOD_RESULT DSPPitchShift::setParameterInternal(int index, float value)
                 k_a = (int)ktabpos;
                 float win_a = wintab[k_a];
 
-                if(((float)k_a != ktabpos) && (k_a + k_next >= 0))
+                if((float)k_a != ktabpos)
                 {
                     //
                     // Linear interpolation between lookups
@@ -2433,6 +2434,7 @@ FMOD_RESULT DSPPitchShift::getParameterInternal(int index, float *value, char *v
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 78f63d65 manual
 // OFFSET: 0x008ECE40
 FMOD_RESULT F_CALLBACK DSPPitchShift::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -2458,6 +2460,7 @@ FMOD_RESULT F_CALLBACK DSPPitchShift::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8b0f1885 manual
 // OFFSET: 0x008ECE70
 FMOD_RESULT F_CALLBACK DSPPitchShift::releaseCallback(FMOD_DSP_STATE *dsp)
 {
@@ -2483,6 +2486,7 @@ FMOD_RESULT F_CALLBACK DSPPitchShift::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f552517e manual
 // OFFSET: 0x008ECEC0
 FMOD_RESULT F_CALLBACK DSPPitchShift::resetCallback(FMOD_DSP_STATE *dsp)
 {
@@ -2535,6 +2539,7 @@ FMOD_RESULT F_CALLBACK DSPPitchShift::readCallback(FMOD_DSP_STATE *dsp, float *i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 260ee007 manual
 // OFFSET: 0x008ECEF0
 FMOD_RESULT F_CALLBACK DSPPitchShift::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {

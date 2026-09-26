@@ -67,6 +67,7 @@ static const FMOD_GUID _KSDATAFORMAT_SUBTYPE_IEEE_FLOAT = { 0x00000003, 0x0000, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b221a29d manual
 // OFFSET: 0x009101E0
 FMOD_CODEC_DESCRIPTION_EX *CodecWav::getDescriptionEx()
 {
@@ -128,6 +129,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecWav::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6e0e49e4 manual
 // OFFSET: 0x0090EBC0
 FMOD_RESULT CodecWav::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -429,12 +431,11 @@ FMOD_RESULT CodecWav::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 
         #else
 
-        mPCMBufferMemory = (unsigned char *)FMOD_Memory_Calloc(mPCMBufferLengthBytes);
-        if (!mPCMBufferMemory)
+        mPCMBuffer = (unsigned char *)FMOD_Memory_Calloc(mPCMBufferLengthBytes);
+        if (!mPCMBuffer)
         {
             return FMOD_ERR_MEMORY;
         }
-        mPCMBuffer = mPCMBufferMemory;
 
         #endif
     }
@@ -537,6 +538,7 @@ FMOD_RESULT CodecWav::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0a8f55f1 auto
 // OFFSET: 0x0090F550
 FMOD_RESULT CodecWav::closeInternal()
 {
@@ -563,15 +565,15 @@ FMOD_RESULT CodecWav::closeInternal()
     }
     mNumSyncPoints = 0;
 
-    if (mPCMBufferMemory)
+    if (mPCMBuffer)
     {
         FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "CodecWAV::release", "Free PCM Buffer\n"));
 
-        FMOD_Memory_Free(mPCMBufferMemory);
-        mPCMBuffer = mPCMBufferMemory = 0;
+        FMOD_Memory_Free(mPCMBuffer);
+        mPCMBuffer = 0;
     }
     mPCMBufferLengthBytes = 0;
-       
+
     return FMOD_OK;
 }
 #endif // FMOD_SUPPORT_WAV
@@ -593,6 +595,7 @@ FMOD_RESULT CodecWav::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d082d360 manual
 // OFFSET: 0x0090F650
 FMOD_RESULT CodecWav::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -806,6 +809,7 @@ FMOD_RESULT CodecWav::readInternal(void *buffer, unsigned int sizebytes, unsigne
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 122b0e2a manual
 // OFFSET: 0x0090FE20
 FMOD_RESULT CodecWav::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -935,6 +939,7 @@ FMOD_RESULT CodecWav::soundCreateInternal(int subsound, FMOD_SOUND *sound)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e142e82d manual
 // OFFSET: 0x0090FB80
 FMOD_RESULT CodecWav::canPointInternal() 
 {
@@ -990,6 +995,7 @@ FMOD_RESULT CodecWav::canPointInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 85ee4c35 manual
 // OFFSET: 0x0090FD10
 FMOD_RESULT F_CALLBACK CodecWav::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -1014,6 +1020,7 @@ FMOD_RESULT F_CALLBACK CodecWav::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 50a01959 manual
 // OFFSET: 0x0090FD50
 FMOD_RESULT F_CALLBACK CodecWav::closeCallback(FMOD_CODEC_STATE *codec)
 {
@@ -1038,6 +1045,7 @@ FMOD_RESULT F_CALLBACK CodecWav::closeCallback(FMOD_CODEC_STATE *codec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cf439250 manual
 // OFFSET: 0x0090FD80
 FMOD_RESULT F_CALLBACK CodecWav::soundCreateCallback(FMOD_CODEC_STATE *codec, int subsound, FMOD_SOUND *sound)
 {
@@ -1062,6 +1070,7 @@ FMOD_RESULT F_CALLBACK CodecWav::soundCreateCallback(FMOD_CODEC_STATE *codec, in
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2ca636eb manual
 // OFFSET: 0x0090FDC0
 FMOD_RESULT F_CALLBACK CodecWav::canPointCallback(FMOD_CODEC_STATE *codec)
 {

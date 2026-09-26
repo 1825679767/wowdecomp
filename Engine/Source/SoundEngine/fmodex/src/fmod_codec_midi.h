@@ -228,7 +228,6 @@ namespace FMOD
         unsigned char       mProgram;
         unsigned int        mRPN;
         unsigned char       mChannelPressure;
-        float               mMasterVolume;
         int                 mPitchBend;
         int                 mPitchBendSensitivity;
         bool                mDamperPedal;
@@ -321,7 +320,7 @@ namespace FMOD
         CodecDLS           *mDLS;
         bool               *mSampleInclusionList;
                            
-        FMOD_RESULT         play(bool fromopen);
+        FMOD_RESULT         play();
         FMOD_RESULT         readVarLen(unsigned int *length);      
         FMOD_RESULT         update(bool audible);
                            

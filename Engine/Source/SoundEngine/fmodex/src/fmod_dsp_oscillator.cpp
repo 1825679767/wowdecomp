@@ -188,15 +188,11 @@ FMOD_RESULT DSPOscillator::releaseInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b121352c manual
 // OFFSET: 0x008F4920
 FMOD_RESULT DSPOscillator::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
     unsigned int count;
-
-    if (!inbuffer)
-    {
-        return FMOD_OK;
-    }
 
     switch (mType)
     {
@@ -310,8 +306,7 @@ FMOD_RESULT DSPOscillator::readInternal(float *inbuffer, float *outbuffer, unsig
                 if (mPosition > 1.0f || mPosition < -1.0f)
                 {
                     mDirection = -mDirection;
-                    mPosition += (mRate * (float)mDirection);
-                    mPosition += (mRate * (float)mDirection);
+                    mPosition += (mRate * (float)mDirection * 2.0f);
                 }
             }
             break;
@@ -348,6 +343,7 @@ FMOD_RESULT DSPOscillator::readInternal(float *inbuffer, float *outbuffer, unsig
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e16d4a24 auto
 // OFFSET: 0x008F5090
 FMOD_RESULT DSPOscillator::setParameterInternal(int index, float value)
 {
@@ -359,7 +355,6 @@ FMOD_RESULT DSPOscillator::setParameterInternal(int index, float value)
         case FMOD_DSP_OSCILLATOR_TYPE:
         {
             mType = (int)value;
-            mPosition = 0;
             break;
         }
         case FMOD_DSP_OSCILLATOR_RATE:
@@ -454,6 +449,7 @@ FMOD_RESULT DSPOscillator::getParameterInternal(int index, float *value, char *v
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8969ce7d manual
 // OFFSET: 0x008EB200
 FMOD_RESULT F_CALLBACK DSPOscillator::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -531,6 +527,7 @@ FMOD_RESULT F_CALLBACK DSPOscillator::readCallback(FMOD_DSP_STATE *dsp, float *i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3a0dcf44 manual
 // OFFSET: 0x008F5230
 FMOD_RESULT F_CALLBACK DSPOscillator::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {

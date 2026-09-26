@@ -69,6 +69,7 @@ FMOD_RESULT TimeStamp::stampIn()
 
 	[SEE_ALSO]
 */
+// VERIFY: 18885d29 manual
 // OFFSET: 0x008E8380
 FMOD_RESULT TimeStamp::stampOut(int damppercentage)
 {
@@ -105,7 +106,7 @@ FMOD_RESULT TimeStamp::stampOut(int damppercentage)
     {
         unsigned int delta = mOut - mIn - mPausedTotal;
 
-	    mPercent += ((FMOD_SCALEUP(delta) * (FMOD_UFLOAT)100 / smoothedtotal) );
+	    mPercent += ((FMOD_SCALEUP(delta) / smoothedtotal) * (FMOD_UFLOAT)100);
     }
 
 	mCPUUsage = FMOD_FMUL(mPercent, (FMOD_SCALEUP(1) - dampratio));

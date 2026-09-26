@@ -54,6 +54,7 @@ ChannelPool::ChannelPool()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: dc8248a7 manual
 // OFFSET: 0x008E8980
 FMOD_RESULT ChannelPool::init(SystemI *system, Output *output, int numchannels)
 {
@@ -67,7 +68,7 @@ FMOD_RESULT ChannelPool::init(SystemI *system, Output *output, int numchannels)
         mChannel = (ChannelReal **)FMOD_Memory_Calloc(numchannels * sizeof(ChannelReal *));
         if (!mChannel)
         {
-            return FMOD_ERR_MEMORY;
+            return FMOD_ERR_INVALID_PARAM;
         }
     }
     
@@ -134,6 +135,7 @@ FMOD_RESULT ChannelPool::release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 68d5f773 manual
 // OFFSET: 0x008E8A50
 FMOD_RESULT ChannelPool::allocateChannel(ChannelReal **realchannel, int index, int numchannels, int *found_out)
 {

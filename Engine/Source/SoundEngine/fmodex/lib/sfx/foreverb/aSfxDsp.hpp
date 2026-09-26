@@ -68,7 +68,7 @@ public:
   	int     init(float rate);
   	void    close();
 
-	int UpdateBufferSize(int newMaxBlockSize);	// possibly reallocate mInBuff buffers to new MaxBlockSize
+	bool UpdateBufferSize(int newMaxBlockSize);	// possibly reallocate mInBuff buffers to new MaxBlockSize
 	void ClearBuffers();	// zero the audio buffers
 	void ClearInBuff();
 	void ClearReverbInternalBuffers();
@@ -92,11 +92,6 @@ public:
 	void DeallocateEarlyDelay();
 	void ZeroWritePointers();
 
-    #if defined(PLATFORM_PS3) //|| defined(PLATFORM_WINDOWS_PS3MODE)
-	float	mInBuffMemory[256 + 4];    /* +4 = 16bytes extra for alignment */
-    #else
-    float   *mInBuffMemory;
-    #endif
     float	*mInBuff;
     
 	int		mNumAllocatedInBuffSamples;	// the number of samples per mInBuff currently allocated 
@@ -105,8 +100,6 @@ public:
     #if defined(PLATFORM_PS3) //|| defined(PLATFORM_WINDOWS_PS3MODE)
     float   FMOD_PPCALIGN16(mTempbuff[(9*256) + 4]);  // 8k
     #endif
-
-    FMOD::SystemI *mSystem;
 
 	float	mRoomHF;
 	bool	mRoomHFChanged;
@@ -125,10 +118,8 @@ public:
 	float	FMOD_PPCALIGN16(mLatchOneMinusDecayHF[kNumLateReverbDelays]);
 	float	FMOD_PPCALIGN16(mPrevDecayHF[kNumLateReverbDelays]);        	// Latch previous one
 	float	FMOD_PPCALIGN16(mOldDecayHF[kNumLateReverbDelays]);  		    // Save current one for next time...
-	float	FMOD_PPCALIGN16(mMatrixMem[kNumMatrixStages * kNumLateReverbDelays + 16]);
-	float	FMOD_PPCALIGN16(mzDecayHFMem[kNumLateReverbDelays + 16]);
-	float  *FMOD_PPCALIGN16(mzDecayHF);
-	float  *FMOD_PPCALIGN16(mMatrix);
+	float	FMOD_PPCALIGN16(mzDecayHF[kNumLateReverbDelays]);
+	float	FMOD_PPCALIGN16(mMatrix[kNumMatrixStages * kNumLateReverbDelays]);
 	float	FMOD_PPCALIGN16(mFeedback[kNumLateReverbDelays]);
 	float	FMOD_PPCALIGN16(mLatchFeedback[kNumLateReverbDelays]);	// Latch it for safety
 	float	FMOD_PPCALIGN16(mOldFeedback[kNumLateReverbDelays]);	// Save for next buffer
@@ -160,10 +151,7 @@ public:
 	int		mNumLateReverbDelays;
 	
 	// Late delays
-    #if defined(PLATFORM_PS3) //|| defined(PLATFORM_WINDOWS_PS3MODE)
-    float   *FMOD_PPCALIGN16(mLateDelaysMemory[kNumLateReverbDelays]);
-    #endif
-	float  *FMOD_PPCALIGN16(mLateDelays[kNumLateReverbDelays]);                 // Array of delay lines
+	float **mLateDelays;                 // Array of delay lines
 	float	FMOD_PPCALIGN16(mLateDelayLenSec[kNumLateReverbDelays]);            // Seconds
 	int		FMOD_PPCALIGN16(mLateDelayLenSamples[kNumLateReverbDelays]);    	// Samples used
 	int		FMOD_PPCALIGN16(mOldLateDelayLenSamples[kNumLateReverbDelays]);
@@ -203,11 +191,7 @@ public:
 	int		FMOD_PPCALIGN16(mEarlyReadPointer[kNumEarlyDelayTaps]);
 	
 	// Allpass delays
-	#if defined(PLATFORM_PS3) //|| defined(PLATFORM_WINDOWS_PS3MODE)
-	float	FMOD_PPCALIGN16(mAllpassDelays[kNumAllpassDelays][512]);
-    #else
-    float	*mAllpassDelays[kNumAllpassDelays];
-    #endif
+    float	**mAllpassDelays;
 	float	FMOD_PPCALIGN16(mAllpassDelayLenSec[kNumAllpassDelays]);
 	int		FMOD_PPCALIGN16(mAllpassDelayLenSamples[kNumAllpassDelays]);
 	int		FMOD_PPCALIGN16(mAllpassSamplesAllocated[kNumAllpassDelays]);

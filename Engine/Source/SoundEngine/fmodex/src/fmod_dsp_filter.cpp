@@ -57,6 +57,7 @@ FMOD_RESULT DSPFilter::release(bool freethis)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0fba4daf manual
 // OFFSET: 0x00919720
 FMOD_RESULT DSPFilter::execute(float *inbuffer, float **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode)
 {
@@ -283,6 +284,7 @@ FMOD_RESULT DSPFilter::execute(float *inbuffer, float **outbuffer, unsigned int 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 61a8be49 manual
 // OFFSET: 0x00919C00
 FMOD_RESULT DSPFilter::startBuffering(unsigned int historylength)
 {

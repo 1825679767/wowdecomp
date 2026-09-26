@@ -29,6 +29,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fae0110e manual
 // OFFSET: 0x0091AA80
 OutputSoftware::OutputSoftware()
 {
@@ -65,6 +66,7 @@ OutputSoftware::OutputSoftware()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 02e9062c manual
 // OFFSET: 0x0091A930
 FMOD_RESULT OutputSoftware::init(int maxchannels)
 {
@@ -161,6 +163,7 @@ FMOD_RESULT OutputSoftware::release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ad9c6d57 manual
 // OFFSET: 0x0091AB00
 FMOD_RESULT OutputSoftware::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *waveformat, Sample **sample)
 {

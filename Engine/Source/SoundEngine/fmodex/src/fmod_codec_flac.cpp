@@ -156,6 +156,7 @@ static FLAC__StreamDecoderReadStatus FMOD_FLAC_ReadCallback(const FLAC__StreamDe
 }
 
 
+// VERIFY: 255e91b3 auto
 // OFFSET: 0x0090CE80
 static FLAC__StreamDecoderWriteStatus FMOD_FLAC_WriteCallback(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame, const FLAC__int32 * const buffer[], void *client_data)
 {
@@ -195,21 +196,6 @@ static FLAC__StreamDecoderWriteStatus FMOD_FLAC_WriteCallback(const FLAC__Stream
             }
 
             codec->mPCMBufferFilledBytes = blocksize * frame->header.channels * 2;
-        }
-        else if (frame->header.bits_per_sample == 24)
-        {
-            signed char *dst = (signed char *)codec->mPCMBuffer;
-
-            for (i = 0; i < blocksize; i++)
-            {
-                for (j = 0; j < (int)frame->header.channels; j++)
-                {
-                    FMOD_memcpy(dst, &buffer[j][i], 3);
-                    dst += 3;
-                }
-            }
-
-            codec->mPCMBufferFilledBytes = blocksize * frame->header.channels * 3;
         }
         else
         {
@@ -320,6 +306,7 @@ static void FMOD_FLAC_ErrorCallback(const FLAC__StreamDecoder *decoder, FLAC__St
 }
 
 
+// VERIFY: c9fe870b manual
 // OFFSET: 0x0090D040
 static void FMOD_FLAC_MetadataCallback(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *metadata, void *client_data)
 {
@@ -545,12 +532,11 @@ FMOD_RESULT CodecFLAC::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
 
         #else
 
-        mPCMBufferMemory = (unsigned char *)FMOD_Memory_Calloc(mPCMBufferLengthBytes);
-        if (!mPCMBufferMemory)
+        mPCMBuffer = (unsigned char *)FMOD_Memory_Calloc(mPCMBufferLengthBytes);
+        if (!mPCMBuffer)
         {
             return FMOD_ERR_MEMORY;
         }
-        mPCMBuffer = mPCMBufferMemory;
 
         #endif
     }
@@ -580,6 +566,7 @@ FMOD_RESULT CodecFLAC::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7c01969c auto
 // OFFSET: 0x0090D1B0
 FMOD_RESULT CodecFLAC::closeInternal()
 {
@@ -590,22 +577,14 @@ FMOD_RESULT CodecFLAC::closeInternal()
         mDecoder = 0;
     }
 
-    if (mPCMBufferMemory)
+    if (mPCMBuffer)
     {
         FLOG((FMOD_DEBUG_LEVEL_LOG, __FILE__, __LINE__, "CodecFLAC::release", "Free PCM Buffer\n"));
 
-        FMOD_Memory_Free(mPCMBufferMemory);
-        mPCMBuffer = mPCMBufferMemory = 0;
+        FMOD_Memory_Free(mPCMBuffer);
+        mPCMBuffer = 0;
     }
     mPCMBufferLengthBytes = 0;
-
-    if (mWaveFormatMemory)
-    {
-        FMOD_Memory_Free(mWaveFormatMemory);
-        mWaveFormatMemory = 0;
-    }
-
-    waveformat = 0;
 
     return FMOD_OK;
 }
@@ -695,7 +674,7 @@ FMOD_RESULT CodecFLAC::setPositionInternal(int subsound, unsigned int position, 
         */
         if (!FLAC__stream_decoder_seek_absolute(this, mDecoder, position))
         {
-            return FMOD_ERR_INTERNAL;
+            return FMOD_ERR_INVALID_PARAM;
         }
 
         // FLAC decoder seek will cause the sample at the given position to be written via the FLAC
@@ -723,6 +702,7 @@ FMOD_RESULT CodecFLAC::setPositionInternal(int subsound, unsigned int position, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 030fb44c manual
 // OFFSET: 0x0090D640
 FMOD_RESULT F_CALLBACK CodecFLAC::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -748,6 +728,7 @@ FMOD_RESULT F_CALLBACK CodecFLAC::openCallback(FMOD_CODEC_STATE *codec, FMOD_MOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: faa4276d manual
 // OFFSET: 0x0090D280
 FMOD_RESULT F_CALLBACK CodecFLAC::closeCallback(FMOD_CODEC_STATE *codec)
 {
@@ -798,6 +779,7 @@ FMOD_RESULT F_CALLBACK CodecFLAC::readCallback(FMOD_CODEC_STATE *codec, void *bu
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d2103686 auto
 // OFFSET: 0x0090D2E0
 FMOD_RESULT F_CALLBACK CodecFLAC::setPositionCallback(FMOD_CODEC_STATE *codec, int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {

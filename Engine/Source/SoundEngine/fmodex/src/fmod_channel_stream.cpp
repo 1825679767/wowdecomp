@@ -31,6 +31,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a7b844bf manual
 // OFFSET: 0x0091EF10
 ChannelStream::ChannelStream()
 {
@@ -137,6 +138,7 @@ FMOD_RESULT ChannelStream::moveChannelGroup(ChannelGroupI *oldchannelgroup, Chan
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2ce6069d manual
 // OFFSET: 0x0091E630
 FMOD_RESULT ChannelStream::alloc()
 {
@@ -302,6 +304,7 @@ FMOD_RESULT ChannelStream::update(int delta)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 41292d28 manual
 // OFFSET: 0x0091EF50
 FMOD_RESULT ChannelStream::updateStream()
 {
@@ -624,6 +627,7 @@ FMOD_RESULT ChannelStream::stop(bool ignoreenddelay, bool resetstate, bool force
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8aa9f23e manual
 // OFFSET: 0x0091EA90
 FMOD_RESULT ChannelStream::stop(bool ignoreenddelay, bool resetstate)
 {
@@ -816,6 +820,7 @@ FMOD_RESULT ChannelStream::setDelay(unsigned int startdelay, unsigned int enddel
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e1e7f957 auto
 // OFFSET: 0x0091EC50
 FMOD_RESULT ChannelStream::setSpeakerMix(float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright)
 {
@@ -877,6 +882,7 @@ FMOD_RESULT ChannelStream::setSpeakerLevels(int speaker, float *levels, int numl
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b82a04a1 manual
 // OFFSET: 0x0091F6F0
 FMOD_RESULT ChannelStream::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -978,6 +984,7 @@ FMOD_RESULT ChannelStream::setPosition(unsigned int position, FMOD_TIMEUNIT post
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9c7eca8f manual
 // OFFSET: 0x0091F260
 FMOD_RESULT ChannelStream::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {
@@ -1399,6 +1406,7 @@ FMOD_RESULT ChannelStream::isPlaying(bool *isplaying, bool includethreadlatency)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 08775700 manual
 // OFFSET: 0x0091EEB0
 FMOD_RESULT ChannelStream::getSpectrum(float *spectrumarray, int numvalues, int channeloffset, FMOD_DSP_FFT_WINDOW windowtype)
 {
@@ -1421,6 +1429,7 @@ FMOD_RESULT ChannelStream::getSpectrum(float *spectrumarray, int numvalues, int 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5267b939 manual
 // OFFSET: 0x0091EED0
 FMOD_RESULT ChannelStream::getWaveData(float *wavearray, int numvalues, int channeloffset)
 {
@@ -1443,6 +1452,7 @@ FMOD_RESULT ChannelStream::getWaveData(float *wavearray, int numvalues, int chan
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 51d27768 manual
 // OFFSET: 0x0091EEF0
 FMOD_RESULT ChannelStream::getDSPHead(DSPI **dsp)
 {

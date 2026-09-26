@@ -104,6 +104,7 @@ namespace FMOD
 // VERIFY: 90c53e2f auto
         // OFFSET: 0x008F3850
         static FMOD_INLINE FMOD_RESULT F_CALLBACK defaultFileRead     (void *handle, void *buffer, unsigned int size, unsigned int *read, void *userdata) { return ((File *)handle)->read(buffer, 1, size, read); }
+// VERIFY: f8b2be61 manual
         // OFFSET: 0x008F3870
         static FMOD_INLINE FMOD_RESULT F_CALLBACK defaultFileSeek     (void *handle, unsigned int pos, void *userdata) { return ((File *)handle)->seek(pos, SEEK_SET); }
 #ifndef PLATFORM_PS3_SPU
@@ -111,6 +112,7 @@ namespace FMOD
         // OFFSET: 0x008F3890
         static FMOD_INLINE FMOD_RESULT F_CALLBACK defaultMetaData     (FMOD_CODEC_STATE *codec, FMOD_TAGTYPE type, char *name, void *data, unsigned int datalen, FMOD_TAGDATATYPE datatype, int unique) { return ((Codec *)codec)->metaData(type, name, data, datalen, datatype, unique == 1 ? true : false); }
 #endif
+// VERIFY: aff2ae35 manual
         // OFFSET: 0x008E84B0
         static FMOD_INLINE FMOD_RESULT F_CALLBACK defaultGetWaveFormat(FMOD_CODEC_STATE *codec, int index, FMOD_CODEC_WAVEFORMAT *waveformat_out)
         {
@@ -131,6 +133,7 @@ namespace FMOD
 
       public:
 
+// VERIFY: 182f05d2 auto
         // OFFSET: [0x008F40E0, 0x008F4440]
         Codec()
         {

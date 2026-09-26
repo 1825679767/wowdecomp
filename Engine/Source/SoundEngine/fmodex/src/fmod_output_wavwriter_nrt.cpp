@@ -52,6 +52,7 @@ static const FMOD_GUID _KSDATAFORMAT_SUBTYPE_PCM        = { 0x00000001, 0x0000, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a31e7c17 manual
 // OFFSET: 0x00915700
 FMOD_OUTPUT_DESCRIPTION_EX *OutputWavWriter_NRT::getDescriptionEx()
 {
@@ -173,6 +174,7 @@ FMOD_RESULT OutputWavWriter_NRT::getDriverCaps(int id, FMOD_CAPS *caps)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f36c7972 manual
 // OFFSET: 0x00915450
 FMOD_RESULT OutputWavWriter_NRT::init(int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
@@ -316,6 +318,7 @@ FMOD_RESULT OutputWavWriter_NRT::update()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: beeb42a0 manual
 // OFFSET: 0x009150D0
 FMOD_RESULT OutputWavWriter_NRT::writeWavHeader()
 {
@@ -601,6 +604,7 @@ FMOD_RESULT F_CALLBACK OutputWavWriter_NRT::initCallback(FMOD_OUTPUT_STATE *outp
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0837c617 manual
 // OFFSET: 0x009152D0
 FMOD_RESULT F_CALLBACK OutputWavWriter_NRT::closeCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -626,6 +630,7 @@ FMOD_RESULT F_CALLBACK OutputWavWriter_NRT::closeCallback(FMOD_OUTPUT_STATE *out
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0b629a95 manual
 // OFFSET: 0x00915320
 FMOD_RESULT F_CALLBACK OutputWavWriter_NRT::startCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -677,6 +682,7 @@ FMOD_RESULT F_CALLBACK OutputWavWriter_NRT::stopCallback(FMOD_OUTPUT_STATE *outp
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d32c0fd9 manual
 // OFFSET: 0x009153B0
 FMOD_RESULT F_CALLBACK OutputWavWriter_NRT::updateCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -702,6 +708,7 @@ FMOD_RESULT F_CALLBACK OutputWavWriter_NRT::updateCallback(FMOD_OUTPUT_STATE *ou
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e06740c2 manual
 // OFFSET: 0x00915410
 FMOD_RESULT F_CALLBACK OutputWavWriter_NRT::getHandleCallback(FMOD_OUTPUT_STATE *output, void **handle)
 {

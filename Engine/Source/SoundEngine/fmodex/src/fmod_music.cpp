@@ -333,6 +333,7 @@ signed short gITFineTuneTable[FMUSIC_ITFINETUNETABLESIZE] =
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 687ecbea manual
 // OFFSET: 0x00935520
 FMOD_RESULT MusicSong::play()
 {
@@ -421,6 +422,7 @@ FMOD_RESULT MusicSong::play()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1e15375b manual
 // OFFSET: 0x00934E40
 FMOD_RESULT MusicSong::spawnNewVirtualChannel(MusicChannel *cptr, MusicSample *sptr, MusicVirtualChannel **newvcptr)
 {
@@ -587,6 +589,7 @@ FMOD_RESULT MusicSong::setBPM(int bpm)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fa086cbf manual
 // OFFSET: 0x00935010
 FMOD_RESULT MusicSong::stop()
 {
@@ -665,6 +668,7 @@ FMOD_RESULT MusicSong::stop()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 0d991fb3 manual
 // OFFSET: 0x00935150
 FMOD_RESULT MusicSong::playSound(MusicSample *sample, MusicVirtualChannel *vcptr, bool addfilter, SNDMIXPLUGIN *plugin)
 {
@@ -883,6 +887,7 @@ FMOD_RESULT MusicSong::getPositionInternal(unsigned int *position, FMOD_TIMEUNIT
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e6a96ab4 manual
 // OFFSET: 0x00935470
 FMOD_RESULT F_CALLBACK MusicSong::getLengthCallback(FMOD_CODEC_STATE *codec, unsigned int *length, FMOD_TIMEUNIT lengthtype)
 {
@@ -907,6 +912,7 @@ FMOD_RESULT F_CALLBACK MusicSong::getLengthCallback(FMOD_CODEC_STATE *codec, uns
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9ffe9033 manual
 // OFFSET: 0x009354B0
 FMOD_RESULT F_CALLBACK MusicSong::getPositionCallback(FMOD_CODEC_STATE *codec, unsigned int *position, FMOD_TIMEUNIT postype)
 {

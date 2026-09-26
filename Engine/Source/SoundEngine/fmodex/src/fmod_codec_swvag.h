@@ -58,14 +58,14 @@ namespace FMOD
       private:
         
         FMOD_CODEC_WAVEFORMAT   mWaveFormat;
+        unsigned char           mUnknown[56];
+        CodecVAG_Context        mContext;
 
         #ifdef PLATFORM_PS3
         unsigned char           mPCMBlock[56 + 16]; /* +16 for alignment */
         #else
         unsigned char           mPCMBlock[56];
         #endif
-
-        CodecVAG_Context mContext[16];
 
         FMOD_RESULT openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo);
         FMOD_RESULT closeInternal();

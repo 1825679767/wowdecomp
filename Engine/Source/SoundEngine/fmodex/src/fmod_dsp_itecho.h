@@ -22,7 +22,6 @@ namespace FMOD
         bool            mPanDelay;
 
         float          *mEchoBuffer[2];
-        float          *mEchoBufferMem[2];
         unsigned int    mEchoBufferLengthBytes[2];
         unsigned int    mEchoPosition[2];
         unsigned int    mEchoLength[2];

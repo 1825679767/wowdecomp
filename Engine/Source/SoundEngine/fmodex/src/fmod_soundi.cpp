@@ -84,6 +84,7 @@ FMOD_RESULT SoundI::validate(Sound *sound, SoundI **soundi)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 52faac93 manual
 // OFFSET: 0x008E1ED0
 SoundI::SoundI()
 {
@@ -241,6 +242,7 @@ FMOD_RESULT SoundI::loadSubSound(int index, FMOD_MODE mode)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: eb78ec38 manual
 // OFFSET: 0x008E3100
 FMOD_RESULT SoundI::read(unsigned int offset, unsigned int numsamples, unsigned int *read)
 {
@@ -431,6 +433,7 @@ FMOD_RESULT SoundI::seek(int subsound, unsigned int position)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6ed3298c manual
 // OFFSET: 0x008E3700
 FMOD_RESULT SoundI::clear(unsigned int offset, unsigned int numsamples)
 {
@@ -497,6 +500,7 @@ FMOD_RESULT SoundI::clear(unsigned int offset, unsigned int numsamples)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7b791f76 manual
 // OFFSET: 0x008E1FC0
 FMOD_RESULT SoundI::release(bool freethis)
 {
@@ -822,6 +826,7 @@ FMOD_RESULT SoundI::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned i
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c2313840 manual
 // OFFSET: 0x008E1190
 FMOD_RESULT SoundI::setDefaults(float frequency, float volume, float pan, int priority)
 {
@@ -1145,6 +1150,7 @@ FMOD_RESULT SoundI::get3DConeSettings(float *insideconeangle, float *outsidecone
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 01ebf242 manual
 // OFFSET: 0x008E1410
 FMOD_RESULT  SoundI::set3DCustomRolloff(FMOD_VECTOR *points, int numpoints)
 {
@@ -1225,6 +1231,7 @@ FMOD_RESULT SoundI::get3DCustomRolloff(FMOD_VECTOR **points, int *numpoints)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2855c95f manual
 // OFFSET: 0x008E14D0
 FMOD_RESULT SoundI::setSubSound(int index, SoundI *subsound)
 {
@@ -1444,6 +1451,7 @@ FMOD_RESULT SoundI::getSubSound(int index, SoundI **subsound)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 43c301f5 manual
 // OFFSET: 0x008E1690
 FMOD_RESULT SoundI::setSubSoundSentence(int *subsoundlist, int numsubsounds)
 {
@@ -1611,6 +1619,7 @@ FMOD_RESULT SoundI::getName(char *name, int namelen)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 46567540 auto
 // OFFSET: 0x008E3C30
 FMOD_RESULT SoundI::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
 {
@@ -1642,7 +1651,7 @@ FMOD_RESULT SoundI::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
                 return result;
             }
 
-            *length = (unsigned int)(waveformat.lengthpcm * 1000 / mDefaultFrequency);
+            *length = (unsigned int)((FMOD_UINT64)waveformat.lengthpcm * 1000 / (FMOD_UINT64)mDefaultFrequency);
         }
         else
         {
@@ -1653,7 +1662,7 @@ FMOD_RESULT SoundI::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
                 return FMOD_ERR_INVALID_PARAM;
             }
 
-            *length = (unsigned int)(subsound->mLength * 1000 / mDefaultFrequency);
+            *length = (unsigned int)((FMOD_UINT64)subsound->mLength * 1000 / (FMOD_UINT64)mDefaultFrequency);
         }
     }
     else
@@ -1674,7 +1683,7 @@ FMOD_RESULT SoundI::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
         }
         else
         {
-            *length = (unsigned int)(mLength * 1000 / mDefaultFrequency);
+            *length = (unsigned int)((FMOD_UINT64)mLength * 1000 / (FMOD_UINT64)mDefaultFrequency);
         }
     }
     else if (lengthtype == FMOD_TIMEUNIT_PCMBYTES)
@@ -1720,6 +1729,7 @@ FMOD_RESULT SoundI::getLength(unsigned int *length, FMOD_TIMEUNIT lengthtype)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 879e33fc auto
 // OFFSET: 0x008E2500
 FMOD_RESULT SoundI::getFormat(FMOD_SOUND_TYPE *type, FMOD_SOUND_FORMAT *format, int *channels, int *bits)
 {
@@ -1919,6 +1929,7 @@ FMOD_RESULT SoundI::getOpenState(FMOD_OPENSTATE *openstate, unsigned int *percen
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d3be65fe manual
 // OFFSET: 0x008E3FA0
 FMOD_RESULT SoundI::readData(void *buffer, unsigned int numbytes, unsigned int *read)
 {
@@ -2105,6 +2116,7 @@ FMOD_RESULT SoundI::seekData(unsigned int position)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fd13a68d manual
 // OFFSET: 0x008E1AC0
 FMOD_RESULT SoundI::setSoundGroup(SoundGroupI *soundgroup)
 {
@@ -2243,6 +2255,7 @@ FMOD_RESULT SoundI::getSyncPoint(int index, FMOD_SYNCPOINT **point)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 75872feb manual
 // OFFSET: 0x008E25B0
 FMOD_RESULT SoundI::getSyncPointInfo(FMOD_SYNCPOINT *point, char *name, int namelen, unsigned int *offset, FMOD_TIMEUNIT offsettype)
 {
@@ -2293,6 +2306,7 @@ FMOD_RESULT SoundI::getSyncPointInfo(FMOD_SYNCPOINT *point, char *name, int name
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 01da5d32 manual
 // OFFSET: 0x008E4300
 FMOD_RESULT SoundI::addSyncPoint(unsigned int offset, FMOD_TIMEUNIT offsettype, const char *name, FMOD_SYNCPOINT **syncpoint)
 {
@@ -2364,6 +2378,7 @@ FMOD_RESULT SoundI::addSyncPoint(unsigned int offset, FMOD_TIMEUNIT offsettype, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bae2a669 auto
 // OFFSET: 0x008E1C40
 FMOD_RESULT SoundI::deleteSyncPoint(FMOD_SYNCPOINT *point)
 {
@@ -2542,6 +2557,7 @@ FMOD_RESULT SoundI::getMode(FMOD_MODE *mode)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c07083e7 manual
 // OFFSET: 0x008E1E00
 FMOD_RESULT SoundI::setLoopCount(int loopcount)
 {
@@ -2611,6 +2627,7 @@ FMOD_RESULT SoundI::getLoopCount(int *loopcount)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: da5212f7 manual
 // OFFSET: 0x008E2810
 FMOD_RESULT SoundI::setLoopPoints(unsigned int loopstart, FMOD_TIMEUNIT loopstarttype, unsigned int loopend, FMOD_TIMEUNIT loopendtype)
 {
@@ -2691,6 +2708,7 @@ FMOD_RESULT SoundI::setLoopPoints(unsigned int loopstart, FMOD_TIMEUNIT loopstar
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 23a13c6f manual
 // OFFSET: 0x008E2BB0
 FMOD_RESULT SoundI::getLoopPoints(unsigned int *loopstart, FMOD_TIMEUNIT loopstarttype, unsigned int *loopend, FMOD_TIMEUNIT loopendtype)
 {

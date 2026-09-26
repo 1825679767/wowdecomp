@@ -28,6 +28,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4fa7390d manual
 // OFFSET: 0x009297E0
 FMOD_RESULT DSPResamplerMultiInput::execute(float *inbuffer, float **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode)
 {

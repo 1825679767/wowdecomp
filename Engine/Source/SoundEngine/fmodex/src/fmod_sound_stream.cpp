@@ -57,6 +57,7 @@ Stream::Stream()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8bcf4140 manual
 // OFFSET: 0x0091DE80
 FMOD_RESULT Stream::fill(unsigned int offset, unsigned int length)
 {
@@ -341,6 +342,7 @@ FMOD_RESULT Stream::flush()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d3047022 manual
 // OFFSET: 0x0091E200
 FMOD_RESULT Stream::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -494,6 +496,7 @@ FMOD_RESULT Stream::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8965286a manual
 // OFFSET: 0x0091E4D0
 FMOD_RESULT Stream::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {

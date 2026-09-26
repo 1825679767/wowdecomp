@@ -333,6 +333,7 @@ FMOD_RESULT GeometryMgr::lineTestAll(const FMOD_VECTOR* start, const FMOD_VECTOR
     [SEE_ALSO]
 ]
 */
+// VERIFY: 29a5ad33 manual
 // OFFSET: 0x008E5510
 FMOD_RESULT GeometryMgr::flushAll()
 {    

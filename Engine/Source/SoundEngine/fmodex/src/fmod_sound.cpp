@@ -46,6 +46,7 @@ FMOD_RESULT Sound::getSystemObject(System **system)
 }
 
 
+// VERIFY: fa4f49f2 auto
 // OFFSET: 0x008D19A0
 FMOD_RESULT Sound::lock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {

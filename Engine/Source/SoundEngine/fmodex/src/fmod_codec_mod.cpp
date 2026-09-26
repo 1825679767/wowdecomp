@@ -61,6 +61,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f2869502 manual
 // OFFSET: 0x0090CD00
 FMOD_CODEC_DESCRIPTION_EX *CodecMOD::getDescriptionEx()
 {
@@ -157,6 +158,7 @@ int CodecMOD::getAmigaPeriod(int note, int middlec)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c37ada96 manual
 // OFFSET: 0x009076E0
 FMOD_RESULT MusicChannelMOD::portamento()
 {
@@ -355,6 +357,7 @@ FMOD_RESULT MusicChannelMOD::tremolo()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 22d1c56d manual
 // OFFSET: 0x0090A7C0
 FMOD_RESULT CodecMOD::updateNote(bool audible)
 {
@@ -806,9 +809,6 @@ FMOD_RESULT CodecMOD::updateNote(bool audible)
 			if (vcptr->mNoteControl & FMUSIC_STOP)
 			{
                 vcptr->mChannel.stopEx(false, false, true, true, false, false, false);
-                #ifdef FMOD_SUPPORT_SOFTWARE
-                mSystem->flushDSPConnectionRequests();
-                #endif
                 vcptr->mSampleOffset = 0;	/* if this channel gets stolen it will be safe */
 			}
 		}
@@ -831,6 +831,7 @@ FMOD_RESULT CodecMOD::updateNote(bool audible)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2e95479f manual
 // OFFSET: 0x0090AF70
 FMOD_RESULT CodecMOD::updateEffects() 
 {
@@ -1121,9 +1122,6 @@ FMOD_RESULT CodecMOD::updateEffects()
 		    if (vcptr->mNoteControl & FMUSIC_STOP)
 		    {
                 vcptr->mChannel.stopEx(false, false, true, true, false, false, false);
-                #ifdef FMOD_SUPPORT_SOFTWARE
-                mSystem->flushDSPConnectionRequests();
-                #endif
 			    vcptr->mSampleOffset = 0;	/* if this channel gets stolen it will be safe */
 		    }
         }
@@ -1146,6 +1144,7 @@ FMOD_RESULT CodecMOD::updateEffects()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f4046953 manual
 // OFFSET: 0x0090B540
 FMOD_RESULT CodecMOD::update(bool audible)
 {
@@ -1244,6 +1243,7 @@ FMOD_RESULT CodecMOD::update(bool audible)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: aaef1e84 manual
 // OFFSET: 0x0090BDA0
 FMOD_RESULT CodecMOD::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -1414,7 +1414,7 @@ FMOD_RESULT CodecMOD::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 	for (count = 0; count < mNumSamples; count++) 
 	{
 		unsigned int 	count2;
-        char            sample_name[22];
+        char            sample_name[28];
         FMOD_MODE       sample_mode;
         unsigned int    sample_length;
         unsigned int    sample_loopstart;
@@ -1433,7 +1433,7 @@ FMOD_RESULT CodecMOD::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
             return result;
         }
 
-		for (count2 = 0; count2 < 22; count2++) 
+		for (count2 = 0; count2 < 28; count2++) 
         {
 			if (sample_name[count2] < 32) 
             {
@@ -1446,7 +1446,7 @@ FMOD_RESULT CodecMOD::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
          
             sprintf(s, "Sample name %d", count);
          
-            result = metaData(FMOD_TAGTYPE_FMOD, s, sample_name, 22, FMOD_TAGDATATYPE_STRING, false);
+            result = metaData(FMOD_TAGTYPE_FMOD, s, sample_name, 28, FMOD_TAGDATATYPE_STRING, false);
             if (result != FMOD_OK)
             {
                 return result;
@@ -1918,8 +1918,8 @@ FMOD_RESULT CodecMOD::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
         for (count = 0; count < numrealchannels; count++)
         {
             new (&mChannelSoftware[count]) ChannelSoftware;
-            CHECK_RESULT(mChannelPool->setChannel(count, &mChannelSoftware[count], mDSPHead));
-            CHECK_RESULT(mChannelSoftware[count].allowReverb(false));
+            mChannelPool->setChannel(count, &mChannelSoftware[count], mDSPHead);
+            mChannelSoftware[count].allowReverb(false);
         }
     }
 
@@ -1965,24 +1965,13 @@ FMOD_RESULT CodecMOD::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f076385f auto
 // OFFSET: 0x0090B680
 FMOD_RESULT CodecMOD::closeInternal()
 {
     int count;
 
     stop();
-
-    if (mChannelPool)
-    {
-        mChannelPool->release();
-        mChannelPool = 0;
-    }
-
-    if (mDSPHead)
-    {
-        mDSPHead->release();
-        mDSPHead = 0;
-    }
 
     for (count = 0; count < mNumSamples; count++) 
 	{
@@ -1999,6 +1988,12 @@ FMOD_RESULT CodecMOD::closeInternal()
         mVirtualChannel = 0;
     }
 
+    if (mChannelPool)
+    {
+        mChannelPool->release();
+        mChannelPool = 0;
+    }
+
     if (mChannelSoftware)
     {
         FMOD_Memory_Free(mChannelSoftware);
@@ -2007,7 +2002,7 @@ FMOD_RESULT CodecMOD::closeInternal()
         
     if (mPattern)
     {
-	    for (count = 0; count < mNumPatternsMem; count++) 
+	    for (count = 0; count < mNumPatterns; count++) 
 	    {
             if (mPattern[count].mData)
             {
@@ -2034,11 +2029,11 @@ FMOD_RESULT CodecMOD::closeInternal()
         FMOD_Memory_Free(mVisited);
         mVisited = 0;
     }
-    
-    if (mWaveFormatMemory)
+
+    if (mDSPHead)
     {
-        FMOD_Memory_Free(mWaveFormatMemory);
-        mWaveFormatMemory = 0;
+        mDSPHead->release();
+        mDSPHead = 0;
     }
 
     return FMOD_OK;
@@ -2060,6 +2055,7 @@ FMOD_RESULT CodecMOD::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 168ce95c manual
 // OFFSET: 0x0090B9B0
 FMOD_RESULT CodecMOD::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -2227,6 +2223,7 @@ FMOD_RESULT CodecMOD::setPositionInternal(int subsound, unsigned int position, F
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4f7dda69 manual
 // OFFSET: 0x0090CCC0
 FMOD_RESULT F_CALLBACK CodecMOD::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -2251,6 +2248,7 @@ FMOD_RESULT F_CALLBACK CodecMOD::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7f5953ba manual
 // OFFSET: 0x0090B900
 FMOD_RESULT F_CALLBACK CodecMOD::closeCallback(FMOD_CODEC_STATE *codec)
 {

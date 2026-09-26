@@ -62,6 +62,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 21ba71d4 manual
 // OFFSET: 0x009075F0
 FMOD_CODEC_DESCRIPTION_EX *CodecXM::getDescriptionEx()
 {
@@ -188,6 +189,7 @@ FMOD_RESULT CodecXM::spawnNewChannel(MusicChannel *cptr, MusicVirtualChannel *ol
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e4429e47 manual
 // OFFSET: 0x00903AE0
 FMOD_RESULT CodecXM::updateFlags(MusicVirtualChannel *vcptr, MusicSample *sptr)
 {   
@@ -294,6 +296,7 @@ FMOD_RESULT CodecXM::updateFlags(MusicVirtualChannel *vcptr, MusicSample *sptr)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e8a9fcc5 manual
 // OFFSET: 0x00903C30
 FMOD_RESULT MusicChannelXM::portamento()
 {
@@ -484,6 +487,7 @@ FMOD_RESULT MusicChannelXM::tremolo()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a4e41fe6 manual
 // OFFSET: 0x00903E50
 FMOD_RESULT CodecXM::processEnvelope(MusicEnvelopeState *env, MusicVirtualChannel *vcptr, int Inumpoints, unsigned short *points, int type, int loopstart, int loopend, unsigned char ISustain, unsigned char control)
 {
@@ -588,6 +592,7 @@ FMOD_RESULT CodecXM::processEnvelope(MusicEnvelopeState *env, MusicVirtualChanne
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9e263abd manual
 // OFFSET: 0x00903F70
 FMOD_RESULT MusicChannelXM::instrumentVibrato(MusicInstrument *iptr) 
 {
@@ -769,6 +774,7 @@ FMOD_RESULT MusicChannelXM::processVolumeByte(unsigned char volume)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 114dabc4 manual
 // OFFSET: 0x00904220
 FMOD_RESULT CodecXM::getAmigaPeriod(int note, int finetune, int *period)
 {
@@ -920,6 +926,7 @@ FMOD_RESULT CodecXM::processNote(MusicNote *current, MusicChannelXM *cptr, Music
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fbdd7d58 manual
 // OFFSET: 0x00904440
 FMOD_RESULT CodecXM::updateNote(bool audible)
 {
@@ -1578,6 +1585,7 @@ FMOD_RESULT CodecXM::updateNote(bool audible)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c1dc2c44 auto
 // OFFSET: 0x00904F00
 FMOD_RESULT CodecXM::updateEffects() 
 {
@@ -2112,6 +2120,7 @@ FMOD_RESULT CodecXM::updateEffects()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8a8cf10f manual
 // OFFSET: 0x009059C0
 FMOD_RESULT CodecXM::update(bool audible)
 {
@@ -2392,6 +2401,7 @@ int CodecXM::EncodeVAG_pcm2vag(unsigned char *vag, short *wave, int sample_len, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4d518743 manual
 // OFFSET: 0x00906270
 FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -3117,7 +3127,7 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
                     }
                     #endif
 
-                    result = mSystem->createSound(0, sample_mode | FMOD_OPENUSER | FMOD_OPENONLY, &exinfo, &sptr->mSound);
+                    result = mSystem->createSound(0, sample_mode | FMOD_OPENUSER, &exinfo, &sptr->mSound);
                     if (result != FMOD_OK)
                     {
                         return result;
@@ -3172,8 +3182,9 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
 					}
                     else
                     #endif
+                    if (lenbytes > largestsample)
                     {
-						buff = (unsigned char *)FMOD_Memory_ReAlloc(buff, lenbytes + 16 + 56);
+						buff = (unsigned char *)FMOD_Memory_ReAlloc(buff, lenbytes + 16);
                         if (!buff) 
 						{
 							return FMOD_ERR_MEMORY;
@@ -3205,7 +3216,6 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
                         sptr->mSound = 0;
 
                         mode &= ~FMOD_OPENUSER;
-                        mode &= ~FMOD_OPENONLY;
                         mode |=  FMOD_OPENMEMORY;
 
                         result = mSystem->createSound((char *)buff + 4, mode, &exinfo, &sptr->mSound);
@@ -3223,8 +3233,8 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
                     }
                     else
                     {
-		                int oldval, newval;
-		                unsigned int count3;
+                        void *ptr1, *ptr2;
+                        unsigned int len1, len2;
 
                         #ifdef PLATFORM_ENDIAN_BIG
     	                if (format == FMOD_SOUND_FORMAT_PCM16)
@@ -3239,130 +3249,49 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
                         }
                         #endif
 
-
-		                oldval = 0;
-		                if (format == FMOD_SOUND_FORMAT_PCM8)
-		                {
-    		                unsigned char *bptr = (unsigned char *)buff;
-			                for (count3 = 0; count3 < lenbytes; count3++) 
-			                {
-				                newval = *bptr + oldval;
-				                *bptr = (signed char)newval;
-				                oldval = newval;
-				                bptr++;
-			                }
-
-                            #ifdef FMOD_SUPPORT_HARDWAREXM
-                            if (usermode & FMOD_HARDWARE)
-                            {
-                                int len = lenbytes;
-
-                                if (sptr->mSound->mMode & FMOD_LOOP_BIDI)
-                                {
-                                    unsigned char *backptr = bptr - 1;
-                                
-			                        for (count3 = 0; count3 < lenbytes>>1; count3++) 
-			                        {
-				                        *bptr = *backptr;
-				                        bptr++;
-                                        backptr--;
-			                        }
-
-                                    len <<= 1;
-                                }
-
-                                #if defined(PLATFORM_PS2) || defined(PLATFORM_PSP)
-                                void *tempbuff = FMOD_Memory_Calloc(sptr->mSound->mLengthBytes + 32);
-                                if (!tempbuff)
-                                {
-                                    FMOD_Memory_Free(buff);
-                                    return FMOD_ERR_MEMORY;
-                                }
-                                int wrote = EncodeVAG_pcm2vag((unsigned char *)tempbuff, (signed short *)buff, len - 32, 8);
-
-                                FMOD_memcpy(buff, tempbuff, wrote);
-
-                                FMOD_Memory_Free(tempbuff);
-                                #endif
-                            }
-                            #endif
-		                }
-		                else if (format == FMOD_SOUND_FORMAT_PCM16)
-		                {
-    		                unsigned short	*wptr = (unsigned short *)buff;
-			                for (count3 = 0; count3 < lenbytes>>1; count3++) 
-			                {
-				                newval = *wptr + oldval;
-				                *wptr = (short)newval;
-				                oldval = newval;
-				                wptr++;
-			                }
-                            
-                            #ifdef FMOD_SUPPORT_HARDWAREXM
-                            if (usermode & FMOD_HARDWARE)
-                            {
-                                int len = lenbytes;
-
-                                if (sptr->mSound->mMode & FMOD_LOOP_BIDI)
-                                {
-                                    unsigned short *backptr = wptr - 1;
-                                
-			                        for (count3 = 0; count3 < lenbytes>>1; count3++) 
-			                        {
-				                        *wptr = *backptr;
-				                        wptr++;
-                                        backptr--;
-			                        }
-
-                                    len <<= 1;
-                                }
-
-                                #if defined(PLATFORM_PS2) || defined(PLATFORM_PSP)
-                                void *tempbuff = FMOD_Memory_Calloc(sptr->mSound->mLengthBytes);
-                                if (!tempbuff)
-                                {
-                                    FMOD_Memory_Free(buff);
-                                    return FMOD_ERR_MEMORY;
-                                }
-
-                                int wrote = EncodeVAG_pcm2vag((unsigned char *)tempbuff, (signed short *)buff, len - 32, 16);
-
-                                FMOD_memcpy(buff, tempbuff, wrote);
-
-                                FMOD_Memory_Free(tempbuff);
-                                #endif
-                            }
-                            #endif
-		                }
-
-                        int towrite = sptr->mSound->mLengthBytes, offset = 0;
-                        unsigned char *buffptr = buff;
-                        do
+                        result = sptr->mSound->lock(0, lenbytes, &ptr1, &ptr2, &len1, &len2);
+                        if (result != FMOD_OK)
                         {
-                            void *ptr1, *ptr2;
-                            unsigned int len1, len2;
+                            return result;
+                        }
 
-                            result = sptr->mSound->lock(offset, towrite, &ptr1, &ptr2, &len1, &len2);
-                            if (result != FMOD_OK)
-                            {
-                                return result;
-                            }
+                        if (ptr1 && len1)
+                        {
+		                    int oldval, newval;
+		                    unsigned int count3;
 
-                            FLOG((FMOD_DEBUG_LEVEL_ERROR, __FILE__, __LINE__, "CodecXM::load", "copy %d bytes to %d\n", len1, offset));
+                            FMOD_memcpy(ptr1, buff, lenbytes);
 
-                            FMOD_memcpy(ptr1, buffptr, len1);
+		                    oldval = 0;
+		                    if (format == FMOD_SOUND_FORMAT_PCM8)
+		                    {
+    		                    unsigned char *bptr = (unsigned char *)ptr1;
+			                    for (count3 = 0; count3 < lenbytes; count3++) 
+			                    {
+				                    newval = *bptr + oldval;
+				                    *bptr = (signed char)newval;
+				                    oldval = newval;
+				                    bptr++;
+			                    }
+		                    }
+		                    else if (format == FMOD_SOUND_FORMAT_PCM16)
+		                    {
+    		                    unsigned short	*wptr = (unsigned short *)ptr1;
+			                    for (count3 = 0; count3 < lenbytes>>1; count3++) 
+			                    {
+				                    newval = *wptr + oldval;
+				                    *wptr = (short)newval;
+				                    oldval = newval;
+				                    wptr++;
+			                    }
+		                    }
+                        }
 
-                            result = sptr->mSound->unlock(ptr1, ptr2, len1, len2);
-                            if (result != FMOD_OK)
-                            {
-                                return result;
-                            }
-
-                            towrite -= len1;
-                            offset  += len1;
-                            buffptr += len1;
-
-                        } while (towrite);
+                        result = sptr->mSound->unlock(ptr1, ptr2, len1, len2);
+                        if (result != FMOD_OK)
+                        {
+                            return result;
+                        }
                     }
                 }
 			}
@@ -3547,8 +3476,8 @@ FMOD_RESULT CodecXM::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *us
         for (count = 0; count < numrealchannels; count++)
         {
             new (&mChannelSoftware[count]) ChannelSoftware;
-            CHECK_RESULT(mChannelPool->setChannel(count, &mChannelSoftware[count], mDSPHead));
-            CHECK_RESULT(mChannelSoftware[count].allowReverb(false));
+            mChannelPool->setChannel(count, &mChannelSoftware[count], mDSPHead);
+            mChannelSoftware[count].allowReverb(false);
         }
     }
 
@@ -3694,6 +3623,7 @@ FMOD_RESULT CodecXM::closeInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7dc697d6 manual
 // OFFSET: 0x00905E80
 FMOD_RESULT CodecXM::readInternal(void *buffer, unsigned int sizebytes, unsigned int *bytesread)
 {
@@ -3861,6 +3791,7 @@ FMOD_RESULT CodecXM::setPositionInternal(int subsound, unsigned int position, FM
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f1fd6caf manual
 // OFFSET: 0x009075B0
 FMOD_RESULT F_CALLBACK CodecXM::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -3885,6 +3816,7 @@ FMOD_RESULT F_CALLBACK CodecXM::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 217634dd manual
 // OFFSET: 0x00905DD0
 FMOD_RESULT F_CALLBACK CodecXM::closeCallback(FMOD_CODEC_STATE *codec)
 {

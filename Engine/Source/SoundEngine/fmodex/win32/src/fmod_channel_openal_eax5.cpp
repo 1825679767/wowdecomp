@@ -29,6 +29,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5df7f6d7 manual
 // OFFSET: 0x00948820
 FMOD_RESULT ChannelOpenALEAX5::setupChannel()
 {
@@ -151,6 +152,7 @@ FMOD_RESULT ChannelOpenALEAX5::setupChannel()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: bcf3f52b manual
 // OFFSET: 0x00948A90
 FMOD_RESULT ChannelOpenALEAX5::setSpeakerMix(float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright)
 {
@@ -247,6 +249,7 @@ FMOD_RESULT ChannelOpenALEAX5::setSpeakerMix(float frontleft, float frontright, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8743c995 manual
 // OFFSET: 0x00948D30
 FMOD_RESULT  ChannelOpenALEAX5::setSpeakerLevels(int speaker, float *levels, int numlevels)
 {
@@ -510,6 +513,7 @@ FMOD_RESULT ChannelOpenALEAX5::setReverbProperties(const FMOD_REVERB_CHANNELPROP
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fd056e2e manual
 // OFFSET: 0x00949320
 FMOD_RESULT ChannelOpenALEAX5::getReverbProperties(FMOD_REVERB_CHANNELPROPERTIES *prop)
 {

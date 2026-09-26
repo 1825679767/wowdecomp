@@ -382,6 +382,7 @@ FMOD_RESULT DSPI::execute(float *inbuffer, float **outbuffer, unsigned int *leng
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 33aa7b7d manual
 // OFFSET: 0x008DA4B0
 FMOD_RESULT DSPI::execute(void *inbuffer, void **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode)
 {
@@ -603,6 +604,7 @@ FMOD_RESULT DSPI::setPosition(unsigned int position, bool processinputs)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: daa9ee82 manual
 // OFFSET: 0x008DA550
 FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, float center, float lfe, float backleft, float backright, float sideleft, float sideright, FMOD_SPEAKERMODE speakermode, int channels, FMOD_SPEAKERMAPTYPE speakermap, float *outlevels, int *numinputlevels)
 {
@@ -657,12 +659,12 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                     float levels[1][2] = 
                     {   
                         { 
-                            FMOD_SQRT(frontleft*frontleft + center*center*0.5f + backleft*backleft * 0.25f), FMOD_SQRT(frontright*frontright + center*center*0.5f + backleft*backleft * 0.25f),  
+                            FMOD_SQRT(frontleft*frontleft + center*center*0.5f + backleft*backleft * 0.25f), 0,  
                         },
                     };
 
                     FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    *numinputlevels = 2;
+                    *numinputlevels = 1;
                     break;
                 }
                 case 4:
@@ -687,17 +689,6 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                     *numinputlevels = 6;
                     break;
                 }
-                case 8:
-                {
-                    float levels[1][8] = 
-                    {    
-                        { frontleft,   frontright,  center,    lfe,   backleft,    backright, sideleft, sideright }
-                    };
-
-                    FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    *numinputlevels = 8;
-                    break;
-                }
                 default:
                 {
                     break;
@@ -706,7 +697,6 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
             break;
         }
         case FMOD_SPEAKERMODE_STEREO:
-        case FMOD_SPEAKERMODE_STEREO_LINEAR:
         {
             if (speakermap == FMOD_SPEAKERMAPTYPE_ALLMONO)
             {
@@ -798,17 +788,6 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                     FMOD_memcpy(outlevels, levels, sizeof(levels));
                 
                     *numinputlevels = 6;
-                    break;
-                }
-                case 8:
-                {
-                    float levels[2][8] = 
-                    {    /*  FL      FR          C              LFE         BL             BR              SL                SR                */
-                        { frontleft, 0,          center * 0.5f, lfe * 0.5f, backleft*0.5f, 0,              sideleft * 0.75f, 0                 },  // FL
-                        { 0,         frontright, center * 0.5f, lfe * 0.5f, 0,             backright*0.5f, 0,                sideright * 0.75f },  // FR
-                    };
-                    FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    *numinputlevels = 8;
                     break;
                 }
                 default:
@@ -912,19 +891,6 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                     FMOD_memcpy(outlevels, levels, sizeof(levels));
                 
                     *numinputlevels = 6;
-                    break;
-                }
-                case 8:
-                {
-                    float levels[4][8] = 
-                    {    /*  FL            FR                C                 LFE               BL                BR               SL                SR              */
-                        { frontleft,       0,                center * 0.5f,    lfe * 0.25f,      0,                0,               sideleft * 0.5f,  0               },  // FL
-                        { 0,               frontright,       center * 0.5f,    lfe * 0.25f,      0,                0,               0,                sideright * 0.5f},  // FR
-                        { 0,               0,                0,                lfe * 0.25f,      backleft,         0,               sideleft * 0.5f,  0               },  // RL
-                        { 0,               0,                0,                lfe * 0.25f,      0,                backright,       0,                sideright * 0.5f},  // RR
-                    };
-                    FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    *numinputlevels = 8;
                     break;
                 }
                 default:
@@ -1031,20 +997,6 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                     FMOD_memcpy(outlevels, levels, sizeof(levels));
                 
                     *numinputlevels = 6;
-                    break;
-                }
-                case 8:
-                {
-                    float levels[5][8] = 
-                    {    /*  FL            FR                C                 LFE               BL                BR               SL                SR              */
-                        { frontleft,       0,                0,                0,                0,                0,               sideleft * 0.5f,  0               },  // FL
-                        { 0,               frontright,       0,                0,                0,                0,               0,                sideright * 0.5f},  // FR
-                        { 0,               0,                center,           0,                0,                0,               0,                0               },  // C
-                        { 0,               0,                0,                0,                backleft,         0,               sideleft * 0.5f,  0               },  // RL
-                        { 0,               0,                0,                0,                0,                backright,       0,                sideright * 0.5f},  // RR
-                    };
-                    FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    *numinputlevels = 8;
                     break;
                 }
                 default:
@@ -1155,22 +1107,6 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                     FMOD_memcpy(outlevels, levels, sizeof(levels));
                 
                     *numinputlevels = 6;
-                    break;
-                }
-                case 8:
-                {
-                    float levels[6][8] = 
-                    {    /*  FL            FR                C                 LFE               BL                BR               SL                SR              */
-                        { frontleft,       0,                0,                0,                0,                0,               sideleft * 0.5f,  0               },  // FL
-                        { 0,               frontright,       0,                0,                0,                0,               0,                sideright * 0.5f},  // FR
-                        { 0,               0,                center,           0,                0,                0,               0,                0               },  // C
-                        { 0,               0,                0,                lfe,              0,                0,               0,                0               },  // LFE
-                        { 0,               0,                0,                0,                backleft,         0,               sideleft * 0.5f,  0               },  // RL
-                        { 0,               0,                0,                0,                0,                backright,       0,                sideright * 0.5f},  // RR
-                    };
-
-                    FMOD_memcpy(outlevels, levels, sizeof(levels));
-                    *numinputlevels = 8;
                     break;
                 }
                 default:
@@ -1384,8 +1320,8 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
                 {
                     float levels[2][2] = 
                     {
-                        { fl2 + (c2 *0.707f) + (-0.872f * bl2), 0   + (c2 *0.707f) + (-0.49f * br2) },
-                        { 0   + (c2 *0.707f) + (0.49f   * bl2), fr2 + (c2 *0.707f) + (0.872f * br2) }
+                        { fl2 + (c2 *0.707f) + (-0.872f * bl2) + (-0.49f * br2), fl2 + (c2 *0.707f) + (-0.872f * bl2) + (-0.49f * br2) },
+                        { fr2 + (c2 *0.707f) + (0.49f   * bl2) + (0.872f * br2), fl2 + (c2 *0.707f) + (0.49f   * bl2) + (0.872f * br2) }
                     };
 
                     FMOD_memcpy(outlevels, levels, sizeof(levels));
@@ -1449,6 +1385,7 @@ FMOD_RESULT DSPI::calculateSpeakerLevels(float frontleft, float frontright, floa
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fd77a6ac manual
 // OFFSET: 0x008DC4A0
 DSPI::DSPI()
 {
@@ -1484,6 +1421,7 @@ DSPI::DSPI()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1abf99a8 manual
 // OFFSET: 0x008DC540
 FMOD_RESULT DSPI::release(bool freethis)
 {
@@ -1576,6 +1514,7 @@ FMOD_RESULT DSPI::getSystemObject(System **system)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9539ce6d manual
 // OFFSET: 0x008DB720
 FMOD_RESULT DSPI::updateTreeLevel(int level)
 {
@@ -1641,6 +1580,7 @@ FMOD_RESULT DSPI::updateTreeLevel(int level)
 ]
 */
 
+// VERIFY: f87f4dc3 manual
 // OFFSET: 0x008DC600
 FMOD_RESULT DSPI::addInputInternal(DSPI *target, bool checkcircular, DSPConnectionI *connection, DSPConnectionI **connection_out)
 {
@@ -1745,6 +1685,7 @@ FMOD_RESULT DSPI::addInputInternal(DSPI *target, bool checkcircular, DSPConnecti
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 137a7e5e manual
 // OFFSET: 0x008DCC10
 FMOD_RESULT DSPI::addInput(DSPI *target)
 {
@@ -1817,6 +1758,7 @@ FMOD_RESULT DSPI::addInput(DSPI *target)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b21922eb manual
 // OFFSET: 0x008DC820
 FMOD_RESULT DSPI::addInputQueued(DSPI *target, bool checkcircular, DSPConnectionI *connection_old, DSPConnectionI **connection_out)
 {
@@ -1899,6 +1841,7 @@ FMOD_RESULT DSPI::addInputQueued(DSPI *target, bool checkcircular, DSPConnection
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 6c3ec849 manual
 // OFFSET: 0x008DC030
 FMOD_RESULT DSPI::disconnectFromInternal(DSPI *target)
 {
@@ -2030,6 +1973,7 @@ FMOD_RESULT DSPI::disconnectFromInternal(DSPI *target)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 61ccedfa manual
 // OFFSET: 0x008DB830
 FMOD_RESULT DSPI::disconnectFromQueued(DSPI *target)
 {
@@ -2176,6 +2120,7 @@ FMOD_RESULT DSPI::disconnectAllInternal(bool inputs, bool outputs)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2917f03c manual
 // OFFSET: 0x008DB8D0
 FMOD_RESULT DSPI::disconnectAllQueued(bool inputs, bool outputs)
 {
@@ -2783,6 +2728,7 @@ FMOD_RESULT DSPI::getType(FMOD_DSP_TYPE *type)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8ac4d762 manual
 // OFFSET: 0x008DBCF0
 FMOD_RESULT DSPI::setDefaults(float frequency, float volume, float pan, int priority)
 {

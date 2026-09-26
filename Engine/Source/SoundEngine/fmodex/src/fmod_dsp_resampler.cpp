@@ -99,6 +99,7 @@ FMOD_RESULT DSPResampler::release(bool freethis)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d804c55c manual
 // OFFSET: 0x0091C4D0
 FMOD_RESULT DSPResampler::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 {
@@ -209,6 +210,7 @@ FMOD_RESULT DSPResampler::alloc(FMOD_DSP_DESCRIPTION_EX *description)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 57b49e63 manual
 // OFFSET: 0x0091C710
 FMOD_RESULT DSPResampler::execute(float *inbuffer, float **outbuffer, unsigned int *length, int inchannels, int *outchannels, FMOD_SPEAKERMODE speakermode)
 {

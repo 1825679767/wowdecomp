@@ -175,6 +175,7 @@ FMOD_RESULT OutputNoSound_NRT::getDriverCaps(int id, FMOD_CAPS *caps)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f7821295 auto
 // OFFSET: 0x00914A90
 FMOD_RESULT OutputNoSound_NRT::init(int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
@@ -401,6 +402,7 @@ FMOD_RESULT F_CALLBACK OutputNoSound_NRT::initCallback(FMOD_OUTPUT_STATE *output
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d8031cf4 manual
 // OFFSET: 0x00914A10
 FMOD_RESULT F_CALLBACK OutputNoSound_NRT::closeCallback(FMOD_OUTPUT_STATE *output)
 {

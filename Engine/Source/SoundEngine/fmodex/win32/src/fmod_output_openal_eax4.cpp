@@ -30,6 +30,7 @@ bool gEAX4LockedOALFxSlot3 = false;
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 99a83cc9 manual
 // OFFSET: 0x0094B0E0
 FMOD_RESULT OutputOpenAL::lockSlotEAX4(GUID &slotGUID)
 {
@@ -103,6 +104,7 @@ FMOD_RESULT OutputOpenAL::lockSlotEAX4(GUID &slotGUID)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 8dcd1b50 manual
 // OFFSET: 0x0094B250
 FMOD_RESULT OutputOpenAL::setPropertiesEAX4(const FMOD_REVERB_PROPERTIES *prop)
 {

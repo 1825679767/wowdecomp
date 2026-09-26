@@ -121,6 +121,7 @@ FMOD_DSP_DESCRIPTION_EX *DSPLowPass2::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 137194fb manual
 // OFFSET: 0x008F2930
 FMOD_RESULT DSPLowPass2::createInternal()
 {
@@ -199,6 +200,7 @@ FMOD_RESULT DSPLowPass2::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5720c7f3 manual
 // OFFSET: 0x008F2260
 FMOD_RESULT DSPLowPass2::updateCoefficients(float resonance, float cutoff)
 {
@@ -268,6 +270,7 @@ FMOD_RESULT DSPLowPass2::updateCoefficients(float resonance, float cutoff)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 991c178f manual
 // OFFSET: 0x008F2360
 FMOD_RESULT DSPLowPass2::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -565,6 +568,7 @@ FMOD_RESULT DSPLowPass2::getParameterInternal(int index, float *value, char *val
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 33b9bee5 manual
 // OFFSET: 0x008F29D0
 FMOD_RESULT F_CALLBACK DSPLowPass2::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -590,6 +594,7 @@ FMOD_RESULT F_CALLBACK DSPLowPass2::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 78aa753c manual
 // OFFSET: 0x008F2880
 FMOD_RESULT F_CALLBACK DSPLowPass2::resetCallback(FMOD_DSP_STATE *dsp)
 {

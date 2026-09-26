@@ -46,12 +46,12 @@ Sample::Sample()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ee36b9b3 manual
 // OFFSET: 0x0091B2E0
 FMOD_RESULT Sample::lock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {   
     int count;
     unsigned int samples = 0;
-    unsigned int lenbytes;
 
     if (!ptr1 || !len1)
     {
@@ -67,22 +67,6 @@ FMOD_RESULT Sample::lock(unsigned int offset, unsigned int length, void **ptr1, 
     {
         return FMOD_ERR_FORMAT;
     }
-
-    /*
-        Clamp the lock length to not go over length of sample, so it doesn't wrap-around.
-    */
-    getBytesFromSamples(mLength, &lenbytes);
-    if (length + offset > lenbytes)
-    {
-        FLOG((FMOD_DEBUG_LEVEL_WARNING, __FILE__, __LINE__, "Sample::lock", "Trying to lock more than length (%d) of multi-subsample sound. Clamping %d to %d\n", lenbytes, length, lenbytes - offset));
-
-        length = lenbytes - offset;
-    }
-
-    /*
-        Clamp the lock length to SOUND_READCHUNKSIZE
-    */
-    length = length > SOUND_READCHUNKSIZE ? SOUND_READCHUNKSIZE : length;
 
     FMOD_OS_CriticalSection_Enter(mSystem->mMultiSubSampleLockBufferCrit);
 
@@ -357,6 +341,7 @@ FMOD_RESULT Sample::lock(unsigned int offset, unsigned int length, void **ptr1, 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: deda40ef manual
 // OFFSET: 0x0091BB80
 FMOD_RESULT Sample::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
@@ -544,20 +529,23 @@ FMOD_RESULT Sample::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned i
             }
             case FMOD_SOUND_FORMAT_VAG:
             {
-                unsigned int blocks = length / 16;
-                unsigned int *dest = (unsigned int *)in_ptr1;
-                unsigned int *src  = ((unsigned int *)ptr1) + (count * 4);
-                                                
+                unsigned int blocksize = 0;
+                unsigned int blocks;
+                char *src = (char *)ptr1;
+                char *dest = (char *)in_ptr1;
+
+                SoundI::getBytesFromSamples(1, &blocksize, 1, mFormat);
+
+                blocks = length / blocksize;
+
+                src += (count * blocksize);
+
                 for (count2 = 0; count2 < blocks; count2++)
                 {
-                    dest[0] = src[0];
-                    dest[1] = src[1];
-                    dest[2] = src[2];
-                    dest[3] = src[3];
-
-                    dest += 4;
-                    src  += (4 * mNumSubSamples);
-                }                    
+                    FMOD_memcpy(dest, src, blocksize);
+                    dest += blocksize;
+                    src  += (blocksize * mNumSubSamples);
+                }
                 break;
             }
             case FMOD_SOUND_FORMAT_XMA:

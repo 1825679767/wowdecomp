@@ -98,6 +98,7 @@ unsigned int CodecMPEG::getBits(int number_of_bits)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: daab91e7 manual
 // OFFSET: 0x0092C2C0
 unsigned int CodecMPEG::getBitsFast(int number_of_bits)
 {
@@ -135,6 +136,7 @@ unsigned int CodecMPEG::getBitsFast(int number_of_bits)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 79dd0f5f auto
 // OFFSET: 0x0092C330
 FMOD_RESULT CodecMPEG::decodeHeader(void *in, int *samplerate, int *channels, int *framesize)
 {
@@ -318,7 +320,7 @@ FMOD_RESULT CodecMPEG::decodeHeader(void *in, int *samplerate, int *channels, in
 
 	mMemoryBlock->mFrameHeader = head;
 
-	if ((head & 0xFFE00000) != 0xFFE00000)
+	if ((head & 0xFF000000) != 0xFF000000 || ((head >> 16) & 0xE0) != 0xE0)
     {
 		return FMOD_ERR_FORMAT;
     }
@@ -330,11 +332,6 @@ FMOD_RESULT CodecMPEG::decodeHeader(void *in, int *samplerate, int *channels, in
 	}
     else 
     {
-        if (head & (1<<19))
-        {
-            return FMOD_ERR_FORMAT;
-        }
-
         mMemoryBlock->mFrame.lsf = 1;
         mMemoryBlock->mFrame.mpeg25 = 1;
     }
@@ -394,45 +391,16 @@ FMOD_RESULT CodecMPEG::decodeHeader(void *in, int *samplerate, int *channels, in
     mMemoryBlock->mFrame.emphasis         = head & 0x3;
     mMemoryBlock->mFrame.stereo           = (mMemoryBlock->mFrame.mode == MPG_MD_MONO) ? 1 : 2;
 
-    if (!mMemoryBlock->mFrame.bitrate_index || mMemoryBlock->mFrame.bitrate_index == 0xF)
-    {
-        return FMOD_ERR_FORMAT;
-    }
-    
-    /*
-        Disallow certain combinations of channel/bitrate.
-    */
-    if (mMemoryBlock->mFrame.lay == 2)
-    {
-        if (!(mFlags & FMOD_CODEC_FROMFSB))
-        {
-            int bitrate = gTabSel123[mMemoryBlock->mFrame.lsf][1][mMemoryBlock->mFrame.bitrate_index];
-
-            if (mMemoryBlock->mFrame.mode == MPG_MD_MONO)
-            {
-                if (bitrate >= 224)
-                {
-                    return FMOD_ERR_FORMAT;
-                }
-            }
-            else if (bitrate == 32 || bitrate == 48 || bitrate == 56 || bitrate == 80)
-            {
-                return FMOD_ERR_FORMAT;
-            }
-        }
-
-        if (mMemoryBlock->mFrame.mode != MPG_MD_JOINT_STEREO && mMemoryBlock->mFrame.mode_ext)
-        {
-            return FMOD_ERR_FORMAT;
-        }
-    }
-
-
 	if (channels)
     {
 		*channels = mMemoryBlock->mFrame.stereo;
     }
     else if (mMemoryBlock->mFrame.stereo != waveformat[0].channels && !mChannels)
+    {
+        return FMOD_ERR_FORMAT;
+    }
+
+    if (!mMemoryBlock->mFrame.bitrate_index)
     {
         return FMOD_ERR_FORMAT;
     }
@@ -480,29 +448,12 @@ FMOD_RESULT CodecMPEG::decodeHeader(void *in, int *samplerate, int *channels, in
     {
 	    *framesize = mMemoryBlock->mFrame.framesize;
 
-        if (mFlags & FMOD_CODEC_FROMFSB)
+        if (waveformat && waveformat->channels > 2)
         {
-            if (waveformat && waveformat->channels > 2)
-            {
-                *framesize += 4;    /* Temporarily add in header */
-                *framesize += 15;
-                *framesize &= ~15;
-                *framesize -= 4;    /* Remove header size */
-            }
-            else if (mMemoryBlock->mFrame.lay == 3 && mFlags & FMOD_CODEC_PADDED)
-            {
-                *framesize += 4;    /* Temporarily add in header */
-                *framesize += 1;
-                *framesize &= ~1;
-                *framesize -= 4;    /* Remove header size */
-            }
-            else if (mMemoryBlock->mFrame.lay == 3 && mFlags & FMOD_CODEC_PADDED4)
-            {
-                *framesize += 4;    /* Temporarily add in header */
-                *framesize += 3;
-                *framesize &= ~3;
-                *framesize -= 4;    /* Remove header size */
-            }
+            *framesize += 4;    /* Temporarily add in header */
+            *framesize += 15;
+            *framesize &= ~15;
+            *framesize -= 4;    /* Remove header size */
         }
     }
 
@@ -525,6 +476,7 @@ FMOD_RESULT CodecMPEG::decodeHeader(void *in, int *samplerate, int *channels, in
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 05b0031d manual
 // OFFSET: 0x0092C670
 FMOD_RESULT CodecMPEG::decodeXingHeader(unsigned char *in, unsigned char *toc, unsigned int *numframes)
 {
@@ -623,6 +575,7 @@ FMOD_RESULT CodecMPEG::decodeXingHeader(unsigned char *in, unsigned char *toc, u
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 908447f4 manual
 // OFFSET: 0x0092C780
 FMOD_RESULT CodecMPEG::decodeFrame(unsigned char *in, void *out, unsigned int *outlen)
 {
@@ -1192,6 +1145,7 @@ FMOD_RESULT CodecMPEG::synthC(float *b0, int bo1, int channelskip, signed short 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1896da84 manual
 // OFFSET: 0x0092D300
 FMOD_RESULT CodecMPEG::synth(void *samples, float *bandPtr, int channels, int channelskip)
 {	

@@ -330,6 +330,7 @@ FMOD_RESULT DSPReverb::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e5c5ae80 manual
 // OFFSET: 0x008EB680
 FMOD_RESULT DSPReverb::getParameterInternal(int index, float *value, char *valuestr)
 {
@@ -428,6 +429,7 @@ FMOD_RESULT DSPReverb::getParameterInternal(int index, float *value, char *value
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 55804a62 manual
 // OFFSET: 0x008EB7F0
 FMOD_RESULT F_CALLBACK DSPReverb::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -498,6 +500,7 @@ FMOD_RESULT F_CALLBACK DSPReverb::resetCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7dde89f7 manual
 // OFFSET: 0x008EB820
 FMOD_RESULT F_CALLBACK DSPReverb::readCallback(FMOD_DSP_STATE *dsp, float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -522,6 +525,7 @@ FMOD_RESULT F_CALLBACK DSPReverb::readCallback(FMOD_DSP_STATE *dsp, float *inbuf
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 240e89bf manual
 // OFFSET: 0x008EB890
 FMOD_RESULT F_CALLBACK DSPReverb::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {

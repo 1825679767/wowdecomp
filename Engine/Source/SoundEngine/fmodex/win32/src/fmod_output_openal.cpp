@@ -114,6 +114,7 @@ FMOD_OUTPUT_DESCRIPTION_EX *OutputOpenAL::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 49e35d77 manual
 // OFFSET: 0x0092B6D0
 OutputOpenAL::OutputOpenAL()
 {
@@ -178,6 +179,7 @@ FMOD_RESULT OutputOpenAL::registerDLL()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9011d4bd manual
 // OFFSET: 0x0092A340
 FMOD_RESULT OutputOpenAL::enumerate()
 {
@@ -336,6 +338,7 @@ FMOD_RESULT OutputOpenAL::getNumDrivers(int *numdrivers)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4b8376ae manual
 // OFFSET: 0x0092A610
 FMOD_RESULT OutputOpenAL::getDriverName(int driver, char *name, int namelen)
 {
@@ -381,6 +384,7 @@ FMOD_RESULT OutputOpenAL::getDriverName(int driver, char *name, int namelen)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7f67faa5 manual
 // OFFSET: 0x0092A670
 FMOD_RESULT OutputOpenAL::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode, int *num2dchannels, int *num3dchannels, int *totalchannels)
 {
@@ -585,6 +589,7 @@ FMOD_RESULT OutputOpenAL::initEAX()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 66c50cf5 manual
 // OFFSET: 0x0092B700
 FMOD_RESULT OutputOpenAL::init(int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
@@ -964,6 +969,7 @@ FMOD_RESULT OutputOpenAL::close()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 29ad656d manual
 // OFFSET: 0x0092ABA0
 FMOD_RESULT OutputOpenAL::start()
 {
@@ -1392,6 +1398,7 @@ FMOD_RESULT OutputOpenAL::lock(unsigned int offset, unsigned int length, void **
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1cf4ceb2 manual
 // OFFSET: 0x0092B180
 FMOD_RESULT OutputOpenAL::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
@@ -1452,6 +1459,7 @@ FMOD_RESULT OutputOpenAL::unlock(void *ptr1, void *ptr2, unsigned int len1, unsi
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c6f4fa81 manual
 // OFFSET: 0x0092BD30
 FMOD_RESULT OutputOpenAL::createSample(FMOD_MODE mode, FMOD_CODEC_WAVEFORMAT *waveformat, Sample **sample)
 {
@@ -1677,6 +1685,7 @@ int OutputOpenAL::getSampleMaxChannels(FMOD_MODE mode, FMOD_SOUND_FORMAT format)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c7375c31 manual
 // OFFSET: 0x0092B2C0
 FMOD_RESULT OutputOpenAL::getFreeChannel(FMOD_MODE mode, ChannelReal **realchannel, int numchannels, int numsoundchannels, int *found)
 {
@@ -1890,6 +1899,7 @@ FMOD_RESULT F_CALLBACK OutputOpenAL::initCallback(FMOD_OUTPUT_STATE *output, int
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e21110df manual
 // OFFSET: 0x0092B4A0
 FMOD_RESULT F_CALLBACK OutputOpenAL::closeCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -1916,6 +1926,7 @@ FMOD_RESULT F_CALLBACK OutputOpenAL::closeCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3ccb6c2b manual
 // OFFSET: 0x0092B4D0
 FMOD_RESULT F_CALLBACK OutputOpenAL::startCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -1942,6 +1953,7 @@ FMOD_RESULT F_CALLBACK OutputOpenAL::startCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 262ad209 manual
 // OFFSET: 0x0092B500
 FMOD_RESULT F_CALLBACK OutputOpenAL::stopCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -1968,6 +1980,7 @@ FMOD_RESULT F_CALLBACK OutputOpenAL::stopCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 99fcfcd1 manual
 // OFFSET: 0x0092B530
 FMOD_RESULT F_CALLBACK OutputOpenAL::updateCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -2019,6 +2032,7 @@ FMOD_RESULT F_CALLBACK OutputOpenAL::getHandleCallback(FMOD_OUTPUT_STATE *output
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c2dceeb0 manual
 // OFFSET: 0x0092B560
 FMOD_RESULT F_CALLBACK OutputOpenAL::getPositionCallback(FMOD_OUTPUT_STATE *output, unsigned int *pcm)
 {
@@ -2178,6 +2192,7 @@ int F_CALLBACK OutputOpenAL::getSampleMaxChannelsCallback(FMOD_OUTPUT_STATE *out
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 445be904 manual
 // OFFSET: 0x0092B680
 FMOD_RESULT F_CALLBACK OutputOpenAL::postMixCallback(FMOD_OUTPUT_STATE *output)
 {

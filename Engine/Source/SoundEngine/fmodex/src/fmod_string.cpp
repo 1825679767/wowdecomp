@@ -85,6 +85,7 @@ char FMOD_tolower(char in)
     return in;
 }
 
+// VERIFY: 81f309bf manual
 // OFFSET: 0x008D23D0
 char *FMOD_strupr(char *string)
 {
@@ -116,6 +117,7 @@ char *FMOD_strlwr(char *string)
     return(string);
 }
 
+// VERIFY: 9634cfc4 manual
 // OFFSET: 0x008D2400
 int FMOD_strcmp( const char *string1, const char *string2 )
 {
@@ -130,6 +132,7 @@ int FMOD_strcmp( const char *string1, const char *string2 )
 }
 
 
+// VERIFY: 80cb4eda manual
 // OFFSET: 0x008D2430
 int FMOD_strncmp( const char *string1, const char *string2, int len )
 {
@@ -233,6 +236,7 @@ int FMOD_memcmp(const void * cs,const void * ct, int count)
 }
 
 
+// VERIFY: 2aac1756 manual
 // OFFSET: 0x008D2510
 void * FMOD_memmove(void * dest,const void *src, int count)
 {
@@ -255,6 +259,7 @@ void * FMOD_memmove(void * dest,const void *src, int count)
 }
 
 
+// VERIFY: 2b97ba68 auto
 // OFFSET: 0x008D2570
 char *FMOD_strdup(const char * src)
 {

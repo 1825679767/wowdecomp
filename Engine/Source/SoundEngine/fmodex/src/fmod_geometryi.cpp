@@ -220,6 +220,7 @@ void GeometryI::setToBeUpdated()
     [SEE_ALSO]
 ]
 */
+// VERIFY: dc27e90c manual
 // OFFSET: 0x00919EC0
 bool GeometryI::octreeLineTestCallback(OctreeNode* item, void* data)
 {
@@ -891,6 +892,7 @@ FMOD_RESULT GeometryI::getPolygonAttributes(int polygonIndex, float *directOcclu
     [SEE_ALSO]
 ]
 */
+// VERIFY: bcbdad04 manual
 // OFFSET: 0x0091A2C0
 FMOD_RESULT GeometryI::flush()
 {
@@ -1700,6 +1702,7 @@ FMOD_RESULT GeometryI::getUserData(void **userdata)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e9630d06 manual
 // OFFSET: 0x0091A5A0
 bool GeometryI::lineTest(LineTestData* lineTestData)
 {

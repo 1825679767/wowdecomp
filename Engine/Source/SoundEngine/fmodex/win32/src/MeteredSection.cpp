@@ -86,6 +86,7 @@ LPMETERED_SECTION OpenMeteredSection(LPCTSTR lpName)
 /*
  * EnterMeteredSection
  */
+// VERIFY: 229a57d6 manual
 // OFFSET: 0x008E4F40
 DWORD EnterMeteredSection(LPMETERED_SECTION lpMetSect, 
       DWORD dwMilliseconds)
@@ -118,6 +119,7 @@ DWORD EnterMeteredSection(LPMETERED_SECTION lpMetSect,
 /*
  * LeaveMeteredSection
  */
+// VERIFY: 17723da2 manual
 // OFFSET: 0x008E4FD0
 BOOL LeaveMeteredSection(LPMETERED_SECTION lpMetSect, LONG lReleaseCount, 
          LPLONG lpPreviousCount)

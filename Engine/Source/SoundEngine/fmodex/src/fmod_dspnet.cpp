@@ -27,6 +27,7 @@ DSPNet::DSPNet()
 }
 
 
+// VERIFY: 3e9661d7 manual
 // OFFSET: 0x008E68A0
 FMOD_RESULT DSPNet::init()
 {
@@ -72,6 +73,7 @@ FMOD_RESULT DSPNet::init()
 }
 
 
+// VERIFY: 2c5a388c auto
 // OFFSET: 0x008E6810
 FMOD_RESULT DSPNet::release()
 {
@@ -128,6 +130,7 @@ FMOD_RESULT DSPNet::flush(bool more)
 }
 
 
+// VERIFY: 38253a31 auto
 // OFFSET: 0x008E6950
 FMOD_RESULT DSPNet::update(SystemI *system, unsigned int dt)
 {

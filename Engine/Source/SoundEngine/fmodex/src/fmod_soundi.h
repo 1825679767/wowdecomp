@@ -130,15 +130,15 @@ namespace FMOD
 
             if (bits)
             {
-                *bytes = (unsigned int)((FMOD_UINT64)samples * (FMOD_UINT64)bits / 8);
+                *bytes = samples * bits / 8;
             }
             else
             {
                 switch (format)
                 {
-                    case FMOD_SOUND_FORMAT_GCADPCM  : { *bytes = ((samples + (roundup ? 13 : 0)) / 14) *  8; break; }
-                    case FMOD_SOUND_FORMAT_IMAADPCM : { *bytes = ((samples + (roundup ? 63 : 0)) / 64) * 36; break; }
-                    case FMOD_SOUND_FORMAT_VAG      : { *bytes = ((samples + (roundup ? 27 : 0)) / 28) * 16; break; }
+                    case FMOD_SOUND_FORMAT_GCADPCM  : { *bytes = ((samples + (roundup ? 13 : 0)) / 14) * 14 *  8 / 14; break; }
+                    case FMOD_SOUND_FORMAT_IMAADPCM : { *bytes = ((samples + (roundup ? 63 : 0)) / 64) * 64 * 36 / 64; break; }
+                    case FMOD_SOUND_FORMAT_VAG      : { *bytes = ((samples + (roundup ? 27 : 0)) / 28) * 28 * 16 / 28; break; }
                     case FMOD_SOUND_FORMAT_XMA      : { *bytes = samples; return FMOD_OK; }
                     case FMOD_SOUND_FORMAT_MPEG     : { *bytes = samples; return FMOD_OK; }
 					case FMOD_SOUND_FORMAT_NONE		: { *bytes = 0; break; }

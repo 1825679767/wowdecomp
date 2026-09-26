@@ -49,6 +49,7 @@ void asyncThreadFunc(void *data)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: c17661ce manual
 // OFFSET: 0x00921FD0
 AsyncThread::AsyncThread()
 {
@@ -233,6 +234,7 @@ FMOD_RESULT AsyncThread::removeCallback(FMOD_ASYNC_CALLBACK callback)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 06b548ac auto
 // OFFSET: 0x009220A0
 FMOD_RESULT AsyncThread::init(bool owned)
 {
@@ -299,6 +301,7 @@ FMOD_RESULT AsyncThread::release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 13745afd auto
 // OFFSET: 0x00921C60
 FMOD_RESULT AsyncThread::reallyRelease()
 {

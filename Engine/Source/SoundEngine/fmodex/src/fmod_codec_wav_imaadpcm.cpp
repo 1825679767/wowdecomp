@@ -353,6 +353,7 @@ FMOD_RESULT IMAAdpcm_DecodeM16(unsigned char *pbSrc, signed short *pbDst, unsign
 }
 
 
+// VERIFY: bd3bbc1d manual
 // OFFSET: 0x00935A60
 FMOD_RESULT IMAAdpcm_DecodeS16(unsigned char *pbSrc, signed short *pbDst, unsigned int cBlocks, unsigned int nBlockAlignment, unsigned int cSamplesPerBlock)
 {

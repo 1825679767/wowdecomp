@@ -74,6 +74,7 @@ FMOD_OUTPUT_DESCRIPTION_EX *OutputWASAPI::getDescriptionEx()
 }
 
 
+// VERIFY: c6e354fa manual
 // OFFSET: 0x00937370
 FMOD_RESULT OutputWASAPI::enumerateDefaultDevices(IMMDeviceEnumerator *pEnumerator)
 {
@@ -83,9 +84,7 @@ FMOD_RESULT OutputWASAPI::enumerateDefaultDevices(IMMDeviceEnumerator *pEnumerat
     IPropertyStore  *properties  = NULL;
     PROPVARIANT      description;
     PROPVARIANT      friendlyname;
-    char             name[256];
-
-    FMOD_memset(name, 0, sizeof(name));
+    char             name[512] = {0};
 
     hr = pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &device);
     if (hr >= 0)
@@ -202,6 +201,7 @@ Exit:
 }
 
 
+// VERIFY: eccab240 manual
 // OFFSET: 0x009376C0
 FMOD_RESULT OutputWASAPI::enumerate()
 {
@@ -245,7 +245,7 @@ FMOD_RESULT OutputWASAPI::enumerate()
     mNumRenderDrivers  = 0;
     mNumCaptureDrivers = 0;
 
-    if (CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void **)&enumerator) < 0)
+    if (CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_SERVER, IID_IMMDeviceEnumerator, (void **)&enumerator) < 0)
     {
         result = FMOD_ERR_COM;
         goto Exit;
@@ -270,11 +270,9 @@ FMOD_RESULT OutputWASAPI::enumerate()
 
     for (count = 0; count < numdevices; count++)
     {
-        char         name[256];
+        char         name[512] = {0};
         IMMEndpoint *endpoint = NULL;
         EDataFlow    dataflow = eAll;
-
-        FMOD_memset(name, 0, sizeof(name));
 
         if (collection->Item(count, &device) < 0)
         {
@@ -434,6 +432,7 @@ FMOD_RESULT OutputWASAPI::getDriverName(int id, char *name, int namelen)
 }
 
 
+// VERIFY: 87cb9c61 manual
 // OFFSET: 0x00937BE0
 FMOD_RESULT OutputWASAPI::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency, FMOD_SPEAKERMODE *controlpanelspeakermode)
 {
@@ -449,7 +448,7 @@ FMOD_RESULT OutputWASAPI::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequ
         return result;
     }
 
-    if (CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void **)&enumerator) < 0)
+    if (CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_SERVER, IID_IMMDeviceEnumerator, (void **)&enumerator) < 0)
     {
         result = FMOD_ERR_OUTPUT_INIT;
     }
@@ -457,7 +456,7 @@ FMOD_RESULT OutputWASAPI::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequ
     {
         result = FMOD_ERR_OUTPUT_INIT;
     }
-    else if (device->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void **)&audioclient) < 0)
+    else if (device->Activate(IID_IAudioClient, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_SERVER, NULL, (void **)&audioclient) < 0)
     {
         result = FMOD_ERR_OUTPUT_INIT;
     }
@@ -521,6 +520,7 @@ FMOD_RESULT OutputWASAPI::getDriverCapsEx(int id, FMOD_CAPS *caps, int *minfrequ
 }
 
 
+// VERIFY: 21b96aa0 manual
 // OFFSET: 0x00937D60
 FMOD_RESULT OutputWASAPI::initEx(int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, FMOD_SPEAKERMODE *speakermode, int dspbufferlength, int dspnumbuffers, int max2dchannels, int max3dchannels, void *extradriverdata)
 {
@@ -550,7 +550,7 @@ FMOD_RESULT OutputWASAPI::initEx(int selecteddriver, FMOD_INITFLAGS flags, int *
         mExclusiveMode = true;
     }
 
-    if (CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void **)&enumerator) < 0)
+    if (CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_SERVER, IID_IMMDeviceEnumerator, (void **)&enumerator) < 0)
     {
         result = FMOD_ERR_OUTPUT_INIT;
         goto Exit;
@@ -560,7 +560,7 @@ FMOD_RESULT OutputWASAPI::initEx(int selecteddriver, FMOD_INITFLAGS flags, int *
         result = FMOD_ERR_OUTPUT_INIT;
         goto Exit;
     }
-    if (device->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void **)&mRenderAudioClient) < 0)
+    if (device->Activate(IID_IAudioClient, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_SERVER, NULL, (void **)&mRenderAudioClient) < 0)
     {
         result = FMOD_ERR_OUTPUT_INIT;
         goto Exit;
@@ -628,7 +628,7 @@ FMOD_RESULT OutputWASAPI::initEx(int selecteddriver, FMOD_INITFLAGS flags, int *
         goto Exit;
     }
 
-    hr = mRenderAudioClient->Initialize(mExclusiveMode ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED, 0, (REFERENCE_TIME)dspnumbuffers * dspbufferlength * 10000000 / wfx.Format.nSamplesPerSec, mExclusiveMode ? period : 0, &wfx.Format, NULL);
+    hr = mRenderAudioClient->Initialize(mExclusiveMode ? AUDCLNT_SHAREMODE_EXCLUSIVE : AUDCLNT_SHAREMODE_SHARED, 0, (REFERENCE_TIME)(dspbufferlength * dspnumbuffers) * 10000000 / wfx.Format.nSamplesPerSec, mExclusiveMode ? period : 0, &wfx.Format, NULL);
     if (hr == AUDCLNT_E_UNSUPPORTED_FORMAT)
     {
         result = FMOD_ERR_OUTPUT_FORMAT;
@@ -690,6 +690,7 @@ Exit:
 }
 
 
+// VERIFY: bdfc21e8 manual
 // OFFSET: 0x009381B0
 FMOD_RESULT OutputWASAPI::close()
 {
@@ -811,6 +812,7 @@ FMOD_RESULT OutputWASAPI::stop()
 }
 
 
+// VERIFY: 6ea3f433 manual
 // OFFSET: 0x00938340
 FMOD_RESULT OutputWASAPI::getPosition(unsigned int *pcm)
 {
@@ -823,7 +825,7 @@ FMOD_RESULT OutputWASAPI::getPosition(unsigned int *pcm)
         return FMOD_ERR_OUTPUT_DRIVERCALL;
     }
 
-    *pcm = (unsigned int)((mSystem->mOutputRate * position / frequency) % mRenderBufferLength);
+    *pcm = (unsigned int)(mSystem->mOutputRate * position / frequency) % mRenderBufferLength;
 
     if (mRenderAudioClient->GetCurrentPadding(&padding) < 0)
     {
@@ -842,13 +844,14 @@ FMOD_RESULT OutputWASAPI::getPosition(unsigned int *pcm)
             return result;
         }
 
-        mFillBlock = ((*pcm / bufferlength) % numbuffers + 1) % numbuffers;
+        mFillBlock = ((int)(*pcm / bufferlength) % numbuffers + 1) % numbuffers;
     }
 
     return FMOD_OK;
 }
 
 
+// VERIFY: 338386c4 manual
 // OFFSET: 0x00939120
 FMOD_RESULT OutputWASAPI::lock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -894,6 +897,7 @@ FMOD_RESULT OutputWASAPI::lock(unsigned int offset, unsigned int length, void **
 }
 
 
+// VERIFY: 9c864a2f manual
 // OFFSET: 0x00939310
 FMOD_RESULT OutputWASAPI::unlock(void *ptr1, void *ptr2, unsigned int len1, unsigned int len2)
 {
@@ -917,6 +921,7 @@ FMOD_RESULT OutputWASAPI::unlock(void *ptr1, void *ptr2, unsigned int len1, unsi
 
 #ifdef FMOD_SUPPORT_RECORDING
 
+// VERIFY: 637e006b manual
 // OFFSET: 0x00938440
 FMOD_RESULT OutputWASAPI::recordUpdate()
 {
@@ -949,7 +954,7 @@ FMOD_RESULT OutputWASAPI::recordUpdate()
         {
             int blockalign = mRecordBlockAlign;
 
-            for (unsigned int count = 0; count <= numframes; count++)
+            for (int count = 0; count <= (int)numframes; count++)
             {
                 FMOD_memcpy(dest, src, blockalign);
 
@@ -1027,6 +1032,7 @@ FMOD_RESULT OutputWASAPI::recordGetNumDrivers(int *numdrivers)
 }
 
 
+// VERIFY: 847f0fbf manual
 // OFFSET: 0x00938640
 FMOD_RESULT OutputWASAPI::recordGetDriverInfo(int id, char *name, int namelen)
 {
@@ -1054,6 +1060,7 @@ FMOD_RESULT OutputWASAPI::recordGetDriverInfo(int id, char *name, int namelen)
 }
 
 
+// VERIFY: 22a7e152 auto
 // OFFSET: 0x009386A0
 FMOD_RESULT OutputWASAPI::recordGetDriverCaps(int id, FMOD_CAPS *caps, int *minfrequency, int *maxfrequency)
 {
@@ -1069,7 +1076,7 @@ FMOD_RESULT OutputWASAPI::recordGetDriverCaps(int id, FMOD_CAPS *caps, int *minf
         return result;
     }
 
-    if (CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void **)&enumerator) < 0)
+    if (CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_SERVER, IID_IMMDeviceEnumerator, (void **)&enumerator) < 0)
     {
         result = FMOD_ERR_OUTPUT_INIT;
     }
@@ -1077,7 +1084,7 @@ FMOD_RESULT OutputWASAPI::recordGetDriverCaps(int id, FMOD_CAPS *caps, int *minf
     {
         result = FMOD_ERR_OUTPUT_INIT;
     }
-    else if (device->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void **)&audioclient) < 0)
+    else if (device->Activate(IID_IAudioClient, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_SERVER, NULL, (void **)&audioclient) < 0)
     {
         result = FMOD_ERR_OUTPUT_INIT;
     }
@@ -1117,6 +1124,7 @@ FMOD_RESULT OutputWASAPI::recordGetDriverCaps(int id, FMOD_CAPS *caps, int *minf
 }
 
 
+// VERIFY: 320c842d manual
 // OFFSET: 0x009387C0
 FMOD_RESULT OutputWASAPI::recordStart(int id, Sound *sound, bool loop)
 {
@@ -1147,7 +1155,7 @@ FMOD_RESULT OutputWASAPI::recordStart(int id, Sound *sound, bool loop)
         return FMOD_ERR_OUTPUT_INIT;
     }
 
-    if (CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void **)&enumerator) < 0)
+    if (CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_SERVER, IID_IMMDeviceEnumerator, (void **)&enumerator) < 0)
     {
         result = FMOD_ERR_OUTPUT_INIT;
         goto Exit;
@@ -1157,13 +1165,13 @@ FMOD_RESULT OutputWASAPI::recordStart(int id, Sound *sound, bool loop)
         result = FMOD_ERR_OUTPUT_INIT;
         goto Exit;
     }
-    if (device->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void **)&mCaptureAudioClient) < 0)
+    if (device->Activate(IID_IAudioClient, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_SERVER, NULL, (void **)&mCaptureAudioClient) < 0)
     {
         result = FMOD_ERR_OUTPUT_INIT;
         goto Exit;
     }
 
-    FMOD_memset(&wfx, 0, sizeof(WAVE_FORMATEXTENSIBLE));
+    FMOD_memset(&wfx, 0, sizeof(WAVE_FORMATEX));
 
     if (mCaptureAudioClient->GetMixFormat(&mixformat) < 0)
     {
@@ -1193,7 +1201,7 @@ FMOD_RESULT OutputWASAPI::recordStart(int id, Sound *sound, bool loop)
 
     wfx.Format.wFormatTag           = WAVE_FORMAT_EXTENSIBLE;
     wfx.Format.nChannels            = soundi->mChannels;
-    wfx.Format.nSamplesPerSec       = (int)soundi->mDefaultFrequency;
+    wfx.Format.nSamplesPerSec       = (DWORD)soundi->mDefaultFrequency;
     wfx.Format.nBlockAlign          = wfx.Format.nChannels * bits / 8;
     wfx.Format.wBitsPerSample       = bits;
     wfx.Format.nAvgBytesPerSec      = wfx.Format.nSamplesPerSec * wfx.Format.nBlockAlign;
@@ -1220,7 +1228,7 @@ FMOD_RESULT OutputWASAPI::recordStart(int id, Sound *sound, bool loop)
             mRecordStereoToMono        = true;
         }
 
-        if (mixformat->nSamplesPerSec != (DWORD)(int)soundi->mDefaultFrequency)
+        if (mixformat->nSamplesPerSec != soundi->mDefaultFrequency)
         {
             wfx.Format.nSamplesPerSec  = mixformat->nSamplesPerSec;
             wfx.Format.nAvgBytesPerSec = wfx.Format.nSamplesPerSec * wfx.Format.nBlockAlign;
@@ -1261,10 +1269,10 @@ FMOD_RESULT OutputWASAPI::recordStart(int id, Sound *sound, bool loop)
         goto Exit;
     }
 
-    mRecordTimerPeriod   = (UINT)(period * 0.0001f);
+    mRecordTimerPeriod   = period * 0.0001f;
     mRecordWritePosition = 0;
 
-    mRecordTimerID = timeSetEvent(mRecordTimerPeriod, 0, recordTimerCallback, (DWORD_PTR)this, TIME_PERIODIC);
+    mRecordTimerID = timeSetEvent((UINT)mRecordTimerPeriod, 0, recordTimerCallback, (DWORD_PTR)this, TIME_PERIODIC);
     if (!mRecordTimerID)
     {
         return FMOD_ERR_OUTPUT_INIT;
@@ -1337,6 +1345,7 @@ FMOD_RESULT OutputWASAPI::recordGetPosition(unsigned int *pcm)
 }
 
 
+// VERIFY: d51a72d5 manual
 // OFFSET: 0x00938D10
 FMOD_RESULT OutputWASAPI::recordLock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -1417,6 +1426,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::initExCallback(FMOD_OUTPUT_STATE *output, i
 }
 
 
+// VERIFY: 3e364739 manual
 // OFFSET: 0x00938EC0
 FMOD_RESULT F_CALLBACK OutputWASAPI::closeCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -1426,6 +1436,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::closeCallback(FMOD_OUTPUT_STATE *output)
 }
 
 
+// VERIFY: 63e236d6 manual
 // OFFSET: 0x00938EF0
 FMOD_RESULT F_CALLBACK OutputWASAPI::startCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -1435,6 +1446,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::startCallback(FMOD_OUTPUT_STATE *output)
 }
 
 
+// VERIFY: 5497c800 manual
 // OFFSET: 0x00938F30
 FMOD_RESULT F_CALLBACK OutputWASAPI::stopCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -1452,6 +1464,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::getHandleCallback(FMOD_OUTPUT_STATE *output
 }
 
 
+// VERIFY: 60bee7a4 manual
 // OFFSET: 0x00938F80
 FMOD_RESULT F_CALLBACK OutputWASAPI::getPositionCallback(FMOD_OUTPUT_STATE *output, unsigned int *pcm)
 {
@@ -1523,6 +1536,7 @@ FMOD_RESULT F_CALLBACK OutputWASAPI::recordStartCallback(FMOD_OUTPUT_STATE *outp
 }
 
 
+// VERIFY: e3bc6f8b manual
 // OFFSET: 0x009390B0
 FMOD_RESULT F_CALLBACK OutputWASAPI::recordStopCallback(FMOD_OUTPUT_STATE *output)
 {

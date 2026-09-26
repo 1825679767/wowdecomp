@@ -100,7 +100,6 @@ namespace FMOD
     {
       private:
         
-    	bool            mCoInitialized;
     	IWMSyncReader  *mReader;              // IWMReader pointer
         CROStream      *mStream;
         WORD            mAudioStreamNum;
@@ -109,7 +108,6 @@ namespace FMOD
         bool            mSeekable;
         int             mNumSyncPoints;
         SyncPoint *mSyncPoint;
-        unsigned int    mExcessBytes;
 
         static PFN_WMCREATESYNCREADER gWMCreateSyncReader;
         static HMODULE                gDLLHandle;

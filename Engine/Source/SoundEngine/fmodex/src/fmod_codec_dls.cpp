@@ -53,6 +53,7 @@ extern "C" {
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b211a1c8 manual
 // OFFSET: 0x008F9F60
 FMOD_CODEC_DESCRIPTION_EX *CodecDLS::getDescriptionEx()
 {
@@ -89,6 +90,7 @@ FMOD_CODEC_DESCRIPTION_EX *CodecDLS::getDescriptionEx()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 206165d0 manual
 // OFFSET: 0x008F8E40
 FMOD_RESULT CodecDLS::parseChunk(char *parentchunk, unsigned int chunksize)
 {
@@ -482,19 +484,7 @@ FMOD_RESULT CodecDLS::parseChunk(char *parentchunk, unsigned int chunksize)
 
             switch (srcformat.Format.wBitsPerSample)
             {
-                case 4:
-                {
-                    if (srcformat.Format.wFormatTag == 0x6666)
-                    {
-                        waveformat[mSampleID].format =  FMOD_SOUND_FORMAT_VAG;
-                    }
-                    else if (srcformat.Format.wFormatTag == 0x7777)
-                    {
-                        waveformat[mSampleID].format =  FMOD_SOUND_FORMAT_GCADPCM;
-                    }
-                    break;
-                }
-                case 8:     
+                case 8:
                 {
                     waveformat[mSampleID].format =  FMOD_SOUND_FORMAT_PCM8;
                     break;
@@ -714,6 +704,7 @@ FMOD_RESULT CodecDLS::openInternal(FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *u
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3409d2b6 manual
 // OFFSET: 0x008F8BE0
 FMOD_RESULT CodecDLS::closeInternal()
 {
@@ -841,6 +832,7 @@ FMOD_RESULT CodecDLS::readInternal(void *buffer, unsigned int sizebytes, unsigne
 	[SEE_ALSO]
 ]
 */
+// VERIFY: eb3a36bb auto
 // OFFSET: 0x008F9D00
 FMOD_RESULT CodecDLS::setPositionInternal(int subsound, unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -895,6 +887,7 @@ FMOD_RESULT CodecDLS::setPositionInternal(int subsound, unsigned int position, F
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ad3e5d48 manual
 // OFFSET: 0x008F9EF0
 FMOD_RESULT F_CALLBACK CodecDLS::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE usermode, FMOD_CREATESOUNDEXINFO *userexinfo)
 {
@@ -920,6 +913,7 @@ FMOD_RESULT F_CALLBACK CodecDLS::openCallback(FMOD_CODEC_STATE *codec, FMOD_MODE
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 28830508 manual
 // OFFSET: 0x008F8DE0
 FMOD_RESULT F_CALLBACK CodecDLS::closeCallback(FMOD_CODEC_STATE *codec)
 {

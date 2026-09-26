@@ -24,6 +24,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 093c489f manual
 // OFFSET: 0x00918D30
 DSPFFT::DSPFFT()
 {
@@ -137,6 +138,7 @@ FMOD_INLINE const unsigned int DSPFFT::reverse(unsigned int val, int bits)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3c7b15cd manual
 // OFFSET: 0x00918D70
 FMOD_RESULT DSPFFT::process(int bits)
 {
@@ -204,6 +206,7 @@ FMOD_RESULT DSPFFT::process(int bits)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 88e9109b manual
 // OFFSET: 0x009190A0
 FMOD_RESULT DSPFFT::getSpectrum(float *pcmbuffer, unsigned int pcmposition, unsigned int pcmlength, float *spectrum, int length, int channel, int numchannels, FMOD_DSP_FFT_WINDOW windowtype)
 {

@@ -27,6 +27,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7720d276 manual
 // OFFSET: 0x00922780
 FMOD_RESULT DSPConnectionPool::init(SystemI *system, int numconnections, int numoutputlevels, int numinputlevels)
 {
@@ -169,17 +170,19 @@ FMOD_RESULT DSPConnectionPool::close()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2b56631d manual
 // OFFSET: 0x00922420
 FMOD_RESULT DSPConnectionPool::alloc(DSPConnectionI **connection)
 {
-    LocalCriticalSection crit(mSystem->mDSPConnectionCrit);
     DSPConnectionI *newconnection;
     unsigned int alignment = 0;
-    
+
     if (!mSystem)
     {
         return FMOD_ERR_UNINITIALIZED;
     }
+
+    LocalCriticalSection crit(mSystem->mDSPConnectionCrit);
 
     if (!connection)
     {
@@ -286,6 +289,7 @@ FMOD_RESULT DSPConnectionPool::alloc(DSPConnectionI **connection)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 76921e06 manual
 // OFFSET: 0x009226B0
 FMOD_RESULT DSPConnectionPool::free(DSPConnectionI *connection)
 {

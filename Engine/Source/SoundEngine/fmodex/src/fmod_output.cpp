@@ -33,6 +33,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 57a4c94c manual
 // OFFSET: 0x00916EC0
 Output::Output()
 {
@@ -90,6 +91,7 @@ FMOD_RESULT Output::release()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 32dd46d0 manual
 // OFFSET: 0x00916120
 FMOD_RESULT Output::recordRead(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -203,6 +205,7 @@ FMOD_RESULT F_CALLBACK Output::recordResamplerReadCallback(FMOD_DSP_STATE *dsp_s
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 83b217e1 manual
 // OFFSET: 0x009165F0
 FMOD_RESULT Output::recordFill(unsigned int length)
 {
@@ -398,6 +401,7 @@ FMOD_RESULT Output::recordUpdate()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 3ccd6609 manual
 // OFFSET: 0x00916BC0
 FMOD_RESULT Output::mix(void *buffer, unsigned int numsamples)
 {
@@ -502,6 +506,7 @@ FMOD_RESULT Output::mix(void *buffer, unsigned int numsamples)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9606ec7c manual
 // OFFSET: 0x009160B0
 FMOD_RESULT Output::getFreeChannel(FMOD_MODE mode, ChannelReal **realchannel, int numchannels, int numsoundchannels, int *found)
 {
@@ -560,6 +565,7 @@ FMOD_RESULT Output::getFreeChannel(FMOD_MODE mode, ChannelReal **realchannel, in
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 7db20d74 manual
 // OFFSET: 0x00916E80
 FMOD_RESULT F_CALLBACK Output::mixCallback(FMOD_OUTPUT_STATE *output, void *buffer, unsigned int length)
 {

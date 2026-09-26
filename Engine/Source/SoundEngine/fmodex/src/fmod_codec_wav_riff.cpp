@@ -25,6 +25,7 @@ namespace FMOD
     [SEE_ALSO]
 ]
 */
+// VERIFY: a65f7065 manual
 // OFFSET: 0x00932440
 FMOD_RESULT CodecWav::parseChunk(unsigned int chunksize)
 {

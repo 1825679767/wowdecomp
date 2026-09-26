@@ -255,6 +255,7 @@ FMOD_INLINE float DSPLowPass::filter(float input, int channel)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: eac87804 manual
 // OFFSET: 0x008F2EE0
 FMOD_RESULT DSPLowPass::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {
@@ -676,6 +677,7 @@ FMOD_RESULT DSPLowPass::setParameterInternal(int index, float value)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: fed05641 manual
 // OFFSET: 0x008F2C00
 FMOD_RESULT DSPLowPass::getParameterInternal(int index, float *value, char *valuestr)
 {
@@ -717,6 +719,7 @@ FMOD_RESULT DSPLowPass::getParameterInternal(int index, float *value, char *valu
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ebe12ca3 manual
 // OFFSET: 0x008F2C70
 FMOD_RESULT DSPLowPass::updateState(float resonance, float cutoff)
 {
@@ -829,6 +832,7 @@ FMOD_RESULT DSPLowPass::updateState(float resonance, float cutoff)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 693ab094 manual
 // OFFSET: 0x008F3730
 FMOD_RESULT F_CALLBACK DSPLowPass::createCallback(FMOD_DSP_STATE *dsp)
 {

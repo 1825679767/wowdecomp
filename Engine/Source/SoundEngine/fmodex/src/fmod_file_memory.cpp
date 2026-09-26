@@ -64,14 +64,15 @@ FMOD_RESULT MemoryFile::reallyClose()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1a34a516 manual
 // OFFSET: 0x008E8030
 FMOD_RESULT MemoryFile::reallyRead(void *buffer, unsigned int size, unsigned int *read)
 {
     FMOD_RESULT result = FMOD_OK;
 
-	if (mPosition + size > mFileSize)
+	if (mPosition + size > mLength)
     {
-		size = mFileSize - mPosition;
+		size = mLength - mPosition;
 
         result = FMOD_ERR_FILE_EOF;
     }

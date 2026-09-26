@@ -169,6 +169,7 @@ FMOD_RESULT OutputOpenAL::getSpeakerModeEAX5(FMOD_SPEAKERMODE *speakerMode)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 580e3057 manual
 // OFFSET: 0x0094A2C0
 FMOD_RESULT OutputOpenAL::lockSlotEAX5(GUID &slotGUID)
 {
@@ -242,6 +243,7 @@ FMOD_RESULT OutputOpenAL::lockSlotEAX5(GUID &slotGUID)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d0a3b577 manual
 // OFFSET: 0x0094A440
 FMOD_RESULT OutputOpenAL::setPropertiesEAX5(const FMOD_REVERB_PROPERTIES *prop)
 {

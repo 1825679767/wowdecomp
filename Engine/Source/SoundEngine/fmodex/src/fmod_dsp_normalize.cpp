@@ -218,6 +218,7 @@ FMOD_RESULT DSPNormalize::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 617530fd manual
 // OFFSET: 0x008EED80
 FMOD_RESULT DSPNormalize::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {   
@@ -403,6 +404,7 @@ FMOD_RESULT DSPNormalize::getParameterInternal(int index, float *value, char *va
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 5694072e manual
 // OFFSET: 0x008EF0A0
 FMOD_RESULT F_CALLBACK DSPNormalize::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -452,6 +454,7 @@ FMOD_RESULT F_CALLBACK DSPNormalize::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: a956b0d2 manual
 // OFFSET: 0x008EF0D0
 FMOD_RESULT F_CALLBACK DSPNormalize::resetCallback(FMOD_DSP_STATE *dsp)
 {
@@ -505,6 +508,7 @@ FMOD_RESULT F_CALLBACK DSPNormalize::readCallback(FMOD_DSP_STATE *dsp, float *in
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 80a0d236 manual
 // OFFSET: 0x008EF140
 FMOD_RESULT F_CALLBACK DSPNormalize::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {

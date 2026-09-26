@@ -7,7 +7,7 @@
 
 static const int                FMOD_NET_MAXADDRLEN      = 46;
 
-static int                      FMOD_OS_Net_Init_Count   = 0;
+static bool                     FMOD_OS_Net_Initialised  = false;
 
 FMOD_OS_CRITICALSECTION         *gResolveCrit            = 0;
 
@@ -23,13 +23,13 @@ FMOD_OS_CRITICALSECTION         *gResolveCrit            = 0;
 
 	[SEE_ALSO]
 */
-// VERIFY: c139d1ae auto
+// VERIFY: 7ea5a02e auto
 // OFFSET: 0x009266E0
 FMOD_RESULT FMOD_OS_Net_Init()
 {
     FMOD_RESULT result;
 
-    if (FMOD_OS_Net_Init_Count == 0)
+    if (!FMOD_OS_Net_Initialised)
     {
         WSADATA wsadata;
 
@@ -42,7 +42,7 @@ FMOD_RESULT FMOD_OS_Net_Init()
             return result;
         }
 
-        FMOD_OS_Net_Init_Count++;
+        FMOD_OS_Net_Initialised = true;
     }
 
     return FMOD_OK;
@@ -60,20 +60,19 @@ FMOD_RESULT FMOD_OS_Net_Init()
 
 	[SEE_ALSO]
 */
+// VERIFY: 4531a50d auto
 // OFFSET: 0x00926730
 FMOD_RESULT FMOD_OS_Net_Shutdown()
 {
-    if (FMOD_OS_Net_Init_Count > 0)
+    if (FMOD_OS_Net_Initialised)
     {
-        FMOD_OS_Net_Init_Count--;
-        if (FMOD_OS_Net_Init_Count == 0)
-        {
-            FMOD_OS_CriticalSection_Free(gResolveCrit);
-            gResolveCrit = 0;
+        FMOD_OS_CriticalSection_Free(gResolveCrit);
+        gResolveCrit = 0;
 
-            WSACleanup();
-        }
-    }    
+        WSACleanup();
+
+        FMOD_OS_Net_Initialised = false;
+    }
 
     return FMOD_OK;
 }
@@ -90,6 +89,7 @@ FMOD_RESULT FMOD_OS_Net_Shutdown()
 
 	[SEE_ALSO]
 */
+// VERIFY: 38e0cca2 manual
 // OFFSET: 0x00926760
 FMOD_RESULT FMOD_OS_Net_Connect(const char *host, const unsigned short port, void **handle)
 {
@@ -341,6 +341,7 @@ FMOD_RESULT FMOD_OS_Net_Close(const void *handle)
 
 	[SEE_ALSO]
 */
+// VERIFY: e9be26dd manual
 // OFFSET: 0x00926A70
 FMOD_RESULT FMOD_OS_Net_Write(const void *handle, const char *buf, const unsigned int len, unsigned int *byteswritten)
 {
@@ -392,6 +393,7 @@ FMOD_RESULT FMOD_OS_Net_Write(const void *handle, const char *buf, const unsigne
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 4374d422 manual
 // OFFSET: 0x00926AE0
 FMOD_RESULT FMOD_OS_Net_Read(const void *handle, char *buf, const unsigned int len, unsigned int *bytesread)
 {

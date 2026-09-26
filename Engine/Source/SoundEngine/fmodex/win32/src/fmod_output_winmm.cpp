@@ -240,6 +240,7 @@ FMOD_RESULT OutputWinMM::testFormat(int id, FMOD_SOUND_FORMAT format, int channe
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f117a273 manual
 // OFFSET: 0x009395E0
 FMOD_RESULT OutputWinMM::getDriverCaps(int id, FMOD_CAPS *caps)
 {
@@ -289,6 +290,7 @@ FMOD_RESULT OutputWinMM::getDriverCaps(int id, FMOD_CAPS *caps)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e9ebea8c manual
 // OFFSET: 0x0093A520
 FMOD_RESULT OutputWinMM::init(int selecteddriver, FMOD_INITFLAGS flags, int *outputrate, int outputchannels, FMOD_SOUND_FORMAT *outputformat, int dspbufferlength, int dspnumbuffers, void *extradriverdata)
 {
@@ -465,6 +467,7 @@ FMOD_RESULT OutputWinMM::init(int selecteddriver, FMOD_INITFLAGS flags, int *out
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 1ad2f6d4 manual
 // OFFSET: 0x00939970
 FMOD_RESULT OutputWinMM::close()
 {
@@ -626,6 +629,7 @@ FMOD_RESULT OutputWinMM::stop()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 08e5244d manual
 // OFFSET: 0x00939A70
 FMOD_RESULT OutputWinMM::getPosition(unsigned int *pcm)
 {
@@ -674,6 +678,7 @@ FMOD_RESULT OutputWinMM::getPosition(unsigned int *pcm)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e1f5f64e manual
 // OFFSET: 0x00939AE0
 FMOD_RESULT OutputWinMM::lock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -761,6 +766,7 @@ FMOD_RESULT OutputWinMM::recordThread()
     [SEE_ALSO]
 ]
 */
+// VERIFY: 8d7b6ceb manual
 // OFFSET: 0x00939C20
 void OutputWinMM::recordThreadCallback(void *data)
 {
@@ -880,6 +886,7 @@ FMOD_RESULT OutputWinMM::recordGetDriverInfo(int id, char *name, int namelen)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 12d18dcd manual
 // OFFSET: 0x00939C60
 FMOD_RESULT OutputWinMM::recordStart(int id, Sound *sound, bool loop)
 {
@@ -1105,6 +1112,7 @@ FMOD_RESULT OutputWinMM::recordGetPosition(unsigned int *pcm)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d9277290 manual
 // OFFSET: 0x0093A0F0
 FMOD_RESULT OutputWinMM::recordLock(unsigned int offset, unsigned int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2)
 {
@@ -1234,6 +1242,7 @@ FMOD_RESULT F_CALLBACK OutputWinMM::getDriverNameCallback(FMOD_OUTPUT_STATE *out
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f19efe06 manual
 // OFFSET: 0x0093A210
 FMOD_RESULT OutputWinMM::getDriverCapsCallback(FMOD_OUTPUT_STATE *output, int id, FMOD_CAPS *caps)
 {
@@ -1287,6 +1296,7 @@ FMOD_RESULT F_CALLBACK OutputWinMM::initCallback(FMOD_OUTPUT_STATE *output, int 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 84c490fe manual
 // OFFSET: 0x0093A250
 FMOD_RESULT F_CALLBACK OutputWinMM::closeCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -1313,6 +1323,7 @@ FMOD_RESULT F_CALLBACK OutputWinMM::closeCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e2ccd67b manual
 // OFFSET: 0x0093A280
 FMOD_RESULT F_CALLBACK OutputWinMM::startCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -1366,6 +1377,7 @@ FMOD_RESULT F_CALLBACK OutputWinMM::stopCallback(FMOD_OUTPUT_STATE *output)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 85788310 manual
 // OFFSET: 0x0093A2F0
 FMOD_RESULT F_CALLBACK OutputWinMM::getHandleCallback(FMOD_OUTPUT_STATE *output, void **handle)
 {
@@ -1392,6 +1404,7 @@ FMOD_RESULT F_CALLBACK OutputWinMM::getHandleCallback(FMOD_OUTPUT_STATE *output,
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d5fcca5b manual
 // OFFSET: 0x0093A330
 FMOD_RESULT F_CALLBACK OutputWinMM::getPositionCallback(FMOD_OUTPUT_STATE *output, unsigned int *pcm)
 {
@@ -1472,6 +1485,7 @@ FMOD_RESULT F_CALLBACK OutputWinMM::recordGetNumDriversCallback(FMOD_OUTPUT_STAT
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 9f74a119 manual
 // OFFSET: 0x0093A3D0
 FMOD_RESULT F_CALLBACK OutputWinMM::recordGetDriverInfoCallback(FMOD_OUTPUT_STATE *output, int id, char *name, int namelen)
 {
@@ -1525,6 +1539,7 @@ FMOD_RESULT F_CALLBACK OutputWinMM::recordStartCallback(FMOD_OUTPUT_STATE *outpu
 	[SEE_ALSO]
 ]
 */
+// VERIFY: f1776dc1 manual
 // OFFSET: 0x0093A450
 FMOD_RESULT F_CALLBACK OutputWinMM::recordStopCallback(FMOD_OUTPUT_STATE *output)
 {
@@ -1551,6 +1566,7 @@ FMOD_RESULT F_CALLBACK OutputWinMM::recordStopCallback(FMOD_OUTPUT_STATE *output
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 53fc0839 manual
 // OFFSET: 0x0093A480
 FMOD_RESULT F_CALLBACK OutputWinMM::recordGetPositionCallback(FMOD_OUTPUT_STATE *output, unsigned int *pcm)
 {

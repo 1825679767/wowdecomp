@@ -41,6 +41,7 @@ static AsioDriver *theAsioDriver = 0;
 #endif
 
 //-----------------------------------------------------------------------------------------------------
+// VERIFY: 2d38d3d5 manual
 // OFFSET: 0x0094D1F0
 ASIOError ASIOInit(ASIODriverInfo *info)
 {
@@ -112,6 +113,7 @@ ASIOError ASIOExit(void)
 	return ASE_OK;
 }
 
+// VERIFY: 476f92eb manual
 // OFFSET: 0x0094D300
 ASIOError ASIOStart(void)
 {
@@ -120,6 +122,7 @@ ASIOError ASIOStart(void)
 	return theAsioDriver->start();
 }
 
+// VERIFY: 90ab2d49 manual
 // OFFSET: 0x0094D320
 ASIOError ASIOStop(void)
 {
@@ -225,6 +228,7 @@ ASIOError ASIOGetChannelInfo(ASIOChannelInfo *info)
 	return theAsioDriver->getChannelInfo(info);
 }
 
+// VERIFY: 4d2ff55b manual
 // OFFSET: 0x0094D460
 ASIOError ASIOCreateBuffers(ASIOBufferInfo *bufferInfos, long numChannels,
 	long bufferSize, ASIOCallbacks *callbacks)
@@ -239,6 +243,7 @@ ASIOError ASIOCreateBuffers(ASIOBufferInfo *bufferInfos, long numChannels,
 	return theAsioDriver->createBuffers(bufferInfos, numChannels, bufferSize, callbacks);
 }
 
+// VERIFY: 7b016fa8 manual
 // OFFSET: 0x0094D4B0
 ASIOError ASIODisposeBuffers(void)
 {
@@ -261,6 +266,7 @@ ASIOError ASIOFuture(long selector, void *opt)
 	return theAsioDriver->future(selector, opt);
 }
 
+// VERIFY: f6064469 manual
 // OFFSET: 0x0094D4D0
 ASIOError ASIOOutputReady(void)
 {

@@ -28,6 +28,7 @@ extern "C"
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 321ada73 manual
 // OFFSET: 0x0093E470
 void FMOD_Resampler_Linear(float *out, int outlength, void *src, FMOD_SOUND_FORMAT srcformat, FMOD_UINT64P *position, FMOD_SINT64P *speed, int channels)
 {

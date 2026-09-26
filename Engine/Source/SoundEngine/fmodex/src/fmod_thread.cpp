@@ -23,6 +23,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 2dd6e88b manual
 // OFFSET: 0x008E5190
 THREAD_RETURNTYPE THREAD_CALLCONV Thread::callback(void *data)
 {
@@ -243,6 +244,7 @@ FMOD_RESULT Thread::initThread(const char *name, void (*func)(void *userdata), v
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 80e9ff69 manual
 // OFFSET: 0x008E53C0
 FMOD_RESULT Thread::closeThread()
 {

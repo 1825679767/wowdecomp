@@ -124,6 +124,7 @@ FMOD_RESULT ChannelDSound::init(int index, SystemI *system, Output *output, DSPI
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 565da013 manual
 // OFFSET: 0x0094DD00
 FMOD_RESULT ChannelDSound::alloc()
 {
@@ -364,6 +365,7 @@ FMOD_RESULT ChannelDSound::start()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 73028d4a manual
 // OFFSET: 0x0094DFD0
 FMOD_RESULT ChannelDSound::stop(bool ignoreenddelay, bool resetstate)
 {
@@ -431,6 +433,7 @@ FMOD_RESULT ChannelDSound::stop(bool ignoreenddelay, bool resetstate)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 398d61a5 auto
 // OFFSET: 0x0094E070
 FMOD_RESULT ChannelDSound::setPaused(bool paused)
 {
@@ -616,6 +619,7 @@ FMOD_RESULT ChannelDSound::setVolume(float volume)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 056be2c7 manual
 // OFFSET: 0x0094E230
 FMOD_RESULT ChannelDSound::setFrequency(float frequency)
 {
@@ -724,6 +728,7 @@ FMOD_RESULT ChannelDSound::setPan(float pan, float fbpan)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: ccdc4143 manual
 // OFFSET: 0x0094E910
 FMOD_RESULT ChannelDSound::setPosition(unsigned int position, FMOD_TIMEUNIT postype)
 {
@@ -750,7 +755,7 @@ FMOD_RESULT ChannelDSound::setPosition(unsigned int position, FMOD_TIMEUNIT post
     }
     else if (postype == FMOD_TIMEUNIT_MS)
     {
-        pcmbytes = (unsigned int)((float)position / 1000.0f * mSound->mDefaultFrequency);
+        pcmbytes = (unsigned int)((float)position * mSound->mDefaultFrequency / 1000.0f);
         SoundI::getBytesFromSamples(pcmbytes, &pcmbytes, mSound->mChannels, mSound->mFormat);
     }
 
@@ -780,6 +785,7 @@ FMOD_RESULT ChannelDSound::setPosition(unsigned int position, FMOD_TIMEUNIT post
 	[SEE_ALSO]
 ]
 */
+// VERIFY: abd15884 manual
 // OFFSET: 0x0094EC00
 FMOD_RESULT ChannelDSound::getPosition(unsigned int *position, FMOD_TIMEUNIT postype)
 {
@@ -853,6 +859,7 @@ FMOD_RESULT ChannelDSound::getPosition(unsigned int *position, FMOD_TIMEUNIT pos
 	[SEE_ALSO]
 ]
 */
+// VERIFY: db0bf2ad manual
 // OFFSET: 0x0094E370
 FMOD_RESULT ChannelDSound::set3DAttributes()
 {
@@ -1013,6 +1020,7 @@ FMOD_RESULT ChannelDSound::set3DAttributes()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b40135ae manual
 // OFFSET: 0x0094E670
 FMOD_RESULT ChannelDSound::set3DMinMaxDistance()
 {
@@ -1135,6 +1143,7 @@ FMOD_RESULT ChannelDSound::set3DOcclusion(float directOcclusion, float reverbOcc
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 36df60ff manual
 // OFFSET: 0x0094E800
 FMOD_RESULT ChannelDSound::isPlaying(bool *isplaying, bool includethreadlatency)
 {
@@ -1196,6 +1205,7 @@ FMOD_RESULT ChannelDSound::isPlaying(bool *isplaying, bool includethreadlatency)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b617afb6 manual
 // OFFSET: 0x0094E890
 FMOD_RESULT ChannelDSound::setMode(FMOD_MODE mode)
 {

@@ -182,6 +182,7 @@ FMOD_INLINE const float DSPFlange::sine(float x)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 147e38a2 manual
 // OFFSET: 0x008EF590
 FMOD_RESULT DSPFlange::createInternal()
 {
@@ -326,6 +327,7 @@ FMOD_RESULT DSPFlange::resetInternal()
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e96589b6 manual
 // OFFSET: 0x008EF6A0
 FMOD_RESULT DSPFlange::readInternal(float *inbuffer, float *outbuffer, unsigned int length, int inchannels, int outchannels)
 {   
@@ -413,6 +415,7 @@ FMOD_RESULT DSPFlange::readInternal(float *inbuffer, float *outbuffer, unsigned 
 	[SEE_ALSO]
 ]
 */
+// VERIFY: e5e214a9 manual
 // OFFSET: 0x008EFAC0
 FMOD_RESULT DSPFlange::setParameterInternal(int index, float value)
 {
@@ -450,7 +453,7 @@ FMOD_RESULT DSPFlange::setParameterInternal(int index, float value)
     {
         float delay = mDepth * 10.0f;
 
-        mFlangeBufferLength = (int)((float)mOutputRate * delay / 1000.0f);
+        mFlangeBufferLength = (unsigned int)((float)mOutputRate * delay / 1000.0f);
         if (mFlangeBufferLength < 4)
         {
             mFlangeBufferLength = 4;
@@ -561,6 +564,7 @@ FMOD_RESULT DSPFlange::getParameterInternal(int index, float *value, char *value
 	[SEE_ALSO]
 ]
 */
+// VERIFY: cd07b7d3 manual
 // OFFSET: 0x008EFCA0
 FMOD_RESULT F_CALLBACK DSPFlange::createCallback(FMOD_DSP_STATE *dsp)
 {
@@ -586,6 +590,7 @@ FMOD_RESULT F_CALLBACK DSPFlange::createCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 84d9e874 manual
 // OFFSET: 0x008EFCD0
 FMOD_RESULT F_CALLBACK DSPFlange::releaseCallback(FMOD_DSP_STATE *dsp)
 {
@@ -611,6 +616,7 @@ FMOD_RESULT F_CALLBACK DSPFlange::releaseCallback(FMOD_DSP_STATE *dsp)
 	[SEE_ALSO]
 ]
 */
+// VERIFY: b3fa9b5d manual
 // OFFSET: 0x008EFD20
 FMOD_RESULT F_CALLBACK DSPFlange::resetCallback(FMOD_DSP_STATE *dsp)
 {
@@ -664,6 +670,7 @@ FMOD_RESULT F_CALLBACK DSPFlange::readCallback(FMOD_DSP_STATE *dsp, float *inbuf
 	[SEE_ALSO]
 ]
 */
+// VERIFY: 782cb4e9 manual
 // OFFSET: 0x008EFD90
 FMOD_RESULT F_CALLBACK DSPFlange::setParameterCallback(FMOD_DSP_STATE *dsp, int index, float value)
 {
