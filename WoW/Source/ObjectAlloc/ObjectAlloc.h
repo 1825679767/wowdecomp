@@ -3,9 +3,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/Storm/H/stpl.h"
-
-struct CObjectHeap;
+#include "WoW/Source/ObjectAlloc/IObjectAlloc.h"
 
 class CObjectHeapList {
     public:
@@ -14,14 +14,29 @@ class CObjectHeapList {
     /* 0014 */ uint32_t m_objsPerBlock;
     /* 0018 */ uint32_t m_numFullHeaps;
     /* 001C */ uint32_t m_hasEmptyHeaps;
-    /* 0020 */ uint32_t m_uint20;
+    /* 0020 */ uint32_t m_deleteCount;
     /* 0024 */ uint32_t m_fullestHeap;
-    /* 0028 */ char m_heapName [80];
-    /* 0078 */ uint32_t m_uint78;
-    /* 007C */ uint32_t m_uint7C;
+    /* 0028 */ char m_heapName[80];
+    /* 0078 */ uint64_t m_numAllocs;
     /* 0080 */ uint32_t m_uint80;
     /* 0084 */ uint8_t m_freeEmptyHeaps;
-    /* 0085 */ uint8_t unk_0085[3];
+
+    CObjectHeapList();
+    uint32_t BlocksAllocated();
+    void Delete(uint32_t index);
+    void FreeEmptyHeaps();
+    int32_t New(uint32_t* index, void** ptr, bool zero);
+    uint32_t PercentUsed();
+    uint32_t TotalHeaps();
 };
+
+struct OBJALLOCGLOBALS {
+    /* 0000 */ TSGrowableArray<CObjectHeapList> objects;
+};
+
+OBJALLOCGLOBALS* GetObjAllocGlobals();
+void ObjectAllocDestroy();
+void* ObjectPtr(uint32_t heapId, uint32_t memHandle);
+void ReleaseObjAllocGlobals();
 
 #endif
