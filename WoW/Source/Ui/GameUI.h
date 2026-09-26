@@ -4,8 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Tempest/C3Vector.h"
-#include "WoW/Source/Console/Types.h"
 #include "WoW/Source/Object/WGUID.h"
 
 class CGGameUI;

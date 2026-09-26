@@ -5,7 +5,6 @@
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Os/Input.h"
 #include "Engine/Source/Tempest/CRect.h"
-#include "WoW/Source/Console/Types.h"
 
 class EvtContext;
 

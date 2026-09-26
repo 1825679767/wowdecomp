@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Tempest/CBoundingBox.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
@@ -12,19 +13,6 @@ class CMapBaseObj;
 class CMapChunk;
 class CMapDoodadDef;
 class CMapDoodadDefMapChunkLink;
-
-class CRange {
-    public:
-    /* 0000 */ float m_l;
-    /* 0004 */ float m_h;
-};
-
-class CBoundingBox {
-    public:
-    /* 0000 */ CRange m_x;
-    /* 0008 */ CRange m_y;
-    /* 0010 */ CRange m_z;
-};
 
 class CMapDoodadDefMapChunkLink {
     public:

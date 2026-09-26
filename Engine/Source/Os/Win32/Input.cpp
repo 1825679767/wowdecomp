@@ -11,7 +11,6 @@
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/C2iVector.h"
-#include "WoW/Source/Console/Types.h"
 
 #define WM_POPUPSYSTEMMENU 0x313
 

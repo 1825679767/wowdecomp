@@ -11,7 +11,7 @@
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/C4Quaternion.h"
 #include "Engine/Source/Tempest/CAaBox.h"
-#include "WoW/Source/WorldClient/World.h"
+#include "Engine/Source/Tempest/CRange.h"
 
 struct C3Vector;
 struct C44Matrix;

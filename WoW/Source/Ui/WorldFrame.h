@@ -8,7 +8,7 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Storm/H/stpl.h"
-#include "WoW/Source/Console/Types.h"
+#include "Engine/Source/Event/Types.h"
 #include "WoW/Source/Object/WGUID.h"
 #include "Engine/Source/Tempest/CRect.h"
 

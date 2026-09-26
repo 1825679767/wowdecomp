@@ -3,9 +3,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/ConsoleBase/Types.h"
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
-#include "WoW/Source/Console/Types.h"
 
 class CGxString;
 class CONSOLELINE;

@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include "Engine/Source/Event/Types.h"
-#include "WoW/Source/Console/Types.h"
 
 HEVENTCONTEXT EventCreateContextEx(int32_t interactive, EVENTHANDLERFUNC initializeHandler, EVENTHANDLERFUNC destroyHandler, uint32_t idleTime, uint32_t debugFlags);
 void EventDestroy();

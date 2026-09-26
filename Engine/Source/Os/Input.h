@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include "Engine/Source/Event/Types.h"
-#include "WoW/Source/Console/Types.h"
 
 struct tagRECT;
 

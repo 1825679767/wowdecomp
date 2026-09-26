@@ -8,6 +8,7 @@
 #include "Engine/Source/Tempest/CRect.h"
 
 class CColor;
+class CGxFont;
 class CHARCODEDESC;
 struct HASHKEY_NONE;
 struct VERT;
@@ -51,6 +52,15 @@ class TEXTURECACHEROW {
     public:
     /* 0000 */ uint32_t m_widestFreeSlot;
     /* 0004 */ TSList<CHARCODEDESC> m_glyphlist;
+};
+
+class TEXTURECACHE {
+    public:
+    /* 0000 */ uint32_t m_texture;
+    /* 0004 */ CGxFont* m_theFace;
+    /* 0008 */ int8_t m_anyDirtyGlyphs;
+    /* 0009 */ int8_t m_pad [3];
+    /* 000C */ TSBaseArray<TEXTURECACHEROW> m_textureRows;
 };
 
 #endif
