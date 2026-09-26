@@ -298,10 +298,10 @@ class SE2 {
     static FMOD_RESULT SetDeviceChangeCallback(void (*callback)());
     static FMOD_RESULT SetDspParam(FMOD::DSP* dsp, int32_t index, float value);
     static FMOD_RESULT SetFMODChannelGroupVolume(FMOD::ChannelGroup* channelGroup, float volume);
-    static FMOD_RESULT SetListenerAttributes(const C3Vector* position, const C3Vector* forward, const C3Vector* up, const C3Vector* velocity);
+    static void SetListenerAttributes(const C3Vector* position, const C3Vector* forward, const C3Vector* up, const C3Vector* velocity);
     static void SetMasterVolume(float volume);
     static void SetPrimaryCaptureCallback(SECaptureCallbacks* callbacks);
-    static FMOD_RESULT SetReverb(const FMOD_REVERB_PROPERTIES* properties);
+    static void SetReverb(const FMOD_REVERB_PROPERTIES* properties);
     static void SetSoundGroupMaxAudibleBehavior(FMOD::SoundGroup* soundGroup, int32_t behavior, float muteFadeSpeed);
     static void SetUserMonitorDSPCallback(void (*callback)(float*, uint32_t));
     static void ShutDown(int32_t restart);

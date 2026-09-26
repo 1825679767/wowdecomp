@@ -988,14 +988,14 @@ FMOD_RESULT SE2::SetFMODChannelGroupVolume(FMOD::ChannelGroup* channelGroup, flo
     return channelGroup->setVolume(volume);
 }
 
-// VERIFY: 4de3c69b manual
+// VERIFY: b9738bd4 auto
 // OFFSET: 0x00879320
-FMOD_RESULT SE2::SetListenerAttributes(const C3Vector* position, const C3Vector* forward, const C3Vector* up, const C3Vector* velocity) {
+void SE2::SetListenerAttributes(const C3Vector* position, const C3Vector* forward, const C3Vector* up, const C3Vector* velocity) {
     if (!s_initialized) {
-        return FMOD_OK;
+        return;
     }
 
-    return s_system->set3DListenerAttributes(0, reinterpret_cast<const FMOD_VECTOR*>(position), reinterpret_cast<const FMOD_VECTOR*>(velocity), reinterpret_cast<const FMOD_VECTOR*>(forward), reinterpret_cast<const FMOD_VECTOR*>(up));
+    s_system->set3DListenerAttributes(0, reinterpret_cast<const FMOD_VECTOR*>(position), reinterpret_cast<const FMOD_VECTOR*>(velocity), reinterpret_cast<const FMOD_VECTOR*>(forward), reinterpret_cast<const FMOD_VECTOR*>(up));
 }
 
 // VERIFY: 78a13624 manual
@@ -1022,14 +1022,14 @@ void SE2::MuteAllSound(bool mute) {
     }
 }
 
-// VERIFY: d837390f manual
+// VERIFY: d860b528 auto
 // OFFSET: 0x008794E0
-FMOD_RESULT SE2::SetReverb(const FMOD_REVERB_PROPERTIES* properties) {
+void SE2::SetReverb(const FMOD_REVERB_PROPERTIES* properties) {
     if (!s_initialized) {
-        return FMOD_OK;
+        return;
     }
 
-    return s_system->setReverbProperties(properties);
+    s_system->setReverbProperties(properties);
 }
 
 // VERIFY: d9256c5e manual
@@ -2107,7 +2107,7 @@ void SESound::SetVolume(float volume) {
     this->m_internal->UpdateVolume();
 }
 
-// VERIFY: 101bc825 manual
+// VERIFY: 048d9e21 manual
 // OFFSET: 0x00879840
 void SESound::Stop(int32_t immediate, float fadeOutTime) {
     if (!this->m_internal) {
@@ -2118,7 +2118,7 @@ void SESound::Stop(int32_t immediate, float fadeOutTime) {
         this->m_internal->m_fadeOutTime = fadeOutTime;
     }
 
-    if (immediate || this->m_internal->m_fadeOutTime <= 0.0f) {
+    if (immediate || !(this->m_internal->m_fadeOutTime > 0.0f)) {
         this->m_internal->m_stop = 1;
 
         if (this->m_internal->m_channel) {
@@ -2231,7 +2231,7 @@ SESound* SE2::GetSoundFromID(uint32_t id, int32_t* created) {
     return lookup->m_sound->m_handle;
 }
 
-// VERIFY: 9476abe4 manual
+// VERIFY: 13fd5be3 manual
 // OFFSET: 0x00879AE0
 int32_t SE2::GetChannelInfo(bool fadingOnly, SEChannelInfo* info, int32_t maxCount, int32_t playing, int32_t isVirtual, int32_t loading, int32_t other, uint32_t* hardwareCount, uint32_t* softwareCount, uint32_t* virtualCount, uint32_t* loadingCount, uint32_t* otherCount) {
     if (!info || maxCount <= 0) {
@@ -2288,7 +2288,8 @@ int32_t SE2::GetChannelInfo(bool fadingOnly, SEChannelInfo* info, int32_t maxCou
 
                 float dz = listener.z - info->m_position.z;
                 float dy = listener.y - info->m_position.y;
-                info->m_distanceSquared = dz * dz + dy * dy + (listener.x - info->m_position.x) * (listener.x - info->m_position.x);
+                float dx = listener.x - info->m_position.x;
+                info->m_distanceSquared = dx * dx + dy * dy + dz * dz;
 
                 result = sound->m_channel->get3DMinMaxDistance(&info->m_minDistance, &info->m_maxDistance);
                 SE_ERRCHECK(result);
