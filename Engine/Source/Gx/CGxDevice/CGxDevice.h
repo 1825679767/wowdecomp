@@ -304,6 +304,7 @@ class CGxDevice {
     const CRect& DeviceCurWindow();
     const CRect& DeviceDefWindow();
     void DeviceGamma(CGxGammaRamp& ramp);
+    void DeviceGetRenderTarget(EGxBuffer buffer, CGxTex*& texture);
     void DeviceScreenShot();
     void DeviceSetCurWindow(const CRect& rect);
     void DeviceSetDefWindow(const CRect& rect);

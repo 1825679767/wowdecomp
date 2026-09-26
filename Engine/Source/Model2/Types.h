@@ -5,6 +5,11 @@
 #include <cstdint>
 #include <windows.h>
 
+enum M2LIGHTTYPE {
+    M2LIGHT_DIRECT = 0,
+    M2LIGHT_POINT = 1,
+};
+
 class CM2ModelCall;
 
 class CM2ModelCall {

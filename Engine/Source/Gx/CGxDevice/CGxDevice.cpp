@@ -1897,3 +1897,9 @@ void CGxDevice::ITexWHDStartEnd(CGxTex* texId, uint32_t& width, uint32_t& height
         mipCount = baseMip + 1;
     }
 }
+
+// VERIFY: 4458969e manual
+// OFFSET: 0x00682D50
+void CGxDevice::DeviceGetRenderTarget(EGxBuffer buffer, CGxTex*& texture) {
+    texture = this->m_textureTarget[buffer].m_texture;
+}

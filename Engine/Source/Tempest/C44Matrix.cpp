@@ -3,6 +3,27 @@
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/C4Quaternion.h"
 
+// VERIFY: bcc62f69 auto
+// OFFSET: 0x0057C2A0
+void C44Matrix::Identity() {
+    this->d3 = 1.0f;
+    this->c2 = 1.0f;
+    this->b1 = 1.0f;
+    this->a0 = 1.0f;
+    this->d2 = 0.0f;
+    this->d1 = 0.0f;
+    this->d0 = 0.0f;
+    this->c3 = 0.0f;
+    this->c1 = 0.0f;
+    this->c0 = 0.0f;
+    this->b3 = 0.0f;
+    this->b2 = 0.0f;
+    this->b0 = 0.0f;
+    this->a3 = 0.0f;
+    this->a2 = 0.0f;
+    this->a1 = 0.0f;
+}
+
 // VERIFY: b9812d24 manual
 // OFFSET: 0x00407F40
 C44Matrix::C44Matrix() {

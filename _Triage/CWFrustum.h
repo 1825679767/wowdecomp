@@ -14,7 +14,10 @@ class CWFrustum : public CFrustum {
     /* 00E8 */ float m_aspect;
     /* 00EC */ float m_minz;
     /* 00F0 */ float m_maxz;
-    /* 00F4 */ TSLink<CWFrustum> m_sceneLink;
+
+    CWFrustum();
+    CWFrustum& operator=(const CWFrustum& source);
+    void InvertPlanes();
 };
 
 #endif

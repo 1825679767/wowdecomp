@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "Engine/Source/Model2/Types.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C4Plane.h"
 #include "Engine/Source/Tempest/CAaSphere.h"
@@ -15,7 +16,7 @@ class CM2Light {
     public:
     /* 0000 */ CM2Scene* m_scene;
     /* 0004 */ uint32_t m_stamp;
-    /* 0008 */ uint32_t m_type;
+    /* 0008 */ M2LIGHTTYPE m_type;
     /* 000C */ C3Vector m_pos;
     /* 0018 */ C3Vector m_viewPos;
     /* 0024 */ C3Vector m_dir;
@@ -53,6 +54,8 @@ class CM2Lighting {
     /* 00B4 */ float m_fogDensity;
     /* 00B8 */ C3Vector m_fogColor;
     /* 00C4 */ C4Plane m_liquidPlane;
+
+    void SetupGxLights(const C3Vector* origin);
 };
 
 #endif

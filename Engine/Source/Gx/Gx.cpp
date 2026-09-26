@@ -750,3 +750,10 @@ void GxFormatColor(CImVector& color) {
         color = formatted;
     }
 }
+
+// VERIFY: 25db0bac manual
+// OFFSET: 0x0057E4F0
+void GxRenderTargetSet(EGxBuffer buffer, CGxTex* texture, uint32_t plane) {
+    GxRsSet(GxRs_ScissorTest, 0);
+    g_theGxDevicePtr->DeviceSetRenderTarget(buffer, texture, plane);
+}
