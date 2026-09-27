@@ -571,7 +571,7 @@ int32_t SE2::GetNumInputDrivers(int32_t chatSystem) {
     return numDrivers + 1;
 }
 
-// VERIFY: e55b894d manual
+// VERIFY: 64a21a91 manual
 // OFFSET: 0x008783B0
 bool SE2::GetInputDriverName(int32_t index, char* name, int32_t nameLength, int32_t chatSystem) {
     FMOD::System* system;
@@ -635,7 +635,7 @@ int32_t SE2::GetNumOutputDrivers(int32_t chatSystem) {
     return numDrivers + 1;
 }
 
-// VERIFY: 3f0642ee manual
+// VERIFY: 3dfdd81c manual
 // OFFSET: 0x008784A0
 bool SE2::GetOutputDriverName(int32_t index, char* name, int32_t nameLength, int32_t chatSystem) {
     FMOD::System* system;
@@ -742,7 +742,7 @@ int32_t SE2::GetNumInputDrivers_Cached(int32_t chatSystem) {
     return SE2::GetNumInputDrivers(0);
 }
 
-// VERIFY: 109b7e18 manual
+// VERIFY: 1ea70c0e manual
 // OFFSET: 0x00879210
 bool SE2::GetInputDriverName_Cached(int32_t index, char* name, int32_t nameLength, int32_t chatSystem) {
     FMOD::System* system;
@@ -781,7 +781,7 @@ int32_t SE2::GetNumOutputDrivers_Cached(int32_t chatSystem) {
     return s_outputDrivers.Count();
 }
 
-// VERIFY: 0ab7e020 manual
+// VERIFY: eb0105e4 manual
 // OFFSET: 0x008792B0
 bool SE2::GetOutputDriverName_Cached(int32_t index, char* name, int32_t nameLength, int32_t chatSystem) {
     FMOD::System* system;
@@ -3901,4 +3901,12 @@ void SE2::DestroyChatSystem() {
     SE2::sm_bCaptureInitialized = 0;
 
     SE2::Log_Write(__LINE__, __FILE__, FMOD_OK, "=> Done Shutting Down Voice Chat");
+}
+
+// VERIFY: 5722bcf3 manual
+// OFFSET: 0x009C1820
+SESoundUserData::~SESoundUserData() {
+}
+
+void SESoundUserData::Release() {
 }

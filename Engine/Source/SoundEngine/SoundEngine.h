@@ -67,7 +67,7 @@ struct SEChannelInfo {
 class SESoundUserData {
     public:
     virtual ~SESoundUserData();
-    virtual void Release() = 0;
+    virtual void Release();
 };
 
 class SECaptureCallbacks {
