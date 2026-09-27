@@ -8,3 +8,8 @@ target_include_directories(Frame
     PUBLIC
         ${CMAKE_SOURCE_DIR}
 )
+
+target_link_libraries(Frame
+    PUBLIC
+        freetype
+)
