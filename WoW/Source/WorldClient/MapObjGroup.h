@@ -12,7 +12,7 @@
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Common/AaBsp.h"
-#include "_Triage/C2iVector.h"
+#include "Engine/Source/Tempest/C2iVector.h"
 
 struct BspQuery_Segment;
 class C2Vector;

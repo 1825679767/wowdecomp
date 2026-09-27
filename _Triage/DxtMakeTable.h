@@ -1,4 +1,0 @@
-#ifndef _TRIAGE_DXTMAKETABLE_H
-#define _TRIAGE_DXTMAKETABLE_H
-
-#endif

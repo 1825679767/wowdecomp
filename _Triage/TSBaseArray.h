@@ -1,4 +1,0 @@
-#ifndef _TRIAGE_TSBASEARRAY_H
-#define _TRIAGE_TSBASEARRAY_H
-
-#endif

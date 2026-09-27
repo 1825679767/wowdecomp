@@ -3,17 +3,8 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/Tempest/C3Vector.h"
-#include "Engine/Source/Tempest/C4Plane.h"
+#include "Engine/Source/Tempest/CFacet.h"
 #include "Engine/Source/Storm/H/stpl.h"
-
-class CFacet;
-
-class CFacet {
-    public:
-    /* 0000 */ C4Plane m_plane;
-    /* 0010 */ C3Vector m_v [3];
-};
 
 struct FacetData {
     /* 0000 */ TSGrowableArray<CFacet> m_facets;

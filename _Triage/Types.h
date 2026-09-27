@@ -111,13 +111,6 @@ enum ResponseCodes {
     CHAR_NAME_DECLENSION_DOESNT_MATCH_BASE_NAME = 103,
 };
 
-enum TimingMethod : uint32_t {
-    BestAvailable = 0,
-    SystemMethod1 = 1,
-    SystemMethod2 = 2,
-    NotSet = 0xFFFFFFFFFFFFFFFF,
-};
-
 enum WOWCS_OPS {
     COP_NONE = 0,
     COP_INIT = 1,

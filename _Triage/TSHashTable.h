@@ -1,4 +1,0 @@
-#ifndef _TRIAGE_TSHASHTABLE_H
-#define _TRIAGE_TSHASHTABLE_H
-
-#endif

@@ -1,4 +1,0 @@
-#ifndef _TRIAGE_HIDMANAGERIMPL_H
-#define _TRIAGE_HIDMANAGERIMPL_H
-
-#endif

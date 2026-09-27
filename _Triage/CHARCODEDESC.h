@@ -1,4 +1,0 @@
-#ifndef _TRIAGE_CHARCODEDESC_H
-#define _TRIAGE_CHARCODEDESC_H
-
-#endif

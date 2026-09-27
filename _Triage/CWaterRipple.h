@@ -1,4 +1,0 @@
-#ifndef _TRIAGE_CWATERRIPPLE_H
-#define _TRIAGE_CWATERRIPPLE_H
-
-#endif

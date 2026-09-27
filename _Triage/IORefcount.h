@@ -1,4 +1,0 @@
-#ifndef _TRIAGE_IOREFCOUNT_H
-#define _TRIAGE_IOREFCOUNT_H
-
-#endif

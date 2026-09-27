@@ -7,7 +7,7 @@
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/WorldClient/MapBaseObj.h"
-#include "_Triage/C2iVector.h"
+#include "Engine/Source/Tempest/C2iVector.h"
 
 class CAsyncObject;
 class CMapArea;

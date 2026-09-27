@@ -1,4 +1,0 @@
-#ifndef _TRIAGE_SSYNCOBJECT_H
-#define _TRIAGE_SSYNCOBJECT_H
-
-#endif

@@ -1,4 +1,0 @@
-#ifndef _TRIAGE_SSEMAPHORE_H
-#define _TRIAGE_SSEMAPHORE_H
-
-#endif
