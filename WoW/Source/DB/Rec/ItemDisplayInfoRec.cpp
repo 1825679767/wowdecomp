@@ -1,6 +1,8 @@
 #include "WoW/Source/DB/Rec/ItemDisplayInfoRec.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 
+// VERIFY: 0ee255b8 auto
+// OFFSET: 0x008B7DA0
 ItemDisplayInfoRec::ItemDisplayInfoRec() {
 }
 

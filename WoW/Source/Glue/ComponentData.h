@@ -14,6 +14,8 @@ class ComponentData {
     /* 0024 */ uint32_t m_flags;
     /* 0028 */ char m_npcSkinTexture [260];
     /* 012C */ uint32_t m_geosets [19];
+
+    ComponentData();
 };
 
 #endif

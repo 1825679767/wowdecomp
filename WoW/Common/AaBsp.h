@@ -7,7 +7,8 @@
 #include "Engine/Source/Tempest/CAaBox.h"
 
 class C3Vector;
-struct CAaBspNode;
+class CAaBspNode;
+struct SMOPoly;
 
 class CAaBsp {
     public:
@@ -32,6 +33,12 @@ class CAaBsp {
     /* 0048 */ int32_t m_bFree;
     /* 004C */ CAaBox m_aaBox;
     /* 0064 */ int32_t unk_0064;
+
+    CAaBsp();
+    ~CAaBsp();
+    void Clear();
+    void Free();
+    void Set(CAaBspNode* nodes, uint32_t nNodes, uint16_t* nodeFaceIndices, uint32_t nNodeFaceIndices, const CAaBox& aaBox);
 };
 
 class CAaBspNodeDigest {
@@ -51,8 +58,18 @@ class CAaBspNodeDigest {
 
 class CAaBspDigestCache {
     public:
-    /* 0000 */ CAaBspNode* m_nodes [1024];
+    static int32_t s_digestReplaceIndex;
+
+    /* 0000 */ const CAaBspNode* m_nodes [1024];
     /* 1000 */ CAaBspNodeDigest m_digests [1024];
+
+    CAaBspDigestCache();
+    void GenerateDigest(CAaBspNodeDigest* digest, const CAaBsp& bsp, const CAaBspNode* node, SMOPoly* faces, const C3Vector* vertices, const uint16_t* faceVertexIndices);
+    CAaBspNodeDigest* GetDigest(const CAaBsp& bsp, const CAaBspNode* node, SMOPoly* faces, const C3Vector* vertices, const uint16_t* faceVertexIndices);
+    void RemoveEntry(const CAaBspNode* node);
+    void Reset();
 };
+
+extern CAaBspDigestCache* g_BspDigestCache;
 
 #endif

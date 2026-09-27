@@ -9,6 +9,8 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/CRect.h"
 
+class CAaBox;
+
 class CMapBaseObj;
 class CMapChunk;
 class CMapDoodadDef;
@@ -92,5 +94,9 @@ class CWorldScene {
     /* 01C8 */ uint8_t unk_01C8[28];
     /* 01E4 */ uint32_t unk_01E4;
 };
+
+namespace World {
+int32_t FrustumCull(const CAaBox& box);
+}
 
 #endif

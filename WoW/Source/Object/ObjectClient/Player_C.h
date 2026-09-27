@@ -15,6 +15,8 @@ class SpellVisualKitRec;
 
 class CGPlayer_C : public CGUnit_C, public CGPlayer {
     public:
+    static uint32_t s_displayId;
+
     /* 1010 */ TSList<void> m_playerMirrorLists [176];
     /* 1850 */ TSList<void>* m_playerLocalMirrorLists;
     /* 1854 */ uint32_t unk_1854 [35];
