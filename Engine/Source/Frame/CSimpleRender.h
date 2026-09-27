@@ -3,11 +3,11 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
 #include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleFontable.h"
 #include "Engine/Source/Frame/CSimpleRegion.h"
 #include "Engine/Source/Frame/Types.h"
+#include "Engine/Source/Services/Types.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
@@ -21,7 +21,7 @@ class XMLNode;
 class CSimpleFontString : public CSimpleRegion {
     public:
     /* 00D4 */ CSimpleFontable m_baseSimpleFontable;
-    /* 00E8 */ FONTHASHOBJ* m_fontHandle;
+    /* 00E8 */ HTEXTFONT m_fontHandle;
     /* 00EC */ float m_fontHeight;
     /* 00F0 */ uint16_t m_textMaxSize;
     /* 00F2 */ uint16_t m_textCurSize;
@@ -46,9 +46,23 @@ class CSimpleFontString : public CSimpleRegion {
     static CDataAllocator s_allocator;
 
     CSimpleFontString(CSimpleFrame* frame, uint32_t drawLayer, bool show);
+    uint32_t GetFontFlags();
+    const char* GetFontName();
+    void PostLoadXML(XMLNode* node, CStatus* status);
+
+    static int32_t s_metatable;
+    static int32_t s_objectType;
+    static const char* s_objectTypeName;
+
+    static int32_t GetObjectType();
+    static void CreateScriptMetaTable();
+    static void DestroyScriptMetaTable();
+    static void RegisterScriptMethods(lua_State* L);
+
     virtual int32_t GetScriptMetaTable();
     virtual bool IsA(int32_t type);
-    void PostLoadXML(XMLNode* node, CStatus* status);
+    virtual bool IsA(const char* typeName);
+    virtual const char* GetObjectTypeName();
 };
 
 #endif

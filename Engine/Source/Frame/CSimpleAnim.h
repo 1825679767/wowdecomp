@@ -3,9 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
-#include "Engine/Source/FrameScript/FrameScript_Object.h"
-#include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Frame/CScriptObject.h"
 
 class CLCDConnection {
     public:
@@ -31,14 +29,21 @@ class CLCDConnection {
     /* 0048 */ int32_t unk_0048;
 };
 
-class CSimpleAnim {
+class CSimpleAnim : public CScriptObject {
     public:
-    /* 0000 */ uint8_t unk_0000 [4];
-    /* 0004 */ uint32_t* m_vmt;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-};
+    static int32_t s_metatable;
+    static int32_t s_objectType;
+    static const char* s_objectTypeName;
 
-class CSimpleAnimGroup;
+    static int32_t GetObjectType();
+    static void CreateScriptMetaTable();
+    static void DestroyScriptMetaTable();
+    static void RegisterScriptMethods(lua_State* L);
+
+    virtual int32_t GetScriptMetaTable();
+    virtual bool IsA(int32_t type);
+    virtual bool IsA(const char* typeName);
+    virtual const char* GetObjectTypeName();
+};
 
 #endif

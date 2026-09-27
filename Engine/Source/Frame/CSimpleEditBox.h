@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
 #include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleAnim.h"
 #include "Engine/Source/Frame/CSimpleFont.h"
@@ -85,8 +84,23 @@ class CSimpleEditBox : public CSimpleFrame {
     /* 03D0 */ FrameScript_Object::ScriptIx m_onCharComposition;
 
     static CDataAllocator s_allocator;
+    static CSimpleEditBox* s_currentFocus;
 
     CSimpleEditBox(CSimpleFrame* parent);
+
+    static int32_t s_metatable;
+    static int32_t s_objectType;
+    static const char* s_objectTypeName;
+
+    static int32_t GetObjectType();
+    static void CreateScriptMetaTable();
+    static void DestroyScriptMetaTable();
+    static void RegisterScriptMethods(lua_State* L);
+
+    virtual int32_t GetScriptMetaTable();
+    virtual bool IsA(int32_t type);
+    virtual bool IsA(const char* typeName);
+    virtual const char* GetObjectTypeName();
 };
 
 class CSimpleFontedFrameFont : public CSimpleFont {

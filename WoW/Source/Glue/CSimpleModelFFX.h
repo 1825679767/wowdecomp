@@ -29,6 +29,11 @@ class CSimpleModelFFX : public CSimpleModel {
     /* 06E8 */ CM2LightArray m_lightArray2 [2];
     /* 0A68 */ CM2LightArray m_lightArray3 [2];
     /* 0DE8 */ float m_glow;
+
+    static int32_t s_metatable;
+
+    static void CreateScriptMetaTable();
+    static void RegisterScriptMethods(lua_State* L);
 };
 
 #endif

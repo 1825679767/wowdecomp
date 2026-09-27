@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
 #include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CScriptRegion.h"
 #include "Engine/Source/Frame/CSimpleAnim.h"
@@ -79,19 +78,40 @@ class CSimpleFrame : public CScriptRegion {
     /* 0258 */ CRenderBatch* m_renderBatch [5];
     /* 026C */ TSList<CRenderBatch> m_renderList;
     /* 0278 */ TSList<SIMPLEFRAMENODE> m_children;
-    /* 0284 */ uint32_t m_framesLink [2];
-    /* 028C */ uint32_t m_destroyedLink [2];
-    /* 0294 */ uint32_t m_strataLink [2];
+    /* 0284 */ TSLink<CSimpleFrame> m_framesLink;
+    /* 028C */ TSLink<CSimpleFrame> m_destroyedLink;
+    /* 0294 */ TSLink<CSimpleFrame> m_strataLink;
 
     static CDataAllocator s_allocator;
-    static int32_t s_objectType;
 
     CSimpleFrame(CSimpleFrame* parent);
-    virtual int32_t GetScriptMetaTable();
-    virtual bool IsA(int32_t type);
+    void AllowAttributeChanges(int32_t allow);
+    int32_t AttributeChangesAllowed();
+    void DisableDrawLayer(uint32_t drawLayer);
+    void EnableDrawLayer(uint32_t drawLayer);
+    void GetHitRectInsets(float& left, float& right, float& top, float& bottom);
+    void NotifyDrawLayerChanged(uint32_t drawLayer);
+    void Raise();
+    void SetClampRectInsets(float left, float right, float top, float bottom);
+    void SetFrameFlag(uint32_t flag, bool set);
     virtual void PreLoadXML(XMLNode* node, CStatus* status);
     virtual int32_t GetScriptTime(lua_State* L, double* time, uint32_t* count, int32_t a4);
     virtual void PostLoadXML(XMLNode* node, CStatus* status);
+
+    static int32_t s_metatable;
+    static int32_t s_objectType;
+    static const char* s_objectTypeName;
+
+    static int32_t GetObjectType();
+    static void CreateScriptMetaTable();
+    static void DestroyScriptMetaTable();
+    static void RegisterScriptMethods(lua_State* L);
+
+    virtual int32_t GetScriptMetaTable();
+    virtual bool IsA(int32_t type);
+    virtual bool IsA(const char* typeName);
+    virtual const char* GetObjectTypeName();
+    virtual bool IsDragging();
 };
 
 #endif

@@ -3,24 +3,27 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
+#include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 
-struct C3Vector;
+class C3Vector;
+class CGxShader;
+class CGxTex;
+class CImVector;
 struct CTexture;
 
 class CSimpleBatchedMesh {
     public:
     /* 0000 */ CTexture* m_texture;
-    /* 0004 */ void* m_textureID;
-    /* 0008 */ uint32_t m_alphaMode;
-    /* 000C */ void* m_shader;
+    /* 0004 */ CGxTex* m_textureID;
+    /* 0008 */ EGxBlend m_alphaMode;
+    /* 000C */ CGxShader* m_shader;
     /* 0010 */ int32_t m_posCount;
-    /* 0014 */ C3Vector* m_position;
-    /* 0018 */ C2Vector* m_texCoord;
-    /* 001C */ void* m_color;
+    /* 0014 */ const C3Vector* m_position;
+    /* 0018 */ const C2Vector* m_texCoord;
+    /* 001C */ const CImVector* m_color;
     /* 0020 */ int32_t m_colorCount;
-    /* 0024 */ uint16_t* m_indices;
+    /* 0024 */ const uint16_t* m_indices;
     /* 0028 */ int32_t m_idxCount;
     /* 002C */ int32_t m_onAtlas;
     /* 0030 */ float m_atlasScale;

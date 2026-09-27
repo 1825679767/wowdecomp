@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
 #include "Engine/Source/Base/RCString.h"
 #include "Engine/Source/Frame/Types.h"
 #include "Engine/Source/Tempest/C2Vector.h"
@@ -19,6 +18,9 @@ class CSimpleFontStringAttributes {
     /* 0020 */ CColor m_color;
     /* 0024 */ CColor m_shadowColor;
     /* 0028 */ C2Vector m_shadowOffset;
+
+    void SetJustifyH(uint8_t justify);
+    void SetJustifyV(uint8_t justify);
 };
 
 #endif

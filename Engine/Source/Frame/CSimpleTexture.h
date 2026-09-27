@@ -3,13 +3,13 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
 #include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleRegion.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 
 class CSimpleFrame;
+class CGxTex;
 class CStatus;
 struct CTexture;
 class XMLNode;
@@ -38,9 +38,23 @@ class CSimpleTexture : public CSimpleRegion {
     static CDataAllocator s_allocator;
 
     CSimpleTexture(CSimpleFrame* frame, uint32_t drawLayer, int32_t show);
+    CGxTex* GetGxTex();
+    int32_t GetTexture(char* buffer, uint32_t bufferLen);
+    void PostLoadXML(XMLNode* node, CStatus* status);
+
+    static int32_t s_metatable;
+    static int32_t s_objectType;
+    static const char* s_objectTypeName;
+
+    static int32_t GetObjectType();
+    static void CreateScriptMetaTable();
+    static void DestroyScriptMetaTable();
+    static void RegisterScriptMethods(lua_State* L);
+
     virtual int32_t GetScriptMetaTable();
     virtual bool IsA(int32_t type);
-    void PostLoadXML(XMLNode* node, CStatus* status);
+    virtual bool IsA(const char* typeName);
+    virtual const char* GetObjectTypeName();
 };
 
 #endif

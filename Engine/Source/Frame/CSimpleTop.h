@@ -3,13 +3,13 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Frame/CLayoutFrame.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
 class CFrameStrata;
+class CScriptRegion;
 class CFrameStrataNode;
 class CSimpleFrame;
 struct FRAMELEVEL;
@@ -47,6 +47,10 @@ class CSimpleSortedArray {
 
 class CSimpleTop : public CLayoutFrame {
     public:
+    static CSimpleTop* s_instance;
+
+    static CSimpleTop* GetInstance();
+
     /* 0074 */ uint32_t m_screenLayer;
     /* 0078 */ CSimpleFrame* m_mouseFocus;
     /* 007C */ CSimpleFrame* m_mouseCapture;
@@ -71,7 +75,11 @@ class CSimpleTop : public CLayoutFrame {
     /* 1248 */ uint32_t m_keyDownHandler;
     /* 124C */ uint32_t unk_124C;
     /* 1250 */ uint32_t unk_1250;
-    /* 1254 */ uint32_t unk_1254;
+    /* 1254 */ void (*unk_1254)(CScriptRegion* region);
+
+    int32_t RaiseFrame(CSimpleFrame* frame, int32_t checkOcclusion);
+    void RegisterForCleanup(CSimpleFrame* frame);
+    void RegisterFrame(CSimpleFrame* frame);
 };
 
 #endif

@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
 #include "Engine/Source/Storm/H/stpl.h"
 
 class CScriptRegionAnimGroupNode;
@@ -20,6 +19,7 @@ enum FRAMEPOINT {
     FRAMEPOINT_BOTTOMLEFT = 6,
     FRAMEPOINT_BOTTOM = 7,
     FRAMEPOINT_BOTTOMRIGHT = 8,
+    FRAMEPOINT_NUMPOINTS = 9,
 };
 
 enum FRAME_STRATA {

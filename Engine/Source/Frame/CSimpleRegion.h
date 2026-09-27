@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
 #include "Engine/Source/Frame/CScriptRegion.h"
 #include "Engine/Source/Frame/Types.h"
 
