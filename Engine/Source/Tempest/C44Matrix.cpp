@@ -1,5 +1,6 @@
 #include <cmath>
 #include "Engine/Source/Tempest/C33Matrix.h"
+#include "Engine/Source/Tempest/C34Matrix.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/C4Quaternion.h"
 
@@ -621,4 +622,55 @@ C3Vector TransformDirection(const C3Vector& v, const C44Matrix& m) {
 // OFFSET: 0x006A43A0
 C44Matrix C44Matrix::Inverse() const {
     return this->Inverse(this->Determinant());
+}
+
+// VERIFY: 158e48ed auto
+// OFFSET: 0x004C1730
+bool operator==(const C44Matrix& l, const C44Matrix& r) {
+    return r.a0 == l.a0 && r.a1 == l.a1 && r.a2 == l.a2 && r.a3 == l.a3 && r.b0 == l.b0 && r.b1 == l.b1 && r.b2 == l.b2 && r.b3 == l.b3 && r.c0 == l.c0 && r.c1 == l.c1 && r.c2 == l.c2 && r.c3 == l.c3 && r.d0 == l.d0 && r.d1 == l.d1 && r.d2 == l.d2 && r.d3 == l.d3;
+}
+
+// VERIFY: 0dc594ff auto
+// OFFSET: 0x004C1E20
+C44Matrix& C44Matrix::operator=(const C4Quaternion& q) {
+    FromQuaternion(q, *this);
+    this->a3 = 0.0f;
+    this->b3 = 0.0f;
+    this->c3 = 0.0f;
+    this->d0 = 0.0f;
+    this->d1 = 0.0f;
+    this->d2 = 0.0f;
+    this->d3 = 1.0f;
+    return *this;
+}
+
+// VERIFY: 12861045 auto
+// OFFSET: 0x004C2210
+C3Vector operator*(const C44Matrix& m, const C3Vector& v) {
+    C3Vector result;
+    result.x = m.a2 * v.z + m.a1 * v.y + m.a0 * v.x + m.a3;
+    result.y = m.b2 * v.z + m.b0 * v.x + m.b1 * v.y + m.b3;
+    result.z = m.c2 * v.z + m.c0 * v.x + m.c1 * v.y + m.c3;
+    return result;
+}
+
+// VERIFY: 124d7460 auto
+// OFFSET: 0x004C3680
+C44Matrix::C44Matrix(const C34Matrix& m) {
+    this->a0 = m.a0;
+    this->a1 = m.a1;
+    this->a2 = m.a2;
+    this->a3 = 0.0f;
+    this->b0 = m.b0;
+    this->b1 = m.b1;
+    this->b2 = m.b2;
+    this->b3 = 0.0f;
+    this->c0 = m.c0;
+    this->c1 = m.c1;
+    this->c2 = m.c2;
+    this->c3 = 0.0f;
+    this->d0 = m.d0;
+    this->d1 = m.d1;
+    this->d2 = m.d2;
+    this->d3 = 1.0f;
 }

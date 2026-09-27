@@ -4,10 +4,14 @@
 #include <cstddef>
 #include <cstdint>
 
+class CRndSeed;
+
 class CRange {
     public:
     /* 0000 */ float m_l;
     /* 0004 */ float m_h;
+
+    float Random(CRndSeed& seed);
 };
 
 class CiRange {

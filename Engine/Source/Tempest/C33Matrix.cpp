@@ -278,3 +278,47 @@ C33Matrix C33Matrix::Rotation(float angle, const C3Vector& axis, bool normalized
 void C33Matrix::Rotate(float angle, const C3Vector& axis, bool normalized) {
     *this = Rotation(angle, axis, normalized) * *this;
 }
+
+// VERIFY: 954b78ec auto
+// OFFSET: 0x004C1D40
+C33Matrix::C33Matrix(float a0, float a1, float a2, float b0, float b1, float b2, float c0, float c1, float c2) {
+    this->a0 = a0;
+    this->a1 = a1;
+    this->a2 = a2;
+    this->b0 = b0;
+    this->b1 = b1;
+    this->b2 = b2;
+    this->c0 = c0;
+    this->c1 = c1;
+    this->c2 = c2;
+}
+
+// VERIFY: 93a6a3b6 manual
+// OFFSET: 0x004C55B0
+void C33Matrix::RotateAroundY(float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+
+    C33Matrix rotation;
+    rotation.a0 = c;
+    rotation.a1 = 0.0f;
+    rotation.a2 = -s;
+    rotation.b0 = 0.0f;
+    rotation.b1 = 1.0f;
+    rotation.b2 = 0.0f;
+    rotation.c0 = s;
+    rotation.c1 = 0.0f;
+    rotation.c2 = c;
+
+    *this = rotation * *this;
+}
+
+// VERIFY: 447150a9 auto
+// OFFSET: 0x005FED20
+C3Vector operator*(const C3Vector& v, const C33Matrix& m) {
+    C3Vector result;
+    result.x = m.b0 * v.y + m.c0 * v.z + v.x * m.a0;
+    result.y = m.b1 * v.y + m.a1 * v.x + m.c1 * v.z;
+    result.z = m.b2 * v.y + m.a2 * v.x + m.c2 * v.z;
+    return result;
+}

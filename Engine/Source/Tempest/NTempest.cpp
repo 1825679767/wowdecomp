@@ -8,10 +8,49 @@
 #include "Engine/Source/Tempest/C4Plane.h"
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Tempest/CAaSphere.h"
+#include "Engine/Source/Tempest/CMath.h"
 #include "Engine/Source/Tempest/NTempest.h"
 
 // STATIC: 0x00B2D6F4
 static uint32_t s_planeAxes[3][2] = { { 1, 2 }, { 2, 0 }, { 0, 1 } };
+
+// INLINED
+static float Noise2D(int32_t x, int32_t y) {
+    uint32_t n = static_cast<uint32_t>(x + y * 57);
+    n = (n << 13) ^ n;
+
+    return 1.0f - ((n * (n * n * 15731 + 789221) - 771171069) & 0x7FFFFFFF) * 9.3132257e-10f;
+}
+
+// VERIFY: 717d3809 manual
+// OFFSET: 0x009852A0
+static float SmoothNoise2D(int32_t x, int32_t y) {
+    float sides = (Noise2D(x, y + 1) + Noise2D(x, y - 1) + Noise2D(x + 1, y) + Noise2D(x - 1, y)) * 0.125f;
+    float corners = (Noise2D(x + 1, y + 1) + Noise2D(x - 1, y + 1) + Noise2D(x + 1, y - 1) + Noise2D(x - 1, y - 1)) * 0.0625f;
+    float center = Noise2D(x, y) * 0.25f;
+
+    return sides + corners + center;
+}
+
+// VERIFY: 539c8248 auto
+// OFFSET: 0x009854D0
+static float InterpolatedNoise2D(float x, float y) {
+    float floorX = floor(x);
+    float fractionX = x - floorX;
+    float floorY = floor(y);
+
+    int32_t ix = static_cast<int32_t>(floorX);
+    int32_t iy = static_cast<int32_t>(floorY);
+
+    float v00 = SmoothNoise2D(ix, iy);
+    float v01 = SmoothNoise2D(ix, iy + 1);
+    float v10 = SmoothNoise2D(ix + 1, iy);
+    float bottom = v00 + (v10 - v00) * fractionX;
+    float v11 = SmoothNoise2D(ix + 1, iy + 1);
+    float top = v01 + (v11 - v01) * fractionX;
+
+    return (top - bottom) * (y - floorY) + bottom;
+}
 
 // VERIFY: c57f24fc manual
 // OFFSET: 0x0078F3E0
@@ -493,4 +532,123 @@ float NTempest::DistanceFromPolygon(const C3Vector& point, const C3Vector* verts
     }
 
     return DistanceFromPolygonEdge(point, verts, count);
+}
+
+// VERIFY: 390a47ef auto
+// OFFSET: 0x00984F60
+void RGBtoHSV(const C3Vector& rgb, C3Vector& hsv) {
+    C3Vector::EAxis major = rgb.MajorAxis();
+    C3Vector::EAxis minor = rgb.MinorAxis();
+    const float* c = &rgb.x;
+
+    hsv.z = c[major];
+    hsv.y = c[major] == 0.0f ? 0.0f : (c[major] - c[minor]) / c[major];
+
+    if (hsv.y == 0.0f) {
+        hsv.x = -1.0f;
+        return;
+    }
+
+    float delta = c[major] - c[minor];
+
+    switch (major) {
+        case C3Vector::AXIS_X:
+            hsv.x = (rgb.y - rgb.z) / delta;
+            break;
+
+        case C3Vector::AXIS_Y:
+            hsv.x = (rgb.z - rgb.x) / delta + 2.0f;
+            break;
+
+        case C3Vector::AXIS_Z:
+            hsv.x = (rgb.x - rgb.y) / delta + 4.0f;
+            break;
+    }
+
+    hsv.x = hsv.x * 60.0f;
+
+    if (hsv.x < 0.0f) {
+        hsv.x = hsv.x + 360.0f;
+    }
+}
+
+// VERIFY: 2bd375fc auto
+// OFFSET: 0x00985030
+void HSVtoRGB(const C3Vector& hsv, C3Vector& rgb) {
+    if (hsv.y == 0.0f) {
+        rgb = C3Vector(hsv.z, hsv.z, hsv.z);
+        return;
+    }
+
+    float hue = hsv.x;
+
+    if (hue >= 360.0f) {
+        hue = hue - 360.0f;
+    }
+
+    float sector = hue * 0.016666668f;
+    int32_t index = CMath::fint_(sector - 0.5f);
+
+    if (index > 5) {
+        index = 5;
+    }
+
+    float fraction = sector - index;
+    float saturation = hsv.y >= 1.0f ? 1.0f : hsv.y;
+    float q = (1.0f - saturation * fraction) * hsv.z;
+    float p = (1.0f - saturation) * hsv.z;
+    float t = (1.0f - saturation * (1.0f - fraction)) * hsv.z;
+
+    switch (index) {
+        case 0:
+            rgb.x = hsv.z;
+            rgb.y = t;
+            rgb.z = p;
+            break;
+
+        case 1:
+            rgb.x = q;
+            rgb.y = hsv.z;
+            rgb.z = p;
+            break;
+
+        case 2:
+            rgb.x = p;
+            rgb.y = hsv.z;
+            rgb.z = t;
+            break;
+
+        case 3:
+            rgb.x = p;
+            rgb.y = q;
+            rgb.z = hsv.z;
+            break;
+
+        case 4:
+            rgb.x = t;
+            rgb.y = p;
+            rgb.z = hsv.z;
+            break;
+
+        case 5:
+            rgb.x = hsv.z;
+            rgb.y = p;
+            rgb.z = q;
+            break;
+    }
+}
+
+// VERIFY: 3f7b870d manual
+// OFFSET: 0x00985580
+float PerlinNoise2D(float x, float y, int32_t octaves) {
+    float amplitude = 1.0f;
+    float total = 0.0f;
+
+    for (int32_t i = 0; i < octaves; i++) {
+        float frequency = static_cast<float>(1 << i);
+        total = InterpolatedNoise2D(x * frequency, y * frequency) * amplitude + total;
+        amplitude = amplitude * 0.5f;
+    }
+
+    return total;
 }

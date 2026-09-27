@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class C2Vector;
 class C4Vector;
 class CImVector;
 
@@ -16,6 +17,7 @@ class C3Vector {
     };
 
     static C3Vector Cross(const C3Vector& a, const C3Vector& b);
+    static float Distance(const C3Vector& a, const C3Vector& b);
     static C3Vector Max(const C3Vector& a, const C3Vector& b);
     static C3Vector Min(const C3Vector& a, const C3Vector& b);
 
@@ -43,6 +45,7 @@ C3Vector operator+(const C3Vector& l, const C3Vector& r);
 C3Vector operator-(const C3Vector& l, const C3Vector& r);
 bool operator==(const C3Vector& l, const C3Vector& r);
 bool operator!=(const C3Vector& l, const C3Vector& r);
+C3Vector operator%(const C3Vector& l, const C2Vector& r);
 
 // INLINED
 inline C3Vector::C3Vector() {

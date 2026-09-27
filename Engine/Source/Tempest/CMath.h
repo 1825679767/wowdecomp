@@ -7,20 +7,43 @@
 
 class CMath {
     public:
+    static float cos_(float x);
+    static double exp_(float x);
     static double exp2_(double x);
+    static bool fequal(float a, float b);
     static int32_t fint_(float f);
     static int32_t fint_n(float f);
     static int32_t ftol_round_0_255_(float f);
     static double log2_(double x);
+    static bool fnotequal(float a, float b);
+    static float normalizeAnglePi(float angle);
     static float normalizeAngleNegPiToPi_(float angle);
     static float normalizeangle0to2pi_(float angle);
+    static float sin_(float x);
     static bool solvequad_(float a, float b, float c, float& r0, float& r1);
     static uint32_t fuint_pi(float f);
     static uint32_t sqrt_(uint32_t n);
 };
 
+class CSoftFloat {
+    public:
+    static CSoftFloat Ceil(const CSoftFloat& value);
+    static uint32_t CountLeadingZeros(uint32_t value);
+    static CSoftFloat Floor(const CSoftFloat& value);
+    static CSoftFloat FromInt(int32_t value);
+    static CSoftFloat Reciprocal(const CSoftFloat& value);
+    static CSoftFloat Round(const CSoftFloat& value);
+
+    /* 0000 */ uint32_t m_bits;
+};
+
+CSoftFloat operator*(const CSoftFloat& l, const CSoftFloat& r);
+CSoftFloat operator+(const CSoftFloat& l, const CSoftFloat& r);
+
+float fclamp(float value, float min, float max);
 bool fequal(float a, float b);
 int32_t fequalz(float a, float b, float z);
+int32_t fnotequalz(float a, float b, float z);
 uint32_t CeilToInt64(float value);
 int32_t FloatToInt64(float value);
 bool fnotequal(float a, float b);

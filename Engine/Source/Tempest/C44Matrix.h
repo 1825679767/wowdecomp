@@ -7,6 +7,7 @@
 #include "Engine/Source/Tempest/C4Vector.h"
 
 class C33Matrix;
+class C34Matrix;
 class C4Quaternion;
 
 class C44Matrix {
@@ -37,6 +38,7 @@ class C44Matrix {
     C44Matrix();
     C44Matrix(float a0, float a1, float a2, float a3, float b0, float b1, float b2, float b3, float c0, float c1, float c2, float c3, float d0, float d1, float d2, float d3);
     C44Matrix(const C33Matrix& m);
+    C44Matrix(const C34Matrix& m);
     C44Matrix(const C4Quaternion& q);
     C44Matrix Adjoint() const;
     C44Matrix AffineInverse() const;
@@ -56,12 +58,15 @@ class C44Matrix {
     C44Matrix& operator*=(const C44Matrix& m);
     C44Matrix& operator*=(float s);
     C44Matrix& operator=(const C44Matrix& m);
+    C44Matrix& operator=(const C4Quaternion& q);
 };
 
 bool operator!=(const C44Matrix& l, const C44Matrix& r);
+bool operator==(const C44Matrix& l, const C44Matrix& r);
 C44Matrix operator*(const C44Matrix& l, const C44Matrix& r);
 C44Matrix operator*(const C44Matrix& l, float s);
 C3Vector operator*(const C3Vector& v, const C44Matrix& m);
+C3Vector operator*(const C44Matrix& m, const C3Vector& v);
 C4Vector operator*(const C4Vector& v, const C44Matrix& m);
 C3Vector operator*=(C3Vector& v, const C44Matrix& m);
 C44Matrix operator+(const C44Matrix& l, const C44Matrix& r);

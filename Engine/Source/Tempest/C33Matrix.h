@@ -24,6 +24,7 @@ class C33Matrix {
     /* 0020 */ float c2;
 
     C33Matrix() = default;
+    C33Matrix(float a0, float a1, float a2, float b0, float b1, float b2, float c0, float c1, float c2);
     C33Matrix(const C44Matrix& m);
     C33Matrix(const C4Quaternion& q);
     C33Matrix Adjoint() const;
@@ -31,6 +32,7 @@ class C33Matrix {
     void FromEulerAnglesZYX(float yaw, float pitch, float roll);
     C33Matrix Inverse(float determinant) const;
     void Rotate(float angle, const C3Vector& axis, bool normalized);
+    void RotateAroundY(float angle);
     void Scale(const C3Vector& scale);
     void Scale(float scale);
     void Scale(float x, float y, float z);
@@ -38,5 +40,6 @@ class C33Matrix {
 };
 
 C33Matrix operator*(const C33Matrix& l, const C33Matrix& r);
+C3Vector operator*(const C3Vector& v, const C33Matrix& m);
 
 #endif

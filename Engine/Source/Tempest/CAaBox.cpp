@@ -157,3 +157,15 @@ CAaBox CAaBox::Bounding(const C3Vector* points, uint32_t count) {
 
     return result;
 }
+
+// VERIFY: 0a872e55 auto
+// OFFSET: 0x005FECB0
+CAaBox& CAaBox::operator*=(float scale) {
+    this->b.x = this->b.x * scale;
+    this->b.y = this->b.y * scale;
+    this->b.z = this->b.z * scale;
+    this->t.x = this->t.x * scale;
+    this->t.y = this->t.y * scale;
+    this->t.z = scale * this->t.z;
+    return *this;
+}

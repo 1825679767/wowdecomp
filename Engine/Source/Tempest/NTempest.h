@@ -36,4 +36,8 @@ namespace NTempest {
     bool Intersect2dBoxSphere(const float* minB, const float* maxB, const float* center, float radius, SolidIntersect mode);
 }
 
+void HSVtoRGB(const C3Vector& hsv, C3Vector& rgb);
+float PerlinNoise2D(float x, float y, int32_t octaves);
+void RGBtoHSV(const C3Vector& rgb, C3Vector& hsv);
+
 #endif

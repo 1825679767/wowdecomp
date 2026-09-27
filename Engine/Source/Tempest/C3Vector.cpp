@@ -1,5 +1,6 @@
 #include <cmath>
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C4Vector.h"
 #include "Engine/Source/Tempest/CImVector.h"
 
@@ -196,4 +197,23 @@ C3Vector::EAxis C3Vector::MinorAxis() const {
 // INLINED
 float C3Vector::SquaredMag() const {
     return this->y * this->y + this->x * this->x + this->z * this->z;
+}
+
+// VERIFY: e6f533b8 auto
+// OFFSET: 0x004C3650
+C3Vector operator%(const C3Vector& l, const C2Vector& r) {
+    C3Vector result;
+    result.x = -(r.y * l.z);
+    result.y = r.x * l.z;
+    result.z = r.y * l.x - l.y * r.x;
+    return result;
+}
+
+// VERIFY: cba1ea5b auto
+// OFFSET: 0x005FECF0
+float C3Vector::Distance(const C3Vector& a, const C3Vector& b) {
+    float dy = a.y - b.y;
+    float dz = a.z - b.z;
+    float dx = a.x - b.x;
+    return sqrt(dx * dx + dz * dz + dy * dy);
 }

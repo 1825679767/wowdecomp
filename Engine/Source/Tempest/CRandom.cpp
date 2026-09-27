@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include "Engine/Source/Tempest/CRandom.h"
@@ -64,4 +65,63 @@ CRndSeed::CRndSeed(uint32_t seed) {
 void CRndSeed::SetSeed(uint32_t seed) {
     this->rndacc = seed;
     this->rndvls = ((seed % 59) << 10) | ((seed % 61) << 2) | ((seed % 53) << 18) | ((seed % 47) << 26);
+}
+
+// VERIFY: cab91f8f manual
+// OFFSET: 0x004C1590
+float CRandom::ufloat_(CRndSeed& seed) {
+    uint32_t bits = (CRandom::uint32_(seed) & 0x7FFFFF) | 0x3F800000;
+
+    return *reinterpret_cast<float*>(&bits) - 1.0f;
+}
+
+// VERIFY: 1fb5680e manual
+// OFFSET: 0x004C15C0
+float CRandom::sfloat_(CRndSeed& seed) {
+    uint32_t value = CRandom::uint32_(seed);
+    uint32_t bits = (value & 0x7FFFFF) | 0x3F800000;
+    float f = *reinterpret_cast<float*>(&bits);
+
+    if (static_cast<int32_t>(value) >= 0) {
+        return f - 2.0f;
+    }
+
+    return 2.0f - f;
+}
+
+// VERIFY: 4687ef93 manual
+// OFFSET: 0x004C1600
+uint32_t CRandom::dice_(uint32_t sides, CRndSeed& seed) {
+    return static_cast<uint32_t>((static_cast<uint64_t>(sides) * CRandom::uint32_(seed)) >> 32);
+}
+
+// VERIFY: de69b9b7 manual
+// OFFSET: 0x004C1620
+C2Vector CRandom::C2Vector_(CRndSeed& seed) {
+    float angle = CRandom::ufloat_(seed) * 6.2831855f;
+    float c = cos(angle);
+    float s = sin(angle);
+
+    C2Vector result;
+    result.x = c;
+    result.y = s;
+    return result;
+}
+
+// VERIFY: f1a8f83a manual
+// OFFSET: 0x004C1680
+C3Vector CRandom::C3Vector_(CRndSeed& seed) {
+    float z = CRandom::sfloat_(seed);
+    float angle = CRandom::ufloat_(seed) * 6.2831855f;
+    float r = sqrt(1.0f - z * z);
+    float c = cos(angle);
+    float s = sin(angle);
+
+    return C3Vector(c * r, r * s, z);
+}
+
+// VERIFY: 2db79c5a manual
+// OFFSET: 0x00982310
+float __stdcall CRandom::ufloat_(float range, CRndSeed& seed) {
+    return CRandom::ufloat_(seed) * range;
 }
