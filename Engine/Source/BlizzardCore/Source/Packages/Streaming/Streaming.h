@@ -11,6 +11,7 @@ extern bool s_streamingReady;
 extern bool s_isStreamingTrial;
 
 int32_t CheckFileRange(const char* path, int64_t offset, uint32_t count, const char* name, int32_t flags);
+uint32_t GetIsLocalAmount(const char* path, int64_t offset, uint32_t size, const char* name);
 bool IsStreamedFile(const char* path);
 bool IsStreamingMode();
 bool ScanDirectoryForManifest(const Blizzard::File::ProcessDirParms& parms);

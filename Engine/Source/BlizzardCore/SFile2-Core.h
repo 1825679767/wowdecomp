@@ -70,7 +70,8 @@ class SFile {
     static int32_t STORMAPI EnableDirectAccess(uint32_t flags);
     static int32_t STORMAPI FileExists(const char* name);
     static int32_t STORMAPI FileExistsEx(const char* name, uint32_t flags);
-    static int32_t STORMAPI FileGetIsLocalAmount(const char* name, int64_t& local, int64_t& total);
+    static int32_t STORMAPI FileExistsInArchives(const char* name);
+    static bool STORMAPI FileGetIsLocalAmount(const char* name, int64_t& local, int64_t& total);
     static int32_t STORMAPI FileIsLocal(const char* name, int32_t flags);
     static int32_t STORMAPI FileIsLocal(SFileImpl* file, int32_t flags);
     static int32_t STORMAPI GetActualFileName(SFileImpl* file, char* buffer, uint32_t size);

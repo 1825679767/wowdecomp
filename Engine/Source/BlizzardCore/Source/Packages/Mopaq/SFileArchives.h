@@ -248,6 +248,8 @@ namespace Mopaq {
 bool SFileCloseArchive(System_SFile::ARCHIVEREC* handle);
 bool SFileEnableDirectAccess(uint32_t enable);
 int32_t SFileFileExists(System_SFile::ARCHIVEREC* handle, const char* name, uint32_t flags, System_SFile::ARCHIVEREC** archiveOut);
+bool SFileGetFileDetails(System_SFile::ARCHIVEREC* handle, const char* name, System_SFile::ARCHIVEREC** archiveOut, int64_t* offset, uint32_t* size);
+bool SFileGetIsLocalAmount(const char* name, int64_t& local, int64_t& total);
 uint32_t SFileGetLastError();
 bool SFileOpenArchive(const char* path, int32_t priority, uint32_t flags, System_SFile::ARCHIVEREC** result);
 bool SFileOpenArchive(IOUnit* file, const char* name, int32_t priority, uint32_t flags, System_SFile::ARCHIVEREC** result);

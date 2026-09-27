@@ -1553,6 +1553,60 @@ int32_t Blizzard::Mopaq::SFileFileExists(System_SFile::ARCHIVEREC* handle, const
     return result;
 }
 
+// VERIFY: c8a17ac8 auto
+// OFFSET: 0x00460F00
+bool Blizzard::Mopaq::SFileGetFileDetails(System_SFile::ARCHIVEREC* handle, const char* name, System_SFile::ARCHIVEREC** archiveOut, int64_t* offset, uint32_t* size) {
+    Blizzard::Util::Digest<16> md5 = System_SFile::s_emptyMd5;
+    System_SFile::ARCHIVEREC* record = nullptr;
+    uint32_t blockIndex;
+
+    if (GetFileBlockEntry(handle, name, md5, 0, nullptr, &record, &blockIndex, nullptr, nullptr) != 1 || !archiveOut) {
+        return false;
+    }
+
+    System_SFile::BLOCKENTRY entry = record->GetBlockEntry(blockIndex);
+
+    if (offset) {
+        *offset = entry.m_offset;
+    }
+
+    if (size) {
+        *size = entry.m_compressedSize;
+    }
+
+    *archiveOut = record;
+
+    return true;
+}
+
+// VERIFY: eccb0185 auto
+// OFFSET: 0x00461040
+bool Blizzard::Mopaq::SFileGetIsLocalAmount(const char* name, int64_t& local, int64_t& total) {
+    System_SFile::ARCHIVEREC* archive = nullptr;
+    int64_t offset;
+    uint32_t size;
+
+    bool result = Blizzard::Mopaq::SFileGetFileDetails(nullptr, name, &archive, &offset, &size);
+
+    if (result) {
+        const char* path = archive->m_name;
+
+        if (Blizzard::Streaming::IsStreamedFile(path)) {
+            local += Blizzard::Streaming::GetIsLocalAmount(path, offset, size, name);
+        } else {
+            local += size;
+        }
+
+        total += size;
+
+        if (archive) {
+            archive->RemoveInternalArchiveRef();
+        }
+    }
+
+    return result;
+}
+
 // VERIFY: 2e816731 manual
 // OFFSET: 0x0042C680
 void System_SFile::ARCHIVEREC::SetMD5Check(uint32_t index, bool enabled) {

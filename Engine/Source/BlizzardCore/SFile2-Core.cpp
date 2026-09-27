@@ -115,6 +115,12 @@ int32_t STORMAPI SFile::EnableDirectAccess(uint32_t flags) {
     return 1;
 }
 
+// VERIFY: 94f59314 auto
+// OFFSET: 0x004217E0
+bool STORMAPI SFile::FileGetIsLocalAmount(const char* name, int64_t& local, int64_t& total) {
+    return Blizzard::Mopaq::SFileGetIsLocalAmount(name, local, total);
+}
+
 // VERIFY: eb299239 auto
 // OFFSET: 0x00421850
 int32_t STORMAPI SFile::GetActualFileName(SFileImpl* file, char* buffer, uint32_t size) {
@@ -471,9 +477,9 @@ bool System_SFile2::OldFindFile(const char* name, char* path, uint32_t size, uin
     return false;
 }
 
-// VERIFY: ad785843 auto
+// VERIFY: cd537558 auto
 // OFFSET: 0x00421FC0
-int32_t STORMAPI SFile::FileExists(const char* name) {
+int32_t STORMAPI SFile::FileExistsInArchives(const char* name) {
     int32_t result = Blizzard::Mopaq::SFileFileExists(nullptr, name, 0, nullptr);
 
     if (result) {
@@ -950,6 +956,15 @@ fail:
     *result = nullptr;
 
     return 0;
+}
+
+// VERIFY: 663ae688 auto
+// OFFSET: 0x00424E50
+int32_t STORMAPI SFile::FileExists(const char* name) {
+    char path[260];
+    uint32_t type;
+
+    return System_SFile2::FindFile(name, path, sizeof(path), 0, &type, nullptr);
 }
 
 // VERIFY: 6dee9c33 manual
