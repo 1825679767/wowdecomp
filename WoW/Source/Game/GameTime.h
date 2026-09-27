@@ -20,6 +20,11 @@ class CGameTime : public WowTime {
     /* 0044 */ float m_baseMinuteOfDay;
     /* 0048 */ float unk_0048;
     /* 004C */ float unk_004C;
+
+    float GameTimeGetDayProgression();
+    bool IsDaytime();
 };
+
+extern CGameTime g_clientGameTime;
 
 #endif

@@ -4,6 +4,19 @@
 #include <cstddef>
 #include <cstdint>
 
+class CGChat {
+    public:
+    static int32_t m_paused;
+
+    static int32_t GetActiveVoiceSession();
+    static const char* GetChannelStringForDisplay(int32_t session, int32_t* type);
+    static int32_t IsPaused();
+    static bool IsVoiceChatAllowed();
+    static void LeaveWorld();
+    static void Resume();
+    static void SetActiveVoiceSession(const char* channel, int32_t type, int32_t index);
+};
+
 class PENDINGCHAT {
     public:
     /* 0000 */ uint32_t unk_0000;

@@ -8,6 +8,8 @@
 
 class CGItem_C : public CGObject_C, public CGItem {
     public:
+    static int32_t IsMetal(int32_t materialId);
+
     /* 00D8 */ void* unk_00D8;
     /* 00DC */ uint32_t unk_00DC [192];
     /* 03DC */ uint8_t unk_03DC [4];

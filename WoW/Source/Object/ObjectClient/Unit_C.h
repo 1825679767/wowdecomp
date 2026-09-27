@@ -197,6 +197,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0F68 */ uint32_t m_objectclass1 [38];
     /* 1000 */ uint32_t unk_1000;
     /* 1004 */ uint8_t unk_1004 [4];
+
+    bool IsActivePlayer();
 };
 
 class CAnimKitManager {

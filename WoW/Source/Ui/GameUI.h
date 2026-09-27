@@ -8,7 +8,14 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "WoW/Source/Object/WGUID.h"
 
-class CGGameUI;
+class CGGameUI {
+    public:
+    static int32_t m_initialized;
+    static int32_t m_inMovie;
+
+    static int32_t CameraMusicIsPlaying();
+    static int32_t SequenceMusicIsPlaying();
+};
 
 class CSpriteClickEvent {
     public:

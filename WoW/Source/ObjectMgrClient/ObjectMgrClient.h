@@ -45,4 +45,6 @@ class ObjectMgr {
     /* 00D4 */ CMovementGlobals* m_movementGlobal;
 };
 
+uint64_t ClntObjMgrGetActivePlayer();
+
 #endif

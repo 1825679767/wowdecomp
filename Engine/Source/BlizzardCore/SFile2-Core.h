@@ -71,6 +71,7 @@ class SFile {
     static int32_t STORMAPI FileExists(const char* name);
     static int32_t STORMAPI FileExistsEx(const char* name, uint32_t flags);
     static int32_t STORMAPI FileGetIsLocalAmount(const char* name, int64_t& local, int64_t& total);
+    static int32_t STORMAPI FileIsLocal(const char* name, int32_t flags);
     static int32_t STORMAPI FileIsLocal(SFileImpl* file, int32_t flags);
     static int32_t STORMAPI GetActualFileName(SFileImpl* file, char* buffer, uint32_t size);
     static int32_t STORMAPI GetBasePath(char* path, uint32_t size);
@@ -80,6 +81,7 @@ class SFile {
     static int32_t IsStreamingMode();
     static int32_t IsTrial();
     static int32_t STORMAPI LoadFile(const char* name, void** data, uint32_t* size, uint32_t extra, SOVERLAPPED* overlapped);
+    static int32_t STORMAPI MakeFileLocal(const char* name, int32_t priority, bool wait);
     static int32_t STORMAPI MakeFileLocal(SFileImpl* file, int32_t priority, bool wait);
     static int32_t STORMAPI OpenArchive(const char* path, int32_t priority, uint32_t flags, SArchive** archive);
     static int32_t STORMAPI OpenEx(SArchive* archive, const char* name, uint32_t flags, SFileImpl** result);

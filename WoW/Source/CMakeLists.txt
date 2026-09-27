@@ -59,6 +59,7 @@ target_link_libraries(Wow
         Object
         ObjectAlloc
         ObjectMgrClient
+        SoundInterface
         UIUtil
         Ui
         WorldClient
