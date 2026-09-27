@@ -244,6 +244,7 @@
 #include "WoW/Source/DB/Rec/gtRegenHPPerSptRec.h"
 #include "WoW/Source/DB/Rec/gtRegenMPPerSptRec.h"
 
+extern const char* g_localeNames[12];
 extern WowClientDB<AchievementRec> g_achievementDB;
 extern WowClientDB<Achievement_CriteriaRec> g_achievement_CriteriaDB;
 extern WowClientDB<Achievement_CategoryRec> g_achievement_CategoryDB;
@@ -493,5 +494,7 @@ void InitResistances();
 void InitTerrainTypeFlags();
 void InitWeaponSubclasses();
 void SDBItemSubclassInitialize();
+
+int32_t LocaleNameToIndex(const char* locale);
 
 #endif

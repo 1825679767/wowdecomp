@@ -229,6 +229,7 @@ extern Blizzard::Lock::Atomic s_nextArchiveId;
 extern uint32_t s_lastError;
 
 bool CheckFileExistsOnDisk(const char* name, uint32_t flags, char* result);
+void ClearAllFileFlags();
 void ConvertRelativePathName(const char* path, char* result);
 uint32_t FindBlockEntry(ARCHIVEREC* archive, const Blizzard::Util::Digest<16>& md5, bool* deleted);
 ARCHIVEREC* GetArchivePtr(ARCHIVEREC* handle, bool addRef);
@@ -255,6 +256,9 @@ bool SFileOpenArchive(const char* path, int32_t priority, uint32_t flags, System
 bool SFileOpenArchive(IOUnit* file, const char* name, int32_t priority, uint32_t flags, System_SFile::ARCHIVEREC** result);
 bool SFileOpenArchiveView(System_SFile::ARCHIVEREC* handle, const char* name, int32_t priority, System_SFile::ARCHIVEREC** result);
 bool SFileSetBasePath(const char* path);
+bool SetFileSignature(const char* name, const Blizzard::Util::Digest<16>& md5);
+void SetMd5Callback(bool (*callback)(void* context, const uint8_t* md5));
+void SetMd5Mode(uint32_t mode);
 
 }
 }

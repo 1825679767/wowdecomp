@@ -1,5 +1,9 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "Engine/Source/Storm/H/storm.h"
+
+// STATIC: 0x00AD3028
+const char* g_localeNames[12] = { "deDE", "enGB", "enUS", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU" };
 
 // STATIC: 0x00C5DEA0
 int32_t g_clientDbPerformCompress;
@@ -988,4 +992,16 @@ void ClientDBInitialize() {
     InitWeaponSubclasses();
     SDBItemSubclassInitialize();
     InitLights(1);
+}
+
+// VERIFY: 144a65d1 auto
+// OFFSET: 0x00635D90
+int32_t LocaleNameToIndex(const char* locale) {
+    for (int32_t i = 0; i < 12; i++) {
+        if (!SStrCmpI(locale, g_localeNames[i], 4)) {
+            return i;
+        }
+    }
+
+    return 2;
 }

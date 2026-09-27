@@ -32,7 +32,7 @@ static uint32_t s_primVertsPerPrim[GxPrims_Last] = { 1, 2, 1, 3, 1, 1 };
 static uint32_t s_primVertsExtra[GxPrims_Last] = { 0, 0, 1, 0, 2, 2 };
 
 // STATIC: 0x00AD87C4
-static const char* s_formatToInt[CGxFormat::Formats_Last] = { "16", "24", "24", "30", "16", "24", "24", "32" };
+const char* s_formatToInt[CGxFormat::Formats_Last] = { "16", "24", "24", "30", "16", "24", "24", "32" };
 
 // STATIC: 0x00AD87FC
 const char* CGxDevice::s_pixelShaderTargetNames[14] = { "none", "ps_1_1", "ps_1_4", "ps_2_0", "ps_3_0", "ps_4_0", "ps_5_0", "nvrc", "nvts", "nvts2", "nvts3", "nvfp2", "arbfp1", "glsl" };

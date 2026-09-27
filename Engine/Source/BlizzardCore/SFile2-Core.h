@@ -39,6 +39,14 @@ struct SFileLock {
     ~SFileLock();
 };
 
+struct SFileStreamingStatus {
+    /* 0000 */ bool m_enabled;
+    /* 0001 */ bool m_initialized;
+    /* 0002 */ bool m_flag2;
+    /* 0003 */ bool m_flag3;
+    /* 0004 */ uint32_t m_build;
+};
+
 class SFileImpl {
     public:
     /* 0000 */ uint32_t m_type;
@@ -60,6 +68,8 @@ class SFileImpl {
 
 class SFile {
     public:
+    static uint32_t s_locale;
+
     static char m_basePath[260];
 
     static int32_t STORMAPI CloseArchive(SArchive* archive);
@@ -80,7 +90,9 @@ class SFile {
     static const char* GetErrorDetails();
     static int32_t Initialize();
     static int32_t IsStreamingMode();
+    static int32_t InitializeStreaming(const char* mfilPath);
     static int32_t IsTrial();
+    static void SetStreamingStatus(bool enabled, bool initialized, bool flag2, bool flag3, uint32_t build);
     static int32_t STORMAPI LoadFile(const char* name, void** data, uint32_t* size, uint32_t extra, SOVERLAPPED* overlapped);
     static int32_t STORMAPI MakeFileLocal(const char* name, int32_t priority, bool wait);
     static int32_t STORMAPI MakeFileLocal(SFileImpl* file, int32_t priority, bool wait);
@@ -155,5 +167,11 @@ int32_t STORMAPI SFileCloseFile(SFileImpl* file);
 uint32_t STORMAPI SFileGetFileSize(SFileImpl* file, uint32_t* sizeHigh);
 int32_t STORMAPI SFileOpenFile(const char* name, SFileImpl** result);
 int32_t STORMAPI SFileReadFile(SFileImpl* file, void* buffer, uint32_t count, uint32_t* bytesRead, SOVERLAPPED* overlapped, uint32_t unused);
+
+class MD5;
+
+void SFileClearAllFileFlags();
+int32_t STORMAPI SFileSetFileBlockEntryMD5(const char* name, const MD5& md5);
+void STORMAPI SFileSetSignatureCallbacks(int32_t enable);
 
 #endif

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/FFX/FFX.h"
 
-class EffectDeath : public Effect {
+class EffectDeath : public FFX::Effect {
     public:
 };
 

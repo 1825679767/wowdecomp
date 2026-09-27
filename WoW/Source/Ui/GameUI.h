@@ -10,10 +10,15 @@
 
 class CGGameUI {
     public:
+    static uint64_t m_currentObjectTrack;
+    static uint64_t m_interactTarget;
+    static uint64_t m_lockedTarget;
+    static uint64_t m_lastEnemyTarget;
     static int32_t m_initialized;
     static int32_t m_inMovie;
 
     static int32_t CameraMusicIsPlaying();
+    static uint64_t GetCursorItem();
     static int32_t SequenceMusicIsPlaying();
 };
 

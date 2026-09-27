@@ -17,6 +17,13 @@
 #include "Engine/Source/BlizzardCore/Source/System/String/String.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Util/Hash.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Storm/Source/MD5.h"
+
+// STATIC: 0x00B32038
+static SFileStreamingStatus s_streamingStatus;
+
+// STATIC: 0x00B38CD0
+uint32_t SFile::s_locale;
 
 // STATIC: 0x00B32360
 char SFile::m_basePath[260];
@@ -248,10 +255,40 @@ int32_t STORMAPI SFile::SetDataPathAlternate(const char* path) {
     return 1;
 }
 
+// VERIFY: 907b61ab auto
+// OFFSET: 0x004220B0
+void SFile::SetStreamingStatus(bool enabled, bool initialized, bool flag2, bool flag3, uint32_t build) {
+    if (enabled) {
+        s_streamingStatus.m_enabled = enabled;
+    }
+
+    if (initialized) {
+        s_streamingStatus.m_initialized = initialized;
+    }
+
+    if (flag2) {
+        s_streamingStatus.m_flag2 = flag2;
+    }
+
+    if (flag3) {
+        s_streamingStatus.m_flag3 = flag3;
+    }
+
+    if (build) {
+        s_streamingStatus.m_build = build;
+    }
+}
+
 // VERIFY: 3e9c3828 auto
 // OFFSET: 0x00422130
 int32_t SFile::IsStreamingMode() {
     return Blizzard::Streaming::IsStreamingMode();
+}
+
+// VERIFY: 1ca1039f auto
+// OFFSET: 0x00422140
+int32_t SFile::IsTrial() {
+    return CheckIfStreamingAndTrial();
 }
 
 void STORMAPI SFile::SetFilePriority(SFileImpl* file, int32_t urgent, int32_t unused) {
@@ -261,6 +298,51 @@ void STORMAPI SFile::SetFilePriority(SFileImpl* file, int32_t urgent, int32_t un
 // OFFSET: 0x00422500
 void STORMAPI SFile::SetReadFatal(bool fatal) {
     static_cast<System_SFile2::SFileFatalInfo&>(System_SFile2::s_fatalInfo).m_fatal = fatal;
+}
+
+// VERIFY: 2e630486 auto
+// OFFSET: 0x00422160
+void SFileClearAllFileFlags() {
+    System_SFile::ClearAllFileFlags();
+}
+
+// VERIFY: 3a32b432 auto
+// OFFSET: 0x00422170
+int32_t STORMAPI SFileSetFileBlockEntryMD5(const char* name, const MD5& md5) {
+    Blizzard::Util::Digest<16> digest;
+    md5.ToArray(reinterpret_cast<uint8_t*>(&digest));
+    return Blizzard::Mopaq::SetFileSignature(name, digest) != 0;
+}
+
+// VERIFY: ddd0a117 auto
+// OFFSET: 0x004223C0
+static bool VerifyArchiveSignature(void* context, const uint8_t* md5) {
+    IOMpqUnit* unit = static_cast<IOMpqUnit*>(context);
+
+    if (!unit) {
+        return false;
+    }
+
+    bool result = true;
+
+    if (*unit->GetMd5() != *reinterpret_cast<const Blizzard::Util::Digest<16>*>(md5)) {
+        SErrDisplayError(0x85100083, unit->GetName(), -4, nullptr, 0, 1, 0x11111111);
+        result = false;
+    }
+
+    unit->DisableMd5Check();
+
+    return result;
+}
+
+// VERIFY: f2ff971e auto
+// OFFSET: 0x00422420
+void STORMAPI SFileSetSignatureCallbacks(int32_t enable) {
+    Blizzard::Mopaq::SetMd5Mode(enable);
+
+    if (enable) {
+        Blizzard::Mopaq::SetMd5Callback(VerifyArchiveSignature);
+    }
 }
 
 // VERIFY: be859ae3 auto

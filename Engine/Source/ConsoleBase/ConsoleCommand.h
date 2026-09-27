@@ -22,12 +22,15 @@ struct CONSOLECOMMAND : public TSHashObject<CONSOLECOMMAND, HASHKEY_CONSTSTRI> {
 };
 
 extern char g_commandHistory[32][1024];
+extern int32_t s_execState;
 extern uint32_t g_commandHistoryIndex;
 extern COMMANDHANDLER g_defaultCommand;
 extern TSHashTable<CONSOLECOMMAND, HASHKEY_CONSTSTRI> g_consoleCommandHash;
 
 int32_t ConsoleCommandComplete(const char* partial, const char** previous, int32_t direction);
 void ConsoleCommandDestroy();
+int32_t AddLineToExecFile(const char* line);
+void AddToHistory(const char* command);
 const char* ConsoleCommandHistory(uint32_t index);
 int32_t ConsoleCommandRegister(const char* command, COMMANDHANDLER handler, CATEGORY category, const char* helpText);
 void ConsoleCommandUnregister(const char* command);

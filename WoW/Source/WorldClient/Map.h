@@ -9,6 +9,7 @@
 #include "Engine/Source/Tempest/CImVector.h"
 
 struct CMapArea;
+class CMapEntity;
 
 class CGxVertexPC {
     public:
@@ -60,6 +61,8 @@ class CMap {
     public:
     /* 0000 */ uint8_t unk_0000[180];
     /* 00B4 */ uint32_t unk_00B4;
+
+    static void QueryAreaId(CMapEntity* entity, uint32_t& areaId);
 };
 
 class CMapAreaLow {

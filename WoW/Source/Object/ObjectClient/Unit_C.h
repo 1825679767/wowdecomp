@@ -100,8 +100,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0A14 */ uint32_t m_dataA14;
     /* 0A18 */ uint32_t m_dataA18;
     /* 0A1C */ uint32_t m_dataA1C;
-    /* 0A20 */ uint32_t m_dataA20;
-    /* 0A24 */ uint32_t m_dataA24;
+    /* 0A20 */ uint64_t m_dataA20;
     /* 0A28 */ uint32_t m_dataA28;
     /* 0A2C */ uint32_t m_dataA2C;
     /* 0A30 */ uint32_t unk_0A30;

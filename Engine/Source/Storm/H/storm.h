@@ -180,6 +180,7 @@ extern int32_t g_memFullError;
 void* STORMAPI SMemAlloc(size_t bytes, const char* filename, int32_t linenumber, uint32_t flags);
 int32_t STORMAPI SMemDestroy();
 int32_t STORMAPI SMemFree(void* ptr, const char* filename, int32_t linenumber, uint32_t flags);
+int32_t STORMAPI SMemIsValidPointer(void* ptr, size_t bytes, uint32_t flags);
 void STORMAPI SMemInitialize();
 void* STORMAPI SMemReAlloc(void* ptr, size_t bytes, const char* filename, int32_t linenumber, uint32_t flags);
 void STORMAPI SMemSetDebugFlags(uint32_t flags, uint8_t changeMask);

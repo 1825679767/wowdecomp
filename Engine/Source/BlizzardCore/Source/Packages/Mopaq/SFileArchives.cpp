@@ -9,6 +9,7 @@
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SComp.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SFile.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SFileArchives.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SFileSignatures.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Util/Hash.h"
 #include "Engine/Source/BlizzardCore/Source/System/Debug/Debug.h"
@@ -1822,4 +1823,74 @@ bool Blizzard::Mopaq::SFileOpenArchiveView(System_SFile::ARCHIVEREC* handle, con
     *result = view;
 
     return true;
+}
+
+// OFFSET: 0x0045C920
+void System_SFile::ClearAllFileFlags() {
+    Blizzard::Lock::ScopedMutex lock(System_MPQGlobals::GetArchiveLock()->m_mutex);
+    System_MPQGlobals::ArchiveList* list = System_MPQGlobals::GetArchiveList();
+
+    for (System_MPQGlobals::ArchiveList::iterator it = list->begin(); it != list->end(); ++it) {
+        ARCHIVEREC* archive = *it;
+
+        if (archive->m_parent) {
+            continue;
+        }
+
+        Blizzard::Lock::MutexEnter(archive->m_mutex.m_mutex);
+        archive->InitializeTables();
+
+        for (uint32_t i = 0; i < archive->m_header.m_blockTableSize; i++) {
+            archive->SetMD5Check(i, false);
+        }
+
+        Blizzard::Lock::MutexLeave(archive->m_mutex.m_mutex);
+    }
+}
+
+// VERIFY: 7a6180d9 auto
+// OFFSET: 0x004541B0
+void Blizzard::Mopaq::SetMd5Mode(uint32_t mode) {
+    System_MPQGlobals::GetMopaqGlobals()->m_md5Mode = mode;
+}
+
+// VERIFY: d84644e2 auto
+// OFFSET: 0x004541D0
+void Blizzard::Mopaq::SetMd5Callback(bool (*callback)(void* context, const uint8_t* md5)) {
+    System_MPQGlobals::GetMopaqGlobals()->m_md5Callback = callback;
+}
+
+// OFFSET: 0x00461180
+bool Blizzard::Mopaq::SetFileSignature(const char* name, const Blizzard::Util::Digest<16>& md5) {
+    Blizzard::Util::Digest<16> empty = System_SFile::s_emptyMd5;
+    System_SFile::ARCHIVEREC* record = nullptr;
+    uint32_t blockIndex;
+
+    if (GetFileBlockEntry(nullptr, name, empty, 0, nullptr, &record, &blockIndex, nullptr, nullptr) != 1) {
+        if (record) {
+            record->RemoveInternalArchiveRef();
+        }
+
+        return false;
+    }
+
+    System_SFile::ArchivePtr archive(System_SFile::GetArchivePtr(record, true));
+
+    if (archive.m_archive) {
+        Blizzard::Lock::MutexEnter(archive.m_archive->m_mutex.m_mutex);
+    }
+
+    archive.m_locked = true;
+
+    bool result = System_SFile::s_signatures.SetSignature(name, md5);
+
+    if (result) {
+        archive.m_archive->SetMD5Check(blockIndex, true);
+    }
+
+    if (record) {
+        record->RemoveInternalArchiveRef();
+    }
+
+    return result;
 }

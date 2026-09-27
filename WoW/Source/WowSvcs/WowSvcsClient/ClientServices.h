@@ -9,7 +9,8 @@ struct RealmInfo {
     /* 0000 */ uint32_t m_id;
     /* 0004 */ uint8_t m_type;
     /* 0005 */ uint8_t m_flags;
-    /* 0006 */ char m_realmName [288];
+    /* 0006 */ char m_realmName [256];
+    /* 0106 */ char m_realmAddress [32];
     /* 0126 */ uint8_t unk_0126[2];
     /* 0128 */ float m_population;
     /* 012C */ uint8_t m_numCharacters;
@@ -23,6 +24,12 @@ struct RealmInfo {
     /* 0143 */ uint8_t m_versionRevision;
     /* 0144 */ uint16_t m_versionBuild;
     /* 0146 */ uint8_t unk_0146[2];
+};
+
+struct CLIENTCDKEY {
+    /* 0000 */ uint16_t m_length;
+    /* 0002 */ uint8_t unk_0002[2];
+    /* 0004 */ uint8_t m_key[28];
 };
 
 class ClientServices {
@@ -42,6 +49,10 @@ class ClientServices {
     /* 2F5B */ uint8_t unk_2F5B[1];
     /* 2F5C */ uint32_t unk_2F5C;
     /* 2F60 */ uint8_t unk_2F60[11872];
+
+    static RealmInfo* GetSelectedRealm();
+    static void InitLoginServerCVars(int32_t overwrite, const char* locale);
+    static void LoadCDKey();
 };
 
 #endif

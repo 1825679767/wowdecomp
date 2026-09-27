@@ -19,6 +19,8 @@ class CONSOLELINE : public TSLinkedNode<CONSOLELINE> {
     /* 0018 */ uint32_t m_inputstart;
     /* 001C */ COLOR_T m_colorType;
     /* 0020 */ CGxString* m_fontPointer;
+
+    ~CONSOLELINE();
 };
 
 #endif

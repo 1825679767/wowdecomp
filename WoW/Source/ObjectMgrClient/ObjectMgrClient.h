@@ -46,5 +46,7 @@ class ObjectMgr {
 };
 
 uint64_t ClntObjMgrGetActivePlayer();
+int32_t ClntObjMgrIsValid(int32_t a1);
+CGObject_C* ClntObjMgrObjectPtr(WOWGUID guid, TypeMask mask, const char* fileName, int32_t lineNumber);
 
 #endif

@@ -38,3 +38,17 @@ bool System_SFile::SignatureTable::GetSignature(const char* name, Blizzard::Util
 
     return this->Get(key, md5);
 }
+
+// OFFSET: 0x0043AB40
+bool System_SFile::SignatureTable::SetSignature(const char* name, const Blizzard::Util::Digest<16>& md5) {
+    char lower[260];
+    Blizzard::String::Copy(lower, name, sizeof(lower));
+
+    for (char* p = lower; *p; p++) {
+        *p = static_cast<char>(tolower(*p));
+    }
+
+    SignatureKey key(lower);
+
+    return this->Insert(key, md5);
+}

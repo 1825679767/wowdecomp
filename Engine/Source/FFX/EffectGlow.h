@@ -5,13 +5,17 @@
 #include <cstdint>
 #include "Engine/Source/FFX/FFX.h"
 
-class EffectGlow : public Effect {
+class EffectGlow : public FFX::Effect {
     public:
-    /* 001C */ uint32_t unk_001C;
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint32_t unk_0024;
-    /* 0028 */ uint32_t unk_0028;
-    /* 002C */ uint32_t unk_002C;
+    /* 001C */ TSGrowableArray<FFX::Pass*> m_altPasses;
+    /* 002C */ int32_t m_mode;
+
+    virtual ~EffectGlow();
+    virtual bool Valid();
+    virtual void Execute();
+    virtual void SetParameters(int32_t count, const int32_t* params);
+
+    EffectGlow();
 };
 
 #endif

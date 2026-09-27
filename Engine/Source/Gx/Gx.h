@@ -136,6 +136,7 @@ void GxXformViewport(float& minX, float& maxX, float& minY, float& maxY, float& 
 void GxXformViewProj(C44Matrix& matrix);
 void GxXformViewProjNativeTranspose(C44Matrix& matrix);
 int32_t GxApiSupported(EGxApi api);
+EGxApi GxDefaultApi();
 uint32_t GxCalcTexelStrideInBytes(EGxTexFormat format, uint32_t width);
 uint32_t GxVertexAttribOffset(EGxVertexBufferFormat format, EGxVertexAttrib attrib);
 uint32_t GxVertexSize(EGxVertexBufferFormat format);

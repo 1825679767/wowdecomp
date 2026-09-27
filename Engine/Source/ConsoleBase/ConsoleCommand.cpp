@@ -5,6 +5,12 @@
 #include "Engine/Source/ConsoleBase/IConsole.h"
 #include "Engine/Source/Storm/H/storm.h"
 
+// STATIC: 0x00ADBD48
+int32_t s_execState = 4;
+
+// STATIC: 0x00CA1A28
+static char s_execBuffer[0x2000];
+
 // STATIC: 0x00CA3A28
 char g_commandHistory[32][1024];
 
@@ -265,4 +271,50 @@ void ConsoleInitializeClientCommand() {
     ConsoleCommandRegister("quit", ConsoleCommand_Quit, CATEGORY_DEFAULT, nullptr);
     ConsoleCommandRegister("ver", ConsoleCommand_Ver, CATEGORY_DEFAULT, nullptr);
     ConsoleCommandRegister("setmap", ConsoleCommand_SetMap, CATEGORY_DEFAULT, nullptr);
+}
+
+// VERIFY: e5a78592 auto
+// OFFSET: 0x0076B2A0
+int32_t AddLineToExecFile(const char* line) {
+    if (!s_execState) {
+        if (*line == 'n') {
+            ConsoleWrite("Canceled File Creation", ECHO_COLOR);
+            s_execState = 4;
+            return 0;
+        }
+
+        if (*line == 'y') {
+            ConsoleWrite("Begin Typing the commands", ECHO_COLOR);
+            s_execState = 1;
+            return 0;
+        }
+
+        ConsoleWrite("You must type 'y' to confirm overwrite. Process aborted!", ERROR_COLOR);
+        s_execState = 4;
+        return 0;
+    }
+
+    if (!SStrCmpI(line, "end", STORM_MAX_STR)) {
+        if (s_execState != 2) {
+            s_execState = 3;
+        }
+
+        return 1;
+    }
+
+    char text[260];
+    SStrPrintf(text, sizeof(text), "%s\n", line);
+
+    if (sizeof(s_execBuffer) - 1 - SStrLen(s_execBuffer) != SStrLen(text)) {
+        SStrPack(s_execBuffer, text, sizeof(s_execBuffer));
+    }
+
+    return 0;
+}
+
+// VERIFY: 92bdf171 auto
+// OFFSET: 0x0076B3B0
+void AddToHistory(const char* command) {
+    SStrCopy(g_commandHistory[g_commandHistoryIndex], command, sizeof(g_commandHistory[0]));
+    g_commandHistoryIndex = (g_commandHistoryIndex + 1) & 31;
 }

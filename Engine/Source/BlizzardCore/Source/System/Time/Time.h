@@ -34,6 +34,7 @@ namespace Time {
 
 void BreakTime(Timestamp time, TimeRec& rec);
 Timestamp FromFileTime(uint64_t fileTime);
+void GetElapsedSinceStart(bool start);
 Timestamp GetTimestamp();
 Timestamp MakeTime(const TimeRec& rec);
 int64_t Milliseconds();
