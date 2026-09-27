@@ -8,6 +8,8 @@ class CEvent : public TRefCnt {
     public:
     /* 0008 */ uint32_t m_id;
     /* 000C */ void* m_param;
+
+    CEvent();
 };
 
 #endif

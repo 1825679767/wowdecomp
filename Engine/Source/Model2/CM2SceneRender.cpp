@@ -694,7 +694,7 @@ void CM2SceneRender::DrawBatchDoodad(M2Element* elements, uint32_t* indices) {
     }
 }
 
-// VERIFY: 45506655 manual
+// VERIFY: 96d74aec manual
 // OFFSET: 0x00820F40
 void CM2SceneRender::DrawRibbon() {
     DebugLog("Ribbon: model=%s index=%d", this->m_curModel->m_shared->m_fileNameWithoutPath, this->m_curElement->m_index);
@@ -728,7 +728,7 @@ void CM2SceneRender::RenderBatchedParticle(CParticleEmitter2* emitter, CGxBuf* b
     CParticleEmitter2::RenderParticleVertices(buf, format, vertexCount, indexCount);
 }
 
-// VERIFY: e4a9f53c manual
+// VERIFY: daac5218 manual
 // OFFSET: 0x00821100
 uint32_t CM2SceneRender::DrawBatchedParticle(uint32_t index, M2Element* elements, uint32_t* indices, uint32_t count) {
     uint32_t* first = &indices[index];
@@ -842,7 +842,7 @@ uint32_t CM2SceneRender::DrawBatchedParticle(uint32_t index, M2Element* elements
     return batched - 1;
 }
 
-// VERIFY: d92a569e manual
+// VERIFY: 42544066 manual
 // OFFSET: 0x008214E0
 uint32_t CM2SceneRender::DrawParticle(uint32_t index, M2Element* elements, uint32_t* indices, uint32_t count) {
     CParticleEmitter2* emitter = this->m_curElement->m_emitter;

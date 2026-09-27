@@ -8,6 +8,7 @@
 #include "Engine/Source/Base/Coordinate.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/Base/Status.h"
+#include "Engine/Source/Frame/CSimpleAnimGroup.h"
 #include "Engine/Source/Frame/CSimpleRender.h"
 #include "Engine/Source/Frame/CSimpleTexture.h"
 #include "Engine/Source/FrameXML/XMLTree.h"
@@ -792,6 +793,18 @@ CSimpleFontString* LoadXML_String(XMLNode* node, CSimpleFrame* frame, CStatus* s
     string->PostLoadXML(node, status);
 
     return string;
+}
+
+// VERIFY: 8282815a manual
+// OFFSET: 0x00816000
+CSimpleAnimGroup* LoadXML_AnimGroup(XMLNode* node, CScriptRegion* region, CStatus* status) {
+    CSimpleAnimGroup* group = new CSimpleAnimGroup(region);
+
+    group->PreLoadXML(node, status);
+    group->LoadXML(node, status);
+    group->PostLoadXML(node, status);
+
+    return group;
 }
 
 // VERIFY: 644cec26 auto

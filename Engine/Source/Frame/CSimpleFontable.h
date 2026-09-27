@@ -6,7 +6,7 @@
 #include "Engine/Source/Storm/H/stpl.h"
 
 class CSimpleFont;
-class CSimpleFontable;
+class CSimpleFontStringAttributes;
 
 class CSimpleFontable {
     public:
@@ -15,6 +15,10 @@ class CSimpleFontable {
     /* 000C */ TSLink<CSimpleFontable> m_fontableLink;
 
     virtual ~CSimpleFontable();
+    virtual void FontObjectUpdated(CSimpleFontStringAttributes& attributes) = 0;
+
+    CSimpleFontable();
+    void SetFontObject(CSimpleFont* font);
 };
 
 #endif

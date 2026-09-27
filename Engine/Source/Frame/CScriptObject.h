@@ -19,8 +19,8 @@ class CScriptObject : public FrameScript_Object {
 
     virtual ~CScriptObject();
     virtual const char* GetName();
-    virtual bool IsA(int32_t type);
     virtual CScriptObject* GetScriptObjectParent() = 0;
+    virtual bool IsA(int32_t type);
     virtual bool IsA(const char* typeName);
     virtual const char* GetObjectTypeName();
 

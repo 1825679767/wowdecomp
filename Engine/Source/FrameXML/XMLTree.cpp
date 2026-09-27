@@ -161,7 +161,6 @@ XMLNode::~XMLNode() {
     }
 }
 
-// VERIFY: c8b1abf3 manual
 // INLINED
 void* XMLNode::operator new(size_t bytes) noexcept {
     return XMLNode::s_allocator.GetData(0, typeid(XMLNode).raw_name(), SLOG_OBJECT);

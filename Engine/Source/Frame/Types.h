@@ -34,6 +34,26 @@ enum FRAME_STRATA {
     FRAME_STRATA_TOOLTIP = 8,
 };
 
+enum CSimpleButtonState {
+    BUTTONSTATE_DISABLED = 0,
+    BUTTONSTATE_NORMAL = 1,
+    BUTTONSTATE_PUSHED = 2,
+    NUM_BUTTONSTATES = 3,
+};
+
+enum TextureImageMode {
+    ImageMode_Normal = 0,
+    ImageMode_Desaturate = 1,
+};
+
+enum HTML_TEXT_TYPE {
+    HTML_TEXT_NORMAL = 0,
+    HTML_TEXT_HEADER1 = 1,
+    HTML_TEXT_HEADER2 = 2,
+    HTML_TEXT_HEADER3 = 3,
+    NUM_HTML_TEXT_TYPES = 4,
+};
+
 enum ORIENTATION {
     ORIENTATION_HORIZONTAL = 0,
     ORIENTATION_VERTICAL = 1,
@@ -71,6 +91,13 @@ class CScriptRegionAnimGroupNode {
     /* 0008 */ void* m_group;
 };
 
+enum MOVERESIZE_REASON {
+    MOVERESIZE_REASON_NONE = 0,
+    MOVERESIZE_REASON_LAYOUT = 1,
+    MOVERESIZE_REASON_TITLE = 2,
+    MOVERESIZE_REASON_SCRIPT = 3,
+};
+
 enum CSimpleEventType {
     SIMPLE_EVENT_CHAR = 0,
     SIMPLE_EVENT_KEY = 1,
@@ -80,8 +107,7 @@ enum CSimpleEventType {
     NUM_SIMPLE_EVENTS = 5,
 };
 
-struct SIMPLEFRAMENODE {
-    /* 0000 */ TSLink<SIMPLEFRAMENODE> m_link;
+struct SIMPLEFRAMENODE : public TSLinkedNode<SIMPLEFRAMENODE> {
     /* 0008 */ CSimpleFrame* m_frame;
 };
 

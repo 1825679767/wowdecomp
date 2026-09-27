@@ -37,12 +37,12 @@ static int32_t Script_IsProtected(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 8c3b6fb4 auto
+// VERIFY: 8bcf8745 auto
 // OFFSET: 0x0049CB60
 static int32_t Script_CanChangeProtectedState(lua_State* L) {
     CScriptRegion* region = static_cast<CScriptRegion*>(FrameScript_GetObjectThis(L, CScriptRegion::GetObjectType()));
 
-    if (!region->IsProtected() || CSimpleTop::s_instance->unk_124C) {
+    if (!region->IsProtected() || CSimpleTop::s_instance->m_allowProtectedActions) {
         lua_pushnumber(L, 1.0);
     } else {
         lua_pushnil(L);
@@ -51,14 +51,14 @@ static int32_t Script_CanChangeProtectedState(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 10b8693c manual
+// VERIFY: 2ca75d21 manual
 // OFFSET: 0x0049CBD0
 static int32_t Script_SetParent(lua_State* L) {
     CScriptRegion* region = static_cast<CScriptRegion*>(FrameScript_GetObjectThis(L, CScriptRegion::GetObjectType()));
 
     if (!region->ProtectedFunctionsAllowed()) {
-        if (CSimpleTop::s_instance->unk_1254) {
-            CSimpleTop::s_instance->unk_1254(region);
+        if (CSimpleTop::s_instance->m_actionBlockedCallback) {
+            CSimpleTop::s_instance->m_actionBlockedCallback(region);
             return 0;
         }
 
@@ -77,10 +77,12 @@ static int32_t Script_SetParent(lua_State* L) {
 
             if (!parent) {
                 luaL_error(L, "%s:SetParent(): Couldn't find 'this' in parent object", region->GetDisplayName());
+                return 0;
             }
 
             if (!parent->IsA(CSimpleFrame::GetObjectType())) {
                 luaL_error(L, "%s:SetParent(): Wrong parent object type, expected Frame", region->GetDisplayName());
+                return 0;
             }
         }
 
@@ -90,6 +92,7 @@ static int32_t Script_SetParent(lua_State* L) {
                     const char* parentName = parent->GetName();
                     const char* regionName = region->GetName();
                     luaL_error(L, "%s:SetParent(): Would create a loop parenting to %s", regionName ? regionName : "<unnamed>", parentName ? parentName : "<unnamed>");
+                    return 0;
                 }
             }
 
@@ -99,11 +102,13 @@ static int32_t Script_SetParent(lua_State* L) {
 
         const char* name = region->GetName();
         luaL_error(L, "%s:SetParent(): Couldn't find region named '%s'", name ? name : "<unnamed>", lua_tolstring(L, 2, nullptr));
+        return 0;
     }
 
     if (region->IsA(CSimpleFontString::GetObjectType()) || region->IsA(CSimpleTexture::GetObjectType())) {
         const char* name = region->GetName();
         luaL_error(L, "%s:SetParent(): Cannot set a 'nil' parent for fonts or textures", name ? name : "<unnamed>");
+        return 0;
     }
 
     region->SetParent(nullptr);
@@ -262,14 +267,14 @@ static int32_t Script_GetWidth(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 5c164f86 manual
+// VERIFY: 0f79f03a manual
 // OFFSET: 0x0049D480
 static int32_t Script_SetWidth(lua_State* L) {
     CScriptRegion* region = static_cast<CScriptRegion*>(FrameScript_GetObjectThis(L, CScriptRegion::GetObjectType()));
 
     if (!region->ProtectedFunctionsAllowed()) {
-        if (CSimpleTop::s_instance->unk_1254) {
-            CSimpleTop::s_instance->unk_1254(region);
+        if (CSimpleTop::s_instance->m_actionBlockedCallback) {
+            CSimpleTop::s_instance->m_actionBlockedCallback(region);
         }
 
         return 0;
@@ -278,6 +283,7 @@ static int32_t Script_SetWidth(lua_State* L) {
     if (!lua_isnumber(L, 2)) {
         const char* name = region->GetName();
         luaL_error(L, "Usage: %s:SetWidth(width)", name ? name : "<unnamed>");
+        return 0;
     }
 
     float width = lua_tonumber(L, 2);
@@ -307,14 +313,14 @@ static int32_t Script_GetHeight(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 76c28677 manual
+// VERIFY: 9529267e manual
 // OFFSET: 0x0049D620
 static int32_t Script_SetHeight(lua_State* L) {
     CScriptRegion* region = static_cast<CScriptRegion*>(FrameScript_GetObjectThis(L, CScriptRegion::GetObjectType()));
 
     if (!region->ProtectedFunctionsAllowed()) {
-        if (CSimpleTop::s_instance->unk_1254) {
-            CSimpleTop::s_instance->unk_1254(region);
+        if (CSimpleTop::s_instance->m_actionBlockedCallback) {
+            CSimpleTop::s_instance->m_actionBlockedCallback(region);
         }
 
         return 0;
@@ -323,6 +329,7 @@ static int32_t Script_SetHeight(lua_State* L) {
     if (!lua_isnumber(L, 2)) {
         const char* name = region->GetName();
         luaL_error(L, "Usage: %s:SetHeight(height)", name ? name : "<unnamed>");
+        return 0;
     }
 
     float height = lua_tonumber(L, 2);
@@ -349,14 +356,14 @@ static int32_t Script_GetSize(lua_State* L) {
     return 2;
 }
 
-// VERIFY: d61860e5 manual
+// VERIFY: b1bd0e85 manual
 // OFFSET: 0x0049D7A0
 static int32_t Script_SetSize(lua_State* L) {
     CScriptRegion* region = static_cast<CScriptRegion*>(FrameScript_GetObjectThis(L, CScriptRegion::GetObjectType()));
 
     if (!region->ProtectedFunctionsAllowed()) {
-        if (CSimpleTop::s_instance->unk_1254) {
-            CSimpleTop::s_instance->unk_1254(region);
+        if (CSimpleTop::s_instance->m_actionBlockedCallback) {
+            CSimpleTop::s_instance->m_actionBlockedCallback(region);
         }
 
         return 0;
@@ -365,6 +372,7 @@ static int32_t Script_SetSize(lua_State* L) {
     if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         const char* name = region->GetName();
         luaL_error(L, "Usage: %s:SetSize(width, height)", name ? name : "<unnamed>");
+        return 0;
     }
 
     float height = lua_tonumber(L, 3);
@@ -451,14 +459,14 @@ static int32_t Script_GetPoint(lua_State* L) {
     return 5;
 }
 
-// VERIFY: 8aecd87e auto
+// VERIFY: bfe26544 auto
 // OFFSET: 0x0049DB10
 static int32_t Script_SetPoint(lua_State* L) {
     CScriptRegion* region = static_cast<CScriptRegion*>(FrameScript_GetObjectThis(L, CScriptRegion::GetObjectType()));
 
     if (!region->ProtectedFunctionsAllowed()) {
-        if (CSimpleTop::s_instance->unk_1254) {
-            CSimpleTop::s_instance->unk_1254(region);
+        if (CSimpleTop::s_instance->m_actionBlockedCallback) {
+            CSimpleTop::s_instance->m_actionBlockedCallback(region);
             return 0;
         }
 
@@ -468,6 +476,7 @@ static int32_t Script_SetPoint(lua_State* L) {
     if (!lua_isstring(L, 2)) {
         const char* name = region->GetName();
         luaL_error(L, "Usage: %s:SetPoint(\"point\" [, region or nil] [, \"relativePoint\"] [, offsetX, offsetY])", name ? name : "<unnamed>");
+        return 0;
     }
 
     CLayoutFrame* relative = region->GetLayoutParent();
@@ -477,6 +486,7 @@ static int32_t Script_SetPoint(lua_State* L) {
     if (!StringToFramePoint(lua_tolstring(L, 2, nullptr), point)) {
         const char* name = region->GetName();
         luaL_error(L, "%s:SetPoint(): Unknown region point", name ? name : "<unnamed>");
+        return 0;
     }
 
     int32_t argIndex = 3;
@@ -498,19 +508,23 @@ static int32_t Script_SetPoint(lua_State* L) {
     if (!relative) {
         const char* name = region->GetName();
         luaL_error(L, "%s:SetPoint(): Couldn't find region named '%s'", name ? name : "<unnamed>", lua_tolstring(L, 3, nullptr));
+        return 0;
     }
 
     if (relative == region) {
         luaL_error(L, "%s:SetPoint(): trying to anchor to itself", region->GetDisplayName());
+        return 0;
     }
 
     if (relative->IsResizeDependency(region)) {
         luaL_error(L, "%s:SetPoint(): %s is dependent on this", region->GetDisplayName(), static_cast<CScriptRegion*>(relative)->GetDisplayName());
+        return 0;
     }
 
     if (lua_type(L, argIndex) == LUA_TSTRING) {
         if (!StringToFramePoint(lua_tolstring(L, argIndex, nullptr), relativePoint)) {
             luaL_error(L, "%s:SetPoint(): Unknown region point", region->GetDisplayName());
+            return 0;
         }
 
         argIndex++;
@@ -531,14 +545,14 @@ static int32_t Script_SetPoint(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c78afde3 manual
+// VERIFY: a2872688 auto
 // OFFSET: 0x0049DE40
 static int32_t Script_SetAllPoints(lua_State* L) {
     CScriptRegion* region = static_cast<CScriptRegion*>(FrameScript_GetObjectThis(L, CScriptRegion::GetObjectType()));
 
     if (!region->ProtectedFunctionsAllowed()) {
-        if (CSimpleTop::s_instance->unk_1254) {
-            CSimpleTop::s_instance->unk_1254(region);
+        if (CSimpleTop::s_instance->m_actionBlockedCallback) {
+            CSimpleTop::s_instance->m_actionBlockedCallback(region);
             return 0;
         }
 
@@ -560,31 +574,34 @@ static int32_t Script_SetAllPoints(lua_State* L) {
     if (!relative) {
         const char* name = region->GetName();
         luaL_error(L, "%s:SetAllPoints(): Couldn't find region named '%s'", name ? name : "<unnamed>", lua_tolstring(L, 2, nullptr));
+        return 0;
     }
 
     if (relative == region) {
         const char* name = region->GetName();
         luaL_error(L, "%s:SetAllPoints(): trying to anchor to itself", name ? name : "<unnamed>");
+        return 0;
     }
 
     if (relative->IsResizeDependency(region)) {
         const char* relativeName = static_cast<CScriptRegion*>(relative)->GetName();
         const char* name = region->GetName();
         luaL_error(L, "%s:SetAllPoints(): %s is dependent on this", name ? name : "<unnamed>", relativeName ? relativeName : "<unnamed>");
+        return 0;
     }
 
     region->SetAllPoints(relative, 1);
     return 0;
 }
 
-// VERIFY: e84b26de auto
+// VERIFY: a010b1bc auto
 // OFFSET: 0x0049E010
 static int32_t Script_ClearAllPoints(lua_State* L) {
     CScriptRegion* region = static_cast<CScriptRegion*>(FrameScript_GetObjectThis(L, CScriptRegion::GetObjectType()));
 
     if (!region->ProtectedFunctionsAllowed()) {
-        if (CSimpleTop::s_instance->unk_1254) {
-            CSimpleTop::s_instance->unk_1254(region);
+        if (CSimpleTop::s_instance->m_actionBlockedCallback) {
+            CSimpleTop::s_instance->m_actionBlockedCallback(region);
             return 0;
         }
 
@@ -629,7 +646,7 @@ static int32_t Script_IsMouseOver(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 738e5ef9 manual
+// VERIFY: 3092723d manual
 // OFFSET: 0x0049E260
 static int32_t Script_GetAnimationGroups(lua_State* L) {
     CScriptRegion* region = static_cast<CScriptRegion*>(FrameScript_GetObjectThis(L, CScriptRegion::GetObjectType()));
@@ -648,6 +665,7 @@ static int32_t Script_GetAnimationGroups(lua_State* L) {
     if (!lua_checkstack(L, count)) {
         const char* name = region->GetName();
         luaL_error(L, "%s:GetAnimationGroups(): Stack overflow", name ? name : "<unnamed>");
+        return 0;
     }
 
     for (CSimpleAnimGroup* group = groups->Head(); group; group = groups->Next(group)) {
@@ -661,7 +679,7 @@ static int32_t Script_GetAnimationGroups(lua_State* L) {
     return count;
 }
 
-// VERIFY: b944edd7 manual
+// VERIFY: 12c26586 manual
 // OFFSET: 0x0049E350
 static int32_t Script_CreateAnimationGroup(lua_State* L) {
     XMLNode* inheritNode = nullptr;
@@ -681,11 +699,13 @@ static int32_t Script_CreateAnimationGroup(lua_State* L) {
         if (!inheritNode) {
             const char* regionName = region->GetName();
             luaL_error(L, "%s:CreateAnimationGroup(): Couldn't find inherited node \"%s\"", regionName ? regionName : "<unnamed>", inherits);
+            return 0;
         }
 
         if (locked) {
             const char* regionName = region->GetName();
             luaL_error(L, "%s:CreateAnimationGroup(): Recursively inherited node \"%s\"", regionName ? regionName : "<unnamed>", inherits);
+            return 0;
         }
     }
 

@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Ui/KEYBINDING.h"
 #include "WoW/Source/Ui/MODIFIEDCLICK.h"
@@ -41,5 +42,7 @@ class CGUIBindings {
     /* 0134 */ uint32_t m_bindingModeMask;
     /* 0138 */ uint32_t m_bindingModeToggles;
 };
+
+MOUSEBUTTON StringToMouseButton(const char* string);
 
 #endif

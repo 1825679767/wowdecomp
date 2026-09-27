@@ -5,6 +5,10 @@
 #include <cstdint>
 #include "Engine/Source/Frame/CSimpleAnim.h"
 
+class CSimpleAnimGroup;
+class CStatus;
+class XMLNode;
+
 class CSimpleAlphaAnim : public CSimpleAnim {
     public:
     static int32_t s_metatable;
@@ -16,10 +20,19 @@ class CSimpleAlphaAnim : public CSimpleAnim {
     static void DestroyScriptMetaTable();
     static void RegisterScriptMethods(lua_State* L);
 
+    /* 0098 */ int16_t m_change;
+
+    virtual ~CSimpleAlphaAnim();
     virtual int32_t GetScriptMetaTable();
     virtual bool IsA(int32_t type);
     virtual bool IsA(const char* typeName);
     virtual const char* GetObjectTypeName();
+    virtual void LoadXML(XMLNode* node, CStatus* status);
+    virtual void Apply(float progress);
+    virtual void ApplyInverse(float progress);
+
+    CSimpleAlphaAnim(CSimpleAnimGroup* group);
+    void SetChange(float change);
 };
 
 #endif

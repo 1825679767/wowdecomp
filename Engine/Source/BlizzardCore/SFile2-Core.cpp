@@ -254,7 +254,6 @@ int32_t SFile::IsStreamingMode() {
     return Blizzard::Streaming::IsStreamingMode();
 }
 
-// VERIFY: 2e559d16 auto
 void STORMAPI SFile::SetFilePriority(SFileImpl* file, int32_t urgent, int32_t unused) {
 }
 

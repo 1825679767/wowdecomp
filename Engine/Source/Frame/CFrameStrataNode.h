@@ -17,6 +17,10 @@ class CFrameStrataNode {
     /* 0110 */ TSExplicitList<CRenderBatch, offsetof(CRenderBatch, m_renderLink)> m_renderList;
 
     CFrameStrataNode();
+    ~CFrameStrataNode();
+    int32_t BuildBatches();
+    void OnLayerUpdate(float elapsedSec);
+    int32_t RemoveFrame(CSimpleFrame* frame);
 };
 
 #endif

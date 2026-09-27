@@ -15,8 +15,10 @@ class CRect {
 
     bool ContainsPoint(const C2Vector& point) const;
     bool IsPointInside(const C2Vector& point) const;
+    CRect operator&=(const CRect& r);
 };
 
+CRect operator&(const CRect& l, const CRect& r);
 CRect operator+(const CRect& l, const CRect& r);
 CRect operator/(const CRect& l, const CRect& r);
 CRect operator|(const CRect& l, const CRect& r);

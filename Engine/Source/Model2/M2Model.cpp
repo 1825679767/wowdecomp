@@ -1133,7 +1133,6 @@ uint32_t CM2Model::ResolveSequenceFallback(uint32_t id) {
     return 0xFFFFFFFF;
 }
 
-// VERIFY: af94bf41 auto
 // OFFSET: 0x00826050
 int32_t CM2Model::IsSequenceLoaded(uint32_t id) {
     if (id >= 506) {
@@ -6024,7 +6023,6 @@ C44Matrix CM2Model::GetAttachmentWorldTransform(uint32_t id) {
     transform *= this->m_scene->m_viewInv;
     return transform;
 }
-// VERIFY: fbe80c3c auto
 
 // VERIFY: fbe80c3c auto
 // OFFSET: 0x00831550
@@ -6129,7 +6127,6 @@ void CM2Model::AttachToParent(CM2Model* parent, uint32_t id, const C3Vector* pos
 
     this->m_refCount++;
 }
-// VERIFY: c5304a4f auto
 
 // VERIFY: c5304a4f auto
 // OFFSET: 0x008317E0
@@ -6210,7 +6207,6 @@ void CM2Model::AnimateSM() {
         }
     }
 }
-// VERIFY: e596f33c auto
 
 // VERIFY: e596f33c auto
 // OFFSET: 0x00831AF0

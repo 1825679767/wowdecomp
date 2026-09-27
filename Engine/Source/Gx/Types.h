@@ -26,6 +26,14 @@ enum EGxBlend {
     GxBlend_Alpha = 2,
     GxBlend_Add = 3,
     GxBlend_Mod = 4,
+    GxBlend_Mod2x = 5,
+    GxBlend_ModAdd = 6,
+    GxBlend_InvSrcAlphaAdd = 7,
+    GxBlend_InvSrcAlphaOpaque = 8,
+    GxBlend_SrcAlphaOpaque = 9,
+    GxBlend_NoAlphaAdd = 10,
+    GxBlend_ConstantAlpha = 11,
+    GxBlends_Last = 12,
 };
 
 enum EGxTexFormat {

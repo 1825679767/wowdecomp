@@ -3,6 +3,7 @@
 #include "Engine/Source/Frame/CScriptRegion.h"
 #include "Engine/Source/Base/Coordinate.h"
 #include "Engine/Source/Base/Status.h"
+#include "Engine/Source/Frame/CSimpleAlphaAnim.h"
 #include "Engine/Source/Frame/CSimpleAnimGroup.h"
 #include "Engine/Source/Frame/CSimpleFrame.h"
 #include "Engine/Source/Frame/CSimpleTop.h"
@@ -108,13 +109,13 @@ CLayoutFrame* CScriptRegion::GetLayoutFrameByName(const char* name) {
     return region;
 }
 
-// VERIFY: 7a0db017 manual
+// VERIFY: 6a00f6bb manual
 // OFFSET: 0x00488540
 bool CScriptRegion::ProtectedFunctionsAllowed() {
-    return !this->IsProtected() || !lua_tainted || CSimpleTop::s_instance->unk_124C != 0;
+    return !this->IsProtected() || !lua_tainted || CSimpleTop::s_instance->m_allowProtectedActions != 0;
 }
 
-// VERIFY: f318deac auto
+// VERIFY: 5c7fa85d auto
 // OFFSET: 0x00488570
 bool CScriptRegion::IsMouseOver(float top, float bottom, float left, float right) {
     CSimpleTop* simpleTop = CSimpleTop::s_instance;
@@ -135,7 +136,7 @@ bool CScriptRegion::IsMouseOver(float top, float bottom, float left, float right
 
     float ddcX = 0.0f;
     float ddcY = 0.0f;
-    NDCToDDC(simpleTop->m_mouseEventData.m_mousePosition.x, simpleTop->m_mouseEventData.m_mousePosition.y, &ddcX, &ddcY);
+    NDCToDDC(simpleTop->m_mousePosition.m_x, simpleTop->m_mousePosition.m_y, &ddcX, &ddcY);
 
     float x = 1.0f / this->m_layoutScale * ddcX;
     float y = 1.0f / this->m_layoutScale * ddcY;
@@ -188,6 +189,42 @@ int32_t CScriptRegion::HasActiveAnimGroup() {
     return 0;
 }
 
+// VERIFY: 0d8bdeba manual
+// OFFSET: 0x00488770
+int32_t CScriptRegion::HasActiveAnimOfType(int32_t type) {
+    for (CScriptRegion* region = this; region; region = region->m_parent) {
+        if (region->m_playingAnimGroups && region->m_playingAnimGroups->Head()) {
+            for (CSimpleAnimGroup* group = region->m_playingAnimGroups->Head(); group; group = region->m_playingAnimGroups->Next(group)) {
+                if (group->HasAnimOfType(type)) {
+                    return 1;
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: cd671bd7 manual
+// OFFSET: 0x004887F0
+void CScriptRegion::GetActiveAnimInfo(int32_t type, int32_t& active, int32_t& activeOfType) {
+    active = 0;
+    activeOfType = 0;
+
+    for (CScriptRegion* region = this; region; region = region->m_parent) {
+        if (region->m_playingAnimGroups && region->m_playingAnimGroups->Head()) {
+            active = 1;
+
+            for (CSimpleAnimGroup* group = region->m_playingAnimGroups->Head(); group; group = region->m_playingAnimGroups->Next(group)) {
+                if (group->HasAnimOfType(type)) {
+                    activeOfType = 1;
+                    break;
+                }
+            }
+        }
+    }
+}
+
 // VERIFY: 1fdc6a93 manual
 // OFFSET: 0x00488890
 void CScriptRegion::OnAnimUpdate(float elapsedSec) {
@@ -212,6 +249,36 @@ void CScriptRegion::StopAnimating() {
     }
 }
 
+// VERIFY: 21de8cdf auto
+// OFFSET: 0x00488980
+void CScriptRegion::NotifyAnimEnd(CSimpleAnimGroup* group) {
+    if (!group || !this->m_playingAnimGroups) {
+        return;
+    }
+
+    this->m_playingAnimGroups->UnlinkNode(group);
+    this->AnimDeactivated(group, !this->HasActiveAnimGroup());
+}
+
+// VERIFY: 3973d91a manual
+// OFFSET: 0x004889C0
+void CScriptRegion::NotifyAnimBegin(CSimpleAnimGroup* group) {
+    if (!group) {
+        return;
+    }
+
+    if (!this->m_playingAnimGroups) {
+        this->m_playingAnimGroups = new (SMemAlloc(sizeof(*this->m_playingAnimGroups), __FILE__, __LINE__, 0)) TSExplicitList<CSimpleAnimGroup, offsetof(CSimpleAnimGroup, m_playingLink)>;
+
+        if (!this->m_playingAnimGroups) {
+            return;
+        }
+    }
+
+    this->AnimActivated(group, !this->HasActiveAnimGroup(), group->HasAnimOfType(CSimpleAlphaAnim::GetObjectType()));
+    this->m_playingAnimGroups->LinkToTail(group);
+}
+
 // VERIFY: 5d173137 manual
 // OFFSET: 0x00488AE0
 void CScriptRegion::RegisterAnimGroup(CSimpleAnimGroup* group) {
@@ -229,7 +296,7 @@ void CScriptRegion::RegisterAnimGroup(CSimpleAnimGroup* group) {
 }
 
 // VERIFY: 37e65262 manual
-// OFFSET: [0x00488B50, 0x00488BB0]
+// OFFSET: [0x00488370, 0x00488B50, 0x00488BB0]
 CScriptRegion::~CScriptRegion() {
     if (this->m_animGroups) {
         this->m_animGroups->Clear();
@@ -239,4 +306,39 @@ CScriptRegion::~CScriptRegion() {
     if (this->m_playingAnimGroups) {
         delete this->m_playingAnimGroups;
     }
+}
+
+// VERIFY: 4d845176 manual
+// OFFSET: 0x005EEB70
+void CScriptRegion::PreOnAnimUpdate() {
+}
+
+// VERIFY: c64042c5 auto
+// OFFSET: 0x0047ADD0
+void CScriptRegion::AnimActivated(CSimpleAnimGroup* group, int32_t first, int32_t hasAlpha) {
+}
+
+// VERIFY: 83a5621b auto
+// OFFSET: 0x00653A10
+void CScriptRegion::AnimDeactivated(CSimpleAnimGroup* group, int32_t last) {
+}
+
+// VERIFY: 3b0fa002 auto
+// OFFSET: 0x00632050
+void CScriptRegion::AddAnimTranslation(const C2Vector& translation) {
+}
+
+// VERIFY: 3cc88c19 auto
+// OFFSET: 0x0047ADD0
+void CScriptRegion::AddAnimRotation(FRAMEPOINT origin, const C2Vector& offset, float radians) {
+}
+
+// VERIFY: 3b3ba4d8 auto
+// OFFSET: 0x0047ADD0
+void CScriptRegion::AddAnimScale(FRAMEPOINT origin, const C2Vector& offset, const C2Vector& scale) {
+}
+
+// VERIFY: db7e550e auto
+// OFFSET: 0x00632050
+void CScriptRegion::AddAnimAlpha(int16_t alpha) {
 }

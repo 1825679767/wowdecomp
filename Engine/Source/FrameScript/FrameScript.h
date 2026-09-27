@@ -11,6 +11,7 @@
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
 
+class CImVector;
 struct MD5_CTX;
 class CStatus;
 
@@ -46,6 +47,8 @@ void FrameScript_Execute(int32_t function, FrameScript_Object* object, int32_t a
 int32_t FrameScript_ExecuteBuffer(const char* buffer, size_t bytes, const char* bufferName, CStatus* status, const char* wrapper);
 int32_t FrameScript_ExecuteFile(const char* filename, const char* wrapper, MD5_CTX* md5, CStatus* status);
 void FrameScript_Flush();
+int32_t FrameScript_GetColor(lua_State* L, int32_t index, CImVector& color);
+int32_t FrameScript_GetColorNoAlpha(lua_State* L, int32_t index, CImVector& color);
 lua_State* FrameScript_GetContext();
 const char* FrameScript_GetCurrentObject(lua_State* L, int32_t level);
 char* FrameScript_GetCurrentFunction(lua_State* L, char* buffer, uint32_t bufferLen);

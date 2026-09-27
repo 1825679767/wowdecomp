@@ -148,7 +148,6 @@ void OsGuiSetGxWindow(void* window) {
     s_GxDevWindow = static_cast<HWND>(window);
 }
 
-// VERIFY: 39d42e31 auto
 // OFFSET: 0x0086C6E0
 int32_t OsGuiMessageBox(void* parentWindow, int32_t style, const char* message, const char* title) {
     uint32_t messageLength = SUniConvertUTF8to16Len(message, 0x7FFFFFFF, nullptr);

@@ -3,31 +3,53 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Base/CDataAllocator.h"
+#include "Engine/Source/Frame/CSimpleButton.h"
 #include "Engine/Source/Frame/CSimpleFrame.h"
+#include "Engine/Source/FrameScript/FrameScript_Object.h"
+#include "Engine/Source/Gxu/Types.h"
+#include "Engine/Source/Storm/H/stpl.h"
+
+class CSimpleFontString;
+struct lua_State;
 
 class CSimpleHyperlinkedFrame : public CSimpleFrame {
     public:
-    /* 029C */ uint32_t m_simpleHyperlinkedFrameUkn1;
-    /* 02A0 */ uint32_t m_simpleHyperlinkedFrameUkn2;
-    /* 02A4 */ uint32_t m_simpleHyperlinkedFrameUkn3;
-    /* 02A8 */ uint32_t m_simpleHyperlinkedFrameUkn4;
-    /* 02AC */ uint32_t m_simpleHyperlinkedFrameUkn5;
-    /* 02B0 */ uint32_t m_simpleHyperlinkedFrameUkn6;
-    /* 02B4 */ uint32_t m_simpleHyperlinkedFrameUkn7;
+    /* 029C */ uint8_t m_inHyperlinkScript;
+    /* 02A0 */ FrameScript_Object::ScriptIx m_onHyperlinkEnter;
+    /* 02A8 */ FrameScript_Object::ScriptIx m_onHyperlinkLeave;
+    /* 02B0 */ FrameScript_Object::ScriptIx m_onHyperlinkClick;
+
+    virtual ~CSimpleHyperlinkedFrame();
+    virtual FrameScript_Object::ScriptIx* GetScriptByName(const char* name, FrameScript_Object::ScriptData& data);
+    virtual void GetScriptTime(lua_State* L, double* time, uint32_t* count, int32_t recurse);
+    virtual void OnHyperlinkEnter(const char* link, const char* text);
+    virtual void OnHyperlinkLeave(const char* link, const char* text);
+    virtual void OnHyperlinkClick(const char* link, const char* text, const char* btn);
+
+    CSimpleHyperlinkedFrame(CSimpleFrame* parent);
+    void RunOnHyperlinkClickScript(const char* link, const char* text, const char* btn);
+    void RunOnHyperlinkEnterScript(const char* link, const char* text);
+    void RunOnHyperlinkLeaveScript(const char* link, const char* text);
 };
 
-class CSimpleHyperlinkButton {
+class CSimpleHyperlinkButton : public CSimpleButton {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint8_t unk_0004[28];
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint8_t unk_0024[88];
-    /* 007C */ uint32_t unk_007C;
-    /* 0080 */ uint8_t unk_0080[540];
-    /* 029C */ uint32_t unk_029C[23];
-    /* 02F8 */ uint32_t unk_02F8;
-    /* 02FC */ uint32_t unk_02FC;
-    /* 0300 */ uint8_t unk_0300[752];
+    static CDataAllocator s_allocator;
+
+    static void operator delete(void* ptr);
+
+    /* 02F8 */ char* m_linkData;
+    /* 02FC */ char* m_linkText;
+    /* 0300 */ TSLink<CSimpleHyperlinkButton> m_hyperlinkLink;
+
+    virtual ~CSimpleHyperlinkButton();
+    virtual void OnLayerCursorEnter(int32_t a2);
+    virtual void OnLayerCursorExit(int32_t a2, int32_t a3);
+    virtual void OnClick(const char* btn, int32_t down);
+
+    CSimpleHyperlinkButton(CSimpleHyperlinkedFrame* parent);
+    void SetHyperlink(CSimpleFontString* fontString, const GXUFONTHYPERLINKINFO* info);
 };
 
 #endif

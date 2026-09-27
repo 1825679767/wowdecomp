@@ -16,6 +16,16 @@ const char* FrameScript_Object::GetDisplayName() {
     return name ? name : "<unnamed>";
 }
 
+// VERIFY: da17dfd1 auto
+// OFFSET: 0x00488380
+int32_t FrameScript_Object::GetLuaObjectRef() {
+    if (!this->m_luaRegistered) {
+        this->RegisterScriptObject(nullptr);
+    }
+
+    return this->m_luaObjectRef;
+}
+
 // VERIFY: 1a7b2f73 auto
 // OFFSET: 0x00816790
 int32_t FrameScript_Object::CreateScriptMetaTable(lua_State* L, void (*registerFunc)(lua_State*)) {
@@ -84,7 +94,7 @@ FrameScript_Object::FrameScript_Object() {
 }
 
 // VERIFY: b0bf6152 auto
-// OFFSET: 0x00819850
+// OFFSET: [0x00819850, 0x00819E50]
 FrameScript_Object::~FrameScript_Object() {
 }
 

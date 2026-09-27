@@ -5,6 +5,12 @@
 #include "Engine/Source/Frame/CSimpleAnim.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
+#include "Engine/Source/Base/Coordinate.h"
+#include "Engine/Source/Base/Status.h"
+#include "Engine/Source/Frame/CScriptRegion.h"
+#include "Engine/Source/Frame/CSimpleAnimGroup.h"
+#include "Engine/Source/FrameXML/LoadXML.h"
+#include "Engine/Source/FrameXML/XMLTree.h"
 
 // STATIC: 0x00AC1AB0
 int32_t CSimpleAlphaAnim::s_metatable = LUA_NOREF;
@@ -46,4 +52,68 @@ const char* CSimpleAlphaAnim::GetObjectTypeName() {
 // OFFSET: 0x00499710
 int32_t CSimpleAlphaAnim::GetScriptMetaTable() {
     return CSimpleAlphaAnim::s_metatable;
+}
+
+// VERIFY: c8bcaede auto
+// OFFSET: 0x00497700
+void CSimpleAlphaAnim::ApplyInverse(float progress) {
+    this->Apply(-progress);
+}
+
+// VERIFY: 41369f46 auto
+// OFFSET: 0x004982E0
+void CSimpleAlphaAnim::SetChange(float change) {
+    float value = change < -1.0f ? -1.0f : (change >= 1.0f ? 1.0f : change);
+    this->m_change = static_cast<int16_t>(value * 255.0f);
+}
+
+// VERIFY: edf73845 manual
+// OFFSET: 0x00498330
+void CSimpleAlphaAnim::Apply(float progress) {
+    CScriptRegion* region = this->GetRegionParent();
+
+    if (region) {
+        region->AddAnimAlpha(static_cast<int16_t>(this->m_change * progress));
+    }
+}
+
+// VERIFY: 3fbc954e manual
+// OFFSET: 0x004999F0
+CSimpleAlphaAnim::~CSimpleAlphaAnim() {
+}
+
+// VERIFY: dfb32dfa auto
+// OFFSET: 0x00499E80
+CSimpleAlphaAnim::CSimpleAlphaAnim(CSimpleAnimGroup* group) : CSimpleAnim(group) {
+    this->m_change = 0;
+}
+
+// VERIFY: 178448cd auto
+// OFFSET: 0x0049C170
+void CSimpleAlphaAnim::LoadXML(XMLNode* node, CStatus* status) {
+    CSimpleAnim::LoadXML(node, status);
+
+    float value;
+    const char* change = node->GetAttributeByName("change");
+
+    if (change && *change) {
+        value = SStrToFloat(change);
+
+        if (value < -1.0f || value > 1.0f) {
+            const char* name = this->GetName();
+            status->Add(STATUS_WARNING, "%s: Invalid change value: %s. Value must be between %d and %d, inclusive.", name ? name : "<unnamed>", change, -1.0f, 1.0f);
+        }
+
+        value = value < -1.0f ? -1.0f : (value < 1.0f ? value : 1.0f);
+    } else {
+        value = 0.0f;
+    }
+
+    this->m_change = static_cast<int16_t>(value * 255.0f);
+
+    for (XMLNode* child = node->m_child; child; child = child->m_next) {
+        if (!SStrCmpI(child->m_name.m_str, "Scripts", STORM_MAX_STR)) {
+            this->LoadXML_Scripts(child, status);
+        }
+    }
 }

@@ -30,6 +30,7 @@ class CM2Light {
     /* 0068 */ CM2Light* m_lightNext;
 
     CM2Light();
+    ~CM2Light();
     void GxLightSet(uint32_t index);
     void Initialize(CM2Scene* scene);
     void Link();

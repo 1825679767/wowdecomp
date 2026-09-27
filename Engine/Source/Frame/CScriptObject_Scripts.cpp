@@ -38,7 +38,7 @@ static int32_t Script_GetObjectType(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 0da40fcf auto
+// VERIFY: 06842ad2 auto
 // OFFSET: 0x004A8290
 static int32_t Script_IsObjectType(lua_State* L) {
     CScriptObject* object = FrameScript_GetObjectThis(L, CScriptObject::GetObjectType());
@@ -46,6 +46,7 @@ static int32_t Script_IsObjectType(lua_State* L) {
     if (!lua_isstring(L, 2)) {
         const char* name = object->GetName();
         luaL_error(L, "Usage: %s:IsObjectType(\"type\")", name ? name : "<unnamed>");
+        return 0;
     }
 
     if (object->IsA(lua_tolstring(L, 2, nullptr))) {

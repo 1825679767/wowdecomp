@@ -12,6 +12,7 @@ class C2Vector {
     /* 0004 */ float y;
 
     C2Vector();
+    C2Vector(float x, float y);
     C2Vector(const C3Vector& v);
     void Normalize();
     void NormalizeSafe();

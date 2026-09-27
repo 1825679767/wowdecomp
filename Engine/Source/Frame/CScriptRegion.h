@@ -38,18 +38,20 @@ class CScriptRegion : public CScriptObject, public CLayoutFrame {
     virtual void NotifyAnimBegin(CSimpleAnimGroup* group);
     virtual void NotifyAnimEnd(CSimpleAnimGroup* group);
     virtual void StopAnimating();
-    virtual void AnimActivated(CSimpleAnimGroup* group, int32_t a2, int32_t a3);
-    virtual void AnimDeactivated(CSimpleAnimGroup* group, int32_t a2, int32_t a3);
-    virtual void AddAnimTranslation(CScriptRegion* region, const C2Vector& translation);
-    virtual void AddAnimRotation(CScriptRegion* region, FRAMEPOINT origin, const C2Vector& offset, float radians);
-    virtual void AddAnimScale(CScriptRegion* region, FRAMEPOINT origin, const C2Vector& offset, const C2Vector& scale);
-    virtual void AddAnimAlpha(CScriptRegion* region, int16_t alpha);
+    virtual void AnimActivated(CSimpleAnimGroup* group, int32_t first, int32_t hasAlpha);
+    virtual void AnimDeactivated(CSimpleAnimGroup* group, int32_t last);
+    virtual void AddAnimTranslation(const C2Vector& translation);
+    virtual void AddAnimRotation(FRAMEPOINT origin, const C2Vector& offset, float radians);
+    virtual void AddAnimScale(FRAMEPOINT origin, const C2Vector& offset, const C2Vector& scale);
+    virtual void AddAnimAlpha(int16_t alpha);
     virtual void LoadXML(XMLNode* node, CStatus* status);
     virtual CLayoutFrame* GetLayoutParent();
     virtual CLayoutFrame* GetLayoutFrameByName(const char* name);
 
     CScriptRegion();
+    void GetActiveAnimInfo(int32_t type, int32_t& active, int32_t& activeOfType);
     int32_t HasActiveAnimGroup();
+    int32_t HasActiveAnimOfType(int32_t type);
     bool IsMouseOver(float top, float bottom, float left, float right);
     void LoadXML_Animations(XMLNode* node, CStatus* status);
     bool ProtectedFunctionsAllowed();

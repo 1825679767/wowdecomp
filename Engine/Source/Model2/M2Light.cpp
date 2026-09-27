@@ -80,6 +80,11 @@ CM2Light::CM2Light() {
     this->m_lightNext = nullptr;
 }
 
+// INLINED
+CM2Light::~CM2Light() {
+    this->Unlink();
+}
+
 // VERIFY: 42088760 manual
 // OFFSET: 0x00834AB0
 void CM2Light::Unlink() {

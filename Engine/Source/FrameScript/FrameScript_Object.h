@@ -41,6 +41,7 @@ class FrameScript_Object {
 
     FrameScript_Object();
     const char* GetDisplayName();
+    int32_t GetLuaObjectRef();
     void GetScriptTime(lua_State* L, const FrameScript_Object::ScriptIx& script, double* time, uint32_t* calls);
     int32_t IsScriptEventRegistered(const char* name);
     void RegisterAllScriptEvents();

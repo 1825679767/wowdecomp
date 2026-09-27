@@ -2,8 +2,16 @@
 #include <cstdint>
 #include <cstdlib>
 #include "Engine/Source/Frame/CRenderBatch.h"
+#include "Engine/Source/Base/Coordinate.h"
+#include "Engine/Source/Frame/CSimpleRender.h"
+#include "Engine/Source/Frame/CSimpleTexture.h"
+#include "Engine/Source/Gx/CGxTex.h"
 #include "Engine/Source/Gxu/GxuFont.h"
 #include "Engine/Source/Services/Texture.h"
+#include "Engine/Source/Services/TextBlock.h"
+
+// STATIC: 0x00AC0F04
+static uint16_t s_quadIndices[6] = { 0, 1, 2, 2, 1, 3 };
 
 // VERIFY: d7a68913 auto
 // OFFSET: 0x00482770
@@ -100,4 +108,119 @@ void CRenderBatch::Clear() {
 // OFFSET: [0x00486FC0, 0x00487160]
 CRenderBatch::~CRenderBatch() {
     this->Clear();
+}
+
+// VERIFY: d1a22f87 auto
+// OFFSET: 0x004843A0
+void CRenderBatch::QueueFontString(CSimpleFontString* string) {
+    CRect rect;
+
+    if (!string->GetRect(&rect)) {
+        return;
+    }
+
+    if (rect.maxY < 0.0f || rect.minY > 1.0f || rect.maxX < 0.0f || rect.minX > 1.0f) {
+        return;
+    }
+
+    if (!string->m_string) {
+        return;
+    }
+
+    CGxString* gxString = TextBlockGetStringPtr(string->m_string);
+
+    if (!gxString) {
+        return;
+    }
+
+    if (!this->m_stringbatch) {
+        this->m_stringbatch = GxuFontCreateBatch(false, false);
+    }
+
+    GxuFontAddToBatch(this->m_stringbatch, gxString);
+    this->m_count++;
+}
+
+// VERIFY: 597baa7e manual
+// OFFSET: 0x004847A0
+void CRenderBatch::QueueTexture(CSimpleTexture* texture) {
+    CGxTex* gxTex = TextureGetGxTex(texture->m_texture, (texture->m_textureFlags & 1) ? 0 : 2, nullptr);
+
+    if (!gxTex) {
+        texture->NotifyDelayedLoad();
+        return;
+    }
+
+    if (texture->IsResizePending()) {
+        texture->Resize(1);
+    }
+
+    uint32_t flags = texture->m_textureFlags;
+
+    if (flags & 2) {
+        C2Vector texCoords[4];
+        texture->GetTexCoord(texCoords);
+
+        float left = texture->m_positions[0].x;
+        float right = texture->m_positions[2].x;
+        float bottom = texture->m_positions[1].y;
+        float top = texture->m_positions[0].y;
+
+        if (flags & 4) {
+            uint32_t width = gxTex->m_width;
+            float ndcWidth = DDCToNDCWidth(CoordinateGetAspectCompensation() * 1024.0f * (right - left));
+
+            if (width && ndcWidth > 0.0f) {
+                if (texCoords[0].x != 0.0f) {
+                    texCoords[0].x = ndcWidth / width;
+                }
+
+                if (texCoords[1].x != 0.0f) {
+                    texCoords[1].x = ndcWidth / width;
+                }
+
+                if (texCoords[2].x != 0.0f) {
+                    texCoords[2].x = ndcWidth / width;
+                }
+
+                if (texCoords[3].x != 0.0f) {
+                    texCoords[3].x = ndcWidth / width;
+                }
+            }
+        }
+
+        if (texture->m_textureFlags & 8) {
+            uint32_t height = gxTex->m_height;
+            float ndcHeight = DDCToNDCWidth(CoordinateGetAspectCompensation() * 1024.0f * (top - bottom));
+
+            if (height && ndcHeight > 0.0f) {
+                if (texCoords[0].y != 0.0f) {
+                    texCoords[0].y = ndcHeight / height;
+                }
+
+                if (texCoords[1].y != 0.0f) {
+                    texCoords[1].y = ndcHeight / height;
+                }
+
+                if (texCoords[2].y != 0.0f) {
+                    texCoords[2].y = ndcHeight / height;
+                }
+
+                if (texCoords[3].y != 0.0f) {
+                    texCoords[3].y = ndcHeight / height;
+                }
+            }
+        }
+
+        texture->m_textureFlags &= ~2u;
+        texture->m_texCoords[0] = texCoords[0];
+        texture->m_texCoords[1] = texCoords[1];
+        texture->m_texCoords[2] = texCoords[2];
+        texture->m_texCoords[3] = texCoords[3];
+    }
+
+    uint32_t colorCount = texture->m_colorCount;
+    const CImVector* colors = colorCount ? texture->m_colors : nullptr;
+
+    this->Queue(texture->m_texture, texture->m_alphaMode, 4, texture->m_positions, texture->m_texCoords, colorCount > 1 ? 4 : 0, colors, 6, s_quadIndices, texture->m_shader);
 }

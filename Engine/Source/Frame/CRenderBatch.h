@@ -12,6 +12,8 @@ class C3Vector;
 class CGxShader;
 class CGxStringBatch;
 class CImVector;
+class CSimpleFontString;
+class CSimpleTexture;
 struct CTexture;
 
 struct RENDERCALLBACKNODE : public TSLinkedNode<RENDERCALLBACKNODE> {
@@ -34,6 +36,8 @@ class CRenderBatch {
     void Finish();
     void Queue(CTexture* texture, EGxBlend alphaMode, int32_t posCount, const C3Vector* position, const C2Vector* texCoord, int32_t colorCount, const CImVector* color, int32_t idxCount, const uint16_t* indices, CGxShader* shader);
     void QueueCallback(void (*callback)(void*), void* param);
+    void QueueFontString(CSimpleFontString* string);
+    void QueueTexture(CSimpleTexture* texture);
 };
 
 #endif

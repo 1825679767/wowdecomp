@@ -263,7 +263,6 @@ double CMath::exp2_(double x) {
     return t * (f2 * ((fraction * 0.0026811946517564956 + 0.005830032491308937) * f2 + (fraction * 0.06087614283854009 + 0.23603244393034895)) + (fraction * 0.6948749415195616 + 0.9997052445684839));
 }
 
-// VERIFY: 0ee3a17b auto
 
 // VERIFY: c2ddb11f manual
 // OFFSET: 0x004C5000

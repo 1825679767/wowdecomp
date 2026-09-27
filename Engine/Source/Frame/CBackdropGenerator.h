@@ -5,20 +5,26 @@
 #include <cstdint>
 #include "Engine/Source/Base/RCString.h"
 #include "Engine/Source/Frame/Types.h"
+#include "Engine/Source/Gx/Types.h"
+#include "Engine/Source/Tempest/CImVector.h"
 
-struct CSimpleTexture;
+class CRect;
+class CSimpleFrame;
+class CStatus;
+class XMLNode;
+class CSimpleTexture;
 
 class CBackdropGenerator {
     public:
     /* 0000 */ CSimpleTexture* m_backgroundTexture;
-    /* 0004 */ uint32_t m_leftTexture;
-    /* 0008 */ uint32_t m_rightTexture;
-    /* 000C */ uint32_t m_topTexture;
-    /* 0010 */ uint32_t m_bottomTexture;
-    /* 0014 */ uint32_t m_topLeftTexture;
-    /* 0018 */ uint32_t m_topRightTexture;
-    /* 001C */ uint32_t m_bottomLeftTexture;
-    /* 0020 */ uint32_t m_bottomRightTexture;
+    /* 0004 */ CSimpleTexture* m_leftTexture;
+    /* 0008 */ CSimpleTexture* m_rightTexture;
+    /* 000C */ CSimpleTexture* m_topTexture;
+    /* 0010 */ CSimpleTexture* m_bottomTexture;
+    /* 0014 */ CSimpleTexture* m_topLeftTexture;
+    /* 0018 */ CSimpleTexture* m_topRightTexture;
+    /* 001C */ CSimpleTexture* m_bottomLeftTexture;
+    /* 0020 */ CSimpleTexture* m_bottomRightTexture;
     /* 0024 */ RCString m_bgFile;
     /* 0030 */ RCString m_edgeFile;
     /* 003C */ uint32_t m_pieces;
@@ -30,9 +36,17 @@ class CBackdropGenerator {
     /* 0054 */ float m_insetBottom;
     /* 0058 */ float m_insetLeft;
     /* 005C */ float m_insetRight;
-    /* 0060 */ CColor m_backgroundColor;
-    /* 0064 */ CColor m_borderColor;
-    /* 0068 */ uint32_t m_alphaMode;
+    /* 0060 */ CImVector m_backgroundColor;
+    /* 0064 */ CImVector m_borderColor;
+    /* 0068 */ EGxBlend m_alphaMode;
+
+    CBackdropGenerator();
+    void DestroyTextures();
+    void Generate(const CRect* rect);
+    void LoadXML(XMLNode* node, CStatus* status);
+    void SetBorderVertexColor(const CImVector& color);
+    void SetOutput(CSimpleFrame* frame);
+    void SetVertexColor(const CImVector& color);
 };
 
 #endif

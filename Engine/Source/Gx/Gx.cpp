@@ -68,14 +68,12 @@ static TSGrowableArray<void (*)()> s_destroyCallbacks;
 // STATIC: 0x00C5DFA4
 static TSGrowableArray<GxDrawListEntry> s_drawLists[GxuCats_Last];
 
-// VERIFY: pending
 // VERIFY: 39e42562 auto
 // OFFSET: 0x00681310
 static void DrawListPreprocessB2F(GxDrawListEntry* entry, const C3Vector& viewPos) {
     entry->m_depth = entry->m_item->GetDepth(viewPos);
 }
 
-// VERIFY: pending
 // VERIFY: b2b7569f auto
 // OFFSET: 0x00681330
 static int DrawListSorterB2F(const void* a, const void* b) {
@@ -89,14 +87,12 @@ static int DrawListSorterB2F(const void* a, const void* b) {
     return depthB > depthA;
 }
 
-// VERIFY: pending
 // VERIFY: 78c775d6 auto
 // OFFSET: 0x00681370
 static void DrawListPreprocessVtxStream(GxDrawListEntry* entry, const C3Vector& viewPos) {
     entry->m_vtxStream = entry->m_item->GetVtxStream();
 }
 
-// VERIFY: pending
 // VERIFY: 1935d204 auto
 // OFFSET: 0x00681390
 static int DrawListSorterVtxStream(const void* a, const void* b) {
@@ -1028,7 +1024,6 @@ void GxDrawLockedElements(EGxPrim primType, uint32_t indexCount, const uint16_t*
     g_theGxDevicePtr->Draw(&batch, 1);
 }
 
-// VERIFY: pending
 // VERIFY: 97b9ed19 manual
 // OFFSET: 0x00681B50
 static void GxuPreprocessDrawList(EGxuDrawListCategory category, EGxuDrawListSorting sorting, const C3Vector& viewPos) {
@@ -1037,7 +1032,6 @@ static void GxuPreprocessDrawList(EGxuDrawListCategory category, EGxuDrawListSor
     }
 }
 
-// VERIFY: pending
 // VERIFY: 916be93a manual
 // OFFSET: 0x00681BA0
 void GxuSortDrawList(EGxuDrawListCategory category, EGxuDrawListSorting sorting, const C3Vector& viewPos) {
@@ -1045,7 +1039,6 @@ void GxuSortDrawList(EGxuDrawListCategory category, EGxuDrawListSorting sorting,
     qsort(s_drawLists[category].Ptr(), s_drawLists[category].Count(), sizeof(GxDrawListEntry), s_drawListSorters[sorting]);
 }
 
-// VERIFY: pending
 // VERIFY: 631533e2 auto
 // OFFSET: 0x00682900
 void GxuClearDrawList(EGxuDrawListCategory category) {
@@ -1059,7 +1052,6 @@ void GxuClearDrawList(EGxuDrawListCategory category) {
     s_drawListBusy = false;
 }
 
-// VERIFY: pending
 // VERIFY: 5e771d38 auto
 // OFFSET: 0x00682960
 void GxuFlushDrawList(EGxuDrawListCategory category, const C3Vector& viewPos) {
@@ -1088,7 +1080,6 @@ void GxuFlushDrawList(EGxuDrawListCategory category, const C3Vector& viewPos) {
     GxuClearDrawList(category);
 }
 
-// VERIFY: pending
 // VERIFY: 456ff928 auto
 // OFFSET: 0x00682A00
 void GxScenePresent() {
@@ -1097,7 +1088,6 @@ void GxScenePresent() {
     g_theGxDevicePtr->ScenePresent();
 }
 
-// VERIFY: pending
 // VERIFY: 6d471ae7 auto
 // OFFSET: 0x00682B80
 void GxDevDestroy(CGxDevice* device) {
@@ -1126,7 +1116,6 @@ void GxDevDestroy(CGxDevice* device) {
     g_theGxDevicePtr = nullptr;
 }
 
-// VERIFY: pending
 // VERIFY: a84aeead manual
 // OFFSET: 0x005EEB70
 void GxPrimUnlockVertexPtrs() {

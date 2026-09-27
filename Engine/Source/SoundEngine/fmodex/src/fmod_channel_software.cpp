@@ -46,7 +46,6 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
-// VERIFY: bf651e02 auto
 // OFFSET: 0x00933EB0
 ChannelSoftware::ChannelSoftware()
 {

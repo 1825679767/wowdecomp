@@ -5,7 +5,6 @@
 // STATIC: 0x00B33E58
 Blizzard::Lock::ConstructOnce<System_MPQGlobals::Globals> System_MPQGlobals::s_globals;
 
-// VERIFY: be9441c5 manual
 // INLINED
 bool System_MPQGlobals::ArchiveLess::operator()(const System_SFile::ARCHIVEREC* a, const System_SFile::ARCHIVEREC* b) const {
     if (a->m_priority == b->m_priority) {

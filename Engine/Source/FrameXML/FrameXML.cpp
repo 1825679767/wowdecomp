@@ -17,6 +17,7 @@
 #include "Engine/Source/Frame/CSimpleMessageFrame.h"
 #include "Engine/Source/Frame/CSimpleMessageScrollFrame.h"
 #include "Engine/Source/Frame/CSimpleModel.h"
+#include "Engine/Source/Frame/CSimpleMovieFrame.h"
 #include "Engine/Source/Frame/CSimpleScrollFrame.h"
 #include "Engine/Source/Frame/CSimpleSlider.h"
 #include "Engine/Source/Frame/CSimpleStatusBar.h"
@@ -187,6 +188,13 @@ CSimpleFrame* Create_SimpleStatusBar(CSimpleFrame* parent) {
 CSimpleFrame* Create_SimpleColorSelect(CSimpleFrame* parent) {
     void* data = CSimpleColorSelect::s_allocator.GetData(0, typeid(CSimpleColorSelect).raw_name(), SLOG_OBJECT);
     return data ? new (data) CSimpleColorSelect(parent) : nullptr;
+}
+
+// VERIFY: b85fa974 auto
+// OFFSET: 0x00812810
+CSimpleFrame* Create_SimpleMovieFrame(CSimpleFrame* parent) {
+    void* data = CSimpleMovieFrame::s_allocator.GetData(0, typeid(CSimpleMovieFrame).raw_name(), SLOG_OBJECT);
+    return data ? new (data) CSimpleMovieFrame(parent) : nullptr;
 }
 
 // VERIFY: 1562cfb0 auto
