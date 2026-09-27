@@ -3,39 +3,30 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
+
+class CDataStore;
 
 class NameCache {
     public:
-    /* 0000 */ uint32_t m_vtable;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint32_t unk_0018;
-    /* 001C */ uint32_t unk_001C;
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint32_t unk_0024;
-    /* 0028 */ uint32_t unk_0028;
-    /* 002C */ uint32_t unk_002C;
-    /* 0030 */ uint32_t unk_0030;
-    /* 0034 */ uint32_t unk_0034;
-    /* 0038 */ uint32_t unk_0038;
-    /* 003C */ uint32_t unk_003C;
-    /* 0040 */ uint32_t unk_0040;
-    /* 0044 */ uint32_t unk_0044;
-    /* 0048 */ uint32_t unk_0048;
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050;
-    /* 0054 */ uint32_t unk_0054;
-    /* 0058 */ uint32_t unk_0058;
-    /* 005C */ uint32_t unk_005C;
-    /* 0060 */ uint32_t unk_0060;
-    /* 0064 */ uint32_t unk_0064;
-    /* 0068 */ uint32_t unk_0068;
-    /* 006C */ uint32_t unk_006C;
-    /* 0070 */ uint32_t unk_0070;
+    static const uint32_t s_cacheVersion = 4;
+
+    struct DeclinedNames {
+        /* 0000 */ char m_names[5][64];
+    };
+
+    /* 0000 */ char m_name[48];
+    /* 0030 */ NameCache::DeclinedNames* m_declinedNames;
+    /* 0034 */ char m_realmName[256];
+    /* 0134 */ uint32_t unk_0134;
+    /* 0138 */ uint64_t m_guid;
+    /* 0140 */ uint32_t m_race;
+    /* 0144 */ uint32_t m_sex;
+    /* 0148 */ uint32_t m_class;
+
+    NameCache();
+    ~NameCache();
+    void Pack(CDataStore* msg);
+    void Unpack(CDataStore* msg);
 };
 
 #endif

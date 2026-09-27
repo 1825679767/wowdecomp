@@ -4,12 +4,25 @@
 #include <cstddef>
 #include <cstdint>
 
+class CDataStore;
+
 class PetNameCache {
     public:
-    /* 0000 */ uint8_t unk_0000[80];
-    /* 0050 */ uint32_t unk_0050;
-    /* 0054 */ uint32_t unk_0054;
-    /* 0058 */ uint32_t unk_0058;
+    static const uint32_t s_cacheVersion = 1;
+
+    struct DeclinedNames {
+        /* 0000 */ char m_names[5][96];
+    };
+
+    /* 0000 */ char m_name[80];
+    /* 0050 */ PetNameCache::DeclinedNames* m_declinedNames;
+    /* 0054 */ uint32_t m_petNumber;
+    /* 0058 */ uint32_t m_timestamp;
+
+    PetNameCache();
+    ~PetNameCache();
+    void Pack(CDataStore* msg);
+    void Unpack(CDataStore* msg);
 };
 
 #endif

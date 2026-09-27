@@ -4,6 +4,11 @@
 #include <cstddef>
 #include <cstdint>
 
+class CWorldOccluder {
+    public:
+    static void Initialize();
+};
+
 class CClipVolume {
     public:
     /* 0000 */ uint32_t m_planeStart;

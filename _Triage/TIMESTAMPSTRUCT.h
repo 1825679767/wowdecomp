@@ -3,10 +3,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
 
-class TIMESTAMPSTRUCT {
+class TIMESTAMPSTRUCT : public TSHashObject<TIMESTAMPSTRUCT, HASHKEY_NONE> {
     public:
-    /* 0000 */ uint8_t unk_0000[24];
     /* 0018 */ uint32_t unk_0018[6];
 };
 

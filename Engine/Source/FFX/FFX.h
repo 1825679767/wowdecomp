@@ -13,7 +13,7 @@
 #include "Engine/Source/Tempest/CImVector.h"
 
 class CTexture;
-class CVar;
+struct CVar;
 
 namespace FFX {
     struct Tex {
@@ -21,6 +21,12 @@ namespace FFX {
         /* 0004 */ C2iVector m_texSize;
         /* 000C */ C2iVector m_size;
         /* 0014 */ C2Vector m_texelSize;
+    };
+
+    struct VertexPCT3 {
+        /* 0000 */ C3Vector p;
+        /* 000C */ CImVector c;
+        /* 0010 */ C2Vector tc[3];
     };
 
     struct VertexPCT4 {
@@ -58,6 +64,8 @@ namespace FFX {
         Effect();
     };
 
+    extern CGxBatch s_quadBatch;
+    extern CGxBatch s_gridBatch;
     extern bool s_useRECT;
     extern CVar* s_cvarMultisample;
     extern CVar* s_cvarFFXRectangle;

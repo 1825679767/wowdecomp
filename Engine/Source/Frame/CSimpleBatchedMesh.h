@@ -10,7 +10,7 @@ class C3Vector;
 class CGxShader;
 class CGxTex;
 class CImVector;
-struct CTexture;
+class CTexture;
 
 class CSimpleBatchedMesh {
     public:

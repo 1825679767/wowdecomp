@@ -159,3 +159,14 @@ void Blizzard::Using::DependsOn(const char* me, const char* dependsOn) {
     (*link)->id = dep->id;
     (*link)->next = nullptr;
 }
+
+// INLINED
+Blizzard::Using::GlobalUse::GlobalUse() {
+    this->m_name = "Blizzard::Using::GlobalUse";
+    Blizzard::Using::StartUsing("Blizzard::Using::GlobalUse");
+}
+
+// INLINED
+Blizzard::Using::GlobalUse::~GlobalUse() {
+    Blizzard::Using::StopUsing(this->m_name);
+}

@@ -308,3 +308,13 @@ XMLTree* XMLTree_Load(const char* data, uint32_t size) {
 XMLNode* XMLTree_GetRoot(XMLTree* tree) {
     return tree->m_root;
 }
+
+// VERIFY: d2051799 manual
+// OFFSET: 0x009C1820
+XMLNodeData::~XMLNodeData() {
+}
+
+// VERIFY: 7981ca12 manual
+// OFFSET: 0x005EEB70
+void XMLNodeData::Release() {
+}

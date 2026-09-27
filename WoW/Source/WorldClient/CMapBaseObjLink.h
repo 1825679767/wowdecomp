@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
 
-struct CMapBaseObj;
+class CMapBaseObj;
 class CMapBaseObjLink;
 
 class CMapBaseObjLink {

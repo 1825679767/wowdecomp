@@ -18,7 +18,9 @@ class CGGameUI {
     static int32_t m_inMovie;
 
     static int32_t CameraMusicIsPlaying();
+    static void Reload();
     static uint64_t GetCursorItem();
+    static void InvalidatePlayer(const uint64_t& guid);
     static int32_t SequenceMusicIsPlaying();
 };
 

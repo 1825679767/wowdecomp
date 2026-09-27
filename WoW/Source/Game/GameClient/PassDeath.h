@@ -3,18 +3,31 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/FFX/FFX.h"
 
-class PassDeath {
+class CGxShader;
+
+class PassDeath : public FFX::Pass {
     public:
-    /* 0000 */ uint8_t unk_0000 [4];
-    /* 0004 */ int32_t unk_0004;
-    /* 0008 */ int32_t unk_0008;
-    /* 000C */ uint8_t m_gapC [24];
-    /* 0024 */ int32_t unk_0024;
-    /* 0028 */ uint8_t unk_0028 [4];
-    /* 002C */ char unk_002C;
-    /* 002D */ uint8_t unk_002D[3];
-    /* 0030 */ int32_t unk_0030;
+    /* 0030 */ int32_t m_useRect;
+    /* 0034 */ CGxShader* m_shaders[2];
+
+    virtual ~PassDeath();
+    virtual bool Valid();
+    virtual void Execute();
+
+    PassDeath(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk);
+};
+
+class PassDeathNVRC : public FFX::Pass {
+    public:
+    /* 0030 */ CGxShader* m_shader;
+
+    virtual ~PassDeathNVRC();
+    virtual bool Valid();
+    virtual void Execute();
+
+    PassDeathNVRC(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk);
 };
 
 #endif

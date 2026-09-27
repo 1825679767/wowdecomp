@@ -32,6 +32,7 @@ void ConsoleCommandDestroy();
 int32_t AddLineToExecFile(const char* line);
 void AddToHistory(const char* command);
 const char* ConsoleCommandHistory(uint32_t index);
+uint32_t ConsoleCommandHistoryDepth();
 int32_t ConsoleCommandRegister(const char* command, COMMANDHANDLER handler, CATEGORY category, const char* helpText);
 void ConsoleCommandUnregister(const char* command);
 void ConsoleCommandWriteHelp(const char* command);

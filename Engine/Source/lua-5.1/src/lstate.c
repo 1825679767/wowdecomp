@@ -151,7 +151,7 @@ void luaE_freethread (lua_State *L, lua_State *L1) {
 }
 
 
-// VERIFY: fdf620e9 manual
+// VERIFY: fdf472d5 manual
 // OFFSET: 0x00855370
 LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, int profile) {
   int i;
@@ -190,6 +190,8 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, int profile) {
   g->weak = NULL;
   g->tmudata = NULL;
   g->totalbytes = sizeof(LG);
+  g->gcusage = NULL;
+  g->gctime = NULL;
   g->gcpause = LUAI_GCPAUSE;
   g->gcstepmul = LUAI_GCMUL;
   g->gcdept = 0;

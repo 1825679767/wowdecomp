@@ -3,10 +3,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleModel.h"
 #include "Engine/Source/Model2/M2Light.h"
 
+class CM2Model;
+class CRenderBatch;
 class CSimpleModelFFX;
+class CStatus;
+class XMLNode;
 
 class CM2LightArray {
     public:
@@ -21,6 +26,8 @@ class CM2LightArray {
     /* 01BD */ uint8_t unk_01BD;
     /* 01BE */ uint8_t unk_01BE;
     /* 01BF */ uint8_t unk_01BF;
+
+    CM2LightArray();
 };
 
 class CSimpleModelFFX : public CSimpleModel {
@@ -30,10 +37,26 @@ class CSimpleModelFFX : public CSimpleModel {
     /* 0A68 */ CM2LightArray m_lightArray3 [2];
     /* 0DE8 */ float m_glow;
 
+    static CDataAllocator s_simpleModelFFXHeap;
     static int32_t s_metatable;
 
+    static void operator delete(void* ptr);
+    static CSimpleFrame* Create(CSimpleFrame* parent);
     static void CreateScriptMetaTable();
     static void RegisterScriptMethods(lua_State* L);
+    static void Render(void* arg);
+
+    using CSimpleModel::SetModel;
+
+    virtual ~CSimpleModelFFX();
+    virtual int32_t GetScriptMetaTable();
+    virtual void OnLayerShow();
+    virtual void OnFrameRender(CRenderBatch* batch, uint32_t layer);
+    virtual void SetModel(CM2Model* model);
+    virtual void SetGlow(float glow);
+    virtual void LoadXML(XMLNode* node, CStatus* status);
+
+    CSimpleModelFFX(CSimpleFrame* parent);
 };
 
 #endif

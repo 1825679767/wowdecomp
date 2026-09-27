@@ -9,11 +9,17 @@
 
 class CBarrier_Contact;
 class CGxVertexPCT0T1;
-struct CMapChunk;
-struct CMapObjDefGroup;
+class CTexture;
+class CMapChunk;
+class CMapObjDefGroup;
 
 class CBarrier {
     public:
+    static CTexture* s_mask;
+    static CTexture* s_pattern;
+
+    static void Initialize();
+
     /* 0000 */ int32_t m_mode;
     /* 0004 */ uint32_t m_vertAlloc;
     /* 0008 */ uint32_t m_vertCount;

@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
+struct CVar;
+
 class BlizzardObject {
     public:
     /* 0000 */ uint32_t unk_0000;
@@ -23,6 +25,11 @@ class BlizzardObject {
     /* 0140 */ uint32_t unk_0140;
     /* 0144 */ uint8_t unk_0144[64];
     /* 0184 */ uint32_t unk_0184;
+};
+
+class Shard {
+    public:
+    /* 0000 */ uint8_t unk_0000[32];
 };
 
 class LightningObject {
@@ -92,5 +99,13 @@ class MountTransitionObject {
     /* 007C */ uint32_t unk_007C;
     /* 0080 */ uint32_t unk_0080;
 };
+
+extern CVar* s_spellEffectLevelVar;
+
+void SpellVisualsInitialize();
+void SpellVisualsInitializeModelAttachLookup();
+void SpellVisualsClear();
+void SpellVisualsShutdown();
+void SpellVisualsShutdownModelAttachLookup();
 
 #endif

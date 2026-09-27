@@ -442,7 +442,7 @@ void CGxDevice::QueryDestroy(CGxQuery*& query) {
     query = nullptr;
 }
 
-// VERIFY: 79028de3 manual
+// VERIFY: 2daa7013 manual
 // OFFSET: 0x00687A90
 void CGxDevice::ICursorDraw() {
     if (!this->m_cursorVisible || this->m_hwCursor) {
@@ -521,8 +521,8 @@ void CGxDevice::ICursorDraw() {
         GxXformViewProjNativeTranspose(viewProj);
         GxShaderConstantsSet(GxSh_Vertex, 0, reinterpret_cast<const float*>(&viewProj), 4);
     } else {
-        GxRsSet(GxRs_VertexShader, 0);
-        GxRsSet(GxRs_PixelShader, 0);
+        GxRsSet(GxRs_VertexShader, nullptr);
+        GxRsSet(GxRs_PixelShader, nullptr);
     }
 
     CGxBuf* buf = GxBufStream(GxPoolTarget_Vertex, 24, 4);
@@ -2055,7 +2055,7 @@ void CGxDevice::GetSurveyModeInfo(uint32_t& desktopWidth, uint32_t& desktopHeigh
     }
 }
 
-// VERIFY: 4badc4f6 manual
+// VERIFY: f49a3c9d manual
 // OFFSET: 0x006865B0
 void CGxDevice::RsInit() {
     this->RsSet(GxRs_PolygonOffset, 0.0f);
@@ -2078,7 +2078,7 @@ void CGxDevice::RsInit() {
     uint32_t tmu;
 
     for (tmu = 0; tmu < 8; tmu++) {
-        this->RsSet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), 0);
+        this->RsSet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), nullptr);
         this->RsSet(static_cast<EGxRenderState>(GxRs_ColorOp0 + tmu), 0);
         this->RsSet(static_cast<EGxRenderState>(GxRs_AlphaOp0 + tmu), 0);
         this->RsSet(static_cast<EGxRenderState>(GxRs_TexGen0 + tmu), 0);
@@ -2087,11 +2087,11 @@ void CGxDevice::RsInit() {
     }
 
     for (; tmu < 16; tmu++) {
-        this->RsSet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), 0);
+        this->RsSet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), nullptr);
     }
 
-    this->RsSet(GxRs_PixelShader, 0);
-    this->RsSet(GxRs_VertexShader, 0);
+    this->RsSet(GxRs_PixelShader, nullptr);
+    this->RsSet(GxRs_VertexShader, nullptr);
     this->RsSet(GxRs_PointScale, 1.0f);
     this->RsSet(GxRs_PointScaleAttenuation, C3Vector(1.0f, 0.0f, 0.0f));
     this->RsSet(GxRs_PointScaleMin, 0.0f);

@@ -164,7 +164,7 @@ void ConsoleDetectDetectHardware(Hardware& hardware, bool& changed) {
 
     g_videoHardwareDB.Load(__FILE__, __LINE__);
 
-    hardware.m_cpuIdx = OsGetProcessorTicksPerSecond() * 0.000001f > 1500.0f;
+    hardware.m_cpuIdx = static_cast<int64_t>(OsGetProcessorTicksPerSecond()) * 0.000001f > 1500.0f;
     hardware.m_memIdx = 0;
     hardware.m_videoID = 0;
 

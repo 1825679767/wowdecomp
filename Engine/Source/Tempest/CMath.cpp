@@ -652,3 +652,27 @@ CSoftFloat CSoftFloat::FromInt(int32_t value) {
     result.m_bits = ((31 - zeros + 127) << 23) | (static_cast<uint32_t>(magnitude) & 0x7FFFFF) | sign;
     return result;
 }
+
+// VERIFY: 82e25c68 manual
+// OFFSET: 0x005FE800
+void CMath::split_(float x, float* frac, int32_t* whole) {
+    if (x > 0.0f) {
+        *whole = static_cast<int32_t>(static_cast<int64_t>(x));
+    } else {
+        *whole = static_cast<int32_t>(x) - 1;
+    }
+
+    *frac = x - *whole;
+}
+
+// VERIFY: f348e946 auto
+// OFFSET: 0x006F7A10
+float CMath::sin_(float x) {
+    float frac;
+    int32_t whole;
+    CMath::split_(x * 0.31830987f - 0.5f, &frac, &whole);
+
+    float result = 1.0f - frac * ((6.0f - 4.0f * frac) * frac);
+
+    return (whole & 1) ? -result : result;
+}

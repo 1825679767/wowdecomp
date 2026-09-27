@@ -4,8 +4,12 @@
 #include <cstddef>
 #include <cstdint>
 
+class CDataStore;
+
 class CreatureStats_C {
     public:
+    static const uint32_t s_cacheVersion = 1;
+
     /* 0004 */ char* m_subName;
     /* 0008 */ char* m_iconName;
     /* 000C */ int32_t m_typeFlags;
@@ -27,6 +31,9 @@ class CreatureStats_C {
     /* 005C */ char* m_name [4];
 
     virtual ~CreatureStats_C();
+
+    void Pack(CDataStore* msg);
+    void Unpack(CDataStore* msg);
 };
 
 #endif

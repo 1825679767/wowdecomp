@@ -109,3 +109,59 @@ target_include_directories(expat
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/expat/lib
 )
+
+add_library(DivxDecoder INTERFACE)
+
+target_include_directories(DivxDecoder
+    INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/DivxDecoder
+)
+
+if (WOWDECOMP_ARCH_32)
+    set(DIVXDECODER_IMPORT_LIB ${CMAKE_CURRENT_BINARY_DIR}/DivxDecoder.lib)
+
+    execute_process(
+        COMMAND ${CMAKE_AR} /NOLOGO /MACHINE:X86 /DEF:${CMAKE_CURRENT_SOURCE_DIR}/DivxDecoder/DivxDecoder.def /OUT:${DIVXDECODER_IMPORT_LIB}
+        RESULT_VARIABLE DIVXDECODER_RESULT
+    )
+
+    if (NOT DIVXDECODER_RESULT EQUAL 0)
+        message(FATAL_ERROR "DivxDecoder: creating the import library failed")
+    endif ()
+
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/DivxDecoder/DivxDecoder.def)
+
+    target_link_libraries(DivxDecoder
+        INTERFACE
+            ${DIVXDECODER_IMPORT_LIB}
+    )
+
+    set(DIVXDECODER_DLL ${CMAKE_CURRENT_SOURCE_DIR}/DivxDecoder/DivxDecoder.dll)
+
+    if (EXISTS ${DIVXDECODER_DLL})
+        add_custom_target(DivxDecoderDll
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/bin/Win
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${DIVXDECODER_DLL} ${CMAKE_SOURCE_DIR}/bin/Win/DivxDecoder.dll
+        )
+
+        add_dependencies(DivxDecoder DivxDecoderDll)
+    else ()
+        message(WARNING "DivxDecoder: ${DIVXDECODER_DLL} is missing. Copy DivxDecoder.dll from a 3.3.5a (12340) client there; Win32 builds need it next to the executables.")
+    endif ()
+else ()
+    target_link_libraries(DivxDecoder
+        INTERFACE
+            XvidDecoder
+    )
+endif ()
+
+if (WIN32)
+    add_library(lgLcd STATIC
+        lgLcd/lglcd.cpp
+    )
+
+    target_include_directories(lgLcd
+        PUBLIC
+            ${CMAKE_SOURCE_DIR}
+    )
+endif ()

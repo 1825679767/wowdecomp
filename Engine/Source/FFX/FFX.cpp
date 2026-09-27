@@ -13,17 +13,14 @@
 #include "Engine/Source/Services/Texture.h"
 #include "Engine/Source/Tempest/CRect.h"
 
+// STATIC: 0x00B24A80
+CGxBatch FFX::s_quadBatch = { GxPrim_TriangleStrip, 0, 4, 0, 3 };
+
+// STATIC: 0x00B24A90
+CGxBatch FFX::s_gridBatch = { GxPrim_Triangles, 0, 150, 0, 35 };
+
 // STATIC: 0x00D45768
 bool FFX::s_useRECT;
-
-// STATIC: 0x00D4576C
-CVar* FFX::s_cvarMultisample;
-
-// STATIC: 0x00D45770
-CVar* FFX::s_cvarFFXRectangle;
-
-// STATIC: 0x00D45774
-CVar* FFX::s_cvarFFX;
 
 // STATIC: 0x00D45778
 uint16_t FFX::s_quadIndices[4];
@@ -99,18 +96,6 @@ static void DestroyTex(FFX::Tex& tex) {
 // OFFSET: 0x008C0290
 C44Matrix* FFX::GetOldViewMtx() {
     return &FFX::s_oldViewMtx;
-}
-
-// VERIFY: d767d877 manual
-// OFFSET: 0x008C02A0
-bool FFX::CVarCallback(CVar* var, const char* oldValue, const char* value, void* arg) {
-    if (atol(value)) {
-        ConsoleWrite("enabled", DEFAULT_COLOR);
-    } else {
-        ConsoleWrite("disabled", DEFAULT_COLOR);
-    }
-
-    return true;
 }
 
 // VERIFY: 2b290dfa manual

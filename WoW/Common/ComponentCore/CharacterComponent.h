@@ -20,7 +20,7 @@ class ChrRacesRec;
 class CreatureDisplayInfoRec;
 class CreatureModelDataRec;
 class CTexture;
-class CVar;
+struct CVar;
 class ItemDisplayInfoRec;
 struct st_race;
 
@@ -263,5 +263,7 @@ class CCharacterComponent {
     int32_t UpdateTextureSlot(COMPONENT_SECTIONS section, const ItemDisplayInfoRec* displayRec, int32_t layer);
     bool VariationsLoaded(int32_t wait);
 };
+
+bool ComponentVarHandler(CVar* var, const char* oldValue, const char* value, void* arg);
 
 #endif

@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CDataStore;
+
 class ItemStats {
     public:
     /* 0000 */ uint8_t unk_0000[4];
@@ -69,6 +71,8 @@ class ItemStats {
 
 class ItemStats_C {
     public:
+    static const uint32_t s_cacheVersion = 5;
+
     /* 0000 */ uint32_t unk_0000;
     /* 0004 */ uint8_t unk_0004[96];
     /* 0064 */ uint32_t unk_0064;
@@ -85,6 +89,10 @@ class ItemStats_C {
     /* 00B4 */ uint32_t unk_00B4;
     /* 00B8 */ uint8_t unk_00B8[196];
     /* 017C */ uint32_t unk_017C;
+    /* 0180 */ uint8_t unk_0180[132];
+
+    void Pack(CDataStore* msg);
+    void Unpack(CDataStore* msg);
 };
 
 #endif

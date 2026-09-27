@@ -4,40 +4,80 @@
 #include <cstring>
 #include "Client.h"
 #include "_Triage/AreaList.h"
+#include "_Triage/DataPreload.h"
 #include "_Triage/StartupReport.h"
+#include "_Triage/StreamingSetEnabled.h"
 #include "Engine/Source/Base/Base.h"
 #include "Engine/Source/Base/CmdLine.h"
+#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
 #include "Engine/Source/BlizzardCore/Source/System/Time/Time.h"
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/ConsoleBase/ConsoleCommand.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/ConsoleBase/IConsole.h"
 #include "Engine/Source/Event/Event.h"
+#include "Engine/Source/Frame/CSimpleRender.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
+#include "Engine/Source/FrameXML/FrameXML.h"
 #include "Engine/Source/FrameXML/XMLTree.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/Gx.h"
-#include "Engine/Source/lua-5.1/src/lua.h"
-#include "Engine/Source/Os/OsFile.h"
+#include "Engine/Source/Gxu/GxuLight.h"
+#include "Engine/Source/Model2/M2Cache.h"
 #include "Engine/Source/Os/Gui.h"
+#include "Engine/Source/Os/Input.h"
+#include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Os/OsIME.h"
 #include "Engine/Source/Os/Path.h"
 #include "Engine/Source/Os/System.h"
 #include "Engine/Source/Os/Time.h"
 #include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/Scrn/Scrn.h"
+#include "Engine/Source/Services/AsyncFile.h"
+#include "Engine/Source/Services/ModelBlob.h"
 #include "Engine/Source/Services/Profile.h"
+#include "Engine/Source/Services/SysMessage.h"
+#include "Engine/Source/Services/Texture.h"
+#include "Engine/Source/SoundEngine/SoundCache.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Storm/Source/MD5.h"
 #include "Engine/Source/Tempest/CRandom.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
+#include "WoW/Common/ComponentCore/CharacterComponent.h"
+#include "WoW/Source/Console/ConsoleClient.h"
 #include "WoW/Source/ConsoleDevice/ConsoleDevice.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/Game/DeclinedWords.h"
+#include "WoW/Source/Game/GameClient/ComSatClient.h"
+#include "WoW/Source/Game/GameClient/WardenClient.h"
+#include "WoW/Source/Game/ValidateName.h"
+#include "WoW/Source/Glue/CGlueMgr.h"
+#include "WoW/Source/Glue/GlueMgr.h"
+#include "WoW/Source/Hardware.h"
+#include "WoW/Source/LoadingScreen.h"
+#include "WoW/Source/Magic/MagicClient/SpellVisuals.h"
+#include "WoW/Source/Object/ObjectClient/Effect_C.h"
+#include "WoW/Source/Object/ObjectClient/ObjectEffect.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/ObjectAlloc/HeapUsage.h"
+#include "WoW/Source/ObjectAlloc/ObjectAlloc.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
+#include "WoW/Source/UIUtil/InputControl.h"
 #include "WoW/Source/Ui/AddOns.h"
 #include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/Tutorial.h"
+#include "WoW/Source/WorldClient/FrameTime.h"
 #include "WoW/Source/WorldClient/Map.h"
+#include "WoW/Source/WorldClient/World.h"
+#include "WoW/Source/WorldClient/WorldParam.h"
+#include "WoW/Source/WorldClient/shadow.h"
 #include "WoW/Source/WowServices/PatchFiles.h"
+#include "WoW/Source/WowServices/RealmConnection.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/WowSysMessageOutput.h"
 
 namespace {
 
@@ -140,7 +180,7 @@ WowClientDB<Startup_StringsRec> g_startup_StringsDB;
 static const char* s_iniLocaleNames[8] = { "enUS", "koKR", "frFR", "deDE", "zhCN", "zhTW", "esES", "esMX" };
 
 // STATIC: 0x00B2F99C
-static int32_t s_region;
+int32_t s_region;
 
 // STATIC: 0x00B2F9E1
 uint8_t s_expansionLevel;
@@ -151,11 +191,20 @@ static uint32_t s_numPatchArchives;
 // STATIC: 0x00B2FA18
 static uint32_t s_firstBaseArchive;
 
+// STATIC: 0x00B2FA30
+CRndSeed g_rndSeed;
+
 // STATIC: 0x00B2FA38
 static TSGrowableArray<SArchive*> s_archiveHandles;
 
 // STATIC: 0x00B2FE48
 static char s_iniLocale[5];
+// STATIC: 0x00AB6128
+static const EGxTexFilter s_textureFilterModes[] = { GxTex_LinearMipNearest, GxTex_LinearMipLinear, GxTex_Anisotropic, GxTex_Anisotropic, GxTex_Anisotropic, GxTex_Anisotropic };
+
+// STATIC: 0x00AB6140
+static const uint32_t s_textureMaxAnisotropy[] = { 1, 1, 2, 4, 8, 16 };
+
 // STATIC: 0x00B2F050
 static uint32_t s_streamingDiag;
 
@@ -164,6 +213,9 @@ static char s_streamingError[2051];
 
 // STATIC: 0x00B2F994
 HEVENTCONTEXT g_clientEventContext;
+
+// STATIC: 0x00B2F9A4
+static int32_t s_closeErrorStringId;
 
 // STATIC: 0x00B2F9D8
 static uint32_t s_timeTestError;
@@ -174,29 +226,109 @@ static uint32_t s_unk_B2FA10;
 // STATIC: 0x00B2FA48
 static char s_installLocation[1024];
 
-// STATIC: 0x00C5DE88
-static char s_localeCode[5];
-
 // STATIC: 0x00C5DE90
 bool g_hasIsoLocale[12];
 
 // STATIC: 0x00C5DE9C
 int32_t s_locale;
 
-// VERIFY: 3b41234e auto
-// OFFSET: 0x004022E0
-static bool ProcessAffinityMaskCallback(CVar* var, const char* oldValue, const char* value, void* arg) {
-    uint32_t maxMask = 0xFFFFFFFF >> (32 - OsGetNumberOfProcessors());
-    uint32_t mask = atol(value);
-
-    if (mask > maxMask) {
-        ConsolePrintf("Specified mask %08x is greater than the maximum allowable value of %08x", mask, maxMask);
-        return false;
-    }
-
-    return true;
+// VERIFY: abdc92c0 auto
+// OFFSET: 0x00401FD0
+static int32_t PollNet(const void* data, void* param) {
+    RealmConnection::PollNet(nullptr, nullptr);
+    WardenClient_Process();
+    return 1;
 }
 
+// VERIFY: dba6d823 auto
+// OFFSET: 0x004020E0
+static int32_t EnableCallback(const void* data, void* param) {
+    const EVENT_DATA_UPDATE* update = static_cast<const EVENT_DATA_UPDATE*>(data);
+    FrameTime::Update(update->m_elapsedSec, update->m_time);
+    return 1;
+}
+
+// VERIFY: 6ea295ed auto
+// OFFSET: 0x00402530
+static void SetDefaults(OPTION_PAGE page) {
+    DefaultSettings* defaults = ConsoleDeviceGetDefaultSettings();
+
+    if (page == OPTION_PAGE_0) {
+        if (s_desktopGammaCvar) {
+            s_desktopGammaCvar->Set("0", true, false, false, true);
+            s_desktopGammaCvar->Update();
+        }
+
+        if (s_gammaCvar) {
+            s_gammaCvar->Set("1.0", true, false, false, true);
+            s_gammaCvar->Update();
+        }
+
+        CVar* var = CVar::Lookup("windowResizeLock");
+
+        if (var) {
+            var->Set(var->m_defaultValue.m_str, true, false, false, true);
+        }
+    } else if (page == OPTION_PAGE_1) {
+        if (s_cvTextureFilteringMode) {
+            s_cvTextureFilteringMode->Set(defaults->m_trilinear ? "1" : "0", true, false, false, true);
+        }
+    } else if (page == OPTION_PAGE_2) {
+        CVar* var = CVar::Lookup("gxStereoEnabled");
+
+        if (var) {
+            var->Set(var->m_defaultValue.m_str, true, false, false, true);
+        }
+
+        var = CVar::Lookup("gxStereoConvergence");
+
+        if (var) {
+            var->Set(var->m_defaultValue.m_str, true, false, false, true);
+        }
+
+        var = CVar::Lookup("gxStereoSeparation");
+
+        if (var) {
+            var->Set(var->m_defaultValue.m_str, true, false, false, true);
+        }
+    }
+}
+
+void ZoneDebugDestroy() {
+}
+
+// VERIFY: a6d33d4d auto
+// OFFSET: 0x00402910
+static void WowClientDestroy() {
+    ValidateNameDestroy();
+    DeclinedWordsDestroy();
+    SpellVisualsShutdown();
+    InputControlDestroy();
+    CGlueMgr::Shutdown();
+    ShutdownAddOns();
+    DestroyBannedAddOns();
+    DBCache_ClearHandlers();
+    DBCache_Destroy();
+    ZoneDebugDestroy();
+    CEffect::Destroy();
+    CCharacterComponent::Destroy();
+    FrameXML_FreeHashNodes();
+    FrameXML_ClearFactories();
+    ComSatClient_Shutdown();
+    ObjectEffectSystem_ShutDown();
+    SI2::ShutDown(0);
+    FrameScript_Destroy();
+    g_soundCache.Clear();
+    LoadingScreenShutdown();
+    WowSysMessageOutput::Shutdown();
+    ConsoleCommandUnregister("reloadUI");
+    ConsoleCommandUnregister("perf");
+    ConsoleCommandUnregister("timingInfo");
+    ClientDBShutdown();
+    SysMsgShutdown();
+}
+
+// VERIFY: ebfeeaaf manual
 // OFFSET: 0x004029B0
 static bool IsPTRBuild() {
     bool isPTR = false;
@@ -224,6 +356,12 @@ static bool IsPTRBuild() {
     }
 
     return isPTR;
+}
+
+// VERIFY: 74297692 auto
+// OFFSET: 0x00402A40
+uint8_t GetClientExpansionLevel() {
+    return s_expansionLevel;
 }
 
 // VERIFY: 45dcce86 auto
@@ -285,8 +423,9 @@ static bool BuildDataFileName(int32_t directory, char* buffer, uint32_t size, co
     return true;
 }
 
+// VERIFY: c54e880e manual
 // OFFSET: 0x00402B90
-static bool CheckDataFilesExist() {
+bool CheckDataFilesExist() {
     char installPath[1024] = {};
     char dataPath[1024];
     char parentPath[1024];
@@ -301,6 +440,7 @@ static bool CheckDataFilesExist() {
     return OsFileExists(dataPath) || OsFileExists(parentPath);
 }
 
+// VERIFY: 427545c4 manual
 // OFFSET: 0x00402D50
 static void CheckAvailableLocales(char* locale) {
     if (!CheckDataFilesExist()) {
@@ -327,6 +467,7 @@ static void CheckAvailableLocales(char* locale) {
 
     SStrCopy(locale, g_localeNames[index], STORM_MAX_STR);
 }
+// VERIFY: 93c1bfa0 manual
 // OFFSET: 0x00402F60
 static void LoadMopaqFileSigningData(const char* locale) {
     SFileClearAllFileFlags();
@@ -403,61 +544,13 @@ static void LoadMopaqFileSigningData(const char* locale) {
 
     SFile::Unload(data);
 }
-// OFFSET: 0x00403200
-static bool TimingMethodCallback(CVar* var, const char* oldValue, const char* value, void* arg) {
-    uint32_t method = atol(value);
-
-    if (method > 2) {
-        ConsolePrintf("'%s' is not a valid timing method. Valid methods are:", value);
-
-        for (int32_t i = 0; i <= 2; i++) {
-            ConsolePrintf("  %d - %s", i, GetTimingMethodName(static_cast<OsTimeManager::TimingMethod>(i)));
-        }
-
-        return false;
-    }
-
-    if (oldValue && method != static_cast<uint32_t>(atol(oldValue))) {
-        CVar* testError = static_cast<CVar*>(arg);
-
-        if (testError->m_intValue) {
-            testError->SetReadOnly(false);
-            testError->Set("0", true, false, false, true);
-            testError->SetReadOnly(true);
-        }
-    }
-
-    return true;
-}
-
-// VERIFY: 36ea6d32 auto
-// OFFSET: 0x004032A0
-static int32_t CCommand_TimingInfo(const char* command, const char* arguments) {
-    int32_t desired = CVar::LookupRegistered("timingMethod")->m_intValue;
-    OsTimeManager::TimingMethod selected = OsTimeGetTimingMethod();
-    int32_t testError = CVar::LookupRegistered("timingTestError")->m_intValue;
-
-    ConsolePrintf("Timing method desired: %d - %s", desired, GetTimingMethodName(static_cast<OsTimeManager::TimingMethod>(desired)));
-    ConsolePrintf("Timing method selected: %d - %s", selected, GetTimingMethodName(selected));
-    ConsolePrintf("Timing test error: %d", testError);
-
-    return 1;
-}
-
 // VERIFY: c92cfd5d auto
 // OFFSET: 0x00403300
 int ForEveryRunOnceWTF::FileNameCompare(const void* a, const void* b) {
     return SStrSortUTF8I(*static_cast<char* const*>(a), *static_cast<char* const*>(b), STORM_MAX_STR);
 }
 
-// VERIFY: 52f0e60d auto
-// OFFSET: 0x00403320
-static bool LocaleCallback(CVar* var, const char* oldValue, const char* value, void* arg) {
-    SStrCopy(s_localeCode, value, sizeof(s_localeCode));
-
-    return true;
-}
-
+// VERIFY: 47b44380 manual
 // OFFSET: 0x004033E0
 static void LogRealmInfo(char* buffer, uint32_t size) {
     RealmInfo* realm = ClientServices::GetSelectedRealm();
@@ -475,6 +568,7 @@ static void LogRealmInfo(char* buffer, uint32_t size) {
     SStrPack(buffer, "\r\n", size);
 }
 
+// VERIFY: 2115cf96 auto
 // OFFSET: 0x00403460
 static void LogObjectInfo(CGObject_C* object, const char* label, char* buffer, uint32_t size) {
     if (!SMemIsValidPointer(object, sizeof(CGObject_C), 0)) {
@@ -547,6 +641,112 @@ static void LoadMFIL(const char* file) {
     SFile::SetStreamingStatus(s_streamingDiag & 1, (s_streamingDiag >> 1) & 1, (s_streamingDiag >> 2) & 1, (s_streamingDiag >> 3) & 1, 12340);
 }
 
+// VERIFY: 2ecb4537 auto
+// OFFSET: 0x00404130
+static void InitializeClient() {
+    EventRegister(EVENT_ID_UPDATE, EnableCallback);
+    SysMsgInitialize();
+    WowSysMessageOutput::Initialize();
+    ClientRegisterConsoleCommands();
+    ClientDBInitialize();
+    LoadingScreenInitialize();
+    FrameScript_Initialize(0);
+    SI2::Init(0);
+    ObjectEffectSystem_Initialize();
+    FrameXML_RegisterDefault();
+    GlueScriptEventsInitialize();
+    ScriptEventsInitialize();
+    SpecialUnitEffectsInitialize();
+    CCharacterComponent::Initialize();
+    ClientServices::Initialize();
+    ClientServices::SetMessageHandler(SMSG_TUTORIAL_FLAGS, CGTutorial::OnTutorialFlags, nullptr);
+
+    CVar* voiceChat = CVar::Lookup("EnableVoiceChat");
+
+    if (voiceChat && voiceChat->m_intValue) {
+        ComSatClient_Init();
+    }
+
+    DBCache_RegisterHandlers();
+    DBCache_Initialize();
+    CWorldParam::Initialize();
+    CWorld::Initialize();
+    ShadowInit();
+    GxuLightInitialize();
+    GxuLightSetGridSize(16.665001f);
+    InputControlInitialize();
+    CGlueMgr::Initialize();
+
+    if (GetConsoleMessage()) {
+        CGlueMgr::AddChangedOptionWarning(GetConsoleMessage());
+        SetConsoleMessage(nullptr);
+    }
+
+    if (SFile::IsTrial()) {
+        StartDataPreloadThread();
+    }
+
+    if (s_expansionLevel == 1) {
+        if (s_cvExpansionMovie->m_intValue == 1) {
+            s_cvExpansionMovie->Set("0", true, false, false, true);
+            s_cvMovie->Set("0", true, false, false, true);
+            CGlueMgr::SetScreen("movie");
+        } else {
+            CGlueMgr::SetScreen("login");
+        }
+    } else if (s_cvMovie->m_intValue == 1) {
+        s_cvMovie->Set("0", true, false, false, true);
+        CGlueMgr::SetScreen("movie");
+    } else {
+        CGlueMgr::SetScreen("login");
+    }
+
+    CGlueMgr::m_pendingTimerAlert = s_timeTestError;
+    SpellVisualsInitialize();
+    EventRegister(EVENT_ID_POLL, PollNet);
+}
+
+// VERIFY: 56a0f6b5 auto
+// OFFSET: 0x004047E0
+int32_t InitializeEngineCallback(const void* data, void* param) {
+    BaseInitializeContext();
+    HeapUsageInitialize();
+    AsyncFileReadRegisterCVars();
+    TextureInitialize();
+    ModelBlobLoad("world\\model.blob");
+
+    if (SFile::IsStreamingMode()) {
+        TextureLoadBlob("world\\liquid.tex");
+    }
+
+    ScrnInitialize(0);
+    ConsoleScreenInitialize(nullptr);
+
+    s_cvTextureFilteringMode = CVar::Register("textureFilteringMode", "Texture filtering mode", 1, "1", CWorldParam::TextureFilteringCallback, CATEGORY_GRAPHICS, false, nullptr, false);
+    s_cvarUIFaster = CVar::Register("UIFaster", "UI acceleration option", 0, "3", UIFasterCallback, CATEGORY_GRAPHICS, false, nullptr, false);
+    s_cvTextureCacheSize = CVar::Register("textureCacheSize", "Texture cache size in bytes", 1, "32", TextureCacheSizeCallback, CATEGORY_GRAPHICS, false, nullptr, false);
+    TextureSetCacheSize(s_cvTextureCacheSize->m_intValue << 20);
+
+    uint32_t m2Flags = GetM2CvarFlags();
+    AddConsoleDeviceDefaultCallback(SetDefaults);
+
+    if (ConsoleDeviceHardwareChanged()) {
+        for (uint32_t page = OPTION_PAGE_0; page < NUM_OPTION_PAGES; page++) {
+            SetDefaults(static_cast<OPTION_PAGE>(page));
+        }
+    }
+
+    M2Initialize(m2Flags, 0);
+
+    int32_t mode = s_cvTextureFilteringMode->m_intValue;
+    TextureSetFilterMode(s_textureFilterModes[mode]);
+    TextureSetMaxAnisotropy(s_textureMaxAnisotropy[mode]);
+
+    InitializeClient();
+
+    return 1;
+}
+
 // VERIFY: 12e55922 auto
 // OFFSET: 0x00404930
 static bool OpenArchiveWithRetry(const char* name, int32_t priority, uint32_t slot, const char* locale) {
@@ -577,6 +777,17 @@ static bool OpenArchiveWithRetry(const char* name, int32_t priority, uint32_t sl
     return false;
 }
 
+// VERIFY: 47b56ac0 manual
+// OFFSET: 0x00404AD0
+static void CloseAllArchives() {
+    for (uint32_t i = s_archiveHandles.Count(); i; i--) {
+        if (s_archiveHandles[i - 1]) {
+            SFile::CloseArchive(s_archiveHandles[i - 1]);
+        }
+    }
+}
+
+// VERIFY: f3490184 auto
 // OFFSET: 0x00404B00
 static void LogZoneInfo(CGObject_C* object, char* buffer, uint32_t size) {
     C3Vector position = object->GetPosition();
@@ -680,6 +891,7 @@ int32_t STORMAPI WowLogHeader(char* buffer, uint32_t bufferchars) {
     return 1;
 }
 
+// VERIFY: d0ea5e5a manual
 // OFFSET: 0x00405DD0
 static void OpenArchives() {
     int32_t availability = CheckDataFilesExist() + 1;
@@ -865,6 +1077,7 @@ static void OpenArchives() {
     ClientServices::InitLoginServerCVars(1, locale);
     LoadMopaqFileSigningData(locale);
 }
+// VERIFY: 18427c91 manual
 // OFFSET: 0x004064A0
 int32_t ForEveryRunOnceWTF::AppendFileName(OS_FILE_DATA& data, void* param) {
     TSGrowableArray<char*>* files = static_cast<TSGrowableArray<char*>*>(param);
@@ -874,6 +1087,31 @@ int32_t ForEveryRunOnceWTF::AppendFileName(OS_FILE_DATA& data, void* param) {
     return 0;
 }
 
+// VERIFY: e61971e0 auto
+// OFFSET: 0x004066D0
+int32_t DestroyEngineCallback(const void* data, void* param) {
+    RemoveConsoleDeviceDefaultCallback(SetDefaults);
+    ClientDestroyGame(0, 0, 0);
+    WowClientDestroy();
+    ClientServices::ClearMessageHandler(SMSG_TUTORIAL_FLAGS);
+    ClientServices::Destroy();
+    ShadowDestroy();
+    CWorld::Destroy();
+    ConsoleScreenDestroy();
+    ScrnDestroy();
+    M2Destroy();
+    ModelBlobDestroy();
+    TextureDestroy();
+    AsyncFileReadDestroy();
+    GxuLightShutdown();
+    HeapUsageDestroy();
+    ObjectAllocDestroy();
+    BaseDestroyContext();
+
+    return 1;
+}
+
+// VERIFY: 84c3b1d6 manual
 // OFFSET: 0x00406740
 void ForEveryRunOnceWTF::Execute(int32_t (*callback)(const char*)) {
     char basePath[260];
@@ -892,6 +1130,7 @@ void ForEveryRunOnceWTF::Execute(int32_t (*callback)(const char*)) {
     }
 }
 
+// VERIFY: f4d6d325 manual
 // OFFSET: 0x004067F0
 bool InitializeGlobal() {
     SCmdRegisterArgList(s_wowArgList, sizeof(s_wowArgList) / sizeof(s_wowArgList[0]));
@@ -990,6 +1229,34 @@ bool InitializeGlobal() {
     g_clientEventContext = EventCreateContextEx(1, InitializeEngineCallback, DestroyEngineCallback, 0, 0);
 
     return true;
+}
+
+// VERIFY: 87ba0ad5 manual
+// OFFSET: 0x00406B70
+void BeginCloseGame() {
+    SMemSetDebugFlags(0, 8);
+    OsIMEDestroy();
+    OsTimeShutdown();
+    EventDestroy();
+    ConsoleDeviceDestroy();
+
+    {
+        ForEveryRunOnceWTF runOnce;
+        runOnce.Execute(CVar::Delete);
+    }
+
+    CVar::Destroy();
+    ConsoleCommandDestroy();
+    BaseDestroyGlobal();
+    CloseAllArchives();
+    ShutdownStreamingIfTrial();
+    StopStreaming();
+
+    if (s_closeErrorStringId) {
+        Startup_StringsRec* title = g_startup_StringsDB.GetRecord(1);
+        Startup_StringsRec* message = g_startup_StringsDB.GetRecord(s_closeErrorStringId);
+        OsGuiMessageBox(nullptr, 0, message ? message->m_message : "Unknown Error", title ? title->m_message : "World of Warcraft");
+    }
 }
 
 // OFFSET: 0x00406C70

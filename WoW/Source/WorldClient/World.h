@@ -8,8 +8,17 @@
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/CRect.h"
+#include "Engine/Source/Tempest/C4Vector.h"
 
 class CAaBox;
+class C44Matrix;
+class CiRect;
+class CImVector;
+class CM2Scene;
+class CMapEntity;
+class CTexture;
+class Particulate;
+class Weather;
 
 class CMapBaseObj;
 class CMapChunk;
@@ -63,8 +72,33 @@ struct WorldStatus {
     /* 0004 */ uint32_t m_chunksChanged;
 };
 
+struct SWModelFadeout {
+    /* 0000 */ uint8_t unk_0000[88];
+    /* 0058 */ TSLink<SWModelFadeout> m_link;
+};
+
+extern TSExplicitList<SWModelFadeout, offsetof(SWModelFadeout, m_link)> s_fadeoutDataPool;
+
 class CWorldScene {
     public:
+    static CiRect* s_unk_CD8610;
+    static CTexture* s_defaultBlendTexture;
+    static CTexture* s_defaultTexture;
+    static float s_unk_CD877C;
+    static CMapEntity* camTargetEntity;
+    static float s_fadeDist[5];
+    static float s_fadeDistDefault[5];
+    static float s_fadeDistMin[5];
+    static float s_fadeDistMinSqr[5];
+    static float s_fadeRangeDefault[5];
+    static float s_fadeSizeDefault[5];
+    static int32_t s_unk_CD87B0;
+
+    static void ClearObjectFadeoutList();
+    static void Destroy();
+    static void Initialize();
+    static void ScaleFadeDist(float scale);
+
     /* 0000 */ uint8_t unk_0000[16];
     /* 0010 */ uint32_t unk_0010;
     /* 0014 */ uint8_t unk_0014[24];
@@ -96,7 +130,80 @@ class CWorldScene {
 };
 
 namespace World {
+extern CM2Scene* s_m2Scene;
+extern Weather* s_weather;
+extern float groundEffectDistValueSqr;
+extern C4Vector texVect[8];
+extern int32_t lodMax;
+extern int32_t lodMin;
+extern C44Matrix idMat;
+extern float s_farClip;
+extern float s_horizonFarClipScale;
+extern float s_horizonNearClipScale;
+extern int32_t s_detailDoodadDensity;
+extern float s_nearClip;
+extern float s_prevFarClip;
+extern int32_t s_texCacheDirty;
+extern uint32_t s_texCacheOverride;
+extern int32_t s_waterLOD;
+
 int32_t FrustumCull(const CAaBox& box);
+int32_t ProjectPositionCallback(const C3Vector& position, float& height, void* param);
+void ProjectTextureCallback(const CAaBox& box, const CImVector& color, int32_t index, void* param, int32_t flags);
+bool MapIsDungeon();
+void SetDetailDoodadDensity(int32_t density);
+void SetDetailDoodadDist(float dist);
+void SetFarClip(float farClip);
+void SetHorizonFarClipScale(float scale);
+void SetHorizonNearClipScale(float scale);
+void SetNearClip(float nearClip);
+void SetTexLodBias(float bias);
+float ValidateFarClip(float farClip, int32_t mapID);
 }
+
+class CWorld {
+    public:
+    static int32_t bShowSimpleDoodads;
+    static int32_t bLoadSimpleDoodads;
+    static Particulate* particulate;
+    static int32_t shadowMipLevel;
+    static int32_t unk_CD7658;
+    static uint32_t maxLights;
+    static int32_t terrainAlphaBitDepth;
+    static int32_t enableLayerCnt;
+    static float farFog;
+    static int32_t detailDoodadAlphaRef;
+    static int32_t detailDoodadTest;
+    static WorldStatus status;
+    static int32_t chunkCnt;
+    static int32_t frameCnt;
+    static int32_t s_elapsedTicks;
+    static float s_elapsedTimeSec;
+    static uint32_t enables;
+    static uint32_t enables2;
+    static uint32_t m_M2PassMask;
+    static CAaBox s_groupAreaOfInterest;
+    static CAaBox s_objectAreaOfInterest;
+    static CiRect chunkRect;
+    static CiRect gbChunkRect;
+    static CiRect gbChunkRectOld;
+    static uint32_t shadowColor;
+    static float detailDoodadDist;
+    static CTexture* shadowModTexture;
+
+    static int32_t ConsoleCommand_CharacterAmbient(const char* command, const char* arguments);
+    static int32_t ConsoleCommand_DetailDoodadAlpha(const char* command, const char* arguments);
+    static int32_t ConsoleCommand_MaxLOD(const char* command, const char* arguments);
+    static int32_t ConsoleCommand_SetShadow(const char* command, const char* arguments);
+    static int32_t ConsoleCommand_ShowCull(const char* command, const char* arguments);
+    static int32_t ConsoleCommand_ShowDetailDoodads(const char* command, const char* arguments);
+    static int32_t ConsoleCommand_ShowLowDetail(const char* command, const char* arguments);
+    static int32_t ConsoleCommand_ShowShadow(const char* command, const char* arguments);
+    static int32_t ConsoleCommand_ShowSimpleDoodads(const char* command, const char* arguments);
+    static int32_t ConsoleCommand_WaterParticulates(const char* command, const char* arguments);
+    static int32_t ConsoleCommand_WaterRipples(const char* command, const char* arguments);
+    static void Destroy();
+    static void Initialize();
+};
 
 #endif

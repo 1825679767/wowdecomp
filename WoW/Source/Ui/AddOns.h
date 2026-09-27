@@ -6,5 +6,7 @@
 const char* GetAddOnByIndex(uint32_t index);
 uint32_t GetNumAddOns();
 bool IsAddOnLoading(const char* name);
+void ShutdownAddOns();
+void DestroyBannedAddOns();
 
 #endif

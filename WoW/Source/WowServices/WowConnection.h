@@ -4,11 +4,14 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/BlizzardCore/Source/System/Lock/Lock.h"
 #include "Engine/Source/Storm/Source/SLock.h"
-#include "WoW/Source/Net/NetClient/NetClient.h"
 #include "WoW/Source/WowServices/Types.h"
 
+class CDataStore;
 class WowConnectionResponse;
+
+typedef Blizzard::Lock::Atomic ATOMIC32;
 
 struct NETADDR {
     /* 0000 */ uint16_t m_family;
@@ -26,10 +29,11 @@ struct SARC4Key {
     /* 0101 */ uint8_t m_y;
 };
 
+class WowConnectionNet;
+
 class WowConnection {
     public:
-    struct SENDNODE {
-        /* 0000 */ TSLinkedNode<WowConnection::SENDNODE> unk_0000;
+    struct SENDNODE : public TSLinkedNode<WowConnection::SENDNODE> {
         /* 0008 */ uint8_t* m_data;
         /* 000C */ uint32_t m_size;
         /* 0010 */ uint32_t m_offset;
@@ -39,10 +43,16 @@ class WowConnection {
         /* 0024 */ uint32_t m_allocsize;
     };
 
+    static WowConnectionNet* s_network;
+    static int32_t s_unkB38D20;
+    static int32_t s_unkB38D24;
+    static bool (*s_verifyAddr)(const NETADDR* addr);
+
     /* 0000 */ ATOMIC32 m_refCount;
     /* 0004 */ int32_t m_sock;
     /* 0008 */ int32_t m_oldsock;
-    /* 000C */ int32_t unk_000C;
+    /* 000C */ uint8_t unk_000C;
+    /* 000D */ uint8_t unk_000D[3];
     /* 0010 */ WOW_CONN_STATE m_connState;
     /* 0014 */ WowConnectionResponse* m_response;
     /* 0018 */ int32_t unk_0018;
@@ -55,8 +65,9 @@ class WowConnection {
     /* 0058 */ int32_t unk_0058;
     /* 005C */ int32_t unk_005C;
     /* 0060 */ int32_t unk_0060;
-    /* 0064 */ int32_t unk_0064;
-    /* 0068 */ int32_t unk_0068;
+    /* 0064 */ uint16_t unk_0064;
+    /* 0066 */ uint8_t unk_0066[2];
+    /* 0068 */ void (*m_threadInit)();
     /* 006C */ uint32_t m_connectAddress;
     /* 0070 */ uint16_t m_connectPort;
     /* 0072 */ uint8_t unk_0072[2];
@@ -69,22 +80,20 @@ class WowConnection {
     /* 00CC */ int32_t m_responseRef;
     /* 00D0 */ uintptr_t m_responseRefThread;
     /* 00D4 */ WowConnectionResponse* m_responseD4;
-    /* 00D8 */ int32_t unk_00D8;
-    /* 00DC */ int32_t unk_00DC;
+    /* 00D8 */ TSLink<WowConnection> m_netLink;
     /* 00E0 */ TSList<WowConnection::SENDNODE> m_sendList;
     /* 00EC */ int32_t m_sendDepth;
     /* 00F0 */ int32_t unk_00F0;
     /* 00F4 */ int32_t m_maxSendDepth;
     /* 00F8 */ int32_t m_serviceFlags;
-    /* 00FC */ int32_t unk_00FC;
-    /* 0100 */ int32_t unk_0100;
-    /* 0104 */ int32_t unk_0104;
+    /* 00FC */ TSList<WowConnection::SENDNODE> unk_00FC;
     /* 0108 */ SCritSect m_lock;
     /* 0130 */ int32_t unk_0130;
     /* 0134 */ int32_t unk_0134;
     /* 0138 */ void* m_event;
     /* 013C */ int32_t unk_013C;
-    /* 0140 */ int32_t unk_0140;
+    /* 0140 */ uint8_t unk_0140;
+    /* 0141 */ uint8_t unk_0141[3];
     /* 0144 */ int32_t unk_0144;
     /* 0148 */ SARC4Key m_sendKey;
     /* 024A */ SARC4Key m_receiveKey;
@@ -94,11 +103,27 @@ class WowConnection {
     /* 0375 */ uint8_t m_uint375;
     /* 0376 */ uint8_t m_uint376;
     /* 0377 */ uint8_t unk_0377[1];
+
+    static int32_t InitOsNet(bool (*netAddrFilter)(const NETADDR* addr), void (*threadInit)(), int32_t numThreads, bool useEngine);
+
+    WowConnection(WowConnectionResponse* response, void (*threadInit)());
+    void Init(WowConnectionResponse* response, void (*threadInit)());
+    void Release();
 };
 
 class WowConnectionResponse {
     public:
     virtual ~WowConnectionResponse();
+    virtual void WCMessageReady(WowConnection* connection, uint32_t timeStamp, CDataStore* msg) = 0;
+    virtual void WCConnected(WowConnection* connection, WowConnection* inbound, uint32_t timeStamp, const NETCONNADDR* addr) = 0;
+    virtual void WCCantConnect(WowConnection* connection, uint32_t timeStamp, const NETCONNADDR* addr) = 0;
+    virtual void WCDisconnected(WowConnection* connection, uint32_t timeStamp, const NETCONNADDR* addr) = 0;
+    virtual void WCGlobalLock();
+    virtual void WCGlobalUnlock();
+    virtual void WCDataReady(WowConnection* connection, uint32_t timeStamp, uint8_t* data, int32_t length);
+    virtual void WCWriteReady(WowConnection* connection);
+    virtual void NotifyAboutToDoReads();
+    virtual void NotifySendDepthExceeded(WowConnection* connection);
 };
 
 class ServerConnection {

@@ -6,7 +6,13 @@
 
 class BLLLoader {
     public:
-    /* 0000 */ uint32_t unk_0000;
+    /* 0000 */ uint8_t* m_image;
+    /* 0004 */ uint32_t m_imageSize;
+    /* 0008 */ int32_t m_loadedDlls;
+
+    ~BLLLoader();
+    void* GetExport(int32_t ordinal);
+    void Unload();
 };
 
 #endif

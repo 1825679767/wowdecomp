@@ -21,6 +21,8 @@ void MakePartFileName(char* name, uint32_t size);
 }
 
 bool CheckIfStreamingAndTrial();
+void ShutdownStreamingIfTrial();
+void StopStreaming();
 char* GetComponentVersionData(uint32_t* size);
 
 #endif

@@ -136,6 +136,7 @@ int32_t STORMAPI SCompDestroy();
 void STORMAPI SErrCatchUnhandledExceptions();
 int32_t STORMAPI SErrDestroy();
 void SErrDisplayAppFatal(const char* format, ...);
+[[noreturn]] void SErrDisplayAppFatalMessage(const char* message, const char* filename, int32_t linenumber);
 void SErrDisplayAppFatalCustom(uint32_t errorcode, const char* format, ...);
 void SErrDisplayAppFatalCustomV(uint32_t errorcode, const char* format, va_list args);
 int32_t STORMAPI SErrDisplayError(uint32_t errorcode, const char* filename, int32_t linenumber, const char* description, int32_t recoverable, uint32_t exitcode, uint32_t unknown);

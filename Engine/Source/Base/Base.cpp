@@ -16,6 +16,8 @@ void BaseDestroyGlobal() {
     CStringManager::DestroyManager();
 }
 
+// VERIFY: 9f51e5ca auto
+// OFFSET: 0x0047B760
 void BaseInitializeContext() {
     HandleInitialize();
 }

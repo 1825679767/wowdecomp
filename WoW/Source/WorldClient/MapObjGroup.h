@@ -31,6 +31,7 @@ struct SMOLTile;
 struct SMOLiquidVert;
 struct SMOMaterial;
 struct SMOPoly;
+class VBBList;
 class VBBList_Block;
 
 struct BspQuery {
@@ -77,6 +78,11 @@ class CGxVertexPNCT {
 
 class CMapObjGroup {
     public:
+    static VBBList indexVBList;
+    static VBBList vertexVBList;
+
+    static void Initialize();
+
     /* 0000 */ int32_t m_objectIndex;
     /* 0004 */ VBBList_Block* m_vertsBlock;
     /* 0008 */ VBBList_Block* m_transparencyVertsBlock;
@@ -215,8 +221,8 @@ class VBBList {
     /* 0004 */ EGxPoolTarget m_target;
     /* 0008 */ EGxPoolUsage m_usage;
     /* 000C */ CGxPool* m_pool;
-    /* 0010 */ TSList<VBBList_Block> unk_0010;
-    /* 001C */ TSList<VBBList_Block> unk_001C;
+    /* 0010 */ TSExplicitList<VBBList_Block, offsetof(VBBList_Block, m_link)> unk_0010;
+    /* 001C */ TSExplicitList<VBBList_Block, offsetof(VBBList_Block, m_link)> unk_001C;
 };
 
 namespace World {

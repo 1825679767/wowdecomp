@@ -3,7 +3,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Common/WowTime.h"
+#include "_Triage/TIMESTAMPSTRUCT.h"
 
 class CGameTime : public WowTime {
     public:
@@ -20,7 +22,9 @@ class CGameTime : public WowTime {
     /* 0044 */ float m_baseMinuteOfDay;
     /* 0048 */ float unk_0048;
     /* 004C */ float unk_004C;
+    /* 0050 */ TSHashTable<TIMESTAMPSTRUCT, HASHKEY_NONE> m_timeStamps;
 
+    CGameTime();
     float GameTimeGetDayProgression();
     bool IsDaytime();
 };

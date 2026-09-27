@@ -11,7 +11,7 @@
 class CGObject_C;
 class CHashKeyGUID;
 class CMovementGlobals;
-struct RealmConnection;
+class RealmConnection;
 
 class CMirrorHandler {
     public:

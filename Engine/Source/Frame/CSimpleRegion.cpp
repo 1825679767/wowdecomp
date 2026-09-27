@@ -5,6 +5,7 @@
 #include "Engine/Source/Frame/CSimpleAlphaAnim.h"
 #include "Engine/Source/Frame/CSimpleAnimGroup.h"
 #include "Engine/Source/Frame/CSimpleFrame.h"
+#include "Engine/Source/FrameXML/XMLTree.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include <cmath>
@@ -493,5 +494,15 @@ void ApplyScaleAnim(C3Vector* positions, FRAMEPOINT origin, const C2Vector& offs
     for (uint32_t i = 0; i < 4; i++) {
         positions[i].x = (center.x - positions[i].x) * scale.x + positions[i].x;
         positions[i].y = (center.y - positions[i].y) * scale.y + positions[i].y;
+    }
+}
+
+// VERIFY: 14ba8493 auto
+// OFFSET: 0x004814F0
+void CSimpleRegion::PreLoadXML(XMLNode* node, CStatus* status) {
+    const char* name = node->GetAttributeByName("name");
+
+    if (name && *name) {
+        this->SetName(name);
     }
 }

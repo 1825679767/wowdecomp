@@ -9,7 +9,7 @@
 
 class CGUnit_C;
 class CGUnitVirtualItem;
-class CVar;
+struct CVar;
 class SoundEntriesAdvancedRec;
 class SE2SoundKitObject;
 class SE2SoundKitProperties;

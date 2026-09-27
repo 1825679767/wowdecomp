@@ -17,7 +17,7 @@ class CSimpleFrame;
 class CGxShader;
 class CGxTex;
 class CStatus;
-struct CTexture;
+class CTexture;
 class XMLNode;
 
 class CSimpleTexture : public CSimpleRegion {

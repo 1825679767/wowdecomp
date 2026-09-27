@@ -10,6 +10,8 @@ class CGxShader;
 class PassGlowBase : public FFX::Pass {
     public:
     /* 0030 */ CImVector m_color;
+
+    PassGlowBase(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk);
 };
 
 class PassGlow : public PassGlowBase {
@@ -17,8 +19,9 @@ class PassGlow : public PassGlowBase {
     /* 0034 */ int32_t m_shaderIndex;
     /* 0038 */ CGxShader* m_shaders[2];
 
-    virtual bool Valid();
-    virtual void Execute();
+    ~PassGlow() override;
+    bool Valid() override;
+    void Execute() override;
 
     PassGlow(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk);
 };

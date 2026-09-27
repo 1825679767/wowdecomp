@@ -103,6 +103,12 @@ C4Vector CShadowCache::s_shadowMatrices[12];
 static void ShadowCacheTextureCallback(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevel, void* userArg, uint32_t& texelStrideInBytes, const void*& texels) {
 }
 
+// VERIFY: 1994effb auto
+// OFFSET: 0x00873F50
+uint32_t CShadowCache::GetMaxShadowMode() {
+    return NUM_SHADOW_MODES - 1;
+}
+
 // VERIFY: f7bdb006 auto
 // OFFSET: 0x00873F60
 const char* CShadowCache::GetShadowModeDesc(uint32_t mode) {

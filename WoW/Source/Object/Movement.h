@@ -9,7 +9,7 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/MovementShared.h"
 
-struct CGUnit_C;
+class CGUnit_C;
 
 class CMovement_C : public CMovementShared {
     public:

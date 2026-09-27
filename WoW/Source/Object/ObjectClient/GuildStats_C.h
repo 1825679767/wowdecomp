@@ -4,9 +4,13 @@
 #include <cstddef>
 #include <cstdint>
 
+class CDataStore;
+
 class GuildStats_C {
     public:
-    /* 0000 */ uint32_t unk_0000;
+    static const uint32_t s_cacheVersion = 1;
+
+    /* 0000 */ int32_t m_id;
     /* 0004 */ uint8_t unk_0004[736];
     /* 02E4 */ uint32_t unk_02E4;
     /* 02E8 */ uint32_t unk_02E8;
@@ -14,6 +18,9 @@ class GuildStats_C {
     /* 02F0 */ uint32_t unk_02F0;
     /* 02F4 */ uint32_t unk_02F4;
     /* 02F8 */ uint32_t unk_02F8;
+
+    void Pack(CDataStore* msg);
+    void Unpack(CDataStore* msg);
 };
 
 #endif

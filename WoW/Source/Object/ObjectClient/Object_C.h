@@ -19,7 +19,7 @@ class CGWorldFrame;
 class CHashKeyGUID;
 class CImVector;
 class CM2Model;
-struct CMapEntity;
+class CMapEntity;
 class CPassenger;
 class PLAYERNAMEDESC;
 class SpellRec;
@@ -33,6 +33,10 @@ typedef uint64_t WOWGUID;
 class CHashKeyGUID {
     public:
     /* 0000 */ WOWGUID m_guid;
+
+    CHashKeyGUID();
+    CHashKeyGUID(WOWGUID guid);
+    bool operator==(const CHashKeyGUID& key);
 };
 
 class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID> {

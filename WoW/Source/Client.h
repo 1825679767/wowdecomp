@@ -9,31 +9,12 @@
 #include "Engine/Source/Storm/Source/SThread.h"
 #include "WoW/Source/DB/WowClientDB.h"
 #include "WoW/Source/DB/Rec/Startup_StringsRec.h"
+#include "Engine/Source/Tempest/C3Vector.h"
+
+struct CVar;
 
 class CAsyncObject;
-class CAsyncQueue;
-class CAsyncThread;
-struct CObjectHeapList;
-
-class CAsyncQueue {
-    public:
-    /* 0000 */ TSLink<CAsyncQueue> m_link;
-    /* 0008 */ TSExplicitList<CAsyncObject> m_readList;
-    /* 0014 */ TSExplicitList<CAsyncObject> m_unkList;
-    /* 0020 */ int32_t unk_0020;
-};
-
-class CAsyncThread {
-    public:
-    /* 0000 */ TSLink<CAsyncThread> m_list;
-    /* 0008 */ SThread m_thread;
-    /* 000C */ CAsyncQueue* m_queue;
-    /* 0010 */ CAsyncObject* m_currentObject;
-};
-
-struct OBJALLOCGLOBALS {
-    /* 0000 */ TSGrowableArray<CObjectHeapList> m_objects;
-};
+class CObjectHeapList;
 
 enum WOWCMDOPT {
     CMD_RES_800x600 = 16,
@@ -62,22 +43,58 @@ struct ARCHIVEINFO {
     /* 000C */ bool m_opened;
 };
 
+extern CVar* g_accountListVar;
+extern CVar* g_accountNameVar;
+extern CVar* g_accountUsesTokenVar;
+extern CVar* g_checkAddonVersionVar;
 extern HEVENTCONTEXT g_clientEventContext;
 extern bool g_hasIsoLocale[12];
-extern uint8_t s_expansionLevel;
-extern int32_t s_locale;
+extern CVar* g_lastCharacterIndexVar;
+extern CVar* g_readContestVar;
+extern CVar* g_readEULAVar;
+extern CVar* g_readScanningVar;
+extern CVar* g_readTerminationWithoutNoticeVar;
+extern CVar* g_readTOSVar;
 extern WowClientDB<Startup_StringsRec> g_startup_StringsDB;
+extern CVar* s_cvarUIFaster;
+extern CVar* s_cvExpansionMovie;
+extern CVar* s_cvMovie;
+extern CVar* s_cvTextureCacheSize;
+extern CVar* s_cvTextureFilteringMode;
+extern CVar* s_desktopGammaCvar;
+extern uint8_t s_expansionLevel;
+extern CVar* s_gammaCvar;
+extern int32_t s_locale;
+extern char s_localeCode[5];
+extern int32_t s_region;
 
-int32_t CommonMain();
-const char* GetInstallLocationString();
-int32_t DestroyEngineCallback(const void* data, void* param);
-int32_t InitializeEngineCallback(const void* data, void* param);
-void StartupReport(bool firstRun);
+void AsyncFileReadRegisterCVars();
 void BeginCloseGame();
+int32_t CCommand_Perf(const char* command, const char* arguments);
+int32_t CCommand_ReloadUI(const char* command, const char* arguments);
+int32_t CCommand_TimingInfo(const char* command, const char* arguments);
+bool CheckDataFilesExist();
+void ClientDestroyGame(int32_t charSelect, int32_t resumeGlue, int32_t worldLogin);
+void ClientInitializeGame(uint32_t mapId, C3Vector position);
+void ClientPostClose(int32_t reason);
+void ClientRegisterConsoleCommands();
+int32_t CommonMain();
+int32_t DestroyEngineCallback(const void* data, void* param);
+uint8_t GetClientExpansionLevel();
+const char* GetInstallLocationString();
+uint32_t GetM2CvarFlags();
+int32_t InitializeEngineCallback(const void* data, void* param);
 bool InitializeGlobal();
+bool LocaleCallback(CVar* var, const char* oldValue, const char* value, void* arg);
+int main();
+bool ProcessAffinityMaskCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 int32_t STORMAPI SendErrorLog(uint32_t errorcode, const char* description, const char* filename, int32_t linenumber, const char* errorstring);
 void SetPaths();
+void StartupReport(bool firstRun);
+bool TextureCacheSizeCallback(CVar* var, const char* oldValue, const char* value, void* arg);
+bool TimingMethodCallback(CVar* var, const char* oldValue, const char* value, void* arg);
+bool UIFasterCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 int32_t STORMAPI WowLogHeader(char* buffer, uint32_t bufferchars);
-int main();
+void ZoneDebugDestroy();
 
 #endif

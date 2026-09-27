@@ -1,12 +1,32 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "Engine/Source/ConsoleBase/IConsole.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 // STATIC: 0x00AD3028
 const char* g_localeNames[12] = { "deDE", "enGB", "enUS", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU" };
 
 // STATIC: 0x00C5DEA0
 int32_t g_clientDbPerformCompress;
+
+// STATIC: 0x00AD2F90
+static int32_t s_physicalDamageClassID = -1;
+
+// STATIC: 0x00C5D660
+static const ItemSubClassRec* s_unarmedWeapon;
+
+// STATIC: 0x00C5D664
+static const ItemClassRec* s_weaponItemClass;
+
+// STATIC: 0x00C5D668
+static TSFixedArray<const ResistancesRec*> s_resistances;
+
+// STATIC: 0x00C5D674
+static TSFixedArray<uint32_t> s_terrainTypeSoundIDs;
+
+// STATIC: 0x00C5D680
+static TSFixedArray<const ItemSubClassRec*> s_weaponSubclasses;
 
 // STATIC: 0x00AD305C
 WowClientDB<AchievementRec> g_achievementDB;
@@ -965,6 +985,128 @@ static void StaticDBLoadAll(void (WowClientDB_Base::*loadFunction)(const char*, 
     (g_objectEffectPackageElemDB.*loadFunction)(__FILE__, __LINE__);
     (g_soundFilterDB.*loadFunction)(__FILE__, __LINE__);
     (g_soundFilterElemDB.*loadFunction)(__FILE__, __LINE__);
+}
+
+// VERIFY: 45af3496 auto
+// OFFSET: 0x006337A0
+int32_t GetPhysicalDamageClassID() {
+    return s_physicalDamageClassID;
+}
+
+// VERIFY: 723e6c50 auto
+// OFFSET: 0x006337B0
+uint32_t GetPhysicalDamageClassMask() {
+    return 1 << s_physicalDamageClassID;
+}
+
+// VERIFY: f122e16d auto
+// OFFSET: 0x006337C0
+int32_t ClientDBGetUnarmedWeapon() {
+    return s_unarmedWeapon->m_subClassID;
+}
+
+// VERIFY: 88034703 manual
+// OFFSET: 0x006348C0
+static void LocateWeaponSubclass() {
+    s_weaponItemClass = nullptr;
+
+    for (int32_t i = g_itemClassDB.m_numRecords - 1; i >= 0; i--) {
+        const ItemClassRec* rec = i >= 0 && i < g_itemClassDB.m_numRecords ? &g_itemClassDB.m_records[i] : nullptr;
+
+        if (rec->m_flags & 1) {
+            s_weaponItemClass = rec;
+        }
+    }
+}
+
+// VERIFY: d0f3ca01 auto
+// OFFSET: 0x00634940
+int32_t ClientDBGetNumWeaponSubClasses() {
+    return s_weaponSubclasses.Count();
+}
+
+// VERIFY: d0ca7548 manual
+// OFFSET: 0x00634AE0
+void InitResistances() {
+    uint32_t count = g_resistancesDB.m_numRecords;
+    s_physicalDamageClassID = -1;
+
+    if (count != 7) {
+        ConsolePrintf("Warning: The Resistances table has the wrong number of entries");
+
+        if (count > 7) {
+            count = 7;
+        }
+    }
+
+    s_resistances.SetCount(count);
+
+    for (int32_t i = 0; static_cast<uint32_t>(i) < count; i++) {
+        const ResistancesRec* rec = i >= 0 && i < g_resistancesDB.m_numRecords ? &g_resistancesDB.m_records[i] : nullptr;
+
+        if (rec->m_flags & 1) {
+            s_physicalDamageClassID = i;
+        }
+
+        s_resistances[i] = rec;
+    }
+}
+
+// VERIFY: 88c5149f manual
+// OFFSET: 0x00634BA0
+void InitTerrainTypeFlags() {
+    uint32_t count = g_terrainTypeDB.m_maxID + 1;
+    s_terrainTypeSoundIDs.SetCount(count);
+
+    for (uint32_t i = 0; i < count; i++) {
+        s_terrainTypeSoundIDs[i] = 0;
+
+        const TerrainTypeRec* rec = g_terrainTypeDB.GetRecord(i);
+
+        if (rec) {
+            s_terrainTypeSoundIDs[i] = rec->m_soundID;
+        }
+    }
+}
+
+// VERIFY: ccd0205b manual
+// OFFSET: 0x00634C60
+void ClientDBShutdown() {
+    s_resistances.Clear();
+    s_terrainTypeSoundIDs.Clear();
+}
+
+// VERIFY: e620a1d6 manual
+// OFFSET: 0x00634CC0
+void InitWeaponSubclasses() {
+    s_weaponSubclasses.SetCount(0);
+    s_unarmedWeapon = nullptr;
+    LocateWeaponSubclass();
+
+    int32_t weaponClass = s_weaponItemClass->m_classID;
+    int32_t count = 0;
+
+    for (int32_t i = g_itemSubClassDB.m_numRecords - 1; i >= 0; i--) {
+        const ItemSubClassRec* rec = i >= 0 && i < g_itemSubClassDB.m_numRecords ? &g_itemSubClassDB.m_records[i] : nullptr;
+
+        if (rec->m_classID == weaponClass && count <= rec->m_subClassID + 1) {
+            count = rec->m_subClassID + 1;
+        }
+    }
+
+    s_weaponSubclasses.SetCount(count);
+
+    for (int32_t i = g_itemSubClassDB.m_numRecords - 1; i >= 0; i--) {
+        const ItemSubClassRec* rec = i >= 0 && i < g_itemSubClassDB.m_numRecords ? &g_itemSubClassDB.m_records[i] : nullptr;
+
+        if (rec->m_classID == weaponClass) {
+            s_weaponSubclasses[rec->m_subClassID] = rec;
+
+            if (rec->m_flags & 4) {
+                s_unarmedWeapon = rec;
+            }
+        }
+    }
 }
 
 // VERIFY: f26ccc9b auto

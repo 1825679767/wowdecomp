@@ -10,7 +10,7 @@
 
 class CTexture;
 struct LightningJoint;
-struct SpellChainEffectsRec;
+class SpellChainEffectsRec;
 
 class CLightning {
     public:

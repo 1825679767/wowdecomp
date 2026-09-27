@@ -7,6 +7,8 @@
 
 class WDataStore : public CDataStore {
     public:
+    static void StaticInitialize();
+
     /* 0018 */ void* m_bufferObj;
     /* 001C */ uint32_t unk_001C;
     /* 0020 */ uint32_t unk_0020;

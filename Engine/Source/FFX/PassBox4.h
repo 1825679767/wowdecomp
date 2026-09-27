@@ -12,8 +12,9 @@ class PassBox4 : public FFX::Pass {
     /* 0030 */ int32_t m_shaderIndex;
     /* 0034 */ CGxShader* m_shaders[2];
 
-    virtual bool Valid();
-    virtual void Execute();
+    ~PassBox4() override;
+    bool Valid() override;
+    void Execute() override;
 
     PassBox4(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk);
 };

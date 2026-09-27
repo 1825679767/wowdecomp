@@ -9,6 +9,7 @@
 #include "Engine/Source/Storm/H/stpl.h"
 
 struct CGxBuf;
+struct CGxPool;
 class CMapChunk;
 class CMapChunkBufBlock;
 class CMapRenderChunk;
@@ -45,6 +46,18 @@ class CMapRenderChunkLayer {
 
 class CMapRenderChunk {
     public:
+    static int32_t s_bPoolsDirty;
+    static EGxVertexBufferFormat s_gxBufVertexFormat;
+    static uint32_t s_pnEstimateVertex;
+    static uint32_t s_pnEstimateIndex;
+    static CGxPool* s_gxVertexPool;
+    static CGxPool* s_gxIndexPool;
+    static TSGrowableArray<CMapChunkBufBlock> s_chunkBlockArray;
+    static CGxBatch unk_AEEC60;
+
+    static void Initialize();
+    static void SetDirty();
+
     /* 0000 */ TSLink<CMapRenderChunk> m_renderChunkLink;
     /* 0008 */ uint8_t m_unkFlags;
     /* 0009 */ uint8_t m_layersCount;

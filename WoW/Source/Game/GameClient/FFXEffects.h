@@ -7,6 +7,9 @@
 
 class EffectDeath : public FFX::Effect {
     public:
+    virtual ~EffectDeath();
+
+    EffectDeath();
 };
 
 class EffectNetherWorld {

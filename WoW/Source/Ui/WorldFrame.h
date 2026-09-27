@@ -12,7 +12,7 @@
 #include "WoW/Source/Object/WGUID.h"
 #include "Engine/Source/Tempest/CRect.h"
 
-struct CGCamera;
+class CGCamera;
 
 class CGWorldFrameUnkObjSomeElement {
     public:

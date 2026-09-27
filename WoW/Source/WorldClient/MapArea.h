@@ -12,8 +12,8 @@
 class CAsyncObject;
 class CMapArea;
 class CMapAreaChunkLink;
-struct CMapAreaTexture;
-struct CMapChunk;
+class CMapAreaTexture;
+class CMapChunk;
 struct SMAreaHeader;
 struct SMChunkInfo;
 struct SMDoodadDef;
@@ -30,6 +30,8 @@ class CMapAreaChunkLink {
 
 class CMapArea : public CMapBaseObj {
     public:
+    static void Initialize();
+
     /* 0024 */ CAaBox m_bounds;
     /* 003C */ C3Vector m_topLeft2;
     /* 0048 */ C2iVector m_index;
@@ -80,6 +82,11 @@ struct SMChunkInfo {
     /* 0004 */ uint32_t m_size;
     /* 0008 */ uint32_t m_flags;
     /* 000C */ uint8_t unk_000C[4];
+};
+
+class CMapAreaMed {
+    public:
+    /* 0000 */ uint8_t unk_0000[33404];
 };
 
 #endif

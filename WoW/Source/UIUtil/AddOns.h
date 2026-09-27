@@ -45,4 +45,6 @@ class UIADDON {
     /* 00C4 */ uint32_t unk_00C4;
 };
 
+void DeleteInterfaceFiles();
+
 #endif

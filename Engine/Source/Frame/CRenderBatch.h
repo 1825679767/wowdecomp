@@ -10,11 +10,11 @@
 class C2Vector;
 class C3Vector;
 class CGxShader;
-class CGxStringBatch;
+struct CGxStringBatch;
 class CImVector;
 class CSimpleFontString;
 class CSimpleTexture;
-struct CTexture;
+class CTexture;
 
 struct RENDERCALLBACKNODE : public TSLinkedNode<RENDERCALLBACKNODE> {
     /* 0008 */ void (*m_callback)(void* param);

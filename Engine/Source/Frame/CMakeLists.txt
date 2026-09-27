@@ -11,5 +11,6 @@ target_include_directories(Frame
 
 target_link_libraries(Frame
     PUBLIC
+        DivxDecoder
         freetype
 )

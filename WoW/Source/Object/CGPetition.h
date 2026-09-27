@@ -4,9 +4,13 @@
 #include <cstddef>
 #include <cstdint>
 
+class CDataStore;
+
 class CGPetition {
     public:
-    /* 0000 */ uint32_t unk_0000;
+    static const uint32_t s_cacheVersion = 1;
+
+    /* 0000 */ int32_t m_id;
     /* 0004 */ uint8_t unk_0004[4];
     /* 0008 */ uint32_t unk_0008;
     /* 000C */ uint32_t unk_000C;
@@ -26,6 +30,11 @@ class CGPetition {
     /* 13B8 */ uint32_t unk_13B8;
     /* 13BC */ uint32_t unk_13BC;
     /* 13C0 */ uint32_t unk_13C0;
+    /* 13C4 */ uint32_t unk_13C4;
+
+    CGPetition();
+    void Pack(CDataStore* msg);
+    void Unpack(CDataStore* msg);
 };
 
 #endif

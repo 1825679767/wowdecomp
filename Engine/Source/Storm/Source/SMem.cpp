@@ -63,6 +63,7 @@ int32_t STORMAPI SMemFree(void* ptr, const char* filename, int32_t linenumber, u
     return 1;
 }
 
+// VERIFY: 19b70aac auto
 // OFFSET: 0x0076E5D0
 int32_t STORMAPI SMemIsValidPointer(void* ptr, size_t bytes, uint32_t flags) {
     return 1;

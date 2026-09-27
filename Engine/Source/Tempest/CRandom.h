@@ -11,6 +11,7 @@ class CRndSeed {
     /* 0000 */ uint32_t rndacc;
     /* 0004 */ uint32_t rndvls;
 
+    CRndSeed() = default;
     CRndSeed(uint32_t seed);
     void SetSeed(uint32_t seed);
 };

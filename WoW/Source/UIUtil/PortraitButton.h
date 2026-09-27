@@ -1,4 +1,6 @@
 #ifndef WOW_SOURCE_UIUTIL_PORTRAITBUTTON_H
 #define WOW_SOURCE_UIUTIL_PORTRAITBUTTON_H
 
+void UpdateAllPortraits();
+
 #endif

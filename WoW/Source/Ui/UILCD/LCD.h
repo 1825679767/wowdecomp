@@ -1,4 +1,35 @@
 #ifndef WOW_SOURCE_UI_UILCD_LCD_H
 #define WOW_SOURCE_UI_UILCD_LCD_H
 
+#include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
+
+class CEzLcd;
+
+struct LCDHANDLE : public TSHashObject<LCDHANDLE, HASHKEY_CONSTSTRI> {
+    /* 0018 */ void* unk_0018;
+};
+
+struct MAPDATA : public TSLinkedNode<MAPDATA> {
+};
+
+struct POIIcon : public TSLinkedNode<POIIcon> {
+};
+
+class CGLCD {
+    public:
+    static CEzLcd* m_lcd;
+    static int32_t m_chatAlertLines;
+    static uint8_t initComplete;
+    static TSHashTable<LCDHANDLE, HASHKEY_CONSTSTRI> m_handles;
+    static TSList<MAPDATA, TSGetLink<MAPDATA> > m_mapData;
+    static TSList<POIIcon, TSGetLink<POIIcon> > m_POIIcons;
+
+    static void ClearWaitQueueScreen();
+    static void Initialize();
+    static void SetScreen(int32_t screen);
+    static void Shutdown();
+    static int32_t Update(const void* data, void* param);
+};
+
 #endif

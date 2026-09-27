@@ -488,12 +488,16 @@ extern WowClientDB<LightRec> g_lightDB;
 int32_t ClientDBGetNumWeaponSubClasses();
 int32_t ClientDBGetUnarmedWeapon();
 void ClientDBInitialize();
+void ClientDBShutdown();
 void GameTablesInitialize();
-void InitLights(int32_t mode);
+void InitLights(bool transform);
 void InitResistances();
 void InitTerrainTypeFlags();
 void InitWeaponSubclasses();
 void SDBItemSubclassInitialize();
+const ItemSubClassRec* SDBItemSubclassGetSubClassRec(uint32_t classID, uint32_t subClassID);
+int32_t GetPhysicalDamageClassID();
+uint32_t GetPhysicalDamageClassMask();
 
 int32_t LocaleNameToIndex(const char* locale);
 

@@ -60,6 +60,14 @@ void ShutdownUnused();
 namespace Blizzard {
 namespace Using {
 
+class GlobalUse {
+    public:
+    /* 0000 */ const char* m_name;
+
+    GlobalUse();
+    ~GlobalUse();
+};
+
 void DependsOn(const char* me, const char* dependsOn);
 void StartUsing(const char* name);
 void StopUsing(const char* name);

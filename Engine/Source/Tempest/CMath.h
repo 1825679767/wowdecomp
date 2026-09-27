@@ -21,6 +21,7 @@ class CMath {
     static float normalizeangle0to2pi_(float angle);
     static float sin_(float x);
     static bool solvequad_(float a, float b, float c, float& r0, float& r1);
+    static void split_(float x, float* frac, int32_t* whole);
     static uint32_t fuint_pi(float f);
     static uint32_t sqrt_(uint32_t n);
 };

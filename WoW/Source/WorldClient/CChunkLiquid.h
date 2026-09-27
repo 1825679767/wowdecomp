@@ -9,8 +9,8 @@
 #include "Engine/Source/Tempest/C2iVector.h"
 
 class CChunkLiquid;
-struct CMapChunk;
-struct CMapChunkBuf;
+class CMapChunk;
+class CMapChunkBuf;
 
 class CChunkGeomFactory {
     public:

@@ -4,15 +4,25 @@
 #include <cstddef>
 #include <cstdint>
 
+class CDataStore;
+
 class DanceCache {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint8_t unk_0004[12];
-    /* 0010 */ uint64_t unk_0010;
-    /* 0018 */ uint8_t unk_0018[120];
-    /* 0090 */ uint32_t unk_0090;
-    /* 0094 */ uint32_t unk_0094;
-    /* 0098 */ uint64_t unk_0098;
+    static const uint32_t s_cacheVersion = 1;
+
+    /* 0000 */ int32_t m_id;
+    /* 0004 */ uint32_t unk_0004;
+    /* 0008 */ uint64_t m_guid;
+    /* 0010 */ char m_name[128];
+    /* 0090 */ uint32_t* m_data;
+    /* 0094 */ uint32_t m_dataCount;
+    /* 0098 */ uint32_t unk_0098;
+    /* 009C */ uint32_t unk_009C;
+
+    DanceCache();
+    ~DanceCache();
+    void Pack(CDataStore* msg);
+    void Unpack(CDataStore* msg);
 };
 
 #endif

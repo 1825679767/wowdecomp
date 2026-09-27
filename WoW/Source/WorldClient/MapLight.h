@@ -31,4 +31,9 @@ class CMapLight : public CMapBaseObj {
     /* 00D3 */ uint8_t unk_00D3;
 };
 
+class CMapCacheLight {
+    public:
+    /* 0000 */ uint8_t unk_0000[132];
+};
+
 #endif

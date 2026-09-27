@@ -41,12 +41,14 @@ target_link_libraries(Wow
         FFX
         Frame
         FrameScript
+        lua
         FrameXML
         Gx
         Gxu
         Images
         Model2
         Os
+        Scrn
         Services
         ShaderEffect
         Tempest

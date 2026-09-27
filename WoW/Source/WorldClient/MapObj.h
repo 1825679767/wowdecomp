@@ -14,7 +14,9 @@ class C3Vector;
 class C4Plane;
 class CAsyncObject;
 class CMapObj;
-struct CMapObjGroup;
+class CMapObjDef;
+class CMapObjGroup;
+class CShaderEffect;
 struct SMODoodadDef;
 struct SMODoodadSet;
 struct SMOFog;
@@ -26,8 +28,21 @@ struct SMOPortal;
 struct SMOPortalRef;
 struct SMOVisibleBlock;
 
+class CMapObjOccluder {
+    public:
+    /* 0000 */ uint32_t m_memHandle;
+    /* 0004 */ uint32_t unk_0004[8];
+};
+
 class CMapObj {
     public:
+    static int32_t bPoolsDirty;
+    static uint32_t* occluderHeap;
+    static CShaderEffect* s_classicShaders[7];
+    static CShaderEffect* s_unifiedShaders[7];
+
+    static void Initialize();
+
     /* 0000 */ int32_t m_objectIndex;
     /* 0004 */ int32_t unk_0004;
     /* 0008 */ int32_t unk_0008;
@@ -167,5 +182,9 @@ struct SMOVisibleBlock {
     /* 0000 */ uint16_t m_firstVertex;
     /* 0002 */ uint16_t m_count;
 };
+
+extern CMapObjDef* s_curMapObjDef;
+extern uint32_t s_portalStamp;
+extern CMapObjDef* s_stampedMapObjDef;
 
 #endif

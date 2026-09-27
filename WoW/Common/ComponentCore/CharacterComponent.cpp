@@ -92,15 +92,6 @@ static TSExplicitList<CComponentMipBits, offsetof(CComponentMipBits, m_link)> s_
 // STATIC: 0x00AC4720
 static TSExplicitList<CComponentMipBits, offsetof(CComponentMipBits, m_link)> s_mipBitsCompressedFreeList;
 
-// STATIC: 0x00B2F9EC
-CVar* CCharacterComponent::g_componentTextureLevelVar;
-
-// STATIC: 0x00B2F9F0
-CVar* CCharacterComponent::g_componentThreadVar;
-
-// STATIC: 0x00B2F9F4
-CVar* CCharacterComponent::g_componentCompressVar;
-
 // STATIC: 0x00B6B4B8
 void (CCharacterComponent::*CCharacterComponent::s_requestFunc[NUM_COMPONENT_SECTIONS])();
 
@@ -204,12 +195,6 @@ static SCritSect s_finishedListCritSect;
 
 // STATIC: 0x00B6BA20
 static SCritSect s_mipBitsCritSect;
-
-// VERIFY: d20badb0 auto
-// OFFSET: 0x008A1420
-static bool ComponentVarHandler(CVar* var, const char* oldValue, const char* value, void* arg) {
-    return true;
-}
 
 // VERIFY: e87c3da6 auto
 // OFFSET: 0x00401FF0

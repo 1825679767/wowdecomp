@@ -9,15 +9,13 @@
 #include "WoW/Source/Net/NetClient/Types.h"
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
+#include "WoW/Source/WowServices/WowConnection.h"
 
-struct CGObject_C;
-struct CHashKeyGUID;
-struct ClientConnection;
+class CGObject_C;
+class CHashKeyGUID;
+class ClientConnection;
 struct ClntObjMgr;
-struct NETEVENTQUEUE;
-struct WowConnection;
-
-typedef uint32_t ATOMIC32;
+class AuthenticationChallenge;
 
 struct ClntObjMgr {
     /* 0000 */ TSHashTable<CGObject_C, CHashKeyGUID> m_objects;
@@ -40,14 +38,34 @@ struct LoginData {
     /* 052C */ int32_t m_loginServerType;
 };
 
-typedef int32_t (__stdcall* MESSAGE_HANDLER_interface )(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+typedef int32_t (* MESSAGE_HANDLER_interface )(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 
 typedef MESSAGE_HANDLER_interface MESSAGE_HANDLER;
 
-class NetClient {
+class NetClient;
+
+struct NETEVENTQUEUENODE : public TSLinkedNode<NETEVENTQUEUENODE> {
+    /* 0008 */ uint32_t m_eventId;
+    /* 000C */ uint32_t m_timeReceived;
+    /* 0010 */ void* m_data;
+    /* 0014 */ uint32_t m_dataSize;
+};
+
+class NETEVENTQUEUE {
     public:
-    struct HELDMESSAGE {
-        /* 0000 */ TSLinkedNode<NetClient::HELDMESSAGE> unk_0000;
+    /* 0000 */ NetClient* m_client;
+    /* 0004 */ SCritSect m_critSect;
+    /* 002C */ TSList<NETEVENTQUEUENODE> m_eventQueue;
+
+    NETEVENTQUEUE(NetClient* client);
+    void Poll();
+};
+
+class NetClient : public WowConnectionResponse {
+    public:
+    static uint32_t s_clientCount;
+
+    struct HELDMESSAGE : public TSLinkedNode<NetClient::HELDMESSAGE> {
         /* 0008 */ CDataStore m_msg;
     };
 
@@ -60,10 +78,10 @@ class NetClient {
     /* 2E34 */ NETEVENTQUEUE* m_netEventQueue;
     /* 2E38 */ WowConnection* m_serverConnection;
     /* 2E3C */ WowConnection* m_redirectConnection;
-    /* 2E40 */ ATOMIC32 m_refCount;
-    /* 2E44 */ bool m_deleteMe;
-    /* 2E45 */ uint8_t unk_2E45[3];
-    /* 2E48 */ uint32_t unk_2E48;
+    /* 2E40 */ uint32_t unk_2E40;
+    /* 2E44 */ ATOMIC32 m_refCount;
+    /* 2E48 */ bool m_deleteMe;
+    /* 2E49 */ uint8_t unk_2E49[3];
     /* 2E4C */ uint32_t m_pingSent;
     /* 2E50 */ uint32_t m_pingSequence;
     /* 2E54 */ uint32_t m_latency [16];
@@ -76,7 +94,30 @@ class NetClient {
     /* 2ED0 */ ClntObjMgr* m_objMgr;
     /* 2ED4 */ TSList<NetClient::HELDMESSAGE> m_heldMessages;
 
-    virtual ~NetClient();
+    ~NetClient() override;
+    void WCMessageReady(WowConnection* connection, uint32_t timeStamp, CDataStore* msg) override;
+    void WCConnected(WowConnection* connection, WowConnection* inbound, uint32_t timeStamp, const NETCONNADDR* addr) override;
+    void WCCantConnect(WowConnection* connection, uint32_t timeStamp, const NETCONNADDR* addr) override;
+    void WCDisconnected(WowConnection* connection, uint32_t timeStamp, const NETCONNADDR* addr) override;
+    virtual int32_t Initialize();
+    virtual void Destroy();
+    virtual void DelayedDelete();
+    virtual int32_t HandleData(uint32_t timeReceived, void* data, int32_t size);
+    virtual void HandleAuthChallenge(AuthenticationChallenge* challenge);
+    virtual void HandleConnect();
+    virtual void HandleDisconnect();
+    virtual void HandleCantConnect();
+    virtual void ValidateMessageId(uint32_t msgId);
+
+    NetClient();
+    uint8_t* GetSessionKey();
+    void HandleIdle();
+    void Ping();
+    void PollEventQueue();
+    void Disconnect();
+    void ResetHandler(NETMESSAGE msgId);
+    void Send(CDataStore* msg);
+    void SetMessageHandler(NETMESSAGE msgId, MESSAGE_HANDLER handler, void* param);
 };
 
 class CNetClient {
@@ -102,6 +143,10 @@ class CNetClient {
     /* 2F59 */ uint8_t unk_2F59;
     /* 2F5A */ uint8_t unk_2F5A[2];
     /* 2F5C */ uint32_t unk_2F5C;
+};
+
+struct NETCLIENTNODE : public TSLinkedNode<NETCLIENTNODE> {
+    /* 0008 */ NetClient* m_client;
 };
 
 #endif

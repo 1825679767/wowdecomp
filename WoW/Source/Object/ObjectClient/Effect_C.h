@@ -71,12 +71,18 @@ class CEffect {
     /* 00E8 */ uint32_t unk_00E8;
     /* 00EC */ uint32_t unk_00EC;
     /* 00F0 */ uint32_t unk_00F0;
-    /* 00F4 */ uint32_t unk_00F4;
+    /* 00F4 */ int32_t m_refCount;
     /* 00F8 */ uint32_t unk_00F8;
     /* 00FC */ uint32_t unk_00FC;
     /* 0100 */ uint32_t unk_0100;
     /* 0104 */ uint32_t unk_0104;
     /* 0108 */ uint32_t unk_0108;
+
+    static void Destroy();
+
+    ~CEffect();
 };
+
+int32_t SpecialUnitEffectsInitialize();
 
 #endif

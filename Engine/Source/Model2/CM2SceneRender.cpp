@@ -715,13 +715,13 @@ void CM2SceneRender::DrawRibbon() {
     world.m_mtx[world.m_level] = s_identity;
 }
 
-// VERIFY: d6f960a1 manual
+// VERIFY: 20258e03 manual
 // OFFSET: 0x00821040
 void CM2SceneRender::RenderBatchedParticle(CParticleEmitter2* emitter, CGxBuf* buf, EGxVertexBufferFormat format, uint32_t vertexCount, uint32_t indexCount) {
     CShaderEffect* effect = (emitter->m_materialFlags & 1) ? this->m_particleEffect : this->m_particleUnlitEffect;
 
     g_theGxDevicePtr->RsSet(GxRs_Texture0, TextureGetGxTex(emitter->m_texture, 0, nullptr));
-    GxRsSet(GxRs_Texture1, 0);
+    GxRsSet(GxRs_Texture1, nullptr);
     effect->SetCurrent();
     this->SetupLighting();
     this->SetupMaterial();
@@ -842,7 +842,7 @@ uint32_t CM2SceneRender::DrawBatchedParticle(uint32_t index, M2Element* elements
     return batched - 1;
 }
 
-// VERIFY: 42544066 manual
+// VERIFY: 1f4b451a manual
 // OFFSET: 0x008214E0
 uint32_t CM2SceneRender::DrawParticle(uint32_t index, M2Element* elements, uint32_t* indices, uint32_t count) {
     CParticleEmitter2* emitter = this->m_curElement->m_emitter;
@@ -881,7 +881,7 @@ uint32_t CM2SceneRender::DrawParticle(uint32_t index, M2Element* elements, uint3
 
     CShaderEffect* effect = (emitter->m_materialFlags & 1) ? this->m_particleEffect : this->m_particleUnlitEffect;
     g_theGxDevicePtr->RsSet(GxRs_Texture0, gxTex);
-    GxRsSet(GxRs_Texture1, 0);
+    GxRsSet(GxRs_Texture1, nullptr);
     effect->SetCurrent();
     this->SetupLighting();
     this->SetupMaterial();

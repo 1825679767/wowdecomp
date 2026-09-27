@@ -13,6 +13,16 @@ CDataStore::CDataStore() {
     this->m_read = -1;
 }
 
+// VERIFY: 4e5e5344 auto
+// OFFSET: 0x004669A0
+CDataStore::CDataStore(uint8_t* data, uint32_t size) {
+    this->m_data = data;
+    this->m_base = 0;
+    this->m_alloc = -1;
+    this->m_size = size;
+    this->m_read = 0;
+}
+
 // VERIFY: 750f93c6 manual
 // OFFSET: 0x00401070
 int32_t CDataStore::FetchWrite(uint32_t pos, uint32_t bytes, const char* fileName, int32_t lineNumber) {

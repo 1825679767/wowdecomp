@@ -3910,3 +3910,7 @@ SESoundUserData::~SESoundUserData() {
 
 void SESoundUserData::Release() {
 }
+
+// INLINED
+SECaptureCallbacks::~SECaptureCallbacks() {
+}

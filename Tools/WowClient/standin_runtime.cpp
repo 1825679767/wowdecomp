@@ -103,6 +103,33 @@ static void LogStack(CONTEXT* context) {
 #endif
 }
 
+static volatile LONG s_hitFlags[16384];
+
+extern "C" double StandinReport(int index, void* returnAddress) {
+    static int s_continue = -1;
+
+    if (s_continue < 0) {
+        s_continue = GetEnvironmentVariableA("WOWCLIENT_STANDIN_CONTINUE", nullptr, 0) ? 1 : 0;
+    }
+
+    if (!s_continue) {
+        StandinHit(index, returnAddress);
+    }
+
+    if (index >= 0 && index < static_cast<int>(sizeof(s_hitFlags) / sizeof(s_hitFlags[0])) && InterlockedExchange(&s_hitFlags[index], 1)) {
+        return 0.0;
+    }
+
+    char where[MAX_PATH + 32];
+    ModuleOffset(returnAddress, where, sizeof(where));
+
+    char line[4096];
+    _snprintf_s(line, sizeof(line), _TRUNCATE, "STANDIN %s called from %s (continued)\n", index >= 0 && index < g_standinCount ? g_standinNames[index] : "?", where);
+    LogLine(line);
+
+    return 0.0;
+}
+
 static LONG CALLBACK FirstChanceHandler(EXCEPTION_POINTERS* info) {
     DWORD code = info->ExceptionRecord->ExceptionCode;
 

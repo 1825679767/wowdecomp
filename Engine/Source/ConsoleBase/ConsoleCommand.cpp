@@ -147,6 +147,12 @@ const char* ConsoleCommandHistory(uint32_t index) {
     return g_commandHistory[(g_commandHistoryIndex - index - 1) & 31];
 }
 
+// VERIFY: af8b52a7 auto
+// OFFSET: 0x0095BFB0
+uint32_t ConsoleCommandHistoryDepth() {
+    return sizeof(g_commandHistory) / sizeof(g_commandHistory[0]);
+}
+
 // VERIFY: 34cad70f manual
 // OFFSET: 0x007685C0
 void ConsoleCommandDestroy() {

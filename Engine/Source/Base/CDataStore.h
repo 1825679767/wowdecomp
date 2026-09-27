@@ -24,6 +24,7 @@ class CDataStore {
     virtual uint32_t GetHeaderSpace(int32_t bytes);
 
     CDataStore();
+    CDataStore(uint8_t* data, uint32_t size);
     int32_t FetchRead(uint32_t pos, uint32_t bytes);
     int32_t FetchWrite(uint32_t pos, uint32_t bytes, const char* fileName, int32_t lineNumber);
     CDataStore& Get(uint8_t& val);

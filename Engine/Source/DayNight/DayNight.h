@@ -7,11 +7,11 @@
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
-struct C3Vector;
-struct CImVector;
+class C3Vector;
+class CImVector;
 class CM2Model;
 class CM2Scene;
-struct CTexture;
+class CTexture;
 namespace DayNight { struct DNPlanet; }
 class LightRec;
 

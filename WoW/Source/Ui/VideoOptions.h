@@ -4,6 +4,9 @@
 #include <cstddef>
 #include <cstdint>
 
-class CGVideoOptions;
+class CGVideoOptions {
+    public:
+    static void RegisterScriptFunctions();
+};
 
 #endif

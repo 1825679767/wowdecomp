@@ -3,14 +3,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Ui/KnowledgeBase.h"
 
-class CKBArticle {
+class CKBArticle : public CKBPage {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[48];
-    /* 0038 */ uint32_t unk_0038;
-    /* 003C */ uint32_t unk_003C;
 };
+
+extern CKBArticle g_KnowledgeBaseArticle;
 
 #endif

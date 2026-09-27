@@ -6,7 +6,7 @@
 #include <windows.h>
 #include "Engine/Source/Storm/H/stpl.h"
 
-struct CMovement_C;
+class CMovement_C;
 
 class CMovementGlobals {
     public:

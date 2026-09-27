@@ -7,9 +7,15 @@
 #include "Engine/Source/Tempest/C4Quaternion.h"
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Tempest/CImVector.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
-struct CMapArea;
+struct CGxBuf;
+struct CGxPool;
+class CGxShader;
+class CMapArea;
+class FVBBList;
 class CMapEntity;
+class CTexture;
 
 class CGxVertexPC {
     public:
@@ -57,13 +63,68 @@ struct SMODoodadDef {
     /* 0024 */ CImVector m_color;
 };
 
+class CMapFootprintTexture {
+    public:
+    /* 0000 */ CTexture* m_texture;
+    /* 0004 */ TSGrowableArray<uint32_t> unk_0004;
+    /* 0014 */ uint32_t unk_0014;
+};
+
 class CMap {
     public:
+    static CGxBuf* lowDetailIndexBuf;
+    static CGxPool* lowDetailIndexPool;
+    static CGxShader* pixelShader_TerrainSM;
+    static CGxShader* pixelShader_Terrain0_env;
+    static CGxShader* vertexShader_Terrain[128];
+    static CGxShader* pixelShader_Terrain3[96];
+    static CGxShader* pixelShader_Terrain2[32];
+    static CGxShader* pixelShader_Terrain1[32];
+    static CGxShader* pixelShader_Terrain0[3];
+    static int32_t uniqueId;
+    static int32_t oldSelectLightParm;
+    static uint32_t s_queryTag;
+    static int32_t cCount;
+    static uint32_t unk[4096];
+    static CMapArea* m_areaTable[4096];
+    static SMAreaInfo m_areaInfo[4096];
+    static TSGrowableArray<uint32_t> scCollideList;
+    static int32_t bActive;
+    static int32_t bDungeon;
+    static int32_t s_useSSE;
+    static int32_t freeCounts[11];
+    static float s_unk_ADF800;
+    static float s_unk_CDF7D0[256];
+    static float s_unk_CDFBD0[256];
+    static int32_t counts[11];
+    static uint32_t* lightHeap;
+    static uint32_t* cacheLightHeap;
+    static uint32_t* mapObjGroupHeap;
+    static uint32_t* mapObjHeap;
+    static uint32_t* baseObjLinkHeap;
+    static uint32_t* areaHeap;
+    static uint32_t* areaMedHeap;
+    static uint32_t* areaLowHeap;
+    static uint32_t* chunkHeap;
+    static uint32_t* doodadDefHeap;
+    static uint32_t* entityHeap;
+    static uint32_t* mapObjDefGroupHeap;
+    static uint32_t* mapObjDefHeap;
+    static uint32_t* chunkLiquidHeap;
+    static FVBBList s_vbbList;
+
+    static void Destroy();
+    static void FootprintInitialize();
+    static void Initialize();
+    static void InitializeLiquidTables();
+    static void InitializePCFShaders();
+    static void QueryAreaId(CMapEntity* entity, uint32_t& areaId);
+
     /* 0000 */ uint8_t unk_0000[180];
     /* 00B4 */ uint32_t unk_00B4;
-
-    static void QueryAreaId(CMapEntity* entity, uint32_t& areaId);
 };
+
+extern int32_t s_mapId;
 
 class CMapAreaLow {
     public:
@@ -90,6 +151,7 @@ class CMapAreaLow {
     /* 0014 */ uint8_t unk_0014;
     /* 0015 */ uint8_t unk_0015;
     /* 0016 */ uint8_t unk_0016[4];
+    /* 001A */ uint8_t unk_001A[66];
 };
 
 #endif

@@ -7,9 +7,12 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Net/NetClient/NetClient.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
+#include "WoW/Source/WowServices/Types.h"
 
 class CHARACTER_INFO;
-struct RealmResponse;
+class RealmConnection;
+class RealmResponse;
+struct RealmInfo;
 
 class CHARACTER_INFO {
     public:
@@ -40,9 +43,20 @@ class CHARACTER_INFO {
     /* 0182 */ uint8_t unk_0182[6];
 };
 
-class RealmConnection {
+class RealmConnection : public NetClient {
     public:
-    /* 0000 */ NetClient unk_0000;
+    struct REALMCONNECTIONNODE : public TSLinkedNode<RealmConnection::REALMCONNECTIONNODE> {
+        /* 0008 */ RealmConnection* m_connection;
+
+        REALMCONNECTIONNODE();
+    };
+
+    static TSList<RealmConnection::REALMCONNECTIONNODE> s_allRealmConnections;
+    static SCritSect s_allRealmConnectionsCrit;
+
+    static int32_t MessageHandler(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+    static void PollNet(const void* data, void* param);
+
     /* 2EE0 */ RealmResponse* m_realmResponse;
     /* 2EE4 */ uint32_t m_restrictHuman;
     /* 2EE8 */ uint32_t m_restrictDwarf;
@@ -64,6 +78,47 @@ class RealmConnection {
     /* 2F2C */ uint8_t m_billingFlags;
     /* 2F2D */ uint8_t m_accountExpansion;
     /* 2F2E */ uint8_t unk_2F2E[2];
+    /* 2F30 */ uint32_t unk_2F30;
+    /* 2F34 */ uint32_t unk_2F34;
+    /* 2F38 */ uint32_t unk_2F38;
+
+    ~RealmConnection() override;
+    void HandleAuthChallenge(AuthenticationChallenge* challenge) override;
+    void HandleConnect() override;
+    void HandleDisconnect() override;
+    void HandleCantConnect() override;
+    virtual void HandleCharacterCreate(uint8_t result) = 0;
+    virtual void HandleCharacterDelete(uint8_t result) = 0;
+    virtual void HandleCharacterLoginFailed(uint8_t result) = 0;
+    virtual void HandleLogoutComplete() = 0;
+    virtual void HandleLogoutResponse(int32_t result, int32_t instant) = 0;
+    virtual void HandleLogoutAbortAck() = 0;
+
+    RealmConnection(RealmResponse* realmResponse);
+};
+
+class RealmResponse {
+    public:
+    virtual void LoginServerResult(LOGIN_STATE state, LOGIN_RESULT result, const char* message1, const char* message2, const char* message3) = 0;
+    virtual void RealmListReceived(TSFixedArray<RealmInfo>& realms) = 0;
+    virtual void JoinRealmResult(uint32_t realmID, int32_t result, int32_t a3, int32_t a4, int32_t a5);
+    virtual void HandleAuthResponse(RealmConnection* connection, uint8_t result) = 0;
+    virtual void AddOnListReceived(RealmConnection* connection) = 0;
+    virtual void CharacterListReceived(RealmConnection* connection, const TSFixedArray<CHARACTER_INFO>& characters, int32_t success) = 0;
+    virtual void GameServerResult(RealmConnection* connection, const char* message1, const char* message2, const char* message3) = 0;
+    virtual void MessageReceived(RealmConnection* connection, uint32_t message) = 0;
+    virtual void OnChatReceived(RealmConnection* connection, uint64_t guid, const char* text, uint8_t type) = 0;
+    virtual void OnChatPlayerNotFound(RealmConnection* connection, const char* name);
+    virtual void OnAccountOnline(RealmConnection* connection, int32_t a2, uint64_t guid) = 0;
+    virtual void OnCharacterRestored(RealmConnection* connection, bool success, uint32_t a3, uint32_t a4, uint32_t a5, uint64_t a6, uint64_t a7, uint32_t a8, const char* a9, uint32_t a10, CDataStore* msg, uint64_t a12, uint64_t a13);
+    virtual void OnChangeArenaTeamRating(RealmConnection* connection, bool success, int32_t a3, int32_t a4);
+    virtual void OnAFKMonitorInfoResponse(RealmConnection* connection, uint64_t guid, int32_t a3, int32_t a4, int32_t a5, int32_t a6) = 0;
+    virtual void OnServerInfo(RealmConnection* connection, int32_t a2, int32_t a3, char* a4);
+    virtual void HandleConnect(RealmConnection* connection) = 0;
+    virtual void HandleDisconnect(RealmConnection* connection) = 0;
+    virtual void HandleCantConnect(RealmConnection* connection) = 0;
+    virtual void HandleCharacterLoginFailed(RealmConnection* connection, uint8_t result);
+    virtual void HandleReceivingObjects(RealmConnection* connection);
 };
 
 #endif

@@ -13,10 +13,10 @@
 
 class CChunkLiquid;
 class CMapChunk;
-struct CMapChunkDoodadDefLink;
+class CMapChunkDoodadDefLink;
 class CMapChunkMapObjDefLink;
-struct CMapObjDef;
-struct CMapRenderChunk;
+class CMapObjDef;
+class CMapRenderChunk;
 class CWSoundEmitter;
 struct SMChunk;
 struct SMLayer;
@@ -46,6 +46,12 @@ class CMapChunkMapObjDefLink {
 
 class CMapChunk : public CMapBaseObj {
     public:
+    static float s_geoToTex;
+    static C3Vector vertexList[145];
+
+    static void Initialize();
+    static void InitializeVertexGrid();
+
     /* 0024 */ C2iVector m_aIndex;
     /* 002C */ C2iVector m_sOffset;
     /* 0034 */ C2iVector m_cOffset;

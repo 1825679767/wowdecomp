@@ -19,4 +19,6 @@ class CAccountMsgHeaders {
     /* 0058 */ uint32_t unk_0058;
 };
 
+void AccountMsg_RegisterScriptFunctions();
+
 #endif

@@ -13,7 +13,7 @@
 
 class CMapObj;
 class CMapObjDefGroup;
-struct CMapObjDefMapObjDefGroupLink;
+class CMapObjDefMapObjDefGroupLink;
 
 class CMapObjDefGroup : public CMapBaseObj {
     public:

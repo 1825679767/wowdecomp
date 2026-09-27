@@ -87,6 +87,7 @@ class CShadowCache {
     static void ClearBandTextures();
     static void Destroy();
     static void GatherBands(CShadowCacheQueryData& data, const C3Vector& pos, CWFrustum& frustum, int32_t useCullFrustum);
+    static uint32_t GetMaxShadowMode();
     static EShadowMode GetShadowMode();
     static const char* GetShadowModeDesc(uint32_t mode);
     static uint32_t GetShadowValue();

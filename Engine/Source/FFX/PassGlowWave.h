@@ -15,8 +15,9 @@ class PassGlowWave : public PassGlowBase {
     /* 0034 */ int32_t m_shaderIndex;
     /* 0038 */ CGxShader* m_shaders[4];
 
-    virtual bool Valid();
-    virtual void Execute();
+    ~PassGlowWave() override;
+    bool Valid() override;
+    void Execute() override;
 
     PassGlowWave(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk);
 };

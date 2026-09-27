@@ -19,10 +19,10 @@ class CRect;
 class CRenderBatch;
 class CSimpleFontStringAttributes;
 class CSimpleFrame;
-struct CSimpleTexture;
+class CSimpleTexture;
 class CStatus;
 struct FONTHASHOBJ;
-struct TEXTBLOCK;
+class TEXTBLOCK;
 class XMLNode;
 
 class CSimpleRender {

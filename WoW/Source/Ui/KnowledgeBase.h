@@ -4,6 +4,9 @@
 #include <cstddef>
 #include <cstdint>
 
+class CDynamicString;
+struct XMLTree;
+
 class CGKnowledgeBase {
     public:
     /* 0000 */ uint8_t unk_0000[4];
@@ -18,28 +21,32 @@ class CGKnowledgeBase {
 
 class CKBPage {
     public:
-    /* 0000 */ uint8_t unk_0000;
-    /* 0001 */ uint8_t unk_0001[3];
+    static CKBPage* s_pLoadingQueue_Head;
+
+    static void Initialize();
+    static void Shutdown();
+    static void UpdateLoadingQueue();
+
     /* 0004 */ uint32_t unk_0004;
     /* 0008 */ uint8_t unk_0008[4];
     /* 000C */ uint8_t unk_000C;
     /* 000D */ uint8_t unk_000D;
     /* 000E */ uint8_t unk_000E;
     /* 000F */ uint8_t unk_000F[4];
-    /* 0013 */ uint8_t unk_0013[33];
-    /* 0034 */ uint32_t unk_0034;
-    /* 0038 */ uint32_t unk_0038;
+    /* 0013 */ uint8_t unk_0013[29];
+    /* 0030 */ CDynamicString* unk_0030;
+    /* 0034 */ XMLTree* unk_0034;
+    /* 0038 */ CKBPage* m_loadingNext;
     /* 003C */ uint32_t unk_003C;
+
+    virtual ~CKBPage();
+    virtual void _ComputeCachedData();
+    virtual void _SendSuccessEvent();
+    virtual void _SendFailureEvent();
 };
 
-class CKBSetup {
+class CKBSetup : public CKBPage {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[44];
-    /* 0034 */ uint32_t unk_0034;
-    /* 0038 */ uint32_t unk_0038;
-    /* 003C */ uint32_t unk_003C;
     /* 0040 */ uint32_t unk_0040;
     /* 0044 */ uint32_t unk_0044;
     /* 0048 */ uint32_t unk_0048;
@@ -54,5 +61,7 @@ class CKBSetup {
     /* 006C */ uint32_t unk_006C;
     /* 0070 */ uint32_t unk_0070;
 };
+
+extern CKBSetup g_KnowledgeBaseSetup;
 
 #endif

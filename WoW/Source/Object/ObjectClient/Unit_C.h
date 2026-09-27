@@ -10,7 +10,7 @@
 #include "WoW/Source/Object/Unit.h"
 
 class AuraData;
-struct CGNamePlateFrame;
+class CGNamePlateFrame;
 class CM2Model;
 class CMovementShared;
 class CharacterComponent;

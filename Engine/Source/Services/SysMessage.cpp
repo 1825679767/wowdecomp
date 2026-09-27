@@ -4,6 +4,18 @@
 #include "Engine/Source/Services/SysMessage.h"
 #include "Engine/Source/Storm/H/storm.h"
 
+// STATIC: 0x00AC3228
+static int32_t s_enabled = 1;
+
+// STATIC: 0x00AC322C
+static int32_t s_maxSeverity = 3;
+
+// STATIC: 0x00AC3230
+static uint32_t s_categoryFilter = 0xFFFFFFFF;
+
+// STATIC: 0x00B49C74
+static int32_t s_minSeverity;
+
 // VERIFY: e98afe5a manual
 // OFFSET: 0x004B4F60
 int32_t SysMsgAdd(const char* text, STATUS_TYPE severity) {
@@ -75,4 +87,73 @@ int32_t SysMsgPrintf(STATUS_TYPE severity, const char* format, ...) {
     va_end(args);
 
     return result;
+}
+
+// VERIFY: 75a92c2f auto
+// OFFSET: 0x004B4E50
+void SysMsgEnable(int32_t enable) {
+    s_enabled = enable;
+}
+
+// VERIFY: 134b1bf4 auto
+// OFFSET: 0x004B4E60
+void SysMsgSetMinDisplayLevel(int32_t level) {
+    s_minSeverity = level;
+
+    if (s_maxSeverity < level) {
+        s_maxSeverity = level;
+    }
+}
+
+// VERIFY: 64a6d646 auto
+// OFFSET: 0x004B4E80
+void SysMsgSetMaxDisplayLevel(int32_t level) {
+    s_maxSeverity = level;
+
+    if (s_minSeverity > level) {
+        s_minSeverity = level;
+    }
+}
+
+// VERIFY: fa16c054 auto
+// OFFSET: 0x004B4EA0
+int32_t SysMsgGetMinDisplayLevel() {
+    return s_minSeverity;
+}
+
+// VERIFY: 7d5c6e01 auto
+// OFFSET: 0x004B4EB0
+int32_t SysMsgGetMaxDisplayLevel() {
+    return s_maxSeverity;
+}
+
+// VERIFY: c7c0bced auto
+// OFFSET: 0x004B4EC0
+void SysMsgSetFilter(uint32_t filter) {
+    s_categoryFilter = filter;
+}
+
+// VERIFY: d71710d4 auto
+// OFFSET: 0x004B4ED0
+uint32_t SysMsgGetFilter() {
+    return s_categoryFilter;
+}
+
+// VERIFY: dceded4d auto
+// OFFSET: 0x004B4F30
+void SysMsgInitialize() {
+    s_enabled = 1;
+    s_minSeverity = 0;
+    s_maxSeverity = 3;
+    s_categoryFilter = 0xFFFFFFFF;
+}
+
+// VERIFY: f92a5b55 manual
+// OFFSET: 0x005EEB70
+void SysMsgSetCallback(void (*callback)(const char* text, STATUS_TYPE severity)) {
+}
+
+// OFFSET: 0x004B5090
+void SysMsgShutdown() {
+    s_enabled = 0;
 }

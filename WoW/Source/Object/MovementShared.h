@@ -8,7 +8,7 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/Passenger.h"
 
-struct CMoveSpline;
+class CMoveSpline;
 
 class CMovementShared : public CPassenger {
     public:

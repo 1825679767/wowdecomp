@@ -3,6 +3,31 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Gx/CGxTex.h"
+#include "Engine/Source/Storm/H/stpl.h"
+
+struct CGxPool;
+class CGxShader;
+class CDetailDoodadData;
+
+class CDetailDoodad {
+    public:
+    static CGxTex* s_alphaRampTexture;
+    static int32_t s_bPoolsDirty;
+    static int32_t s_bUseShaders;
+    static TSGrowableArray<CDetailDoodadData*> s_doodadList;
+    static CGxPool* s_gxIndexPool;
+    static CGxPool* s_gxVertexPool;
+    static uint32_t s_idxBufItems;
+    static uint32_t* s_instHeap;
+    static CGxShader* s_pixelShader[8];
+    static CGxShader* s_vertexShader[6];
+    static uint32_t s_vtxBufItems;
+
+    static void CreateAlphaRampTexture(const void*& texels);
+    static void Initialize();
+    static void UpdateAlphaRampTexture(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t face, uint32_t level, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);
+};
 
 class CDetailDoodadInst {
     public:

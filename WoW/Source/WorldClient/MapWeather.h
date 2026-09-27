@@ -7,6 +7,10 @@
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "WoW/Source/WorldClient/Mists.h"
 #include "WoW/Source/WorldClient/Rain.h"
+#include "Engine/Source/Storm/H/stpl.h"
+
+struct CVar;
+class WeatherRec;
 
 class CGxShader;
 class CTexture;
@@ -45,13 +49,83 @@ struct SnowFlakeParticleBuffer {
     /* 0004 */ SnowFlakeParticle m_particles [6144];
 };
 
+struct WeatherGridCell {
+    /* 0000 */ float m_heights[1024];
+    /* 1000 */ int32_t unk_1000;
+    /* 1004 */ int32_t unk_1004;
+
+    WeatherGridCell();
+};
+
+class WeatherGrid {
+    public:
+    /* 0004 */ float unk_0004;
+    /* 0008 */ float unk_0008;
+    /* 000C */ float unk_000C;
+    /* 0010 */ int32_t unk_0010[6];
+    /* 0028 */ WeatherGridCell* m_cells[5][5];
+
+    virtual void* unk_0000(void* a2);
+    virtual int32_t UpdateOriginCell(float* position);
+    virtual bool ComputeCellBounds(float* a2, float* a3, float* a4);
+    virtual void GetCellAtPosition(float* position);
+
+    WeatherGrid();
+};
+
 class Weather {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C [99];
+    static int32_t TimeToFixed(float seconds);
+
+    /* 0000 */ float unk_0000;
+    /* 0004 */ float unk_0004;
+    /* 0008 */ float unk_0008;
+    /* 000C */ float unk_000C;
+    /* 0010 */ float unk_0010;
+    /* 0014 */ float unk_0014;
+    /* 0018 */ uint32_t unk_0018;
+    /* 001C */ uint32_t unk_001C;
+    /* 0020 */ int32_t unk_0020;
+    /* 0024 */ uint8_t m_densityChanged;
+    /* 0025 */ uint8_t unk_0025;
+    /* 0026 */ uint8_t unk_0026[2];
+    /* 0028 */ float unk_0028;
+    /* 002C */ float unk_002C;
+    /* 0030 */ float unk_0030;
+    /* 0034 */ uint8_t unk_0034[4];
+    /* 0038 */ char m_precipTexture[260];
+    /* 013C */ uint32_t unk_013C;
+    /* 0140 */ uint32_t unk_0140;
+    /* 0144 */ uint32_t unk_0144;
+    /* 0148 */ WeatherGrid* m_grid;
+    /* 014C */ TSList<void> unk_014C;
+    /* 0158 */ TSList<void> unk_0158;
+    /* 0164 */ float unk_0164;
+    /* 0168 */ float unk_0168;
+    /* 016C */ float unk_016C;
+    /* 0170 */ float unk_0170;
+    /* 0174 */ float unk_0174;
+    /* 0178 */ float unk_0178;
+    /* 017C */ float unk_017C;
+    /* 0180 */ float unk_0180;
+    /* 0184 */ float unk_0184;
+    /* 0188 */ uint8_t unk_0188;
+    /* 0189 */ uint8_t unk_0189[3];
+    /* 018C */ float unk_018C;
+    /* 0190 */ float unk_0190;
+    /* 0194 */ uint8_t unk_0194;
+    /* 0195 */ uint8_t unk_0195[3];
+
+    Weather();
+    ~Weather();
+    void SetType(uint32_t type, float intensity, const WeatherRec* rec, bool immediate, float transitionTime);
 };
+
+extern float s_weatherDensity;
+extern uint8_t s_weatherTypeForced;
+extern CVar* s_useShaders;
+
+bool CVarHandler_weatherDensity(CVar* var, const char* oldValue, const char* value, void* arg);
 
 class MapWeather {
     public:

@@ -6,14 +6,23 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/UIUtil/Types.h"
 
+struct CVar;
+class XMLNode;
 struct HASHKEY_STRI;
 struct MOUSELOOKBINDING;
+struct XMLTree;
+class WowMouse;
 
 struct MOUSELOOKBINDING : public TSHashObject<MOUSELOOKBINDING, HASHKEY_STRI> {
 };
 
 class CGInputControl {
     public:
+    static CGInputControl* s_inputControl;
+
+    static void Destroy();
+    static CGInputControl* GetActive();
+
     /* 0000 */ uint32_t m_time;
     /* 0004 */ uint32_t m_flags;
     /* 0008 */ float m_dragAccumX;
@@ -32,7 +41,24 @@ class CGInputControl {
     /* 0060 */ uint32_t m_joystickMouseFlags;
     /* 0064 */ float m_joystickLookX;
     /* 0068 */ float m_joystickLookY;
-    /* 006C */ void* m_wowMouse;
+    /* 006C */ WowMouse* m_wowMouse;
+
+    CGInputControl();
+    ~CGInputControl();
+    void SetMouseCVarHandler(bool enable);
+    void UpdateJoystickMouseMode();
+    void UpdateMouseMode(int32_t force);
 };
+
+extern CVar* s_cvCinematicJoystick;
+extern CVar* s_cvEnableWowMouse;
+extern uint32_t s_joystick;
+extern int32_t s_joystickMouseEnabled;
+
+void InputControlDestroy();
+void InputControlInitialize();
+bool JoystickCallback(CVar* var, const char* oldValue, const char* value, void* arg);
+XMLTree* LoadJoystickConfig(XMLNode*& config);
+bool WowMouseCVarCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 
 #endif
