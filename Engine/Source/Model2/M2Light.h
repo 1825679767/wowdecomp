@@ -65,6 +65,8 @@ class CM2Lighting {
     /* 00C4 */ C4Plane m_liquidPlane;
 
     CM2Lighting();
+    CM2Lighting(const CAaSphere& sphere);
+    void Reset();
     void AddAmbient(const C3Vector& color);
     void AddDiffuse(const C3Vector& color, const C3Vector& dir);
     void AddLight(CM2Light* light);

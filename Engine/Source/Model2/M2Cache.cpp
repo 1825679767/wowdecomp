@@ -423,6 +423,13 @@ void CM2Cache::LinkToSharedUpdateList(CM2Shared* shared) {
     this->m_sharedUpdateList.LinkToTail(shared);
 }
 
+// OFFSET: 0x0081C870
+CM2Cache::~CM2Cache() {
+    if (this->m_initialized) {
+        DebugLog("Model2: M2Destroy never called\n");
+    }
+}
+
 // VERIFY: 902f5653 manual
 // OFFSET: 0x0081C900
 CM2Cache::CM2Cache() : m_threadStart(0, 0), m_threadDone(0, 0) {

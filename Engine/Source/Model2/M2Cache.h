@@ -42,6 +42,7 @@ class CM2Cache {
     /* 10A0 */ TSExplicitList<CM2Shared, offsetof(CM2Shared, m_updateLink)> m_sharedUpdateList;
 
     CM2Cache();
+    ~CM2Cache();
     void BeginThread(void (*func)(void*), void* param);
     void ClearSharedHash();
     CM2Shared* CreateShared(const char* name, uint32_t flags);

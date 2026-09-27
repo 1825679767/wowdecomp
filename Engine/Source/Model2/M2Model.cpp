@@ -458,7 +458,7 @@ void CM2Model::ComputeLoadProgress(int64_t& loaded, int64_t& total) {
     }
 }
 
-// VERIFY: 7cdb0522 manual
+// VERIFY: 4f897dd8 manual
 // OFFSET: 0x008248C0
 CM2Lighting::CM2Lighting() {
     this->m_sphere4.c.x = 0.0f;
@@ -474,7 +474,6 @@ CM2Lighting::CM2Lighting() {
     this->m_sunDiffuse = C3Vector(0.0f, 0.0f, 0.0f);
     this->m_sunSpecular = C3Vector(0.0f, 0.0f, 0.0f);
     this->m_sunDir = C3Vector(0.0f, 0.0f, 0.0f);
-// VERIFY: 5e9baa29 auto
     this->m_fogColor = C3Vector(0.0f, 0.0f, 0.0f);
     this->m_liquidPlane.n.x = 0.0f;
     this->m_liquidPlane.n.y = 0.0f;
@@ -7783,4 +7782,80 @@ int32_t CM2Model::Initialize(CM2Scene* scene, CM2Shared* shared, CM2Model* sourc
     }
 
     return this->m_shared->CallbackWhenLoaded(this);
+}
+
+// VERIFY: 767a1eb1 auto
+// OFFSET: 0x004D8630
+void CM2Model::SetWorldTransform(const C44Matrix& matrix) {
+    this->m_fFlags |= 0x8000;
+    this->m_worldTransform = matrix;
+}
+
+// VERIFY: 3fa6010f auto
+// OFFSET: 0x004E2730
+void CM2Lighting::Reset() {
+    this->m_sunAmbient = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_sunDiffuse = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_sunSpecular = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_sunDir = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector18 = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector24 = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector30 = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector3C = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector48 = C3Vector(0.0f, 0.0f, 0.0f);
+}
+
+// VERIFY: 56d2a807 auto
+// OFFSET: 0x004F5E20
+CAaBox CM2Model::GetBoundingBox() {
+    if (!(this->m_shared->m_flags & 1)) {
+        this->WaitForLoad(nullptr);
+    }
+
+    return this->m_shared->m_data->m_bounds.m_extent;
+}
+
+// VERIFY: d8b44604 manual
+// OFFSET: 0x004F5E80
+CAaSphere CM2Model::GetBoundingSphere() {
+    if (!(this->m_shared->m_flags & 1)) {
+        this->WaitForLoad(nullptr);
+    }
+
+    const M2Bounds& bounds = this->m_shared->m_data->m_bounds;
+    CAaSphere sphere = { C3Vector((bounds.m_extent.b.x + bounds.m_extent.t.x) * 0.5f, (bounds.m_extent.b.y + bounds.m_extent.t.y) * 0.5f, (bounds.m_extent.b.z + bounds.m_extent.t.z) * 0.5f), bounds.m_radius };
+
+    return sphere;
+}
+
+// VERIFY: f3350a9a auto
+// OFFSET: 0x006F1D20
+C44Matrix CM2Model::GetAnimatedWorldTransform() {
+    this->Animate();
+
+    return this->m_matrixF4 * this->m_scene->m_viewInv;
+}
+
+// VERIFY: bf5b6c6a manual
+// OFFSET: 0x00790440
+CM2Lighting::CM2Lighting(const CAaSphere& sphere) {
+    this->m_sphere4.c.x = 0.0f;
+    this->m_sphere4.r = 0.0f;
+    this->m_sphere4.c.y = 0.0f;
+    this->m_sphere4.c.z = 0.0f;
+    this->m_vector18 = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector24 = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector30 = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector3C = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector48 = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_sunAmbient = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_sunDiffuse = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_sunSpecular = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_sunDir = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_fogColor = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_liquidPlane.n.x = 0.0f;
+    this->m_liquidPlane.n.y = 0.0f;
+    this->m_liquidPlane.n.z = 1.0f;
+    this->m_liquidPlane.d = 0.0f;
+    this->Initialize(nullptr, sphere);
 }

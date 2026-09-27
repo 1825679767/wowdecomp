@@ -269,6 +269,9 @@ class CM2Model {
     uint32_t GetBoneSequenceId(uint32_t boneId);
     int32_t GetBoneSequenceInfo(uint32_t boneId, M2BoneSequenceInfo& info);
     float GetBoneSequenceSpeed(uint32_t boneId);
+    CAaBox GetBoundingBox();
+    CAaSphere GetBoundingSphere();
+    C44Matrix GetAnimatedWorldTransform();
     CAaBox GetCurrentBoundingBox();
     CAaBox GetMaxBoundingBoxPlusAttachments();
     CAaSphere GetMaxBoundingSpherePlusAttachments();
@@ -339,6 +342,7 @@ class CM2Model {
     void SetLoadedCallback(void (*callback)(CM2Model*, void*), void* arg);
     void SetRibbonsEnabled(uint32_t enabled);
     void SetSequenceCallback(void* callback, uint64_t param);
+    void SetWorldTransform(const C44Matrix& matrix);
     void SetWorldTransform(const C3Vector& position, float rotation, float scale);
     void SetWorldTransform(const C3Vector& position, float rotation, float scale, const C3Vector& up, uint32_t flags);
     void UpdateLoaded();
