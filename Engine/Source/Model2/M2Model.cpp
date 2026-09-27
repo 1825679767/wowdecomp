@@ -1133,6 +1133,7 @@ uint32_t CM2Model::ResolveSequenceFallback(uint32_t id) {
     return 0xFFFFFFFF;
 }
 
+// VERIFY: af94bf41 manual
 // OFFSET: 0x00826050
 int32_t CM2Model::IsSequenceLoaded(uint32_t id) {
     if (id >= 506) {

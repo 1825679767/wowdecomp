@@ -406,6 +406,7 @@ TEXFILETYPE TextureDiscoverFileType(const char* fileName) {
     return SStrCmpI(extension, ".BLP", STORM_MAX_STR) ? TEXFILE_UNKNOWN : TEXFILE_BLP;
 }
 
+// VERIFY: 813fa654 manual
 // OFFSET: 0x004B5670
 TEXFILETYPE TexturePickAlternateFilename(const char* fileName, TEXFILETYPE type, char* buffer, uint32_t size) {
     if (fileName != buffer) {

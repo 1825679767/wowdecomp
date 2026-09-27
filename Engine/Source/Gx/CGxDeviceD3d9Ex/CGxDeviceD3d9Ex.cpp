@@ -3909,6 +3909,7 @@ CGxDevice* CreateCGxDeviceD3d9Ex() {
     return new (mem) CGxDeviceD3d9Ex();
 }
 
+// VERIFY: cec88572 manual
 // OFFSET: 0x006A1A90
 CGxDeviceD3d9Ex::CGxDeviceD3d9Ex() : m_desktopDisplayMode() {
     this->m_d3dStereoConvergence = 1.0f;

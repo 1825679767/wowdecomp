@@ -423,6 +423,7 @@ void CM2Cache::LinkToSharedUpdateList(CM2Shared* shared) {
     this->m_sharedUpdateList.LinkToTail(shared);
 }
 
+// VERIFY: 1f730c93 manual
 // OFFSET: 0x0081C870
 CM2Cache::~CM2Cache() {
     if (this->m_initialized) {

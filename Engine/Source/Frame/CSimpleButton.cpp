@@ -47,11 +47,13 @@ int32_t CSimpleButton::GetObjectType() {
     return CSimpleButton::s_objectType;
 }
 
+// VERIFY: cf256644 auto
 // OFFSET: 0x009621E0
 bool CSimpleButton::IsA(int32_t type) {
     return type == CSimpleButton::s_objectType || type == CSimpleFrame::s_objectType || type == CScriptRegion::s_objectType || type == CScriptObject::s_objectType;
 }
 
+// VERIFY: 296f9512 auto
 // OFFSET: 0x00962220
 bool CSimpleButton::IsA(const char* typeName) {
     return !SStrCmpI(typeName, CSimpleButton::s_objectTypeName, STORM_MAX_STR) || CSimpleFrame::IsA(typeName);

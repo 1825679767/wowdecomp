@@ -36,6 +36,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: edcb279c manual
 // OFFSET: 0x00922950
 OutputPolled::OutputPolled()
 {

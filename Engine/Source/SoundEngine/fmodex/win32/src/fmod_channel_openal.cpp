@@ -43,6 +43,7 @@ namespace FMOD
 	[SEE_ALSO]
 ]
 */
+// VERIFY: d1dc045c manual
 // OFFSET: 0x00946FD0
 ChannelOpenAL::ChannelOpenAL()
 {

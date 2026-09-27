@@ -590,6 +590,7 @@ void luaG_typeerror (lua_State *L, const TValue *o, const char *op) {
 }
 
 
+// VERIFY: 9514a4be manual
 // OFFSET: 0x00850BF0
 void luaG_concaterror (lua_State *L, StkId p1, StkId p2) {
   if (ttisstring(p1)) p1 = p2;

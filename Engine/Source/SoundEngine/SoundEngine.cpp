@@ -2708,9 +2708,9 @@ void SE2::UnregisterHeartBeat() {
     EventUnregister(EVENT_ID_POLL, SE2::HeartBeat);
 }
 
-// VERIFY: 14949179 manual
+// VERIFY: 1035981c manual
 // OFFSET: 0x0087DED0
-void SE2::StopAllSounds() {
+void SE2::StopAllSounds(int32_t restart) {
     int32_t tries = 0;
 
     while (true) {

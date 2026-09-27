@@ -753,6 +753,7 @@ void CSimpleFrame::LoadXMLInheritance(XMLNode* node, CStatus* status) {
     }
 }
 
+// VERIFY: 08c5569f auto
 // OFFSET: 0x0048F550
 void CSimpleFrame::NotifyDelayedLoad() {
     if (this->m_frameFlags & 0x2000) {

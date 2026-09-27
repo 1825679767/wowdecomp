@@ -307,7 +307,7 @@ class SE2 {
     static void ShutDown(int32_t restart);
     static void ShutDownCapture();
     static void StartCapture();
-    static void StopAllSounds();
+    static void StopAllSounds(int32_t restart);
     static void StopAllSounds(const char* channelGroup, float fadeOutTime);
     static void StopCapture();
     static void UnlockSoundList();

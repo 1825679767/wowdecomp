@@ -73,15 +73,18 @@ void CSimpleCheckbox::UnregisterRegion(CSimpleRegion* region) {
     CSimpleButton::UnregisterRegion(region);
 }
 
+// VERIFY: cef0c454 auto
 // OFFSET: [0x009621D0, 0x00962300]
 CSimpleCheckbox::~CSimpleCheckbox() {
 }
 
+// VERIFY: 335846d3 auto
 // OFFSET: 0x00962260
 bool CSimpleCheckbox::IsA(int32_t type) {
     return type == CSimpleCheckbox::s_objectType || type == CSimpleButton::s_objectType || type == CSimpleFrame::s_objectType || type == CScriptRegion::s_objectType || type == CScriptObject::s_objectType;
 }
 
+// VERIFY: d502bdb9 auto
 // OFFSET: 0x009622A0
 bool CSimpleCheckbox::IsA(const char* typeName) {
     return !SStrCmpI(typeName, CSimpleCheckbox::s_objectTypeName, STORM_MAX_STR) || !SStrCmpI(typeName, CSimpleButton::s_objectTypeName, STORM_MAX_STR) || CSimpleFrame::IsA(typeName);
