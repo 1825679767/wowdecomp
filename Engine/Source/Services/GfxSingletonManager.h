@@ -3,33 +3,45 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
 
 class C3Vector;
+class CParticleEmitter;
+class CParticleEmitter2;
+class CRibbonEmitter;
 
 class ParticleSystemManager {
     public:
     static int32_t (*sm_projectCallback)(const C3Vector&, float&, void*);
     static void* sm_projectParam;
+    static ParticleSystemManager* s_instance;
 
     static void Destroy();
+    static ParticleSystemManager* GetInstance();
+    static float GetScaler();
+    static void SetScaler(float scaler);
 
-    /* 0000 */ uint8_t unk_0000[4];
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint8_t unk_000C[8];
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint32_t unk_0018;
-    /* 001C */ uint8_t unk_001C[8];
-    /* 0024 */ uint32_t unk_0024;
-    /* 0028 */ uint32_t unk_0028;
-    /* 002C */ uint8_t unk_002C[8];
-    /* 0034 */ uint32_t unk_0034;
-    /* 0038 */ uint32_t unk_0038;
+    /* 0000 */ TSGrowableArray<CParticleEmitter*> m_emitters;
+    /* 0010 */ TSGrowableArray<CParticleEmitter2*> m_emitters2;
+    /* 0020 */ TSGrowableArray<CParticleEmitter*> m_pendingEmitters;
+    /* 0030 */ TSGrowableArray<CParticleEmitter2*> m_pendingEmitters2;
+
+    ~ParticleSystemManager();
+    CParticleEmitter2* DuplicateEmitter(const CParticleEmitter2* emitter, int32_t copyParticles);
+    void Flush();
 };
 
 class RibbonManager {
     public:
+    static RibbonManager* s_instance;
+
     static void Destroy();
+
+    /* 0000 */ TSGrowableArray<CRibbonEmitter*> m_emitters;
+    /* 0010 */ TSGrowableArray<CRibbonEmitter*> m_pendingEmitters;
+
+    ~RibbonManager();
+    void Flush();
 };
 
 #endif

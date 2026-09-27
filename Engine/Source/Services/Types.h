@@ -31,6 +31,18 @@ class CAsyncObject {
     int32_t IsPending();
 };
 
+struct HTEXTBLOCK__ {
+    /* 0000 */ int32_t m_unused;
+};
+
+typedef HTEXTBLOCK__* HTEXTBLOCK;
+
+struct HTEXTFONT__ {
+    /* 0000 */ int32_t m_unused;
+};
+
+typedef HTEXTFONT__* HTEXTFONT;
+
 enum PIXEL_FORMAT {
     PIXEL_DXT1 = 0,
     PIXEL_DXT3 = 1,

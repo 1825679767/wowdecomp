@@ -8,7 +8,7 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/UIUtil/CSimpleCamera.h"
-#include "_Triage/CAngle.h"
+#include "Engine/Source/Services/CameraInt.h"
 
 class C3Vector;
 class CM2Model;
@@ -28,19 +28,6 @@ class CAMERA_SMOOTH {
     /* 000C */ float m_startValue;
     /* 0010 */ float m_param3;
     /* 0014 */ float m_param4;
-};
-
-class CCamera {
-    public:
-    /* 0000 */ TManaged<C3Vector> m_position;
-    /* 0028 */ TManaged<C3Vector> m_target;
-    /* 0050 */ TManaged<float> m_distance;
-    /* 0070 */ TManaged<float> m_zFar;
-    /* 0090 */ TManaged<float> m_zNear;
-    /* 00B0 */ CAngle m_aoa;
-    /* 00D8 */ CAngle m_fov;
-    /* 0100 */ CAngle m_roll;
-    /* 0128 */ CAngle m_rotation;
 };
 
 class CGCamera : public CSimpleCamera {
