@@ -370,6 +370,12 @@ uint64_t OsGetPhysicalMemory() {
     return status.ullTotalPhys;
 }
 
+// VERIFY: 53f1140f auto
+// OFFSET: 0x0086B4F0
+void* CreateNamedEventA(const char* name, int32_t manualReset) {
+    return CreateEventA(nullptr, manualReset, FALSE, name);
+}
+
 // VERIFY: b7633bc5 manual
 // OFFSET: 0x0086B510
 void OsFindTextSectionBounds() {

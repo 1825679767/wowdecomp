@@ -543,4 +543,39 @@ int32_t IOsVersionChecksum(IOsVersionHashCallback& callback, const char* path, i
     return result;
 }
 
+// VERIFY: e79ea3ec manual
+// OFFSET: 0x00872170
+OsFileVersionInfo::OsFileVersionInfo(const char* filename) : m_fileVersion(), m_productVersion() {
+    char path[MAX_PATH];
+    if (!filename) {
+        GetModuleFileNameA(nullptr, path, MAX_PATH);
+        filename = path;
+    }
+
+    DWORD handle;
+    DWORD size = GetFileVersionInfoSizeA(filename, &handle);
+    if (size) {
+        m_data.SetCount(size);
+
+        if (GetFileVersionInfoA(filename, handle, m_data.Count(), m_data.Ptr())) {
+            VS_FIXEDFILEINFO* info = nullptr;
+            UINT length = 0;
+
+            if (VerQueryValueA(m_data.Ptr(), "\\", reinterpret_cast<void**>(&info), &length)) {
+                m_fileVersion[0] = HIWORD(info->dwFileVersionMS);
+                m_fileVersion[1] = LOWORD(info->dwFileVersionMS);
+                m_fileVersion[2] = HIWORD(info->dwFileVersionLS);
+                m_fileVersion[3] = LOWORD(info->dwFileVersionLS);
+                m_productVersion[0] = HIWORD(info->dwProductVersionMS);
+                m_productVersion[1] = LOWORD(info->dwProductVersionMS);
+                m_productVersion[2] = HIWORD(info->dwProductVersionLS);
+                m_productVersion[3] = LOWORD(info->dwProductVersionLS);
+                return;
+            }
+        }
+    }
+
+    m_data.Clear();
+}
+
 #endif

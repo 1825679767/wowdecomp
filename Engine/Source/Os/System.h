@@ -36,6 +36,7 @@ struct CpuIdInfo {
     /* 002C */ char m_brand[48];
 };
 
+void* CreateNamedEventA(const char* name, int32_t manualReset);
 int32_t IOsGetPowerProfFrequency();
 int32_t IOsGetProcessorFeatures(CpuIdInfo* info);
 int32_t IOsParseProcessorFrequency(const char* brand);

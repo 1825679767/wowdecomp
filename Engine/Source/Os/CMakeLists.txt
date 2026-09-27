@@ -17,5 +17,6 @@ if(WIN32)
             ws2_32
             dinput8
             dxguid
+            version
     )
 endif()

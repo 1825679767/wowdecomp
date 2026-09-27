@@ -324,6 +324,11 @@ uint64_t OsGetPhysicalMemory() {
     return status.ullTotalPhys;
 }
 
+// OFFSET: 0x0086B4F0
+void* CreateNamedEventA(const char* name, int32_t manualReset) {
+    return CreateEventA(nullptr, manualReset, FALSE, name);
+}
+
 // OFFSET: 0x0086B510
 void OsFindTextSectionBounds() {
     uint8_t* image = reinterpret_cast<uint8_t*>(StormGetInstance());

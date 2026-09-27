@@ -2,6 +2,16 @@
 #define ENGINE_SOURCE_OS_OSVERSIONHASH_H
 
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
+
+class OsFileVersionInfo {
+    public:
+    /* 0000 */ TSFixedArray<uint8_t> m_data;
+    /* 000C */ uint16_t m_fileVersion[4];
+    /* 0014 */ uint16_t m_productVersion[4];
+
+    OsFileVersionInfo(const char* filename);
+};
 
 class IOsVersionHashCallback {
     public:
