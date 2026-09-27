@@ -281,7 +281,7 @@ class CGxDeviceD3d : public CGxDevice {
     virtual int32_t BufUnlock(CGxBuf* buf, uint32_t size);
     virtual void BufData(CGxBuf* buf, const void* data, uint32_t size, uint32_t offset);
     virtual void TexDestroy(CGxTex* texId);
-    virtual int32_t TexCopy(CGxTex* dest, CGxTex* source, const C2iVector& pos, const C2iVector& size, uint32_t level, uint32_t plane);
+    virtual int32_t TexCopy(CGxTex* dest, const C2iVector& destPos, const C2iVector& sourcePos, const C2iVector& size, uint32_t level, uint32_t plane);
     virtual int32_t TexStretch(CGxTex* dest, const CiRect* destRect, const CiRect* sourceRect, uint32_t level, uint32_t face);
     virtual void QueryCreate(CGxQuery*& query, EGxQueryType type);
     virtual void QueryDestroy(CGxQuery*& query);
@@ -326,7 +326,11 @@ class CGxDeviceD3d : public CGxDevice {
     static LRESULT CALLBACK WindowProcD3d(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
 
     CGxDeviceD3d();
+    virtual ~CGxDeviceD3d();
     void DsSet(EDeviceState state, uint32_t value);
+    int32_t ICheckDepthStencilFormat(D3DFORMAT format);
+    void ICreateDepthStencilSurface(uint32_t width, uint32_t height);
+    void ICreateReadbackSurface();
     void IBindPixelShader(CGxShader* shader);
     void IBindVertexShader(CGxShader* shader);
     char* IBufLock(CGxBuf* buf);

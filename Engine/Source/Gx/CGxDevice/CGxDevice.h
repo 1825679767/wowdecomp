@@ -67,7 +67,6 @@ struct CGxAppRenderState {
 };
 
 typedef void (__fastcall* GxDeviceCallback)();
-typedef intptr_t (*GxWindowProc)(void* window, uint32_t message, uintptr_t wparam, intptr_t lparam);
 
 class CGxDevice {
     public:
@@ -218,7 +217,7 @@ class CGxDevice {
     virtual void BufData(CGxBuf* buf, const void* data, uint32_t size, uint32_t offset);
     virtual int32_t TexCreate(EGxTexTarget target, uint32_t width, uint32_t height, uint32_t depth, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags, void* userArg, GxTexUserFunc userFunc, const char* name, CGxTex*& texId);
     virtual void TexDestroy(CGxTex* texId);
-    virtual int32_t TexCopy(CGxTex* dest, CGxTex* source, const C2iVector& pos, const C2iVector& size, uint32_t level, uint32_t plane) = 0;
+    virtual int32_t TexCopy(CGxTex* dest, const C2iVector& destPos, const C2iVector& sourcePos, const C2iVector& size, uint32_t level, uint32_t plane) = 0;
     virtual int32_t TexStretch(CGxTex* dest, const CiRect* destRect, const CiRect* sourceRect, uint32_t level, uint32_t face) = 0;
     virtual void TexSetCacheSize(uint32_t size);
     virtual void QueryCreate(CGxQuery*& query, EGxQueryType type);
@@ -246,16 +245,28 @@ class CGxDevice {
 
     static HSLOG m_log;
     static C2iVector s_clientAdjust;
+    static const char* s_pixelShaderTargetNames[14];
+    static const char* s_vertexShaderTargetNames[12];
     static C3Vector s_pointScaleAttenuation;
     static CGxShader* s_uiPixelShader;
     static CGxShader* s_uiVertexShader[2];
     static ShadowConstants s_shadowConstants[2];
     static uint32_t s_alphaRef[12];
     static const uint32_t s_texFormatBitDepth[GxTexFormats_Last];
+    static const uint32_t s_texFormatBlockSize[GxTexFormats_Last];
     static const uint32_t s_texFormatBytesPerBlock[GxTexFormats_Last];
     static uint32_t m_logBytes;
 
+    static int32_t AdapterDesktopMode(CGxMonitorMode& mode);
+    static int32_t AdapterFormats(EGxApi api, TSGrowableArray<CGxFormat>& formats);
+    static int32_t AdapterMonitorModes(TSGrowableArray<CGxMonitorMode>& modes);
     static int32_t AdjustWindowRectToWorkArea(float aspectRatio, C2iVector* adjust, tagRECT* rect);
+    static int32_t D3d9ExAdapterFormats(TSGrowableArray<CGxFormat>& formats);
+    static int32_t D3dAdapterFormats(TSGrowableArray<CGxFormat>& formats);
+    static int32_t DeviceAdapterID(uint16_t& vendorID, uint16_t& deviceID, uint32_t& driverVersionHi, uint32_t& driverVersionLo);
+    static int32_t DeviceAdapterInfer(uint16_t& deviceID);
+    static int32_t FormatExists(TSGrowableArray<CGxFormat>& formats, const CGxFormat& format);
+    static int32_t OpenGlAdapterFormats(TSGrowableArray<CGxFormat>& formats);
     static void ClampRectBottom(CiRect& windowRect);
     static void ClampRectBottomByAspect(CiRect& windowRect);
     static void ClampRectLeftByAspect(CiRect& windowRect);
@@ -292,8 +303,12 @@ class CGxDevice {
     void IRsInit();
     void IRsSync(int32_t force);
     void RsPop();
+    void RsInit();
     void RsPush();
     void RsSet(EGxRenderState which, void* value);
+    void RsSet(EGxRenderState which, int32_t value);
+    void RsSet(EGxRenderState which, float value);
+    void RsSet(EGxRenderState which, const C3Vector& value);
     void TexSetFlags(CGxTex* texId, CGxTexFlags flags);
     void TexSetWrap(CGxTex* texId, EGxTexWrapMode wrapU, EGxTexWrapMode wrapV);
     void ClipPlaneSet(uint32_t index, const C4Plane& plane);
@@ -308,9 +323,12 @@ class CGxDevice {
     void DeviceScreenShot();
     void DeviceSetCurWindow(const CRect& rect);
     void DeviceSetDefWindow(const CRect& rect);
+    void GetSurveyModeInfo(uint32_t& desktopWidth, uint32_t& desktopHeight, uint32_t& desktopBpp, uint32_t& width, uint32_t& height, uint32_t& bpp);
     int32_t IDevIsWindowed();
     void InitLights();
+    uint32_t ITexBitsSize(CGxTex* texId, uint32_t width, uint32_t height);
     void ITexWHDStartEnd(CGxTex* texId, uint32_t& width, uint32_t& height, uint32_t& baseMip, uint32_t& mipCount);
+    void Light(uint32_t index, CGxLight& light);
     void LightEnable(uint32_t index, int32_t enable);
     void LightSet(uint32_t index, const CGxLight& light, const C3Vector& pos);
     int32_t MasterEnable(EGxMasterEnables state);

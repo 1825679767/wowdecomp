@@ -6,19 +6,58 @@
 #include "Engine/Source/Gx/CGxDevice/Types.h"
 #include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Gx/CGxTex.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C2iVector.h"
 
 class C2Vector;
 class C3Vector;
 class C44Matrix;
 class CGxBatch;
+class CGxDevice;
+class CGxFormat;
 struct CGxBuf;
 class CGxQuery;
 class CGxTex;
 class CGxTexParms;
 class CImVector;
+class CiRect;
 class CRect;
 
+class GxuDrawListState {
+    public:
+    virtual ~GxuDrawListState();
+    virtual void Begin() = 0;
+    virtual void End() = 0;
+};
+
+class GxuDrawListItem {
+    public:
+    virtual ~GxuDrawListItem();
+    virtual float GetDepth(const C3Vector& viewPos) = 0;
+    virtual GxuDrawListState* GetState() = 0;
+    virtual uint32_t GetVtxStream() = 0;
+    virtual void Discard() = 0;
+    virtual void Draw(const C3Vector& viewPos) = 0;
+};
+
+class GxDrawListEntry {
+    public:
+    /* 0000 */ GxuDrawListItem* m_item;
+    /* 0004 */ float m_depth;
+    /* 0008 */ uint32_t m_vtxStream;
+};
+
+CGxDevice* CreateCGxDeviceD3d();
+CGxDevice* CreateCGxDeviceD3d9Ex();
+CGxDevice* CreateCGxDeviceOpenGl();
+CGxDevice* CreateGxDevice(EGxApi api, GxWindowProc windowProc, const CGxFormat& format);
+int32_t GxAdapterDesktopMode(CGxMonitorMode& mode);
+int32_t GxAdapterID(uint16_t& vendorID, uint16_t& deviceID, uint32_t& driverVersionHi, uint32_t& driverVersionLo);
+int32_t GxAdapterInfer(uint16_t& deviceID);
+int32_t GxAdapterMonitorModes(TSGrowableArray<CGxMonitorMode>& modes);
+void GxReadPixels(CiRect& rect, TSGrowableArray<CImVector>& pixels);
+int32_t GxVertexHasAttrib(EGxVertexBufferFormat format, EGxVertexAttrib attrib);
+void GxXformSet(EGxXform xf, const C44Matrix& matrix);
 char* GxBufLock(CGxBuf* buf);
 void GxBufUnlock(CGxBuf* buf, uint32_t size);
 void GxBufDestroy(CGxBuf* buf);
@@ -30,6 +69,7 @@ void GxPrimLockVertexPtrs(uint32_t vertexCount, const C3Vector* pos, uint32_t po
 void GxPrimVertexPtr(CGxBuf* buf, EGxVertexBufferFormat format);
 void GxPrimVertexPtr(uint32_t vertexCount, const C3Vector* pos, uint32_t posStride, const C3Vector* normal, uint32_t normalStride, const CImVector* color, uint32_t colorStride, const C2Vector* tex0, uint32_t tex0Stride, const C2Vector* tex1, uint32_t tex1Stride);
 void GxPrimLockIndexPtr(EGxPrim primType, uint32_t indexCount, const uint16_t* indices);
+void GxPrimUnlockVertexPtrs();
 void GxTexParameters(const CGxTex* texId, CGxTexParms& parms);
 void GxTexSetCannotUpdate(CGxTex* texId);
 void GxTexSetDataFormat(CGxTex* texId, EGxTexFormat dataFormat);
@@ -38,12 +78,15 @@ void GxTexUpdate(CGxTex* texId, int32_t minX, int32_t minY, int32_t maxX, int32_
 void GxTexUpdate(CGxTex* texId, CiRect& updateRect, int32_t immediate);
 int32_t GxTexCreate(const CGxTexParms& parms, CGxTex*& texId);
 int32_t GxTexCreate(EGxTexTarget target, uint32_t width, uint32_t height, uint32_t depth, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags, void* userArg, GxTexUserFunc userFunc, const char* name, CGxTex*& texId);
+int32_t GxTexStretch(CGxTex* dest, const CiRect* destRect, const CiRect* sourceRect, uint32_t level, uint32_t face);
 int32_t GxTexCreate(uint32_t width, uint32_t height, EGxTexFormat format, CGxTexFlags flags, void* userArg, GxTexUserFunc userFunc, CGxTex*& texId);
 void GxXformPush(EGxXform xf, const C44Matrix& matrix);
 void GxCapsWindowSizeInScreenCoords(CRect& rect);
 void GxFormatColor(CImVector& color);
 void GxDraw(CGxBatch* batch, int32_t count);
+void GxDevDestroy(CGxDevice* device);
 void GxDrawLockedElements();
+void GxDrawLockedElements(EGxPrim primType, uint32_t indexCount, const uint16_t* indices);
 extern const char* g_gxApiNames[GxApis_Last];
 
 BlitFormat GxGetBlitFormat(EGxTexFormat format);
@@ -56,19 +99,27 @@ void GxLogCrashInfo(char* buffer, uint32_t size);
 void GxLogOpen();
 int32_t GxIsWindowVisible();
 int32_t GxMasterEnable(EGxMasterEnables state);
+bool GxQueryBegin(CGxQuery* query);
 void GxQueryCreate(CGxQuery*& query, EGxQueryType type);
 void GxQueryDestroy(CGxQuery*& query);
+bool GxQueryEnd(CGxQuery* query);
+bool GxQueryGetData(CGxQuery* query, uint32_t* data);
+bool GxQueryGetParam(CGxQuery* query, EGxQueryParam param, uint32_t* data);
 void GxRsSet(EGxRenderState which, void* value);
 void GxRsSet(EGxRenderState which, int32_t value);
 void GxRsSet(EGxRenderState which, float value);
 void GxUpdateAlphaRef(EGxRenderState which);
 void GxSceneClear(uint32_t mask, CImVector color);
+void GxScenePresent();
+void GxuClearDrawList(EGxuDrawListCategory category);
+void GxuFlushDrawList(EGxuDrawListCategory category, const C3Vector& viewPos);
+void GxuSortDrawList(EGxuDrawListCategory category, EGxuDrawListSorting sorting, const C3Vector& viewPos);
 void GxTexSetFlags(CGxTex* texId, CGxTexFlags flags);
 void GxTexSetWrap(CGxTex* texId, EGxTexWrapMode wrapU, EGxTexWrapMode wrapV);
 void GxSetMaxFPS(uint32_t maxFPS);
 void GxSetMaxFPSBk(uint32_t maxFPSBk);
 void GxShaderConstantsSet(EGxShTarget target, uint32_t index, const float* constants, uint32_t count);
-int32_t GxTexCopy(CGxTex* dest, CGxTex* source, const C2iVector& pos, const C2iVector& size, uint32_t level, uint32_t plane);
+int32_t GxTexCopy(CGxTex* dest, const C2iVector& destPos, const C2iVector& sourcePos, const C2iVector& size, uint32_t level, uint32_t plane);
 void GxTexDestroy(CGxTex* texId);
 int32_t GxTexReusable(CGxTexParms& parms);
 int32_t GxTexReusable(CGxTex* texId);

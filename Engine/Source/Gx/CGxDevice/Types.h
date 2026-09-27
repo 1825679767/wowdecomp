@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Tempest/C2iVector.h"
 
 enum EGxVertexAttrib {
     GxVA_Position = 0,
@@ -28,6 +29,13 @@ class CGxVertexAttrib {
     /* 0004 */ uint32_t m_type;
     /* 0008 */ uint32_t m_offset;
     /* 000C */ uint32_t m_bufSize;
+};
+
+class CGxMonitorMode {
+    public:
+    /* 0000 */ C2iVector m_size;
+    /* 0008 */ uint32_t m_bpp;
+    /* 000C */ uint32_t m_refreshRate;
 };
 
 enum EGxMasterEnables {

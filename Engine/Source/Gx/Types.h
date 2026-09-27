@@ -344,4 +344,19 @@ enum EGxShTarget {
     GxShTargets_Last = 6,
 };
 
+typedef intptr_t (*GxWindowProc)(void* window, uint32_t message, uintptr_t wparam, intptr_t lparam);
+
+enum EGxuDrawListCategory {
+    GxuCat_0 = 0,
+    GxuCat_1 = 1,
+    GxuCat_2 = 2,
+    GxuCats_Last = 3,
+};
+
+enum EGxuDrawListSorting {
+    GxuSort_B2F = 0,
+    GxuSort_VtxStream = 1,
+    GxuSorts_Last = 2,
+};
+
 #endif

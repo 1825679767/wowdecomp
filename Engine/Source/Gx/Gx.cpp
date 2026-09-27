@@ -1,5 +1,6 @@
 #include <cstdarg>
 #include <cstdint>
+#include <cstdlib>
 #include "Engine/Source/Gx/Buffer.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxPool.h"
@@ -58,6 +59,63 @@ static uint32_t s_lockIndexCount;
 // STATIC: 0x00C5DF84
 static uint32_t s_lockVertexCount;
 
+// STATIC: 0x00C5DF8C
+static bool s_drawListBusy;
+
+// STATIC: 0x00C5DF90
+static TSGrowableArray<void (*)()> s_destroyCallbacks;
+
+// STATIC: 0x00C5DFA4
+static TSGrowableArray<GxDrawListEntry> s_drawLists[GxuCats_Last];
+
+// VERIFY: pending
+// VERIFY: 39e42562 auto
+// OFFSET: 0x00681310
+static void DrawListPreprocessB2F(GxDrawListEntry* entry, const C3Vector& viewPos) {
+    entry->m_depth = entry->m_item->GetDepth(viewPos);
+}
+
+// VERIFY: pending
+// VERIFY: b2b7569f auto
+// OFFSET: 0x00681330
+static int DrawListSorterB2F(const void* a, const void* b) {
+    float depthA = static_cast<const GxDrawListEntry*>(a)->m_depth;
+    float depthB = static_cast<const GxDrawListEntry*>(b)->m_depth;
+
+    if (depthB < depthA) {
+        return -1;
+    }
+
+    return depthB > depthA;
+}
+
+// VERIFY: pending
+// VERIFY: 78c775d6 auto
+// OFFSET: 0x00681370
+static void DrawListPreprocessVtxStream(GxDrawListEntry* entry, const C3Vector& viewPos) {
+    entry->m_vtxStream = entry->m_item->GetVtxStream();
+}
+
+// VERIFY: pending
+// VERIFY: 1935d204 auto
+// OFFSET: 0x00681390
+static int DrawListSorterVtxStream(const void* a, const void* b) {
+    uint32_t streamA = static_cast<const GxDrawListEntry*>(a)->m_vtxStream;
+    uint32_t streamB = static_cast<const GxDrawListEntry*>(b)->m_vtxStream;
+
+    if (streamB > streamA) {
+        return -1;
+    }
+
+    return streamB < streamA;
+}
+
+// STATIC: 0x00AD88A8
+static void (*s_drawListPreprocess[GxuSorts_Last])(GxDrawListEntry*, const C3Vector&) = { DrawListPreprocessB2F, DrawListPreprocessVtxStream };
+
+// STATIC: 0x00AD88B0
+static int (*s_drawListSorters[GxuSorts_Last])(const void*, const void*) = { DrawListSorterB2F, DrawListSorterVtxStream };
+
 // VERIFY: cef2b995 auto
 // OFFSET: 0x006811D0
 int32_t GxApiSupported(EGxApi api) {
@@ -78,10 +136,77 @@ uint32_t GxVertexSize(EGxVertexBufferFormat format) {
     return s_vertexSize[format];
 }
 
+// VERIFY: f1ff254c auto
+// OFFSET: 0x006811F0
+int32_t GxAdapterID(uint16_t& vendorID, uint16_t& deviceID, uint32_t& driverVersionHi, uint32_t& driverVersionLo) {
+    return CGxDevice::DeviceAdapterID(vendorID, deviceID, driverVersionHi, driverVersionLo);
+}
+
+// VERIFY: d8dc86c0 auto
+// OFFSET: 0x00681200
+int32_t GxAdapterInfer(uint16_t& deviceID) {
+    return CGxDevice::DeviceAdapterInfer(deviceID);
+}
+
+// VERIFY: 033ca462 auto
+// OFFSET: 0x00681210
+int32_t GxAdapterMonitorModes(TSGrowableArray<CGxMonitorMode>& modes) {
+    return CGxDevice::AdapterMonitorModes(modes);
+}
+
+// VERIFY: 6be0031b auto
+// OFFSET: 0x00681220
+int32_t GxAdapterDesktopMode(CGxMonitorMode& mode) {
+    return CGxDevice::AdapterDesktopMode(mode);
+}
+
 // VERIFY: d108cfe2 auto
 // OFFSET: 0x00681240
 uint32_t GxVertexAttribOffset(EGxVertexBufferFormat format, EGxVertexAttrib attrib) {
     return s_vertexAttribOffset[format][attrib];
+}
+
+// VERIFY: 6233e69b auto
+// OFFSET: 0x00681260
+int32_t GxVertexHasAttrib(EGxVertexBufferFormat format, EGxVertexAttrib attrib) {
+    return s_vertexAttribOffset[format][attrib] != -1;
+}
+
+// VERIFY: ca53a8f5 auto
+// OFFSET: 0x00681290
+CGxDevice* CreateGxDevice(EGxApi api, GxWindowProc windowProc, const CGxFormat& format) {
+    CGxDevice* device;
+
+    switch (api) {
+        case GxApi_OpenGl:
+            device = CreateCGxDeviceOpenGl();
+            g_theGxDevicePtr = device;
+            break;
+
+        case GxApi_D3d9:
+            device = CreateCGxDeviceD3d();
+            g_theGxDevicePtr = device;
+            break;
+
+        case GxApi_D3d9Ex:
+            device = CreateCGxDeviceD3d9Ex();
+            g_theGxDevicePtr = device;
+            break;
+
+        default:
+            device = g_theGxDevicePtr;
+            break;
+    }
+
+    if (device->DeviceCreate(windowProc, format)) {
+        return g_theGxDevicePtr;
+    }
+
+    if (g_theGxDevicePtr) {
+        delete g_theGxDevicePtr;
+    }
+
+    return nullptr;
 }
 
 // VERIFY: 930fa88b manual
@@ -248,11 +373,11 @@ void GxTexDestroy(CGxTex* texId) {
     g_theGxDevicePtr->TexDestroy(texId);
 }
 
-// VERIFY: a80072c3 manual
+// VERIFY: bc2effe7 auto
 // OFFSET: 0x006814D0
-int32_t GxTexCopy(CGxTex* dest, CGxTex* source, const C2iVector& pos, const C2iVector& size, uint32_t level, uint32_t plane) {
-    if (dest && dest->m_flags.m_bit31 && (dest->m_target != GxTex_CubeMap || plane < 6)) {
-        return g_theGxDevicePtr->TexCopy(dest, source, pos, size, level, plane);
+int32_t GxTexCopy(CGxTex* dest, const C2iVector& destPos, const C2iVector& sourcePos, const C2iVector& size, uint32_t level, uint32_t plane) {
+    if (dest && dest->m_flags.m_renderTarget && (dest->m_target != GxTex_CubeMap || plane < 6)) {
+        return g_theGxDevicePtr->TexCopy(dest, destPos, sourcePos, size, level, plane);
     }
 
     SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
@@ -813,4 +938,196 @@ void GxFormatColor(CImVector& color) {
 void GxRenderTargetSet(EGxBuffer buffer, CGxTex* texture, uint32_t plane) {
     GxRsSet(GxRs_ScissorTest, 0);
     g_theGxDevicePtr->DeviceSetRenderTarget(buffer, texture, plane);
+}
+
+// VERIFY: 9ee00156 manual
+// OFFSET: 0x0057C450
+void GxXformSet(EGxXform xf, const C44Matrix& matrix) {
+    CGxMatrixStack& stack = g_theGxDevicePtr->m_xforms[xf];
+    stack.m_dirty = 1;
+    stack.m_flags[stack.m_level] &= ~CGxMatrixStack::F_Identity;
+    stack.m_mtx[stack.m_level] = matrix;
+}
+
+// VERIFY: 00114247 auto
+// OFFSET: 0x00616AB0
+void GxReadPixels(CiRect& rect, TSGrowableArray<CImVector>& pixels) {
+    g_theGxDevicePtr->DeviceReadPixels(rect, pixels);
+}
+
+// VERIFY: fdd977f9 auto
+// OFFSET: 0x00681530
+int32_t GxTexStretch(CGxTex* dest, const CiRect* destRect, const CiRect* sourceRect, uint32_t level, uint32_t face) {
+    if (dest && dest->m_flags.m_renderTarget && (dest->m_target != GxTex_CubeMap || face < 6)) {
+        return g_theGxDevicePtr->TexStretch(dest, destRect, sourceRect, level, face);
+    }
+
+    SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+    return 0;
+}
+
+// VERIFY: 37bbf5ec auto
+// OFFSET: 0x00681690
+bool GxQueryBegin(CGxQuery* query) {
+    if (query) {
+        return g_theGxDevicePtr->QueryBegin(query);
+    }
+
+    SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+    return false;
+}
+
+// VERIFY: 4f399bec auto
+// OFFSET: 0x006816C0
+bool GxQueryEnd(CGxQuery* query) {
+    if (query) {
+        return g_theGxDevicePtr->QueryEnd(query);
+    }
+
+    SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+    return false;
+}
+
+// VERIFY: ed0eecd3 manual
+// OFFSET: 0x006816F0
+bool GxQueryGetParam(CGxQuery* query, EGxQueryParam param, uint32_t* data) {
+    if (query && param < 2 && data) {
+        return g_theGxDevicePtr->QueryGetParam(query, param, *data);
+    }
+
+    SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+    return false;
+}
+
+// VERIFY: 03a1b391 manual
+// OFFSET: 0x00681730
+bool GxQueryGetData(CGxQuery* query, uint32_t* data) {
+    if (query && data) {
+        return g_theGxDevicePtr->QueryGetData(query, *data);
+    }
+
+    SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+    return false;
+}
+
+// VERIFY: 5aea5c65 auto
+// OFFSET: 0x00682340
+void GxDrawLockedElements(EGxPrim primType, uint32_t indexCount, const uint16_t* indices) {
+    if (!s_lockVertexCount) {
+        return;
+    }
+
+    GxPrimIndexPtr(indexCount, indices);
+
+    CGxBatch batch;
+    batch.m_primType = primType;
+    batch.m_start = 0;
+    batch.m_count = indexCount;
+    batch.m_minIndex = 0;
+    batch.m_maxIndex = static_cast<uint16_t>(s_lockVertexCount - 1);
+    g_theGxDevicePtr->Draw(&batch, 1);
+}
+
+// VERIFY: pending
+// VERIFY: 97b9ed19 manual
+// OFFSET: 0x00681B50
+static void GxuPreprocessDrawList(EGxuDrawListCategory category, EGxuDrawListSorting sorting, const C3Vector& viewPos) {
+    for (uint32_t i = 0; i < s_drawLists[category].Count(); i++) {
+        s_drawListPreprocess[sorting](&s_drawLists[category][i], viewPos);
+    }
+}
+
+// VERIFY: pending
+// VERIFY: 916be93a manual
+// OFFSET: 0x00681BA0
+void GxuSortDrawList(EGxuDrawListCategory category, EGxuDrawListSorting sorting, const C3Vector& viewPos) {
+    GxuPreprocessDrawList(category, sorting, viewPos);
+    qsort(s_drawLists[category].Ptr(), s_drawLists[category].Count(), sizeof(GxDrawListEntry), s_drawListSorters[sorting]);
+}
+
+// VERIFY: pending
+// VERIFY: 631533e2 auto
+// OFFSET: 0x00682900
+void GxuClearDrawList(EGxuDrawListCategory category) {
+    s_drawListBusy = true;
+
+    for (uint32_t i = 0; i < s_drawLists[category].Count(); i++) {
+        s_drawLists[category][i].m_item->Discard();
+    }
+
+    s_drawLists[category].SetCount(0);
+    s_drawListBusy = false;
+}
+
+// VERIFY: pending
+// VERIFY: 5e771d38 auto
+// OFFSET: 0x00682960
+void GxuFlushDrawList(EGxuDrawListCategory category, const C3Vector& viewPos) {
+    GxuDrawListState* current = nullptr;
+
+    for (uint32_t i = 0; i < s_drawLists[category].Count(); i++) {
+        GxuDrawListItem* item = s_drawLists[category][i].m_item;
+        GxuDrawListState* state = item->GetState();
+
+        if (state && state != current) {
+            if (current) {
+                current->End();
+            }
+
+            state->Begin();
+            current = state;
+        }
+
+        item->Draw(viewPos);
+    }
+
+    if (current) {
+        current->End();
+    }
+
+    GxuClearDrawList(category);
+}
+
+// VERIFY: pending
+// VERIFY: 456ff928 auto
+// OFFSET: 0x00682A00
+void GxScenePresent() {
+    C3Vector viewPos(0.0f, 0.0f, 0.0f);
+    GxuFlushDrawList(GxuCat_2, viewPos);
+    g_theGxDevicePtr->ScenePresent();
+}
+
+// VERIFY: pending
+// VERIFY: 6d471ae7 auto
+// OFFSET: 0x00682B80
+void GxDevDestroy(CGxDevice* device) {
+    if (!device) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < GxuCats_Last; i++) {
+        GxuClearDrawList(static_cast<EGxuDrawListCategory>(i));
+    }
+
+    for (uint32_t i = 0; i < s_destroyCallbacks.Count(); i++) {
+        s_destroyCallbacks[i]();
+    }
+
+    s_destroyCallbacks.Clear();
+
+    if (device != g_theGxDevicePtr) {
+        DebugLog("devicePtr == g_theGxDevicePtr");
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    g_theGxDevicePtr->DeviceDestroy();
+    delete g_theGxDevicePtr;
+    g_theGxDevicePtr = nullptr;
+}
+
+// VERIFY: pending
+// VERIFY: a84aeead manual
+// OFFSET: 0x005EEB70
+void GxPrimUnlockVertexPtrs() {
 }

@@ -19,6 +19,9 @@
 // STATIC: 0x00A2DAF8
 const uint32_t CGxDevice::s_texFormatBitDepth[GxTexFormats_Last] = { 0, 32, 32, 16, 16, 16, 4, 8, 8, 16, 32, 32, 32 };
 
+// STATIC: 0x00A2DB2C
+const uint32_t CGxDevice::s_texFormatBlockSize[GxTexFormats_Last] = { 1, 1, 1, 1, 1, 1, 4, 4, 4, 1, 1, 1, 1 };
+
 // STATIC: 0x00A2DB60
 const uint32_t CGxDevice::s_texFormatBytesPerBlock[GxTexFormats_Last] = { 0, 4, 4, 2, 2, 2, 8, 16, 16, 2, 4, 4, 4 };
 
@@ -28,11 +31,14 @@ static uint32_t s_primVertsPerPrim[GxPrims_Last] = { 1, 2, 1, 3, 1, 1 };
 // STATIC: 0x00AD8B64
 static uint32_t s_primVertsExtra[GxPrims_Last] = { 0, 0, 1, 0, 2, 2 };
 
+// STATIC: 0x00AD87C4
+static const char* s_formatToInt[CGxFormat::Formats_Last] = { "16", "24", "24", "30", "16", "24", "24", "32" };
+
 // STATIC: 0x00AD87FC
-static const char* s_pixelShaderTargetNames[14] = { "none", "ps_1_1", "ps_1_4", "ps_2_0", "ps_3_0", "ps_4_0", "ps_5_0", "nvrc", "nvts", "nvts2", "nvts3", "nvfp2", "arbfp1", "glsl" };
+const char* CGxDevice::s_pixelShaderTargetNames[14] = { "none", "ps_1_1", "ps_1_4", "ps_2_0", "ps_3_0", "ps_4_0", "ps_5_0", "nvrc", "nvts", "nvts2", "nvts3", "nvfp2", "arbfp1", "glsl" };
 
 // STATIC: 0x00AD8834
-static const char* s_vertexShaderTargetNames[12] = { "none", "vs_1_1", "vs_2_0", "vs_3_0", "vs_4_0", "vs_5_0", "arbvp1", "arbvp1_cg12", "nvvp", "nvvp2", "nvvp3", "glsl" };
+const char* CGxDevice::s_vertexShaderTargetNames[12] = { "none", "vs_1_1", "vs_2_0", "vs_3_0", "vs_4_0", "vs_5_0", "arbvp1", "arbvp1_cg12", "nvvp", "nvvp2", "nvvp3", "glsl" };
 
 // STATIC: 0x00AD8864
 static const char* s_geometryShaderTargetNames[3] = { "none", "gs_4_0", "gs_5_0" };
@@ -47,7 +53,7 @@ static const char* s_domainShaderTargetNames[2] = { "none", "ds_5_0" };
 static const char* s_computeShaderTargetNames[4] = { "none", "cs_5_0", "cs_cuda", "cs_ocl" };
 
 // STATIC: 0x00AD8890
-static const char** s_shaderTargetNames[GxShTargets_Last] = { s_vertexShaderTargetNames, s_hullShaderTargetNames, s_domainShaderTargetNames, s_geometryShaderTargetNames, s_pixelShaderTargetNames, s_computeShaderTargetNames };
+static const char** s_shaderTargetNames[GxShTargets_Last] = { CGxDevice::s_vertexShaderTargetNames, s_hullShaderTargetNames, s_domainShaderTargetNames, s_geometryShaderTargetNames, CGxDevice::s_pixelShaderTargetNames, s_computeShaderTargetNames };
 
 // STATIC: 0x00AD8B7C
 uint32_t CGxDevice::s_alphaRef[12] = { 0, 224, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 };
@@ -1604,7 +1610,7 @@ CGxDevice::CGxDevice() : m_defWindowRect(), m_curWindowRect(), m_viewport(), m_s
 }
 
 // VERIFY: ea9f4c67 manual
-// OFFSET: 0x006890C0
+// OFFSET: [0x006890C0, 0x00689690]
 CGxDevice::~CGxDevice() {
     for (CGxTex* texId = this->m_textures.Head(); texId; texId = this->m_textures.Next(texId)) {
         if (texId->m_apiSpecificData) {
@@ -1902,4 +1908,195 @@ void CGxDevice::ITexWHDStartEnd(CGxTex* texId, uint32_t& width, uint32_t& height
 // OFFSET: 0x00682D50
 void CGxDevice::DeviceGetRenderTarget(EGxBuffer buffer, CGxTex*& texture) {
     texture = this->m_textureTarget[buffer].m_texture;
+}
+
+// INLINED
+void CGxDevice::RsSet(EGxRenderState which, int32_t value) {
+    if (!this->m_context) {
+        return;
+    }
+
+    CGxAppRenderState& state = this->m_appRenderStates[which];
+
+    if (state.m_value.m_data.i[0] != value) {
+        this->IRsDirty(which);
+        state.m_value.m_data.i[0] = value;
+    }
+}
+
+// INLINED
+void CGxDevice::RsSet(EGxRenderState which, float value) {
+    if (!this->m_context) {
+        return;
+    }
+
+    CGxAppRenderState& state = this->m_appRenderStates[which];
+
+    if (value != state.m_value.m_data.f[0]) {
+        this->IRsDirty(which);
+        state.m_value.m_data.f[0] = value;
+    }
+}
+
+// INLINED
+void CGxDevice::RsSet(EGxRenderState which, const C3Vector& value) {
+    if (!this->m_context) {
+        return;
+    }
+
+    CGxAppRenderState& state = this->m_appRenderStates[which];
+
+    if (value.x != state.m_value.m_data.f[0] || value.y != state.m_value.m_data.f[1] || value.z != state.m_value.m_data.f[2]) {
+        this->IRsDirty(which);
+        state.m_value.m_data.f[0] = value.x;
+        state.m_value.m_data.f[1] = value.y;
+        state.m_value.m_data.f[2] = value.z;
+    }
+}
+
+// VERIFY: 737cf993 manual
+// OFFSET: 0x00682FD0
+void CGxDevice::Light(uint32_t index, CGxLight& light) {
+    CGxApiLight& apiLight = this->m_lights[index];
+    light.m_flags ^= (light.m_flags ^ apiLight.m_enable) & 0x1;
+
+    if (light.m_flags & 0x1) {
+        light.m_flags ^= (light.m_flags ^ (2 * (apiLight.m_dir.w != 0.0f))) & 0x2;
+        light.m_dir.x = apiLight.m_dir.x;
+        light.m_dir.y = apiLight.m_dir.y;
+        light.m_dir.z = apiLight.m_dir.z;
+        light.m_ambientColor = apiLight.m_ambColor;
+        light.m_dirColor = apiLight.m_dirColor;
+        light.m_specularColor = apiLight.m_specColor;
+        light.m_constantAttenuation = apiLight.m_constantAttenuation;
+        light.m_linearAttenuation = apiLight.m_linearAttenuation;
+        light.m_quadraticAttenuation = apiLight.m_quadraticAttenuation;
+    }
+}
+
+// VERIFY: ef4fa9c6 auto
+// OFFSET: 0x00683210
+uint32_t CGxDevice::ITexBitsSize(CGxTex* texId, uint32_t width, uint32_t height) {
+    if (width == 0xFFFFFFFF) {
+        width = texId->m_width;
+
+        if (texId->m_flags.m_filter > GxTex_Linear) {
+            width >>= this->m_baseMipLevel;
+        }
+    }
+
+    if (height == 0xFFFFFFFF) {
+        height = texId->m_height;
+
+        if (texId->m_flags.m_filter > GxTex_Linear) {
+            height >>= this->m_baseMipLevel;
+        }
+    }
+
+    uint32_t blockSize = s_texFormatBlockSize[texId->m_format];
+    uint32_t size = s_texFormatBytesPerBlock[texId->m_format] * (blockSize + width - 1) / blockSize * ((blockSize + height - 1) / blockSize);
+
+    if (texId->m_flags.m_filter > GxTex_Linear) {
+        while (width != 1 || height != 1) {
+            if (width > 1) {
+                width >>= 1;
+            }
+
+            if (height > 1) {
+                height >>= 1;
+            }
+
+            blockSize = s_texFormatBlockSize[texId->m_format];
+            size += s_texFormatBytesPerBlock[texId->m_format] * (blockSize + width - 1) / blockSize * ((blockSize + height - 1) / blockSize);
+        }
+    }
+
+    if (texId->m_target == GxTex_CubeMap) {
+        return 6 * size;
+    }
+
+    return size;
+}
+
+// VERIFY: 4e7d27bc auto
+// OFFSET: 0x00683F60
+int32_t CGxDevice::FormatExists(TSGrowableArray<CGxFormat>& formats, const CGxFormat& format) {
+    for (uint32_t i = 0; i < formats.Count(); i++) {
+        CGxFormat& entry = formats[i];
+
+        if (entry.m_colorFormat == format.m_colorFormat && entry.m_depthFormat == format.m_depthFormat && entry.m_multisampleCount == format.m_multisampleCount) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 7045de90 manual
+// OFFSET: 0x00685040
+void CGxDevice::GetSurveyModeInfo(uint32_t& desktopWidth, uint32_t& desktopHeight, uint32_t& desktopBpp, uint32_t& width, uint32_t& height, uint32_t& bpp) {
+    CGxMonitorMode mode;
+    mode.m_size.x = 0;
+    mode.m_size.y = 0;
+
+    if (CGxDevice::AdapterDesktopMode(mode)) {
+        desktopWidth = mode.m_size.x;
+        desktopHeight = mode.m_size.y;
+        desktopBpp = mode.m_bpp;
+    }
+
+    width = this->m_format.m_size.x;
+    height = this->m_format.m_size.y;
+
+    if (this->m_format.m_window) {
+        bpp = desktopBpp;
+    } else if (this->m_format.m_colorFormat >= 0 && this->m_format.m_colorFormat < CGxFormat::Formats_Last && s_formatToInt[this->m_format.m_colorFormat]) {
+        bpp = SStrToUnsigned(s_formatToInt[this->m_format.m_colorFormat]);
+    }
+}
+
+// VERIFY: 4badc4f6 manual
+// OFFSET: 0x006865B0
+void CGxDevice::RsInit() {
+    this->RsSet(GxRs_PolygonOffset, 0.0f);
+    this->RsSet(GxRs_MatDiffuse, -1);
+    this->RsSet(GxRs_MatEmissive, 0.0f);
+    this->RsSet(GxRs_MatSpecular, 0.0f);
+    this->RsSet(GxRs_NormalizeNormals, 0);
+    this->RsSet(GxRs_BlendingMode, 0);
+    this->RsSet(GxRs_FogStart, 0.0f);
+    this->RsSet(GxRs_FogEnd, 1.0f);
+    this->RsSet(GxRs_FogColor, static_cast<int32_t>(0xFFFF0000));
+    this->RsSet(GxRs_Lighting, 1);
+    this->RsSet(GxRs_Fog, 1);
+    this->RsSet(GxRs_DepthTest, 1);
+    this->RsSet(GxRs_DepthFunc, 0);
+    this->RsSet(GxRs_Culling, 1);
+    this->RsSet(GxRs_ClipPlaneMask, 0);
+    this->RsSet(GxRs_ScissorTest, 0);
+
+    uint32_t tmu;
+
+    for (tmu = 0; tmu < 8; tmu++) {
+        this->RsSet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), 0);
+        this->RsSet(static_cast<EGxRenderState>(GxRs_ColorOp0 + tmu), 0);
+        this->RsSet(static_cast<EGxRenderState>(GxRs_AlphaOp0 + tmu), 0);
+        this->RsSet(static_cast<EGxRenderState>(GxRs_TexGen0 + tmu), 0);
+        this->RsSet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), 0);
+        this->RsSet(static_cast<EGxRenderState>(GxRs_TextureCoord0 + tmu), static_cast<int32_t>(tmu));
+    }
+
+    for (; tmu < 16; tmu++) {
+        this->RsSet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), 0);
+    }
+
+    this->RsSet(GxRs_PixelShader, 0);
+    this->RsSet(GxRs_VertexShader, 0);
+    this->RsSet(GxRs_PointScale, 1.0f);
+    this->RsSet(GxRs_PointScaleAttenuation, C3Vector(1.0f, 0.0f, 0.0f));
+    this->RsSet(GxRs_PointScaleMin, 0.0f);
+    this->RsSet(GxRs_PointScaleMax, 1.0f);
+    this->RsSet(GxRs_PointSprite, 0);
+    this->RsSet(Unk84, 0.0f);
+    this->RsSet(GxRs_ColorMaterial, 0);
 }

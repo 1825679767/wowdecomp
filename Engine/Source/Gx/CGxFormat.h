@@ -41,6 +41,7 @@ class CGxFormat {
     /* 0050 */ C2iVector m_pos;
 
     CGxFormat();
+    CGxFormat(bool window, const C2iVector& size, CGxFormat::Format colorFormat, CGxFormat::Format depthFormat, uint32_t refreshRate, uint32_t vsync, bool hwTnL, bool fixLag, bool hwCursor, bool aspect, int32_t maximize);
 };
 
 #endif

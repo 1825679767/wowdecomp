@@ -14,17 +14,6 @@ struct BSNPrimitiveEncoder {
 };
 }
 
-enum EGxuDrawListCategory {
-    GxuCat_0 = 0,
-    GxuCat_1 = 1,
-    GxuCat_2 = 2,
-};
-
-enum EGxuDrawListSorting {
-    B2F = 0,
-    VtxStream = 1,
-};
-
 enum UIErrors {
     ERR_INV_FULL = 0,
     ERR_BANK_FULL = 1,

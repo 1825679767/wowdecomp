@@ -75,6 +75,9 @@ D3DTEXTUREFILTERTYPE CGxDeviceD3d::s_filterModes[GxTexFilters_Last][3] = { { D3D
 // STATIC: 0x00AD8F88
 static uint32_t s_normalizeNormals = 5;
 
+// STATIC: 0x00C6033C
+static LPDIRECT3DSURFACE9 s_savedDepthSurface;
+
 // STATIC: 0x00C606B0
 static D3DMATERIAL9 s_d3dMaterial;
 
@@ -3600,4 +3603,495 @@ LRESULT CALLBACK CGxDeviceD3d::WindowProcD3d(HWND hwnd, UINT message, WPARAM wpa
     }
 
     return DefWindowProcA(hwnd, message, wparam, lparam);
+}
+
+// VERIFY: d4889697 auto
+// OFFSET: 0x0068E510
+void CGxDeviceD3d::DeviceSaveDepthSurface() {
+    if (!this->m_context) {
+        return;
+    }
+
+    this->m_d3dDevice->GetDepthStencilSurface(&s_savedDepthSurface);
+    s_savedDepthSurface->Release();
+}
+
+// VERIFY: 50a84e81 auto
+// OFFSET: 0x0068E540
+void CGxDeviceD3d::DeviceRestoreDepthSurface() {
+    if (!this->m_context) {
+        return;
+    }
+
+    this->m_d3dDevice->SetDepthStencilSurface(s_savedDepthSurface);
+}
+
+// VERIFY: c0ba5e6c manual
+// OFFSET: 0x0068E570
+void CGxDeviceD3d::LogCrashInfo(char* buffer, uint32_t size) {
+    D3DDEVICE_CREATION_PARAMETERS parameters;
+    this->m_d3dDevice->GetCreationParameters(&parameters);
+
+    uint32_t adapterCount = this->m_d3d->GetAdapterCount();
+
+    char line[260];
+    SStrPrintf(line, sizeof(line), "Adapter Count: %d\r\n", adapterCount);
+    SStrPack(buffer, line, size);
+
+    for (uint32_t i = 0; i < adapterCount; i++) {
+        SStrPrintf(line, sizeof(line), "\r\nAdapter %d%s:\r\n", i, parameters.AdapterOrdinal == i ? " (primary)" : "");
+        SStrPack(buffer, line, size);
+
+        D3DADAPTER_IDENTIFIER9 identifier;
+        this->m_d3d->GetAdapterIdentifier(i, 0, &identifier);
+
+        SStrPrintf(line, sizeof(line), "  Driver: %s\r\n", identifier.Driver);
+        SStrPack(buffer, line, size);
+        SStrPrintf(line, sizeof(line), "  Version: %d.%d.%04d.%04d\r\n", HIWORD(identifier.DriverVersion.HighPart), LOWORD(identifier.DriverVersion.HighPart), HIWORD(identifier.DriverVersion.LowPart), LOWORD(identifier.DriverVersion.LowPart));
+        SStrPack(buffer, line, size);
+        SStrPrintf(line, sizeof(line), "  Description: %s\r\n", identifier.Description);
+        SStrPack(buffer, line, size);
+        SStrPrintf(line, sizeof(line), "  DeviceName: %s\r\n", identifier.DeviceName);
+        SStrPack(buffer, line, size);
+    }
+}
+
+// VERIFY: ba97dbff manual
+// OFFSET: 0x0068F6A0
+void CGxDeviceD3d::ICreateReadbackSurface() {
+    if (this->m_surface3B44) {
+        return;
+    }
+
+    const CRect& window = this->DeviceDefWindow();
+    D3DFORMAT format;
+
+    if (this->m_format.m_window) {
+        D3DDISPLAYMODE displayMode;
+
+        if (SUCCEEDED(this->m_d3d->GetAdapterDisplayMode(0, &displayMode))) {
+            format = displayMode.Format;
+        } else {
+            format = this->m_desktopDisplayMode.Format;
+        }
+    } else {
+        format = s_GxFormatToD3dFormat[this->m_format.m_colorFormat];
+    }
+
+    this->m_d3dDevice->CreateRenderTarget(static_cast<UINT>(window.maxX - window.minX), static_cast<UINT>(window.maxY - window.minY), format, D3DMULTISAMPLE_NONE, 0, TRUE, &this->m_surface3B44, nullptr);
+}
+
+// VERIFY: 7f0e0e27 manual
+// OFFSET: 0x0068F770
+void CGxDeviceD3d::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex* texture, uint32_t plane) {
+    if (!this->m_context) {
+        return;
+    }
+
+    CGxDevice::TextureTarget& target = this->m_textureTarget[buffer];
+
+    if (target.m_texture == texture && target.m_plane == plane) {
+        return;
+    }
+
+    CGxDevice::DeviceSetRenderTarget(buffer, texture, plane);
+
+    if (target.m_apiSpecific) {
+        static_cast<LPDIRECT3DSURFACE9>(target.m_apiSpecific)->Release();
+        target.m_apiSpecific = nullptr;
+    }
+
+    if (texture) {
+        if (texture->m_needsCreation || (!texture->m_apiSpecificData && !texture->m_apiSpecificData2)) {
+            this->ITexCreate(texture);
+        }
+
+        if (!texture->m_needsCreation && (texture->m_apiSpecificData || texture->m_apiSpecificData2)) {
+            if (texture->m_target == GxTex_CubeMap) {
+                static_cast<IDirect3DCubeTexture9*>(texture->m_apiSpecificData)->GetCubeMapSurface(s_faceTypes[plane], 0, reinterpret_cast<LPDIRECT3DSURFACE9*>(&target.m_apiSpecific));
+            } else {
+                static_cast<IDirect3DTexture9*>(texture->m_apiSpecificData)->GetSurfaceLevel(0, reinterpret_cast<LPDIRECT3DSURFACE9*>(&target.m_apiSpecific));
+            }
+        }
+    }
+
+    LPDIRECT3DSURFACE9 depthSurface = this->m_defDepthSurface;
+    LPDIRECT3DSURFACE9 colorSurface = this->m_defColorSurface;
+
+    if (this->m_textureTarget[GxBuffers_Color].m_apiSpecific) {
+        colorSurface = static_cast<LPDIRECT3DSURFACE9>(this->m_textureTarget[GxBuffers_Color].m_apiSpecific);
+
+        if (!this->m_textureTarget[GxBuffers_Depth].m_apiSpecific) {
+            this->ICreateDepthStencilSurface(texture->m_width, texture->m_height);
+
+            if (this->m_defDepthStencilSurface) {
+                depthSurface = this->m_defDepthStencilSurface;
+            }
+        }
+    }
+
+    if (this->m_textureTarget[GxBuffers_Depth].m_apiSpecific) {
+        depthSurface = static_cast<LPDIRECT3DSURFACE9>(this->m_textureTarget[GxBuffers_Depth].m_apiSpecific);
+    }
+
+    this->m_d3dDevice->SetRenderTarget(0, colorSurface);
+    this->m_d3dDevice->SetDepthStencilSurface(depthSurface);
+
+    GxXformSetViewport(this->m_viewport.m_x.m_l, this->m_viewport.m_x.m_h, this->m_viewport.m_y.m_l, this->m_viewport.m_y.m_h, this->m_viewport.m_z.m_l, this->m_viewport.m_z.m_h);
+
+    this->m_viewportDirty = 1;
+    this->m_scissorRectDirty = 1;
+}
+
+// VERIFY: 312f9bf5 auto
+// OFFSET: 0x0068F900
+void CGxDeviceD3d::DeviceResolveDepthBuffer(CGxTex* texture) {
+    if (!this->m_context) {
+        return;
+    }
+
+    if (texture && (texture->m_needsCreation || (!texture->m_apiSpecificData && !texture->m_apiSpecificData2))) {
+        this->ITexCreate(texture);
+    }
+
+    this->m_d3dDevice->SetDepthStencilSurface(static_cast<LPDIRECT3DSURFACE9>(texture->m_apiSpecificData));
+}
+
+// VERIFY: 956c292e manual
+// OFFSET: 0x0068F950
+void CGxDeviceD3d::DeviceCopyTex(CGxTex* source, uint32_t sourcePlane, CGxTex* dest, uint32_t destPlane) {
+    LPDIRECT3DSURFACE9 sourceSurface = nullptr;
+    LPDIRECT3DSURFACE9 destSurface = nullptr;
+
+    if (source) {
+        if (source->m_needsCreation || (!source->m_apiSpecificData && !source->m_apiSpecificData2)) {
+            this->ITexCreate(source);
+        }
+
+        if (!source->m_needsCreation && (source->m_apiSpecificData || source->m_apiSpecificData2)) {
+            if (source->m_target == GxTex_CubeMap) {
+                static_cast<IDirect3DCubeTexture9*>(source->m_apiSpecificData)->GetCubeMapSurface(s_faceTypes[sourcePlane], 0, &sourceSurface);
+            } else {
+                static_cast<IDirect3DTexture9*>(source->m_apiSpecificData)->GetSurfaceLevel(0, &sourceSurface);
+            }
+        }
+    }
+
+    if (dest) {
+        if (dest->m_needsCreation || (!dest->m_apiSpecificData && !dest->m_apiSpecificData2)) {
+            this->ITexCreate(dest);
+        }
+
+        if (!dest->m_needsCreation && (dest->m_apiSpecificData || dest->m_apiSpecificData2)) {
+            if (dest->m_target == GxTex_CubeMap) {
+                static_cast<IDirect3DCubeTexture9*>(dest->m_apiSpecificData)->GetCubeMapSurface(s_faceTypes[destPlane], 0, &destSurface);
+            } else {
+                static_cast<IDirect3DTexture9*>(dest->m_apiSpecificData)->GetSurfaceLevel(0, &destSurface);
+            }
+        }
+    }
+
+    if (sourceSurface) {
+        if (destSurface) {
+            this->m_d3dDevice->StretchRect(sourceSurface, nullptr, destSurface, nullptr, D3DTEXF_NONE);
+        }
+
+        if (sourceSurface) {
+            sourceSurface->Release();
+        }
+    }
+
+    if (destSurface) {
+        destSurface->Release();
+    }
+}
+
+// VERIFY: 6d2fe3bf manual
+// OFFSET: 0x0068FE80
+CGxDeviceD3d::~CGxDeviceD3d() {
+}
+
+// VERIFY: 36fbe9bf manual
+// OFFSET: 0x0068FED0
+void CGxDeviceD3d::DeviceReadPixels(CiRect& rect, TSGrowableArray<CImVector>& pixels) {
+    this->ClampRectToWindow(rect);
+
+    uint32_t height = rect.maxY - rect.minY;
+    uint32_t width = rect.maxX - rect.minX;
+    uint32_t count = width * height;
+    pixels.SetCount(count);
+
+    LPDIRECT3DSURFACE9 surface = nullptr;
+    HRESULT result;
+
+    if (this->m_format.m_multisampleCount < 2) {
+        result = this->m_d3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &surface);
+    } else {
+        RECT sourceRect = { rect.minX, rect.minY, static_cast<LONG>(width), static_cast<LONG>(height) };
+
+        this->ICreateReadbackSurface();
+
+        if (!this->m_surface3B44) {
+            return;
+        }
+
+        result = this->m_d3dDevice->StretchRect(this->m_defColorSurface, &sourceRect, this->m_surface3B44, &sourceRect, D3DTEXF_NONE);
+        surface = this->m_surface3B44;
+        surface->AddRef();
+    }
+
+    if (FAILED(result)) {
+        return;
+    }
+
+    D3DLOCKED_RECT lockedRect;
+
+    if (SUCCEEDED(surface->LockRect(&lockedRect, nullptr, D3DLOCK_READONLY))) {
+        D3DSURFACE_DESC desc;
+        surface->GetDesc(&desc);
+
+        if (width <= desc.Width && height <= desc.Height) {
+            const uint8_t* source = static_cast<const uint8_t*>(lockedRect.pBits);
+
+            switch (desc.Format) {
+                case D3DFMT_A8R8G8B8:
+                case D3DFMT_X8R8G8B8: {
+                    CImVector* dest = pixels.Ptr();
+
+                    for (uint32_t y = height; y; y--) {
+                        memcpy(dest, source, sizeof(CImVector) * width);
+                        source += lockedRect.Pitch;
+                        dest += width;
+                    }
+
+                    break;
+                }
+
+                case D3DFMT_R5G6B5: {
+                    uint8_t* dest = reinterpret_cast<uint8_t*>(pixels.Ptr());
+
+                    for (uint32_t y = height; y; y--) {
+                        const uint8_t* row = source;
+
+                        for (uint32_t x = width; x; x--) {
+                            dest[3] = 0xFF;
+                            dest[2] = row[1] & 0xF8;
+                            dest[1] = (*reinterpret_cast<const uint16_t*>(row) >> 3) & 0xFC;
+                            dest[0] = row[0] << 3;
+                            dest += 4;
+                            row += 2;
+                        }
+
+                        source += lockedRect.Pitch;
+                    }
+
+                    break;
+                }
+
+                case D3DFMT_X1R5G5B5:
+                case D3DFMT_A1R5G5B5: {
+                    uint8_t* dest = reinterpret_cast<uint8_t*>(pixels.Ptr());
+
+                    for (uint32_t y = height; y; y--) {
+                        const uint8_t* row = source;
+
+                        for (uint32_t x = width; x; x--) {
+                            dest[3] = 0xFF;
+                            dest[2] = (*reinterpret_cast<const uint16_t*>(row) >> 7) & 0xF8;
+                            dest[1] = (*reinterpret_cast<const uint16_t*>(row) >> 2) & 0xF8;
+                            dest[0] = row[0] << 3;
+                            dest += 4;
+                            row += 2;
+                        }
+
+                        source += lockedRect.Pitch;
+                    }
+
+                    break;
+                }
+
+                default:
+                    memset(pixels.Ptr(), 0xFF, sizeof(CImVector) * count);
+                    break;
+            }
+        }
+
+        surface->UnlockRect();
+    }
+
+    surface->Release();
+}
+
+// VERIFY: dd2f1dd0 manual
+// OFFSET: 0x0069FAA0
+int32_t CGxDeviceD3d::ICheckDepthStencilFormat(D3DFORMAT format) {
+    return SUCCEEDED(this->m_d3d->CheckDeviceFormat(0, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, format)) && SUCCEEDED(this->m_d3d->CheckDepthStencilMatch(0, D3DDEVTYPE_HAL, this->m_devAdapterFormat, this->m_devAdapterFormat, format));
+}
+
+// VERIFY: 18e824b7 manual
+// OFFSET: 0x006A1950
+void CGxDeviceD3d::DeviceReadDepths(CiRect& rect, TSGrowableArray<float>& depths) {
+    this->ClampRectToWindow(rect);
+
+    uint32_t count = (rect.maxY - rect.minY) * (rect.maxX - rect.minX);
+    depths.SetCount(count);
+    memset(depths.Ptr(), 0, sizeof(float) * count);
+}
+
+// VERIFY: de151551 manual
+// OFFSET: 0x006A30D0
+int32_t CGxDeviceD3d::TexCopy(CGxTex* dest, const C2iVector& destPos, const C2iVector& sourcePos, const C2iVector& size, uint32_t level, uint32_t plane) {
+    if (!this->m_context) {
+        return 0;
+    }
+
+    if (dest->m_needsCreation || (!dest->m_apiSpecificData && !dest->m_apiSpecificData2)) {
+        this->ITexCreate(dest);
+    }
+
+    if (dest->m_needsCreation || (!dest->m_apiSpecificData && !dest->m_apiSpecificData2)) {
+        return 0;
+    }
+
+    RECT sourceRect = { sourcePos.x, sourcePos.y, sourcePos.x + size.x, sourcePos.y + size.y };
+    RECT destRect = { destPos.x, destPos.y, destPos.x + size.x, destPos.y + size.y };
+
+    LPDIRECT3DSURFACE9 surface;
+    HRESULT result;
+
+    if (dest->m_target == GxTex_CubeMap) {
+        result = static_cast<IDirect3DCubeTexture9*>(dest->m_apiSpecificData)->GetCubeMapSurface(s_faceTypes[plane], level, &surface);
+    } else {
+        result = static_cast<IDirect3DTexture9*>(dest->m_apiSpecificData)->GetSurfaceLevel(level, &surface);
+    }
+
+    if (SUCCEEDED(result)) {
+        result = this->m_d3dDevice->StretchRect(this->m_defColorSurface, &sourceRect, surface, &destRect, D3DTEXF_NONE);
+        surface->Release();
+    }
+
+    return SUCCEEDED(result);
+}
+
+// VERIFY: 3b8d3c9e manual
+// OFFSET: 0x006A31E0
+int32_t CGxDeviceD3d::TexStretch(CGxTex* dest, const CiRect* destRect, const CiRect* sourceRect, uint32_t level, uint32_t face) {
+    if (!this->m_context) {
+        return 0;
+    }
+
+    if (dest->m_needsCreation || (!dest->m_apiSpecificData && !dest->m_apiSpecificData2)) {
+        this->ITexCreate(dest);
+    }
+
+    if (dest->m_needsCreation || (!dest->m_apiSpecificData && !dest->m_apiSpecificData2)) {
+        return 0;
+    }
+
+    LPDIRECT3DSURFACE9 surface;
+    HRESULT result;
+
+    if (dest->m_target == GxTex_CubeMap) {
+        result = static_cast<IDirect3DCubeTexture9*>(dest->m_apiSpecificData)->GetCubeMapSurface(s_faceTypes[face], level, &surface);
+    } else {
+        result = static_cast<IDirect3DTexture9*>(dest->m_apiSpecificData)->GetSurfaceLevel(level, &surface);
+    }
+
+    if (SUCCEEDED(result)) {
+        RECT d3dDestRect = { 0, 0, 0, 0 };
+
+        if (destRect) {
+            d3dDestRect.left = destRect->minX;
+            d3dDestRect.top = destRect->minY;
+            d3dDestRect.right = destRect->maxX;
+            d3dDestRect.bottom = destRect->maxY;
+        }
+
+        RECT d3dSourceRect = { 0, 0, 0, 0 };
+
+        if (sourceRect) {
+            d3dSourceRect.left = sourceRect->minX;
+            d3dSourceRect.top = sourceRect->minY;
+            d3dSourceRect.right = sourceRect->maxX;
+            d3dSourceRect.bottom = sourceRect->maxY;
+        }
+
+        D3DTEXTUREFILTERTYPE filter;
+
+        if (destRect && sourceRect && d3dDestRect.right - d3dDestRect.left == d3dSourceRect.right - d3dSourceRect.left && d3dDestRect.bottom - d3dDestRect.top == d3dSourceRect.bottom - d3dSourceRect.top) {
+            filter = D3DTEXF_NONE;
+        } else {
+            filter = D3DTEXF_LINEAR;
+        }
+
+        result = this->m_d3dDevice->StretchRect(this->m_defColorSurface, sourceRect ? &d3dSourceRect : nullptr, surface, destRect ? &d3dDestRect : nullptr, filter);
+        surface->Release();
+    }
+
+    return SUCCEEDED(result);
+}
+
+// VERIFY: 1aeb3daa auto
+// OFFSET: 0x006A5D50
+void CGxDeviceD3d::IShaderReload(CGxShader* shader, const char* path, const char* name) {
+    switch (shader->m_target) {
+        case GxSh_Vertex:
+            if (shader->m_refCount == 1) {
+                if (shader->m_apiSpecific) {
+                    static_cast<LPDIRECT3DVERTEXSHADER9>(shader->m_apiSpecific)->Release();
+                    shader->m_apiSpecific = nullptr;
+                }
+
+                shader->m_loaded = 0;
+            }
+
+            this->IShaderLoad(&shader, GxSh_Vertex, path, name, 1);
+            this->IShaderCreateVertex(shader);
+            break;
+
+        case GxSh_Pixel:
+            if (shader->m_refCount == 1) {
+                if (shader->m_apiSpecific) {
+                    static_cast<LPDIRECT3DPIXELSHADER9>(shader->m_apiSpecific)->Release();
+                    shader->m_apiSpecific = nullptr;
+                }
+
+                shader->m_loaded = 0;
+            }
+
+            this->IShaderLoad(&shader, GxSh_Pixel, path, name, 1);
+            this->IShaderCreatePixel(shader);
+            break;
+
+        default:
+            break;
+    }
+}
+
+// VERIFY: ddea5205 auto
+// OFFSET: 0x006A7940
+void CGxDeviceD3d::ICreateDepthStencilSurface(uint32_t width, uint32_t height) {
+    if (this->m_defDepthStencilSurface) {
+        D3DSURFACE_DESC desc;
+
+        if (SUCCEEDED(this->m_defDepthStencilSurface->GetDesc(&desc)) && desc.Width >= width && desc.Height >= height) {
+            return;
+        }
+
+        this->m_defDepthStencilSurface->Release();
+    }
+
+    D3DFORMAT formats[3] = { D3DFMT_D24S8, D3DFMT_D24X8, D3DFMT_D32 };
+
+    for (uint32_t i = 0; i < 3; i++) {
+        D3DFORMAT format = formats[i];
+
+        if (this->ICheckDepthStencilFormat(format)) {
+            this->m_d3dDevice->CreateDepthStencilSurface(width, height, format, D3DMULTISAMPLE_NONE, 0, FALSE, &this->m_defDepthStencilSurface, nullptr);
+        }
+
+        if (this->m_defDepthStencilSurface) {
+            break;
+        }
+    }
 }

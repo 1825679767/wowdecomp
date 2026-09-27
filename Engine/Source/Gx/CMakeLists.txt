@@ -1,7 +1,7 @@
 file(GLOB_RECURSE PRIVATE_SOURCES CONFIGURE_DEPENDS "*.cpp")
 
 if (NOT WIN32)
-    list(FILTER PRIVATE_SOURCES EXCLUDE REGEX "/CGxDeviceD3d/")
+    list(FILTER PRIVATE_SOURCES EXCLUDE REGEX "/CGxDevice(D3d|D3d9Ex|OpenGL)/")
 endif ()
 
 add_library(Gx STATIC
@@ -22,5 +22,6 @@ if (WIN32)
     target_link_libraries(Gx
         PRIVATE
             nvapi
+            opengl32.lib
     )
 endif ()
