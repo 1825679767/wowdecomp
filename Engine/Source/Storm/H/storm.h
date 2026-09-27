@@ -8,6 +8,10 @@
 
 #define STORM_MAX_STR 0x7FFFFFFF
 
+#define SCRC_INITIALIZE 0x1
+#define SCRC_PROCESS 0x2
+#define SCRC_FINALIZE 0x4
+
 #define STORM_ERROR_SUCCESS 0
 #define STORM_ERROR_FILE_NOT_FOUND 2
 #define STORM_ERROR_NOT_ENOUGH_MEMORY 8
@@ -123,6 +127,9 @@ int32_t STORMAPI SCmdProcess(const char* cmdline, int32_t skipprogname, int32_t 
 int32_t STORMAPI SCmdProcessCommandLine(int32_t (STORMAPI* extracallback)(const char*), void (STORMAPI* errorcallback)(_CMDERROR*));
 int32_t STORMAPI SCmdRegisterArgList(const _ARGLIST* listptr, uint32_t numargs);
 int32_t STORMAPI SCmdRegisterArgument(uint32_t flags, uint32_t id, const char* name, void* variableptr, uint32_t variablebytes, uint32_t setvalue, uint32_t setmask, int32_t (STORMAPI* callback)(_CMDPARAMS*, const char*));
+
+uint32_t SCrcBuffer(const void* buffer, uint32_t length, uint32_t* crc, uint32_t flags);
+uint32_t STORMAPI SCrcCompute(const void* buffer, uint32_t length, uint32_t* crc, uint32_t flags);
 
 int32_t STORMAPI SCompDestroy();
 
