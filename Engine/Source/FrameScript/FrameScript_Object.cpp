@@ -8,6 +8,14 @@
 // STATIC: 0x00D3F778
 int32_t FrameScript_Object::s_objectTypes;
 
+// VERIFY: 53798b75 auto
+// OFFSET: 0x00482AA0
+const char* FrameScript_Object::GetDisplayName() {
+    const char* name = this->GetName();
+
+    return name ? name : "<unnamed>";
+}
+
 // VERIFY: 1a7b2f73 auto
 // OFFSET: 0x00816790
 int32_t FrameScript_Object::CreateScriptMetaTable(lua_State* L, void (*registerFunc)(lua_State*)) {
