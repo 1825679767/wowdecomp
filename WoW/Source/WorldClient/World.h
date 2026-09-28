@@ -9,7 +9,7 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/CRect.h"
 #include "Engine/Source/Tempest/C4Vector.h"
-#include "_Triage/CWFrustum.h"
+#include "Engine/Source/Tempest/CWFrustum.h"
 
 class CAaBox;
 class C44Matrix;
