@@ -1,7 +1,27 @@
 #include <cstdint>
 #include <cstring>
+#include <malloc.h>
 #include "Engine/Source/Base/Handle.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "Engine/Source/Base/Coordinate.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "Engine/Source/Gx/CGxDevice/CGxShader.h"
+#include "Engine/Source/Gx/CGxTexFlags.h"
+#include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Gxu/Gxu.h"
+#include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/Scrn/Scrn.h"
+#include "Engine/Source/Services/TextBlock.h"
+#include "Engine/Source/SoundEngine/SoundEngine.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
+#include "WoW/Source/Client.h"
+#include "WoW/Source/DB/Rec/LoadingScreensRec.h"
+#include "WoW/Source/DB/Rec/MapRec.h"
+#include "WoW/Source/Net/Types.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Engine/Source/Event/CSizeEvent.h"
 #include "Engine/Source/Event/Event.h"
 #include "Engine/Source/Gxu/GxuFont.h"
@@ -16,6 +36,45 @@
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 #include "WoW/Source/Ui/SpellBookFrame.h"
 
+// STATIC: 0x009E2DFC
+static const BackgroundImage s_textureInfo[2] = {
+    { "Interface\\Glues\\LoadingBar\\Loading-BarFill", true, 0.5f, 0.075f, 0.525f, 0.025f },
+    { "Interface\\Glues\\LoadingBar\\Loading-BarBorder", false, 0.5f, 0.075f, 0.6f, 0.05f },
+};
+
+// STATIC: 0x00AB63B4
+static float s_normalAspect = 4.0f / 3.0f;
+
+// STATIC: 0x00AB63B8
+static float s_wideAspect = 1.6f;
+
+// STATIC: 0x00AB63BC
+static int32_t s_simpleMapID = -1;
+
+// STATIC: 0x00AB63C0
+static uint16_t s_indices[4] = { 0, 1, 2, 3 };
+
+// STATIC: 0x00AB63C8
+static const char* s_fontNames[9] = {
+    "Fonts\\FRIZQT__.TTF",
+    "Fonts\\2002.TTF",
+    "Fonts\\FRIZQT__.TTF",
+    "Fonts\\FRIZQT__.TTF",
+    "Fonts\\ZYKai_T.TTF",
+    "Fonts\\blei00d.TTF",
+    "Fonts\\FRIZQT__.TTF",
+    "Fonts\\FRIZQT__.TTF",
+    "Fonts\\NIM_____.TTF",
+};
+
+// STATIC: 0x00AB6400
+static C2Vector s_texCoord[4] = {
+    C2Vector(0.0f, 1.0f),
+    C2Vector(1.0f, 1.0f),
+    C2Vector(0.0f, 0.0f),
+    C2Vector(1.0f, 0.0f),
+};
+
 // STATIC: 0x00AB6470
 static CSizeEvent s_sizeEvent;
 
@@ -24,6 +83,12 @@ static CGxShader* s_pixelShader[1];
 
 // STATIC: 0x00B2FE64
 static CGxShader* s_vertexShader[2];
+
+// STATIC: 0x00B2FE6C
+static uint32_t s_lastUpdateTime;
+
+// STATIC: 0x00B2FE70
+static uint32_t s_nextPingTime;
 
 // STATIC: 0x00B2FE74
 static CTexture* s_dynamicElementsTexture;
@@ -34,11 +99,41 @@ static CTexture* s_dynamicBackgroundTextures[12];
 // STATIC: 0x00B2FEA8
 static CTexture* s_simpleBackgroundTexture;
 
+// STATIC: 0x00B2FEAC
+static float s_progress;
+
+// STATIC: 0x00B2FEB0
+static float s_worldProgress;
+
+// STATIC: 0x00B2FEB4
+static float s_asyncProgress;
+
+// STATIC: 0x00B2FEB8
+static float s_xmlProgress;
+
+// STATIC: 0x00B2FEBC
+static bool s_loadingWorld;
+
+// STATIC: 0x00B2FEC0
+static HLAYER unk_B2FEC0;
+
+// STATIC: 0x00B2FEC4
+static CTexture* unk_B2FEC4[2];
+
 // STATIC: 0x00B2FECC
 static CTexture* s_textures[2];
 
 // STATIC: 0x00B2FED4
 static HLAYER s_loadingScreenLayer;
+
+// STATIC: 0x00B2FED8
+static bool s_usingWideScreen;
+
+// STATIC: 0x00B2FED9
+static bool s_raceDataTip;
+
+// STATIC: 0x00B2FEDC
+static float s_spellProgress;
 
 // STATIC: 0x00B2FEE0
 static HTEXTFONT s_textFont;
@@ -66,6 +161,9 @@ static TSFixedArray<DYNAMICELEMENTVERT> s_dynamicElements;
 
 // STATIC: 0x00B302D0
 static CLoadingScreenShipInfo<TaxiPathNodeRec> s_shipInfo;
+
+// STATIC: 0x00B302F0
+static char s_raceDataTipText[1024];
 
 // VERIFY: 30cfdd0d manual
 // OFFSET: 0x00407C50
@@ -131,6 +229,494 @@ static int32_t SizeEvent(const void* data, void* param) {
 // OFFSET: 0x008E5250
 static int32_t SwallowEvent(const void* data, void* param) {
     return 0;
+}
+
+// VERIFY: 59ff528b manual
+// OFFSET: 0x004079D0
+static void UpdateProgressValue() {
+    float xmlProgress = 0.0f;
+    float worldScale = 1.0f;
+
+    if (s_xmlProgress != 0.0f) {
+        xmlProgress = s_xmlProgress;
+
+        if (s_loadingWorld) {
+            worldScale = 0.5f;
+            xmlProgress = 0.5f * s_xmlProgress;
+        }
+    }
+
+    s_progress = xmlProgress + s_asyncProgress * 0.0f + worldScale * s_worldProgress;
+
+    if (s_progress < 0.0f) {
+        s_progress = 0.0f;
+    } else if (s_progress >= 1.0f) {
+        s_progress = 1.0f;
+    }
+
+    if (SFile::IsTrial() && s_raceDataTip) {
+        if (StreamingIsRaceDataReady(StreamingGetRace())) {
+            s_progress = s_progress * 0.3f + 0.7f;
+        } else {
+            s_progress = s_spellProgress * 0.7f;
+        }
+    }
+}
+
+// VERIFY: 5d3b9940 auto
+// OFFSET: 0x00407B00
+static void InitializeProgressBarEvents() {
+    EventRegisterEx(EVENT_ID_CHAR, SwallowEvent, nullptr, 8.0f);
+    EventRegisterEx(EVENT_ID_IME, SwallowEvent, nullptr, 8.0f);
+    EventRegisterEx(EVENT_ID_KEYDOWN, SwallowEvent, nullptr, 8.0f);
+    EventRegisterEx(EVENT_ID_KEYDOWN_REPEATING, SwallowEvent, nullptr, 8.0f);
+    EventRegisterEx(EVENT_ID_MOUSEDOWN, SwallowEvent, nullptr, 8.0f);
+    EventRegisterEx(EVENT_ID_MOUSEMOVE, SwallowEvent, nullptr, 8.0f);
+    EventRegisterEx(EVENT_ID_SIZE, SizeEvent, nullptr, 8.0f);
+    s_sizeEventPosted = 0;
+}
+
+// VERIFY: c05cbcfa auto
+// OFFSET: 0x00407E30
+void LoadingScreenSetTip(const char* tip) {
+    s_gameTip = tip;
+}
+
+// VERIFY: 902a1fd5 auto
+// OFFSET: 0x00407E40
+void LoadingScreenSetScreenTipForRaceData(bool show) {
+    const char* text = FrameScript_GetText("TRIAL_LOADING_MESSAGE", -1, GENDER_NOT_APPLICABLE);
+    s_spellProgress = 0.0f;
+    s_raceDataTip = show;
+
+    if (show) {
+        SStrPrintf(s_raceDataTipText, sizeof(s_raceDataTipText), text);
+        s_gameTip = s_raceDataTipText;
+    }
+}
+
+// VERIFY: f774cf5f manual
+// OFFSET: 0x00407E90
+bool LoadingScreenDrawing() {
+    return s_loadingScreenLayer != nullptr;
+}
+
+// VERIFY: aa7cf797 auto
+// OFFSET: 0x00407EA0
+void LoadingScreenSetTransparent(bool transparent) {
+    if (!s_loadingScreenLayer) {
+        return;
+    }
+
+    uint32_t flags = ScrnLayerGetFlags(s_loadingScreenLayer);
+
+    if (transparent) {
+        ScrnLayerSetFlags(s_loadingScreenLayer, flags | 0x1);
+    } else {
+        ScrnLayerSetFlags(s_loadingScreenLayer, flags & ~0x1u);
+    }
+}
+
+// VERIFY: 13132595 manual
+// OFFSET: 0x00408520
+static void ProgressBarSendKeepAlive(uint32_t time) {
+    if (static_cast<int32_t>(time - s_nextPingTime) < 0) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_KEEP_ALIVE));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    s_nextPingTime = time + 30000;
+}
+
+// VERIFY: 575b0c08 manual
+// OFFSET: 0x004085A0
+static bool PaintSimpleBackground() {
+    if (!s_simpleBackgroundTexture) {
+        return false;
+    }
+
+    static C3Vector vertices[4] = {
+        C3Vector(0.0f, 0.0f, 0.0f),
+        C3Vector(1.0f, 0.0f, 0.0f),
+        C3Vector(0.0f, 1.0f, 0.0f),
+        C3Vector(1.0f, 1.0f, 0.0f),
+    };
+
+    CImVector color;
+    *reinterpret_cast<uint32_t*>(&color) = 0xFFFFFFFF;
+
+    GxPrimLockVertexPtrs(4, vertices, sizeof(C3Vector), nullptr, 0, &color, 0, nullptr, 0, s_texCoord, sizeof(C2Vector), nullptr, 0);
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, TextureGetGxTex(s_simpleBackgroundTexture, 1, nullptr));
+    GxDrawLockedElements(GxPrim_TriangleStrip, 4, s_indices);
+    GxPrimUnlockVertexPtrs();
+    GxuFontRenderBatch(s_batch);
+
+    return true;
+}
+
+// VERIFY: 0739e068 manual
+// OFFSET: 0x00409010
+static bool PaintBackgroundImage() {
+    if (!s_dynamicElements.Count()) {
+        return false;
+    }
+
+    CImVector color;
+    *reinterpret_cast<uint32_t*>(&color) = 0xFFFFFFFF;
+
+    for (uint32_t i = 0; i < 12; i++) {
+        GxPrimLockVertexPtrs(4, s_tileVertices[i], sizeof(C3Vector), nullptr, 0, &color, 0, nullptr, 0, s_tileTexCoords[i], sizeof(C2Vector), nullptr, 0);
+        g_theGxDevicePtr->RsSet(GxRs_Texture0, TextureGetGxTex(s_dynamicBackgroundTextures[i], 1, nullptr));
+        GxDrawLockedElements(GxPrim_TriangleStrip, 4, s_indices);
+        GxPrimUnlockVertexPtrs();
+    }
+
+    PaintDynamicLoadingBar();
+    return true;
+}
+
+// VERIFY: c28f5a68 manual
+// OFFSET: 0x004090C0
+static void PaintLoadingBar(const BackgroundImage* images, int32_t count, CTexture** textures) {
+    for (int32_t i = 0; i < count; i++) {
+        if (!textures[i]) {
+            continue;
+        }
+
+        GxRsSet(GxRs_BlendingMode, 2);
+        GxUpdateAlphaRef(GxRs_AlphaRef);
+
+        const BackgroundImage& image = images[i];
+        C3Vector vertices[4];
+        vertices[0].x = image.m_x - image.m_width * 0.5f;
+        vertices[2].x = vertices[0].x;
+        vertices[0].y = image.m_y - image.m_height * 0.5f;
+        vertices[1].y = vertices[0].y;
+        vertices[1].x = image.m_width * 0.5f + image.m_x;
+        vertices[3].x = vertices[1].x;
+        vertices[2].y = image.m_height * 0.5f + image.m_y;
+        vertices[3].y = vertices[2].y;
+
+        if (image.m_fill) {
+            vertices[1].x = vertices[0].x + image.m_width * s_progress;
+            vertices[3].x = vertices[1].x;
+        }
+
+        vertices[0].z = 0.0f;
+        vertices[1].z = 0.0f;
+        vertices[2].z = 0.0f;
+        vertices[3].z = 0.0f;
+
+        CImVector color;
+        color.b = 0xFF;
+        color.g = 0xFF;
+        color.r = 0xFF;
+        color.a = 0xFF;
+
+        GxPrimLockVertexPtrs(4, vertices, sizeof(C3Vector), nullptr, 0, &color, 0, nullptr, 0, s_texCoord, sizeof(C2Vector), nullptr, 0);
+        g_theGxDevicePtr->RsSet(GxRs_Texture0, TextureGetGxTex(textures[i], 1, nullptr));
+        GxDrawLockedElements(GxPrim_TriangleStrip, 4, s_indices);
+        GxPrimUnlockVertexPtrs();
+    }
+}
+
+// VERIFY: e5620ae9 manual
+// OFFSET: 0x00409ED0
+static bool LoadSimpleBackgroundTexture() {
+    CStatus status;
+    MapRec* mapRec = g_mapDB.GetRecord(s_simpleMapID);
+
+    if (mapRec) {
+        LoadingScreensRec* screenRec = g_loadingScreensDB.GetRecord(mapRec->m_loadingScreenID);
+
+        if (screenRec) {
+            s_usingWideScreen = false;
+            s_simpleBackgroundTexture = nullptr;
+
+            if (CoordinateGetAspectRatio() >= s_normalAspect + 0.001f && screenRec->m_hasWideScreen) {
+                char* path = static_cast<char*>(alloca(strlen(screenRec->m_fileName) + 32));
+                const char* extension = strchr(screenRec->m_fileName, '.');
+                strcpy(path, screenRec->m_fileName);
+
+                if (extension) {
+                    path[extension - screenRec->m_fileName] = '\0';
+                }
+
+                strcat(path, "Wide");
+
+                if (extension) {
+                    strcat(path, extension);
+                }
+
+                if (SFile::FileExistsInArchives(path)) {
+                    if (!SFile::IsTrial() || SFile::FileIsLocal(path, 6) == 1) {
+                        CGxTexFlags flags;
+                        s_simpleBackgroundTexture = TextureCreate(path, flags, &status, 1);
+
+                        if (s_simpleBackgroundTexture) {
+                            s_usingWideScreen = true;
+                        }
+                    } else {
+                        SFile::MakeFileLocal(path, 6, false);
+                    }
+                }
+            }
+
+            if (!s_simpleBackgroundTexture && SFile::FileExistsInArchives(screenRec->m_fileName)) {
+                if (!SFile::IsTrial() || SFile::FileIsLocal(screenRec->m_fileName, 6) == 1) {
+                    CGxTexFlags flags;
+                    s_simpleBackgroundTexture = TextureCreate(screenRec->m_fileName, flags, &status, 1);
+                } else {
+                    SFile::MakeFileLocal(screenRec->m_fileName, 6, false);
+                }
+            }
+        }
+    }
+
+    if (!s_simpleBackgroundTexture) {
+        CGxTexFlags flags;
+        s_simpleBackgroundTexture = TextureCreate("Interface\\Glues\\loading", flags, &status, 1);
+    }
+
+    return s_simpleBackgroundTexture != nullptr;
+}
+
+// VERIFY: ebee3807 manual
+// OFFSET: 0x0040A270
+static void LoadingScreenPaint(void* param, const RECTF* rect, const RECTF* visible, float elapsedSec) {
+    if (!GxHasContext() || !GxIsWindowVisible() || (s_progress > 0.99f && !IsStillLoading())) {
+        return;
+    }
+
+    if (!s_simpleBackgroundTexture && s_simpleMapID != -1 && !LoadSimpleBackgroundTexture()) {
+        s_simpleMapID = -1;
+    }
+
+    float minX;
+    float maxX;
+    float minY;
+    float maxY;
+    float minZ;
+    float maxZ;
+    GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
+
+    GxXformSetViewport(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
+
+    CImVector black;
+    *reinterpret_cast<uint32_t*>(&black) = 0xFF000000;
+    GxSceneClear(1, black);
+
+    float aspect = CoordinateGetAspectCompensation();
+    float ratio = s_usingWideScreen ? s_wideAspect / s_normalAspect : 1.0f;
+    float scale = aspect / ratio;
+
+    float left = 0.0f;
+    float width = 1.0f;
+    float bottom = 0.0f;
+    float height = 1.0f;
+
+    if (scale > 1.0f) {
+        width = 1.0f / scale;
+        left = (1.0f - width) * 0.5f;
+    } else if (scale < 1.0f) {
+        height = scale;
+        bottom = (1.0f - scale) * 0.5f;
+    }
+
+    GxXformSetViewport(left, width + left, bottom, height + bottom, 0.0f, 1.0f);
+
+    C44Matrix view;
+    C44Matrix projection;
+    GxuXformCreateOrtho(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 500.0f, projection);
+    g_theGxDevicePtr->XformSetView(view);
+    g_theGxDevicePtr->XformSetProjection(projection);
+
+    g_theGxDevicePtr->RsPush();
+
+    C44Matrix transform;
+
+    if (s_vertexShader[0]->Valid() && s_pixelShader[0]->Valid()) {
+        g_theGxDevicePtr->RsSet(GxRs_VertexShader, s_vertexShader[0]);
+        g_theGxDevicePtr->RsSet(GxRs_PixelShader, s_pixelShader[0]);
+        GxXformViewProjNativeTranspose(transform);
+        GxShaderConstantsSet(GxSh_Vertex, 0, &transform.a0, 4);
+    } else {
+        GxRsSet(GxRs_Lighting, 0);
+    }
+
+    GxRsSet(GxRs_Fog, 0);
+
+    if (!PaintBackgroundImage()) {
+        PaintSimpleBackground();
+
+        if (s_vertexShader[0]->Valid() && s_pixelShader[0]->Valid()) {
+            GxShaderConstantsSet(GxSh_Vertex, 0, &transform.a0, 4);
+        }
+
+        PaintLoadingBar(s_textureInfo, 2, s_textures);
+    }
+
+    g_theGxDevicePtr->RsPop();
+    GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
+}
+
+// VERIFY: 0ced5aa1 auto
+// OFFSET: 0x0040A920
+static void UpdateProgressBar(int32_t force) {
+    uint32_t time = OsGetAsyncTimeMs();
+    EventInputProcess(EventGetCurrentContext());
+
+    if (!force && time - s_lastUpdateTime < 250) {
+        return;
+    }
+
+    s_lastUpdateTime = time;
+    SE2::HeartBeat(nullptr, nullptr);
+    ProgressBarSendKeepAlive(time);
+    UpdateProgressValue();
+    LoadingScreenPaint(nullptr, nullptr, nullptr, 0.0f);
+    GxScenePresent();
+}
+
+// VERIFY: 805d84ce manual
+// OFFSET: 0x0040A990
+static void InitializeProgressBar(bool loadingWorld) {
+    if (s_loadingScreenLayer) {
+        ScrnLayerSetFlags(s_loadingScreenLayer, ScrnLayerGetFlags(s_loadingScreenLayer) & ~0x1u);
+    }
+
+    s_xmlProgress = 0.0f;
+    s_asyncProgress = 0.0f;
+    s_worldProgress = 0.0f;
+    s_loadingWorld = loadingWorld;
+
+    if (!s_loadingScreenLayer) {
+        CStatus status;
+
+        for (uint32_t i = 0; i < sizeof(s_textures) / sizeof(s_textures[0]); i++) {
+            if (!s_textures[i]) {
+                CGxTexFlags flags;
+                s_textures[i] = TextureCreate(s_textureInfo[i].m_path, flags, &status, 0);
+            }
+        }
+
+        RECTF rect;
+        rect.bottom = 0.0f;
+        rect.left = 0.0f;
+        rect.top = 1.0f;
+        rect.right = 1.0f;
+        ScrnLayerCreate(&rect, 9.0f, 6, nullptr, LoadingScreenPaint, &s_loadingScreenLayer);
+        InitializeProgressBarEvents();
+    }
+
+    s_nextPingTime = OsGetAsyncTimeMs() + 30000;
+
+    uint32_t time = OsGetAsyncTimeMs();
+    EventInputProcess(EventGetCurrentContext());
+
+    if (time - s_lastUpdateTime >= 250) {
+        s_lastUpdateTime = time;
+        SE2::HeartBeat(nullptr, nullptr);
+        ProgressBarSendKeepAlive(time);
+        UpdateProgressValue();
+        LoadingScreenPaint(nullptr, nullptr, nullptr, 0.0f);
+        GxScenePresent();
+    }
+}
+
+// VERIFY: ac3b73a1 manual
+// OFFSET: 0x0040AB20
+void LoadingScreenSpellUpdateProgress(float progress) {
+    if (progress <= s_spellProgress) {
+        return;
+    }
+
+    s_spellProgress = progress;
+    UpdateProgressBar(1.0f == progress);
+}
+
+// VERIFY: 2d94348d manual
+// OFFSET: 0x0040AB70
+void LoadingScreenEnable(int32_t mapID, bool loadingWorld) {
+    CGGameUI::SetAspect();
+
+    if (s_gameTip) {
+        s_textFont = TextBlockGenerateFont(s_fontNames[s_locale], 1, NDCToDDCHeight(0.018f));
+        CGxFont* font = TextBlockGetFontPtr(s_textFont);
+
+        float width = DDCToNDCWidth(NDCToDDCWidth(515.0f / (CoordinateGetAspectCompensation() * 1024.0f)));
+        float compensation = CoordinateGetAspectCompensation();
+        float offset = compensation >= 1.0f ? 0.0f : (1.0f - compensation) * 0.5f;
+
+        C3Vector position;
+        position.x = 0.5f - width * 0.5f;
+        position.y = offset + 0.1f;
+        position.z = 1.0f;
+
+        char* tip = static_cast<char*>(alloca(SStrLen(s_gameTip) + 1));
+        memcpy(tip, s_gameTip, SStrLen(s_gameTip) + 1);
+
+        for (char* end = &tip[SStrLen(tip) - 1]; *end == '\r' || *end == '\n'; end--) {
+            *end = '\0';
+        }
+
+        CImVector color;
+        *reinterpret_cast<uint32_t*>(&color) = 0xD7C8C8C8;
+        GxuFontCreateString(font, tip, 0.018f, position, width, 1.0f, 0.005f, s_tipStr, GxVJ_Bottom, GxHJ_Left, 0, color, 0.0f, 1.0f);
+
+        C2Vector shadowOffset;
+        shadowOffset.x = 0.001f;
+        shadowOffset.y = -0.001f;
+
+        CImVector shadowColor;
+        shadowColor.b = 0;
+        shadowColor.g = 0;
+        shadowColor.r = 0;
+        shadowColor.a = 0xFF;
+        GxuFontAddShadow(s_tipStr, shadowColor, shadowOffset);
+
+        s_batch = GxuFontCreateBatch(false, false);
+        GxuFontAddToBatch(s_batch, s_tipStr);
+    }
+
+    s_simpleMapID = mapID;
+    InitializeProgressBar(loadingWorld);
+}
+
+// VERIFY: 79bb5ad9 manual
+// OFFSET: 0x0040AEF0
+void LoadingScreenAsyncCallback(float progress) {
+    if (progress <= s_asyncProgress) {
+        return;
+    }
+
+    s_asyncProgress = progress;
+    UpdateProgressBar(1.0f == progress);
+}
+
+// VERIFY: 9fb73ae1 manual
+// OFFSET: 0x0040AF40
+void LoadingScreenWorldCallback(float progress) {
+    if (progress <= s_worldProgress) {
+        return;
+    }
+
+    s_worldProgress = progress;
+    UpdateProgressBar(1.0f == progress);
+}
+
+// VERIFY: 9d1ecfe3 manual
+// OFFSET: 0x0040AF90
+void LoadingScreenXMLCallback(float progress) {
+    if (progress <= s_xmlProgress) {
+        return;
+    }
+
+    s_xmlProgress = progress;
+    UpdateProgressBar(1.0f == progress);
 }
 
 // VERIFY: 2414bf03 auto
@@ -237,4 +823,29 @@ void LoadingScreenShutdown() {
     if (s_pixelShader[0]) {
         g_theGxDevicePtr->ShaderDestroy(s_pixelShader[0]);
     }
+}
+
+// VERIFY: dddf5a44 auto
+// OFFSET: 0x00407EF0
+void LoadingScreenMiniDisable() {
+    if (unk_B2FEC0) {
+        HandleClose(reinterpret_cast<HOBJECT>(unk_B2FEC0));
+    }
+
+    unk_B2FEC0 = nullptr;
+
+    for (uint32_t i = 0; i < sizeof(unk_B2FEC4) / sizeof(unk_B2FEC4[0]); i++) {
+        if (unk_B2FEC4[i]) {
+            HandleClose(reinterpret_cast<HOBJECT>(unk_B2FEC4[i]));
+        }
+
+        unk_B2FEC4[i] = nullptr;
+    }
+}
+
+// VERIFY: 109a7518 auto
+// OFFSET: 0x0040A770
+void LoadingScreenMiniUpdate(float progress) {
+    LoadingScreenMiniEnable();
+    s_progress = progress;
 }

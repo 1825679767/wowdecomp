@@ -19,9 +19,11 @@ class WardenCachedModule {
     public:
     static const uint32_t s_cacheVersion = 1;
 
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
+    /* 0000 */ uint32_t m_size;
+    /* 0004 */ uint8_t* m_data;
 
+    WardenCachedModule();
+    ~WardenCachedModule();
     void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);
 };

@@ -14,6 +14,12 @@ static CLightningManager* s_lightningManager;
 // STATIC: 0x00AF5090
 static int32_t s_unk_AF5090 = -1;
 
+// STATIC: 0x00AF5094
+static TSList<BlizzardObject> s_blizzardObjects;
+
+// STATIC: 0x00AF50A0
+static TSList<LightningObject> s_lightningObjects;
+
 // STATIC: 0x00D3975C
 static CDataAllocator s_blizzardObjectHeap(sizeof(BlizzardObject), 8);
 
@@ -76,6 +82,19 @@ void SpellVisualsInitialize() {
     s_lightningManager = new (SMemAlloc(sizeof(CLightningManager), __FILE__, __LINE__, 0)) CLightningManager();
     s_spellEffectLevelVar = CVar::Lookup("spellEffectLevel");
     SpellVisualsInitializeModelAttachLookup();
+}
+
+// VERIFY: 1702458f manual
+// OFFSET: 0x007FC9F0
+void SpellVisualsClear() {
+    s_lightningObjects.Clear();
+
+    BlizzardObject* object;
+
+    while ((object = s_blizzardObjects.Head()) != nullptr) {
+        object->~BlizzardObject();
+        s_blizzardObjectHeap.PutData(object, nullptr, 0);
+    }
 }
 
 // VERIFY: 9c3b0607 auto

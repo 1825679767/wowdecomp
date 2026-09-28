@@ -65,6 +65,7 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 #include "WoW/Source/UIUtil/InputControl.h"
+#include "WoW/Source/UIUtil/BannedAddOns.h"
 #include "WoW/Source/Ui/AddOns.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
@@ -177,7 +178,7 @@ static const char* s_dataDirectories[3] = { "Data\\", "..\\Data\\", "Data\\" };
 WowClientDB<Startup_StringsRec> g_startup_StringsDB;
 
 // STATIC: 0x00AD2FE0
-static const char* s_iniLocaleNames[8] = { "enUS", "koKR", "frFR", "deDE", "zhCN", "zhTW", "esES", "esMX" };
+const char* s_iniLocaleNames[9] = { "enUS", "koKR", "frFR", "deDE", "zhCN", "zhTW", "esES", "esMX", "ruRU" };
 
 // STATIC: 0x00B2F99C
 int32_t s_region;
@@ -231,6 +232,38 @@ bool g_hasIsoLocale[12];
 
 // STATIC: 0x00C5DE9C
 int32_t s_locale;
+
+// VERIFY: 3c887aa5 manual
+// OFFSET: 0x004031C0
+static int32_t ListArchiveFilter(const char* fileName, void* param) {
+    ARCHIVELISTPARAMS* params = static_cast<ARCHIVELISTPARAMS*>(param);
+
+    if (SStrCmpI(fileName, params->m_prefix, params->m_prefixLength)) {
+        return 1;
+    }
+
+    return params->m_callback(fileName, params->m_param);
+}
+
+// VERIFY: 4bb4cdc6 auto
+// OFFSET: 0x004049F0
+static void ListArchives(const char* prefix, int32_t index, int32_t (*callback)(const char* fileName, void* param), void* param) {
+    ARCHIVELISTPARAMS params;
+    params.m_prefix = prefix;
+    params.m_prefixLength = SStrLen(prefix);
+    params.m_callback = callback;
+    params.m_param = param;
+
+    for (uint32_t i = 0; i < s_numPatchArchives; i++) {
+        SFile::List(s_archiveHandles.m_data[i], ListArchiveFilter, &params);
+    }
+
+    SArchive* archive = s_archiveHandles.m_data[index + s_firstBaseArchive];
+
+    if (archive) {
+        SFile::List(archive, ListArchiveFilter, &params);
+    }
+}
 
 // VERIFY: abdc92c0 auto
 // OFFSET: 0x00401FD0
@@ -550,10 +583,17 @@ int ForEveryRunOnceWTF::FileNameCompare(const void* a, const void* b) {
     return SStrSortUTF8I(*static_cast<char* const*>(a), *static_cast<char* const*>(b), STORM_MAX_STR);
 }
 
+// VERIFY: bf995614 auto
+// OFFSET: 0x004033C0
+void ClientPostClose(int32_t reason) {
+    s_closeErrorStringId = reason;
+    EventPostClose();
+}
+
 // VERIFY: 47b44380 manual
 // OFFSET: 0x004033E0
 static void LogRealmInfo(char* buffer, uint32_t size) {
-    RealmInfo* realm = ClientServices::GetSelectedRealm();
+    REALM_INFO* realm = ClientServices::GetSelectedRealm();
 
     if (realm && realm->m_realmName[0] && realm->m_realmAddress[0]) {
         SStrPack(buffer, "Realm: ", size);
@@ -1259,6 +1299,7 @@ void BeginCloseGame() {
     }
 }
 
+// VERIFY: 47274a9a auto
 // OFFSET: 0x00406C70
 int32_t CommonMain() {
     StormInitialize();
@@ -1305,4 +1346,14 @@ int32_t CommonMain() {
     }
 
     return 0;
+}
+
+// VERIFY: 8f0a8d05 manual
+// OFFSET: 0x00404A80
+void ListInterfaceArchive(const char* prefix, int32_t (*callback)(const char* fileName, void* param), void* param) {
+    if (s_archiveHandles.m_data[s_firstBaseArchive + 1]) {
+        ListArchives(prefix, 1, callback, param);
+    } else {
+        ListArchives(prefix, 19, callback, param);
+    }
 }

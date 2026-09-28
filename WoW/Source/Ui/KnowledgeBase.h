@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/Source/SLock.h"
 
 class CDynamicString;
 struct XMLTree;
@@ -28,17 +29,13 @@ class CKBPage {
     static void UpdateLoadingQueue();
 
     /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[4];
-    /* 000C */ uint8_t unk_000C;
-    /* 000D */ uint8_t unk_000D;
-    /* 000E */ uint8_t unk_000E;
-    /* 000F */ uint8_t unk_000F[4];
-    /* 0013 */ uint8_t unk_0013[29];
+    /* 0008 */ SCritSect m_lock;
     /* 0030 */ CDynamicString* unk_0030;
     /* 0034 */ XMLTree* unk_0034;
     /* 0038 */ CKBPage* m_loadingNext;
     /* 003C */ uint32_t unk_003C;
 
+    CKBPage();
     virtual ~CKBPage();
     virtual void _ComputeCachedData();
     virtual void _SendSuccessEvent();
@@ -51,15 +48,20 @@ class CKBSetup : public CKBPage {
     /* 0044 */ uint32_t unk_0044;
     /* 0048 */ uint32_t unk_0048;
     /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050;
+    /* 0050 */ int32_t unk_0050;
     /* 0054 */ uint32_t unk_0054;
-    /* 0058 */ uint8_t unk_0058[4];
+    /* 0058 */ uint32_t unk_0058;
     /* 005C */ uint32_t unk_005C;
-    /* 0060 */ uint8_t unk_0060[4];
+    /* 0060 */ uint32_t unk_0060;
     /* 0064 */ uint32_t unk_0064;
     /* 0068 */ uint32_t unk_0068;
     /* 006C */ uint32_t unk_006C;
     /* 0070 */ uint32_t unk_0070;
+
+    CKBSetup();
+    virtual void _ComputeCachedData();
+    virtual void _SendSuccessEvent();
+    virtual void _SendFailureEvent();
 };
 
 extern CKBSetup g_KnowledgeBaseSetup;

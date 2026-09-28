@@ -3,6 +3,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/ComSat/ComSatInterface.h"
+#include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Object/ObjectClient/Object_C.h"
 
 struct CVar;
 
@@ -16,6 +19,32 @@ struct ComSatEvent {
     };
     /* 0014 */ uint32_t unk_0014;
 };
+
+struct ComSatCallback {
+    /* 0000 */ uint32_t m_type;
+    /* 0004 */ uint32_t unk_0004;
+    /* 0008 */ uint64_t unk_0008;
+    /* 0010 */ uint64_t unk_0010;
+};
+
+struct MUTEDPLAYER : public TSHashObject<MUTEDPLAYER, CHashKeyGUID> {
+};
+
+struct TALKINGPLAYER : public TSHashObject<TALKINGPLAYER, CHashKeyGUID> {
+};
+
+class ComSatClientAllocator : public ComSat::Allocator {
+    public:
+    void* Alloc(uint32_t size) override;
+    void Free(void* ptr) override;
+};
+
+namespace Comsat {
+void VoicePlateStart(uint64_t sessionId, uint64_t guid);
+void VoicePlateStop(uint64_t sessionId, uint64_t guid);
+void VoiceStart();
+void VoiceStop();
+}
 
 struct COMSATDATA {
     /* 0000 */ uint64_t m_sessionID;
@@ -44,5 +73,6 @@ bool VoiceChatModeHandler(CVar* var, const char* oldValue, const char* value, vo
 void ComSatClient_Init();
 int32_t ComSatClient_IsComsatDisabledByClient();
 void ComSatClient_Shutdown();
+int32_t VoiceChat_TickWrapper(const void* data, void* param);
 
 #endif

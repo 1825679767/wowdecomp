@@ -35,6 +35,8 @@ class Snow {
     /* 009C */ CGxShader* m_shaderPtr;
     /* 00A0 */ int32_t unk_00A0;
     /* 00A4 */ int32_t unk_00A4;
+
+    ~Snow();
 };
 
 struct SnowFlakeParticle {
@@ -57,7 +59,17 @@ struct WeatherGridCell {
     WeatherGridCell();
 };
 
-class WeatherGrid {
+class WeatherGridBase {
+    public:
+    virtual void* unk_0000(void* a2) = 0;
+    virtual int32_t UpdateOriginCell(float* position) = 0;
+    virtual bool ComputeCellBounds(float* a2, float* a3, float* a4) = 0;
+    virtual void GetCellAtPosition(float* position) = 0;
+    virtual void Unk10(float* a1, float* a2) = 0;
+    virtual ~WeatherGridBase();
+};
+
+class WeatherGrid : public WeatherGridBase {
     public:
     /* 0004 */ float unk_0004;
     /* 0008 */ float unk_0008;
@@ -69,9 +81,16 @@ class WeatherGrid {
     virtual int32_t UpdateOriginCell(float* position);
     virtual bool ComputeCellBounds(float* a2, float* a3, float* a4);
     virtual void GetCellAtPosition(float* position);
+    virtual void Unk10(float* a1, float* a2);
+    virtual ~WeatherGrid();
 
     WeatherGrid();
 };
+
+struct PosDelta : public TSLinkedNode<PosDelta> {
+};
+
+class Sand;
 
 class Weather {
     public:
@@ -94,12 +113,12 @@ class Weather {
     /* 0030 */ float unk_0030;
     /* 0034 */ uint8_t unk_0034[4];
     /* 0038 */ char m_precipTexture[260];
-    /* 013C */ uint32_t unk_013C;
-    /* 0140 */ uint32_t unk_0140;
-    /* 0144 */ uint32_t unk_0144;
+    /* 013C */ Rain* m_rain;
+    /* 0140 */ Snow* m_snow;
+    /* 0144 */ Sand* m_sand;
     /* 0148 */ WeatherGrid* m_grid;
-    /* 014C */ TSList<void> unk_014C;
-    /* 0158 */ TSList<void> unk_0158;
+    /* 014C */ TSList<PosDelta, TSGetLink<PosDelta> > unk_014C;
+    /* 0158 */ TSList<PosDelta, TSGetLink<PosDelta> > unk_0158;
     /* 0164 */ float unk_0164;
     /* 0168 */ float unk_0168;
     /* 016C */ float unk_016C;
@@ -118,6 +137,7 @@ class Weather {
 
     Weather();
     ~Weather();
+    void Clear();
     void SetType(uint32_t type, float intensity, const WeatherRec* rec, bool immediate, float transitionTime);
 };
 

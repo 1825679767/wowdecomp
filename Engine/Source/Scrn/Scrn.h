@@ -6,6 +6,8 @@
 #include "Engine/Source/Services/Types.h"
 #include "Engine/Source/Storm/H/Types.h"
 
+uint32_t ScrnLayerGetFlags(HLAYER layer);
+void ScrnLayerSetFlags(HLAYER layer, uint32_t flags);
 void ScrnLayerSetRect(HLAYER layer, const RECTF* rect);
 void ScrnLayerCreate(const RECTF* rect, float zorder, uint32_t flags, void* param, void (*paintFunc)(void* param, const RECTF* rect, const RECTF* visible, float elapsedSec), HLAYER* layer);
 

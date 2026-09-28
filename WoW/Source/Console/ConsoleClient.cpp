@@ -902,6 +902,21 @@ void ConsoleWriteA(const char* format, COLOR_T color, ...) {
     va_end(args);
 }
 
+// VERIFY: da6ae03f auto
+// OFFSET: 0x007653B0
+void ConsolePrintf(const char* format, ...) {
+    if (!format || !*format || !ConsoleDeviceExists()) {
+        return;
+    }
+
+    char buffer[4096];
+    va_list args;
+    va_start(args, format);
+    SStrVPrintf(buffer, sizeof(buffer), format, args);
+    ConsoleWrite(buffer, DEFAULT_COLOR);
+    va_end(args);
+}
+
 // VERIFY: d43d21f6 manual
 // OFFSET: 0x007658A0
 void ConsoleCommandExecute(const char* commandLine, int32_t addToHistory) {

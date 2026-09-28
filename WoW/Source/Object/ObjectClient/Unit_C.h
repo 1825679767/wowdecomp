@@ -14,6 +14,8 @@ class CGNamePlateFrame;
 class CM2Model;
 class CMovementShared;
 class CharacterComponent;
+class ChrClassesRec;
+class ChrRacesRec;
 class CreatureDisplayInfoExtraRec;
 class CreatureDisplayInfoRec;
 class CreatureModelDataRec;
@@ -196,6 +198,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0F68 */ uint32_t m_objectclass1 [38];
     /* 1000 */ uint32_t unk_1000;
     /* 1004 */ uint8_t unk_1004 [4];
+
+    static const char* GetDisplayClassNameFromRecord(const ChrClassesRec* rec, int32_t sex, int32_t* displaySex);
+    static const char* GetDisplayRaceNameFromRecord(const ChrRacesRec* rec, int32_t sex, int32_t* displaySex);
 
     bool IsActivePlayer();
 };

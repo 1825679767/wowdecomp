@@ -3,84 +3,102 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
+#include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Storm/Source/SLock.h"
 #include "WoW/Source/WowServices/Login.h"
+
+class TumorManager;
+
+extern TumorManager* g_tumorManager;
 
 class BattlenetLogin : public Login {
     public:
-    /* 10F0 */ int32_t m_serverId;
+    struct BN_EVENT : public TSLinkedNode<BattlenetLogin::BN_EVENT> {
+    };
+
+    struct BN_REALM : public TSLinkedNode<BattlenetLogin::BN_REALM> {
+    };
+
+    struct GameAccount {
+    };
+
+    struct PatchInstruction {
+    };
+
+    /* 10F0 */ uint32_t unk_10F0;
     /* 10F4 */ uint32_t unk_10F4;
     /* 10F8 */ uint32_t unk_10F8;
     /* 10FC */ uint32_t unk_10FC;
     /* 1100 */ uint32_t unk_1100;
-    /* 1104 */ uint32_t unk_1104;
-    /* 1108 */ uint8_t m_ukn1061;
-    /* 1109 */ uint8_t m_ukn1062;
-    /* 110A */ uint8_t m_ukn1063;
-    /* 110B */ uint8_t m_ukn1064;
-    /* 110C */ uint8_t m_ukn1071;
-    /* 110D */ uint8_t m_ukn1072;
-    /* 110E */ uint8_t m_ukn1073;
-    /* 110F */ uint8_t m_ukn1074;
-    /* 1110 */ uint8_t m_ukn1081;
-    /* 1111 */ uint8_t m_ukn1082;
-    /* 1112 */ uint8_t m_ukn1083;
-    /* 1113 */ uint8_t m_ukn1084;
+    /* 1104 */ TSList<BattlenetLogin::BN_REALM> m_realms;
+    /* 1110 */ uint8_t unk_1110;
+    /* 1111 */ uint8_t unk_1111[3];
     /* 1114 */ uint32_t unk_1114;
-    /* 1118 */ uint32_t unk_1118;
-    /* 111C */ uint32_t unk_111C;
-    /* 1120 */ uint32_t unk_1120;
-    /* 1124 */ uint32_t unk_1124;
-    /* 1128 */ uint32_t unk_1128;
-    /* 112C */ uint32_t unk_112C;
-    /* 1130 */ uint32_t unk_1130;
-    /* 1134 */ uint32_t unk_1134;
-    /* 1138 */ uint32_t unk_1138;
-    /* 113C */ uint8_t m_ukn1191;
-    /* 113D */ uint8_t m_ukn1192;
-    /* 113E */ uint8_t m_ukn1193;
-    /* 113F */ uint8_t m_gruntMatrixRequired;
-    /* 1140 */ uint8_t m_gruntMatrixWidth;
-    /* 1141 */ uint8_t m_gruntMatrixHeight;
-    /* 1142 */ uint8_t m_ukn1203;
-    /* 1143 */ uint8_t m_gruntMatrixChallengeCount;
-    /* 1144 */ uint32_t unk_1144;
-    /* 1148 */ uint32_t unk_1148;
+    /* 1118 */ SCritSect m_realmLock;
+    /* 1140 */ TSFixedArray<BattlenetLogin::GameAccount> m_gameAccounts;
     /* 114C */ uint32_t unk_114C;
-    /* 1150 */ uint32_t unk_1150;
-    /* 1154 */ uint32_t unk_1154;
-    /* 1158 */ uint32_t unk_1158;
-    /* 115C */ uint32_t unk_115C;
-    /* 1160 */ uint32_t m_matrixClientProof;
-    /* 1164 */ uint32_t unk_1164;
-    /* 1168 */ uint32_t unk_1168;
-    /* 116C */ uint32_t unk_116C;
-    /* 1170 */ uint32_t unk_1170;
-    /* 1174 */ uint8_t m_tokenInfoRequired;
-    /* 1175 */ uint8_t m_tokenInfoUkn2;
-    /* 1176 */ uint8_t m_tokenInfoString;
-    /* 1177 */ uint8_t m_ukn1334;
+    /* 1150 */ SCritSect m_gameAccountLock;
     /* 1178 */ uint32_t unk_1178;
-    /* 117C */ uint32_t unk_117C;
-    /* 1180 */ uint32_t unk_1180;
-    /* 1184 */ uint32_t unk_1184;
-    /* 1188 */ uint32_t m_battleUkn1;
-    /* 118C */ uint32_t m_battleUkn2;
-    /* 1190 */ uint32_t m_battleUkn3;
-    /* 1194 */ uint32_t m_battleUkn4;
-    /* 1198 */ uint32_t m_battleUkn5;
-    /* 119C */ uint32_t m_battleUkn6;
-    /* 11A0 */ uint32_t m_battleUkn7;
-    /* 11A4 */ uint32_t m_battleUkn8;
-    /* 11A8 */ uint32_t m_battleUkn9;
-    /* 11AC */ uint32_t m_battleUkn10;
-    /* 11B0 */ uint32_t m_battleUkn11;
-    /* 11B4 */ uint32_t m_battleUkn12;
-    /* 11B8 */ uint32_t m_accountFlags;
-    /* 11BC */ uint32_t m_battleUkn14;
-    /* 11C0 */ uint32_t m_battleUkn15;
-    /* 11C4 */ uint32_t m_battleUkn16;
-    /* 11C8 */ uint32_t m_battleUkn17;
+    /* 117C */ TSFixedArray<BattlenetLogin::PatchInstruction> m_patchInstructions;
+    /* 1188 */ uint32_t unk_1188;
+    /* 118C */ SCritSect m_patchInstructionLock;
+    /* 11B4 */ uint32_t unk_11B4;
+    /* 11B8 */ uint32_t unk_11B8;
+    /* 11BC */ uint32_t unk_11BC;
+    /* 11C0 */ uint8_t unk_11C0;
+    /* 11C1 */ uint8_t unk_11C1[3];
+    /* 11C4 */ uint32_t unk_11C4;
+    /* 11C8 */ TSList<BattlenetLogin::BN_EVENT> m_events [2];
+    /* 11E0 */ SCritSect m_eventLock;
+    /* 1208 */ uint32_t unk_1208;
+    /* 120C */ uint32_t unk_120C;
+
+    bool Connected(const NETADDR& address) override;
+    bool Disconnected() override;
+    bool CantConnect() override;
+    void GetLogonMethod() override;
+    void GetVersionProof(const uint8_t* versionChallenge) override;
+    void SetPinInfo(bool enabled, uint32_t seed, const uint8_t* salt) override;
+    void GetPinInfo(bool* enabled, uint8_t** salt, uint8_t** hash) override;
+    void SetMatrixInfo(bool enabled, uint8_t width, uint8_t height, uint8_t minDigits, uint8_t maxDigits, bool flipCoords, uint8_t challengeCount, uint64_t seed, const uint8_t* sessionKey, uint32_t sessionKeyLength) override;
+    void GetMatrixProof(bool* enabled, const uint8_t** proof) const override;
+    void SetTokenInfo(bool enabled, uint8_t required) override;
+    void GetTokenInfo(bool* enabled, char* token) override;
+    void LogonResult(Grunt::Result result, const uint8_t* sessionKey, uint32_t sessionKeyLength, uint16_t flags) override;
+    void ReconnectResult(Grunt::Result result, const uint8_t* sessionKey, uint32_t sessionKeyLength, uint16_t flags) override;
+    LOGIN_STATE NextSecurityState(LOGIN_STATE state) override;
+    int32_t GetServerId() override;
+    const uint8_t* GetVersionChallenge() override;
+    void GetRealmList() override;
+    void Reconnect() override;
+    void Logon(const char* loginServer, const char* portal) override;
+    int32_t Wait(const char* message, LoginData& loginData) override;
+    void ProveVersion(const uint8_t* versionChecksum) override;
+    void FileAccept(bool accept, uint64_t offset) override;
+    void FileComplete(bool success) override;
+    int32_t GetSurveyId() override;
+    void SendSurveyData(uint16_t size, uint8_t* data) override;
+    void SendSurveyFailed() override;
+    void Logoff() override;
+    const uint8_t* GetKeyMap() override;
+    void EnterPIN(int32_t count, uint8_t* digits) override;
+    void EnterMatrix(uint8_t value) override;
+    void RevertMatrix() override;
+    void CommitMatrix() override;
+    void FinalizeMatrix() override;
+    bool GetMatrixInfo(uint32_t* width, uint32_t* height, uint32_t* minDigits, uint32_t* maxDigits, bool* flipCoords, uint32_t* challengeCount) override;
+    void GetMatrixCoordinates(uint32_t index, uint32_t* x, uint32_t* y) override;
+    void EnterToken(const char* token) override;
+    bool IsTrialAccount() override;
+    bool IsGMAccount() override;
+    bool IsProPassAccount() override;
+    void Update() override;
+    void Init(LoginResponse* loginResponse) override;
+    ~BattlenetLogin() override;
+    void JoinRealm(uint32_t a1, uint32_t a2, uint32_t a3) override;
+    int32_t GetLoginServerType() override;
+
+    BattlenetLogin();
 };
 
 class BNetAuthPacketSub1 {

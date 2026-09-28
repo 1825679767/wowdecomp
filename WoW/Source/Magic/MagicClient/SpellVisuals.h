@@ -3,13 +3,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
 
 struct CVar;
 
-class BlizzardObject {
+class BlizzardObject : public TSLinkedNode<BlizzardObject> {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
     /* 0008 */ uint8_t unk_0008[256];
     /* 0108 */ uint32_t unk_0108;
     /* 010C */ uint32_t unk_010C;
@@ -25,6 +24,8 @@ class BlizzardObject {
     /* 0140 */ uint32_t unk_0140;
     /* 0144 */ uint8_t unk_0144[64];
     /* 0184 */ uint32_t unk_0184;
+
+    ~BlizzardObject();
 };
 
 class Shard {
@@ -32,15 +33,8 @@ class Shard {
     /* 0000 */ uint8_t unk_0000[32];
 };
 
-class LightningObject {
+class LightningObject : public TSLinkedNode<LightningObject> {
     public:
-    /* 0000 */ uint8_t unk_0000;
-    /* 0001 */ uint8_t unk_0001;
-    /* 0002 */ uint8_t unk_0002;
-    /* 0003 */ uint8_t unk_0003;
-    /* 0004 */ uint16_t unk_0004;
-    /* 0006 */ uint8_t unk_0006;
-    /* 0007 */ uint8_t unk_0007;
     /* 0008 */ uint8_t unk_0008[3];
     /* 000B */ uint8_t unk_000B[4];
     /* 000F */ uint8_t unk_000F[1];
@@ -62,6 +56,8 @@ class LightningObject {
     /* 0050 */ uint32_t unk_0050;
     /* 0054 */ uint8_t unk_0054[4];
     /* 0058 */ uint32_t unk_0058;
+
+    ~LightningObject();
 };
 
 class MountTransitionObject {

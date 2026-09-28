@@ -90,6 +90,18 @@ void ScrnLayerSetRect(HLAYER layer, const RECTF* rect) {
     reinterpret_cast<CILayer*>(layer)->m_rect = *rect;
 }
 
+// VERIFY: e30052be auto
+// OFFSET: 0x004A8530
+uint32_t ScrnLayerGetFlags(HLAYER layer) {
+    return reinterpret_cast<CILayer*>(layer)->m_flags;
+}
+
+// VERIFY: 4573bf37 auto
+// OFFSET: 0x004A8540
+void ScrnLayerSetFlags(HLAYER layer, uint32_t flags) {
+    reinterpret_cast<CILayer*>(layer)->m_flags = flags;
+}
+
 // VERIFY: 90b31936 auto
 // OFFSET: 0x004A8570
 static int32_t CaptureScreen() {

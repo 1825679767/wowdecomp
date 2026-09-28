@@ -8,3 +8,8 @@ target_include_directories(Game
     PUBLIC
         ${CMAKE_SOURCE_DIR}
 )
+
+target_link_libraries(Game
+    PUBLIC
+        pcreposix
+)

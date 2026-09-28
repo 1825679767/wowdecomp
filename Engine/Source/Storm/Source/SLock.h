@@ -27,6 +27,8 @@ class SSyncObject {
 
     SSyncObject();
     ~SSyncObject();
+    void Close();
+    int32_t Valid();
     uint32_t Wait(uint32_t timeout);
 };
 

@@ -12,11 +12,11 @@ class GuildStats_C {
 
     /* 0000 */ int32_t m_id;
     /* 0004 */ uint8_t unk_0004[736];
-    /* 02E4 */ uint32_t unk_02E4;
-    /* 02E8 */ uint32_t unk_02E8;
-    /* 02EC */ uint32_t unk_02EC;
-    /* 02F0 */ uint32_t unk_02F0;
-    /* 02F4 */ uint32_t unk_02F4;
+    /* 02E4 */ int32_t m_emblemStyle;
+    /* 02E8 */ int32_t m_emblemColor;
+    /* 02EC */ int32_t m_borderStyle;
+    /* 02F0 */ int32_t m_borderColor;
+    /* 02F4 */ int32_t m_background;
     /* 02F8 */ uint32_t unk_02F8;
 
     void Pack(CDataStore* msg);

@@ -12,7 +12,7 @@
 class CHARACTER_INFO;
 class RealmConnection;
 class RealmResponse;
-struct RealmInfo;
+struct REALM_INFO;
 
 class CHARACTER_INFO {
     public:
@@ -84,9 +84,9 @@ class RealmConnection : public NetClient {
 
     ~RealmConnection() override;
     void HandleAuthChallenge(AuthenticationChallenge* challenge) override;
-    void HandleConnect() override;
-    void HandleDisconnect() override;
-    void HandleCantConnect() override;
+    int32_t HandleConnect() override;
+    int32_t HandleDisconnect() override;
+    int32_t HandleCantConnect() override;
     virtual void HandleCharacterCreate(uint8_t result) = 0;
     virtual void HandleCharacterDelete(uint8_t result) = 0;
     virtual void HandleCharacterLoginFailed(uint8_t result) = 0;
@@ -95,12 +95,22 @@ class RealmConnection : public NetClient {
     virtual void HandleLogoutAbortAck() = 0;
 
     RealmConnection(RealmResponse* realmResponse);
+    int32_t HandleAddonInfo(uint32_t msgId, uint32_t time, CDataStore* msg);
+    int32_t HandleAuthResponse(uint32_t msgId, uint32_t time, CDataStore* msg);
+    int32_t HandleCharEnum(uint32_t msgId, uint32_t time, CDataStore* msg);
+    int32_t HandleCharacterCreate(uint32_t msgId, uint32_t time, CDataStore* msg);
+    int32_t HandleCharacterDelete(uint32_t msgId, uint32_t time, CDataStore* msg);
+    int32_t HandleCharacterLoginFailed(uint32_t msgId, uint32_t time, CDataStore* msg);
+    int32_t HandleClientCacheVersion(uint32_t msgId, uint32_t time, CDataStore* msg);
+    int32_t HandleLogoutResponse(uint32_t msgId, uint32_t time, CDataStore* msg);
+    void RequestCharacterEnum();
+    void SetSelectedRealm(uint32_t a1, uint32_t a2, uint32_t a3);
 };
 
 class RealmResponse {
     public:
     virtual void LoginServerResult(LOGIN_STATE state, LOGIN_RESULT result, const char* message1, const char* message2, const char* message3) = 0;
-    virtual void RealmListReceived(TSFixedArray<RealmInfo>& realms) = 0;
+    virtual void RealmListReceived(TSFixedArray<REALM_INFO>& realms) = 0;
     virtual void JoinRealmResult(uint32_t realmID, int32_t result, int32_t a3, int32_t a4, int32_t a5);
     virtual void HandleAuthResponse(RealmConnection* connection, uint8_t result) = 0;
     virtual void AddOnListReceived(RealmConnection* connection) = 0;

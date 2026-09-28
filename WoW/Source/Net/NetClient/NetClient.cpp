@@ -1,10 +1,14 @@
 #include "NetClient.h"
+#include <cstdlib>
 #include <cstring>
 #include <new>
 #include "Engine/Source/Base/Prop.h"
+#include "Engine/Source/ConsoleBase/IConsole.h"
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "WoW/Source/Glue/CGlueMgr.h"
+#include "_Triage/SHA1.h"
 
 // STATIC: 0x00AD2ED0
 static TSList<NETCLIENTNODE> s_clientList;
@@ -23,6 +27,96 @@ static uint32_t s_idleStats[4];
 
 // STATIC: 0x00C5D654
 uint32_t NetClient::s_clientCount;
+
+// VERIFY: 44b868cd manual
+// OFFSET: 0x006321B0
+static bool __stdcall ComputeProofOfWork(const SHA1_CONTEXT* context, uint32_t difficulty, uint64_t* proof) {
+    uint64_t nonce = 0;
+
+    while (true) {
+        SHA1_CONTEXT attempt;
+        memcpy(&attempt, context, sizeof(attempt));
+        SHA1_Update(&attempt, reinterpret_cast<const uint8_t*>(&nonce), sizeof(nonce));
+
+        uint8_t digest[20];
+        SHA1_Final(digest, &attempt);
+
+        uint8_t bits = 0;
+        int32_t i = 0;
+
+        while (!digest[i]) {
+            i++;
+            bits += 8;
+
+            if (i >= 20) {
+                break;
+            }
+        }
+
+        if (i < 20) {
+            for (uint8_t value = digest[i]; !(value & 1); value >>= 1) {
+                bits++;
+            }
+        }
+
+        if (bits >= difficulty) {
+            break;
+        }
+
+        if (++nonce == 0) {
+            return false;
+        }
+    }
+
+    *proof = nonce;
+
+    return true;
+}
+
+// VERIFY: 0b11eb2d auto
+// OFFSET: 0x00633330
+void NetClient::WCMessageReady(WowConnection* connection, uint32_t timeStamp, CDataStore* msg) {
+    uint32_t size = msg->m_size;
+    void* data;
+    msg->GetDataInSitu(data, size);
+    InterlockedExchangeAdd(reinterpret_cast<volatile LONG*>(&this->m_bytesReceived), msg->m_size);
+    msg->m_read = 0;
+
+    uint16_t msgId;
+    msg->Get(msgId);
+
+    switch (msgId) {
+        case SMSG_CONNECT_TO:
+            this->HandleRedirectClient(connection, msg);
+            return;
+
+        case SMSG_PONG:
+            this->HandlePong(connection, msg);
+            return;
+
+        case SMSG_AUTH_CHALLENGE:
+            this->HandleAuthChallenge(connection, msg);
+            return;
+
+        case SMSG_SUSPEND_COMMS:
+            this->HandleSuspendComms(connection, msg);
+            return;
+
+        case SMSG_RESUME_COMMS:
+            this->HandleResumeComms(connection, msg);
+            return;
+
+        default:
+            break;
+    }
+
+    if (connection == this->m_serverConnection && !this->m_suspended) {
+        msg->m_read = msg->m_size;
+        this->m_netEventQueue->AddEvent(EVENT_ID_NET_DATA, connection, this, data, size);
+    } else {
+        connection->Disconnect();
+    }
+}
 
 // VERIFY: 74c166be manual
 // OFFSET: 0x00633440
@@ -127,6 +221,32 @@ int32_t NetClient::Initialize() {
     return 1;
 }
 
+// VERIFY: 22bd59ed auto
+// OFFSET: 0x00631E10
+int32_t NetClient::ConnectInternal(const char* host, uint16_t port) {
+    if (this->m_netState != NS_INITIALIZED) {
+        SErrDisplayAppFatal("Expected (m_netState == NS_INITIALIZED), got %d", this->m_netState);
+    }
+
+    this->m_netState = NS_CONNECTING;
+    this->m_serverConnection->Connect(host, port, -1);
+
+    if (this->m_redirectConnection) {
+        this->m_redirectConnection->SetResponse(nullptr, false);
+        this->m_redirectConnection->Disconnect();
+        this->m_redirectConnection->Release();
+        this->m_redirectConnection = nullptr;
+    }
+
+    return 1;
+}
+
+// VERIFY: 0454197e auto
+// OFFSET: 0x00631F70
+void NetClient::SetLoginData(LoginData* loginData) {
+    memcpy(&this->m_loginData, loginData, sizeof(this->m_loginData));
+}
+
 // VERIFY: f1080d7c auto
 // OFFSET: 0x00631FA0
 void NetClient::SetMessageHandler(NETMESSAGE msgId, MESSAGE_HANDLER handler, void* param) {
@@ -141,10 +261,286 @@ void NetClient::ResetHandler(NETMESSAGE msgId) {
     this->m_handlerParams[msgId] = nullptr;
 }
 
+// VERIFY: 59f00590 auto
+// OFFSET: 0x00631FE0
+int32_t NetClient::ProcessMessage(uint32_t timeReceived, CDataStore* msg, int32_t a4) {
+    s_stats[4]++;
+
+    uint16_t msgId;
+    msg->Get(msgId);
+    this->ValidateMessageId(msgId);
+
+    if (msgId < NUM_MSG_TYPES && this->m_handlers[msgId]) {
+        return this->m_handlers[msgId](this->m_handlerParams[msgId], static_cast<NETMESSAGE>(msgId), timeReceived, msg);
+    }
+
+    msg->Reset();
+
+    return 0;
+}
+
+void NetClient::ValidateMessageId(uint32_t msgId) {
+}
+
+// VERIFY: eb4bad4d auto
+// OFFSET: 0x00632060
+void NetClient::WCConnected(WowConnection* connection, WowConnection* inbound, uint32_t timeStamp, const NETCONNADDR* addr) {
+    if (connection != this->m_serverConnection) {
+        return;
+    }
+
+    this->m_pingLock.Enter();
+    this->m_connectedTimestamp = timeStamp;
+    this->m_bytesReceived = 0;
+    this->m_bytesSent = 0;
+    this->m_latencyStart = 0;
+    this->m_latencyEnd = 0;
+    this->m_pingSent = OsGetAsyncTimeMs();
+    this->m_pingLock.Leave();
+
+    this->m_netEventQueue->AddEvent(EVENT_ID_NET_CONNECT, connection, this, nullptr, 0);
+}
+
+// VERIFY: d632b494 manual
+// OFFSET: 0x006320D0
+void NetClient::GetNetStats(float& bytesIn, float& bytesOut, uint32_t& latency) {
+    this->m_pingLock.Enter();
+
+    double elapsed = (OsGetAsyncTimeMs() - this->m_connectedTimestamp) * 0.001;
+    bytesIn = this->m_bytesReceived * 0.0009765625 / elapsed;
+    bytesOut = 0.0009765625 * this->m_bytesSent / elapsed;
+
+    uint32_t count = 0;
+    uint32_t total = 0;
+    uint32_t index = this->m_latencyStart;
+    uint32_t end = this->m_latencyEnd;
+
+    while (index != end) {
+        if (index >= 16) {
+            index = 0;
+
+            if (!end) {
+                break;
+            }
+        }
+
+        total += this->m_latency[index++];
+        count++;
+    }
+
+    latency = count ? total / count : 0;
+
+    this->m_pingLock.Leave();
+}
+
 // VERIFY: 2549c452 auto
 // OFFSET: 0x006321A0
 void NetClient::PollEventQueue() {
     this->m_netEventQueue->Poll();
+}
+
+// VERIFY: 1eecebd5 auto
+// OFFSET: 0x006323C0
+int32_t NetClient::Connect(const char* address) {
+    if (this->m_netState != NS_INITIALIZED) {
+        SErrDisplayAppFatal("Expected (m_netState == NS_INITIALIZED), got %d", this->m_netState);
+    }
+
+    uint16_t port = 9090;
+    char host[1024];
+    SStrCopy(host, address, sizeof(host));
+
+    char* separator = SStrChr(host, ':');
+
+    if (separator) {
+        *separator = '\0';
+        port = atol(separator + 1);
+    }
+
+    this->m_serverConnection->SetEncryption(false);
+    this->m_netState = NS_INITIALIZED;
+
+    return this->ConnectInternal(host, port);
+}
+
+// VERIFY: f0345188 manual
+// OFFSET: 0x00632460
+int32_t NetClient::HandleData(uint32_t timeReceived, void* data, int32_t size) {
+    if (this->m_objMgr) {
+        NetClient::PushObjMgr(this->m_objMgr);
+    }
+
+    s_stats[3] += size + 2;
+
+    if (this->m_netState == NS_CONNECTED) {
+        CDataStore msg(static_cast<uint8_t*>(data), size);
+        this->ProcessMessage(timeReceived, &msg, 0);
+    }
+
+    NetClient::PopObjMgr();
+
+    return 1;
+}
+
+// VERIFY: 72928567 auto
+// OFFSET: 0x00632510
+int32_t NetClient::HandleConnect() {
+    if (this->m_objMgr) {
+        NetClient::PushObjMgr(this->m_objMgr);
+    }
+
+    this->m_netState = NS_CONNECTED;
+    NetClient::PopObjMgr();
+
+    return 1;
+}
+
+// VERIFY: df419859 auto
+// OFFSET: 0x00632540
+int32_t NetClient::HandleDisconnect() {
+    if (this->m_objMgr) {
+        NetClient::PushObjMgr(this->m_objMgr);
+    }
+
+    this->m_netState = NS_INITIALIZED;
+    ConsolePrintf("NetClient::HandleDisconnect()");
+    CGlueMgr::NetDisconnectHandler(this);
+    NetClient::PopObjMgr();
+
+    return 1;
+}
+
+// VERIFY: 251c34c2 auto
+// OFFSET: 0x00632590
+int32_t NetClient::HandleCantConnect() {
+    if (this->m_objMgr) {
+        NetClient::PushObjMgr(this->m_objMgr);
+    }
+
+    this->m_netState = NS_INITIALIZED;
+    NetClient::PopObjMgr();
+
+    return 1;
+}
+
+// VERIFY: 5652082f auto
+// OFFSET: 0x006325C0
+void NetClient::HandlePong(WowConnection* connection, CDataStore* msg) {
+    if (connection != this->m_serverConnection || this->m_suspended) {
+        connection->Disconnect();
+        return;
+    }
+
+    this->m_pingLock.Enter();
+
+    uint32_t sequence;
+    msg->Get(sequence);
+
+    if (sequence != this->m_pingSequence) {
+        ConsolePrintf("Received pong with old sequence");
+        this->m_pingLock.Leave();
+        return;
+    }
+
+    this->m_latency[this->m_latencyEnd++] = OsGetAsyncTimeMs() - this->m_pingSent;
+
+    if (this->m_latencyEnd >= 16) {
+        this->m_latencyEnd = 0;
+    }
+
+    if (this->m_latencyEnd == this->m_latencyStart) {
+        if (++this->m_latencyStart >= 16) {
+            this->m_latencyStart = 0;
+        }
+    }
+
+    this->m_pingLock.Leave();
+}
+
+// VERIFY: 1421ef4d manual
+// OFFSET: 0x00632690
+void NetClient::EnableEncryption(WowConnection* connection, const uint8_t* seed, uint8_t seedLength) {
+    connection->SetEncryptionKey(this->m_loginData.m_sessionKey, sizeof(this->m_loginData.m_sessionKey), 1, seed, seedLength);
+    connection->m_uint375 = 4;
+    connection->m_uint376 = 2;
+    connection->SetEncryption(true);
+}
+
+// VERIFY: 08d8deb0 auto
+// OFFSET: 0x006326D0
+void NetClient::WCDisconnected(WowConnection* connection, uint32_t timeStamp, const NETCONNADDR* addr) {
+    this->m_pingLock.Enter();
+    OsGetAsyncTimeMs();
+
+    float bytesIn;
+    float bytesOut;
+    uint32_t latency;
+    this->GetNetStats(bytesIn, bytesOut, latency);
+
+    this->m_pingLock.Leave();
+
+    if (this->m_netEventQueue) {
+        this->m_netEventQueue->AddEvent(EVENT_ID_NET_DISCONNECT, connection, this, nullptr, 0);
+    }
+}
+
+// VERIFY: 4a65a25e manual
+// OFFSET: 0x00632730
+void NetClient::HandleAuthChallenge(WowConnection* connection, CDataStore* msg) {
+    AuthenticationChallenge* challenge = static_cast<AuthenticationChallenge*>(SMemAlloc(sizeof(AuthenticationChallenge), __FILE__, __LINE__, 0));
+
+    uint32_t difficulty;
+    msg->Get(difficulty);
+    msg->Get(challenge->m_serverSeed);
+
+    uint32_t seeds[8];
+
+    for (int32_t i = 0; i < 8; i++) {
+        msg->Get(seeds[i]);
+    }
+
+    SHA1_CONTEXT context;
+    SHA1_Init(&context);
+    SHA1_Update(&context, reinterpret_cast<const uint8_t*>(this->m_loginData.m_account), SStrLen(this->m_loginData.m_account));
+
+    for (int32_t i = 0; i < 8; i++) {
+        SHA1_Update(&context, reinterpret_cast<const uint8_t*>(&seeds[i]), sizeof(seeds[i]));
+    }
+
+    if (!ComputeProofOfWork(&context, difficulty, &challenge->m_proof)) {
+        connection->Disconnect();
+    } else if (connection == this->m_serverConnection) {
+        this->m_netEventQueue->AddEvent(EVENT_ID_NET_AUTH_CHALLENGE, connection, this, challenge, sizeof(AuthenticationChallenge));
+    } else if (connection == this->m_redirectConnection) {
+        CDataStore reply;
+        reply.Put(static_cast<uint32_t>(CMSG_AUTH_CONTINUED_SESSION));
+        reply.PutString(this->m_loginData.m_account);
+        reply.Put(challenge->m_proof);
+
+        SHA1_Init(&context);
+        SHA1_Update(&context, reinterpret_cast<const uint8_t*>(this->m_loginData.m_account), SStrLen(this->m_loginData.m_account));
+        SHA1_Update(&context, this->m_loginData.m_sessionKey, sizeof(this->m_loginData.m_sessionKey));
+        SHA1_Update(&context, reinterpret_cast<const uint8_t*>(&challenge->m_serverSeed), sizeof(challenge->m_serverSeed));
+
+        uint8_t digest[20];
+        SHA1_Final(digest, &context);
+        reply.PutData(digest, sizeof(digest));
+        reply.Finalize();
+
+        this->m_redirectConnection->SendPacket(&reply, 0);
+
+        WowConnection* redirect = this->m_redirectConnection;
+        redirect->SetEncryptionKey(this->m_loginData.m_sessionKey, sizeof(this->m_loginData.m_sessionKey), 1, reinterpret_cast<const uint8_t*>(seeds), sizeof(seeds));
+        redirect->m_uint375 = 4;
+        redirect->m_uint376 = 2;
+        redirect->SetEncryption(true);
+    } else {
+        connection->Disconnect();
+    }
+
+    if (challenge) {
+        SMemFree(challenge, "delete", SLOG_FUNCTION, 0);
+    }
 }
 
 // VERIFY: 1f76bddf manual
@@ -166,6 +562,56 @@ NetClient::NetClient() {
 
     NETCLIENTNODE* node = s_clientList.NewNode(2, 0, 0);
     node->m_client = this;
+}
+
+// VERIFY: 3e4c9045 manual
+// OFFSET: 0x00632B50
+void NetClient::Send(CDataStore* msg) {
+    if (this->m_netState != NS_CONNECTED) {
+        return;
+    }
+
+    uint32_t size = msg->m_size - msg->m_read;
+
+    if (!size) {
+        return;
+    }
+
+    if (this->m_suspended) {
+        NetClient::HELDMESSAGE* held = this->m_heldMessages.NewNode(2, 0, 0);
+        uint32_t bytes = msg->m_size - msg->m_read;
+        void* data;
+        msg->GetDataInSitu(data, bytes);
+        held->m_msg.PutData(data, bytes);
+        held->m_msg.Finalize();
+        return;
+    }
+
+    this->m_serverConnection->SendPacket(msg, 0);
+    WowConnection* connection = this->m_serverConnection;
+    s_stats[0] += size;
+    s_stats[1]++;
+    this->m_bytesSent += size;
+
+    if (!connection->m_encrypt) {
+        this->EnableEncryption(connection, nullptr, 0);
+    }
+}
+
+// VERIFY: 8b86ade7 manual
+// OFFSET: 0x00632C10
+void NetClient::WCCantConnect(WowConnection* connection, uint32_t timeStamp, const NETCONNADDR* addr) {
+    if (connection == this->m_redirectConnection) {
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_CONNECT_TO_FAILED));
+        msg.Put(this->unk_2E40);
+        msg.Finalize();
+        this->Send(&msg);
+        this->m_redirectConnection->Release();
+        this->m_redirectConnection = nullptr;
+    } else if (connection == this->m_serverConnection) {
+        this->m_netEventQueue->AddEvent(EVENT_ID_NET_CANTCONNECT, connection, this, nullptr, 0);
+    }
 }
 
 // VERIFY: af338d14 manual
@@ -206,4 +652,109 @@ void NetClient::HandleIdle() {
     if (static_cast<int32_t>(OsGetAsyncTimeMs() - this->m_pingSent - 30000) >= 0) {
         this->Ping();
     }
+}
+
+// VERIFY: 4b27bdaa manual
+// OFFSET: 0x00631EA0
+void NetClient::Disconnect() {
+    if (this->m_redirectConnection) {
+        this->m_redirectConnection->SetResponse(nullptr, false);
+        this->m_redirectConnection->Disconnect();
+        this->m_redirectConnection->Release();
+        this->m_redirectConnection = nullptr;
+    }
+
+    if (this->m_netState == NS_CONNECTED) {
+        this->m_netState = NS_UNK_6;
+        this->m_serverConnection->Disconnect();
+        return;
+    }
+
+    this->m_serverConnection->SetResponse(nullptr, false);
+    this->m_serverConnection->Disconnect();
+    this->m_netEventQueue->Clear();
+    this->m_serverConnection->Release();
+    this->m_serverConnection = new (SMemAlloc(sizeof(WowConnection), __FILE__, __LINE__, 0)) WowConnection(this, nullptr);
+    this->m_netState = NS_INITIALIZED;
+}
+
+// VERIFY: 7891283c manual
+// OFFSET: 0x006322A0
+void NetClient::Destroy() {
+    if (this->m_netState == NS_UNINITIALIZED) {
+        return;
+    }
+
+    this->Disconnect();
+    this->m_serverConnection->SetResponse(nullptr, false);
+    this->m_serverConnection->Release();
+    this->m_serverConnection = nullptr;
+    memset(this->m_handlers, 0, sizeof(this->m_handlers));
+    memset(this->m_handlerParams, 0, sizeof(this->m_handlerParams));
+
+    delete this->m_netEventQueue;
+    this->m_netEventQueue = nullptr;
+
+    if (--NetClient::s_clientCount == 0) {
+        OsSleep(1);
+        WowConnection::DestroyOsNet();
+    }
+
+    this->m_netState = NS_UNINITIALIZED;
+
+    if (!NetClient::s_clientCount) {
+        ConsolePrintf("Client net stats: %Lu bytes sent, %Lu bytes received, %Lu msec elapsed", s_stats[0], s_stats[3], OsGetAsyncTimeMs() - s_initializeTime);
+    }
+}
+
+// VERIFY: a5e5149c manual
+// OFFSET: 0x006331B0
+NetClient::~NetClient() {
+    this->Destroy();
+
+    for (NETCLIENTNODE* node = s_clientList.Head(); node; node = s_clientList.Next(node)) {
+        if (node->m_client == this) {
+            s_clientList.DeleteNode(node);
+            break;
+        }
+    }
+}
+
+// VERIFY: 4136bd3d auto
+// OFFSET: 0x00633630
+void NETEVENTQUEUE::Clear() {
+    this->m_critSect.Enter();
+    this->m_eventQueue.Clear();
+    this->m_critSect.Leave();
+}
+
+// VERIFY: 796de75c manual
+// OFFSET: 0x00633650
+void NETEVENTQUEUE::AddEvent(EVENTID eventId, void* connection, NetClient* client, const void* data, uint32_t size) {
+    this->m_critSect.Enter();
+
+    NETEVENTQUEUENODE* node = this->m_eventQueue.NewNode(2, 0, 8);
+    node->m_eventId = eventId;
+
+    if (size) {
+        node->m_data = SMemAlloc(size, __FILE__, __LINE__, 0);
+        memcpy(node->m_data, data, size);
+        node->m_dataSize = size;
+    } else {
+        node->m_data = nullptr;
+        node->m_dataSize = 0;
+    }
+
+    node->m_timeReceived = OsGetAsyncTimeMs();
+    client->m_refCount.Increment();
+
+    this->m_critSect.Leave();
+}
+
+// VERIFY: 4d2c7b3d manual
+// OFFSET: 0x00633730
+NETEVENTQUEUE::~NETEVENTQUEUE() {
+    this->m_critSect.Enter();
+    this->m_eventQueue.Clear();
+    this->m_critSect.Leave();
 }

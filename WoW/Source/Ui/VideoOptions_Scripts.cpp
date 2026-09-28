@@ -24,7 +24,6 @@
 int32_t Script_SetScreenResolution(lua_State* L);
 int32_t Script_SetupFullscreenScale(lua_State* L);
 int32_t Script_SetMultisampleFormat(lua_State* L);
-int32_t Script_SetTerrainMip(lua_State* L);
 
 // STATIC: 0x00A0C7C0
 static const int32_t s_formatBits[CGxFormat::Formats_Last] = { 16, 24, 24, 30, 16, 24, 24, 32 };
@@ -77,6 +76,23 @@ static int32_t Script_GetTerrainMip(lua_State* L) {
     CVar* shadowLevel = CVar::Lookup("shadowLevel");
     lua_pushnumber(L, 1.0 - shadowLevel->m_intValue);
     return 1;
+}
+
+// VERIFY: 4f98daeb auto
+// OFFSET: 0x0054EB40
+static int32_t Script_SetTerrainMip(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: SetTerrainMip(value)");
+        return 0;
+    }
+
+    int32_t value = static_cast<int32_t>(lua_tonumber(L, 1));
+
+    char buffer[16];
+    SStrPrintf(buffer, sizeof(buffer), "%d", 1 - value);
+    CVar::Lookup("shadowLevel")->Set(buffer, true, false, false, true);
+
+    return 0;
 }
 
 // VERIFY: 9e434c59 auto
@@ -439,5 +455,13 @@ static FrameScript_Method s_scriptFunctions[] = {
 void CGVideoOptions::RegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_scriptFunctions) / sizeof(s_scriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_scriptFunctions[i].m_name, s_scriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: d9c16912 auto
+// OFFSET: 0x0054EC30
+void CGVideoOptions::UnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_scriptFunctions) / sizeof(s_scriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_scriptFunctions[i].m_name);
     }
 }

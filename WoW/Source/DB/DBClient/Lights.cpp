@@ -1,6 +1,73 @@
 #include <cstdint>
+#include "Engine/Source/Tempest/CImVector.h"
+#include "Engine/Source/Tempest/CMath.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/LightIntBandRec.h"
+#include "WoW/Source/DB/Rec/LightParamsRec.h"
+#include "WoW/Source/WorldClient/DayNight__DNInfo.h"
 #include "WoW/Source/WorldClient/World.h"
+
+// VERIFY: 7c5384b3 manual
+// OFFSET: 0x007EAE70
+static void GetBandTimeRange(const int32_t* times, int32_t count, int32_t time, int32_t& index, float& t, int32_t& next) {
+    next = 0;
+    t = 0.0f;
+    index = 0;
+
+    if (count <= 0) {
+        return;
+    }
+
+    do {
+        int32_t start = times[index];
+        next = (index + 1) % count;
+        int32_t end = times[next];
+
+        if (end > start) {
+            if (time >= start && time <= end) {
+                t = static_cast<float>(time - start) / (end - start);
+                return;
+            }
+        } else if (time <= end || time >= start) {
+            end += 2880;
+
+            if (time < start) {
+                time += 2880;
+            }
+
+            t = static_cast<float>(time - start) / (end - start);
+            return;
+        }
+
+        index++;
+    } while (index < count);
+}
+
+// VERIFY: ba90e0db manual
+// OFFSET: 0x007EB070
+static CImVector InterpolateIntBand(const LightIntBandRec& rec, int32_t time) {
+    CImVector color;
+
+    if (!rec.m_num) {
+        *reinterpret_cast<uint32_t*>(&color) = 0xFF000000;
+        return color;
+    }
+
+    int32_t index;
+    float t;
+    int32_t next;
+    GetBandTimeRange(rec.m_time, rec.m_num, time, index, t, next);
+
+    const CImVector& from = *reinterpret_cast<const CImVector*>(&rec.m_data[index]);
+    const CImVector& to = *reinterpret_cast<const CImVector*>(&rec.m_data[next]);
+
+    int32_t r = CMath::fint_((to.r - from.r) * t + from.r);
+    int32_t g = CMath::fint_((to.g - from.g) * t + from.g);
+    int32_t b = CMath::fint_((to.b - from.b) * t + from.b);
+
+    *reinterpret_cast<uint32_t*>(&color) = ((((r & 0xFF) | 0xFFFFFF00) << 8 | (g & 0xFF)) << 8) | (b & 0xFF);
+    return color;
+}
 
 // VERIFY: d2967a23 manual
 // OFFSET: 0x007EAF60
@@ -41,4 +108,12 @@ static void TransformLights(bool transform) {
 // OFFSET: 0x007EB060
 void InitLights(bool transform) {
     TransformLights(transform);
+}
+
+// VERIFY: b70039a6 auto
+// OFFSET: 0x007EBF30
+CImVector DayNight::LoadLightIntBand(int32_t time, const LightParamsRec* params, int32_t band) {
+    LightIntBandRec rec;
+    g_lightIntBandDB.GetRecord(band + 18 * params->m_id - 17, &rec);
+    return InterpolateIntBand(rec, time);
 }

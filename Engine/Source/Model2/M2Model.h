@@ -200,8 +200,8 @@ class CM2Model {
     /* 01A0 */ C3Vector m_diffuseColor;
     /* 01AC */ C3Vector m_emissiveColor;
     /* 01B8 */ float unk_01B8;
-    /* 01BC */ void (*m_drawCallback)(CM2Model*);
-    /* 01C0 */ uint32_t unk_01C0;
+    /* 01BC */ void (*m_drawCallback)(CM2Model*, const CM2Lighting*, void*);
+    /* 01C0 */ void* m_drawArg;
     /* 01C4 */ void* m_eventCallback;
     /* 01C8 */ uint64_t m_eventCallbackParam;
     /* 01D0 */ M2ModelLight* m_lights;
@@ -277,6 +277,7 @@ class CM2Model {
     CAaSphere GetMaxBoundingSpherePlusAttachments();
     uint32_t GetSequenceVariationCount(uint32_t id);
     CAaBox GetSplitBodyBoundingBox(uint32_t boneId);
+    C3Vector GetWorldPosition();
     int32_t HasBone(uint32_t boneId);
     int32_t HasSequence(const M2Data* data, uint32_t id);
     int32_t HasSequence(uint32_t id);

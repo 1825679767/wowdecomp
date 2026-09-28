@@ -22,6 +22,7 @@ class FVBBList {
     /* 0004 */ uint32_t m_blockSize;
     /* 0008 */ TSExplicitList<Block, offsetof(Block, m_link)> m_blocks;
 
+    void Destroy();
     void Initialize(EGxPoolTarget target, EGxPoolUsage usage, uint32_t itemSize, uint32_t itemCount, uint32_t blockCount);
 };
 

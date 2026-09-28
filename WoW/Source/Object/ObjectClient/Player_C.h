@@ -10,6 +10,7 @@
 #include "WoW/Source/Object/WGUID.h"
 
 class C3Vector;
+class CreatureModelDataRec;
 class SpellRec;
 class SpellVisualKitRec;
 
@@ -38,5 +39,8 @@ class PlaySpellVisuaKitData {
     /* 0028 */ WGUID m_someGUID;
     /* 0030 */ uint32_t unk_0030;
 };
+
+uint32_t GetDisplayIdFromRaceAndGender(uint32_t race, uint32_t gender);
+CreatureModelDataRec* GetModelDataRec(uint32_t race, uint32_t gender);
 
 #endif

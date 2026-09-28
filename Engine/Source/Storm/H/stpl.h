@@ -113,6 +113,15 @@ class TSFixedArray : public TSBaseArray<T> {
 };
 
 template <class T>
+class TSBitField {
+    public:
+    /* 0000 */ uint32_t m_count;
+    /* 0004 */ T m_bits;
+
+    void Load(const void* data, uint32_t bytes, int32_t bits);
+};
+
+template <class T>
 class TSGrowableArray : public TSFixedArray<T> {
     public:
     /* 000C */ uint32_t m_chunk;
@@ -822,11 +831,11 @@ uint32_t TSGrowableArray<T>::Add(uint32_t count, uint32_t incr, const T* data) {
     return this->m_count - count;
 }
 
-// VERIFY: 6cd6a5cc manual
+// VERIFY: 52330a88 manual
 // OFFSET: [0x004BBD60, 0x00548600, 0x0057C0E0, 0x00590830, 0x00590AE0, 0x005D0040, 0x006C41D0, 0x00790400, 0x007AE270, 0x007F7980]
 template <class T>
 uint32_t TSGrowableArray<T>::CalcChunkSize(uint32_t count) {
-    uint32_t maxchunk = 256 / sizeof(T);
+    uint32_t maxchunk = 256 / sizeof(T) > 8 ? 256 / sizeof(T) : 8;
 
     if (count >= maxchunk) {
         this->m_chunk = maxchunk;
@@ -1183,7 +1192,8 @@ int32_t TSHashTable<T, TKey>::MonitorFullness(uint32_t slot) {
     return 0;
 }
 
-// INLINED
+// VERIFY: f5512cc0 auto
+// OFFSET: [0x0067B660]
 template <class T, class TKey>
 T* TSHashTable<T, TKey>::New(uint32_t hashval, const TKey& key, size_t extrabytes, uint32_t flags) {
     T* node = this->InternalNewNode(hashval, extrabytes, flags);
@@ -1212,7 +1222,7 @@ T* TSHashTable<T, TKey>::New(const char* str, size_t extrabytes, uint32_t flags)
 }
 
 // VERIFY: cb777ac9 manual
-// OFFSET: [0x004B6D90, 0x004BB1E0, 0x00505480, 0x006BBD40, 0x006C2A50, 0x006F6020, 0x007B0690, 0x007BDD80, 0x007BDDF0, 0x00810970]
+// OFFSET: [0x004B6D90, 0x004BB1E0, 0x004D4BB0, 0x00505480, 0x00679350, 0x006BBD40, 0x006C2A50, 0x006F6020, 0x007B0690, 0x007BDD80, 0x007BDDF0, 0x00810970]
 template <class T, class TKey>
 T* TSHashTable<T, TKey>::Ptr(uint32_t hashval, const TKey& key) {
     if (this->m_slotmask == 0xFFFFFFFF) {
@@ -1508,6 +1518,15 @@ inline bool HASHKEY_STRI::operator==(const char* str) {
 // INLINED
 inline bool HASHKEY_UTF8I::operator==(const char* str) {
     return SStrCmpUTF8I(this->m_str, str, STORM_MAX_STR) == 0;
+}
+
+// INLINED
+template <class T>
+void TSBitField<T>::Load(const void* data, uint32_t bytes, int32_t bits) {
+    uint32_t count = bits == -1 ? bytes * 8 : bits;
+    this->m_count = count;
+    this->m_bits.SetCount(count ? ((count - 1) >> 5) + 1 : 0);
+    memcpy(this->m_bits.m_data, data, bytes);
 }
 
 #endif

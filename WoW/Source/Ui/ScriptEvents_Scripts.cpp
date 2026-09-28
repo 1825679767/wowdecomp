@@ -79,3 +79,11 @@ void SystemRegisterFunctions() {
         FrameScript_RegisterFunction(s_SystemFunctions[i].m_name, s_SystemFunctions[i].m_method);
     }
 }
+
+// VERIFY: 570706e7 auto
+// OFFSET: 0x0060A150
+void SystemUnregisterFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_SystemFunctions) / sizeof(s_SystemFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_SystemFunctions[i].m_name);
+    }
+}

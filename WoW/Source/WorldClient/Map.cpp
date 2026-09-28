@@ -1,8 +1,11 @@
 #include "Map.h"
 #include <cstring>
+#include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/Base/Status.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
+#include "Engine/Source/Gx/CGxBuf.h"
+#include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/CGxTexFlags.h"
 #include "Engine/Source/Os/Processor.h"
 #include "Engine/Source/Services/Texture.h"
@@ -32,6 +35,12 @@ int32_t s_mapId = -1;
 
 // STATIC: 0x00ADFBCC
 FVBBList CMap::s_vbbList;
+
+// STATIC: 0x00AEED74
+TSExplicitList<CMapRenderChunk, offsetof(CMapRenderChunk, m_renderChunkLink)> CMap::s_mapRenderChunkFreeList;
+
+// STATIC: 0x00AEED80
+TSExplicitList<CMapChunkBuf, offsetof(CMapChunkBuf, unk_0014)> CMap::s_unk_AEED80;
 
 // STATIC: 0x00CDF7D0
 float CMap::s_unk_CDF7D0[256];
@@ -144,6 +153,9 @@ static uint32_t unk_CF4958;
 // STATIC: 0x00CF495C
 static uint32_t unk_CF495C;
 
+// STATIC: 0x00CF498C
+static CMapFootprint unk_CF498C[144][4];
+
 // STATIC: 0x00CFBE60
 static TSGrowableArray<CMapFootprintTexture> unk_CFBE60;
 
@@ -155,6 +167,132 @@ uint32_t* CMap::mapObjDefHeap;
 
 // STATIC: 0x00D25430
 uint32_t* CMap::chunkLiquidHeap;
+
+// VERIFY: 6c4a26d2 manual
+// OFFSET: 0x0079F320
+void CMap::Destroy() {
+    if (CMap::bActive) {
+        CMap::Unload();
+    }
+
+    WaterRipple::Destroy();
+    CMapObj::Destroy();
+    CMapChunk::Destroy();
+    CMapArea::Destroy();
+    CDetailDoodad::Destroy();
+    CMap::FootprintDestroy();
+
+    for (uint32_t i = 0; i < sizeof(CMap::vertexShader_Terrain) / sizeof(CMap::vertexShader_Terrain[0]); i++) {
+        if (CMap::vertexShader_Terrain[i]) {
+            g_theGxDevicePtr->ShaderDestroy(CMap::vertexShader_Terrain[i]);
+        }
+    }
+
+    for (uint32_t i = 0; i < sizeof(CMap::pixelShader_Terrain0) / sizeof(CMap::pixelShader_Terrain0[0]); i++) {
+        if (CMap::pixelShader_Terrain0[i]) {
+            g_theGxDevicePtr->ShaderDestroy(CMap::pixelShader_Terrain0[i]);
+        }
+    }
+
+    if (CMap::pixelShader_Terrain0_env) {
+        g_theGxDevicePtr->ShaderDestroy(CMap::pixelShader_Terrain0_env);
+    }
+
+    for (uint32_t i = 0; i < sizeof(CMap::pixelShader_Terrain1) / sizeof(CMap::pixelShader_Terrain1[0]); i++) {
+        if (CMap::pixelShader_Terrain1[i]) {
+            g_theGxDevicePtr->ShaderDestroy(CMap::pixelShader_Terrain1[i]);
+        }
+    }
+
+    for (uint32_t i = 0; i < sizeof(CMap::pixelShader_Terrain2) / sizeof(CMap::pixelShader_Terrain2[0]); i++) {
+        if (CMap::pixelShader_Terrain2[i]) {
+            g_theGxDevicePtr->ShaderDestroy(CMap::pixelShader_Terrain2[i]);
+        }
+    }
+
+    for (uint32_t i = 0; i < sizeof(CMap::pixelShader_Terrain3) / sizeof(CMap::pixelShader_Terrain3[0]); i++) {
+        if (CMap::pixelShader_Terrain3[i]) {
+            g_theGxDevicePtr->ShaderDestroy(CMap::pixelShader_Terrain3[i]);
+        }
+    }
+
+    if (CMap::pixelShader_TerrainSM) {
+        g_theGxDevicePtr->ShaderDestroy(CMap::pixelShader_TerrainSM);
+    }
+
+    CMap::pixelShader_TerrainSM = nullptr;
+
+    CGxBuf* indexBuf = CMap::lowDetailIndexBuf;
+
+    if (indexBuf && indexBuf != g_theGxDevicePtr->BufStream(indexBuf->m_pool->m_target, 0, 0)) {
+        g_theGxDevicePtr->BufDestroy(indexBuf);
+    }
+
+    if (CMap::lowDetailIndexPool) {
+        g_theGxDevicePtr->PoolDestroy(CMap::lowDetailIndexPool);
+    }
+
+    CMap::s_vbbList.Destroy();
+
+    if (CMap::lightHeap) {
+        SMemFree(CMap::lightHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::cacheLightHeap) {
+        SMemFree(CMap::cacheLightHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::mapObjGroupHeap) {
+        SMemFree(CMap::mapObjGroupHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::mapObjHeap) {
+        SMemFree(CMap::mapObjHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::baseObjLinkHeap) {
+        SMemFree(CMap::baseObjLinkHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::areaHeap) {
+        SMemFree(CMap::areaHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::areaMedHeap) {
+        SMemFree(CMap::areaMedHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::areaLowHeap) {
+        SMemFree(CMap::areaLowHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::chunkHeap) {
+        SMemFree(CMap::chunkHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::doodadDefHeap) {
+        SMemFree(CMap::doodadDefHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::entityHeap) {
+        SMemFree(CMap::entityHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::mapObjDefGroupHeap) {
+        SMemFree(CMap::mapObjDefGroupHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::mapObjDefHeap) {
+        SMemFree(CMap::mapObjDefHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    if (CMap::chunkLiquidHeap) {
+        SMemFree(CMap::chunkLiquidHeap, "delete", SLOG_FUNCTION, 0);
+    }
+
+    CMap::s_mapRenderChunkFreeList.Clear();
+    CMap::s_unk_AEED80.Clear();
+}
 
 // VERIFY: 00edcf9c manual
 // OFFSET: 0x0079E3C0
@@ -301,6 +439,28 @@ void CMap::Initialize() {
 
     if (OsGetProcessorFeaturesEx(vendor) & 0x4) {
         CMap::s_useSSE = 1;
+    }
+}
+
+// INLINED
+CMapFootprintTexture::CMapFootprintTexture() {
+    this->m_texture = nullptr;
+    this->unk_0014 = 0;
+}
+
+// VERIFY: 0a85f193 manual
+// OFFSET: 0x0079F860
+void CMap::FootprintDestroy() {
+    for (uint32_t i = 0; i < 144; i++) {
+        for (uint32_t j = 0; j < 4; j++) {
+            unk_CF498C[i][j].m_link.Unlink();
+        }
+    }
+
+    for (uint32_t i = 0; i < unk_CFBE60.Count(); i++) {
+        if (unk_CFBE60[i].m_texture) {
+            HandleClose(reinterpret_cast<HOBJECT>(unk_CFBE60[i].m_texture));
+        }
     }
 }
 

@@ -18,6 +18,7 @@ static bool ReturnFalse() {
 
 extern "C" int WinMainCRTStartup();
 
+// VERIFY: eff982d2 auto
 // OFFSET: 0x00401000
 extern "C" int start() {
     StormRtlInitialize();

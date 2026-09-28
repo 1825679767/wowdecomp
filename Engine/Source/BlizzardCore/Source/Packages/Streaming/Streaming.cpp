@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/BlizzardCore/Source/System/File/File.h"
@@ -118,5 +119,31 @@ void Blizzard::Time::GetElapsedSinceStart(bool start) {
 
     if (!start) {
         s_elapsedSinceStart = Blizzard::Time::GetTimestamp() - s_startTime;
+    }
+}
+
+// INLINED
+Blizzard::Streaming::DownloadProgress::DownloadProgress() {
+    this->ResetTime();
+}
+
+// INLINED
+Blizzard::Streaming::DownloadProgress::~DownloadProgress() {
+    this->unk_0018 = 0;
+    this->unk_0354 = nullptr;
+    memset(this->unk_0020, 0, sizeof(this->unk_0020));
+}
+
+// VERIFY: 1ed002c0 manual
+// OFFSET: 0x00438300
+void Blizzard::Streaming::DownloadProgress::ResetTime() {
+    this->unk_0018 = static_cast<uint32_t>(Blizzard::Time::Milliseconds());
+}
+
+// VERIFY: d9c84ab5 auto
+// OFFSET: 0x00420930
+void ShutdownStreamingIfTrial() {
+    if (CheckIfStreamingAndTrial()) {
+        GetStreamingManagerSingleton()->Shutdown();
     }
 }

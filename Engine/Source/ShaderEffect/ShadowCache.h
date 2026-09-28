@@ -8,9 +8,8 @@
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/C4Vector.h"
 #include "Engine/Source/Tempest/CAaBox.h"
-#include "_Triage/CWFrustum.h"
+#include "Engine/Source/Tempest/CFrustum.h"
 
-class CFrustum;
 class CGxTex;
 class CTexture;
 struct CShadowCacheQueryData;
@@ -38,9 +37,9 @@ struct CShadowCacheQueryData {
     /* 000C */ int32_t m_active[3];
     /* 0018 */ int32_t m_useCullFrustum[3];
     /* 0024 */ CAaBox m_extents[3];
-    /* 006C */ CWFrustum m_frustums[3];
-    /* 0348 */ CWFrustum m_cullFrustums[3];
-    /* 0624 */ CWFrustum unk_0624[3];
+    /* 006C */ CFrustum m_frustums[3];
+    /* 0348 */ CFrustum m_cullFrustums[3];
+    /* 0624 */ CFrustum unk_0624[3];
     /* 0900 */ float m_cullRects[3][4];
     /* 0930 */ C3Vector m_pos[3];
     /* 0954 */ uint8_t m_textureIndex[3];
@@ -86,7 +85,7 @@ class CShadowCache {
 
     static void ClearBandTextures();
     static void Destroy();
-    static void GatherBands(CShadowCacheQueryData& data, const C3Vector& pos, CWFrustum& frustum, int32_t useCullFrustum);
+    static void GatherBands(CShadowCacheQueryData& data, const C3Vector& pos, CFrustum& frustum, int32_t useCullFrustum);
     static uint32_t GetMaxShadowMode();
     static EShadowMode GetShadowMode();
     static const char* GetShadowModeDesc(uint32_t mode);

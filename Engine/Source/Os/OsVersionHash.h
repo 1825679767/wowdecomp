@@ -18,6 +18,15 @@ class IOsVersionHashCallback {
     virtual void Process(const void* data, uint32_t size) = 0;
 };
 
+template <class T>
+class IOsVersionHashCallback2 : public IOsVersionHashCallback {
+    public:
+    /* 0004 */ T* m_object;
+
+    IOsVersionHashCallback2(T* object);
+    void Process(const void* data, uint32_t size) override;
+};
+
 struct OsVersionHashEntry {
     /* 0000 */ uint32_t m_offset;
     /* 0004 */ uint32_t m_size;
@@ -37,5 +46,17 @@ class OsVersionHash {
 };
 
 int32_t IOsVersionChecksum(IOsVersionHashCallback& callback, const char* path, int32_t loaded);
+
+// INLINED
+template <class T>
+IOsVersionHashCallback2<T>::IOsVersionHashCallback2(T* object) : m_object(object) {
+}
+
+// VERIFY: 99333a2f auto
+// OFFSET: 0x006B9CE0
+template <class T>
+void IOsVersionHashCallback2<T>::Process(const void* data, uint32_t size) {
+    this->m_object->Process(data, size);
+}
 
 #endif

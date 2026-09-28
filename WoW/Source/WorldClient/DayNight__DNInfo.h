@@ -9,6 +9,7 @@
 #include "Engine/Source/Storm/H/stpl.h"
 
 struct DNOverrideSky;
+class LightParamsRec;
 class LightRec;
 
 struct DNFogInfo {
@@ -76,6 +77,11 @@ struct DNInfo {
     /* 01EC */ LightRec* m_nearLight [5];
     /* 0200 */ float m_nearLightBlend [5];
 };
+
+extern DNInfo g_dnInfo;
+
+DNInfo* GetInfo();
+CImVector LoadLightIntBand(int32_t time, const LightParamsRec* params, int32_t band);
 }
 
 #endif

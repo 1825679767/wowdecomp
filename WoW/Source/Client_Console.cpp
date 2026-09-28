@@ -6,6 +6,7 @@
 #include "WoW/Source/Glue/CGlueMgr.h"
 #include "WoW/Source/Ui/GameUI.h"
 
+// VERIFY: 803d6cc2 auto
 // OFFSET: 0x00401B00
 int32_t CCommand_ReloadUI(const char* command, const char* arguments) {
     CGlueMgr::m_reload = 1;

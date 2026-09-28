@@ -9,6 +9,7 @@
 #include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
 class CHashKeyGUID;
 class CWardenKey;
@@ -68,13 +69,16 @@ class DBCache : public Blizzard::Using::GlobalUse {
     void Clear();
     void ClearPending();
     void DenyItem(TKey key);
+    T* GetRecord(TKey key, const uint64_t& guid, void (*callback)(int32_t id, const uint64_t& guid, void* param, bool success), void* param, bool unique);
     void Destroy();
     void Invalidate(TKey key);
     void ItemAdded(T* item);
     void Load();
     void RetryItem(TKey key);
     void Save();
+    void SendSingleQuery(DBCACHEHASH* hash);
     void SetTemporary(TKey key);
+    void VerifyAndUpdateVersion(uint32_t version);
 };
 
 void DBCacheReadKey(CDataStore& msg, int32_t& key);
@@ -258,6 +262,84 @@ void DBCache<T, TKey, THashKey>::Load() {
     }
 }
 
+// VERIFY: 2829d8e7 manual
+// OFFSET: 0x0067D930
+template <class T, class TKey, class THashKey>
+T* DBCache<T, TKey, THashKey>::GetRecord(TKey key, const uint64_t& guid, void (*callback)(int32_t id, const uint64_t& guid, void* param, bool success), void* param, bool unique) {
+    if (DBCacheIsNullKey(key)) {
+        return nullptr;
+    }
+
+    DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
+
+    if (!hash) {
+        if (callback) {
+            hash = this->m_entries.New(DBCacheHashKey(key), key, 0, 0);
+            hash->m_id = key;
+
+            DBCACHECALLBACK* node = hash->m_callbacks.NewNode(2, 0, 0);
+            node->m_callback = callback;
+            node->m_guid = guid;
+            node->m_param = param;
+
+            if (this->m_maxQueriesPerPump && this->m_queriesSent >= this->m_maxQueriesPerPump) {
+                this->m_pending.LinkToTail(hash);
+            } else {
+                this->SendSingleQuery(hash);
+            }
+        }
+
+        return nullptr;
+    }
+
+    if (hash->m_loaded) {
+        return &hash->m_record;
+    }
+
+    if (callback) {
+        if (unique) {
+            for (DBCACHECALLBACK* node = hash->m_callbacks.Head(); node; node = hash->m_callbacks.Next(node)) {
+                if (node->m_callback == callback && node->m_param == param) {
+                    return nullptr;
+                }
+            }
+        }
+
+        DBCACHECALLBACK* node = hash->m_callbacks.NewNode(2, 0, 0);
+        node->m_callback = callback;
+        node->m_guid = guid;
+        node->m_param = param;
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 767cb01c manual
+// OFFSET: 0x00668DA0
+template <class T, class TKey, class THashKey>
+void DBCache<T, TKey, THashKey>::SendSingleQuery(DBCACHEHASH* hash) {
+    CDataStore msg;
+    msg.Put(this->m_queryOpcode);
+    DBCacheWriteKey(msg, hash->m_id);
+
+    if (this->m_sendRequester) {
+        DBCACHECALLBACK* node = hash->m_callbacks.Head();
+        msg.Put(node ? node->m_guid : 0);
+    }
+
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    this->m_queriesSent++;
+}
+
+// VERIFY: e975696b auto
+// OFFSET: [0x0066CC90]
+template <class T, class TKey, class THashKey>
+void DBCache<T, TKey, THashKey>::Clear() {
+    this->m_entries.InternalClear(0);
+    this->m_reverse.InternalClear(0);
+}
+
 // VERIFY: 0b524eff manual
 // OFFSET: [0x0066A010, 0x0066A310, 0x0066A610, 0x0066A900, 0x0066AC00, 0x0066AF00, 0x0066B210, 0x0066B510, 0x0066B810, 0x0066BB00, 0x0066BDF0, 0x0066C0F0, 0x0066C400, 0x0066C710]
 template <class T, class TKey, class THashKey>
@@ -344,6 +426,20 @@ void DBCache<T, TKey, THashKey>::Destroy() {
     this->m_entries.Clear();
     this->m_reverse.Clear();
     this->m_loaded = false;
+}
+
+// VERIFY: dc40f23c auto
+// OFFSET: [0x0066F940, 0x0066F9B0, 0x0066FA20, 0x0066FA90, 0x0066FB00, 0x0066FB70, 0x0066FBE0, 0x0066FC50, 0x0066FCC0, 0x0066FD30, 0x0066FDA0, 0x0066FE10, 0x0066FE80, 0x0066FEF0]
+template <class T, class TKey, class THashKey>
+void DBCache<T, TKey, THashKey>::VerifyAndUpdateVersion(uint32_t version) {
+    if (!this->m_enabled || this->m_version == version) {
+        return;
+    }
+
+    this->ClearPending();
+    this->m_entries.InternalClear(0);
+    this->m_reverse.InternalClear(0);
+    this->m_version = version;
 }
 
 #endif

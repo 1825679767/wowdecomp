@@ -16,12 +16,25 @@ class CGGameUI {
     static uint64_t m_lastEnemyTarget;
     static int32_t m_initialized;
     static int32_t m_inMovie;
+    static uint64_t unk_BD07D0;
 
     static int32_t CameraMusicIsPlaying();
     static void Reload();
+    static void SetAspect();
     static uint64_t GetCursorItem();
+    static uint64_t GetPartyMember(uint32_t index);
+    static uint64_t GetPartyMemberPet(uint32_t index);
+    static uint64_t GetRaidMemberPet(uint32_t index);
     static void InvalidatePlayer(const uint64_t& guid);
     static int32_t SequenceMusicIsPlaying();
+};
+
+class CGPartyMemberState {
+    public:
+    /* 0000 */ uint16_t m_flags;
+    /* 0002 */ uint8_t unk_0002[342];
+    /* 0158 */ WGUID m_petGuid;
+    /* 0160 */ uint8_t unk_0160[432];
 };
 
 class CSpriteClickEvent {
@@ -53,5 +66,9 @@ class CCapturePointUIManager {
     /* 0008 */ uint32_t unk_0008;
     /* 000C */ uint32_t unk_000C;
 };
+
+extern CGPartyMemberState unk_BD0D10[4];
+
+uint64_t GetRaidMemberGUID(uint32_t index);
 
 #endif

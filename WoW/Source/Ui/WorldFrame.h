@@ -67,6 +67,8 @@ struct KEYDOWNSTATE {
 
 class CGWorldFrame : public CSimpleFrame {
     public:
+    static CGWorldFrame* s_currentWorldFrame;
+
     /* 029C */ TSList<void> m_modelList;
     /* 02A8 */ TSList<void> m_hitModelList;
     /* 02B4 */ TSList<void> m_freeModelList;

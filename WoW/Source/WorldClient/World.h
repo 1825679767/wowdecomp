@@ -9,10 +9,16 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/CRect.h"
 #include "Engine/Source/Tempest/C4Vector.h"
+#include "_Triage/CWFrustum.h"
 
 class CAaBox;
 class C44Matrix;
 class CiRect;
+class GxuScene;
+
+namespace Liquid {
+    class CRenderer;
+}
 class CImVector;
 class CM2Scene;
 class CMapEntity;
@@ -73,15 +79,19 @@ struct WorldStatus {
 };
 
 struct SWModelFadeout {
-    /* 0000 */ uint8_t unk_0000[88];
+    /* 0000 */ CMapEntity* m_entity;
+    /* 0004 */ uint8_t unk_0004[84];
     /* 0058 */ TSLink<SWModelFadeout> m_link;
 };
 
+extern TSExplicitList<SWModelFadeout, offsetof(SWModelFadeout, m_link)> s_fadeoutList;
 extern TSExplicitList<SWModelFadeout, offsetof(SWModelFadeout, m_link)> s_fadeoutDataPool;
 
 class CWorldScene {
     public:
-    static CiRect* s_unk_CD8610;
+    static Liquid::CRenderer* s_unk_CD8610;
+    static TSExplicitList<CWFrustum, offsetof(CWFrustum, m_link)> frustumFreeList;
+    static GxuScene s_unk_B2EB68;
     static CTexture* s_defaultBlendTexture;
     static CTexture* s_defaultTexture;
     static float s_unk_CD877C;
@@ -151,6 +161,7 @@ int32_t FrustumCull(const CAaBox& box);
 int32_t ProjectPositionCallback(const C3Vector& position, float& height, void* param);
 void ProjectTextureCallback(const CAaBox& box, const CImVector& color, int32_t index, void* param, int32_t flags);
 bool MapIsDungeon();
+void ObjectDestroy(CMapEntity* entity);
 void SetDetailDoodadDensity(int32_t density);
 void SetDetailDoodadDist(float dist);
 void SetFarClip(float farClip);

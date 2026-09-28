@@ -10,7 +10,7 @@
 
 class CChunkLiquid;
 class CMapChunk;
-class CMapChunkBuf;
+class CMapChunkLiquidBuf;
 
 class CChunkGeomFactory {
     public:
@@ -20,7 +20,7 @@ class CChunkGeomFactory {
     /* 0010 */ uint32_t unk_0010;
     /* 0014 */ CChunkLiquid* m_liquidChunk;
     /* 0018 */ uint32_t unk_0018;
-    /* 001C */ CMapChunkBuf* m_mapChunkBuf;
+    /* 001C */ CMapChunkLiquidBuf* m_mapChunkBuf;
     /* 0020 */ uint32_t unk_0020;
     /* 0024 */ uint32_t unk_0024;
     /* 0028 */ uint32_t unk_0028;

@@ -65,6 +65,7 @@ extern CVar* s_desktopGammaCvar;
 extern uint8_t s_expansionLevel;
 extern CVar* s_gammaCvar;
 extern int32_t s_locale;
+extern const char* s_iniLocaleNames[9];
 extern char s_localeCode[5];
 extern int32_t s_region;
 
@@ -96,5 +97,14 @@ bool TimingMethodCallback(CVar* var, const char* oldValue, const char* value, vo
 bool UIFasterCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 int32_t STORMAPI WowLogHeader(char* buffer, uint32_t bufferchars);
 void ZoneDebugDestroy();
+
+struct ARCHIVELISTPARAMS {
+    /* 0000 */ const char* m_prefix;
+    /* 0004 */ uint32_t m_prefixLength;
+    /* 0008 */ int32_t (*m_callback)(const char* fileName, void* param);
+    /* 000C */ void* m_param;
+};
+
+void ListInterfaceArchive(const char* prefix, int32_t (*callback)(const char* fileName, void* param), void* param);
 
 #endif

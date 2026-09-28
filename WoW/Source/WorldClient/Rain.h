@@ -84,6 +84,8 @@ class Rain {
     /* 00C8 */ CGxShader* m_shaderPatter;
     /* 00CC */ float m_particlesPerFrame;
     /* 00D0 */ float m_intensity;
+
+    ~Rain();
 };
 
 #endif

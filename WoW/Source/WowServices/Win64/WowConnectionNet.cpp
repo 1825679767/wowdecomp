@@ -18,7 +18,7 @@ void WowConnectionNet::PlatformChangeState(WowConnection* connection, WOW_CONN_S
             break;
 
         case WOWC_CONNECTED:
-            networkEvents = connection->m_sendList.Head() || connection->unk_0140 ? FD_READ | FD_WRITE | FD_CLOSE : FD_READ | FD_CLOSE;
+            networkEvents = connection->m_sendList.Head() || connection->m_notifyWriteReady ? FD_READ | FD_WRITE | FD_CLOSE : FD_READ | FD_CLOSE;
             break;
     }
 
@@ -50,7 +50,7 @@ void WowConnectionNet::PlatformRun() {
         DWORD count = 1;
 
         for (WowConnection* connection = this->m_connections.Head(); connection; connection = this->m_connections.Next(connection)) {
-            if (connection->unk_0130) {
+            if (connection->m_serviceCount) {
                 continue;
             }
 
@@ -66,7 +66,7 @@ void WowConnectionNet::PlatformRun() {
                     break;
 
                 case WOWC_CONNECTED:
-                    WSAEventSelect(connection->m_sock, event, (connection->m_sendList.Head() || connection->unk_0140 ? FD_WRITE : 0) | FD_READ | FD_CLOSE);
+                    WSAEventSelect(connection->m_sock, event, (connection->m_sendList.Head() || connection->m_notifyWriteReady ? FD_WRITE : 0) | FD_READ | FD_CLOSE);
                     break;
 
                 case WOWC_DISCONNECTING:
@@ -118,7 +118,7 @@ void WowConnectionNet::PlatformRun() {
                     flags |= 8;
                 }
 
-                if (WowConnection::s_unkB38D20 || WowConnection::s_unkB38D24) {
+                if (WowConnection::s_lagTestDelayMin || WowConnection::s_lagTestDelayMax) {
                     flags |= 3;
                     timeout = 10;
                 } else {
@@ -144,6 +144,45 @@ void WowConnectionNet::PlatformInit(bool useEngine) {
     if (!WSAStartup(MAKEWORD(2, 2), &data) && data.wVersion == MAKEWORD(2, 2)) {
         this->m_event = CreateEventA(nullptr, TRUE, FALSE, nullptr);
     }
+}
+
+// OFFSET: 0x00469740
+void WowConnectionNet::PlatformDestruct(WowConnection* connection) {
+    if (connection->m_event) {
+        WSACloseEvent(connection->m_event);
+        connection->m_event = nullptr;
+    }
+}
+
+// OFFSET: 0x00469770
+void WowConnectionNet::PlatformWorkerReady() {
+    SetEvent(this->m_event);
+}
+
+// OFFSET: 0x00469780
+void WowConnectionNet::PlatformAdd(WowConnection* connection) {
+    if (!connection->m_event) {
+        connection->m_event = WSACreateEvent();
+    }
+
+    BOOL noDelay = TRUE;
+    setsockopt(connection->m_sock, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char*>(&noDelay), sizeof(noDelay));
+
+    SetEvent(this->m_event);
+}
+
+// OFFSET: 0x004697D0
+void WowConnectionNet::PlatformRemove(WowConnection* connection) {
+    SetEvent(this->m_event);
+}
+
+// OFFSET: 0x005EEB70
+void WowConnectionNet::PlatformStop() {
+}
+
+// OFFSET: 0x00469730
+void WowConnectionNet::PlatformDestroy() {
+    WSACleanup();
 }
 
 #endif

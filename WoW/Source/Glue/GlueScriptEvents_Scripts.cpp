@@ -5,6 +5,8 @@
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "Engine/Source/ConsoleBase/IConsole.h"
+#include "Engine/Source/Frame/CSimpleTop.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
 #include "Engine/Source/FrameXML/LoadXML.h"
@@ -18,29 +20,22 @@
 #include "WoW/Source/Client.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
+#include "WoW/Source/Net/Types.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
+#include "WoW/Source/Ui/AddOns.h"
 #include "WoW/Source/WowServices/Login.h"
+#include "WoW/Source/WowServices/WDataStore.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
 int32_t Script_IsShiftKeyDown(lua_State* L);
 int32_t Script_GetLocale(lua_State* L);
-int32_t Script_SetSavedAccountName(lua_State* L);
-int32_t Script_SetUsesToken(lua_State* L);
-int32_t Script_SetSavedAccountList(lua_State* L);
-int32_t Script_QuitGame(lua_State* L);
 int32_t Script_QuitGameAndRunLauncher(lua_State* L);
 int32_t Script_PlayCreditsMusic(lua_State* L);
 int32_t Script_LaunchURL(lua_State* L);
-int32_t Script_DefaultServerLogin(lua_State* L);
-int32_t Script_StatusDialogClick(lua_State* L);
-int32_t Script_DisconnectFromServer(lua_State* L);
-int32_t Script_IsConnectedToServer(lua_State* L);
-int32_t Script_EnterWorld(lua_State* L);
 int32_t Script_Screenshot(lua_State* L);
 int32_t Script_PatchDownloadProgress(lua_State* L);
 int32_t Script_PatchDownloadCancel(lua_State* L);
 int32_t Script_PatchDownloadApply(lua_State* L);
-int32_t Script_GetNumAddOns(lua_State* L);
 int32_t Script_GetAddOnInfo(lua_State* L);
 int32_t Script_LaunchAddOnURL(lua_State* L);
 int32_t Script_GetAddOnDependencies(lua_State* L);
@@ -53,7 +48,6 @@ int32_t Script_SaveAddOns(lua_State* L);
 int32_t Script_ResetAddOns(lua_State* L);
 int32_t Script_IsAddonVersionCheckEnabled(lua_State* L);
 int32_t Script_SetAddonVersionCheck(lua_State* L);
-int32_t Script_GetCursorPosition(lua_State* L);
 int32_t Script_GetBillingTimeRemaining(lua_State* L);
 int32_t Script_GetBillingPlan(lua_State* L);
 int32_t Script_GetBillingTimeRested(lua_State* L);
@@ -66,7 +60,6 @@ int32_t Script_MatrixCommit(lua_State* L);
 int32_t Script_GetMatrixCoordinates(lua_State* L);
 int32_t Script_IsLinuxClient(lua_State* L);
 int32_t Script_SetRealmSplitState(lua_State* L);
-int32_t Script_RequestRealmSplitInfo(lua_State* L);
 int32_t Script_CancelLogin(lua_State* L);
 int32_t Script_GetCVarAbsoluteMin(lua_State* L);
 int32_t Script_GetCVarAbsoluteMax(lua_State* L);
@@ -77,16 +70,13 @@ int32_t Script_DeclineName(lua_State* L);
 int32_t Script_GetNumGameAccounts(lua_State* L);
 int32_t Script_GetGameAccountInfo(lua_State* L);
 int32_t Script_SetGameAccount(lua_State* L);
-int32_t Script_StopAllSFX(lua_State* L);
 int32_t Script_SetClearConfigData(lua_State* L);
-int32_t Script_RestartGx(lua_State* L);
 int32_t Script_RestoreVideoResolutionDefaults(lua_State* L);
 int32_t Script_RestoreVideoEffectsDefaults(lua_State* L);
 int32_t Script_RestoreVideoStereoDefaults(lua_State* L);
 int32_t Script_IsStreamingMode(lua_State* L);
 int32_t Script_IsConsoleActive(lua_State* L);
 int32_t Script_RunScript(lua_State* L);
-int32_t Script_ReadyForAccountDataTimes(lua_State* L);
 
 // VERIFY: 51aeb88d auto
 // OFFSET: 0x004DBE60
@@ -99,11 +89,46 @@ static int32_t Script_GetBuildInfo(lua_State* L) {
     return 5;
 }
 
+// VERIFY: aa3b9fda auto
+// OFFSET: 0x004DBEC0
+static int32_t Script_SetSavedAccountName(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: SetSavedAccountName(\"accountName\")");
+        return 0;
+    }
+
+    g_accountNameVar->Set(lua_tolstring(L, 1, nullptr), true, false, false, true);
+    return 0;
+}
+
 // VERIFY: e4dc65d8 auto
 // OFFSET: 0x004DBF10
 static int32_t Script_GetUsesToken(lua_State* L) {
     lua_pushboolean(L, g_accountUsesTokenVar->m_intValue);
     return 1;
+}
+
+// VERIFY: 51e62777 auto
+// OFFSET: 0x004DBF30
+static int32_t Script_SetUsesToken(lua_State* L) {
+    if (lua_type(L, 1) != LUA_TBOOLEAN) {
+        luaL_error(L, "Usage: SetUsesToken( 0 | 1 )");
+        return 0;
+    }
+
+    g_accountUsesTokenVar->Set(lua_toboolean(L, 1), true, false, false, true);
+    return 0;
+}
+
+// VERIFY: b27386e0 auto
+// OFFSET: 0x004DBF80
+static int32_t Script_SetSavedAccountList(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: SetSavedAccountList(\"accountList\")");
+    }
+
+    g_accountListVar->Set(lua_tolstring(L, 1, nullptr), true, false, false, true);
+    return 0;
 }
 
 // VERIFY: cfd5b3b3 auto
@@ -120,6 +145,13 @@ static int32_t Script_SetCurrentScreen(lua_State* L) {
         AsyncFileReadWaitAll();
     }
 
+    return 0;
+}
+
+// VERIFY: 158992c3 auto
+// OFFSET: 0x004DC050
+static int32_t Script_QuitGame(lua_State* L) {
+    CGlueMgr::QuitGame();
     return 0;
 }
 
@@ -196,6 +228,37 @@ static int32_t Script_AcceptScanning(lua_State* L) {
 static int32_t Script_AcceptContest(lua_State* L) {
     CGlueMgr::AcceptContest();
     return 0;
+}
+
+// VERIFY: 37439067 auto
+// OFFSET: 0x004DC260
+static int32_t Script_DefaultServerLogin(lua_State* L) {
+    if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
+        luaL_error(L, "Usage: DefaultServerLogin(\"accountName\", \"password\")");
+        return 0;
+    }
+
+    CGlueMgr::LoginServerLogin(lua_tolstring(L, 1, nullptr), const_cast<char*>(lua_tolstring(L, 2, nullptr)));
+    return 0;
+}
+
+// VERIFY: 43cc0a55 auto
+// OFFSET: 0x004DC500
+static int32_t Script_StatusDialogClick(lua_State* L) {
+    CGlueMgr::StatusDialogClick();
+    return 0;
+}
+
+// VERIFY: 3e217cb6 auto
+// OFFSET: 0x004DCB60
+static int32_t Script_GetCursorPosition(lua_State* L) {
+    float x = 0.0f;
+    float y = 0.0f;
+    NDCToDDC(CSimpleTop::s_instance->m_mousePosition.m_x, CSimpleTop::s_instance->m_mousePosition.m_y, &x, &y);
+
+    lua_pushnumber(L, DDCToNDCWidth(CoordinateGetAspectCompensation() * 1024.0f * x));
+    lua_pushnumber(L, DDCToNDCWidth(CoordinateGetAspectCompensation() * 1024.0f * y));
+    return 2;
 }
 
 // VERIFY: d28d2800 auto
@@ -300,6 +363,20 @@ static int32_t Script_ShowChangedOptionWarnings(lua_State* L) {
     }
 
     return 1;
+}
+
+// VERIFY: 5b4fcbcb auto
+// OFFSET: 0x004DD380
+static int32_t Script_StopAllSFX(lua_State* L) {
+    SI2::StopAllSounds(static_cast<float>(lua_tonumber(L, 1)));
+    return 0;
+}
+
+// VERIFY: 56368f8c auto
+// OFFSET: 0x004DD400
+static int32_t Script_RestartGx(lua_State* L) {
+    ConsoleCommandExecute("gxRestart", 1);
+    return 0;
 }
 
 // VERIFY: 8043f47f auto
@@ -481,7 +558,7 @@ static int32_t Script_ContestAccepted(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 451b8c6f auto
+// VERIFY: cff4ad26 auto
 // OFFSET: 0x004DD900
 static int32_t Script_GetServerName(lua_State* L) {
     lua_pushstring(L, ClientServices::GetSelectedRealmName());
@@ -489,7 +566,7 @@ static int32_t Script_GetServerName(lua_State* L) {
     int32_t pvp = 0;
     int32_t rp = 0;
     int32_t down = 1;
-    RealmInfo* realm = ClientServices::GetSelectedRealm();
+    REALM_INFO* realm = ClientServices::GetSelectedRealm();
 
     if (realm) {
         for (int32_t i = 0; i < g_cfg_ConfigsDB.m_numRecords; i++) {
@@ -726,6 +803,65 @@ static int32_t Script_GetCVarBool(lua_State* L) {
     return 1;
 }
 
+// VERIFY: e563d98b auto
+// OFFSET: 0x004DDA10
+static int32_t Script_DisconnectFromServer(lua_State* L) {
+    if (ClientServices::Connection()->unk_2F3C) {
+        CGlueMgr::m_disconnectPending = 1;
+        ClientServices::Connection()->Disconnect();
+    }
+
+    ClientServices::LoginConnection()->Logoff();
+    return 0;
+}
+
+// VERIFY: 4cbb98fd auto
+// OFFSET: 0x004DC510
+static int32_t Script_EnterWorld(lua_State* L) {
+    CGlueMgr::EnterWorld();
+    return 0;
+}
+
+// VERIFY: fd0c42a5 auto
+// OFFSET: 0x004DDA50
+static int32_t Script_IsConnectedToServer(lua_State* L) {
+    if (ClientServices::Connection()->unk_2F3C) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 1e6a625a manual
+// OFFSET: 0x004DE2E0
+static int32_t Script_RequestRealmSplitInfo(lua_State* L) {
+    WDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_REALM_SPLIT));
+    msg.Put(static_cast<uint32_t>(0xFFFFFFFF));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: 4229109a manual
+// OFFSET: 0x004DE390
+static int32_t Script_ReadyForAccountDataTimes(lua_State* L) {
+    WDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_READY_FOR_ACCOUNT_DATA_TIMES));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: cc41cd11 auto
+// OFFSET: 0x00511200
+static int32_t Script_GetNumAddOns(lua_State* L) {
+    lua_pushnumber(L, GetNumAddOns());
+    return 1;
+}
+
 // STATIC: 0x00AC3E00
 static FrameScript_Method s_scriptFunctions[] = {
     { "IsShiftKeyDown", &Script_IsShiftKeyDown },
@@ -848,5 +984,13 @@ static FrameScript_Method s_scriptFunctions[] = {
 void GlueScriptEventsRegisterFunctions() {
     for (uint32_t i = 0; i < sizeof(s_scriptFunctions) / sizeof(s_scriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_scriptFunctions[i].m_name, s_scriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 80650abf auto
+// OFFSET: 0x004DD5B0
+void GlueScriptEventsUnregisterFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_scriptFunctions) / sizeof(s_scriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_scriptFunctions[i].m_name);
     }
 }

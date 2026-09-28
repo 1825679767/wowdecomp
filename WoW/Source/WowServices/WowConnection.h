@@ -5,6 +5,8 @@
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/BlizzardCore/Source/System/Lock/Lock.h"
+#include "Engine/Source/Os/OsTcp.h"
+#include "Engine/Source/Storm/H/Types.h"
 #include "Engine/Source/Storm/Source/SLock.h"
 #include "WoW/Source/WowServices/Types.h"
 
@@ -13,23 +15,9 @@ class WowConnectionResponse;
 
 typedef Blizzard::Lock::Atomic ATOMIC32;
 
-struct NETADDR {
-    /* 0000 */ uint16_t m_family;
-    /* 0002 */ char m_data [14];
-};
-
-struct NETCONNADDR {
-    /* 0000 */ NETADDR m_peerAddr;
-    /* 0010 */ NETADDR m_selfAddr;
-};
-
-struct SARC4Key {
-    /* 0000 */ uint8_t m_state [256];
-    /* 0100 */ uint8_t m_x;
-    /* 0101 */ uint8_t m_y;
-};
-
 class WowConnectionNet;
+
+void ARC4PrepareKey(const uint8_t* key, uint32_t length, SARC4Key* state);
 
 class WowConnection {
     public:
@@ -39,13 +27,27 @@ class WowConnection {
         /* 0010 */ uint32_t m_offset;
         /* 0014 */ uint32_t m_datasize;
         /* 0018 */ uint8_t m_header [8];
-        /* 0020 */ uint32_t m_uint20;
+        /* 0020 */ uint32_t m_sendTime;
         /* 0024 */ uint32_t m_allocsize;
+
+        SENDNODE(const void* data, int32_t size, uint8_t* buffer, bool raw);
+        SENDNODE(const WowConnection::SENDNODE& source, uint8_t* buffer);
     };
 
+    struct IDBITS {
+        /* 0000 */ uint32_t m_count;
+        /* 0004 */ TSFixedArray<uint32_t> m_bits;
+
+        void Or(const WowConnection::IDBITS& source);
+        void SetCount(uint32_t count);
+    };
+
+    static WowConnection::IDBITS s_idBits;
+    static SCritSect s_idLock;
+    static uint64_t s_sendBytes;
     static WowConnectionNet* s_network;
-    static int32_t s_unkB38D20;
-    static int32_t s_unkB38D24;
+    static int32_t s_lagTestDelayMin;
+    static int32_t s_lagTestDelayMax;
     static bool (*s_verifyAddr)(const NETADDR* addr);
 
     /* 0000 */ ATOMIC32 m_refCount;
@@ -79,20 +81,20 @@ class WowConnection {
     /* 00A4 */ SCritSect m_responseLock;
     /* 00CC */ int32_t m_responseRef;
     /* 00D0 */ uintptr_t m_responseRefThread;
-    /* 00D4 */ WowConnectionResponse* m_responseD4;
+    /* 00D4 */ WowConnectionResponse* m_pendingResponse;
     /* 00D8 */ TSLink<WowConnection> m_netLink;
     /* 00E0 */ TSList<WowConnection::SENDNODE> m_sendList;
     /* 00EC */ int32_t m_sendDepth;
-    /* 00F0 */ int32_t unk_00F0;
+    /* 00F0 */ int32_t m_sendBytes;
     /* 00F4 */ int32_t m_maxSendDepth;
     /* 00F8 */ int32_t m_serviceFlags;
     /* 00FC */ TSList<WowConnection::SENDNODE> unk_00FC;
     /* 0108 */ SCritSect m_lock;
-    /* 0130 */ int32_t unk_0130;
+    /* 0130 */ int32_t m_serviceCount;
     /* 0134 */ int32_t unk_0134;
     /* 0138 */ void* m_event;
-    /* 013C */ int32_t unk_013C;
-    /* 0140 */ uint8_t unk_0140;
+    /* 013C */ WOWC_TYPE m_type;
+    /* 0140 */ uint8_t m_notifyWriteReady;
     /* 0141 */ uint8_t unk_0141[3];
     /* 0144 */ int32_t unk_0144;
     /* 0148 */ SARC4Key m_sendKey;
@@ -104,11 +106,45 @@ class WowConnection {
     /* 0376 */ uint8_t m_uint376;
     /* 0377 */ uint8_t unk_0377[1];
 
+    static void DestroyOsNet();
     static int32_t InitOsNet(bool (*netAddrFilter)(const NETADDR* addr), void (*threadInit)(), int32_t numThreads, bool useEngine);
+    static void MarkSocketId(int32_t sock);
 
     WowConnection(WowConnectionResponse* response, void (*threadInit)());
+    ~WowConnection();
+    void AcquireResponseRef();
+    void AddRef();
+    void CheckAccept();
+    void CheckConnect();
+    void CloseSocket(int32_t sock);
+    bool Connect(const char* address, int32_t timeout);
+    bool Connect(const char* host, uint16_t port, int32_t timeout);
+    bool Connect(uint32_t address, uint16_t port, int32_t timeout);
+    void Disconnect();
+    void DoDisconnect();
+    void DoExceptions();
+    void DoMessageReads();
+    void DoReads();
+    void DoStreamReads();
+    void DoWrites();
+    void Encrypt(uint8_t* data, uint32_t length);
+    void FreeSendList();
+    void FreeSendNode(WowConnection::SENDNODE* node);
     void Init(WowConnectionResponse* response, void (*threadInit)());
-    void Release();
+    WowConnection::SENDNODE* NewSendNodeCopy(const WowConnection::SENDNODE* source, int32_t size);
+    WowConnection::SENDNODE* NewSendNodePacket(const void* data, int32_t size, bool raw);
+    char* PeerAddrToStr(char* buffer, uint32_t size);
+    int32_t Release();
+    void ReleaseResponseRef();
+    int32_t Send(uint8_t* data, int32_t size, bool raw);
+    int32_t SendPacket(CDataStore* msg, int32_t headroom);
+    void SetEncryption(bool enabled);
+    void SetEncryptionKey(const uint8_t* key, uint8_t keyLength, uint8_t direction, const uint8_t* seed, uint8_t seedLength);
+    void SetResponse(WowConnectionResponse* response, bool deferred);
+    void SetSendTime(WowConnection::SENDNODE* node);
+    void SetState(WOW_CONN_STATE state);
+    void SetType(WOWC_TYPE type);
+    void StartConnect();
 };
 
 class WowConnectionResponse {

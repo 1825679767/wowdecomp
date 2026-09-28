@@ -30,6 +30,7 @@ class CMapAreaChunkLink {
 
 class CMapArea : public CMapBaseObj {
     public:
+    static void Destroy();
     static void Initialize();
 
     /* 0024 */ CAaBox m_bounds;

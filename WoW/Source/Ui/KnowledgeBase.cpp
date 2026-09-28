@@ -6,8 +6,61 @@
 #include "WoW/Source/Ui/CKBArticle.h"
 #include "WoW/Source/Ui/CKBQuery.h"
 
+// STATIC: 0x00ACD538
+CKBSetup g_KnowledgeBaseSetup;
+
 // STATIC: 0x00BEA7F8
 CKBPage* CKBPage::s_pLoadingQueue_Head;
+
+// INLINED
+CKBPage::CKBPage() {
+    this->unk_0004 = 0;
+    this->unk_0030 = nullptr;
+    this->unk_0034 = nullptr;
+    this->m_loadingNext = nullptr;
+    this->unk_003C = 0;
+}
+
+// VERIFY: a93a16db auto
+// OFFSET: 0x005526D0
+CKBPage::~CKBPage() {
+    if (this->unk_0034) {
+        XMLTree_Free(this->unk_0034);
+        XMLTree_Cleanup();
+    }
+
+    if (this->unk_0030) {
+        CDynamicString* data = this->unk_0030;
+        data->~CDynamicString();
+        SMemFree(data, "delete", SLOG_FUNCTION, 0);
+    }
+}
+
+void CKBPage::_ComputeCachedData() {
+}
+
+void CKBPage::_SendSuccessEvent() {
+}
+
+void CKBPage::_SendFailureEvent() {
+}
+
+// INLINED
+CKBSetup::CKBSetup() {
+    this->unk_0040 = 0;
+    this->unk_0044 = 0;
+    this->unk_0048 = 0;
+    this->unk_004C = 0;
+    this->unk_0050 = -1;
+    this->unk_0054 = 0;
+    this->unk_0058 = 0;
+    this->unk_005C = 0;
+    this->unk_0060 = 0;
+    this->unk_0064 = 0;
+    this->unk_0068 = 0;
+    this->unk_006C = 0;
+    this->unk_0070 = 0;
+}
 
 // VERIFY: 1b2d7a48 manual
 // OFFSET: 0x005EEB70
@@ -46,6 +99,7 @@ void CKBPage::UpdateLoadingQueue() {
     }
 }
 
+// VERIFY: d1c1f4ac manual
 // OFFSET: 0x00552740
 void CKBPage::Shutdown() {
     while (CKBPage::s_pLoadingQueue_Head) {

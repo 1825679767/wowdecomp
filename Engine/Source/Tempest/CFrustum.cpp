@@ -130,6 +130,33 @@ uint32_t CFrustum::Cull(const C3Vector& center, float radius) {
     return this->Cull(sphere);
 }
 
+// VERIFY: 0ece7724 manual
+// OFFSET: 0x00601650
+CFrustum::CFrustum() {
+    for (uint32_t i = 0; i < 6; i++) {
+        this->planes[i].n.x = 0.0f;
+        this->planes[i].n.y = 0.0f;
+        this->planes[i].d = 0.0f;
+        this->planes[i].n.z = 1.0f;
+    }
+
+    for (uint32_t i = 0; i < 8; i++) {
+        this->corners[i].x = 0.0f;
+        this->corners[i].y = 0.0f;
+        this->corners[i].z = 0.0f;
+    }
+
+    this->lookPos.x = 0.0f;
+    this->lookPos.y = 0.0f;
+    this->lookPos.z = 0.0f;
+    this->lookAt.x = 0.0f;
+    this->lookAt.y = 0.0f;
+    this->lookAt.z = 0.0f;
+    this->lookUp.x = 0.0f;
+    this->lookUp.y = 0.0f;
+    this->lookUp.z = 0.0f;
+}
+
 // VERIFY: 6f48db85 manual
 // OFFSET: 0x00983FE0
 CFrustum::CFrustum(const C3Vector* corners) {
@@ -155,4 +182,28 @@ void CFrustum::CalcPlanesFromCorners(const C3Vector* corners) {
     }
 
     this->CalcPlanesFromCorners();
+}
+
+// VERIFY: 1bd5200d auto
+// OFFSET: 0x00790020
+CFrustum& CFrustum::operator=(const CFrustum& source) {
+    if (this != &source) {
+        for (uint32_t i = 0; i < 6; i++) {
+            this->planes[i] = source.planes[i];
+        }
+
+        for (uint32_t i = 0; i < 8; i++) {
+            this->corners[i] = source.corners[i];
+        }
+
+        this->lookPos = source.lookPos;
+        this->lookAt = source.lookAt;
+        this->lookUp = source.lookUp;
+        this->fovy = source.fovy;
+        this->aspect = source.aspect;
+        this->minz = source.minz;
+        this->maxz = source.maxz;
+    }
+
+    return *this;
 }

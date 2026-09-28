@@ -36,6 +36,8 @@ class CGxMonitorMode {
     /* 0000 */ C2iVector m_size;
     /* 0008 */ uint32_t m_bpp;
     /* 000C */ uint32_t m_refreshRate;
+
+    CGxMonitorMode();
 };
 
 enum EGxMasterEnables {

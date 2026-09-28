@@ -450,9 +450,9 @@ void CShadowCache::SetShadowMapDetailDoodad() {
     }
 }
 
-// VERIFY: 2584124d manual
+// VERIFY: 2396207d manual
 // OFFSET: 0x00874890
-void CShadowCache::GatherBands(CShadowCacheQueryData& data, const C3Vector& pos, CWFrustum& frustum, int32_t useCullFrustum) {
+void CShadowCache::GatherBands(CShadowCacheQueryData& data, const C3Vector& pos, CFrustum& frustum, int32_t useCullFrustum) {
     uint32_t frame = 0;
 
     if (CShadowCache::GetShadowMode() < SHADOW_VERY_HIGH) {
@@ -935,7 +935,7 @@ void CShadowCache::Init() {
     CShadowCache::s_cutoffPlane.w = 0.0f;
 }
 
-// VERIFY: 6f6e0a5e auto
+// VERIFY: 2346cbd1 auto
 // OFFSET: 0x00875F80
 int32_t CShadowCache::Update(const C3Vector& pos, int32_t useCullFrustum) {
     int32_t recreate = CShadowCache::s_recreateTextures;
@@ -1050,7 +1050,7 @@ int32_t CShadowCache::Update(const C3Vector& pos, int32_t useCullFrustum) {
 
         if (useCullFrustum || mode < SHADOW_VERY_HIGH) {
             int32_t useBandCull = 0;
-            CWFrustum frustum;
+            CFrustum frustum;
 
             if (mode < SHADOW_VERY_HIGH) {
                 data.m_useFrustum = 0;

@@ -25,6 +25,16 @@ PassDeath::PassDeath(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBle
     g_theGxDevicePtr->ShaderCreate(this->m_shaders, GxSh_Pixel, "Shaders\\Pixel", "FFXDeath", 2);
 }
 
+// VERIFY: 5970ea32 manual
+// OFFSET: 0x007E8770
+PassDeath::~PassDeath() {
+    for (uint32_t i = 0; i < sizeof(this->m_shaders) / sizeof(this->m_shaders[0]); i++) {
+        if (this->m_shaders[i]) {
+            g_theGxDevicePtr->ShaderDestroy(this->m_shaders[i]);
+        }
+    }
+}
+
 // VERIFY: e2aee2fe auto
 // OFFSET: 0x007E8920
 PassDeathNVRC::PassDeathNVRC(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk) : FFX::Pass(inputs, count, output, blend, unk) {
@@ -58,4 +68,14 @@ EffectDeath::EffectDeath() {
 
     pass = new (__FILE__, __LINE__) PassDeath(deathInputs, 2, &FFX::s_screen, GxBlend_Opaque, true);
     this->m_passes.New(pass);
+}
+
+// VERIFY: be1ec9ba manual
+// OFFSET: 0x007EA420
+EffectDeath::~EffectDeath() {
+    for (uint32_t i = 0; i < this->m_passes.Count(); i++) {
+        if (this->m_passes[i]) {
+            delete this->m_passes[i];
+        }
+    }
 }

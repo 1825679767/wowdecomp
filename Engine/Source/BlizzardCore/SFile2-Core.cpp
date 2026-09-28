@@ -1088,6 +1088,59 @@ int32_t STORMAPI SFile::ReadFile(SArchive* archive, const char* name, void** dat
     return 1;
 }
 
+// VERIFY: a77cc075 manual
+// OFFSET: 0x00424FA0
+int32_t STORMAPI SFile::List(SArchive* archive, int32_t (*callback)(const char* fileName, void* param), void* param) {
+    if (archive->unk_0000 != 0 && archive->unk_0000 != 1) {
+        return 0;
+    }
+
+    SFileImpl* file;
+
+    if (!SFile::OpenEx(archive, "(listfile)", 0, &file)) {
+        return 0;
+    }
+
+    uint32_t size = SFileGetFileSize(file, nullptr);
+    char* data = static_cast<char*>(Blizzard::Memory::Allocate(size));
+    uint32_t bytesRead;
+
+    if (!SFileReadFile(file, data, size, &bytesRead, nullptr, 0)) {
+        Blizzard::Memory::Free(data, 0, __FILE__, __LINE__);
+        SFileCloseFile(file);
+        return 0;
+    }
+
+    SFileCloseFile(file);
+
+    char* end = data + size;
+    char name[512];
+    char* dest = name;
+    name[0] = '\0';
+
+    for (char* src = data; src < end; src++) {
+        char c = *src;
+
+        if (c == '\r' || c == '\n') {
+            *dest = '\0';
+
+            if (name[0]) {
+                if (!Blizzard::String::EqualI(Blizzard::String::FindExtension(name), "md5") && !callback(name, param)) {
+                    break;
+                }
+
+                dest = name;
+            }
+        } else if (dest < &name[sizeof(name) - 1]) {
+            *dest++ = c;
+        }
+    }
+
+    Blizzard::Memory::Free(data);
+
+    return 1;
+}
+
 // VERIFY: 9a40aba6 auto
 // OFFSET: 0x00424F50
 int32_t STORMAPI SFile::LoadFile(const char* name, void** data, uint32_t* size, uint32_t extra, SOVERLAPPED* overlapped) {

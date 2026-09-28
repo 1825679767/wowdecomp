@@ -10,14 +10,17 @@
 class CBarrier_Contact;
 class CGxVertexPCT0T1;
 class CTexture;
+class CM2Model;
 class CMapChunk;
 class CMapObjDefGroup;
 
 class CBarrier {
     public:
+    static CM2Model* s_sparkles[4];
     static CTexture* s_mask;
     static CTexture* s_pattern;
 
+    static void Destroy();
     static void Initialize();
 
     /* 0000 */ int32_t m_mode;

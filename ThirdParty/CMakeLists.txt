@@ -110,6 +110,26 @@ target_include_directories(expat
         ${CMAKE_CURRENT_SOURCE_DIR}/expat/lib
 )
 
+add_library(pcre STATIC
+    pcre/pcre.c
+    pcre/get.c
+    pcre/study.c
+    pcre/maketables.c
+)
+
+target_compile_definitions(pcre
+    PUBLIC
+        PCRE_STATIC
+    PRIVATE
+        SUPPORT_UTF8
+        SUPPORT_UCP
+)
+
+target_include_directories(pcre
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/pcre
+)
+
 add_library(DivxDecoder INTERFACE)
 
 target_include_directories(DivxDecoder

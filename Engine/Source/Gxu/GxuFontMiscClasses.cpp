@@ -632,3 +632,8 @@ TEXTLINETEXTURE::TEXTLINETEXTURE() {
     this->m_verts.m_chunk = 128;
     this->m_colors.m_chunk = 128;
 }
+
+// INLINED
+TEXTURECACHEROW::TEXTURECACHEROW() {
+    this->m_widestFreeSlot = 0;
+}

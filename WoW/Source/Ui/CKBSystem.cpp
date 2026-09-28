@@ -51,6 +51,7 @@ void CKBSystem::Initialize() {
     ClientServices::SetMessageHandler(SMSG_MOTD, Packet_SMSG_MOTD, nullptr);
 }
 
+// VERIFY: e4cff749 auto
 // OFFSET: 0x005515F0
 void CKBSystem::Shutdown() {
     s_motd.Free();

@@ -6,9 +6,13 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Glue/Types.h"
 #include "WoW/Source/Net/Types.h"
+#include "WoW/Source/WowServices/Types.h"
 
 class CDataStore;
+struct CHARACTER_CREATE_INFO;
 class CHARACTER_INFO;
+class CM2Model;
+class CharacterSelectionDisplay;
 class CSimpleTop;
 class SThread;
 
@@ -18,6 +22,7 @@ namespace FFX {
 struct MipBits;
 class CSizeEvent;
 class FileDownload;
+class NetClient;
 struct CVar;
 
 struct ConsoleString {
@@ -53,10 +58,13 @@ class CGlueMgr {
     static char m_accountName[1280];
     static int32_t m_loginResult;
     static int32_t m_loginState;
+    static int32_t m_lastLoginResult;
+    static int32_t m_lastLoginState;
     static uint32_t m_matrixRemaining;
     static int32_t m_estimatedWaitTime;
     static int32_t m_displayingQueueDialog;
     static CHARACTER_INFO* m_characterInfo;
+    static int32_t s_unk_AC4370;
     static int32_t m_rereadTOS;
     static int32_t m_acceptedTOS;
     static int32_t m_rereadEULA;
@@ -84,7 +92,7 @@ class CGlueMgr {
     static uint8_t m_executedSurvey;
     static FileDownload* m_surveyDownload;
     static FileDownload* m_patchDownload;
-    static int32_t m_ffxActive;
+    static uint8_t m_ffxActive;
     static FFX::Effect* m_deathEffect;
     static FFX::Effect* m_glowEffect;
     static char m_scandllHackName[512];
@@ -100,14 +108,30 @@ class CGlueMgr {
     static void AcceptTerminationWithoutNotice();
     static void AcceptTOS();
     static void AddChangedOptionWarning(const char* warning);
+    static void AttachCharacterSelectVisuals(CM2Model* model);
+    static void ChangeRealm(REALM_INFO* realm);
+    static void CreateCharacter(const CHARACTER_CREATE_INFO* info);
+    static void CustomizeCharacter(uint64_t guid, const CHARACTER_CREATE_INFO* info);
+    static bool DeclineCharacter(uint64_t guid, const char** names);
+    static void DeleteCharacter(uint64_t guid);
+    static void EnterWorld();
     static bool AgreementsURLCallback(void* param, const char* data, uint32_t size, bool done, HTTPError::ErrorCode error);
     static void DisplayLoginStatus();
+    static void FactionChange(uint64_t guid, const CHARACTER_CREATE_INFO* info);
+    static uint64_t GetActive();
     static void GetCharacterList();
     static void GetRealmList(int32_t showDialog);
     static int32_t HandleBattlenetDisconnect();
+    static int32_t NetDisconnectHandler(NetClient* client);
     static void HandleDisplaySizeChanged(const CSizeEvent& event);
     static int32_t Idle(const void* data, void* param);
     static void Initialize();
+    static void SurveyDownloadCancel();
+    static void StatusDialogClick();
+    static void QuitGame();
+    static void RaceChange(uint64_t guid, const CHARACTER_CREATE_INFO* info);
+    static bool RenameCharacter(uint64_t guid, const char* name);
+    static void RealmListDialogCancelled();
     static void InitializeFFX();
     static bool IsScanDLLFinished();
     static int32_t OnCharCustomizeResult(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
@@ -117,8 +141,14 @@ class CGlueMgr {
     static int32_t OnKickReasonMsg(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
     static int32_t OnRealmSplitMsg(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
     static void PatchDownloadIdle();
+    static void ProcessAttachment(CM2Model* model, int32_t effectID, uint32_t attachID);
     static void ProcessAgreements(CGlueMgr::Agreements* agreements);
     static void PatchDownloadStart();
+    static void LoginServerLogin(const char* username, char* password);
+    static void LogConnectionStatus(const char* format, ...);
+    static void ResetQueueState();
+    static void SetCurrentAccount(const char* accountName);
+    static void SetLoginStateAndResult(LOGIN_STATE state, LOGIN_RESULT result, const char* addressString, const char* stateString, const char* resultString, uint16_t flags);
     static void Resume();
     static void Shutdown();
     static void ScanDLLContinueAnyway();
@@ -135,8 +165,12 @@ class CGlueMgr {
     static bool SurveyExecute();
     static void SurveySendResults();
     static void UpdateCurrentScreen(const char* screen);
+    static void UpdateWaitQueue(int32_t position);
 };
 
 extern const uint8_t InterfaceKey[256];
+
+void CancelRealmListQuery();
+CharacterSelectionDisplay* GetCharacterInfo(int32_t index);
 
 #endif

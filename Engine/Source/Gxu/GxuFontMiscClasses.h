@@ -95,6 +95,7 @@ struct TEXTURECACHEROW {
     /* 0000 */ uint32_t m_widestFreeSlot;
     /* 0004 */ TSExplicitList<CHARCODEDESC, offsetof(CHARCODEDESC, m_textureRowLink)> m_glyphlist;
 
+    TEXTURECACHEROW();
     CHARCODEDESC* CreateNewDesc(GLYPHBITMAPDATA* data, uint32_t rowNumber, uint32_t cellHeight);
     void EvictGlyph(CHARCODEDESC* desc);
 };

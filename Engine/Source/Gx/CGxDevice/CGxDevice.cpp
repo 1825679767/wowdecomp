@@ -2100,3 +2100,9 @@ void CGxDevice::RsInit() {
     this->RsSet(Unk84, 0.0f);
     this->RsSet(GxRs_ColorMaterial, 0);
 }
+
+// INLINED
+CGxMonitorMode::CGxMonitorMode() {
+    this->m_size.x = 0;
+    this->m_size.y = 0;
+}

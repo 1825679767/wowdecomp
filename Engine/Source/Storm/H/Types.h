@@ -60,6 +60,12 @@ struct HSLOG__ {
 
 typedef HSLOG__* HSLOG;
 
+struct SARC4Key {
+    /* 0000 */ uint8_t m_state [256];
+    /* 0100 */ uint8_t m_x;
+    /* 0101 */ uint8_t m_y;
+};
+
 struct _CMDERROR {
     /* 0000 */ uint32_t errorcode;
     /* 0004 */ const char* itemstr;

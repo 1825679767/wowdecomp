@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Base/CDataStore.h"
+#include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Storm/Source/SLock.h"
 #include "WoW/Source/Net/NetClient/Types.h"
@@ -15,7 +16,6 @@ class CGObject_C;
 class CHashKeyGUID;
 class ClientConnection;
 struct ClntObjMgr;
-class AuthenticationChallenge;
 
 struct ClntObjMgr {
     /* 0000 */ TSHashTable<CGObject_C, CHashKeyGUID> m_objects;
@@ -29,6 +29,13 @@ struct ClntObjMgr {
     /* 00CC */ uint32_t m_mapID;
     /* 00D0 */ ClientConnection* m_net;
     /* 00D4 */ uint8_t unk_00D4[4];
+};
+
+class AuthenticationChallenge {
+    public:
+    /* 0000 */ uint32_t m_serverSeed;
+    /* 0004 */ uint32_t unk_0004;
+    /* 0008 */ uint64_t m_proof;
 };
 
 struct LoginData {
@@ -58,6 +65,9 @@ class NETEVENTQUEUE {
     /* 002C */ TSList<NETEVENTQUEUENODE> m_eventQueue;
 
     NETEVENTQUEUE(NetClient* client);
+    ~NETEVENTQUEUE();
+    void AddEvent(EVENTID eventId, void* connection, NetClient* client, const void* data, uint32_t size);
+    void Clear();
     void Poll();
 };
 
@@ -103,21 +113,35 @@ class NetClient : public WowConnectionResponse {
     virtual void Destroy();
     virtual void DelayedDelete();
     virtual int32_t HandleData(uint32_t timeReceived, void* data, int32_t size);
-    virtual void HandleAuthChallenge(AuthenticationChallenge* challenge);
-    virtual void HandleConnect();
-    virtual void HandleDisconnect();
-    virtual void HandleCantConnect();
+    virtual void HandleAuthChallenge(AuthenticationChallenge* challenge) = 0;
+    virtual int32_t HandleConnect();
+    virtual int32_t HandleDisconnect();
+    virtual int32_t HandleCantConnect();
     virtual void ValidateMessageId(uint32_t msgId);
 
+    static void PopObjMgr();
+    static void PushObjMgr(ClntObjMgr* mgr);
+
     NetClient();
+    int32_t Connect(const char* address);
+    int32_t ConnectInternal(const char* host, uint16_t port);
+    void EnableEncryption(WowConnection* connection, const uint8_t* seed, uint8_t seedLength);
+    void GetNetStats(float& bytesIn, float& bytesOut, uint32_t& latency);
     uint8_t* GetSessionKey();
+    void HandleAuthChallenge(WowConnection* connection, CDataStore* msg);
     void HandleIdle();
+    void HandlePong(WowConnection* connection, CDataStore* msg);
+    void HandleRedirectClient(WowConnection* connection, CDataStore* msg);
+    void HandleResumeComms(WowConnection* connection, CDataStore* msg);
+    void HandleSuspendComms(WowConnection* connection, CDataStore* msg);
+    int32_t ProcessMessage(uint32_t timeReceived, CDataStore* msg, int32_t a4);
     void Ping();
     void PollEventQueue();
     void Disconnect();
     void ResetHandler(NETMESSAGE msgId);
     void Send(CDataStore* msg);
     void SetMessageHandler(NETMESSAGE msgId, MESSAGE_HANDLER handler, void* param);
+    void SetLoginData(LoginData* loginData);
 };
 
 class CNetClient {

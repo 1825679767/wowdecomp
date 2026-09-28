@@ -1,4 +1,5 @@
 #include "DBCache.h"
+#include <cstring>
 #include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Client.h"
@@ -81,6 +82,25 @@ uint32_t DBCacheHashKey(uint64_t key) {
 // INLINED
 uint32_t DBCacheHashKey(const CWardenKey& key) {
     return key.Hash();
+}
+
+// VERIFY: 83de7174 auto
+// OFFSET: 0x00668720
+CWardenKey& CWardenKey::operator=(const CWardenKey& key) {
+    memcpy(this->m_key, key.m_key, sizeof(this->m_key));
+    return *this;
+}
+
+// VERIFY: e229b1b1 manual
+// OFFSET: 0x00668750
+bool CWardenKey::operator==(const CWardenKey& key) {
+    return memcmp(this->m_key, key.m_key, sizeof(this->m_key)) == 0;
+}
+
+// VERIFY: 92f182cb auto
+// OFFSET: 0x00668800
+uint32_t CWardenKey::Hash() const {
+    return (this->m_key[12] << 24 | this->m_key[13] << 16 | this->m_key[14] << 8 | this->m_key[15]) & 0x7FFFFFFF;
 }
 
 // VERIFY: 8655bf5d auto

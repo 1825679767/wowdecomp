@@ -39,10 +39,12 @@ struct Session {
 namespace ComSat {
 namespace Sound {
 struct Manager {
-    /* 0000 */ uint8_t unk_0000 [12];
+    /* 0004 */ uint8_t unk_0004 [8];
     /* 000C */ int32_t unk_000C;
     /* 0010 */ uint8_t unk_0010 [8];
     /* 0018 */ int32_t unk_0018;
+
+    virtual ~Manager();
 };
 }
 }

@@ -238,6 +238,11 @@ void CSRWLock::Leave(int32_t fromwriting) {
     SRWLock::SURWLockLeave(&this->m_opaqueData, fromwriting);
 }
 
+// OFFSET: 0x00774680
+int32_t SSyncObject::Valid() {
+    return this->m_opaqueData != nullptr;
+}
+
 // OFFSET: 0x00774690
 uint32_t SSyncObject::Wait(uint32_t timeout) {
     return WaitForSingleObject(this->m_opaqueData, timeout);
@@ -374,6 +379,13 @@ CSRWLock::~CSRWLock() {
 
 // OFFSET: 0x007748E0
 SSyncObject::~SSyncObject() {
+    if (this->m_opaqueData) {
+        CloseHandle(this->m_opaqueData);
+        this->m_opaqueData = nullptr;
+    }
+}
+
+void SSyncObject::Close() {
     if (this->m_opaqueData) {
         CloseHandle(this->m_opaqueData);
         this->m_opaqueData = nullptr;

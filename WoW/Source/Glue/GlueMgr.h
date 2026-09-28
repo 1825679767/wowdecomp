@@ -5,5 +5,6 @@ extern const char* g_glueScriptEvents[41];
 
 void GlueScriptEventsInitialize();
 void GlueScriptEventsRegisterFunctions();
+void GlueScriptEventsUnregisterFunctions();
 
 #endif

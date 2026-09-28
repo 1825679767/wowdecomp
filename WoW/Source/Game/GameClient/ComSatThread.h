@@ -4,9 +4,19 @@
 #include <cstddef>
 #include <cstdint>
 
+class SEvent;
+class SThread;
+
+namespace ComSat {
+class Interface;
+}
+
 class ComSatThread {
     public:
-    static ComSatThread* s_comsat;
+    static ComSat::Interface* s_comsat;
+    static SThread s_comsatThread;
+    static int32_t s_threadRunning;
+    static SEvent s_threadShutdownEvent;
 };
 
 #endif

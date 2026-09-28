@@ -5,6 +5,7 @@
 #include "Engine/Source/ConsoleBase/Types.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/CMath.h"
+#include "WoW/Source/WorldClient/Sand.h"
 
 // STATIC: 0x00ADF1F8
 float s_weatherDensity = 0.66f;
@@ -29,6 +30,11 @@ WeatherGridCell::WeatherGridCell() {
     }
 }
 
+// VERIFY: b61c5f42 manual
+// OFFSET: 0x00783FB0
+WeatherGridBase::~WeatherGridBase() {
+}
+
 // VERIFY: 1c1b6708 manual
 // OFFSET: 0x00784AB0
 WeatherGrid::WeatherGrid() {
@@ -49,7 +55,19 @@ WeatherGrid::WeatherGrid() {
     }
 }
 
-// VERIFY: da99d6fa manual
+// VERIFY: 6499eaa9 auto
+// OFFSET: 0x00784B80
+WeatherGrid::~WeatherGrid() {
+    for (uint32_t y = 0; y < 5; y++) {
+        for (uint32_t x = 0; x < 5; x++) {
+            if (this->m_cells[y][x]) {
+                SMemFree(this->m_cells[y][x], "delete", SLOG_FUNCTION, 0);
+            }
+        }
+    }
+}
+
+// VERIFY: 59126af0 manual
 // OFFSET: 0x00787780
 Weather::Weather() {
     this->unk_0000 = 0.0f;
@@ -70,9 +88,9 @@ Weather::Weather() {
     this->unk_0034[1] = 0xFF;
     this->unk_0034[2] = 0xFF;
     this->unk_0034[3] = 0xFF;
-    this->unk_013C = 0;
-    this->unk_0140 = 0;
-    this->unk_0144 = 0;
+    this->m_rain = nullptr;
+    this->m_snow = nullptr;
+    this->m_sand = nullptr;
     this->m_grid = nullptr;
     this->unk_0164 = 0.0f;
     this->unk_0168 = 0.0f;
@@ -101,4 +119,44 @@ Weather::Weather() {
     }
 
     this->m_precipTexture[0] = '\0';
+}
+
+// VERIFY: b0352c89 manual
+// OFFSET: 0x0078D540
+Weather::~Weather() {
+    this->Clear();
+
+    delete this->m_grid;
+    this->m_grid = nullptr;
+
+    this->unk_014C.Clear();
+    this->unk_0158.Clear();
+}
+
+// VERIFY: f3eaf113 auto
+// OFFSET: 0x0078D0B0
+void Weather::Clear() {
+    if (this->m_rain) {
+        Rain* rain = this->m_rain;
+        rain->~Rain();
+        SMemFree(rain, "delete", SLOG_FUNCTION, 0);
+    }
+
+    this->m_rain = nullptr;
+
+    if (this->m_snow) {
+        Snow* snow = this->m_snow;
+        snow->~Snow();
+        SMemFree(snow, "delete", SLOG_FUNCTION, 0);
+    }
+
+    this->m_snow = nullptr;
+
+    if (this->m_sand) {
+        Sand* sand = this->m_sand;
+        sand->~Sand();
+        SMemFree(sand, "delete", SLOG_FUNCTION, 0);
+    }
+
+    this->m_sand = nullptr;
 }

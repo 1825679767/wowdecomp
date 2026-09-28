@@ -25,6 +25,9 @@ class CDetailDoodad {
     static uint32_t s_vtxBufItems;
 
     static void CreateAlphaRampTexture(const void*& texels);
+    static void Destroy();
+    static void DestroyModels();
+    static void FreeGxBufMat();
     static void Initialize();
     static void UpdateAlphaRampTexture(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t face, uint32_t level, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);
 };

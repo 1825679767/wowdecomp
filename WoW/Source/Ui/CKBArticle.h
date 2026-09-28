@@ -7,6 +7,10 @@
 
 class CKBArticle : public CKBPage {
     public:
+    CKBArticle();
+    virtual void _ComputeCachedData();
+    virtual void _SendSuccessEvent();
+    virtual void _SendFailureEvent();
 };
 
 extern CKBArticle g_KnowledgeBaseArticle;

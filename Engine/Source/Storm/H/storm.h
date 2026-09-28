@@ -106,6 +106,9 @@ struct HINSTANCE__;
 struct HWND__;
 struct SSignatureData;
 
+void SARC4PrepareKey(const void* key, uint32_t length, SARC4Key* outKey);
+void SARC4ProcessBuffer(uint8_t* data, uint32_t length, const SARC4Key* inKey, SARC4Key* outKey);
+
 void STORMAPI SBigAdd(BigData* a, const BigData* b, const BigData* c);
 void STORMAPI SBigBitLen(BigData* a, uint32_t* bits);
 int32_t STORMAPI SBigCompare(const BigData* a, const BigData* b);

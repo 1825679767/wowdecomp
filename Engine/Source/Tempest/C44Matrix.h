@@ -36,6 +36,7 @@ class C44Matrix {
     /* 003C */ float d3;
 
     C44Matrix();
+    explicit C44Matrix(float scale);
     C44Matrix(float a0, float a1, float a2, float a3, float b0, float b1, float b2, float b3, float c0, float c1, float c2, float c3, float d0, float d1, float d2, float d3);
     C44Matrix(const C33Matrix& m);
     C44Matrix(const C34Matrix& m);

@@ -45,6 +45,8 @@ class GxDrawListEntry {
     /* 0000 */ GxuDrawListItem* m_item;
     /* 0004 */ float m_depth;
     /* 0008 */ uint32_t m_vtxStream;
+
+    GxDrawListEntry();
 };
 
 CGxDevice* CreateCGxDeviceD3d();

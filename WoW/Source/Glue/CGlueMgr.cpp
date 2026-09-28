@@ -1,5 +1,6 @@
 #include "CGlueMgr.h"
 #include <cmath>
+#include <cstdarg>
 #include <cstring>
 #include <new>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -31,6 +32,11 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/Game/GameClient/FFXEffects.h"
 #include "WoW/Source/Game/ValidateName.h"
+#include "WoW/Source/DB/Rec/ChrClassesRec.h"
+#include "WoW/Source/DB/Rec/ChrRacesRec.h"
+#include "WoW/Source/DB/Rec/GameTipsRec.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
+#include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Glue/CSimpleModelFFX.h"
 #include "WoW/Source/Glue/CharacterSelection.h"
 #include "WoW/Source/Glue/RealmList.h"
@@ -46,7 +52,7 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ChecksumExecutables.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "_Triage/FileDownload.h"
-#include "_Triage/LoginResponse.h"
+#include "WoW/Source/WowServices/LoginResponse.h"
 #include "_Triage/Types.h"
 #include "Engine/Source/Base/Coordinate.h"
 #include "Engine/Source/Frame/CSimpleTop.h"
@@ -98,17 +104,26 @@ int32_t CGlueMgr::m_loginResult = -1;
 // STATIC: 0x00AC3DA4
 int32_t CGlueMgr::m_loginState = -1;
 
+// STATIC: 0x00AC3DA8
+int32_t CGlueMgr::m_lastLoginResult = -1;
+
+// STATIC: 0x00AC3DAC
+int32_t CGlueMgr::m_lastLoginState = -1;
+
 // STATIC: 0x00AC3DB8
 static const char* s_serverAlertTag = "SERVERALERT:";
 
 // STATIC: 0x00AC3DBC
 static const char* s_serverAlertTagBOM = "\xEF\xBB\xBFSERVERALERT:";
 
+// STATIC: 0x00AC4370
+int32_t CGlueMgr::s_unk_AC4370 = -1;
+
 // STATIC: 0x00AC3DC0
 static TSExplicitList<ConsoleString, offsetof(ConsoleString, m_link)> s_connectionStatus;
 
 // STATIC: 0x00B6A180
-int32_t CGlueMgr::m_ffxActive;
+uint8_t CGlueMgr::m_ffxActive;
 
 // STATIC: 0x00B6A184
 FFX::Effect* CGlueMgr::m_deathEffect;
@@ -230,11 +245,20 @@ uint32_t CGlueMgr::m_pendingTimerAlert;
 // STATIC: 0x00B6AF94
 int32_t CGlueMgr::m_accountMsgAvailable;
 
+// STATIC: 0x00B6AF98
+static int32_t unk_B6AF98;
+
 // STATIC: 0x00B6AF9C
 uint32_t CGlueMgr::m_numChangedOptionWarnings;
 
 // STATIC: 0x00B6AFA0
 int32_t CGlueMgr::m_showedDisconnect;
+
+// STATIC: 0x00B6AFA4
+static CVar* s_curGameTip;
+
+// STATIC: 0x00B6AFA8
+static CVar* s_showGameTips;
 
 // STATIC: 0x00B6AFAC
 CGlueMgr::Agreements CGlueMgr::m_latestAgreements;
@@ -247,6 +271,18 @@ static SCritSect s_connectionStatusLock;
 
 // STATIC: 0x00DD2010
 static thread_local uint64_t s_activeCharacterGuid;
+
+// VERIFY: 81edbfd4 auto
+// OFFSET: 0x004D7CD0
+static void WriteConnectionLog(const char* text) {
+    if (!s_connectionLog) {
+        OsCreateDirectory("Logs", 0);
+        SLogCreate("Logs\\connection.log", 0, &s_connectionLog);
+    }
+
+    SLogWrite(s_connectionLog, text);
+    SLogFlush(s_connectionLog);
+}
 
 // VERIFY: fa4475b8 auto
 // OFFSET: 0x004D83B0
@@ -274,6 +310,55 @@ static int32_t CheckTrialAccountConversion() {
     ClientServices::LoginConnection()->Logoff();
 
     return 1;
+}
+
+// VERIFY: e5e10296 auto
+// OFFSET: 0x004D8A30
+void CGlueMgr::LoginServerLogin(const char* username, char* password) {
+    if (!CGlueMgr::m_scandllOkayToLogIn || !CGlueMgr::m_acceptedTOS || !CGlueMgr::m_acceptedEULA || CGlueMgr::m_idleState != IDLE_NONE) {
+        return;
+    }
+
+    if (!username || !*username) {
+        FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "OKAY", FrameScript_GetText("LOGIN_ENTER_NAME", -1, GENDER_NOT_APPLICABLE));
+        return;
+    }
+
+    if (!password || !*password) {
+        FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "OKAY", FrameScript_GetText("LOGIN_ENTER_PASSWORD", -1, GENDER_NOT_APPLICABLE));
+        return;
+    }
+
+    CGlueMgr::m_loginResult = -1;
+    CGlueMgr::m_loginState = -1;
+    CGlueMgr::m_lastLoginResult = -1;
+    CGlueMgr::m_lastLoginState = -1;
+    CGlueMgr::m_authenticated = 0;
+    CGlueMgr::m_matrixRemaining = 0;
+    CGlueMgr::m_idleState = IDLE_LOGIN_SERVER_LOGIN;
+    CGlueMgr::m_showedDisconnect = 0;
+
+    const char* src = username;
+    char* dst = CGlueMgr::m_accountName;
+
+    while (*src) {
+        if (dst >= &CGlueMgr::m_accountName[sizeof(CGlueMgr::m_accountName) - 1]) {
+            break;
+        }
+
+        if (*src == '|' && src[1] == '|') {
+            src++;
+        }
+
+        *dst++ = *src++;
+    }
+
+    *dst = '\0';
+    SStrUpper(CGlueMgr::m_accountName);
+
+    FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s", "CANCEL");
+    ClientServices::Logon(CGlueMgr::m_accountName, password);
+    memset(password, 0, strlen(password));
 }
 
 // VERIFY: 6c64b192 auto
@@ -538,6 +623,33 @@ void CGlueMgr::Resume() {
     ClientPostClose(9);
 }
 
+// VERIFY: fc9c4123 auto
+// OFFSET: 0x004D8200
+int32_t CGlueMgr::OnRealmSplitMsg(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t realmId = 0;
+    uint32_t state = 0;
+    char date[64];
+    date[0] = '\0';
+
+    if (!msg->IsRead()) {
+        msg->Get(realmId);
+        msg->Get(state);
+        msg->GetString(date, sizeof(date));
+    }
+
+    FrameScript_SignalEvent(GLUE_EVENT_SERVER_SPLIT_NOTICE, "%d%d%s", realmId, state, date);
+
+    return 1;
+}
+
+// VERIFY: 4b2e7146 manual
+// OFFSET: 0x004D8270
+void CGlueMgr::RealmListDialogCancelled() {
+    if (!SStrCmpI(CGlueMgr::m_currentScreen, "login", STORM_MAX_STR)) {
+        ClientServices::LoginConnection()->Logoff();
+    }
+}
+
 // VERIFY: 0851bd2b auto
 // OFFSET: 0x004D82A0
 void CGlueMgr::SetScreen(const char* screen) {
@@ -696,7 +808,7 @@ void CGlueMgr::Initialize() {
     AccountDataInitializeBasicSystem();
 }
 
-// VERIFY: 6b2d87fc manual
+// VERIFY: ac24dab2 manual
 // OFFSET: 0x004DAB40
 int32_t CGlueMgr::Idle(const void* data, void* param) {
     if (g_theGxDevicePtr->StereoEnabled()) {
@@ -885,7 +997,7 @@ int32_t CGlueMgr::Idle(const void* data, void* param) {
     if (idleState == IDLE_ACCOUNT_LOGIN) {
         if (ClientServices::LoginConnection()->GetLoginServerType() == 1 && CGlueMgr::m_loginState == 5) {
             CGlueMgr::DisplayLoginStatus();
-            ClientServices::Connection()->Cancel(RESPONSE_CANCELLED);
+            ClientServices::Connection()->Cancel(2);
             ClientServices::LoginConnection()->Logoff();
             CGlueMgr::m_idleState = IDLE_NONE;
             CGlueMgr::m_showedDisconnect = 0;
@@ -987,7 +1099,7 @@ int32_t CGlueMgr::Idle(const void* data, void* param) {
             if (errorCode != AUTH_FAILED) {
                 CCharacterSelection::ClearCharacterList();
 
-                if (ClientServices::CreateLoginResponse()->unk_0008) {
+                if (ClientServices::CreateLoginResponse()->m_realmList.m_count) {
                     FrameScript_SignalEvent(GLUE_EVENT_CLOSE_STATUS_DIALOG, nullptr);
                     CRealmList::UpdateList();
                 } else {
@@ -1058,7 +1170,7 @@ int32_t CGlueMgr::Idle(const void* data, void* param) {
             return 1;
         }
 
-        Cfg_CategoriesRec* category = g_cfg_CategoriesDB.GetRecord(ClientServices::GetSelectedRealm()->unk_012D);
+        Cfg_CategoriesRec* category = g_cfg_CategoriesDB.GetRecord(ClientServices::GetSelectedRealm()->m_category);
 
         if (category) {
             ValidateNameInitialize(category->m_localeMask, category->m_createCharsetMask);
@@ -1236,6 +1348,78 @@ int32_t CGlueMgr::Idle(const void* data, void* param) {
     return 1;
 }
 
+// VERIFY: 030a5e4d auto
+// OFFSET: 0x004D8BD0
+void CGlueMgr::ChangeRealm(REALM_INFO* realm) {
+    if (!realm) {
+        return;
+    }
+
+    ClientServices::SelectRealm(realm->m_realmName);
+
+    if (ClientServices::Connection()->unk_2F3C) {
+        CGlueMgr::m_disconnectPending = 1;
+        CGlueMgr::m_reconnect = 1;
+        ClientServices::Connection()->Disconnect();
+    } else {
+        CGlueMgr::m_idleState = IDLE_ACCOUNT_LOGIN;
+        CGlueMgr::m_showedDisconnect = 0;
+        FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CANCEL", FrameScript_GetText("GAME_SERVER_LOGIN", -1, GENDER_NOT_APPLICABLE));
+        ClientServices::Connection()->Connect();
+    }
+}
+
+// VERIFY: 50af9eaf auto
+// OFFSET: 0x004D8930
+void CGlueMgr::Suspend() {
+    CGlueMgr::m_suspended = 1;
+
+    if (CGlueMgr::m_ffxActive) {
+        CGlueMgr::m_ffxActive = 0;
+
+        if (CGlueMgr::m_glowEffect) {
+            delete CGlueMgr::m_glowEffect;
+        }
+
+        if (CGlueMgr::m_deathEffect) {
+            delete CGlueMgr::m_deathEffect;
+        }
+
+        FFX::Destroy();
+    }
+
+    CCharacterSelection::Shutdown();
+    CCharacterCreation::Shutdown();
+
+    if (CGlueMgr::m_simpleTop) {
+        delete CGlueMgr::m_simpleTop;
+        CGlueMgr::m_simpleTop = nullptr;
+    }
+
+    if (CGlueMgr::m_cursorMipBits) {
+        TextureFreeMippedImg(CGlueMgr::m_cursorMipBits, PIXEL_ARGB8888, 32, 32);
+        CGlueMgr::m_cursorMipBits = nullptr;
+    }
+
+    SystemUnregisterFunctions();
+    UnregisterSimpleFrameScriptMethods();
+    GlueScriptEventsUnregisterFunctions();
+    CharSelectUnregisterScriptFunctions();
+    CharacterCreateUnregisterScriptFunctions();
+    RealmListUnregisterScriptFunctions();
+    SI2::UnregisterScriptFunctions();
+    AccountMsg_UnregisterScriptFunctions();
+    CGVideoOptions::UnregisterScriptFunctions();
+    CGlueMgr::s_scriptFunctionsLoaded = 0;
+    FrameXML_FreeHashNodes();
+    ClientServices::ClearMessageHandler(SMSG_CHARACTER_RENAME_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_SET_PLAYER_DECLINED_NAMES_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_CHAR_CUSTOMIZE);
+    ClientServices::ClearMessageHandler(SMSG_REALM_SPLIT);
+    ClientServices::ClearMessageHandler(SMSG_KICK_REASON);
+    ClientServices::ClearMessageHandler(SMSG_CHAR_FACTION_CHANGE_RESULT);
+}
+
 // VERIFY: 39c0975e manual
 // OFFSET: 0x004DBBC0
 void CGlueMgr::Shutdown() {
@@ -1317,4 +1501,493 @@ void CGlueMgr::AcceptContest() {
     CGlueMgr::m_acceptedContest = 1;
     CGlueMgr::m_rereadContest = 0;
     g_readContestVar->Set("1", true, false, false, true);
+}
+
+// VERIFY: 71a7a4ee auto
+// OFFSET: 0x004DA3D0
+void CGlueMgr::LogConnectionStatus(const char* format, ...) {
+    if (!CGlueMgr::m_initialized || !format || !*format) {
+        return;
+    }
+
+    s_connectionStatusLock.Enter();
+
+    ConsoleString* string = s_connectionStatus.NewNode(2, 0, 0);
+
+    va_list args;
+    va_start(args, format);
+    SStrVPrintf(string->m_text, sizeof(string->m_text), format, args);
+    va_end(args);
+
+    WriteConnectionLog(string->m_text);
+
+    s_connectionStatusLock.Leave();
+}
+
+// VERIFY: 66eda7a5 auto
+// OFFSET: 0x004DA4B0
+void CGlueMgr::SetLoginStateAndResult(LOGIN_STATE state, LOGIN_RESULT result, const char* addressString, const char* stateString, const char* resultString, uint16_t flags) {
+    CGlueMgr::LogConnectionStatus("GRUNT: state: %s result: %s %s", stateString, resultString, addressString ? addressString : "");
+
+    if (flags & 0x1) {
+        CGlueMgr::m_accountMsgAvailable = 1;
+    }
+
+    CGlueMgr::m_loginState = state;
+
+    if (state == LOGIN_STATE_AUTHENTICATED) {
+        CGlueMgr::m_authenticated = 1;
+    }
+
+    CGlueMgr::m_loginResult = result;
+}
+
+// VERIFY: dd34ad8d auto
+// OFFSET: 0x004D7F60
+void CGlueMgr::SetCurrentAccount(const char* accountName) {
+    SStrCopy(CGlueMgr::m_accountName, accountName, sizeof(CGlueMgr::m_accountName));
+    SStrUpper(CGlueMgr::m_accountName);
+}
+
+// VERIFY: 3a1bab91 auto
+// OFFSET: 0x004D9590
+void CancelRealmListQuery() {
+    if (CGlueMgr::m_idleState == IDLE_REALM_LIST) {
+        ClientServices::Connection()->Cancel(2);
+        CGlueMgr::m_idleState = IDLE_NONE;
+        CGlueMgr::m_showedDisconnect = 0;
+    }
+}
+
+// VERIFY: 25496e10 auto
+// OFFSET: 0x004D8C60
+void CGlueMgr::CreateCharacter(const CHARACTER_CREATE_INFO* info) {
+    if (!info) {
+        return;
+    }
+
+    CGlueMgr::m_idleState = IDLE_CREATE_CHARACTER;
+    CGlueMgr::m_showedDisconnect = 0;
+    FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CANCEL", FrameScript_GetText(ClientServices::GetErrorToken(CHAR_CREATE_IN_PROGRESS), -1, GENDER_NOT_APPLICABLE));
+    ClientServices::Connection()->RequestCharacterCreate(*info);
+}
+
+// VERIFY: ba645f9d auto
+// OFFSET: 0x004D8CC0
+void CGlueMgr::DeleteCharacter(uint64_t guid) {
+    if (!guid) {
+        return;
+    }
+
+    CGlueMgr::m_idleState = IDLE_DELETE_CHARACTER;
+    CGlueMgr::m_showedDisconnect = 0;
+    FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CANCEL", FrameScript_GetText(ClientServices::GetErrorToken(CHAR_DELETE_IN_PROGRESS), -1, GENDER_NOT_APPLICABLE));
+    ClientServices::Connection()->RequestCharacterDelete(guid);
+}
+
+// VERIFY: 95db93cb manual
+// OFFSET: 0x004D8D20
+bool CGlueMgr::RenameCharacter(uint64_t guid, const char* name) {
+    if (!guid || !name || !*name) {
+        return true;
+    }
+
+    int32_t result = ClientServices::CharacterValidateName(name);
+
+    if (result != CHAR_NAME_SUCCESS) {
+        FrameScript_SignalEvent(GLUE_EVENT_FORCE_RENAME_CHARACTER, "%s", ClientServices::GetErrorToken(result));
+        return false;
+    }
+
+    CGlueMgr::m_idleState = IDLE_7;
+    CGlueMgr::m_showedDisconnect = 0;
+    FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CANCEL", FrameScript_GetText("CHAR_RENAME_IN_PROGRESS", -1, GENDER_NOT_APPLICABLE));
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_CHARACTER_RENAME_REQUEST));
+    msg.Put(guid);
+    msg.PutString(name);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+
+    return true;
+}
+
+// VERIFY: f70ffd2d auto
+// OFFSET: 0x004D98A0
+CharacterSelectionDisplay* GetCharacterInfo(int32_t index) {
+    if (index < 0 || index >= static_cast<int32_t>(CCharacterSelection::s_characterList.Count())) {
+        return nullptr;
+    }
+
+    return &CCharacterSelection::s_characterList[index];
+}
+
+// VERIFY: d968398e auto
+// OFFSET: 0x004D9A40
+bool CGlueMgr::DeclineCharacter(uint64_t guid, const char** names) {
+    if (CCharacterSelection::s_selectionIndex < 0 || CCharacterSelection::s_selectionIndex >= static_cast<int32_t>(CCharacterSelection::s_characterList.Count())) {
+        return true;
+    }
+
+    CharacterSelectionDisplay* display = &CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex];
+
+    if (!display || static_cast<uint64_t>(display->m_characterInfo.m_guid == 0) == guid) {
+        return true;
+    }
+
+    for (int32_t i = 0; i < 5; i++) {
+        if (!names[i] || !*names[i]) {
+            return true;
+        }
+
+        int32_t result = ClientServices::CharacterValidateDeclension(display->m_characterInfo.m_name, names[i]);
+
+        if (result != CHAR_NAME_SUCCESS) {
+            FrameScript_SignalEvent(GLUE_EVENT_FORCE_DECLINE_CHARACTER, "%s", ClientServices::GetErrorToken(result));
+            return false;
+        }
+    }
+
+    CGlueMgr::m_idleState = IDLE_8;
+    CGlueMgr::m_showedDisconnect = 0;
+    FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CANCEL", FrameScript_GetText("CHAR_DECLINE_IN_PROGRESS", -1, GENDER_NOT_APPLICABLE));
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_SET_PLAYER_DECLINED_NAMES));
+    msg.Put(guid);
+    msg.PutString(display->m_characterInfo.m_name);
+
+    for (int32_t i = 0; i < 5; i++) {
+        msg.PutString(names[i]);
+    }
+
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+
+    return true;
+}
+
+// VERIFY: 117cc753 auto
+// OFFSET: 0x004D9BD0
+void CGlueMgr::EnterWorld() {
+    if (!ClientServices::GetSelectedRealm()) {
+        return;
+    }
+
+    CharacterSelectionDisplay* display = CCharacterSelection::s_selectionIndex < 0 || CCharacterSelection::s_selectionIndex >= static_cast<int32_t>(CCharacterSelection::s_characterList.Count()) ? nullptr : &CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex];
+    CGlueMgr::m_characterInfo = &display->m_characterInfo;
+
+    if (!display) {
+        return;
+    }
+
+    CGlueMgr::s_unk_AC4370 = CCharacterSelection::s_selectionIndex;
+
+    if (!ClientServices::Connection()->unk_2F3C) {
+        return;
+    }
+
+    uint32_t flags = CGlueMgr::m_characterInfo->m_flags;
+
+    if (flags & 0x4) {
+        FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "OKAY", FrameScript_GetText(ClientServices::GetErrorToken(CHAR_LOGIN_LOCKED_FOR_TRANSFER), -1, GENDER_NOT_APPLICABLE));
+        return;
+    }
+
+    if (flags & 0x1000000) {
+        FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "OKAY", FrameScript_GetText(ClientServices::GetErrorToken(CHAR_LOGIN_LOCKED_BY_BILLING), -1, GENDER_NOT_APPLICABLE));
+        return;
+    }
+
+    if (flags & 0x4000) {
+        FrameScript_SignalEvent(GLUE_EVENT_FORCE_RENAME_CHARACTER, "%s", "CHAR_RENAME_DESCRIPTION");
+        return;
+    }
+
+    if (!(flags & 0x2000000) && NameNeedsDeclensions(s_locale, CGlueMgr::m_characterInfo->m_name)) {
+        FrameScript_SignalEvent(GLUE_EVENT_FORCE_DECLINE_CHARACTER, nullptr);
+        return;
+    }
+
+    ChrRacesRec* raceRec = g_chrRacesDB.GetRecord(CGlueMgr::m_characterInfo->m_raceID);
+    ChrClassesRec* classRec;
+
+    if (!raceRec || raceRec->m_requiredExpansion > ClientServices::Connection()->m_accountExpansion || !(classRec = g_chrClassesDB.GetRecord(CGlueMgr::m_characterInfo->m_classID)) || classRec->m_requiredExpansion > ClientServices::Connection()->m_accountExpansion) {
+        FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "OKAY", FrameScript_GetText(ClientServices::GetErrorToken(CHAR_LOGIN_DISABLED), -1, GENDER_NOT_APPLICABLE));
+        return;
+    }
+
+    char indexString[32];
+    SStrPrintf(indexString, sizeof(indexString), "%d", CCharacterSelection::s_selectionIndex);
+    g_lastCharacterIndexVar->Set(indexString, true, false, false, true);
+
+    ClientServices::SetAccountName(CGlueMgr::m_accountName);
+    ClientServices::SetCharacterInfo(CGlueMgr::m_characterInfo);
+
+    if (!s_curGameTip) {
+        s_curGameTip = CVar::Register("gameTip", nullptr, 0, "0", nullptr, CATEGORY_DEFAULT, false, nullptr, false);
+    }
+
+    if (!s_showGameTips) {
+        s_showGameTips = CVar::Register("showGameTips", nullptr, 0, "1", nullptr, CATEGORY_DEFAULT, false, nullptr, false);
+    }
+
+    if (!CGlueMgr::m_characterInfo->m_firstLogin && s_showGameTips->m_intValue) {
+        int32_t tip = s_curGameTip->m_intValue;
+
+        if (tip < 0 || tip >= g_gameTipsDB.m_numRecords) {
+            tip = 0;
+        }
+
+        if (g_gameTipsDB.m_numRecords > 0) {
+            GameTipsRec* tipRec = tip >= 0 && tip < g_gameTipsDB.m_numRecords ? &g_gameTipsDB.m_records[tip] : nullptr;
+            LoadingScreenSetTip(tipRec->m_text);
+
+            char tipString[40];
+            SStrPrintf(tipString, sizeof(tipString), "%d", tip + 1);
+            s_curGameTip->Set(tipString, true, false, false, true);
+        }
+    }
+
+    if (SFile::IsTrial()) {
+        bool ready = StreamingIsRaceDataReady(CGlueMgr::m_characterInfo->m_raceID);
+        StreamingSetRace(CGlueMgr::m_characterInfo->m_raceID);
+        StreamingSetState(2);
+        LoadingScreenSetScreenTipForRaceData(!ready);
+    }
+
+    LoadingScreenEnable(CGlueMgr::m_characterInfo->m_mapID, true);
+    CVar::SaveAll();
+    TextureGxCacheFlush();
+
+    if (!ClientServices::LoginConnection()->GetLoginServerType()) {
+        ClientServices::LoginConnection()->Logoff();
+    }
+
+    CGlueMgr::m_idleState = IDLE_ENTER_WORLD;
+    CGlueMgr::m_showedDisconnect = 0;
+}
+
+// VERIFY: 0e9fb28c auto
+// OFFSET: 0x004D95C0
+void CGlueMgr::GetCharacterList() {
+    if (CGlueMgr::m_idleState == IDLE_WORLD_LOGIN) {
+        return;
+    }
+
+    CGlueMgr::m_idleState = IDLE_CHARACTER_LIST;
+    CGlueMgr::m_showedDisconnect = 0;
+    FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CANCEL", FrameScript_GetText("CHAR_LIST_RETRIEVING", -1, GENDER_NOT_APPLICABLE));
+    ClientServices::Connection()->GetCharacterList();
+}
+
+// VERIFY: 616c4f30 auto
+// OFFSET: 0x004D9610
+void CGlueMgr::GetRealmList(int32_t showDialog) {
+    CGlueMgr::m_idleState = IDLE_REALM_LIST;
+    CGlueMgr::m_showedDisconnect = 0;
+
+    if (showDialog) {
+        FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CANCEL", FrameScript_GetText("REALM_LIST_IN_PROGRESS", -1, GENDER_NOT_APPLICABLE));
+    }
+
+    ClientServices::GetRealmList();
+}
+
+// VERIFY: 0a5da6c1 auto
+// OFFSET: 0x006B0130
+void CGlueMgr::ResetQueueState() {
+    memset(CGlueMgr::m_queuePosition, 0, sizeof(CGlueMgr::m_queuePosition));
+    memset(CGlueMgr::m_queueTime, 0, sizeof(CGlueMgr::m_queueTime));
+    CGlueMgr::m_estimatedWaitTime = 0;
+}
+
+// VERIFY: 29386b5f manual
+// OFFSET: 0x004D80A0
+uint64_t CGlueMgr::GetActive() {
+    return s_activeCharacterGuid;
+}
+
+// VERIFY: db8aba56 manual
+// OFFSET: 0x004D80C0
+void CGlueMgr::DisplayLoginStatus() {
+    if (CGlueMgr::m_lastLoginState == CGlueMgr::m_loginState && CGlueMgr::m_lastLoginResult == CGlueMgr::m_loginResult) {
+        return;
+    }
+
+    CGlueMgr::m_lastLoginState = CGlueMgr::m_loginState;
+    CGlueMgr::m_lastLoginResult = CGlueMgr::m_loginResult;
+
+    if (CGlueMgr::m_loginState == LOGIN_STATE_FAILED) {
+        if (CGlueMgr::m_loginResult < 0 || CGlueMgr::m_loginResult >= LOGIN_RESULT_MAX) {
+            return;
+        }
+
+        if (CGlueMgr::m_loginResult == LOGIN_PARENTALCONTROL) {
+            FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s%s", "PARENTAL_CONTROL", FrameScript_GetText(g_LoginResultStringNames[LOGIN_PARENTALCONTROL], -1, GENDER_NOT_APPLICABLE), "AUTH_PARENTAL_CONTROL_URL");
+            return;
+        }
+
+        const char* text = FrameScript_GetText(g_LoginResultStringNames[CGlueMgr::m_loginResult], -1, GENDER_NOT_APPLICABLE);
+        const char* button;
+
+        if (SStrStrUTF8I(text, "<HTML>")) {
+            button = "OKAY_HTML";
+
+            if (CGlueMgr::m_loginResult == LOGIN_FAILED) {
+                FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CONNECTION_HELP_HTML", text);
+                return;
+            }
+        } else {
+            button = CGlueMgr::m_loginResult == LOGIN_FAILED ? "CONNECTION_HELP" : "OKAY";
+        }
+
+        FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", button, text);
+        return;
+    }
+
+    int32_t state = CGlueMgr::m_loginState;
+    bool show = state >= 0 && state < LOGIN_STATE_MAX;
+
+    if (state == LOGIN_STATE_DISCONNECTED || state == LOGIN_STATE_SURVEY) {
+        return;
+    }
+
+    if (state == LOGIN_STATE_MATRIX || state == LOGIN_STATE_MATRIX_WAIT) {
+        show = false;
+    }
+
+    if (state == LOGIN_STATE_TOKEN || state == LOGIN_STATE_TOKEN_WAIT) {
+        return;
+    }
+
+    if (show) {
+        FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CANCEL", FrameScript_GetText(g_LoginStateStringNames[state], -1, GENDER_NOT_APPLICABLE));
+    }
+}
+
+// VERIFY: 6397c8fa auto
+// OFFSET: 0x004D8350
+void CGlueMgr::QuitGame() {
+    ClientPostClose(0);
+}
+
+// VERIFY: 36e76190 manual
+// OFFSET: 0x004D98D0
+void CGlueMgr::StatusDialogClick() {
+    if (!SStrCmpI(CGlueMgr::m_currentScreen, "patchdownload", STORM_MAX_STR)) {
+        FrameScript_SignalEvent(GLUE_EVENT_SET_GLUE_SCREEN, "%s", "login");
+    }
+
+    switch (CGlueMgr::m_idleState) {
+        case IDLE_NONE:
+            ClientServices::Connection()->Cleanup();
+            break;
+
+        case IDLE_LOGIN_SERVER_LOGIN:
+            ClientServices::LoginConnection()->Logoff();
+            CGlueMgr::m_showedDisconnect = 0;
+            CGlueMgr::m_idleState = IDLE_NONE;
+            break;
+
+        case IDLE_ACCOUNT_LOGIN:
+        case IDLE_CHARACTER_LIST:
+            ClientServices::Connection()->Cancel(2);
+            CCharacterSelection::ClearCharacterList();
+            break;
+
+        case IDLE_REALM_LIST:
+        case IDLE_CREATE_CHARACTER:
+        case IDLE_DELETE_CHARACTER:
+        case IDLE_ENTER_WORLD:
+            ClientServices::Connection()->Cancel(2);
+            CGlueMgr::m_showedDisconnect = 0;
+            CGlueMgr::m_idleState = IDLE_NONE;
+            break;
+
+        case IDLE_7:
+        case IDLE_8:
+        case IDLE_9:
+            CGlueMgr::m_showedDisconnect = 0;
+            CGlueMgr::m_idleState = IDLE_NONE;
+            break;
+
+        case IDLE_WORLD_LOGIN:
+            CGlueMgr::m_idleState = IDLE_NONE;
+            CGlueMgr::m_showedDisconnect = 0;
+            CGlueMgr::GetCharacterList();
+            break;
+
+        case IDLE_12:
+        case IDLE_13:
+            if (CGlueMgr::m_surveyDownload) {
+                CGlueMgr::SurveyDownloadCancel();
+                CGlueMgr::m_showedDisconnect = 0;
+                CGlueMgr::m_idleState = IDLE_NONE;
+            }
+
+            break;
+
+        default:
+            break;
+    }
+}
+
+// VERIFY: 5fe5b71e auto
+// OFFSET: 0x004DA9D0
+int32_t CGlueMgr::NetDisconnectHandler(NetClient* client) {
+    bool displayScript = CGlueMgr::m_idleState != IDLE_ACCOUNT_LOGIN;
+    CGlueMgr::m_idleState = IDLE_NONE;
+    CGlueMgr::m_showedDisconnect = 0;
+
+    if (CGlueMgr::m_disconnectPending) {
+        ConsolePrintf("CGlueMgr::NetDisconnectHandler: Disconnect pending");
+        CGlueMgr::m_disconnectPending = 0;
+
+        if (CGlueMgr::m_reconnect) {
+            CGlueMgr::m_reconnect = 0;
+            CGlueMgr::m_idleState = IDLE_ACCOUNT_LOGIN;
+            CGlueMgr::m_showedDisconnect = 0;
+            FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CANCEL", FrameScript_GetText("GAME_SERVER_LOGIN", -1, GENDER_NOT_APPLICABLE));
+            ClientServices::Connection()->Connect();
+        }
+
+        return 1;
+    }
+
+    if (!ClientServices::ValidDisconnect(client)) {
+        ConsolePrintf("CGlueMgr::NetDisconnectHandler: Invalid disconnect");
+        return 1;
+    }
+
+    ClientDestroyGame(0, 1, 0);
+    EventSetMouseMode(MOUSE_MODE_NORMAL, 0);
+
+    if (CGlueMgr::m_suspended) {
+        CGlueMgr::Resume();
+    }
+
+    if (displayScript) {
+        ConsolePrintf("CGlueMgr::NetDisconnectHandler: Displaying script");
+        FrameScript_SignalEvent(GLUE_EVENT_DISCONNECTED_FROM_SERVER, "%d", unk_B6AF98);
+    } else {
+        ConsolePrintf("CGlueMgr::NetDisconnectHandler: NOT displaying script");
+
+        WOWCS_OPS op;
+        const char* text = nullptr;
+        int32_t result;
+        int32_t errorCode;
+
+        if (!ClientServices::Connection()->PollStatus(op, &text, result, errorCode) || result) {
+            ClientServices::SelectRealm("");
+            FrameScript_SignalEvent(GLUE_EVENT_DISCONNECTED_FROM_SERVER, "%d", unk_B6AF98);
+        } else {
+            FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "OKAY", text);
+        }
+    }
+
+    ClientServices::LoginConnection()->Logoff();
+
+    return 1;
 }

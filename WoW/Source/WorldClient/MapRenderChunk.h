@@ -13,25 +13,29 @@ struct CGxPool;
 class CMapChunk;
 class CMapChunkBufBlock;
 class CMapRenderChunk;
-class CMapRenderChunkBuf;
+class CMapChunkBuf;
 class CTexture;
 
-class CMapRenderChunkBuf {
+class CMapChunkBuf {
     public:
     /* 0000 */ CGxBuf* m_vertexBuf;
     /* 0004 */ CGxBuf* m_indexBuf;
     /* 0008 */ CMapRenderChunk* m_renderChunk;
     /* 000C */ CMapChunkBufBlock* m_block;
     /* 0010 */ uint32_t m_unkFlags;
-    /* 0014 */ TSLink<CMapRenderChunkBuf> unk_0014;
+    /* 0014 */ TSLink<CMapChunkBuf> unk_0014;
+
+    CMapChunkBuf();
 };
 
 class CMapChunkBufBlock {
     public:
     /* 0000 */ uint32_t m_vertexCount;
-    /* 0004 */ CMapRenderChunkBuf m_bufs [2];
+    /* 0004 */ CMapChunkBuf m_bufs [2];
     /* 003C */ TSLink<CMapChunkBufBlock> m_blockLink;
     /* 0044 */ TSLink<CMapChunkBufBlock> m_bufLink;
+
+    CMapChunkBufBlock();
 };
 
 class CMapRenderChunkLayer {
@@ -53,10 +57,16 @@ class CMapRenderChunk {
     static CGxPool* s_gxVertexPool;
     static CGxPool* s_gxIndexPool;
     static TSGrowableArray<CMapChunkBufBlock> s_chunkBlockArray;
+    static TSExplicitList<CMapChunkBuf, offsetof(CMapChunkBuf, unk_0014)> s_renderChunkBufFreeList;
+    static TSExplicitList<CMapChunkBufBlock, offsetof(CMapChunkBufBlock, m_blockLink)> s_chunkBufBlockFreeList;
     static CGxBatch unk_AEEC60;
 
+    static void Destroy();
+    static void DestroyBufs();
     static void Initialize();
     static void SetDirty();
+
+    ~CMapRenderChunk();
 
     /* 0000 */ TSLink<CMapRenderChunk> m_renderChunkLink;
     /* 0008 */ uint8_t m_unkFlags;
@@ -70,7 +80,7 @@ class CMapRenderChunk {
     /* 0034 */ CMapRenderChunkLayer m_layers [4];
     /* 0084 */ CTexture* m_terrainBlendTexture;
     /* 0088 */ CTexture* m_shadowTexture;
-    /* 008C */ CMapRenderChunkBuf* m_chunkBuf;
+    /* 008C */ CMapChunkBuf* m_chunkBuf;
     /* 0090 */ CGxBatch m_batch;
 };
 

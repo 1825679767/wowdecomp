@@ -1,6 +1,13 @@
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/Object/Types.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Ui/BattlefieldInfo.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/PartyFrame.h"
+#include "WoW/Source/Ui/RaidInfo.h"
 
 // STATIC: 0x00C24EB0
 const char* g_scriptEvents[722];
@@ -674,6 +681,95 @@ void Script_SendUniqueSignal(const uint64_t& guid, int32_t signal) {
     UniqueSignal* entry = s_uniqueSignals.New();
     entry->m_guid = guid;
     entry->m_signal = signal;
+}
+
+// VERIFY: df1a8b1f manual
+// OFFSET: 0x006144D0
+void Script_SendUniqueSignalToAllUnits(int32_t signal) {
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        uint64_t guid = static_cast<uint64_t>(player->m_obj->m_guid.m_guidHigh) << 32 | player->m_obj->m_guid.m_guidLow;
+        Script_SendUniqueSignal(guid, signal);
+
+        const WGUID& pet = player->m_unit->m_unitFieldCharm.m_guidLow || player->m_unit->m_unitFieldCharm.m_guidHigh ? player->m_unit->m_unitFieldCharm : player->m_unit->m_unitFieldSummon;
+
+        if (pet.m_guidLow || pet.m_guidHigh) {
+            const WGUID& target = player->m_unit->m_unitFieldCharm.m_guidLow || player->m_unit->m_unitFieldCharm.m_guidHigh ? player->m_unit->m_unitFieldCharm : player->m_unit->m_unitFieldSummon;
+            Script_SendUniqueSignal(reinterpret_cast<const uint64_t&>(target), signal);
+        }
+    }
+
+    for (uint32_t i = 0; i < CGPartyInfo::GetNumPartyMembers(); i++) {
+        if (CGGameUI::GetPartyMember(i)) {
+            uint64_t member = CGGameUI::GetPartyMember(i);
+            Script_SendUniqueSignal(member, signal);
+
+            if (CGGameUI::GetPartyMemberPet(i)) {
+                uint64_t pet = CGGameUI::GetPartyMemberPet(i);
+                Script_SendUniqueSignal(pet, signal);
+            }
+        }
+    }
+
+    for (uint32_t i = 0; i < CGRaidInfo::m_numMembers; i++) {
+        if (GetRaidMemberGUID(i)) {
+            uint64_t member = GetRaidMemberGUID(i);
+            Script_SendUniqueSignal(member, signal);
+
+            if (CGGameUI::GetRaidMemberPet(i)) {
+                uint64_t pet = CGGameUI::GetRaidMemberPet(i);
+                Script_SendUniqueSignal(pet, signal);
+            }
+        }
+    }
+
+    for (uint32_t i = 0; i < GetArenaPetGUIDCount(); i++) {
+        if (i >= 5) {
+            continue;
+        }
+
+        if (CGBattlefieldInfo::m_arenaOpponents[i]) {
+            uint64_t opponent = CGBattlefieldInfo::m_arenaOpponents[i];
+            Script_SendUniqueSignal(opponent, signal);
+        }
+
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGBattlefieldInfo::m_arenaOpponents[i], TYPEMASK_UNIT, __FILE__, __LINE__));
+        uint64_t pet;
+
+        if (unit) {
+            const WGUID& unitPet = unit->m_unit->m_unitFieldCharm.m_guidLow || unit->m_unit->m_unitFieldCharm.m_guidHigh ? unit->m_unit->m_unitFieldCharm : unit->m_unit->m_unitFieldSummon;
+            pet = static_cast<uint64_t>(unitPet.m_guidHigh) << 32 | unitPet.m_guidLow;
+        } else {
+            pet = CGBattlefieldInfo::m_arenaOpponentPets[i][0];
+        }
+
+        if (pet) {
+            unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGBattlefieldInfo::m_arenaOpponents[i], TYPEMASK_UNIT, __FILE__, __LINE__));
+            uint64_t petGuid;
+
+            if (unit) {
+                const WGUID& unitPet = unit->m_unit->m_unitFieldCharm.m_guidLow || unit->m_unit->m_unitFieldCharm.m_guidHigh ? unit->m_unit->m_unitFieldCharm : unit->m_unit->m_unitFieldSummon;
+                petGuid = static_cast<uint64_t>(unitPet.m_guidHigh) << 32 | unitPet.m_guidLow;
+            } else {
+                petGuid = CGBattlefieldInfo::m_arenaOpponentPets[i][0];
+            }
+
+            Script_SendUniqueSignal(petGuid, signal);
+        }
+    }
+
+    if (CGGameUI::m_lockedTarget) {
+        Script_SendUniqueSignal(CGGameUI::m_lockedTarget, signal);
+    }
+
+    if (CGGameUI::unk_BD07D0) {
+        Script_SendUniqueSignal(CGGameUI::unk_BD07D0, signal);
+    }
+
+    if (CGGameUI::m_interactTarget) {
+        Script_SendUniqueSignal(CGGameUI::m_interactTarget, signal);
+    }
 }
 
 // VERIFY: f8795be6 auto

@@ -33,6 +33,8 @@ class Sand {
     /* 0094 */ float unk_0094;
     /* 0098 */ CGxShader* m_shader;
     /* 009C */ float unk_009C;
+
+    ~Sand();
 };
 
 #endif

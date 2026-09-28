@@ -955,3 +955,17 @@ uint32_t CGxString::GetEmbeddedTextureInfo(const GXUEMBEDDEDTEXTUREINFO*& info) 
 
     return count;
 }
+
+// INLINED
+GXUFONTHYPERLINKINFO::GXUFONTHYPERLINKINFO() {
+    this->m_lineHeight = 0.0f;
+    this->m_indentation = 0.0f;
+    this->m_baseLineHeight = 0.0f;
+    this->m_right = 0.0f;
+    this->m_linkData = nullptr;
+    this->m_linkDataLength = 0;
+    this->m_linkText = nullptr;
+    this->m_linkTextLength = 0;
+    this->m_colorCode = nullptr;
+    this->m_colorCodeLength = 0;
+}

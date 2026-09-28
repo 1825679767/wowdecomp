@@ -78,9 +78,16 @@ class CGxVertexPNCT {
 
 class CMapObjGroup {
     public:
+    struct VertArray {
+        /* 0000 */ TSLink<VertArray> m_link;
+        /* 0008 */ TSFixedArray<C3Vector> m_verts;
+    };
+
+    static TSExplicitList<VertArray, offsetof(VertArray, m_link)> s_unk_AEEEA8;
     static VBBList indexVBList;
     static VBBList vertexVBList;
 
+    static void Destroy();
     static void Initialize();
 
     /* 0000 */ int32_t m_objectIndex;
@@ -223,6 +230,8 @@ class VBBList {
     /* 000C */ CGxPool* m_pool;
     /* 0010 */ TSExplicitList<VBBList_Block, offsetof(VBBList_Block, m_link)> unk_0010;
     /* 001C */ TSExplicitList<VBBList_Block, offsetof(VBBList_Block, m_link)> unk_001C;
+
+    void Destroy();
 };
 
 namespace World {

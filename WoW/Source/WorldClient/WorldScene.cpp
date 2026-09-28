@@ -1,5 +1,7 @@
 #include "WorldScene.h"
 #include <new>
+#include "Engine/Source/Base/Handle.h"
+#include "Engine/Source/Gxu/GxuScene.h"
 #include "Engine/Source/Services/Texture.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/CImVector.h"
@@ -29,8 +31,14 @@ float CWorldScene::s_fadeDistMin[5] = { 25.0f, 90.0f, 185.0f, 730.0f, 1200.0f };
 // STATIC: 0x00ADF3DC
 float CWorldScene::s_fadeDistMinSqr[5] = { 625.0f, 8100.0f, 34225.0f, 532900.0f, 1440000.0f };
 
+// STATIC: 0x00ADF6A8
+TSExplicitList<CWFrustum, offsetof(CWFrustum, m_link)> CWorldScene::frustumFreeList;
+
+// STATIC: 0x00B2EB68
+GxuScene CWorldScene::s_unk_B2EB68;
+
 // STATIC: 0x00CD8610
-CiRect* CWorldScene::s_unk_CD8610;
+Liquid::CRenderer* CWorldScene::s_unk_CD8610;
 
 // STATIC: 0x00CD8614
 CTexture* CWorldScene::s_defaultBlendTexture;
@@ -50,7 +58,38 @@ CMapEntity* CWorldScene::camTargetEntity;
 // STATIC: 0x00CD87B0
 int32_t CWorldScene::s_unk_CD87B0;
 
-// VERIFY: 81aac1f6 manual
+// VERIFY: ce865553 manual
+// OFFSET: 0x00798310
+void CWorldScene::Destroy() {
+    if (CWorldScene::s_defaultTexture) {
+        HandleClose(reinterpret_cast<HOBJECT>(CWorldScene::s_defaultTexture));
+        CWorldScene::s_defaultTexture = nullptr;
+    }
+
+    if (CWorldScene::s_defaultBlendTexture) {
+        HandleClose(reinterpret_cast<HOBJECT>(CWorldScene::s_defaultBlendTexture));
+        CWorldScene::s_defaultBlendTexture = nullptr;
+    }
+
+    if (CWorldScene::s_unk_CD8610) {
+        Liquid::CRenderer* renderer = CWorldScene::s_unk_CD8610;
+        renderer->~CRenderer();
+        SMemFree(renderer, "delete", SLOG_FUNCTION, 0);
+        CWorldScene::s_unk_CD8610 = nullptr;
+    }
+
+    Liquid::ClearWaveManagers();
+    Liquid::ClearGeomFactories();
+    Liquid::ClearClientEnvironments();
+    Liquid::Shutdown();
+    CWorldScene::s_unk_B2EB68.Clear();
+    CBarrier::Destroy();
+    CWorldScene::frustumFreeList.Clear();
+    s_occluderFreeList.Clear();
+    s_antiOccluderFreeList.Clear();
+}
+
+// VERIFY: 14e0c0c3 manual
 // OFFSET: 0x007997D0
 void CWorldScene::Initialize() {
     CBarrier::Initialize();
@@ -62,7 +101,7 @@ void CWorldScene::Initialize() {
 
     Liquid::Initialize(1, 1.0f, 0, "", &g_liquidTypeDB, &g_liquidMaterialDB);
 
-    CWorldScene::s_unk_CD8610 = new (SMemAlloc(sizeof(CiRect) * 2, __FILE__, __LINE__, 0)) CiRect[2];
+    CWorldScene::s_unk_CD8610 = new (SMemAlloc(sizeof(Liquid::CRenderer), __FILE__, __LINE__, 0)) Liquid::CRenderer();
 
     CWorldOccluder::Initialize();
 

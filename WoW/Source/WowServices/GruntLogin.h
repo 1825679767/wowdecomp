@@ -3,70 +3,91 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
+#include "WoW/Source/WowServices/Grunt.h"
 #include "WoW/Source/WowServices/Login.h"
-
-namespace Grunt { struct ClientLink; }
+#include "_Triage/SHA1.h"
 
 class GruntLogin : public Login {
     public:
-    /* 10F0 */ int32_t m_serverId;
-    /* 10F4 */ uint32_t unk_10F4;
-    /* 10F8 */ uint32_t unk_10F8;
-    /* 10FC */ uint32_t unk_10FC;
-    /* 1100 */ uint32_t unk_1100;
-    /* 1104 */ uint32_t unk_1104;
-    /* 1108 */ uint8_t m_ukn1061;
-    /* 1109 */ uint8_t m_ukn1062;
-    /* 110A */ uint8_t m_ukn1063;
-    /* 110B */ uint8_t m_ukn1064;
-    /* 110C */ uint8_t m_ukn1071;
-    /* 110D */ uint8_t m_ukn1072;
-    /* 110E */ uint8_t m_ukn1073;
-    /* 110F */ uint8_t m_ukn1074;
-    /* 1110 */ uint8_t m_ukn1081;
-    /* 1111 */ uint8_t m_ukn1082;
-    /* 1112 */ uint8_t m_ukn1083;
-    /* 1113 */ uint8_t m_ukn1084;
-    /* 1114 */ uint32_t unk_1114;
-    /* 1118 */ uint32_t unk_1118;
-    /* 111C */ uint32_t unk_111C;
-    /* 1120 */ uint32_t unk_1120;
-    /* 1124 */ uint32_t unk_1124;
-    /* 1128 */ uint32_t unk_1128;
-    /* 112C */ uint32_t unk_112C;
-    /* 1130 */ uint32_t unk_1130;
-    /* 1134 */ uint32_t unk_1134;
-    /* 1138 */ uint32_t unk_1138;
-    /* 113C */ uint8_t m_ukn1191;
-    /* 113D */ uint8_t m_ukn1192;
-    /* 113E */ uint8_t m_ukn1193;
-    /* 113F */ uint8_t m_gruntMatrixRequired;
-    /* 1140 */ uint8_t m_gruntMatrixWidth;
-    /* 1141 */ uint8_t m_gruntMatrixHeight;
-    /* 1142 */ uint8_t m_ukn1203;
-    /* 1143 */ uint8_t m_gruntMatrixChallengeCount;
-    /* 1144 */ uint32_t unk_1144;
-    /* 1148 */ uint32_t unk_1148;
-    /* 114C */ uint32_t unk_114C;
-    /* 1150 */ uint32_t unk_1150;
-    /* 1154 */ uint32_t unk_1154;
-    /* 1158 */ uint32_t unk_1158;
-    /* 115C */ uint32_t unk_115C;
-    /* 1160 */ uint32_t m_matrixClientProof;
-    /* 1164 */ uint32_t unk_1164;
-    /* 1168 */ uint32_t unk_1168;
-    /* 116C */ uint32_t unk_116C;
-    /* 1170 */ uint32_t unk_1170;
-    /* 1174 */ uint8_t m_tokenInfoRequired;
-    /* 1175 */ uint8_t m_tokenInfoUkn2;
-    /* 1176 */ uint8_t m_tokenInfoString;
-    /* 1177 */ uint8_t m_ukn1334;
-    /* 1178 */ uint32_t unk_1178;
-    /* 117C */ uint32_t unk_117C;
-    /* 1180 */ uint32_t unk_1180;
-    /* 1184 */ uint32_t unk_1184;
+    struct MATRIXINPUT {
+        /* 0000 */ bool m_valid;
+        /* 0001 */ uint8_t unk_0001[7];
+        /* 0008 */ HMAC<SHA1> m_hmac;
+        /* 00E8 */ SARC4Key m_key;
+        /* 01EA */ uint8_t unk_01EA[6];
+
+        MATRIXINPUT();
+    };
+
+    /* 10F0 */ uint8_t m_versionChallenge [16];
+    /* 1100 */ bool m_pinEnabled;
+    /* 1101 */ uint8_t m_keyMap [10];
+    /* 110B */ uint8_t m_pinSalt [16];
+    /* 111B */ uint8_t m_pinClientSalt [16];
+    /* 112B */ uint8_t m_pinHash [20];
+    /* 113F */ bool m_matrixEnabled;
+    /* 1140 */ uint8_t m_matrixWidth;
+    /* 1141 */ uint8_t m_matrixHeight;
+    /* 1142 */ uint8_t unk_1142;
+    /* 1143 */ uint8_t m_matrixChallengeCount;
+    /* 1144 */ uint32_t* m_matrixCoordinates;
+    /* 1148 */ uint8_t m_matrixKey [16];
+    /* 1158 */ GruntLogin::MATRIXINPUT* m_matrixInput;
+    /* 115C */ GruntLogin::MATRIXINPUT* m_matrixCommitted;
+    /* 1160 */ uint8_t m_matrixProof [20];
+    /* 1174 */ bool m_tokenEnabled;
+    /* 1175 */ uint8_t m_tokenRequired;
+    /* 1176 */ char m_token [17];
+    /* 1187 */ uint8_t unk_1187[1];
     /* 1188 */ Grunt::ClientLink* m_clientLink;
+
+    bool Connected(const NETADDR& address) override;
+    bool Disconnected() override;
+    bool CantConnect() override;
+    void GetLogonMethod() override;
+    void GetVersionProof(const uint8_t* versionChallenge) override;
+    void SetPinInfo(bool enabled, uint32_t seed, const uint8_t* salt) override;
+    void GetPinInfo(bool* enabled, uint8_t** salt, uint8_t** hash) override;
+    void SetMatrixInfo(bool enabled, uint8_t width, uint8_t height, uint8_t minDigits, uint8_t maxDigits, bool flipCoords, uint8_t challengeCount, uint64_t seed, const uint8_t* sessionKey, uint32_t sessionKeyLength) override;
+    void GetMatrixProof(bool* enabled, const uint8_t** proof) const override;
+    void SetTokenInfo(bool enabled, uint8_t required) override;
+    void GetTokenInfo(bool* enabled, char* token) override;
+    void LogonResult(Grunt::Result result, const uint8_t* sessionKey, uint32_t sessionKeyLength, uint16_t flags) override;
+    void ReconnectResult(Grunt::Result result, const uint8_t* sessionKey, uint32_t sessionKeyLength, uint16_t flags) override;
+    LOGIN_STATE NextSecurityState(LOGIN_STATE state) override;
+    int32_t GetServerId() override;
+    const uint8_t* GetVersionChallenge() override;
+    void GetRealmList() override;
+    void Reconnect() override;
+    void Logon(const char* loginServer, const char* portal) override;
+    int32_t Wait(const char* message, LoginData& loginData) override;
+    void ProveVersion(const uint8_t* versionChecksum) override;
+    void FileAccept(bool accept, uint64_t offset) override;
+    void FileComplete(bool success) override;
+    int32_t GetSurveyId() override;
+    void SendSurveyData(uint16_t size, uint8_t* data) override;
+    void SendSurveyFailed() override;
+    void Logoff() override;
+    const uint8_t* GetKeyMap() override;
+    void EnterPIN(int32_t count, uint8_t* digits) override;
+    void EnterMatrix(uint8_t value) override;
+    void RevertMatrix() override;
+    void CommitMatrix() override;
+    void FinalizeMatrix() override;
+    bool GetMatrixInfo(uint32_t* width, uint32_t* height, uint32_t* minDigits, uint32_t* maxDigits, bool* flipCoords, uint32_t* challengeCount) override;
+    void GetMatrixCoordinates(uint32_t index, uint32_t* x, uint32_t* y) override;
+    void EnterToken(const char* token) override;
+    bool IsTrialAccount() override;
+    bool IsGMAccount() override;
+    bool IsProPassAccount() override;
+    void Update() override;
+    void Init(LoginResponse* loginResponse) override;
+    ~GruntLogin() override;
+    void JoinRealm(uint32_t a1, uint32_t a2, uint32_t a3) override;
+    int32_t GetLoginServerType() override;
+
+    GruntLogin();
+    void EncodePinDigits(uint32_t seed);
 };
 
 #endif

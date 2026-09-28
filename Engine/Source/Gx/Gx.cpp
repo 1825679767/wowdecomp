@@ -1126,3 +1126,10 @@ void GxDevDestroy(CGxDevice* device) {
 // OFFSET: 0x005EEB70
 void GxPrimUnlockVertexPtrs() {
 }
+
+// INLINED
+GxDrawListEntry::GxDrawListEntry() {
+    this->m_item = nullptr;
+    this->m_depth = 0.0f;
+    this->m_vtxStream = 0;
+}

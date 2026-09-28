@@ -70,6 +70,9 @@ static Zone s_zones[11] = {
 // STATIC: 0x00ADF168
 C44Matrix World::idMat;
 
+// STATIC: 0x00ADF1A8
+TSExplicitList<SWModelFadeout, offsetof(SWModelFadeout, m_link)> s_fadeoutList;
+
 // STATIC: 0x00ADF1B4
 TSExplicitList<SWModelFadeout, offsetof(SWModelFadeout, m_link)> s_fadeoutDataPool;
 
@@ -354,6 +357,23 @@ void World::SetFarClip(float farClip) {
         World::s_nearClip = 0.2f;
         CMapObj::bPoolsDirty = 1;
         World::s_texCacheDirty = 1;
+    }
+}
+
+// VERIFY: f80e8676 manual
+// OFFSET: 0x00782E40
+void CWorldScene::ClearObjectFadeoutList() {
+    SWModelFadeout* fadeout = s_fadeoutList.Head();
+
+    while (!s_fadeoutList.IsEnd(fadeout)) {
+        SWModelFadeout* next = s_fadeoutList.RawNext(fadeout);
+
+        World::ObjectDestroy(fadeout->m_entity);
+        fadeout->m_entity = nullptr;
+        fadeout->m_link.Unlink();
+        s_fadeoutDataPool.LinkToTail(fadeout);
+
+        fadeout = next;
     }
 }
 

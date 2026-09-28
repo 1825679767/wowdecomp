@@ -7,6 +7,7 @@
 class CGVideoOptions {
     public:
     static void RegisterScriptFunctions();
+    static void UnregisterScriptFunctions();
 };
 
 #endif

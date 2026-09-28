@@ -11,6 +11,7 @@ enum NETSTATE {
     NS_DISCONNECTING = 3,
     NS_CONNECTING = 4,
     NS_CONNECTED = 5,
+    NS_UNK_6 = 6,
 };
 
 enum PLAYER_TYPE {

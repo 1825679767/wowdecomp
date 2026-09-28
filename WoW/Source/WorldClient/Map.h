@@ -8,6 +8,7 @@
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/WorldClient/MapRenderChunk.h"
 
 struct CGxBuf;
 struct CGxPool;
@@ -63,11 +64,20 @@ struct SMODoodadDef {
     /* 0024 */ CImVector m_color;
 };
 
+struct CMapFootprint {
+    /* 0000 */ TSLink<CMapFootprint> m_link;
+    /* 0008 */ uint8_t unk_0008[44];
+};
+
+class CMapObj;
+
 class CMapFootprintTexture {
     public:
     /* 0000 */ CTexture* m_texture;
     /* 0004 */ TSGrowableArray<uint32_t> unk_0004;
     /* 0014 */ uint32_t unk_0014;
+
+    CMapFootprintTexture();
 };
 
 class CMap {
@@ -112,13 +122,18 @@ class CMap {
     static uint32_t* mapObjDefHeap;
     static uint32_t* chunkLiquidHeap;
     static FVBBList s_vbbList;
+    static TSExplicitList<CMapRenderChunk, offsetof(CMapRenderChunk, m_renderChunkLink)> s_mapRenderChunkFreeList;
+    static TSExplicitList<CMapChunkBuf, offsetof(CMapChunkBuf, unk_0014)> s_unk_AEED80;
 
     static void Destroy();
+    static void FootprintDestroy();
     static void FootprintInitialize();
+    static void FreeMapObj(CMapObj* mapObj);
     static void Initialize();
     static void InitializeLiquidTables();
     static void InitializePCFShaders();
     static void QueryAreaId(CMapEntity* entity, uint32_t& areaId);
+    static void Unload();
 
     /* 0000 */ uint8_t unk_0000[180];
     /* 00B4 */ uint32_t unk_00B4;

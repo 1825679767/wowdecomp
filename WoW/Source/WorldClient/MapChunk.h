@@ -49,6 +49,7 @@ class CMapChunk : public CMapBaseObj {
     static float s_geoToTex;
     static C3Vector vertexList[145];
 
+    static void Destroy();
     static void Initialize();
     static void InitializeVertexGrid();
 

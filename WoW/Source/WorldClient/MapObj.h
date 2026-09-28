@@ -34,22 +34,23 @@ class CMapObjOccluder {
     /* 0004 */ uint32_t unk_0004[8];
 };
 
-class CMapObj {
+class CMapObjIndex {
     public:
+    /* 0000 */ int32_t m_objectIndex;
+};
+
+class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> {
+    public:
+    static TSHashTable<CMapObj, HASHKEY_NONE> mapObjHash;
     static int32_t bPoolsDirty;
     static uint32_t* occluderHeap;
     static CShaderEffect* s_classicShaders[7];
     static CShaderEffect* s_unifiedShaders[7];
 
+    static void ClearCache(int32_t a1);
+    static void Destroy();
     static void Initialize();
 
-    /* 0000 */ int32_t m_objectIndex;
-    /* 0004 */ int32_t unk_0004;
-    /* 0008 */ int32_t unk_0008;
-    /* 000C */ CMapObj* m_mapObjPtr1;
-    /* 0010 */ int32_t unk_0010;
-    /* 0014 */ CMapObj* m_mapObjPtr2;
-    /* 0018 */ int32_t unk_0018;
     /* 001C */ char m_wmoName [260];
     /* 0120 */ SMOHeader* m_header;
     /* 0124 */ char* m_textureNameList;

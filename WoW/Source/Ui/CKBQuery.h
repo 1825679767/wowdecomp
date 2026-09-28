@@ -10,6 +10,11 @@ class CKBQuery : public CKBPage {
     /* 0040 */ uint32_t unk_0040;
     /* 0044 */ uint32_t unk_0044;
     /* 0048 */ uint32_t unk_0048;
+
+    CKBQuery();
+    virtual void _ComputeCachedData();
+    virtual void _SendSuccessEvent();
+    virtual void _SendFailureEvent();
 };
 
 extern CKBQuery g_KnowledgeBaseQuery;

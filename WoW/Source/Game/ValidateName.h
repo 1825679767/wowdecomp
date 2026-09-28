@@ -2,7 +2,23 @@
 #define WOW_SOURCE_GAME_VALIDATENAME_H
 
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/pcre/pcreposix.h"
 
+extern TSFixedArray<regex_t> g_chatSpamTokens;
+extern TSFixedArray<regex_t> g_profanityTokens[9];
+extern TSFixedArray<regex_t> g_chatProfanityTokens[9];
+extern TSFixedArray<regex_t> g_reservedNameTokens[9];
+
+bool IsAlphaChinese(uint16_t c);
+bool IsAlphaEnglish(uint16_t c);
+bool IsAlphaInCharSet(uint16_t c, int32_t charset);
+bool IsAlphaKorean(uint16_t c);
+bool IsAlphaLatin1(uint16_t c);
+bool IsAlphaRussian(uint16_t c);
+int32_t ValidateCharacterNameConst(uint32_t language, const char* name, bool profanity, bool chatProfanity, bool reserved, bool english, int32_t extraLength);
+int32_t ValidateName(uint32_t language, const uint16_t* allowed, const char* name, uint32_t* length, int32_t* charset, bool profanity, bool chatProfanity, bool reserved, bool relaxed, bool english, int32_t charsetMask);
+int32_t NameNeedsDeclensions(int32_t locale, const char* name);
 void ValidateNameDestroy();
 void ValidateNameInitialize(int32_t localeMask, int32_t charsetMask);
 

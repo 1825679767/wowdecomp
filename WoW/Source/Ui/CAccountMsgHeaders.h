@@ -20,5 +20,6 @@ class CAccountMsgHeaders {
 };
 
 void AccountMsg_RegisterScriptFunctions();
+void AccountMsg_UnregisterScriptFunctions();
 
 #endif

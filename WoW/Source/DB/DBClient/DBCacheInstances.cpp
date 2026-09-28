@@ -243,6 +243,27 @@ static int32_t ReceiveInvalidateDance(void* param, NETMESSAGE msgId, uint32_t ti
     return 1;
 }
 
+// VERIFY: aed6f77d auto
+// OFFSET: 0x00635710
+void SetClientCacheVersion(uint32_t version) {
+    g_creatureDBCache.VerifyAndUpdateVersion(version);
+    g_creatureDBCache.VerifyAndUpdateVersion(version);
+    g_gameObjectDBCache.VerifyAndUpdateVersion(version);
+    g_itemDBCache.VerifyAndUpdateVersion(version);
+    g_itemNameDBCache.VerifyAndUpdateVersion(version);
+    g_npcTextDBCache.VerifyAndUpdateVersion(version);
+    g_nameDBCache.VerifyAndUpdateVersion(version);
+    g_guildInfoCache.VerifyAndUpdateVersion(version);
+    g_questDBCache.VerifyAndUpdateVersion(version);
+    g_pageTextCache.VerifyAndUpdateVersion(version);
+    g_petNameCache.VerifyAndUpdateVersion(version);
+    g_petitionCache.VerifyAndUpdateVersion(version);
+    g_itemTextDBCache.VerifyAndUpdateVersion(version);
+    g_wardenCache.VerifyAndUpdateVersion(version);
+    g_arenaTeamCache.VerifyAndUpdateVersion(version);
+    g_danceCache.VerifyAndUpdateVersion(version);
+}
+
 // VERIFY: 08cd74c2 manual
 // OFFSET: 0x006357D0
 static int32_t ReceiveName(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {

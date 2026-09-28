@@ -93,6 +93,7 @@ class SFile {
     static int32_t InitializeStreaming(const char* mfilPath);
     static int32_t IsTrial();
     static void SetStreamingStatus(bool enabled, bool initialized, bool flag2, bool flag3, uint32_t build);
+    static int32_t STORMAPI List(SArchive* archive, int32_t (*callback)(const char* fileName, void* param), void* param);
     static int32_t STORMAPI LoadFile(const char* name, void** data, uint32_t* size, uint32_t extra, SOVERLAPPED* overlapped);
     static int32_t STORMAPI MakeFileLocal(const char* name, int32_t priority, bool wait);
     static int32_t STORMAPI MakeFileLocal(SFileImpl* file, int32_t priority, bool wait);

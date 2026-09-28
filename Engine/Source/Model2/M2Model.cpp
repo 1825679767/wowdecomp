@@ -3836,7 +3836,7 @@ CM2Model::CM2Model() {
     this->m_emissiveColor.y = 0.0f;
     this->m_emissiveColor.z = 0.0f;
     this->m_drawCallback = nullptr;
-    this->unk_01C0 = 0;
+    this->m_drawArg = nullptr;
     this->unk_01B8 = 1.0f;
     this->m_eventCallback = nullptr;
     this->m_eventCallbackParam = 0;
@@ -5812,6 +5812,13 @@ void CM2Model::AnimateParticleST(float deltaTime, uint32_t index) {
         model->AnimateST();
         model->m_currentLighting = this->m_currentLighting;
     }
+}
+
+// VERIFY: 68879b30 auto
+// OFFSET: 0x004E2790
+C3Vector CM2Model::GetWorldPosition() {
+    this->Animate();
+    return *reinterpret_cast<const C3Vector*>(&this->m_matrixF4.d0) * this->m_scene->m_viewInv;
 }
 
 // VERIFY: a046dcf2 manual

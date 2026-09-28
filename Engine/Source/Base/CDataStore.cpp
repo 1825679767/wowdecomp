@@ -493,3 +493,27 @@ int32_t CDataStore::InternalFetchRead(uint32_t pos, uint32_t bytes, uint8_t*& da
 uint32_t CDataStore::GetHeaderSpace(int32_t bytes) {
     return 0;
 }
+
+// VERIFY: 97bd27e2 manual
+// OFFSET: 0x00465FD0
+void* CDataStore::Alloc(uint32_t bytes, const char* fileName, int32_t lineNumber) {
+    if (!bytes) {
+        return nullptr;
+    }
+
+    if (fileName) {
+        return SMemAlloc(bytes, fileName, lineNumber, 0);
+    }
+
+    return SMemAlloc(bytes, __FILE__, __LINE__, 0);
+}
+
+// VERIFY: 5f3c641c manual
+// OFFSET: 0x00466010
+void* CDataStore::ReAlloc(void* ptr, uint32_t bytes, const char* fileName, int32_t lineNumber) {
+    if (fileName) {
+        return SMemReAlloc(ptr, bytes, fileName, lineNumber, 0);
+    }
+
+    return SMemReAlloc(ptr, bytes, __FILE__, __LINE__, 0);
+}

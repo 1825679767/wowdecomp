@@ -1,7 +1,9 @@
 #include "MapObj.h"
+#include "WoW/Source/WorldClient/Map.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/ShaderEffect/ShaderEffectManager.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "WoW/Source/WorldClient/MapObjGroup.h"
 
 // STATIC: 0x00ADFF50
 static int32_t unk_ADFF50 = 2048;
@@ -17,6 +19,9 @@ CShaderEffect* CMapObj::s_classicShaders[7];
 
 // STATIC: 0x00D1C40C
 uint32_t* CMapObj::occluderHeap;
+
+// STATIC: 0x00D1C454
+TSHashTable<CMapObj, HASHKEY_NONE> CMapObj::mapObjHash;
 
 // STATIC: 0x00D1C410
 int32_t CMapObj::bPoolsDirty;
@@ -58,4 +63,43 @@ void CMapObj::Initialize() {
 
     CMapObj::bPoolsDirty = 1;
     CMapObj::occluderHeap = new (__FILE__, __LINE__) uint32_t(ObjectAllocAddHeap(sizeof(CMapObjOccluder), 128, "MAPOBJOCC", true));
+}
+
+// VERIFY: 81a97e96 auto
+// OFFSET: 0x007B01C0
+void CMapObj::Destroy() {
+    CMapObj::ClearCache(1);
+    CMapObjGroup::Destroy();
+
+    for (uint32_t i = 0; i < sizeof(CMapObj::s_classicShaders) / sizeof(CMapObj::s_classicShaders[0]); i++) {
+        CMapObj::s_classicShaders[i] = nullptr;
+    }
+
+    for (uint32_t i = 0; i < sizeof(CMapObj::s_unifiedShaders) / sizeof(CMapObj::s_unifiedShaders[0]); i++) {
+        CMapObj::s_unifiedShaders[i] = nullptr;
+    }
+
+    CShaderEffectManager::DestroyAllEffects();
+
+    if (CMapObj::occluderHeap) {
+        SMemFree(CMapObj::occluderHeap, "delete", SLOG_FUNCTION, 0);
+        CMapObj::occluderHeap = nullptr;
+    }
+}
+
+// VERIFY: e6f8b5e3 manual
+// OFFSET: 0x007B0040
+void CMapObj::ClearCache(int32_t a1) {
+    CMapObj* mapObj = CMapObj::mapObjHash.m_fulllist.Head();
+
+    while (mapObj) {
+        CMapObj* next = CMapObj::mapObjHash.Next(mapObj);
+
+        if (!mapObj->m_refCount) {
+            CMapObj::mapObjHash.Unlink(mapObj);
+            CMap::FreeMapObj(mapObj);
+        }
+
+        mapObj = next;
+    }
 }

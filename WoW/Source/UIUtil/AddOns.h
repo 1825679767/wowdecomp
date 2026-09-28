@@ -3,48 +3,68 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
 
-class UIADDON {
-    public:
-    /* 0000 */ uint8_t unk_0000[48];
-    /* 0030 */ uint32_t unk_0030;
-    /* 0034 */ uint8_t unk_0034[4];
-    /* 0038 */ uint32_t unk_0038;
-    /* 003C */ uint32_t unk_003C;
-    /* 0040 */ uint32_t unk_0040;
-    /* 0044 */ uint8_t unk_0044[4];
-    /* 0048 */ uint32_t unk_0048;
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050;
-    /* 0054 */ uint8_t unk_0054[4];
-    /* 0058 */ uint32_t unk_0058;
-    /* 005C */ uint32_t unk_005C;
-    /* 0060 */ uint32_t unk_0060;
-    /* 0064 */ uint8_t unk_0064[4];
-    /* 0068 */ uint32_t unk_0068;
-    /* 006C */ uint32_t unk_006C;
-    /* 0070 */ uint32_t unk_0070;
-    /* 0074 */ uint8_t unk_0074[4];
-    /* 0078 */ uint32_t unk_0078;
-    /* 007C */ uint32_t unk_007C;
-    /* 0080 */ uint32_t unk_0080;
-    /* 0084 */ uint8_t unk_0084[4];
-    /* 0088 */ uint32_t unk_0088;
-    /* 008C */ uint32_t unk_008C;
-    /* 0090 */ uint32_t unk_0090;
-    /* 0094 */ uint8_t unk_0094[4];
-    /* 0098 */ uint32_t unk_0098;
-    /* 009C */ uint32_t unk_009C;
-    /* 00A0 */ uint32_t unk_00A0;
-    /* 00A4 */ uint8_t unk_00A4[4];
-    /* 00A8 */ uint32_t unk_00A8;
-    /* 00AC */ uint8_t unk_00AC[12];
-    /* 00B8 */ uint32_t unk_00B8;
-    /* 00BC */ uint8_t unk_00BC[4];
-    /* 00C0 */ uint32_t unk_00C0;
-    /* 00C4 */ uint32_t unk_00C4;
+class CDataStore;
+
+struct UIADDON : public TSHashObject<UIADDON, HASHKEY_STRI> {
+    struct METADATA : public TSHashObject<UIADDON::METADATA, HASHKEY_STRI> {
+        /* 0018 */ char* m_value;
+
+        ~METADATA();
+    };
+
+    /* 0018 */ bool m_loading;
+    /* 0019 */ uint8_t unk_0019;
+    /* 001A */ uint8_t unk_001A[2];
+    /* 001C */ uint32_t m_interfaceVersion;
+    /* 0020 */ uint32_t m_revision;
+    /* 0024 */ uint32_t m_status;
+    /* 0028 */ bool m_secure;
+    /* 0029 */ bool m_blizzard;
+    /* 002A */ bool m_signed;
+    /* 002B */ bool m_enabledByDefault;
+    /* 002C */ bool m_loadOnDemand;
+    /* 002D */ uint8_t unk_002D;
+    /* 002E */ uint8_t unk_002E[2];
+    /* 0030 */ char* m_url;
+    /* 0034 */ uint32_t m_numFiles;
+    /* 0038 */ TSGrowableArray<char*> m_optionalDeps;
+    /* 0048 */ TSGrowableArray<char*> m_requiredDeps;
+    /* 0058 */ TSGrowableArray<char*> m_loadWith;
+    /* 0068 */ TSGrowableArray<char*> m_loadManagers;
+    /* 0078 */ TSGrowableArray<char*> m_savedVariables;
+    /* 0088 */ TSGrowableArray<char*> m_savedVariablesPerCharacter;
+    /* 0098 */ TSGrowableArray<UIADDON*> m_loadWithMe;
+    /* 00A8 */ TSHashTable<UIADDON::METADATA, HASHKEY_STRI> m_metadata;
+    /* 00D0 */ bool m_outOfDate;
+    /* 00D1 */ bool m_hasPublicKey;
+    /* 00D2 */ uint8_t m_publicKey [256];
+    /* 01D2 */ uint8_t m_digest[18];
+
+    UIADDON();
+    ~UIADDON();
+    void LoadPublicKey();
+    void LoadURL();
+    void SavePublicKey();
+    void SetMetadata(const char* key, const char* value);
+};
+
+struct ADDONSTATE : public TSHashObject<ADDONSTATE, HASHKEY_STRI> {
+    /* 0018 */ bool m_enabled;
+};
+
+struct ADDONSTATELIST : public TSLinkedNode<ADDONSTATELIST> {
+    /* 0008 */ char* m_name;
+    /* 000C */ bool m_accountWide;
+    /* 000D */ uint8_t unk_000D[3];
+    /* 0010 */ TSHashTable<ADDONSTATE, HASHKEY_STRI> m_states;
+
+    ~ADDONSTATELIST();
 };
 
 void DeleteInterfaceFiles();
+void GetAddOnInfoRequest(CDataStore* msg);
+void SetAddOnInfoRequest(CDataStore* msg);
 
 #endif

@@ -38,3 +38,9 @@ void CMapChunk::Initialize() {
     CMapChunk::InitializeVertexGrid();
     CMapChunk::s_geoToTex = -1.0f / CMapChunk::vertexList[1].y;
 }
+
+// VERIFY: b5717665 auto
+// OFFSET: 0x007C3A00
+void CMapChunk::Destroy() {
+    CMapRenderChunk::Destroy();
+}

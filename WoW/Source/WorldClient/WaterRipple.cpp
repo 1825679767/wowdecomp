@@ -1,5 +1,7 @@
 #include "WaterRipple.h"
+#include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/Status.h"
+#include "WoW/Source/WorldClient/Liquid.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDevice/CGxShader.h"
 #include "Engine/Source/Gx/CGxTexFlags.h"
@@ -11,6 +13,9 @@ static const char* unk_ADF7F4[2] = {
     "XTextures\\splash\\splash.blp",
     "XTextures\\splash\\wake.blp"
 };
+
+// STATIC: 0x00ADFB58
+static TSExplicitList<CWaterRipple, offsetof(CWaterRipple, m_link)> s_unk_ADFB58;
 
 // STATIC: 0x00CDF7C0
 static CTexture* unk_CDF7C0[2];
@@ -35,14 +40,12 @@ CGxShader* WaterRipple::s_psWaterRipples;
 
 // INLINED
 CWaterRipple::CWaterRipple() {
-    this->unk_0030 = 0;
-    this->unk_0034 = 0;
-    this->unk_0038 = 0;
-    this->unk_003C = 0;
-    this->unk_0040 = 0;
-    this->unk_0044 = 0;
-    this->unk_0048 = 0;
     this->unk_004C = 0;
+}
+
+// VERIFY: 7160b523 manual
+// OFFSET: 0x0079C110
+CWaterRipple::~CWaterRipple() {
 }
 
 // VERIFY: da76fd0b auto
@@ -66,5 +69,29 @@ void WaterRipple::Initialize() {
 
     if (WaterRipple::s_vsWaterRipples && WaterRipple::s_vsWaterRipples->Valid() && WaterRipple::s_psWaterRipples && WaterRipple::s_psWaterRipples->Valid()) {
         unk_CDFFDC = 1;
+    }
+}
+
+// VERIFY: 5c80007f auto
+// OFFSET: 0x0079E460
+void WaterRipple::Destroy() {
+    Liquid::DestroyProceduralTextures();
+
+    for (uint32_t i = 0; i < sizeof(unk_CDF7C0) / sizeof(unk_CDF7C0[0]); i++) {
+        HandleClose(reinterpret_cast<HOBJECT>(unk_CDF7C0[i]));
+    }
+
+    if (unk_CDFFE0.Count()) {
+        unk_CDFFE0.Clear();
+    }
+
+    s_unk_ADFB58.Clear();
+
+    if (WaterRipple::s_vsWaterRipples) {
+        g_theGxDevicePtr->ShaderDestroy(WaterRipple::s_vsWaterRipples);
+    }
+
+    if (WaterRipple::s_psWaterRipples) {
+        g_theGxDevicePtr->ShaderDestroy(WaterRipple::s_psWaterRipples);
     }
 }

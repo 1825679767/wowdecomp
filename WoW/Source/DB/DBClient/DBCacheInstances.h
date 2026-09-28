@@ -44,5 +44,6 @@ void DBCache_ClearHandlers();
 void DBCache_Destroy();
 void DBCache_Initialize();
 void DBCache_RegisterHandlers();
+void SetClientCacheVersion(uint32_t version);
 
 #endif

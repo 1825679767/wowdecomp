@@ -3,6 +3,42 @@
 #include <malloc.h>
 #include "SHA1.h"
 
+// STATIC: 0x00A505D8
+static const uint8_t s_padding[64] = { 0x80 };
+
+// INLINED
+static inline uint32_t Rotate(uint32_t x, int32_t n) {
+    return (x << n) | (x >> (32 - n));
+}
+
+// INLINED
+static inline void Round1(uint32_t a, uint32_t& b, uint32_t c, uint32_t d, uint32_t& e, uint32_t& w) {
+    e += Rotate(a, 5) + ((b & c) | (~b & d)) + w + 0x5A827999;
+    b = Rotate(b, 30);
+    w = 0;
+}
+
+// INLINED
+static inline void Round2(uint32_t a, uint32_t& b, uint32_t c, uint32_t d, uint32_t& e, uint32_t& w) {
+    e += Rotate(a, 5) + (b ^ c ^ d) + w + 0x6ED9EBA1;
+    b = Rotate(b, 30);
+    w = 0;
+}
+
+// INLINED
+static inline void Round3(uint32_t a, uint32_t& b, uint32_t c, uint32_t d, uint32_t& e, uint32_t& w) {
+    e += Rotate(a, 5) + ((b & c) | (d & (b | c))) + w + 0x8F1BBCDC;
+    b = Rotate(b, 30);
+    w = 0;
+}
+
+// INLINED
+static inline void Round4(uint32_t a, uint32_t& b, uint32_t c, uint32_t d, uint32_t& e, uint32_t& w) {
+    e += Rotate(a, 5) + (b ^ c ^ d) + w + 0xCA62C1D6;
+    b = Rotate(b, 30);
+    w = 0;
+}
+
 #define SHA1_ROL(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 #define SHA1_BLK0(i) (block[i] = (SHA1_ROL(block[i], 24) & 0xFF00FF00) | (SHA1_ROL(block[i], 8) & 0x00FF00FF))
 #define SHA1_BLK(i) (block[i & 15] = SHA1_ROL(block[(i + 13) & 15] ^ block[(i + 8) & 15] ^ block[(i + 2) & 15] ^ block[i & 15], 1))
@@ -161,4 +197,130 @@ uint8_t* SHA1_InterleaveHash(uint8_t* out, const uint8_t* in, uint32_t length) {
     }
 
     return out;
+}
+
+// VERIFY: 28975564 manual
+// OFFSET: 0x00425850
+void Process(uint32_t* hash, const uint8_t* data) {
+    uint32_t w[80];
+
+    for (int32_t i = 0; i < 16; ++i) {
+        const uint8_t* b = data + i * 4;
+        w[i] = (((((b[0] << 8) | b[1]) << 8) | b[2]) << 8) | b[3];
+    }
+
+    for (int32_t i = 16; i < 80; ++i) {
+        w[i] = Rotate(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16], 1);
+    }
+
+    uint32_t a = hash[0];
+    uint32_t b = hash[1];
+    uint32_t c = hash[2];
+    uint32_t d = hash[3];
+    uint32_t e = hash[4];
+    int32_t i = 0;
+
+    for (; i < 20; i += 5) {
+        Round1(a, b, c, d, e, w[i]);
+        Round1(e, a, b, c, d, w[i + 1]);
+        Round1(d, e, a, b, c, w[i + 2]);
+        Round1(c, d, e, a, b, w[i + 3]);
+        Round1(b, c, d, e, a, w[i + 4]);
+    }
+
+    for (; i < 40; i += 5) {
+        Round2(a, b, c, d, e, w[i]);
+        Round2(e, a, b, c, d, w[i + 1]);
+        Round2(d, e, a, b, c, w[i + 2]);
+        Round2(c, d, e, a, b, w[i + 3]);
+        Round2(b, c, d, e, a, w[i + 4]);
+    }
+
+    for (; i < 60; i += 5) {
+        Round3(a, b, c, d, e, w[i]);
+        Round3(e, a, b, c, d, w[i + 1]);
+        Round3(d, e, a, b, c, w[i + 2]);
+        Round3(c, d, e, a, b, w[i + 3]);
+        Round3(b, c, d, e, a, w[i + 4]);
+    }
+
+    for (; i < 80; i += 5) {
+        Round4(a, b, c, d, e, w[i]);
+        Round4(e, a, b, c, d, w[i + 1]);
+        Round4(d, e, a, b, c, w[i + 2]);
+        Round4(c, d, e, a, b, w[i + 3]);
+        Round4(b, c, d, e, a, w[i + 4]);
+    }
+
+    hash[0] += a;
+    hash[1] += b;
+    hash[2] += c;
+    hash[3] += d;
+    hash[4] += e;
+}
+
+void SHA1::Prepare() {
+    this->m_size = 0;
+    this->m_hash[0] = 0x67452301;
+    this->m_hash[1] = 0xEFCDAB89;
+    this->m_hash[2] = 0x98BADCFE;
+    this->m_hash[3] = 0x10325476;
+    this->m_hash[4] = 0xC3D2E1F0;
+}
+
+// VERIFY: ea7d6bc2 manual
+// OFFSET: 0x006CA180
+void SHA1::Process(const void* _data, uint32_t length) {
+    const uint8_t* data = static_cast<const uint8_t*>(_data);
+    uint32_t index = (static_cast<uint32_t>(this->m_size) >> 3) & 0x3F;
+    this->m_size += static_cast<uint64_t>(length) * 8;
+
+    if (index) {
+        length += index;
+        data -= index;
+
+        if (length >= 64) {
+            for (; index < 64; ++index) {
+                this->m_data[index] = data[index];
+            }
+
+            ::Process(this->m_hash, this->m_data);
+            data += 64;
+            length -= 64;
+            index = 0;
+        }
+    }
+
+    for (; length >= 64; length -= 64) {
+        ::Process(this->m_hash, data);
+        data += 64;
+    }
+
+    for (; index < length; ++index) {
+        this->m_data[index] = data[index];
+    }
+}
+
+// VERIFY: 41a87762 manual
+// OFFSET: 0x006CA270
+void SHA1::Finish(SHA1::Digest& digest) {
+    uint8_t size[8];
+    uint64_t bits = this->m_size;
+
+    for (int32_t i = 7; i >= 0; --i) {
+        size[i] = static_cast<uint8_t>(bits);
+        bits >>= 8;
+    }
+
+    this->Process(s_padding, ((-9 - (static_cast<uint32_t>(this->m_size) >> 3)) & 0x3F) + 1);
+    this->Process(size, 8);
+
+    for (int32_t i = 0; i < 5; ++i) {
+        uint32_t value = this->m_hash[i];
+
+        for (int32_t j = 3; j >= 0; --j) {
+            digest.m_data[i * 4 + j] = static_cast<uint8_t>(value);
+            value >>= 8;
+        }
+    }
 }

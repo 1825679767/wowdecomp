@@ -11,9 +11,12 @@
 #include "WoW/Source/DB/WowClientDB.h"
 
 struct BackgroundImage {
-    /* 0000 */ char* m_path;
-    /* 0004 */ int32_t unk_0004;
-    /* 0008 */ CRect m_rect;
+    /* 0000 */ const char* m_path;
+    /* 0004 */ bool m_fill;
+    /* 0008 */ float m_x;
+    /* 000C */ float m_y;
+    /* 0010 */ float m_width;
+    /* 0014 */ float m_height;
 };
 
 struct DYNAMICELEMENTVERT {
@@ -42,9 +45,22 @@ class CLoadingScreenShipInfo {
     void Initialize(WowClientDB<T>* nodeDB, uint32_t pathCount);
 };
 
+bool IsStillLoading();
+void LoadingScreenAsyncCallback(float progress);
 bool LoadingScreenDrawing();
+void LoadingScreenEnable(int32_t mapID, bool loadingWorld);
 void LoadingScreenInitialize();
+void LoadingScreenMiniDisable();
+void LoadingScreenMiniEnable();
+void LoadingScreenMiniUpdate(float progress);
+void LoadingScreenSetScreenTipForRaceData(bool show);
+void LoadingScreenSetTip(const char* tip);
+void LoadingScreenSetTransparent(bool transparent);
 void LoadingScreenShutdown();
+void LoadingScreenSpellUpdateProgress(float progress);
+void LoadingScreenWorldCallback(float progress);
+void LoadingScreenXMLCallback(float progress);
+void PaintDynamicLoadingBar();
 
 // INLINED
 template <class T>

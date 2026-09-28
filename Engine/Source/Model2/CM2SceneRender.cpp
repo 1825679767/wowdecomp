@@ -909,13 +909,13 @@ void CM2SceneRender::BeginFixed(const C3Vector& position) {
     g_theGxDevicePtr->RsPush();
 }
 
-// VERIFY: 4b28d1ab manual
+// VERIFY: 10b5aef5 auto
 // OFFSET: 0x008230D0
 void CM2SceneRender::DrawCallback() {
     DebugLog("Callback");
 
     this->BeginFixed(C3Vector(0.0f, 0.0f, 0.0f));
-    this->m_curModel->m_drawCallback(this->m_curModel);
+    this->m_curModel->m_drawCallback(this->m_curModel, this->m_curModel->m_currentLighting, this->m_curModel->m_drawArg);
     CM2SceneRender::EndFixed();
     CShaderEffect::UpdateProjMatrix();
 }

@@ -7,6 +7,7 @@
 #include "Engine/Source/Os/Gui.h"
 #include "Engine/Source/Services/Texture.h"
 
+// VERIFY: 6674b551 auto
 // OFFSET: 0x00769FF0
 int32_t CCGxRestart(const char* command, const char* arguments) {
     OnGxRestartClearWorld();

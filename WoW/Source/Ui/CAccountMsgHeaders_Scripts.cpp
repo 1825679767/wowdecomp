@@ -38,3 +38,11 @@ void AccountMsg_RegisterScriptFunctions() {
         FrameScript_RegisterFunction(s_scriptFunctions[i].m_name, s_scriptFunctions[i].m_method);
     }
 }
+
+// VERIFY: 9920deda auto
+// OFFSET: 0x005500B0
+void AccountMsg_UnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_scriptFunctions) / sizeof(s_scriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_scriptFunctions[i].m_name);
+    }
+}

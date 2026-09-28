@@ -8,10 +8,10 @@
 
 struct CGxBuf;
 struct CGxPool;
-class CMapChunkBuf;
+class CMapChunkLiquidBuf;
 class CMapChunkLiquid;
 
-class CMapChunkBuf {
+class CMapChunkLiquidBuf {
     public:
     /* 0000 */ uint32_t unk_0000;
     /* 0004 */ float m_flushTimer;
@@ -29,7 +29,7 @@ class CMapChunkLiquid {
     public:
     /* 0000 */ uint32_t m_vertexDataSize;
     /* 0004 */ uint32_t m_indexDataSize;
-    /* 0008 */ TSExplicitList<CMapChunkBuf> m_liquids;
+    /* 0008 */ TSExplicitList<CMapChunkLiquidBuf> m_liquids;
     /* 0014 */ TSLink<CMapChunkLiquid> m_link;
 };
 

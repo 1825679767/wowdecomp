@@ -46,12 +46,22 @@ class WowConnectionNet {
     /* 08EE */ uint8_t unk_08EE[2];
 
     WowConnectionNet(int32_t numThreads, void (*threadInit)());
+    ~WowConnectionNet();
+    void Add(WowConnection* connection);
+    void Delete(WowConnection* connection);
+    void PlatformAdd(WowConnection* connection);
     void PlatformChangeState(WowConnection* connection, WOW_CONN_STATE state);
+    void PlatformDestroy();
+    void PlatformDestruct(WowConnection* connection);
     void PlatformInit(bool useEngine);
     void PlatformRun();
+    void PlatformStop();
+    void PlatformRemove(WowConnection* connection);
     void PlatformWorkerReady();
+    void Remove(WowConnection* connection);
     void RunWorker(int32_t index);
     void Service(WowConnection* connection, uint32_t flags);
+    void Stop();
     void SignalWorker(WowConnection* connection, uint32_t flags);
     void Start();
 };

@@ -51,6 +51,8 @@ struct GXUFONTHYPERLINKINFO {
     /* 001C */ uint32_t m_linkTextLength;
     /* 0020 */ const char* m_colorCode;
     /* 0024 */ uint32_t m_colorCodeLength;
+
+    GXUFONTHYPERLINKINFO();
 };
 
 struct HFACE__ {
