@@ -3,61 +3,62 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/Tempest/C2Vector.h"
-#include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Base/BitArray.h"
+#include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
+#include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C2iVector.h"
+#include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Tempest/CAaBox.h"
+#include "Engine/Source/Tempest/CAaSphere.h"
 
-class CChunkLiquid;
 class CMapChunk;
-class CMapChunkLiquidBuf;
 
-class CChunkGeomFactory {
-    public:
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ CChunkLiquid* m_liquidChunk;
-    /* 0018 */ uint32_t unk_0018;
-    /* 001C */ CMapChunkLiquidBuf* m_mapChunkBuf;
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint32_t unk_0024;
-    /* 0028 */ uint32_t unk_0028;
-    /* 002C */ uint16_t m_unkFlags2c;
-    /* 002E */ uint16_t m_unkFlags2e;
-    /* 0030 */ uint32_t unk_0030;
-    /* 0034 */ C44Matrix m_matrix;
-
-    virtual ~CChunkGeomFactory();
-};
+namespace Liquid {
+    class CInstance;
+    class CWaveManager;
+    class IVertexData;
+}
 
 class CChunkLiquid {
     public:
+    static Liquid::CWaveManager* s_waveManager;
+    static int32_t s_waveManagerRefs;
+
     /* 0000 */ int32_t m_objectIndex;
-    /* 0004 */ int32_t unk_0004;
+    /* 0004 */ int32_t m_type;
     /* 0008 */ int32_t unk_0008;
     /* 000C */ C3Vector m_topLeftCoords;
-    /* 0018 */ C3Vector m_center;
-    /* 0024 */ float m_radius;
+    /* 0018 */ CAaSphere m_sphere;
     /* 0028 */ C2Vector m_height;
     /* 0030 */ float m_resPurgeTimer;
     /* 0034 */ C2iVector m_tileBegin;
     /* 003C */ C2iVector m_tileEnd;
-    /* 0044 */ int32_t unk_0044;
-    /* 0048 */ int32_t unk_0048;
-    /* 004C */ int32_t unk_004C;
-    /* 0050 */ int32_t unk_0050;
+    /* 0044 */ Liquid::IVertexData* m_vertexData;
+    /* 0048 */ CBitArray m_tileBits;
     /* 0054 */ uint8_t* m_tiles;
-    /* 0058 */ uint8_t* m_liquidInstPtr;
+    /* 0058 */ Liquid::CInstance* m_instance;
     /* 005C */ CMapChunk* m_owner;
-    /* 0060 */ CChunkLiquid* m_prev;
-    /* 0064 */ CChunkLiquid* m_next;
-    /* 0068 */ int32_t unk_0068;
-    /* 006C */ int32_t unk_006C;
-    /* 0070 */ int32_t unk_0070;
-    /* 0074 */ int32_t unk_0074;
-    /* 0078 */ C3Vector m_verts [81];
+    /* 0060 */ TSLink<CChunkLiquid> m_link;
+    /* 0068 */ TSLink<CChunkLiquid> m_updateLink;
+    /* 0070 */ TSLink<CChunkLiquid> m_chunkLink;
+    /* 0078 */ C3Vector m_verts[81];
+
+    CChunkLiquid();
+    ~CChunkLiquid();
+    void Batch();
+    void BuildIndices(uint16_t* indices, uint16_t baseVertex, CGxBatch* batch) const;
+    void BuildVertices(const C44Matrix* transform, uint32_t stride, C3Vector** position, C3Vector** normal, uint32_t** color, C2Vector** texCoord1, C2Vector** texCoord0) const;
+    void CreateVertXY();
+    void GetAaBox(CAaBox& box) const;
+    bool GetHeight(const C2Vector& frac, const C2iVector& tile, float& height) const;
+    CAaSphere* GetSphere();
+    bool GetTileInfo(const C2iVector& tile, int32_t* type, int32_t* flag6, int32_t* flag7) const;
+    void Purge();
+    void RenderPrep();
+    bool TileExists(uint32_t x, uint32_t y) const;
+    void UpdateResourcePurging();
 };
 
 #endif

@@ -14,6 +14,9 @@
 #include "WoW/Common/AaBsp.h"
 #include "Engine/Source/Tempest/C2iVector.h"
 
+class CFrustum;
+struct SIffChunk;
+
 struct BspQuery_Segment;
 class C2Vector;
 class C3Vector;
@@ -28,11 +31,16 @@ class CMapObjDef;
 class CMapObjGroup;
 struct SMOBatch;
 struct SMOLTile;
-struct SMOLiquidVert;
+union SMOLiquidVert;
 struct SMOMaterial;
 struct SMOPoly;
 class VBBList;
 class VBBList_Block;
+
+namespace World {
+    class FacetData;
+    class TriData;
+}
 
 struct BspQuery {
     /* 0000 */ int32_t* m_overflowFlags;
@@ -89,6 +97,7 @@ class CMapObjGroup {
 
     static void Destroy();
     static void Initialize();
+    static void AsyncPostloadCallback(void* arg);
 
     /* 0000 */ int32_t m_objectIndex;
     /* 0004 */ VBBList_Block* m_vertsBlock;
@@ -97,11 +106,8 @@ class CMapObjGroup {
     /* 0010 */ VBBList_Block* m_liquidVertsBlock;
     /* 0014 */ VBBList_Block* m_liquidIndicesBlock;
     /* 0018 */ float m_timer;
-    /* 001C */ void* unk_001C;
-    /* 0020 */ int32_t unk_0020;
-    /* 0024 */ int32_t unk_0024;
-    /* 0028 */ int32_t unk_0028;
-    /* 002C */ int16_t unk_002C [2];
+    /* 001C */ CMapObjGroup::VertArray* m_liquidVertArray;
+    /* 0020 */ CGxBatch m_liquidBatch;
     /* 0030 */ int32_t m_flags;
     /* 0034 */ CAaBox m_bbox;
     /* 004C */ float m_distToCamera;
@@ -130,7 +136,7 @@ class CMapObjGroup {
     /* 0104 */ uint16_t* m_doodadRefList;
     /* 0108 */ CImVector* m_colorVertexList;
     /* 010C */ CImVector* m_colorVertexListExtra;
-    /* 0110 */ int32_t unk_0110;
+    /* 0110 */ int32_t m_liquidVBRefCount;
     /* 0114 */ C2iVector m_liquidVerts;
     /* 011C */ C2iVector m_liquidTiles;
     /* 0124 */ C3Vector m_liquidCorner;
@@ -138,9 +144,9 @@ class CMapObjGroup {
     /* 0134 */ SMOLiquidVert* m_liquidVertexList;
     /* 0138 */ SMOLTile* m_liquidTileList;
     /* 013C */ float m_liquidHeight;
-    /* 0140 */ int32_t unk_0140;
+    /* 0140 */ float m_liquidMaxHeight;
     /* 0144 */ int32_t m_liquidType;
-    /* 0148 */ int32_t m_unkFlag;
+    /* 0148 */ int32_t m_numSharedTiles;
     /* 014C */ int32_t unk_014C;
     /* 0150 */ int32_t m_polyListSize;
     /* 0154 */ int32_t m_indicesCount;
@@ -160,7 +166,8 @@ class CMapObjGroup {
     /* 018C */ CMapObj* m_parent;
     /* 0190 */ int32_t unk_0190;
     /* 0194 */ CAsyncObject* m_asyncObjPtr;
-    /* 0198 */ int32_t m_unkLoadedFlag;
+    /* 0198 */ int8_t m_unkLoadedFlag;
+    /* 0199 */ uint8_t unk_0199[3];
     /* 019C */ int32_t m_unkIndexMin1;
     /* 01A0 */ int32_t m_unkIndexMax1;
     /* 01A4 */ uint16_t m_unkIndexMin2;
@@ -168,8 +175,39 @@ class CMapObjGroup {
     /* 01A8 */ int32_t m_tSExplicitListMLinkoffset;
     /* 01AC */ void* m_tSExplicitListPtr;
     /* 01B0 */ void* m_tSExplicitListPtr2;
-    /* 01B4 */ CMapObjGroup* m_perv;
-    /* 01B8 */ CMapObjGroup* m_next;
+    /* 01B4 */ TSLink<CMapObjGroup> m_asyncLoadLink;
+
+    CMapObjGroup();
+    void Create();
+    void CreateDataPointers(SIffChunk* dataChunk);
+    void CreateOptionalDataPointers(SIffChunk* dataChunk);
+    void AllocVB();
+    void AllocLiquidVB(EGxVertexBufferFormat format, uint32_t vertexCount, uint32_t indexCount, CGxBatch** batch);
+    void FreeLiquidVB();
+    void SetIndexVB();
+    void UploadIndexBuffer(CGxBuf* buf);
+    void SetVertexVB();
+    void FillVertexVB(CGxBuf* buf, EGxVertexBufferFormat format);
+    void FixColorVertexAlpha();
+    bool GetTris(CFrustum* frustum, uint32_t flags, uint16_t faceIgnoreFlags, uint32_t a5, CMapObjDef* mapObjDef);
+    void GetTrisFromQuery(uint32_t a2, BspQuery* a3, CMapObjDef* mapObjDef, uint32_t a5);
+    void SetLighting(uint32_t mode);
+    bool Intersect(C3Segment& seg, float* dist, uint32_t flags, uint16_t faceIgnoreFlags, int32_t* hitIndex);
+    bool GetFacesForLinking(C3Segment& seg, float* t0, int32_t* face0, float* t1, int32_t* face1);
+    bool QueryLiquid(const C3Vector& pos, int32_t* liquidType, float* level);
+    void QueryLiquidSounds(const C3Vector& pos, uint32_t* results);
+    void GenLiquidVerts();
+    int32_t GetLiquidType(uint32_t groupLiquid);
+    uint32_t GetNumSharedTiles();
+    bool GetLiquidTris(const CAaBox& box, uint32_t flags, World::TriData* triData, CMapObjDef* mapObjDef);
+    bool GetLiquidTris(CFrustum& frustum, uint32_t flags, World::TriData* triData, CMapObjDef* mapObjDef);
+    bool GetLiquidFacets(const CAaBox& box, uint32_t flags, World::FacetData* facets, CMapObjDef* mapObjDef);
+    bool VectorIntersectLiquid(const C3Segment& seg, float* t, uint32_t flags, World::TriData* triData, CMapObjDef* mapObjDef);
+    bool VectorIntersectLiquidTiles(const C3Segment& seg, float* t, uint32_t flags, uint32_t* tileCount, uint8_t* tiles, World::TriData* triData, CMapObjDef* mapObjDef);
+    void VectorIntersectLiquidSX(const C3Vector& start, const C3Vector& end, uint32_t* tileCount, uint8_t* tiles, uint32_t maxTiles);
+    void VectorIntersectLiquidSY(const C3Vector& start, const C3Vector& end, uint32_t* tileCount, uint8_t* tiles, uint32_t maxTiles);
+    void VectorIntersectLiquidDX(const C3Vector& start, const C3Vector& end, uint32_t* tileCount, uint8_t* tiles, uint32_t maxTiles);
+    void VectorIntersectLiquidDY(const C3Vector& start, const C3Vector& end, uint32_t* tileCount, uint8_t* tiles, uint32_t maxTiles);
 };
 
 struct SMOGroupHeader {
@@ -193,10 +231,6 @@ struct SMOLTile {
     /* 0000 */ uint8_t m_flags;
 };
 
-struct SMOLiquidVert {
-    /* 0000 */ uint8_t unk_0000[8];
-};
-
 struct SMOMVert {
     /* 0000 */ int16_t m_s;
     /* 0002 */ int16_t m_t;
@@ -211,6 +245,11 @@ struct SMOWVert {
     /* 0004 */ float m_height;
 };
 
+union SMOLiquidVert {
+    /* 0000 */ SMOWVert m_waterVert;
+    /* 0000 */ SMOMVert m_magmaVert;
+};
+
 class VBBList_Block {
     public:
     /* 0000 */ TSLink<VBBList_Block> m_link;
@@ -220,6 +259,8 @@ class VBBList_Block {
     /* 0014 */ CGxPool* m_pool;
     /* 0018 */ CGxBuf* m_buffer;
     /* 001C */ VBBList_Block* m_listHead;
+
+    void Set(uint32_t itemSize, uint32_t itemCount, uint32_t offset);
 };
 
 class VBBList {
@@ -232,24 +273,38 @@ class VBBList {
     /* 001C */ TSExplicitList<VBBList_Block, offsetof(VBBList_Block, m_link)> unk_001C;
 
     void Destroy();
+    VBBList_Block* AllocBlock();
+    void AllocVBB(VBBList_Block** a1, uint32_t itemSize, uint32_t itemCount);
+    void FreeVBB(VBBList_Block* block);
+    void AssignBlock(VBBList_Block* a1, VBBList_Block** a2, uint32_t itemSize, uint32_t itemCount);
 };
 
 namespace World {
-namespace TriData {
-struct Batch {
-    /* 0000 */ C44Matrix* m_matrix;
-    /* 0004 */ C3Vector* m_vertexList;
-    /* 0008 */ C3Vector* m_normalList;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint16_t* m_indices;
-    /* 0014 */ uint16_t* m_faceIndices;
-    /* 0018 */ uint16_t m_indexCount;
-    /* 001A */ uint16_t m_faceCount;
-    /* 001C */ uint16_t m_minVertexIndex;
-    /* 001E */ uint16_t m_maxVertexIndex;
-    /* 0020 */ CMapObjDef* m_def;
-};
-}
+    class TriData {
+        public:
+        struct Batch {
+            /* 0000 */ C44Matrix* m_matrix;
+            /* 0004 */ C3Vector* m_vertexList;
+            /* 0008 */ C3Vector* m_normalList;
+            /* 000C */ uint32_t unk_000C;
+            /* 0010 */ uint16_t* m_indices;
+            /* 0014 */ uint16_t* m_faceIndices;
+            /* 0018 */ uint16_t m_indexCount;
+            /* 001A */ uint16_t m_faceCount;
+            /* 001C */ uint16_t m_minVertexIndex;
+            /* 001E */ uint16_t m_maxVertexIndex;
+            /* 0020 */ CMapObjDef* m_def;
+        };
+
+        static uint32_t statusFlags;
+        static uint32_t nBatches;
+        static uint32_t faceIndexCursor;
+        static uint32_t indexCursor;
+        static uint32_t unk_CB7538;
+
+        Batch* AllocBatch();
+        uint16_t* AllocIndices(uint32_t count);
+    };
 }
 
 class CAaBsp_Query_Segment {

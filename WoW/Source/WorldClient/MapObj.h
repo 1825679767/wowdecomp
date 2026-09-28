@@ -9,6 +9,13 @@
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Tempest/CWFrustum.h"
+
+class C2Vector;
+class C44Matrix;
+class CFrustum;
+class CMapObjDefGroup;
+struct C3Segment;
 
 class C3Vector;
 class C4Plane;
@@ -21,6 +28,7 @@ struct SMODoodadDef;
 struct SMODoodadSet;
 struct SMOFog;
 struct SMOGroupInfo;
+class CAaSphere;
 struct SMOHeader;
 struct SMOLight;
 struct SMOMaterial;
@@ -39,17 +47,36 @@ class CMapObjIndex {
     /* 0000 */ int32_t m_objectIndex;
 };
 
+typedef void (*RENDER_CALLBACK)(uint32_t, void*);
+
 class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> {
     public:
+    static TSList<CMapObj, TSGetExplicitLink<CMapObj> > s_asyncLoadQueue;
+    static TSList<CMapObjGroup, TSGetExplicitLink<CMapObjGroup> > s_unk_ADFC58;
     static TSHashTable<CMapObj, HASHKEY_NONE> mapObjHash;
     static int32_t bPoolsDirty;
     static uint32_t* occluderHeap;
     static CShaderEffect* s_classicShaders[7];
     static CShaderEffect* s_unifiedShaders[7];
+    static uint32_t s_unk_AEE008;
 
     static void ClearCache(int32_t a1);
     static void Destroy();
     static void Initialize();
+    static uint32_t CreateWmoIgnoreFlags(uint32_t a1);
+    static void PrepareUpdate();
+    static CMapObj* Create(char* fileName);
+    static void PostloadCallback(void* arg);
+    static void RenderGroupCollidable(CMapObj* mapObj, CMapObjGroup* mapObjGroup, uint32_t a3);
+    static void RenderGroupCollidableFaces(CMapObjGroup* mapObjGroup);
+    static void ExteriorRender(CMapObj* mapObj, CMapObjGroup* mapObjGroup, uint32_t a3);
+    static void InteriorRender(CMapObj* mapObj, CMapObjGroup* mapObjGroup, uint32_t a3);
+    static void UnifiedRender(CMapObj* mapObj, CMapObjGroup* mapObjGroup, uint32_t a3);
+    static void InvokeGroupRenderCallback(CMapObj* mapObj, uint32_t groupNum);
+    static void SetGroupRenderCallback(RENDER_CALLBACK callback, void* param);
+    static void SetRenderModeLight();
+    static void SetEmissiveColor(CImVector color);
+    static void SelectWorldShaders();
 
     /* 001C */ char m_wmoName [260];
     /* 0120 */ SMOHeader* m_header;
@@ -88,8 +115,7 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     /* 01A4 */ int32_t unk_01A4;
     /* 01A8 */ CAaBox m_bbox;
     /* 01C0 */ float m_distToCamera;
-    /* 01C4 */ int32_t unk_01C4;
-    /* 01C8 */ int32_t unk_01C8;
+    /* 01C4 */ TSLink<CMapObj> m_asyncLoadLink;
     /* 01CC */ void* m_pWmoData;
     /* 01D0 */ int32_t m_wmoFileSize;
     /* 01D4 */ int32_t m_refCount;
@@ -100,6 +126,43 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     /* 01E8 */ TSExplicitList<CMapObjGroup> m_mapObjGroupList;
     /* 01F4 */ int32_t m_mapObjGroupCount;
     /* 01F8 */ CMapObjGroup* m_mapObjGroupArray [512];
+
+    CMapObj();
+    bool Read(char* fileName);
+    void ReadGroup(uint32_t index);
+    void ReadGroup(uint32_t index, bool preLoad);
+    void Load();
+    void WaitLoad();
+    void WaitLoadGroup(uint32_t index);
+    void GetBounds(CAaBox* box);
+    void GetGroupBounds(CAaSphere* sphere, int32_t index);
+    void GetGroupBounds(CAaBox* box, int32_t index);
+    int32_t GetDoodadSet(uint16_t index);
+    uint32_t GetGroupFlags(int32_t index);
+    SMOGroupInfo* GetGroupInfo(int32_t index);
+    int32_t IsGroupLoaded(int32_t index);
+    char* GetGroupName(int32_t index);
+    CMapObjGroup* GetGroup(int32_t index, bool a3);
+    void RenderGroup(int32_t groupIndex, C44Matrix& matrix, TSExplicitList<CWFrustum, offsetof(CWFrustum, m_link)>* frustumList);
+    void CreateRefs(CMapObjGroup* mapObjGroup, CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup);
+    void CreateMaterial(uint8_t texture);
+    void CreateMaterials();
+    bool TestBounds(CAaBox& box);
+    bool TestGroupBounds(C3Vector& start, C3Vector& end, uint32_t groupNum);
+    bool TestGroupBounds(C3Vector& point, uint32_t groupNum);
+    bool TestGroupBounds(CAaBox& box, uint32_t groupNum, int32_t a3);
+    bool GroupBoundingBoxIntersectsSphere(C3Vector& pos, uint32_t groupNum, float radius);
+    bool GetTris(CFrustum* frustum, uint32_t flags, uint32_t a4, CMapObjDef* mapObjDef);
+    bool VectorIntersectPortal(C3Segment& seg, float* t, int* outGroups, int useSphereTest);
+    bool VectorIntersectPortals(uint32_t groupNum, C3Segment& seg, float* t, int32_t* outGroups);
+    float CalcPortalFarthestDistance(SMOPortal* portal);
+    bool Intersect(C3Vector& start, C3Vector& end, float* distance, uint32_t flags, uint32_t ignoreFlags, uint32_t groupNum, int32_t* hitIndex);
+    SMOMaterial* GetLiquidMaterial(int32_t groupIndex);
+    bool QueryLiquidStatus(uint32_t ignoreFlags, const C3Vector& pos, int32_t* liquidType, float* level);
+    void QueryLiquidSounds(uint32_t groupIndex, uint32_t fromGroup, uint32_t depth, uint32_t* minDepth, const C3Vector& pos, uint32_t* results);
+    uint16_t BuildLiquidVerts(CMapObjGroup* group, const C44Matrix& matrix, const CImVector* color, int32_t magma, float texCoord1U, const TSGrowableArray<uint8_t>* sharedVerts, uint32_t stride, C3Vector** position, C3Vector** normal, CImVector** vertexColor, C2Vector** texCoord0, C2Vector** texCoord1);
+    void BuildLiquidIndices(CMapObjGroup* group, const TSGrowableArray<uint8_t>* sharedVerts, uint16_t** indices, uint16_t baseVertex);
+    uint16_t ClipGroupGeometry(CMapObjGroup* group, const C44Matrix& matrix, const CImVector* color, int32_t magma, float texCoord1U, uint32_t stride, C3Vector** position, C3Vector** normal, CImVector** vertexColor, C2Vector** texCoord0, C2Vector** texCoord1, uint16_t** indices, uint16_t baseVertex);
 };
 
 struct SMOBatch {
@@ -184,8 +247,8 @@ struct SMOVisibleBlock {
     /* 0002 */ uint16_t m_count;
 };
 
-extern CMapObjDef* s_curMapObjDef;
 extern uint32_t s_portalStamp;
 extern CMapObjDef* s_stampedMapObjDef;
 
 #endif
+

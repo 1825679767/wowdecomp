@@ -826,9 +826,9 @@ void GxRsSet(EGxRenderState which, int32_t value) {
 
     CGxAppRenderState& state = g_theGxDevicePtr->m_appRenderStates[which];
 
-    if (state.m_value.m_data.i[0] != value) {
+    if (state.m_value.m_data.p != reinterpret_cast<void*>(static_cast<intptr_t>(value))) {
         g_theGxDevicePtr->IRsDirty(which);
-        state.m_value.m_data.i[0] = value;
+        state.m_value.m_data.p = reinterpret_cast<void*>(static_cast<intptr_t>(value));
     }
 }
 

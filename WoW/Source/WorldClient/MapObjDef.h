@@ -11,6 +11,8 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/WorldClient/MapBaseObj.h"
 
+class CM2Lighting;
+
 class CMapObj;
 class CMapObjDefGroup;
 class CMapObjDefMapObjDefGroupLink;
@@ -28,11 +30,9 @@ class CMapObjDefGroup : public CMapBaseObj {
     /* 0064 */ int32_t unk_0064;
     /* 0068 */ int32_t unk_0068;
     /* 006C */ TSList<void> m_frustumList;
-    /* 0078 */ TSList<void> m_doodadDefLinkList;
-    /* 0084 */ TSList<void> m_entityLinkList;
-    /* 0090 */ uint32_t unk_0090;
-    /* 0094 */ uint32_t unk_0094;
-    /* 0098 */ uint32_t unk_0098;
+    /* 0078 */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_doodadDefLinkList;
+    /* 0084 */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_entityLinkList;
+    /* 0090 */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_lightLinkList;
     /* 009C */ uint32_t unk_009C;
     /* 00A0 */ uint32_t unk_00A0;
     /* 00A4 */ uint32_t unk_00A4;
@@ -40,16 +40,16 @@ class CMapObjDefGroup : public CMapBaseObj {
     /* 00B0 */ TSLink<void> m_sortTableLink;
     /* 00B8 */ uint32_t unk_00B8;
     /* 00BC */ uint32_t unk_00BC;
+
+    virtual void SelectLights(CM2Lighting* lighting);
+
+    CMapObjDefGroup();
+    void MarkPrepared();
+    void UpdateLights();
 };
 
-class CMapObjDef : public CMapBaseObj {
+class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_NONE> {
     public:
-    /* 0024 */ void* unk_0024;
-    /* 0028 */ void* unk_0028;
-    /* 002C */ void* unk_002C;
-    /* 0030 */ void* unk_0030;
-    /* 0034 */ void* unk_0034;
-    /* 0038 */ int32_t unk_0038;
     /* 003C */ C3Vector m_position;
     /* 0048 */ CAaBox m_bbox;
     /* 0060 */ CAaSphere m_sphere;
@@ -64,15 +64,19 @@ class CMapObjDef : public CMapBaseObj {
     /* 0108 */ int32_t unk_0108;
     /* 010C */ int32_t unk_010C;
     /* 0110 */ int32_t unk_0110;
-    /* 0114 */ TSExplicitList<CMapObjDefMapObjDefGroupLink> m_mapObjDefGroupLinkList;
-    /* 0120 */ TSGrowableArray<CMapObjDefGroup> m_defGroups;
-    /* 0130 */ uint32_t m_groupCount;
+    /* 0114 */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_mapObjDefGroupLinkList;
+    /* 0120 */ TSCGrowableArray<CMapObjDefGroup*, 4> m_defGroups;
     /* 0134 */ TSGrowableArray<uint8_t> m_lightsArray;
     /* 0144 */ uint32_t m_argbColor;
     /* 0148 */ int32_t unk_0148;
     /* 014C */ int32_t unk_014C;
     /* 0150 */ int16_t m_doodadSetOverrides [3];
     /* 0156 */ uint8_t unk_0156[2];
+
+    CMapObjDef();
+    bool TestAABox(C3Vector& start, C3Vector& end);
+    int32_t GetGroundType(uint32_t groupNum, uint16_t faceIndex);
+    void RenderWithCallback(TSGrowableArray<uint16_t>* groups);
 };
 
 #endif

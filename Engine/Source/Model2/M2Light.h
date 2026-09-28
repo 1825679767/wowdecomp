@@ -67,6 +67,7 @@ class CM2Lighting {
 
     CM2Lighting();
     CM2Lighting(const CAaSphere& sphere);
+    CM2Lighting(const C3Vector& position);
     void Reset();
     void AddAmbient(const C3Vector& color);
     void AddDiffuse(const C3Vector& color, const C3Vector& dir);

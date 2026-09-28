@@ -849,3 +849,32 @@ void LoadingScreenMiniUpdate(float progress) {
     LoadingScreenMiniEnable();
     s_progress = progress;
 }
+
+// VERIFY: c6318812 manual
+// OFFSET: 0x0040A160
+bool LoadDynamicBackground() {
+    CStatus status;
+
+    if (!s_dynamicElementsTexture) {
+        CGxTexFlags flags;
+        s_dynamicElementsTexture = TextureCreate("Interface\\Glues\\LoadingScreens\\DynamicElements", flags, &status, 1);
+
+        if (!s_dynamicElementsTexture) {
+            return false;
+        }
+    }
+
+    for (uint32_t i = 0; i < 12; i++) {
+        char fileName[260];
+        SStrPrintf(fileName, sizeof(fileName), "Interface\\WorldMap\\World\\World%d", i + 1);
+
+        CGxTexFlags flags;
+        s_dynamicBackgroundTextures[i] = TextureCreate(fileName, flags, &status, 1);
+
+        if (!s_dynamicBackgroundTextures[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}

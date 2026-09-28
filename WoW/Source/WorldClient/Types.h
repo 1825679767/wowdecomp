@@ -123,4 +123,6 @@ struct SMOPortalRef {
     /* 0006 */ uint16_t m_filler;
 };
 
+typedef float DepthCoordTable[256];
+
 #endif

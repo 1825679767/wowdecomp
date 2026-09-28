@@ -1,4 +1,6 @@
 #include "World.h"
+#include "WoW/Source/WorldClient/SortTable.h"
+#include "WoW/Source/WorldClient/CChunkLiquid.h"
 #include <cstdlib>
 #include <new>
 #include "Engine/Source/ConsoleBase/ConsoleCommand.h"
@@ -27,6 +29,39 @@
 #include "WoW/Source/WorldClient/Zones.h"
 #include "WoW/Source/WorldClient/Particulate.h"
 #include "WoW/Common/AaBsp.h"
+#include <algorithm>
+#include <cmath>
+#include "Engine/Source/Base/RCString.h"
+#include "WoW/Source/WorldClient/MapObjGroup.h"
+#include "Engine/Source/Tempest/C4Plane.h"
+#include "Engine/Source/Tempest/C4Vector.h"
+#include "Engine/Source/Tempest/CAaSphere.h"
+#include "Engine/Source/Tempest/CFacet.h"
+#include "Engine/Source/Tempest/CFrustum.h"
+#include "WoW/Source/WorldClient/ClipInfo.h"
+#include "Engine/Source/Model2/M2Light.h"
+#include "WoW/Source/WorldClient/CMapBaseObjLink.h"
+#include "WoW/Source/WorldClient/MapChunk.h"
+#include "WoW/Source/WorldClient/MapDoodadDef.h"
+#include "WoW/Source/WorldClient/MapEntity.h"
+#include "WoW/Source/WorldClient/MapObjDef.h"
+#include "WoW/Source/WorldClient/MapLoad.h"
+#include "Engine/Source/Tempest/CMath.h"
+#include "WoW/Source/WorldClient/CPortalView.h"
+#include "Engine/Source/Tempest/CRect.h"
+#include "WoW/Source/WorldClient/CWorldMath.h"
+#include "WoW/Source/WorldClient/CWorldOcclusion.h"
+#include "WoW/Source/WorldClient/WorldView.h"
+#include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Gx/Types.h"
+#include "WoW/Source/WorldClient/Types.h"
+#include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Gxu/Gxu.h"
+#include "Engine/Source/Gx/CGxMatrixStack.h"
+#include "WoW/Source/LiquidSystem/Liquid.h"
+#include "WoW/Source/WorldClient/FrameTime.h"
+#include "WoW/Source/Object/WGUID.h"
+#include "Engine/Source/Gxu/GxuLight.h"
 
 // STATIC: 0x00ADEE48
 static const char* s_zonePaths[11] = {
@@ -202,6 +237,31 @@ uint32_t World::s_texCacheOverride;
 // STATIC: 0x00CDFFD0
 int32_t World::s_waterLOD;
 
+// STATIC: 0x00CD8790
+float s_viewerLiquidDepth;
+
+
+// STATIC: 0x00CD8798
+int32_t CWorldScene::frustumIndex;
+
+// STATIC: 0x00CDB108
+C3Vector CWorldScene::s_frustumCorners[8];
+
+// STATIC: 0x00CDB168
+CWFrustum CWorldScene::frustumStack[32];
+
+// STATIC: 0x00CD8F90
+C4Plane CWorldScene::camPlaneXY;
+
+// STATIC: 0x00CD9048
+CSortTable CWorldScene::sortTable;
+
+// STATIC: 0x00CDFFF4
+CALLBACK_FUNC World::s_loadProgressCallback;
+
+// STATIC: 0x00CDFFF0
+void* World::s_loadProgressParam;
+
 // VERIFY: 8564474b manual
 // OFFSET: 0x005EEB70
 void World::SetTexLodBias(float bias) {
@@ -284,6 +344,65 @@ static void ZonesInitialize() {
     }
 }
 
+// VERIFY: 6886f483 auto
+// OFFSET: 0x0077F1E0
+int32_t World::QueryObjectLiquid(CMapEntity* entity, int32_t* liquidType, float* height, int32_t* a4) {
+    if (!entity || !(entity->unk_007C & 0x20)) {
+        return 0;
+    }
+
+    *height = entity->unk_0080;
+    *liquidType = entity->unk_00BC;
+    *a4 = 0;
+
+    return 1;
+}
+
+// VERIFY: 52533b77 auto
+// OFFSET: 0x0077F220
+int32_t World::QueryObjectLiquidFlags(CMapEntity* entity, int32_t* flag8, int32_t* flag9) {
+    if (!entity || !(entity->unk_007C & 0x20)) {
+        return 0;
+    }
+
+    *flag8 = (entity->unk_007C >> 8) & 1;
+    *flag9 = (entity->unk_007C >> 9) & 1;
+
+    return 1;
+}
+
+// VERIFY: 305f137e auto
+// OFFSET: 0x0077F360
+int32_t World::QueryLiquidStatus(C3Vector* pos, int32_t* liquidType, float* height) {
+    int32_t a4 = 0;
+    return CMap::QueryLiquidStatus(pos, liquidType, height, &a4, 0);
+}
+
+// VERIFY: d8d97f86 auto
+// OFFSET: 0x0077F390
+int32_t World::QueryLiquidSounds(CMapEntity* entity, float radius, uint32_t* results) {
+    if (entity->unk_007C & 0x1) {
+        uint32_t distance = 9999;
+        entity->QueryLiquidSounds(results, &distance);
+
+        if (distance < 2) {
+            CMap::QueryLiquidSounds(&entity->m_position, radius, results);
+        }
+
+        return 1;
+    }
+
+    CMap::QueryLiquidSounds(&entity->m_position, radius, results);
+
+    return 1;
+}
+
+// VERIFY: baf0a035 auto
+// OFFSET: 0x0077F400
+void World::CreateWaterRipple(const C3Vector& pos, float a2, float a3, float a4, float a5, float a6, int32_t a7, int32_t a8) {
+    CMap::CreateWaterRipple(pos, a2, a3, a4, a5, a6, a7, a8);
+}
+
 // VERIFY: e146f1dc auto
 // OFFSET: 0x0077F490
 void World::SetNearClip(float nearClip) {
@@ -300,6 +419,28 @@ void World::SetHorizonFarClipScale(float scale) {
 // OFFSET: 0x0077F4B0
 void World::SetHorizonNearClipScale(float scale) {
     World::s_horizonNearClipScale = scale;
+}
+
+// VERIFY: 7db3332e auto
+// OFFSET: 0x00780620
+int32_t World::SceneCamLiquidStatus(float* depth) {
+    if (depth) {
+        *depth = s_viewerLiquidDepth;
+    }
+
+    return s_liquidTypeId;
+}
+
+// VERIFY: fa04a252 auto
+// OFFSET: 0x00780640
+C3Vector* World::GetCamPos() {
+    return &CWorldScene::s_activeWorldView;
+}
+
+// VERIFY: 21d7eb14 auto
+// OFFSET: 0x00780650
+C3Vector* CWorldScene::GetCamTarget() {
+    return &CWorldScene::camTarget;
 }
 
 // VERIFY: bf7ac74d auto
@@ -530,3 +671,362 @@ void CWorld::Initialize() {
 
     ZonesInitialize();
 }
+
+// VERIFY: 0ee74c0d auto
+// OFFSET: 0x00406DE0
+bool World::IsValidPosition(float x, float y, float z, float a4) {
+if (_finite(x) && _finite(y) && _finite(z)) {
+    float v4 = -(y - 17066.666f);
+    float v5 = -(x - 17066.666f);
+    if (a4 > v4)
+        return 0;
+    if (34133.332f - a4 > v4 && a4 <= v5 && v5 < 34133.332f - a4)
+        return 1;
+}
+return 0;
+}
+
+
+
+
+// VERIFY: 91f1484d auto
+// OFFSET: 0x0077F8D0
+int32_t World::GetFlightBoundsLower(const C3Vector& pos, float* height) {
+    return CMap::GetFlightBounds(pos, height, 1);
+}
+
+
+
+
+// OFFSET: 0x00783910
+bool World::GetFacets(CAaBox* a1, CAaBox* a2, FacetData* a3, uint32_t a4, uint32_t* a5) {
+    a3->facets.SetCount(0);
+    a3->facetIds.SetCount(0);
+    if (a5)
+        *a5 = 0;
+    if ((a4 & 0x4000) == 0)
+        return CMap::GetFacets(a1, a2, a3, a4, a5) != 0;
+
+    static FacetData facetData = FacetData();
+
+    facetData.facets.SetCount(0);
+    facetData.facetIds.SetCount(0);
+    if (!CMap::GetFacets(a1, a2, &facetData, a4, a5))
+        return 0;
+
+    for (int32_t i = 0; i < facetData.facets.Count(); i++) {
+        if (facetData.facets[i].plane.n.z >= 0.64278764f) {
+            a3->facets.Add(1, &facetData.facets[i]);
+            a3->facetIds.Add(1, &facetData.facetIds[i]);
+        }
+    }
+    return 1;
+}
+
+
+
+
+// VERIFY: 9d92b389 auto
+// OFFSET: 0x0078FB00
+void CWorldScene::FrustumXform(C44Matrix& mat) {
+    CWorldScene::frustumStack[CWorldScene::frustumIndex].Transform(mat);
+}
+
+// VERIFY: ad5c1827 auto
+// OFFSET: 0x0078FB20
+int32_t CWorldScene::FrustumCull(CAaBox* box) {
+    return CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(*box) == 0;
+}
+
+// VERIFY: 7ebc59b0 auto
+// OFFSET: 0x0078FB50
+void CWorldScene::FrustumPop() {
+    CWorldScene::frustumIndex--;
+}
+
+// OFFSET: 0x00790650
+void CWorldScene::GetNearestCornerToCamera(CAaBox* box, C3Vector* outCorner) {
+    outCorner->x = (CWorldScene::camTarget.x >= CWorldScene::s_activeWorldView.x)
+                       ? box->b.x
+                       : box->t.x;
+
+    outCorner->y = (CWorldScene::camTarget.y >= CWorldScene::s_activeWorldView.y)
+                       ? box->b.y
+                       : box->t.y;
+
+    outCorner->z = (CWorldScene::camTarget.z >= CWorldScene::s_activeWorldView.z)
+                       ? box->b.z
+                       : box->t.z;
+}
+
+
+
+
+
+// VERIFY: d30349f9 auto
+// OFFSET: 0x00790A80
+void CWorldScene::RenderLiquidPass() {
+    CWorldScene::ApplyFogState();
+
+    if ((CWorld::enables & Enable_Water) && CWorldScene::s_unk_CD8610) {
+        CWorldScene::s_unk_CD8610->Flush(CWorldScene::s_activeWorldView, 1);
+    }
+
+    CMap::RenderWaterRipples();
+}
+
+// VERIFY: d2772b54 manual
+// OFFSET: 0x00790AF0
+void CWorldScene::FrustumSet(CRect* rect) {
+    C3Vector corners[8];
+
+    for (uint32_t i = 0; i < 8; i += 4) {
+        C3Vector* src = &CWorldScene::s_frustumCorners[i];
+
+        C3Vector edgeTop(src[2].x - src[1].x, src[2].y - src[1].y, src[2].z - src[1].z);
+        C3Vector topLeft(edgeTop.x * rect->minX + src[1].x, edgeTop.y * rect->minX + src[1].y, edgeTop.z * rect->minX + src[1].z);
+        C3Vector topRight(edgeTop.x * rect->maxX + src[1].x, edgeTop.y * rect->maxX + src[1].y, edgeTop.z * rect->maxX + src[1].z);
+
+        C3Vector edgeBottom(src[3].x - src[0].x, src[3].y - src[0].y, src[3].z - src[0].z);
+        C3Vector bottomLeft(edgeBottom.x * rect->minX + src[0].x, edgeBottom.y * rect->minX + src[0].y, edgeBottom.z * rect->minX + src[0].z);
+        C3Vector bottomRight(edgeBottom.x * rect->maxX + src[0].x, edgeBottom.y * rect->maxX + src[0].y, edgeBottom.z * rect->maxX + src[0].z);
+
+        C3Vector left(topLeft.x - bottomLeft.x, topLeft.y - bottomLeft.y, topLeft.z - bottomLeft.z);
+        corners[i + 0] = C3Vector(left.x * rect->minY + bottomLeft.x, left.y * rect->minY + bottomLeft.y, left.z * rect->minY + bottomLeft.z);
+        corners[i + 1] = C3Vector(left.x * rect->maxY + bottomLeft.x, left.y * rect->maxY + bottomLeft.y, left.z * rect->maxY + bottomLeft.z);
+
+        C3Vector right(topRight.x - bottomRight.x, topRight.y - bottomRight.y, topRight.z - bottomRight.z);
+        corners[i + 3] = C3Vector(right.x * rect->minY + bottomRight.x, right.y * rect->minY + bottomRight.y, right.z * rect->minY + bottomRight.z);
+        corners[i + 2] = C3Vector(right.x * rect->maxY + bottomRight.x, right.y * rect->maxY + bottomRight.y, right.z * rect->maxY + bottomRight.z);
+    }
+
+    CWorldScene::frustumStack[CWorldScene::frustumIndex].CalcPlanesFromCorners(corners);
+}
+
+// VERIFY: d9802889 auto
+// OFFSET: 0x00791100
+void CWorldScene::FrustumSet(CFrustum* frustum) {
+    static_cast<CFrustum&>(CWorldScene::frustumStack[CWorldScene::frustumIndex]) = *frustum;
+}
+
+// VERIFY: 939d636d auto
+// OFFSET: 0x00791120
+int32_t CWorldScene::FrustumCull(const C3Vector& center, float radius) {
+    CAaSphere sphere;
+    sphere.c = center;
+    sphere.r = radius;
+
+    return CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(sphere) == 0;
+}
+
+// OFFSET: 0x00791640
+bool World::NDCXform(CFrustum* frustum, C44Matrix* out, bool includeTranslation) {
+    C3Vector* corners = frustum->corners;
+
+    float ax = corners[3].x - corners[0].x;
+    float ay = corners[3].y - corners[0].y;
+    float az = corners[3].z - corners[0].z;
+
+    float bx = corners[1].x - corners[0].x;
+    float by = corners[1].y - corners[0].y;
+    float bz = corners[1].z - corners[0].z;
+
+    float cx = corners[4].x - corners[0].x;
+    float cy = corners[4].y - corners[0].y;
+    float cz = corners[4].z - corners[0].z;
+
+    *out = C44Matrix();
+
+    out->a0 = ax;
+    out->a1 = ay;
+    out->a2 = az;
+    out->b0 = bx;
+    out->b1 = by;
+    out->b2 = bz;
+    out->c0 = cx;
+    out->c1 = cy;
+    out->c2 = cz;
+
+    if (includeTranslation) {
+        out->d0 = corners[0].x;
+        out->d1 = corners[0].y;
+        out->d2 = corners[0].z;
+    }
+
+    float det = out->Determinant();
+
+    if (fabs(det) < 0.00000023841858f) {
+        *out = C44Matrix();
+        return false;
+    }
+
+    *out = out->Inverse(det);
+
+    return true;
+}
+
+
+
+
+
+// VERIFY: 4c456906 auto
+// OFFSET: 0x00791950
+void CWorldScene::FrustumPush() {
+    CWorldScene::frustumIndex++;
+    static_cast<CFrustum&>(CWorldScene::frustumStack[CWorldScene::frustumIndex]) = CWorldScene::frustumStack[CWorldScene::frustumIndex - 1];
+}
+
+// VERIFY: b58d1116 manual
+// OFFSET: 0x00792DF0
+void CWorldScene::AddToDistanceBucket(CChunkLiquid* liquid, const C3Vector& pos) {
+    int32_t bucket = 0;
+    float distance = pos.y * CWorldScene::camPlaneXY.n.y + pos.z * CWorldScene::camPlaneXY.n.z + pos.x * CWorldScene::camPlaneXY.n.x + CWorldScene::camPlaneXY.d;
+
+    if (distance > 0.0f) {
+        float scaled = distance * 0.03f;
+        bucket = CMath::fint_(scaled - 0.5f);
+
+        if (bucket >= 64) {
+            return;
+        }
+    }
+
+    CWorldScene::sortTable.m_table[bucket].m_liquidList.LinkToTail(liquid);
+}
+
+// OFFSET: 0x00792FC0
+void CWorldScene::AddViewerGroup(TSGrowableArray<uint16_t>* group, uint16_t val) {
+    for (int32_t i = 0; i < group->Count(); i++) {
+        if (group->Ptr()[i] == val) {
+            return;
+        }
+    }
+
+    group->Add(1, &val);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// VERIFY: 44ac3c58 auto
+// OFFSET: 0x007935A0
+void CWorldScene::CullLiquid(CSortEntry* entry) {
+    if (!(CWorld::enables & Enable_Water)) {
+        CChunkLiquid* liquid = entry->m_liquidList.Head();
+
+        while (liquid) {
+            CChunkLiquid* next = entry->m_liquidList.Next(liquid);
+            CMap::s_mapChunkLiquidUpdateList.LinkToTail(liquid);
+            liquid = next;
+        }
+    } else {
+        CChunkLiquid* liquid = entry->m_liquidList.Head();
+
+        while (liquid) {
+            CChunkLiquid* next = entry->m_liquidList.Next(liquid);
+            CMap::s_mapChunkLiquidUpdateList.LinkToTail(liquid);
+
+            CAaBox box;
+            liquid->GetAaBox(box);
+
+            if (CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(box) && !CWorldOcclusion::QueryBuffer(&box, 0) && !CWorldOcclusion::QueryVolumes(liquid->GetSphere())) {
+                liquid->RenderPrep();
+
+                if (CWorldScene::s_unk_CD8610 && liquid->m_instance) {
+                    CWorldScene::s_unk_CD8610->Draw(liquid->m_instance);
+                }
+            }
+
+            liquid = next;
+        }
+    }
+}
+
+// OFFSET: 0x007A3E40
+void World::AddAaBoxFacets(CAaBox* box, FacetData* facets) {
+    static const int32_t s_boxTriIndex[36] = { 0, 2, 3, 0, 1, 2, 1, 6, 2, 1, 5, 6, 4, 6, 5, 4, 7, 6, 0, 7, 4, 0, 3, 7, 0, 5, 1, 0, 4, 5, 2, 7, 3, 2, 6, 7 };
+
+    if (box->t.x <= box->b.x || box->t.y <= box->b.y || box->t.z <= box->b.z)
+        return;
+
+    uint32_t firstFacet = facets->facets.Count();
+
+    C3Vector corner[8];
+    corner[0] = { box->b.x, box->t.y, box->b.z };
+    corner[1] = { box->t.x, box->t.y, box->b.z };
+    corner[2] = { box->t.x, box->b.y, box->b.z };
+    corner[3] = { box->b.x, box->b.y, box->b.z };
+    corner[4] = { box->b.x, box->t.y, box->t.z };
+    corner[5] = { box->t.x, box->t.y, box->t.z };
+    corner[6] = { box->t.x, box->b.y, box->t.z };
+    corner[7] = { box->b.x, box->b.y, box->t.z };
+
+    C4Plane plane[6];
+    plane[0].From3Pos(corner[0], corner[2], corner[3]);
+    plane[1].From3Pos(corner[1], corner[6], corner[2]);
+    plane[2].From3Pos(corner[4], corner[6], corner[5]);
+    plane[3].From3Pos(corner[0], corner[7], corner[4]);
+    plane[4].From3Pos(corner[0], corner[5], corner[1]);
+    plane[5].From3Pos(corner[2], corner[7], corner[3]);
+
+    CFacet facet(0.0f);
+    for (int32_t i = 0; i < 36; i += 3) {
+        facet.plane = plane[i / 6];
+        facet.v[0] = corner[s_boxTriIndex[i]];
+        facet.v[1] = corner[s_boxTriIndex[i + 1]];
+        facet.v[2] = corner[s_boxTriIndex[i + 2]];
+        facets->facets.Add(1, &facet);
+    }
+
+    uint32_t count = facets->facets.Count();
+    facets->facetIds.SetCount(count);
+    for (uint32_t i = firstFacet; i < count; i++)
+        facets->facetIds[i] = 0;
+}
+
+// OFFSET: 0x007A6B90
+void CWorldScene::CalcScreenRectFromVerts(CRect& rect, C3Vector* clippedVerts, uint32_t clippedCount) {
+    rect.minX = 3.4028235e38;
+    rect.maxX = -3.4028235e38;
+    rect.maxY = -3.4028235e38;
+    rect.minY = 3.4028235e38;
+
+    for (uint32_t i = 0; i < clippedCount; i++) {
+        if (rect.minX > clippedVerts[i].x)
+            rect.minX = clippedVerts[i].x;
+        if (rect.maxX < clippedVerts[i].x)
+            rect.maxX = clippedVerts[i].x;
+        if (rect.minY > clippedVerts[i].y)
+            rect.minY = clippedVerts[i].y;
+        if (rect.maxY < clippedVerts[i].y)
+            rect.maxY = clippedVerts[i].y;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

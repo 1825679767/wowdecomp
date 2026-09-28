@@ -12,4 +12,6 @@ class C2iVector {
     uint32_t MajorAxis() const;
 };
 
+bool operator<(const C2iVector& l, const C2iVector& r);
+
 #endif

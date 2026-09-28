@@ -1918,9 +1918,9 @@ void CGxDevice::RsSet(EGxRenderState which, int32_t value) {
 
     CGxAppRenderState& state = this->m_appRenderStates[which];
 
-    if (state.m_value.m_data.i[0] != value) {
+    if (state.m_value.m_data.p != reinterpret_cast<void*>(static_cast<intptr_t>(value))) {
         this->IRsDirty(which);
-        state.m_value.m_data.i[0] = value;
+        state.m_value.m_data.p = reinterpret_cast<void*>(static_cast<intptr_t>(value));
     }
 }
 

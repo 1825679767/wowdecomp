@@ -7,6 +7,9 @@
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
+class LightFloatBandRec;
+class LightParamsRec;
+
 class C3Vector;
 class CImVector;
 class CM2Model;
@@ -66,6 +69,9 @@ class DNLightBands {
     /* 0090 */ float m_skyboxWeight2;
     /* 0094 */ uint32_t m_cloudTypeId;
     /* 0098 */ float m_cloudWeight;
+
+    DNLightBands();
+    void Copy(const DNLightBands* src);
 };
 
 struct DNOverrideSky {
@@ -153,6 +159,9 @@ struct DNPlanet {
     /* 0014 */ float m_scale;
     /* 0018 */ float m_baseScale;
     /* 001C */ float m_period;
+
+    void Initialize(const char* fileName);
+    void Render();
 };
 }
 
@@ -177,6 +186,10 @@ struct DNSky {
     /* 0028 */ uint16_t m_nVerts;
     /* 002A */ uint16_t m_nIndices;
     /* 002C */ float m_sphRadius;
+
+    void Render();
+    void GenSphere(float sphRadius);
+    void SetColors();
 };
 }
 
@@ -188,6 +201,32 @@ struct DNStars {
     /* 000C */ C3Vector m_position;
     /* 0018 */ uint32_t m_lastTimeMs;
 };
+}
+
+namespace DayNight {
+    float InterpFloatBand(const LightFloatBandRec* rec, int32_t now, int32_t bandIndex);
+    float CalcIndividualColorFromDBRec(int32_t bandTime, const LightParamsRec* params, int32_t bandIndex);
+    void LoadLightingBands(int32_t bandTime, DNLightBands* bands, LightParamsRec* params);
+    float CalcFogRate(float fogStart, float fogEnd);
+    void CalcColors(int32_t bandTime, DNLightBands* bands, LightParamsRec* params);
+    void BlendColors(DNLightBands* dst, const DNLightBands* src, float t);
+    LightParamsRec* GetLightParams(const LightRec* light, int32_t slot);
+    void SetLightColors();
+    DNOverrideSky* GetOverrideSky(const char* path, uint32_t flags);
+    void LoadMap(int32_t zoneID);
+    void LightLoad(TSGrowableArray<LightRec*>* lightArray, uint32_t a2);
+    void ColorLerpBytes(CImVector* out, const CImVector* a, const CImVector* b, float t);
+    void BlendOutputs(DNLightBands* dst, const DNLightBands* src, float t);
+    void BlendAreaLightColors(DNLightBands* dst, const LightRec* light, int32_t clearSlot, int32_t stormSlot);
+    void BlendAreaLight(DNLightBands* dst, float maxFade, const LightRec* light, int32_t clearSlot, int32_t stormSlot);
+    void BlendZoneLight(DNLightBands* dst, float maxFade, const LightRec* light, float distPct, int32_t clearSlot, int32_t stormSlot);
+    void DoAreaLights(DNLightBands* light, int32_t underwater);
+    void UpdateFog();
+    void SetDirection();
+    void UpdateLighting();
+    void Update(int32_t reset, const C3Vector* cameraPos);
+    void SetPlanets();
+    CImVector DarkenColor(CImVector colour, float scale);
 }
 
 struct SMOFog {
@@ -202,5 +241,44 @@ struct SMOFog {
     /* 0028 */ float m_uwFogStartScalar;
     /* 002C */ CImVector m_uwFogColor;
 };
+
+namespace DayNight {
+
+    class LightQE {
+        public:
+        float m_key;        // +0x00
+        LightRec** m_light; // +0x04
+
+        static int32_t s_localSort;
+
+        static bool HasHigherPriority(const LightQE& a, const LightQE& b);
+    };
+
+}
+
+namespace DayNight {
+
+    class LightQueue {
+        public:
+        void* m_vtable;
+        void* m_alloc;
+        uint32_t m_allocBytes;
+        LightQE* m_data;
+        uint32_t m_dataBytes;
+        uint32_t m_chunk;
+        uint32_t m_capacity;
+        uint32_t m_count;
+
+        LightQueue(uint32_t initial, uint32_t chunk);
+        ~LightQueue();
+
+        bool Resize(uint32_t bytes, bool noClear);
+        void Insert(float key, LightRec** light);
+        bool Erase(uint32_t index, uint32_t count);
+        void Pop(LightQE* out);
+    };
+
+}
+
 
 #endif

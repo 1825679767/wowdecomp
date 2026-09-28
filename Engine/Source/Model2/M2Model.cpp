@@ -7863,3 +7863,30 @@ CM2Lighting::CM2Lighting(const CAaSphere& sphere) {
     this->m_liquidPlane.d = 0.0f;
     this->Initialize(nullptr, sphere);
 }
+
+// OFFSET: 0x007B0F10
+CM2Lighting::CM2Lighting(const C3Vector& position) {
+    this->m_sphere4.c.x = 0.0f;
+    this->m_sphere4.r = 0.0f;
+    this->m_sphere4.c.y = 0.0f;
+    this->m_sphere4.c.z = 0.0f;
+    this->m_vector18 = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector24 = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector30 = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector3C = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_vector48 = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_sunAmbient = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_sunDiffuse = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_sunSpecular = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_sunDir = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_fogColor = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_liquidPlane.n.x = 0.0f;
+    this->m_liquidPlane.n.y = 0.0f;
+    this->m_liquidPlane.n.z = 1.0f;
+    this->m_liquidPlane.d = 0.0f;
+
+    CAaSphere sphere;
+    sphere.c = position;
+    sphere.r = 0.0f;
+    this->Initialize(nullptr, sphere);
+}

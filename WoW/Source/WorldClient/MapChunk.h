@@ -3,6 +3,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Tempest/C2Vector.h"
+#include "WoW/Source/WorldClient/CChunkLiquid.h"
+#include "Engine/Source/Base/BitArray.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Tempest/CAaSphere.h"
@@ -10,6 +13,13 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/WorldClient/MapBaseObj.h"
 #include "Engine/Source/Tempest/C2iVector.h"
+#include "WoW/Source/WorldClient/MapObjGroup.h"
+
+class CFrustum;
+class CMapArea;
+class CiRect;
+namespace World { class FacetData; }
+struct SIffChunk;
 
 class CChunkLiquid;
 class CMapChunk;
@@ -18,6 +28,7 @@ class CMapChunkMapObjDefLink;
 class CMapObjDef;
 class CMapRenderChunk;
 class CWSoundEmitter;
+class SI2SoundHandle;
 struct SMChunk;
 struct SMLayer;
 struct SMLiquidChunk;
@@ -48,18 +59,20 @@ class CMapChunk : public CMapBaseObj {
     public:
     static float s_geoToTex;
     static C3Vector vertexList[145];
+    static int32_t farCornerIndex;
+    static const int32_t cornerVertexIndex[4];
 
     static void Destroy();
     static void Initialize();
     static void InitializeVertexGrid();
+    static bool CanMergeChunkLayers(CMapChunk* chunkA, CMapChunk* chunkB);
 
     /* 0024 */ C2iVector m_aIndex;
     /* 002C */ C2iVector m_sOffset;
     /* 0034 */ C2iVector m_cOffset;
     /* 003C */ CAaSphere m_sphere;
     /* 004C */ CAaBox m_bbox;
-    /* 0064 */ C3Vector m_bottomRight;
-    /* 0070 */ C3Vector m_topLeft;
+    /* 0064 */ CAaBox m_liquidBounds;
     /* 007C */ C3Vector m_topLeftCoords;
     /* 0088 */ float m_distToCamera;
     /* 008C */ CAaBox m_bbox2;
@@ -70,18 +83,12 @@ class CMapChunk : public CMapBaseObj {
     /* 00B4 */ int32_t unk_00B4;
     /* 00B8 */ int32_t unk_00B8;
     /* 00BC */ TSLink<CMapChunk> m_sortListLink;
-    /* 00C4 */ TSExplicitList<CMapChunkDoodadDefLink> m_doodadDefLinkList;
-    /* 00D0 */ TSExplicitList<CMapChunkMapObjDefLink> m_mapObjDefLinkList;
-    /* 00DC */ int32_t m_tSExplicitListMLinkoffsetDc;
-    /* 00E0 */ void* m_tSExplicitListPtrE0;
-    /* 00E4 */ void* m_tSExplicitListPtr2E4;
-    /* 00E8 */ int32_t m_tSExplicitListMLinkoffsetE8;
-    /* 00EC */ void* m_tSExplicitListPtrEc;
-    /* 00F0 */ void* m_tSExplicitListPtr2F0;
-    /* 00F4 */ int32_t m_tSExplicitListMLinkoffsetF4;
-    /* 00F8 */ void* m_tSExplicitListPtrF8;
-    /* 00FC */ void* m_tSExplicitListPtr2Fc;
-    /* 0100 */ TSExplicitList<CChunkLiquid> m_liquidChunkLinkList;
+    /* 00C4 */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_doodadDefLinkList;
+    /* 00D0 */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_mapObjDefLinkList;
+    /* 00DC */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_entityLinkList;
+    /* 00E8 */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_lightLinkList;
+    /* 00F4 */ TSList<SI2SoundHandle, TSGetExplicitLink<SI2SoundHandle> > m_soundHandleList;
+    /* 0100 */ TSExplicitList<CChunkLiquid, offsetof(CChunkLiquid, m_chunkLink)> m_liquidChunkLinkList;
     /* 010C */ uint8_t* m_chunkInfoBeginPtr;
     /* 0110 */ SMChunk* m_header;
     /* 0114 */ uint8_t* m_lowQualityTexMap;
@@ -95,12 +102,33 @@ class CMapChunk : public CMapBaseObj {
     /* 0134 */ uint8_t* m_mcrfPtr;
     /* 0138 */ SMLiquidChunk* m_liquid;
     /* 013C */ CWSoundEmitter* m_soundEmitters;
-    /* 0140 */ int32_t unk_0140;
-    /* 0144 */ int32_t unk_0144;
-    /* 0148 */ int32_t unk_0148;
-    /* 014C */ int32_t unk_014C;
-    /* 0150 */ int32_t unk_0150;
-    /* 0154 */ int32_t unk_0154;
+    /* 0140 */ CBitArray m_deepBits;
+    /* 014C */ CBitArray m_fishableBits;
+
+    CMapChunk();
+    void Create(SIffChunk* headerChunk, bool a3);
+    void CreateRefs(CMapArea* mapChunk, uint32_t* mcrfPtr, uint32_t doodadRefs, uint32_t mapObjRefs);
+    void ProcessIffChunks(bool a3);
+    void CreateBounds();
+    void RenderPrep();
+    void Batch();
+    void AllocRenderChunkAndBatch();
+    void CullAndBucketChunk();
+    void Purge();
+    void UpdateLights();
+    void CreateLiquids(bool a3);
+    void CreateSoundEmitters(bool a3);
+    void CreateDetailDoodads();
+    void GetLiquidBounds(CAaBox& box) const;
+    bool GetLiquidHeight(const C2Vector& pos, float* height) const;
+    int16_t CreateIndices(char* buf, int32_t offset);
+    void CreateIndices(uint16_t* buf, CGxBatch* batch);
+    void CreateVertices(char* buf, int32_t vertexOffset, const C3Vector& offset);
+    void CreateVerticesLocal(CGxVertexPN* buf);
+    void CreateVerticesLocal(CGxVertexPNC* buf);
+    void CreateVerticesWorld(CGxVertexPN* buf, const C3Vector& offset);
+    void CreateVerticesWorld(CGxVertexPNC* buf, const C3Vector& offset);
+    void Intersect(CiRect* rect, CFrustum* frustum, World::FacetData* facets);
 };
 
 class CWSoundEmitter {

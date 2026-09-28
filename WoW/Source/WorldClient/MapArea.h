@@ -6,12 +6,17 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/LiquidSystem/Liquid.h"
 #include "WoW/Source/WorldClient/MapBaseObj.h"
 #include "Engine/Source/Tempest/C2iVector.h"
 
+class CiRect;
+
 class CAsyncObject;
+class SFileImpl;
 class CMapArea;
 class CMapAreaChunkLink;
+class CMapBaseObjLink;
 class CMapAreaTexture;
 class CMapChunk;
 struct SMAreaHeader;
@@ -32,6 +37,8 @@ class CMapArea : public CMapBaseObj {
     public:
     static void Destroy();
     static void Initialize();
+    static void* AllocAsyncLoadBuffer(int32_t fileSize);
+    static void AsyncCallback(void* param);
 
     /* 0024 */ CAaBox m_bounds;
     /* 003C */ C3Vector m_topLeft2;
@@ -39,9 +46,9 @@ class CMapArea : public CMapBaseObj {
     /* 0050 */ C2iVector m_tileChunkIndex;
     /* 0058 */ TSGrowableArray<CMapAreaTexture> m_textures;
     /* 0068 */ SMAreaHeader* m_header;
-    /* 006C */ int32_t m_file;
+    /* 006C */ SFileImpl* m_file;
     /* 0070 */ CAsyncObject* m_asyncObject;
-    /* 0074 */ TSExplicitList<CMapAreaChunkLink> m_chunkLinkList;
+    /* 0074 */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_chunkLinkList;
     /* 0080 */ void* m_fileBuffer;
     /* 0084 */ int32_t m_fileSize;
     /* 0088 */ SMChunkInfo* m_chunkInfo;
@@ -56,8 +63,20 @@ class CMapArea : public CMapBaseObj {
     /* 00AC */ uint32_t* m_wmoFilenamesOffsets;
     /* 00B0 */ int16_t* m_flyingBbox;
     /* 00B4 */ int32_t* m_textureFlags;
-    /* 00B8 */ uint8_t* unk_00B8;
+    /* 00B8 */ Liquid::CAreaData* m_liquid;
     /* 00BC */ CMapChunk* m_mapChunks [256];
+
+    CMapArea();
+    void Load(const char* fileName);
+    void LoadTextures(char* fileNames, uint32_t fileNamesSize);
+    void LoadTerrainTexture(CMapAreaTexture* areaTexture, int32_t textureId);
+    void ProcessIffChunks();
+    CMapChunk* PrepareChunk(int32_t chunkX, int32_t chunkY);
+    void PurgeChunks(CiRect* chunkRect);
+    void PurgeChunk(CMapChunk* chunk);
+    void Purge();
+    void Update(int32_t addToScene, CiRect* chunkRect);
+    void BatchChunks(const C2iVector& pos);
 };
 
 struct SMAreaHeader {
@@ -85,9 +104,9 @@ struct SMChunkInfo {
     /* 000C */ uint8_t unk_000C[4];
 };
 
-class CMapAreaMed {
+class CMapAreaMed : public CMapBaseObj {
     public:
-    /* 0000 */ uint8_t unk_0000[33404];
+    /* 0024 */ uint8_t unk_0024[33368];
 };
 
 #endif

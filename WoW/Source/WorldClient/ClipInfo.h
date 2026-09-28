@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class C3Vector;
+
 class ClipInfo {
     public:
     /* 0000 */ uint32_t unk_0000;
@@ -14,5 +16,18 @@ class ClipInfo {
     /* 0014 */ uint32_t unk_0014;
     /* 0018 */ uint32_t unk_0018;
 };
+
+namespace World {
+
+    struct CLIPINFO {
+        float d[6];
+        uint32_t outcode;
+        uint32_t pad;
+
+        void Set(const C3Vector& ndc);
+    };
+
+}
+
 
 #endif

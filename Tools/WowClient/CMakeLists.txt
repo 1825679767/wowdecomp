@@ -74,6 +74,7 @@ target_link_libraries(WowClient
         UIUtil
         Ui
         WorldClient
+        LiquidSystem
         WowServices
         WowSvcs
         Triage

@@ -117,3 +117,35 @@ CImVector DayNight::LoadLightIntBand(int32_t time, const LightParamsRec* params,
     g_lightIntBandDB.GetRecord(band + 18 * params->m_id - 17, &rec);
     return InterpolateIntBand(rec, time);
 }
+
+// VERIFY: 95c2a7e6 auto
+// OFFSET: 0x007EAEF0
+float DayNight::InterpFloatBand(const LightFloatBandRec* rec, int32_t now, int32_t bandIndex) {
+    if (!rec->m_num) {
+        return 0.0f;
+    }
+
+    float t;
+    int32_t lo;
+    int32_t hi;
+    GetBandTimeRange(rec->m_time, rec->m_num, now, lo, t, hi);
+
+    if (bandIndex) {
+        return (rec->m_data[hi] - rec->m_data[lo]) * t + rec->m_data[lo];
+    }
+
+    float loValue = rec->m_data[lo] * 0.027777778f;
+    return loValue + (0.027777778f * rec->m_data[hi] - loValue) * t;
+}
+
+// VERIFY: fb110f5d manual
+// OFFSET: 0x007ED2D0
+void DayNight::ColorLerpBytes(CImVector* out, const CImVector* a, const CImVector* b, float t) {
+    float blue = b->b < a->b ? a->b - (a->b - b->b) * t : a->b + (b->b - a->b) * t;
+    float green = b->g < a->g ? a->g - (a->g - b->g) * t : a->g + (b->g - a->g) * t;
+    float red = b->r < a->r ? a->r - (a->r - b->r) * t : a->r + (b->r - a->r) * t;
+    out->b = CMath::fint_(blue - 0.5f);
+    out->g = CMath::fint_(green - 0.5f);
+    out->r = CMath::fint_(red - 0.5f);
+    out->a = 0xFF;
+}

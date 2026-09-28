@@ -15,7 +15,7 @@ class FVBBList {
         /* 0000 */ TSLink<Block> m_link;
         /* 0008 */ uint32_t unk_0008;
         /* 000C */ CGxBuf* m_buf;
-        /* 0010 */ uint32_t unk_0010;
+        /* 0010 */ Block** m_owner;
     };
 
     /* 0000 */ CGxPool* m_pool;
@@ -24,6 +24,7 @@ class FVBBList {
 
     void Destroy();
     void Initialize(EGxPoolTarget target, EGxPoolUsage usage, uint32_t itemSize, uint32_t itemCount, uint32_t blockCount);
+    void Release(Block* block);
 };
 
 #endif

@@ -9,9 +9,14 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/WorldClient/Barrier.h"
 #include "WoW/Source/WorldClient/CWorldOcclusion.h"
-#include "WoW/Source/WorldClient/Liquid.h"
+#include "WoW/Source/LiquidSystem/Liquid.h"
+#include "WoW/Source/WorldClient/LiquidWaveManager.h"
+#include "WoW/Source/WorldClient/LiquidGeomFactories.h"
+#include "WoW/Source/WorldClient/LiquidEnvironment.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WorldClient/WorldView.h"
+#include "WoW/Source/WorldClient/MapObj.h"
+#include "WoW/Source/WorldClient/MapObjDef.h"
 
 // STATIC: 0x00ADF350
 float CWorldScene::s_fadeSizeDefault[5] = { 1.0f, 4.0f, 15.0f, 100.0f, 100000.0f };
@@ -57,6 +62,15 @@ CMapEntity* CWorldScene::camTargetEntity;
 
 // STATIC: 0x00CD87B0
 int32_t CWorldScene::s_unk_CD87B0;
+
+// STATIC: 0x00CD8F5C
+C3Vector CWorldScene::s_activeWorldView;
+
+// STATIC: 0x00CD8F68
+C3Vector CWorldScene::camTarget;
+
+// STATIC: 0x00D1C420
+CMapObjDef* CWorldScene::s_curMapObjDef;
 
 // VERIFY: ce865553 manual
 // OFFSET: 0x00798310
@@ -151,4 +165,12 @@ void CWorldScene::ScaleFadeDist(float scale) {
     CWorldScene::s_fadeDistMin[4] = CWorldScene::s_fadeDist[4] - CWorldScene::s_fadeRangeDefault[4];
     CWorldView::s_fadeDistSqr[4] = CWorldScene::s_fadeDist[4] * CWorldScene::s_fadeDist[4];
     CWorldScene::s_fadeDistMinSqr[4] = CWorldScene::s_fadeDistMin[4] * CWorldScene::s_fadeDistMin[4];
+}
+
+// VERIFY: 0f630b8d auto
+// OFFSET: 0x007B3B20
+void CMapObjDef::RenderWithCallback(TSGrowableArray<uint16_t>* groups) {
+    CMapObj::SetGroupRenderCallback(reinterpret_cast<RENDER_CALLBACK>(CWorldScene::AddMapObjDefGroupToSortTable), this);
+    CWorldScene::s_curMapObjDef = this;
+    CWorldScene::RenderInterior(this->m_owner, this->m_mat, this->m_invMat, CWorldScene::s_activeWorldView, CWorldScene::camTarget, groups);
 }

@@ -137,6 +137,23 @@ class TSGrowableArray : public TSFixedArray<T> {
     void SetCount(uint32_t count);
 };
 
+template <class T, uint32_t N>
+class TSCGrowableArray {
+    public:
+    /* 0000 */ union {
+        T m_inline[N];
+        TSGrowableArray<T> m_dynamic;
+    };
+    uint32_t m_count;
+
+    TSCGrowableArray();
+    ~TSCGrowableArray();
+    T& operator[](uint32_t index);
+    void BecomeDynamic();
+    T* New(const T& source);
+    void SetCount(uint32_t count);
+};
+
 template <class T, class TKey>
 class TSHashObject {
     public:
@@ -1527,6 +1544,52 @@ void TSBitField<T>::Load(const void* data, uint32_t bytes, int32_t bits) {
     this->m_count = count;
     this->m_bits.SetCount(count ? ((count - 1) >> 5) + 1 : 0);
     memcpy(this->m_bits.m_data, data, bytes);
+}
+
+// VERIFY: 47bab0b9 auto
+// OFFSET: [0x007917B0]
+template <class T, uint32_t N>
+T& TSCGrowableArray<T, N>::operator[](uint32_t index) {
+    if (this->m_count == 0xFFFFFFFF) {
+        return this->m_dynamic.m_data[index];
+    }
+
+    return this->m_inline[index];
+}
+
+// VERIFY: 2e6b9329 manual
+// OFFSET: [0x007B3B70]
+template <class T, uint32_t N>
+void TSCGrowableArray<T, N>::BecomeDynamic() {
+    uint32_t count = this->m_count;
+
+    if (static_cast<int32_t>(count) > static_cast<int32_t>(N)) {
+        count = N;
+    }
+
+    T saved[N];
+
+    if (count) {
+        memcpy(saved, this->m_inline, sizeof(T) * count);
+    }
+
+    new (&this->m_dynamic) TSGrowableArray<T>();
+    this->m_dynamic.Add(count, saved);
+    this->m_dynamic.Add(this->m_count - count, &this->m_inline[count]);
+    this->m_count = 0xFFFFFFFF;
+}
+
+// INLINED
+template <class T, uint32_t N>
+void TSCGrowableArray<T, N>::SetCount(uint32_t count) {
+    if (this->m_count == 0xFFFFFFFF) {
+        this->m_dynamic.SetCount(count);
+    } else if (count <= N) {
+        this->m_count = count;
+    } else {
+        this->BecomeDynamic();
+        this->m_dynamic.SetCount(count);
+    }
 }
 
 #endif

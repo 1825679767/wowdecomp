@@ -1,7 +1,7 @@
 #include "WaterRipple.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/Status.h"
-#include "WoW/Source/WorldClient/Liquid.h"
+#include "WoW/Source/LiquidSystem/Liquid.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDevice/CGxShader.h"
 #include "Engine/Source/Gx/CGxTexFlags.h"

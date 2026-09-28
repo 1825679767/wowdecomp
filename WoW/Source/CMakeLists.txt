@@ -61,6 +61,7 @@ target_link_libraries(Wow
         DB
         Game
         Glue
+        LiquidSystem
         Magic
         Minigame
         Net

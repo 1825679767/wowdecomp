@@ -3,6 +3,19 @@
 #include "Engine/Source/Gx/CGxBuf.h"
 #include "Engine/Source/Gx/CGxPool.h"
 
+// VERIFY: 931e6f81 manual
+// OFFSET: 0x007D55B0
+void FVBBList::Release(Block* block) {
+    if (!block) {
+        return;
+    }
+
+    *block->m_owner = nullptr;
+    block->m_owner = nullptr;
+    block->m_link.Unlink();
+    this->m_blocks.LinkToTail(block);
+}
+
 // VERIFY: 59fe6fba manual
 // OFFSET: 0x007D58B0
 void FVBBList::Initialize(EGxPoolTarget target, EGxPoolUsage usage, uint32_t itemSize, uint32_t itemCount, uint32_t blockCount) {
