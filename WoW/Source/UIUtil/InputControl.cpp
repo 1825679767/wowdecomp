@@ -6,13 +6,17 @@
 #include "Engine/Source/Os/Joystick.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "Engine/Source/Event/CMouseEvent.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameXML/XMLTree.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Tempest/C2Vector.h"
 #include "WoW/Source/DB/Rec/VehicleRec.h"
 #include "WoW/Source/DB/Rec/VehicleSeatRec.h"
+#include "WoW/Source/Object/Movement.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/Object/ObjectClient/VehicleCamera_C.h"
 #include "WoW/Source/Object/ObjectClient/Vehicle_C.h"
 #include "WoW/Source/Object/ObjectClient/VehiclePassenger_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
@@ -20,6 +24,12 @@
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "_Triage/CMoveSpline.h"
 #include "WoW/Source/UIUtil/InputControl.h"
+#include "WoW/Source/Ui/CommentatorFrame.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
+#include "WoW/Source/Object/ObjectClient/Movement_C.h"
 #include "_Triage/WowMouse.h"
 
 // STATIC: 0x00AD192C
@@ -544,4 +554,722 @@ void CGInputControl::OnPitchToAngleStop() {
     if (mover) {
         CGInputControl::SendUIVehicleAngleUpdate(mover->GetPitch());
     }
+}
+
+// VERIFY: b38d40e5 manual
+// OFFSET: 0x005FAB70
+void CGInputControl::OnUpdate(float elapsed) {
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!mover) {
+        return;
+    }
+
+    if (s_joystick != 0xFFFFFFFF && (this->m_flags & 0x6000000)) {
+        CGCamera* camera = CGWorldFrame::GetActiveCamera();
+
+        if (camera) {
+            // STATIC: 0x00C24964
+            static C2Vector s_joystickLookScale = C2Vector(800.0f, 600.0f);
+
+            camera->UpdateFreeLookFacing(this->m_joystickLookX * s_joystickLookScale.x * elapsed, this->m_joystickLookY * s_joystickLookScale.y * elapsed, nullptr);
+
+            if (this->CanSyncFreeLookFacing(mover)) {
+                camera->SyncFreeLookFacing();
+            }
+        }
+    }
+
+    if (mover->m_movement->m_flags & 0xC0) {
+        CGInputControl::SendUIVehicleAngleUpdate(mover->GetPitch());
+    }
+}
+
+// VERIFY: 1ec103a0 manual
+// OFFSET: 0x005FBA60
+void CGInputControl::OnMouseMoveRel(const CMouseEvent& evt) {
+    if (!this->m_flags) {
+        return;
+    }
+
+    uint32_t frame = g_theGxDevicePtr->m_frameCount;
+    float x = evt.m_data.m_mousePosition.x;
+    float y = evt.m_data.m_mousePosition.y;
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (mover && (mover->m_obj->m_type & TYPEMASK_PLAYER) && static_cast<CGPlayer_C*>(mover)->IsCommentatorUberOrInArena()) {
+        ScaleMouseDeltaByFov(&x, &y);
+    }
+
+    this->m_lastMouseMoveFrame = frame;
+    int32_t allowPitch = 1;
+    this->m_dragAccumX = std::fabs(x) + this->m_dragAccumX;
+    this->m_dragAccumY = std::fabs(y) + this->m_dragAccumY;
+    int32_t canSync = this->CanSyncFreeLookFacing(mover);
+
+    if (canSync && mover && mover->m_vehicle && mover->m_vehicle->m_vehicleRec && mover->m_vehicle->IsSuppressingCameraPitchWhileMouseAiming()) {
+        allowPitch = 0;
+    }
+
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+
+    if (allowPitch) {
+        camera->UpdateFreeLookFacing(x, y, nullptr);
+    } else {
+        float pitchDelta;
+        camera->UpdateFreeLookFacing(x, y, &pitchDelta);
+
+        if (CGInputControl::CameraCanPitchPlayer()) {
+            float aim = this->m_vehicleAimValid ? this->m_vehicleAim : mover->GetPitch();
+            this->SetPlayerPitch(mover, OsGetAsyncTimeMs(), aim - pitchDelta);
+            this->m_flags &= ~0x80000;
+        }
+    }
+
+    if (canSync) {
+        camera->SyncFreeLookFacing();
+    }
+}
+
+// VERIFY: 3503f1b9 manual
+// OFFSET: 0x005FB260
+void CGInputControl::CameraTurnPlayer(uint32_t time, float facing) {
+    if (!this->CameraCanTurnPlayer()) {
+        return;
+    }
+
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!mover) {
+        return;
+    }
+
+    if ((mover->m_obj->m_type & TYPEMASK_PLAYER) && static_cast<CGPlayer_C*>(mover)->IsCommentatorUberOrInArena()) {
+        CGCommentator::s_Commentator.m_facing = facing;
+        return;
+    }
+
+    if (mover->m_vehicleCamera) {
+        mover->ConvertVehicleCameraRelativeFacingToTransportRelativeFacing(facing);
+    }
+
+    if (mover->m_movement->m_flags2 & 0x8) {
+        if (!this->m_facingOverrideActive || this->m_facingOverride != facing) {
+            mover->OnTurnToAngleLocal(time, facing);
+            this->m_facingOverride = facing;
+        }
+
+        if (!this->m_facingOverrideActive) {
+            CGWorldFrame::GetActiveCamera()->IncIgnoreFacing();
+            this->m_flags &= ~0x40000;
+            this->m_facingOverrideActive = 1;
+            return;
+        }
+    } else {
+        mover->OnSetRawFacingLocal(time, facing);
+        CVehiclePassenger_C* passenger = mover->m_vehiclePassenger;
+
+        if (passenger && mover->m_vehicleCamera && mover->m_vehicleCamera->IsHierarchyChasingFacing()) {
+            passenger->LockWorldFacingNextFrame(mover->CGUnit::GetFacing(facing));
+        }
+    }
+
+    this->m_flags &= ~0x40000;
+}
+
+// VERIFY: 083fadd0 auto
+// OFFSET: 0x005FB3A0
+void CGInputControl::SetPlayerPitch(CGUnit_C* unit, uint32_t time, float pitch) {
+    VehicleRec* rec = unit->m_vehicle ? unit->m_vehicle->m_vehicleRec : nullptr;
+
+    if (rec) {
+        float min;
+        float max;
+
+        if (rec->m_flags & 0x40) {
+            min = rec->m_pitchMin;
+            max = rec->m_pitchMax;
+        } else {
+            min = -1.5707964f;
+            max = 1.5707964f;
+        }
+
+        if (pitch < min) {
+            pitch = min;
+        } else if (max <= pitch) {
+            pitch = max;
+        }
+    }
+
+    if (unit->m_movement->m_flags2 & 0x10) {
+        if (!this->m_vehicleAimValid || this->m_vehicleAim != pitch) {
+            unit->OnPitchToAngleLocal(time, pitch);
+            this->m_vehicleAim = pitch;
+        }
+
+        this->m_vehicleAimValid = 1;
+    } else {
+        unit->OnSetPitchLocal(time, pitch);
+
+        if (rec && (rec->m_flags & 0x400)) {
+            CGInputControl::SendUIVehicleAngleUpdate(pitch);
+        }
+    }
+
+    CGUnit_C::PitchMissileTrajectoryTargetingNextFrame();
+}
+
+// VERIFY: e939e05f manual
+// OFFSET: 0x005FBE70
+void CGInputControl::CameraPitchPlayer(uint32_t time, float pitch) {
+    if (!CGInputControl::CameraCanPitchPlayer()) {
+        return;
+    }
+
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!mover) {
+        return;
+    }
+
+    if ((mover->m_obj->m_type & TYPEMASK_PLAYER) && static_cast<CGPlayer_C*>(mover)->IsCommentatorUberOrInArena()) {
+        CGCommentator::s_Commentator.m_pitch = pitch;
+        return;
+    }
+
+    float value = -pitch;
+
+    if (mover->m_vehicle && mover->m_vehicle->m_vehicleRec) {
+        value = mover->m_vehicle->m_vehicleRec->m_mouseLookOffsetPitch - pitch;
+    }
+
+    this->SetPlayerPitch(mover, time, value);
+    this->m_flags &= ~0x80000;
+}
+
+// VERIFY: 673b2c02 auto
+// OFFSET: 0x005F9650
+void CGInputControl::OnTurnToAngleStop() {
+    if (this->m_facingOverrideActive) {
+        this->m_facingOverrideActive = 0;
+        CGWorldFrame::GetActiveCamera()->DecIgnoreFacing();
+    }
+}
+
+// VERIFY: bc220db8 manual
+// OFFSET: 0x005FAA40
+void CheckToCancelCurrentChannelSpell() {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || player->m_obj->m_guid != CGUnit_C::s_activeMover) {
+        return;
+    }
+
+    Spell_C_CancelCastingSpellByMovement();
+    int32_t channelSpell = player->m_unit->m_unitChannelSpell;
+
+    if (!channelSpell) {
+        return;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(channelSpell, &spell) && (spell.m_channelInterruptFlags & 0x8)) {
+        Spell_C_CancelChannelSpell(channelSpell);
+    }
+}
+
+// VERIFY: a56d8811 manual
+// OFFSET: 0x005FA170
+int32_t CGInputControl::SetControlBit(uint32_t bit, uint32_t time) {
+    if (bit & this->m_flags) {
+        return 0;
+    }
+
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+    uint32_t flags = this->m_flags;
+    int32_t wasIdle = !(flags & 0x1030) && !(flags & 0xC0) && (!(flags & 0x2000001) || !(flags & 0x300)) && (!(flags & 0x300) || (flags & 0x2000001)) && !(flags & 0x1E00000);
+    uint32_t wasLooking = flags & 0x6000003;
+    uint32_t wasMouseDown = flags & 0x3;
+    int32_t wasBothButtons = (flags & 0x1) && (flags & 0x2);
+    uint32_t wasRightLook = flags & 0x4000002;
+    uint32_t wasLeftLook = flags & 0x2000001;
+    int32_t wasMouseTurn = (flags & 0x2000001) && (flags & 0x300);
+
+    this->m_flags = flags | bit;
+
+    if (!wasLooking && (this->m_flags & 0x6000003)) {
+        this->m_dragAccumX = 0.0f;
+        this->m_dragAccumY = 0.0f;
+        this->m_lookStartTime = time;
+        camera->EnableFreeLook();
+    }
+
+    if (!wasMouseDown && (this->m_flags & 0x3)) {
+        CGGameUI::OnMouseModeRelative();
+    }
+
+    if (!wasBothButtons && (this->m_flags & 0x1) && (this->m_flags & 0x2)) {
+        CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (this->CanSyncFreeLookFacing(mover)) {
+            camera->SyncFreeLookFacing();
+            this->m_freeLookFacingSynced = 1;
+        }
+    } else if (!(this->m_flags & 0x1) || !(this->m_flags & 0x2)) {
+        this->m_freeLookFacingSynced = 0;
+    }
+
+    if (bit & 0x1E00000) {
+        camera->UpdateTrackingState(this->m_flags & 0x1E00000);
+    }
+
+    if ((bit & 0xA010F0) || (!wasBothButtons && (this->m_flags & 0x1) && (this->m_flags & 0x2)) || (!wasMouseTurn && (this->m_flags & 0x2000001) && (this->m_flags & 0x300))) {
+        uint32_t newFlags = this->m_flags;
+        camera->UpdateBobbingState((newFlags & 0xA010F0) || ((newFlags & 0x1) && (newFlags & 0x2)) || ((newFlags & 0x2000001) && (newFlags & 0x300)));
+    }
+
+    if (this->m_facingOverrideActive && (bit & 0x300)) {
+        this->OnTurnToAngleStop();
+    }
+
+    if ((bit & 0x13F0) || (!wasRightLook && (this->m_flags & 0x4000002)) || (!wasLeftLook && (this->m_flags & 0x2000001)) || (!wasMouseTurn && (this->m_flags & 0x2000001) && (this->m_flags & 0x300))) {
+        camera->SmoothFreeLook(this, !wasIdle && this->IsIdle());
+    }
+
+    if (bit & 0x30) {
+        this->m_flags &= ~0x1000u;
+    }
+
+    if (!wasBothButtons && (this->m_flags & 0x1) && (this->m_flags & 0x2)) {
+        this->m_flags &= ~0x1000u;
+    }
+
+    if ((bit & 0x3) && (this->m_flags & 0x3) != bit) {
+        this->m_pendingDefaultAction = PENDING_ACTION_NONE;
+    }
+
+    return 1;
+}
+
+// VERIFY: 308e3e2e manual
+// OFFSET: 0x005FA450
+int32_t CGInputControl::UnsetControlBit(uint32_t bit, uint32_t time, int32_t keepSmoothing) {
+    if (!(bit & this->m_flags)) {
+        return 0;
+    }
+
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+    uint32_t flags = this->m_flags;
+    uint32_t wasLooking = flags & 0x6000003;
+    uint32_t wasMouseDown = flags & 0x3;
+    int32_t wasIdle = !(flags & 0x1030) && !(flags & 0xC0) && (!(flags & 0x2000001) || !(flags & 0x300)) && (!(flags & 0x300) || (flags & 0x2000001)) && !(flags & 0x1E00000);
+    int32_t wasBothButtons = (flags & 0x1) && (flags & 0x2);
+    uint32_t wasRightLook = flags & 0x4000002;
+    uint32_t wasLeftLook = flags & 0x2000001;
+    int32_t wasMouseTurn = (flags & 0x2000001) && (flags & 0x300);
+
+    this->m_flags = flags & ~bit;
+
+    if (wasLooking && !(this->m_flags & 0x6000003)) {
+        camera->DisableFreeLook(keepSmoothing);
+
+        if (this->m_facingOverrideActive && (this->m_flags & 0x300)) {
+            this->OnTurnToAngleStop();
+        }
+    }
+
+    if (wasMouseDown && !(this->m_flags & 0x3)) {
+        CGGameUI::OnMouseModeNormal();
+    }
+
+    if (bit & 0x1E00000) {
+        camera->UpdateTrackingState(this->m_flags & 0x1E00000);
+    }
+
+    if ((bit & 0xA010F0) || (wasBothButtons && (!(this->m_flags & 0x1) || !(this->m_flags & 0x2))) || (wasMouseTurn && (!(this->m_flags & 0x2000001) || !(this->m_flags & 0x300)))) {
+        uint32_t newFlags = this->m_flags;
+        camera->UpdateBobbingState((newFlags & 0xA010F0) || ((newFlags & 0x1) && (newFlags & 0x2)) || ((newFlags & 0x2000001) && (newFlags & 0x300)));
+    }
+
+    if ((bit & 0x13F0) || (wasRightLook && !(this->m_flags & 0x4000002)) || (wasLeftLook && !(this->m_flags & 0x2000001)) || (wasMouseTurn && (!(this->m_flags & 0x2000001) || !(this->m_flags & 0x300)))) {
+        camera->SmoothFreeLook(this, !wasIdle && this->IsIdle());
+    }
+
+    if (wasMouseDown && !(this->m_flags & 0x3)) {
+        if (!this->IsMouseDrag(time)) {
+            if (this->m_pendingDefaultAction == PENDING_ACTION_LEFT) {
+                CGWorldFrame::s_currentWorldFrame->PerformDefaultAction(MOUSE_BUTTON_LEFT);
+            } else if (this->m_pendingDefaultAction == PENDING_ACTION_RIGHT) {
+                CGWorldFrame::s_currentWorldFrame->PerformDefaultAction(MOUSE_BUTTON_RIGHT);
+            }
+        }
+
+        this->m_pendingDefaultAction = PENDING_ACTION_NONE;
+    }
+
+    return 1;
+}
+
+// VERIFY: b867df74 auto
+// OFFSET: 0x005FAC60
+void CGInputControl::Reset() {
+    uint32_t time = OsGetAsyncTimeMs();
+    this->UnsetControlBit(0xFFFFFFFF, time, 0);
+    this->m_time = time;
+    this->m_joystickLookX = 0.0f;
+    this->m_joystickLookY = 0.0f;
+}
+
+// VERIFY: 67911eda manual
+// OFFSET: 0x005FACE0
+void CGInputControl::AscendDescendPlayer(uint32_t time, CGUnit_C* unit) {
+    CMovement_C* movement = unit->m_movement;
+    uint32_t moveFlags = movement->m_flags;
+
+    if (!(moveFlags & 0x2200000)) {
+        this->m_flags &= ~0x100000u;
+        return;
+    }
+
+    uint32_t flags = this->m_flags;
+    int32_t direction = (flags & 0x2000) != 0;
+
+    if (flags & 0x4000) {
+        direction--;
+    }
+
+    if (movement->m_flags2 & 0x10) {
+        if (direction > 0) {
+            if (!(flags & 0x100000) || (moveFlags & 0x80)) {
+                unit->OnPitchStartLocal(time, 1);
+                this->m_flags |= 0x100000;
+            }
+        } else if (direction < 0) {
+            if (!(flags & 0x100000) || (moveFlags & 0x40)) {
+                unit->OnPitchStartLocal(time, 0);
+                this->m_flags |= 0x100000;
+            }
+        } else if (flags & 0x100000) {
+            unit->OnPitchStopLocal(time);
+            this->m_flags &= ~0x100000u;
+            CGInputControl::SendUIVehicleAngleUpdate(unit->GetPitch());
+        }
+
+        return;
+    }
+
+    if (!direction) {
+        if (flags & 0x100000) {
+            unit->OnAscendDescendStopLocal(time);
+            this->m_flags &= ~0x100000u;
+        }
+
+        return;
+    }
+
+    if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        CGPlayer_C::ClearAFK(0);
+    }
+
+    if (direction > 0) {
+        if (!(this->m_flags & 0x100000) || (unit->m_movement->m_flags & 0x800000)) {
+            unit->OnAscendDescendStartLocal(time, 1);
+            this->m_flags |= 0x100000;
+        }
+    } else {
+        if (!(this->m_flags & 0x100000) || (unit->m_movement->m_flags & 0x400000)) {
+            unit->OnAscendDescendStartLocal(time, 0);
+            this->m_flags |= 0x100000;
+        }
+    }
+}
+
+// VERIFY: af3364f8 manual
+// OFFSET: 0x005FAE70
+void CGInputControl::MovePlayer(uint32_t time, CGUnit_C* unit) {
+    int32_t direction = 0;
+
+    if ((unit->m_unit->m_unitFieldFlags2 & 0x40) || unit->IsVehicleCurrentlyUnstoppable()) {
+        direction = 1;
+    } else {
+        uint32_t flags = this->m_flags;
+
+        if (flags & 0x1000) {
+            direction = 1;
+        }
+
+        if (flags & 0x10) {
+            direction++;
+        }
+
+        if ((flags & 0x1) && (flags & 0x2)) {
+            direction++;
+        }
+
+        if (flags & 0x20) {
+            direction--;
+        }
+
+        if (!direction) {
+            if (flags & 0x10000) {
+                unit->OnMoveStopLocal(time);
+                this->m_flags &= ~0x10000u;
+            }
+
+            return;
+        }
+    }
+
+    if (unit->GetClientStandState()) {
+        unit->ChangeStandState(0);
+        CGCamera* camera = CGWorldFrame::GetActiveCamera();
+
+        if (this->CanSyncFreeLookFacing(unit)) {
+            camera->SyncFreeLookFacing();
+        }
+    }
+
+    if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        CGPlayer_C::ClearAFK(0);
+    }
+
+    if (direction > 0) {
+        if (!(this->m_flags & 0x10000) || (unit->m_movement->m_flags & 0x2)) {
+            unit->OnMoveStartLocal(time, 1);
+            this->m_flags |= 0x10000;
+        }
+    } else {
+        if (!(this->m_flags & 0x10000) || (unit->m_movement->m_flags & 0x1)) {
+            unit->OnMoveStartLocal(time, 0);
+            this->m_flags |= 0x10000;
+        }
+    }
+}
+
+// VERIFY: 02452f4c manual
+// OFFSET: 0x005FAFB0
+void CGInputControl::StrafePlayer(uint32_t time, CGUnit_C* unit) {
+    uint32_t flags = this->m_flags;
+    int32_t direction = (flags & 0x40) != 0;
+
+    if ((flags & 0x2000001) && (flags & 0x100)) {
+        direction++;
+    }
+
+    if (flags & 0x80) {
+        direction--;
+    }
+
+    if ((flags & 0x2000001) && (flags & 0x200)) {
+        direction--;
+    }
+
+    if (!direction) {
+        if (flags & 0x20000) {
+            unit->OnStrafeStopLocal(time);
+            this->m_flags &= ~0x20000u;
+        }
+
+        return;
+    }
+
+    if (unit->GetClientStandState()) {
+        unit->ChangeStandState(0);
+    }
+
+    if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        CGPlayer_C::ClearAFK(0);
+    }
+
+    if (direction > 0) {
+        if (!(this->m_flags & 0x20000)) {
+            unit->OnStrafeStartLocal(time, 1);
+            this->m_flags |= 0x20000;
+        }
+    } else {
+        if (!(this->m_flags & 0x20000)) {
+            unit->OnStrafeStartLocal(time, 0);
+            this->m_flags |= 0x20000;
+        }
+    }
+}
+
+// VERIFY: f065952b manual
+// OFFSET: 0x005FB0B0
+void CGInputControl::TurnPlayer(uint32_t time, CGUnit_C* unit) {
+    uint32_t flags = this->m_flags;
+    int32_t direction = (flags & 0x100) != 0;
+
+    if (flags & 0x200) {
+        direction--;
+    }
+
+    if ((!(flags & 0x2000001) || unit->IsStrafingDisabled()) && direction) {
+        if (unit->GetClientStandState()) {
+            unit->ChangeStandState(0);
+        }
+
+        if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+            CGPlayer_C::ClearAFK(0);
+        }
+
+        if (direction > 0) {
+            if (!(this->m_flags & 0x40000)) {
+                unit->OnTurnStartLocal(time, 1);
+                this->m_flags |= 0x40000;
+            }
+        } else {
+            if (!(this->m_flags & 0x40000)) {
+                unit->OnTurnStartLocal(time, 0);
+                this->m_flags |= 0x40000;
+            }
+        }
+    } else if (this->m_flags & 0x40000) {
+        unit->OnTurnStopLocal(time);
+        this->m_flags &= ~0x40000u;
+    }
+}
+
+// VERIFY: 391fcf83 manual
+// OFFSET: 0x005FB1A0
+void CGInputControl::PitchPlayer(uint32_t time, CGUnit_C* unit) {
+    uint32_t flags = this->m_flags;
+
+    if (flags & 0x2000001) {
+        return;
+    }
+
+    int32_t direction = (flags & 0x400) != 0;
+
+    if (flags & 0x800) {
+        direction--;
+    }
+
+    if (direction > 0) {
+        if (!(flags & 0x80000)) {
+            unit->OnPitchStartLocal(time, 1);
+            this->m_flags |= 0x80000;
+        }
+    } else if (direction < 0) {
+        if (!(flags & 0x80000)) {
+            unit->OnPitchStartLocal(time, 0);
+            this->m_flags |= 0x80000;
+        }
+    } else if (flags & 0x80000) {
+        unit->OnPitchStopLocal(time);
+        this->m_flags &= ~0x80000u;
+        CGInputControl::SendUIVehicleAngleUpdate(unit->GetPitch());
+    }
+}
+
+// VERIFY: c0d2e3b9 manual
+// OFFSET: 0x005FBBC0
+void CGInputControl::UpdatePlayer(uint32_t time, int32_t a2) {
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!mover) {
+        return;
+    }
+
+    if ((mover->m_obj->m_type & TYPEMASK_PLAYER) && static_cast<CGPlayer_C*>(mover)->IsCommentatorUberOrInArena()) {
+        CGCommentator::s_Commentator.UpdateCameraVelocity(this->m_flags, a2);
+        return;
+    }
+
+    uint32_t lastUpdateTime;
+
+    if (MovementGetLastUpdateTime(&lastUpdateTime) && static_cast<int32_t>(time - lastUpdateTime) < 0) {
+        time = lastUpdateTime;
+    }
+
+    bool canMove = a2 && CGInputControl::CanMove(mover);
+    bool canTurn = a2 && CGInputControl::CanTurn(mover);
+
+    if (canMove) {
+        this->MovePlayer(time, mover);
+        this->StrafePlayer(time, mover);
+        this->AscendDescendPlayer(time, mover);
+    } else {
+        if (!canTurn) {
+            mover->ClearTrackingTarget(false, true);
+        }
+
+        if (this->m_flags & 0x10000) {
+            if (!mover->m_movement->IsOnSpline()) {
+                mover->OnMoveStopLocal(time);
+            }
+
+            this->m_flags &= ~0x10000u;
+        }
+
+        if (this->m_flags & 0x20000) {
+            if (!mover->m_movement->IsOnSpline()) {
+                mover->OnStrafeStopLocal(time);
+            }
+
+            this->m_flags &= ~0x20000u;
+        }
+
+        if (this->m_flags & 0x1000) {
+            this->m_flags &= ~0x1000u;
+        }
+
+        if (this->m_flags & 0x100000) {
+            if (!mover->m_movement->IsOnSpline()) {
+                mover->OnAscendDescendStopLocal(time);
+            }
+
+            this->m_flags &= ~0x100000u;
+        }
+    }
+
+    if (canTurn) {
+        this->TurnPlayer(time, mover);
+
+        if ((mover->m_movement->m_flags & 0x2200000) || (mover->m_movement->m_flags2 & 0x20)) {
+            this->PitchPlayer(time, mover);
+        }
+    } else {
+        if (this->m_flags & 0x40000) {
+            if (!mover->m_movement->IsOnSpline()) {
+                mover->OnTurnStopLocal(time);
+            }
+
+            this->m_flags &= ~0x40000u;
+        }
+
+        if (this->m_flags & 0x80000) {
+            if (!mover->m_movement->IsOnSpline() && (mover->m_movement->m_flags & 0x2200000)) {
+                mover->OnPitchStopLocal(time);
+            }
+
+            this->m_flags &= ~0x80000u;
+        }
+    }
+}
+
+// VERIFY: ad249167 manual
+// OFFSET: 0x005FBE10
+void CGInputControl::ToggleControlBit(uint32_t bit, int32_t enable, uint32_t time, int32_t a5) {
+    int32_t changed = enable ? this->SetControlBit(bit, time) : this->UnsetControlBit(bit, time, a5);
+
+    if (!changed) {
+        return;
+    }
+
+    if (enable && ((bit & 0x10F0) || ((bit & 0x3) && (this->m_flags & 0x1) && (this->m_flags & 0x2)))) {
+        CheckToCancelCurrentChannelSpell();
+    }
+
+    this->UpdatePlayer(time, 1);
+}
+
+// VERIFY: 2645b833 manual
+// OFFSET: 0x005FBF10
+void CGInputControl::StopMovementAndTurning(uint32_t time) {
+    uint32_t bits = this->m_flags & 0x1330;
+    this->ToggleControlBit(bits, 0, time, 0);
+    this->UpdatePlayer(time, 1);
+    this->ToggleControlBit(bits, 1, time, 0);
 }

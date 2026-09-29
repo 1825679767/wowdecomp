@@ -136,8 +136,11 @@ class Weather {
     /* 0195 */ uint8_t unk_0195[3];
 
     Weather();
+    bool GetActiveEffectBounds(CAaBox* bounds);
+    void Update();
     ~Weather();
     void Clear();
+    void Reset();
     void SetType(uint32_t type, float intensity, const WeatherRec* rec, bool immediate, float transitionTime);
 };
 

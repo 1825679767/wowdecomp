@@ -3,17 +3,28 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/FFX/FFX.h"
 
-class PassNetherBlur {
+class PassNetherBlur : public FFX::Pass {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint8_t unk_0004[8];
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint8_t unk_0010[141];
-    /* 009D */ uint8_t unk_009D;
-    /* 009E */ uint8_t unk_009E;
-    /* 009F */ uint8_t unk_009F;
-    /* 00A0 */ uint32_t unk_00A0;
+    /* 0030 */ uint8_t unk_0030[616];
+
+    ~PassNetherBlur() override;
+    bool Valid() override;
+    void Execute() override;
+
+    PassNetherBlur(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk);
+};
+
+class PassNetherCombine : public FFX::Pass {
+    public:
+    /* 0030 */ uint8_t unk_0030[16];
+
+    ~PassNetherCombine() override;
+    bool Valid() override;
+    void Execute() override;
+
+    PassNetherCombine(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk);
 };
 
 #endif

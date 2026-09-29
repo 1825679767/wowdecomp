@@ -117,3 +117,43 @@ CDataStore& operator>>(CDataStore& msg, CMovementStatus& status) {
 
     return msg;
 }
+
+// VERIFY: 54e83d99 auto
+// OFFSET: 0x004F4ED0
+CDataStore& operator<<(CDataStore& msg, const CMovementStatus& status) {
+    CDataStore& header = msg.Put(status.m_moveFlags).Put(status.m_moveExtraFlags).Put(status.m_gameTime);
+    header.Put(status.m_position.x);
+    header.Put(status.m_position.y);
+    header.Put(status.m_position.z);
+    header.Put(status.m_facing);
+
+    if (status.m_moveFlags & MOVEMENTFLAG_ONTRANSPORT) {
+        SmartGUID transport;
+        transport.m_guid = status.m_transportGuid.m_guid;
+        CDataStore& data = msg << transport;
+        data.Put(status.m_transportPosition.x);
+        data.Put(status.m_transportPosition.y);
+        data.Put(status.m_transportPosition.z);
+        data.Put(status.m_transportFacing).Put(status.m_transportTime).Put(status.m_transportSeat);
+
+        if (status.m_moveExtraFlags & MOVEMENTFLAG2_INTERPOLATED_MOVEMENT) {
+            msg.Put(status.m_transportTime2);
+        }
+    }
+
+    if ((status.m_moveFlags & (MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING)) || (status.m_moveExtraFlags & MOVEMENTFLAG2_ALWAYS_ALLOW_PITCHING)) {
+        msg.Put(status.m_pitch);
+    }
+
+    msg.Put(status.m_fallTime);
+
+    if (status.m_moveFlags & MOVEMENTFLAG_FALLING) {
+        msg.Put(status.m_zSpeed).Put(status.m_sinAngle).Put(status.m_cosAngle).Put(status.m_xySpeed);
+    }
+
+    if (status.m_moveFlags & MOVEMENTFLAG_SPLINE_ELEVATION) {
+        msg.Put(status.m_splineElevation);
+    }
+
+    return msg;
+}

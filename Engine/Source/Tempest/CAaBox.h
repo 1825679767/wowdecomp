@@ -22,6 +22,8 @@ class CAaBox {
     bool IntersectsXY(const CAaBox& box) const;
     bool IsEmpty() const;
     bool IsValid() const;
+    void Expand(float amount);
+    void Set(float min, float max);
     CAaBox& operator*=(float scale);
     CAaBox operator|=(const CAaBox& box);
 };

@@ -18,6 +18,7 @@ class CRect {
     CRect operator&=(const CRect& r);
 };
 
+bool operator!=(const CRect& l, const CRect& r);
 CRect operator&(const CRect& l, const CRect& r);
 CRect operator+(const CRect& l, const CRect& r);
 CRect operator/(const CRect& l, const CRect& r);

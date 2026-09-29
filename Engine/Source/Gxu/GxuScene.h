@@ -10,10 +10,12 @@ class GxuSceneObject {
     virtual void Release();
     virtual bool IsAlive();
     virtual void Update(float elapsed);
+    virtual void Render();
 };
 
 class GxuScene {
     public:
+    void Render();
     /* 0004 */ TSGrowableArray<GxuSceneObject*> m_objects;
     /* 0014 */ uint32_t m_lastUpdateTime;
 

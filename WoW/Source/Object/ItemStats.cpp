@@ -253,3 +253,15 @@ void ItemStats_C::Pack(CDataStore* msg) {
     msg->Put(this->m_itemLimitCategory);
     msg->Put(this->m_holidayId);
 }
+
+// VERIFY: 3cdca47e auto
+// OFFSET: 0x004FD200
+const char* ItemStats_C::GetName(int32_t index) const {
+    const char* name = this->m_name[index];
+
+    if (!name || !*name) {
+        return this->m_name[0];
+    }
+
+    return name;
+}

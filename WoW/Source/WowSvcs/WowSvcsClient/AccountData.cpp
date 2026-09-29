@@ -204,6 +204,16 @@ static int32_t Packet_SMSG_UPDATE_ACCOUNT_DATA_COMPLETE(void* param, NETMESSAGE 
     return 1;
 }
 
+// VERIFY: 682b8825 manual
+// OFFSET: 0x006B9020
+void AccountDataDestroy(bool global) {
+    for (uint32_t i = 0; i < sizeof(s_accountData) / sizeof(s_accountData[0]); i++) {
+        if (s_accountData[i].m_global == global) {
+            s_accountData[i].m_active = false;
+        }
+    }
+}
+
 // VERIFY: 58c5c9b7 auto
 // OFFSET: 0x006B9050
 void LoadAccountData(int32_t type, ACCOUNTDATALOADFUNC func, void* param) {

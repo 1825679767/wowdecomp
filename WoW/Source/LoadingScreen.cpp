@@ -35,6 +35,10 @@
 #include "WoW/Source/LoadingScreen.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 #include "WoW/Source/Ui/SpellBookFrame.h"
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/WorldClient/World.h"
 
 // STATIC: 0x009E2DFC
 static const BackgroundImage s_textureInfo[2] = {
@@ -484,6 +488,29 @@ static bool LoadSimpleBackgroundTexture() {
     return s_simpleBackgroundTexture != nullptr;
 }
 
+// VERIFY: 91dabb04 manual
+// OFFSET: 0x00409800
+int32_t IsStillLoading() {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !player->GetTransportGUID()) {
+        return 1;
+    }
+
+    CGGameObject_C* transport = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(WOWGUID{ player->GetTransportGUID() }, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+
+    if (transport) {
+        CMapBaseObj* object = transport->m_typeData->GetMapObjectTransportID();
+
+        if (!object || !World::ObjectIsDrawable(object)) {
+            return 1;
+        }
+    }
+
+    LoadingScreenDisable();
+    return 0;
+}
+
 // VERIFY: ebee3807 manual
 // OFFSET: 0x0040A270
 static void LoadingScreenPaint(void* param, const RECTF* rect, const RECTF* visible, float elapsedSec) {
@@ -686,9 +713,9 @@ void LoadingScreenEnable(int32_t mapID, bool loadingWorld) {
     InitializeProgressBar(loadingWorld);
 }
 
-// VERIFY: 79bb5ad9 manual
+// VERIFY: a0b9f60d auto
 // OFFSET: 0x0040AEF0
-void LoadingScreenAsyncCallback(float progress) {
+void LoadingScreenAsyncCallback(float progress, void* param) {
     if (progress <= s_asyncProgress) {
         return;
     }
@@ -697,9 +724,9 @@ void LoadingScreenAsyncCallback(float progress) {
     UpdateProgressBar(1.0f == progress);
 }
 
-// VERIFY: 9fb73ae1 manual
+// VERIFY: 1a8e81c0 auto
 // OFFSET: 0x0040AF40
-void LoadingScreenWorldCallback(float progress) {
+void LoadingScreenWorldCallback(float progress, void* param) {
     if (progress <= s_worldProgress) {
         return;
     }
@@ -708,9 +735,9 @@ void LoadingScreenWorldCallback(float progress) {
     UpdateProgressBar(1.0f == progress);
 }
 
-// VERIFY: 9d1ecfe3 manual
+// VERIFY: 58aa7b39 auto
 // OFFSET: 0x0040AF90
-void LoadingScreenXMLCallback(float progress) {
+void LoadingScreenXMLCallback(float progress, void* param) {
     if (progress <= s_xmlProgress) {
         return;
     }
@@ -755,9 +782,9 @@ static void ClearDynamicData() {
     s_dynamicElements.Clear();
 }
 
-// VERIFY: ccd42e4f manual
+// VERIFY: 2116833b manual
 // OFFSET: 0x00409550
-static void LoadingScreenDisable() {
+void LoadingScreenDisable() {
     if (s_loadingScreenLayer) {
         HandleClose(reinterpret_cast<HOBJECT>(s_loadingScreenLayer));
     }

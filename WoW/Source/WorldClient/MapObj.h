@@ -15,6 +15,7 @@
 class C2Vector;
 class C44Matrix;
 class CFrustum;
+class CWFrustum;
 class CMapObjDefGroup;
 struct C3Segment;
 
@@ -41,6 +42,7 @@ struct SPortalExt;
 class CPortalView;
 struct SMOPortalRef;
 struct SMOVisibleBlock;
+namespace World { struct LiquidQueryResult; }
 
 class CMapObjIndex {
     public:
@@ -51,6 +53,8 @@ typedef void (*RENDER_CALLBACK)(uint32_t, void*);
 
 class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> {
     public:
+    bool QueryLighting(uint32_t groupNum, const C3Vector& point, uint16_t face, CImVector* color, uint8_t* flag);
+    bool QueryLighting(uint32_t groupNum, const C3Segment& seg, CImVector* color, uint8_t* flag);
     static TSList<CMapObj, TSGetExplicitLink<CMapObj> > s_asyncLoadQueue;
     static TSList<CMapObjGroup, TSGetExplicitLink<CMapObjGroup> > s_unk_ADFC58;
     static TSHashTable<CMapObj, HASHKEY_NONE> mapObjHash;
@@ -67,6 +71,8 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     static uint32_t s_unk_AEE008;
 
     static void ClearCache(int32_t a1);
+
+    int32_t IsAllLoaded();
     static void Destroy();
     static void Initialize();
     static uint32_t CreateWmoIgnoreFlags(uint32_t a1);
@@ -184,10 +190,12 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     bool TestBounds(C3Vector& start, C3Vector& end);
     bool ContainsPointInBounds(C3Vector& point);
     bool TestGroupBounds(C3Vector& start, C3Vector& end, uint32_t groupNum);
-    bool TestGroupBounds(C3Vector& point, uint32_t groupNum);
+    bool TestGroupBounds(const C3Vector& point, uint32_t groupNum);
     bool TestGroupBounds(CAaBox& box, uint32_t groupNum, int32_t a3);
     bool GroupBoundingBoxIntersectsSphere(C3Vector& pos, uint32_t groupNum, float radius);
-    bool GetTris(CFrustum* frustum, uint32_t flags, uint32_t a4, CMapObjDef* mapObjDef);
+    bool GetTris(const CWFrustum& frustum, uint32_t flags, World::TriData* triData, CMapObjDef* mapObjDef);
+    bool GetTris(const CAaBox& box, uint32_t flags, World::TriData* triData, CMapObjDef* mapObjDef);
+    bool GetLiquidFacets(const CAaBox& box, uint32_t flags, World::FacetData* facets, CMapObjDef* mapObjDef);
     bool VectorIntersectPortal(C3Segment& seg, float* t, int* outGroups, int useSphereTest);
     bool VectorIntersectPortals(uint32_t groupNum, C3Segment& seg, float* t, int32_t* outGroups);
     float CalcPortalFarthestDistance(SMOPortal* portal);
@@ -208,7 +216,7 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     bool Intersect(C3Vector& start, C3Vector& end, float* distance, uint32_t flags, uint32_t ignoreFlags, uint32_t groupNum, int32_t* hitIndex);
     SMOMaterial* GetLiquidMaterial(int32_t groupIndex);
     bool QueryLiquidStatus(uint32_t ignoreFlags, const C3Vector& pos, int32_t* liquidType, float* level);
-    void QueryLiquidSounds(uint32_t groupIndex, uint32_t fromGroup, uint32_t depth, uint32_t* minDepth, const C3Vector& pos, uint32_t* results);
+    void QueryLiquidSounds(uint32_t groupIndex, uint32_t fromGroup, uint32_t depth, uint32_t* minDepth, const C3Vector& pos, TSGrowableArray<World::LiquidQueryResult>& results);
     uint16_t BuildLiquidVerts(CMapObjGroup* group, const C44Matrix& matrix, const CImVector* color, int32_t magma, float texCoord1U, const TSGrowableArray<uint8_t>* sharedVerts, uint32_t stride, C3Vector** position, C3Vector** normal, CImVector** vertexColor, C2Vector** texCoord0, C2Vector** texCoord1);
     void BuildLiquidIndices(CMapObjGroup* group, const TSGrowableArray<uint8_t>* sharedVerts, uint16_t** indices, uint16_t baseVertex);
     uint16_t ClipGroupGeometry(CMapObjGroup* group, const C44Matrix& matrix, const CImVector* color, int32_t magma, float texCoord1U, uint32_t stride, C3Vector** position, C3Vector** normal, CImVector** vertexColor, C2Vector** texCoord0, C2Vector** texCoord1, uint16_t** indices, uint16_t baseVertex);

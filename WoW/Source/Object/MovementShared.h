@@ -10,11 +10,13 @@
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 #include "WoW/Source/Object/Passenger.h"
 
+class C44Matrix;
 class CMoveSpline;
 class CMovementStatus;
 
 class CMovementShared : public CPassenger {
     public:
+    void ResetFallOnControlLoss();
     using CPassenger::GetPosition;
 
     static float s_terminalVelocity;
@@ -74,7 +76,9 @@ class CMovementShared : public CPassenger {
     int32_t ChangeSwimSpeed(float speed);
     int32_t ChangeTurnRate(float rate);
     int32_t ChangeWalkSpeed(float speed);
+    void AddSpline(const C3Vector& position);
     void ClearSplineEnabled();
+    void RemoveSpline();
     void ComputeSplineDurationModifier(float progress);
     int32_t EnableGravity(int32_t enable);
     void FeatherFall(int32_t enable);
@@ -102,6 +106,8 @@ class CMovementShared : public CPassenger {
     int32_t IsSplineFlyerOrFlyingOrSwimming() const;
     int32_t IsSplineFlyerOrHovering() const;
     int32_t IsSplineFlyerOrHoveringFlyingOrSwimming() const;
+    int32_t IsSplineFlyerOrSwimmingOrSafeFalling() const;
+    C3Vector GetDestination() const;
     void PlotAscendDescend(float dt, C3Vector* move) const;
     float PlotFacing(float dt) const;
     void PlotHorzCircularPosition(float dt, C3Vector* move) const;
@@ -153,6 +159,18 @@ class CMovementShared : public CPassenger {
     void UpdateFallingFar();
     uint64_t UpdateTransportStatus(const CMovementStatus& status);
     void WalkOnWater(int32_t enable);
+    void Teleport(const C3Vector& position, float facing, int32_t removeSpline);
+    void TransformSpline(const C44Matrix& matrix, float facing);
+    void TransportTransform(const C44Matrix& matrix, float facing, const C3Vector& oldPosition);
+    float RemoveFromTransportFinish(const C44Matrix& matrix, float facing, const C3Vector& oldPosition);
+    float AddToTransport(WOWGUID transport, C44Matrix* inverse, C44Matrix* transportMatrix);
+    float RemoveFromTransport(C44Matrix* matrix);
+    void ConvertCurrentSplineToLoopingSpline(uint32_t timePassed);
+    uint32_t PlotUnitSplineMovement(uint32_t time, C3Vector* position);
 };
+
+int32_t AckMessageNeedsIndex(uint32_t msgId);
+int32_t IsAckMessage(uint32_t msgId);
+int32_t IsMessageAllowedWhileOnSpline(uint32_t msgId);
 
 #endif

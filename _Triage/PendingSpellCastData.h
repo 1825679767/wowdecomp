@@ -8,12 +8,13 @@
 
 class PendingSpellCastData {
     public:
-    /* 0000 */ WOWGUID m_caster;
-    /* 0008 */ WOWGUID m_target;
+    /* 0000 */ WOWGUID m_castItem;
+    /* 0008 */ WOWGUID m_caster;
     /* 0010 */ uint32_t unk_0010;
     /* 0014 */ uint32_t unk_0014;
     /* 0018 */ uint32_t m_spellId;
-    /* 001C */ uint32_t m_pendingCast;
+    /* 001C */ uint8_t m_castCount;
+    /* 001D */ uint8_t unk_001D [3];
     /* 0020 */ uint32_t m_targetFlags;
     /* 0024 */ uint32_t unk_0024;
     /* 0028 */ WOWGUID m_objectTarget;
@@ -38,11 +39,18 @@ class PendingSpellCastData {
     /* 0110 */ uint32_t unk_0110;
     /* 0114 */ uint32_t m_castFlags;
     /* 0118 */ uint32_t unk_0118;
-    /* 011C */ float unk_011C;
+    /* 011C */ float m_elevation;
     /* 0120 */ float unk_0120;
     /* 0124 */ uint32_t unk_0124;
     /* 0128 */ uint32_t unk_0128;
     /* 012C */ uint32_t unk_012C;
+
+    PendingSpellCastData();
+    C3Vector GetDestLocation() const;
 };
+
+class CDataStore;
+
+void SpellGetCastTargets(PendingSpellCastData* data, CDataStore* msg);
 
 #endif

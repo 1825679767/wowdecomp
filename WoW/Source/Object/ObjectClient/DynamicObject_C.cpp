@@ -140,3 +140,8 @@ void CGDynamicObject_C::SetStorage(uint32_t* storage, uint32_t* saved) {
     this->m_dynamicObject = reinterpret_cast<CGDynamicObjectData*>(storage + OBJECT_END);
     this->m_dynamicObjectMirror = saved + CGObject::TotalFieldsSaved();
 }
+
+// VERIFY: 549672d7 auto
+// OFFSET: 0x005EEB70
+void CGDynamicObject_C::Initialize() {
+}

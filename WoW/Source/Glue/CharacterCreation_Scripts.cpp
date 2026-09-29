@@ -17,7 +17,7 @@
 #include "WoW/Source/Glue/CSimpleModelFFX.h"
 #include "WoW/Source/Glue/CharacterSelection.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
-#include "WoW/Source/Ui/CGLookingForGroup.h"
+#include "WoW/Source/Ui/LFGInfo.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "_Triage/Types.h"
 

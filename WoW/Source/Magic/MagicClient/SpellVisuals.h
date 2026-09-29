@@ -101,8 +101,11 @@ extern CVar* s_spellEffectLevelVar;
 void SpellVisualsBlizzardStop(BlizzardObject** object);
 void SpellVisualsInitialize();
 void SpellVisualsInitializeModelAttachLookup();
+void SpellVisualsRender();
+void SpellVisualsTick();
 void SpellVisualsClear();
 void SpellVisualsShutdown();
 void SpellVisualsShutdownModelAttachLookup();
+int32_t SpellVisualsIsMountTransitionFinished(const MountTransitionObject* transition);
 
 #endif

@@ -122,6 +122,16 @@ class TSBitField {
 };
 
 template <class T>
+class TSStackArray {
+    public:
+    /* 0000 */ uint32_t m_count;
+    /* 0004 */ T* m_data;
+
+    TSStackArray(T* data, uint32_t count, int32_t construct);
+    void SetCount(uint32_t count);
+};
+
+template <class T>
 class TSGrowableArray : public TSFixedArray<T> {
     public:
     /* 000C */ uint32_t m_chunk;
@@ -244,6 +254,7 @@ struct HASHKEY_STRI : public HASHKEY_STR {
 struct HASHKEY_UTF8I {
     /* 0000 */ char* m_str;
 
+    HASHKEY_UTF8I& operator=(const char* str);
     bool operator==(const char* str);
 };
 
@@ -490,7 +501,7 @@ void TSList<T, TGetLink>::LinkToTail(T* ptr) {
 }
 
 // VERIFY: 0fb37856 manual
-// OFFSET: [0x00496C00, 0x004B6E40, 0x004BFFC0, 0x004F3420, 0x0055A1D0, 0x00560A00, 0x005BDF00, 0x006329D0, 0x0066CCB0, 0x006705D0, 0x00671030, 0x006883B0, 0x006BBDB0, 0x00776BC0, 0x007FBC60]
+// OFFSET: [0x00496C00, 0x004B6E40, 0x004BFFC0, 0x004F3420, 0x004F89E0, 0x0055A1D0, 0x00560A00, 0x005BDF00, 0x006329D0, 0x0066CCB0, 0x006705D0, 0x00671030, 0x006883B0, 0x006BBDB0, 0x00776BC0, 0x007FBC60]
 template <class T, class TGetLink>
 T* TSList<T, TGetLink>::NewNode(uint32_t location, size_t extrabytes, uint32_t flags) {
     T* node = new (SMemAlloc(sizeof(T) + extrabytes, typeid(T).raw_name(), SLOG_OBJECT, flags | SMEM_FLAG_ZEROMEMORY)) T;
@@ -1533,6 +1544,19 @@ inline bool HASHKEY_STRI::operator==(const char* str) {
 }
 
 // INLINED
+inline HASHKEY_UTF8I& HASHKEY_UTF8I::operator=(const char* str) {
+    if (this->m_str != str) {
+        if (this->m_str) {
+            SMemFree(this->m_str, __FILE__, __LINE__, 0);
+        }
+
+        this->m_str = SStrDupA(str, __FILE__, __LINE__);
+    }
+
+    return *this;
+}
+
+// INLINED
 inline bool HASHKEY_UTF8I::operator==(const char* str) {
     return SStrCmpUTF8I(this->m_str, str, STORM_MAX_STR) == 0;
 }
@@ -1544,6 +1568,23 @@ void TSBitField<T>::Load(const void* data, uint32_t bytes, int32_t bits) {
     this->m_count = count;
     this->m_bits.SetCount(count ? ((count - 1) >> 5) + 1 : 0);
     memcpy(this->m_bits.m_data, data, bytes);
+}
+
+// VERIFY: d4042b48 manual
+// OFFSET: [0x00408270, 0x00801020]
+template <class T>
+TSStackArray<T>::TSStackArray(T* data, uint32_t count, int32_t construct) {
+    this->m_data = data;
+
+    if (construct) {
+        this->m_count = count;
+
+        for (uint32_t i = 0; i < count; i++) {
+            new (&this->m_data[i]) T();
+        }
+    } else {
+        this->m_count = 0;
+    }
 }
 
 // INLINED
@@ -1606,6 +1647,21 @@ void TSCGrowableArray<T, N>::SetCount(uint32_t count) {
         this->BecomeDynamic();
         this->m_dynamic.SetCount(count);
     }
+}
+
+// VERIFY: dbe4dc73 manual
+// OFFSET: [0x00801120]
+template <class T>
+void TSStackArray<T>::SetCount(uint32_t count) {
+    if (count == this->m_count) {
+        return;
+    }
+
+    for (uint32_t i = this->m_count; i < count; i++) {
+        new (&this->m_data[i]) T();
+    }
+
+    this->m_count = count;
 }
 
 #endif

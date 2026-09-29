@@ -3,17 +3,51 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Base/CDataAllocator.h"
+#include "Engine/Source/Frame/CSimpleModel.h"
+#include "WoW/Source/Object/WGUID.h"
 
-class CGCharacterModelBase;
+class CGUnit_C;
+class CM2Model;
+class CSimpleFrame;
+struct lua_State;
 
-class CModelComplex {
+class CGCharacterModelBase : public CSimpleModel {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint8_t unk_0004[668];
-    /* 02A0 */ uint32_t unk_02A0;
-    /* 02A4 */ uint32_t unk_02A4;
-    /* 02A8 */ uint8_t unk_02A8[128];
-    /* 0328 */ uint32_t unk_0328;
+    static CDataAllocator s_characterModelHeap;
+    static int32_t s_metatable;
+    static int32_t s_objectType;
+    static const char* s_objectTypeName;
+
+    static void operator delete(void* ptr);
+    static CSimpleFrame* Create(CSimpleFrame* parent);
+    static void CreateScriptMetaTable();
+    static void DestroyScriptMetaTable();
+    static int32_t GetObjectType();
+    static void RegisterScriptMethods(lua_State* L);
+
+    /* 0368 */ WOWGUID m_unitGuid;
+    /* 0370 */ uint32_t m_sequenceSet;
+    /* 0374 */ uint32_t m_sequenceResetTime;
+    /* 0378 */ int32_t m_displayId;
+    /* 037C */ uint32_t unk_037C;
+
+    ~CGCharacterModelBase() override;
+    int32_t GetScriptMetaTable() override;
+    bool IsA(int32_t type) override;
+    bool IsA(const char* typeName) override;
+    const char* GetObjectTypeName() override;
+    int32_t HideThis() override;
+    int32_t ShowThis() override;
+    int32_t IsDrawable() override;
+    void UpdateModel() override;
+    void OnModelLoaded(CM2Model* model) override;
+    virtual CM2Model* GetDuplicateUnitCharacterModel(CGUnit_C* unit);
+
+    CGCharacterModelBase(CSimpleFrame* parent);
+    void ConfigureCamera();
+    void SetUpModel(CGUnit_C* unit);
+    void SetUpModel(int32_t displayId);
 };
 
 #endif

@@ -40,13 +40,15 @@ class CVehicleCamera_C {
     /* 0014 */ C3Vector unk_0014;
     /* 0020 */ C3Vector unk_0020;
     /* 002C */ C3Vector unk_002C;
-    /* 0038 */ C3Vector unk_0038;
+    /* 0038 */ C3Vector m_safeCurWorldPos;
     /* 0044 */ uint32_t unk_0044 [2];
     /* 004C */ C3Vector unk_004C;
     /* 0058 */ C3Vector unk_0058;
     /* 0064 */ C3Vector unk_0064;
     /* 0070 */ C3Vector unk_0070;
-    /* 007C */ uint32_t unk_007C [10];
+    /* 007C */ uint32_t unk_007C [2];
+    /* 0084 */ float m_facing;
+    /* 0088 */ uint32_t unk_0088 [7];
     /* 00A4 */ uint32_t m_state;
     /* 00A8 */ uint32_t m_transitionStartTime;
     /* 00AC */ uint32_t m_transitionDuration;
@@ -64,6 +66,8 @@ class CVehicleCamera_C {
     int32_t AttachToHierarchy();
     void Unk759A60();
     void BeginTransition(uint32_t time);
+    void ComputeSafeCurWorldPos();
+    void Update(uint32_t time);
 };
 
 #endif

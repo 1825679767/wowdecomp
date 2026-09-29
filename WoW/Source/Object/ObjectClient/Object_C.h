@@ -24,6 +24,7 @@ class CHashKeyGUID;
 class CImVector;
 class CM2Model;
 class CMapEntity;
+class PlaySpellVisuaKitData;
 class CPassenger;
 class PLAYERNAMEDESC;
 class SpellRec;
@@ -58,8 +59,12 @@ class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID
     static void ModelLoadedCallback(CM2Model* model, void* arg);
     static void Shutdown();
     static int32_t UpdateAllObjectEffectManagers();
+    static CGObject_C* GetFocusObject();
+    static void UpdateFadeoutList(uint32_t time);
+    static void PrepareToFadeInt(CMapEntity* entity, float alpha, uint64_t transportGuid);
     static int32_t UpdateAllWorldObjects();
     static void LoopEffectHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
+    static void EffectOnceHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
 
     /* 0038 */ TSLink<void> m_link;
     /* 0040 */ uint32_t m_disableTime;
@@ -132,7 +137,7 @@ class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID
     virtual void OnRightClick();
     virtual int32_t IsHighlightSuppressed() const;
     virtual void OnSpellEffectClear(CEffect* effect);
-    virtual int32_t GetAppropriateSpellVisual(const SpellRec* spell, SpellVisualRec& visual, int32_t a3, int32_t a4) const;
+    virtual const SpellVisualRec* GetAppropriateSpellVisual(const SpellRec* spell, SpellVisualRec& visual, int32_t a3, int32_t a4) const;
     virtual void ConnectToLightningThisFrame(uint32_t a1, int32_t a2);
     virtual C44Matrix GetMatrix() const;
     virtual void ObjectNameVisibilityChanged();
@@ -181,12 +186,22 @@ class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID
     void SetTypeID(OBJECT_TYPE_ID typeId);
     void ShowHighlightType(int32_t type);
     void UpdateEffectAttachments();
+    void Fadeout();
+    void BuildSelectionRotMatrix(C44Matrix* matrix, const C3Vector* position);
+    int32_t SetCircleRenderStates() const;
     void SetModelFinish(CM2Model* model);
+    void PlaySpellVisualKit(const PlaySpellVisuaKitData& data);
+    void ClearEffectKit(int32_t spellId, int32_t kitType, int32_t a4, int32_t a5, int32_t a6);
 };
 
 struct DBCACHEHASH_NAME : public TSHashObject<DBCACHEHASH_NAME, CHashKeyGUID> {
     /* 0020 */ uint8_t m_record [336];
     /* 0170 */ DBCACHETRAILER_GUID m_trailer;
 };
+
+namespace World {
+    int32_t QueryObjectVisible(CMapEntity* entity);
+    void TickObject(CMapEntity* entity);
+}
 
 #endif

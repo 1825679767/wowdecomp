@@ -25,11 +25,18 @@ class CGUnit {
     int32_t CanPlayEmote(uint32_t emoteFlags, int32_t targeted, int32_t* standUp) const;
     void GetResistanceAndBuffs(int32_t school, int32_t* baseValue, int32_t* total, int32_t* effective, int32_t* positive, int32_t* negative) const;
     const WOWGUID* GetCharmerOrCreatorGuid() const;
+    bool HasCreator() const;
+    bool HasSummoner() const;
+    bool IsPossessedBy(const WOWGUID& guid) const;
+    bool IsCharmed() const;
+    int32_t GetSpellCostModifier(int32_t schoolMask) const;
+    float GetSpellCostMultiplier(int32_t schoolMask) const;
     float GetMeleeRange(const CGUnit* target) const;
     int32_t GetEffectiveStat(int32_t stat) const;
     int32_t HasAuraState(int32_t state) const;
     int32_t IsOnFlyingSpline() const;
     int32_t IsOnSpline() const;
+    int32_t IsJumping() const;
     int32_t CanMove() const;
     float GetFacing(float facing) const;
     float GetPowerRegen(int32_t powerType, bool inCombat) const;

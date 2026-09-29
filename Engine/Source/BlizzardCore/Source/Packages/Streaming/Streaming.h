@@ -93,12 +93,18 @@ class StreamingManager {
 
 bool CheckIfStreamingAndTrial();
 StreamingManager* GetStreamingManagerSingleton();
+void SetClientInitialized(uint8_t initialized);
 void ShutdownStreamingIfTrial();
 void StopStreaming();
 int32_t StreamingGetRace();
 bool StreamingIsRaceDataReady(int32_t raceID);
+void StreamingSetAreaOfInterest(int32_t chunkY, int32_t chunkX);
+void StreamingSetMapId(int32_t mapId);
 void StreamingSetRace(int32_t raceID);
 void StreamingSetState(int32_t state);
 char* GetComponentVersionData(uint32_t* size);
+
+void SetActiveDataSource(int32_t source);
+float StreamingGetLoadFraction(int32_t raceID);
 
 #endif

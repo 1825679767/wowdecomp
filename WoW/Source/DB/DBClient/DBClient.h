@@ -368,6 +368,8 @@ extern WowClientDB<LockTypeRec> g_lockTypeDB;
 extern WowClientDB<MailTemplateRec> g_mailTemplateDB;
 extern WowClientDB<MapRec> g_mapDB;
 extern WowClientDB<MapDifficultyRec> g_mapDifficultyDB;
+
+MapDifficultyRec* GetMapDifficultyEntryByMapIdAndDifficulty(int32_t mapId, uint32_t difficulty, int32_t* a3);
 extern WowClientDB<MaterialRec> g_materialDB;
 extern WowClientDB<MovieRec> g_movieDB;
 extern WowClientDB<MovieFileDataRec> g_movieFileDataDB;
@@ -499,6 +501,10 @@ const ItemSubClassRec* SDBItemSubclassGetSubClassRec(uint32_t classID, uint32_t 
 int32_t GetPhysicalDamageClassID();
 uint32_t GetPhysicalDamageClassMask();
 
+int32_t GetMapResetTime(int32_t mapId, uint32_t difficulty);
 int32_t LocaleNameToIndex(const char* locale);
+
+void DBCache_ClearTemporaryCaches();
+const char* ClientDBStringLookup(uint32_t lookup);
 
 #endif

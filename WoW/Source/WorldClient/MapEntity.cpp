@@ -1,8 +1,10 @@
 #include "MapEntity.h"
+#include "Engine/Source/Tempest/C3Segment.h"
 #include "WoW/Source/WorldClient/MapLight.h"
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
+#include "WoW/Source/WorldClient/FrameTime.h"
 #include <cmath>
 #include <cstring>
 #include <typeinfo>
@@ -372,4 +374,222 @@ FogQ FogQueue::Pop() {
     reinterpret_cast<FogQ*>(this->m_data)[index] = last;
 
     return top;
+}
+
+// VERIFY: 254daf94 manual
+// OFFSET: 0x007A1E90
+void CMapEntity::Tick() {
+    int32_t step = static_cast<int32_t>((FrameTime::s_tickTimeSec + FrameTime::s_tickTimeSec) * 255.0f);
+
+    if (step < 1) {
+        step = 1;
+    }
+
+    int32_t r = this->m_m2AmbientColor.r;
+    int32_t g = this->m_m2AmbientColor.g;
+    int32_t b = this->m_m2AmbientColor.b;
+    int32_t targetR = this->unk_00C0.r;
+    int32_t targetG = this->unk_00C0.g;
+    int32_t targetB = this->unk_00C0.b;
+    int32_t changed = 0;
+
+    if (targetR - r) {
+        changed = 1;
+
+        if (targetR - r <= 0) {
+            r -= step;
+
+            if (r < targetR) {
+                r = targetR;
+            }
+        } else {
+            r += step;
+
+            if (r > targetR) {
+                r = targetR;
+            }
+        }
+    }
+
+    if (targetG - g) {
+        changed = 1;
+
+        if (targetG - g <= 0) {
+            g -= step;
+
+            if (g < targetG) {
+                g = targetG;
+            }
+        } else {
+            g += step;
+
+            if (g > targetG) {
+                g = targetG;
+            }
+        }
+    }
+
+    if (targetB - b) {
+        changed = 1;
+
+        if (targetB - b <= 0) {
+            b -= step;
+
+            if (b < targetB) {
+                b = targetB;
+            }
+        } else {
+            b += step;
+
+            if (b > targetB) {
+                b = targetB;
+            }
+        }
+    }
+
+    this->m_m2AmbientColor.r = static_cast<uint8_t>(r);
+    this->m_m2AmbientColor.g = static_cast<uint8_t>(g);
+    this->m_m2AmbientColor.b = static_cast<uint8_t>(b);
+
+    if (!(this->unk_007C & 0x1) && !changed) {
+        CImVector ambient = DayNight::GetInfo()->m_light1.m_ambient;
+        this->m_m2AmbientColor = ambient;
+        this->unk_00C0 = ambient;
+    }
+
+    float rate = FrameTime::s_tickTimeSec * 3.3333333f;
+    float delta = this->m_diffuseLightScale - this->unk_00C4;
+
+    if (0.0f != delta) {
+        if (delta >= 0.0f) {
+            this->m_diffuseLightScale = this->m_diffuseLightScale - rate;
+
+            if (this->m_diffuseLightScale < this->unk_00C4) {
+                this->m_diffuseLightScale = this->unk_00C4;
+            }
+        } else {
+            this->m_diffuseLightScale = rate + this->m_diffuseLightScale;
+
+            if (this->m_diffuseLightScale > this->unk_00C4) {
+                this->m_diffuseLightScale = this->unk_00C4;
+            }
+        }
+    }
+
+    if (this->m_diffuseLightScale > 1.0f) {
+        this->m_diffuseLightScale = 1.0f;
+    }
+
+    if (!this->m_parentLinkList.Head()) {
+        CMap::UpdateEntity(this);
+    }
+}
+
+// VERIFY: 6acda3f1 manual
+// OFFSET: 0x007A13E0
+bool CMapStaticEntity::GetMapObjAndGroup(CMapObjDef** mapObjDef, CMapObj** mapObj, CMapObjDefGroup** mapObjDefGroup, CMapObjGroup** mapObjGroup, int32_t skipHidden) {
+    for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
+        CMapBaseObj* ref = link->m_ref;
+
+        if (!(ref->m_type & 0x10)) {
+            continue;
+        }
+
+        *mapObjDefGroup = static_cast<CMapObjDefGroup*>(ref);
+        CMapObjDef* def = static_cast<CMapObjDef*>(ref->m_parentLinkList.Head()->m_ref);
+        *mapObjDef = def;
+
+        if (skipHidden && (def->m_flags & 0x400)) {
+            continue;
+        }
+
+        *mapObj = def->m_owner;
+        *mapObjGroup = def->m_owner->GetGroup((*mapObjDefGroup)->m_groupNum, 0);
+
+        if (*mapObjGroup) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: d211d73c auto
+// OFFSET: 0x007A1A30
+bool CMapEntity::UpdateMapObjLiquid() {
+    this->unk_007C &= ~0x60;
+    CMapObjDef* mapObjDef;
+    CMapObj* mapObj;
+    CMapObjDefGroup* mapObjDefGroup;
+    CMapObjGroup* mapObjGroup;
+
+    if (!this->GetMapObjAndGroup(&mapObjDef, &mapObj, &mapObjDefGroup, &mapObjGroup, 0)) {
+        return false;
+    }
+
+    C3Vector local = C3Vector(this->m_position.x, this->m_position.y, this->m_bbox.b.z) * mapObjDef->m_invMat;
+    int32_t liquidType;
+    float level;
+
+    if (!mapObjGroup->QueryLiquid(local, &liquidType, &level)) {
+        return false;
+    }
+
+    this->unk_007C |= 0x20;
+    C3Vector world = C3Vector(local.x, local.y, level) * mapObjDef->m_mat;
+    this->m_liquidHeight = world.z;
+
+    if (world.z <= this->m_bbox.t.z) {
+        this->unk_007C |= 0x40;
+    } else {
+        this->unk_007C &= ~0x40;
+    }
+
+    this->unk_00BC = static_cast<uint16_t>(liquidType);
+    return true;
+}
+
+// VERIFY: fb6c1e22 manual
+// OFFSET: 0x007A0D60
+bool CMapEntity::QueryInteriorLighting(CMapObjDef* mapObjDef, int32_t groupNum, uint16_t* faceIndex, C3Vector* pos) {
+    CImVector color;
+    *reinterpret_cast<uint32_t*>(&color) = 0;
+    uint8_t flag;
+    bool result;
+
+    if (faceIndex) {
+        C3Vector local = *pos * mapObjDef->m_invMat;
+        result = mapObjDef->m_owner->QueryLighting(groupNum, local, *faceIndex, &color, &flag);
+    } else {
+        C3Vector local = this->m_position * mapObjDef->m_invMat;
+        C3Segment seg;
+        seg.b = C3Vector(local.x, local.y, local.z + 1.0f);
+        seg.t = C3Vector(local.x, local.y, local.z - 12.0f);
+        result = mapObjDef->m_owner->QueryLighting(groupNum, seg, &color, &flag);
+    }
+
+    if (!result) {
+        return result;
+    }
+
+    CImVector limit;
+    *reinterpret_cast<uint32_t*>(&limit) = 0xA8;
+    this->AdjustLightmap(&color, &this->m_m2DiffuseColor, limit, &this->unk_00C0, 96);
+
+    if (!flag) {
+        this->unk_007C &= ~0x1000;
+        return result;
+    }
+
+    DayNight::DNInfo* info = DayNight::GetInfo();
+    uint8_t alpha = color.a;
+
+    if (alpha) {
+        this->m_m2DiffuseColor.InterpColor(alpha, &info->m_light1.m_diffuse);
+        this->unk_00C0.InterpColor(alpha, &info->m_light1.m_ambient);
+    }
+
+    this->unk_007C |= 0x1000;
+    this->m_m2DiffuseColor.a = color.a;
+    return result;
 }

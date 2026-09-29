@@ -79,3 +79,23 @@ CDataStore& operator>>(CDataStore& msg, CMoveSpline& spline) {
     msg.Get(spline.m_finalDestination.z);
     return msg;
 }
+
+// VERIFY: d9fccc9a manual
+// OFFSET: 0x006F1240
+CMoveSpline& CMoveSpline::CopyFrom(const CMoveSpline& source) {
+    this->unk_0008 = source.unk_0008;
+    this->m_face = source.m_face;
+    this->unk_001C = source.unk_001C;
+    this->m_flags = source.m_flags;
+    this->m_timePassed = source.m_timePassed;
+    this->m_start = source.m_start;
+    this->m_duration = source.m_duration;
+    this->m_id = source.m_id;
+    this->m_spline = source.m_spline;
+    this->m_finalDestination = source.m_finalDestination;
+    this->m_durationMod = source.m_durationMod;
+    this->m_durationModNext = source.m_durationModNext;
+    this->m_verticalAcceleration = source.m_verticalAcceleration;
+    this->m_effectStartTime = source.m_effectStartTime;
+    return *this;
+}

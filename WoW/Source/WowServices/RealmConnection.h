@@ -104,6 +104,7 @@ class RealmConnection : public NetClient {
     int32_t HandleClientCacheVersion(uint32_t msgId, uint32_t time, CDataStore* msg);
     int32_t HandleLogoutResponse(uint32_t msgId, uint32_t time, CDataStore* msg);
     void RequestCharacterEnum();
+    void RequestCharacterLogin(WOWGUID guid, int32_t a2);
     void SetSelectedRealm(uint32_t a1, uint32_t a2, uint32_t a3);
 };
 

@@ -15,6 +15,7 @@ class CM2Model;
 
 class CGCorpse_C : public CGObject_C, public CGCorpse {
     public:
+    static void Initialize();
     /* 00D8 */ CPassenger m_passenger;
     /* 0108 */ TSList<void> m_corpseMirrorLists [30];
     /* 0270 */ CCharacterComponent* m_component;
@@ -38,5 +39,8 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
     const char* GetPortraitTexture() const;
     void PostInit(uint32_t time, const CClientObjCreate& create, bool a3);
 };
+
+int32_t CorpseDynamicFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
+int32_t CorpseFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
 
 #endif

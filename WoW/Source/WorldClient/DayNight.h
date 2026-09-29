@@ -252,6 +252,9 @@ namespace DayNight {
     void FindAndAddZoneLight(const C3Vector* position);
     void SyncSkyAnimWithTime(DNOverrideSky* sky, int32_t minutes);
     void DrawSky(DNOverrideSky* sky, float weight);
+    int32_t GetFogOverride();
+    void RenderGlares();
+    void SetBlendSky(uint32_t index, const char* sky, int32_t a3, float blend);
     void RenderSky(CPortalView* view);
 }
 

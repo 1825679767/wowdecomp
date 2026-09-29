@@ -32,8 +32,10 @@ class CVehiclePassenger_C {
     static void ExecutePendingRescueTransitions();
     static void StartAddingPendingRescueTransitions();
     static void InitSystem();
+    static void OnReloadUI();
     static void UninitSystem();
     static void PostRenderUpdateAll();
+    static void UpdateAll(uint32_t time);
     static void OnVehicleRideLoopAnimEnd(CGUnit_C* unit, int32_t& done, TSGrowableArray<CVehiclePassenger_C*>& passengers);
     static void OnVehicleTransitionAnimEnd(CGUnit_C* unit, int32_t& done, TSGrowableArray<CVehiclePassenger_C*>& passengers);
     static void AddPendingRescueTransition(WOWGUID passengerGuid, WOWGUID vehicleGuid, uint8_t seat, int32_t instant);
@@ -95,6 +97,7 @@ class CVehiclePassenger_C {
     void ComputeSeatOffset(const VehicleSeatRec* seat, CM2Model* model);
     int32_t ChooseSeatExitAnim(uint32_t flags, uint32_t* anim) const;
     int32_t GetLowerAnim(const VehicleSeatRec* seat) const;
+    int32_t GetUpperAnim(const VehicleSeatRec* seat) const;
     CGUnit_C* GetStoredRootVehicleUnit() const;
     void StartMirroringVehicleAnims();
     void Uninit();
@@ -103,6 +106,12 @@ class CVehiclePassenger_C {
     int32_t PickHighPriorityAnimation(int32_t a2, uint32_t* anim) const;
     C3Vector ComputeInterpolatedUnitPosition() const;
     int32_t OverridesModelAnimation() const;
+
+    void Unk74A7F0();
+    int32_t CheckForVehicleTransitionAnimTimeout();
+    void StopWaitingForVehicleTransitionAnim();
+    void ExecuteAllDeferredVehicleTransitionAnimSplines();
+    static void OnSetActiveMover(CGUnit_C* unit);
 };
 
 #endif

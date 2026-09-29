@@ -363,6 +363,12 @@ int32_t GxMasterEnable(EGxMasterEnables state) {
     return g_theGxDevicePtr->MasterEnable(state);
 }
 
+// VERIFY: cdcd566a auto
+// OFFSET: 0x00401260
+void GxMasterEnableSet(EGxMasterEnables state, int32_t enable) {
+    g_theGxDevicePtr->MasterEnableSet(state, enable);
+}
+
 // VERIFY: 480127f6 manual
 // OFFSET: 0x006813B0
 void GxSceneClear(uint32_t mask, CImVector color) {

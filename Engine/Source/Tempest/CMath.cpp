@@ -399,6 +399,18 @@ float fclamp(float value, float min, float max) {
     return value;
 }
 
+// VERIFY: 7b233428 manual
+// OFFSET: 0x0048BCF0
+int32_t RoundToInt64(float value) {
+    return static_cast<int32_t>(static_cast<int64_t>(value + 0.5f));
+}
+
+// VERIFY: 0a474f8f manual
+// OFFSET: 0x00497A90
+void ClampInPlace(float& value, float min, float max) {
+    value = min > value ? min : (max <= value ? max : value);
+}
+
 // VERIFY: 6b3260e6 auto
 // OFFSET: 0x004C1CF0
 bool CMath::fequal(float a, float b) {
@@ -675,4 +687,10 @@ float CMath::sin_(float x) {
     float result = 1.0f - frac * ((6.0f - 4.0f * frac) * frac);
 
     return (whole & 1) ? -result : result;
+}
+
+// VERIFY: eea7f5f0 auto
+// OFFSET: 0x008CA080
+float OrganicSmooth(float from, float to, float t) {
+    return from + (to - from) * ((1.0f - cosf(t * 3.1415927f)) * 0.5f);
 }

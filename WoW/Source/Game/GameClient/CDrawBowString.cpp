@@ -112,3 +112,9 @@ bool GuildGetGuildTabard(WOWGUID guid, int32_t guildID, void (*callback)(int32_t
 
     return true;
 }
+
+// VERIFY: 76d7eb0b auto
+// OFFSET: 0x007EAD70
+void CDrawBowString::UnitDrawBowStringCB(CM2Model* model, const CM2Lighting* lighting, void* arg) {
+    CDrawBowString::DrawBowString(model, lighting, static_cast<CGUnit_C*>(arg));
+}

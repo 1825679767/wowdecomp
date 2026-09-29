@@ -15,7 +15,7 @@ struct UIADDON : public TSHashObject<UIADDON, HASHKEY_STRI> {
     };
 
     /* 0018 */ bool m_loading;
-    /* 0019 */ uint8_t unk_0019;
+    /* 0019 */ bool m_loaded;
     /* 001A */ uint8_t unk_001A[2];
     /* 001C */ uint32_t m_interfaceVersion;
     /* 0020 */ uint32_t m_revision;
@@ -25,7 +25,7 @@ struct UIADDON : public TSHashObject<UIADDON, HASHKEY_STRI> {
     /* 002A */ bool m_signed;
     /* 002B */ bool m_enabledByDefault;
     /* 002C */ bool m_loadOnDemand;
-    /* 002D */ uint8_t unk_002D;
+    /* 002D */ bool m_checkingLoadable;
     /* 002E */ uint8_t unk_002E[2];
     /* 0030 */ char* m_url;
     /* 0034 */ uint32_t m_numFiles;

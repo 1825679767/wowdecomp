@@ -102,12 +102,12 @@ void CNameGen::GenerateName(char* buffer, uint32_t size) {
     *buffer = static_cast<char>(toupper(*buffer));
 }
 
-// VERIFY: 456839a2 manual
+// VERIFY: a1cebea0 manual
 // OFFSET: 0x004E6560
 void CNameGen::CreateDictionary() {
     for (int32_t i = 0; i < static_cast<int32_t>(this->m_names.Count()); i++) {
         char name[64];
-        SStrPrintf(name, sizeof(name), "_%s_", this->m_names.m_data[i]);
+        SStrPrintf(name, sizeof(name), "_%s", this->m_names.m_data[i]);
         SStrLower(name);
 
         int32_t length = SStrLen(name) - 1;

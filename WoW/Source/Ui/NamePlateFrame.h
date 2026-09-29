@@ -6,6 +6,7 @@
 #include <windows.h>
 #include "Engine/Source/Frame/CSimpleFrame.h"
 #include "Engine/Source/Tempest/CImVector.h"
+#include "WoW/Source/Object/WGUID.h"
 
 class CSimpleFontString;
 class CSimpleTexture;
@@ -14,10 +15,11 @@ class CGUnit_C;
 
 class CGNamePlateFrame : public CSimpleFrame {
     public:
+    static CGNamePlateFrame* GetNamePlateFocus();
+
     /* 029C */ TSLink<CGNamePlateFrame> m_link;
     /* 02A4 */ uint32_t unk_02A4;
-    /* 02A8 */ uint32_t unk_02A8;
-    /* 02AC */ uint32_t unk_02AC;
+    /* 02A8 */ WOWGUID m_guid;
     /* 02B0 */ CSimpleTexture* m_namePlateGlow;
     /* 02B4 */ CSimpleTexture* m_targetingFrameSkull;
     /* 02B8 */ CSimpleTexture* m_raidTragetingIcons;
@@ -39,7 +41,10 @@ class CGNamePlateFrame : public CSimpleFrame {
     /* 02F8 */ float unk_02F8;
     /* 02FC */ float unk_02FC;
 
+    void TriggerDamageFeedback();
     void UpdateColorDisplay(CGUnit_C* unit);
+    void UpdateNameDisplay(const CGUnit_C* unit);
+    void SetCastBarValues(float minValue, float maxValue, float value, int32_t spellId, bool channel, bool notInterruptible);
 };
 
 #endif

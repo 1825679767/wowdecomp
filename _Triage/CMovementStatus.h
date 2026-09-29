@@ -38,5 +38,6 @@ class CMovementStatus {
 };
 
 CDataStore& operator>>(CDataStore& msg, CMovementStatus& status);
+CDataStore& operator<<(CDataStore& msg, const CMovementStatus& status);
 
 #endif

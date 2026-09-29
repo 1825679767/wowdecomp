@@ -85,6 +85,7 @@ class ItemStats_C {
     ItemStats_C();
     void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);
+    const char* GetName(int32_t index) const;
 };
 
 #endif

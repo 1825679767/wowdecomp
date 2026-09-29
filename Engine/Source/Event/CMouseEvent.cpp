@@ -1,6 +1,13 @@
 #include "Engine/Source/Base/Coordinate.h"
 #include "Engine/Source/Event/CMouseEvent.h"
 
+// VERIFY: ed0a27f8 manual
+// OFFSET: 0x0055DCE0
+CMouseEvent::CMouseEvent() {
+    this->m_data.m_mousePosition.x = 0.5f;
+    this->m_data.m_mousePosition.y = 0.5f;
+}
+
 // VERIFY: c018945e auto
 // OFFSET: 0x00480DE0
 CMouseEvent& CMouseEvent::operator=(const EVENT_DATA_MOUSE& data) {

@@ -14,6 +14,11 @@ class CMapObjDef;
 
 class CM2Model;
 
+class CMapObj;
+class CMapObjDef;
+class CMapObjDefGroup;
+class CMapObjGroup;
+
 class CMapStaticEntity : public CMapBaseObj {
     public:
     static float s_characterAmbient;
@@ -51,6 +56,8 @@ class CMapStaticEntity : public CMapBaseObj {
     CMapStaticEntity();
 
     void AdjustLightmap(const CImVector* color, CImVector* diffuse, CImVector limit, CImVector* ambient, uint8_t maxBrightness);
+
+    bool GetMapObjAndGroup(CMapObjDef** mapObjDef, CMapObj** mapObj, CMapObjDefGroup** mapObjDefGroup, CMapObjGroup** mapObjGroup, int32_t skipHidden);
 };
 
 #endif

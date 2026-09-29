@@ -4,6 +4,28 @@
 #include <cstddef>
 #include <cstdint>
 
-class CGBarberShop;
+struct lua_State;
+
+class CGBarberShop {
+    public:
+    static void EnterWorld();
+    static float GetMinCameraDistance();
+    static int32_t m_barberShopEnabled;
+
+    static void AppearanceApplied();
+    static void DisableBarberShop();
+    static void InitializeGame();
+    static void RegisterScriptFunctions();
+};
+
+int32_t Script_GetBarberShopStyleInfo(lua_State* L);
+int32_t Script_SetNextBarberShopStyle(lua_State* L);
+int32_t Script_GetBarberShopTotalCost(lua_State* L);
+int32_t Script_ApplyBarberShopStyle(lua_State* L);
+int32_t Script_CancelBarberShop(lua_State* L);
+int32_t Script_GetHairCustomization(lua_State* L);
+int32_t Script_GetFacialHairCustomization(lua_State* L);
+int32_t Script_BarberShopReset(lua_State* L);
+int32_t Script_CanAlterSkin(lua_State* L);
 
 #endif

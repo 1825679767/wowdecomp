@@ -5,8 +5,11 @@
 #include <cstdint>
 #include <windows.h>
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Tempest/C4Quaternion.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/WGUID.h"
+
+class C44Matrix;
 
 #pragma pack(push, 4)
 class CPassenger {
@@ -27,6 +30,11 @@ class CPassenger {
     float GetRawFacing(float facing) const;
     C3Vector GetPosition(const C3Vector& position) const;
     C3Vector GetRawPosition(const C3Vector& position) const;
+    C4Quaternion GetRotation() const;
+    float GetRawFacingFromRotation() const;
+    float RemoveFromTransportFinish(const C44Matrix& matrix);
+    float AddToTransport(WOWGUID transport, C44Matrix* inverse, C44Matrix* transportMatrix);
+    float RemoveFromTransport(C44Matrix* matrix);
 };
 #pragma pack(pop)
 

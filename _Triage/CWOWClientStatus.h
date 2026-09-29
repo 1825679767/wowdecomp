@@ -12,6 +12,7 @@ class CWOWClientStatus : public CStatus {
     virtual ~CWOWClientStatus();
 
     CWOWClientStatus(const char* logFileName);
+    CWOWClientStatus(const char* logFileName, int32_t append);
 };
 
 #endif

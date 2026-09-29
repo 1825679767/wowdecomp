@@ -43,6 +43,7 @@ class CMoveSpline {
 
     CMoveSpline();
     ~CMoveSpline();
+    CMoveSpline& CopyFrom(const CMoveSpline& source);
 };
 
 CDataStore& operator>>(CDataStore& msg, C3Vector& vector);

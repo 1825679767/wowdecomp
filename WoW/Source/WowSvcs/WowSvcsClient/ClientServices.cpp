@@ -16,6 +16,7 @@
 #include "WoW/Source/WowServices/GruntLogin.h"
 #include "WoW/Source/WowServices/Login.h"
 #include "WoW/Source/WowServices/LoginResponse.h"
+#include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/AccountData.h"
 
 // STATIC: 0x00AD91F0
@@ -1111,6 +1112,38 @@ void ClientConnection::RequestCharacterCreate(const CHARACTER_CREATE_INFO& info)
     msg.Put(info.m_outfitID);
     msg.Finalize();
     this->Send(&msg);
+}
+
+// VERIFY: ac426310 manual
+// OFFSET: 0x006B1790
+void ClientConnection::CharacterLogin(WOWGUID guid, int32_t a2) {
+    this->Initiate(COP_LOGIN_CHARACTER, CHAR_LOGIN_IN_PROGRESS, nullptr);
+
+    if (!this->unk_2F3C) {
+        this->Cancel(RESPONSE_FAILED_TO_CONNECT);
+        return;
+    }
+
+    this->RequestCharacterLogin(guid, a2);
+    this->unk_2F40 = 1;
+}
+
+// VERIFY: 74e67f09 auto
+// OFFSET: 0x006B0930
+int32_t ClientConnection::CharacterLoggingOut() {
+    return this->m_loggingOut;
+}
+
+// VERIFY: 10f2b254 auto
+// OFFSET: 0x006B1840
+void ClientConnection::CharacterSetInGame(int32_t inGame) {
+    this->Complete(1, CHAR_LOGIN_SUCCESS);
+    this->m_inGame = inGame;
+
+    if (this->m_loggingOut) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_LOGOUT_CANCEL, nullptr);
+        this->m_loggingOut = 0;
+    }
 }
 
 // VERIFY: 4b884dc6 auto

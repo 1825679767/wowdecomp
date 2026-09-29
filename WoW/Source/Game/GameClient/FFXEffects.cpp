@@ -5,6 +5,7 @@
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Game/GameClient/PassDeath.h"
+#include "WoW/Source/Game/GameClient/PassNetherBlur.h"
 
 // VERIFY: 874a5f41 manual
 // OFFSET: 0x007E86A0
@@ -78,4 +79,22 @@ EffectDeath::~EffectDeath() {
             delete this->m_passes[i];
         }
     }
+}
+
+// VERIFY: c9c9b096 manual
+// OFFSET: 0x007EA470
+EffectNetherWorld::EffectNetherWorld() {
+    this->m_cvar = CVar::Register("ffxNetherWorld", "full screen nether world effect (for invisibility)", 1, "1", FFX::CVarCallback, 1, false, nullptr, false);
+
+    if (g_theGxDevicePtr->Caps().m_shaderTargets[GxSh_Pixel] == 7 || g_theGxDevicePtr->Caps().m_shaderTargets[GxSh_Pixel] <= 0) {
+        return;
+    }
+
+    FFX::Tex* inputs[] = { &FFX::s_full[0], &FFX::s_quart[0] };
+
+    FFX::Pass* pass = new (__FILE__, __LINE__) PassNetherBlur(inputs, 1, inputs[1], GxBlend_Opaque, false);
+    this->m_passes.New(pass);
+
+    pass = new (__FILE__, __LINE__) PassNetherCombine(inputs, 2, &FFX::s_screen, GxBlend_Opaque, true);
+    this->m_passes.New(pass);
 }

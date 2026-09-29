@@ -5,6 +5,9 @@
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
 
+class CDataStore;
+class CGUnit_C;
+
 #pragma pack(push, 4)
 class AuraData {
     public:
@@ -16,6 +19,14 @@ class AuraData {
     /* 000F */ uint8_t unk_000F;
     /* 0010 */ int32_t m_duration;
     /* 0014 */ int32_t m_endTime;
+
+    void Unpack(CGUnit_C* unit, uint32_t time, CDataStore* msg);
+};
+
+class SortedAuraInfo {
+    public:
+    /* 0000 */ uint32_t unk_0000;
+    /* 0004 */ uint32_t unk_0004;
 };
 #pragma pack(pop)
 

@@ -126,3 +126,21 @@ int32_t CGPlayer::HasZoneExplored(int32_t zone) {
 
     return this->m_player->m_playerExploredZones1[zone / 8] & (1 << (zone % 8));
 }
+
+// VERIFY: 89fd3c87 auto
+// OFFSET: 0x004F5530
+int32_t CGPlayer::TotalFields() {
+    return CGUnit::TotalFields() + 1043;
+}
+
+// VERIFY: f3b17437 auto
+// OFFSET: 0x004F5540
+int32_t CGPlayer::TotalRemoteFields() {
+    return CGUnit::TotalFields() + sizeof(CGPlayer::s_mirrorFields) / sizeof(CGPlayer::s_mirrorFields[0]);
+}
+
+// VERIFY: cea78c41 auto
+// OFFSET: 0x004FFD80
+bool CGPlayer::IsDrunk() {
+    return this->m_player->m_playerBytes3[1] || this->m_player->m_playerFakeInebriation;
+}

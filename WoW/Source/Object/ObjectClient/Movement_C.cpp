@@ -1,12 +1,18 @@
 #include "Movement_C.h"
+#include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/C4Quaternion.h"
 #include "WoW/Source/Object/CMovementGlobals.h"
+#include "WoW/Source/Object/Movement.h"
 #include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/Object/ObjectClient/Vehicle_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Ui/WorldFrame.h"
+#include "WoW/Source/UIUtil/Camera.h"
+#include "WoW/Source/WorldClient/World.h"
+#include "_Triage/CMoveSpline.h"
 
 // STATIC: 0x00ADB74C
 static TSExplicitList<CGGameObject_C, offsetof(CGGameObject_C, m_transportLink)> s_transports;
@@ -33,6 +39,12 @@ int32_t MovementAddToTransport(CPassenger* passenger, WOWGUID transport, int32_t
 // OFFSET: 0x0074B330
 CMovementGlobals* MovementGetGlobals() {
     return ClntObjMgrGetMovementGlobals();
+}
+
+// VERIFY: c58d034d auto
+// OFFSET: 0x0074B320
+void MovementSetGlobals(CMovementGlobals* globals) {
+    ClntObjMgrSetMovementGlobals(globals);
 }
 
 // VERIFY: 49dca93b manual
@@ -125,9 +137,9 @@ void MovementMoveTransports(uint32_t time, uint32_t elapsed) {
     }
 }
 
-// VERIFY: 4ae3b26d manual
+// VERIFY: 1678bec4 manual
 // OFFSET: 0x0074B670
-void MovementNotifyTransportUnitRemoved(WOWGUID passenger, WOWGUID transport) {
+void MovementNotifyTransportUnitRemoved(WOWGUID passenger, WOWGUID transport, uint8_t seat) {
     uint32_t high = (uint32_t)(transport.m_guid >> 32);
 
     if ((high & 0xF0F00000) == 0xF0500000 || (!(high & 0xF0000000) && ((high & 0xF07FFFFF) | (uint32_t)transport.m_guid))) {
@@ -174,4 +186,83 @@ int32_t MovementGetLastUpdateTime(uint32_t* time) {
     *time = globals->m_lastUpdateTime;
 
     return 1;
+}
+
+// VERIFY: a4045d99 manual
+// OFFSET: 0x006F1490
+int32_t MovementIdleMoveUnits(const void* data, void* param) {
+    uint32_t now = OsGetAsyncTimeMs();
+    CMovementGlobals* globals = MovementGetGlobals();
+    int32_t elapsed = now - globals->m_lastUpdateTime;
+
+    if (elapsed > 0) {
+        MovementMoveTransports(now, elapsed);
+
+        if (globals->m_movers.Head()) {
+            CMovement_C::MoveUnits(now, globals->m_lastUpdateTime);
+        }
+
+        CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (mover) {
+            mover->UpdateFloodsafeMoveEvents(now);
+        }
+
+        globals->m_idleTime = now;
+        globals->m_lastUpdateTime = now;
+    }
+
+    return 1;
+}
+
+// VERIFY: 2485f1d0 manual
+// OFFSET: 0x0074B7E0
+void MovementDelSpline(CMoveSpline* spline) {
+    if (spline) {
+        delete spline;
+    }
+}
+
+// VERIFY: d283f620 auto
+// OFFSET: 0x0074B380
+void MovementUpdateCameraYaw(WOWGUID guid, WOWGUID transport) {
+    uint32_t high = static_cast<uint32_t>(transport.m_guid >> 32);
+
+    if ((high & 0xF0F00000) == 0xF0500000 || (!(high & 0xF0000000) && ((high & 0xF07FFFFF) | static_cast<uint32_t>(transport.m_guid)))) {
+        return;
+    }
+
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+
+    if (camera->m_targetGUID == guid) {
+        camera->MakeRelativeTo(transport);
+    }
+}
+
+// VERIFY: 2098ea96 manual
+// OFFSET: 0x0074B620
+void MovementUpdateWorld(WOWGUID guid, const C3Vector& position, int32_t preload) {
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+
+    if (camera->m_targetGUID == guid) {
+        if (preload) {
+            World::Preload(position, 1);
+        } else {
+            World::Update(position);
+        }
+
+        CGObject_C::UpdateAllWorldObjects();
+    }
+}
+
+// VERIFY: edeb052a manual
+// OFFSET: 0x0074B7B0
+CMoveSpline* MovementNewSpline() {
+    return new (SMemAlloc(sizeof(CMoveSpline), __FILE__, __LINE__, 0)) CMoveSpline();
+}
+
+// VERIFY: 4acb61d0 auto
+// OFFSET: 0x006E9230
+uint32_t MovementGetIdleTime() {
+    return ClntObjMgrGetMovementGlobals()->m_idleTime;
 }

@@ -1,4 +1,8 @@
 #include "Item_C.h"
+#include "Engine/Source/Services/SysMessage.h"
+#include "Engine/Source/Services/Texture.h"
+#include "WoW/Source/DB/Rec/ItemDisplayInfoRec.h"
+#include "WoW/Source/Game/ViolenceLevels.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
@@ -14,13 +18,222 @@
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Object/ItemStats.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Common/ComponentCore/CharacterComponent.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/Ui/ActionBarFrame.h"
+#include "WoW/Source/Ui/ContainerFrame.h"
+#include "WoW/Source/Ui/CurrencyTypes.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/PaperDollInfoFrame.h"
+#include "WoW/Source/Ui/QuestLog.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/TradeFrame.h"
+#include "WoW/Source/Ui/TradeSkillFrame.h"
 #include "WoW/Source/WorldClient/FrameTime.h"
 #include "WoW/Source/WowServices/WDataStore.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include <cstring>
 #include <ctime>
+
+// STATIC: 0x00CA1140
+static TSHashTable<INVENTORYART, HASHKEY_NONE> s_inventoryArt;
+
+// STATIC: 0x00CA1168
+static TSHashTable<ITEMBYNAME, HASHKEY_UTF8I> s_itemByName;
+
+// VERIFY: 1390e3e9 manual
+// OFFSET: 0x00707720
+static int32_t OnUpdateStackCount(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item->m_item->m_itemFieldOwner == ClntObjMgrGetActivePlayer()) {
+        WOWGUID requester = WOWGUID();
+        ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, requester, nullptr, nullptr, false);
+
+        if (stats && static_cast<int32_t>(stats->m_stackable) > 1) {
+            CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+            if (player) {
+                player->m_bag.UnlockItemsOfType(item->m_obj->m_entryID, 8);
+            }
+        } else {
+            CGGameUI::UnlockItem(item->m_obj->m_guid);
+        }
+
+        CGTradeSkillInfo::RefreshList(0);
+        CGActionBar::UpdateItem(item->m_obj->m_entryID);
+        CGTradeInfo::UpdatePlayerItem(item->m_obj->m_guid);
+        CGContainerInfo::UpdateItem(item->m_obj->m_guid);
+        CGCharacterInfo::UpdateItem(item->m_obj->m_guid);
+        CGQuestLog::UpdateQuestItem(item->m_obj->m_entryID);
+
+        if (stats && stats->m_class == 10) {
+            CGCurrencyTypes::EnterWorld();
+        }
+
+        ItemRec* rec = g_itemDB.GetRecord(item->m_obj->m_entryID);
+
+        if (rec && rec->m_inventoryType == 24) {
+            CGCharacterInfo::UpdateInventoryAlerts();
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 8b8a4f8e manual
+// OFFSET: 0x00707880
+static int32_t OnUpdateSpellCharges(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item->m_item->m_itemFieldOwner == ClntObjMgrGetActivePlayer()) {
+        CGActionBar::UpdateItem(item->m_obj->m_entryID);
+        CGContainerInfo::UpdateCooldowns();
+    }
+
+    return 1;
+}
+
+// VERIFY: ca82e43c manual
+// OFFSET: 0x007078E0
+static void ItemIDChangedCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (player) {
+            int32_t slot = player->m_bag.FindItemSlot(guid);
+
+            if (slot == 15 || slot == 16) {
+                CGActionBar::UpdateAttackAction();
+            } else if (slot == 17) {
+                CGActionBar::UpdateRangedAttackAction();
+            }
+        }
+
+        CGActionBar::UpdateItem(id);
+        CGContainerInfo::UpdateItem(guid);
+        CGCharacterInfo::UpdateItem(guid);
+    }
+}
+
+// VERIFY: c3dbda02 manual
+// OFFSET: 0x00707960
+static int32_t OnUpdateItemID(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item && item->m_item->m_itemFieldOwner == ClntObjMgrGetActivePlayer()) {
+        int32_t oldItemId = *static_cast<const int32_t*>(oldValue);
+        CGActionBar::UpdateItem(oldItemId);
+        g_itemDBCache.Invalidate(oldItemId);
+
+        WOWGUID itemGuid = item->m_obj->m_guid;
+
+        if (g_itemDBCache.GetRecord(item->m_obj->m_entryID, itemGuid, ItemIDChangedCacheCallback, nullptr, false)) {
+            itemGuid = item->m_obj->m_guid;
+            ItemIDChangedCacheCallback(item->m_obj->m_entryID, itemGuid, nullptr, true);
+        }
+
+        Script_SendUniqueSignal(293);
+    }
+
+    return 1;
+}
+
+// VERIFY: 8b4c986d manual
+// OFFSET: 0x00707A30
+static int32_t OnUpdateDynamicFlags(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item && ((*static_cast<const uint8_t*>(oldValue) ^ item->m_item->m_itemFieldFlags) & 0x10)) {
+        CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(item->m_item->m_itemFieldOwner, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (owner && owner->m_obj->m_guid == ClntObjMgrGetActivePlayer() && static_cast<uint32_t>(owner->GetBag()->FindItemSlot(item->m_obj->m_guid)) <= 18) {
+            CGCharacterInfo::UpdateInventoryAlerts();
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 0a592725 manual
+// OFFSET: 0x00707AE0
+static int32_t OnUpdateDurability(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item) {
+        CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(item->m_item->m_itemFieldOwner, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (owner) {
+            int32_t oldDurability = *static_cast<const int32_t*>(oldValue);
+
+            if ((item->m_item->m_itemFieldFlags & 0x8) || !item->m_item->m_itemFieldDurability) {
+                int32_t invSlot = -1;
+                int32_t slot = owner->GetBag()->FindItemSlot(item->m_obj->m_guid);
+
+                if (slot == 15) {
+                    invSlot = 15;
+                } else if (slot == 16) {
+                    invSlot = 16;
+                } else if (slot == 17) {
+                    invSlot = (item->m_virtualItem.m_inventoryType != 26) + 15;
+                }
+
+                if (oldDurability > 0) {
+                    CCharacterComponent::RemoveHandItem(owner->m_worldModel, static_cast<INVENTORY_SLOTS>(invSlot), static_cast<SHEATHE_TYPE>(item->m_virtualItem.m_sheatheType), item->m_virtualItem.m_inventoryType == 14);
+
+                    WOWGUID ownerGuid = owner->m_obj->m_guid;
+                    CGGameUI::UnitModelUpdate(ownerGuid, 3);
+                }
+            } else if (!(item->m_item->m_itemFieldFlags & 0x8) && item->m_item->m_itemFieldDurability && !oldDurability) {
+                owner->EquipItem(item);
+
+                WOWGUID ownerGuid = owner->m_obj->m_guid;
+                CGGameUI::UnitModelUpdate(ownerGuid, 3);
+            }
+        }
+    }
+
+    CGCharacterInfo::UpdateInventoryAlerts();
+
+    return 1;
+}
+
+// VERIFY: fa692b57 manual
+// OFFSET: 0x00708BD0
+static int32_t OnUpdateEnchantments(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item) {
+        item->UpdateEnchantments();
+    }
+
+    return 1;
+}
+
+// VERIFY: 6840b2f7 auto
+// OFFSET: 0x00709440
+void CGItem_C::Initialize() {
+    ClntObjMgrSetTypeMirrorHandler(ID_ITEM, offsetof(CGItemData, m_itemFieldStackCount), sizeof(uint32_t), OnUpdateStackCount, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetTypeMirrorHandler(ID_ITEM, offsetof(CGItemData, m_itemFieldSpellCharges), sizeof(CGItemData::m_itemFieldSpellCharges), OnUpdateSpellCharges, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetTypeMirrorHandler(ID_ITEM, offsetof(CGItemData, m_itemFieldEnchantment), sizeof(CGItemData::m_itemFieldEnchantment), OnUpdateEnchantments, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetTypeMirrorHandler(ID_OBJECT, offsetof(CGObjectData, m_entryID), sizeof(uint32_t), OnUpdateItemID, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetTypeMirrorHandler(ID_ITEM, offsetof(CGItemData, m_itemFieldFlags), sizeof(uint16_t), OnUpdateDynamicFlags, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetTypeMirrorHandler(ID_ITEM, offsetof(CGItemData, m_itemFieldDurability), sizeof(uint32_t), OnUpdateDurability, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+}
+
+// VERIFY: 90fb2c28 auto
+// OFFSET: 0x00709A10
+void CGItem_C::Shutdown() {
+    ClntObjMgrUnsetTypeMirrorHandler(ID_ITEM, offsetof(CGItemData, m_itemFieldStackCount), OnUpdateStackCount, nullptr);
+    ClntObjMgrUnsetTypeMirrorHandler(ID_ITEM, offsetof(CGItemData, m_itemFieldSpellCharges), OnUpdateSpellCharges, nullptr);
+    ClntObjMgrUnsetTypeMirrorHandler(ID_ITEM, offsetof(CGItemData, m_itemFieldEnchantment), OnUpdateEnchantments, nullptr);
+    ClntObjMgrUnsetTypeMirrorHandler(ID_OBJECT, offsetof(CGObjectData, m_entryID), OnUpdateItemID, nullptr);
+    ClntObjMgrUnsetTypeMirrorHandler(ID_ITEM, offsetof(CGItemData, m_itemFieldFlags), OnUpdateDynamicFlags, nullptr);
+    ClntObjMgrUnsetTypeMirrorHandler(ID_ITEM, offsetof(CGItemData, m_itemFieldDurability), OnUpdateDurability, nullptr);
+    s_inventoryArt.Clear();
+    s_itemByName.Clear();
+}
 
 // VERIFY: 546a5abe manual
 // OFFSET: 0x0070AE90
@@ -762,4 +975,111 @@ int32_t CGItem_C::GetNumSockets() {
 // OFFSET: 0x00709550
 bool CGItem_C::IsBoundForTrade() {
     return this->IsPermanentlyBoundForTrade() || this->HasSoulboundEnchant();
+}
+
+// VERIFY: 92d02457 manual
+// OFFSET: 0x00706B90
+int32_t CGItem_C::GetUseSpell(int32_t itemId) {
+    WOWGUID none;
+    ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
+
+    if (!stats) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < sizeof(stats->m_spellId) / sizeof(stats->m_spellId[0]); i++) {
+        if (stats->m_spellId[i] && !stats->m_spellTrigger[i]) {
+            return stats->m_spellId[i];
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 35a89283 auto
+// OFFSET: 0x00709E20
+void CGItem_C::RemoveNameFromCache(const char* name) {
+    ITEMBYNAME* entry = s_itemByName.Ptr(name);
+
+    if (entry) {
+        s_itemByName.Delete(entry);
+    }
+}
+
+// VERIFY: 22bc7913 auto
+// OFFSET: 0x00707E90
+void CGItem_C::GetSpellCooldownInfo(uint32_t& cooldown, uint32_t& categoryCooldown, uint32_t& category) {
+    cooldown = 0;
+    categoryCooldown = 0;
+    category = 0;
+
+    if (this->GetSpellItemEnchantmentId()) {
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(this->GetEnchantmentSpell(0), &spell)) {
+            cooldown = spell.m_recoveryTime;
+            categoryCooldown = spell.m_categoryRecoveryTime;
+            category = spell.m_category;
+            return;
+        }
+    }
+
+    CGItem_C::GetCooldowns(this->m_obj->m_entryID, cooldown, categoryCooldown, category);
+}
+
+// VERIFY: 93d9343c manual
+// OFFSET: 0x0070A850
+static void AddInventoryArtHash(int32_t displayId, const char* texture) {
+    if (s_inventoryArt.Ptr(displayId, HASHKEY_NONE())) {
+        return;
+    }
+
+    INVENTORYART* art = s_inventoryArt.New(displayId, HASHKEY_NONE(), 0, 0);
+
+    if (art->m_texture) {
+        SMemFree(art->m_texture, __FILE__, __LINE__, 0);
+        art->m_texture = nullptr;
+    }
+
+    if (texture && *texture) {
+        art->m_texture = SStrDupA(texture, __FILE__, __LINE__);
+    }
+}
+
+// VERIFY: a1157b4b auto
+// OFFSET: 0x0070A910
+const char* CGItem_C::GetInventoryArt(int32_t displayId) {
+    INVENTORYART* art = s_inventoryArt.Ptr(displayId, HASHKEY_NONE());
+
+    if (art && art->m_texture) {
+        return art->m_texture;
+    }
+
+    ItemDisplayInfoRec display;
+
+    if (g_itemDisplayInfoDB.GetRecord(displayId, &display)) {
+        const char* icon = ViolenceGetLevel() >= 2 || !*display.m_inventoryIcon[1] ? display.m_inventoryIcon[0] : display.m_inventoryIcon[1];
+
+        if (icon) {
+            if (*icon) {
+                char buffer[260];
+
+                if (TextureDiscoverFileType(icon) == TEXFILE_TGA) {
+                    TexturePickAlternateFilename(icon, TEXFILE_TGA, buffer, sizeof(buffer));
+                    icon = buffer;
+                }
+
+                AddInventoryArtHash(displayId, icon);
+                art = s_inventoryArt.Ptr(displayId, HASHKEY_NONE());
+                icon = art ? art->m_texture : nullptr;
+            }
+
+            if (icon && *icon) {
+                return icon;
+            }
+        }
+    }
+
+    SysMsgPrintf(STATUS_ERROR, 2, "NOINVENTORYICON|%d", displayId);
+    return "INV_Misc_QuestionMark";
 }

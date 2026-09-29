@@ -6,4 +6,7 @@
 
 class WTOBJECT;
 
+void WorldTextInitialize();
+void WorldTextShutdown();
+
 #endif

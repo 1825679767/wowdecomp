@@ -9,6 +9,7 @@ class CKBSystem {
     public:
     static void Initialize();
     static void Shutdown();
+    static void CacheServerMessage(const char* text, int32_t id);
 };
 
 #endif

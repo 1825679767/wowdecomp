@@ -45,10 +45,12 @@ class CLoadingScreenShipInfo {
     void Initialize(WowClientDB<T>* nodeDB, uint32_t pathCount);
 };
 
-bool IsStillLoading();
-void LoadingScreenAsyncCallback(float progress);
+int32_t IsStillLoading();
+void LoadingScreenAsyncCallback(float progress, void* param);
 bool LoadingScreenDrawing();
+void LoadingScreenDisable();
 void LoadingScreenEnable(int32_t mapID, bool loadingWorld);
+void LoadingScreenEnableShip(uint32_t transportEntry, int32_t transportMap, int32_t mapID);
 void LoadingScreenInitialize();
 void LoadingScreenMiniDisable();
 void LoadingScreenMiniEnable();
@@ -58,8 +60,8 @@ void LoadingScreenSetTip(const char* tip);
 void LoadingScreenSetTransparent(bool transparent);
 void LoadingScreenShutdown();
 void LoadingScreenSpellUpdateProgress(float progress);
-void LoadingScreenWorldCallback(float progress);
-void LoadingScreenXMLCallback(float progress);
+void LoadingScreenWorldCallback(float progress, void* param);
+void LoadingScreenXMLCallback(float progress, void* param);
 void PaintDynamicLoadingBar();
 
 // INLINED

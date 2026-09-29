@@ -10,8 +10,10 @@
 #include "WoW/Source/DB/WowClientDB.h"
 #include "WoW/Source/DB/Rec/Startup_StringsRec.h"
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "WoW/Source/Net/Types.h"
 
 struct CVar;
+class CDataStore;
 
 class CAsyncObject;
 class CObjectHeapList;
@@ -67,6 +69,7 @@ extern CVar* s_gammaCvar;
 extern int32_t s_locale;
 extern const char* s_iniLocaleNames[9];
 extern char s_localeCode[5];
+extern int32_t s_isPvPRealm;
 extern int32_t s_region;
 
 void AsyncFileReadRegisterCVars();
@@ -88,6 +91,10 @@ int32_t InitializeEngineCallback(const void* data, void* param);
 bool InitializeGlobal();
 bool LocaleCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 int main();
+int32_t Packet_SMSG_NOTIFICATION(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_PLAYED_TIME(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_TRANSFER_ABORTED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_TRANSFER_PENDING(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 bool ProcessAffinityMaskCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 int32_t STORMAPI SendErrorLog(uint32_t errorcode, const char* description, const char* filename, int32_t linenumber, const char* errorstring);
 void SetPaths();
@@ -105,6 +112,8 @@ struct ARCHIVELISTPARAMS {
     /* 000C */ void* m_param;
 };
 
+void CheckAndSendBotDetected();
+void ClientUpdateTaxiBenchmarkMode();
 void ListInterfaceArchive(const char* prefix, int32_t (*callback)(const char* fileName, void* param), void* param);
 
 #endif

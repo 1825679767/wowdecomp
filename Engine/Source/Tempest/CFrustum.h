@@ -28,7 +28,7 @@ class CFrustum {
     void CalcPlanesFromCorners(const C3Vector* corners);
     uint32_t Cull(const CAaBox& box);
     uint32_t Cull(const CAaSphere& sphere);
-    void Cull(const C3Vector& point, uint8_t& outside);
+    void Cull(const C3Vector& point, uint8_t& outside) const;
     uint32_t Cull(const C3Vector& center, float radius);
     uint32_t CullInv(const CAaBox& box);
     void Extents(CAaBox& box);

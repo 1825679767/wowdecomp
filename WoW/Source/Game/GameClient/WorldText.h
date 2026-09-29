@@ -4,8 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-class WORLDTEXTSTRING {
-    public:
+struct WORLDTEXTSTRING {
     /* 0000 */ uint8_t unk_0000[8];
     /* 0008 */ uint32_t unk_0008;
     /* 000C */ uint32_t unk_000C;
@@ -21,6 +20,9 @@ class WORLDTEXTSTRING {
     /* 0030 */ uint32_t unk_0030;
     /* 0034 */ uint32_t unk_0034;
     /* 0038 */ uint32_t unk_0038;
+    /* 003C */ uint8_t unk_003C[68];
 };
+
+void WorldTextRenderBatch();
 
 #endif

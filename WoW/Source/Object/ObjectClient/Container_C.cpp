@@ -51,3 +51,8 @@ void CGContainer_C::SetStorage(uint32_t* storage, uint32_t* saved) {
     this->m_container = reinterpret_cast<CGContainerData*>(reinterpret_cast<uint8_t*>(storage) + sizeof(CGObjectData) + sizeof(CGItemData));
     this->m_containerMirror = saved + CGItem::TotalFieldsSaved();
 }
+
+// VERIFY: 0f5f4e76 auto
+// OFFSET: 0x005EEB70
+void CGContainer_C::Initialize() {
+}

@@ -43,9 +43,9 @@ int32_t RTAlphaSupported() {
     return supported;
 }
 
-// VERIFY: 406a4532 manual
+// VERIFY: 2e427666 manual
 // OFFSET: 0x00617070
-void UpdateAllPortraits() {
+void __fastcall UpdateAllPortraits() {
     unk_C5CDFC = RTAlphaSupported();
 
     for (PLAYERPORTRAIT* portrait = unk_C5CE08.m_fulllist.Head(); portrait; portrait = unk_C5CE08.Next(portrait)) {

@@ -12,8 +12,17 @@ class CClientObjCreate;
 class CImVector;
 class ItemStats_C;
 
+struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
+    /* 0018 */ char* m_texture;
+};
+
+struct ITEMBYNAME : public TSHashObject<ITEMBYNAME, HASHKEY_UTF8I> {
+};
+
 class CGItem_C : public CGObject_C, public CGItem {
     public:
+    static void Initialize();
+    static void Shutdown();
     struct ItemPurchaseData {
         /* 0000 */ uint32_t m_money;
         /* 0004 */ uint32_t m_honorPoints;
@@ -28,6 +37,9 @@ class CGItem_C : public CGObject_C, public CGItem {
     static void GetCooldowns(int32_t itemId, uint32_t& cooldown, uint32_t& categoryCooldown, uint32_t& category);
     static int32_t IsMetal(int32_t materialId);
     static int32_t NumBaseCharges(int32_t itemId);
+    static void RemoveNameFromCache(const char* name);
+    static const char* GetInventoryArt(int32_t displayId);
+    const char* GetInventoryArt() const;
 
     /* 00DC */ TSList<void> m_itemMirrorLists [58];
     /* 0394 */ uint32_t m_itemFlags;
@@ -51,6 +63,7 @@ class CGItem_C : public CGObject_C, public CGItem {
     int32_t GetCurrentSpellCharges();
     uint32_t GetDisplayID() const;
     uint32_t GetEnchantmentTimeLeft(int32_t slot) const;
+    int32_t UseItem(WOWGUID* target, int32_t a2);
     uint32_t GetExpirationTimeLeft() const;
     char* GetFullItemName(char* buffer, uint32_t size) const;
     uint32_t GetInventoryType() const;
@@ -69,6 +82,10 @@ class CGItem_C : public CGObject_C, public CGItem {
     bool HasSoulboundEnchant();
     int32_t HasUseEffect();
     bool IsBound();
+    void Unlock();
+    static int32_t GetUseSpell(int32_t itemId);
+    int32_t GetEnchantmentSpell(int32_t a1);
+    void GetSpellCooldownInfo(uint32_t& cooldown, uint32_t& categoryCooldown, uint32_t& category);
     bool IsBoundForTrade();
     bool IsBoundToAccount();
     bool IsInstanceBound() const;
@@ -81,8 +98,10 @@ class CGItem_C : public CGObject_C, public CGItem {
     void SetItemPurchaseData(ItemPurchaseData* data);
     void SetStorage(uint32_t* storage, uint32_t* saved);
     void SetTranslated();
+    void UpdateEnchantments();
     void UpdateEnchantmentTime(int32_t slot, int32_t seconds);
     void UpdateExpirationTime(int32_t seconds);
+    void UpdateSockets(uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5);
 };
 
 #endif

@@ -7891,3 +7891,16 @@ CM2Lighting::CM2Lighting(const C3Vector& position) {
     sphere.r = 0.0f;
     this->Initialize(nullptr, sphere);
 }
+
+// VERIFY: 4329ef5d manual
+// OFFSET: 0x0052E570
+void M2SequenceInfo::Clear() {
+    this->m_bounds.b.x = 0.0f;
+    this->m_bounds.b.y = 0.0f;
+    this->m_bounds.b.z = 0.0f;
+    this->m_bounds.t.x = 0.0f;
+    this->m_bounds.t.y = 0.0f;
+    this->m_bounds.t.z = 0.0f;
+    this->m_center = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_radius = 0.0f;
+}

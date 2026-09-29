@@ -15,6 +15,7 @@
 #include "WoW/Source/Object/Passenger.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 
+class CMapBaseObj;
 class CDataStore;
 class CGGameObject_C;
 class CGTooltip;
@@ -22,6 +23,7 @@ class CM2Model;
 class CMapEntity;
 class GameObjectStats;
 class GameObjectStats_C;
+class LockRec;
 enum GAME_ERROR_TYPE : int32_t;
 
 class CGGameObject_C_TypeBase {
@@ -58,7 +60,7 @@ class CGGameObject_C_TypeBase {
     virtual float GetSpeed() const;
     virtual void AddPassenger(CPassenger* passenger, int32_t a2);
     virtual int32_t IsPointInside(const C3Vector& point) const;
-    virtual uint32_t GetMapObjectTransportID() const;
+    virtual CMapBaseObj* GetMapObjectTransportID() const;
     virtual void PostInit(bool a1);
     virtual void PostInitWithStats();
     virtual void Reenable();
@@ -129,7 +131,7 @@ class CGGameObject_C_Type_WorldObj : public CGGameObject_C_TypeBase {
     virtual bool CanBeSolid() const;
     virtual bool CanHighlight() const;
     virtual bool CanUse() const;
-    virtual uint32_t GetMapObjectTransportID() const;
+    virtual CMapBaseObj* GetMapObjectTransportID() const;
     virtual void PostInitWithStats();
     virtual void Disable();
     virtual void PostReenable();
@@ -263,10 +265,12 @@ class CGGameObject_C_Type_Ritual : public CGGameObject_C_TypeAnimated {
 
 class CGGameObject_C : public CGObject_C, public CGGameObject {
     public:
+    static void Initialize();
+    static void Shutdown();
     static void AnimEventCallback(CM2Model* model, uint32_t boneId, uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time, uint64_t param);
-    static int32_t OnAnimProgressChanged(WOWGUID guid, uint32_t a2, uint32_t a3, const uint32_t* oldValue);
-    static int32_t OnFlagsChanged(WOWGUID guid, uint32_t a2, uint32_t a3, const uint32_t* oldValue);
-    static int32_t OnStateChanged(WOWGUID guid, uint32_t a2, uint32_t a3, const uint32_t* oldValue);
+    static int32_t OnAnimProgressChanged(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
+    static int32_t OnFlagsChanged(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
+    static int32_t OnStateChanged(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
     static void SequenceCallback(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
 
     /* 00D8 */ CPassenger m_passenger;
@@ -285,6 +289,11 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
 
     virtual C3Vector GetPosition() const;
     virtual C3Vector GetRawPosition() const;
+    void UpdateWorldObject(int32_t a2) override;
+    float GetFacing() const override;
+    float GetRawFacing() const override;
+    C4Quaternion GetRotation() const override;
+    void ModelLoaded(CM2Model* model) override;
     virtual uint64_t GetTransportGUID() const;
     virtual int32_t IsQuestGiver() const;
     virtual void UpdateInteractIconAttach();
@@ -307,6 +316,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     CGGameObject_C(uint32_t time, const CClientObjCreate& create);
     void AddToolTipInfo(CGTooltip* tooltip);
     bool CanUse() const;
+    void CheckForPassiveHighlight();
     int32_t CanUseNow() const;
     int32_t CheckRange() const;
     void CloseInteraction();
@@ -322,15 +332,20 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     void PostInit(uint32_t time, const CClientObjCreate& create, bool reenable);
     void ResetDisplayState();
     void SetDisplayState(int32_t state);
+    LockRec* GetLockRec() const;
     void SetPathProgress(float progress);
     void SetStorage(uint32_t* storage, uint32_t* saved);
     void ShowLootEffect();
     void StartInteraction();
     void UpdateObjectEffectAnimationStates(uint32_t anim);
+    CAaBox GetWorldBounds() const;
+    void UpdateDisplay(uint32_t time);
 };
 
+void ApplyGameObjectArtKit(CM2Model* model, int32_t artKit);
 void GameObject_C_ProcessAnimEvent(uint32_t eventId, uint32_t displayId, uint32_t data, const C3Vector& position, SE2SoundKitObject* sound);
 int32_t Packet_SMSG_GAMEOBJECT_CUSTOM_ANIM(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_GAMEOBJECT_DESPAWN_ANIM(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_GAMEOBJECT_PAGETEXT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 
 #endif

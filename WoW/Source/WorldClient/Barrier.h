@@ -37,6 +37,7 @@ class CGxVertexPCT0T1 {
 
 class CBarrier {
     public:
+    static void SetViewerPos(const C3Vector& position);
     static CM2Model* s_sparkles[4];
     static CTexture* s_mask;
     static CTexture* s_pattern;

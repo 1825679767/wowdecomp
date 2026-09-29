@@ -2338,9 +2338,9 @@ uint32_t CMapObj::CreateWmoIgnoreFlags(uint32_t a1) {
 
 
 
-// VERIFY: a9f02f24 manual
+// VERIFY: 688ff659 manual
 // OFFSET: 0x0079BBF0
-void CMapObj::QueryLiquidSounds(uint32_t groupIndex, uint32_t fromGroup, uint32_t depth, uint32_t* minDepth, const C3Vector& pos, uint32_t* results) {
+void CMapObj::QueryLiquidSounds(uint32_t groupIndex, uint32_t fromGroup, uint32_t depth, uint32_t* minDepth, const C3Vector& pos, TSGrowableArray<World::LiquidQueryResult>& results) {
     if (depth > CMapObj::s_unk_AEE008) {
         return;
     }
@@ -2697,4 +2697,162 @@ float CMapObj::DistFromClosestExtPortal(CMapObjGroup* group, const C3Vector& pos
     this->DistFromClosestExtPortal(0, flags, group, nullptr, pos, &dist);
 
     return dist;
+}
+
+// VERIFY: 484c8c47 manual
+// OFFSET: 0x007AEF00
+bool CMapObj::GetTris(const CAaBox& box, uint32_t flags, World::TriData* triData, CMapObjDef* mapObjDef) {
+    bool result = false;
+    uint16_t ignoreFlags = static_cast<uint16_t>(CMapObj::CreateWmoIgnoreFlags(flags));
+
+    for (int32_t i = 0; i < this->m_groupInfoCount; i++) {
+        const CAaBox& bounds = this->m_groupInfo[i].m_boundingBox;
+
+        if (box.t.x < bounds.b.x || box.t.y < bounds.b.y || box.t.z < bounds.b.z || box.b.x > bounds.t.x || box.b.y > bounds.t.y || box.b.z > bounds.t.z) {
+            continue;
+        }
+
+        if (!this->m_isGroupLoaded) {
+            continue;
+        }
+
+        CMapObjGroup* group = this->m_mapObjGroupArray[i];
+
+        if ((group->m_unkLoadedFlag & 1) && !(group->m_flags & 0x80)) {
+            result |= group->GetTris(box, flags, ignoreFlags, triData, mapObjDef);
+        }
+    }
+
+    return result;
+}
+
+// VERIFY: d1ce1d3d manual
+// OFFSET: 0x007AF000
+bool CMapObj::GetLiquidFacets(const CAaBox& box, uint32_t flags, World::FacetData* facets, CMapObjDef* mapObjDef) {
+    bool result = false;
+
+    for (int32_t i = 0; i < this->m_groupInfoCount; i++) {
+        const CAaBox& bounds = this->m_groupInfo[i].m_boundingBox;
+
+        if (box.t.x < bounds.b.x || box.t.y < bounds.b.y || box.t.z < bounds.b.z || box.b.x > bounds.t.x || box.b.y > bounds.t.y || box.b.z > bounds.t.z) {
+            continue;
+        }
+
+        if (!this->m_isGroupLoaded) {
+            continue;
+        }
+
+        CMapObjGroup* group = this->m_mapObjGroupArray[i];
+
+        if ((group->m_unkLoadedFlag & 1) && !(group->m_flags & 0x400080)) {
+            result |= group->GetLiquidFacets(box, flags, facets, mapObjDef);
+        }
+    }
+
+    return result;
+}
+
+// VERIFY: d6cd6b2c auto
+// OFFSET: 0x007AE920
+bool CMapObj::TestGroupBounds(const C3Vector& point, uint32_t groupNum) {
+    return this->m_isGroupLoaded && (this->m_mapObjGroupArray[groupNum]->m_unkLoadedFlag & 1) && this->m_groupInfo[groupNum].m_boundingBox.ContainsPoint(point);
+}
+
+// VERIFY: 15693e65 auto
+// OFFSET: 0x007AF200
+bool CMapObj::Intersect(C3Vector& start, C3Vector& end, float* distance, uint32_t flags, uint32_t ignoreFlags, uint32_t groupNum, int32_t* hitIndex) {
+    if (!this->m_isGroupLoaded) {
+        return false;
+    }
+
+    CMapObjGroup* group = this->m_mapObjGroupArray[groupNum];
+
+    if (!(group->m_unkLoadedFlag & 1)) {
+        return false;
+    }
+
+    C3Segment seg;
+    seg.b = start;
+    seg.t = end;
+    return group->Intersect(seg, distance, flags, static_cast<uint16_t>(ignoreFlags), hitIndex);
+}
+
+// VERIFY: d090e248 manual
+// OFFSET: 0x007AE8D0
+bool CMapObj::TestGroupBounds(CAaBox& box, uint32_t groupNum, int32_t a3) {
+    return (!a3 || (this->m_isGroupLoaded && (this->m_mapObjGroupArray[groupNum]->m_unkLoadedFlag & 1))) && this->m_groupInfo[groupNum].m_boundingBox.Intersects(box);
+}
+
+// VERIFY: aacb9f67 manual
+// OFFSET: 0x007AEB40
+bool CMapObj::QueryLighting(uint32_t groupNum, const C3Vector& point, uint16_t face, CImVector* color, uint8_t* flag) {
+    if (!this->m_isGroupLoaded) {
+        return false;
+    }
+
+    CMapObjGroup* group = this->m_mapObjGroupArray[groupNum];
+
+    if (!(group->m_unkLoadedFlag & 1) || (group->m_flags & 0x48)) {
+        return false;
+    }
+
+    return group->QueryLighting(point, face, color, flag);
+}
+
+// VERIFY: 155a20aa manual
+// OFFSET: 0x007AF780
+bool CMapObj::QueryLighting(uint32_t groupNum, const C3Segment& seg, CImVector* color, uint8_t* flag) {
+    float dist = 1.0f;
+
+    if (!this->m_isGroupLoaded) {
+        return false;
+    }
+
+    CMapObjGroup* group = this->m_mapObjGroupArray[groupNum];
+
+    if (!(group->m_unkLoadedFlag & 1) || (group->m_flags & 0x48)) {
+        return false;
+    }
+
+    World::TriData triData;
+    World::TriData::statusFlags = 0;
+    World::TriData::nBatches = 0;
+    World::TriData::faceIndexCursor = 0;
+    World::TriData::indexCursor = 0;
+    World::TriData::unk_CB7538 = 0;
+
+    if (!group->GetTris(seg, &dist, 0, 8, &triData, nullptr)) {
+        return false;
+    }
+
+    C3Vector point = C3Vector((seg.t.x - seg.b.x) * dist + seg.b.x, (seg.t.y - seg.b.y) * dist + seg.b.y, (seg.t.z - seg.b.z) * dist + seg.b.z);
+    return group->QueryLighting(point, World::TriData::batches[0].m_faceIndices[0], color, flag);
+}
+
+// VERIFY: dd3ad3a2 manual
+// OFFSET: 0x007AF0F0
+bool CMapObj::GetTris(const CWFrustum& frustum, uint32_t flags, World::TriData* triData, CMapObjDef* mapObjDef) {
+    bool result = false;
+    uint16_t ignoreFlags = static_cast<uint16_t>(CMapObj::CreateWmoIgnoreFlags(flags));
+    CAaBox box = CAaBox::Bounding(frustum.corners, 8);
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(this->m_groupInfoCount); i++) {
+        const CAaBox& bounds = this->m_groupInfo[i].m_boundingBox;
+
+        if (box.t.x < bounds.b.x || box.t.y < bounds.b.y || box.t.z < bounds.b.z || box.b.x > bounds.t.x || box.b.y > bounds.t.y || box.b.z > bounds.t.z) {
+            continue;
+        }
+
+        if (!this->m_isGroupLoaded) {
+            continue;
+        }
+
+        CMapObjGroup* group = this->m_mapObjGroupArray[i];
+
+        if ((group->m_unkLoadedFlag & 1) && !(group->m_flags & 0x80)) {
+            result |= group->GetTris(frustum, flags, ignoreFlags, triData, mapObjDef);
+        }
+    }
+
+    return result;
 }

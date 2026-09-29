@@ -28,6 +28,7 @@ class NameCache {
     ~NameCache();
     void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);
+    char* FullName(char* buffer, uint32_t size);
 };
 
 #endif

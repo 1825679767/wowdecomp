@@ -4,8 +4,13 @@
 #include <cstddef>
 #include <cstdint>
 
+class CGWorldFrame;
+
 class CGChatBubbleFrame {
     public:
+    static void OnWorldRender(CGWorldFrame* worldFrame);
+    static void OnWorldLayerUpdate();
+    static void InitializeGame();
     static void Remove(CGChatBubbleFrame* bubble);
 
     /* 0000 */ uint32_t unk_0000;

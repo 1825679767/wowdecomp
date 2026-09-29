@@ -26,10 +26,15 @@ class CGLCD {
     static TSList<POIIcon, TSGetLink<POIIcon> > m_POIIcons;
 
     static void ClearWaitQueueScreen();
+    static void IdleDisconnectWarning();
     static void Initialize();
     static void SetScreen(int32_t screen);
     static void Shutdown();
     static int32_t Update(const void* data, void* param);
+    static void OnWhisper(const char* name);
+    static void PushAlert(const char* text, int32_t a2);
+    static void Login();
+    static void EnterWorld();
 };
 
 #endif

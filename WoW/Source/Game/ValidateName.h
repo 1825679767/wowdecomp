@@ -22,4 +22,13 @@ int32_t NameNeedsDeclensions(int32_t locale, const char* name);
 void ValidateNameDestroy();
 void ValidateNameInitialize(int32_t localeMask, int32_t charsetMask);
 
+bool ValidateStringIsUTF8(const char* string);
+bool TruncateNewLines(char* text);
+
+bool IsNumeric(uint16_t c);
+bool IsUpper(uint16_t c);
+uint16_t ToUpper(uint16_t c);
+uint16_t ToLower(uint16_t c);
+bool StripHyperlinks(const char* text, char* buffer, uint32_t size);
+
 #endif

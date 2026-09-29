@@ -248,3 +248,10 @@ float CGCorpse_C::GetTrueScale() const {
 int32_t CGCorpse_C::CanHighlight() const {
     return !(this->m_corpse->m_corpseFieldFlags & 0x1) || (this->m_corpse->m_corpseFieldDynamicFlags & 0x1);
 }
+
+// VERIFY: 5ae4217a auto
+// OFFSET: 0x007062C0
+void CGCorpse_C::Initialize() {
+    ClntObjMgrSetTypeMirrorHandler(ID_CORPSE, offsetof(CGCorpseData, m_corpseFieldFlags), sizeof(uint32_t), CorpseFlagUpdateHandler, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetTypeMirrorHandler(ID_CORPSE, offsetof(CGCorpseData, m_corpseFieldDynamicFlags), sizeof(uint32_t), CorpseDynamicFlagUpdateHandler, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+}

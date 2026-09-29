@@ -8,6 +8,8 @@
 #include "WoW/Source/Object/Types.h"
 #include "WoW/Source/Object/WGUID.h"
 
+class CMovementStatus;
+
 class CPlayerMoveEvent {
     public:
     /* 0000 */ TSLink<CPlayerMoveEvent> m_link;
@@ -32,6 +34,8 @@ class CPlayerMoveEvent {
     /* 0052 */ uint8_t m_seat;
     /* 0053 */ uint8_t unk_0053;
     /* 0054 */ uint32_t unk_0054;
+
+    void FromMoveStatus(const CMovementStatus& status);
 };
 
 #endif

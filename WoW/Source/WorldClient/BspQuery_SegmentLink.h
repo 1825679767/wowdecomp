@@ -3,17 +3,29 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Tempest/C3Ray.h"
+#include "Engine/Source/Tempest/C3Segment.h"
+#include "WoW/Source/WorldClient/MapObjGroup.h"
 
-class BspQuery_SegmentLink {
-    public:
-    /* 0000 */ uint8_t unk_0000[48];
-    /* 0030 */ uint32_t unk_0030;
-    /* 0034 */ uint8_t unk_0034[20];
-    /* 0048 */ uint32_t unk_0048;
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050;
-    /* 0054 */ uint32_t unk_0054;
-    /* 0058 */ uint32_t unk_0058;
+class CAaBsp;
+struct CAaBspNode;
+
+struct BspQuery_SegmentLink : public BspQuery {
+    /* 0010 */ C3Ray m_ray;
+    /* 0028 */ C3Segment m_seg;
+    /* 0040 */ float m_oosegMag;
+    /* 0044 */ float m_interiorMaxT;
+    /* 0048 */ float m_groundMaxT;
+    /* 004C */ float m_interiorT;
+    /* 0050 */ float m_groundT;
+    /* 0054 */ int32_t m_interiorFace;
+    /* 0058 */ int32_t m_groundFace;
+    /* 005C */ uint32_t m_faceIgnoreFlags;
+
+    BspQuery_SegmentLink(SMOPoly* faces, C3Vector* vertexList, uint16_t* indices, const C3Segment& seg, float interiorMaxT, float groundMaxT);
+    void operator()(uint16_t face);
+    bool GetFaceIndicesUsingCache(const CAaBsp& aaBsp, const CAaBspNode* node);
+    bool GetHits(float* interiorT, int32_t* interiorFace, float* groundT, int32_t* groundFace);
 };
 
 #endif

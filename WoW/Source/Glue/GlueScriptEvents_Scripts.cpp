@@ -315,9 +315,9 @@ static int32_t Script_IsScanDLLFinished(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 42b871ba auto
+// VERIFY: e95a71be auto
 // OFFSET: 0x004DCE40
-static int32_t Script_IsWindowsClient(lua_State* L) {
+int32_t Script_IsWindowsClient(lua_State* L) {
     lua_pushnumber(L, 1.0);
     return 1;
 }
@@ -372,9 +372,9 @@ static int32_t Script_StopAllSFX(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 56368f8c auto
+// VERIFY: e1c1f234 auto
 // OFFSET: 0x004DD400
-static int32_t Script_RestartGx(lua_State* L) {
+int32_t Script_RestartGx(lua_State* L) {
     ConsoleCommandExecute("gxRestart", 1);
     return 0;
 }
@@ -737,16 +737,16 @@ static int32_t Script_GetChangedOptionWarnings(lua_State* L) {
     return count;
 }
 
-// VERIFY: be62c7b7 auto
+// VERIFY: 02785aeb auto
 // OFFSET: 0x00510B90
-static int32_t Script_IsMacClient(lua_State* L) {
+int32_t Script_IsMacClient(lua_State* L) {
     lua_pushnil(L);
     return 1;
 }
 
-// VERIFY: c8bc6d42 auto
+// VERIFY: f53e291b auto
 // OFFSET: 0x004DD610
-static int32_t Script_GetMovieResolution(lua_State* L) {
+int32_t Script_GetMovieResolution(lua_State* L) {
     CVar* resolution = CVar::Lookup("gxResolution");
 
     if (!resolution || !resolution->m_stringValue.m_str) {
@@ -855,9 +855,9 @@ static int32_t Script_ReadyForAccountDataTimes(lua_State* L) {
     return 0;
 }
 
-// VERIFY: cc41cd11 auto
+// VERIFY: da8be63e manual
 // OFFSET: 0x00511200
-static int32_t Script_GetNumAddOns(lua_State* L) {
+int32_t Script_GetNumAddOns(lua_State* L) {
     lua_pushnumber(L, GetNumAddOns());
     return 1;
 }

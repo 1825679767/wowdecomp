@@ -2788,3 +2788,10 @@ void DayNight::UpdateLighting() {
     DayNight::SetDirection();
     DayNight::SetPlanets();
 }
+
+// VERIFY: dbc89d6c auto
+// OFFSET: 0x007ECE00
+int32_t DayNight::GetFogOverride() {
+    return s_fogOverride;
+}
+

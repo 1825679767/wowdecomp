@@ -79,9 +79,9 @@ uint32_t CFrustum::Cull(const CAaSphere& sphere) {
     return 3;
 }
 
-// VERIFY: 5fea8dd6 manual
+// VERIFY: 3dfc1f7d manual
 // OFFSET: 0x00983D70
-void CFrustum::Cull(const C3Vector& point, uint8_t& outside) {
+void CFrustum::Cull(const C3Vector& point, uint8_t& outside) const {
     outside = 0;
 
     for (uint32_t i = 0; i < 6; i++) {

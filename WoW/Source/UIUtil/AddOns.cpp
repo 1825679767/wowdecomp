@@ -4,6 +4,7 @@
 #include <malloc.h>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/FrameXML/FrameXML.h"
@@ -14,6 +15,9 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "ThirdParty/zlib/zlib.h"
 
+// STATIC: 0x00AD17B4
+static const char* s_addOnLoadableTokens[10] = { "LOADABLE", "MISSING", "DISABLED", "BANNED", "CORRUPT", "INSECURE", "DEMAND_LOADED", "INTERFACE_VERSION", "INCOMPATIBLE", "SECURE" };
+
 // STATIC: 0x00AD17A8
 static TSList<ADDONSTATELIST> s_addOnStates;
 
@@ -23,11 +27,93 @@ static TSHashTable<UIADDON, HASHKEY_STRI> s_addons;
 // STATIC: 0x00C24944
 static TSGrowableArray<const char*> s_addOnInfo;
 
+// STATIC: 0x00C24410
+static uint32_t s_dataInterfaceVersion;
+
 // STATIC: 0x00C24418
 static char s_addOnAccountName[1280];
 
 // STATIC: 0x00C24918
 static bool s_addOnsInitialized;
+
+// VERIFY: e4678852 auto
+// OFFSET: 0x005F4910
+static void ReadDataInterfaceVersion() {
+    void* data;
+
+    if (!SFile::ReadFile(nullptr, "Interface\\FrameXML\\FrameXML.toc", &data, nullptr, 1, 1, nullptr)) {
+        return;
+    }
+
+    const char* text = static_cast<const char*>(data);
+
+    if (static_cast<uint8_t>(text[0]) == 0xEF && static_cast<uint8_t>(text[1]) == 0xBB && static_cast<uint8_t>(text[2]) == 0xBF) {
+        text += 3;
+    }
+
+    char line[1024];
+
+    do {
+        SStrTokenize(&text, line, sizeof(line), "\r\n", nullptr);
+
+        if (!*text) {
+            break;
+        }
+
+        if (line[0] == '#' && line[1] == '#') {
+            const char* value = &line[2];
+
+            while (*value == ' ') {
+                value++;
+            }
+
+            if (!SStrCmpI(value, "Interface: ", SStrLen("Interface: "))) {
+                while (*value != ' ') {
+                    value++;
+                }
+
+                while (*value == ' ') {
+                    value++;
+                }
+
+                s_dataInterfaceVersion = SStrToUnsigned(value);
+                break;
+            }
+        } else if (!line[0]) {
+            break;
+        }
+    } while (*text);
+
+    SFile::Unload(data);
+}
+
+// VERIFY: 99fcd940 auto
+// OFFSET: 0x005F4C10
+uint32_t GetCodeInterfaceVersion() {
+    return 30300;
+}
+
+// VERIFY: 75e0f3ca auto
+// OFFSET: 0x005F4C20
+uint32_t GetDataInterfaceVersion() {
+    if (!s_dataInterfaceVersion) {
+        ReadDataInterfaceVersion();
+    }
+
+    return s_dataInterfaceVersion;
+}
+
+// VERIFY: cf4c0a28 auto
+// OFFSET: 0x005F4C40
+char* AddOnUnloadableToken(UIADDON_LOADABLE_REASON reason, UIADDON_LOADABLE_REASON dependencyReason, char* buffer, uint32_t size) {
+    if (reason) {
+        SStrCopy(buffer, s_addOnLoadableTokens[reason], size);
+    } else {
+        SStrPrintf(buffer, size, "DEP_%s", s_addOnLoadableTokens[dependencyReason]);
+    }
+
+    return buffer;
+}
 
 // VERIFY: 6c5d7816 auto
 // OFFSET: 0x005F4CE0
@@ -276,18 +362,18 @@ void GetAddOnInfoRequest(CDataStore* msg) {
     }
 }
 
-// VERIFY: ee3d251b manual
+// VERIFY: f6241796 manual
 // OFFSET: 0x005F6C20
 UIADDON::UIADDON() {
     this->m_loading = false;
-    this->unk_0019 = 0;
+    this->m_loaded = 0;
     this->m_interfaceVersion = 0;
     this->m_revision = 0;
     this->m_secure = false;
     this->m_blizzard = 0;
     this->m_signed = 0;
     this->m_loadOnDemand = false;
-    this->unk_002D = 0;
+    this->m_checkingLoadable = 0;
     this->m_url = nullptr;
     this->m_numFiles = 0;
     this->m_status = 1;
@@ -342,6 +428,41 @@ UIADDON::~UIADDON() {
     this->m_metadata.Clear();
 }
 
+// VERIFY: dad9fd3c manual
+// OFFSET: 0x005F7570
+static int32_t ComputeAddOnEnableState(const char* name) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (!addon) {
+        return 0;
+    }
+
+    uint32_t total = 0;
+    uint32_t enabled = 0;
+
+    for (ADDONSTATELIST* list = s_addOnStates.Head(); list; list = s_addOnStates.Next(list)) {
+        ADDONSTATE* state = list->m_states.Ptr(name);
+
+        if (state) {
+            total++;
+
+            if (state->m_enabled) {
+                enabled++;
+            }
+        }
+    }
+
+    if (!total) {
+        return addon->m_enabledByDefault ? 2 : 0;
+    }
+
+    if (!enabled) {
+        return 0;
+    }
+
+    return 2 - (enabled < total);
+}
+
 // VERIFY: 5af7c1e1 auto
 // OFFSET: 0x005F7630
 bool IsAddOnLoading(const char* name) {
@@ -349,6 +470,18 @@ bool IsAddOnLoading(const char* name) {
 
     if (addon) {
         return addon->m_loading;
+    }
+
+    return false;
+}
+
+// VERIFY: 159044be auto
+// OFFSET: 0x005F7650
+bool IsAddOnLoaded(const char* name) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (addon) {
+        return addon->m_loaded;
     }
 
     return false;
@@ -541,6 +674,165 @@ void SetAddOnInfoRequest(CDataStore* msg) {
     qsort(s_addOnInfo.m_data, s_addOnInfo.Count(), sizeof(const char*), QSortAddOns);
 }
 
+// VERIFY: 6c736269 manual
+// OFFSET: 0x005F7D70
+int32_t GetAddOnEnableState(const char* name, const char* character, bool compute) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (!addon) {
+        return 0;
+    }
+
+    uint32_t total = 0;
+    uint32_t enabled = 0;
+
+    for (ADDONSTATELIST* list = s_addOnStates.Head(); list; list = s_addOnStates.Next(list)) {
+        if (character && SStrCmpI(list->m_name, character, STORM_MAX_STR)) {
+            continue;
+        }
+
+        bool state = false;
+        ADDONSTATE* addonState = list->m_states.Ptr(name);
+
+        if (addonState) {
+            state = addonState->m_enabled;
+        } else if (compute) {
+            switch (ComputeAddOnEnableState(name)) {
+                case 0:
+                    state = false;
+                    break;
+
+                case 1:
+                    state = addon->m_enabledByDefault;
+                    break;
+
+                case 2:
+                    state = true;
+                    break;
+            }
+        } else {
+            state = addon->m_enabledByDefault;
+        }
+
+        total++;
+
+        if (state) {
+            enabled++;
+        }
+
+        if (character) {
+            break;
+        }
+    }
+
+    if (!total) {
+        return addon->m_enabledByDefault ? 2 : 0;
+    }
+
+    if (!enabled) {
+        return 0;
+    }
+
+    return 2 - (enabled < total);
+}
+
+// VERIFY: 34f50be6 manual
+// OFFSET: 0x005F7E90
+bool IsAddOnLoadable(const char* name, bool demandLoad, UIADDON_LOADABLE_REASON& reason, UIADDON_LOADABLE_REASON& dependencyReason, const char* character) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (!addon) {
+        reason = UIADDON_MISSING;
+        return false;
+    }
+
+    if (addon->m_checkingLoadable) {
+        return true;
+    }
+
+    if (!GetAddOnEnableState(name, character, true)) {
+        reason = UIADDON_DISABLED;
+        return false;
+    }
+
+    if (addon->m_status == 2) {
+        reason = UIADDON_BANNED;
+        return false;
+    }
+
+    if (addon->m_signed) {
+        reason = UIADDON_CORRUPT;
+        return false;
+    }
+
+    if (addon->m_interfaceVersion < 20000) {
+        reason = UIADDON_INCOMPATIBLE;
+        return false;
+    }
+
+    if (addon->m_interfaceVersion != 30300) {
+        reason = UIADDON_INTERFACE_VERSION;
+
+        if (g_checkAddonVersionVar->m_intValue) {
+            return false;
+        }
+    }
+
+    reason = UIADDON_LOADABLE;
+
+    bool loadable = true;
+    addon->m_checkingLoadable = true;
+
+    for (uint32_t i = 0; i < addon->m_requiredDeps.Count(); i++) {
+        if (!IsAddOnLoading(addon->m_requiredDeps[i]) && !IsAddOnLoadable(addon->m_requiredDeps[i], true, dependencyReason, dependencyReason, character)) {
+            loadable = false;
+            break;
+        }
+    }
+
+    addon->m_checkingLoadable = false;
+
+    if (!loadable) {
+        return false;
+    }
+
+    if (!demandLoad && addon->m_loadOnDemand) {
+        reason = UIADDON_DEMAND_LOADED;
+        return false;
+    }
+
+    return true;
+}
+
+// VERIFY: a5cade8d auto
+// OFFSET: 0x005F7FF0
+uint32_t LoadAddOnFileCount() {
+    uint32_t count = 0;
+
+    for (UIADDON* addon = s_addons.m_fulllist.Head(); addon; addon = s_addons.m_fulllist.Next(addon)) {
+        if (addon->m_loadOnDemand) {
+            continue;
+        }
+
+        UIADDON_LOADABLE_REASON reason;
+        UIADDON_LOADABLE_REASON dependencyReason;
+        bool managed = false;
+
+        for (uint32_t i = 0; i < addon->m_loadManagers.Count(); i++) {
+            if (IsAddOnLoadable(addon->m_loadManagers[i], false, reason, dependencyReason, ClientServices::GetCharacterName())) {
+                managed = true;
+                break;
+            }
+        }
+
+        if (!managed && IsAddOnLoadable(addon->m_key.m_str, false, reason, dependencyReason, ClientServices::GetCharacterName())) {
+            count += addon->m_numFiles;
+        }
+    }
+
+    return count;
+}
+
 // VERIFY: d96c4f04 manual
 // OFFSET: 0x005F8530
 void UIADDON::SetMetadata(const char* key, const char* value) {
@@ -607,6 +899,23 @@ static void LoadAddOnMetadata(UIADDON* addon, const char* line) {
     key[keyLength] = '\0';
 
     addon->SetMetadata(key, end);
+}
+
+// VERIFY: 96a89a20 auto
+// OFFSET: 0x005F84A0
+void LoadAddOns(CStatus* status) {
+    for (UIADDON* addon = s_addons.m_fulllist.Head(); addon; addon = s_addons.m_fulllist.Next(addon)) {
+        for (uint32_t i = 0; i < addon->m_loadManagers.Count(); i++) {
+            if (LoadAddOn(addon->m_loadManagers[i], false, status)) {
+                addon->m_loadOnDemand = true;
+                break;
+            }
+        }
+
+        if (!addon->m_loadOnDemand) {
+            LoadAddOn(addon->m_key.m_str, false, status);
+        }
+    }
 }
 
 // VERIFY: b8ed8d06 manual
@@ -885,13 +1194,13 @@ static int32_t EnumAddOnsDisk(OS_FILE_DATA& data, void* param) {
     return 0;
 }
 
-// VERIFY: a187c181 manual
+// VERIFY: 605b03d2 manual
 // OFFSET: 0x005F8F50
 void InitializeAddOns() {
     ListInterfaceArchive("Interface\\AddOns\\", EnumAddOnsArchive, nullptr);
     OsFileList("Interface\\AddOns\\", "*", EnumAddOnsDisk, nullptr, 0);
 
-    for (UIADDON* addon = s_addons.m_fulllist.Head(); addon; addon = s_addons.Next(addon)) {
+    for (UIADDON* addon = s_addons.m_fulllist.Head(); addon; addon = s_addons.m_fulllist.Next(addon)) {
         for (uint32_t i = 0; i < addon->m_loadWith.Count(); i++) {
             UIADDON* target = s_addons.Ptr(addon->m_loadWith[i]);
 

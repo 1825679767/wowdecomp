@@ -9,6 +9,22 @@
 class CWFrustum : public CFrustum {
     public:
     /* 00F4 */ TSLink<CWFrustum> m_link;
+
+    CWFrustum();
+    CWFrustum(const C3Vector* corners);
+    CWFrustum(const CFrustum& frustum);
 };
+
+// INLINED
+inline CWFrustum::CWFrustum() {
+}
+
+// INLINED
+inline CWFrustum::CWFrustum(const C3Vector* corners) : CFrustum(corners) {
+}
+
+// INLINED
+inline CWFrustum::CWFrustum(const CFrustum& frustum) : CFrustum(frustum) {
+}
 
 #endif

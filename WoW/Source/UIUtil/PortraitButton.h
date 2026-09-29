@@ -21,6 +21,9 @@ struct UNITPORTRAIT : public TSHashObject<UNITPORTRAIT, HASHKEY_DWORD> {
 };
 
 int32_t RTAlphaSupported();
-void UpdateAllPortraits();
+void __fastcall UpdateAllPortraits();
+
+void PortraitInitialize();
+void UpdatePendingPortraits();
 
 #endif

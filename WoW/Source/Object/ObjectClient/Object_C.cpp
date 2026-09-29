@@ -20,6 +20,19 @@
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
 #include "WoW/Source/WorldClient/FrameTime.h"
 #include "WoW/Source/WorldClient/World.h"
+#include "Engine/Source/Model2/M2Data.h"
+#include "Engine/Source/Model2/M2Shared.h"
+#include "Engine/Source/Tempest/CAaSphere.h"
+#include "WoW/Source/WorldClient/Map.h"
+#include "WoW/Source/Object/ObjectClient/Corpse_C.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "Engine/Source/Services/SysMessage.h"
+#include "WoW/Source/Ui/PetInfo.h"
+#include "WoW/Source/Game/GameClient/PlayerName.h"
+#include "WoW/Source/Ui/MinimapFrame.h"
+#include "WoW/Source/Ui/MinimapFrame.h"
+#include "Engine/Source/Tempest/CMath.h"
+#include <cmath>
 
 // STATIC: 0x00ADAC98
 CGObject_C::InteractIcon CGObject_C::s_interactIcons[12] = {
@@ -111,6 +124,360 @@ CHashKeyGUID::CHashKeyGUID(uint64_t guid) {
 // INLINED
 bool CHashKeyGUID::operator==(const CHashKeyGUID& key) {
     return this->m_guid == key.m_guid;
+}
+
+// VERIFY: 76f8c467 auto
+// OFFSET: 0x007442E0
+void CGObject_C::ModelLoaded(CM2Model* model) {
+    if (model != this->GetObjectModel()) {
+        return;
+    }
+
+    this->ModelChanged();
+
+    CEffect* effect = this->m_effectList;
+
+    while (effect) {
+        CEffect* next = effect->m_next;
+        effect->UpdateAttachment();
+        effect = next;
+    }
+}
+
+// VERIFY: f03ef6af manual
+// OFFSET: 0x00743760
+void CGObject_C::AddWorldObject() {
+    if (!this->m_worldModel) {
+        const char* fileName;
+
+        if (this->GetModelFileName(&fileName)) {
+            CM2Model* model = World::s_m2Scene->CreateModel(fileName, 0);
+
+            if (model != this->m_worldModel) {
+                this->SetModelFinish(this->SetModelStart(model));
+            }
+
+            model->Release();
+        }
+
+        if (!this->m_worldModel) {
+            return;
+        }
+    }
+
+    if (ClntObjMgrGetPlayerType()) {
+        return;
+    }
+
+    if (this->m_worldObject) {
+        SysMsgPrintf(STATUS_WARNING, 2, "OBJECTALREADYACTIVE|0x%016I64X", this->m_obj->m_guid.m_guid);
+        return;
+    }
+
+    uint32_t flags = 0;
+
+    if (this->m_obj->m_type & TYPEMASK_GAMEOBJECT) {
+        flags = 11;
+    } else if (this->m_obj->m_type & TYPEMASK_DYNAMICOBJECT) {
+        flags = 10;
+    } else if (this->m_obj->m_type & TYPEMASK_CORPSE) {
+        if (static_cast<CGCorpse_C*>(this)->m_corpse->m_corpseFieldFlags & 0x1) {
+            flags = 2;
+        }
+    } else if (this->m_obj->m_type & TYPEMASK_UNIT) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(this);
+
+        if (unit->IsLinkAll()) {
+            flags = 8;
+        }
+
+        if (unit->HasNoShadowBlob()) {
+            flags |= 0x2;
+        }
+
+        flags |= 0x10;
+
+        if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+            flags |= 0x20;
+        }
+    }
+
+    this->m_worldObject = CMap::ObjectCreate(this->GetObjectModel(), CGWorldFrame::ObjectEnumProc, nullptr, this->m_obj->m_guid.m_guid, 0, flags);
+
+    if ((this->m_modelFlags & 0x40000) && !(this->m_modelFlags & 0x20000)) {
+        this->UpdateWorldObject(0);
+    }
+}
+
+// VERIFY: 8e991786 manual
+// OFFSET: 0x00745DA0
+void CGObject_C::UpdateInteractIcon() {
+    if (this->m_interactIcon) {
+        if (this->m_interactIcon->m_attachParent) {
+            this->m_interactIcon->DetachFromParent();
+        }
+
+        this->m_interactIcon->Release();
+        this->m_interactIcon = nullptr;
+    }
+
+    uint32_t icon;
+    uint32_t status = this->m_questStatus;
+
+    if (status && (status - 2 > 2 || CGMinimapFrame::IsTrackingTrivialQuests())) {
+        icon = CGObject_C::s_questStatusIcons[this->m_questStatus];
+    } else {
+        icon = this->m_interactIconType;
+
+        if (!icon) {
+            return;
+        }
+    }
+
+    if (!icon) {
+        return;
+    }
+
+    CM2Model* model = World::s_m2Scene->DuplicateModel(CGObject_C::s_interactIcons[icon].m_model, 0);
+    this->m_interactIcon = model;
+
+    if (model) {
+        model->m_fadeAlpha = CGObject_C::s_interactIcons[icon].m_scale;
+    }
+
+    this->UpdateInteractIconAttach();
+    this->SetInteractIconVisible(CGGameUI::m_visible);
+}
+
+// VERIFY: 1e9b4846 manual
+// OFFSET: 0x007444E0
+void CGObject_C::UpdateInteractIconScale() {
+    if (!this->m_interactIcon || !this->m_interactIcon->m_attachParent || !this->m_worldModel || !this->m_worldModel->IsLoaded(0, 0)) {
+        return;
+    }
+
+    C44Matrix attachment = this->m_worldModel->GetAttachmentWorldTransform(this->m_interactIcon->m_attachmentId);
+    float lengthSq = attachment.a1 * attachment.a1 + attachment.a2 * attachment.a2 + attachment.a0 * attachment.a0;
+
+    if (!(0.0f < lengthSq)) {
+        return;
+    }
+
+    float scale = PlayerNameComputeScale(this) / sqrtf(lengthSq);
+
+    if (fequal(scale, 1.0f) || !(0.0f < scale)) {
+        return;
+    }
+
+    C44Matrix matrix;
+    matrix = this->m_interactIcon->m_worldTransform;
+    float current = sqrtf(matrix.a1 * matrix.a1 + matrix.a2 * matrix.a2 + matrix.a0 * matrix.a0);
+
+    if (0.01f < current && fabsf(scale - current) > 0.01f) {
+        matrix.Scale(scale / current);
+        this->m_interactIcon->SetWorldTransform(matrix);
+    }
+}
+
+// VERIFY: c70eec03 auto
+// OFFSET: 0x00743490
+void CGObject_C::ObjectNameVisibilityChanged() {
+    if (!this->m_interactIcon) {
+        return;
+    }
+
+    if (PlayerNameShowing(this->m_nameDesc)) {
+        this->m_interactIcon->SetBoneSequence(0xFFFFFFFF, 190, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+    } else {
+        this->m_interactIcon->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+    }
+}
+
+// VERIFY: 5c131dd9 auto
+// OFFSET: 0x00743FF0
+void CGObject_C::PostReenable() {
+    this->RefreshInteractIcon();
+    this->m_modelFlags &= ~0x20000;
+
+    if (!this->m_worldObject && this->GetObjectModel()) {
+        this->AddWorldObject();
+    }
+}
+
+// VERIFY: c5f08860 auto
+// OFFSET: 0x00744DB0
+void CGObject_C::Reenable() {
+    this->m_modelFlags = (this->m_modelFlags & ~0x10000) | 0x20000;
+    this->m_scale = this->GetScale();
+    this->m_scaleChangeTime = 0;
+    uint32_t time = this->ShouldFadeIn() ? 1000 : 0;
+    this->DoFade(this->GetBaseAlpha(), time);
+}
+
+// VERIFY: 9f30bf9a auto
+// OFFSET: 0x00744D20
+void CGObject_C::Disable() {
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+
+    if (camera && camera->m_relativeTo == this->m_obj->m_guid) {
+        camera->MakeRelativeTo(WOWGUID{ 0 });
+    }
+
+    this->Fadeout();
+
+    if (this->m_interactIcon) {
+        if (this->m_interactIcon->m_attachParent) {
+            this->m_interactIcon->DetachFromParent();
+        }
+
+        this->m_interactIcon->Release();
+        this->m_interactIcon = nullptr;
+    }
+
+    this->m_fadeDuration = 0;
+    this->m_fadeEndAlpha = 0;
+    this->m_alpha = 0;
+    this->m_modelFlags = (this->m_modelFlags & 0xF8FFFFFF) | 0x10000;
+    this->m_disableTime = FrameTime::s_curTimeMs;
+}
+
+// VERIFY: 890fb3ed auto
+// OFFSET: 0x00743D50
+void CGObject_C::Fadeout() {
+    if (!this->m_worldObject) {
+        return;
+    }
+
+    if (this->ShouldFadeout()) {
+        if (this->GetObjectModel() && !this->GetObjectModel()->m_attachParent) {
+            this->Animate(0.0f);
+        }
+
+        CGObject_C::PrepareToFadeInt(this->m_worldObject, this->m_alpha * 0.0039215689f, this->GetTransportGUID());
+        this->m_worldObject = nullptr;
+    } else {
+        World::ObjectDestroy(this->m_worldObject);
+        this->m_worldObject = nullptr;
+    }
+}
+
+// VERIFY: fce76166 auto
+// OFFSET: 0x00743AF0
+void CGObject_C::UpdateEffectAttachments() {
+    if (this->m_worldModel && this->m_worldModel->IsLoaded(0, 0)) {
+        CEffect* effect = this->m_effectList;
+
+        while (effect) {
+            CEffect* next = effect->m_next;
+
+            if (effect->m_flags & 0x800) {
+                effect->UpdateAttachment();
+            }
+
+            effect = next;
+        }
+    }
+}
+
+// VERIFY: 8c88711b auto
+// OFFSET: 0x00743EC0
+void CGObject_C::PreAnimate(CGWorldFrame* frame) {
+    if (CGGameUI::m_lockedTarget == this->m_obj->m_guid && ClntObjMgrGetActivePlayer() != this->m_obj->m_guid && CGObject_C::s_cvObjectSelectionCircle->m_intValue) {
+        frame->m_trackedEffectGuidA = this->m_obj->m_guid;
+    }
+
+    if (CGPetInfo::GetTarget() == this->m_obj->m_guid && ClntObjMgrGetActivePlayer() != this->m_obj->m_guid) {
+        frame->m_trackedEffectGuidB = this->m_obj->m_guid;
+    }
+
+    uint32_t time = FrameTime::s_curTimeMs;
+    this->ApplyAlpha(time);
+
+    if (this->m_scaleChangeTime && time > this->m_scaleChangeTime) {
+        int32_t elapsed = time - this->m_scaleChangeTime;
+
+        if (elapsed < 2000) {
+            this->m_scale = (this->GetScale() - this->m_scaleChangeStart) * (-cosf(elapsed * 0.0005f * 3.1415927f) * 0.5f + 0.5f) + this->m_scaleChangeStart;
+            this->ScaleChangeUpdate();
+        } else {
+            this->m_scale = this->m_obj->m_scale;
+            this->m_scaleChangeTime = 0;
+            this->ScaleChangeFinished();
+        }
+    }
+}
+
+// VERIFY: e068f442 manual
+// OFFSET: 0x00743680
+void CGObject_C::SetModelFinish(CM2Model* model) {
+    CEffect* effect = this->m_effectList;
+
+    while (effect) {
+        CEffect* next = effect->m_next;
+        effect->DetachFromParent();
+
+        if (this->m_worldModel->IsLoaded(0, 0)) {
+            effect->UpdateAttachment();
+        }
+
+        effect = next;
+    }
+
+    if (model) {
+        model->SetLoadedCallback(nullptr, nullptr);
+
+        if (model->m_attachParent) {
+            model->DetachFromParent();
+        }
+
+        model->Release();
+    }
+
+    if (this->m_worldModel) {
+        this->m_worldModel->SetLoadedCallback(CGObject_C::ModelLoadedCallback, this);
+    }
+
+    if (this->m_worldObject) {
+        CM2Model* worldModel = this->m_worldModel;
+
+        if (worldModel == this->GetObjectModel()) {
+            World::ObjectSetModel(this->m_worldObject, worldModel);
+        }
+    }
+}
+
+// VERIFY: fcd6a1dd manual
+// OFFSET: 0x007438E0
+void CGObject_C::UpdateWorldObject(int32_t a2) {
+    if (!this->m_worldObject) {
+        return;
+    }
+
+    C44Matrix mat;
+    mat.Translate(this->GetPosition());
+    mat.RotateAroundZ(this->GetFacing());
+    mat.Scale(this->GetTrueScale());
+
+    C3Vector vec(0.0f, 0.0f, 0.0f);
+    CAaBox box(C3Vector(0.0f, 0.0f, 0.0f), C3Vector(0.0f, 0.0f, 0.0f));
+    CAaSphere sphere;
+    sphere.c = C3Vector(0.0f, 0.0f, 0.0f);
+    sphere.r = 0.0f;
+
+    if (this->m_worldModel && this->m_worldModel->IsLoaded(0, 0)) {
+        CM2Model* model = this->m_worldModel;
+
+        if (!(model->m_shared->m_flags & 0x1)) {
+            model->WaitForLoad(nullptr);
+        }
+
+        CAaBox bounds = model->m_shared->m_data->m_collisionBounds.m_extent;
+        vec = C3Vector((bounds.t.x + bounds.b.x) * 0.5f, (bounds.t.y + bounds.b.y) * 0.5f, (bounds.t.z + bounds.b.z) * 0.5f);
+        box = this->m_worldModel->GetBoundingBox();
+        sphere = this->m_worldModel->GetBoundingSphere();
+    }
+
+    CMap::ObjectUpdate(this->m_worldObject, mat, box, sphere, vec, a2, 0xFFFFFFFF);
 }
 
 // VERIFY: 6f30b42a auto

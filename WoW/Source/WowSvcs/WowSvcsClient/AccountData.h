@@ -35,7 +35,10 @@ void AccountDataInitializeBasicSystem();
 void AccountDataShutdownBasicSystem();
 void DownloadAccountData(int32_t type);
 void LoadAccountData(int32_t type, ACCOUNTDATALOADFUNC func, void* param);
+void SaveAccountData(int32_t type, ACCOUNTDATALOADFUNC func, void* param);
 int32_t Packet_SMSG_CHECK_FOR_BOTS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 void UploadAccountData(int32_t type);
+
+void AccountDataDestroy(bool global);
 
 #endif

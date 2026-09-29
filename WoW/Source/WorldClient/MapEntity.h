@@ -11,6 +11,7 @@
 #include "WoW/Source/WorldClient/MapLoad.h"
 
 class CMapObjDef;
+namespace World { struct LiquidQueryResult; }
 
 struct FogQ {
     /* 0000 */ float m_distance;
@@ -31,7 +32,8 @@ class FogQueue : public CMemBlock {
 
 class CMapEntity : public CMapStaticEntity {
     public:
-    /* 0090 */ uint32_t (*m_func)(void*, uint32_t, uint64_t, uint32_t);
+    void Tick();
+    /* 0090 */ int32_t (*m_func)(void*, uint32_t, uint64_t, uint32_t);
     /* 0094 */ void* m_funcParam;
     /* 0098 */ uint64_t m_funcParam64;
     /* 00A0 */ uint32_t m_funcParam32;
@@ -43,14 +45,15 @@ class CMapEntity : public CMapStaticEntity {
     /* 00BE */ uint16_t unk_00BE;
     /* 00C0 */ CImVector unk_00C0;
     /* 00C4 */ float unk_00C4;
-    /* 00C8 */ TSLink<void> m_sortEntryLink;
+    /* 00C8 */ TSLink<CMapEntity> m_sortEntryLink;
 
     static int32_t QueryCameraFog(SMOFog* fog, CMapObjDef** mapObjDef, uint8_t* found, TSGrowableArray<uint32_t>** groups, float* distance);
 
     virtual bool QueryInteriorLighting(CMapObjDef* mapObjDef, int32_t groupNum, uint16_t* faceIndex, C3Vector* pos);
 
     CMapEntity();
-    void QueryLiquidSounds(uint32_t* results, uint32_t* distance);
+    int32_t QueryInterior();
+    void QueryLiquidSounds(TSGrowableArray<World::LiquidQueryResult>& results, uint32_t* distance);
     bool UpdateMapObjLiquid();
 };
 

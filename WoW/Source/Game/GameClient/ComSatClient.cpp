@@ -8,6 +8,7 @@
 #include "Engine/Source/Storm/Source/SThread.h"
 #include "WoW/Source/Game/GameClient/ComSatThread.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
+#include "WoW/Source/Ui/UIBindings.h"
 
 // STATIC: 0x00D31AA0
 COMSATDATA s_comsatData[32];
@@ -57,8 +58,20 @@ static float unk_D37CE0;
 // STATIC: 0x00D37CE4
 static float unk_D37CE4;
 
+// STATIC: 0x00AF29BC
+int32_t s_pushToTalkKey = -1;
+
+// STATIC: 0x00D31A88
+uint32_t s_pushToTalkModifiers;
+
+// STATIC: 0x00D37D00
+CVar* s_cvarPushToTalkButton;
+
 // STATIC: 0x00D37D04
 int32_t s_voiceChatWasEnabled;
+
+// STATIC: 0x00D37D1C
+uint32_t s_pushToTalkMouseButton;
 
 // STATIC: 0x00D37D34
 static TSFixedArray<ComSatCallback> s_comsatCallbacks;
@@ -74,6 +87,152 @@ static TSHashTable<MUTEDPLAYER, CHashKeyGUID> unk_D37DB0;
 
 // STATIC: 0x00D37D44
 static TSGrowableArray<ComSatEvent> s_comSatEvents;
+
+// VERIFY: df726b6e auto
+// OFFSET: 0x007DBC70
+static int32_t ParseKeyNameToKeyCode(const char* name) {
+    if (!name || !*name) {
+        return -1;
+    }
+
+    if (!name[1] && name[0] > ' ') {
+        return name[0];
+    }
+
+    if (!SStrCmpI(name, "LSHIFT", STORM_MAX_STR)) {
+        return KEY_LSHIFT;
+    }
+
+    if (!SStrCmpI(name, "RSHIFT", STORM_MAX_STR)) {
+        return KEY_RSHIFT;
+    }
+
+    if (!SStrCmpI(name, "LCTRL", STORM_MAX_STR)) {
+        return KEY_LCONTROL;
+    }
+
+    if (!SStrCmpI(name, "RCTRL", STORM_MAX_STR)) {
+        return KEY_RCONTROL;
+    }
+
+    if (!SStrCmpI(name, "LALT", STORM_MAX_STR)) {
+        return KEY_LALT;
+    }
+
+    if (!SStrCmpI(name, "RALT", STORM_MAX_STR)) {
+        return KEY_RALT;
+    }
+
+    if (!SStrCmpI(name, "SPACE", STORM_MAX_STR)) {
+        return KEY_SPACE;
+    }
+
+    if (!SStrCmpI(name, "NUMPADPLUS", STORM_MAX_STR)) {
+        return KEY_NUMPAD_PLUS;
+    }
+
+    if (!SStrCmpI(name, "NUMPADMINUS", STORM_MAX_STR)) {
+        return KEY_NUMPAD_MINUS;
+    }
+
+    if (!SStrCmpI(name, "NUMPADMULTIPLY", STORM_MAX_STR)) {
+        return KEY_NUMPAD_MULTIPLY;
+    }
+
+    if (!SStrCmpI(name, "NUMPADDIVIDE", STORM_MAX_STR)) {
+        return KEY_NUMPAD_DIVIDE;
+    }
+
+    if (!SStrCmpI(name, "NUMPADDECIMAL", STORM_MAX_STR)) {
+        return KEY_NUMPAD_DECIMAL;
+    }
+
+    if (!SStrCmpI(name, "NUMPADEQUALS", STORM_MAX_STR)) {
+        return KEY_NUMPAD_EQUALS;
+    }
+
+    if (SStrStrI(name, "NUMPAD")) {
+        if (name[6] >= 0 && name[6] <= '9') {
+            return name[6] - '0' + KEY_NUMPAD0;
+        }
+
+        return -1;
+    }
+
+    if (!SStrCmpI(name, "ESCAPE", STORM_MAX_STR)) {
+        return KEY_ESCAPE;
+    }
+
+    if (!SStrCmpI(name, "ENTER", STORM_MAX_STR)) {
+        return KEY_ENTER;
+    }
+
+    if (!SStrCmpI(name, "BACKSPACE", STORM_MAX_STR)) {
+        return KEY_BACKSPACE;
+    }
+
+    if (!SStrCmpI(name, "TAB", STORM_MAX_STR)) {
+        return KEY_TAB;
+    }
+
+    if (!SStrCmpI(name, "LEFT", STORM_MAX_STR)) {
+        return KEY_LEFT;
+    }
+
+    if (!SStrCmpI(name, "UP", STORM_MAX_STR)) {
+        return KEY_UP;
+    }
+
+    if (!SStrCmpI(name, "RIGHT", STORM_MAX_STR)) {
+        return KEY_RIGHT;
+    }
+
+    if (!SStrCmpI(name, "DOWN", STORM_MAX_STR)) {
+        return KEY_DOWN;
+    }
+
+    if (!SStrCmpI(name, "INSERT", STORM_MAX_STR)) {
+        return KEY_INSERT;
+    }
+
+    if (!SStrCmpI(name, "DELETE", STORM_MAX_STR)) {
+        return KEY_DELETE;
+    }
+
+    if (!SStrCmpI(name, "HOME", STORM_MAX_STR)) {
+        return KEY_HOME;
+    }
+
+    if (!SStrCmpI(name, "END", STORM_MAX_STR)) {
+        return KEY_END;
+    }
+
+    if (!SStrCmpI(name, "PAGEUP", STORM_MAX_STR)) {
+        return KEY_PAGEUP;
+    }
+
+    if (!SStrCmpI(name, "PAGEDOWN", STORM_MAX_STR)) {
+        return KEY_PAGEDOWN;
+    }
+
+    if (!SStrCmpI(name, "NUMLOCK", STORM_MAX_STR)) {
+        return KEY_NUMLOCK;
+    }
+
+    if (!SStrCmpI(name, "CAPSLOCK", STORM_MAX_STR)) {
+        return KEY_CAPSLOCK;
+    }
+
+    if (!SStrCmpI(name, "PRINTSCREEN", STORM_MAX_STR)) {
+        return KEY_PRINTSCREEN;
+    }
+
+    if (*name == 'F') {
+        return SStrToInt(name + 1) + KEY_F1 - 1;
+    }
+
+    return -1;
+}
 
 // VERIFY: 4b73a2c5 manual
 // OFFSET: 0x007DCA90
@@ -198,4 +357,30 @@ void ComSatClient_Shutdown() {
 
     ResetVoiceVolumeState();
     SI2::VoiceChat_DestroyChatSystem();
+}
+
+// VERIFY: 9c9c6262 auto
+// OFFSET: 0x007DC9C0
+void UpdatePushToTalkKey() {
+    s_pushToTalkKey = -1;
+    s_pushToTalkMouseButton = 0;
+    s_pushToTalkModifiers = 0;
+
+    if (!s_cvarPushToTalkButton) {
+        return;
+    }
+
+    const char* binding = s_cvarPushToTalkButton->m_stringValue.m_str;
+
+    if (!binding || !*binding) {
+        return;
+    }
+
+    s_pushToTalkModifiers = 0;
+    CGUIBindings::AddModifiers(s_pushToTalkModifiers, binding);
+    s_pushToTalkMouseButton = StringToMouseButton(binding);
+
+    if (!s_pushToTalkMouseButton) {
+        s_pushToTalkKey = ParseKeyNameToKeyCode(binding);
+    }
 }

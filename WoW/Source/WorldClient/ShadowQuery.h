@@ -24,6 +24,7 @@ struct ShadowQueryBuffers {
 
 class CShadowQuery {
     public:
+    static void Update();
     static ShadowQueryBuffers s_unk_D25320[3];
 
     static void FreeBuffers();

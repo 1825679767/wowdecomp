@@ -21,8 +21,8 @@ class CSortTable {
     /* 1F18 */ TSExplicitList<CMapRenderChunk, offsetof(CMapRenderChunk, m_renderChunkLink)> m_renderChunkList [24];
     /* 2038 */ TSList<CMapObjDefGroup, TSGetExplicitLink<CMapObjDefGroup> > m_mapObjDefGroup;
     /* 2044 */ TSList<CMapObjDefGroup, TSGetExplicitLink<CMapObjDefGroup> > m_interiorLiquidGroupList;
-    /* 2050 */ TSList<void> m_visibleEntityList;
-    /* 205C */ TSList<void> m_culledEntityList;
+    /* 2050 */ TSList<CMapEntity, TSGetExplicitLink<CMapEntity> > m_visibleEntityList;
+    /* 205C */ TSList<CMapEntity, TSGetExplicitLink<CMapEntity> > m_culledEntityList;
     /* 2068 */ TSList<CWorldOccluder, TSGetExplicitLink<CWorldOccluder> > m_visibleOccluderList;
     /* 2074 */ TSList<CMapAreaLow, TSGetExplicitLink<CMapAreaLow> > m_horizonChunkList;
     /* 2080 */ TSList<CMapObjDef, TSGetExplicitLink<CMapObjDef> > m_horizonMapObjList;

@@ -23,8 +23,10 @@ struct WOWGUID {
 };
 
 struct SmartGUID : public WOWGUID {
+    CDataStore& Put(CDataStore& msg) const;
 };
 
 CDataStore& operator>>(CDataStore& msg, SmartGUID& guid);
+CDataStore& operator<<(CDataStore& msg, const SmartGUID& guid);
 
 #endif

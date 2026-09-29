@@ -7,6 +7,9 @@
 // STATIC: 0x00BD1948
 WOWGUID CGPartyInfo::m_members[4];
 
+// STATIC: 0x00BD1978
+uint32_t CGPartyInfo::m_dungeonDifficulty;
+
 // STATIC: 0x00BD0D08
 CGPartyMemberState unk_BD0D08[4];
 
@@ -53,4 +56,33 @@ WOWGUID GetPartyPetGUID(uint32_t index) {
     }
 
     return WOWGUID();
+}
+
+// STATIC: 0x00BD1968
+WOWGUID CGPartyInfo::m_leader;
+
+// VERIFY: f87f490a auto
+// OFFSET: 0x004FB0B0
+bool CGPartyInfo::InParty() {
+    return CGPartyInfo::m_members[0].m_guid != 0;
+}
+
+// VERIFY: d97eb33e manual
+// OFFSET: 0x0052C680
+int32_t CGPartyInfo::IsMember(const WOWGUID& guid) {
+    if (!guid) {
+        return 0;
+    }
+
+    if (guid == ClntObjMgrGetActivePlayer()) {
+        return 1;
+    }
+
+    for (uint32_t i = 0; i < sizeof(CGPartyInfo::m_members) / sizeof(CGPartyInfo::m_members[0]); i++) {
+        if (CGPartyInfo::m_members[i] == guid) {
+            return 1;
+        }
+    }
+
+    return 0;
 }

@@ -1,7 +1,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 
 // STATIC: 0x00DCEAF8
@@ -23,4 +26,35 @@ void SI2::InitVocalErrorSounds(int32_t race, uint32_t sex) {
             s_vocalErrorSounds[rec->m_vocalUienum] = rec->m_normalSoundID[sex];
         }
     }
+}
+
+// STATIC: 0x00DCEC08
+static SE2SoundKitObject s_vocalErrorObject;
+
+// VERIFY: 535f9207 auto
+// OFFSET: 0x00986D00
+void SI2::PlayVocalErrorSound(int32_t error) {
+    static CVar* s_enableErrorSpeech = CVar::Lookup("Sound_EnableErrorSpeech");
+
+    if (!s_enableErrorSpeech || !s_enableErrorSpeech->m_intValue || error >= static_cast<int32_t>(sizeof(s_vocalErrorSounds) / sizeof(s_vocalErrorSounds[0]))) {
+        return;
+    }
+
+    if (SI2::IsPlaying(&s_vocalErrorObject)) {
+        return;
+    }
+
+    int32_t soundKitId = s_vocalErrorSounds[error];
+    SE2SoundKitProperties properties;
+    properties.ResetToDefaults();
+    properties.m_group = 7;
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && player->m_unit->m_unitFieldBytes0[1] == 6) {
+        properties.m_useDspChain = 1;
+        SI2::DK_GetPlayerFilterName(player, properties.m_dspChainName, sizeof(properties.m_dspChainName));
+    }
+
+    SI2::PlaySoundKit(soundKitId, nullptr, &s_vocalErrorObject, &properties, 0, nullptr, 1, 0);
 }

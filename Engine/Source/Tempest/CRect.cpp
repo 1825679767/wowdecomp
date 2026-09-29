@@ -71,3 +71,10 @@ CRect operator/(const CRect& l, const CRect& r) {
     result.maxX = l.maxX / r.maxX;
     return result;
 }
+
+// VERIFY: bfdfabff auto
+// OFFSET: 0x004F5D90
+bool operator!=(const CRect& l, const CRect& r) {
+    return r.minY != l.minY || r.minX != l.minX || r.maxY != l.maxY || r.maxX != l.maxX;
+}
+

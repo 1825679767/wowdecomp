@@ -6,6 +6,12 @@
 #include <windows.h>
 #include "WoW/Source/Object/WGUID.h"
 
+struct CVar;
+class CGObject_C;
+class CM2Lighting;
+class CM2Model;
+class CImVector;
+
 class PLAYERNAMEDESC {
     public:
     /* 0000 */ uint32_t m_link;
@@ -18,11 +24,28 @@ class PLAYERNAMEDESC {
     /* 0020 */ uint32_t m_worldText [4];
     /* 0030 */ float m_zOffset;
     /* 0034 */ uint32_t unk_0034;
+
+    static int32_t ShouldRender(CGObject_C* object, uint32_t raidTarget);
+    static void RenderIfVisible(CM2Model* model, const CM2Lighting* lighting, void* arg);
 };
 
 PLAYERNAMEDESC* PlayerNameCreate(const WOWGUID& guid);
 void PlayerNameDelete(PLAYERNAMEDESC* desc);
+void PlayerNameCreateText(PLAYERNAMEDESC* desc, uint32_t type, const char* text, const CImVector* color, const CImVector* shadowColor);
 
 void PlayerNameTriggerColorUpdate(PLAYERNAMEDESC* desc);
+void PlayerNameTriggerNameRegenerate(PLAYERNAMEDESC* desc);
+void PlayerNameUpdateDrawCallback(PLAYERNAMEDESC* desc);
+bool PlayerNameShowing(PLAYERNAMEDESC* desc);
+float PlayerNameComputeScale(CGObject_C* object);
+
+void PlayerNameInitialize();
+void PlayerNameShutdown();
+void PlayerNameUpdateEarly();
+void PlayerNameUpdateLate();
+void PlayerNameUpdateWorldText();
+
+bool ObjectNameShowCallback(CVar* var, const char* oldValue, const char* value, void* arg);
+void PlayerNameRegisterCVars();
 
 #endif

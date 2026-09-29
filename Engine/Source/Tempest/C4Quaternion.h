@@ -7,9 +7,12 @@
 class C33Matrix;
 class C3Vector;
 class C44Matrix;
+class C4Quaternion;
 
 struct C4QuaternionCompressed {
     /* 0000 */ int64_t m_packed;
+
+    C4QuaternionCompressed& operator=(const C4Quaternion& q);
 };
 
 class C4Quaternion {
@@ -29,5 +32,7 @@ class C4Quaternion {
     void FromRotationMatrix(const C44Matrix& m);
     void NormalizeApprox();
 };
+
+C4Quaternion operator*(const C4Quaternion& l, const C4Quaternion& r);
 
 #endif

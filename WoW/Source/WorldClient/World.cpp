@@ -3,6 +3,8 @@
 #include <new>
 #include <algorithm>
 #include <cmath>
+#include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/RCString.h"
 #include "Engine/Source/ConsoleBase/ConsoleCommand.h"
@@ -23,6 +25,7 @@
 #include "Engine/Source/Model2/M2Shared.h"
 #include "Engine/Source/Os/System.h"
 #include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/Services/AsyncFile.h"
 #include "Engine/Source/Services/SysMessage.h"
 #include "Engine/Source/Services/Texture.h"
 #include "Engine/Source/ShaderEffect/ShaderEffect.h"
@@ -44,11 +47,16 @@
 #include "Engine/Source/Tempest/CRect.h"
 #include "Engine/Source/Tempest/CiRect.h"
 #include "WoW/Common/AaBsp.h"
+#include "WoW/Source/Client.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/AreaTableRec.h"
 #include "WoW/Source/DB/Rec/LiquidMaterialRec.h"
 #include "WoW/Source/DB/Rec/LiquidTypeRec.h"
 #include "WoW/Source/LiquidSystem/Liquid.h"
+#include "WoW/Source/LoadingScreen.h"
+#include "WoW/Source/Object/ObjectClient/Movement_C.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/UIUtil/Camera.h"
@@ -99,6 +107,9 @@ static const char* s_zonePaths[11] = {
     "L 642.15663,386.15103 L 641.52833,443.72348 L 634.72906,443.72601 L 634.52127,458.70639 L 593.70032,458.70639 L 593.01464,462.72251 L 584.59058,462.72251 L 582.06058,460.90196 L 576.75425,463.70205 L 577.4182,468.73745 L 570.85816,468.70876 L 570.34208,474.64423 L 562.87752,475.15777 L 559.71022,475.84837 L 559.61227,479.57063 L 549.71889,479.86449 L 549.64963,484.92246 L 550.60048,486.42743 L 550.60048,492.01081 L 549.71889,492.79445 L 549.71889,495.83103 L 546.68231,499.16147 L 546.58436,506.70394 L 555.49819,506.70394 L 556.86955,511.89551 L 553.82109,515.68704 L 554.75778,517.92127 L 557.82502,517.04701 L 562.09501,514.5126 L 563.04066,516.49936 L 569.01587,517.33443 L 584.91316,517.84232 L 585.012,520.48302 L 588.11694,521.49503 L 589.09648,523.94388 L 595.16964,524.53161 L 600.85099,524.43364 L 609.373,523.94388 L 610.05867,521.9848 L 618.18887,516.89118 L 625.63338,512.38529 L 626.22112,509.54461 L 628.66996,508.07531 L 638.56334,507.19371 L 641.99174,503.56941 L 646.59558,503.47145 L 650.80761,500.53283 L 651.10148,493.87194 L 652.66874,491.81491 L 658.53021,491.88417 L 695.82532,480.31081 L 677.03249,424.56931 z",
     "L 519.29515,485.58511 L 519.52617,479.54801 L 509.69114,479.18656 L 505.57186,478.7797 L 503.42658,474.56332 L 499.65934,474.56359 L 496.37696,470.65044 L 489.78598,470.68855 L 489.70965,467.82033 L 486.61957,468.09573 L 479.68237,472.87522 L 474.97836,473.80086 L 473.07359,477.78355 L 470.92641,480.65801 L 471.1342,486.64935 L 473.37993,490.21746 L 473.4716,490.31815 L 475.42857,492.46753 L 477.67966,493.4026 L 481.41992,494.96104 L 481.52381,496.83116 L 485.81818,503.54978 L 490.8052,505.35065 L 497.31602,505.35065 L 499.80953,501.47186 L 511.30736,502.02597 L 520.17316,507.01299 L 520.17316,507.01299 L 526.68398,512.13853 L 542.19914,512.55411 L 546.63204,506.5974 L 546.77056,499.25541 L 549.67965,495.65368 L 549.67965,492.88312 L 550.64935,491.63636 L 550.51082,486.37229 L 549.59011,484.92123 L 545.80206,484.85713 L 543.63817,486.25371 L 540.65057,487.4923 L 522.69277,487.41222 z",
 };
+
+// STATIC: 0x00ADEEE4
+float CWorld::s_unk_ADEEE4 = 0.94f;
 
 // STATIC: 0x00ADEEB8
 float CWorld::detailDoodadDist = 70.0f;
@@ -201,6 +212,30 @@ uint32_t CWorld::enables2;
 
 // STATIC: 0x00CD7754
 uint32_t CWorld::m_M2PassMask;
+
+// STATIC: 0x00CD8624
+uint32_t CWorldScene::s_unk_CD8624;
+
+// STATIC: 0x00CD8774
+uint32_t CWorldScene::s_unk_CD8774;
+
+// STATIC: 0x00CD7758
+float CWorld::s_unk_CD7758;
+
+// STATIC: 0x00CD76B0
+static float profTimes[30];
+
+// STATIC: 0x00CD7728
+static int32_t profIdx;
+
+// STATIC: 0x00CD7740
+static int32_t s_disableAreaAmbient;
+
+// STATIC: 0x00CD7764
+static void (*s_FrameCntCallback)();
+
+// STATIC: 0x00ADEE78
+static C2Vector s_texVectSpeed[8] = { C2Vector(-1.0f, 0.0f), C2Vector(-1.0f, 1.0f), C2Vector(0.0f, 1.0f), C2Vector(1.0f, 1.0f), C2Vector(1.0f, 0.0f), C2Vector(1.0f, -1.0f), C2Vector(0.0f, -1.0f), C2Vector(-1.0f, -1.0f) };
 
 // STATIC: 0x00CD7784
 CAaBox CWorld::s_groupAreaOfInterest;
@@ -418,6 +453,13 @@ bool World::MapIsDungeon() {
     return CMap::bDungeon != 0;
 }
 
+// VERIFY: 3a6ff55e auto
+// OFFSET: 0x0077EC90
+void World::SetLoadProgressCallback(CALLBACK_FUNC callback, void* param) {
+    World::s_loadProgressCallback = callback;
+    World::s_loadProgressParam = param;
+}
+
 // VERIFY: e5c4a380 manual
 // OFFSET: 0x0077ED40
 static void ZonesInitialize() {
@@ -568,9 +610,9 @@ int32_t World::QueryLiquidStatus(C3Vector* pos, int32_t* liquidType, float* heig
     return CMap::QueryLiquidStatus(pos, liquidType, height, &a4, 0);
 }
 
-// VERIFY: d8d97f86 auto
+// VERIFY: 46023465 auto
 // OFFSET: 0x0077F390
-int32_t World::QueryLiquidSounds(CMapEntity* entity, float radius, uint32_t* results) {
+int32_t World::QueryLiquidSounds(CMapEntity* entity, float radius, TSGrowableArray<World::LiquidQueryResult>& results) {
     if (entity->unk_007C & 0x1) {
         uint32_t distance = 9999;
         entity->QueryLiquidSounds(results, &distance);
@@ -670,6 +712,319 @@ int32_t World::SceneCamLiquidStatus(float* depth) {
     return s_liquidTypeId;
 }
 
+// VERIFY: a4bfc150 manual
+// STATIC: 0x00ADEE74
+static const char* s_invisibleStalkerModel = "InvisibleStalker.m2";
+
+// VERIFY: ac1fbe8d auto
+// OFFSET: 0x0077EFF0
+void CWorld::Render(const C3Vector& cameraPos, float time) {
+    CWorldScene::Render(cameraPos, time);
+    CheckAndSendBotDetected();
+}
+
+// VERIFY: 3fc52c12 auto
+// OFFSET: 0x0077F090
+int32_t World::QueryObjectInside(CMapEntity* entity) {
+    if (!entity) {
+        return 0;
+    }
+
+    return entity->QueryInterior();
+}
+
+// VERIFY: a990e60d auto
+// OFFSET: 0x0077F9A0
+void CBarrier::SetViewerPos(const C3Vector& position) {
+    CWorldScene::s_barrier.m_viewerPos = position;
+}
+
+// VERIFY: 78013488 auto
+// OFFSET: 0x0077F9D0
+void CWorldScene::RenderParticulate() {
+    if ((CWorld::enables & 0x2000000) && World::s_liquidTypeId) {
+        CWorld::particulate->Render();
+    }
+}
+
+// VERIFY: 623133e8 auto
+// OFFSET: 0x0077FCD0
+int32_t World::ObjectIsDrawable(CMapBaseObj* object) {
+    if (object->m_type & 0x8) {
+        return static_cast<CMapObjDef*>(object)->IsAllDrawable();
+    }
+
+    if (!(object->m_type & 0x40)) {
+        return 0;
+    }
+
+    CM2Model* model = static_cast<CMapStaticEntity*>(object)->m_model;
+
+    if (!model) {
+        return 1;
+    }
+
+    return model->IsDrawable(0, 0);
+}
+
+// VERIFY: 86d43bac auto
+// OFFSET: 0x0077FD10
+int32_t World::ObjectIsLoaded(CMapBaseObj* object) {
+    if (object->m_type & 0x8) {
+        CMapObjDef* mapObjDef = static_cast<CMapObjDef*>(object);
+
+        if (!mapObjDef->IsAllLoaded()) {
+            return 0;
+        }
+
+        return mapObjDef->m_owner->IsAllLoaded();
+    }
+
+    if (!(object->m_type & 0x40)) {
+        return 0;
+    }
+
+    CM2Model* model = static_cast<CMapStaticEntity*>(object)->m_model;
+
+    if (!model) {
+        return 1;
+    }
+
+    return model->IsLoaded(0, 0);
+}
+
+// VERIFY: 4aa10153 manual
+// OFFSET: 0x00780240
+void CMap::ObjectUpdate(CMapEntity* entity, C44Matrix& mat, CAaBox& box, CAaSphere& sphere, C3Vector& vec, bool a6, uint32_t a7) {
+    C3Vector position = { mat.d0, mat.d1, mat.d2 };
+    float scale = sqrtf(mat.a2 * mat.a2 + (mat.a1 * mat.a1 + mat.a0 * mat.a0));
+    C3Vector vec2 = vec * mat;
+    float radius = 0.0f;
+    CAaBox bbox(position, position);
+    C3Vector center = position;
+
+    if (sphere.r > 0.001f) {
+        radius = scale * sphere.r;
+        center = sphere.c * mat;
+    }
+
+    if (box.t.x > box.b.x && box.t.y > box.b.y && box.t.z > box.b.z) {
+        bbox = CAaBox::Transform(box, mat);
+    }
+
+    C3Vector positionDelta = entity->m_position - position;
+    C3Vector vec2Delta = entity->m_vec2 - vec2;
+    C3Vector bottomDelta = entity->m_bbox.b - bbox.b;
+    C3Vector topDelta = entity->m_bbox.t - bbox.t;
+    C3Vector centerDelta = entity->m_sphere.c - center;
+    float radiusDelta = entity->m_sphere.r - radius;
+
+    entity->m_position = position;
+    entity->m_vec2 = vec2;
+    entity->m_bbox = bbox;
+    entity->m_scale = scale;
+    entity->m_sphere.c = center;
+    entity->m_sphere.r = radius;
+    entity->unk_00A4 = a7;
+
+    if (positionDelta.SquaredMag() > 0.000001f || vec2Delta.SquaredMag() > 0.0001f || bottomDelta.SquaredMag() > 0.0001f || topDelta.SquaredMag() > 0.0001f || centerDelta.SquaredMag() > 0.0001f || radiusDelta > 0.0001f) {
+        if (!a6) {
+            CMap::UpdateEntity(entity);
+        }
+    }
+}
+
+// VERIFY: a7db51a8 manual
+// OFFSET: 0x007815C0
+void World::Update(const C3Vector& position) {
+    CWorld::gbChunkRectOld = CWorld::gbChunkRect;
+    World::PrepareAreaOfInterest(position);
+    CMap::PrepareUpdate(false);
+}
+
+// VERIFY: c32b5640 manual
+// OFFSET: 0x00781A10
+CMapEntity* CMap::ObjectCreate(CM2Model* model, MAP_OBJECT_FUNC func, void* funcParam, uint64_t param64, uint32_t param32, uint32_t a7) {
+    CMapEntity* entity = CMap::AllocEntity((a7 >> 3) & 0x1);
+    entity->m_model = model;
+    entity->m_funcParam64 = param64;
+    entity->m_funcParam32 = param32;
+    entity->m_position = C3Vector(10000000.0f, 10000000.0f, 10000000.0f);
+    entity->m_diffuseLightScale = 1.0f;
+    entity->m_vec2 = C3Vector(10000000.0f, 10000000.0f, 10000000.0f);
+    entity->unk_00C4 = 1.0f;
+    entity->m_type |= 0x200;
+    entity->unk_007C = (entity->unk_007C & ~0xEC02) | ((a7 & 0x1) << 1) | ((a7 & 0x4) << 8) | (~(a7 << 10) & 0x800) | (((a7 >> 3) & 0x1) << 13) | ((a7 & 0x10) << 11);
+    entity->m_flags = static_cast<MapObjFlag>(0);
+    entity->m_func = nullptr;
+    entity->unk_00B4 = 0;
+
+    if (a7 & 0x20) {
+        entity->m_flags = static_cast<MapObjFlag>(0x20000);
+    }
+
+    C3Vector ambient = CMap::s_mapLight->m_light.m_ambColor;
+    CImVector color;
+    color.b = static_cast<uint8_t>(static_cast<int32_t>(ambient.z > 0.0f ? (ambient.z < 1.0f ? ambient.z * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.g = static_cast<uint8_t>(static_cast<int32_t>(ambient.y > 0.0f ? (ambient.y < 1.0f ? ambient.y * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.r = static_cast<uint8_t>(static_cast<int32_t>(ambient.x > 0.0f ? (ambient.x < 1.0f ? ambient.x * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.a = 0xFF;
+    entity->unk_00C0 = color;
+    entity->m_m2AmbientColor = color;
+
+    if (entity->m_model) {
+        if (!SStrCmpI(s_invisibleStalkerModel, model->m_shared->m_fileNameWithoutPath, STORM_MAX_STR)) {
+            entity->unk_007C |= 0x4000;
+        }
+
+        entity->m_model->m_lightingCallback = CMapStaticEntity::ModelLightingCallback;
+        entity->m_model->m_lightingArg = entity;
+        entity->m_model->m_refCount++;
+    }
+
+    entity->m_func = func;
+    entity->m_funcParam = funcParam;
+    return entity;
+}
+
+// VERIFY: 6292bfdd auto
+// OFFSET: 0x00782350
+void World::ObjectSetModel(CMapEntity* entity, CM2Model* model) {
+    if (entity->m_model) {
+        entity->m_model->m_lightingCallback = nullptr;
+        entity->m_model->m_lightingArg = nullptr;
+        entity->m_model->Release();
+    }
+
+    entity->unk_007C &= ~0x4000;
+    entity->m_model = model;
+
+    if (!model) {
+        return;
+    }
+
+    if (!SStrCmpI(s_invisibleStalkerModel, model->m_shared->m_fileNameWithoutPath, STORM_MAX_STR)) {
+        entity->unk_007C |= 0x4000;
+    }
+
+    entity->m_model->m_lightingCallback = CMapStaticEntity::ModelLightingCallback;
+    entity->m_model->m_lightingArg = entity;
+    entity->m_model->m_refCount++;
+}
+
+// VERIFY: cc711ea7 manual
+// OFFSET: 0x007826E0
+void World::ObjectDestroy(CMapEntity* entity) {
+    CMapBaseObjLink* link = entity->m_parentLinkList.Head();
+
+    while (link) {
+        CMapBaseObjLink* next = entity->m_parentLinkList.Next(link);
+        CMap::FreeBaseObjLink(link);
+        link = next;
+    }
+
+    if (entity->m_model && entity->m_model->m_attachParent) {
+        entity->m_model->DetachFromParent();
+    }
+
+    CMap::FreeEntity(entity);
+}
+
+// VERIFY: a4bfc150 manual
+// OFFSET: 0x00780860
+void World::PrepareAreaOfInterest(const C3Vector& position) {
+    World::s_currentWorldPos = position;
+
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+    float farZ = camera->m_farZ;
+    float nearZ = camera->m_nearZ;
+    float fov = camera->FOV();
+
+    C44Matrix projection;
+    GxuXformCreateProjection_Exact(fov * 0.6f, camera->m_aspect, nearZ, farZ, projection);
+
+    C44Matrix view;
+    GxXformView(view);
+
+    C3Vector corners[8];
+    GxuXformCalcFrustumCorners(view, projection, corners);
+
+    float distance = sqrtf(corners[7].z * corners[7].z + corners[7].y * corners[7].y + corners[7].x * corners[7].x);
+    float farClip = s_farClip;
+    float streamDistance;
+
+    if (farClip > distance) {
+        streamDistance = farClip * 1.25f;
+    } else if (farClip + farClip < distance) {
+        streamDistance = farClip + farClip;
+    } else {
+        streamDistance = distance;
+    }
+
+    CWorld::s_groupAreaOfInterest.b = C3Vector(position.x - 150.0f, position.y - 150.0f, position.z - 150.0f);
+    CWorld::s_groupAreaOfInterest.t = C3Vector(position.x + 150.0f, position.y + 150.0f, position.z + 150.0f);
+    CWorld::s_objectAreaOfInterest.b = C3Vector(position.x - farClip, position.y - farClip, position.z - farClip);
+    CWorld::s_objectAreaOfInterest.t = C3Vector(position.x + farClip, position.y + farClip, position.z + farClip);
+
+    int32_t radius = 1 - static_cast<int32_t>(streamDistance * -0.03f);
+    int32_t chunkX = static_cast<int32_t>(-(position.x - 17066.666f) * 0.03f);
+    int32_t chunkY = static_cast<int32_t>(-(position.y - 17066.666f) * 0.03f);
+
+    if (SFile::IsTrial()) {
+        StreamingSetAreaOfInterest(chunkY, chunkX);
+    }
+
+    CWorld::chunkRect.minX = (chunkY - radius) & ~1;
+    CWorld::chunkRect.maxX = ((chunkY + radius) & ~1) + 1;
+    CWorld::chunkRect.minY = (chunkX - radius) & ~1;
+    CWorld::chunkRect.maxY = ((chunkX + radius) & ~1) + 1;
+
+    CWorld::gbChunkRect.minX = CWorld::chunkRect.minX - 2;
+    CWorld::gbChunkRect.minY = CWorld::chunkRect.minY - 2;
+    CWorld::gbChunkRect.maxY = CWorld::chunkRect.maxY + 2;
+    CWorld::gbChunkRect.maxX = CWorld::chunkRect.maxX + 2;
+
+    if (CWorld::gbChunkRect.maxX - chunkY < 8) {
+        int32_t grow = 8 - (CWorld::gbChunkRect.maxX - chunkY);
+        CWorld::gbChunkRect.minY = (CWorld::gbChunkRect.minY - grow) & ~1;
+        CWorld::gbChunkRect.maxX = ((CWorld::gbChunkRect.maxX + grow) & ~1) + 1;
+        CWorld::gbChunkRect.maxY = ((CWorld::gbChunkRect.maxY + grow) & ~1) + 1;
+        CWorld::gbChunkRect.minX = (CWorld::gbChunkRect.minX - grow) & ~1;
+    }
+
+    if (CWorld::chunkRect.minX < 0) {
+        CWorld::chunkRect.minX = 0;
+    }
+
+    if (CWorld::chunkRect.maxX >= 1024) {
+        CWorld::chunkRect.maxX = 1023;
+    }
+
+    if (CWorld::chunkRect.minY < 0) {
+        CWorld::chunkRect.minY = 0;
+    }
+
+    if (CWorld::chunkRect.maxY >= 1024) {
+        CWorld::chunkRect.maxY = 1023;
+    }
+
+    if (CWorld::gbChunkRect.minX < 0) {
+        CWorld::gbChunkRect.minX = 0;
+    }
+
+    if (CWorld::gbChunkRect.maxX >= 1024) {
+        CWorld::gbChunkRect.maxX = 1023;
+    }
+
+    if (CWorld::gbChunkRect.minY < 0) {
+        CWorld::gbChunkRect.minY = 0;
+    }
+
+    if (CWorld::gbChunkRect.maxY >= 1024) {
+        CWorld::gbChunkRect.maxY = 1023;
+    }
+}
+
 // VERIFY: fa04a252 auto
 // OFFSET: 0x00780640
 C3Vector* World::GetCamPos() {
@@ -758,6 +1113,32 @@ void World::SetFarClip(float farClip) {
     }
 }
 
+// VERIFY: 833d137a auto
+// OFFSET: 0x00781430
+void CWorld::LoadMap(const char* mapName, C3Vector* position, int32_t zoneID, int32_t a4) {
+    World::s_farClip = World::ValidateFarClip(CWorldParam::cvar_farClip->m_floatValue, zoneID);
+    World::s_nearClip = 0.2f;
+    World::s_prevFarClip = World::s_farClip;
+
+    if (SFile::IsTrial()) {
+        StreamingSetMapId(zoneID);
+    }
+
+    World::PrepareAreaOfInterest(*position);
+    CWorld::gbChunkRectOld = CWorld::gbChunkRect;
+    CMap::Load(mapName, zoneID);
+
+    int32_t shaders = Enable_Doodads;
+
+    if (!(CWorld::enables2 & Enable_Doodads) || !(CWorld::enables & Enable_PixelShaders)) {
+        shaders = 0;
+    }
+
+    Liquid::SetShadersEnabled(shaders);
+    Liquid::SetSpecularEnabled(CMap::enableSpecular);
+    Liquid::CMaterialBank::Destroy();
+}
+
 // VERIFY: 5c8f2417 manual
 // OFFSET: 0x00781610
 void CWorldScene::ApplyFogState() {
@@ -844,6 +1225,136 @@ void CWorldScene::ClearObjectFadeoutList() {
 
         fadeout = next;
     }
+}
+
+// VERIFY: ca15b88d auto
+// OFFSET: 0x00783180
+void World::UnloadMap() {
+    CWorldScene::ClearObjectFadeoutList();
+
+    if (CMap::bActive) {
+        CMap::Unload();
+    }
+
+    CWorldScene::s_viewerMapObjDef = nullptr;
+}
+
+// VERIFY: 9ff5367d manual
+// OFFSET: 0x007831A0
+void CWorld::Update(C3Vector* camPos, C3Vector* camTarget, C3Vector* position) {
+    CWorld::UpdateTextureCacheBudget();
+
+    profTimes[profIdx] = FrameTime::s_tickTimeSec;
+
+    if (profIdx++ == 29) {
+        profIdx = 0;
+    }
+
+    CWorld::gbChunkRectOld = CWorld::gbChunkRect;
+    World::PrepareAreaOfInterest(*position);
+
+    int32_t maxX = CWorld::gbChunkRectOld.maxX < CWorld::gbChunkRect.maxX ? CWorld::gbChunkRectOld.maxX : CWorld::gbChunkRect.maxX;
+    int32_t maxY = CWorld::gbChunkRectOld.maxY < CWorld::gbChunkRect.maxY ? CWorld::gbChunkRectOld.maxY : CWorld::gbChunkRect.maxY;
+    int32_t minX = CWorld::gbChunkRectOld.minX > CWorld::gbChunkRect.minX ? CWorld::gbChunkRectOld.minX : CWorld::gbChunkRect.minX;
+    int32_t minY = CWorld::gbChunkRectOld.minY > CWorld::gbChunkRect.minY ? CWorld::gbChunkRectOld.minY : CWorld::gbChunkRect.minY;
+
+    if (minY < maxY && minX < maxX) {
+        CWorld::status.m_chunksChanged = 0;
+    } else {
+        CWorld::status.m_chunksChanged = 1;
+        CShadowCache::s_needsRebuild = 1;
+    }
+
+    CWorld::frameCnt++;
+
+    if (s_FrameCntCallback) {
+        s_FrameCntCallback();
+    }
+
+    for (uint32_t i = 0; i < sizeof(s_texVectSpeed) / sizeof(s_texVectSpeed[0]); i++) {
+        World::texVect[i].x = s_texVectSpeed[i].x * FrameTime::s_tickTimeSec + World::texVect[i].x;
+        World::texVect[i].y = s_texVectSpeed[i].y * FrameTime::s_tickTimeSec + World::texVect[i].y;
+
+        if (World::texVect[i].x >= 64.0f) {
+            World::texVect[i].x = 0.0f;
+        }
+
+        if (World::texVect[i].y >= 64.0f) {
+            World::texVect[i].y = 0.0f;
+        }
+    }
+
+    CWorldScene::Update(camPos, camTarget);
+
+    bool prepareAll = true;
+    bool preload = false;
+
+    if (World::s_farClip - World::s_prevFarClip > 10.0f) {
+        prepareAll = false;
+        preload = true;
+    }
+
+    World::s_prevFarClip = World::s_farClip;
+
+    if (preload) {
+        World::s_loadProgressCallback = LoadingScreenWorldCallback;
+        World::s_loadProgressParam = nullptr;
+        LoadingScreenEnable(s_mapId, true);
+        CMap::bPreload = 1;
+    }
+
+    CMap::PrepareUpdate(prepareAll);
+
+    if (preload) {
+        CMap::bPreload = 0;
+        World::s_loadProgressCallback = nullptr;
+        World::s_loadProgressParam = nullptr;
+        AsyncFileReadSetProgressCallback(nullptr, nullptr);
+        LoadingScreenDisable();
+    }
+
+    CWorldScene::LocateViewer3();
+    DayNight::Update(CWorld::status.m_chunksChanged | CWorld::status.m_prepareAll, camPos);
+    CWorld::farFog = DayNight::GetInfo()->m_fog.m_end;
+
+    if (!g_theGxDevicePtr->MasterEnable(GxMasterEnable_Fog)) {
+        CWorld::farFog = 100000.0f;
+    }
+
+    CWorld::status.m_prepareAll = 0;
+
+    if ((CWorld::enables & 0x2000000) && World::s_liquidTypeId) {
+        CWorld::particulate->Update();
+    }
+
+    World::s_weather->Update();
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player && !s_disableAreaAmbient) {
+        uint32_t areaId;
+        CMap::QueryAreaId(player->m_worldObject, areaId);
+        AreaTableRec* area = g_areaTableDB.GetRecord(areaId);
+
+        if (area) {
+            if (!(area->m_flags & 0x2000) && area->m_parentAreaID) {
+                area = g_areaTableDB.GetRecord(area->m_parentAreaID);
+            }
+
+            if (area) {
+                float ambient = area->m_ambientMultiplier + area->m_ambientMultiplier + 1.0f;
+                float delta = ambient - CMapStaticEntity::s_characterAmbient;
+
+                if (fabsf(delta) > 0.01f && FrameTime::s_tickTimeSec < 1.0f) {
+                    ambient = CMapStaticEntity::s_characterAmbient + FrameTime::s_tickTimeSec * delta;
+                }
+
+                CMapStaticEntity::s_characterAmbient = ambient;
+            }
+        }
+    }
+
+    World::s_m2Scene->m_liquidTypeId = World::s_liquidTypeId;
 }
 
 // VERIFY: 1eb0b466 manual
@@ -1696,6 +2207,58 @@ void CWorldScene::CullEntitysInterior(TSList<CMapBaseObjLink, TSGetExplicitLink<
     }
 
     s_entityCanLink = 1;
+}
+
+// VERIFY: e5eeddd6 manual
+// OFFSET: 0x00793450
+void CWorldScene::UpdateSortedModels() {
+    CMapEntity* entity = static_cast<CMapEntity*>(CWorldScene::sortTable.m_culledEntityList.Head());
+
+    while (entity) {
+        CMapEntity* next = static_cast<CMapEntity*>(CWorldScene::sortTable.m_culledEntityList.Next(entity));
+        uint32_t nearFlags = 0;
+        entity->m_sortEntryLink.Unlink();
+
+        CM2Model* model = entity->m_model;
+
+        if (model) {
+            int32_t animating = 0;
+
+            if (!(entity->unk_007C & 0x4000)) {
+                if (entity->unk_007C & 0x400) {
+                    animating = 1;
+                }
+
+                C3Vector delta = C3Vector(entity->m_sphere.c.x - CWorldScene::s_activeWorldView.x, entity->m_sphere.c.y - CWorldScene::s_activeWorldView.y, entity->m_sphere.c.z - CWorldScene::s_activeWorldView.z);
+
+                if (delta.x * delta.x + delta.z * delta.z + delta.y * delta.y < 1111.1111f) {
+                    animating = 1;
+                    nearFlags = 2;
+                }
+
+                if (model->m_attachParent) {
+                    model->m_fFlags &= ~0x80;
+                } else {
+                    model->m_fFlags &= ~0x8;
+                }
+
+                if (model->m_attachParent) {
+                    model->m_fFlags &= ~0x20000;
+                } else {
+                    model->m_fFlags &= ~0x10000;
+                }
+            }
+
+            entity->m_model->SetAnimating(animating);
+        }
+
+        if (entity->m_func) {
+            uint32_t fadeFlags = entity->m_culled < 2 ? 4 : 0;
+            entity->m_func(entity->m_funcParam, nearFlags | fadeFlags, entity->m_funcParam64, entity->m_funcParam32);
+        }
+
+        entity = next;
+    }
 }
 
 // VERIFY: 44ac3c58 auto
@@ -3400,4 +3963,401 @@ void CWorldScene::SetWorldProjection(C44Matrix& mat) {
     world.m_dirty = 1;
     world.m_flags[world.m_level] &= ~CGxMatrixStack::F_Identity;
     world.m_mtx[world.m_level] = mat;
+}
+
+// STATIC: 0x00ADF4F0
+C44Matrix CWorldScene::camTransportMtx;
+
+// STATIC: 0x00CD8788
+WOWGUID CWorldScene::camTransportGUID;
+
+// VERIFY: 1a7d5728 manual
+// OFFSET: 0x0077F0B0
+int32_t World::QueryObjectVisible(CMapEntity* entity) {
+    if (!entity) {
+        return 0;
+    }
+
+    return entity->m_culled == 0;
+}
+
+// VERIFY: 839ab621 auto
+// OFFSET: 0x0077F2E0
+void World::TickObject(CMapEntity* entity) {
+    entity->Tick();
+}
+
+// VERIFY: 8e291dc6 manual
+// OFFSET: 0x0077F310
+int32_t World::Intersect(const C3Vector& start, const C3Vector& end, C3Vector* hit, float* distance, uint32_t flags, HitTestDebug* debug) {
+    return CMap::Intersect(const_cast<C3Vector*>(&start), const_cast<C3Vector*>(&end), hit, distance, flags, debug);
+}
+
+// VERIFY: e6c442dd manual
+// OFFSET: 0x00792E60
+void CWorldScene::AddEntityToSortTable(CMapEntity* entity) {
+    uint32_t flags = entity->unk_007C;
+
+    if ((flags & 0x4000) && !entity->m_model->m_attachList) {
+        CWorldScene::sortTable.m_culledEntityList.LinkToTail(entity);
+        return;
+    }
+
+    C3Vector corner = C3Vector(0.0f, 0.0f, 0.0f);
+    CWorldScene::GetNearestCornerToCamera(&entity->m_bbox, &corner);
+    entity->m_culled = 2;
+    entity->m_distanceToCamera = CWorldScene::camPlane.n.x * corner.x + CWorldScene::camPlane.n.y * corner.y + CWorldScene::camPlane.n.z * corner.z + CWorldScene::camPlane.d;
+
+    if (flags & 0x1) {
+        CWorldScene::sortTable.m_culledEntityList.LinkToTail(entity);
+        return;
+    }
+
+    int32_t bucket = 0;
+    float distance = corner.y * CWorldScene::camPlaneXY.n.y + corner.z * CWorldScene::camPlaneXY.n.z + corner.x * CWorldScene::camPlaneXY.n.x + CWorldScene::camPlaneXY.d;
+
+    if (distance > 0.0f) {
+        bucket = static_cast<int32_t>(distance * 0.029999999f);
+
+        if (bucket >= 64) {
+            return;
+        }
+    }
+
+    CWorldScene::sortTable.m_table[bucket].m_entityList.LinkToHead(entity);
+}
+
+// VERIFY: a1012270 manual
+// OFFSET: 0x00780500
+void CWorldScene::SetCameraTarget(CMapEntity* entity, WOWGUID transportGuid) {
+    CWorldScene::camTargetEntity = entity;
+
+    if (transportGuid) {
+        C44Matrix transport;
+        MovementGetTransportMtxX(transportGuid, &transport, WOWGUID(), __FILE__, __LINE__);
+
+        if (CWorldScene::camTransportGUID) {
+            CWorldScene::camTransportView = transport.AffineInverse() * CWorldScene::camTransportMtx * World::s_m2Scene->m_view;
+        } else {
+            CWorldScene::camTransportView = World::s_m2Scene->m_view;
+        }
+
+        CWorldScene::camTransportMtx = transport;
+    } else {
+        CWorldScene::camTransportView = World::s_m2Scene->m_view;
+    }
+
+    CWorldScene::camTransportGUID = transportGuid;
+}
+
+// VERIFY: c79fbbdc manual
+// OFFSET: 0x007A1BC0
+void CMap::UpdateEntity(CMapEntity* entity) {
+    entity->unk_007C &= 0xFFFFFC96;
+    entity->m_flags = static_cast<MapObjFlag>((entity->m_flags & ~0x7) | 0x1);
+    CMap::LinkStaticEntity(entity);
+
+    if (entity->unk_007C & 0x1) {
+        entity->UpdateMapObjLiquid();
+    } else {
+        int32_t liquidType;
+        int32_t a4;
+
+        if (CMap::QueryLiquidStatus(&entity->m_position, &liquidType, &entity->m_liquidHeight, &a4, 1)) {
+            entity->unk_007C |= 0x20;
+
+            if (entity->m_liquidHeight <= entity->m_bbox.t.z) {
+                entity->unk_007C |= 0x40;
+            } else {
+                entity->unk_007C &= ~0x40;
+            }
+
+            entity->unk_00BC = static_cast<uint16_t>(liquidType);
+        }
+    }
+
+    if (!(entity->unk_007C & 0x2000) && (entity->unk_007C & 0x40) && entity->m_liquidHeight + 0.0099999998f > entity->m_position.z) {
+        uint32_t areaId;
+
+        if (CMap::QueryAreaId(entity, areaId)) {
+            const LiquidTypeRec* liquid = GetLiquidTypeRecForArea(areaId, entity->unk_00BC);
+
+            if (liquid && ((liquid->m_flags & 0x4) || entity->m_liquidHeight > entity->m_position.z)) {
+                entity->unk_007C ^= (entity->unk_007C ^ (liquid->m_flags << 8)) & 0x100;
+                entity->unk_007C ^= (entity->unk_007C ^ (liquid->m_flags << 8)) & 0x200;
+            }
+        }
+    }
+
+    if (entity->m_flags & 0x2) {
+        if (entity->unk_007C & 0x1000) {
+            entity->unk_00C4 = (2.5f - 1.0f) * (entity->m_m2DiffuseColor.a * 0.0039215689f) + 1.0f;
+        } else {
+            entity->unk_00C4 = 1.0f;
+        }
+
+        return;
+    }
+
+    C3Vector ambient = CMap::s_mapLight->m_light.m_ambColor;
+    float b = ambient.z > 0.0f ? (ambient.z < 1.0f ? ambient.z * 255.0f + 0.5f : 255.0f) : 0.0f;
+    float g = ambient.y > 0.0f ? (ambient.y < 1.0f ? ambient.y * 255.0f + 0.5f : 255.0f) : 0.0f;
+    float r = ambient.x > 0.0f ? (ambient.x < 1.0f ? 255.0f * ambient.x + 0.5f : 255.0f) : 0.0f;
+    CImVector color;
+    color.a = 0xFF;
+    color.b = static_cast<uint8_t>(static_cast<int32_t>(b));
+    color.g = static_cast<uint8_t>(static_cast<int32_t>(g));
+    color.r = static_cast<uint8_t>(static_cast<int32_t>(r));
+    entity->unk_00C0 = color;
+
+    if (CShadowCache::GetShadowMode() > 1 || (entity->m_flags & 0x200) || !CMap::QueryShadow(&entity->m_position)) {
+        entity->unk_00C4 = 2.5f;
+    } else {
+        entity->unk_007C |= 0x8;
+        entity->unk_00C4 = 0.5f;
+    }
+}
+
+// VERIFY: c07aad22 manual
+// OFFSET: 0x00791240
+void CWorldScene::CullModelSplitBody(CM2Model* model, uint32_t boneId, int32_t skip) {
+    if (skip) {
+        model->m_fFlags &= ~0x2000;
+    } else {
+        CAaBox box = model->GetSplitBodyBoundingBox(boneId);
+        uint32_t culled = CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(box) == 0;
+        model->m_fFlags ^= (model->m_fFlags ^ (culled << 13)) & 0x2000;
+    }
+
+    for (CM2Model* attached = model->m_attachList; attached; attached = attached->m_attachNext) {
+        CWorldScene::CullModelRecursive(attached);
+    }
+}
+
+// VERIFY: a400f932 manual
+// OFFSET: 0x00793980
+void CWorldScene::RenderEntitys() {
+    int32_t streaming = SFile::IsStreamingMode();
+    CMapEntity* entity = CWorldScene::sortTable.m_visibleEntityList.Head();
+
+    while (entity) {
+        CMapEntity* next = CWorldScene::sortTable.m_visibleEntityList.Next(entity);
+        entity->m_sortEntryLink.Unlink();
+
+        if (entity->m_model) {
+            if (entity->m_model->IsLoaded(0, 1)) {
+                CWorldScene::CullModelSplitBody(entity->m_model, entity->unk_00A4, (entity->unk_007C >> 14) & 1);
+            } else if (streaming) {
+                entity->m_model->LinkToAsyncHead(0);
+            }
+        }
+
+        CM2Model* model = entity->m_model;
+
+        if (model && model->IsLoaded(0, 0) && !(entity->unk_007C & 0x4)) {
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ entity->m_funcParam64 }, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+            if (!unit) {
+                if (entity->unk_007C & 0x800) {
+                    M2SequenceInfo info;
+                    info.Clear();
+                    model->GetSequenceInfo(0, 0, info);
+                    CWorldScene::RequestModelStreaming(model, &info.m_bounds);
+                }
+            } else {
+                if ((entity->unk_007C & 0x800) && unit->m_unit->m_unitFieldBytes1[0] != 9) {
+                    CAaBox standBox = unit->GetStandBox();
+                    CWorldScene::RequestModelStreaming(model, &standBox);
+                }
+
+                unit->Render();
+            }
+        }
+
+        entity = next;
+    }
+}
+
+
+// VERIFY: 28592f1e auto
+// OFFSET: 0x00783A40
+bool World::GetFacets(CAaBox* box, FacetData* facets, uint32_t flags, uint32_t* status) {
+    return World::GetFacets(box, box, facets, flags, status);
+}
+
+// VERIFY: 4313dc59 manual
+// OFFSET: 0x00782740
+uint32_t World::TriDataToFacetData(void* unused, FacetData* facets, WOWGUID guid) {
+    uint32_t first = facets->facets.Count();
+
+    for (uint32_t b = 0; b < World::TriData::nBatches; b++) {
+        World::TriData::Batch& batch = World::TriData::batches[b];
+        const uint16_t* indices = batch.m_indices;
+
+        for (uint32_t f = 0; f < batch.m_faceCount; f++, indices += 3) {
+            CFacet* facet = facets->facets.New();
+            const C3Vector& a = batch.m_vertexList[indices[0]];
+            const C3Vector& b1 = batch.m_vertexList[indices[1]];
+            const C3Vector& c = batch.m_vertexList[indices[2]];
+            C3Vector e1 = b1 - a;
+            C3Vector e2 = c - a;
+            float nx = e1.y * e2.z - e1.z * e2.y;
+            float ny = e1.z * e2.x - e2.z * e1.x;
+            float nz = e1.x * e2.y - e2.x * e1.y;
+            const C44Matrix& m = *batch.m_matrix;
+            facet->plane.n.x = m.c0 * nz + m.b0 * ny + m.a0 * nx;
+            facet->plane.n.y = m.c1 * nz + m.b1 * ny + m.a1 * nx;
+            facet->plane.n.z = nx * m.a2 + (ny * m.b2 + nz * m.c2);
+            facet->v[0] = a * m;
+            facet->v[1] = b1 * m;
+            facet->v[2] = c * m;
+            float lengthSq = facet->plane.n.z * facet->plane.n.z + facet->plane.n.y * facet->plane.n.y + facet->plane.n.x * facet->plane.n.x;
+
+            if (lengthSq == 0.0f) {
+                SysMsgPrintf(STATUS_ERROR, 2, "Found degenerate triangle -- data needs to be fixed\n");
+                facet->plane.n.x = 0.0f;
+                facet->plane.n.y = 0.0f;
+                facet->plane.n.z = 1.0f;
+            } else {
+                float scale = 1.0f / sqrtf(lengthSq);
+                facet->plane.n.x *= scale;
+                facet->plane.n.y *= scale;
+                facet->plane.n.z *= scale;
+            }
+
+            facet->plane.d = -(facet->v[0].z * facet->plane.n.z + facet->v[0].y * facet->plane.n.y + facet->v[0].x * facet->plane.n.x);
+        }
+    }
+
+    uint32_t count = facets->facets.Count();
+
+    if (count == first) {
+        return 0;
+    }
+
+    facets->facetIds.SetCount(count);
+
+    for (uint32_t i = first; i < count; i++) {
+        facets->facetIds.m_data[i] = guid.m_guid;
+    }
+
+    return count;
+}
+
+// VERIFY: a052c929 auto
+// OFFSET: 0x0077F330
+bool World::GetFacets(CFrustum* frustum, FacetData* facets, uint32_t flags, uint32_t* status) {
+    return CMap::QueryFacets(frustum, facets, flags, status);
+}
+
+// STATIC: 0x00CDD380
+static C3Vector* s_clipInVerts[32];
+
+// STATIC: 0x00CDD300
+static C3Vector* s_clipOutVerts[32];
+
+// VERIFY: 95a6852b manual
+// OFFSET: 0x00791380
+bool World::NDCClip(C3Vector* verts, uint32_t count, C3Vector*** outVerts, uint32_t* outCount) {
+    // STATIC: 0x00CDD400
+    static C3Vector s_clipNewVerts[32];
+
+    World::CLIPINFO infos[32];
+    World::CLIPINFO newInfos[32];
+    World::CLIPINFO* outInfos[32];
+    World::CLIPINFO* inInfos[32];
+    C3Vector* newVert = s_clipNewVerts;
+    World::CLIPINFO* newInfo = newInfos;
+    uint32_t andCode = 0xFFFFFFFF;
+    uint32_t orCode = 0;
+
+    if (!count) {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < count; i++) {
+        infos[i].Set(verts[i]);
+        inInfos[i] = &infos[i];
+        andCode &= infos[i].outcode;
+        orCode |= infos[i].outcode;
+        s_clipInVerts[i] = &verts[i];
+    }
+
+    if (andCode) {
+        return false;
+    }
+
+    if (!orCode) {
+        *outVerts = s_clipInVerts;
+        *outCount = count;
+        return true;
+    }
+
+    World::CLIPPOLY polyA;
+    polyA.verts = s_clipInVerts;
+    polyA.infos = inInfos;
+    polyA.count = count;
+    World::CLIPPOLY polyB;
+    polyB.verts = s_clipOutVerts;
+    polyB.infos = outInfos;
+    polyB.count = 0;
+    World::CLIPPOLY* src = &polyA;
+    World::CLIPPOLY* dst = &polyB;
+    uint32_t mask = 0x80000000;
+
+    for (uint32_t plane = 0; plane < 6; plane++) {
+        if (mask & orCode) {
+            uint32_t prev = src->count - 1;
+            uint32_t prevCode = mask & src->infos[prev]->outcode;
+            dst->count = 0;
+
+            for (uint32_t i = 0; i < src->count; i++) {
+                uint32_t code = mask & src->infos[i]->outcode;
+
+                if (prevCode != code) {
+                    float denom = src->infos[prev]->d[plane] - src->infos[i]->d[plane];
+
+                    if (0.0f == denom) {
+                        denom = 0.000099999997f;
+                    }
+
+                    float t = src->infos[prev]->d[plane] / denom;
+                    const C3Vector* a = src->verts[prev];
+                    const C3Vector* b = src->verts[i];
+                    newVert->x = (b->x - a->x) * t + a->x;
+                    newVert->y = (b->y - a->y) * t + a->y;
+                    newVert->z = t * (b->z - a->z) + a->z;
+                    newInfo->Set(*newVert);
+                    dst->verts[dst->count] = newVert;
+                    dst->infos[dst->count] = newInfo;
+                    newVert++;
+                    dst->count++;
+                    newInfo++;
+                }
+
+                if (!code) {
+                    dst->verts[dst->count] = src->verts[i];
+                    dst->infos[dst->count] = src->infos[i];
+                    dst->count++;
+                }
+
+                prev = i;
+                prevCode = code;
+            }
+
+            if (!dst->count) {
+                return false;
+            }
+
+            World::CLIPPOLY* swap = src;
+            src = dst;
+            dst = swap;
+        }
+
+        mask >>= 1;
+    }
+
+    *outVerts = src->verts;
+    *outCount = src->count;
+    return true;
 }

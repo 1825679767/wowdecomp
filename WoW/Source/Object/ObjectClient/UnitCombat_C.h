@@ -4,28 +4,42 @@
 #include <cstddef>
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
+#include "WoW/Source/Net/Types.h"
+
+class CDataStore;
 
 class ATTACKROUNDINFO {
     public:
     /* 0000 */ WOWGUID m_attacker;
     /* 0008 */ WOWGUID m_target;
     /* 0010 */ uint32_t m_hitInfo;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint64_t unk_0018;
-    /* 0020 */ uint8_t unk_0020[8];
-    /* 0028 */ uint64_t unk_0028;
-    /* 0030 */ uint64_t unk_0030;
-    /* 0038 */ uint64_t unk_0038;
-    /* 0040 */ uint64_t unk_0040;
-    /* 0048 */ uint64_t unk_0048;
-    /* 0050 */ uint64_t unk_0050;
-    /* 0058 */ uint64_t unk_0058;
-    /* 0060 */ uint64_t unk_0060;
-    /* 0068 */ uint64_t unk_0068;
-    /* 0070 */ uint64_t unk_0070;
-    /* 0078 */ uint64_t unk_0078;
-    /* 0080 */ uint64_t unk_0080;
-    /* 0088 */ uint64_t unk_0088;
+    /* 0014 */ int32_t m_damage;
+    /* 0018 */ int32_t m_overkill;
+    /* 001C */ uint32_t m_schoolMask [2];
+    /* 0024 */ float unk_0024 [2];
+    /* 002C */ float unk_002C [2];
+    /* 0034 */ float m_subDamage [2];
+    /* 003C */ uint32_t m_subDamageInt [2];
+    /* 0044 */ uint32_t m_absorbed [2];
+    /* 004C */ uint32_t m_resisted [2];
+    /* 0054 */ uint32_t m_victimState;
+    /* 0058 */ uint32_t unk_0058;
+    /* 005C */ uint32_t m_meleeSpellId;
+    /* 0060 */ uint32_t m_blocked;
+    /* 0064 */ uint32_t m_rageGained;
+    /* 0068 */ uint32_t unk_0068;
+    /* 006C */ float unk_006C [8];
+    /* 008C */ uint32_t unk_008C [5];
+
+    ATTACKROUNDINFO();
+    ATTACKROUNDINFO& operator=(const ATTACKROUNDINFO& other);
+    void Unpack(CDataStore& msg);
 };
+
+void TargetAttacker(const WOWGUID& attacker);
+int32_t Packet_Group_29(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+
+void UnitCombatClientInitialize();
+void UnitCombatClientShutdown();
 
 #endif

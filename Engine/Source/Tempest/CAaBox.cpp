@@ -169,3 +169,21 @@ CAaBox& CAaBox::operator*=(float scale) {
     this->t.z = scale * this->t.z;
     return *this;
 }
+
+// VERIFY: f730ab05 auto
+// OFFSET: 0x0070BD70
+void CAaBox::Expand(float amount) {
+    this->b.x = this->b.x - amount;
+    this->b.y = this->b.y - amount;
+    this->b.z = this->b.z - amount;
+    this->t.x = this->t.x + amount;
+    this->t.y = this->t.y + amount;
+    this->t.z = amount + this->t.z;
+}
+
+// VERIFY: 6ac424a6 manual
+// OFFSET: 0x00715080
+void CAaBox::Set(float min, float max) {
+    this->b = C3Vector(min, min, min);
+    this->t = C3Vector(max, max, max);
+}

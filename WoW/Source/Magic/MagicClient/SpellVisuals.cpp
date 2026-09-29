@@ -119,3 +119,9 @@ void SpellVisualsBlizzardStop(BlizzardObject** object) {
     (*object)->unk_0124 = 0.0f;
     *object = nullptr;
 }
+
+// VERIFY: cf521745 auto
+// OFFSET: 0x007F9F70
+int32_t SpellVisualsIsMountTransitionFinished(const MountTransitionObject* transition) {
+    return (transition->unk_0078 >> 1) & 1;
+}

@@ -8,6 +8,15 @@
 // STATIC: 0x00CA0B7C
 uint32_t s_clientStateIndex;
 
+// STATIC: 0x00CA0FE0
+static int32_t s_unk_CA0FE0;
+
+// STATIC: 0x00CA0FE4
+static int32_t s_unk_CA0FE4;
+
+// STATIC: 0x00CA0FE8
+static WOWGUID s_unk_CA0FE8;
+
 // VERIFY: ef2d8e5d auto
 // OFFSET: 0x00703CD0
 void Trade_C_Destroy() {
@@ -81,4 +90,14 @@ bool Trade_C_AddItem(WOWGUID item, WOWGUID bag, uint8_t slot, uint8_t tradeSlot)
     ClientServices::Send2(&msg);
 
     return true;
+}
+
+// VERIFY: c435de61 auto
+// OFFSET: 0x007048D0
+void Trade_C_Initialize() {
+    s_unk_CA0FE0 = 0;
+    s_unk_CA0FE4 = 0;
+    s_unk_CA0FE8 = WOWGUID();
+    ClientServices::SetMessageHandler(SMSG_TRADE_STATUS, Packet_SMSG_TRADE_STATUS, nullptr);
+    ClientServices::SetMessageHandler(SMSG_TRADE_STATUS_EXTENDED, Packet_SMSG_TRADE_STATUS_EXTENDED, nullptr);
 }

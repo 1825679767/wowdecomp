@@ -158,6 +158,12 @@ int32_t CGUnit::IsOnSpline() const {
     return spline && !(spline->m_flags & 0x400);
 }
 
+// VERIFY: ea2cbe01 auto
+// OFFSET: 0x005FEE10
+int32_t CGUnit::IsJumping() const {
+    return (this->m_movement->m_flags & MOVEMENTFLAG_FALLING) && 0.0f != this->m_movement->m_fallVelocity;
+}
+
 // VERIFY: 4e64bda0 auto
 // OFFSET: 0x005FA9E0
 int32_t CGUnit::CanMove() const {
@@ -207,4 +213,60 @@ float CGUnit::GetPowerRegen(int32_t powerType, bool inCombat) const {
     }
 
     return CGUnit::GetPowerRegenBase(powerType, 0) + this->m_unit->m_unitFieldPowerRegenFlatModifier[powerType];
+}
+
+// VERIFY: 90149eb1 manual
+// OFFSET: 0x004F7250
+bool CGUnit::IsPossessedBy(const WOWGUID& guid) const {
+    return (this->m_unit->m_unitFieldFlags & 0x1000000) && *this->GetCharmerOrCreatorGuid() == guid;
+}
+
+// VERIFY: 3c755101 auto
+// OFFSET: 0x00716140
+bool CGUnit::HasCreator() const {
+    return this->m_unit->m_unitFieldCreatedby.m_guid != 0;
+}
+
+// VERIFY: 94ea7916 auto
+// OFFSET: 0x0053B8C0
+bool CGUnit::HasSummoner() const {
+    return this->m_unit->m_unitFieldSummonedby.m_guid != 0;
+}
+
+// VERIFY: 124e37fd auto
+// OFFSET: 0x004F5F00
+bool CGUnit::IsCharmed() const {
+    return this->m_unit->m_unitFieldCharmedby != WOWGUID();
+}
+
+// VERIFY: 2ed8af1f manual
+// OFFSET: 0x005EE050
+int32_t CGUnit::GetSpellCostModifier(int32_t schoolMask) const {
+    int32_t result = 0;
+    bool found = false;
+
+    for (uint32_t i = 0; i < sizeof(this->m_unit->m_unitFieldPowerCostModifier) / sizeof(this->m_unit->m_unitFieldPowerCostModifier[0]); i++) {
+        if (((1 << i) & schoolMask) && (!found || this->m_unit->m_unitFieldPowerCostModifier[i] < result)) {
+            result = this->m_unit->m_unitFieldPowerCostModifier[i];
+            found = true;
+        }
+    }
+
+    return result;
+}
+
+// VERIFY: 335247cb manual
+// OFFSET: 0x005EE0B0
+float CGUnit::GetSpellCostMultiplier(int32_t schoolMask) const {
+    float result = 0.0f;
+    bool found = false;
+
+    for (uint32_t i = 0; i < sizeof(this->m_unit->m_unitFieldPowerCostMultiplier) / sizeof(this->m_unit->m_unitFieldPowerCostMultiplier[0]); i++) {
+        if (((1 << i) & schoolMask) && (!found || result > this->m_unit->m_unitFieldPowerCostMultiplier[i])) {
+            result = this->m_unit->m_unitFieldPowerCostMultiplier[i];
+            found = true;
+        }
+    }
+
+    return result + 1.0f;
 }

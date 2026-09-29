@@ -5,6 +5,7 @@
 #include "Client.h"
 #include "_Triage/AreaList.h"
 #include "_Triage/DataPreload.h"
+#include "_Triage/GameClientCommands.h"
 #include "_Triage/StartupReport.h"
 #include "_Triage/StreamingSetEnabled.h"
 #include "Engine/Source/Base/Base.h"
@@ -15,6 +16,7 @@
 #include "Engine/Source/ConsoleBase/ConsoleCommand.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/ConsoleBase/IConsole.h"
+#include "Engine/Source/ConsoleBase/Types.h"
 #include "Engine/Source/Event/Event.h"
 #include "Engine/Source/Frame/CSimpleRender.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
@@ -48,36 +50,63 @@
 #include "WoW/Source/ConsoleDevice/ConsoleDevice.h"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/Cfg_ConfigsRec.h"
+#include "WoW/Source/DB/Rec/MapRec.h"
 #include "WoW/Source/Game/DeclinedWords.h"
 #include "WoW/Source/Game/GameClient/ComSatClient.h"
+#include "WoW/Source/Game/GameClient/PlayerName.h"
+#include "WoW/Source/Game/GameClient/WTOBJECT.h"
 #include "WoW/Source/Game/GameClient/WardenClient.h"
+#include "WoW/Source/Game/GameTime.h"
 #include "WoW/Source/Game/ValidateName.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
 #include "WoW/Source/Glue/GlueMgr.h"
 #include "WoW/Source/Hardware.h"
 #include "WoW/Source/LoadingScreen.h"
 #include "WoW/Source/Magic/MagicClient/SpellVisuals.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/Object/ObjectClient/Container_C.h"
+#include "WoW/Source/Object/ObjectClient/Corpse_C.h"
+#include "WoW/Source/Object/ObjectClient/DynamicObject_C.h"
 #include "WoW/Source/Object/ObjectClient/Effect_C.h"
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
+#include "WoW/Source/Object/ObjectClient/LootRoll.h"
+#include "WoW/Source/Object/ObjectClient/Missile_C.h"
+#include "WoW/Source/Object/ObjectClient/Movement_C.h"
 #include "WoW/Source/Object/ObjectClient/ObjectEffect.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/Object/ObjectClient/Trade_C.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/ObjectAlloc/HeapUsage.h"
 #include "WoW/Source/ObjectAlloc/ObjectAlloc.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
-#include "WoW/Source/UIUtil/InputControl.h"
 #include "WoW/Source/UIUtil/BannedAddOns.h"
+#include "WoW/Source/UIUtil/Camera.h"
+#include "WoW/Source/UIUtil/InputControl.h"
+#include "WoW/Source/UIUtil/SmartScreenRect.h"
 #include "WoW/Source/Ui/AddOns.h"
+#include "WoW/Source/Ui/BarberShop.h"
+#include "WoW/Source/Ui/BattlenetUI.h"
 #include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/ChatFrame.h"
+#include "WoW/Source/Ui/LootFrame.h"
+#include "WoW/Source/Ui/PartyFrame.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "WoW/Source/Ui/Tutorial.h"
+#include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/WorldClient/FrameTime.h"
 #include "WoW/Source/WorldClient/Map.h"
+#include "WoW/Source/WorldClient/MapWeather.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WorldClient/WorldParam.h"
 #include "WoW/Source/WorldClient/shadow.h"
 #include "WoW/Source/WowServices/PatchFiles.h"
 #include "WoW/Source/WowServices/RealmConnection.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/AccountData.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
 #include "WoW/Source/WowSysMessageOutput.h"
 
 namespace {
@@ -233,6 +262,43 @@ bool g_hasIsoLocale[12];
 // STATIC: 0x00C5DE9C
 int32_t s_locale;
 
+// STATIC: 0x00B2F040
+static const char* s_directory;
+
+// STATIC: 0x00B2F044
+static float s_spawnRotation;
+
+// STATIC: 0x00B2F048
+static uint32_t s_zoneID;
+
+// STATIC: 0x00B2F998
+int32_t s_isPvPRealm;
+
+// STATIC: 0x00B2F9A0
+static int32_t s_gameInitialized;
+
+// STATIC: 0x00B2F9A8
+static int32_t s_clientTaxiBenchIsOnTaxi;
+
+// STATIC: 0x00B2F9AC
+static int32_t s_clientTaxiBenchEnabled;
+
+// STATIC: 0x00B2F9E0
+static uint8_t s_botCheckEnabled;
+
+// STATIC: 0x00B2F9E4
+static uint32_t s_botCheckStartTime;
+
+// STATIC: 0x00B2F9E8
+static uint32_t s_botCheckDelay;
+
+// STATIC: 0x00B2FA1C
+static C3Vector s_spawnPosition;
+
+// STATIC: 0x00B2FE50
+template <>
+CommandManager* StaticSingleton<CommandManager>::m_instance = nullptr;
+
 // VERIFY: 3c887aa5 manual
 // OFFSET: 0x004031C0
 static int32_t ListArchiveFilter(const char* fileName, void* param) {
@@ -263,6 +329,32 @@ static void ListArchives(const char* prefix, int32_t index, int32_t (*callback)(
     if (archive) {
         SFile::List(archive, ListArchiveFilter, &params);
     }
+}
+
+// VERIFY: b482037d manual
+// OFFSET: 0x00401220
+CommandManager::~CommandManager() {
+    for (uint32_t i = 0; i < this->m_count; i++) {
+        this->m_commands[i]->Uninstall();
+        delete this->m_commands[i];
+    }
+}
+
+// VERIFY: 004111ad auto
+// OFFSET: 0x00401520
+static void MovementInit() {
+    char logFile[260];
+
+    if (!SRegLoadString("World of Warcraft\\Client", "MoveLogFile", 0, logFile, sizeof(logFile)) || !logFile[0]) {
+        SRegSaveString("World of Warcraft\\Client", "MoveLogFile", 0, "ClientMovement.txt");
+        SStrCopy(logFile, "ClientMovement.txt", sizeof(logFile));
+    }
+
+    uint32_t processId = SGetCurrentProcessId();
+    char* extension = SStrChrR(logFile, '.');
+    SStrPrintf(extension, logFile + sizeof(logFile) - extension, "%04d.txt", processId);
+    MovementInitialize(logFile);
+    EventRegisterEx(EVENT_ID_IDLE, MovementIdleMoveUnits, nullptr, 2.0f);
 }
 
 // VERIFY: abdc92c0 auto
@@ -583,6 +675,15 @@ int ForEveryRunOnceWTF::FileNameCompare(const void* a, const void* b) {
     return SStrSortUTF8I(*static_cast<char* const*>(a), *static_cast<char* const*>(b), STORM_MAX_STR);
 }
 
+// VERIFY: f04c040b auto
+// OFFSET: 0x00403340
+static int32_t ClientIdle(const void* data, void* param) {
+    ClientGameTimeTickHandler(data, param);
+    Player_C_ZoneUpdateHandler(data, param);
+
+    return 1;
+}
+
 // VERIFY: bf995614 auto
 // OFFSET: 0x004033C0
 void ClientPostClose(int32_t reason) {
@@ -680,6 +781,121 @@ static void LoadMFIL(const char* file) {
     }
 
     SFile::SetStreamingStatus(s_streamingDiag & 1, (s_streamingDiag >> 1) & 1, (s_streamingDiag >> 2) & 1, (s_streamingDiag >> 3) & 1, 12340);
+}
+
+// VERIFY: 2b64aabf manual
+// OFFSET: 0x00403B70
+static int32_t LoadNewWorld(const void* data, void* param) {
+    ClientServices::Connection()->CharacterSetInGame(0);
+    MovementDestroy();
+    EventUnregister(EVENT_ID_IDLE, MovementIdleMoveUnits);
+    CMissile::RemoveMissiles();
+    Spell_C_StopTargeting();
+    CGBarberShop::DisableBarberShop();
+    ClntObjMgrDestroy();
+    SpellVisualsClear();
+    CEffect::Destroy();
+    CGWorldFrame::SetScreenEffect(0);
+
+    if (CGWorldFrame::s_currentWorldFrame) {
+        CGWorldFrame::s_currentWorldFrame->UnitClear();
+    }
+
+    CGUnit_C::StopMissileTrajectoryTargeting();
+    World::UnloadMap();
+
+    if (World::s_weather) {
+        World::s_weather->Reset();
+    }
+
+    SI2::SetWeatherKitID(-1);
+    Spell_C_ClearCooldowns();
+    ClntObjMgrInitializeStd(s_zoneID);
+    MovementInit();
+    CloseAllLootRolls();
+    CGPartyInfo::CheckClearLFGSlot();
+    AsyncFileReadIngameProgressCallback(nullptr, nullptr);
+    AsyncFileReadSetProgressCallback(LoadingScreenAsyncCallback, nullptr);
+    World::SetLoadProgressCallback(LoadingScreenWorldCallback, nullptr);
+    CWorld::LoadMap(s_directory, &s_spawnPosition, s_zoneID, 1);
+    AsyncFileReadSetProgressCallback(nullptr, nullptr);
+    World::SetLoadProgressCallback(nullptr, nullptr);
+
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+    camera->m_position = s_spawnPosition;
+    camera->SetFacing(s_spawnRotation, 0.0f, 0.0f);
+    camera->SetTarget(nullptr, 0);
+
+    if (param) {
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(MSG_MOVE_WORLDPORT_ACK));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 1;
+}
+
+// VERIFY: a5146d91 auto
+// OFFSET: 0x00403D10
+static int32_t Packet_SMSG_NEW_WORLD(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    msg->Get(s_zoneID);
+    msg->Get(s_spawnPosition.x);
+    msg->Get(s_spawnPosition.y);
+    msg->Get(s_spawnPosition.z);
+    msg->Get(s_spawnRotation);
+
+    if (!msg->IsRead()) {
+        ConsoleWrite("Bad SMSG_NEW_WORLD\n", DEFAULT_COLOR);
+        msg->Reset();
+        return 1;
+    }
+
+    MapRec* map = g_mapDB.GetRecord(s_zoneID);
+
+    if (!map) {
+        ConsoleWrite("Bad SMSG_NEW_WORLD zoneID\n", DEFAULT_COLOR);
+        return 0;
+    }
+
+    s_directory = map->m_directory;
+    EventSetTimer(0, LoadNewWorld, reinterpret_cast<void*>(1));
+
+    return 1;
+}
+
+// VERIFY: 1eb347a4 auto
+// OFFSET: 0x00403DE0
+static int32_t Packet_SMSG_LOGIN_VERIFY_WORLD(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t zoneID;
+    C3Vector position = { 0.0f, 0.0f, 0.0f };
+    float rotation;
+
+    msg->Get(zoneID);
+    msg->Get(position.x);
+    msg->Get(position.y);
+    msg->Get(position.z);
+    msg->Get(rotation);
+
+    if (zoneID == ClntObjMgrGetMapID()) {
+        return 1;
+    }
+
+    s_spawnRotation = rotation;
+    s_spawnPosition = position;
+    s_zoneID = zoneID;
+
+    MapRec* map = g_mapDB.GetRecord(zoneID);
+
+    if (!map) {
+        ConsoleWrite("Bad SMSG_NEW_WORLD zoneID\n", DEFAULT_COLOR);
+        return 0;
+    }
+
+    s_directory = map->m_directory;
+    LoadNewWorld(nullptr, nullptr);
+
+    return 1;
 }
 
 // VERIFY: 2ecb4537 auto
@@ -933,6 +1149,101 @@ int32_t STORMAPI WowLogHeader(char* buffer, uint32_t bufferchars) {
     return 1;
 }
 
+// VERIFY: 4abe30a5 manual
+// OFFSET: 0x00405540
+void ClientInitializeGame(uint32_t mapId, C3Vector position) {
+    if (SFile::IsTrial()) {
+        SetClientInitialized(0);
+    }
+
+    g_theGxDevicePtr->MasterEnableSet(GxMasterEnable_Fog, 1);
+
+    if (World::s_weather) {
+        World::s_weather->Reset();
+    }
+
+    SI2::SetWeatherKitID(-1);
+
+    REALM_INFO* realm = ClientServices::GetSelectedRealm();
+
+    for (uint32_t i = 0; i < g_cfg_ConfigsDB.m_numRecords; i++) {
+        Cfg_ConfigsRec* config = i < g_cfg_ConfigsDB.m_numRecords ? &g_cfg_ConfigsDB.m_records[i] : nullptr;
+
+        if (config->m_realmType == realm->m_type) {
+            s_isPvPRealm = config->m_playerKillingAllowed != 0;
+            break;
+        }
+    }
+
+    AccountDataInitialize(false);
+    ClntObjMgrInitializeShared();
+    ClntObjMgrInitializeStd(mapId);
+    CGUnit_C::ClientInitialize();
+    SI2::InitZoneSoundsHandler();
+    SI2::InitZoneIntros();
+    LootInitialize();
+    CGGameUI::InitializeGame();
+    CGWorldFrame::GetActiveCamera()->m_position = position;
+    WorldTextInitialize();
+    PlayerNameInitialize();
+    WeaponTrailsInitialize();
+    CGObject_C::Initialize();
+    SpellTableInitialize();
+    CGUnit_C::Initialize();
+    CGGameObject_C::Initialize();
+    PlayerClientInitialize();
+    CGPlayer_C::Initialize();
+    CGItem_C::Initialize();
+    CGContainer_C::Initialize();
+    CGCorpse_C::Initialize();
+    CGDynamicObject_C::Initialize();
+    FriendList::Initialize();
+    SmartScreenRectClearAllGrids();
+    Trade_C_Initialize();
+    MovementInit();
+    EventRegister(EVENT_ID_IDLE, ClientIdle);
+    ClientInitializeGameTime();
+
+    CommandManager* manager = StaticSingleton<CommandManager>::Instance();
+    manager->m_connection = ClientServices::Connection();
+    GameClientCommands* commands = new (__FILE__, __LINE__) GameClientCommands;
+    manager = StaticSingleton<CommandManager>::Instance();
+    manager->m_commands[manager->m_count++] = commands;
+    commands->Install();
+
+    ClientServices::SetMessageHandler(SMSG_NOTIFICATION, Packet_SMSG_NOTIFICATION, nullptr);
+    ClientServices::SetMessageHandler(SMSG_PLAYED_TIME, Packet_SMSG_PLAYED_TIME, nullptr);
+    ClientServices::SetMessageHandler(SMSG_NEW_WORLD, Packet_SMSG_NEW_WORLD, nullptr);
+    ClientServices::SetMessageHandler(SMSG_TRANSFER_PENDING, Packet_SMSG_TRANSFER_PENDING, nullptr);
+    ClientServices::SetMessageHandler(SMSG_TRANSFER_ABORTED, Packet_SMSG_TRANSFER_ABORTED, nullptr);
+    ClientServices::SetMessageHandler(SMSG_LOGIN_VERIFY_WORLD, Packet_SMSG_LOGIN_VERIFY_WORLD, nullptr);
+    ClientServices::SetMessageHandler(SMSG_KICK_REASON, CGlueMgr::OnKickReasonMsg, nullptr);
+
+    MapRec* map = g_mapDB.GetRecord(mapId);
+
+    if (!map) {
+        DebugLog("Bad zone ID %i", mapId);
+    }
+
+    AsyncFileReadIngameProgressCallback(nullptr, nullptr);
+    AsyncFileReadSetProgressCallback(LoadingScreenAsyncCallback, nullptr);
+    World::SetLoadProgressCallback(LoadingScreenWorldCallback, nullptr);
+
+    if (SFile::IsTrial()) {
+        SetClientInitialized(1);
+    }
+
+    CWorld::LoadMap(map->m_directory, &position, mapId, 1);
+    AsyncFileReadSetProgressCallback(nullptr, nullptr);
+    World::SetLoadProgressCallback(nullptr, nullptr);
+
+    s_botCheckStartTime = OsGetAsyncTimeMs();
+    s_botCheckDelay = 1200;
+    s_botCheckEnabled = 1;
+    BattlenetUI_EnterRealm();
+    s_gameInitialized = 1;
+}
+
 // VERIFY: d0ea5e5a manual
 // OFFSET: 0x00405DD0
 static void OpenArchives() {
@@ -1127,6 +1438,88 @@ int32_t ForEveryRunOnceWTF::AppendFileName(OS_FILE_DATA& data, void* param) {
     *slot = SStrDupA(data.fileName, __FILE__, __LINE__);
 
     return 0;
+}
+
+// VERIFY: 0f3b98a4 manual
+// OFFSET: 0x00406510
+void ClientDestroyGame(int32_t charSelect, int32_t resumeGlue, int32_t worldLogin) {
+    if (!s_gameInitialized) {
+        return;
+    }
+
+    s_botCheckEnabled = 0;
+    EventUnregister(EVENT_ID_IDLE, ClientIdle);
+    ClientServices::ClearMessageHandler(SMSG_NOTIFICATION);
+    ClientServices::ClearMessageHandler(SMSG_PLAYED_TIME);
+    ClientServices::ClearMessageHandler(SMSG_NEW_WORLD);
+    ClientServices::ClearMessageHandler(SMSG_TRANSFER_PENDING);
+    ClientServices::ClearMessageHandler(SMSG_TRANSFER_ABORTED);
+    ClientServices::ClearMessageHandler(SMSG_CHANNEL_NOTIFY);
+    ClientServices::ClearMessageHandler(SMSG_CHANNEL_LIST);
+    ClientServices::ClearMessageHandler(SMSG_LOGIN_VERIFY_WORLD);
+    ClientServices::ClearMessageHandler(SMSG_KICK_REASON);
+
+    if (StaticSingleton<CommandManager>::m_instance) {
+        delete StaticSingleton<CommandManager>::m_instance;
+        StaticSingleton<CommandManager>::m_instance = nullptr;
+    }
+
+    Trade_C_Destroy();
+    FriendList::Destroy();
+    AreaListShutdown();
+    CGItem_C::Shutdown();
+    CGPlayer_C::Shutdown();
+    PlayerClientShutdown();
+    LootDestroy();
+    SpellTableDestroy();
+    CGUnit_C::Shutdown();
+    CGGameObject_C::Shutdown();
+    CGObject_C::Shutdown();
+    MovementDestroy();
+    LootRollDestroy();
+    EventUnregister(EVENT_ID_IDLE, MovementIdleMoveUnits);
+    Spell_C_StopTargeting();
+    ClntObjMgrDestroy();
+    CGUnit_C::PostShutdown();
+    SpellVisualsClear();
+    CEffect::Destroy();
+    CGWorldFrame::SetScreenEffect(0);
+
+    if (CGWorldFrame::s_currentWorldFrame) {
+        CGWorldFrame::s_currentWorldFrame->UnitClear();
+    }
+
+    World::UnloadMap();
+    WeaponTrailsShutdown();
+    PlayerNameShutdown();
+    WorldTextShutdown();
+    CGGameUI::ShutdownGame();
+    ClientDestroyGameTime();
+    SI2::ShutdownZoneSoundsHandler();
+    SI2::StopAllSounds();
+    SI2::FreeZoneIntros();
+    SI2::ClearSuppressorSounds();
+    ClntObjMgrDestroyShared();
+    AccountDataDestroy(false);
+    s_gameInitialized = 0;
+    LoadingScreenDisable();
+
+    if (s_clientTaxiBenchEnabled) {
+        s_clientTaxiBenchEnabled = 0;
+        s_clientTaxiBenchIsOnTaxi = 0;
+    }
+
+    BattlenetUI_LeaveRealm();
+
+    if (resumeGlue) {
+        CGlueMgr::Resume();
+
+        if (worldLogin) {
+            CGlueMgr::m_idleState = IDLE_WORLD_LOGIN;
+        }
+
+        CGlueMgr::SetScreen(charSelect ? "charselect" : "login");
+    }
 }
 
 // VERIFY: e61971e0 auto
@@ -1358,4 +1751,143 @@ void ListInterfaceArchive(const char* prefix, int32_t (*callback)(const char* fi
     } else {
         ListArchives(prefix, 19, callback, param);
     }
+}
+
+// VERIFY: df6c53d5 auto
+// OFFSET: 0x00406EF0
+void GameClientCommands::Uninstall() {
+    ConsoleCommandUnregister("port");
+    ConsoleCommandUnregister("charmport");
+    ConsoleCommandUnregister("worldport");
+    ConsoleCommandUnregister("setrawpos");
+    ConsoleCommandUnregister("showplayer");
+    ConsoleCommandUnregister("togglehelm");
+    ConsoleCommandUnregister("togglecloak");
+}
+
+// VERIFY: 0fe7767a auto
+// OFFSET: 0x00407870
+void GameClientCommands::Install() {
+    ConsoleCommandRegister("port", CCommand_Teleport, CATEGORY_DEBUG, nullptr);
+    ConsoleCommandRegister("charmport", CCommand_CharmTeleport, CATEGORY_DEBUG, nullptr);
+    ConsoleCommandRegister("worldport", CCommand_WorldTeleport, CATEGORY_DEBUG, nullptr);
+    ConsoleCommandRegister("setrawpos", CCommand_SetRawPos, CATEGORY_DEBUG, nullptr);
+    ConsoleCommandRegister("showplayer", CCommand_TogglePlayer, CATEGORY_GRAPHICS, nullptr);
+    ConsoleCommandRegister("togglehelm", CCommand_ToggleHelm, CATEGORY_GAME, nullptr);
+    ConsoleCommandRegister("togglecloak", CCommand_ToggleCloak, CATEGORY_GAME, nullptr);
+}
+
+// VERIFY: 94d63d11 auto
+// OFFSET: 0x00401480
+int32_t Packet_SMSG_TRANSFER_PENDING(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t transportEntry = 0;
+    uint32_t mapID = 0;
+    msg->Get(mapID);
+    int32_t transportMap = -1;
+
+    if (!msg->IsRead()) {
+        uint32_t value = 0;
+        msg->Get(value);
+        transportEntry = value;
+        value = 0;
+        msg->Get(value);
+        transportMap = value;
+    }
+
+    CGGameUI::ClearClientControls();
+    ConsolePrintf("World transfer pending...");
+
+    if (!transportEntry || transportMap == -1) {
+        LoadingScreenEnable(mapID, true);
+        return 1;
+    }
+
+    LoadingScreenEnableShip(transportEntry, transportMap, mapID);
+    return 1;
+}
+
+// VERIFY: 78f957a4 auto
+// OFFSET: 0x00403910
+int32_t Packet_SMSG_TRANSFER_ABORTED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t mapID;
+    uint8_t reason;
+    msg->Get(mapID);
+    msg->Get(reason);
+    MapRec* map = g_mapDB.GetRecord(mapID);
+
+    if (map) {
+        const char* text = nullptr;
+        char token[64];
+
+        switch (reason) {
+            case 1:
+                text = FrameScript_GetText("TRANSFER_ABORT_ERROR", -1, GENDER_NOT_APPLICABLE);
+                break;
+            case 2:
+                text = FrameScript_GetText("TRANSFER_ABORT_MAX_PLAYERS", -1, GENDER_NOT_APPLICABLE);
+                break;
+            case 3:
+            case 12:
+            case 13:
+            case 14:
+                text = FrameScript_GetText("TRANSFER_ABORT_NOT_FOUND", -1, GENDER_NOT_APPLICABLE);
+                break;
+            case 4:
+                text = FrameScript_GetText("TRANSFER_ABORT_TOO_MANY_INSTANCES", -1, GENDER_NOT_APPLICABLE);
+                break;
+            case 6:
+                text = FrameScript_GetText("TRANSFER_ABORT_ZONE_IN_COMBAT", -1, GENDER_NOT_APPLICABLE);
+                break;
+            case 7: {
+                uint8_t expansion;
+                msg->Get(expansion);
+                SStrPrintf(token, sizeof(token), "TRANSFER_ABORT_INSUF_EXPAN_LVL%d", expansion);
+                text = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
+                break;
+            }
+            case 8: {
+                uint8_t difficulty;
+                msg->Get(difficulty);
+                MapDifficultyRec* entry = GetMapDifficultyEntryByMapIdAndDifficulty(map->m_id, difficulty, nullptr);
+
+                if (!entry || !(text = entry->m_message) || !*text) {
+                    char difficultyToken[64];
+                    SStrPrintf(difficultyToken, sizeof(difficultyToken), "TRANSFER_ABORT_DIFFICULTY%d", difficulty + 1);
+                    text = FrameScript_GetText(difficultyToken, -1, GENDER_NOT_APPLICABLE);
+                }
+
+                break;
+            }
+            case 9: {
+                uint8_t message;
+                msg->Get(message);
+                char messageToken[64];
+                SStrPrintf(messageToken, sizeof(messageToken), "TRANSFER_ABORT_UNIQUE_MESSAGE%d", message);
+                text = FrameScript_GetText(messageToken, -1, GENDER_NOT_APPLICABLE);
+                break;
+            }
+            case 10:
+                text = FrameScript_GetText("TRANSFER_ABORT_TOO_MANY_REALM_INSTANCES", -1, GENDER_NOT_APPLICABLE);
+                break;
+            case 11:
+                text = FrameScript_GetText("TRANSFER_ABORT_NEED_GROUP", -1, GENDER_NOT_APPLICABLE);
+                break;
+            case 15:
+                text = FrameScript_GetText("TRANSFER_ABORT_REALM_ONLY", -1, GENDER_NOT_APPLICABLE);
+                break;
+            case 16:
+                text = FrameScript_GetText("TRANSFER_ABORT_MAP_NOT_ALLOWED", -1, GENDER_NOT_APPLICABLE);
+                break;
+        }
+
+        if (text && *text) {
+            char buffer[1024];
+            SStrPrintf(buffer, sizeof(buffer), text, map->m_mapName);
+            CGChat::AddChatMessage(buffer, 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID{ 0 }, 0, WOWGUID{ 0 }, 0, false, nullptr);
+        }
+    }
+
+    ConsolePrintf("World transfer aborted...");
+    LoadingScreenDisable();
+    return 1;
 }

@@ -160,3 +160,24 @@ void Weather::Clear() {
 
     this->m_sand = nullptr;
 }
+
+// VERIFY: dbf9517f auto
+// OFFSET: 0x0078D130
+void Weather::Reset() {
+    if (s_weatherTypeForced) {
+        return;
+    }
+
+    this->Clear();
+    this->unk_0004 = 0.0f;
+    this->unk_0020 = -1;
+    this->unk_0000 = 0.0f;
+    this->m_precipTexture[0] = '\0';
+    this->unk_0008 = 0.0f;
+    this->unk_0010 = 0.0f;
+    this->unk_000C = 0.0f;
+    this->unk_0014 = 0.0f;
+    this->unk_0030 = 1.0f;
+    this->unk_002C = 1.0f;
+    this->unk_0028 = 1.0f;
+}

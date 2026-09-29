@@ -36,4 +36,7 @@ PendingLootRoll* FindRoll(int32_t id);
 WOWGUID GetMasterLootCandidate(uint32_t index);
 void LootRollShowPending();
 
+void CloseAllLootRolls();
+void LootRollDestroy();
+
 #endif

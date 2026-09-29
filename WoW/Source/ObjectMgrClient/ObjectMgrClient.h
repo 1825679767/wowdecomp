@@ -12,6 +12,7 @@
 
 class CDataStore;
 class CGObject_C;
+class CGPlayer_C;
 class CHashKeyGUID;
 class CMovementGlobals;
 class RealmConnection;
@@ -61,6 +62,7 @@ void ClntObjMgrDestroy();
 void ClntObjMgrDestroyShared();
 int32_t ClntObjMgrEnumVisibleObjects(OBJECTENUMFUNC func, void* param);
 WOWGUID ClntObjMgrGetActivePlayer();
+CGPlayer_C* ClntObjMgrGetActivePlayerObj();
 ObjectMgr* ClntObjMgrGetCurrent();
 uint32_t ClntObjMgrGetMapID();
 CMovementGlobals* ClntObjMgrGetMovementGlobals();

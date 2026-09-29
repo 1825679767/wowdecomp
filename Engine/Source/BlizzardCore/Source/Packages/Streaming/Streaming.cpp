@@ -10,6 +10,9 @@
 #include "Engine/Source/BlizzardCore/Source/System/String/String.h"
 #include "Engine/Source/BlizzardCore/Source/System/Time/Time.h"
 
+// STATIC: 0x00AB7AC8
+static uint8_t s_clientInitialized;
+
 // STATIC: 0x00B38038
 static Blizzard::Time::Timestamp s_elapsedSinceStart;
 
@@ -146,4 +149,10 @@ void ShutdownStreamingIfTrial() {
     if (CheckIfStreamingAndTrial()) {
         GetStreamingManagerSingleton()->Shutdown();
     }
+}
+
+// VERIFY: 5fde920f auto
+// OFFSET: 0x0041E4E0
+void SetClientInitialized(uint8_t initialized) {
+    s_clientInitialized = initialized;
 }

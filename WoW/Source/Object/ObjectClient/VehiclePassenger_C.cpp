@@ -11,6 +11,7 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Object/Object.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
 
 // STATIC: 0x00CA135C
 uint32_t* CVehiclePassenger_C::s_passengerPool;
@@ -749,4 +750,74 @@ int32_t CVehiclePassenger_C::OverridesModelAnimation() const {
 // OFFSET: 0x007478F0
 void CVehiclePassenger_C::StartAddingPendingRescueTransitions() {
     CVehiclePassenger_C::s_pendingCount = 1;
+}
+
+// VERIFY: f56a1f77 auto
+// OFFSET: 0x00747BD0
+int32_t CVehiclePassenger_C::GetUpperAnim(const VehicleSeatRec* seat) const {
+    if (!seat || this->m_state != 3 || !(seat->m_flags & 0x4)) {
+        return ANIM_COUNT;
+    }
+
+    int32_t anim;
+
+    if ((this->m_flags & 0x4) || (anim = seat->m_rideUpperAnimStart) == -1) {
+        anim = seat->m_rideUpperAnimLoop;
+
+        if (anim == -1) {
+            return ANIM_COUNT;
+        }
+    }
+
+    return anim;
+}
+
+// VERIFY: 4bdd68c2 auto
+// OFFSET: 0x007490C0
+int32_t CVehiclePassenger_C::CheckForVehicleTransitionAnimTimeout() {
+    if (!(this->m_flags & 0x200) || static_cast<int32_t>(FrameTime::s_curTimeMs - this->m_transitionAnimTimeout) < 0) {
+        return 0;
+    }
+
+    this->StopWaitingForVehicleTransitionAnim();
+    return 1;
+}
+
+// VERIFY: e8617fcb auto
+// OFFSET: 0x00747F40
+void CVehiclePassenger_C::OnSetActiveMover(CGUnit_C* unit) {
+    const VehicleRec* vehicleRec = nullptr;
+
+    if (unit) {
+        vehicleRec = unit->m_vehicle ? unit->m_vehicle->m_vehicleRec : nullptr;
+        FrameScript_SignalEvent(656, nullptr);
+
+        if (vehicleRec) {
+            CGUnit_C::StartMissileTrajectoryTargeting(unit, vehicleRec);
+            CGUnit_C::UpdateVehicleUISliders(unit, vehicleRec);
+            return;
+        }
+    }
+
+    CGUnit_C::StopMissileTrajectoryTargeting();
+    CGUnit_C::UpdateVehicleUISliders(unit, vehicleRec);
+}
+
+// VERIFY: 3d010f1f manual
+// OFFSET: 0x00748230
+void CVehiclePassenger_C::StopWaitingForVehicleTransitionAnim() {
+    if (!(this->m_flags & 0x200)) {
+        return;
+    }
+
+    this->m_flags &= ~0x200;
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_transitionAnimVehicleGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit && unit->m_vehicle) {
+        unit->m_vehicle->UninstallBoneAnimListener(this->m_unit->m_obj->m_guid);
+    }
+
+    if (this->m_deferredTransitionSpline) {
+        this->ExecuteAllDeferredVehicleTransitionAnimSplines();
+    }
 }

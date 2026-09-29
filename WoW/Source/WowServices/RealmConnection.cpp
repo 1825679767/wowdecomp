@@ -405,6 +405,16 @@ void RealmConnection::RequestCharacterEnum() {
     this->Send(&msg);
 }
 
+// VERIFY: 490618f4 manual
+// OFFSET: 0x00464AB0
+void RealmConnection::RequestCharacterLogin(WOWGUID guid, int32_t a2) {
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_PLAYER_LOGIN));
+    msg.Put(guid.m_guid);
+    msg.Finalize();
+    this->Send(&msg);
+}
+
 // VERIFY: 1d949124 auto
 // OFFSET: 0x00464BC0
 void RealmConnection::PollNet(const void* data, void* param) {

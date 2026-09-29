@@ -1455,3 +1455,139 @@ int32_t CMapChunk::Intersect(int32_t subX, int32_t subY, const C3Ray& ray, float
 
     return hit;
 }
+
+// STATIC: 0x00A405E8
+static const int32_t s_subVertexTriangles[12] = { 17, 9, 0, 9, 1, 0, 9, 17, 18, 9, 18, 1 };
+
+// STATIC: 0x00A40618
+static const int32_t s_subVertexIndexFlat[5] = { 0, 9, 17, 1, 18 };
+
+// VERIFY: ba2b9143 manual
+// OFFSET: 0x007D8840
+void CMapChunk::Intersect(CiRect* rect, CAaBox* box, TSGrowableArray<CFacet>* facets) {
+    int32_t base = 16 * rect->minY + rect->minX + rect->minY;
+    float* height = &this->m_height[base];
+    C3Vector* vertices = &CMapChunk::vertexList[base];
+    int32_t rowSkip = 17 - (rect->maxX - rect->minX + 1);
+
+    for (int32_t y = rect->minY; y <= rect->maxY; y++) {
+        for (int32_t x = rect->minX; x <= rect->maxX; x++, height++, vertices++) {
+            if (this->m_header->m_holes & CMap::s_holeMask[4 * (y >> 1) + (x >> 1)]) {
+                continue;
+            }
+
+            uint8_t outcodes[20];
+
+            for (uint32_t i = 0; i < sizeof(s_subVertexIndexFlat) / sizeof(s_subVertexIndexFlat[0]); i++) {
+                int32_t index = s_subVertexIndexFlat[i];
+                vertices[index].z = height[index];
+                outcodes[index] = static_cast<uint8_t>(CWorldMath::ComputeAaBoxOutcode(box, &vertices[index]));
+            }
+
+            for (uint32_t tri = 0; tri < sizeof(s_subVertexTriangles) / sizeof(s_subVertexTriangles[0]); tri += 3) {
+                const int32_t* indices = &s_subVertexTriangles[tri];
+
+                if (outcodes[indices[0]] & outcodes[indices[1]] & outcodes[indices[2]]) {
+                    if (!(CWorld::enables & Enable_ShowQuery)) {
+                        continue;
+                    }
+
+                    CFacet facet(0.0f);
+                    facet.v[0] = this->m_topLeftCoords + vertices[indices[0]];
+                    facet.v[1] = this->m_topLeftCoords + vertices[indices[1]];
+                    facet.v[2] = this->m_topLeftCoords + vertices[indices[2]];
+                    facet.plane.From3Pos(facet.v[0], facet.v[1], facet.v[2]);
+                    CImVector color;
+                    *reinterpret_cast<uint32_t*>(&color) = 0x80FF0000;
+                    CMap::TestQueryAdd(facet, color, nullptr);
+                    continue;
+                }
+
+                CFacet* facet = facets->New();
+                facet->v[0] = vertices[indices[0]] + this->m_topLeftCoords;
+                facet->v[1] = vertices[indices[1]] + this->m_topLeftCoords;
+                facet->v[2] = vertices[indices[2]] + this->m_topLeftCoords;
+
+                if (CMap::s_useSSE) {
+                    C3Vector e1 = facet->v[1] - facet->v[0];
+                    C3Vector e2 = facet->v[2] - facet->v[0];
+                    facet->plane.n.x = e1.y * e2.z - e1.z * e2.y;
+                    facet->plane.n.y = e1.z * e2.x - e2.z * e1.x;
+                    facet->plane.n.z = e2.y * e1.x - e2.x * e1.y;
+                    float scale = 1.0f / sqrtf(facet->plane.n.x * facet->plane.n.x + facet->plane.n.y * facet->plane.n.y + facet->plane.n.z * facet->plane.n.z);
+                    facet->plane.n.x *= scale;
+                    facet->plane.n.y *= scale;
+                    facet->plane.n.z *= scale;
+                    facet->plane.d = -(facet->plane.n.z * facet->v[0].z + facet->plane.n.y * facet->v[0].y + facet->plane.n.x * facet->v[0].x);
+                } else {
+                    facet->plane.From3Pos(facet->v[0], facet->v[1], facet->v[2]);
+                }
+
+                if (CWorld::enables & Enable_ShowQuery) {
+                    CImVector color;
+                    *reinterpret_cast<uint32_t*>(&color) = 0x8000FF00;
+                    CMap::TestQueryAdd(*facet, color, nullptr);
+                }
+            }
+        }
+
+        height += rowSkip;
+        vertices += rowSkip;
+    }
+}
+
+// VERIFY: 2452b304 manual
+// OFFSET: 0x007D8E00
+void CMapChunk::Intersect(CiRect* rect, const CFrustum* frustum, TSGrowableArray<CFacet>* facets) {
+    int32_t base = 16 * rect->minY + rect->minX + rect->minY;
+    C3Vector* vertices = &CMapChunk::vertexList[base];
+    float* height = &this->m_height[base];
+    int32_t rowSkip = 17 - (rect->maxX - rect->minX + 1);
+
+    for (int32_t y = rect->minY; y <= rect->maxY; y++) {
+        for (int32_t x = rect->minX; x <= rect->maxX; x++, vertices++, height++) {
+            if (this->m_header->m_holes & CMap::s_holeMask[4 * (y >> 1) + (x >> 1)]) {
+                continue;
+            }
+
+            uint8_t outcodes[20];
+
+            for (uint32_t i = 0; i < sizeof(s_subVertexIndexFlat) / sizeof(s_subVertexIndexFlat[0]); i++) {
+                int32_t index = s_subVertexIndexFlat[i];
+                vertices[index].z = height[index];
+                frustum->Cull(vertices[index], outcodes[index]);
+            }
+
+            for (uint32_t tri = 0; tri < sizeof(s_subVertexTriangles) / sizeof(s_subVertexTriangles[0]); tri += 3) {
+                const int32_t* indices = &s_subVertexTriangles[tri];
+
+                if (outcodes[indices[0]] & outcodes[indices[1]] & outcodes[indices[2]]) {
+                    continue;
+                }
+
+                CFacet* facet = facets->New();
+                facet->v[0] = vertices[indices[0]] + this->m_topLeftCoords;
+                facet->v[1] = vertices[indices[1]] + this->m_topLeftCoords;
+                facet->v[2] = vertices[indices[2]] + this->m_topLeftCoords;
+
+                if (CMap::s_useSSE) {
+                    C3Vector e1 = facet->v[1] - facet->v[0];
+                    C3Vector e2 = facet->v[2] - facet->v[0];
+                    facet->plane.n.x = e1.y * e2.z - e1.z * e2.y;
+                    facet->plane.n.y = e1.z * e2.x - e2.z * e1.x;
+                    facet->plane.n.z = e2.y * e1.x - e2.x * e1.y;
+                    float scale = 1.0f / sqrtf(facet->plane.n.x * facet->plane.n.x + facet->plane.n.y * facet->plane.n.y + facet->plane.n.z * facet->plane.n.z);
+                    facet->plane.n.x *= scale;
+                    facet->plane.n.y *= scale;
+                    facet->plane.n.z *= scale;
+                    facet->plane.d = -(facet->plane.n.z * facet->v[0].z + facet->plane.n.y * facet->v[0].y + facet->plane.n.x * facet->v[0].x);
+                } else {
+                    facet->plane.From3Pos(facet->v[0], facet->v[1], facet->v[2]);
+                }
+            }
+        }
+
+        vertices += rowSkip;
+        height += rowSkip;
+    }
+}

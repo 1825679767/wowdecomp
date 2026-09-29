@@ -32,12 +32,14 @@ class CGPlayer {
     static uint32_t DescriptorToMirrorOffset(uint32_t offset, uint32_t size, int32_t local, uint32_t base);
     static uint32_t GetSavedIndexFromDataIndex(uint32_t index, uint32_t count, int32_t local);
     static int32_t TotalFields();
+    static int32_t TotalRemoteFields();
 
     /* 0000 */ CGPlayerLocalData* m_player;
     /* 0004 */ void* m_playerMirror;
 
     float GetDrunknessTurnValue();
     int32_t HasZoneExplored(int32_t zone);
+    bool IsDrunk();
 };
 
 class CGPlayerData {

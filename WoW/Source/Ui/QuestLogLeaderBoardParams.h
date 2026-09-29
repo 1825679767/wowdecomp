@@ -6,6 +6,8 @@
 
 class QuestLogLeaderBoardParams {
     public:
+    QuestLogLeaderBoardParams();
+
     /* 0000 */ uint32_t unk_0000;
     /* 0004 */ uint32_t unk_0004;
     /* 0008 */ uint32_t unk_0008;

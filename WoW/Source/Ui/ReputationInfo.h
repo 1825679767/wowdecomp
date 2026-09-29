@@ -1,4 +1,91 @@
 #ifndef WOW_SOURCE_UI_REPUTATIONINFO_H
 #define WOW_SOURCE_UI_REPUTATIONINFO_H
 
+#include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Net/Types.h"
+
+class CDataStore;
+
+struct lua_State;
+class FactionRec;
+
+struct FactionStanding {
+    /* 0000 */ int32_t m_factionId;
+    /* 0004 */ uint8_t m_flags;
+    /* 0005 */ uint8_t unk_0005[3];
+    /* 0008 */ int32_t m_base;
+    /* 000C */ int32_t m_standing;
+};
+
+struct FactionListEntry {
+    /* 0000 */ int32_t m_repListId;
+    /* 0004 */ int32_t m_factionId;
+    /* 0008 */ int32_t m_isHeader;
+    /* 000C */ uint32_t m_headerIndex;
+    /* 0010 */ int32_t m_parent;
+};
+
+struct FactionHeader {
+    /* 0000 */ int32_t m_factionId;
+    /* 0004 */ int32_t m_count;
+    /* 0008 */ int32_t m_parent;
+    /* 000C */ int32_t m_collapsed;
+};
+
+struct ForcedReaction {
+    /* 0000 */ int32_t m_factionId;
+    /* 0004 */ int32_t m_reaction;
+};
+
+struct FACTION : public TSHashObject<FACTION, HASHKEY_NONE> {
+    /* 0018 */ TSGrowableArray<const FactionRec*> m_children;
+};
+
+class CGReputationInfo {
+    public:
+    static FactionStanding m_factionStandings[128];
+    static FactionHeader* m_headers[64];
+    static uint32_t m_numHeaders;
+    static uint32_t m_numFactions;
+    static uint32_t m_numShownFactions;
+    static TSFixedArray<FactionListEntry*> m_factionList;
+    static TSGrowableArray<ForcedReaction> m_forcedReactions;
+    static TSHashTable<FACTION, HASHKEY_NONE> m_factions;
+    static uint32_t m_collapsedHeaders;
+    static void EnterWorld();
+    static uint32_t AddHeader(int32_t factionId, int32_t parent);
+    static uint32_t AddFactionHeader(int32_t factionId);
+    static int32_t AddVisibleFaction(uint32_t repListId, int32_t announce);
+    static void CollapseHeader(uint32_t index, int32_t collapse);
+    static void SortFactions();
+    static bool IsFactionInactive(uint32_t index);
+    static void InitializeGame();
+    static bool GetForcedReaction(int32_t faction, int32_t* reaction);
+    static int32_t GetFactionStandingReaction(int32_t faction);
+    static bool IsAtWar(int32_t faction);
+};
+
+int32_t Script_GetNumFactions(lua_State* L);
+int32_t Script_GetFactionInfo(lua_State* L);
+int32_t Script_GetFactionInfoByID(lua_State* L);
+int32_t Script_GetWatchedFactionInfo(lua_State* L);
+int32_t Script_SetWatchedFactionIndex(lua_State* L);
+int32_t Script_FactionToggleAtWar(lua_State* L);
+int32_t Script_CollapseFactionHeader(lua_State* L);
+int32_t Script_CollapseAllFactionHeaders(lua_State* L);
+int32_t Script_SetFactionInactive(lua_State* L);
+int32_t Script_SetFactionActive(lua_State* L);
+int32_t Script_IsFactionInactive(lua_State* L);
+int32_t Script_ExpandFactionHeader(lua_State* L);
+int32_t Script_ExpandAllFactionHeaders(lua_State* L);
+int32_t Script_SetSelectedFaction(lua_State* L);
+int32_t Script_GetSelectedFaction(lua_State* L);
+void ReputationInfoRegisterScriptFunctions();
+int32_t Packet_SMSG_INITIALIZE_FACTIONS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_SET_FACTION_ATWAR(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_SET_FACTION_VISIBLE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_SET_FACTION_STANDING(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_SET_FORCED_REACTIONS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+
 #endif

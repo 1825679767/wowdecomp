@@ -12,26 +12,24 @@ class EffectDeath : public FFX::Effect {
     EffectDeath();
 };
 
-class EffectNetherWorld {
+class EffectNetherWorld : public FFX::Effect {
     public:
-    /* 0000 */ uint8_t unk_0000 [12];
-    /* 000C */ int32_t unk_000C;
-    /* 0010 */ int32_t unk_0010;
+    virtual ~EffectNetherWorld();
+    void End() override;
+
+    EffectNetherWorld();
 };
 
-class EffectSwirlingFog {
+class EffectSwirlingFog : public FFX::Effect {
     public:
-    /* 0000 */ uint8_t unk_0000 [4];
-    /* 0004 */ int32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008 [4];
-    /* 000C */ int32_t unk_000C;
-    /* 0010 */ int32_t unk_0010;
-    /* 0014 */ uint8_t unk_0014 [16];
-    /* 0024 */ int32_t unk_0024;
-    /* 0028 */ int32_t unk_0028;
-    /* 002C */ uint8_t unk_002C[4];
-    /* 0030 */ int32_t unk_0030;
-    /* 0034 */ int32_t unk_0034;
+    /* 001C */ FFX::Tex m_seedTex;
+    /* 0038 */ FFX::Tex m_fogTex;
+
+    virtual ~EffectSwirlingFog();
+    void SetParameters(int32_t count, const int32_t* params) override;
+
+    EffectSwirlingFog();
+    void Reset();
 };
 
 #endif

@@ -4,6 +4,7 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/C4Quaternion.h"
+#include "Engine/Source/Tempest/CMath.h"
 
 // STATIC: 0x00AA2E4C
 static const uint32_t s_nextAxis[3] = { 1, 2, 0 };
@@ -153,4 +154,26 @@ void C4Quaternion::FromRotationMatrix(const C33Matrix& m) {
 void C4Quaternion::FromRotationMatrix(const C44Matrix& m) {
     C44Matrix transposed = m.Transpose();
     FromRotationMatrixImpl<4>(transposed.c2 + transposed.b1 + transposed.a0, *this, &transposed.a0);
+}
+
+// VERIFY: 326feb29 auto
+// OFFSET: 0x004F4320
+C4Quaternion operator*(const C4Quaternion& l, const C4Quaternion& r) {
+    C4Quaternion result;
+    result.x = l.w * r.x + r.z * l.y + r.w * l.x - l.z * r.y;
+    result.y = r.w * l.y + l.w * r.y + l.z * r.x - r.z * l.x;
+    result.z = r.z * l.w + r.w * l.z + l.x * r.y - r.x * l.y;
+    result.w = r.w * l.w - l.x * r.x - l.y * r.y - r.z * l.z;
+    return result;
+}
+
+// VERIFY: 97be132a auto
+// OFFSET: 0x004F43B0
+C4QuaternionCompressed& C4QuaternionCompressed::operator=(const C4Quaternion& q) {
+    int32_t sign = q.w < 0.0f ? -1 : 1;
+    int32_t y = (sign * FloatToInt64(q.y * 1048576.0f)) & 0x1FFFFF;
+    int64_t packed = (static_cast<int64_t>(sign * FloatToInt64(q.x * 2097152.0f)) << 21) | y;
+    int32_t z = (sign * FloatToInt64(q.z * 1048576.0f)) & 0x1FFFFF;
+    this->m_packed = (packed << 21) | z;
+    return *this;
 }

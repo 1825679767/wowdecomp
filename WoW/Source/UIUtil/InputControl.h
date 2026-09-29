@@ -13,13 +13,21 @@ struct MOUSELOOKBINDING;
 struct XMLTree;
 class WowMouse;
 class CGUnit_C;
+struct lua_State;
 
 struct MOUSELOOKBINDING : public TSHashObject<MOUSELOOKBINDING, HASHKEY_STRI> {
     /* 0018 */ char* m_binding;
 };
 
+class CMouseEvent;
+
 class CGInputControl {
     public:
+    void SetMouselookOverrideBindings();
+    void CameraTurnPlayer(uint32_t time, float facing);
+    void SetPlayerPitch(CGUnit_C* unit, uint32_t time, float pitch);
+    void CameraPitchPlayer(uint32_t time, float pitch);
+    void OnMouseMoveRel(const CMouseEvent& evt);
     static CGInputControl* s_inputControl;
 
     static int32_t CameraCanPitchPlayer();
@@ -67,8 +75,21 @@ class CGInputControl {
     void UpdateJoystickMouseMode();
     void UpdateHalted();
     void UpdateMouseMode(int32_t force);
+    int32_t WowMouseConnected();
     void UpdateMoveStopped();
+    void UpdatePlayer(uint32_t time, int32_t a2);
     void ToggleControlBit(uint32_t bit, int32_t enable, uint32_t time, int32_t a5);
+    int32_t SetControlBit(uint32_t bit, uint32_t time);
+    int32_t UnsetControlBit(uint32_t bit, uint32_t time, int32_t keepSmoothing);
+    void OnTurnToAngleStop();
+    void Reset();
+    void MovePlayer(uint32_t time, CGUnit_C* unit);
+    void StrafePlayer(uint32_t time, CGUnit_C* unit);
+    void TurnPlayer(uint32_t time, CGUnit_C* unit);
+    void PitchPlayer(uint32_t time, CGUnit_C* unit);
+    void AscendDescendPlayer(uint32_t time, CGUnit_C* unit);
+    void StopMovementAndTurning(uint32_t time);
+    void OnUpdate(float elapsed);
 };
 
 extern CVar* s_cvCinematicJoystick;
@@ -76,6 +97,8 @@ extern CVar* s_cvEnableWowMouse;
 extern uint32_t s_joystick;
 extern int32_t s_joystickMouseEnabled;
 
+uint32_t GetJoystick();
+void CheckToCancelCurrentChannelSpell();
 CGUnit_C* GetVehicleUnitPtr();
 void InputControlDestroy();
 void InputControlInitialize();
@@ -83,5 +106,34 @@ void __stdcall ScaleMouseDeltaByFov(float* dx, float* dy);
 bool JoystickCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 XMLTree* LoadJoystickConfig(XMLNode*& config);
 bool WowMouseCVarCallback(CVar* var, const char* oldValue, const char* value, void* arg);
+
+int32_t Script_TurnOrActionStart(lua_State* L);
+int32_t Script_TurnOrActionStop(lua_State* L);
+int32_t Script_CameraOrSelectOrMoveStart(lua_State* L);
+int32_t Script_CameraOrSelectOrMoveStop(lua_State* L);
+int32_t Script_MoveAndSteerStart(lua_State* L);
+int32_t Script_MoveAndSteerStop(lua_State* L);
+int32_t Script_SetMouselookOverrideBinding(lua_State* L);
+int32_t Script_MouselookStart(lua_State* L);
+int32_t Script_MouselookStop(lua_State* L);
+int32_t Script_IsMouselooking(lua_State* L);
+int32_t Script_VehicleExit(lua_State* L);
+int32_t Script_VehiclePrevSeat(lua_State* L);
+int32_t Script_VehicleNextSeat(lua_State* L);
+int32_t Script_VehicleAimIncrement(lua_State* L);
+int32_t Script_VehicleAimDecrement(lua_State* L);
+int32_t Script_VehicleAimRequestAngle(lua_State* L);
+int32_t Script_VehicleAimGetAngle(lua_State* L);
+int32_t Script_VehicleAimRequestNormAngle(lua_State* L);
+int32_t Script_VehicleAimGetNormAngle(lua_State* L);
+int32_t Script_VehicleAimSetNormPower(lua_State* L);
+int32_t Script_VehicleAimGetNormPower(lua_State* L);
+int32_t Script_IsUsingVehicleControls(lua_State* L);
+int32_t Script_CanExitVehicle(lua_State* L);
+int32_t Script_CanSwitchVehicleSeats(lua_State* L);
+int32_t Script_IsVehicleAimAngleAdjustable(lua_State* L);
+int32_t Script_IsVehicleAimPowerAdjustable(lua_State* L);
+int32_t Script_DetectWowMouse(lua_State* L);
+void InputControlRegisterScriptFunctions();
 
 #endif

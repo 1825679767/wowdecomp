@@ -16,6 +16,8 @@ class SpellVisualKitRec;
 
 class CEffect {
     public:
+    void ApplyItemVisual();
+    static void CleanUpStaticLists();
     static void Destroy();
     static void DrawFishingString(CM2Model* model, const CM2Lighting* lighting, void* arg);
 
@@ -79,11 +81,14 @@ class CEffect {
     CEffect();
     ~CEffect();
     void AddFishingLine(CGObject_C* object, const WOWGUID& target);
+    void AddSpecialEffect(int32_t type, const WOWGUID& target, void (*callback)(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param));
     void ConnectToLightningThisFrame();
     void DetachFromParent();
+    int32_t UpdateAttachment();
     void InitLightningEndpoint();
     void LinkTo(CEffect** head);
     void MoveToDestroyList();
+    void EffectUpdate();
     void MoveToOrphanList();
     void Release();
     void SetEmissionRateIgnoresDistance(int32_t ignore);

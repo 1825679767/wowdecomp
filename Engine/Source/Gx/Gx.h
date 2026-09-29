@@ -101,6 +101,7 @@ void GxLogCrashInfo(char* buffer, uint32_t size);
 void GxLogOpen();
 int32_t GxIsWindowVisible();
 int32_t GxMasterEnable(EGxMasterEnables state);
+void GxMasterEnableSet(EGxMasterEnables state, int32_t enable);
 bool GxQueryBegin(CGxQuery* query);
 void GxQueryCreate(CGxQuery*& query, EGxQueryType type);
 void GxQueryDestroy(CGxQuery*& query);

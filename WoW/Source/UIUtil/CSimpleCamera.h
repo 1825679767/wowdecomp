@@ -6,9 +6,14 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C33Matrix.h"
 
+class CM2Scene;
+class CRect;
+
 class CSimpleCamera {
     public:
-    /* 0004 */ float unk_0004;
+    void SetFacing(const C3Vector& forward);
+    void SetFacing(const C3Vector& forward, const C3Vector& up);
+    /* 0004 */ CM2Scene* m_scene;
     /* 0008 */ C3Vector m_position;
     /* 0014 */ C33Matrix m_facing;
     /* 0038 */ float m_nearZ;
@@ -20,6 +25,13 @@ class CSimpleCamera {
     virtual C3Vector Forward() const;
     virtual C3Vector Right() const;
     virtual C3Vector Up() const;
+
+    CSimpleCamera(float nearZ, float farZ, float fov);
+    ~CSimpleCamera();
+    CM2Scene* GetScene();
+    void SetFacing(float yaw, float pitch, float roll);
+    void SetScreenAspect(const CRect& rect);
+    void SetGxProjectionAndView(const CRect& rect);
 };
 
 #endif

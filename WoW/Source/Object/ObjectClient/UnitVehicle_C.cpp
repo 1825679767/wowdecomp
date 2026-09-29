@@ -178,3 +178,137 @@ void CGUnit_C::UpdateVehicleUISliders(CGUnit_C* unit, const VehicleRec* vehicleR
         CGInputControl::SendUIVehicleAngleUpdate(unit->GetPitch());
     }
 }
+
+// VERIFY: 021f7c45 manual
+// OFFSET: 0x0074BCB0
+int32_t CGUnit_C::VehiclePassengerShouldWaitForVehicleTransitionAnim(uint64_t transport, uint8_t seat) const {
+    if (transport == this->GetTransportGUID() && seat == this->m_movementData.m_transportSeat) {
+        return 0;
+    }
+
+    uint32_t high = static_cast<uint32_t>(transport >> 32);
+    bool entering = (high & 0xF0F00000) == 0xF0500000 || (!(high & 0xF0000000) && ((high & 0xF07FFFFF) | static_cast<uint32_t>(transport)));
+    WOWGUID guid;
+
+    if (entering) {
+        guid.m_guid = transport;
+    } else {
+        if (!this->HasVehicleTransport()) {
+            return 0;
+        }
+
+        guid.m_guid = this->GetTransportGUID();
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return 0;
+    }
+
+    CVehicle_C* vehicle = unit->m_vehicle;
+
+    if (!vehicle) {
+        return 0;
+    }
+
+    VehicleSeatRec* seatRec = vehicle->GetVehicleSeatRec(entering ? seat : this->m_movementData.m_transportSeat);
+
+    if (!seatRec) {
+        return 0;
+    }
+
+    CVehicle_C* animVehicle = vehicle->FindVehicleToPlayBoneAnim();
+
+    if (entering) {
+        if (!(seatRec->m_flags & 0x400000)) {
+            return 0;
+        }
+
+        uint32_t anim = seatRec->m_vehicleEnterAnim;
+
+        if (anim > 0x1F9) {
+            return 0;
+        }
+
+        return animVehicle->CanPlayBoneAnim(anim) ? 1 : 0;
+    }
+
+    if (!(seatRec->m_flags & ((this->m_movementData.m_flags2 & 0x40) ? 0x40000 : 0x80000))) {
+        return 0;
+    }
+
+    uint32_t anim = seatRec->m_vehicleExitAnim;
+    return anim <= 0x1F9 && animVehicle->CanPlayBoneAnim(anim);
+}
+
+// VERIFY: 0d563d24 manual
+// OFFSET: 0x0074BE10
+int32_t CGUnit_C::VehiclePassengerStartWaitingForVehicleTransitionAnim(uint64_t transport, uint8_t seat) {
+    uint32_t high = static_cast<uint32_t>(transport >> 32);
+    int32_t entering = (high & 0xF0F00000) == 0xF0500000 || (!(high & 0xF0000000) && ((high & 0xF07FFFFF) | static_cast<uint32_t>(transport)));
+    WOWGUID guid;
+
+    if (entering) {
+        guid.m_guid = transport;
+    } else {
+        if (!this->HasVehicleTransport()) {
+            return 0;
+        }
+
+        guid.m_guid = this->GetTransportGUID();
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return 0;
+    }
+
+    CVehicle_C* vehicle = unit->m_vehicle;
+
+    if (!vehicle) {
+        return 0;
+    }
+
+    VehicleSeatRec* seatRec = vehicle->GetVehicleSeatRec(entering ? seat : this->m_movementData.m_transportSeat);
+
+    if (!seatRec) {
+        return 0;
+    }
+
+    if (this->m_vehiclePassenger) {
+        this->m_vehiclePassenger->StopWaitingForVehicleTransitionAnim();
+    }
+
+    CVehicle_C* animVehicle = vehicle->FindVehicleToPlayBoneAnim();
+
+    if (entering) {
+        if (!(seatRec->m_flags & 0x400000) || static_cast<uint32_t>(seatRec->m_vehicleEnterAnim) > 0x1F9 || !animVehicle->PlayBoneAnim(seatRec->m_field33512213034, seatRec->m_vehicleEnterAnim)) {
+            return 0;
+        }
+
+        animVehicle->InstallBoneAnimListener(this->m_obj->m_guid, seatRec->m_field33512213034, &CVehiclePassenger_C::OnVehicleTransitionAnimEnd);
+
+        if (seatRec->m_flagsB & 0x800000) {
+            animVehicle->SetBoneAnimForceFacing(this->m_obj->m_guid, seatRec->m_field33512213034);
+        }
+    } else {
+        if (!(seatRec->m_flags & ((this->m_movementData.m_flags2 & 0x40) ? 0x40000 : 0x80000)) || static_cast<uint32_t>(seatRec->m_vehicleExitAnim) > 0x1F9 || !animVehicle->PlayBoneAnim(seatRec->m_vehicleExitAnimBone, seatRec->m_vehicleExitAnim)) {
+            return 0;
+        }
+
+        if (this->m_vehiclePassenger) {
+            this->m_vehiclePassenger->StopBoneAnimIfSameBone(animVehicle->m_unit->m_obj->m_guid, seatRec);
+        }
+
+        animVehicle->InstallBoneAnimListener(this->m_obj->m_guid, seatRec->m_vehicleExitAnimBone, &CVehiclePassenger_C::OnVehicleTransitionAnimEnd);
+    }
+
+    if (!this->m_vehiclePassenger) {
+        this->m_vehiclePassenger = CVehiclePassenger_C::Alloc(this);
+    }
+
+    this->m_vehiclePassenger->StartWaitingForVehicleTransitionAnim(WOWGUID{ transport }, seat, seatRec, entering, animVehicle);
+    return 1;
+}

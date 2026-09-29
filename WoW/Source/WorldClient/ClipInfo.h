@@ -27,6 +27,12 @@ namespace World {
         void Set(const C3Vector& ndc);
     };
 
+    struct CLIPPOLY {
+        /* 0000 */ C3Vector** verts;
+        /* 0004 */ CLIPINFO** infos;
+        /* 0008 */ uint32_t count;
+    };
+
 }
 
 

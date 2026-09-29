@@ -10,6 +10,16 @@ CWOWClientStatus::CWOWClientStatus(const char* logFileName) {
     }
 }
 
+// VERIFY: 92e4f487 manual
+// OFFSET: 0x004DA580
+CWOWClientStatus::CWOWClientStatus(const char* logFileName, int32_t append) {
+    this->m_log = nullptr;
+
+    if (logFileName && *logFileName && !SLogCreate(logFileName, append ? 4 : 0, &this->m_log)) {
+        SysMsgPrintf(STATUS_WARNING, "Cannot create WOWClient log file \"%s\"!", logFileName);
+    }
+}
+
 // VERIFY: 8eb968ae manual
 // OFFSET: 0x004DA2D0
 CWOWClientStatus::~CWOWClientStatus() {

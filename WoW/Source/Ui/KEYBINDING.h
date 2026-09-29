@@ -18,6 +18,9 @@ class KEYBINDING : public TSHashObject<KEYBINDING, HASHKEY_STRI> {
     public:
     /* 0018 */ uint32_t m_flags;
     /* 001C */ KEYBINDINGDATA m_data [4];
+
+    KEYBINDING();
+    KEYBINDING& operator=(const KEYBINDING& source);
 };
 
 #endif

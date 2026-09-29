@@ -15,6 +15,7 @@
 #include "Engine/Source/Tempest/C2iVector.h"
 #include "WoW/Source/WorldClient/MapObjGroup.h"
 
+class CFacet;
 class CFrustum;
 class CMapArea;
 class CiRect;
@@ -138,7 +139,8 @@ class CMapChunk : public CMapBaseObj {
     void CreateVerticesLocal(CGxVertexPNC* buf);
     void CreateVerticesWorld(CGxVertexPN* buf, const C3Vector& offset);
     void CreateVerticesWorld(CGxVertexPNC* buf, const C3Vector& offset);
-    void Intersect(CiRect* rect, CFrustum* frustum, World::FacetData* facets);
+    void Intersect(CiRect* rect, CAaBox* box, TSGrowableArray<CFacet>* facets);
+    void Intersect(CiRect* rect, const CFrustum* frustum, TSGrowableArray<CFacet>* facets);
 };
 
 class CWSoundEmitter {

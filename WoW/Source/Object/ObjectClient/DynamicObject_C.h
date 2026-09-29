@@ -16,6 +16,7 @@ class CClientObjCreate;
 
 class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
     public:
+    static void Initialize();
     /* 00D8 */ CPassenger m_passenger;
     /* 0108 */ TSList<void> m_dynamicObjectMirrorLists [6];
     /* 0150 */ uint32_t unk_0150;
@@ -34,6 +35,7 @@ class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
     void ObjectVisKitProc();
     void PostInit(uint32_t time, const CClientObjCreate& create, bool a3);
     void SetStorage(uint32_t* storage, uint32_t* saved);
+    void UpdateDisplay(uint32_t time);
 };
 
 #endif

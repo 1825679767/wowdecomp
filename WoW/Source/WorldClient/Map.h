@@ -15,12 +15,14 @@
 #include "WoW/Source/WorldClient/MapLowDetail.h"
 #include "WoW/Source/WorldClient/MapRenderChunk.h"
 #include "WoW/Source/WorldClient/Types.h"
+#include "WoW/Source/Object/WGUID.h"
 
 class C2Vector;
 class C44Matrix;
 class CAaSphere;
 class CFacet;
 class CFrustum;
+class CWFrustum;
 class CM2Model;
 class CMapAreaTexture;
 class CDetailDoodadInst;
@@ -36,7 +38,7 @@ class CMapStaticEntity;
 class CiRect;
 class SFileImpl;
 class SFile;
-namespace World { class FacetData; }
+namespace World { class FacetData; struct LiquidQueryResult; class ObjectCollisionData; }
 
 struct CGxBuf;
 struct CGxPool;
@@ -46,6 +48,7 @@ class CMapArea;
 class FVBBList;
 class CMapAreaMed;
 class CMapEntity;
+class LiquidTypeRec;
 class CTexture;
 struct SMMapHeader;
 
@@ -114,6 +117,12 @@ class CMapFootprintTexture {
 };
 
 typedef int32_t (*MAP_OBJECT_FUNC)(void*, uint32_t, uint64_t, uint32_t);
+
+struct MapObjIntersectCandidate {
+    /* 0000 */ CMapObjDef* def;
+    /* 0004 */ CMapObjDefGroup* group;
+    /* 0008 */ float t;
+};
 
 struct MapObjIntersectData {
     /* 0000 */ CMapObjDef* def;
@@ -233,7 +242,7 @@ class CMap {
     static void Initialize();
     static void InitializeLiquidTables();
     static void InitializePCFShaders();
-    static void QueryAreaId(CMapEntity* entity, uint32_t& areaId);
+    static bool QueryAreaId(CMapEntity* entity, uint32_t& areaId);
     static void Unload();
     static void ValidateShaders();
     static CGxShader* GetPixelShader(bool a1, bool a2, bool a3);
@@ -289,6 +298,7 @@ class CMap {
     static uint32_t ComputeMapObjLoadProgress(CMapChunk* chunk, float* progress, uint32_t total);
     static void PurgeMaps();
     static void ClearAllFootprints();
+    static void RenderFootprints();
     static void PreUpdateAreas(bool a1);
     static void UpdateArea(int32_t addToScene, CMapArea* area, CiRect* chunkRect, int32_t depth);
     static void PrepareMapObjDefs(bool a1);
@@ -298,7 +308,7 @@ class CMap {
     static DepthCoordTable* GetDepthCoordTable(uint32_t liquidType);
     static CChunkLiquid* AllocChunkLiquid();
     static void CreateWaterRipple(const C3Vector& pos, float a2, float a3, float a4, float a5, float a6, int32_t a7, int32_t a8);
-    static bool QueryLiquidSounds(C3Vector* pos, float radius, uint32_t* results);
+    static bool QueryLiquidSounds(C3Vector* pos, float radius, TSGrowableArray<World::LiquidQueryResult>& results);
     static bool QueryLiquidStatus(C3Vector* pos, int32_t* liquidType, float* height, int32_t* a4, int32_t checkGround);
     static bool QueryLiquidTerrain(const C3Vector* pos, int32_t* liquidType, float* height, int32_t checkGround);
     static void RenderWaterRipples();
@@ -325,6 +335,7 @@ class CMap {
     static void ClassifyStaticEntityLink(CMapStaticEntity* entity, CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup, uint32_t faceInfo, C3Vector* pos);
     static bool LinkObjectToMapExterior(CMapStaticEntity* object);
     static bool QueryGroundTypeTerrain(C3Vector* pos, uint32_t* groundType);
+    static int32_t QueryAreaIdTerrain(const C3Vector* pos);
     static void LinkStaticEntityMultiple2ToMapObjDefExterior(CMapStaticEntity* entity);
     static void EnableLight(CMapLight* light);
     static void UpdateLight(CMapLight* light);
@@ -347,14 +358,20 @@ class CMap {
     static void TestQueryAdd(const CFacet& facet, CImVector color, const C44Matrix* mat);
     static bool QueryLiquidStatusMapObjsExt(C3Vector* pos, int32_t* liquidType, float* height);
     static bool GetFacets(CAaBox* a1, CAaBox* a2, World::FacetData* a3, uint32_t a4, uint32_t* a5);
-    static bool GetMapObjFacets(CFrustum* frustum, World::FacetData* facets, uint32_t flags, uint32_t* statusOut);
+    static bool GetMapObjFacets(CAaBox* queryBox, CAaBox* box, World::FacetData* facets, uint32_t flags, uint32_t* status);
     static bool QueryFacets(CFrustum* frustum, World::FacetData* facets, uint32_t flags, uint32_t* a4);
-    static bool GetChunkFacets(int32_t chunkX, int32_t chunkY, CiRect* subRect, CAaBox* a4, CAaBox* box, World::FacetData* facets, uint32_t flags);
+    static bool GetChunkFacets(int32_t chunkX, int32_t chunkY, CiRect* subRect, CAaBox* queryBox, CAaBox* box, World::FacetData* facets, uint32_t flags);
+    static bool GetChunkLiquidFacets(CMapChunk* chunk, CAaBox* box, CiRect* rect, CChunkLiquid* liquid, World::FacetData* facets);
+    static bool GetChunkLiquidFacets(CMapChunk* chunk, CWFrustum* frustum, CiRect* rect, CChunkLiquid* liquid, World::FacetData* facets);
+    static bool GetChunkFacets(int32_t chunkX, int32_t chunkY, CiRect* subRect, CFrustum* frustum, World::FacetData* facets, uint32_t flags);
+    static bool GetMapObjFacets(CFrustum* frustum, World::FacetData* facets, uint32_t flags, uint32_t* status);
+    static void QueryDestructibleFacets(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* list, CAaBox* box, World::FacetData* facets, uint32_t flags);
+    static void AppendDestructibleFacets(World::ObjectCollisionData* data, CAaBox* box, World::FacetData* facets, WOWGUID guid);
     static CFacet* BuildImpassableFacets(World::FacetData* facets, C3Vector* up, C3Vector* edge, C3Vector* normal, C3Vector* origin);
     static void CreateImpassableFacets(CMapChunk* chunk, CAaBox* box, World::FacetData* facets);
     static bool CreateFlightBoundsFacets(int32_t areaX, int32_t areaY, CAaBox* box, World::FacetData* facets);
     static void AppendMapObjFacets(CMapDoodadDef* def, CAaBox* box, World::FacetData* facets);
-    static bool GetDoodadDefFacets(TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>* linkList, CAaBox* box, World::FacetData* facets, uint32_t flags);
+    static bool GetDoodadDefFacets(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* linkList, CAaBox* box, World::FacetData* facets, uint32_t flags);
     static int32_t GetFlightBounds(const C3Vector& pos, float* height, int32_t which);
 
     /* 0000 */ uint8_t unk_0000[180];
@@ -362,5 +379,10 @@ class CMap {
 };
 
 extern int32_t s_mapId;
+extern WOWGUID s_lastCollisionGUID;
+
+const LiquidTypeRec* GetLiquidTypeRecForArea(uint32_t areaId, uint16_t liquidType);
+class WMOAreaTableRec;
+WMOAreaTableRec* GetWMOAreaRec(int32_t wmoId, int32_t nameSet, int32_t groupId);
 
 #endif

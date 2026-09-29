@@ -97,6 +97,8 @@ class M2SequenceInfo {
     /* 0030 */ float m_radius;
     /* 0034 */ uint32_t m_animId;
     /* 0038 */ uint32_t m_fallbackMode;
+
+    void Clear();
 };
 
 class M2BoneSequenceInfo {

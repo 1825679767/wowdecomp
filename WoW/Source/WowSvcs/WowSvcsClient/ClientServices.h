@@ -50,8 +50,11 @@ class ClientConnection : public RealmConnection {
     void Cancel(int32_t errorCode);
     void Cleanup();
     void Complete(int32_t result, int32_t errorCode);
+    void CharacterAbortLogout();
     void CharacterLogin(WOWGUID guid, int32_t a2);
+    int32_t CharacterLoggingOut();
     void CharacterLogout(bool a1, bool a2);
+    void CharacterSetInGame(int32_t inGame);
     void Connect();
     void Disconnect();
     void HandleAuthResult(int32_t result);
@@ -109,7 +112,10 @@ class ClientServices : public LoginResponse {
     static void GetRealmList();
     static const char* GetErrorToken(int32_t errorCode);
     static const char* GetAccountName();
+    static uint8_t GetCharacterClass();
     static const char* GetCharacterName();
+    static uint8_t GetCharacterRace();
+    static uint8_t GetCharacterSex();
     static const char* GetSelectedRealmName();
     static const char* GetServerAlertURL();
     static Login* LoginConnection();

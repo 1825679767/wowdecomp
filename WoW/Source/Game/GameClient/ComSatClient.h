@@ -8,6 +8,7 @@
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 
 struct CVar;
+struct lua_State;
 
 struct ComSatEvent {
     /* 0000 */ uint32_t m_type;
@@ -39,6 +40,10 @@ class ComSatClientAllocator : public ComSat::Allocator {
     void Free(void* ptr) override;
 };
 
+int32_t ComSatClient_HasSession(int32_t type, const char* name);
+int32_t ComSatClient_GetCurrentSessionType();
+const char* ComSatClient_GetCurrentSessionName();
+
 namespace Comsat {
 void VoicePlateStart(uint64_t sessionId, uint64_t guid);
 void VoicePlateStop(uint64_t sessionId, uint64_t guid);
@@ -54,6 +59,10 @@ struct COMSATDATA {
 extern COMSATDATA s_comsatData[32];
 extern CVar* s_cvarEnableMicrophone;
 extern CVar* s_cvarEnableVoiceChat;
+extern CVar* s_cvarPushToTalkButton;
+extern int32_t s_pushToTalkKey;
+extern uint32_t s_pushToTalkModifiers;
+extern uint32_t s_pushToTalkMouseButton;
 extern int32_t s_voiceActivation;
 extern int32_t s_voiceChatWasEnabled;
 
@@ -73,6 +82,24 @@ bool VoiceChatModeHandler(CVar* var, const char* oldValue, const char* value, vo
 void ComSatClient_Init();
 int32_t ComSatClient_IsComsatDisabledByClient();
 void ComSatClient_Shutdown();
+void UpdatePushToTalkKey();
 int32_t VoiceChat_TickWrapper(const void* data, void* param);
+
+int32_t Script_VoiceEnumerateOutputDevices(lua_State* L);
+int32_t Script_VoiceEnumerateCaptureDevices(lua_State* L);
+int32_t Script_VoiceSelectOutputDevice(lua_State* L);
+int32_t Script_VoiceSelectCaptureDevice(lua_State* L);
+int32_t Script_VoiceGetCurrentOutputDevice(lua_State* L);
+int32_t Script_VoiceGetCurrentCaptureDevice(lua_State* L);
+int32_t Script_GetVoiceStatus(lua_State* L);
+int32_t Script_GetNumVoiceSessions(lua_State* L);
+int32_t Script_GetVoiceSessionInfo(lua_State* L);
+int32_t Script_GetVoiceCurrentSessionID(lua_State* L);
+int32_t Script_SetActiveVoiceChannelBySessionID(lua_State* L);
+int32_t Script_GetNumVoiceSessionMembersBySessionID(lua_State* L);
+int32_t Script_GetVoiceSessionMemberInfoBySessionID(lua_State* L);
+int32_t Script_VoiceIsDisabledByClient(lua_State* L);
+int32_t Script_UnitIsTalking(lua_State* L);
+void VoiceRegisterScriptFunctions();
 
 #endif

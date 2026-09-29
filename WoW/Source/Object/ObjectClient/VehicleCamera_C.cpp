@@ -143,7 +143,7 @@ int32_t CVehicleCamera_C::ConvertFromWorldToRawOrOffset(C3Vector& position, CGOb
     return 1;
 }
 
-// VERIFY: 6f1e3ea5 manual
+// VERIFY: 0a589b7c manual
 // OFFSET: 0x00759C60
 int32_t CVehicleCamera_C::ConvertSmoothFacingFromRawToWorld(float& facing, CGObject_C* relativeTo) {
     if (!relativeTo) {
@@ -152,7 +152,7 @@ int32_t CVehicleCamera_C::ConvertSmoothFacingFromRawToWorld(float& facing, CGObj
 
     if (relativeTo->m_obj->m_type & TYPEMASK_UNIT) {
         CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ relativeTo->GetTransportGUID() }, TYPEMASK_OBJECT, __FILE__, __LINE__);
-        float smoothFacing = static_cast<CGUnit_C*>(relativeTo)->m_targetFacing;
+        float smoothFacing = static_cast<CGUnit_C*>(relativeTo)->m_smoothTarget.m_value;
         ConvertSmoothFacingFromRawToWorld(smoothFacing, transport);
         facing = smoothFacing + facing;
     } else {
@@ -298,7 +298,7 @@ float CVehicleCamera_C::GetTransitionProgress(uint32_t time) const {
     return progress;
 }
 
-// VERIFY: 75e75aac manual
+// VERIFY: 321fd49a manual
 // OFFSET: 0x00759CE0
 int32_t CVehicleCamera_C::ConvertSmoothFacingFromWorldToRaw(float& facing, CGObject_C* relativeTo) {
     if (!relativeTo) {
@@ -307,7 +307,7 @@ int32_t CVehicleCamera_C::ConvertSmoothFacingFromWorldToRaw(float& facing, CGObj
 
     if (relativeTo->m_obj->m_type & TYPEMASK_UNIT) {
         CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ relativeTo->GetTransportGUID() }, TYPEMASK_OBJECT, __FILE__, __LINE__);
-        float smoothFacing = static_cast<CGUnit_C*>(relativeTo)->m_targetFacing;
+        float smoothFacing = static_cast<CGUnit_C*>(relativeTo)->m_smoothTarget.m_value;
         ConvertSmoothFacingFromRawToWorld(smoothFacing, transport);
         facing = facing - smoothFacing;
     } else {

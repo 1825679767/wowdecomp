@@ -21,6 +21,8 @@ struct MissileCollisionData {
 
 class CMissile {
     public:
+    static void UpdateStaticLists();
+    static void RemoveMissiles();
     static CMissile* s_inFlightMissileList;
     static uint32_t* s_missileHeap;
 

@@ -2,6 +2,7 @@
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/ChatFrame.h"
+#include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
 // STATIC: 0x00BEA7FC
@@ -58,4 +59,16 @@ void CKBSystem::Shutdown() {
     s_unk_BEA808.Free();
     s_unk_BEA814.Free();
     ClientServices::ClearMessageHandler(SMSG_MOTD);
+}
+
+// VERIFY: 15855df3 manual
+// OFFSET: 0x00551620
+void CKBSystem::CacheServerMessage(const char* text, int32_t id) {
+    if (id == 3) {
+        s_unk_BEA814 = text;
+    } else {
+        s_unk_BEA808 = text;
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_KNOWLEDGE_BASE_SERVER_MESSAGE, nullptr);
 }

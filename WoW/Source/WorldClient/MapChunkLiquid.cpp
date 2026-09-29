@@ -16,6 +16,10 @@
 #include "WoW/Source/WorldClient/CMapBaseObjLink.h"
 #include "WoW/Source/WorldClient/MapChunk.h"
 #include "WoW/Source/WorldClient/World.h"
+#include "WoW/Source/WorldClient/MapObjGroup.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
+#include "Engine/Source/Tempest/CFrustum.h"
+#include "Engine/Source/Tempest/CiRect.h"
 
 // STATIC: 0x00AF0A0C
 TSList<CMapChunkLiquid, TSGetExplicitLink<CMapChunkLiquid> > CMapChunkLiquidBuf::s_freeLists = TSExplicitList<CMapChunkLiquid, offsetof(CMapChunkLiquid, m_link)>();
@@ -594,4 +598,124 @@ void CMap::FreeAllChunkLiquids() {
         delete list;
         list = nextList;
     }
+}
+
+// VERIFY: 0b0a7aa2 manual
+// OFFSET: 0x007CE5D0
+bool CChunkLiquid::GetTris(World::TriData* triData, uint8_t* codes, const C2iVector& start, const C2iVector& size) const {
+    int32_t stride = this->m_tileEnd.y - this->m_tileBegin.y + 1;
+    int32_t vertTris[6];
+    vertTris[0] = 0;
+    vertTris[1] = stride;
+    vertTris[2] = stride + 1;
+    vertTris[3] = 0;
+    vertTris[4] = stride + 1;
+    vertTris[5] = 1;
+    int32_t codeTris[6];
+    codeTris[0] = 0;
+    codeTris[1] = size.x + 1;
+    codeTris[2] = size.x + 2;
+    codeTris[3] = 0;
+    codeTris[4] = size.x + 2;
+    codeTris[5] = 1;
+    int32_t vertex = (start.y - this->m_tileBegin.x) * stride - this->m_tileBegin.y + start.x;
+    World::TriData::Batch* batch = nullptr;
+    uint16_t* indices = nullptr;
+
+    for (int32_t y = 0; y < size.y; y++) {
+        for (int32_t x = 0; x < size.x; x++) {
+            if (this->TileExists(start.x + x, start.y + y)) {
+                for (uint32_t j = 0; j < 2; j++) {
+                    const int32_t* codeTri = &codeTris[3 * j];
+
+                    if (codes[codeTri[0]] & codes[codeTri[2]] & codes[codeTri[1]]) {
+                        continue;
+                    }
+
+                    if (!batch) {
+                        batch = triData->AllocBatch();
+
+                        if (!batch) {
+                            return false;
+                        }
+
+                        batch->m_def = reinterpret_cast<CMapObjDef*>(this->m_owner);
+                        C44Matrix* matrix;
+
+                        if (World::TriData::unk_CB7538 + 1 >= 32) {
+                            World::TriData::statusFlags |= 1;
+                            matrix = nullptr;
+                        } else {
+                            matrix = &World::TriData::matrixPool[World::TriData::unk_CB7538++];
+                        }
+
+                        *matrix = C44Matrix();
+                        matrix->d0 = this->m_owner->m_topLeftCoords.x;
+                        matrix->d1 = this->m_owner->m_topLeftCoords.y;
+                        matrix->d2 = this->m_owner->m_topLeftCoords.z;
+                        batch->m_matrix = matrix;
+                        batch->m_vertexList = const_cast<C3Vector*>(this->m_verts);
+                        indices = triData->AllocIndices(6 * size.x * size.y);
+                        batch->m_indices = indices;
+
+                        if (!indices) {
+                            return false;
+                        }
+                    }
+
+                    const int32_t* vertTri = &vertTris[3 * j];
+
+                    for (uint32_t k = 0; k < 3; k++) {
+                        uint16_t index = static_cast<uint16_t>(vertex + vertTri[k]);
+                        indices[batch->m_indexCount++] = index;
+                        batch->m_minVertexIndex = batch->m_minVertexIndex < index ? batch->m_minVertexIndex : index;
+                        batch->m_maxVertexIndex = batch->m_maxVertexIndex > index ? batch->m_maxVertexIndex : index;
+                    }
+
+                    batch->m_faceCount++;
+                }
+            }
+
+            vertex++;
+            codes++;
+        }
+
+        codes++;
+        vertex += stride - size.x;
+    }
+
+    return batch != nullptr;
+}
+
+// VERIFY: 22a3788a manual
+// OFFSET: 0x007CEB80
+bool CChunkLiquid::GetTris(World::TriData* triData, const CFrustum& frustum, const CiRect& rect) const {
+    CiRect query;
+    query.minY = rect.minY;
+    query.minX = rect.minX;
+    query.maxY = rect.maxY + 1;
+    query.maxX = rect.maxX + 1;
+    CiRect clip = reinterpret_cast<const CiRect&>(this->m_tileBegin) & query;
+    C2iVector size;
+    size.x = clip.maxX - clip.minX;
+    size.y = clip.maxY - clip.minY;
+    int32_t stride = this->m_tileEnd.y - this->m_tileBegin.y + 1;
+    C2iVector start;
+    start.x = clip.minX;
+    start.y = clip.minY;
+    const C3Vector* vert = &this->m_verts[(clip.minY - this->m_tileBegin.x) * stride - this->m_tileBegin.y + clip.minX];
+    uint8_t codes[81];
+    uint8_t* code = codes;
+
+    for (int32_t y = 0; y < size.y + 1; y++) {
+        for (int32_t x = 0; x < size.x + 1; x++) {
+            frustum.Cull(*vert, *code);
+            vert++;
+            code++;
+        }
+
+        vert += stride - (size.x + 1);
+    }
+
+    return this->GetTris(triData, codes, start, size);
 }

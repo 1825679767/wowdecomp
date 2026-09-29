@@ -53,3 +53,12 @@ void GxuScene::Update(uint32_t time) {
     this->m_objects.SetCount(count);
     this->m_lastUpdateTime = time;
 }
+
+// VERIFY: c3b3d053 auto
+// OFFSET: 0x009A80C0
+void GxuScene::Render() {
+    for (uint32_t i = 0; i < this->m_objects.Count(); i++) {
+        this->m_objects[i]->Render();
+    }
+}
+

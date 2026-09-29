@@ -124,6 +124,20 @@ int32_t CVehicle_C::IsSuppressingCameraPitchWhileMouseAiming() const {
     return 0;
 }
 
+// VERIFY: 62fd8da2 auto
+// OFFSET: 0x00756CD0
+uint32_t CVehicle_C::IsBoneAnimPlaying(uint32_t bone) const {
+    if (bone == 26) {
+        return 0;
+    }
+
+    if (bone >= 35) {
+        bone = 26;
+    }
+
+    return this->m_playingBoneAnims[bone >> 5] & (1 << (bone & 0x1F));
+}
+
 // VERIFY: 9c052d21 manual
 // OFFSET: 0x00756F40
 int32_t CVehicle_C::HasHighPriorityCastingAnim() const {
@@ -546,4 +560,14 @@ int32_t CVehicle_C::PlayBoneAnim(uint32_t boneId, uint32_t animId) {
     this->m_playingBoneAnims[slot >> 5] |= 1 << (slot & 0x1F);
     this->m_flags |= 0x1;
     return 1;
+}
+
+// VERIFY: 039e64eb auto
+// OFFSET: 0x00756CA0
+int32_t CVehicle_C::CanPlayBoneAnim(uint32_t animId) const {
+    if (!this->m_unit->GetObjectModel()) {
+        return 0;
+    }
+
+    return animId <= 0x1F9;
 }

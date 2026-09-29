@@ -21,6 +21,10 @@ namespace Liquid {
     class IVertexData;
 }
 
+namespace World { class TriData; }
+class CiRect;
+class CFrustum;
+
 class CChunkLiquid {
     public:
     static Liquid::CWaveManager* s_waveManager;
@@ -58,6 +62,9 @@ class CChunkLiquid {
     void Purge();
     void RenderPrep();
     bool TileExists(uint32_t x, uint32_t y) const;
+    bool GetTris(World::TriData* triData, const CAaBox& box, const CiRect& rect);
+    bool GetTris(World::TriData* triData, uint8_t* codes, const C2iVector& start, const C2iVector& size) const;
+    bool GetTris(World::TriData* triData, const CFrustum& frustum, const CiRect& rect) const;
     void UpdateResourcePurging();
 };
 

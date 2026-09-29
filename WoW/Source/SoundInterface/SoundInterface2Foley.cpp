@@ -3,6 +3,8 @@
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/SoundEngine/SoundEngine.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/ItemGroupSoundsRec.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 #include "WoW/Source/Ui/ChatFrame.h"
 
@@ -97,6 +99,26 @@ int32_t SI2::IsTooCloseToExistingSoundKit(int32_t soundKitId, const C3Vector* po
                 return 1;
             }
         }
+    }
+
+    return 0;
+}
+
+// VERIFY: e4e8cbc1 manual
+// OFFSET: 0x004D0020
+int32_t SndInterfacePlayItemSound(int32_t type, CGItem_C* item) {
+    if (item->m_item->m_itemFieldFlags & 0x8) {
+        if (type == 1) {
+            return SI2::PlaySoundKit("(DONOTRENAME)WrappedItemDrop", nullptr, nullptr, nullptr);
+        }
+
+        return SI2::PlaySoundKit("(DONOTRENAME)WrappedItemPickup", nullptr, nullptr, nullptr);
+    }
+
+    const ItemGroupSoundsRec* sounds = reinterpret_cast<const ItemGroupSoundsRec*>(item->unk_03D8);
+
+    if (sounds) {
+        return SI2::PlaySoundKit(sounds->m_sound[type], nullptr, nullptr, nullptr, 0, nullptr, 1, 0);
     }
 
     return 0;

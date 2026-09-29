@@ -47,6 +47,8 @@ int32_t fequalz(float a, float b, float z);
 int32_t fnotequalz(float a, float b, float z);
 uint32_t CeilToInt64(float value);
 int32_t FloatToInt64(float value);
+int32_t RoundToInt64(float value);
+void ClampInPlace(float& value, float min, float max);
 bool fnotequal(float a, float b);
 int32_t IsNaN(double value);
 
@@ -70,5 +72,7 @@ inline int32_t CMath::fint_(float f) {
 inline int32_t CMath::ftol_round_0_255_(float f) {
     return static_cast<int32_t>(f * 255.0f + 0.5f);
 }
+
+float OrganicSmooth(float from, float to, float t);
 
 #endif

@@ -3,15 +3,73 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
 
-class MACRONODE {
+struct lua_State;
+
+class MACRONODE : public TSHashObject<MACRONODE, HASHKEY_NONE> {
     public:
-    /* 0000 */ uint8_t unk_0000[1376];
-    /* 0560 */ uint32_t unk_0560;
-    /* 0564 */ uint8_t unk_0564[16];
-    /* 0574 */ uint32_t unk_0574;
+    /* 0018 */ uint32_t m_id;
+    /* 001C */ uint32_t unk_001C;
+    /* 0020 */ char m_name[64];
+    /* 0060 */ char m_icon[256];
+    /* 0160 */ char m_body[1024];
+    /* 0560 */ uint32_t m_actionBarCount;
+    /* 0564 */ int32_t m_spellID;
+    /* 0568 */ int32_t m_itemID;
+    /* 056C */ int32_t m_spellFlags;
+    /* 0570 */ uint32_t unk_0570;
+    /* 0574 */ uint32_t m_dynamic;
     /* 0578 */ uint8_t unk_0578[12];
     /* 0584 */ uint32_t unk_0584;
+    /* 0588 */ uint8_t unk_0588[8];
+    /* 0590 */ TSLink<MACRONODE> m_dynamicLink;
+
+    int32_t FindSpellID();
+    void IncrementActionBarCount();
+    void DecrementActionBarCount();
 };
+
+class CGUIMacros {
+    public:
+    static const char* m_macroRunning;
+    static uint32_t m_sortedMacros[72];
+
+    static MACRONODE* FindMacro(const char* name);
+    static void UpdateMacroSpells();
+    static MACRONODE* GetMacroByID(uint32_t id);
+    static int32_t GetMacroIndexByID(uint32_t id);
+    static MACRONODE* GetMacroByIndex(uint32_t index);
+    static void Initialize();
+    static void LoadMacros();
+    static void RunMacro(MACRONODE* macro, const char* button);
+    static void UpdateDynamicMacros();
+    static void RunMacro(int32_t id, const char* button);
+    static void GetFullIconPath(uint32_t id, char* buffer, uint32_t size);
+};
+
+int32_t Script_SecureCmdOptionParse(lua_State* L);
+int32_t Script_RunMacro(lua_State* L);
+int32_t Script_RunMacroText(lua_State* L);
+int32_t Script_StopMacro(lua_State* L);
+int32_t Script_CreateMacro(lua_State* L);
+int32_t Script_GetNumMacros(lua_State* L);
+int32_t Script_GetMacroInfo(lua_State* L);
+int32_t Script_GetMacroBody(lua_State* L);
+int32_t Script_DeleteMacro(lua_State* L);
+int32_t Script_EditMacro(lua_State* L);
+int32_t Script_SetMacroItem(lua_State* L);
+int32_t Script_GetMacroItem(lua_State* L);
+int32_t Script_SetMacroSpell(lua_State* L);
+int32_t Script_GetMacroSpell(lua_State* L);
+int32_t Script_GetNumMacroIcons(lua_State* L);
+int32_t Script_GetNumMacroItemIcons(lua_State* L);
+int32_t Script_GetMacroIconInfo(lua_State* L);
+int32_t Script_GetMacroItemIconInfo(lua_State* L);
+int32_t Script_PickupMacro(lua_State* L);
+int32_t Script_GetMacroIndexByName(lua_State* L);
+int32_t Script_GetRunningMacro(lua_State* L);
+int32_t Script_GetRunningMacroButton(lua_State* L);
+void UIMacrosRegisterScriptFunctions();
 
 #endif

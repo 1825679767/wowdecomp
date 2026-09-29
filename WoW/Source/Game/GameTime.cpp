@@ -25,6 +25,22 @@ float CGameTime::GameTimeGetDayProgression() {
     return minutes * (1.0f / 1440.0f);
 }
 
+// VERIFY: c5dfac8a manual
+// OFFSET: 0x0076CFA0
+float CGameTime::GameTimeSetMinutesPerSecond(float minutesPerSecond) {
+    float old = this->m_minutesPerSecond;
+
+    if (minutesPerSecond < 1.0f / 60.0f) {
+        this->m_minutesPerSecond = 1.0f / 60.0f;
+    } else if (minutesPerSecond > 60.0f) {
+        this->m_minutesPerSecond = 60.0f;
+    } else {
+        this->m_minutesPerSecond = minutesPerSecond;
+    }
+
+    return old;
+}
+
 // VERIFY: ad8714a6 auto
 // OFFSET: 0x0076D600
 CGameTime::CGameTime() {

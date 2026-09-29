@@ -10,6 +10,7 @@ class CMouseEvent : public CEvent {
     public:
     /* 0010 */ MouseEventData m_data;
 
+    CMouseEvent();
     CMouseEvent& operator=(const EVENT_DATA_MOUSE& data);
 };
 

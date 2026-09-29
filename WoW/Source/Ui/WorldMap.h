@@ -3,6 +3,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
+
+struct lua_State;
 
 struct DebugElement {
     /* 0000 */ int32_t unk_0000;
@@ -25,5 +28,55 @@ struct DebugElement {
     /* 0064 */ int32_t unk_0064;
     /* 0068 */ int32_t unk_0068;
 };
+
+class CGWorldMap {
+    public:
+    static void EnterWorld();
+    static void InitializeGame();
+};
+
+int32_t Script_GetMapContinents(lua_State* L);
+int32_t Script_GetMapZones(lua_State* L);
+int32_t Script_SetMapZoom(lua_State* L);
+int32_t Script_ZoomOut(lua_State* L);
+int32_t Script_SetDungeonMapLevel(lua_State* L);
+int32_t Script_GetNumDungeonMapLevels(lua_State* L);
+int32_t Script_DungeonUsesTerrainMap(lua_State* L);
+int32_t Script_SetMapToCurrentZone(lua_State* L);
+int32_t Script_GetMapInfo(lua_State* L);
+int32_t Script_GetCurrentMapContinent(lua_State* L);
+int32_t Script_GetCurrentMapAreaID(lua_State* L);
+int32_t Script_GetCurrentMapZone(lua_State* L);
+int32_t Script_GetCurrentMapDungeonLevel(lua_State* L);
+int32_t Script_SetMapByID(lua_State* L);
+int32_t Script_IsZoomOutAvailable(lua_State* L);
+int32_t Script_ProcessMapClick(lua_State* L);
+int32_t Script_UpdateMapHighlight(lua_State* L);
+int32_t Script_GetPlayerMapPosition(lua_State* L);
+int32_t Script_GetCorpseMapPosition(lua_State* L);
+int32_t Script_GetDeathReleasePosition(lua_State* L);
+int32_t Script_GetNumMapLandmarks(lua_State* L);
+int32_t Script_GetMapLandmarkInfo(lua_State* L);
+int32_t Script_GetNumMapOverlays(lua_State* L);
+int32_t Script_GetMapOverlayInfo(lua_State* L);
+int32_t Script_CreateWorldMapArrowFrame(lua_State* L);
+int32_t Script_InitWorldMapPing(lua_State* L);
+int32_t Script_CreateMiniWorldMapArrowFrame(lua_State* L);
+int32_t Script_UpdateWorldMapArrowFrames(lua_State* L);
+int32_t Script_PositionWorldMapArrowFrame(lua_State* L);
+int32_t Script_PositionMiniWorldMapArrowFrame(lua_State* L);
+int32_t Script_ShowWorldMapArrowFrame(lua_State* L);
+int32_t Script_ShowMiniWorldMapArrowFrame(lua_State* L);
+int32_t Script_ClickLandmark(lua_State* L);
+int32_t Script_GetNumMapDebugObjects(lua_State* L);
+int32_t Script_GetMapDebugObjectInfo(lua_State* L);
+int32_t Script_TeleportToDebugObject(lua_State* L);
+int32_t Script_HasDebugZoneMap(lua_State* L);
+int32_t Script_GetDebugZoneMap(lua_State* L);
+int32_t Script_GetWintergraspWaitTime(lua_State* L);
+int32_t Script_CanQueueForWintergrasp(lua_State* L);
+void WorldMapRegisterScriptFunctions();
+
+int32_t PlayerExploredZonesUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
 
 #endif

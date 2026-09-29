@@ -1,5 +1,6 @@
 #include "CGGameObject_C_Type_TrapDoor.h"
 #include "WoW/Source/Object/ObjectClient/Movement_C.h"
+#include "WoW/Source/WorldClient/MapEntity.h"
 #include "WoW/Source/WorldClient/World.h"
 
 // VERIFY: 84b1b349 auto

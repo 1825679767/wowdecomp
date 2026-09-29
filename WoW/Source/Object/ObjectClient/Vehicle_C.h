@@ -8,6 +8,7 @@
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "WoW/Source/Object/Passenger.h"
 
+class CM2Model;
 class CClientObjCreate;
 class CGUnit_C;
 class CVehiclePassenger_C;
@@ -25,6 +26,7 @@ class CVehicleHeap {
 
 class CVehicle_C {
     public:
+    static void EnterWorld();
     struct BoneAnimListener {
         /* 0000 */ WOWGUID m_guid;
         /* 0008 */ uint32_t m_boneId;
@@ -59,12 +61,15 @@ class CVehicle_C {
     uint32_t IsSpecialBoneAnimPlaying() const;
     int32_t InstallBoneAnimListener(WOWGUID guid, uint32_t boneId, void (*callback)(CGUnit_C* unit, int32_t& a2, TSGrowableArray<CVehiclePassenger_C*>& passengers));
     void UninstallBoneAnimListener(WOWGUID guid);
+    int32_t CanPlayBoneAnim(uint32_t animId) const;
     void SetBoneAnimForceFacing(WOWGUID guid, uint32_t boneId);
     bool IsMirroringAnimsToPassengers() const;
     void OnPassengerStartMirroringAnims(uint8_t seat);
     void OnPassengerStopMirroringAnims(uint8_t seat);
     int32_t IsSuppressingCameraPitchWhileMouseAiming() const;
     int32_t HasHighPriorityCastingAnim() const;
+    uint32_t IsBoneAnimPlaying(uint32_t bone) const;
+    void BoneAnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time);
     int32_t HasHighPriorityAnim() const;
     int32_t GetVirtualSeatCount() const;
     int32_t GetVehicleAndSeatFromVirtualSeatsRemaining(int32_t& remaining, const CVehicle_C*& vehicle, uint8_t& seat) const;

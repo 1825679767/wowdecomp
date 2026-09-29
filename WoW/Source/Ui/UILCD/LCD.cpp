@@ -89,3 +89,11 @@ void CGLCD::Shutdown() {
     CLCDUtils::Shutdown();
     CGLCD::m_chatAlertLines = 0;
 }
+
+// VERIFY: b378b02a auto
+// OFFSET: 0x0084A530
+void CGLCD::OnWhisper(const char* name) {
+    if (CGLCD::m_lcd && CGLCD::m_lcd->IsConnected() && IsLCDAvailable() && CGLCD::initComplete) {
+        CGLCD::PushAlert(name, 1);
+    }
+}

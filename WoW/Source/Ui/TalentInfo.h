@@ -4,6 +4,19 @@
 #include <cstddef>
 #include <cstdint>
 
+class CDataStore;
+
+struct lua_State;
+
+class CGTalentInfo {
+    public:
+    static void EnterWorld();
+    static void RecalculatePreviewPoints(int32_t pet);
+    static int32_t SumPreviewPointsSpent(int32_t pet);
+    static void UpdateTalentData(CDataStore* msg);
+    static void UpdatePetTalentData(CDataStore* msg);
+};
+
 class CGTalentGroup_C {
     public:
     /* 0000 */ uint8_t unk_0000[8];
@@ -21,6 +34,30 @@ class CGTalentGroup_C {
     /* 0048 */ uint32_t unk_0048;
     /* 004C */ uint32_t unk_004C;
     /* 0050 */ uint32_t unk_0050;
+};
+
+int32_t Script_GetNumTalentTabs(lua_State* L);
+int32_t Script_GetTalentTabInfo(lua_State* L);
+int32_t Script_GetNumTalents(lua_State* L);
+int32_t Script_GetTalentInfo(lua_State* L);
+int32_t Script_GetTalentLink(lua_State* L);
+int32_t Script_GetTalentPrereqs(lua_State* L);
+int32_t Script_LearnTalent(lua_State* L);
+int32_t Script_GetUnspentTalentPoints(lua_State* L);
+int32_t Script_GetNumTalentGroups(lua_State* L);
+int32_t Script_GetActiveTalentGroup(lua_State* L);
+int32_t Script_SetActiveTalentGroup(lua_State* L);
+int32_t Script_GetPreviewTalentPointsSpent(lua_State* L);
+int32_t Script_GetGroupPreviewTalentPointsSpent(lua_State* L);
+int32_t Script_AddPreviewTalentPoints(lua_State* L);
+int32_t Script_ResetPreviewTalentPoints(lua_State* L);
+int32_t Script_ResetGroupPreviewTalentPoints(lua_State* L);
+int32_t Script_LearnPreviewTalents(lua_State* L);
+void TalentInfoRegisterScriptFunctions();
+
+class CGTalentInfo_Inspect {
+    public:
+    static void EnterWorld();
 };
 
 #endif

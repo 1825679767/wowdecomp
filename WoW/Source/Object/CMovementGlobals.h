@@ -25,6 +25,7 @@ class CMovementGlobals {
     /* 0138 */ uint32_t m_transportTime2;
     /* 013C */ uint32_t m_timeCounterMaybe;
 
+    CMovementGlobals();
     ~CMovementGlobals();
 };
 

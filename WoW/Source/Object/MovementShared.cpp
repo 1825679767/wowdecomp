@@ -1,7 +1,9 @@
 #include "MovementShared.h"
 #include <cmath>
 #include <cstdio>
+#include <malloc.h>
 #include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/Tempest/C33Matrix.h"
 #include "Engine/Source/Tempest/C3Spline.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/CMath.h"
@@ -10,6 +12,7 @@
 #include "WoW/Source/Object/Types.h"
 #include "_Triage/CMoveSpline.h"
 #include "_Triage/CMovementStatus.h"
+#include "WoW/Source/Net/Types.h"
 
 // STATIC: 0x00B2D9E8
 float CMovementShared::s_terminalVelocity = 60.148003f;
@@ -759,6 +762,26 @@ int32_t CMovementShared::IsSplineFlyerOrFlyingOrSwimming() const {
     }
 
     return (this->m_flags & (MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING)) != 0;
+}
+
+// VERIFY: bc1f2fdd manual
+// OFFSET: 0x00716110
+C3Vector CMovementShared::GetDestination() const {
+    if (this->m_spline) {
+        return this->m_spline->m_finalDestination;
+    }
+
+    return this->m_position;
+}
+
+// VERIFY: 1fb3fd04 auto
+// OFFSET: 0x0071C660
+int32_t CMovementShared::IsSplineFlyerOrSwimmingOrSafeFalling() const {
+    if (this->IsGravityDisabled()) {
+        return 1;
+    }
+
+    return (this->m_flags & (MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_SAFE_FALL)) != 0;
 }
 
 // VERIFY: 034517b9 manual
@@ -1884,4 +1907,367 @@ int32_t CMovementShared::StopMove(uint32_t moveFlags) {
 
     this->ForceStopMove(1);
     return 1;
+}
+
+// VERIFY: 238f6d7a auto
+// OFFSET: 0x00990370
+int32_t AckMessageNeedsIndex(uint32_t msgId) {
+    return msgId == CMSG_FORCE_MOVE_ROOT_ACK
+        || msgId == CMSG_FORCE_MOVE_UNROOT_ACK
+        || msgId == MSG_MOVE_TELEPORT_ACK
+        || msgId == CMSG_FORCE_RUN_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_RUN_BACK_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_SWIM_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_SWIM_BACK_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_FLIGHT_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_FLIGHT_BACK_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_WALK_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_TURN_RATE_CHANGE_ACK
+        || msgId == CMSG_FORCE_PITCH_RATE_CHANGE_ACK
+        || msgId == CMSG_MOVE_HOVER_ACK
+        || msgId == CMSG_MOVE_SET_CAN_FLY_ACK
+        || msgId == CMSG_MOVE_FEATHER_FALL_ACK
+        || msgId == CMSG_MOVE_WATER_WALK_ACK
+        || msgId == CMSG_MOVE_KNOCK_BACK_ACK
+        || msgId == CMSG_MOVE_GRAVITY_DISABLE_ACK
+        || msgId == CMSG_MOVE_GRAVITY_ENABLE_ACK
+        || msgId == CMSG_MOVE_SET_CAN_TRANSITION_BETWEEN_SWIM_AND_FLY_ACK
+        || msgId == CMSG_MOVE_SET_COLLISION_HGT_ACK;
+}
+
+// VERIFY: 16a6e259 auto
+// OFFSET: 0x00990420
+int32_t IsAckMessage(uint32_t msgId) {
+    return msgId == CMSG_FORCE_MOVE_ROOT_ACK
+        || msgId == CMSG_FORCE_MOVE_UNROOT_ACK
+        || msgId == MSG_MOVE_TELEPORT_ACK
+        || msgId == CMSG_FORCE_RUN_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_RUN_BACK_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_SWIM_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_SWIM_BACK_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_FLIGHT_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_FLIGHT_BACK_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_WALK_SPEED_CHANGE_ACK
+        || msgId == CMSG_FORCE_TURN_RATE_CHANGE_ACK
+        || msgId == CMSG_FORCE_PITCH_RATE_CHANGE_ACK
+        || msgId == CMSG_MOVE_HOVER_ACK
+        || msgId == CMSG_MOVE_SET_CAN_FLY_ACK
+        || msgId == CMSG_MOVE_FEATHER_FALL_ACK
+        || msgId == CMSG_MOVE_WATER_WALK_ACK
+        || msgId == CMSG_MOVE_KNOCK_BACK_ACK
+        || msgId == CMSG_MOVE_NOT_ACTIVE_MOVER
+        || msgId == CMSG_MOVE_GRAVITY_DISABLE_ACK
+        || msgId == CMSG_MOVE_GRAVITY_ENABLE_ACK
+        || msgId == CMSG_MOVE_SET_CAN_TRANSITION_BETWEEN_SWIM_AND_FLY_ACK
+        || msgId == CMSG_MOVE_SET_COLLISION_HGT_ACK;
+}
+
+// VERIFY: 46e794c2 manual
+// OFFSET: 0x009904E0
+int32_t IsMessageAllowedWhileOnSpline(uint32_t msgId) {
+    switch (msgId) {
+        case MSG_MOVE_START_SWIM:
+        case MSG_MOVE_STOP_SWIM:
+        case MSG_MOVE_TOGGLE_COLLISION_CHEAT:
+        case CMSG_MOVE_START_SWIM_CHEAT:
+        case CMSG_MOVE_STOP_SWIM_CHEAT:
+        case CMSG_MOVE_SET_FLY:
+        case CMSG_DISMISS_CONTROLLED_VEHICLE:
+        case CMSG_CHANGE_SEATS_ON_CONTROLLED_VEHICLE:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+// VERIFY: c48ff64a auto
+// OFFSET: 0x0098B730
+void CMovementShared::RemoveSpline() {
+    this->m_flags2 &= ~MOVEMENTFLAG2_JUMP_SPLINE_IN_AIR;
+
+    if (!this->m_spline) {
+        return;
+    }
+
+    MovementDelSpline(this->m_spline);
+    uint32_t falling = this->m_flags & MOVEMENTFLAG_FALLING;
+    this->m_spline = nullptr;
+
+    if (!falling) {
+        this->m_currentSpeed = this->GetBaseSpeed(0);
+    }
+}
+
+// VERIFY: 19d887a8 manual
+// OFFSET: 0x0098B770
+void CMovementShared::TransformSpline(const C44Matrix& matrix, float facing) {
+    *reinterpret_cast<C3Vector*>(this->m_spline->m_face.m_point) *= matrix;
+    this->m_spline->m_face.m_angle = CMath::normalizeangle0to2pi_(this->m_spline->m_face.m_angle + facing);
+
+    TSStackArray<C3Vector> points(static_cast<C3Vector*>(alloca(sizeof(C3Vector) * this->m_spline->m_spline.m_pointCount)), this->m_spline->m_spline.m_pointCount, 1);
+
+    for (uint32_t i = 0; i < points.m_count; i++) {
+        points.m_data[i] = this->m_spline->m_spline.Point(i) * matrix;
+    }
+
+    this->m_spline->m_spline.SetPoints(points.m_data, points.m_count);
+}
+
+// VERIFY: 4a68cfb3 manual
+// OFFSET: 0x0098B850
+void CMovementShared::TransportTransform(const C44Matrix& matrix, float facing, const C3Vector& oldPosition) {
+    this->m_fallStartZ = matrix.b2 * oldPosition.y + matrix.c2 * this->m_fallStartZ + matrix.a2 * oldPosition.x + matrix.d2;
+    this->m_stepUpStartZ = matrix.b2 * oldPosition.y + matrix.a2 * oldPosition.x + this->m_stepUpStartZ * matrix.c2 + matrix.d2;
+    this->m_anchorPos *= matrix;
+    this->m_anchorFacing = CMath::normalizeangle0to2pi_(this->m_anchorFacing + facing);
+
+    C3Vector direction;
+    direction.x = matrix.c0 * this->m_moveDir.z + matrix.b0 * this->m_moveDir.y + matrix.a0 * this->m_moveDir.x;
+    direction.y = matrix.a1 * this->m_moveDir.x + matrix.c1 * this->m_moveDir.z + matrix.b1 * this->m_moveDir.y;
+    direction.z = matrix.b2 * this->m_moveDir.y + matrix.a2 * this->m_moveDir.x + this->m_moveDir.z * matrix.c2;
+    this->m_moveDir = direction;
+
+    this->m_moveDir2D = C2Vector(this->m_moveDir);
+    this->m_moveDir2D.NormalizeSafe();
+
+    if (this->IsOnSpline()) {
+        this->TransformSpline(matrix, facing);
+    }
+}
+
+// VERIFY: cf40ac09 auto
+// OFFSET: 0x0098B9A0
+float CMovementShared::RemoveFromTransportFinish(const C44Matrix& matrix, float facing, const C3Vector& oldPosition) {
+    this->TransportTransform(matrix, facing, oldPosition);
+    this->m_link.Unlink();
+    MovementNotifyTransportUnitRemoved(*this->m_ownerGuid, this->m_transportGuid, this->m_transportSeat);
+    this->m_flags &= ~MOVEMENTFLAG_SPLINE_ENABLED;
+    return facing;
+}
+
+// VERIFY: 2195bbbc auto
+// OFFSET: 0x0098BA20
+float CMovementShared::AddToTransport(WOWGUID transport, C44Matrix* inverse, C44Matrix* transportMatrix) {
+    C3Vector oldPosition = this->m_position;
+    float facing = CPassenger::AddToTransport(transport, inverse, transportMatrix);
+    this->TransportTransform(*inverse, facing, oldPosition);
+    MovementAddToTransport(this, transport, 0);
+    return facing;
+}
+
+// VERIFY: e9c7d6c2 manual
+// OFFSET: 0x0098BA90
+void CMovementShared::Teleport(const C3Vector& position, float facing, int32_t removeSpline) {
+    this->m_position = position;
+    this->m_facing = facing;
+    this->m_pitch = 0.0f;
+    this->StopFalling();
+    this->m_anchorFacing = this->m_facing;
+    this->m_flags &= 0xF9003F00;
+    this->m_anchorPitch = this->m_pitch;
+    this->m_anchorPos = this->m_position;
+    this->m_anchorElapsedMs = 0;
+    this->CalcDirection(0);
+    MovementNotifyZoneMgr(*this->m_ownerGuid);
+
+    if (!(this->m_flags & MOVEMENTFLAG_FALLING)) {
+        this->m_currentSpeed = this->GetBaseSpeed(0);
+    }
+
+    if (this->IsOnSpline()) {
+        if (removeSpline) {
+            this->RemoveSpline();
+        } else {
+            this->m_spline->m_flags |= SPLINEFLAG_NO_SPLINE;
+        }
+    }
+}
+
+// VERIFY: cdc954ca auto
+// OFFSET: 0x0098C730
+float CMovementShared::RemoveFromTransport(C44Matrix* matrix) {
+    C3Vector oldPosition = this->m_position;
+    float facing = CPassenger::RemoveFromTransport(matrix);
+    return this->RemoveFromTransportFinish(*matrix, facing, oldPosition);
+}
+
+// VERIFY: 78c2f0a4 manual
+// OFFSET: 0x0098C940
+void CMovementShared::ConvertCurrentSplineToLoopingSpline(uint32_t timePassed) {
+    CMoveSpline* spline = this->m_spline;
+
+    if (!spline) {
+        return;
+    }
+
+    uint32_t count = spline->m_spline.m_pointCount;
+
+    if (count < 4) {
+        return;
+    }
+
+    C3Vector* points = static_cast<C3Vector*>(alloca(sizeof(C3Vector) * count));
+
+    if (!points) {
+        return;
+    }
+
+    this->m_spline = MovementNewSpline();
+
+    if (!this->m_spline) {
+        this->m_spline = spline;
+        return;
+    }
+
+    spline->m_spline.GetPoints(points, count);
+    points[1] = points[count - 3];
+    this->OnSpline(timePassed, &points[1], count - 1, spline->m_duration, spline->m_flags, spline->m_id);
+    MovementDelSpline(spline);
+}
+
+// VERIFY: 022de096 manual
+// OFFSET: 0x0098CA00
+uint32_t CMovementShared::PlotUnitSplineMovement(uint32_t time, C3Vector* position) {
+    *position = this->m_position;
+
+    if (!(this->m_flags & (MOVEMENTFLAG_FORWARD | MOVEMENTFLAG_BACKWARD))) {
+        return this->m_flags & 0xC0100F;
+    }
+
+    if (this->m_spline->m_flags & SPLINEFLAG_FROZEN) {
+        return 1;
+    }
+
+    this->m_spline->m_start = time - this->m_spline->m_timePassed;
+    uint32_t duration = RoundToInt64(this->GetModifiedSplineDuration());
+    CMoveSpline* spline = this->m_spline;
+    float t;
+
+    if (!duration) {
+        spline->m_flags |= SPLINEFLAG_DONE;
+        t = 1.0f;
+    } else if (static_cast<int32_t>(spline->m_start) < 0) {
+        t = 0.0f;
+    } else if (spline->m_start < duration) {
+        t = static_cast<float>(static_cast<int32_t>(spline->m_start)) / static_cast<float>(duration);
+    } else if (!(spline->m_flags & SPLINEFLAG_CYCLIC)) {
+        spline->m_flags |= SPLINEFLAG_DONE;
+        t = 1.0f;
+    } else {
+        spline->m_start -= duration;
+        this->m_spline->m_timePassed = time - this->m_spline->m_start;
+
+        if (this->m_spline->m_flags & SPLINEFLAG_ENTER_CYCLE) {
+            this->ConvertCurrentSplineToLoopingSpline(this->m_spline->m_timePassed);
+            this->m_spline->m_flags &= ~SPLINEFLAG_ENTER_CYCLE;
+        }
+
+        this->m_spline->m_durationMod = this->m_spline->m_durationModNext;
+        this->m_spline->m_durationModNext = 1.0f;
+        duration = RoundToInt64(this->GetModifiedSplineDuration());
+
+        if (duration) {
+            t = static_cast<float>(static_cast<int32_t>(this->m_spline->m_start)) / static_cast<float>(duration);
+        } else {
+            t = 1.0f;
+        }
+    }
+
+    C44Matrix frame(this->m_moveDir.x, this->m_moveDir.y, this->m_moveDir.z, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+    this->m_spline->m_spline.Frame(t, frame, C3Spline::EVAL_ARCLENGTH);
+    spline = this->m_spline;
+
+    if (!(spline->m_flags & (SPLINEFLAG_ORIENTATION_FIXED | SPLINEFLAG_FALLING))) {
+        if (frame.a0 * frame.a0 + frame.a1 * frame.a1 > 0.0018490001f) {
+            this->m_facing = static_cast<float>(atan2(static_cast<double>(frame.a1), static_cast<double>(frame.a0)));
+        }
+    }
+
+    if (spline->m_flags & SPLINEFLAG_BACKWARD) {
+        this->m_facing = this->m_facing - 3.1415927f;
+    }
+
+    if (this->m_facing < 0.0f) {
+        this->m_facing = s_twoPi + this->m_facing;
+    }
+
+    this->m_moveDir = *reinterpret_cast<C3Vector*>(&frame.a0);
+
+    if (this->m_flags & (MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING)) {
+        this->m_pitch = static_cast<float>(asin(static_cast<double>(frame.a2)));
+    } else if (spline->m_flags & SPLINEFLAG_FLYING) {
+        C3Vector point;
+        float progress = 1.0f;
+
+        if (duration) {
+            progress = static_cast<float>(static_cast<int32_t>(spline->m_start + 1000)) / static_cast<float>(duration);
+        }
+
+        if ((spline->m_flags & SPLINEFLAG_CYCLIC) && progress > 1.0f) {
+            progress = progress - 1.0f;
+        }
+
+        this->m_spline->m_spline.Pos(fclamp(progress, 0.0f, 1.0f), point, C3Spline::EVAL_ARCLENGTH);
+
+        C2Vector direction(this->m_moveDir);
+        C3Vector world = this->GetPosition(this->m_position);
+        C3Vector delta(point.x - world.x, point.y - world.y, point.z - world.z);
+        C2Vector target(delta);
+        direction.NormalizeSafe();
+        target.NormalizeSafe();
+
+        float cosAngle = direction.y * target.y + target.x * direction.x;
+        ClampInPlace(cosAngle, -1.0f, 1.0f);
+
+        double angle = target.y * direction.x - direction.y * target.x < 0.0f ? acos(static_cast<double>(cosAngle)) : -acos(static_cast<double>(cosAngle));
+        C33Matrix rotation = C33Matrix::Rotation(fclamp(static_cast<float>(angle + angle), -1.5707964f, 1.5707964f), this->m_moveDir, false);
+        this->m_groundNormal = *reinterpret_cast<C3Vector*>(&frame.c0) * rotation;
+    }
+
+    *position = *reinterpret_cast<C3Vector*>(&frame.d0);
+    spline = this->m_spline;
+    uint32_t flags = spline->m_flags;
+
+    if (flags & SPLINEFLAG_ANIMATION) {
+        if (!(this->m_flags2 & MOVEMENTFLAG2_ANIM_TIER_IN_TRANS) && spline->m_start > spline->m_effectStartTime) {
+            this->m_flags2 |= MOVEMENTFLAG2_ANIM_TIER_IN_TRANS;
+        }
+    } else if (flags & SPLINEFLAG_PARABOLIC) {
+        if (spline->m_start > spline->m_effectStartTime && !(this->m_flags2 & MOVEMENTFLAG2_JUMP_SPLINE_IN_AIR)) {
+            this->m_fallStartZ = this->m_position.z;
+            this->m_flags2 |= MOVEMENTFLAG2_JUMP_SPLINE_IN_AIR;
+        }
+
+        position->z = this->CalcSplineHeight(this->m_spline->m_start, position->z);
+
+        if (position->z > this->m_fallStartZ) {
+            this->m_fallStartZ = this->m_position.z;
+        }
+    } else if (flags & SPLINEFLAG_FALLING) {
+        float z = this->CalcSplineHeight(spline->m_start, position->z);
+        position->z = z;
+
+        if (fequal(z, this->m_spline->m_finalDestination.z)) {
+            int32_t fallTime = CMath::fint_(TimeToFallDistance(this->m_fallStartZ - z, 0) * 1000.0f);
+
+            if (static_cast<int32_t>(this->m_spline->m_start) > fallTime) {
+                this->m_spline->m_start = fallTime;
+            }
+
+            this->m_spline->m_flags |= SPLINEFLAG_DONE;
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 4ba8163d manual
+// OFFSET: 0x009870F0
+void CMovementShared::AddSpline(const C3Vector& position) {
+    if (!this->m_spline) {
+        this->m_spline = MovementNewSpline();
+    }
+
+    this->m_spline->m_flags = 0;
+    this->m_spline->m_finalDestination = position;
 }

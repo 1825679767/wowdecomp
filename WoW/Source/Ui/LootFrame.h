@@ -3,7 +3,9 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
+#include "WoW/Source/Object/WGUID.h"
+
+struct lua_State;
 
 struct LootInfo {
     /* 0000 */ uint32_t unk_0000;
@@ -15,5 +17,35 @@ struct LootInfo {
     /* 0018 */ uint32_t unk_0018;
     /* 001C */ uint32_t unk_001C;
 };
+
+void LootDestroy();
+void LootInitialize();
+
+class CGLootInfo {
+    public:
+    static WOWGUID m_lootObj;
+
+    static void InitializeGame();
+    static void DoAutoLoot(int32_t a1);
+};
+
+int32_t Script_SetLootPortrait(lua_State* L);
+int32_t Script_GetNumLootItems(lua_State* L);
+int32_t Script_GetLootSlotInfo(lua_State* L);
+int32_t Script_GetLootSlotLink(lua_State* L);
+int32_t Script_LootSlotIsItem(lua_State* L);
+int32_t Script_LootSlotIsCoin(lua_State* L);
+int32_t Script_LootSlot(lua_State* L);
+int32_t Script_ConfirmLootSlot(lua_State* L);
+int32_t Script_CloseLoot(lua_State* L);
+int32_t Script_IsFishingLoot(lua_State* L);
+int32_t Script_GetMasterLootCandidate(lua_State* L);
+int32_t Script_GiveMasterLoot(lua_State* L);
+int32_t Script_GetLootRollItemInfo(lua_State* L);
+int32_t Script_GetLootRollItemLink(lua_State* L);
+int32_t Script_GetLootRollTimeLeft(lua_State* L);
+int32_t Script_RollOnLoot(lua_State* L);
+int32_t Script_ConfirmLootRoll(lua_State* L);
+void LootInfoRegisterScriptFunctions();
 
 #endif

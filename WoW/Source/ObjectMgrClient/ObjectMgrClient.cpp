@@ -58,7 +58,16 @@ static const uint32_t s_objHeapSize[NUM_CLIENT_OBJECT_TYPES] = { 0, 512, 32, 64,
 static const uint32_t s_objDwordCount[NUM_CLIENT_OBJECT_TYPES] = { 0x6, 0x40, 0x8A, 0x94, 0x52E, 0x12, 0xC, 0x24 };
 
 // STATIC: 0x00B6A160
-uint32_t s_objTotalSize[NUM_CLIENT_OBJECT_TYPES];
+uint32_t s_objTotalSize[NUM_CLIENT_OBJECT_TYPES] = {
+    sizeof(CGObject_C) + sizeof(CGObjectData) + CGObject::TotalFieldsSaved() * sizeof(uint32_t),
+    sizeof(CGItem_C) + sizeof(CGObjectData) + sizeof(CGItemData) + CGItem::TotalFieldsSaved() * sizeof(uint32_t),
+    sizeof(CGContainer_C) + sizeof(CGObjectData) + sizeof(CGItemData) + sizeof(CGContainerData) + CGContainer::TotalFieldsSaved() * sizeof(uint32_t),
+    sizeof(CGUnit_C) + sizeof(CGObjectData) + sizeof(CGUnitData) + CGUnit::TotalFields() * sizeof(uint32_t),
+    sizeof(CGPlayer_C) + sizeof(CGObjectData) + sizeof(CGUnitData) + sizeof(CGPlayerData) + CGPlayer::TotalRemoteFields() * sizeof(uint32_t),
+    sizeof(CGGameObject_C) + sizeof(CGObjectData) + sizeof(CGGameObjectData) + CGGameObject::TotalFieldsSaved() * sizeof(uint32_t),
+    sizeof(CGDynamicObject_C) + sizeof(CGObjectData) + sizeof(CGDynamicObjectData) + CGDynamicObject::TotalFields() * sizeof(uint32_t),
+    sizeof(CGCorpse_C) + sizeof(CGObjectData) + sizeof(CGCorpseData) + CGCorpse::TotalFieldsSaved() * sizeof(uint32_t),
+};
 
 // VERIFY: 9aded9c4 manual
 // OFFSET: 0x004D5850
@@ -1737,3 +1746,10 @@ void ClntObjMgrUnlockObject(WOWGUID guid, const char* fileName, int32_t lineNumb
 // OFFSET: 0x004D4C20
 CMirrorHandler::~CMirrorHandler() {
 }
+
+// VERIFY: 7a5ce34e manual
+// OFFSET: 0x004038F0
+CGPlayer_C* ClntObjMgrGetActivePlayerObj() {
+    return static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+}
+

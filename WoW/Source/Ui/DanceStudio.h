@@ -4,6 +4,14 @@
 #include <cstddef>
 #include <cstdint>
 
-class CGDanceStudio;
+struct lua_State;
+
+class CGDanceStudio {
+    public:
+    static void InitializeGame();
+    static void RegisterScriptFunctions();
+};
+
+int32_t Script_PlayDance(lua_State* L);
 
 #endif

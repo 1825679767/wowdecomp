@@ -26,9 +26,16 @@ class CGameTime : public WowTime {
 
     CGameTime();
     float GameTimeGetDayProgression();
+    float GameTimeSetMinutesPerSecond(float minutesPerSecond);
+    void GameTimeSetTime(const WowTime& time, bool a2);
+    void GameTimeSync(const WowTime& time, bool a2);
     bool IsDaytime();
 };
 
 extern CGameTime g_clientGameTime;
+
+void ClientDestroyGameTime();
+int32_t ClientGameTimeTickHandler(const void* data, void* param);
+void ClientInitializeGameTime();
 
 #endif

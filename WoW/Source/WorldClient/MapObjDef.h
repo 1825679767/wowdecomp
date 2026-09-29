@@ -76,6 +76,8 @@ class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_N
 
     CMapObjDef();
     bool TestAABox(C3Vector& start, C3Vector& end);
+    bool IsAllDrawable();
+    int32_t IsAllLoaded();
     int32_t GetGroundType(uint32_t groupNum, uint16_t faceIndex);
     void RenderWithCallback(TSGrowableArray<uint32_t>* groups);
     void CullMapObjDefGroupFromExterior(CMapObjDefGroup* mapObjDefGroup, CRect* rect, uint32_t skipOcclusion);

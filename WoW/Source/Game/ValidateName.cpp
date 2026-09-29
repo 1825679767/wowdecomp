@@ -1,4 +1,5 @@
 #include "ValidateName.h"
+#include "Engine/Source/Base/ConvertUTF.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
@@ -554,4 +555,216 @@ void ValidateNameInitialize(int32_t localeMask, int32_t charsetMask) {
     }
 
     g_chatSpamTokens.SetCount(numSpamTokens);
+}
+
+// VERIFY: 4de6e424 auto
+// OFFSET: 0x007E0EC0
+bool ValidateStringIsUTF8(const char* string) {
+    int32_t chars;
+    uint32_t c = sgetu8(reinterpret_cast<const uint8_t*>(string), &chars);
+
+    while (c != 0xFFFFFFFF) {
+        if (c == 0x80000000) {
+            return false;
+        }
+
+        string += chars;
+        c = sgetu8(reinterpret_cast<const uint8_t*>(string), &chars);
+    }
+
+    return true;
+}
+
+// VERIFY: aec9dd08 auto
+// OFFSET: 0x007E1640
+bool TruncateNewLines(char* text) {
+    for (char* c = text; c && *c; c++) {
+        bool newLine;
+
+        if (*c == '\\' || *c == '|') {
+            newLine = c[1] == 'n';
+        } else {
+            newLine = *c == '\r' || *c == '\n';
+        }
+
+        if (newLine) {
+            *c = 0;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: e53de9f6 manual
+// OFFSET: 0x007E0F10
+bool IsNumeric(uint16_t c) {
+    return static_cast<uint16_t>(c - '0') <= 9;
+}
+
+// VERIFY: 41f5554f manual
+// OFFSET: 0x007E10F0
+bool IsUpper(uint16_t c) {
+    if (static_cast<uint16_t>(c - 'a') <= 25 || static_cast<uint16_t>(c - 0xE0) <= 30 || static_cast<uint16_t>(c - 0x430) <= 31) {
+        return false;
+    }
+
+    return c != 0x451;
+}
+
+// VERIFY: 23567433 manual
+// OFFSET: 0x007E1130
+uint16_t ToUpper(uint16_t c) {
+    if (static_cast<uint16_t>(c - 'a') <= 25 || static_cast<uint16_t>(c - 0xE0) <= 30) {
+        return c - 32;
+    }
+
+    if (c == 0x153) {
+        return 0x152;
+    }
+
+    if (static_cast<uint16_t>(c - 0x430) <= 31) {
+        return c - 32;
+    }
+
+    if (c == 0x451) {
+        return 0x401;
+    }
+
+    return c;
+}
+
+// VERIFY: d241f64e manual
+// OFFSET: 0x007E1180
+uint16_t ToLower(uint16_t c) {
+    if (static_cast<uint16_t>(c - 'A') <= 25 || static_cast<uint16_t>(c - 0xC0) <= 30) {
+        return c + 32;
+    }
+
+    if (c == 0x152) {
+        return 0x153;
+    }
+
+    if (static_cast<uint16_t>(c - 0x410) <= 31) {
+        return c + 32;
+    }
+
+    if (c == 0x401) {
+        return 0x451;
+    }
+
+    return c;
+}
+
+// VERIFY: e07359a4 manual
+// OFFSET: 0x007E1680
+bool StripHyperlinks(const char* text, char* buffer, uint32_t size) {
+    bool stripped = false;
+    char* dest = buffer;
+    char c = *text;
+
+    if (c) {
+        bool inLink = false;
+        char* end = &buffer[size - 1];
+
+        while (dest < end) {
+            if (c == '|') {
+                c = *++text;
+
+                switch (c) {
+                    case 'C':
+                    case 'c': {
+                        text++;
+                        stripped = true;
+
+                        for (uint32_t i = 0; i < 8; i++) {
+                            if (!*text) {
+                                *dest = 0;
+                                return stripped;
+                            }
+
+                            text++;
+                        }
+
+                        break;
+                    }
+
+                    case 'H': {
+                        stripped = true;
+
+                        while (c != '|' || text[1] != 'h') {
+                            c = *++text;
+
+                            if (!c) {
+                                break;
+                            }
+                        }
+
+                        if (c && *text) {
+                            text += 2;
+                        }
+
+                        inLink = true;
+                        break;
+                    }
+
+                    case 'T': {
+                        stripped = true;
+
+                        while (c != '|' || text[1] != 't') {
+                            c = *++text;
+
+                            if (!c) {
+                                *dest = c;
+                                return stripped;
+                            }
+                        }
+
+                        if (!*text) {
+                            *dest = 0;
+                            return stripped;
+                        }
+
+                        text += 2;
+                        break;
+                    }
+
+                    case 'h': {
+                        text++;
+                        stripped = true;
+                        inLink = false;
+                        break;
+                    }
+
+                    case 'r': {
+                        stripped = true;
+                        text++;
+                        break;
+                    }
+
+                    default: {
+                        *dest++ = '|';
+                        *dest++ = *text;
+                        text++;
+                        break;
+                    }
+                }
+            } else {
+                if (!inLink || (c != '[' && c != ']')) {
+                    *dest++ = c;
+                }
+
+                text++;
+            }
+
+            c = *text;
+
+            if (!c) {
+                break;
+            }
+        }
+    }
+
+    *dest = 0;
+    return stripped;
 }
