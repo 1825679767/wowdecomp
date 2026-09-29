@@ -3279,7 +3279,7 @@ void CWorldScene::CullMapObjDefGroup() {
     }
 }
 
-// VERIFY: 2ded8e85 manual
+// VERIFY: ce664a92 manual
 // OFFSET: 0x0079A320
 CSortTable::CSortTable() {
     for (uint32_t i = 0; i < 64; i++) {
