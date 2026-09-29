@@ -9,20 +9,30 @@ class CGGameObjectData;
 
 class CGGameObject {
     public:
+    static uint32_t s_mirrorFieldIndex[4];
+
+    static uint32_t DescriptorToMirrorOffset(uint32_t offset, uint32_t size, int32_t local, uint32_t base);
+    static uint32_t MirrorIndexFromFieldIndex(uint32_t fieldIndex, uint32_t count, int32_t local);
+    static int32_t TotalFieldsSaved();
+
     /* 0000 */ CGGameObjectData* m_gameObject;
     /* 0004 */ void* m_gameObjectMirror;
 };
 
 class CGGameObjectData {
     public:
-    /* 0000 */ WGUID m_objectFieldCreatedBy;
-    /* 0008 */ uint32_t m_gameobjectDisplayid;
-    /* 000C */ uint32_t m_gameobjectFlags;
-    /* 0010 */ float m_gameobjectParentrotation [4];
-    /* 0020 */ uint16_t m_gameobjectDynamic [2];
-    /* 0024 */ uint32_t m_gameobjectFaction;
-    /* 0028 */ uint32_t m_gameobjectLevel;
-    /* 002C */ uint8_t m_gameobjectBytes1 [4];
+    /* 0000 */ WOWGUID m_createdBy;
+    /* 0008 */ uint32_t m_displayID;
+    /* 000C */ uint32_t m_flags;
+    /* 0010 */ float m_parentRotation[4];
+    /* 0020 */ uint16_t m_dynamicFlags;
+    /* 0022 */ uint16_t m_pathProgress;
+    /* 0024 */ uint32_t m_faction;
+    /* 0028 */ uint32_t m_level;
+    /* 002C */ int8_t m_state;
+    /* 002D */ int8_t m_typeID;
+    /* 002E */ uint8_t m_artKit;
+    /* 002F */ uint8_t m_animProgress;
 };
 
 #endif

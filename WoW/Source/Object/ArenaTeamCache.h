@@ -12,12 +12,12 @@ class ArenaTeamCache {
 
     /* 0000 */ int32_t m_id;
     /* 0004 */ char m_name[96];
-    /* 0064 */ uint32_t unk_0064;
-    /* 0068 */ uint32_t unk_0068;
-    /* 006C */ uint32_t unk_006C;
-    /* 0070 */ uint32_t unk_0070;
-    /* 0074 */ uint32_t unk_0074;
-    /* 0078 */ uint32_t unk_0078;
+    /* 0064 */ uint32_t m_type;
+    /* 0068 */ uint32_t m_backgroundColor;
+    /* 006C */ uint32_t m_emblemStyle;
+    /* 0070 */ uint32_t m_emblemColor;
+    /* 0074 */ uint32_t m_borderStyle;
+    /* 0078 */ uint32_t m_borderColor;
 
     void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);

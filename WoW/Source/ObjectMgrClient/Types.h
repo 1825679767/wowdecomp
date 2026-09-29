@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 
 class CGGameObject_C;
 class CGObject_C;
@@ -34,7 +35,7 @@ struct WowTlsBlock {
     /* 0004 */ uint32_t m_unused04;
     /* 0008 */ ObjectMgr* m_pObjMgr;
     /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint64_t m_loginCharacterGuid;
+    /* 0010 */ WOWGUID m_loginCharacterGuid;
 };
 
 #endif

@@ -6,13 +6,24 @@
 #include "Engine/Source/Tempest/C3Spline_CatmullRom.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Object/WGUID.h"
+
+class CDataStore;
+
+#pragma pack(push, 4)
+union CMoveSplineFaceData {
+    /* 0000 */ float m_point[3];
+    /* 0000 */ WOWGUID m_target;
+    /* 0000 */ float m_angle;
+};
+#pragma pack(pop)
 
 class CMoveSpline {
     public:
     /* 0000 */ TSLink<void> unk_0000;
     /* 0008 */ uint32_t unk_0008;
     /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint8_t m_face[12];
+    /* 0010 */ CMoveSplineFaceData m_face;
     /* 001C */ uint32_t unk_001C;
     /* 0020 */ uint32_t m_flags;
     /* 0024 */ uint32_t m_timePassed;
@@ -27,6 +38,14 @@ class CMoveSpline {
     /* 0210 */ uint32_t m_effectStartTime;
     /* 0214 */ TSLink<void> unk_0214;
     /* 021C */ uint32_t unk_021C;
+
+    static void Skip(CDataStore* msg);
+
+    CMoveSpline();
+    ~CMoveSpline();
 };
+
+CDataStore& operator>>(CDataStore& msg, C3Vector& vector);
+CDataStore& operator>>(CDataStore& msg, CMoveSpline& spline);
 
 #endif

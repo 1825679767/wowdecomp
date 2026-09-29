@@ -292,10 +292,10 @@ void CCharacterCreation::CycleCharCustomization(CHAR_CUSTOMIZATION_TYPE type, in
     CGlueLoading::StartLoad(CCharacterCreation::m_character, 1);
 }
 
-// VERIFY: acc31955 manual
+// VERIFY: 0b8a8ec0 manual
 // OFFSET: 0x004E0380
 void CCharacterCreation::CreateCharacter(const char* name) {
-    uint64_t guid = 0;
+    WOWGUID guid = WOWGUID();
     CharacterSelectionDisplay* display = nullptr;
     bool validate = true;
 

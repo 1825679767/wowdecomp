@@ -4,25 +4,36 @@
 #include <cstddef>
 #include <cstdint>
 
+class CGUnit_C;
+class CMissileCollision;
+
+class CMissileCollisionHeap {
+    public:
+    /* 0000 */ uint32_t m_heapId;
+
+    CMissileCollision* New();
+};
+
 class CMissileCollision {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[60];
-    /* 0044 */ uint32_t unk_0044;
-    /* 0048 */ uint32_t unk_0048;
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050;
-    /* 0054 */ uint32_t unk_0054;
-    /* 0058 */ uint32_t unk_0058;
-    /* 005C */ uint32_t unk_005C;
-    /* 0060 */ uint32_t unk_0060;
-    /* 0064 */ uint32_t unk_0064;
-    /* 0068 */ uint32_t unk_0068;
-    /* 006C */ uint32_t unk_006C;
-    /* 0070 */ uint32_t unk_0070;
-    /* 0074 */ uint32_t unk_0074;
-    /* 0078 */ uint32_t unk_0078;
+    static CMissileCollisionHeap* s_pool;
+    static CMissileCollision* s_head;
+    static CMissileCollision* s_tail;
+
+    static void InitSystem();
+    static CMissileCollision* Alloc();
+    static void RemoveUnitFromSystem(CGUnit_C* unit);
+    static void MaybeAddUnitToSystem(CGUnit_C* unit);
+
+    /* 0000 */ uint32_t m_memHandle;
+    /* 0004 */ CGUnit_C* m_units [16];
+    /* 0044 */ float unk_0044 [8];
+    /* 0064 */ uint32_t unk_0064 [4];
+    /* 0074 */ CMissileCollision* m_prev;
+    /* 0078 */ CMissileCollision* m_next;
+
+    CMissileCollision();
+    void Free();
 };
 
 #endif

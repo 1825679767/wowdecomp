@@ -3,109 +3,106 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
+#include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Tempest/C3Vector.h"
+
+class CDataStore;
+class CM2Model;
+class CGUnit_C;
+class CVehicle_C;
+class VehicleSeatRec;
+
+struct VehiclePassengerRescueTransition {
+    /* 0000 */ WOWGUID m_passengerGuid;
+    /* 0008 */ WOWGUID m_vehicleGuid;
+    /* 0010 */ uint8_t m_seat;
+    /* 0011 */ uint8_t m_instant;
+};
 
 class CVehiclePassenger_C {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint32_t unk_0018;
-    /* 001C */ uint8_t unk_001C[4];
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint32_t unk_0024;
-    /* 0028 */ uint32_t unk_0028;
-    /* 002C */ uint32_t unk_002C;
-    /* 0030 */ uint8_t unk_0030;
-    /* 0031 */ uint8_t unk_0031;
-    /* 0032 */ uint8_t unk_0032[2];
-    /* 0034 */ uint32_t unk_0034;
-    /* 0038 */ uint32_t unk_0038;
-    /* 003C */ uint8_t unk_003C[4];
-    /* 0040 */ uint32_t unk_0040;
-    /* 0044 */ uint32_t unk_0044;
-    /* 0048 */ uint8_t unk_0048[4];
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050;
-    /* 0054 */ uint32_t unk_0054;
-    /* 0058 */ uint32_t unk_0058[2];
-    /* 0060 */ uint32_t unk_0060;
-    /* 0064 */ uint32_t unk_0064;
-    /* 0068 */ uint32_t unk_0068;
-    /* 006C */ uint32_t unk_006C;
-    /* 0070 */ uint32_t unk_0070;
-    /* 0074 */ uint32_t unk_0074;
-    /* 0078 */ uint32_t unk_0078;
-    /* 007C */ uint32_t unk_007C;
-    /* 0080 */ uint8_t unk_0080;
-    /* 0081 */ uint8_t unk_0081[3];
-    /* 0084 */ uint32_t unk_0084;
-    /* 0088 */ uint32_t unk_0088;
-    /* 008C */ uint32_t unk_008C;
-    /* 0090 */ uint32_t unk_0090;
-    /* 0094 */ uint32_t unk_0094;
-    /* 0098 */ uint32_t unk_0098;
-    /* 009C */ uint32_t unk_009C;
-    /* 00A0 */ uint32_t unk_00A0;
-    /* 00A4 */ uint32_t unk_00A4;
-    /* 00A8 */ uint32_t unk_00A8;
-    /* 00AC */ uint32_t unk_00AC;
-    /* 00B0 */ uint32_t unk_00B0;
-    /* 00B4 */ uint32_t unk_00B4;
-    /* 00B8 */ uint32_t unk_00B8;
-    /* 00BC */ uint32_t unk_00BC;
-    /* 00C0 */ uint32_t unk_00C0;
-    /* 00C4 */ uint32_t unk_00C4;
-    /* 00C8 */ uint32_t unk_00C8;
-    /* 00CC */ uint32_t unk_00CC;
-    /* 00D0 */ uint32_t unk_00D0;
-    /* 00D4 */ uint32_t unk_00D4;
-    /* 00D8 */ uint32_t unk_00D8;
-};
+    static uint32_t* s_passengerPool;
+    static TSGrowableArray<CVehiclePassenger_C*>* s_pendingPassengers;
+    static uint32_t s_pendingCount;
+    static CVehiclePassenger_C* s_headPassenger;
+    static CVehiclePassenger_C* s_tailPassenger;
+    static TSGrowableArray<VehiclePassengerRescueTransition>* s_rescueTransitions;
 
-class UnitF58 {
-    public:
-    /* 0000 */ uint8_t unk_0000[12];
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint8_t unk_0018[8];
-    /* 0020 */ uint32_t unk_0020[2];
-    /* 0028 */ uint32_t unk_0028;
-    /* 002C */ uint32_t unk_002C;
-    /* 0030 */ uint8_t unk_0030;
-    /* 0031 */ uint8_t unk_0031[3];
-    /* 0034 */ uint32_t unk_0034;
-    /* 0038 */ uint32_t unk_0038;
-    /* 003C */ uint8_t unk_003C[4];
-    /* 0040 */ uint32_t unk_0040[2];
-    /* 0048 */ uint32_t unk_0048;
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint8_t unk_0050[4];
-    /* 0054 */ uint32_t unk_0054;
-    /* 0058 */ uint8_t unk_0058[44];
-    /* 0084 */ uint32_t unk_0084;
-    /* 0088 */ uint32_t unk_0088;
-    /* 008C */ uint32_t unk_008C;
-    /* 0090 */ uint8_t unk_0090[36];
-    /* 00B4 */ uint32_t unk_00B4;
-    /* 00B8 */ uint32_t unk_00B8;
-    /* 00BC */ uint32_t unk_00BC;
-    /* 00C0 */ uint8_t unk_00C0[4];
-    /* 00C4 */ uint32_t unk_00C4;
-    /* 00C8 */ uint32_t unk_00C8;
-};
+    static void ExecutePendingRescueTransitions();
+    static void StartAddingPendingRescueTransitions();
+    static void InitSystem();
+    static void UninitSystem();
+    static void PostRenderUpdateAll();
+    static void OnVehicleRideLoopAnimEnd(CGUnit_C* unit, int32_t& done, TSGrowableArray<CVehiclePassenger_C*>& passengers);
+    static void OnVehicleTransitionAnimEnd(CGUnit_C* unit, int32_t& done, TSGrowableArray<CVehiclePassenger_C*>& passengers);
+    static void AddPendingRescueTransition(WOWGUID passengerGuid, WOWGUID vehicleGuid, uint8_t seat, int32_t instant);
+    static CVehiclePassenger_C* Alloc(CGUnit_C* unit);
+    static void Init(CGUnit_C* unit);
 
-class VehiclePassenger {
-    public:
-    /* 0000 */ uint8_t unk_0000[12];
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint8_t unk_0018[72];
-    /* 0060 */ uint32_t unk_0060;
+    /* 0000 */ uint32_t m_memHandle;
+    /* 0004 */ CVehiclePassenger_C* m_prev;
+    /* 0008 */ CVehiclePassenger_C* m_next;
+    /* 000C */ CGUnit_C* m_unit;
+    /* 0010 */ uint32_t m_flags;
+    /* 0014 */ uint32_t m_state;
+    /* 0018 */ uint32_t unk_0018 [2];
+    /* 0020 */ WOWGUID m_vehicleGuid;
+    /* 0028 */ WOWGUID m_transitionVehicleGuid;
+    /* 0030 */ uint8_t m_seat;
+    /* 0031 */ uint8_t m_transitionSeat;
+    /* 0032 */ uint8_t unk_0032 [2];
+    /* 0034 */ uint32_t unk_0034 [3];
+    /* 0040 */ WOWGUID m_startRelativeGuid;
+    /* 0048 */ float m_facingBlend;
+    /* 004C */ uint32_t unk_004C [2];
+    /* 0054 */ VehicleSeatRec* m_seatRec;
+    /* 0058 */ WOWGUID m_rootVehicleGuid;
+    /* 0060 */ CDataStore* m_deferredTransitionSpline;
+    /* 0064 */ uint32_t m_transitionAnimTimeout;
+    /* 0068 */ WOWGUID m_transitionAnimVehicleGuid;
+    /* 0070 */ WOWGUID m_boneAnimGuid;
+    /* 0078 */ WOWGUID m_transitionAnimGuid;
+    /* 0080 */ uint8_t m_transitionAnimSeat;
+    /* 0084 */ C3Vector unk_0084;
+    /* 0090 */ C3Vector unk_0090;
+    /* 009C */ C3Vector m_startPosition;
+    /* 00A8 */ C3Vector m_startOffset;
+    /* 00B4 */ float m_startFacing;
+    /* 00B8 */ uint32_t unk_00B8;
+    /* 00BC */ float m_smoothFacing;
+    /* 00C0 */ float m_targetFacing;
+    /* 00C4 */ uint32_t unk_00C4 [2];
+    /* 00CC */ C3Vector m_seatOffset;
+    /* 00D8 */ float m_lockedWorldFacing;
+    /* 00DC */ uint32_t unk_00DC;
+
+    CVehiclePassenger_C();
+    void ClearFlag8();
+    void DeleteAllDeferredVehicleTransitionAnimSplines();
+    int32_t IsWaitingForVehicleTransitionAnimGrabEvent(uint32_t eventId) const;
+    int32_t IsWaitingForVehicleTransitionAnimThrowEvent(uint32_t eventId) const;
+    void UpdateSmoothFacing();
+    void LockWorldFacingNextFrame(float facing);
+    CGUnit_C* GetVehicleUnit() const;
+    void StartDeferringVehicleTransitionAnimSpline(CDataStore* msg);
+    float GetLockedWorldFacing() const;
+    void Free();
+    CVehicle_C* GetVehicle() const;
+    void StoreRootVehicle(WOWGUID guid);
+    void StopBoneAnimIfSameBone(WOWGUID guid, const VehicleSeatRec* seat);
+    void StartWaitingForVehicleTransitionAnim(WOWGUID guid, uint8_t seat, const VehicleSeatRec* seatRec, int32_t entering, CVehicle_C* vehicle);
+    void ComputeSeatOffset(const VehicleSeatRec* seat, CM2Model* model);
+    int32_t ChooseSeatExitAnim(uint32_t flags, uint32_t* anim) const;
+    int32_t GetLowerAnim(const VehicleSeatRec* seat) const;
+    CGUnit_C* GetStoredRootVehicleUnit() const;
+    void StartMirroringVehicleAnims();
+    void Uninit();
+    C3Vector ComputeStartWorldPosition(const C3Vector& offset, const C3Vector& fallback) const;
+    void OnAnimEnd(uint32_t anim);
+    int32_t PickHighPriorityAnimation(int32_t a2, uint32_t* anim) const;
+    C3Vector ComputeInterpolatedUnitPosition() const;
+    int32_t OverridesModelAnimation() const;
 };
 
 #endif

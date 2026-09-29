@@ -3,7 +3,7 @@
 // INLINED
 DanceCache::DanceCache() {
     this->m_id = 0;
-    this->m_guid = 0;
+    this->m_guid = WOWGUID();
     this->m_name[0] = '\0';
     this->m_data = nullptr;
     this->m_dataCount = 0;

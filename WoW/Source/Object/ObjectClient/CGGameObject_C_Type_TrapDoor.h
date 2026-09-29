@@ -3,18 +3,16 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 
-class CGGameObject_C_Type_TrapDoor {
+class CGGameObject_C_Type_TrapDoor : public CGGameObject_C_Type_TransportBase {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[8];
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint8_t unk_0018[4];
-    /* 001C */ uint32_t unk_001C;
-    /* 0020 */ uint8_t unk_0020[20];
-    /* 0034 */ uint32_t unk_0034;
+    virtual void UpdateState(int32_t oldState, int32_t newState);
+    virtual void PostInitWithStats();
+    virtual void PostReenable();
+    virtual void UpdateMovement(uint32_t time, uint32_t elapsed);
+
+    CGGameObject_C_Type_TrapDoor(CGGameObject_C* owner);
 };
 
 #endif

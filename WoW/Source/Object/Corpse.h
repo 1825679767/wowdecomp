@@ -9,14 +9,20 @@ class CGCorpseData;
 
 class CGCorpse {
     public:
+    static const uint32_t s_mirrorFields[3];
+
+    static uint32_t DescriptorToMirrorOffset(uint32_t offset, uint32_t size, int32_t local, uint32_t base);
+    static uint32_t GetSavedIndexFromDataIndex(uint32_t index, uint32_t count, int32_t local);
+    static int32_t TotalFieldsSaved();
+
     /* 0000 */ CGCorpseData* m_corpse;
     /* 0004 */ void* m_corpseMirror;
 };
 
 class CGCorpseData {
     public:
-    /* 0000 */ WGUID m_corpseFieldOwner;
-    /* 0008 */ WGUID m_corpseFieldParty;
+    /* 0000 */ WOWGUID m_corpseFieldOwner;
+    /* 0008 */ WOWGUID m_corpseFieldParty;
     /* 0010 */ uint32_t m_corpseFieldDisplayId;
     /* 0014 */ uint32_t m_corpseFieldItem [19];
     /* 0060 */ uint8_t m_corpseFieldBytes1 [4];

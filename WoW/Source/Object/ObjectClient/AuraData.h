@@ -5,9 +5,10 @@
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
 
+#pragma pack(push, 4)
 class AuraData {
     public:
-    /* 0000 */ WGUID m_creator;
+    /* 0000 */ WOWGUID m_creator;
     /* 0008 */ int32_t m_spellId;
     /* 000C */ uint8_t m_flags;
     /* 000D */ uint8_t m_level;
@@ -16,5 +17,6 @@ class AuraData {
     /* 0010 */ int32_t m_duration;
     /* 0014 */ int32_t m_endTime;
 };
+#pragma pack(pop)
 
 #endif

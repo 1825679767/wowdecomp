@@ -1,10 +1,10 @@
 #include "BattlefieldInfo.h"
 
 // STATIC: 0x00BE9EF8
-uint64_t CGBattlefieldInfo::m_arenaOpponentPets[5][2];
+WOWGUID CGBattlefieldInfo::m_arenaOpponentPets[5][2];
 
 // STATIC: 0x00BE9F48
-uint64_t CGBattlefieldInfo::m_arenaOpponents[5];
+WOWGUID CGBattlefieldInfo::m_arenaOpponents[5];
 
 // VERIFY: 39950e3a auto
 // OFFSET: 0x00549630

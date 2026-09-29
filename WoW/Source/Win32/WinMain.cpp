@@ -25,6 +25,7 @@ extern "C" int start() {
     return WinMainCRTStartup();
 }
 
+// VERIFY: d518fe65 auto
 // OFFSET: 0x00406D70
 int main() {
     _set_invalid_parameter_handler(InvalidParameterHandler);

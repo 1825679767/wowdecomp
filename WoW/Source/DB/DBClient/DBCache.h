@@ -3,9 +3,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
+#include "Engine/Source/ConsoleBase/IConsole.h"
 #include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -21,9 +23,9 @@ struct HASHKEY_INT {
 };
 
 struct DBCACHECALLBACK : public TSLinkedNode<DBCACHECALLBACK> {
-    /* 0008 */ void (*m_callback)(int32_t id, const uint64_t& guid, void* param, bool success);
+    /* 0008 */ void (*m_callback)(int32_t id, const WOWGUID& guid, void* param, bool success);
     /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint64_t m_guid;
+    /* 0010 */ WOWGUID m_guid;
     /* 0018 */ void* m_param;
 };
 
@@ -66,10 +68,11 @@ class DBCache : public Blizzard::Using::GlobalUse {
     ~DBCache();
     void AddItem(T* item, TKey key);
     void AddItems(CDataStore* msg, bool notify);
+    void CancelCallback(TKey key, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param);
     void Clear();
     void ClearPending();
     void DenyItem(TKey key);
-    T* GetRecord(TKey key, const uint64_t& guid, void (*callback)(int32_t id, const uint64_t& guid, void* param, bool success), void* param, bool unique);
+    T* GetRecord(TKey key, const WOWGUID& guid, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param, bool unique);
     void Destroy();
     void Invalidate(TKey key);
     void ItemAdded(T* item);
@@ -262,10 +265,10 @@ void DBCache<T, TKey, THashKey>::Load() {
     }
 }
 
-// VERIFY: 2829d8e7 manual
-// OFFSET: 0x0067D930
+// VERIFY: a9ebf5d0 manual
+// OFFSET: [0x0067B6A0, 0x0067BD40, 0x0067CA30, 0x0067D930]
 template <class T, class TKey, class THashKey>
-T* DBCache<T, TKey, THashKey>::GetRecord(TKey key, const uint64_t& guid, void (*callback)(int32_t id, const uint64_t& guid, void* param, bool success), void* param, bool unique) {
+T* DBCache<T, TKey, THashKey>::GetRecord(TKey key, const WOWGUID& guid, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param, bool unique) {
     if (DBCacheIsNullKey(key)) {
         return nullptr;
     }
@@ -314,7 +317,35 @@ T* DBCache<T, TKey, THashKey>::GetRecord(TKey key, const uint64_t& guid, void (*
     return nullptr;
 }
 
-// VERIFY: 767cb01c manual
+// VERIFY: def725c6 manual
+// OFFSET: [0x0067A0F0, 0x0067A3A0, 0x0067A8C0]
+template <class T, class TKey, class THashKey>
+void DBCache<T, TKey, THashKey>::CancelCallback(TKey key, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param) {
+    DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
+
+    if (!hash) {
+        return;
+    }
+
+    if (hash->m_dispatching) {
+        ConsolePrintf("DBCache::CancelCallback ignored for id %016I64X.", static_cast<int64_t>(key));
+        return;
+    }
+
+    DBCACHECALLBACK* node = hash->m_callbacks.Head();
+
+    while (node) {
+        DBCACHECALLBACK* next = hash->m_callbacks.Next(node);
+
+        if (node->m_callback == callback && node->m_param == param) {
+            hash->m_callbacks.DeleteNode(node);
+        }
+
+        node = next;
+    }
+}
+
+// VERIFY: 4266cb5c manual
 // OFFSET: 0x00668DA0
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::SendSingleQuery(DBCACHEHASH* hash) {
@@ -324,7 +355,7 @@ void DBCache<T, TKey, THashKey>::SendSingleQuery(DBCACHEHASH* hash) {
 
     if (this->m_sendRequester) {
         DBCACHECALLBACK* node = hash->m_callbacks.Head();
-        msg.Put(node ? node->m_guid : 0);
+        msg.Put(node ? node->m_guid.m_guid : 0);
     }
 
     msg.Finalize();

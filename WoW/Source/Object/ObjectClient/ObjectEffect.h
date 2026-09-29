@@ -3,41 +3,74 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Base/BitArray.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
 
+class CGObject_C;
 class CObjectEffectDef;
+class CObjectEffectManager;
 class CObjectEffectGroupDef;
+class CObjectEffectPackageDef;
 class ObjectEffectModifierRec;
 
-class CObjectEffect {
+class CObjectEffect : public TSLinkedNode<CObjectEffect> {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[8];
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint8_t unk_0018[4];
-    /* 001C */ uint32_t unk_001C;
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint32_t unk_0024;
+    /* 0008 */ SE2SoundKitObject m_soundKitObject;
+    /* 001C */ CObjectEffectDef* m_def;
+    /* 0020 */ CObjectEffectManager* m_manager;
+    /* 0024 */ int32_t m_playCount;
+    /* 0028 */ int32_t m_refCount;
+
+    CObjectEffect();
+    ~CObjectEffect();
+    C3Vector GetWorldPosition();
+    void PlayOneShot();
+    void TriggerLoopingEffect();
+    void UpdateLoopingEffect(CObjectEffectManager* manager);
+};
+
+class CObjectEffectRef : public TSLinkedNode<CObjectEffectRef> {
+    public:
+    /* 0008 */ CObjectEffect* m_effect;
+
+    CObjectEffectRef();
+};
+
+struct OBJ_EFFECT_REF_LOOKUP : public TSHashObject<OBJ_EFFECT_REF_LOOKUP, HASHKEY_NONE> {
+    /* 0018 */ CObjectEffect* m_effect;
+};
+
+struct OBJ_EFFECT_GROUP_LOOKUP : public TSHashObject<OBJ_EFFECT_GROUP_LOOKUP, HASHKEY_NONE> {
+    /* 0018 */ TSHashTable<OBJ_EFFECT_REF_LOOKUP, HASHKEY_NONE> m_effects;
+};
+
+struct OBJ_EFFECT_REF_LIST_LOOKUP : public TSHashObject<OBJ_EFFECT_REF_LIST_LOOKUP, HASHKEY_NONE> {
+    /* 0018 */ TSList<CObjectEffectRef> m_refs;
 };
 
 class CObjectEffectManager {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint8_t unk_0004[12];
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint8_t unk_0018[84];
-    /* 006C */ uint32_t unk_006C;
-    /* 0070 */ uint32_t unk_0070;
-    /* 0074 */ uint8_t unk_0074[4];
-    /* 0078 */ uint32_t unk_0078;
-    /* 007C */ uint32_t unk_007C;
+    /* 0000 */ int32_t m_packageId;
+    /* 0004 */ CBitArray m_states;
+    /* 0010 */ CGObject_C* m_owner;
+    /* 0014 */ CObjectEffectPackageDef* m_packageDef;
+    /* 0018 */ TSHashTable<OBJ_EFFECT_GROUP_LOOKUP, HASHKEY_NONE> m_groups;
+    /* 0040 */ TSHashTable<OBJ_EFFECT_REF_LIST_LOOKUP, HASHKEY_NONE> m_refLists;
+    /* 0068 */ TSList<CObjectEffect> m_loopingEffects;
+    /* 0074 */ TSList<CObjectEffect> m_oneShotEffects;
 
-    void EnterState(uint32_t state, int32_t a2, int32_t a3);
-    void ExitState(uint32_t state, int32_t a2);
+    CObjectEffectManager();
+    ~CObjectEffectManager();
+    void EnterState(uint32_t state, int32_t playEnterEffects, int32_t refresh);
+    void ExitState(uint32_t state, int32_t playExitEffects);
+    int32_t Init(int32_t packageId, CGObject_C* owner);
+    void PlayLoopingEffect(CObjectEffectDef* def, int32_t groupId);
+    void PlayOneShotEffect(CObjectEffectDef* def);
+    void PropertyChanged(int32_t modifierId);
+    void ShutDown();
+    void UpdateAllPlayingEffects();
 };
 
 struct ObjectEffectAnimState {
@@ -48,6 +81,17 @@ struct ObjectEffectAnimState {
 
 class CObjectEffectModifier {
     public:
+    static float (*s_inputFuncs[2])(CObjectEffectManager* manager);
+    static float (*s_mapFuncs[2])(float input, const float* params);
+    static void (*s_outputFuncs[2])(CObjectEffect* effect, float value);
+
+    static float InputNone(CObjectEffectManager* manager);
+    static float InputSpeed(CObjectEffectManager* manager);
+    static float MapLinear(float input, const float* params);
+    static float MapNone(float input, const float* params);
+    static void OutputNone(CObjectEffect* effect, float value);
+    static void OutputPitch(CObjectEffect* effect, float value);
+
     /* 0000 */ int32_t m_inputType;
     /* 0004 */ int32_t m_mapType;
     /* 0008 */ int32_t m_outputType;
@@ -56,6 +100,7 @@ class CObjectEffectModifier {
     /* 0014 */ int32_t m_id;
 
     CObjectEffectModifier();
+    void Apply(CObjectEffectManager* manager, CObjectEffect* effect);
     void Init(const ObjectEffectModifierRec* rec);
     void SetParam(int32_t index, float value);
 };
@@ -87,10 +132,10 @@ class CObjectEffectDef : public TSLinkedNode<CObjectEffectDef> {
 class CObjectEffectGroupDef : public TSLinkedNode<CObjectEffectGroupDef> {
     public:
     /* 0008 */ int32_t m_id;
-    /* 000C */ TSList<CObjectEffectDefRef> unk_000C;
-    /* 0018 */ TSList<CObjectEffectDefRef> unk_0018;
-    /* 0024 */ TSList<CObjectEffectDefRef> unk_0024;
-    /* 0030 */ TSList<CObjectEffectDefRef> unk_0030;
+    /* 000C */ TSList<CObjectEffectDefRef> m_enterEffects;
+    /* 0018 */ TSList<CObjectEffectDefRef> m_loopEffects;
+    /* 0024 */ TSList<CObjectEffectDefRef> m_exitEffects;
+    /* 0030 */ TSList<CObjectEffectDefRef> m_eventEffects;
 };
 
 struct OBJ_EFFECT_GROUP_DEF_REF_LIST_LOOKUP : public TSHashObject<OBJ_EFFECT_GROUP_DEF_REF_LIST_LOOKUP, HASHKEY_NONE> {
@@ -116,6 +161,7 @@ struct OBJ_EFFECT_PACKAGE_DEF_LOOKUP : public TSHashObject<OBJ_EFFECT_PACKAGE_DE
     /* 0018 */ CObjectEffectPackageDef m_objectEffectPackageDef;
 };
 
+int32_t FindObjectEffectStateFromAnimID(int32_t animId, int32_t alternate);
 void InitObjectEffectStateMap();
 void ObjectEffectSystem_ShutDown();
 void ObjectEffectSystem_Initialize();

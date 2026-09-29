@@ -3,26 +3,29 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/Object_C.h"
 
-class CGBag {
-    public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[56];
-    /* 0040 */ uint8_t unk_0040;
+class CGItem_C;
+
+struct ItemTypeCountParam {
+    /* 0000 */ int32_t m_itemId;
+    /* 0004 */ int32_t m_count;
 };
 
 class CGBag_C {
     public:
-    /* 0000 */ uint8_t unk_0000;
-    /* 0001 */ uint8_t unk_0001;
-    /* 0002 */ uint8_t unk_0002;
-    /* 0003 */ uint8_t unk_0003;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[8];
-    /* 0010 */ uint8_t unk_0010;
-    /* 0011 */ uint8_t unk_0011[47];
-    /* 0040 */ uint8_t unk_0040;
+    /* 0000 */ int32_t m_numSlots;
+    /* 0004 */ WOWGUID* m_slots;
+    /* 0008 */ WOWGUID m_guid;
+    /* 0010 */ uint8_t m_hasBank;
+
+    int32_t FindItemSlot(const CGItem_C* item) const;
+    uint32_t GetAvgEquippedDurability() const;
+    const CGItem_C* GetItemPointer(int32_t slot) const;
+    int32_t GetNumFreeInvSlots();
+    CGItem_C* GetItemPointer(int32_t slot);
 };
+
+int32_t GetItemTypeCountCallback(const CGItem_C* item, void* param);
 
 #endif

@@ -13,11 +13,11 @@ const char* VehicleSeatRec::GetFilename() {
     return "DBFilesClient\\VehicleSeat.dbc";
 }
 
-// VERIFY: 34afac3f auto
+// VERIFY: f1d4806f auto
 // OFFSET: 0x008BAD60
 bool VehicleSeatRec::Read(SFileImpl* file, const char* stringBuffer) {
     int32_t idRead = SFileReadFile(file, &this->m_id, sizeof(this->m_id), nullptr, nullptr, 0);
-    int32_t field33512213001Read = SFileReadFile(file, &this->m_field33512213001, sizeof(this->m_field33512213001), nullptr, nullptr, 0);
+    int32_t flagsRead = SFileReadFile(file, &this->m_flags, sizeof(this->m_flags), nullptr, nullptr, 0);
     int32_t attachmentIDRead = SFileReadFile(file, &this->m_attachmentID, sizeof(this->m_attachmentID), nullptr, nullptr, 0);
     int32_t attachmentRead0 = SFileReadFile(file, &this->m_attachmentOffset[0], sizeof(this->m_attachmentOffset[0]), nullptr, nullptr, 0);
     int32_t attachmentRead1 = SFileReadFile(file, &this->m_attachmentOffset[1], sizeof(this->m_attachmentOffset[1]), nullptr, nullptr, 0);
@@ -61,7 +61,7 @@ bool VehicleSeatRec::Read(SFileImpl* file, const char* stringBuffer) {
     int32_t enterUisoundIDRead = SFileReadFile(file, &this->m_enterUisoundID, sizeof(this->m_enterUisoundID), nullptr, nullptr, 0);
     int32_t field33512213041Read = SFileReadFile(file, &this->m_field33512213041, sizeof(this->m_field33512213041), nullptr, nullptr, 0);
     int32_t uiSkinRead = SFileReadFile(file, &this->m_uiSkin, sizeof(this->m_uiSkin), nullptr, nullptr, 0);
-    int32_t field33512213043Read = SFileReadFile(file, &this->m_field33512213043, sizeof(this->m_field33512213043), nullptr, nullptr, 0);
+    int32_t flagsBRead = SFileReadFile(file, &this->m_flagsB, sizeof(this->m_flagsB), nullptr, nullptr, 0);
     int32_t field33512213044Read = SFileReadFile(file, &this->m_field33512213044, sizeof(this->m_field33512213044), nullptr, nullptr, 0);
     int32_t field33512213045Read = SFileReadFile(file, &this->m_field33512213045, sizeof(this->m_field33512213045), nullptr, nullptr, 0);
     int32_t field33512213046Read = SFileReadFile(file, &this->m_field33512213046, sizeof(this->m_field33512213046), nullptr, nullptr, 0);
@@ -76,7 +76,7 @@ bool VehicleSeatRec::Read(SFileImpl* file, const char* stringBuffer) {
     int32_t field33512213055Read = SFileReadFile(file, &this->m_field33512213055, sizeof(this->m_field33512213055), nullptr, nullptr, 0);
 
     if (!idRead
-        | !field33512213001Read
+        | !flagsRead
         | !attachmentIDRead
         | !attachmentRead0
         | !attachmentRead1
@@ -120,7 +120,7 @@ bool VehicleSeatRec::Read(SFileImpl* file, const char* stringBuffer) {
         | !enterUisoundIDRead
         | !field33512213041Read
         | !uiSkinRead
-        | !field33512213043Read
+        | !flagsBRead
         | !field33512213044Read
         | !field33512213045Read
         | !field33512213046Read

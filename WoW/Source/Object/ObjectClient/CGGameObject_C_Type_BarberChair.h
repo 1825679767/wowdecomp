@@ -3,28 +3,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
+#include "WoW/Source/Object/ObjectClient/CGGameObject_C_Type_Chair.h"
 
-class CGGameObject_C_Type_BarberChair {
+class CGGameObject_C_Type_BarberChair : public CGGameObject_C_Type_Chair {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint32_t unk_0018;
-    /* 001C */ uint32_t unk_001C;
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint32_t unk_0024;
-    /* 0028 */ uint32_t unk_0028;
-    /* 002C */ uint32_t unk_002C;
-    /* 0030 */ uint32_t unk_0030;
-    /* 0034 */ uint32_t unk_0034;
-    /* 0038 */ uint32_t unk_0038;
-    /* 003C */ uint32_t unk_003C;
-    /* 0040 */ uint32_t unk_0040;
-    /* 0044 */ uint32_t unk_0044;
-    /* 0048 */ uint32_t unk_0048;
+    virtual bool CanUseNow(GAME_ERROR_TYPE* error, float* distance, const char** errorText) const;
+    virtual uint32_t GetNumSlots() const;
+
+    CGGameObject_C_Type_BarberChair(CGGameObject_C* owner);
 };
 
 #endif

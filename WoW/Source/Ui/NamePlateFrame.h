@@ -10,10 +10,11 @@
 class CSimpleFontString;
 class CSimpleTexture;
 
+class CGUnit_C;
+
 class CGNamePlateFrame : public CSimpleFrame {
     public:
-    /* 029C */ uint32_t unk_029C;
-    /* 02A0 */ uint32_t unk_02A0;
+    /* 029C */ TSLink<CGNamePlateFrame> m_link;
     /* 02A4 */ uint32_t unk_02A4;
     /* 02A8 */ uint32_t unk_02A8;
     /* 02AC */ uint32_t unk_02AC;
@@ -37,6 +38,8 @@ class CGNamePlateFrame : public CSimpleFrame {
     /* 02F4 */ uint32_t unk_02F4;
     /* 02F8 */ float unk_02F8;
     /* 02FC */ float unk_02FC;
+
+    void UpdateColorDisplay(CGUnit_C* unit);
 };
 
 #endif

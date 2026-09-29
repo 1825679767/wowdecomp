@@ -3,14 +3,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 
-class CGGameObject_C_Type_Binder {
+class CGGameObject_C_Type_Binder : public CGGameObject_C_TypeBase {
     public:
-    /* 0000 */ uint8_t unk_0000;
-    /* 0001 */ uint8_t unk_0001;
-    /* 0002 */ uint8_t unk_0002;
-    /* 0003 */ uint8_t unk_0003[4];
-    /* 0007 */ uint8_t unk_0007[9];
+    CGGameObject_C_Type_Binder(CGGameObject_C* owner);
 };
 
 #endif

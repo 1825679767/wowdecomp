@@ -299,14 +299,14 @@ int32_t SI2::GetNumSoundsInSoundKit(int32_t soundKitId) {
     return def->m_numFiles;
 }
 
-// VERIFY: 0259b8b2 auto
+// VERIFY: c2c19ed1 auto
 // OFFSET: 0x004C5C80
-int32_t SI2::AttachToObject(SE2SoundKitObject* object, uint64_t guid) {
+int32_t SI2::AttachToObject(SE2SoundKitObject* object, WOWGUID guid) {
     if (!object->m_sound.Is3D()) {
         return 12;
     }
 
-    object->m_sound.AttachToObject(guid);
+    object->m_sound.AttachToObject(guid.m_guid);
     return 0;
 }
 

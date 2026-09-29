@@ -1939,7 +1939,7 @@ bool CMapObjGroup::GetLiquidTris(CFrustum& frustum, uint32_t flags, World::TriDa
     return found;
 }
 
-// VERIFY: 121a8eb8 manual
+// VERIFY: be2ed44d manual
 // OFFSET: 0x007CA110
 bool CMapObjGroup::GetLiquidFacets(const CAaBox& box, uint32_t flags, World::FacetData* facets, CMapObjDef* mapObjDef) {
     World::TriData::statusFlags = 0;
@@ -1951,9 +1951,7 @@ bool CMapObjGroup::GetLiquidFacets(const CAaBox& box, uint32_t flags, World::Fac
     World::TriData triData;
     this->GetLiquidTris(box, flags, &triData, mapObjDef);
 
-    WGUID guid;
-    guid.m_guidLow = mapObjDef->unk_0148;
-    guid.m_guidHigh = mapObjDef->unk_014C;
+    WOWGUID guid = mapObjDef->m_objectGuid;
     World::TriDataToFacetData(&triData, facets, guid);
 
     return World::TriData::nBatches != 0;

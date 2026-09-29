@@ -3,17 +3,26 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <windows.h>
 
 class CDataStore;
 
-struct SmartGUID {
+struct WOWGUID {
     /* 0000 */ uint64_t m_guid;
+
+    explicit operator bool() const {
+        return this->m_guid != 0;
+    }
+
+    bool operator==(const WOWGUID& guid) const {
+        return this->m_guid == guid.m_guid;
+    }
+
+    bool operator!=(const WOWGUID& guid) const {
+        return this->m_guid != guid.m_guid;
+    }
 };
 
-struct WGUID {
-    /* 0000 */ uint32_t m_guidLow;
-    /* 0004 */ uint32_t m_guidHigh;
+struct SmartGUID : public WOWGUID {
 };
 
 CDataStore& operator>>(CDataStore& msg, SmartGUID& guid);

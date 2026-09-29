@@ -3,18 +3,25 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 
+class CClientObjCreate;
+
+#pragma pack(push, 4)
 class CCombat {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
+    /* 0000 */ WOWGUID m_attacking;
+
+    void SetAttacking(WOWGUID guid);
+    void SetClientInitData(const CClientObjCreate& create);
 };
 
-class CCombatClient {
+class CCombatClient : public CCombat {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
+    /* 0008 */ uint32_t m_attackSent;
+
+    void SetAttackSent(WOWGUID guid);
 };
+#pragma pack(pop)
 
 #endif

@@ -3,17 +3,19 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 
-class CGGameObject_C_Type_DungeonDifficulty {
+class CGGameObject_C_Type_DungeonDifficulty : public CGGameObject_C_TypeBase {
     public:
-    /* 0000 */ uint8_t unk_0000;
-    /* 0001 */ uint8_t unk_0001;
-    /* 0002 */ uint8_t unk_0002;
-    /* 0003 */ uint8_t unk_0003;
-    /* 0004 */ uint8_t unk_0004;
-    /* 0005 */ uint8_t unk_0005[2];
-    /* 0007 */ uint8_t unk_0007;
-    /* 0008 */ uint32_t unk_0008;
+    /* 0010 */ SE2SoundKitObject m_sound;
+
+    virtual ~CGGameObject_C_Type_DungeonDifficulty();
+    virtual bool CanUse() const;
+    virtual float GetBaseAlpha() const;
+    virtual void HandleAnimEvent(uint32_t eventId, uint32_t data, const C3Vector& position, uint32_t time);
+    virtual void UpdateDisplay(uint32_t time);
+
+    CGGameObject_C_Type_DungeonDifficulty(CGGameObject_C* owner);
 };
 
 #endif

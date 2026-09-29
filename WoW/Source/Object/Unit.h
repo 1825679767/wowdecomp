@@ -6,41 +6,51 @@
 #include "WoW/Source/Object/WGUID.h"
 
 class CGUnitData;
+class CMovement_C;
 
 class CGUnit {
     public:
+    static const uint32_t s_mirrorFieldIndices[123];
+
+    static uint32_t MirrorIndexFromFieldIndex(uint32_t fieldIndex);
+    static uint32_t DescriptorToMirrorOffset(uint32_t offset, uint32_t a2, uint32_t a3, uint32_t base);
+    static int32_t TotalFields();
+    static float __stdcall GetPowerRegenBase(int32_t powerType, uint8_t inCombat);
+
     /* 0000 */ CGUnitData* m_unit;
     /* 0004 */ void* m_unitMirror;
+    /* 0008 */ CMovement_C* m_movement;
+
+    bool CanSwim() const;
+    int32_t CanPlayEmote(uint32_t emoteFlags, int32_t targeted, int32_t* standUp) const;
+    void GetResistanceAndBuffs(int32_t school, int32_t* baseValue, int32_t* total, int32_t* effective, int32_t* positive, int32_t* negative) const;
+    const WOWGUID* GetCharmerOrCreatorGuid() const;
+    float GetMeleeRange(const CGUnit* target) const;
+    int32_t GetEffectiveStat(int32_t stat) const;
+    int32_t HasAuraState(int32_t state) const;
+    int32_t IsOnFlyingSpline() const;
+    int32_t IsOnSpline() const;
+    int32_t CanMove() const;
+    float GetFacing(float facing) const;
+    float GetPowerRegen(int32_t powerType, bool inCombat) const;
 };
 
 class CGUnitData {
     public:
-    /* 0000 */ WGUID m_unitFieldCharm;
-    /* 0008 */ WGUID m_unitFieldSummon;
-    /* 0010 */ WGUID m_unitFieldCritter;
-    /* 0018 */ WGUID m_unitFieldCharmedby;
-    /* 0020 */ WGUID m_unitFieldSummonedby;
-    /* 0028 */ WGUID m_unitFieldCreatedby;
-    /* 0030 */ WGUID m_unitFieldTarget;
-    /* 0038 */ WGUID m_unitFieldChannelObject;
+    /* 0000 */ WOWGUID m_unitFieldCharm;
+    /* 0008 */ WOWGUID m_unitFieldSummon;
+    /* 0010 */ WOWGUID m_unitFieldCritter;
+    /* 0018 */ WOWGUID m_unitFieldCharmedby;
+    /* 0020 */ WOWGUID m_unitFieldSummonedby;
+    /* 0028 */ WOWGUID m_unitFieldCreatedby;
+    /* 0030 */ WOWGUID m_unitFieldTarget;
+    /* 0038 */ WOWGUID m_unitFieldChannelObject;
     /* 0040 */ uint32_t m_unitChannelSpell;
-    /* 0044 */ uint32_t m_unitFieldBytes0;
-    /* 0048 */ uint32_t m_unitFieldHealth;
-    /* 004C */ uint32_t m_unitFieldPower1;
-    /* 0050 */ uint32_t m_unitFieldPower2;
-    /* 0054 */ uint32_t m_unitFieldPower3;
-    /* 0058 */ uint32_t m_unitFieldPower4;
-    /* 005C */ uint32_t m_unitFieldPower5;
-    /* 0060 */ uint32_t m_unitFieldPower6;
-    /* 0064 */ uint32_t m_unitFieldPower7;
+    /* 0044 */ uint8_t m_unitFieldBytes0 [4];
+    /* 0048 */ int32_t m_unitFieldHealth;
+    /* 004C */ uint32_t m_unitFieldPower [7];
     /* 0068 */ uint32_t m_unitFieldMaxhealth;
-    /* 006C */ uint32_t m_unitFieldMaxpower1;
-    /* 0070 */ uint32_t m_unitFieldMaxpower2;
-    /* 0074 */ uint32_t m_unitFieldMaxpower3;
-    /* 0078 */ uint32_t m_unitFieldMaxpower4;
-    /* 007C */ uint32_t m_unitFieldMaxpower5;
-    /* 0080 */ uint32_t m_unitFieldMaxpower6;
-    /* 0084 */ uint32_t m_unitFieldMaxpower7;
+    /* 006C */ uint32_t m_unitFieldMaxpower [7];
     /* 0088 */ float m_unitFieldPowerRegenFlatModifier [7];
     /* 00A4 */ float m_unitFieldPowerRegenInterruptedFlatModifier [7];
     /* 00C0 */ uint32_t m_unitFieldLevel;
@@ -60,7 +70,7 @@ class CGUnitData {
     /* 0104 */ float m_unitFieldMaxdamage;
     /* 0108 */ float m_unitFieldMinoffhanddamage;
     /* 010C */ float m_unitFieldMaxoffhanddamage;
-    /* 0110 */ uint32_t m_unitFieldBytes1;
+    /* 0110 */ uint8_t m_unitFieldBytes1 [4];
     /* 0114 */ uint32_t m_unitFieldPetnumber;
     /* 0118 */ uint32_t m_unitFieldPetNameTimestamp;
     /* 011C */ uint32_t m_unitFieldPetexperience;
@@ -70,36 +80,24 @@ class CGUnitData {
     /* 012C */ uint32_t m_unitCreatedBySpell;
     /* 0130 */ uint32_t m_unitNpcFlags;
     /* 0134 */ uint32_t m_unitNpcEmotestate;
-    /* 0138 */ uint32_t m_unitFieldStat0;
-    /* 013C */ uint32_t m_unitFieldStat1;
-    /* 0140 */ uint32_t m_unitFieldStat2;
-    /* 0144 */ uint32_t m_unitFieldStat3;
-    /* 0148 */ uint32_t m_unitFieldStat4;
-    /* 014C */ uint32_t m_unitFieldPosstat0;
-    /* 0150 */ uint32_t m_unitFieldPosstat1;
-    /* 0154 */ uint32_t m_unitFieldPosstat2;
-    /* 0158 */ uint32_t m_unitFieldPosstat3;
-    /* 015C */ uint32_t m_unitFieldPosstat4;
-    /* 0160 */ uint32_t m_unitFieldNegstat0;
-    /* 0164 */ uint32_t m_unitFieldNegstat1;
-    /* 0168 */ uint32_t m_unitFieldNegstat2;
-    /* 016C */ uint32_t m_unitFieldNegstat3;
-    /* 0170 */ uint32_t m_unitFieldNegstat4;
-    /* 0174 */ uint32_t m_unitFieldResistances [7];
-    /* 0190 */ uint32_t m_unitFieldResistancebuffmodspositive [7];
-    /* 01AC */ uint32_t m_unitFieldResistancebuffmodsnegative [7];
+    /* 0138 */ int32_t m_unitFieldStat [5];
+    /* 014C */ int32_t m_unitFieldPosstat [5];
+    /* 0160 */ int32_t m_unitFieldNegstat [5];
+    /* 0174 */ int32_t m_unitFieldResistances [7];
+    /* 0190 */ int32_t m_unitFieldResistancebuffmodspositive [7];
+    /* 01AC */ int32_t m_unitFieldResistancebuffmodsnegative [7];
     /* 01C8 */ uint32_t m_unitFieldBaseMana;
     /* 01CC */ uint32_t m_unitFieldBaseHealth;
-    /* 01D0 */ uint32_t m_unitFieldBytes2;
-    /* 01D4 */ uint32_t m_unitFieldAttackPower;
-    /* 01D8 */ uint32_t m_unitFieldAttackPowerMods;
+    /* 01D0 */ uint8_t m_unitFieldBytes2 [4];
+    /* 01D4 */ int32_t m_unitFieldAttackPower;
+    /* 01D8 */ int16_t m_unitFieldAttackPowerMods [2];
     /* 01DC */ float m_unitFieldAttackPowerMultiplier;
-    /* 01E0 */ uint32_t m_unitFieldRangedAttackPower;
-    /* 01E4 */ uint32_t m_unitFieldRangedAttackPowerMods;
+    /* 01E0 */ int32_t m_unitFieldRangedAttackPower;
+    /* 01E4 */ int16_t m_unitFieldRangedAttackPowerMods [2];
     /* 01E8 */ float m_unitFieldRangedAttackPowerMultiplier;
     /* 01EC */ float m_unitFieldMinrangeddamage;
     /* 01F0 */ float m_unitFieldMaxrangeddamage;
-    /* 01F4 */ uint32_t m_unitFieldPowerCostModifier [7];
+    /* 01F4 */ int32_t m_unitFieldPowerCostModifier [7];
     /* 0210 */ float m_unitFieldPowerCostMultiplier [7];
     /* 022C */ float m_unitFieldMaxhealthmodifier;
     /* 0230 */ float m_unitFieldHoverheight;

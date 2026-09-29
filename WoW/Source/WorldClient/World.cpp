@@ -372,10 +372,7 @@ int32_t CWorldScene::s_unk_CD8778;
 int32_t s_entityCanLink;
 
 // STATIC: 0x00CD7770
-int32_t s_unk_CD7770;
-
-// STATIC: 0x00CD7774
-int32_t s_unk_CD7774;
+WOWGUID s_highlightedObjectGuid;
 
 // STATIC: 0x00CD8770
 uint32_t CWorldScene::s_chunksRendered;
@@ -408,7 +405,7 @@ TSList<void, TSGetExplicitLink<void> > CWorldScene::s_unkList9FreeList = TSExpli
 C44Matrix CWorldScene::camTransportView;
 
 // STATIC: 0x00CE04B0
-int32_t (*World::s_objectCollisionCallback)(uint64_t* guid, uint32_t param, World::ObjectCollisionData* data, uint32_t flags);
+int32_t (*World::s_objectCollisionCallback)(WOWGUID* guid, uint32_t param, World::ObjectCollisionData* data, uint32_t flags);
 
 // VERIFY: 8564474b manual
 // OFFSET: 0x005EEB70
@@ -558,9 +555,9 @@ void World::FindOrCreateDestructibleProxy(CDestructibleProxy* proxy) {
     CDestructibleProxy::FindOrCreate(proxy);
 }
 
-// VERIFY: d1c59c98 auto
+// VERIFY: fa5d1384 auto
 // OFFSET: 0x0077F2B0
-void World::SetObjectCollisionCallback(int32_t (*callback)(uint64_t* guid, uint32_t param, ObjectCollisionData* data, uint32_t flags)) {
+void World::SetObjectCollisionCallback(int32_t (*callback)(WOWGUID* guid, uint32_t param, ObjectCollisionData* data, uint32_t flags)) {
     World::s_objectCollisionCallback = callback;
 }
 
@@ -2173,7 +2170,7 @@ void CWorldScene::LocateViewer3() {
     }
 }
 
-// VERIFY: efc476a1 manual
+// VERIFY: a040cfec manual
 // OFFSET: 0x007964A0
 void CWorldScene::RenderMapObjDefGroups() {
     g_theGxDevicePtr->RsPush();
@@ -2209,7 +2206,7 @@ void CWorldScene::RenderMapObjDefGroups() {
             DayNight::DNInfo* info = DayNight::GetInfo();
             CWorldScene::SetupLighting(&lighting, &CWorldScene::s_activeWorldView);
 
-            if (mapObjDef->unk_0148 && mapObjDef->unk_0148 == s_unk_CD7770 && mapObjDef->unk_014C == s_unk_CD7774) {
+            if (static_cast<uint32_t>(mapObjDef->m_objectGuid.m_guid) && mapObjDef->m_objectGuid == s_highlightedObjectGuid) {
                 CMapObj::SetEmissiveAmbient(info->m_light1.m_ambient);
             }
 

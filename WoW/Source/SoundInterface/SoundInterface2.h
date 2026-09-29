@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 #include "Engine/Source/SoundEngine/SoundEngine.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C3Vector.h"
@@ -90,7 +91,7 @@ class SI2 {
     static int32_t AddAdvancedSound(SoundEntriesAdvancedRec* rec, int32_t soundKitId, const C3Vector* position, const C3Vector* orientation, SE2SoundKitObject* object, int32_t quickFade, int32_t a7, int32_t checkDistance, int32_t forceLoop);
     static void AIMusicFinished(SESound* sound, void* param);
     static void ApplyReverbSettings();
-    static int32_t AttachToObject(SE2SoundKitObject* object, uint64_t guid);
+    static int32_t AttachToObject(SE2SoundKitObject* object, WOWGUID guid);
     static int32_t ChaosModeUpdate(const void* data, void* param);
     static void ClearSuppressors();
     static void ClearSuppressorSounds();

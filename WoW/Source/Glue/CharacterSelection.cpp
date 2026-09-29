@@ -189,9 +189,9 @@ void CCharacterSelection::ModelLoadedCallback(CM2Model* model, void* arg) {
     }
 }
 
-// VERIFY: 64a232ab auto
+// VERIFY: 91e60469 auto
 // OFFSET: 0x004E27C0
-void CCharacterSelection::GuildCallback(int32_t guildID, const uint64_t& guid, void* param, bool success) {
+void CCharacterSelection::GuildCallback(int32_t guildID, const WOWGUID& guid, void* param, bool success) {
     if (!guildID || !success) {
         return;
     }
@@ -207,7 +207,7 @@ void CCharacterSelection::GuildCallback(int32_t guildID, const uint64_t& guid, v
         int32_t borderColor;
         int32_t background;
 
-        if (GuildGetGuildTabard(0, guildID, nullptr, nullptr, emblemStyle, emblemColor, borderStyle, borderColor, background)) {
+        if (GuildGetGuildTabard(WOWGUID(), guildID, nullptr, nullptr, emblemStyle, emblemColor, borderStyle, borderColor, background)) {
             CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->ApplyGuildColor(emblemStyle, emblemColor, borderStyle, borderColor, background);
         }
     }

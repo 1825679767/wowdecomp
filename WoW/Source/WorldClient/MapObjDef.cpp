@@ -58,7 +58,7 @@ void CMapObjDefGroup::SelectLights(CM2Lighting* lighting) {
     }
 }
 
-// VERIFY: 1a5aa5d2 manual
+// VERIFY: 05a4df33 manual
 // OFFSET: 0x007B4350
 CMapObjDef::CMapObjDef() {
     this->m_sphere.c = C3Vector();
@@ -71,8 +71,7 @@ CMapObjDef::CMapObjDef() {
     this->m_doodadSet = 0;
     this->m_nameSet = 0;
     this->unk_0108 = 0;
-    this->unk_0148 = 0;
-    this->unk_014C = 0;
+    this->m_objectGuid = WOWGUID();
     this->m_unkFlags = 0xFFFF;
 }
 

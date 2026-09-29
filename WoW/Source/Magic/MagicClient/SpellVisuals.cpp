@@ -112,3 +112,10 @@ void SpellVisualsShutdown() {
     s_spellEffectLevelVar = nullptr;
     SpellVisualsShutdownModelAttachLookup();
 }
+
+// VERIFY: c2183fd9 auto
+// OFFSET: 0x007F9EE0
+void SpellVisualsBlizzardStop(BlizzardObject** object) {
+    (*object)->unk_0124 = 0.0f;
+    *object = nullptr;
+}

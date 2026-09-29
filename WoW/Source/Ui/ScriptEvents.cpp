@@ -667,9 +667,9 @@ void ScriptEventsInitialize() {
     g_scriptEvents[721] = "CHAT_MSG_BN_INLINE_TOAST_CONVERSATION";
 }
 
-// VERIFY: 54d5f949 manual
+// VERIFY: 99bf3109 manual
 // OFFSET: 0x006143F0
-void Script_SendUniqueSignal(const uint64_t& guid, int32_t signal) {
+void Script_SendUniqueSignal(const WOWGUID& guid, int32_t signal) {
     for (uint32_t i = 0; i < s_uniqueSignals.Count(); i++) {
         UniqueSignal& entry = s_uniqueSignals[i];
 
@@ -683,30 +683,30 @@ void Script_SendUniqueSignal(const uint64_t& guid, int32_t signal) {
     entry->m_signal = signal;
 }
 
-// VERIFY: df1a8b1f manual
+// VERIFY: 52e11eaa manual
 // OFFSET: 0x006144D0
 void Script_SendUniqueSignalToAllUnits(int32_t signal) {
     CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
 
     if (player) {
-        uint64_t guid = static_cast<uint64_t>(player->m_obj->m_guid.m_guidHigh) << 32 | player->m_obj->m_guid.m_guidLow;
+        WOWGUID guid = player->m_obj->m_guid;
         Script_SendUniqueSignal(guid, signal);
 
-        const WGUID& pet = player->m_unit->m_unitFieldCharm.m_guidLow || player->m_unit->m_unitFieldCharm.m_guidHigh ? player->m_unit->m_unitFieldCharm : player->m_unit->m_unitFieldSummon;
+        const WOWGUID& pet = player->m_unit->m_unitFieldCharm ? player->m_unit->m_unitFieldCharm : player->m_unit->m_unitFieldSummon;
 
-        if (pet.m_guidLow || pet.m_guidHigh) {
-            const WGUID& target = player->m_unit->m_unitFieldCharm.m_guidLow || player->m_unit->m_unitFieldCharm.m_guidHigh ? player->m_unit->m_unitFieldCharm : player->m_unit->m_unitFieldSummon;
-            Script_SendUniqueSignal(reinterpret_cast<const uint64_t&>(target), signal);
+        if (pet) {
+            const WOWGUID& target = player->m_unit->m_unitFieldCharm ? player->m_unit->m_unitFieldCharm : player->m_unit->m_unitFieldSummon;
+            Script_SendUniqueSignal(target, signal);
         }
     }
 
     for (uint32_t i = 0; i < CGPartyInfo::GetNumPartyMembers(); i++) {
         if (CGGameUI::GetPartyMember(i)) {
-            uint64_t member = CGGameUI::GetPartyMember(i);
+            WOWGUID member = CGGameUI::GetPartyMember(i);
             Script_SendUniqueSignal(member, signal);
 
             if (CGGameUI::GetPartyMemberPet(i)) {
-                uint64_t pet = CGGameUI::GetPartyMemberPet(i);
+                WOWGUID pet = CGGameUI::GetPartyMemberPet(i);
                 Script_SendUniqueSignal(pet, signal);
             }
         }
@@ -714,11 +714,11 @@ void Script_SendUniqueSignalToAllUnits(int32_t signal) {
 
     for (uint32_t i = 0; i < CGRaidInfo::m_numMembers; i++) {
         if (GetRaidMemberGUID(i)) {
-            uint64_t member = GetRaidMemberGUID(i);
+            WOWGUID member = GetRaidMemberGUID(i);
             Script_SendUniqueSignal(member, signal);
 
             if (CGGameUI::GetRaidMemberPet(i)) {
-                uint64_t pet = CGGameUI::GetRaidMemberPet(i);
+                WOWGUID pet = CGGameUI::GetRaidMemberPet(i);
                 Script_SendUniqueSignal(pet, signal);
             }
         }
@@ -730,27 +730,27 @@ void Script_SendUniqueSignalToAllUnits(int32_t signal) {
         }
 
         if (CGBattlefieldInfo::m_arenaOpponents[i]) {
-            uint64_t opponent = CGBattlefieldInfo::m_arenaOpponents[i];
+            WOWGUID opponent = CGBattlefieldInfo::m_arenaOpponents[i];
             Script_SendUniqueSignal(opponent, signal);
         }
 
         CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGBattlefieldInfo::m_arenaOpponents[i], TYPEMASK_UNIT, __FILE__, __LINE__));
-        uint64_t pet;
+        WOWGUID pet;
 
         if (unit) {
-            const WGUID& unitPet = unit->m_unit->m_unitFieldCharm.m_guidLow || unit->m_unit->m_unitFieldCharm.m_guidHigh ? unit->m_unit->m_unitFieldCharm : unit->m_unit->m_unitFieldSummon;
-            pet = static_cast<uint64_t>(unitPet.m_guidHigh) << 32 | unitPet.m_guidLow;
+            const WOWGUID& unitPet = unit->m_unit->m_unitFieldCharm ? unit->m_unit->m_unitFieldCharm : unit->m_unit->m_unitFieldSummon;
+            pet = unitPet;
         } else {
             pet = CGBattlefieldInfo::m_arenaOpponentPets[i][0];
         }
 
         if (pet) {
             unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGBattlefieldInfo::m_arenaOpponents[i], TYPEMASK_UNIT, __FILE__, __LINE__));
-            uint64_t petGuid;
+            WOWGUID petGuid;
 
             if (unit) {
-                const WGUID& unitPet = unit->m_unit->m_unitFieldCharm.m_guidLow || unit->m_unit->m_unitFieldCharm.m_guidHigh ? unit->m_unit->m_unitFieldCharm : unit->m_unit->m_unitFieldSummon;
-                petGuid = static_cast<uint64_t>(unitPet.m_guidHigh) << 32 | unitPet.m_guidLow;
+                const WOWGUID& unitPet = unit->m_unit->m_unitFieldCharm ? unit->m_unit->m_unitFieldCharm : unit->m_unit->m_unitFieldSummon;
+                petGuid = unitPet;
             } else {
                 petGuid = CGBattlefieldInfo::m_arenaOpponentPets[i][0];
             }
@@ -772,9 +772,9 @@ void Script_SendUniqueSignalToAllUnits(int32_t signal) {
     }
 }
 
-// VERIFY: f8795be6 auto
+// VERIFY: a5a39ab1 auto
 // OFFSET: 0x00615020
 void Script_SendUniqueSignal(int32_t signal) {
-    uint64_t guid = 0;
+    WOWGUID guid = WOWGUID();
     Script_SendUniqueSignal(guid, signal);
 }

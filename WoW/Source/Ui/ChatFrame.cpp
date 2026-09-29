@@ -1,6 +1,9 @@
 #include "ChatFrame.h"
 #include "WoW/Source/Game/GameClient/ComSatClient.h"
 
+// STATIC: 0x00BCEFEC
+int32_t CGChat::m_afk;
+
 // STATIC: 0x00BCF004
 int32_t CGChat::m_voiceChatSystemStatus;
 

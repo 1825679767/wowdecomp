@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 #include <windows.h>
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
@@ -67,8 +68,7 @@ class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_N
     /* 0120 */ TSCGrowableArray<CMapObjDefGroup*, 4> m_defGroups;
     /* 0134 */ TSGrowableArray<CMapLight*> m_lightsArray;
     /* 0144 */ uint32_t m_argbColor;
-    /* 0148 */ int32_t unk_0148;
-    /* 014C */ int32_t unk_014C;
+    /* 0148 */ WOWGUID m_objectGuid;
     /* 0150 */ uint16_t m_doodadSetOverrides[3];
     /* 0156 */ uint8_t unk_0156[2];
 

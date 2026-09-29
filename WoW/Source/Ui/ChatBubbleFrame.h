@@ -6,6 +6,8 @@
 
 class CGChatBubbleFrame {
     public:
+    static void Remove(CGChatBubbleFrame* bubble);
+
     /* 0000 */ uint32_t unk_0000;
     /* 0004 */ uint8_t unk_0004[664];
     /* 029C */ uint32_t unk_029C[2];

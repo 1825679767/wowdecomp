@@ -8,20 +8,18 @@ class CDataStore;
 
 class PageTextCache {
     public:
-    /* 0000 */ uint8_t unk_0000[4];
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
+    /* 0004 */ char* m_text;
+    /* 0008 */ uint32_t m_nextPage;
+
+    virtual ~PageTextCache();
+
+    void Pack(CDataStore* msg);
 };
 
-class PageTextCache_C {
+class PageTextCache_C : public PageTextCache {
     public:
     static const uint32_t s_cacheVersion = 1;
 
-    /* 0000 */ uint8_t unk_0000[4];
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-
-    void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);
 };
 

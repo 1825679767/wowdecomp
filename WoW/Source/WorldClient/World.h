@@ -260,7 +260,7 @@ class CWorldScene {
     static void RenderCollisionDebug();
     static uint32_t AddViewerGroup(TSGrowableArray<uint32_t>* groups, uint32_t group);
     static void SetupLighting(CM2Lighting* lighting, C3Vector* view);
-    static void SetCameraTarget(CMapEntity* entity, WGUID transportGuid);
+    static void SetCameraTarget(CMapEntity* entity, WOWGUID transportGuid);
 
     /* 0000 */ uint8_t unk_0000[16];
     /* 0010 */ uint32_t unk_0010;
@@ -305,8 +305,7 @@ extern int32_t s_cullStateValid;
 extern int32_t s_interiorPass;
 extern uint32_t s_maxPortalDepth;
 extern int32_t s_entityCanLink;
-extern int32_t s_unk_CD7770;
-extern int32_t s_unk_CD7774;
+extern WOWGUID s_highlightedObjectGuid;
 
 namespace World {
     extern CALLBACK_FUNC s_loadProgressCallback;
@@ -324,15 +323,16 @@ namespace World {
         ObjectCollisionData();
     };
 
-    extern int32_t (*s_objectCollisionCallback)(uint64_t* guid, uint32_t param, ObjectCollisionData* data, uint32_t flags);
+    extern int32_t (*s_objectCollisionCallback)(WOWGUID* guid, uint32_t param, ObjectCollisionData* data, uint32_t flags);
 
     C3Vector* GetCamPos();
-    void SetObjectCollisionCallback(int32_t (*callback)(uint64_t* guid, uint32_t param, ObjectCollisionData* data, uint32_t flags));
+    void SetObjectCollisionCallback(int32_t (*callback)(WOWGUID* guid, uint32_t param, ObjectCollisionData* data, uint32_t flags));
     void FindOrCreateDestructibleProxy(CDestructibleProxy* proxy);
     void CreateWaterRipple(const C3Vector& pos, float a2, float a3, float a4, float a5, float a6, int32_t a7, int32_t a8);
     int32_t QueryLiquidSounds(CMapEntity* entity, float radius, uint32_t* results);
     int32_t QueryLiquidStatus(C3Vector* pos, int32_t* liquidType, float* height);
     int32_t QueryObjectLiquid(CMapEntity* entity, int32_t* liquidType, float* height, int32_t* a4);
+    int32_t QueryGroundType(CMapEntity* entity, int32_t* groundType);
     int32_t QueryObjectLiquidFlags(CMapEntity* entity, int32_t* flag8, int32_t* flag9);
     int32_t SceneCamLiquidStatus(float* depth);
     int32_t QueryCameraFog(SMOFog* fog, CMapObjDef** mapObjDef, uint8_t* found, TSGrowableArray<uint32_t>** groups, float* distance);
@@ -385,9 +385,13 @@ float ValidateFarClip(float farClip, int32_t mapID);
     bool NDCXform(CFrustum* frustum, C44Matrix* out, bool includeTranslation);
     bool IsValidPosition(float x, float y, float z, float a4);
     void AddAaBoxFacets(CAaBox* box, FacetData* facets);
-    uint32_t TriDataToFacetData(void* unused, FacetData* facets, WGUID guid);
+    uint32_t TriDataToFacetData(void* unused, FacetData* facets, WOWGUID guid);
     int32_t GetFlightBoundsLower(const C3Vector& pos, float* height);
     void ObjectSetModel(CMapEntity* entity, CM2Model* model);
+    int32_t ObjectIsLoaded(CMapEntity* entity);
+    void ObjectSetSequenceFinishedCallback(CMapEntity* entity, void (*callback)(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param), uint64_t param, uint16_t doodad);
+    bool ObjectTestConvexVolume(CMapEntity* entity, const C3Vector& point);
+    void ObjectUpdate(CMapEntity* entity, const C44Matrix& matrix);
 }
 
 class CWorld {

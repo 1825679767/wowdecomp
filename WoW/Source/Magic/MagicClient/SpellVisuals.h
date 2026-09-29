@@ -17,7 +17,7 @@ class BlizzardObject : public TSLinkedNode<BlizzardObject> {
     /* 0118 */ uint32_t unk_0118;
     /* 011C */ uint32_t unk_011C;
     /* 0120 */ uint32_t unk_0120;
-    /* 0124 */ uint32_t unk_0124;
+    /* 0124 */ float unk_0124;
     /* 0128 */ uint8_t unk_0128[16];
     /* 0138 */ uint32_t unk_0138;
     /* 013C */ uint32_t unk_013C;
@@ -98,6 +98,7 @@ class MountTransitionObject {
 
 extern CVar* s_spellEffectLevelVar;
 
+void SpellVisualsBlizzardStop(BlizzardObject** object);
 void SpellVisualsInitialize();
 void SpellVisualsInitializeModelAttachLookup();
 void SpellVisualsClear();

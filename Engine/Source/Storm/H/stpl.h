@@ -483,7 +483,7 @@ void TSList<T, TGetLink>::LinkToHead(T* ptr) {
 }
 
 // VERIFY: e89481d9 auto
-// OFFSET: [0x006DED60, 0x0086E200, 0x008795F0]
+// OFFSET: [0x0056CA00, 0x006DED60, 0x0086E200, 0x008795F0]
 template <class T, class TGetLink>
 void TSList<T, TGetLink>::LinkToTail(T* ptr) {
     this->LinkNode(ptr, 2, nullptr);

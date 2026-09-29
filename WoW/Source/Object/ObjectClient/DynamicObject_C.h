@@ -3,22 +3,37 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
 #include "WoW/Source/Object/DynamicObject.h"
+#include "WoW/Source/Object/Passenger.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
+
+class BlizzardObject;
+class CClientObjCreate;
 
 class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
     public:
-    /* 00D8 */ uint32_t unk_00D8;
-    /* 00DC */ uint32_t unk_00DC;
-    /* 00E0 */ uint8_t unk_00E0 [8];
-    /* 00E8 */ uint32_t unk_00E8;
-    /* 00EC */ uint32_t unk_00EC;
-    /* 00F0 */ uint32_t unk_00F0;
-    /* 00F4 */ uint8_t unk_00F4 [92];
+    /* 00D8 */ CPassenger m_passenger;
+    /* 0108 */ TSList<void> m_dynamicObjectMirrorLists [6];
     /* 0150 */ uint32_t unk_0150;
-    /* 0154 */ uint8_t unk_0154 [4];
-    /* 0158 */ uint32_t unk_0158;
-    /* 015C */ uint8_t unk_015C [20];
+    /* 0154 */ float unk_0154;
+    /* 0158 */ BlizzardObject* m_blizzardVisual;
+    /* 015C */ SE2SoundKitObject m_soundKit;
+
+    ~CGDynamicObject_C() override;
+    virtual C3Vector GetPosition() const;
+    virtual C3Vector GetRawPosition() const;
+    virtual C44Matrix GetMatrix() const;
+    virtual void ShouldRender(uint32_t flags, int32_t& render, int32_t& a3);
+
+    CGDynamicObject_C(uint32_t time, const CClientObjCreate& create);
+    void HandleAnimEvent(uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time);
+    void ObjectVisKitProc();
+    void PostInit(uint32_t time, const CClientObjCreate& create, bool a3);
+    void SetStorage(uint32_t* storage, uint32_t* saved);
 };
 
 #endif

@@ -3,20 +3,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/GameObjectStats.h"
 
 class CDataStore;
 
-class GameObjectStats_C {
+class GameObjectStats_C : public GameObjectStats {
     public:
     static const uint32_t s_cacheVersion = 1;
 
-    /* 0000 */ uint8_t unk_0000[8];
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint8_t unk_0014[140];
-
-    void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);
 };
 

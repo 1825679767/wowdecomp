@@ -89,9 +89,9 @@ void CDrawBowString::GlueDrawBowStringCB(CM2Model* model, const CM2Lighting* lig
     CDrawBowString::DrawBowString(model, lighting, nullptr);
 }
 
-// VERIFY: f8b86d30 auto
+// VERIFY: fbd64b06 auto
 // OFFSET: 0x007EADA0
-bool GuildGetGuildTabard(uint64_t guid, int32_t guildID, void (*callback)(int32_t guildID, const uint64_t& guid, void* param, bool success), void* param, int32_t& emblemStyle, int32_t& emblemColor, int32_t& borderStyle, int32_t& borderColor, int32_t& background) {
+bool GuildGetGuildTabard(WOWGUID guid, int32_t guildID, void (*callback)(int32_t guildID, const WOWGUID& guid, void* param, bool success), void* param, int32_t& emblemStyle, int32_t& emblemColor, int32_t& borderStyle, int32_t& borderColor, int32_t& background) {
     GuildStats_C* stats = g_guildInfoCache.GetRecord(guildID, guid, callback, param, false);
 
     emblemStyle = -1;

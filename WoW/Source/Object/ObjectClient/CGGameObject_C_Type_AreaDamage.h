@@ -3,12 +3,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 
-class CGGameObject_C_Type_AreaDamage {
+class CGGameObject_C_Type_AreaDamage : public CGGameObject_C_TypeAnimated {
     public:
-    /* 0000 */ uint8_t unk_0000[3];
-    /* 0003 */ uint8_t unk_0003[4];
-    /* 0007 */ uint8_t unk_0007[41];
+    CGGameObject_C_Type_AreaDamage(CGGameObject_C* owner);
 };
 
 #endif

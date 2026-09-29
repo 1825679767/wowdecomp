@@ -37,11 +37,11 @@ class CGCamera : public CSimpleCamera {
     /* 0050 */ uint32_t unk_0050;
     /* 0054 */ C34Matrix m_modelMatrix;
     /* 0084 */ uint32_t unk_0084;
-    /* 0088 */ WGUID m_targetGUID;
-    /* 0090 */ WGUID m_guid0090;
+    /* 0088 */ WOWGUID m_targetGUID;
+    /* 0090 */ WOWGUID m_guid0090;
     /* 0098 */ uint32_t m_state;
     /* 009C */ uint32_t m_flags;
-    /* 00A0 */ WGUID m_relativeTo;
+    /* 00A0 */ WOWGUID m_relativeTo;
     /* 00A8 */ uint32_t unk_00A8;
     /* 00AC */ uint32_t m_ignoreFacingRefs;
     /* 00B0 */ uint32_t unk_00B0;
@@ -133,6 +133,8 @@ class CGCamera : public CSimpleCamera {
     /* 0314 */ uint32_t unk_0314;
     /* 0318 */ uint32_t unk_0318;
     /* 031C */ uint32_t m_vehicleCamera;
+
+    void MakeRelativeTo(WOWGUID guid);
 };
 
 #endif

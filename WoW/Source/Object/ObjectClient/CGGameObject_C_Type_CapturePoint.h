@@ -3,11 +3,17 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 
-class CGGameObject_C_Type_CapturePoint {
+class CGGameObject_C_Type_CapturePoint : public CGGameObject_C_TypeAnimated {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
+    virtual bool CanHighlight() const;
+    virtual bool CanUse() const;
+    virtual void PostInitWithStats();
+    virtual void Reenable();
+    virtual void Disable();
+
+    CGGameObject_C_Type_CapturePoint(CGGameObject_C* owner);
 };
 
 #endif

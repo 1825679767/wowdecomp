@@ -3,12 +3,46 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
+
+struct SimpleScriptFunction {
+    /* 0000 */ int32_t m_id;
+    /* 0004 */ int32_t m_luaRef;
+    /* 0008 */ int32_t m_numArgs;
+    /* 000C */ int32_t m_numStringArgs;
+    /* 0010 */ int32_t m_numReturns;
+    /* 0014 */ int32_t m_numStringReturns;
+};
+
+struct SimpleScriptIO {
+    /* 0000 */ TSGrowableArray<double> m_numbers;
+    /* 0010 */ uint32_t m_stringSize;
+    /* 0014 */ uint32_t m_stringCount;
+    /* 0018 */ char* m_strings;
+};
 
 class CSimpleScriptManager {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
+    static void (*s_callbacks[16])(uint32_t);
+    static uint32_t s_callbackCount;
+    static CSimpleScriptManager* s_instance;
+
+    static void Create();
+    static void Destroy();
+    static int32_t RegisterCallback(void (*callback)(uint32_t));
+    static void UnregisterCallback(void (*callback)(uint32_t));
+
+    /* 0000 */ int32_t m_hashMask;
+    /* 0004 */ TSGrowableArray<SimpleScriptFunction>* m_buckets;
+    /* 0008 */ int32_t m_envRef;
+
+    CSimpleScriptManager();
+    int32_t CallFunction(uint32_t handle, const SimpleScriptIO& in, SimpleScriptIO& out);
+    void CopyGlobal(const char* name);
+    int32_t Execute(const char* script, const char* name);
+    uint32_t FindFunction(int32_t id);
+    int32_t Init(uint32_t bits);
+    void Uninit();
 };
 
 #endif

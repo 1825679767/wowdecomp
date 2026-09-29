@@ -1119,9 +1119,9 @@ void ClientConnection::HandleCharacterDelete(uint8_t result) {
     this->Complete(result == CHAR_DELETE_SUCCESS, result);
 }
 
-// VERIFY: 0a16c16f manual
+// VERIFY: 5c3a6030 manual
 // OFFSET: 0x006B1A70
-void ClientConnection::RequestCharacterDelete(uint64_t guid) {
+void ClientConnection::RequestCharacterDelete(WOWGUID guid) {
     this->Initiate(COP_DELETE_CHARACTER, CHAR_DELETE_IN_PROGRESS, nullptr);
 
     if (!this->unk_2F3C) {
@@ -1131,7 +1131,7 @@ void ClientConnection::RequestCharacterDelete(uint64_t guid) {
 
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_CHAR_DELETE));
-    msg.Put(guid);
+    msg.Put(guid.m_guid);
     msg.Finalize();
     this->Send(&msg);
 }

@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 
 class CDataStore;
 
@@ -12,7 +13,7 @@ class DanceCache {
 
     /* 0000 */ int32_t m_id;
     /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint64_t m_guid;
+    /* 0008 */ WOWGUID m_guid;
     /* 0010 */ char m_name[128];
     /* 0090 */ uint32_t* m_data;
     /* 0094 */ uint32_t m_dataCount;

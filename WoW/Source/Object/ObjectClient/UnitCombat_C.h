@@ -3,12 +3,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 
 class ATTACKROUNDINFO {
     public:
-    /* 0000 */ uint8_t unk_0000[8];
-    /* 0008 */ uint64_t unk_0008;
-    /* 0010 */ uint64_t unk_0010;
+    /* 0000 */ WOWGUID m_attacker;
+    /* 0008 */ WOWGUID m_target;
+    /* 0010 */ uint32_t m_hitInfo;
+    /* 0014 */ uint32_t unk_0014;
     /* 0018 */ uint64_t unk_0018;
     /* 0020 */ uint8_t unk_0020[8];
     /* 0028 */ uint64_t unk_0028;

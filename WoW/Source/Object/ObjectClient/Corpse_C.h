@@ -3,24 +3,40 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Tempest/C3Vector.h"
 #include "WoW/Source/Object/Corpse.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
+#include "WoW/Source/Object/Passenger.h"
+
+class CCharacterComponent;
+class CClientObjCreate;
+class CM2Model;
 
 class CGCorpse_C : public CGObject_C, public CGCorpse {
     public:
-    /* 00D8 */ uint32_t unk_00D8;
-    /* 00DC */ uint32_t unk_00DC;
-    /* 00E0 */ uint8_t unk_00E0 [24];
-    /* 00F8 */ uint32_t unk_00F8;
-    /* 00FC */ uint8_t unk_00FC [372];
-    /* 0270 */ uint32_t unk_0270;
-    /* 0274 */ uint32_t unk_0274;
-    /* 0278 */ uint32_t unk_0278;
-    /* 027C */ uint32_t unk_027C;
-    /* 0280 */ uint32_t unk_0280;
-    /* 0284 */ uint32_t unk_0284;
-    /* 0288 */ uint32_t unk_0288;
+    /* 00D8 */ CPassenger m_passenger;
+    /* 0108 */ TSList<void> m_corpseMirrorLists [30];
+    /* 0270 */ CCharacterComponent* m_component;
+    /* 0274 */ C3Vector m_groundNormal;
+    /* 0280 */ uint32_t m_corpseFlags;
+    /* 0284 */ float m_selectionRadius;
+    /* 0288 */ CM2Model* m_lootEffect;
     /* 028C */ uint8_t unk_028C [4];
+
+    ~CGCorpse_C() override;
+    int32_t ShouldFadeout() override;
+    float GetTrueScale() const override;
+    int32_t CanHighlight() const override;
+
+    CGCorpse_C(uint32_t time, const CClientObjCreate& create);
+    void ApplyGuildColor(int32_t request);
+    int32_t CanBeLooted() const;
+    void SetStorage(uint32_t* storage, uint32_t* saved);
+    float GetDisplayScale() const;
+    uint32_t GetFactionTemplate() const;
+    const char* GetPortraitTexture() const;
+    void PostInit(uint32_t time, const CClientObjCreate& create, bool a3);
 };
 
 #endif

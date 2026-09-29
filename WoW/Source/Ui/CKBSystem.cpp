@@ -13,7 +13,7 @@ static CDynamicString s_unk_BEA808;
 // STATIC: 0x00BEA814
 static CDynamicString s_unk_BEA814;
 
-// VERIFY: 6a941c7f auto
+// VERIFY: 029a4910 auto
 // OFFSET: 0x00551660
 static int32_t Packet_SMSG_MOTD(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     if (msgId != SMSG_MOTD) {
@@ -36,7 +36,7 @@ static int32_t Packet_SMSG_MOTD(void* param, NETMESSAGE msgId, uint32_t time, CD
 
         char line[100];
         msg->GetString(line, sizeof(line));
-        CGChat::AddChatMessage(line, 0, 0, 0, 0, 0, "MOTD", 0, 0, 0, 0, 0, 0);
+        CGChat::AddChatMessage(line, 0, 0, 0, 0, 0, "MOTD", WOWGUID(), 0, WOWGUID(), 0, 0, 0);
         s_motd += line;
     }
 

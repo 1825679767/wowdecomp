@@ -3,13 +3,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 
 class CGChat {
     public:
+    static int32_t m_afk;
     static int32_t m_paused;
     static int32_t m_voiceChatSystemStatus;
 
-    static void AddChatMessage(const char* text, int32_t messageType, uint8_t language, int32_t a4, int32_t a5, int32_t a6, const char* senderName, uint64_t senderGuid, int32_t a9, uint64_t targetGuid, int32_t a11, int32_t a12, int32_t a13);
+    static void AddChatMessage(const char* text, int32_t messageType, uint8_t language, int32_t a4, int32_t a5, int32_t a6, const char* senderName, WOWGUID senderGuid, int32_t a9, WOWGUID targetGuid, int32_t a11, int32_t a12, int32_t a13);
     static int32_t GetActiveVoiceSession();
     static const char* GetChannelStringForDisplay(int32_t session, int32_t* type);
     static int32_t IsPaused();
@@ -17,6 +19,7 @@ class CGChat {
     static void LeaveWorld();
     static void Resume();
     static void SetActiveVoiceSession(const char* channel, int32_t type, int32_t index);
+    static void UpdateGuildStatus();
 };
 
 class PENDINGCHAT {

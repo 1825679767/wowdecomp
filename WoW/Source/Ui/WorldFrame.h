@@ -53,7 +53,7 @@ class CGWorldFrameUnkObj {
 };
 
 struct HITTESTRESULT {
-    /* 0000 */ WGUID m_guid;
+    /* 0000 */ WOWGUID m_guid;
     /* 0008 */ C3Vector m_point;
     /* 0014 */ float m_unused;
     /* 0018 */ C3Vector m_segStart;
@@ -71,14 +71,15 @@ class CGWorldFrame : public CSimpleFrame {
 
     static CGCamera* GetActiveCamera();
     static void GetCameraPosition(C3Vector* position);
+    static void UpdateScreenEffect();
 
     /* 029C */ TSList<void> m_modelList;
     /* 02A8 */ TSList<void> m_hitModelList;
     /* 02B4 */ TSList<void> m_freeModelList;
     /* 02C0 */ uint32_t unk_02C0;
     /* 02C4 */ uint32_t unk_02C4;
-    /* 02C8 */ WGUID m_trackedGuid;
-    /* 02D0 */ WGUID m_hitGuid;
+    /* 02C8 */ WOWGUID m_trackedGuid;
+    /* 02D0 */ WOWGUID m_hitGuid;
     /* 02D8 */ uint32_t m_defaultActionHitKind;
     /* 02DC */ uint32_t unk_02DC;
     /* 02E0 */ HITTESTRESULT m_defaultActionHit;
@@ -88,8 +89,8 @@ class CGWorldFrame : public CSimpleFrame {
     /* 0320 */ CRect m_viewportDDC;
     /* 0330 */ CRect m_viewportNDC;
     /* 0340 */ C44Matrix m_viewProjection;
-    /* 0380 */ WGUID m_trackedEffectGuidA;
-    /* 0388 */ WGUID m_trackedEffectGuidB;
+    /* 0380 */ WOWGUID m_trackedEffectGuidA;
+    /* 0388 */ WOWGUID m_trackedEffectGuidB;
     /* 0390 */ CGWorldFrameUnkObj unk_0390;
     /* 0B10 */ uint32_t m_namePlateFlags;
     /* 0B14 */ uint32_t m_elapsedSec;

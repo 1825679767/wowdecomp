@@ -608,7 +608,7 @@ static void LogRealmInfo(char* buffer, uint32_t size) {
     SStrPack(buffer, "\r\n", size);
 }
 
-// VERIFY: 2115cf96 auto
+// VERIFY: 91ca195e auto
 // OFFSET: 0x00403460
 static void LogObjectInfo(CGObject_C* object, const char* label, char* buffer, uint32_t size) {
     if (!SMemIsValidPointer(object, sizeof(CGObject_C), 0)) {
@@ -616,7 +616,7 @@ static void LogObjectInfo(CGObject_C* object, const char* label, char* buffer, u
     }
 
     C3Vector position = object->GetPosition();
-    WOWGUID guid = static_cast<WOWGUID>(object->m_obj->m_guid.m_guidHigh) << 32 | object->m_obj->m_guid.m_guidLow;
+    WOWGUID guid = object->m_obj->m_guid;
 
     char line[260];
     SStrPrintf(line, sizeof(line), "%s: %s, %016I64X, (%g,%g,%g)\r\n", label, object->GetObjectName(), guid, position.x, position.y, position.z);
@@ -843,7 +843,7 @@ static void LogZoneInfo(CGObject_C* object, char* buffer, uint32_t size) {
     SStrPack(buffer, "\r\n", size);
 }
 
-// VERIFY: 8bee7003 manual
+// VERIFY: 4c651ee9 manual
 // OFFSET: 0x00404B80
 int32_t STORMAPI WowLogHeader(char* buffer, uint32_t bufferchars) {
     SStrPrintf(buffer, bufferchars, "WoWBuild: %d\r\n", 12340);
@@ -856,7 +856,7 @@ int32_t STORMAPI WowLogHeader(char* buffer, uint32_t bufferchars) {
             LogZoneInfo(player, buffer, bufferchars);
             LogObjectInfo(player, "Local Player", buffer, bufferchars);
 
-            CGObject_C* object = ClntObjMgrObjectPtr(static_cast<CGPlayer_C*>(player)->m_dataA20, TYPEMASK_OBJECT, __FILE__, __LINE__);
+            CGObject_C* object = ClntObjMgrObjectPtr(static_cast<CGPlayer_C*>(player)->m_combat.m_attacking, TYPEMASK_OBJECT, __FILE__, __LINE__);
 
             if (object) {
                 LogObjectInfo(object, "Attacking Target", buffer, bufferchars);

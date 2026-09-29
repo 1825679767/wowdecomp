@@ -8,20 +8,20 @@
 
 class PendingSpellCastData {
     public:
-    /* 0000 */ WGUID m_caster;
-    /* 0008 */ WGUID m_target;
+    /* 0000 */ WOWGUID m_caster;
+    /* 0008 */ WOWGUID m_target;
     /* 0010 */ uint32_t unk_0010;
     /* 0014 */ uint32_t unk_0014;
     /* 0018 */ uint32_t m_spellId;
     /* 001C */ uint32_t m_pendingCast;
     /* 0020 */ uint32_t m_targetFlags;
     /* 0024 */ uint32_t unk_0024;
-    /* 0028 */ WGUID m_objectTarget;
-    /* 0030 */ WGUID m_itemTarget;
+    /* 0028 */ WOWGUID m_objectTarget;
+    /* 0030 */ WOWGUID m_itemTarget;
     /* 0038 */ uint32_t unk_0038;
     /* 003C */ uint32_t unk_003C;
-    /* 0040 */ WGUID m_sourceTarget;
-    /* 0048 */ WGUID m_destTarget;
+    /* 0040 */ WOWGUID m_sourceTarget;
+    /* 0048 */ WOWGUID m_destTarget;
     /* 0050 */ C3Vector m_sourcePos;
     /* 005C */ C3Vector m_destPos;
     /* 0068 */ float unk_0068;

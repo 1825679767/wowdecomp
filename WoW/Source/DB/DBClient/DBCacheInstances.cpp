@@ -194,16 +194,16 @@ static int32_t ReceivePetition(void* param, NETMESSAGE msgId, uint32_t time, CDa
     return 1;
 }
 
-// VERIFY: 6398faa6 auto
+// VERIFY: b919f464 auto
 // OFFSET: 0x00635400
 static int32_t ReceiveInvalidatePlayer(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
-    uint64_t guid;
-    msg->Get(guid);
+    WOWGUID guid;
+    msg->Get(guid.m_guid);
 
-    if ((guid & 0xF000000000000000ULL) == 0x1000000000000000ULL && (guid & 0x0FF0000000000000ULL) == 0x0FF0000000000000ULL) {
-        g_guildInfoCache.Invalidate(static_cast<int32_t>(guid));
+    if ((guid.m_guid & 0xF000000000000000ULL) == 0x1000000000000000ULL && (guid.m_guid & 0x0FF0000000000000ULL) == 0x0FF0000000000000ULL) {
+        g_guildInfoCache.Invalidate(static_cast<int32_t>(guid.m_guid));
     } else {
-        g_nameDBCache.Invalidate(guid);
+        g_nameDBCache.Invalidate(guid.m_guid);
         CGGameUI::InvalidatePlayer(guid);
     }
 
@@ -264,13 +264,13 @@ void SetClientCacheVersion(uint32_t version) {
     g_danceCache.VerifyAndUpdateVersion(version);
 }
 
-// VERIFY: 08cd74c2 manual
+// VERIFY: 33bf72e2 manual
 // OFFSET: 0x006357D0
 static int32_t ReceiveName(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     NameCache name;
     SmartGUID guid;
     *msg >> guid;
-    name.m_guid = guid.m_guid;
+    name.m_guid.m_guid = guid.m_guid;
 
     uint8_t result;
     msg->Get(result);
@@ -301,17 +301,17 @@ static int32_t ReceiveName(void* param, NETMESSAGE msgId, uint32_t time, CDataSt
                 }
             }
 
-            g_nameDBCache.AddItem(&name, name.m_guid);
+            g_nameDBCache.AddItem(&name, name.m_guid.m_guid);
 
-            if ((name.m_guid & 0xF000000000000000ULL) == 0x1000000000000000ULL && (name.m_guid & 0x0FF0000000000000ULL) == 0x0FD0000000000000ULL) {
-                g_nameDBCache.SetTemporary(name.m_guid);
+            if ((name.m_guid.m_guid & 0xF000000000000000ULL) == 0x1000000000000000ULL && (name.m_guid.m_guid & 0x0FF0000000000000ULL) == 0x0FD0000000000000ULL) {
+                g_nameDBCache.SetTemporary(name.m_guid.m_guid);
             }
 
             break;
         }
 
         case 2:
-            g_nameDBCache.RetryItem(name.m_guid);
+            g_nameDBCache.RetryItem(name.m_guid.m_guid);
             break;
 
         case 3:
@@ -321,25 +321,25 @@ static int32_t ReceiveName(void* param, NETMESSAGE msgId, uint32_t time, CDataSt
             name.m_sex = 0;
             name.m_class = 0;
             name.m_declinedNames = nullptr;
-            g_nameDBCache.AddItem(&name, name.m_guid);
-            g_nameDBCache.SetTemporary(name.m_guid);
+            g_nameDBCache.AddItem(&name, name.m_guid.m_guid);
+            g_nameDBCache.SetTemporary(name.m_guid.m_guid);
             break;
 
         default:
-            g_nameDBCache.DenyItem(name.m_guid);
+            g_nameDBCache.DenyItem(name.m_guid.m_guid);
             break;
     }
 
     return 1;
 }
 
-// VERIFY: 7a8cda04 auto
+// VERIFY: 79263b94 auto
 // OFFSET: 0x006359E0
 static int32_t ReceiveGuildInfo(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     GuildStats_C guild;
     guild.Unpack(msg);
 
-    if (guild.unk_0004[0]) {
+    if (guild.m_name[0]) {
         g_guildInfoCache.AddItem(&guild, guild.m_id);
     } else {
         g_guildInfoCache.DenyItem(guild.m_id);
@@ -348,7 +348,7 @@ static int32_t ReceiveGuildInfo(void* param, NETMESSAGE msgId, uint32_t time, CD
     return 1;
 }
 
-// VERIFY: 3682a780 auto
+// VERIFY: 205d9c3c auto
 // OFFSET: 0x00635A40
 static int32_t ReceiveItemText(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     ItemTextCache_C itemText;
@@ -357,10 +357,10 @@ static int32_t ReceiveItemText(void* param, NETMESSAGE msgId, uint32_t time, CDa
     msg->Get(result);
 
     if (!result) {
-        uint64_t itemGuid;
-        msg->Get(itemGuid);
+        WOWGUID itemGuid;
+        msg->Get(itemGuid.m_guid);
         msg->GetString(itemText.m_text, sizeof(itemText.m_text));
-        g_itemTextDBCache.AddItem(&itemText, itemGuid);
+        g_itemTextDBCache.AddItem(&itemText, itemGuid.m_guid);
     }
 
     return 1;

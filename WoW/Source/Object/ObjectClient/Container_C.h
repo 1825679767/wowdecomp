@@ -3,14 +3,23 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/Container.h"
+#include "WoW/Source/Object/ObjectClient/Bag_C.h"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 
 class CGContainer_C : public CGItem_C, public CGContainer {
     public:
-    /* 03E8 */ uint8_t unk_03E8 [888];
-    /* 0760 */ uint32_t unk_0760;
-    /* 0764 */ uint8_t unk_0764 [20];
+    /* 03E8 */ TSList<void> m_containerMirrorLists [74];
+    /* 0760 */ CGBag_C m_bag;
+
+    ~CGContainer_C() override;
+    const CGBag_C* GetBag() const override;
+    CGBag_C* GetBag() override;
+
+    CGContainer_C(uint32_t time, const CClientObjCreate& create);
+    int32_t GetFreeSlots() const;
+    void SetStorage(uint32_t* storage, uint32_t* saved);
 };
 
 #endif

@@ -135,12 +135,12 @@ void CMapDoodadDef::SelectLights(CM2Lighting* lighting) {
     }
 }
 
-// VERIFY: e4e3a788 manual
+// VERIFY: fc0f43f4 manual
 // OFFSET: 0x007C21E0
 CMapDoodadDef::CMapDoodadDef() {
     this->m_type |= 0x40;
     this->m_model = nullptr;
-    this->unk_00B8 = 0;
+    this->unk_00B8 = WOWGUID();
     this->unk_016C = 0;
 }
 

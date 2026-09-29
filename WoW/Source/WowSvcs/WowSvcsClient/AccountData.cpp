@@ -375,11 +375,11 @@ static int32_t Packet_SMSG_ACCOUNT_DATA_TIMES(void* param, NETMESSAGE msgId, uin
     return 1;
 }
 
-// VERIFY: e6113b19 manual
+// VERIFY: d5e85999 manual
 // OFFSET: 0x006B9730
 static int32_t Packet_SMSG_UPDATE_ACCOUNT_DATA(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
-    uint64_t guid;
-    msg->Get(guid);
+    WOWGUID guid;
+    msg->Get(guid.m_guid);
 
     uint32_t type;
     msg->Get(type);

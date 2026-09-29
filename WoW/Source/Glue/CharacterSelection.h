@@ -2,6 +2,7 @@
 #define WOW_SOURCE_GLUE_CHARACTERSELECTION_H
 
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Glue/CharacterSelectionDisplay.h"
 
@@ -23,7 +24,7 @@ class CCharacterSelection {
     static void EnumerateCharactersCallback(CHARACTER_INFO& info, void* param);
     static void GenericLightingCallback(CM2Model* model, CM2Lighting* lighting, void* arg);
     static CharacterSelectionDisplay* GetCharacterDisplay(uint32_t index);
-    static void GuildCallback(int32_t guildID, const uint64_t& guid, void* param, bool success);
+    static void GuildCallback(int32_t guildID, const WOWGUID& guid, void* param, bool success);
     static int32_t Idle(const void* data, void* param);
     static void Initialize();
     static void ModelLoadedCallback(CM2Model* model, void* arg);

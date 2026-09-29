@@ -20,6 +20,10 @@ class CClientMoveUpdate {
     /* 0080 */ float m_pitchRate;
     /* 0084 */ uint32_t unk_0084;
     /* 0088 */ CMoveSpline m_moveSpline;
+
+    static void Skip(CDataStore* msg);
 };
+
+CDataStore& operator>>(CDataStore& msg, CClientMoveUpdate& update);
 
 #endif

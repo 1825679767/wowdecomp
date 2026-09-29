@@ -12,16 +12,26 @@ struct HASHKEY_STRI;
 struct MOUSELOOKBINDING;
 struct XMLTree;
 class WowMouse;
+class CGUnit_C;
 
 struct MOUSELOOKBINDING : public TSHashObject<MOUSELOOKBINDING, HASHKEY_STRI> {
+    /* 0018 */ char* m_binding;
 };
 
 class CGInputControl {
     public:
     static CGInputControl* s_inputControl;
 
+    static int32_t CameraCanPitchPlayer();
+    static int32_t __stdcall CanControl(CGUnit_C* unit);
+    static int32_t __stdcall CanMove(CGUnit_C* unit);
+    static int32_t __stdcall CanTurn(CGUnit_C* unit);
     static void Destroy();
     static CGInputControl* GetActive();
+    static float GetUIVehiclePower();
+    static int32_t __stdcall IsVehicleSeatFlagSet(uint32_t flags);
+    static void SendUIVehicleAngleUpdate(float angle);
+    static int32_t WowMouseEnabled();
 
     /* 0000 */ uint32_t m_time;
     /* 0004 */ uint32_t m_flags;
@@ -45,9 +55,20 @@ class CGInputControl {
 
     CGInputControl();
     ~CGInputControl();
+    int32_t CameraCanTurnPlayer() const;
+    int32_t CanSyncFreeLookFacing(CGUnit_C* unit) const;
+    int32_t IsIdle() const;
+    int32_t IsMouseDrag(uint32_t time) const;
+    int32_t IsMouseDragMoving() const;
+    int32_t IsMouseDragging() const;
+    void OnPitchToAngleStop();
+    void SetMouselookOverrideBinding(const char* key, const char* binding);
     void SetMouseCVarHandler(bool enable);
     void UpdateJoystickMouseMode();
+    void UpdateHalted();
     void UpdateMouseMode(int32_t force);
+    void UpdateMoveStopped();
+    void ToggleControlBit(uint32_t bit, int32_t enable, uint32_t time, int32_t a5);
 };
 
 extern CVar* s_cvCinematicJoystick;
@@ -55,8 +76,10 @@ extern CVar* s_cvEnableWowMouse;
 extern uint32_t s_joystick;
 extern int32_t s_joystickMouseEnabled;
 
+CGUnit_C* GetVehicleUnitPtr();
 void InputControlDestroy();
 void InputControlInitialize();
+void __stdcall ScaleMouseDeltaByFov(float* dx, float* dy);
 bool JoystickCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 XMLTree* LoadJoystickConfig(XMLNode*& config);
 bool WowMouseCVarCallback(CVar* var, const char* oldValue, const char* value, void* arg);

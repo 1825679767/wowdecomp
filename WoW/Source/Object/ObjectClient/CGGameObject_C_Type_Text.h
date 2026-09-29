@@ -3,13 +3,17 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 
-class CGGameObject_C_Type_Text {
+class CGGameObject_C_Type_Text : public CGGameObject_C_TypeAnimated {
     public:
-    /* 0000 */ uint8_t unk_0000[3];
-    /* 0003 */ uint8_t unk_0003;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[40];
+    virtual int32_t CanChangeCursor() const;
+    virtual bool Use();
+    virtual void PostInitWithStats();
+    virtual void StartInteraction();
+    virtual void CloseInteraction();
+
+    CGGameObject_C_Type_Text(CGGameObject_C* owner);
 };
 
 #endif

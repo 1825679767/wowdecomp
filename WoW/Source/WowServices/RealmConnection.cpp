@@ -19,7 +19,7 @@ RealmConnection::REALMCONNECTIONNODE::REALMCONNECTIONNODE() {
     this->m_connection = nullptr;
 }
 
-// VERIFY: a20231bc manual
+// VERIFY: ec31eb67 manual
 // OFFSET: 0x00464C10
 int32_t RealmConnection::HandleCharEnum(uint32_t msgId, uint32_t time, CDataStore* msg) {
     if (this->m_realmResponse) {
@@ -42,7 +42,7 @@ int32_t RealmConnection::HandleCharEnum(uint32_t msgId, uint32_t time, CDataStor
     for (uint8_t i = 0; i < count; i++) {
         CHARACTER_INFO* info = &this->m_characterList.m_data[i];
 
-        msg->Get(info->m_guid);
+        msg->Get(info->m_guid.m_guid);
         msg->GetString(info->m_name, sizeof(info->m_name));
         msg->Get(info->m_raceID);
         msg->Get(info->m_classID);

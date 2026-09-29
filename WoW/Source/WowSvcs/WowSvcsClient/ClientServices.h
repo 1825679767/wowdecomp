@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/Net/NetClient/NetClient.h"
 #include "WoW/Source/WowServices/LoginResponse.h"
 #include "WoW/Source/WowServices/RealmConnection.h"
@@ -49,7 +50,7 @@ class ClientConnection : public RealmConnection {
     void Cancel(int32_t errorCode);
     void Cleanup();
     void Complete(int32_t result, int32_t errorCode);
-    void CharacterLogin(uint64_t guid, int32_t a2);
+    void CharacterLogin(WOWGUID guid, int32_t a2);
     void CharacterLogout(bool a1, bool a2);
     void Connect();
     void Disconnect();
@@ -57,7 +58,7 @@ class ClientConnection : public RealmConnection {
     int32_t EnumerateCharacters(void (*callback)(CHARACTER_INFO& info, void* param), void* param);
     void GetCharacterList();
     void RequestCharacterCreate(const CHARACTER_CREATE_INFO& info);
-    void RequestCharacterDelete(uint64_t guid);
+    void RequestCharacterDelete(WOWGUID guid);
     void Initiate(WOWCS_OPS op, int32_t errorCode, void (*cleanup)());
     int32_t PollStatus(WOWCS_OPS& op, const char** text, int32_t& result, int32_t& errorCode);
 };
@@ -71,9 +72,9 @@ class ClientRealmResponseAdapter : public RealmResponse {
     void CharacterListReceived(RealmConnection* connection, const TSFixedArray<CHARACTER_INFO>& characters, int32_t success) override;
     void GameServerResult(RealmConnection* connection, const char* message1, const char* message2, const char* message3) override;
     void MessageReceived(RealmConnection* connection, uint32_t message) override;
-    void OnChatReceived(RealmConnection* connection, uint64_t guid, const char* text, uint8_t type) override;
-    void OnAccountOnline(RealmConnection* connection, int32_t a2, uint64_t guid) override;
-    void OnAFKMonitorInfoResponse(RealmConnection* connection, uint64_t guid, int32_t a3, int32_t a4, int32_t a5, int32_t a6) override;
+    void OnChatReceived(RealmConnection* connection, WOWGUID guid, const char* text, uint8_t type) override;
+    void OnAccountOnline(RealmConnection* connection, int32_t a2, WOWGUID guid) override;
+    void OnAFKMonitorInfoResponse(RealmConnection* connection, WOWGUID guid, int32_t a3, int32_t a4, int32_t a5, int32_t a6) override;
     void HandleConnect(RealmConnection* connection) override;
     void HandleDisconnect(RealmConnection* connection) override;
     void HandleCantConnect(RealmConnection* connection) override;

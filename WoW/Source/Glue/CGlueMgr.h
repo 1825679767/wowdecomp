@@ -2,6 +2,7 @@
 #define WOW_SOURCE_GLUE_CGLUEMGR_H
 
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 #include "Engine/Source/Os/OsURLDownload.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Glue/Types.h"
@@ -111,14 +112,14 @@ class CGlueMgr {
     static void AttachCharacterSelectVisuals(CM2Model* model);
     static void ChangeRealm(REALM_INFO* realm);
     static void CreateCharacter(const CHARACTER_CREATE_INFO* info);
-    static void CustomizeCharacter(uint64_t guid, const CHARACTER_CREATE_INFO* info);
-    static bool DeclineCharacter(uint64_t guid, const char** names);
-    static void DeleteCharacter(uint64_t guid);
+    static void CustomizeCharacter(WOWGUID guid, const CHARACTER_CREATE_INFO* info);
+    static bool DeclineCharacter(WOWGUID guid, const char** names);
+    static void DeleteCharacter(WOWGUID guid);
     static void EnterWorld();
     static bool AgreementsURLCallback(void* param, const char* data, uint32_t size, bool done, HTTPError::ErrorCode error);
     static void DisplayLoginStatus();
-    static void FactionChange(uint64_t guid, const CHARACTER_CREATE_INFO* info);
-    static uint64_t GetActive();
+    static void FactionChange(WOWGUID guid, const CHARACTER_CREATE_INFO* info);
+    static WOWGUID GetActive();
     static void GetCharacterList();
     static void GetRealmList(int32_t showDialog);
     static int32_t HandleBattlenetDisconnect();
@@ -129,8 +130,8 @@ class CGlueMgr {
     static void SurveyDownloadCancel();
     static void StatusDialogClick();
     static void QuitGame();
-    static void RaceChange(uint64_t guid, const CHARACTER_CREATE_INFO* info);
-    static bool RenameCharacter(uint64_t guid, const char* name);
+    static void RaceChange(WOWGUID guid, const CHARACTER_CREATE_INFO* info);
+    static bool RenameCharacter(WOWGUID guid, const char* name);
     static void RealmListDialogCancelled();
     static void InitializeFFX();
     static bool IsScanDLLFinished();

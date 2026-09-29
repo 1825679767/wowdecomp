@@ -3724,7 +3724,7 @@ M2BatchRange::M2BatchRange() {
     this->m_last = 0;
 }
 
-// VERIFY: 8d9cac5e manual
+// VERIFY: 616f2025 manual
 // OFFSET: 0x0082BE60
 CM2Model::CM2Model() {
     this->unk_0088 = 0.0f;
@@ -3802,22 +3802,22 @@ CM2Model::CM2Model() {
     this->m_matrixF4.d0 = 0.0f;
     this->m_matrixF4.d1 = 0.0f;
     this->m_matrixF4.d2 = 0.0f;
-    this->unk_0134.x = 1.0f;
-    this->unk_0140.z = 1.0f;
-    this->unk_0158.y = 1.0f;
-    this->unk_0170 = 1.0f;
-    this->unk_0134.y = 0.0f;
-    this->unk_0134.z = 0.0f;
-    this->unk_0140.x = 0.0f;
-    this->unk_0140.y = 0.0f;
-    this->unk_014C.x = 0.0f;
-    this->unk_014C.y = 0.0f;
-    this->unk_014C.z = 0.0f;
-    this->unk_0158.x = 0.0f;
-    this->unk_0158.z = 0.0f;
-    this->unk_0164.x = 0.0f;
-    this->unk_0164.y = 0.0f;
-    this->unk_0164.z = 0.0f;
+    this->m_frameOfReferenceMatrix.a0 = 1.0f;
+    this->m_frameOfReferenceMatrix.b1 = 1.0f;
+    this->m_frameOfReferenceMatrix.c2 = 1.0f;
+    this->m_frameOfReferenceMatrix.d3 = 1.0f;
+    this->m_frameOfReferenceMatrix.a1 = 0.0f;
+    this->m_frameOfReferenceMatrix.a2 = 0.0f;
+    this->m_frameOfReferenceMatrix.a3 = 0.0f;
+    this->m_frameOfReferenceMatrix.b0 = 0.0f;
+    this->m_frameOfReferenceMatrix.b2 = 0.0f;
+    this->m_frameOfReferenceMatrix.b3 = 0.0f;
+    this->m_frameOfReferenceMatrix.c0 = 0.0f;
+    this->m_frameOfReferenceMatrix.c1 = 0.0f;
+    this->m_frameOfReferenceMatrix.c3 = 0.0f;
+    this->m_frameOfReferenceMatrix.d0 = 0.0f;
+    this->m_frameOfReferenceMatrix.d1 = 0.0f;
+    this->m_frameOfReferenceMatrix.d2 = 0.0f;
     this->m_frameOfReference = nullptr;
     this->m_fadeAlpha = 1.0f;
     this->unk_017C = 1.0f;

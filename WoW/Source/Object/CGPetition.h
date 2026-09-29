@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 
 class CDataStore;
 
@@ -11,26 +12,25 @@ class CGPetition {
     static const uint32_t s_cacheVersion = 1;
 
     /* 0000 */ int32_t m_id;
-    /* 0004 */ uint8_t unk_0004[4];
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint8_t unk_0010[4352];
-    /* 1110 */ uint32_t unk_1110;
-    /* 1114 */ uint32_t unk_1114;
-    /* 1118 */ uint32_t unk_1118;
-    /* 111C */ uint32_t unk_111C;
-    /* 1120 */ uint32_t unk_1120;
-    /* 1124 */ uint32_t unk_1124;
-    /* 1128 */ uint32_t unk_1128;
-    /* 112C */ uint16_t unk_112C;
-    /* 112E */ uint8_t unk_112E[2];
-    /* 1130 */ uint32_t unk_1130;
-    /* 1134 */ uint32_t unk_1134;
-    /* 1138 */ uint8_t unk_1138[640];
-    /* 13B8 */ uint32_t unk_13B8;
-    /* 13BC */ uint32_t unk_13BC;
-    /* 13C0 */ uint32_t unk_13C0;
-    /* 13C4 */ uint32_t unk_13C4;
+    /* 0004 */ uint8_t unk_0004 [4];
+    /* 0008 */ WOWGUID m_ownerGuid;
+    /* 0010 */ char m_title [256];
+    /* 0110 */ char m_bodyText [4096];
+    /* 1110 */ uint32_t m_minSignatures;
+    /* 1114 */ uint32_t m_maxSignatures;
+    /* 1118 */ uint32_t m_deadline;
+    /* 111C */ uint32_t m_issueDate;
+    /* 1120 */ uint32_t m_allowedGuildId;
+    /* 1124 */ uint32_t m_allowedClasses;
+    /* 1128 */ uint32_t m_allowedRaces;
+    /* 112C */ uint16_t m_allowedGenders;
+    /* 112E */ uint8_t unk_112E [2];
+    /* 1130 */ uint32_t m_allowedMinLevel;
+    /* 1134 */ uint32_t m_allowedMaxLevel;
+    /* 1138 */ char m_choiceText [10][64];
+    /* 13B8 */ uint32_t m_numChoices;
+    /* 13BC */ uint32_t m_staticType;
+    /* 13C0 */ uint32_t m_muid;
 
     CGPetition();
     void Pack(CDataStore* msg);

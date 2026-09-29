@@ -7,6 +7,7 @@
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/WorldClient/MapLoad.h"
+#include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 
 class CM2Lighting;
@@ -21,7 +22,7 @@ class CMapDoodadDef : public CMapStaticEntity, public TSHashObject<CMapDoodadDef
     /* 00A8 */ TSLink<CMapDoodadDef> m_doodadDefLink;
     /* 00B0 */ int32_t m_cullPassStamp;
     /* 00B4 */ int32_t unk_00B4;
-    /* 00B8 */ uint64_t unk_00B8;
+    /* 00B8 */ WOWGUID unk_00B8;
     /* 00C0 */ CAaBox m_bboxDoodadDef;
     /* 00D8 */ C44Matrix m_mat;
     /* 0118 */ C44Matrix m_identity;

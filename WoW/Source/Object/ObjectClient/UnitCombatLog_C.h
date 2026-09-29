@@ -3,54 +3,79 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
+#include "Engine/Source/Base/RCString.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
-class CCombatLogEntry {
-    public:
-    /* 0000 */ uint8_t unk_0000[4];
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint8_t unk_0014[4];
-    /* 0018 */ uint32_t unk_0018;
-    /* 001C */ uint32_t unk_001C;
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint32_t unk_0024;
-    /* 0028 */ uint32_t unk_0028;
-    /* 002C */ uint8_t unk_002C[4];
-    /* 0030 */ uint32_t unk_0030;
-    /* 0034 */ uint32_t unk_0034;
-    /* 0038 */ uint32_t unk_0038;
-    /* 003C */ uint32_t unk_003C;
-    /* 0040 */ uint32_t unk_0040;
-    /* 0044 */ uint32_t unk_0044;
-    /* 0048 */ uint8_t unk_0048[8];
-    /* 0050 */ uint32_t unk_0050;
-    /* 0054 */ uint32_t unk_0054;
-    /* 0058 */ uint32_t unk_0058;
-    /* 005C */ uint32_t unk_005C;
-    /* 0060 */ uint32_t unk_0060;
-    /* 0064 */ uint32_t unk_0064;
-    /* 0068 */ uint32_t unk_0068;
-    /* 006C */ uint32_t unk_006C;
-    /* 0070 */ uint32_t unk_0070;
-    /* 0074 */ uint8_t unk_0074;
-};
+class SpellRec;
 
-class CombatLogFilter {
-    public:
-    /* 0000 */ uint8_t unk_0000[8];
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint8_t unk_000C[4];
-    /* 0010 */ uint32_t unk_0010;
+struct CombatLogEntry : public TSLinkedNode<CombatLogEntry> {
+    /* 0008 */ uint32_t m_timestamp;
+    /* 000C */ int32_t m_event;
+    /* 0010 */ uint32_t m_pendingMask;
     /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint32_t unk_0018;
-    /* 001C */ uint32_t unk_001C;
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint32_t unk_0024;
-    /* 0028 */ uint32_t unk_0028;
+    /* 0018 */ WOWGUID m_sourceGuid;
+    /* 0020 */ const char* m_sourceName;
+    /* 0024 */ const char* m_sourceRealm;
+    /* 0028 */ uint32_t m_sourceFlags;
     /* 002C */ uint32_t unk_002C;
-    /* 0030 */ uint32_t unk_0030;
+    /* 0030 */ WOWGUID m_destGuid;
+    /* 0038 */ const char* m_destName;
+    /* 003C */ const char* m_destRealm;
+    /* 0040 */ uint32_t m_destFlags;
+    /* 0044 */ int32_t m_spellId;
+    /* 0048 */ RCString m_spellName;
+    /* 0054 */ uint32_t m_infoFlags;
+    /* 0058 */ union {
+        char* m_text;
+        int32_t m_values[7];
+    } m_info;
+    /* 0074 */ uint8_t m_infoBits;
+
+    void Clear();
+    void SetFailReason(const char* reason);
+    void SetMissInfo(int32_t missType, int32_t amount);
 };
+
+struct InvalidatedName : public TSLinkedNode<InvalidatedName> {
+    /* 0008 */ char* m_name;
+
+    InvalidatedName();
+    ~InvalidatedName();
+};
+
+struct PendingCombatLogData : public TSLinkedNode<PendingCombatLogData> {
+    /* 0008 */ CombatLogEntry* m_entry;
+    /* 000C */ uint32_t unk_000C;
+    /* 0010 */ WOWGUID m_guid;
+    /* 0018 */ int32_t m_id;
+    /* 001C */ int32_t m_type;
+    /* 0020 */ uint32_t m_mask;
+    /* 0024 */ uint32_t unk_0024;
+};
+
+struct CombatLogFilter : public TSLinkedNode<CombatLogFilter> {
+    /* 0008 */ TSBitField<TSFixedArray<uint32_t>> m_events;
+    /* 0018 */ WOWGUID m_sourceGuid;
+    /* 0020 */ WOWGUID m_destGuid;
+    /* 0028 */ uint32_t m_sourceFlags;
+    /* 002C */ uint32_t m_destFlags;
+    /* 0030 */ int32_t m_spellId;
+    /* 0034 */ RCString m_spellName;
+
+    bool SetFilterData(const char* events, const WOWGUID& sourceGuid, uint32_t sourceFlags, const WOWGUID& destGuid, uint32_t destFlags, int32_t spellId, const char* spellName);
+};
+
+PendingCombatLogData* GetPendingCombatLogData(CombatLogEntry* entry, const WOWGUID& guid, uint32_t mask);
+void UnitCombatLogInvalidateName(const char* name);
+void __stdcall CheckToSanitizeUnitLowGuid(WOWGUID* guid);
+int32_t IsCombatTextActiveUnit(WOWGUID guid);
+void SendToCombatText(int32_t type, const char* text, int32_t amount);
+void SendToCombatText(int32_t type, const char* text, int32_t amount, int32_t overflow);
+void SendToCombatText(int32_t type, int32_t amount, int32_t overflow);
+void SendToCombatText(int32_t type, int32_t amount);
+void SendToCombatText(int32_t type, const char* text);
+void SendToCombatText(int32_t type);
+void UnitCombatLogProcGo(const WOWGUID& casterGuid, const SpellRec* spell);
 
 #endif

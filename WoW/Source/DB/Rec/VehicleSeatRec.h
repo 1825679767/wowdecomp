@@ -13,7 +13,7 @@ class VehicleSeatRec {
     static const bool s_generatedID = false;
 
     /* 0000 */ int32_t m_id;
-    /* 0004 */ float m_field33512213001;
+    /* 0004 */ int32_t m_flags;
     /* 0008 */ int32_t m_attachmentID;
     /* 000C */ float m_attachmentOffset [3];
     /* 0018 */ float m_field33512213004;
@@ -55,7 +55,7 @@ class VehicleSeatRec {
     /* 00A8 */ int32_t m_enterUisoundID;
     /* 00AC */ int32_t m_field33512213041;
     /* 00B0 */ int32_t m_uiSkin;
-    /* 00B4 */ float m_field33512213043;
+    /* 00B4 */ int32_t m_flagsB;
     /* 00B8 */ float m_field33512213044;
     /* 00BC */ float m_field33512213045;
     /* 00C0 */ int32_t m_field33512213046;

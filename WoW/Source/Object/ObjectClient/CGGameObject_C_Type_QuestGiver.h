@@ -3,15 +3,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 
-class CGGameObject_C_Type_QuestGiver {
+class CGGameObject_C_Type_QuestGiver : public CGGameObject_C_TypeAnimated {
     public:
-    /* 0000 */ uint8_t unk_0000[3];
-    /* 0003 */ uint8_t unk_0003;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[8];
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint8_t unk_0014[28];
+    virtual int32_t CanChangeCursor() const;
+    virtual void StartInteraction();
+    virtual void CloseInteraction();
+
+    CGGameObject_C_Type_QuestGiver(CGGameObject_C* owner);
 };
 
 #endif

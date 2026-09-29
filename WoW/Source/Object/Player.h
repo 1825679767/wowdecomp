@@ -3,19 +3,46 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/VisibleItem_C.h"
 #include "WoW/Source/Object/WGUID.h"
 
 class CGPlayerLocalData;
 
+struct PlayerQuestLogEntry {
+    /* 0000 */ uint32_t m_questId;
+    /* 0004 */ uint32_t m_state;
+    /* 0008 */ uint16_t m_counts [4];
+    /* 0010 */ uint32_t m_time;
+};
+
+struct PlayerSkillInfo {
+    /* 0000 */ uint16_t m_skillId;
+    /* 0002 */ uint16_t m_step;
+    /* 0004 */ uint16_t m_rank;
+    /* 0006 */ uint16_t m_maxRank;
+    /* 0008 */ uint16_t m_tempBonus;
+    /* 000A */ uint16_t m_permBonus;
+};
+
 class CGPlayer {
     public:
+    static const uint32_t s_mirrorFields[173];
+    static const uint32_t s_localMirrorFields[870];
+
+    static uint32_t DescriptorToMirrorOffset(uint32_t offset, uint32_t size, int32_t local, uint32_t base);
+    static uint32_t GetSavedIndexFromDataIndex(uint32_t index, uint32_t count, int32_t local);
+    static int32_t TotalFields();
+
     /* 0000 */ CGPlayerLocalData* m_player;
     /* 0004 */ void* m_playerMirror;
+
+    float GetDrunknessTurnValue();
+    int32_t HasZoneExplored(int32_t zone);
 };
 
 class CGPlayerData {
     public:
-    /* 0000 */ WGUID m_playerDuelArbiter;
+    /* 0000 */ WOWGUID m_playerDuelArbiter;
     /* 0008 */ uint32_t m_playerFlags;
     /* 000C */ uint32_t m_playerGuildid;
     /* 0010 */ uint32_t m_playerGuildrank;
@@ -24,166 +51,30 @@ class CGPlayerData {
     /* 001C */ uint8_t m_playerBytes3 [4];
     /* 0020 */ uint32_t m_playerDuelTeam;
     /* 0024 */ uint32_t m_playerGuildTimestamp;
-    /* 0028 */ uint32_t m_playerQuestLog11;
-    /* 002C */ uint32_t m_playerQuestLog12;
-    /* 0030 */ uint16_t m_playerQuestLog13 [4];
-    /* 0038 */ uint32_t m_playerQuestLog14;
-    /* 003C */ uint32_t m_playerQuestLog21;
-    /* 0040 */ uint32_t m_playerQuestLog22;
-    /* 0044 */ uint16_t m_playerQuestLog23 [4];
-    /* 004C */ uint32_t m_playerQuestLog25;
-    /* 0050 */ uint32_t m_playerQuestLog31;
-    /* 0054 */ uint32_t m_playerQuestLog32;
-    /* 0058 */ uint16_t m_playerQuestLog33 [4];
-    /* 0060 */ uint32_t m_playerQuestLog35;
-    /* 0064 */ uint32_t m_playerQuestLog41;
-    /* 0068 */ uint32_t m_playerQuestLog42;
-    /* 006C */ uint16_t m_playerQuestLog43 [4];
-    /* 0074 */ uint32_t m_playerQuestLog45;
-    /* 0078 */ uint32_t m_playerQuestLog51;
-    /* 007C */ uint32_t m_playerQuestLog52;
-    /* 0080 */ uint16_t m_playerQuestLog53 [4];
-    /* 0088 */ uint32_t m_playerQuestLog55;
-    /* 008C */ uint32_t m_playerQuestLog61;
-    /* 0090 */ uint32_t m_playerQuestLog62;
-    /* 0094 */ uint16_t m_playerQuestLog63 [4];
-    /* 009C */ uint32_t m_playerQuestLog65;
-    /* 00A0 */ uint32_t m_playerQuestLog71;
-    /* 00A4 */ uint32_t m_playerQuestLog72;
-    /* 00A8 */ uint16_t m_playerQuestLog73 [4];
-    /* 00B0 */ uint32_t m_playerQuestLog75;
-    /* 00B4 */ uint32_t m_playerQuestLog81;
-    /* 00B8 */ uint32_t m_playerQuestLog82;
-    /* 00BC */ uint16_t m_playerQuestLog83 [4];
-    /* 00C4 */ uint32_t m_playerQuestLog85;
-    /* 00C8 */ uint32_t m_playerQuestLog91;
-    /* 00CC */ uint32_t m_playerQuestLog92;
-    /* 00D0 */ uint16_t m_playerQuestLog93 [4];
-    /* 00D8 */ uint32_t m_playerQuestLog95;
-    /* 00DC */ uint32_t m_playerQuestLog101;
-    /* 00E0 */ uint32_t m_playerQuestLog102;
-    /* 00E4 */ uint16_t m_playerQuestLog103 [4];
-    /* 00EC */ uint32_t m_playerQuestLog105;
-    /* 00F0 */ uint32_t m_playerQuestLog111;
-    /* 00F4 */ uint32_t m_playerQuestLog112;
-    /* 00F8 */ uint16_t m_playerQuestLog113 [4];
-    /* 0100 */ uint32_t m_playerQuestLog115;
-    /* 0104 */ uint32_t m_playerQuestLog121;
-    /* 0108 */ uint32_t m_playerQuestLog122;
-    /* 010C */ uint16_t m_playerQuestLog123 [4];
-    /* 0114 */ uint32_t m_playerQuestLog125;
-    /* 0118 */ uint32_t m_playerQuestLog131;
-    /* 011C */ uint32_t m_playerQuestLog132;
-    /* 0120 */ uint16_t m_playerQuestLog133 [4];
-    /* 0128 */ uint32_t m_playerQuestLog135;
-    /* 012C */ uint32_t m_playerQuestLog141;
-    /* 0130 */ uint32_t m_playerQuestLog142;
-    /* 0134 */ uint16_t m_playerQuestLog143 [4];
-    /* 013C */ uint32_t m_playerQuestLog145;
-    /* 0140 */ uint32_t m_playerQuestLog151;
-    /* 0144 */ uint32_t m_playerQuestLog152;
-    /* 0148 */ uint16_t m_playerQuestLog153 [4];
-    /* 0150 */ uint32_t m_playerQuestLog155;
-    /* 0154 */ uint32_t m_playerQuestLog161;
-    /* 0158 */ uint32_t m_playerQuestLog162;
-    /* 015C */ uint16_t m_playerQuestLog163 [4];
-    /* 0164 */ uint32_t m_playerQuestLog165;
-    /* 0168 */ uint32_t m_playerQuestLog171;
-    /* 016C */ uint32_t m_playerQuestLog172;
-    /* 0170 */ uint16_t m_playerQuestLog173 [4];
-    /* 0178 */ uint32_t m_playerQuestLog175;
-    /* 017C */ uint32_t m_playerQuestLog181;
-    /* 0180 */ uint32_t m_playerQuestLog182;
-    /* 0184 */ uint16_t m_playerQuestLog183 [4];
-    /* 018C */ uint32_t m_playerQuestLog185;
-    /* 0190 */ uint32_t m_playerQuestLog191;
-    /* 0194 */ uint32_t m_playerQuestLog192;
-    /* 0198 */ uint16_t m_playerQuestLog193 [4];
-    /* 01A0 */ uint32_t m_playerQuestLog195;
-    /* 01A4 */ uint32_t m_playerQuestLog201;
-    /* 01A8 */ uint32_t m_playerQuestLog202;
-    /* 01AC */ uint16_t m_playerQuestLog203 [4];
-    /* 01B4 */ uint32_t m_playerQuestLog205;
-    /* 01B8 */ uint32_t m_playerQuestLog211;
-    /* 01BC */ uint32_t m_playerQuestLog212;
-    /* 01C0 */ uint16_t m_playerQuestLog213 [4];
-    /* 01C8 */ uint32_t m_playerQuestLog215;
-    /* 01CC */ uint32_t m_playerQuestLog221;
-    /* 01D0 */ uint32_t m_playerQuestLog222;
-    /* 01D4 */ uint16_t m_playerQuestLog223 [4];
-    /* 01DC */ uint32_t m_playerQuestLog225;
-    /* 01E0 */ uint32_t m_playerQuestLog231;
-    /* 01E4 */ uint32_t m_playerQuestLog232;
-    /* 01E8 */ uint16_t m_playerQuestLog233 [4];
-    /* 01F0 */ uint32_t m_playerQuestLog235;
-    /* 01F4 */ uint32_t m_playerQuestLog241;
-    /* 01F8 */ uint32_t m_playerQuestLog242;
-    /* 01FC */ uint16_t m_playerQuestLog243 [4];
-    /* 0204 */ uint32_t m_playerQuestLog245;
-    /* 0208 */ uint32_t m_playerQuestLog251;
-    /* 020C */ uint32_t m_playerQuestLog252;
-    /* 0210 */ uint16_t m_playerQuestLog253 [4];
-    /* 0218 */ uint32_t m_playerQuestLog255;
-    /* 021C */ uint32_t m_playerVisibleItem1Entryid;
-    /* 0220 */ uint16_t m_playerVisibleItem1Enchantment [2];
-    /* 0224 */ uint32_t m_playerVisibleItem2Entryid;
-    /* 0228 */ uint16_t m_playerVisibleItem2Enchantment [2];
-    /* 022C */ uint32_t m_playerVisibleItem3Entryid;
-    /* 0230 */ uint16_t m_playerVisibleItem3Enchantment [2];
-    /* 0234 */ uint32_t m_playerVisibleItem4Entryid;
-    /* 0238 */ uint16_t m_playerVisibleItem4Enchantment [2];
-    /* 023C */ uint32_t m_playerVisibleItem5Entryid;
-    /* 0240 */ uint16_t m_playerVisibleItem5Enchantment [2];
-    /* 0244 */ uint32_t m_playerVisibleItem6Entryid;
-    /* 0248 */ uint16_t m_playerVisibleItem6Enchantment [2];
-    /* 024C */ uint32_t m_playerVisibleItem7Entryid;
-    /* 0250 */ uint16_t m_playerVisibleItem7Enchantment [2];
-    /* 0254 */ uint32_t m_playerVisibleItem8Entryid;
-    /* 0258 */ uint16_t m_playerVisibleItem8Enchantment [2];
-    /* 025C */ uint32_t m_playerVisibleItem9Entryid;
-    /* 0260 */ uint16_t m_playerVisibleItem9Enchantment [2];
-    /* 0264 */ uint32_t m_playerVisibleItem10Entryid;
-    /* 0268 */ uint16_t m_playerVisibleItem10Enchantment [2];
-    /* 026C */ uint32_t m_playerVisibleItem11Entryid;
-    /* 0270 */ uint16_t m_playerVisibleItem11Enchantment [2];
-    /* 0274 */ uint32_t m_playerVisibleItem12Entryid;
-    /* 0278 */ uint16_t m_playerVisibleItem12Enchantment [2];
-    /* 027C */ uint32_t m_playerVisibleItem13Entryid;
-    /* 0280 */ uint16_t m_playerVisibleItem13Enchantment [2];
-    /* 0284 */ uint32_t m_playerVisibleItem14Entryid;
-    /* 0288 */ uint16_t m_playerVisibleItem14Enchantment [2];
-    /* 028C */ uint32_t m_playerVisibleItem15Entryid;
-    /* 0290 */ uint16_t m_playerVisibleItem15Enchantment [2];
-    /* 0294 */ uint32_t m_playerVisibleItem16Entryid;
-    /* 0298 */ uint16_t m_playerVisibleItem16Enchantment [2];
-    /* 029C */ uint32_t m_playerVisibleItem17Entryid;
-    /* 02A0 */ uint16_t m_playerVisibleItem17Enchantment [2];
-    /* 02A4 */ uint32_t m_playerVisibleItem18Entryid;
-    /* 02A8 */ uint16_t m_playerVisibleItem18Enchantment [2];
-    /* 02AC */ uint32_t m_playerVisibleItem19Entryid;
-    /* 02B0 */ uint16_t m_playerVisibleItem19Enchantment [2];
+    /* 0028 */ PlayerQuestLogEntry m_playerQuestLog [25];
+    /* 021C */ VisibleItem_C m_playerVisibleItems [19];
     /* 02B4 */ uint32_t m_playerChosenTitle;
-    /* 02B8 */ uint32_t m_playerFakeInebriation;
+    /* 02B8 */ int32_t m_playerFakeInebriation;
     /* 02BC */ uint32_t m_playerFieldPad0;
 };
 
 class CGPlayerLocalData : public CGPlayerData {
     public:
-    /* 02C0 */ WGUID m_playerFieldInvSlotHead [23];
-    /* 0378 */ WGUID m_playerFieldPackSlot1 [16];
-    /* 03F8 */ WGUID m_playerFieldBankSlot1 [28];
-    /* 04D8 */ WGUID m_playerFieldBankbagSlot1 [7];
-    /* 0510 */ WGUID m_playerFieldVendorbuybackSlot1 [12];
-    /* 0570 */ WGUID m_playerFieldKeyringSlot1 [32];
-    /* 0670 */ WGUID m_playerFieldCurrencytokenSlot1 [32];
-    /* 0770 */ WGUID m_playerFarsight;
-    /* 0778 */ WGUID m_playerFieldKnownTitles;
-    /* 0780 */ WGUID m_playerFieldKnownTitles1;
-    /* 0788 */ WGUID m_playerFieldKnownTitles2;
-    /* 0790 */ WGUID m_playerFieldKnownCurrencies;
+    /* 02C0 */ WOWGUID m_playerFieldInvSlotHead [23];
+    /* 0378 */ WOWGUID m_playerFieldPackSlot1 [16];
+    /* 03F8 */ WOWGUID m_playerFieldBankSlot1 [28];
+    /* 04D8 */ WOWGUID m_playerFieldBankbagSlot1 [7];
+    /* 0510 */ WOWGUID m_playerFieldVendorbuybackSlot1 [12];
+    /* 0570 */ WOWGUID m_playerFieldKeyringSlot1 [32];
+    /* 0670 */ WOWGUID m_playerFieldCurrencytokenSlot1 [32];
+    /* 0770 */ WOWGUID m_playerFarsight;
+    /* 0778 */ WOWGUID m_playerFieldKnownTitles;
+    /* 0780 */ WOWGUID m_playerFieldKnownTitles1;
+    /* 0788 */ WOWGUID m_playerFieldKnownTitles2;
+    /* 0790 */ WOWGUID m_playerFieldKnownCurrencies;
     /* 0798 */ uint32_t m_playerXp;
     /* 079C */ uint32_t m_playerNextLevelXp;
-    /* 07A0 */ uint16_t m_playerSkillInfo11 [768];
+    /* 07A0 */ PlayerSkillInfo m_playerSkillInfo [128];
     /* 0DA0 */ uint32_t m_playerCharacterPoints1;
     /* 0DA4 */ uint32_t m_playerCharacterPoints2;
     /* 0DA8 */ uint32_t m_playerTrackCreatures;

@@ -1,7 +1,11 @@
 #include "ObjectEffect.h"
 #include <new>
+#include <typeinfo>
+#include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/Object/ObjectClient/Object_C.h"
 #include "WoW/Source/Object/ObjectClient/Types.h"
 
 // STATIC: 0x00C9ECD0
@@ -18,6 +22,24 @@ static TSHashTable<OBJ_EFFECT_GROUP_DEF_LOOKUP, HASHKEY_NONE> s_groupDefLookup;
 
 // STATIC: 0x00CA04DC
 static TSHashTable<OBJ_EFFECT_PACKAGE_DEF_LOOKUP, HASHKEY_NONE> s_packageDefLookup;
+
+// STATIC: 0x00ADA37C
+float (*CObjectEffectModifier::s_inputFuncs[2])(CObjectEffectManager* manager) = {
+    &CObjectEffectModifier::InputNone,
+    &CObjectEffectModifier::InputSpeed,
+};
+
+// STATIC: 0x00ADA384
+float (*CObjectEffectModifier::s_mapFuncs[2])(float input, const float* params) = {
+    &CObjectEffectModifier::MapNone,
+    &CObjectEffectModifier::MapLinear,
+};
+
+// STATIC: 0x00ADA38C
+void (*CObjectEffectModifier::s_outputFuncs[2])(CObjectEffect* effect, float value) = {
+    &CObjectEffectModifier::OutputNone,
+    &CObjectEffectModifier::OutputPitch,
+};
 
 // INLINED
 CObjectEffectModifier::CObjectEffectModifier() {
@@ -224,7 +246,7 @@ void ObjectEffectSystem_ShutDown() {
     s_packageDefLookup.Clear();
 }
 
-// VERIFY: 320e76a7 manual
+// VERIFY: 769d7ae3 manual
 // OFFSET: 0x006F66B0
 void ObjectEffectSystem_Initialize() {
     InitObjectEffectStateMap();
@@ -299,19 +321,19 @@ void ObjectEffectSystem_Initialize() {
 
         switch (rec->m_triggerType) {
             case 1:
-                groupLookup->m_objectEffectGroupDef.unk_000C.LinkToTail(effectRef);
+                groupLookup->m_objectEffectGroupDef.m_enterEffects.LinkToTail(effectRef);
                 break;
 
             case 2:
-                groupLookup->m_objectEffectGroupDef.unk_0018.LinkToTail(effectRef);
+                groupLookup->m_objectEffectGroupDef.m_loopEffects.LinkToTail(effectRef);
                 break;
 
             case 3:
-                groupLookup->m_objectEffectGroupDef.unk_0024.LinkToTail(effectRef);
+                groupLookup->m_objectEffectGroupDef.m_exitEffects.LinkToTail(effectRef);
                 break;
 
             case 4:
-                groupLookup->m_objectEffectGroupDef.unk_0030.LinkToTail(effectRef);
+                groupLookup->m_objectEffectGroupDef.m_eventEffects.LinkToTail(effectRef);
                 break;
         }
     }
@@ -321,7 +343,7 @@ void ObjectEffectSystem_Initialize() {
 
         for (OBJ_EFFECT_GROUP_DEF_REF_LIST_LOOKUP* stateRefList = packageDef.m_stateGroupRefs.m_fulllist.Head(); stateRefList; stateRefList = packageDef.m_eventGroupRefs.Next(stateRefList)) {
             for (CObjectEffectGroupDefRef* groupRef = stateRefList->m_groupDefRefs.Head(); groupRef; groupRef = stateRefList->m_groupDefRefs.Next(groupRef)) {
-                for (CObjectEffectDefRef* effectRef = groupRef->m_groupDef->unk_0030.Head(); effectRef; effectRef = groupRef->m_groupDef->unk_0030.Next(effectRef)) {
+                for (CObjectEffectDefRef* effectRef = groupRef->m_groupDef->m_eventEffects.Head(); effectRef; effectRef = groupRef->m_groupDef->m_eventEffects.Next(effectRef)) {
                     ObjectEffectRec* effectRec = g_objectEffectDB.GetRecord(effectRef->m_effectDef->m_id);
                     OBJ_EFFECT_GROUP_DEF_REF_LIST_LOOKUP* eventRefList = packageDef.m_eventGroupRefs.Ptr(effectRec->m_eventType, s_hashKeyNone);
                     bool found = false;
@@ -348,4 +370,488 @@ void ObjectEffectSystem_Initialize() {
             }
         }
     }
+}
+
+// VERIFY: 41220598 auto
+// OFFSET: 0x006F1D70
+C3Vector CObjectEffect::GetWorldPosition() {
+    CGObject_C* object = this->m_manager->m_owner;
+    CM2Model* model = object->GetObjectModel();
+    C44Matrix transform;
+
+    if (model && model->IsLoaded(0, 0) && (model->m_fFlags & 0x8000)) {
+        if (model->HasAttachment(this->m_def->m_attachment)) {
+            transform = model->GetAttachmentWorldTransform(this->m_def->m_attachment);
+        } else {
+            transform = model->GetAnimatedWorldTransform();
+        }
+    } else {
+        transform = object->GetMatrix();
+    }
+
+    C3Vector position = this->m_def->m_offset;
+    position = position * transform;
+    return position;
+}
+
+// VERIFY: 4fb949cb manual
+// OFFSET: 0x006F2AC0
+CObjectEffect::~CObjectEffect() {
+    if (this->m_def->m_effectRecType == 1) {
+        if (this->m_soundKitObject.m_sound.m_internal) {
+            SI2::StopSound(&this->m_soundKitObject, 0, -1.0f, 1);
+        } else if (this->m_soundKitObject.m_advancedId) {
+            SI2::StopAdvancedSound(this->m_soundKitObject.m_advancedId);
+        }
+    }
+}
+
+// VERIFY: e96368c7 auto
+// OFFSET: 0x006F1700
+float CObjectEffectModifier::InputNone(CObjectEffectManager* manager) {
+    return -1.0f;
+}
+
+// VERIFY: cd29e853 auto
+// OFFSET: 0x006F1D50
+float CObjectEffectModifier::InputSpeed(CObjectEffectManager* manager) {
+    return manager->m_owner->GetSpeed();
+}
+
+// VERIFY: 924d173e auto
+// OFFSET: 0x006F1710
+float CObjectEffectModifier::MapNone(float input, const float* params) {
+    return input;
+}
+
+// VERIFY: e0fb924b manual
+// OFFSET: 0x006F1720
+float CObjectEffectModifier::MapLinear(float input, const float* params) {
+    if (input <= params[0]) {
+        return params[2];
+    }
+
+    if (input >= params[1]) {
+        return params[3];
+    }
+
+    return (input - params[0]) / (params[1] - params[0]) * (params[3] - params[2]) + params[2];
+}
+
+// VERIFY: 8e9ba7cd auto
+// OFFSET: 0x005EEB70
+void CObjectEffectModifier::OutputNone(CObjectEffect* effect, float value) {
+}
+
+// VERIFY: b1528bea auto
+// OFFSET: 0x006F1770
+void CObjectEffectModifier::OutputPitch(CObjectEffect* effect, float value) {
+    SI2::SetPitch(&effect->m_soundKitObject, value);
+}
+
+// VERIFY: 894f2b3c auto
+// OFFSET: 0x006F1790
+void CObjectEffectModifier::Apply(CObjectEffectManager* manager, CObjectEffect* effect) {
+    if (this->m_mapType <= 0) {
+        return;
+    }
+
+    float input = CObjectEffectModifier::s_inputFuncs[this->m_inputType](manager);
+    float value = CObjectEffectModifier::s_mapFuncs[this->m_mapType](input, this->m_params);
+    CObjectEffectModifier::s_outputFuncs[this->m_outputType](effect, value);
+}
+
+// VERIFY: 07e2b193 auto
+// OFFSET: 0x006F17F0
+int32_t FindObjectEffectStateFromAnimID(int32_t animId, int32_t alternate) {
+    if (alternate == 1) {
+        return s_objectEffectAnimStateMap[animId].m_altStateID;
+    }
+
+    return s_objectEffectAnimStateMap[animId].m_stateID;
+}
+
+// INLINED
+CObjectEffect::CObjectEffect() {
+    this->m_def = nullptr;
+    this->m_manager = nullptr;
+    this->m_playCount = 0;
+    this->m_refCount = 0;
+}
+
+// INLINED
+CObjectEffectRef::CObjectEffectRef() {
+    this->m_effect = nullptr;
+}
+
+// VERIFY: 2dd44e63 auto
+// OFFSET: 0x006F1E70
+void CObjectEffect::PlayOneShot() {
+    C3Vector position = this->GetWorldPosition();
+
+    if (this->m_def->m_effectRecType == 1) {
+        SE2SoundKitProperties properties;
+        properties.ResetToDefaults();
+        properties.m_loopMode = 2;
+
+        if (!SI2::IsPlaying(&this->m_soundKitObject)) {
+            SI2::PlaySoundKit(this->m_def->m_effectRecID, &position, &this->m_soundKitObject, &properties, 0, nullptr, 0, 0);
+        }
+    }
+
+    this->m_playCount++;
+}
+
+// VERIFY: 0cac3b31 auto
+// OFFSET: 0x006F1EF0
+void CObjectEffect::TriggerLoopingEffect() {
+    if (this->m_playCount > 0) {
+        return;
+    }
+
+    C3Vector position = this->GetWorldPosition();
+
+    if (this->m_def->m_effectRecType == 1) {
+        if (!SI2::IsPlaying(&this->m_soundKitObject)) {
+            int32_t usage = SI2::GetSoundKitUsage(this->m_def->m_effectRecID);
+
+            SE2SoundKitProperties properties;
+            properties.ResetToDefaults();
+            properties.m_fadeInTime = 0.7f;
+            properties.m_fadeOutTime = 0.7f;
+            properties.m_loopMode = usage != 1;
+
+            SI2::PlaySoundKit(this->m_def->m_effectRecID, &position, &this->m_soundKitObject, &properties, 0, nullptr, 0, 0);
+            this->m_playCount++;
+            return;
+        }
+
+        this->m_soundKitObject.m_sound.FadeInNow();
+    }
+
+    this->m_playCount++;
+}
+
+// VERIFY: 1fcb379b auto
+// OFFSET: 0x006F1FB0
+void CObjectEffect::UpdateLoopingEffect(CObjectEffectManager* manager) {
+    if (this->m_def->m_effectRecType != 1) {
+        return;
+    }
+
+    C3Vector position = this->GetWorldPosition();
+
+    if (SI2::IsPlaying(&this->m_soundKitObject)) {
+        this->m_soundKitObject.m_sound.FadeInNow();
+    } else {
+        this->TriggerLoopingEffect();
+    }
+
+    if (this->m_def->m_modifier) {
+        this->m_def->m_modifier->Apply(manager, this);
+    }
+
+    SI2::Set3DPosition(&this->m_soundKitObject, &position);
+}
+
+// VERIFY: 7251efaa manual
+// OFFSET: 0x006F3910
+void CObjectEffectManager::PropertyChanged(int32_t modifierId) {
+    OBJ_EFFECT_REF_LIST_LOOKUP* refList = this->m_refLists.Ptr(modifierId, s_hashKeyNone);
+
+    if (!refList) {
+        return;
+    }
+
+    for (CObjectEffectRef* ref = refList->m_refs.Head(); ref; ref = refList->m_refs.Next(ref)) {
+        CObjectEffectModifier* modifier = ref->m_effect->m_def->m_modifier;
+
+        if (modifier) {
+            modifier->Apply(this, ref->m_effect);
+        }
+    }
+}
+
+// VERIFY: 46ef89f8 manual
+// OFFSET: 0x006F39B0
+void CObjectEffectManager::UpdateAllPlayingEffects() {
+    for (CObjectEffect* effect = this->m_loopingEffects.Head(); effect; effect = this->m_loopingEffects.Next(effect)) {
+        effect->UpdateLoopingEffect(this);
+    }
+
+    CObjectEffect* effect = this->m_oneShotEffects.Head();
+
+    while (effect) {
+        if (effect->m_def->m_effectRecType == 1) {
+            C3Vector position = effect->GetWorldPosition();
+
+            if (SI2::IsPlaying(&effect->m_soundKitObject)) {
+                SI2::Set3DPosition(&effect->m_soundKitObject, &position);
+                effect = this->m_oneShotEffects.Next(effect);
+                continue;
+            }
+        } else if (effect->m_def->m_effectRecType == 2) {
+            effect = this->m_oneShotEffects.Next(effect);
+            continue;
+        }
+
+        int32_t modifierId = effect->m_def->m_modifier ? effect->m_def->m_modifier->m_id : 0;
+        OBJ_EFFECT_REF_LIST_LOOKUP* refList = this->m_refLists.Ptr(modifierId, s_hashKeyNone);
+
+        if (refList) {
+            CObjectEffectRef* ref = refList->m_refs.Head();
+
+            while (ref) {
+                if (ref->m_effect == effect) {
+                    ref = refList->m_refs.DeleteNode(ref);
+                } else {
+                    ref = refList->m_refs.Next(ref);
+                }
+            }
+        }
+
+        effect->m_playCount--;
+
+        CObjectEffect* next = this->m_oneShotEffects.Next(effect);
+        effect->~CObjectEffect();
+        SMemFree(effect, typeid(CObjectEffect).raw_name(), SLOG_OBJECT, 0);
+        effect = next;
+    }
+}
+
+// VERIFY: f71878a1 manual
+// OFFSET: 0x006F5900
+CObjectEffectManager::CObjectEffectManager() {
+    this->m_states.SetRawData(static_cast<char*>(SMemAlloc((NUM_OBJECT_EFFECT_STATES + 7) / 8, __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY)), NUM_OBJECT_EFFECT_STATES, true);
+}
+
+// VERIFY: 79aebd0f manual
+// OFFSET: 0x006F60E0
+void CObjectEffectManager::PlayOneShotEffect(CObjectEffectDef* def) {
+    CObjectEffect* effect = new (__FILE__, __LINE__) CObjectEffect();
+    effect->m_manager = this;
+    effect->m_def = def;
+    this->m_oneShotEffects.LinkToTail(effect);
+
+    int32_t modifierId = def->m_modifier ? def->m_modifier->m_id : 0;
+    OBJ_EFFECT_REF_LIST_LOOKUP* refList = this->m_refLists.Ptr(modifierId, s_hashKeyNone);
+
+    if (!refList) {
+        refList = this->m_refLists.New(modifierId, s_hashKeyNone, 0, 0);
+    }
+
+    CObjectEffectRef* ref = new (__FILE__, __LINE__) CObjectEffectRef();
+    ref->m_effect = effect;
+    refList->m_refs.LinkToTail(ref);
+
+    effect->PlayOneShot();
+
+    if (def->m_modifier) {
+        def->m_modifier->Apply(this, effect);
+    }
+}
+
+// VERIFY: 4b360386 manual
+// OFFSET: 0x006F61D0
+void CObjectEffectManager::ExitState(uint32_t state, int32_t playExitEffects) {
+    if (!this->m_states.Get(state)) {
+        return;
+    }
+
+    this->m_states.Set(state, false);
+
+    OBJ_EFFECT_GROUP_DEF_REF_LIST_LOOKUP* stateRefs = this->m_packageDef->m_stateGroupRefs.Ptr(state, s_hashKeyNone);
+
+    if (!stateRefs) {
+        return;
+    }
+
+    for (CObjectEffectGroupDefRef* groupRef = stateRefs->m_groupDefRefs.Head(); groupRef; groupRef = stateRefs->m_groupDefRefs.Next(groupRef)) {
+        if (playExitEffects) {
+            for (CObjectEffectDefRef* effectRef = groupRef->m_groupDef->m_exitEffects.Head(); effectRef; effectRef = groupRef->m_groupDef->m_exitEffects.Next(effectRef)) {
+                this->PlayOneShotEffect(effectRef->m_effectDef);
+            }
+        }
+
+        int32_t clear = 1;
+        OBJ_EFFECT_GROUP_LOOKUP* group = this->m_groups.Ptr(groupRef->m_groupDef->m_id, s_hashKeyNone);
+
+        if (!group) {
+            continue;
+        }
+
+        for (OBJ_EFFECT_REF_LOOKUP* lookup = group->m_effects.m_fulllist.Head(); lookup; lookup = group->m_effects.Next(lookup)) {
+            CObjectEffect* effect = lookup->m_effect;
+            effect->m_refCount--;
+
+            if (effect->m_refCount) {
+                clear = 0;
+                continue;
+            }
+
+            this->m_loopingEffects.UnlinkNode(effect);
+            this->m_oneShotEffects.LinkToTail(effect);
+
+            if (effect->m_def->m_effectRecType == 1) {
+                if (effect->m_soundKitObject.m_advancedId) {
+                    SI2::StopAdvancedSound(effect->m_soundKitObject.m_advancedId, 0, 0.7f);
+                } else {
+                    SI2::StopSound(&effect->m_soundKitObject, 0, -1.0f, 1);
+                }
+            }
+        }
+
+        if (clear) {
+            group->m_effects.InternalClear(0);
+        }
+    }
+}
+
+// VERIFY: 3c6099cc manual
+// OFFSET: 0x006F6420
+void CObjectEffectManager::PlayLoopingEffect(CObjectEffectDef* def, int32_t groupId) {
+    OBJ_EFFECT_GROUP_LOOKUP* group = this->m_groups.Ptr(groupId, s_hashKeyNone);
+
+    if (!group) {
+        group = this->m_groups.New(groupId, s_hashKeyNone, 0, 0);
+    }
+
+    for (CObjectEffect* effect = this->m_oneShotEffects.Head(); effect; effect = this->m_oneShotEffects.Next(effect)) {
+        if (effect->m_def != def) {
+            continue;
+        }
+
+        OBJ_EFFECT_REF_LOOKUP* lookup = group->m_effects.New(def->m_id, s_hashKeyNone, 0, 0);
+        lookup->m_effect = effect;
+        effect->m_link.Unlink();
+        this->m_loopingEffects.LinkToTail(effect);
+
+        if (effect->m_def->m_effectRecType == 1) {
+            effect->m_soundKitObject.m_sound.FadeInNow();
+            effect->m_refCount++;
+        }
+
+        return;
+    }
+
+    OBJ_EFFECT_REF_LOOKUP* lookup = group->m_effects.Ptr(def->m_id, s_hashKeyNone);
+
+    if (lookup) {
+        lookup->m_effect->m_refCount++;
+        return;
+    }
+
+    lookup = group->m_effects.New(def->m_id, s_hashKeyNone, 0, 0);
+    lookup->m_effect = new (__FILE__, __LINE__) CObjectEffect();
+    lookup->m_effect->m_manager = this;
+    lookup->m_effect->m_def = def;
+    this->m_loopingEffects.LinkToTail(lookup->m_effect);
+    lookup->m_effect->m_refCount++;
+
+    int32_t modifierId = def->m_modifier ? def->m_modifier->m_id : 0;
+    OBJ_EFFECT_REF_LIST_LOOKUP* refList = this->m_refLists.Ptr(modifierId, s_hashKeyNone);
+
+    if (!refList) {
+        refList = this->m_refLists.New(modifierId, s_hashKeyNone, 0, 0);
+    }
+
+    CObjectEffectRef* ref = new (__FILE__, __LINE__) CObjectEffectRef();
+    ref->m_effect = lookup->m_effect;
+    refList->m_refs.LinkToTail(ref);
+
+    lookup->m_effect->TriggerLoopingEffect();
+
+    if (def->m_modifier) {
+        def->m_modifier->Apply(this, lookup->m_effect);
+    }
+}
+
+// VERIFY: 7ce181a0 manual
+// OFFSET: 0x006F70B0
+void CObjectEffectManager::ShutDown() {
+    for (int32_t state = 0; state < NUM_OBJECT_EFFECT_STATES; state++) {
+        this->ExitState(state, 0);
+    }
+
+    for (OBJ_EFFECT_REF_LIST_LOOKUP* refList = this->m_refLists.m_fulllist.Head(); refList; refList = this->m_refLists.Next(refList)) {
+        CObjectEffectRef* ref = refList->m_refs.Head();
+
+        while (ref) {
+            CObjectEffectRef* next = refList->m_refs.Next(ref);
+            refList->m_refs.UnlinkNode(ref);
+            delete ref;
+            ref = next;
+        }
+    }
+
+    this->m_refLists.Clear();
+    this->m_groups.Clear();
+
+    while (CObjectEffect* effect = this->m_loopingEffects.Head()) {
+        effect->~CObjectEffect();
+        SMemFree(effect, typeid(CObjectEffect).raw_name(), SLOG_OBJECT, 0);
+    }
+
+    while (CObjectEffect* effect = this->m_oneShotEffects.Head()) {
+        effect->~CObjectEffect();
+        SMemFree(effect, typeid(CObjectEffect).raw_name(), SLOG_OBJECT, 0);
+    }
+}
+
+// VERIFY: 6bb11b7f manual
+// OFFSET: 0x006F7270
+void CObjectEffectManager::EnterState(uint32_t state, int32_t playEnterEffects, int32_t refresh) {
+    if (refresh) {
+        if (!this->m_states.Get(state)) {
+            return;
+        }
+    } else {
+        if (this->m_states.Get(state)) {
+            return;
+        }
+
+        this->m_states.Set(state, true);
+    }
+
+    OBJ_EFFECT_GROUP_DEF_REF_LIST_LOOKUP* stateRefs = this->m_packageDef->m_stateGroupRefs.Ptr(state, s_hashKeyNone);
+
+    if (!stateRefs) {
+        return;
+    }
+
+    for (CObjectEffectGroupDefRef* groupRef = stateRefs->m_groupDefRefs.Head(); groupRef; groupRef = stateRefs->m_groupDefRefs.Next(groupRef)) {
+        if (playEnterEffects) {
+            for (CObjectEffectDefRef* effectRef = groupRef->m_groupDef->m_enterEffects.Head(); effectRef; effectRef = groupRef->m_groupDef->m_enterEffects.Next(effectRef)) {
+                this->PlayOneShotEffect(effectRef->m_effectDef);
+            }
+        }
+
+        for (CObjectEffectDefRef* effectRef = groupRef->m_groupDef->m_loopEffects.Head(); effectRef; effectRef = groupRef->m_groupDef->m_loopEffects.Next(effectRef)) {
+            this->PlayLoopingEffect(effectRef->m_effectDef, groupRef->m_groupDef->m_id);
+        }
+    }
+}
+
+// VERIFY: 65d7c3ab manual
+// OFFSET: 0x006F7370
+CObjectEffectManager::~CObjectEffectManager() {
+    this->ShutDown();
+}
+
+// VERIFY: 403e887b auto
+// OFFSET: 0x006F7420
+int32_t CObjectEffectManager::Init(int32_t packageId, CGObject_C* owner) {
+    this->m_packageId = packageId;
+
+    OBJ_EFFECT_PACKAGE_DEF_LOOKUP* lookup = s_packageDefLookup.Ptr(packageId, s_hashKeyNone);
+
+    if (!lookup) {
+        return 0;
+    }
+
+    this->m_packageDef = &lookup->m_objectEffectPackageDef;
+    this->m_owner = owner;
+    this->EnterState(1, 1, 0);
+    this->EnterState(38, 1, 0);
+    return 1;
 }

@@ -10,8 +10,8 @@ class ItemNameCache_C {
     public:
     static const uint32_t s_cacheVersion = 1;
 
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
+    /* 0000 */ char* m_name;
+    /* 0004 */ uint32_t m_inventoryType;
 
     void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);

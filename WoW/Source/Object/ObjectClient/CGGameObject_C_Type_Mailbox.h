@@ -3,11 +3,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 
-class CGGameObject_C_Type_Mailbox {
+class CGGameObject_C_Type_Mailbox : public CGGameObject_C_TypeAnimated {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
+    virtual int32_t CanChangeCursor() const;
+    virtual bool Use();
+    virtual void StartInteraction();
+
+    CGGameObject_C_Type_Mailbox(CGGameObject_C* owner);
 };
 
 #endif

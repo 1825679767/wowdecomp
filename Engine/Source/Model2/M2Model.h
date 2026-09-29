@@ -180,12 +180,7 @@ class CM2Model {
     /* 00B0 */ C44Matrix* m_textureMatrices;
     /* 00B4 */ C44Matrix m_worldTransform;
     /* 00F4 */ C44Matrix m_matrixF4;
-    /* 0134 */ C3Vector unk_0134;
-    /* 0140 */ C3Vector unk_0140;
-    /* 014C */ C3Vector unk_014C;
-    /* 0158 */ C3Vector unk_0158;
-    /* 0164 */ C3Vector unk_0164;
-    /* 0170 */ float unk_0170;
+    /* 0134 */ C44Matrix m_frameOfReferenceMatrix;
     /* 0174 */ void* m_frameOfReference;
     /* 0178 */ float m_fadeAlpha;
     /* 017C */ float unk_017C;

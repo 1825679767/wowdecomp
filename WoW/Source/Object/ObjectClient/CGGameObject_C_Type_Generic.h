@@ -3,12 +3,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 
-class CGGameObject_C_Type_Generic {
+class CGGameObject_C_Type_Generic : public CGGameObject_C_TypeAnimated {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[40];
+    virtual bool CanHighlight() const;
+    virtual bool CanUse() const;
+
+    CGGameObject_C_Type_Generic(CGGameObject_C* owner);
 };
 
 #endif

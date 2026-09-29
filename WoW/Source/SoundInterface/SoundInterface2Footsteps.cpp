@@ -13,10 +13,10 @@ static HASHKEY_NONE s_footstepKey;
 // STATIC: 0x00B4AE10
 static TSHashTable<FOOTSTEPSNDCACHE, HASHKEY_NONE> s_footstepSounds;
 
-// VERIFY: 3cde8edb auto
+// VERIFY: a8ad1552 auto
 // OFFSET: 0x004CEE50
 bool CGUnit_C::IsActivePlayer() {
-    return (static_cast<uint64_t>(this->m_obj->m_guid.m_guidHigh) << 32 | this->m_obj->m_guid.m_guidLow) == ClntObjMgrGetActivePlayer();
+    return this->m_obj->m_guid == ClntObjMgrGetActivePlayer();
 }
 
 // VERIFY: 1432f0e0 manual

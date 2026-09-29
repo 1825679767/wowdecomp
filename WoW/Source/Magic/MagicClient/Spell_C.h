@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 #include <windows.h>
 #include "_Triage/PendingSpellCastData.h"
 
@@ -30,5 +31,12 @@ class Spell_C {
     /* 0000 */ uint8_t unk_0000[8];
     /* 0008 */ uint32_t unk_0008;
 };
+
+int32_t Spell_C_IsSpellInTransit(WOWGUID caster, uint32_t spellId, uint32_t castTime);
+
+void Spell_C_CancelSpellByTarget(const WOWGUID& target, int32_t reason);
+
+void Spell_C_CancelSpellByCaster(const WOWGUID& caster);
+void Spell_C_RemovePeriodicClientTrigger(WOWGUID guid, int32_t a2);
 
 #endif

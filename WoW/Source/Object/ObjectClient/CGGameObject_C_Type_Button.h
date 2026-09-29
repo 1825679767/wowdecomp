@@ -3,12 +3,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 
-class CGGameObject_C_Type_Button {
+class CGGameObject_C_Type_Button : public CGGameObject_C_TypeAnimated {
     public:
-    /* 0000 */ uint16_t unk_0000;
-    /* 0002 */ uint8_t unk_0002[4];
-    /* 0006 */ uint8_t unk_0006[42];
+    CGGameObject_C_Type_Button(CGGameObject_C* owner);
 };
 
 #endif

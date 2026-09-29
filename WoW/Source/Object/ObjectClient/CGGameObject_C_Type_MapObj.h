@@ -3,12 +3,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 
-class CGGameObject_C_Type_MapObj {
+class CGGameObject_C_Type_MapObj : public CGGameObject_C_Type_WorldObj {
     public:
-    /* 0000 */ uint8_t unk_0000 [176];
-    /* 00B0 */ int32_t unk_00B0;
-    /* 00B4 */ int32_t unk_00B4;
+    CGGameObject_C_Type_MapObj(CGGameObject_C* owner);
 };
 
 #endif

@@ -1133,7 +1133,7 @@ void CMap::VectorIntersectDoodadDefs(TSList<CMapBaseObjLink, TSGetExplicitLink<C
     }
 }
 
-// VERIFY: b62820cf manual
+// VERIFY: 690f8e3c manual
 // OFFSET: 0x007A2960
 void CMap::VectorIntersectEntitys(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* list, uint32_t flags) {
     if (!World::s_objectCollisionCallback) {
@@ -1156,7 +1156,7 @@ void CMap::VectorIntersectEntitys(TSList<CMapBaseObjLink, TSGetExplicitLink<CMap
         }
 
         World::ObjectCollisionData data;
-        uint64_t guid = entity->m_funcParam64;
+        WOWGUID guid = { entity->m_funcParam64 };
 
         if (!World::s_objectCollisionCallback(&guid, entity->m_funcParam32, &data, flags)) {
             continue;
@@ -1423,7 +1423,7 @@ void CMap::CreateImpassableFacets(CMapChunk* chunk, CAaBox* box, World::FacetDat
 }
 
 
-// VERIFY: e45b1149 manual
+// VERIFY: 2b594300 manual
 // OFFSET: 0x007A4AF0
 void CMap::AppendMapObjFacets(CMapDoodadDef* def, CAaBox* box, World::FacetData* facets) {
     uint32_t first = facets->facets.Count();
@@ -1434,7 +1434,7 @@ void CMap::AppendMapObjFacets(CMapDoodadDef* def, CAaBox* box, World::FacetData*
     facets->facetIds.SetCount(count);
 
     for (uint32_t i = first; i < count; i++) {
-        facets->facetIds.m_data[i] = def->unk_00B8;
+        facets->facetIds.m_data[i] = def->unk_00B8.m_guid;
     }
 }
 
@@ -2392,7 +2392,7 @@ CMapDoodadDef* CMap::CreateDoodadDef(uint32_t doodadRef, SMODoodadDef* doodadDef
     return mapDoodadDef;
 }
 
-// VERIFY: fa44952a manual
+// VERIFY: 140b192a manual
 // OFFSET: 0x007BF460
 CMapObjDef* CMap::CreateMapObjDef(char* fileName, SMMapObjDef* mapObjectDef, C3Vector* center, bool cached) {
     CMapObjDef* mapObjDef;
@@ -2422,8 +2422,7 @@ CMapObjDef* CMap::CreateMapObjDef(char* fileName, SMMapObjDef* mapObjectDef, C3V
     mapObjDef->m_nameId = mapObjectDef->m_nameId;
     mapObjDef->m_doodadSet = mapObjectDef->m_doodadSet;
     mapObjDef->m_nameSet = mapObjectDef->m_nameSet;
-    mapObjDef->unk_0148 = 0;
-    mapObjDef->unk_014C = 0;
+    mapObjDef->m_objectGuid = WOWGUID();
     mapObjDef->m_doodadSetOverrides[0] = 0;
     mapObjDef->m_doodadSetOverrides[1] = 0;
     mapObjDef->m_doodadSetOverrides[2] = 0;
@@ -2479,7 +2478,7 @@ CMapObjDef* CMap::CreateMapObjDef(char* fileName, SMMapObjDef* mapObjectDef, C3V
     return mapObjDef;
 }
 
-// VERIFY: 7ff04955 manual
+// VERIFY: aade514a manual
 // OFFSET: 0x007BF8B0
 void CMap::LoadWdt() {
     SFileImpl* file = nullptr;
@@ -2528,8 +2527,7 @@ void CMap::LoadWdt() {
             mapObjDef->m_nameId = def.m_nameId;
             mapObjDef->m_doodadSet = def.m_doodadSet;
             mapObjDef->m_nameSet = def.m_nameSet;
-            mapObjDef->unk_0148 = 0;
-            mapObjDef->unk_014C = 0;
+            mapObjDef->m_objectGuid = WOWGUID();
             mapObjDef->m_doodadSetOverrides[0] = 0;
             mapObjDef->m_doodadSetOverrides[1] = 0;
             mapObjDef->m_doodadSetOverrides[2] = 0;

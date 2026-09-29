@@ -270,7 +270,7 @@ TSGrowableArray<const char*> CGlueMgr::m_changedOptionWarnings;
 static SCritSect s_connectionStatusLock;
 
 // STATIC: 0x00DD2010
-static thread_local uint64_t s_activeCharacterGuid;
+static thread_local WOWGUID s_activeCharacterGuid;
 
 // VERIFY: 81edbfd4 auto
 // OFFSET: 0x004D7CD0
@@ -1572,9 +1572,9 @@ void CGlueMgr::CreateCharacter(const CHARACTER_CREATE_INFO* info) {
     ClientServices::Connection()->RequestCharacterCreate(*info);
 }
 
-// VERIFY: ba645f9d auto
+// VERIFY: 8d26ef59 auto
 // OFFSET: 0x004D8CC0
-void CGlueMgr::DeleteCharacter(uint64_t guid) {
+void CGlueMgr::DeleteCharacter(WOWGUID guid) {
     if (!guid) {
         return;
     }
@@ -1585,9 +1585,9 @@ void CGlueMgr::DeleteCharacter(uint64_t guid) {
     ClientServices::Connection()->RequestCharacterDelete(guid);
 }
 
-// VERIFY: 95db93cb manual
+// VERIFY: bc95747b manual
 // OFFSET: 0x004D8D20
-bool CGlueMgr::RenameCharacter(uint64_t guid, const char* name) {
+bool CGlueMgr::RenameCharacter(WOWGUID guid, const char* name) {
     if (!guid || !name || !*name) {
         return true;
     }
@@ -1605,7 +1605,7 @@ bool CGlueMgr::RenameCharacter(uint64_t guid, const char* name) {
 
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_CHARACTER_RENAME_REQUEST));
-    msg.Put(guid);
+    msg.Put(guid.m_guid);
     msg.PutString(name);
     msg.Finalize();
     ClientServices::Send2(&msg);
@@ -1623,16 +1623,16 @@ CharacterSelectionDisplay* GetCharacterInfo(int32_t index) {
     return &CCharacterSelection::s_characterList[index];
 }
 
-// VERIFY: d968398e auto
+// VERIFY: 2b1dadd9 manual
 // OFFSET: 0x004D9A40
-bool CGlueMgr::DeclineCharacter(uint64_t guid, const char** names) {
+bool CGlueMgr::DeclineCharacter(WOWGUID guid, const char** names) {
     if (CCharacterSelection::s_selectionIndex < 0 || CCharacterSelection::s_selectionIndex >= static_cast<int32_t>(CCharacterSelection::s_characterList.Count())) {
         return true;
     }
 
     CharacterSelectionDisplay* display = &CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex];
 
-    if (!display || static_cast<uint64_t>(display->m_characterInfo.m_guid == 0) == guid) {
+    if (!display || display->m_characterInfo.m_guid == guid) {
         return true;
     }
 
@@ -1655,7 +1655,7 @@ bool CGlueMgr::DeclineCharacter(uint64_t guid, const char** names) {
 
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_SET_PLAYER_DECLINED_NAMES));
-    msg.Put(guid);
+    msg.Put(guid.m_guid);
     msg.PutString(display->m_characterInfo.m_name);
 
     for (int32_t i = 0; i < 5; i++) {
@@ -1803,9 +1803,9 @@ void CGlueMgr::ResetQueueState() {
     CGlueMgr::m_estimatedWaitTime = 0;
 }
 
-// VERIFY: 29386b5f manual
+// VERIFY: e6792714 manual
 // OFFSET: 0x004D80A0
-uint64_t CGlueMgr::GetActive() {
+WOWGUID CGlueMgr::GetActive() {
     return s_activeCharacterGuid;
 }
 
