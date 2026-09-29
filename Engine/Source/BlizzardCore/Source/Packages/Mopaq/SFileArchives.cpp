@@ -1825,6 +1825,7 @@ bool Blizzard::Mopaq::SFileOpenArchiveView(System_SFile::ARCHIVEREC* handle, con
     return true;
 }
 
+// VERIFY: 3b0579b7 manual
 // OFFSET: 0x0045C920
 void System_SFile::ClearAllFileFlags() {
     Blizzard::Lock::ScopedMutex lock(System_MPQGlobals::GetArchiveLock()->m_mutex);
@@ -1860,6 +1861,7 @@ void Blizzard::Mopaq::SetMd5Callback(bool (*callback)(void* context, const uint8
     System_MPQGlobals::GetMopaqGlobals()->m_md5Callback = callback;
 }
 
+// VERIFY: 7b6e108c manual
 // OFFSET: 0x00461180
 bool Blizzard::Mopaq::SetFileSignature(const char* name, const Blizzard::Util::Digest<16>& md5) {
     Blizzard::Util::Digest<16> empty = System_SFile::s_emptyMd5;

@@ -40,14 +40,18 @@ namespace Liquid {
         public:
         static CMeshGeomFactory* Create(CMapObj* mapObj, CMapObjGroup* mapObjGroup);
 
+        void SetDiffuseColor(const CImVector& color);
+        void SetMagma(int32_t magma);
+        void SetTexCoord1ValueX(float value);
+
         /* 0004 */ int32_t m_refCount;
         /* 0008 */ CMapObj* m_mapObj;
         /* 000C */ CMapObjGroup* m_mapObjGroup;
         /* 0010 */ CGxBatch* m_batch;
-        /* 0014 */ int32_t unk_0014;
+        /* 0014 */ CImVector m_diffuseColor;
         /* 0018 */ int32_t unk_0018;
-        /* 001C */ int32_t unk_001C;
-        /* 0020 */ float unk_0020;
+        /* 001C */ int32_t m_magma;
+        /* 0020 */ float m_texCoord1ValueX;
         /* 0024 */ int32_t unk_0024;
         /* 0028 */ TSGrowableArray<uint8_t> m_sharedVerts[2];
 

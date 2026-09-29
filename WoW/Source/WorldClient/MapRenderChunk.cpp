@@ -82,7 +82,7 @@ TSExplicitList<CMapChunkBufBlock, offsetof(CMapChunkBufBlock, m_bufLink)> CMapRe
 TSExplicitList<CMapChunkBuf, offsetof(CMapChunkBuf, unk_0014)> CMapRenderChunk::s_renderChunkBufFreeList;
 
 // STATIC: 0x00AEEC60
-CGxBatch CMapRenderChunk::unk_AEEC60;
+CGxBatch CMapRenderChunk::s_chunkBatch;
 
 // STATIC: 0x00D1D058
 int32_t CMapRenderChunk::s_bPoolsDirty;
@@ -132,18 +132,18 @@ void CMapRenderChunk::SetDirty() {
     CMapRenderChunk::s_bPoolsDirty = 1;
 }
 
-// VERIFY: a2b225c8 auto
+// VERIFY: a9a5b948 auto
 // OFFSET: 0x007BA340
 void CMapRenderChunk::Initialize() {
     CMapRenderChunk::s_bPoolsDirty = 1;
     CMapRenderChunk::s_gxBufVertexFormat = GxVBF_PN;
-    CMapRenderChunk::unk_AEEC60.m_maxIndex = s_maxVertexCount - 1;
+    CMapRenderChunk::s_chunkBatch.m_maxIndex = s_maxVertexCount - 1;
     CMapRenderChunk::s_pnEstimateVertex = 0;
     CMapRenderChunk::s_pnEstimateIndex = 0;
-    CMapRenderChunk::unk_AEEC60.m_primType = GxPrim_Triangles;
-    CMapRenderChunk::unk_AEEC60.m_count = unk_AEEC18;
-    CMapRenderChunk::unk_AEEC60.m_start = 0;
-    CMapRenderChunk::unk_AEEC60.m_minIndex = 0;
+    CMapRenderChunk::s_chunkBatch.m_primType = GxPrim_Triangles;
+    CMapRenderChunk::s_chunkBatch.m_count = unk_AEEC18;
+    CMapRenderChunk::s_chunkBatch.m_start = 0;
+    CMapRenderChunk::s_chunkBatch.m_minIndex = 0;
     CMapRenderChunk::s_gxVertexPool = nullptr;
     CMapRenderChunk::s_gxIndexPool = nullptr;
     CMapRenderChunk::s_chunkBlockArray.SetCount(0);
@@ -744,6 +744,7 @@ void CMapRenderChunk::RenderSolidPixelShader() {
     this->RenderSolid();
 }
 
+// VERIFY: 90367efa manual
 // OFFSET: 0x007D3240
 void CMapRenderChunk::RenderSolidVertexPixelShader() {
     GxRsSet(GxRs_BlendingMode, 0);
@@ -1589,6 +1590,7 @@ void CMapRenderChunk::CreateShadowTex() {
     }
 }
 
+// VERIFY: f4962761 manual
 // OFFSET: 0x007B99B0
 void CMapRenderChunk::CreateShaderTexture() {
     int32_t genFormat = 3;
@@ -1885,6 +1887,7 @@ void CMapRenderChunk::AllocLayerTextures() {
     this->unk_000A &= ~0x30;
 }
 
+// VERIFY: 7488cd14 manual
 // OFFSET: 0x0079E470
 CGxShader* CMapRenderChunk::GetVertexShader(int32_t pointLights, int32_t layers, int32_t specular, int32_t vertexColor, int32_t a5, int32_t shadow) {
     return CMap::vertexShader_Terrain[64 * pointLights + 16 * (layers - 1) + 8 * specular + 4 * vertexColor + 2 * a5 + (shadow != 0)];
@@ -1975,6 +1978,7 @@ void CMapRenderChunk::InitializeVertexShaderConstants(const C44Matrix& world, co
     }
 }
 
+// VERIFY: aed99aca manual
 // OFFSET: 0x007D0050
 void CMapRenderChunk::SetVertexShader(CMapRenderChunk* renderChunk, int32_t layerCount, int32_t a3) {
     SVertexShaderConstants& consts = CMapRenderChunk::s_vertexShaderConsts;
@@ -2039,6 +2043,7 @@ void CMapRenderChunk::SetVertexShader(CMapRenderChunk* renderChunk, int32_t laye
     g_theGxDevicePtr->ShaderConstantsSet(GxSh_Vertex, 0, reinterpret_cast<const float*>(&consts), sizeof(SVertexShaderConstants) / sizeof(C4Vector));
 }
 
+// VERIFY: 2226742d manual
 // OFFSET: 0x007D06B0
 void CMapRenderChunk::ComputeTexMatrices(C44Matrix& layerMatrix, C44Matrix& alphaMatrix, const C3Vector& offset, float scale) {
     layerMatrix.Scale(scale);
@@ -2074,6 +2079,7 @@ void CMapRenderChunk::ComputeTexMatrices(C44Matrix& layerMatrix, C44Matrix& alph
     alphaMatrix.Translate(offset);
 }
 
+// VERIFY: 0307c652 manual
 // OFFSET: 0x007D0760
 void CMapRenderChunk::RenderMultiPassAdditive(CMapRenderChunk* renderChunk) {
     C44Matrix layerMatrix;
@@ -2151,6 +2157,7 @@ void CMapRenderChunk::RenderMultiPassAdditive(CMapRenderChunk* renderChunk) {
     GxRsSet(GxRs_Texture1, 0);
 }
 
+// VERIFY: 18189b69 manual
 // OFFSET: 0x007D0D70
 void CMapRenderChunk::RenderMultiPassAlpha(CMapRenderChunk* renderChunk) {
     C44Matrix layerMatrix;
@@ -2228,6 +2235,7 @@ void CMapRenderChunk::RenderMultiPassAlpha(CMapRenderChunk* renderChunk) {
     GxRsSet(GxRs_Texture1, 0);
 }
 
+// VERIFY: 48db2dd7 manual
 // OFFSET: 0x007D13F0
 void CMapRenderChunk::RenderMultiPassPixelShaderBigAlpha(CMapRenderChunk* renderChunk) {
     C44Matrix layerMatrix;
@@ -2322,6 +2330,7 @@ void CMapRenderChunk::RenderMultiPassPixelShaderBigAlpha(CMapRenderChunk* render
     GxRsSet(GxRs_Texture1, 0);
 }
 
+// VERIFY: fd0515a3 manual
 // OFFSET: 0x007D1AD0
 void CMapRenderChunk::RenderMultiPassPixelShader(CMapRenderChunk* renderChunk) {
     C44Matrix layerMatrix;
@@ -2392,6 +2401,7 @@ void CMapRenderChunk::RenderMultiPassPixelShader(CMapRenderChunk* renderChunk) {
     GxRsSet(GxRs_Texture1, 0);
 }
 
+// VERIFY: 136fc4a9 manual
 // OFFSET: 0x007D20A0
 void CMapRenderChunk::RenderMultiPassVertexPixelShaderBigAlpha(CMapRenderChunk* renderChunk) {
     SVertexShaderConstants& consts = CMapRenderChunk::s_vertexShaderConsts;
@@ -2483,6 +2493,7 @@ void CMapRenderChunk::RenderMultiPassVertexPixelShaderBigAlpha(CMapRenderChunk* 
     GxRsSet(GxRs_Texture1, 0);
 }
 
+// VERIFY: a31b22da manual
 // OFFSET: 0x007D2520
 void CMapRenderChunk::RenderMultiPassVertexPixelShader(CMapRenderChunk* renderChunk) {
     SVertexShaderConstants& consts = CMapRenderChunk::s_vertexShaderConsts;
@@ -2550,6 +2561,7 @@ void CMapRenderChunk::RenderMultiPassVertexPixelShader(CMapRenderChunk* renderCh
     GxRsSet(GxRs_Texture1, 0);
 }
 
+// VERIFY: 22069b93 manual
 // OFFSET: 0x007D28B0
 void CMapRenderChunk::RenderSinglePassPixelShader() {
     GxRsSet(GxRs_BlendingMode, GxBlend_Opaque);
@@ -2608,6 +2620,7 @@ void CMapRenderChunk::RenderSinglePassPixelShader() {
     }
 }
 
+// VERIFY: cad126b2 manual
 // OFFSET: 0x007D2D70
 void CMapRenderChunk::RenderSinglePassVertexPixelShader() {
     SVertexShaderConstants& consts = CMapRenderChunk::s_vertexShaderConsts;
@@ -2663,6 +2676,7 @@ void CMapRenderChunk::RenderSinglePassVertexPixelShader() {
     }
 }
 
+// VERIFY: 1f2ad08e manual
 // OFFSET: 0x007D3E10
 void CMapRenderChunk::SetShaders(int32_t a1, int32_t a2) {
     CMapRenderChunk::s_pixelShader[1] = nullptr;
@@ -2712,4 +2726,9 @@ void CMapRenderChunk::SetShaders(int32_t a1, int32_t a2) {
             CMapRenderChunk::s_renderLayersFunc = CMapRenderChunk::RenderMultiPassPixelShader;
         }
     }
+}
+
+// VERIFY: dba386e8 manual
+// OFFSET: 0x005EEB70
+void CMapRenderChunk::RenderZoneDebug() {
 }

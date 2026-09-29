@@ -1,68 +1,80 @@
 #include "Map.h"
-#include "Engine/Source/Services/AsyncFile.h"
-#include "Engine/Source/BlizzardCore/SFile2-Core.h"
-#include "Engine/Source/DayNight/DayNight.h"
-#include "WoW/Source/WorldClient/MapLowDetail.h"
+#if defined(_MSC_VER)
+#include <malloc.h>
+#else
+#include <alloca.h>
+#endif
 #include <cstring>
+#include <cmath>
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
+#include "Engine/Source/Base/RCString.h"
 #include "Engine/Source/Base/Status.h"
-#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
+#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/Gx/CGxBuf.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/CGxTexFlags.h"
+#include "Engine/Source/Gx/CGxVertexPC.h"
+#include "Engine/Source/Gxu/GxuLight.h"
+#include "Engine/Source/Model2/M2Light.h"
+#include "Engine/Source/Model2/M2Model.h"
+#include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Os/Processor.h"
+#include "Engine/Source/Os/System.h"
+#include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/Services/AsyncFile.h"
 #include "Engine/Source/Services/SysMessage.h"
 #include "Engine/Source/Services/Texture.h"
 #include "Engine/Source/ShaderEffect/ShaderEffect.h"
 #include "Engine/Source/Storm/H/storm.h"
-#include "WoW/Source/DB/DBClient/DBClient.h"
-#include "WoW/Source/DB/Rec/LiquidMaterialRec.h"
-#include "WoW/Source/DB/Rec/LiquidTypeRec.h"
-#include "WoW/Source/WorldClient/CChunkLiquid.h"
-#include "WoW/Source/WorldClient/CMapBaseObjLink.h"
-#include "WoW/Source/WorldClient/DetailDoodad.h"
-#include "WoW/Source/WorldClient/FVBBList.h"
-#include "WoW/Source/LiquidSystem/Liquid.h"
-#include "WoW/Source/WorldClient/MapArea.h"
-#include "WoW/Source/WorldClient/MapChunk.h"
-#include "WoW/Source/WorldClient/MapDoodadDef.h"
-#include "WoW/Source/WorldClient/MapEntity.h"
-#include "WoW/Source/WorldClient/MapLight.h"
-#include "WoW/Source/WorldClient/MapObj.h"
-#include "WoW/Source/WorldClient/MapObjDef.h"
-#include "WoW/Source/WorldClient/MapObjGroup.h"
-#include "WoW/Source/WorldClient/WaterRipple.h"
-#include <cmath>
-#include "Engine/Source/Base/RCString.h"
-#include "WoW/Source/WorldClient/World.h"
-#include "Engine/Source/Model2/M2Scene.h"
-#include "Engine/Source/Tempest/CAaBox.h"
-#include "Engine/Source/Tempest/CMath.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C33Matrix.h"
+#include "Engine/Source/Tempest/C34Matrix.h"
 #include "Engine/Source/Tempest/C3Segment.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/C4Plane.h"
+#include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Tempest/CAaSphere.h"
 #include "Engine/Source/Tempest/CFacet.h"
 #include "Engine/Source/Tempest/CFrustum.h"
-#include "Engine/Source/Gx/CGxVertexPC.h"
 #include "Engine/Source/Tempest/CImVector.h"
-#include "Engine/Source/Model2/M2Model.h"
-#include "WoW/Source/WorldClient/Types.h"
-#include "WoW/Source/WorldClient/MapBaseObj.h"
-#include "WoW/Source/WorldClient/MapRenderChunk.h"
-#include "WoW/Source/WorldClient/MapLoad.h"
-#include "WoW/Source/WorldClient/CWorldMath.h"
+#include "Engine/Source/Tempest/CMath.h"
 #include "Engine/Source/Tempest/CiRect.h"
-#include "Engine/Source/Storm/H/stpl.h"
-#include "WoW/Source/WorldClient/FrameTime.h"
-#include "Engine/Source/Tempest/C34Matrix.h"
-#include "Engine/Source/Model2/M2Light.h"
+#include "Engine/Source/Tempest/NTempest.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/LiquidMaterialRec.h"
+#include "WoW/Source/DB/Rec/LiquidTypeRec.h"
+#include "WoW/Source/LiquidSystem/Liquid.h"
 #include "WoW/Source/Object/WGUID.h"
-#include "Engine/Source/Gxu/GxuLight.h"
+#include "WoW/Source/WorldClient/Barrier.h"
+#include "WoW/Source/WorldClient/CChunkLiquid.h"
+#include "WoW/Source/WorldClient/CMapBaseObjLink.h"
+#include "WoW/Source/WorldClient/CWorldMath.h"
+#include "WoW/Source/WorldClient/DayNight.h"
+#include "WoW/Source/WorldClient/DayNight__DNInfo.h"
+#include "WoW/Source/WorldClient/DetailDoodad.h"
+#include "WoW/Source/WorldClient/FVBBList.h"
+#include "WoW/Source/WorldClient/FrameTime.h"
+#include "WoW/Source/WorldClient/MapArea.h"
+#include "WoW/Source/WorldClient/MapBaseObj.h"
+#include "WoW/Source/WorldClient/MapChunk.h"
+#include "WoW/Source/WorldClient/MapChunkLiquid.h"
+#include "WoW/Source/WorldClient/MapDoodadDef.h"
+#include "WoW/Source/WorldClient/MapEntity.h"
+#include "WoW/Source/WorldClient/MapLight.h"
+#include "WoW/Source/WorldClient/MapLoad.h"
+#include "WoW/Source/WorldClient/MapLowDetail.h"
+#include "WoW/Source/WorldClient/MapObj.h"
+#include "WoW/Source/WorldClient/MapObjDef.h"
+#include "WoW/Source/WorldClient/MapObjGroup.h"
+#include "WoW/Source/WorldClient/MapRenderChunk.h"
+#include "WoW/Source/WorldClient/Types.h"
+#include "WoW/Source/WorldClient/WaterRipple.h"
+#include "WoW/Source/WorldClient/World.h"
+#include "WoW/Source/WorldClient/WorldView.h"
 
 // STATIC: 0x00CF4938
 TSGrowableArray<CGxVertexPC> CMap::debugVertexArray;
@@ -232,8 +244,8 @@ static uint32_t unk_CF4958;
 // STATIC: 0x00CF495C
 static uint32_t unk_CF495C;
 
-// STATIC: 0x00CF498C
-static CMapFootprint unk_CF498C[144][4];
+// STATIC: 0x00CF497C
+static CMapFootprint unk_CF497C[144][4];
 
 // STATIC: 0x00CFBE60
 static TSGrowableArray<CMapFootprintTexture> unk_CFBE60;
@@ -261,6 +273,12 @@ int32_t CMap::s_fanIndices[8] = { 17, 0, 0, 1, 18, 17, 1, 18 };
 
 // STATIC: 0x00A3FB50
 int32_t CMap::s_subchunkIndices[8] = { 3, 0, 0, 1, 2, 3, 1, 2 };
+
+// STATIC: 0x00A3FB88
+uint16_t CMap::s_2bitSplatMask[8] = { 0x3, 0xC, 0x30, 0xC0, 0x300, 0xC00, 0x3000, 0xC000 };
+
+// STATIC: 0x00A3FB98
+uint32_t CMap::s_2bitSplatShft[8] = { 0, 2, 4, 6, 8, 10, 12, 14 };
 
 // STATIC: 0x00D25434
 TSHashTable<CMapObjDef, HASHKEY_NONE> CMap::mapObjDefHash;
@@ -311,13 +329,43 @@ bool CMap::gTerrainPixelShadersValid;
 bool CMap::enableTerrainShaderVertex;
 
 // STATIC: 0x00CE04A3
-static HASHKEY_NONE s_mapObjDefHashKey;
+HASHKEY_NONE CMap::s_mapObjDefHashKey;
 
 // STATIC: 0x00ADFC04
 TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > CMap::mapObjDefLinkList = TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>();
 
 // STATIC: 0x00AF16CC
 TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > CMap::s_unk_AF16CC = TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>();
+
+// STATIC: 0x00ADFC1C
+TSList<CMapChunk, TSGetExplicitLink<CMapChunk> > CMap::s_mapChunkSortList = TSExplicitList<CMapChunk, offsetof(CMapChunk, m_sortListLink)>();
+
+// STATIC: 0x00D2545C
+TSHashTable<CMapDoodadDef, HASHKEY_DWORD> CMap::doodadDefHash;
+
+// STATIC: 0x00AEEDE0
+TSExplicitList<CDestructibleProxy, offsetof(CDestructibleProxy, m_link)> CMap::s_destructibleProxyList;
+
+// STATIC: 0x00CE04BC
+int32_t CMap::mapGetFacetsCount;
+
+// STATIC: 0x00CE04C0
+int32_t CMap::bspRecurseCount;
+
+// STATIC: 0x00ADFC40
+TSList<CDetailDoodadInst, TSGetExplicitLink<CDetailDoodadInst> > CMap::s_detailDoodadUpdateList = TSExplicitList<CDetailDoodadInst, offsetof(CDetailDoodadInst, m_link)>();
+
+// VERIFY: 738eb1a4 manual
+// OFFSET: 0x0079B440
+CMapArea* CMap::GetLoadedArea(int32_t areaX, int32_t areaY) {
+    CMapArea* area = CMap::m_areaTable[64 * areaY + areaX];
+
+    if (area && area->m_asyncObject) {
+        return nullptr;
+    }
+
+    return area;
+}
 
 // VERIFY: ef54a4a5 auto
 // OFFSET: 0x0079B870
@@ -339,6 +387,73 @@ DepthCoordTable* CMap::GetDepthCoordTable(uint32_t liquidType) {
     }
 
     return CMap::s_depthCoordTables[typeRec->m_int[0]];
+}
+
+// VERIFY: e651a57d manual
+// OFFSET: 0x0079E5C0
+CGxShader* CMap::GetTerrainPixelShader(int32_t bigAlpha, int32_t layers, int32_t shadowMode, int32_t a4, int32_t a5) {
+    int32_t layerIndex = layers - 1;
+
+    switch (shadowMode) {
+        case 0:
+            return CMap::pixelShader_Terrain1[16 * a5 + 8 * bigAlpha + 2 * layerIndex + a4];
+
+        case 1:
+            if (g_theGxDevicePtr->Caps().m_shaderTargets[4] == 3 || g_theGxDevicePtr->Caps().m_shaderTargets[4] == 12) {
+                return CMap::pixelShader_Terrain2[16 * a5 + 8 * bigAlpha + 2 * layerIndex + a4];
+            }
+
+            return CMap::pixelShader_Terrain3[48 * a5 + 24 * bigAlpha + 2 * layerIndex + a4];
+
+        case 2:
+        case 3:
+            return CMap::pixelShader_Terrain3[48 * a5 - 8 + 24 * bigAlpha + 8 * shadowMode + 2 * layerIndex + a4];
+
+        default:
+            return nullptr;
+    }
+}
+
+// VERIFY: 2fffff6e manual
+// OFFSET: 0x0079E730
+void CMap::ClearChunkDetailDoodads() {
+    for (CMapChunk* chunk = CMap::s_mapChunkList.Head(); chunk; chunk = CMap::s_mapChunkList.Next(chunk)) {
+        if (chunk->m_detailDoodadInst) {
+            CDetailDoodad::FreeInst(chunk->m_detailDoodadInst);
+            chunk->m_detailDoodadInst = nullptr;
+        }
+    }
+}
+
+// VERIFY: 77579752 manual
+// OFFSET: 0x0079E780
+void CMap::ClearAllRenderChunks() {
+    for (CMapChunk* chunk = CMap::s_mapChunkList.Head(); chunk; chunk = CMap::s_mapChunkList.Next(chunk)) {
+        if (chunk->m_renderChunk) {
+            chunk->m_renderChunk->FreeBuf();
+        }
+    }
+}
+
+// VERIFY: 9b396a3d manual
+// OFFSET: 0x0079EFF0
+void CDestructibleProxy::FindOrCreate(CDestructibleProxy* proxy) {
+    if (!proxy->m_uniqueId) {
+        CMap::s_destructibleProxyList.LinkToHead(proxy);
+        return;
+    }
+
+    for (CDestructibleProxy* node = CMap::s_destructibleProxyList.Head(); !CMap::s_destructibleProxyList.IsEnd(node); node = CMap::s_destructibleProxyList.RawNext(node)) {
+        if (node->m_uniqueId == proxy->m_uniqueId) {
+            return;
+        }
+    }
+
+    CDestructibleProxy* created = CMap::s_destructibleProxyList.NewNode(2, 0, 0);
+    created->unk_0000 = proxy->unk_0000;
+    created->m_sphere = proxy->m_sphere;
+    created->m_uniqueId = proxy->m_uniqueId;
+    CMap::s_destructibleProxyList.LinkToHead(created);
 }
 
 // VERIFY: 6c4a26d2 manual
@@ -621,18 +736,29 @@ CMapFootprintTexture::CMapFootprintTexture() {
     this->unk_0014 = 0;
 }
 
-// VERIFY: 0a85f193 manual
+// VERIFY: 3f4da488 manual
 // OFFSET: 0x0079F860
 void CMap::FootprintDestroy() {
     for (uint32_t i = 0; i < 144; i++) {
         for (uint32_t j = 0; j < 4; j++) {
-            unk_CF498C[i][j].m_link.Unlink();
+            unk_CF497C[i][j].m_link.Unlink();
         }
     }
 
     for (uint32_t i = 0; i < unk_CFBE60.Count(); i++) {
         if (unk_CFBE60[i].m_texture) {
             HandleClose(reinterpret_cast<HOBJECT>(unk_CFBE60[i].m_texture));
+        }
+    }
+}
+
+// VERIFY: c24ffe6e manual
+// OFFSET: 0x0079FA10
+void CMap::ClearAllFootprints() {
+    for (uint32_t i = 0; i < 144; i++) {
+        for (uint32_t j = 0; j < 4; j++) {
+            unk_CF497C[i][j].m_vertices.SetCount(0);
+            unk_CF497C[i][j].m_link.Unlink();
         }
     }
 }
@@ -671,6 +797,38 @@ CGxShader* CMap::GetPixelShader(bool a1, bool a2, bool a3) {
     if (a3)
         return CMap::pixelShader_Terrain0_env;
     return CMap::pixelShader_Terrain0[1];
+}
+
+// VERIFY: 70d4ac15 manual
+// OFFSET: 0x007A06A0
+bool CMap::QueryShadow(C3Vector* pos) {
+    float y = -(pos->y - 17066.666f);
+    float x = -(pos->x - 17066.666f);
+
+    if (y < 0.0f || x < 0.0f || y >= 34133.332f || x >= 34133.332f) {
+        return false;
+    }
+
+    int32_t cellX = CMath::fint_(y * 0.029999999f - 0.5f);
+    int32_t cellY = CMath::fint_(x * 0.029999999f - 0.5f);
+    CMapArea* area = CMap::GetLoadedArea((cellX >> 4) & 0x3F, (cellY >> 4) & 0x3F);
+
+    if (!area) {
+        return false;
+    }
+
+    CMapChunk* chunk = area->m_mapChunks[16 * (cellY & 0xF) + (cellX & 0xF)];
+
+    if (!chunk || !chunk->m_shadowMap) {
+        return false;
+    }
+
+    int32_t shadowX = CMath::fint_(y * 1.92f - 0.5f) & 0x3F;
+    int32_t shadowY = CMath::fint_(x * 1.92f - 0.5f) & 0x3F;
+    uint8_t mamp = area->m_header->m_mampValue;
+    int32_t bitX = shadowX >> mamp;
+
+    return (chunk->m_shadowMap[(bitX >> 3) + (shadowY >> mamp) * (8 >> mamp)] & (1 << (bitX & 7))) != 0;
 }
 
 // VERIFY: cdb37c44 manual
@@ -717,6 +875,46 @@ bool CMap::QueryLiquidTerrain(const C3Vector* pos, int32_t* liquidType, float* h
     }
 
     return false;
+}
+
+// VERIFY: c7588881 manual
+// OFFSET: 0x007A09D0
+bool CMap::QueryLiquidStatusMapObjsExt(C3Vector* pos, int32_t* liquidType, float* height) {
+    for (CMapObjDef* mapObjDef = CMap::mapObjDefHash.m_fulllist.Head(); mapObjDef; mapObjDef = CMap::mapObjDefHash.m_fulllist.Next(mapObjDef)) {
+        if (mapObjDef->m_flags & 0x100) {
+            continue;
+        }
+
+        const CAaBox& box = mapObjDef->m_bbox;
+
+        if (box.b.x > pos->x || box.b.y > pos->y || box.b.z > pos->z || box.t.x < pos->x || box.t.y < pos->y || box.t.z < pos->z) {
+            continue;
+        }
+
+        C3Vector local = *pos * mapObjDef->m_invMat;
+        CMapObj* mapObj = mapObjDef->m_owner;
+
+        if (mapObj->ContainsPointInBounds(local) && mapObj->QueryLiquidStatus(0x2000, local, liquidType, height)) {
+            C3Vector level(local.x, local.y, *height);
+            level *= mapObjDef->m_mat;
+            *height = level.z;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 7c5ab3e1 auto
+// OFFSET: 0x007A0B00
+bool CMap::QueryLiquidStatus(C3Vector* pos, int32_t* liquidType, float* height, int32_t* a4, int32_t checkGround) {
+    *a4 = 0;
+
+    if (CMap::QueryLiquidStatusMapObjsExt(pos, liquidType, height)) {
+        return true;
+    }
+
+    return CMap::QueryLiquidTerrain(pos, liquidType, height, checkGround);
 }
 
 // OFFSET: 0x007A2070
@@ -876,6 +1074,257 @@ void CMap::VectorIntersectDY(C3Vector& start, C3Vector& end, CiRect& cells) {
 }
 
 
+// VERIFY: 136b6340 manual
+// OFFSET: 0x007A25A0
+World::ObjectCollisionData::ObjectCollisionData() {
+}
+
+// VERIFY: 0869a654 manual
+// OFFSET: 0x007A2760
+void CMap::VectorIntersectDoodadDefs(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* list, uint32_t flags) {
+    for (CMapBaseObjLink* link = list->Head(); link; link = list->Next(link)) {
+        CMapDoodadDef* doodadDef = static_cast<CMapDoodadDef*>(link->m_owner);
+
+        if ((flags & 0x1000000) && doodadDef->m_culled) {
+            continue;
+        }
+
+        if ((doodadDef->m_flags & 0x100) || !(doodadDef->m_flags & 0x80) || doodadDef->m_unkCounter == CMap::s_queryTag) {
+            continue;
+        }
+
+        CM2Model* model = doodadDef->m_model;
+
+        if (!model) {
+            continue;
+        }
+
+        int32_t mode = -1;
+
+        if (doodadDef->unk_00B8) {
+            if (flags & 0x100000) {
+                mode = 3;
+            } else if (flags & 0x600000) {
+                mode = 0;
+            }
+        } else if (flags & 0x1) {
+            mode = 3;
+        } else if (flags & 0xE) {
+            mode = (flags & 0x8) ? 2 : (flags >> 24) & 1;
+        }
+
+        if (mode >= 0 && (model->m_fFlags & 1)) {
+            if (!model->m_hitTestPrev) {
+                model->m_hitTestPrev = &model->m_scene->m_hitTestList;
+                model->m_hitTestNext = model->m_scene->m_hitTestList;
+                model->m_scene->m_hitTestList = model;
+
+                if (model->m_hitTestNext) {
+                    model->m_hitTestNext->m_hitTestPrev = &model->m_hitTestNext;
+                }
+            }
+
+            model->m_hitTestMode = mode;
+            model->m_hitTestOwner = doodadDef;
+            model->m_hitTestGroup = 0;
+        }
+
+        doodadDef->m_unkCounter = CMap::s_queryTag;
+    }
+}
+
+// VERIFY: b62820cf manual
+// OFFSET: 0x007A2960
+void CMap::VectorIntersectEntitys(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* list, uint32_t flags) {
+    if (!World::s_objectCollisionCallback) {
+        return;
+    }
+
+    for (CMapBaseObjLink* link = list->Head(); link; link = list->Next(link)) {
+        CMapEntity* entity = static_cast<CMapEntity*>(link->m_owner);
+
+        if ((flags & 0x1000000) && entity->m_culled) {
+            continue;
+        }
+
+        if (!(entity->unk_007C & 0x2)) {
+            return;
+        }
+
+        if (entity->m_unkCounter == CMap::s_queryTag || (entity->unk_007C & 0x4)) {
+            continue;
+        }
+
+        World::ObjectCollisionData data;
+        uint64_t guid = entity->m_funcParam64;
+
+        if (!World::s_objectCollisionCallback(&guid, entity->m_funcParam32, &data, flags)) {
+            continue;
+        }
+
+        CM2Model* model = data.m_model;
+
+        if (!model) {
+            continue;
+        }
+
+        if (model->m_fFlags & 1) {
+            if (!model->m_hitTestPrev) {
+                model->m_hitTestPrev = &model->m_scene->m_hitTestList;
+                model->m_hitTestNext = model->m_scene->m_hitTestList;
+                model->m_scene->m_hitTestList = model;
+
+                if (model->m_hitTestNext) {
+                    model->m_hitTestNext->m_hitTestPrev = &model->m_hitTestNext;
+                }
+            }
+
+            model->m_hitTestMode = (flags & 0x100000) ? 3 : 0;
+            model->m_hitTestGroup = 0;
+            model->m_hitTestOwner = entity;
+        }
+
+        entity->m_unkCounter = CMap::s_queryTag;
+    }
+}
+
+// VERIFY: 3fe9ef3a manual
+// OFFSET: 0x007A3570
+bool CMap::VectorIntersectSubChunkList(C3Vector* start, C3Vector* end, float* distance, uint32_t flags, CMapChunk** hitChunk) {
+    uint32_t* entry = CMap::scCollideList.m_data;
+    uint32_t lastY = entry[0] & 0x2000;
+    uint32_t lastX = entry[1] & 0x2000;
+    uint32_t remaining = CMap::cCount;
+    CMapChunk* chunk = nullptr;
+    CMapChunk* bestChunk = nullptr;
+    uint32_t modelFlags = flags & 0x40F0000F;
+
+    if (modelFlags) {
+        World::s_m2Scene->BeginHitTest();
+    }
+
+    float dx = end->x - start->x;
+    float dy = end->y - start->y;
+    float dz = end->z - start->z;
+    C3Vector origin = *start;
+    float invLength = 1.0f / sqrt(dz * dz + dy * dy + dx * dx);
+    C3Vector dir(dx * invLength, dy * invLength, invLength * dz);
+    float bestDist = *distance;
+
+    while (remaining) {
+        uint32_t cellX = entry[0];
+        uint32_t cellY = entry[1];
+        remaining -= 2;
+        entry += 2;
+
+        if (cellX > 0x2000 || cellY > 0x2000) {
+            break;
+        }
+
+        if ((cellX & 0x1FF8) != lastX || (cellY & 0x1FF8) != lastY) {
+            CMapArea* area = CMap::m_areaTable[64 * ((cellY >> 7) & 0x3F) + ((cellX >> 7) & 0x3F)];
+
+            if (!area || area->m_asyncObject) {
+                break;
+            }
+
+            chunk = area->m_mapChunks[16 * ((cellY >> 3) & 0xF) + ((cellX >> 3) & 0xF)];
+
+            if (!chunk) {
+                break;
+            }
+
+            lastX = cellX & 0x1FF8;
+            lastY = cellY & 0x1FF8;
+            origin.x = start->x - chunk->m_topLeftCoords.x;
+            origin.y = start->y - chunk->m_topLeftCoords.y;
+            origin.z = start->z - chunk->m_topLeftCoords.z;
+
+            if (modelFlags) {
+                CMap::VectorIntersectDoodadDefs(&chunk->m_doodadDefLinkList, flags);
+            }
+
+            if (flags & 0x40F00000) {
+                CMap::VectorIntersectEntitys(&chunk->m_entityLinkList, flags);
+            }
+        }
+
+        uint32_t subX = cellX & 7;
+        uint32_t subY = cellY & 7;
+        C3Ray ray;
+        ray.origin = origin;
+        ray.dir = dir;
+
+        if (flags & 0x100) {
+            float t = 3.4028235e38f;
+
+            if (chunk->Intersect(subX, subY, ray, &t)) {
+                float dist = t * invLength;
+
+                if (bestDist > dist && dist >= 0.0f) {
+                    bestDist = dist;
+                    bestChunk = chunk;
+                }
+            }
+        }
+
+        if (flags & 0x30000) {
+            int32_t checkType = (flags & 0x10000) && !(flags & 0x20000);
+
+            for (CChunkLiquid* liquid = chunk->m_liquidChunkLinkList.Head(); liquid; liquid = chunk->m_liquidChunkLinkList.Next(liquid)) {
+                if (checkType && !(g_liquidTypeDB.GetRecord(liquid->m_type)->m_flags & 4)) {
+                    continue;
+                }
+
+                if (!liquid->TileExists(subX, subY)) {
+                    continue;
+                }
+
+                uint32_t tilesY = liquid->m_tileEnd.y - liquid->m_tileBegin.y + 1;
+                uint32_t vertsY = liquid->m_tileEnd.y - liquid->m_tileBegin.y + 2;
+                uint32_t base = subX + tilesY * (subY - liquid->m_tileBegin.x) - liquid->m_tileBegin.y;
+                uint32_t pattern[6] = { 0, vertsY, tilesY, 0, 1, vertsY };
+
+                for (uint32_t i = 0; i < 2; i++) {
+                    float t = 0.0f;
+                    uint32_t tri[3] = { base + pattern[3 * i], base + pattern[3 * i + 1], base + pattern[3 * i + 2] };
+
+                    if (NTempest::Intersect(ray, liquid->m_verts, tri, &t, nullptr, 0.0099999998f)) {
+                        float dist = t * invLength;
+
+                        if (bestDist > dist && dist >= 0.0f) {
+                            bestDist = dist;
+                            bestChunk = chunk;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (modelFlags) {
+        if (flags & 0x16000AE) {
+            C3Vector localStart = *start * CWorldScene::camTransportView;
+            C3Vector localEnd = *end * CWorldScene::camTransportView;
+            World::s_m2Scene->EndHitTest(localStart, localEnd, bestDist, 0);
+        } else {
+            World::s_m2Scene->EndHitTestCollisionWorld(*start, *end, bestDist);
+        }
+    }
+
+    if (bestDist >= *distance) {
+        return false;
+    }
+
+    *distance = bestDist;
+
+    if (hitChunk) {
+        *hitChunk = bestChunk;
+    }
+
+    return true;
+}
+
 // VERIFY: 2f69e7ee auto
 // OFFSET: 0x007A39F0
 bool CMap::VectorIntersectTerrain(C3Vector* start, C3Vector* end, float* distance, uint32_t flags, CMapChunk** hitChunk) {
@@ -989,6 +1438,27 @@ void CMap::AppendMapObjFacets(CMapDoodadDef* def, CAaBox* box, World::FacetData*
     }
 }
 
+// VERIFY: e2b4677b manual
+// OFFSET: 0x007A4C10
+void CMap::TestQueryAdd(const CFacet& facet, CImVector color, const C44Matrix* mat) {
+    C44Matrix identity;
+    uint16_t base = static_cast<uint16_t>(CMap::debugVertexArray.Count());
+
+    if (!mat) {
+        mat = &identity;
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        CGxVertexPC* vertex = CMap::debugVertexArray.New();
+        vertex->p = facet.v[i] * *mat;
+        vertex->c = color;
+    }
+
+    *CMap::debugIndexArray.New() = base;
+    *CMap::debugIndexArray.New() = base + 1;
+    *CMap::debugIndexArray.New() = base + 2;
+}
+
 // VERIFY: de8ab0e3 manual
 // OFFSET: 0x007AD3B0
 bool CMap::GetHeightTerrain(CMapChunk* chunk, C3Vector& pos, int32_t cellX, int32_t cellY, float* outHeight) {
@@ -1060,6 +1530,113 @@ void CMapObjDefGroup::UpdateLights() {
     }
 }
 
+// VERIFY: 7a5c5c66 manual
+// OFFSET: 0x007B47F0
+static int32_t CompareAreaEntries(const void* a, const void* b) {
+    const CMapAreaEntry* entryA = static_cast<const CMapAreaEntry*>(a);
+    const CMapAreaEntry* entryB = static_cast<const CMapAreaEntry*>(b);
+
+    if (entryB->m_dist > entryA->m_dist) {
+        return -1;
+    }
+
+    return entryB->m_dist < entryA->m_dist;
+}
+
+// VERIFY: 9faa97d5 manual
+// OFFSET: 0x007B4960
+CMapArea* CMap::GetAreaAtPosition(const C2Vector* pos) {
+    float x = -(pos->x - 17066.666f);
+    float y = -(pos->y - 17066.666f) * 0.001875f;
+    x = x * 0.001875f;
+
+    return CMap::m_areaTable[64 * CMath::fint_(x - 0.5f) + CMath::fint_(y - 0.5f)];
+}
+
+// VERIFY: 8231832c manual
+// OFFSET: 0x007B49C0
+CMapChunk* CMap::GetChunkAtPosition(const C2Vector* pos) {
+    float x = -(pos->x - 17066.666f);
+    float y = -(pos->y - 17066.666f) * 0.03f;
+    x = x * 0.03f;
+
+    int32_t chunkY = CMath::fint_(x - 0.5f);
+    int32_t chunkX = CMath::fint_(y - 0.5f);
+    CMapArea* area = CMap::m_areaTable[64 * ((chunkY >> 4) & 0x3F) + ((chunkX >> 4) & 0x3F)];
+
+    if (!area) {
+        return nullptr;
+    }
+
+    return area->m_mapChunks[(chunkX & 0xF) + 16 * (chunkY & 0xF)];
+}
+
+// VERIFY: f1ab17a0 manual
+// OFFSET: 0x007B4BC0
+void CMap::UpdateBarriers() {
+    int32_t mode = CWorldScene::s_barrier.m_mode;
+    int32_t minX = CWorld::gbChunkRect.minX >> 4;
+    int32_t maxX = CWorld::gbChunkRect.maxX >> 4;
+    int32_t minY = CWorld::gbChunkRect.minY >> 4;
+    int32_t maxY = CWorld::gbChunkRect.maxY >> 4;
+
+    if (!mode) {
+        return;
+    }
+
+    for (int32_t y = minY; y <= maxY; y++) {
+        for (int32_t x = minX; x <= maxX; x++) {
+            int32_t index = 64 * y + x;
+
+            if (!(CMap::m_areaInfo[index].m_flags & 1)) {
+                continue;
+            }
+
+            CMapArea* area = CMap::m_areaTable[index];
+
+            if (!area || area->m_asyncObject) {
+                continue;
+            }
+
+            CMapArea* neighbor = CMap::m_areaTable[index - 1];
+
+            if (!neighbor || neighbor->m_asyncObject || mode == 2) {
+                C2Vector start(area->m_bounds.b.x, area->m_bounds.t.y);
+                C2Vector end(area->m_bounds.t.x, area->m_bounds.t.y);
+                CWorldScene::s_barrier.AddAxisAlignedWall(start, end, 40.0f);
+                mode = CWorldScene::s_barrier.m_mode;
+            }
+
+            neighbor = CMap::m_areaTable[index - 64];
+
+            if (!neighbor || neighbor->m_asyncObject || mode == 2) {
+                C2Vector start(area->m_bounds.t.x, area->m_bounds.t.y);
+                C2Vector end(area->m_bounds.t.x, area->m_bounds.b.y);
+                CWorldScene::s_barrier.AddAxisAlignedWall(start, end, 40.0f);
+                mode = CWorldScene::s_barrier.m_mode;
+            }
+
+            neighbor = CMap::m_areaTable[index + 1];
+
+            if (!neighbor || neighbor->m_asyncObject || mode == 2) {
+                C2Vector start(area->m_bounds.t.x, area->m_bounds.b.y);
+                C2Vector end(area->m_bounds.b.x, area->m_bounds.b.y);
+                CWorldScene::s_barrier.AddAxisAlignedWall(start, end, 40.0f);
+                mode = CWorldScene::s_barrier.m_mode;
+            }
+
+            neighbor = CMap::m_areaTable[index + 64];
+
+            if (!neighbor || neighbor->m_asyncObject || mode == 2) {
+                C2Vector start(area->m_bounds.b.x, area->m_bounds.b.y);
+                C2Vector end(area->m_bounds.b.x, area->m_bounds.t.y);
+                CWorldScene::s_barrier.AddAxisAlignedWall(start, end, 40.0f);
+                mode = CWorldScene::s_barrier.m_mode;
+            }
+        }
+    }
+}
+
 // VERIFY: 9eee5402 auto
 // OFFSET: 0x007B4DF0
 void CMap::UpdateArea(int32_t addToScene, CMapArea* area, CiRect* chunkRect, int32_t depth) {
@@ -1089,6 +1666,18 @@ void CMap::UpdateArea(int32_t addToScene, CMapArea* area, CiRect* chunkRect, int
     }
 }
 
+// VERIFY: f7ac6b15 manual
+// OFFSET: 0x007B53B0
+void CMap::ClearChunkSortList() {
+    CMapChunk* chunk = CMap::s_mapChunkSortList.Head();
+
+    while (chunk) {
+        CMapChunk* next = CMap::s_mapChunkSortList.Next(chunk);
+        chunk->m_sortListLink.Unlink();
+        chunk = next;
+    }
+}
+
 // VERIFY: fa65766b manual
 // OFFSET: 0x007B5420
 void CMap::ProcessChunkLiquidUpdateList() {
@@ -1103,6 +1692,28 @@ void CMap::ProcessChunkLiquidUpdateList() {
         }
 
         liquid = next;
+    }
+}
+
+// VERIFY: cd78794a manual
+// OFFSET: 0x007B54A0
+void CMap::ProcessDetailDoodadUpdateList() {
+    CDetailDoodadInst* inst = CMap::s_detailDoodadUpdateList.Head();
+
+    while (inst) {
+        CDetailDoodadInst* next = CMap::s_detailDoodadUpdateList.Next(inst);
+
+        if (++inst->m_age > 10) {
+            if (inst->HasBatches()) {
+                inst->FreeBuffers();
+            }
+
+            if (inst->m_age > 20) {
+                CDetailDoodad::FreeInst(inst);
+            }
+        }
+
+        inst = next;
     }
 }
 
@@ -1171,6 +1782,384 @@ void CMap::PrepareMapDoodadDefs() {
 
         doodadDef = next;
     }
+}
+
+// VERIFY: d6c4755a manual
+// OFFSET: 0x007B5950
+void CMap::PreUpdateAreas(bool a1) {
+    int32_t maxY = CWorld::gbChunkRect.maxY >> 4;
+    int32_t minX = CWorld::gbChunkRect.minX >> 4;
+    int32_t minY = CWorld::gbChunkRect.minY >> 4;
+    int32_t maxX = CWorld::gbChunkRect.maxX >> 4;
+    int32_t entryCount = 0;
+    CMapAreaEntry* entries = static_cast<CMapAreaEntry*>(alloca(1024 * sizeof(CMapAreaEntry)));
+
+    CMap::ClearChunkSortList();
+    CMap::ProcessChunkLiquidUpdateList();
+    CMap::ProcessRenderChunkUpdateList();
+    CMap::ProcessDetailDoodadUpdateList();
+
+    int32_t waitForLoad = !(CMap::s_isStreamingMode || CMap::bPreload);
+    CMapBaseObjLink* link = CMap::s_unk_ADFBEC.Head();
+
+    while (link) {
+        CMapArea* area = static_cast<CMapArea*>(link->m_owner);
+        CMapBaseObjLink* next = CMap::s_unk_ADFBEC.Next(link);
+
+        if (area->m_index.x >= minX && area->m_index.x <= maxX && area->m_index.y >= minY && area->m_index.y <= maxY) {
+            C2Vector pos(World::s_currentWorldPos.x, World::s_currentWorldPos.y);
+            entries[entryCount].m_dist = NTempest::DistanceSquared(area->m_bounds, pos);
+            entries[entryCount].m_area = area;
+            entryCount++;
+        } else if (!area->m_asyncObject || !area->m_asyncObject->m_isCurrent) {
+            CMap::FreeBaseObjLink(link);
+            CMap::PurgeArea(area);
+        }
+
+        link = next;
+    }
+
+    for (int32_t y = minY; y <= maxY; y++) {
+        for (int32_t x = minX; x <= maxX; x++) {
+            int32_t index = 64 * y + x;
+
+            if ((CMap::m_areaInfo[index].m_flags & 1) && !CMap::m_areaTable[index]) {
+                CMapArea* area = CMap::PrepareArea(x, y);
+                C2Vector pos(World::s_currentWorldPos.x, World::s_currentWorldPos.y);
+                entries[entryCount].m_area = area;
+                entries[entryCount].m_dist = NTempest::DistanceSquared(area->m_bounds, pos);
+                entryCount++;
+            }
+        }
+    }
+
+    if (entryCount) {
+        qsort(entries, entryCount, sizeof(CMapAreaEntry), CompareAreaEntries);
+    }
+
+    int32_t lastPending = -1;
+    CiRect rect;
+    memset(&rect, 0, sizeof(rect));
+
+    for (int32_t i = 0; i < entryCount; i++) {
+        CMapArea* area = entries[i].m_area;
+
+        if (!area->m_fileBuffer) {
+            CMap::LoadArea(area);
+        }
+
+        if (area->m_index.x < minX || area->m_index.x > maxX || area->m_index.y < minY || area->m_index.y > maxY) {
+            continue;
+        }
+
+        rect.minX = 16 * area->m_index.x;
+        rect.minY = 16 * area->m_index.y;
+        rect.maxX = 16 * area->m_index.x + 15;
+        rect.maxY = 16 * area->m_index.y + 15;
+
+        if (rect.minX <= CWorld::chunkRect.maxX && rect.minY <= CWorld::chunkRect.maxY && rect.maxX >= CWorld::chunkRect.minX && rect.maxY >= CWorld::chunkRect.minY && waitForLoad && area->m_asyncObject) {
+            AsyncFileReadWait(area->m_asyncObject);
+        }
+
+        if (area->m_asyncObject) {
+            if (CMap::s_isStreamingMode && entries[i].m_dist < 71111.109f) {
+                lastPending = i;
+            }
+        } else {
+            rect.minX = area->m_tileChunkIndex.x;
+            rect.minY = area->m_tileChunkIndex.y;
+            rect.maxX = area->m_tileChunkIndex.x + 15;
+            rect.maxY = area->m_tileChunkIndex.y + 15;
+            CMap::UpdateArea(a1, area, &rect, 0);
+        }
+    }
+
+    if (CMap::s_isStreamingMode) {
+        AsyncFile::EnterQueueLock();
+
+        for (int32_t i = lastPending; i >= 0; i--) {
+            CMapArea* area = entries[i].m_area;
+
+            if (area->m_asyncObject && (entries[i].m_dist < 1111.1111f || (entries[i].m_dist < 71111.109f && !CWorldScene::FrustumCull(&area->m_bounds)))) {
+                AsyncFileReadLinkObject(area->m_asyncObject, 1);
+            }
+        }
+
+        AsyncFile::LeaveQueueLock();
+    }
+
+    if (a1) {
+        CMap::UpdateBarriers();
+    }
+}
+
+// VERIFY: 11c34df4 manual
+// OFFSET: 0x007B5D00
+void CMap::PrepareMapObjDef(CMapObjDef* mapObjDef, CMapObj* mapObj) {
+    CAaBox bounds;
+    mapObjDef->m_flags = static_cast<MapObjFlag>(mapObjDef->m_flags | 0x80);
+    mapObj->GetBounds(mapObjDef->m_sphere);
+    mapObjDef->m_sphere.c *= mapObjDef->m_mat;
+    mapObj->GetBounds(&bounds);
+    CWorldMath::TransformAABox(mapObjDef->m_mat, bounds, mapObjDef->m_bbox);
+    mapObjDef->m_argbColor = *reinterpret_cast<uint32_t*>(&mapObj->m_argbColor);
+    mapObjDef->m_lightsArray.SetCount(mapObj->m_ligtsCount);
+
+    for (uint32_t i = 0; i < mapObjDef->m_lightsArray.Count(); i++) {
+        mapObjDef->m_lightsArray[i] = nullptr;
+    }
+
+    CMap::CreateMapObjDefGroups(mapObj, mapObjDef);
+}
+
+// VERIFY: 61aca6d6 manual
+// OFFSET: 0x007B6110
+void CMap::PrepareMapObjDefs(bool a1) {
+    int32_t waitLoad = 1;
+
+    if (CMap::s_isStreamingMode || CMap::bPreload) {
+        waitLoad = 0;
+    }
+
+    CMapObjDef* mapObjDef = CMap::mapObjDefHash.m_fulllist.Head();
+
+    while (mapObjDef) {
+        CMapObj* mapObj = mapObjDef->m_owner;
+        CAaBox& defBox = mapObjDef->m_bbox;
+
+        if (CWorld::s_objectAreaOfInterest.b.x <= defBox.t.x && CWorld::s_objectAreaOfInterest.b.y <= defBox.t.y && CWorld::s_objectAreaOfInterest.b.z <= defBox.t.z && CWorld::s_objectAreaOfInterest.t.x >= defBox.b.x && CWorld::s_objectAreaOfInterest.t.y >= defBox.b.y && CWorld::s_objectAreaOfInterest.t.z >= defBox.b.z) {
+            if (waitLoad && !mapObj->m_isGroupLoaded) {
+                mapObj->WaitLoad();
+            }
+
+            if (!(mapObjDef->m_flags & MAPOBJ_FLAG_PREPARED) && mapObj->m_isGroupLoaded) {
+                CMap::PrepareMapObjDef(mapObjDef, mapObj);
+            }
+        }
+
+        float dist = NTempest::DistanceSquared(defBox, World::s_currentWorldPos);
+
+        if (dist < mapObj->m_distToCamera) {
+            mapObj->m_distToCamera = dist;
+        }
+
+        for (CMapBaseObjLink* link = mapObjDef->m_mapObjDefGroupLinkList.Head(); link; link = mapObjDef->m_mapObjDefGroupLinkList.Next(link)) {
+            CMapObjDefGroup* defGroup = static_cast<CMapObjDefGroup*>(link->m_owner);
+            CMapObjGroup* group = mapObj->GetGroup(defGroup->m_groupNum, 1);
+            CAaBox& box = defGroup->m_bbox;
+
+            if (CWorld::s_objectAreaOfInterest.b.x <= box.t.x && CWorld::s_objectAreaOfInterest.b.y <= box.t.y && CWorld::s_objectAreaOfInterest.b.z <= box.t.z && CWorld::s_objectAreaOfInterest.t.x >= box.b.x && CWorld::s_objectAreaOfInterest.t.y >= box.b.y && CWorld::s_objectAreaOfInterest.t.z >= box.b.z) {
+                if (!(group->m_unkLoadedFlag & 1)) {
+                    if (!group->m_asyncObjPtr) {
+                        mapObj->ReadGroup(defGroup->m_groupNum);
+                    }
+
+                    if (waitLoad && CWorld::s_groupAreaOfInterest.b.x <= box.t.x && CWorld::s_groupAreaOfInterest.b.y <= box.t.y && CWorld::s_groupAreaOfInterest.b.z <= box.t.z && CWorld::s_groupAreaOfInterest.t.x >= box.b.x && CWorld::s_groupAreaOfInterest.t.y >= box.b.y && CWorld::s_groupAreaOfInterest.t.z >= box.b.z) {
+                        mapObj->WaitLoadGroup(defGroup->m_groupNum);
+                    }
+                }
+
+                group->unk_0190 = 0.0f;
+
+                if (group->m_unkLoadedFlag & 1) {
+                    if (!(defGroup->m_flags & MAPOBJ_FLAG_GROUP_INIT)) {
+                        CMapObj::InitDefGroup(mapObj, group, mapObjDef, defGroup);
+                    }
+
+                    if (!(defGroup->m_flags & MAPOBJ_FLAG_REFS_CREATED)) {
+                        CMapObj::CreateRefs(mapObj, group, mapObjDef, defGroup);
+                        CMap::FreeBaseObjLinksInBounds(&box);
+                    }
+                }
+            }
+
+            float groupDist = NTempest::DistanceSquared(box, World::s_currentWorldPos);
+
+            if (groupDist < group->m_distToCamera) {
+                group->m_distToCamera = groupDist;
+            }
+
+            if (!a1 || !(mapObjDef->m_flags & MAPOBJ_FLAG_PREPARED)) {
+                continue;
+            }
+
+            if (!(group->m_unkLoadedFlag & 1)) {
+                CWorldScene::s_barrier.AddBarrierMapObjDefGroup(defGroup, 50.0f);
+                continue;
+            }
+
+            if (mapObjDef->m_flags & MAPOBJ_FLAG_DISABLED) {
+                continue;
+            }
+
+            if (CWorldScene::boundingBox.Intersects(box)) {
+                CWorldScene::AddMapObjDefGroup(mapObjDef, defGroup);
+            }
+
+            for (CMapObjOccluder* occluder = group->m_occluderList.Head(); occluder; occluder = group->m_occluderList.Next(occluder)) {
+                C3Vector a = occluder->m_start * mapObjDef->m_mat;
+                C3Vector b = occluder->m_end * mapObjDef->m_mat;
+                CWorldView::AddOccluder(a, b);
+            }
+        }
+
+        if (!(mapObjDef->m_flags & MAPOBJ_FLAG_PREPARED)) {
+            CWorldScene::s_barrier.AddBarrier(defBox, 50.0f);
+        }
+
+        mapObjDef = CMap::mapObjDefHash.Next(mapObjDef);
+    }
+}
+
+// VERIFY: 6908aa4f manual
+// OFFSET: 0x007B6B00
+void CMap::PrepareUpdate(bool a1) {
+    if (CWorld::status.m_chunksChanged) {
+        CMap::PurgeMaps();
+    }
+
+    CMap::bspRecurseCount = 0;
+    CMap::mapGetFacetsCount = 0;
+    CMap::oldSelectLightParm = 0;
+    CMapChunkLiquidBuf::Update(FrameTime::s_tickTimeSec);
+    CMapObj::PrepareUpdate();
+    CMapRenderChunk::PurgeChunkBufBlocks();
+    CMap::PreUpdateAreas(a1);
+    CMap::PrepareMapObjDefs(a1);
+    CMap::PrepareMapDoodadDefs();
+    CMap::PrepareEntitys(a1);
+
+    if (!CMap::bPreload) {
+        return;
+    }
+
+    if (!CMap::s_isStreamingMode) {
+        AsyncFileReadWaitAll();
+
+        if (World::s_loadProgressCallback) {
+            World::s_loadProgressCallback(0.25f, World::s_loadProgressParam);
+        }
+
+        CMap::PreUpdateAreas(a1);
+        CMap::PrepareMapObjDefs(a1);
+        CMapObj::PrepareUpdate();
+        CMap::PrepareMapDoodadDefs();
+        AsyncFileReadWaitAll();
+
+        if (World::s_loadProgressCallback) {
+            World::s_loadProgressCallback(0.5f, World::s_loadProgressParam);
+        }
+
+        CMap::PreUpdateAreas(a1);
+        CMap::PrepareMapObjDefs(a1);
+        CMapObj::PrepareUpdate();
+        CMap::PrepareMapDoodadDefs();
+        AsyncFileReadWaitAll();
+
+        if (World::s_loadProgressCallback) {
+            World::s_loadProgressCallback(0.66000003f, World::s_loadProgressParam);
+        }
+
+        CMap::PreUpdateAreas(a1);
+        CMap::PrepareMapObjDefs(a1);
+        CMapObj::PrepareUpdate();
+        CMap::PrepareMapDoodadDefs();
+        AsyncFileReadWaitAll();
+
+        if (World::s_loadProgressCallback) {
+            World::s_loadProgressCallback(0.75f, World::s_loadProgressParam);
+        }
+
+        return;
+    }
+
+    CMapArea* area = CMap::GetAreaAtPosition(reinterpret_cast<const C2Vector*>(&World::s_currentWorldPos));
+
+    if (area && area->m_asyncObject) {
+        char fileName[260];
+        SFile::GetActualFileName(area->m_asyncObject->m_file, fileName, sizeof(fileName));
+        AsyncFile::EnterQueueLock();
+        AsyncFileReadLinkObject(area->m_asyncObject, 1);
+        AsyncFile::LeaveQueueLock();
+
+        while (area->m_asyncObject) {
+            int64_t local = 0;
+            int64_t total = 0;
+            SFile::FileGetIsLocalAmount(fileName, local, total);
+            AsyncFileReadPollHandler(nullptr, nullptr);
+
+            if (World::s_loadProgressCallback) {
+                World::s_loadProgressCallback(static_cast<float>(local) / static_cast<float>(total) * 0.2f, World::s_loadProgressParam);
+            }
+
+            OsSleep(10);
+        }
+    }
+
+    if (World::s_loadProgressCallback) {
+        World::s_loadProgressCallback(0.2f, World::s_loadProgressParam);
+    }
+
+    CMap::PreUpdateAreas(a1);
+    CMap::PrepareMapObjDefs(a1);
+    CMapObj::PrepareUpdate();
+    CMap::PrepareMapDoodadDefs();
+    AsyncFileReadPollHandler(nullptr, nullptr);
+
+    CMapChunk* chunk = CMap::GetChunkAtPosition(reinterpret_cast<const C2Vector*>(&World::s_currentWorldPos));
+    float progress = 0.0f;
+    uint32_t doodadTotal = CMap::ComputeDoodadLoadProgress(chunk, &progress, 0);
+
+    if (doodadTotal) {
+        uint32_t remaining;
+
+        do {
+            OsSleep(10);
+            AsyncFileReadPollHandler(nullptr, nullptr);
+            CMap::PreUpdateAreas(a1);
+            CMap::PrepareMapObjDefs(a1);
+            CMapObj::PrepareUpdate();
+            CMap::PrepareMapDoodadDefs();
+            remaining = CMap::ComputeDoodadLoadProgress(chunk, &progress, doodadTotal);
+
+            if (World::s_loadProgressCallback) {
+                World::s_loadProgressCallback(progress * 0.25f + 0.2f, World::s_loadProgressParam);
+            }
+        } while (remaining);
+    }
+
+    CMap::PreUpdateAreas(a1);
+    CMap::PrepareMapObjDefs(a1);
+    CMapObj::PrepareUpdate();
+    CMap::PrepareMapDoodadDefs();
+    AsyncFileReadPollHandler(nullptr, nullptr);
+
+    uint32_t mapObjTotal = CMap::ComputeMapObjLoadProgress(chunk, &progress, 0);
+    CMapObj::PrepareUpdate();
+
+    if (mapObjTotal) {
+        uint32_t remaining;
+
+        do {
+            OsSleep(10);
+            AsyncFileReadPollHandler(nullptr, nullptr);
+            CMap::PreUpdateAreas(a1);
+            CMap::PrepareMapObjDefs(a1);
+            CMapObj::PrepareUpdate();
+            CMap::PrepareMapDoodadDefs();
+            remaining = CMap::ComputeMapObjLoadProgress(chunk, &progress, mapObjTotal);
+
+            if (World::s_loadProgressCallback) {
+                World::s_loadProgressCallback(static_cast<float>(mapObjTotal - remaining) * 0.30000001f / static_cast<float>(mapObjTotal) + 0.44999999f, World::s_loadProgressParam);
+            }
+        } while (remaining);
+    }
+
+    CMap::PreUpdateAreas(a1);
+    CMap::PrepareMapObjDefs(a1);
+    CMapObj::PrepareUpdate();
+    CMap::PrepareMapDoodadDefs();
+    AsyncFileReadPollHandler(nullptr, nullptr);
 }
 
 // VERIFY: 6cf7464a auto
@@ -1253,10 +2242,10 @@ void CMap::ValidateShaders() {
     }
 }
 
-// VERIFY: 88a28231 auto
+// VERIFY: 4426576e auto
 // OFFSET: 0x007BDD70
-void CMapObjDefGroup::MarkPrepared() {
-    this->m_flags = static_cast<MapObjFlag>(this->m_flags | 0x10);
+void CMapObj::InitDefGroup(CMapObj* mapObj, CMapObjGroup* mapObjGroup, CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup) {
+    mapObjDefGroup->m_flags = static_cast<MapObjFlag>(mapObjDefGroup->m_flags | MAPOBJ_FLAG_GROUP_INIT);
 }
 
 // VERIFY: 5b940caf manual
@@ -1284,19 +2273,138 @@ void CMap::CreateMapObjDefGroups(CMapObj* mapObj, CMapObjDef* mapObjDef) {
     }
 }
 
-// VERIFY: 1fa4bc69 manual
+// VERIFY: a7bf14e1 manual
+// OFFSET: 0x007BECD0
+CMapDoodadDef* CMap::CreateDoodadDef(const char* fileName, SMDoodadDef* doodadDef, C3Vector* center) {
+    HASHKEY_DWORD key = { 0 };
+    CMapDoodadDef* mapDoodadDef = CMap::doodadDefHash.Ptr(doodadDef->m_uniqueId, key);
+
+    if (mapDoodadDef) {
+        return mapDoodadDef;
+    }
+
+    mapDoodadDef = CMap::AllocDoodadDef();
+    HASHKEY_DWORD insertKey = { 0 };
+    CMap::doodadDefHash.Insert(mapDoodadDef, doodadDef->m_uniqueId, insertKey);
+    CMap::doodadDefList.LinkToTail(mapDoodadDef);
+
+    mapDoodadDef->m_position.x = -doodadDef->m_position.z;
+    mapDoodadDef->m_position.y = -doodadDef->m_position.x;
+    mapDoodadDef->m_position.z = doodadDef->m_position.y;
+    mapDoodadDef->m_position.x = mapDoodadDef->m_position.x + center->x;
+    mapDoodadDef->m_position.y = center->y + mapDoodadDef->m_position.y;
+    mapDoodadDef->m_position.z = center->z + mapDoodadDef->m_position.z;
+
+    mapDoodadDef->m_sphere.c = mapDoodadDef->m_position;
+    mapDoodadDef->m_bbox.b = mapDoodadDef->m_position;
+    mapDoodadDef->m_bbox.t = mapDoodadDef->m_position;
+    mapDoodadDef->m_scale = doodadDef->m_scale * 0.0009765625f;
+    mapDoodadDef->m_sphere.r = 0.0f;
+    mapDoodadDef->m_flags = MAPOBJ_FLAG_UNPLACED;
+
+    if (doodadDef->m_flags & 0x1) {
+        mapDoodadDef->m_flags = static_cast<MapObjFlag>(MAPOBJ_FLAG_BIODOME | MAPOBJ_FLAG_UNPLACED);
+    }
+
+    mapDoodadDef->m_model = nullptr;
+
+    float rotX = doodadDef->m_rotation.z * 0.017453292f;
+    float rotY = doodadDef->m_rotation.x * 0.017453292f;
+    float rotZ = 0.017453292f * doodadDef->m_rotation.y;
+
+    mapDoodadDef->m_mat = C44Matrix();
+    mapDoodadDef->m_mat.d0 = mapDoodadDef->m_position.x;
+    mapDoodadDef->m_mat.d1 = mapDoodadDef->m_position.y;
+    mapDoodadDef->m_mat.d2 = mapDoodadDef->m_position.z;
+    mapDoodadDef->m_mat.RotateAroundZ(rotZ + 3.1415927f);
+    mapDoodadDef->m_mat.RotateAroundY(rotY);
+    mapDoodadDef->m_mat.RotateAroundX(rotX);
+    mapDoodadDef->m_mat.Scale(mapDoodadDef->m_scale);
+    mapDoodadDef->m_identity = C44Matrix();
+
+    CM2Model* model = World::s_m2Scene->CreateModel(fileName, 0x20);
+    mapDoodadDef->m_model = model;
+
+    if (model) {
+        model->m_fFlags |= 0x8000;
+        model->m_worldTransform = mapDoodadDef->m_mat;
+        mapDoodadDef->m_model->SetEventCallback(reinterpret_cast<void*>(CMapStaticEntity::ModelEventCallback), reinterpret_cast<uintptr_t>(mapDoodadDef));
+        mapDoodadDef->m_model->m_lightingCallback = CMapStaticEntity::ModelLightingCallback;
+        mapDoodadDef->m_model->m_lightingArg = mapDoodadDef;
+        mapDoodadDef->m_model->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+    }
+
+    return mapDoodadDef;
+}
+
+// VERIFY: ea13d7f6 manual
+// OFFSET: 0x007BEF40
+CMapDoodadDef* CMap::CreateDoodadDef(uint32_t doodadRef, SMODoodadDef* doodadDef, char* name, uint32_t key, C44Matrix* mat, uint16_t doodadSet) {
+    HASHKEY_DWORD hashKey = { key };
+    CMapDoodadDef* mapDoodadDef = CMap::doodadDefHash.Ptr(doodadRef, hashKey);
+
+    if (mapDoodadDef) {
+        return mapDoodadDef;
+    }
+
+    mapDoodadDef = CMap::AllocDoodadDef();
+    CMap::doodadDefHash.Insert(mapDoodadDef, doodadRef, hashKey);
+    CMap::doodadDefList.LinkToTail(mapDoodadDef);
+
+    mapDoodadDef->m_position = doodadDef->m_position;
+    mapDoodadDef->m_position *= *mat;
+    mapDoodadDef->m_scale = doodadDef->m_scale;
+    mapDoodadDef->m_sphere.c = mapDoodadDef->m_position;
+    mapDoodadDef->m_sphere.r = 0.0f;
+    mapDoodadDef->m_bbox.b = mapDoodadDef->m_position;
+    mapDoodadDef->m_bbox.t = mapDoodadDef->m_position;
+    mapDoodadDef->unk_016C = doodadSet;
+    mapDoodadDef->m_flags = MAPOBJ_FLAG_UNPLACED;
+
+    if (doodadDef->m_flags & 0x1000000) {
+        mapDoodadDef->m_flags = static_cast<MapObjFlag>(MAPOBJ_FLAG_PROJ_TEX | MAPOBJ_FLAG_UNPLACED);
+    }
+
+    mapDoodadDef->m_model = nullptr;
+    mapDoodadDef->m_mat = C44Matrix();
+    mapDoodadDef->m_mat.Translate(doodadDef->m_position);
+    mapDoodadDef->m_mat.Rotate(doodadDef->m_orientation);
+    mapDoodadDef->m_mat.Scale(mapDoodadDef->m_scale);
+    mapDoodadDef->m_identity = mapDoodadDef->m_mat;
+    mapDoodadDef->m_mat *= *mat;
+
+    CImVector limit;
+    *reinterpret_cast<uint32_t*>(&limit) = 112;
+    mapDoodadDef->AdjustLightmap(&doodadDef->m_color, &mapDoodadDef->m_m2DiffuseColor, limit, &mapDoodadDef->m_m2AmbientColor, 96);
+
+    CM2Model* model = World::s_m2Scene->CreateModel(name, 0x20);
+    mapDoodadDef->m_model = model;
+
+    if (model) {
+        model->m_fFlags |= 0x8000;
+        model->m_worldTransform = mapDoodadDef->m_mat;
+        mapDoodadDef->m_model->SetEventCallback(reinterpret_cast<void*>(CMapStaticEntity::ModelEventCallback), reinterpret_cast<uintptr_t>(mapDoodadDef));
+        mapDoodadDef->m_model->m_lightingCallback = CMapStaticEntity::ModelLightingCallback;
+        mapDoodadDef->m_model->m_lightingArg = mapDoodadDef;
+        mapDoodadDef->m_model->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+    }
+
+    return mapDoodadDef;
+}
+
+// VERIFY: fa44952a manual
 // OFFSET: 0x007BF460
 CMapObjDef* CMap::CreateMapObjDef(char* fileName, SMMapObjDef* mapObjectDef, C3Vector* center, bool cached) {
     CMapObjDef* mapObjDef;
 
-    if (cached && (mapObjDef = CMap::mapObjDefHash.Ptr(mapObjectDef->m_uniqueId, s_mapObjDefHashKey)) != nullptr) {
+    if (cached && (mapObjDef = CMap::mapObjDefHash.Ptr(mapObjectDef->m_uniqueId, CMap::s_mapObjDefHashKey)) != nullptr) {
         return mapObjDef;
     }
 
     mapObjDef = CMap::AllocMapObjDef();
 
     if (cached) {
-        CMap::mapObjDefHash.Insert(mapObjDef, mapObjectDef->m_uniqueId, s_mapObjDefHashKey);
+        CMap::mapObjDefHash.Insert(mapObjDef, mapObjectDef->m_uniqueId, CMap::s_mapObjDefHashKey);
     }
 
     mapObjDef->m_position.x = -mapObjectDef->m_position.z;
@@ -1371,7 +2479,7 @@ CMapObjDef* CMap::CreateMapObjDef(char* fileName, SMMapObjDef* mapObjectDef, C3V
     return mapObjDef;
 }
 
-// VERIFY: d875b6f9 manual
+// VERIFY: 7ff04955 manual
 // OFFSET: 0x007BF8B0
 void CMap::LoadWdt() {
     SFileImpl* file = nullptr;
@@ -1402,11 +2510,11 @@ void CMap::LoadWdt() {
         SFileReadFile(file, &def, sizeof(def), nullptr, nullptr, 0);
         def.m_uniqueId = CMap::uniqueId--;
 
-        CMapObjDef* mapObjDef = CMap::mapObjDefHash.Ptr(def.m_uniqueId, s_mapObjDefHashKey);
+        CMapObjDef* mapObjDef = CMap::mapObjDefHash.Ptr(def.m_uniqueId, CMap::s_mapObjDefHashKey);
 
         if (!mapObjDef) {
             mapObjDef = CMap::AllocMapObjDef();
-            CMap::mapObjDefHash.Insert(mapObjDef, def.m_uniqueId, s_mapObjDefHashKey);
+            CMap::mapObjDefHash.Insert(mapObjDef, def.m_uniqueId, CMap::s_mapObjDefHashKey);
 
             mapObjDef->m_position.x = -def.m_position.z;
             mapObjDef->m_position.y = -def.m_position.x;
@@ -1485,7 +2593,7 @@ void CMap::LoadWdt() {
     SFileCloseFile(file);
 }
 
-// VERIFY: 2b31b0e9 manual
+// VERIFY: f97c6181 manual
 // OFFSET: 0x007BFCE0
 void CMap::Load(const char* mapName, int32_t zoneID) {
     CMap::s_unk_CE049C = false;
@@ -1501,7 +2609,7 @@ void CMap::Load(const char* mapName, int32_t zoneID) {
     CMap::UpdateLight(CMap::s_mapLight);
     CMap::PurgeMaps();
     CMapObj::ClearCache(1);
-    CMap::PurgeUnkCache();
+    CMap::ClearAllFootprints();
 
     s_mapId = zoneID;
     CMap::bActive = 1;
@@ -1547,6 +2655,14 @@ CMapObj* CMap::AllocMapObj() {
     return mapObj;
 }
 
+// VERIFY: a3468102 manual
+// OFFSET: 0x007BFF70
+void CMap::FreeMapObj(CMapObj* mapObj) {
+    mapObj->m_asyncLoadLink.Unlink();
+    mapObj->~CMapObj();
+    ObjectFree(*CMap::mapObjHeap, mapObj->m_objectIndex);
+}
+
 // VERIFY: 3e380871 auto
 // OFFSET: 0x007BFFE0
 CMapObjGroup* CMap::AllocMapObjGroup() {
@@ -1561,6 +2677,14 @@ CMapObjGroup* CMap::AllocMapObjGroup() {
     mapObjGroup->m_objectIndex = memHandle;
 
     return mapObjGroup;
+}
+
+// VERIFY: 13962642 manual
+// OFFSET: 0x007C0030
+void CMap::FreeMapObjGroup(CMapObjGroup* mapObjGroup) {
+    mapObjGroup->m_asyncLoadLink.Unlink();
+    mapObjGroup->~CMapObjGroup();
+    ObjectFree(*CMap::mapObjGroupHeap, mapObjGroup->m_objectIndex);
 }
 
 // VERIFY: 8cfa8101 manual
@@ -1603,6 +2727,40 @@ CMapDoodadDef* CMap::AllocDoodadDef() {
     return doodadDef;
 }
 
+// VERIFY: ef01a812 manual
+// OFFSET: 0x007C0240
+void CMap::FreeDoodadDef(CMapDoodadDef* doodadDef) {
+    SI2::StopSound(&doodadDef->m_soundKitObject, 0, -1.0f, 1);
+    doodadDef->m_lameAssLink.Unlink();
+    CMap::doodadDefHash.Unlink(doodadDef);
+    uint32_t* heap = CMap::doodadDefHeap;
+    doodadDef->~CMapDoodadDef();
+    ObjectFree(*heap, doodadDef->m_objectIndex);
+}
+
+// VERIFY: d7c82155 manual
+// OFFSET: 0x007C02D0
+void CMap::FreeEntity(CMapEntity* entity) {
+    entity->m_lameAssLink.Unlink();
+    entity->~CMapEntity();
+    ObjectFree(*CMap::entityHeap, entity->m_objectIndex);
+}
+
+// VERIFY: 56cb0afe auto
+// OFFSET: 0x007C0340
+void CMap::FreeLight(CMapLight* light) {
+    light->~CMapLight();
+    ObjectFree(*CMap::lightHeap, light->m_objectIndex);
+}
+
+// VERIFY: eeef95f1 manual
+// OFFSET: 0x007C0370
+void CMap::FreeMapObjDefGroup(CMapObjDefGroup* mapObjDefGroup) {
+    mapObjDefGroup->m_lameAssLink.Unlink();
+    mapObjDefGroup->~CMapObjDefGroup();
+    ObjectFree(*CMap::mapObjDefGroupHeap, mapObjDefGroup->m_objectIndex);
+}
+
 // VERIFY: fe23a5b5 auto
 // OFFSET: 0x007C03E0
 CMapObjDef* CMap::AllocMapObjDef() {
@@ -1617,6 +2775,16 @@ CMapObjDef* CMap::AllocMapObjDef() {
     mapObjDef->m_objectIndex = memHandle;
 
     return mapObjDef;
+}
+
+// VERIFY: eb574028 manual
+// OFFSET: 0x007C0430
+void CMap::FreeMapObjDef(CMapObjDef* mapObjDef) {
+    mapObjDef->m_lameAssLink.Unlink();
+    CMap::mapObjDefHash.Unlink(mapObjDef);
+    uint32_t* heap = CMap::mapObjDefHeap;
+    mapObjDef->~CMapObjDef();
+    ObjectFree(*heap, mapObjDef->m_objectIndex);
 }
 
 // VERIFY: 37cad926 manual
@@ -1642,6 +2810,14 @@ CMapRenderChunk* CMap::AllocRenderChunk() {
     new (renderChunk) CMapRenderChunk();
 
     return renderChunk;
+}
+
+// VERIFY: 8d425b50 manual
+// OFFSET: 0x007C0610
+void CMap::FreeRenderChunk(CMapRenderChunk* renderChunk) {
+    renderChunk->m_renderChunkLink.Unlink();
+    renderChunk->~CMapRenderChunk();
+    CMap::s_mapRenderChunkFreeList.LinkToHead(renderChunk);
 }
 
 // VERIFY: d11dd1c9 auto
@@ -1807,10 +2983,10 @@ CMapAreaLow* CMap::AllocAreaLow() {
     return areaLow;
 }
 
-// VERIFY: 391a570d auto
+// VERIFY: 9da97e61 auto
 // OFFSET: 0x007C15F0
 void CMap::ClassifyStaticEntityLink(CMapStaticEntity* entity, CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup, uint32_t faceInfo, C3Vector* pos) {
-    CMapObjGroup* group = mapObjDef->m_owner->GetGroup(mapObjDefGroup->m_groupNum, false);
+    CMapObjGroup* group = mapObjDef->m_owner->GetGroup(mapObjDefGroup->m_groupNum, 0);
 
     if (!group) {
         entity->m_flags = static_cast<MapObjFlag>(entity->m_flags | MAPOBJ_FLAG_EXTERIOR);
@@ -1852,11 +3028,11 @@ bool CMap::LinkStaticEntityGetChunk(C3Vector& pos, float* outHeight, CMapChunk**
     return CMap::GetHeightTerrain(chunk, pos, cellX, cellY, outHeight);
 }
 
-// VERIFY: 4e801f8f manual
+// VERIFY: abd054b1 manual
 // OFFSET: 0x007C1DC0
 void CMap::LinkIntersectMapObjDefGroup(CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup, C3Vector& start, C3Vector& end, MapObjIntersectData* interiorHit, MapObjIntersectData* groundHit) {
     CMapObj* mapObj = mapObjDef->m_owner;
-    CMapObjGroup* group = mapObj->GetGroup(mapObjDefGroup->m_groupNum, false);
+    CMapObjGroup* group = mapObj->GetGroup(mapObjDefGroup->m_groupNum, 0);
 
     if (!group) {
         return;
@@ -1900,7 +3076,23 @@ void CMap::LinkIntersectMapObjDefGroup(CMapObjDef* mapObjDef, CMapObjDefGroup* m
         interiorHit->t = t;
         interiorHit->group = portalGroup;
         interiorHit->faceIndex = -1;
-        interiorHit->interior = !(mapObj->GetGroup(portalGroup->m_groupNum, false)->m_flags & 0x8);
+        interiorHit->interior = !(mapObj->GetGroup(portalGroup->m_groupNum, 0)->m_flags & 0x8);
+    }
+}
+
+// VERIFY: e5163286 manual
+// OFFSET: 0x007C1F20
+void CMap::FreeBaseObjLinksInBounds(CAaBox* box) {
+    for (CMapEntity* entity = CMap::entityList.Head(); entity; entity = CMap::entityList.Next(entity)) {
+        if (box->t.x >= entity->m_bbox.b.x && box->t.y >= entity->m_bbox.b.y && box->t.z >= entity->m_bbox.b.z && box->b.x <= entity->m_bbox.t.x && box->b.y <= entity->m_bbox.t.y && box->b.z <= entity->m_bbox.t.z) {
+            CMapBaseObjLink* link = entity->m_parentLinkList.Head();
+
+            while (link) {
+                CMapBaseObjLink* next = entity->m_parentLinkList.Next(link);
+                CMap::FreeBaseObjLink(link);
+                link = next;
+            }
+        }
     }
 }
 
@@ -2306,6 +3498,91 @@ void CMap::LinkStaticEntity(CMapStaticEntity* entity) {
     }
 }
 
+// VERIFY: 04f6c26e manual
+// OFFSET: 0x007C3150
+void CMap::PurgeMapObjDefGroup(CMapObjDefGroup* mapObjDefGroup) {
+    for (CMapBaseObjLink* link = mapObjDefGroup->m_doodadDefLinkList.Head(); link;) {
+        CMapBaseObjLink* next = mapObjDefGroup->m_doodadDefLinkList.Next(link);
+        CMapDoodadDef* doodadDef = static_cast<CMapDoodadDef*>(link->m_owner);
+        CMap::FreeBaseObjLink(link);
+
+        if (!(doodadDef->m_flags & 0x200)) {
+            CMapDoodadDef::Purge(doodadDef);
+        }
+
+        link = next;
+    }
+
+    for (CMapBaseObjLink* link = mapObjDefGroup->m_entityLinkList.Head(); link;) {
+        CMapBaseObjLink* next = mapObjDefGroup->m_entityLinkList.Next(link);
+        CMap::FreeBaseObjLink(link);
+        link = next;
+    }
+
+    for (CMapBaseObjLink* link = mapObjDefGroup->m_lightLinkList.Head(); link;) {
+        CMapBaseObjLink* next = mapObjDefGroup->m_lightLinkList.Next(link);
+        CMap::FreeBaseObjLink(link);
+        link = next;
+    }
+
+    for (CMapBaseObjLink* link = mapObjDefGroup->m_unkLinkList.Head(); link;) {
+        CMapBaseObjLink* next = mapObjDefGroup->m_unkLinkList.Next(link);
+        CMap::FreeBaseObjLink(link);
+        link = next;
+    }
+
+    CMap::FreeMapObjDefGroup(mapObjDefGroup);
+}
+
+// VERIFY: e0cd9ea4 manual
+// OFFSET: 0x007C3250
+void CMap::PurgeMapObjDef(CMapObjDef* mapObjDef) {
+    if (mapObjDef->m_refCount) {
+        return;
+    }
+
+    for (CMapBaseObjLink* link = mapObjDef->m_mapObjDefGroupLinkList.Head(); link;) {
+        CMapBaseObjLink* next = mapObjDef->m_mapObjDefGroupLinkList.Next(link);
+        CMapObjDefGroup* mapObjDefGroup = static_cast<CMapObjDefGroup*>(link->m_owner);
+        CMap::FreeBaseObjLink(link);
+        CMap::PurgeMapObjDefGroup(mapObjDefGroup);
+        link = next;
+    }
+
+    if (mapObjDef->m_defGroups.m_count == 0xFFFFFFFF) {
+        mapObjDef->m_defGroups.m_dynamic.m_count = 0;
+    } else {
+        mapObjDef->m_defGroups.m_count = 0;
+    }
+
+    for (uint32_t i = 0; i < mapObjDef->m_lightsArray.m_count; i++) {
+        if (mapObjDef->m_lightsArray.m_data[i]) {
+            CMap::DestroyLight(mapObjDef->m_lightsArray.m_data[i]);
+        }
+    }
+
+    mapObjDef->m_lightsArray.m_count = 0;
+    CMapObj::Delete(mapObjDef->m_owner);
+    mapObjDef->m_owner = nullptr;
+    CMap::FreeMapObjDef(mapObjDef);
+
+    DayNight::DNInfo* info = DayNight::GetInfo();
+
+    if (info->m_interiorMapObjDef == mapObjDef) {
+        info->m_interiorMapObjDef = nullptr;
+        info->m_interiorFogBlend = 0.0f;
+        info->m_interiorGroups.m_count = 0;
+    }
+}
+
+// VERIFY: ad81d8da auto
+// OFFSET: 0x007C3700
+void CMap::PurgeArea(CMapArea* area) {
+    CMap::m_areaTable[64 * area->m_index.y + area->m_index.x] = nullptr;
+    area->Purge();
+    CMap::FreeArea(area);
+}
+
 // VERIFY: e2dae8ec manual
 // OFFSET: 0x007C3730
 void CMap::PurgeMaps() {
@@ -2329,6 +3606,116 @@ void CMap::PurgeMaps() {
     }
 
     CMap::s_lowDetail.Purge();
+}
+
+// VERIFY: 7e85d0ed manual
+// OFFSET: 0x007D59B0
+bool CMap::LocateViewerMapObjs(C3Vector& start, C3Vector& end, float dist, CMapObjDef** outDefs, uint32_t* outGroups) {
+    float dists[2] = { dist, dist };
+    uint32_t slot = 0;
+
+    outDefs[0] = nullptr;
+    outDefs[1] = nullptr;
+    outGroups[1] = 0xFFFF;
+    outGroups[0] = 0xFFFF;
+    outGroups[3] = 0xFFFF;
+    outGroups[2] = 0xFFFF;
+
+    for (CMapObjDef* mapObjDef = CMap::mapObjDefHash.m_fulllist.Head(); mapObjDef; mapObjDef = CMap::mapObjDefHash.m_fulllist.Next(mapObjDef)) {
+        if (mapObjDef->m_flags & 0x20) {
+            continue;
+        }
+
+        if (mapObjDef->m_flags & 0x400) {
+            slot = 1;
+        }
+
+        CMapObj* mapObj = mapObjDef->m_owner;
+
+        if (!mapObjDef->TestAABox(start, end) || !mapObj) {
+            slot = 0;
+            continue;
+        }
+
+        C3Vector localStart = start * mapObjDef->m_invMat;
+        C3Vector localEnd = end * mapObjDef->m_invMat;
+
+        if (!mapObj->TestBounds(localStart, localEnd)) {
+            slot = 0;
+            continue;
+        }
+
+        uint32_t exterior = 0;
+
+        for (CMapBaseObjLink* link = mapObjDef->m_mapObjDefGroupLinkList.Head(); link; link = mapObjDef->m_mapObjDefGroupLinkList.Next(link)) {
+            CMapObjDefGroup* defGroup = static_cast<CMapObjDefGroup*>(link->m_owner);
+            CMapObjGroup* group = mapObj->GetGroup(defGroup->m_groupNum, 0);
+
+            if (!group || (group->m_flags & 0x410080) || !mapObj->TestGroupBounds(localStart, localEnd, defGroup->m_groupNum)) {
+                continue;
+            }
+
+            C3Segment seg;
+            seg.b = localStart;
+            seg.t = localEnd;
+            World::TriData::statusFlags = 0;
+            World::TriData::nBatches = 0;
+            World::TriData::faceIndexCursor = 0;
+            World::TriData::indexCursor = 0;
+            World::TriData::unk_CB7538 = 0;
+
+            World::TriData triData;
+
+            if (group->GetTris(seg, &dists[slot], 0, 0, &triData, mapObjDef)) {
+                exterior = (group->m_flags >> 3) & 1;
+                outDefs[slot] = mapObjDef;
+                outGroups[2 * slot] = defGroup->m_groupNum;
+                outGroups[2 * slot + 1] = 0xFFFF;
+            }
+        }
+
+        float portalT = 1.05f;
+        C3Segment seg;
+        seg.b = localStart;
+        seg.t = localEnd;
+        uint32_t portalGroups[2];
+
+        if (mapObj->VectorIntersectPortal(seg, &portalT, portalGroups, 0) && portalT - dists[slot] < 0.000099999997f) {
+            exterior = (mapObj->GetGroupInfo(portalGroups[0])->m_flags >> 3) & 1;
+            dists[slot] = portalT;
+            outDefs[slot] = mapObjDef;
+            outGroups[2 * slot] = portalGroups[0];
+
+            if (mapObj->GetGroupInfo(portalGroups[1])->m_flags & 8) {
+                outGroups[2 * slot + 1] = 0xFFFF;
+            } else {
+                outGroups[2 * slot + 1] = portalGroups[1];
+            }
+        }
+
+        if (exterior) {
+            outDefs[slot] = nullptr;
+        }
+
+        slot = 0;
+    }
+
+    if (outDefs[0]) {
+        return true;
+    }
+
+    if (!outDefs[1]) {
+        return false;
+    }
+
+    outDefs[0] = outDefs[1];
+    outGroups[0] = outGroups[2];
+    outGroups[1] = outGroups[3];
+    outDefs[1] = nullptr;
+    outGroups[2] = 0;
+    outGroups[3] = 0;
+
+    return true;
 }
 
 // VERIFY: 6db55b9e manual
@@ -2378,6 +3765,7 @@ CMapArea* CMap::PrepareArea(int32_t areaIndexX, int32_t areaIndexY) {
     return area;
 }
 
+// VERIFY: e1002a60 manual
 // OFFSET: 0x007D9B10
 CMapLight::CMapLight() {
     this->m_sphere.r = 0.0f;
@@ -2431,6 +3819,30 @@ void CMap::UpdateLightBounds(CMapLight* light) {
 void CMap::EnableLight(CMapLight* light) {
     light->m_flags = static_cast<MapObjFlag>(light->m_flags & ~0x20);
     light->m_light.SetVisible(1);
+}
+
+// VERIFY: c0ee5cb9 manual
+// OFFSET: 0x007D9D70
+void CMap::DestroyLight(CMapLight* light) {
+    CMapBaseObjLink* link = light->m_parentLinkList.Head();
+
+    while (link) {
+        CMapBaseObj* ref = link->m_ref;
+        CMapBaseObjLink* next = light->m_parentLinkList.Next(link);
+
+        if (ref) {
+            if (ref->m_type & 0x4) {
+                static_cast<CMapChunk*>(ref)->UpdateLights();
+            } else if (ref->m_type & 0x10) {
+                static_cast<CMapObjDefGroup*>(ref)->UpdateLights();
+            }
+        }
+
+        CMap::FreeBaseObjLink(link);
+        link = next;
+    }
+
+    CMap::FreeLight(light);
 }
 
 // VERIFY: 8d2bb286 auto

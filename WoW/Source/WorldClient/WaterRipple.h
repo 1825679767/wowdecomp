@@ -11,10 +11,18 @@ class CGxShader;
 class CWaterRipple {
     public:
     /* 0000 */ C3Vector m_position;
-    /* 000C */ uint8_t unk_000C[36];
+    /* 000C */ float m_rotation;
+    /* 0010 */ float m_size;
+    /* 0014 */ float m_growth;
+    /* 0018 */ float m_alpha;
+    /* 001C */ float m_maxAlpha;
+    /* 0020 */ float m_fadeIn;
+    /* 0024 */ float m_fadeOut;
+    /* 0028 */ float m_endTime;
+    /* 002C */ int32_t m_type;
     /* 0030 */ TSLink<CWaterRipple> m_link;
-    /* 0038 */ TSLink<CWaterRipple> unk_0038;
-    /* 0040 */ TSFixedArray<C3Vector> unk_0040;
+    /* 0038 */ TSLink<CWaterRipple> m_bucketLink;
+    /* 0040 */ TSFixedArray<C3Vector> m_verts;
     /* 004C */ uint32_t unk_004C;
 
     CWaterRipple();

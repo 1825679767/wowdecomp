@@ -103,6 +103,7 @@ static void SetVideoIdx(Hardware& hardware) {
     }
 }
 
+// VERIFY: b9267b57 manual
 // OFFSET: 0x0076B5A0
 static void ShowFatalMessageBox(int32_t stringID, const char* message) {
     Startup_StringsRec* titleRec = g_startup_StringsDB.GetRecord(1);
@@ -156,6 +157,7 @@ void ConsoleDetectSaveHardware(const Hardware& hardware, bool& changed) {
     SRegSaveValue("World of Warcraft\\Client", s_hwRegNames[3], 0, hardware.m_soundIdx);
 }
 
+// VERIFY: 7f8168dc manual
 // OFFSET: 0x0076BA30
 void ConsoleDetectDetectHardware(Hardware& hardware, bool& changed) {
     if (OsIsRemoteSession()) {

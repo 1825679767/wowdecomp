@@ -82,6 +82,7 @@ bool Blizzard::Util::HashMap<K, V>::Get(const K& key, V* value) {
     return true;
 }
 
+// VERIFY: caae72cc manual
 // OFFSET: 0x00433EC0
 template <class K, class V>
 uint32_t Blizzard::Util::HashMap<K, V>::CopyEntries(const Entry* entries, uint32_t count) {
@@ -120,6 +121,7 @@ bool Blizzard::Util::HashMap<K, V>::Insert(const K& key, const V& value) {
     return true;
 }
 
+// VERIFY: 28591a4c manual
 // OFFSET: 0x004362C0
 template <class K, class V>
 void Blizzard::Util::HashMap<K, V>::Resize(uint32_t capacity) {

@@ -36,7 +36,6 @@ target_link_libraries(Wow
         BlizzardCore
         ComSat
         ConsoleBase
-        DayNight
         Event
         FFX
         Frame

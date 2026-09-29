@@ -598,7 +598,7 @@ static bool AsyncFileReadHandlerTimeoutCallback(CVar* var, const char* oldValue,
     return static_cast<uint32_t>(SStrToInt(value) - 20) <= 230;
 }
 
-// VERIFY: b36b7f16 manual
+// VERIFY: aabf0f07 manual
 // OFFSET: 0x00403200
 bool TimingMethodCallback(CVar* var, const char* oldValue, const char* value, void* arg) {
     uint32_t method = atol(value);
@@ -634,6 +634,7 @@ bool LocaleCallback(CVar* var, const char* oldValue, const char* value, void* ar
     return true;
 }
 
+// VERIFY: 9951b118 manual
 // OFFSET: 0x00401B60
 void ClientRegisterConsoleCommands() {
     ConsoleCommandRegister("reloadUI", CCommand_ReloadUI, CATEGORY_GRAPHICS, nullptr);

@@ -3724,7 +3724,7 @@ M2BatchRange::M2BatchRange() {
     this->m_last = 0;
 }
 
-// VERIFY: fd8a326d manual
+// VERIFY: 8d9cac5e manual
 // OFFSET: 0x0082BE60
 CM2Model::CM2Model() {
     this->unk_0088 = 0.0f;
@@ -3819,7 +3819,7 @@ CM2Model::CM2Model() {
     this->unk_0164.y = 0.0f;
     this->unk_0164.z = 0.0f;
     this->m_frameOfReference = nullptr;
-    this->unk_0178 = 1.0f;
+    this->m_fadeAlpha = 1.0f;
     this->unk_017C = 1.0f;
     this->unk_0180 = 1.0f;
     this->unk_0184 = 1.0f;
@@ -4673,7 +4673,7 @@ int32_t CM2Model::HasDeferredSequence(uint16_t boneIndex, bool primary) {
     return 0;
 }
 
-// VERIFY: c2c99d12 manual
+// VERIFY: 44c58c4a manual
 // OFFSET: 0x0082E140
 void CM2Model::AnimateMTSimple(const C44Matrix* view, const C3Vector& diffuse, const C3Vector& emissive, float alpha, float alpha2) {
     uint32_t flags = this->m_fFlags;
@@ -4694,11 +4694,11 @@ void CM2Model::AnimateMTSimple(const C44Matrix* view, const C3Vector& diffuse, c
     }
 
     if (data->m_flags & 4) {
-        this->unk_0198 = this->unk_0178;
+        this->unk_0198 = this->m_fadeAlpha;
         this->m_diffuseColor.x = this->unk_0180;
         this->m_diffuseColor.y = this->unk_0184;
         this->m_diffuseColor.z = this->unk_0188;
-        this->m_alpha = this->unk_017C * this->unk_0178;
+        this->m_alpha = this->unk_017C * this->m_fadeAlpha;
         this->m_emissiveColor.x = this->unk_018C;
         this->m_emissiveColor.y = this->unk_0190;
         this->m_emissiveColor.z = this->unk_0194;
@@ -4713,12 +4713,12 @@ void CM2Model::AnimateMTSimple(const C44Matrix* view, const C3Vector& diffuse, c
         uint32_t current = this->m_fFlags;
 
         if (current & 0x100000) {
-            this->unk_0198 = this->unk_0178;
+            this->unk_0198 = this->m_fadeAlpha;
         } else {
-            this->unk_0198 = alpha * this->unk_0178;
+            this->unk_0198 = alpha * this->m_fadeAlpha;
         }
 
-        this->m_alpha = this->unk_017C * alpha2 * this->unk_0178;
+        this->m_alpha = this->unk_017C * alpha2 * this->m_fadeAlpha;
 
         if (!(current & 0x80000)) {
             this->m_emissiveColor.x = this->m_emissiveColor.x + emissive.x;
@@ -5028,7 +5028,7 @@ void CM2Model::GetCollisionFacets(const CAaBox& box, const C44Matrix& transform,
     }
 }
 
-// VERIFY: d098b74b manual
+// VERIFY: 69e3d82c manual
 // OFFSET: 0x0082F0F0
 void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C3Vector& emissive, float alpha, float alpha2) {
     uint32_t flags = this->m_fFlags;
@@ -5049,11 +5049,11 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
     }
 
     if (data->m_flags & 4) {
-        this->unk_0198 = this->unk_0178;
+        this->unk_0198 = this->m_fadeAlpha;
         this->m_diffuseColor.x = this->unk_0180;
         this->m_diffuseColor.y = this->unk_0184;
         this->m_diffuseColor.z = this->unk_0188;
-        this->m_alpha = this->unk_017C * this->unk_0178;
+        this->m_alpha = this->unk_017C * this->m_fadeAlpha;
         this->m_emissiveColor.x = this->unk_018C;
         this->m_emissiveColor.y = this->unk_0190;
         this->m_emissiveColor.z = this->unk_0194;
@@ -5068,12 +5068,12 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
         uint32_t current = this->m_fFlags;
 
         if (current & 0x100000) {
-            this->unk_0198 = this->unk_0178;
+            this->unk_0198 = this->m_fadeAlpha;
         } else {
-            this->unk_0198 = alpha * this->unk_0178;
+            this->unk_0198 = alpha * this->m_fadeAlpha;
         }
 
-        this->m_alpha = this->unk_017C * alpha2 * this->unk_0178;
+        this->m_alpha = this->unk_017C * alpha2 * this->m_fadeAlpha;
 
         if (!(current & 0x80000)) {
             this->m_emissiveColor.x = emissive.x + this->m_emissiveColor.x;
@@ -6176,7 +6176,7 @@ C44Matrix CM2Model::GetEventWorldTransform(uint32_t id) {
     return transform;
 }
 
-// VERIFY: eb8a0d91 manual
+// VERIFY: cee031ed manual
 // OFFSET: 0x00831990
 void CM2Model::AnimateSM() {
     CM2Scene* scene = this->m_scene;
@@ -6191,7 +6191,7 @@ void CM2Model::AnimateSM() {
     }
 
     *this->m_boneMatrices = this->m_worldTransform * scene->m_view;
-    this->m_alpha = this->unk_017C * this->unk_0178;
+    this->m_alpha = this->unk_017C * this->m_fadeAlpha;
 
     M2Data* data = this->m_shared->m_data;
 
@@ -7864,6 +7864,7 @@ CM2Lighting::CM2Lighting(const CAaSphere& sphere) {
     this->Initialize(nullptr, sphere);
 }
 
+// VERIFY: 8535c10a manual
 // OFFSET: 0x007B0F10
 CM2Lighting::CM2Lighting(const C3Vector& position) {
     this->m_sphere4.c.x = 0.0f;

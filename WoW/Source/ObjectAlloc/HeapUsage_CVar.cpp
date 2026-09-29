@@ -7,7 +7,7 @@
 // STATIC: 0x00B4AFBC
 CVar* s_cvHeapAllocTracking;
 
-// VERIFY: 6d10baa8 manual
+// VERIFY: 030f8411 manual
 // OFFSET: 0x004D2780
 bool ChangeHeapAllocTracking(CVar* var, const char* oldValue, const char* value, void* arg) {
     if (SStrToInt(value)) {

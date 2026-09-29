@@ -135,3 +135,8 @@ void Liquid::CRenderer::Flush(const C3Vector& cameraPos, uint32_t pass) {
         }
     }
 }
+
+// VERIFY: 520282aa manual
+// OFFSET: 0x005EEB70
+void Liquid::CRenderer::Validate() {
+}

@@ -8,6 +8,8 @@
 struct C3Segment {
     /* 0000 */ C3Vector b;
     /* 000C */ C3Vector t;
+
+    C3Vector Lerp(float t) const;
 };
 
 #endif

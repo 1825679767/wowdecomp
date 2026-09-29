@@ -456,7 +456,7 @@ static bool BuildDataFileName(int32_t directory, char* buffer, uint32_t size, co
     return true;
 }
 
-// VERIFY: c54e880e manual
+// VERIFY: 4075680a manual
 // OFFSET: 0x00402B90
 bool CheckDataFilesExist() {
     char installPath[1024] = {};
@@ -590,7 +590,7 @@ void ClientPostClose(int32_t reason) {
     EventPostClose();
 }
 
-// VERIFY: 47b44380 manual
+// VERIFY: a5f6adde manual
 // OFFSET: 0x004033E0
 static void LogRealmInfo(char* buffer, uint32_t size) {
     REALM_INFO* realm = ClientServices::GetSelectedRealm();
@@ -658,6 +658,7 @@ static void SetInstallPath() {
     }
 }
 
+// VERIFY: a6442131 manual
 // OFFSET: 0x00403600
 static void LoadMFIL(const char* file) {
     Blizzard::Time::GetElapsedSinceStart(true);
@@ -842,6 +843,7 @@ static void LogZoneInfo(CGObject_C* object, char* buffer, uint32_t size) {
     SStrPack(buffer, "\r\n", size);
 }
 
+// VERIFY: 8bee7003 manual
 // OFFSET: 0x00404B80
 int32_t STORMAPI WowLogHeader(char* buffer, uint32_t bufferchars) {
     SStrPrintf(buffer, bufferchars, "WoWBuild: %d\r\n", 12340);

@@ -428,7 +428,7 @@ int32_t WowClientDB_RLE<T>::GetRecordByIndex(int32_t index, T* rec) const {
 }
 
 // VERIFY: fad9b6d0 auto
-// OFFSET: [0x004CFD20, 0x004CFD90]
+// OFFSET: [0x004CFD20, 0x004CFD90, 0x007EB210]
 template <class T>
 int32_t WowClientDB_RLE<T>::GetRecord(int32_t id, T* rec) const {
     if (id < this->m_minID || id > this->m_maxID) {

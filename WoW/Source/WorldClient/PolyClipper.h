@@ -3,33 +3,68 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Tempest/C3Vector.h"
 
-class PCResultsIterator {
-    public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint8_t unk_0014;
-};
+class C4Plane;
+class PCResultsIterator;
 
 class PolyClipper {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint8_t unk_0014[8];
-    /* 001C */ uint32_t unk_001C;
-    /* 0020 */ uint8_t unk_0020[48];
-    /* 0050 */ uint8_t unk_0050;
-    /* 0051 */ uint8_t unk_0051[1519];
-    /* 0640 */ uint32_t unk_0640;
-    /* 0644 */ uint32_t unk_0644;
-    /* 0648 */ uint32_t unk_0648;
-    /* 064C */ uint32_t unk_064C;
+    class PCDataProxy {
+        public:
+        /* 0000 */ mutable void* m_data;
+        /* 0004 */ const PCDataProxy* m_a;
+        /* 0008 */ const PCDataProxy* m_b;
+        /* 000C */ float m_t;
+
+        void* GetData(void* (*lerp)(const void*, const void*, float)) const;
+    };
+
+    class PCVertex {
+        public:
+        /* 0000 */ C3Vector m_pos;
+        /* 000C */ PCDataProxy m_proxy;
+        /* 001C */ int32_t m_edges[2];
+        /* 0024 */ uint32_t m_stamp;
+        /* 0028 */ float m_dist;
+    };
+
+    class PCEdge {
+        public:
+        /* 0000 */ int32_t m_verts[2];
+        /* 0008 */ bool m_clipped;
+    };
+
+    /* 0000 */ PCVertex m_verts[32];
+    /* 0580 */ PCEdge m_edges[16];
+    /* 0640 */ int32_t m_vertCount;
+    /* 0644 */ int32_t m_edgeCount;
+    /* 0648 */ uint32_t m_stamp;
+    /* 064C */ int32_t m_firstEdge;
+
+    PolyClipper();
+    ~PolyClipper();
+    void AddVertex(const C3Vector& pos, const void* data);
+    void Begin();
+    int32_t Clip(const C4Plane& plane, int32_t side);
+    void End();
+    PCResultsIterator GetResults(void* (*lerp)(const void*, const void*, float)) const;
+};
+
+class PCResultsIterator {
+    public:
+    /* 0000 */ const PolyClipper* m_clipper;
+    /* 0004 */ void* (*m_lerp)(const void*, const void*, float);
+    /* 0008 */ int32_t m_front;
+    /* 000C */ int32_t m_back;
+    /* 0010 */ uint32_t m_step;
+    /* 0014 */ bool m_finished;
+
+    PCResultsIterator(const PolyClipper* clipper, void* (*lerp)(const void*, const void*, float));
+    ~PCResultsIterator();
+    void GetVertex(C3Vector& pos, const void*& data) const;
+    bool HasFinished() const;
+    void Next();
 };
 
 #endif

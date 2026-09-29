@@ -6,10 +6,10 @@
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00D4505C
-CDataAllocator Liquid::s_unk_D4505C(4, 8);
+CDataAllocator Liquid::s_unk_D4505C(sizeof(Liquid::CMaterialProcWaterFFP), 8);
 
 // STATIC: 0x00D45048
-CDataAllocator Liquid::s_unk_D45048(4, 8);
+CDataAllocator Liquid::s_unk_D45048(sizeof(Liquid::CMaterialProcWater), 8);
 
 // STATIC: 0x00D44C34
 int32_t Liquid::CMaterialProcWater::s_refCount;

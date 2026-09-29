@@ -157,7 +157,7 @@ void ConsoleGxOverride(const char* list) {
     }
 }
 
-// VERIFY: 79b7ef58 manual
+// VERIFY: 5b8b21e9 manual
 // OFFSET: 0x005EEB70
 void __fastcall StereoChangedCallback() {
 }
@@ -190,6 +190,7 @@ void ConsoleDeviceDestroy() {
     GxLogClose();
 }
 
+// VERIFY: 9ae0e177 manual
 // OFFSET: 0x00769E10
 void ValidateFormatMonitor(CGxFormat& format) {
     static C2iVector s_resolutions[] = {
@@ -305,6 +306,7 @@ void RemoveConsoleDeviceDefaultCallback(void (*callback)(OPTION_PAGE page)) {
     }
 }
 
+// VERIFY: 9ac5dfc9 manual
 // OFFSET: 0x0076AB80
 void ConsoleDeviceInitialize(const char* title, bool a2, bool a3) {
     GxLogOpen();

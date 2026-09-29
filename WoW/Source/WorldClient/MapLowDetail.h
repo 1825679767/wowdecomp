@@ -23,8 +23,7 @@ class CMapAreaLow {
     /* 0040 */ uint32_t m_indexCount;
     /* 0044 */ int16_t* m_heights;
     /* 0048 */ uint16_t* m_holes;
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050;
+    /* 004C */ TSLink<CMapAreaLow> m_horizonLink;
     /* 0054 */ FVBBList::Block* m_block;
     /* 0058 */ uint32_t unk_0058;
 
@@ -41,6 +40,8 @@ class CMapLowDetail {
     /* 0014 */ uint32_t* m_areaOffsets;
     /* 0018 */ CMapAreaLow* m_areas [4096];
     /* 4018 */ TSGrowableArray<CMapObjDef*> m_mapObjDefList;
+
+    void CullHorizonAreas(const C3Vector* pos);
 
     void Load(const char* mapPath, const char* mapName);
     void Purge();

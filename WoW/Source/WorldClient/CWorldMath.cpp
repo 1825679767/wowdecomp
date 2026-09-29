@@ -1,8 +1,19 @@
 #include "CWorldMath.h"
+#include <cstring>
+#include <cfloat>
+#include <cmath>
+#include <cmath>
+#include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C33Matrix.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
+#include "Engine/Source/Tempest/C4Plane.h"
 #include "Engine/Source/Tempest/CAaBox.h"
-#include <cmath>
+
+// STATIC: 0x00D39650
+static int32_t s_clipSide[32];
+
+// STATIC: 0x00D396D0
+static float s_clipDist[32];
 
 // VERIFY: a0e6ed09 manual
 // OFFSET: 0x007A61D0
@@ -132,4 +143,128 @@ bool CWorldMath::VectorIntersectAABox2(CAaBox& box, C3Vector& start, C3Vector& e
     }
 
     return true;
+}
+
+// VERIFY: e47b9bbd manual
+// OFFSET: 0x007F9650
+void CWorldMath::ClipVertexListToPlane(const C3Vector* verts, uint32_t count, C3Vector* out, uint32_t& outCount, const C4Plane& plane, float epsilon, int32_t keepCoplanar) {
+    uint32_t sideCount[3] = { 0, 0, 0 };
+    uint32_t i;
+
+    for (i = 0; i < count; i++) {
+        float dist = verts[i].z * plane.n.z + verts[i].x * plane.n.x + verts[i].y * plane.n.y + plane.d;
+        s_clipDist[i] = dist;
+
+        if (dist > epsilon) {
+            s_clipSide[i] = 1;
+        } else if (-epsilon <= dist) {
+            s_clipSide[i] = 0;
+        } else {
+            s_clipSide[i] = 2;
+        }
+
+        sideCount[s_clipSide[i]]++;
+    }
+
+    s_clipDist[i] = s_clipDist[0];
+    s_clipSide[i] = s_clipSide[0];
+
+    if (!sideCount[1]) {
+        if (sideCount[2]) {
+            outCount = 0;
+        } else if (keepCoplanar) {
+            memcpy(out, verts, sizeof(C3Vector) * count);
+            outCount = count;
+        } else {
+            outCount = 0;
+        }
+
+        return;
+    }
+
+    if (!sideCount[2]) {
+        memcpy(out, verts, sizeof(C3Vector) * count);
+        outCount = count;
+        return;
+    }
+
+    outCount = 0;
+
+    for (i = 0; i < count; i++) {
+        int32_t side = s_clipSide[i];
+
+        if (!side) {
+            out[outCount++] = verts[i];
+            continue;
+        }
+
+        if (side == 1) {
+            out[outCount++] = verts[i];
+        }
+
+        int32_t nextSide = s_clipSide[i + 1];
+
+        if (!nextSide || nextSide == side) {
+            continue;
+        }
+
+        float t = s_clipDist[i] / (s_clipDist[i] - s_clipDist[i + 1]);
+        const C3Vector& a = verts[i];
+        const C3Vector& b = verts[(i + 1) % count];
+        C3Vector& point = out[outCount++];
+        point.x = (b.x - a.x) * t + a.x;
+        point.y = (b.y - a.y) * t + a.y;
+        point.z = t * (b.z - a.z) + a.z;
+    }
+}
+
+// VERIFY: 42b10466 manual
+// OFFSET: 0x007F9BF0
+float CWorldMath::DistanceSquaredFromEdge(const C2Vector& a, const C2Vector& b, const C2Vector& point) {
+    float px = point.x - a.x;
+    float py = point.y - a.y;
+    float ex = b.x - a.x;
+    float ey = b.y - a.y;
+    float t = (ey * py + ex * px) / (ey * ey + ex * ex);
+
+    if (t < 0.0f) {
+        return px * px + py * py;
+    }
+
+    float dx;
+    float dy;
+
+    if (t <= 1.0f) {
+        dy = point.y - (ey * t + a.y);
+        dx = point.x - (ex * t + a.x);
+    } else {
+        dy = point.y - b.y;
+        dx = point.x - b.x;
+    }
+
+    return dx * dx + dy * dy;
+}
+
+// VERIFY: bd915e8b manual
+// OFFSET: 0x007F9C90
+int32_t CWorldMath::PointInPolygon(int32_t count, const C2Vector* points, const C2Vector& point, float* distance) {
+    float nearest = FLT_MAX;
+    int32_t inside = 0;
+
+    for (int32_t i = 0; i < count; i++) {
+        const C2Vector& current = points[i];
+        const C2Vector& previous = points[i ? i - 1 : count - 1];
+        float edge = CWorldMath::DistanceSquaredFromEdge(current, previous, point);
+
+        if (nearest > edge) {
+            nearest = edge;
+        }
+
+        if (((point.y > current.y && point.y <= previous.y) || (point.y > previous.y && point.y <= current.y)) && (point.y - current.y) / (previous.y - current.y) * (previous.x - current.x) + current.x < point.x) {
+            inside = !inside;
+        }
+    }
+
+    *distance = sqrt(nearest);
+    return inside;
 }

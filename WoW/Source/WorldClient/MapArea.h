@@ -39,6 +39,8 @@ class CMapArea : public CMapBaseObj {
     static void Initialize();
     static void* AllocAsyncLoadBuffer(int32_t fileSize);
     static void AsyncCallback(void* param);
+    static void FreeAsyncLoadBuffer(void* buffer, int32_t size);
+    static void FreeAsyncObject(CAsyncObject* object);
 
     /* 0024 */ CAaBox m_bounds;
     /* 003C */ C3Vector m_topLeft2;
@@ -73,7 +75,7 @@ class CMapArea : public CMapBaseObj {
     void ProcessIffChunks();
     CMapChunk* PrepareChunk(int32_t chunkX, int32_t chunkY);
     void PurgeChunks(CiRect* chunkRect);
-    void PurgeChunk(CMapChunk* chunk);
+    static void PurgeChunk(CMapChunk* chunk);
     void Purge();
     void Update(int32_t addToScene, CiRect* chunkRect);
     void BatchChunks(const C2iVector& pos);

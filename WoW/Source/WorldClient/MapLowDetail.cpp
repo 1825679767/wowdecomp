@@ -2,20 +2,24 @@
 #include <cmath>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Tempest/CMath.h"
+#include "WoW/Source/WorldClient/CWorldOcclusion.h"
 #include "WoW/Source/WorldClient/FVBBList.h"
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WorldClient/MapArea.h"
 #include "WoW/Source/WorldClient/MapObj.h"
 #include "WoW/Source/WorldClient/MapObjDef.h"
+#include "WoW/Source/WorldClient/World.h"
 
 // VERIFY: pending
-// VERIFY: a9a4e286 manual
+// VERIFY: 3763adce auto
 // OFFSET: 0x007C06E0
 CMapAreaLow::CMapAreaLow() {
+    this->m_sphere.r = 0.0f;
     this->m_index.x = 0;
     this->m_index.y = 0;
-    this->unk_004C = 0;
-    this->unk_0050 = 0;
+    this->m_horizonLink.m_prevLink = nullptr;
+    this->m_horizonLink.m_next = nullptr;
     this->m_indexCount = 0;
     this->m_block = nullptr;
     this->unk_0058 = 0;
@@ -39,6 +43,62 @@ void CMapLowDetail::Purge() {
 }
 
 // VERIFY: pending
+// VERIFY: 3b80ddc7 manual
+// OFFSET: 0x007CC0B0
+void CMapLowDetail::CullHorizonAreas(const C3Vector* pos) {
+    float y = -(pos->y - 17066.666f);
+    float x = -(pos->x - 17066.666f) * 0.029999999f;
+    int32_t row = CMath::fint_(x - 0.5f);
+    y = y * 0.029999999f;
+    int32_t col = CMath::fint_(y - 0.5f);
+    int32_t radius = static_cast<int32_t>(static_cast<int64_t>(World::s_horizonFarClipScale * World::s_farClip * 0.030000001f));
+
+    int32_t minCol = ((col - radius) >> 4) - 2;
+    int32_t minRow = ((row - radius) >> 4) - 2;
+    int32_t maxCol = ((col + radius) >> 4) + 2;
+    int32_t maxRow = ((radius + row) >> 4) + 2;
+
+    if (minRow < 0) {
+        minRow = 0;
+    }
+
+    if (minCol < 0) {
+        minCol = 0;
+    }
+
+    if (maxCol >= 64) {
+        maxCol = 63;
+    }
+
+    if (maxRow >= 64) {
+        maxRow = 63;
+    }
+
+    for (int32_t r = minRow; r <= maxRow; r++) {
+        for (int32_t c = minCol; c <= maxCol; c++) {
+            CMapAreaLow* area = this->m_areas[64 * r + c];
+
+            if (!area || CWorldScene::FrustumCull(&area->m_bbox) || CWorldOcclusion::QueryVolumes(&area->m_sphere)) {
+                continue;
+            }
+
+            if (World::s_farClip > 300.0f && CWorldOcclusion::QueryBuffer(&area->m_bbox, 40)) {
+                continue;
+            }
+
+            CWorldScene::AddHorizonChunk(area);
+        }
+    }
+
+    for (uint32_t i = 0; i < this->m_mapObjDefList.Count(); i++) {
+        CMapObjDef* def = this->m_mapObjDefList.m_data[i];
+
+        if (def->m_owner->m_isGroupLoaded && !CWorldScene::FrustumCull(&def->m_bbox) && !CWorldOcclusion::QueryVolumes(&def->m_sphere)) {
+            CWorldScene::AddHorizonMapObjDef(def);
+        }
+    }
+}
+
 // VERIFY: ba76c774 manual
 // OFFSET: 0x007CC310
 void CMapLowDetail::Load(const char* mapPath, const char* mapName) {

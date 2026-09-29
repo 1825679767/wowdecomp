@@ -1,4 +1,10 @@
 #include "MapObjGroup.h"
+#include "WoW/Source/WorldClient/Map.h"
+#include "Engine/Source/Tempest/CFacet.h"
+#include <cstring>
+#include "Engine/Source/Gx/CGxBuf.h"
+#include "Engine/Source/ShaderEffect/ShaderEffect.h"
+#include "WoW/Source/WorldClient/MapObj.h"
 #include <cmath>
 #include <malloc.h>
 #include "Engine/Source/Tempest/C2iVector.h"
@@ -13,6 +19,7 @@
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WorldClient/MapObjDef.h"
 #include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Services/AsyncFile.h"
 
 // STATIC: 0x00AEEE58
 VBBList CMapObjGroup::vertexVBList;
@@ -21,7 +28,277 @@ VBBList CMapObjGroup::vertexVBList;
 VBBList CMapObjGroup::indexVBList;
 
 // STATIC: 0x00AEEEA8
-TSExplicitList<CMapObjGroup::VertArray, offsetof(CMapObjGroup::VertArray, m_link)> CMapObjGroup::s_unk_AEEEA8;
+TSExplicitList<CMapObjGroup::VertArray, offsetof(CMapObjGroup::VertArray, m_link)> CMapObjGroup::s_freeVertArrays;
+
+// STATIC: 0x00D25BF8
+uint16_t BspQuery::testFaces[8192];
+
+// STATIC: 0x00D29BF8
+uint16_t BspQuery::hitFaces[8192];
+
+// STATIC: 0x00D2DBF8
+uint32_t BspQuery::testFaceSub;
+
+// STATIC: 0x00D2DBFC
+uint32_t BspQuery::hitFaceSub;
+
+// STATIC: 0x00CB7528
+uint32_t World::TriData::statusFlags;
+
+// STATIC: 0x00CB752C
+uint32_t World::TriData::nBatches;
+
+// STATIC: 0x00CB7530
+uint32_t World::TriData::faceIndexCursor;
+
+// STATIC: 0x00CB7534
+uint32_t World::TriData::indexCursor;
+
+// STATIC: 0x00CB7538
+uint32_t World::TriData::unk_CB7538;
+
+// STATIC: 0x00CB7540
+uint16_t World::TriData::faceIndexPool[0x4000];
+
+// STATIC: 0x00CBF540
+uint16_t World::TriData::indexPool[0xC000];
+
+// STATIC: 0x00CD8080
+World::TriData::Batch World::TriData::batches[32];
+
+// VERIFY: 23ad3913 auto
+// OFFSET: 0x00431F30
+int32_t CMapObjGroup::GetLiquidType() const {
+    return this->m_liquidType;
+}
+
+// OFFSET: 0x007C6C30
+void BspQuery_Segment::operator()(uint16_t face) {
+    uint16_t polyBits = *reinterpret_cast<const uint16_t*>(&this->m_faces[face]);
+
+    if (this->m_faceIgnoreFlags & polyBits) {
+        return;
+    }
+
+    uint8_t materialId = this->m_faces[face].m_materialId;
+    uint16_t ignoreMask = (materialId == 0xFF || !this->m_materials[materialId].m_blendMode) ? 0x200 : 0x100;
+
+    if (this->m_faceIgnoreFlags & ignoreMask) {
+        return;
+    }
+
+    if (BspQuery::testFaceSub >= 0x2000) {
+        if (this->m_overflowFlags) {
+            *this->m_overflowFlags |= 1;
+        }
+
+        return;
+    }
+
+    BspQuery::testFaces[BspQuery::testFaceSub++] = face;
+    this->m_faces[face].m_flags |= 0x80;
+
+    float t = 0.0f;
+
+    if (!NTempest::Intersect(this->m_ray, this->m_vertexList, &this->m_indices[3 * face], &t, nullptr, 0.0020000001f)) {
+        return;
+    }
+
+    if (t < 0.0f || t > this->m_maxT) {
+        return;
+    }
+
+    this->m_maxT = t;
+    BspQuery::hitFaces[0] = face;
+    BspQuery::hitFaceSub = 1;
+    *this->m_hitT = t * this->m_oosegMag;
+
+    if (*this->m_hitT > this->m_origHitT) {
+        *this->m_hitT = this->m_origHitT;
+    }
+}
+
+// VERIFY: c5ba0518 manual
+// OFFSET: 0x007C6D50
+bool BspQuery_Segment::GetFaceIndicesUsingCache(const CAaBsp& aaBsp, const CAaBspNode* node) {
+    if (!g_BspDigestCache) {
+        return false;
+    }
+
+    CAaBspNodeDigest* digest = g_BspDigestCache->GetDigest(aaBsp, node, this->m_faces, this->m_vertexList, this->m_indices);
+
+    if (!digest) {
+        return false;
+    }
+
+    float maxX = this->m_seg.t.x;
+    float maxY = this->m_seg.t.y;
+    float minX = this->m_seg.b.x;
+    float maxZ = this->m_seg.t.z;
+
+    if (minX > maxX) {
+        minX = this->m_seg.t.x;
+        maxX = this->m_seg.b.x;
+    }
+
+    float minY = this->m_seg.b.y;
+
+    if (minY > maxY) {
+        minY = this->m_seg.t.y;
+        maxY = this->m_seg.b.y;
+    }
+
+    float minZ = this->m_seg.b.z;
+
+    if (minZ > maxZ) {
+        minZ = this->m_seg.t.z;
+        maxZ = this->m_seg.b.z;
+    }
+
+    minX -= 0.0099999998f;
+    maxX += 0.0099999998f;
+    minY -= 0.0099999998f;
+    maxY += 0.0099999998f;
+    minZ -= 0.0099999998f;
+    maxZ += 0.0099999998f;
+
+    uint8_t outcodes[450];
+
+    for (uint32_t i = 0; i < digest->m_nVertices; i++) {
+        const C3Vector& vertex = digest->m_vertices[i];
+        uint8_t code = 0;
+
+        if (minX > vertex.x) {
+            code = 0x20;
+        }
+
+        if (maxX < vertex.x) {
+            code |= 0x10;
+        }
+
+        if (minY > vertex.y) {
+            code |= 0x8;
+        }
+
+        if (maxY < vertex.y) {
+            code |= 0x4;
+        }
+
+        if (minZ > vertex.z) {
+            code |= 0x2;
+        }
+
+        if (maxZ < vertex.z) {
+            code |= 0x1;
+        }
+
+        outcodes[i] = code;
+    }
+
+    for (uint32_t i = 0; i < digest->m_nFaces; i++) {
+        uint16_t ignore = this->m_faceIgnoreFlags;
+        uint16_t face = digest->m_faceIndices[i];
+
+        if (ignore & digest->m_faceFlags[i]) {
+            continue;
+        }
+
+        SMOPoly& poly = this->m_faces[face];
+
+        if (ignore & poly.m_flags) {
+            continue;
+        }
+
+        uint16_t ignoreMask = (poly.m_materialId == 0xFF || !this->m_materials[poly.m_materialId].m_blendMode) ? 0x200 : 0x100;
+
+        if (ignore & ignoreMask) {
+            continue;
+        }
+
+        if (BspQuery::testFaceSub >= 0x2000) {
+            if (this->m_overflowFlags) {
+                *this->m_overflowFlags |= 1;
+            }
+
+            break;
+        }
+
+        BspQuery::testFaces[BspQuery::testFaceSub++] = face;
+        poly.m_flags |= 0x80;
+
+        const uint16_t* verts = &digest->m_faceVertexIndices[3 * i];
+
+        if (outcodes[verts[0]] & outcodes[verts[1]] & outcodes[verts[2]] & 0x3F) {
+            continue;
+        }
+
+        float t = 0.0f;
+
+        if (!NTempest::Intersect(this->m_ray, digest->m_vertices, verts, &t, nullptr, 0.0020000001f)) {
+            continue;
+        }
+
+        if (t < 0.0f || t > this->m_maxT) {
+            continue;
+        }
+
+        this->m_maxT = t;
+        BspQuery::hitFaces[0] = face;
+        BspQuery::hitFaceSub = 1;
+        *this->m_hitT = t * this->m_oosegMag;
+
+        if (*this->m_hitT > this->m_origHitT) {
+            *this->m_hitT = this->m_origHitT;
+        }
+    }
+
+    return true;
+}
+
+// VERIFY: e3cbf054 manual
+// OFFSET: 0x007C75E0
+void CMapObjGroup::AsyncFailedCallback(CAsyncObject* object) {
+    void* buffer = object->m_buffer;
+    AsyncFileReadDestroyObject(object);
+    SMemFree(buffer, __FILE__, __LINE__, 0);
+}
+
+// VERIFY: 1ac7bf30 manual
+// OFFSET: 0x007C7610
+BspQuery::~BspQuery() {
+    while (BspQuery::testFaceSub) {
+        BspQuery::testFaceSub--;
+        this->m_faces[BspQuery::testFaces[BspQuery::testFaceSub]].m_flags &= ~0x80;
+    }
+
+    BspQuery::hitFaceSub = 0;
+    BspQuery::testFaceSub = 0;
+}
+
+// VERIFY: 1f9c3dca auto
+// OFFSET: 0x007C7710
+World::TriData::Batch* __stdcall World::TriData::AllocBatch(uint32_t indexCount, uint32_t faceCount) {
+    if (World::TriData::nBatches + 1 >= 32 || indexCount + World::TriData::indexCursor >= 0xC000 || faceCount + World::TriData::faceIndexCursor >= 0x4000) {
+        World::TriData::statusFlags |= 1;
+        return nullptr;
+    }
+
+    Batch* batch = &World::TriData::batches[World::TriData::nBatches++];
+    batch->m_matrix = nullptr;
+    batch->m_vertexList = nullptr;
+    batch->m_normalList = nullptr;
+    batch->unk_000C = 0;
+    batch->m_indices = nullptr;
+    batch->m_faceIndices = nullptr;
+    batch->m_indexCount = 0;
+    batch->m_faceCount = 0;
+    batch->m_minVertexIndex = 0;
+    batch->m_maxVertexIndex = 0;
+    batch->m_def = nullptr;
+    batch->m_minVertexIndex = 0xFFFF;
+
+    return batch;
+}
 
 // VERIFY: 4f76965b auto
 // OFFSET: 0x007C7790
@@ -29,6 +306,581 @@ static uint8_t CullLiquidVertexZ(const CAaBox& box, const C3Vector& vertex) {
     float below = vertex.z - box.b.z + 0.019444443f;
     float above = box.t.z - vertex.z + 0.019444443f;
     return ((*reinterpret_cast<uint32_t*>(&below) >> 29) & 0x4) | ((*reinterpret_cast<uint32_t*>(&above) >> 26) & 0x20);
+}
+
+// VERIFY: 1bcdfc19 auto
+// OFFSET: 0x007C78E0
+BspQuery_Segment::BspQuery_Segment(SMOPoly* faces, C3Vector* vertexList, uint16_t* indices, const C3Segment& seg, float* hitT, uint16_t faceIgnoreFlags, SMOMaterial* materials) {
+    this->m_faces = faces;
+    this->m_vertexList = vertexList;
+    this->m_indices = indices;
+    this->m_overflowFlags = nullptr;
+    this->m_hitT = hitT;
+    this->m_seg.b = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_seg.t = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_ray.origin = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_ray.dir = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_materials = materials;
+    this->m_faceIgnoreFlags = faceIgnoreFlags | 0x80;
+    this->unk_0054 = CMap::s_useSSE;
+    this->m_ray.origin = seg.b;
+    this->m_ray.dir = C3Vector(seg.t.x - seg.b.x, seg.t.y - seg.b.y, seg.t.z - seg.b.z);
+
+    float length = sqrtf(this->m_ray.dir.z * this->m_ray.dir.z + this->m_ray.dir.y * this->m_ray.dir.y + this->m_ray.dir.x * this->m_ray.dir.x);
+    this->m_maxT = *hitT * length;
+    this->m_seg = seg;
+    this->m_origHitT = *hitT;
+
+    float inv = 1.0f / length;
+    this->m_oosegMag = inv;
+    this->m_ray.dir.x = this->m_ray.dir.x * inv;
+    this->m_ray.dir.y = this->m_ray.dir.y * inv;
+    this->m_ray.dir.z = inv * this->m_ray.dir.z;
+}
+
+// VERIFY: c85c398d manual
+// OFFSET: 0x007C7AE0
+void CMapObjGroup::GetTrisFromQuery(World::TriData* triData, BspQuery* query, CMapObjDef* mapObjDef, uint32_t statusFlags) {
+    if (CWorld::enables & Enable_ShowQuery) {
+        for (uint32_t i = 0; i < BspQuery::testFaceSub; i++) {
+            uint32_t base = 3 * BspQuery::testFaces[i];
+            C3Vector c = this->m_vertexList[this->m_indices[base + 2]] * mapObjDef->m_mat;
+            C3Vector b = this->m_vertexList[this->m_indices[base + 1]] * mapObjDef->m_mat;
+            C3Vector a = this->m_vertexList[this->m_indices[base]] * mapObjDef->m_mat;
+            CFacet facet(a, b, c);
+            CImVector color;
+            *reinterpret_cast<uint32_t*>(&color) = 0x7FFF0000;
+            CMap::TestQueryAdd(facet, color, nullptr);
+        }
+
+        for (uint32_t i = 0; i < BspQuery::hitFaceSub; i++) {
+            uint32_t base = 3 * BspQuery::hitFaces[i];
+            C3Vector c = this->m_vertexList[this->m_indices[base + 2]] * mapObjDef->m_mat;
+            C3Vector b = this->m_vertexList[this->m_indices[base + 1]] * mapObjDef->m_mat;
+            C3Vector a = this->m_vertexList[this->m_indices[base]] * mapObjDef->m_mat;
+            CFacet facet(a, b, c);
+            CImVector color;
+            *reinterpret_cast<uint32_t*>(&color) = 0x7F00FF00;
+            CMap::TestQueryAdd(facet, color, nullptr);
+        }
+    }
+
+    World::TriData::statusFlags |= statusFlags;
+
+    uint32_t hitCount = BspQuery::hitFaceSub;
+
+    if (!hitCount || hitCount > 8192) {
+        return;
+    }
+
+    World::TriData::Batch* batch = World::TriData::AllocBatch(3 * hitCount, hitCount);
+
+    if (!batch) {
+        return;
+    }
+
+    batch->m_def = mapObjDef;
+
+    uint16_t* indices;
+
+    if (World::TriData::indexCursor + 3 * BspQuery::hitFaceSub >= 0xC000) {
+        World::TriData::statusFlags |= 1;
+        indices = nullptr;
+    } else {
+        indices = &World::TriData::indexPool[World::TriData::indexCursor];
+        World::TriData::indexCursor += 3 * BspQuery::hitFaceSub;
+    }
+
+    uint16_t* faceIndices;
+
+    if (World::TriData::faceIndexCursor + BspQuery::hitFaceSub >= 0x4000) {
+        World::TriData::statusFlags |= 1;
+        faceIndices = nullptr;
+    } else {
+        faceIndices = &World::TriData::faceIndexPool[World::TriData::faceIndexCursor];
+        World::TriData::faceIndexCursor += BspQuery::hitFaceSub;
+    }
+
+    batch->m_matrix = &mapObjDef->m_mat;
+    batch->m_vertexList = this->m_vertexList;
+    batch->m_normalList = this->m_normalList;
+    batch->m_faceCount = BspQuery::hitFaceSub;
+    batch->m_indexCount = 3 * BspQuery::hitFaceSub;
+
+    uint16_t* out = indices;
+
+    for (uint32_t i = 0; i < BspQuery::hitFaceSub; i++) {
+        uint16_t face = BspQuery::hitFaces[i];
+        faceIndices[i] = face;
+
+        for (uint32_t j = 0; j < 3; j++) {
+            uint16_t index = this->m_indices[3 * face + j];
+            *out++ = index;
+
+            if (index < batch->m_minVertexIndex) {
+                batch->m_minVertexIndex = index;
+            }
+
+            if (index > batch->m_maxVertexIndex) {
+                batch->m_maxVertexIndex = index;
+            }
+        }
+    }
+
+    batch->m_indices = indices;
+    batch->m_faceIndices = faceIndices;
+}
+
+// VERIFY: cdc665c6 auto
+// OFFSET: 0x007C7F10
+void CMapObjGroup::InitPtrs() {
+    this->m_groupName = nullptr;
+    this->m_polyList = nullptr;
+    this->m_vertexList = nullptr;
+    this->m_normalList = nullptr;
+    this->m_textureVertexList = nullptr;
+    this->m_textureVertexList2 = nullptr;
+    this->m_indices = nullptr;
+    this->m_stripIndices = nullptr;
+    this->m_batchList = nullptr;
+    this->m_stripBatches = nullptr;
+    this->m_lightRefList = nullptr;
+    this->m_doodadRefList = nullptr;
+    this->m_colorVertexList = nullptr;
+    this->m_colorVertexListExtra = nullptr;
+    this->m_liquidVertexList = nullptr;
+    this->m_liquidTileList = nullptr;
+    this->m_liquidVertArray = nullptr;
+    this->m_portalStart = 0;
+    this->m_portalCount = 0;
+    this->unk_014C = 0;
+    this->m_polyListSize = 0;
+    this->m_vertexListCount = 0;
+    this->m_normalListCount = 0;
+    this->m_textureVertexListCount = 0;
+    this->m_indicesCount = 0;
+    this->m_stripIndexCount = 0;
+    this->m_batchListCount = 0;
+    this->m_lightRefListCount = 0;
+    this->m_doodadRefListCount = 0;
+    this->m_colorVertexListSize = 0;
+    this->m_liquidVerts.x = 0;
+    this->m_liquidVerts.y = 0;
+    this->m_liquidTiles.x = 0;
+    this->m_liquidTiles.y = 0;
+}
+
+// VERIFY: 88194c9d manual
+// OFFSET: 0x007C8500
+void VBBList_Block::Set(uint32_t itemSize, uint32_t itemCount, uint32_t offset) {
+    this->m_capacity = itemCount * itemSize;
+    this->m_offset = offset;
+
+    uint32_t index = offset;
+    uint32_t remainder = offset - offset / itemSize * itemSize;
+
+    if (remainder) {
+        index = itemSize - remainder + offset;
+    }
+
+    this->m_buffer->m_index = index;
+    g_theGxDevicePtr->BufSizeSet(this->m_buffer, itemSize, itemCount - 1);
+    this->m_buffer->unk_001C = 0;
+}
+
+// VERIFY: 79b8e8c1 manual
+// OFFSET: 0x007C8560
+void CMapObjGroup::FillVertexVB(CGxBuf* buf, EGxVertexBufferFormat format) {
+    if (format == GxVBF_PNCT) {
+        CGxVertexPNCT* vertex = reinterpret_cast<CGxVertexPNCT*>(g_theGxDevicePtr->BufLock(buf));
+
+        if (this->m_colorVertexList) {
+            for (uint32_t i = 0; i < static_cast<uint32_t>(this->m_vertexListCount); i++, vertex++) {
+                vertex->m_position = this->m_vertexList[i];
+                vertex->m_normal = this->m_normalList[i];
+                CImVector& source = this->m_colorVertexList[i];
+                CImVector color;
+
+                if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+                    color.b = source.r;
+                    color.g = source.g;
+                    color.r = source.b;
+                    color.a = source.a;
+                } else {
+                    color = source;
+                }
+
+                vertex->m_color = color;
+                vertex->m_texture = this->m_textureVertexList[i];
+            }
+        } else {
+            CImVector base;
+            base.a = 0xFF;
+
+            if (this->m_parent->m_header->m_flags & 0x2) {
+                base.b = 0;
+                base.g = 0;
+                base.r = 0;
+            } else {
+                base.b = 0x7F;
+                base.g = 0x7F;
+                base.r = 0x7F;
+            }
+
+            for (uint32_t i = 0; i < static_cast<uint32_t>(this->m_vertexListCount); i++, vertex++) {
+                vertex->m_position = this->m_vertexList[i];
+                vertex->m_normal = this->m_normalList[i];
+                CImVector color;
+
+                if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+                    color.b = base.r;
+                    color.g = base.g;
+                    color.r = base.b;
+                    color.a = 0xFF;
+                } else {
+                    color = base;
+                }
+
+                vertex->m_color = color;
+                vertex->m_texture = this->m_textureVertexList[i];
+            }
+        }
+
+        g_theGxDevicePtr->BufUnlock(buf, 0);
+        buf->unk_001C = 1;
+        return;
+    }
+
+    if (format != GxVBF_PNC2T2) {
+        return;
+    }
+
+    CGxVertexPNC2T2* vertex = reinterpret_cast<CGxVertexPNC2T2*>(g_theGxDevicePtr->BufLock(buf));
+
+    if (this->m_colorVertexList) {
+        for (uint32_t i = 0; i < static_cast<uint32_t>(this->m_vertexListCount); i++, vertex++) {
+            vertex->m_position = this->m_vertexList[i];
+            vertex->m_normal = this->m_normalList[i];
+            CImVector& source = this->m_colorVertexList[i];
+            CImVector color0;
+
+            if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+                color0.b = source.r;
+                color0.g = source.g;
+                color0.r = source.b;
+                color0.a = source.a;
+            } else {
+                color0 = source;
+            }
+
+            vertex->m_color[0] = color0;
+            CImVector zero;
+            *reinterpret_cast<uint32_t*>(&zero) = 0;
+            CImVector& extra = this->m_colorVertexListExtra ? this->m_colorVertexListExtra[i] : zero;
+            CImVector color1;
+
+            if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+                color1.b = extra.r;
+                color1.g = extra.g;
+                color1.r = extra.b;
+                color1.a = extra.a;
+            } else {
+                color1 = extra;
+            }
+
+            vertex->m_color[1] = color1;
+            vertex->m_texture[0] = this->m_textureVertexList[i];
+
+            C2Vector noTexture(0.0f, 0.0f);
+            C2Vector& texture1 = this->m_textureVertexList2 ? this->m_textureVertexList2[i] : noTexture;
+            vertex->m_texture[1].x = texture1.x;
+            vertex->m_texture[1].y = texture1.y;
+        }
+    } else {
+        CImVector base;
+        base.a = 0xFF;
+
+        if (this->m_parent->m_header->m_flags & 0x2) {
+            base.b = 0;
+            base.g = 0;
+            base.r = 0;
+        } else {
+            base.b = 0x7F;
+            base.g = 0x7F;
+            base.r = 0x7F;
+        }
+
+        for (uint32_t i = 0; i < static_cast<uint32_t>(this->m_vertexListCount); i++, vertex++) {
+            vertex->m_position = this->m_vertexList[i];
+            vertex->m_normal = this->m_normalList[i];
+            CImVector color0;
+
+            if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+                color0.b = base.r;
+                color0.g = base.g;
+                color0.r = base.b;
+                color0.a = 0xFF;
+            } else {
+                color0 = base;
+            }
+
+            vertex->m_color[0] = color0;
+            CImVector zero;
+            *reinterpret_cast<uint32_t*>(&zero) = 0;
+            CImVector& extra = this->m_colorVertexListExtra ? this->m_colorVertexListExtra[i] : zero;
+            CImVector color1;
+
+            if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+                color1.b = extra.r;
+                color1.g = extra.g;
+                color1.r = extra.b;
+                color1.a = extra.a;
+            } else {
+                color1 = extra;
+            }
+
+            vertex->m_color[1] = color1;
+            vertex->m_texture[0] = this->m_textureVertexList[i];
+
+            C2Vector noTexture(0.0f, 0.0f);
+            C2Vector& texture1 = this->m_textureVertexList2 ? this->m_textureVertexList2[i] : noTexture;
+            vertex->m_texture[1].x = texture1.x;
+            vertex->m_texture[1].y = texture1.y;
+        }
+    }
+
+    g_theGxDevicePtr->BufUnlock(buf, 0);
+    buf->unk_001C = 1;
+}
+
+// VERIFY: 745d4cbb manual
+// OFFSET: 0x007C8A70
+void CMapObjGroup::FillTransparencyVB(CGxBuf* buf) {
+    uint32_t count = this->m_batchList[this->m_transparencyBatchesCount - 1].m_vertexEnd + 1;
+    CGxVertexPNCT* vertex = reinterpret_cast<CGxVertexPNCT*>(g_theGxDevicePtr->BufLock(buf));
+
+    for (uint32_t i = 0; i < count; i++, vertex++) {
+        vertex->m_position = this->m_vertexList[i];
+        vertex->m_normal = this->m_normalList[i];
+
+        CImVector gray;
+        gray.b = 0x7F;
+        gray.g = 0x7F;
+        gray.r = 0x7F;
+        gray.a = this->m_colorVertexList[i].a;
+        CImVector color;
+
+        if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+            color.b = 0x7F;
+            color.g = 0x7F;
+            color.r = 0x7F;
+            color.a = gray.a;
+        } else {
+            color = gray;
+        }
+
+        vertex->m_color = color;
+        vertex->m_texture = this->m_textureVertexList[i];
+    }
+
+    g_theGxDevicePtr->BufUnlock(buf, 0);
+    buf->unk_001C = 1;
+}
+
+// VERIFY: 58db9069 auto
+// OFFSET: 0x007C8B90
+void CMapObjGroup::UploadIndexBuffer(CGxBuf* buf) {
+    char* data = g_theGxDevicePtr->BufLock(buf);
+    memcpy(data, this->m_indices, sizeof(uint16_t) * this->m_indicesCount);
+    g_theGxDevicePtr->BufUnlock(buf, 0);
+    buf->unk_001C = 1;
+}
+
+// VERIFY: 12c31afd auto
+// OFFSET: 0x007C8D80
+int32_t CMapObjGroup::FindLiquidType() {
+    int32_t count = this->m_liquidTiles.x * this->m_liquidTiles.y;
+
+    for (int32_t i = 0; i < count; i++) {
+        uint8_t type = this->m_liquidTileList[i].m_flags & 0xF;
+
+        if (type != 0xF) {
+            return type + 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: f0e93fe5 auto
+// OFFSET: 0x007C9BC0
+void CMapObjGroup::Init() {
+    this->m_unkLoadedFlag &= ~0xF;
+    this->unk_0190 = 0.0f;
+    this->m_flags = 0;
+    this->m_bbox.b = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_bbox.t = C3Vector(0.0f, 0.0f, 0.0f);
+    this->unk_00D0 = 0;
+    this->m_minimapTag = 0;
+    this->m_filePtr = nullptr;
+    this->m_fileSize = 0;
+    this->m_parent = nullptr;
+    this->m_asyncObjPtr = nullptr;
+    this->m_portalStart = 0;
+    this->m_portalCount = 0;
+    this->m_fogs[0] = 0;
+    this->m_fogs[1] = 0;
+    this->m_fogs[2] = 0;
+    this->m_fogs[3] = 0;
+    this->m_timer = 0.0f;
+    this->m_liquidVerts.y = 0;
+    this->m_distToCamera = 3.4028235e38f;
+    this->m_liquidCorner.x = 0.0f;
+    this->m_liquidCorner.y = 0.0f;
+    this->m_liquidVerts.x = 0;
+    this->m_liquidCorner.z = 0.0f;
+    this->m_liquidMaterialId = 0;
+    this->m_vertsBlock = nullptr;
+    this->m_transparencyVertsBlock = nullptr;
+    this->m_indicesBlock = nullptr;
+    this->m_liquidVertsBlock = nullptr;
+    this->m_liquidIndicesBlock = nullptr;
+    this->m_liquidVBRefCount = 0;
+    this->m_liquidType = 0;
+    this->m_numSharedTiles = -1;
+    this->InitPtrs();
+}
+
+// VERIFY: 8696dab8 manual
+// OFFSET: 0x007C9CB0
+void CMapObjGroup::SetVertexVB() {
+    EGxVertexBufferFormat format = GxVBF_PNCT;
+    uint32_t vertexSize = sizeof(CGxVertexPNCT);
+
+    if (this->m_unkLoadedFlag & 0x8) {
+        format = GxVBF_PNC2T2;
+        vertexSize = sizeof(CGxVertexPNC2T2);
+    }
+
+    CGxBuf* buf = this->m_vertsBlock ? this->m_vertsBlock->m_buffer : g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, vertexSize, this->m_vertexListCount);
+
+    if (!buf->unk_001C || !buf->unk_001D) {
+        this->FillVertexVB(buf, format);
+    }
+
+    GxPrimVertexPtr(buf, format);
+}
+
+// VERIFY: a3616c6f auto
+// OFFSET: 0x007C9D20
+void CMapObjGroup::SetTransparencyVB() {
+    CGxBuf* buf = this->m_transparencyVertsBlock ? this->m_transparencyVertsBlock->m_buffer : g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, sizeof(CGxVertexPNCT), this->m_batchList[this->m_transparencyBatchesCount - 1].m_vertexEnd + 1);
+
+    if (!buf->unk_001C || !buf->unk_001D) {
+        this->FillTransparencyVB(buf);
+    }
+
+    GxPrimVertexPtr(buf, GxVBF_PNCT);
+}
+
+// VERIFY: 4dd1515d auto
+// OFFSET: 0x007C9D80
+void CMapObjGroup::SetIndexVB() {
+    CGxBuf* buf = this->m_indicesBlock ? this->m_indicesBlock->m_buffer : g_theGxDevicePtr->BufStream(GxPoolTarget_Index, sizeof(uint16_t), this->m_indicesCount);
+
+    if (!buf->unk_001C || !buf->unk_001D) {
+        this->UploadIndexBuffer(buf);
+    }
+
+    g_theGxDevicePtr->PrimIndexPtr(buf);
+}
+
+// VERIFY: 13d55b84 manual
+// OFFSET: 0x007CB0C0
+bool CMapObjGroup::GetTris(const C3Segment& seg, float* dist, uint32_t flags, uint16_t faceIgnoreFlags, World::TriData* triData, CMapObjDef* mapObjDef) {
+    SMOMaterial* materials = this->m_parent->m_materialList;
+    uint32_t batchCount = World::TriData::nBatches;
+
+    BspQuery_Segment query(this->m_polyList, this->m_vertexList, this->m_indices, seg, dist, faceIgnoreFlags, materials);
+    CAaBsp_Query_Segment<BspQuery_Segment> bspQuery;
+    bspQuery.m_aaBsp = &this->m_cAaBspNodePtr1;
+    bspQuery.m_f = &query;
+    bspQuery.GetFaceIndices(0, seg, this->m_cAaBspNodePtr1.m_aaBox);
+    this->GetTrisFromQuery(triData, &query, mapObjDef, 0);
+
+    if ((flags & 0x30000) && (this->m_flags & 0x1000)) {
+        this->VectorIntersectLiquid(seg, dist, flags, triData, mapObjDef);
+    }
+
+    return World::TriData::nBatches != batchCount;
+}
+
+// VERIFY: 784b1f56 manual
+// OFFSET: 0x007CB3B0
+VBBList_Block* VBBList::AllocBlock() {
+    if (this->m_singlePool) {
+        VBBList_Block* block = this->unk_0010.Head();
+
+        if (!block) {
+            void* mem = SMemAlloc(sizeof(VBBList_Block), __FILE__, __LINE__, 0x8);
+            block = mem ? new (mem) VBBList_Block : nullptr;
+            this->unk_0010.LinkToTail(block);
+            block->m_buffer = g_theGxDevicePtr->BufCreate(this->m_pool, 0, 0, 0);
+        }
+
+        block->m_link.Unlink();
+        block->m_listHead = nullptr;
+        block->unk_0008 = 0.0f;
+        block->m_pool = nullptr;
+        return block;
+    }
+
+    void* mem = SMemAlloc(sizeof(VBBList_Block), __FILE__, __LINE__, 0x8);
+    VBBList_Block* block = mem ? new (mem) VBBList_Block : nullptr;
+    this->unk_001C.LinkToTail(block);
+    block->unk_0008 = 0.0f;
+    block->m_offset = 0;
+    block->m_capacity = 0;
+    block->m_listHead = nullptr;
+    block->m_buffer = nullptr;
+    block->m_pool = nullptr;
+    return block;
+}
+
+// VERIFY: 0a4b9b8f manual
+// OFFSET: 0x007CB520
+void CMapObjGroup::AllocVertArray(CMapObjGroup::VertArray** vertArray, uint32_t count) {
+    *vertArray = CMapObjGroup::s_freeVertArrays.Head();
+
+    if (!*vertArray) {
+        void* mem = SMemAlloc(sizeof(CMapObjGroup::VertArray), __FILE__, __LINE__, 0x8);
+        CMapObjGroup::VertArray* created = mem ? new (mem) CMapObjGroup::VertArray() : nullptr;
+        CMapObjGroup::s_freeVertArrays.LinkToTail(created);
+        *vertArray = created;
+    }
+
+    (*vertArray)->m_link.Unlink();
+    (*vertArray)->m_verts.SetCount(count);
+}
+
+// VERIFY: 0ecccc4f manual
+// OFFSET: 0x007CB700
+CMapObjGroup::CMapObjGroup() {
+    this->m_liquidBatch.m_primType = static_cast<EGxPrim>(6);
+    this->m_liquidBatch.m_start = 0;
+    this->m_liquidBatch.m_count = 0;
+    this->m_liquidBatch.m_minIndex = 0;
+    this->m_liquidBatch.m_maxIndex = 0;
+    this->m_bbox.b = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_bbox.t = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_liquidVerts.x = 0;
+    this->m_liquidVerts.y = 0;
+    this->m_liquidTiles.x = 0;
+    this->m_liquidTiles.y = 0;
+    this->m_liquidCorner = C3Vector(0.0f, 0.0f, 0.0f);
+    this->m_liquidHeight = 0.0f;
+    this->m_liquidMaxHeight = 0.0f;
+    this->Init();
 }
 
 // VERIFY: 03d37c83 auto
@@ -93,12 +945,12 @@ void VBBList::Destroy() {
     }
 }
 
-// VERIFY: 431d1d34 auto
+// VERIFY: f8f8468a auto
 // OFFSET: 0x007CB9D0
 void CMapObjGroup::Destroy() {
     CMapObjGroup::vertexVBList.Destroy();
     CMapObjGroup::indexVBList.Destroy();
-    CMapObjGroup::s_unk_AEEEA8.Clear();
+    CMapObjGroup::s_freeVertArrays.Clear();
 }
 
 
@@ -227,6 +1079,164 @@ void CMapObjGroup::GenLiquidVerts() {
     }
 }
 
+// VERIFY: 800e13fc manual
+// OFFSET: 0x007CB9F0
+void VBBList::FreeVBB(VBBList_Block* block) {
+    if (!block) {
+        return;
+    }
+
+    if (this->m_singlePool) {
+        VBBList_Block* prev = block->m_link.Prev();
+
+        if (prev && prev->m_listHead) {
+            prev = nullptr;
+        }
+
+        VBBList_Block* next = block->m_link.Next();
+
+        if (next && next->m_listHead) {
+            next = nullptr;
+        }
+
+        uint32_t offset = block->m_offset;
+        uint32_t capacity = block->m_capacity;
+
+        if (prev) {
+            offset = prev->m_offset;
+            capacity += prev->m_capacity;
+            prev->m_link.Unlink();
+            this->unk_0010.LinkToTail(prev);
+        }
+
+        if (next) {
+            capacity += next->m_capacity;
+            next->m_link.Unlink();
+            this->unk_0010.LinkToTail(next);
+        }
+
+        block->Set(capacity, 1, offset);
+        *block->m_listHead = nullptr;
+        block->unk_0008 = 0.0f;
+        block->m_listHead = nullptr;
+    } else {
+        if (block->m_buffer) {
+            GxBufDestroy(block->m_buffer);
+            block->m_buffer = nullptr;
+        }
+
+        if (block->m_pool) {
+            g_theGxDevicePtr->PoolDestroy(block->m_pool);
+            block->m_pool = nullptr;
+        }
+
+        *block->m_listHead = nullptr;
+        this->unk_001C.DeleteNode(block);
+    }
+
+    if (this->m_singlePool) {
+        uint32_t used = 0;
+        uint32_t total = 0;
+
+        for (VBBList_Block* node = this->unk_001C.Head(); node; node = node->m_link.Next()) {
+            used += node->m_capacity;
+            total += node->m_capacity;
+        }
+    }
+}
+
+// VERIFY: 371fd0ef manual
+// OFFSET: 0x007CBB30
+void VBBList::AssignBlock(VBBList_Block* block, VBBList_Block** slot, uint32_t itemSize, uint32_t itemCount) {
+    VBBList_Block* rest = this->AllocBlock();
+    this->unk_001C.LinkNode(rest, 1, block);
+    rest->Set(1, block->m_capacity - itemSize * (itemCount + 1), itemSize * (itemCount + 1) + block->m_offset);
+    block->Set(itemSize, itemCount + 1, block->m_offset);
+    block->m_listHead = slot;
+    *slot = block;
+}
+
+// VERIFY: c44ec26d auto
+// OFFSET: 0x007CBBC0
+void VBBList::AllocVBB(VBBList_Block** slot, uint32_t itemSize, uint32_t itemCount) {
+    if (this->m_singlePool) {
+        uint32_t size = itemSize * (itemCount + 1);
+
+        while (true) {
+            VBBList_Block* smallest = nullptr;
+
+            for (VBBList_Block* block = this->unk_001C.Head(); block; block = this->unk_001C.Next(block)) {
+                if (block->m_listHead) {
+                    if (!smallest || block->m_capacity < smallest->m_capacity) {
+                        smallest = block;
+                    }
+
+                    continue;
+                }
+
+                if (size < block->m_capacity) {
+                    this->AssignBlock(block, slot, itemSize, itemCount);
+                    return;
+                }
+            }
+
+            if (size < smallest->m_capacity) {
+                return;
+            }
+
+            this->FreeVBB(smallest);
+        }
+    }
+
+    VBBList_Block* block = this->AllocBlock();
+    const char* name = this->m_target ? "VBBList_idx" : "VBBList_vtx";
+    uint32_t size = itemSize * (itemCount + 1);
+    block->m_pool = g_theGxDevicePtr->PoolCreate(this->m_target, this->m_usage, size + 4096, GxPoolHintBit_Unk3, name);
+    block->m_buffer = g_theGxDevicePtr->BufCreate(block->m_pool, itemSize, itemCount, 0);
+    block->m_offset = 0;
+    block->m_capacity = size;
+    block->m_listHead = slot;
+    *slot = block;
+}
+
+// VERIFY: 6752260a manual
+// OFFSET: 0x007CBCB0
+void CMapObjGroup::AllocVB() {
+    if (!this->m_vertsBlock) {
+        uint32_t vertexSize = (this->m_unkLoadedFlag & 0x8) ? sizeof(CGxVertexPNC2T2) : sizeof(CGxVertexPNCT);
+        CMapObjGroup::vertexVBList.AllocVBB(&this->m_vertsBlock, vertexSize, this->m_vertexListCount);
+    }
+
+    if (!CShaderEffect::s_enableShaders && (this->m_parent->m_header->m_flags & 0x2) && this->m_colorVertexList && this->m_transparencyBatchesCount && !this->m_transparencyVertsBlock) {
+        uint32_t count = this->m_batchList[this->m_transparencyBatchesCount - 1].m_vertexEnd + 1;
+        CMapObjGroup::vertexVBList.AllocVBB(&this->m_transparencyVertsBlock, GxVertexSize(GxVBF_PNCT), count);
+    }
+
+    if (!this->m_indicesBlock) {
+        CMapObjGroup::indexVBList.AllocVBB(&this->m_indicesBlock, sizeof(uint16_t), this->m_indicesCount);
+    }
+}
+
+// VERIFY: 6de6bbad auto
+// OFFSET: 0x007CBD70
+void CMapObjGroup::FreeVB() {
+    if (this->m_vertsBlock) {
+        CMapObjGroup::vertexVBList.FreeVBB(this->m_vertsBlock);
+    }
+
+    if (this->m_transparencyVertsBlock) {
+        CMapObjGroup::vertexVBList.FreeVBB(this->m_transparencyVertsBlock);
+    }
+
+    if (this->m_indicesBlock) {
+        CMapObjGroup::indexVBList.FreeVBB(this->m_indicesBlock);
+    }
+
+    this->m_vertsBlock = nullptr;
+    this->m_transparencyVertsBlock = nullptr;
+    this->m_indicesBlock = nullptr;
+}
+
 // VERIFY: 5304b11e auto
 // OFFSET: 0x007CBDC0
 void CMapObjGroup::AllocLiquidVB(EGxVertexBufferFormat format, uint32_t vertexCount, uint32_t indexCount, CGxBatch** batch) {
@@ -265,6 +1275,51 @@ void CMapObjGroup::FreeLiquidVB() {
 
     this->m_liquidVertsBlock = nullptr;
     this->m_liquidIndicesBlock = nullptr;
+}
+
+// VERIFY: 200c714f manual
+// OFFSET: 0x007CBE80
+void CMapObjGroup::Clear() {
+    int32_t freeFile = 1;
+
+    if (this->m_asyncObjPtr) {
+        freeFile = AsyncFile::Cancel(this->m_asyncObjPtr, CMapObjGroup::AsyncFailedCallback);
+        this->m_asyncObjPtr = nullptr;
+    }
+
+    this->m_cAaBspNodePtr1.Clear();
+    this->FreeVB();
+
+    if (this->m_liquidVertArray) {
+        CMapObjGroup::s_freeVertArrays.LinkToHead(this->m_liquidVertArray);
+        this->m_liquidVertArray = nullptr;
+    }
+
+    this->InitPtrs();
+
+    if (this->m_filePtr) {
+        if (freeFile) {
+            SMemFree(this->m_filePtr, __FILE__, __LINE__, 0);
+        }
+
+        this->m_filePtr = nullptr;
+    }
+
+    CMapObjOccluder* occluder = this->m_occluderList.Head();
+
+    while (occluder) {
+        CMapObjOccluder* next = occluder->m_link.Next();
+        CMapObj::FreeOccluder(occluder);
+        occluder = next;
+    }
+
+    this->m_unkLoadedFlag &= ~1u;
+}
+
+// VERIFY: ed59eece manual
+// OFFSET: 0x007CBF40
+CMapObjGroup::~CMapObjGroup() {
+    this->Clear();
 }
 
 // VERIFY: 0c68f770 auto

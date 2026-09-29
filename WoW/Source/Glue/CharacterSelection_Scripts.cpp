@@ -229,6 +229,7 @@ static int32_t Script_DeclineCharacter(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 433a84a4 manual
 // OFFSET: 0x004E3620
 static int32_t Script_GetSelectBackgroundModel(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

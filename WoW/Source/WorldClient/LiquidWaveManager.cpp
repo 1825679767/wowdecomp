@@ -9,7 +9,7 @@
 #include "WoW/Source/LiquidSystem/Liquid.h"
 
 // STATIC: 0x00D31A30
-CDataAllocator Liquid::s_unk_D31A30(0x128, 0x10);
+CDataAllocator Liquid::s_unk_D31A30(sizeof(Liquid::CWaveManager), 0x10);
 
 // STATIC: 0x00AF1690
 float Liquid::CWaveManager::s_fadeOutTime = 5000.0f;

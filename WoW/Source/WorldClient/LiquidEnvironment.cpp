@@ -9,7 +9,7 @@
 #include "WoW/Source/WorldClient/World.h"
 
 // STATIC: 0x00D31A00
-CDataAllocator Liquid::s_unk_D31A00(0xC, 0x10);
+CDataAllocator Liquid::s_unk_D31A00(sizeof(Liquid::CClientEnvironment), 0x10);
 
 // VERIFY: e3c196d2 auto
 // OFFSET: 0x007D5100

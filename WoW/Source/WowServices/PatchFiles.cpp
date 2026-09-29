@@ -10,6 +10,7 @@ static int32_t CompareStrings(const void* a, const void* b, void* context) {
     return -SStrCmpI(*static_cast<char* const*>(a), *static_cast<char* const*>(b), STORM_MAX_STR);
 }
 
+// VERIFY: b136b0d2 manual
 // OFFSET: 0x00405A10
 int32_t PatchFiles::EnumPatchArchives(OS_FILE_DATA& data, void* param) {
     PatchFiles* files = static_cast<PatchFiles*>(param);
@@ -23,6 +24,7 @@ int32_t PatchFiles::EnumPatchArchives(OS_FILE_DATA& data, void* param) {
     return 0;
 }
 
+// VERIFY: 4fd60074 manual
 // OFFSET: 0x00405AB0
 PatchFiles::PatchFiles(const char* locale, bool flag) {
     PATCHARCHIVESPEC specs[12] = {
@@ -73,6 +75,7 @@ PatchFiles::PatchFiles(const char* locale, bool flag) {
     }
 }
 
+// VERIFY: ff9d1c1e manual
 // OFFSET: 0x00405D70
 PatchFiles::~PatchFiles() {
     for (uint32_t i = 0; i < this->m_files.Count(); i++) {

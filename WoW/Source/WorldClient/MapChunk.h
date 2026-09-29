@@ -21,6 +21,9 @@ class CiRect;
 namespace World { class FacetData; }
 struct SIffChunk;
 
+class C3Ray;
+class CM2Lighting;
+class CDetailDoodadInst;
 class CChunkLiquid;
 class CMapChunk;
 class CMapChunkDoodadDefLink;
@@ -28,7 +31,7 @@ class CMapChunkMapObjDefLink;
 class CMapObjDef;
 class CMapRenderChunk;
 class CWSoundEmitter;
-class SI2SoundHandle;
+class SE2SoundKitObject;
 struct SMChunk;
 struct SMLayer;
 struct SMLiquidChunk;
@@ -60,6 +63,7 @@ class CMapChunk : public CMapBaseObj {
     static float s_geoToTex;
     static C3Vector vertexList[145];
     static int32_t farCornerIndex;
+    static int32_t nearCornerIndex;
     static const int32_t cornerVertexIndex[4];
 
     static void Destroy();
@@ -76,7 +80,7 @@ class CMapChunk : public CMapBaseObj {
     /* 007C */ C3Vector m_topLeftCoords;
     /* 0088 */ float m_distToCamera;
     /* 008C */ CAaBox m_bbox2;
-    /* 00A4 */ void* m_detailDoodadInst;
+    /* 00A4 */ CDetailDoodadInst* m_detailDoodadInst;
     /* 00A8 */ CMapRenderChunk* m_renderChunk;
     /* 00AC */ int32_t m_bLoaded;
     /* 00B0 */ int32_t m_areaId;
@@ -87,7 +91,7 @@ class CMapChunk : public CMapBaseObj {
     /* 00D0 */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_mapObjDefLinkList;
     /* 00DC */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_entityLinkList;
     /* 00E8 */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_lightLinkList;
-    /* 00F4 */ TSList<SI2SoundHandle, TSGetExplicitLink<SI2SoundHandle> > m_soundHandleList;
+    /* 00F4 */ TSList<SE2SoundKitObject, TSGetExplicitLink<SE2SoundKitObject> > m_soundHandleList;
     /* 0100 */ TSExplicitList<CChunkLiquid, offsetof(CChunkLiquid, m_chunkLink)> m_liquidChunkLinkList;
     /* 010C */ uint8_t* m_chunkInfoBeginPtr;
     /* 0110 */ SMChunk* m_header;
@@ -105,20 +109,26 @@ class CMapChunk : public CMapBaseObj {
     /* 0140 */ CBitArray m_deepBits;
     /* 014C */ CBitArray m_fishableBits;
 
+    virtual void SelectLights(CM2Lighting* lighting);
+
     CMapChunk();
     void Create(SIffChunk* headerChunk, bool a3);
     void CreateRefs(CMapArea* mapChunk, uint32_t* mcrfPtr, uint32_t doodadRefs, uint32_t mapObjRefs);
     void ProcessIffChunks(bool a3);
     void CreateBounds();
+    int32_t Intersect(int32_t subX, int32_t subY, const C3Ray& ray, float* t);
     void RenderPrep();
     void Batch();
     void AllocRenderChunkAndBatch();
     void CullAndBucketChunk();
     void Purge();
     void UpdateLights();
+    void GetVertexPosition(int32_t index, C3Vector* pos);
+    void ClipBufferUpdate();
     void CreateLiquids(bool a3);
     void CreateSoundEmitters(bool a3);
     void CreateDetailDoodads();
+    int32_t LoadDetailDoodadModels();
     void GetLiquidBounds(CAaBox& box) const;
     bool GetLiquidHeight(const C2Vector& pos, float* height) const;
     int16_t CreateIndices(char* buf, int32_t offset);

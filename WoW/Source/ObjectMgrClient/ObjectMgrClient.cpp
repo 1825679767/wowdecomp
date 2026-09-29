@@ -33,6 +33,7 @@ void NetClient::PopObjMgr() {
     }
 }
 
+// VERIFY: f58d5266 manual
 // OFFSET: 0x004D3750
 int32_t ClntObjMgrIsValid(int32_t a1) {
     ObjectMgr* mgr = s_curMgr;

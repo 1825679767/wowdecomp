@@ -6,20 +6,24 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C4Quaternion.h"
 #include "Engine/Source/Tempest/CAaBox.h"
+#include "Engine/Source/Tempest/CAaSphere.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Gx/CGxVertexPC.h"
 #include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Tempest/C2Vector.h"
 #include "WoW/Source/WorldClient/CMapBaseObjLink.h"
 #include "WoW/Source/WorldClient/MapLowDetail.h"
 #include "WoW/Source/WorldClient/MapRenderChunk.h"
 #include "WoW/Source/WorldClient/Types.h"
 
+class C2Vector;
 class C44Matrix;
 class CAaSphere;
 class CFacet;
 class CFrustum;
 class CM2Model;
 class CMapAreaTexture;
+class CDetailDoodadInst;
 class CMapBaseObj;
 class CMapBaseObjLink;
 class CMapChunk;
@@ -85,9 +89,17 @@ struct SMODoodadDef {
     /* 0024 */ CImVector m_color;
 };
 
+class CGxVertexPT0T1 {
+    public:
+    /* 0000 */ C3Vector m_position;
+    /* 000C */ C2Vector m_texture0;
+    /* 0014 */ C2Vector m_texture1;
+};
+
 struct CMapFootprint {
-    /* 0000 */ TSLink<CMapFootprint> m_link;
-    /* 0008 */ uint8_t unk_0008[44];
+    /* 0000 */ TSGrowableArray<CGxVertexPT0T1> m_vertices;
+    /* 0010 */ TSLink<CMapFootprint> m_link;
+    /* 0018 */ uint8_t unk_0018[28];
 };
 
 class CMapObj;
@@ -109,6 +121,16 @@ struct MapObjIntersectData {
     /* 0008 */ float t;
     /* 000C */ int16_t faceIndex;
     /* 000E */ int16_t interior;
+};
+
+class CDestructibleProxy {
+    public:
+    static void FindOrCreate(CDestructibleProxy* proxy);
+
+    /* 0000 */ uint32_t unk_0000;
+    /* 0004 */ TSLink<CDestructibleProxy> m_link;
+    /* 000C */ CAaSphere m_sphere;
+    /* 001C */ uint32_t m_uniqueId;
 };
 
 class CMap {
@@ -140,6 +162,8 @@ class CMap {
     static CGxShader* pixelShader_Terrain0[3];
     static int32_t uniqueId;
     static int32_t oldSelectLightParm;
+    static int32_t mapGetFacetsCount;
+    static int32_t bspRecurseCount;
     static uint32_t s_queryTag;
     static uint32_t cCount;
     static CMapAreaMed* unk[4096];
@@ -173,10 +197,12 @@ class CMap {
     static TSExplicitList<CMapChunkBuf, offsetof(CMapChunkBuf, unk_0014)> s_unk_AEED80;
     static TSList<CMapArea, TSGetExplicitLink<CMapArea> > s_unk_AEED8C;
     static TSList<CMapChunk, TSGetExplicitLink<CMapChunk> > s_mapChunkList;
+    static TSList<CMapChunk, TSGetExplicitLink<CMapChunk> > s_mapChunkSortList;
     static TSList<CMapObjDefGroup, TSGetExplicitLink<CMapObjDefGroup> > mapObjDefGroupList;
     static TSList<CMapEntity, TSGetExplicitLink<CMapEntity> > entityList;
     static TSList<CMapLight, TSGetExplicitLink<CMapLight> > lightList;
     static TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > s_unk_ADFBEC;
+    static TSList<CDetailDoodadInst, TSGetExplicitLink<CDetailDoodadInst> > s_detailDoodadUpdateList;
     static TSExplicitList<CMapRenderChunk, offsetof(CMapRenderChunk, m_renderChunkLink)> s_mapRenderChunkUpdateList;
     static bool enableSpecularTerrain;
     static char wdtFilename[256];
@@ -186,14 +212,20 @@ class CMap {
     static uint32_t s_holeMask[16];
     static int32_t s_subchunkIndices[8];
     static int32_t s_fanIndices[8];
+    static uint16_t s_2bitSplatMask[8];
+    static uint32_t s_2bitSplatShft[8];
     static TSList<CMapDoodadDef, TSGetExplicitLink<CMapDoodadDef> > doodadDefList;
     static TSHashTable<CMapObjDef, HASHKEY_NONE> mapObjDefHash;
+    static TSHashTable<CMapDoodadDef, HASHKEY_DWORD> doodadDefHash;
+    static TSExplicitList<CDestructibleProxy, offsetof(CDestructibleProxy, m_link)> s_destructibleProxyList;
+    static HASHKEY_NONE s_mapObjDefHashKey;
     static int32_t enableChunkBatching;
     static TSList<CChunkLiquid, TSGetExplicitLink<CChunkLiquid> > s_chunkLiquidList;
     static TSList<CChunkLiquid, TSGetExplicitLink<CChunkLiquid> > s_mapChunkLiquidUpdateList;
     static DepthCoordTable* s_depthCoordTables[2];
 
     static void ClearAllRenderChunks();
+    static void ClearChunkDetailDoodads();
     static void Destroy();
     static void FootprintDestroy();
     static void FootprintInitialize();
@@ -213,10 +245,27 @@ class CMap {
     static int32_t SafeOpen(const char* fileName, SFileImpl** file);
     static int32_t SafeRead(const char* fileName, SFileImpl* file, void* buffer, uint32_t size);
     static CMapArea* AllocArea();
+    static CMapArea* GetLoadedArea(int32_t areaX, int32_t areaY);
+    static CMapArea* GetAreaAtPosition(const C2Vector* pos);
+    static CMapChunk* GetChunkAtPosition(const C2Vector* pos);
     static CMapAreaLow* AllocAreaLow();
     static void FreeArea(CMapArea* area);
     static void FreeAreaMed(CMapAreaMed* areaMed);
     static void FreeChunk(CMapChunk* chunk);
+    static void FreeEntity(CMapEntity* entity);
+    static void FreeLight(CMapLight* light);
+    static void FreeMapObjDefGroup(CMapObjDefGroup* mapObjDefGroup);
+    static void FreeDoodadDef(CMapDoodadDef* doodadDef);
+    static void FreeMapObjDef(CMapObjDef* mapObjDef);
+    static void PurgeArea(CMapArea* area);
+    static void PurgeMapObjDef(CMapObjDef* mapObjDef);
+    static void PurgeMapObjDefGroup(CMapObjDefGroup* mapObjDefGroup);
+    static void DestroyLight(CMapLight* light);
+    static void ClearChunkSortList();
+    static void ProcessDetailDoodadUpdateList();
+    static void UpdateBarriers();
+    static void FreeMapObjGroup(CMapObjGroup* mapObjGroup);
+    static void FreeRenderChunk(CMapRenderChunk* renderChunk);
     static CMapChunk* AllocMapChunk();
     static CMapRenderChunk* AllocRenderChunk();
     static CMapBaseObjLink* AllocBaseObjLink(CMapBaseObj* baseObj);
@@ -228,14 +277,18 @@ class CMap {
     static CMapObjDefGroup* AllocMapObjDefGroup();
     static CMapLight* AllocLight();
     static CMapObjDef* CreateMapObjDef(char* fileName, SMMapObjDef* mapObjectDef, C3Vector* center, bool cached);
+    static CMapDoodadDef* CreateDoodadDef(const char* fileName, SMDoodadDef* doodadDef, C3Vector* center);
     static CMapLight* CreateLight(uint8_t a1, uint8_t a2);
-    static CMapDoodadDef* CreateDoodadDef(uint32_t doodadRef, SMODoodadDef* doodadDef, char* name, uint32_t uniqueId, C44Matrix* mat, uint16_t doodadSet);
+    static CMapDoodadDef* CreateDoodadDef(uint32_t doodadRef, SMODoodadDef* doodadDef, char* name, uint32_t key, C44Matrix* mat, uint16_t doodadSet);
+    static void FreeBaseObjLinksInBounds(CAaBox* box);
     static void FreeBaseObjLink(CMapBaseObjLink* link);
     static CMapArea* PrepareArea(int32_t areaIndexX, int32_t areaIndexY);
     static void LoadArea(CMapArea* area);
     static void PrepareUpdate(bool a1);
+    static uint32_t ComputeDoodadLoadProgress(CMapChunk* chunk, float* progress, uint32_t total);
+    static uint32_t ComputeMapObjLoadProgress(CMapChunk* chunk, float* progress, uint32_t total);
     static void PurgeMaps();
-    static void PurgeUnkCache();
+    static void ClearAllFootprints();
     static void PreUpdateAreas(bool a1);
     static void UpdateArea(int32_t addToScene, CMapArea* area, CiRect* chunkRect, int32_t depth);
     static void PrepareMapObjDefs(bool a1);
@@ -282,6 +335,8 @@ class CMap {
     static bool VectorIntersect(C3Vector* start, C3Vector* end, uint32_t flags, uint32_t defIgnoreFlags, float* distance, uint16_t* hitIndex, CMapObj** outMapObj, CMapObjDef** outMapObjDef, CMapObjDefGroup** outMapObjDefGroup);
     static bool VectorIntersectTerrain(C3Vector* start, C3Vector* end, float* distance, uint32_t flags, CMapChunk** hitChunk);
     static bool VectorIntersectSubChunkList(C3Vector* start, C3Vector* end, float* distance, uint32_t flags, CMapChunk** hitChunk);
+    static void VectorIntersectDoodadDefs(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* list, uint32_t flags);
+    static void VectorIntersectEntitys(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* list, uint32_t flags);
     static void VectorIntersectDoodadDefs(TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>* list, uint32_t flags);
     static void VectorIntersectSY(CiRect& rect);
     static void VectorIntersectSX(CiRect& rect);
@@ -289,7 +344,8 @@ class CMap {
     static void VectorIntersectDX(C3Vector& a1, C3Vector& a2, CiRect& rect);
     static void SetHitTestDebug(void* hitInfo, CMapBaseObj* hitObject);
     static bool LocateViewerMapObjs(C3Vector& start, C3Vector& end, float dist, CMapObjDef** outDefs, uint32_t* outGroups);
-    static void TestQueryAdd(CFacet& facet, CImVector& color, C44Matrix* mat);
+    static void TestQueryAdd(const CFacet& facet, CImVector color, const C44Matrix* mat);
+    static bool QueryLiquidStatusMapObjsExt(C3Vector* pos, int32_t* liquidType, float* height);
     static bool GetFacets(CAaBox* a1, CAaBox* a2, World::FacetData* a3, uint32_t a4, uint32_t* a5);
     static bool GetMapObjFacets(CFrustum* frustum, World::FacetData* facets, uint32_t flags, uint32_t* statusOut);
     static bool QueryFacets(CFrustum* frustum, World::FacetData* facets, uint32_t flags, uint32_t* a4);

@@ -7,15 +7,19 @@
 class GxuSceneObject {
     public:
     virtual void Unk00();
-    virtual void Unk04();
+    virtual void Release();
+    virtual bool IsAlive();
+    virtual void Update(float elapsed);
 };
 
 class GxuScene {
     public:
     /* 0004 */ TSGrowableArray<GxuSceneObject*> m_objects;
+    /* 0014 */ uint32_t m_lastUpdateTime;
 
     virtual ~GxuScene();
     void Clear();
+    void Update(uint32_t time);
 };
 
 #endif

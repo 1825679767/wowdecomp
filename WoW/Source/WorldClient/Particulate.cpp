@@ -7,6 +7,12 @@
 #include "Engine/Source/Services/Texture.h"
 #include "Engine/Source/Tempest/CRandom.h"
 
+// VERIFY: 464f8a1f auto
+// OFFSET: 0x0079B360
+void Particulate::SetScale(float scale) {
+    this->m_particleSize = scale;
+}
+
 // VERIFY: a93d2c97 manual
 // OFFSET: 0x0079E100
 Particulate::Particulate(float particleSize, float spawnAreaSize, const char* textureName) {

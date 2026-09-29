@@ -42,6 +42,7 @@ static VOID CALLBACK MainFiberProc(LPVOID parameter) {
     SwitchToFiber(lpFiber);
 }
 
+// VERIFY: c31422a4 manual
 // OFFSET: 0x0040B7F0
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
     lpFiber = ConvertThreadToFiber(nullptr);

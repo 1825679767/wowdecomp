@@ -12,6 +12,7 @@
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Common/AaBsp.h"
+#include "WoW/Common/Types.h"
 #include "Engine/Source/Tempest/C2iVector.h"
 
 class CFrustum;
@@ -43,10 +44,17 @@ namespace World {
 }
 
 struct BspQuery {
+    static uint16_t testFaces[8192];
+    static uint16_t hitFaces[8192];
+    static uint32_t testFaceSub;
+    static uint32_t hitFaceSub;
+
     /* 0000 */ int32_t* m_overflowFlags;
     /* 0004 */ SMOPoly* m_faces;
     /* 0008 */ C3Vector* m_vertexList;
     /* 000C */ uint16_t* m_indices;
+
+    ~BspQuery();
 };
 
 struct BspQuery_Segment : public BspQuery {
@@ -60,12 +68,25 @@ struct BspQuery_Segment : public BspQuery {
     /* 0054 */ int32_t unk_0054;
     /* 0058 */ uint16_t m_faceIgnoreFlags;
     /* 005A */ uint8_t unk_005A[2];
+
+    BspQuery_Segment(SMOPoly* faces, C3Vector* vertexList, uint16_t* indices, const C3Segment& seg, float* hitT, uint16_t faceIgnoreFlags, SMOMaterial* materials);
+    void operator()(uint16_t face);
+    bool GetFaceIndicesUsingCache(const CAaBsp& aaBsp, const CAaBspNode* node);
 };
 
-class CAaBsp_Query_BspQuery_Segment {
+template <class T>
+class CAaBsp_Query {
     public:
     /* 0000 */ const CAaBsp* m_aaBsp;
-    /* 0004 */ BspQuery_Segment* m_f;
+    /* 0004 */ T* m_f;
+
+    void GetFaceIndices(const CAaBspNode* node);
+};
+
+template <class T>
+class CAaBsp_Query_Segment : public CAaBsp_Query<T> {
+    public:
+    void GetFaceIndices(uint32_t nodeIndex, const C3Segment& seg, const CAaBox& box);
 };
 
 class CGxVertexPNC2T2 {
@@ -84,6 +105,14 @@ class CGxVertexPNCT {
     /* 001C */ C2Vector m_texture;
 };
 
+class CMapObjOccluder {
+    public:
+    /* 0000 */ uint32_t m_memHandle;
+    /* 0004 */ C3Vector m_start;
+    /* 0010 */ C3Vector m_end;
+    /* 001C */ TSLink<CMapObjOccluder> m_link;
+};
+
 class CMapObjGroup {
     public:
     struct VertArray {
@@ -91,13 +120,15 @@ class CMapObjGroup {
         /* 0008 */ TSFixedArray<C3Vector> m_verts;
     };
 
-    static TSExplicitList<VertArray, offsetof(VertArray, m_link)> s_unk_AEEEA8;
+    static TSExplicitList<VertArray, offsetof(VertArray, m_link)> s_freeVertArrays;
     static VBBList indexVBList;
     static VBBList vertexVBList;
 
     static void Destroy();
     static void Initialize();
+    static void AsyncFailedCallback(CAsyncObject* object);
     static void AsyncPostloadCallback(void* arg);
+    static void AllocVertArray(CMapObjGroup::VertArray** vertArray, uint32_t count);
 
     /* 0000 */ int32_t m_objectIndex;
     /* 0004 */ VBBList_Block* m_vertsBlock;
@@ -113,7 +144,7 @@ class CMapObjGroup {
     /* 004C */ float m_distToCamera;
     /* 0050 */ int32_t m_portalStart;
     /* 0054 */ int32_t m_portalCount;
-    /* 0058 */ int32_t m_fogs;
+    /* 0058 */ uint8_t m_fogs [4];
     /* 005C */ uint16_t m_transparencyBatchesCount;
     /* 005E */ uint16_t m_intBatchCount;
     /* 0060 */ uint16_t m_extBatchCount;
@@ -125,14 +156,14 @@ class CMapObjGroup {
     /* 00D8 */ char* m_groupName;
     /* 00DC */ SMOPoly* m_polyList;
     /* 00E0 */ uint16_t* m_indices;
-    /* 00E4 */ int32_t unk_00E4;
+    /* 00E4 */ uint16_t* m_stripIndices;
     /* 00E8 */ C3Vector* m_vertexList;
     /* 00EC */ C3Vector* m_normalList;
     /* 00F0 */ C2Vector* m_textureVertexList;
-    /* 00F4 */ int32_t unk_00F4;
+    /* 00F4 */ C2Vector* m_textureVertexList2;
     /* 00F8 */ SMOBatch* m_batchList;
-    /* 00FC */ int32_t unk_00FC;
-    /* 0100 */ int32_t unk_0100;
+    /* 00FC */ uint8_t* m_stripBatches;
+    /* 0100 */ uint16_t* m_lightRefList;
     /* 0104 */ uint16_t* m_doodadRefList;
     /* 0108 */ CImVector* m_colorVertexList;
     /* 010C */ CImVector* m_colorVertexListExtra;
@@ -140,7 +171,8 @@ class CMapObjGroup {
     /* 0114 */ C2iVector m_liquidVerts;
     /* 011C */ C2iVector m_liquidTiles;
     /* 0124 */ C3Vector m_liquidCorner;
-    /* 0130 */ int32_t m_luquidMaterialId;
+    /* 0130 */ uint16_t m_liquidMaterialId;
+    /* 0132 */ uint8_t unk_0132[2];
     /* 0134 */ SMOLiquidVert* m_liquidVertexList;
     /* 0138 */ SMOLTile* m_liquidTileList;
     /* 013C */ float m_liquidHeight;
@@ -150,13 +182,13 @@ class CMapObjGroup {
     /* 014C */ int32_t unk_014C;
     /* 0150 */ int32_t m_polyListSize;
     /* 0154 */ int32_t m_indicesCount;
-    /* 0158 */ int32_t unk_0158;
+    /* 0158 */ int32_t m_stripIndexCount;
     /* 015C */ int32_t m_vertexListCount;
     /* 0160 */ int32_t m_normalListCount;
     /* 0164 */ int32_t m_textureVertexListCount;
-    /* 0168 */ int32_t unk_0168;
+    /* 0168 */ int32_t m_textureVertexList2Count;
     /* 016C */ int32_t m_batchListCount;
-    /* 0170 */ int32_t unk_0170;
+    /* 0170 */ int32_t m_lightRefListCount;
     /* 0174 */ int32_t m_doodadRefListCount;
     /* 0178 */ int32_t m_colorVertexListSize;
     /* 017C */ int32_t m_colorVertexListExtraSize;
@@ -164,20 +196,22 @@ class CMapObjGroup {
     /* 0184 */ void* m_filePtr;
     /* 0188 */ int32_t m_fileSize;
     /* 018C */ CMapObj* m_parent;
-    /* 0190 */ int32_t unk_0190;
+    /* 0190 */ float unk_0190;
     /* 0194 */ CAsyncObject* m_asyncObjPtr;
-    /* 0198 */ int8_t m_unkLoadedFlag;
-    /* 0199 */ uint8_t unk_0199[3];
-    /* 019C */ int32_t m_unkIndexMin1;
-    /* 01A0 */ int32_t m_unkIndexMax1;
-    /* 01A4 */ uint16_t m_unkIndexMin2;
-    /* 01A6 */ uint16_t m_unkIndexMax2;
-    /* 01A8 */ int32_t m_tSExplicitListMLinkoffset;
-    /* 01AC */ void* m_tSExplicitListPtr;
-    /* 01B0 */ void* m_tSExplicitListPtr2;
+    /* 0198 */ uint32_t m_unkLoadedFlag;
+    /* 019C */ uint32_t m_indexMin;
+    /* 01A0 */ uint32_t m_indexMax;
+    /* 01A4 */ uint16_t m_vertexMin;
+    /* 01A6 */ uint16_t m_vertexMax;
+    /* 01A8 */ TSExplicitList<CMapObjOccluder, offsetof(CMapObjOccluder, m_link)> m_occluderList;
     /* 01B4 */ TSLink<CMapObjGroup> m_asyncLoadLink;
 
     CMapObjGroup();
+    ~CMapObjGroup();
+    void Init();
+    void Clear();
+    void FreeVB();
+    void InitPtrs();
     void Create();
     void CreateDataPointers(SIffChunk* dataChunk);
     void CreateOptionalDataPointers(SIffChunk* dataChunk);
@@ -188,15 +222,22 @@ class CMapObjGroup {
     void UploadIndexBuffer(CGxBuf* buf);
     void SetVertexVB();
     void FillVertexVB(CGxBuf* buf, EGxVertexBufferFormat format);
+    void SetTransparencyVB();
+    void FillTransparencyVB(CGxBuf* buf);
     void FixColorVertexAlpha();
+    void HandleAntiportal();
+    int32_t FindLiquidType();
     bool GetTris(CFrustum* frustum, uint32_t flags, uint16_t faceIgnoreFlags, uint32_t a5, CMapObjDef* mapObjDef);
+    bool GetTris(const C3Segment& seg, float* dist, uint32_t flags, uint16_t faceIgnoreFlags, World::TriData* triData, CMapObjDef* mapObjDef);
+    void GetTrisFromQuery(World::TriData* triData, BspQuery* query, CMapObjDef* mapObjDef, uint32_t statusFlags);
     void GetTrisFromQuery(uint32_t a2, BspQuery* a3, CMapObjDef* mapObjDef, uint32_t a5);
-    void SetLighting(uint32_t mode);
+    static void SetLighting(CMapObjGroup* group, uint32_t mode);
     bool Intersect(C3Segment& seg, float* dist, uint32_t flags, uint16_t faceIgnoreFlags, int32_t* hitIndex);
     bool GetFacesForLinking(C3Segment& seg, float* t0, int32_t* face0, float* t1, int32_t* face1);
     bool QueryLiquid(const C3Vector& pos, int32_t* liquidType, float* level);
     void QueryLiquidSounds(const C3Vector& pos, uint32_t* results);
     void GenLiquidVerts();
+    int32_t GetLiquidType() const;
     int32_t GetLiquidType(uint32_t groupLiquid);
     uint32_t GetNumSharedTiles();
     bool GetLiquidTris(const CAaBox& box, uint32_t flags, World::TriData* triData, CMapObjDef* mapObjDef);
@@ -225,6 +266,7 @@ struct SMOGroupHeader {
     /* 0034 */ uint32_t m_groupLiquid;
     /* 0038 */ uint32_t m_uniqueID;
     /* 003C */ uint32_t unk_003C;
+    /* 0040 */ uint32_t unk_0040;
 };
 
 struct SMOLTile {
@@ -253,12 +295,12 @@ union SMOLiquidVert {
 class VBBList_Block {
     public:
     /* 0000 */ TSLink<VBBList_Block> m_link;
-    /* 0008 */ EGxPoolUsage m_poolUsage;
+    /* 0008 */ float unk_0008;
     /* 000C */ uint32_t m_offset;
     /* 0010 */ uint32_t m_capacity;
     /* 0014 */ CGxPool* m_pool;
     /* 0018 */ CGxBuf* m_buffer;
-    /* 001C */ VBBList_Block* m_listHead;
+    /* 001C */ VBBList_Block** m_listHead;
 
     void Set(uint32_t itemSize, uint32_t itemCount, uint32_t offset);
 };
@@ -301,16 +343,15 @@ namespace World {
         static uint32_t faceIndexCursor;
         static uint32_t indexCursor;
         static uint32_t unk_CB7538;
+        static uint16_t faceIndexPool[0x4000];
+        static uint16_t indexPool[0xC000];
+        static Batch batches[32];
 
-        Batch* AllocBatch();
-        uint16_t* AllocIndices(uint32_t count);
+        static Batch* AllocBatch();
+        static Batch* __stdcall AllocBatch(uint32_t indexCount, uint32_t faceCount);
+        static uint16_t* __stdcall AllocIndices(uint32_t count);
     };
 }
-
-class CAaBsp_Query_Segment {
-    public:
-    /* 0000 */ uint32_t unk_0000;
-};
 
 class WMOGroup {
     public:
@@ -319,5 +360,115 @@ class WMOGroup {
     /* 0120 */ uint8_t unk_0120[24];
     /* 0138 */ uint32_t unk_0138;
 };
+
+// VERIFY: d3f8a7cc auto
+// OFFSET: 0x007C9A00
+template <class T>
+void CAaBsp_Query<T>::GetFaceIndices(const CAaBspNode* node) {
+    if (this->m_f->GetFaceIndicesUsingCache(*this->m_aaBsp, node)) {
+        return;
+    }
+
+    const uint16_t* faces = &this->m_aaBsp->m_nodeFaceIndices[node->m_faceStart];
+
+    for (uint32_t i = 0; i < node->m_nFaces; i++) {
+        (*this->m_f)(faces[i]);
+    }
+}
+
+// VERIFY: b715a408 manual
+// OFFSET: 0x007CA180
+template <class T>
+void CAaBsp_Query_Segment<T>::GetFaceIndices(uint32_t nodeIndex, const C3Segment& seg, const CAaBox& box) {
+    const CAaBspNode* node = &this->m_aaBsp->m_nodes[nodeIndex];
+
+    if (!node) {
+        return;
+    }
+
+    if (node->m_flags & 4) {
+        this->CAaBsp_Query<T>::GetFaceIndices(node);
+        return;
+    }
+
+    uint32_t axis = node->m_flags & 3;
+    const float* segB = &seg.b.x;
+    const float* segT = &seg.t.x;
+    const float* boxB = &box.b.x;
+    const float* boxT = &box.t.x;
+
+    if (!(segB[axis] - boxB[axis] >= -0.0099999998f || segT[axis] - boxB[axis] >= -0.0099999998f)) {
+        return;
+    }
+
+    if (!(boxT[axis] - segB[axis] >= 0.0099999998f || boxT[axis] - segT[axis] >= 0.0099999998f)) {
+        return;
+    }
+
+    CAaBox posBox = box;
+    (&posBox.b.x)[axis] = node->m_planeDist;
+    CAaBox negBox = box;
+    (&negBox.t.x)[axis] = node->m_planeDist;
+
+    float distB = segB[axis] - node->m_planeDist;
+    float distT;
+
+    if ((distB >= -0.0099999998f && distB <= 0.0099999998f) || ((distT = segT[axis] - node->m_planeDist) >= -0.0099999998f && distT <= 0.0099999998f)) {
+        if (node->m_posChild != 0xFFFF) {
+            this->GetFaceIndices(node->m_posChild, seg, posBox);
+        }
+
+        if (node->m_negChild != 0xFFFF) {
+            this->GetFaceIndices(node->m_negChild, seg, negBox);
+        }
+
+        return;
+    }
+
+    if (distB > 0.0099999998f && distT > 0.0099999998f) {
+        if (node->m_posChild != 0xFFFF) {
+            this->GetFaceIndices(node->m_posChild, seg, posBox);
+        }
+
+        return;
+    }
+
+    if (distB < -0.0099999998f && distT < -0.0099999998f) {
+        if (node->m_negChild != 0xFFFF) {
+            this->GetFaceIndices(node->m_negChild, seg, negBox);
+        }
+
+        return;
+    }
+
+    C3Vector split = seg.Lerp(distB / (distB - distT));
+    C3Segment part;
+
+    if (distB <= 0.0f) {
+        if (node->m_negChild != 0xFFFF) {
+            part.b = seg.b;
+            part.t = split;
+            this->GetFaceIndices(node->m_negChild, part, negBox);
+        }
+
+        if (node->m_posChild != 0xFFFF) {
+            part.b = split;
+            part.t = seg.t;
+            this->GetFaceIndices(node->m_posChild, part, posBox);
+        }
+    } else {
+        if (node->m_posChild != 0xFFFF) {
+            part.b = seg.b;
+            part.t = split;
+            this->GetFaceIndices(node->m_posChild, part, posBox);
+        }
+
+        if (node->m_negChild != 0xFFFF) {
+            part.b = split;
+            part.t = seg.t;
+            this->GetFaceIndices(node->m_negChild, part, negBox);
+        }
+    }
+}
 
 #endif

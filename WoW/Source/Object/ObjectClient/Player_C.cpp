@@ -33,6 +33,7 @@ uint32_t GetDisplayIdFromRaceAndGender(uint32_t race, uint32_t gender) {
     }
 }
 
+// VERIFY: 24f1b2a8 manual
 // OFFSET: 0x006DC810
 CreatureModelDataRec* GetModelDataRec(uint32_t race, uint32_t gender) {
     if (gender >= 3) {

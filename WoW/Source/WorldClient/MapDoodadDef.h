@@ -7,19 +7,17 @@
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/WorldClient/MapLoad.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
 
 class CM2Lighting;
 class CMapBaseObj;
 class CMapObjDef;
 
-class CMapDoodadDef : public CMapStaticEntity {
+class CMapDoodadDef : public CMapStaticEntity, public TSHashObject<CMapDoodadDef, HASHKEY_DWORD> {
     public:
-    /* 0090 */ uint32_t m_uniqueId;
-    /* 0094 */ void* unk_0094;
-    /* 0098 */ void* unk_0098;
-    /* 009C */ void* m_prevMapDoodadDef09c;
-    /* 00A0 */ void* m_nextMapDoodadDef0a0;
-    /* 00A4 */ int32_t unk_00A4;
+    static void ExtendBounds(CMapDoodadDef* doodadDef, CMapBaseObj* parent);
+    static void Purge(CMapDoodadDef* doodadDef);
+
     /* 00A8 */ TSLink<CMapDoodadDef> m_doodadDefLink;
     /* 00B0 */ int32_t m_cullPassStamp;
     /* 00B4 */ int32_t unk_00B4;
@@ -27,12 +25,9 @@ class CMapDoodadDef : public CMapStaticEntity {
     /* 00C0 */ CAaBox m_bboxDoodadDef;
     /* 00D8 */ C44Matrix m_mat;
     /* 0118 */ C44Matrix m_identity;
-    /* 0158 */ int32_t unk_0158;
-    /* 015C */ int32_t unk_015C;
-    /* 0160 */ int32_t unk_0160;
-    /* 0164 */ int32_t unk_0164;
-    /* 0168 */ int32_t unk_0168;
-    /* 016C */ int32_t unk_016C;
+    /* 0158 */ SE2SoundKitObject m_soundKitObject;
+    /* 016C */ uint16_t unk_016C;
+    /* 016E */ uint8_t unk_016E[2];
 
     virtual void SelectLights(CM2Lighting* lighting);
     virtual void SelectUnderwater(CM2Lighting* lighting);
@@ -40,7 +35,6 @@ class CMapDoodadDef : public CMapStaticEntity {
 
     CMapDoodadDef();
     void UpdateBounds();
-    void ExtendBounds(CMapBaseObj* parent);
     void ExtendChunkBounds();
 };
 

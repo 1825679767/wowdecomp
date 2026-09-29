@@ -51,6 +51,17 @@ bool fnotequal(float a, float b);
 int32_t IsNaN(double value);
 
 // INLINED
+inline float CMath::cos_(float x) {
+    float frac;
+    int32_t whole;
+    CMath::split_(x * 0.31830987f, &frac, &whole);
+
+    float result = 1.0f - frac * ((6.0f - 4.0f * frac) * frac);
+
+    return (whole & 1) ? -result : result;
+}
+
+// INLINED
 inline int32_t CMath::fint_(float f) {
     return static_cast<int32_t>(lrintf(f));
 }

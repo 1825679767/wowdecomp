@@ -817,7 +817,7 @@ void GxRsSet(EGxRenderState which, void* value) {
     g_theGxDevicePtr->RsSet(which, value);
 }
 
-// VERIFY: be880d39 auto
+// VERIFY: 194fac0e auto
 // OFFSET: 0x00408BF0
 void GxRsSet(EGxRenderState which, int32_t value) {
     if (!g_theGxDevicePtr->m_context) {

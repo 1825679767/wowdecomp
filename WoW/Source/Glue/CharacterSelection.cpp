@@ -130,7 +130,7 @@ void CGlueMgr::ProcessAttachment(CM2Model* model, int32_t effectID, uint32_t att
     effect->Release();
 }
 
-// VERIFY: aa685f9b manual
+// VERIFY: d258a8c3 manual
 // OFFSET: 0x004E2CE0
 void CGlueMgr::AttachCharacterSelectVisuals(CM2Model* model) {
     SpellVisualKitRec* kitRec = g_spellVisualKitDB.GetRecord(989);
@@ -164,9 +164,9 @@ void CGlueMgr::AttachCharacterSelectVisuals(CM2Model* model) {
                 float alpha = kitRec->m_charParamZero[i];
 
                 if (alpha < 0.0f) {
-                    model->unk_0178 = 0.0f;
+                    model->m_fadeAlpha = 0.0f;
                 } else {
-                    model->unk_0178 = alpha > 1.0f ? 1.0f : alpha;
+                    model->m_fadeAlpha = alpha > 1.0f ? 1.0f : alpha;
                 }
 
                 break;
@@ -320,7 +320,7 @@ void CCharacterSelection::EnumerateCharactersCallback(CHARACTER_INFO& info, void
     LoadAddOnEnableState(info.m_name);
 }
 
-// VERIFY: cd862ed4 manual
+// VERIFY: 3fe94d69 manual
 // OFFSET: 0x004E3CD0
 void CCharacterSelection::ShowCharacter() {
     if (CCharacterSelection::s_selectionIndex < 0 || CCharacterSelection::s_selectionIndex >= static_cast<int32_t>(CCharacterSelection::s_characterList.Count())) {
@@ -496,7 +496,7 @@ void CCharacterSelection::ShowCharacter() {
             scaledModel->m_fFlags |= 0x8000;
             scaledModel->m_worldTransform = matrix;
             CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_petAlpha = displayRec->m_creatureModelAlpha * (1.0f / 255.0f);
-            CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_petModel->unk_0178 = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_petAlpha;
+            CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_petModel->m_fadeAlpha = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_petAlpha;
         }
 
         CCharacterSelection::s_characterCount++;

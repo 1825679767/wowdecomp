@@ -2,13 +2,13 @@
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00D43B34
-CDataAllocator Liquid::s_unk_D43B34(0x6C, 0x20);
+CDataAllocator Liquid::s_unk_D43B34(sizeof(Liquid::CInstance), 0x20);
 
 // STATIC: 0x00B23F64
 float Liquid::s_unk_B23F64 = 1.0f;
 
 // STATIC: 0x00B23F68
-int32_t Liquid::s_unk_B23F68 = 1;
+int32_t Liquid::s_specularEnabled = 1;
 
 // STATIC: 0x00D439E8
 IDatabase<LiquidMaterialRec>* Liquid::s_liquidMaterialDB;
@@ -20,7 +20,7 @@ IDatabase<LiquidTypeRec>* Liquid::s_liquidTypeDB;
 char Liquid::s_unk_D439F0[256];
 
 // STATIC: 0x00D43AF0
-int32_t Liquid::s_unk_D43AF0;
+int32_t Liquid::s_shadersEnabled;
 
 // STATIC: 0x00D43AF4
 int32_t Liquid::s_unk_D43AF4;
@@ -31,7 +31,7 @@ int32_t Liquid::s_unk_D43AF8;
 // STATIC: 0x00D43AFC
 int32_t Liquid::s_unk_D43AFC;
 
-// VERIFY: fb13c55c auto
+// VERIFY: 4b95827e auto
 // OFFSET: 0x008A1770
 int32_t Liquid::Initialize(int32_t a1, float a2, int32_t a3, const char* a4, IDatabase<LiquidTypeRec>* liquidTypeDB, IDatabase<LiquidMaterialRec>* liquidMaterialDB) {
     SStrCopy(Liquid::s_unk_D439F0, a4, sizeof(Liquid::s_unk_D439F0));
@@ -39,14 +39,14 @@ int32_t Liquid::Initialize(int32_t a1, float a2, int32_t a3, const char* a4, IDa
     Liquid::s_unk_D43AF8++;
     Liquid::s_unk_D43AFC++;
     Liquid::s_unk_D43AF4 = a1;
-    Liquid::s_unk_D43AF0 = a3;
-    Liquid::s_unk_B23F68 = 1;
+    Liquid::s_shadersEnabled = a3;
+    Liquid::s_specularEnabled = 1;
     Liquid::s_liquidTypeDB = liquidTypeDB;
     Liquid::s_liquidMaterialDB = liquidMaterialDB;
     return 1;
 }
 
-// VERIFY: c3031eda manual
+// VERIFY: 362c9cb9 manual
 // OFFSET: 0x008A2400
 void Liquid::Shutdown() {
     int32_t count = Liquid::s_unk_D43AFC--;
@@ -55,7 +55,7 @@ void Liquid::Shutdown() {
 
     if (count == 1) {
         Liquid::CMaterialBank::Destroy();
-        Liquid::s_unk_D43AF0 = 0;
+        Liquid::s_shadersEnabled = 0;
     }
 
     Liquid::CSettingsBank::Destroy();
@@ -73,6 +73,18 @@ void Liquid::CInstance::AddRef() {
 // OFFSET: 0x008A1710
 void Liquid::CInstance::Purge() {
     this->m_geomFactory->Purge();
+}
+
+// VERIFY: 0c7c5584 auto
+// OFFSET: 0x008A1720
+void Liquid::SetShadersEnabled(int32_t enabled) {
+    Liquid::s_shadersEnabled = enabled;
+}
+
+// VERIFY: 6952e6f0 auto
+// OFFSET: 0x008A1730
+void Liquid::SetSpecularEnabled(int32_t enabled) {
+    Liquid::s_specularEnabled = enabled;
 }
 
 // VERIFY: e803d76a auto

@@ -187,7 +187,7 @@ class CM2Model {
     /* 0164 */ C3Vector unk_0164;
     /* 0170 */ float unk_0170;
     /* 0174 */ void* m_frameOfReference;
-    /* 0178 */ float unk_0178;
+    /* 0178 */ float m_fadeAlpha;
     /* 017C */ float unk_017C;
     /* 0180 */ float unk_0180;
     /* 0184 */ float unk_0184;

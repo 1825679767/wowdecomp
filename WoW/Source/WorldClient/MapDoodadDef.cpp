@@ -11,30 +11,33 @@
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WorldClient/MapChunk.h"
 #include "WoW/Source/WorldClient/MapLight.h"
+#include "WoW/Source/WorldClient/MapObj.h"
 #include "WoW/Source/WorldClient/MapObjDef.h"
+#include "WoW/Source/WorldClient/MapObjGroup.h"
 #include "WoW/Source/WorldClient/Types.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WorldClient/WorldView.h"
 
+// VERIFY: 4012bf37 manual
 // OFFSET: 0x007B4FA0
-void CMapDoodadDef::ExtendBounds(CMapBaseObj* parent) {
+void CMapDoodadDef::ExtendBounds(CMapDoodadDef* doodadDef, CMapBaseObj* parent) {
     if (parent->m_type & 0x4) {
         CMapChunk* chunk = static_cast<CMapChunk*>(parent);
-        chunk->m_bbox.t.z = this->m_bbox.t.z >= chunk->m_bbox.t.z ? this->m_bbox.t.z : chunk->m_bbox.t.z;
+        chunk->m_bbox.t.z = doodadDef->m_bbox.t.z < chunk->m_bbox.t.z ? chunk->m_bbox.t.z : doodadDef->m_bbox.t.z;
     } else if (parent->m_type & 0x10) {
         CMapObjDefGroup* group = static_cast<CMapObjDefGroup*>(parent);
-        group->m_bbox |= this->m_bbox;
+        group->m_bbox |= doodadDef->m_bbox;
 
         CMapBaseObjLink* link = group->m_parentLinkList.Head();
-        static_cast<CMapObjDef*>(link->m_ref)->m_bbox |= this->m_bbox;
+        static_cast<CMapObjDef*>(link->m_ref)->m_bbox |= doodadDef->m_bbox;
     }
 }
 
-// VERIFY: 3ef424d0 manual
+// VERIFY: 8dd6d44c manual
 // OFFSET: 0x007B55E0
 void CMapDoodadDef::ExtendChunkBounds() {
     for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
-        this->ExtendBounds(link->m_ref);
+        CMapDoodadDef::ExtendBounds(this, link->m_ref);
     }
 }
 
@@ -102,11 +105,11 @@ void CMapDoodadDef::UpdateBounds() {
     }
 }
 
-// VERIFY: 6f062999 manual
+// VERIFY: f560b093 manual
 // OFFSET: 0x007C1150
 void CMapDoodadDef::SelectLights(CM2Lighting* lighting) {
     if (this->m_flags & 0x2) {
-        lighting->AddAmbient(C3Vector(this->m_m2AmbietColor));
+        lighting->AddAmbient(C3Vector(this->m_m2AmbientColor));
         lighting->AddDiffuse(C3Vector(this->m_m2DiffuseColor), CMapStaticEntity::s_interiorSunDir);
     } else {
         CM2Light* light = &CMap::s_mapLight->m_light;
@@ -130,4 +133,94 @@ void CMapDoodadDef::SelectLights(CM2Lighting* lighting) {
     } else {
         lighting->m_flags &= ~0x8;
     }
+}
+
+// VERIFY: e4e3a788 manual
+// OFFSET: 0x007C21E0
+CMapDoodadDef::CMapDoodadDef() {
+    this->m_type |= 0x40;
+    this->m_model = nullptr;
+    this->unk_00B8 = 0;
+    this->unk_016C = 0;
+}
+
+// VERIFY: cf40d12f manual
+// OFFSET: 0x007C23F0
+void CMapDoodadDef::SelectUnderwater(CM2Lighting* lighting) {
+    if (!(this->unk_007C & 0x80)) {
+        this->unk_007C = (this->unk_007C & ~0xE0u) | 0x80;
+
+        for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
+            CMapBaseObj* parent = link->m_ref;
+
+            if (!(parent->m_type & 0x10)) {
+                this->unk_007C |= 0x80;
+                C3Vector pos(this->m_position.x, this->m_position.y, this->m_bbox.b.z);
+                int32_t liquidType;
+
+                if (CMap::QueryLiquidTerrain(&pos, &liquidType, &this->m_liquidHeight, 0)) {
+                    this->m_diffuseLightScale = 1.0f;
+                    this->unk_007C = (this->unk_007C & ~0x28u) | 0x20;
+
+                    if (this->m_liquidHeight <= this->m_bbox.t.z) {
+                        this->unk_007C |= 0x40;
+                    } else {
+                        this->unk_007C &= ~0x40u;
+                    }
+                }
+
+                break;
+            }
+
+            CMapObjDefGroup* defGroup = static_cast<CMapObjDefGroup*>(parent);
+            CMapObjDef* mapObjDef = static_cast<CMapObjDef*>(defGroup->m_parentLinkList.Head()->m_ref);
+            CMapObjGroup* group = mapObjDef->m_owner->GetGroup(defGroup->m_groupNum, 0);
+
+            if (!group) {
+                this->unk_007C &= ~0x80u;
+                continue;
+            }
+
+            C3Vector localPos = C3Vector(this->m_position.x, this->m_position.y, this->m_bbox.b.z) * mapObjDef->m_invMat;
+            int32_t liquidType;
+            float level;
+
+            if (group->QueryLiquid(localPos, &liquidType, &level)) {
+                this->unk_007C |= 0x20;
+                C3Vector surface = C3Vector(localPos.x, localPos.y, level) * mapObjDef->m_mat;
+                this->m_liquidHeight = surface.z;
+
+                if (this->m_liquidHeight <= this->m_bbox.t.z) {
+                    this->unk_007C |= 0x40;
+                } else {
+                    this->unk_007C &= ~0x40u;
+                }
+
+                this->unk_007C |= 0x80;
+                break;
+            }
+        }
+    }
+
+    this->CMapStaticEntity::SelectUnderwater(lighting);
+}
+
+// VERIFY: 5d30506f manual
+// OFFSET: 0x007C3020
+void CMapDoodadDef::Purge(CMapDoodadDef* doodadDef) {
+    if (doodadDef->m_refCount) {
+        return;
+    }
+
+    if (doodadDef->m_model) {
+        doodadDef->m_model->SetSequenceCallback(nullptr, 0);
+        doodadDef->m_model->SetEventCallback(nullptr, 0);
+        doodadDef->m_model->m_lightingCallback = nullptr;
+        doodadDef->m_model->m_lightingArg = nullptr;
+        doodadDef->m_model->Release();
+        doodadDef->m_model = nullptr;
+    }
+
+    doodadDef->m_doodadDefLink.Unlink();
+    CMap::FreeDoodadDef(doodadDef);
 }

@@ -1,36 +1,55 @@
 #include "MapChunk.h"
-#include "Engine/Source/Gx/Gx.h"
-#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
-#include "Engine/Source/Tempest/CMath.h"
-#include "WoW/Source/WorldClient/CChunkLiquid.h"
-#include "WoW/Source/LiquidSystem/Liquid.h"
-#include "WoW/Source/DB/Rec/LiquidTypeRec.h"
-#include "WoW/Source/DB/Rec/LiquidMaterialRec.h"
-#include "WoW/Source/DB/DBClient/DBClient.h"
-#include "Engine/Source/Storm/H/storm.h"
-#include "WoW/Source/WorldClient/MapRenderChunk.h"
+#include "WoW/Source/WorldClient/DetailDoodad.h"
+#include "WoW/Source/WorldClient/CDetailDoodadData.h"
+#include "Engine/Source/Tempest/CRandom.h"
+#include "Engine/Source/Tempest/C3Ray.h"
+#include "Engine/Source/Tempest/NTempest.h"
 #include <cmath>
-#include "WoW/Source/WorldClient/Map.h"
-#include "WoW/Source/WorldClient/MapObjGroup.h"
-#include "WoW/Source/WorldClient/MapArea.h"
+#include "Engine/Source/Base/CDataAllocator.h"
+#include "Engine/Source/Base/RCString.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
+#include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Gx/Types.h"
+#include "Engine/Source/Gxu/GxuLight.h"
+#include "Engine/Source/Services/SysMessage.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C2iVector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Tempest/C4Plane.h"
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Tempest/CFacet.h"
 #include "Engine/Source/Tempest/CFrustum.h"
-#include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Tempest/CImVector.h"
-#include "WoW/Source/WorldClient/CMapBaseObjLink.h"
-#include "WoW/Source/WorldClient/MapDoodadDef.h"
-#include "WoW/Source/WorldClient/World.h"
-#include "WoW/Source/WorldClient/CWorldMath.h"
+#include "Engine/Source/Tempest/CMath.h"
 #include "Engine/Source/Tempest/CiRect.h"
-#include "Engine/Source/Base/CDataAllocator.h"
-#include "Engine/Source/Tempest/C4Plane.h"
-#include "Engine/Source/Storm/H/stpl.h"
-#include "Engine/Source/Base/RCString.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/LiquidMaterialRec.h"
+#include "WoW/Source/DB/Rec/LiquidTypeRec.h"
+#include "WoW/Source/LiquidSystem/Liquid.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
+#include "WoW/Source/WorldClient/CChunkLiquid.h"
+#include "WoW/Source/WorldClient/CMapBaseObjLink.h"
+#include "WoW/Source/WorldClient/CWorldMath.h"
+#include "WoW/Source/WorldClient/CWorldOcclusion.h"
+#include "WoW/Source/WorldClient/Map.h"
+#include "WoW/Source/WorldClient/MapArea.h"
+#include "WoW/Source/WorldClient/MapDoodadDef.h"
+#include "WoW/Source/WorldClient/MapObjDef.h"
+#include "WoW/Source/WorldClient/MapObjGroup.h"
+#include "WoW/Source/WorldClient/MapRenderChunk.h"
 #include "WoW/Source/WorldClient/Types.h"
-#include "Engine/Source/Gxu/GxuLight.h"
+#include "WoW/Source/WorldClient/World.h"
+#include "WoW/Source/WorldClient/MapLight.h"
+#include "WoW/Source/WorldClient/DayNight__DNInfo.h"
+#include "WoW/Source/WorldClient/DayNight.h"
+#include "Engine/Source/Model2/M2Light.h"
+
+// STATIC: 0x00A3FBB8
+static const uint16_t unk_A3FBB8[8] = { 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80 };
+
+// STATIC: 0x00A3FBC8
+static const uint32_t unk_A3FBC8[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
 // STATIC: 0x00D25488
 float CMapChunk::s_geoToTex;
@@ -44,6 +63,105 @@ const int32_t CMapChunk::cornerVertexIndex[4] = { 0, 8, 136, 144 };
 // STATIC: 0x00CD8F38
 int32_t CMapChunk::farCornerIndex;
 
+// STATIC: 0x00CD8F3C
+int32_t CMapChunk::nearCornerIndex;
+
+// VERIFY: ed4a5d5b manual
+// OFFSET: 0x00790520
+void CMapChunk::GetVertexPosition(int32_t index, C3Vector* pos) {
+    pos->x = CMapChunk::vertexList[index].x + this->m_topLeftCoords.x;
+    pos->y = CMapChunk::vertexList[index].y + this->m_topLeftCoords.y;
+    pos->z = this->m_height[index] + this->m_topLeftCoords.z;
+}
+
+// VERIFY: d0968beb manual
+// OFFSET: 0x007C3370
+void CMapChunk::Purge() {
+    if (this->m_renderChunk) {
+        CMap::FreeRenderChunk(this->m_renderChunk);
+        this->m_renderChunk = nullptr;
+    }
+
+    if (this->m_detailDoodadInst) {
+        CDetailDoodad::FreeInst(this->m_detailDoodadInst);
+        this->m_detailDoodadInst = nullptr;
+    }
+
+    CChunkLiquid* liquid = this->m_liquidChunkLinkList.Head();
+
+    while (liquid) {
+        CChunkLiquid* next = this->m_liquidChunkLinkList.Next(liquid);
+        liquid->m_chunkLink.Unlink();
+        liquid->Purge();
+        CMap::FreeChunkLiquid(liquid);
+        liquid = next;
+    }
+
+    this->m_sortListLink.Unlink();
+
+    for (CMapBaseObjLink* link = this->m_doodadDefLinkList.Head(); link;) {
+        CMapBaseObjLink* next = this->m_doodadDefLinkList.Next(link);
+        CMapDoodadDef* doodadDef = static_cast<CMapDoodadDef*>(link->m_owner);
+        CMap::FreeBaseObjLink(link);
+
+        if (!(doodadDef->m_flags & 0x200)) {
+            CMapDoodadDef::Purge(doodadDef);
+        }
+
+        link = next;
+    }
+
+    for (CMapBaseObjLink* link = this->m_mapObjDefLinkList.Head(); link;) {
+        CMapBaseObjLink* next = this->m_mapObjDefLinkList.Next(link);
+        CMapObjDef* mapObjDef = static_cast<CMapObjDef*>(link->m_owner);
+        CMap::FreeBaseObjLink(link);
+        CMap::PurgeMapObjDef(mapObjDef);
+        link = next;
+    }
+
+    for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link;) {
+        CMapBaseObjLink* next = this->m_parentLinkList.Next(link);
+        CMap::FreeBaseObjLink(link);
+        link = next;
+    }
+
+    for (CMapBaseObjLink* link = this->m_entityLinkList.Head(); link;) {
+        CMapBaseObjLink* next = this->m_entityLinkList.Next(link);
+        CMap::FreeBaseObjLink(link);
+        link = next;
+    }
+
+    for (CMapBaseObjLink* link = this->m_lightLinkList.Head(); link;) {
+        CMapBaseObjLink* next = this->m_lightLinkList.Next(link);
+        CMap::FreeBaseObjLink(link);
+        link = next;
+    }
+
+    for (SE2SoundKitObject* sound = this->m_soundHandleList.Head(); sound;) {
+        SI2::StopAdvancedSound(sound->m_advancedId);
+        sound = this->m_soundHandleList.DeleteNode(sound);
+    }
+}
+
+// VERIFY: 3a512c10 auto
+// OFFSET: 0x007C3DB0
+void CMapChunk::SelectLights(CM2Lighting* lighting) {
+    lighting->AddLight(&CMap::s_mapLight->m_light);
+
+    if (CWorld::farFog > this->m_distToCamera && (this->m_flags & MAPOBJ_FLAG_UNPLACED)) {
+        this->m_flags = static_cast<MapObjFlag>(this->m_flags & ~MAPOBJ_FLAG_UNPLACED);
+    }
+
+    DayNight::DNInfo* info = DayNight::GetInfo();
+    C3Vector fogColor;
+    fogColor.x = info->m_fog.m_color.r * 0.0039215689f;
+    fogColor.y = info->m_fog.m_color.g * 0.0039215689f;
+    fogColor.z = info->m_fog.m_color.b * 0.0039215689f;
+
+    lighting->SetFog(fogColor, info->m_fog.m_start, info->m_fog.m_end, info->m_fog.m_density);
+}
+
+// VERIFY: 092514c8 manual
 // OFFSET: 0x007C3A10
 void CMapChunk::ProcessIffChunks(bool a3) {
     SIffChunk* headerChunk = reinterpret_cast<SIffChunk*>(this->m_chunkInfoBeginPtr);
@@ -162,6 +280,7 @@ void CMapChunk::AllocRenderChunkAndBatch() {
     this->m_renderChunk->AddBatch(this, nullptr, &this->m_topLeftCoords, 0);
 }
 
+// VERIFY: b0c09ba2 manual
 // OFFSET: 0x007C3B60
 int16_t CMapChunk::CreateIndices(char* buf, int32_t baseVertex) {
     uint16_t* indexDst = reinterpret_cast<uint16_t*>(buf);
@@ -169,49 +288,211 @@ int16_t CMapChunk::CreateIndices(char* buf, int32_t baseVertex) {
 
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {
-            // Holes are stored as a 4×4 bitmask (one bit per 2×2 block of cells).
             int holeMaskIndex = (row / 2) * 4 + (col / 2);
             if (this->m_header->m_holes & CMap::s_holeMask[holeMaskIndex])
                 continue;
 
-            // The five vertices that define this cell.
-            // Each outer row has 9 verts, each inner row has 8 — so 17 per row-pair.
             uint16_t TL = baseVertex + col;
             uint16_t TR = baseVertex + col + 1;
-            uint16_t C = baseVertex + col + 9;   // inner vertex, midpoint of cell
-            uint16_t BL = baseVertex + col + 17; // next outer row
+            uint16_t C = baseVertex + col + 9;
+            uint16_t BL = baseVertex + col + 17;
             uint16_t BR = baseVertex + col + 18;
 
-            // Four triangles, all fanning from the center point (CCW winding).
             indexDst[0] = C;
             indexDst[1] = TL;
-            indexDst[2] = BL; // left
+            indexDst[2] = BL;
             indexDst[3] = C;
             indexDst[4] = TR;
-            indexDst[5] = TL; // top
+            indexDst[5] = TL;
             indexDst[6] = C;
             indexDst[7] = BR;
-            indexDst[8] = TR; // right
+            indexDst[8] = TR;
             indexDst[9] = C;
             indexDst[10] = BL;
-            indexDst[11] = BR; // bottom
+            indexDst[11] = BR;
             indexDst += 12;
             totalIndices += 12;
         }
 
-        // Advance past this row-pair (9 outer + 8 inner vertices).
         baseVertex += 17;
     }
 
     return totalIndices;
 }
 
+// VERIFY: 44a339cb manual
+// OFFSET: 0x007C3E70
+void __fastcall CWorldScene::AddMapChunk(CMapChunk* mapChunk) {
+    if (CWorldScene::FrustumCull(&mapChunk->m_bbox)) {
+        return;
+    }
+
+    C3Vector nearest(0.0f, 0.0f, 0.0f);
+    CWorldScene::GetNearestCornerToCamera(&mapChunk->m_bbox, &nearest);
+    float* height = mapChunk->m_height;
+    mapChunk->m_distToCamera = CWorldScene::camPlane.n.z * nearest.z + CWorldScene::camPlane.n.y * nearest.y + CWorldScene::camPlane.n.x * nearest.x + CWorldScene::camPlane.d;
+
+    int32_t index = CMapChunk::cornerVertexIndex[CMapChunk::farCornerIndex];
+    C3Vector corner;
+    corner.z = 0.0f;
+    corner.x = CMapChunk::vertexList[index].x + mapChunk->m_topLeftCoords.x;
+    corner.y = CMapChunk::vertexList[index].y + mapChunk->m_topLeftCoords.y;
+    corner.z = height[index] + mapChunk->m_topLeftCoords.z;
+    CWorldScene::AddMapChunkToRenderList(mapChunk, &corner);
+}
+
+// VERIFY: d44747a1 manual
+// OFFSET: 0x007C3F30
+void CMapChunk::CreateVerticesWorld(CGxVertexPN* v, const C3Vector& offset) {
+    static float cols[9];
+    static float rows[9];
+
+    float left = 17066.666f - this->m_cOffset.x * 33.333332f;
+    float top = 17066.666f - this->m_cOffset.y * 33.333332f;
+    rows[0] = top;
+    cols[0] = left;
+    rows[1] = top - 4.1666665f;
+    rows[2] = top - 8.333333f;
+    rows[3] = top - 12.5f;
+    rows[4] = top - 16.666666f;
+    rows[5] = top - 20.833332f;
+    rows[6] = top - 25.0f;
+    rows[7] = top - 29.166666f;
+    cols[1] = left - 4.1666665f;
+    cols[2] = left - 8.333333f;
+    cols[3] = left - 12.5f;
+    cols[4] = left - 16.666666f;
+    cols[5] = left - 20.833332f;
+    cols[6] = left - 25.0f;
+    cols[7] = left - 29.166666f;
+    rows[8] = 17066.666f - 33.333332f * (this->m_cOffset.y + 1);
+    cols[8] = 17066.666f - (this->m_cOffset.x + 1) * 33.333332f;
+
+    float* height = this->m_height;
+    int8_t* normals = this->m_normals;
+
+    for (int32_t row = 0; row < 9; row++) {
+        for (int32_t col = 0; col < 9; col++) {
+            v->m_position.x = rows[row];
+            v->m_position.y = cols[col];
+            v->m_position.z = this->m_topLeftCoords.z + height[col];
+            v->m_normal.x = normals[3 * col + 0] * 0.0078740157f;
+            v->m_normal.y = normals[3 * col + 1] * 0.0078740157f;
+            v->m_normal.z = normals[3 * col + 2] * 0.0078740157f;
+            v++;
+        }
+
+        height += 9;
+        normals += 27;
+
+        if (row < 8) {
+            for (int32_t col = 0; col < 8; col++) {
+                v->m_position.x = rows[row] - 2.0833333f;
+                v->m_position.y = cols[col] - 2.0833333f;
+                v->m_position.z = this->m_topLeftCoords.z + height[col];
+                v->m_normal.x = normals[3 * col + 0] * 0.0078740157f;
+                v->m_normal.y = normals[3 * col + 1] * 0.0078740157f;
+                v->m_normal.z = normals[3 * col + 2] * 0.0078740157f;
+                v++;
+            }
+
+            height += 8;
+            normals += 24;
+        }
+    }
+}
+
+// VERIFY: 6a9c0ba2 manual
+// OFFSET: 0x007C4620
+void CMapChunk::CreateVerticesWorld(CGxVertexPNC* v, const C3Vector& offset) {
+    static float cols[9];
+    static float rows[9];
+
+    float left = 17066.666f - this->m_cOffset.x * 33.333332f;
+    float top = 17066.666f - this->m_cOffset.y * 33.333332f;
+    rows[0] = top;
+    cols[0] = left;
+    rows[1] = top - 4.1666665f;
+    rows[2] = top - 8.333333f;
+    rows[3] = top - 12.5f;
+    rows[4] = top - 16.666666f;
+    rows[5] = top - 20.833332f;
+    rows[6] = top - 25.0f;
+    rows[7] = top - 29.166666f;
+    cols[1] = left - 4.1666665f;
+    cols[2] = left - 8.333333f;
+    cols[3] = left - 12.5f;
+    cols[4] = left - 16.666666f;
+    cols[5] = left - 20.833332f;
+    cols[6] = left - 25.0f;
+    cols[7] = left - 29.166666f;
+    rows[8] = 17066.666f - 33.333332f * (this->m_cOffset.y + 1);
+    cols[8] = 17066.666f - (this->m_cOffset.x + 1) * 33.333332f;
+
+    int8_t* normals = this->m_normals;
+    uint32_t* shading = this->m_vertexShading;
+    float* height = this->m_height;
+
+    for (int32_t row = 0; row < 9; row++) {
+        for (int32_t col = 0; col < 9; col++) {
+            v->m_position.x = rows[row];
+            v->m_position.y = cols[col];
+            v->m_position.z = this->m_topLeftCoords.z + *height;
+            v->m_normal.x = normals[0] * 0.0078740157f;
+            v->m_normal.y = normals[1] * 0.0078740157f;
+            v->m_normal.z = normals[2] * 0.0078740157f;
+
+            uint32_t color;
+
+            if (!this->m_vertexShading) {
+                color = 0xFF7F7F7F;
+            } else if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+                const uint8_t* src = reinterpret_cast<const uint8_t*>(shading);
+                color = src[2] | (src[1] << 8) | (src[0] << 16) | (static_cast<uint32_t>(src[3]) << 24);
+            } else {
+                color = *shading;
+            }
+
+            height++;
+            *reinterpret_cast<uint32_t*>(&v->m_color) = color;
+            v++;
+            normals += 3;
+            shading++;
+        }
+
+        if (row < 8) {
+            for (int32_t col = 0; col < 8; col++) {
+                v->m_position.x = rows[row] - 2.0833333f;
+                v->m_position.y = cols[col] - 2.0833333f;
+                v->m_position.z = this->m_topLeftCoords.z + *height;
+                v->m_normal.x = normals[0] * 0.0078740157f;
+                v->m_normal.y = normals[1] * 0.0078740157f;
+                v->m_normal.z = normals[2] * 0.0078740157f;
+
+                uint32_t color;
+
+                if (!this->m_vertexShading) {
+                    color = 0xFF7F7F7F;
+                } else if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+                    const uint8_t* src = reinterpret_cast<const uint8_t*>(shading);
+                    color = src[2] | (src[1] << 8) | (src[0] << 16) | (static_cast<uint32_t>(src[3]) << 24);
+                } else {
+                    color = *shading;
+                }
+
+                height++;
+                *reinterpret_cast<uint32_t*>(&v->m_color) = color;
+                v++;
+                normals += 3;
+                shading++;
+            }
+        }
+    }
+}
+
+// VERIFY: 421200ee manual
 // OFFSET: 0x007C4960
 void CMapChunk::CreateVerticesLocal(CGxVertexPN* v) {
-    // ~1/127: scales packed signed-byte normals into [-1, 1] float range
-    static const float NORMAL_SCALE = 0.0078740157f;
-
-    // Both expressions simplify to: 33.333332f * 0.125f = ~4.1667 units/step
     const float stepX = (17066.666f - (float)this->m_cOffset.x * 33.333332f - (17066.666f - (float)(this->m_cOffset.x + 1) * 33.333332f)) * -0.125f;
     const float stepY = (17066.666f - (float)this->m_cOffset.y * 33.333332f - (17066.666f - (float)(this->m_cOffset.y + 1) * 33.333332f)) * -0.125f;
 
@@ -221,24 +502,21 @@ void CMapChunk::CreateVerticesLocal(CGxVertexPN* v) {
     int8_t* normals = this->m_normals;
 
     for (int row = 0; row < 9; row++) {
-        // --- Outer grid row: 9 evenly-spaced vertices ---
         const float outerX = (float)row * stepY;
 
         for (int col = 0; col < 9; col++) {
             v->m_position.x = outerX;
             v->m_position.y = (float)col * stepX;
             v->m_position.z = height[col];
-            v->m_normal.x = normals[col * 3 + 0] * NORMAL_SCALE;
-            v->m_normal.y = normals[col * 3 + 1] * NORMAL_SCALE;
-            v->m_normal.z = normals[col * 3 + 2] * NORMAL_SCALE;
+            v->m_normal.x = normals[col * 3 + 0] * 0.0078740157f;
+            v->m_normal.y = normals[col * 3 + 1] * 0.0078740157f;
+            v->m_normal.z = normals[col * 3 + 2] * 0.0078740157f;
             v++;
         }
 
         height += 9;
-        normals += 27; // 9 vertices * 3 components
+        normals += 27;
 
-        // --- Inner (center-point) grid row: 8 vertices, staggered by half a step ---
-        // The last outer row (row == 8) has no corresponding inner row
         if (row < 8) {
             const float innerX = (float)row * stepX + 0.5f * stepY;
 
@@ -246,19 +524,20 @@ void CMapChunk::CreateVerticesLocal(CGxVertexPN* v) {
                 v->m_position.x = innerX;
                 v->m_position.y = (float)col * stepY + halfStepX;
                 v->m_position.z = height[col];
-                v->m_normal.x = normals[col * 3 + 0] * NORMAL_SCALE;
-                v->m_normal.y = normals[col * 3 + 1] * NORMAL_SCALE;
-                v->m_normal.z = normals[col * 3 + 2] * NORMAL_SCALE;
+                v->m_normal.x = normals[col * 3 + 0] * 0.0078740157f;
+                v->m_normal.y = normals[col * 3 + 1] * 0.0078740157f;
+                v->m_normal.z = normals[col * 3 + 2] * 0.0078740157f;
                 v++;
             }
 
             height += 8;
-            normals += 24; // 8 vertices * 3 components
+            normals += 24;
         }
     }
 }
 
 
+// VERIFY: 682ff916 manual
 // OFFSET: 0x007C4F10
 void CMapChunk::CreateVerticesLocal(CGxVertexPNC* v) {
     float stepX = (17066.666f - this->m_cOffset.x * 33.333332f - (17066.666f - (this->m_cOffset.x + 1) * 33.333332f)) * -0.125f;
@@ -339,6 +618,7 @@ void CMapChunk::CreateVerticesLocal(CGxVertexPNC* v) {
     }
 }
 
+// VERIFY: a98c62d2 manual
 // OFFSET: 0x007C51B0
 void CMapChunk::CreateIndices(uint16_t* buf, CGxBatch* batch) {
     int32_t baseVertex = batch->m_maxIndex ? batch->m_maxIndex + 1 : 0;
@@ -352,7 +632,7 @@ void CMapChunk::CreateIndices(uint16_t* buf, CGxBatch* batch) {
 
     batch->m_minIndex = minIndex;
 
-    int32_t maxIndex = CMapRenderChunk::unk_AEEC60.m_maxIndex + baseVertex;
+    int32_t maxIndex = CMapRenderChunk::s_chunkBatch.m_maxIndex + baseVertex;
 
     if (batch->m_maxIndex > maxIndex) {
         maxIndex = batch->m_maxIndex;
@@ -362,6 +642,7 @@ void CMapChunk::CreateIndices(uint16_t* buf, CGxBatch* batch) {
     batch->m_count += count;
 }
 
+// VERIFY: 868d1564 manual
 // OFFSET: 0x007C5220
 void CMapChunk::CreateBounds() {
     int32_t tileX = this->m_cOffset.x;
@@ -480,7 +761,7 @@ bool CMapChunk::GetLiquidHeight(const C2Vector& pos, float* height) const {
     return false;
 }
 
-// VERIFY: 981b86cf manual
+// VERIFY: bb038337 manual
 // OFFSET: 0x007C5690
 void CMapChunk::CreateLiquids(bool a3) {
     CChunkLiquid* liquid = this->m_liquidChunkLinkList.Head();
@@ -599,6 +880,7 @@ void CMapChunk::CullAndBucketChunk() {
     }
 }
 
+// VERIFY: 743ab331 manual
 // OFFSET: 0x007C5C50
 CMapChunk::CMapChunk() {
     this->m_aIndex.x = 0;
@@ -639,6 +921,93 @@ CMapChunk::CMapChunk() {
     this->m_bLoaded = 0;
 }
 
+// VERIFY: ecd160bb manual
+// OFFSET: 0x007C6060
+void CMapChunk::CreateSoundEmitters(bool a3) {
+    if (!this->m_soundHandleList.IsEnd(this->m_soundHandleList.Head())) {
+        return;
+    }
+
+    CWSoundEmitter* emitter = this->m_soundEmitters;
+
+    if (!emitter) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < this->m_header->m_nSndEmitters; i++, emitter++) {
+        SE2SoundKitObject* object = new (__FILE__, __LINE__) SE2SoundKitObject();
+        this->m_soundHandleList.LinkToTail(object);
+
+        SE2SoundKitProperties properties;
+        properties.ResetToDefaults();
+        properties.m_coneOrientation = &emitter->m_size;
+        properties.m_forceLoop = 1;
+        SI2::PlaySoundKit(emitter->m_entryId, &emitter->m_position, object, &properties, 0, nullptr, 1, 0);
+    }
+}
+
+// VERIFY: 80daf949 manual
+// OFFSET: 0x007C6150
+void CMapChunk::CreateRefs(CMapArea* area, uint32_t* mcrfPtr, uint32_t doodadRefs, uint32_t mapObjRefs) {
+    C3Vector center(17066.666f, 17066.666f, 0.0f);
+    uint32_t* mapObjRefList = &mcrfPtr[doodadRefs];
+
+    for (uint32_t i = 0; i < mapObjRefs; i++) {
+        SMMapObjDef* def = &area->m_mapObjDef[mapObjRefList[i]];
+
+        if (def->m_flags & 0x1) {
+            if (def->m_uniqueId != 0x5476ED || CMap::mapObjDefHash.Ptr(0x5476ED, CMap::s_mapObjDefHashKey)) {
+                continue;
+            }
+
+            CDestructibleProxy* node = CMap::s_destructibleProxyList.Head();
+
+            while (!CMap::s_destructibleProxyList.IsEnd(node) && node->m_uniqueId != def->m_uniqueId) {
+                node = CMap::s_destructibleProxyList.RawNext(node);
+            }
+
+            if (!CMap::s_destructibleProxyList.IsEnd(node)) {
+                continue;
+            }
+
+            CDestructibleProxy proxy;
+            C3Vector b(center.x - def->m_extents.t.z, center.y - def->m_extents.t.x, center.z + def->m_extents.b.y);
+            C3Vector t(center.x - def->m_extents.b.z, center.y - def->m_extents.b.x, center.z + def->m_extents.t.y);
+            proxy.m_sphere.c = b + t;
+            proxy.m_sphere.c *= 0.5f;
+            proxy.m_uniqueId = def->m_uniqueId;
+            proxy.m_sphere.r = sqrtf((t - proxy.m_sphere.c).SquaredMag());
+
+            if (proxy.m_sphere.r < 0.001f) {
+                proxy.m_sphere.r = 50.0f;
+                SysMsgPrintf(STATUS_ERROR, 2, "Destructible building WMO(%s) has invalid geobox", &area->m_wmoFileNames[area->m_wmoFilenamesOffsets[def->m_nameId]]);
+            }
+
+            World::FindOrCreateDestructibleProxy(&proxy);
+        } else {
+            CMapObjDef* mapObjDef = CMap::CreateMapObjDef(&area->m_wmoFileNames[area->m_wmoFilenamesOffsets[def->m_nameId]], def, &center, true);
+            CMapBaseObjLink* link = CMap::AllocBaseObjLink(mapObjDef);
+            link->m_ref = this;
+            this->m_mapObjDefLinkList.LinkToTail(link);
+        }
+    }
+
+    for (uint32_t i = 0; i < doodadRefs; i++) {
+        SMDoodadDef* def = &area->m_doodadDef[mcrfPtr[i]];
+        CMapDoodadDef* doodadDef = CMap::CreateDoodadDef(&area->m_m2FileNames[area->m_modelFilenamesOffsets[def->m_nameId]], def, &center);
+        CMapBaseObjLink* link = CMap::AllocBaseObjLink(doodadDef);
+        link->m_ref = this;
+        this->m_doodadDefLinkList.LinkToTail(link);
+        doodadDef->m_diffuseLightScale = 1.0f;
+        doodadDef->m_flags = static_cast<MapObjFlag>(doodadDef->m_flags | MAPOBJ_FLAG_EXTERIOR);
+
+        if (doodadDef->m_flags & MAPOBJ_FLAG_PREPARED) {
+            CMapDoodadDef::ExtendBounds(doodadDef, this);
+        }
+    }
+}
+
+// VERIFY: 637523f5 manual
 // OFFSET: 0x007C64B0
 void CMapChunk::Create(SIffChunk* headerChunk, bool a3) {
     this->m_chunkInfoBeginPtr = reinterpret_cast<uint8_t*>(headerChunk);
@@ -680,7 +1049,303 @@ void CMapChunk::UpdateLights() {
     }
 }
 
-// VERIFY: 967e03e0 auto
+// VERIFY: c9630247 manual
+// OFFSET: 0x007CFB10
+void CMapChunk::ClipBufferUpdate() {
+    uint32_t indices[9];
+    uint32_t base = 0;
+
+    if (CWorldScene::s_activeWorldView.x > CWorldScene::camTarget.x) {
+        base = 136;
+    }
+
+    for (uint32_t i = 0; i < 9; i++) {
+        indices[i] = i + base;
+    }
+
+    CWorldOcclusion::UpdateBufferChunk(CMapChunk::vertexList, this->m_height, indices, 9, &this->m_topLeftCoords, this->m_header->m_holes);
+
+    base = 0;
+
+    if (CWorldScene::s_activeWorldView.y > CWorldScene::camTarget.y) {
+        base = 8;
+    }
+
+    for (uint32_t i = 0; i < 9; i++) {
+        indices[i] = base;
+        base += 17;
+    }
+
+    CWorldOcclusion::UpdateBufferChunk(CMapChunk::vertexList, this->m_height, indices, 9, &this->m_topLeftCoords, this->m_header->m_holes);
+}
+
+// VERIFY: bd05b674 auto
+// OFFSET: 0x007D05F0
+int32_t CMapChunk::LoadDetailDoodadModels() {
+    int32_t loaded = 1;
+
+    for (uint32_t i = 0; i < this->m_header->m_nLayers; i++) {
+        int32_t effectId = this->m_layers[i].m_offectId;
+
+        if (!effectId) {
+            continue;
+        }
+
+        GroundEffectTextureRec* record = g_groundEffectTextureDB.GetRecord(effectId);
+
+        if (!record) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < 4; j++) {
+            if (record->m_doodadID[j] && !CDetailDoodad::LoadModel(record->m_doodadID[j])) {
+                loaded = 0;
+            }
+        }
+    }
+
+    return loaded;
+}
+
+// VERIFY: 04ba1328 manual
+// OFFSET: 0x007D3390
+void CMapChunk::CreateDetailDoodads() {
+    if (!this->m_header->m_nLayers || !this->LoadDetailDoodadModels()) {
+        return;
+    }
+
+    CRndSeed seed;
+    seed.SetSeed(0);
+    seed.SetSeed(this->m_cOffset.x | (this->m_cOffset.y << 16));
+
+    this->m_detailDoodadInst = CDetailDoodad::AllocInst();
+    this->m_detailDoodadInst->m_chunk = this;
+    CDetailDoodadInst* inst = this->m_detailDoodadInst;
+
+    if (CWorld::detailDoodadTest) {
+        return;
+    }
+
+    static C4Plane s_planes[256];
+    static C2iVector s_cells[256];
+    C3Vector verts[3];
+    static C3Vector s_colorBase[256];
+    static C3Vector s_colorEdgeA[256];
+    static C3Vector s_colorEdgeB[256];
+
+    uint8_t used[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+    for (uint32_t i = 0; i < World::s_detailDoodadDensity; i++) {
+        uint32_t x = CRandom::uint32_(seed) & 7;
+        uint32_t y = CRandom::uint32_(seed) & 7;
+        s_cells[i].x = x;
+        s_cells[i].y = y;
+
+        if (used[y] & (1 << x)) {
+            continue;
+        }
+
+        used[y] |= 1 << x;
+
+        uint32_t cell = x + 8 * y;
+        float* height = &this->m_height[17 * y + x];
+        uint8_t* shadeCorner = nullptr;
+        uint8_t* shadeCenter = nullptr;
+
+        if (this->m_vertexShading) {
+            shadeCorner = reinterpret_cast<uint8_t*>(&this->m_vertexShading[17 * y + x]);
+            shadeCenter = shadeCorner + 9 * sizeof(uint32_t);
+        }
+
+        float offsetX = y * -4.1666665f;
+        float offsetY = x * -4.1666665f;
+
+        verts[0] = C3Vector(CMap::s_subchunkCoords[4].x + offsetX, CMap::s_subchunkCoords[4].y + offsetY, CMap::s_subchunkCoords[4].z);
+        verts[0].z = height[9];
+
+        for (uint32_t j = 0; j < 4; j++) {
+            const C3Vector& a = CMap::s_subchunkCoords[CMap::s_subchunkIndices[2 * j]];
+            const C3Vector& b = CMap::s_subchunkCoords[CMap::s_subchunkIndices[2 * j + 1]];
+            int32_t fanA = CMap::s_fanIndices[2 * j];
+            int32_t fanB = CMap::s_fanIndices[2 * j + 1];
+
+            verts[1] = C3Vector(offsetX + a.x, a.y + offsetY, a.z);
+            verts[2] = C3Vector(offsetX + b.x, offsetY + b.y, b.z);
+            verts[1].z = height[fanA];
+            verts[2].z = height[fanB];
+
+            s_planes[4 * cell + j].From3Pos(verts[0], verts[2], verts[1]);
+
+            if (this->m_vertexShading) {
+                uint8_t* shadeA = shadeCorner + fanA * sizeof(uint32_t);
+                uint8_t* shadeB = shadeCorner + fanB * sizeof(uint32_t);
+                uint32_t k = 4 * cell + j;
+
+                s_colorBase[k] = C3Vector(shadeCenter[2], shadeCenter[1], shadeCenter[0]);
+                s_colorEdgeA[k] = C3Vector(shadeA[2] - shadeCenter[2], shadeA[1] - shadeCenter[1], shadeA[0] - shadeCenter[0]);
+                s_colorEdgeB[k] = C3Vector(shadeB[2] - shadeA[2], shadeB[1] - shadeA[1], shadeB[0] - shadeA[0]);
+
+                s_colorBase[k] *= 2.0f;
+                s_colorEdgeA[k] *= 2.0f;
+                s_colorEdgeB[k] *= 2.0f;
+            }
+        }
+    }
+
+    C3Vector position(0.0f, 0.0f, 0.0f);
+    CImVector color;
+
+    for (uint32_t i = 0; i < World::s_detailDoodadDensity; i++) {
+        int32_t x = s_cells[i].x;
+        int32_t y = s_cells[i].y;
+
+        if ((this->m_predTexture[y] & unk_A3FBB8[x]) >> unk_A3FBC8[x]) {
+            continue;
+        }
+
+        if (this->m_header->m_holes & CMap::s_holeMask[4 * (y >> 1) + (x >> 1)]) {
+            continue;
+        }
+
+        uint32_t layer = (reinterpret_cast<uint16_t*>(this->m_lowQualityTexMap)[y] & CMap::s_2bitSplatMask[x]) >> CMap::s_2bitSplatShft[x];
+        GroundEffectTextureRec* record = g_groundEffectTextureDB.GetRecord(this->m_layers[layer].m_offectId);
+
+        if (!record) {
+            continue;
+        }
+
+        uint32_t count = record->m_density;
+
+        if (!count) {
+            count = 8;
+        }
+
+        int32_t doodads[16];
+        uint32_t slot = 0;
+        uint32_t filled = 0;
+
+        for (uint32_t k = 0; k < 4; k++) {
+            int32_t weight = record->m_doodadWeight[k];
+            int32_t id = record->m_doodadID[k];
+
+            if (weight) {
+                filled += weight;
+
+                do {
+                    doodads[slot & 15] = id;
+                    slot += 13;
+                } while (--weight);
+            }
+        }
+
+        for (; filled < 16; filled++) {
+            doodads[slot & 15] = record->m_doodadID[filled & 3];
+            slot += 13;
+        }
+
+        uint32_t cellBase = 4 * (x + 8 * y);
+        float cellX = x * 4.1666665f;
+        float cellY = y * 4.1666665f;
+
+        for (uint32_t j = 0; j < count; j++) {
+            float u = CRandom::sfloat_(seed);
+            float v = CRandom::sfloat_(seed);
+            uint32_t id = doodads[(i + j) & 15];
+            float px = u * 2.0833333f + 2.0833333f;
+            float py = v * 2.0833333f + 2.0833333f;
+
+            if (!id) {
+                continue;
+            }
+
+            CDetailDoodadData* data = CDetailDoodad::s_doodadList[id];
+            position.x = -py;
+            position.y = -px;
+
+            uint32_t tri = 0;
+            float diagonal = -px - -py;
+
+            if (diagonal < 0.0f) {
+                tri = 1;
+            }
+
+            if (px - 4.1666665f - -py > 0.0f) {
+                tri += 2;
+            }
+
+            tri += cellBase;
+            C4Plane& plane = s_planes[tri];
+
+            if (plane.n.z < 0.4f) {
+                continue;
+            }
+
+            if ((data->m_record->m_flags & 2) || !this->m_vertexShading) {
+                color.r = 0xFF;
+                color.g = 0xFF;
+                color.b = 0xFF;
+            } else {
+                float s;
+                float t;
+
+                if (fabs(v) < fabs(u)) {
+                    s = fabs(u);
+                    t = 0.5f - v * 0.5f;
+                } else {
+                    s = fabs(v);
+                    t = 0.5f - u * 0.5f;
+                }
+
+                if (diagonal < 0.0f) {
+                    t = 1.0f - t;
+                }
+
+                float st = s * t;
+                C3Vector shade(s_colorEdgeA[tri].x * s + s_colorBase[tri].x + s_colorEdgeB[tri].x * st, s_colorEdgeA[tri].y * s + s_colorBase[tri].y + s_colorEdgeB[tri].y * st, s_colorEdgeA[tri].z * s + s_colorBase[tri].z + s_colorEdgeB[tri].z * st);
+
+                if (shade.x > 255.0f) {
+                    shade.x = 255.0f;
+                }
+
+                if (shade.y > 255.0f) {
+                    shade.y = 255.0f;
+                }
+
+                if (shade.z > 255.0f) {
+                    shade.z = 255.0f;
+                }
+
+                color.r = static_cast<uint8_t>(CMath::fint_(shade.x - 0.5f));
+                color.g = static_cast<uint8_t>(CMath::fint_(shade.y - 0.5f));
+                color.b = static_cast<uint8_t>(CMath::fint_(shade.z - 0.5f));
+            }
+
+            color.a = 0xFF;
+
+            if (this->m_shadowMap) {
+                float shadowX = (px + cellX) * 1.92f;
+                int32_t sx = CMath::fint_(shadowX - 0.5f);
+                float shadowY = (py + cellY) * 1.92f;
+                int32_t sy = CMath::fint_(shadowY - 0.5f);
+
+                if (this->m_shadowMap[8 * sy + (sx >> 3)] & (1 << (sx & 7))) {
+                    color.a = 0;
+                }
+            }
+
+            position.x -= cellY;
+            position.y -= cellX;
+            position.z = -((position.x * plane.n.x + position.y * plane.n.y + plane.d) / plane.n.z);
+
+            float rotation = (CRandom::sfloat_(seed) + 1.0f) * 3.1415927f;
+            float scale = CRandom::sfloat_(seed) * 0.33f + 1.0f;
+
+            inst->AddDoodad(id, position, rotation, scale, plane.n, static_cast<uint16_t>(tri), color);
+        }
+    }
+}
+
+// VERIFY: a8fc9219 auto
 // OFFSET: 0x007D3FE0
 void CMapChunk::RenderPrep() {
     if (this->m_renderChunk || (this->Batch(), this->m_renderChunk)) {
@@ -701,11 +1366,12 @@ void CMapChunk::RenderPrep() {
         }
 
         if (this->m_detailDoodadInst) {
-            CWorldScene::AddChunkToSortList(static_cast<CDetailDoodadInst*>(this->m_detailDoodadInst));
+            CWorldScene::AddChunkToSortList(this->m_detailDoodadInst);
         }
     }
 }
 
+// VERIFY: 6e3fa3c6 manual
 // OFFSET: 0x007D66D0
 bool CMapChunk::CanMergeChunkLayers(CMapChunk* chunkA, CMapChunk* chunkB) {
     chunkB->m_bLoaded = 1;
@@ -758,4 +1424,34 @@ bool CMapChunk::CanMergeChunkLayers(CMapChunk* chunkA, CMapChunk* chunkB) {
     }
 
     return true;
+}
+
+// VERIFY: 774ebb1a manual
+// OFFSET: 0x007D8730
+int32_t CMapChunk::Intersect(int32_t subX, int32_t subY, const C3Ray& ray, float* t) {
+    int32_t hit = 0;
+
+    if (this->m_header->m_holes & CMap::s_holeMask[4 * (subY >> 1) + (subX >> 1)]) {
+        return 0;
+    }
+
+    int32_t base = 16 * subY + subX + subY;
+
+    for (uint32_t i = 0; i < 4; i++) {
+        uint32_t tri[3] = { static_cast<uint32_t>(base + 9), static_cast<uint32_t>(base + CMap::s_fanIndices[2 * i + 1]), static_cast<uint32_t>(base + CMap::s_fanIndices[2 * i]) };
+        CMapChunk::vertexList[tri[0]].z = this->m_height[tri[0]];
+        CMapChunk::vertexList[tri[1]].z = this->m_height[tri[1]];
+        CMapChunk::vertexList[tri[2]].z = this->m_height[tri[2]];
+        float hitT = 0.0f;
+
+        if (NTempest::Intersect(ray, CMapChunk::vertexList, tri, &hitT, nullptr, 0.0099999998f)) {
+            hit = 1;
+
+            if (hitT < *t && hitT >= 0.0f) {
+                *t = hitT;
+            }
+        }
+    }
+
+    return hit;
 }

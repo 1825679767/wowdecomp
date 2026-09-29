@@ -1,5 +1,5 @@
-#ifndef _TRIAGE_CAMERA_H
-#define _TRIAGE_CAMERA_H
+#ifndef WOW_SOURCE_UIUTIL_CAMERA_H
+#define WOW_SOURCE_UIUTIL_CAMERA_H
 
 #include <cstddef>
 #include <cstdint>

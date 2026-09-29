@@ -33,6 +33,7 @@ class Particulate {
     ~Particulate();
     void InitMovement();
     void InitParticles(uint32_t count);
+    void SetScale(float scale);
     void SetTexture(const char* textureName);
 };
 

@@ -6,13 +6,32 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Tempest/CMemBlock.h"
+#include "WoW/Source/WorldClient/DayNight.h"
 #include "WoW/Source/WorldClient/MapLoad.h"
 
 class CMapObjDef;
 
+struct FogQ {
+    /* 0000 */ float m_distance;
+    /* 0004 */ uint32_t m_fogIndex;
+};
+
+class FogQueue : public CMemBlock {
+    public:
+    /* 0014 */ uint32_t m_chunk;
+    /* 0018 */ uint32_t m_capacity;
+    /* 001C */ uint32_t m_count;
+
+    FogQueue(const uint32_t* params);
+    void Erase(uint32_t index, uint32_t count);
+    FogQ Pop();
+    void Push(float distance, uint32_t fogIndex);
+};
+
 class CMapEntity : public CMapStaticEntity {
     public:
-    /* 0090 */ uint32_t (__cdecl* m_func )(uint32_t, uint32_t, uint64_t, uint32_t);
+    /* 0090 */ uint32_t (*m_func)(void*, uint32_t, uint64_t, uint32_t);
     /* 0094 */ void* m_funcParam;
     /* 0098 */ uint64_t m_funcParam64;
     /* 00A0 */ uint32_t m_funcParam32;
@@ -25,6 +44,8 @@ class CMapEntity : public CMapStaticEntity {
     /* 00C0 */ CImVector unk_00C0;
     /* 00C4 */ float unk_00C4;
     /* 00C8 */ TSLink<void> m_sortEntryLink;
+
+    static int32_t QueryCameraFog(SMOFog* fog, CMapObjDef** mapObjDef, uint8_t* found, TSGrowableArray<uint32_t>** groups, float* distance);
 
     virtual bool QueryInteriorLighting(CMapObjDef* mapObjDef, int32_t groupNum, uint16_t* faceIndex, C3Vector* pos);
 

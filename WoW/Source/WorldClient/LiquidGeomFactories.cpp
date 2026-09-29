@@ -10,10 +10,28 @@
 #include "WoW/Source/WorldClient/MapObjGroup.h"
 
 // STATIC: 0x00D31960
-CDataAllocator Liquid::s_unk_D31960(0x48, 4);
+CDataAllocator Liquid::s_unk_D31960(sizeof(Liquid::CMeshGeomFactory), 4);
 
 // STATIC: 0x00D31974
-CDataAllocator Liquid::s_unk_D31974(0x74, 0x10);
+CDataAllocator Liquid::s_unk_D31974(sizeof(Liquid::CChunkGeomFactory), 0x10);
+
+// VERIFY: 90914174 auto
+// OFFSET: 0x007D4360
+void Liquid::CMeshGeomFactory::SetMagma(int32_t magma) {
+    this->m_magma = magma;
+}
+
+// VERIFY: d6bbccff auto
+// OFFSET: 0x007D4370
+void Liquid::CMeshGeomFactory::SetTexCoord1ValueX(float value) {
+    this->m_texCoord1ValueX = value;
+}
+
+// VERIFY: 443374e2 auto
+// OFFSET: 0x007D43E0
+void Liquid::CMeshGeomFactory::SetDiffuseColor(const CImVector& color) {
+    this->m_diffuseColor = color;
+}
 
 // VERIFY: 36347972 auto
 // OFFSET: 0x007D47D0
@@ -70,10 +88,10 @@ bool Liquid::CChunkGeomFactory::SetTransform(C44Matrix* transform) {
     return true;
 }
 
-// VERIFY: 1be8aa58 manual
+// VERIFY: 05f0b938 manual
 // OFFSET: 0x007D43F0
 void Liquid::CMeshGeomFactory::GetBuffers(EGxVertexBufferFormat format, CGxBuf** vertexBuf, CGxBuf** indexBuf, CGxBatch* batch) {
-    if (static_cast<uint16_t>(this->m_mapObjGroup->m_luquidMaterialId) >= static_cast<uint32_t>(this->m_mapObj->m_materialsCount)) {
+    if (static_cast<uint16_t>(this->m_mapObjGroup->m_liquidMaterialId) >= static_cast<uint32_t>(this->m_mapObj->m_materialsCount)) {
         SErrDisplayAppFatal("Water in chunk \"%s\" of object \"%s\" has no materialId.", this->m_mapObjGroup->m_groupName, this->m_mapObj->m_wmoName);
     }
 
@@ -130,10 +148,10 @@ void Liquid::CMeshGeomFactory::GetBuffers(EGxVertexBufferFormat format, CGxBuf**
             texCoord1 = reinterpret_cast<C2Vector*>(vertices + GxVertexAttribOffset(format, GxVA_TexCoord1));
         }
 
-        const CImVector* liquidColor = reinterpret_cast<const CImVector*>(&this->unk_0014);
-        uint16_t count = this->m_mapObj->BuildLiquidVerts(this->m_mapObjGroup, C44Matrix(), liquidColor, this->unk_001C, this->unk_0020, this->m_sharedVerts, stride, &position, &normal, &color, &texCoord0, &texCoord1);
+        const CImVector* liquidColor = &this->m_diffuseColor;
+        uint16_t count = this->m_mapObj->BuildLiquidVerts(this->m_mapObjGroup, C44Matrix(), liquidColor, this->m_magma, this->m_texCoord1ValueX, this->m_sharedVerts, stride, &position, &normal, &color, &texCoord0, &texCoord1);
         this->m_mapObj->BuildLiquidIndices(this->m_mapObjGroup, this->m_sharedVerts, &indices, 0);
-        count += this->m_mapObj->ClipGroupGeometry(this->m_mapObjGroup, C44Matrix(), liquidColor, this->unk_001C, this->unk_0020, stride, &position, &normal, &color, &texCoord0, &texCoord1, &indices, count);
+        count += this->m_mapObj->ClipGroupGeometry(this->m_mapObjGroup, C44Matrix(), liquidColor, this->m_magma, this->m_texCoord1ValueX, stride, &position, &normal, &color, &texCoord0, &texCoord1, &indices, count);
 
         CGxBuf* buf = *vertexBuf;
         g_theGxDevicePtr->BufUnlock(buf, 0);
@@ -192,9 +210,9 @@ Liquid::CMeshGeomFactory::CMeshGeomFactory() {
     this->m_mapObj = nullptr;
     this->m_mapObjGroup = nullptr;
     this->m_batch = nullptr;
-    this->unk_0014 = -1;
-    this->unk_0020 = 0.0f;
-    this->unk_001C = 0;
+    *reinterpret_cast<int32_t*>(&this->m_diffuseColor) = -1;
+    this->m_texCoord1ValueX = 0.0f;
+    this->m_magma = 0;
     this->unk_0024 = 0;
 }
 

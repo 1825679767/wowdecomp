@@ -5,10 +5,10 @@
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00D450C0
-CDataAllocator Liquid::s_unk_D450C0(4, 8);
+CDataAllocator Liquid::s_unk_D450C0(sizeof(Liquid::CMaterialMagmaFFP), 8);
 
 // STATIC: 0x00D450AC
-CDataAllocator Liquid::s_unk_D450AC(4, 8);
+CDataAllocator Liquid::s_unk_D450AC(sizeof(Liquid::CMaterialMagma), 8);
 
 // STATIC: 0x00D44C40
 int32_t Liquid::CMaterialMagma::s_refCount;

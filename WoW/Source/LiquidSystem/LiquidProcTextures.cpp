@@ -171,7 +171,7 @@ void Liquid::InvalidateProceduralTextures() {
     Liquid::s_unk_D43B48[1] = 0;
 }
 
-// VERIFY: 33364e6a manual
+// VERIFY: 331f7c3c manual
 // OFFSET: 0x008A2AC0
 void Liquid::WmoWaterTexCallback(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevel, void* userArg, uint32_t& texelStrideInBytes, const void*& texels) {
     // STATIC: 0x00D43BE0
@@ -182,7 +182,7 @@ void Liquid::WmoWaterTexCallback(EGxTexCommand command, uint32_t width, uint32_t
     }
 
     DayNight::DNInfo* info = DayNight::GetInfo();
-    CImVector band = info->m_bands.m_band17;
+    CImVector band = info->m_bands.m_waterColors[3];
     uint8_t shallowAlpha = CMath::fint_(info->m_bands.m_waterShallowAlpha * 255.0f);
     uint8_t deepAlpha = CMath::fint_(info->m_bands.m_waterDeepAlpha * 255.0f);
     int32_t alphaStep = ((deepAlpha - shallowAlpha) << 8) >> 6;
@@ -216,7 +216,7 @@ void Liquid::WmoWaterTexCallback(EGxTexCommand command, uint32_t width, uint32_t
     texels = s_texels;
 }
 
-// VERIFY: e0acfc63 manual
+// VERIFY: aa313e0a manual
 // OFFSET: 0x008A2BF0
 void Liquid::ExtWaterDepthTexCallback(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevel, void* userArg, uint32_t& texelStrideInBytes, const void*& texels) {
     // STATIC: 0x00D443E8
@@ -237,8 +237,8 @@ void Liquid::ExtWaterDepthTexCallback(EGxTexCommand command, uint32_t width, uin
     deepAlpha[1] = CMath::fint_(info->m_bands.m_waterDeepAlpha * 255.0f);
 
     uintptr_t type = reinterpret_cast<uintptr_t>(userArg);
-    CImVector shallowColor = (&info->m_bands.m_band14)[type * 2];
-    CImVector deepColor = (&info->m_bands.m_band15)[type * 2];
+    CImVector shallowColor = info->m_bands.m_waterColors[type * 2];
+    CImVector deepColor = info->m_bands.m_waterColors[type * 2 + 1];
 
     int32_t alphaStep = ((deepAlpha[type] - shallowAlpha[type]) << 8) >> 6;
     int32_t redStep = ((deepColor.r - shallowColor.r) << 8) >> 6;

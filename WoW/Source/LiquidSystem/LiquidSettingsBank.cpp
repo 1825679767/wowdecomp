@@ -5,7 +5,7 @@
 #include "WoW/Source/DB/Rec/LiquidMaterialRec.h"
 
 // STATIC: 0x00D43B00
-CDataAllocator Liquid::s_unk_D43B00(0x43C, 0x20);
+CDataAllocator Liquid::s_unk_D43B00(sizeof(Liquid::CMaterialSettings), 0x20);
 
 // STATIC: 0x00D43B14
 TSGrowableArray<Liquid::CMaterialSettings*> Liquid::CSettingsBank::s_settings;
@@ -83,7 +83,7 @@ bool Liquid::CSettingsBank::UpdateRecord(Liquid::CMaterialSettings* settings, ui
     return true;
 }
 
-// VERIFY: ff01b3c6 auto
+// VERIFY: 5be93056 auto
 // OFFSET: 0x008A28F0
 Liquid::CMaterialSettings* Liquid::CSettingsBank::GetSettings(uint32_t liquidType) {
     Liquid::CMaterialSettings* settings;
@@ -104,7 +104,7 @@ Liquid::CMaterialSettings* Liquid::CSettingsBank::GetSettings(uint32_t liquidTyp
         liquidType = 1;
     }
 
-    Liquid::CSettingsBank::s_settings.SetCount(liquidType + 1);
+    Liquid::CSettingsBank::s_settings.GrowToFit(liquidType, 1);
     Liquid::CSettingsBank::s_settings.m_data[liquidType] = settings;
 
     return settings;

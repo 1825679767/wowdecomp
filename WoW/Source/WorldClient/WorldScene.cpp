@@ -61,7 +61,7 @@ uint32_t s_liquidTypeId;
 CMapEntity* CWorldScene::camTargetEntity;
 
 // STATIC: 0x00CD87B0
-int32_t CWorldScene::s_unk_CD87B0;
+int32_t CWorldScene::s_cullPassStamp;
 
 // STATIC: 0x00CD8F5C
 C3Vector CWorldScene::s_activeWorldView;
@@ -103,13 +103,13 @@ void CWorldScene::Destroy() {
     s_antiOccluderFreeList.Clear();
 }
 
-// VERIFY: 14e0c0c3 manual
+// VERIFY: 6ed0c1fb manual
 // OFFSET: 0x007997D0
 void CWorldScene::Initialize() {
     CBarrier::Initialize();
 
     CWorldScene::s_unk_CD877C = 0.0f;
-    CWorldScene::s_unk_CD87B0 = 0;
+    CWorldScene::s_cullPassStamp = 0;
     CWorldScene::camTargetEntity = nullptr;
     s_liquidTypeId = 0;
 
@@ -167,10 +167,10 @@ void CWorldScene::ScaleFadeDist(float scale) {
     CWorldScene::s_fadeDistMinSqr[4] = CWorldScene::s_fadeDistMin[4] * CWorldScene::s_fadeDistMin[4];
 }
 
-// VERIFY: 0f630b8d auto
+// VERIFY: 6c8ec1cb auto
 // OFFSET: 0x007B3B20
-void CMapObjDef::RenderWithCallback(TSGrowableArray<uint16_t>* groups) {
+void CMapObjDef::RenderWithCallback(TSGrowableArray<uint32_t>* groups) {
     CMapObj::SetGroupRenderCallback(reinterpret_cast<RENDER_CALLBACK>(CWorldScene::AddMapObjDefGroupToSortTable), this);
     CWorldScene::s_curMapObjDef = this;
-    CWorldScene::RenderInterior(this->m_owner, this->m_mat, this->m_invMat, CWorldScene::s_activeWorldView, CWorldScene::camTarget, groups);
+    this->m_owner->RenderInterior(this->m_mat, this->m_invMat, CWorldScene::s_activeWorldView, CWorldScene::camTarget, groups);
 }

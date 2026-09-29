@@ -1278,7 +1278,7 @@ T* TSHashTable<T, TKey>::Ptr(const char* str) {
 }
 
 // VERIFY: b253b260 manual
-// OFFSET: [0x004D4790, 0x00565030, 0x00685230]
+// OFFSET: [0x004D4790, 0x00565030, 0x00685230, 0x0079E6A0, 0x007BFE80]
 template <class T, class TKey>
 void TSHashTable<T, TKey>::Unlink(T* ptr) {
     if (ptr->m_linktoslot.IsLinked()) {
@@ -1544,6 +1544,22 @@ void TSBitField<T>::Load(const void* data, uint32_t bytes, int32_t bits) {
     this->m_count = count;
     this->m_bits.SetCount(count ? ((count - 1) >> 5) + 1 : 0);
     memcpy(this->m_bits.m_data, data, bytes);
+}
+
+// INLINED
+template <class T, uint32_t N>
+TSCGrowableArray<T, N>::TSCGrowableArray() {
+    this->m_count = 0;
+}
+
+// INLINED
+template <class T, uint32_t N>
+TSCGrowableArray<T, N>::~TSCGrowableArray() {
+    if (this->m_count == 0xFFFFFFFF) {
+        this->m_dynamic.~TSGrowableArray<T>();
+    } else {
+        this->m_count = 0;
+    }
 }
 
 // VERIFY: 47bab0b9 auto

@@ -16,7 +16,10 @@ class CSimpleCamera {
     /* 0040 */ float m_fov;
     /* 0044 */ float m_aspect;
 
-    virtual ~CSimpleCamera();
+    virtual float FOV() const;
+    virtual C3Vector Forward() const;
+    virtual C3Vector Right() const;
+    virtual C3Vector Up() const;
 };
 
 #endif

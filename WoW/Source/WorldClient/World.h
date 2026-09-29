@@ -5,6 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/Tempest/CBoundingBox.h"
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/WorldClient/CMapBaseObjLink.h"
@@ -12,10 +13,11 @@
 #include "Engine/Source/Tempest/C4Plane.h"
 #include "Engine/Source/Tempest/C4Vector.h"
 #include "Engine/Source/Tempest/CWFrustum.h"
+#include "Engine/Source/Tempest/CFacet.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
 #include "WoW/Source/Object/WGUID.h"
 
 class CAaSphere;
-class CFacet;
 class CFrustum;
 class CM2Lighting;
 class CM2Model;
@@ -60,26 +62,42 @@ class CMapDoodadDefMapChunkLink {
     /* 0014 */ TSLink<CMapDoodadDefMapChunkLink> m_ownerLink;
 };
 
+class CDestructibleProxy;
+class CWorldAntiOccluder;
+class CWorldOccluder;
+class CBarrier;
 class CSortTable;
+class CMapAreaLow;
+struct SMOFog;
 
 class CSortEntry {
     public:
-    /* 0000 */ TSExplicitList<CMapChunk> m_mapChunkList;
-    /* 000C */ TSList<void> m_exteriorGroupList;
+    /* 0000 */ TSList<CMapChunk, TSGetExplicitLink<CMapChunk> > m_mapChunkList;
+    /* 000C */ TSList<CMapObjDefGroup, TSGetExplicitLink<CMapObjDefGroup> > m_exteriorGroupList;
     /* 0018 */ TSList<void> m_entityList;
-    /* 0024 */ TSList<void> m_doodadDefList;
+    /* 0024 */ TSList<CMapDoodadDef, TSGetExplicitLink<CMapDoodadDef> > m_doodadDefList;
     /* 0030 */ TSList<CChunkLiquid, TSGetExplicitLink<CChunkLiquid> > m_liquidList;
-    /* 003C */ TSList<void> m_occluderList;
-    /* 0048 */ TSList<void> m_unkList7;
-    /* 0054 */ TSList<void> m_holedChunkList;
+    /* 003C */ TSList<CWorldOccluder, TSGetExplicitLink<CWorldOccluder> > m_occluderList;
+    /* 0048 */ TSList<CWorldAntiOccluder, TSGetExplicitLink<CWorldAntiOccluder> > m_antiOccluderList;
+    /* 0054 */ TSList<CMapChunk, TSGetExplicitLink<CMapChunk> > m_holedChunkList;
     /* 0060 */ TSList<void> m_unkList9;
+
+    CSortEntry();
 };
 
 struct OcclusionVolumeData {
-    /* 0000 */ C3Vector m_min;
-    /* 000C */ C3Vector m_max;
+    /* 0000 */ CAaBox m_bounds;
     /* 0018 */ C3Vector* m_positions;
     /* 001C */ uint32_t m_positionCount;
+};
+
+struct WorldOccluderData {
+    /* 0000 */ int32_t m_mapId;
+    /* 0004 */ CAaBox m_bounds;
+    /* 001C */ C3Vector* m_verts;
+    /* 0020 */ uint32_t m_count;
+
+    WorldOccluderData(int32_t mapId, float depth, C3Vector* verts, uint32_t count);
 };
 
 struct OcclusionVolume {
@@ -89,7 +107,8 @@ struct OcclusionVolume {
 };
 
 struct SPortalExt {
-    /* 0000 */ uint32_t m_flags;
+    /* 0000 */ uint16_t m_flags;
+    /* 0002 */ uint16_t unk_0002;
     /* 0004 */ CRect m_rect;
     /* 0014 */ uint32_t m_stamp;
     /* 0018 */ uint32_t m_pad;
@@ -119,20 +138,53 @@ class CWorldScene {
     static GxuScene s_unk_B2EB68;
     static CTexture* s_defaultBlendTexture;
     static CTexture* s_defaultTexture;
+    static int32_t s_unk_CD8778;
+    static int32_t s_fogPermute;
     static float s_unk_CD877C;
     static CMapEntity* camTargetEntity;
     static C3Vector s_activeWorldView;
     static C3Vector camTarget;
     static C4Plane camPlaneXY;
+    static C4Plane camPlane;
+    static C44Matrix viewMatrix;
+    static C44Matrix camTransportView;
+    static C44Matrix s_viewProjMatrix;
+    static C4Vector s_viewProjW;
+    static CBoundingBox viewPort;
+    static CFrustum s_clipFrustum;
+    static CAaBox boundingBox;
+    static CiRect s_frustumChunkRect;
+    static CPortalView frustumPortalView;
+    static CPortalView s_unk_ADF570;
+    static char* s_interiorSkybox;
+    static int32_t s_unk_CD8620;
+    static float s_unk_CD87AC;
+    static C3Vector camVec;
+    static C44Matrix projMatrix;
+    static C44Matrix s_clipBufferMatrix;
+    static float s_clipBuffer[384];
+    static uint8_t s_clipBufferMask[384];
+    static uint32_t s_chunksRendered;
+    static float s_occlusionNearDepth;
+    static float s_occlusionFarDepth;
+    static uint32_t nDoodadsRendered;
+    static CBarrier s_barrier;
     static CSortTable sortTable;
+    static TSGrowableArray<CPortalView> s_exteriorPortalViews;
+    static TSGrowableArray<CPortalView> s_portalViews;
     static CMapObjDef* s_curMapObjDef;
+    static CMapObjDef* s_viewerMapObjDef;
+    static CMapObjDef* s_viewerMovedMapObjDef;
+    static TSList<void, TSGetExplicitLink<void> > s_unkList9FreeList;
+    static TSGrowableArray<uint32_t> s_viewerMovedMapObjGroups;
+    static TSGrowableArray<uint32_t> s_viewerMapObjGroups;
     static float s_fadeDist[5];
     static float s_fadeDistDefault[5];
     static float s_fadeDistMin[5];
     static float s_fadeDistMinSqr[5];
     static float s_fadeRangeDefault[5];
     static float s_fadeSizeDefault[5];
-    static int32_t s_unk_CD87B0;
+    static int32_t s_cullPassStamp;
 
     static void ClearObjectFadeoutList();
     static void Destroy();
@@ -140,15 +192,18 @@ class CWorldScene {
     static void ScaleFadeDist(float scale);
     static void Update(C3Vector* camPos, C3Vector* camTarget);
     static void GetNearestCornerToCamera(CAaBox* box, C3Vector* outCorner);
-    static void AddMapChunk(CMapChunk* mapChunk);
+    static void __fastcall AddMapChunk(CMapChunk* mapChunk);
     static void AddMapObjDefGroup(CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup);
+    static void ComputeExteriorSortDistances();
     static void AddMapChunkToRenderList(CMapChunk* mapChunk, C3Vector* pos);
-    static void AddMapObjDefGroupToSortTable(uint32_t groupNum, CMapObjDef* mapObjDef);
+    static void AddMapObjDefGroupToSortTable(uint32_t groupIndex, void* param);
+    static void MergeIntoWorldRect(CPortalView* portalView);
+    static void MergeIntoFrustumRect(CPortalView* portalView);
     static void AddEntityToSortTable(CMapEntity* entity);
-    static CFrustum* AllocFrustum();
+    static CWFrustum* AllocFrustum();
     static int32_t FrustumCull(CAaBox* box);
     static int32_t FrustumCull(const C3Vector& center, float radius);
-    static void FrustumSet(C3Vector* corners, CRect* rect);
+    static void __fastcall FrustumSet(const C3Vector* corners, const CRect& rect);
     static void FrustumSet(CRect* rect);
     static void FrustumSet(CFrustum* frustum);
     static void FrustumPush();
@@ -158,42 +213,49 @@ class CWorldScene {
     static C3Vector* GetCamTarget();
     static void ApplyFogState();
     static void RenderLiquidPass();
-    static void CullSortTable(CRect* a1);
-    static void CullDoodads(CSortEntry* entry, uint8_t fadeLevel);
+    static void CullDoodads(CSortEntry* entry, uint16_t fadeLevel);
     static void CullLiquid(CSortEntry* entry);
+    static void CullChunks(CSortEntry* entry, uint32_t index);
+    static void UpdateOcclusion(CSortEntry* entry);
+    static void CullSortTable(CRect* rect);
+    static void CullHorizon(CRect* rect);
+    static void BuildHorizonProjection(C44Matrix* projection);
+    static void AddHorizonChunk(CMapAreaLow* area);
+    static void AddHorizonMapObjDef(CMapObjDef* def);
+    static void AddWorldOccluders();
+    static void CreateOcclusionVolumes(const C3Vector* eye, const C3Vector* corners, int32_t onlyFlagged);
+    static void PrepareLiquidInstances();
     static void AddChunkToSortList(CDetailDoodadInst* inst);
     static void AddToDistanceBucket(CChunkLiquid* liquid, const C3Vector& pos);
     static void AddDoodadDefModelToModelScene(CMapDoodadDef* a1);
-    static void AddDoodadDefs(TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>* linkList, uint32_t a2);
-    static void CullDoodadsExterior(TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>* linkList, uint8_t fadeLevel);
+    static void AddDoodadDefs(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* linkList, uint32_t index);
+    static void CullDoodadsExterior(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* linkList, uint8_t fadeLevel);
     static void CullMapObjDefGroup();
     static void CullMapObjDefGroups(CSortEntry* entry, CRect* a2, uint32_t a3);
-    static void CullMapObjDefGroupFromExterior(CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup, CRect* a3, uint32_t a4);
     static void CullEntitys(CSortEntry* entry);
     static void CullThroughPortal(CRect* rect);
-    static void CullDoodadsInterior(TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>* linkList, CFrustum* frustumList, uint8_t fadeLevel, int32_t interior);
-    static void CullEntitysInterior(TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>* linkList, CFrustum* frustumList, int32_t force, int32_t interior);
+    static void CreateInversePortalList();
+    static void RenderPortalList(TSGrowableArray<CPortalView>* views, int32_t interior);
+    static void UpdateViewerLiquid();
+    static void CullDoodadsInterior(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* linkList, CWFrustum* frustum, uint16_t fadeLevel, int32_t interior);
+    static void CullEntitysInterior(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* linkList, CWFrustum* frustum, int32_t force, int32_t interior);
     static void CullChunks(CSortEntry* entry, int32_t index);
     static void Render(const C3Vector& cameraPos, float time);
     static void RenderChunks();
     static void RenderMapObjDefGroups();
+    static void RenderDetailDoodads();
     static void SetWorldProjection(C44Matrix& mat);
     static void RenderChunksSolid();
-    static void SetupMapObjDefCull(CMapObj* mapObj, C44Matrix& a2, C44Matrix& a3, C3Vector& a4, C3Vector& a5);
-    static void RenderThruPortalsExterior(CMapObj* mapObj, C44Matrix& mat, C44Matrix& invMat, C3Vector& worldPos, C3Vector& camTarget, CRect& a6, int32_t a7);
-    static void RenderInterior(CMapObj* mapObj, C44Matrix& mat, C44Matrix& invMat, C3Vector& worldPos, C3Vector& camTarget, TSGrowableArray<uint16_t>* groups);
-    static void RenderThruPortals(CMapObj* mapObj, uint32_t groupNum, uint32_t fromGroup, CRect& ndcRect, uint32_t depth, int32_t interior);
+    static void RenderChunksZoneDebug();
+    static void RenderChunksSinglePass();
+    static void PushExteriorPortalView(CPortalView* portalView);
     static void PushPortalView(CPortalView* portalView);
-    static void TransformPortal(CMapObj* mapObj, SMOPortal* portal, SPortalExt* portalExt);
-    static void ClassifyPortalPlane(CMapObj* mapObj, SMOPortal* portal, SPortalExt* portalExt);
-    static uint32_t TransformAndClipVerts(CMapObj* mapObj, uint32_t a2, C3Vector* verts, uint32_t vertCount, C3Vector& a5, C3Vector*& clippedVerts, uint32_t& clippedCount);
-    static void ClipVerts(C3Vector* verts, uint32_t count, C3Vector** outVerts, uint32_t* outCount);
-    static void CalcScreenRectFromVerts(CRect& rect, C3Vector* clippedVerts, uint32_t clippedCount);
+    static float DistanceToCamPlaneXY(const C3Vector* pos);
+    static void __stdcall ClipVerts(C3Vector* verts, uint32_t count, C3Vector** outVerts, uint32_t* outCount);
+    static void __stdcall CalcScreenRectFromVerts(CRect& rect, C3Vector* clippedVerts, uint32_t clippedCount);
     static void LocateViewer3();
     static void RenderCollisionDebug();
-    static void AddViewerGroup(TSGrowableArray<uint16_t>* group, uint16_t val);
-    static void AddExteriorPortalView(CMapObj* mapObj, SMOPortal* portal, SMOPortalRef* ref, SPortalExt* ext, uint32_t destIsExterior);
-    static void AddInteriorPortalView(CMapObj* mapObj, SMOPortal* portal, SMOPortalRef* ref, SPortalExt* ext, TSGrowableArray<CPortalView>* a5);
+    static uint32_t AddViewerGroup(TSGrowableArray<uint32_t>* groups, uint32_t group);
     static void SetupLighting(CM2Lighting* lighting, C3Vector* view);
     static void SetCameraTarget(CMapEntity* entity, WGUID transportGuid);
 
@@ -227,22 +289,60 @@ class CWorldScene {
     /* 01E4 */ uint32_t unk_01E4;
 };
 
+extern C3Vector s_camPosLocal;
+extern C3Vector s_camTargetLocal;
+extern C4Plane s_camPlaneLocal;
+extern C44Matrix s_modelViewProj;
+extern C44Matrix s_viewProj;
+extern C44Matrix s_modelView;
+extern C44Matrix s_mapObjToWorld;
+extern SPortalExt s_portalExt[2048];
+extern int32_t s_curGroupIsInterior;
+extern int32_t s_cullStateValid;
+extern int32_t s_interiorPass;
+extern uint32_t s_maxPortalDepth;
+extern int32_t s_entityCanLink;
+extern int32_t s_unk_CD7770;
+extern int32_t s_unk_CD7774;
+
 namespace World {
     extern CALLBACK_FUNC s_loadProgressCallback;
     extern void* s_loadProgressParam;
+    extern C3Vector s_currentWorldPos;
+
+    class ObjectCollisionData {
+        public:
+        /* 0000 */ CM2Model* m_model;
+        /* 0004 */ C3Vector unk_0004;
+        /* 0010 */ C3Vector unk_0010;
+        /* 001C */ uint32_t unk_001C;
+        /* 0020 */ C44Matrix m_mat;
+
+        ObjectCollisionData();
+    };
+
+    extern int32_t (*s_objectCollisionCallback)(uint64_t* guid, uint32_t param, ObjectCollisionData* data, uint32_t flags);
 
     C3Vector* GetCamPos();
+    void SetObjectCollisionCallback(int32_t (*callback)(uint64_t* guid, uint32_t param, ObjectCollisionData* data, uint32_t flags));
+    void FindOrCreateDestructibleProxy(CDestructibleProxy* proxy);
     void CreateWaterRipple(const C3Vector& pos, float a2, float a3, float a4, float a5, float a6, int32_t a7, int32_t a8);
     int32_t QueryLiquidSounds(CMapEntity* entity, float radius, uint32_t* results);
     int32_t QueryLiquidStatus(C3Vector* pos, int32_t* liquidType, float* height);
     int32_t QueryObjectLiquid(CMapEntity* entity, int32_t* liquidType, float* height, int32_t* a4);
     int32_t QueryObjectLiquidFlags(CMapEntity* entity, int32_t* flag8, int32_t* flag9);
     int32_t SceneCamLiquidStatus(float* depth);
+    int32_t QueryCameraFog(SMOFog* fog, CMapObjDef** mapObjDef, uint8_t* found, TSGrowableArray<uint32_t>** groups, float* distance);
 
     class FacetData {
         public:
         TSGrowableArray<CFacet> facets;
         TSGrowableArray<uint64_t> facetIds;
+
+        FacetData() {
+            this->facets.m_chunk = 256;
+            this->facetIds.m_chunk = 256;
+        }
     };
 
 extern CM2Scene* s_m2Scene;
@@ -318,6 +418,8 @@ class CWorld {
     static float detailDoodadDist;
     static CTexture* shadowModTexture;
 
+    static void UpdateTextureCacheBudget();
+    static void SetShadowColor(const CImVector& color);
     static int32_t ConsoleCommand_CharacterAmbient(const char* command, const char* arguments);
     static int32_t ConsoleCommand_DetailDoodadAlpha(const char* command, const char* arguments);
     static int32_t ConsoleCommand_MaxLOD(const char* command, const char* arguments);

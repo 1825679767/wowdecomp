@@ -10,6 +10,7 @@
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/CWFrustum.h"
+#include "WoW/Source/WorldClient/MapObjGroup.h"
 
 class C2Vector;
 class C44Matrix;
@@ -33,14 +34,13 @@ struct SMOHeader;
 struct SMOLight;
 struct SMOMaterial;
 struct SMOPortal;
+struct SMOBatch;
+class CTexture;
+class CRect;
+struct SPortalExt;
+class CPortalView;
 struct SMOPortalRef;
 struct SMOVisibleBlock;
-
-class CMapObjOccluder {
-    public:
-    /* 0000 */ uint32_t m_memHandle;
-    /* 0004 */ uint32_t unk_0004[8];
-};
 
 class CMapObjIndex {
     public:
@@ -54,10 +54,16 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     static TSList<CMapObj, TSGetExplicitLink<CMapObj> > s_asyncLoadQueue;
     static TSList<CMapObjGroup, TSGetExplicitLink<CMapObjGroup> > s_unk_ADFC58;
     static TSHashTable<CMapObj, HASHKEY_NONE> mapObjHash;
+    static RENDER_CALLBACK gRenderCallback;
+    static void* gRenderUserParam;
     static int32_t bPoolsDirty;
     static uint32_t* occluderHeap;
+    static int32_t s_renderMode;
+    static void (CMapObj::*s_renderGroupExterior)(CMapObjGroup* group, uint32_t index);
+    static void (CMapObj::*s_renderGroupInterior)(CMapObjGroup* group, uint32_t index);
     static CShaderEffect* s_classicShaders[7];
     static CShaderEffect* s_unifiedShaders[7];
+    static int32_t s_lightingMode;
     static uint32_t s_unk_AEE008;
 
     static void ClearCache(int32_t a1);
@@ -67,14 +73,23 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     static void PrepareUpdate();
     static CMapObj* Create(char* fileName);
     static void PostloadCallback(void* arg);
-    static void RenderGroupCollidable(CMapObj* mapObj, CMapObjGroup* mapObjGroup, uint32_t a3);
     static void RenderGroupCollidableFaces(CMapObjGroup* mapObjGroup);
-    static void ExteriorRender(CMapObj* mapObj, CMapObjGroup* mapObjGroup, uint32_t a3);
-    static void InteriorRender(CMapObj* mapObj, CMapObjGroup* mapObjGroup, uint32_t a3);
-    static void UnifiedRender(CMapObj* mapObj, CMapObjGroup* mapObjGroup, uint32_t a3);
+    static void AsyncFailedCallback(CAsyncObject* object);
+    static void ProcessAsyncLoadQueue();
+    static CMapObjOccluder* AllocOccluder();
+    static CMapObjOccluder* AllocOccluderNode(uint32_t* heap);
+    static void CreateRefs(CMapObj* mapObj, CMapObjGroup* mapObjGroup, CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup);
+    static void InitDefGroup(CMapObj* mapObj, CMapObjGroup* mapObjGroup, CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup);
+    static void SetEmissiveAmbient(CImVector color);
+    static bool CullBatch(SMOBatch* batch);
+    static void RenderNormals(CMapObjGroup* group);
     static void InvokeGroupRenderCallback(CMapObj* mapObj, uint32_t groupNum);
     static void SetGroupRenderCallback(RENDER_CALLBACK callback, void* param);
     static void SetRenderModeLight();
+    static void UpdatePools();
+    static void Delete(CMapObj* mapObj);
+    static void FreeOccluderEntry(uint32_t* heap, CMapObjOccluder* occluder);
+    static void FreeOccluder(CMapObjOccluder* occluder);
     static void SetEmissiveColor(CImVector color);
     static void SelectWorldShaders();
 
@@ -105,7 +120,7 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     /* 017C */ int32_t m_visBlockVertCount;
     /* 0180 */ int32_t m_visBlockCount;
     /* 0184 */ int32_t m_ligtsCount;
-    /* 0188 */ int32_t m_doodadSetCount;
+    /* 0188 */ uint32_t m_doodadSetCount;
     /* 018C */ int32_t m_doodadNameSize;
     /* 0190 */ int32_t m_doodadDefCount;
     /* 0194 */ int32_t m_fogsCount;
@@ -122,12 +137,29 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     /* 01D8 */ float m_flushTimer;
     /* 01DC */ CAsyncObject* m_asyncObject;
     /* 01E0 */ int32_t m_isGroupLoaded;
-    /* 01E4 */ int32_t unk_01E4;
-    /* 01E8 */ TSExplicitList<CMapObjGroup> m_mapObjGroupList;
+    /* 01E4 */ uint16_t m_interiorGroupCount;
+    /* 01E6 */ uint8_t unk_01E6[2];
+    /* 01E8 */ TSExplicitList<CMapObjGroup, offsetof(CMapObjGroup, m_asyncLoadLink)> m_mapObjGroupList;
     /* 01F4 */ int32_t m_mapObjGroupCount;
     /* 01F8 */ CMapObjGroup* m_mapObjGroupArray [512];
 
     CMapObj();
+    ~CMapObj();
+    void Clear();
+    void UpdateMaterials();
+    float DistFromClosestExtPortal(CMapObjGroup* group, const C3Vector& pos, int32_t exteriorLit);
+    void DistFromClosestExtPortal(uint32_t depth, uint32_t flags, CMapObjGroup* group, CMapObjGroup* fromGroup, const C3Vector& pos, float* dist);
+    void ExteriorRender(CMapObjGroup* group, uint32_t index);
+    void InteriorRender(CMapObjGroup* group, uint32_t index);
+    void RenderGroupLightmapTex(CMapObjGroup* group, uint32_t index);
+    void RenderGroupColorTex(CMapObjGroup* group, uint32_t index);
+    void RenderGroupCollisionFaces(CMapObjGroup* group, uint32_t index);
+    void RenderGroupDetailFaces(CMapObjGroup* group, uint32_t index);
+    void RenderGroupRenderFaces(CMapObjGroup* group, uint32_t index);
+    void RenderGroupTransFaces(CMapObjGroup* group, uint32_t index);
+    void RenderGroupCollidable(CMapObjGroup* group, uint32_t index);
+    void Init();
+    void InitPtrs();
     bool Read(char* fileName);
     void ReadGroup(uint32_t index);
     void ReadGroup(uint32_t index, bool preLoad);
@@ -135,19 +167,22 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     void WaitLoad();
     void WaitLoadGroup(uint32_t index);
     void GetBounds(CAaBox* box);
+    void GetBounds(CAaSphere& sphere);
     void GetGroupBounds(CAaSphere* sphere, int32_t index);
     void GetGroupBounds(CAaBox* box, int32_t index);
-    int32_t GetDoodadSet(uint16_t index);
+    int32_t GetDoodadSet(uint32_t index);
     uint32_t GetGroupFlags(int32_t index);
     SMOGroupInfo* GetGroupInfo(int32_t index);
     int32_t IsGroupLoaded(int32_t index);
     char* GetGroupName(int32_t index);
-    CMapObjGroup* GetGroup(int32_t index, bool a3);
+    CMapObjGroup* GetGroup(int32_t index, int32_t a3);
+    int32_t IsGroupLoading(int32_t index);
     void RenderGroup(int32_t groupIndex, C44Matrix& matrix, TSExplicitList<CWFrustum, offsetof(CWFrustum, m_link)>* frustumList);
-    void CreateRefs(CMapObjGroup* mapObjGroup, CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup);
     void CreateMaterial(uint8_t texture);
     void CreateMaterials();
     bool TestBounds(CAaBox& box);
+    bool TestBounds(C3Vector& start, C3Vector& end);
+    bool ContainsPointInBounds(C3Vector& point);
     bool TestGroupBounds(C3Vector& start, C3Vector& end, uint32_t groupNum);
     bool TestGroupBounds(C3Vector& point, uint32_t groupNum);
     bool TestGroupBounds(CAaBox& box, uint32_t groupNum, int32_t a3);
@@ -156,6 +191,20 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     bool VectorIntersectPortal(C3Segment& seg, float* t, int* outGroups, int useSphereTest);
     bool VectorIntersectPortals(uint32_t groupNum, C3Segment& seg, float* t, int32_t* outGroups);
     float CalcPortalFarthestDistance(SMOPortal* portal);
+    void InvokeRenderCallback(uint32_t groupNum);
+    void UnifiedRender(CMapObjGroup* group, uint32_t index);
+    void RenderPortals(CMapObjGroup* group);
+    CMapObjGroup* AttenTransVerts(CMapObjGroup* group);
+    void SetupMapObjDefCull(C44Matrix& mat, C44Matrix& invMat, C3Vector& worldPos, C3Vector& camTarget);
+    void ClassifyPortalPlane(SMOPortal* portal, SPortalExt* portalExt);
+    uint32_t TransformAndClipVerts(uint32_t noOcclusion, C3Vector* verts, uint32_t vertCount, C3Vector& offset, C3Vector*& clippedVerts, uint32_t& clippedCount);
+    void AddExteriorPortalView(SMOPortal* portal, SMOPortalRef* ref, SPortalExt* ext, uint32_t destIsExterior);
+    void TransformPortal(SMOPortal* portal, SPortalExt* portalExt);
+    void AddInteriorPortalView(SMOPortal* portal, SMOPortalRef* ref, SPortalExt* ext, TSGrowableArray<CPortalView>* views);
+    void RenderThruPortals(uint32_t groupNum, uint32_t fromGroup, CRect& ndcRect, uint32_t depth, int32_t interior);
+    void RenderInterior(C44Matrix& mat, C44Matrix& invMat, C3Vector& worldPos, C3Vector& camTarget, TSGrowableArray<uint32_t>* groups);
+    bool VectorIntersectPortal(const C3Segment& seg, float* t, uint32_t* groups, int32_t useSphere);
+    void RenderThruPortalsExterior(C44Matrix& mat, C44Matrix& invMat, C3Vector& worldPos, C3Vector& camTarget, CRect& ndcRect, int32_t groupNum);
     bool Intersect(C3Vector& start, C3Vector& end, float* distance, uint32_t flags, uint32_t ignoreFlags, uint32_t groupNum, int32_t* hitIndex);
     SMOMaterial* GetLiquidMaterial(int32_t groupIndex);
     bool QueryLiquidStatus(uint32_t ignoreFlags, const C3Vector& pos, int32_t* liquidType, float* level);
@@ -234,7 +283,13 @@ struct SMOMaterial {
     /* 0028 */ uint32_t m_color2;
     /* 002C */ uint32_t m_flags2;
     /* 0030 */ uint32_t m_runTimeData [4];
+
+    CTexture** Textures();
 };
+
+inline CTexture** SMOMaterial::Textures() {
+    return reinterpret_cast<CTexture**>(&this->m_runTimeData[4 - 2 * sizeof(CTexture*) / sizeof(uint32_t)]);
+}
 
 struct SMOPortal {
     /* 0000 */ uint16_t m_startVertex;

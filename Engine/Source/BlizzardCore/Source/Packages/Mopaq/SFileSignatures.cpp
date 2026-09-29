@@ -39,6 +39,7 @@ bool System_SFile::SignatureTable::GetSignature(const char* name, Blizzard::Util
     return this->Get(key, md5);
 }
 
+// VERIFY: 3eff0a7f manual
 // OFFSET: 0x0043AB40
 bool System_SFile::SignatureTable::SetSignature(const char* name, const Blizzard::Util::Digest<16>& md5) {
     char lower[260];

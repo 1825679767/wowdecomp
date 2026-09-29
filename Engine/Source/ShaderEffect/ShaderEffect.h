@@ -21,7 +21,32 @@ struct LocalLights {
     /* 0080 */ float m_constantAttenuation[4];
     /* 0090 */ float m_linearAttenuation[4];
     /* 00A0 */ float m_quadraticAttenuation[4];
+
+    LocalLights();
 };
+
+// INLINED
+inline LocalLights::LocalLights() {
+    for (uint32_t i = 0; i < 4; i++) {
+        this->m_color[i].x = 0.0f;
+        this->m_color[i].y = 0.0f;
+        this->m_color[i].z = 0.0f;
+        this->m_color[i].w = 0.0f;
+    }
+
+    for (uint32_t i = 0; i < 4; i++) {
+        this->m_position[i].x = 0.0f;
+        this->m_position[i].y = 0.0f;
+        this->m_position[i].z = 0.0f;
+        this->m_position[i].w = 0.0f;
+    }
+
+    for (uint32_t i = 0; i < 4; i++) {
+        this->m_constantAttenuation[i] = 0.0f;
+        this->m_linearAttenuation[i] = 0.0f;
+        this->m_quadraticAttenuation[i] = 0.0f;
+    }
+}
 
 class CShaderEffect : public TSHashObject<CShaderEffect, HASHKEY_STRI> {
     public:

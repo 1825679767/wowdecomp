@@ -76,7 +76,7 @@ class CMapRenderChunk {
     static TSExplicitList<CMapChunkBuf, offsetof(CMapChunkBuf, unk_0014)> s_renderChunkBufFreeList;
     static TSExplicitList<CMapChunkBufBlock, offsetof(CMapChunkBufBlock, m_blockLink)> s_chunkBufBlockFreeList;
     static TSExplicitList<CMapChunkBufBlock, offsetof(CMapChunkBufBlock, m_bufLink)> s_bufList;
-    static CGxBatch unk_AEEC60;
+    static CGxBatch s_chunkBatch;
     static uint32_t s_defaultTex[8192];
     static CGxShader* s_currentShader[4];
     static CGxShader* s_currentShaderX[4];
@@ -171,6 +171,8 @@ class CMapRenderChunk {
     void RenderSolidPixelShader();
     void RenderSinglePassPixelShader();
     void RenderSinglePassVertexPixelShader();
+    void RenderSinglePass();
+    void RenderZoneDebug();
 };
 
 struct CMapRenderChunk::SVertexShaderConstants {

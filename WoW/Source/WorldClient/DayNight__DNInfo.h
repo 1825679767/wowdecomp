@@ -3,12 +3,13 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/DayNight/DayNight.h"
+#include "WoW/Source/WorldClient/DayNight.h"
+#include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
-struct DNOverrideSky;
+class CMapObjDef;
 class LightParamsRec;
 class LightRec;
 
@@ -29,6 +30,8 @@ struct DNLightState {
     /* 0020 */ float m_desatG;
     /* 0024 */ float m_desatB;
     /* 0028 */ float m_desatA;
+
+    DNLightState();
 };
 
 namespace DayNight {
@@ -46,7 +49,7 @@ struct DNInfo {
     /* 0048 */ float m_deltaSec;
     /* 004C */ float m_weatherIntensity;
     /* 0050 */ uint8_t m_flashBlend;
-    /* 0051 */ uint8_t m_flashColorBGRA [4];
+    /* 0051 */ CImVector m_flashColor;
     /* 0055 */ uint8_t unk_0055 [3];
     /* 0058 */ uint32_t m_overrideLightParamsId;
     /* 005C */ DNOverrideSky* m_skybox;
@@ -59,16 +62,14 @@ struct DNInfo {
     /* 009C */ float m_interiorFogBlend;
     /* 00A0 */ DNFogInfo m_fogInterior;
     /* 00B0 */ DNFogInfo m_fogGroup;
-    /* 00C0 */ uint32_t m_interiorFogId;
-    /* 00C4 */ TSFixedArray<uint8_t> m_interiorFogIds;
-    /* 00D0 */ uint32_t m_interiorFogFlags;
-    /* 00D4 */ DNLightBands m_bands;
+    /* 00C0 */ CMapObjDef* m_interiorMapObjDef;
+    /* 00C4 */ TSGrowableArray<uint32_t> m_interiorGroups;
+    /* 00D4 */ CurrentLight m_bands;
     /* 0170 */ DNLightState m_light0;
     /* 019C */ DNLightState m_light1;
     /* 01C8 */ CImVector m_shadowColor;
     /* 01CC */ uint32_t m_showSky;
-    /* 01D0 */ float m_cloudSunU;
-    /* 01D4 */ float m_cloudSunV;
+    /* 01D0 */ C2Vector m_cloudSun;
     /* 01D8 */ float m_sunMoonPath;
     /* 01DC */ float m_curve0;
     /* 01E0 */ float m_curve1;
@@ -76,12 +77,24 @@ struct DNInfo {
     /* 01E8 */ uint32_t unk_01E8;
     /* 01EC */ LightRec* m_nearLight [5];
     /* 0200 */ float m_nearLightBlend [5];
+
+    DNInfo();
+    void AddZoneLight(int32_t lightId, float blend);
+    void ClearZoneLights();
 };
 
 extern DNInfo g_dnInfo;
 
 DNInfo* GetInfo();
 CImVector LoadLightIntBand(int32_t time, const LightParamsRec* params, int32_t band);
+}
+
+// INLINED
+inline DNLightState::DNLightState() {
+    this->m_desatR = 0.0f;
+    this->m_desatG = 0.0f;
+    this->m_desatB = 0.0f;
+    this->m_desatA = 0.0f;
 }
 
 #endif

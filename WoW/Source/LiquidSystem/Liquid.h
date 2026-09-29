@@ -300,6 +300,7 @@ namespace Liquid {
         ~CRenderer();
         void Draw(CInstance* instance);
         void Flush(const C3Vector& cameraPos, uint32_t pass);
+        void Validate();
     };
 
     class CSettingsBank {
@@ -330,11 +331,11 @@ namespace Liquid {
     extern CDataAllocator s_unk_D450AC;
     extern CDataAllocator s_unk_D450C0;
     extern float s_unk_B23F64;
-    extern int32_t s_unk_B23F68;
+    extern int32_t s_specularEnabled;
     extern IDatabase<LiquidMaterialRec>* s_liquidMaterialDB;
     extern IDatabase<LiquidTypeRec>* s_liquidTypeDB;
     extern char s_unk_D439F0[256];
-    extern int32_t s_unk_D43AF0;
+    extern int32_t s_shadersEnabled;
     extern int32_t s_unk_D43AF4;
     extern int32_t s_unk_D43AF8;
     extern int32_t s_unk_D43AFC;
@@ -367,9 +368,15 @@ namespace Liquid {
     void SetShaderTransforms(const C3Vector& cameraPos, const C44Matrix& transform);
     void Shutdown();
     void UpdateProceduralTextures();
+    void SetShadersEnabled(int32_t enabled);
+    void SetSpecularEnabled(int32_t enabled);
     int32_t UseCameraRelativeCoords();
     void WmoWaterTexCallback(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevel, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);
     float WorldCoordScale();
+}
+
+// INLINED
+inline Liquid::IVertexData::~IVertexData() {
 }
 
 #endif

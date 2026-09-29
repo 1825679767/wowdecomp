@@ -21,6 +21,66 @@ void CMapArea::Destroy() {
 void CMapArea::Initialize() {
 }
 
+// VERIFY: 28aeb8e8 auto
+// OFFSET: 0x007C2FF0
+void CMapArea::FreeAsyncObject(CAsyncObject* object) {
+    void* buffer = object->m_buffer;
+    uint32_t size = object->m_size;
+    AsyncFileReadDestroyObject(object);
+    CMapArea::FreeAsyncLoadBuffer(buffer, size);
+}
+
+// VERIFY: ed92c35f auto
+// OFFSET: 0x007C35D0
+void CMapArea::PurgeChunk(CMapChunk* chunk) {
+    chunk->Purge();
+    CMap::FreeChunk(chunk);
+}
+
+// VERIFY: 3489b6fa manual
+// OFFSET: 0x007C35F0
+void CMapArea::Purge() {
+    if (this->m_asyncObject) {
+        if (!AsyncFile::Cancel(this->m_asyncObject, CMapArea::FreeAsyncObject)) {
+            this->m_fileBuffer = nullptr;
+        }
+
+        this->m_asyncObject = nullptr;
+        this->m_file = nullptr;
+    }
+
+    for (CMapBaseObjLink* link = this->m_chunkLinkList.Head(); link;) {
+        CMapChunk* chunk = static_cast<CMapChunk*>(link->m_owner);
+        CMapBaseObjLink* next = this->m_chunkLinkList.Next(link);
+        this->m_mapChunks[16 * chunk->m_aIndex.y + chunk->m_aIndex.x] = nullptr;
+        this->m_chunkInfo[16 * chunk->m_aIndex.y + chunk->m_aIndex.x].m_flags = 0;
+        CMap::FreeBaseObjLink(link);
+        chunk->Purge();
+        CMap::FreeChunk(chunk);
+        link = next;
+    }
+
+    for (uint32_t i = 0; i < this->m_textures.m_count; i++) {
+        if (this->m_textures.m_data[i].m_texture) {
+            HandleClose(reinterpret_cast<HOBJECT>(this->m_textures.m_data[i].m_texture));
+        }
+    }
+
+    this->m_textures.m_count = 0;
+
+    for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link;) {
+        CMapBaseObjLink* next = this->m_parentLinkList.Next(link);
+        CMap::FreeBaseObjLink(link);
+        link = next;
+    }
+}
+
+// VERIFY: bafcd5df auto
+// OFFSET: 0x007D6690
+bool CWorldScene::InsideFrustumRect(CiRect* rect) {
+    return rect->minX <= CWorldScene::s_frustumChunkRect.maxX && rect->minY <= CWorldScene::s_frustumChunkRect.maxY && rect->maxX >= CWorldScene::s_frustumChunkRect.minX && rect->maxY >= CWorldScene::s_frustumChunkRect.minY;
+}
+
 // VERIFY: 8d38ed01 manual
 // OFFSET: 0x007D6810
 void CMapArea::BatchChunks(const C2iVector& pos) {
@@ -123,6 +183,27 @@ void CMapArea::LoadTerrainTexture(CMapAreaTexture* areaTexture, int32_t textureI
     }
 }
 
+// VERIFY: 3fc00f06 manual
+// OFFSET: 0x007D6A90
+void CMapArea::PurgeChunks(CiRect* chunkRect) {
+    int32_t minY = chunkRect->minY - this->m_tileChunkIndex.y;
+    int32_t minX = chunkRect->minX - this->m_tileChunkIndex.x;
+    int32_t maxY = chunkRect->maxY - this->m_tileChunkIndex.y;
+    int32_t maxX = chunkRect->maxX - this->m_tileChunkIndex.x;
+
+    for (int32_t y = minY; y <= maxY; y++) {
+        for (int32_t x = minX; x <= maxX; x++) {
+            CMapChunk* chunk = this->m_mapChunks[16 * y + x];
+
+            if (chunk) {
+                this->m_mapChunks[16 * y + x] = nullptr;
+                CMap::FreeBaseObjLink(chunk->m_parentLinkList.Head());
+                CMapArea::PurgeChunk(chunk);
+            }
+        }
+    }
+}
+
 // VERIFY: 4696cf2f manual
 // OFFSET: 0x007D6B30
 CMapChunk* CMapArea::PrepareChunk(int32_t chunkX, int32_t chunkY) {
@@ -153,7 +234,7 @@ CMapChunk* CMapArea::PrepareChunk(int32_t chunkX, int32_t chunkY) {
     return chunk;
 }
 
-// VERIFY: 0ce80d37 manual
+// VERIFY: b5606f47 manual
 // OFFSET: 0x007D6BF0
 void CMapArea::Update(int32_t addToScene, CiRect* chunkRect) {
     for (int32_t chunkY = chunkRect->minY; chunkY <= chunkRect->maxY; chunkY++) {
@@ -181,7 +262,7 @@ void CMapArea::Update(int32_t addToScene, CiRect* chunkRect) {
                 if (chunk) {
                     this->m_mapChunks[16 * chunk->m_aIndex.y + chunk->m_aIndex.x] = nullptr;
                     CMap::FreeBaseObjLink(chunk->m_parentLinkList.Head());
-                    this->PurgeChunk(chunk);
+                    CMapArea::PurgeChunk(chunk);
                 }
             }
         }
@@ -265,6 +346,7 @@ void CMapArea::AsyncCallback(void* param) {
     area->m_file = nullptr;
 }
 
+// VERIFY: e0ce6011 manual
 // OFFSET: 0x007D7050
 CMapArea::CMapArea() {
     this->m_index.x = 0;

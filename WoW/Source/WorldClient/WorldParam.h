@@ -41,6 +41,7 @@ class CWorldParam {
 
     static bool BaseMipCallback(CVar* var, const char* oldValue, const char* value, void* arg);
     static bool BspCacheCallback(CVar* var, const char* oldValue, const char* value, void* arg);
+    static bool CloudLODCallback(CVar* var, const char* oldValue, const char* value, void* arg);
     static void Destroy();
     static bool EnvironmentDetailCallback(CVar* var, const char* oldValue, const char* value, void* arg);
     static bool ExtShadowQualityCallback(CVar* var, const char* oldValue, const char* value, void* arg);

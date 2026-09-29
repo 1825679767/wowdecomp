@@ -374,7 +374,7 @@ float CSimpleModel::GetHeight() {
     return height;
 }
 
-// VERIFY: 867f1237 manual
+// VERIFY: 554b25c2 manual
 // OFFSET: 0x0095FB40
 void CSimpleModel::UpdateAlpha() {
     this->CSimpleFrame::UpdateAlpha();
@@ -382,7 +382,7 @@ void CSimpleModel::UpdateAlpha() {
     CM2Model* model = this->m_model;
 
     if (model) {
-        model->unk_0178 = static_cast<uint8_t>(this->m_alpha * this->m_parentAlpha / 255) * 0.0039215689f;
+        model->m_fadeAlpha = static_cast<uint8_t>(this->m_alpha * this->m_parentAlpha / 255) * 0.0039215689f;
     }
 }
 
@@ -501,7 +501,7 @@ void CSimpleModel::LightingCallback(CM2Model* model, CM2Lighting* lighting, void
     }
 }
 
-// VERIFY: d96c188c manual
+// VERIFY: 45e34e76 manual
 // OFFSET: 0x009600E0
 void CSimpleModel::SetModel(CM2Model* model) {
     if (model) {
@@ -515,7 +515,7 @@ void CSimpleModel::SetModel(CM2Model* model) {
     this->m_model = model;
 
     if (model) {
-        model->unk_0178 = static_cast<uint8_t>(this->m_alpha * this->m_parentAlpha / 255) * 0.0039215689f;
+        model->m_fadeAlpha = static_cast<uint8_t>(this->m_alpha * this->m_parentAlpha / 255) * 0.0039215689f;
         this->m_model->SetSequenceCallback(reinterpret_cast<void*>(&AnimFinishedCallback), reinterpret_cast<uintptr_t>(this));
         this->m_model->m_lightingCallback = &CSimpleModel::LightingCallback;
         this->m_model->m_lightingArg = this;

@@ -2172,7 +2172,7 @@ GEOCOMPONENTLINKS CCharacterComponent::AddHandItem(CM2Model* model, const ItemDi
     return link;
 }
 
-// VERIFY: a77e5ae6 auto
+// VERIFY: 659efa48 auto
 // OFFSET: 0x004EAF70
 void CCharacterComponent::RemoveVisuals(CM2Model* model) {
     model->DetachAllChildrenById(15);
@@ -2193,7 +2193,7 @@ void CCharacterComponent::RemoveVisuals(CM2Model* model) {
     model->DetachAllChildrenById(12);
     model->unk_018C = 0.0f;
     model->unk_0190 = 0.0f;
-    model->unk_0178 = 1.0f;
+    model->m_fadeAlpha = 1.0f;
     model->unk_0194 = 0.0f;
     model->unk_0180 = 1.0f;
     model->unk_0184 = 1.0f;

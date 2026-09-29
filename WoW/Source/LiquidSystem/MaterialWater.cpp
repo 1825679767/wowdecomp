@@ -5,13 +5,13 @@
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00D45098
-CDataAllocator Liquid::s_unk_D45098(4, 8);
+CDataAllocator Liquid::s_unk_D45098(sizeof(Liquid::CMaterialWaterFFP), 8);
 
 // STATIC: 0x00D45084
-CDataAllocator Liquid::s_unk_D45084(4, 8);
+CDataAllocator Liquid::s_unk_D45084(sizeof(Liquid::CMaterialWaterNoSpec), 8);
 
 // STATIC: 0x00D45070
-CDataAllocator Liquid::s_unk_D45070(4, 8);
+CDataAllocator Liquid::s_unk_D45070(sizeof(Liquid::CMaterialWater), 8);
 
 // STATIC: 0x00D44C38
 int32_t Liquid::CMaterialWater::s_refCount;

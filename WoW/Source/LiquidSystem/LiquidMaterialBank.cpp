@@ -31,7 +31,7 @@ void Liquid::ClearMaterials() {
     Liquid::s_unk_D450C0.Clear(".?AVCMaterialMagmaFFP@Liquid@@", SLOG_OBJECT, 1);
 }
 
-// VERIFY: e742ff22 auto
+// VERIFY: 6362c891 auto
 // OFFSET: 0x008A1FA0
 Liquid::IMaterial* Liquid::CMaterialBank::GetMaterial(uint32_t liquidType) {
     LiquidTypeRec* typeRec;
@@ -58,14 +58,14 @@ Liquid::IMaterial* Liquid::CMaterialBank::GetMaterial(uint32_t liquidType) {
     }
 
     bool vertexShaders = g_theGxDevicePtr->Caps().m_shaderTargets[GxSh_Vertex] >= 1;
-    bool shaders = Liquid::s_unk_D43AF0 && vertexShaders && g_theGxDevicePtr->Caps().m_shaderTargets[GxSh_Pixel] >= 3;
+    bool shaders = Liquid::s_shadersEnabled && vertexShaders && g_theGxDevicePtr->Caps().m_shaderTargets[GxSh_Pixel] >= 3;
 
     Liquid::IMaterial* material = nullptr;
 
     switch (materialId) {
         case 1:
             if (shaders) {
-                if (Liquid::s_unk_B23F68) {
+                if (Liquid::s_specularEnabled) {
                     material = Liquid::CMaterialWater::Create();
                 } else {
                     material = Liquid::CMaterialWaterNoSpec::Create();
@@ -92,7 +92,7 @@ Liquid::IMaterial* Liquid::CMaterialBank::GetMaterial(uint32_t liquidType) {
             break;
     }
 
-    Liquid::CMaterialBank::s_unk_D43B24.SetCount(materialId + 1);
+    Liquid::CMaterialBank::s_unk_D43B24.GrowToFit(materialId, 1);
     Liquid::CMaterialBank::s_unk_D43B24.m_data[materialId] = material;
 
     return material;
