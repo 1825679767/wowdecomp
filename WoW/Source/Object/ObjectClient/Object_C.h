@@ -8,6 +8,7 @@
 #include "WoW/Source/Object/Object.h"
 #include "WoW/Source/Ui/DBCACHEHASH_NAME.h"
 
+class CObjectEffectManager;
 class C3Vector;
 class C44Matrix;
 class C4Quaternion;
@@ -60,7 +61,7 @@ class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID
     /* 00C0 */ uint32_t unk_00C0;
     /* 00C4 */ uint32_t unk_00C4;
     /* 00C8 */ uint32_t unk_00C8;
-    /* 00CC */ uint8_t unk_00CC [4];
+    /* 00CC */ CObjectEffectManager* m_effectManager;
 
     virtual ~CGObject_C();
     virtual void Disable();

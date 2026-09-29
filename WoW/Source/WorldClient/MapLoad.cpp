@@ -3,6 +3,12 @@
 #include "Engine/Source/Tempest/NTempest.h"
 #include "Engine/Source/Model2/M2Model.h"
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
+#include "WoW/Source/WorldClient/MapDoodadDef.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
+#include "WoW/Source/Object/Types.h"
+#include "WoW/Source/Object/ObjectClient/ObjectEffect.h"
+#include "WoW/Source/Object/ObjectClient/Object_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 
 // VERIFY: 1ce54c55 manual
 // OFFSET: 0x00780CD0
@@ -24,6 +30,94 @@ void CMapStaticEntity::ModelLightingCallback(CM2Model* model, CM2Lighting* light
         lighting->AddDiffuse(C3Vector(dayNight->m_light1.m_diffuse), dayNight->m_light1.m_dir);
     }
     lighting->m_flags &= ~8u;
+}
+
+// VERIFY: acf45154 manual
+// OFFSET: 0x007BD5A0
+void CMapStaticEntity::ModelEventCallback(CM2Model* model, uint32_t boneId, uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time, uint64_t param) {
+    CMapDoodadDef* doodadDef = reinterpret_cast<CMapDoodadDef*>(static_cast<uintptr_t>(param));
+
+    switch (eventId) {
+        case 'LSD$': {
+            if (SI2::IsPlaying(&doodadDef->m_soundKitObject) || SI2::IsTooCloseToExistingSoundKit(data, position)) {
+                break;
+            }
+
+            SE2SoundKitProperties properties;
+            properties.ResetToDefaults();
+            properties.m_fadeInTime = 3.0f;
+            properties.m_loopMode = 1;
+            properties.m_streaming = true;
+            properties.m_software = 1;
+            properties.m_maxAudibleBehavior = 0;
+
+            SI2::PlaySoundKit(data, position, &doodadDef->m_soundKitObject, &properties, 0, nullptr, 1, 0);
+            break;
+        }
+
+        case 'OSD$':
+            SI2::PlaySoundKit(data, position, nullptr, nullptr, 0, nullptr, 1, 0);
+            break;
+
+        case 'ESD$':
+            SI2::StopSound(&doodadDef->m_soundKitObject, 0, -1.0f, 1);
+            break;
+
+        case 'TWE$': {
+            CGObject_C* object = ClntObjMgrObjectPtr(doodadDef->unk_00B8, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+
+            if (object && object->IsTransport() && object->m_effectManager) {
+                object->m_effectManager->EnterState(2, 1, 0);
+                object->m_effectManager->ExitState(3, 1);
+                object->m_effectManager->ExitState(4, 1);
+                object->m_effectManager->ExitState(5, 1);
+            }
+
+            break;
+        }
+
+        case 'CAE$': {
+            CGObject_C* object = ClntObjMgrObjectPtr(doodadDef->unk_00B8, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+
+            if (object && object->IsTransport() && object->m_effectManager) {
+                object->m_effectManager->EnterState(3, 1, 0);
+                object->m_effectManager->ExitState(2, 1);
+                object->m_effectManager->ExitState(4, 1);
+                object->m_effectManager->ExitState(5, 1);
+            }
+
+            break;
+        }
+
+        case 'VME$': {
+            CGObject_C* object = ClntObjMgrObjectPtr(doodadDef->unk_00B8, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+
+            if (object && object->IsTransport() && object->m_effectManager) {
+                object->m_effectManager->EnterState(4, 1, 0);
+                object->m_effectManager->ExitState(3, 1);
+                object->m_effectManager->ExitState(2, 1);
+                object->m_effectManager->ExitState(5, 1);
+            }
+
+            break;
+        }
+
+        case 'CDE$': {
+            CGObject_C* object = ClntObjMgrObjectPtr(doodadDef->unk_00B8, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+
+            if (object && object->IsTransport() && object->m_effectManager) {
+                object->m_effectManager->EnterState(5, 1, 0);
+                object->m_effectManager->ExitState(3, 1);
+                object->m_effectManager->ExitState(4, 1);
+                object->m_effectManager->ExitState(2, 1);
+            }
+
+            break;
+        }
+
+        default:
+            break;
+    }
 }
 
 // VERIFY: f8dfe4b0 manual

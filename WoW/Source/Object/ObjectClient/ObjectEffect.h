@@ -35,6 +35,9 @@ class CObjectEffectManager {
     /* 0074 */ uint8_t unk_0074[4];
     /* 0078 */ uint32_t unk_0078;
     /* 007C */ uint32_t unk_007C;
+
+    void EnterState(uint32_t state, int32_t a2, int32_t a3);
+    void ExitState(uint32_t state, int32_t a2);
 };
 
 struct ObjectEffectAnimState {
