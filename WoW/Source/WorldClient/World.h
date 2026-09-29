@@ -244,6 +244,9 @@ class CWorldScene {
     static void RenderChunks();
     static void RenderMapObjDefGroups();
     static void RenderDetailDoodads();
+    static void RenderOccluders();
+    static void RenderDebugFrustum();
+    static void RenderOcclusionVolumes();
     static void SetWorldProjection(C44Matrix& mat);
     static void RenderChunksSolid();
     static void RenderChunksZoneDebug();

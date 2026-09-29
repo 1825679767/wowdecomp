@@ -13,6 +13,10 @@
 #include "WoW/Source/WorldClient/Types.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WorldClient/WorldView.h"
+#include "WoW/Source/WorldClient/MapChunk.h"
+#include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Gx/CGxBuf.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 
 // STATIC: 0x00AEEF60
 TSExplicitList<CWorldOccluder, offsetof(CWorldOccluder, m_link)> s_occluderFreeList;
@@ -876,4 +880,110 @@ void CWorldScene::CreateOcclusionVolumes(const C3Vector* eye, const C3Vector* co
 void CWorldOcclusion::ClearVolumes() {
     CWorldOcclusion::planeArray.SetCount(0);
     CWorldOcclusion::clipVolumeArray.SetCount(0);
+}
+
+// VERIFY: 1ad39c5b manual
+// OFFSET: 0x007CD930
+void CWorldScene::RenderOcclusionVolumes() {
+    if (!(CWorld::enables & Enable_PortalVis)) {
+        return;
+    }
+
+    int32_t vertexCount = 0;
+    int32_t indexCount = 0;
+
+    for (uint32_t i = 0; i < 62; i++) {
+        if (s_occlusionVolumes[i].m_mapID == s_mapId) {
+            int32_t count = s_occlusionVolumes[i].m_data.m_positionCount;
+            vertexCount += count;
+            indexCount += 3 * (count - 2);
+        }
+    }
+
+    if (!vertexCount || !indexCount) {
+        return;
+    }
+
+    CImVector color;
+    color.b = 0x20;
+    color.g = 0x80;
+    color.r = 0xFF;
+    color.a = 0x8F;
+
+    C44Matrix world;
+    world.Translate(C3Vector(-CWorldScene::s_activeWorldView.x, -CWorldScene::s_activeWorldView.y, -CWorldScene::s_activeWorldView.z));
+    g_theGxDevicePtr->XformPushAndSet(GxXform_World, world);
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_BlendingMode, 2);
+    GxUpdateAlphaRef(GxRs_AlphaRef);
+    GxRsSet(GxRs_DepthWrite, 0);
+    GxRsSet(GxRs_Lighting, 0);
+    GxRsSet(GxRs_Fog, 0);
+    GxRsSet(GxRs_PixelShader, 0);
+    GxRsSet(GxRs_VertexShader, 0);
+    GxRsSet(GxRs_MatDiffuse, *reinterpret_cast<int32_t*>(&color));
+    GxRsSet(GxRs_Culling, 0);
+
+    CGxBuf* vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, sizeof(CGxVertexPN), vertexCount);
+    CGxVertexPN* vertex = reinterpret_cast<CGxVertexPN*>(g_theGxDevicePtr->BufLock(vertexBuf));
+
+    for (uint32_t i = 0; i < 62; i++) {
+        OcclusionVolumeData& data = s_occlusionVolumes[i].m_data;
+
+        if (s_occlusionVolumes[i].m_mapID != s_mapId) {
+            continue;
+        }
+
+        const C3Vector* positions = data.m_positions;
+        C3Vector edgeA(positions[1].x - positions[0].x, positions[1].y - positions[0].y, positions[1].z - positions[0].z);
+        C3Vector edgeB(positions[2].x - positions[0].x, positions[2].y - positions[0].y, positions[2].z - positions[0].z);
+        C3Vector normal = C3Vector::Cross(edgeA, edgeB);
+
+        for (int32_t j = 0; j < static_cast<int32_t>(data.m_positionCount); j++) {
+            vertex->m_position = data.m_positions[j];
+            vertex->m_normal = normal;
+            vertex++;
+        }
+    }
+
+    g_theGxDevicePtr->BufUnlock(vertexBuf, 0);
+    vertexBuf->unk_001C = 1;
+    GxPrimVertexPtr(vertexBuf, GxVBF_PN);
+
+    CGxBuf* indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, sizeof(uint16_t), indexCount);
+    uint16_t* indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+    int32_t base = 0;
+
+    for (uint32_t i = 0; i < 62; i++) {
+        OcclusionVolume& volume = s_occlusionVolumes[i];
+
+        if (volume.m_mapID != s_mapId) {
+            continue;
+        }
+
+        for (int32_t j = 0; j < static_cast<int32_t>(volume.m_data.m_positionCount) - 2; j++) {
+            indices[0] = static_cast<uint16_t>(base);
+            indices[1] = static_cast<uint16_t>(base + j + 1);
+            indices[2] = static_cast<uint16_t>(base + j + 2);
+            indices += 3;
+        }
+
+        base += volume.m_data.m_positionCount;
+    }
+
+    g_theGxDevicePtr->BufUnlock(indexBuf, 0);
+    indexBuf->unk_001C = 1;
+    g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+
+    CGxBatch batch;
+    batch.m_primType = GxPrim_Triangles;
+    batch.m_start = 0;
+    batch.m_count = indexCount;
+    batch.m_minIndex = 0;
+    batch.m_maxIndex = static_cast<uint16_t>(vertexCount);
+    g_theGxDevicePtr->Draw(&batch, 1);
+
+    g_theGxDevicePtr->RsPop();
+    GxXformPop(GxXform_World);
 }
