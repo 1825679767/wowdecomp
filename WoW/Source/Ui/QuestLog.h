@@ -60,6 +60,8 @@ struct QuestWatch {
 
 void QuestQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 void ItemQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void ObjectQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void QuestCreatureQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 int32_t GetQuestSuggestedPlayers(int32_t index);
 int32_t GetQuestSortId(uint32_t index);
 const char* GetQuestTitleText(int32_t questId);
@@ -73,6 +75,11 @@ int32_t CountQuestItemDropsNeeded(int32_t questId, void (*callback)(int32_t id, 
 
 class CGQuestLog {
     public:
+    static int32_t GetQuestLogSlot(int32_t index);
+    static int32_t IsOnQuest(int32_t questId);
+    static int32_t FindOrFreePOISlot(int32_t questId);
+    static int32_t GetQuestLeaderBoardByID(int32_t questId, QuestLogLeaderBoardParams* params);
+    static int32_t GetQuestLeaderBoardForObject(int32_t questId, int32_t objectId, QuestLogLeaderBoardParams* params);
     static int32_t m_sortTypes[25];
     static uint32_t m_numSortTypes;
     static int32_t m_questResetTime;
@@ -124,7 +131,6 @@ class CGQuestLog {
     static void HandlePOIQueryResponse(CDataStore* msg);
 };
 
-int32_t Script_GetQuestLogLeaderBoard(lua_State* L);
 int32_t Script_GetQuestLogItemDrop(lua_State* L);
 int32_t Script_GetQuestPOILeaderBoard(lua_State* L);
 int32_t Script_QuestMapUpdateAllQuests(lua_State* L);
@@ -136,6 +142,5 @@ void DisplayQuestFailed(int32_t id, const WOWGUID& guid, void* param, bool succe
 int32_t Packet_SMSG_QUERY_TIME_RESPONSE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t UpdateQuestPOIHandler(const char* command, const char* arguments);
 
-int32_t Script_GetQuestLogLeaderBoard(int32_t questId, uint32_t objectId, QuestLogLeaderBoardParams* params);
 
 #endif

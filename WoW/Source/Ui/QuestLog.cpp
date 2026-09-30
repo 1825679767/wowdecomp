@@ -24,6 +24,14 @@
 #include "WoW/Source/DB/Rec/QuestInfoRec.h"
 #include "WoW/Source/DB/Rec/QuestSortRec.h"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "WoW/Source/DB/Rec/FactionRec.h"
+#include "WoW/Source/DB/Rec/QuestXPRec.h"
+#include "WoW/Source/Object/CreatureStats.h"
+#include "WoW/Source/Object/GameObjectStats.h"
+#include "WoW/Source/Object/ItemStats.h"
+#include "WoW/Source/Ui/ChatFrame.h"
+#include "WoW/Source/Ui/QuestLogLeaderBoardParams.h"
 
 // STATIC: 0x00C23618
 int32_t CGQuestLog::m_sortTypes[25];
@@ -1104,4 +1112,597 @@ void CGQuestLog::Update(int32_t a1) {
         ClientServices::Send2(&msg);
         CGQuestLog::m_nextQuestUpdate = 0;
     }
+}
+
+// VERIFY: b7033214 manual
+// OFFSET: 0x005DE960
+static void QuestSelectQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        AddQuestPointDisplay();
+    } else {
+        ConsoleWrite("Invalid quest log entry", DEFAULT_COLOR);
+    }
+}
+
+// VERIFY: 428ace85 auto
+// OFFSET: 0x005DE9E0
+void QuestCreatureQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        Script_SendUniqueSignal(SCRIPT_EVENT_QUEST_LOG_UPDATE);
+    } else {
+        ConsoleWrite("Invalid creature in quest", DEFAULT_COLOR);
+    }
+}
+
+// VERIFY: d89748b4 auto
+// OFFSET: 0x005DEA10
+void ObjectQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        Script_SendUniqueSignal(SCRIPT_EVENT_QUEST_LOG_UPDATE);
+    } else {
+        ConsoleWrite("Invalid object in quest", DEFAULT_COLOR);
+    }
+}
+
+// VERIFY: 3a839b20 auto
+// OFFSET: 0x005DEA40
+void ItemQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        Script_SendUniqueSignal(SCRIPT_EVENT_QUEST_LOG_UPDATE);
+    }
+}
+
+// VERIFY: 594f69d5 auto
+// OFFSET: 0x005DEB60
+void AddQuestPointDisplay() {
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, QuestSelectQueryCallback, nullptr, false);
+
+    if (quest) {
+        DisplayQuestPoint(quest->m_pointX, quest->m_pointY, quest->m_pointOptional, quest->m_name);
+    }
+}
+
+// VERIFY: 7928c50e manual
+// OFFSET: 0x005DE8C0
+int32_t CGQuestLog::GetQuestLogSlot(int32_t index) {
+    if (index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader) {
+        return -1;
+    }
+
+    return CGQuestLog::m_quests[index].m_logSlot;
+}
+
+// VERIFY: f0f3c6ea manual
+// OFFSET: 0x005E0420
+int32_t CalculateExperience(int32_t questId, int32_t level) {
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(questId, none, nullptr, nullptr, false);
+
+    if (!quest) {
+        return 0;
+    }
+
+    int32_t questLevel = quest->m_level;
+    QuestXPRec* xp = g_questXPDB.GetRecord(questLevel != -1 ? questLevel : level);
+
+    if (!xp) {
+        return 0;
+    }
+
+    int32_t diff = 2 * ((questLevel != -1 ? questLevel : level) - level) + 20;
+    int32_t factor;
+
+    if (diff > 10) {
+        factor = 10;
+    } else if (diff >= 1) {
+        factor = diff;
+    } else {
+        factor = 1;
+    }
+
+    int32_t value = factor * xp->m_difficulty[quest->m_xPId] / 10;
+
+    if (value <= 100) {
+        return 5 * ((value + 2) / 5);
+    }
+
+    if (value <= 500) {
+        return 10 * ((value + 5) / 10);
+    }
+
+    if (value <= 1000) {
+        return 25 * ((value + 12) / 25);
+    }
+
+    return 50 * ((value + 25) / 50);
+}
+
+// VERIFY: 0b7beaf9 manual
+// OFFSET: 0x005E11D0
+int32_t CGQuestLog::IsOnQuest(int32_t questId) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || (player->m_modelFlags & 0x10000)) {
+        return 0;
+    }
+
+    for (uint32_t slot = 0; slot < 25; slot++) {
+        PlayerQuestLogEntry* entry = slot > 25 ? nullptr : &player->m_player->m_playerQuestLog[slot];
+
+        if (entry && entry->m_questId && static_cast<int32_t>(entry->m_questId) == questId) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: c20187b5 manual
+// OFFSET: 0x005E1460
+int32_t CGQuestLog::GetQuestLeaderBoardByID(int32_t questId, QuestLogLeaderBoardParams* params) {
+    if (!params) {
+        return 0;
+    }
+
+    char* text = params->m_text;
+    params->m_text[0] = 0;
+    char* type = params->m_type;
+    params->m_type[0] = 0;
+    params->m_complete = 0;
+    int32_t showProgress = params->m_showProgress;
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 0;
+    }
+
+    if (!questId) {
+        questId = CGQuestLog::m_selectedQuest;
+    }
+
+    int32_t requireLog = params->m_requireLogEntry;
+    int32_t slot = -1;
+
+    if (requireLog) {
+        int32_t index = CGQuestLog::GetQuestIndex(questId) - 1;
+
+        if (index < 0) {
+            int32_t selected = CGQuestLog::GetSelectedLogEntry();
+            slot = selected < 0 ? 0 : CGQuestLog::m_quests[selected].m_logSlot;
+        } else {
+            slot = CGQuestLog::GetQuestLogSlot(index);
+        }
+    }
+
+    if (questId <= 0 || (requireLog && slot < 0)) {
+        return 0;
+    }
+
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(questId, none, params->m_questCallback, params->m_param, false);
+    PlayerQuestLogEntry* entry = static_cast<uint32_t>(slot) > 25 ? nullptr : &player->m_player->m_playerQuestLog[slot];
+
+    if (!quest || (params->m_requireLogEntry && !entry)) {
+        return 0;
+    }
+
+    int32_t found = -1;
+
+    if (quest->m_endText[0]) {
+        found = 0;
+
+        if (!params->m_index) {
+            SStrCopy(text, quest->m_endText, STORM_MAX_STR);
+            SStrCopy(type, "event", STORM_MAX_STR);
+
+            if (entry) {
+                params->m_complete = entry->m_state & 1;
+            }
+
+            return 1;
+        }
+    }
+
+    char buffer[4096];
+
+    for (uint32_t i = 0; found < params->m_index && i < 4; i++) {
+        if (!quest->m_objectiveId[i]) {
+            if (params->m_countEmpty) {
+                found++;
+            }
+
+            continue;
+        }
+
+        if (++found != params->m_index) {
+            continue;
+        }
+
+        int32_t count = entry ? entry->m_counts[i] : 0;
+        int32_t required = quest->m_objectiveRequiredCount[i];
+        int32_t objective = quest->m_objectiveId[i];
+        const char* objectiveText = quest->m_objectiveText[i];
+
+        if (objectiveText[0]) {
+            if (showProgress) {
+                SStrPrintf(buffer, sizeof(buffer), FrameScript_GetText("QUEST_OBJECTS_FOUND", -1, GENDER_NOT_APPLICABLE), objectiveText, count, required);
+                params->m_complete = count >= required;
+            } else {
+                SStrPrintf(buffer, sizeof(buffer), FrameScript_GetText("QUEST_OBJECTS_FOUND_NOPROGRESS", -1, GENDER_NOT_APPLICABLE), objectiveText, required);
+            }
+        } else if (objective >= 0) {
+            CreatureStats_C* creature = g_creatureDBCache.GetRecord(objective, none, params->m_creatureCallback, params->m_param, false);
+            uint32_t plural = FrameScript_GetPluralIndex(required);
+
+            if (showProgress) {
+                const char* format = FrameScript_GetText("QUEST_MONSTERS_KILLED", -1, GENDER_NOT_APPLICABLE);
+                SStrPrintf(buffer, sizeof(buffer), format, creature ? creature->GetName(plural) : " ", count, required);
+                params->m_complete = count >= required;
+            } else {
+                const char* format = FrameScript_GetText("QUEST_MONSTERS_KILLED_NOPROGRESS", -1, GENDER_NOT_APPLICABLE);
+                SStrPrintf(buffer, sizeof(buffer), format, creature ? creature->GetName(plural) : " ", required);
+            }
+        } else {
+            GameObjectStats_C* object = g_gameObjectDBCache.GetRecord(objective & 0x7FFFFFFF, none, params->m_objectCallback, params->m_param, false);
+            uint32_t plural = FrameScript_GetPluralIndex(required);
+
+            if (showProgress) {
+                const char* format = FrameScript_GetText("QUEST_OBJECTS_FOUND", -1, GENDER_NOT_APPLICABLE);
+                SStrPrintf(buffer, sizeof(buffer), format, object ? object->GetName(plural) : " ", count, required);
+                params->m_complete = count >= required;
+            } else {
+                const char* format = FrameScript_GetText("QUEST_OBJECTS_FOUND_NOPROGRESS", -1, GENDER_NOT_APPLICABLE);
+                SStrPrintf(buffer, sizeof(buffer), format, object ? object->GetName(plural) : " ", required);
+            }
+        }
+
+        SStrCopy(text, buffer, STORM_MAX_STR);
+        SStrCopy(type, quest->m_objectiveId[i] >= 0 ? "monster" : "object", STORM_MAX_STR);
+        return 1;
+    }
+
+    for (uint32_t i = 0; i < 6 && found < params->m_index; i++) {
+        int32_t itemId = quest->m_collectItemId[i];
+
+        if (itemId <= 0 || (static_cast<uint32_t>(itemId) == quest->m_startingItemId && static_cast<int32_t>(quest->m_collectItemCount[i]) <= 1)) {
+            if (params->m_countEmpty) {
+                found++;
+            }
+
+            continue;
+        }
+
+        if (++found != params->m_index) {
+            continue;
+        }
+
+        ItemStats_C* item = g_itemDBCache.GetRecord(itemId, none, params->m_itemCallback, params->m_param, false);
+        int32_t required = quest->m_collectItemCount[i];
+        uint32_t plural = FrameScript_GetPluralIndex(required);
+
+        if (showProgress) {
+            int32_t have = required;
+
+            if (player->m_bag.GetItemTypeCount(itemId, 8) < required) {
+                have = player->m_bag.GetItemTypeCount(itemId, 8);
+            }
+
+            const char* format = FrameScript_GetText("QUEST_ITEMS_NEEDED", -1, GENDER_NOT_APPLICABLE);
+            SStrPrintf(buffer, sizeof(buffer), format, item ? item->GetName(plural) : " ", have, required);
+            params->m_complete = have >= required;
+        } else {
+            const char* format = FrameScript_GetText("QUEST_ITEMS_NEEDED_NOPROGRESS", -1, GENDER_NOT_APPLICABLE);
+            SStrPrintf(buffer, sizeof(buffer), format, item ? item->GetName(plural) : " ", required);
+        }
+
+        SStrCopy(text, buffer, STORM_MAX_STR);
+        SStrCopy(type, "item", STORM_MAX_STR);
+        return 1;
+    }
+
+    if (!CGQuestLog::IsQuestCompleteEx(CGQuestLog::GetQuestIndex(questId) - 1, 1)) {
+        for (uint32_t i = 0; found < params->m_index && i < 4; i++) {
+            int32_t itemId = quest->m_intermediateItemId[i];
+
+            if (itemId <= 0) {
+                if (params->m_countEmpty) {
+                    found++;
+                }
+
+                continue;
+            }
+
+            if (++found != params->m_index) {
+                continue;
+            }
+
+            ItemStats_C* item = g_itemDBCache.GetRecord(itemId, none, params->m_itemCallback, params->m_param, false);
+            uint32_t plural = FrameScript_GetPluralIndex(1);
+            int32_t have = player->m_bag.GetItemTypeCount(itemId, 8);
+            const char* format = FrameScript_GetText("QUEST_INTERMEDIATE_ITEMS_NEEDED", -1, GENDER_NOT_APPLICABLE);
+            const char* name;
+
+            if (item) {
+                name = item->m_name[plural];
+
+                if (!name || !*name) {
+                    name = item->m_name[0];
+                }
+            } else {
+                name = " ";
+            }
+
+            SStrPrintf(buffer, sizeof(buffer), format, name, have);
+            params->m_complete = have >= 1;
+            SStrCopy(text, buffer, STORM_MAX_STR);
+            SStrCopy(type, "item", STORM_MAX_STR);
+            return 1;
+        }
+    }
+
+    if (quest->m_requiredPlayersKilled) {
+        int32_t count = entry ? entry->m_counts[0] : 0;
+
+        if (showProgress) {
+            SStrPrintf(buffer, sizeof(buffer), FrameScript_GetText("QUEST_PLAYERS_KILLED", -1, GENDER_NOT_APPLICABLE), count, quest->m_requiredPlayersKilled);
+            params->m_complete = count >= static_cast<int32_t>(quest->m_requiredPlayersKilled);
+        } else {
+            SStrPrintf(buffer, sizeof(buffer), FrameScript_GetText("QUEST_PLAYERS_KILLED_NOPROGRESS", -1, GENDER_NOT_APPLICABLE), quest->m_requiredPlayersKilled);
+        }
+
+        SStrCopy(text, buffer, STORM_MAX_STR);
+        SStrCopy(type, "player", STORM_MAX_STR);
+        return 1;
+    }
+
+    FactionRec* faction;
+
+    if (quest->m_friendlyFactionId && (faction = g_factionDB.GetRecord(quest->m_friendlyFactionId))) {
+        int32_t amount = quest->m_friendlyFactionAmount;
+        int32_t rank;
+
+        if (amount >= 42000) {
+            rank = 7;
+        } else if (amount >= 21000) {
+            rank = 6;
+        } else if (amount >= 9000) {
+            rank = 5;
+        } else if (amount >= 3000) {
+            rank = 4;
+        } else if (amount >= 0) {
+            rank = 3;
+        } else if (amount >= -3000) {
+            rank = 2;
+        } else {
+            rank = amount >= -6000;
+        }
+
+        char needed[64];
+        char current[64];
+        SStrPrintf(buffer, sizeof(buffer), "FACTION_STANDING_LABEL%d", rank + 1);
+        SStrCopy(needed, player->GetFrameScriptText(buffer, -1), sizeof(needed));
+
+        if (showProgress) {
+            SStrPrintf(buffer, sizeof(buffer), "FACTION_STANDING_LABEL%d", CGReputationInfo::GetFactionStandingReaction(quest->m_friendlyFactionId) + 1);
+            SStrCopy(current, player->GetFrameScriptText(buffer, -1), sizeof(current));
+            SStrPrintf(buffer, sizeof(buffer), FrameScript_GetText("QUEST_FACTION_NEEDED", -1, GENDER_NOT_APPLICABLE), faction->m_name, current, needed);
+            params->m_complete = GetRepListRepValue(quest->m_friendlyFactionId) >= amount;
+        } else {
+            SStrPrintf(buffer, sizeof(buffer), FrameScript_GetText("QUEST_FACTION_NEEDED_NOPROGRESS", -1, GENDER_NOT_APPLICABLE), faction->m_name, needed);
+        }
+
+        SStrCopy(text, buffer, STORM_MAX_STR);
+        SStrCopy(type, "reputation", STORM_MAX_STR);
+        return 1;
+    }
+
+    if (!CGQuestLog::IsQuestCompleteEx(CGQuestLog::GetQuestIndex(questId) - 1, 1)) {
+        return 0;
+    }
+
+    params->m_complete = 1;
+    char objectives[3000];
+    WOWGUID playerGuid = ClntObjMgrGetActivePlayer();
+    QuestParserParseText(quest->m_objText, objectives, sizeof(objectives), playerGuid, nullptr, 0);
+    SStrCopy(text, objectives, STORM_MAX_STR);
+    SStrCopy(type, "log", STORM_MAX_STR);
+    return 1;
+}
+
+// VERIFY: 12e81cb8 manual
+// OFFSET: 0x005E2370
+int32_t CGQuestLog::GetQuestLeaderBoardForObject(int32_t questId, int32_t objectId, QuestLogLeaderBoardParams* params) {
+    if (!params) {
+        return 0;
+    }
+
+    char* text = params->m_text;
+    params->m_text[0] = 0;
+    char* type = params->m_type;
+    params->m_type[0] = 0;
+    params->m_complete = 0;
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 0;
+    }
+
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(questId, none, params->m_questCallback, params->m_param, false);
+    int32_t index = CGQuestLog::GetQuestIndex(questId) - 1;
+    PlayerQuestLogEntry* entry = nullptr;
+
+    if (index >= 0 && index < CGQuestLog::m_numQuest && !CGQuestLog::m_quests[index].m_isHeader) {
+        uint32_t slot = CGQuestLog::m_quests[index].m_logSlot;
+
+        if (slot <= 25) {
+            entry = &player->m_player->m_playerQuestLog[slot];
+        }
+    }
+
+    if (!quest || !entry) {
+        return 0;
+    }
+
+    uint32_t i;
+
+    for (i = 0; static_cast<int32_t>(quest->m_objectiveId[i]) != objectId; i++) {
+        if (i + 1 >= 4) {
+            return 0;
+        }
+    }
+
+    int32_t count = entry->m_counts[i];
+    int32_t objective = quest->m_objectiveId[i];
+    const char* format = quest->m_objectiveText[i];
+    char buffer[4096];
+
+    if (objective >= 0 && !*format) {
+        CreatureStats_C* creature = g_creatureDBCache.GetRecord(objective, none, params->m_creatureCallback, params->m_param, false);
+        uint32_t plural = FrameScript_GetPluralIndex(quest->m_objectiveRequiredCount[i]);
+        format = FrameScript_GetText("QUEST_MONSTERS_KILLED", -1, GENDER_NOT_APPLICABLE);
+        SStrPrintf(buffer, sizeof(buffer), format, creature ? creature->GetName(plural) : " ", count, quest->m_objectiveRequiredCount[i]);
+    } else if (objective < 0 && !*format) {
+        GameObjectStats_C* object = g_gameObjectDBCache.GetRecord(objective & 0x7FFFFFFF, none, params->m_objectCallback, params->m_param, false);
+        uint32_t plural = FrameScript_GetPluralIndex(quest->m_objectiveRequiredCount[i]);
+        format = FrameScript_GetText("QUEST_OBJECTS_FOUND", -1, GENDER_NOT_APPLICABLE);
+        SStrPrintf(buffer, sizeof(buffer), format, object ? object->GetName(plural) : " ", count, quest->m_objectiveRequiredCount[i]);
+    } else {
+        SStrPrintf(buffer, sizeof(buffer), FrameScript_GetText("QUEST_OBJECTS_FOUND", -1, GENDER_NOT_APPLICABLE), format, count, quest->m_objectiveRequiredCount[i]);
+    }
+
+    params->m_complete = count >= static_cast<int32_t>(quest->m_objectiveRequiredCount[i]);
+    SStrCopy(text, buffer, STORM_MAX_STR);
+    SStrCopy(type, quest->m_objectiveId[i] >= 0 ? "monster" : "object", STORM_MAX_STR);
+    return 1;
+}
+
+// VERIFY: 82a1d9ef manual
+// OFFSET: 0x005E65B0
+void CGQuestLog::LoadTrackedQuests() {
+    CVarIntListWrapper list;
+    list.m_cvar = CVar::Lookup("trackedQuests");
+    list.m_pos = 2;
+    list.m_state = 0;
+
+    for (uint32_t questId = list.GetNextValue(); questId; questId = list.GetNextValue()) {
+        CGQuestLog::AddQuestWatch(questId, 0);
+    }
+
+    CGQuestLog::m_trackedQuestsLoaded = 1;
+
+    if (list.m_state != 1) {
+        list.m_buffer[0] = 'v';
+        list.m_buffer[1] = 1;
+        list.m_buffer[list.m_pos] = 0;
+        list.m_cvar->Set(list.m_buffer, true, false, false, true);
+    }
+}
+
+// VERIFY: 0b80614f manual
+// OFFSET: 0x005E7020
+int32_t CGQuestLog::FindOrFreePOISlot(int32_t questId) {
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__) || questId <= 0) {
+        return -1;
+    }
+
+    for (int32_t i = 0; i < 25; i++) {
+        QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[i];
+
+        if (poi->m_questId == questId) {
+            return i;
+        }
+
+        if (!CGQuestLog::IsOnQuest(poi->m_questId)) {
+            poi->m_questId = 0;
+            poi->m_blobs.Clear();
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+// VERIFY: a2ce7d25 manual
+// OFFSET: 0x005E7370
+void CGQuestLog::HandlePOIQueryResponse(CDataStore* msg) {
+    if (!msg) {
+        return;
+    }
+
+    uint32_t count;
+    msg->Get(count);
+
+    for (int32_t i = 0; i < static_cast<int32_t>(count); i++) {
+        int32_t questId;
+        msg->Get(reinterpret_cast<uint32_t&>(questId));
+
+        uint32_t numBlobs;
+        msg->Get(numBlobs);
+
+        bool known = CGQuestLog::HasQuestPOI(questId);
+        uint32_t slot = CGQuestLog::FindOrFreePOISlot(questId);
+        QuestPOIInfo* poi = nullptr;
+
+        if (!known && slot <= 24) {
+            poi = &CGQuestLog::m_questPOIs[slot];
+            poi->m_questId = questId;
+            poi->m_blobs.SetCount(numBlobs);
+            poi->unk_0014 = 0;
+            poi->unk_0018 = 0;
+            poi->unk_001C = 0;
+            poi->unk_0020 = 0;
+            poi->unk_0024 = 0;
+            poi->unk_0029 = 0;
+            poi->unk_0028 = 0;
+            poi->unk_002C = 0;
+        }
+
+        for (int32_t j = 0; j < static_cast<int32_t>(numBlobs); j++) {
+            int32_t values[7];
+            uint32_t numPoints;
+
+            for (uint32_t k = 0; k < 7; k++) {
+                msg->Get(reinterpret_cast<uint32_t&>(values[k]));
+            }
+
+            msg->Get(numPoints);
+            QuestPOIBlob* blob = poi ? &poi->m_blobs.m_data[j] : nullptr;
+
+            if (blob) {
+                blob->m_points.SetCount(numPoints);
+                blob->unk_0018 = values[0];
+                blob->unk_001C = values[1];
+                blob->unk_0020 = values[2];
+                blob->unk_0024 = values[3];
+                blob->unk_0028 = values[4];
+                blob->unk_002C = values[6];
+                blob->unk_0030 = values[5];
+                blob->m_centerX = 0;
+                blob->m_centerY = 0;
+            }
+
+            for (int32_t k = 0; k < static_cast<int32_t>(numPoints); k++) {
+                int32_t x;
+                int32_t y;
+                msg->Get(reinterpret_cast<uint32_t&>(x));
+                msg->Get(reinterpret_cast<uint32_t&>(y));
+
+                if (blob) {
+                    blob->m_points.m_data[k].m_x = x;
+                    blob->m_points.m_data[k].m_y = y;
+                    blob->m_centerX += x;
+                    blob->m_centerY += y;
+                }
+            }
+
+            if (static_cast<int32_t>(numPoints) > 1 && blob) {
+                blob->m_centerX /= static_cast<int32_t>(numPoints);
+                blob->m_centerY /= static_cast<int32_t>(numPoints);
+            }
+        }
+    }
+
+    Script_SendUniqueSignal(SCRIPT_EVENT_QUEST_POI_UPDATE);
 }

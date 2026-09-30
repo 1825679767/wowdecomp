@@ -104,6 +104,7 @@ class CGTooltip : public CSimpleFrame {
     static const char* GetQuestDifficultyColorString(int32_t level);
     static const char* GetQuestLink(int32_t questId, int32_t level);
     static const char* GetSpellLink(int32_t spellId);
+    static const char* GetAchievementHyperlink(int32_t achievementId, WOWGUID guid, int32_t a3, WowTime time, int32_t a5, int32_t a6, int32_t a7, int32_t a8);
     static int32_t GetObjectType();
     static void RegisterScriptMethods(lua_State* L);
 

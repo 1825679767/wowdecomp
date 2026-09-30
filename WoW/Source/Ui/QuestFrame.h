@@ -50,6 +50,7 @@ class CGQuestInfo {
     static void ProcessQuestLogRewardFactions();
     static void InitRewRepFields(uint32_t index, int32_t faction, int32_t value, int32_t override);
     static void InitRewRepShowMask(uint32_t mask);
+    static int32_t m_numRewardFactions;
     static void SetState(WOWGUID npc, WOWGUID inform, int32_t state, const char* text, int32_t questId, int32_t startCheat);
     static void SetLogDescription(const char* text);
     static void AddReward(const char* title, const uint32_t* choiceItems, const uint32_t* choiceDisplays, const uint32_t* choiceCounts, int32_t numChoices, const uint32_t* rewardItems, const uint32_t* rewardDisplays, const uint32_t* rewardCounts, int32_t numRewards, int32_t money, int32_t xp, uint32_t honor, float honorMultiplier, int32_t spell, int32_t spellCast, int32_t autoLaunched, int32_t suggestedGroupNum, int32_t rewardTitle, int32_t talents, int32_t arenaPoints, uint32_t factionMask, const uint32_t* factionIDs, const uint32_t* factionValues, const uint32_t* factionOverrides, uint32_t questFlags);
@@ -101,5 +102,6 @@ int32_t Script_GetQuestBackgroundMaterial(lua_State* L);
 int32_t Script_GetRewardTitle(lua_State* L);
 int32_t Script_GetAvailableQuestInfo(lua_State* L);
 void QuestInfoRegisterScriptFunctions();
+void ProcessQuestRewardFactions(int32_t factionId, int32_t amount, int32_t upperRank, int32_t lowerRank, int32_t source, int32_t noSpillover);
 
 #endif

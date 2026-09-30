@@ -16185,3 +16185,31 @@ void CGUnit_C::RequestTalkEmote(int32_t index) {
 void CGUnit_C::PlayEmotes(const QUESTGIVEREMOTEQUEUE& emotes) {
     this->SetEmoteQueue(emotes.m_nodes, emotes.m_count);
 }
+
+// VERIFY: f8b415d2 manual
+// OFFSET: 0x0072AA70
+const char* CGUnit_C::GetDisplayRaceName(const CGUnit_C* unit, const NameCache* name) {
+    if (unit) {
+        if (!(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+            return const_cast<CGUnit_C*>(unit)->GetUnitName(nullptr, 1);
+        }
+    } else if (!name) {
+        return nullptr;
+    }
+
+    return CGUnit_C::GetDisplayRaceName(unit, name, nullptr);
+}
+
+// VERIFY: 7e92c457 manual
+// OFFSET: 0x0072AAB0
+const char* CGUnit_C::GetDisplayClassName(const CGUnit_C* unit, const NameCache* name) {
+    if (unit) {
+        if (!(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+            return const_cast<CGUnit_C*>(unit)->GetUnitName(nullptr, 1);
+        }
+    } else if (!name) {
+        return nullptr;
+    }
+
+    return CGUnit_C::GetDisplayClassName(unit, name, nullptr);
+}

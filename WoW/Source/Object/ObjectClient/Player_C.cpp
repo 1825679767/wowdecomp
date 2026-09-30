@@ -77,6 +77,7 @@
 #include "WoW/Source/Ui/CGTabardCreationFrame.h"
 #include <malloc.h>
 #include "WoW/Source/Ui/ReputationInfo.h"
+#include "WoW/Source/Object/ObjectClient/AuraData.h"
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -5366,4 +5367,155 @@ int32_t CGPlayer_C::CanUseItem(const ItemStats_C* stats, int32_t& error) {
     }
 
     return 1;
+}
+
+// VERIFY: c1869d85 manual
+// OFFSET: 0x006D0AB0
+int32_t __stdcall CGPlayer_C::OnQuestGiverOfferReward(CDataStore* msg) {
+    WOWGUID npc;
+    msg->Get(npc.m_guid);
+
+    uint32_t questId;
+    msg->Get(questId);
+
+    char title[512];
+    msg->GetString(title, sizeof(title));
+
+    char text[3000];
+    msg->GetString(text, sizeof(text));
+
+    uint8_t autoLaunched;
+    msg->Get(autoLaunched);
+
+    uint32_t flags;
+    msg->Get(flags);
+
+    uint32_t suggestedGroupNum;
+    msg->Get(suggestedGroupNum);
+
+    uint32_t emoteCount;
+    msg->Get(emoteCount);
+
+    QUESTGIVEREMOTEQUEUE emotes;
+    emotes.m_nodes = static_cast<QUESTGIVEREMOTENODE*>(alloca(emoteCount * sizeof(QUESTGIVEREMOTENODE)));
+    emotes.m_count = emoteCount;
+
+    for (int32_t i = 0; i < static_cast<int32_t>(emoteCount); i++) {
+        msg->Get(emotes.m_nodes[i].m_delay);
+        msg->Get(reinterpret_cast<uint32_t&>(emotes.m_nodes[i].m_emote));
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(npc, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        unit->PlayEmotes(emotes);
+    }
+
+    uint32_t numChoices;
+    msg->Get(numChoices);
+
+    uint32_t choiceItems[6] = { 0 };
+    uint32_t choiceDisplays[6] = { 0 };
+    uint32_t choiceCounts[6];
+
+    for (int32_t i = 0; i < static_cast<int32_t>(numChoices); i++) {
+        msg->Get(choiceItems[i]);
+        msg->Get(choiceCounts[i]);
+        msg->Get(choiceDisplays[i]);
+    }
+
+    uint32_t numRewards;
+    msg->Get(numRewards);
+
+    uint32_t rewardItems[4] = { 0 };
+    uint32_t rewardDisplays[4] = { 0 };
+    uint32_t rewardCounts[4];
+
+    for (int32_t i = 0; i < static_cast<int32_t>(numRewards); i++) {
+        msg->Get(rewardItems[i]);
+        msg->Get(rewardCounts[i]);
+        msg->Get(rewardDisplays[i]);
+    }
+
+    uint32_t money;
+    msg->Get(money);
+
+    uint32_t xp;
+    msg->Get(xp);
+
+    uint32_t honor;
+    msg->Get(honor);
+
+    float honorMultiplier;
+    msg->Get(honorMultiplier);
+
+    uint32_t unknown;
+    msg->Get(unknown);
+
+    uint32_t spell;
+    msg->Get(spell);
+
+    uint32_t spellCast;
+    msg->Get(spellCast);
+
+    uint32_t rewardTitle;
+    msg->Get(rewardTitle);
+
+    uint32_t talents;
+    msg->Get(talents);
+
+    uint32_t arenaPoints;
+    msg->Get(arenaPoints);
+
+    uint32_t factionMask;
+    msg->Get(factionMask);
+
+    uint32_t factionIDs[5];
+
+    for (uint32_t i = 0; i < 5; i++) {
+        msg->Get(factionIDs[i]);
+    }
+
+    uint32_t factionValues[5];
+
+    for (uint32_t i = 0; i < 5; i++) {
+        msg->Get(factionValues[i]);
+    }
+
+    uint32_t factionOverrides[5];
+
+    for (uint32_t i = 0; i < 5; i++) {
+        msg->Get(factionOverrides[i]);
+    }
+
+    WOWGUID none = { 0 };
+    CGQuestInfo::SetState(npc, none, 3, text, questId, 0);
+    CGQuestInfo::AddReward(title, choiceItems, choiceDisplays, choiceCounts, numChoices, rewardItems, rewardDisplays, rewardCounts, numRewards, money, xp, honor, honorMultiplier, spell, spellCast, autoLaunched, suggestedGroupNum, rewardTitle, talents, arenaPoints, factionMask, factionIDs, factionValues, factionOverrides, flags);
+    return 1;
+}
+
+// VERIFY: 2d06226f manual
+// OFFSET: 0x007246A0
+float CGPlayer_C::GetQuestXPMultiplier() {
+    float multiplier = 1.0f;
+
+    if (!(this->m_auraEffectMask[291 >> 3] & (1 << (291 & 7)))) {
+        return multiplier;
+    }
+
+    SpellRec spell;
+
+    for (uint32_t i = 0; i < this->GetAuraCount(); i++) {
+        if (!g_spellDB.GetRecord(this->GetAura(i)->m_spellId, &spell)) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < 3; j++) {
+            if (spell.m_effectAura[j] == 291) {
+                multiplier = (spell.m_effectBasePoints[j] + 1) * 0.0099999998f + multiplier;
+            }
+        }
+    }
+
+    return multiplier;
 }

@@ -10,6 +10,17 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Ui/ChatFrame.h"
+#include <cstdlib>
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/FactionRec.h"
+#include "WoW/Source/DB/Rec/QuestFactionRewardRec.h"
+#include "WoW/Source/Ui/ReputationInfo.h"
+
+// STATIC: 0x00C0173C
+int32_t CGQuestInfo::m_numRewardFactions;
+
+// STATIC: 0x00ACF160
+static const uint32_t s_rewardFactionMaskBits[5] = { 0x1, 0x2, 0x4, 0x8, 0x10 };
 
 // STATIC: 0x00C01840
 int32_t CGQuestInfo::m_rewardFactionList[10];
@@ -374,4 +385,123 @@ void CGQuestInfo::InitRewRepFields(uint32_t index, int32_t faction, int32_t valu
 // OFFSET: 0x0058BB90
 void CGQuestInfo::InitRewRepShowMask(uint32_t mask) {
     CGQuestInfo::m_rewardFactionMask = mask;
+}
+
+// VERIFY: bc8e35a2 manual
+// OFFSET: 0x0058C790
+void ProcessQuestRewardFactions(int32_t factionId, int32_t amount, int32_t upperRank, int32_t lowerRank, int32_t source, int32_t noSpillover) {
+    FactionRec* faction = g_factionDB.GetRecord(factionId);
+
+    if (!faction) {
+        return;
+    }
+
+    int32_t current = GetRepListRepValue(factionId);
+    int32_t result = current + amount;
+
+    if (amount <= 0) {
+        if (lowerRank >= 0) {
+            int32_t limit = 100 * CGReputationInfo::m_reactionThresholds[lowerRank];
+            int32_t floor = current >= limit ? limit : current;
+
+            if (result <= floor) {
+                if (current < limit) {
+                    return;
+                }
+
+                result = limit;
+            }
+        }
+    } else if (upperRank >= 0) {
+        int32_t limit = 100 * CGReputationInfo::m_reactionThresholds[upperRank + 1] - 100;
+        int32_t ceiling = current <= limit ? limit : current;
+
+        if (result >= ceiling) {
+            if (current > limit) {
+                return;
+            }
+
+            result = limit;
+        }
+    }
+
+    if (result == current || static_cast<uint32_t>(CGQuestInfo::m_numRewardFactions) >= 10) {
+        return;
+    }
+
+    CGQuestInfo::m_rewardFactionAmounts[CGQuestInfo::m_numRewardFactions] = amount;
+    CGQuestInfo::m_rewardFactionList[CGQuestInfo::m_numRewardFactions] = factionId;
+    CGQuestInfo::m_numRewardFactions++;
+
+    if (noSpillover) {
+        return;
+    }
+
+    int32_t parent = faction->m_parentFactionID;
+
+    if (parent && parent != source) {
+        float spill = amount * faction->m_parentFactionMod[1];
+
+        if (spill != 0.0f) {
+            ProcessQuestRewardFactions(parent, static_cast<int32_t>(spill), faction->m_parentFactionCap[1], -1, faction->m_id, 0);
+        }
+    }
+
+    TSGrowableArray<FactionRec*>* children = CGReputationInfo::GetFactionChildren(faction->m_id);
+
+    if (!children) {
+        return;
+    }
+
+    for (uint32_t i = children->m_count; i; i--) {
+        FactionRec* child = children->m_data[i - 1];
+
+        if (child->m_id == source) {
+            continue;
+        }
+
+        float spill = amount * child->m_parentFactionMod[0];
+
+        if (spill != 0.0f) {
+            ProcessQuestRewardFactions(child->m_id, static_cast<int32_t>(spill), child->m_parentFactionCap[0], -1, faction->m_id, 0);
+        }
+    }
+}
+
+// VERIFY: e311adfb manual
+// OFFSET: 0x0058D050
+void CGQuestInfo::ProcessQuestLogRewardFactions() {
+    CGQuestInfo::m_numRewardFactions = 0;
+
+    for (uint32_t i = 0; i < 10; i++) {
+        CGQuestInfo::m_rewardFactionList[i] = 0;
+    }
+
+    for (uint32_t i = 0; i < 10; i++) {
+        CGQuestInfo::m_rewardFactionAmounts[i] = 0;
+    }
+
+    for (uint32_t i = 0; i < 5; i++) {
+        FactionRec* faction = g_factionDB.GetRecord(CGQuestInfo::m_rewardFactionIDs[i]);
+
+        if (!faction) {
+            continue;
+        }
+
+        int32_t value = CGQuestInfo::m_rewardFactionValues[i];
+        QuestFactionRewardRec* reward = g_questFactionRewardDB.GetRecord((value < 0) + 1);
+        uint32_t index = abs(value);
+
+        if (!reward || index >= 10 || !reward->m_difficulty[index]) {
+            continue;
+        }
+
+        int32_t amount = CGQuestInfo::m_rewardFactionOverrides[i];
+
+        if (!amount) {
+            amount = 100 * reward->m_difficulty[index];
+        }
+
+        ProcessQuestRewardFactions(faction->m_id, amount, -1, -1, 0, (CGQuestInfo::m_rewardFactionMask & s_rewardFactionMaskBits[i]) != 0);
+    }
 }

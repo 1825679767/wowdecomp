@@ -26,9 +26,7 @@
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
 #include "WoW/Source/Ui/PartyFrame.h"
 #include "WoW/Source/Ui/RaidInfo.h"
-
-// STATIC: 0x00C0173C
-static int32_t s_numQuestLogRewardFactions;
+#include "WoW/Source/Ui/QuestLogLeaderBoardParams.h"
 
 // VERIFY: ee052397 auto
 // OFFSET: 0x005DF0D0
@@ -37,10 +35,10 @@ static int32_t Script_SetAbandonQuest(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 8eb8a2cc auto
+// VERIFY: 4bbea619 auto
 // OFFSET: 0x005DF910
 static int32_t Script_GetNumQuestLogRewardFactions(lua_State* L) {
-    lua_pushnumber(L, s_numQuestLogRewardFactions);
+    lua_pushnumber(L, CGQuestInfo::m_numRewardFactions);
     return 1;
 }
 
@@ -1527,6 +1525,38 @@ static int32_t Script_GetQuestResetTime(lua_State* L) {
 
     lua_pushnumber(L, CGQuestLog::m_questResetTime - now);
     return 1;
+}
+
+// VERIFY: 78e36809 manual
+// OFFSET: 0x005E5F60
+static int32_t Script_GetQuestLogLeaderBoard(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: GetQuestLogLeaderBoard(index)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    QuestLogLeaderBoardParams params;
+    params.m_index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    params.m_requireLogEntry = 1;
+    int32_t questId = index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader ? 0 : CGQuestLog::m_quests[index].m_questId;
+
+    if (!CGQuestLog::GetQuestLeaderBoardByID(questId, &params)) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 3;
+    }
+
+    lua_pushstring(L, params.m_text);
+    lua_pushstring(L, params.m_type);
+
+    if (params.m_complete) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 3;
 }
 
 // STATIC: 0x00AD1020

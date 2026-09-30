@@ -4,25 +4,24 @@
 #include <cstddef>
 #include <cstdint>
 
+struct WOWGUID;
+
 class QuestLogLeaderBoardParams {
     public:
     QuestLogLeaderBoardParams();
 
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint32_t unk_0018;
-    /* 001C */ uint32_t unk_001C;
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint8_t unk_0024[108];
-    /* 0090 */ uint8_t unk_0090;
-    /* 0091 */ uint8_t unk_0091[4051];
-    /* 1064 */ uint32_t unk_1064;
-    /* 1068 */ uint8_t unk_1068[12328];
-    /* 4090 */ uint8_t unk_4090;
+    /* 0000 */ int32_t m_index;
+    /* 0004 */ int32_t m_requireLogEntry;
+    /* 0008 */ int32_t m_countEmpty;
+    /* 000C */ int32_t m_showProgress;
+    /* 0010 */ void (*m_questCallback)(int32_t id, const WOWGUID& guid, void* param, bool success);
+    /* 0014 */ void (*m_objectCallback)(int32_t id, const WOWGUID& guid, void* param, bool success);
+    /* 0018 */ void (*m_creatureCallback)(int32_t id, const WOWGUID& guid, void* param, bool success);
+    /* 001C */ void (*m_itemCallback)(int32_t id, const WOWGUID& guid, void* param, bool success);
+    /* 0020 */ void* m_param;
+    /* 0024 */ char m_text[4096];
+    /* 1024 */ char m_type[64];
+    /* 1064 */ int32_t m_complete;
 };
 
 #endif

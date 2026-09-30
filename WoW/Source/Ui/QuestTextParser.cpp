@@ -24,6 +24,11 @@
 #include <cstdlib>
 #include <cstring>
 #include "WoW/Source/Ui/ChatFrame.h"
+#include "WoW/Source/DB/Rec/AchievementRec.h"
+#include "WoW/Source/Game/GameClient/NameCache.h"
+#include "WoW/Source/Game/GameTime.h"
+#include "WoW/Source/Object/Player.h"
+#include "WoW/Source/Ui/CGWorldStateInfo.h"
 
 // STATIC: 0x00BEB660
 static int32_t s_lastNumber;
@@ -1156,4 +1161,300 @@ int32_t QuestParserParseText(const char* text, char* buffer, uint32_t size, cons
 
     SStrPack(buffer, cursor, size);
     return !failed;
+}
+
+// VERIFY: 692b064f manual
+// OFFSET: 0x00576E50
+void ParseCountDownTimerText(char* buffer, uint32_t size, int32_t time) {
+    int32_t remaining = time - CGWorldStateInfo::GetUITime();
+
+    if (remaining < 0) {
+        remaining = 0;
+    }
+
+    int32_t hours = remaining / 3600;
+    remaining %= 3600;
+    int32_t minutes = remaining / 60;
+    int32_t seconds = remaining % 60;
+    char text[16];
+
+    if (hours <= 0) {
+        SStrPrintf(text, sizeof(text), "%02d:%02d", minutes, seconds);
+    } else {
+        SStrPrintf(text, sizeof(text), "%d:%02d:%02d", hours, minutes, seconds);
+    }
+
+    SStrPack(buffer, text, size);
+}
+
+// VERIFY: 5dfbac31 manual
+// OFFSET: 0x00578F20
+bool QuestParserParseToken(char* buffer, uint32_t size, const NameCache* record, const char* name, int32_t achievement, WOWGUID guid, const CGUnit_C* unit, const char** cursor) {
+    char number[8];
+    uint32_t digits = 0;
+
+    if (**cursor) {
+        do {
+            char c = (*cursor)[digits];
+
+            if (c < '0' || c > '9') {
+                break;
+            }
+
+            digits++;
+        } while ((*cursor)[digits]);
+
+        if (digits) {
+            SStrCopy(number, *cursor, digits + 1);
+            *cursor += digits;
+        }
+    }
+
+    char token = **cursor;
+    char text[64];
+    char value[16];
+    char label[32];
+
+    switch (token) {
+        case 'A':
+        case 'a':
+            if (g_achievementDB.GetRecord(achievement)) {
+                SStrPack(buffer, CGTooltip::GetAchievementHyperlink(achievement, guid, 1, g_clientGameTime, -1, -1, -1, -1), size);
+            }
+
+            break;
+
+        case 'B':
+        case 'b':
+            SStrPack(buffer, "\n", size);
+            break;
+
+        case 'C':
+        case 'c': {
+            const char* className = CGUnit_C::GetDisplayClassName(unit, record);
+
+            if (!className) {
+                return false;
+            }
+
+            if (unit && !(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+                SStrPack(buffer, className, size);
+                break;
+            }
+
+            SStrCopy(label, className, sizeof(label));
+
+            if (**cursor == 'c') {
+                SStrLower(label);
+            }
+
+            SStrPack(buffer, label, size);
+            break;
+        }
+
+        case 'D':
+        case 'd': {
+            double minutes = GetWorldState(-SStrToInt(number));
+            text[0] = 0;
+
+            if (minutes >= 1440.0) {
+                SStrPrintf(text, sizeof(text), FrameScript_GetText("INT_GENERAL_DURATION_DAYS", -1, GENDER_NOT_APPLICABLE), static_cast<int32_t>(static_cast<int64_t>((minutes - 1.0) * 0.0006944444444444445 + 1.0)));
+            } else if (minutes >= 60.0) {
+                bool roundUp = fmod(minutes, 60.0) >= 30.0;
+                SStrPrintf(text, sizeof(text), FrameScript_GetText("INT_GENERAL_DURATION_HOURS", -1, GENDER_NOT_APPLICABLE), static_cast<int32_t>(static_cast<int64_t>(roundUp + minutes * 0.016666666666666666)));
+            } else {
+                SStrPrintf(text, sizeof(text), FrameScript_GetText("INT_GENERAL_DURATION_MIN", -1, GENDER_NOT_APPLICABLE), static_cast<int32_t>(static_cast<int64_t>(minutes)));
+            }
+
+            SStrPack(buffer, text, size);
+            break;
+        }
+
+        case 'E':
+        case 'e':
+            SStrPrintf(value, sizeof(value), "%d", GetWorldState(-SStrToInt(number)));
+            SStrPack(buffer, value, size);
+            break;
+
+        case 'G':
+        case 'g': {
+            if (!unit && !record) {
+                return false;
+            }
+
+            if (token) {
+                (*cursor)++;
+            }
+
+            int32_t gender = unit ? unit->m_unit->m_unitFieldBytes0[2] : record->m_sex;
+
+            if (gender == 2 && unit && const_cast<CGUnit_C*>(unit)->IsActivePlayer()) {
+                gender = static_cast<const CGPlayer_C*>(unit)->m_player->m_playerBytes3[0];
+            }
+
+            GenderConditional(buffer, size, gender, unit, record, cursor);
+            break;
+        }
+
+        case 'K':
+        case 'k':
+            ParseCountDownTimerText(buffer, size, GetWorldState(SStrToInt(number)));
+            break;
+
+        case 'N':
+        case 'n':
+            if (!unit && !record) {
+                if (!name) {
+                    return false;
+                }
+
+                SStrPack(buffer, name, size);
+            } else if (name) {
+                SStrPack(buffer, name, size);
+            } else if (unit) {
+                SStrPack(buffer, const_cast<CGUnit_C*>(unit)->GetUnitName(nullptr, 1), size);
+            } else {
+                SStrPack(buffer, record->m_name, size);
+            }
+
+            break;
+
+        case 'R':
+        case 'r': {
+            const char* raceName = CGUnit_C::GetDisplayRaceName(unit, record);
+
+            if (!raceName) {
+                return false;
+            }
+
+            if (unit && !(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+                SStrPack(buffer, raceName, size);
+                break;
+            }
+
+            SStrCopy(label, raceName, sizeof(label));
+
+            if (**cursor == 'r') {
+                SStrLower(label);
+            }
+
+            SStrPack(buffer, label, size);
+            break;
+        }
+
+        case 'T':
+        case 't': {
+            if (!unit && !record) {
+                return false;
+            }
+
+            int32_t lower = token == 't';
+            (*cursor)++;
+
+            while (**cursor == ' ') {
+                (*cursor)++;
+            }
+
+            if (!**cursor) {
+                return true;
+            }
+
+            const char* colon = SStrChr(*cursor, ':');
+
+            if (!colon) {
+                return true;
+            }
+
+            const char* semicolon = SStrChr(colon, ';');
+
+            if (!semicolon) {
+                return true;
+            }
+
+            text[0] = 0;
+            int32_t gender;
+
+            if (unit) {
+                if (unit->m_obj->m_type & TYPEMASK_PLAYER) {
+                    const CGPlayer_C* player = static_cast<const CGPlayer_C*>(unit);
+                    uint8_t rank = player->m_player->m_playerFieldBytes[3];
+                    SStrPrintf(label, sizeof(label), "PVP_RANK_%d_%d", rank, player->GetPVPFactionIndex());
+                    const char* rankName = FrameScript_GetText(label, -1, GENDER_NOT_APPLICABLE);
+
+                    if (rankName && *rankName) {
+                        SStrCopy(text, rankName, sizeof(text));
+                    }
+
+                    if (text[0]) {
+                        if (lower) {
+                            SStrLower(text);
+                        }
+
+                        SStrPack(buffer, text, size);
+                        *cursor = semicolon;
+                        break;
+                    }
+                }
+
+                gender = unit->m_unit->m_unitFieldBytes0[2];
+            } else {
+                gender = record->m_sex;
+            }
+
+            const char* end = colon;
+
+            if (gender) {
+                *cursor = colon + 1;
+
+                while (**cursor == ' ') {
+                    (*cursor)++;
+                }
+
+                end = semicolon;
+            }
+
+            uint32_t length = static_cast<uint32_t>(end - *cursor);
+
+            if (length) {
+                uint32_t start = static_cast<uint32_t>(SStrLen(buffer));
+                SStrPack(buffer, *cursor, size);
+
+                if (start + length < size) {
+                    buffer[start + length] = 0;
+                    char* segment = buffer + start;
+                    uint32_t i = length - 1;
+
+                    if (segment[i] == ' ') {
+                        do {
+                            segment[i] = 0;
+
+                            if (!i) {
+                                break;
+                            }
+
+                            i--;
+                        } while (segment[i] == ' ');
+                    }
+                }
+            }
+
+            *cursor = semicolon;
+            break;
+        }
+
+        case 'W':
+        case 'w':
+            SStrPrintf(value, sizeof(value), "%d", GetWorldState(SStrToInt(number)));
+            SStrPack(buffer, value, size);
+            break;
+
+        default:
+            return false;
+    }
+
+    if (**cursor) {
+        (*cursor)++;
+    }
+
+    return true;
 }

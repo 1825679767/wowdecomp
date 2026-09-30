@@ -1059,7 +1059,7 @@ void CGTooltip::AddLine(const char* left, const char* right, const CImVector& le
     this->m_lineWrap.m_data[this->m_numLines++] = lineWrap;
 }
 
-// VERIFY: 35aa37fb manual
+// VERIFY: af81c6a3 manual
 // OFFSET: 0x00621070
 int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUID& healthGuid, int32_t a4) {
     const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
@@ -1403,12 +1403,12 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
         if (!unit || (summonedHigh & 0xF0000000) || !((summonedHigh & 0xF07FFFFF) | static_cast<uint32_t>(unit->m_unit->m_unitFieldSummonedby.m_guid))) {
             uint32_t entry = unit ? unit->m_obj->m_entryID : static_cast<uint32_t>((guid.m_guid >> 24) & 0xFFFFFFF);
             QuestLogLeaderBoardParams params;
-            params.unk_0010 = reinterpret_cast<uint32_t>(TooltipUnitNameCallback);
-            params.unk_0014 = reinterpret_cast<uint32_t>(TooltipUnitNameCallback);
-            params.unk_0018 = reinterpret_cast<uint32_t>(TooltipUnitNameCallback);
-            params.unk_001C = reinterpret_cast<uint32_t>(TooltipUnitNameCallback);
-            params.unk_0020 = reinterpret_cast<uint32_t>(this);
-            const char* objective = reinterpret_cast<const char*>(params.unk_0024);
+            params.m_questCallback = TooltipUnitNameCallback;
+            params.m_objectCallback = TooltipUnitNameCallback;
+            params.m_creatureCallback = TooltipUnitNameCallback;
+            params.m_itemCallback = TooltipUnitNameCallback;
+            params.m_param = this;
+            const char* objective = params.m_text;
             char buffer[4099];
 
             for (uint32_t i = 0; i < CGQuestLog::m_numQuest; i++) {
@@ -1421,7 +1421,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
 
                 bool header = false;
 
-                if (Script_GetQuestLogLeaderBoard(quest->m_id, entry, &params)) {
+                if (CGQuestLog::GetQuestLeaderBoardForObject(quest->m_id, entry, &params)) {
                     this->AddLine(quest->m_name, nullptr, titleColor, titleColor, 0);
                     header = true;
                     SStrPrintf(buffer, sizeof(buffer), " - %s", objective);
@@ -1429,7 +1429,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
                 }
 
                 for (uint32_t j = 0; j < sizeof(creature->m_killCredit) / sizeof(creature->m_killCredit[0]); j++) {
-                    if (creature->m_killCredit[j] && Script_GetQuestLogLeaderBoard(quest->m_id, creature->m_killCredit[j], &params)) {
+                    if (creature->m_killCredit[j] && CGQuestLog::GetQuestLeaderBoardForObject(quest->m_id, creature->m_killCredit[j], &params)) {
                         if (!header) {
                             this->AddLine(quest->m_name, nullptr, titleColor, titleColor, 0);
                             header = true;
