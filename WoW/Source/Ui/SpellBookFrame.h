@@ -134,5 +134,6 @@ int32_t FindSpellSlotByName(const char* name, const char* subtext, int32_t* petS
 int32_t GetSpellIdByName(const char* name, int32_t* petSpell);
 bool GetSlotFromLua(lua_State* L, uint32_t* slot, int32_t* petSpell, int32_t* type, int32_t allowName);
 bool HasPetSpell(int32_t spellId);
+extern TSGrowableArray<int32_t> s_openLockSpells;
 
 #endif

@@ -6,6 +6,7 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/AreaTableRec.h"
 #include "WoW/Source/DB/Rec/SpellDescriptionVariablesRec.h"
+#include "WoW/Source/DB/Rec/SpellItemEnchantmentRec.h"
 #include "WoW/Source/DB/Rec/SpellRadiusRec.h"
 #include "WoW/Source/DB/Rec/SpellRangeRec.h"
 #include "WoW/Source/DB/Rec/SpellRec.h"
@@ -261,6 +262,47 @@ static int32_t SpellParserVariable(char* buffer, uint32_t size, const char** cur
     }
 
     return 0;
+}
+
+// VERIFY: 4b6e8371 manual
+// OFFSET: 0x00577260
+int32_t SpellItemEnchantmentParseText(const SpellItemEnchantmentRec* enchant, char* buffer, uint32_t size, int32_t value) {
+    int32_t failed = 0;
+    *buffer = '\0';
+    const char* text = enchant->m_name;
+
+    for (const char* dollar = SStrChr(text, '$'); dollar && *dollar; dollar = SStrChr(text, '$')) {
+        int32_t length = dollar - text;
+
+        if (dollar != text) {
+            uint32_t bufferLength = SStrLen(buffer);
+            SStrPack(buffer, text, size);
+
+            if (bufferLength + length < size) {
+                buffer[bufferLength + length] = '\0';
+            }
+        }
+
+        const char* cursor = dollar + 1;
+
+        if (*cursor == 'i') {
+            char number[32];
+            SStrPrintf(number, sizeof(number), "%d", value);
+            SStrPack(buffer, number, size);
+
+            if (*cursor) {
+                cursor++;
+            }
+        } else {
+            SStrPack(buffer, "$", size);
+            failed = 1;
+        }
+
+        text = cursor;
+    }
+
+    SStrPack(buffer, text, size);
+    return failed == 0;
 }
 
 // VERIFY: f4c9dae8 manual

@@ -45,6 +45,8 @@
 #include "WoW/Source/Ui/ActionBarFrame.h"
 #include "WoW/Source/Ui/BarberShop.h"
 #include "Engine/Source/Os/TimeManager.h"
+#include "WoW/Source/DB/Rec/GemPropertiesRec.h"
+#include "WoW/Source/DB/Rec/ItemSetRec.h"
 #include "WoW/Source/Ui/ClassTrainerFrame.h"
 #include "WoW/Source/Ui/CommentatorFrame.h"
 #include "WoW/Source/Ui/GuildBankFrame.h"
@@ -68,6 +70,7 @@
 #include <ctime>
 #include "WoW/Source/Object/GameObject.h"
 #include "WoW/Source/DB/Rec/LockRec.h"
+#include "WoW/Source/DB/Rec/SpellItemEnchantmentRec.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
 #include "_Triage/AreaList.h"
 
@@ -80,10 +83,6 @@ struct InitialSpellStruct {
     /* 0000 */ uint32_t m_spellId;
     /* 0004 */ uint16_t unk_0004;
     /* 0006 */ uint16_t unk_0006;
-};
-
-struct InspectData {
-    /* 0000 */ uint8_t unk_0000[1368];
 };
 
 // STATIC: 0x00C9D33C
@@ -142,6 +141,9 @@ static WOWGUID s_giftWrapItem;
 
 // STATIC: 0x00C9EAE0
 static InspectData* s_inspectData;
+
+// STATIC: 0x00C9EC78
+static InspectItem s_emptyInspectItem;
 
 // STATIC: 0x00C9EAE4
 uint32_t CGPlayer_C::s_lastUpdatePVPSequence;
@@ -1096,6 +1098,12 @@ int32_t Packet_SMSG_SET_PROFICIENCY(void* param, NETMESSAGE msgId, uint32_t time
     ConsolePrintf("Proficiency in item class %d set to %08x", itemClass, mask);
 
     return 1;
+}
+
+// VERIFY: dfb6fe0a manual
+// OFFSET: 0x006CEB00
+bool CGPlayer_C::CanDualWield() {
+    return s_dualWieldSpell != 0;
 }
 
 // VERIFY: 37ec0ce6 auto
@@ -2456,7 +2464,7 @@ void __stdcall CGPlayer_C::ClearAFK(int32_t force) {
     ClientServices::Send2(&msg);
 }
 
-// VERIFY: 113486d4 manual
+// VERIFY: f4bf6af2 manual
 // OFFSET: 0x006E6B40
 CGPlayer_C::CGPlayer_C(uint32_t time, const CClientObjCreate& create)
     : CGUnit_C(time, create),
@@ -2492,10 +2500,10 @@ CGPlayer_C::CGPlayer_C(uint32_t time, const CClientObjCreate& create)
 
     this->m_combatModeTime = FrameTime::s_curTimeMs - 500;
     this->m_pvpCooldownTimestamp = 0;
-    this->unk_1924[0] = 0;
-    this->unk_1924[1] = 0;
-    this->unk_1924[2] = 0;
-    this->unk_1924[3] = 0;
+    this->m_gemCounts[0] = 0;
+    this->m_gemCounts[1] = 0;
+    this->m_gemCounts[2] = 0;
+    this->m_gemCounts[3] = 0;
     this->unk_1944 = 0;
     this->unk_1948 = 0;
 
@@ -4524,4 +4532,141 @@ float CGPlayer_C::GetModDamageDonePct(int32_t school) const {
     }
 
     return 0.0f;
+}
+
+// VERIFY: 68b495c6 manual
+// OFFSET: 0x006DC550
+bool CGPlayer_C::MeetsItemSetSkill(const ItemSetRec* set) const {
+    if (set->m_requiredSkill) {
+        int32_t index = this->GetSkillIndex(set->m_requiredSkill);
+
+        if (index < 0 || static_cast<int32_t>(this->GetSkillValue(index)) < set->m_requiredSkillRank) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// VERIFY: 95312415 manual
+// OFFSET: 0x006DE360
+InspectItem* CGPlayer_C::GetInspectedItem(int32_t slot) {
+    if (s_inspectData && s_inspectData->m_guid == this->m_obj->m_guid) {
+        if (slot < 0) {
+            return nullptr;
+        }
+
+        if (static_cast<uint32_t>(slot) < 19) {
+            return &s_inspectData->m_items[slot];
+        }
+    }
+
+    if (slot < 0 || static_cast<uint32_t>(slot) >= 19) {
+        return nullptr;
+    }
+
+    VisibleItem_C* visible = &this->m_player->m_playerVisibleItems[slot];
+
+    if (!visible) {
+        return nullptr;
+    }
+
+    memset(&s_emptyInspectItem, 0, sizeof(s_emptyInspectItem));
+    s_emptyInspectItem.m_itemId = abs(visible->m_itemId);
+    s_emptyInspectItem.m_enchants[0] = visible->m_enchantment[0];
+    s_emptyInspectItem.m_enchants[1] = visible->m_enchantment[1];
+
+    if (visible->m_itemId <= 0) {
+        s_emptyInspectItem.m_flags |= 1;
+    }
+
+    return &s_emptyInspectItem;
+}
+
+// VERIFY: bd15a857 manual
+// OFFSET: 0x006DE490
+static void CountGemsItemCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!success) {
+        return;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        player->CountEquippedGems();
+    }
+}
+
+// VERIFY: 456c3dda manual
+// OFFSET: 0x006DE4D0
+void CGPlayer_C::CountEquippedGems() {
+    this->m_gemCounts[0] = 0;
+    this->m_gemCounts[1] = 0;
+    this->m_gemCounts[2] = 0;
+    this->m_gemCounts[3] = 0;
+
+    for (uint32_t slot = 0; slot <= 18; slot++) {
+        CGItem_C* item = nullptr;
+        InspectItem* inspect = nullptr;
+
+        if (ClntObjMgrGetActivePlayer() == this->m_obj->m_guid) {
+            item = this->m_bag.GetItemPointer(slot);
+
+            if (!item || !item->IsUsable()) {
+                continue;
+            }
+        } else {
+            inspect = this->GetInspectedItem(slot);
+
+            if (!inspect || !(inspect->m_flags & 1)) {
+                continue;
+            }
+        }
+
+        for (uint32_t socket = 2; socket <= 4; socket++) {
+            int32_t enchantId;
+
+            if (ClntObjMgrGetActivePlayer() == this->m_obj->m_guid) {
+                enchantId = (item->GetItemStaticFlags(0) & 0x2000) ? 0 : item->m_item->m_itemFieldEnchantment[socket].m_id;
+            } else if (socket <= 11) {
+                enchantId = inspect->m_enchants[socket];
+            } else {
+                enchantId = 0;
+            }
+
+            SpellItemEnchantmentRec* enchant = g_spellItemEnchantmentDB.GetRecord(enchantId);
+
+            if (!enchant || !enchant->m_srcItemID) {
+                continue;
+            }
+
+            ItemStats_C* gem = g_itemDBCache.GetRecord(enchant->m_srcItemID, WOWGUID{ 0 }, &CountGemsItemCacheCallback, nullptr, false);
+
+            if (!gem) {
+                continue;
+            }
+
+            GemPropertiesRec* properties = g_gemPropertiesDB.GetRecord(gem->m_gemProperties);
+
+            if (!properties || !properties->m_type) {
+                continue;
+            }
+
+            if (properties->m_type & 1) {
+                this->m_gemCounts[0]++;
+            }
+
+            if (properties->m_type & 2) {
+                this->m_gemCounts[1]++;
+            }
+
+            if (properties->m_type & 4) {
+                this->m_gemCounts[2]++;
+            }
+
+            if (properties->m_type & 8) {
+                this->m_gemCounts[3]++;
+            }
+        }
+    }
 }

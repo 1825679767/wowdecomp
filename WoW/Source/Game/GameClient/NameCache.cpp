@@ -37,6 +37,29 @@ void NameCache::Pack(CDataStore* msg) {
     msg->Put(this->m_class);
 }
 
+// VERIFY: c6bdf007 manual
+// OFFSET: 0x006680C0
+NameCache& NameCache::Copy(const NameCache& other) {
+    this->m_guid = other.m_guid;
+    SStrCopy(this->m_name, other.m_name, sizeof(this->m_name));
+
+    if (other.m_declinedNames) {
+        if (!this->m_declinedNames) {
+            this->m_declinedNames = static_cast<NameCache::DeclinedNames*>(SMemAlloc(sizeof(NameCache::DeclinedNames), __FILE__, __LINE__, 0));
+        }
+
+        for (uint32_t i = 0; i < sizeof(this->m_declinedNames->m_names) / sizeof(this->m_declinedNames->m_names[0]); i++) {
+            SStrCopy(this->m_declinedNames->m_names[i], other.m_declinedNames->m_names[i], sizeof(this->m_declinedNames->m_names[i]));
+        }
+    }
+
+    SStrCopy(this->m_realmName, other.m_realmName, sizeof(this->m_realmName));
+    this->m_race = other.m_race;
+    this->m_sex = other.m_sex;
+    this->m_class = other.m_class;
+    return *this;
+}
+
 // VERIFY: d7e9cfe1 manual
 // OFFSET: 0x007F74A0
 void NameCache::Unpack(CDataStore* msg) {

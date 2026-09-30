@@ -3404,3 +3404,19 @@ int32_t Spell_C_GetMinMaxPoints(const SpellRec* spell, uint32_t effectIndex, int
     *maxPoints = CMath::ftrunc(high);
     return 0;
 }
+
+// VERIFY: 3cc995d6 auto
+// OFFSET: 0x007FD630
+int32_t Spell_C_GetTargetingSpell() {
+    return s_targetingSpell ? s_targetingSpell->m_data.m_spellId : 0;
+}
+
+// VERIFY: 8d996461 auto
+// OFFSET: 0x008090C0
+bool Spell_C_GetItemCooldown(CGItem_C* item, uint32_t* duration, uint32_t* start, uint32_t* enable) {
+    if (!item) {
+        return false;
+    }
+
+    return s_spellHistory[0].GetSpellCooldown(item->GetEnchantmentSpell(0), item->m_obj->m_entryID, duration, start, enable);
+}

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/Net/Types.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 class CDataStore;
 struct lua_State;
@@ -19,6 +20,10 @@ struct EQUIPMENT_SET {
     /* 0230 */ uint32_t unk_0230;
 };
 
+struct EQUIPMENT_SET_NODE : public TSLinkedNode<EQUIPMENT_SET_NODE> {
+    /* 0008 */ EQUIPMENT_SET* m_set;
+};
+
 int32_t Packet_SMSG_EQUIPMENT_SET_LIST(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_EQUIPMENT_SET_SAVED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_EQUIPMENT_SET_USE_RESULT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
@@ -26,6 +31,7 @@ int32_t Packet_SMSG_EQUIPMENT_SET_USE_RESULT(void* param, NETMESSAGE msgId, uint
 class CGEquipmentManager {
     public:
     static uint32_t* s_equipmentSetHeap;
+    static TSList<EQUIPMENT_SET_NODE> s_equipmentSets;
     static void EnterWorld();
     static uint8_t m_lastCanUseEquipmentSetsValue;
     static uint8_t m_swapPending;
@@ -38,6 +44,7 @@ class CGEquipmentManager {
     static void InitializeGame();
     static void EquipSet(int32_t id);
     static void GetFullIconPath(int32_t id, char* buffer, uint32_t size);
+    static int32_t GetSetList(char* buffer, uint32_t size, const WOWGUID* item);
 };
 
 int32_t Script_SaveEquipmentSet(lua_State* L);

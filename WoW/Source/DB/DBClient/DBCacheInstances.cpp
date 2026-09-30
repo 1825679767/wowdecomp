@@ -517,3 +517,111 @@ void DBCache_ClearTemporaryCaches() {
         g_danceCache.Clear();
     }
 }
+
+// VERIFY: db411930 manual
+// OFFSET: 0x0066FFE0
+template <>
+DBCache<NameCache, uint64_t, CHashKeyGUID>::REVERSEENTRY* DBCache<NameCache, uint64_t, CHashKeyGUID>::FindReverseEntry(const char* name) {
+    if (this->m_reverse.m_slotmask == 0xFFFFFFFF) {
+        return nullptr;
+    }
+
+    uint32_t hashval = SStrHashHT(name);
+    TSExplicitList<REVERSEENTRY>& list = this->m_reverse.m_slotlistarray[hashval & this->m_reverse.m_slotmask];
+
+    for (REVERSEENTRY* entry = list.Head(); entry; entry = list.Next(entry)) {
+        if (entry->m_hashval == hashval && (entry->m_key.m_str == name || !SStrCmpUTF8I(entry->m_key.m_str, name, STORM_MAX_STR))) {
+            return entry;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 4c9eb627 auto
+// OFFSET: 0x006701F0
+template <>
+NameCache* DBCache<NameCache, uint64_t, CHashKeyGUID>::GetRecordByName(const char* name) {
+    REVERSEENTRY* entry = this->FindReverseEntry(name);
+    return entry ? entry->m_record : nullptr;
+}
+
+// VERIFY: fd608d3a manual
+// OFFSET: 0x00678F20
+template <>
+void DBCache<NameCache, uint64_t, CHashKeyGUID>::RemoveReverseEntry(const char* name) {
+    REVERSEENTRY* entry = this->FindReverseEntry(name);
+
+    if (!entry) {
+        SErrSetLastError(87);
+        return;
+    }
+
+    this->m_reverse.Delete(entry);
+}
+
+// VERIFY: a4de3f42 auto
+// OFFSET: 0x00680C20
+template <>
+void DBCache<NameCache, uint64_t, CHashKeyGUID>::ItemAdded(NameCache* item) {
+    if (this->FindReverseEntry(item->m_name)) {
+        return;
+    }
+
+    uint32_t hashval = SStrHashHT(item->m_name);
+    REVERSEENTRY* entry = this->m_reverse.InternalNewNode(hashval, 0, 0);
+    entry->m_hashval = hashval;
+    entry->m_key.m_str = item->m_name;
+    entry->m_record = item;
+}
+
+// VERIFY: 499cc0d7 auto
+// OFFSET: 0x0067A430
+template <>
+void DBCache<NameCache, uint64_t, CHashKeyGUID>::Invalidate(uint64_t key) {
+    DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
+
+    if (!hash) {
+        return;
+    }
+
+    if (!hash->m_loaded) {
+        this->DenyItem(key);
+    } else if (hash->m_dispatching) {
+        hash->m_invalidatePending = true;
+    } else {
+        this->RemoveReverseEntry(hash->m_record.m_name);
+        this->m_entries.Delete(hash);
+    }
+}
+
+// VERIFY: dcddca51 auto
+// OFFSET: 0x00680C60
+template <>
+void DBCache<NameCache, uint64_t, CHashKeyGUID>::AddItem(NameCache* item, uint64_t key) {
+    DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
+
+    if (!hash) {
+        hash = this->m_entries.New(DBCacheHashKey(key), key, 0, 0);
+    }
+
+    hash->m_dispatching = true;
+    hash->m_record.Copy(*item);
+    hash->m_loaded = true;
+    hash->m_id = key;
+    this->ItemAdded(&hash->m_record);
+
+    for (DBCACHECALLBACK* node = hash->m_callbacks.Head(); node;) {
+        DBCACHECALLBACK* next = hash->m_callbacks.Next(node);
+        node->m_callback(static_cast<int32_t>(key), node->m_guid, node->m_param, true);
+        node = next;
+    }
+
+    hash->m_callbacks.Clear();
+    bool invalidate = hash->m_invalidatePending;
+    hash->m_dispatching = false;
+
+    if (invalidate) {
+        this->Invalidate(key);
+    }
+}

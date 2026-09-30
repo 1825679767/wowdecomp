@@ -4,6 +4,12 @@
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WoW/Source/Net/Types.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/Object/Player.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+
+// STATIC: 0x00A15ABC
+static const int32_t s_arenaBracketTypes[3] = { 2, 3, 5 };
 
 // STATIC: 0x00ACF834
 int32_t CGArenaTeamInfo::m_showOffline = 1;
@@ -91,4 +97,38 @@ void CGArenaTeamInfo::InitializeGame() {
     for (int32_t i = 0; i < 7; i++) {
         CGArenaTeamInfo::m_sortOrder[i].m_column = i;
     }
+}
+
+// VERIFY: 04a71da4 manual
+// OFFSET: 0x005A37B0
+bool CGArenaTeamInfo::CheckPersonalAndTeamRating(uint32_t rating, int32_t bracket) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        uint32_t* info = &player->m_player->m_playerFieldArenaTeamInfo11[i * 7];
+
+        if (!info) {
+            continue;
+        }
+
+        int32_t type = info[1];
+
+        if (type < s_arenaBracketTypes[bracket] || info[6] < rating) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < 3; j++) {
+            ArenaTeam* team = &CGArenaTeamInfo::m_arenaTeams[j];
+
+            if (team && team->m_type == static_cast<uint32_t>(type) && team->m_rating >= rating) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }

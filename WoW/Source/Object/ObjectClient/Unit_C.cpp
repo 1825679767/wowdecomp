@@ -15,6 +15,7 @@
 #include "WoW/Source/DB/Rec/VehicleSeatRec.h"
 #include "WoW/Source/DB/Rec/CreatureMovementInfoRec.h"
 #include "WoW/Source/DB/Rec/ItemDisplayInfoRec.h"
+#include "WoW/Source/DB/Rec/FactionRec.h"
 #include "WoW/Source/DB/Rec/FactionTemplateRec.h"
 #include "WoW/Source/DB/Rec/AreaTableRec.h"
 #include "WoW/Source/DB/Rec/AreaGroupRec.h"
@@ -2955,6 +2956,39 @@ int32_t CGUnit_C::UnitReaction(const CGUnit_C* unit) const {
     }
 
     return reaction;
+}
+
+// VERIFY: 5eefb777 auto
+// OFFSET: 0x007279A0
+float CGUnit_C::GetPlayerDiscount(const CGUnit_C* unit) const {
+    FactionTemplateRec* factionTemplate = g_factionTemplateDB.GetRecord(this->m_unit->m_unitFieldFactiontemplate);
+
+    if (!factionTemplate) {
+        return 0.0f;
+    }
+
+    FactionRec* faction = g_factionDB.GetRecord(factionTemplate->m_faction);
+
+    if (!faction || faction->m_reputationIndex < 0) {
+        return 0.0f;
+    }
+
+    switch (this->UnitReaction(unit)) {
+        case 4:
+            return 0.05f;
+
+        case 5:
+            return 0.1f;
+
+        case 6:
+            return 0.15f;
+
+        case 7:
+            return 0.2f;
+
+        default:
+            return 0.0f;
+    }
 }
 
 // VERIFY: 7c461897 auto

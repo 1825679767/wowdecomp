@@ -62,6 +62,7 @@ class WowClientDB : public WowClientDB_Common<T>, public IDatabase<T> {
     T* GetRecord(int32_t id) const override;
 
     WowClientDB();
+    T* GetRecordByIndex(int32_t index) const;
 };
 
 template <class T>
@@ -448,6 +449,17 @@ int32_t WowClientDB_RLE<T>::GetRecord(int32_t id, T* rec) const {
     }
 
     return 1;
+}
+
+// VERIFY: 040a5e1f auto
+// OFFSET: [0x004D8580, 0x00514030]
+template <class T>
+T* WowClientDB<T>::GetRecordByIndex(int32_t index) const {
+    if (index < 0 || index >= this->m_numRecords) {
+        return nullptr;
+    }
+
+    return &this->m_records[index];
 }
 
 #endif

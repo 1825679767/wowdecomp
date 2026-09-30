@@ -7,6 +7,7 @@
 
 class CGUnit_C;
 class NameCache;
+class SpellItemEnchantmentRec;
 class SpellRec;
 
 struct SpellVariable {
@@ -25,5 +26,6 @@ extern TSGrowableArray<SpellVariable> s_spellVariables;
 
 void GenderConditional(char* buffer, uint32_t size, int32_t gender, const CGUnit_C* unit, const NameCache* name, const char** cursor);
 int32_t SpellParserParseText(const SpellRec* spell, char* buffer, uint32_t size, int32_t parsePet, int32_t parseUnit, int32_t spellLevel, int32_t useAuraDescription, int32_t scale, int32_t noModifiers);
+int32_t SpellItemEnchantmentParseText(const SpellItemEnchantmentRec* enchant, char* buffer, uint32_t size, int32_t value);
 
 #endif

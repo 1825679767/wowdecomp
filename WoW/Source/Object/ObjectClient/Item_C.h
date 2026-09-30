@@ -11,6 +11,7 @@
 class CClientObjCreate;
 class CImVector;
 class ItemStats_C;
+class LockRec;
 
 struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
     /* 0018 */ char* m_texture;
@@ -84,6 +85,10 @@ class CGItem_C : public CGObject_C, public CGItem {
     bool IsBound();
     void Unlock();
     static int32_t GetUseSpell(int32_t itemId);
+    static int32_t GetRandomPropertyValue(int32_t slot, int32_t randomPropertiesId, int32_t points);
+    static int32_t IsLocked(const LockRec* lock, int32_t itemLevel, int32_t* spellId, int32_t* skillValue, int32_t* requiredSkill, int32_t* lockIndex, CGItem_C** key, int32_t* entry);
+    int32_t GetRandomPropertyValue(int32_t slot);
+    int32_t GetRepairCost();
     int32_t GetEnchantmentSpell(int32_t a1);
     void GetSpellCooldownInfo(uint32_t& cooldown, uint32_t& categoryCooldown, uint32_t& category);
     bool IsBoundForTrade();

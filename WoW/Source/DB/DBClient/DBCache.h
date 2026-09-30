@@ -43,8 +43,8 @@ class DBCache : public Blizzard::Using::GlobalUse {
         TSLink<DBCACHEHASH> m_pendingLink;
     };
 
-    struct REVERSEENTRY : public TSHashObject<REVERSEENTRY, HASHKEY_STRI> {
-        TKey m_id;
+    struct REVERSEENTRY : public TSHashObject<REVERSEENTRY, HASHKEY_CONSTSTR> {
+        T* m_record;
     };
 
     /* 0008 */ TSHashTable<DBCACHEHASH, THashKey> m_entries;
@@ -60,14 +60,14 @@ class DBCache : public Blizzard::Using::GlobalUse {
     /* 004C */ uint32_t m_queriesSent;
     /* 0050 */ uint32_t m_nextQueryTime;
     /* 0054 */ TSExplicitList<DBCACHEHASH, offsetof(DBCACHEHASH, m_pendingLink)> m_pending;
-    /* 0060 */ TSHashTable<REVERSEENTRY, HASHKEY_STRI> m_reverse;
+    /* 0060 */ TSHashTable<REVERSEENTRY, HASHKEY_CONSTSTR> m_reverse;
 
     virtual void InvalidateIntKey(int32_t key);
 
     DBCache(uint32_t signature, const char* fileName, uint32_t queryOpcode, uint32_t multipleQueryOpcode, bool sendRequester, bool enabled, uint32_t queriesPerMinute);
     ~DBCache();
     void AddItem(T* item, TKey key);
-    void AddItems(CDataStore* msg, bool notify);
+    void AddItems(CDataStore* msg, bool single);
     void CancelCallback(TKey key, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param);
     void Clear();
     void ClearPending();
@@ -75,6 +75,9 @@ class DBCache : public Blizzard::Using::GlobalUse {
     T* GetRecord(TKey key, const WOWGUID& guid, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param, bool unique);
     void Destroy();
     void Invalidate(TKey key);
+    REVERSEENTRY* FindReverseEntry(const char* name);
+    T* GetRecordByName(const char* name);
+    void RemoveReverseEntry(const char* name);
     void ItemAdded(T* item);
     void Load();
     void RetryItem(TKey key);
@@ -93,10 +96,18 @@ void DBCacheWriteKey(CDataStore& msg, const CWardenKey& key);
 bool DBCacheIsNullKey(int32_t key);
 bool DBCacheIsNullKey(uint64_t key);
 bool DBCacheIsNullKey(const CWardenKey& key);
-uint32_t DBCacheHashKey(int32_t key);
-uint32_t DBCacheHashKey(uint64_t key);
 uint32_t DBCacheHashKey(const CWardenKey& key);
 void GetCacheDirectory(char* path);
+
+// INLINED
+inline uint32_t DBCacheHashKey(int32_t key) {
+    return key;
+}
+
+// INLINED
+inline uint32_t DBCacheHashKey(uint64_t key) {
+    return static_cast<uint32_t>(key);
+}
 
 // VERIFY: 8997838f auto
 // OFFSET: [0x00675C80, 0x00675DB0, 0x00675EE0, 0x00676010, 0x00676140, 0x00676270, 0x006763A0, 0x006764D0, 0x00676600, 0x00676730, 0x00676860, 0x00676990, 0x00676AC0, 0x00676BF0, 0x00676D20]
@@ -471,6 +482,117 @@ void DBCache<T, TKey, THashKey>::VerifyAndUpdateVersion(uint32_t version) {
     this->m_entries.InternalClear(0);
     this->m_reverse.InternalClear(0);
     this->m_version = version;
+}
+
+// VERIFY: 27b57ae6 manual
+// OFFSET: [0x0067CBD0]
+template <class T, class TKey, class THashKey>
+void DBCache<T, TKey, THashKey>::AddItems(CDataStore* msg, bool single) {
+    uint8_t count;
+
+    if (single) {
+        count = 1;
+    } else {
+        msg->Get(count);
+
+        if (!count) {
+            return;
+        }
+    }
+
+    do {
+        bool denied = false;
+        uint32_t id;
+        msg->Get(id);
+
+        if (static_cast<int32_t>(id) < 0) {
+            id &= 0x7FFFFFFF;
+            denied = true;
+        }
+
+        TKey key = id;
+
+        DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
+
+        if (denied) {
+            if (hash) {
+                hash->m_dispatching = true;
+
+                for (DBCACHECALLBACK* node = hash->m_callbacks.Head(); node;) {
+                    DBCACHECALLBACK* next = hash->m_callbacks.Next(node);
+                    node->m_callback(key, node->m_guid, node->m_param, false);
+                    node = next;
+                }
+
+                hash->m_dispatching = false;
+                this->m_entries.Delete(hash);
+            }
+        } else {
+            if (!hash) {
+                hash = this->m_entries.New(DBCacheHashKey(key), key, 0, 0);
+            }
+
+            hash->m_dispatching = true;
+            hash->m_record.Unpack(msg);
+            hash->m_loaded = true;
+            hash->m_id = key;
+
+            for (DBCACHECALLBACK* node = hash->m_callbacks.Head(); node;) {
+                DBCACHECALLBACK* next = hash->m_callbacks.Next(node);
+                node->m_callback(key, node->m_guid, node->m_param, true);
+                node = next;
+            }
+
+            hash->m_callbacks.Clear();
+            bool invalidate = hash->m_invalidatePending;
+            hash->m_dispatching = false;
+
+            if (invalidate) {
+                this->Invalidate(key);
+            }
+        }
+    } while (--count);
+}
+
+// VERIFY: e5e95050 manual
+// OFFSET: [0x0067A070]
+template <class T, class TKey, class THashKey>
+void DBCache<T, TKey, THashKey>::DenyItem(TKey key) {
+    DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
+
+    if (!hash) {
+        return;
+    }
+
+    hash->m_dispatching = true;
+
+    for (DBCACHECALLBACK* node = hash->m_callbacks.Head(); node;) {
+        DBCACHECALLBACK* next = hash->m_callbacks.Next(node);
+        node->m_callback(static_cast<int32_t>(key), node->m_guid, node->m_param, false);
+        node = next;
+    }
+
+    hash->m_dispatching = false;
+    this->m_entries.Delete(hash);
+}
+
+// VERIFY: 80ad7a9d auto
+// OFFSET: [0x0067A170]
+template <class T, class TKey, class THashKey>
+void DBCache<T, TKey, THashKey>::Invalidate(TKey key) {
+    DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
+
+    if (!hash) {
+        return;
+    }
+
+    if (!hash->m_loaded) {
+        this->DenyItem(key);
+    } else if (hash->m_dispatching) {
+        hash->m_invalidatePending = true;
+    } else {
+        this->m_entries.Delete(hash);
+    }
 }
 
 #endif

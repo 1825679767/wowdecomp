@@ -7,6 +7,7 @@
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Tempest/CMath.h"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/ItemRandomPropertiesRec.h"
@@ -19,6 +20,11 @@
 #include "WoW/Source/Object/ItemStats.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Common/ComponentCore/CharacterComponent.h"
+#include "WoW/Source/DB/Rec/DurabilityCostsRec.h"
+#include "WoW/Source/DB/Rec/DurabilityQualityRec.h"
+#include "WoW/Source/DB/Rec/LockRec.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/Ui/ActionBarFrame.h"
@@ -28,6 +34,7 @@
 #include "WoW/Source/Ui/PaperDollInfoFrame.h"
 #include "WoW/Source/Ui/QuestLog.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
 #include "WoW/Source/Ui/TradeFrame.h"
 #include "WoW/Source/Ui/TradeSkillFrame.h"
 #include "WoW/Source/WorldClient/FrameTime.h"
@@ -1094,4 +1101,277 @@ const char* CGItem_C::GetInventoryArt() const {
     }
 
     return CGItem_C::GetInventoryArt(0);
+}
+
+// VERIFY: 61c58006 manual
+// OFFSET: 0x00584AC0
+uint32_t CGItem::GetDurability() const {
+    if (this->m_item->m_itemFieldFlags & 8) {
+        return 0;
+    }
+
+    return this->m_item->m_itemFieldDurability;
+}
+
+// VERIFY: e00bdbda manual
+// OFFSET: 0x00584AE0
+uint32_t CGItem::GetMaxDurability() const {
+    if (this->m_item->m_itemFieldFlags & 8) {
+        return 0;
+    }
+
+    return this->m_item->m_itemFieldMaxdurability;
+}
+
+// VERIFY: d3247ea5 manual
+// OFFSET: 0x0061DC90
+int32_t CGItem::GetPetitionSignatures() {
+    if (this->GetItemStaticFlags(0) & 0x2000) {
+        return this->m_item->m_itemFieldEnchantment[0].m_duration;
+    }
+
+    return 0;
+}
+
+// VERIFY: 5cea77df manual
+// OFFSET: 0x00707650
+int32_t CGItem_C::GetRandomPropertyValue(int32_t slot, int32_t randomPropertiesId, int32_t points) {
+    float value = 0.0f;
+
+    if (randomPropertiesId < 0) {
+        ItemRandomSuffixRec* suffix = g_itemRandomSuffixDB.GetRecord(-randomPropertiesId);
+        uint32_t index = slot - 7;
+
+        if (suffix && static_cast<int32_t>(index) >= 0 && index < 5) {
+            value = suffix->m_allocationPct[index] * 0.0001f * points;
+        }
+    }
+
+    return CMath::ftrunc(value);
+}
+
+// VERIFY: bf61ad32 manual
+// OFFSET: 0x00707C60
+int32_t CGItem_C::GetEnchantmentSpell(int32_t effect) {
+    SpellRec spell;
+    int32_t spellId = 0;
+    ItemStats_C* stats = g_itemDBCache.GetRecord(this->m_obj->m_entryID, WOWGUID{ 0 }, nullptr, nullptr, false);
+
+    if (!stats) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < 5; i++) {
+        if (!stats->m_spellId[i] || stats->m_spellTrigger[i]) {
+            continue;
+        }
+
+        bool match = !effect;
+
+        if (!match && g_spellDB.GetRecord(stats->m_spellId[i], &spell)) {
+            for (uint32_t j = 0; j < 3; j++) {
+                if (spell.m_effect[j] == effect) {
+                    match = true;
+                    break;
+                }
+            }
+        }
+
+        if (match) {
+            spellId = stats->m_spellId[i];
+
+            if (spellId) {
+                return spellId;
+            }
+
+            break;
+        }
+    }
+
+    for (uint32_t slot = 0; slot < 12; slot++) {
+        SpellItemEnchantmentRec* enchant = g_spellItemEnchantmentDB.GetRecord(this->m_item->m_itemFieldEnchantment[slot].m_id);
+
+        if (enchant) {
+            for (uint32_t i = 0; i < 3; i++) {
+                if (enchant->m_effect[i] == 7) {
+                    spellId = enchant->m_effectArg[i];
+                    break;
+                }
+            }
+        }
+
+        if (spellId) {
+            break;
+        }
+    }
+
+    return spellId;
+}
+
+// VERIFY: 24e20657 manual
+// OFFSET: 0x00708540
+int32_t CGItem_C::GetRepairCost() {
+    ItemStats_C* stats = g_itemDBCache.GetRecord(this->m_obj->m_entryID, WOWGUID{ 0 }, nullptr, nullptr, false);
+
+    if (!stats) {
+        return 0;
+    }
+
+    CGItemData* item = this->m_item;
+
+    if ((item->m_itemFieldFlags & 8) || !item->m_itemFieldMaxdurability) {
+        return 0;
+    }
+
+    uint32_t durability = (item->m_itemFieldFlags & 8) ? 0 : item->m_itemFieldDurability;
+
+    if ((item->m_itemFieldFlags & 8) || durability >= item->m_itemFieldMaxdurability) {
+        return 0;
+    }
+
+    DurabilityCostsRec* costs = g_durabilityCostsDB.GetRecord(stats->m_itemLevel);
+
+    if (!costs) {
+        return 0;
+    }
+
+    uint32_t itemClass = this->GetClassID();
+
+    if (itemClass != 2 && itemClass != 4) {
+        return 0;
+    }
+
+    uint32_t subClass = this->GetSubtypeID();
+    int32_t cost;
+
+    if (itemClass == 2) {
+        if (subClass > 21) {
+            return 0;
+        }
+
+        cost = costs->m_weaponSubClassCost[subClass];
+    } else {
+        if (itemClass != 4 || subClass > 8) {
+            return 0;
+        }
+
+        cost = costs->m_armorSubClassCost[subClass];
+    }
+
+    DurabilityQualityRec* quality = g_durabilityQualityDB.GetRecordByIndex(2 * stats->m_quality + 1);
+
+    if (!quality) {
+        return 0;
+    }
+
+    int32_t lost = this->GetMaxDurability() - this->GetDurability();
+    int32_t result = CMath::fint_n(lost * quality->m_data * cost);
+    return result ? result : 1;
+}
+
+// VERIFY: 84e69779 manual
+// OFFSET: 0x007086B0
+int32_t CGItem_C::IsLocked(const LockRec* lock, int32_t itemLevel, int32_t* spellId, int32_t* skillValue, int32_t* requiredSkill, int32_t* lockIndex, CGItem_C** key, int32_t* entry) {
+    int32_t locked = 0;
+    SpellRec spell;
+
+    for (int32_t i = 0; i < 8; i++) {
+        int32_t type = lock->m_type[i];
+
+        if (!type) {
+            continue;
+        }
+
+        if (type == 2) {
+            locked = 1;
+
+            for (uint32_t j = 0; j < s_openLockSpells.m_count; j++) {
+                g_spellDB.GetRecord(s_openLockSpells.m_data[j], &spell);
+
+                for (uint32_t effect = 0; effect < 3; effect++) {
+                    if (spell.m_effect[effect] != 33 || spell.m_effectMiscValue[effect] != lock->m_index[i]) {
+                        continue;
+                    }
+
+                    int32_t required = lock->m_skill[i] ? lock->m_skill[i] : 5 * itemLevel;
+                    int32_t minPoints;
+                    int32_t maxPoints;
+                    Spell_C_GetMinMaxPoints(&spell, effect, &minPoints, &maxPoints, 0, 0, 0, 0);
+
+                    if (spellId) {
+                        *spellId = s_openLockSpells.m_data[j];
+                    }
+
+                    if (skillValue) {
+                        *skillValue = minPoints;
+                    }
+
+                    if (requiredSkill) {
+                        *requiredSkill = required;
+                    }
+
+                    if (lockIndex) {
+                        *lockIndex = lock->m_index[i];
+                    }
+
+                    if (minPoints >= required) {
+                        if (entry) {
+                            *entry = i;
+                        }
+
+                        return 0;
+                    }
+                }
+            }
+        } else if (type == 3) {
+            locked = 1;
+
+            g_spellDB.GetRecord(lock->m_index[i], &spell);
+
+            for (uint32_t effect = 0; effect < 3; effect++) {
+                if (spell.m_effect[effect] == 33) {
+                    if (spellId) {
+                        *spellId = spell.m_id;
+                    }
+
+                    if (entry) {
+                        *entry = i;
+                    }
+
+                    return 0;
+                }
+            }
+        } else if (type == 1) {
+            CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+            if (player) {
+                locked = 1;
+                CGItem_C* item = player->m_bag.FindItemOfType(lock->m_index[i], 0);
+
+                if (item) {
+                    if (spellId) {
+                        *spellId = item->GetEnchantmentSpell(0);
+                    }
+
+                    if (key) {
+                        *key = item;
+                    }
+
+                    if (entry) {
+                        *entry = i;
+                    }
+
+                    return 0;
+                }
+            }
+        }
+    }
+
+    return locked;
+}
+
+// VERIFY: bb164cd0 auto
+// OFFSET: 0x007089B0
+int32_t CGItem_C::GetRandomPropertyValue(int32_t slot) {
+    return CGItem_C::GetRandomPropertyValue(slot, this->m_item->m_itemFieldRandomPropertiesId, this->GetRandomPropertyPoints());
 }

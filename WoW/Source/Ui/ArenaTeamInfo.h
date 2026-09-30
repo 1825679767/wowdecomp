@@ -56,6 +56,7 @@ class CGArenaTeamInfo {
     static WOWGUID m_selectedMember;
     static void EnterWorld();
     static void InitializeGame();
+    static bool CheckPersonalAndTeamRating(uint32_t rating, int32_t bracket);
 };
 
 int32_t Script_GetArenaTeamRosterInfo(lua_State* L);

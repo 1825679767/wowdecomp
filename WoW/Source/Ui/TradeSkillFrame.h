@@ -20,6 +20,7 @@ class CGTradeSkillInfo {
     static uint32_t m_recastTimes;
     static uint32_t m_pendingRecastTimes;
     static void RefreshList(int32_t a1);
+    static void SetLink(const char* link);
     static void CommitPendingRecast(int32_t spellId);
     static void DoRecast(int32_t spellId);
 };

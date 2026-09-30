@@ -40,6 +40,21 @@ extern DBCache<DanceCache, int32_t, HASHKEY_INT> g_danceCache;
 template <>
 void DBCache<NameCache, uint64_t, CHashKeyGUID>::ItemAdded(NameCache* item);
 
+template <>
+void DBCache<NameCache, uint64_t, CHashKeyGUID>::Invalidate(uint64_t key);
+
+template <>
+DBCache<NameCache, uint64_t, CHashKeyGUID>::REVERSEENTRY* DBCache<NameCache, uint64_t, CHashKeyGUID>::FindReverseEntry(const char* name);
+
+template <>
+NameCache* DBCache<NameCache, uint64_t, CHashKeyGUID>::GetRecordByName(const char* name);
+
+template <>
+void DBCache<NameCache, uint64_t, CHashKeyGUID>::RemoveReverseEntry(const char* name);
+
+template <>
+void DBCache<NameCache, uint64_t, CHashKeyGUID>::AddItem(NameCache* item, uint64_t key);
+
 void DBCache_ClearHandlers();
 void DBCache_Destroy();
 void DBCache_Idle();

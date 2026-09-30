@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleFrame.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
@@ -24,27 +25,26 @@ class ItemLinkInfo {
     public:
     /* 0000 */ uint32_t m_itemId;
     /* 0004 */ uint32_t m_enchants [12];
-    /* 0034 */ uint32_t m_gems [12];
-    /* 0064 */ uint32_t m_gemEnchants [12];
-    /* 0094 */ uint32_t unk_0094;
-    /* 0098 */ uint32_t unk_0098;
+    /* 0034 */ uint32_t m_enchantDurations [12];
+    /* 0064 */ int32_t m_enchantCharges [12];
+    /* 0094 */ uint32_t m_cooldown;
+    /* 0098 */ int32_t m_proposedEnchant;
     /* 009C */ uint32_t unk_009C;
-    /* 00A0 */ uint32_t unk_00A0;
-    /* 00A4 */ uint32_t unk_00A4;
-    /* 00A8 */ uint32_t unk_00A8;
-    /* 00AC */ uint32_t unk_00AC;
-    /* 00B0 */ uint32_t unk_00B0;
-    /* 00B4 */ uint32_t unk_00B4;
-    /* 00B8 */ int32_t unk_00B8;
-    /* 00BC */ uint32_t unk_00BC;
-    /* 00C0 */ uint32_t unk_00C0;
-    /* 00C4 */ uint32_t unk_00C4;
-    /* 00C8 */ uint32_t unk_00C8;
-    /* 00CC */ uint32_t unk_00CC;
-    /* 00D0 */ uint32_t unk_00D0;
-    /* 00D4 */ int32_t unk_00D4;
+    /* 00A0 */ WOWGUID m_creator;
+    /* 00A8 */ WOWGUID m_giftCreator;
+    /* 00B0 */ uint32_t m_propertySeed;
+    /* 00B4 */ int32_t m_randomPropertiesId;
+    /* 00B8 */ int32_t m_spellCharges;
+    /* 00BC */ uint32_t m_wrapped;
+    /* 00C0 */ uint32_t m_lockId;
+    /* 00C4 */ uint32_t m_maxDurability;
+    /* 00C8 */ uint32_t m_durability;
+    /* 00CC */ int32_t m_level;
+    /* 00D0 */ uint32_t m_stackCount;
+    /* 00D4 */ int32_t m_maxStackCount;
 
     void Clear();
+    int32_t GetItemIdFromLink(const char* link);
 };
 
 class CGTalentGroup_C;
@@ -56,6 +56,29 @@ class CGUnit_C;
 class CImVector;
 class CSimpleFontString;
 
+class CGPlayer_C;
+class ItemNameCache_C;
+class ItemSetRec;
+class ItemStats_C;
+class ScalingStatValuesRec;
+class SpellItemEnchantmentRec;
+class SpellRec;
+
+struct ItemSetTooltipData {
+    /* 0000 */ CGTooltip* m_tooltip;
+    /* 0004 */ const ItemSetRec* m_set;
+    /* 0008 */ ItemNameCache_C* m_items [17];
+    /* 004C */ int32_t* m_equipped;
+    /* 0050 */ uint8_t m_slotUsed [19];
+};
+
+void TooltipItemCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+int32_t GetScalingStatBudget(const ScalingStatValuesRec* values, uint32_t flags);
+int32_t GetScalingStatArmor(const ScalingStatValuesRec* values, uint32_t flags);
+void GetScalingStatDamage(const ScalingStatValuesRec* values, uint32_t flags, float* minDamage, float* maxDamage);
+int32_t GetFeralAttackPower(const ItemStats_C* stats, float damage);
+int32_t GetEnchantmentConditionText(CGPlayer_C* player, const SpellItemEnchantmentRec* enchant, char* buffer, uint32_t size, int32_t newline);
+bool ResolveItemSetItem(ItemSetTooltipData* data, int32_t pass, int32_t itemId, int32_t slot);
 void TooltipUnitNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 void TooltipCorpseCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 void TooltipSpellCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
@@ -103,7 +126,7 @@ class CGTooltip : public CSimpleFrame {
     /* 0350 */ uint32_t unk_0350;
     /* 0354 */ uint32_t unk_0354;
     /* 0358 */ WOWGUID m_healthGuid;
-    /* 0360 */ uint32_t unk_0360;
+    /* 0360 */ int32_t m_itemId;
     /* 0364 */ int32_t m_spellId;
     /* 0368 */ uint32_t unk_0368;
     /* 036C */ uint32_t unk_036C;
@@ -111,11 +134,10 @@ class CGTooltip : public CSimpleFrame {
     /* 0374 */ uint32_t unk_0374 [4];
     /* 0384 */ WowTime m_time;
     /* 03A4 */ uint32_t unk_03A4 [4];
-    /* 03B4 */ uint32_t unk_03B4;
-    /* 03B8 */ uint32_t unk_03B8;
-    /* 03BC */ uint32_t unk_03BC;
-    /* 03C0 */ uint32_t unk_03C0;
-    /* 03C4 */ uint32_t unk_03C4;
+    /* 03B4 */ int32_t m_itemNameOnly;
+    /* 03B8 */ int32_t m_itemSocketPreview;
+    /* 03BC */ int32_t m_itemCompare;
+    /* 03C0 */ WOWGUID m_itemOwner;
     /* 03C8 */ int32_t m_pendingQueries;
     /* 03CC */ uint32_t m_fading;
     /* 03D0 */ float m_fadeTime;
@@ -125,11 +147,11 @@ class CGTooltip : public CSimpleFrame {
     /* 03E0 */ float m_offsetX;
     /* 03E4 */ float m_offsetY;
     /* 03E8 */ ItemLinkInfo m_itemLinkInfo;
-    /* 04C0 */ uint32_t unk_04C0;
-    /* 04C4 */ uint32_t unk_04C4;
-    /* 04C8 */ uint32_t unk_04C8;
-    /* 04CC */ uint32_t unk_04CC;
-    /* 04D0 */ uint32_t unk_04D0;
+    /* 04C0 */ int32_t m_itemUseLinkInfo;
+    /* 04C4 */ int32_t m_itemHideCharges;
+    /* 04C8 */ int32_t m_itemMinimumLevel;
+    /* 04CC */ int32_t m_itemSkipSellPrice;
+    /* 04D0 */ int32_t m_itemDisplayedLevel;
     /* 04D4 */ FrameScript_Object::ScriptIx m_onTooltipSetDefaultAnchor;
     /* 04DC */ FrameScript_Object::ScriptIx m_onTooltipCleared;
     /* 04E4 */ FrameScript_Object::ScriptIx m_onTooltipAddMoney;
@@ -172,11 +194,21 @@ class CGTooltip : public CSimpleFrame {
     void AddSkinnableText(CGUnit_C* unit, char* buffer, uint32_t size);
     static void GetSummonedByString(CGUnit_C* unit, char* buffer, uint32_t size);
     static void GetDurationString(char* buffer, uint32_t size, uint64_t time, const char* token, const char* prefix, int32_t roundUp, int32_t seconds);
+    static void GetItemDurationString(char* buffer, uint32_t size, uint64_t time, const char* token);
+    static void __stdcall FormatStringForXML(const char* text, char* buffer);
+    static int32_t GetDisplayedScalingItemLevel(const ItemStats_C* stats, const ItemLinkInfo* link, WOWGUID target, int32_t minimumLevel);
+    void AddMoney(int32_t money, int32_t maxMoney);
+    void AddSpellReagents(const SpellRec* spell, const char* token, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success));
+    int32_t SetItemNoStats();
     static void GetFloatDurationString(char* buffer, uint32_t size, float time, const char* token, const char* prefix);
     int32_t AddTalentPrereqs(const TalentRec* talent, CGTalentGroup_C* group, int32_t isInspect, int32_t isPet, int32_t usePreview);
     void AddTalentLearnText(const TalentRec* talent, CGTalentGroup_C* group, int32_t prereqsMet, int32_t rank, int32_t maxRank, int32_t a7, int32_t a8, int32_t isPet, int32_t usePreview);
+    int32_t SetQuest(int32_t questId);
+    void SetGlyph(int32_t glyphId, int32_t spellId, int32_t a3, int32_t a4, int32_t a5);
+    void SetTalent(const TalentRec* talent, CGTalentGroup_C* group, int32_t a3, int32_t a4, int32_t rank, int32_t a6, int32_t a7);
+    int32_t SetAchievement(int32_t achievementId, uint64_t guid, bool completed, WowTime time, uint32_t criteria1, uint32_t criteria2, uint32_t criteria3, uint32_t criteria4, int32_t a10);
     int32_t SetSpell(int32_t spellId, int32_t brief, uint32_t cooldown, int32_t isPet, int32_t showRank, int32_t isInspect, int32_t a8, const TalentRec* talent, CGTalentGroup_C* talentGroup, int32_t append, int32_t usePreview, int32_t a13, int32_t rank, int32_t maxRank, int32_t showLearn);
-    int32_t SetItem(int32_t itemId, int32_t* a2, WOWGUID* a3, int32_t a4, int32_t a5, int32_t a6, int32_t a7, uint64_t a8, int32_t a9, int32_t a10, int32_t a11, int32_t a12, int32_t a13, int32_t a14, int32_t a15);
+    int32_t SetItem(int32_t itemId, const WOWGUID* requester, const WOWGUID* itemGuid, int32_t nameOnly, int32_t compare, int32_t useLinkInfo, int32_t append, WOWGUID owner, int32_t socketPreview, FILE* stream, int32_t hideCharges, const ItemLinkInfo* link, int32_t minimumLevel, int32_t skipLock, int32_t skipSellPrice);
 };
 
 class CGItemStatsSummary {

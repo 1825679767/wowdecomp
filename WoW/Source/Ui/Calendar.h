@@ -116,5 +116,6 @@ int32_t Script_CalendarCanSendInvite(lua_State* L);
 int32_t Script_CalendarCanAddEvent(lua_State* L);
 int32_t Script_OpenCalendar(lua_State* L);
 void CalendarRegisterScriptFunctions();
+const char* GetHolidayName(int32_t holidayId);
 
 #endif

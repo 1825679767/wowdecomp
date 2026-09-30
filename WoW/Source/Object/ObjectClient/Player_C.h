@@ -23,6 +23,23 @@ class CreatureModelDataRec;
 class SpellRec;
 class SpellVisualKitRec;
 
+struct InspectItem {
+    /* 0000 */ WOWGUID m_creator;
+    /* 0008 */ int32_t m_itemId;
+    /* 000C */ int32_t m_enchants [12];
+    /* 003C */ int16_t m_randomPropertiesId;
+    /* 003E */ uint16_t m_flags;
+    /* 0040 */ uint32_t m_propertySeed;
+    /* 0044 */ uint32_t unk_0044;
+};
+
+struct InspectData {
+    /* 0000 */ WOWGUID m_guid;
+    /* 0008 */ InspectItem m_items [19];
+};
+
+class ItemSetRec;
+
 struct ITEMSWAP {
     /* 0000 */ WOWGUID m_guid;
     /* 0008 */ uint32_t unk_0008 [6];
@@ -85,6 +102,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     static const char* GetHairCustomizationName();
     static uint32_t GetPendingMovie();
     static uint32_t GetProficiency(uint8_t itemClass);
+    static bool CanDualWield();
     static void __stdcall GetQuestReward(const WOWGUID& questGiver, int32_t questId, int32_t reward);
     static void __stdcall GiveQuestItems(const WOWGUID& questGiver, int32_t questId);
     static int32_t IsGiftWrapping();
@@ -163,7 +181,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     /* 18F0 */ CGBag_C m_bag;
     /* 1908 */ uint32_t unk_1908 [6];
     /* 1920 */ uint32_t m_clientStandState;
-    /* 1924 */ uint32_t unk_1924 [4];
+    /* 1924 */ int32_t m_gemCounts [4];
     /* 1934 */ uint32_t m_combatModeTime;
     /* 1938 */ WOWGUID m_combatTarget;
     /* 1940 */ uint32_t m_pvpCooldownTimestamp;
@@ -218,6 +236,8 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     uint32_t GetSkillValue(int32_t index) const;
     const VisibleItem_C* GetVisibleItem(int32_t slot) const;
     int32_t GetModDamageDonePos(int32_t school) const;
+    bool MeetsItemSetSkill(const ItemSetRec* set) const;
+    InspectItem* GetInspectedItem(int32_t slot);
     int32_t GetModDamageDoneNeg(int32_t school) const;
     float GetModDamageDonePct(int32_t school) const;
     const CGItem_C* EquippedItemMeetSpellRequirements(const SpellRec* spell, uint32_t slotMask);

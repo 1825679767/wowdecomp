@@ -4,6 +4,8 @@
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
 
+class CGItem_C;
+
 struct lua_State;
 
 struct MerchantItem {
@@ -20,6 +22,8 @@ struct MerchantItem {
 class CGMerchantInfo {
     public:
     static void EnterWorld();
+    static MerchantItem* FindItemById(int32_t itemId);
+    static int32_t GetRepairCost(CGItem_C* item);
     static MerchantItem m_items[150];
     static WOWGUID m_merchant;
     static int32_t m_numMerchantItems;

@@ -798,6 +798,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void UpdatePartyMemberPetState();
     void ExecuteClientControlUpdate(WOWGUID guid, uint8_t state);
     int32_t UnitReaction(const CGUnit_C* unit) const;
+    float GetPlayerDiscount(const CGUnit_C* unit) const;
     void SetAttacking(WOWGUID guid);
     void UpdateObjectEffectMovementStates();
     void DestroyUnitMount(int32_t a2);

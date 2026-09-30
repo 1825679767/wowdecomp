@@ -21,6 +21,9 @@ class CGItem {
     virtual uint32_t GetItemStaticFlags(int32_t a1) = 0;
 
     int32_t IsUsable() const;
+    uint32_t GetDurability() const;
+    uint32_t GetMaxDurability() const;
+    int32_t GetPetitionSignatures();
 };
 
 struct ItemEnchantment {

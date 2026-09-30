@@ -26,6 +26,7 @@ class NameCache {
 
     NameCache();
     ~NameCache();
+    NameCache& Copy(const NameCache& other);
     void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);
     char* FullName(char* buffer, uint32_t size);

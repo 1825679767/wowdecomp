@@ -2,6 +2,7 @@
 #define WOW_SOURCE_UI_ITEMSOCKETINFO_H
 
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 
 struct lua_State;
 
@@ -19,9 +20,14 @@ int32_t Script_GetSocketItemRefundable(lua_State* L);
 int32_t Script_GetSocketItemBoundTradeable(lua_State* L);
 void ItemSocketInfoRegisterScriptFunctions();
 
+class ItemStats_C;
+
 class CGItemSocketInfo {
     public:
+    static WOWGUID m_gemItems[3];
+
     static void EnterWorld();
+    static int32_t GemMatchesSocket(const ItemStats_C* item, const ItemStats_C* gem, int32_t socket);
 };
 
 #endif

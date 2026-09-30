@@ -1,4 +1,7 @@
 #include "Calendar.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/HolidayNamesRec.h"
+#include "WoW/Source/DB/Rec/HolidaysRec.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
 // STATIC: 0x00C207EC
@@ -48,4 +51,17 @@ void CGCalendar::InitializeGame() {
     ClientServices::SetMessageHandler(SMSG_CALENDAR_EVENT_MODERATOR_STATUS_ALERT, PH_CALENDAR_GROUP, nullptr);
     ClientServices::SetMessageHandler(SMSG_CALENDAR_SEND_NUM_PENDING, PH_CALENDAR_GROUP, nullptr);
     ClientServices::SetMessageHandler(SMSG_CALENDAR_CLEAR_PENDING_ACTION, PH_CALENDAR_GROUP, nullptr);
+}
+
+// VERIFY: d8756e5f auto
+// OFFSET: 0x005B9430
+const char* GetHolidayName(int32_t holidayId) {
+    HolidaysRec* holiday = g_holidaysDB.GetRecord(holidayId);
+
+    if (!holiday) {
+        return nullptr;
+    }
+
+    HolidayNamesRec* name = g_holidayNamesDB.GetRecord(holiday->m_holidayNameID);
+    return name ? name->m_name : nullptr;
 }
