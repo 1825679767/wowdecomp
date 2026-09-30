@@ -68,6 +68,8 @@
 #include "WoW/Source/Ui/CAccountMsgHeaders.h"
 #include "WoW/Source/Ui/VideoOptions.h"
 #include "_Triage/CWOWClientStatus.h"
+#include "Engine/Source/Os/Time.h"
+#include "Engine/Source/Base/CDataStore.h"
 
 // STATIC: 0x009E2C28
 const uint8_t InterfaceKey[256] = {
@@ -650,10 +652,10 @@ void CGlueMgr::RealmListDialogCancelled() {
     }
 }
 
-// VERIFY: 0851bd2b auto
+// VERIFY: 227c1fe1 auto
 // OFFSET: 0x004D82A0
 void CGlueMgr::SetScreen(const char* screen) {
-    FrameScript_SignalEvent(0, "%s", screen);
+    FrameScript_SignalEvent(GLUE_EVENT_SET_GLUE_SCREEN, "%s", screen);
 }
 
 // VERIFY: d3e9c694 manual
@@ -1990,4 +1992,98 @@ int32_t CGlueMgr::NetDisconnectHandler(NetClient* client) {
     ClientServices::LoginConnection()->Logoff();
 
     return 1;
+}
+
+// VERIFY: 390f3100 manual
+// OFFSET: 0x004D7DA0
+void CGlueMgr::UpdateWaitQueue(int32_t position) {
+    if (position != CGlueMgr::m_queuePosition[0] || !CGlueMgr::m_queueTime[7]) {
+        for (int32_t i = 7; i; i--) {
+            CGlueMgr::m_queuePosition[i] = CGlueMgr::m_queuePosition[i - 1];
+            CGlueMgr::m_queueTime[i] = CGlueMgr::m_queueTime[i - 1];
+        }
+
+        CGlueMgr::m_queuePosition[0] = position;
+    }
+
+    uint32_t now = OsGetAsyncTimeMs();
+    CGlueMgr::m_queueTime[0] = now;
+
+    if (CGlueMgr::m_queueTime[7] && CGlueMgr::m_queuePosition[0] - CGlueMgr::m_queuePosition[7] < 0) {
+        CGlueMgr::m_estimatedWaitTime = -(position * (static_cast<int32_t>(now - CGlueMgr::m_queueTime[7]) / (CGlueMgr::m_queuePosition[0] - CGlueMgr::m_queuePosition[7])));
+    }
+}
+
+// VERIFY: 13f80fa2 manual
+// OFFSET: 0x004D8E10
+void CGlueMgr::CustomizeCharacter(WOWGUID guid, const CHARACTER_CREATE_INFO* info) {
+    if (!guid || !info || !info->m_name[0]) {
+        return;
+    }
+
+    CGlueMgr::m_idleState = IDLE_9;
+    CGlueMgr::m_showedDisconnect = 0;
+    FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CANCEL", FrameScript_GetText("CHAR_CUSTOMIZE_IN_PROGRESS", -1, GENDER_NOT_APPLICABLE));
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_CHAR_CUSTOMIZE));
+    msg.Put(guid.m_guid);
+    msg.PutString(info->m_name);
+    msg.Put(info->m_sexID);
+    msg.Put(info->m_skinID);
+    msg.Put(info->m_hairColorID);
+    msg.Put(info->m_hairStyleID);
+    msg.Put(info->m_facialHairStyleID);
+    msg.Put(info->m_faceID);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: ac651ceb manual
+// OFFSET: 0x004D8F20
+void CGlueMgr::FactionChange(WOWGUID guid, const CHARACTER_CREATE_INFO* info) {
+    if (!guid || !info || !info->m_name[0]) {
+        return;
+    }
+
+    CGlueMgr::m_idleState = IDLE_9;
+    CGlueMgr::m_showedDisconnect = 0;
+    FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CANCEL", FrameScript_GetText("FACTION_CHANGE_IN_PROGRESS", -1, GENDER_NOT_APPLICABLE));
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_CHAR_FACTION_CHANGE));
+    msg.Put(guid.m_guid);
+    msg.PutString(info->m_name);
+    msg.Put(info->m_sexID);
+    msg.Put(info->m_skinID);
+    msg.Put(info->m_hairColorID);
+    msg.Put(info->m_hairStyleID);
+    msg.Put(info->m_facialHairStyleID);
+    msg.Put(info->m_faceID);
+    msg.Put(info->m_raceID);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 72aae471 manual
+// OFFSET: 0x004D9040
+void CGlueMgr::RaceChange(WOWGUID guid, const CHARACTER_CREATE_INFO* info) {
+    if (!guid || !info || !info->m_name[0]) {
+        return;
+    }
+
+    CGlueMgr::m_idleState = IDLE_9;
+    CGlueMgr::m_showedDisconnect = 0;
+    FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "CANCEL", FrameScript_GetText("RACE_CHANGE_IN_PROGRESS", -1, GENDER_NOT_APPLICABLE));
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_CHAR_RACE_CHANGE));
+    msg.Put(guid.m_guid);
+    msg.PutString(info->m_name);
+    msg.Put(info->m_sexID);
+    msg.Put(info->m_skinID);
+    msg.Put(info->m_hairColorID);
+    msg.Put(info->m_hairStyleID);
+    msg.Put(info->m_facialHairStyleID);
+    msg.Put(info->m_faceID);
+    msg.Put(info->m_raceID);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
 }

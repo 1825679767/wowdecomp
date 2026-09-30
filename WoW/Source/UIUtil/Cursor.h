@@ -3,6 +3,9 @@
 
 #include <cstdint>
 
+struct MipBits;
+
+int32_t CopyCursorImage(uint32_t* image, MipBits* mipImages, uint32_t width, uint32_t height);
 void CursorInitialize();
 
 void CursorReleaseItemMips();

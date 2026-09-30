@@ -25,7 +25,11 @@ struct PendingLootRoll : public TSLinkedNode<PendingLootRoll> {
     /* 0044 */ uint32_t m_rollTime;
     /* 0048 */ uint32_t m_voteMask;
     /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050 [2];
+    /* 0050 */ uint8_t unk_0050 [2];
+    /* 0052 */ uint8_t m_reasonNeed;
+    /* 0053 */ uint8_t m_reasonGreed;
+    /* 0054 */ uint8_t m_reasonDisenchant;
+    /* 0055 */ uint8_t unk_0055 [3];
 };
 
 extern TSExplicitList<PendingLootRoll, offsetof(PendingLootRoll, m_link)> s_pendingLootRolls;

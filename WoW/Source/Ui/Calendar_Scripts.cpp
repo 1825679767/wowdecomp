@@ -2,6 +2,54 @@
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
+#include "WoW/Source/Game/GameTime.h"
+
+// STATIC: 0x00ACFFB4
+static const char* s_monthNames[12] = { "MONTH_JANUARY", "MONTH_FEBRUARY", "MONTH_MARCH", "MONTH_APRIL", "MONTH_MAY", "MONTH_JUNE", "MONTH_JULY", "MONTH_AUGUST", "MONTH_SEPTEMBER", "MONTH_OCTOBER", "MONTH_NOVEMBER", "MONTH_DECEMBER" };
+
+// STATIC: 0x00AD0014
+static const char* s_weekdayNames[7] = { "WEEKDAY_SUNDAY", "WEEKDAY_MONDAY", "WEEKDAY_TUESDAY", "WEEKDAY_WEDNESDAY", "WEEKDAY_THURSDAY", "WEEKDAY_FRIDAY", "WEEKDAY_SATURDAY" };
+
+// VERIFY: 98948d66 auto
+// OFFSET: 0x005B8C10
+static int32_t Script_CalendarIsActionPending(lua_State* L) {
+    lua_pushboolean(L, CGCalendar::m_actionPending);
+    return 1;
+}
+
+// VERIFY: 9224a39b auto
+// OFFSET: 0x005B80E0
+static int32_t Script_CalendarGetMonthNames(lua_State* L) {
+    lua_checkstack(L, 12);
+
+    for (uint32_t i = 0; i < 12; i++) {
+        lua_pushstring(L, FrameScript_GetText(s_monthNames[i], -1, GENDER_NOT_APPLICABLE));
+    }
+
+    return 12;
+}
+
+// VERIFY: 735dbaf4 auto
+// OFFSET: 0x005B8120
+static int32_t Script_CalendarGetWeekdayNames(lua_State* L) {
+    lua_checkstack(L, 7);
+
+    for (uint32_t i = 0; i < 7; i++) {
+        lua_pushstring(L, FrameScript_GetText(s_weekdayNames[i], -1, GENDER_NOT_APPLICABLE));
+    }
+
+    return 7;
+}
+
+// VERIFY: 5afc3ec9 auto
+// OFFSET: 0x005B8160
+static int32_t Script_CalendarGetDate(lua_State* L) {
+    lua_pushnumber(L, g_clientGameTime.m_weekDay + 1);
+    lua_pushnumber(L, g_clientGameTime.m_month + 1);
+    lua_pushnumber(L, g_clientGameTime.m_monthDay + 1);
+    lua_pushnumber(L, g_clientGameTime.m_year + 2000);
+    return 4;
+}
 
 // STATIC: 0x00AD0030
 static FrameScript_Method s_ScriptFunctions[] = {

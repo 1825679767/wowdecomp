@@ -3,7 +3,9 @@
 
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
+#include "WoW/Source/Net/Types.h"
 
+class CDataStore;
 struct lua_State;
 
 struct EQUIPMENT_SET {
@@ -17,9 +19,18 @@ struct EQUIPMENT_SET {
     /* 0230 */ uint32_t unk_0230;
 };
 
+int32_t Packet_SMSG_EQUIPMENT_SET_LIST(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_EQUIPMENT_SET_SAVED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_EQUIPMENT_SET_USE_RESULT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+
 class CGEquipmentManager {
     public:
+    static uint32_t* s_equipmentSetHeap;
     static void EnterWorld();
+    static uint8_t m_lastCanUseEquipmentSetsValue;
+    static uint8_t m_swapPending;
+    static int32_t m_ignoredSlots[19];
+    static int32_t m_pendingSetID;
     static int32_t CanUseEquipmentSets(bool a1);
     static const EQUIPMENT_SET* GetSetByID(int32_t id);
     static int32_t SetContainsLockedItems(const EQUIPMENT_SET* set);
@@ -32,10 +43,7 @@ class CGEquipmentManager {
 int32_t Script_SaveEquipmentSet(lua_State* L);
 int32_t Script_DeleteEquipmentSet(lua_State* L);
 int32_t Script_RenameEquipmentSet(lua_State* L);
-int32_t Script_EquipmentManagerIgnoreSlotForSave(lua_State* L);
-int32_t Script_EquipmentManagerIsSlotIgnoredForSave(lua_State* L);
 int32_t Script_EquipmentManagerClearIgnoredSlotsForSave(lua_State* L);
-int32_t Script_EquipmentManagerUnignoreSlotForSave(lua_State* L);
 int32_t Script_GetEquipmentSetLocations(lua_State* L);
 int32_t Script_GetEquipmentSetItemIDs(lua_State* L);
 int32_t Script_GetNumEquipmentSets(lua_State* L);
@@ -45,7 +53,6 @@ int32_t Script_EquipmentSetContainsLockedItems(lua_State* L);
 int32_t Script_PickupEquipmentSetByName(lua_State* L);
 int32_t Script_PickupEquipmentSet(lua_State* L);
 int32_t Script_UseEquipmentSet(lua_State* L);
-int32_t Script_CanUseEquipmentSets(lua_State* L);
 void EquipmentManagerRegisterScriptFunctions();
 
 #endif

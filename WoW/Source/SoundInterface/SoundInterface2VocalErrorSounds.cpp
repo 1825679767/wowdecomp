@@ -10,6 +10,9 @@
 // STATIC: 0x00DCEAF8
 static int32_t s_vocalErrorSounds[68];
 
+// STATIC: 0x00DCEC08
+static SE2SoundKitObject s_vocalErrorObject;
+
 // VERIFY: 2b3e2ff2 manual
 // OFFSET: 0x00986C90
 void SI2::InitVocalErrorSounds(int32_t race, uint32_t sex) {
@@ -27,9 +30,6 @@ void SI2::InitVocalErrorSounds(int32_t race, uint32_t sex) {
         }
     }
 }
-
-// STATIC: 0x00DCEC08
-static SE2SoundKitObject s_vocalErrorObject;
 
 // VERIFY: 535f9207 auto
 // OFFSET: 0x00986D00

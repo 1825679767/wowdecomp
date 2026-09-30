@@ -16,7 +16,7 @@ class ItemStats_C {
     /* 0010 */ uint32_t m_displayId;
     /* 0014 */ uint32_t m_quality;
     /* 0018 */ uint32_t m_flags [2];
-    /* 0020 */ uint32_t m_buyPrice;
+    /* 0020 */ int32_t m_buyPrice;
     /* 0024 */ uint32_t m_sellPrice;
     /* 0028 */ uint32_t m_inventoryType;
     /* 002C */ uint32_t m_allowableClass;
@@ -31,7 +31,7 @@ class ItemStats_C {
     /* 0050 */ uint32_t m_requiredReputationFaction;
     /* 0054 */ uint32_t m_requiredReputationRank;
     /* 0058 */ uint32_t m_maxCount;
-    /* 005C */ uint32_t m_stackable;
+    /* 005C */ int32_t m_stackable;
     /* 0060 */ uint32_t m_containerSlots;
     /* 0064 */ int32_t m_statsCount;
     /* 0068 */ uint32_t m_statType [10];

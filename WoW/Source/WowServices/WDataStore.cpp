@@ -15,13 +15,14 @@ static WDataStoreHeap* s_superBufferHeap;
 // STATIC: 0x00B38CFC
 static bool s_initialized;
 
-// INLINED
+// VERIFY: 4532c277 manual
+// OFFSET: 0x00403EC0
 WDataStore::WDataStore() {
     this->InternalInitialize(this->m_data, this->m_base, this->m_alloc);
 }
 
 // VERIFY: 439c74d3 manual
-// OFFSET: 0x00403F60
+// OFFSET: 0x00403F10
 WDataStore::~WDataStore() {
     if (this->m_alloc != -1) {
         this->InternalDestroy(this->m_data, this->m_base, this->m_alloc);

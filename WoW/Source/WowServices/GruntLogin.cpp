@@ -497,3 +497,56 @@ void GruntLogin::SetMatrixInfo(bool enabled, uint8_t width, uint8_t height, uint
 
     memset(this->m_matrixProof, 0, sizeof(this->m_matrixProof));
 }
+
+// VERIFY: 853abd14 auto
+// OFFSET: 0x008CA540
+int32_t GruntLogin::GetSurveyId() {
+    return this->m_clientLink->m_surveyId;
+}
+
+// VERIFY: 4d5b8b79 manual
+// OFFSET: 0x008CA9B0
+void GruntLogin::RevertMatrix() {
+    GruntLogin::MATRIXINPUT* input = this->m_matrixInput;
+    GruntLogin::MATRIXINPUT* committed = this->m_matrixCommitted;
+    committed->m_valid = input->m_valid;
+    committed->m_hmac = input->m_hmac;
+    committed->m_key = input->m_key;
+}
+
+// VERIFY: 29727393 auto
+// OFFSET: 0x008CAB40
+void GruntLogin::EnterToken(const char* token) {
+    SStrCopy(this->m_token, token, sizeof(this->m_token));
+    LOGIN_STATE state = this->NextSecurityState(LOGIN_STATE_TOKEN);
+    this->m_loginResponse->UpdateLoginStatus(state, LOGIN_OK, nullptr, 0);
+}
+
+// VERIFY: d42deb51 auto
+// OFFSET: 0x008CAA30
+bool GruntLogin::GetMatrixInfo(uint32_t* width, uint32_t* height, uint32_t* minDigits, uint32_t* maxDigits, bool* flipCoords, uint32_t* challengeCount) {
+    if (!this->m_matrixEnabled) {
+        return false;
+    }
+
+    *width = this->m_matrixWidth;
+    *height = this->m_matrixHeight;
+    *minDigits = this->m_matrixMinDigitCount;
+    *maxDigits = this->m_matrixMaxDigitCount;
+    *flipCoords = this->m_matrixFlipCoords;
+    *challengeCount = this->m_matrixChallengeCount;
+    return true;
+}
+
+// VERIFY: ab7f843b auto
+// OFFSET: 0x008CAA90
+bool GruntLogin::GetMatrixCoordinates(uint32_t index, uint32_t* x, uint32_t* y) {
+    if (!this->m_matrixEnabled || !this->m_matrixCoordinates || index >= this->m_matrixChallengeCount) {
+        return false;
+    }
+
+    uint32_t coordinate = this->m_matrixCoordinates[index];
+    *x = coordinate % this->m_matrixWidth;
+    *y = coordinate / this->m_matrixWidth;
+    return true;
+}

@@ -151,6 +151,19 @@ static int32_t Script_SetDisabledCheckedTexture(lua_State* L) {
     return 0;
 }
 
+// VERIFY: dd86ea1c auto
+// OFFSET: 0x00976B10
+void CSimpleCheckbox::DestroyScriptMetaTable() {
+    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CSimpleCheckbox::s_metatable);
+    CSimpleCheckbox::s_metatable = LUA_NOREF;
+}
+
+// VERIFY: 19366438 auto
+// OFFSET: 0x00976FB0
+void CSimpleCheckbox::CreateScriptMetaTable() {
+    CSimpleCheckbox::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CSimpleCheckbox::RegisterScriptMethods);
+}
+
 // STATIC: 0x00B2D3E4
 static FrameScript_Method s_ScriptMethods[] = {
     { "SetChecked", &Script_SetChecked },
@@ -166,17 +179,4 @@ static FrameScript_Method s_ScriptMethods[] = {
 void CSimpleCheckbox::RegisterScriptMethods(lua_State* L) {
     CSimpleButton::RegisterScriptMethods(L);
     FrameScript_Object::FillScriptMethodTable(L, s_ScriptMethods, sizeof(s_ScriptMethods) / sizeof(s_ScriptMethods[0]));
-}
-
-// VERIFY: dd86ea1c auto
-// OFFSET: 0x00976B10
-void CSimpleCheckbox::DestroyScriptMetaTable() {
-    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CSimpleCheckbox::s_metatable);
-    CSimpleCheckbox::s_metatable = LUA_NOREF;
-}
-
-// VERIFY: 19366438 auto
-// OFFSET: 0x00976FB0
-void CSimpleCheckbox::CreateScriptMetaTable() {
-    CSimpleCheckbox::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CSimpleCheckbox::RegisterScriptMethods);
 }

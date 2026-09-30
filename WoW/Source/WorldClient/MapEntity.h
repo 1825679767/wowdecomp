@@ -30,6 +30,8 @@ class FogQueue : public CMemBlock {
     void Push(float distance, uint32_t fogIndex);
 };
 
+class WMOAreaTableRec;
+
 class CMapEntity : public CMapStaticEntity {
     public:
     void Tick();
@@ -53,6 +55,10 @@ class CMapEntity : public CMapStaticEntity {
 
     CMapEntity();
     int32_t QueryInterior();
+    int32_t QueryMapObjZoneName(const char** zoneName);
+    int32_t QueryMapObjSubzoneName(const char** subzoneName, int32_t* areaId);
+    bool QueryMapObjAreaTable(WMOAreaTableRec** groupRec, WMOAreaTableRec** rootRec, int32_t* wmoGroupId);
+    bool QueryMapObjIDs(int32_t* wmoId, int32_t* wmoHash, int32_t* groupNum);
     void QueryLiquidSounds(TSGrowableArray<World::LiquidQueryResult>& results, uint32_t* distance);
     bool UpdateMapObjLiquid();
 };

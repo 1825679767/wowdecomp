@@ -587,6 +587,19 @@ static int32_t Script_SetMotionScriptsWhileDisabled(lua_State* L) {
     return 0;
 }
 
+// VERIFY: a9654e41 auto
+// OFFSET: 0x00977060
+void CSimpleButton::DestroyScriptMetaTable() {
+    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CSimpleButton::s_metatable);
+    CSimpleButton::s_metatable = LUA_NOREF;
+}
+
+// VERIFY: 88a11534 auto
+// OFFSET: 0x00978400
+void CSimpleButton::CreateScriptMetaTable() {
+    CSimpleButton::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CSimpleButton::RegisterScriptMethods);
+}
+
 // STATIC: 0x00B2D418
 static FrameScript_Method s_ScriptMethods[] = {
     { "Enable", &Script_Enable },
@@ -630,17 +643,4 @@ static FrameScript_Method s_ScriptMethods[] = {
 void CSimpleButton::RegisterScriptMethods(lua_State* L) {
     CSimpleFrame::RegisterScriptMethods(L);
     FrameScript_Object::FillScriptMethodTable(L, s_ScriptMethods, sizeof(s_ScriptMethods) / sizeof(s_ScriptMethods[0]));
-}
-
-// VERIFY: a9654e41 auto
-// OFFSET: 0x00977060
-void CSimpleButton::DestroyScriptMetaTable() {
-    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CSimpleButton::s_metatable);
-    CSimpleButton::s_metatable = LUA_NOREF;
-}
-
-// VERIFY: 88a11534 auto
-// OFFSET: 0x00978400
-void CSimpleButton::CreateScriptMetaTable() {
-    CSimpleButton::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CSimpleButton::RegisterScriptMethods);
 }

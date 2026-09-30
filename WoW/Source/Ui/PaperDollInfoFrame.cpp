@@ -9,15 +9,45 @@
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
+// STATIC: 0x00C24230
+TSFixedArray<int32_t> CGCharacterInfo::m_invAlertStatus;
+
+// STATIC: 0x00C24220
+WOWGUID CGCharacterInfo::m_inspectTarget;
+
+// STATIC: 0x00C24228
+int32_t CGCharacterInfo::m_hasHonorData = -1;
+
+// STATIC: 0x00C241C0
+InspectArenaTeam CGCharacterInfo::m_inspectArenaTeams[3];
+
+// STATIC: 0x00C24208
+uint32_t CGCharacterInfo::m_inspectLifetimeHonorableKills;
+
+// STATIC: 0x00C2420C
+uint32_t CGCharacterInfo::m_inspectYesterdayHonor;
+
+// STATIC: 0x00C24210
+uint32_t CGCharacterInfo::m_inspectTodayHonor;
+
+// STATIC: 0x00C24214
+uint16_t CGCharacterInfo::m_inspectYesterdayHonorableKills;
+
+// STATIC: 0x00C24216
+uint8_t CGCharacterInfo::m_inspectLifetimeHighestRank;
+
+// STATIC: 0x00C24218
+uint16_t CGCharacterInfo::m_inspectTodayHonorableKills;
+
+// STATIC: 0x00C2422C
+int32_t CGCharacterInfo::m_honorRequestPending;
+
 // VERIFY: 37e279b1 auto
 // OFFSET: 0x005E8440
 void CGCharacterInfo::InitializeGame() {
     ClientServices::SetMessageHandler(MSG_INSPECT_HONOR_STATS, Packet_MSG_INSPECT_HONOR_STATS, nullptr);
     ClientServices::SetMessageHandler(MSG_INSPECT_ARENA_TEAMS, Packet_MSG_INSPECT_ARENA_TEAMS, nullptr);
 }
-
-// STATIC: 0x00C24230
-TSFixedArray<int32_t> CGCharacterInfo::m_invAlertStatus;
 
 // VERIFY: 174a574b auto
 // OFFSET: 0x005E8470
@@ -64,9 +94,6 @@ void CGCharacterInfo::EnterWorld() {
     CGCharacterInfo::m_invAlertStatus.SetCount(12);
     CGCharacterInfo::UpdateInventoryAlerts();
 }
-
-// STATIC: 0x00C24220
-WOWGUID CGCharacterInfo::m_inspectTarget;
 
 // VERIFY: e09601e2 auto
 // OFFSET: 0x005E7660
@@ -127,4 +154,56 @@ int32_t CGCharacterInfo::GetActivePlayerAmmoID(const CGPlayer_C* player) {
     }
 
     return 0;
+}
+
+// VERIFY: b07082fe auto
+// OFFSET: 0x005E7A50
+int32_t Packet_MSG_INSPECT_HONOR_STATS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID guid;
+    msg->Get(guid.m_guid);
+
+    if (guid != CGCharacterInfo::m_inspectTarget) {
+        msg->m_read = msg->m_size;
+        return 1;
+    }
+
+    msg->Get(CGCharacterInfo::m_inspectLifetimeHighestRank);
+    msg->Get(CGCharacterInfo::m_inspectTodayHonorableKills);
+    msg->Get(CGCharacterInfo::m_inspectYesterdayHonorableKills);
+    msg->Get(CGCharacterInfo::m_inspectTodayHonor);
+    msg->Get(CGCharacterInfo::m_inspectYesterdayHonor);
+    msg->Get(CGCharacterInfo::m_inspectLifetimeHonorableKills);
+    CGCharacterInfo::m_hasHonorData = 1;
+    CGCharacterInfo::m_honorRequestPending = 0;
+    FrameScript_SignalEvent(SCRIPT_EVENT_INSPECT_HONOR_UPDATE, nullptr);
+    return 1;
+}
+
+// VERIFY: f1172d97 auto
+// OFFSET: 0x005E7B00
+int32_t Packet_MSG_INSPECT_ARENA_TEAMS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID guid;
+    msg->Get(guid.m_guid);
+
+    if (guid != CGCharacterInfo::m_inspectTarget) {
+        msg->m_read = msg->m_size;
+        return 1;
+    }
+
+    uint8_t slot;
+    msg->Get(slot);
+
+    if (slot > 3) {
+        msg->m_read = msg->m_size;
+        return 1;
+    }
+
+    msg->Get(CGCharacterInfo::m_inspectArenaTeams[slot].m_teamId);
+    msg->Get(CGCharacterInfo::m_inspectArenaTeams[slot].m_rating);
+    msg->Get(CGCharacterInfo::m_inspectArenaTeams[slot].m_weekGames);
+    msg->Get(CGCharacterInfo::m_inspectArenaTeams[slot].m_weekWins);
+    msg->Get(CGCharacterInfo::m_inspectArenaTeams[slot].m_seasonGames);
+    msg->Get(CGCharacterInfo::m_inspectArenaTeams[slot].m_personalRating);
+    FrameScript_SignalEvent(SCRIPT_EVENT_INSPECT_HONOR_UPDATE, nullptr);
+    return 1;
 }

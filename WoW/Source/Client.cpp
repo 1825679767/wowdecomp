@@ -1244,7 +1244,7 @@ void ClientInitializeGame(uint32_t mapId, C3Vector position) {
     s_gameInitialized = 1;
 }
 
-// VERIFY: d0ea5e5a manual
+// VERIFY: 11fc177d manual
 // OFFSET: 0x00405DD0
 static void OpenArchives() {
     int32_t availability = CheckDataFilesExist() + 1;
@@ -1394,8 +1394,8 @@ static void OpenArchives() {
             SFile::s_locale = code;
             bool isGB = SStrCmpI("enGB", s_iniLocale, STORM_MAX_STR) == 0;
 
-            for (int32_t i = 1; i < 9; i++) {
-                if (!SStrCmpI(s_iniLocale, s_iniLocaleNames[i - 1], STORM_MAX_STR) || (isGB && !SStrCmpI("enUS", s_iniLocaleNames[i - 1], STORM_MAX_STR))) {
+            for (int32_t i = 0; i < 9; i++) {
+                if (!SStrCmpI(s_iniLocale, s_iniLocaleNames[i], STORM_MAX_STR) || (isGB && !SStrCmpI("enUS", s_iniLocaleNames[i], STORM_MAX_STR))) {
                     s_locale = i;
 
                     switch (i) {
@@ -1889,5 +1889,19 @@ int32_t Packet_SMSG_TRANSFER_ABORTED(void* param, NETMESSAGE msgId, uint32_t tim
 
     ConsolePrintf("World transfer aborted...");
     LoadingScreenDisable();
+    return 1;
+}
+
+// VERIFY: d7d71bd8 auto
+// OFFSET: 0x004034F0
+int32_t STORMAPI SendErrorLog(uint32_t errorcode, const char* description, const char* filename, int32_t linenumber, const char* errorstring) {
+    char path[260];
+
+    if (SErrGetLogLastPath(path, sizeof(path))) {
+        char commandLine[520];
+        SStrPrintf(commandLine, sizeof(commandLine), "%s %s", "WowError.exe", path);
+        SCreateProcess("WowError.exe", commandLine, nullptr, nullptr);
+    }
+
     return 1;
 }

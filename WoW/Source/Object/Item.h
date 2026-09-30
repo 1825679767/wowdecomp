@@ -36,7 +36,7 @@ class CGItemData {
     /* 0008 */ WOWGUID m_itemFieldContained;
     /* 0010 */ WOWGUID m_itemFieldCreator;
     /* 0018 */ WOWGUID m_itemFieldGiftcreator;
-    /* 0020 */ uint32_t m_itemFieldStackCount;
+    /* 0020 */ int32_t m_itemFieldStackCount;
     /* 0024 */ uint32_t m_itemFieldDuration;
     /* 0028 */ int32_t m_itemFieldSpellCharges [5];
     /* 003C */ uint32_t m_itemFieldFlags;

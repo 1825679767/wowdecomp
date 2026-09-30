@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <windows.h>
 #include "WoW/Source/Object/WGUID.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 struct CVar;
 class CGObject_C;
@@ -14,8 +15,7 @@ class CImVector;
 
 class PLAYERNAMEDESC {
     public:
-    /* 0000 */ uint32_t m_link;
-    /* 0004 */ uint32_t unk_0004;
+    /* 0000 */ TSLink<PLAYERNAMEDESC> m_link;
     /* 0008 */ uint32_t m_string;
     /* 000C */ uint32_t m_color;
     /* 0010 */ WOWGUID m_guid;
@@ -28,6 +28,9 @@ class PLAYERNAMEDESC {
     static int32_t ShouldRender(CGObject_C* object, uint32_t raidTarget);
     static void RenderIfVisible(CM2Model* model, const CM2Lighting* lighting, void* arg);
 };
+
+extern uint32_t s_nameMask;
+extern TSExplicitList<PLAYERNAMEDESC, offsetof(PLAYERNAMEDESC, m_link)> s_playerNames;
 
 PLAYERNAMEDESC* PlayerNameCreate(const WOWGUID& guid);
 void PlayerNameDelete(PLAYERNAMEDESC* desc);

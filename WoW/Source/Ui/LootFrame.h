@@ -21,8 +21,23 @@ struct LootInfo {
 void LootDestroy();
 void LootInitialize();
 
+struct LootSlot {
+    /* 0000 */ int32_t m_pending;
+    /* 0004 */ int32_t m_itemID;
+    /* 0008 */ int32_t unk_0008;
+    /* 000C */ int32_t m_count;
+    /* 0010 */ int32_t unk_0010;
+    /* 0014 */ int32_t unk_0014;
+    /* 0018 */ uint8_t m_slot;
+    /* 0019 */ uint8_t unk_0019[3];
+    /* 001C */ int32_t m_slotType;
+};
+
 class CGLootInfo {
     public:
+    static uint32_t m_lootType;
+    static LootSlot m_slots[18];
+    static int32_t m_coins;
     static WOWGUID m_lootObj;
 
     static void InitializeGame();
@@ -33,17 +48,11 @@ int32_t Script_SetLootPortrait(lua_State* L);
 int32_t Script_GetNumLootItems(lua_State* L);
 int32_t Script_GetLootSlotInfo(lua_State* L);
 int32_t Script_GetLootSlotLink(lua_State* L);
-int32_t Script_LootSlotIsItem(lua_State* L);
-int32_t Script_LootSlotIsCoin(lua_State* L);
 int32_t Script_LootSlot(lua_State* L);
 int32_t Script_ConfirmLootSlot(lua_State* L);
 int32_t Script_CloseLoot(lua_State* L);
-int32_t Script_IsFishingLoot(lua_State* L);
-int32_t Script_GetMasterLootCandidate(lua_State* L);
 int32_t Script_GiveMasterLoot(lua_State* L);
-int32_t Script_GetLootRollItemInfo(lua_State* L);
 int32_t Script_GetLootRollItemLink(lua_State* L);
-int32_t Script_GetLootRollTimeLeft(lua_State* L);
 int32_t Script_RollOnLoot(lua_State* L);
 int32_t Script_ConfirmLootRoll(lua_State* L);
 void LootInfoRegisterScriptFunctions();

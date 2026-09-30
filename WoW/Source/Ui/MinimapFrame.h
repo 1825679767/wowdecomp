@@ -7,6 +7,7 @@
 #include "Engine/Source/Frame/CSimpleFrame.h"
 #include "Engine/Source/Gx/CGxTex.h"
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Tempest/C2Vector.h"
 
 class CRenderBatch;
 class CScriptRegion;
@@ -14,6 +15,18 @@ class CSimpleTexture;
 class CStatus;
 class XMLNode;
 struct lua_State;
+
+class AreaPOIRec;
+
+struct TrackingTypeInfo {
+    /* 0000 */ int32_t m_type;
+    /* 0004 */ uint32_t m_npcFlags;
+    /* 0008 */ const char* m_name;
+    /* 000C */ const char* m_texture;
+    /* 0010 */ uint32_t m_classMask;
+};
+
+void DisplayQuestPoint(float x, float y, int32_t a3, const char* name);
 
 class CGMinimapFrame : public CSimpleFrame {
     public:
@@ -38,6 +51,11 @@ class CGMinimapFrame : public CSimpleFrame {
     static float s_blipHalfSize3;
     static float s_blipSize4;
     static C3Vector s_blipQuads[3][4];
+    static const TrackingTypeInfo* s_trackingInfo;
+    static const TrackingTypeInfo s_trackingTypes[15];
+    static int32_t CountAvailableTrackingTypes();
+    static const TrackingTypeInfo* GetTrackingTypeByIndex(int32_t index);
+    static int32_t s_trackingSpell;
 
     static void operator delete(void* ptr);
     static CSimpleFrame* Create(CSimpleFrame* parent);
@@ -71,13 +89,11 @@ class CGMinimapFrame : public CSimpleFrame {
     void UpdateRotation(float facing);
 };
 
-int32_t Script_GetNumTrackingTypes(lua_State* L);
-int32_t Script_GetTrackingInfo(lua_State* L);
 int32_t Script_SetTracking(lua_State* L);
-int32_t Script_GetTrackingTexture(lua_State* L);
 void MinimapRegisterScriptFunctions();
 
 void MinimapInitialize(int32_t mapId);
+AreaPOIRec* MinimapGetGossipPoi();
 void MinimapSetCorpsePOI(float x, float y);
 void MinimapSetSpiritHealerPOI(float x, float y);
 

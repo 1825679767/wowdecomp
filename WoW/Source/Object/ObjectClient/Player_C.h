@@ -119,6 +119,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     static void __stdcall QueryQuest(const WOWGUID& questGiver, int32_t questId);
     static void __stdcall QueryQuestGiverStatus(const WOWGUID& questGiver);
     static void QueryQuestGiverStatusMultiple();
+    bool IsRAFPlayer(WOWGUID guid);
     static void __stdcall QueryTaxiNodes(const WOWGUID& guid);
     static void __stdcall QuestLogRemoveQuest(uint8_t slot);
     static void __stdcall ReadItem(uint8_t bag, uint8_t slot);
@@ -172,13 +173,15 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     /* 1950 */ uint32_t m_playedTimeBase;
     /* 1954 */ uint32_t unk_1954;
 
+    const CGBag_C* GetBag() const override;
+    CGBag_C* GetBag() override;
     void GetAFKText(char* buffer, uint32_t size) const override;
     void GetDNDText(char* buffer, uint32_t size) const override;
     void GetGMText(char* buffer, uint32_t size) const override;
     void GetDevText(char* buffer, uint32_t size) const override;
     uint32_t GetImpactType() const override;
     const CGUnitVirtualItem* GetDefendingItem() const override;
-    int32_t IsDeadOrGhost() const override;
+    bool IsDeadOrGhost() const override;
     uint32_t GetClientStandState() const override;
     void Reenable() override;
     void PostReenable() override;
@@ -271,6 +274,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void PostInitActivePlayer();
     void UpdatePartyMemberState();
     void SetActiveMirrorHandlers();
+    void MeleeModeLeave();
 };
 
 class PlaySpellVisuaKitData {

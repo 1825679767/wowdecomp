@@ -43,6 +43,12 @@ TSHashTable<FACTION, HASHKEY_NONE> CGReputationInfo::m_factions;
 // STATIC: 0x00AD0AE4
 uint32_t CGReputationInfo::m_collapsedHeaders = 0xFFFFFFFF;
 
+// STATIC: 0x00C2347C
+int32_t CGReputationInfo::m_selectedFaction;
+
+// STATIC: 0x00A2D2FC
+const int32_t CGReputationInfo::m_reactionThresholds[9] = { -42000, -6000, -3000, 0, 3000, 9000, 21000, 42000, 43000 };
+
 // VERIFY: 9f6b81ad auto
 // OFFSET: 0x005CFE40
 static int32_t GetHeaderIndex(int32_t factionId) {
@@ -828,4 +834,16 @@ int32_t Packet_SMSG_SET_FACTION_STANDING(void* param, NETMESSAGE msgId, uint32_t
 
     FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_FACTION, nullptr);
     return 1;
+}
+
+// VERIFY: ff348b08 auto
+// OFFSET: 0x005D05B0
+int32_t GetRepListRepValue(int32_t faction) {
+    FactionRec* rec = g_factionDB.GetRecord(faction);
+
+    if (!rec || static_cast<uint32_t>(rec->m_reputationIndex) > 127) {
+        return 0;
+    }
+
+    return CGReputationInfo::m_factionStandings[rec->m_reputationIndex].m_base + CGReputationInfo::m_factionStandings[rec->m_reputationIndex].m_standing;
 }

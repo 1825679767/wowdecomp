@@ -18,8 +18,8 @@ struct SpellUsableInfo {
 
 struct SpellBookSkillInfo {
     /* 0000 */ int32_t m_skillLine;
-    /* 0004 */ int32_t m_count;
-    /* 0008 */ int32_t m_unk08;
+    /* 0004 */ uint32_t m_count;
+    /* 0008 */ uint32_t m_unk08;
 };
 
 struct SPELLRANKNODE : public TSLinkedNode<SPELLRANKNODE> {
@@ -42,8 +42,12 @@ class CGSpellBook {
     static void UpdateCooldowns();
     static int32_t IsTrackingSpell(int32_t spellId);
     static TSFixedArray<int32_t> m_languageSpells;
+    static TSGrowableArray<int32_t> m_unlearnedSpells;
     static int32_t m_duelSpell;
     static int32_t m_stuckSpell;
+    static uint32_t m_numPetSpells;
+    static int32_t m_summonFriendSpell;
+    static TSGrowableArray<int32_t> m_companions[2];
 
     static void AddKnownSpell(int32_t spellId, int32_t notify, int32_t replaceSpell);
     static void AddSpellToNameCache(int32_t spellId, int32_t a2);
@@ -73,10 +77,14 @@ class CGSpellBook {
 int32_t IsValidSpell(const char* name, int32_t* petSpell);
 int32_t GetSpellSlot(int32_t spellId, int32_t petSpell);
 extern TSGrowableArray<SpellUsableInfo> s_shapeshiftSpells;
+extern uint32_t s_numSkillInfos;
+extern uint32_t s_unkBE5D88[1024];
+extern int32_t s_spellList[1024];
+extern uint32_t s_numSpells;
+extern uint32_t s_unkBE8D9C;
+extern TSGrowableArray<SpellBookSkillInfo*> s_skillInfos;
 void PrefetchSpellVisuals(int32_t spellId);
 
-int32_t Script_GetNumSpellTabs(lua_State* L);
-int32_t Script_GetSpellTabInfo(lua_State* L);
 int32_t Script_GetSpellName(lua_State* L);
 int32_t Script_GetSpellLink(lua_State* L);
 int32_t Script_GetSpellInfo(lua_State* L);
@@ -100,9 +108,6 @@ int32_t Script_IsHarmfulSpell(lua_State* L);
 int32_t Script_IsConsumableSpell(lua_State* L);
 int32_t Script_SpellHasRange(lua_State* L);
 int32_t Script_IsSpellInRange(lua_State* L);
-int32_t Script_UpdateSpells(lua_State* L);
-int32_t Script_HasPetSpells(lua_State* L);
-int32_t Script_GetNumShapeshiftForms(lua_State* L);
 int32_t Script_GetShapeshiftForm(lua_State* L);
 int32_t Script_CancelShapeshiftForm(lua_State* L);
 int32_t Script_GetShapeshiftFormInfo(lua_State* L);
@@ -111,14 +116,11 @@ int32_t Script_GetShapeshiftFormCooldown(lua_State* L);
 int32_t Script_CastSpellByName(lua_State* L);
 int32_t Script_CastSpellByID(lua_State* L);
 int32_t Script_GetNumCompanions(lua_State* L);
-int32_t Script_GetCompanionInfo(lua_State* L);
 int32_t Script_GetCompanionCooldown(lua_State* L);
 int32_t Script_PickupCompanion(lua_State* L);
 int32_t Script_CallCompanion(lua_State* L);
 int32_t Script_DismissCompanion(lua_State* L);
-int32_t Script_GetKnownSlotFromHighestRankSlot(lua_State* L);
 int32_t Script_IsSpellKnown(lua_State* L);
-int32_t Script_FindSpellBookSlotByID(lua_State* L);
 int32_t Script_SummonRandomCritter(lua_State* L);
 void SpellBookRegisterScriptFunctions();
 
@@ -128,5 +130,7 @@ int __cdecl SortSpellUsableInfo(const void* a, const void* b);
 int __cdecl SortSkillInfoByName(const void* a, const void* b);
 int __cdecl SortSpellsForDisplay(const void* a, const void* b);
 int __cdecl SortCompanions(const void* a, const void* b);
+
+extern TSGrowableArray<int32_t> s_trackingSpells;
 
 #endif

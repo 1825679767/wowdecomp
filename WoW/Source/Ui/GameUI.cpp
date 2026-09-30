@@ -140,12 +140,10 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
 #include "_Triage/CWOWClientStatus.h"
 #include "_Triage/GxRestart.h"
-
-// STATIC: 0x00BD0CC4
-static CWOWClientStatus* s_loadAddOnStatus;
-
-// STATIC: 0x00BD0CC8
-static int32_t s_loadAddOnDepth;
+#include "WoW/Source/Ui/TotemInfo.h"
+#include "WoW/Source/Net/Types.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 
 // STATIC: 0x00AC804C
 const char* g_macroTaint = "";
@@ -896,684 +894,6 @@ int32_t CGGameUI::unk_AC80A4;
 // STATIC: 0x00AC80A8
 int32_t CGGameUI::m_visible = 1;
 
-// VERIFY: 00d6780a manual
-// OFFSET: 0x00510E20
-static int32_t Script_GetItemQualityColor(lua_State* L) {
-    if (!lua_isnumber(L, 1)) {
-        luaL_error(L, "Usage: GetItemQualityColor(index)");
-        return 0;
-    }
-
-    uint32_t quality = static_cast<int32_t>(lua_tonumber(L, 1));
-    const CImVector* color = CGTooltip::GetItemQualityColor(quality);
-    lua_pushnumber(L, color->r * 0.00392156862745098);
-    lua_pushnumber(L, color->g * 0.00392156862745098);
-    lua_pushnumber(L, color->b * 0.00392156862745098);
-    lua_pushstring(L, CGTooltip::GetItemQualityColorString(quality));
-    return 4;
-}
-
-// VERIFY: fe358aee manual
-// OFFSET: 0x00511B30
-static int32_t Script_IsAddOnLoaded(lua_State* L) {
-    const char* name;
-
-    if (lua_isnumber(L, 1)) {
-        name = GetAddOnByIndex(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
-
-        if (!name) {
-            luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
-        }
-    } else {
-        if (!lua_isstring(L, 1)) {
-            luaL_error(L, "Usage: IsAddOnLoaded(index or \"name\")");
-        }
-
-        name = lua_tolstring(L, 1, nullptr);
-    }
-
-    if (IsAddOnLoading(name)) {
-        lua_pushnumber(L, 1.0);
-    } else {
-        lua_pushnil(L);
-    }
-
-    if (IsAddOnLoaded(name)) {
-        lua_pushnumber(L, 1.0);
-    } else {
-        lua_pushnil(L);
-    }
-
-    return 2;
-}
-
-// VERIFY: b380dd1d manual
-// OFFSET: 0x00515A50
-static int32_t Script_GetCursorMoney(lua_State* L) {
-    lua_pushnumber(L, CGGameUI::m_cursorMoney);
-    return 1;
-}
-
-// VERIFY: 1c08ff80 manual
-// OFFSET: 0x00510040
-static int32_t Script_GetCVar(lua_State* L) {
-    if (!lua_isstring(L, 1)) {
-        luaL_error(L, "Usage: GetCVar(\"cvar\")");
-        return 0;
-    }
-
-    CVar* var = CVar::LookupRegistered(lua_tolstring(L, 1, nullptr));
-
-    if (!var || (var->m_flags & 0x40)) {
-        lua_pushnil(L);
-        return 1;
-    }
-
-    lua_pushstring(L, var->m_stringValue.m_str);
-    return 1;
-}
-
-// VERIFY: 968466d6 manual
-// OFFSET: 0x005100C0
-static int32_t Script_GetCVarBool(lua_State* L) {
-    if (!lua_isstring(L, 1)) {
-        luaL_error(L, "Usage: GetCVarBool(\"cvar\")");
-        return 0;
-    }
-
-    CVar* var = CVar::LookupRegistered(lua_tolstring(L, 1, nullptr));
-
-    if (var && !(var->m_flags & 0x40) && StringToBOOL(var->m_stringValue.m_str)) {
-        lua_pushnumber(L, 1.0);
-    } else {
-        lua_pushnil(L);
-    }
-
-    return 1;
-}
-
-// VERIFY: b062b828 manual
-// OFFSET: 0x00510150
-static int32_t Script_GetCVarDefault(lua_State* L) {
-    if (!lua_isstring(L, 1)) {
-        luaL_error(L, "Usage: GetCVarDefault(\"cvar\")");
-        return 0;
-    }
-
-    CVar* var = CVar::LookupRegistered(lua_tolstring(L, 1, nullptr));
-
-    if (!var || (var->m_flags & 0x40)) {
-        luaL_error(L, "Couldn't find CVar named '%s'", lua_tolstring(L, 1, nullptr));
-        return 0;
-    }
-
-    lua_pushstring(L, var->m_defaultValue.m_str);
-    return 1;
-}
-
-// VERIFY: f62939f8 auto
-// OFFSET: 0x00510A10
-static int32_t Script_GetCursorPosition(lua_State* L) {
-    float x = 0.0f;
-    float y = 0.0f;
-
-    if (!CSimpleTop::s_instance) {
-        SErrDisplayAppFatalMessage("", "", 0);
-    }
-
-    NDCToDDC(CSimpleTop::s_instance->m_mousePosition.m_x, CSimpleTop::s_instance->m_mousePosition.m_y, &x, &y);
-    lua_pushnumber(L, DDCToNDCWidth(CoordinateGetAspectCompensation() * 1024.0f * x));
-    lua_pushnumber(L, DDCToNDCWidth(CoordinateGetAspectCompensation() * 1024.0f * y));
-    return 2;
-}
-
-// VERIFY: 19aabffe auto
-// OFFSET: 0x00514430
-static int32_t Script_IsModifierKeyDown(lua_State* L) {
-    for (int32_t key = KEY_LSHIFT; key <= KEY_RALT; key++) {
-        if (CGGameUI::IsKeyDown(static_cast<KEY>(key))) {
-            lua_pushnumber(L, 1.0);
-            return 1;
-        }
-    }
-
-    lua_pushnil(L);
-    return 1;
-}
-
-// VERIFY: 16fc0e95 auto
-// OFFSET: 0x00514580
-static int32_t Script_IsShiftKeyDown(lua_State* L) {
-    if (CGGameUI::IsKeyDown(KEY_LSHIFT) || CGGameUI::IsKeyDown(KEY_RSHIFT)) {
-        lua_pushnumber(L, 1.0);
-    } else {
-        lua_pushnil(L);
-    }
-
-    return 1;
-}
-
-// VERIFY: e03161c3 auto
-// OFFSET: 0x005146D0
-static int32_t Script_IsControlKeyDown(lua_State* L) {
-    if (CGGameUI::IsKeyDown(KEY_LCONTROL) || CGGameUI::IsKeyDown(KEY_RCONTROL)) {
-        lua_pushnumber(L, 1.0);
-    } else {
-        lua_pushnil(L);
-    }
-
-    return 1;
-}
-
-// VERIFY: 5cf9d269 auto
-// OFFSET: 0x00514820
-static int32_t Script_IsAltKeyDown(lua_State* L) {
-    if (CGGameUI::IsKeyDown(KEY_LALT) || CGGameUI::IsKeyDown(KEY_RALT)) {
-        lua_pushnumber(L, 1.0);
-    } else {
-        lua_pushnil(L);
-    }
-
-    return 1;
-}
-
-// VERIFY: 9094ae9a manual
-// OFFSET: 0x00514C10
-static int32_t Script_SetCVar(lua_State* L) {
-    if (!lua_isstring(L, 1)) {
-        luaL_error(L, "Usage: SetCVar(\"cvar\", value [, \"scriptCvar\")");
-        return 0;
-    }
-
-    const char* name = lua_tolstring(L, 1, nullptr);
-    CVar* var = CVar::LookupRegistered(name);
-
-    if (!var || (var->m_flags & 0x40)) {
-        luaL_error(L, "Couldn't find CVar named '%s'", name);
-        return 0;
-    }
-
-    if ((var->m_flags & 0x4) || (var->m_flags & 0x100)) {
-        luaL_error(L, "\"%s\" is read-only", name);
-        return 0;
-    }
-
-    if ((var->m_flags & 0x8) && !CSimpleTop::GetInstance()->m_allowProtectedActions) {
-        CGGameUI::ShowBlockedActionFeedback(nullptr, 2);
-        return 0;
-    }
-
-    const char* value = lua_tolstring(L, 2, nullptr);
-
-    if (!value) {
-        value = "0";
-    }
-
-    var->Set(value, true, false, false, true);
-
-    if (lua_isstring(L, 3)) {
-        FrameScript_SignalEvent(SCRIPT_EVENT_CVAR_UPDATE, "%s%s", lua_tolstring(L, 3, nullptr), value);
-    }
-
-    return 0;
-}
-
-// VERIFY: c3cc832c manual
-// OFFSET: 0x00514D40
-static int32_t Script_GetCVarMin(lua_State* L) {
-    if (!lua_isstring(L, 1)) {
-        luaL_error(L, "Usage: GetCVarMin(\"cvar\")");
-        return 0;
-    }
-
-    CVar* var = CVar::LookupRegistered(lua_tolstring(L, 1, nullptr));
-
-    if (!var || (var->m_flags & 0x40)) {
-        luaL_error(L, "Couldn't find CVar named '%s'", lua_tolstring(L, 1, nullptr));
-        return 0;
-    }
-
-    const char* name = var->m_key.m_str;
-
-    if (!SStrCmpI(name, "extShadowQuality", STORM_MAX_STR)) {
-        lua_pushnumber(L, 0.0);
-    } else if (!SStrCmpI(name, "farclip", STORM_MAX_STR)) {
-        lua_pushnumber(L, 177.0);
-    } else {
-        lua_pushnil(L);
-    }
-
-    return 1;
-}
-
-// VERIFY: 2b500bc1 manual
-// OFFSET: 0x00514E30
-static int32_t Script_GetCVarMax(lua_State* L) {
-    if (!lua_isstring(L, 1)) {
-        luaL_error(L, "Usage: GetCVarMax(\"cvar\")");
-        return 0;
-    }
-
-    CVar* var = CVar::LookupRegistered(lua_tolstring(L, 1, nullptr));
-
-    if (!var || (var->m_flags & 0x40)) {
-        luaL_error(L, "Couldn't find CVar named '%s'", lua_tolstring(L, 1, nullptr));
-        return 0;
-    }
-
-    const char* name = var->m_key.m_str;
-
-    if (!SStrCmpI(name, "extShadowQuality", STORM_MAX_STR)) {
-        uint32_t mode = 0;
-        uint32_t maxMode = CShadowCache::GetMaxShadowMode();
-
-        do {
-            if (!CShadowCache::ValidateShadowMode(static_cast<EShadowMode>(mode))) {
-                break;
-            }
-
-            mode++;
-        } while (mode <= maxMode);
-
-        lua_pushnumber(L, mode - 1);
-    } else if (!SStrCmpI(name, "farclip", STORM_MAX_STR)) {
-        lua_pushnumber(L, 1277.0);
-    } else {
-        lua_pushnil(L);
-    }
-
-    return 1;
-}
-
-// VERIFY: fb7bea1c auto
-// OFFSET: 0x0051AEF0
-static int32_t Script_GetScreenWidth(lua_State* L) {
-    float width = NDCToDDCWidth(1.0f);
-    float scale = CGGameUI::m_UISimpleParent ? CGGameUI::m_UISimpleParent->m_layoutScale : 1.0f;
-    lua_pushnumber(L, DDCToNDCWidth(CoordinateGetAspectCompensation() * 1024.0f * (width / scale)));
-    return 1;
-}
-
-// VERIFY: 53f1b9fb auto
-// OFFSET: 0x0051AF50
-static int32_t Script_GetScreenHeight(lua_State* L) {
-    float height = NDCToDDCHeight(1.0f);
-    float scale = CGGameUI::m_UISimpleParent ? CGGameUI::m_UISimpleParent->m_layoutScale : 1.0f;
-    lua_pushnumber(L, DDCToNDCWidth(CoordinateGetAspectCompensation() * 1024.0f * (height / scale)));
-    return 1;
-}
-
-// VERIFY: 2ffb3aeb manual
-// OFFSET: 0x00528920
-static int32_t Script_LoadAddOn(lua_State* L) {
-    const char* name;
-
-    if (lua_isnumber(L, 1)) {
-        name = GetAddOnByIndex(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
-
-        if (!name) {
-            luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
-            return 0;
-        }
-    } else {
-        if (!lua_isstring(L, 1)) {
-            luaL_error(L, "Usage: LoadAddOn(index or \"name\")");
-            return 0;
-        }
-
-        name = lua_tolstring(L, 1, nullptr);
-    }
-
-    if (!s_loadAddOnDepth) {
-        s_loadAddOnStatus = new (__FILE__, __LINE__) CWOWClientStatus("Logs\\FrameXML.log", 1);
-    }
-
-    s_loadAddOnDepth++;
-    bool loaded = LoadAddOn(name, true, s_loadAddOnStatus);
-
-    if (--s_loadAddOnDepth == 0) {
-        if (s_loadAddOnStatus) {
-            delete s_loadAddOnStatus;
-        }
-
-        s_loadAddOnStatus = nullptr;
-    }
-
-    if (loaded) {
-        lua_pushnumber(L, 1.0);
-        lua_pushnil(L);
-        return 2;
-    }
-
-    lua_pushnil(L);
-
-    UIADDON_LOADABLE_REASON reason;
-    UIADDON_LOADABLE_REASON dependencyReason;
-
-    if (!IsAddOnLoadable(name, true, reason, dependencyReason, ClientServices::GetCharacterName()) && (reason || dependencyReason)) {
-        char buffer[128];
-        lua_pushstring(L, AddOnUnloadableToken(reason, dependencyReason, buffer, sizeof(buffer)));
-        return 2;
-    }
-
-    lua_pushstring(L, "UNKNOWN_ERROR");
-    return 2;
-}
-
-// STATIC: 0x00AC80B0
-static FrameScript_Method s_ScriptFunctions[] = {
-    { "FrameXML_Debug", &Script_FrameXML_Debug },
-    { "GetBuildInfo", &Script_GetBuildInfo },
-    { "ReloadUI", &Script_ReloadUI },
-    { "RegisterForSave", &Script_RegisterForSave },
-    { "RegisterForSavePerCharacter", &Script_RegisterForSavePerCharacter },
-    { "SetLayoutMode", &Script_SetLayoutMode },
-    { "IsModifierKeyDown", &Script_IsModifierKeyDown },
-    { "IsLeftShiftKeyDown", &Script_IsLeftShiftKeyDown },
-    { "IsRightShiftKeyDown", &Script_IsRightShiftKeyDown },
-    { "IsShiftKeyDown", &Script_IsShiftKeyDown },
-    { "IsLeftControlKeyDown", &Script_IsLeftControlKeyDown },
-    { "IsRightControlKeyDown", &Script_IsRightControlKeyDown },
-    { "IsControlKeyDown", &Script_IsControlKeyDown },
-    { "IsLeftAltKeyDown", &Script_IsLeftAltKeyDown },
-    { "IsRightAltKeyDown", &Script_IsRightAltKeyDown },
-    { "IsAltKeyDown", &Script_IsAltKeyDown },
-    { "IsMouseButtonDown", &Script_IsMouseButtonDown },
-    { "GetMouseButtonName", &Script_GetMouseButtonName },
-    { "GetMouseButtonClicked", &Script_GetMouseButtonClicked },
-    { "SetConsoleKey", &Script_SetConsoleKey },
-    { "Screenshot", &Script_Screenshot },
-    { "GetFramerate", &Script_GetFramerate },
-    { "TogglePerformanceDisplay", &Script_TogglePerformanceDisplay },
-    { "TogglePerformancePause", &Script_TogglePerformancePause },
-    { "TogglePerformanceValues", &Script_TogglePerformanceValues },
-    { "ResetPerformanceValues", &Script_ResetPerformanceValues },
-    { "GetDebugStats", &Script_GetDebugStats },
-    { "IsDebugBuild", &Script_IsDebugBuild },
-    { "RegisterCVar", &Script_RegisterCVar },
-    { "GetCVarInfo", &Script_GetCVarInfo },
-    { "SetCVar", &Script_SetCVar },
-    { "GetCVar", &Script_GetCVar },
-    { "GetCVarBool", &Script_GetCVarBool },
-    { "GetCVarDefault", &Script_GetCVarDefault },
-    { "GetCVarMin", &Script_GetCVarMin },
-    { "GetCVarMax", &Script_GetCVarMax },
-    { "GetCVarAbsoluteMin", &Script_GetCVarAbsoluteMin },
-    { "GetCVarAbsoluteMax", &Script_GetCVarAbsoluteMax },
-    { "GetWaterDetail", &Script_GetWaterDetail },
-    { "SetWaterDetail", &Script_SetWaterDetail },
-    { "GetFarclip", &Script_GetFarclip },
-    { "SetFarclip", &Script_SetFarclip },
-    { "GetTexLodBias", &Script_GetTexLodBias },
-    { "SetTexLodBias", &Script_SetTexLodBias },
-    { "SetBaseMip", &Script_SetBaseMip },
-    { "GetBaseMip", &Script_GetBaseMip },
-    { "ToggleTris", &Script_ToggleTris },
-    { "TogglePortals", &Script_TogglePortals },
-    { "ToggleCollision", &Script_ToggleCollision },
-    { "ToggleCollisionDisplay", &Script_ToggleCollisionDisplay },
-    { "TogglePlayerBounds", &Script_TogglePlayerBounds },
-    { "Stuck", &Script_Stuck },
-    { "Logout", &Script_Logout },
-    { "Quit", &Script_Quit },
-    { "SetCursor", &Script_SetCursor },
-    { "ResetCursor", &Script_ResetCursor },
-    { "ClearCursor", &Script_ClearCursor },
-    { "CursorHasItem", &Script_CursorHasItem },
-    { "CursorHasSpell", &Script_CursorHasSpell },
-    { "CursorHasMacro", &Script_CursorHasMacro },
-    { "CursorHasMoney", &Script_CursorHasMoney },
-    { "GetCursorInfo", &Script_GetCursorInfo },
-    { "EquipCursorItem", &Script_EquipCursorItem },
-    { "DeleteCursorItem", &Script_DeleteCursorItem },
-    { "EquipPendingItem", &Script_EquipPendingItem },
-    { "CancelPendingEquip", &Script_CancelPendingEquip },
-    { "TargetUnit", &Script_TargetUnit },
-    { "TargetNearest", &Script_TargetNearest },
-    { "TargetNearestEnemy", &Script_TargetNearestEnemy },
-    { "TargetNearestEnemyPlayer", &Script_TargetNearestEnemyPlayer },
-    { "TargetNearestFriend", &Script_TargetNearestFriend },
-    { "TargetNearestFriendPlayer", &Script_TargetNearestFriendPlayer },
-    { "TargetNearestPartyMember", &Script_TargetNearestPartyMember },
-    { "TargetNearestRaidMember", &Script_TargetNearestRaidMember },
-    { "TargetDirectionEnemy", &Script_TargetDirectionEnemy },
-    { "TargetDirectionFriend", &Script_TargetDirectionFriend },
-    { "TargetDirectionFinished", &Script_TargetDirectionFinished },
-    { "TargetLastTarget", &Script_TargetLastTarget },
-    { "TargetLastEnemy", &Script_TargetLastEnemy },
-    { "TargetLastFriend", &Script_TargetLastFriend },
-    { "AttackTarget", &Script_AttackTarget },
-    { "AssistUnit", &Script_AssistUnit },
-    { "FocusUnit", &Script_FocusUnit },
-    { "FollowUnit", &Script_FollowUnit },
-    { "InteractUnit", &Script_InteractUnit },
-    { "ClearTarget", &Script_ClearTarget },
-    { "ClearFocus", &Script_ClearFocus },
-    { "AutoEquipCursorItem", &Script_AutoEquipCursorItem },
-    { "ToggleSheath", &Script_ToggleSheath },
-    { "GetZoneText", &Script_GetZoneText },
-    { "GetRealZoneText", &Script_GetRealZoneText },
-    { "GetSubZoneText", &Script_GetSubZoneText },
-    { "GetMinimapZoneText", &Script_GetMinimapZoneText },
-    { "InitiateTrade", &Script_InitiateTrade },
-    { "CanInspect", &Script_CanInspect },
-    { "NotifyInspect", &Script_NotifyInspect },
-    { "InviteUnit", &Script_InviteUnit },
-    { "UninviteUnit", &Script_UninviteUnit },
-    { "RequestTimePlayed", &Script_RequestTimePlayed },
-    { "RepopMe", &Script_RepopMe },
-    { "AcceptResurrect", &Script_AcceptResurrect },
-    { "DeclineResurrect", &Script_DeclineResurrect },
-    { "ResurrectGetOfferer", &Script_ResurrectGetOfferer },
-    { "ResurrectHasSickness", &Script_ResurrectHasSickness },
-    { "ResurrectHasTimer", &Script_ResurrectHasTimer },
-    { "BeginTrade", &Script_BeginTrade },
-    { "CancelTrade", &Script_CancelTrade },
-    { "AcceptGroup", &Script_AcceptGroup },
-    { "DeclineGroup", &Script_DeclineGroup },
-    { "AcceptGuild", &Script_AcceptGuild },
-    { "DeclineGuild", &Script_DeclineGuild },
-    { "AcceptArenaTeam", &Script_AcceptArenaTeam },
-    { "DeclineArenaTeam", &Script_DeclineArenaTeam },
-    { "CancelLogout", &Script_CancelLogout },
-    { "ForceLogout", &Script_ForceLogout },
-    { "ForceQuit", &Script_ForceQuit },
-    { "GetCursorMoney", &Script_GetCursorMoney },
-    { "DropCursorMoney", &Script_DropCursorMoney },
-    { "PickupPlayerMoney", &Script_PickupPlayerMoney },
-    { "HasSoulstone", &Script_HasSoulstone },
-    { "UseSoulstone", &Script_UseSoulstone },
-    { "HasKey", &Script_HasKey },
-    { "GuildInvite", &Script_GuildInvite },
-    { "GuildUninvite", &Script_GuildUninvite },
-    { "GuildPromote", &Script_GuildPromote },
-    { "GuildDemote", &Script_GuildDemote },
-    { "GuildSetLeader", &Script_GuildSetLeader },
-    { "GuildSetMOTD", &Script_GuildSetMOTD },
-    { "GuildLeave", &Script_GuildLeave },
-    { "GuildDisband", &Script_GuildDisband },
-    { "GuildInfo", &Script_GuildInfo },
-    { "ArenaTeamInviteByName", &Script_ArenaTeamInviteByName },
-    { "ArenaTeamLeave", &Script_ArenaTeamLeave },
-    { "ArenaTeamUninviteByName", &Script_ArenaTeamUninviteByName },
-    { "ArenaTeamSetLeaderByName", &Script_ArenaTeamSetLeaderByName },
-    { "ArenaTeamDisband", &Script_ArenaTeamDisband },
-    { "GetScreenWidth", &Script_GetScreenWidth },
-    { "GetScreenHeight", &Script_GetScreenHeight },
-    { "GetDamageBonusStat", &Script_GetDamageBonusStat },
-    { "GetReleaseTimeRemaining", &Script_GetReleaseTimeRemaining },
-    { "GetCorpseRecoveryDelay", &Script_GetCorpseRecoveryDelay },
-    { "GetInstanceBootTimeRemaining", &Script_GetInstanceBootTimeRemaining },
-    { "GetInstanceLockTimeRemaining", &Script_GetInstanceLockTimeRemaining },
-    { "GetInstanceLockTimeRemainingEncounter", &Script_GetInstanceLockTimeRemainingEncounter },
-    { "GetSummonConfirmTimeLeft", &Script_GetSummonConfirmTimeLeft },
-    { "GetSummonConfirmSummoner", &Script_GetSummonConfirmSummoner },
-    { "GetSummonConfirmAreaName", &Script_GetSummonConfirmAreaName },
-    { "ConfirmSummon", &Script_ConfirmSummon },
-    { "CancelSummon", &Script_CancelSummon },
-    { "GetCursorPosition", &Script_GetCursorPosition },
-    { "GetNetStats", &Script_GetNetStats },
-    { "SitStandOrDescendStart", &Script_SitStandOrDescendStart },
-    { "StopCinematic", &Script_StopCinematic },
-    { "RunScript", &Script_RunScript },
-    { "CheckInteractDistance", &Script_CheckInteractDistance },
-    { "RandomRoll", &Script_RandomRoll },
-    { "OpeningCinematic", &Script_OpeningCinematic },
-    { "InCinematic", &Script_InCinematic },
-    { "IsWindowsClient", &Script_IsWindowsClient },
-    { "IsMacClient", &Script_IsMacClient },
-    { "IsLinuxClient", &Script_IsLinuxClient },
-    { "AcceptXPLoss", &Script_AcceptXPLoss },
-    { "CheckSpiritHealerDist", &Script_CheckSpiritHealerDist },
-    { "CheckTalentMasterDist", &Script_CheckTalentMasterDist },
-    { "CheckBinderDist", &Script_CheckBinderDist },
-    { "RetrieveCorpse", &Script_RetrieveCorpse },
-    { "BindEnchant", &Script_BindEnchant },
-    { "ReplaceEnchant", &Script_ReplaceEnchant },
-    { "ReplaceTradeEnchant", &Script_ReplaceTradeEnchant },
-    { "NotWhileDeadError", &Script_NotWhileDeadError },
-    { "GetRestState", &Script_GetRestState },
-    { "GetXPExhaustion", &Script_GetXPExhaustion },
-    { "GetTimeToWellRested", &Script_GetTimeToWellRested },
-    { "GMRequestPlayerInfo", &Script_GMRequestPlayerInfo },
-    { "GetCoinIcon", &Script_GetCoinIcon },
-    { "GetCoinText", &Script_GetCoinText },
-    { "GetCoinTextureString", &Script_GetCoinTextureString },
-    { "IsSubZonePVPPOI", &Script_IsSubZonePVPPOI },
-    { "GetZonePVPInfo", &Script_GetZonePVPInfo },
-    { "TogglePVP", &Script_TogglePVP },
-    { "SetPVP", &Script_SetPVP },
-    { "GetPVPDesired", &Script_GetPVPDesired },
-    { "GetPVPTimer", &Script_GetPVPTimer },
-    { "IsPVPTimerRunning", &Script_IsPVPTimerRunning },
-    { "ConfirmBindOnUse", &Script_ConfirmBindOnUse },
-    { "SetPortraitToTexture", &Script_SetPortraitToTexture },
-    { "GetLocale", &Script_GetLocale },
-    { "GetGMTicketCategories", &Script_GetGMTicketCategories },
-    { "DropItemOnUnit", &Script_DropItemOnUnit },
-    { "RestartGx", &Script_RestartGx },
-    { "RestoreVideoResolutionDefaults", &Script_RestoreVideoResolutionDefaults },
-    { "RestoreVideoEffectsDefaults", &Script_RestoreVideoEffectsDefaults },
-    { "RestoreVideoStereoDefaults", &Script_RestoreVideoStereoDefaults },
-    { "GetBindLocation", &Script_GetBindLocation },
-    { "ConfirmTalentWipe", &Script_ConfirmTalentWipe },
-    { "ConfirmBinder", &Script_ConfirmBinder },
-    { "ShowingHelm", &Script_ShowingHelm },
-    { "ShowingCloak", &Script_ShowingCloak },
-    { "ShowHelm", &Script_ShowHelm },
-    { "ShowCloak", &Script_ShowCloak },
-    { "SetEuropeanNumbers", &Script_SetEuropeanNumbers },
-    { "GetAreaSpiritHealerTime", &Script_GetAreaSpiritHealerTime },
-    { "AcceptAreaSpiritHeal", &Script_AcceptAreaSpiritHeal },
-    { "CancelAreaSpiritHeal", &Script_CancelAreaSpiritHeal },
-    { "GetMouseFocus", &Script_GetMouseFocus },
-    { "GetRealmName", &Script_GetRealmName },
-    { "GetItemQualityColor", &Script_GetItemQualityColor },
-    { "GetItemInfo", &Script_GetItemInfo },
-    { "GetItemGem", &Script_GetItemGem },
-    { "GetExtendedItemInfo", &Script_GetExtendedItemInfo },
-    { "GetItemIcon", &Script_GetItemIcon },
-    { "GetItemFamily", &Script_GetItemFamily },
-    { "GetItemCount", &Script_GetItemCount },
-    { "GetItemSpell", &Script_GetItemSpell },
-    { "GetItemCooldown", &Script_GetItemCooldown },
-    { "PickupItem", &Script_PickupItem },
-    { "IsCurrentItem", &Script_IsCurrentItem },
-    { "IsUsableItem", &Script_IsUsableItem },
-    { "IsHelpfulItem", &Script_IsHelpfulItem },
-    { "IsHarmfulItem", &Script_IsHarmfulItem },
-    { "IsConsumableItem", &Script_IsConsumableItem },
-    { "IsEquippableItem", &Script_IsEquippableItem },
-    { "IsEquippedItem", &Script_IsEquippedItem },
-    { "IsEquippedItemType", &Script_IsEquippedItemType },
-    { "IsDressableItem", &Script_IsDressableItem },
-    { "ItemHasRange", &Script_ItemHasRange },
-    { "IsItemInRange", &Script_IsItemInRange },
-    { "GetNumAddOns", &Script_GetNumAddOns },
-    { "GetAddOnInfo", &Script_GetAddOnInfo },
-    { "GetAddOnMetadata", &Script_GetAddOnMetadata },
-    { "UpdateAddOnMemoryUsage", &Script_UpdateAddOnMemoryUsage },
-    { "GetAddOnMemoryUsage", &Script_GetAddOnMemoryUsage },
-    { "GetScriptCPUUsage", &Script_GetScriptCPUUsage },
-    { "UpdateAddOnCPUUsage", &Script_UpdateAddOnCPUUsage },
-    { "GetAddOnCPUUsage", &Script_GetAddOnCPUUsage },
-    { "GetFunctionCPUUsage", &Script_GetFunctionCPUUsage },
-    { "GetFrameCPUUsage", &Script_GetFrameCPUUsage },
-    { "GetEventCPUUsage", &Script_GetEventCPUUsage },
-    { "ResetCPUUsage", &Script_ResetCPUUsage },
-    { "GetAddOnDependencies", &Script_GetAddOnDependencies },
-    { "EnableAddOn", &Script_EnableAddOn },
-    { "EnableAllAddOns", &Script_EnableAllAddOns },
-    { "DisableAddOn", &Script_DisableAddOn },
-    { "DisableAllAddOns", &Script_DisableAllAddOns },
-    { "ResetDisabledAddOns", &Script_ResetDisabledAddOns },
-    { "IsAddOnLoadOnDemand", &Script_IsAddOnLoadOnDemand },
-    { "IsAddOnLoaded", &Script_IsAddOnLoaded },
-    { "LoadAddOn", &Script_LoadAddOn },
-    { "PartialPlayTime", &Script_PartialPlayTime },
-    { "NoPlayTime", &Script_NoPlayTime },
-    { "GetBillingTimeRested", &Script_GetBillingTimeRested },
-    { "CanShowResetInstances", &Script_CanShowResetInstances },
-    { "ResetInstances", &Script_ResetInstances },
-    { "IsInInstance", &Script_IsInInstance },
-    { "GetInstanceDifficulty", &Script_GetInstanceDifficulty },
-    { "GetInstanceInfo", &Script_GetInstanceInfo },
-    { "GetDungeonDifficulty", &Script_GetDungeonDifficulty },
-    { "SetDungeonDifficulty", &Script_SetDungeonDifficulty },
-    { "GetRaidDifficulty", &Script_GetRaidDifficulty },
-    { "SetRaidDifficulty", &Script_SetRaidDifficulty },
-    { "ReportBug", &Script_ReportBug },
-    { "ReportSuggestion", &Script_ReportSuggestion },
-    { "GetMirrorTimerInfo", &Script_GetMirrorTimerInfo },
-    { "GetMirrorTimerProgress", &Script_GetMirrorTimerProgress },
-    { "GetNumTitles", &Script_GetNumTitles },
-    { "GetCurrentTitle", &Script_GetCurrentTitle },
-    { "SetCurrentTitle", &Script_SetCurrentTitle },
-    { "IsTitleKnown", &Script_IsTitleKnown },
-    { "GetTitleName", &Script_GetTitleName },
-    { "UseItemByName", &Script_UseItemByName },
-    { "EquipItemByName", &Script_EquipItemByName },
-    { "GetExistingLocales", &Script_GetExistingLocales },
-    { "InCombatLockdown", &Script_InCombatLockdown },
-    { "StartAttack", &Script_StartAttack },
-    { "StopAttack", &Script_StopAttack },
-    { "SetTaxiBenchmarkMode", &Script_SetTaxiBenchmarkMode },
-    { "GetTaxiBenchmarkMode", &Script_GetTaxiBenchmarkMode },
-    { "Dismount", &Script_Dismount },
-    { "VoicePushToTalkStart", &Script_VoicePushToTalkStart },
-    { "VoicePushToTalkStop", &Script_VoicePushToTalkStop },
-    { "SetUIVisibility", &Script_SetUIVisibility },
-    { "IsReferAFriendLinked", &Script_IsReferAFriendLinked },
-    { "CanGrantLevel", &Script_CanGrantLevel },
-    { "GrantLevel", &Script_GrantLevel },
-    { "CanSummonFriend", &Script_CanSummonFriend },
-    { "SummonFriend", &Script_SummonFriend },
-    { "GetSummonFriendCooldown", &Script_GetSummonFriendCooldown },
-    { "GetTotemInfo", &Script_GetTotemInfo },
-    { "GetTotemTimeLeft", &Script_GetTotemTimeLeft },
-    { "TargetTotem", &Script_TargetTotem },
-    { "DestroyTotem", &Script_DestroyTotem },
-    { "GetNumDeclensionSets", &Script_GetNumDeclensionSets },
-    { "DeclineName", &Script_DeclineName },
-    { "AcceptLevelGrant", &Script_AcceptLevelGrant },
-    { "DeclineLevelGrant", &Script_DeclineLevelGrant },
-    { "UploadSettings", &Script_UploadSettings },
-    { "DownloadSettings", &Script_DownloadSettings },
-    { "GetMovieResolution", &Script_GetMovieResolution },
-    { "GameMovieFinished", &Script_GameMovieFinished },
-    { "IsDesaturateSupported", &Script_IsDesaturateSupported },
-    { "GetThreatStatusColor", &Script_GetThreatStatusColor },
-    { "IsThreatWarningEnabled", &Script_IsThreatWarningEnabled },
-    { "ConsoleAddMessage", &Script_ConsoleAddMessage },
-    { "GetItemUniqueness", &Script_GetItemUniqueness },
-    { "EndRefund", &Script_EndRefund },
-    { "EndBoundTradeable", &Script_EndBoundTradeable },
-    { "CanMapChangeDifficulty", &Script_CanMapChangeDifficulty },
-    { "GetExpansionLevel", &Script_GetAccountExpansionLevel },
-    { "GetAllowLowLevelRaid", &Script_GetAllowLowLevelRaid },
-    { "SetAllowLowLevelRaid", &Script_SetAllowLowLevelRaid },
-};
-
 // STATIC: 0x00AC8AE0
 CCapturePointUIManager g_capturePointUIManager;
 
@@ -1754,87 +1074,83 @@ TotemInfo CGGameUI::m_totems[4];
 // STATIC: 0x00BD0B80
 MirrorTimerInfo CGGameUI::m_mirrorTimerInfo[3];
 
-// VERIFY: 2d4b8add manual
-// OFFSET: 0x005120E0
-void LoadScriptFunctions() {
-    RegisterSimpleFrameScriptMethods();
-    CGTooltip::CreateScriptMetaTable();
-    CGCooldown::CreateScriptMetaTable();
-    CGMinimapFrame::CreateScriptMetaTable();
-    CGCharacterModelBase::CreateScriptMetaTable();
-    CGDressUpModelFrame::CreateScriptMetaTable();
-    CGTabardModelFrame::CreateScriptMetaTable();
-    CGQuestPOIFrame::CreateScriptMetaTable();
+// STATIC: 0x00BD080C
+int32_t CGGameUI::m_areaID;
 
-    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
-        FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
-    }
+// STATIC: 0x00BD0890
+int32_t CGGameUI::m_bOwnsInstance;
 
-    UIBindingsRegisterScriptFunctions();
-    UIMacrosRegisterScriptFunctions();
-    InputControlRegisterScriptFunctions();
-    CameraRegisterScriptFunctions();
-    SI2::RegisterScriptFunctions();
-    SpellRegisterScriptFunctions();
-    ScriptEventsRegisterFunctions();
-    MinimapRegisterScriptFunctions();
-    UnitCombatLogRegisterScriptFunctions();
-    ActionBarRegisterScriptFunctions();
-    CGPartyInfo::RegisterScriptFunctions();
-    ChatRegisterScriptFunctions();
-    AutoCompleteRegisterScriptFunctions();
-    SpellBookRegisterScriptFunctions();
-    CharacterInfoRegisterScriptFunctions();
-    LootInfoRegisterScriptFunctions();
-    ItemTextRegisterScriptFunctions();
-    GossipInfoRegisterScriptFunctions();
-    QuestInfoRegisterScriptFunctions();
-    QuestLogRegisterScriptFunctions();
-    CGTaxiMap::RegisterScriptFunctions();
-    ClassTrainerRegisterScriptFunctions();
-    TradeSkillRegisterScriptFunctions();
-    MerchantRegisterScriptFunctions();
-    TradeInfoRegisterScriptFunctions();
-    ContainerRegisterScriptFunctions();
-    BankRegisterScriptFunctions();
-    FriendList::RegisterScriptFunctions();
-    PetInfoRegisterScriptFunctions();
-    WorldMapRegisterScriptFunctions();
-    ReputationInfoRegisterScriptFunctions();
-    TabardCreationRegisterScriptFunctions();
-    GuildRegistrarRegisterScriptFunctions();
-    DuelInfoRegisterScriptFunctions();
-    TutorialRegisterScriptFunctions();
-    PetitionInfoRegisterScriptFunctions();
-    SkillInfoRegisterScriptFunctions();
-    GuildInfoRegisterScriptFunctions();
-    MailInfoRegisterScriptFunctions();
-    BattlefieldInfoRegisterScriptFunctions();
-    TalentInfoRegisterScriptFunctions();
-    AuctionHouseRegisterScriptFunctions();
-    StableInfoRegisterScriptFunctions();
-    RaidInfoRegisterScriptFunctions();
-    WorldStateInfoRegisterScriptFunctions();
-    MinigameInfoRegisterScriptFunctions();
-    KnowledgeBase_RegisterScriptFunctions();
-    ItemSocketInfoRegisterScriptFunctions();
-    PetitionVendorRegisterScriptFunctions();
-    ArenaTeamInfoRegisterScriptFunctions();
-    LookingForGroupRegisterScriptFunctions();
-    VoiceRegisterScriptFunctions();
-    CalendarRegisterScriptFunctions();
-    CGCommentator::RegisterScriptFunctions();
-    CGBarberShop::RegisterScriptFunctions();
-    CGDanceStudio::RegisterScriptFunctions();
-    GuildBankRegisterScriptFunctions();
-    GlyphInfoRegisterScriptFunctions();
-    AchievementInfoRegisterScriptFunctions();
-    CurrencyTypesRegisterScriptFunctions();
-    CGVideoOptions::RegisterScriptFunctions();
-    EquipmentManagerRegisterScriptFunctions();
-    GMTicketInfoRegisterScriptFunctions();
-    BattlenetUI_RegisterScriptFunctions();
-}
+// STATIC: 0x00BD0770
+int32_t CGGameUI::m_stackSplit;
+
+// STATIC: 0x00BD0792
+uint8_t CGGameUI::s_inWorld;
+
+// STATIC: 0x00BD08A4
+uint32_t CGGameUI::unk_BD08A4;
+
+// STATIC: 0x00BD08B0
+WOWGUID CGGameUI::unk_BD08B0;
+
+// STATIC: 0x00BD0818
+int32_t CGGameUI::m_corpseMapID;
+
+// STATIC: 0x00BD081C
+int32_t CGGameUI::m_corpseActualMapID;
+
+// STATIC: 0x00BD0820
+int32_t CGGameUI::unk_BD0820;
+
+// STATIC: 0x00BD0830
+WOWGUID CGGameUI::m_corpseTransportGUID;
+
+// STATIC: 0x00BD0844
+int32_t CGGameUI::m_deathReleaseMapID;
+
+// STATIC: 0x00BD0A58
+C3Vector CGGameUI::m_corpsePos;
+
+// STATIC: 0x00BD0A64
+C3Vector CGGameUI::m_deathReleaseLoc;
+
+// STATIC: 0x00BD077C
+const char* CGGameUI::m_minimapZoneText;
+
+// STATIC: 0x00BD0784
+const char* CGGameUI::m_subZoneText;
+
+// STATIC: 0x00BD0810
+int32_t CGGameUI::m_subzoneID;
+
+// STATIC: 0x00BD0814
+int32_t CGGameUI::m_wmoGroupID;
+
+// STATIC: 0x00BD07D8
+WOWGUID CGGameUI::m_directionalTarget;
+
+// STATIC: 0x00BD08B8
+WOWGUID CGGameUI::m_pendingLevelGranter;
+
+// STATIC: 0x00BD089C
+uint32_t CGGameUI::m_raidDifficulty;
+
+// STATIC: 0x00BD0780
+const char* CGGameUI::m_realZoneText;
+
+// STATIC: 0x00BD0788
+const char* CGGameUI::m_zoneText;
+
+// STATIC: 0x00BD0868
+uint32_t CGGameUI::m_summonConfirmArea;
+
+// STATIC: 0x00BD0870
+WOWGUID CGGameUI::m_summonConfirmGUID;
+
+// STATIC: 0x00BD0840
+int32_t CGGameUI::m_areaSpiritHealerTime;
+
+// STATIC: 0x00BD0A78
+TSHashTable<SAVEDVARIABLE, HASHKEY_STR> CGGameUI::s_savedVariables[2];
 
 // VERIFY: a784a12c auto
 // OFFSET: 0x005126E0
@@ -1904,7 +1220,7 @@ WOWGUID CGGameUI::GetRaidMemberPet(uint32_t index) {
     return pet;
 }
 
-// VERIFY: 23e6422e auto
+// VERIFY: 6d2d5c91 auto
 // OFFSET: 0x00513530
 void CGGameUI::ShowBlockedActionFeedback(FrameScript_Object* object, uint32_t type) {
     // STATIC: 0x00BD0C68
@@ -1923,14 +1239,14 @@ void CGGameUI::ShowBlockedActionFeedback(FrameScript_Object* object, uint32_t ty
 
     if (type) {
         if (lua_tainted == g_macroTaint) {
-            FrameScript_SignalEvent(427, "%s", function);
+            FrameScript_SignalEvent(SCRIPT_EVENT_MACRO_ACTION_BLOCKED, "%s", function);
         } else {
-            FrameScript_SignalEvent(428, "%s%s", lua_tainted, function);
+            FrameScript_SignalEvent(SCRIPT_EVENT_ADDON_ACTION_BLOCKED, "%s%s", lua_tainted, function);
         }
     } else if (lua_tainted == g_macroTaint) {
-        FrameScript_SignalEvent(425, "%s", function);
+        FrameScript_SignalEvent(SCRIPT_EVENT_MACRO_ACTION_FORBIDDEN, "%s", function);
     } else {
-        FrameScript_SignalEvent(426, "%s%s", lua_tainted, function);
+        FrameScript_SignalEvent(SCRIPT_EVENT_ADDON_ACTION_FORBIDDEN, "%s%s", lua_tainted, function);
     }
 
     if (lua_tainteventcallback) {
@@ -2198,7 +1514,7 @@ void CGGameUI::InitializeFrameXML() {
     CGGameUI::m_currentlyReloadingUI = 0;
 }
 
-// VERIFY: aea57f10 auto
+// VERIFY: 008486be auto
 // OFFSET: 0x0052B550
 void CGGameUI::InitializeGame() {
     ClientServices::SetMessageHandler(SMSG_PVP_CREDIT, CGGameUI::MessageHandler, nullptr);
@@ -2316,20 +1632,20 @@ void CGGameUI::InitializeGame() {
         totem.m_slot = i;
         totem.m_guid = WOWGUID();
         totem.m_name = nullptr;
-        totem.unk_0014 = 0;
-        totem.unk_0018 = 0;
-        totem.unk_001C = 0;
+        totem.m_duration = 0;
+        totem.m_startTime = 0;
+        totem.m_icon = nullptr;
     }
 
     for (int32_t i = 0; i < 3; i++) {
         MirrorTimerInfo& timer = CGGameUI::m_mirrorTimerInfo[i];
-        timer.unk_0000 = 3;
+        timer.m_type = 3;
         timer.unk_0018 = 0;
-        timer.unk_0014 = 0;
-        timer.unk_0010 = 0;
-        timer.unk_000C = 0;
-        timer.unk_0008 = 0;
-        timer.unk_0004 = 0;
+        timer.m_spellId = 0;
+        timer.m_paused = 0;
+        timer.m_scale = 0;
+        timer.m_maxValue = 0;
+        timer.m_value = 0;
     }
 
     if (SFile::IsTrial()) {
@@ -3103,7 +2419,7 @@ void CGGameUI::DeleteCursorItem() {
     }
 }
 
-// VERIFY: 07730430 manual
+// VERIFY: 7e358d82 manual
 // OFFSET: 0x00524BF0
 void CGGameUI::Target(WOWGUID guid) {
     if (!guid) {
@@ -3159,7 +2475,7 @@ void CGGameUI::Target(WOWGUID guid) {
 
             SpellRec spell;
 
-            if ((unit->unk_0A6C && g_spellDB.GetRecord(unit->unk_0A6C, &spell)) || (unit->unk_0A78[2] && g_spellDB.GetRecord(unit->unk_0A78[2], &spell))) {
+            if ((unit->m_castingSpellId && g_spellDB.GetRecord(unit->m_castingSpellId, &spell)) || (unit->m_channelSpellId && g_spellDB.GetRecord(unit->m_channelSpellId, &spell))) {
                 unit->ProcessCastNotInterruptible(&spell);
             }
 
@@ -3445,12 +2761,6 @@ int32_t CGGameUI::IsPartyMember(const WOWGUID& guid) {
     return 0;
 }
 
-// STATIC: 0x00BD080C
-int32_t CGGameUI::m_areaID;
-
-// STATIC: 0x00BD0890
-int32_t CGGameUI::m_bOwnsInstance;
-
 // VERIFY: 2911c4f3 auto
 // OFFSET: 0x005138A0
 void CGGameUI::ClearInstanceResetMap() {
@@ -3463,9 +2773,6 @@ void CGGameUI::ClearInstanceResetMap() {
 void UpdateInstanceOwnershipPacket(int32_t owns) {
     CGGameUI::m_bOwnsInstance = owns;
 }
-
-// STATIC: 0x00BD0770
-int32_t CGGameUI::m_stackSplit;
 
 // VERIFY: 82442556 auto
 // OFFSET: 0x00513660
@@ -3634,36 +2941,6 @@ void CGGameUI::OnClientControlChanged(int32_t control) {
     CGSpellBook::UpdateUsable();
 }
 
-// STATIC: 0x00BD0792
-uint8_t CGGameUI::s_inWorld;
-
-// STATIC: 0x00BD08A4
-uint32_t CGGameUI::unk_BD08A4;
-
-// STATIC: 0x00BD08B0
-WOWGUID CGGameUI::unk_BD08B0;
-
-// STATIC: 0x00BD0818
-int32_t CGGameUI::m_corpseMapID;
-
-// STATIC: 0x00BD081C
-int32_t CGGameUI::m_corpseActualMapID;
-
-// STATIC: 0x00BD0820
-int32_t CGGameUI::unk_BD0820;
-
-// STATIC: 0x00BD0830
-WOWGUID CGGameUI::m_corpseTransportGUID;
-
-// STATIC: 0x00BD0844
-int32_t CGGameUI::m_deathReleaseMapID;
-
-// STATIC: 0x00BD0A58
-C3Vector CGGameUI::m_corpsePos;
-
-// STATIC: 0x00BD0A64
-C3Vector CGGameUI::m_deathReleaseLoc;
-
 // VERIFY: 9b8cc5da manual
 // OFFSET: 0x00519DF0
 void CGGameUI::UpdateThreatWarningEnabled(int32_t value) {
@@ -3742,7 +3019,7 @@ void CGGameUI::UpdateCorpseLocation() {
     }
 }
 
-// VERIFY: c2b6eb19 manual
+// VERIFY: d86f0438 manual
 // OFFSET: 0x00528010
 void CGGameUI::EnterWorld() {
     if (CGGameUI::s_inWorld) {
@@ -3783,9 +3060,9 @@ void CGGameUI::EnterWorld() {
         for (uint32_t i = 0; i < sizeof(CGGameUI::m_totems) / sizeof(CGGameUI::m_totems[0]); i++) {
             CGGameUI::m_totems[i].m_guid = WOWGUID();
             CGGameUI::m_totems[i].m_name = nullptr;
-            CGGameUI::m_totems[i].unk_0014 = 0;
-            CGGameUI::m_totems[i].unk_0018 = 0;
-            CGGameUI::m_totems[i].unk_001C = 0;
+            CGGameUI::m_totems[i].m_duration = 0;
+            CGGameUI::m_totems[i].m_startTime = 0;
+            CGGameUI::m_totems[i].m_icon = nullptr;
         }
     }
 
@@ -3829,7 +3106,7 @@ void CGGameUI::EnterWorld() {
     CGLCD::EnterWorld();
     CGLookingForGroup::EnterWorld();
     CGArenaTeamInfo::EnterWorld();
-    g_capturePointUIManager.unk_000C = OsGetAsyncTimeMs();
+    g_capturePointUIManager.m_nextWarningTime = OsGetAsyncTimeMs();
     CGGuildBankInfo::EnterWorld();
     CGGuildInfo::EnterWorld();
     CGCalendar::EnterWorld();
@@ -3899,151 +3176,6 @@ void CGGameUI::UnitModelUpdate(const WOWGUID& guid, uint32_t flags) {
 }
 
 
-// STATIC: 0x00AC8074
-static const char* s_instanceTypeTokens[5] = { "none", "party", "raid", "pvp", "arena" };
-
-// STATIC: 0x00BD077C
-const char* CGGameUI::m_minimapZoneText;
-
-// STATIC: 0x00BD0784
-const char* CGGameUI::m_subZoneText;
-
-// STATIC: 0x00BD0810
-int32_t CGGameUI::m_subzoneID;
-
-// VERIFY: c6c85ff5 auto
-// OFFSET: 0x005155D0
-int32_t Script_GetSubZoneText(lua_State* L) {
-    lua_pushstring(L, CGGameUI::m_subZoneText ? CGGameUI::m_subZoneText : "");
-    return 1;
-}
-
-// VERIFY: 88423b87 auto
-// OFFSET: 0x00515600
-int32_t Script_GetMinimapZoneText(lua_State* L) {
-    lua_pushstring(L, CGGameUI::m_minimapZoneText ? CGGameUI::m_minimapZoneText : "");
-    return 1;
-}
-
-// VERIFY: db7fa982 auto
-// OFFSET: 0x005156A0
-int32_t Script_IsInInstance(lua_State* L) {
-    MapRec* map = g_mapDB.GetRecord(CGGameUI::m_iCurrentMapID);
-
-    if (!map) {
-        lua_pushnil(L);
-        lua_pushstring(L, s_instanceTypeTokens[0]);
-        return 2;
-    }
-
-    if (map->m_instanceType) {
-        lua_pushnumber(L, 1.0);
-    } else {
-        lua_pushnil(L);
-    }
-
-    uint32_t type = map->m_instanceType;
-    lua_pushstring(L, type < sizeof(s_instanceTypeTokens) / sizeof(s_instanceTypeTokens[0]) ? s_instanceTypeTokens[type] : s_instanceTypeTokens[0]);
-    return 2;
-}
-
-// VERIFY: 0120d5f2 manual
-// OFFSET: 0x00516BF0
-int32_t Script_GetMouseFocus(lua_State* L) {
-    if (!CSimpleTop::s_instance) {
-        SErrDisplayAppFatalMessage("", "", 0);
-    }
-
-    CSimpleFrame* focus = CSimpleTop::s_instance->m_mouseFocus;
-
-    if (!focus) {
-        lua_pushnil(L);
-        return 1;
-    }
-
-    if (!focus->m_luaRegistered) {
-        focus->RegisterScriptObject(nullptr);
-    }
-
-    lua_rawgeti(L, LUA_REGISTRYINDEX, focus->m_luaObjectRef);
-    return 1;
-}
-
-// VERIFY: 734ee317 manual
-// OFFSET: 0x0051BA50
-int32_t Script_GetZonePVPInfo(lua_State* L) {
-    int32_t flags = -1;
-    int32_t subzone = 0;
-    AreaTableRec* subzoneRec = g_areaTableDB.GetRecord(CGGameUI::m_subzoneID);
-
-    if (subzoneRec) {
-        flags = subzoneRec->m_flags;
-        subzone = 1;
-    }
-
-    AreaTableRec* area = g_areaTableDB.GetRecord(CGGameUI::m_areaID);
-
-    if (flags == -1) {
-        subzone = 0;
-        flags = area ? area->m_flags : 0;
-    }
-
-    const char* type = nullptr;
-
-    if (flags & 0x800) {
-        type = "sanctuary";
-    } else if (flags & 0x80) {
-        type = "arena";
-    } else if (flags & 0x1000000) {
-        type = "combat";
-    }
-
-    if (type) {
-        lua_pushstring(L, type);
-
-        if (subzone) {
-            lua_pushnumber(L, 1.0);
-        } else {
-            lua_pushnil(L);
-        }
-
-        return 2;
-    }
-
-    int32_t contested = (flags & 0x40000) != 0;
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
-
-    if (!area || !player || (!s_isPvPRealm && !(area->m_flags & 0x10))) {
-        return 0;
-    }
-
-    if (!contested) {
-        FactionTemplateRec* faction = g_factionTemplateDB.GetRecord(player->m_unit->m_unitFieldFactiontemplate);
-
-        if (!faction || (area->m_factionGroupMask & faction->m_friendGroup)) {
-            type = "friendly";
-        } else if (area->m_factionGroupMask & faction->m_enemyGroup) {
-            type = "hostile";
-        }
-    }
-
-    lua_pushstring(L, type ? type : "contested");
-    const char* factionName = "";
-
-    for (int32_t i = 0; i < g_factionGroupDB.m_numRecords; i++) {
-        FactionGroupRec* group = i >= 0 && i < g_factionGroupDB.m_numRecords ? &g_factionGroupDB.m_records[i] : nullptr;
-
-        if (((1 << group->m_maskID) & area->m_factionGroupMask) && *group->m_name) {
-            factionName = group->m_name;
-            break;
-        }
-    }
-
-    lua_pushnil(L);
-    lua_pushstring(L, factionName);
-    return 3;
-}
-
 // VERIFY: e54b0005 auto
 // OFFSET: 0x0051FA50
 int32_t CGGameUI::FilterMouseDown(CMouseEvent* evt) {
@@ -4092,4 +3224,343 @@ int32_t CGGameUI::HandleMouseDown(const CMouseEvent& evt) {
     }
 
     return 0;
+}
+
+// VERIFY: 0e9c94a1 auto
+// OFFSET: 0x005124D0
+int32_t CGGameUI::SequenceMusicIsPlaying() {
+    return CGGameUI::m_inCinematic;
+}
+
+// VERIFY: 1dcf4a5b auto
+// OFFSET: 0x00512560
+void CGGameUI::CancelPartyInvite() {
+    FrameScript_SignalEvent(SCRIPT_EVENT_PARTY_INVITE_CANCEL, nullptr);
+}
+
+// VERIFY: 59ada9c1 auto
+// OFFSET: 0x005129F0
+int32_t CGGameUI::IsInParty(const WOWGUID& guid) {
+    return CGPartyInfo::IsMember(guid);
+}
+
+// VERIFY: 145d6878 auto
+// OFFSET: 0x00512520
+void CGGameUI::OpenPlayerSkinned(bool a1) {
+    FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_SKINNED, "%d", a1 != 0);
+}
+
+// VERIFY: 1e182166 auto
+// OFFSET: 0x00512540
+void SignalEvent_EVENT_PARTY_INVITE_REQUEST(const char* name) {
+    FrameScript_SignalEvent(SCRIPT_EVENT_PARTY_INVITE_REQUEST, "%s", name);
+}
+
+// VERIFY: 4e6f4271 auto
+// OFFSET: 0x00513640
+void CGGameUI::ShowBlockedFrameFeedback(CScriptRegion* region) {
+    CGGameUI::ShowBlockedActionFeedback(region, 2);
+}
+
+// VERIFY: 31aed9df auto
+// OFFSET: 0x00513900
+uint32_t CGGameUI::GetCurrentRaidDifficulty() {
+    if (!CGRaidInfo::m_numMembers) {
+        return CGGameUI::m_raidDifficulty;
+    }
+
+    return CGPartyInfo::m_raidDifficulty;
+}
+
+// VERIFY: 784cb6f5 auto
+// OFFSET: 0x00513BF0
+void CGGameUI::SetSummonRequest(WOWGUID summoner, uint32_t area, uint32_t timeout) {
+    CGGameUI::m_summonConfirmGUID = summoner;
+    CGGameUI::m_summonConfirmArea = area;
+    CGGameUI::m_summonConfirmTime = timeout + OsGetAsyncTimeMs();
+    FrameScript_SignalEvent(SCRIPT_EVENT_CONFIRM_SUMMON, nullptr);
+}
+
+// VERIFY: ed4947e0 auto
+// OFFSET: 0x00513240
+void CGGameUI::SetUIScale(float scale) {
+    float clamped = 0.64f;
+
+    if (scale > 0.64f) {
+        clamped = scale;
+    }
+
+    if (CGGameUI::m_UISimpleParent) {
+        CGGameUI::m_UISimpleParent->SetFrameScale(clamped, true);
+        CLayoutFrame::ResizePending();
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_FLOATING_CHAT_WINDOWS, nullptr);
+    }
+}
+
+// VERIFY: 0591e3f7 manual
+// OFFSET: 0x00513CF0
+void CGGameUI::UpdateUnitHighlights() {
+    bool show = CGGameUI::m_visible || (g_unitHighlightsCVar && g_unitHighlightsCVar->m_intValue);
+
+    if (CGGameUI::m_currentObjectTrack) {
+        CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_currentObjectTrack, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+        if (object) {
+            if (show) {
+                object->ShowHighlightType(1);
+            } else {
+                object->HideHighlightType(1);
+            }
+        }
+    }
+
+    if (CGGameUI::m_lockedTarget) {
+        CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_lockedTarget, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+        if (object) {
+            if (show) {
+                object->ShowHighlightType(0);
+            } else {
+                object->HideHighlightType(0);
+            }
+        }
+    }
+}
+
+// VERIFY: a21756d1 manual
+// OFFSET: 0x0051FF20
+void CGGameUI::SetFocusTarget(const WOWGUID& guid) {
+    if (guid == CGGameUI::unk_BD07D0) {
+        return;
+    }
+
+    if (lua_tainted) {
+        CGGameUI::ShowBlockedActionFeedback(nullptr, 0);
+        return;
+    }
+
+    if (CGGameUI::unk_BD07D0) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::unk_BD07D0, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            unit->UnregisterScript(0x2000);
+        }
+    }
+
+    CGGameUI::unk_BD07D0 = guid;
+
+    if (CGGameUI::unk_BD07D0) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::unk_BD07D0, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            unit->RegisterScript(0x2000);
+        }
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_FOCUS_CHANGED, nullptr);
+}
+
+// VERIFY: 76ef482a manual
+// OFFSET: 0x005197D0
+void CGGameUI::DestroyTotem(int32_t slot) {
+    if (static_cast<uint32_t>(slot) > 3) {
+        return;
+    }
+
+    TotemInfo* totem = &CGGameUI::m_totems[slot];
+
+    if (!totem || !totem->unk_0004) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_TOTEM_DESTROYED));
+    msg.Put(static_cast<uint8_t>(slot));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    totem->m_guid = WOWGUID();
+    totem->m_name = nullptr;
+    totem->m_duration = 0;
+    totem->m_startTime = 0;
+    totem->m_icon = nullptr;
+    FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_TOTEM_UPDATE, "%d", slot + 1);
+}
+
+// VERIFY: 1ea800c8 manual
+// OFFSET: 0x00512930
+void LoadSavedVariables(CStatus* status) {
+    char path[260];
+
+    for (int32_t i = 0; i < 2; i++) {
+        if (i) {
+            SStrPrintf(path, sizeof(path), "WTF\\Account\\%s\\%s\\%s", ClientServices::GetAccountName(), ClientServices::GetSelectedRealmName(), ClientServices::GetCharacterName());
+        } else {
+            SStrPrintf(path, sizeof(path), "WTF\\Account\\%s", ClientServices::GetAccountName());
+        }
+
+        if (!OsDirectoryExists(path)) {
+            OsCreateDirectory(path, 1);
+        }
+
+        SStrPack(path, "\\SavedVariables.lua", sizeof(path));
+        FrameScript_LoadVariables(path, status);
+    }
+}
+
+// VERIFY: 0408242c auto
+// OFFSET: 0x00513700
+int32_t CGGameUI::IsAutoLooting() {
+    if (!CGUIBindings::s_bindings) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    int32_t autoLoot = g_autoLootDefaultCVar->m_intValue;
+
+    if (CGUIBindings::s_bindings->IsModifiedClick("AUTOLOOTTOGGLE")) {
+        return autoLoot == 0;
+    }
+
+    return autoLoot;
+}
+
+// VERIFY: 1125ad1e manual
+// OFFSET: 0x00527A30
+void CCapturePointUIManager::AddCapturePoint(CGGameObject_C* object, uint32_t worldState, uint32_t radius) {
+    if (!object) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    WOWGUID guid = object->m_obj->m_guid;
+    CapturePointUIManagerNode* node = this->m_nodes.NewNode(2, 0, 0);
+    node->m_guid = guid;
+    node->m_radiusSquared = radius * radius;
+    node->m_worldState = worldState;
+}
+
+// VERIFY: 4eee8c3d manual
+// OFFSET: 0x005134C0
+void CGGameUI::SetMinimapZoneText(const char* text) {
+    if (text && *text) {
+        if (CGGameUI::m_minimapZoneText) {
+            if (!SStrCmpUTF8I(CGGameUI::m_minimapZoneText, text, STORM_MAX_STR)) {
+                return;
+            }
+
+            if (CGGameUI::m_minimapZoneText) {
+                SMemFree(const_cast<char*>(CGGameUI::m_minimapZoneText), __FILE__, __LINE__, 0);
+            }
+        }
+
+        CGGameUI::m_minimapZoneText = SStrDupA(text, __FILE__, __LINE__);
+    } else if (CGGameUI::m_minimapZoneText && *CGGameUI::m_minimapZoneText) {
+        *const_cast<char*>(CGGameUI::m_minimapZoneText) = 0;
+    }
+}
+
+// VERIFY: 1417860a manual
+// OFFSET: 0x005204C0
+void CGGameUI::NewZoneFeedback(int32_t areaId, int32_t subzoneId, int32_t wmoGroupId, const char* zoneText, const char* subZoneText, const char* realZoneText, int32_t inside) {
+    int32_t newArea = CGGameUI::m_areaID != areaId;
+    int32_t hadArea = CGGameUI::m_areaID != 0;
+    CGGameUI::m_areaID = areaId;
+    CGGameUI::m_subzoneID = subzoneId;
+    CGGameUI::m_wmoGroupID = wmoGroupId;
+
+    if (!hadArea) {
+        CGWorldMap::SetMapToCurrentZone(0);
+    }
+
+    int32_t textChanged = 0;
+
+    if (zoneText && *zoneText) {
+        if (!CGGameUI::m_zoneText || SStrCmpUTF8I(CGGameUI::m_zoneText, zoneText, STORM_MAX_STR)) {
+            if (CGGameUI::m_zoneText) {
+                SMemFree(const_cast<char*>(CGGameUI::m_zoneText), __FILE__, __LINE__, 0);
+            }
+
+            CGGameUI::m_zoneText = SStrDupA(zoneText, __FILE__, __LINE__);
+            textChanged = 1;
+        }
+    } else if (CGGameUI::m_zoneText && *CGGameUI::m_zoneText) {
+        *const_cast<char*>(CGGameUI::m_zoneText) = 0;
+        textChanged = 1;
+    }
+
+    if (subZoneText && *subZoneText) {
+        if (!CGGameUI::m_subZoneText || SStrCmpUTF8I(CGGameUI::m_subZoneText, subZoneText, STORM_MAX_STR)) {
+            if (CGGameUI::m_subZoneText) {
+                SMemFree(const_cast<char*>(CGGameUI::m_subZoneText), __FILE__, __LINE__, 0);
+            }
+
+            CGGameUI::m_subZoneText = SStrDupA(subZoneText, __FILE__, __LINE__);
+            textChanged = 1;
+        }
+    } else if (CGGameUI::m_subZoneText && *CGGameUI::m_subZoneText) {
+        *const_cast<char*>(CGGameUI::m_subZoneText) = 0;
+        textChanged = 1;
+    }
+
+    if (realZoneText && *realZoneText && (!CGGameUI::m_realZoneText || SStrCmpUTF8I(CGGameUI::m_realZoneText, realZoneText, STORM_MAX_STR))) {
+        if (CGGameUI::m_realZoneText) {
+            SMemFree(const_cast<char*>(CGGameUI::m_realZoneText), __FILE__, __LINE__, 0);
+        }
+
+        CGGameUI::m_realZoneText = SStrDupA(realZoneText, __FILE__, __LINE__);
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (player && !(player->m_unit->m_unitFieldFlags & 0x100000) && !CGGameUI::m_inCinematic && !CGPlayer_C::GetPendingMovie()) {
+            CGChat::ZoneUpdate();
+        }
+    }
+
+    if (newArea) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_ZONE_CHANGED_NEW_AREA, nullptr);
+    } else if (textChanged) {
+        FrameScript_SignalEvent(inside ? SCRIPT_EVENT_ZONE_CHANGED_INDOORS : SCRIPT_EVENT_ZONE_CHANGED, nullptr);
+    }
+
+    if (SFile::IsTrial() && (newArea || textChanged)) {
+        Blizzard::Streaming::SetZone(CGGameUI::m_areaID, CGGameUI::m_subzoneID);
+    }
+
+    CGSpellBook::UpdateUsable();
+}
+
+// VERIFY: 7b5b7606 manual
+// OFFSET: 0x0052AED0
+void CGGameUI::RegisterSavedVariable(const char* name, int32_t perCharacter) {
+    if (!CGGameUI::s_savedVariables[perCharacter].Ptr(name)) {
+        CGGameUI::s_savedVariables[perCharacter].New(name, 0, 0);
+    }
+}
+
+// VERIFY: 4ea406ee auto
+// OFFSET: 0x00513E00
+const char* MirrorTimerTypeToken(int32_t type) {
+    switch (type) {
+        case 0:
+            return "EXHAUSTION";
+
+        case 1:
+            return "BREATH";
+
+        case 2:
+            return "FEIGNDEATH";
+    }
+
+    return "UNKNOWN";
+}
+
+// VERIFY: 4e87f51f manual
+// OFFSET: 0x005199A0
+const char* GetMirrorTimerLabel(int32_t type, int32_t spellId) {
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell)) {
+        return spell.m_name;
+    }
+
+    char label[128];
+    SStrPrintf(label, sizeof(label), "%s_LABEL", MirrorTimerTypeToken(type));
+    return FrameScript_GetText(label, -1, GENDER_NOT_APPLICABLE);
 }

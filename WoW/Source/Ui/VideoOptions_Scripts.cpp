@@ -20,6 +20,8 @@
 #include "Engine/Source/Tempest/C3iVector.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
+#include "Engine/Source/Base/Coordinate.h"
+#include "Engine/Source/Frame/CSimpleFrame.h"
 
 int32_t Script_SetScreenResolution(lua_State* L);
 int32_t Script_SetupFullscreenScale(lua_State* L);
@@ -429,6 +431,99 @@ static int32_t Script_GetCurrentMultisampleFormat(lua_State* L) {
 
     lua_pushnumber(L, 1.0);
     return 1;
+}
+
+// VERIFY: d63b1ce9 manual
+// OFFSET: 0x0054ED80
+static int32_t Script_SetupFullscreenScale(lua_State* L) {
+    if (lua_type(L, 1) != LUA_TTABLE) {
+        luaL_error(L, "Usage: SetupFullscreenScale(frame)");
+    }
+
+    lua_rawgeti(L, 1, 0);
+    CSimpleFrame* frame = static_cast<CSimpleFrame*>(lua_touserdata(L, -1));
+    lua_settop(L, -2);
+
+    if (!frame) {
+        luaL_error(L, "SetupFullscreenScale(): Couldn't find 'this' in frame object");
+    }
+
+    if (!frame->IsA(CSimpleFrame::GetObjectType())) {
+        luaL_error(L, "SetupFullscreenScale(): Wrong object type, expected frame");
+    }
+
+    float compensation = CoordinateGetAspectCompensation();
+
+    if (compensation >= 1.0f) {
+        frame->SetFrameScale(1.0f, false);
+    } else {
+        frame->SetFrameScale(compensation, false);
+    }
+
+    return 0;
+}
+
+// VERIFY: de05e80f manual
+// OFFSET: 0x0054F570
+static int32_t Script_SetScreenResolution(lua_State* L) {
+    SetupFormats();
+
+    uint32_t index = 0;
+
+    if (lua_isnumber(L, 1)) {
+        uint32_t count = s_resolutions.Count();
+        index = count < static_cast<uint32_t>(lua_tonumber(L, 1)) - 1 ? s_resolutions.Count() : static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    }
+
+    CVar* gxResolution = CVar::Lookup("gxResolution");
+
+    if (gxResolution && gxResolution->m_stringValue.m_str) {
+        int32_t width = 0;
+        int32_t height = 0;
+        char separator;
+        sscanf(gxResolution->m_stringValue.m_str, "%d%c%d", &width, &separator, &height);
+
+        if (width != s_resolutions[index].x || height != s_resolutions[index].y) {
+            char value[32];
+            SStrPrintf(value, sizeof(value), "%dx%d", s_resolutions[index].x, s_resolutions[index].y);
+            gxResolution->Set(value, true, false, false, true);
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 64c2ee40 manual
+// OFFSET: 0x0054F980
+static int32_t Script_SetMultisampleFormat(lua_State* L) {
+    SetupMultisampleFormats();
+
+    uint32_t index = 0;
+
+    if (lua_isnumber(L, 1)) {
+        uint32_t count = s_multisampleFormats.Count();
+        index = count < static_cast<uint32_t>(lua_tonumber(L, 1)) - 1 ? s_multisampleFormats.Count() : static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    }
+
+    CVar* colorBits = CVar::Lookup("gxColorBits");
+    CVar* depthBits = CVar::Lookup("gxDepthBits");
+    CVar* multisample = CVar::Lookup("gxMultisample");
+
+    if (colorBits && depthBits && multisample) {
+        C3iVector& format = s_multisampleFormats[index];
+
+        if (colorBits->m_intValue != format.x || depthBits->m_intValue != format.y || multisample->m_intValue != format.z) {
+            char value[32];
+            SStrPrintf(value, sizeof(value), "%d", format.x);
+            colorBits->Set(value, true, false, false, true);
+            SStrPrintf(value, sizeof(value), "%d", format.y);
+            depthBits->Set(value, true, false, false, true);
+            SStrPrintf(value, sizeof(value), "%d", format.z);
+            multisample->Set(value, true, false, false, true);
+        }
+    }
+
+    return 0;
 }
 
 // STATIC: 0x00ACD320

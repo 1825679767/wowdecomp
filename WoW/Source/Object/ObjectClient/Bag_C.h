@@ -7,6 +7,11 @@
 
 class CGItem_C;
 
+struct BAGSLOTRANGE {
+    /* 0000 */ uint32_t m_first;
+    /* 0004 */ uint32_t m_last;
+};
+
 struct ItemTypeCountParam {
     /* 0000 */ int32_t m_itemId;
     /* 0004 */ int32_t m_count;

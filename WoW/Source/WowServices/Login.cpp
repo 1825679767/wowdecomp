@@ -349,3 +349,9 @@ void Login::RealmListResult(CDataStore* msg) {
         this->m_loginResponse->HandleRealmData(0, msg);
     }
 }
+
+// VERIFY: 4f0d773c manual
+// OFFSET: 0x00465600
+void Login::FileData(const uint8_t* data, uint32_t size) {
+    this->m_loginResponse->FileData(data, size);
+}

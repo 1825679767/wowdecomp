@@ -15,7 +15,7 @@
 #include "WoW/Source/Ui/RaidInfo.h"
 
 // STATIC: 0x00D380A0
-static uint32_t s_nameMask;
+uint32_t s_nameMask;
 
 // STATIC: 0x00D380A4
 static uint32_t s_lastRenderFrame;
@@ -31,6 +31,9 @@ static CTexture* s_playerNameIcons;
 
 // STATIC: 0x00D380B4
 static CDataAllocator s_freePlayerNames(sizeof(PLAYERNAMEDESC), 256);
+
+// STATIC: 0x00AF46FC
+TSExplicitList<PLAYERNAMEDESC, offsetof(PLAYERNAMEDESC, m_link)> s_playerNames;
 
 // VERIFY: e90bacd6 auto
 // OFFSET: 0x007E53A0
@@ -117,4 +120,24 @@ void PlayerNameUpdateDrawCallback(PLAYERNAMEDESC* desc) {
             object->ObjectNameVisibilityChanged();
         }
     }
+}
+
+// VERIFY: 6a232d70 auto
+// OFFSET: 0x007E5120
+void PlayerNameUpdateEarly() {
+    s_lastRenderFrame++;
+}
+
+// VERIFY: fb153d0c auto
+// OFFSET: 0x007E5130
+void PlayerNameTriggerNameRegenerate(PLAYERNAMEDESC* desc) {
+    if (desc) {
+        desc->m_flags |= 0x1;
+    }
+}
+
+// VERIFY: 04249170 auto
+// OFFSET: 0x007E5150
+bool PlayerNameShowing(PLAYERNAMEDESC* desc) {
+    return desc && (desc->m_flags & 0x8);
 }

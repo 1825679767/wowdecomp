@@ -53,10 +53,14 @@ void VoiceStop();
 
 struct COMSATDATA {
     /* 0000 */ uint64_t m_sessionID;
-    /* 0008 */ uint8_t unk_0008[776];
+    /* 0008 */ int32_t m_type;
+    /* 000C */ char m_name[128];
+    /* 008C */ uint32_t m_numMembers;
+    /* 0090 */ uint8_t unk_0090[640];
 };
 
 extern COMSATDATA s_comsatData[32];
+extern int32_t s_currentSession;
 extern CVar* s_cvarEnableMicrophone;
 extern CVar* s_cvarEnableVoiceChat;
 extern CVar* s_cvarPushToTalkButton;
@@ -85,20 +89,15 @@ void ComSatClient_Shutdown();
 void UpdatePushToTalkKey();
 int32_t VoiceChat_TickWrapper(const void* data, void* param);
 
-int32_t Script_VoiceEnumerateOutputDevices(lua_State* L);
-int32_t Script_VoiceEnumerateCaptureDevices(lua_State* L);
-int32_t Script_VoiceSelectOutputDevice(lua_State* L);
-int32_t Script_VoiceSelectCaptureDevice(lua_State* L);
 int32_t Script_VoiceGetCurrentOutputDevice(lua_State* L);
-int32_t Script_VoiceGetCurrentCaptureDevice(lua_State* L);
 int32_t Script_GetVoiceStatus(lua_State* L);
-int32_t Script_GetNumVoiceSessions(lua_State* L);
-int32_t Script_GetVoiceSessionInfo(lua_State* L);
-int32_t Script_GetVoiceCurrentSessionID(lua_State* L);
 int32_t Script_SetActiveVoiceChannelBySessionID(lua_State* L);
-int32_t Script_GetNumVoiceSessionMembersBySessionID(lua_State* L);
 int32_t Script_GetVoiceSessionMemberInfoBySessionID(lua_State* L);
-int32_t Script_VoiceIsDisabledByClient(lua_State* L);
+
+extern int32_t s_comsatDisabledByClient;
+
+class SCritSect;
+extern SCritSect s_comsatDeviceLock;
 int32_t Script_UnitIsTalking(lua_State* L);
 void VoiceRegisterScriptFunctions();
 

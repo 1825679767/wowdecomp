@@ -93,6 +93,7 @@ class CGlueMgr {
     static uint8_t m_executedSurvey;
     static FileDownload* m_surveyDownload;
     static FileDownload* m_patchDownload;
+    static float m_patchDownloadProgress;
     static uint8_t m_ffxActive;
     static FFX::Effect* m_deathEffect;
     static FFX::Effect* m_glowEffect;

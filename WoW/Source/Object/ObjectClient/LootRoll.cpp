@@ -1,5 +1,6 @@
 #include "LootRoll.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
+#include "WoW/Source/Ui/Types.h"
 
 // STATIC: 0x00ADA7B4
 TSExplicitList<PendingLootRoll, offsetof(PendingLootRoll, m_link)> s_pendingLootRolls;
@@ -32,7 +33,7 @@ PendingLootRoll* FindRoll(int32_t id) {
     return nullptr;
 }
 
-// VERIFY: 0229e37b manual
+// VERIFY: e08c1b05 manual
 // OFFSET: 0x006FB180
 void LootRollShowPending() {
     if (s_numShownLootRolls >= 4) {
@@ -46,7 +47,7 @@ void LootRollShowPending() {
 
         s_numShownLootRolls++;
         roll->m_showPending = 0;
-        FrameScript_SignalEvent(442, "%d%d", roll->m_id, roll->m_rollTime);
+        FrameScript_SignalEvent(SCRIPT_EVENT_START_LOOT_ROLL, "%d%d", roll->m_id, roll->m_rollTime);
 
         if (s_numShownLootRolls >= 4) {
             break;

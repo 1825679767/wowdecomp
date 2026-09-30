@@ -121,6 +121,7 @@ class SpellRec {
     SpellRec();
     ~SpellRec();
     static const char* GetFilename();
+    static bool HasAura(const SpellRec* spell, int32_t aura);
     bool Read(SFileImpl* file, const char* stringBuffer);
 };
 

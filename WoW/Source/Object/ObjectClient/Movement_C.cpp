@@ -266,3 +266,11 @@ CMoveSpline* MovementNewSpline() {
 uint32_t MovementGetIdleTime() {
     return ClntObjMgrGetMovementGlobals()->m_idleTime;
 }
+
+// VERIFY: 0fa1ac26 auto
+// OFFSET: 0x006E8F70
+void MovementSetTransportUpdateTime(uint32_t time) {
+    CMovementGlobals* globals = MovementGetGlobals();
+    globals->m_transportTime2 = globals->m_transportTime;
+    globals->m_transportTime = time;
+}

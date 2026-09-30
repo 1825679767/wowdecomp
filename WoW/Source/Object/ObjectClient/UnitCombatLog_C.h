@@ -80,6 +80,7 @@ struct CombatLogFilter : public TSLinkedNode<CombatLogFilter> {
     /* 0030 */ int32_t m_spellId;
     /* 0034 */ RCString m_spellName;
 
+    CombatLogFilter();
     bool SetFilterData(const char* events, const WOWGUID& sourceGuid, uint32_t sourceFlags, const WOWGUID& destGuid, uint32_t destFlags, int32_t spellId, const char* spellName);
     bool MatchesFilter(int32_t event, const WOWGUID& sourceGuid, uint32_t sourceFlags, const WOWGUID& destGuid, uint32_t destFlags, int32_t spellId, const char* spellName);
 };
@@ -107,11 +108,12 @@ void QueueCombatLogEntry(CombatLogEntry* entry, uint32_t timeOffset);
 bool ShouldShowFeedback(const ATTACKROUNDINFO& info);
 void UnitCombatLogInvalidateName(const char* name);
 char* GUIDToHexString(WOWGUID guid, char* buffer);
+WOWGUID StringToGuid(const char* string);
 void UnitCombatLog(const WOWGUID& guid, uint32_t type, int32_t damage, int32_t absorbed, int32_t resisted);
 void UnitCombatLog(const ATTACKROUNDINFO& info);
 void UnitCombatLogCastGo(const WOWGUID& caster, const WOWGUID& target, int32_t spellId);
 class AuraData;
-void UnitCombatLogAuraDose(CGUnit_C* unit, const AuraData* aura, int32_t spellId, uint8_t oldStack, uint8_t newStack, uint8_t a6);
+void UnitCombatLogAuraDose(CGUnit_C* unit, const AuraData* aura, int32_t spellId, int32_t oldStack, int32_t newStack, uint8_t a6);
 void UnitCombatLogAuraRefreshed(CGUnit_C* unit, const AuraData* aura, int32_t spellId, uint8_t a4);
 int32_t Packet_SMSG_PERIODICAURALOG(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_ENCHANTMENTLOG(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
@@ -129,17 +131,19 @@ void SendToCombatText(int32_t type, const char* text);
 void SendToCombatText(int32_t type);
 void UnitCombatLogProcGo(const WOWGUID& casterGuid, const SpellRec* spell);
 
-int32_t Script_CombatLogResetFilter(lua_State* L);
-int32_t Script_CombatLogAddFilter(lua_State* L);
-int32_t Script_CombatLogSetRetentionTime(lua_State* L);
-int32_t Script_CombatLogGetRetentionTime(lua_State* L);
-int32_t Script_CombatLogGetNumEntries(lua_State* L);
-int32_t Script_CombatLogSetCurrentEntry(lua_State* L);
-int32_t Script_CombatLogGetCurrentEntry(lua_State* L);
 int32_t Script_CombatLogAdvanceEntry(lua_State* L);
-int32_t Script_CombatLogClearEntries(lua_State* L);
-int32_t Script_CombatLog_Object_IsA(lua_State* L);
-int32_t Script_CombatTextSetActiveUnit(lua_State* L);
 void UnitCombatLogRegisterScriptFunctions();
+
+// INLINED
+inline CombatLogFilter::CombatLogFilter() {
+    this->m_events.m_count = 50;
+    this->m_events.m_bits.SetCount(((50 - 1) >> 5) + 1);
+}
+
+extern TSList<CombatLogEntry, TSGetLink<CombatLogEntry> > s_entries;
+extern WOWGUID s_combatTextActiveUnit;
+extern CombatLogEntry* s_currentEntry;
+extern CombatLogEntry* s_pendingEntries;
+extern const char* g_spellMissStrings[12];
 
 #endif

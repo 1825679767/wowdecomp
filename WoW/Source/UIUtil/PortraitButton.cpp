@@ -4,15 +4,35 @@
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Tempest/CiRect.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "Engine/Source/Base/Status.h"
+#include "Engine/Source/Services/Texture.h"
+
+// STATIC: 0x00C5CDF0
+static CTexture* s_portraitMaskTexture;
+
+// STATIC: 0x00C5CDF4
+static CGxTex* s_portraitMaskGxTex;
+
+// STATIC: 0x00C5CDF8
+static CTexture* s_portraitDepthTexture;
 
 // STATIC: 0x00C5CDFC
 static int32_t unk_C5CDFC;
+
+// STATIC: 0x00C5CE00
+static uint32_t unk_C5CE00;
+
+// STATIC: 0x00C5CE04
+static uint32_t unk_C5CE04;
 
 // STATIC: 0x00C5CE08
 static TSHashTable<PLAYERPORTRAIT, CHashKeyGUID> unk_C5CE08;
 
 // STATIC: 0x00C5CE30
 static TSHashTable<UNITPORTRAIT, HASHKEY_DWORD> unk_C5CE30;
+
+static void PortraitDepthTextureCallback(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevel, void* userArg, uint32_t& texelStrideInBytes, const void*& texels) {
+}
 
 // VERIFY: 9cb5c23b auto
 // OFFSET: 0x00616DC0
@@ -43,7 +63,7 @@ int32_t RTAlphaSupported() {
     return supported;
 }
 
-// VERIFY: 2e427666 manual
+// VERIFY: 4a08269a manual
 // OFFSET: 0x00617070
 void __fastcall UpdateAllPortraits() {
     unk_C5CDFC = RTAlphaSupported();
@@ -56,5 +76,30 @@ void __fastcall UpdateAllPortraits() {
         portrait->unk_0018 = 1;
     }
 
-    Script_SendUniqueSignalToAllUnits(145);
+    Script_SendUniqueSignalToAllUnits(SCRIPT_EVENT_UNIT_PORTRAIT_UPDATE);
+}
+
+// VERIFY: 237bf2e5 manual
+// OFFSET: 0x00618010
+void PortraitInitialize() {
+    CStatus status;
+
+    s_portraitMaskTexture = TextureCreate("Interface\\CharacterFrame\\TempPortraitAlphaMaskSmall.blp", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0);
+
+    if (s_portraitMaskTexture) {
+        s_portraitMaskGxTex = TextureGetGxTex(s_portraitMaskTexture, 1, nullptr);
+    } else {
+        s_portraitMaskGxTex = nullptr;
+    }
+
+    unk_C5CDFC = RTAlphaSupported();
+
+    if (unk_C5CDFC && (g_theGxDevicePtr->DeviceApi() == GxApi_OpenGl || g_theGxDevicePtr->DeviceApi() == GxApi_GLL)) {
+        CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
+        flags.m_renderTarget = 1;
+        s_portraitDepthTexture = TextureCreate(GxTex_2d, 64, 64, 24, GxTex_D24X8, GxTex_D24X8, flags, nullptr, PortraitDepthTextureCallback, "PortraitDepth", 1);
+    }
+
+    unk_C5CE00 = 0;
+    unk_C5CE04 = 0;
 }

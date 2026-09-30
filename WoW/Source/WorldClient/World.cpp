@@ -52,6 +52,8 @@
 #include "WoW/Source/DB/Rec/AreaTableRec.h"
 #include "WoW/Source/DB/Rec/LiquidMaterialRec.h"
 #include "WoW/Source/DB/Rec/LiquidTypeRec.h"
+#include "WoW/Source/DB/Rec/MapRec.h"
+#include "WoW/Source/DB/Rec/WMOAreaTableRec.h"
 #include "WoW/Source/LiquidSystem/Liquid.h"
 #include "WoW/Source/LoadingScreen.h"
 #include "WoW/Source/Object/ObjectClient/Movement_C.h"
@@ -442,6 +444,21 @@ C44Matrix CWorldScene::camTransportView;
 // STATIC: 0x00CE04B0
 int32_t (*World::s_objectCollisionCallback)(WOWGUID* guid, uint32_t param, World::ObjectCollisionData* data, uint32_t flags);
 
+// STATIC: 0x00ADEE74
+static const char* s_invisibleStalkerModel = "InvisibleStalker.m2";
+
+// STATIC: 0x00ADF4F0
+C44Matrix CWorldScene::camTransportMtx;
+
+// STATIC: 0x00CD8788
+WOWGUID CWorldScene::camTransportGUID;
+
+// STATIC: 0x00CDD380
+static C3Vector* s_clipInVerts[32];
+
+// STATIC: 0x00CDD300
+static C3Vector* s_clipOutVerts[32];
+
 // VERIFY: 8564474b manual
 // OFFSET: 0x005EEB70
 void World::SetTexLodBias(float bias) {
@@ -713,8 +730,6 @@ int32_t World::SceneCamLiquidStatus(float* depth) {
 }
 
 // VERIFY: a4bfc150 manual
-// STATIC: 0x00ADEE74
-static const char* s_invisibleStalkerModel = "InvisibleStalker.m2";
 
 // VERIFY: ac1fbe8d auto
 // OFFSET: 0x0077EFF0
@@ -3965,12 +3980,6 @@ void CWorldScene::SetWorldProjection(C44Matrix& mat) {
     world.m_mtx[world.m_level] = mat;
 }
 
-// STATIC: 0x00ADF4F0
-C44Matrix CWorldScene::camTransportMtx;
-
-// STATIC: 0x00CD8788
-WOWGUID CWorldScene::camTransportGUID;
-
 // VERIFY: 1a7d5728 manual
 // OFFSET: 0x0077F0B0
 int32_t World::QueryObjectVisible(CMapEntity* entity) {
@@ -4250,12 +4259,6 @@ bool World::GetFacets(CFrustum* frustum, FacetData* facets, uint32_t flags, uint
     return CMap::QueryFacets(frustum, facets, flags, status);
 }
 
-// STATIC: 0x00CDD380
-static C3Vector* s_clipInVerts[32];
-
-// STATIC: 0x00CDD300
-static C3Vector* s_clipOutVerts[32];
-
 // VERIFY: 95a6852b manual
 // OFFSET: 0x00791380
 bool World::NDCClip(C3Vector* verts, uint32_t count, C3Vector*** outVerts, uint32_t* outCount) {
@@ -4360,4 +4363,130 @@ bool World::NDCClip(C3Vector* verts, uint32_t count, C3Vector*** outVerts, uint3
     *outVerts = src->verts;
     *outCount = src->count;
     return true;
+}
+
+// VERIFY: 8a7aac37 auto
+// OFFSET: 0x0077EFE0
+int32_t World::FrustumCull(const CAaBox& box) {
+    return CWorldScene::FrustumCull(const_cast<CAaBox*>(&box));
+}
+
+// VERIFY: aa42c615 auto
+// OFFSET: 0x0077F080
+int32_t World::QueryMapId() {
+    return s_mapId;
+}
+
+// VERIFY: a272ba51 auto
+// OFFSET: 0x0077F540
+int32_t World::ProjectPositionCallback(const C3Vector& position, float& height, void* param) {
+    C3Vector end = { position.x, position.y, position.z - 20.0f };
+    C3Vector hit = { 0.0f, 0.0f, 0.0f };
+    float distance = 1.0f;
+
+    if (!CMap::Intersect(const_cast<C3Vector*>(&position), &end, &hit, &distance, 0x100111, nullptr)) {
+        return 0;
+    }
+
+    height = hit.z;
+    return 1;
+}
+
+// VERIFY: 7a574776 auto
+// OFFSET: 0x0077F0D0
+int32_t World::QueryMapObjZoneName(CMapEntity* entity, const char** zoneName) {
+    if (!entity) {
+        return 0;
+    }
+
+    return entity->QueryMapObjZoneName(zoneName);
+}
+
+// VERIFY: 9105b684 auto
+// OFFSET: 0x0077F0F0
+int32_t World::QueryMapObjSubzoneName(CMapEntity* entity, const char** subzoneName, int32_t* areaId) {
+    if (!entity) {
+        return 0;
+    }
+
+    return entity->QueryMapObjSubzoneName(subzoneName, areaId);
+}
+
+// VERIFY: a5a2719e auto
+// OFFSET: 0x0077F160
+bool World::QueryMapObjIDs(CMapEntity* entity, int32_t* wmoId, int32_t* wmoHash, int32_t* groupNum) {
+    if (!entity) {
+        return false;
+    }
+
+    return entity->QueryMapObjIDs(wmoId, wmoHash, groupNum);
+}
+
+// VERIFY: 3e1ad2c7 manual
+// OFFSET: 0x0077F1B0
+bool World::QueryMapObjAreaTable(CMapEntity* entity, WMOAreaTableRec** groupRec, WMOAreaTableRec** rootRec, int32_t* wmoGroupId) {
+    return entity && entity->QueryMapObjAreaTable(groupRec, rootRec, wmoGroupId);
+}
+
+// VERIFY: 018bde21 auto
+// OFFSET: 0x0077FA00
+int32_t World::QueryAreaIdAtPosition(const C3Vector* position, int32_t* areaId) {
+    if (CMap::bDungeon) {
+        MapRec* map = g_mapDB.GetRecord(s_mapId);
+
+        if (map->m_areaTableID) {
+            *areaId = map->m_areaTableID;
+            return 1;
+        }
+    }
+
+    C3Vector start(position->x, position->y, position->z + 0.33f);
+    C3Vector end(position->x, position->y, position->z - 1760.0f);
+    float terrainDistance = 1.0f;
+    CMapChunk* chunk = nullptr;
+    bool hitTerrain = CMap::VectorIntersectTerrain(&start, &end, &terrainDistance, 0x20100, &chunk);
+    float objectDistance = 1.0f;
+    bool hitObject = false;
+    CMapObjDef* mapObjDef = nullptr;
+    CMapObjDefGroup* mapObjDefGroup = nullptr;
+
+    if ((CWorld::enables & 0x100) && CMap::VectorIntersect(&start, &end, 0x10, 1280, &objectDistance, nullptr, nullptr, &mapObjDef, &mapObjDefGroup)) {
+        hitObject = true;
+    }
+
+    if ((!hitTerrain || (hitObject && objectDistance <= terrainDistance)) && hitObject) {
+        CMapObjGroup* group = mapObjDef->m_owner->GetGroup(mapObjDefGroup->m_groupNum, 0);
+        WMOAreaTableRec* rec = GetWMOAreaRec(mapObjDef->m_owner->m_header->m_wmoID, mapObjDef->m_nameSet, group->m_wmoGroupId);
+
+        if (rec && rec->m_areaTableID) {
+            *areaId = rec->m_areaTableID;
+            return 1;
+        }
+    }
+
+    *areaId = CMap::QueryAreaIdTerrain(position);
+    return 1;
+}
+
+// VERIFY: 585e9636 manual
+// OFFSET: 0x0077F440
+double World::GetFramerate() {
+    double total = 0.0;
+    int32_t index = profIdx;
+
+    for (int32_t i = 30; i; i--) {
+        total += profTimes[index++];
+
+        if (index == 30) {
+            index = 0;
+        }
+    }
+
+    double average = total * 0.033333335;
+
+    if (average >= 0.001) {
+        return 1.0 / average;
+    }
+
+    return 1000.0;
 }

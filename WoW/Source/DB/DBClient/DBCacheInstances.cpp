@@ -22,6 +22,7 @@
 #include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
 
 // STATIC: 0x00C5D690
 DBCache<CreatureStats_C, int32_t, HASHKEY_INT> g_creatureDBCache('WMOB', "creaturecache.wdb", CMSG_QUERY_CREATURE, 0, true, true, 0);
@@ -451,4 +452,68 @@ void DBCache_RegisterHandlers() {
     ClientServices::SetMessageHandler(SMSG_CHEAT_DUMP_ITEMS_DEBUG_ONLY_RESPONSE, ReceiveSingleItem, nullptr);
     ClientServices::SetMessageHandler(SMSG_INVALIDATE_DANCE, ReceiveInvalidateDance, nullptr);
     ClientServices::SetMessageHandler(SMSG_DANCE_QUERY_RESPONSE, ReceiveDance, nullptr);
+}
+
+// VERIFY: 4b275620 auto
+// OFFSET: 0x00635C70
+void DBCache_ClearTemporaryCaches() {
+    if (!g_creatureDBCache.m_enabled) {
+        g_creatureDBCache.Clear();
+    }
+
+    if (!g_gameObjectDBCache.m_enabled) {
+        g_gameObjectDBCache.Clear();
+    }
+
+    if (!g_itemDBCache.m_enabled) {
+        g_itemDBCache.Clear();
+    }
+
+    if (!g_itemNameDBCache.m_enabled) {
+        g_itemNameDBCache.Clear();
+    }
+
+    if (!g_npcTextDBCache.m_enabled) {
+        g_npcTextDBCache.Clear();
+    }
+
+    if (!g_nameDBCache.m_enabled) {
+        g_nameDBCache.Clear();
+    }
+
+    if (!g_guildInfoCache.m_enabled) {
+        g_guildInfoCache.Clear();
+    }
+
+    if (!g_questDBCache.m_enabled) {
+        g_questDBCache.Clear();
+    }
+
+    if (!g_pageTextCache.m_enabled) {
+        g_pageTextCache.Clear();
+    }
+
+    if (!g_petNameCache.m_enabled) {
+        g_petNameCache.Clear();
+    }
+
+    if (!g_petitionCache.m_enabled) {
+        g_petitionCache.Clear();
+    }
+
+    if (!g_itemTextDBCache.m_enabled) {
+        g_itemTextDBCache.Clear();
+    }
+
+    if (!g_wardenCache.m_enabled) {
+        g_wardenCache.Clear();
+    }
+
+    if (!g_arenaTeamCache.m_enabled) {
+        g_arenaTeamCache.Clear();
+    }
+
+    if (!g_danceCache.m_enabled) {
+        g_danceCache.Clear();
+    }
 }

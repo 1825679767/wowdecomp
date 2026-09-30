@@ -4,8 +4,13 @@
 #include <cstddef>
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
+#include "Engine/Source/Storm/H/stpl.h"
 
 struct lua_State;
+class AreaPOIRec;
+class C3Vector;
+class CSimpleModel;
+class WorldMapContinentRec;
 
 struct DebugElement {
     /* 0000 */ int32_t unk_0000;
@@ -29,53 +34,90 @@ struct DebugElement {
     /* 0068 */ int32_t unk_0068;
 };
 
-class CGWorldMap {
-    public:
-    static void EnterWorld();
-    static void InitializeGame();
+struct WorldMapContinent {
+    /* 00000 */ int32_t m_mapID;
+    /* 00004 */ int32_t m_areaID;
+    /* 00008 */ TSFixedArray<int32_t> m_zones;
+    /* 00014 */ uint32_t m_zoneMap[128][128];
+    /* 10014 */ float unk_10014;
+    /* 10018 */ float unk_10018;
+    /* 1001C */ float unk_1001C;
+    /* 10020 */ float unk_10020;
+    /* 10024 */ int32_t unk_10024;
+
+    WorldMapContinent();
 };
 
-int32_t Script_GetMapContinents(lua_State* L);
-int32_t Script_GetMapZones(lua_State* L);
-int32_t Script_SetMapZoom(lua_State* L);
+struct WorldMapLandmarkInfo {
+    /* 0000 */ int32_t m_id;
+    /* 0004 */ float m_x;
+    /* 0008 */ float m_y;
+    /* 000C */ int32_t m_isGraveyard;
+    /* 0010 */ int32_t m_isGossip;
+};
+
+class CGWorldMap {
+    public:
+    static uint32_t m_numLandmarks;
+    static uint32_t m_numOverlays;
+    static int32_t m_currentContinent;
+    static int32_t m_currentZone;
+    static int32_t m_currentDungeonMap;
+    static int32_t m_currentOrphanZone;
+    static TSFixedArray<WorldMapContinent> m_continents;
+    static TSGrowableArray<WorldMapLandmarkInfo> m_landmarks;
+    static TSGrowableArray<int32_t> m_overlays;
+    static TSFixedArray<int32_t> m_orphanZones;
+    static CSimpleModel* m_playerArrowFrame;
+    static CSimpleModel* m_playerMiniArrowFrame;
+    static CSimpleModel* m_playerArrowEffectFrame;
+    static CSimpleModel* m_playerMiniArrowEffectFrame;
+    static void EnterWorld();
+    static void InitializeGame();
+    static void SetMapToCurrentZone(int32_t debug);
+    static void SetMap(uint32_t continent, uint32_t zone, int32_t dungeonMap);
+    static int32_t GetZoneID(uint32_t continent, uint32_t zone);
+    static uint32_t GetNumZones(uint32_t continent);
+    static int32_t GetCurrentDungeonMap();
+    static bool TransformPosition(int32_t mapID, float x, float y, int32_t* newMapID, float* newX, float* newY, int32_t* dungeonMapID);
+    static int32_t GetDungeonMapFromChunk(int32_t mapID, int32_t wmoGroupID, float z);
+    static WorldMapContinentRec* GetContinentRec(int32_t mapID);
+    static bool GetWorldPosition(const C3Vector& position, int32_t mapID, float* x, float* y, bool* outland, bool noClamp, int32_t dungeonMapID);
+    static void GetPOIPosition(const AreaPOIRec* poi, float* x, float* y);
+    static int32_t GetNumDungeonLevels();
+    static const char* GetZoneName(uint32_t continent, uint32_t zone);
+    static int32_t GetMapAreaFromPos(float x, float y);
+    static int32_t GetMapHighlight(float x, float y);
+    static const char* GetCurrentMapName();
+    static int32_t GetCurrentMapHeight();
+    static bool GetPlayerPosition(WOWGUID guid, float* x, float* y);
+    static int32_t GetCurrentAreaID();
+};
+
 int32_t Script_ZoomOut(lua_State* L);
 int32_t Script_SetDungeonMapLevel(lua_State* L);
-int32_t Script_GetNumDungeonMapLevels(lua_State* L);
-int32_t Script_DungeonUsesTerrainMap(lua_State* L);
-int32_t Script_SetMapToCurrentZone(lua_State* L);
-int32_t Script_GetMapInfo(lua_State* L);
-int32_t Script_GetCurrentMapContinent(lua_State* L);
-int32_t Script_GetCurrentMapAreaID(lua_State* L);
-int32_t Script_GetCurrentMapZone(lua_State* L);
-int32_t Script_GetCurrentMapDungeonLevel(lua_State* L);
 int32_t Script_SetMapByID(lua_State* L);
-int32_t Script_IsZoomOutAvailable(lua_State* L);
 int32_t Script_ProcessMapClick(lua_State* L);
-int32_t Script_UpdateMapHighlight(lua_State* L);
-int32_t Script_GetPlayerMapPosition(lua_State* L);
 int32_t Script_GetCorpseMapPosition(lua_State* L);
 int32_t Script_GetDeathReleasePosition(lua_State* L);
-int32_t Script_GetNumMapLandmarks(lua_State* L);
-int32_t Script_GetMapLandmarkInfo(lua_State* L);
-int32_t Script_GetNumMapOverlays(lua_State* L);
-int32_t Script_GetMapOverlayInfo(lua_State* L);
 int32_t Script_CreateWorldMapArrowFrame(lua_State* L);
 int32_t Script_InitWorldMapPing(lua_State* L);
 int32_t Script_CreateMiniWorldMapArrowFrame(lua_State* L);
 int32_t Script_UpdateWorldMapArrowFrames(lua_State* L);
-int32_t Script_PositionWorldMapArrowFrame(lua_State* L);
-int32_t Script_PositionMiniWorldMapArrowFrame(lua_State* L);
-int32_t Script_ShowWorldMapArrowFrame(lua_State* L);
-int32_t Script_ShowMiniWorldMapArrowFrame(lua_State* L);
 int32_t Script_ClickLandmark(lua_State* L);
-int32_t Script_GetNumMapDebugObjects(lua_State* L);
 int32_t Script_GetMapDebugObjectInfo(lua_State* L);
 int32_t Script_TeleportToDebugObject(lua_State* L);
-int32_t Script_HasDebugZoneMap(lua_State* L);
 int32_t Script_GetDebugZoneMap(lua_State* L);
-int32_t Script_GetWintergraspWaitTime(lua_State* L);
 int32_t Script_CanQueueForWintergrasp(lua_State* L);
 void WorldMapRegisterScriptFunctions();
+
+// INLINED
+inline WorldMapContinent::WorldMapContinent() {
+    this->unk_10014 = 0.0f;
+    this->unk_10018 = 0.0f;
+    this->unk_1001C = 0.0f;
+    this->unk_10020 = 0.0f;
+}
 
 int32_t PlayerExploredZonesUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
 

@@ -6,6 +6,9 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/CGBankInfo.h"
 
+// STATIC: 0x00A37B10
+static const BAGSLOTRANGE s_bagSlotRanges[8] = { { 23, 38 }, { 19, 22 }, { 86, 117 }, { 39, 66 }, { 67, 73 }, { 118, 149 }, { 0, 18 }, { 74, 85 } };
+
 // VERIFY: 94284adc manual
 // OFFSET: 0x00589C00
 int32_t CGBag_C::FindItemSlot(WOWGUID guid) const {
@@ -145,14 +148,6 @@ int32_t CGBag_C::GetNumItems() const {
 
     return count;
 }
-
-struct BAGSLOTRANGE {
-    /* 0000 */ uint32_t m_first;
-    /* 0004 */ uint32_t m_last;
-};
-
-// STATIC: 0x00A37B10
-static const BAGSLOTRANGE s_bagSlotRanges[8] = { { 23, 38 }, { 19, 22 }, { 86, 117 }, { 39, 66 }, { 67, 73 }, { 118, 149 }, { 0, 18 }, { 74, 85 } };
 
 // VERIFY: 724d9331 auto
 // OFFSET: 0x00753A50

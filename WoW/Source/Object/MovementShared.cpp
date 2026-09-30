@@ -2271,3 +2271,19 @@ void CMovementShared::AddSpline(const C3Vector& position) {
     this->m_spline->m_flags = 0;
     this->m_spline->m_finalDestination = position;
 }
+
+// VERIFY: 088e12ab manual
+// OFFSET: 0x006E9A60
+void CMovementShared::ResetFallOnControlLoss() {
+    if (!(this->m_flags & 0x100000)) {
+        return;
+    }
+
+    this->m_flags |= 0x800;
+    this->StopFalling();
+    this->m_flags &= 0xFF203F00;
+
+    if (!(this->m_flags & 0x1000)) {
+        this->m_currentSpeed = this->GetBaseSpeed(0);
+    }
+}

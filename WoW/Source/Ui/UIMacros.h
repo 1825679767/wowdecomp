@@ -33,6 +33,9 @@ class MACRONODE : public TSHashObject<MACRONODE, HASHKEY_NONE> {
 class CGUIMacros {
     public:
     static const char* m_macroRunning;
+    static MACRONODE* m_macroButton;
+    static uint32_t m_numMacros;
+    static uint32_t m_numCharacterMacros;
     static uint32_t m_sortedMacros[72];
 
     static MACRONODE* FindMacro(const char* name);
@@ -51,9 +54,7 @@ class CGUIMacros {
 int32_t Script_SecureCmdOptionParse(lua_State* L);
 int32_t Script_RunMacro(lua_State* L);
 int32_t Script_RunMacroText(lua_State* L);
-int32_t Script_StopMacro(lua_State* L);
 int32_t Script_CreateMacro(lua_State* L);
-int32_t Script_GetNumMacros(lua_State* L);
 int32_t Script_GetMacroInfo(lua_State* L);
 int32_t Script_GetMacroBody(lua_State* L);
 int32_t Script_DeleteMacro(lua_State* L);
@@ -68,8 +69,6 @@ int32_t Script_GetMacroIconInfo(lua_State* L);
 int32_t Script_GetMacroItemIconInfo(lua_State* L);
 int32_t Script_PickupMacro(lua_State* L);
 int32_t Script_GetMacroIndexByName(lua_State* L);
-int32_t Script_GetRunningMacro(lua_State* L);
-int32_t Script_GetRunningMacroButton(lua_State* L);
 void UIMacrosRegisterScriptFunctions();
 
 #endif

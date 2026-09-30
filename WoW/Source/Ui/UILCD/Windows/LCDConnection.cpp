@@ -140,3 +140,9 @@ CLCDOutput* CLCDConnection::AllocMonoOutput() {
 CLCDOutput* CLCDConnection::AllocColorOutput() {
     return new CLCDOutput();
 }
+
+// VERIFY: 8cc75894 auto
+// OFFSET: 0x0095A4A0
+CLCDOutput* CLCDConnection::MonoOutput() {
+    return this->m_pMonoOutput;
+}

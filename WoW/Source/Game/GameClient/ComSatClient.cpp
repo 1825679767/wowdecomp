@@ -88,6 +88,15 @@ static TSHashTable<MUTEDPLAYER, CHashKeyGUID> unk_D37DB0;
 // STATIC: 0x00D37D44
 static TSGrowableArray<ComSatEvent> s_comSatEvents;
 
+// STATIC: 0x00D37D18
+int32_t s_comsatDisabledByClient;
+
+// STATIC: 0x00D37D5C
+SCritSect s_comsatDeviceLock;
+
+// STATIC: 0x00AF29B4
+int32_t s_currentSession = -1;
+
 // VERIFY: df726b6e auto
 // OFFSET: 0x007DBC70
 static int32_t ParseKeyNameToKeyCode(const char* name) {
@@ -383,4 +392,58 @@ void UpdatePushToTalkKey() {
     if (!s_pushToTalkMouseButton) {
         s_pushToTalkKey = ParseKeyNameToKeyCode(binding);
     }
+}
+
+// VERIFY: bc5e270c auto
+// OFFSET: 0x007DBAB0
+int32_t ComSatClient_IsComsatDisabledByClient() {
+    return s_comsatDisabledByClient;
+}
+
+// VERIFY: fe028376 auto
+// OFFSET: 0x007DADE0
+void ComSatClient_SetOutputDevice(int32_t index) {
+    ComSat::DeviceInfo devices[20];
+    s_comsatDeviceLock.Enter();
+    ComSat::Interface* comsat = ComSatThread::s_comsat;
+
+    if (comsat && index < comsat->EnumerateOutputDevices(devices, 20)) {
+        comsat->LocalTalkerChangeOutputDevice(0, index);
+    }
+
+    s_comsatDeviceLock.Leave();
+}
+
+// VERIFY: a22afe03 auto
+// OFFSET: 0x007DAF30
+void ComSatClient_SetCaptureDevice(int32_t index) {
+    ComSat::DeviceInfo devices[20];
+    s_comsatDeviceLock.Enter();
+    ComSat::Interface* comsat = ComSatThread::s_comsat;
+
+    if (comsat && index < comsat->EnumerateCaptureDevices(devices, 20)) {
+        comsat->LocalTalkerChangeCaptureDevice(0, index);
+    }
+
+    s_comsatDeviceLock.Leave();
+}
+
+// VERIFY: 6dafafe1 manual
+// OFFSET: 0x007DB5C0
+int32_t ComSatClient_GetCurrentSessionType() {
+    if (s_currentSession >= 0) {
+        return s_comsatData[s_currentSession].m_type;
+    }
+
+    return 4;
+}
+
+// VERIFY: 706dd5de manual
+// OFFSET: 0x007DB5E0
+const char* ComSatClient_GetCurrentSessionName() {
+    if (s_currentSession >= 0) {
+        return s_comsatData[s_currentSession].m_name;
+    }
+
+    return nullptr;
 }

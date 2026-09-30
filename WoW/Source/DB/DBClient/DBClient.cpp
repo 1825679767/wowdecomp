@@ -3,6 +3,7 @@
 #include "Engine/Source/ConsoleBase/IConsole.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/DB/Rec/MapDifficultyRec.h"
 
 // STATIC: 0x00AD3028
 const char* g_localeNames[12] = { "deDE", "enGB", "enUS", "esES", "frFR", "koKR", "zhCN", "zhTW", "enCN", "enTW", "esMX", "ruRU" };
@@ -1153,4 +1154,34 @@ int32_t LocaleNameToIndex(const char* locale) {
 const char* ClientDBStringLookup(uint32_t lookup) {
     StringLookupsRec* rec = g_stringLookupsDB.GetRecord(lookup);
     return rec ? rec->m_string : nullptr;
+}
+
+// VERIFY: 3260ed78 manual
+// OFFSET: 0x00634950
+MapDifficultyRec* GetMapDifficultyEntryByMapIdAndDifficulty(int32_t mapId, uint32_t difficulty, int32_t* index) {
+    for (int32_t i = 0; i < g_mapDifficultyDB.m_numRecords; i++) {
+        MapDifficultyRec* rec = i < 0 || i >= g_mapDifficultyDB.m_numRecords ? nullptr : &g_mapDifficultyDB.m_records[i];
+
+        if (rec->m_mapID != mapId) {
+            continue;
+        }
+
+        for (int32_t j = i; j < g_mapDifficultyDB.m_numRecords; j++) {
+            MapDifficultyRec* entry = j < 0 || j >= g_mapDifficultyDB.m_numRecords ? nullptr : &g_mapDifficultyDB.m_records[j];
+
+            if (entry->m_mapID != mapId) {
+                break;
+            }
+
+            if (entry->m_difficulty == static_cast<int32_t>(difficulty)) {
+                if (index) {
+                    *index = j;
+                }
+
+                return entry;
+            }
+        }
+    }
+
+    return nullptr;
 }

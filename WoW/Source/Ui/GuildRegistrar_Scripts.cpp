@@ -2,6 +2,14 @@
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
+
+// VERIFY: 8986a798 manual
+// OFFSET: 0x00599F40
+static int32_t Script_GetGuildCharterCost(lua_State* L) {
+    lua_pushnumber(L, CGGuildRegistrar::m_petition.m_cost);
+    return 1;
+}
 
 // STATIC: 0x00ACF5FC
 static FrameScript_Method s_ScriptFunctions[] = {

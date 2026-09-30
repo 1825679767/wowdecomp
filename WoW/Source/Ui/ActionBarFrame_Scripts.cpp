@@ -11,50 +11,18 @@
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "WoW/Source/Ui/SpellBookFrame.h"
 #include "WoW/Source/Ui/UIMacros.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "WoW/Source/Net/Types.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "Engine/Source/FrameXML/LoadXML.h"
+#include "WoW/Source/Ui/PetInfo.h"
 
-// STATIC: 0x00ACF9E0
-static FrameScript_Method s_ScriptFunctions[] = {
-    { "GetActionInfo", &Script_GetActionInfo },
-    { "GetActionTexture", &Script_GetActionTexture },
-    { "GetActionCount", &Script_GetActionCount },
-    { "GetActionCooldown", &Script_GetActionCooldown },
-    { "GetActionAutocast", &Script_GetActionAutocast },
-    { "GetActionText", &Script_GetActionText },
-    { "HasAction", &Script_HasAction },
-    { "UseAction", &Script_UseAction },
-    { "PickupAction", &Script_PickupAction },
-    { "PlaceAction", &Script_PlaceAction },
-    { "IsAttackAction", &Script_IsAttackAction },
-    { "IsCurrentAction", &Script_IsCurrentAction },
-    { "IsAutoRepeatAction", &Script_IsAutoRepeatAction },
-    { "IsUsableAction", &Script_IsUsableAction },
-    { "IsConsumableAction", &Script_IsConsumableAction },
-    { "IsStackableAction", &Script_IsStackableAction },
-    { "IsEquippedAction", &Script_IsEquippedAction },
-    { "ActionHasRange", &Script_ActionHasRange },
-    { "IsActionInRange", &Script_IsActionInRange },
-    { "GetBonusBarOffset", &Script_GetBonusBarOffset },
-    { "GetMultiCastBarOffset", &Script_GetMultiCastBarOffset },
-    { "ChangeActionBarPage", &Script_ChangeActionBarPage },
-    { "GetActionBarPage", &Script_GetActionBarPage },
-    { "GetActionBarToggles", &Script_GetActionBarToggles },
-    { "SetActionBarToggles", &Script_SetActionBarToggles },
-    { "IsPossessBarVisible", &Script_IsPossessBarVisible },
-    { "GetMultiCastTotemSpells", &Script_GetMultiCastTotemSpells },
-    { "SetMultiCastSpell", &Script_SetMultiCastSpell },
-};
-
-// VERIFY: 3766f2a3 auto
-// OFFSET: 0x005A8020
-void ActionBarRegisterScriptFunctions() {
-    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
-        FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
-    }
-}
-
-// VERIFY: b655df32 manual
+// VERIFY: e372e728 manual
 // OFFSET: 0x005A7E60
-int32_t Script_IsUsableAction(lua_State* L) {
+static int32_t Script_IsUsableAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: IsUsableAction(slot)");
     }
@@ -78,9 +46,9 @@ int32_t Script_IsUsableAction(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 7f585b01 auto
+// VERIFY: c5f2d212 auto
 // OFFSET: 0x005A8220
-int32_t Script_HasAction(lua_State* L) {
+static int32_t Script_HasAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: HasAction(slot)");
     }
@@ -96,9 +64,9 @@ int32_t Script_HasAction(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 6a7a8f81 manual
+// VERIFY: 872afd31 manual
 // OFFSET: 0x005A8F10
-int32_t Script_GetActionInfo(lua_State* L) {
+static int32_t Script_GetActionInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetActionInfo(slot)");
     }
@@ -170,9 +138,9 @@ int32_t Script_GetActionInfo(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 93779dc5 manual
+// VERIFY: 45a7ef5a manual
 // OFFSET: 0x005A91C0
-int32_t Script_GetActionCooldown(lua_State* L) {
+static int32_t Script_GetActionCooldown(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetActionCooldown(slot)");
     }
@@ -188,9 +156,9 @@ int32_t Script_GetActionCooldown(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 8e30b2d9 auto
+// VERIFY: 34cab02a auto
 // OFFSET: 0x005A9B30
-int32_t Script_GetActionTexture(lua_State* L) {
+static int32_t Script_GetActionTexture(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetActionTexture(slot)");
     }
@@ -207,9 +175,9 @@ int32_t Script_GetActionTexture(lua_State* L) {
     return 1;
 }
 
-// VERIFY: a0aeec6d auto
+// VERIFY: bb173118 auto
 // OFFSET: 0x005AAD40
-int32_t Script_IsCurrentAction(lua_State* L) {
+static int32_t Script_IsCurrentAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: IsCurrentAction(slot)");
     }
@@ -225,9 +193,9 @@ int32_t Script_IsCurrentAction(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 0e44e750 manual
+// VERIFY: 8e8b464f manual
 // OFFSET: 0x005AC000
-int32_t Script_UseAction(lua_State* L) {
+static int32_t Script_UseAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: UseAction(slot, [, target] [, button])");
     }
@@ -242,9 +210,9 @@ int32_t Script_UseAction(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 0b449373 auto
+// VERIFY: b345a40c auto
 // OFFSET: 0x005A7D90
-int32_t Script_GetActionText(lua_State* L) {
+static int32_t Script_GetActionText(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetActionText(slot)");
     }
@@ -274,9 +242,230 @@ int32_t Script_GetActionText(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d3957535 manual
+// VERIFY: b41a956b manual
 // OFFSET: 0x005A7F20
-int32_t Script_GetBonusBarOffset(lua_State* L) {
+static int32_t Script_GetBonusBarOffset(lua_State* L) {
     lua_pushnumber(L, CGActionBar::m_bonusBarOffset);
     return 1;
+}
+
+// VERIFY: ce8c7e12 auto
+// OFFSET: 0x005A7FD0
+static int32_t Script_GetActionBarPage(lua_State* L) {
+    if (CGActionBar::m_tempPageActiveFlags) {
+        lua_pushinteger(L, 1);
+    } else {
+        lua_pushinteger(L, CGActionBar::m_currentPage + 1);
+    }
+
+    return 1;
+}
+
+// VERIFY: 0c959dd9 manual
+// OFFSET: 0x005AB840
+static int32_t Script_PlaceAction(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: PlaceAction(slot)");
+        return 0;
+    }
+
+    int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (slot >= 120 && static_cast<uint32_t>(slot) < 132) {
+        return 0;
+    }
+
+    CGActionBar::PutActionInSlot(slot);
+    return 0;
+}
+
+// VERIFY: ce325702 auto
+// OFFSET: 0x005A7F60
+static int32_t Script_ChangeActionBarPage(lua_State* L) {
+    int32_t page = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (page < 0 || static_cast<uint32_t>(page) >= 6) {
+        luaL_error(L, "ChangeActionBarPage() needs a page in the range 1 to %d", 6);
+        return 0;
+    }
+
+    if (!CGGameUI::CanPerformAction(14) || static_cast<uint32_t>(page) == CGActionBar::m_currentPage) {
+        return 0;
+    }
+
+    CGActionBar::m_currentPage = page;
+    FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_PAGE_CHANGED, nullptr);
+    return 0;
+}
+
+// VERIFY: 34736bd1 manual
+// OFFSET: 0x005A7D10
+static int32_t Script_GetActionCount(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetActionCount(slot)");
+    }
+
+    uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t count = slot > 143 ? 0 : CGActionBar::m_slotItemCount[slot];
+    lua_pushnumber(L, count);
+    return 1;
+}
+
+// VERIFY: 040fd28e manual
+// OFFSET: 0x005A8790
+static int32_t Script_GetActionBarToggles(lua_State* L) {
+    uint8_t toggles = 0;
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        toggles = player->m_player->m_playerFieldBytes[2];
+    }
+
+    lua_checkstack(L, 4);
+
+    for (uint32_t i = 0; i < 4; i++) {
+        if ((1 << i) & toggles) {
+            lua_pushnumber(L, 1.0);
+        } else {
+            lua_pushnil(L);
+        }
+    }
+
+    return 4;
+}
+
+// VERIFY: 7688b79a manual
+// OFFSET: 0x005A8290
+static int32_t Script_SetActionBarToggles(lua_State* L) {
+    uint8_t toggles = 0;
+
+    for (int32_t i = 0; i < 4; i++) {
+        if (StringToBOOL(L, i + 1, 0)) {
+            toggles |= 1 << i;
+        }
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_SET_ACTION_BAR_TOGGLES));
+    msg.Put(toggles);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: a66b541b auto
+// OFFSET: 0x005A8BC0
+static int32_t Script_IsEquippedAction(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: IsEquippedAction(slot)");
+    }
+
+    int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1));
+
+    if (CGActionBar::IsEquippedAction(slot - 1)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 6e7c65b0 auto
+// OFFSET: 0x005A9C80
+static int32_t Script_IsConsumableAction(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: IsConsumableAction(slot)");
+    }
+
+    int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1));
+
+    if (CGActionBar::IsConsumableAction(slot - 1)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 1761f320 auto
+// OFFSET: 0x005A8720
+static int32_t Script_IsStackableAction(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: IsStackableAction(slot)");
+    }
+
+    int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1));
+
+    if (IsStackableAucItem(slot - 1)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 7b77eb8c auto
+// OFFSET: 0x005A8820
+static int32_t Script_IsPossessBarVisible(lua_State* L) {
+    int32_t spellId = CGPetInfo::m_possessSpell;
+
+    if (!spellId) {
+        lua_pushboolean(L, spellId);
+        return spellId + 1;
+    }
+
+    SpellRec spell;
+    g_spellDB.GetRecord(spellId, &spell);
+    lua_pushboolean(L, !SpellRec::HasAura(&spell, 236));
+    return 1;
+}
+
+// VERIFY: 690fc1a3 auto
+// OFFSET: 0x005B71E0
+static int32_t Script_GetMultiCastBarOffset(lua_State* L) {
+    lua_pushnumber(L, 6.0);
+    return 1;
+}
+
+// STATIC: 0x00ACF9E0
+static FrameScript_Method s_ScriptFunctions[] = {
+    { "GetActionInfo", &Script_GetActionInfo },
+    { "GetActionTexture", &Script_GetActionTexture },
+    { "GetActionCount", &Script_GetActionCount },
+    { "GetActionCooldown", &Script_GetActionCooldown },
+    { "GetActionAutocast", &Script_GetActionAutocast },
+    { "GetActionText", &Script_GetActionText },
+    { "HasAction", &Script_HasAction },
+    { "UseAction", &Script_UseAction },
+    { "PickupAction", &Script_PickupAction },
+    { "PlaceAction", &Script_PlaceAction },
+    { "IsAttackAction", &Script_IsAttackAction },
+    { "IsCurrentAction", &Script_IsCurrentAction },
+    { "IsAutoRepeatAction", &Script_IsAutoRepeatAction },
+    { "IsUsableAction", &Script_IsUsableAction },
+    { "IsConsumableAction", &Script_IsConsumableAction },
+    { "IsStackableAction", &Script_IsStackableAction },
+    { "IsEquippedAction", &Script_IsEquippedAction },
+    { "ActionHasRange", &Script_ActionHasRange },
+    { "IsActionInRange", &Script_IsActionInRange },
+    { "GetBonusBarOffset", &Script_GetBonusBarOffset },
+    { "GetMultiCastBarOffset", &Script_GetMultiCastBarOffset },
+    { "ChangeActionBarPage", &Script_ChangeActionBarPage },
+    { "GetActionBarPage", &Script_GetActionBarPage },
+    { "GetActionBarToggles", &Script_GetActionBarToggles },
+    { "SetActionBarToggles", &Script_SetActionBarToggles },
+    { "IsPossessBarVisible", &Script_IsPossessBarVisible },
+    { "GetMultiCastTotemSpells", &Script_GetMultiCastTotemSpells },
+    { "SetMultiCastSpell", &Script_SetMultiCastSpell },
+};
+
+// VERIFY: 3766f2a3 auto
+// OFFSET: 0x005A8020
+void ActionBarRegisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
 }

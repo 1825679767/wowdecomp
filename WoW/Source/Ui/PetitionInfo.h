@@ -3,21 +3,31 @@
 
 #include <cstdint>
 #include "WoW/Source/Net/Types.h"
+#include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Object/WGUID.h"
 
 struct lua_State;
+class CGPetition;
+
+struct PetitionSignerInfo {
+    /* 0000 */ WOWGUID m_guid;
+    /* 0008 */ uint32_t unk_0008;
+    /* 000C */ uint32_t unk_000C;
+};
 
 class CGPetitionInfo {
     public:
+    static WOWGUID m_petitionGUID;
+    static int32_t m_signed;
+    static CGPetition* m_petition;
+    static TSGrowableArray<PetitionSignerInfo> m_signers;
     static void EnterWorld();
     static void InitializeGame();
 };
 
 int32_t Script_ClosePetition(lua_State* L);
 int32_t Script_GetPetitionInfo(lua_State* L);
-int32_t Script_GetNumPetitionNames(lua_State* L);
 int32_t Script_GetPetitionNameInfo(lua_State* L);
-int32_t Script_CanSignPetition(lua_State* L);
-int32_t Script_SignPetition(lua_State* L);
 int32_t Script_OfferPetition(lua_State* L);
 int32_t Script_RenamePetition(lua_State* L);
 void PetitionInfoRegisterScriptFunctions();

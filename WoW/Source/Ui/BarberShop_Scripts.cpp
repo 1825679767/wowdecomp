@@ -2,6 +2,14 @@
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
+
+// VERIFY: 350bfeb0 auto
+// OFFSET: 0x0052E4F0
+static int32_t Script_CanAlterSkin(lua_State* L) {
+    lua_pushboolean(L, CGBarberShop::m_currentSkinColor != 0);
+    return 1;
+}
 
 // STATIC: 0x00ACC790
 static FrameScript_Method s_ScriptFunctions[] = {

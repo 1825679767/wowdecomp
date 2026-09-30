@@ -26,7 +26,7 @@ ItemStats_C::~ItemStats_C() {
     }
 }
 
-// VERIFY: b2380126 manual
+// VERIFY: 56384c03 manual
 // OFFSET: 0x0098D910
 void ItemStats_C::Unpack(CDataStore* msg) {
     char name[400];
@@ -53,7 +53,7 @@ void ItemStats_C::Unpack(CDataStore* msg) {
         msg->Get(this->m_flags[i]);
     }
 
-    msg->Get(this->m_buyPrice);
+    msg->Get(reinterpret_cast<uint32_t&>(this->m_buyPrice));
     msg->Get(this->m_sellPrice);
     msg->Get(this->m_inventoryType);
     msg->Get(this->m_allowableClass);
@@ -68,7 +68,7 @@ void ItemStats_C::Unpack(CDataStore* msg) {
     msg->Get(this->m_requiredReputationFaction);
     msg->Get(this->m_requiredReputationRank);
     msg->Get(this->m_maxCount);
-    msg->Get(this->m_stackable);
+    msg->Get(reinterpret_cast<uint32_t&>(this->m_stackable));
     msg->Get(this->m_containerSlots);
     msg->Get(reinterpret_cast<uint32_t&>(this->m_statsCount));
 
@@ -149,7 +149,7 @@ void ItemStats_C::Unpack(CDataStore* msg) {
     msg->Get(this->m_holidayId);
 }
 
-// VERIFY: c19a5181 auto
+// VERIFY: 3e9ef6ed auto
 // OFFSET: 0x0098DDB0
 void ItemStats_C::Pack(CDataStore* msg) {
     msg->Put(this->m_class);
@@ -171,7 +171,7 @@ void ItemStats_C::Pack(CDataStore* msg) {
         msg->Put(this->m_flags[i]);
     }
 
-    msg->Put(this->m_buyPrice);
+    msg->Put(static_cast<uint32_t>(this->m_buyPrice));
     msg->Put(this->m_sellPrice);
     msg->Put(this->m_inventoryType);
     msg->Put(this->m_allowableClass);
@@ -186,7 +186,7 @@ void ItemStats_C::Pack(CDataStore* msg) {
     msg->Put(this->m_requiredReputationFaction);
     msg->Put(this->m_requiredReputationRank);
     msg->Put(this->m_maxCount);
-    msg->Put(this->m_stackable);
+    msg->Put(static_cast<uint32_t>(this->m_stackable));
     msg->Put(this->m_containerSlots);
     msg->Put(static_cast<uint32_t>(this->m_statsCount));
 

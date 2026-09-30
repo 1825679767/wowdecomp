@@ -63,9 +63,17 @@
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "_Triage/CClientObjCreate.h"
+#include "WoW/Source/Object/MovementShared.h"
+#include "WoW/Source/Object/Passenger.h"
 
 // STATIC: 0x00A335E8
 static const uint32_t s_oneShotAnims[7] = { 0xFFFFFFFF, 0, 8, 9, 10, 11, 12 };
+
+// STATIC: 0x00ADA938
+uint32_t CGGameObject_C_TypeAnimated::s_animSequenceIds[13] = { 145, 147, 148, 149, 146, 150, 151, 152, 153, 154, 155, 156, 157 };
+
+// STATIC: 0x00ADA978
+const char* CGGameObject_C_TypeAnimated::s_animStateNames[13] = { "Spawn", "Closed", "Opening", "Open", "Closing", "Destroying", "Destroyed", "Rebuilding", "Custom0", "Custom1", "Custom2", "Custom3", "Despawn" };
 
 // VERIFY: 82a5bb1b manual
 // OFFSET: 0x00712AE0
@@ -78,12 +86,6 @@ static void GameObjectStatsCallback(int32_t id, const WOWGUID& guid, void* param
         object->LoadBaseObject(stats);
     }
 }
-
-// STATIC: 0x00ADA938
-uint32_t CGGameObject_C_TypeAnimated::s_animSequenceIds[13] = { 145, 147, 148, 149, 146, 150, 151, 152, 153, 154, 155, 156, 157 };
-
-// STATIC: 0x00ADA978
-const char* CGGameObject_C_TypeAnimated::s_animStateNames[13] = { "Spawn", "Closed", "Opening", "Open", "Closing", "Destroying", "Destroyed", "Rebuilding", "Custom0", "Custom1", "Custom2", "Custom3", "Despawn" };
 
 // VERIFY: fb01868b manual
 // OFFSET: 0x0070CAC0
@@ -1976,4 +1978,57 @@ void CGGameObject_C::ModelLoaded(CM2Model* model) {
     }
 
     model->m_fFlags |= 0x4;
+}
+
+// VERIFY: e5a829d0 manual
+// OFFSET: 0x0070C330
+float CGGameObject_C_TypeBase::GetRawFacing() const {
+    return this->m_owner->m_passenger.GetRawFacingFromRotation();
+}
+
+// VERIFY: 4dbf2cb2 auto
+// OFFSET: 0x0070C310
+float CGGameObject_C_TypeBase::GetFacing() const {
+    CPassenger& passenger = this->m_owner->m_passenger;
+    return passenger.GetFacing(passenger.GetRawFacingFromRotation());
+}
+
+// VERIFY: 9e6b8418 manual
+// OFFSET: 0x0070C430
+int32_t CGGameObject_C_TypeAnimated::HandleAnimInterrupted() {
+    int32_t state = this->unk_0014;
+
+    if (state == -1 || state == 3 || state == 1 || state == 6) {
+        this->unk_0014 = -1;
+        return 1;
+    }
+
+    ClntObjMgrUnlockObject(this->m_owner->m_obj->m_guid, __FILE__, __LINE__);
+    return 0;
+}
+
+// VERIFY: 4f1c02d7 auto
+// OFFSET: 0x0070EF30
+LockRec* CGGameObject_C::GetLockRec() const {
+    if (!this->m_stats) {
+        return nullptr;
+    }
+
+    uint32_t lockId = this->GetPropertyValue(CGameObjectDef::GetPropNum(this->m_gameObject->m_typeID, 4));
+    return lockId ? g_lockDB.GetRecord(lockId) : nullptr;
+}
+
+// VERIFY: 9f6a62fd manual
+// OFFSET: 0x00711AB0
+void CGGameObject_C_Type_TransportBase::AddPassenger(CPassenger* passenger, int32_t a2) {
+    passenger->m_link.Unlink();
+    this->m_passengers.LinkToTail(passenger);
+
+    if (a2 && (passenger->unk_002C & 1) && (!this->m_worldObject || !World::ObjectIsLoaded(this->m_worldObject))) {
+        static_cast<CMovementShared*>(passenger)->SetSplineEnabled();
+    }
+
+    if (*passenger->m_ownerGuid == CGUnit_C::s_activeMover) {
+        MovementSetTransportUpdateTime(this->m_transportUpdateTime);
+    }
 }

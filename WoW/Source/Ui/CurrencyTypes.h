@@ -5,13 +5,33 @@
 
 struct lua_State;
 
+struct CurrencyCategoryInfo {
+    /* 0000 */ int32_t m_id;
+    /* 0004 */ int32_t m_expanded;
+    /* 0008 */ const char* m_name;
+    /* 000C */ int32_t m_flags;
+};
+
+struct CurrencyListEntry {
+    /* 0000 */ const char* m_name;
+    /* 0004 */ int32_t m_itemID;
+    /* 0008 */ int32_t unk_0008;
+    /* 000C */ int32_t m_isHeader;
+    /* 0010 */ int32_t m_isExpanded;
+    /* 0014 */ int32_t m_isUnused;
+};
+
 class CGCurrencyTypes {
     public:
+    static int32_t m_listSize;
+    static CurrencyListEntry m_list[95];
+    static CurrencyCategoryInfo m_categories[32];
+    static int32_t m_numCategories;
+    static int32_t CurrencyCategorySortCallback(const void* a, const void* b);
     static void InitializeGame();
     static void EnterWorld();
 };
 
-int32_t Script_GetCurrencyListSize(lua_State* L);
 int32_t Script_GetCurrencyListInfo(lua_State* L);
 int32_t Script_ExpandCurrencyList(lua_State* L);
 int32_t Script_SetCurrencyUnused(lua_State* L);

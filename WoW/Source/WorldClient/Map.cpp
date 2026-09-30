@@ -356,6 +356,25 @@ int32_t CMap::bspRecurseCount;
 // STATIC: 0x00ADFC40
 TSList<CDetailDoodadInst, TSGetExplicitLink<CDetailDoodadInst> > CMap::s_detailDoodadUpdateList = TSExplicitList<CDetailDoodadInst, offsetof(CDetailDoodadInst, m_link)>();
 
+// STATIC: 0x00ADFD90
+static const int32_t s_flightBoundsTriangles[24] = { 3, 0, 4, 0, 1, 4, 1, 2, 4, 2, 5, 4, 5, 8, 4, 8, 7, 4, 7, 6, 4, 6, 3, 4 };
+
+// STATIC: 0x00ADFDF0
+static const float s_flightBoundsOffsets[9][2] = {
+    { 0.0f, 0.0f },
+    { 0.0f, -266.66666f },
+    { 0.0f, -533.33331f },
+    { -266.66666f, 0.0f },
+    { -266.66666f, -266.66666f },
+    { -266.66666f, -533.33331f },
+    { -533.33331f, 0.0f },
+    { -533.33331f, -266.66666f },
+    { -533.33331f, -533.33331f },
+};
+
+// STATIC: 0x00CD7768
+WOWGUID s_lastCollisionGUID;
+
 // VERIFY: 738eb1a4 manual
 // OFFSET: 0x0079B440
 CMapArea* CMap::GetLoadedArea(int32_t areaX, int32_t areaY) {
@@ -4231,22 +4250,6 @@ bool CMap::GetMapObjFacets(CAaBox* queryBox, CAaBox* box, World::FacetData* face
     return true;
 }
 
-// STATIC: 0x00ADFD90
-static const int32_t s_flightBoundsTriangles[24] = { 3, 0, 4, 0, 1, 4, 1, 2, 4, 2, 5, 4, 5, 8, 4, 8, 7, 4, 7, 6, 4, 6, 3, 4 };
-
-// STATIC: 0x00ADFDF0
-static const float s_flightBoundsOffsets[9][2] = {
-    { 0.0f, 0.0f },
-    { 0.0f, -266.66666f },
-    { 0.0f, -533.33331f },
-    { -266.66666f, 0.0f },
-    { -266.66666f, -266.66666f },
-    { -266.66666f, -533.33331f },
-    { -533.33331f, 0.0f },
-    { -533.33331f, -266.66666f },
-    { -533.33331f, -533.33331f },
-};
-
 // VERIFY: 5c2f5676 manual
 // OFFSET: 0x007A4590
 bool CMap::CreateFlightBoundsFacets(int32_t areaX, int32_t areaY, CAaBox* box, World::FacetData* facets) {
@@ -4381,9 +4384,6 @@ bool CMap::GetFacets(CAaBox* a1, CAaBox* a2, World::FacetData* a3, uint32_t a4, 
 
     return result;
 }
-
-// STATIC: 0x00CD7768
-WOWGUID s_lastCollisionGUID;
 
 // VERIFY: a85f0fdc manual
 // OFFSET: 0x007A30D0

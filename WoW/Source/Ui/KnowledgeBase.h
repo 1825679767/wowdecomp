@@ -68,27 +68,17 @@ class CKBSetup : public CKBPage {
 extern CKBSetup g_KnowledgeBaseSetup;
 
 int32_t Script_KBSetup_BeginLoading(lua_State* L);
-int32_t Script_KBSetup_IsLoaded(lua_State* L);
-int32_t Script_KBSetup_GetLanguageCount(lua_State* L);
 int32_t Script_KBSetup_GetLanguageData(lua_State* L);
-int32_t Script_KBSetup_GetCategoryCount(lua_State* L);
 int32_t Script_KBSetup_GetCategoryData(lua_State* L);
 int32_t Script_KBSetup_GetSubCategoryCount(lua_State* L);
 int32_t Script_KBSetup_GetSubCategoryData(lua_State* L);
-int32_t Script_KBSetup_GetArticleHeaderCount(lua_State* L);
 int32_t Script_KBSetup_GetArticleHeaderData(lua_State* L);
 int32_t Script_KBSetup_GetTotalArticleCount(lua_State* L);
 int32_t Script_KBQuery_BeginLoading(lua_State* L);
-int32_t Script_KBQuery_IsLoaded(lua_State* L);
-int32_t Script_KBQuery_GetArticleHeaderCount(lua_State* L);
 int32_t Script_KBQuery_GetArticleHeaderData(lua_State* L);
 int32_t Script_KBQuery_GetTotalArticleCount(lua_State* L);
 int32_t Script_KBArticle_BeginLoading(lua_State* L);
-int32_t Script_KBArticle_IsLoaded(lua_State* L);
 int32_t Script_KBArticle_GetData(lua_State* L);
-int32_t Script_KBSystem_GetMOTD(lua_State* L);
-int32_t Script_KBSystem_GetServerStatus(lua_State* L);
-int32_t Script_KBSystem_GetServerNotice(lua_State* L);
 void KnowledgeBase_RegisterScriptFunctions();
 
 #endif

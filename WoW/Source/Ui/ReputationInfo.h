@@ -45,10 +45,12 @@ struct FACTION : public TSHashObject<FACTION, HASHKEY_NONE> {
 class CGReputationInfo {
     public:
     static FactionStanding m_factionStandings[128];
+    static const int32_t m_reactionThresholds[9];
     static FactionHeader* m_headers[64];
     static uint32_t m_numHeaders;
     static uint32_t m_numFactions;
     static uint32_t m_numShownFactions;
+    static int32_t m_selectedFaction;
     static TSFixedArray<FactionListEntry*> m_factionList;
     static TSGrowableArray<ForcedReaction> m_forcedReactions;
     static TSHashTable<FACTION, HASHKEY_NONE> m_factions;
@@ -66,20 +68,12 @@ class CGReputationInfo {
     static bool IsAtWar(int32_t faction);
 };
 
-int32_t Script_GetNumFactions(lua_State* L);
 int32_t Script_GetFactionInfo(lua_State* L);
 int32_t Script_GetFactionInfoByID(lua_State* L);
-int32_t Script_GetWatchedFactionInfo(lua_State* L);
 int32_t Script_SetWatchedFactionIndex(lua_State* L);
 int32_t Script_FactionToggleAtWar(lua_State* L);
-int32_t Script_CollapseFactionHeader(lua_State* L);
-int32_t Script_CollapseAllFactionHeaders(lua_State* L);
 int32_t Script_SetFactionInactive(lua_State* L);
 int32_t Script_SetFactionActive(lua_State* L);
-int32_t Script_IsFactionInactive(lua_State* L);
-int32_t Script_ExpandFactionHeader(lua_State* L);
-int32_t Script_ExpandAllFactionHeaders(lua_State* L);
-int32_t Script_SetSelectedFaction(lua_State* L);
 int32_t Script_GetSelectedFaction(lua_State* L);
 void ReputationInfoRegisterScriptFunctions();
 int32_t Packet_SMSG_INITIALIZE_FACTIONS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
@@ -87,5 +81,7 @@ int32_t Packet_SMSG_SET_FACTION_ATWAR(void* param, NETMESSAGE msgId, uint32_t ti
 int32_t Packet_SMSG_SET_FACTION_VISIBLE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_SET_FACTION_STANDING(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_SET_FORCED_REACTIONS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+
+int32_t GetRepListRepValue(int32_t faction);
 
 #endif

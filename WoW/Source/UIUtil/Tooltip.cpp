@@ -33,11 +33,13 @@
 #include "WoW/Source/DB/Rec/SummonPropertiesRec.h"
 #include "WoW/Source/Game/GameClient/NameCache.h"
 #include "WoW/Source/Object/CreatureStats.h"
+#include "WoW/Source/Object/Item.h"
 #include "WoW/Source/Object/ItemStats.h"
 #include "WoW/Source/Object/QuestCache.h"
 #include "WoW/Source/Object/ObjectClient/AuraData.h"
 #include "WoW/Source/Object/ObjectClient/Corpse_C.h"
 #include "WoW/Source/Object/ObjectClient/GuildStats_C.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/PartyFrame.h"
@@ -55,7 +57,7 @@ int32_t CGTooltip::s_metatable = LUA_NOREF;
 static const char* s_itemQualityColorStrings[8] = { "|cff9d9d9d", "|cffffffff", "|cff1eff00", "|cff0070dd", "|cffa335ee", "|cffff8000", "|cffe6cc80", "|cffe6cc80" };
 
 // STATIC: 0x00AD2D2C
-static uint32_t s_tooltipTitleColor = 0xFFFFD200;
+uint32_t s_tooltipTitleColor = 0xFFFFD200;
 
 // STATIC: 0x00AD2D30
 static uint32_t s_tooltipTextColor = 0xFFFFFFFF;
@@ -77,6 +79,18 @@ const char* CGTooltip::s_objectTypeName = "GameTooltip";
 
 // STATIC: 0x00C5D354
 CDataAllocator CGTooltip::s_tooltipHeap(sizeof(CGTooltip), 5);
+
+// STATIC: 0x00AD2A68
+static const char* s_questDifficultyColorStrings[5] = {
+    "|cffff2020",
+    "|cffff8040",
+    "|cffffff00",
+    "|cff40c040",
+    "|cff808080",
+};
+
+// STATIC: 0x00C5CF50
+static char s_itemLink[1024];
 
 // VERIFY: 1bfb61f6 manual
 // OFFSET: 0x0061BF10
@@ -1347,15 +1361,6 @@ void CGTooltip::SetCorpse(const WOWGUID& guid) {
     }
 }
 
-// STATIC: 0x00AD2A68
-static const char* s_questDifficultyColorStrings[5] = {
-    "|cffff2020",
-    "|cffff8040",
-    "|cffffff00",
-    "|cff40c040",
-    "|cff808080",
-};
-
 // VERIFY: cbeee45f manual
 // OFFSET: 0x0061E540
 const char* CGTooltip::GetQuestDifficultyColorString(int32_t level) {
@@ -1384,4 +1389,97 @@ const char* CGTooltip::GetQuestDifficultyColorString(int32_t level) {
     }
 
     return s_questDifficultyColorStrings[4];
+}
+
+// VERIFY: a380ef23 auto
+// OFFSET: 0x0061DDD0
+void TooltipUnitNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!success) {
+        return;
+    }
+
+    CGTooltip* tooltip = static_cast<CGTooltip*>(param);
+
+    if (tooltip->m_unitGuid) {
+        WOWGUID unitGuid = tooltip->m_unitGuid;
+        WOWGUID healthGuid = {};
+        tooltip->SetUnit(unitGuid, 1, healthGuid, 0);
+        tooltip->CalculateSize();
+    }
+}
+
+// VERIFY: 456c6e01 auto
+// OFFSET: 0x0061EAB0
+void CGTooltip::AppendText(const char* text) {
+    if (!this->m_numLines) {
+        return;
+    }
+
+    const char* current = this->m_leftStrings.m_data[0]->m_text;
+
+    if (!current || !*current) {
+        current = nullptr;
+    }
+
+    char buffer[256];
+    SStrPrintf(buffer, sizeof(buffer), "%s%s", current, text);
+    this->m_leftStrings.m_data[0]->SetText(buffer, 1);
+    this->CalculateSize();
+}
+
+// VERIFY: 8fe663a0 manual
+// OFFSET: 0x0061E290
+const char* CGTooltip::CreateItemLink(int32_t itemId, uint32_t quality, int32_t enchant, const int32_t* gems, int32_t randomPropertiesId, int32_t seed) {
+    uint32_t level = 0;
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        level = player->m_unit->m_unitFieldLevel;
+    }
+
+    if (quality >= sizeof(s_itemQualityColorStrings) / sizeof(s_itemQualityColorStrings[0])) {
+        quality = 1;
+    }
+
+    const char* color = s_itemQualityColorStrings[quality];
+    const char* reset = *color ? "|r" : "";
+    char name[256];
+    CGItem_C::BuildItemName(name, sizeof(name), itemId, randomPropertiesId);
+    SStrPrintf(s_itemLink, sizeof(s_itemLink), "%s|Hitem:%d:%d:%d:%d:%d:%d:%d:%d:%d|h[%s]|h%s", color, itemId, enchant, gems[0], gems[1], gems[2], 0, randomPropertiesId, seed, level, name, reset);
+    return s_itemLink;
+}
+
+// VERIFY: ffe3f14b manual
+// OFFSET: 0x0061E3A0
+const char* CGTooltip::GetItemHyperlinkString(CGItem_C* item) {
+    if (!item) {
+        return nullptr;
+    }
+
+    ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, WOWGUID(), nullptr, nullptr, false);
+    uint32_t wrapped = (item->m_item->m_itemFieldFlags >> 3) & 1;
+    int32_t gems[3];
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (!wrapped && !(item->GetItemStaticFlags(0) & 0x2000)) {
+            gems[i] = item->m_item->m_itemFieldEnchantment[2 + i].m_id;
+        } else {
+            gems[i] = 0;
+        }
+    }
+
+    int32_t enchant = 0;
+    int32_t randomPropertiesId;
+    int32_t seed;
+
+    if (wrapped) {
+        seed = 0;
+        randomPropertiesId = 0;
+    } else {
+        randomPropertiesId = item->m_item->m_itemFieldRandomPropertiesId;
+        seed = item->m_item->m_itemFieldPropertySeed;
+        enchant = item->GetItemStaticFlags(0) & 0x2000 ? 0 : item->m_item->m_itemFieldEnchantment[0].m_id;
+    }
+
+    return CGTooltip::CreateItemLink(item->m_obj->m_entryID, stats ? stats->m_quality : 1, enchant, gems, randomPropertiesId, seed);
 }

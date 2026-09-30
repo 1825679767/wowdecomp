@@ -3,26 +3,36 @@
 
 #include <cstdint>
 #include "WoW/Source/Net/Types.h"
+#include "WoW/Source/Object/WGUID.h"
 
 struct lua_State;
 
-class CGGossipInfo {
-    public:
-    static void InitializeGame();
+struct GossipOption {
+    /* 0000 */ char* m_text;
+    /* 0004 */ char* unk_0004;
+    /* 0008 */ int32_t m_index;
+    /* 000C */ int32_t unk_000C;
+    /* 0010 */ int32_t unk_0010;
+    /* 0014 */ int32_t m_type;
 };
 
-int32_t Script_GetGossipText(lua_State* L);
-int32_t Script_GetNumGossipOptions(lua_State* L);
+class CGGossipInfo {
+    public:
+    static GossipOption m_options[32];
+    static char m_gossipText[2048];
+    static void InitializeGame();
+    static WOWGUID m_gossip;
+    static uint32_t m_gossipOptionsCount;
+};
+
 int32_t Script_GetNumGossipAvailableQuests(lua_State* L);
 int32_t Script_GetNumGossipActiveQuests(lua_State* L);
-int32_t Script_GetGossipOptions(lua_State* L);
 int32_t Script_GetGossipAvailableQuests(lua_State* L);
 int32_t Script_GetGossipActiveQuests(lua_State* L);
 int32_t Script_SelectGossipOption(lua_State* L);
 int32_t Script_SelectGossipAvailableQuest(lua_State* L);
 int32_t Script_SelectGossipActiveQuest(lua_State* L);
 int32_t Script_CloseGossip(lua_State* L);
-int32_t Script_ForceGossip(lua_State* L);
 void GossipInfoRegisterScriptFunctions();
 
 class CDataStore;

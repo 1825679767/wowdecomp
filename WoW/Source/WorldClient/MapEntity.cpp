@@ -1,5 +1,8 @@
 #include "MapEntity.h"
 #include "Engine/Source/Tempest/C3Segment.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/AreaTableRec.h"
+#include "WoW/Source/DB/Rec/WMOAreaTableRec.h"
 #include "WoW/Source/WorldClient/MapLight.h"
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WorldClient/World.h"
@@ -592,4 +595,127 @@ bool CMapEntity::QueryInteriorLighting(CMapObjDef* mapObjDef, int32_t groupNum, 
     this->unk_007C |= 0x1000;
     this->m_m2DiffuseColor.a = color.a;
     return result;
+}
+
+// VERIFY: 8dca5fb5 auto
+// OFFSET: 0x007A1500
+int32_t CMapEntity::QueryMapObjZoneName(const char** zoneName) {
+    CMapObjDef* mapObjDef;
+    CMapObj* mapObj;
+    CMapObjDefGroup* mapObjDefGroup;
+    CMapObjGroup* mapObjGroup;
+
+    if (!this->GetMapObjAndGroup(&mapObjDef, &mapObj, &mapObjDefGroup, &mapObjGroup, 1)) {
+        return 0;
+    }
+
+    *zoneName = "";
+    WMOAreaTableRec* rec = GetWMOAreaRec(mapObjDef->m_owner->m_header->m_wmoID, mapObjDef->m_nameSet, -1);
+
+    if (rec) {
+        const char* name = rec->m_areaName;
+
+        if (!*name) {
+            int32_t areaId = rec->m_areaTableID;
+
+            if (!areaId) {
+                areaId = CMap::QueryAreaIdTerrain(&this->m_position);
+
+                if (!areaId) {
+                    return 1;
+                }
+            }
+
+            AreaTableRec* area = g_areaTableDB.GetRecord(areaId);
+
+            if (!area) {
+                return 1;
+            }
+
+            name = area->m_areaName;
+        }
+
+        *zoneName = name;
+    }
+
+    return 1;
+}
+
+// VERIFY: 384f6f8b auto
+// OFFSET: 0x007A15B0
+int32_t CMapEntity::QueryMapObjSubzoneName(const char** subzoneName, int32_t* areaId) {
+    CMapObjDef* mapObjDef;
+    CMapObj* mapObj;
+    CMapObjDefGroup* mapObjDefGroup;
+    CMapObjGroup* mapObjGroup;
+
+    if (!this->GetMapObjAndGroup(&mapObjDef, &mapObj, &mapObjDefGroup, &mapObjGroup, 1)) {
+        return 0;
+    }
+
+    if (!mapObjDefGroup->m_subzoneName) {
+        WMOAreaTableRec* rec = GetWMOAreaRec(mapObj->m_header->m_wmoID, mapObjDef->m_nameSet, mapObjGroup->m_wmoGroupId);
+        mapObjDefGroup->m_subzoneName = rec ? rec->m_areaName : "";
+    }
+
+    *subzoneName = mapObjDefGroup->m_subzoneName;
+
+    if (mapObjDefGroup->m_groupNum) {
+        *areaId = mapObjDefGroup->m_groupNum;
+    }
+
+    return 1;
+}
+
+// VERIFY: feac96db manual
+// OFFSET: 0x007A1640
+bool CMapEntity::QueryMapObjAreaTable(WMOAreaTableRec** groupRec, WMOAreaTableRec** rootRec, int32_t* wmoGroupId) {
+    for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
+        CMapBaseObj* ref = link->m_ref;
+
+        if (ref->m_type & 0x4) {
+            break;
+        }
+
+        CMapObjDefGroup* mapObjDefGroup = static_cast<CMapObjDefGroup*>(ref);
+        CMapObjDef* mapObjDef = static_cast<CMapObjDef*>(ref->m_parentLinkList.Head()->m_ref);
+        CMapObj* mapObj = mapObjDef->m_owner;
+        CMapObjGroup* group = mapObj->GetGroup(mapObjDefGroup->m_groupNum, 0);
+
+        if (group && (!(group->m_flags & 0x8) || !(mapObjDef->m_flags & 0x400))) {
+            *wmoGroupId = group->m_wmoGroupId;
+            *groupRec = GetWMOAreaRec(mapObj->m_header->m_wmoID, mapObjDef->m_nameSet, group->m_wmoGroupId);
+            WMOAreaTableRec* rec = GetWMOAreaRec(mapObj->m_header->m_wmoID, mapObjDef->m_nameSet, -1);
+            *rootRec = rec;
+            return *groupRec && rec;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 0b2f6b2e manual
+// OFFSET: 0x007A18D0
+bool CMapEntity::QueryMapObjIDs(int32_t* wmoId, int32_t* wmoHash, int32_t* groupNum) {
+    for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
+        CMapBaseObj* ref = link->m_ref;
+
+        if (ref->m_type & 0x4) {
+            break;
+        }
+
+        CMapObjDefGroup* mapObjDefGroup = static_cast<CMapObjDefGroup*>(ref);
+        CMapObjDef* mapObjDef = static_cast<CMapObjDef*>(ref->m_parentLinkList.Head()->m_ref);
+        CMapObj* mapObj = mapObjDef->m_owner;
+        uint8_t groupFlags = static_cast<uint8_t>(mapObj->GetGroupFlags(mapObjDefGroup->m_groupNum));
+
+        if (!(mapObjDef->m_flags & 0x400) || !(groupFlags & 0x8)) {
+            *wmoId = mapObj->m_header->m_wmoID;
+            *wmoHash = mapObjDef->m_owner->m_hashval;
+            *groupNum = mapObjDefGroup->m_groupNum;
+            return true;
+        }
+    }
+
+    return false;
 }

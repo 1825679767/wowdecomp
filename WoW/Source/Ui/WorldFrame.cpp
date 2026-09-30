@@ -121,6 +121,9 @@ CGWorldFrame* CGWorldFrame::s_currentWorldFrame;
 // STATIC: 0x00B74394
 CDataAllocator CGWorldFrame::s_worldFrameHeap(sizeof(CGWorldFrame), 1);
 
+// STATIC: 0x00B743A8
+static char s_keyNameBuffer[8];
+
 // VERIFY: d8525c88 auto
 // OFFSET: 0x004F5960
 CGCamera* CGWorldFrame::GetActiveCamera() {
@@ -1466,9 +1469,6 @@ int32_t CGWorldFrame::HandleSpriteTrack(WOWGUID guid) {
     this->m_trackedGuid = guid;
     return 1;
 }
-
-// STATIC: 0x00B743A8
-static char s_keyNameBuffer[8];
 
 // VERIFY: 15b5df38 manual
 // OFFSET: 0x004F5FB0

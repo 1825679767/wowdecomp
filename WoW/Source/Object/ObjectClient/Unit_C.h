@@ -263,9 +263,15 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0A60 */ int32_t m_castSpellId;
     /* 0A64 */ int32_t m_castSchoolImmunities;
     /* 0A68 */ int32_t m_castImmunities;
-    /* 0A6C */ uint32_t unk_0A6C;
-    /* 0A70 */ uint32_t unk_0A70 [2];
-    /* 0A78 */ uint32_t unk_0A78 [7];
+    /* 0A6C */ uint32_t m_castingSpellId;
+    /* 0A70 */ WOWGUID m_castingObject;
+    /* 0A78 */ uint32_t m_castStartTime;
+    /* 0A7C */ uint32_t m_castEndTime;
+    /* 0A80 */ uint32_t m_channelSpellId;
+    /* 0A84 */ uint32_t m_channelStartTime;
+    /* 0A88 */ uint32_t m_channelEndTime;
+    /* 0A8C */ uint32_t unk_0A8C;
+    /* 0A90 */ uint32_t unk_0A90;
     /* 0A94 */ float m_renderFacing;
     /* 0A98 */ float m_facingVelocity;
     /* 0A9C */ float m_facingBlend;
@@ -351,7 +357,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     virtual void PlayFoleySound();
     virtual uint32_t GetImpactType() const;
     virtual const CGUnitVirtualItem* GetDefendingItem() const;
-    virtual int32_t IsDeadOrGhost() const;
+    virtual bool IsDeadOrGhost() const;
     virtual const CGUnitVirtualItem* GetVirtualItem(uint32_t slot, bool ignoreDisarm) const;
     virtual int32_t GetVirtualItemDisplayRec(uint32_t slot, ItemDisplayInfoRec& rec) const;
     virtual uint32_t GetVirtualItemDisplayID(uint32_t slot) const;
@@ -680,6 +686,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     bool HasAura(int32_t spellId) const;
     bool IsInMyPartyOrRaid(const CGUnit_C* unit) const;
     bool IsInMyParty(const CGUnit_C* unit) const;
+    static uint8_t GetThreatSituation(const WOWGUID& guid);
     bool CalculateThreat(const WOWGUID& guid, uint8_t* status, float* rawPercent, float* percent, int32_t* threat);
     char* GetUnitChosenTitle(char* buffer, uint32_t size, int32_t showTitle, int32_t* lines);
     void RequestTalkEmote(int32_t animation);

@@ -11,9 +11,9 @@ class TotemInfo {
     /* 0004 */ uint32_t unk_0004;
     /* 0008 */ WOWGUID m_guid;
     /* 0010 */ const char* m_name;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint32_t unk_0018;
-    /* 001C */ uint32_t unk_001C;
+    /* 0014 */ int32_t m_duration;
+    /* 0018 */ uint32_t m_startTime;
+    /* 001C */ const char* m_icon;
 };
 
 #endif

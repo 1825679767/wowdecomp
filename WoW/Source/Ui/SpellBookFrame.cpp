@@ -42,6 +42,84 @@ uint32_t CGSpellBook::m_silenceSchoolMask;
 // STATIC: 0x00BE8DB4
 uint32_t CGSpellBook::m_silenceSpecialSchoolMask;
 
+// STATIC: 0x00BE7D98
+static uint32_t s_unkBE7D98[1024];
+
+// STATIC: 0x00BE8DA4
+uint32_t CGSpellBook::m_numPetSpells;
+
+// STATIC: 0x00BE8DB8
+static TSBitField<TSFixedArray<uint32_t> > s_knownSpellBits;
+
+// STATIC: 0x00BE8DD8
+TSFixedArray<int32_t> CGSpellBook::m_languageSpells;
+
+// STATIC: 0x00ACCCCC
+static int32_t s_multiCastSpells[4] = { 66842, 66843, 66844, 36936 };
+
+// STATIC: 0x00BE5D68
+static int32_t s_dispelMask;
+
+// STATIC: 0x00BE5D6C
+static int32_t s_skinningSpells[4];
+
+// STATIC: 0x00BE5D7C
+static int32_t s_skinPlayerCorpseSpell;
+
+// STATIC: 0x00BE5D80
+static int32_t s_pendingCompanions;
+
+// STATIC: 0x00BE5D88
+uint32_t s_unkBE5D88[1024];
+
+// STATIC: 0x00BE6D88
+int32_t s_spellList[1024];
+
+// STATIC: 0x00BE7D88
+int32_t CGSpellBook::m_summonFriendSpell;
+
+// STATIC: 0x00BE7D8C
+int32_t CGSpellBook::m_stuckSpell;
+
+// STATIC: 0x00BE7D90
+int32_t CGSpellBook::m_duelSpell;
+
+// STATIC: 0x00BE8D98
+uint32_t s_numSpells;
+
+// STATIC: 0x00BE8D9C
+uint32_t s_unkBE8D9C;
+
+// STATIC: 0x00BE8DA0
+uint32_t s_numSkillInfos;
+
+// STATIC: 0x00BE8DC8
+TSGrowableArray<SpellBookSkillInfo*> s_skillInfos;
+
+// STATIC: 0x00BE8DE4
+TSGrowableArray<int32_t> s_trackingSpells;
+
+// STATIC: 0x00BE8DF4
+TSGrowableArray<int32_t> CGSpellBook::m_companions[2];
+
+// STATIC: 0x00BE8E14
+static TSGrowableArray<int32_t> s_openLockSpells;
+
+// STATIC: 0x00BE8E34
+static TSGrowableArray<int32_t> s_dispelTypes;
+
+// STATIC: 0x00BE8E44
+static TSGrowableArray<int32_t> s_summonCreatures;
+
+// STATIC: 0x00BE8EA0
+TSGrowableArray<int32_t> CGSpellBook::m_totemSpells[4];
+
+// STATIC: 0x00BE8E64
+static TSHashTable<SPELLSBYNAME, HASHKEY_UTF8I> s_spellsByName;
+
+// STATIC: 0x00BE8E8C
+TSGrowableArray<int32_t> CGSpellBook::m_unlearnedSpells;
+
 // VERIFY: debaf6f1 manual
 // OFFSET: 0x0053CF10
 void CGSpellBook::UpdateUsable() {
@@ -96,19 +174,7 @@ void CGSpellBook::UpdateUsable() {
     FrameScript_SignalEvent(SCRIPT_EVENT_SPELL_UPDATE_USABLE, nullptr);
 }
 
-// STATIC: 0x00BE7D98
-static uint32_t s_unkBE7D98[1024];
-
-// STATIC: 0x00BE8DA4
-static uint32_t s_unkBE8DA4;
-
-// STATIC: 0x00BE8DB8
-static TSBitField<TSFixedArray<uint32_t> > s_knownSpellBits;
-
-// STATIC: 0x00BE8DD8
-TSFixedArray<int32_t> CGSpellBook::m_languageSpells;
-
-// VERIFY: a86284df manual
+// VERIFY: 42e7be8d manual
 // OFFSET: 0x0053F1F0
 void CGSpellBook::InitializeGame() {
     s_knownSpellBits.m_count = g_spellDB.m_maxID + 1;
@@ -116,68 +182,8 @@ void CGSpellBook::InitializeGame() {
     CGSpellBook::m_languageSpells.SetCount(g_languagesDB.m_maxID + 1);
     CGSpellBook::ClearSpells();
     memset(s_unkBE7D98, 0, sizeof(s_unkBE7D98));
-    s_unkBE8DA4 = 0;
+    CGSpellBook::m_numPetSpells = 0;
 }
-
-// STATIC: 0x00ACCCCC
-static int32_t s_multiCastSpells[4] = { 66842, 66843, 66844, 36936 };
-
-// STATIC: 0x00BE5D68
-static int32_t s_dispelMask;
-
-// STATIC: 0x00BE5D6C
-static int32_t s_skinningSpells[4];
-
-// STATIC: 0x00BE5D7C
-static int32_t s_skinPlayerCorpseSpell;
-
-// STATIC: 0x00BE5D80
-static int32_t s_pendingCompanions;
-
-// STATIC: 0x00BE5D88
-static uint32_t s_unkBE5D88[1024];
-
-// STATIC: 0x00BE6D88
-static int32_t s_spellList[1024];
-
-// STATIC: 0x00BE7D88
-static int32_t s_summonFriendSpell;
-
-// STATIC: 0x00BE7D8C
-int32_t CGSpellBook::m_stuckSpell;
-
-// STATIC: 0x00BE7D90
-int32_t CGSpellBook::m_duelSpell;
-
-// STATIC: 0x00BE8D98
-static uint32_t s_numSpells;
-
-// STATIC: 0x00BE8D9C
-static uint32_t s_unkBE8D9C;
-
-// STATIC: 0x00BE8DA0
-static uint32_t s_numSkillInfos;
-
-// STATIC: 0x00BE8DC8
-static TSGrowableArray<SpellBookSkillInfo*> s_skillInfos;
-
-// STATIC: 0x00BE8DE4
-static TSGrowableArray<int32_t> s_trackingSpells;
-
-// STATIC: 0x00BE8DF4
-static TSGrowableArray<int32_t> s_companions[2];
-
-// STATIC: 0x00BE8E14
-static TSGrowableArray<int32_t> s_openLockSpells;
-
-// STATIC: 0x00BE8E34
-static TSGrowableArray<int32_t> s_dispelTypes;
-
-// STATIC: 0x00BE8E44
-static TSGrowableArray<int32_t> s_summonCreatures;
-
-// STATIC: 0x00BE8EA0
-TSGrowableArray<int32_t> CGSpellBook::m_totemSpells[4];
 
 // VERIFY: adefcf10 manual
 // OFFSET: 0x0053B540
@@ -197,7 +203,7 @@ int32_t CGSpellBook::GetSpellProgressionRank(const SpellRec* spell) {
     return rank;
 }
 
-// VERIFY: 9e60d8cf manual
+// VERIFY: 3e93ab26 manual
 // OFFSET: 0x0053EC40
 void CGSpellBook::ClearSpells() {
     if (s_knownSpellBits.m_count) {
@@ -224,7 +230,7 @@ void CGSpellBook::ClearSpells() {
     s_numSkillInfos = 0;
     CGSpellBook::m_duelSpell = 0;
     CGSpellBook::m_stuckSpell = 0;
-    s_summonFriendSpell = 0;
+    CGSpellBook::m_summonFriendSpell = 0;
     CGSpellBook::m_autoRangedSpell = 0;
     s_pendingCompanions = 0;
 
@@ -234,8 +240,8 @@ void CGSpellBook::ClearSpells() {
 
     s_trackingSpells.Clear();
 
-    for (uint32_t i = 0; i < sizeof(s_companions) / sizeof(s_companions[0]); i++) {
-        s_companions[i].Clear();
+    for (uint32_t i = 0; i < sizeof(CGSpellBook::m_companions) / sizeof(CGSpellBook::m_companions[0]); i++) {
+        CGSpellBook::m_companions[i].Clear();
     }
 
     s_openLockSpells.Clear();
@@ -250,7 +256,7 @@ void CGSpellBook::ClearSpells() {
     }
 }
 
-// VERIFY: af0467f8 manual
+// VERIFY: 515dbb9f manual
 // OFFSET: 0x00542030
 void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replaceSpell) {
     SpellRec spell;
@@ -315,7 +321,7 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
         }
 
         case 152: {
-            s_summonFriendSpell = spellId;
+            CGSpellBook::m_summonFriendSpell = spellId;
             break;
         }
     }
@@ -422,7 +428,7 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
                     WOWGUID target = WOWGUID();
                     s_shapeshiftSpells.m_data[i].m_usable = Spell_C_IsUsableAction(player, &spell, target, nullptr, false);
                     s_shapeshiftSpells.m_data[i].m_noMana = !Spell_C_HaveSpellPower(player, &spell);
-                    Script_SendUniqueSignal(376);
+                    Script_SendUniqueSignal(SCRIPT_EVENT_UPDATE_SHAPESHIFT_FORMS);
                     break;
                 }
             } else {
@@ -441,7 +447,7 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
                     s_shapeshiftSpells.m_data[count].m_usable = Spell_C_IsUsableAction(player, &spell, target, nullptr, false);
                     s_shapeshiftSpells.m_data[count].m_noMana = !Spell_C_HaveSpellPower(player, &spell);
                     qsort(s_shapeshiftSpells.m_data, s_shapeshiftSpells.Count(), sizeof(s_shapeshiftSpells.m_data[0]), SortSpellUsableInfo);
-                    Script_SendUniqueSignal(376);
+                    Script_SendUniqueSignal(SCRIPT_EVENT_UPDATE_SHAPESHIFT_FORMS);
                 }
             }
         }
@@ -463,7 +469,7 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
 
     if (SpellIsCallCompanion(&spell)) {
         int32_t type = spell.m_effect[0] == 28 ? 0 : (spell.m_effectAura[0] != 78) + 1;
-        *s_companions[type].New() = spellId;
+        *CGSpellBook::m_companions[type].New() = spellId;
 
         if (type == 0) {
             CGTutorial::TriggerTutorial(51);
@@ -667,7 +673,7 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
     }
 }
 
-// VERIFY: 99b393f7 auto
+// VERIFY: fe19e0f0 auto
 // OFFSET: 0x0053CEC0
 void CGSpellBook::UpdateCompanions() {
     if (s_pendingCompanions) {
@@ -676,9 +682,9 @@ void CGSpellBook::UpdateCompanions() {
 
     bool sorted = false;
 
-    for (uint32_t i = 0; i < sizeof(s_companions) / sizeof(s_companions[0]); i++) {
-        if (s_companions[i].Count()) {
-            qsort(s_companions[i].m_data, s_companions[i].Count(), sizeof(s_companions[i].m_data[0]), SortCompanions);
+    for (uint32_t i = 0; i < sizeof(CGSpellBook::m_companions) / sizeof(CGSpellBook::m_companions[0]); i++) {
+        if (CGSpellBook::m_companions[i].Count()) {
+            qsort(CGSpellBook::m_companions[i].m_data, CGSpellBook::m_companions[i].Count(), sizeof(CGSpellBook::m_companions[i].m_data[0]), SortCompanions);
             sorted = true;
         }
     }
@@ -688,7 +694,7 @@ void CGSpellBook::UpdateCompanions() {
     }
 }
 
-// VERIFY: 8e843866 manual
+// VERIFY: cbe1937a manual
 // OFFSET: 0x0053CA70
 void CGSpellBook::UpdateSpells(int32_t a1, int32_t a2, int32_t a3) {
     if (a1) {
@@ -701,7 +707,7 @@ void CGSpellBook::UpdateSpells(int32_t a1, int32_t a2, int32_t a3) {
     }
 
     if (a2) {
-        qsort(s_unkBE7D98, s_unkBE8DA4, sizeof(s_unkBE7D98[0]), SortSpellsForDisplay);
+        qsort(s_unkBE7D98, CGSpellBook::m_numPetSpells, sizeof(s_unkBE7D98[0]), SortSpellsForDisplay);
     }
 
     uint32_t spellIndex = 0;
@@ -932,10 +938,7 @@ void CGSpellBook::CompanionCallback(int32_t id, const WOWGUID& guid, void* param
     }
 }
 
-// STATIC: 0x00BE8E64
-static TSHashTable<SPELLSBYNAME, HASHKEY_UTF8I> s_spellsByName;
-
-// VERIFY: 97a8d81b auto
+// VERIFY: 076e3df7 auto
 // OFFSET: 0x0053B4E0
 int32_t GetSpellSlot(int32_t spellId, int32_t petSpell) {
     if (!spellId) {
@@ -952,7 +955,7 @@ int32_t GetSpellSlot(int32_t spellId, int32_t petSpell) {
         return -1;
     }
 
-    for (uint32_t i = s_unkBE8DA4; i;) {
+    for (uint32_t i = CGSpellBook::m_numPetSpells; i;) {
         if (spellId == static_cast<int32_t>(s_unkBE7D98[--i])) {
             return i;
         }
@@ -1087,4 +1090,55 @@ void CGSpellBook::AddSpellToNameCache(int32_t spellId, int32_t a2) {
     }
 
     CGItem_C::RemoveNameFromCache(spell.m_name);
+}
+
+// VERIFY: 766957c7 auto
+// OFFSET: 0x0053B480
+void CGSpellBook::UpdateSelection() {
+    CGActionBar::UpdateSelection();
+    FrameScript_SignalEvent(SCRIPT_EVENT_CURRENT_SPELL_CAST_CHANGED, nullptr);
+}
+
+// VERIFY: e14c5005 manual
+// OFFSET: 0x0053B410
+int32_t CGSpellBook::GetCompanionType(const SpellRec* spell) {
+    if (spell->m_effect[0] == 28) {
+        return 0;
+    }
+
+    return (spell->m_effectAura[0] != 78) + 1;
+}
+
+// VERIFY: 10135c7a manual
+// OFFSET: 0x0053BCE0
+int32_t CGSpellBook::GetSkinningSpell(const CGUnit_C* unit) {
+    uint32_t type = unit->m_obj->m_type;
+
+    if (type & 0x90) {
+        return s_skinPlayerCorpseSpell;
+    }
+
+    if (type & 0x8) {
+        return s_skinningSpells[unit->GetSkinningType()];
+    }
+
+    return 0;
+}
+
+// VERIFY: 645ce4bf auto
+// OFFSET: 0x0053D990
+int32_t CGSpellBook::FindCompanionSlotByID(int32_t spellId, int32_t type) {
+    if (!spellId) {
+        return -1;
+    }
+
+    for (int32_t slot = CGSpellBook::m_companions[type].Count(); slot > 0;) {
+        slot--;
+
+        if (spellId == CGSpellBook::m_companions[type].m_data[slot]) {
+            return slot;
+        }
+    }
+
+    return -1;
 }

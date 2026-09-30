@@ -14,6 +14,9 @@ struct SI2ZoneSoundInfo {
     /* 0010 */ int32_t m_silenceMax[2];
     /* 0018 */ int32_t m_ambience[2];
     /* 0020 */ int32_t m_reverb;
+
+    SI2ZoneSoundInfo();
+    ~SI2ZoneSoundInfo();
 };
 
 struct SI2ZoneMusicTimer {

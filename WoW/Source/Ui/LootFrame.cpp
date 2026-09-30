@@ -1,5 +1,14 @@
 #include "LootFrame.h"
 
+// STATIC: 0x00BFA68C
+uint32_t CGLootInfo::m_lootType;
+
+// STATIC: 0x00BFA690
+LootSlot CGLootInfo::m_slots[18];
+
+// STATIC: 0x00BFA8D0
+int32_t CGLootInfo::m_coins;
+
 // STATIC: 0x00BFA8D8
 WOWGUID CGLootInfo::m_lootObj;
 
@@ -22,4 +31,10 @@ void LootInitialize() {
 // OFFSET: 0x00588170
 void CGLootInfo::InitializeGame() {
     CGLootInfo::m_lootObj = WOWGUID();
+}
+
+// VERIFY: 58a0373b auto
+// OFFSET: 0x007E7FD0
+void LootDestroy() {
+    s_lootInitialized = 0;
 }

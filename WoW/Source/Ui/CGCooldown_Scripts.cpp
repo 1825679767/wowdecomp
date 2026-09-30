@@ -55,6 +55,19 @@ static int32_t Script_SetCooldown(lua_State* L) {
     return 0;
 }
 
+// VERIFY: 8c9950ea auto
+// OFFSET: 0x005EBE30
+void CGCooldown::DestroyScriptMetaTable() {
+    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CGCooldown::s_metatable);
+    CGCooldown::s_metatable = LUA_NOREF;
+}
+
+// VERIFY: 61b90397 auto
+// OFFSET: 0x005ECAC0
+void CGCooldown::CreateScriptMetaTable() {
+    CGCooldown::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CGCooldown::RegisterScriptMethods);
+}
+
 // STATIC: 0x00AD13A4
 static FrameScript_Method s_ScriptMethods[] = {
     { "SetCooldown", &Script_SetCooldown },
@@ -69,17 +82,4 @@ static FrameScript_Method s_ScriptMethods[] = {
 void CGCooldown::RegisterScriptMethods(lua_State* L) {
     CSimpleFrame::RegisterScriptMethods(L);
     FrameScript_Object::FillScriptMethodTable(L, s_ScriptMethods, sizeof(s_ScriptMethods) / sizeof(s_ScriptMethods[0]));
-}
-
-// VERIFY: 8c9950ea auto
-// OFFSET: 0x005EBE30
-void CGCooldown::DestroyScriptMetaTable() {
-    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CGCooldown::s_metatable);
-    CGCooldown::s_metatable = LUA_NOREF;
-}
-
-// VERIFY: 61b90397 auto
-// OFFSET: 0x005ECAC0
-void CGCooldown::CreateScriptMetaTable() {
-    CGCooldown::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CGCooldown::RegisterScriptMethods);
 }

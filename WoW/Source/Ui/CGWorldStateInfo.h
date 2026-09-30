@@ -3,8 +3,13 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
 
 struct lua_State;
+
+struct WORLDSTATE : public TSHashObject<WORLDSTATE, HASHKEY_NONE> {
+    /* 0018 */ int32_t m_value;
+};
 
 int32_t GetWorldState(int32_t id);
 
@@ -15,7 +20,9 @@ class CGWorldStateInfo {
     static uint32_t m_nextUpdateTime;
     static uint32_t m_UITimeOffset;
     static uint32_t m_nextUITimeUpdate;
+    static TSHashTable<WORLDSTATE, HASHKEY_NONE> m_worldStates;
 
+    static int32_t GetUITime();
     static void InitializeGame();
 };
 

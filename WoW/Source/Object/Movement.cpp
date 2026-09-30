@@ -46,6 +46,15 @@ static World::FacetData s_moveFacets;
 // STATIC: 0x00C9ECC4
 static CVar* s_cvSplineOpt;
 
+// STATIC: 0x00ADBA54
+static World::FacetData s_liquidFacets;
+
+// STATIC: 0x00CA1660
+static CAaBox s_queryBox;
+
+// STATIC: 0x00C9ECC8
+static int32_t s_flushingQueue;
+
 // VERIFY: 9482b603 manual
 // OFFSET: 0x006EBC70
 CPlayerMoveEvent* CPlayerMoveQueue::AllocEvent(uint32_t eventTime, MoveEventId eventId) {
@@ -2555,12 +2564,6 @@ C2Vector CMovement_C::CalcFallObstaclePush(const C3Vector& direction, float dist
 void CMovement_C::SendFallReset(uint32_t time) {
     this->m_unit->OnCollideFallReset(time);
 }
-
-// STATIC: 0x00ADBA54
-static World::FacetData s_liquidFacets;
-
-// STATIC: 0x00CA1660
-static CAaBox s_queryBox;
 
 // VERIFY: 6248f542 manual
 // OFFSET: 0x0075D1C0
@@ -5360,9 +5363,6 @@ void CMovement_C::Teleport(WOWGUID transport, const C3Vector& position, float fa
     MovementUpdateWorld(*this->m_ownerGuid, world, preload);
     this->m_flags2 &= 0xE3FF;
 }
-
-// STATIC: 0x00C9ECC8
-static int32_t s_flushingQueue;
 
 // VERIFY: 930c3840 manual
 // OFFSET: 0x006EB730

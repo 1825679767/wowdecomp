@@ -152,7 +152,7 @@ class ChatChannel {
     /* 0084 */ TSExplicitList<PENDINGUSERLIST, 0> m_pendingUsers;
     /* 0090 */ uint8_t m_flags;
     /* 0094 */ uint32_t m_zoneChannelID;
-    /* 0098 */ uint32_t m_unk98;
+    /* 0098 */ int32_t m_unk98;
     /* 009C */ int32_t m_unk9C;
     /* 00A0 */ int32_t m_unkA0;
     /* 00A4 */ uint8_t m_unkA4;
@@ -211,12 +211,12 @@ class ChatWindowInfo {
     /* 0080 */ uint8_t m_messageGroups[46];
     /* 00B0 */ TSGrowableArray<uint32_t> m_unkB0;
     /* 00C0 */ TSGrowableArray<int32_t> m_unkC0;
-    /* 00D0 */ uint32_t m_unkD0;
+    /* 00D0 */ int32_t m_unkD0;
     /* 00D4 */ CImVector m_color;
     /* 00D8 */ uint32_t m_unkD8;
-    /* 00DC */ uint32_t m_docked;
+    /* 00DC */ int32_t m_docked;
     /* 00E0 */ uint32_t m_shown;
-    /* 00E4 */ uint32_t m_unkE4;
+    /* 00E4 */ int32_t m_unkE4;
     /* 00E8 */ uint32_t m_unkE8;
     /* 00EC */ float m_unkEC;
     /* 00F0 */ float m_unkF0;
@@ -249,6 +249,7 @@ struct ChatColorInfo {
 
 class CGChat {
     public:
+    static void ZoneUpdate();
     static void ProcessPendingChatQueue();
     static void LogReactionChanged(int32_t faction, int32_t reaction);
     static void LogFactionChanged(int32_t faction, int32_t delta, int32_t generic, float bonus);
@@ -359,12 +360,6 @@ bool ChatParserParseText(const char* text, char* buffer, uint32_t size);
 bool InebriatedParseText(const char* text, char* buffer, uint32_t size, float drunkness);
 int32_t QuestParserParseText(const char* text, char* buffer, uint32_t size, const WOWGUID& guid, const char* name, int32_t a6);
 
-int32_t Script_SendChatMessage(lua_State* L);
-int32_t Script_SendAddonMessage(lua_State* L);
-int32_t Script_SendSystemMessage(lua_State* L);
-int32_t Script_GetNumLanguages(lua_State* L);
-int32_t Script_GetLanguageByIndex(lua_State* L);
-int32_t Script_GetDefaultLanguage(lua_State* L);
 int32_t Script_DoEmote(lua_State* L);
 int32_t Script_LoggingChat(lua_State* L);
 int32_t Script_LoggingCombat(lua_State* L);
@@ -373,12 +368,9 @@ int32_t Script_JoinTemporaryChannel(lua_State* L);
 int32_t Script_JoinPermanentChannel(lua_State* L);
 int32_t Script_LeaveChannelByName(lua_State* L);
 int32_t Script_ListChannelByName(lua_State* L);
-int32_t Script_ListChannels(lua_State* L);
-int32_t Script_GetChannelList(lua_State* L);
 int32_t Script_SetChannelPassword(lua_State* L);
 int32_t Script_SetChannelOwner(lua_State* L);
 int32_t Script_DisplayChannelOwner(lua_State* L);
-int32_t Script_GetChannelName(lua_State* L);
 int32_t Script_ChannelModerator(lua_State* L);
 int32_t Script_ChannelUnmoderator(lua_State* L);
 int32_t Script_ChannelMute(lua_State* L);
@@ -392,62 +384,48 @@ int32_t Script_ChannelSilenceVoice(lua_State* L);
 int32_t Script_ChannelSilenceAll(lua_State* L);
 int32_t Script_ChannelUnSilenceVoice(lua_State* L);
 int32_t Script_ChannelUnSilenceAll(lua_State* L);
-int32_t Script_ChangeChatColor(lua_State* L);
 int32_t Script_ResetChatColors(lua_State* L);
-int32_t Script_GetChatTypeIndex(lua_State* L);
-int32_t Script_GetChatWindowInfo(lua_State* L);
-int32_t Script_GetChatWindowSavedPosition(lua_State* L);
-int32_t Script_GetChatWindowSavedDimensions(lua_State* L);
-int32_t Script_GetChatWindowMessages(lua_State* L);
 int32_t Script_GetChatWindowChannels(lua_State* L);
-int32_t Script_AddChatWindowMessages(lua_State* L);
-int32_t Script_RemoveChatWindowMessages(lua_State* L);
 int32_t Script_AddChatWindowChannel(lua_State* L);
 int32_t Script_RemoveChatWindowChannel(lua_State* L);
-int32_t Script_SetChatWindowName(lua_State* L);
-int32_t Script_SetChatWindowSize(lua_State* L);
-int32_t Script_SetChatWindowColor(lua_State* L);
-int32_t Script_SetChatWindowAlpha(lua_State* L);
-int32_t Script_SetChatWindowLocked(lua_State* L);
-int32_t Script_SetChatWindowDocked(lua_State* L);
-int32_t Script_SetChatWindowUninteractable(lua_State* L);
-int32_t Script_SetChatWindowShown(lua_State* L);
-int32_t Script_SetChatWindowSavedPosition(lua_State* L);
-int32_t Script_SetChatWindowSavedDimensions(lua_State* L);
 int32_t Script_EnumerateServerChannels(lua_State* L);
-int32_t Script_RequestRaidInfo(lua_State* L);
 int32_t Script_GetNumSavedInstances(lua_State* L);
 int32_t Script_GetSavedInstanceInfo(lua_State* L);
 int32_t Script_SetSavedInstanceExtend(lua_State* L);
 int32_t Script_ResetChatWindows(lua_State* L);
 int32_t Script_CanComplainChat(lua_State* L);
 int32_t Script_ComplainChat(lua_State* L);
-int32_t Script_GetNumDisplayChannels(lua_State* L);
 int32_t Script_GetChannelDisplayInfo(lua_State* L);
 int32_t Script_GetSelectedDisplayChannel(lua_State* L);
 int32_t Script_SetSelectedDisplayChannel(lua_State* L);
 int32_t Script_GetChannelRosterInfo(lua_State* L);
 int32_t Script_GetNumChannelMembers(lua_State* L);
 int32_t Script_SetActiveVoiceChannel(lua_State* L);
-int32_t Script_GetActiveVoiceChannel(lua_State* L);
-int32_t Script_CollapseChannelHeader(lua_State* L);
-int32_t Script_ExpandChannelHeader(lua_State* L);
 int32_t Script_ChannelVoiceOn(lua_State* L);
 int32_t Script_ChannelVoiceOff(lua_State* L);
 int32_t Script_DisplayChannelVoiceOn(lua_State* L);
 int32_t Script_DisplayChannelVoiceOff(lua_State* L);
 int32_t Script_IsDisplayChannelOwner(lua_State* L);
 int32_t Script_IsDisplayChannelModerator(lua_State* L);
-int32_t Script_IsVoiceChatEnabled(lua_State* L);
-int32_t Script_IsVoiceChatAllowed(lua_State* L);
-int32_t Script_IsVoiceChatAllowedByServer(lua_State* L);
 int32_t Script_IsSilenced(lua_State* L);
 int32_t Script_GetMuteStatus(lua_State* L);
 int32_t Script_UnitIsSilenced(lua_State* L);
 int32_t Script_SetChannelWatch(lua_State* L);
-int32_t Script_ClearChannelWatch(lua_State* L);
 int32_t Script_DeclineInvite(lua_State* L);
-int32_t Script_SetChatColorNameByClass(lua_State* L);
 void ChatRegisterScriptFunctions();
+
+extern uint32_t s_numDisplayChannels;
+
+extern int32_t s_activeVoiceChannel;
+
+extern uint8_t s_collapsedHeaders[3];
+
+extern ChatWindowInfo s_chatWindows[10];
+
+extern const ChatMessageGroup s_chatMessageGroups[46];
+
+extern ChatColorInfo s_chatColors[CHAT_MSG_MAX];
+
+extern TSGrowableArray<ChatColorInfo> s_channelColors;
 
 #endif

@@ -31,6 +31,38 @@ static SI2ZoneSoundPair s_zoneMusic;
 // STATIC: 0x00B4ACD0
 TSGrowableArray<uint32_t> SI2::sm_aIntroMusicNextValidPlayTime;
 
+// STATIC: 0x00AC3864
+static int32_t s_overrideChunkX = -1;
+
+// STATIC: 0x00AC3868
+static int32_t s_overrideMapID = -1;
+
+// STATIC: 0x00AC386C
+static int32_t s_overrideChunkY = -1;
+
+// STATIC: 0x00AC3870
+static int32_t s_overrideSubchunkY = -1;
+
+// STATIC: 0x00AC3874
+static int32_t s_overrideSubchunkX = -1;
+
+// INLINED
+SI2ZoneSoundInfo::SI2ZoneSoundInfo() {
+    this->m_music[0] = -1;
+    this->m_music[1] = -1;
+    this->m_silenceMin[0] = 0;
+    this->m_silenceMin[1] = 0;
+    this->m_silenceMax[0] = 0;
+    this->m_silenceMax[1] = 0;
+    this->m_ambience[0] = -1;
+    this->m_ambience[1] = -1;
+    this->m_reverb = -1;
+}
+
+// INLINED
+SI2ZoneSoundInfo::~SI2ZoneSoundInfo() {
+}
+
 // VERIFY: e6578ba5 manual
 // OFFSET: 0x004C8590
 int32_t SI2::GetZoneReverb() {
@@ -657,4 +689,55 @@ void SI2::ShutdownZoneSoundsHandler() {
     SI2::StopAllMusic();
     SI2::WaterShutdown();
     SE2::SetReverb(nullptr);
+}
+
+// VERIFY: a49403c9 manual
+// OFFSET: 0x004C68E0
+void SI2::OverrideZoneSounds() {
+    int32_t mapId;
+    int32_t chunkX;
+    int32_t chunkY;
+    int32_t subchunkX;
+    int32_t subchunkY;
+
+    if (!SI2::GetChunkLocation(&mapId, &chunkX, &chunkY, &subchunkX, &subchunkY)) {
+        return;
+    }
+
+    int32_t lastChunkY = chunkY;
+    int32_t lastSubchunkX = subchunkX;
+    int32_t lastSubchunkY = subchunkY;
+
+    if (subchunkX != s_overrideSubchunkX || subchunkY != s_overrideSubchunkY) {
+        int32_t zoneMusicId;
+
+        if (SI2::GetZoneSoundOverride(mapId, chunkX, chunkY, subchunkX, subchunkY, &subchunkX, &zoneMusicId, &chunkY, &subchunkY)) {
+            if (subchunkY >= 0) {
+                SI2::SetZoneReverb(2, subchunkY);
+            }
+
+            if (chunkY >= 0) {
+                SI2::SetZoneAmbienceID(2, chunkY);
+            }
+
+            if (subchunkX >= 0) {
+                SI2::SetZoneIntroMusicID(7, subchunkX);
+            }
+
+            if (zoneMusicId >= 0) {
+                SI2::SetZoneMusicID(2, zoneMusicId);
+            }
+        } else {
+            SI2::SetZoneReverb(2, -1);
+            SI2::SetZoneAmbienceID(2, -1);
+            SI2::SetZoneIntroMusicID(7, -1);
+            SI2::SetZoneMusicID(2, -1);
+        }
+    }
+
+    s_overrideSubchunkY = lastSubchunkY;
+    s_overrideSubchunkX = lastSubchunkX;
+    s_overrideChunkY = lastChunkY;
+    s_overrideMapID = mapId;
+    s_overrideChunkX = chunkX;
 }

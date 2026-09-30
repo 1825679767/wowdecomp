@@ -11,7 +11,7 @@ bool CMapObjDef::TestAABox(C3Vector& start, C3Vector& end) {
     return CWorldMath::VectorIntersectAABox2(this->m_bbox, start, end);
 }
 
-// VERIFY: 93842e5d auto
+// VERIFY: 62f4837e auto
 // OFFSET: 0x007B3DE0
 CMapObjDefGroup::CMapObjDefGroup() {
     this->m_sphere.r = 0.0f;
@@ -26,7 +26,7 @@ CMapObjDefGroup::CMapObjDefGroup() {
     this->m_unkFlags = -1;
     this->unk_0058 = 0;
     this->unk_0064 = 0;
-    this->unk_0060 = 0;
+    this->m_subzoneName = nullptr;
     this->m_liquidInstance = nullptr;
 }
 

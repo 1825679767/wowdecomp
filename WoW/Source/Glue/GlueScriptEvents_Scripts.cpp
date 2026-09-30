@@ -26,6 +26,8 @@
 #include "WoW/Source/WowServices/Login.h"
 #include "WoW/Source/WowServices/WDataStore.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/ConsoleDevice/ConsoleDevice.h"
+#include "WoW/Source/WowServices/RealmConnection.h"
 
 int32_t Script_IsShiftKeyDown(lua_State* L);
 int32_t Script_GetLocale(lua_State* L);
@@ -859,6 +861,99 @@ static int32_t Script_ReadyForAccountDataTimes(lua_State* L) {
 // OFFSET: 0x00511200
 int32_t Script_GetNumAddOns(lua_State* L) {
     lua_pushnumber(L, GetNumAddOns());
+    return 1;
+}
+
+// VERIFY: 9ab1ae8b auto
+// OFFSET: 0x004DCAD0
+static int32_t Script_ResetAddOns(lua_State* L) {
+    LoadAddOnEnableState(nullptr);
+    return 0;
+}
+
+// VERIFY: 7a7ef6f2 auto
+// OFFSET: 0x004DD420
+int32_t Script_RestoreVideoStereoDefaults(lua_State* L) {
+    ConsoleDeviceDefaults(OPTION_PAGE_2);
+    return 0;
+}
+
+// VERIFY: 6f95e4dc auto
+// OFFSET: 0x004DBFD0
+int32_t Script_GetLocale(lua_State* L) {
+    lua_pushstring(L, s_iniLocaleNames[s_locale]);
+    return 1;
+}
+
+// VERIFY: ac7e3070 auto
+// OFFSET: 0x004DDA90
+static int32_t Script_PatchDownloadProgress(lua_State* L) {
+    lua_pushnumber(L, CGlueMgr::m_patchDownloadProgress);
+    return 1;
+}
+
+// VERIFY: 203a3cde auto
+// OFFSET: 0x004DC150
+static int32_t Script_PlayCreditsMusic(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: PlayCreditsMusic( \"Sound kit name\" )");
+    }
+
+    SI2::StartCreditsMusic(lua_tolstring(L, 1, nullptr));
+    return 0;
+}
+
+// VERIFY: dab7aa7c manual
+// OFFSET: 0x004DDBD0
+static int32_t Script_GetBillingTimeRemaining(lua_State* L) {
+    uint32_t remaining = ClientServices::Connection()->m_billingTimeRemaining;
+
+    if (ClientServices::Connection()->m_billingFlags & 0x2) {
+        remaining = 0;
+    }
+
+    lua_pushnumber(L, remaining);
+    return 1;
+}
+
+// VERIFY: 2dd7ddc5 auto
+// OFFSET: 0x004DDC60
+static int32_t Script_GetBillingPlan(lua_State* L) {
+    uint32_t flags = ClientServices::Connection()->m_billingFlags;
+    uint32_t plan = flags & 0x16;
+    int32_t type = 0;
+
+    if (plan == 0x2) {
+        type = 1;
+    } else if (plan == 0x4) {
+        type = 2;
+    } else if (!plan) {
+        type = 3;
+    } else if (plan == 0x10) {
+        type = 4;
+    }
+
+    lua_pushnumber(L, type);
+    lua_pushnumber(L, (flags & 0x20) != 0);
+    lua_pushnumber(L, (flags & 0x8) != 0);
+    return 3;
+}
+
+// VERIFY: 10a06b79 manual
+// OFFSET: 0x004DC7C0
+static int32_t Script_GetAddOnEnableState(lua_State* L) {
+    if ((!lua_isstring(L, 1) && lua_type(L, 1)) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: GetAddOnEnableState(\"character\", index)");
+    }
+
+    const char* character = lua_tolstring(L, 1, nullptr);
+    const char* name = GetAddOnByIndex(static_cast<uint32_t>(lua_tonumber(L, 2)) - 1);
+
+    if (!name) {
+        luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+    }
+
+    lua_pushnumber(L, GetAddOnEnableState(name, character, true));
     return 1;
 }
 

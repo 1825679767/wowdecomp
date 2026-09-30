@@ -132,6 +132,7 @@ class SI2 {
     static int32_t GetTextEmoteSoundID(uint32_t emotesTextId, uint32_t race, uint32_t sex);
     static int32_t GetTextEmoteSoundIndex(uint32_t emotesTextId, uint32_t race, uint32_t sex);
     static int32_t GetZoneReverb();
+    static int32_t GetChunkLocation(int32_t* mapId, int32_t* chunkX, int32_t* chunkY, int32_t* subchunkX, int32_t* subchunkY);
     static int32_t GetZoneSoundOverride(int32_t mapId, int32_t chunkX, int32_t chunkY, int32_t subchunkX, int32_t subchunkY, int32_t* zoneIntroMusicId, int32_t* zoneMusicId, int32_t* soundAmbienceId, int32_t* soundProviderPreferencesId);
     static int32_t GlueMusicUpdate(const void* data, void* param);
     static int32_t HandleSoundDeviceChange(const void* data, void* param);
@@ -184,6 +185,7 @@ class SI2 {
     static void SetAdvancedSoundPosition(uint32_t id, const C3Vector* position);
     static void SetChannelGroupVolume(int32_t group, float volume);
     static int32_t SetListenerAttributes(const C3Vector* position, const C3Vector* forward, const C3Vector* up, const C3Vector* velocity);
+    static void OverrideZoneSounds();
     static void SetOverrideZoneSounds(int32_t soundAmbienceId, int32_t zoneMusicId);
     static void SetPitch(SE2SoundKitObject* object, float pitch);
     static void SetPlayerInside(bool inside);

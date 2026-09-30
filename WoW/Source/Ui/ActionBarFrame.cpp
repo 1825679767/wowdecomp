@@ -1,6 +1,13 @@
 #include "ActionBarFrame.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/lua-5.1/src/lauxlib.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/ItemRec.h"
 #include "WoW/Source/DB/Rec/MapRec.h"
 #include "WoW/Source/DB/Rec/OverrideSpellDataRec.h"
 #include "WoW/Source/DB/Rec/SpellRec.h"
@@ -9,10 +16,16 @@
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
 #include "WoW/Source/Ui/EquipmentManager.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/PetInfo.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
+#include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/Ui/UIBindings.h"
 #include "WoW/Source/Ui/UIMacros.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
 // STATIC: 0x00C1DC98
 int32_t CGActionBar::m_slotNoMana[144];
@@ -25,18 +38,15 @@ int32_t CGActionBar::m_slotItemCount[144];
 
 // STATIC: 0x00C1E358
 uint32_t CGActionBar::m_slotActions[144];
-#include "Engine/Source/FrameScript/FrameScript.h"
-#include "WoW/Source/Ui/Types.h"
-#include "Engine/Source/Base/CDataStore.h"
-#include "Engine/Source/ConsoleBase/ConsoleVar.h"
-#include "Engine/Source/Storm/H/storm.h"
-#include "Engine/Source/lua-5.1/src/lauxlib.h"
-#include "Engine/Source/lua-5.1/src/lua.h"
-#include "WoW/Source/SoundInterface/SoundInterface2.h"
-#include "WoW/Source/Ui/ScriptEvents.h"
-#include "WoW/Source/Ui/SpellBookFrame.h"
-#include "WoW/Source/Ui/UIBindings.h"
-#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+
+// STATIC: 0x00C1E59C
+int32_t CGActionBar::m_bonusBarOffset;
+
+// STATIC: 0x00C1E5A0
+uint32_t CGActionBar::m_tempPageActiveFlags;
+
+// STATIC: 0x00C1E598
+uint32_t CGActionBar::m_currentPage;
 
 // VERIFY: b0c0fee1 auto
 // OFFSET: 0x005A7A80
@@ -1309,12 +1319,6 @@ void CGActionBar::UseAction(int32_t slot, const WOWGUID& target, const char* but
     }
 }
 
-// STATIC: 0x00C1E59C
-int32_t CGActionBar::m_bonusBarOffset;
-
-// STATIC: 0x00C1E5A0
-uint32_t CGActionBar::m_tempPageActiveFlags;
-
 // VERIFY: cb09cbdf auto
 // OFFSET: 0x005A7C50
 static int32_t FormHasActionBar(const SpellShapeshiftFormRec* form) {
@@ -1372,4 +1376,121 @@ void CGActionBar::EnterWorld() {
     CGActionBar::UpdateShapeShiftBar();
     CGActionBar::UpdateOverrideSpellBar();
     CGActionBar::UpdateBonusBar();
+}
+
+// VERIFY: a12b35d4 auto
+// OFFSET: 0x005A79D0
+void CGActionBar::InitializeGame() {
+    memset(CGActionBar::m_slotActions, 0, sizeof(CGActionBar::m_slotActions));
+    memset(CGActionBar::m_slotUsable, 0, sizeof(CGActionBar::m_slotUsable));
+    memset(CGActionBar::m_slotItemCount, 0, sizeof(CGActionBar::m_slotItemCount));
+    memset(CGActionBar::m_slotNoMana, 0, sizeof(CGActionBar::m_slotNoMana));
+    CGActionBar::m_currentPage = 0;
+    CGActionBar::m_bonusBarOffset = 0;
+    CGActionBar::m_tempPageActiveFlags = 0;
+}
+
+// VERIFY: 8aaa3eee manual
+// OFFSET: 0x005AA4E0
+void CGActionBar::UpdateAttackAction() {
+    for (uint32_t i = 0; i < 144; i++) {
+        if (CGActionBar::IsAttackAction(i)) {
+            int32_t noMana;
+            CGActionBar::m_slotUsable[i] = CGActionBar::UpdateUsableAction(i, noMana);
+            CGActionBar::m_slotNoMana[i] = noMana;
+            FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_SLOT_CHANGED, "%d", i + 1);
+        }
+    }
+}
+
+// VERIFY: 360c7e77 manual
+// OFFSET: 0x005AA550
+void CGActionBar::UpdateRangedAttackAction() {
+    for (uint32_t i = 0; i < 144; i++) {
+        if (CGActionBar::IsRangedAttackAction(i)) {
+            int32_t noMana;
+            CGActionBar::m_slotUsable[i] = CGActionBar::UpdateUsableAction(i, noMana);
+            CGActionBar::m_slotNoMana[i] = noMana;
+            FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_SLOT_CHANGED, "%d", i + 1);
+        }
+    }
+}
+
+// VERIFY: 7f087db2 manual
+// OFFSET: 0x005A8470
+int32_t IsStackableAucItem(uint32_t slot) {
+    if (slot > 143) {
+        return 0;
+    }
+
+    WOWGUID requester = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(CGActionBar::GetItem(slot), requester, nullptr, nullptr, false);
+    return stats && stats->m_stackable > 1;
+}
+
+// VERIFY: e7c2b372 manual
+// OFFSET: 0x005A88B0
+int32_t CGActionBar::IsEquippedAction(uint32_t slot) {
+    if (slot > 143) {
+        return 0;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 0;
+    }
+
+    int32_t itemId = CGActionBar::GetItem(slot);
+    ItemRec* item = g_itemDB.GetRecord(itemId);
+
+    if (!item || !item->m_inventoryType) {
+        return 0;
+    }
+
+    CGItem_C* enchantItem = CGActionBar::FindUseEnchantItemPtr(itemId);
+    int32_t charges = enchantItem ? enchantItem->GetUsableSpellCharges() : CGItem_C::NumBaseCharges(itemId);
+    uint32_t flags = charges != -1 && charges ? 161 : 129;
+    CGBag_C* bag = &player->m_bag;
+    return bag->FindItemOfType(itemId, flags) || ((flags & 0x20) && !bag->FindItemOfType(itemId, 32) && bag->FindItemOfType(itemId, flags & ~0x20));
+}
+
+// VERIFY: 20f78ef5 manual
+// OFFSET: 0x005A9360
+int32_t CGActionBar::IsConsumableAction(uint32_t slot) {
+    if (slot > 143) {
+        return 0;
+    }
+
+    int32_t itemId = CGActionBar::GetItem(slot);
+    WOWGUID requester = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, requester, nullptr, nullptr, false);
+
+    if (stats) {
+        if (stats->m_inventoryType == 24 || stats->m_inventoryType == 25) {
+            return 1;
+        }
+
+        CGItem_C* enchantItem = CGActionBar::FindUseEnchantItemPtr(itemId);
+        int32_t charges = enchantItem ? enchantItem->GetUsableSpellCharges() : CGItem_C::NumBaseCharges(itemId);
+
+        if (charges < 0) {
+            return 1;
+        }
+    }
+
+    SpellRec spell;
+    int32_t petSpell;
+
+    if (!g_spellDB.GetRecord(CGActionBar::GetSpell(slot, petSpell), &spell) || petSpell) {
+        return 0;
+    }
+
+    for (int32_t i = 0; i < 8; i++) {
+        if (spell.m_reagent[i] && spell.m_reagentCount[i] > 0) {
+            return 1;
+        }
+    }
+
+    return 0;
 }

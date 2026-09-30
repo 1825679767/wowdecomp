@@ -1,4 +1,6 @@
 #include "DanceCache.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "Engine/Source/Storm/H/storm.h"
 
 // INLINED
 DanceCache::DanceCache() {
@@ -13,4 +15,32 @@ DanceCache::DanceCache() {
 // INLINED
 DanceCache::~DanceCache() {
     delete[] this->m_data;
+}
+
+// VERIFY: cb0294c9 manual
+// OFFSET: 0x0098D290
+void DanceCache::Pack(CDataStore* msg) {
+    msg->Put(static_cast<uint32_t>(this->m_id));
+    *msg << static_cast<const SmartGUID&>(this->m_guid);
+    msg->PutString(this->m_name);
+    msg->Put(this->m_dataCount);
+    msg->PutData(this->m_data, 4 * this->m_dataCount);
+    msg->Put(this->unk_0098);
+}
+
+// VERIFY: a4007070 manual
+// OFFSET: 0x0098D300
+void DanceCache::Unpack(CDataStore* msg) {
+    msg->Get(reinterpret_cast<uint32_t&>(this->m_id));
+
+    if (this->m_id < 0) {
+        return;
+    }
+
+    *msg >> static_cast<SmartGUID&>(this->m_guid);
+    msg->GetString(this->m_name, sizeof(this->m_name));
+    msg->Get(this->m_dataCount);
+    this->m_data = new (__FILE__, __LINE__) uint32_t[this->m_dataCount];
+    msg->GetData(this->m_data, 4 * this->m_dataCount);
+    msg->Get(this->unk_0098);
 }

@@ -25,6 +25,8 @@
 #include "WoW/Source/Ui/PartyFrame.h"
 #include "WoW/Source/Ui/RaidInfo.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Object/ObjectClient/AuraData.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
 
 // STATIC: 0x00ADB758
 static const char* s_combatLogEventNames[50] = {
@@ -142,16 +144,16 @@ static TSList<PendingCombatLogData, TSGetLink<PendingCombatLogData> > s_pendingD
 static TSList<PendingCombatLogData, TSGetLink<PendingCombatLogData> > s_freePendingData;
 
 // STATIC: 0x00ADB968
-static TSList<CombatLogFilter, TSGetLink<CombatLogFilter> > s_filters;
+TSList<CombatLogFilter, TSGetLink<CombatLogFilter> > s_filters;
 
 // STATIC: 0x00ADB974
-static TSList<CombatLogEntry, TSGetLink<CombatLogEntry> > s_entries;
+TSList<CombatLogEntry, TSGetLink<CombatLogEntry> > s_entries;
 
 // STATIC: 0x00ADB980
 static TSList<CombatLogEntry, TSGetLink<CombatLogEntry> > s_freeEntries;
 
 // STATIC: 0x00CA1380
-static WOWGUID s_combatTextActiveUnit;
+WOWGUID s_combatTextActiveUnit;
 
 // STATIC: 0x00CA1388
 static uint32_t s_startTimeMs;
@@ -160,10 +162,16 @@ static uint32_t s_startTimeMs;
 static uint32_t s_startTime;
 
 // STATIC: 0x00CA1390
-static CombatLogEntry* s_currentEntry;
+CombatLogEntry* s_currentEntry;
 
 // STATIC: 0x00CA1394
-static CombatLogEntry* s_pendingEntries;
+CombatLogEntry* s_pendingEntries;
+
+// STATIC: 0x00ADBFAC
+const char* g_spellMissStrings[12] = { "NONE", "MISS", "RESIST", "DODGE", "PARRY", "BLOCK", "EVADE", "IMMUNE", "IMMUNE", "DEFLECT", "ABSORB", "REFLECT" };
+
+// STATIC: 0x00AD671C
+static const char* s_environmentalDamageTypes[6] = { "FATIGUE", "DROWNING", "FALLING", "LAVA", "SLIME", "FIRE" };
 
 // INLINED
 inline CombatLogEntry::CombatLogEntry() {
@@ -216,47 +224,47 @@ int32_t IsCombatTextActiveUnit(WOWGUID guid) {
     return s_combatTextActiveUnit == guid;
 }
 
-// VERIFY: de1f3849 auto
+// VERIFY: 4b539030 auto
 // OFFSET: 0x0074D460
 void SendToCombatText(int32_t type, const char* text, int32_t amount) {
-    FrameScript_SignalEvent(484, "%s%s%d", s_combatTextTypes[type], text, amount);
+    FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%s%d", s_combatTextTypes[type], text, amount);
 }
 
-// VERIFY: 0b7a7f5f auto
+// VERIFY: ec53185e auto
 // OFFSET: 0x0074D490
 void SendToCombatText(int32_t type, const char* text, int32_t amount, int32_t overflow) {
-    FrameScript_SignalEvent(484, "%s%s%d%d", s_combatTextTypes[type], text, amount, overflow);
+    FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%s%d%d", s_combatTextTypes[type], text, amount, overflow);
 }
 
-// VERIFY: 7e929dd0 auto
+// VERIFY: 41c0dd5e auto
 // OFFSET: 0x0074D4C0
 void SendToCombatText(int32_t type, int32_t amount, int32_t overflow) {
-    FrameScript_SignalEvent(484, "%s%d%d", s_combatTextTypes[type], amount, overflow);
+    FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%d%d", s_combatTextTypes[type], amount, overflow);
 }
 
-// VERIFY: 22ab3dbb auto
+// VERIFY: 832fb9f0 auto
 // OFFSET: 0x0074D4F0
 void SendToCombatText(int32_t type, int32_t amount) {
-    FrameScript_SignalEvent(484, "%s%d", s_combatTextTypes[type], amount);
+    FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%d", s_combatTextTypes[type], amount);
 }
 
-// VERIFY: b272b80c auto
+// VERIFY: 4c54569b auto
 // OFFSET: 0x0074D520
 void SendToCombatText(int32_t type, const char* text) {
-    FrameScript_SignalEvent(484, "%s%s", s_combatTextTypes[type], text);
+    FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%s", s_combatTextTypes[type], text);
 }
 
-// VERIFY: 69a4b870 auto
+// VERIFY: 8f0453d6 auto
 // OFFSET: 0x0074D550
 void SendToCombatText(int32_t type) {
-    FrameScript_SignalEvent(484, "%s", s_combatTextTypes[type]);
+    FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s", s_combatTextTypes[type]);
 }
 
-// VERIFY: be5d85cb auto
+// VERIFY: 197967e0 auto
 // OFFSET: 0x0074D700
 void UnitCombatLogProcGo(const WOWGUID& casterGuid, const SpellRec* spell) {
     if (s_combatTextActiveUnit == casterGuid && (spell->m_attributesExF & 0x40)) {
-        FrameScript_SignalEvent(484, "%s%s", s_combatTextTypes[30], spell->m_name);
+        FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%s", s_combatTextTypes[30], spell->m_name);
     }
 }
 
@@ -838,7 +846,7 @@ bool CombatLogEntry::MatchesFilter() {
     return false;
 }
 
-// VERIFY: aecd56fc manual
+// VERIFY: c77149c7 manual
 // OFFSET: 0x0074F910
 void SendCombatLogEvents() {
     char text[4096];
@@ -851,7 +859,7 @@ void SendCombatLogEvents() {
         int32_t count = entry->PushEvent(L);
 
         if (s_pendingEntries->MatchesFilter()) {
-            FrameScript_SignalEvent(566, L, count + 1);
+            FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_LOG_EVENT, L, count + 1);
         }
 
         if (!FrameScript_GetEventListeners(g_scriptEvents[567])->Head()) {
@@ -859,7 +867,7 @@ void SendCombatLogEvents() {
         } else {
             lua_pushstring(L, g_scriptEvents[567]);
             lua_insert(L, -count - 1);
-            FrameScript_SignalEvent(567, L, count + 1);
+            FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_LOG_EVENT_UNFILTERED, L, count + 1);
             lua_settop(L, -count - 2);
         }
 
@@ -911,7 +919,7 @@ bool ShouldShowFeedback(const ATTACKROUNDINFO& info) {
     return !info.m_meleeSpellId || info.m_victimState == 1;
 }
 
-// VERIFY: b6cc2fa5 manual
+// VERIFY: 9b0ab217 manual
 // OFFSET: 0x007512B0
 void UnitCombatLog(const ATTACKROUNDINFO& info) {
     if (info.m_hitInfo & 0x800000) {
@@ -958,7 +966,7 @@ void UnitCombatLog(const ATTACKROUNDINFO& info) {
 
         if (s_combatTextActiveUnit == target) {
             if (resisted > 0) {
-                FrameScript_SignalEvent(484, "%s%d%d", s_combatTextTypes[10], damage, resisted);
+                FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%d%d", s_combatTextTypes[10], damage, resisted);
             } else if (blocked) {
                 SendToCombatText(11, damage, blocked);
             } else if (absorbed) {
@@ -1051,4 +1059,386 @@ void UnitCombatLog(const ATTACKROUNDINFO& info) {
     }
 
     QueueCombatLogEntry(entry, 0);
+}
+
+// VERIFY: a0eac561 manual
+// OFFSET: 0x00750C90
+int32_t Packet_SMSG_PARTYKILLLOG(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint64_t value = 0;
+    msg->Get(value);
+    WOWGUID killer = WOWGUID{ value };
+    value = 0;
+    msg->Get(value);
+    WOWGUID victim = WOWGUID{ value };
+    CombatLogEntry* entry = GetCombatLogEntry(killer, victim, 43, nullptr);
+    QueueCombatLogEntry(entry, 0);
+    return 1;
+}
+
+// VERIFY: 7cbd4790 manual
+// OFFSET: 0x00750D40
+int32_t Packet_SMSG_PROCRESIST(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint64_t value = 0;
+    msg->Get(value);
+    WOWGUID caster = WOWGUID{ value };
+    value = 0;
+    msg->Get(value);
+    WOWGUID target = WOWGUID{ value };
+    uint32_t spellId = 0;
+    msg->Get(spellId);
+    uint8_t debug = 0;
+    msg->Get(debug);
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        CombatLogEntry* entry = GetCombatLogEntry(caster, target, 8, &spell);
+        entry->m_infoFlags |= 0x4004;
+        entry->m_info.m_values[0] = 2;
+        entry->m_info.m_values[5] = 0;
+
+        if (s_combatTextActiveUnit == target) {
+            SendToCombatText(22);
+        }
+
+        QueueCombatLogEntry(entry, 0);
+    }
+
+    return 1;
+}
+
+// VERIFY: 46a3d6bd auto
+// OFFSET: 0x00750EA0
+int32_t Packet_SMSG_DISPEL_FAILED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint64_t value = 0;
+    msg->Get(value);
+    WOWGUID caster = WOWGUID{ value };
+    value = 0;
+    msg->Get(value);
+    WOWGUID target = WOWGUID{ value };
+    uint32_t spellId = 0;
+    msg->Get(spellId);
+    SpellRec spell;
+    SpellRec failed;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        while (!msg->IsRead()) {
+            uint32_t failedId = 0;
+            msg->Get(failedId);
+
+            if (g_spellDB.GetRecord(failedId, &failed) && !(failed.m_attributes & 0x180) && *failed.m_name) {
+                CombatLogEntry* entry = GetCombatLogEntry(caster, target, 39, &spell);
+                entry->m_infoFlags |= 0x100;
+                entry->m_info.m_values[0] = failedId;
+                QueueCombatLogEntry(entry, 0);
+            }
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: dc01d408 auto
+// OFFSET: 0x00752210
+void UnitCombatLogInstakill(const WOWGUID& casterGuid, const WOWGUID& targetGuid, int32_t spellId) {
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        CombatLogEntry* entry = GetCombatLogEntry(casterGuid, targetGuid, 14, &spell);
+        QueueCombatLogEntry(entry, 0);
+    }
+}
+
+// VERIFY: 80058a0f auto
+// OFFSET: 0x00752860
+void UnitCombatLogAuraDose(CGUnit_C* unit, const AuraData* aura, int32_t spellId, int32_t oldStack, int32_t newStack, uint8_t a6) {
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name && spell.m_cumulativeAura > 1) {
+        WOWGUID guid = unit->m_obj->m_guid;
+        CombatLogEntry* entry = GetCombatLogEntry(aura->m_creator, guid, (newStack <= oldStack) + 22, &spell);
+        entry->m_infoFlags |= 0xC00;
+        entry->m_info.m_values[2] = newStack;
+        reinterpret_cast<uint8_t&>(entry->m_info.m_values[1]) = a6;
+        QueueCombatLogEntry(entry, 0);
+    }
+}
+
+// VERIFY: 7035a324 manual
+// OFFSET: 0x00752C90
+void UnitCombatLogDamageShield(const WOWGUID& victimGuid, const WOWGUID& casterGuid, int32_t spellId, int32_t damage, uint32_t overkill, uint32_t schoolMask) {
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(casterGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (caster) {
+            caster->ModifyPredictedHealth(-damage);
+        }
+
+        CombatLogEntry* entry = GetCombatLogEntry(victimGuid, casterGuid, 40, &spell);
+        entry->m_infoFlags |= 0x10;
+        entry->m_infoBits &= ~0x7;
+        entry->m_info.m_values[1] = damage;
+        entry->m_info.m_values[2] = overkill;
+        entry->m_info.m_values[3] = schoolMask;
+        entry->m_info.m_values[5] = 0;
+        entry->m_info.m_values[6] = 0;
+        entry->m_info.m_values[4] = 0;
+        QueueCombatLogEntry(entry, 0);
+
+        if (s_combatTextActiveUnit == casterGuid) {
+            SendToCombatText(39, damage);
+        }
+    }
+}
+
+// VERIFY: 40adbf60 auto
+// OFFSET: 0x0074D120
+WOWGUID StringToGuid(const char* string) {
+    uint64_t value = 0;
+
+    if (!SStrCmpI(string, "0x", 2)) {
+        string += 2;
+    }
+
+    for (int32_t i = 16; i; i--) {
+        char c = *string++;
+        uint32_t digit;
+
+        if (static_cast<uint8_t>(c - '0') <= 9) {
+            digit = c - '0';
+        } else if (static_cast<uint32_t>(c - 'a') <= 5) {
+            digit = c - 'a' + 10;
+        } else if (static_cast<uint32_t>(c - 'A') <= 5) {
+            digit = c - 'A' + 10;
+        } else {
+            break;
+        }
+
+        value = (value << 4) | digit;
+    }
+
+    return WOWGUID{ value };
+}
+
+// VERIFY: 7da56105 manual
+// OFFSET: 0x0074E290
+int32_t CombatLogEntry::PushEvent(lua_State* L) {
+    char name[305];
+    char guid[20];
+    double timestamp = (this->m_timestamp - s_startTimeMs) * 0.001 + static_cast<int32_t>(s_startTime);
+    lua_checkstack(L, 8);
+    lua_pushnumber(L, timestamp);
+    lua_pushstring(L, s_combatLogEventNames[this->m_event]);
+    lua_pushstring(L, GUIDToHexString(this->m_sourceGuid, guid));
+
+    if (!this->m_sourceName) {
+        lua_pushnil(L);
+    } else if (this->m_sourceRealm) {
+        SStrPrintf(name, sizeof(name), "%s-%s", this->m_sourceName, this->m_sourceRealm);
+        lua_pushstring(L, name);
+    } else if (*this->m_sourceName) {
+        lua_pushstring(L, this->m_sourceName);
+    } else {
+        lua_pushnil(L);
+    }
+
+    lua_pushinteger(L, this->m_sourceFlags);
+    lua_pushstring(L, GUIDToHexString(this->m_destGuid, guid));
+
+    if (!this->m_destName) {
+        lua_pushnil(L);
+    } else if (this->m_destRealm) {
+        SStrPrintf(name, sizeof(name), "%s-%s", this->m_destName, this->m_destRealm);
+        lua_pushstring(L, name);
+    } else if (*this->m_destName) {
+        lua_pushstring(L, this->m_destName);
+    } else {
+        lua_pushnil(L);
+    }
+
+    lua_pushinteger(L, this->m_destFlags);
+    int32_t count = 8;
+
+    if (this->m_spellId) {
+        lua_checkstack(L, 3);
+        lua_pushinteger(L, this->m_spellId);
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(this->m_spellId, &spell)) {
+            lua_pushstring(L, spell.m_name);
+            lua_pushinteger(L, spell.m_schoolMask);
+        } else {
+            lua_pushnil(L);
+            lua_pushinteger(L, 0);
+        }
+
+        count = 11;
+    }
+
+    if (this->m_infoFlags & 0x1) {
+        lua_checkstack(L, 1);
+        lua_pushinteger(L, this->m_info.m_values[0]);
+        count++;
+    }
+
+    if (this->m_infoFlags & 0x2) {
+        lua_checkstack(L, 1);
+        lua_pushstring(L, this->m_info.m_text);
+        count++;
+    }
+
+    if (this->m_infoFlags & 0x4) {
+        lua_checkstack(L, 1);
+        lua_pushstring(L, g_spellMissStrings[this->m_info.m_values[0]]);
+        count++;
+    }
+
+    if (this->m_infoFlags & 0x8) {
+        lua_checkstack(L, 1);
+        lua_pushstring(L, s_environmentalDamageTypes[this->m_info.m_values[0]]);
+        count++;
+    }
+
+    if (this->m_infoFlags & 0x10) {
+        lua_checkstack(L, 9);
+        lua_pushnumber(L, this->m_info.m_values[1]);
+        lua_pushnumber(L, this->m_info.m_values[2]);
+        lua_pushinteger(L, this->m_info.m_values[3]);
+
+        if (this->m_info.m_values[5]) {
+            lua_pushnumber(L, this->m_info.m_values[5]);
+        } else {
+            lua_pushnil(L);
+        }
+
+        if (this->m_info.m_values[6]) {
+            lua_pushnumber(L, this->m_info.m_values[6]);
+        } else {
+            lua_pushnil(L);
+        }
+
+        if (this->m_info.m_values[4]) {
+            lua_pushnumber(L, this->m_info.m_values[4]);
+        } else {
+            lua_pushnil(L);
+        }
+
+        if (this->m_infoBits & 0x1) {
+            lua_pushnumber(L, 1.0);
+        } else {
+            lua_pushnil(L);
+        }
+
+        if (this->m_infoBits & 0x2) {
+            lua_pushnumber(L, 1.0);
+        } else {
+            lua_pushnil(L);
+        }
+
+        if (this->m_infoBits & 0x4) {
+            lua_pushnumber(L, 1.0);
+        } else {
+            lua_pushnil(L);
+        }
+
+        count += 9;
+    }
+
+    if (this->m_infoFlags & 0x2000) {
+        lua_checkstack(L, 1);
+        lua_pushinteger(L, this->m_info.m_values[4]);
+        count++;
+    }
+
+    if (this->m_infoFlags & 0x4000) {
+        lua_checkstack(L, 1);
+        lua_pushinteger(L, this->m_info.m_values[5]);
+        count++;
+    }
+
+    if (this->m_infoFlags & 0x8000) {
+        lua_checkstack(L, 1);
+        lua_pushinteger(L, this->m_info.m_values[6]);
+        count++;
+    }
+
+    if (this->m_infoFlags & 0x20) {
+        lua_checkstack(L, 4);
+        lua_pushnumber(L, this->m_info.m_values[0]);
+        lua_pushnumber(L, this->m_info.m_values[1]);
+        lua_pushnumber(L, this->m_info.m_values[2]);
+
+        if (static_cast<uint8_t>(this->m_info.m_values[3])) {
+            lua_pushnumber(L, 1.0);
+        } else {
+            lua_pushnil(L);
+        }
+
+        count += 4;
+    }
+
+    if (this->m_infoFlags & 0x40) {
+        lua_checkstack(L, 2);
+        lua_pushnumber(L, this->m_info.m_values[0]);
+        lua_pushnumber(L, this->m_info.m_values[1]);
+        count += 2;
+    }
+
+    if (this->m_infoFlags & 0x80) {
+        lua_checkstack(L, 3);
+        lua_pushnumber(L, this->m_info.m_values[0]);
+        lua_pushnumber(L, this->m_info.m_values[1]);
+
+        if (this->m_info.m_values[2]) {
+            lua_pushnumber(L, this->m_info.m_values[2]);
+        } else {
+            lua_pushnil(L);
+        }
+
+        count += 3;
+    }
+
+    if (this->m_infoFlags & 0x100) {
+        lua_checkstack(L, 2);
+        lua_pushinteger(L, this->m_info.m_values[0]);
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(this->m_info.m_values[0], &spell)) {
+            lua_pushstring(L, spell.m_name);
+            lua_pushinteger(L, spell.m_schoolMask);
+        } else {
+            lua_pushnil(L);
+            lua_pushnumber(L, 0.0);
+        }
+
+        count += 3;
+    }
+
+    if (this->m_infoFlags & 0x1000) {
+        lua_checkstack(L, 1);
+        lua_pushstring(L, this->m_info.m_names[2]);
+        count++;
+    }
+
+    if (this->m_infoFlags & 0x200) {
+        lua_checkstack(L, 2);
+        lua_pushinteger(L, this->m_info.m_values[0]);
+        lua_pushstring(L, this->m_info.m_names[1]);
+        count += 2;
+    }
+
+    if (this->m_infoFlags & 0x400) {
+        lua_checkstack(L, 1);
+        lua_pushstring(L, static_cast<uint8_t>(this->m_info.m_values[1]) ? "DEBUFF" : "BUFF");
+        count++;
+    }
+
+    if (this->m_infoFlags & 0x800) {
+        lua_checkstack(L, 1);
+        lua_pushinteger(L, this->m_info.m_values[2]);
+        count++;
+    }
+
+    return count;
 }

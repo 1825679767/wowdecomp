@@ -46,8 +46,10 @@ class CGCharacterModelBase : public CSimpleModel {
 
     CGCharacterModelBase(CSimpleFrame* parent);
     void ConfigureCamera();
+    void RefreshUnit(WOWGUID guid);
     void SetUpModel(CGUnit_C* unit);
     void SetUpModel(int32_t displayId);
+    void RotateModel(float facing);
 };
 
 #endif

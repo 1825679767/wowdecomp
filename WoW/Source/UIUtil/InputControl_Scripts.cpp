@@ -11,6 +11,9 @@
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/UIBindings.h"
 #include "WoW/Source/Ui/WorldFrame.h"
+#include "WoW/Source/Object/ObjectClient/Vehicle_C.h"
+#include "WoW/Source/DB/Rec/VehicleRec.h"
+#include <cmath>
 
 // VERIFY: 46af036c manual
 // OFFSET: 0x005FBF80
@@ -328,9 +331,9 @@ static int32_t Script_VehicleAimDownStart(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5df2c0ab auto
+// VERIFY: 1a4f0ed8 auto
 // OFFSET: 0x005FC610
-int32_t Script_TurnOrActionStart(lua_State* L) {
+static int32_t Script_TurnOrActionStart(lua_State* L) {
     CGInputControl* input = CGInputControl::s_inputControl;
 
     if (CGGameUI::CanPerformAction(0)) {
@@ -353,9 +356,9 @@ int32_t Script_TurnOrActionStart(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 1b123333 auto
+// VERIFY: 984926de auto
 // OFFSET: 0x005FC680
-int32_t Script_TurnOrActionStop(lua_State* L) {
+static int32_t Script_TurnOrActionStop(lua_State* L) {
     CGInputControl* input = CGInputControl::s_inputControl;
 
     if (CGGameUI::CanPerformAction(0)) {
@@ -369,9 +372,9 @@ int32_t Script_TurnOrActionStop(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 4ed23fe7 auto
+// VERIFY: a57bba4d auto
 // OFFSET: 0x005FC6C0
-int32_t Script_CameraOrSelectOrMoveStart(lua_State* L) {
+static int32_t Script_CameraOrSelectOrMoveStart(lua_State* L) {
     CGInputControl* input = CGInputControl::s_inputControl;
 
     if (CGGameUI::CanPerformAction(0)) {
@@ -394,9 +397,9 @@ int32_t Script_CameraOrSelectOrMoveStart(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 1a649142 auto
+// VERIFY: 082fb5e1 auto
 // OFFSET: 0x005FC730
-int32_t Script_CameraOrSelectOrMoveStop(lua_State* L) {
+static int32_t Script_CameraOrSelectOrMoveStop(lua_State* L) {
     CGInputControl* input = CGInputControl::s_inputControl;
 
     if (CGGameUI::CanPerformAction(0)) {
@@ -410,9 +413,9 @@ int32_t Script_CameraOrSelectOrMoveStop(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 29eb6c98 auto
+// VERIFY: c71b4971 auto
 // OFFSET: 0x005FC890
-int32_t Script_MouselookStop(lua_State* L) {
+static int32_t Script_MouselookStop(lua_State* L) {
     CGInputControl* input = CGInputControl::s_inputControl;
     uint32_t time = CSimpleTop::s_eventTime;
     input->m_pendingDefaultAction = PENDING_ACTION_NONE;
@@ -425,9 +428,9 @@ int32_t Script_MouselookStop(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 8eb6ff5b manual
+// VERIFY: 0e9ff1d1 manual
 // OFFSET: 0x005FCC10
-int32_t Script_MouselookStart(lua_State* L) {
+static int32_t Script_MouselookStart(lua_State* L) {
     CGInputControl* input = CGInputControl::s_inputControl;
     uint32_t time = CSimpleTop::s_eventTime;
     input->m_pendingDefaultAction = PENDING_ACTION_NONE;
@@ -441,6 +444,242 @@ int32_t Script_MouselookStart(lua_State* L) {
     }
 
     input->SetMouselookOverrideBindings();
+    return 0;
+}
+
+// VERIFY: a6e9f837 auto
+// OFFSET: 0x005F9550
+static int32_t Script_VehicleAimGetNormPower(lua_State* L) {
+    lua_pushnumber(L, s_vehicleAimNormPower);
+    return 1;
+}
+
+// VERIFY: 07912041 auto
+// OFFSET: 0x005F9DD0
+static int32_t Script_IsMouselooking(lua_State* L) {
+    if (CGInputControl::s_inputControl->m_flags & 0x2000001) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 1c122e10 manual
+// OFFSET: 0x005F9E10
+static int32_t Script_VehicleAimGetAngle(lua_State* L) {
+    CGUnit_C* vehicle = GetVehicleUnitPtr();
+
+    if (vehicle) {
+        lua_pushnumber(L, vehicle->GetPitch());
+    } else {
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 1;
+}
+
+// VERIFY: b1728266 manual
+// OFFSET: 0x005FB970
+static int32_t Script_IsUsingVehicleControls(lua_State* L) {
+    if (CGInputControl::s_inputControl->IsVehicleSeatFlagSet(0x800000)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 5b29d740 auto
+// OFFSET: 0x005FB9C0
+static int32_t Script_CanExitVehicle(lua_State* L) {
+    if (CGInputControl::s_inputControl->IsVehicleSeatFlagSet(0x2000000)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 19ba3dd9 auto
+// OFFSET: 0x005FBA10
+static int32_t Script_CanSwitchVehicleSeats(lua_State* L) {
+    if (CGInputControl::s_inputControl->IsVehicleSeatFlagSet(0x4000000)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 3a809a8e auto
+// OFFSET: 0x005F9F10
+static int32_t Script_VehicleAimSetNormPower(lua_State* L) {
+    if (!GetVehicleUnitPtr() || !lua_isnumber(L, 1)) {
+        return 0;
+    }
+
+    double power = lua_tonumber(L, 1);
+    s_vehicleAimNormPower = static_cast<float>(power);
+
+    if (power < 0.0) {
+        s_vehicleAimNormPower = 0.0f;
+    } else if (power >= 1.0) {
+        s_vehicleAimNormPower = 1.0f;
+    }
+
+    return 0;
+}
+
+// VERIFY: 2026e785 auto
+// OFFSET: 0x005FC830
+static int32_t Script_MoveAndSteerStop(lua_State* L) {
+    CGInputControl* inputControl = CGInputControl::s_inputControl;
+
+    if (CGGameUI::CanPerformAction(0)) {
+        uint32_t time = CSimpleTop::s_eventTime;
+
+        if (inputControl->UnsetControlBit(2, time, 0)) {
+            inputControl->UpdatePlayer(time, 1);
+        }
+
+        if (inputControl->UnsetControlBit(1, time, 0)) {
+            inputControl->UpdatePlayer(time, 1);
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: f929ce28 auto
+// OFFSET: 0x005F9F70
+static int32_t Script_IsVehicleAimAngleAdjustable(lua_State* L) {
+    CGUnit_C* unit = GetVehicleUnitPtr();
+    VehicleRec* rec = unit && unit->m_vehicle ? unit->m_vehicle->m_vehicleRec : nullptr;
+
+    if (rec && (rec->m_flags & 0x400)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: c2775bae auto
+// OFFSET: 0x005F9FE0
+static int32_t Script_IsVehicleAimPowerAdjustable(lua_State* L) {
+    CGUnit_C* unit = GetVehicleUnitPtr();
+    VehicleRec* rec = unit && unit->m_vehicle ? unit->m_vehicle->m_vehicleRec : nullptr;
+
+    if (rec && (rec->m_flags & 0x800)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 3bf17f31 auto
+// OFFSET: 0x005FD550
+static int32_t Script_SetMouselookOverrideBinding(lua_State* L) {
+    CGInputControl* inputControl = CGInputControl::s_inputControl;
+
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: SetMouselookOverrideBinding(\"key\", \"binding\" or nil)");
+    }
+
+    if (CGGameUI::CanPerformAction(13)) {
+        inputControl->SetMouselookOverrideBinding(lua_tolstring(L, 1, nullptr), lua_tolstring(L, 2, nullptr));
+    }
+
+    return 0;
+}
+
+// VERIFY: 1724ff8a auto
+// OFFSET: 0x005F9E60
+static int32_t Script_VehicleAimGetNormAngle(lua_State* L) {
+    CGUnit_C* unit = GetVehicleUnitPtr();
+
+    if (!unit) {
+        lua_pushnumber(L, 0.0);
+        return 1;
+    }
+
+    VehicleRec* rec = unit->m_vehicle ? unit->m_vehicle->m_vehicleRec : nullptr;
+    float pitchMin;
+    float pitchMax;
+
+    if (rec && (rec->m_flags & 0x40)) {
+        pitchMin = rec->m_pitchMin;
+        pitchMax = rec->m_pitchMax;
+    } else {
+        pitchMin = -1.5707964f;
+        pitchMax = 1.5707964f;
+    }
+
+    float range = pitchMax - pitchMin;
+    float angle = fabs(range) <= 0.000099999997f ? 0.0f : (unit->GetPitch() - pitchMin) / range;
+    lua_pushnumber(L, angle);
+    return 1;
+}
+
+// VERIFY: 821e98a1 manual
+// OFFSET: 0x005FB820
+static int32_t Script_VehicleAimRequestAngle(lua_State* L) {
+    CGInputControl* inputControl = CGInputControl::s_inputControl;
+    uint32_t time = CSimpleTop::s_eventTime;
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        VehicleRec* rec = unit->m_vehicle ? unit->m_vehicle->m_vehicleRec : nullptr;
+
+        if (rec && (rec->m_flags & 0x400) && lua_isnumber(L, 1)) {
+            inputControl->SetPlayerPitch(unit, time, static_cast<float>(lua_tonumber(L, 1)));
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 6a8a12ad auto
+// OFFSET: 0x005FB8C0
+static int32_t Script_VehicleAimRequestNormAngle(lua_State* L) {
+    CGInputControl* inputControl = CGInputControl::s_inputControl;
+    uint32_t time = CSimpleTop::s_eventTime;
+    CGUnit_C* unit = GetVehicleUnitPtr();
+
+    if (!unit) {
+        return 0;
+    }
+
+    VehicleRec* rec = unit->m_vehicle ? unit->m_vehicle->m_vehicleRec : nullptr;
+
+    if (!rec || !(rec->m_flags & 0x400)) {
+        return 0;
+    }
+
+    if (lua_isnumber(L, 1)) {
+        double value = lua_tonumber(L, 1);
+        float pitchMin;
+        float pitchMax;
+
+        if (rec->m_flags & 0x40) {
+            pitchMin = rec->m_pitchMin;
+            pitchMax = rec->m_pitchMax;
+        } else {
+            pitchMin = -1.5707964f;
+            pitchMax = 1.5707964f;
+        }
+
+        inputControl->SetPlayerPitch(unit, time, static_cast<float>(value * (pitchMax - pitchMin) + pitchMin));
+    }
+
     return 0;
 }
 

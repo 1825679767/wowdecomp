@@ -254,7 +254,7 @@ void C3Spline_CatmullRom::ISetPoints(const C3Vector* points, uint32_t count) {
     C3Spline::ISetPoints(points, count);
 }
 
-// VERIFY: d5b8dd75 manual
+// VERIFY: 4e0fa75c manual
 // OFFSET: 0x004F4AE0
 CDataStore& operator>>(CDataStore& msg, C3Spline_CatmullRom& spline) {
     uint32_t count = 0;
@@ -263,7 +263,7 @@ CDataStore& operator>>(CDataStore& msg, C3Spline_CatmullRom& spline) {
     void* points;
     msg.GetDataInSitu(points, sizeof(C3Vector) * count);
 
-    uint32_t mode;
+    uint8_t mode;
     msg.Get(mode);
     spline.m_splineMode = mode;
 

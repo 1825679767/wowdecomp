@@ -2,6 +2,98 @@
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
+#include "WoW/Source/Ui/CKBSystem.h"
+#include "Engine/Source/Base/DynamicString.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
+#include "WoW/Source/Ui/CKBQuery.h"
+#include "WoW/Source/Ui/CKBArticle.h"
+#include "Engine/Source/lua-5.1/src/lauxlib.h"
+
+// VERIFY: 9e42057a auto
+// OFFSET: 0x00551FB0
+static int32_t Script_KBSystem_GetMOTD(lua_State* L) {
+    lua_pushstring(L, s_motd.m_buffer);
+    return 1;
+}
+
+// VERIFY: 813271c5 auto
+// OFFSET: 0x00551FD0
+static int32_t Script_KBSystem_GetServerStatus(lua_State* L) {
+    lua_pushstring(L, s_serverStatus.m_buffer);
+    return 1;
+}
+
+// VERIFY: 88390c3b auto
+// OFFSET: 0x00551FF0
+static int32_t Script_KBSystem_GetServerNotice(lua_State* L) {
+    lua_pushstring(L, s_serverNotice.m_buffer);
+    return 1;
+}
+
+// VERIFY: ce068b78 auto
+// OFFSET: 0x00551760
+static int32_t Script_KBSetup_IsLoaded(lua_State* L) {
+    lua_pushboolean(L, g_KnowledgeBaseSetup.unk_0004 == 2);
+    return 1;
+}
+
+// VERIFY: 23286b51 auto
+// OFFSET: 0x00551B90
+static int32_t Script_KBQuery_IsLoaded(lua_State* L) {
+    lua_pushboolean(L, g_KnowledgeBaseQuery.unk_0004 == 2);
+    return 1;
+}
+
+// VERIFY: 811c7f8b auto
+// OFFSET: 0x00551DA0
+static int32_t Script_KBArticle_IsLoaded(lua_State* L) {
+    lua_pushboolean(L, g_KnowledgeBaseArticle.unk_0004 == 2);
+    return 1;
+}
+
+// VERIFY: 07275134 manual
+// OFFSET: 0x00551790
+static int32_t Script_KBSetup_GetLanguageCount(lua_State* L) {
+    if (g_KnowledgeBaseSetup.unk_0004 != 2) {
+        luaL_error(L, "KBSetup_GetLanguageCount() failed because setup is not loaded");
+    }
+
+    lua_pushnumber(L, g_KnowledgeBaseSetup.unk_0040);
+    return 1;
+}
+
+// VERIFY: 61625d0b manual
+// OFFSET: 0x005518C0
+static int32_t Script_KBSetup_GetCategoryCount(lua_State* L) {
+    if (g_KnowledgeBaseSetup.unk_0004 != 2) {
+        luaL_error(L, "KBSetup_GetCategoryCount() failed because setup is not loaded");
+    }
+
+    lua_pushnumber(L, g_KnowledgeBaseSetup.unk_0044);
+    return 1;
+}
+
+// VERIFY: 23e82462 manual
+// OFFSET: 0x005519F0
+static int32_t Script_KBSetup_GetArticleHeaderCount(lua_State* L) {
+    if (g_KnowledgeBaseSetup.unk_0004 != 2) {
+        luaL_error(L, "KBSetup_GetArticleHeaderCount() failed because setup is not loaded");
+    }
+
+    lua_pushnumber(L, g_KnowledgeBaseSetup.unk_004C);
+    return 1;
+}
+
+// VERIFY: d6b9a11d manual
+// OFFSET: 0x00551BC0
+static int32_t Script_KBQuery_GetArticleHeaderCount(lua_State* L) {
+    if (g_KnowledgeBaseQuery.unk_0004 != 2) {
+        luaL_error(L, "KBQuery_GetArticleHeaderCount() failed because query is not loaded");
+    }
+
+    lua_pushnumber(L, g_KnowledgeBaseQuery.unk_0040);
+    return 1;
+}
 
 // STATIC: 0x00ACD488
 static FrameScript_Method s_apMethodMap[] = {

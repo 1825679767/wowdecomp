@@ -8,6 +8,7 @@
 #include "WoW/Source/DB/Rec/VehicleRec.h"
 #include "WoW/Source/UIUtil/InputControl.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
+#include "WoW/Source/Ui/Types.h"
 
 // VERIFY: bc21d620 manual
 // OFFSET: 0x0074C650
@@ -156,21 +157,21 @@ void CGUnit_C::ConvertVehicleCameraRelativeFacingToTransportRelativeFacing(float
     }
 }
 
-// VERIFY: 137b6764 manual
+// VERIFY: a5b201a2 manual
 // OFFSET: 0x0074C5A0
 void CGUnit_C::UpdateVehicleUISliders(CGUnit_C* unit, const VehicleRec* vehicleRec) {
     int32_t enable = unit && !unit->IsAlteredFormTransitionPreventingMovement();
 
     if (enable && vehicleRec && (vehicleRec->m_flags & 0x400)) {
-        FrameScript_SignalEvent(584, "%d", 1);
+        FrameScript_SignalEvent(SCRIPT_EVENT_VEHICLE_ANGLE_SHOW, "%d", 1);
     } else {
-        FrameScript_SignalEvent(584, nullptr);
+        FrameScript_SignalEvent(SCRIPT_EVENT_VEHICLE_ANGLE_SHOW, nullptr);
     }
 
     if (enable && vehicleRec && (vehicleRec->m_flags & 0x800)) {
-        FrameScript_SignalEvent(586, "%d", 1);
+        FrameScript_SignalEvent(SCRIPT_EVENT_VEHICLE_POWER_SHOW, "%d", 1);
     } else {
-        FrameScript_SignalEvent(586, nullptr);
+        FrameScript_SignalEvent(SCRIPT_EVENT_VEHICLE_POWER_SHOW, nullptr);
     }
 
     if (unit) {

@@ -1051,4 +1051,11 @@ void STORMAPI SErrCatchUnhandledExceptions() {
     SetUnhandledExceptionFilter(ExceptionFilterWin32);
 }
 
+// VERIFY: 00962ac8 auto
+// OFFSET: 0x008889B0
+void SErrDisplayAppFatalMessage(const char* message, const char* filename, int32_t linenumber) {
+    SErrPrepareAppFatal(filename, linenumber);
+    SErrDisplayAppFatal("%s", message);
+}
+
 #endif

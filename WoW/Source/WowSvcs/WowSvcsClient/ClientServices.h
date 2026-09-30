@@ -28,7 +28,7 @@ class ClientConnection : public RealmConnection {
     /* 2F4C */ WOWCS_OPS m_statusOp;
     /* 2F50 */ int32_t m_errorCode;
     /* 2F54 */ int32_t m_inGame;
-    /* 2F58 */ uint8_t unk_2F58;
+    /* 2F58 */ uint8_t m_quitAfterLogout;
     /* 2F59 */ uint8_t m_loggingOut;
     /* 2F5A */ uint8_t m_realmConnectPending;
     /* 2F5B */ uint8_t unk_2F5B[1];
@@ -53,7 +53,7 @@ class ClientConnection : public RealmConnection {
     void CharacterAbortLogout();
     void CharacterLogin(WOWGUID guid, int32_t a2);
     int32_t CharacterLoggingOut();
-    void CharacterLogout(bool a1, bool a2);
+    void CharacterLogout(bool quit, bool instant);
     void CharacterSetInGame(int32_t inGame);
     void Connect();
     void Disconnect();
@@ -100,6 +100,7 @@ class ClientServices : public LoginResponse {
     static bool m_selectRealmInfoValid;
     static ClientConnection* s_currentConnection;
     static CHARACTER_INFO s_characterInfo;
+    static uint8_t GetCharacterLevel();
 
     static int32_t CharacterValidateDeclension(const char* name, const char* declension);
     static int32_t CharacterValidateName(const char* name);

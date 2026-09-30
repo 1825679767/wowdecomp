@@ -16,6 +16,19 @@ int32_t Script_GetUpperEmblemTexture(lua_State* L);
 int32_t Script_GetLowerEmblemTexture(lua_State* L);
 int32_t Script_CanSaveTabardNow(lua_State* L);
 
+// VERIFY: 5cd46383 auto
+// OFFSET: 0x00599000
+void CGTabardModelFrame::DestroyScriptMetaTable() {
+    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CGTabardModelFrame::s_metatable);
+    CGTabardModelFrame::s_metatable = LUA_NOREF;
+}
+
+// VERIFY: 07bd4eda auto
+// OFFSET: 0x00599390
+void CGTabardModelFrame::CreateScriptMetaTable() {
+    CGTabardModelFrame::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CGTabardModelFrame::RegisterScriptMethods);
+}
+
 // STATIC: 0x00ACF588
 static FrameScript_Method s_ScriptMethods[] = {
     { "InitializeTabardColors", &Script_InitializeTabardColors },
@@ -35,17 +48,4 @@ static FrameScript_Method s_ScriptMethods[] = {
 void CGTabardModelFrame::RegisterScriptMethods(lua_State* L) {
     CGCharacterModelBase::RegisterScriptMethods(L);
     FrameScript_Object::FillScriptMethodTable(L, s_ScriptMethods, sizeof(s_ScriptMethods) / sizeof(s_ScriptMethods[0]));
-}
-
-// VERIFY: 5cd46383 auto
-// OFFSET: 0x00599000
-void CGTabardModelFrame::DestroyScriptMetaTable() {
-    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CGTabardModelFrame::s_metatable);
-    CGTabardModelFrame::s_metatable = LUA_NOREF;
-}
-
-// VERIFY: 07bd4eda auto
-// OFFSET: 0x00599390
-void CGTabardModelFrame::CreateScriptMetaTable() {
-    CGTabardModelFrame::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CGTabardModelFrame::RegisterScriptMethods);
 }

@@ -165,112 +165,6 @@ CVar* s_cvCameraSavedVehicleDistance;
 // STATIC: 0x00C24E7C
 CVar* s_cvCameraSavedDistance;
 
-// VERIFY: 53117c38 auto
-// OFFSET: 0x005FD630
-static bool ValidateCameraView(CVar* var, const char* oldValue, const char* value, void* arg) {
-    float view = SStrToFloat(value);
-
-    if (view >= 0.0f && view <= 7.0f) {
-        return true;
-    }
-
-    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.0, 7.0);
-    return false;
-}
-
-// VERIFY: 35928b19 auto
-// OFFSET: 0x005FD680
-static bool ValidateCameraDistance(CVar* var, const char* oldValue, const char* value, void* arg) {
-    float distance = SStrToFloat(value);
-
-    if (distance >= 0.0f && distance <= 50.0f) {
-        return true;
-    }
-
-    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.0, 50.0);
-    return false;
-}
-
-// VERIFY: c58861df auto
-// OFFSET: 0x005FD6D0
-static bool ValidateCameraPitch(CVar* var, const char* oldValue, const char* value, void* arg) {
-    float minPitch = MIN_PITCH_ANGLE * 57.29578f;
-    float maxPitch = MAX_PITCH_ANGLE * 57.29578f;
-    float pitch = SStrToFloat(value);
-
-    if (pitch >= minPitch && pitch <= maxPitch) {
-        return true;
-    }
-
-    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, minPitch, maxPitch);
-    return false;
-}
-
-// VERIFY: 72713edf auto
-// OFFSET: 0x005FD750
-static bool ValidateCameraTime(CVar* var, const char* oldValue, const char* value, void* arg) {
-    float time = SStrToFloat(value);
-
-    if (time >= 0.001f && time <= 300.0f) {
-        return true;
-    }
-
-    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.001f, 300.0f);
-    return false;
-}
-
-// VERIFY: 513f85d3 auto
-// OFFSET: 0x005FD7B0
-static bool ValidateCameraYaw(CVar* var, const char* oldValue, const char* value, void* arg) {
-    float yaw = SStrToFloat(value);
-
-    if (yaw >= 0.0f && yaw <= 360.0f) {
-        return true;
-    }
-
-    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.0, 360.0);
-    return false;
-}
-
-// VERIFY: a191501b auto
-// OFFSET: 0x005FD800
-static bool ValidateCameraAngularSpeed(CVar* var, const char* oldValue, const char* value, void* arg) {
-    float speed = SStrToFloat(value);
-
-    if (speed >= 0.1f && speed <= 360.0f) {
-        return true;
-    }
-
-    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.1f, 360.0f);
-    return false;
-}
-
-// VERIFY: 73659631 auto
-// OFFSET: 0x005FD860
-static bool ValidateCameraLinearSpeed(CVar* var, const char* oldValue, const char* value, void* arg) {
-    float speed = SStrToFloat(value);
-
-    if (speed >= 0.0027777778f && speed <= 50.0f) {
-        return true;
-    }
-
-    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.0027777778f, 50.0f);
-    return false;
-}
-
-// VERIFY: 09a53f38 auto
-// OFFSET: 0x005FD8C0
-static bool ValidateCameraSmoothStyle(CVar* var, const char* oldValue, const char* value, void* arg) {
-    float style = SStrToFloat(value);
-
-    if (style >= 0.0f && style <= 5.0f) {
-        return true;
-    }
-
-    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.0, 5.0);
-    return false;
-}
-
 // STATIC: 0x00AD1B54
 static const char* s_cameraViewNames[8] = { "", "A", "B", "C", "D", "E", "Com", "Barber Shop" };
 
@@ -442,6 +336,112 @@ static const char* s_cameraTerrainTiltStateDefaults[5][10][3] = {
         { "1.0", "0.0", "1.0" },
     },
 };
+
+// VERIFY: 53117c38 auto
+// OFFSET: 0x005FD630
+static bool ValidateCameraView(CVar* var, const char* oldValue, const char* value, void* arg) {
+    float view = SStrToFloat(value);
+
+    if (view >= 0.0f && view <= 7.0f) {
+        return true;
+    }
+
+    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.0, 7.0);
+    return false;
+}
+
+// VERIFY: 35928b19 auto
+// OFFSET: 0x005FD680
+static bool ValidateCameraDistance(CVar* var, const char* oldValue, const char* value, void* arg) {
+    float distance = SStrToFloat(value);
+
+    if (distance >= 0.0f && distance <= 50.0f) {
+        return true;
+    }
+
+    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.0, 50.0);
+    return false;
+}
+
+// VERIFY: c58861df auto
+// OFFSET: 0x005FD6D0
+static bool ValidateCameraPitch(CVar* var, const char* oldValue, const char* value, void* arg) {
+    float minPitch = MIN_PITCH_ANGLE * 57.29578f;
+    float maxPitch = MAX_PITCH_ANGLE * 57.29578f;
+    float pitch = SStrToFloat(value);
+
+    if (pitch >= minPitch && pitch <= maxPitch) {
+        return true;
+    }
+
+    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, minPitch, maxPitch);
+    return false;
+}
+
+// VERIFY: 72713edf auto
+// OFFSET: 0x005FD750
+static bool ValidateCameraTime(CVar* var, const char* oldValue, const char* value, void* arg) {
+    float time = SStrToFloat(value);
+
+    if (time >= 0.001f && time <= 300.0f) {
+        return true;
+    }
+
+    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.001f, 300.0f);
+    return false;
+}
+
+// VERIFY: 513f85d3 auto
+// OFFSET: 0x005FD7B0
+static bool ValidateCameraYaw(CVar* var, const char* oldValue, const char* value, void* arg) {
+    float yaw = SStrToFloat(value);
+
+    if (yaw >= 0.0f && yaw <= 360.0f) {
+        return true;
+    }
+
+    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.0, 360.0);
+    return false;
+}
+
+// VERIFY: a191501b auto
+// OFFSET: 0x005FD800
+static bool ValidateCameraAngularSpeed(CVar* var, const char* oldValue, const char* value, void* arg) {
+    float speed = SStrToFloat(value);
+
+    if (speed >= 0.1f && speed <= 360.0f) {
+        return true;
+    }
+
+    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.1f, 360.0f);
+    return false;
+}
+
+// VERIFY: 73659631 auto
+// OFFSET: 0x005FD860
+static bool ValidateCameraLinearSpeed(CVar* var, const char* oldValue, const char* value, void* arg) {
+    float speed = SStrToFloat(value);
+
+    if (speed >= 0.0027777778f && speed <= 50.0f) {
+        return true;
+    }
+
+    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.0027777778f, 50.0f);
+    return false;
+}
+
+// VERIFY: 09a53f38 auto
+// OFFSET: 0x005FD8C0
+static bool ValidateCameraSmoothStyle(CVar* var, const char* oldValue, const char* value, void* arg) {
+    float style = SStrToFloat(value);
+
+    if (style >= 0.0f && style <= 5.0f) {
+        return true;
+    }
+
+    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.0, 5.0);
+    return false;
+}
 
 // STATIC: 0x00AD2054
 static bool (*s_cameraViewDataValidators[3])(CVar*, const char*, const char*, void*) = { ValidateCameraDistance, ValidateCameraPitch, ValidateCameraYaw };

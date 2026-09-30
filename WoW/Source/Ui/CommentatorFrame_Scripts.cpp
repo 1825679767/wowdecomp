@@ -2,6 +2,309 @@
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/WowServices/WDataStore.h"
+#include "WoW/Source/Net/Types.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "Engine/Source/lua-5.1/src/lauxlib.h"
+#include "WoW/Source/Object/ObjectClient/UnitCombatLog_C.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/Ui/WorldFrame.h"
+#include "WoW/Source/UIUtil/Camera.h"
+
+// VERIFY: b9b450f8 manual
+// OFFSET: 0x00569230
+static int32_t Script_CommentatorGetMode(lua_State* L) {
+    int32_t mode = 0;
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        uint32_t flags = player->m_player->m_playerFlags;
+
+        if (flags & 0x80000) {
+            mode = 1;
+        }
+
+        if (flags & 0x400000) {
+            mode = 2;
+        }
+    }
+
+    lua_pushnumber(L, mode);
+    return 1;
+}
+
+// VERIFY: 414eec99 manual
+// OFFSET: 0x00569180
+static int32_t Script_CommentatorToggleMode(lua_State* L) {
+    WDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_ENABLE));
+    msg.Put(static_cast<uint32_t>(2));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: 5c4e5f57 manual
+// OFFSET: 0x005690A0
+static int32_t Script_CommentatorSetMode(lua_State* L) {
+    if (lua_isnumber(L, 1)) {
+        int32_t mode = static_cast<int32_t>(lua_tonumber(L, 1));
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_ENABLE));
+
+        if (mode) {
+            msg.Put(static_cast<uint32_t>(1));
+        } else {
+            msg.Put(static_cast<uint32_t>(0));
+        }
+
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 0;
+}
+
+// VERIFY: fbcf23af manual
+// OFFSET: 0x00568730
+static int32_t Script_CommentatorGetNumMaps(lua_State* L) {
+    lua_pushnumber(L, CGCommentator::s_Commentator.m_maps.Count());
+    return 1;
+}
+
+// VERIFY: 8822c7cf manual
+// OFFSET: 0x005693E0
+static int32_t Script_CommentatorGetMapInfo(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !(player->m_player->m_playerFlags & 0x80000)) {
+        return 0;
+    }
+
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: CommentatorGetMapInfo(mapIndex)");
+        return 0;
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index >= CGCommentator::s_Commentator.m_maps.Count()) {
+        luaL_error(L, "no map at that index");
+        return 0;
+    }
+
+    CGCommentator::MapInfo* map = &CGCommentator::s_Commentator.m_maps.m_data[index];
+    lua_pushnumber(L, map->unk_0000);
+    lua_pushnumber(L, map->unk_0004);
+    lua_pushnumber(L, map->unk_0008);
+    lua_pushnumber(L, map->unk_0014);
+    return 4;
+}
+
+// VERIFY: 003a522d manual
+// OFFSET: 0x0056AFC0
+static int32_t Script_CommentatorGetSkirmishQueuePlayerInfo(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !(player->m_player->m_playerFlags & 0x80000)) {
+        return 0;
+    }
+
+    if (!lua_isnumber(L, 1)) {
+        return 0;
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1));
+
+    if (static_cast<uint32_t>(index - 1) >= CGCommentator::s_Commentator.m_skirmishQueue.Count()) {
+        return 0;
+    }
+
+    CGCommentator::QueueNode* node = &CGCommentator::s_Commentator.m_skirmishQueue.m_data[index - 1];
+
+    if (!node) {
+        return 0;
+    }
+
+    char buffer[64];
+    lua_pushstring(L, GUIDToHexString(node->unk_0000, buffer));
+    lua_pushstring(L, GUIDToHexString(node->unk_0008, buffer));
+    lua_pushboolean(L, node->unk_0010);
+    return 3;
+}
+
+// VERIFY: 8ce90f84 manual
+// OFFSET: 0x0056AF60
+static int32_t Script_CommentatorGetSkirmishQueueCount(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !(player->m_player->m_playerFlags & 0x80000)) {
+        return 0;
+    }
+
+    lua_pushinteger(L, CGCommentator::s_Commentator.m_skirmishQueue.Count());
+    return 1;
+}
+
+// VERIFY: 9a2b78ca manual
+// OFFSET: 0x0056AF00
+static int32_t Script_CommentatorGetSkirmishMode(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !(player->m_player->m_playerFlags & 0x80000)) {
+        return 0;
+    }
+
+    lua_pushinteger(L, CGCommentator::s_Commentator.m_skirmishMode);
+    return 1;
+}
+
+// VERIFY: f387e25a auto
+// OFFSET: 0x0056A2A0
+static int32_t Script_CommentatorGetCamera(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !player->IsCommentatorUberOrInArena()) {
+        return 0;
+    }
+
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+
+    if (!camera) {
+        return 0;
+    }
+
+    lua_pushnumber(L, CGCommentator::s_Commentator.m_position.x);
+    lua_pushnumber(L, CGCommentator::s_Commentator.m_position.y);
+    lua_pushnumber(L, CGCommentator::s_Commentator.m_position.z);
+    lua_pushnumber(L, camera->m_yaw * 57.29578f);
+    lua_pushnumber(L, camera->m_pitch * 57.29578f);
+    lua_pushnumber(L, CGCommentator::s_Commentator.m_fov * 57.29578f);
+    return 6;
+}
+
+// VERIFY: 6b0e6719 manual
+// OFFSET: 0x0056AB70
+static int32_t Script_CommentatorSetCameraCollision(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player && (player->m_player->m_playerFlags & 0x80000) && (player->m_player->m_playerFlags & 0x400000)) {
+        if (!lua_isnumber(L, 1)) {
+            luaL_error(L, "Usage: CommentatorSetCameraCollision(bool enable)");
+        }
+
+        if (lua_tonumber(L, 1) != 0.0) {
+            CGCommentator::s_Commentator.m_cameraCollision = 1;
+            return 0;
+        }
+
+        CGCommentator::s_Commentator.m_cameraCollision = 0;
+    }
+
+    return 0;
+}
+
+// VERIFY: f7617c1c manual
+// OFFSET: 0x0056AC10
+static int32_t Script_CommentatorSetTargetHeightOffset(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player && (player->m_player->m_playerFlags & 0x80000) && (player->m_player->m_playerFlags & 0x400000)) {
+        if (!lua_isnumber(L, 1)) {
+            luaL_error(L, "Usage: CommentatorSetTargetHeightOffset(float offset)");
+        }
+
+        CGCommentator::s_Commentator.m_targetHeightOffset = lua_tonumber(L, 1);
+    }
+
+    return 0;
+}
+
+// VERIFY: 05df4710 manual
+// OFFSET: 0x0056AA10
+static int32_t Script_CommentatorSetBattlemaster(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !(player->m_player->m_playerFlags & 0x80000)) {
+        return 0;
+    }
+
+    WOWGUID target = player->m_unit->m_unitFieldTarget;
+
+    if (!target) {
+        luaL_error(L, "Battlemaster must be targeted.");
+    }
+
+    CGObject_C* object = ClntObjMgrObjectPtr(target, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (!object || !(object->m_obj->m_type & TYPEMASK_UNIT)) {
+        luaL_error(L, "Targeted unit is not a Battlemaster.");
+    }
+
+    if (!(static_cast<CGUnit_C*>(object)->m_unit->m_unitNpcFlags & 0x100000)) {
+        luaL_error(L, "Targeted unit is not a Battlemaster.");
+    }
+
+    CGCommentator::s_Commentator.m_battlemaster = object->m_obj->m_guid;
+    return 0;
+}
+
+// VERIFY: 0accfd26 manual
+// OFFSET: 0x00568770
+static int32_t Script_CommentatorZoomIn(lua_State* L) {
+    float fov = CGCommentator::s_Commentator.m_fov;
+
+    if (fov <= 0.34906584f) {
+        fov = 0.34906584f;
+    }
+
+    float zoom = CGCommentator::s_Commentator.m_targetFov - fov * 0.1f;
+    float limit = CGCommentator::s_Commentator.m_fov * 1.1f;
+
+    if (limit <= zoom) {
+        zoom = limit;
+    }
+
+    CGCommentator::s_Commentator.m_targetFov = zoom < 2.0943952f ? (zoom > 0.017453292f ? zoom : 0.017453292f) : 2.0943952f;
+
+    if (CGCommentator::s_Commentator.m_targetFov >= 2.0943952f) {
+        CGCommentator::s_Commentator.m_targetFov = 2.0943952f;
+    } else if (CGCommentator::s_Commentator.m_targetFov <= 0.017453292f) {
+        CGCommentator::s_Commentator.m_targetFov = 0.017453292f;
+    }
+
+    return 0;
+}
+
+// VERIFY: 40759fc4 manual
+// OFFSET: 0x00568810
+static int32_t Script_CommentatorZoomOut(lua_State* L) {
+    float fov = CGCommentator::s_Commentator.m_fov;
+
+    if (fov <= 0.34906584f) {
+        fov = 0.34906584f;
+    }
+
+    float zoom = (fov + fov * 0.1f) * 0.1f + CGCommentator::s_Commentator.m_targetFov;
+    float limit = CGCommentator::s_Commentator.m_fov * 0.9f;
+
+    if (limit >= zoom) {
+        zoom = limit;
+    }
+
+    CGCommentator::s_Commentator.m_targetFov = zoom < 2.0943952f ? (zoom > 0.017453292f ? zoom : 0.017453292f) : 2.0943952f;
+
+    if (CGCommentator::s_Commentator.m_targetFov >= 2.0943952f) {
+        CGCommentator::s_Commentator.m_targetFov = 2.0943952f;
+    } else if (CGCommentator::s_Commentator.m_targetFov <= 0.017453292f) {
+        CGCommentator::s_Commentator.m_targetFov = 0.017453292f;
+    }
+
+    return 0;
+}
 
 // STATIC: 0x00ACE370
 static FrameScript_Method s_ScriptFunctions[] = {

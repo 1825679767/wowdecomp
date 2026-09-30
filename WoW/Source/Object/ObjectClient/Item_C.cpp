@@ -117,7 +117,7 @@ static void ItemIDChangedCacheCallback(int32_t id, const WOWGUID& guid, void* pa
     }
 }
 
-// VERIFY: c3dbda02 manual
+// VERIFY: d710e893 manual
 // OFFSET: 0x00707960
 static int32_t OnUpdateItemID(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
     CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
@@ -134,7 +134,7 @@ static int32_t OnUpdateItemID(WOWGUID guid, uint32_t fieldOffset, uint32_t field
             ItemIDChangedCacheCallback(item->m_obj->m_entryID, itemGuid, nullptr, true);
         }
 
-        Script_SendUniqueSignal(293);
+        Script_SendUniqueSignal(SCRIPT_EVENT_QUEST_LOG_UPDATE);
     }
 
     return 1;
@@ -1082,4 +1082,16 @@ const char* CGItem_C::GetInventoryArt(int32_t displayId) {
 
     SysMsgPrintf(STATUS_ERROR, 2, "NOINVENTORYICON|%d", displayId);
     return "INV_Misc_QuestionMark";
+}
+
+// VERIFY: 3c4650e1 auto
+// OFFSET: 0x0070AA00
+const char* CGItem_C::GetInventoryArt() const {
+    ItemRec* rec = g_itemDB.GetRecord(this->m_obj->m_entryID);
+
+    if (rec) {
+        return CGItem_C::GetInventoryArt(rec->m_displayInfoID);
+    }
+
+    return CGItem_C::GetInventoryArt(0);
 }

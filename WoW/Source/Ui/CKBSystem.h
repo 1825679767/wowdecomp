@@ -4,6 +4,8 @@
 #include "Engine/Source/Base/DynamicString.h"
 
 extern CDynamicString s_motd;
+extern CDynamicString s_serverStatus;
+extern CDynamicString s_serverNotice;
 
 class CKBSystem {
     public:

@@ -10,6 +10,7 @@
 #include "WoW/Source/Client.h"
 #include "WoW/Source/Game/GameClient/WardenClient.h"
 #include "WoW/Source/Game/ValidateName.h"
+#include "WoW/Source/Glue/Types.h"
 #include "WoW/Source/Ui/AddOns.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
 #include "WoW/Source/WowServices/BattlenetLogin.h"
@@ -375,7 +376,7 @@ static void LogConnectionStatus(WOWCS_OPS op, int32_t errorCode, int32_t initiat
     }
 }
 
-// VERIFY: 9c9c41c1 manual
+// VERIFY: 9e19522f manual
 // OFFSET: 0x006B0250
 ClientConnection::ClientConnection(RealmResponse* realmResponse) : RealmConnection(realmResponse) {
     this->unk_2F3C = 0;
@@ -386,7 +387,7 @@ ClientConnection::ClientConnection(RealmResponse* realmResponse) : RealmConnecti
     this->m_statusOp = COP_NONE;
     this->m_errorCode = 0;
     this->m_cleanup = nullptr;
-    this->unk_2F58 = 0;
+    this->m_quitAfterLogout = 0;
     this->m_loggingOut = 0;
     this->m_realmConnectPending = 0;
 }
@@ -988,10 +989,10 @@ void ClientConnection::GetCharacterList() {
     }
 }
 
-// VERIFY: 0e035952 auto
+// VERIFY: b7eabfaf auto
 // OFFSET: 0x006B1B70
 void ClientRealmResponseAdapter::AddOnListReceived(RealmConnection* connection) {
-    FrameScript_SignalEvent(6, nullptr);
+    FrameScript_SignalEvent(GLUE_EVENT_ADDON_LIST_UPDATE, nullptr);
 }
 
 // VERIFY: 1ed67c13 manual
@@ -1170,4 +1171,140 @@ void ClientConnection::RequestCharacterDelete(WOWGUID guid) {
 }
 
 void ClientRealmResponseAdapter::GameServerResult(RealmConnection* connection, const char* message1, const char* message2, const char* message3) {
+}
+
+// VERIFY: f198842b auto
+// OFFSET: 0x006B1070
+uint8_t ClientServices::GetCharacterRace() {
+    return ClientServices::s_characterInfo.m_raceID;
+}
+
+// VERIFY: c50dd741 auto
+// OFFSET: 0x006B1080
+uint8_t ClientServices::GetCharacterClass() {
+    return ClientServices::s_characterInfo.m_classID;
+}
+
+// VERIFY: aad17c20 auto
+// OFFSET: 0x006B1090
+uint8_t ClientServices::GetCharacterSex() {
+    return ClientServices::s_characterInfo.m_sexID;
+}
+
+// VERIFY: ecaae621 auto
+// OFFSET: 0x006B0900
+void ClientConnection::HandleLogoutAbortAck() {
+    if (this->m_loggingOut) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_LOGOUT_CANCEL, nullptr);
+        this->m_loggingOut = 0;
+    }
+}
+
+// VERIFY: 52ab6642 manual
+// OFFSET: 0x006B0F00
+const char* ClientServices::GetLoginServer() {
+    if (ClientServices::s_loginObj->GetLoginServerType() == 1) {
+        return ClientServices::s_realmListBNVar->m_stringValue.m_str;
+    }
+
+    return ClientServices::s_realmListVar->m_stringValue.m_str;
+}
+
+// VERIFY: 3cff0526 manual
+// OFFSET: 0x006B18C0
+void ClientConnection::CharacterAbortLogout() {
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_LOGOUT_CANCEL));
+    msg.Finalize();
+    this->Send(&msg);
+    this->m_loggingOut = 0;
+}
+
+// VERIFY: d41a5153 auto
+// OFFSET: 0x006B2180
+void ClientConnection::HandleLogoutComplete() {
+    if (this->m_inGame) {
+        this->CharacterSetInGame(0);
+    }
+
+    this->unk_2F40 = 0;
+
+    if (!ClientServices::s_currentConnection) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    if (this == ClientServices::s_currentConnection) {
+        ClientDestroyGame(1, 1, 0);
+    }
+
+    this->m_loggingOut = 0;
+
+    if (this->m_quitAfterLogout) {
+        ClientPostClose(0);
+    }
+}
+
+// VERIFY: e65599e3 manual
+// OFFSET: 0x006B3070
+void ClientServices::JoinRealmResult(uint32_t realmId, int32_t a2, int32_t a3, int32_t a4, int32_t a5) {
+    if (ClientServices::s_loginObj->GetLoginServerType() != 1) {
+        return;
+    }
+
+    if (!ClientServices::s_currentConnection) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    if (!ClientServices::m_selectRealmInfoValid || !realmId || ClientServices::m_selectRealmInfo.unk_0130[2] != realmId) {
+        ClientServices::s_currentConnection->Complete(0, 4);
+        return;
+    }
+
+    LoginData loginData;
+    SStrCopy(loginData.m_account, ClientServices::s_loginObj->m_username, sizeof(loginData.m_account));
+    loginData.m_loginServerID = ClientServices::s_loginObj->GetServerId();
+    memcpy(loginData.m_sessionKey, ClientServices::s_loginObj->m_sessionKey, sizeof(loginData.m_sessionKey));
+    loginData.m_loginServerType = ClientServices::s_loginObj->GetLoginServerType();
+    ClientServices::Connection()->SetLoginData(&loginData);
+
+    if (a2 || a3) {
+        SStrPrintf(ClientServices::m_selectRealmInfo.m_realmAddress, sizeof(ClientServices::m_selectRealmInfo.m_realmAddress), "%d.%d.%d.%d:%u", (a2 >> 24) & 0xFF, (a2 >> 16) & 0xFF, (a2 >> 8) & 0xFF, a2 & 0xFF, a3);
+    }
+
+    ClientServices::ConnectToSelectedServer();
+}
+
+// VERIFY: bb0724f1 auto
+// OFFSET: 0x006B10A0
+uint8_t ClientServices::GetCharacterLevel() {
+    return ClientServices::s_characterInfo.m_experienceLevel;
+}
+
+// VERIFY: 4ed26edd manual
+// OFFSET: 0x006B1930
+void ClientConnection::CharacterLogout(bool quit, bool instant) {
+    if ((this->m_loggingOut && !instant) || !this->m_inGame) {
+        return;
+    }
+
+    if (!ClientServices::s_currentConnection) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    if (this != ClientServices::s_currentConnection) {
+        this->CharacterSetInGame(0);
+        this->unk_2F40 = 0;
+        return;
+    }
+
+    this->m_quitAfterLogout = quit;
+
+    if (!instant) {
+        this->m_loggingOut = 1;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(instant ? CMSG_PLAYER_LOGOUT : CMSG_LOGOUT_REQUEST));
+    msg.Finalize();
+    this->Send(&msg);
 }

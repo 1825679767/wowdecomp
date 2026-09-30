@@ -7,6 +7,8 @@
 
 class CGUnit_C;
 class SpellRec;
+class VehicleSeatRec;
+struct lua_State;
 
 struct UniqueSignal {
     /* 0000 */ WOWGUID m_guid;
@@ -14,12 +16,27 @@ struct UniqueSignal {
     /* 000C */ uint32_t unk_000C;
 };
 
+struct ScriptAuraInfo {
+    /* 0000 */ WOWGUID m_guid;
+    /* 0008 */ int32_t m_index;
+    /* 000C */ const char* m_name;
+    /* 0010 */ const char* m_rank;
+    /* 0014 */ uint8_t m_filter;
+};
+
 extern const char* g_scriptEvents[NUM_SCRIPT_EVENTS];
 
 CGUnit_C* GetUnitFromName(const char* token);
+WOWGUID GetGuidByKeyword(const char* token);
+bool GetUnitByKeyword(const char* token, CGUnit_C** unit, bool defaultToTarget);
+int32_t Script_GetUnitAuraInfo(lua_State* L, int32_t index, ScriptAuraInfo* info);
+int32_t PushUnitAura(lua_State* L, ScriptAuraInfo* info);
+VehicleSeatRec* GetVehicleSeatRecAsPassengerFromLua(lua_State* L);
 void UnitNameQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 bool Script_GetGUIDFromString(const char** name, WOWGUID& guid);
 bool Script_GetGUIDFromToken(const char* token, WOWGUID& guid, bool defaultToTarget);
+bool Script_GetNameFromToken(const char* token, const char** name, bool defaultToTarget, bool withRealm);
+char** Script_GetTokenIDsFromGUID(const WOWGUID& guid, int32_t* count);
 void ScriptEventsInitialize();
 void ScriptEventsRegisterFunctions();
 void SystemRegisterFunctions();

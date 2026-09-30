@@ -43,12 +43,15 @@
 #include "WoW/Source/DB/Rec/SpellCategoryRec.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "Engine/Source/Model2/M2Model.h"
+#include "WoW/Source/DB/Rec/ChrClassesRec.h"
 #include <cmath>
 #include "WoW/Source/DB/Rec/LockRec.h"
 #include "WoW/Source/Object/GameObject.h"
-#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 #include "WoW/Source/Object/ObjectClient/UnitCombatLog_C.h"
 #include "WoW/Source/Object/ObjectClient/Missile_C.h"
+#include "WoW/Source/Object/ObjectClient/GameObject_C.h"
+#include "WoW/Source/Object/ObjectClient/VehiclePassenger_C.h"
+#include "WoW/Source/WowServices/WDataStore.h"
 #if defined(_MSC_VER)
 #include <malloc.h>
 #else
@@ -68,10 +71,10 @@ static int32_t s_autoRangedCombatSpell;
 static int32_t s_autoRepeatingSpell;
 
 // STATIC: 0x00D3F4E0
-static uint32_t s_needTargets;
+uint32_t s_needTargets;
 
 // STATIC: 0x00D3F4E4
-static PendingSpellCast* s_targetingSpell;
+PendingSpellCast* s_targetingSpell;
 
 // STATIC: 0x00D3F4E8
 static uint32_t unk_D3F4E8;
@@ -93,6 +96,36 @@ static int32_t s_spellPctModifiers[96][31];
 
 // STATIC: 0x00D3C658
 static int32_t s_spellFlatModifiers[96][31];
+
+// STATIC: 0x00AF524C
+static TSList<PendingSpellCast, TSGetLink<PendingSpellCast> > s_pendingSpellCasts;
+
+// STATIC: 0x00AF5258
+static TSList<PendingSpellCast, TSGetLink<PendingSpellCast> > s_freePendingSpellCasts;
+
+// STATIC: 0x00D397D5
+static uint8_t s_nextCastCount;
+
+// STATIC: 0x00D3F570
+static CMapEntity* s_spellWorldObject;
+
+// STATIC: 0x00D3F574
+static CM2Model* s_spellWorldModel;
+
+// STATIC: 0x00AF5270
+static TSList<SpellInTransit, TSGetLink<SpellInTransit>> s_spellsInTransit;
+
+// STATIC: 0x00D3F608
+static uint32_t s_nextHistoryCleanup;
+
+// STATIC: 0x00AF5220
+static uint32_t s_powerDisplayMod[7] = { 1, 10, 1, 1, 1000, 1, 10 };
+
+// STATIC: 0x00D397D4
+static uint8_t s_cursorWorldObjectHousing;
+
+// STATIC: 0x00D3F4DC
+static float s_cursorWorldObjectFacing;
 
 // VERIFY: f852b51c manual
 // OFFSET: 0x008008D0
@@ -639,15 +672,6 @@ void Spell_C_Initialize() {
 inline PendingSpellCast::PendingSpellCast() : unk_0139(0) {
 }
 
-// STATIC: 0x00AF524C
-static TSList<PendingSpellCast, TSGetLink<PendingSpellCast> > s_pendingSpellCasts;
-
-// STATIC: 0x00AF5258
-static TSList<PendingSpellCast, TSGetLink<PendingSpellCast> > s_freePendingSpellCasts;
-
-// STATIC: 0x00D397D5
-static uint8_t s_nextCastCount;
-
 // VERIFY: 85ca0dc3 auto
 // OFFSET: 0x009AB770
 PendingSpellCastData::PendingSpellCastData() {
@@ -1155,12 +1179,6 @@ void CGUnit_C::ReleaseMissiles() {
     this->ReleaseMissiles(position);
 }
 
-// STATIC: 0x00D3F570
-static CMapEntity* s_spellWorldObject;
-
-// STATIC: 0x00D3F574
-static CM2Model* s_spellWorldModel;
-
 // VERIFY: 936f6df8 manual
 // OFFSET: 0x007FD970
 bool Spell_C_GetSpellModifiers(const SpellRec* spell, int32_t modifier, int32_t& flat, int32_t& pct) {
@@ -1233,7 +1251,7 @@ void Spell_C_DestroySpellWorldObject() {
     }
 }
 
-// VERIFY: 4871a06d manual
+// VERIFY: decfd300 manual
 // OFFSET: 0x007FECC0
 void HandleSpellFailedOrGo(CGUnit_C* unit, PendingSpellCast* cast, const SpellRec* spell, int32_t reason) {
     if (!unit) {
@@ -1277,7 +1295,7 @@ void HandleSpellFailedOrGo(CGUnit_C* unit, PendingSpellCast* cast, const SpellRe
             break;
     }
 
-    if (cast->m_data.m_castCount == castCount && cast->m_data.m_spellId == static_cast<int32_t>(unit->unk_0A6C)) {
+    if (cast->m_data.m_castCount == castCount && cast->m_data.m_spellId == static_cast<int32_t>(unit->m_castingSpellId)) {
         unit->ResetUICastingSpell();
         Script_SendUnitSpellSignal(unit->m_obj->m_guid, cast->m_data.m_castCount, spell, 325);
     }
@@ -1617,12 +1635,6 @@ int32_t Packet_SMSG_CAST_FAILED(void* param, NETMESSAGE msgId, uint32_t time, CD
 
     return 1;
 }
-
-// STATIC: 0x00AF5270
-static TSList<SpellInTransit, TSGetLink<SpellInTransit>> s_spellsInTransit;
-
-// STATIC: 0x00D3F608
-static uint32_t s_nextHistoryCleanup;
 
 // VERIFY: ca363f59 manual
 // OFFSET: 0x007FD830
@@ -2348,9 +2360,6 @@ void PendingSpellCast::OnSpellGo(CDataStore* msg) {
     }
 }
 
-// STATIC: 0x00AF5220
-static uint32_t s_powerDisplayMod[7] = { 1, 10, 1, 1, 1000, 1, 10 };
-
 // VERIFY: 2af0e265 manual
 // OFFSET: 0x007FDE00
 uint32_t Spell_C_GetPowerDisplayMod(uint32_t powerType) {
@@ -2383,4 +2392,184 @@ const SpellVisualRec* GetSpellVisual(const SpellRec* spell) {
     }
 
     return g_spellVisualDB.GetRecord(visualId);
+}
+
+// VERIFY: 8f243d8d manual
+// OFFSET: 0x007FD750
+bool Spell_C_CanTargetTerrain() {
+    return (s_needTargets & 0x60) != 0;
+}
+
+// VERIFY: 4bd9ca55 auto
+// OFFSET: 0x007FD7F0
+int32_t Spell_C_IsCursorWorldObjectHousing() {
+    return s_cursorWorldObjectHousing;
+}
+
+// VERIFY: 61051f38 auto
+// OFFSET: 0x007FE1A0
+void SpellSetFeedPetSpell(int32_t spellId) {
+    unk_D397B8 = spellId;
+}
+
+// VERIFY: 54519a8f manual
+// OFFSET: 0x007FD650
+bool Spell_C_CanTargetUnits() {
+    return (s_needTargets & 0x1878E) != 0;
+}
+
+// VERIFY: 402f8659 auto
+// OFFSET: 0x007FD950
+int32_t Packet_SMSG_FEIGN_DEATH_RESISTED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    CGGameUI::DisplayError(ERR_FEIGN_DEATH_RESISTED);
+    return 1;
+}
+
+// VERIFY: ff87ae53 auto
+// OFFSET: 0x007FD800
+void Spell_C_CursorWorldObjectRotate() {
+    s_cursorWorldObjectFacing = s_cursorWorldObjectFacing + 1.5707964f;
+
+    if (s_cursorWorldObjectFacing >= 6.2831855f) {
+        s_cursorWorldObjectFacing = s_cursorWorldObjectFacing - 6.2831855f;
+    }
+}
+
+// VERIFY: 5da1ec93 auto
+// OFFSET: 0x007FDF60
+bool SpellIsTrackingAura(const SpellRec* spell) {
+    for (int32_t i = 0; i < 3; i++) {
+        int32_t aura = spell->m_effectAura[i];
+
+        if (aura == 44 || aura == 45 || aura == 151) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: a97f4372 manual
+// OFFSET: 0x00800510
+int32_t Packet_SMSG_ON_CANCEL_EXPECTED_RIDE_VEHICLE_AURA(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player && player->m_vehiclePassenger) {
+        player->m_vehiclePassenger->ClearFlag8();
+    }
+
+    return 1;
+}
+
+// VERIFY: 9a6eeb12 auto
+// OFFSET: 0x008007A0
+void Spell_C_SetPlayerClass(int32_t classId) {
+    ChrClassesRec* rec = g_chrClassesDB.GetRecord(classId);
+
+    if (rec) {
+        s_spellClassSet = rec->m_spellClassSet;
+    }
+}
+
+// VERIFY: 28235946 manual
+// OFFSET: 0x007FD900
+int32_t Packet_SMSG_GAMEOBJECT_RESET_STATE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID guid;
+    msg->Get(guid.m_guid);
+    CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+
+    if (gameObject) {
+        gameObject->ResetDisplayState();
+    }
+
+    return 1;
+}
+
+// VERIFY: e42c1b1d auto
+// OFFSET: 0x007FDC60
+int32_t Packet_Group_32(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint8_t group;
+    uint8_t op;
+    uint32_t value;
+    msg->Get(group);
+    msg->Get(op);
+    msg->Get(value);
+
+    if (msgId == SMSG_SET_PCT_SPELL_MODIFIER) {
+        s_spellPctModifiers[group][op] = value;
+    } else {
+        s_spellFlatModifiers[group][op] = value;
+    }
+
+    return 1;
+}
+
+// VERIFY: 2541c8b3 manual
+// OFFSET: 0x00805FC0
+bool Spell_C_IsCurrentItem(int32_t itemId) {
+    for (PendingSpellCast* cast = s_pendingSpellCasts.Head(); cast; cast = s_pendingSpellCasts.Next(cast)) {
+        if (cast->m_data.m_castItem == cast->m_data.m_caster) {
+            continue;
+        }
+
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(cast->m_data.m_castItem, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (item && item->m_obj->m_entryID == itemId) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 1ec86af2 manual
+// OFFSET: 0x00807560
+void Spell_C_CancelAutoRepeat(bool a1) {
+    if (!s_autoRepeatingSpell) {
+        return;
+    }
+
+    if (a1) {
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_CANCEL_AUTO_REPEAT_SPELL));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (unit) {
+        unit->SetCastingAutoRepeat(false);
+        unit->CancelRangedMode();
+    }
+
+    Spell_C_CancelSpellsWithId(s_autoRepeatingSpell);
+
+    if (!s_autoRepeatingSpell) {
+        return;
+    }
+
+    s_autoRepeatingSpell = 0;
+
+    if (s_autoRangedCombatSpell) {
+        return;
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_STOP_AUTOREPEAT_SPELL, nullptr);
+
+    if (s_autoRepeatingSpell) {
+        static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__))->MeleeModeLeave();
+    }
+}
+
+// VERIFY: 2524719c auto
+// OFFSET: 0x007FDE50
+bool SpellRec::HasAura(const SpellRec* spell, int32_t aura) {
+    for (int32_t i = 0; i < 3; i++) {
+        if (spell->m_effectAura[i] == aura) {
+            return true;
+        }
+    }
+
+    return false;
 }

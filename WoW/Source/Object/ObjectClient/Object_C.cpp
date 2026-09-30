@@ -32,7 +32,9 @@
 #include "WoW/Source/Ui/MinimapFrame.h"
 #include "WoW/Source/Ui/MinimapFrame.h"
 #include "Engine/Source/Tempest/CMath.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
 #include <cmath>
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
 
 // STATIC: 0x00ADAC98
 CGObject_C::InteractIcon CGObject_C::s_interactIcons[12] = {
@@ -1381,4 +1383,47 @@ void CGObject_C::PostInit(uint32_t time, const CClientObjCreate& create, bool a3
     if (this->m_worldObject) {
         this->UpdateWorldObject(0);
     }
+}
+
+// VERIFY: 2b7b33bd auto
+// OFFSET: 0x007432E0
+const SpellVisualRec* CGObject_C::GetAppropriateSpellVisual(const SpellRec* spell, SpellVisualRec& visual, int32_t a3, int32_t a4) const {
+    return GetSpellVisual(spell);
+}
+
+// VERIFY: 52331444 auto
+// OFFSET: 0x00744330
+void CGObject_C::ConnectToLightningThisFrame(uint32_t a1, int32_t a2) {
+    for (CEffect* effect = this->m_effectList; effect; effect = effect->m_next) {
+        if (effect->m_spellId == a1 && (effect->m_flags & 0x40000) && effect->unk_008C == a2) {
+            effect->ConnectToLightningThisFrame();
+        }
+    }
+}
+
+// VERIFY: abf45c20 manual
+// OFFSET: 0x007450B0
+CGObject_C* CGObject_C::GetFocusObject() {
+    CGObject_C* object = ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__);
+
+    if (!object) {
+        object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__);
+
+        if (!object) {
+            return nullptr;
+        }
+    }
+
+    if (!(object->m_obj->m_type & TYPEMASK_PLAYER) || !(static_cast<CGPlayer_C*>(object)->m_combatModeFlags & 1)) {
+        return object;
+    }
+
+    uint64_t farSight = static_cast<CGPlayer_C*>(object)->GetFarSightGuid();
+
+    if (!farSight) {
+        return object;
+    }
+
+    CGObject_C* target = ClntObjMgrObjectPtr(WOWGUID{ farSight }, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    return target ? target : object;
 }

@@ -2,6 +2,70 @@
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
+#include "Engine/Source/FrameXML/LoadXML.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "WoW/Source/Net/Types.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+
+// STATIC: 0x00C7BFE0
+static uint32_t s_numWhoResults;
+
+// STATIC: 0x00C7BFE4
+static uint32_t s_totalWhoResults;
+
+// STATIC: 0x00C7BFEC
+static int32_t s_whoToUI;
+
+// VERIFY: cec9da47 auto
+// OFFSET: 0x006B3430
+static int32_t Script_SetWhoToUI(lua_State* L) {
+    s_whoToUI = StringToBOOL(L, 1, 0);
+    return 0;
+}
+
+// VERIFY: b11dcf69 manual
+// OFFSET: 0x006B33D0
+static int32_t Script_GetNumWhoResults(lua_State* L) {
+    lua_pushnumber(L, s_numWhoResults);
+    lua_pushnumber(L, s_totalWhoResults);
+    return 2;
+}
+
+// VERIFY: 36c3cb43 manual
+// OFFSET: 0x006B44F0
+static int32_t Script_ShowFriends(lua_State* L) {
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_CONTACT_LIST));
+    msg.Put(static_cast<uint32_t>(1));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: 1e7bd02b manual
+// OFFSET: 0x006B4060
+static int32_t Script_GetNumFriends(lua_State* L) {
+    FriendList* list = FriendList::s_friendList;
+
+    if (!list) {
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        return 2;
+    }
+
+    lua_pushnumber(L, list->GetNumFriends());
+    uint32_t online = 0;
+    uint32_t count = list->GetNumFriends();
+
+    for (uint32_t i = 0; i < count; i++) {
+        if (i <= 100 && list->m_friends[i].m_status) {
+            online++;
+        }
+    }
+
+    lua_pushnumber(L, online);
+    return 2;
+}
 
 // STATIC: 0x00AD93D8
 static FrameScript_Method s_ScriptFunctions[] = {

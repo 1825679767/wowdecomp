@@ -758,3 +758,51 @@ NETEVENTQUEUE::~NETEVENTQUEUE() {
     this->m_eventQueue.Clear();
     this->m_critSect.Leave();
 }
+
+// VERIFY: 75864678 auto
+// OFFSET: 0x00633020
+void NetClient::HandleSuspendComms(WowConnection* connection, CDataStore* msg) {
+    if (connection != this->m_serverConnection || this->m_suspended || !this->m_redirectConnection) {
+        connection->Disconnect();
+        return;
+    }
+
+    uint32_t serial = 0;
+    msg->Get(serial);
+
+    if (!msg->IsRead() || msg->m_read > msg->m_size) {
+        connection->Disconnect();
+        return;
+    }
+
+    CDataStore ack;
+    ack.Put(static_cast<uint32_t>(CMSG_SUSPEND_COMMS_ACK));
+    ack.Put(serial);
+    ack.Finalize();
+    this->Send(&ack);
+    this->m_suspended = 1;
+}
+
+// VERIFY: 5dad1904 manual
+// OFFSET: 0x00633250
+void NetClient::HandleResumeComms(WowConnection* connection, CDataStore* msg) {
+    if (connection == this->m_redirectConnection) {
+        WowConnection* old = this->m_serverConnection;
+        this->m_serverConnection = this->m_redirectConnection;
+        this->m_redirectConnection = nullptr;
+        old->SetResponse(nullptr, false);
+        old->Disconnect();
+        old->Release();
+    } else {
+        this->m_redirectConnection->SetResponse(nullptr, false);
+        this->m_redirectConnection->Disconnect();
+        this->m_redirectConnection->Release();
+        this->m_redirectConnection = nullptr;
+    }
+
+    this->m_suspended = 0;
+
+    for (NetClient::HELDMESSAGE* held = this->m_heldMessages.Head(); held; held = this->m_heldMessages.DeleteNode(held)) {
+        this->Send(&held->m_msg);
+    }
+}

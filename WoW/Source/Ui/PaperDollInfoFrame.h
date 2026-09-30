@@ -10,9 +10,27 @@ struct lua_State;
 
 class CGPlayer_C;
 
+struct InspectArenaTeam {
+    /* 0000 */ uint32_t m_teamId;
+    /* 0004 */ uint32_t m_rating;
+    /* 0008 */ uint32_t m_weekGames;
+    /* 000C */ uint32_t m_weekWins;
+    /* 0010 */ uint32_t m_seasonGames;
+    /* 0014 */ uint32_t m_personalRating;
+};
+
 class CGCharacterInfo {
     public:
     static TSFixedArray<int32_t> m_invAlertStatus;
+    static int32_t m_hasHonorData;
+    static int32_t m_honorRequestPending;
+    static uint32_t m_inspectLifetimeHonorableKills;
+    static uint32_t m_inspectYesterdayHonor;
+    static uint32_t m_inspectTodayHonor;
+    static uint16_t m_inspectYesterdayHonorableKills;
+    static uint8_t m_inspectLifetimeHighestRank;
+    static uint16_t m_inspectTodayHonorableKills;
+    static InspectArenaTeam m_inspectArenaTeams[3];
     static int32_t CalculateInventoryAlertStatus(CGPlayer_C* player, uint32_t slot);
     static void RegisterMirrorHandlers(WOWGUID guid);
     static WOWGUID m_inspectTarget;
@@ -24,9 +42,7 @@ class CGCharacterInfo {
     static void UpdateItem(WOWGUID guid);
 };
 
-int32_t Script_GetInventorySlotInfo(lua_State* L);
 int32_t Script_GetInventoryItemsForSlot(lua_State* L);
-int32_t Script_GetInventoryItemTexture(lua_State* L);
 int32_t Script_GetInventoryItemBroken(lua_State* L);
 int32_t Script_GetInventoryItemCount(lua_State* L);
 int32_t Script_GetInventoryItemQuality(lua_State* L);
@@ -35,11 +51,9 @@ int32_t Script_GetInventoryItemDurability(lua_State* L);
 int32_t Script_GetInventoryItemLink(lua_State* L);
 int32_t Script_GetInventoryItemID(lua_State* L);
 int32_t Script_GetInventoryItemGems(lua_State* L);
-int32_t Script_KeyRingButtonIDToInvSlotID(lua_State* L);
 int32_t Script_PickupInventoryItem(lua_State* L);
 int32_t Script_UseInventoryItem(lua_State* L);
 int32_t Script_SocketInventoryItem(lua_State* L);
-int32_t Script_IsInventoryItemLocked(lua_State* L);
 int32_t Script_PutItemInBag(lua_State* L);
 int32_t Script_PutItemInBackpack(lua_State* L);
 int32_t Script_PickupBagFromSlot(lua_State* L);
@@ -47,16 +61,10 @@ int32_t Script_CursorCanGoInSlot(lua_State* L);
 int32_t Script_ShowInventorySellCursor(lua_State* L);
 int32_t Script_SetInventoryPortraitTexture(lua_State* L);
 int32_t Script_GetGuildInfo(lua_State* L);
-int32_t Script_GetInventoryAlertStatus(lua_State* L);
-int32_t Script_UpdateInventoryAlertStatus(lua_State* L);
-int32_t Script_OffhandHasWeapon(lua_State* L);
-int32_t Script_HasInspectHonorData(lua_State* L);
 int32_t Script_RequestInspectHonorData(lua_State* L);
-int32_t Script_GetInspectHonorData(lua_State* L);
 int32_t Script_GetInspectArenaTeamData(lua_State* L);
 int32_t Script_ClearInspectPlayer(lua_State* L);
 int32_t Script_GetWeaponEnchantInfo(lua_State* L);
-int32_t Script_HasWandEquipped(lua_State* L);
 void CharacterInfoRegisterScriptFunctions();
 
 class CDataStore;

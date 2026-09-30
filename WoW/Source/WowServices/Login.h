@@ -43,7 +43,7 @@ class Login : public Grunt::ClientResponse {
     /* 10A1 */ uint8_t m_matrixChallengeCount;
     /* 10A2 */ bool m_matrixFlipCoords;
     /* 10A3 */ uint8_t unk_10A3[1];
-    /* 10A4 */ uint8_t* m_matrixData;
+    /* 10A4 */ uint32_t* m_matrixData;
     /* 10A8 */ uint32_t unk_10A8 [4];
     /* 10B8 */ uint64_t m_matrixSeed;
     /* 10C0 */ uint32_t unk_10C0 [5];
@@ -79,7 +79,7 @@ class Login : public Grunt::ClientResponse {
     virtual void CommitMatrix() = 0;
     virtual void FinalizeMatrix() = 0;
     virtual bool GetMatrixInfo(uint32_t* width, uint32_t* height, uint32_t* minDigits, uint32_t* maxDigits, bool* flipCoords, uint32_t* challengeCount) = 0;
-    virtual void GetMatrixCoordinates(uint32_t index, uint32_t* x, uint32_t* y) = 0;
+    virtual bool GetMatrixCoordinates(uint32_t index, uint32_t* x, uint32_t* y) = 0;
     virtual void EnterToken(const char* token) = 0;
     virtual bool IsTrialAccount() = 0;
     virtual bool IsGMAccount() = 0;

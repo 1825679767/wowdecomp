@@ -48,6 +48,7 @@ class ItemLinkInfo {
 
 class CGTooltip;
 class CAaRect;
+class CGItem_C;
 class CGUnit_C;
 class CImVector;
 class CSimpleFontString;
@@ -68,6 +69,8 @@ class CGTooltip : public CSimpleFrame {
     static void DestroyScriptMetaTable();
     static const CImVector* GetItemQualityColor(uint32_t quality);
     static const char* GetItemQualityColorString(uint32_t quality);
+    static const char* CreateItemLink(int32_t itemId, uint32_t quality, int32_t enchant, const int32_t* gems, int32_t randomPropertiesId, int32_t seed);
+    static const char* GetItemHyperlinkString(CGItem_C* item);
     static const char* GetQuestDifficultyColorString(int32_t level);
     static int32_t GetObjectType();
     static void RegisterScriptMethods(lua_State* L);
@@ -147,6 +150,7 @@ class CGTooltip : public CSimpleFrame {
 
     CGTooltip(CSimpleFrame* parent);
     void CalculateSize();
+    void AppendText(const char* text);
     void ClearTooltip();
     void FadeOut();
     void ResetPosition(int32_t force);
@@ -190,5 +194,7 @@ class CSimpleUI {
     /* 0360 */ uint8_t unk_0360[396];
     /* 04EC */ uint32_t unk_04EC;
 };
+
+extern uint32_t s_tooltipTitleColor;
 
 #endif

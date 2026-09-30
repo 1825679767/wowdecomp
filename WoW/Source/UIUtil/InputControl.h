@@ -37,7 +37,7 @@ class CGInputControl {
     static void Destroy();
     static CGInputControl* GetActive();
     static float GetUIVehiclePower();
-    static int32_t __stdcall IsVehicleSeatFlagSet(uint32_t flags);
+    int32_t IsVehicleSeatFlagSet(uint32_t flags) const;
     static void SendUIVehicleAngleUpdate(float angle);
     static int32_t WowMouseEnabled();
 
@@ -95,6 +95,7 @@ class CGInputControl {
 extern CVar* s_cvCinematicJoystick;
 extern CVar* s_cvEnableWowMouse;
 extern uint32_t s_joystick;
+extern float s_vehicleAimNormPower;
 extern int32_t s_joystickMouseEnabled;
 
 uint32_t GetJoystick();
@@ -107,32 +108,12 @@ bool JoystickCallback(CVar* var, const char* oldValue, const char* value, void* 
 XMLTree* LoadJoystickConfig(XMLNode*& config);
 bool WowMouseCVarCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 
-int32_t Script_TurnOrActionStart(lua_State* L);
-int32_t Script_TurnOrActionStop(lua_State* L);
-int32_t Script_CameraOrSelectOrMoveStart(lua_State* L);
-int32_t Script_CameraOrSelectOrMoveStop(lua_State* L);
 int32_t Script_MoveAndSteerStart(lua_State* L);
-int32_t Script_MoveAndSteerStop(lua_State* L);
-int32_t Script_SetMouselookOverrideBinding(lua_State* L);
-int32_t Script_MouselookStart(lua_State* L);
-int32_t Script_MouselookStop(lua_State* L);
-int32_t Script_IsMouselooking(lua_State* L);
 int32_t Script_VehicleExit(lua_State* L);
 int32_t Script_VehiclePrevSeat(lua_State* L);
 int32_t Script_VehicleNextSeat(lua_State* L);
 int32_t Script_VehicleAimIncrement(lua_State* L);
 int32_t Script_VehicleAimDecrement(lua_State* L);
-int32_t Script_VehicleAimRequestAngle(lua_State* L);
-int32_t Script_VehicleAimGetAngle(lua_State* L);
-int32_t Script_VehicleAimRequestNormAngle(lua_State* L);
-int32_t Script_VehicleAimGetNormAngle(lua_State* L);
-int32_t Script_VehicleAimSetNormPower(lua_State* L);
-int32_t Script_VehicleAimGetNormPower(lua_State* L);
-int32_t Script_IsUsingVehicleControls(lua_State* L);
-int32_t Script_CanExitVehicle(lua_State* L);
-int32_t Script_CanSwitchVehicleSeats(lua_State* L);
-int32_t Script_IsVehicleAimAngleAdjustable(lua_State* L);
-int32_t Script_IsVehicleAimPowerAdjustable(lua_State* L);
 int32_t Script_DetectWowMouse(lua_State* L);
 void InputControlRegisterScriptFunctions();
 

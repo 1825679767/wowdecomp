@@ -59,12 +59,12 @@ bool InboundChatVolumeHandler(CVar* var, const char* oldValue, const char* value
     return true;
 }
 
-// VERIFY: 7c54f49a auto
+// VERIFY: d2b1377b auto
 // OFFSET: 0x007DCF20
 bool VoiceChatModeHandler(CVar* var, const char* oldValue, const char* value, void* arg) {
     if (SStrToInt(value) == 1) {
         s_voiceActivation = 1;
-        Script_SendUniqueSignal(557);
+        Script_SendUniqueSignal(SCRIPT_EVENT_VOICE_SELF_MUTE);
 
         CVar* selfMute = CVar::Lookup("VoiceChatSelfMute");
 
@@ -120,7 +120,7 @@ bool PushToTalkButtonHandler(CVar* var, const char* oldValue, const char* value,
     return true;
 }
 
-// VERIFY: 85766777 manual
+// VERIFY: ad238b9c manual
 // OFFSET: 0x007DD060
 bool SelfMuteHandler(CVar* var, const char* oldValue, const char* value, void* arg) {
     if (SStrToInt(value)) {
@@ -129,12 +129,12 @@ bool SelfMuteHandler(CVar* var, const char* oldValue, const char* value, void* a
         AddComSatEvent(2, 1u, 0);
     }
 
-    Script_SendUniqueSignal(557);
+    Script_SendUniqueSignal(SCRIPT_EVENT_VOICE_SELF_MUTE);
 
     return true;
 }
 
-// VERIFY: 8fd7c0e3 manual
+// VERIFY: 041fa9fd manual
 // OFFSET: 0x007DFEA0
 bool EnableVoiceChatHandler(CVar* var, const char* oldValue, const char* value, void* arg) {
     bool wasEnabled = oldValue && SStrToInt(oldValue);
@@ -167,7 +167,7 @@ bool EnableVoiceChatHandler(CVar* var, const char* oldValue, const char* value, 
     }
 
     if (CGGameUI::m_initialized) {
-        FrameScript_SignalEvent(554, nullptr);
+        FrameScript_SignalEvent(SCRIPT_EVENT_VOICE_CHAT_ENABLED_UPDATE, nullptr);
     }
 
     if (enabled && microphoneEnabled && CGChat::IsVoiceChatAllowed()) {

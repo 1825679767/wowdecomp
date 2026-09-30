@@ -189,3 +189,9 @@ void ShadowInit() {
     s_cvShadowLOD = CVar::Register("shadowLOD", "Unit shadow LOD", 1, "1", ShadowLODCallback, CATEGORY_GRAPHICS, false, nullptr, false);
     s_cvExtShadowQuality = CVar::Lookup("extShadowQuality");
 }
+
+// VERIFY: d5bef9e8 auto
+// OFFSET: 0x007E2C60
+CGxTex* ProjectTex2dGetAddFadeTex() {
+    return TextureGetGxTex(s_shadowAddTexture, 1, nullptr);
+}

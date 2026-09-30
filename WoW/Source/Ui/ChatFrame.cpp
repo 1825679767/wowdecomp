@@ -39,12 +39,6 @@ int32_t CGChat::m_afk;
 // STATIC: 0x00BCF004
 int32_t CGChat::m_voiceChatSystemStatus;
 
-// VERIFY: 36ed0e4f auto
-// OFFSET: 0x004FBAF0
-int32_t CGChat::IsVoiceChatAllowed() {
-    return CGChat::m_voiceChatSystemStatus && !ComSatClient_IsComsatDisabledByClient();
-}
-
 // STATIC: 0x009FA558
 static const ChatColorInfo s_chatTypeInfo[CHAT_MSG_MAX] = {
     { "SYSTEM", { 0xFF, 0xFF, 0x00, 0x00 }, 0, 0 },
@@ -258,6 +252,125 @@ static uint32_t s_profanityReplacementIndex;
 
 // STATIC: 0x00D37E94
 static TSFixedArray<regex_t> s_expectedSpamRecords;
+
+// STATIC: 0x009FB7C0
+const ChatMessageGroup s_chatMessageGroups[46] = {
+    { "SYSTEM", true, 0 },
+    { "SYSTEM_NOMENU", true, 5 },
+    { "SAY", true, 0 },
+    { "EMOTE", true, 7 },
+    { "YELL", true, 0 },
+    { "WHISPER", true, 0 },
+    { "PARTY", true, 0 },
+    { "PARTY_LEADER", true, 10 },
+    { "RAID", true, 7 },
+    { "RAID_LEADER", true, 7 },
+    { "RAID_WARNING", true, 7 },
+    { "BATTLEGROUND", true, 7 },
+    { "BATTLEGROUND_LEADER", true, 7 },
+    { "GUILD", true, 0 },
+    { "OFFICER", true, 7 },
+    { "MONSTER_SAY", true, 7 },
+    { "MONSTER_YELL", true, 7 },
+    { "MONSTER_EMOTE", true, 7 },
+    { "MONSTER_WHISPER", true, 7 },
+    { "MONSTER_BOSS_EMOTE", true, 7 },
+    { "MONSTER_BOSS_WHISPER", true, 7 },
+    { "ERRORS", true, 7 },
+    { "AFK", true, 7 },
+    { "DND", true, 7 },
+    { "IGNORED", true, 7 },
+    { "BG_HORDE", true, 7 },
+    { "BG_ALLIANCE", true, 7 },
+    { "BG_NEUTRAL", true, 7 },
+    { "COMBAT_FACTION_CHANGE", true, 1 },
+    { "SKILL", true, 0 },
+    { "LOOT", true, 0 },
+    { "MONEY", true, 2 },
+    { "CHANNEL", true, 0 },
+    { "ACHIEVEMENT", true, 8 },
+    { "GUILD_ACHIEVEMENT", true, 8 },
+    { "TARGETICONS", false, 11 },
+    { "BN_WHISPER", true, 12 },
+    { "BN_WHISPER_INFORM", true, 12 },
+    { "BN_CONVERSATION", true, 12 },
+    { "BN_INLINE_TOAST_ALERT", true, 13 },
+    { "OPENING", true, 6 },
+    { "TRADESKILLS", true, 6 },
+    { "PET_INFO", true, 6 },
+    { "COMBAT_XP_GAIN", true, 0 },
+    { "COMBAT_HONOR_GAIN", true, 0 },
+    { "COMBAT_MISC_INFO", true, 0 },
+};
+
+// STATIC: 0x00B743CC
+int32_t s_activeVoiceChannel;
+
+// STATIC: 0x00B743D0
+uint8_t s_collapsedHeaders[3];
+
+// STATIC: 0x00B743D3
+static bool s_pendingUserListActive;
+
+// STATIC: 0x00B743D4
+static uint32_t s_activeDisplayChannelFlags;
+
+// STATIC: 0x00B743D8
+static int32_t s_displayChannelMemberCount;
+
+// STATIC: 0x00B743DC
+static int32_t s_activeDisplayChannelType;
+
+// STATIC: 0x00B743E0
+char CGChat::s_activeDisplayChannelName[128];
+
+// STATIC: 0x00B74460
+uint32_t s_numDisplayChannels;
+
+// STATIC: 0x00B74464
+static AreaTableRec* s_cityArea;
+
+// STATIC: 0x00B74468
+DisplayChannel CGChat::s_displayChannels[20];
+
+// STATIC: 0x00B746E8
+ChatColorInfo s_chatColors[CHAT_MSG_MAX];
+
+// STATIC: 0x00B75950
+static char s_inviteChannelName[128];
+
+// STATIC: 0x00BCEFE4
+int32_t CGChat::m_loaded;
+
+// STATIC: 0x00BCEFE8
+int32_t CGChat::m_registered;
+
+// STATIC: 0x00BCEFFC
+int32_t CGChat::m_complaintsSystemStatus;
+
+// STATIC: 0x00BCF010
+static uint32_t s_joinedZoneChannels;
+
+// STATIC: 0x00BCF09C
+TSGrowableArray<ChatColorInfo> s_channelColors;
+
+// STATIC: 0x00BCF0B0
+ChatWindowInfo s_chatWindows[10];
+
+// STATIC: 0x00BCFAF0
+static TSHashTable<WORDLIST, HASHKEY_LANGUAGE> s_wordLists;
+
+// STATIC: 0x00BCFB68
+static TSFixedArray<PENDINGUSERLIST> s_pendingUsers;
+
+// STATIC: 0x00AC7D48
+TSExplicitList<PENDINGTEXTEMOTE, 0> CGChat::s_pendingTextEmotes;
+
+// VERIFY: 36ed0e4f auto
+// OFFSET: 0x004FBAF0
+int32_t CGChat::IsVoiceChatAllowed() {
+    return CGChat::m_voiceChatSystemStatus && !ComSatClient_IsComsatDisabledByClient();
+}
 
 // VERIFY: 22eb502f auto
 // OFFSET: 0x004FB1A0
@@ -1573,116 +1686,6 @@ bool ChatParserParseText(const char* text, char* buffer, uint32_t size) {
     SStrPack(buffer, start, size);
     return valid;
 }
-
-// STATIC: 0x009FB7C0
-static const ChatMessageGroup s_chatMessageGroups[46] = {
-    { "SYSTEM", true, 0 },
-    { "SYSTEM_NOMENU", true, 5 },
-    { "SAY", true, 0 },
-    { "EMOTE", true, 7 },
-    { "YELL", true, 0 },
-    { "WHISPER", true, 0 },
-    { "PARTY", true, 0 },
-    { "PARTY_LEADER", true, 10 },
-    { "RAID", true, 7 },
-    { "RAID_LEADER", true, 7 },
-    { "RAID_WARNING", true, 7 },
-    { "BATTLEGROUND", true, 7 },
-    { "BATTLEGROUND_LEADER", true, 7 },
-    { "GUILD", true, 0 },
-    { "OFFICER", true, 7 },
-    { "MONSTER_SAY", true, 7 },
-    { "MONSTER_YELL", true, 7 },
-    { "MONSTER_EMOTE", true, 7 },
-    { "MONSTER_WHISPER", true, 7 },
-    { "MONSTER_BOSS_EMOTE", true, 7 },
-    { "MONSTER_BOSS_WHISPER", true, 7 },
-    { "ERRORS", true, 7 },
-    { "AFK", true, 7 },
-    { "DND", true, 7 },
-    { "IGNORED", true, 7 },
-    { "BG_HORDE", true, 7 },
-    { "BG_ALLIANCE", true, 7 },
-    { "BG_NEUTRAL", true, 7 },
-    { "COMBAT_FACTION_CHANGE", true, 1 },
-    { "SKILL", true, 0 },
-    { "LOOT", true, 0 },
-    { "MONEY", true, 2 },
-    { "CHANNEL", true, 0 },
-    { "ACHIEVEMENT", true, 8 },
-    { "GUILD_ACHIEVEMENT", true, 8 },
-    { "TARGETICONS", false, 11 },
-    { "BN_WHISPER", true, 12 },
-    { "BN_WHISPER_INFORM", true, 12 },
-    { "BN_CONVERSATION", true, 12 },
-    { "BN_INLINE_TOAST_ALERT", true, 13 },
-    { "OPENING", true, 6 },
-    { "TRADESKILLS", true, 6 },
-    { "PET_INFO", true, 6 },
-    { "COMBAT_XP_GAIN", true, 0 },
-    { "COMBAT_HONOR_GAIN", true, 0 },
-    { "COMBAT_MISC_INFO", true, 0 },
-};
-
-// STATIC: 0x00B743CC
-static int32_t s_activeVoiceChannel;
-
-// STATIC: 0x00B743D0
-static uint8_t s_collapsedHeaders[3];
-
-// STATIC: 0x00B743D3
-static bool s_pendingUserListActive;
-
-// STATIC: 0x00B743D4
-static uint32_t s_activeDisplayChannelFlags;
-
-// STATIC: 0x00B743D8
-static int32_t s_displayChannelMemberCount;
-
-// STATIC: 0x00B743DC
-static int32_t s_activeDisplayChannelType;
-
-// STATIC: 0x00B743E0
-char CGChat::s_activeDisplayChannelName[128];
-
-// STATIC: 0x00B74460
-static uint32_t s_numDisplayChannels;
-
-// STATIC: 0x00B74464
-static AreaTableRec* s_cityArea;
-
-// STATIC: 0x00B74468
-DisplayChannel CGChat::s_displayChannels[20];
-
-// STATIC: 0x00B746E8
-static ChatColorInfo s_chatColors[CHAT_MSG_MAX];
-
-// STATIC: 0x00B75950
-static char s_inviteChannelName[128];
-
-// STATIC: 0x00BCEFE4
-int32_t CGChat::m_loaded;
-
-// STATIC: 0x00BCEFE8
-int32_t CGChat::m_registered;
-
-// STATIC: 0x00BCEFFC
-int32_t CGChat::m_complaintsSystemStatus;
-
-// STATIC: 0x00BCF010
-static uint32_t s_joinedZoneChannels;
-
-// STATIC: 0x00BCF09C
-static TSGrowableArray<ChatColorInfo> s_channelColors;
-
-// STATIC: 0x00BCF0B0
-static ChatWindowInfo s_chatWindows[10];
-
-// STATIC: 0x00BCFAF0
-static TSHashTable<WORDLIST, HASHKEY_LANGUAGE> s_wordLists;
-
-// STATIC: 0x00BCFB68
-static TSFixedArray<PENDINGUSERLIST> s_pendingUsers;
 
 // VERIFY: 2df1a620 manual
 // OFFSET: 0x004FB410
@@ -3124,9 +3127,6 @@ void CGChat::UpdateLanguages() {
     FrameScript_SignalEvent(SCRIPT_EVENT_LANGUAGE_LIST_CHANGED, nullptr);
 }
 
-// STATIC: 0x00AC7D48
-TSExplicitList<PENDINGTEXTEMOTE, 0> CGChat::s_pendingTextEmotes;
-
 // VERIFY: ab07ffc0 manual
 // OFFSET: 0x004FE1C0
 const char* CGChat::GetChannelStringForDisplay(int32_t session, int32_t* type) {
@@ -3738,4 +3738,23 @@ void CGChat::LogFactionChanged(int32_t faction, int32_t delta, int32_t generic, 
     SStrPrintf(text, sizeof(text), FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE), rec->m_name, abs(delta), bonus);
     CGChat::AddChatMessage(text, CHAT_MSG_COMBAT_FACTION_CHANGE, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
     SendToCombatText(36, rec->m_name, delta);
+}
+
+// VERIFY: 5920534b auto
+// OFFSET: 0x004FB400
+int32_t CGChat::IsChatLogging(int32_t type) {
+    return s_chatLogging[type];
+}
+
+// VERIFY: 13db2022 auto
+// OFFSET: 0x004FB3C0
+void CGChat::AddCombatMessage(const char* text) {
+    if (!text) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    if (s_chatLogging[1]) {
+        SLogWrite(s_chatLog, "%s", text);
+    }
 }

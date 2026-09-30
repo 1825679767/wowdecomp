@@ -19,6 +19,21 @@ uint32_t CGUIMacros::m_sortedMacros[72];
 // STATIC: 0x00BEAF68
 static TSHashTable<MACRONODE, HASHKEY_NONE> s_macros;
 
+// STATIC: 0x00ACE1E8
+static const char* s_macroIconPath = "Interface\\Icons\\";
+
+// STATIC: 0x00BEAF48
+const char* CGUIMacros::m_macroRunning;
+
+// STATIC: 0x00BEAF4C
+MACRONODE* CGUIMacros::m_macroButton;
+
+// STATIC: 0x00BEAF50
+uint32_t CGUIMacros::m_numMacros;
+
+// STATIC: 0x00BEAF54
+uint32_t CGUIMacros::m_numCharacterMacros;
+
 // VERIFY: 395f9dc1 auto
 // OFFSET: 0x00564AB0
 int32_t CGUIMacros::GetMacroIndexByID(uint32_t id) {
@@ -87,9 +102,6 @@ MACRONODE* CGUIMacros::GetMacroByID(uint32_t id) {
     return s_macros.Ptr(id, HASHKEY_NONE());
 }
 
-// STATIC: 0x00ACE1E8
-static const char* s_macroIconPath = "Interface\\Icons\\";
-
 // VERIFY: 1c1a9d37 manual
 // OFFSET: 0x00566AC0
 void CGUIMacros::GetFullIconPath(uint32_t id, char* buffer, uint32_t size) {
@@ -146,4 +158,20 @@ void CGUIMacros::GetFullIconPath(uint32_t id, char* buffer, uint32_t size) {
     }
 
     SStrPrintf(buffer, size, "%s%s", s_macroIconPath, macro->m_icon);
+}
+
+// VERIFY: ee9d285c manual
+// OFFSET: 0x00566330
+MACRONODE* CGUIMacros::FindMacro(const char* name) {
+    if (!name || !*name) {
+        return nullptr;
+    }
+
+    for (MACRONODE* macro = s_macros.m_fulllist.Head(); macro; macro = s_macros.m_fulllist.Next(macro)) {
+        if (!SStrCmpI(name, macro->m_name, STORM_MAX_STR)) {
+            return macro;
+        }
+    }
+
+    return nullptr;
 }

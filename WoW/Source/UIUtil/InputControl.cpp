@@ -42,7 +42,7 @@ int32_t s_joystickMouseEnabled = 1;
 CGInputControl* CGInputControl::s_inputControl;
 
 // STATIC: 0x00C24958
-static float s_vehicleAimNormPower;
+float s_vehicleAimNormPower;
 
 // VERIFY: 13a95e59 auto
 // OFFSET: 0x005F95D0
@@ -347,7 +347,7 @@ int32_t CGInputControl::CameraCanTurnPlayer() const {
     return (this->m_flags & 0x2000001) != 0;
 }
 
-// VERIFY: 54782c60 manual
+// VERIFY: da98c994 manual
 // OFFSET: 0x005FA910
 void CGInputControl::SendUIVehicleAngleUpdate(float angle) {
     CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
@@ -376,12 +376,12 @@ void CGInputControl::SendUIVehicleAngleUpdate(float angle) {
     float range = pitchMax - pitchMin;
     float normalized = fabsf(range) <= 0.000099999997f ? 0.0f : (angle - pitchMin) / range;
 
-    FrameScript_SignalEvent(585, "%f%f", static_cast<double>(normalized), static_cast<double>(angle));
+    FrameScript_SignalEvent(SCRIPT_EVENT_VEHICLE_ANGLE_UPDATE, "%f%f", static_cast<double>(normalized), static_cast<double>(angle));
 }
 
-// VERIFY: 08e6c5ef manual
+// VERIFY: 6da9c237 manual
 // OFFSET: 0x005FB560
-int32_t __stdcall CGInputControl::IsVehicleSeatFlagSet(uint32_t flags) {
+int32_t CGInputControl::IsVehicleSeatFlagSet(uint32_t flags) const {
     CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
 
     if (!mover) {
@@ -1272,4 +1272,10 @@ void CGInputControl::StopMovementAndTurning(uint32_t time) {
     this->ToggleControlBit(bits, 0, time, 0);
     this->UpdatePlayer(time, 1);
     this->ToggleControlBit(bits, 1, time, 0);
+}
+
+// VERIFY: 2d993d52 auto
+// OFFSET: 0x005F9540
+uint32_t GetJoystick() {
+    return s_joystick;
 }

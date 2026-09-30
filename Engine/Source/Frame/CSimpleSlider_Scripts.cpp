@@ -218,6 +218,19 @@ static int32_t Script_Disable(lua_State* L) {
     return 0;
 }
 
+// VERIFY: e4dec925 auto
+// OFFSET: 0x00971A60
+void CSimpleSlider::DestroyScriptMetaTable() {
+    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CSimpleSlider::s_metatable);
+    CSimpleSlider::s_metatable = LUA_NOREF;
+}
+
+// VERIFY: b274e4b5 auto
+// OFFSET: 0x009720C0
+void CSimpleSlider::CreateScriptMetaTable() {
+    CSimpleSlider::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CSimpleSlider::RegisterScriptMethods);
+}
+
 // STATIC: 0x00B2CE20
 static FrameScript_Method s_ScriptMethods[] = {
     { "GetThumbTexture", &Script_GetThumbTexture },
@@ -240,17 +253,4 @@ static FrameScript_Method s_ScriptMethods[] = {
 void CSimpleSlider::RegisterScriptMethods(lua_State* L) {
     CSimpleFrame::RegisterScriptMethods(L);
     FrameScript_Object::FillScriptMethodTable(L, s_ScriptMethods, sizeof(s_ScriptMethods) / sizeof(s_ScriptMethods[0]));
-}
-
-// VERIFY: e4dec925 auto
-// OFFSET: 0x00971A60
-void CSimpleSlider::DestroyScriptMetaTable() {
-    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CSimpleSlider::s_metatable);
-    CSimpleSlider::s_metatable = LUA_NOREF;
-}
-
-// VERIFY: b274e4b5 auto
-// OFFSET: 0x009720C0
-void CSimpleSlider::CreateScriptMetaTable() {
-    CSimpleSlider::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CSimpleSlider::RegisterScriptMethods);
 }

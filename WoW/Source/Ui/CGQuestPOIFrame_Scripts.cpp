@@ -5,9 +5,6 @@
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
 
-int32_t Script_SetFillAlpha(lua_State* L);
-int32_t Script_SetBorderAlpha(lua_State* L);
-int32_t Script_SetBorderScalar(lua_State* L);
 int32_t Script_DrawQuestBlob(lua_State* L);
 int32_t Script_SetMergeThreshold(lua_State* L);
 int32_t Script_SetNumSplinePoints(lua_State* L);
@@ -54,6 +51,69 @@ static int32_t Script_SetBorderTexture(lua_State* L) {
     return 0;
 }
 
+// VERIFY: 5609408a auto
+// OFFSET: 0x0058E000
+void CGQuestPOIFrame::DestroyScriptMetaTable() {
+    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CGQuestPOIFrame::s_metatable);
+    CGQuestPOIFrame::s_metatable = LUA_NOREF;
+}
+
+// VERIFY: 4ad94ed6 auto
+// OFFSET: 0x0058EB00
+void CGQuestPOIFrame::CreateScriptMetaTable() {
+    CGQuestPOIFrame::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CGQuestPOIFrame::RegisterScriptMethods);
+}
+
+// VERIFY: 76c68ec0 manual
+// OFFSET: 0x0058E660
+static int32_t Script_SetFillAlpha(lua_State* L) {
+    CGQuestPOIFrame* frame = static_cast<CGQuestPOIFrame*>(FrameScript_GetObjectThis(L, CGQuestPOIFrame::GetObjectType()));
+    double value = lua_tonumber(L, 2);
+    float alpha = value;
+
+    if (value > 255.0) {
+        alpha = 255.0f;
+    } else if (value < 0.0) {
+        alpha = 0.0f;
+    }
+
+    frame->m_fillAlpha = static_cast<uint8_t>(alpha);
+    return 0;
+}
+
+// VERIFY: fb909670 manual
+// OFFSET: 0x0058E6F0
+static int32_t Script_SetBorderAlpha(lua_State* L) {
+    CGQuestPOIFrame* frame = static_cast<CGQuestPOIFrame*>(FrameScript_GetObjectThis(L, CGQuestPOIFrame::GetObjectType()));
+    double value = lua_tonumber(L, 2);
+    float alpha = value;
+
+    if (value > 255.0) {
+        alpha = 255.0f;
+    } else if (value < 0.0) {
+        alpha = 0.0f;
+    }
+
+    frame->m_borderAlpha = static_cast<uint8_t>(alpha);
+    return 0;
+}
+
+// VERIFY: 8b6a60cf manual
+// OFFSET: 0x0058E780
+static int32_t Script_SetBorderScalar(lua_State* L) {
+    CGQuestPOIFrame* frame = static_cast<CGQuestPOIFrame*>(FrameScript_GetObjectThis(L, CGQuestPOIFrame::GetObjectType()));
+    double scalar = lua_tonumber(L, 2);
+
+    if (scalar > 10.0) {
+        scalar = 10.0;
+    } else if (scalar < 0.0) {
+        scalar = 0.0;
+    }
+
+    frame->m_borderScalar = scalar;
+    return 0;
+}
+
 // STATIC: 0x00ACF180
 static FrameScript_Method s_ScriptMethods[] = {
     { "SetFillTexture", &Script_SetFillTexture },
@@ -77,17 +137,4 @@ static FrameScript_Method s_ScriptMethods[] = {
 void CGQuestPOIFrame::RegisterScriptMethods(lua_State* L) {
     CSimpleFrame::RegisterScriptMethods(L);
     FrameScript_Object::FillScriptMethodTable(L, s_ScriptMethods, sizeof(s_ScriptMethods) / sizeof(s_ScriptMethods[0]));
-}
-
-// VERIFY: 5609408a auto
-// OFFSET: 0x0058E000
-void CGQuestPOIFrame::DestroyScriptMetaTable() {
-    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CGQuestPOIFrame::s_metatable);
-    CGQuestPOIFrame::s_metatable = LUA_NOREF;
-}
-
-// VERIFY: 4ad94ed6 auto
-// OFFSET: 0x0058EB00
-void CGQuestPOIFrame::CreateScriptMetaTable() {
-    CGQuestPOIFrame::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CGQuestPOIFrame::RegisterScriptMethods);
 }

@@ -184,3 +184,40 @@ int32_t CGCharacterModelBase::IsDrawable() {
 
     return 1;
 }
+
+// VERIFY: deda935b auto
+// OFFSET: 0x005970F0
+void CGCharacterModelBase::RotateModel(float facing) {
+    if (this->m_model && this->m_model->IsLoaded(0, 0)) {
+        uint32_t sequence = 0;
+
+        if (facing > this->m_facing) {
+            sequence = 12;
+        } else if (facing < this->m_facing) {
+            sequence = 11;
+        }
+
+        if (this->m_model->HasSequence(sequence) && sequence != this->m_model->GetBoneSequenceId(-1)) {
+            this->m_model->SetBoneSequence(-1, sequence, -1, 0, 1.0f, 1, 1);
+        }
+    }
+
+    this->m_sequenceSet = 1;
+    this->m_sequenceResetTime = OsGetAsyncTimeMs() + 100;
+    this->m_facing = facing;
+}
+
+// VERIFY: 4d21f06c manual
+// OFFSET: 0x005977E0
+void CGCharacterModelBase::RefreshUnit(WOWGUID guid) {
+    this->m_unitGuid = guid;
+    this->m_displayId = 0;
+
+    if (this->m_isVisible) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            this->SetUpModel(unit);
+        }
+    }
+}

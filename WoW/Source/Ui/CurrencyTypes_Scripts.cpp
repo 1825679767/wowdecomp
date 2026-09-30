@@ -3,6 +3,13 @@
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
 
+// VERIFY: 051f8586 auto
+// OFFSET: 0x005AFD10
+static int32_t Script_GetCurrencyListSize(lua_State* L) {
+    lua_pushnumber(L, CGCurrencyTypes::m_listSize);
+    return 1;
+}
+
 // STATIC: 0x00ACFC34
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetCurrencyListSize", &Script_GetCurrencyListSize },

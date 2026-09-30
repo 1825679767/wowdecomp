@@ -7,6 +7,8 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Common/Lightning.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/UIUtil/Camera.h"
+#include "WoW/Source/Ui/WorldFrame.h"
 
 // STATIC: 0x00D39750
 static CLightningManager* s_lightningManager;
@@ -124,4 +126,10 @@ void SpellVisualsBlizzardStop(BlizzardObject** object) {
 // OFFSET: 0x007F9F70
 int32_t SpellVisualsIsMountTransitionFinished(const MountTransitionObject* transition) {
     return (transition->unk_0078 >> 1) & 1;
+}
+
+// VERIFY: bea8214c auto
+// OFFSET: 0x007F9EC0
+void SpellVisualsRender() {
+    s_lightningManager->Render(CGWorldFrame::GetActiveCamera()->m_position);
 }

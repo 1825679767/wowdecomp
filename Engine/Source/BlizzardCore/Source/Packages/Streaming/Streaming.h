@@ -80,6 +80,7 @@ int32_t CheckFileRange(const char* path, int64_t offset, uint32_t count, const c
 uint32_t GetIsLocalAmount(const char* path, int64_t offset, uint32_t size, const char* name);
 bool IsStreamedFile(const char* path);
 bool IsStreamingMode();
+void SetZone(int32_t areaId, int32_t subzoneId);
 bool ScanDirectoryForManifest(const Blizzard::File::ProcessDirParms& parms);
 void MakePartFileName(char* name, uint32_t size);
 

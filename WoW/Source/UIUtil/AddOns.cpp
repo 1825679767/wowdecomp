@@ -3,17 +3,23 @@
 #include <cstring>
 #include <malloc.h>
 #include "Engine/Source/Base/CDataStore.h"
+#include "Engine/Source/Base/Status.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/FrameXML/FrameXML.h"
 #include "Engine/Source/FrameXML/LoadXML.h"
+#include "Engine/Source/Storm/Source/MD5.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
 #include "WoW/Source/Client.h"
 #include "WoW/Source/UIUtil/BannedAddOns.h"
 #include "WoW/Source/Ui/AddOns.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "ThirdParty/zlib/zlib.h"
+#include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/Ui/UIBindings.h"
 
 // STATIC: 0x00AD17B4
 static const char* s_addOnLoadableTokens[10] = { "LOADABLE", "MISSING", "DISABLED", "BANNED", "CORRUPT", "INSECURE", "DEMAND_LOADED", "INTERFACE_VERSION", "INCOMPATIBLE", "SECURE" };
@@ -899,6 +905,114 @@ static void LoadAddOnMetadata(UIADDON* addon, const char* line) {
     key[keyLength] = '\0';
 
     addon->SetMetadata(key, end);
+}
+
+// VERIFY: 1d3a10ae manual
+// OFFSET: 0x005F80B0
+bool LoadAddOn(const char* name, bool demandLoad, CStatus* status) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (!addon) {
+        return false;
+    }
+
+    if (addon->m_loading) {
+        return true;
+    }
+
+    const char* addonName = addon->m_key.m_str;
+    UIADDON_LOADABLE_REASON reason;
+    UIADDON_LOADABLE_REASON dependencyReason;
+
+    if (!IsAddOnLoadable(addonName, demandLoad, reason, dependencyReason, ClientServices::GetCharacterName())) {
+        return false;
+    }
+
+    addon->m_loading = true;
+
+    for (uint32_t i = 0; i < addon->m_optionalDeps.Count(); i++) {
+        LoadAddOn(addon->m_optionalDeps[i], true, status);
+    }
+
+    for (uint32_t i = 0; i < addon->m_requiredDeps.Count(); i++) {
+        if (!LoadAddOn(addon->m_requiredDeps[i], true, status)) {
+            addon->m_loading = false;
+            return false;
+        }
+    }
+
+    {
+        FrameScript_GetContext();
+        const char* savedTaint = lua_tainted;
+
+        if (++lua_taintexpected && !lua_taintedclosure) {
+            lua_tainted = addon->m_status ? addonName : nullptr;
+        }
+
+        const char* savedTag = lua_gctag;
+        lua_gctag = addon->m_status ? addonName : nullptr;
+
+        CStatus addonStatus;
+        MD5_CTX md5;
+        MD5Init(&md5);
+
+        char path[260];
+        SStrPrintf(path, sizeof(path), "Interface\\AddOns\\%s\\%s.toc", addonName, addonName);
+        lua_State* L = FrameScript_GetContext();
+        lua_createtable(L, 0, 0);
+        FrameXML_CreateFrames(path, addonName, &md5, &addonStatus);
+        lua_settop(L, -2);
+
+        SStrPrintf(path, sizeof(path), "Interface\\AddOns\\%s\\Bindings.xml", addonName);
+
+        if (SFile::FileExistsEx(path, 1)) {
+            CGUIBindings::s_bindings->Load(path, &md5, &addonStatus);
+        }
+
+        SStrPrintf(path, sizeof(path), "WTF\\Account\\%s\\SavedVariables\\%s.lua", s_addOnAccountName, addonName);
+
+        if (SFile::FileExistsEx(path, 1)) {
+            FrameScript_LoadVariables(path, &addonStatus);
+        }
+
+        SStrPrintf(path, sizeof(path), "WTF\\Account\\%s\\%s\\%s\\SavedVariables\\%s.lua", s_addOnAccountName, ClientServices::GetSelectedRealmName(), ClientServices::GetCharacterName(), addonName);
+
+        if (SFile::FileExistsEx(path, 1)) {
+            FrameScript_LoadVariables(path, &addonStatus);
+        }
+
+        if (FrameXML_GetDebugLevel() > 0 || addonStatus.m_highestSeverity > STATUS_INFO) {
+            addonStatus.Prepend(STATUS_INFO, "Loading add-on %s", addonName);
+        }
+
+        status->Add(addonStatus);
+
+        uint8_t digest[16];
+        MD5Final(digest, &md5);
+
+        if (!addon->m_status && memcmp(addon->m_digest, digest, sizeof(digest))) {
+            ClientPostClose(10);
+        }
+
+        lua_gctag = savedTag;
+
+        if (lua_taintexpected && !lua_taintedclosure) {
+            lua_tainted = savedTaint;
+        }
+
+        if (--lua_taintexpected <= 0) {
+            lua_taintexpected = 0;
+        }
+    }
+
+    addon->m_loaded = true;
+    FrameScript_SignalEvent(SCRIPT_EVENT_ADDON_LOADED, "%s", addonName);
+
+    for (uint32_t i = 0; i < addon->m_loadWithMe.Count(); i++) {
+        LoadAddOn(addon->m_loadWithMe[i]->m_key.m_str, demandLoad, status);
+    }
+
+    return true;
 }
 
 // VERIFY: 96a89a20 auto

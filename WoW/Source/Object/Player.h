@@ -70,15 +70,12 @@ class CGPlayerLocalData : public CGPlayerData {
     /* 0570 */ WOWGUID m_playerFieldKeyringSlot1 [32];
     /* 0670 */ WOWGUID m_playerFieldCurrencytokenSlot1 [32];
     /* 0770 */ WOWGUID m_playerFarsight;
-    /* 0778 */ WOWGUID m_playerFieldKnownTitles;
-    /* 0780 */ WOWGUID m_playerFieldKnownTitles1;
-    /* 0788 */ WOWGUID m_playerFieldKnownTitles2;
+    /* 0778 */ uint64_t m_playerFieldKnownTitles [3];
     /* 0790 */ WOWGUID m_playerFieldKnownCurrencies;
     /* 0798 */ uint32_t m_playerXp;
     /* 079C */ uint32_t m_playerNextLevelXp;
     /* 07A0 */ PlayerSkillInfo m_playerSkillInfo [128];
-    /* 0DA0 */ uint32_t m_playerCharacterPoints1;
-    /* 0DA4 */ uint32_t m_playerCharacterPoints2;
+    /* 0DA0 */ int32_t m_playerCharacterPoints [2];
     /* 0DA8 */ uint32_t m_playerTrackCreatures;
     /* 0DAC */ uint32_t m_playerTrackResources;
     /* 0DB0 */ float m_playerBlockPercentage;

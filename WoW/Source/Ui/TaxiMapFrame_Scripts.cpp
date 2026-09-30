@@ -2,6 +2,153 @@
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
+#include "Engine/Source/lua-5.1/src/lauxlib.h"
+#include "Engine/Source/Frame/CSimpleTexture.h"
+#include "WoW/Source/DB/Rec/TaxiNodesRec.h"
+
+// VERIFY: 70a6c64a manual
+// OFFSET: 0x00590D10
+static int32_t Script_SetTaxiMap(lua_State* L) {
+    if (CGTaxiMap::m_mapTexture) {
+        CTexture* texture = CGTaxiMap::m_mapTexture;
+        static_cast<CSimpleTexture*>(FrameScript_GetObjectThis(L, CSimpleTexture::GetObjectType()))->SetTexture(texture);
+    }
+
+    return 0;
+}
+
+// VERIFY: 341f53fa manual
+// OFFSET: 0x00590710
+static int32_t Script_NumTaxiNodes(lua_State* L) {
+    lua_pushnumber(L, CGTaxiMap::m_numNodes);
+    return 1;
+}
+
+// VERIFY: f86dd911 manual
+// OFFSET: 0x00590D60
+static int32_t Script_TaxiNodeName(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: TaxiNodeName(slot)");
+        return 0;
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index >= CGTaxiMap::m_numNodes) {
+        lua_pushstring(L, "INVALID");
+    } else {
+        lua_pushstring(L, CGTaxiMap::m_nodes.m_data[index].m_rec->m_name);
+    }
+
+    return 1;
+}
+
+// VERIFY: 3ea6e937 manual
+// OFFSET: 0x00590E00
+static int32_t Script_TaxiNodePosition(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: TaxiNodePosition(slot)");
+        return 0;
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index >= CGTaxiMap::m_numNodes) {
+        luaL_error(L, "Invalid taxi node slot");
+    }
+
+    TaxiNodeInfo* node = &CGTaxiMap::m_nodes.m_data[index];
+    float y = node->m_y;
+    lua_pushnumber(L, node->m_x);
+    lua_pushnumber(L, y);
+    return 2;
+}
+
+// VERIFY: ce65bfe9 manual
+// OFFSET: 0x005911C0
+static int32_t Script_GetNumRoutes(lua_State* L) {
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t routes;
+
+    if (index < CGTaxiMap::m_numNodes) {
+        TaxiNodeInfo* node = &CGTaxiMap::m_nodes.m_data[index];
+        routes = node->m_noDirectPath ? node->m_numHops - 1 : 1;
+    } else {
+        routes = 0;
+    }
+
+    lua_pushnumber(L, routes);
+    return 1;
+}
+
+// VERIFY: d1dc00e8 manual
+// OFFSET: 0x00590F40
+static int32_t Script_TaxiGetSrcX(lua_State* L) {
+    int32_t line = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    int32_t node = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    float value;
+
+    if (node < 0 || node >= CGTaxiMap::m_numNodes || line < 0 || line >= static_cast<int32_t>(CGTaxiMap::m_routeLines.m_data[node].Count())) {
+        value = 0.0f;
+    } else {
+        value = CGTaxiMap::m_routeLines.m_data[node].m_data[line].m_src.x;
+    }
+
+    lua_pushnumber(L, value);
+    return 1;
+}
+
+// VERIFY: 7476c291 manual
+// OFFSET: 0x00590FE0
+static int32_t Script_TaxiGetSrcY(lua_State* L) {
+    int32_t line = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    int32_t node = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    float value;
+
+    if (node < 0 || node >= CGTaxiMap::m_numNodes || line < 0 || line >= static_cast<int32_t>(CGTaxiMap::m_routeLines.m_data[node].Count())) {
+        value = 0.0f;
+    } else {
+        value = CGTaxiMap::m_routeLines.m_data[node].m_data[line].m_src.y;
+    }
+
+    lua_pushnumber(L, value);
+    return 1;
+}
+
+// VERIFY: 8a72d78b manual
+// OFFSET: 0x00591080
+static int32_t Script_TaxiGetDestX(lua_State* L) {
+    int32_t line = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    int32_t node = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    float value;
+
+    if (node < 0 || node >= CGTaxiMap::m_numNodes || line < 0 || line >= static_cast<int32_t>(CGTaxiMap::m_routeLines.m_data[node].Count())) {
+        value = 0.0f;
+    } else {
+        value = CGTaxiMap::m_routeLines.m_data[node].m_data[line].m_dest.x;
+    }
+
+    lua_pushnumber(L, value);
+    return 1;
+}
+
+// VERIFY: 9f2e4158 manual
+// OFFSET: 0x00591120
+static int32_t Script_TaxiGetDestY(lua_State* L) {
+    int32_t line = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    int32_t node = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    float value;
+
+    if (node < 0 || node >= CGTaxiMap::m_numNodes || line < 0 || line >= static_cast<int32_t>(CGTaxiMap::m_routeLines.m_data[node].Count())) {
+        value = 0.0f;
+    } else {
+        value = CGTaxiMap::m_routeLines.m_data[node].m_data[line].m_dest.y;
+    }
+
+    lua_pushnumber(L, value);
+    return 1;
+}
 
 // STATIC: 0x00ACF258
 static FrameScript_Method s_ScriptFunctions[] = {

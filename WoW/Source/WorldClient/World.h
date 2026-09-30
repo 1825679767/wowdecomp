@@ -322,6 +322,8 @@ extern uint32_t s_maxPortalDepth;
 extern int32_t s_entityCanLink;
 extern WOWGUID s_highlightedObjectGuid;
 
+class WMOAreaTableRec;
+
 namespace World {
     class HitTestDebug;
 
@@ -358,6 +360,12 @@ namespace World {
     int32_t QueryLiquidStatus(C3Vector* pos, int32_t* liquidType, float* height);
     int32_t ObjectIsDrawable(CMapBaseObj* object);
     int32_t QueryObjectInside(CMapEntity* entity);
+    int32_t QueryAreaIdAtPosition(const C3Vector* position, int32_t* areaId);
+    double GetFramerate();
+    bool QueryMapObjIDs(CMapEntity* entity, int32_t* wmoId, int32_t* wmoHash, int32_t* groupNum);
+    int32_t QueryMapObjZoneName(CMapEntity* entity, const char** zoneName);
+    int32_t QueryMapObjSubzoneName(CMapEntity* entity, const char** subzoneName, int32_t* areaId);
+    bool QueryMapObjAreaTable(CMapEntity* entity, WMOAreaTableRec** groupRec, WMOAreaTableRec** rootRec, int32_t* wmoGroupId);
     void Preload(const C3Vector& position, int32_t a2);
     int32_t QueryMapId();
     void UpdateObjectFadeouts();

@@ -66,6 +66,12 @@ int32_t CMapChunk::farCornerIndex;
 // STATIC: 0x00CD8F3C
 int32_t CMapChunk::nearCornerIndex;
 
+// STATIC: 0x00A405E8
+static const int32_t s_subVertexTriangles[12] = { 17, 9, 0, 9, 1, 0, 9, 17, 18, 9, 18, 1 };
+
+// STATIC: 0x00A40618
+static const int32_t s_subVertexIndexFlat[5] = { 0, 9, 17, 1, 18 };
+
 // VERIFY: ed4a5d5b manual
 // OFFSET: 0x00790520
 void CMapChunk::GetVertexPosition(int32_t index, C3Vector* pos) {
@@ -1455,12 +1461,6 @@ int32_t CMapChunk::Intersect(int32_t subX, int32_t subY, const C3Ray& ray, float
 
     return hit;
 }
-
-// STATIC: 0x00A405E8
-static const int32_t s_subVertexTriangles[12] = { 17, 9, 0, 9, 1, 0, 9, 17, 18, 9, 18, 1 };
-
-// STATIC: 0x00A40618
-static const int32_t s_subVertexIndexFlat[5] = { 0, 9, 17, 1, 18 };
 
 // VERIFY: ba2b9143 manual
 // OFFSET: 0x007D8840

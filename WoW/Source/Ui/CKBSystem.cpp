@@ -9,12 +9,12 @@
 CDynamicString s_motd;
 
 // STATIC: 0x00BEA808
-static CDynamicString s_unk_BEA808;
+CDynamicString s_serverStatus;
 
 // STATIC: 0x00BEA814
-static CDynamicString s_unk_BEA814;
+CDynamicString s_serverNotice;
 
-// VERIFY: 029a4910 auto
+// VERIFY: 7fbf928c auto
 // OFFSET: 0x00551660
 static int32_t Packet_SMSG_MOTD(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     if (msgId != SMSG_MOTD) {
@@ -41,7 +41,7 @@ static int32_t Packet_SMSG_MOTD(void* param, NETMESSAGE msgId, uint32_t time, CD
         s_motd += line;
     }
 
-    FrameScript_SignalEvent(492, nullptr);
+    FrameScript_SignalEvent(SCRIPT_EVENT_KNOWLEDGE_BASE_SYSTEM_MOTD_UPDATED, nullptr);
 
     return 1;
 }
@@ -52,22 +52,22 @@ void CKBSystem::Initialize() {
     ClientServices::SetMessageHandler(SMSG_MOTD, Packet_SMSG_MOTD, nullptr);
 }
 
-// VERIFY: e4cff749 auto
+// VERIFY: 8a77d173 auto
 // OFFSET: 0x005515F0
 void CKBSystem::Shutdown() {
     s_motd.Free();
-    s_unk_BEA808.Free();
-    s_unk_BEA814.Free();
+    s_serverStatus.Free();
+    s_serverNotice.Free();
     ClientServices::ClearMessageHandler(SMSG_MOTD);
 }
 
-// VERIFY: 15855df3 manual
+// VERIFY: ce13b280 manual
 // OFFSET: 0x00551620
 void CKBSystem::CacheServerMessage(const char* text, int32_t id) {
     if (id == 3) {
-        s_unk_BEA814 = text;
+        s_serverNotice = text;
     } else {
-        s_unk_BEA808 = text;
+        s_serverStatus = text;
     }
 
     FrameScript_SignalEvent(SCRIPT_EVENT_KNOWLEDGE_BASE_SERVER_MESSAGE, nullptr);

@@ -87,7 +87,7 @@ class BattlenetLogin : public Login {
     void CommitMatrix() override;
     void FinalizeMatrix() override;
     bool GetMatrixInfo(uint32_t* width, uint32_t* height, uint32_t* minDigits, uint32_t* maxDigits, bool* flipCoords, uint32_t* challengeCount) override;
-    void GetMatrixCoordinates(uint32_t index, uint32_t* x, uint32_t* y) override;
+    bool GetMatrixCoordinates(uint32_t index, uint32_t* x, uint32_t* y) override;
     void EnterToken(const char* token) override;
     bool IsTrialAccount() override;
     bool IsGMAccount() override;

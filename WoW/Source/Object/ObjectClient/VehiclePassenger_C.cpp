@@ -12,6 +12,7 @@
 #include "WoW/Source/Object/Object.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
+#include "WoW/Source/Ui/Types.h"
 
 // STATIC: 0x00CA135C
 uint32_t* CVehiclePassenger_C::s_passengerPool;
@@ -783,14 +784,14 @@ int32_t CVehiclePassenger_C::CheckForVehicleTransitionAnimTimeout() {
     return 1;
 }
 
-// VERIFY: e8617fcb auto
+// VERIFY: d1f79f7d auto
 // OFFSET: 0x00747F40
 void CVehiclePassenger_C::OnSetActiveMover(CGUnit_C* unit) {
     const VehicleRec* vehicleRec = nullptr;
 
     if (unit) {
         vehicleRec = unit->m_vehicle ? unit->m_vehicle->m_vehicleRec : nullptr;
-        FrameScript_SignalEvent(656, nullptr);
+        FrameScript_SignalEvent(SCRIPT_EVENT_VEHICLE_UPDATE, nullptr);
 
         if (vehicleRec) {
             CGUnit_C::StartMissileTrajectoryTargeting(unit, vehicleRec);
@@ -819,5 +820,18 @@ void CVehiclePassenger_C::StopWaitingForVehicleTransitionAnim() {
 
     if (this->m_deferredTransitionSpline) {
         this->ExecuteAllDeferredVehicleTransitionAnimSplines();
+    }
+}
+
+// VERIFY: b352fb18 auto
+// OFFSET: 0x00747990
+void CVehiclePassenger_C::ExecuteAllDeferredVehicleTransitionAnimSplines() {
+    CDataStore* spline = this->m_deferredTransitionSpline;
+    WOWGUID transport = this->m_transitionAnimGuid;
+    this->m_deferredTransitionSpline = nullptr;
+    this->m_unit->OnMonsterMove(spline, transport.m_guid ? SMSG_MONSTER_MOVE_TRANSPORT : SMSG_ON_MONSTER_MOVE, transport.m_guid, this->m_transitionAnimSeat, 0);
+
+    if (spline) {
+        delete spline;
     }
 }

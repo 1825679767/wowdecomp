@@ -57,3 +57,24 @@ CGameTime::CGameTime() {
     this->m_lastTickMs = 0;
     this->m_running = 0;
 }
+
+// VERIFY: d1c1b754 auto
+// OFFSET: 0x004C9850
+bool CGameTime::IsDaytime() {
+    CGameTime time;
+    time.SetHourAndMinutes(this->GetHourAndMinutes());
+    time.SetDate(0, 0, 0);
+
+    uint32_t value;
+    WowTime end;
+    WowTime::WowEncodeTime(value, 0, 21, -1, -1, -1, -1, 0);
+    WowTime::WowDecodeTime(value, &end);
+    end.m_tzHours = 0;
+
+    WowTime start;
+    WowTime::WowEncodeTime(value, 30, 5, -1, -1, -1, -1, 0);
+    WowTime::WowDecodeTime(value, &start);
+    start.m_tzHours = 0;
+
+    return time.InRange(start, end);
+}

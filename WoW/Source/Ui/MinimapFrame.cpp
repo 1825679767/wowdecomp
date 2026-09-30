@@ -21,6 +21,8 @@
 #include "WoW/Source/UIUtil/Tooltip.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/WorldFrame.h"
+#include "Engine/Source/Tempest/CMath.h"
+#include "WoW/Source/DB/Rec/AreaPOIRec.h"
 
 // STATIC: 0x00ACEBAC
 int32_t CGMinimapFrame::s_scaleChanged = 1;
@@ -69,6 +71,82 @@ CDataAllocator CGMinimapFrame::s_minimapHeap(sizeof(CGMinimapFrame), 1);
 
 // STATIC: 0x00BF7FC8
 C3Vector CGMinimapFrame::s_blipQuads[3][4];
+
+// STATIC: 0x00BEBA64
+const TrackingTypeInfo* CGMinimapFrame::s_trackingInfo;
+
+// STATIC: 0x00BEBA68
+int32_t CGMinimapFrame::s_trackingSpell;
+
+// STATIC: 0x00BEBA04
+static CTexture* s_vehicleTextures[7];
+
+// STATIC: 0x00BEBA20
+static CTexture* s_groupArrowTexture;
+
+// STATIC: 0x00BEBA24
+static CTexture* s_staticPOIArrowTexture;
+
+// STATIC: 0x00BEBA28
+static CTexture* s_corpseArrowTexture;
+
+// STATIC: 0x00BEBA2C
+static CTexture* s_poiArrowTexture;
+
+// STATIC: 0x00BEBA30
+static CTexture* s_maskTexture;
+
+// STATIC: 0x00BEBA34
+static CTexture* s_classBlipTexture;
+
+// STATIC: 0x00BEBA38
+static CTexture* s_blipTexture;
+
+// STATIC: 0x00BEBA3C
+static CTexture* s_iconTexture;
+
+// STATIC: 0x00BF6148
+static C2Vector s_iconTexCoords[196][4];
+
+// STATIC: 0x00BF79C8
+static C2Vector s_classBlipTexCoords[16][4];
+
+// STATIC: 0x00BF7BC8
+static C2Vector s_blipTexCoords[32][4];
+
+// STATIC: 0x00BEBA40
+static int32_t s_unkBEBA40;
+
+// STATIC: 0x00BF5F1C
+static float s_unkBF5F1C;
+
+// STATIC: 0x00BF5F14
+static CTexture* s_renderTarget;
+
+// STATIC: 0x00BEB9A8
+static uint32_t s_unkBEB9A8[23];
+
+// STATIC: 0x00A11C50
+const TrackingTypeInfo CGMinimapFrame::s_trackingTypes[15] = {
+    { 1, 0x1000, "MINIMAP_TRACKING_REPAIR", "Repair", 0x0 },
+    { 1, 0x200, "MINIMAP_TRACKING_VENDOR_FOOD", "Food", 0x0 },
+    { 1, 0x400, "MINIMAP_TRACKING_VENDOR_POISON", "Poisons", 0x10 },
+    { 1, 0x100, "MINIMAP_TRACKING_VENDOR_AMMO", "Ammunition", 0x1A },
+    { 1, 0x800, "MINIMAP_TRACKING_VENDOR_REAGENT", "Reagents", 0x0 },
+    { 1, 0x10000, "MINIMAP_TRACKING_INNKEEPER", "Innkeeper", 0x0 },
+    { 1, 0x2000, "MINIMAP_TRACKING_FLIGHTMASTER", "FlightMaster", 0x0 },
+    { 1, 0x400000, "MINIMAP_TRACKING_STABLEMASTER", "StableMaster", 0x8 },
+    { 1, 0x100000, "MINIMAP_TRACKING_BATTLEMASTER", "BattleMaster", 0x0 },
+    { 1, 0x20, "MINIMAP_TRACKING_TRAINER_CLASS", "Class", 0x0 },
+    { 1, 0x40, "MINIMAP_TRACKING_TRAINER_PROFESSION", "Profession", 0x0 },
+    { 1, 0x200000, "MINIMAP_TRACKING_AUCTIONEER", "Auctioneer", 0x0 },
+    { 1, 0x20000, "MINIMAP_TRACKING_BANKER", "Banker", 0x0 },
+    { 2, 0x13, "MINIMAP_TRACKING_MAILBOX", "Mailbox", 0x0 },
+    { 3, 0x0, "MINIMAP_TRACKING_TRIVIAL_QUESTS", "TrivialQuests", 0x0 },
+};
+
+// STATIC: 0x00D39490
+static AreaPOIRec s_dynamicPOIs[2];
 
 // INLINED
 void CGMinimapFrame::operator delete(void* ptr) {
@@ -250,18 +328,6 @@ void CGMinimapFrame::OnFrameRender(CRenderBatch* batch, uint32_t layer) {
     }
 }
 
-// STATIC: 0x00BEBA40
-static int32_t s_unkBEBA40;
-
-// STATIC: 0x00BF5F1C
-static float s_unkBF5F1C;
-
-// STATIC: 0x00BF5F14
-static CTexture* s_renderTarget;
-
-// STATIC: 0x00BEB9A8
-static uint32_t s_unkBEB9A8[23];
-
 // VERIFY: 30278d2d auto
 // OFFSET: 0x005831C0
 void CGMinimapFrame::EnterWorld() {
@@ -281,4 +347,133 @@ void CGMinimapFrame::EnterWorld() {
     CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 1, 1, 0, 0, 0);
     s_renderTarget = TextureCreate(256, 256, format, format, flags, nullptr, CGMinimapFrame::MinimapTextureCallback, "MinimapRenderTarget", 0);
     memset(s_unkBEB9A8, 0, sizeof(s_unkBEB9A8));
+}
+
+// VERIFY: 7d4e4155 manual
+// OFFSET: 0x005832F0
+void CGMinimapFrame::InitializeGame() {
+    CStatus status;
+
+    s_maskTexture = TextureCreate("Textures\\MinimapMask", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_iconTexture = TextureCreate("Interface\\Minimap\\POIIcons", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_blipTexture = TextureCreate("Interface\\Minimap\\ObjectIcons", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_classBlipTexture = TextureCreate("Interface\\Minimap\\PartyRaidBlips", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_vehicleTextures[0] = TextureCreate("Interface\\Minimap\\Vehicle-Ground-Unoccupied", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_vehicleTextures[1] = TextureCreate("Interface\\Minimap\\Vehicle-Ground-Occupied", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_vehicleTextures[2] = TextureCreate("Interface\\Minimap\\Vehicle-Air-Unoccupied", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_vehicleTextures[3] = TextureCreate("Interface\\Minimap\\Vehicle-Air-Occupied", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_vehicleTextures[4] = TextureCreate("Interface\\Minimap\\Vehicle-Ground-Unoccupied", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_vehicleTextures[5] = TextureCreate("Interface\\Minimap\\Vehicle-Air-Horde", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_vehicleTextures[6] = TextureCreate("Interface\\Minimap\\Vehicle-Air-Alliance", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_staticPOIArrowTexture = TextureCreate("Interface\\Minimap\\Rotating-MinimapArrow", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_poiArrowTexture = TextureCreate("Interface\\Minimap\\Rotating-MinimapGuideArrow", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_corpseArrowTexture = TextureCreate("Interface\\Minimap\\Rotating-MinimapCorpseArrow", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+    s_groupArrowTexture = TextureCreate("Interface\\Minimap\\Rotating-MinimapGroupArrow", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 1);
+
+    uint32_t width = 256;
+    uint32_t height = 256;
+    TextureGetDimensions(s_iconTexture, &width, &height, 1);
+
+    uint32_t columns = CMath::sqrt_(196);
+    float texel = 1.0f / width;
+    float size = texel * 18.0f;
+
+    for (uint32_t i = 0; i < 196; i++) {
+        float left = (i % columns) * size + texel;
+        float right = left + size - texel;
+        float top = (i / columns) * size + texel;
+        float bottom = top + size - texel;
+
+        s_iconTexCoords[i][0].x = left;
+        s_iconTexCoords[i][0].y = bottom;
+        s_iconTexCoords[i][1].x = right;
+        s_iconTexCoords[i][1].y = bottom;
+        s_iconTexCoords[i][2].x = left;
+        s_iconTexCoords[i][2].y = top;
+        s_iconTexCoords[i][3].x = right;
+        s_iconTexCoords[i][3].y = top;
+    }
+
+    for (uint32_t i = 0; i < 16; i++) {
+        float left = (i & 7) * 0.125f;
+        float bottom = ((i >> 3) + 1) * 0.5f;
+        float right = ((i & 7) + 1) * 0.125f;
+        float top = (i >> 3) * 0.5f;
+
+        s_classBlipTexCoords[i][0].x = left;
+        s_classBlipTexCoords[i][0].y = bottom;
+        s_classBlipTexCoords[i][1].x = right;
+        s_classBlipTexCoords[i][1].y = bottom;
+        s_classBlipTexCoords[i][2].x = left;
+        s_classBlipTexCoords[i][2].y = top;
+        s_classBlipTexCoords[i][3].x = right;
+        s_classBlipTexCoords[i][3].y = top;
+    }
+
+    for (uint32_t i = 0; i < 32; i++) {
+        float left = (i & 7) * 0.125f;
+        float bottom = ((i >> 3) + 1) * 0.25f;
+        float right = ((i & 7) + 1) * 0.125f;
+        float top = (i >> 3) * 0.25f;
+
+        s_blipTexCoords[i][0].x = left;
+        s_blipTexCoords[i][0].y = bottom;
+        s_blipTexCoords[i][1].x = right;
+        s_blipTexCoords[i][1].y = bottom;
+        s_blipTexCoords[i][2].x = left;
+        s_blipTexCoords[i][2].y = top;
+        s_blipTexCoords[i][3].x = right;
+        s_blipTexCoords[i][3].y = top;
+    }
+
+    CGMinimapFrame::s_trackingSpell = 0;
+    CGMinimapFrame::s_trackingInfo = nullptr;
+}
+
+// VERIFY: 78b3bb60 manual
+// OFFSET: 0x0057E980
+int32_t CGMinimapFrame::CountAvailableTrackingTypes() {
+    int32_t count = 0;
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    uint32_t classMask = player ? 1 << player->m_unit->m_unitFieldBytes0[1] : 0;
+
+    for (uint32_t i = 0; i < sizeof(CGMinimapFrame::s_trackingTypes) / sizeof(CGMinimapFrame::s_trackingTypes[0]); i++) {
+        uint32_t mask = CGMinimapFrame::s_trackingTypes[i].m_classMask;
+
+        if (!mask || (mask & classMask)) {
+            count++;
+        }
+    }
+
+    return count;
+}
+
+// VERIFY: 9e30c5ed manual
+// OFFSET: 0x0057EB00
+const TrackingTypeInfo* CGMinimapFrame::GetTrackingTypeByIndex(int32_t index) {
+    int32_t count = 0;
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    uint32_t classMask = player ? 1 << player->m_unit->m_unitFieldBytes0[1] : 0;
+
+    for (uint32_t i = 0; i < sizeof(CGMinimapFrame::s_trackingTypes) / sizeof(CGMinimapFrame::s_trackingTypes[0]); i++) {
+        uint32_t mask = CGMinimapFrame::s_trackingTypes[i].m_classMask;
+
+        if (mask && !(mask & classMask)) {
+            continue;
+        }
+
+        if (count == index) {
+            return &CGMinimapFrame::s_trackingTypes[i];
+        }
+
+        count++;
+    }
+
+    return nullptr;
+}
+
+// VERIFY: aba21c39 auto
+// OFFSET: 0x007F3BE0
+AreaPOIRec* MinimapGetGossipPoi() {
+    return &s_dynamicPOIs[1];
 }

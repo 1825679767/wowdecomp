@@ -628,6 +628,19 @@ static int32_t Script_GetUTF8CursorPosition(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 10d61e61 auto
+// OFFSET: 0x009752E0
+void CSimpleEditBox::DestroyScriptMetaTable() {
+    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CSimpleEditBox::s_metatable);
+    CSimpleEditBox::s_metatable = LUA_NOREF;
+}
+
+// VERIFY: 0ebf05e3 auto
+// OFFSET: 0x00976AD0
+void CSimpleEditBox::CreateScriptMetaTable() {
+    CSimpleEditBox::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CSimpleEditBox::RegisterScriptMethods);
+}
+
 // STATIC: 0x00B2D210
 static FrameScript_Method s_ScriptMethods[] = {
     { "SetFontObject", &Script_SetFontObject },
@@ -695,17 +708,4 @@ static FrameScript_Method s_ScriptMethods[] = {
 void CSimpleEditBox::RegisterScriptMethods(lua_State* L) {
     CSimpleFrame::RegisterScriptMethods(L);
     FrameScript_Object::FillScriptMethodTable(L, s_ScriptMethods, sizeof(s_ScriptMethods) / sizeof(s_ScriptMethods[0]));
-}
-
-// VERIFY: 10d61e61 auto
-// OFFSET: 0x009752E0
-void CSimpleEditBox::DestroyScriptMetaTable() {
-    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CSimpleEditBox::s_metatable);
-    CSimpleEditBox::s_metatable = LUA_NOREF;
-}
-
-// VERIFY: 0ebf05e3 auto
-// OFFSET: 0x00976AD0
-void CSimpleEditBox::CreateScriptMetaTable() {
-    CSimpleEditBox::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CSimpleEditBox::RegisterScriptMethods);
 }

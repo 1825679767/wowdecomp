@@ -3,6 +3,55 @@
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
 
+// VERIFY: 53148363 manual
+// OFFSET: 0x005AD770
+static int32_t Script_EquipmentManagerIgnoreSlotForSave(lua_State* L) {
+    uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (slot > 18) {
+        luaL_error(L, "Usage: EquipmentManagerIgnoreSlotForSave(slot)");
+        return 0;
+    }
+
+    CGEquipmentManager::m_ignoredSlots[slot] = 1;
+    return 0;
+}
+
+// VERIFY: 7ab2e1ba manual
+// OFFSET: 0x005AD830
+static int32_t Script_EquipmentManagerUnignoreSlotForSave(lua_State* L) {
+    uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (slot > 18) {
+        luaL_error(L, "Usage: UpdatePendingEquipmentSetSlot(slot)");
+        return 0;
+    }
+
+    CGEquipmentManager::m_ignoredSlots[slot] = 0;
+    return 0;
+}
+
+// VERIFY: 8b0d091f manual
+// OFFSET: 0x005AD7C0
+static int32_t Script_EquipmentManagerIsSlotIgnoredForSave(lua_State* L) {
+    uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (slot > 18) {
+        luaL_error(L, "Usage: EquipmentSetIsSlotIgnoredForSave(slot)");
+        return 0;
+    }
+
+    lua_pushboolean(L, CGEquipmentManager::m_ignoredSlots[slot] != 0);
+    return 1;
+}
+
+// VERIFY: 9e4abd85 manual
+// OFFSET: 0x005AD880
+static int32_t Script_CanUseEquipmentSets(lua_State* L) {
+    lua_pushnumber(L, CGEquipmentManager::CanUseEquipmentSets(true));
+    return 1;
+}
+
 // STATIC: 0x00ACFB78
 static FrameScript_Method s_ScriptFunctions[] = {
     { "SaveEquipmentSet", &Script_SaveEquipmentSet },

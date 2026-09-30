@@ -77,6 +77,24 @@ const float s_terrainTiltTable[10][2] = {
 // STATIC: 0x00C24E80
 float s_targetHeightOffset;
 
+// STATIC: 0x00AD213C
+static const char* s_cameraViewModeNames[8] = { "FIRST_PERSON", "THIRD_PERSON_A", "THIRD_PERSON_B", "THIRD_PERSON_C", "THIRD_PERSON_D", "THIRD_PERSON_E", "VIEW_COMMENTATOR", "VIEW_BARBER_SHOP" };
+
+// STATIC: 0x00A1E368
+static const float s_smoothViewDataMin[2] = { 0.0f, 0.0f };
+
+// STATIC: 0x00A1E370
+static const float s_smoothViewDataMax[2] = { 100.0f, 100.0f };
+
+// STATIC: 0x00AD2178
+static float s_lastLiquidBumpPitch = std::numeric_limits<float>::max();
+
+// STATIC: 0x00AD2114
+static float s_shakeFalloffStartSqr = 81.0f;
+
+// STATIC: 0x00AD2118
+static float s_shakeFalloffMaxSqr = 6400.0f;
+
 // VERIFY: 42a53d4c auto
 // OFFSET: 0x005FD5C0
 static float UnwrapAngleToward(float target, float current, float lo, float hi) {
@@ -2932,9 +2950,6 @@ void CGCamera::ResetView(int32_t view) {
     }
 }
 
-// STATIC: 0x00AD213C
-static const char* s_cameraViewModeNames[8] = { "FIRST_PERSON", "THIRD_PERSON_A", "THIRD_PERSON_B", "THIRD_PERSON_C", "THIRD_PERSON_D", "THIRD_PERSON_E", "VIEW_COMMENTATOR", "VIEW_BARBER_SHOP" };
-
 // VERIFY: 7ccd6b80 manual
 // OFFSET: 0x00603330
 void CGCamera::SetView(int32_t view, int32_t blendStyle, int32_t transition) {
@@ -3158,12 +3173,6 @@ void CGCamera::UpdateTrackingState(int32_t tracking) {
 
     this->SmoothFreeLook(CGInputControl::GetActive(), 0);
 }
-
-// STATIC: 0x00A1E368
-static const float s_smoothViewDataMin[2] = { 0.0f, 0.0f };
-
-// STATIC: 0x00A1E370
-static const float s_smoothViewDataMax[2] = { 100.0f, 100.0f };
 
 // VERIFY: 3634e85f manual
 // OFFSET: 0x00602600
@@ -3453,9 +3462,6 @@ void CGCamera::SmoothFreeLook(CGInputControl* input, int32_t idle) {
         this->m_smoothTargetOffset.m_rate = maxTime;
     }
 }
-
-// STATIC: 0x00AD2178
-static float s_lastLiquidBumpPitch = std::numeric_limits<float>::max();
 
 // VERIFY: 3503b548 manual
 // OFFSET: 0x006061D0
@@ -3920,12 +3926,6 @@ int32_t CGCamera::GetCameraDistance(float& distance, const C3Vector& position, c
 
     return 1;
 }
-
-// STATIC: 0x00AD2114
-static float s_shakeFalloffStartSqr = 81.0f;
-
-// STATIC: 0x00AD2118
-static float s_shakeFalloffMaxSqr = 6400.0f;
 
 // VERIFY: fd0d5ecb manual
 // OFFSET: 0x006004B0

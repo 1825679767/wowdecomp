@@ -3,6 +3,13 @@
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
 
+// VERIFY: 5a471781 manual
+// OFFSET: 0x00598DD0
+static int32_t Script_GetTabardCreationCost(lua_State* L) {
+    lua_pushnumber(L, GuildGetTabardCost());
+    return 1;
+}
+
 // STATIC: 0x00ACF56C
 static FrameScript_Method s_ScriptFunctions[] = {
     { "CloseTabardCreation", &Script_CloseTabardCreation },

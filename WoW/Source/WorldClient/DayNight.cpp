@@ -2795,3 +2795,37 @@ int32_t DayNight::GetFogOverride() {
     return s_fogOverride;
 }
 
+
+// VERIFY: c61d066e auto
+// OFFSET: 0x009ABAF0
+void DayNight::DNPlanet::Destroy() {
+    if (this->m_texture) {
+        HandleClose(reinterpret_cast<HOBJECT>(this->m_texture));
+    }
+}
+
+// VERIFY: 0e747bc2 auto
+// OFFSET: 0x009ABAC0
+void DayNight::DNGlare::Destroy() {
+    if (this->m_texture) {
+        HandleClose(reinterpret_cast<HOBJECT>(this->m_texture));
+    }
+
+    if (this->m_occlusionQuery) {
+        GxQueryDestroy(this->m_occlusionQuery);
+    }
+}
+
+// VERIFY: cdeab972 auto
+// OFFSET: 0x009ABB30
+void DayNight::DNStars::Destroy() {
+    if (this->m_model) {
+        this->m_model->Release();
+        this->m_model = nullptr;
+    }
+
+    if (this->m_scene) {
+        this->m_scene->Release();
+        this->m_scene = nullptr;
+    }
+}

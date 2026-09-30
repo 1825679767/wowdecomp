@@ -11,6 +11,7 @@ class CGItem_C;
 class CGActionBar {
     public:
     static uint32_t m_tempPageActiveFlags;
+    static uint32_t m_currentPage;
     static int32_t m_bonusBarOffset;
     static void UpdateOverrideSpellBar();
     static void EnterWorld();
@@ -33,6 +34,8 @@ class CGActionBar {
     static int32_t GetItemSpell(uint32_t slot);
     static int32_t GetPetActionSpell(uint32_t slot);
     static CGItem_C* FindUseEnchantItemPtr(int32_t itemId);
+    static int32_t IsEquippedAction(uint32_t slot);
+    static int32_t IsConsumableAction(uint32_t slot);
     static int32_t GetSpell(uint32_t slot, int32_t& petSpell);
     static int32_t IsAttackAction(uint32_t slot);
     static int32_t IsRangedAttackAction(uint32_t slot);
@@ -69,32 +72,13 @@ class CGActionBar {
 
 void ItemStatsCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 
-int32_t Script_GetActionInfo(lua_State* L);
-int32_t Script_GetActionTexture(lua_State* L);
-int32_t Script_GetActionCount(lua_State* L);
-int32_t Script_GetActionCooldown(lua_State* L);
 int32_t Script_GetActionAutocast(lua_State* L);
-int32_t Script_GetActionText(lua_State* L);
-int32_t Script_HasAction(lua_State* L);
-int32_t Script_UseAction(lua_State* L);
 int32_t Script_PickupAction(lua_State* L);
-int32_t Script_PlaceAction(lua_State* L);
 int32_t Script_IsAttackAction(lua_State* L);
-int32_t Script_IsCurrentAction(lua_State* L);
 int32_t Script_IsAutoRepeatAction(lua_State* L);
-int32_t Script_IsUsableAction(lua_State* L);
-int32_t Script_IsConsumableAction(lua_State* L);
-int32_t Script_IsStackableAction(lua_State* L);
-int32_t Script_IsEquippedAction(lua_State* L);
+int32_t IsStackableAucItem(uint32_t slot);
 int32_t Script_ActionHasRange(lua_State* L);
 int32_t Script_IsActionInRange(lua_State* L);
-int32_t Script_GetBonusBarOffset(lua_State* L);
-int32_t Script_GetMultiCastBarOffset(lua_State* L);
-int32_t Script_ChangeActionBarPage(lua_State* L);
-int32_t Script_GetActionBarPage(lua_State* L);
-int32_t Script_GetActionBarToggles(lua_State* L);
-int32_t Script_SetActionBarToggles(lua_State* L);
-int32_t Script_IsPossessBarVisible(lua_State* L);
 int32_t Script_GetMultiCastTotemSpells(lua_State* L);
 int32_t Script_SetMultiCastSpell(lua_State* L);
 void ActionBarRegisterScriptFunctions();

@@ -3,6 +3,7 @@
 #include "Engine/Source/Event/Event.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Client.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/UILCD/Windows/EZ_LCD.h"
 #include "WoW/Source/Ui/UILCD/Windows/LCDUtils.h"
 
@@ -23,6 +24,12 @@ uint8_t CGLCD::initComplete;
 
 // STATIC: 0x00D41348
 TSHashTable<LCDHANDLE, HASHKEY_CONSTSTRI> CGLCD::m_handles;
+
+// STATIC: 0x00D41318
+CGPlayer_C* CGLCD::m_player;
+
+// STATIC: 0x00D4131C
+uint8_t CGLCD::m_inWorld;
 
 // VERIFY: d134d241 auto
 // OFFSET: 0x00848030
@@ -95,5 +102,14 @@ void CGLCD::Shutdown() {
 void CGLCD::OnWhisper(const char* name) {
     if (CGLCD::m_lcd && CGLCD::m_lcd->IsConnected() && IsLCDAvailable() && CGLCD::initComplete) {
         CGLCD::PushAlert(name, 1);
+    }
+}
+
+// VERIFY: 138d395a auto
+// OFFSET: 0x00848490
+void CGLCD::EnterWorld() {
+    if (CGLCD::m_lcd && CGLCD::m_lcd->IsConnected() && IsLCDAvailable() && CGLCD::initComplete) {
+        CGLCD::m_inWorld = 1;
+        CGLCD::m_player = ClntObjMgrGetActivePlayerObj();
     }
 }

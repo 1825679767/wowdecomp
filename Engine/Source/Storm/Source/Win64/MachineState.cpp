@@ -9,11 +9,11 @@
 #include <dbghelp.h>
 #include <tlhelp32.h>
 #include <winternl.h>
+#include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Storm/Source/MachineState.h"
 
 #define CV_SIGNATURE_NB10 0x3031424E
 #define CV_SIGNATURE_RSDS 0x53445352
-#include "Engine/Source/Storm/H/storm.h"
 
 #define DBGHELP_64 "64"
 #define LOG_PTR "%016llX"

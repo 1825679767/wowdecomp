@@ -2,21 +2,28 @@
 #define WOW_SOURCE_UI_CALENDAR_H
 
 #include <cstdint>
+#include "WoW/Source/Net/Types.h"
 
+class CDataStore;
+class CGCalendarEvent;
+class CVar;
 struct lua_State;
 
-class CVar;
+int32_t PH_CALENDAR_GROUP(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 
 class CGCalendar {
     public:
     static void EnterWorld();
+    static uint8_t m_actionPending;
+    static CGCalendarEvent* m_curEvent;
+    static uint8_t m_initialize;
+    static uint8_t m_openedCalendar;
+    static uint8_t unk_C207F2;
+    static int32_t m_numInitialPending;
     static void InitializeGame();
     static void SetFilter(CVar* var, int32_t value);
 };
 
-int32_t Script_CalendarGetMonthNames(lua_State* L);
-int32_t Script_CalendarGetWeekdayNames(lua_State* L);
-int32_t Script_CalendarGetDate(lua_State* L);
 int32_t Script_CalendarGetMinDate(lua_State* L);
 int32_t Script_CalendarGetMaxDate(lua_State* L);
 int32_t Script_CalendarGetMinHistoryDate(lua_State* L);
@@ -107,7 +114,6 @@ int32_t Script_CalendarEventCanEdit(lua_State* L);
 int32_t Script_CalendarEventGetCalendarType(lua_State* L);
 int32_t Script_CalendarCanSendInvite(lua_State* L);
 int32_t Script_CalendarCanAddEvent(lua_State* L);
-int32_t Script_CalendarIsActionPending(lua_State* L);
 int32_t Script_OpenCalendar(lua_State* L);
 void CalendarRegisterScriptFunctions();
 

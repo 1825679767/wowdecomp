@@ -5,29 +5,59 @@
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
 
+struct QuestItemInfo {
+    /* 0000 */ int32_t m_itemID;
+    /* 0004 */ int32_t unk_0004;
+    /* 0008 */ int32_t unk_0008;
+};
+
+struct QuestItemSlot {
+    /* 0000 */ QuestItemInfo m_reward;
+    /* 000C */ QuestItemInfo m_choice;
+    /* 0018 */ QuestItemInfo m_required;
+};
+
+struct QuestGiverQuest {
+    /* 0000 */ int32_t m_questID;
+    /* 0004 */ int32_t m_level;
+    /* 0008 */ int32_t unk_0008;
+    /* 000C */ char m_title[512];
+    /* 020C */ int32_t unk_020C;
+    /* 0210 */ int32_t unk_0210;
+};
+
 class CGQuestInfo {
     public:
     static void EnterWorld();
     static WOWGUID m_npc;
     static WOWGUID m_npcInform;
+    static char m_greetingText[2048];
+    static char m_questTitle[512];
+    static char m_rewardText[3000];
+    static char m_progressText[3000];
+    static char m_questLogText[3000];
+    static char m_questText[3000];
+    static int32_t m_rewardMoney;
+    static int32_t m_rewardXP;
+    static int32_t m_rewardTalents;
+    static int32_t m_numQuests;
+    static int32_t m_numInProgress;
+    static QuestItemSlot m_questItems[6];
+    static QuestGiverQuest m_inProgressQuests[32];
+    static QuestGiverQuest m_availableQuests[32];
+    static uint32_t m_rewardHonor;
+    static int32_t m_rewardArenaPoints;
+    static int32_t m_requiredMoney;
+    static int32_t m_suggestedGroupNum;
+    static uint32_t m_questFlags;
+    static uint32_t m_pendingQuest;
 
     static void ConfirmAcceptQuest(int32_t questId, const char* title, const WOWGUID* guid);
 };
 struct lua_State;
 
 int32_t Script_CloseQuest(lua_State* L);
-int32_t Script_GetTitleText(lua_State* L);
-int32_t Script_GetGreetingText(lua_State* L);
-int32_t Script_GetQuestText(lua_State* L);
-int32_t Script_GetObjectiveText(lua_State* L);
-int32_t Script_GetProgressText(lua_State* L);
-int32_t Script_GetRewardText(lua_State* L);
-int32_t Script_GetNumAvailableQuests(lua_State* L);
-int32_t Script_GetNumActiveQuests(lua_State* L);
-int32_t Script_GetAvailableTitle(lua_State* L);
 int32_t Script_GetActiveTitle(lua_State* L);
-int32_t Script_GetAvailableLevel(lua_State* L);
-int32_t Script_GetActiveLevel(lua_State* L);
 int32_t Script_IsAvailableQuestTrivial(lua_State* L);
 int32_t Script_IsActiveQuestTrivial(lua_State* L);
 int32_t Script_SelectAvailableQuest(lua_State* L);
@@ -37,31 +67,13 @@ int32_t Script_DeclineQuest(lua_State* L);
 int32_t Script_IsQuestCompletable(lua_State* L);
 int32_t Script_CompleteQuest(lua_State* L);
 int32_t Script_GetQuestReward(lua_State* L);
-int32_t Script_GetRewardMoney(lua_State* L);
-int32_t Script_GetRewardXP(lua_State* L);
-int32_t Script_GetRewardHonor(lua_State* L);
 int32_t Script_GetRewardSpell(lua_State* L);
-int32_t Script_GetQuestMoneyToGet(lua_State* L);
-int32_t Script_GetNumQuestRewards(lua_State* L);
-int32_t Script_GetNumQuestChoices(lua_State* L);
-int32_t Script_GetNumQuestItems(lua_State* L);
 int32_t Script_GetQuestItemInfo(lua_State* L);
 int32_t Script_GetQuestItemLink(lua_State* L);
 int32_t Script_GetQuestSpellLink(lua_State* L);
-int32_t Script_QuestChooseRewardError(lua_State* L);
-int32_t Script_ConfirmAcceptQuest(lua_State* L);
 int32_t Script_GetQuestBackgroundMaterial(lua_State* L);
-int32_t Script_GetSuggestedGroupNum(lua_State* L);
-int32_t Script_QuestFlagsPVP(lua_State* L);
-int32_t Script_QuestGetAutoAccept(lua_State* L);
-int32_t Script_GetDailyQuestsCompleted(lua_State* L);
-int32_t Script_GetMaxDailyQuests(lua_State* L);
 int32_t Script_GetRewardTitle(lua_State* L);
-int32_t Script_GetRewardTalents(lua_State* L);
-int32_t Script_GetRewardArenaPoints(lua_State* L);
 int32_t Script_GetAvailableQuestInfo(lua_State* L);
-int32_t Script_QuestIsDaily(lua_State* L);
-int32_t Script_QuestIsWeekly(lua_State* L);
 void QuestInfoRegisterScriptFunctions();
 
 #endif

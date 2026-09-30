@@ -20,9 +20,6 @@ class CGTutorial {
 };
 
 int32_t Script_CanResetTutorials(lua_State* L);
-int32_t Script_FlagTutorial(lua_State* L);
-int32_t Script_IsTutorialFlagged(lua_State* L);
-int32_t Script_TriggerTutorial(lua_State* L);
 int32_t Script_ClearTutorials(lua_State* L);
 int32_t Script_ResetTutorials(lua_State* L);
 int32_t Script_GetNextCompleatedTutorial(lua_State* L);

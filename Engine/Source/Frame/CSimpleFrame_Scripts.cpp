@@ -1964,6 +1964,19 @@ static int32_t Script_IsIgnoringDepth(lua_State* L) {
     return 1;
 }
 
+// VERIFY: e54f54a8 auto
+// OFFSET: 0x004A1E60
+void CSimpleFrame::CreateScriptMetaTable() {
+    CSimpleFrame::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CSimpleFrame::RegisterScriptMethods);
+}
+
+// VERIFY: d0ab2718 auto
+// OFFSET: 0x0049E560
+void CSimpleFrame::DestroyScriptMetaTable() {
+    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CSimpleFrame::s_metatable);
+    CSimpleFrame::s_metatable = LUA_NOREF;
+}
+
 // STATIC: 0x00AC1550
 static FrameScript_Method s_ScriptMethods[] = {
     { "GetTitleRegion", &Script_GetTitleRegion },
@@ -2058,17 +2071,4 @@ static FrameScript_Method s_ScriptMethods[] = {
 void CSimpleFrame::RegisterScriptMethods(lua_State* L) {
     CScriptRegion::RegisterScriptMethods(L);
     FrameScript_Object::FillScriptMethodTable(L, s_ScriptMethods, sizeof(s_ScriptMethods) / sizeof(s_ScriptMethods[0]));
-}
-
-// VERIFY: e54f54a8 auto
-// OFFSET: 0x004A1E60
-void CSimpleFrame::CreateScriptMetaTable() {
-    CSimpleFrame::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CSimpleFrame::RegisterScriptMethods);
-}
-
-// VERIFY: d0ab2718 auto
-// OFFSET: 0x0049E560
-void CSimpleFrame::DestroyScriptMetaTable() {
-    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CSimpleFrame::s_metatable);
-    CSimpleFrame::s_metatable = LUA_NOREF;
 }

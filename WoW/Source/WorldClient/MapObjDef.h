@@ -31,7 +31,7 @@ class CMapObjDefGroup : public CMapBaseObj {
     /* 0054 */ uint32_t m_unkFlags;
     /* 0058 */ int32_t unk_0058;
     /* 005C */ uint32_t m_ambientColor;
-    /* 0060 */ int32_t unk_0060;
+    /* 0060 */ const char* m_subzoneName;
     /* 0064 */ int32_t unk_0064;
     /* 0068 */ Liquid::CInstance* m_liquidInstance;
     /* 006C */ TSExplicitList<CWFrustum, offsetof(CWFrustum, m_link)> m_frustumList;

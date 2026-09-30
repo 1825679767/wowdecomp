@@ -2,42 +2,131 @@
 #define WOW_SOURCE_UI_LFGINFO_H
 
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Ui/LFGLIST.h"
+#include "WoW/Source/Object/WGUID.h"
 
 struct lua_State;
 
+struct LFGRewardItem : public TSLinkedNode<LFGRewardItem> {
+    /* 0008 */ int32_t m_itemID;
+    /* 000C */ int32_t m_displayID;
+    /* 0010 */ int32_t m_quantity;
+};
+
+struct LFGDungeonEntry : public TSLinkedNode<LFGDungeonEntry> {
+    /* 0008 */ uint32_t m_slot;
+    /* 000C */ uint8_t m_rewardDone;
+    /* 000D */ uint8_t m_locked;
+    /* 000E */ uint8_t unk_000E[2];
+    /* 0010 */ int32_t m_lockReason;
+    /* 0014 */ int32_t m_baseMoney;
+    /* 0018 */ int32_t m_baseXP;
+    /* 001C */ int32_t m_variableMoney;
+    /* 0020 */ int32_t m_variableXP;
+    /* 0024 */ TSList<LFGRewardItem, TSGetLink<LFGRewardItem>> m_rewards;
+};
+
+struct LFGInfo {
+    /* 0000 */ uint8_t m_joined;
+    /* 0001 */ uint8_t unk_0001;
+    /* 0002 */ uint8_t m_queued;
+    /* 0003 */ uint8_t unk_0003;
+    /* 0004 */ uint8_t unk_0004;
+    /* 0005 */ uint8_t unk_0005;
+    /* 0006 */ uint8_t m_roles[3];
+    /* 0009 */ uint8_t unk_0009[3];
+    /* 000C */ TSList<LFGDungeonEntry, TSGetLink<LFGDungeonEntry>> m_dungeons;
+    /* 0018 */ int32_t m_numDungeons;
+    /* 001C */ char m_comment[256];
+    /* 011C */ uint32_t unk_011C;
+};
+
+struct LFGLockInfo : public TSLinkedNode<LFGLockInfo> {
+    /* 0008 */ uint8_t m_valid;
+    /* 0009 */ uint8_t unk_0009[3];
+    /* 000C */ uint32_t unk_000C;
+    /* 0010 */ WOWGUID m_guid;
+    /* 0018 */ TSList<LFGDungeonEntry, TSGetLink<LFGDungeonEntry>> m_dungeons;
+};
+
+struct LFGPartyLockInfo {
+    /* 0000 */ uint8_t m_valid;
+    /* 0001 */ uint8_t unk_0001[3];
+    /* 0004 */ TSList<LFGLockInfo, TSGetLink<LFGLockInfo>> m_members;
+};
+
+struct LFGRewardInfo {
+    /* 0000 */ uint32_t m_randomSlot;
+    /* 0004 */ uint32_t m_actualSlot;
+    /* 0008 */ uint32_t m_first;
+    /* 000C */ int32_t m_strangers;
+    /* 0010 */ int32_t m_baseMoney;
+    /* 0014 */ int32_t m_baseXP;
+    /* 0018 */ int32_t m_variableMoney;
+    /* 001C */ int32_t m_variableXP;
+    /* 0020 */ TSList<LFGRewardItem, TSGetLink<LFGRewardItem>> m_items;
+};
+
+struct LFGQueueStatus {
+    /* 0000 */ int32_t m_lfgID;
+    /* 0004 */ int32_t m_averageWait;
+    /* 0008 */ int32_t m_tankWait;
+    /* 000C */ int32_t m_healerWait;
+    /* 0010 */ int32_t m_damageWait;
+    /* 0014 */ int32_t m_myWait;
+    /* 0018 */ uint8_t m_tanksNeeded;
+    /* 0019 */ uint8_t m_healersNeeded;
+    /* 001A */ uint8_t m_damageNeeded;
+    /* 001B */ uint8_t unk_001B;
+    /* 001C */ uint32_t m_statusTime;
+    /* 0020 */ int32_t m_queuedTime;
+};
+
 class CGLookingForGroup {
     public:
+    struct LFGEntryInfo {
+        /* 0000 */ int32_t m_id;
+        /* 0004 */ int32_t m_order;
+    };
+
+    static int32_t m_searchJoinedID;
+    static uint32_t m_randomDungeonBestChoice;
+    static TSFixedArray<uint32_t> m_randomDungeons;
+    static TSFixedArray<CGLookingForGroup::LFGEntryInfo> m_lfdEntries;
+    static TSFixedArray<CGLookingForGroup::LFGEntryInfo> m_lfrEntries;
+    static LFGLIST m_searchResults;
+    static LFGInfo m_localInfo;
+    static LFGInfo m_playerInfo;
+    static LFGInfo m_partyInfo;
+    static LFGLockInfo m_playerLockInfo;
+    static LFGPartyLockInfo m_partyLockInfo;
+    static LFGRewardInfo m_reward;
+    static LFGQueueStatus m_queueStatus;
     static void EnterWorld();
     static void InitializeGame();
     static void ClearPartyInfo();
     static uint8_t GetClassRoles(uint32_t classID);
+    static bool HasRaidDungeon(LFGInfo* info);
 };
 
 int32_t Script_SetLFGDungeon(lua_State* L);
 int32_t Script_ClearLFGDungeon(lua_State* L);
 int32_t Script_ClearAllLFGDungeons(lua_State* L);
-int32_t Script_GetLFGInfoLocal(lua_State* L);
-int32_t Script_GetLFGInfoServer(lua_State* L);
-int32_t Script_GetLFGQueuedList(lua_State* L);
 int32_t Script_SetLFGComment(lua_State* L);
 int32_t Script_LFGTeleport(lua_State* L);
 int32_t Script_JoinLFG(lua_State* L);
 int32_t Script_LeaveLFG(lua_State* L);
 int32_t Script_RefreshLFGList(lua_State* L);
 int32_t Script_SearchLFGJoin(lua_State* L);
-int32_t Script_SearchLFGGetJoinedID(lua_State* L);
 int32_t Script_SearchLFGLeave(lua_State* L);
-int32_t Script_SearchLFGGetNumResults(lua_State* L);
 int32_t Script_SearchLFGGetResults(lua_State* L);
 int32_t Script_SearchLFGGetEncounterResults(lua_State* L);
 int32_t Script_SearchLFGGetPartyResults(lua_State* L);
 int32_t Script_SearchLFGSort(lua_State* L);
-int32_t Script_GetLFGTypes(lua_State* L);
 int32_t Script_GetLFGRoleUpdate(lua_State* L);
 int32_t Script_GetLFGRoleUpdateSlot(lua_State* L);
 int32_t Script_GetLFGRoleUpdateMember(lua_State* L);
-int32_t Script_GetLFGRoles(lua_State* L);
-int32_t Script_SetLFGRoles(lua_State* L);
 int32_t Script_CompleteLFGRoleCheck(lua_State* L);
 int32_t Script_GetLFGProposal(lua_State* L);
 int32_t Script_GetLFGProposalMember(lua_State* L);
@@ -46,40 +135,25 @@ int32_t Script_AcceptProposal(lua_State* L);
 int32_t Script_RejectProposal(lua_State* L);
 int32_t Script_GetLFGBootProposal(lua_State* L);
 int32_t Script_SetLFGBootVote(lua_State* L);
-int32_t Script_GetLFGQueueStats(lua_State* L);
 int32_t Script_GetLastQueueStatusIndex(lua_State* L);
 int32_t Script_GetLFGDungeonInfo(lua_State* L);
 int32_t Script_GetLFGRandomDungeonInfo(lua_State* L);
 int32_t Script_IsLFGDungeonJoinable(lua_State* L);
 int32_t Script_SetLFGHeaderCollapsed(lua_State* L);
 int32_t Script_SetLFGDungeonEnabled(lua_State* L);
-int32_t Script_GetLFGCompletionReward(lua_State* L);
-int32_t Script_GetLFGCompletionRewardItem(lua_State* L);
 int32_t Script_IsInLFGDungeon(lua_State* L);
-int32_t Script_CanPartyLFGBackfill(lua_State* L);
-int32_t Script_GetPartyLFGBackfillInfo(lua_State* L);
 int32_t Script_PartyLFGStartBackfill(lua_State* L);
-int32_t Script_GetLFGRandomCooldownExpiration(lua_State* L);
 int32_t Script_UnitHasLFGRandomCooldown(lua_State* L);
-int32_t Script_GetLFGDeserterExpiration(lua_State* L);
 int32_t Script_UnitHasLFGDeserter(lua_State* L);
-int32_t Script_GetAvailableRoles(lua_State* L);
-int32_t Script_GetLFDChoiceOrder(lua_State* L);
 int32_t Script_GetLFDChoiceInfo(lua_State* L);
 int32_t Script_GetLFDChoiceCollapseState(lua_State* L);
 int32_t Script_GetLFDChoiceEnabledState(lua_State* L);
-int32_t Script_GetLFDChoiceLockedState(lua_State* L);
-int32_t Script_GetLFDLockPlayerCount(lua_State* L);
 int32_t Script_GetLFDLockInfo(lua_State* L);
 int32_t Script_RequestLFDPlayerLockInfo(lua_State* L);
 int32_t Script_RequestLFDPartyLockInfo(lua_State* L);
-int32_t Script_GetNumRandomDungeons(lua_State* L);
 int32_t Script_GetLFGDungeonRewards(lua_State* L);
 int32_t Script_GetLFGDungeonRewardInfo(lua_State* L);
 int32_t Script_GetLFGDungeonRewardLink(lua_State* L);
-int32_t Script_GetRandomDungeonBestChoice(lua_State* L);
-int32_t Script_GetLFRChoiceOrder(lua_State* L);
-int32_t Script_IsListedInLFR(lua_State* L);
 void LookingForGroupRegisterScriptFunctions();
 
 #endif

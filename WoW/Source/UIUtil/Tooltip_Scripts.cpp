@@ -4,22 +4,19 @@
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
 #include "Engine/Source/FrameXML/LoadXML.h"
+#include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
 #include "WoW/Source/Object/ObjectClient/Bag_C.h"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/UIUtil/Types.h"
 
 int32_t Script_AddFontStrings(lua_State* L);
-int32_t Script_SetOwner(lua_State* L);
 int32_t Script_GetAnchorType(lua_State* L);
 int32_t Script_SetAnchorType(lua_State* L);
-int32_t Script_AddLine(lua_State* L);
-int32_t Script_AddDoubleLine(lua_State* L);
 int32_t Script_AddTexture(lua_State* L);
-int32_t Script_SetText(lua_State* L);
-int32_t Script_AppendText(lua_State* L);
 int32_t Script_SetHyperlink(lua_State* L);
 int32_t Script_SetAction(lua_State* L);
 int32_t Script_SetPetAction(lua_State* L);
@@ -221,6 +218,193 @@ static int32_t Script_IsEquippedItem(lua_State* L) {
     return 1;
 }
 
+// VERIFY: c0a54dc6 auto
+// OFFSET: 0x0061B4C0
+void CGTooltip::DestroyScriptMetaTable() {
+    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CGTooltip::s_metatable);
+    CGTooltip::s_metatable = LUA_NOREF;
+}
+
+// VERIFY: fdbe92dc auto
+// OFFSET: 0x0061DBA0
+void CGTooltip::CreateScriptMetaTable() {
+    CGTooltip::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CGTooltip::RegisterScriptMethods);
+}
+
+// VERIFY: 3d12aa78 auto
+// OFFSET: 0x0061EB40
+static int32_t Script_SetOwner(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    tooltip->Hide();
+
+    if (lua_type(L, 2) != LUA_TTABLE) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetOwner(frame)", name ? name : "<unnamed>");
+        return 0;
+    }
+
+    lua_rawgeti(L, 2, 0);
+    CSimpleFrame* owner = static_cast<CSimpleFrame*>(lua_touserdata(L, -1));
+    lua_settop(L, -2);
+
+    if (!owner) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "%s:SetOwner(): Couldn't find 'this' in frame object", name ? name : "<unnamed>");
+        return 0;
+    }
+
+    if (!owner->IsA(CSimpleFrame::GetObjectType())) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "%s:SetOwner(): Wrong object type, expected frame", name ? name : "<unnamed>");
+        return 0;
+    }
+
+    if (owner == tooltip) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "%s:SetOwner(): Can't set owner to self", name ? name : "<unnamed>");
+        return 0;
+    }
+
+    TOOLTIP_ANCHORPOINT anchor = ANCHOR_LEFT;
+
+    if (lua_isstring(L, 3)) {
+        const char* point = lua_tolstring(L, 3, nullptr);
+
+        if (!SStrCmpI(point, "ANCHOR_LEFT", STORM_MAX_STR)) {
+            anchor = ANCHOR_LEFT;
+        } else if (!SStrCmpI(point, "ANCHOR_RIGHT", STORM_MAX_STR)) {
+            anchor = ANCHOR_RIGHT;
+        } else if (!SStrCmpI(point, "ANCHOR_BOTTOMLEFT", STORM_MAX_STR)) {
+            anchor = ANCHOR_BOTTOMLEFT;
+        } else if (!SStrCmpI(point, "ANCHOR_BOTTOM", STORM_MAX_STR)) {
+            anchor = ANCHOR_BOTTOM;
+        } else if (!SStrCmpI(point, "ANCHOR_BOTTOMRIGHT", STORM_MAX_STR)) {
+            anchor = ANCHOR_BOTTOMRIGHT;
+        } else if (!SStrCmpI(point, "ANCHOR_TOPLEFT", STORM_MAX_STR)) {
+            anchor = ANCHOR_TOPLEFT;
+        } else if (!SStrCmpI(point, "ANCHOR_TOP", STORM_MAX_STR)) {
+            anchor = ANCHOR_TOP;
+        } else if (!SStrCmpI(point, "ANCHOR_TOPRIGHT", STORM_MAX_STR)) {
+            anchor = ANCHOR_TOPRIGHT;
+        } else if (!SStrCmpI(point, "ANCHOR_CURSOR", STORM_MAX_STR)) {
+            anchor = ANCHOR_CURSOR;
+        } else if (!SStrCmpI(point, "ANCHOR_NONE", STORM_MAX_STR)) {
+            anchor = ANCHOR_NONE;
+        } else if (!SStrCmpI(point, "ANCHOR_PRESERVE", STORM_MAX_STR)) {
+            anchor = ANCHOR_PRESERVE;
+        } else if (!SStrCmpI(point, "ANCHOR_CURSOR_RIGHT", STORM_MAX_STR)) {
+            anchor = ANCHOR_CURSOR_RIGHT;
+        }
+    }
+
+    float offsetX = 0.0f;
+
+    if (lua_isnumber(L, 4)) {
+        float x = lua_tonumber(L, 4);
+        offsetX = NDCToDDCWidth(x / (CoordinateGetAspectCompensation() * 1024.0f));
+    }
+
+    float offsetY = 0.0f;
+
+    if (lua_isnumber(L, 5)) {
+        float y = lua_tonumber(L, 5);
+        offsetY = NDCToDDCWidth(y / (CoordinateGetAspectCompensation() * 1024.0f));
+    }
+
+    tooltip->SetOwner(owner, anchor, offsetX, offsetY);
+    return 0;
+}
+
+// VERIFY: b3dfdf72 auto
+// OFFSET: 0x00620340
+static int32_t Script_AddLine(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    const char* text = nullptr;
+    CImVector color = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
+
+    if (lua_isstring(L, 2)) {
+        text = lua_tolstring(L, 2, nullptr);
+    }
+
+    if (lua_isnumber(L, 3)) {
+        FrameScript_GetColorNoAlpha(L, 3, color);
+    }
+
+    int32_t wrap = StringToBOOL(L, 6, 0);
+    tooltip->AddLine(text, nullptr, color, color, wrap);
+    return 0;
+}
+
+// VERIFY: 33c79c5a manual
+// OFFSET: 0x006204E0
+static int32_t Script_SetText(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isstring(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetText(\"text\" [, color])", name ? name : "<unnamed>");
+        return 0;
+    }
+
+    const char* text = lua_tolstring(L, 2, nullptr);
+    CImVector color = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
+
+    if (lua_isnumber(L, 3)) {
+        FrameScript_GetColor(L, 3, color);
+    }
+
+    int32_t wrap = StringToBOOL(L, 7, 0);
+    tooltip->ClearTooltip();
+    tooltip->AddLine(text, nullptr, color, color, wrap);
+    tooltip->Show();
+    return 0;
+}
+
+// VERIFY: 46a6c27d auto
+// OFFSET: 0x006203F0
+static int32_t Script_AddDoubleLine(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    const char* left = nullptr;
+    const char* right = nullptr;
+    CImVector leftColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
+    CImVector rightColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
+
+    if (lua_isstring(L, 2)) {
+        left = lua_tolstring(L, 2, nullptr);
+    }
+
+    if (lua_isstring(L, 3)) {
+        right = lua_tolstring(L, 3, nullptr);
+    }
+
+    if (lua_isnumber(L, 4)) {
+        FrameScript_GetColorNoAlpha(L, 4, leftColor);
+    }
+
+    if (lua_isnumber(L, 7)) {
+        FrameScript_GetColorNoAlpha(L, 7, rightColor);
+    }
+
+    int32_t wrap = StringToBOOL(L, 10, 0);
+    tooltip->AddLine(left, right, leftColor, rightColor, wrap);
+    return 0;
+}
+
+// VERIFY: b8889e5f manual
+// OFFSET: 0x0061EE90
+static int32_t Script_AppendText(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isstring(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:AppendText(\"text\")", name ? name : "<unnamed>");
+        return 0;
+    }
+
+    tooltip->AppendText(lua_tolstring(L, 2, nullptr));
+    return 0;
+}
+
 // STATIC: 0x00AD2AE0
 static FrameScript_Method s_ScriptMethods[] = {
     { "AddFontStrings", &Script_AddFontStrings },
@@ -299,17 +483,4 @@ static FrameScript_Method s_ScriptMethods[] = {
 void CGTooltip::RegisterScriptMethods(lua_State* L) {
     CSimpleFrame::RegisterScriptMethods(L);
     FrameScript_Object::FillScriptMethodTable(L, s_ScriptMethods, sizeof(s_ScriptMethods) / sizeof(s_ScriptMethods[0]));
-}
-
-// VERIFY: c0a54dc6 auto
-// OFFSET: 0x0061B4C0
-void CGTooltip::DestroyScriptMetaTable() {
-    luaL_unref(FrameScript_GetContext(), LUA_REGISTRYINDEX, CGTooltip::s_metatable);
-    CGTooltip::s_metatable = LUA_NOREF;
-}
-
-// VERIFY: fdbe92dc auto
-// OFFSET: 0x0061DBA0
-void CGTooltip::CreateScriptMetaTable() {
-    CGTooltip::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CGTooltip::RegisterScriptMethods);
 }
