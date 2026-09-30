@@ -80,27 +80,25 @@ class CGQuestInfo {
     static uint32_t m_pendingQuest;
 
     static void ConfirmAcceptQuest(int32_t questId, const char* title, const WOWGUID* guid);
+    static int32_t m_canComplete;
+    static void AddQuest(int32_t questId, const char* title, int32_t level, int32_t flags, int32_t turnIn, int32_t repeatable);
+    static void AddQuestInProgress(int32_t questId, const char* title, int32_t level, int32_t flags, int32_t repeatable);
+    static void EndQuestList();
+    static void AddItemRequest(const char* title, const uint32_t* itemIds, const uint32_t* itemCounts, const uint32_t* itemDisplays, int32_t numItems, int32_t requiredMoney, int32_t canComplete, int32_t autoLaunched, int32_t suggestedGroupNum, uint32_t questFlags);
+    static int32_t GetNumQuestChoices();
+    static int32_t GetQuestItemID(const char* type, uint32_t index);
+    static bool IsQuestCompleteAt(uint32_t index);
+    static int32_t IsCompletable();
+    static void QueryQuest(uint32_t index);
+    static void CompleteQuest(uint32_t index);
+    static void AcceptQuest();
+    static void DeclineQuest();
+    static void GiveQuestItems();
+    static int32_t QuestItemInfo(const char* type, uint32_t index, char* name, uint32_t nameSize, char* texture, uint32_t textureSize, int32_t* count, int32_t* quality, int32_t* usable);
+    static int32_t GetReward(int32_t choice);
 };
 struct lua_State;
 
-int32_t Script_CloseQuest(lua_State* L);
-int32_t Script_GetActiveTitle(lua_State* L);
-int32_t Script_IsAvailableQuestTrivial(lua_State* L);
-int32_t Script_IsActiveQuestTrivial(lua_State* L);
-int32_t Script_SelectAvailableQuest(lua_State* L);
-int32_t Script_SelectActiveQuest(lua_State* L);
-int32_t Script_AcceptQuest(lua_State* L);
-int32_t Script_DeclineQuest(lua_State* L);
-int32_t Script_IsQuestCompletable(lua_State* L);
-int32_t Script_CompleteQuest(lua_State* L);
-int32_t Script_GetQuestReward(lua_State* L);
-int32_t Script_GetRewardSpell(lua_State* L);
-int32_t Script_GetQuestItemInfo(lua_State* L);
-int32_t Script_GetQuestItemLink(lua_State* L);
-int32_t Script_GetQuestSpellLink(lua_State* L);
-int32_t Script_GetQuestBackgroundMaterial(lua_State* L);
-int32_t Script_GetRewardTitle(lua_State* L);
-int32_t Script_GetAvailableQuestInfo(lua_State* L);
 void QuestInfoRegisterScriptFunctions();
 void ProcessQuestRewardFactions(int32_t factionId, int32_t amount, int32_t upperRank, int32_t lowerRank, int32_t source, int32_t noSpillover);
 

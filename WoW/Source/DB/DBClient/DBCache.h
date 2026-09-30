@@ -277,7 +277,7 @@ void DBCache<T, TKey, THashKey>::Load() {
 }
 
 // VERIFY: a9ebf5d0 manual
-// OFFSET: [0x0067B6A0, 0x0067BD40, 0x0067CA30, 0x0067D930]
+// OFFSET: [0x0067B6A0, 0x0067BD40, 0x0067CA30, 0x0067D930, 0x0067DE90]
 template <class T, class TKey, class THashKey>
 T* DBCache<T, TKey, THashKey>::GetRecord(TKey key, const WOWGUID& guid, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param, bool unique) {
     if (DBCacheIsNullKey(key)) {

@@ -78,6 +78,7 @@
 #include <malloc.h>
 #include "WoW/Source/Ui/ReputationInfo.h"
 #include "WoW/Source/Object/ObjectClient/AuraData.h"
+#include "WoW/Source/UIUtil/Tooltip.h"
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -173,6 +174,30 @@ static WOWGUID s_lastTrainerRequest;
 
 // STATIC: 0x00C9D7D0
 static MerchantItem s_vendorItems[150];
+
+// STATIC: 0x00C9EB08
+static int32_t s_questsAccepted;
+
+// STATIC: 0x00C9D548
+static WOWGUID s_questListNpc;
+
+// STATIC: 0x00C9D750
+static uint32_t s_questListIds[32];
+
+// STATIC: 0x00C9D6D0
+static uint32_t s_questListStatus[32];
+
+// STATIC: 0x00C9D650
+static uint32_t s_questListLevels[32];
+
+// STATIC: 0x00C9D5D0
+static uint32_t s_questListFlags[32];
+
+// STATIC: 0x00C9D550
+static uint32_t s_questListRepeatable[32];
+
+// STATIC: 0x00C9EB04
+static uint32_t s_questFailedReason;
 
 // STATIC: 0x00C9EB10
 static WOWGUID s_spiritHealer;
@@ -5518,4 +5543,692 @@ float CGPlayer_C::GetQuestXPMultiplier() {
     }
 
     return multiplier;
+}
+
+// VERIFY: 6e33a08e auto
+// OFFSET: 0x006DF2B0
+static void QuestAcceptCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!success) {
+        return;
+    }
+
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(id, none, nullptr, nullptr, false);
+
+    if (!quest) {
+        return;
+    }
+
+    CGGameUI::DisplayError(ERR_QUEST_ACCEPTED_S, quest->m_name);
+
+    if (quest->m_infoId == 1) {
+        CGTutorial::TriggerTutorial(0x28);
+        CGTutorial::TriggerTutorial(0x26);
+    }
+
+    if (!IsTutorialFlagged(0x14) && ++s_questsAccepted >= 4) {
+        CGTutorial::TriggerTutorial(0x14);
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_QUEST_ACCEPTED, "%d", CGQuestLog::GetQuestIndex(quest->m_id));
+}
+
+// VERIFY: ac232887 manual
+// OFFSET: 0x006DF370
+int32_t OnUpdateQuest(WOWGUID guid, uint32_t offset, uint32_t count, const void* value, void* param) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 1;
+    }
+
+    if (player->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        CGPlayer_C::QueryQuestGiverStatusMultiple();
+    }
+
+    CGQuestLog::Update(1);
+    uint32_t slot = (offset - 0x28) / sizeof(PlayerQuestLogEntry);
+    PlayerQuestLogEntry* entry = slot > 25 ? nullptr : &player->m_player->m_playerQuestLog[slot];
+    const PlayerQuestLogEntry* old = static_cast<const PlayerQuestLogEntry*>(value);
+    uint32_t questId = entry->m_questId;
+    WOWGUID none = { 0 };
+
+    if (questId && (questId != old->m_questId || (!(entry->m_state & 2) && (old->m_state & 2)))) {
+        QuestCache* quest = g_questDBCache.GetRecord(questId, none, QuestAcceptCallback, nullptr, false);
+
+        if (quest) {
+            CGGameUI::DisplayError(ERR_QUEST_ACCEPTED_S, quest->m_name);
+
+            if (quest->m_infoId == 1) {
+                CGTutorial::TriggerTutorial(0x28);
+                CGTutorial::TriggerTutorial(0x26);
+            }
+
+            if (!IsTutorialFlagged(0x14) && ++s_questsAccepted >= 4) {
+                CGTutorial::TriggerTutorial(0x14);
+            }
+
+            FrameScript_SignalEvent(SCRIPT_EVENT_QUEST_ACCEPTED, "%d", CGQuestLog::GetQuestIndex(quest->m_id));
+        }
+    }
+
+    QuestCache* quest = g_questDBCache.GetRecord(entry->m_questId, none, nullptr, nullptr, false);
+
+    if (quest) {
+        int32_t index = CGQuestLog::GetQuestIndex(quest->m_id) - 1;
+
+        if (index >= 0 && (quest->m_flags & 0x10000) && CGQuestLog::IsQuestCompleteEx(index, 1)) {
+            WOWGUID self = player->m_obj->m_guid;
+            CGPlayer_C::CompleteQuest(self, quest->m_id);
+        }
+    }
+
+    if (old && old->m_questId && entry->m_questId != old->m_questId) {
+        RemoveQuestPointDisplay(old->m_questId);
+    }
+
+    return 1;
+}
+
+// VERIFY: 1103b817 manual
+// OFFSET: 0x006E5180
+void CGPlayer_C::SetActiveMirrorHandlers() {
+    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_UNIT, 0x10, 8, CritterUpdate, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+
+    for (uint32_t i = 0x2C0; i < 0x378; i += 8) {
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, 8, InventoryUpdate, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    }
+
+    for (uint32_t i = 0x3F8; i <= 0x4D0; i += 8) {
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, 8, InventoryUpdate, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    }
+
+    for (uint32_t i = 0x4D8; i <= 0x508; i += 8) {
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, 8, InventoryUpdate, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    }
+
+    for (uint32_t i = 0x570; i <= 0x668; i += 8) {
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, 8, InventoryUpdate, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    }
+
+    for (uint32_t i = 0x670; i <= 0x768; i += 8) {
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, 8, InventoryUpdate, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    }
+
+    for (uint32_t i = 0x28; i < 0x21C; i += 20) {
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, 20, OnUpdateQuest, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    }
+
+    for (uint32_t i = 0x11B0; i < 0x1214; i += 4) {
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, 4, ReportDailyQuestsRemaining, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    }
+
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0xFF8, 4, OnUpdateMoney, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_UNIT, 0x18, 8, CharmChangeHandler, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_UNIT, 0x1D3, 1, OnUpdateShapeshiftForm, nullptr, static_cast<HANDLER_PRIORITY>(0), 1);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x770, 8, FarsightChangeHandler, nullptr, static_cast<HANDLER_PRIORITY>(0), 1);
+
+    for (uint32_t i = 0x778; i < 0x790; i += 8) {
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, 8, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_KNOWN_TITLES_UPDATE)), static_cast<HANDLER_PRIORITY>(0), 0);
+    }
+
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x790, 8, SignalKnownCurrencyTypesUpdate, nullptr, static_cast<HANDLER_PRIORITY>(0), 1);
+
+    for (uint32_t i = 0x7A6; i < 0xDA6; i += 12) {
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i - 2, 2, SkillRankChangeHandler, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, 2, SkillMaxRankChangeHandler, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i + 4, 2, SkillMaxRankChangeHandler, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i + 2, 2, SignalPlayerSkillStatEventsAndRefresh, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    }
+
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1B, 1, OnUpdateRestState, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0xFF4, 4, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_UPDATE_EXHAUSTION)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x798, 4, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_XP_UPDATE)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x79C, 4, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_XP_UPDATE)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0xFFC, 0x1C, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1018, 0x1C, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1034, 0x1C, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1050, 4, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10D4, 2, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_PVP_KILLS_CHANGED)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10E0, 4, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_PVP_KILLS_CHANGED)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10D8, 4, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_PVP_KILLS_CHANGED)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1C, 4, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_PVP_RANK_CHANGED)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10E7, 1, OnUpdatePlayerAuraVision, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10E4, 2, OnUpdatePlayerOverrideSpellsID, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10E8, 4, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_UPDATE_FACTION)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1150, 0x54, OnArenaTeamsChanged, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x11A4, 4, reinterpret_cast<MIRRORHANDLERFUNC>(OnHonorCurrencyChanged), nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x11A8, 4, reinterpret_cast<MIRRORHANDLERFUNC>(OnArenaCurrencyChanged), nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10EC, 0x64, SignalCombatRatingUpdate, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0xDEC, 4, SignalCombatRatingUpdate, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0xDB0, 0x34, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_UNIT, 0x88, 0x38, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)), static_cast<HANDLER_PRIORITY>(0), 0);
+
+    for (uint32_t i = 0x1214; i < 0x1224; i += 4) {
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, 4, OnUpdatePlayerRuneRegen, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    }
+
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0xDAC, 4, OnUpdatePlayerTrackingMask, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1060, 4, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)), static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x105C, 4, SignalCombatRatingUpdate, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1224, 0xC, OnUpdatePlayerNoReagentCost, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+
+    for (uint32_t i = 0x1248; i < 0x1260; i += 4) {
+        ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, 4, reinterpret_cast<MIRRORHANDLERFUNC>(OnUpdatePlayerGlyph), nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    }
+
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1260, 4, reinterpret_cast<MIRRORHANDLERFUNC>(OnUpdatePlayerGlyphSlotsEnabled), nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1264, 4, reinterpret_cast<MIRRORHANDLERFUNC>(SignalPetSpellPowerUpdate), nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+}
+
+// VERIFY: 7c2e2f8b manual
+// OFFSET: 0x006E5960
+void CGPlayer_C::UnsetActiveMirrorHandlers() {
+    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_UNIT, 0x10, CritterUpdate, nullptr);
+
+    for (uint32_t i = 0x2C0; i < 0x378; i += 8) {
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, InventoryUpdate, nullptr);
+    }
+
+    for (uint32_t i = 0x3F8; i <= 0x4D0; i += 8) {
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, InventoryUpdate, nullptr);
+    }
+
+    for (uint32_t i = 0x4D8; i <= 0x508; i += 8) {
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, InventoryUpdate, nullptr);
+    }
+
+    for (uint32_t i = 0x570; i <= 0x668; i += 8) {
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, InventoryUpdate, nullptr);
+    }
+
+    for (uint32_t i = 0x670; i <= 0x768; i += 8) {
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, InventoryUpdate, nullptr);
+    }
+
+    for (uint32_t i = 0x28; i < 0x21C; i += 20) {
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, OnUpdateQuest, nullptr);
+    }
+
+    for (uint32_t i = 0x11B0; i < 0x1214; i += 4) {
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, ReportDailyQuestsRemaining, nullptr);
+    }
+
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0xFF8, OnUpdateMoney, nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_UNIT, 0x18, CharmChangeHandler, nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x770, FarsightChangeHandler, nullptr);
+
+    for (uint32_t i = 0x778; i < 0x790; i += 8) {
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_KNOWN_TITLES_UPDATE)));
+    }
+
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x790, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_KNOWN_CURRENCY_TYPES_UPDATE)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_UNIT, 0x1D3, OnUpdateShapeshiftForm, nullptr);
+
+    for (uint32_t i = 0x7A6; i < 0xDA6; i += 12) {
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i - 2, SkillRankChangeHandler, nullptr);
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, SkillMaxRankChangeHandler, nullptr);
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i + 4, SkillMaxRankChangeHandler, nullptr);
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i + 2, SignalPlayerSkillStatEventsAndRefresh, nullptr);
+    }
+
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1B, OnUpdateRestState, nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0xFF4, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_UPDATE_EXHAUSTION)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x798, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_XP_UPDATE)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x79C, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_XP_UPDATE)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0xFFC, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1018, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1034, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1050, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10D4, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_PVP_KILLS_CHANGED)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10E0, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_PVP_KILLS_CHANGED)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10D8, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_PVP_KILLS_CHANGED)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1C, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_PVP_RANK_CHANGED)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10E7, OnUpdatePlayerAuraVision, nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10E4, OnUpdatePlayerOverrideSpellsID, nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10E8, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_UPDATE_FACTION)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1150, OnArenaTeamsChanged, nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x11A4, reinterpret_cast<MIRRORHANDLERFUNC>(OnHonorCurrencyChanged), nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x11A8, reinterpret_cast<MIRRORHANDLERFUNC>(OnArenaCurrencyChanged), nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x10EC, SignalCombatRatingUpdate, nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0xDEC, SignalCombatRatingUpdate, nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0xDB0, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x88, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)));
+
+    for (uint32_t i = 0x1214; i < 0x1224; i += 4) {
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, OnUpdatePlayerRuneRegen, nullptr);
+    }
+
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0xDAC, OnUpdatePlayerTrackingMask, nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1060, OnUpdatePlayerScriptEvent, reinterpret_cast<void*>(static_cast<uintptr_t>(SCRIPT_EVENT_PLAYER_DAMAGE_DONE_MODS)));
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x105C, SignalCombatRatingUpdate, nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1224, OnUpdatePlayerNoReagentCost, nullptr);
+
+    for (uint32_t i = 0x1248; i < 0x1260; i += 4) {
+        ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, i, reinterpret_cast<MIRRORHANDLERFUNC>(OnUpdatePlayerGlyph), nullptr);
+    }
+
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1260, reinterpret_cast<MIRRORHANDLERFUNC>(OnUpdatePlayerGlyphSlotsEnabled), nullptr);
+    ClntObjMgrUnsetObjMirrorHandler(this->m_obj->m_guid, ID_PLAYER, 0x1264, reinterpret_cast<MIRRORHANDLERFUNC>(SignalPetSpellPowerUpdate), nullptr);
+}
+
+struct QuestCompleteRewards {
+    /* 0000 */ int32_t m_xp;
+    /* 0004 */ int32_t m_money;
+    /* 0008 */ int32_t m_honor;
+    /* 000C */ int32_t m_talents;
+    /* 0010 */ int32_t m_arenaPoints;
+};
+
+// VERIFY: 42e86b51 manual
+// OFFSET: 0x006D0240
+int32_t __stdcall CGPlayer_C::OnQuestGiverQuestList(CDataStore* msg) {
+    WOWGUID npc;
+    msg->Get(npc.m_guid);
+
+    char greeting[2048];
+    msg->GetString(greeting, sizeof(greeting));
+
+    QUESTGIVEREMOTENODE emote;
+    msg->Get(emote.m_delay);
+    msg->Get(reinterpret_cast<uint32_t&>(emote.m_emote));
+
+    uint8_t count;
+    msg->Get(count);
+
+    s_questListNpc = npc;
+    memset(s_questListIds, 0, sizeof(s_questListIds));
+    memset(s_questListStatus, 0, sizeof(s_questListStatus));
+    memset(s_questListLevels, 0, sizeof(s_questListLevels));
+    memset(s_questListFlags, 0, sizeof(s_questListFlags));
+    memset(s_questListRepeatable, 0, sizeof(s_questListRepeatable));
+    CGQuestInfo::SetState(npc, WOWGUID(), 0, greeting, 0, 0);
+
+    char titles[32][512];
+
+    for (uint32_t i = 0; i < count; i++) {
+        msg->Get(s_questListIds[i]);
+        msg->Get(s_questListStatus[i]);
+        msg->Get(s_questListLevels[i]);
+        msg->Get(s_questListFlags[i]);
+
+        uint8_t repeatable = 0;
+        msg->Get(repeatable);
+        s_questListRepeatable[i] = repeatable;
+
+        msg->GetString(titles[i], sizeof(titles[i]));
+
+        uint32_t status = s_questListStatus[i];
+
+        if (status == 3 || status == 4) {
+            CGQuestInfo::AddQuestInProgress(s_questListIds[i], titles[i], s_questListLevels[i], s_questListFlags[i], s_questListRepeatable[i]);
+        } else {
+            CGQuestInfo::AddQuest(s_questListIds[i], titles[i], s_questListLevels[i], s_questListFlags[i], status == 0, s_questListRepeatable[i]);
+        }
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(npc, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        unit->SetEmoteQueue(&emote, 1);
+    }
+
+    CGQuestInfo::EndQuestList();
+    return 1;
+}
+
+// VERIFY: 1dea9fc1 manual
+// OFFSET: 0x006D08F0
+int32_t __stdcall CGPlayer_C::OnQuestGiverRequestItems(CDataStore* msg) {
+    WOWGUID npc;
+    msg->Get(npc.m_guid);
+
+    uint32_t questId;
+    msg->Get(questId);
+
+    char title[512];
+    msg->GetString(title, sizeof(title));
+
+    char text[3000];
+    msg->GetString(text, sizeof(text));
+
+    QUESTGIVEREMOTENODE emote;
+    msg->Get(emote.m_delay);
+    msg->Get(reinterpret_cast<uint32_t&>(emote.m_emote));
+
+    uint32_t autoLaunched;
+    msg->Get(autoLaunched);
+
+    uint32_t flags;
+    msg->Get(flags);
+
+    uint32_t suggestedGroupNum;
+    msg->Get(suggestedGroupNum);
+
+    uint32_t requiredMoney;
+    msg->Get(requiredMoney);
+
+    uint32_t numItems;
+    msg->Get(numItems);
+
+    uint32_t itemIds[6] = { 0 };
+    uint32_t itemCounts[6];
+    uint32_t itemDisplays[6];
+
+    for (int32_t i = 0; i < static_cast<int32_t>(numItems); i++) {
+        msg->Get(itemIds[i]);
+        msg->Get(itemCounts[i]);
+        msg->Get(itemDisplays[i]);
+    }
+
+    uint32_t completable0;
+    msg->Get(completable0);
+
+    uint32_t completable1;
+    msg->Get(completable1);
+
+    uint32_t completable2;
+    msg->Get(completable2);
+
+    uint32_t completable3;
+    msg->Get(completable3);
+
+    CGQuestInfo::SetState(npc, WOWGUID(), 2, text, questId, 0);
+    int32_t canComplete = completable0 && completable1 && completable2 && completable3;
+    CGQuestInfo::AddItemRequest(title, itemIds, itemCounts, itemDisplays, numItems, requiredMoney, canComplete, autoLaunched, suggestedGroupNum, flags);
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(npc, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        unit->SetEmoteQueue(&emote, 1);
+    }
+
+    return 1;
+}
+
+// VERIFY: e3fa33e0 auto
+// OFFSET: 0x006CD7C0
+int32_t __stdcall CGPlayer_C::OnQuestGiverQuestInvalid(CDataStore* msg) {
+    uint32_t reason;
+    msg->Get(reason);
+
+    switch (reason) {
+        case 1:
+            CGGameUI::DisplayError(ERR_QUEST_FAILED_LOW_LEVEL);
+            break;
+
+        case 6:
+            CGGameUI::DisplayError(ERR_QUEST_FAILED_WRONG_RACE);
+            break;
+
+        case 7:
+            CGGameUI::DisplayError(ERR_QUEST_ALREADY_DONE);
+            break;
+
+        case 12:
+            CGGameUI::DisplayError(ERR_QUEST_ONLY_ONE_TIMED);
+            break;
+
+        case 13:
+        case 18:
+            CGGameUI::DisplayError(ERR_QUEST_ALREADY_ON);
+            break;
+
+        case 16:
+            CGGameUI::DisplayError(ERR_QUEST_FAILED_EXPANSION);
+            break;
+
+        case 21:
+            CGGameUI::DisplayError(ERR_QUEST_FAILED_MISSING_ITEMS);
+            break;
+
+        case 23:
+            CGGameUI::DisplayError(ERR_QUEST_FAILED_NOT_ENOUGH_MONEY);
+            break;
+
+        case 26:
+            CGGameUI::DisplayError(ERR_QUEST_FAILED_TOO_MANY_DAILY_QUESTS_I, 25);
+            break;
+
+        case 27:
+            CGGameUI::DisplayError(ERR_QUEST_FAILED_CAIS);
+            break;
+
+        case 29:
+            CGGameUI::DisplayError(ERR_QUEST_ALREADY_DONE_DAILY);
+            break;
+
+        default:
+            CGGameUI::DisplayError(ERR_QUEST_NEED_PREREQS);
+            break;
+    }
+
+    CGQuestInfo::QuestGiverFinished(0, 0, 0);
+    return 1;
+}
+
+// VERIFY: 73d5b3db auto
+// OFFSET: 0x006CD8C0
+static void QuestRewardItemCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!success) {
+        return;
+    }
+
+    WOWGUID none = { 0 };
+    ItemStats_C* stats = g_itemDBCache.GetRecord(id, none, nullptr, nullptr, false);
+
+    if (!stats) {
+        return;
+    }
+
+    const char* link = CGTooltip::GetItemHyperlinkString(id, stats->m_quality, 0, 0, 0);
+    int32_t count = static_cast<int32_t>(reinterpret_cast<intptr_t>(param));
+
+    if (count <= 1) {
+        CGGameUI::DisplayError(ERR_QUEST_REWARD_ITEM_S, link);
+    } else {
+        CGGameUI::DisplayError(ERR_QUEST_REWARD_ITEM_MULT_IS, count, link);
+    }
+}
+
+// VERIFY: bafe4a7d auto
+// OFFSET: 0x006CD940
+static void QuestFailedCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!success) {
+        return;
+    }
+
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(id, none, nullptr, nullptr, false);
+
+    if (!quest) {
+        return;
+    }
+
+    switch (s_questFailedReason) {
+        case 4:
+        case 16:
+        case 50:
+            CGGameUI::DisplayError(ERR_QUEST_FAILED_BAG_FULL_S, quest->m_name);
+            CGGameUI::DisplayError(ERR_INV_FULL);
+            break;
+
+        case 17:
+            CGGameUI::DisplayError(ERR_QUEST_FAILED_MAX_COUNT_S, quest->m_name);
+            break;
+
+        case 74:
+            CGGameUI::DisplayError(ERR_QUEST_FAILED_TOO_MANY_DAILY_QUESTS_I, 25);
+            break;
+
+        default:
+            if (!CGQuestLog::IsQuestExpiredByID(id)) {
+                CGGameUI::DisplayError(ERR_QUEST_FAILED_S, quest->m_name);
+            }
+
+            break;
+    }
+}
+
+// VERIFY: b475afdb auto
+// OFFSET: 0x006CDA70
+int32_t __stdcall CGPlayer_C::OnQuestGiverQuestFailed(CDataStore* msg) {
+    uint32_t questId;
+    msg->Get(questId);
+    msg->Get(s_questFailedReason);
+
+    QuestCache* quest = g_questDBCache.GetRecord(questId, CGQuestInfo::m_npc, QuestFailedCallback, nullptr, false);
+
+    if (quest) {
+        switch (s_questFailedReason) {
+            case 4:
+            case 16:
+            case 50:
+                CGGameUI::DisplayError(ERR_QUEST_FAILED_BAG_FULL_S, quest->m_name);
+                CGGameUI::DisplayError(ERR_INV_FULL);
+                break;
+
+            case 17:
+                CGGameUI::DisplayError(ERR_QUEST_FAILED_MAX_COUNT_S, quest->m_name);
+                break;
+
+            case 74:
+                CGGameUI::DisplayError(ERR_QUEST_FAILED_TOO_MANY_DAILY_QUESTS_I, 25);
+                break;
+
+            default:
+                if (!CGQuestLog::IsQuestExpiredByID(questId)) {
+                    CGGameUI::DisplayError(ERR_QUEST_FAILED_S, quest->m_name);
+                }
+
+                break;
+        }
+    }
+
+    CGQuestInfo::QuestGiverFinished(0, questId, 0);
+    return 1;
+}
+
+// VERIFY: 2b919027 manual
+// OFFSET: 0x006D0E10
+static void QuestCompleteCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    QuestCompleteRewards* rewards = static_cast<QuestCompleteRewards*>(param);
+
+    if (!success) {
+        delete rewards;
+        return;
+    }
+
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(id, none, nullptr, nullptr, false);
+
+    if (!quest) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    CGGameUI::DisplayError(ERR_QUEST_COMPLETE_S, quest->m_name);
+    SI2::PlaySoundKit("igQuestListComplete", nullptr, nullptr, nullptr);
+
+    if (rewards->m_xp) {
+        CGGameUI::DisplayError(ERR_QUEST_REWARD_EXP_I, rewards->m_xp);
+    }
+
+    if (rewards->m_money > 0) {
+        char money[1024];
+        GetCurrencyText(rewards->m_money, money, sizeof(money), ", ");
+        CGGameUI::DisplayError(ERR_QUEST_REWARD_MONEY_S, money);
+    }
+
+    char text[3000];
+
+    if (rewards->m_honor > 0) {
+        rewards->m_honor = static_cast<int32_t>(static_cast<uint32_t>(rewards->m_honor) / 10 + 0.5);
+        const char* format = FrameScript_GetText("COMBATLOG_HONORAWARD", -1, GENDER_NOT_APPLICABLE);
+
+        if (format && *format) {
+            SStrPrintf(text, sizeof(text), format, rewards->m_honor);
+            CGChat::AddChatMessage(text, CHAT_MSG_COMBAT_HONOR_GAIN, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+        }
+
+        SendToCombatText(43, rewards->m_honor);
+    }
+
+    if (rewards->m_talents > 0) {
+        const char* format = FrameScript_GetText("LEVEL_UP_CHAR_POINTS", -1, GENDER_NOT_APPLICABLE);
+
+        if (format && *format) {
+            SStrPrintf(text, sizeof(text), format, rewards->m_talents);
+            CGChat::AddChatMessage(text, CHAT_MSG_MONEY, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+        }
+    }
+
+    if (rewards->m_arenaPoints > 0) {
+        const char* format = FrameScript_GetText("COMBATLOG_ARENAPOINTSAWARD", -1, GENDER_NOT_APPLICABLE);
+
+        if (format && *format) {
+            SStrPrintf(text, sizeof(text), format, rewards->m_arenaPoints);
+            CGChat::AddChatMessage(text, CHAT_MSG_ARENA_POINTS, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+        }
+
+        SendToCombatText(47, rewards->m_arenaPoints);
+    }
+
+    WOWGUID player = ClntObjMgrGetActivePlayer();
+
+    for (uint32_t i = 0; i < 4; i++) {
+        int32_t itemId = static_cast<int32_t>(quest->m_rewardItem[i]);
+        void* count = reinterpret_cast<void*>(static_cast<uintptr_t>(quest->m_rewardItemCount[i]));
+
+        if (itemId > 0 && g_itemDBCache.GetRecord(itemId, player, QuestRewardItemCallback, count, false)) {
+            QuestRewardItemCallback(itemId, player, count, true);
+        }
+    }
+
+    int32_t chosen = CGQuestInfo::m_lastChosenItem;
+
+    if (chosen) {
+        if (g_itemDBCache.GetRecord(chosen, player, QuestRewardItemCallback, nullptr, false)) {
+            WOWGUID none2 = { 0 };
+            ItemStats_C* stats = g_itemDBCache.GetRecord(chosen, none2, nullptr, nullptr, false);
+
+            if (stats) {
+                CGGameUI::DisplayError(ERR_QUEST_REWARD_ITEM_S, CGTooltip::GetItemHyperlinkString(chosen, stats->m_quality, 0, 0, 0));
+            }
+        }
+
+        CGQuestInfo::m_lastChosenItem = 0;
+    }
+
+    CGQuestInfo::QuestGiverFinished(quest->m_nextQuestId != 0, id, 0);
+    delete rewards;
+}
+
+// VERIFY: bd6214c4 manual
+// OFFSET: 0x006D1110
+int32_t __stdcall CGPlayer_C::OnQuestGiverQuestComplete(CDataStore* msg) {
+    QuestCompleteRewards* rewards = new (__FILE__, __LINE__) QuestCompleteRewards;
+
+    uint32_t questId;
+    msg->Get(questId);
+    msg->Get(reinterpret_cast<uint32_t&>(rewards->m_xp));
+    msg->Get(reinterpret_cast<uint32_t&>(rewards->m_money));
+    msg->Get(reinterpret_cast<uint32_t&>(rewards->m_honor));
+    msg->Get(reinterpret_cast<uint32_t&>(rewards->m_talents));
+    msg->Get(reinterpret_cast<uint32_t&>(rewards->m_arenaPoints));
+
+    WOWGUID none = { 0 };
+
+    if (g_questDBCache.GetRecord(questId, none, QuestCompleteCallback, rewards, false)) {
+        QuestCompleteCallback(questId, none, rewards, true);
+    }
+
+    return 1;
 }

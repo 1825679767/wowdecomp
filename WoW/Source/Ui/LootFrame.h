@@ -57,4 +57,7 @@ int32_t Script_RollOnLoot(lua_State* L);
 int32_t Script_ConfirmLootRoll(lua_State* L);
 void LootInfoRegisterScriptFunctions();
 
+void CurrencyBreakdown(int32_t amount, int32_t* parts);
+void GetCurrencyText(int32_t amount, char* buffer, uint32_t size, const char* separator);
+
 #endif

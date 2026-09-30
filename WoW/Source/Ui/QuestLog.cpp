@@ -1706,3 +1706,23 @@ void CGQuestLog::HandlePOIQueryResponse(CDataStore* msg) {
 
     Script_SendUniqueSignal(SCRIPT_EVENT_QUEST_POI_UPDATE);
 }
+
+// VERIFY: 664d65d3 auto
+// OFFSET: 0x005DEC10
+void RemoveQuestPointDisplay(int32_t questId) {
+    if (questId && questId == CGQuestLog::m_selectedQuest) {
+        DisplayQuestPoint(0.0f, 0.0f, 0, "");
+    }
+}
+
+// VERIFY: fca734d5 auto
+// OFFSET: 0x005DEE60
+int32_t CGQuestLog::IsQuestExpiredByID(int32_t questId) {
+    for (int32_t i = 0; i < CGQuestLog::m_numQuest; i++) {
+        if (CGQuestLog::m_quests[i].m_questId == questId) {
+            return !CGQuestLog::m_quests[i].m_isHeader && CGQuestLog::m_quests[i].m_expired;
+        }
+    }
+
+    return 0;
+}

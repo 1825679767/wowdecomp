@@ -101,6 +101,7 @@ class CGQuestLog {
     static int32_t GetQuestIndex(int32_t questId);
     static int32_t IsQuestFailed(uint32_t index);
     static bool HasNoObjectives(uint32_t index);
+    static int32_t IsQuestExpiredByID(int32_t questId);
     static QuestLogEntry m_quests[50];
     static QuestPOIInfo m_questPOIs[25];
     static int32_t m_abandonQuest;
@@ -138,6 +139,7 @@ int32_t Script_QuestPOIUpdateTexture(lua_State* L);
 int32_t Script_QuestPOIGetIconInfo(lua_State* L);
 void QuestLogRegisterScriptFunctions();
 void AddQuestPointDisplay();
+void RemoveQuestPointDisplay(int32_t questId);
 void DisplayQuestFailed(int32_t id, const WOWGUID& guid, void* param, bool success);
 int32_t Packet_SMSG_QUERY_TIME_RESPONSE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t UpdateQuestPOIHandler(const char* command, const char* arguments);

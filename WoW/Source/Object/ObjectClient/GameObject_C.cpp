@@ -2115,3 +2115,9 @@ void CGGameObject_C_Type_TransportBase::AddPassenger(CPassenger* passenger, int3
         MovementSetTransportUpdateTime(this->m_transportUpdateTime);
     }
 }
+
+// VERIFY: 1c117624 auto
+// OFFSET: 0x00710300
+int32_t CGGameObject_C::GetPageTextMaterial() const {
+    return this->GetPropertyValue(CGameObjectDef::GetPropNum(this->m_gameObject->m_typeID, 17));
+}

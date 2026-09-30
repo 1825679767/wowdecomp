@@ -326,6 +326,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     const char* GetModelFileNameInternal() const;
     const char* GetOpenText() const;
     uint32_t GetPropertyValue(uint32_t index) const;
+    int32_t GetPageTextMaterial() const;
     bool IsValidOpenAction(int32_t action) const;
     void LoadBaseObject(GameObjectStats_C* stats);
     void PlayCustomAnim(uint32_t anim);

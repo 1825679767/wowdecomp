@@ -15,6 +15,15 @@
 #include "WoW/Source/DB/Rec/FactionRec.h"
 #include "WoW/Source/DB/Rec/QuestFactionRewardRec.h"
 #include "WoW/Source/Ui/ReputationInfo.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "WoW/Source/Object/ItemStats.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/Object/Player.h"
+#include "WoW/Source/Object/Unit.h"
+#include "WoW/Source/Ui/QuestLog.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/Tutorial.h"
 
 // STATIC: 0x00C0173C
 int32_t CGQuestInfo::m_numRewardFactions;
@@ -33,6 +42,12 @@ int32_t CGQuestInfo::m_state;
 
 // STATIC: 0x00C0D65C
 int32_t CGQuestInfo::m_currentQuest;
+
+// STATIC: 0x00C0D660
+int32_t CGQuestInfo::m_canComplete;
+
+// STATIC: 0x00C0D6C0
+static char s_questItemTexture[260];
 
 // STATIC: 0x00C0D664
 int32_t CGQuestInfo::m_autoLaunched;
@@ -504,4 +519,367 @@ void CGQuestInfo::ProcessQuestLogRewardFactions() {
 
         ProcessQuestRewardFactions(faction->m_id, amount, -1, -1, 0, (CGQuestInfo::m_rewardFactionMask & s_rewardFactionMaskBits[i]) != 0);
     }
+}
+
+// VERIFY: a3658565 auto
+// OFFSET: 0x0058B8F0
+static void QuestItemStatsCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!success) {
+        return;
+    }
+
+    WOWGUID none = { 0 };
+
+    if (g_itemDBCache.GetRecord(id, none, nullptr, nullptr, false)) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_QUEST_ITEM_UPDATE, nullptr);
+    }
+}
+
+// VERIFY: 0e16cb6e auto
+// OFFSET: 0x0058B990
+void CGQuestInfo::AddQuest(int32_t questId, const char* title, int32_t level, int32_t flags, int32_t turnIn, int32_t repeatable) {
+    CGQuestInfo::m_availableQuests[CGQuestInfo::m_numQuests].m_questID = questId;
+    CGQuestInfo::m_availableQuests[CGQuestInfo::m_numQuests].m_level = level;
+    CGQuestInfo::m_availableQuests[CGQuestInfo::m_numQuests].unk_0008 = flags;
+
+    if (title) {
+        SStrCopy(CGQuestInfo::m_availableQuests[CGQuestInfo::m_numQuests].m_title, title, sizeof(CGQuestInfo::m_availableQuests[0].m_title));
+    }
+
+    CGQuestInfo::m_availableQuests[CGQuestInfo::m_numQuests].unk_020C = turnIn;
+    CGQuestInfo::m_availableQuests[CGQuestInfo::m_numQuests].unk_0210 = repeatable;
+    CGQuestInfo::m_numQuests++;
+}
+
+// VERIFY: 199b28f6 auto
+// OFFSET: 0x0058BA00
+void CGQuestInfo::AddQuestInProgress(int32_t questId, const char* title, int32_t level, int32_t flags, int32_t repeatable) {
+    CGQuestInfo::m_inProgressQuests[CGQuestInfo::m_numInProgress].m_questID = questId;
+    CGQuestInfo::m_inProgressQuests[CGQuestInfo::m_numInProgress].m_level = level;
+    CGQuestInfo::m_inProgressQuests[CGQuestInfo::m_numInProgress].unk_0008 = flags;
+
+    if (title) {
+        SStrCopy(CGQuestInfo::m_inProgressQuests[CGQuestInfo::m_numInProgress].m_title, title, sizeof(CGQuestInfo::m_inProgressQuests[0].m_title));
+    }
+
+    CGQuestInfo::m_inProgressQuests[CGQuestInfo::m_numInProgress].unk_020C = 0;
+    CGQuestInfo::m_inProgressQuests[CGQuestInfo::m_numInProgress].unk_0210 = repeatable;
+    CGQuestInfo::m_numInProgress++;
+}
+
+// VERIFY: b8734c98 auto
+// OFFSET: 0x0058BA70
+void CGQuestInfo::EndQuestList() {
+    FrameScript_SignalEvent(SCRIPT_EVENT_QUEST_GREETING, nullptr);
+}
+
+// VERIFY: 1a14e0c3 manual
+// OFFSET: 0x0058BA80
+void CGQuestInfo::AddItemRequest(const char* title, const uint32_t* itemIds, const uint32_t* itemCounts, const uint32_t* itemDisplays, int32_t numItems, int32_t requiredMoney, int32_t canComplete, int32_t autoLaunched, int32_t suggestedGroupNum, uint32_t questFlags) {
+    int32_t i = 0;
+
+    for (; i < numItems; i++) {
+        CGQuestInfo::m_questItems[i].m_required.m_itemID = itemIds[i];
+        CGQuestInfo::m_questItems[i].m_required.unk_0004 = itemDisplays[i];
+        CGQuestInfo::m_questItems[i].m_required.unk_0008 = itemCounts[i];
+    }
+
+    for (; i < 6; i++) {
+        CGQuestInfo::m_questItems[i].m_required.m_itemID = 0;
+        CGQuestInfo::m_questItems[i].m_required.unk_0004 = 0;
+        CGQuestInfo::m_questItems[i].m_required.unk_0008 = 1;
+    }
+
+    if (title) {
+        if (*title) {
+            SStrCopy(CGQuestInfo::m_questTitle, title, sizeof(CGQuestInfo::m_questTitle));
+        } else {
+            SStrCopy(CGQuestInfo::m_questTitle, " ", sizeof(CGQuestInfo::m_questTitle));
+        }
+    }
+
+    CGQuestInfo::m_requiredMoney = requiredMoney;
+    CGQuestInfo::m_canComplete = canComplete;
+    CGQuestInfo::m_autoLaunched = autoLaunched;
+    CGQuestInfo::m_suggestedGroupNum = suggestedGroupNum;
+    CGQuestInfo::m_questFlags = questFlags;
+    FrameScript_SignalEvent(SCRIPT_EVENT_QUEST_PROGRESS, nullptr);
+}
+
+// VERIFY: 834f12df auto
+// OFFSET: 0x0058BBA0
+int32_t CGQuestInfo::GetNumQuestChoices() {
+    int32_t count = 0;
+
+    for (uint32_t i = 0; i < 6; i++) {
+        if (!CGQuestInfo::m_questItems[i].m_choice.m_itemID) {
+            break;
+        }
+
+        count++;
+    }
+
+    return count;
+}
+
+// VERIFY: 5df087bb auto
+// OFFSET: 0x0058BBC0
+int32_t CGQuestInfo::GetQuestItemID(const char* type, uint32_t index) {
+    if (index > 6) {
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "reward", STORM_MAX_STR)) {
+        return CGQuestInfo::m_questItems[index].m_reward.m_itemID;
+    }
+
+    if (!SStrCmpI(type, "choice", STORM_MAX_STR)) {
+        return CGQuestInfo::m_questItems[index].m_choice.m_itemID;
+    }
+
+    if (SStrCmpI(type, "required", STORM_MAX_STR)) {
+        return 0;
+    }
+
+    return CGQuestInfo::m_questItems[index].m_required.m_itemID;
+}
+
+// VERIFY: ed6659d1 manual
+// OFFSET: 0x0058BCB0
+bool CGQuestInfo::IsQuestCompleteAt(uint32_t index) {
+    if (index >= CGQuestInfo::m_numInProgress) {
+        return false;
+    }
+
+    uint32_t logIndex = CGQuestLog::GetQuestIndex(CGQuestInfo::m_inProgressQuests[index].m_questID) - 1;
+    return CGQuestLog::IsQuestCompleteEx(logIndex, 1) || CGQuestLog::HasNoObjectives(logIndex);
+}
+
+// VERIFY: db67485a manual
+// OFFSET: 0x0058CBB0
+int32_t CGQuestInfo::IsCompletable() {
+    if (!CGQuestInfo::m_canComplete) {
+        return 0;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < 6; i++) {
+        int32_t itemId = CGQuestInfo::m_questItems[i].m_required.m_itemID;
+
+        if (!itemId) {
+            return 1;
+        }
+
+        if (player->m_bag.GetItemTypeCount(itemId, 8) < CGQuestInfo::m_questItems[i].m_required.unk_0008) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 11ef127c manual
+// OFFSET: 0x0058CC20
+void CGQuestInfo::QueryQuest(uint32_t index) {
+    if (index > CGQuestInfo::m_numQuests || CGQuestInfo::m_responseSent) {
+        return;
+    }
+
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        return;
+    }
+
+    if (CGQuestInfo::m_availableQuests[index].unk_020C) {
+        CGPlayer_C::CompleteQuest(CGQuestInfo::m_npc, CGQuestInfo::m_availableQuests[index].m_questID);
+    } else {
+        CGPlayer_C::QueryQuest(CGQuestInfo::m_npc, CGQuestInfo::m_availableQuests[index].m_questID);
+    }
+
+    CGQuestInfo::m_responseSent = 1;
+}
+
+// VERIFY: bd530fb2 manual
+// OFFSET: 0x0058CCB0
+void CGQuestInfo::CompleteQuest(uint32_t index) {
+    if (index > CGQuestInfo::m_numInProgress || CGQuestInfo::m_responseSent) {
+        return;
+    }
+
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        return;
+    }
+
+    CGTutorial::TriggerTutorial(0x21);
+    CGPlayer_C::CompleteQuest(CGQuestInfo::m_npc, CGQuestInfo::m_inProgressQuests[index].m_questID);
+    CGQuestInfo::m_responseSent = 1;
+}
+
+// VERIFY: 900e22ab manual
+// OFFSET: 0x0058CD20
+void CGQuestInfo::AcceptQuest() {
+    if (CGQuestInfo::m_state != 1) {
+        return;
+    }
+
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__) || CGQuestInfo::m_responseSent) {
+        return;
+    }
+
+    CGPlayer_C::AcceptQuest(CGQuestInfo::m_npcInform ? CGQuestInfo::m_npcInform : CGQuestInfo::m_npc, CGQuestInfo::m_currentQuest, CGQuestInfo::m_startQuestCheat);
+    CGQuestInfo::m_startQuestCheat = 0;
+    CGQuestInfo::m_responseSent = 1;
+
+    if (!CGQuestInfo::m_npc) {
+        return;
+    }
+
+    WOWGUID npc = CGQuestInfo::m_npc;
+    CGQuestInfo::m_npc = WOWGUID();
+    CGQuestInfo::m_npcInform = WOWGUID();
+
+    if (!CGGossipInfo::m_gossip) {
+        CGGameUI::ClearInteractTarget(npc, 0);
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_QUEST_FINISHED, nullptr);
+}
+
+// VERIFY: 0ea917e1 manual
+// OFFSET: 0x0058CE00
+void CGQuestInfo::DeclineQuest() {
+    if (CGQuestInfo::m_responseSent) {
+        return;
+    }
+
+    CGObject_C* object = ClntObjMgrObjectPtr(CGQuestInfo::m_npc, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (!object) {
+        return;
+    }
+
+    if ((object->m_obj->m_type & TYPEMASK_UNIT) && (static_cast<CGUnit_C*>(object)->m_unit->m_unitNpcFlags & 1) && ClntObjMgrGetActivePlayerObj()) {
+        CGPlayer_C::TalkToGossip(CGQuestInfo::m_npc);
+        CGQuestInfo::m_responseSent = 1;
+        return;
+    }
+
+    uint32_t type = object->m_obj->m_type;
+
+    if ((type & (TYPEMASK_ITEM | TYPEMASK_PLAYER)) || CGQuestInfo::m_autoLaunched) {
+        CGQuestInfo::QuestGiverFinished(0, CGQuestInfo::m_currentQuest, 1);
+        return;
+    }
+
+    if (type & TYPEMASK_GAMEOBJECT) {
+        object->OnRightClick();
+    } else {
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_QUEST_GIVER_HELLO));
+        msg.Put(CGQuestInfo::m_npc.m_guid);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    CGQuestInfo::m_responseSent = 1;
+}
+
+// VERIFY: 84d8d008 manual
+// OFFSET: 0x0058CF40
+void CGQuestInfo::GiveQuestItems() {
+    if (CGQuestInfo::m_state != 2 || CGQuestInfo::m_responseSent) {
+        return;
+    }
+
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        return;
+    }
+
+    CGTutorial::TriggerTutorial(0x21);
+    CGPlayer_C::GiveQuestItems(CGQuestInfo::m_npc, CGQuestInfo::m_currentQuest);
+    CGQuestInfo::m_responseSent = 1;
+}
+
+// VERIFY: 840a6082 manual
+// OFFSET: 0x0058CFA0
+int32_t CGQuestInfo::GetReward(int32_t choice) {
+    if (CGQuestInfo::m_state != 3) {
+        return 1;
+    }
+
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__) || CGQuestInfo::m_responseSent) {
+        return 1;
+    }
+
+    int32_t numChoices = CGQuestInfo::GetNumQuestChoices();
+
+    if (numChoices > 0) {
+        if (choice >= numChoices || choice < 0) {
+            return 0;
+        }
+
+        CGQuestInfo::m_lastChosenItem = CGQuestInfo::m_questItems[choice].m_choice.m_itemID;
+    }
+
+    CGTutorial::TriggerTutorial(0x21);
+    CGPlayer_C::GetQuestReward(CGQuestInfo::m_npc, CGQuestInfo::m_currentQuest, choice <= 0 ? 0 : choice);
+    CGQuestInfo::m_responseSent = 1;
+    return 1;
+}
+
+// VERIFY: 5dc83631 manual
+// OFFSET: 0x0058D190
+int32_t CGQuestInfo::QuestItemInfo(const char* type, uint32_t index, char* name, uint32_t nameSize, char* texture, uint32_t textureSize, int32_t* count, int32_t* quality, int32_t* usable) {
+    *name = 0;
+    *texture = 0;
+    *count = 1;
+    *quality = 0;
+    *usable = 1;
+
+    if (index > 6) {
+        return 0;
+    }
+
+    int32_t itemId;
+    int32_t displayId;
+
+    if (!SStrCmpI(type, "reward", STORM_MAX_STR)) {
+        itemId = CGQuestInfo::m_questItems[index].m_reward.m_itemID;
+        displayId = CGQuestInfo::m_questItems[index].m_reward.unk_0004;
+        *count = CGQuestInfo::m_questItems[index].m_reward.unk_0008;
+    } else if (!SStrCmpI(type, "choice", STORM_MAX_STR)) {
+        itemId = CGQuestInfo::m_questItems[index].m_choice.m_itemID;
+        displayId = CGQuestInfo::m_questItems[index].m_choice.unk_0004;
+        *count = CGQuestInfo::m_questItems[index].m_choice.unk_0008;
+    } else if (!SStrCmpI(type, "required", STORM_MAX_STR)) {
+        itemId = CGQuestInfo::m_questItems[index].m_required.m_itemID;
+        displayId = CGQuestInfo::m_questItems[index].m_required.unk_0004;
+        *count = CGQuestInfo::m_questItems[index].m_required.unk_0008;
+    } else {
+        return 0;
+    }
+
+    ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, CGQuestInfo::m_npc, QuestItemStatsCallback, nullptr, false);
+
+    if (stats) {
+        SStrCopy(name, stats->m_name[0], nameSize);
+        *quality = stats->m_inventoryType ? stats->m_quality : -1;
+    }
+
+    const char* path = ClientDBStringLookup(3);
+    SStrPrintf(s_questItemTexture, sizeof(s_questItemTexture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(displayId));
+    SStrCopy(texture, s_questItemTexture, textureSize);
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    int32_t error;
+
+    if (player && stats && !player->CanUseItem(stats, error)) {
+        *usable = 0;
+    }
+
+    return 1;
 }
