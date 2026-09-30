@@ -2087,3 +2087,10 @@ void CGlueMgr::RaceChange(WOWGUID guid, const CHARACTER_CREATE_INFO* info) {
     msg.Finalize();
     ClientServices::Send2(&msg);
 }
+
+// VERIFY: 24156984 auto
+// OFFSET: 0x004D8080
+void CGlueMgr::LoginEnterToken(const char* token) {
+    FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s", "CANCEL");
+    ClientServices::LoginEnterToken(token);
+}

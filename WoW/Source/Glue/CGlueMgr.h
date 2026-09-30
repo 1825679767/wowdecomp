@@ -147,6 +147,7 @@ class CGlueMgr {
     static void ProcessAgreements(CGlueMgr::Agreements* agreements);
     static void PatchDownloadStart();
     static void LoginServerLogin(const char* username, char* password);
+    static void LoginEnterToken(const char* token);
     static void LogConnectionStatus(const char* format, ...);
     static void ResetQueueState();
     static void SetCurrentAccount(const char* accountName);

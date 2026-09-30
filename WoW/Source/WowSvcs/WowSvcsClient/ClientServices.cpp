@@ -1315,3 +1315,13 @@ void ClientConnection::CharacterLogout(bool quit, bool instant) {
 int32_t ClientServices::LaunchURL(const char* url) {
     return OsLaunchURL(url);
 }
+
+// VERIFY: 12c793a8 auto
+// OFFSET: 0x006B0AA0
+void ClientServices::LoginEnterToken(const char* token) {
+    if (!ClientServices::s_loginObj) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    ClientServices::s_loginObj->EnterToken(token);
+}

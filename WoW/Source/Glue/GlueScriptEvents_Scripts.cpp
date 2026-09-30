@@ -64,7 +64,6 @@ int32_t Script_CancelLogin(lua_State* L);
 int32_t Script_GetCVarAbsoluteMin(lua_State* L);
 int32_t Script_GetCVarAbsoluteMax(lua_State* L);
 int32_t Script_AcceptChangedOptionWarnings(lua_State* L);
-int32_t Script_TokenEntered(lua_State* L);
 int32_t Script_GetNumDeclensionSets(lua_State* L);
 int32_t Script_DeclineName(lua_State* L);
 int32_t Script_GetNumGameAccounts(lua_State* L);
@@ -992,6 +991,16 @@ static int32_t Script_GetCreditsText(lua_State* L) {
     }
 
     return 1;
+}
+
+// VERIFY: a2877425 auto
+// OFFSET: 0x004DC4D0
+static int32_t Script_TokenEntered(lua_State* L) {
+    if (lua_isstring(L, 1)) {
+        CGlueMgr::LoginEnterToken(lua_tolstring(L, 1, nullptr));
+    }
+
+    return 0;
 }
 
 // STATIC: 0x00AC3E00
