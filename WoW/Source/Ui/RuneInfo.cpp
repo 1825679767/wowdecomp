@@ -1,4 +1,10 @@
 #include "RuneInfo.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
+#include "WoW/Source/DB/Rec/SpellRuneCostRec.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 // STATIC: 0x00C24304
 int32_t CGRuneInfo::m_runes[8];
 
@@ -67,4 +73,229 @@ int32_t CGRuneInfo::GetRuneTypeByIndex(int32_t index, bool base) {
     }
 
     return CGRuneInfo::m_runes[index];
+}
+
+// VERIFY: e47d74df manual
+// OFFSET: 0x005EE1F0
+uint32_t CGRuneInfo::GetRuneRechargeTime(int32_t index) {
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__) || ((1 << index) & CGRuneInfo::m_predictedRunes)) {
+        return 0;
+    }
+
+    return CGRuneInfo::m_runeCooldowns[index];
+}
+
+// VERIFY: c02488c7 manual
+// OFFSET: 0x005EE3D0
+int32_t CGRuneInfo::CountPredictedRunesOfType(int32_t type) {
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        return 0;
+    }
+
+    int32_t count = 0;
+
+    for (uint32_t i = 0; i < CGRuneInfo::m_numRunes; i++) {
+        if (CGRuneInfo::m_runes[i] == type && ((1 << i) & CGRuneInfo::m_predictedRunes)) {
+            count++;
+        }
+    }
+
+    return count;
+}
+
+// VERIFY: e0b2be36 manual
+// OFFSET: 0x005EE5B0
+bool CGRuneInfo::HasRunesForSpell(int32_t spellId, int32_t* needed) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return false;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return false;
+    }
+
+    int32_t school = spell.m_schoolMask;
+    int32_t pct = player->GetSpellCostModifier(school) + 100;
+    pct = static_cast<int32_t>(player->GetSpellCostMultiplier(school) * pct);
+    Spell_C_ModifySpellValue(&spell, pct, 14);
+
+    if (!pct) {
+        return true;
+    }
+
+    if (spell.m_powerType != 5) {
+        return true;
+    }
+
+    SpellRuneCostRec* cost = g_spellRuneCostDB.GetRecord(spell.m_runeCostID);
+
+    if (!cost) {
+        return true;
+    }
+
+    int32_t missing = 0;
+    bool short1 = false;
+    bool short2 = false;
+
+    if (cost->m_blood) {
+        int32_t have = CGRuneInfo::CountPredictedRunesOfType(0);
+        int32_t need = cost->m_blood;
+
+        if (pct > 100) {
+            need = pct * need / 100;
+        }
+
+        if (have < need) {
+            missing = need - have;
+            short1 = true;
+
+            if (needed) {
+                needed[0] = need - have;
+            }
+        }
+    }
+
+    if (cost->m_unholy) {
+        int32_t have = CGRuneInfo::CountPredictedRunesOfType(1);
+        int32_t need = cost->m_unholy;
+
+        if (pct > 100) {
+            need = pct * need / 100;
+        }
+
+        if (have < need) {
+            missing += need - have;
+            short1 = true;
+
+            if (needed) {
+                needed[1] = need - have;
+            }
+        }
+    }
+
+    if (cost->m_frost) {
+        int32_t have = CGRuneInfo::CountPredictedRunesOfType(2);
+        int32_t need = cost->m_frost;
+
+        if (pct > 100) {
+            need = pct * need / 100;
+        }
+
+        if (have < need) {
+            missing += need - have;
+            short2 = true;
+
+            if (needed) {
+                needed[2] = need - have;
+            }
+        }
+    }
+
+    if (!short1 && !short2) {
+        return true;
+    }
+
+    if (CGRuneInfo::CountPredictedRunesOfType(3) >= missing) {
+        return true;
+    }
+
+    if (needed) {
+        needed[3] = missing - CGRuneInfo::CountPredictedRunesOfType(3);
+    }
+
+    return false;
+}
+
+// VERIFY: f7ba20b6 manual
+// OFFSET: 0x005EE7E0
+bool CGRuneInfo::ComputeRuneSpellCooldown(const SpellRec* spell, uint32_t* cooldown) {
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        return false;
+    }
+
+    SpellRuneCostRec* cost = g_spellRuneCostDB.GetRecord(spell->m_runeCostID);
+    int32_t needed[4] = { 0, 0, 0, 0 };
+
+    if (!cost || CGRuneInfo::HasRunesForSpell(spell->m_id, needed)) {
+        return false;
+    }
+
+    uint32_t latest = 0;
+    int32_t latestIndex = 0;
+    uint32_t times[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+    for (int32_t i = 0; i < 8; i++) {
+        int32_t type = CGRuneInfo::m_runes[i];
+
+        if (type != 3 && needed[type]) {
+            uint32_t time = CGRuneInfo::GetRuneRechargeTime(i);
+            times[i] = time;
+
+            if (!latest || static_cast<int32_t>(time - latest) >= 0) {
+                latest = time;
+                latestIndex = i;
+            }
+        }
+    }
+
+    for (int32_t i = 0; i < 8; i++) {
+        if (CGRuneInfo::m_runes[i] != 3 || !ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__) || ((1 << i) & CGRuneInfo::m_predictedRunes) || !CGRuneInfo::m_runeCooldowns[i]) {
+            continue;
+        }
+
+        uint32_t time = CGRuneInfo::GetRuneRechargeTime(i);
+
+        if (!latest) {
+            latest = time;
+            latestIndex = i;
+            times[i] = time;
+        } else if (time < latest) {
+            times[latestIndex] = CGRuneInfo::GetRuneRechargeTime(i);
+            latestIndex = 0;
+            latest = 0;
+
+            for (int32_t j = 0; j < 8; j++) {
+                if (CGRuneInfo::m_runes[j] != 3 && (!latest || static_cast<int32_t>(times[j] - latest) >= 0)) {
+                    latest = times[j];
+                    latestIndex = j;
+                }
+            }
+        }
+    }
+
+    uint32_t blood = 0;
+
+    if (needed[0] == 1) {
+        if (!times[0] || (times[1] && times[0] >= times[1])) {
+            blood = times[1];
+        } else {
+            blood = times[0];
+        }
+    } else if (needed[0] == 2) {
+        blood = times[0] <= times[1] ? times[1] : times[0];
+    }
+
+    uint32_t unholy = 0;
+
+    if (needed[1] == 1) {
+        unholy = times[2] && (!times[3] || times[2] < times[3]) ? times[2] : times[3];
+    } else if (needed[1] == 2) {
+        unholy = times[2] > times[3] ? times[2] : times[3];
+    }
+
+    uint32_t frost = 0;
+
+    if (needed[2] == 1) {
+        frost = times[4] && (!times[5] || times[4] < times[5]) ? times[4] : times[5];
+    } else if (needed[2] == 2) {
+        frost = times[4] > times[5] ? times[4] : times[5];
+    }
+
+    uint32_t other = unholy <= frost ? frost : unholy;
+    *cooldown = blood <= other ? other : blood;
+    return true;
 }

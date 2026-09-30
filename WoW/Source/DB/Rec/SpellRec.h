@@ -122,6 +122,8 @@ class SpellRec {
     ~SpellRec();
     static const char* GetFilename();
     static bool HasAura(const SpellRec* spell, int32_t aura);
+    static int32_t IsHelpfulOrHarmful(const SpellRec* spell);
+    static bool WillSummonCritter(const SpellRec* spell);
     bool Read(SFileImpl* file, const char* stringBuffer);
 };
 

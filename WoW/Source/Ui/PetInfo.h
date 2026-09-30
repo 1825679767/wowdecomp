@@ -14,6 +14,7 @@ class CGPetInfo {
     static void InitializeGame();
     static void FindPossessedSpell();
     static WOWGUID GetPet(uint32_t index);
+    static uint32_t* FindSpellByID(int32_t spellId);
     static int32_t IsPetBarUsed();
     static void UpdateCooldowns();
     static WOWGUID GetTarget();

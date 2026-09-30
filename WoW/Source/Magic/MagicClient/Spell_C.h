@@ -91,6 +91,7 @@ class SpellHistory {
     void AddHistory(int32_t spellId, int32_t itemId, uint32_t time, uint32_t recoveryTime, int32_t category, uint32_t categoryTime, uint32_t categoryRecoveryTime, bool onHold, int32_t startRecoveryCategory, uint32_t startRecoveryTime);
     void ClearOnHold(int32_t spellId, uint32_t time, bool remove);
     void GarbageCollect(uint32_t time);
+    bool GetSpellCooldown(int32_t spellId, int32_t itemId, uint32_t* duration, uint32_t* start, uint32_t* enable);
 };
 
 class Spell_C {
@@ -233,7 +234,7 @@ bool Spell_C_IsCurrentItem(int32_t itemId);
 bool Spell_C_IsCurrentSpell(int32_t spellId);
 void Spell_C_GetItemCooldown(const CGItem_C* item, uint32_t* duration, uint32_t* start, uint32_t* enable);
 void Spell_C_GetItemCooldown(int32_t itemId, uint32_t* duration, uint32_t* start, uint32_t* enable);
-void Spell_C_GetSpellCooldown(int32_t spellId, int32_t petSpell, uint32_t* duration, uint32_t* start, uint32_t* enable);
+bool Spell_C_GetSpellCooldown(int32_t spellId, int32_t petSpell, uint32_t* duration, uint32_t* start, uint32_t* enable);
 bool Spell_C_IsActiveSpell(const SpellRec* spell, const CGUnit_C* unit);
 uint32_t Spell_C_GetPowerDisplayMod(uint32_t powerType);
 const char* GetPowerString(uint32_t powerType);

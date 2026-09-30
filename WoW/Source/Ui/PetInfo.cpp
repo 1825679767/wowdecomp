@@ -191,3 +191,18 @@ int32_t CGPetInfo::IsPetBarUsed() {
     CGUnit_C* pet = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_pets.m_data[0], TYPEMASK_UNIT, __FILE__, __LINE__));
     return !pet || (pet->IsPetBarUsed() && pet->m_unit->m_unitFieldHealth > 0 && (!CGPetInfo::m_petBarState || CGPetInfo::m_possessSpell || pet->CanGainXP()));
 }
+
+// VERIFY: 2c073ab7 manual
+// OFFSET: 0x005D3560
+uint32_t* CGPetInfo::FindSpellByID(int32_t spellId) {
+    for (uint32_t i = 0; i < 10; i++) {
+        uint32_t action = CGPetInfo::m_actions[i];
+        uint32_t type = (action >> 24) & 0x3F;
+
+        if ((type == 1 || (type >= 8 && type <= 0x11)) && static_cast<int32_t>(action & 0xFFFFFF) == spellId) {
+            return &CGPetInfo::m_actions[i];
+        }
+    }
+
+    return nullptr;
+}

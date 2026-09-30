@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+class SpellRec;
+
 class CGRuneInfo {
     public:
     static int32_t m_runes[8];
@@ -13,7 +15,10 @@ class CGRuneInfo {
     static uint32_t m_predictedRunes;
     static void SetPredictedRunes(uint8_t available, uint8_t used, const uint8_t* cooldowns);
     static void InitializeGame();
-    static bool HasRunesForSpell(int32_t spellId, int32_t* a2);
+    static bool HasRunesForSpell(int32_t spellId, int32_t* needed);
+    static uint32_t GetRuneRechargeTime(int32_t index);
+    static int32_t CountPredictedRunesOfType(int32_t type);
+    static bool ComputeRuneSpellCooldown(const SpellRec* spell, uint32_t* cooldown);
     static bool IsRuneIndexValid(int32_t index);
     static int32_t GetRuneTypeByIndex(int32_t index, bool base);
 };

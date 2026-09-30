@@ -11,9 +11,11 @@
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/DB/DBClient/CreatureStats_C.h"
 #include "WoW/Source/DB/Rec/ChrClassesRec.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/Ui/PetInfo.h"
 
 // STATIC: 0x00ACCCC4
 static const char* s_companionTypes[2] = { "CRITTER", "MOUNT" };
@@ -237,6 +239,284 @@ static int32_t Script_GetCompanionInfo(lua_State* L) {
     }
 
     return 5;
+}
+
+// VERIFY: c4c6702d manual
+// OFFSET: 0x005407F0
+static int32_t Script_GetSpellName(lua_State* L) {
+    uint32_t slot = 0;
+    int32_t petSpell;
+
+    if (!GetSlotFromLua(L, &slot, &petSpell, nullptr, 1)) {
+        return 0;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(static_cast<int32_t>(slot) < 0 ? 0 : petSpell ? (slot < 1024 ? s_petSpellList[slot] : 0) : (slot < s_numSpells ? s_spellList[slot] : 0), &spell)) {
+        lua_pushstring(L, spell.m_name);
+        lua_pushstring(L, spell.m_nameSubtext);
+    } else {
+        lua_pushnil(L);
+        lua_pushnil(L);
+    }
+
+    return 2;
+}
+
+// VERIFY: 867b8465 manual
+// OFFSET: 0x00541340
+static int32_t Script_IsPassiveSpell(lua_State* L) {
+    uint32_t slot = 0;
+    int32_t petSpell;
+
+    if (!GetSlotFromLua(L, &slot, &petSpell, nullptr, 1)) {
+        return 0;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(static_cast<int32_t>(slot) < 0 ? 0 : petSpell ? (slot < 1024 ? s_petSpellList[slot] : 0) : (slot < s_numSpells ? s_spellList[slot] : 0), &spell) && (spell.m_attributes & 0x40)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 9622fae9 manual
+// OFFSET: 0x00541420
+static int32_t Script_IsAttackSpell(lua_State* L) {
+    uint32_t slot = 0;
+    int32_t petSpell;
+
+    if (!GetSlotFromLua(L, &slot, &petSpell, nullptr, 1)) {
+        return 0;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(static_cast<int32_t>(slot) < 0 ? 0 : petSpell ? (slot < 1024 ? s_petSpellList[slot] : 0) : (slot < s_numSpells ? s_spellList[slot] : 0), &spell) && spell.m_effect[0] == 78) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 1dfe31dc manual
+// OFFSET: 0x005415D0
+static int32_t Script_IsAutoRepeatSpell(lua_State* L) {
+    uint32_t slot = 0;
+    int32_t petSpell;
+
+    if (!GetSlotFromLua(L, &slot, &petSpell, nullptr, 1)) {
+        return 0;
+    }
+
+    int32_t spellId = static_cast<int32_t>(slot) < 0 ? 0 : petSpell ? (slot < 1024 ? s_petSpellList[slot] : 0) : (slot < s_numSpells ? s_spellList[slot] : 0);
+
+    if (spellId && !petSpell && (Spell_C_GetAutoRepeatingSpell() == spellId || Spell_C_GetAutoRangedCombatSpell() == spellId)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 450169e3 manual
+// OFFSET: 0x005419F0
+static int32_t Script_IsConsumableSpell(lua_State* L) {
+    uint32_t slot = 0;
+    int32_t petSpell;
+
+    if (!GetSlotFromLua(L, &slot, &petSpell, nullptr, 1)) {
+        return 0;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(static_cast<int32_t>(slot) < 0 ? 0 : petSpell ? (slot < 1024 ? s_petSpellList[slot] : 0) : (slot < s_numSpells ? s_spellList[slot] : 0), &spell)) {
+        for (uint32_t i = 0; i < 8; i++) {
+            if (spell.m_reagent[i] && spell.m_reagentCount[i] > 0) {
+                lua_pushnumber(L, 1.0);
+                return 1;
+            }
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: f715c8b6 manual
+// OFFSET: 0x0053C2A0
+static int32_t Script_GetNumCompanions(lua_State* L) {
+    int32_t type;
+
+    if (!GetLuaCompanionType(L, &type)) {
+        luaL_error(L, "Usage: GetNumCompanions(type)");
+    }
+
+    lua_pushnumber(L, CGSpellBook::m_companions[type].Count());
+    return 1;
+}
+
+// VERIFY: d3d5fa06 manual
+// OFFSET: 0x0053C3A0
+static int32_t Script_IsSpellKnown(lua_State* L) {
+    int32_t spellId;
+
+    if (!lua_isnumber(L, 1) || (spellId = lua_tointeger(L, 1)) <= 0) {
+        luaL_error(L, "Usage: IsSpellKnown(spellID[, isPet])");
+    }
+
+    int32_t isPet = StringToBOOL(L, 2, 0);
+    bool known;
+
+    if (!(GetSpellSlot(spellId, isPet) & 0x80000000)) {
+        known = true;
+    } else if (isPet) {
+        known = CGPetInfo::FindSpellByID(spellId) != nullptr;
+    } else {
+        known = false;
+    }
+
+    lua_pushboolean(L, known);
+    return 1;
+}
+
+// VERIFY: 9bf51350 auto
+// OFFSET: 0x00540D70
+static int32_t Script_GetSpellTexture(lua_State* L) {
+    uint32_t slot = 0;
+    int32_t petSpell;
+
+    if (!GetSlotFromLua(L, &slot, &petSpell, nullptr, 1)) {
+        return 0;
+    }
+
+    const char* texture = CGSpellBook::GetSpellTexture(slot, petSpell);
+
+    if (texture && *texture) {
+        lua_pushstring(L, texture);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 80a729be auto
+// OFFSET: 0x005412C0
+static int32_t Script_IsSelectedSpell(lua_State* L) {
+    uint32_t slot = 0;
+    int32_t petSpell;
+
+    if (!GetSlotFromLua(L, &slot, &petSpell, nullptr, 1)) {
+        return 0;
+    }
+
+    if (CGSpellBook::IsSelectedSlot(slot, petSpell)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 0553b4ec manual
+// OFFSET: 0x00541800
+static int32_t Script_IsHelpfulSpell(lua_State* L) {
+    uint32_t slot = 0;
+    int32_t petSpell;
+
+    if (!GetSlotFromLua(L, &slot, &petSpell, nullptr, 1)) {
+        return 0;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(static_cast<int32_t>(slot) < 0 ? 0 : petSpell ? (slot < 1024 ? s_petSpellList[slot] : 0) : (slot < s_numSpells ? s_spellList[slot] : 0), &spell) && SpellRec::IsHelpfulOrHarmful(&spell) == 1) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: ae8a4c53 manual
+// OFFSET: 0x005418F0
+static int32_t Script_IsHarmfulSpell(lua_State* L) {
+    uint32_t slot = 0;
+    int32_t petSpell;
+
+    if (!GetSlotFromLua(L, &slot, &petSpell, nullptr, 1)) {
+        return 0;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(static_cast<int32_t>(slot) < 0 ? 0 : petSpell ? (slot < 1024 ? s_petSpellList[slot] : 0) : (slot < s_numSpells ? s_spellList[slot] : 0), &spell) && SpellRec::IsHelpfulOrHarmful(&spell) == 2) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 8c2be304 manual
+// OFFSET: 0x00540DF0
+static int32_t Script_GetSpellCount(lua_State* L) {
+    uint32_t slot = 0;
+    int32_t petSpell;
+
+    if (!GetSlotFromLua(L, &slot, &petSpell, nullptr, 1)) {
+        return 0;
+    }
+
+    lua_pushnumber(L, Spell_C_GetSpellReagentUses(static_cast<int32_t>(slot) < 0 ? 0 : petSpell ? (slot < 1024 ? s_petSpellList[slot] : 0) : (slot < s_numSpells ? s_spellList[slot] : 0)));
+    return 1;
+}
+
+// VERIFY: b125a9fb manual
+// OFFSET: 0x00540E80
+static int32_t Script_GetSpellCooldown(lua_State* L) {
+    int32_t petSpell = 0;
+    int32_t spellId;
+
+    if (lua_isnumber(L, 1) && lua_gettop(L) == 1) {
+        spellId = static_cast<int32_t>(lua_tonumber(L, 1));
+
+        if (GetSpellSlot(spellId, 0) >= 0) {
+            petSpell = 0;
+        } else if (GetSpellSlot(spellId, 1) >= 0 || CGPetInfo::FindSpellByID(spellId)) {
+            petSpell = 1;
+        }
+    } else {
+        uint32_t slot = 0;
+
+        if (!GetSlotFromLua(L, &slot, &petSpell, nullptr, 1)) {
+            return 0;
+        }
+
+        spellId = static_cast<int32_t>(slot) < 0 ? 0 : petSpell ? (slot < 1024 ? s_petSpellList[slot] : 0) : (slot < s_numSpells ? s_spellList[slot] : 0);
+    }
+
+    uint32_t start = 0;
+    uint32_t duration = 0;
+    uint32_t enable = 0;
+    Spell_C_GetSpellCooldown(spellId, petSpell, &duration, &start, &enable);
+    lua_pushnumber(L, start * 0.001);
+    lua_pushnumber(L, duration * 0.001);
+    lua_pushnumber(L, enable);
+    return 3;
 }
 
 // STATIC: 0x00ACCCE0

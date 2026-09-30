@@ -46,6 +46,8 @@
 #include "WoW/Source/DB/Rec/ChrClassesRec.h"
 #include <cmath>
 #include "WoW/Source/DB/Rec/LockRec.h"
+#include "WoW/Source/DB/Rec/SpellRuneCostRec.h"
+#include "WoW/Source/DB/Rec/SummonPropertiesRec.h"
 #include "WoW/Source/Object/GameObject.h"
 #include "WoW/Source/Object/ObjectClient/UnitCombatLog_C.h"
 #include "WoW/Source/Object/ObjectClient/Missile_C.h"
@@ -2572,4 +2574,302 @@ bool SpellRec::HasAura(const SpellRec* spell, int32_t aura) {
     }
 
     return false;
+}
+
+// VERIFY: 86c68872 auto
+// OFFSET: 0x007FE1B0
+int32_t SpellRec::IsHelpfulOrHarmful(const SpellRec* spell) {
+    if (spell->m_targets & 0x100) {
+        return 1;
+    }
+
+    if (spell->m_targets & 0x80) {
+        return 2;
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        switch (spell->m_implicitTargetA[i]) {
+            case 2:
+            case 6:
+            case 15:
+            case 16:
+            case 24:
+            case 28:
+            case 53:
+            case 54:
+            case 93:
+                return 2;
+        }
+
+        switch (spell->m_implicitTargetB[i]) {
+            case 2:
+            case 6:
+            case 15:
+            case 16:
+            case 24:
+            case 28:
+            case 53:
+            case 54:
+            case 93:
+                return 2;
+        }
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        switch (spell->m_implicitTargetA[i]) {
+            case 1:
+                if (spell->m_effectAura[i] != 4) {
+                    return 1;
+                }
+
+                break;
+
+            case 3:
+            case 4:
+            case 5:
+            case 20:
+            case 21:
+            case 27:
+            case 29:
+            case 30:
+            case 31:
+            case 33:
+            case 34:
+            case 35:
+            case 45:
+            case 56:
+            case 57:
+            case 58:
+            case 59:
+            case 61:
+            case 62:
+                return 1;
+        }
+
+        switch (spell->m_implicitTargetB[i]) {
+            case 1:
+                if (spell->m_effectAura[i] != 4) {
+                    return 1;
+                }
+
+                break;
+
+            case 3:
+            case 4:
+            case 5:
+            case 20:
+            case 21:
+            case 27:
+            case 29:
+            case 30:
+            case 31:
+            case 33:
+            case 34:
+            case 35:
+            case 45:
+            case 56:
+            case 57:
+            case 58:
+            case 59:
+            case 61:
+            case 62:
+                return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 69f73b82 auto
+// OFFSET: 0x008009B0
+bool SpellRec::WillSummonCritter(const SpellRec* spell) {
+    if (spell->m_effect[0] == 28) {
+        SummonPropertiesRec* properties = g_summonPropertiesDB.GetRecord(spell->m_effectMiscValueB[0]);
+
+        if (properties && properties->m_slot == 5) {
+            return true;
+        }
+    }
+
+    return spell->m_effectAura[0] == 78;
+}
+
+// VERIFY: 54ab5610 manual
+// OFFSET: 0x007FFA30
+int32_t Spell_C_GetSpellReagentUses(const SpellRec* spell) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 0;
+    }
+
+    int32_t uses = 0x7FFFFFFF;
+
+    for (uint32_t i = 0; i < 8; i++) {
+        int32_t reagent = spell->m_reagent[i];
+
+        if (reagent != -2 && reagent && spell->m_reagentCount[i] > 0) {
+            int32_t count = player->GetBag()->GetItemTypeCount(reagent, 0) / spell->m_reagentCount[i];
+
+            if (count < uses) {
+                uses = count;
+            }
+        }
+    }
+
+    return uses == 0x7FFFFFFF ? 0 : uses;
+}
+
+// VERIFY: 1bbeb20f auto
+// OFFSET: 0x00801770
+int32_t Spell_C_GetSpellReagentUses(int32_t spellId) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return 0;
+    }
+
+    return Spell_C_GetSpellReagentUses(&spell);
+}
+
+// VERIFY: db856fff manual
+// OFFSET: 0x00807980
+bool SpellHistory::GetSpellCooldown(int32_t spellId, int32_t itemId, uint32_t* duration, uint32_t* start, uint32_t* enable) {
+    if (enable) {
+        *enable = 1;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell) || spell.m_effect[0] == 78 || spell.m_effect[0] == 47) {
+        return false;
+    }
+
+    int32_t category = spell.m_category;
+    int32_t startRecoveryCategory = spell.m_startRecoveryCategory;
+
+    if (itemId) {
+        ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, WOWGUID(), nullptr, nullptr, false);
+
+        if (stats) {
+            for (uint32_t i = 0; i < 5; i++) {
+                if (stats->m_spellId[i] == static_cast<uint32_t>(spellId) && static_cast<int32_t>(stats->m_spellCategory[i]) > 0) {
+                    category = stats->m_spellCategory[i];
+                }
+            }
+        }
+    }
+
+    uint32_t now = OsGetAsyncTimeMs();
+    uint32_t latest = now;
+
+    for (SPELLHISTORY* history = this->m_history.Head(); history; history = this->m_history.Next(history)) {
+        if (history->m_spellId == spellId && history->m_itemId == itemId && (history->m_recoveryTime || history->m_onHold)) {
+            uint32_t end = history->m_recoveryTime + (history->m_onHold ? now + 1 : history->m_time);
+
+            if (static_cast<int32_t>(end - latest) >= 0) {
+                if (duration) {
+                    *duration = history->m_onHold ? 1 : history->m_recoveryTime;
+                }
+
+                if (start) {
+                    *start = history->m_onHold ? now : history->m_time;
+                }
+
+                if (enable && *enable) {
+                    *enable = history->m_onHold == 0;
+                }
+
+                latest = end;
+            }
+        }
+
+        SpellCategoryRec* categoryRec = g_spellCategoryDB.GetRecord(history->m_category);
+
+        if (((history->m_category && history->m_category == category) || (categoryRec && (categoryRec->m_flags & 0x2))) && history->m_categoryRecoveryTime) {
+            uint32_t end = history->m_categoryRecoveryTime + (history->m_onHold ? now : history->m_categoryTime);
+
+            if (static_cast<int32_t>(end - latest) >= 0) {
+                if (duration) {
+                    *duration = history->m_categoryRecoveryTime;
+                }
+
+                if (start) {
+                    *start = history->m_onHold ? now : history->m_categoryTime;
+                }
+
+                if (enable && *enable) {
+                    *enable = history->m_onHold == 0;
+                }
+
+                latest = end;
+            }
+        }
+
+        if (history->m_startRecoveryCategory == startRecoveryCategory && history->m_startRecoveryTime) {
+            uint32_t end = history->m_startRecoveryTime + history->m_time;
+
+            if (static_cast<int32_t>(end - latest) >= 0) {
+                if (duration) {
+                    *duration = history->m_startRecoveryTime;
+                }
+
+                if (start) {
+                    *start = history->m_time;
+                }
+
+                latest = end;
+            }
+        }
+
+        if (!spell.m_runeCostID) {
+            continue;
+        }
+
+        bool sharesRunes = spellId == history->m_spellId;
+
+        if (!sharesRunes) {
+            SpellRec other;
+
+            if (g_spellDB.GetRecord(history->m_spellId, &other) && other.m_runeCostID) {
+                SpellRuneCostRec* cost = g_spellRuneCostDB.GetRecord(spell.m_runeCostID);
+                SpellRuneCostRec* otherCost = g_spellRuneCostDB.GetRecord(other.m_runeCostID);
+
+                if (cost && otherCost && ((cost->m_blood && otherCost->m_blood) || (cost->m_unholy && otherCost->m_unholy) || (cost->m_frost && otherCost->m_frost))) {
+                    sharesRunes = true;
+                }
+            }
+        }
+
+        uint32_t runeTime;
+
+        if (!sharesRunes || !CGRuneInfo::ComputeRuneSpellCooldown(&spell, &runeTime) || static_cast<int32_t>(runeTime - latest) < 0) {
+            continue;
+        }
+
+        latest = runeTime;
+
+        if (start) {
+            *start = history->m_time;
+        }
+
+        if (!duration || !start) {
+            continue;
+        }
+
+        if (!CGRuneInfo::HasRunesForSpell(spellId, nullptr)) {
+            *start = latest - 10000;
+            *duration = 10000;
+        } else {
+            *duration = history->m_startRecoveryTime;
+        }
+    }
+
+    return latest != now;
+}
+
+// VERIFY: a5bd03ff auto
+// OFFSET: 0x00809000
+bool Spell_C_GetSpellCooldown(int32_t spellId, int32_t petSpell, uint32_t* duration, uint32_t* start, uint32_t* enable) {
+    return s_spellHistory[petSpell].GetSpellCooldown(spellId, 0, duration, start, enable);
 }

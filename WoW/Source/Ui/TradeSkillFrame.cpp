@@ -32,3 +32,5 @@ uint32_t CGTradeSkillInfo::m_recastTimes;
 // STATIC: 0x00C235E0
 uint32_t CGTradeSkillInfo::m_pendingRecastTimes;
 
+// STATIC: 0x00C235E4
+void* CGTradeSkillInfo::m_linkData;

@@ -38,6 +38,9 @@ class SpellRec;
 
 class CGSpellBook {
     public:
+    static const char* GetSpellTexture(int32_t slot, int32_t petSpell);
+    static int32_t IsSelectedSlot(int32_t slot, int32_t petSpell);
+    static int32_t FindSpellByName(const char* name, const char* subtext, int32_t* petSpell);
     static int32_t m_autoRangedSpell;
     static void UpdateCooldowns();
     static int32_t IsTrackingSpell(int32_t spellId);
@@ -85,27 +88,16 @@ extern uint32_t s_unkBE8D9C;
 extern TSGrowableArray<SpellBookSkillInfo*> s_skillInfos;
 void PrefetchSpellVisuals(int32_t spellId);
 
-int32_t Script_GetSpellName(lua_State* L);
 int32_t Script_GetSpellLink(lua_State* L);
 int32_t Script_GetSpellInfo(lua_State* L);
-int32_t Script_GetSpellTexture(lua_State* L);
-int32_t Script_GetSpellCount(lua_State* L);
-int32_t Script_GetSpellCooldown(lua_State* L);
 int32_t Script_GetSpellAutocast(lua_State* L);
 int32_t Script_ToggleSpellAutocast(lua_State* L);
 int32_t Script_EnableSpellAutocast(lua_State* L);
 int32_t Script_DisableSpellAutocast(lua_State* L);
 int32_t Script_PickupSpell(lua_State* L);
 int32_t Script_CastSpell(lua_State* L);
-int32_t Script_IsSelectedSpell(lua_State* L);
-int32_t Script_IsPassiveSpell(lua_State* L);
-int32_t Script_IsAttackSpell(lua_State* L);
 int32_t Script_IsCurrentSpell(lua_State* L);
-int32_t Script_IsAutoRepeatSpell(lua_State* L);
 int32_t Script_IsUsableSpell(lua_State* L);
-int32_t Script_IsHelpfulSpell(lua_State* L);
-int32_t Script_IsHarmfulSpell(lua_State* L);
-int32_t Script_IsConsumableSpell(lua_State* L);
 int32_t Script_SpellHasRange(lua_State* L);
 int32_t Script_IsSpellInRange(lua_State* L);
 int32_t Script_GetShapeshiftForm(lua_State* L);
@@ -115,12 +107,10 @@ int32_t Script_CastShapeshiftForm(lua_State* L);
 int32_t Script_GetShapeshiftFormCooldown(lua_State* L);
 int32_t Script_CastSpellByName(lua_State* L);
 int32_t Script_CastSpellByID(lua_State* L);
-int32_t Script_GetNumCompanions(lua_State* L);
 int32_t Script_GetCompanionCooldown(lua_State* L);
 int32_t Script_PickupCompanion(lua_State* L);
 int32_t Script_CallCompanion(lua_State* L);
 int32_t Script_DismissCompanion(lua_State* L);
-int32_t Script_IsSpellKnown(lua_State* L);
 int32_t Script_SummonRandomCritter(lua_State* L);
 void SpellBookRegisterScriptFunctions();
 
@@ -132,5 +122,15 @@ int __cdecl SortSpellsForDisplay(const void* a, const void* b);
 int __cdecl SortCompanions(const void* a, const void* b);
 
 extern TSGrowableArray<int32_t> s_trackingSpells;
+
+extern int32_t s_spellList[1024];
+extern uint32_t s_numSpells;
+extern uint32_t s_petSpellList[1024];
+extern TSBitField<TSFixedArray<uint32_t> > s_knownSpellBits;
+
+int32_t FindSpellSlotByName(const char* name, const char* subtext, int32_t* petSpell);
+int32_t GetSpellIdByName(const char* name, int32_t* petSpell);
+bool GetSlotFromLua(lua_State* L, uint32_t* slot, int32_t* petSpell, int32_t* type, int32_t allowName);
+bool HasPetSpell(int32_t spellId);
 
 #endif

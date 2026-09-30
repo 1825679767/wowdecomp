@@ -9,6 +9,7 @@ class CGTradeSkillInfo {
     public:
     static int32_t m_filteredSkills;
     static int32_t m_spellID;
+    static void* m_linkData;
     static int32_t m_skillLineID;
     static char* m_itemNameFilter;
     static int32_t m_itemMinLevelFilter;

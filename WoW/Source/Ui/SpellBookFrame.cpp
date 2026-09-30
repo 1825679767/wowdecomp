@@ -1,11 +1,16 @@
 #include "SpellBookFrame.h"
 #include <cstdlib>
 #include <cstring>
+#include "Engine/Source/Base/ConvertUTF.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/lua-5.1/src/lauxlib.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/SpellRec.h"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "WoW/Source/DB/Rec/SkillLineAbilityRec.h"
+#include "WoW/Source/DB/Rec/SpellIconRec.h"
 #include "WoW/Source/Game/ValidateName.h"
 #include "WoW/Source/Magic/MagicClient/SpellTable.h"
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
@@ -17,6 +22,7 @@
 #include "WoW/Source/Ui/ChatFrame.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/TradeSkillFrame.h"
 #include "WoW/Source/Ui/Tutorial.h"
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/Ui/UIMacros.h"
@@ -43,13 +49,13 @@ uint32_t CGSpellBook::m_silenceSchoolMask;
 uint32_t CGSpellBook::m_silenceSpecialSchoolMask;
 
 // STATIC: 0x00BE7D98
-static uint32_t s_unkBE7D98[1024];
+uint32_t s_petSpellList[1024];
 
 // STATIC: 0x00BE8DA4
 uint32_t CGSpellBook::m_numPetSpells;
 
 // STATIC: 0x00BE8DB8
-static TSBitField<TSFixedArray<uint32_t> > s_knownSpellBits;
+TSBitField<TSFixedArray<uint32_t> > s_knownSpellBits;
 
 // STATIC: 0x00BE8DD8
 TSFixedArray<int32_t> CGSpellBook::m_languageSpells;
@@ -174,14 +180,14 @@ void CGSpellBook::UpdateUsable() {
     FrameScript_SignalEvent(SCRIPT_EVENT_SPELL_UPDATE_USABLE, nullptr);
 }
 
-// VERIFY: 42e7be8d manual
+// VERIFY: bcebf4cf manual
 // OFFSET: 0x0053F1F0
 void CGSpellBook::InitializeGame() {
     s_knownSpellBits.m_count = g_spellDB.m_maxID + 1;
     s_knownSpellBits.m_bits.SetCount(s_knownSpellBits.m_count ? ((s_knownSpellBits.m_count - 1) >> 5) + 1 : 0);
     CGSpellBook::m_languageSpells.SetCount(g_languagesDB.m_maxID + 1);
     CGSpellBook::ClearSpells();
-    memset(s_unkBE7D98, 0, sizeof(s_unkBE7D98));
+    memset(s_petSpellList, 0, sizeof(s_petSpellList));
     CGSpellBook::m_numPetSpells = 0;
 }
 
@@ -694,7 +700,7 @@ void CGSpellBook::UpdateCompanions() {
     }
 }
 
-// VERIFY: cbe1937a manual
+// VERIFY: 3365a24e manual
 // OFFSET: 0x0053CA70
 void CGSpellBook::UpdateSpells(int32_t a1, int32_t a2, int32_t a3) {
     if (a1) {
@@ -707,7 +713,7 @@ void CGSpellBook::UpdateSpells(int32_t a1, int32_t a2, int32_t a3) {
     }
 
     if (a2) {
-        qsort(s_unkBE7D98, CGSpellBook::m_numPetSpells, sizeof(s_unkBE7D98[0]), SortSpellsForDisplay);
+        qsort(s_petSpellList, CGSpellBook::m_numPetSpells, sizeof(s_petSpellList[0]), SortSpellsForDisplay);
     }
 
     uint32_t spellIndex = 0;
@@ -938,7 +944,7 @@ void CGSpellBook::CompanionCallback(int32_t id, const WOWGUID& guid, void* param
     }
 }
 
-// VERIFY: 076e3df7 auto
+// VERIFY: 7adc0202 auto
 // OFFSET: 0x0053B4E0
 int32_t GetSpellSlot(int32_t spellId, int32_t petSpell) {
     if (!spellId) {
@@ -956,7 +962,7 @@ int32_t GetSpellSlot(int32_t spellId, int32_t petSpell) {
     }
 
     for (uint32_t i = CGSpellBook::m_numPetSpells; i;) {
-        if (spellId == static_cast<int32_t>(s_unkBE7D98[--i])) {
+        if (spellId == static_cast<int32_t>(s_petSpellList[--i])) {
             return i;
         }
     }
@@ -1141,4 +1147,218 @@ int32_t CGSpellBook::FindCompanionSlotByID(int32_t spellId, int32_t type) {
     }
 
     return -1;
+}
+
+// VERIFY: 67b33918 auto
+// OFFSET: 0x0053B900
+bool HasPetSpell(int32_t spellId) {
+    if (spellId > g_spellDB.m_maxID) {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < 1024; i++) {
+        if (s_petSpellList[i] == static_cast<uint32_t>(spellId)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: c806ca2e auto
+// OFFSET: 0x0053F5E0
+int32_t CGSpellBook::FindSpellByName(const char* name, const char* subtext, int32_t* petSpell) {
+    if (!name || !*name) {
+        return 0;
+    }
+
+    SPELLSBYNAME* entry = s_spellsByName.Ptr(name);
+
+    if (!entry) {
+        return 0;
+    }
+
+    SPELLRANKNODE* node = entry->m_spells.Head();
+
+    if (subtext && *subtext) {
+        for (; node; node = node->m_link.Next()) {
+            if (node->m_subtext.m_str && !SStrCmpUTF8I(node->m_subtext.m_str, subtext, STORM_MAX_STR)) {
+                break;
+            }
+        }
+    }
+
+    if (!node) {
+        return 0;
+    }
+
+    *petSpell = node->m_petSpell;
+    return node->m_spellId;
+}
+
+// VERIFY: 586da1f3 auto
+// OFFSET: 0x005401D0
+int32_t FindSpellSlotByName(const char* name, const char* subtext, int32_t* petSpell) {
+    return GetSpellSlot(CGSpellBook::FindSpellByName(name, subtext, petSpell), *petSpell);
+}
+
+// VERIFY: efee71cd auto
+// OFFSET: 0x00540200
+int32_t GetSpellIdByName(const char* name, int32_t* petSpell) {
+    if (!name || !*name) {
+        return 0;
+    }
+
+    char spellName[1024];
+    char subtext[512];
+    spellName[0] = '\0';
+    subtext[0] = '\0';
+
+    if (*name == '!') {
+        name++;
+    }
+
+    SStrCopy(spellName, name, sizeof(spellName));
+    int32_t spellId = CGSpellBook::FindSpellByName(spellName, subtext, petSpell);
+
+    if (spellId) {
+        return spellId;
+    }
+
+    char* paren = SStrChrR(spellName, '(');
+
+    if (paren) {
+        *paren = '\0';
+        SStrCopy(subtext, paren + 1, sizeof(subtext));
+    } else {
+        subtext[0] = '\0';
+    }
+
+    char* current = subtext;
+    int32_t chars;
+    uint32_t c = sgetu8(reinterpret_cast<const uint8_t*>(current), &chars);
+
+    while (c != static_cast<uint32_t>(-1)) {
+        if (c == ')') {
+            *current = '\0';
+            break;
+        }
+
+        current += chars;
+        c = sgetu8(reinterpret_cast<const uint8_t*>(current), &chars);
+    }
+
+    return CGSpellBook::FindSpellByName(spellName, subtext, petSpell);
+}
+
+// VERIFY: 6dbee0a0 manual
+// OFFSET: 0x00540670
+bool GetSlotFromLua(lua_State* L, uint32_t* slot, int32_t* petSpell, int32_t* type, int32_t allowName) {
+    *petSpell = 0;
+
+    if (lua_isnumber(L, 1) && lua_isstring(L, 2)) {
+        *slot = static_cast<uint32_t>(lua_tonumber(L, 1) - 1.0);
+
+        if (*slot <= 1023) {
+            if (!SStrCmpI("pet", lua_tolstring(L, 2, nullptr), STORM_MAX_STR)) {
+                *petSpell = 1;
+            }
+
+            if (type) {
+                *type = 3;
+            }
+
+            return true;
+        }
+    } else if (allowName && lua_isstring(L, 1)) {
+        WOWGUID guid;
+
+        if (!lua_isstring(L, 2) || Script_GetGUIDFromToken(lua_tolstring(L, 2, nullptr), guid, false)) {
+            *slot = GetSpellSlot(GetSpellIdByName(lua_tolstring(L, 1, nullptr), petSpell), *petSpell);
+
+            if (type) {
+                *type = 2;
+            }
+        } else {
+            *slot = FindSpellSlotByName(lua_tolstring(L, 1, nullptr), lua_tolstring(L, 2, nullptr), petSpell);
+
+            if (type) {
+                *type = 3;
+            }
+        }
+
+        return !(*slot & 0x80000000);
+    }
+
+    char function[1024];
+    luaL_error(L, "%s(): Invalid spell slot", FrameScript_GetCurrentFunction(L, function, sizeof(function)));
+    return false;
+}
+
+// VERIFY: 50e56750 manual
+// OFFSET: 0x0053DC20
+const char* CGSpellBook::GetSpellTexture(int32_t slot, int32_t petSpell) {
+    SpellRec spell;
+    int32_t spellId = slot < 0 ? 0 : petSpell ? (slot < 1024 ? s_petSpellList[slot] : 0) : (static_cast<uint32_t>(slot) < s_numSpells ? s_spellList[slot] : 0);
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return nullptr;
+    }
+
+    if (spell.m_effect[0] == 78) {
+        return CGActionBar::GetAttackTexture();
+    }
+
+    if ((spell.m_attributes & 0x2) && (spell.m_attributesExB & 0x20)) {
+        const char* texture = CGActionBar::GetRangedTexture();
+
+        if (texture) {
+            return texture;
+        }
+    }
+
+    SpellIconRec* icon = g_spellIconDB.GetRecord(spell.m_spellIconID);
+
+    if (!icon) {
+        return nullptr;
+    }
+
+    return icon->m_textureFilename;
+}
+
+// VERIFY: aa6df244 manual
+// OFFSET: 0x0053D350
+int32_t CGSpellBook::IsSelectedSlot(int32_t slot, int32_t petSpell) {
+    SpellRec spell;
+    int32_t spellId = slot < 0 ? 0 : petSpell ? (slot < 1024 ? s_petSpellList[slot] : 0) : (static_cast<uint32_t>(slot) < s_numSpells ? s_spellList[slot] : 0);
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return 0;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player && spell.m_effect[0] == 47) {
+        SkillLineAbilityRec* ability = player->LookupAbility(spell.m_id);
+
+        if (ability && !CGTradeSkillInfo::m_linkData && CGTradeSkillInfo::m_skillLineID == ability->m_skillLine) {
+            return 1;
+        }
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (spell.m_effectAura[i] != 36) {
+            continue;
+        }
+
+        int32_t form = spell.m_effectMiscValue[i];
+
+        if (form && player && static_cast<int32_t>(player->GetShapeshiftForm()) == form) {
+            return 1;
+        }
+
+        break;
+    }
+
+    return 0;
 }
