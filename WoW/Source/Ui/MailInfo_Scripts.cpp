@@ -202,7 +202,7 @@ static int32_t Script_SelectStationery(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 734b1ee7 manual
+// VERIFY: f642dbb8 manual
 // OFFSET: 0x0056DF80
 static int32_t Script_GetStationeryInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -212,7 +212,7 @@ static int32_t Script_GetStationeryInfo(lua_State* L) {
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
     StationeryInfo* stationery;
     ItemStats_C* stats;
-    WOWGUID none;
+    WOWGUID none = { 0 };
 
     if (index < CGMailInfo::m_stationeries.Count() && (stationery = CGMailInfo::m_stationeries.m_data[index]) && (stats = g_itemDBCache.GetRecord(stationery->m_itemID, none, nullptr, nullptr, false))) {
         const char* path = ClientDBStringLookup(3);

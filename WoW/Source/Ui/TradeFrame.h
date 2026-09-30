@@ -14,6 +14,7 @@ struct PlayerTradeState {
 
 class CGTradeInfo {
     public:
+    static void SetTradePartner(WOWGUID partner, int32_t a2);
     static void EnterWorld();
     static uint32_t GetPlayerTradeMoney();
     static uint32_t GetTargetTradeMoney();

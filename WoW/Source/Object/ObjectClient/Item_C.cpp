@@ -984,10 +984,10 @@ bool CGItem_C::IsBoundForTrade() {
     return this->IsPermanentlyBoundForTrade() || this->HasSoulboundEnchant();
 }
 
-// VERIFY: 92d02457 manual
+// VERIFY: 94374eab manual
 // OFFSET: 0x00706B90
 int32_t CGItem_C::GetUseSpell(int32_t itemId) {
-    WOWGUID none;
+    WOWGUID none = { 0 };
     ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
 
     if (!stats) {

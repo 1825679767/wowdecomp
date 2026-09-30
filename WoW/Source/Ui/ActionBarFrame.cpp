@@ -229,7 +229,7 @@ int32_t CGActionBar::IsRangedAttackAction(uint32_t slot) {
     return 0;
 }
 
-// VERIFY: fc578e45 manual
+// VERIFY: 8b6cbfa9 manual
 // OFFSET: 0x005A9E20
 int32_t CGActionBar::UpdateUsableAction(uint32_t slot, int32_t& noMana) {
     noMana = 0;
@@ -253,7 +253,7 @@ int32_t CGActionBar::UpdateUsableAction(uint32_t slot, int32_t& noMana) {
             return 0;
         }
 
-        WOWGUID none;
+        WOWGUID none = { 0 };
         ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
 
         if (stats) {
@@ -337,7 +337,7 @@ int32_t CGActionBar::UpdateUsableAction(uint32_t slot, int32_t& noMana) {
             return 0;
         }
 
-        WOWGUID target;
+        WOWGUID target = { 0 };
 
         if (CGActionBar::IsMacro(slot)) {
             MACRONODE* macro = CGUIMacros::GetMacroByID(CGActionBar::GetMacroID(slot));
@@ -350,7 +350,7 @@ int32_t CGActionBar::UpdateUsableAction(uint32_t slot, int32_t& noMana) {
         ItemStats_C* stats = nullptr;
 
         if (itemId) {
-            WOWGUID none;
+            WOWGUID none = { 0 };
             stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
         }
 
@@ -669,7 +669,7 @@ const char* CGActionBar::GetRangedTexture() {
     return s_texture;
 }
 
-// VERIFY: d2a3f3cd manual
+// VERIFY: 36690456 manual
 // OFFSET: 0x005A8A60
 int32_t CGActionBar::CalculateItemCount(int32_t itemId) {
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -684,7 +684,7 @@ int32_t CGActionBar::CalculateItemCount(int32_t itemId) {
         return 0;
     }
 
-    WOWGUID none;
+    WOWGUID none = { 0 };
     ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
 
     if (!stats || static_cast<int32_t>(stats->m_stackable) > 1) {
@@ -714,7 +714,7 @@ int32_t CGActionBar::CalculateItemCount(int32_t itemId) {
     return count;
 }
 
-// VERIFY: 1acf0c67 manual
+// VERIFY: 2be59043 manual
 // OFFSET: 0x005A8E40
 void CGActionBar::GetCooldown(int32_t slot, uint32_t& start, uint32_t& duration, uint32_t& enable) {
     start = 0;
@@ -727,7 +727,7 @@ void CGActionBar::GetCooldown(int32_t slot, uint32_t& start, uint32_t& duration,
     int32_t itemId = CGActionBar::GetItem(slot);
 
     if (itemId) {
-        WOWGUID none;
+        WOWGUID none = { 0 };
 
         if (g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false)) {
             CGItem_C* item = CGActionBar::FindUseEnchantItemPtr(itemId);
@@ -944,7 +944,7 @@ void ItemStatsCallback(int32_t id, const WOWGUID& guid, void* param, bool succes
     }
 }
 
-// VERIFY: acf65139 manual
+// VERIFY: 8e72a9c5 manual
 // OFFSET: 0x005AAE80
 void CGActionBar::SetAction(int32_t slot, uint32_t action, int32_t sendToServer, int32_t silent) {
     if (slot < 0 || slot >= sizeof(CGActionBar::m_slotActions) / sizeof(CGActionBar::m_slotActions[0])) {
@@ -958,7 +958,7 @@ void CGActionBar::SetAction(int32_t slot, uint32_t action, int32_t sendToServer,
     }
 
     if (silent && (action & 0xF0000000) == 0x80000000) {
-        WOWGUID none;
+        WOWGUID none = { 0 };
         g_itemDBCache.GetRecord(action & 0x7FFFFFFF, none, ItemStatsCallback, nullptr, true);
     }
 
@@ -1236,7 +1236,7 @@ void CGActionBar::UpdateMultiCastBar() {
     Script_SendUniqueSignal(SCRIPT_EVENT_UPDATE_MULTI_CAST_ACTIONBAR);
 }
 
-// VERIFY: 63c85694 manual
+// VERIFY: 316b2457 manual
 // OFFSET: 0x005ABBC0
 void CGActionBar::UseAction(int32_t slot, const WOWGUID& target, const char* button) {
     if (slot < 0 || slot >= sizeof(CGActionBar::m_slotActions) / sizeof(CGActionBar::m_slotActions[0])) {
@@ -1308,7 +1308,7 @@ void CGActionBar::UseAction(int32_t slot, const WOWGUID& target, const char* but
         uint32_t* petAction = GetPetAction(action & 0xEFFFFFFF);
 
         if (petAction && *petAction) {
-            WOWGUID none;
+            WOWGUID none = { 0 };
             CGPetInfo::SendPetAction(*petAction, none, 0);
             SI2::PlaySoundKit("GAMEABILITYACTIVATE", nullptr, nullptr, nullptr);
             CGActionBar::UpdateSelection();

@@ -3,11 +3,14 @@
 
 #include <cstdint>
 #include "WoW/Source/Net/Types.h"
+#include "WoW/Source/Object/WGUID.h"
 
 struct lua_State;
 
 class CGStableInfo {
     public:
+    static WOWGUID m_stableMaster;
+    static void CloseStables(bool force);
     static void EnterWorld();
     static void InitializeGame();
 };

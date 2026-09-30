@@ -524,6 +524,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     uint32_t GetVoiceSex() const;
     bool IsShapeShifted() const;
     void PreemptivelyCancelShapeshift();
+    void CancelShapeshift();
     bool IsCancelShapeshiftAtFlightMaster() const;
     int32_t IsAutoTracking() const;
     bool IsActiveMoverTracking(uint32_t typeMask) const;
@@ -626,6 +627,12 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t IsBelowHalfBaseSpeed() const;
     void CancelRangedMode();
     bool CanAutoInteract() const;
+    int32_t IsLowPrioritySelection(uint32_t time);
+    int32_t GetCursorOverride(int32_t unable);
+    bool CanAutoUnshift() const;
+    int32_t IsInPartyOrRaid() const;
+    bool CanBeSpellClickedByLocalPlayer(const CGPlayer_C* player) const;
+    bool CanInteractNow(const CGUnit_C* unit) const;
     bool CanAutoStand() const;
     int32_t VerifyAttackIconPressed(const WOWGUID& target, int32_t a3, int32_t a4, int32_t a5, bool a6);
     void SetTrackingDirection(const C3Vector& direction);
@@ -695,7 +702,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     static uint8_t GetThreatSituation(const WOWGUID& guid);
     bool CalculateThreat(const WOWGUID& guid, uint8_t* status, float* rawPercent, float* percent, int32_t* threat);
     char* GetUnitChosenTitle(char* buffer, uint32_t size, int32_t showTitle, int32_t* lines);
-    void RequestTalkEmote(int32_t animation);
+    void RequestTalkEmote(int32_t index);
     void ChatBubbleShow(int32_t type, const char* text);
     void PlayTextEmoteSound(uint32_t emote, uint32_t emoteNum);
     SkillLineAbilityRec* LookupAbility(int32_t spellId);

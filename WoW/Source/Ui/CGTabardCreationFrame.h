@@ -11,6 +11,7 @@ void TabardCreationRegisterScriptFunctions();
 
 class CGTabardCreationFrame {
     public:
+    static void Close();
     static void EnterWorld();
     static WOWGUID m_vendor;
 };

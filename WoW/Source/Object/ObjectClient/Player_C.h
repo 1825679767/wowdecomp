@@ -103,6 +103,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     static uint32_t GetPendingMovie();
     static uint32_t GetProficiency(uint8_t itemClass);
     static bool CanDualWield();
+    int32_t CanLoot(const CGObject_C* object);
     static void __stdcall GetQuestReward(const WOWGUID& questGiver, int32_t questId, int32_t reward);
     static void __stdcall GiveQuestItems(const WOWGUID& questGiver, int32_t questId);
     static int32_t IsGiftWrapping();
@@ -159,6 +160,11 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     static void __stdcall TalkToRideVehicle(const WOWGUID& guid);
     static void __stdcall TalkToSpellClick(const WOWGUID& guid);
     static void __stdcall TalkToStableMaster(const WOWGUID& guid);
+    static void __stdcall TalkToGossip(const WOWGUID& guid);
+    static void __stdcall TalkToQuestUnit(const WOWGUID& guid);
+    static void __stdcall TalkToTrainer(const WOWGUID& guid);
+    static void __stdcall TalkToGuildBanker(const WOWGUID& guid);
+    static void __stdcall ShopFromMerchant(const WOWGUID& guid);
     static void __stdcall Uninvite(WOWGUID guid, const char* name);
     static bool UnitIsTrivial(const CGUnit_C* unit);
     static void __stdcall UnSilencePlayer(WOWGUID guid, bool silence);
@@ -256,7 +262,10 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void SetAFK(const char* message);
     void UpdateActiveMoverDisplay(uint32_t time);
     void SetPvpCooldownTimestamp(uint32_t flags);
-    void TalkToGuildBanker(const WOWGUID& guid);
+    void TalkToBinder(const WOWGUID& guid);
+    void TalkToTabardVendor(const WOWGUID& guid);
+    void TalkToSpiritHealer(const WOWGUID& guid);
+    void TalkToSpiritGuide(const WOWGUID& guid);
     void ToggleFarSight(CGObject_C* object);
     void UpdateAttackPosition(const CGUnit_C* target);
     void UpdateQuestStatus(CGObject_C* object);

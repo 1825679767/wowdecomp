@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include "WoW/Source/Net/Types.h"
+#include "WoW/Source/Object/WGUID.h"
 
 class CDataStore;
 struct lua_State;
@@ -21,6 +22,9 @@ int32_t Packet_MSG_QUERY_GUILD_BANK_TEXT(void* param, NETMESSAGE msgId, uint32_t
 
 class CGGuildBankInfo {
     public:
+    static WOWGUID m_banker;
+    static WOWGUID m_pendingBanker;
+    static void SetGuildBanker(const WOWGUID& banker);
     static int32_t m_numMoneyTransactions;
     static uint8_t m_numTabs;
     static GuildBankTabInfo m_guildBankTabInfo[6];

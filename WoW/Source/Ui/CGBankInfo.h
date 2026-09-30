@@ -9,6 +9,7 @@ struct lua_State;
 
 class CGBankInfo {
     public:
+    static void SetBanker(const WOWGUID& banker);
     static void EnterWorld();
     static WOWGUID m_banker;
 };

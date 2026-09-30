@@ -1056,7 +1056,7 @@ void CGTooltip::AddLine(const char* left, const char* right, const CImVector& le
     this->m_lineWrap.m_data[this->m_numLines++] = lineWrap;
 }
 
-// VERIFY: caaae9c0 manual
+// VERIFY: 35aa37fb manual
 // OFFSET: 0x00621070
 int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUID& healthGuid, int32_t a4) {
     const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
@@ -1087,7 +1087,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
 
     CGPartyMemberState* state = CGPartyMemberStateRepository::GetState(guid);
     CGPartyPetState* petState = CGPartyMemberStateRepository::FindPetState(guid);
-    WOWGUID none;
+    WOWGUID none = { 0 };
     NameCache* name = g_nameDBCache.GetRecord(guid.m_guid, none, nullptr, nullptr, false);
     CreatureStats_C* creature = nullptr;
 
@@ -1095,7 +1095,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
         creature = unit->m_creatureCacheEntry;
     } else if (!state && !petState) {
         uint32_t high = static_cast<uint32_t>(guid.m_guid >> 32);
-        WOWGUID requester;
+        WOWGUID requester = { 0 };
 
         if (((high & 0xF0F00000) != 0xF0300000 && (high & 0xF0F00000) != 0xF0500000) || !(creature = g_creatureDBCache.GetRecord((guid.m_guid >> 24) & 0xFFFFFFF, requester, nullptr, nullptr, false))) {
             if (!name) {
@@ -1409,7 +1409,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
             char buffer[4099];
 
             for (uint32_t i = 0; i < CGQuestLog::m_numQuest; i++) {
-                WOWGUID requester;
+                WOWGUID requester = { 0 };
                 QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::GetQuestAt(i), requester, TooltipUnitNameCallback, this, false);
 
                 if (!quest) {
@@ -1465,7 +1465,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
                                 header = true;
                             }
 
-                            WOWGUID itemRequester;
+                            WOWGUID itemRequester = { 0 };
                             ItemStats_C* stats = g_itemDBCache.GetRecord(quest->m_intermediateItemId[k], itemRequester, TooltipUnitNameCallback, this, false);
 
                             if (stats) {
@@ -1481,7 +1481,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
 
     if (unit && dead) {
         if (unit->GetMasterLooter()) {
-            WOWGUID requester;
+            WOWGUID requester = { 0 };
             NameCache* looter = g_nameDBCache.GetRecord(unit->GetMasterLooter(), requester, TooltipUnitNameCallback, this, false);
 
             if (looter) {
@@ -1492,7 +1492,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
         }
 
         if (unit->GetLooter()) {
-            WOWGUID requester;
+            WOWGUID requester = { 0 };
             NameCache* looter = g_nameDBCache.GetRecord(unit->GetLooter(), requester, TooltipUnitNameCallback, this, false);
 
             if (looter) {

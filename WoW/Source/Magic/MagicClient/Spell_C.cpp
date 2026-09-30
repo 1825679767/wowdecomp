@@ -55,6 +55,8 @@
 #include "WoW/Source/Object/ObjectClient/UnitCombatLog_C.h"
 #include "WoW/Source/Object/ObjectClient/Missile_C.h"
 #include "WoW/Source/Object/ObjectClient/GameObject_C.h"
+#include "WoW/Source/Object/ObjectClient/Corpse_C.h"
+#include "WoW/Source/Object/Corpse.h"
 #include "WoW/Source/Object/ObjectClient/VehiclePassenger_C.h"
 #include "WoW/Source/Ui/PaperDollInfoFrame.h"
 #include "WoW/Source/WowServices/WDataStore.h"
@@ -254,7 +256,7 @@ int32_t Spell_C_IsOverride(int32_t spellId, const OverrideSpellDataRec* rec) {
     return 0;
 }
 
-// VERIFY: 47619e72 manual
+// VERIFY: da3d51b4 manual
 // OFFSET: 0x008012F0
 int32_t Spell_C_GetPowerCost(const SpellRec* spell, const CGUnit_C* unit) {
     if (!unit) {
@@ -278,7 +280,7 @@ int32_t Spell_C_GetPowerCost(const SpellRec* spell, const CGUnit_C* unit) {
             const CGItem_C* item = const_cast<CGUnit_C*>(unit)->GetBag()->GetItemPointer(((spell->m_attributesExC & 0x1000000) != 0) + 15);
 
             if (item && item->IsUsable() && !unit->IsDisarmed((spell->m_attributesExC >> 24) & 0x1)) {
-                WOWGUID none;
+                WOWGUID none = { 0 };
                 ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
 
                 if (stats) {
@@ -2425,6 +2427,373 @@ void SpellSetFeedPetSpell(int32_t spellId) {
 // OFFSET: 0x007FD650
 bool Spell_C_CanTargetUnits() {
     return (s_needTargets & 0x1878E) != 0;
+}
+
+// VERIFY: 80b9e977 manual
+// OFFSET: 0x007FD670
+bool Spell_C_CanTargetParty() {
+    return (s_needTargets & 0x408) != 0;
+}
+
+// VERIFY: d32e5cfd manual
+// OFFSET: 0x007FD690
+bool Spell_C_CanTargetRaid() {
+    return (s_needTargets & 0x404) != 0;
+}
+
+// VERIFY: d2ed91ed manual
+// OFFSET: 0x007FD6B0
+bool Spell_C_CanTargetFriends() {
+    return (s_needTargets & 0x500) != 0;
+}
+
+// VERIFY: f50aa77f manual
+// OFFSET: 0x007FD6D0
+bool Spell_C_CanTargetEnemies() {
+    return (s_needTargets & 0x480) != 0;
+}
+
+// VERIFY: 3a1d8303 manual
+// OFFSET: 0x007FD6F0
+bool Spell_C_CanTargetAlive() {
+    return (s_needTargets & 0x8600) == 0;
+}
+
+// VERIFY: f7300290 auto
+// OFFSET: 0x007FD710
+bool Spell_C_CanTargetFriendCorpses() {
+    return (s_needTargets >> 15) & 1;
+}
+
+// VERIFY: 9cd298b5 auto
+// OFFSET: 0x007FD720
+bool Spell_C_CanTargetEnemyCorpses() {
+    return (s_needTargets >> 9) & 1;
+}
+
+// VERIFY: 18b19838 manual
+// OFFSET: 0x007FD730
+bool Spell_C_CanTargetObjects() {
+    return (s_needTargets & 0x4800) != 0;
+}
+
+// VERIFY: f1612f08 auto
+// OFFSET: 0x007FD780
+bool Spell_C_CanTargetNonCombatPet() {
+    return (s_needTargets >> 16) & 1;
+}
+
+// VERIFY: 238bd596 manual
+// OFFSET: 0x007FFEA0
+bool Spell_C_CanTargetCorpse(const CGCorpse_C* corpse) {
+    if (!s_targetingSpell) {
+        return false;
+    }
+
+    CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_targetingSpell->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!caster) {
+        return false;
+    }
+
+    if (s_needTargets & 0x8000) {
+        return !(corpse->m_corpse->m_corpseFieldFlags & 1) && caster->CanAssist(corpse);
+    }
+
+    if (s_needTargets & 0x200) {
+        return !(corpse->m_corpse->m_corpseFieldFlags & 1) && !caster->CanAssist(corpse);
+    }
+
+    return false;
+}
+
+// VERIFY: f486f02f manual
+// OFFSET: 0x007FFF20
+bool Spell_C_CanTargetObject(const CGGameObject_C* object) {
+    return (s_needTargets & 0x4800) && (object->m_obj->m_type & TYPEMASK_GAMEOBJECT) && object->IsValidTargetForSpell(s_targetingSpell->m_data.m_castItem, s_targetingSpell->m_data.m_spellId);
+}
+
+// VERIFY: 6491424d auto
+// OFFSET: 0x00801880
+bool Spell_C_CanTargetMe() {
+    if (s_needTargets & 0x850E) {
+        SpellRec spell;
+        g_spellDB.GetRecord(s_targetingSpell->m_data.m_spellId, &spell);
+
+        if (!(spell.m_attributesEx & 0x80000)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 665b5e31 manual
+// OFFSET: 0x008018F0
+bool Spell_C_CanTargetDead() {
+    if (!s_targetingSpell) {
+        return false;
+    }
+
+    if (s_needTargets & 0x8600) {
+        return true;
+    }
+
+    SpellRec spell;
+    g_spellDB.GetRecord(s_targetingSpell->m_data.m_spellId, &spell);
+    return (spell.m_attributesExB & 1) != 0;
+}
+
+// VERIFY: 3e9a6e5e manual
+// OFFSET: 0x00801960
+bool Spell_C_CanTargetPossessedFriends() {
+    if (!s_targetingSpell) {
+        return false;
+    }
+
+    SpellRec spell;
+    g_spellDB.GetRecord(s_targetingSpell->m_data.m_spellId, &spell);
+    return (spell.m_attributesExF & 0x200) != 0;
+}
+
+// VERIFY: 1509504f manual
+// OFFSET: 0x00801B10
+bool Spell_C_TargetingSpellAllowsTerrain() {
+    PendingSpellCast* targeting = s_targetingSpell;
+
+    if (!targeting) {
+        return false;
+    }
+
+    SpellRec spell;
+    return g_spellDB.GetRecord(targeting->m_data.m_spellId, &spell) && (spell.m_attributesExF & 0x1000000);
+}
+
+// VERIFY: 50b87c34 manual
+// OFFSET: 0x007FFC40
+CGUnit_C* Spell_C_TargetImpliedTarget(CGUnit_C* target, const SpellRec* spell, uint32_t needTargets, CGUnit_C* caster) {
+    if (needTargets & 0x10C) {
+        if (!caster->CanAttack(target)) {
+            return target;
+        }
+
+        CGUnit_C* implied = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target->m_unit->m_unitFieldTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+        bool ignoreFlags = spell ? (spell->m_attributesExF >> 3) & 1 : false;
+
+        if (!implied || !caster->CanAssist(implied, ignoreFlags)) {
+            return nullptr;
+        }
+
+        if ((needTargets & 0x8) && caster->IsInMyPartyOrRaid(implied)) {
+            return implied;
+        }
+
+        if ((needTargets & 0x4) && caster->IsInMyParty(implied)) {
+            return implied;
+        }
+
+        if (needTargets & 0x100) {
+            return implied;
+        }
+
+        return nullptr;
+    }
+
+    if (needTargets & 0x80) {
+        bool ignoreFlags = spell ? (spell->m_attributesExF >> 3) & 1 : false;
+
+        if (caster->CanAssist(target, ignoreFlags)) {
+            CGUnit_C* implied = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target->m_unit->m_unitFieldTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+            if (!implied || !caster->CanAttack(implied)) {
+                return nullptr;
+            }
+
+            return implied;
+        }
+    }
+
+    return target;
+}
+
+// VERIFY: 30711268 manual
+// OFFSET: 0x00801650
+void Spell_C_GetMinMaxRange(CGUnit_C* caster, const SpellRec* spell, float* minRange, float* maxRange, CGObject_C* target) {
+    *minRange = 0.0f;
+    *maxRange = 0.0f;
+
+    if (!caster) {
+        return;
+    }
+
+    int32_t friendly;
+
+    if (target && (target->m_obj->m_type & TYPEMASK_UNIT)) {
+        friendly = caster->CanAssist(static_cast<CGUnit_C*>(target), false);
+    } else {
+        friendly = SpellRec::IsHelpfulOrHarmful(spell) == 1;
+    }
+
+    Spell_C_GetMinMaxRange(caster, spell, minRange, maxRange, friendly, target);
+}
+
+// VERIFY: 97e96f86 manual
+// OFFSET: 0x00802C30
+void Spell_C::GetSpellRange(CGUnit_C* caster, int32_t spellId, float* minRange, float* maxRange, CGObject_C* target) {
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell)) {
+        Spell_C_GetMinMaxRange(caster, &spell, minRange, maxRange, target);
+    } else {
+        *minRange = 0.0f;
+        *maxRange = 0.0f;
+    }
+}
+
+// VERIFY: e951a560 manual
+// OFFSET: 0x00803A50
+bool Spell_C::HandleSpriteRay(const WOWGUID& guid, bool checkRange) {
+    PendingSpellCast* targeting = s_targetingSpell;
+
+    if (!targeting) {
+        return false;
+    }
+
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (!object) {
+        return false;
+    }
+
+    CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(targeting->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!caster) {
+        return false;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(targeting->m_data.m_spellId, &spell)) {
+        return false;
+    }
+
+    uint32_t type = object->m_obj->m_type;
+    bool valid = false;
+
+    if (type & TYPEMASK_UNIT) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(object);
+
+        if (spell.m_attributesExE & 0x800) {
+            unit = Spell_C_TargetImpliedTarget(unit, &spell, s_needTargets, caster);
+
+            if (!unit) {
+                return false;
+            }
+
+            object = unit;
+        }
+
+        if (unit->m_obj->m_guid == targeting->m_data.m_caster && (spell.m_attributesEx & 0x80000)) {
+            return false;
+        }
+
+        CGUnitData* data = unit->m_unit;
+
+        if ((data->m_unitFieldFlags & 0x10000) && !(spell.m_attributesExF & 0x1000000)) {
+            return false;
+        }
+
+        if (spell.m_targetCreatureType) {
+            if (!unit->GetCreatureType() || !((1 << (unit->GetCreatureType() - 1)) & spell.m_targetCreatureType)) {
+                return false;
+            }
+        }
+
+        int32_t health = data->m_unitFieldHealth;
+        uint32_t needTargets = s_needTargets;
+
+        if (health <= 0) {
+            if (!(data->m_unitDynamicFlags & 0x20) && !(needTargets & 0x8600) && !(spell.m_attributesExB & 1)) {
+                return false;
+            }
+        }
+
+        if (health > 0 && (needTargets & 0x400)) {
+            return false;
+        }
+
+        if ((needTargets & 0x8) && caster->IsInMyPartyOrRaid(unit) && caster->CanAssist(unit, false)) {
+            valid = true;
+        } else if ((s_needTargets & 0x4) && caster->IsInMyParty(unit) && caster->CanAssist(unit, false)) {
+            valid = true;
+        } else if ((s_needTargets & 0x100) && caster->CanAssist(unit, (spell.m_attributesExF >> 3) & 1)) {
+            valid = true;
+        } else if ((s_needTargets & 0x80) && caster->CanAttack(unit)) {
+            valid = true;
+        } else {
+            needTargets = s_needTargets;
+
+            if ((needTargets & 0x2) && (!(data->m_unitFieldFlags & 0x100) || (spell.m_attributesExC & 0x10000000) || (spell.m_attributesExE & 0x200000))) {
+                valid = true;
+            } else if ((needTargets & 0x8000) && data->m_unitFieldHealth <= 0 && ((unit->m_obj->m_type & TYPEMASK_PLAYER) || data->m_unitFieldPetnumber)) {
+                if (!caster->CanAssist(unit, false)) {
+                    return false;
+                }
+
+                valid = true;
+            } else if ((needTargets & 0x200) && data->m_unitFieldHealth <= 0 && (unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+                if (caster->CanAssist(unit, false)) {
+                    return false;
+                }
+
+                valid = true;
+            } else if ((needTargets & 0x10000) && unit->GetCreatureType() == 12) {
+                valid = true;
+            } else if ((s_needTargets & 0x100) && (spell.m_attributesExF & 0x200) && unit->IsCharmed() && caster->CanAttack(unit)) {
+                valid = true;
+            }
+        }
+
+        if (!valid) {
+            return false;
+        }
+    } else if (type & TYPEMASK_ITEM) {
+        if (!(s_needTargets & 0x4010)) {
+            return false;
+        }
+    } else if (type & TYPEMASK_GAMEOBJECT) {
+        if (!(s_needTargets & 0x4800) || !static_cast<CGGameObject_C*>(object)->IsValidTargetForSpell(targeting->m_data.m_castItem, targeting->m_data.m_spellId)) {
+            return false;
+        }
+    } else if (type & TYPEMASK_CORPSE) {
+        const CGCorpse_C* corpse = static_cast<CGCorpse_C*>(object);
+        bool friendly = false;
+
+        if ((s_needTargets & 0x8000) && !(corpse->m_corpse->m_corpseFieldFlags & 1) && caster->CanAssist(corpse)) {
+            friendly = true;
+        }
+
+        if (!((s_needTargets & 0x200) && !(corpse->m_corpse->m_corpseFieldFlags & 1) && !caster->CanAssist(corpse)) && !friendly) {
+            return false;
+        }
+    } else {
+        return false;
+    }
+
+    if (!checkRange) {
+        return true;
+    }
+
+    float distance = caster->GetDistanceToPos(object->GetPosition());
+    float minRange;
+    float maxRange;
+    Spell_C::GetSpellRange(caster, targeting->m_data.m_spellId, &minRange, &maxRange, object);
+
+    if (distance < minRange * minRange || maxRange * maxRange < distance) {
+        return false;
+    }
+
+    return true;
 }
 
 // VERIFY: 402f8659 auto

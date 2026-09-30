@@ -10,6 +10,7 @@
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/Object/Unit.h"
 
 // STATIC: 0x00BEB568
 CGRaidMember* CGRaidInfo::m_members[40];
@@ -245,4 +246,39 @@ CGRaidMember* CGRaidInfo::FindMemberByGuid(WOWGUID guid) {
     }
 
     return nullptr;
+}
+
+// VERIFY: 2ec03ec8 manual
+// OFFSET: 0x00573200
+int32_t CGRaidInfo::IsPlayerOrPetInRaid(const WOWGUID& guid) {
+    if (!static_cast<uint32_t>(guid.m_guid)) {
+        return static_cast<uint32_t>(guid.m_guid >> 32);
+    }
+
+    for (uint32_t i = 0; i < CGRaidInfo::m_numMembers; i++) {
+        CGRaidMember* member = CGRaidInfo::m_members[i];
+
+        if (!member) {
+            continue;
+        }
+
+        if (member->m_guid == guid) {
+            return 1;
+        }
+
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(member->m_guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (player) {
+            CGUnitData* unit = player->m_unit;
+            const WOWGUID& pet = unit->m_unitFieldCharm ? unit->m_unitFieldCharm : unit->m_unitFieldSummon;
+
+            if (pet == guid) {
+                return 1;
+            }
+        } else if ((member->m_stats.m_flags & 1) && member->m_stats.m_pet.m_guid == guid) {
+            return 1;
+        }
+    }
+
+    return 0;
 }

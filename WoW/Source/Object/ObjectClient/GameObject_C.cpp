@@ -1,4 +1,5 @@
 #include "GameObject_C.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include <cmath>
 #include <cstring>
 #include "Engine/Source/Base/CDataStore.h"
@@ -65,6 +66,7 @@
 #include "_Triage/CClientObjCreate.h"
 #include "WoW/Source/Object/MovementShared.h"
 #include "WoW/Source/Object/Passenger.h"
+#include "WoW/Source/UIUtil/Cursor.h"
 
 // STATIC: 0x00A335E8
 static const uint32_t s_oneShotAnims[7] = { 0xFFFFFFFF, 0, 8, 9, 10, 11, 12 };
@@ -1847,14 +1849,14 @@ void CGGameObject_C_Type_DestructibleBuilding::CreateWorldObj() {
 void CGGameObject_C_Type_DestructibleBuilding::DestroyWorldObj() {
 }
 
-// VERIFY: dbb7410e manual
+// VERIFY: 273ab916 manual
 // OFFSET: 0x0070ECB0
 bool CGGameObject_C_Type_GuildBank::Use() {
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
 
     if (player) {
         WOWGUID guid = this->m_owner->m_obj->m_guid;
-        player->TalkToGuildBanker(guid);
+        CGPlayer_C::TalkToGuildBanker(guid);
     }
 
     return true;
@@ -2016,6 +2018,87 @@ LockRec* CGGameObject_C::GetLockRec() const {
 
     uint32_t lockId = this->GetPropertyValue(CGameObjectDef::GetPropNum(this->m_gameObject->m_typeID, 4));
     return lockId ? g_lockDB.GetRecord(lockId) : nullptr;
+}
+
+// VERIFY: eef7dd91 manual
+// OFFSET: 0x0070F010
+bool CGGameObject_C::IsValidTargetForSpell(const WOWGUID& item, int32_t spellId) const {
+    LockRec* lock = this->GetLockRec();
+
+    if (!lock) {
+        return false;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return false;
+    }
+
+    CGItem_C* key = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (spell.m_effect[i] != 33) {
+            continue;
+        }
+
+        for (int32_t j = 0; j < 8; j++) {
+            switch (lock->m_type[j]) {
+                case 1:
+                    if (!key || static_cast<int32_t>(key->m_obj->m_entryID) != lock->m_index[j]) {
+                        continue;
+                    }
+
+                    break;
+
+                case 2:
+                    if (spell.m_effectMiscValue[i] != lock->m_index[j]) {
+                        continue;
+                    }
+
+                    break;
+
+                case 3:
+                    if (spell.m_id != lock->m_index[j]) {
+                        continue;
+                    }
+
+                    break;
+
+                default:
+                    continue;
+            }
+
+            if (this->IsValidOpenAction(lock->m_action[j])) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 81b3c5cd auto
+// OFFSET: 0x0070CE10
+int32_t CGGameObject_C::CanChangeCursor() const {
+    if (!this->m_typeData->CanUse()) {
+        return 0;
+    }
+
+    if (!this->m_stats || !this->m_stats->m_iconName || !*this->m_stats->m_iconName) {
+        return this->m_typeData->CanChangeCursor();
+    }
+
+    char name[40];
+
+    if (this->m_typeData->CanUseNow(nullptr, nullptr, nullptr)) {
+        SStrCopy(name, this->m_stats->m_iconName, sizeof(name));
+    } else {
+        SStrPrintf(name, sizeof(name), "Unable%s", this->m_stats->m_iconName);
+    }
+
+    int32_t mode = CursorGetModeFromName(name);
+    return mode ? mode : 53;
 }
 
 // VERIFY: 9f6a62fd manual

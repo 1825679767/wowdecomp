@@ -21,6 +21,7 @@ struct MerchantItem {
 
 class CGMerchantInfo {
     public:
+    static void CloseMerchant();
     static void EnterWorld();
     static MerchantItem* FindItemById(int32_t itemId);
     static int32_t GetRepairCost(CGItem_C* item);

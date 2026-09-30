@@ -57,6 +57,7 @@ struct AuctionItemInfo {
 
 class CGAuctionHouse {
     public:
+    static void CloseAuctionHouse();
     static AuctionSortCriteria m_bidSortCriteria[12];
     static AuctionSortCriteria m_ownedSortCriteria[12];
     static AuctionSortCriteria m_listSortCriteria[12];

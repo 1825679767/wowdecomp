@@ -233,6 +233,13 @@ bool CGUnit::HasSummoner() const {
     return this->m_unit->m_unitFieldSummonedby.m_guid != 0;
 }
 
+// VERIFY: 00a60867 manual
+// OFFSET: 0x004F5F80
+bool CGUnit::IsGuildMaster() const {
+    uint32_t flags = this->m_unit->m_unitNpcFlags;
+    return (flags & 0x40000) && (flags & 0x80000);
+}
+
 // VERIFY: 124e37fd auto
 // OFFSET: 0x004F5F00
 bool CGUnit::IsCharmed() const {

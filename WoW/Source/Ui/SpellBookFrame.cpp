@@ -127,7 +127,7 @@ static TSHashTable<SPELLSBYNAME, HASHKEY_UTF8I> s_spellsByName;
 // STATIC: 0x00BE8E8C
 TSGrowableArray<int32_t> CGSpellBook::m_unlearnedSpells;
 
-// VERIFY: debaf6f1 manual
+// VERIFY: ee08c995 manual
 // OFFSET: 0x0053CF10
 void CGSpellBook::UpdateUsable() {
     CGActionBar::UpdateUsable();
@@ -140,7 +140,7 @@ void CGSpellBook::UpdateUsable() {
             SpellUsableInfo& entry = s_knownSpells.m_data[i];
             g_spellDB.GetRecord(entry.m_spellId, &spell);
 
-            WOWGUID target;
+            WOWGUID target = { 0 };
             bool usable = Spell_C_IsUsableAction(player, &spell, target, nullptr, false);
             bool power = Spell_C_HaveSpellPower(player, &spell);
             bool noMana = !power;
@@ -160,7 +160,7 @@ void CGSpellBook::UpdateUsable() {
                 SpellUsableInfo& entry = s_shapeshiftSpells.m_data[i];
                 g_spellDB.GetRecord(entry.m_spellId, &spell);
 
-                WOWGUID target;
+                WOWGUID target = { 0 };
                 bool usable = Spell_C_IsUsableAction(player, &spell, target, nullptr, false);
                 bool power = Spell_C_HaveSpellPower(player, &spell);
 
@@ -263,7 +263,7 @@ void CGSpellBook::ClearSpells() {
     }
 }
 
-// VERIFY: 515dbb9f manual
+// VERIFY: 3922ffa3 manual
 // OFFSET: 0x00542030
 void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replaceSpell) {
     SpellRec spell;
@@ -484,7 +484,7 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
             CGTutorial::TriggerTutorial(52);
         }
 
-        WOWGUID requester;
+        WOWGUID requester = { 0 };
         requester.m_guid = static_cast<uint32_t>(spellId) | 0x1FE0000000000000ULL;
         CreatureStats_C* creature = g_creatureDBCache.GetRecord(spell.m_effectMiscValue[0], requester, CGSpellBook::CompanionCallback, reinterpret_cast<void*>(static_cast<intptr_t>(notify)), false);
 

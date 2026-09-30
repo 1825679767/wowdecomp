@@ -15,6 +15,9 @@
 #include "WoW/Source/Object/WGUID.h"
 #include "Engine/Source/Tempest/CRect.h"
 
+class CGGameObject_C;
+class CGUnit_C;
+class CGCorpse_C;
 class CGCamera;
 class CGObject_C;
 class CKeyEvent;
@@ -90,7 +93,7 @@ class CModelRecord : public TSLinkedNode<CModelRecord> {
 struct HITTESTRESULT {
     /* 0000 */ WOWGUID m_guid;
     /* 0008 */ C3Vector m_point;
-    /* 0014 */ float m_unused;
+    /* 0014 */ float m_distance;
     /* 0018 */ C3Vector m_segStart;
     /* 0024 */ C3Vector m_segEnd;
 };
@@ -176,6 +179,15 @@ class CGWorldFrame : public CSimpleFrame {
     void UpdateDayNight(float deltaSec);
     int32_t HandleSpriteTrack(WOWGUID guid);
     int32_t HitTestPoint(float x, float y, int32_t a3, HITTESTRESULT* result);
+    int32_t CanTargetCorpseSelection(const CGCorpse_C* corpse, uint32_t flags);
+    static void __stdcall CursorTrackObject(CGGameObject_C* object);
+    static void __stdcall CursorTrackUnit(CGUnit_C* unit);
+    static void __stdcall CursorTrackCorpse(CGCorpse_C* corpse);
+    int32_t IsUnitLegalSelection(CGUnit_C* unit, uint32_t flags);
+    int32_t IsLegalSelection(CGObject_C* object, uint32_t flags);
+    uint32_t GetHitTestFilterFlags(int32_t a1);
+    uint64_t FindClosestModel(const C3Vector& start, const C3Vector& end, uint32_t flags, float* distance);
+    int32_t HitTest(const C3Vector& start, const C3Vector& end, uint32_t flags, HITTESTRESULT* result);
     void OnLayerTrackObject(const HITTESTRESULT& result);
     void OnLayerTrackTerrain(const HITTESTRESULT& result);
     void SetNamePlateUpdate();

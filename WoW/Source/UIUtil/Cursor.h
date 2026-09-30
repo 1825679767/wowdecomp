@@ -13,6 +13,8 @@ uint32_t CursorGetResetMode();
 void CursorResetMode();
 void CursorSetMode(uint32_t mode);
 void CursorSetResetMode(uint32_t mode);
+uint32_t CursorGetModeFromName(const char* name);
+int32_t CursorSetFromName(const char* name);
 void CursorDropItem();
 void UpdateCursor();
 void CursorGrabSpell(const char* texture);

@@ -28,6 +28,7 @@ struct QuestGiverQuest {
 
 class CGQuestInfo {
     public:
+    static void QuestGiverFinished(int32_t keepOpen, uint32_t questId, int32_t notify);
     static void EnterWorld();
     static WOWGUID m_npc;
     static WOWGUID m_npcInform;

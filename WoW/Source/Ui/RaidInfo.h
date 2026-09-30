@@ -30,6 +30,8 @@ class CGRaidInfo {
     static WOWGUID m_raidTargets[8];
     static uint32_t m_realNumMembers;
     static WOWGUID m_selectedMember;
+
+    static int32_t IsPlayerOrPetInRaid(const WOWGUID& guid);
     static uint32_t m_readyCheckTime;
     static WOWGUID m_readyCheckInitiator;
     static uint32_t m_readyCheckTimer;

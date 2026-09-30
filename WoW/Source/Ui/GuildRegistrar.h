@@ -2,6 +2,7 @@
 #define WOW_SOURCE_UI_GUILDREGISTRAR_H
 
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 
 struct lua_State;
 
@@ -22,6 +23,8 @@ struct GuildPetitionInfo {
 
 class CGGuildRegistrar {
     public:
+    static WOWGUID m_registrar;
+    static void CloseRegistrar();
     static void EnterWorld();
     static GuildPetitionInfo m_petition;
 };

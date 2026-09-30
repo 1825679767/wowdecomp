@@ -10,6 +10,8 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 
 struct lua_State;
+class CGGameObject_C;
+class CGCorpse_C;
 class CDataStore;
 class SpellRec;
 class SpellVisualRec;
@@ -101,7 +103,8 @@ class Spell_C {
     /* 0008 */ uint32_t unk_0008;
 
     static void SendPendingCast(bool a1);
-    static void GetSpellRange(CGUnit_C* caster, int32_t spellId, float* minRange, float* maxRange, CGUnit_C* target);
+    static void GetSpellRange(CGUnit_C* caster, int32_t spellId, float* minRange, float* maxRange, CGObject_C* target);
+    static bool HandleSpriteRay(const WOWGUID& guid, bool checkRange);
 };
 
 int32_t Packet_Group_30(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
@@ -132,6 +135,21 @@ CMapEntity* Spell_C_GetSpellWorldObject();
 void Spell_C_UpdateInTransitList();
 bool Spell_C_CanTargetTerrain();
 bool Spell_C_CanTargetUnits();
+bool Spell_C_CanTargetParty();
+bool Spell_C_CanTargetRaid();
+bool Spell_C_CanTargetFriends();
+bool Spell_C_CanTargetEnemies();
+bool Spell_C_CanTargetAlive();
+bool Spell_C_CanTargetFriendCorpses();
+bool Spell_C_CanTargetEnemyCorpses();
+bool Spell_C_CanTargetObjects();
+bool Spell_C_CanTargetNonCombatPet();
+bool Spell_C_CanTargetMe();
+bool Spell_C_CanTargetDead();
+bool Spell_C_CanTargetPossessedFriends();
+bool Spell_C_TargetingSpellAllowsTerrain();
+bool Spell_C_CanTargetCorpse(const CGCorpse_C* corpse);
+bool Spell_C_CanTargetObject(const CGGameObject_C* object);
 bool Spell_C_IsTargeting();
 extern PendingSpellCast* s_targetingSpell;
 extern uint32_t s_needTargets;
@@ -213,6 +231,8 @@ uint32_t Spell_C_GetSpellLevel(const SpellRec* spell, int32_t isPet, int32_t isU
 int32_t Spell_C_GetPowerCostPerSecond(const SpellRec* spell, const CGUnit_C* unit);
 void Spell_C_GetMinMaxPoints(const SpellRec* spell, uint32_t effectIndex, float* minPoints, float* maxPoints, int32_t spellLevel, int32_t isPet, int32_t isUnit, int32_t noModifiers);
 void Spell_C_GetMinMaxRange(CGUnit_C* caster, const SpellRec* spell, float* minRange, float* maxRange, int32_t friendly, CGObject_C* target);
+void Spell_C_GetMinMaxRange(CGUnit_C* caster, const SpellRec* spell, float* minRange, float* maxRange, CGObject_C* target);
+CGUnit_C* Spell_C_TargetImpliedTarget(CGUnit_C* target, const SpellRec* spell, uint32_t needTargets, CGUnit_C* caster);
 int32_t Spell_C_GetDuration(const SpellRec* spell, int32_t isPet, int32_t isUnit, int32_t noModifiers, int32_t applyHaste);
 bool Spell_C_HasNoReagentCost(CGPlayer_C* player, const SpellRec* spell);
 int32_t Spell_C_GetTargetingSpell();

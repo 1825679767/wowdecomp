@@ -4,6 +4,8 @@
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Services/Texture.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "WoW/Source/Ui/Types.h"
 
 // STATIC: 0x00AD2808
 static const char* s_cursorNames[54] = {
@@ -209,4 +211,70 @@ void CursorInitialize() {
 
     s_cursorFile[0] = '\0';
     UpdateCursor();
+}
+
+// VERIFY: 80dc5ddb auto
+// OFFSET: 0x00616280
+uint32_t CursorGetModeFromName(const char* name) {
+    for (uint32_t i = 1; i < 53; i++) {
+        if (!SStrCmpI(name, s_cursorNames[i], STORM_MAX_STR)) {
+            return i;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: c3ebf462 auto
+// OFFSET: 0x00616800
+void CursorSetMode(uint32_t mode) {
+    if (mode != 53 && s_cursorMode != mode) {
+        s_cursorMode = mode;
+        UpdateCursor();
+        FrameScript_SignalEvent(SCRIPT_EVENT_CURSOR_UPDATE, nullptr);
+    }
+}
+
+// VERIFY: ed01e032 manual
+// OFFSET: 0x00616830
+int32_t CursorSetFromName(const char* name) {
+    int32_t result = !SStrCmpI(s_cursorFile, name, STORM_MAX_STR);
+    int32_t changed = !result || s_cursorMode != 53;
+
+    if (!result) {
+        uint32_t width = 0;
+        uint32_t height = 0;
+        PIXEL_FORMAT format = PIXEL_ARGB8888;
+        MipBits* images = TextureLoadImage(name, &width, &height, &format, nullptr, nullptr, nullptr, 0);
+
+        if (images) {
+            if (CopyCursorImage(s_cursorImages[53], images, width, height)) {
+                result = 1;
+            }
+
+            TextureFreeMippedImg(images, format, width, height);
+        } else {
+            memset(s_cursorImages[53], 0, sizeof(s_cursorImages[53]));
+        }
+
+        SStrCopy(s_cursorFile, name, sizeof(s_cursorFile));
+    }
+
+    if (changed) {
+        s_cursorMode = 53;
+        UpdateCursor();
+        FrameScript_SignalEvent(SCRIPT_EVENT_CURSOR_UPDATE, nullptr);
+    }
+
+    return result;
+}
+
+// VERIFY: 0107efc6 auto
+// OFFSET: 0x00616920
+void CursorResetMode() {
+    if (s_cursorResetMode != 53 && s_cursorMode != s_cursorResetMode) {
+        s_cursorMode = s_cursorResetMode;
+        UpdateCursor();
+        FrameScript_SignalEvent(SCRIPT_EVENT_CURSOR_UPDATE, nullptr);
+    }
 }

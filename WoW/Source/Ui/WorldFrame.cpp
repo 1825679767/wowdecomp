@@ -84,6 +84,15 @@
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WorldClient/MapWeather.h"
 #include "WoW/Source/WorldClient/World.h"
+#include <cfloat>
+#include <cmath>
+#include "WoW/Source/Ui/SpellBookFrame.h"
+
+// STATIC: 0x009F9864
+static const uint32_t s_skinCursorModes[2] = { 21, 20 };
+
+// STATIC: 0x009F986C
+static const uint32_t s_skinCursorModesUnable[2] = { 47, 46 };
 
 // STATIC: 0x00AC799C
 static const char* s_spellShadowTextureNames[2] = { "Interface\\SpellShadow\\Spell-Shadow-Acceptable.blp", "Interface\\SpellShadow\\Spell-Shadow-Unacceptable.blp" };
@@ -134,6 +143,22 @@ CGCamera* CGWorldFrame::GetActiveCamera() {
     return nullptr;
 }
 
+// VERIFY: 407a59b7 manual
+// OFFSET: 0x004F59F0
+void __stdcall CGWorldFrame::CursorTrackObject(CGGameObject_C* object) {
+    int32_t mode = object->CanChangeCursor();
+
+    if (!mode) {
+        CursorResetMode();
+    } else if (mode == 53) {
+        char file[260];
+        object->GetCursorFile(file, sizeof(file));
+        CursorSetFromName(file);
+    } else {
+        CursorSetMode(mode);
+    }
+}
+
 // VERIFY: 65d31796 auto
 // OFFSET: 0x004F5A60
 int32_t CGWorldFrame::OnLayerTrackUpdate(const CMouseEvent& evt) {
@@ -158,6 +183,16 @@ void CGWorldFrame::OnMouseModeNormal() {
 // OFFSET: 0x004F5D80
 void CGWorldFrame::SetNamePlateUpdate() {
     this->m_namePlateFlags |= 0x1;
+}
+
+// VERIFY: c20f460f auto
+// OFFSET: 0x004F58E0
+int32_t CGWorldFrame::CanTargetCorpseSelection(const CGCorpse_C* corpse, uint32_t flags) {
+    if (Spell_C_IsTargeting()) {
+        return Spell_C_CanTargetCorpse(corpse);
+    }
+
+    return 1;
 }
 
 // VERIFY: 906e0891 auto
@@ -348,6 +383,421 @@ void CGWorldFrame::ClearTrackedObjects() {
     }
 }
 
+// VERIFY: 8d2db281 manual
+// OFFSET: 0x004F7350
+int32_t CGWorldFrame::IsUnitLegalSelection(CGUnit_C* unit, uint32_t flags) {
+    if (!(flags & 0x20)) {
+        if (unit->IsActivePlayer()) {
+            return 0;
+        }
+
+        WOWGUID activePlayer = ClntObjMgrGetActivePlayer();
+
+        if (unit->IsPossessedBy(activePlayer)) {
+            return 0;
+        }
+    }
+
+    if (flags & 0xF0000) {
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        uint32_t friends = flags & 0x40000;
+
+        if (friends && !player->CanAssist(unit, false)) {
+            return (flags & 0x800000) && unit->m_unit->m_unitFieldCharmedby && player->CanAttack(unit);
+        }
+
+        if (!((flags & 0x10000) && player->IsInMyPartyOrRaid(unit)) && !((flags & 0x20000) && player->IsInMyParty(unit)) && !(friends && player->CanAssist(unit, false)) && !((flags & 0x80000) && player->CanAttack(unit))) {
+            return 0;
+        }
+    }
+
+    if (flags & 0x300000) {
+        if (unit->m_unit->m_unitFieldHealth > 0 ? !(flags & 0x100000) : !(flags & 0x200000)) {
+            return 0;
+        }
+    }
+
+    if ((flags & 0x400000) && unit->GetCreatureType() == 12) {
+        return 1;
+    }
+
+    if (!Spell_C_IsTargeting()) {
+        return 1;
+    }
+
+    bool restricted = (unit->m_unit->m_unitFieldFlags >> 8) & 1;
+
+    if (restricted) {
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(Spell_C_GetTargetingSpell(), &spell) && ((spell.m_attributesExC & 0x10000000) || (spell.m_attributesExE & 0x200000))) {
+            return 1;
+        }
+    }
+
+    return !restricted;
+}
+
+// VERIFY: 120569f0 auto
+// OFFSET: 0x004F7530
+int32_t CGWorldFrame::IsLegalSelection(CGObject_C* object, uint32_t flags) {
+    switch (object->m_obj->m_type) {
+        case TYPEMASK_OBJECT | TYPEMASK_UNIT | TYPEMASK_PLAYER:
+            if (!(flags & 0x10)) {
+                return 0;
+            }
+
+            return this->IsUnitLegalSelection(static_cast<CGUnit_C*>(object), flags);
+
+        case TYPEMASK_OBJECT | TYPEMASK_UNIT:
+            if (!(flags & 0x8)) {
+                return 0;
+            }
+
+            return this->IsUnitLegalSelection(static_cast<CGUnit_C*>(object), flags);
+
+        case TYPEMASK_OBJECT | TYPEMASK_GAMEOBJECT:
+            if (!(flags & 0x4) || (Spell_C_IsTargeting() && !Spell_C_CanTargetObject(static_cast<CGGameObject_C*>(object)))) {
+                return 0;
+            }
+
+            return 1;
+
+        case TYPEMASK_OBJECT | TYPEMASK_CORPSE:
+            if (!(flags & 0x40)) {
+                return 0;
+            }
+
+            return this->CanTargetCorpseSelection(static_cast<CGCorpse_C*>(object), flags);
+
+        default:
+            return 0;
+    }
+}
+
+// VERIFY: 4da5a71a manual
+// OFFSET: 0x004F7650
+uint32_t CGWorldFrame::GetHitTestFilterFlags(int32_t a1) {
+    if (Spell_C_IsTargeting()) {
+        uint32_t flags = 0;
+
+        if (Spell_C_CanTargetTerrain()) {
+            flags = 0x3;
+        }
+
+        if (Spell_C_CanTargetObjects()) {
+            flags |= 0x4;
+        }
+
+        if (Spell_C_CanTargetUnits()) {
+            flags |= 0x18;
+
+            if (Spell_C_CanTargetMe()) {
+                flags |= 0x20;
+            }
+
+            if (Spell_C_CanTargetParty()) {
+                flags |= 0x10000;
+            }
+
+            if (Spell_C_CanTargetFriends()) {
+                flags |= 0x40000;
+            }
+
+            if (Spell_C_CanTargetEnemies()) {
+                flags |= 0x80000;
+            }
+
+            if (Spell_C_CanTargetRaid()) {
+                flags |= 0x20000;
+            }
+
+            if (Spell_C_CanTargetDead()) {
+                flags |= 0x200040;
+            }
+
+            if (Spell_C_CanTargetAlive()) {
+                flags |= 0x100000;
+            }
+
+            if (Spell_C_CanTargetNonCombatPet()) {
+                flags |= 0x400000;
+            }
+
+            if (Spell_C_CanTargetPossessedFriends()) {
+                flags |= 0x800000;
+            }
+        }
+
+        if (Spell_C_CanTargetFriendCorpses()) {
+            flags |= 0x40040;
+        }
+
+        if (Spell_C_CanTargetEnemyCorpses()) {
+            flags |= 0x80040;
+        }
+
+        return flags;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    uint32_t flags = 0;
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (mover && mover->CanAutoInteract() && !CGGameUI::m_cursorItemType) {
+        uint32_t moveFlags = mover->m_movement->m_flags;
+        flags = 1;
+
+        if ((moveFlags & 0x10000000) && !(moveFlags & 0x200000)) {
+            flags = 3;
+        }
+    }
+
+    if (player) {
+        flags |= 0x5C;
+    }
+
+    return flags;
+}
+
+// VERIFY: d619b75b manual
+// OFFSET: 0x004F7A50
+void __stdcall CGWorldFrame::CursorTrackUnit(CGUnit_C* unit) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return;
+    }
+
+    if (((player->m_combatModeFlags & 1) && player->GetTransportGUID() != player->GetFarSightGuid()) || !player->VehicleAllowsInteraction()) {
+        CGUnit_C* possessed = player->GetPossessedUnit();
+
+        if (unit->m_unit->m_unitFieldHealth > 0 && possessed && possessed->CanAttackNow(unit)) {
+            CursorSetMode(4);
+        } else {
+            CursorResetMode();
+        }
+
+        return;
+    }
+
+    float distance = player->GetDistanceToPos(unit->GetPosition());
+
+    if (player->CanInteractNow(unit) && unit->m_unit->m_unitNpcFlags) {
+        float reach = unit->m_unit->m_unitFieldCombatreach + 4.0f;
+        int32_t unable = reach * reach < distance;
+        int32_t mode = unit->GetCursorOverride(unable);
+
+        if (mode) {
+            if (mode == 53) {
+                char file[260];
+                unit->GetCursorFile(unable, file, sizeof(file));
+                CursorSetFromName(file);
+            } else {
+                CursorSetMode(mode);
+            }
+
+            return;
+        }
+
+        uint32_t flags = unit->m_unit->m_unitNpcFlags;
+
+        if (flags & 0x1000) {
+            CursorSetMode(unable ? 44 : 18);
+        } else if (flags & 0x10000) {
+            CursorSetMode(unable ? 48 : 22);
+        } else if (flags & 0x2000) {
+            CursorSetMode(unable ? 35 : 9);
+        } else if (flags & 0x10) {
+            CursorSetMode(unable ? 36 : 10);
+        } else if ((flags & 0x4000) || (flags & 0x8000)) {
+            CursorSetMode(unable ? 32 : 6);
+        } else if ((flags & 0x20000) || (flags & 0x800000)) {
+            CursorSetMode(unable ? 29 : 3);
+        } else if ((flags & 0x40000) || (flags & 0x80000) || unit->IsGuildMaster() || (flags & 0x100000)) {
+            CursorSetMode(unable ? 32 : 6);
+        } else if (flags & 0x200000) {
+            CursorSetMode(unable ? 29 : 3);
+        } else if (flags & 0x400000) {
+            CursorSetMode(unable ? 32 : 6);
+        } else if (flags & 0x80) {
+            CursorSetMode(unable ? 34 : 8);
+        } else if (flags & 0x1) {
+            CursorSetMode(unable ? 32 : 6);
+        } else if (flags & 0x1000000) {
+            CursorSetMode(unable ? 31 : 5);
+        } else if (unit->CanBeSpellClickedByLocalPlayer(player)) {
+            CursorSetMode(unable ? 52 : 26);
+        } else {
+            CursorResetMode();
+        }
+
+        return;
+    }
+
+    if (unit->CanBeLooted(FrameTime::s_curTimeMs)) {
+        if (player->CanLoot(unit) || player->m_lootTarget == unit->m_obj->m_guid) {
+            CursorSetMode(CGGameUI::IsAutoLooting() ? 16 : 8);
+        } else {
+            CursorSetMode(CGGameUI::IsAutoLooting() ? 42 : 34);
+        }
+
+        return;
+    }
+
+    if ((unit->m_unit->m_unitFieldFlags & 0x4000000) && CGSpellBook::GetSkinningSpell(unit) && !((unit->m_obj->m_type & TYPEMASK_PLAYER) && player->CanAssist(unit, false))) {
+        float minRange;
+        float maxRange;
+        Spell_C::GetSpellRange(player, CGSpellBook::GetSkinningSpell(unit), &minRange, &maxRange, unit);
+
+        if (unit->m_obj->m_type & TYPEMASK_PLAYER) {
+            if (maxRange * maxRange < distance) {
+                CursorSetMode(s_skinCursorModesUnable[player->GetPVPFactionIndex()]);
+            } else {
+                CursorSetMode(s_skinCursorModes[player->GetPVPFactionIndex()]);
+            }
+
+            return;
+        }
+
+        switch (unit->GetSkinningType()) {
+            case 0:
+                CursorSetMode(maxRange * maxRange < distance ? 38 : 12);
+                return;
+
+            case 1:
+                CursorSetMode(maxRange * maxRange < distance ? 39 : 13);
+                return;
+
+            case 2:
+                CursorSetMode(maxRange * maxRange < distance ? 37 : 11);
+                return;
+
+            case 3:
+                CursorSetMode(maxRange * maxRange < distance ? 37 : 11);
+                return;
+
+            default:
+                CursorResetMode();
+                return;
+        }
+    }
+
+    if (!player->CanAttackNow(unit) || (player->m_unit->m_unitFieldFlags & 0x20000) || !CGGameUI::m_hasControl) {
+        CursorResetMode();
+        return;
+    }
+
+    float range = player->GetMeleeRange(unit);
+
+    if (range * range < distance) {
+        CursorSetMode(30);
+    } else {
+        CursorSetMode(4);
+    }
+}
+
+// VERIFY: 3106c989 manual
+// OFFSET: 0x004F8000
+void __stdcall CGWorldFrame::CursorTrackCorpse(CGCorpse_C* corpse) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return;
+    }
+
+    C3Vector corpsePosition = corpse->GetPosition();
+    C3Vector position = player->GetPosition();
+    float dx = position.x - corpsePosition.x;
+    float dy = position.y - corpsePosition.y;
+    float dz = position.z - corpsePosition.z;
+    float distance = dx * dx + dz * dz + dy * dy;
+
+    if (corpse->CanBeLooted()) {
+        if (player->CanLoot(corpse) || player->m_lootTarget == corpse->m_obj->m_guid) {
+            CursorSetMode(CGGameUI::IsAutoLooting() ? 16 : 8);
+        } else {
+            CursorSetMode(CGGameUI::IsAutoLooting() ? 42 : 34);
+        }
+
+        return;
+    }
+
+    const CGUnit_C* asUnit = reinterpret_cast<const CGUnit_C*>(corpse);
+
+    if ((corpse->m_corpse->m_corpseFieldFlags & 0x20) && CGSpellBook::GetSkinningSpell(asUnit) && !player->CanAssist(corpse)) {
+        float minRange;
+        float maxRange;
+        Spell_C::GetSpellRange(player, CGSpellBook::GetSkinningSpell(asUnit), &minRange, &maxRange, nullptr);
+
+        if (maxRange * maxRange < distance) {
+            CursorSetMode(s_skinCursorModesUnable[player->GetPVPFactionIndex()]);
+        } else {
+            CursorSetMode(s_skinCursorModes[player->GetPVPFactionIndex()]);
+        }
+
+        return;
+    }
+
+    CursorResetMode();
+}
+
+// VERIFY: 92cbc82b manual
+// OFFSET: 0x004F8190
+void CGWorldFrame::OnLayerTrackObject(const HITTESTRESULT& result) {
+    if (this->m_worldFlags & 0x2) {
+        this->HandleSpriteTrack(WOWGUID());
+        return;
+    }
+
+    if (Spell_C_IsTargeting()) {
+        WOWGUID guid = result.m_guid;
+        CursorSetMode(Spell_C::HandleSpriteRay(guid, true) ? 2 : 28);
+        this->HandleSpriteTrack(result.m_guid);
+        return;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGObject_C* object = ClntObjMgrObjectPtr(result.m_guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (!player || !object || !object->CanHighlight()) {
+        CursorResetMode();
+        this->HandleSpriteTrack(WOWGUID());
+        return;
+    }
+
+    if (result.m_distance == 0.0f) {
+        CursorResetMode();
+        this->HandleSpriteTrack(result.m_guid);
+        return;
+    }
+
+    switch (object->m_obj->m_type) {
+        case TYPEMASK_OBJECT | TYPEMASK_ITEM:
+            CursorSetMode(8);
+            break;
+
+        case TYPEMASK_OBJECT | TYPEMASK_UNIT:
+        case TYPEMASK_OBJECT | TYPEMASK_UNIT | TYPEMASK_PLAYER:
+            CGWorldFrame::CursorTrackUnit(static_cast<CGUnit_C*>(object));
+            break;
+
+        case TYPEMASK_OBJECT | TYPEMASK_GAMEOBJECT:
+            CGWorldFrame::CursorTrackObject(static_cast<CGGameObject_C*>(object));
+            break;
+
+        case TYPEMASK_OBJECT | TYPEMASK_CORPSE:
+            CGWorldFrame::CursorTrackCorpse(static_cast<CGCorpse_C*>(object));
+            break;
+
+        default:
+            CursorResetMode();
+            break;
+    }
+
+    this->HandleSpriteTrack(result.m_guid);
+}
+
 // VERIFY: f0b2f3d4 manual
 // OFFSET: 0x004F77C0
 CGWorldFrameUnkObj::CGWorldFrameUnkObj() {
@@ -462,6 +912,222 @@ bool CGWorldFrame::HitTestModelList(const C3Vector& start, const C3Vector& end) 
     return World::s_m2Scene->EndHitTest(viewStart, viewEnd, t, 0) != nullptr;
 }
 
+// VERIFY: 7c925d58 manual
+// OFFSET: 0x004F9550
+uint64_t CGWorldFrame::FindClosestModel(const C3Vector& start, const C3Vector& end, uint32_t flags, float* distance) {
+    C44Matrix view;
+    CGxMatrixStack& stack = g_theGxDevicePtr->m_xforms[GxXform_View];
+    view = stack.m_mtx[stack.m_level];
+
+    C3Vector camera = this->m_camera->m_position;
+    C3Vector viewStart = (start - camera) * view;
+    C3Vector viewEnd = (end - camera) * view;
+
+    TSList<CModelRecord, TSGetLink<CModelRecord> > lowPriority;
+    uint32_t time = OsGetAsyncTimeMs();
+    World::s_m2Scene->BeginHitTest();
+    int32_t allowsTerrain = Spell_C_TargetingSpellAllowsTerrain();
+
+    for (CModelRecord* record = this->m_modelList.Head(); record;) {
+        CModelRecord* next = this->m_modelList.Next(record);
+        CGObject_C* object = ClntObjMgrObjectPtr(record->m_guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+        if (object && this->IsLegalSelection(object, flags) && (object->CanHighlight() || allowsTerrain)) {
+            record->m_object = object;
+
+            if ((object->m_obj->m_type & TYPEMASK_UNIT) && static_cast<CGUnit_C*>(object)->IsLowPrioritySelection(time)) {
+                lowPriority.LinkToTail(record);
+            } else {
+                this->AddObjectToHitTestList(record, flags);
+            }
+        }
+
+        record = next;
+    }
+
+    float t = 1.0f;
+    CModelRecord* hit = static_cast<CModelRecord*>(World::s_m2Scene->EndHitTest(viewStart, viewEnd, t, 1));
+
+    if (!hit) {
+        World::s_m2Scene->BeginHitTest();
+
+        for (CModelRecord* record = lowPriority.Head(); record; record = lowPriority.Next(record)) {
+            this->AddObjectToHitTestList(record, flags);
+        }
+
+        t = 1.0f;
+        hit = static_cast<CModelRecord*>(World::s_m2Scene->EndHitTest(viewStart, viewEnd, t, 1));
+    }
+
+    this->m_modelList.Combine(&lowPriority, 2, nullptr);
+
+    if (!hit) {
+        return 0;
+    }
+
+    C3Vector delta = viewEnd - viewStart;
+    float hitDistance = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z) * t;
+    hit->m_distance = hitDistance;
+    *distance = hitDistance;
+    return hit->m_guid.m_guid;
+}
+
+// VERIFY: d0d131d0 manual
+// OFFSET: 0x004F9930
+int32_t CGWorldFrame::HitTest(const C3Vector& start, const C3Vector& end, uint32_t flags, HITTESTRESULT* result) {
+    C3Vector hitPoint = { 0.0f, 0.0f, 0.0f };
+    float t = 1.0f;
+    float objectDistance = 0.0f;
+    WOWGUID collision = WOWGUID();
+    uint32_t worldFlags = (flags & 0x2) ? 0x1020124 : 0x1000124;
+    C3Vector point = end;
+    C3Vector direction = point - start;
+    float length = direction.x * direction.x + direction.y * direction.y + direction.z * direction.z;
+
+    if (fabs(length) >= 0.00000023841858f) {
+        length = sqrt(length);
+        float inverse = 1.0f / length;
+        direction.x *= inverse;
+        direction.y *= inverse;
+        direction.z *= inverse;
+    }
+
+    int32_t hitWorld = World::Intersect(start, point, &hitPoint, &t, worldFlags, nullptr) != 0;
+
+    if (hitWorld) {
+        if (t < -0.001f || t > 1.001f || !_finite(t)) {
+            DebugLog("CWorld::Intersect() returned a bogus value for terrDist: %f", static_cast<double>(t));
+        }
+
+        length *= t;
+        collision = s_lastCollisionGUID;
+        point.x = direction.x * length + start.x;
+        point.y = direction.y * length + start.y;
+        point.z = direction.z * length + start.z;
+        t = length;
+    }
+
+    WOWGUID model = WOWGUID();
+
+    if (flags & 0x7C) {
+        model.m_guid = this->FindClosestModel(start, point, flags, &objectDistance);
+
+        if (model) {
+            if (objectDistance < -0.001f || !_finite(objectDistance)) {
+                DebugLog("CGWorldFrame::FindClosestModel() returned a bogus value for objDist: %f", static_cast<double>(objectDistance));
+            }
+
+            length = objectDistance;
+            point.x = direction.x * objectDistance + start.x;
+            point.y = direction.y * objectDistance + start.y;
+            point.z = objectDistance * direction.z + start.z;
+        }
+    }
+
+    uint32_t terrain = flags & 0x3;
+
+    if (terrain) {
+        t = 1.0f;
+
+        if (World::Intersect(start, point, &hitPoint, &t, 0x100151, nullptr)) {
+            if (t < -0.001f || t > 1.001f || !_finite(t)) {
+                DebugLog("CWorld::Intersect() returned a bogus value for terrDist: %f", static_cast<double>(t));
+            }
+
+            length *= t;
+            collision = s_lastCollisionGUID;
+            hitWorld = 1;
+            point.x = direction.x * length + start.x;
+            point.y = direction.y * length + start.y;
+            point.z = direction.z * length + start.z;
+            t = length;
+        }
+    }
+
+    C3Vector screen;
+    screen.z = 0.0f;
+
+    if (this->GetScreenCoordinates(point, &screen, nullptr)) {
+        g_theGxDevicePtr->CursorSetDepth(screen.z);
+    }
+
+    if (model) {
+        result->m_distance = objectDistance;
+        result->m_point = point;
+        result->m_guid = model;
+        return 2;
+    }
+
+    if (!hitWorld) {
+        return 0;
+    }
+
+    if (collision) {
+        result->m_point = point;
+        CGObject_C* object = ClntObjMgrObjectPtr(collision, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+        if (object) {
+            result->m_guid = collision;
+
+            if (object->IsTransport()) {
+                C44Matrix inverse = object->GetMatrix().AffineInverse();
+                result->m_point *= inverse;
+            }
+        } else {
+            result->m_guid = WOWGUID();
+        }
+
+        result->m_distance = t;
+        return 3;
+    }
+
+    result->m_point = point;
+    result->m_distance = t;
+    result->m_guid = WOWGUID();
+    return terrain != 0;
+}
+
+// VERIFY: 53a93536 auto
+// OFFSET: 0x004F9DA0
+int32_t CGWorldFrame::HitTestPoint(float x, float y, int32_t a3, HITTESTRESULT* result) {
+    if (!(CGInputControl::GetActive()->m_mouseModeFlags & 0x1)) {
+        return 0;
+    }
+
+    CGxDevice* device = g_theGxDevicePtr;
+    C44Matrix projection;
+    C44Matrix view;
+    projection = device->m_projection;
+    CGxMatrixStack& stack = device->m_xforms[GxXform_View];
+    view = stack.m_mtx[stack.m_level];
+    this->m_camera->SetupWorldProjection(this->m_viewportDDC);
+
+    int32_t kind = 0;
+    uint32_t flags = this->GetHitTestFilterFlags(a3);
+
+    if (flags) {
+        C3Vector start = { 0.0f, 0.0f, 0.0f };
+        C3Vector end = { 0.0f, 0.0f, 0.0f };
+
+        if (this->GetLineSegment(x, y, &start, &end)) {
+            result->m_segStart = start;
+            result->m_segEnd = end;
+            kind = this->HitTest(start, end, flags, result);
+
+            if (kind >= 2) {
+                this->m_hitGuid = result->m_guid;
+            } else {
+                this->MoveToFreeList(&this->m_hitModelList);
+                this->m_hitGuid = WOWGUID();
+            }
+        }
+    }
+
+    g_theGxDevicePtr->XformSetProjection(projection);
+    g_theGxDevicePtr->XformSetView(view);
+    return kind;
+}
+
 // VERIFY: 21cb1ac2 auto
 // OFFSET: 0x004FA5D0
 void CGWorldFrame::UnitClear() {
@@ -469,7 +1135,7 @@ void CGWorldFrame::UnitClear() {
     this->MoveToFreeList(&this->m_hitModelList);
 }
 
-// VERIFY: a2dd2fc2 manual
+// VERIFY: 0cec28f7 manual
 // OFFSET: 0x004FABD0
 CGWorldFrame::CGWorldFrame(CSimpleFrame* parent) : CSimpleFrame(parent) {
     this->unk_02C0 = 1;
@@ -478,7 +1144,7 @@ CGWorldFrame::CGWorldFrame(CSimpleFrame* parent) : CSimpleFrame(parent) {
     this->m_hitGuid = WOWGUID();
     this->m_defaultActionHit.m_guid = WOWGUID();
     this->m_defaultActionHit.m_point = { 0.0f, 0.0f, 0.0f };
-    this->m_defaultActionHit.m_unused = 0.0f;
+    this->m_defaultActionHit.m_distance = 0.0f;
     this->m_defaultActionHit.m_segStart = { 0.0f, 0.0f, 0.0f };
     this->m_defaultActionHit.m_segEnd = { 0.0f, 0.0f, 0.0f };
     this->m_defaultActionPointDDC = { 0.0f, 0.0f };
@@ -1088,7 +1754,7 @@ int32_t CGWorldFrame::ObjectEnumProc(void* param, uint32_t flags, uint64_t guid,
     return 1;
 }
 
-// VERIFY: 0ef8a9dd manual
+// VERIFY: 5ab100e2 manual
 // OFFSET: 0x004FA040
 void CGWorldFrame::OnLayerUpdate(float elapsedSec) {
     this->CSimpleFrame::OnLayerUpdate(elapsedSec);
@@ -1098,7 +1764,7 @@ void CGWorldFrame::OnLayerUpdate(float elapsedSec) {
     HITTESTRESULT hit;
     hit.m_point = C3Vector(0.0f, 0.0f, 0.0f);
     hit.m_guid = WOWGUID();
-    hit.m_unused = 0.0f;
+    hit.m_distance = 0.0f;
     hit.m_segStart = C3Vector(0.0f, 0.0f, 0.0f);
     hit.m_segEnd = C3Vector(0.0f, 0.0f, 0.0f);
     int32_t kind = -1;

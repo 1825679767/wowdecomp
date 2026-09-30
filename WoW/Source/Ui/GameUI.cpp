@@ -144,6 +144,7 @@
 #include "WoW/Source/Net/Types.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "WoW/Source/Object/ObjectClient/GameObject_C.h"
+#include "WoW/Source/DB/Rec/AreaTableRec.h"
 
 // STATIC: 0x00AC804C
 const char* g_macroTaint = "";
@@ -953,6 +954,15 @@ WOWGUID CGGameUI::m_currentObjectTrack;
 
 // STATIC: 0x00BD07A8
 WOWGUID CGGameUI::m_interactTarget;
+
+// STATIC: 0x00BD0798
+float CGGameUI::m_interactMaxDistSq;
+
+// STATIC: 0x00BD0838
+WOWGUID CGGameUI::m_areaSpiritHealerGUID;
+
+// STATIC: 0x00AC8A68
+static float s_playerInteractDistSq = 123.45678f;
 
 // STATIC: 0x00BD07B0
 WOWGUID CGGameUI::m_lockedTarget;
@@ -2225,7 +2235,7 @@ void CGGameUI::ClearCursor(int32_t a1, int32_t a2) {
     FrameScript_SignalEvent(SCRIPT_EVENT_CURSOR_UPDATE, nullptr);
 }
 
-// VERIFY: 405325d4 manual
+// VERIFY: efbc912f manual
 // OFFSET: 0x0051F790
 void CGGameUI::HandleObjectTrackChange(WOWGUID guid, WOWGUID prevGuid) {
     CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -2262,7 +2272,7 @@ void CGGameUI::HandleObjectTrackChange(WOWGUID guid, WOWGUID prevGuid) {
         case TYPEMASK_OBJECT | TYPEMASK_UNIT | TYPEMASK_PLAYER: {
             if (CSimpleTop::GetInstance()->m_mouseFocus == CGWorldFrame::s_currentWorldFrame) {
                 CGGameUI::m_gameTooltip->SetDefaultAnchor();
-                WOWGUID none;
+                WOWGUID none = { 0 };
                 CGGameUI::m_gameTooltip->SetUnit(guid, 1, none, 0);
             }
 
@@ -2397,7 +2407,7 @@ void CGGameUI::ClearTarget(WOWGUID guid, int32_t a2) {
     }
 }
 
-// VERIFY: 5ed1fb2e manual
+// VERIFY: e7c59690 manual
 // OFFSET: 0x00524650
 void CGGameUI::DeleteCursorItem() {
     CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGGameUI::m_cursorItem, TYPEMASK_ITEM, __FILE__, __LINE__));
@@ -2411,7 +2421,7 @@ void CGGameUI::DeleteCursorItem() {
         return;
     }
 
-    WOWGUID none;
+    WOWGUID none = { 0 };
     ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
 
     if (stats) {
@@ -3563,4 +3573,157 @@ const char* GetMirrorTimerLabel(int32_t type, int32_t spellId) {
     char label[128];
     SStrPrintf(label, sizeof(label), "%s_LABEL", MirrorTimerTypeToken(type));
     return FrameScript_GetText(label, -1, GENDER_NOT_APPLICABLE);
+}
+
+// VERIFY: 25157cca manual
+// OFFSET: 0x00512E60
+void CGGameUI::CloseInteraction() {
+    WOWGUID target = CGGameUI::m_interactTarget;
+
+    if (!target) {
+        return;
+    }
+
+    CGGameUI::m_interactTarget = WOWGUID();
+    WOWGUID none = { 0 };
+
+    if (CGTradeInfo::m_tradingPlayer == target) {
+        CGTradeInfo::SetTradePartner(none, 0);
+    } else if (CGItemText::m_itemGUID == target) {
+        CGItemText::SetItem(none, 0);
+    } else if (CGGossipInfo::m_gossip == target) {
+        CGGossipInfo::SetGossip(none);
+    } else if (CGQuestInfo::m_npc == target) {
+        CGQuestInfo::QuestGiverFinished(0, 0, 1);
+    } else if (CGMerchantInfo::m_merchant == target) {
+        CGMerchantInfo::CloseMerchant();
+    } else if (CGTaxiMap::m_unit == target) {
+        CGTaxiMap::CloseMap();
+    } else if (CGClassTrainer::m_trainer == target) {
+        CGClassTrainer::SetTrainer(none, 0);
+    } else if (CGBankInfo::m_banker == target) {
+        CGBankInfo::SetBanker(none);
+    } else if (CGGuildBankInfo::m_banker == target) {
+        CGGuildBankInfo::SetGuildBanker(none);
+    } else if (CGGuildRegistrar::m_registrar == target) {
+        CGGuildRegistrar::CloseRegistrar();
+    } else if (CGTabardCreationFrame::m_vendor == target) {
+        CGTabardCreationFrame::Close();
+    } else if (CGMailInfo::m_object == target) {
+        CGMailInfo::CloseMail(false);
+    } else if (CGAuctionHouse::m_auctioneer == target) {
+        CGAuctionHouse::CloseAuctionHouse();
+    } else if (CGStableInfo::m_stableMaster == target) {
+        CGStableInfo::CloseStables(false);
+    } else if (CGPetitionVendorInfo::m_vendor == target) {
+        PetitionVendorClose();
+    } else if (CGBattlefieldInfo::m_battlemaster == target) {
+        CGBattlefieldInfo::SetBattlemaster(none);
+    }
+
+    CGGameObject_C* object = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(target, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+
+    if (object) {
+        object->CloseInteraction();
+    }
+}
+
+// VERIFY: 2ebbfda4 manual
+// OFFSET: 0x00518D50
+void CGGameUI::ClearInteractTarget(const WOWGUID& guid, int32_t a2) {
+    if (!CGGameUI::m_interactTarget || CGGameUI::m_interactTarget != guid) {
+        return;
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_interactTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit && !(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+        if (!a2) {
+            unit->PlayNPCSound(false);
+        }
+
+        unit->UpdateBaseAnimation(0, -1);
+    }
+
+    CGGameUI::CloseInteraction();
+}
+
+// VERIFY: 692a29c7 auto
+// OFFSET: 0x00519CA0
+AreaTableRec* CGGameUI::GetCurrentSubzoneRec() {
+    AreaTableRec* area = g_areaTableDB.GetRecord(CGGameUI::m_subzoneID);
+
+    if (area) {
+        return area;
+    }
+
+    return g_areaTableDB.GetRecord(CGGameUI::m_areaID);
+}
+
+// VERIFY: 9f28c814 manual
+// OFFSET: 0x0051FCE0
+void CGGameUI::SetInteractTarget(const WOWGUID& guid) {
+    bool same = guid == CGGameUI::m_interactTarget;
+
+    if (CGGameUI::m_interactTarget) {
+        CGGameUI::ClearInteractTarget(CGGameUI::m_interactTarget, static_cast<bool>(guid));
+    }
+
+    CGGameUI::m_interactTarget = guid;
+
+    if (!CGGameUI::m_interactTarget) {
+        return;
+    }
+
+    CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_interactTarget, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (!object) {
+        return;
+    }
+
+    if (object->m_obj->m_type & TYPEMASK_UNIT) {
+        if (object->m_obj->m_type & TYPEMASK_PLAYER) {
+            CGGameUI::m_interactMaxDistSq = s_playerInteractDistSq;
+            return;
+        }
+
+        CGUnit_C* unit = static_cast<CGUnit_C*>(object);
+        float reach = unit->m_unit->m_unitFieldCombatreach + 4.0f;
+        CGGameUI::m_interactMaxDistSq = reach * reach;
+
+        if (!same) {
+            unit->PlayNPCSound(true);
+            unit->UpdateBaseAnimation(0, -1);
+        }
+    } else if (object->m_obj->m_type & TYPEMASK_GAMEOBJECT) {
+        CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(object);
+        gameObject->StartInteraction();
+        CGGameUI::m_interactMaxDistSq = gameObject->GetInteractDistanceSquared();
+    }
+}
+
+// VERIFY: 3f7bb5a9 manual
+// OFFSET: 0x00523EB0
+void CGGameUI::SetAreaSpiritHealer(WOWGUID guid) {
+    if (CGGameUI::m_areaSpiritHealerGUID == guid) {
+        return;
+    }
+
+    CGGameUI::m_areaSpiritHealerGUID = guid;
+
+    if (CGGameUI::m_areaSpiritHealerTime) {
+        CGGameUI::CastSpiritHealSpell();
+    }
+
+    CGGameUI::m_areaSpiritHealerTime = 0;
+
+    if (!CGGameUI::m_areaSpiritHealerGUID) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_AREA_SPIRIT_HEALER_QUERY));
+    msg.Put(CGGameUI::m_areaSpiritHealerGUID.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
 }

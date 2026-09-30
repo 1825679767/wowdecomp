@@ -5,6 +5,15 @@
 #include "WoW/Source/DB/Rec/StationeryRec.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
+// STATIC: 0x00BEB038
+SendMailItem CGMailInfo::m_sendItems[16];
+
+// STATIC: 0x00BEB1B8
+uint8_t CGMailInfo::m_lockSendItems;
+
+// STATIC: 0x00BEB1C4
+uint32_t CGMailInfo::unk_BEB1C4;
+
 // STATIC: 0x00BEAFE8
 static MailSenderInfo s_recentSenders[3];
 

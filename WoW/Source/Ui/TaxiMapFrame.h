@@ -38,6 +38,7 @@ struct TAXIROUTELINE {
 
 class CGTaxiMap {
     public:
+    static void CloseMap();
     static CTexture* m_mapTexture;
     static int32_t m_numNodes;
     static TSGrowableArray<TaxiNodeInfo> m_nodes;

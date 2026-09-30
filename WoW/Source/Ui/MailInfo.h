@@ -49,8 +49,18 @@ struct MailboxMessageInfo {
     /* 2940 */ uint32_t unk_2940[2];
 };
 
+struct SendMailItem {
+    /* 0000 */ WOWGUID m_guid;
+    /* 0008 */ uint32_t unk_0008[4];
+};
+
 class CGMailInfo {
     public:
+    static SendMailItem m_sendItems[16];
+    static uint8_t m_lockSendItems;
+    static uint32_t unk_BEB1C4;
+    static void ClearSendMail(bool signal);
+    static void CloseMail(bool leavingWorld);
     static uint8_t m_sendMailShowing;
     static TSFixedArray<StationeryInfo*> m_stationeries;
     static TSGrowableArray<MailboxMessageInfo*> m_inbox;

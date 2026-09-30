@@ -333,6 +333,8 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     void ResetDisplayState();
     void SetDisplayState(int32_t state);
     LockRec* GetLockRec() const;
+    bool IsValidTargetForSpell(const WOWGUID& item, int32_t spellId) const;
+    int32_t CanChangeCursor() const;
     void SetPathProgress(float progress);
     void SetStorage(uint32_t* storage, uint32_t* saved);
     void ShowLootEffect();

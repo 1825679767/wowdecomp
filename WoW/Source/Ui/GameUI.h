@@ -14,6 +14,7 @@
 #include "WoW/Source/Ui/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
+class AreaTableRec;
 class CImVector;
 class CDataStore;
 class ATTACKROUNDINFO;
@@ -57,6 +58,7 @@ extern CVar* g_unitHighlightsCVar;
 extern CVar* g_stopAutoAttackOnTargetChangeCVar;
 extern CVar* g_autoDismountCVar;
 extern CVar* g_autoDismountFlyingCVar;
+extern CVar* g_autoUnshiftCVar;
 extern CVar* s_cvAutoRangedCombat;
 extern CVar* s_cvAutoFilledMultiCastSlots;
 extern CVar* g_threatWarningCVar;
@@ -192,6 +194,14 @@ class CGGameUI {
     static void ShutdownGame();
     static WOWGUID m_currentObjectTrack;
     static WOWGUID m_interactTarget;
+    static float m_interactMaxDistSq;
+    static WOWGUID m_areaSpiritHealerGUID;
+    static void SetInteractTarget(const WOWGUID& guid);
+    static void CloseInteraction();
+    static AreaTableRec* GetCurrentSubzoneRec();
+    static void SetAreaSpiritHealer(WOWGUID guid);
+    static void CastSpiritHealSpell();
+    static void SetCursorItem(WOWGUID item, WOWGUID container, uint32_t slot, int32_t a4, int32_t stackSplit, int32_t playSound);
     static WOWGUID m_lockedTarget;
     static int32_t m_visible;
     static WOWGUID m_lastEnemyTarget;

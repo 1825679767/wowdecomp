@@ -13,6 +13,7 @@ int32_t Script_ClickPetitionButton(lua_State* L);
 int32_t Script_TurnInArenaPetition(lua_State* L);
 int32_t Script_HasFilledPetition(lua_State* L);
 void PetitionVendorRegisterScriptFunctions();
+void PetitionVendorClose();
 
 class CGPetitionVendorInfo {
     public:

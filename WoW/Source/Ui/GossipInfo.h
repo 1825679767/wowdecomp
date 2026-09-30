@@ -18,6 +18,8 @@ struct GossipOption {
 
 class CGGossipInfo {
     public:
+    static uint32_t unk_C016F8;
+    static void SetGossip(const WOWGUID& guid);
     static GossipOption m_options[32];
     static char m_gossipText[2048];
     static void InitializeGame();

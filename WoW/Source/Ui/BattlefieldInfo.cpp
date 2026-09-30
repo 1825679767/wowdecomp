@@ -445,3 +445,18 @@ void CGBattlefieldInfo::RequestPlayerPositions() {
     ClientServices::Send2(&msg);
     CGBattlefieldInfo::m_positionUpdateTime = now + 5000;
 }
+
+// VERIFY: 443c0b3d auto
+// OFFSET: 0x005496D0
+void CGBattlefieldInfo::SetBattlemaster(WOWGUID battlemaster) {
+    if (battlemaster) {
+        CGGameUI::SetInteractTarget(battlemaster);
+        CGBattlefieldInfo::m_battlemaster = battlemaster;
+        FrameScript_SignalEvent(SCRIPT_EVENT_BATTLEFIELDS_SHOW, nullptr);
+        return;
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_BATTLEFIELDS_CLOSED, nullptr);
+    CGGameUI::ClearInteractTarget(CGBattlefieldInfo::m_battlemaster, 0);
+    CGBattlefieldInfo::m_battlemaster = WOWGUID();
+}

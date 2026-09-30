@@ -431,7 +431,7 @@ bool GetUnitByKeyword(const char* token, CGUnit_C** unit, bool defaultToTarget) 
     return true;
 }
 
-// VERIFY: 27a2dfaa manual
+// VERIFY: fed8a5f0 manual
 // OFFSET: 0x0060A360
 bool Script_GetNameFromToken(const char* token, const char** name, bool defaultToTarget, bool withRealm) {
     WOWGUID guid;
@@ -461,7 +461,7 @@ bool Script_GetNameFromToken(const char* token, const char** name, bool defaultT
         return true;
     }
 
-    WOWGUID requester;
+    WOWGUID requester = { 0 };
     NameCache* record = g_nameDBCache.GetRecord(guid.m_guid, requester, nullptr, nullptr, false);
 
     if (!record) {

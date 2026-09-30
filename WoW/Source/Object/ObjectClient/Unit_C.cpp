@@ -105,6 +105,7 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "_Triage/CMovementStatus.h"
 #include "WoW/Source/Object/MovementShared.h"
+#include "WoW/Source/UIUtil/Cursor.h"
 
 // STATIC: 0x00CA11A8
 static WOWGUID s_unk_CA11A8;
@@ -125,19 +126,7 @@ static WOWGUID s_unk_CA11C8;
 int32_t g_environmentalDamageVisualKits[6];
 
 // STATIC: 0x00CA1224
-static EmotesRec* s_unk_CA1224;
-
-// STATIC: 0x00CA1228
-static EmotesRec* s_unk_CA1228;
-
-// STATIC: 0x00CA122C
-static EmotesRec* s_unk_CA122C;
-
-// STATIC: 0x00CA1230
-static EmotesRec* s_unk_CA1230;
-
-// STATIC: 0x00CA1234
-static EmotesRec* s_unk_CA1234;
+static EmotesRec* s_talkEmotes[5];
 
 // STATIC: 0x00CA1244
 static uint32_t* s_unitThreatPool;
@@ -4692,6 +4681,160 @@ bool CGUnit_C::CanAutoInteract() const {
     return this->m_unit->m_unitFieldHealth > 0 && this->m_obj->m_guid == CGUnit_C::s_activeMover && g_cvAutoInteract->m_intValue;
 }
 
+// VERIFY: 6c68fd90 manual
+// OFFSET: 0x007207E0
+int32_t CGUnit_C::IsLowPrioritySelection(uint32_t time) {
+    if (this->m_unit->m_unitFieldFlags & 0x2000000) {
+        return 1;
+    }
+
+    if (this->m_obj->m_type != (TYPEMASK_OBJECT | TYPEMASK_UNIT) || this->m_unit->m_unitFieldHealth > 0) {
+        return 0;
+    }
+
+    if (this->CanBeLooted(time) && ClntObjMgrGetActivePlayerObj()->CanLoot(this)) {
+        return 0;
+    }
+
+    if ((this->m_unit->m_unitFieldFlags & 0x4000000) && CGSpellBook::GetSkinningSpell(this)) {
+        return 0;
+    }
+
+    return 1;
+}
+
+// VERIFY: 39fc65ca auto
+// OFFSET: 0x00715EA0
+int32_t CGUnit_C::GetCursorOverride(int32_t unable) {
+    int32_t mode = this->GetQuestGiverCursor(unable);
+
+    if (mode) {
+        return mode;
+    }
+
+    CreatureStats_C* stats = this->m_creatureCacheEntry;
+
+    if (!stats || !stats->m_iconName || !*stats->m_iconName) {
+        return 0;
+    }
+
+    char name[40];
+
+    if (unable) {
+        SStrPrintf(name, sizeof(name), "Unable%s", stats->m_iconName);
+    } else {
+        SStrCopy(name, stats->m_iconName, sizeof(name));
+    }
+
+    mode = CursorGetModeFromName(name);
+    return mode ? mode : 53;
+}
+
+// VERIFY: 562a89fa manual
+// OFFSET: 0x0071B130
+bool CGUnit_C::CanAutoUnshift() const {
+    if (this->m_unit->m_unitFieldFlags & 0x100000) {
+        return false;
+    }
+
+    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer() || !g_autoUnshiftCVar->m_intValue) {
+        return false;
+    }
+
+    if ((this->m_movement->m_flags & MOVEMENTFLAG_FLYING) && !g_autoDismountFlyingCVar->m_intValue) {
+        return false;
+    }
+
+    SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecord(this->GetShapeshiftForm());
+    return !form || !(form->m_flags & 0x100);
+}
+
+// VERIFY: 530432a2 manual
+// OFFSET: 0x0071C570
+int32_t CGUnit_C::IsInPartyOrRaid() const {
+    if (!(this->m_unit->m_unitNpcFlags & 0x1000000) || (this->m_unit->m_unitFieldFlags2 & 0x2000)) {
+        return 0;
+    }
+
+    if (!(this->m_unit->m_unitFieldFlags2 & 0x1000)) {
+        return 1;
+    }
+
+    WOWGUID guid = this->m_obj->m_guid;
+
+    if (CGPartyInfo::IsPlayerOrPetInParty(guid)) {
+        return 1;
+    }
+
+    WOWGUID raidGuid = this->m_obj->m_guid;
+    return CGRaidInfo::IsPlayerOrPetInRaid(raidGuid) ? 1 : 0;
+}
+
+// VERIFY: 64b57fd6 manual
+// OFFSET: 0x00723050
+bool CGUnit_C::CanBeSpellClickedByLocalPlayer(const CGPlayer_C* player) const {
+    if (!(this->m_obj->m_type & TYPEMASK_PLAYER)) {
+        return false;
+    }
+
+    if (!this->m_vehicle || !this->m_vehicle->m_vehicleRec || !this->m_vehicle->m_freeSeatMask) {
+        return false;
+    }
+
+    if (player->GetTransportGUID() == this->m_obj->m_guid.m_guid) {
+        return false;
+    }
+
+    WOWGUID guid = this->m_obj->m_guid;
+
+    if (CGPartyInfo::IsPlayerOrPetInParty(guid)) {
+        return true;
+    }
+
+    WOWGUID raidGuid = this->m_obj->m_guid;
+    return CGRaidInfo::IsPlayerOrPetInRaid(raidGuid) != 0;
+}
+
+// VERIFY: 5ccd8fa5 manual
+// OFFSET: 0x00729620
+bool CGUnit_C::CanInteractNow(const CGUnit_C* unit) const {
+    CGUnitData* data = this->m_unit;
+
+    if ((data->m_unitFieldFlags & 0x100000) || data->m_unitFieldCharmedby || data->m_unitFieldHealth <= 0) {
+        return false;
+    }
+
+    if (this->IsShapeShifted()) {
+        SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecord(this->GetShapeshiftForm());
+
+        if (!(form && (form->m_flags & 0x8)) && !this->CanAutoUnshift()) {
+            return false;
+        }
+    }
+
+    CGUnitData* target = unit->m_unit;
+
+    if (target->m_unitFieldHealth <= 0 && !(unit->m_creatureCacheEntry && (unit->m_creatureCacheEntry->m_typeFlags & 0x80))) {
+        return false;
+    }
+
+    if (target->m_unitFieldCharmedby && !(unit->m_vehicle && unit->m_vehicle->m_vehicleRec)) {
+        return false;
+    }
+
+    CreatureStats_C* stats = unit->m_creatureCacheEntry;
+
+    if (unit->IsInCombat() && !(stats && (stats->m_typeFlags & 0x40000)) && !(this->m_unit->m_unitFieldFlags2 & 0x4000)) {
+        return false;
+    }
+
+    if ((target->m_unitNpcFlags & 0x1000000) && !unit->IsInPartyOrRaid()) {
+        return false;
+    }
+
+    return static_cast<const CGPlayer_C*>(this)->CanInteract(unit);
+}
+
 // VERIFY: 1abec503 manual
 // OFFSET: 0x00731260
 void CGUnit_C::OnRightClick() {
@@ -4799,7 +4942,7 @@ void CGUnit_C::OnRightClick() {
     }
 }
 
-// VERIFY: 95106709 auto
+// VERIFY: b45861d0 auto
 // OFFSET: 0x007165D0
 static void CacheEmoteRecords() {
     int32_t index = g_emotesDB.m_numRecords;
@@ -4808,15 +4951,15 @@ static void CacheEmoteRecords() {
         EmotesRec* rec = index >= 0 && index < g_emotesDB.m_numRecords ? &g_emotesDB.m_records[index] : nullptr;
 
         if (rec->m_emoteFlags & 0x8) {
-            s_unk_CA1224 = rec;
+            s_talkEmotes[0] = rec;
         } else if (rec->m_emoteFlags & 0x10) {
-            s_unk_CA1228 = rec;
+            s_talkEmotes[1] = rec;
         } else if (rec->m_emoteFlags & 0x20) {
-            s_unk_CA122C = rec;
+            s_talkEmotes[2] = rec;
         } else if (rec->m_emoteFlags & 0x40) {
-            s_unk_CA1230 = rec;
+            s_talkEmotes[3] = rec;
         } else if (rec->m_emoteFlags & 0x100) {
-            s_unk_CA1234 = rec;
+            s_talkEmotes[4] = rec;
         }
     }
 }
@@ -15985,4 +16128,54 @@ bool CGUnit_C::IsSpellSuperceded(int32_t spellId) {
     }
 
     return false;
+}
+
+// VERIFY: 9c1e6376 manual
+// OFFSET: 0x0073AB90
+void CGUnit_C::PlayEmoteAnimation(uint32_t emote) {
+    EmotesRec* rec = g_emotesDB.GetRecord(emote);
+
+    if (!rec) {
+        return;
+    }
+
+    int32_t anim = rec->m_animID;
+
+    if (anim < 0 || anim >= 506) {
+        return;
+    }
+
+    if (this->GetCurrentTorsoAnimId() == static_cast<uint32_t>(anim)) {
+        return;
+    }
+
+    bool flight = anim == ANIM_LIFT_OFF || anim == ANIM_LAND;
+
+    if (this->m_unit->m_unitChannelSpell || (this->m_animationState & 0x400)) {
+        return;
+    }
+
+    if (!flight && this->IsInCombat()) {
+        return;
+    }
+
+    this->PlayBaseAnimation(anim, 0);
+}
+
+// VERIFY: 3273a6b5 auto
+// OFFSET: 0x0073AD70
+void CGUnit_C::RequestTalkEmote(int32_t index) {
+    if (!s_talkEmotes[index]) {
+        return;
+    }
+
+    if (this->m_movement->m_flags & 0x200000) {
+        return;
+    }
+
+    if (this->GetClientStandState() == 3) {
+        return;
+    }
+
+    this->PlayEmoteAnimation(s_talkEmotes[index]->m_id);
 }

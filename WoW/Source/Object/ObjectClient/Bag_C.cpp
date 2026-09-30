@@ -179,7 +179,7 @@ int32_t FindItemIDCallback(const CGItem_C* item, void* param) {
     return static_cast<int32_t>(item->m_obj->m_entryID) == *static_cast<int32_t*>(param);
 }
 
-// VERIFY: 4e7fa037 manual
+// VERIFY: 45f963f6 manual
 // OFFSET: 0x007541F0
 bool CGBag_C::FindTotemCategory(int32_t type, int32_t& mask, bool recurse, uint32_t flags) {
     if (!(flags & 0x7)) {
@@ -194,7 +194,7 @@ bool CGBag_C::FindTotemCategory(int32_t type, int32_t& mask, bool recurse, uint3
             CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
 
             if (item && (!this->m_hasBank || slot < 74 || slot > 85)) {
-                WOWGUID none;
+                WOWGUID none = { 0 };
                 ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
 
                 if (stats && stats->m_totemCategory) {

@@ -4,6 +4,10 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/UIUtil/Cursor.h"
 
 // STATIC: 0x00BFA3F0
 int32_t CGMerchantInfo::m_numMerchantItems;
@@ -42,4 +46,26 @@ int32_t CGMerchantInfo::GetRepairCost(CGItem_C* item) {
     }
 
     return CMath::fint_(static_cast<float>(static_cast<uint32_t>(item->GetRepairCost())) * multiplier);
+}
+
+// VERIFY: 476fd930 auto
+// OFFSET: 0x00584600
+void CGMerchantInfo::CloseMerchant() {
+    if (!CGMerchantInfo::m_merchant) {
+        return;
+    }
+
+    CGGameUI::ClearInteractTarget(CGMerchantInfo::m_merchant, 0);
+    CGMerchantInfo::m_merchant = WOWGUID();
+    CGMerchantInfo::m_numMerchantItems = 0;
+    FrameScript_SignalEvent(SCRIPT_EVENT_MERCHANT_CLOSED, nullptr);
+
+    if (CGGameUI::m_cursorItemType == 5 && CGGameUI::GetCursorVirtualItem()) {
+        CGGameUI::ClearCursor(1, 1);
+    }
+
+    if (CursorGetResetMode() == 17) {
+        CursorSetResetMode(1);
+        CursorSetMode(1);
+    }
 }

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Object/WGUID.h"
 
 struct lua_State;
 
@@ -32,6 +33,8 @@ struct TrainerSkillLineInfo {
 
 class CGClassTrainer {
     public:
+    static WOWGUID m_trainer;
+    static void SetTrainer(const WOWGUID& trainer, int32_t type);
     static void EnterWorld();
     static void RefreshList();
     static void InitializeGame();

@@ -9,6 +9,7 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Engine/Source/ConsoleBase/ConsoleCommand.h"
+#include "WoW/Source/Object/Unit.h"
 
 // STATIC: 0x00BD1948
 WOWGUID CGPartyInfo::m_members[4];
@@ -300,6 +301,37 @@ uint32_t CGPartyInfo::GetGroupRole(const WOWGUID& guid) {
     for (uint32_t i = 0; i < 4; i++) {
         if (CGPartyInfo::m_members[i] == guid) {
             return CGPartyInfo::m_memberRoles[i];
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 6c9ab10c manual
+// OFFSET: 0x0052C8C0
+int32_t CGPartyInfo::IsPlayerOrPetInParty(const WOWGUID& guid) {
+    if (!static_cast<uint32_t>(guid.m_guid)) {
+        return static_cast<uint32_t>(guid.m_guid >> 32);
+    }
+
+    for (uint32_t i = 0; i < CGPartyInfo::GetNumPartyMembers(); i++) {
+        WOWGUID member = i < 4 ? CGPartyInfo::m_members[i] : WOWGUID();
+
+        if (guid == member) {
+            return 1;
+        }
+
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(i < 4 ? CGPartyInfo::m_members[i] : WOWGUID(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (player) {
+            CGUnitData* unit = player->m_unit;
+            const WOWGUID& pet = unit->m_unitFieldCharm ? unit->m_unitFieldCharm : unit->m_unitFieldSummon;
+
+            if (pet == guid) {
+                return 1;
+            }
+        } else if ((unk_BD0D08[i].m_flags & 1) && unk_BD0D08[i].m_pet.m_guid == guid) {
+            return 1;
         }
     }
 

@@ -73,6 +73,8 @@
 #include "WoW/Source/DB/Rec/SpellItemEnchantmentRec.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
 #include "_Triage/AreaList.h"
+#include "WoW/Source/DB/Rec/AreaTableRec.h"
+#include "WoW/Source/Ui/CGTabardCreationFrame.h"
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -162,6 +164,9 @@ WOWGUID CGPlayer_C::s_lastUpdateGroup;
 
 // STATIC: 0x00C9EB00
 uint32_t CGPlayer_C::s_lastUpdateTime;
+
+// STATIC: 0x00C9EAD8
+static WOWGUID s_lastTrainerRequest;
 
 // STATIC: 0x00C9EB10
 static WOWGUID s_spiritHealer;
@@ -1104,6 +1109,57 @@ int32_t Packet_SMSG_SET_PROFICIENCY(void* param, NETMESSAGE msgId, uint32_t time
 // OFFSET: 0x006CEB00
 bool CGPlayer_C::CanDualWield() {
     return s_dualWieldSpell != 0;
+}
+
+// VERIFY: 3a070edb manual
+// OFFSET: 0x006D5A60
+int32_t CGPlayer_C::CanLoot(const CGObject_C* object) {
+    if (!object) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    bool autoInteract = this->CanAutoInteract();
+    float rangeSq = 0.0f;
+    bool checkRange = !autoInteract;
+
+    if (checkRange) {
+        float range;
+
+        if (object->m_obj->m_type & TYPEMASK_UNIT) {
+            range = this->GetMeleeRange(static_cast<const CGUnit_C*>(object));
+        } else {
+            range = 5.0f;
+        }
+
+        rangeSq = range * range;
+    }
+
+    if (this->IsShapeShifted()) {
+        SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecord(this->GetShapeshiftForm());
+
+        if (form && (form->m_flags & 0x100)) {
+            return 0;
+        }
+    }
+
+    C3Vector objectPosition = object->GetPosition();
+    C3Vector position = this->GetPosition();
+
+    if (checkRange) {
+        float dx = position.x - objectPosition.x;
+        float dy = position.y - objectPosition.y;
+        float dz = position.z - objectPosition.z;
+
+        if (!(dx * dx + dz * dz + dy * dy <= rangeSq)) {
+            return 0;
+        }
+    }
+
+    if (this->m_lootTarget == object->m_obj->m_guid || this->m_lootTarget) {
+        return 0;
+    }
+
+    return !this->IsDeadOrGhost() && !(this->m_movement->m_flags & 0x1000) && !(this->m_unit->m_unitFieldFlags & 0x40000) && this->IsLocalClientControlled();
 }
 
 // VERIFY: 37ec0ce6 auto
@@ -4668,5 +4724,303 @@ void CGPlayer_C::CountEquippedGems() {
                 this->m_gemCounts[3]++;
             }
         }
+    }
+}
+
+// VERIFY: 106512a4 manual
+// OFFSET: 0x006D1E20
+void __stdcall CGPlayer_C::TalkToGossip(const WOWGUID& guid) {
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_GOSSIP_HELLO));
+    msg.Put(guid.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 99b0048a manual
+// OFFSET: 0x006D1EA0
+void __stdcall CGPlayer_C::TalkToQuestUnit(const WOWGUID& guid) {
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_QUEST_GIVER_HELLO));
+    msg.Put(guid.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 6f91a651 manual
+// OFFSET: 0x006D1F20
+void __stdcall CGPlayer_C::TalkToTrainer(const WOWGUID& guid) {
+    s_lastTrainerRequest = guid;
+    WOWGUID none = { 0 };
+    CGClassTrainer::SetTrainer(none, 0);
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_TRAINER_LIST));
+    msg.Put(guid.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 1d12cc15 manual
+// OFFSET: 0x006D2120
+void CGPlayer_C::TalkToBinder(const WOWGUID& guid) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid ? guid : s_binder, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return;
+    }
+
+    C3Vector position = this->GetPosition();
+    C3Vector unitPosition = unit->GetPosition();
+    float dx = unitPosition.x - position.x;
+    float dy = unitPosition.y - position.y;
+    float dz = unitPosition.z - position.z;
+    float range = unit->m_unit->m_unitFieldCombatreach + 4.0f;
+
+    if (dy * dy + dx * dx + dz * dz > range * range) {
+        return;
+    }
+
+    if (guid) {
+        s_binder = guid;
+        AreaTableRec* area = CGGameUI::GetCurrentSubzoneRec();
+        const char* name = area ? area->m_areaName : FrameScript_GetText("HOME_INN", -1, GENDER_NOT_APPLICABLE);
+        FrameScript_SignalEvent(SCRIPT_EVENT_CONFIRM_BINDER, "%s", name);
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_BINDER_ACTIVATE));
+    msg.Put(s_binder.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 525e9f8e manual
+// OFFSET: 0x006D23C0
+void __stdcall CGPlayer_C::TalkToGuildBanker(const WOWGUID& guid) {
+    if (CGGuildBankInfo::m_banker && CGGuildBankInfo::m_banker == guid) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_GUILD_BANK_ACTIVATE));
+    msg.Put(guid.m_guid);
+    msg.Put(static_cast<uint8_t>(CGGuildBankInfo::m_guildBankTabInfo[0].unk_2140 != 0));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    CGGuildBankInfo::m_pendingBanker = guid;
+}
+
+// VERIFY: 7ea073a1 manual
+// OFFSET: 0x006D2500
+void CGPlayer_C::TalkToTabardVendor(const WOWGUID& guid) {
+    if (CGTabardCreationFrame::m_vendor == guid) {
+        return;
+    }
+
+    if (!this->CanEquipItemsInThisForm()) {
+        CGGameUI::DisplayError(ERR_EMBLEMERROR_NOTABARDGEOSET);
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(MSG_TABARDVENDOR_ACTIVATE));
+    msg.Put(guid.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: eb9c79a5 manual
+// OFFSET: 0x006DAF60
+void __stdcall CGPlayer_C::ShopFromMerchant(const WOWGUID& guid) {
+    WOWGUID item = CGGameUI::GetCursorItem();
+
+    if (item) {
+        CGPlayer_C::SellItem(guid, item, 0);
+        WOWGUID none = { 0 };
+        CGGameUI::SetCursorItem(none, none, 0, 0, 0, 1);
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_LIST_INVENTORY));
+    msg.Put(guid.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: e4ffe0d2 manual
+// OFFSET: 0x006DB010
+void CGPlayer_C::TalkToSpiritHealer(const WOWGUID& guid) {
+    if (!(this->m_player->m_playerFlags & 0x10)) {
+        return;
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid ? guid : s_spiritHealer, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return;
+    }
+
+    C3Vector position = this->GetPosition();
+    C3Vector unitPosition = unit->GetPosition();
+    float dx = unitPosition.x - position.x;
+    float dy = unitPosition.y - position.y;
+    float dz = unitPosition.z - position.z;
+    float range = unit->m_unit->m_unitFieldCombatreach + 4.0f;
+
+    if (dy * dy + dx * dx + dz * dz > range * range) {
+        return;
+    }
+
+    if (guid) {
+        s_spiritHealer = guid;
+        FrameScript_SignalEvent(SCRIPT_EVENT_CONFIRM_XP_LOSS, "%d", static_cast<int32_t>(static_cast<int32_t>(this->GetNextLevelXP()) * 0.05f));
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_SPIRIT_HEALER_ACTIVATE));
+    msg.Put(s_spiritHealer.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 25092c88 manual
+// OFFSET: 0x006DB180
+void CGPlayer_C::TalkToSpiritGuide(const WOWGUID& guid) {
+    if (this->m_player->m_playerFlags & 0x10) {
+        WOWGUID none = { 0 };
+        CGGameUI::SetAreaSpiritHealer(none);
+        CGGameUI::SetAreaSpiritHealer(guid);
+    }
+}
+
+// VERIFY: 856bb8dc manual
+// OFFSET: 0x006DDBB0
+void CGPlayer_C::HandleOnRightClick(CGUnit_C* unit, bool autoInteract) {
+    if (this->IsShapeShifted()) {
+        SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecord(this->GetShapeshiftForm());
+
+        if (!form || !(form->m_flags & 0x8)) {
+            if (!this->CanAutoUnshift()) {
+                CGGameUI::DisplayError(ERR_CANT_INTERACT_SHAPESHIFTED);
+                return;
+            }
+
+            this->CancelShapeshift();
+        }
+    }
+
+    C3Vector unitPosition = unit->GetPosition();
+    C3Vector position = this->GetPosition();
+    float dx = position.x - unitPosition.x;
+    float dy = position.y - unitPosition.y;
+    float dz = position.z - unitPosition.z;
+    float distanceSq = dz * dz + dy * dy + dx * dx;
+
+    if (autoInteract) {
+        float reach = unit->m_unit->m_unitFieldCombatreach + 4.0f;
+
+        if (reach * reach < distanceSq) {
+            WOWGUID guid = unit->m_obj->m_guid;
+
+            if (this->SetTrackingTarget(guid, 5)) {
+                return;
+            }
+        }
+    }
+
+    float reach = unit->m_unit->m_unitFieldCombatreach + 4.0f;
+
+    if (reach * reach < distanceSq) {
+        if (!autoInteract) {
+            CGGameUI::DisplayError(ERR_TOO_FAR_TO_INTERACT);
+        }
+
+        return;
+    }
+
+    if (unit->m_obj->m_guid == CGGameUI::m_interactTarget) {
+        return;
+    }
+
+    if (unit->m_questStatus == 1) {
+        CGTutorial::TriggerTutorial(0x2A);
+    }
+
+    WOWGUID guid = unit->m_obj->m_guid;
+
+    if (unit->m_interactIconType == 7) {
+        CGPlayer_C::EnableTaxiNode(guid);
+
+        if (!CGUnit_C::UnitCanGossip(unit)) {
+            return;
+        }
+    }
+
+    if (unit->m_unit->m_unitNpcFlags & 0x1) {
+        CGPlayer_C::TalkToGossip(guid);
+        this->RequestTalkEmote(0);
+        return;
+    }
+
+    if (CGUnit_C::UnitCanGossip(unit)) {
+        CGPlayer_C::TalkToQuestUnit(guid);
+        this->RequestTalkEmote(0);
+        return;
+    }
+
+    uint32_t npcFlags = unit->m_unit->m_unitNpcFlags;
+
+    if (npcFlags & 0x2000) {
+        CGPlayer_C::QueryTaxiNodes(guid);
+        this->RequestTalkEmote(0);
+    } else if (npcFlags & 0x80) {
+        CGPlayer_C::ShopFromMerchant(guid);
+        this->RequestTalkEmote(0);
+    } else if (npcFlags & 0x10) {
+        CGPlayer_C::TalkToTrainer(guid);
+        this->RequestTalkEmote(0);
+    } else if (npcFlags & 0x4000) {
+        this->TalkToSpiritHealer(guid);
+        this->RequestTalkEmote(0);
+    } else if (npcFlags & 0x8000) {
+        this->TalkToSpiritGuide(guid);
+        this->RequestTalkEmote(0);
+    } else if (npcFlags & 0x10000) {
+        this->TalkToBinder(guid);
+        this->RequestTalkEmote(0);
+    } else if (npcFlags & 0x20000) {
+        CGPlayer_C::TalkToBanker(guid);
+        this->RequestTalkEmote(0);
+    } else if (unit->IsGuildMaster()) {
+        CGPlayer_C::TalkToPetitionVendor(guid);
+        this->RequestTalkEmote(0);
+    } else if (npcFlags & 0x40000) {
+        CGPlayer_C::TalkToPetitionVendor(guid);
+        this->RequestTalkEmote(0);
+    } else if (npcFlags & 0x80000) {
+        this->TalkToTabardVendor(guid);
+        this->RequestTalkEmote(0);
+    } else if (npcFlags & 0x100000) {
+        CGPlayer_C::TalkToBattleMaster(guid);
+        this->RequestTalkEmote(0);
+    } else if (npcFlags & 0x200000) {
+        CGPlayer_C::TalkToAuctioneer(guid);
+        this->RequestTalkEmote(0);
+    } else if (npcFlags & 0x400000) {
+        CGPlayer_C::TalkToStableMaster(guid);
+        this->RequestTalkEmote(0);
+    } else if (npcFlags & 0x800000) {
+        CGPlayer_C::TalkToGuildBanker(guid);
+        this->RequestTalkEmote(0);
+    } else if (unit->IsInPartyOrRaid()) {
+        CGPlayer_C::TalkToSpellClick(guid);
+    } else if (unit->CanBeSpellClickedByLocalPlayer(this)) {
+        CGPlayer_C::TalkToRideVehicle(guid);
+    } else if (unit->m_unit->m_unitNpcFlags & 0x4000000) {
+        CGPlayer_C::TalkToMailbox(unit->m_obj->m_guid);
     }
 }
