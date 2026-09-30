@@ -46,6 +46,9 @@
 #include "WoW/Source/DB/Rec/ChrClassesRec.h"
 #include <cmath>
 #include "WoW/Source/DB/Rec/LockRec.h"
+#include "WoW/Source/DB/Rec/SpellCastTimesRec.h"
+#include "WoW/Source/DB/Rec/SpellDurationRec.h"
+#include "WoW/Source/DB/Rec/SpellRangeRec.h"
 #include "WoW/Source/DB/Rec/SpellRuneCostRec.h"
 #include "WoW/Source/DB/Rec/SummonPropertiesRec.h"
 #include "WoW/Source/Object/GameObject.h"
@@ -53,6 +56,7 @@
 #include "WoW/Source/Object/ObjectClient/Missile_C.h"
 #include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 #include "WoW/Source/Object/ObjectClient/VehiclePassenger_C.h"
+#include "WoW/Source/Ui/PaperDollInfoFrame.h"
 #include "WoW/Source/WowServices/WDataStore.h"
 #if defined(_MSC_VER)
 #include <malloc.h>
@@ -86,6 +90,9 @@ static CVar* s_enableErrorSpeechCVar;
 
 // STATIC: 0x00D397B4
 static int32_t s_spellClassSet;
+
+// STATIC: 0x00DCE234
+static const CSoftFloat s_softPercent = { 0x3C23D70A };
 
 // STATIC: 0x00D397B8
 static uint32_t unk_D397B8;
@@ -2872,4 +2879,528 @@ bool SpellHistory::GetSpellCooldown(int32_t spellId, int32_t itemId, uint32_t* d
 // OFFSET: 0x00809000
 bool Spell_C_GetSpellCooldown(int32_t spellId, int32_t petSpell, uint32_t* duration, uint32_t* start, uint32_t* enable) {
     return s_spellHistory[petSpell].GetSpellCooldown(spellId, 0, duration, start, enable);
+}
+
+// VERIFY: f18946a2 auto
+// OFFSET: 0x007FD440
+static bool GetEffectModifierType(int32_t effect, bool* periodic, int32_t aura, bool* rounded) {
+    *rounded = false;
+    *periodic = false;
+
+    switch (effect) {
+        case 2:
+        case 9:
+        case 10:
+        case 17:
+        case 31:
+        case 58:
+        case 67:
+        case 75:
+        case 121:
+            *rounded = true;
+            return true;
+
+        case 6:
+        case 27:
+        case 35:
+        case 65:
+        case 119:
+        case 128:
+        case 129:
+        case 143:
+            switch (aura) {
+                case 3:
+                case 8:
+                case 20:
+                case 53:
+                case 62:
+                case 89:
+                    *rounded = true;
+                    *periodic = true;
+                    return true;
+
+                case 15:
+                case 43:
+                    *rounded = true;
+                    return true;
+
+                case 21:
+                case 24:
+                case 63:
+                case 64:
+                case 162:
+                    *rounded = true;
+                    return false;
+            }
+
+            return false;
+
+        case 8:
+        case 30:
+        case 62:
+        case 146:
+            *rounded = true;
+            return false;
+    }
+
+    return false;
+}
+
+// VERIFY: 207d6b5b manual
+// OFFSET: 0x007FDBA0
+bool Spell_C_ModifySpellValue(const SpellRec* spell, float& value, int32_t modifier) {
+    int32_t flat;
+    int32_t pct;
+
+    if (!Spell_C_GetSpellModifiers(spell, modifier, flat, pct)) {
+        return false;
+    }
+
+    value = (flat + value) * pct * 0.01f;
+    return true;
+}
+
+// VERIFY: f7b1dbf5 manual
+// OFFSET: 0x007FDBE0
+static bool Spell_C_ModifySpellValue(const SpellRec* spell, CSoftFloat& value, int32_t modifier) {
+    int32_t flat;
+    int32_t pct;
+
+    if (!Spell_C_GetSpellModifiers(spell, modifier, flat, pct)) {
+        return false;
+    }
+
+    value = (value + CSoftFloat::FromInt(flat)) * CSoftFloat::FromInt(pct) * s_softPercent;
+    return true;
+}
+
+// VERIFY: 49227fd2 auto
+// OFFSET: 0x007FDE80
+const int32_t* SpellRec::GetClassMask(const SpellRec* spell, int32_t effect) {
+    switch (effect) {
+        case 0:
+            return spell->m_effectSpellClassMaskA;
+
+        case 1:
+            return spell->m_effectSpellClassMaskB;
+
+        case 2:
+            return spell->m_effectSpellClassMaskC;
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 9c2128c3 auto
+// OFFSET: 0x007FDEC0
+bool SpellRec::IsAffectedBy(const SpellRec* spell, const SpellRec* modifier, int32_t effect) {
+    if (!spell || !modifier || spell->m_spellClassSet != modifier->m_spellClassSet) {
+        return false;
+    }
+
+    const int32_t* mask = SpellRec::GetClassMask(modifier, effect);
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (mask[i] & spell->m_spellClassMask[i]) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: b26cb571 manual
+// OFFSET: 0x007FE850
+bool SpellRec::UsableInShapeshift(const SpellRec* spell, int32_t form) {
+    return form >= 0 && (spell->m_shapeshiftMask[form / 32] & (1 << (form & 0x1F)));
+}
+
+// VERIFY: 18bb777f manual
+// OFFSET: 0x007FF070
+uint32_t Spell_C_GetSpellLevel(const SpellRec* spell, int32_t isPet, int32_t isUnit) {
+    CGUnit_C* unit;
+
+    if (isUnit) {
+        unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGCharacterInfo::m_inspectTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+    } else if (isPet) {
+        unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPEMASK_UNIT, __FILE__, __LINE__));
+    } else {
+        unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    }
+
+    if (!unit) {
+        return 0;
+    }
+
+    return static_cast<uint32_t>(unit->GetSpellRank(spell)) / 5;
+}
+
+// VERIFY: afcd1587 auto
+// OFFSET: 0x007FF100
+int32_t Spell_C_GetPowerCostPerSecond(const SpellRec* spell, const CGUnit_C* unit) {
+    if (!unit) {
+        return 0;
+    }
+
+    uint32_t rank = unit->GetSpellRank(spell);
+    int32_t cost = spell->m_manaPerSecond + spell->m_manaPerSecondPerLevel * (static_cast<int32_t>(rank / 5) - spell->m_baseLevel);
+    int32_t flat;
+    int32_t pct;
+
+    if (cost > 0 && Spell_C_GetSpellModifiers(spell, 14, flat, pct)) {
+        return cost * pct / 100;
+    }
+
+    return cost;
+}
+
+// VERIFY: 9130a9d8 manual
+// OFFSET: 0x007FF180
+int32_t SpellRec::GetCastTime(const SpellRec* spell, int32_t isPet, int32_t isUnit, int32_t allowNegative) {
+    if (!spell) {
+        return 0;
+    }
+
+    SpellCastTimesRec* rec = g_spellCastTimesDB.GetRecord(spell->m_castingTimeIndex);
+
+    if (!rec) {
+        return 0;
+    }
+
+    int32_t castTime = rec->m_base + rec->m_perLevel * (static_cast<int32_t>(Spell_C_GetSpellLevel(spell, isPet, isUnit)) - spell->m_baseLevel);
+
+    if (castTime < rec->m_minimum) {
+        castTime = rec->m_minimum;
+    }
+
+    Spell_C_ModifySpellValue(spell, castTime, 10);
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!(spell->m_attributes & 0x30) && !(spell->m_attributesExC & 0x20000000)) {
+        if (isPet && unit) {
+            const WOWGUID* guid = &unit->m_unit->m_unitFieldCharm;
+
+            if (!*guid) {
+                guid = &unit->m_unit->m_unitFieldSummon;
+            }
+
+            unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+        }
+
+        if (unit && castTime > 0 && fnotequal(unit->m_unit->m_unitModCastSpeed, 1.0f)) {
+            castTime = CMath::fint_(castTime * unit->m_unit->m_unitModCastSpeed);
+        }
+    }
+
+    if (spell->m_attributes & 2) {
+        castTime += 500;
+
+        if (!isPet) {
+            CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+            if (player) {
+                CGBag_C* bag = &player->m_bag;
+
+                if (bag) {
+                    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(WOWGUID{ bag->GetItemGuid(17) }, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+                    if (item) {
+                        ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, player->m_obj->m_guid, nullptr, nullptr, false);
+
+                        if (stats && stats->m_delay) {
+                            uint32_t speed = player->m_unit->m_unitFieldRangedattacktime;
+
+                            if (speed) {
+                                castTime = static_cast<int32_t>(static_cast<float>(speed) / static_cast<int32_t>(stats->m_delay) * castTime);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (!allowNegative) {
+        return castTime > 0 ? castTime : 0;
+    }
+
+    return castTime;
+}
+
+// VERIFY: 5d32a52a auto
+// OFFSET: 0x007FF380
+bool SpellRec::IsMeleeRange(const SpellRec* spell) {
+    SpellRangeRec* rec = g_spellRangeDB.GetRecord(spell->m_rangeIndex);
+    return rec && (rec->m_flags & 1);
+}
+
+// VERIFY: 62ade261 auto
+// OFFSET: 0x007FF3C0
+bool SpellRec::IsMinimumRange(const SpellRec* spell) {
+    SpellRangeRec* rec = g_spellRangeDB.GetRecord(spell->m_rangeIndex);
+    return rec && (rec->m_flags & 2);
+}
+
+// VERIFY: accadc29 manual
+// OFFSET: 0x007FF400
+void SpellRec::GetMinRange(const SpellRec* spell, float* range) {
+    SpellRangeRec* rec = g_spellRangeDB.GetRecord(spell->m_rangeIndex);
+
+    if (!rec) {
+        return;
+    }
+
+    int32_t friendly = SpellRec::IsHelpfulOrHarmful(spell) == 1;
+
+    if (rec->m_flags & 1) {
+        *range = 0.0f;
+    } else if (rec->m_flags << 1) {
+        *range = 5.0f;
+        *range += rec->m_rangeMin[friendly];
+    } else {
+        *range = rec->m_rangeMin[friendly];
+    }
+}
+
+// VERIFY: 823383e2 manual
+// OFFSET: 0x007FF480
+void Spell_C_GetMinMaxRange(CGUnit_C* caster, const SpellRec* spell, float* minRange, float* maxRange, int32_t friendly, CGObject_C* target) {
+    CGUnit_C* targetUnit = target && (target->m_obj->m_type & TYPEMASK_UNIT) ? static_cast<CGUnit_C*>(target) : nullptr;
+
+    if (spell->m_attributes & 0x404) {
+        *maxRange = 100.0f;
+        return;
+    }
+
+    float bonus = 0.0f;
+    SpellRangeRec* rec = g_spellRangeDB.GetRecord(spell->m_rangeIndex);
+
+    if (rec) {
+        if (rec->m_flags & 1) {
+            *minRange = 0.0f;
+
+            if (!targetUnit) {
+                targetUnit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(caster->m_combat.m_attacking, TYPEMASK_UNIT, __FILE__, __LINE__));
+            }
+
+            float reach = targetUnit ? targetUnit->m_unit->m_unitFieldCombatreach : caster->m_unit->m_unitFieldCombatreach;
+            bonus = reach + caster->m_unit->m_unitFieldCombatreach + 1.3333334f;
+
+            if (bonus <= 5.0f) {
+                bonus = 5.0f;
+            }
+        } else {
+            if (rec->m_flags & 2) {
+                float reach = targetUnit ? targetUnit->m_unit->m_unitFieldCombatreach : caster->m_unit->m_unitFieldCombatreach;
+                *minRange = reach + caster->m_unit->m_unitFieldCombatreach + 1.3333334f;
+
+                if (*minRange <= 5.0f) {
+                    *minRange = 5.0f;
+                }
+
+                *minRange += rec->m_rangeMin[friendly];
+            } else {
+                *minRange = rec->m_rangeMin[friendly];
+            }
+
+            *maxRange = rec->m_rangeMax[friendly];
+
+            if (target && (target->m_obj->m_type & 0x88)) {
+                bonus = caster->m_unit->m_unitFieldCombatreach + (targetUnit ? targetUnit : caster)->m_unit->m_unitFieldCombatreach;
+
+                if (*minRange != 0.0f && !(rec->m_flags & 2)) {
+                    *minRange = bonus + *minRange;
+                }
+            }
+        }
+
+        if (targetUnit && (caster->m_movement->m_flags & 0x100D) && (targetUnit->m_movement->m_flags & 0x100D) && !caster->IsRunning() && !targetUnit->IsRunning() && ((rec->m_flags & 1) || (targetUnit->m_obj->m_type & TYPEMASK_PLAYER))) {
+            bonus += 2.6666667f;
+        }
+    }
+
+    if ((spell->m_attributes & 2) && (caster->m_obj->m_type & TYPEMASK_PLAYER)) {
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(caster);
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(WOWGUID{ player->m_bag.GetItemGuid(17) }, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (item) {
+            ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, caster->m_obj->m_guid, nullptr, nullptr, false);
+
+            if (stats) {
+                *maxRange = stats->m_rangedModRange * 0.01f * *maxRange;
+            }
+        }
+    }
+
+    int32_t flat;
+    int32_t pct;
+
+    if (Spell_C_GetSpellModifiers(spell, 5, flat, pct)) {
+        *maxRange = (flat + *maxRange) * pct * 0.01f;
+    }
+
+    *maxRange = *maxRange + bonus;
+}
+
+// VERIFY: ac5e661b manual
+// OFFSET: 0x007FF770
+void Spell_C_GetMinMaxPoints(const SpellRec* spell, uint32_t effectIndex, float* minPoints, float* maxPoints, int32_t spellLevel, int32_t isPet, int32_t isUnit, int32_t noModifiers) {
+    *minPoints = 0.0f;
+    *maxPoints = 0.0f;
+
+    if (!spell) {
+        return;
+    }
+
+    bool periodic;
+    bool rounded;
+    bool damage = GetEffectModifierType(spell->m_effect[effectIndex], &periodic, spell->m_effectAura[effectIndex], &rounded);
+    int32_t level = spellLevel;
+
+    if (!level) {
+        level = Spell_C_GetSpellLevel(spell, isPet, isUnit);
+    }
+
+    if (spell->m_baseLevel > 0) {
+        level -= spell->m_baseLevel;
+    }
+
+    if (level < 0) {
+        level = 0;
+    }
+
+    CSoftFloat perLevel = *reinterpret_cast<const CSoftFloat*>(&spell->m_effectRealPointsPerLevel[effectIndex]);
+    CSoftFloat minValue = CSoftFloat::FromInt(spell->m_effectBasePoints[effectIndex] + 1) + perLevel * CSoftFloat::FromInt(level);
+    CSoftFloat maxValue = CSoftFloat::FromInt(spell->m_effectBasePoints[effectIndex] + spell->m_effectDieSides[effectIndex]) + perLevel * CSoftFloat::FromInt(level);
+
+    if (!noModifiers) {
+        Spell_C_ModifySpellValue(spell, minValue, 8);
+        Spell_C_ModifySpellValue(spell, maxValue, 8);
+
+        if (effectIndex == 0) {
+            Spell_C_ModifySpellValue(spell, minValue, 3);
+            Spell_C_ModifySpellValue(spell, maxValue, 3);
+        } else if (effectIndex == 1) {
+            Spell_C_ModifySpellValue(spell, minValue, 12);
+            Spell_C_ModifySpellValue(spell, maxValue, 12);
+        } else if (effectIndex == 2) {
+            Spell_C_ModifySpellValue(spell, minValue, 23);
+            Spell_C_ModifySpellValue(spell, maxValue, 23);
+        }
+
+        if (damage) {
+            if (periodic) {
+                Spell_C_ModifySpellValue(spell, minValue, 22);
+                Spell_C_ModifySpellValue(spell, maxValue, 22);
+            } else {
+                Spell_C_ModifySpellValue(spell, minValue, 0);
+                Spell_C_ModifySpellValue(spell, maxValue, 0);
+            }
+        }
+
+        int32_t aura = spell->m_effectAura[effectIndex];
+
+        if (aura == 10 || aura == 103 || aura == 183) {
+            Spell_C_ModifySpellValue(spell, minValue, 2);
+            Spell_C_ModifySpellValue(spell, maxValue, 2);
+        }
+    }
+
+    minValue.m_bits += (minValue.m_bits & 0x7F800000) ? 0x3800000 : 0;
+    minValue = CSoftFloat::Round(minValue);
+    minValue.m_bits = (minValue.m_bits - 0x3800000) & ~static_cast<uint32_t>(static_cast<int32_t>((minValue.m_bits - 0x4000000) ^ minValue.m_bits) >> 31);
+    maxValue.m_bits += (maxValue.m_bits & 0x7F800000) ? 0x3800000 : 0;
+    maxValue = CSoftFloat::Round(maxValue);
+    maxValue.m_bits = (maxValue.m_bits - 0x3800000) & ~static_cast<uint32_t>(static_cast<int32_t>((maxValue.m_bits - 0x4000000) ^ maxValue.m_bits) >> 31);
+
+    if (rounded) {
+        CSoftFloat low = CSoftFloat::Floor(minValue);
+        *minPoints = *reinterpret_cast<float*>(&low);
+        CSoftFloat high = CSoftFloat::Ceil(maxValue);
+        *maxPoints = *reinterpret_cast<float*>(&high);
+    } else {
+        *minPoints = *reinterpret_cast<float*>(&minValue);
+        *maxPoints = *reinterpret_cast<float*>(&maxValue);
+    }
+}
+
+// VERIFY: 63ede24e manual
+// OFFSET: 0x00800770
+bool SpellRec::HasModifier(const SpellRec* spell, int32_t modifier) {
+    int32_t flat;
+    int32_t pct;
+    return Spell_C_GetSpellModifiers(spell, modifier, flat, pct);
+}
+
+// VERIFY: 03db76ed manual
+// OFFSET: 0x00800A70
+int32_t Spell_C_GetDuration(const SpellRec* spell, int32_t isPet, int32_t isUnit, int32_t noModifiers, int32_t applyHaste) {
+    if (!spell) {
+        return 0;
+    }
+
+    SpellDurationRec* rec = g_spellDurationDB.GetRecord(spell->m_durationIndex);
+
+    if (!rec) {
+        return 0;
+    }
+
+    int32_t duration = rec->m_duration + rec->m_durationPerLevel * (static_cast<int32_t>(Spell_C_GetSpellLevel(spell, isPet, isUnit)) - spell->m_baseLevel);
+
+    if (duration >= rec->m_maxDuration) {
+        duration = rec->m_maxDuration;
+    }
+
+    if (!noModifiers) {
+        Spell_C_ModifySpellValue(spell, duration, 1);
+    }
+
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !applyHaste) {
+        return duration;
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (spell->m_effectAuraPeriod[i]) {
+            if (((spell->m_attributesExE & 0x2000) || player->AffectedByAura(316, spell)) && !(spell->m_attributesExC & 0x20000000) && player->m_unit->m_unitModCastSpeed >= 0.001f) {
+                duration = CMath::fint_(duration * player->m_unit->m_unitModCastSpeed);
+            }
+
+            return duration;
+        }
+    }
+
+    return duration;
+}
+
+// VERIFY: 885593c4 manual
+// OFFSET: 0x00800D60
+bool Spell_C_HasNoReagentCost(CGPlayer_C* player, const SpellRec* spell) {
+    if ((player->m_unit->m_unitFieldFlags & 0x20) && (spell->m_attributesExE & 2)) {
+        return true;
+    }
+
+    if (!spell->m_spellClassSet || spell->m_spellClassSet != s_spellClassSet) {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (spell->m_spellClassMask[i] & player->m_player->m_playerNoReagentCost1[i]) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: bfe60446 manual
+// OFFSET: 0x008016C0
+int32_t Spell_C_GetMinMaxPoints(const SpellRec* spell, uint32_t effectIndex, int32_t* minPoints, int32_t* maxPoints, int32_t a5, int32_t a6, int32_t a7, int32_t a8) {
+    float low;
+    float high;
+    Spell_C_GetMinMaxPoints(spell, effectIndex, &low, &high, a5, a6, a7, a8);
+    *minPoints = CMath::ftrunc(low);
+    *maxPoints = CMath::ftrunc(high);
+    return 0;
 }

@@ -13,14 +13,23 @@ struct lua_State;
 struct TalentTabInfo;
 
 struct TalentGroupTab {
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
+    /* 0000 */ int32_t m_tabId;
+    /* 0004 */ uint32_t m_pointsSpent;
     /* 0008 */ int32_t m_previewPointsSpent;
     /* 000C */ uint32_t unk_000C;
     /* 0010 */ uint32_t unk_0010;
     /* 0014 */ uint32_t unk_0014;
     /* 0018 */ uint32_t unk_0018;
 };
+
+struct CGTalentItem {
+    /* 0000 */ uint8_t unk_0000[24];
+    /* 0018 */ int32_t m_talentId;
+    /* 001C */ int32_t m_rank;
+    /* 0020 */ int32_t m_previewRank;
+};
+
+class TalentRec;
 
 class CGTalentGroup_C {
     public:
@@ -30,7 +39,7 @@ class CGTalentGroup_C {
     /* 0010 */ uint32_t unk_0010;
     /* 0014 */ uint8_t unk_0014[24];
     /* 002C */ TSFixedArray<TalentGroupTab> m_tabs;
-    /* 0038 */ uint32_t unk_0038;
+    /* 0038 */ uint32_t m_unspentPoints;
     /* 003C */ uint32_t unk_003C;
     /* 0040 */ uint32_t unk_0040;
     /* 0044 */ uint32_t unk_0044;
@@ -39,6 +48,9 @@ class CGTalentGroup_C {
     /* 0050 */ uint32_t unk_0050;
 
     void ResetAllPreviewTalentPoints();
+    TalentGroupTab* GetTabFromID(int32_t tabId);
+    CGTalentItem* GetTalentItem(int32_t talentId);
+    int32_t CanAddPreviewTalentPoints(const TalentRec* talent, int32_t delta, int32_t* count, int32_t pet);
 };
 
 class CGTalentInfo {
@@ -51,6 +63,9 @@ class CGTalentInfo {
     static CGTalentGroup_C m_talentGroups[2];
     static CGTalentGroup_C m_petTalentGroup;
     static void EnterWorld();
+    static uint32_t GetActiveTalentGroup(int32_t pet);
+    static uint32_t GetUnspentTalentPoints(uint32_t index, int32_t pet);
+    static CGTalentGroup_C* GetTalentGroup(uint32_t index, int32_t pet);
     static void RecalculatePreviewPoints(int32_t pet);
     static int32_t SumPreviewPointsSpent(int32_t pet);
     static void UpdateTalentData(CDataStore* msg);
@@ -74,6 +89,7 @@ int32_t Script_ResetPreviewTalentPoints(lua_State* L);
 int32_t Script_ResetGroupPreviewTalentPoints(lua_State* L);
 int32_t Script_LearnPreviewTalents(lua_State* L);
 void TalentInfoRegisterScriptFunctions();
+int32_t TalentInfoIsSpellKnown(int32_t spellId, int32_t isInspect, int32_t isPet);
 
 class CGTalentInfo_Inspect {
     public:

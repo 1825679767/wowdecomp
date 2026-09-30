@@ -13,6 +13,7 @@ class CMath {
     static bool fequal(float a, float b);
     static int32_t fint_(float f);
     static int32_t fint_n(float f);
+    static int32_t ftrunc(float f);
     static int32_t ftol_round_0_255_(float f);
     static double log2_(double x);
     static bool fnotequal(float a, float b);

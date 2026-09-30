@@ -4,14 +4,17 @@
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
 #include "Engine/Source/FrameXML/LoadXML.h"
+#include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
 #include "WoW/Source/Object/ObjectClient/Bag_C.h"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/UIUtil/Types.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
 
 int32_t Script_AddFontStrings(lua_State* L);
 int32_t Script_GetAnchorType(lua_State* L);
@@ -23,8 +26,6 @@ int32_t Script_SetPetAction(lua_State* L);
 int32_t Script_SetShapeshift(lua_State* L);
 int32_t Script_SetPossession(lua_State* L);
 int32_t Script_TooltipSetTracking(lua_State* L);
-int32_t Script_SetSpell(lua_State* L);
-int32_t Script_SetSpellByID(lua_State* L);
 int32_t Script_SetGlyph(lua_State* L);
 int32_t Script_SetInventoryItem(lua_State* L);
 int32_t Script_SetLootItem(lua_State* L);
@@ -403,6 +404,73 @@ static int32_t Script_AppendText(lua_State* L) {
 
     tooltip->AppendText(lua_tolstring(L, 2, nullptr));
     return 0;
+}
+
+// VERIFY: 75c058fe manual
+// OFFSET: 0x006259E0
+static int32_t Script_SetSpell(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    uint32_t slot;
+
+    if (!lua_isnumber(L, 2) || !lua_isstring(L, 3) || (slot = static_cast<uint32_t>(lua_tonumber(L, 2) - 1.0), slot > 1023)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Invalid spell slot in %s:SetSpell", name ? name : "<unnamed>");
+    }
+
+    int32_t petSpell = 0;
+
+    if (!SStrCmpI("pet", lua_tolstring(L, 3, nullptr), STORM_MAX_STR)) {
+        petSpell = 1;
+    }
+
+    int32_t spellId = GetSpellIdBySlot(slot, petSpell);
+
+    if (spellId > 0) {
+        uint32_t duration = 0;
+        uint32_t start = 0;
+        uint32_t enable = 0;
+        Spell_C_GetSpellCooldown(spellId, petSpell, &duration, &start, &enable);
+        uint32_t cooldown = !enable || !start || !duration ? 0 : start + duration - OsGetAsyncTimeMs();
+
+        if (tooltip->SetSpell(spellId, 0, cooldown, petSpell, 0, 0, 0, nullptr, nullptr, 0, 0, 0, -1, -1, 0)) {
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 6cc3f923 manual
+// OFFSET: 0x00625B90
+static int32_t Script_SetSpellByID(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    int32_t spellId;
+
+    if (!lua_isnumber(L, 2) || (spellId = lua_tointeger(L, 2), spellId < 0)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Invalid spell ID in %s:SetSpellByID", name ? name : "<unnamed>");
+    }
+
+    int32_t petSpell = StringToBOOL(L, 3, 0);
+    int32_t showRank = StringToBOOL(L, 4, 0);
+
+    if (HasSpell(spellId, petSpell)) {
+        uint32_t duration = 0;
+        uint32_t start = 0;
+        uint32_t enable = 0;
+        Spell_C_GetSpellCooldown(spellId, petSpell, &duration, &start, &enable);
+        uint32_t cooldown = !enable || !start || !duration ? 0 : start + duration - OsGetAsyncTimeMs();
+
+        if (tooltip->SetSpell(spellId, 0, cooldown, petSpell, showRank, 0, 0, nullptr, nullptr, 0, 0, 0, -1, -1, 0)) {
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
 }
 
 // STATIC: 0x00AD2AE0

@@ -31,6 +31,7 @@ class CGBag_C {
     const CGItem_C* GetItemPointer(int32_t slot) const;
     int32_t GetNumFreeInvSlots();
     int32_t GetNumItems() const;
+    uint64_t GetItemGuid(uint32_t slot) const;
     CGItem_C* FindItemOfType(int32_t itemId, uint32_t flags);
     CGItem_C* FindItemOfClass(int32_t classId, uint32_t subclassMask, uint32_t flags);
     CGItem_C* FindItem(int32_t (*callback)(const CGItem_C* item, void* param), void* param, uint32_t flags);

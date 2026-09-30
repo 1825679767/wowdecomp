@@ -95,6 +95,7 @@
 #include "Engine/Source/Tempest/CAaSphere.h"
 #include "WoW/Source/WorldClient/Map.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "WoW/Source/Game/GameClient/NameCache.h"
 #include "WoW/Source/Glue/ComponentData.h"
 #include "WoW/Source/Ui/BarberShop.h"
 #include "WoW/Source/Ui/PetInfo.h"
@@ -15803,6 +15804,150 @@ bool CGUnit_C::IsSpellKnown(int32_t spellId) {
         }
     } else if (this->m_obj->m_guid == CGPetInfo::GetPet(0)) {
         return HasPetSpell(spellId);
+    }
+
+    return false;
+}
+
+// VERIFY: 7a902183 manual
+// OFFSET: 0x0071A4B0
+const char* CGUnit_C::GetDisplayRaceName(const CGUnit_C* unit, const NameCache* name, int32_t* displaySex) {
+    int32_t sex = 2;
+    ChrRacesRec* rec;
+
+    if (unit) {
+        rec = g_chrRacesDB.GetRecord(unit->m_unit->m_unitFieldBytes0[0]);
+        sex = unit->m_unit->m_unitFieldBytes0[2];
+    } else {
+        if (!name) {
+            if (displaySex) {
+                *displaySex = sex;
+            }
+
+            return nullptr;
+        }
+
+        rec = g_chrRacesDB.GetRecord(name->m_race);
+        sex = name->m_sex;
+    }
+
+    if (rec) {
+        return CGUnit_C::GetDisplayRaceNameFromRecord(rec, sex, displaySex);
+    }
+
+    if (displaySex) {
+        *displaySex = sex;
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 9bdb654f manual
+// OFFSET: 0x0071A540
+int32_t CGUnit_C::GetDisplayRaceGender(const CGUnit_C* unit, const NameCache* name) {
+    if (unit) {
+        if (!(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+            return unit->m_unit->m_unitFieldBytes0[2];
+        }
+    } else if (!name) {
+        return 2;
+    }
+
+    int32_t displaySex = 0;
+    CGUnit_C::GetDisplayRaceName(unit, name, &displaySex);
+    return displaySex;
+}
+
+// VERIFY: b8f5220c manual
+// OFFSET: 0x0071A590
+const char* CGUnit_C::GetDisplayClassName(const CGUnit_C* unit, const NameCache* name, int32_t* displaySex) {
+    int32_t sex = 2;
+    ChrClassesRec* rec;
+
+    if (unit) {
+        rec = g_chrClassesDB.GetRecord(unit->m_unit->m_unitFieldBytes0[1]);
+        sex = unit->m_unit->m_unitFieldBytes0[2];
+    } else {
+        if (!name) {
+            if (displaySex) {
+                *displaySex = sex;
+            }
+
+            return nullptr;
+        }
+
+        rec = g_chrClassesDB.GetRecord(name->m_class);
+        sex = name->m_sex;
+    }
+
+    if (rec) {
+        return CGUnit_C::GetDisplayClassNameFromRecord(rec, sex, displaySex);
+    }
+
+    if (displaySex) {
+        *displaySex = sex;
+    }
+
+    return nullptr;
+}
+
+// VERIFY: b7519b2a manual
+// OFFSET: 0x0071A620
+int32_t CGUnit_C::GetDisplayClassGender(const CGUnit_C* unit, const NameCache* name) {
+    if (unit) {
+        if (!(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+            return unit->m_unit->m_unitFieldBytes0[2];
+        }
+    } else if (!name) {
+        return 2;
+    }
+
+    int32_t displaySex = 0;
+    CGUnit_C::GetDisplayClassName(unit, name, &displaySex);
+    return displaySex;
+}
+
+// VERIFY: 792154c7 manual
+// OFFSET: 0x007283A0
+bool CGUnit_C::AffectedByAura(int32_t auraType, const SpellRec* spell) {
+    SpellRec auraSpell;
+
+    for (uint32_t i = 0; i < this->GetAuraCount(); i++) {
+        AuraData* aura = &this->m_auras[i];
+
+        if (!g_spellDB.GetRecord(aura->m_spellId, &auraSpell)) {
+            continue;
+        }
+
+        for (int32_t effect = 0; effect < 3; effect++) {
+            if (auraSpell.m_effectAura[effect] == auraType && ((1 << effect) & aura->m_flags) && SpellRec::IsAffectedBy(spell, &auraSpell, effect)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: d821b797 manual
+// OFFSET: 0x00726160
+bool CGUnit_C::IsSpellSuperceded(int32_t spellId) {
+    SkillLineAbilityRec* ability = this->LookupAbility(spellId);
+
+    if (!ability) {
+        return false;
+    }
+
+    while (ability->m_supercededBySpell > 0) {
+        if (this->IsSpellKnown(ability->m_supercededBySpell)) {
+            return true;
+        }
+
+        ability = this->LookupAbility(ability->m_supercededBySpell);
+
+        if (!ability) {
+            return false;
+        }
     }
 
     return false;

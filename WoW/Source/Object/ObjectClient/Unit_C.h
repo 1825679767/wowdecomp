@@ -128,6 +128,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     static void UpdateMissileTrajectoryTargeting();
     void AuraVisionUpdated(uint8_t vision);
     bool IsSpellKnown(int32_t spellId);
+    bool IsSpellSuperceded(int32_t spellId);
     void SetLocalClientControl(bool control);
     static void Initialize();
     static void Shutdown();
@@ -174,6 +175,10 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     static const char* GetDisplayRaceNameFromRecord(const ChrRacesRec* rec, int32_t sex, int32_t* displaySex);
     static const char* GetDisplayClassName(const CGUnit_C* unit, const NameCache* name);
     static const char* GetDisplayRaceName(const CGUnit_C* unit, const NameCache* name);
+    static const char* GetDisplayRaceName(const CGUnit_C* unit, const NameCache* name, int32_t* displaySex);
+    static const char* GetDisplayClassName(const CGUnit_C* unit, const NameCache* name, int32_t* displaySex);
+    static int32_t GetDisplayRaceGender(const CGUnit_C* unit, const NameCache* name);
+    static int32_t GetDisplayClassGender(const CGUnit_C* unit, const NameCache* name);
     static void ClientInitialize();
     static void NamePlateSetResortAll(bool enable);
     static void NamePlateUpdateLevels(bool enable);
@@ -571,6 +576,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t ChooseFallAnim(uint32_t* anim) const;
     void SaveChainSpellTargets(const TSStackArray<WOWGUID>& targets);
     bool HasAuraBySpellId(int32_t spellId);
+    bool AffectedByAura(int32_t auraType, const SpellRec* spell);
     bool HasAuraActive(int32_t spellId);
     int32_t GetAuraIndex(int32_t spellId);
     bool IsVehiclePreventingTurning() const;

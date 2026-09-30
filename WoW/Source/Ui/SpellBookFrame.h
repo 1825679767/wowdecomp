@@ -79,6 +79,8 @@ class CGSpellBook {
 
 int32_t IsValidSpell(const char* name, int32_t* petSpell);
 int32_t GetSpellSlot(int32_t spellId, int32_t petSpell);
+int32_t GetSpellIdBySlot(int32_t slot, int32_t petSpell);
+bool HasSpell(int32_t spellId, int32_t petSpell);
 extern TSGrowableArray<SpellUsableInfo> s_shapeshiftSpells;
 extern uint32_t s_numSkillInfos;
 extern uint32_t s_unkBE5D88[1024];

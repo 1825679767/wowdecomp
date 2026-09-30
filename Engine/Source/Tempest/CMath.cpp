@@ -369,6 +369,12 @@ uint32_t CMath::fuint_pi(float f) {
     return static_cast<int32_t>(f);
 }
 
+// VERIFY: 1209983f manual
+// OFFSET: 0x00577370
+int32_t CMath::ftrunc(float f) {
+    return static_cast<int32_t>(f);
+}
+
 // VERIFY: 5b628ede manual
 // OFFSET: 0x005773B0
 int32_t CMath::fint_n(float f) {

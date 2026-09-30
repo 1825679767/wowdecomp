@@ -21,6 +21,7 @@
 #include "WoW/Source/Ui/ActionBarFrame.h"
 #include "WoW/Source/Ui/ChatFrame.h"
 #include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/PetInfo.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "WoW/Source/Ui/TradeSkillFrame.h"
 #include "WoW/Source/Ui/Tutorial.h"
@@ -1361,4 +1362,32 @@ int32_t CGSpellBook::IsSelectedSlot(int32_t slot, int32_t petSpell) {
     }
 
     return 0;
+}
+
+// VERIFY: 6fab80de manual
+// OFFSET: 0x0053B4A0
+int32_t GetSpellIdBySlot(int32_t slot, int32_t petSpell) {
+    if (slot < 0) {
+        return 0;
+    }
+
+    if (petSpell) {
+        return slot < 1024 ? s_petSpellList[slot] : 0;
+    }
+
+    return static_cast<uint32_t>(slot) < s_numSpells ? s_spellList[slot] : 0;
+}
+
+// VERIFY: 008f2f37 manual
+// OFFSET: 0x0053B930
+bool HasSpell(int32_t spellId, int32_t petSpell) {
+    if (GetSpellSlot(spellId, petSpell) >= 0) {
+        return true;
+    }
+
+    if (petSpell) {
+        return CGPetInfo::FindSpellByID(spellId) != nullptr;
+    }
+
+    return false;
 }

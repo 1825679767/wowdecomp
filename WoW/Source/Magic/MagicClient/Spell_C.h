@@ -19,6 +19,7 @@ class ItemStats_C;
 class OverrideSpellDataRec;
 class CGItem_C;
 class CGObject_C;
+class CGPlayer_C;
 class CGUnit_C;
 class CTerrainClickEvent;
 class PendingSpellCast : public TSLinkedNode<PendingSpellCast> {
@@ -207,6 +208,13 @@ void CreateMissilesForTargetPoints(const TSStackArray<SpellCastTargetPoint>& poi
 bool Spell_C_HasCooldownOnEvent(const SpellRec* spell, WOWGUID guid);
 void Spell_C_ModifyCategoryRecovery(int32_t& recovery, const SpellRec* spell, int32_t pet);
 bool Spell_C_ModifySpellValue(const SpellRec* spell, int32_t& value, int32_t modifier);
+bool Spell_C_ModifySpellValue(const SpellRec* spell, float& value, int32_t modifier);
+uint32_t Spell_C_GetSpellLevel(const SpellRec* spell, int32_t isPet, int32_t isUnit);
+int32_t Spell_C_GetPowerCostPerSecond(const SpellRec* spell, const CGUnit_C* unit);
+void Spell_C_GetMinMaxPoints(const SpellRec* spell, uint32_t effectIndex, float* minPoints, float* maxPoints, int32_t spellLevel, int32_t isPet, int32_t isUnit, int32_t noModifiers);
+void Spell_C_GetMinMaxRange(CGUnit_C* caster, const SpellRec* spell, float* minRange, float* maxRange, int32_t friendly, CGObject_C* target);
+int32_t Spell_C_GetDuration(const SpellRec* spell, int32_t isPet, int32_t isUnit, int32_t noModifiers, int32_t applyHaste);
+bool Spell_C_HasNoReagentCost(CGPlayer_C* player, const SpellRec* spell);
 void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t reason, int32_t a4, int32_t a5, bool a6);
 int32_t Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, WOWGUID target, PendingSpellCast* cast, bool a6);
 void UnitCombatLogCastStart(const WOWGUID& caster, const WOWGUID& target, int32_t spellId);

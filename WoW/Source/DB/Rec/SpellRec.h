@@ -124,6 +124,14 @@ class SpellRec {
     static bool HasAura(const SpellRec* spell, int32_t aura);
     static int32_t IsHelpfulOrHarmful(const SpellRec* spell);
     static bool WillSummonCritter(const SpellRec* spell);
+    static const int32_t* GetClassMask(const SpellRec* spell, int32_t effect);
+    static bool IsAffectedBy(const SpellRec* spell, const SpellRec* modifier, int32_t effect);
+    static bool UsableInShapeshift(const SpellRec* spell, int32_t form);
+    static int32_t GetCastTime(const SpellRec* spell, int32_t isPet, int32_t isUnit, int32_t allowNegative);
+    static bool IsMeleeRange(const SpellRec* spell);
+    static bool IsMinimumRange(const SpellRec* spell);
+    static void GetMinRange(const SpellRec* spell, float* range);
+    static bool HasModifier(const SpellRec* spell, int32_t modifier);
     bool Read(SFileImpl* file, const char* stringBuffer);
 };
 

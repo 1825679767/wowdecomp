@@ -311,3 +311,13 @@ CGItem_C* CGBag_C::FindItemOfClass(int32_t classId, uint32_t subclassMask, uint3
     uint32_t slot;
     return this->FindItem(FindItemClassCallback, param, container, slot, flags);
 }
+
+// VERIFY: 3ef5ccd0 manual
+// OFFSET: 0x00512590
+uint64_t CGBag_C::GetItemGuid(uint32_t slot) const {
+    if (slot < static_cast<uint32_t>(this->m_numSlots)) {
+        return this->m_slots[slot].m_guid;
+    }
+
+    return 0;
+}

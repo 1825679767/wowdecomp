@@ -4463,3 +4463,65 @@ int32_t Player_C_ZoneUpdateHandler(const void* data, void* param) {
 
     return 1;
 }
+
+// VERIFY: 042060de manual
+// OFFSET: 0x006DE230
+const CGItem_C* CGPlayer_C::EquippedItemMeetSpellRequirements(const SpellRec* spell, uint32_t slotMask) {
+    if ((this->m_unit->m_unitFieldFlags & 0x200000) || (this->m_unit->m_unitFieldFlags2 & 0x80)) {
+        if (this->IsDisarmed(0)) {
+            slotMask &= ~0x8000;
+        }
+
+        if (this->IsDisarmed(1)) {
+            slotMask &= ~0x10000;
+        }
+    }
+
+    if (this->m_unit->m_unitFieldFlags2 & 0x400) {
+        slotMask &= ~0x20000;
+    }
+
+    for (int32_t slot = 0; slot < 23; slot++) {
+        if (!((1 << slot) & slotMask)) {
+            continue;
+        }
+
+        CGItem_C* item = this->m_bag.GetItemPointer(slot);
+
+        if (item && item->IsUsable() && spell->m_equippedItemClass == static_cast<int32_t>(item->GetClassID()) && ((1 << item->GetSubtypeID()) & spell->m_equippedItemSubclass)) {
+            return item;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 6a792bb7 manual
+// OFFSET: 0x00578210
+int32_t CGPlayer_C::GetModDamageDonePos(int32_t school) const {
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        return this->m_player->m_playerFieldModDamageDonePos[school];
+    }
+
+    return 0;
+}
+
+// VERIFY: 816c9e22 manual
+// OFFSET: 0x00578250
+int32_t CGPlayer_C::GetModDamageDoneNeg(int32_t school) const {
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        return this->m_player->m_playerFieldModDamageDoneNeg[school];
+    }
+
+    return 0;
+}
+
+// VERIFY: 55676844 manual
+// OFFSET: 0x00578290
+float CGPlayer_C::GetModDamageDonePct(int32_t school) const {
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        return this->m_player->m_playerFieldModDamageDonePct[school];
+    }
+
+    return 0.0f;
+}

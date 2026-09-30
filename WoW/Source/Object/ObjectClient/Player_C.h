@@ -217,6 +217,10 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     int32_t GetSkillRank(int32_t skillId) const;
     uint32_t GetSkillValue(int32_t index) const;
     const VisibleItem_C* GetVisibleItem(int32_t slot) const;
+    int32_t GetModDamageDonePos(int32_t school) const;
+    int32_t GetModDamageDoneNeg(int32_t school) const;
+    float GetModDamageDonePct(int32_t school) const;
+    const CGItem_C* EquippedItemMeetSpellRequirements(const SpellRec* spell, uint32_t slotMask);
     int32_t HasZoneExplored(int32_t zone);
     int32_t IsCommentatorUberOrInArena() const;
     int32_t IsInMelee() const;

@@ -6,6 +6,7 @@
 #include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Frame/CSimpleFrame.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
+#include "Engine/Source/FrameScript/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Common/WowTime.h"
 #include "WoW/Source/Object/WGUID.h"
@@ -46,7 +47,9 @@ class ItemLinkInfo {
     void Clear();
 };
 
+class CGTalentGroup_C;
 class CGTooltip;
+class TalentRec;
 class CAaRect;
 class CGItem_C;
 class CGUnit_C;
@@ -55,6 +58,9 @@ class CSimpleFontString;
 
 void TooltipUnitNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 void TooltipCorpseCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void TooltipSpellCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+int32_t FormatString(const char* token, int32_t count, FRAMESCRIPT_GENDER gender, char* buffer, uint32_t size);
+int32_t TimeFractionBelow(float time, float fraction);
 
 class CGTooltip : public CSimpleFrame {
     public:
@@ -98,7 +104,7 @@ class CGTooltip : public CSimpleFrame {
     /* 0354 */ uint32_t unk_0354;
     /* 0358 */ WOWGUID m_healthGuid;
     /* 0360 */ uint32_t unk_0360;
-    /* 0364 */ uint32_t unk_0364;
+    /* 0364 */ int32_t m_spellId;
     /* 0368 */ uint32_t unk_0368;
     /* 036C */ uint32_t unk_036C;
     /* 0370 */ uint32_t unk_0370;
@@ -110,7 +116,7 @@ class CGTooltip : public CSimpleFrame {
     /* 03BC */ uint32_t unk_03BC;
     /* 03C0 */ uint32_t unk_03C0;
     /* 03C4 */ uint32_t unk_03C4;
-    /* 03C8 */ uint32_t unk_03C8;
+    /* 03C8 */ int32_t m_pendingQueries;
     /* 03CC */ uint32_t m_fading;
     /* 03D0 */ float m_fadeTime;
     /* 03D4 */ float m_padding;
@@ -165,6 +171,12 @@ class CGTooltip : public CSimpleFrame {
     void AddEmpathyText(CGUnit_C* unit, char* buffer, uint32_t size);
     void AddSkinnableText(CGUnit_C* unit, char* buffer, uint32_t size);
     static void GetSummonedByString(CGUnit_C* unit, char* buffer, uint32_t size);
+    static void GetDurationString(char* buffer, uint32_t size, uint64_t time, const char* token, const char* prefix, int32_t roundUp, int32_t seconds);
+    static void GetFloatDurationString(char* buffer, uint32_t size, float time, const char* token, const char* prefix);
+    int32_t AddTalentPrereqs(const TalentRec* talent, CGTalentGroup_C* group, int32_t isInspect, int32_t isPet, int32_t usePreview);
+    void AddTalentLearnText(const TalentRec* talent, CGTalentGroup_C* group, int32_t prereqsMet, int32_t rank, int32_t maxRank, int32_t a7, int32_t a8, int32_t isPet, int32_t usePreview);
+    int32_t SetSpell(int32_t spellId, int32_t brief, uint32_t cooldown, int32_t isPet, int32_t showRank, int32_t isInspect, int32_t a8, const TalentRec* talent, CGTalentGroup_C* talentGroup, int32_t append, int32_t usePreview, int32_t a13, int32_t rank, int32_t maxRank, int32_t showLearn);
+    int32_t SetItem(int32_t itemId, int32_t* a2, WOWGUID* a3, int32_t a4, int32_t a5, int32_t a6, int32_t a7, uint64_t a8, int32_t a9, int32_t a10, int32_t a11, int32_t a12, int32_t a13, int32_t a14, int32_t a15);
 };
 
 class CGItemStatsSummary {
