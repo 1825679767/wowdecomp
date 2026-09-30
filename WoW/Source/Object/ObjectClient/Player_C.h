@@ -280,6 +280,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     int32_t OnLootSlotChanged(CDataStore* msg);
     int32_t OnSignedResults(CDataStore* msg);
     int32_t OnListInventory(CDataStore* msg);
+    void RequestAllItemPurchaseData();
     int32_t OnItemRefundResult(CDataStore* msg);
     void DelKnownSpell(int32_t spellId, int32_t a3);
     bool VehicleAllowsInteraction() const;

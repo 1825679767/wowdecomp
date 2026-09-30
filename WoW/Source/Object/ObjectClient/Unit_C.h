@@ -86,6 +86,11 @@ struct QUESTGIVEREMOTENODE {
     /* 0004 */ int32_t m_emote;
 };
 
+struct QUESTGIVEREMOTEQUEUE {
+    /* 0000 */ uint32_t m_count;
+    /* 0004 */ QUESTGIVEREMOTENODE* m_nodes;
+};
+
 struct DelayedSpellVisualKit {
     /* 0000 */ int32_t m_spellId;
     /* 0004 */ int32_t m_kitId;
@@ -657,6 +662,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void SetVehicleExitVoluntary(int32_t enable);
     void OnDismissControlledVehicleLocal(uint32_t eventTime);
     void SetEmoteQueue(const QUESTGIVEREMOTENODE* nodes, uint32_t count);
+    void PlayEmotes(const QUESTGIVEREMOTEQUEUE& emotes);
     DelayedSpellVisualKit* DelaySpellVisualKit(int32_t spellId, int32_t kitId, int32_t kitType, const C3Vector* position, WOWGUID targetGuid, int32_t a7, int32_t a8, int32_t delay, int32_t a10, int32_t a11);
     C3Vector GetGroundNormal() const;
     bool Unk71BC50(CGObject_C* target) const;

@@ -21,6 +21,8 @@ struct MerchantItem {
 
 class CGMerchantInfo {
     public:
+    static uint32_t m_pendingItemStats;
+    static void SetMerchant(WOWGUID merchant, const MerchantItem* items, int32_t count);
     static void CloseMerchant();
     static void EnterWorld();
     static MerchantItem* FindItemById(int32_t itemId);

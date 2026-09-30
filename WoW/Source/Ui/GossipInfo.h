@@ -9,15 +9,28 @@ struct lua_State;
 
 struct GossipOption {
     /* 0000 */ char* m_text;
-    /* 0004 */ char* unk_0004;
+    /* 0004 */ char* m_boxText;
     /* 0008 */ int32_t m_index;
-    /* 000C */ int32_t unk_000C;
-    /* 0010 */ int32_t unk_0010;
+    /* 000C */ uint8_t m_coded;
+    /* 0010 */ uint32_t m_boxMoney;
     /* 0014 */ int32_t m_type;
+};
+
+struct GossipQuestInfo {
+    /* 0000 */ uint32_t m_questID;
+    /* 0004 */ uint32_t m_level;
+    /* 0008 */ uint32_t m_flags;
+    /* 000C */ uint32_t m_repeatable;
+    /* 0010 */ uint32_t m_icon;
+    /* 0014 */ char m_title[512];
 };
 
 class CGGossipInfo {
     public:
+    static GossipQuestInfo m_quests[32];
+    static int32_t m_textPending;
+    static void ClearOptions();
+    static void SetGossipText(int32_t textId);
     static uint32_t unk_C016F8;
     static void SetGossip(const WOWGUID& guid);
     static GossipOption m_options[32];

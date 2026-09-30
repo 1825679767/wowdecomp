@@ -4,6 +4,23 @@
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/QuestFrame.h"
 #include "WoW/Source/Ui/Types.h"
+#include <malloc.h>
+#include "Engine/Source/Base/CDataStore.h"
+#include "Engine/Source/ConsoleBase/IConsole.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Tempest/CRandom.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "WoW/Source/Object/NPCText.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Ui/ChatFrame.h"
+
+// STATIC: 0x00BFC968
+GossipQuestInfo CGGossipInfo::m_quests[32];
+
+// STATIC: 0x00C00BE8
+int32_t CGGossipInfo::m_textPending;
 
 // STATIC: 0x00C016F8
 uint32_t CGGossipInfo::unk_C016F8;
@@ -48,4 +65,201 @@ void CGGossipInfo::SetGossip(const WOWGUID& guid) {
     CGGossipInfo::m_gossip = WOWGUID();
     CGGossipInfo::unk_C016F8 = 0;
     FrameScript_SignalEvent(SCRIPT_EVENT_GOSSIP_CLOSED, nullptr);
+}
+
+// VERIFY: 0cc63f6b manual
+// OFFSET: 0x0058A7B0
+void CGGossipInfo::ClearOptions() {
+    CGGossipInfo::m_gossipOptionsCount = 0;
+
+    for (uint32_t i = 0; i < 32; i++) {
+        GossipOption& option = CGGossipInfo::m_options[i];
+
+        if (option.m_text) {
+            SMemFree(option.m_text, __FILE__, __LINE__, 0);
+            option.m_text = nullptr;
+        }
+
+        if (option.m_boxText) {
+            SMemFree(option.m_boxText, __FILE__, __LINE__, 0);
+            option.m_boxText = nullptr;
+        }
+
+        option.m_index = -1;
+    }
+
+    for (uint32_t i = 0; i < 32; i++) {
+        CGGossipInfo::m_quests[i].m_questID = 0;
+    }
+}
+
+// VERIFY: c7f9173c auto
+// OFFSET: 0x0058AAE0
+static void GossipTextCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        CGGossipInfo::SetGossipText(id);
+        return;
+    }
+
+    WOWGUID none = { 0 };
+    CGGossipInfo::SetGossip(none);
+}
+
+// VERIFY: b728608d manual
+// OFFSET: 0x0058AC30
+void CGGossipInfo::SetGossipText(int32_t textId) {
+    NPCText* text = g_npcTextDBCache.GetRecord(textId, CGGossipInfo::m_gossip, GossipTextCallback, nullptr, false);
+
+    if (!text) {
+        CGGossipInfo::m_textPending = 1;
+        return;
+    }
+
+    CGGossipInfo::m_textPending = 0;
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGObject_C* object = ClntObjMgrObjectPtr(CGGossipInfo::m_gossip, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (!player || !object) {
+        return;
+    }
+
+    int32_t female;
+
+    if (object->m_obj->m_type & TYPEMASK_UNIT) {
+        female = static_cast<CGUnit_C*>(object)->m_unit->m_unitFieldBytes0[2] == 1;
+    } else {
+        female = text->m_text[0][0] == nullptr;
+    }
+
+    float total = 0.0f;
+
+    for (uint32_t i = 0; i < 8; i++) {
+        if (text->m_text[i][female]) {
+            total += text->m_probability[i];
+        }
+    }
+
+    uint32_t bits = (CRandom::uint32_(g_rndSeed) & 0x7FFFFF) | 0x3F800000;
+    float threshold = (2.0f - *reinterpret_cast<float*>(&bits)) * total;
+    float sum = 0.0f;
+    uint32_t index;
+
+    for (index = 0; index < 8; index++) {
+        if (text->m_text[index][female]) {
+            sum += text->m_probability[index];
+
+            if (sum >= threshold) {
+                break;
+            }
+        }
+    }
+
+    if (index >= 8) {
+        ConsoleWriteA("Missing gossip text!", ERROR_COLOR);
+        WOWGUID none = { 0 };
+        CGGossipInfo::SetGossip(none);
+        return;
+    }
+
+    uint32_t emoteCount = 0;
+
+    while (emoteCount < 3 && text->m_emote[index][emoteCount]) {
+        emoteCount++;
+    }
+
+    if (emoteCount > 0) {
+        QUESTGIVEREMOTEQUEUE emotes;
+        emotes.m_nodes = static_cast<QUESTGIVEREMOTENODE*>(alloca(emoteCount * sizeof(QUESTGIVEREMOTENODE)));
+        emotes.m_count = emoteCount;
+
+        for (uint32_t i = 0; i < emoteCount; i++) {
+            emotes.m_nodes[i].m_emote = text->m_emote[index][i];
+            emotes.m_nodes[i].m_delay = text->m_emoteDelay[index][i];
+        }
+
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGossipInfo::m_gossip, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            unit->PlayEmotes(emotes);
+        }
+    }
+
+    char buffer[3000];
+    WOWGUID playerGuid = ClntObjMgrGetActivePlayer();
+    QuestParserParseText(text->m_text[index][female], buffer, sizeof(buffer), playerGuid, nullptr, 0);
+    uint32_t language = text->m_language[index];
+    uint32_t skill = 0;
+    player->GetLanguageSkill(language, skill);
+    CGChat::TranslateMessage(language, skill, buffer, CGGossipInfo::m_gossipText, sizeof(CGGossipInfo::m_gossipText), 0, 1);
+    FrameScript_SignalEvent(SCRIPT_EVENT_GOSSIP_SHOW, nullptr);
+}
+
+// VERIFY: 29396e6a manual
+// OFFSET: 0x0058B1B0
+int32_t Packet_SMSG_GOSSIP_MESSAGE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID guid;
+    msg->Get(guid.m_guid);
+    CGGossipInfo::SetGossip(guid);
+    CGGossipInfo::ClearOptions();
+    msg->Get(CGGossipInfo::unk_C016F8);
+
+    uint32_t textId;
+    msg->Get(textId);
+
+    uint32_t count;
+    msg->Get(count);
+
+    if (count > 32) {
+        count = 32;
+    }
+
+    CGGossipInfo::m_gossipOptionsCount = count;
+    char text[2048];
+
+    for (int32_t i = 0; i < static_cast<int32_t>(count); i++) {
+        GossipOption& option = CGGossipInfo::m_options[i];
+        msg->Get(reinterpret_cast<uint32_t&>(option.m_index));
+
+        uint8_t type;
+        msg->Get(type);
+
+        uint8_t coded;
+        msg->Get(coded);
+
+        option.m_type = type;
+        option.m_coded = coded;
+        msg->Get(option.m_boxMoney);
+        msg->GetString(text, sizeof(text));
+
+        if (option.m_text) {
+            SMemFree(option.m_text, __FILE__, __LINE__, 0);
+        }
+
+        option.m_text = SStrDupA(text, __FILE__, __LINE__);
+        msg->GetString(text, sizeof(text));
+
+        if (option.m_boxText) {
+            SMemFree(option.m_boxText, __FILE__, __LINE__, 0);
+        }
+
+        option.m_boxText = text[0] ? SStrDupA(text, __FILE__, __LINE__) : nullptr;
+    }
+
+    msg->Get(count);
+
+    for (int32_t i = 0; i < static_cast<int32_t>(count); i++) {
+        GossipQuestInfo& quest = CGGossipInfo::m_quests[i];
+        msg->Get(quest.m_questID);
+        msg->Get(quest.m_icon);
+        msg->Get(quest.m_level);
+        msg->Get(quest.m_flags);
+
+        uint8_t repeatable = 0;
+        msg->Get(repeatable);
+        quest.m_repeatable = repeatable;
+        msg->GetString(quest.m_title, sizeof(quest.m_title));
+    }
+
+    CGGossipInfo::SetGossipText(textId);
+    return 1;
 }

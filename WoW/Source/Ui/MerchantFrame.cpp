@@ -8,6 +8,12 @@
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/UIUtil/Cursor.h"
+#include <cstring>
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "WoW/Source/Ui/Tutorial.h"
+
+// STATIC: 0x00BFA3F8
+uint32_t CGMerchantInfo::m_pendingItemStats;
 
 // STATIC: 0x00BFA3F0
 int32_t CGMerchantInfo::m_numMerchantItems;
@@ -68,4 +74,37 @@ void CGMerchantInfo::CloseMerchant() {
         CursorSetResetMode(1);
         CursorSetMode(1);
     }
+}
+
+// VERIFY: ecc91497 manual
+// OFFSET: 0x005844C0
+static void MerchantItemStatsCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (CGMerchantInfo::m_pendingItemStats && --CGMerchantInfo::m_pendingItemStats) {
+        return;
+    }
+
+    if (CGMerchantInfo::m_merchant) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_MERCHANT_UPDATE, nullptr);
+    }
+}
+
+// VERIFY: 459936a3 auto
+// OFFSET: 0x00584500
+void CGMerchantInfo::SetMerchant(WOWGUID merchant, const MerchantItem* items, int32_t count) {
+    if (CGMerchantInfo::m_numMerchantItems) {
+        for (uint32_t i = 0; i < 150; i++) {
+            if (CGMerchantInfo::m_items[i].m_itemID) {
+                g_itemDBCache.CancelCallback(CGMerchantInfo::m_items[i].m_itemID, MerchantItemStatsCallback, nullptr);
+            }
+        }
+    }
+
+    CGTutorial::TriggerTutorial(0x13);
+    CGGameUI::SetInteractTarget(merchant);
+    CGMerchantInfo::m_merchant = merchant;
+    memset(CGMerchantInfo::m_items, 0, sizeof(CGMerchantInfo::m_items));
+    memcpy(CGMerchantInfo::m_items, items, count * sizeof(MerchantItem));
+    CGMerchantInfo::m_numMerchantItems = count;
+    CGMerchantInfo::m_pendingItemStats = 0;
+    FrameScript_SignalEvent(SCRIPT_EVENT_MERCHANT_SHOW, nullptr);
 }

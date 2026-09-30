@@ -75,6 +75,7 @@
 #include "_Triage/AreaList.h"
 #include "WoW/Source/DB/Rec/AreaTableRec.h"
 #include "WoW/Source/Ui/CGTabardCreationFrame.h"
+#include <malloc.h>
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -167,6 +168,9 @@ uint32_t CGPlayer_C::s_lastUpdateTime;
 
 // STATIC: 0x00C9EAD8
 static WOWGUID s_lastTrainerRequest;
+
+// STATIC: 0x00C9D7D0
+static MerchantItem s_vendorItems[150];
 
 // STATIC: 0x00C9EB10
 static WOWGUID s_spiritHealer;
@@ -5023,4 +5027,268 @@ void CGPlayer_C::HandleOnRightClick(CGUnit_C* unit, bool autoInteract) {
     } else if (unit->m_unit->m_unitNpcFlags & 0x4000000) {
         CGPlayer_C::TalkToMailbox(unit->m_obj->m_guid);
     }
+}
+
+// VERIFY: 2014c9e0 manual
+// OFFSET: 0x006D1760
+void CGPlayer_C::RequestAllItemPurchaseData() {
+    for (int32_t i = 0; i <= 18; i++) {
+        if (static_cast<uint32_t>(i) >= static_cast<uint32_t>(this->m_bag.m_numSlots) || !this->m_bag.m_slots[i]) {
+            continue;
+        }
+
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(this->m_bag.m_slots[i], TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (item && !item->m_itemPurchaseData && !(item->m_itemFlags & 0x4) && item->GetStats() && (item->GetStats()->m_flags[0] & 0x1000)) {
+            item->RequestItemPurchaseData();
+        }
+    }
+
+    for (int32_t i = 23; i <= 38; i++) {
+        if (static_cast<uint32_t>(i) >= static_cast<uint32_t>(this->m_bag.m_numSlots) || !this->m_bag.m_slots[i]) {
+            continue;
+        }
+
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(this->m_bag.m_slots[i], TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (item && !item->m_itemPurchaseData && !(item->m_itemFlags & 0x4) && item->GetStats() && (item->GetStats()->m_flags[0] & 0x1000)) {
+            item->RequestItemPurchaseData();
+        }
+    }
+
+    for (int32_t i = 19; i <= 22; i++) {
+        WOWGUID guid = static_cast<uint32_t>(i) < static_cast<uint32_t>(this->m_bag.m_numSlots) ? this->m_bag.m_slots[i] : WOWGUID();
+        CGItem_C* container = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (!container) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < static_cast<uint32_t>(container->GetBag()->m_numSlots); j++) {
+            CGBag_C* bag = container->GetBag();
+
+            if (j >= static_cast<uint32_t>(bag->m_numSlots) || !bag->m_slots[j]) {
+                continue;
+            }
+
+            CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(bag->m_slots[j], TYPEMASK_ITEM, __FILE__, __LINE__));
+
+            if (item && !item->m_itemPurchaseData && !(item->m_itemFlags & 0x4) && item->GetStats() && (item->GetStats()->m_flags[0] & 0x1000)) {
+                item->RequestItemPurchaseData();
+            }
+        }
+    }
+}
+
+// VERIFY: 1167de4b manual
+// OFFSET: 0x006D9960
+int32_t CGPlayer_C::OnListInventory(CDataStore* msg) {
+    for (int32_t i = 0; i < 150; i++) {
+        s_vendorItems[i].m_slot = 0;
+    }
+
+    WOWGUID vendor;
+    msg->Get(vendor.m_guid);
+
+    uint8_t count;
+    msg->Get(count);
+
+    if (count > 150) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    CGPlayer_C::s_lastVendorListReceived = vendor;
+    uint8_t error = 0xFF;
+
+    if (count) {
+        for (uint8_t i = 0; i < count; i++) {
+            MerchantItem& item = s_vendorItems[i];
+            msg->Get(reinterpret_cast<uint32_t&>(item.m_slot));
+            msg->Get(reinterpret_cast<uint32_t&>(item.m_itemID));
+            msg->Get(reinterpret_cast<uint32_t&>(item.m_displayID));
+            msg->Get(reinterpret_cast<uint32_t&>(item.m_maxCount));
+            msg->Get(reinterpret_cast<uint32_t&>(item.m_price));
+            msg->Get(reinterpret_cast<uint32_t&>(item.m_durability));
+            msg->Get(reinterpret_cast<uint32_t&>(item.m_buyCount));
+            msg->Get(reinterpret_cast<uint32_t&>(item.m_extendedCostID));
+        }
+    } else {
+        msg->Get(error);
+
+        switch (error) {
+            case 0:
+                ConsoleWrite("Vendor has no inventory", DEFAULT_COLOR);
+                break;
+
+            case 1:
+                ConsoleWrite("I don't think he likes you very much", DEFAULT_COLOR);
+                break;
+
+            case 2:
+                ConsoleWrite("You are too far away", DEFAULT_COLOR);
+                break;
+
+            case 3:
+                ConsoleWrite("Vendor is dead", DEFAULT_COLOR);
+                break;
+
+            case 4:
+                ConsoleWrite("You can't shop while dead.", DEFAULT_COLOR);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    if (count || !error) {
+        this->RequestAllItemPurchaseData();
+        CGMerchantInfo::SetMerchant(vendor, s_vendorItems, count);
+    }
+
+    return 1;
+}
+
+// VERIFY: 56e2df00 manual
+// OFFSET: 0x006D0460
+int32_t __stdcall CGPlayer_C::OnQuestGiverQuestDetails(CDataStore* msg) {
+    WOWGUID npc;
+    msg->Get(npc.m_guid);
+
+    WOWGUID inform;
+    msg->Get(inform.m_guid);
+
+    uint32_t questId;
+    msg->Get(questId);
+
+    char title[512];
+    msg->GetString(title, sizeof(title));
+
+    char details[3000];
+    msg->GetString(details, sizeof(details));
+
+    char objectives[3000];
+    msg->GetString(objectives, sizeof(objectives));
+
+    uint8_t autoLaunched;
+    msg->Get(autoLaunched);
+
+    uint32_t flags;
+    msg->Get(flags);
+
+    uint32_t suggestedGroupNum;
+    msg->Get(suggestedGroupNum);
+
+    uint8_t startCheat;
+    msg->Get(startCheat);
+
+    uint32_t numChoices;
+    msg->Get(numChoices);
+
+    uint32_t choiceItems[6] = { 0 };
+    uint32_t choiceDisplays[6] = { 0 };
+    uint32_t choiceCounts[6];
+
+    for (int32_t i = 0; i < static_cast<int32_t>(numChoices); i++) {
+        msg->Get(choiceItems[i]);
+        msg->Get(choiceCounts[i]);
+        msg->Get(choiceDisplays[i]);
+    }
+
+    uint32_t numRewards;
+    msg->Get(numRewards);
+
+    uint32_t rewardItems[4] = { 0 };
+    uint32_t rewardDisplays[4] = { 0 };
+    uint32_t rewardCounts[4];
+
+    for (int32_t i = 0; i < static_cast<int32_t>(numRewards); i++) {
+        msg->Get(rewardItems[i]);
+        msg->Get(rewardCounts[i]);
+        msg->Get(rewardDisplays[i]);
+    }
+
+    uint32_t money;
+    msg->Get(money);
+
+    uint32_t xp;
+    msg->Get(xp);
+
+    uint32_t honor;
+    msg->Get(honor);
+
+    float honorMultiplier;
+    msg->Get(honorMultiplier);
+
+    uint32_t spell;
+    msg->Get(spell);
+
+    uint32_t spellCast;
+    msg->Get(spellCast);
+
+    uint32_t rewardTitle;
+    msg->Get(rewardTitle);
+
+    uint32_t talents;
+    msg->Get(talents);
+
+    uint32_t arenaPoints;
+    msg->Get(arenaPoints);
+
+    uint32_t factionMask;
+    msg->Get(factionMask);
+
+    uint32_t factionIDs[5];
+
+    for (uint32_t i = 0; i < 5; i++) {
+        msg->Get(factionIDs[i]);
+    }
+
+    uint32_t factionValues[5];
+
+    for (uint32_t i = 0; i < 5; i++) {
+        msg->Get(factionValues[i]);
+    }
+
+    uint32_t factionOverrides[5];
+
+    for (uint32_t i = 0; i < 5; i++) {
+        msg->Get(factionOverrides[i]);
+    }
+
+    uint32_t emoteCount;
+    msg->Get(emoteCount);
+
+    QUESTGIVEREMOTEQUEUE emotes;
+    emotes.m_nodes = static_cast<QUESTGIVEREMOTENODE*>(alloca(emoteCount * sizeof(QUESTGIVEREMOTENODE)));
+    emotes.m_count = emoteCount;
+
+    for (int32_t i = 0; i < static_cast<int32_t>(emoteCount); i++) {
+        msg->Get(reinterpret_cast<uint32_t&>(emotes.m_nodes[i].m_emote));
+        msg->Get(emotes.m_nodes[i].m_delay);
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(npc, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        if (!(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+            unit->PlayEmotes(emotes);
+        }
+
+        if ((unit->m_obj->m_type & TYPEMASK_PLAYER) && CGQuestInfo::m_npc) {
+            CDataStore response;
+            response.Put(static_cast<uint32_t>(MSG_QUEST_PUSH_RESULT));
+            response.Put(inform ? inform.m_guid : npc.m_guid);
+            response.Put(questId);
+            response.Put(static_cast<uint8_t>(4));
+            response.Finalize();
+            ClientServices::Send2(&response);
+            return 1;
+        }
+    }
+
+    CGQuestInfo::SetState(npc, inform, 1, details, questId, startCheat);
+    CGQuestInfo::SetLogDescription(objectives);
+    CGQuestInfo::AddReward(title, choiceItems, choiceDisplays, choiceCounts, numChoices, rewardItems, rewardDisplays, rewardCounts, numRewards, money, xp, honor, honorMultiplier, spell, spellCast, autoLaunched, suggestedGroupNum, rewardTitle, talents, arenaPoints, factionMask, factionIDs, factionValues, factionOverrides, flags);
+    return 1;
 }

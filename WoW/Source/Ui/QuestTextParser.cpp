@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include "WoW/Source/Ui/ChatFrame.h"
 
 // STATIC: 0x00BEB660
 static int32_t s_lastNumber;
@@ -1114,4 +1115,45 @@ int32_t SpellParserParseText(const SpellRec* spell, char* buffer, uint32_t size,
     int32_t result = SpellParserParseSubText(spell, buffer, size, parsePet, parseUnit, spellLevel, scale, noModifiers, description, &cursor);
     s_spellVariables.m_count = 0;
     return result;
+}
+
+// VERIFY: b9d5f6fa manual
+// OFFSET: 0x00579590
+int32_t QuestParserParseText(const char* text, char* buffer, uint32_t size, const WOWGUID& guid, const char* name, int32_t a6) {
+    bool failed = false;
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    NameCache* record;
+
+    if (unit) {
+        record = nullptr;
+    } else {
+        WOWGUID requester = { 0 };
+        record = g_nameDBCache.GetRecord(guid.m_guid, requester, nullptr, nullptr, false);
+    }
+
+    *buffer = 0;
+    const char* cursor = text;
+
+    for (const char* token = SStrChr(text, '$'); token && *token; token = SStrChr(cursor, '$')) {
+        uint32_t length = static_cast<uint32_t>(token - cursor);
+
+        if (length) {
+            uint32_t end = static_cast<uint32_t>(SStrLen(buffer));
+            SStrPack(buffer, cursor, size);
+
+            if (end + length < size) {
+                buffer[end + length] = 0;
+            }
+        }
+
+        cursor = token + 1;
+
+        if (!QuestParserParseToken(buffer, size, record, name, a6, guid, unit, &cursor)) {
+            SStrPack(buffer, "$", size);
+            failed = true;
+        }
+    }
+
+    SStrPack(buffer, cursor, size);
+    return !failed;
 }

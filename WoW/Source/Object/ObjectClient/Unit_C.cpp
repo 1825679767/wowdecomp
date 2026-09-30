@@ -16179,3 +16179,9 @@ void CGUnit_C::RequestTalkEmote(int32_t index) {
 
     this->PlayEmoteAnimation(s_talkEmotes[index]->m_id);
 }
+
+// VERIFY: 0f92b828 auto
+// OFFSET: 0x007207C0
+void CGUnit_C::PlayEmotes(const QUESTGIVEREMOTEQUEUE& emotes) {
+    this->SetEmoteQueue(emotes.m_nodes, emotes.m_count);
+}
