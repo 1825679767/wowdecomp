@@ -12,6 +12,9 @@
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/Ui/Tutorial.h"
 
+// STATIC: 0x00BF90F8
+uint32_t CGMerchantInfo::m_buybackSlots[12];
+
 // STATIC: 0x00BFA3F8
 uint32_t CGMerchantInfo::m_pendingItemStats;
 
@@ -107,4 +110,31 @@ void CGMerchantInfo::SetMerchant(WOWGUID merchant, const MerchantItem* items, in
     CGMerchantInfo::m_numMerchantItems = count;
     CGMerchantInfo::m_pendingItemStats = 0;
     FrameScript_SignalEvent(SCRIPT_EVENT_MERCHANT_SHOW, nullptr);
+}
+
+// VERIFY: 3f87e2cf manual
+// OFFSET: 0x00584080
+MerchantItem* CGMerchantInfo::GetItem(int32_t index) {
+    if (index >= 0 && index < CGMerchantInfo::m_numMerchantItems && CGMerchantInfo::m_merchant) {
+        return &CGMerchantInfo::m_items[index];
+    }
+
+    return nullptr;
+}
+
+// VERIFY: f9ba7356 auto
+// OFFSET: 0x00584680
+ItemStats_C* CGMerchantInfo::GetItemStats(int32_t itemId) {
+    if (!itemId) {
+        return nullptr;
+    }
+
+    WOWGUID merchant = CGMerchantInfo::m_merchant;
+    ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, merchant, MerchantItemStatsCallback, nullptr, false);
+
+    if (!stats) {
+        CGMerchantInfo::m_pendingItemStats++;
+    }
+
+    return stats;
 }

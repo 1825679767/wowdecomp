@@ -59,6 +59,8 @@ struct PlayerPendingItemExpiration : public TSLinkedNode<PlayerPendingItemExpira
     /* 0014 */ int32_t m_duration;
 };
 
+struct MerchantItem;
+class ItemStats_C;
 class CGPlayer_C : public CGUnit_C, public CGPlayer {
     public:
     void DanceMoveAnimComplete();
@@ -281,6 +283,10 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     int32_t OnSignedResults(CDataStore* msg);
     int32_t OnListInventory(CDataStore* msg);
     void RequestAllItemPurchaseData();
+    float CalcRewardHonor(float honor);
+    float GetQuestXPMultiplier();
+    int32_t CanUseItem(const ItemStats_C* stats, int32_t& error);
+    static void BuyItem(WOWGUID vendor, const MerchantItem* item, uint32_t count, uint8_t a5);
     int32_t OnItemRefundResult(CDataStore* msg);
     void DelKnownSpell(int32_t spellId, int32_t a3);
     bool VehicleAllowsInteraction() const;

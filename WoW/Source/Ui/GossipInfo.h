@@ -18,7 +18,7 @@ struct GossipOption {
 
 struct GossipQuestInfo {
     /* 0000 */ uint32_t m_questID;
-    /* 0004 */ uint32_t m_level;
+    /* 0004 */ int32_t m_level;
     /* 0008 */ uint32_t m_flags;
     /* 000C */ uint32_t m_repeatable;
     /* 0010 */ uint32_t m_icon;
@@ -27,6 +27,13 @@ struct GossipQuestInfo {
 
 class CGGossipInfo {
     public:
+    static int32_t GetNumAvailableQuests();
+    static GossipQuestInfo* GetAvailableQuest(int32_t index);
+    static int32_t GetNumActiveQuests();
+    static GossipQuestInfo* GetActiveQuest(int32_t index);
+    static void SelectGossipOption(int32_t index, const char* code, int32_t confirmed);
+    static void SelectGossipAvailableQuest(int32_t index);
+    static void SelectGossipActiveQuest(int32_t index);
     static GossipQuestInfo m_quests[32];
     static int32_t m_textPending;
     static void ClearOptions();
@@ -40,14 +47,6 @@ class CGGossipInfo {
     static uint32_t m_gossipOptionsCount;
 };
 
-int32_t Script_GetNumGossipAvailableQuests(lua_State* L);
-int32_t Script_GetNumGossipActiveQuests(lua_State* L);
-int32_t Script_GetGossipAvailableQuests(lua_State* L);
-int32_t Script_GetGossipActiveQuests(lua_State* L);
-int32_t Script_SelectGossipOption(lua_State* L);
-int32_t Script_SelectGossipAvailableQuest(lua_State* L);
-int32_t Script_SelectGossipActiveQuest(lua_State* L);
-int32_t Script_CloseGossip(lua_State* L);
 void GossipInfoRegisterScriptFunctions();
 
 class CDataStore;

@@ -1375,3 +1375,9 @@ int32_t CGItem_C::IsLocked(const LockRec* lock, int32_t itemLevel, int32_t* spel
 int32_t CGItem_C::GetRandomPropertyValue(int32_t slot) {
     return CGItem_C::GetRandomPropertyValue(slot, this->m_item->m_itemFieldRandomPropertiesId, this->GetRandomPropertyPoints());
 }
+
+// VERIFY: eaccfb41 auto
+// OFFSET: 0x00708C10
+int32_t CGItem_C::CanBeUsed() {
+    return this->GetEnchantmentSpell(0) != 0;
+}

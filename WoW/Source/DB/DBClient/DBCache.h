@@ -554,6 +554,36 @@ void DBCache<T, TKey, THashKey>::AddItems(CDataStore* msg, bool single) {
     } while (--count);
 }
 
+// VERIFY: 0168a135 manual
+// OFFSET: [0x0067E030]
+template <class T, class TKey, class THashKey>
+void DBCache<T, TKey, THashKey>::AddItem(T* item, TKey key) {
+    DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
+
+    if (!hash) {
+        hash = this->m_entries.New(DBCacheHashKey(key), key, 0, 0);
+    }
+
+    hash->m_dispatching = true;
+    hash->m_record = *item;
+    hash->m_loaded = true;
+    hash->m_id = key;
+
+    for (DBCACHECALLBACK* node = hash->m_callbacks.Head(); node;) {
+        DBCACHECALLBACK* next = hash->m_callbacks.Next(node);
+        node->m_callback(static_cast<int32_t>(key), node->m_guid, node->m_param, true);
+        node = next;
+    }
+
+    hash->m_callbacks.Clear();
+    bool invalidate = hash->m_invalidatePending;
+    hash->m_dispatching = false;
+
+    if (invalidate) {
+        this->Invalidate(key);
+    }
+}
+
 // VERIFY: e5e95050 manual
 // OFFSET: [0x0067A070]
 template <class T, class TKey, class THashKey>

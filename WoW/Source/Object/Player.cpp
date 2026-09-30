@@ -144,3 +144,29 @@ int32_t CGPlayer::TotalRemoteFields() {
 bool CGPlayer::IsDrunk() {
     return this->m_player->m_playerBytes3[1] || this->m_player->m_playerFakeInebriation;
 }
+
+// VERIFY: 343c96d1 manual
+// OFFSET: 0x00584B00
+uint32_t CGPlayer::GetBuybackPrice(uint32_t slot) {
+    if (slot < 12) {
+        return this->m_player->m_playerFieldBuybackPrice1[slot];
+    }
+
+    return 0;
+}
+
+// VERIFY: feec4401 manual
+// OFFSET: 0x0061DCB0
+bool CGPlayer::HasPvpMedal(uint8_t medal) {
+    return (this->m_player->m_playerFieldPvpMedals & (1 << (medal - 1))) != 0;
+}
+
+// VERIFY: d70d997f manual
+// OFFSET: 0x005E0870
+PlayerQuestLogEntry* CGPlayer::GetQuestLogEntry(uint32_t slot) {
+    if (slot > 25) {
+        return nullptr;
+    }
+
+    return &this->m_player->m_playerQuestLog[slot];
+}

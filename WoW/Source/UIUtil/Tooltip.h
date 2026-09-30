@@ -100,7 +100,10 @@ class CGTooltip : public CSimpleFrame {
     static const char* GetItemQualityColorString(uint32_t quality);
     static const char* CreateItemLink(int32_t itemId, uint32_t quality, int32_t enchant, const int32_t* gems, int32_t randomPropertiesId, int32_t seed);
     static const char* GetItemHyperlinkString(CGItem_C* item);
+    static const char* GetItemHyperlinkString(int32_t itemId, uint32_t quality, int32_t enchant, int32_t randomPropertiesId, int32_t seed);
     static const char* GetQuestDifficultyColorString(int32_t level);
+    static const char* GetQuestLink(int32_t questId, int32_t level);
+    static const char* GetSpellLink(int32_t spellId);
     static int32_t GetObjectType();
     static void RegisterScriptMethods(lua_State* L);
 

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
 
+class ItemStats_C;
 class CGItem_C;
 
 struct lua_State;
@@ -21,6 +22,9 @@ struct MerchantItem {
 
 class CGMerchantInfo {
     public:
+    static uint32_t m_buybackSlots[12];
+    static MerchantItem* GetItem(int32_t index);
+    static ItemStats_C* GetItemStats(int32_t itemId);
     static uint32_t m_pendingItemStats;
     static void SetMerchant(WOWGUID merchant, const MerchantItem* items, int32_t count);
     static void CloseMerchant();
@@ -33,21 +37,6 @@ class CGMerchantInfo {
     static uint32_t m_numBuybackItems;
 };
 
-int32_t Script_CloseMerchant(lua_State* L);
-int32_t Script_GetMerchantItemInfo(lua_State* L);
-int32_t Script_GetMerchantItemCostItem(lua_State* L);
-int32_t Script_GetBuybackItemInfo(lua_State* L);
-int32_t Script_GetBuybackItemLink(lua_State* L);
-int32_t Script_GetMerchantItemLink(lua_State* L);
-int32_t Script_PickupMerchantItem(lua_State* L);
-int32_t Script_BuyMerchantItem(lua_State* L);
-int32_t Script_BuybackItem(lua_State* L);
-int32_t Script_ShowMerchantSellCursor(lua_State* L);
-int32_t Script_ShowBuybackSellCursor(lua_State* L);
-int32_t Script_ShowRepairCursor(lua_State* L);
-int32_t Script_HideRepairCursor(lua_State* L);
-int32_t Script_GetRepairAllCost(lua_State* L);
-int32_t Script_RepairAllItems(lua_State* L);
 void MerchantRegisterScriptFunctions();
 
 #endif

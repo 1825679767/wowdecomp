@@ -59,6 +59,7 @@ extern CVar* g_stopAutoAttackOnTargetChangeCVar;
 extern CVar* g_autoDismountCVar;
 extern CVar* g_autoDismountFlyingCVar;
 extern CVar* g_autoUnshiftCVar;
+extern CVar* s_cvQuestLogCollapseFilter;
 extern CVar* s_cvAutoRangedCombat;
 extern CVar* s_cvAutoFilledMultiCastSlots;
 extern CVar* g_threatWarningCVar;

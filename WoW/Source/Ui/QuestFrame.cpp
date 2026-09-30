@@ -11,6 +11,12 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Ui/ChatFrame.h"
 
+// STATIC: 0x00C01840
+int32_t CGQuestInfo::m_rewardFactionList[10];
+
+// STATIC: 0x00C01818
+int32_t CGQuestInfo::m_rewardFactionAmounts[10];
+
 // STATIC: 0x00C0D658
 int32_t CGQuestInfo::m_state;
 
@@ -352,4 +358,20 @@ void CGQuestInfo::AddReward(const char* title, const uint32_t* choiceItems, cons
     } else {
         FrameScript_SignalEvent(SCRIPT_EVENT_QUEST_COMPLETE, nullptr);
     }
+}
+
+// VERIFY: c5b8f724 auto
+// OFFSET: 0x0058BB60
+void CGQuestInfo::InitRewRepFields(uint32_t index, int32_t faction, int32_t value, int32_t override) {
+    if (index <= 4) {
+        CGQuestInfo::m_rewardFactionIDs[index] = faction;
+        CGQuestInfo::m_rewardFactionValues[index] = value;
+        CGQuestInfo::m_rewardFactionOverrides[index] = override;
+    }
+}
+
+// VERIFY: 12701ac3 auto
+// OFFSET: 0x0058BB90
+void CGQuestInfo::InitRewRepShowMask(uint32_t mask) {
+    CGQuestInfo::m_rewardFactionMask = mask;
 }

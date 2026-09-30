@@ -277,3 +277,11 @@ float CGUnit::GetSpellCostMultiplier(int32_t schoolMask) const {
 
     return result + 1.0f;
 }
+
+// VERIFY: 43c5b8ef auto
+// OFFSET: 0x0058AAB0
+int32_t CGUnit::GetQuestGreenRange() const {
+    static const int32_t s_questGreenRange[20] = { 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8 };
+    uint32_t band = static_cast<int32_t>(this->m_unit->m_unitFieldLevel) / 5;
+    return band < 20 ? s_questGreenRange[band] : 8;
+}

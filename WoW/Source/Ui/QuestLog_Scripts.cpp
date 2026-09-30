@@ -9,6 +9,23 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "Engine/Source/lua-5.1/src/lauxlib.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/SpellIconRec.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
+#include "WoW/Source/Object/ItemStats.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
+#include "WoW/Source/Object/Player.h"
+#include "WoW/Source/Ui/ChatFrame.h"
+#include "WoW/Source/Ui/QuestFrame.h"
+#include "WoW/Source/UIUtil/Tooltip.h"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "WoW/Source/DB/Rec/CharTitlesRec.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/Ui/PartyFrame.h"
+#include "WoW/Source/Ui/RaidInfo.h"
 
 // STATIC: 0x00C0173C
 static int32_t s_numQuestLogRewardFactions;
@@ -280,6 +297,1236 @@ static int32_t Script_GetQuestTimers(lua_State* L) {
     }
 
     return count;
+}
+
+// VERIFY: 742e67e4 manual
+// OFFSET: 0x005DF150
+static int32_t Script_GetNumQuestLogRewards(lua_State* L) {
+    uint32_t count = 0;
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+
+    if (quest) {
+        uint32_t i;
+
+        for (i = 0; i < 4; i++) {
+            if (!quest->m_rewardItem[i]) {
+                break;
+            }
+        }
+
+        if (i < 4) {
+            count = i;
+        }
+    }
+
+    lua_pushnumber(L, count);
+    return 1;
+}
+
+// VERIFY: a8688e18 manual
+// OFFSET: 0x005DF1D0
+static int32_t Script_GetNumQuestLogChoices(lua_State* L) {
+    uint32_t count = 0;
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+
+    if (quest) {
+        uint32_t i;
+
+        for (i = 0; i < 6; i++) {
+            if (!quest->m_rewardChoiceItem[i]) {
+                break;
+            }
+        }
+
+        if (i <= 6) {
+            count = i;
+        }
+    }
+
+    lua_pushnumber(L, count);
+    return 1;
+}
+
+// VERIFY: ad68cc26 manual
+// OFFSET: 0x005DF250
+static int32_t Script_GetQuestLogItemLink(lua_State* L) {
+    if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
+        return luaL_error(L, "Usage: GetQuestLogItemLink(\"type\", index)");
+    }
+
+    const char* type = lua_tolstring(L, 1, nullptr);
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+
+    if (quest && type && *type && index >= 0) {
+        int32_t itemId = 0;
+        bool valid = true;
+
+        if (!SStrCmpI(type, "choice", STORM_MAX_STR) && index < 6) {
+            itemId = quest->m_rewardChoiceItem[index];
+        } else if (!SStrCmpI(type, "reward", STORM_MAX_STR) && index < 4) {
+            itemId = quest->m_rewardItem[index];
+        } else {
+            valid = false;
+        }
+
+        if (valid && itemId) {
+            ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
+
+            if (stats) {
+                lua_pushstring(L, CGTooltip::GetItemHyperlinkString(itemId, stats->m_quality, 0, 0, 0));
+                return 1;
+            }
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 2e71d372 manual
+// OFFSET: 0x005DF3A0
+static int32_t Script_GetQuestLogRewardTalents(lua_State* L) {
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+    int32_t talents = 0;
+
+    if (quest && static_cast<int32_t>(quest->m_rewardTalentPoints) >= 0) {
+        talents = quest->m_rewardTalentPoints;
+    }
+
+    lua_pushinteger(L, talents);
+    return 1;
+}
+
+// VERIFY: d812b140 manual
+// OFFSET: 0x005DF400
+static int32_t Script_GetQuestLogRewardArenaPoints(lua_State* L) {
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+    int32_t points = 0;
+
+    if (quest && static_cast<int32_t>(quest->m_rewardArenaPoints) >= 0) {
+        points = quest->m_rewardArenaPoints;
+    }
+
+    lua_pushinteger(L, points);
+    return 1;
+}
+
+// VERIFY: 78d48f37 manual
+// OFFSET: 0x005DF460
+static int32_t Script_GetQuestLogRequiredMoney(lua_State* L) {
+    int32_t questId;
+
+    if (lua_isnumber(L, 1)) {
+        int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1)) - 1);
+        questId = index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader ? 0 : CGQuestLog::m_quests[index].m_questId;
+    } else {
+        questId = CGQuestLog::m_selectedQuest;
+    }
+
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(questId, none, nullptr, nullptr, false);
+
+    if (quest && quest->m_rewardMoney < 0) {
+        lua_pushnumber(L, -quest->m_rewardMoney);
+    } else {
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 1;
+}
+
+// VERIFY: 635b5e85 auto
+// OFFSET: 0x005DF870
+static int32_t Script_GetQuestLogGroupNum(lua_State* L) {
+    lua_pushnumber(L, GetQuestSuggestedPlayers(CGQuestLog::GetSelectedLogEntry()));
+    return 1;
+}
+
+// VERIFY: 5cf345e1 manual
+// OFFSET: 0x005DF940
+static int32_t Script_GetQuestLogRewardFactionInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: Script_GetQuestLogRewardFactionInfo(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1) - 1.0);
+    lua_pushnumber(L, index > 9 ? 0 : CGQuestInfo::m_rewardFactionList[index]);
+    lua_pushnumber(L, index > 9 ? 0 : CGQuestInfo::m_rewardFactionAmounts[index]);
+    return 2;
+}
+
+// VERIFY: 08ede353 auto
+// OFFSET: 0x005E0340
+static int32_t Script_GetQuestLogQuestText(lua_State* L) {
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, QuestQueryCallback, nullptr, false);
+
+    if (!quest) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 2;
+    }
+
+    char objectives[3000];
+    char description[3000];
+    WOWGUID player = ClntObjMgrGetActivePlayer();
+    QuestParserParseText(quest->m_description, description, sizeof(description), player, nullptr, 0);
+    player = ClntObjMgrGetActivePlayer();
+    QuestParserParseText(quest->m_objText, objectives, sizeof(objectives), player, nullptr, 0);
+    lua_pushstring(L, description);
+    lua_pushstring(L, objectives);
+    return 2;
+}
+
+// VERIFY: c7dba3cb manual
+// OFFSET: 0x005E06D0
+static int32_t Script_GetQuestLogCompletionText(lua_State* L) {
+    int32_t questId;
+
+    if (lua_isnumber(L, 1)) {
+        int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1)) - 1);
+        questId = index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader ? 0 : CGQuestLog::m_quests[index].m_questId;
+    } else {
+        questId = CGQuestLog::m_selectedQuest;
+    }
+
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(questId, none, nullptr, nullptr, false);
+
+    if (!quest) {
+        return 0;
+    }
+
+    char text[3000];
+
+    if ((quest->m_flags & 0x40000) || !quest->m_completionText[0]) {
+        WOWGUID player = ClntObjMgrGetActivePlayer();
+        QuestParserParseText(quest->m_objText, text, sizeof(text), player, nullptr, 0);
+    } else {
+        WOWGUID player = ClntObjMgrGetActivePlayer();
+        QuestParserParseText(quest->m_completionText, text, sizeof(text), player, nullptr, 0);
+    }
+
+    lua_pushstring(L, text);
+    return 1;
+}
+
+// VERIFY: ea272adb manual
+// OFFSET: 0x005E3D60
+static int32_t Script_GetAbandonQuestItems(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    uint32_t count = 0;
+
+    if (!player) {
+        return 0;
+    }
+
+    WOWGUID none = { 0 };
+    QuestCache* abandon = g_questDBCache.GetRecord(CGQuestLog::m_abandonQuest, none, nullptr, nullptr, false);
+
+    if (!abandon) {
+        return 0;
+    }
+
+    int32_t items[11] = { 0 };
+
+    for (uint32_t i = 0; i < 6; i++) {
+        int32_t itemId = abandon->m_collectItemId[i];
+
+        if (itemId > 0 && player->m_bag.GetItemTypeCount(itemId, 8) > 0) {
+            ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
+
+            if (stats && stats->m_bonding == 4) {
+                uint32_t j;
+
+                for (j = 0; j < count && items[j] != itemId; j++) {
+                }
+
+                if (j >= count) {
+                    items[count++] = itemId;
+                }
+            }
+        }
+    }
+
+    int32_t startingItem = abandon->m_startingItemId;
+
+    if (startingItem > 0 && player->m_bag.GetItemTypeCount(startingItem, 8) > 0) {
+        ItemStats_C* stats = g_itemDBCache.GetRecord(startingItem, none, nullptr, nullptr, false);
+
+        if (stats && stats->m_bonding == 4) {
+            uint32_t j;
+
+            for (j = 0; j < count && items[j] != startingItem; j++) {
+            }
+
+            if (j >= count) {
+                items[count++] = startingItem;
+            }
+        }
+    }
+
+    for (uint32_t i = 0; i < 4; i++) {
+        int32_t itemId = abandon->m_intermediateItemId[i];
+
+        if (itemId > 0 && player->m_bag.GetItemTypeCount(itemId, 8) > 0) {
+            uint32_t j;
+
+            for (j = 0; j < count && items[j] != itemId; j++) {
+            }
+
+            if (j >= count) {
+                items[count++] = itemId;
+            }
+        }
+    }
+
+    uint32_t total = count;
+
+    for (int32_t i = 0; i < CGQuestLog::m_numQuest; i++) {
+        if (!count) {
+            return 0;
+        }
+
+        int32_t questId = i < 0 || i >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[i].m_isHeader ? 0 : CGQuestLog::m_quests[i].m_questId;
+        QuestCache* quest = g_questDBCache.GetRecord(questId, none, nullptr, nullptr, false);
+
+        if (!quest || quest == abandon) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < 6; j++) {
+            int32_t itemId = quest->m_collectItemId[j];
+
+            for (uint32_t k = 0; k < 11; k++) {
+                if (itemId > 0 && itemId == items[k]) {
+                    items[k] = 0;
+                    count--;
+                }
+            }
+        }
+
+        int32_t startingId = quest->m_startingItemId;
+
+        for (uint32_t k = 0; k < 11; k++) {
+            if (startingId > 0 && startingId == items[k]) {
+                items[k] = 0;
+                count--;
+            }
+        }
+
+        total = count;
+    }
+
+    if (!count) {
+        return 0;
+    }
+
+    bool first = true;
+
+    for (uint32_t k = 0; k < 11; k++) {
+        if (!items[k]) {
+            continue;
+        }
+
+        ItemStats_C* stats = g_itemDBCache.GetRecord(items[k], none, nullptr, nullptr, false);
+
+        if (first) {
+            first = false;
+        } else {
+            lua_pushstring(L, ", ");
+        }
+
+        lua_pushstring(L, stats->m_name[0]);
+    }
+
+    if (total > 1) {
+        lua_concat(L, 2 * total - 1);
+    }
+
+    return 1;
+}
+
+// VERIFY: f2ea8d44 auto
+// OFFSET: 0x005E4060
+static int32_t Script_AbandonQuest(lua_State* L) {
+    CGQuestLog::AbandonSelectedQuest();
+    return 0;
+}
+
+// VERIFY: 84435f71 manual
+// OFFSET: 0x005E41A0
+static int32_t Script_GetNumQuestLeaderBoards(lua_State* L) {
+    int32_t count = 0;
+
+    if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        int32_t questId;
+
+        if (lua_isnumber(L, 1)) {
+            int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+            questId = index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader ? 0 : CGQuestLog::m_quests[index].m_questId;
+        } else {
+            questId = CGQuestLog::m_selectedQuest;
+        }
+
+        count = GetNumQuestLeaderBoards(questId, QuestQueryCallback, nullptr);
+    }
+
+    lua_pushnumber(L, count);
+    return 1;
+}
+
+// VERIFY: a91ae0a7 manual
+// OFFSET: 0x005E4260
+static int32_t Script_GetNumQuestItemDrops(lua_State* L) {
+    int32_t count = 0;
+
+    if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        int32_t questId;
+
+        if (lua_isnumber(L, 1)) {
+            int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+            questId = index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader ? 0 : CGQuestLog::m_quests[index].m_questId;
+        } else {
+            questId = CGQuestLog::m_selectedQuest;
+        }
+
+        count = CountQuestItemDropsNeeded(questId, QuestQueryCallback, nullptr);
+    }
+
+    lua_pushnumber(L, count);
+    return 1;
+}
+
+// VERIFY: ae5c6641 manual
+// OFFSET: 0x005E4490
+static int32_t Script_GetQuestLogRewardInfo(lua_State* L) {
+    // STATIC: 0x00C23FB0
+    static char s_texture[260];
+
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: GetQuestLogRewardInfo(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+    ItemStats_C* stats;
+
+    if (!quest || index > 3 || !(stats = g_itemDBCache.GetRecord(quest->m_rewardItem[index], none, ItemQueryCallback, nullptr, false))) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnumber(L, 1.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnil(L);
+        return 5;
+    }
+
+    const char* path = ClientDBStringLookup(3);
+    SStrPrintf(s_texture, sizeof(s_texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(stats->m_displayId));
+    lua_pushstring(L, stats->GetName(0));
+    lua_pushstring(L, s_texture);
+    lua_pushnumber(L, quest->m_rewardItemCount[index]);
+    lua_pushnumber(L, stats->m_inventoryType ? static_cast<int32_t>(stats->m_quality) : -1);
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    int32_t error;
+
+    if (!player || player->CanUseItem(stats, error)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 5;
+}
+
+// VERIFY: 7d5ae3b6 manual
+// OFFSET: 0x005E4660
+static int32_t Script_GetQuestLogChoiceInfo(lua_State* L) {
+    // STATIC: 0x00C240B8
+    static char s_texture[260];
+
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: GetQuestLogRewardInfo(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+    ItemStats_C* stats;
+
+    if (!quest || index > 5 || !(stats = g_itemDBCache.GetRecord(quest->m_rewardChoiceItem[index], none, ItemQueryCallback, nullptr, false))) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnumber(L, 1.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnil(L);
+        return 5;
+    }
+
+    const char* path = ClientDBStringLookup(3);
+    SStrPrintf(s_texture, sizeof(s_texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(stats->m_displayId));
+    lua_pushstring(L, stats->GetName(0));
+    lua_pushstring(L, s_texture);
+    lua_pushnumber(L, quest->m_rewardChoiceItemCount[index]);
+    lua_pushnumber(L, stats->m_inventoryType ? static_cast<int32_t>(stats->m_quality) : -1);
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    int32_t error;
+
+    if (!player || player->CanUseItem(stats, error)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 5;
+}
+
+// VERIFY: ead48f31 manual
+// OFFSET: 0x005E48F0
+static int32_t Script_GetQuestLogRewardMoney(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    bool maxLevel = player && static_cast<int32_t>(player->m_unit->m_unitFieldLevel) >= static_cast<int32_t>(player->m_player->m_playerFieldMaxLevel);
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+    int32_t money = 0;
+
+    if (quest) {
+        if (quest->m_rewardMoney > 0) {
+            money = quest->m_rewardMoney;
+        }
+
+        if (maxLevel && money <= static_cast<int32_t>(quest->m_rewardMoneyInsteadOfXp)) {
+            money = quest->m_rewardMoneyInsteadOfXp;
+        }
+    }
+
+    lua_pushnumber(L, money);
+    return 1;
+}
+
+// VERIFY: f994e29c manual
+// OFFSET: 0x005E4B70
+static int32_t Script_GetQuestLogRewardHonor(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    int32_t honor = 0;
+
+    if (player) {
+        WOWGUID none = { 0 };
+        QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+
+        if (quest && (static_cast<int32_t>(quest->m_rewardHonor) > 0 || quest->m_rewardHonorBonus > 0.0f)) {
+            float bonus = player->CalcRewardHonor(quest->m_rewardHonorBonus) * 0.1f;
+            honor = static_cast<int32_t>(bonus) + quest->m_rewardHonor;
+        }
+    }
+
+    lua_pushinteger(L, honor);
+    return 1;
+}
+
+// VERIFY: 08bf4d5d auto
+// OFFSET: 0x005E4D10
+static int32_t Script_GetQuestLogRewardSpell(lua_State* L) {
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+
+    if (!quest || !quest->m_rewardSpellId) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 4;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(quest->m_rewardSpellId, &spell)) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 4;
+    }
+
+    SpellIconRec* icon = g_spellIconDB.GetRecord(spell.m_spellIconID);
+
+    if (icon) {
+        lua_pushstring(L, icon->m_textureFilename);
+    } else {
+        lua_pushnil(L);
+    }
+
+    lua_pushstring(L, spell.m_name);
+
+    if (spell.m_attributes & 0x20) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    int32_t learns = 0;
+
+    if (quest->m_effectOnPlayer) {
+        SpellRec effect;
+
+        if (g_spellDB.GetRecord(quest->m_effectOnPlayer, &effect)) {
+            for (uint32_t i = 0; i < 3; i++) {
+                if (effect.m_effect[i] == 36 || effect.m_effect[i] == 57) {
+                    learns = 1;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (learns) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 4;
+}
+
+// VERIFY: 2418c7b5 manual
+// OFFSET: 0x005E4FB0
+static int32_t Script_GetQuestIndexForTimer(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: GetQuestIndexForTimer(index)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t found = 0;
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        uint32_t numQuest = CGQuestLog::m_numQuest;
+        int32_t timeOffset = CGQuestLog::m_timeOffset;
+
+        for (int32_t i = 0; static_cast<uint32_t>(i) < numQuest; i++) {
+            if (i < 0 || i >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[i].m_isHeader) {
+                continue;
+            }
+
+            int32_t slot = CGQuestLog::m_quests[i].m_logSlot;
+
+            if (slot < 0 || slot > 25) {
+                continue;
+            }
+
+            PlayerQuestLogEntry* entry = &player->m_player->m_playerQuestLog[slot];
+
+            if (!entry || !entry->m_time || (entry->m_state & 2) || timeOffset - static_cast<int32_t>(time(nullptr)) + static_cast<int32_t>(entry->m_time) - 1 < 0) {
+                continue;
+            }
+
+            if (found == index) {
+                lua_pushnumber(L, i + 1);
+                return 1;
+            }
+
+            found++;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: ddfc0452 auto
+// OFFSET: 0x005E5100
+static int32_t Script_CollapseQuestHeader(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: CollapseQuestHeader(index)");
+    }
+
+    CGQuestLog::CollapseHeader(static_cast<int32_t>(lua_tonumber(L, 1)) - 1, 1);
+    return 0;
+}
+
+// VERIFY: b84341f7 auto
+// OFFSET: 0x005E5150
+static int32_t Script_ExpandQuestHeader(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: ExpandQuestHeader(index)");
+    }
+
+    CGQuestLog::CollapseHeader(static_cast<int32_t>(lua_tonumber(L, 1)) - 1, 0);
+    return 0;
+}
+
+// VERIFY: 4ae2b39c manual
+// OFFSET: 0x005E51D0
+static int32_t Script_GetQuestLink(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: GetQuestLink(questID)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t questId;
+    QuestCache* quest;
+    WOWGUID none = { 0 };
+
+    if (index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader || !(questId = CGQuestLog::m_quests[index].m_questId) || !(quest = g_questDBCache.GetRecord(questId, none, nullptr, nullptr, false))) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    int32_t level = player && quest->m_level == 0xFFFFFFFF ? player->m_unit->m_unitFieldLevel : quest->m_level;
+    lua_pushstring(L, CGTooltip::GetQuestLink(questId, level));
+    return 1;
+}
+
+// VERIFY: 661e57e1 manual
+// OFFSET: 0x005E67C0
+static int32_t Script_AddQuestWatch(lua_State* L) {
+    int32_t questId;
+
+    if (lua_isnumber(L, 1)) {
+        int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+        questId = index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader ? 0 : CGQuestLog::m_quests[index].m_questId;
+    } else {
+        questId = CGQuestLog::m_selectedQuest;
+    }
+
+    if (questId) {
+        int32_t duration = 0;
+
+        if (lua_isnumber(L, 2)) {
+            duration = static_cast<int32_t>(lua_tonumber(L, 2));
+        }
+
+        CGQuestLog::AddQuestWatch(questId, duration);
+    }
+
+    return 0;
+}
+
+// VERIFY: 615c22ea manual
+// OFFSET: 0x005DF700
+static int32_t Script_RemoveQuestWatch(lua_State* L) {
+    int32_t questId;
+
+    if (lua_isnumber(L, 1)) {
+        int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+        questId = index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader ? 0 : CGQuestLog::m_quests[index].m_questId;
+    } else {
+        questId = CGQuestLog::m_selectedQuest;
+    }
+
+    if (questId) {
+        CGQuestLog::RemoveQuestWatch(questId);
+    }
+
+    return 0;
+}
+
+// VERIFY: d06a365e auto
+// OFFSET: 0x005DF8A0
+static int32_t Script_ProcessQuestLogRewardFactions(lua_State* L) {
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+
+    if (quest) {
+        for (int32_t i = 0; i < 5; i++) {
+            CGQuestInfo::InitRewRepFields(i, quest->m_rewardReputationFaction[i], quest->m_factionRewardId[i], quest->m_rewardReputationOverride[i]);
+        }
+
+        CGQuestInfo::InitRewRepShowMask(quest->unk_28E0);
+        CGQuestInfo::ProcessQuestLogRewardFactions();
+    }
+
+    return 0;
+}
+
+// VERIFY: ffc6b635 auto
+// OFFSET: 0x005DFA10
+static int32_t Script_GetQuestSortIndex(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: GetQuestSortIndex(questIndex)");
+    }
+
+    lua_pushnumber(L, GetQuestSortId(static_cast<int32_t>(lua_tonumber(L, 1)) - 1) + 1);
+    return 1;
+}
+
+// VERIFY: bf9ab07f manual
+// OFFSET: 0x005DFA80
+static int32_t Script_QuestPOIGetQuestIDByIndex(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: QuestPOIGetQuestIDByIndex(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index > 24) {
+        return 0;
+    }
+
+    int32_t questId = CGQuestLog::m_questPOIs[index].m_questId;
+
+    if (questId < 0) {
+        return 0;
+    }
+
+    lua_pushnumber(L, questId);
+    return 1;
+}
+
+// VERIFY: 3f76db08 manual
+// OFFSET: 0x005DFBA0
+static int32_t Script_ShiftQuestWatches(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        return luaL_error(L, "Usage: ShiftQuestWatches(indexFrom, indexTo)");
+    }
+
+    uint32_t to = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
+    uint32_t from = static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, 1)) - 1);
+    CGQuestLog::ShiftQuestWatches(from, to);
+    return 0;
+}
+
+// VERIFY: 44c065ff manual
+// OFFSET: 0x005E4320
+static int32_t Script_GetQuestLogTimeLeft(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        int32_t index = CGQuestLog::GetSelectedLogEntry();
+        uint32_t slot = index < 0 ? 0 : CGQuestLog::m_quests[index].m_logSlot;
+
+        if (slot <= 25) {
+            PlayerQuestLogEntry* entry = &player->m_player->m_playerQuestLog[slot];
+            int32_t timeOffset = CGQuestLog::m_timeOffset;
+
+            if (entry && entry->m_time && !(entry->m_state & 2) && timeOffset) {
+                int32_t left = timeOffset + static_cast<int32_t>(entry->m_time) - static_cast<int32_t>(time(nullptr)) - 1;
+
+                if (left < 0) {
+                    left = 0;
+                }
+
+                lua_pushnumber(L, left);
+                return 1;
+            }
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: b1296081 manual
+// OFFSET: 0x005E43F0
+static int32_t Script_IsCurrentQuestFailed(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        int32_t index = CGQuestLog::GetSelectedLogEntry();
+        uint32_t slot = index < 0 ? 0 : CGQuestLog::m_quests[index].m_logSlot;
+
+        if (slot <= 25) {
+            PlayerQuestLogEntry* entry = &player->m_player->m_playerQuestLog[slot];
+
+            if (entry && ((entry->m_state & 2) || CGQuestLog::IsSelectedQuestExpired())) {
+                lua_pushnumber(L, 1.0);
+                return 1;
+            }
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 1b10b958 manual
+// OFFSET: 0x005E4070
+static int32_t Script_IsUnitOnQuest(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
+        return luaL_error(L, "Usage: IsUnitOnQuest(index, \"unit\")");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t questId;
+    CGPlayer_C* member;
+    WOWGUID guid;
+
+    if (index >= 0 && index < CGQuestLog::m_numQuest && !CGQuestLog::m_quests[index].m_isHeader && (questId = CGQuestLog::m_quests[index].m_questId) && (guid = GetGuidByKeyword(lua_tolstring(L, 2, nullptr)), CGPartyInfo::IsMember(guid)) && (member = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__))) && !(member->m_modelFlags & 0x10000)) {
+        for (uint32_t slot = 0; slot < 25; slot++) {
+            PlayerQuestLogEntry* entry = member->GetQuestLogEntry(slot);
+
+            if (entry && static_cast<int32_t>(entry->m_questId) == questId) {
+                lua_pushnumber(L, 1.0);
+                return 1;
+            }
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 6fb51c50 auto
+// OFFSET: 0x005E4840
+static int32_t Script_GetQuestLogSpellLink(lua_State* L) {
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+
+    if (quest && quest->m_rewardSpellId) {
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(quest->m_rewardSpellId, &spell)) {
+            lua_pushstring(L, CGTooltip::GetSpellLink(quest->m_rewardSpellId));
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 8200413a manual
+// OFFSET: 0x005E49B0
+static int32_t Script_GetQuestLogRewardXP(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    int32_t questId = CGQuestLog::m_selectedQuest;
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(questId, none, nullptr, nullptr, false);
+    int32_t xp = 0;
+
+    if (player && quest) {
+        int32_t level = player->m_unit->m_unitFieldLevel;
+
+        if (level < static_cast<int32_t>(player->m_player->m_playerFieldMaxLevel)) {
+            xp = CalculateExperience(questId, level);
+
+            for (uint32_t i = 0; i < 5; i++) {
+                WOWGUID guid = GetPartyMemberGUID(i);
+                CGPlayer_C* member = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+                if (!member || !player->IsRAFPlayer(guid) || !(player->GetDistanceToPos(member->GetPosition()) < 10000.0f)) {
+                    continue;
+                }
+
+                int32_t questLevel = quest->m_level;
+
+                if (questLevel != -1) {
+                    int32_t playerLevel = player->m_unit->m_unitFieldLevel;
+
+                    if (playerLevel > questLevel + player->GetQuestGreenRange()) {
+                        continue;
+                    }
+
+                    int32_t memberLevel = member->m_unit->m_unitFieldLevel;
+
+                    if (memberLevel > questLevel + member->GetQuestGreenRange() || playerLevel < static_cast<int32_t>(quest->m_requiredLevel) || memberLevel < static_cast<int32_t>(quest->m_requiredLevel)) {
+                        continue;
+                    }
+                }
+
+                if (static_cast<int32_t>(player->m_unit->m_unitFieldLevel) < 60) {
+                    xp *= 3;
+                }
+            }
+
+            xp = static_cast<int32_t>(player->GetQuestXPMultiplier() * xp);
+        }
+    }
+
+    lua_pushnumber(L, xp);
+    return 1;
+}
+
+// VERIFY: ef8d1cce manual
+// OFFSET: 0x005E4C10
+static int32_t Script_GetQuestLogRewardTitle(lua_State* L) {
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+    int32_t titleId = quest ? quest->m_rewardTitleId : 0;
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CharTitlesRec* title = g_charTitlesDB.GetRecord(titleId);
+
+    if (!title) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    int32_t gender;
+    const char* name;
+
+    if (player) {
+        gender = player->m_player->m_playerBytes3[0];
+        name = player->GetUnitName(nullptr, 1);
+    } else {
+        gender = 0;
+        name = "";
+    }
+
+    const char* format = title->m_name1;
+
+    if (!*format || (gender != 1 && *title->m_name)) {
+        format = title->m_name;
+    }
+
+    char buffer[256];
+    SStrPrintf(buffer, sizeof(buffer), format, name);
+    lua_pushstring(L, buffer);
+    return 1;
+}
+
+// VERIFY: a36436a8 manual
+// OFFSET: 0x005E4ED0
+static int32_t Script_QuestLogPushQuest(lua_State* L) {
+    int64_t value = static_cast<int64_t>(lua_tonumber(L, 1));
+    int32_t questId;
+
+    if (value) {
+        int32_t index = static_cast<int32_t>(value - 1);
+        questId = index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader ? 0 : CGQuestLog::m_quests[index].m_questId;
+    } else {
+        questId = CGQuestLog::m_selectedQuest;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(questId, none, nullptr, nullptr, false);
+
+    if (player && quest && (quest->m_flags & 0x8) && (CGPartyInfo::m_members[0] || CGRaidInfo::m_numMembers)) {
+        CGPlayer_C::PushQuestToParty(questId);
+    }
+
+    return 0;
+}
+
+// VERIFY: 7dbc9ebd manual
+// OFFSET: 0x005E52D0
+static int32_t Script_GetQuestLogSpecialItemInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: GetQuestLogSpecialItemInfo(index)");
+    }
+
+    CGItem_C* item = CGQuestLog::GetQuestSpecialItem(static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, 1)) - 1));
+
+    if (!item) {
+        return 0;
+    }
+
+    lua_pushstring(L, CGTooltip::GetItemHyperlinkString(item));
+    const char* path = ClientDBStringLookup(3);
+    char texture[260];
+    SStrPrintf(texture, sizeof(texture), "%s%s%s", path, *path ? "\\" : "", item->GetInventoryArt());
+    lua_pushstring(L, texture);
+    lua_pushnumber(L, item->GetCurrentSpellCharges());
+    return 3;
+}
+
+// VERIFY: 32fe8f32 manual
+// OFFSET: 0x005E53D0
+static int32_t Script_GetQuestLogSpecialItemCooldown(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: GetQuestLogSpecialItemCooldown(index)");
+    }
+
+    CGItem_C* item = CGQuestLog::GetQuestSpecialItem(static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, 1)) - 1));
+
+    if (!item) {
+        return 0;
+    }
+
+    uint32_t start = 0;
+    uint32_t duration = 0;
+    uint32_t enable = 0;
+    Spell_C_GetItemCooldown(item, &duration, &start, &enable);
+    lua_pushnumber(L, start * 0.001);
+    lua_pushnumber(L, duration * 0.001);
+    lua_pushnumber(L, enable);
+    return 3;
+}
+
+// VERIFY: 19155561 manual
+// OFFSET: 0x005E54C0
+static int32_t Script_IsQuestLogSpecialItemInRange(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: IsQuestLogSpecialItemInRange(index [,target])");
+    }
+
+    CGItem_C* item = CGQuestLog::GetQuestSpecialItem(static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
+    int32_t spellId = item ? item->GetEnchantmentSpell(0) : 0;
+    SpellRec spell;
+    CGPlayer_C* player;
+    WOWGUID target;
+    uint8_t inRange;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && (player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__))) && Script_GetGUIDFromToken(lua_tolstring(L, 2, nullptr), target, true) && Spell_C_RangeCheckSelected(player, &spell, target, &inRange, 0, 0)) {
+        lua_pushnumber(L, inRange ? 1.0 : 0.0);
+        return 1;
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 803edb52 manual
+// OFFSET: 0x005E5640
+static int32_t Script_UseQuestLogSpecialItem(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: UseQuestLogSpecialItem(index)");
+    }
+
+    CGItem_C* item = CGQuestLog::GetQuestSpecialItem(static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, 1)) - 1));
+
+    if (item) {
+        WOWGUID target = { 0 };
+        item->UseItem(&target, 0);
+    }
+
+    return 0;
+}
+
+// VERIFY: 07c6118c auto
+// OFFSET: 0x005E56C0
+static int32_t Script_GetQuestWorldMapAreaID(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: GetQuestWorldMapAreaID(questID)");
+    }
+
+    int32_t floor = 0;
+    int32_t area = CGQuestLog::GetQuestWorldMapAreaID(static_cast<int32_t>(lua_tonumber(L, 1)), &floor);
+    lua_pushnumber(L, area);
+    lua_pushnumber(L, floor);
+    return 2;
+}
+
+// VERIFY: d56d7966 auto
+// OFFSET: 0x005E5740
+static int32_t Script_QuestPOIUpdateIcons(lua_State* L) {
+    CGQuestLog::UpdatePOIIcons();
+    return 0;
+}
+
+// VERIFY: d4a34e6d manual
+// OFFSET: 0x005E5750
+static int32_t Script_QuestPOIGetQuestIDByVisibleIndex(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: Script_QuestPOIGetQuestIDByVisibleIndex(index)");
+    }
+
+    int32_t questId = CGQuestLog::GetPOIQuestIDByVisibleIndex(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+
+    if (questId < 0) {
+        return 0;
+    }
+
+    lua_pushnumber(L, questId);
+    lua_pushnumber(L, CGQuestLog::GetQuestIndex(questId));
+    return 2;
+}
+
+// VERIFY: 75a8ac68 manual
+// OFFSET: 0x005E5CC0
+static int32_t Script_GetQuestLogTitle(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return luaL_error(L, "Usage: GetQuestLogTitle(index)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    lua_pushstring(L, GetQuestTitle(index));
+    int32_t level = index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader ? 0 : GetQuestLevel(CGQuestLog::m_quests[index].m_questId);
+    lua_pushnumber(L, level);
+    lua_pushstring(L, GetQuestTag(index));
+    lua_pushnumber(L, GetQuestSuggestedPlayers(index));
+
+    if (index >= 0 && index < CGQuestLog::m_numQuest && CGQuestLog::m_quests[index].m_isHeader) {
+        lua_pushnumber(L, 1.0);
+        uint32_t sortId = GetQuestSortId(index);
+
+        if (sortId >= 25 || ((1 << sortId) & s_cvQuestLogCollapseFilter->m_intValue)) {
+            lua_pushnil(L);
+        } else {
+            lua_pushnumber(L, 1.0);
+        }
+    } else {
+        lua_pushnil(L);
+        lua_pushnil(L);
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    bool failed = false;
+
+    if (player) {
+        if (index >= 0 && index < CGQuestLog::m_numQuest && !CGQuestLog::m_quests[index].m_isHeader) {
+            uint32_t slot = CGQuestLog::m_quests[index].m_logSlot;
+
+            if (slot <= 25) {
+                PlayerQuestLogEntry* entry = &player->m_player->m_playerQuestLog[slot];
+
+                if (entry && (entry->m_state & 2)) {
+                    failed = true;
+                }
+            }
+        }
+
+        if (!failed && index < CGQuestLog::m_numQuest && !CGQuestLog::m_quests[index].m_isHeader && CGQuestLog::m_quests[index].m_expired) {
+            failed = true;
+        }
+
+        if (failed) {
+            lua_pushnumber(L, -1.0);
+        } else if (CGQuestLog::IsQuestCompleteEx(index, 1)) {
+            lua_pushnumber(L, 1.0);
+        } else {
+            lua_pushnil(L);
+        }
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (IsDailyQuest(index)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    int32_t questId = index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader ? 0 : CGQuestLog::m_quests[index].m_questId;
+    lua_pushnumber(L, questId);
+    CVar* displayQuestId = CVar::Lookup("displayQuestID");
+
+    if (!displayQuestId || !displayQuestId->m_intValue) {
+        return 9;
+    }
+
+    lua_pushboolean(L, 1);
+    return 10;
+}
+
+// VERIFY: d25e98b1 auto
+// OFFSET: 0x005E64B0
+static int32_t Script_SortQuestWatches(lua_State* L) {
+    lua_pushboolean(L, CGQuestLog::SortQuestWatches());
+    return 1;
+}
+
+// VERIFY: 513c8836 auto
+// OFFSET: 0x005E6DE0
+static int32_t Script_GetQuestResetTime(lua_State* L) {
+    int32_t now = static_cast<int32_t>(time(nullptr));
+
+    if (CGQuestLog::m_nextQuestUpdate && now >= CGQuestLog::m_nextQuestUpdate) {
+        CGQuestLog::Update(1);
+    }
+
+    lua_pushnumber(L, CGQuestLog::m_questResetTime - now);
+    return 1;
 }
 
 // STATIC: 0x00AD1020

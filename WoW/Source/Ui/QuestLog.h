@@ -7,6 +7,7 @@
 #include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/Net/Types.h"
 
+class CGItem_C;
 class CDataStore;
 
 struct lua_State;
@@ -57,8 +58,42 @@ struct QuestWatch {
     /* 0008 */ uint32_t unk_0008;
 };
 
+void QuestQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void ItemQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+int32_t GetQuestSuggestedPlayers(int32_t index);
+int32_t GetQuestSortId(uint32_t index);
+const char* GetQuestTitleText(int32_t questId);
+const char* GetQuestTitle(int32_t index);
+const char* GetQuestTag(int32_t index);
+int32_t GetQuestLevel(int32_t questId);
+uint32_t IsDailyQuest(int32_t index);
+int32_t CalculateExperience(int32_t questId, int32_t level);
+int32_t GetNumQuestLeaderBoards(int32_t questId, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param);
+int32_t CountQuestItemDropsNeeded(int32_t questId, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param);
+
 class CGQuestLog {
     public:
+    static int32_t m_sortTypes[25];
+    static uint32_t m_numSortTypes;
+    static int32_t m_questResetTime;
+    static uint8_t m_trackedQuestsLoaded;
+    static void FilterAndSortQuests();
+    static void LoadTrackedQuests();
+    static bool HasQuestPOI(int32_t questId);
+    static int32_t IsSelectedQuestExpired();
+    static void RemoveQuestWatch(int32_t questId);
+    static void ShiftQuestWatches(uint32_t from, uint32_t to);
+    static CGItem_C* GetQuestSpecialItem(uint32_t index);
+    static void UpdatePOIIcons();
+    static int32_t GetQuestWorldMapAreaID(int32_t questId, int32_t* floor);
+    static int32_t GetPOIQuestIDByVisibleIndex(int32_t index);
+    static void AbandonSelectedQuest();
+    static int32_t AddQuestWatch(int32_t questId, int32_t duration);
+    static bool SortQuestWatches();
+    static void CollapseHeader(uint32_t index, int32_t collapse);
+    static int32_t GetQuestIndex(int32_t questId);
+    static int32_t IsQuestFailed(uint32_t index);
+    static bool HasNoObjectives(uint32_t index);
     static QuestLogEntry m_quests[50];
     static QuestPOIInfo m_questPOIs[25];
     static int32_t m_abandonQuest;
@@ -89,58 +124,12 @@ class CGQuestLog {
     static void HandlePOIQueryResponse(CDataStore* msg);
 };
 
-int32_t Script_GetQuestLogTitle(lua_State* L);
-int32_t Script_GetAbandonQuestItems(lua_State* L);
-int32_t Script_AbandonQuest(lua_State* L);
-int32_t Script_IsUnitOnQuest(lua_State* L);
-int32_t Script_GetQuestLogQuestText(lua_State* L);
-int32_t Script_GetNumQuestLeaderBoards(lua_State* L);
 int32_t Script_GetQuestLogLeaderBoard(lua_State* L);
-int32_t Script_GetNumQuestItemDrops(lua_State* L);
 int32_t Script_GetQuestLogItemDrop(lua_State* L);
 int32_t Script_GetQuestPOILeaderBoard(lua_State* L);
-int32_t Script_GetQuestLogTimeLeft(lua_State* L);
-int32_t Script_IsCurrentQuestFailed(lua_State* L);
-int32_t Script_GetNumQuestLogRewards(lua_State* L);
-int32_t Script_GetNumQuestLogChoices(lua_State* L);
-int32_t Script_GetQuestLogRewardInfo(lua_State* L);
-int32_t Script_GetQuestLogChoiceInfo(lua_State* L);
-int32_t Script_GetQuestLogItemLink(lua_State* L);
-int32_t Script_GetQuestLogSpellLink(lua_State* L);
-int32_t Script_GetQuestLogRewardMoney(lua_State* L);
-int32_t Script_GetQuestLogRewardXP(lua_State* L);
-int32_t Script_GetQuestLogRewardHonor(lua_State* L);
-int32_t Script_GetQuestLogRewardSpell(lua_State* L);
-int32_t Script_GetQuestLogRequiredMoney(lua_State* L);
-int32_t Script_QuestLogPushQuest(lua_State* L);
-int32_t Script_GetQuestIndexForTimer(lua_State* L);
-int32_t Script_CollapseQuestHeader(lua_State* L);
-int32_t Script_ExpandQuestHeader(lua_State* L);
-int32_t Script_AddQuestWatch(lua_State* L);
-int32_t Script_RemoveQuestWatch(lua_State* L);
-int32_t Script_GetQuestLogGroupNum(lua_State* L);
-int32_t Script_GetQuestResetTime(lua_State* L);
-int32_t Script_GetQuestLink(lua_State* L);
-int32_t Script_GetQuestLogRewardTitle(lua_State* L);
-int32_t Script_GetQuestLogRewardTalents(lua_State* L);
-int32_t Script_GetQuestLogRewardArenaPoints(lua_State* L);
-int32_t Script_GetQuestLogSpecialItemInfo(lua_State* L);
-int32_t Script_GetQuestLogSpecialItemCooldown(lua_State* L);
-int32_t Script_IsQuestLogSpecialItemInRange(lua_State* L);
-int32_t Script_UseQuestLogSpecialItem(lua_State* L);
-int32_t Script_ProcessQuestLogRewardFactions(lua_State* L);
-int32_t Script_GetQuestLogRewardFactionInfo(lua_State* L);
-int32_t Script_SortQuestWatches(lua_State* L);
-int32_t Script_ShiftQuestWatches(lua_State* L);
 int32_t Script_QuestMapUpdateAllQuests(lua_State* L);
-int32_t Script_GetQuestSortIndex(lua_State* L);
-int32_t Script_GetQuestWorldMapAreaID(lua_State* L);
 int32_t Script_QuestPOIUpdateTexture(lua_State* L);
-int32_t Script_QuestPOIUpdateIcons(lua_State* L);
 int32_t Script_QuestPOIGetIconInfo(lua_State* L);
-int32_t Script_QuestPOIGetQuestIDByIndex(lua_State* L);
-int32_t Script_QuestPOIGetQuestIDByVisibleIndex(lua_State* L);
-int32_t Script_GetQuestLogCompletionText(lua_State* L);
 void QuestLogRegisterScriptFunctions();
 void AddQuestPointDisplay();
 void DisplayQuestFailed(int32_t id, const WOWGUID& guid, void* param, bool success);

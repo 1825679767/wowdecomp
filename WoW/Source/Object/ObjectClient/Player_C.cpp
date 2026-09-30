@@ -76,6 +76,7 @@
 #include "WoW/Source/DB/Rec/AreaTableRec.h"
 #include "WoW/Source/Ui/CGTabardCreationFrame.h"
 #include <malloc.h>
+#include "WoW/Source/Ui/ReputationInfo.h"
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -5290,5 +5291,79 @@ int32_t __stdcall CGPlayer_C::OnQuestGiverQuestDetails(CDataStore* msg) {
     CGQuestInfo::SetState(npc, inform, 1, details, questId, startCheat);
     CGQuestInfo::SetLogDescription(objectives);
     CGQuestInfo::AddReward(title, choiceItems, choiceDisplays, choiceCounts, numChoices, rewardItems, rewardDisplays, rewardCounts, numRewards, money, xp, honor, honorMultiplier, spell, spellCast, autoLaunched, suggestedGroupNum, rewardTitle, talents, arenaPoints, factionMask, factionIDs, factionValues, factionOverrides, flags);
+    return 1;
+}
+
+// VERIFY: ba5bd839 manual
+// OFFSET: 0x006D2DE0
+void CGPlayer_C::BuyItem(WOWGUID vendor, const MerchantItem* item, uint32_t count, uint8_t a5) {
+    if (!item) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_BUY_ITEM));
+    msg.Put(vendor.m_guid);
+    msg.Put(static_cast<uint32_t>(item->m_itemID));
+    msg.Put(static_cast<uint32_t>(item->m_slot));
+    msg.Put(count);
+    msg.Put(a5);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 604e7050 manual
+// OFFSET: 0x006DC3F0
+int32_t CGPlayer_C::CanUseItem(const ItemStats_C* stats, int32_t& error) {
+    error = ERR_MAX_VALUE;
+
+    if (!stats) {
+        error = ERR_ITEM_NOT_FOUND;
+        return 0;
+    }
+
+    CGUnitData* unit = this->m_unit;
+
+    if (static_cast<int32_t>(stats->m_requiredLevel) > static_cast<int32_t>(unit->m_unitFieldLevel) || !((1 << (unit->m_unitFieldBytes0[1] - 1)) & stats->m_allowableClass) || !((1 << (unit->m_unitFieldBytes0[0] - 1)) & stats->m_allowableRace)) {
+        error = ERR_CANT_USE_ITEM;
+        return 0;
+    }
+
+    uint8_t itemClass = static_cast<uint8_t>(stats->m_class);
+
+    if (itemClass < 17 && s_proficiency[itemClass] && !(s_proficiency[itemClass] & (1 << stats->m_subClass))) {
+        error = ERR_PROFICIENCY_NEEDED;
+        return 0;
+    }
+
+    if (stats->m_requiredSkill && !(stats->m_flags[0] & 0x20040000)) {
+        int32_t index = this->GetSkillIndex(stats->m_requiredSkill);
+
+        if (index < 0 || static_cast<int32_t>(this->GetSkillValue(index)) < static_cast<int32_t>(stats->m_requiredSkillRank)) {
+            error = ERR_CANT_USE_ITEM;
+            return 0;
+        }
+    }
+
+    if (stats->m_requiredSpell && !this->IsSpellKnown(stats->m_requiredSpell) && !this->IsSpellSuperceded(stats->m_requiredSpell)) {
+        error = ERR_CANT_USE_ITEM;
+        return 0;
+    }
+
+    if (stats->m_requiredHonorRank && static_cast<int32_t>(this->m_player->m_playerFieldBytes[3]) < static_cast<int32_t>(stats->m_requiredHonorRank)) {
+        error = ERR_CANT_USE_ITEM;
+        return 0;
+    }
+
+    if (stats->m_requiredCityRank && !this->HasPvpMedal(static_cast<uint8_t>(stats->m_requiredCityRank))) {
+        error = ERR_CANT_USE_ITEM;
+        return 0;
+    }
+
+    if (stats->m_requiredReputationFaction && GetRepListRepValue(stats->m_requiredReputationFaction) < CGReputationInfo::m_reactionThresholds[stats->m_requiredReputationRank]) {
+        error = ERR_CANT_USE_ITEM;
+        return 0;
+    }
+
     return 1;
 }

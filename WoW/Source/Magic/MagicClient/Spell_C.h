@@ -151,6 +151,7 @@ bool Spell_C_TargetingSpellAllowsTerrain();
 bool Spell_C_CanTargetCorpse(const CGCorpse_C* corpse);
 bool Spell_C_CanTargetObject(const CGGameObject_C* object);
 bool Spell_C_IsTargeting();
+bool Spell_C_RangeCheckSelected(CGUnit_C* caster, const SpellRec* spell, WOWGUID target, uint8_t* inRange, int32_t a5, int32_t a6);
 extern PendingSpellCast* s_targetingSpell;
 extern uint32_t s_needTargets;
 int32_t Spell_C_IsCursorWorldObjectHousing();

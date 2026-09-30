@@ -28,6 +28,9 @@ struct QuestGiverQuest {
 
 class CGQuestInfo {
     public:
+    static int32_t m_rewardFactionList[10];
+    static int32_t m_rewardFactionAmounts[10];
+    static int32_t IsLowLevel(int32_t level);
     static int32_t m_state;
     static int32_t m_currentQuest;
     static int32_t m_autoLaunched;
@@ -45,6 +48,8 @@ class CGQuestInfo {
     static void ClearState();
     static void ClearQuestItems();
     static void ProcessQuestLogRewardFactions();
+    static void InitRewRepFields(uint32_t index, int32_t faction, int32_t value, int32_t override);
+    static void InitRewRepShowMask(uint32_t mask);
     static void SetState(WOWGUID npc, WOWGUID inform, int32_t state, const char* text, int32_t questId, int32_t startCheat);
     static void SetLogDescription(const char* text);
     static void AddReward(const char* title, const uint32_t* choiceItems, const uint32_t* choiceDisplays, const uint32_t* choiceCounts, int32_t numChoices, const uint32_t* rewardItems, const uint32_t* rewardDisplays, const uint32_t* rewardCounts, int32_t numRewards, int32_t money, int32_t xp, uint32_t honor, float honorMultiplier, int32_t spell, int32_t spellCast, int32_t autoLaunched, int32_t suggestedGroupNum, int32_t rewardTitle, int32_t talents, int32_t arenaPoints, uint32_t factionMask, const uint32_t* factionIDs, const uint32_t* factionValues, const uint32_t* factionOverrides, uint32_t questFlags);

@@ -97,6 +97,9 @@
 #include "WoW/Source/Ui/LootFrame.h"
 #include "WoW/Source/UIUtil/Cursor.h"
 
+// STATIC: 0x00AD2AAC
+static const char* s_spellLinkColorString = "|cff71d5ff";
+
 // STATIC: 0x00C5CF4C
 int32_t CGTooltip::s_objectType;
 
@@ -5830,4 +5833,39 @@ int32_t CGTooltip::SetItem(int32_t itemId, const WOWGUID* requester, const WOWGU
     this->Show();
     this->CalculateSize();
     return needsUpdate;
+}
+
+// VERIFY: 223b2ae6 auto
+// OFFSET: 0x0061E360
+const char* CGTooltip::GetItemHyperlinkString(int32_t itemId, uint32_t quality, int32_t enchant, int32_t randomPropertiesId, int32_t seed) {
+    int32_t gems[3] = { 0 };
+    return CGTooltip::CreateItemLink(itemId, quality, enchant, gems, randomPropertiesId, seed);
+}
+
+// VERIFY: 2118de6f auto
+// OFFSET: 0x0061E5C0
+const char* CGTooltip::GetQuestLink(int32_t questId, int32_t level) {
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(questId, none, nullptr, nullptr, false);
+
+    if (!quest) {
+        return "";
+    }
+
+    const char* color = CGTooltip::GetQuestDifficultyColorString(level);
+    SStrPrintf(s_itemLink, sizeof(s_itemLink), "%s|Hquest:%d:%d|h[%s]|h%s", color, questId, quest->m_level, quest->m_name, *color ? "|r" : "");
+    return s_itemLink;
+}
+
+// VERIFY: 0e99f273 auto
+// OFFSET: 0x0061E4B0
+const char* CGTooltip::GetSpellLink(int32_t spellId) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return "";
+    }
+
+    SStrPrintf(s_itemLink, sizeof(s_itemLink), "%s|Hspell:%d|h[%s]|h%s", s_spellLinkColorString, spellId, spell.m_name, *s_spellLinkColorString ? "|r" : "");
+    return s_itemLink;
 }

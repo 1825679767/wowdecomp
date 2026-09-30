@@ -65,6 +65,7 @@ class CGItem_C : public CGObject_C, public CGItem {
     uint32_t GetDisplayID() const;
     uint32_t GetEnchantmentTimeLeft(int32_t slot) const;
     int32_t UseItem(WOWGUID* target, int32_t a2);
+    int32_t CanBeUsed();
     uint32_t GetExpirationTimeLeft() const;
     char* GetFullItemName(char* buffer, uint32_t size) const;
     uint32_t GetInventoryType() const;

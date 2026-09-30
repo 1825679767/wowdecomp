@@ -15,6 +15,10 @@
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/ChatFrame.h"
+#include "WoW/Source/Net/Types.h"
+
+// STATIC: 0x00A12FD0
+static const int32_t s_questGreenRange[20] = { 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8 };
 
 // STATIC: 0x00BFC968
 GossipQuestInfo CGGossipInfo::m_quests[32];
@@ -194,7 +198,7 @@ void CGGossipInfo::SetGossipText(int32_t textId) {
     FrameScript_SignalEvent(SCRIPT_EVENT_GOSSIP_SHOW, nullptr);
 }
 
-// VERIFY: 29396e6a manual
+// VERIFY: d88a5144 manual
 // OFFSET: 0x0058B1B0
 int32_t Packet_SMSG_GOSSIP_MESSAGE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     WOWGUID guid;
@@ -251,7 +255,7 @@ int32_t Packet_SMSG_GOSSIP_MESSAGE(void* param, NETMESSAGE msgId, uint32_t time,
         GossipQuestInfo& quest = CGGossipInfo::m_quests[i];
         msg->Get(quest.m_questID);
         msg->Get(quest.m_icon);
-        msg->Get(quest.m_level);
+        msg->Get(reinterpret_cast<uint32_t&>(quest.m_level));
         msg->Get(quest.m_flags);
 
         uint8_t repeatable = 0;
@@ -262,4 +266,197 @@ int32_t Packet_SMSG_GOSSIP_MESSAGE(void* param, NETMESSAGE msgId, uint32_t time,
 
     CGGossipInfo::SetGossipText(textId);
     return 1;
+}
+
+// VERIFY: a6fc8431 manual
+// OFFSET: 0x0058A5D0
+int32_t CGGossipInfo::GetNumAvailableQuests() {
+    int32_t count = 0;
+
+    for (uint32_t i = 0; i < 32; i++) {
+        if (!CGGossipInfo::m_quests[i].m_questID) {
+            break;
+        }
+
+        if (CGGossipInfo::m_quests[i].m_icon != 3 && CGGossipInfo::m_quests[i].m_icon != 4) {
+            count++;
+        }
+    }
+
+    return count;
+}
+
+// VERIFY: 419ae02f auto
+// OFFSET: 0x0058A660
+GossipQuestInfo* CGGossipInfo::GetAvailableQuest(int32_t index) {
+    int32_t found = 0;
+
+    for (uint32_t i = 0; i < 32; i++) {
+        if (!CGGossipInfo::m_quests[i].m_questID) {
+            return nullptr;
+        }
+
+        if (CGGossipInfo::m_quests[i].m_icon != 3 && CGGossipInfo::m_quests[i].m_icon != 4) {
+            if (found == index) {
+                return &CGGossipInfo::m_quests[i];
+            }
+
+            found++;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 16fb1584 manual
+// OFFSET: 0x0058A6C0
+int32_t CGGossipInfo::GetNumActiveQuests() {
+    int32_t count = 0;
+
+    for (uint32_t i = 0; i < 32; i++) {
+        if (!CGGossipInfo::m_quests[i].m_questID) {
+            break;
+        }
+
+        if (CGGossipInfo::m_quests[i].m_icon == 3 || CGGossipInfo::m_quests[i].m_icon == 4) {
+            count++;
+        }
+    }
+
+    return count;
+}
+
+// VERIFY: d3d99b53 auto
+// OFFSET: 0x0058A750
+GossipQuestInfo* CGGossipInfo::GetActiveQuest(int32_t index) {
+    int32_t found = 0;
+
+    for (uint32_t i = 0; i < 32; i++) {
+        if (!CGGossipInfo::m_quests[i].m_questID) {
+            return nullptr;
+        }
+
+        if (CGGossipInfo::m_quests[i].m_icon == 3 || CGGossipInfo::m_quests[i].m_icon == 4) {
+            if (found == index) {
+                return &CGGossipInfo::m_quests[i];
+            }
+
+            found++;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 19587bce manual
+// OFFSET: 0x0058ABA0
+int32_t CGQuestInfo::IsLowLevel(int32_t level) {
+    if (level == -1) {
+        return 0;
+    }
+
+    uint32_t band = static_cast<int32_t>(static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__))->m_unit->m_unitFieldLevel) / 5;
+    int32_t range = band < 20 ? s_questGreenRange[band] : 8;
+    return level + range < static_cast<int32_t>(static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__))->m_unit->m_unitFieldLevel);
+}
+
+// VERIFY: 6deef597 manual
+// OFFSET: 0x0058AF10
+void CGGossipInfo::SelectGossipOption(int32_t index, const char* code, int32_t confirmed) {
+    if (CGGossipInfo::m_textPending || index < 0 || index >= 32) {
+        return;
+    }
+
+    GossipOption& option = CGGossipInfo::m_options[index];
+
+    if (option.m_index == -1) {
+        return;
+    }
+
+    if (option.m_boxText && !confirmed) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_GOSSIP_CONFIRM, "%d%s%d", index + 1, option.m_boxText, option.m_boxMoney);
+        return;
+    }
+
+    if ((option.m_coded & 1) && (!code || !*code)) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_GOSSIP_ENTER_CODE, "%d", index + 1);
+        return;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && option.m_boxMoney > player->GetCoinage()) {
+        CGGameUI::DisplayError(ERR_NOT_ENOUGH_MONEY);
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_GOSSIP_SELECT_OPTION));
+    msg.Put(CGGossipInfo::m_gossip.m_guid);
+    msg.Put(CGGossipInfo::unk_C016F8);
+    msg.Put(static_cast<uint32_t>(option.m_index));
+
+    if (option.m_coded & 1) {
+        msg.PutString(code);
+    }
+
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    CGGossipInfo::ClearOptions();
+    FrameScript_SignalEvent(SCRIPT_EVENT_GOSSIP_CONFIRM_CANCEL, nullptr);
+}
+
+// VERIFY: b9f3085b manual
+// OFFSET: 0x0058B070
+void CGGossipInfo::SelectGossipAvailableQuest(int32_t index) {
+    int32_t found = 0;
+
+    for (uint32_t i = 0; i < 32; i++) {
+        GossipQuestInfo& quest = CGGossipInfo::m_quests[i];
+
+        if (!quest.m_questID) {
+            break;
+        }
+
+        if (quest.m_icon == 3 || quest.m_icon == 4) {
+            continue;
+        }
+
+        if (found == index && ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+            WOWGUID gossip = CGGossipInfo::m_gossip;
+
+            if (quest.m_icon) {
+                CGPlayer_C::QueryQuest(gossip, quest.m_questID);
+            } else {
+                CGPlayer_C::CompleteQuest(gossip, quest.m_questID);
+            }
+        }
+
+        found++;
+    }
+}
+
+// VERIFY: c971dae1 manual
+// OFFSET: 0x0058B120
+void CGGossipInfo::SelectGossipActiveQuest(int32_t index) {
+    int32_t found = 0;
+
+    for (uint32_t i = 0; i < 32; i++) {
+        GossipQuestInfo& quest = CGGossipInfo::m_quests[i];
+
+        if (!quest.m_questID) {
+            break;
+        }
+
+        if (quest.m_icon != 3 && quest.m_icon != 4) {
+            continue;
+        }
+
+        if (found == index && ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+            WOWGUID gossip = CGGossipInfo::m_gossip;
+            CGPlayer_C::CompleteQuest(gossip, quest.m_questID);
+        }
+
+        found++;
+    }
 }

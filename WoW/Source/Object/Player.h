@@ -26,6 +26,9 @@ struct PlayerSkillInfo {
 
 class CGPlayer {
     public:
+    PlayerQuestLogEntry* GetQuestLogEntry(uint32_t slot);
+    uint32_t GetBuybackPrice(uint32_t slot);
+    bool HasPvpMedal(uint8_t medal);
     static const uint32_t s_mirrorFields[173];
     static const uint32_t s_localMirrorFields[870];
 
