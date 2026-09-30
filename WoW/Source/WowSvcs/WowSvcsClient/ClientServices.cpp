@@ -6,6 +6,7 @@
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/ConsoleBase/Types.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
+#include "Engine/Source/Os/System.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Client.h"
 #include "WoW/Source/Game/GameClient/WardenClient.h"
@@ -1307,4 +1308,10 @@ void ClientConnection::CharacterLogout(bool quit, bool instant) {
     msg.Put(static_cast<uint32_t>(instant ? CMSG_PLAYER_LOGOUT : CMSG_LOGOUT_REQUEST));
     msg.Finalize();
     this->Send(&msg);
+}
+
+// VERIFY: a547ad11 auto
+// OFFSET: 0x006B0F30
+int32_t ClientServices::LaunchURL(const char* url) {
+    return OsLaunchURL(url);
 }

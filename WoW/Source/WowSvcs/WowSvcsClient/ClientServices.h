@@ -118,6 +118,7 @@ class ClientServices : public LoginResponse {
     static uint8_t GetCharacterRace();
     static uint8_t GetCharacterSex();
     static const char* GetSelectedRealmName();
+    static int32_t LaunchURL(const char* url);
     static const char* GetServerAlertURL();
     static Login* LoginConnection();
     static void Logon(const char* username, const char* password);

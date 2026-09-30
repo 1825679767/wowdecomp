@@ -33,7 +33,6 @@ int32_t Script_IsShiftKeyDown(lua_State* L);
 int32_t Script_GetLocale(lua_State* L);
 int32_t Script_QuitGameAndRunLauncher(lua_State* L);
 int32_t Script_PlayCreditsMusic(lua_State* L);
-int32_t Script_LaunchURL(lua_State* L);
 int32_t Script_Screenshot(lua_State* L);
 int32_t Script_PatchDownloadProgress(lua_State* L);
 int32_t Script_PatchDownloadCancel(lua_State* L);
@@ -55,7 +54,6 @@ int32_t Script_GetBillingPlan(lua_State* L);
 int32_t Script_GetBillingTimeRested(lua_State* L);
 int32_t Script_SurveyNotificationDone(lua_State* L);
 int32_t Script_PINEntered(lua_State* L);
-int32_t Script_GetCreditsText(lua_State* L);
 int32_t Script_MatrixEntered(lua_State* L);
 int32_t Script_MatrixRevert(lua_State* L);
 int32_t Script_MatrixCommit(lua_State* L);
@@ -954,6 +952,45 @@ static int32_t Script_GetAddOnEnableState(lua_State* L) {
     }
 
     lua_pushnumber(L, GetAddOnEnableState(name, character, true));
+    return 1;
+}
+
+// VERIFY: d6099889 auto
+// OFFSET: 0x004DC1C0
+static int32_t Script_LaunchURL(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: LaunchURL(\"URL\")");
+    }
+
+    ClientServices::LaunchURL(lua_tolstring(L, 1, nullptr));
+    return 0;
+}
+
+// VERIFY: 4a86e3b0 auto
+// OFFSET: 0x004DCD60
+static int32_t Script_GetCreditsText(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: Script_GetCreditText(versionIndex)");
+    }
+
+    int32_t version = static_cast<int32_t>(lua_tonumber(L, 1));
+    const char* filename;
+
+    if (version == 1) {
+        filename = "credits.html";
+    } else if (version == 2) {
+        filename = "credits_BC.html";
+    } else {
+        filename = "credits_LK.html";
+    }
+
+    void* text;
+
+    if (SFile::ReadFile(nullptr, filename, &text, nullptr, 1, 1, nullptr)) {
+        lua_pushstring(L, static_cast<const char*>(text));
+        SFile::Unload(text);
+    }
+
     return 1;
 }
 
