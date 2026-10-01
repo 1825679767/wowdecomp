@@ -76,10 +76,10 @@ DayNight::DNClouds DayNight::g_clouds;
 DayNight::DNPlanets DayNight::g_planets;
 
 // STATIC: 0x00D38EA8
-DayNight::DNGlare DayNight::g_sunGlare;
+DayNight::DNSunGlare DayNight::g_sunGlare;
 
 // STATIC: 0x00D38F58
-DayNight::DNGlare DayNight::g_moonGlare;
+DayNight::DNMoonGlare DayNight::g_moonGlare;
 
 // STATIC: 0x00AF4A68
 static int32_t s_useZoneLights = 1;
@@ -176,6 +176,18 @@ static float s_skyMinZ = 0.9990234375f;
 
 // STATIC: 0x00ADEEF4
 static float s_skyMaxZ = 1.0f;
+
+// STATIC: 0x00AF4B70
+static uint16_t s_glareIndices[4] = { 0, 2, 1, 3 };
+
+// STATIC: 0x00AF4CB0
+static C3Vector s_glareVertices[4] = { C3Vector(0.0f, -0.5f, 0.5f), C3Vector(0.0f, 0.5f, 0.5f), C3Vector(0.0f, -0.5f, -0.5f), C3Vector(0.0f, 0.5f, -0.5f) };
+
+// STATIC: 0x00AF4CE0
+static C2Vector s_glareTexCoords[4] = { C2Vector(0.0f, 0.0f), C2Vector(1.0f, 0.0f), C2Vector(0.0f, 1.0f), C2Vector(1.0f, 1.0f) };
+
+// STATIC: 0x00AF4DC0
+static float s_glarePower = 10.0f;
 
 // STATIC: 0x00D38188
 static float s_cloudFade[256];
@@ -1286,6 +1298,32 @@ void DayNight::DNClouds::WorldToTexture(const C3Vector* world, C2Vector* uv) {
 
     uv->x = (nx * radius + 0.5f) * this->m_size;
     uv->y = (radius * ny + 0.5f) * this->m_size;
+}
+
+// VERIFY: 7f090860 manual
+// OFFSET: 0x007EFA30
+float DayNight::DNClouds::GetDensity(const C3Vector* position, float scale) {
+    if (!this->m_enabled) {
+        return 0.0f;
+    }
+
+    C2Vector uv;
+    uv.x = 0.0f;
+    uv.y = 0.0f;
+    this->WorldToTexture(position, &uv);
+    uint32_t max = this->m_size - 1;
+    uint32_t x = static_cast<uint32_t>(static_cast<int64_t>(uv.x));
+    uint32_t y = static_cast<uint32_t>(static_cast<int64_t>(uv.y));
+
+    if (x > max) {
+        x = ~(static_cast<int32_t>(x) >> 31) & max;
+    }
+
+    if (y > max) {
+        y = ~(static_cast<int32_t>(y) >> 31) & max;
+    }
+
+    return this->m_densities.m_data[(y << this->m_shift) + x] * 0.0039215689f;
 }
 
 // VERIFY: e28145b2 manual
@@ -2848,4 +2886,203 @@ void DayNight::RenderGlares() {
     DayNight::g_sunGlare.Render();
     DayNight::g_moonGlare.Update(DayNight::g_dnInfo.m_deltaSec);
     DayNight::g_moonGlare.Render();
+}
+
+// VERIFY: e14afd01 auto
+// OFFSET: 0x007EE3F0
+DayNight::DNGlare::DNGlare() {
+    this->m_position.x = 0.0f;
+    this->m_position.y = 0.0f;
+    this->m_occlusionQuery = nullptr;
+    this->m_position.z = 0.0f;
+    this->m_color = CImVector();
+    this->unk_003C[0] = 0.0f;
+    this->unk_003C[1] = 0.0f;
+    this->unk_003C[2] = 0.0f;
+    this->unk_003C[3] = 0.0f;
+    this->unk_003C[4] = 0.0f;
+    this->unk_003C[5] = 0.0f;
+    this->unk_003C[6] = 0.0f;
+    this->unk_003C[7] = 0.0f;
+    this->unk_005C[0] = 0;
+    this->unk_005C[1] = 0;
+    this->unk_005C[2] = 0;
+    this->unk_005C[3] = 0;
+    this->m_alphaCurve[0].m_time = 0.0f;
+    this->m_alphaCurve[0].m_value = 0.0f;
+    this->m_planet = nullptr;
+    this->m_alphaCurve[1].m_time = 0.0f;
+    this->m_alphaCurve[1].m_value = 0.0f;
+    this->m_alphaCurve[2].m_time = 0.0f;
+    this->m_alphaCurve[2].m_value = 0.0f;
+    this->m_alphaCurve[3].m_time = 0.0f;
+    this->m_alphaCurve[3].m_value = 0.0f;
+}
+
+// VERIFY: 32883be1 auto
+// OFFSET: 0x007EF6E0
+void DayNight::DNGlare::Update(float deltaSec) {
+    this->m_fadeTarget = 1.0f;
+    float dx = this->m_position.x - DayNight::g_dnInfo.m_cameraPos.x;
+    float dy = this->m_position.y - DayNight::g_dnInfo.m_cameraPos.y;
+    float dz = this->m_position.z - DayNight::g_dnInfo.m_cameraPos.z;
+    float length = sqrt(dy * dy + dz * dz + dx * dx);
+    float dirX = dx * (1.0f / length);
+    float dirY = dy * (1.0f / length);
+    float dirZ = (1.0f / length) * dz;
+    this->m_fadeTarget = this->GetCloudDensityFade() * this->m_fadeTarget;
+    this->m_fadeTarget = this->GetLiquidDepthFade() * this->m_fadeTarget;
+    float skyboxWeight;
+
+    if (DayNight::g_dnInfo.m_skybox && DayNight::g_dnInfo.m_skyboxWeight > 0.0f) {
+        skyboxWeight = DayNight::g_dnInfo.m_skyboxWeight;
+    } else {
+        skyboxWeight = 0.0f;
+
+        if (DayNight::g_dnInfo.m_blendSkybox[0] && DayNight::g_dnInfo.m_blendSkyboxWeight[0] > 0.0f) {
+            skyboxWeight = DayNight::g_dnInfo.m_blendSkyboxWeight[0];
+        }
+
+        if (DayNight::g_dnInfo.m_blendSkybox[1] && DayNight::g_dnInfo.m_blendSkyboxWeight[1] > skyboxWeight) {
+            skyboxWeight = DayNight::g_dnInfo.m_blendSkyboxWeight[1];
+        }
+
+        if (DayNight::g_dnInfo.m_blendSkybox[2] && DayNight::g_dnInfo.m_blendSkyboxWeight[2] > skyboxWeight) {
+            skyboxWeight = DayNight::g_dnInfo.m_blendSkyboxWeight[2];
+        }
+    }
+
+    float target = (1.0f - skyboxWeight) * this->m_fadeTarget;
+    this->m_fadeTarget = target;
+    this->m_fadeTarget = DayNight::InterpTable(reinterpret_cast<const C2Vector*>(this->m_alphaCurve), 4, DayNight::g_dnInfo.m_dayProgression) * target;
+
+    if (this->m_fadeTarget != 0.0f) {
+        this->m_fadeTarget = this->GetOcclusionFade() * this->m_fadeTarget;
+    }
+
+    if (this->m_fade < this->m_fadeTarget) {
+        float fade = this->m_fadeInRate * deltaSec + this->m_fade;
+        this->m_fade = fade >= this->m_fadeTarget ? this->m_fadeTarget : fade;
+    } else if (this->m_fade > this->m_fadeTarget) {
+        float fade = this->m_fade - this->m_fadeOutRate * deltaSec;
+        this->m_fade = fade <= this->m_fadeTarget ? this->m_fadeTarget : fade;
+    }
+
+    float dot = DayNight::g_dnInfo.m_cameraDir.y * dirY + DayNight::g_dnInfo.m_cameraDir.z * dirZ + DayNight::g_dnInfo.m_cameraDir.x * dirX;
+
+    if (dot < this->m_minDot) {
+        dot = this->m_minDot;
+    }
+
+    float t = (dot - this->m_minDot) / (1.0f - this->m_minDot);
+    this->m_scale = ((this->m_scaleMax - this->m_scaleMin) * t + this->m_scaleMin) * this->m_baseScale;
+    this->m_color.a = static_cast<uint8_t>((t * (this->m_alphaMax - this->m_alphaMin) + this->m_alphaMin) * this->m_fade * (this->m_color.a * 0.0039215689f) * 255.0f);
+    this->m_screenGlow = pow(dot, s_glarePower) * this->m_fade;
+}
+
+// VERIFY: 40579330 manual
+// OFFSET: 0x009AC400
+void DayNight::DNGlare::Render() {
+    if (!DayNight::GlareBase::m_masterEnable || !this->m_enable || !this->m_color.a) {
+        return;
+    }
+
+    CGxTex* gxTex = TextureGetGxTex(this->m_texture, 0, nullptr);
+
+    if (!gxTex) {
+        return;
+    }
+
+    DayNight::DNInfo* info = DayNight::GetInfo();
+    C44Matrix view;
+    GxXformView(view);
+    C3Vector direction(view.a2, view.b2, view.c2);
+    C44Matrix world;
+    DayNight::Billboard(world, direction);
+    world.d0 = this->m_position.x - info->m_cameraPos.x;
+    world.d1 = this->m_position.y - info->m_cameraPos.y;
+    world.d2 = this->m_position.z - info->m_cameraPos.z;
+    world.Scale(C3Vector(this->m_scale, this->m_scale, this->m_scale));
+    g_theGxDevicePtr->XformPushAndSet(GxXform_World, world);
+    float minX = 0.0f;
+    float maxX = 0.0f;
+    float minY = 0.0f;
+    float maxY = 0.0f;
+    float minZ = 0.0f;
+    float maxZ = 0.0f;
+    GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
+    GxXformSetViewport(minX, maxX, minY, maxY, s_skyMinZ, s_skyMaxZ);
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_BlendingMode, 3);
+    GxUpdateAlphaRef(GxRs_AlphaRef);
+    GxRsSet(GxRs_Lighting, 0);
+    GxRsSet(GxRs_Fog, 0);
+    GxRsSet(GxRs_DepthWrite, 0);
+    GxRsSet(GxRs_Culling, 0);
+    GxRsSet(GxRs_DepthTest, 0);
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, gxTex);
+    GxRsSet(GxRs_ColorOp0, 0);
+    GxRsSet(GxRs_AlphaOp0, 0);
+    GxPrimVertexPtr(4, s_glareVertices, sizeof(C3Vector), nullptr, 0, &this->m_color, 0, s_glareTexCoords, sizeof(C2Vector), nullptr, 0);
+    GxPrimIndexPtr(4, s_glareIndices);
+    CGxBatch batch;
+    batch.m_primType = GxPrim_TriangleStrip;
+    batch.m_start = 0;
+    batch.m_count = 4;
+    batch.m_minIndex = 0;
+    batch.m_maxIndex = 3;
+    g_theGxDevicePtr->Draw(&batch, 1);
+    GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
+    GxXformPop(GxXform_World);
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 736a9501 auto
+// OFFSET: 0x009AC3C0
+float DayNight::DNGlare::GetOcclusionFade() {
+    if (!DayNight::GlareBase::m_masterEnable || !this->m_enable || !this->m_color.a) {
+        return 0.0f;
+    }
+
+    if (this->m_occlusionQuery && CWorldParam::cvar_occlusion->m_intValue) {
+        return this->GetQueryOcclusion();
+    }
+
+    return this->GetPointOcclusion();
+}
+
+// VERIFY: a694bf5f manual
+// OFFSET: 0x007EDA30
+float DayNight::DNGlare::GetLiquidDepthFade() {
+    float fade = 1.0f;
+    float depth;
+
+    if (!World::SceneCamLiquidStatus(&depth)) {
+        return fade;
+    }
+
+    float scaled = depth * 0.1f;
+
+    if (scaled < 0.0f) {
+        return 1.0f - 0.0f;
+    }
+
+    if (scaled >= 1.0f) {
+        scaled = 1.0f;
+    }
+
+    return 1.0f - scaled;
+}
+
+// VERIFY: fead6e16 auto
+// OFFSET: 0x007F1020
+float DayNight::DNSunGlare::GetCloudDensityFade() {
+    return 1.0f - DayNight::g_clouds.GetDensity(&this->m_position, 1.0f);
+}
+
+// VERIFY: 86e92cf3 auto
+// OFFSET: 0x007F1040
+float DayNight::DNMoonGlare::GetCloudDensityFade() {
+    float density = DayNight::g_clouds.GetDensity(&this->m_position, 1.0f) - 0.5f;
+    return 1.0f - fabs(density + density);
 }

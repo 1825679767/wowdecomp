@@ -74,6 +74,7 @@ class CGSpellBook {
     static void UpdateUsable();
     static void CastSpell(int32_t spellId, int32_t petSpell, WOWGUID target);
     static void InitializeGame();
+    static void ShutdownGame();
     static void MakeKnownSpellModelsLocal();
     static int32_t GetSkinningSpell(const CGUnit_C* unit);
     static void ReplaceSpell(int32_t oldSpell, int32_t newSpell);

@@ -19,6 +19,7 @@ class CGGMTicketInfo {
     public:
     static void EnterWorld();
     static void InitializeGame();
+    static void ShutdownGame();
     static int32_t m_ticketID;
     static int32_t m_responseID;
 };

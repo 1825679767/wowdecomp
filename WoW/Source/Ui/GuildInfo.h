@@ -45,6 +45,9 @@ struct GuildRankFlag {
 
 class CGGuildInfo {
     public:
+    static void SetMOTD(const char* motd);
+    static void SaveToFile();
+    static void QueryRosterAndRanks();
     static char m_infoText[2004];
     static char m_motd[516];
     static GuildRosterSortCriteria m_sortCriteria[8];
@@ -61,6 +64,7 @@ class CGGuildInfo {
     static uint32_t m_numRanks;
     static void EnterWorld();
     static void InitializeGame();
+    static void ShutdownGame();
     static void QueryPermissions();
     static void SetShowOffline(int32_t show);
 };
@@ -71,6 +75,7 @@ int32_t Packet_SMSG_GUILD_ROSTER(void* param, NETMESSAGE msgId, uint32_t time, C
 int32_t Packet_MSG_GUILD_PERMISSIONS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_MSG_GUILD_EVENT_LOG_QUERY(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t QSortRoster(const void* a, const void* b);
+void UpdateGuildRoster(int32_t a1);
 
 int32_t Script_GetNumGuildMembers(lua_State* L);
 int32_t Script_GetGuildRosterInfo(lua_State* L);

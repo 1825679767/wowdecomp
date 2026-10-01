@@ -49,3 +49,41 @@ void FVBBList::Destroy() {
         g_theGxDevicePtr->PoolDestroy(this->m_pool);
     }
 }
+
+// VERIFY: 8a1a34ab manual
+// OFFSET: 0x007D5540
+FVBBList::Block* FVBBList::AllocBlock(Block** owner) {
+    Block* block = this->m_blocks.Head();
+    block->m_link.Unlink();
+    this->m_usedBlocks.LinkToTail(block);
+    block->m_buf->unk_001C = 0;
+    block->m_owner = owner;
+    return block;
+}
+
+// VERIFY: c47a50ff manual
+// OFFSET: 0x007D5DE0
+void FVBBList::AcquireBlock(Block** owner) {
+    if (!this->m_blocks.Head()) {
+        Block* oldest = this->m_usedBlocks.Head();
+        Block* newest = this->m_usedBlocks.Head();
+
+        for (Block* block = this->m_usedBlocks.Head(); block; block = this->m_usedBlocks.Next(block)) {
+            if (block->unk_0008 < oldest->unk_0008) {
+                oldest = block;
+            }
+
+            if (block->unk_0008 > newest->unk_0008) {
+                newest = block;
+            }
+        }
+
+        if (newest->unk_0008 - oldest->unk_0008 <= 10) {
+            return;
+        }
+
+        this->Release(oldest);
+    }
+
+    *owner = this->AllocBlock(owner);
+}

@@ -44,7 +44,6 @@
 int32_t Script_AddFontStrings(lua_State* L);
 int32_t Script_SetAnchorType(lua_State* L);
 int32_t Script_SetPetAction(lua_State* L);
-int32_t Script_SetShapeshift(lua_State* L);
 int32_t Script_SetPossession(lua_State* L);
 int32_t Script_SetQuestItem(lua_State* L);
 int32_t Script_SetQuestLogItem(lua_State* L);
@@ -57,14 +56,12 @@ int32_t Script_SetTradeTargetItem(lua_State* L);
 int32_t Script_SetUnit(lua_State* L);
 int32_t Script_SetUnitBuff(lua_State* L);
 int32_t Script_SetUnitDebuff(lua_State* L);
-int32_t Script_SetUnitAura(lua_State* L);
 int32_t Script_SetSendMailItem(lua_State* L);
 int32_t Script_SetInboxItem(lua_State* L);
 int32_t Script_SetAuctionSellItem(lua_State* L);
 int32_t Script_SetAuctionItem(lua_State* L);
 int32_t Script_SetQuestRewardSpell(lua_State* L);
 int32_t Script_SetQuestLogRewardSpell(lua_State* L);
-int32_t Script_SetHyperlinkCompareItem(lua_State* L);
 int32_t Script_SetBuybackItem(lua_State* L);
 int32_t Script_SetSocketedItem(lua_State* L);
 int32_t Script_SetSocketGem(lua_State* L);
@@ -455,6 +452,49 @@ static int32_t Script_SetSpell(lua_State* L) {
         uint32_t cooldown = !enable || !start || !duration ? 0 : start + duration - OsGetAsyncTimeMs();
 
         if (tooltip->SetSpell(spellId, 0, cooldown, petSpell, 0, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0)) {
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 12bc9108 manual
+// OFFSET: 0x00625630
+static int32_t Script_SetShapeshift(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetShapeshift(slot)", name ? name : "<unnamed>");
+    }
+
+    uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 2));
+
+    if (slot - 1 < s_shapeshiftSpells.m_count) {
+        int32_t spellId = s_shapeshiftSpells.m_data[slot - 1].m_spellId;
+        uint32_t duration = 0;
+        uint32_t start = 0;
+        uint32_t enable = 0;
+        Spell_C_GetSpellCooldown(spellId, 0, &duration, &start, &enable);
+        int32_t brief = 1;
+        CVar* uberTooltips = CVar::Lookup("UberTooltips");
+
+        if (uberTooltips && uberTooltips->m_intValue) {
+            brief = 0;
+        }
+
+        int32_t result;
+
+        if (enable && start && duration) {
+            result = tooltip->SetSpell(spellId, brief, start + duration - OsGetAsyncTimeMs(), 0, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+        } else {
+            result = tooltip->SetSpell(spellId, brief, 0, 0, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+        }
+
+        if (result) {
             lua_pushnumber(L, 1.0);
             return 1;
         }
@@ -1123,6 +1163,64 @@ done:
     }
 
     lua_pushnumber(L, 1.0);
+    return 1;
+}
+
+// VERIFY: c5b104e7 auto
+// OFFSET: 0x00626240
+static int32_t Script_SetUnitAura(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    ScriptAuraInfo info;
+
+    if (!Script_GetUnitAuraInfo(L, 2, &info)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetUnitAura(\"unit\", [index] or [\"name\", \"rank\"][, \"filter\"])", name ? name : "<unnamed>");
+        return 0;
+    }
+
+    return SetTooltipUnitAura(tooltip, &info);
+}
+
+// VERIFY: 51f1907f manual
+// OFFSET: 0x00631B60
+static int32_t Script_SetHyperlinkCompareItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isstring(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetHyperlinkCompareItem(\"hyperlink\" [, offset, shiftButton])", name ? name : "<unnamed>");
+        return 0;
+    }
+
+    const char* link = lua_tolstring(L, 2, nullptr);
+    ItemLinkInfo linkInfo;
+    linkInfo.Clear();
+
+    if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__) && linkInfo.GetItemIdFromLink(link)) {
+        int32_t offset = 0;
+        int32_t shift = StringToBOOL(L, 4, 0);
+
+        if (lua_isnumber(L, 3)) {
+            offset = static_cast<int32_t>(lua_tonumber(L, 3)) - 1;
+        }
+
+        if (lua_type(L, 5) == LUA_TTABLE) {
+            lua_rawgeti(L, 5, 0);
+            CGTooltip* compare = static_cast<CGTooltip*>(lua_touserdata(L, -1));
+
+            if (compare->IsA(CGTooltip::GetObjectType()) && SetCompareItem(tooltip, linkInfo.m_itemId, offset, shift, compare)) {
+                lua_pushnumber(L, 1.0);
+                return 1;
+            }
+        }
+
+        if (SetCompareItem(tooltip, linkInfo.m_itemId, offset, shift, nullptr)) {
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
     return 1;
 }
 

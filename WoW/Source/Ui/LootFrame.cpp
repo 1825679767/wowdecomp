@@ -769,3 +769,8 @@ void CGLootInfo::OnLootSlotChanged(uint8_t slot) {
         FrameScript_SignalEvent(SCRIPT_EVENT_LOOT_SLOT_CHANGED, "%d", index + 1);
     }
 }
+
+// VERIFY: 29eb8814 auto
+// OFFSET: 0x005EEB70
+void CGLootInfo::ShutdownGame() {
+}

@@ -828,3 +828,30 @@ int32_t ReadyModelForUI(CGUnit_C* unit, uint32_t flags) {
 
     return QueuePortraitUpdate(unit, flags) == 0;
 }
+
+// VERIFY: 7490c1d9 auto
+// OFFSET: 0x00617860
+void PortraitShutdown() {
+    s_portraitMaskGxTex = nullptr;
+    HandleClose(reinterpret_cast<HOBJECT>(s_portraitMaskTexture));
+    s_portraitMaskTexture = nullptr;
+
+    if (s_portraitDepthTexture) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_portraitDepthTexture));
+        s_portraitDepthTexture = nullptr;
+    }
+
+    PortraitCachePurge(&s_playerPortraitCache, 0, 1);
+    PortraitCachePurge(&s_unitPortraitCache, 0, 1);
+
+    for (uint32_t i = 0; i < s_freePortraitTextures.m_count; i++) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_freePortraitTextures.m_data[i]));
+    }
+
+    s_freePortraitTextures.Clear();
+    s_playerPortraits.Clear();
+    s_unitPortraits.Clear();
+    s_itemPortraits.Clear();
+    s_pendingPortraits.Clear();
+    s_freePortraits.Clear();
+}

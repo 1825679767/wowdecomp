@@ -37,6 +37,7 @@ class CGCommentator {
     static CGCommentator s_Commentator;
 
     static void InitializeGame();
+    static void ShutdownGame();
     static void RegisterScriptFunctions();
 
     /* 0000 */ float m_facing;

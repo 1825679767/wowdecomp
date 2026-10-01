@@ -53,6 +53,8 @@ class CEzLcd {
     void SetText(void* handle, const char* text);
     int32_t IsDeviceAvailable(int32_t type);
     void Update();
+    int32_t ShowPage(int32_t page);
+    void HideGlobals();
 };
 
 #endif

@@ -15,6 +15,7 @@
 #include "WoW/Source/Object/ObjectClient/Effect_C.h"
 #include "WoW/Source/Ui/QuestLog.h"
 #include "WoW/Source/Ui/Tutorial.h"
+#include <cstring>
 
 // STATIC: 0x00C22B70
 FactionStanding CGReputationInfo::m_factionStandings[128];
@@ -846,4 +847,31 @@ int32_t GetRepListRepValue(int32_t faction) {
     }
 
     return CGReputationInfo::m_factionStandings[rec->m_reputationIndex].m_base + CGReputationInfo::m_factionStandings[rec->m_reputationIndex].m_standing;
+}
+
+// VERIFY: 5e6896c2 manual
+// OFFSET: 0x005D14F0
+void CGReputationInfo::ShutdownGame() {
+    CGReputationInfo::m_numFactions = 0;
+    CGReputationInfo::m_numShownFactions = 0;
+    CGReputationInfo::m_numHeaders = 0;
+    CGReputationInfo::m_selectedFaction = 0;
+    ClientServices::ClearMessageHandler(SMSG_INITIALIZE_FACTIONS);
+    ClientServices::ClearMessageHandler(SMSG_SET_FACTION_AT_WAR);
+    ClientServices::ClearMessageHandler(SMSG_SET_FACTION_VISIBLE);
+    ClientServices::ClearMessageHandler(SMSG_SET_FACTION_STANDING);
+    ClientServices::ClearMessageHandler(SMSG_SET_FORCED_REACTIONS);
+
+    for (uint32_t i = 0; i < CGReputationInfo::m_factionList.m_count; i++) {
+        delete CGReputationInfo::m_factionList.m_data[i];
+        CGReputationInfo::m_factionList.m_data[i] = nullptr;
+    }
+
+    for (uint32_t i = 0; i < 64; i++) {
+        delete CGReputationInfo::m_headers[i];
+        CGReputationInfo::m_headers[i] = nullptr;
+    }
+
+    CGReputationInfo::m_forcedReactions.m_count = 0;
+    memset(CGReputationInfo::m_factionStandings, 0, sizeof(CGReputationInfo::m_factionStandings));
 }

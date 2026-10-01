@@ -133,3 +133,12 @@ void CGBarberShop::EnterWorld() {
     CGBarberShop::m_currentFacialHair = CGBarberShop::GetStyle(2, player->m_unit->m_unitFieldBytes0[0], player->m_player->m_playerBytes3[0], player->m_player->m_playerBytes2[0]);
     CGBarberShop::m_currentSkinColor = CGBarberShop::GetStyle(3, player->m_unit->m_unitFieldBytes0[0], player->m_player->m_playerBytes3[0], player->m_player->m_playerBytes[0]);
 }
+
+// VERIFY: 51a462fe auto
+// OFFSET: 0x0052F060
+void CGBarberShop::ShutdownGame() {
+    CGBarberShop::m_initialized = 0;
+    CGBarberShop::m_useableStyles.InternalClear(0);
+    ClientServices::ClearMessageHandler(SMSG_ENABLE_BARBER_SHOP);
+    ClientServices::ClearMessageHandler(SMSG_BARBER_SHOP_RESULT);
+}

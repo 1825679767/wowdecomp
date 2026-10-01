@@ -1421,3 +1421,200 @@ void LoadAddOnEnableState(const char* character) {
 
     SFile::Unload(data);
 }
+
+// VERIFY: 3bde2f06 manual
+// OFFSET: 0x005F5620
+void UnloadAddOns() {
+    int32_t changed = 0;
+    char path[260];
+    SStrPrintf(path, sizeof(path), "WTF\\Account\\%s\\SavedVariables", s_addOnAccountName);
+
+    if (!OsDirectoryExists(path)) {
+        OsCreateDirectory(path, 1);
+    }
+
+    SStrPrintf(path, sizeof(path), "WTF\\Account\\%s\\%s\\%s\\SavedVariables", s_addOnAccountName, ClientServices::GetSelectedRealmName(), ClientServices::GetCharacterName());
+
+    if (!OsDirectoryExists(path)) {
+        OsCreateDirectory(path, 1);
+    }
+
+    for (UIADDON* addon = s_addons.m_fulllist.Head(); addon; addon = s_addons.Next(addon)) {
+        if (!addon->m_loading) {
+            continue;
+        }
+
+        SStrPrintf(path, sizeof(path), "WTF\\Account\\%s\\SavedVariables\\%s.lua", s_addOnAccountName, addon->m_key.m_str);
+
+        if (addon->m_savedVariables.Count()) {
+            if (OsFileExists(path)) {
+                char backup[260];
+                SStrCopy(backup, path, sizeof(backup));
+                SStrPack(backup, ".bak", sizeof(backup));
+                OsMoveFile(path, backup);
+            } else {
+                changed = 1;
+            }
+
+            HOSFILE file = OsCreateFile(path, OS_GENERIC_WRITE, 0, OS_CREATE_ALWAYS, OS_FILE_ATTRIBUTE_NORMAL, OS_FILE_TYPE_ANY);
+
+            if (file != OS_INVALID_FILE) {
+                FrameScript_GetContext();
+                const char* savedTaint = lua_tainted;
+
+                if (++lua_taintexpected && !lua_taintedclosure) {
+                    lua_tainted = nullptr;
+                }
+
+                for (uint32_t i = 0; i < addon->m_savedVariables.Count(); i++) {
+                    const char* name = addon->m_savedVariables.m_data[i];
+
+                    if (!name || !*name) {
+                        continue;
+                    }
+
+                    const char* c = name;
+
+                    while (*c < 0 || (*c >= '0' && *c <= '9') || (*c >= 'a' && *c <= 'z') || (*c >= 'A' && *c <= 'Z') || *c == '_') {
+                        if (!*++c) {
+                            FrameScript_PrintVariable(file, name);
+                            break;
+                        }
+                    }
+                }
+
+                uint32_t written;
+                OsWriteFile(file, "\r\n", 2, &written);
+                OsCloseFile(file);
+
+                if (lua_taintexpected && !lua_taintedclosure) {
+                    lua_tainted = savedTaint;
+                }
+
+                if (--lua_taintexpected <= 0) {
+                    lua_taintexpected = 0;
+                }
+            }
+        } else if (OsFileExists(path)) {
+            OsDeleteFile(path);
+            changed = 1;
+        }
+
+        SStrPrintf(path, sizeof(path), "WTF\\Account\\%s\\%s\\%s\\SavedVariables\\%s.lua", s_addOnAccountName, ClientServices::GetSelectedRealmName(), ClientServices::GetCharacterName(), addon->m_key.m_str);
+
+        if (addon->m_savedVariablesPerCharacter.Count()) {
+            if (OsFileExists(path)) {
+                char backup[260];
+                SStrCopy(backup, path, sizeof(backup));
+                SStrPack(backup, ".bak", sizeof(backup));
+                OsMoveFile(path, backup);
+            } else {
+                changed = 1;
+            }
+
+            HOSFILE file = OsCreateFile(path, OS_GENERIC_WRITE, 0, OS_CREATE_ALWAYS, OS_FILE_ATTRIBUTE_NORMAL, OS_FILE_TYPE_ANY);
+
+            if (file != OS_INVALID_FILE) {
+                FrameScript_GetContext();
+                const char* savedTaint = lua_tainted;
+
+                if (++lua_taintexpected && !lua_taintedclosure) {
+                    lua_tainted = nullptr;
+                }
+
+                for (uint32_t i = 0; i < addon->m_savedVariablesPerCharacter.Count(); i++) {
+                    const char* name = addon->m_savedVariablesPerCharacter.m_data[i];
+
+                    if (!name || !*name) {
+                        continue;
+                    }
+
+                    const char* c = name;
+
+                    while (*c < 0 || (*c >= '0' && *c <= '9') || (*c >= 'a' && *c <= 'z') || (*c >= 'A' && *c <= 'Z') || *c == '_') {
+                        if (!*++c) {
+                            FrameScript_PrintVariable(file, name);
+                            break;
+                        }
+                    }
+                }
+
+                uint32_t written;
+                OsWriteFile(file, "\r\n", 2, &written);
+                OsCloseFile(file);
+
+                if (lua_taintexpected && !lua_taintedclosure) {
+                    lua_tainted = savedTaint;
+                }
+
+                if (--lua_taintexpected <= 0) {
+                    lua_taintexpected = 0;
+                }
+            }
+        } else {
+            if (OsFileExists(path)) {
+                OsDeleteFile(path);
+                changed = 1;
+            }
+
+            SStrPrintf(path, sizeof(path), "WTF\\Account\\%s\\%s\\SavedVariables\\%s.lua", s_addOnAccountName, ClientServices::GetCharacterName(), addon->m_key.m_str);
+
+            if (OsFileExists(path)) {
+                OsDeleteFile(path);
+                changed = 1;
+            }
+        }
+
+        addon->m_loading = false;
+        addon->m_loaded = false;
+    }
+
+    if (changed) {
+        SFile::RebuildHash();
+    }
+}
+
+// VERIFY: fceb3ea4 manual
+// OFFSET: 0x005F76A0
+void SaveAddOnEnableState() {
+    int32_t created = 0;
+
+    for (ADDONSTATELIST* list = s_addOnStates.Head(); list; list = s_addOnStates.Next(list)) {
+        if (!list->m_accountWide) {
+            continue;
+        }
+
+        list->m_accountWide = false;
+        char path[260];
+        SStrPrintf(path, sizeof(path), "WTF\\Account\\%s\\%s\\%s", s_addOnAccountName, ClientServices::GetSelectedRealmName(), list->m_name);
+
+        if (!OsDirectoryExists(path)) {
+            OsCreateDirectory(path, 1);
+        }
+
+        SStrPack(path, "\\AddOns.txt", sizeof(path));
+
+        if (!created) {
+            created = !OsFileExists(path);
+        }
+
+        HOSFILE file = OsCreateFile(path, OS_GENERIC_WRITE, 0, OS_CREATE_ALWAYS, OS_FILE_ATTRIBUTE_NORMAL, OS_FILE_TYPE_ANY);
+
+        if (file == OS_INVALID_FILE) {
+            continue;
+        }
+
+        for (ADDONSTATE* state = list->m_states.m_fulllist.Head(); state; state = list->m_states.Next(state)) {
+            char line[1024];
+            SStrPrintf(line, sizeof(line), "%s: %s\r\n", state->m_key.m_str, state->m_enabled ? "enabled" : "disabled");
+            uint32_t written;
+            OsWriteFile(file, line, SStrLen(line), &written);
+        }
+
+        OsCloseFile(file);
+    }
+
+    if (created) {
+        SFile::RebuildHash();
+    }
+}

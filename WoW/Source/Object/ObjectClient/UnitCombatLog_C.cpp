@@ -2782,3 +2782,90 @@ void UnitCombatLogUnitDead(CGUnit_C* unit) {
     CombatLogEntry* entry = GetCombatLogEntry(source, dest, event, nullptr);
     QueueCombatLogEntry(entry, 0);
 }
+
+// VERIFY: a10e0f3b manual
+// OFFSET: 0x0074D1A0
+static bool CombatLogFlagsMatch(uint32_t filterFlags, uint32_t flags) {
+    uint32_t matched = filterFlags & flags;
+
+    if (matched & 0xFFFF0000) {
+        return true;
+    }
+
+    if (!(matched & 0xF) || !(matched & 0xF0) || !(matched & 0x300)) {
+        return false;
+    }
+
+    return (matched & 0xFC00) != 0;
+}
+
+// VERIFY: e3b2fb68 manual
+// OFFSET: 0x0074E1A0
+bool CombatLogFilter::MatchesFilter(int32_t event, const WOWGUID& sourceGuid, uint32_t sourceFlags, const WOWGUID& destGuid, uint32_t destFlags, int32_t spellId, const char* spellName) {
+    uint32_t index = static_cast<uint32_t>(event);
+
+    if (!(this->m_events.m_bits.m_data[index >> 5] & (1 << (index & 0x1F)))) {
+        return false;
+    }
+
+    if (this->m_sourceGuid) {
+        if (sourceGuid != this->m_sourceGuid) {
+            return false;
+        }
+    } else {
+        uint32_t matched = this->m_sourceFlags & sourceFlags;
+
+        if (!(matched & 0xFFFF0000) && (!(matched & 0xF) || !(matched & 0xF0) || !(matched & 0x300) || !(matched & 0xFC00))) {
+            return false;
+        }
+    }
+
+    if (this->m_destGuid) {
+        if (destGuid != this->m_destGuid) {
+            return false;
+        }
+    } else if (!CombatLogFlagsMatch(this->m_destFlags, destFlags)) {
+        return false;
+    }
+
+    if (this->m_spellId) {
+        return spellId == this->m_spellId;
+    }
+
+    const char* name = this->m_spellName.m_str;
+    return !name || (spellName && !SStrCmpUTF8I(spellName, name, 0x7FFFFFFF));
+}
+
+// OFFSET: 0x00753980
+static void UnitCombatLogShutdown() {
+    s_entries.Clear();
+    s_freeEntries.Clear();
+    s_pendingEntries = nullptr;
+    s_currentEntry = nullptr;
+    s_filters.Clear();
+    s_pendingData.Clear();
+    s_freePendingData.Clear();
+    s_invalidatedNames.Clear();
+    ClientServices::ClearMessageHandler(SMSG_SPELL_PERIODIC_AURA_LOG);
+    ClientServices::ClearMessageHandler(SMSG_ENCHANTMENT_LOG);
+    ClientServices::ClearMessageHandler(SMSG_PARTY_KILL_LOG);
+    ClientServices::ClearMessageHandler(SMSG_PROC_RESIST);
+    ClientServices::ClearMessageHandler(SMSG_DISPEL_FAILED);
+    ClientServices::ClearMessageHandler(SMSG_DESTRUCTIBLE_BUILDING_DAMAGE);
+}
+
+// VERIFY: 5d930252 auto
+// OFFSET: 0x00754F60
+void UnitCombatClientShutdown() {
+    ClientServices::ClearMessageHandler(SMSG_ATTACK_START);
+    ClientServices::ClearMessageHandler(SMSG_ATTACK_STOP);
+    ClientServices::ClearMessageHandler(SMSG_ATTACKER_STATE_UPDATE);
+    ClientServices::ClearMessageHandler(SMSG_ATTACKSWING_NOTINRANGE);
+    ClientServices::ClearMessageHandler(SMSG_ATTACKSWING_BADFACING);
+    ClientServices::ClearMessageHandler(SMSG_ATTACKSWING_DEADTARGET);
+    ClientServices::ClearMessageHandler(SMSG_ATTACKSWING_CANT_ATTACK);
+    ClientServices::ClearMessageHandler(SMSG_ENVIRONMENTAL_DAMAGE_LOG);
+    ClientServices::ClearMessageHandler(SMSG_CLEAR_TARGET);
+    ClientServices::ClearMessageHandler(SMSG_COMBAT_EVENT_FAILED);
+    UnitCombatLogShutdown();
+}

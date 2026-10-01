@@ -306,13 +306,16 @@ static uint32_t s_clientTaxiBenchDelayTime;
 static uint64_t s_clientTaxiTimestamp;
 
 // STATIC: 0x00B2F9E0
-static uint8_t s_botCheckEnabled;
+uint8_t s_botCheckEnabled;
 
 // STATIC: 0x00B2F9E4
 static uint32_t s_botCheckStartTime;
 
 // STATIC: 0x00B2F9E8
-static int32_t s_botCheckDelay;
+int32_t s_botCheckDelay;
+
+// STATIC: 0x00B2FA0C
+volatile long s_additionalCheckArmed;
 
 // STATIC: 0x00B2FA1C
 static C3Vector s_spawnPosition;
@@ -2115,4 +2118,26 @@ int32_t Packet_SMSG_PLAYED_TIME(void* param, NETMESSAGE msgId, uint32_t time, CD
 // OFFSET: 0x004033B0
 void ClientKillTimer(uint32_t id, EVENTHANDLERFUNC handler, const char* name) {
     EventKillTimer(id, handler, name);
+}
+
+// VERIFY: ba8cfe2c manual
+// OFFSET: 0x00402720
+void* Client_MemAlloc(uint32_t bytes) {
+    return SMemAlloc(bytes, __FILE__, __LINE__, 0);
+}
+
+// VERIFY: 8c344a50 manual
+// OFFSET: 0x00402740
+void Client_MemFree(void* ptr) {
+    SMemFree(ptr, __FILE__, __LINE__, 0);
+}
+
+// VERIFY: af0e97c3 manual
+// OFFSET: 0x00404610
+void SendBotDetected2(uint32_t msgId, uint32_t code) {
+    WDataStore msg;
+    msg.Put(msgId);
+    msg.Put(code);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
 }

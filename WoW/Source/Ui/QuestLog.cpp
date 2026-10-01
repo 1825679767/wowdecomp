@@ -32,6 +32,8 @@
 #include "WoW/Source/Object/ItemStats.h"
 #include "WoW/Source/Ui/ChatFrame.h"
 #include "WoW/Source/Ui/QuestLogLeaderBoardParams.h"
+#include "WoW/Source/Ui/WorldMap.h"
+#include <cmath>
 
 // STATIC: 0x00C23618
 int32_t CGQuestLog::m_sortTypes[25];
@@ -1820,4 +1822,180 @@ int32_t CGQuestLog::SetQuestExpiredByID(int32_t questId) {
     }
 
     return 1;
+}
+
+// VERIFY: 246aa072 manual
+// OFFSET: 0x005E5A50
+int32_t CGQuestLog::UpdateAllQuestPOI() {
+    if (!g_questPOICVar->m_intValue) {
+        return 0;
+    }
+
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        return 0;
+    }
+
+    WorldMapAreaRec* area = nullptr;
+    int32_t dungeonMapId = CGWorldMap::m_currentOrphanZone == -1 ? -1 : CGWorldMap::m_currentDungeonMap;
+    DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecord(dungeonMapId);
+
+    if (!dungeonMap) {
+        area = g_worldMapAreaDB.GetRecord(CGWorldMap::GetCurrentAreaID());
+
+        if (CGWorldMap::GetCurrentAreaID() == -1 || !area) {
+            return 0;
+        }
+    }
+
+    int32_t visible = 0;
+
+    for (uint32_t i = 0; i < 25; i++) {
+        QuestPOIInfo& poi = CGQuestLog::m_questPOIs[i];
+        poi.unk_002C = CGQuestLog::ComputeBlobQuestObjectives(poi.m_questId);
+        poi.unk_0028 = 0;
+
+        for (int32_t j = 0; j < static_cast<int32_t>(poi.m_blobs.Count()); j++) {
+            QuestPOIBlob& blob = poi.m_blobs.m_data[j];
+
+            if (poi.unk_002C == 0xFFFFFFFF) {
+                if (blob.unk_001C != -1) {
+                    continue;
+                }
+            } else if (blob.unk_001C == -1 || !((1 << blob.unk_001C) & poi.unk_002C)) {
+                continue;
+            }
+
+            bool onMap;
+
+            if (dungeonMap) {
+                onMap = CGQuestLog::IsPOIVisibleOnDungeonMap(&blob.m_centerX, blob.unk_0020, blob.unk_0028, dungeonMap->m_id);
+            } else {
+                if (!area || ((blob.unk_002C & 0x4) && blob.unk_0024 != area->m_id)) {
+                    continue;
+                }
+
+                onMap = CGQuestLog::IsPOIOnCurrentMap(&blob.m_centerX, blob.unk_0020, area->m_mapID);
+            }
+
+            if (onMap) {
+                visible++;
+                poi.unk_0028 = 1;
+                break;
+            }
+        }
+    }
+
+    return visible;
+}
+
+// VERIFY: a01f8ce6 manual
+// OFFSET: 0x005E6F30
+void CGQuestLog::ShutdownGame() {
+    ClientServices::ClearMessageHandler(SMSG_QUERY_TIME_RESPONSE);
+
+    for (uint32_t i = 0; i < 25; i++) {
+        QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[i];
+        poi->m_questId = 0;
+        poi->m_blobs.Clear();
+    }
+
+    CGQuestLog::m_trackedQuestsLoaded = 0;
+    ConsoleCommandUnregister("UpdatePOI");
+}
+
+// VERIFY: e4df824d manual
+// OFFSET: 0x005E2950
+uint32_t CGQuestLog::ComputeBlobQuestObjectives(int32_t questId) {
+    uint32_t result = 0;
+    int32_t index = CGQuestLog::GetQuestIndex(questId) - 1;
+
+    if (index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader || index < 0) {
+        return 0;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 0;
+    }
+
+    uint32_t slot = CGQuestLog::m_quests[index].m_logSlot;
+    PlayerQuestLogEntry* entry = slot <= 25 ? &player->m_player->m_playerQuestLog[slot] : nullptr;
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_quests[index].m_questId, none, nullptr, nullptr, false);
+
+    if (!quest || !entry || (entry->m_state & 2) || CGQuestLog::IsQuestFailed(index)) {
+        return 0;
+    }
+
+    if (CGQuestLog::IsQuestCompleteEx(index, 0)) {
+        return 0xFFFFFFFF;
+    }
+
+    for (uint32_t i = 0; i < 4; i++) {
+        if (quest->m_objectiveId[i] && entry->m_counts[i] < quest->m_objectiveRequiredCount[i]) {
+            result |= 1 << i;
+        }
+    }
+
+    for (uint32_t i = 0; i < 6; i++) {
+        if (quest->m_collectItemId[i] && player->m_bag.GetItemTypeCount(quest->m_collectItemId[i], 8) < static_cast<int32_t>(quest->m_collectItemCount[i])) {
+            result |= 1 << (i + 4);
+        }
+    }
+
+    for (uint32_t i = 0; i < 4; i++) {
+        uint32_t itemId = quest->m_intermediateItemId[i];
+
+        if (itemId && itemId != quest->m_startingItemId && !player->m_bag.GetItemTypeCount(itemId, 8)) {
+            result |= 1 << (i + 10);
+        }
+    }
+
+    if ((quest->m_flags & 6) && !(entry->m_state & 1)) {
+        result |= 0x10000;
+    }
+
+    return result;
+}
+
+// VERIFY: 89e426ef auto
+// OFFSET: 0x005E0110
+bool CGQuestLog::IsPOIOnCurrentMap(const int32_t* point, int32_t mapId, int32_t currentMapId) {
+    if (mapId != currentMapId) {
+        return false;
+    }
+
+    C3Vector position(static_cast<float>(point[0]), static_cast<float>(point[1]), 0.0f);
+    float x;
+    float y;
+    bool outland;
+
+    if (!CGWorldMap::GetWorldPosition(position, currentMapId, &x, &y, &outland, false, 0)) {
+        return false;
+    }
+
+    return !outland && fabs(fabs(x * y)) >= 0.001f;
+}
+
+// VERIFY: 2b97ec8b manual
+// OFFSET: 0x005E0240
+void CGQuestLog::SaveTrackedQuests() {
+    CVarIntListWrapper list;
+    list.m_cvar = CVar::Lookup("trackedQuests");
+    list.m_pos = 2;
+    list.m_state = 0;
+
+    for (uint32_t i = 0; i < CGQuestLog::m_numQuestWatches; i++) {
+        if (!CGQuestLog::m_questWatches[i].m_expireTime) {
+            list.AddNextValue(CGQuestLog::m_questWatches[i].m_questId);
+        }
+    }
+
+    if (list.m_state != 1) {
+        list.m_buffer[0] = 'v';
+        list.m_buffer[1] = 1;
+        list.m_buffer[list.m_pos] = 0;
+        list.m_cvar->Set(list.m_buffer, true, false, false, true);
+    }
 }

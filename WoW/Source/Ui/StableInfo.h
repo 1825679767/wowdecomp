@@ -18,6 +18,7 @@ struct StablePetInfo {
 
 class CGStableInfo {
     public:
+    static void ShutdownGame();
     static StablePetInfo m_pets[6];
     static WOWGUID m_stableMaster;
     static int32_t unk_C0F6C8;

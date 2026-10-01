@@ -7,6 +7,10 @@
 #include "WoW/Source/WorldClient/MapObj.h"
 #include "WoW/Source/WorldClient/MapObjGroup.h"
 #include "WoW/Source/WorldClient/Types.h"
+#include "WoW/Source/WorldClient/MapDoodadDef.h"
+#include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "Engine/Source/Model2/M2Model.h"
+#include "WoW/Source/WorldClient/MapLoad.h"
 
 // VERIFY: 18be6c93 auto
 // OFFSET: 0x007B3990
@@ -97,4 +101,96 @@ int32_t CMapObjDef::GetGroundType(uint32_t groupNum, uint16_t faceIndex) {
     }
 
     return -1;
+}
+
+// VERIFY: 14be0e9a manual
+// OFFSET: 0x007B66E0
+void CMapObjDef::UpdatePos(CMapObjDef* mapObjDef, const C3Vector* position, float facing, float a4, float a5) {
+    mapObjDef->m_position = *position;
+    mapObjDef->m_mat = C44Matrix();
+    mapObjDef->m_mat.d0 = position->x;
+    mapObjDef->m_mat.d1 = position->y;
+    mapObjDef->m_mat.d2 = position->z;
+    mapObjDef->m_mat.RotateAroundZ(facing);
+    mapObjDef->m_mat.RotateAroundY(a4);
+    mapObjDef->m_mat.RotateAroundX(a5);
+    mapObjDef->m_invMat = mapObjDef->m_mat.AffineInverse();
+    CMapObjDef::UpdateMoved(mapObjDef);
+}
+
+// VERIFY: 70a9844c manual
+// OFFSET: 0x007B41F0
+void CMapObjDefGroup::SetSequenceFinishedCallback(M2SequenceCallback callback, uint64_t param, uint16_t doodadSet) {
+    for (CMapBaseObjLink* link = this->m_doodadDefLinkList.Head(); link; link = this->m_doodadDefLinkList.Next(link)) {
+        CMapDoodadDef* doodadDef = static_cast<CMapDoodadDef*>(link->m_owner);
+
+        if (doodadSet && !doodadDef->unk_016C) {
+            break;
+        }
+
+        if (doodadDef->m_model && doodadDef->unk_016C == doodadSet) {
+            doodadDef->m_model->SetSequenceCallback(reinterpret_cast<void*>(callback), param);
+        }
+    }
+}
+
+// VERIFY: 5ecf6841 manual
+// OFFSET: 0x007B4640
+void CMapObjDef::SetSequenceFinishedCallback(M2SequenceCallback callback, uint64_t param, uint16_t doodadSet) {
+    for (CMapBaseObjLink* link = this->m_mapObjDefGroupLinkList.Head(); link; link = this->m_mapObjDefGroupLinkList.Next(link)) {
+        static_cast<CMapObjDefGroup*>(link->m_owner)->SetSequenceFinishedCallback(callback, param, doodadSet);
+    }
+}
+
+// VERIFY: a5601f23 manual
+// OFFSET: 0x007B67B0
+void CMapObjDef::UpdateMatrix(CMapObjDef* mapObjDef, const C44Matrix& matrix) {
+    mapObjDef->m_position.x = matrix.d0;
+    mapObjDef->m_position.y = matrix.d1;
+    mapObjDef->m_position.z = matrix.d2;
+    mapObjDef->m_mat = matrix;
+    mapObjDef->m_invMat = matrix.AffineInverse();
+    CMapObjDef::UpdateMoved(mapObjDef);
+}
+
+// VERIFY: 04ab0ef9 manual
+// OFFSET: 0x007B42F0
+bool CMapObjDefGroup::IsAllLoaded() {
+    if (!(this->m_flags & MAPOBJ_FLAG_REFS_CREATED)) {
+        return false;
+    }
+
+    for (CMapBaseObjLink* link = this->m_doodadDefLinkList.Head(); link; link = this->m_doodadDefLinkList.Next(link)) {
+        CMapStaticEntity* doodadDef = static_cast<CMapStaticEntity*>(link->m_owner);
+
+        if (doodadDef->m_model && !(static_cast<uint32_t>(doodadDef->m_flags) & 0x80000000)) {
+            if (SFile::IsStreamingMode()) {
+                doodadDef->m_model->LinkToAsyncHead(1);
+            }
+
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// VERIFY: c4f26801 manual
+// OFFSET: 0x007B4760
+bool CMapObjDef::IsAllLoaded() {
+    if (!(this->m_flags & MAPOBJ_FLAG_PREPARED)) {
+        return false;
+    }
+
+    if (!(this->m_flags & 0x4000)) {
+        for (CMapBaseObjLink* link = this->m_mapObjDefGroupLinkList.Head(); link; link = this->m_mapObjDefGroupLinkList.Next(link)) {
+            if (!static_cast<CMapObjDefGroup*>(link->m_owner)->IsAllLoaded()) {
+                return false;
+            }
+        }
+
+        this->m_flags = static_cast<MapObjFlag>(this->m_flags | 0x4000);
+    }
+
+    return true;
 }

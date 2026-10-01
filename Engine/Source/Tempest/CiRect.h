@@ -12,6 +12,7 @@ class CiRect {
     /* 000C */ int32_t maxX;
 
     CiRect();
+    CiRect(int32_t minY, int32_t minX, int32_t maxY, int32_t maxX);
     CiRect operator&=(const CiRect& r);
 };
 
@@ -23,6 +24,14 @@ inline CiRect::CiRect() {
     this->minX = 0;
     this->maxY = 0;
     this->maxX = 0;
+}
+
+// INLINED
+inline CiRect::CiRect(int32_t minY, int32_t minX, int32_t maxY, int32_t maxX) {
+    this->minY = minY;
+    this->minX = minX;
+    this->maxY = maxY;
+    this->maxX = maxX;
 }
 
 #endif

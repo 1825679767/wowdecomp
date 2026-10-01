@@ -299,3 +299,24 @@ bool CGAuctionHouse::IsItemForSell(WOWGUID item) {
 
     return false;
 }
+
+// VERIFY: 93924a65 manual
+// OFFSET: 0x0059E090
+void CGAuctionHouse::ShutdownGame() {
+    ClientServices::ClearMessageHandler(MSG_AUCTION_HELLO);
+    ClientServices::ClearMessageHandler(SMSG_AUCTION_COMMAND_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_AUCTION_LIST_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_AUCTION_LIST_OWNER_ITEMS_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_AUCTION_LIST_BIDDER_ITEMS_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_AUCTION_BIDDER_NOTIFICATION);
+    ClientServices::ClearMessageHandler(SMSG_AUCTION_OWNER_NOTIFICATION);
+    ClientServices::ClearMessageHandler(SMSG_AUCTION_REMOVED_NOTIFICATION);
+    ClientServices::ClearMessageHandler(SMSG_AUCTION_LIST_PENDING_SALES);
+
+    for (uint32_t i = 0; i < CGAuctionHouse::m_outbidItems.m_count; i++) {
+        delete CGAuctionHouse::m_outbidItems.m_data[i];
+    }
+
+    CGAuctionHouse::m_outbidItems.Clear();
+    CGAuctionHouse::m_numOutbidItems = 0;
+}

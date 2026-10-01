@@ -29,6 +29,8 @@ struct TradeSkillSubClassInfo {
 
 class CGTradeSkillInfo {
     public:
+    static void Close();
+    static void ShutdownGame();
     static WOWGUID m_playerGuid;
     static uint32_t m_itemsPending;
     static uint32_t m_numDisplayEntries;
@@ -37,6 +39,8 @@ class CGTradeSkillInfo {
     static int32_t m_showOnlySkillUps;
     static uint32_t m_invSlots;
     static int32_t m_skillRank;
+    static int32_t m_skillMaxRank;
+    static int32_t unk_C235F0;
     static TSGrowableArray<TradeSkillInfo*> m_displayList;
     static TSGrowableArray<TradeSkillSubClassInfo*> m_subClassList;
     static uint32_t m_subClassFilter;

@@ -26,6 +26,7 @@
 #include "WoW/Source/Ui/SpellBookFrame.h"
 #include "WoW/Source/Object/ObjectClient/Bag_C.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/Ui/MacroConditions.h"
 
 // STATIC: 0x00ACE2A0
 static TSExplicitList<MACRONODE, offsetof(MACRONODE, m_dynamicLink)> s_dynamicMacros;
@@ -38,6 +39,9 @@ static TSHashTable<MACRONODE, HASHKEY_NONE> s_macros;
 
 // STATIC: 0x00ACE1E8
 static const char* s_macroIconPath = "Interface\\Icons\\";
+
+// STATIC: 0x00BEAF40
+int32_t CGUIMacros::m_saveMacros;
 
 // STATIC: 0x00BEAF44
 uint32_t CGUIMacros::m_state;
@@ -877,4 +881,70 @@ int32_t MACRONODE::FindSpellID() {
     }
 
     return 0;
+}
+
+// VERIFY: 4415731b manual
+// OFFSET: 0x00566530
+void CGUIMacros::Shutdown() {
+    s_initCounter++;
+    s_dynamicMacros.UnlinkAll();
+    s_macros.Clear();
+
+    for (uint32_t i = s_macroIcons.Count(); i; i--) {
+        SMemFree(s_macroIcons.m_data[i - 1], __FILE__, __LINE__, 0);
+    }
+
+    s_macroIcons.Clear();
+
+    for (uint32_t i = s_macroItemIcons.Count(); i; i--) {
+        SMemFree(s_macroItemIcons.m_data[i - 1], __FILE__, __LINE__, 0);
+    }
+
+    s_macroItemIcons.Clear();
+    CGUIMacros::m_numMacros[0] = 0;
+    CGUIMacros::m_numMacros[1] = 0;
+    s_macroConditions.Clear();
+}
+
+// VERIFY: 55fecf8f auto
+// OFFSET: 0x005668F0
+void CGUIMacros::SaveMacrosCallback(HOSFILE localFile, HOSFILE cacheFile, void* param) {
+    if (cacheFile == OS_INVALID_FILE) {
+        return;
+    }
+
+    uint32_t set = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(param));
+    uint32_t written = 0;
+
+    for (uint32_t i = 0; i < CGUIMacros::m_numMacros[set]; i++) {
+        MACRONODE* macro = s_macros.Ptr(CGUIMacros::m_sortedMacros[36 * set + i], HASHKEY_NONE());
+        char text[1536];
+        SStrPrintf(text, sizeof(text), "MACRO %d \"%s\" %s\r\n", macro->m_id, macro->m_name, macro->m_icon);
+        const char* body = macro->m_body;
+
+        while (body && *body) {
+            char line[1024];
+            SStrTokenize(&body, line, sizeof(line), "\r\n", nullptr);
+
+            if (line[0]) {
+                SStrPack(text, line, sizeof(text));
+                SStrPack(text, "\r\n", sizeof(text));
+            }
+        }
+
+        SStrPack(text, "END\r\n", sizeof(text));
+        OsWriteFile(cacheFile, text, SStrLen(text), &written);
+    }
+}
+
+// VERIFY: 67e45d3d auto
+// OFFSET: 0x00566A30
+void CGUIMacros::SaveMacros() {
+    if (!CGUIMacros::m_saveMacros) {
+        return;
+    }
+
+    CGUIMacros::m_saveMacros = 0;
+    SaveAccountData(4, CGUIMacros::SaveMacrosCallback, nullptr);
+    SaveAccountData(5, CGUIMacros::SaveMacrosCallback, reinterpret_cast<void*>(1));
 }

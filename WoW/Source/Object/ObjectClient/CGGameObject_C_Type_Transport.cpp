@@ -4,6 +4,14 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/TransportAnimationRec.h"
 #include "WoW/Source/DB/Rec/TransportRotationRec.h"
+#include "Engine/Source/Tempest/C4Quaternion.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
+#include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/Tempest/C33Matrix.h"
+#include "WoW/Source/Object/Movement.h"
+#include "WoW/Source/Object/GameObject.h"
+#include <cmath>
+#include "WoW/Source/WorldClient/MapEntity.h"
 
 // VERIFY: 0bbb79ee manual
 // OFFSET: 0x0070C8C0
@@ -185,5 +193,297 @@ void CGGameObject_C_Type_Transport::PostReenable() {
 
     if (this->m_worldObject) {
         World::ObjectSetSequenceFinishedCallback(this->m_worldObject, &CGGameObject_C_Type_WorldObj::SequenceFinishedHandler, 0, 0);
+    }
+}
+
+// VERIFY: f1474ba1 manual
+// OFFSET: 0x00711F20
+void CGGameObject_C_Type_Transport::InitializeMovement() {
+    CGGameObject_C* owner = this->m_owner;
+    this->unk_0038 = owner->m_gameObject->m_state;
+    uint32_t time = owner->unk_0200 + OsGetAsyncTimeMs();
+    this->InitializeStateChangeTime(time);
+    C3Vector offset(0.0f, 0.0f, 0.0f);
+    C4Quaternion rotation;
+    rotation.x = 0.0f;
+    rotation.y = 0.0f;
+    rotation.z = 0.0f;
+    rotation.w = 1.0f;
+    this->unk_0030 = time;
+    this->Interpolate(time, &offset, &rotation);
+    C3Vector position = this->m_owner->m_passenger.GetPosition(this->m_owner->m_passenger.m_position);
+    this->m_position.x = position.x + offset.x;
+    this->m_position.y = position.y + offset.y;
+    this->m_position.z = position.z + offset.z;
+    CPassenger& passenger = this->m_owner->m_passenger;
+    reinterpret_cast<C4QuaternionCompressed&>(passenger.m_facing) = rotation;
+    passenger.unk_002C |= 0x2;
+    C44Matrix& matrix = this->m_owner->m_matrix;
+    matrix = this->m_owner->GetRotation();
+    matrix.d0 = this->m_position.x;
+    matrix.d1 = this->m_position.y;
+    matrix.d2 = this->m_position.z;
+}
+
+// VERIFY: 89bf86e6 auto
+// OFFSET: 0x00710570
+uint32_t CGGameObject_C_Type_Transport::GetStateDuration(int32_t state) {
+    uint32_t count = this->m_frameCount;
+
+    if (!count) {
+        return 0;
+    }
+
+    uint32_t period = this->m_owner->m_gameObject->m_level;
+
+    if (!period) {
+        return this->m_frames[count - 1].m_time;
+    }
+
+    if (state) {
+        return this->m_frames[count - 1].m_time - period;
+    }
+
+    return period;
+}
+
+// VERIFY: 5df80093 manual
+// OFFSET: 0x007105D0
+void CGGameObject_C_Type_Transport::InitializeStateChangeTime(uint32_t time) {
+    CGGameObjectData* gameObject = this->m_owner->m_gameObject;
+
+    if (gameObject->m_level && this->m_frameCount) {
+        float elapsed = this->GetStateDuration(gameObject->m_state) * (gameObject->m_pathProgress * 0.000015259022f);
+        this->m_stateChangeTime = time - static_cast<uint32_t>(elapsed);
+    }
+}
+
+// VERIFY: 823a6baf manual
+// OFFSET: 0x0070DA40
+uint32_t CGGameObject_C_Type_Transport::ResetStateChange(uint32_t time) {
+    CGGameObjectData* gameObject = this->m_owner->m_gameObject;
+    int32_t state = gameObject->m_state;
+    this->unk_0038 = state;
+    this->m_stateChangeSequenceTime = 0;
+    uint32_t period = gameObject->m_level;
+
+    if (state) {
+        this->m_stateChangeTime = time + period - this->m_frames[this->m_frameCount - 1].m_time;
+        return 0;
+    }
+
+    this->m_stateChangeTime = time - period;
+    return period;
+}
+
+// VERIFY: 0fdff1cd manual
+// OFFSET: 0x0070DAA0
+C3Vector CGGameObject_C_Type_Transport::GetMovement(uint32_t time) {
+    if (this->m_frameCount <= 1) {
+        return C3Vector(0.0f, 0.0f, 0.0f);
+    }
+
+    uint32_t next = this->m_frameCount != this->unk_0048 + 1 ? this->unk_0048 + 1 : 0;
+    TransportFrame* current;
+    TransportFrame* following;
+
+    while (true) {
+        following = &this->m_frames[next];
+        current = &this->m_frames[this->unk_0048];
+
+        if (time >= current->m_time && time < following->m_time) {
+            break;
+        }
+
+        this->unk_0048 = next;
+        next = this->m_frameCount != next + 1 ? next + 1 : 0;
+    }
+
+    float t = static_cast<float>(time - current->m_time) / static_cast<float>(following->m_time - current->m_time);
+
+    if (this->m_worldObject) {
+        uint32_t sequence = current->m_sequenceId;
+
+        if (sequence != this->unk_0058) {
+            CGGameObject_C* owner = this->m_owner;
+            this->unk_0058 = sequence;
+            World::ObjectSetSequence(this->m_worldObject, sequence, 0, 0);
+            owner->UpdateObjectEffectAnimationStates(sequence);
+        }
+    }
+
+    C33Matrix rotation(reinterpret_cast<const C4Quaternion&>(this->m_owner->m_gameObject->m_parentRotation));
+    float inverse = 1.0f - t;
+    float x = t * following->m_pos[0] + current->m_pos[0] * inverse;
+    float y = following->m_pos[1] * t + current->m_pos[1] * inverse;
+    float z = inverse * current->m_pos[2] + following->m_pos[2] * t;
+    C3Vector result;
+    result.x = rotation.c0 * z + rotation.b0 * y + x * rotation.a0;
+    result.y = rotation.c1 * z + rotation.b1 * y + rotation.a1 * x;
+    result.z = z * rotation.c2 + y * rotation.b2 + x * rotation.a2;
+    return result;
+}
+
+// VERIFY: 06adb4af manual
+// OFFSET: 0x0070DC10
+C4Quaternion CGGameObject_C_Type_Transport::GetRotation(uint32_t time) {
+    uint32_t count = this->m_rotationCount;
+
+    if (count <= 1) {
+        return this->m_owner->GetRotation();
+    }
+
+    uint32_t next = this->unk_0054 + 1 != count ? this->unk_0054 + 1 : 0;
+    TransportRotationRec* current = &this->m_rotations[this->unk_0054];
+    TransportRotationRec* following = &this->m_rotations[next];
+    uint32_t endTime = following->m_timeIndex;
+
+    if (!endTime && this->m_frames) {
+        endTime = this->m_frames[this->m_frameCount - 1].m_time;
+    }
+
+    while (!(time >= static_cast<uint32_t>(current->m_timeIndex) && time < endTime)) {
+        this->unk_0054 = next;
+        next = this->m_rotationCount != next + 1 ? next + 1 : 0;
+        current = &this->m_rotations[this->unk_0054];
+        following = &this->m_rotations[next];
+        endTime = following->m_timeIndex;
+
+        if (!endTime && this->m_frames) {
+            endTime = this->m_frames[this->m_frameCount - 1].m_time;
+        }
+    }
+
+    float t = static_cast<float>(time - current->m_timeIndex) / static_cast<float>(following->m_timeIndex - current->m_timeIndex);
+    C4Quaternion rotation = C4Quaternion::Slerp(t, reinterpret_cast<const C4Quaternion&>(current->m_rot), reinterpret_cast<const C4Quaternion&>(following->m_rot));
+    return rotation * reinterpret_cast<const C4Quaternion&>(this->m_owner->m_gameObject->m_parentRotation);
+}
+
+// VERIFY: 007eb5fe auto
+// OFFSET: 0x007106D0
+void CGGameObject_C_Type_Transport::Interpolate(uint32_t time, C3Vector* offset, C4Quaternion* rotation) {
+    int32_t state = this->m_owner->m_gameObject->m_state;
+    uint32_t sequenceTime = this->GetSequenceTimeFromRealTime(state, time);
+
+    if (this->m_stateChangeSequenceTime) {
+        int32_t current = this->unk_0038;
+
+        if (current != state || current) {
+            if (!sequenceTime) {
+                sequenceTime = this->ResetStateChange(time);
+            }
+        } else if (sequenceTime == this->m_owner->m_gameObject->m_level) {
+            sequenceTime = this->ResetStateChange(time);
+        }
+    }
+
+    *offset = this->GetMovement(sequenceTime);
+    *rotation = this->GetRotation(sequenceTime);
+}
+
+// VERIFY: 6f1084da manual
+// OFFSET: 0x0070C650
+C44Matrix& CGGameObject_C_Type_Transport::UpdateOwnerMatrix() {
+    C44Matrix& matrix = this->m_owner->m_matrix;
+    matrix = this->m_owner->GetRotation();
+    matrix.d0 = this->m_position.x;
+    matrix.d1 = this->m_position.y;
+    matrix.d2 = this->m_position.z;
+    return matrix;
+}
+
+// VERIFY: fc8ecef3 manual
+// OFFSET: 0x007139E0
+void CGGameObject_C_Type_Transport::UpdateMovement(uint32_t time, uint32_t elapsed) {
+    if (!this->unk_0034 && this->m_worldObject && World::ObjectIsLoaded(this->m_worldObject)) {
+        this->unk_0034 = 1;
+
+        if (!this->m_frameCount && !this->m_rotationCount) {
+            World::ObjectUpdate(this->m_worldObject, this->m_owner->GetMatrix());
+            return;
+        }
+    }
+
+    uint32_t step = elapsed;
+
+    if (elapsed > 250) {
+        CGGameObject_C* owner = this->m_owner;
+        uint32_t pathTime = owner->unk_0200 + time - 250;
+        this->unk_0030 = pathTime;
+
+        if (owner->m_gameObject->m_level && static_cast<int32_t>(this->m_stateChangeTime - pathTime) >= 0) {
+            this->unk_0030 = this->m_stateChangeTime;
+        }
+
+        C3Vector offset(0.0f, 0.0f, 0.0f);
+        C4Quaternion rotation;
+        rotation.x = 0.0f;
+        rotation.y = 0.0f;
+        rotation.z = 0.0f;
+        rotation.w = 1.0f;
+        this->Interpolate(this->unk_0030, &offset, &rotation);
+        CPassenger& passenger = this->m_owner->m_passenger;
+        reinterpret_cast<C4QuaternionCompressed&>(passenger.m_facing) = rotation;
+        passenger.unk_002C |= 0x2;
+        C3Vector position = this->m_owner->m_passenger.GetPosition(this->m_owner->m_passenger.m_position);
+        step = 250;
+        this->m_position.x = position.x + offset.x;
+        this->m_position.y = position.y + offset.y;
+        this->m_position.z = position.z + offset.z;
+    }
+
+    this->unk_0030 = this->m_owner->unk_0200 + time;
+    this->m_transportUpdateTime = this->GetSequenceTimeFromRealTime(this->unk_0038, this->unk_0030);
+    C3Vector offset(0.0f, 0.0f, 0.0f);
+    C4Quaternion rotation;
+    rotation.x = 0.0f;
+    rotation.y = 0.0f;
+    rotation.z = 0.0f;
+    rotation.w = 1.0f;
+    this->Interpolate(this->unk_0030, &offset, &rotation);
+    C3Vector base = this->m_owner->m_passenger.GetPosition(this->m_owner->m_passenger.m_position);
+    C3Vector position(base.x + offset.x, base.y + offset.y, base.z + offset.z);
+    C3Vector direction(0.0f, 0.0f, 0.0f);
+    float speed = this->UpdateCurrentVelocity(step, position, &direction);
+
+    if (this->m_passengers.Head()) {
+        if (fabs(speed) >= 0.00000095367432f) {
+            if (this->m_worldObject && !World::ObjectIsWMO(this->m_worldObject)) {
+                C44Matrix& matrix = this->UpdateOwnerMatrix();
+
+                for (CPassenger* passenger = this->m_passengers.Head(); passenger; passenger = this->m_passengers.Next(passenger)) {
+                    if (passenger->unk_002C & 0x1) {
+                        static_cast<CMovement_C*>(passenger)->CollideWithTransport(time, step, speed, direction, matrix);
+                    }
+                }
+            }
+
+            this->m_position = position;
+        }
+
+        CPassenger& passenger = this->m_owner->m_passenger;
+        reinterpret_cast<C4QuaternionCompressed&>(passenger.m_facing) = rotation;
+        passenger.unk_002C |= 0x2;
+        C44Matrix& matrix = this->m_owner->m_matrix;
+        matrix = this->m_owner->GetRotation();
+        matrix.d0 = this->m_position.x;
+        matrix.d1 = this->m_position.y;
+        matrix.d2 = this->m_position.z;
+        int32_t moved = time;
+        this->MovePassengers(&moved);
+    } else {
+        this->m_position = position;
+        CPassenger& passenger = this->m_owner->m_passenger;
+        reinterpret_cast<C4QuaternionCompressed&>(passenger.m_facing) = rotation;
+        passenger.unk_002C |= 0x2;
+        C44Matrix& matrix = this->m_owner->m_matrix;
+        matrix = this->m_owner->GetRotation();
+        matrix.d0 = this->m_position.x;
+        matrix.d1 = this->m_position.y;
+        matrix.d2 = this->m_position.z;
+
+        if (this->m_worldObject) {
+            World::ObjectUpdate(this->m_worldObject, matrix);
+        }
     }
 }

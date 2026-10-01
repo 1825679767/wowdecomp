@@ -38,6 +38,15 @@ uint8_t CGLCD::m_inWorld;
 // STATIC: 0x00D4131D
 static uint8_t s_classFlag8;
 
+// STATIC: 0x00D4131E
+static uint8_t s_unk_D4131E;
+
+// STATIC: 0x00B1C098
+static int32_t s_currentScreen = -1;
+
+// STATIC: 0x00B1C09C
+static int32_t s_previousScreen = -1;
+
 // STATIC: 0x00B1C0A0
 static int32_t s_unk_B1C0A0;
 
@@ -177,4 +186,33 @@ void CGLCD::Login() {
     CGLCD::m_lcd->SetVisible(CGLCD::GetHandle("SOUL_SHARD_FLD"), soulShard);
     const char* text = FrameScript_GetText("BF_NOT_IN", -1, GENDER_NOT_APPLICABLE);
     CGLCD::m_lcd->SetText(CGLCD::GetHandle("BF_NOT_IN"), text);
+}
+
+// VERIFY: 638d6a34 auto
+// OFFSET: 0x00848100
+void CGLCD::SetScreen(int32_t screen) {
+    if (screen == s_currentScreen) {
+        return;
+    }
+
+    s_previousScreen = s_currentScreen;
+    s_currentScreen = screen;
+    CGLCD::m_lcd->ShowPage(screen);
+    CGLCD::m_lcd->HideGlobals();
+}
+
+// VERIFY: 6e17fc01 auto
+// OFFSET: 0x008481F0
+void CGLCD::Logout() {
+    if (!CGLCD::m_lcd || !CGLCD::m_lcd->IsConnected() || !IsLCDAvailable()) {
+        return;
+    }
+
+    if (CGLCD::initComplete) {
+        CGLCD::m_inWorld = 0;
+        CGLCD::SetScreen(0);
+        s_unk_D4131E = 0;
+        CGLCD::m_player = nullptr;
+        CGLCD::m_lcd->Update();
+    }
 }

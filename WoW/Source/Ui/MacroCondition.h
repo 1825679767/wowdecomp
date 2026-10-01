@@ -3,11 +3,23 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Ui/MacroSubstring.h"
 
 class MacroCondition {
     public:
-    /* 0000 */ uint8_t unk_0000[20];
-    /* 0014 */ uint32_t unk_0014;
+    /* 0000 */ int32_t m_type;
+    /* 0004 */ TSGrowableArray<MacroSubstring> m_args;
+    /* 0014 */ int32_t m_negate;
+
+    MacroCondition();
+    void Parse(const char* start, const char* end);
 };
+
+// INLINED
+inline MacroCondition::MacroCondition() {
+    this->m_type = 0;
+    this->m_negate = 0;
+}
 
 #endif

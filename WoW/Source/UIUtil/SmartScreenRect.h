@@ -8,6 +8,7 @@ class CRect;
 class CSimpleFrame;
 
 void SmartScreenRectClearAllGrids();
+void SmartScreenRectShutdown();
 void SmartScreenRectClearGrid(uint32_t grid);
 void SmartScreenRectPlace(uint32_t grid, CRect& rect);
 void SmartScreenRectPositionFrame(uint32_t grid, CSimpleFrame* frame, CSimpleFrame* parent, const C3Vector& position, int32_t center);

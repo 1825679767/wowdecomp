@@ -294,3 +294,103 @@ int32_t Packet_SMSG_CONTACT_LIST(void* param, NETMESSAGE msgId, uint32_t time, C
     FriendList::s_friendList->ReadPacket(msg);
     return 1;
 }
+
+// VERIFY: 40fabbbe auto
+// OFFSET: 0x006B3630
+uint32_t FriendList::GetNumIgnores() {
+    uint32_t count = 0;
+
+    while (count < 50 && this->m_ignores[count].m_guid) {
+        count++;
+    }
+
+    return count;
+}
+
+// VERIFY: dfd1e135 manual
+// OFFSET: 0x006B3960
+int32_t QSortFriends(const void* a, const void* b) {
+    if (!a || !b) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    const FriendInfo* friendA = static_cast<const FriendInfo*>(a);
+    const FriendInfo* friendB = static_cast<const FriendInfo*>(b);
+
+    if (!friendA->m_guid && !friendB->m_guid) {
+        return 0;
+    }
+
+    if (!friendA->m_guid) {
+        return 1;
+    }
+
+    if (!friendB->m_guid) {
+        return -1;
+    }
+
+    if (friendA->m_connected != friendB->m_connected) {
+        return friendA->m_connected ? -1 : 1;
+    }
+
+    if (friendA->m_name && friendB->m_name) {
+        return SStrSortUTF8I(friendA->m_name, friendB->m_name, 0x7FFFFFFF);
+    }
+
+    if (!friendA->m_name && !friendB->m_name) {
+        return 0;
+    }
+
+    return friendA->m_name ? -1 : 1;
+}
+
+// VERIFY: 5c7fff6f manual
+// OFFSET: 0x006B3A60
+int32_t QSortIgnore(const void* a, const void* b) {
+    if (!a || !b) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    WOWGUID guidA = static_cast<const IgnoreInfo*>(a)->m_guid;
+    WOWGUID guidB = static_cast<const IgnoreInfo*>(b)->m_guid;
+
+    if (!guidA) {
+        return guidB ? 1 : 0;
+    }
+
+    if (!guidB) {
+        return -1;
+    }
+
+    NameCache* nameA = g_nameDBCache.GetRecord(guidA.m_guid, WOWGUID(), nullptr, nullptr, false);
+    NameCache* nameB = g_nameDBCache.GetRecord(guidB.m_guid, WOWGUID(), nullptr, nullptr, false);
+
+    if (!nameA) {
+        return nameB ? 1 : 0;
+    }
+
+    if (!nameB) {
+        return -1;
+    }
+
+    char fullNameA[305];
+    char fullNameB[305];
+    return SStrCmp(nameA->FullName(fullNameA, sizeof(fullNameA)), nameB->FullName(fullNameB, sizeof(fullNameB)), 0x7FFFFFFF);
+}
+
+// VERIFY: 851ea1b0 manual
+// OFFSET: 0x006B51B0
+void FriendList::Destroy() {
+    if (!FriendList::s_friendList) {
+        return;
+    }
+
+    ClientServices::ClearMessageHandler(SMSG_WHO);
+    ClientServices::ClearMessageHandler(SMSG_WHO_IS);
+    ClientServices::ClearMessageHandler(SMSG_RWHOIS);
+    ClientServices::ClearMessageHandler(SMSG_CONTACT_LIST);
+    ClientServices::ClearMessageHandler(SMSG_FRIEND_STATUS);
+    ConsoleCommandUnregister("whois");
+    delete FriendList::s_friendList;
+    FriendList::s_friendList = nullptr;
+}

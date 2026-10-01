@@ -13,6 +13,7 @@
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
+#include "Engine/Source/Gx/CGxVertexPC.h"
 
 // VERIFY: pending
 // VERIFY: 3763adce auto
@@ -316,4 +317,110 @@ void CMap::RenderLowDetail(CMapAreaLow* area) {
 
     g_theGxDevicePtr->RsPop();
     g_theGxDevicePtr->m_xforms[GxXform_Tex0].Identity();
+}
+
+// VERIFY: 894a0529 manual
+// OFFSET: 0x007D5150
+void CMap::BuildLowDetailGridVertices(CMapAreaLow* area, CGxBuf* buf) {
+    CGxVertexPC* vertex = reinterpret_cast<CGxVertexPC*>(g_theGxDevicePtr->BufLock(buf));
+    uint32_t index = 0;
+    float x = area->m_topLeft.x;
+
+    for (int32_t row = 0; row < 17; row++) {
+        float y = area->m_topLeft.y;
+
+        for (int32_t col = 0; col < 17; col++) {
+            vertex->p.x = x;
+            vertex->p.y = y;
+            vertex->p.z = area->m_heights[index++];
+            vertex->c = CImVector(0xFF, 0xFF, 0xFF, 0xFF);
+            vertex++;
+            y -= 33.333332f;
+        }
+
+        x -= 33.333332f;
+    }
+
+    x = area->m_topLeft.x - 16.666666f;
+
+    for (int32_t row = 0; row < 16; row++) {
+        float y = area->m_topLeft.y - 16.666666f;
+
+        for (int32_t col = 0; col < 16; col++) {
+            vertex->p.x = x;
+            vertex->p.y = y;
+            vertex->p.z = area->m_heights[index++];
+            vertex->c = CImVector(0xFF, 0xFF, 0xFF, 0xFF);
+            vertex++;
+            y -= 33.333332f;
+        }
+
+        x -= 33.333332f;
+    }
+
+    g_theGxDevicePtr->BufUnlock(buf, 0);
+    buf->unk_001C = 1;
+}
+
+// VERIFY: 7d2e0b07 manual
+// OFFSET: 0x007D5240
+void CMap::BuildLowDetailGridIndices(uint16_t* holes, int32_t pass, CGxBuf* buf) {
+    uint16_t* indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(buf));
+    uint32_t outer = 0;
+    uint32_t inner = 289;
+
+    for (uint32_t row = 0; row < 16; row++) {
+        for (int32_t col = 0; col < 16; col++) {
+            if (!holes || (pass ? (holes[row] & (1 << col)) != 0 : (holes[row] & (1 << col)) == 0)) {
+                *indices++ = inner;
+                *indices++ = outer + 1;
+                *indices++ = outer;
+                *indices++ = inner;
+                *indices++ = outer + 18;
+                *indices++ = outer + 1;
+                *indices++ = inner;
+                *indices++ = outer + 17;
+                *indices++ = outer + 18;
+                *indices++ = inner;
+                *indices++ = outer;
+                *indices++ = outer + 17;
+            }
+
+            outer++;
+            inner++;
+        }
+
+        outer++;
+    }
+
+    g_theGxDevicePtr->BufUnlock(buf, 0);
+    buf->unk_001C = 1;
+}
+
+// VERIFY: f803b515 manual
+// OFFSET: 0x007CC770
+void CMapLowDetail::Unload() {
+    for (uint32_t i = 0; i < 4096; i++) {
+        if (this->m_areas[i]) {
+            CMap::FreeAreaLow(this->m_areas[i]);
+            this->m_areas[i] = nullptr;
+        }
+    }
+
+    for (uint32_t i = 0; i < this->m_mapObjDefList.m_count; i++) {
+        this->m_mapObjDefList.m_data[i]->m_refCount--;
+        CMap::PurgeMapObjDef(this->m_mapObjDefList.m_data[i]);
+    }
+
+    this->m_mapObjDefList.m_count = 0;
+    this->m_mapObjNames = nullptr;
+    this->m_mapObjNameOffsets = nullptr;
+    this->m_mapObjDefs = nullptr;
+    this->m_mapObjDefCount = 0;
+    this->m_areaOffsets = nullptr;
+
+    if (this->m_data) {
+        SMemFree(this->m_data, nullptr, 0, 0);
+        this->m_data = nullptr;
+    }
 }

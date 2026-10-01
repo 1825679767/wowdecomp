@@ -61,15 +61,15 @@ char* SStrChr(const char* string, char search) {
     return nullptr;
 }
 
-// VERIFY: 263abdbd auto
+// VERIFY: c2203f65 auto
 // OFFSET: 0x0076E720
-char* SStrChrR(char* string, char search) {
+char* SStrChrR(const char* string, char search) {
     if (!string) {
         SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return nullptr;
     }
 
-    char* result = nullptr;
+    const char* result = nullptr;
 
     for (; *string; string++) {
         if (*string == search) {
@@ -77,7 +77,7 @@ char* SStrChrR(char* string, char search) {
         }
     }
 
-    return result;
+    return const_cast<char*>(result);
 }
 
 // VERIFY: 8e9003dc auto

@@ -44,6 +44,7 @@ class CGLootInfo {
     static int32_t m_autolooted;
 
     static void InitializeGame();
+    static void ShutdownGame();
     static void LeaveWorld();
     static void DoAutoLoot(int32_t a1);
     static int32_t HasLoot();

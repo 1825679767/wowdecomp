@@ -43,6 +43,8 @@ class CGRaidInfo {
 
     static void EnterWorld();
     static void InitializeGame();
+    static void ShutdownGame();
+    static int32_t ProcessReadyCheckTimer(const void* data, void* param);
     static int32_t GetPartyMemberIndex(WOWGUID guid);
     static int32_t IsPartyMemberReadyCheckPending(uint32_t index);
     static int32_t IsPartyMemberReadyCheckReady(uint32_t index);

@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 #include "Engine/Source/ComSat/ComSatInterface.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
@@ -41,6 +42,11 @@ class ComSatClientAllocator : public ComSat::Allocator {
 };
 
 int32_t ComSatClient_HasSession(int32_t type, const char* name);
+int32_t ComSatClient_FindSessionByTypeAndName(int32_t type, const char* name);
+int32_t ComSatClient_IsMemberInVoiceSession(WOWGUID guid, int32_t type, const char* name);
+int32_t ComSatClient_Unk7DB830(WOWGUID guid, int32_t type, const char* name);
+bool ComSatClient_IsPlayerMuted(WOWGUID guid);
+int32_t ComSatClient_IsTalkerSquelchedInChannel(WOWGUID guid, int32_t type, const char* name);
 int32_t ComSatClient_GetCurrentSessionType();
 const char* ComSatClient_GetCurrentSessionName();
 

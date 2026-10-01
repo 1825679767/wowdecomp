@@ -1167,3 +1167,42 @@ void CGWorldMap::RefreshCurrentMap() {
         CGWorldMap::SetMap(CGWorldMap::m_currentContinent, CGWorldMap::m_currentOrphanZone, CGWorldMap::m_currentDungeonMap);
     }
 }
+
+// VERIFY: 3d6efa14 manual
+// OFFSET: 0x00542FB0
+void CGWorldMap::ClearArrowFrames() {
+    if (CGWorldMap::m_playerArrowFrame) {
+        delete CGWorldMap::m_playerArrowFrame;
+        CGWorldMap::m_playerArrowFrame = nullptr;
+    }
+
+    if (CGWorldMap::m_playerArrowEffectFrame) {
+        delete CGWorldMap::m_playerArrowEffectFrame;
+        CGWorldMap::m_playerArrowEffectFrame = nullptr;
+    }
+
+    if (CGWorldMap::m_playerMiniArrowFrame) {
+        delete CGWorldMap::m_playerMiniArrowFrame;
+        CGWorldMap::m_playerMiniArrowFrame = nullptr;
+    }
+
+    if (CGWorldMap::m_playerMiniArrowEffectFrame) {
+        delete CGWorldMap::m_playerMiniArrowEffectFrame;
+        CGWorldMap::m_playerMiniArrowEffectFrame = nullptr;
+    }
+}
+
+// VERIFY: f429796e manual
+// OFFSET: 0x00547D20
+void CGWorldMap::ShutdownGame() {
+    CGWorldMap::ClearArrowFrames();
+
+    for (uint32_t i = 0; i < CGWorldMap::m_continents.m_count; i++) {
+        CGWorldMap::m_continents.m_data[i].m_zones.Clear();
+    }
+
+    CGWorldMap::m_continents.Clear();
+    CGWorldMap::m_landmarks.Clear();
+    CGWorldMap::m_overlays.Clear();
+    CGWorldMap::m_orphanZones.Clear();
+}

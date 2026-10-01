@@ -17,6 +17,7 @@
 #include "WoW/Source/WorldClient/Types.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WorldClient/WorldView.h"
+#include "Engine/Source/Model2/M2Scene.h"
 
 // VERIFY: 4012bf37 manual
 // OFFSET: 0x007B4FA0
@@ -223,4 +224,26 @@ void CMapDoodadDef::Purge(CMapDoodadDef* doodadDef) {
 
     doodadDef->m_doodadDefLink.Unlink();
     CMap::FreeDoodadDef(doodadDef);
+}
+
+// VERIFY: 9bd1ba20 manual
+// OFFSET: 0x007BDA70
+void CMapDoodadDef::CreateModel(const char* fileName, CMapDoodadDef* doodadDef, int32_t waitForLoad, int32_t a4) {
+    CM2Model* model = World::s_m2Scene->CreateModel(fileName, a4 ? 0x20 : 0);
+    doodadDef->m_model = model;
+
+    if (!model) {
+        return;
+    }
+
+    model->m_fFlags |= 0x8000;
+    model->m_worldTransform = doodadDef->m_mat;
+    doodadDef->m_model->SetEventCallback(reinterpret_cast<void*>(CMapStaticEntity::ModelEventCallback), reinterpret_cast<uintptr_t>(doodadDef));
+    doodadDef->m_model->m_lightingCallback = CMapStaticEntity::ModelLightingCallback;
+    doodadDef->m_model->m_lightingArg = doodadDef;
+    doodadDef->m_model->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+
+    if (waitForLoad) {
+        doodadDef->m_model->IsLoaded(1, 0);
+    }
 }

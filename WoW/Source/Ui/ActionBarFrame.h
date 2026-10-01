@@ -53,6 +53,7 @@ class CGActionBar {
     static void SetTemporaryActionBarFlags(uint32_t flags, int32_t enable);
     static void UpdateShapeShiftBar();
     static void InitializeGame();
+    static void ShutdownGame();
     static void UpdateAttackAction();
     static void UpdateItem(int32_t itemId);
     static void UpdateRangedAttackAction();

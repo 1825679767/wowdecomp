@@ -17,6 +17,7 @@ class CMovementStatus;
 class CMovementShared : public CPassenger {
     public:
     void ResetFallOnControlLoss();
+    void Disable();
     using CPassenger::GetPosition;
 
     static float s_terminalVelocity;

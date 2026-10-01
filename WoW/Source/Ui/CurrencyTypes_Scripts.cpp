@@ -93,6 +93,93 @@ static int32_t Script_GetBackpackCurrencyInfo(lua_State* L) {
     return 5;
 }
 
+// VERIFY: cae29f5c manual
+// OFFSET: 0x005B0680
+int32_t Script_GetCurrencyListInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetCurrencyListInfo(index)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index < 0 || index >= CGCurrencyTypes::m_listSize) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 9;
+    }
+
+    CurrencyListEntry* entry = &CGCurrencyTypes::m_list[index];
+
+    if (entry->m_name) {
+        lua_pushstring(L, entry->m_name);
+    } else {
+        lua_pushnil(L);
+    }
+
+    lua_pushboolean(L, entry->m_isHeader);
+    lua_pushboolean(L, entry->m_isExpanded);
+    lua_pushboolean(L, CGCurrencyTypes::IsCurrencyShown(index));
+    lua_pushboolean(L, entry->m_isWatched);
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        uint32_t count = 0;
+        int32_t extraCurrencyType = 0;
+
+        if (entry->m_itemID == 43307) {
+            count = player->m_player->m_playerFieldArenaCurrency;
+            extraCurrencyType = 1;
+        } else if (entry->m_itemID == 43308) {
+            count = player->m_player->m_playerFieldHonorCurrency;
+            extraCurrencyType = 2;
+        } else {
+            CGBag_C* bag = player->GetBag();
+
+            if (bag) {
+                for (uint32_t slot = 118; slot <= 149; slot++) {
+                    WOWGUID itemGuid;
+                    itemGuid.m_guid = bag->GetItemGuid(slot);
+                    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(itemGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+                    if (item && static_cast<int32_t>(item->m_obj->m_entryID) == entry->m_itemID) {
+                        count = item->m_item->m_itemFieldStackCount;
+                        break;
+                    }
+                }
+            }
+        }
+
+        lua_pushnumber(L, count);
+        lua_pushinteger(L, extraCurrencyType);
+    } else {
+        lua_pushnumber(L, 0.0);
+        lua_pushboolean(L, 0);
+    }
+
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(entry->m_itemID, none, nullptr, nullptr, false);
+
+    if (stats) {
+        const char* path = ClientDBStringLookup(3);
+        char texture[260];
+        SStrPrintf(texture, sizeof(texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(stats->m_displayId));
+        lua_pushstring(L, texture);
+    } else {
+        lua_pushnil(L);
+    }
+
+    lua_pushinteger(L, entry->m_itemID);
+
+    return 9;
+}
+
 // STATIC: 0x00ACFC34
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetCurrencyListSize", &Script_GetCurrencyListSize },

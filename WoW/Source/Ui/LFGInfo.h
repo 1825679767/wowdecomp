@@ -30,6 +30,7 @@ struct LFGDungeonEntry : public TSLinkedNode<LFGDungeonEntry> {
     /* 0020 */ int32_t m_variableXP;
     /* 0024 */ TSList<LFGRewardItem, TSGetLink<LFGRewardItem>> m_rewards;
 
+    LFGDungeonEntry();
     ~LFGDungeonEntry();
 };
 
@@ -47,7 +48,13 @@ struct LFGInfo {
     /* 001C */ char m_comment[256];
     /* 011C */ uint32_t unk_011C;
 
+    LFGInfo();
+    ~LFGInfo();
     void Reset();
+    LFGDungeonEntry* AddDungeon(uint32_t slot);
+    LFGDungeonEntry* FindDungeon(uint32_t slot) const;
+    bool Equals(const LFGInfo& other) const;
+    void CopyFrom(const LFGInfo& other);
 };
 
 struct LFGLockInfo : public TSLinkedNode<LFGLockInfo> {
@@ -59,6 +66,7 @@ struct LFGLockInfo : public TSLinkedNode<LFGLockInfo> {
 
     ~LFGLockInfo();
     void ClearDungeons();
+    LFGDungeonEntry* AddDungeon(uint32_t slot);
 };
 
 struct LFGPartyLockInfo {
@@ -100,6 +108,8 @@ struct LFGProposal {
     /* 000C */ uint32_t m_completedMask;
     /* 0010 */ uint32_t unk_0010;
     /* 0014 */ LFGProposalMember m_members[5];
+
+    void Clear();
 };
 
 struct LFGQueueStatus {
@@ -115,16 +125,33 @@ struct LFGQueueStatus {
     /* 001B */ uint8_t unk_001B;
     /* 001C */ uint32_t m_statusTime;
     /* 0020 */ int32_t m_queuedTime;
+
+    void Clear();
+};
+
+struct LFGBootProposal {
+    /* 0000 */ uint32_t m_inProgress;
+    /* 0004 */ uint32_t m_didVote;
+    /* 0008 */ uint32_t m_myVote;
+    /* 000C */ uint32_t unk_000C;
+    /* 0010 */ WOWGUID m_target;
+    /* 0018 */ uint32_t m_totalVotes;
+    /* 001C */ uint32_t m_bootVotes;
+    /* 0020 */ uint32_t m_timeLeft;
+    /* 0024 */ uint32_t m_votesNeeded;
+    /* 0028 */ char m_reason[256];
 };
 
 struct LFGRoleCheckMember {
     /* 0000 */ WOWGUID m_guid;
     /* 0008 */ int32_t m_confirmed;
     /* 000C */ uint32_t m_roles;
-    /* 0010 */ int32_t m_level;
+    /* 0010 */ uint8_t m_level;
+    /* 0011 */ uint8_t unk_0011[3];
     /* 0014 */ uint32_t unk_0014;
 };
 
+class LfgDungeonsRec;
 class CGLookingForGroup {
     public:
     struct LFGEntryInfo {
@@ -142,6 +169,7 @@ class CGLookingForGroup {
     static LFGLIST m_prevSearchResults;
     static LFGProposal m_proposal;
     static CGLookingForGroup::LFGEntryInfo m_unkBEA820[7];
+    static LFGBootProposal m_bootProposal;
     static uint8_t m_unkBEAA10;
     static uint8_t m_unkACD660;
     static LFGInfo m_localInfo;
@@ -156,6 +184,7 @@ class CGLookingForGroup {
     static TSGrowableArray<LFGRoleCheckMember> m_roleCheckMembers;
     static void EnterWorld();
     static void InitializeGame();
+    static void ShutdownGame();
     static int32_t GetLFGRoleUpdate(lua_State* L);
     static int32_t GetLFGRoleUpdateSlot(lua_State* L);
     static void RequestLFGStatus();
@@ -165,6 +194,13 @@ class CGLookingForGroup {
     static bool HasRaidDungeon(LFGInfo* info);
     static void UpdateLFDEntries();
     static void UpdateLFREntries();
+    static void ShowProposal(int32_t silent);
+    static void ParsePartyInfo(CDataStore* msg);
+    static void ParseBlackList(CDataStore* msg, LFGLockInfo* lockInfo);
+    static void UpdateRandomDungeons();
+    static bool IsRandomDungeonUnlocked(const LfgDungeonsRec* rec);
+    static bool UpdateRandomDungeonBestChoice();
+    static bool IsSlotValidForAll(uint32_t slot);
 };
 
 namespace DungeonEncounterDB {

@@ -56,6 +56,7 @@ class CGArenaTeamInfo {
     static WOWGUID m_selectedMember;
     static void EnterWorld();
     static void InitializeGame();
+    static void ShutdownGame();
     static void QueryRoster(uint32_t index);
     static void UpdateTeams(int32_t signal);
     static bool CheckPersonalAndTeamRating(uint32_t rating, int32_t bracket);

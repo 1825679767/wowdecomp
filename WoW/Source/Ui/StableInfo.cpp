@@ -48,3 +48,10 @@ void CGStableInfo::EnterWorld() {
     CGStableInfo::unk_C0F6D0 = 0;
     memset(&CGStableInfo::m_pets[0], 0, sizeof(CGStableInfo::m_pets[0]));
 }
+
+// VERIFY: c3ced28b auto
+// OFFSET: 0x005A0EF0
+void CGStableInfo::ShutdownGame() {
+    ClientServices::ClearMessageHandler(MSG_LIST_STABLED_PETS);
+    ClientServices::ClearMessageHandler(SMSG_STABLE_RESULT);
+}

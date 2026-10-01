@@ -98,6 +98,7 @@
 #include <malloc.h>
 #include <cstring>
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
+#include "WoW/Source/Game/GameClient/ProjectTex.h"
 
 // STATIC: 0x00ADEE48
 static const char* s_zonePaths[11] = {
@@ -816,6 +817,32 @@ int32_t World::ObjectIsLoaded(CMapBaseObj* object) {
     }
 
     return model->IsLoaded(0, 0);
+}
+
+// VERIFY: d8d20c5a auto
+// OFFSET: 0x0077F340
+bool World::GetTris(const CAaBox& box, World::TriData* triData, uint32_t flags) {
+    return CMap::QueryTris(box, triData, flags);
+}
+
+// VERIFY: 457f7c03 auto
+// OFFSET: 0x0077F350
+uint32_t World::GetIntersectingDoodadModels(CM2Model** models, uint32_t maxModels, const CAaBox& box, uint32_t flags) {
+    return CMap::QueryIntersectingModels(models, maxModels, box, flags);
+}
+
+// VERIFY: fbdca5c7 auto
+// OFFSET: 0x0077F500
+void World::ProjectTextureCallback(const CAaBox& box, const CImVector& color, int32_t index, void* param, int32_t flags) {
+    if (flags || (CWorld::enables2 & 0x4)) {
+        ProjectTex2dDrawShaderEffect(box, color, 0x200122, index ? 2 : 0, 0.40000001f);
+    }
+}
+
+// VERIFY: aa9498a7 auto
+// OFFSET: 0x00780190
+int32_t World::ObjectIsWMO(CMapBaseObj* object) {
+    return object->m_type & 0x8;
 }
 
 // VERIFY: b8f47c0c auto
@@ -4778,5 +4805,213 @@ void World::UpdateObjectFadeouts() {
         }
 
         fadeout = next;
+    }
+}
+
+// VERIFY: 6429c545 auto
+// OFFSET: 0x0077FE00
+void World::ObjectSetMoveable(CMapEntity* entity, int32_t moveable) {
+    if (moveable) {
+        entity->m_flags = static_cast<MapObjFlag>(entity->m_flags | 0x1000);
+    } else {
+        entity->m_flags = static_cast<MapObjFlag>(entity->m_flags & ~0x1000);
+    }
+}
+
+// VERIFY: 380eef33 manual
+// OFFSET: 0x007823D0
+static int32_t ObjectFadeoutCallback(void* param, uint32_t flags, uint64_t a3, uintptr_t a4) {
+    CMapEntity* entity = static_cast<CMapEntity*>(param);
+
+    if (!entity) {
+        return 0;
+    }
+
+    if (flags & 0x1) {
+        entity->m_model->SetAnimating(1);
+        CM2Model* model = entity->m_model;
+
+        if (model->m_attachParent) {
+            model->m_fFlags |= 0x80;
+        } else {
+            model->m_fFlags |= 0x8;
+        }
+
+        if (model->m_attachParent) {
+            model->m_fFlags |= 0x20000;
+        } else {
+            model->m_fFlags |= 0x10000;
+        }
+
+        return 1;
+    }
+
+    CM2Model* model = entity->m_model;
+
+    if (model->m_attachParent) {
+        model->m_fFlags &= ~0x80;
+    } else {
+        model->m_fFlags &= ~0x8;
+    }
+
+    if (model->m_attachParent) {
+        model->m_fFlags &= ~0x20000;
+    } else {
+        model->m_fFlags &= ~0x10000;
+    }
+
+    entity->m_model->SetAnimating(0);
+    model = entity->m_model;
+
+    if (model->m_attachParent) {
+        model->m_fFlags &= ~0x20000;
+    } else {
+        model->m_fFlags &= ~0x10000;
+    }
+
+    return 1;
+}
+
+// VERIFY: b75aa230 manual
+// OFFSET: 0x00783630
+void CGObject_C::PrepareToFadeInt(CMapEntity* entity, float alpha, uint64_t transportGuid) {
+    if (!entity) {
+        return;
+    }
+
+    if (!entity->m_model || !entity->m_model->IsDrawable(0, 0) || alpha < 0.0099999998f || (entity->unk_007C & 0x4)) {
+        World::ObjectDestroy(entity);
+        return;
+    }
+
+    SWModelFadeout* fadeout = s_fadeoutDataPool.Head();
+
+    if (!fadeout) {
+        fadeout = s_fadeoutDataPool.NewNode(0, 0, 0);
+    }
+
+    fadeout->m_entity = entity;
+    fadeout->m_startTime = OsGetAsyncTimeMs();
+    fadeout->m_alpha = alpha;
+
+    if (transportGuid) {
+        CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ transportGuid }, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+
+        if (transport) {
+            fadeout->m_transportGuid.m_guid = transportGuid;
+            C44Matrix world = entity->m_model->m_worldTransform;
+            fadeout->m_localTransform = world * transport->GetMatrix().AffineInverse();
+        } else {
+            fadeout->m_transportGuid = WOWGUID();
+        }
+    } else {
+        fadeout->m_transportGuid = WOWGUID();
+    }
+
+    s_fadeoutList.LinkToTail(fadeout);
+    entity->m_func = ObjectFadeoutCallback;
+    entity->m_funcParam = entity;
+}
+
+// VERIFY: 9ca78c2b auto
+// OFFSET: 0x0077F040
+void World::NewFootprint(int32_t textureId, const float* size, const C3Vector* position, float facing, int32_t left, int32_t terrainType, int32_t activePlayer) {
+    CMap::NewFootprint(textureId, size, position, facing, left, terrainType, activePlayer);
+}
+
+// VERIFY: 04260407 manual
+// OFFSET: 0x0077FBF0
+int32_t World::QueryOutdoors(CMapEntity* entity) {
+    if (!entity) {
+        return 1;
+    }
+
+    CMapObjDef* mapObjDef;
+    CMapObj* mapObj;
+    CMapObjDefGroup* mapObjDefGroup;
+    CMapObjGroup* mapObjGroup = nullptr;
+
+    if (entity->GetMapObjAndGroup(&mapObjDef, &mapObj, &mapObjDefGroup, &mapObjGroup, 0)) {
+        int32_t outdoors = (mapObjGroup->m_flags >> 3) & 1;
+        WMOAreaTableRec* rec = GetWMOAreaRec(mapObj->m_header->m_wmoID, mapObjDef->m_nameSet, mapObjGroup->m_wmoGroupId);
+
+        if (!rec) {
+            return outdoors;
+        }
+
+        if (rec->m_flags & 0x4) {
+            return 1;
+        }
+
+        return (rec->m_flags & 0x2) ? 0 : outdoors;
+    }
+
+    int32_t areaId = CMap::QueryAreaIdTerrain(&entity->m_position);
+    AreaTableRec* area = g_areaTableDB.GetRecord(areaId);
+
+    if (!area || (area->m_flags & 0x4000000)) {
+        return 1;
+    }
+
+    return (area->m_flags & 0x2000000) ? 0 : 1;
+}
+
+// VERIFY: 4fb148c8 auto
+// OFFSET: 0x00783500
+CMapBaseObj* CWorld::ObjectCreate(const char* name, const C3Vector& position, float facing, int32_t waitLoad, int32_t snap, uint64_t guid, uint32_t doodadSetCount, const int16_t* doodadSets, float* radius, uint32_t id) {
+    const char* extension = SStrChrR(name, '.');
+
+    if (extension && !SStrCmpI(extension, ".wmo", STORM_MAX_STR)) {
+        CMapObjDef* mapObjDef = CMap::CreateMapObjDef(name, &position, facing, waitLoad, doodadSetCount, doodadSets, radius, id);
+        mapObjDef->m_objectGuid.m_guid = guid;
+        CMapBaseObjLink* link = CMap::AllocBaseObjLink(mapObjDef);
+        link->m_ref = nullptr;
+        CMap::mapObjDefLinkList.LinkToTail(link);
+
+        if (snap) {
+            CMap::SnapBaseObjToSubChunk(mapObjDef, &position, facing);
+            CMapObjDef::UpdatePos(mapObjDef, &position, facing, 0.0f, 0.0f);
+        }
+
+        mapObjDef->m_refCount++;
+
+        return mapObjDef;
+    }
+
+    CMapDoodadDef* doodadDef = CMap::CreateDoodadDef(name, &position, facing, waitLoad);
+    doodadDef->unk_007C |= 0x2010;
+    doodadDef->unk_00B8.m_guid = guid;
+
+    if (snap) {
+        CMap::SnapBaseObjToSubChunk(doodadDef, &position, facing);
+        CMap::UpdateDoodadDef(doodadDef, &position, facing);
+    }
+
+    doodadDef->m_refCount++;
+
+    return doodadDef;
+}
+
+// VERIFY: 1612d04a auto
+// OFFSET: 0x0077FF10
+void World::ObjectSetSequenceFinishedCallback(CMapEntity* entity, void (*callback)(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param), uint64_t param, uint16_t doodad) {
+    CMapBaseObj* object = entity;
+
+    if (object->m_type & 0x8) {
+        static_cast<CMapObjDef*>(object)->SetSequenceFinishedCallback(callback, param, doodad);
+    } else if ((object->m_type & 0x40) && entity->m_model) {
+        entity->m_model->SetSequenceCallback(reinterpret_cast<void*>(callback), param);
+    }
+}
+
+// VERIFY: b0e04ce8 auto
+// OFFSET: 0x0077FDD0
+void World::ObjectUpdate(CMapEntity* entity, const C44Matrix& matrix) {
+    CMapBaseObj* object = entity;
+
+    if (object->m_type & 0x8) {
+        CMapObjDef::UpdateMatrix(reinterpret_cast<CMapObjDef*>(object), matrix);
+    } else if (object->m_type & 0x40) {
+        CMap::UpdateDoodadDefTransform(reinterpret_cast<CMapDoodadDef*>(object), matrix);
     }
 }

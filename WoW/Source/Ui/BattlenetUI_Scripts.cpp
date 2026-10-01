@@ -5,6 +5,7 @@
 #include "WoW/Source/WowServices/BattlenetLogin.h"
 #include "WoW/Source/WowServices/Login.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00ACC9E8
 static uint32_t s_presenceOnlineField = 0x10002;
@@ -68,6 +69,50 @@ static int32_t Script_BNGetMaxPlayersInConversation(lua_State* L) {
     }
 
     lua_pushnumber(L, 12.0);
+    return 1;
+}
+
+// VERIFY: 423fdd2d manual
+// OFFSET: 0x00536400
+static int32_t Script_BNGetNumBlocked(lua_State* L) {
+    Login* login = ClientServices::LoginConnection();
+
+    if (!login || login->GetLoginServerType() != 1 || login->IsTrialAccount() || !BattlenetAPI::IsRIDEnabled()) {
+        lua_pushnumber(L, 0.0);
+        return 1;
+    }
+
+    if (!BattlenetUI_IsAvailable()) {
+        lua_pushnumber(L, 0.0);
+        DebugLog("BNUI: Num Blocked is 0. NOT CONNECTED");
+        return 1;
+    }
+
+    BattlenetBlockList blockList = BattlenetAPI::GetBlockList();
+    lua_pushnumber(L, blockList.m_blockedCount);
+    DebugLog("BNUI: Num Blocked is %d", blockList.m_blockedCount);
+    return 1;
+}
+
+// VERIFY: 6fff9574 manual
+// OFFSET: 0x00536890
+static int32_t Script_BNGetNumBlockedToons(lua_State* L) {
+    Login* login = ClientServices::LoginConnection();
+
+    if (!login || login->GetLoginServerType() != 1 || login->IsTrialAccount() || !BattlenetAPI::IsRIDEnabled()) {
+        lua_pushnumber(L, 0.0);
+        return 1;
+    }
+
+    if (!BattlenetUI_IsAvailable()) {
+        lua_pushnumber(L, 0.0);
+        DebugLog("BNUI: Num Blocked toons is 0. NOT CONNECTED");
+        return 1;
+    }
+
+    BattlenetBlockList blockList = BattlenetAPI::GetBlockList();
+    lua_pushnumber(L, blockList.m_blockedToonCount);
+    DebugLog("BNUI: Num Blocked toons is %d", blockList.m_blockedToonCount);
     return 1;
 }
 

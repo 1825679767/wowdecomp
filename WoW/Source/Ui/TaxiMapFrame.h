@@ -31,6 +31,11 @@ struct TAXIPATHNODESCLIENT : public TSHashObject<TAXIPATHNODESCLIENT, HASHKEY_NO
     /* 001C */ int32_t m_numNodes;
 };
 
+struct TAXILINE {
+    /* 0000 */ TaxiNodesRec* m_src;
+    /* 0004 */ TaxiNodesRec* m_dest;
+};
+
 struct TAXIROUTELINE {
     /* 0000 */ C3Vector m_src;
     /* 000C */ C3Vector m_dest;
@@ -47,6 +52,8 @@ class CGTaxiMap {
     static uint32_t m_maxNodeID;
     static uint32_t m_nodeMaskSize;
     static void InitializeGame();
+    static void ShutdownGame();
+    static void FreeRouteLines();
     static void RegisterScriptFunctions();
 };
 

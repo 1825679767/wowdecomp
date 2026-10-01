@@ -39,6 +39,7 @@ class FrameScript_Object;
 struct lua_State;
 
 extern CVar* g_autoClearAFKCVar;
+extern CVar* g_questPOICVar;
 extern CVar* g_nameplateShowEnemiesCVar;
 extern CVar* g_nameplateShowEnemyPetsCVar;
 extern CVar* g_nameplateShowEnemyGuardiansCVar;
@@ -61,6 +62,7 @@ extern CVar* g_petSpellDamageCVar;
 extern CVar* g_deselectOnClickCVar;
 extern CVar* g_scriptProfileCVar;
 extern CVar* g_taintLogCVar;
+extern CVar* g_guildMemberNotifyCVar;
 extern CVar* g_uiScaleCVar;
 extern CVar* g_useUiScaleCVar;
 extern CVar* g_rotateMinimapCVar;
@@ -102,6 +104,9 @@ struct SAVEDVARIABLE : public TSHashObject<SAVEDVARIABLE, HASHKEY_STR> {
 class SE2SoundKitObject;
 class CGGameUI {
     public:
+    static void SendRaidDifficultyMessage();
+    static void LeaveWorld();
+    static void SaveSavedVariables();
     struct THREATMAP : public TSHashObject<THREATMAP, CHashKeyGUID> {
         /* 0020 */ TSGrowableArray<WOWGUID> m_units;
 
@@ -256,7 +261,6 @@ class CGGameUI {
     static void SetPhaseShift(uint32_t phase);
     static void ProposeLevelGrant(WOWGUID guid);
     static void SetCorpseMapPosition(const C3Vector& position, const float& facing);
-    static uint32_t unk_BD1980;
     static void CastSpiritHealSpell();
     static void SetCursorItem(WOWGUID item, WOWGUID container, uint32_t slot, int32_t a4, int32_t stackSplit, int32_t playSound);
     static WOWGUID m_lockedTarget;
@@ -430,7 +434,16 @@ bool CVarHandler_useUiScale(CVar* var, const char* oldValue, const char* value, 
 void LoadAccountVariables();
 void LoadPlacedFrames(HOSFILE localFile, HOSFILE cacheFile, void* param);
 void LoadSavedVariables(CStatus* status);
+struct TAINTEVENT : public TSHashObject<TAINTEVENT, HASHKEY_STR> {
+};
+
 void LoadScriptFunctions();
+int32_t IsInFlyableArea();
+void UnloadScriptFunctions();
+void SavePlacedFrames(HOSFILE localFile, HOSFILE file, void* param);
+void SaveGameCVarsCallback(HOSFILE localFile, HOSFILE file, void* param);
+void DisableFadingScreen(float duration, void (*callback)(void*), void* param);
+extern HSLOG s_taintLog;
 bool GuildShowOfflineCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 bool SetCalendarFilterCVarCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 bool SetTaintLogCallback(CVar* var, const char* oldValue, const char* value, void* arg);

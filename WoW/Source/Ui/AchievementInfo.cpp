@@ -355,3 +355,64 @@ void CGAchievementInfo::LoadTrackedAchievements() {
         list.m_cvar->Set(value, true, false, false, true);
     }
 }
+
+// VERIFY: 628f101d manual
+// OFFSET: 0x005B4F00
+void CGAchievementInfo::ShutdownGame() {
+    ClientServices::ClearMessageHandler(SMSG_ACHIEVEMENT_EARNED);
+    ClientServices::ClearMessageHandler(SMSG_CRITERIA_UPDATE);
+    ClientServices::ClearMessageHandler(SMSG_RESPOND_INSPECT_ACHIEVEMENTS);
+    ClientServices::ClearMessageHandler(SMSG_ALL_ACHIEVEMENT_DATA);
+    ClientServices::ClearMessageHandler(SMSG_ACHIEVEMENT_DELETED);
+    ClientServices::ClearMessageHandler(SMSG_CRITERIA_DELETED);
+    ClientServices::ClearMessageHandler(SMSG_QUERY_QUESTS_COMPLETED_RESPONSE);
+    s_unkC1F450 = 0;
+    s_unkACFD98.Clear();
+    s_unkACFDA4.Clear();
+    s_completedAchievements.Clear();
+    s_unkACFDBC.Clear();
+    s_unkACFDC8.Clear();
+    s_unkACFDD4.Clear();
+    s_trackedAchievements.Clear();
+    s_completedQuests.Clear();
+
+    for (uint32_t i = 0; i < 124; i++) {
+        ACHIEVEMENTCRITERIALIST* list = s_criteriaByType[i].m_fulllist.Head();
+
+        while (list) {
+            ACHIEVEMENTCRITERIALIST* next = s_criteriaByType[i].Next(list);
+            list->m_criteria.Clear();
+            s_criteriaByType[i].Delete(list);
+            list = next;
+        }
+    }
+
+    ACHIEVEMENT* achievement = s_achievements.m_fulllist.Head();
+
+    while (achievement) {
+        ACHIEVEMENT* next = s_achievements.Next(achievement);
+        achievement->m_criteria.Clear();
+        s_achievements.Delete(achievement);
+        achievement = next;
+    }
+}
+
+// VERIFY: f42c8dbe manual
+// OFFSET: 0x005B1FA0
+void CGAchievementInfo::SaveTrackedAchievements() {
+    CVarIntListWrapper list;
+    list.m_cvar = CVar::Lookup("trackedAchievements");
+    list.m_pos = 2;
+    list.m_state = 0;
+
+    for (CLIENT_ACHIEVEMENTS* node = s_trackedAchievements.Head(); node; node = s_trackedAchievements.Next(node)) {
+        list.AddNextValue(node->m_id);
+    }
+
+    if (list.m_state != 1) {
+        list.m_buffer[0] = 'v';
+        list.m_buffer[1] = 1;
+        list.m_buffer[list.m_pos] = 0;
+        list.m_cvar->Set(list.m_buffer, true, false, false, true);
+    }
+}

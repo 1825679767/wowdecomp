@@ -52,4 +52,6 @@ void Script_SendUnitSpellSignal(const WOWGUID& guid, uint8_t castCount, const Sp
 void ScriptEventsRegisterUnit(CGUnit_C* unit);
 void ScriptEventsUnregisterUnit(CGUnit_C* unit);
 
+void ClearUniqueSignals();
+
 #endif

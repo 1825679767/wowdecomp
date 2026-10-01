@@ -17,6 +17,32 @@ struct CalendarEventClipboard {
 };
 
 int32_t PH_CALENDAR_GROUP(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+void PH_SMSG_CALENDAR_SEND_CALENDAR(CDataStore* msg);
+
+struct CALENDARHOLIDAYNODE : public TSLinkedNode<CALENDARHOLIDAYNODE> {
+};
+
+struct CALENDARRAIDRESETNODE : public TSLinkedNode<CALENDARRAIDRESETNODE> {
+};
+
+struct DYNAMICHOLIDAYHASH : public TSHashObject<DYNAMICHOLIDAYHASH, HASHKEY_NONE> {
+};
+
+struct CALENDAREVENTHASH : public TSHashObject<CALENDAREVENTHASH, HASHKEY_NONE> {
+};
+
+struct CalendarDayInfo {
+    /* 0000 */ int32_t m_numEvents;
+    /* 0004 */ uint32_t unk_0004[3];
+};
+
+class CalendarEventTables {
+    public:
+    /* 0000 */ TSHashTable<CALENDAREVENTHASH, HASHKEY_NONE> m_tables[8];
+    /* 0140 */ int32_t m_counts[8];
+
+    void Clear();
+};
 
 struct CalendarPendingInvite : public TSLinkedNode<CalendarPendingInvite> {
     /* 0008 */ uint8_t unk_0008[16];
@@ -38,8 +64,26 @@ class CGCalendar {
 
     static void EnterWorld();
     static void InitializeGame();
+    static void ShutdownGame();
     static void QueryPendingInvites();
     static void SetFilter(CVar* var, int32_t value);
+    static void ProcessGetEvent(CDataStore* msg);
+    static void ProcessInitialInviteList(CDataStore* msg);
+    static void ProcessInvite(CDataStore* msg, uint8_t* clearPending);
+    static void ProcessInviteRemoved(CDataStore* msg, uint8_t* clearPending);
+    static void ProcessInviteStatus(CDataStore* msg, uint8_t* clearPending);
+    static void ProcessLockoutAdded(CDataStore* msg);
+    static void ProcessLockoutRemoved(CDataStore* msg);
+    static void ProcessLockoutUpdated(CDataStore* msg);
+    static void ProcessInviteAlert(CDataStore* msg);
+    static void ProcessInviteRemovedAlert(CDataStore* msg);
+    static void ProcessInviteStatusAlert(CDataStore* msg);
+    static void ProcessEventRemovedAlert(CDataStore* msg, uint8_t* clearPending);
+    static void ProcessEventUpdatedAlert(CDataStore* msg, uint8_t* clearPending);
+    static void ProcessInviteModeratorStatusAlert(CDataStore* msg, uint8_t* clearPending);
+    static void ProcessInviteNotes(CDataStore* msg, uint8_t* clearPending);
+    static void ProcessInviteNotesAlert(CDataStore* msg);
+    static void UpdatePendingInvites(CDataStore* msg);
 };
 
 int32_t Script_CalendarGetMinDate(lua_State* L);

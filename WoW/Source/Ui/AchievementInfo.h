@@ -55,11 +55,13 @@ int32_t Packet_SMSG_QUERY_QUESTS_COMPLETED_RESPONSE(void* param, NETMESSAGE msgI
 
 class CGAchievementInfo {
     public:
+    static void SaveTrackedAchievements();
     static int32_t m_showAchievementUI;
     static void LoadTrackedAchievements();
     static WOWGUID m_inspect;
 
     static void InitializeGame();
+    static void ShutdownGame();
     static bool IsCriteriaStat(int32_t criteriaId);
     static void UpdateAchievement(int32_t id, WowTime date);
     static void UpdateCriteria(int32_t id, uint64_t counter, uint32_t flags, WowTime date, WOWGUID player, uint32_t timer1, uint32_t timer2);

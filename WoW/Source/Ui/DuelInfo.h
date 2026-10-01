@@ -9,6 +9,7 @@ struct lua_State;
 
 class CGDuelInfo {
     public:
+    static void ShutdownGame();
     static WOWGUID m_dueler;
 
     static void InitializeGame();

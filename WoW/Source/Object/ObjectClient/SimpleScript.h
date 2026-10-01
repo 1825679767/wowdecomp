@@ -28,6 +28,8 @@ struct SimpleScriptIO {
     /* 0010 */ uint32_t m_stringSize;
     /* 0014 */ uint32_t m_stringCount;
     /* 0018 */ char* m_strings;
+
+    SimpleScriptIO(double* numbers, uint32_t count);
 };
 
 class CSimpleScriptManager {
@@ -55,5 +57,14 @@ class CSimpleScriptManager {
     int32_t Init(uint32_t bits);
     void Uninit();
 };
+
+// INLINED
+inline SimpleScriptIO::SimpleScriptIO(double* numbers, uint32_t count) {
+    this->m_numbers.m_alloc = count;
+    this->m_numbers.m_data = numbers;
+    this->m_stringSize = 0;
+    this->m_stringCount = 0;
+    this->m_strings = nullptr;
+}
 
 #endif

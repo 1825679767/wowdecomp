@@ -22,5 +22,7 @@ char* AddOnUnloadableToken(UIADDON_LOADABLE_REASON reason, UIADDON_LOADABLE_REAS
 bool LoadAddOn(const char* name, bool demandLoad, CStatus* status);
 uint32_t LoadAddOnFileCount();
 void LoadAddOns(CStatus* status);
+void UnloadAddOns();
+void SaveAddOnEnableState();
 
 #endif

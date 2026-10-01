@@ -768,3 +768,77 @@ bool StripHyperlinks(const char* text, char* buffer, uint32_t size) {
     *dest = 0;
     return stripped;
 }
+
+// VERIFY: ab213c53 auto
+// OFFSET: 0x0076DD20
+int32_t NameNeedsDeclensions(int32_t locale, const char* name) {
+    return locale == 8 && RussianNameNeedsDeclensions(name);
+}
+
+// VERIFY: a66e9458 auto
+// OFFSET: 0x0076E270
+int32_t RussianNameNeedsDeclensions(const char* name) {
+    uint16_t c = 0;
+    SUniConvertUTF8to16(&c, 1, name, 0x7FFFFFFF, nullptr, nullptr);
+    return IsRussian(c);
+}
+
+// VERIFY: febf9d45 auto
+// OFFSET: 0x007E1030
+bool IsRussian(uint16_t c) {
+    return static_cast<uint16_t>(c - 0x400) <= 0xFF;
+}
+
+// VERIFY: 52f9f8af manual
+// OFFSET: 0x007E17F0
+static void StripPipes(const char* source, char* dest, uint32_t destSize) {
+    char* out = dest;
+
+    for (; *source; source++) {
+        if (out >= &dest[destSize - 1]) {
+            break;
+        }
+
+        if (*source != '|') {
+            *out++ = *source;
+        }
+    }
+
+    *out = '\0';
+}
+
+// VERIFY: d19b42ca manual
+// OFFSET: 0x007E1830
+bool ScrubString(const char* source, char* dest, int32_t maxChars, uint32_t destSize, int32_t flags) {
+    if (!dest) {
+        return false;
+    }
+
+    *dest = '\0';
+
+    if (!source) {
+        return true;
+    }
+
+    bool valid = ValidateStringIsUTF8(source);
+    StripPipes(source, dest, destSize);
+
+    if ((flags & 1) && TruncateNewLines(dest)) {
+        valid = false;
+    }
+
+    int32_t chars = 0;
+
+    for (char* c = dest; *c; c++) {
+        if ((*c & 0xC0) != 0x80) {
+            chars++;
+        }
+
+        if (chars == maxChars) {
+            *c = '\0';
+            return false;
+        }
+    }
+
+    return valid;
+}

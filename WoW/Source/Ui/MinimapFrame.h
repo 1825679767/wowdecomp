@@ -136,6 +136,7 @@ void DisplayQuestPoint(float x, float y, int32_t a3, const char* name);
 class CGMinimapFrame : public CSimpleFrame {
     public:
     static void EnterWorld();
+    static void ShutdownGame();
     static CDataAllocator s_minimapHeap;
     static void SetPingPosition(const WOWGUID& guid, const C2Vector& position);
     static void MinimapTextureCallback(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevel, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);

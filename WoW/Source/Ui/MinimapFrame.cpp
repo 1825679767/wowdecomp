@@ -3408,3 +3408,68 @@ int32_t MinimapGetZoom() {
 int32_t MinimapGetZoomLevels() {
     return 6;
 }
+
+// VERIFY: 0f410ab6 auto
+// OFFSET: 0x007F4810
+void RefreshWorldStatePOIs(uint32_t state) {
+    for (uint32_t i = 0; i < s_numPOIs; i++) {
+        AreaPOIRec* poi = s_pois.m_data[i];
+
+        if (0.0f != poi->m_pos[0] && 0.0f != poi->m_pos[1] && poi->m_worldStateID == static_cast<int32_t>(state)) {
+            UpdatePointsOfInterest();
+            s_poisChanged = 1;
+            return;
+        }
+    }
+}
+
+// VERIFY: ac080634 manual
+// OFFSET: 0x0057BD90
+void CGMinimapFrame::ShutdownGame() {
+    if (s_maskTexture) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_maskTexture));
+    }
+
+    s_maskTexture = nullptr;
+
+    if (s_iconTexture) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_iconTexture));
+    }
+
+    s_iconTexture = nullptr;
+
+    if (s_blipTexture) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_blipTexture));
+    }
+
+    s_blipTexture = nullptr;
+
+    if (s_classBlipTexture) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_classBlipTexture));
+    }
+
+    s_classBlipTexture = nullptr;
+
+    for (uint32_t i = 0; i < 7; i++) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_vehicleTextures[i]));
+        s_vehicleTextures[i] = nullptr;
+    }
+
+    if (s_staticPOIArrowTexture) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_staticPOIArrowTexture));
+    }
+
+    s_staticPOIArrowTexture = nullptr;
+
+    if (s_poiArrowTexture) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_poiArrowTexture));
+    }
+
+    s_poiArrowTexture = nullptr;
+
+    if (s_groupArrowTexture) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_groupArrowTexture));
+    }
+
+    s_groupArrowTexture = nullptr;
+}

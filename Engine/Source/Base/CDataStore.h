@@ -37,6 +37,7 @@ class CDataStore {
     CDataStore& Get(uint32_t& val);
     CDataStore& Get(uint64_t& val);
     CDataStore& Get(float& val);
+    CDataStore& GetInt8(uint32_t& val);
     CDataStore& GetArray(uint8_t* pval, uint32_t count);
     CDataStore& GetArray(uint32_t* pval, uint32_t count);
     CDataStore& GetData(void* data, uint32_t bytes);

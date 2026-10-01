@@ -61,6 +61,18 @@ static int32_t Script_GetNumFriends(lua_State* L) {
     return 2;
 }
 
+// VERIFY: 1ace5852 manual
+// OFFSET: 0x006B4560
+static int32_t Script_GetNumIgnores(lua_State* L) {
+    if (FriendList::s_friendList) {
+        lua_pushnumber(L, FriendList::s_friendList->GetNumIgnores());
+    } else {
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 1;
+}
+
 // STATIC: 0x00AD93D8
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetNumFriends", &Script_GetNumFriends },

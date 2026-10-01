@@ -31,6 +31,7 @@ class CGBarberShop {
     static void AppearanceApplied();
     static void DisableBarberShop();
     static void InitializeGame();
+    static void ShutdownGame();
     static void RegisterScriptFunctions();
 };
 

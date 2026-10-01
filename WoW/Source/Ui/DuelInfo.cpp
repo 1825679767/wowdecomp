@@ -30,3 +30,14 @@ int32_t Packet_SMSG_DUEL_INBOUNDS(void* param, NETMESSAGE msgId, uint32_t time, 
     FrameScript_SignalEvent(SCRIPT_EVENT_DUEL_INBOUNDS, nullptr);
     return 1;
 }
+
+// VERIFY: 0f292ee9 auto
+// OFFSET: 0x005CF830
+void CGDuelInfo::ShutdownGame() {
+    ClientServices::ClearMessageHandler(SMSG_DUEL_REQUESTED);
+    ClientServices::ClearMessageHandler(SMSG_DUEL_OUT_OF_BOUNDS);
+    ClientServices::ClearMessageHandler(SMSG_DUEL_IN_BOUNDS);
+    ClientServices::ClearMessageHandler(SMSG_DUEL_COUNTDOWN);
+    ClientServices::ClearMessageHandler(SMSG_DUEL_COMPLETE);
+    ClientServices::ClearMessageHandler(SMSG_DUEL_WINNER);
+}

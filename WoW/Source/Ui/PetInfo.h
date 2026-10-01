@@ -12,6 +12,7 @@ struct lua_State;
 class CGPetInfo {
     public:
     static void InitializeGame();
+    static void ShutdownGame();
     static void FindPossessedSpell();
     static WOWGUID GetPet(uint32_t index);
     static uint32_t* FindSpellByID(int32_t spellId);

@@ -55,6 +55,7 @@
 #include "WoW/Source/Ui/GameUI.h"
 #include <new>
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "Engine/Source/Gx/CGxMatrixStack.h"
 
 // STATIC: 0x00AEE008
 uint32_t CMapObj::s_unk_AEE008 = 2;
@@ -161,7 +162,7 @@ static uint32_t s_smolVertCacheSize;
 // STATIC: 0x00D1BF00
 static SMOLiquidVert s_smolVertCache[64];
 
-// VERIFY: 05ab90b4 auto
+// VERIFY: 7a37847b auto
 // OFFSET: 0x007A6140
 World::TriData::Batch* World::TriData::AllocBatch() {
     if (World::TriData::nBatches + 1 >= 32) {
@@ -173,7 +174,7 @@ World::TriData::Batch* World::TriData::AllocBatch() {
     batch->m_matrix = nullptr;
     batch->m_vertexList = nullptr;
     batch->m_normalList = nullptr;
-    batch->unk_000C = 0;
+    batch->m_heightList = nullptr;
     batch->m_indices = nullptr;
     batch->m_faceIndices = nullptr;
     batch->m_indexCount = 0;
@@ -3122,4 +3123,90 @@ bool CMapObj::VectorIntersectPortals(uint32_t groupNum, C3Segment& seg, float* t
     }
 
     return found;
+}
+
+// VERIFY: e67c38fa manual
+// OFFSET: 0x007AB760
+void CMapObj::RenderMapObjGroupsShadowMap(void* groups, uint32_t count, void* groupData, const C44Matrix& translation, CFrustum& frustum) {
+    CAaBox box;
+    box.b.x = 0.0f;
+    box.b.y = 0.0f;
+    box.b.z = 0.0f;
+    box.t.x = 0.0f;
+    box.t.y = 0.0f;
+    box.t.z = 0.0f;
+    g_theGxDevicePtr->RsPush();
+    float constants[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+    CMapObjGroup** groupList = static_cast<CMapObjGroup**>(groups);
+    C44Matrix** matrices = static_cast<C44Matrix**>(groupData);
+
+    for (uint32_t i = 0; i < count; i++) {
+        C44Matrix* matrix = matrices[i];
+        CMapObjGroup* group = groupList[i];
+        CMapObj* mapObj = group->m_parent;
+        C44Matrix world = *matrix * translation;
+        CGxMatrixStack& stack = g_theGxDevicePtr->m_xforms[GxXform_World];
+        stack.m_dirty = 1;
+        stack.m_flags[stack.m_level] &= ~CGxMatrixStack::F_Identity;
+        stack.m_mtx[stack.m_level] = world;
+        CWorldMath::TransformAABox(*matrix, group->m_bbox, box);
+
+        if (!group->m_batchListCount || !frustum.Cull(box)) {
+            continue;
+        }
+
+        group->m_timer = 0.0f;
+        group->AllocVB();
+        group->SetIndexVB();
+        group->SetVertexVB();
+        CShaderEffect::UpdateWorldViewMatrix();
+
+        if (group->m_unkLoadedFlag & 0x4) {
+            CShaderEffect::SetAlphaRef(0.0f);
+            CShaderEffect::SetDefaultShaders(0);
+            GxRsSet(GxRs_Texture0, 0);
+            constants[3] = 0.0f;
+            g_theGxDevicePtr->ShaderConstantsSet(GxSh_Pixel, 2, constants, 1);
+            CGxBatch batch;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = group->m_indexMin;
+            batch.m_count = group->m_indexMax - group->m_indexMin + 1;
+            batch.m_minIndex = group->m_vertexMin;
+            batch.m_maxIndex = group->m_vertexMax;
+            g_theGxDevicePtr->Draw(&batch, 1);
+            continue;
+        }
+
+        CShaderEffect::SetAlphaRef(0.87843138f);
+        CShaderEffect::SetDefaultShaders(0);
+
+        for (int32_t j = 0; j < group->m_batchListCount; j++) {
+            SMOBatch& smoBatch = group->m_batchList[j];
+            SMOMaterial& material = mapObj->m_materialList[smoBatch.m_texture];
+            CGxTex* gxTex = TextureGetGxTex(material.Textures()[0], 0, nullptr);
+
+            if (!gxTex) {
+                continue;
+            }
+
+            g_theGxDevicePtr->RsSet(GxRs_Texture0, gxTex);
+            constants[3] = material.m_blendMode == 1 ? 0.87843138f : 0.0f;
+            g_theGxDevicePtr->ShaderConstantsSet(GxSh_Pixel, 2, constants, 1);
+            CGxBatch batch;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = smoBatch.m_indexStart;
+            batch.m_count = smoBatch.m_indexCount;
+            batch.m_minIndex = smoBatch.m_vertexStart;
+            batch.m_maxIndex = smoBatch.m_vertexEnd;
+            g_theGxDevicePtr->Draw(&batch, 1);
+        }
+    }
+
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 2d3fae74 auto
+// OFFSET: 0x007AE050
+void CMapObj::DestroyPools() {
+    CMapObj::bPoolsDirty = 1;
 }

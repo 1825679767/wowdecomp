@@ -38,6 +38,7 @@
 #include "WoW/Source/WorldClient/FrameTime.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "_Triage/CMoveSpline.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
 
 // STATIC: 0x00AD1B4C
 float MAX_PITCH_ANGLE = 1.55334306f;
@@ -4185,4 +4186,14 @@ void CGCamera::RestoreSavedDistancePitch() {
 // OFFSET: 0x004D5EE0
 float CGCamera::GetDefaultZoomMinDistance() {
     return 0.0f;
+}
+
+// VERIFY: 26a4f582 manual
+// OFFSET: 0x00606410
+void CGCamera::AddShakeById(int32_t shakeId, const C3Vector* position) {
+    CameraShakesRec* shake = g_cameraShakesDB.GetRecord(shakeId);
+
+    if (shake) {
+        this->AddShake(*position, shake->m_shakeType, shake->m_direction, shake->m_amplitude * 0.027777778f, shake->m_frequency, shake->m_duration, shake->m_phase, shake->m_coefficient);
+    }
 }

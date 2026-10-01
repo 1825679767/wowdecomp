@@ -36,6 +36,7 @@ class BlizzardObject : public TSLinkedNode<BlizzardObject> {
 
     ~BlizzardObject();
     void SetFrameOfReference(const C44Matrix* matrix);
+    bool Update();
 };
 
 class EclipseState {
@@ -77,8 +78,10 @@ class LightningObject : public TSLinkedNode<LightningObject> {
     /* 0050 */ uint32_t unk_0050;
     /* 0054 */ uint8_t unk_0054[4];
     /* 0058 */ uint32_t unk_0058;
+    /* 005C */ int32_t m_refCount;
 
     ~LightningObject();
+    bool Tick(uint32_t time);
 };
 
 void LightningObjectReleaseRef(LightningObject* object);
@@ -109,6 +112,8 @@ class MountTransitionObject : public TSLinkedNode<MountTransitionObject> {
     /* 0078 */ uint32_t unk_0078;
     /* 007C */ float m_alpha;
     /* 0080 */ uint32_t unk_0080;
+
+    bool Tick();
 };
 
 extern CVar* s_spellEffectLevelVar;

@@ -131,6 +131,11 @@
 #include "WoW/Source/DB/Rec/MapRec.h"
 #include "Engine/Source/Frame/CLayoutFrame.h"
 #include "WoW/Source/DB/Rec/VehicleRec.h"
+#include "WoW/Source/DB/Rec/TerrainTypeRec.h"
+#include "WoW/Source/DB/Rec/UnitBloodRec.h"
+
+// STATIC: 0x00ADAC04
+static INVENTORY_SLOTS s_virtualItemInvSlots[2] = { INVSLOT_MAINHAND, INVSLOT_OFFHAND };
 
 // STATIC: 0x00CA1398
 static char s_objectNameBuffers[2][305];
@@ -140,6 +145,9 @@ static uint32_t s_objectNameIndex;
 
 // STATIC: 0x00ADAA10
 static int32_t s_baseSpiritRegenCap = 50;
+
+// STATIC: 0x00ADAA14
+static const char* s_genderSuffix[2] = { "M", "F" };
 
 // STATIC: 0x00CA11A8
 static WOWGUID s_unk_CA11A8;
@@ -5806,6 +5814,43 @@ void CGUnit_C::RemoveMountModel() {
         this->m_mountModel->SetEventCallback(nullptr, 0);
         this->m_mountModel->Release();
         this->m_mountModel = nullptr;
+    }
+}
+
+// VERIFY: 472acfa3 auto
+// OFFSET: 0x00717910
+void CGUnit_C::SetMountModel(CM2Model* model) {
+    if (model == this->m_mountModel) {
+        return;
+    }
+
+    this->CleanUpVehicleBoneAnimsBeforeObjectModelChange();
+
+    if (model) {
+        model->m_refCount++;
+    }
+
+    if (this->m_mountModel) {
+        if (this->m_mountModel->m_attachParent) {
+            this->m_mountModel->DetachFromParent();
+        }
+
+        this->m_mountModel->SetLoadedCallback(nullptr, nullptr);
+        this->m_mountModel->Release();
+    }
+
+    this->m_mountModel = model;
+
+    if (model) {
+        model->SetLoadedCallback(CGObject_C::ModelLoadedCallback, this);
+    } else if (this->GetObjectModel()->IsLoaded(0, 0)) {
+        this->ModelChanged();
+    } else {
+        this->SetBoundsDirty();
+    }
+
+    if (this->m_worldObject) {
+        World::ObjectSetModel(this->m_worldObject, this->GetObjectModel());
     }
 }
 
@@ -22189,4 +22234,744 @@ float CreatureSoundDataGetFidgetDelayMax(const CreatureSoundDataRec* rec) {
     }
 
     return 0.0f;
+}
+
+// VERIFY: b7b739bd manual
+// OFFSET: 0x0071D450
+static int32_t IsWeaponAnimBehavior(uint32_t animId) {
+    AnimationDataRec* animation = g_animationDataDB.GetRecord(animId);
+    int32_t behavior = animation ? animation->m_behaviorID : 506;
+
+    switch (behavior) {
+        case 16:
+        case 20:
+        case 25:
+        case 117:
+        case 118:
+            return 1;
+
+        default:
+            return 0;
+    }
+}
+
+// VERIFY: 8ff14a38 auto
+// OFFSET: 0x00721ED0
+bool CGUnit_C::IsPlayingWeaponAnim() const {
+    uint32_t sequence;
+
+    if (this->m_worldModel && this->m_worldModel->IsLoaded(0, 0)) {
+        if (this->m_torsoKeyBone == -1 || (sequence = this->m_worldModel->GetBoneSequenceId(this->m_torsoKeyBone)) == 0xFFFFFFFF) {
+            sequence = this->m_worldModel->GetBoneSequenceId(0xFFFFFFFF);
+        }
+    } else {
+        sequence = 0xFFFFFFFF;
+    }
+
+    if (IsWeaponAnimBehavior(sequence)) {
+        return true;
+    }
+
+    return IsMeleeAttackAnim(sequence) && !this->GetVirtualItem(0, false);
+}
+
+// VERIFY: 697b8b23 manual
+// OFFSET: 0x0071EE70
+void CGUnit_C::Unk71EE70() {
+    if (this->m_obj->m_guid != CGGameUI::m_lockedTarget) {
+        return;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player && player->m_combat.m_attacking) {
+        player->SetCombatMode();
+    }
+
+    Spell_C_CancelAutoRepeat(true);
+
+    if (this->m_unit->m_unitDynamicFlags & 0x20) {
+        WOWGUID guid = this->m_obj->m_guid;
+
+        if (CGGameUI::IsRaidMemberOrPet(guid)) {
+            return;
+        }
+    }
+
+    CGGameUI::Target(WOWGUID());
+}
+
+// VERIFY: bed80791 manual
+// OFFSET: 0x0071B1E0
+void CGUnit_C::HandlePendingTrackEvents() {
+    if (s_unk_CA11C8) {
+        if (ClntObjMgrObjectPtr(s_unk_CA11C8, TYPEMASK_UNIT, __FILE__, __LINE__) && this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+            static_cast<CGPlayer_C*>(this)->CombatModeEnter(s_unk_CA11C8, 0, 0);
+        }
+
+        s_unk_CA11C8 = WOWGUID();
+    } else if (s_unk_CA11C0) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_unk_CA11C0, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit && this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+            static_cast<CGPlayer_C*>(this)->LootUnit(unit, false);
+        }
+
+        s_unk_CA11C0 = WOWGUID();
+    } else if (s_unk_CA11B8) {
+        CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(s_unk_CA11B8, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+
+        if (gameObject) {
+            gameObject->UseObject();
+        }
+
+        s_unk_CA11B8 = WOWGUID();
+    } else if (s_unk_CA11B0) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_unk_CA11B0, TYPEMASK_OBJECT, __FILE__, __LINE__));
+
+        if (unit && this->IsActivePlayer()) {
+            static_cast<CGPlayer_C*>(this)->HandleSkinning(unit, false, false);
+        }
+
+        s_unk_CA11B0 = WOWGUID();
+    } else if (s_unk_CA11A8) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_unk_CA11A8, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit && this->IsActivePlayer()) {
+            static_cast<CGPlayer_C*>(this)->HandleOnRightClick(unit, false);
+        }
+
+        s_unk_CA11A8 = WOWGUID();
+    }
+}
+
+// VERIFY: ca6629ea manual
+// OFFSET: 0x0073D940
+void CGUnit_C::DestroyUnitMount(int32_t a2) {
+    if (!this->m_mountModel) {
+        return;
+    }
+
+    CM2Model* parent = this->m_worldModel->m_attachParent;
+
+    if (parent) {
+        CM2Model* grandParent = parent->m_attachParent;
+        uint32_t attachmentId = parent->m_attachmentId;
+        this->m_worldModel->m_fFlags ^= (this->m_worldModel->m_fFlags ^ parent->m_fFlags) & 0x80000;
+        this->m_worldModel->DetachFromParent();
+
+        if (grandParent) {
+            this->m_worldModel->AttachToParent(grandParent, attachmentId, nullptr, 0);
+        }
+    }
+
+    CM2Model* mount = this->m_mountModel;
+    this->m_worldModel->unk_0180 = mount->unk_0180;
+    this->m_worldModel->unk_0184 = mount->unk_0184;
+    this->m_worldModel->unk_0188 = mount->unk_0188;
+    this->SetMountModel(nullptr);
+    this->SetKeyBoneSequence(this->m_worldModel, 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 0, 1, 0);
+    this->m_animationState &= 0xFF77DFFB;
+    this->UpdateBaseAnimation(0, -1);
+    this->UpdateSelectionRadius();
+    this->UpdateEffectAttachments();
+    this->m_soundDataOverride = nullptr;
+
+    if (this->m_obj->m_guid == CGWorldFrame::GetActiveCamera()->m_targetGUID) {
+        CGGameUI::ResetCamera(this->m_obj->m_guid);
+    }
+
+    this->PlayDismountSound();
+
+    if (a2) {
+        this->UpdateUnitCollisionBox(1, 0);
+    }
+
+    if (this->GetObjectModel()->IsLoaded(0, 0)) {
+        this->InitWheels();
+    } else {
+        this->m_wheelMask = 0;
+    }
+
+    this->UpdateObjectEffectAnimationStates();
+    this->m_clientFlags &= ~0x10000000;
+}
+
+// VERIFY: 0ebfdfad manual
+// OFFSET: 0x0073D5D0
+void CGUnit_C::CreateUnitMount(int32_t a2, int32_t a3) {
+    this->m_wheelMask = 0;
+
+    if (!this->m_mountModel) {
+        CreatureDisplayInfoRec* displayInfo = g_creatureDisplayInfoDB.GetRecord(this->m_mountDisplayId);
+
+        if (!displayInfo) {
+            return;
+        }
+
+        CreatureModelDataRec* modelData = g_creatureModelDataDB.GetRecord(displayInfo->m_modelID);
+
+        if (!modelData) {
+            return;
+        }
+
+        this->m_mountScale = displayInfo->m_creatureModelScale;
+        CM2Model* mount = World::s_m2Scene->CreateModel(modelData->m_modelName, 0);
+        mount->SetSequenceCallback(reinterpret_cast<void*>(&CGUnit_C::MountAnimEndCallback), this->m_obj->m_guid.m_guid);
+        mount->SetEventCallback(reinterpret_cast<void*>(&CGUnit_C::AnimEventCallback), this->m_obj->m_guid.m_guid);
+        C44Matrix transform = this->m_worldModel->m_worldTransform;
+        mount->m_fFlags |= 0x8000;
+        mount->m_worldTransform = transform;
+        CCharacterComponent::ApplyMonsterGeosets(mount, displayInfo);
+        CCharacterComponent::ReplaceMonsterSkin(mount, displayInfo, modelData);
+        this->SetMountModel(mount);
+        mount->Release();
+        this->m_mountFootprintTextureId = modelData->m_footprintTextureID;
+        this->m_mountFootprintLength = modelData->m_footprintTextureWidth * 0.027777778f;
+        this->m_mountFootprintWidth = 0.027777778f * modelData->m_footprintTextureLength;
+        this->m_soundDataOverride = this->GetMountSoundDataRec();
+        this->m_mountModel->m_fFlags ^= (this->m_mountModel->m_fFlags ^ this->m_worldModel->m_fFlags) & 0x80000;
+        this->m_worldModel->m_fFlags &= ~0x80000;
+        CM2Model* parent = this->m_worldModel->m_attachParent;
+        uint32_t attachmentId = this->m_worldModel->m_attachmentId;
+
+        if (parent) {
+            this->m_worldModel->DetachFromParent();
+        }
+
+        this->m_worldModel->AttachToParent(this->m_mountModel, 0, nullptr, 0);
+
+        if (parent) {
+            this->m_mountModel->AttachToParent(parent, attachmentId, nullptr, 0);
+        }
+
+        this->SetKeyBoneSequence(this->m_worldModel, 0xFFFFFFFF, this->m_mountAnimBehaviorId, 0xFFFFFFFF, 0, 1.0f, 1, 1, 0);
+        C44Matrix scale(1.0f / this->m_mountScale);
+        this->m_worldModel->m_fFlags |= 0x8000;
+        this->m_worldModel->m_worldTransform = scale;
+        mount->unk_0180 = this->m_worldModel->unk_0180;
+        mount->unk_0184 = this->m_worldModel->unk_0184;
+        mount->unk_0188 = this->m_worldModel->unk_0188;
+        this->m_worldModel->m_fadeAlpha = 1.0f;
+        this->m_worldModel->unk_0180 = 1.0f;
+        this->m_worldModel->unk_0184 = 1.0f;
+        this->m_worldModel->unk_0188 = 1.0f;
+        this->m_worldModel->unk_018C = 0.0f;
+        this->m_worldModel->unk_0190 = 0.0f;
+        this->m_worldModel->unk_0194 = 0.0f;
+
+        if ((this->m_obj->m_type & TYPEMASK_PLAYER) && a3 && !static_cast<CGPlayer_C*>(this)->UpdateMountedCollisionBox(modelData->m_mountHeight, a2)) {
+            this->Dismount();
+        }
+    }
+
+    CEffect* effect = this->m_mountTransitionEffect;
+
+    if (effect && !(effect->m_flags & 0x100)) {
+        effect->MoveToDestroyList();
+    }
+
+    this->m_animationState |= 0x10;
+    this->UpdateBaseAnimation(0, -1);
+
+    if (this->m_obj->m_guid == CGWorldFrame::GetActiveCamera()->m_targetGUID) {
+        CGGameUI::ResetCamera(this->m_obj->m_guid);
+    }
+
+    this->UpdateObjectEffectAnimationStates();
+}
+
+// VERIFY: e8fc52d0 manual
+// OFFSET: 0x0073C140
+void CGUnit_C::MountAnimEndCallback(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ param }, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return;
+    }
+
+    if (unit->m_mountModel && unit->m_vehicle && unit->m_vehicle->m_vehicleRec && unit->m_vehicle->IsBoneAnimPlaying(boneId)) {
+        unit->m_vehicle->BoneAnimEndHandler(model, boneId, sequenceId, interrupted, time);
+    } else {
+        unit->MountAnimEndHandler(model, boneId, sequenceId, interrupted, time);
+    }
+}
+
+// VERIFY: 3001c8a3 auto
+// OFFSET: 0x0073BFF0
+void CGUnit_C::MountAnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time) {
+    if (this->m_awaitingEndAnimId == static_cast<int32_t>(sequenceId)) {
+        this->m_awaitingEndAnimId = -1;
+    }
+
+    if (sequenceId == 192 || sequenceId == 200) {
+        this->m_animationState &= ~0x40000;
+    }
+
+    if (sequenceId == 121) {
+        this->m_animationState &= ~0x80000;
+    } else if (sequenceId == 37) {
+        this->m_animationState &= ~0x800000;
+    }
+
+    if (interrupted) {
+        if (sequenceId == 39 || sequenceId == 187) {
+            this->m_animationState &= ~0x4;
+        }
+
+        return;
+    }
+
+    this->m_animationState = (this->m_animationState & ~0x60) | 0x10;
+    this->OnBaseAnimEnd(model, boneId, sequenceId);
+    this->m_animationState |= 0x70;
+}
+
+// VERIFY: 381b5889 manual
+// OFFSET: 0x00724EA0
+void CGUnit_C::PostShutdown() {
+    CMissile::Destroy();
+    CGNamePlateFrame* plate = s_unusedNamePlates.Head();
+
+    while (!s_unusedNamePlates.IsEnd(plate)) {
+        CGNamePlateFrame* next = s_unusedNamePlates.RawNext(plate);
+        s_unusedNamePlates.UnlinkNode(plate);
+        delete plate;
+        plate = next;
+    }
+
+    CGUnit_C::s_lastNPCSoundGUID = WOWGUID();
+    CVehicle_C::UninitSystem();
+    CVehiclePassenger_C::UninitSystem();
+    CVehicleCamera_C::UninitSystem();
+    CGUnit_C::ShutdownMissileTrajectorySystem();
+}
+
+// VERIFY: dc577adb manual
+// OFFSET: 0x00723A50
+void CGUnit_C::FootstepAnimEventHit(const C3Vector* position, int32_t left) {
+    if (this->m_unit->m_unitFieldPetnumber || (this->m_movement->m_flags & 0x40000000) || (this->m_unit->m_unitFieldBytes1[2] & 0x2) || this->GetTransportGUID()) {
+        return;
+    }
+
+    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && (static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x10)) {
+        return;
+    }
+
+    const C3Vector& cameraPos = CGWorldFrame::GetActiveCamera()->m_position;
+    float dx = position->x - cameraPos.x;
+    float dy = position->y - cameraPos.y;
+    float dz = position->z - cameraPos.z;
+    float distanceSquared = dx * dx + (dy * dy + dz * dz);
+
+    if (distanceSquared > 2500.0f) {
+        return;
+    }
+
+    if ((CWorld::enables & 0x400) && !(this->m_modelData->m_flags & 0x20)) {
+        float size[2];
+        size[0] = 0.0f;
+        size[1] = 0.0f;
+        int32_t textureId;
+        this->GetFootprintInfo(&textureId, size);
+        WOWGUID guid = this->m_obj->m_guid;
+        int32_t activePlayer = guid == ClntObjMgrGetActivePlayer() ? 1 : 0;
+        World::NewFootprint(textureId, size, position, this->GetFacing(), left == 0, this->m_terrainTypeId, activePlayer);
+    }
+
+    if (this->m_modelData->m_footstepShakeSize) {
+        CGWorldFrame::GetActiveCamera()->AddShakeById(this->m_modelData->m_footstepShakeSize, position);
+    }
+
+    if (distanceSquared > 625.0f || (this->m_movement->m_flags & 0x2) || (this->m_modelData->m_flags & 0x1) || !CGUnit_C::s_cvShowFootPrintParticles->m_intValue) {
+        return;
+    }
+
+    int32_t liquidType;
+    float liquidHeight;
+    int32_t liquidFlags;
+
+    if (World::QueryObjectLiquid(this->m_worldObject, &liquidType, &liquidHeight, &liquidFlags)) {
+        int32_t flag8;
+        int32_t flag9;
+        World::QueryObjectLiquidFlags(this->m_worldObject, &flag8, &flag9);
+
+        if (!flag9) {
+            return;
+        }
+
+        float depth = liquidHeight - this->GetPosition().z;
+
+        if (this->m_movementData.m_collisionHeight * 0.5f <= depth) {
+            return;
+        }
+
+        C3Vector splash;
+        splash.x = position->x;
+        splash.y = position->y;
+        splash.z = depth + position->z;
+        CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
+        WOWGUID owner = this->m_obj->m_guid;
+        effect->AddSpecialByPosition(!this->IsRunning(), splash, &owner, 0x220, CGObject_C::EffectOnceHandler);
+        effect->Release();
+        return;
+    }
+
+    TerrainTypeRec* terrain = g_terrainTypeDB.GetRecord(this->m_terrainTypeId);
+
+    if (!terrain) {
+        return;
+    }
+
+    SpellVisualEffectNameRec* effectName = g_spellVisualEffectNameDB.GetRecord(this->IsRunning() ? terrain->m_footstepSprayWalk : terrain->m_footstepSprayRun);
+
+    if (!effectName) {
+        return;
+    }
+
+    C3Vector effectPosition = *position;
+
+    if (this->GetTransportGUID()) {
+        C44Matrix transport;
+        MovementGetTransportMtxX(WOWGUID{ this->GetTransportGUID() }, &transport, this->m_obj->m_guid, __FILE__, __LINE__);
+        effectPosition *= transport.AffineInverse();
+    }
+
+    CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
+    WOWGUID owner = this->m_obj->m_guid;
+    effect->InitFromUnit(effectPosition, OsGetAsyncTimeMs(), 0, nullptr, effectName, &owner, 0x220, CGObject_C::EffectOnceHandler, 0, nullptr, WOWGUID{ this->GetTransportGUID() });
+    effect->Release();
+}
+
+// VERIFY: 5b00631f auto
+// OFFSET: 0x007555E0
+void CGUnit_C::ShakeCameraOnHit() {
+    if (this->m_unit->m_unitFieldPetnumber) {
+        return;
+    }
+
+    int32_t shakeId = this->m_modelData->m_deathThudShakeSize;
+
+    if (shakeId) {
+        C3Vector position = this->GetPosition();
+        CGWorldFrame::GetActiveCamera()->AddShakeById(shakeId, &position);
+    }
+}
+
+// VERIFY: 9e04967c manual
+// OFFSET: 0x0071DCC0
+int32_t IsSpecialIdleAnim(uint32_t animId) {
+    if (IsSpellCastAnim(animId)) {
+        return 1;
+    }
+
+    AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
+
+    if (rec && rec->m_behaviorID == 107) {
+        return 1;
+    }
+
+    rec = g_animationDataDB.GetRecord(animId);
+
+    if (rec && rec->m_behaviorID == 46) {
+        return 1;
+    }
+
+    return GetAnimBehaviorId(animId) == 49;
+}
+
+// VERIFY: 597f8f44 manual
+// OFFSET: 0x0072CDE0
+void CreatureQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    CreatureStats_C* stats = g_creatureDBCache.GetRecord(id, WOWGUID(), nullptr, nullptr, false);
+
+    if (!stats) {
+        return;
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        unit->DestroyNamePlate();
+        unit->m_creatureCacheEntry = stats;
+
+        if (stats->m_family) {
+            unit->UpdateModelScale(nullptr);
+        }
+
+        unit->UpdateUnitCollisionBox(1, 0);
+    }
+
+    CGGameUI::UnitNameUpdate(guid);
+    Script_SendUnitSignal(guid, SCRIPT_EVENT_UNIT_CLASSIFICATION_CHANGED);
+    TotemInfo* totem = CGGameUI::GetTotemInfo(guid);
+
+    if (totem) {
+        totem->m_name = unit->GetUnitName(nullptr, 1);
+        FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_TOTEM_UPDATE, "%d", totem->m_slot + 1);
+    }
+}
+
+// VERIFY: 4078ec8f manual
+// OFFSET: 0x00755380
+void CGUnit_C::ShowBloodSpurt(const WOWGUID& attacker, int32_t a3) {
+    UnitBloodRec* blood = this->GetBloodRecord();
+
+    if (!blood) {
+        return;
+    }
+
+    int32_t attachType = 15;
+    CGUnit_C* attackerUnit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (attackerUnit) {
+        C3Vector position = this->GetPosition();
+        C3Vector attackerPosition = attackerUnit->GetPosition();
+        float dx = attackerPosition.x - position.x;
+        float dy = attackerPosition.y - position.y;
+        float facing = this->CGUnit_C::GetRenderFacing();
+        float cosFacing = cosf(facing);
+        float sinFacing = sinf(facing);
+
+        if (dy * sinFacing + dx * cosFacing < 0.0f) {
+            attachType = 16;
+        }
+    }
+
+    int32_t effectId = attachType == 15 ? blood->m_combatBloodSpurtFront[a3 != 0] : blood->m_combatBloodSpurtBack[a3 != 0];
+    SpellVisualEffectNameRec* effectName = g_spellVisualEffectNameDB.GetRecord(effectId);
+
+    if (!effectName) {
+        return;
+    }
+
+    CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
+    WOWGUID source = this->m_obj->m_guid;
+    effect->AddEffect(attachType, 0, nullptr, effectName, &attacker, &source, 0x20, CGObject_C::EffectOnceHandler, nullptr, 0, nullptr);
+    effect->Release();
+}
+
+// VERIFY: 8ffb4576 manual
+// OFFSET: 0x00720BF0
+int32_t CGUnit_C::OverrideMissileFirePos(C3Vector* position, const SpellRec* spell) {
+    if (!this->m_worldModel || !this->m_worldModel->IsLoaded(0, 0)) {
+        return 0;
+    }
+
+    const SpellVisualRec* visual = GetSpellVisual(spell);
+
+    if (!visual) {
+        return 0;
+    }
+
+    C3Vector offset;
+
+    if (visual->m_missileAttachment == -1) {
+        if (0.0f == visual->m_missileCastOffset[0] && 0.0f == visual->m_missileCastOffset[1] && 0.0f == visual->m_missileCastOffset[2]) {
+            return 0;
+        }
+
+        CM2Model* model = this->m_worldModel;
+
+        if (model && model->IsLoaded(0, 0) && model->HasAttachment(s_effectAttachmentIds[12])) {
+            offset.x = visual->m_missileCastOffset[0];
+            offset.y = -visual->m_missileCastOffset[1];
+            offset.z = visual->m_missileCastOffset[2];
+            *position = this->GetAttachmentPosition(s_effectAttachmentIds[12], &offset);
+            return 1;
+        }
+
+        C44Matrix matrix = this->GetModelMatrix();
+        matrix.d0 = 0.0f;
+        matrix.d1 = 0.0f;
+        matrix.d2 = 0.0f;
+        offset.x = visual->m_missileCastOffset[0];
+        offset.y = -visual->m_missileCastOffset[1];
+        offset.z = visual->m_missileCastOffset[2];
+        C3Vector rotated = offset * matrix;
+        *position = this->GetModelPosition() + rotated;
+        return 1;
+    }
+
+    int32_t raw = visual->m_flags & 0x200;
+
+    if (!this->HasAttachmentForEffect(visual->m_missileAttachment, raw)) {
+        return 0;
+    }
+
+    offset.x = visual->m_missileCastOffset[0];
+    offset.y = -visual->m_missileCastOffset[1];
+    offset.z = visual->m_missileCastOffset[2];
+    *position = this->GetAttachmentPositionForEffect(visual->m_missileAttachment, offset, raw);
+    return 1;
+}
+
+// VERIFY: 228a87fd manual
+// OFFSET: 0x00732100
+CM2Model* CGUnit_C::CreateItemModel(uint32_t displayId, uint32_t inventoryType, float* scale) {
+    if (scale) {
+        *scale = 1.0f;
+    }
+
+    const char* path;
+
+    switch (inventoryType) {
+        case 1:
+            path = "Item\ObjectComponents\Head\\";
+            break;
+        case 3:
+            path = "Item\ObjectComponents\Shoulder\\";
+            break;
+        case 14:
+            path = "Item\ObjectComponents\Shield\\";
+            break;
+        case 24:
+            path = "Item\ObjectComponents\Ammo\\";
+            break;
+        case 27:
+            path = "Item\ObjectComponents\Quiver\\";
+            break;
+        default:
+            path = "Item\ObjectComponents\Weapon\\";
+            break;
+    }
+
+    ItemDisplayInfoRec rec;
+
+    if (!g_itemDisplayInfoDB.GetRecordByIndex(displayId, &rec)) {
+        return nullptr;
+    }
+
+    uint32_t index;
+
+    if (*rec.m_modelName[0]) {
+        index = 0;
+    } else if (*rec.m_modelName[1]) {
+        index = 1;
+    } else {
+        return nullptr;
+    }
+
+    char fileName[260];
+
+    if (inventoryType == 1) {
+        int32_t sex = this->m_displayInfoExtra ? this->m_displayInfoExtra->m_displaySexID : this->m_unit->m_unitFieldBytes0[2];
+        ChrRacesRec* race = g_chrRacesDB.GetRecord(sex);
+
+        if (!race) {
+            return nullptr;
+        }
+
+        SStrPrintf(fileName, sizeof(fileName), "%s%s_%s%s.mdx", path, rec.m_modelName[index], race->m_clientPrefix, s_genderSuffix[sex]);
+    } else {
+        SStrPrintf(fileName, sizeof(fileName), "%s%s", path, rec.m_modelName[index]);
+    }
+
+    CM2Model* model = World::s_m2Scene->CreateModel(fileName, 0);
+
+    if (!model) {
+        return nullptr;
+    }
+
+    if (*rec.m_modelTexture[index]) {
+        SStrPrintf(fileName, sizeof(fileName), "%s%s", path, rec.m_modelTexture[index]);
+        CStatus status;
+        CTexture* texture = CreateTexture(fileName, &status);
+
+        if (texture) {
+            model->ReplaceTexture(2, texture);
+            HandleClose(reinterpret_cast<HOBJECT>(texture));
+        }
+    }
+
+    CCharacterComponent::ComponentUtilAddItemVisual(model, rec.m_itemVisual);
+    CM2Model* worldModel = this->m_worldModel;
+
+    if (scale && worldModel && worldModel->IsLoaded(0, 0)) {
+        uint32_t attachId;
+
+        switch (inventoryType) {
+            case 1:
+                attachId = 11;
+                break;
+            case 14:
+                attachId = 0;
+                break;
+            case 22:
+                attachId = 2;
+                break;
+            case 24:
+            case 25:
+                attachId = 0xFFFFFFFF;
+                break;
+            default:
+                attachId = 1;
+                break;
+        }
+
+        if (worldModel->HasAttachment(attachId)) {
+            C44Matrix transform = worldModel->GetAttachmentWorldTransform(attachId);
+            *scale = sqrtf(transform.a1 * transform.a1 + transform.a2 * transform.a2 + transform.a0 * transform.a0);
+        }
+    }
+
+    return model;
+}
+
+// VERIFY: 0a6c1295 auto
+// OFFSET: 0x00719FF0
+UnitBloodRec* CGUnit_C::GetBloodRecord() {
+    if (!this->m_bloodlevels) {
+        return nullptr;
+    }
+
+    return g_unitBloodDB.GetRecord(this->m_bloodlevels->m_violencelevel[ViolenceGetLevel()]);
+}
+
+// VERIFY: ce51319d auto
+// OFFSET: 0x00725010
+void CGUnit_C::OnVirtualItemChanged(uint32_t slot, int32_t oldItemId) {
+    ItemRec* oldRec = g_itemDB.GetRecord(oldItemId);
+    ItemRec* rec = g_itemDB.GetRecord(this->m_unit->m_unitVirtualItemSlotId[slot]);
+    this->m_virtualItemDisplayId[slot] = rec ? rec->m_displayInfoID : 0;
+    CGUnitVirtualItem item;
+    item.m_pad[0] = 0;
+    item.m_pad[1] = 0;
+
+    if (rec) {
+        item.m_classID = static_cast<uint8_t>(rec->m_classID);
+        item.m_subclassID = static_cast<uint8_t>(rec->m_subclassID);
+        item.m_soundOverrideSubclassID = static_cast<uint8_t>(rec->m_soundOverrideSubclassID);
+        item.m_material = static_cast<uint8_t>(rec->m_material);
+        item.m_inventoryType = static_cast<uint8_t>(rec->m_inventoryType);
+        item.m_sheatheType = static_cast<uint8_t>(rec->m_sheatheType);
+    } else {
+        item.m_classID = 0;
+        item.m_subclassID = 0;
+        item.m_soundOverrideSubclassID = 0;
+        item.m_material = 0;
+        item.m_inventoryType = 0;
+        item.m_sheatheType = 0;
+    }
+
+    this->m_virtualItem[slot] = item;
+    SHEATHE_TYPE sheatheType = static_cast<SHEATHE_TYPE>(oldRec ? oldRec->m_sheatheType : 0);
+    CCharacterComponent::RemoveHandItem(this->m_worldModel, s_virtualItemInvSlots[slot], sheatheType, false);
+
+    if (slot == 1) {
+        CCharacterComponent::RemoveHandItem(this->m_worldModel, s_virtualItemInvSlots[1], sheatheType, true);
+    }
+
+    const CGUnitVirtualItem* current = this->GetVirtualItem(slot, false);
+    ItemDisplayInfoRec displayRec;
+
+    if (current && this->GetVirtualItemDisplayRec(slot, displayRec)) {
+        GEOCOMPONENTLINKS link = CCharacterComponent::AddHandItem(this->m_worldModel, &displayRec, s_virtualItemInvSlots[slot], static_cast<SHEATHE_TYPE>(current->m_sheatheType), this->m_sheatheState == 0, current->m_inventoryType == 14, false, 0);
+
+        if (this->m_characterComponent) {
+            this->m_characterComponent->SetItemSlotUsingAttachSlot(static_cast<ITEM_SLOT>(-1), link);
+        }
+
+        this->SetWeaponTrail(this->m_worldModel, slot);
+    }
 }

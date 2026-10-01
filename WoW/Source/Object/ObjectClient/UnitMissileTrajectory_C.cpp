@@ -21,6 +21,15 @@
 #include "Engine/Source/Tempest/CMath.h"
 #include "Engine/Source/Tempest/CAaSphere.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include <malloc.h>
+#include <cmath>
+#include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Gx/CGxMatrixStack.h"
+#include "Engine/Source/Tempest/CAaBox.h"
+#include "WoW/Source/Game/GameClient/ProjectTex.h"
+#include "WoW/Source/Ui/WorldFrame.h"
+#include "WoW/Source/UIUtil/Camera.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 
 // STATIC: 0x00CA0A98
 CMapEntity* CGUnit_C::s_trajectoryWorldObjects[2];
@@ -33,6 +42,9 @@ static WOWGUID s_trajectoryTargetGuid;
 
 // STATIC: 0x00CA0AB8
 static float s_trajectoryAlpha;
+
+// STATIC: 0x00CA0ABC
+static uint32_t s_trajectoryStartTime;
 
 // STATIC: 0x00CA0AC0
 static uint32_t s_trajectoryFadeStart;
@@ -53,7 +65,7 @@ static CTexture* s_trajectoryTexture0;
 static CTexture* s_trajectoryTexture1;
 
 // STATIC: 0x00CA0AEC
-static float s_trajectoryPitch;
+static C3Vector s_trajectoryLaunchPosition;
 
 // STATIC: 0x00CA0AD8
 CMissileCollisionHeap* CMissileCollision::s_pool;
@@ -268,7 +280,7 @@ void CGUnit_C::UpdateMissileTrajectory() {
     }
 }
 
-// VERIFY: 6a558a39 manual
+// VERIFY: 890fca3b manual
 // OFFSET: 0x006FDA20
 void CGUnit_C::UpdateMissileTrajectoryTargeting() {
     s_trajectoryAlpha = 0.0f;
@@ -455,7 +467,7 @@ void CGUnit_C::UpdateMissileTrajectoryTargeting() {
     CGUnit_C* target = unit;
     float facing;
 
-    if (!unit->ComputeMissileTrajectory(&spell, &pitchArg, &target, &s_trajectoryPitch, &position, &facing, CGUnit_C::s_trajectoryPoints, &s_trajectoryPointCount, 1)) {
+    if (!unit->ComputeMissileTrajectory(&spell, &pitchArg, &target, &s_trajectoryLaunchPosition, &position, &facing, CGUnit_C::s_trajectoryPoints, &s_trajectoryPointCount, 1)) {
         s_trajectoryAlpha = 0.0f;
         return;
     }
@@ -488,4 +500,168 @@ void CGUnit_C::UpdateMissileTrajectoryTargeting() {
     }
 
     CGUnit_C::s_missileTrajectoryTargetingSpell = spellId;
+}
+
+// OFFSET: 0x006FC190
+void CGUnit_C::ShutdownMissileTrajectorySystem() {
+    SMemFree(CGUnit_C::s_trajectoryPoints, __FILE__, __LINE__, 0);
+    CGUnit_C::StopMissileTrajectoryTargeting();
+    delete CMissileCollision::s_pool;
+    CMissileCollision::s_pool = nullptr;
+    CMissileCollision::s_tail = nullptr;
+    CMissileCollision::s_head = nullptr;
+}
+
+// VERIFY: 2d5a7665 manual
+// OFFSET: 0x006FDFB0
+void CGUnit_C::RenderMissileTrajectoryTargetingTexture() {
+    if (!(s_trajectoryAlpha > 0.0f) || !s_trajectoryTargetGuid) {
+        return;
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_trajectoryTargetGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        s_trajectoryTargetGuid = WOWGUID();
+        return;
+    }
+
+    float facing = unit->GetFacing();
+    VehicleRec* vehicle = unit->m_vehicle ? unit->m_vehicle->m_vehicleRec : nullptr;
+
+    if (!vehicle) {
+        return;
+    }
+
+    CGxTex* arcTex;
+
+    if (s_trajectoryTexture0 && (arcTex = TextureGetGxTex(s_trajectoryTexture0, 0, nullptr)) != nullptr) {
+        g_theGxDevicePtr->RsPush();
+        GxXformPush(GxXform_World);
+        GxXformPush(GxXform_Tex0);
+        GxXformTranslate(GxXform_World, -CGWorldFrame::GetActiveCamera()->m_position);
+        GxRsSet(GxRs_Culling, 0);
+        GxRsSet(GxRs_Fog, 0);
+        GxRsSet(GxRs_ColorOp0, 0);
+        GxRsSet(GxRs_AlphaOp0, 0);
+        GxRsSet(GxRs_ColorWrite, 15);
+        GxRsSet(GxRs_Lighting, 0);
+        GxRsSet(GxRs_DepthWrite, 0);
+        GxRsSet(GxRs_BlendingMode, 3);
+        int32_t vertexCount = 2 * s_trajectoryPointCount + 2;
+        C3Vector* positions = static_cast<C3Vector*>(alloca(sizeof(C3Vector) * vertexCount));
+        CImVector* colors = static_cast<CImVector*>(alloca(sizeof(CImVector) * vertexCount));
+        C2Vector* texCoords = static_cast<C2Vector*>(alloca(sizeof(C2Vector) * vertexCount));
+        uint16_t* indices = static_cast<uint16_t*>(alloca(sizeof(uint16_t) * vertexCount));
+
+        for (int32_t i = 0; i < vertexCount; i++) {
+            indices[i] = i;
+        }
+
+        float halfWidth = vehicle->m_msslTrgtArcWidth * 0.5f;
+        C3Vector side;
+        side.x = -(CMath::sin_(facing) * halfWidth);
+        side.y = CMath::cos_(facing) * halfWidth;
+        uint32_t elapsed = FrameTime::s_curTimeMs - s_trajectoryStartTime;
+        float alpha = s_trajectoryAlpha * 255.0f;
+        float alphaStep = (255.0f * (s_trajectoryAlpha * vehicle->m_msslTrgtEndOpacity) - alpha) * (1.0f / s_trajectoryPointCount);
+        float texStart = 1.0f - fmodf(static_cast<float>(elapsed) * 0.001f * vehicle->m_msslTrgtArcSpeed, 1.0f);
+        positions[0].x = s_trajectoryLaunchPosition.x + side.x;
+        positions[0].y = s_trajectoryLaunchPosition.y + side.y;
+        positions[0].z = s_trajectoryLaunchPosition.z;
+        positions[1].x = s_trajectoryLaunchPosition.x - side.x;
+        positions[1].y = s_trajectoryLaunchPosition.y - side.y;
+        positions[1].z = s_trajectoryLaunchPosition.z;
+        colors[0].a = 0;
+        colors[0].r = 0xFF;
+        colors[0].g = 0xFF;
+        colors[0].b = 0xFF;
+        colors[1] = colors[0];
+        texCoords[0].x = texStart;
+        texCoords[0].y = 0.0f;
+        texCoords[1].x = texStart;
+        texCoords[1].y = 1.0f;
+        float pointAlpha = alphaStep + alpha;
+        float texCoord = texStart + vehicle->m_msslTrgtArcRepeat;
+
+        for (uint32_t i = 0; i < s_trajectoryPointCount; i++) {
+            const C3Vector& point = CGUnit_C::s_trajectoryPoints[i];
+            positions[2 * i + 2].x = point.x + side.x;
+            positions[2 * i + 2].y = point.y + side.y;
+            positions[2 * i + 2].z = point.z;
+            positions[2 * i + 3].x = point.x - side.x;
+            positions[2 * i + 3].y = point.y - side.y;
+            positions[2 * i + 3].z = point.z;
+
+            if (pointAlpha < 0.0f) {
+                pointAlpha = 0.0f;
+            }
+
+            colors[2 * i + 2].b = 0xFF;
+            colors[2 * i + 2].g = 0xFF;
+            colors[2 * i + 2].r = 0xFF;
+            colors[2 * i + 2].a = static_cast<uint8_t>(pointAlpha + 0.5f);
+            colors[2 * i + 3] = colors[2 * i + 2];
+            pointAlpha += alphaStep;
+            texCoords[2 * i + 2].x = texCoord;
+            texCoords[2 * i + 2].y = 0.0f;
+            texCoords[2 * i + 3].x = texCoord;
+            texCoords[2 * i + 3].y = 1.0f;
+            texCoord += vehicle->m_msslTrgtArcRepeat;
+        }
+
+        CGxMatrixStack& texStack = g_theGxDevicePtr->m_xforms[GxXform_Tex0];
+        texStack.m_dirty = 1;
+        texStack.m_flags[texStack.m_level] &= ~CGxMatrixStack::F_Identity;
+        texStack.m_mtx[texStack.m_level] = C44Matrix();
+        g_theGxDevicePtr->RsSet(GxRs_Texture0, arcTex);
+        C3Vector normal(0.0f, 0.0f, 1.0f);
+        GxRsSet(GxRs_TextureShader0, 1);
+        GxPrimLockVertexPtrs(vertexCount, positions, sizeof(C3Vector), &normal, 0, colors, sizeof(CImVector), nullptr, 0, texCoords, sizeof(C2Vector), nullptr, 0);
+        GxDrawLockedElements(GxPrim_TriangleStrip, vertexCount, indices);
+        GxPrimUnlockVertexPtrs();
+        GxXformPop(GxXform_World);
+        GxXformPop(GxXform_Tex0);
+        g_theGxDevicePtr->RsPop();
+    }
+
+    if (!s_trajectoryTexture1) {
+        return;
+    }
+
+    CGxTex* impactTex = TextureGetGxTex(s_trajectoryTexture1, 0, nullptr);
+
+    if (!impactTex) {
+        return;
+    }
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_BlendingMode, 3);
+    GxRsSet(GxRs_Culling, 0);
+    GxRsSet(GxRs_Lighting, 0);
+    GxRsSet(GxRs_DepthWrite, 0);
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, impactTex);
+    g_theGxDevicePtr->RsSet(GxRs_Texture1, ProjectTex2dGetAddFadeTex());
+    GxRsSet(GxRs_ColorOp0, 0);
+    GxRsSet(GxRs_AlphaOp0, 0);
+    GxRsSet(GxRs_ColorOp1, 0);
+    GxRsSet(GxRs_AlphaOp1, 0);
+    const C3Vector& impact = CGUnit_C::s_trajectoryPoints[s_trajectoryPointCount - 1];
+    float radius = vehicle->m_msslTrgtImpactTexRadius;
+    CAaBox box;
+    box.b.x = impact.x - radius;
+    box.b.y = impact.y - radius;
+    box.b.z = impact.z - radius;
+    box.t.x = radius + impact.x;
+    box.t.y = radius + impact.y;
+    box.t.z = radius + impact.z;
+    CImVector color;
+    color.b = 0xFF;
+    color.g = 0xFF;
+    color.r = 0xFF;
+    color.a = static_cast<uint8_t>(s_trajectoryAlpha * 255.0f + 0.5f);
+    C44Matrix rotation;
+    rotation.RotateAroundZ(-facing);
+    ProjectTex::Render2d(box, color, &rotation, 0.5f, 0x200122, 5, 0.039999999f);
+    g_theGxDevicePtr->RsPop();
 }

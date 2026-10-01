@@ -35,6 +35,7 @@ struct TrainerSkillLineInfo {
 
 class CGClassTrainer {
     public:
+    static void ShutdownGame();
     static WOWGUID m_trainer;
     static char m_greetingText[2048];
     static int32_t m_trainerType;

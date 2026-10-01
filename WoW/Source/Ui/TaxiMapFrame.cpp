@@ -3,6 +3,9 @@
 #include "WoW/Source/DB/Rec/TaxiNodesRec.h"
 #include "WoW/Source/DB/Rec/TaxiPathRec.h"
 #include "WoW/Source/DB/Rec/TaxiPathNodeRec.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Base/Types.h"
+#include "Engine/Source/Services/Texture.h"
 
 // STATIC: 0x00C0D7E0
 CTexture* CGTaxiMap::m_mapTexture;
@@ -33,6 +36,9 @@ static TSGrowableArray<uint64_t> s_nodeMask;
 
 // STATIC: 0x00C0DC50
 static TSFixedArray<TSGrowableArray<TaxiPathRec*>> s_paths;
+
+// STATIC: 0x00C0DC60
+static TSGrowableArray<TAXILINE> s_taxiLines;
 
 // STATIC: 0x00C0DC70
 static TSGrowableArray<uint8_t> s_unkC0DC70;
@@ -89,4 +95,28 @@ void CGTaxiMap::InitializeGame() {
             lastPathID = node->m_pathID;
         }
     }
+}
+
+// VERIFY: 7b70e52d manual
+// OFFSET: 0x00591A10
+void CGTaxiMap::FreeRouteLines() {
+    if (CGTaxiMap::m_mapTexture) {
+        HandleClose(reinterpret_cast<HOBJECT>(CGTaxiMap::m_mapTexture));
+        CGTaxiMap::m_mapTexture = nullptr;
+    }
+
+    s_taxiLines.Clear();
+
+    for (uint32_t i = 0; i < CGTaxiMap::m_maxNodeID; i++) {
+        CGTaxiMap::m_routeLines.m_data[i].Clear();
+    }
+
+    CGTaxiMap::m_numNodes = 0;
+}
+
+// VERIFY: 7911d34a auto
+// OFFSET: 0x005920D0
+void CGTaxiMap::ShutdownGame() {
+    s_pathNodes.InternalClear(0);
+    CGTaxiMap::FreeRouteLines();
 }

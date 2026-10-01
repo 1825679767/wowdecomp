@@ -8,6 +8,7 @@ struct lua_State;
 
 class CGMinigameInfo {
     public:
+    static void ShutdownGame();
     static void InitializeGame();
 };
 

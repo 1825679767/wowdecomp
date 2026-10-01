@@ -80,6 +80,16 @@ enum SLASH_COMMAND_ID {
     CHAT_MSG_MAX = 62,
 };
 
+struct RaidInstanceInfo {
+    /* 0000 */ uint32_t m_mapID;
+    /* 0004 */ uint32_t m_difficulty;
+    /* 0008 */ uint64_t m_instanceID;
+    /* 0010 */ uint32_t m_locked;
+    /* 0014 */ uint32_t m_extended;
+    /* 0018 */ uint32_t m_resetTime;
+    /* 001C */ uint32_t unk_001C;
+};
+
 struct ChatConversation {
     /* 0000 */ uint8_t m_index;
     /* 0004 */ uint32_t m_presenceID;
@@ -234,6 +244,7 @@ class ChatWindowInfo {
     void AddChannel(const char* name, int32_t id);
     void Init();
     void RemoveChannel(const char* name);
+    void Reset();
 };
 
 struct ChatRecord {
@@ -260,14 +271,17 @@ int32_t Packet_SMSG_LOG_XPGAIN(void* param, NETMESSAGE msgId, uint32_t time, CDa
 
 class CGChat {
     public:
+    static void SaveChatSettings();
     static void ZoneUpdate();
     static void ProcessPendingChatQueue();
     static void LogReactionChanged(int32_t faction, int32_t reaction);
     static void LogFactionChanged(int32_t faction, int32_t delta, int32_t generic, float bonus);
     static void EnterWorld();
     static void InitializeGame();
+    static void ShutdownGame();
     static void LoadChatSettings();
     static void LoadChatSettingsCallback(HOSFILE localFile, HOSFILE file, void* param);
+    static void SaveChatSettingsCallback(HOSFILE localFile, HOSFILE file, void* param);
     static const char* GetChannelString(const char* name);
     static bool ChatTokenToGUID(const char* token, WOWGUID& guid);
     static CImVector GetChatColor(int32_t type);

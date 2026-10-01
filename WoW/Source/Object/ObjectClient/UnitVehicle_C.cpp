@@ -9,6 +9,8 @@
 #include "WoW/Source/UIUtil/InputControl.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/Ui/WorldFrame.h"
+#include "WoW/Source/UIUtil/Camera.h"
 
 // VERIFY: bc21d620 manual
 // OFFSET: 0x0074C650
@@ -312,4 +314,26 @@ int32_t CGUnit_C::VehiclePassengerStartWaitingForVehicleTransitionAnim(uint64_t 
 
     this->m_vehiclePassenger->StartWaitingForVehicleTransitionAnim(WOWGUID{ transport }, seat, seatRec, entering, animVehicle);
     return 1;
+}
+
+// VERIFY: 65e43ba1 manual
+// OFFSET: 0x0074CD60
+void CGUnit_C::DestroyVehicleCamera() {
+    if (!this->m_vehicleCamera) {
+        return;
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_vehicleCamera->m_nextCameraGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CVehicleCamera_C* camera = this->m_vehicleCamera;
+    camera->Destroy();
+    this->m_vehicleCamera = nullptr;
+    CGCamera* activeCamera = CGWorldFrame::GetActiveCamera();
+
+    if (activeCamera && activeCamera->m_vehicleCamera == camera) {
+        activeCamera->OnVehicleCameraDestroyed();
+    }
+
+    if (unit) {
+        unit->OnVehicleCameraPossiblyUnneeded();
+    }
 }

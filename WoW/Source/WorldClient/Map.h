@@ -38,7 +38,7 @@ class CMapStaticEntity;
 class CiRect;
 class SFileImpl;
 class SFile;
-namespace World { class FacetData; struct LiquidQueryResult; class ObjectCollisionData; }
+namespace World { class FacetData; class TriData; struct LiquidQueryResult; class ObjectCollisionData; }
 
 struct CGxBuf;
 struct CGxPool;
@@ -100,7 +100,7 @@ class CGxVertexPT0T1 {
 };
 
 struct CMapFootprint {
-    /* 0000 */ uint32_t unk_0000[3];
+    /* 0000 */ C3Vector m_position;
     /* 000C */ uint32_t m_alpha;
     /* 0010 */ uint32_t m_textureIndex;
     /* 0014 */ uint32_t unk_0014;
@@ -148,6 +148,11 @@ class CDestructibleProxy {
 
 class CMap {
     public:
+    static void UpdateDoodadDefTransform(CMapDoodadDef* doodadDef, const C44Matrix& matrix);
+    static void UpdateDoodadDefBounds(CMapDoodadDef* doodadDef);
+    static CMapObjDef* CreateMapObjDef(const char* fileName, const C3Vector* position, float facing, int32_t waitLoad, uint32_t doodadSetCount, const int16_t* doodadSets, float* radius, uint32_t id);
+    static void SnapBaseObjToSubChunk(CMapBaseObj* baseObj, const C3Vector* position, float facing);
+    static void UpdateDoodadDef(CMapDoodadDef* doodadDef, const C3Vector* position, float facing);
     static TSGrowableArray<CGxVertexPC> debugVertexArray;
     static TSGrowableArray<uint16_t> debugIndexArray;
     static CMapLight* s_mapLight;
@@ -163,6 +168,7 @@ class CMap {
     static bool enablePixelShaders;
     static bool enableVertexShaders;
     static TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > mapObjDefLinkList;
+    static TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > s_unk_ADFBF8;
     static TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > s_unk_AF16CC;
     static CGxBuf* lowDetailIndexBuf;
     static CGxPool* lowDetailIndexPool;
@@ -198,7 +204,7 @@ class CMap {
     static uint32_t* baseObjLinkHeap;
     static uint32_t* areaHeap;
     static uint32_t* areaMedHeap;
-    static uint32_t* areaLowHeap;
+    static CMapAreaLowHeap* areaLowHeap;
     static uint32_t* chunkHeap;
     static uint32_t* doodadDefHeap;
     static uint32_t* entityHeap;
@@ -262,6 +268,15 @@ class CMap {
     static CMapArea* GetAreaAtPosition(const C2Vector* pos);
     static CMapChunk* GetChunkAtPosition(const C2Vector* pos);
     static CMapAreaLow* AllocAreaLow();
+    static bool QueryTris(const CAaBox& box, World::TriData* triData, uint32_t flags);
+    static bool GetTrisTerrain(const CAaBox& box, World::TriData* triData, uint32_t flags);
+    static bool GetTrisChunk(int32_t chunkX, int32_t chunkY, const CiRect& cellRect, const CAaBox& box, World::TriData* triData, uint32_t flags);
+    static bool GetTriSubchunk(CMapChunk* chunk, const CiRect* rect, const CAaBox* box);
+    static bool QueryTrisMapObjDefs(const CAaBox& box, World::TriData* triData, uint32_t flags);
+    static uint32_t QueryIntersectingModels(CM2Model** models, uint32_t maxModels, const CAaBox& box, uint32_t flags);
+    static void BuildFootprintMatrix(C44Matrix& matrix, const float* size, int32_t left, float facing);
+    static void NewFootprint(int32_t textureId, const float* size, const C3Vector* position, float facing, int32_t left, int32_t terrainType, int32_t activePlayer);
+    static void FreeAreaLow(CMapAreaLow* areaLow);
     static void RenderLowDetail(CMapAreaLow* area);
     static void BuildLowDetailGridVertices(CMapAreaLow* area, CGxBuf* buf);
     static void BuildLowDetailGridIndices(uint16_t* holes, int32_t pass, CGxBuf* buf);
@@ -294,6 +309,7 @@ class CMap {
     static CMapLight* AllocLight();
     static CMapObjDef* CreateMapObjDef(char* fileName, SMMapObjDef* mapObjectDef, C3Vector* center, bool cached);
     static CMapDoodadDef* CreateDoodadDef(const char* fileName, SMDoodadDef* doodadDef, C3Vector* center);
+    static CMapDoodadDef* CreateDoodadDef(const char* fileName, const C3Vector* position, float facing, int32_t a4);
     static CMapLight* CreateLight(uint8_t a1, uint8_t a2);
     static CMapDoodadDef* CreateDoodadDef(uint32_t doodadRef, SMODoodadDef* doodadDef, char* name, uint32_t key, C44Matrix* mat, uint16_t doodadSet);
     static void FreeBaseObjLinksInBounds(CAaBox* box);

@@ -1,10 +1,10 @@
 #ifndef WOW_SOURCE_WORLDCLIENT_MAPOBJDEF_H
 #define WOW_SOURCE_WORLDCLIENT_MAPOBJDEF_H
 
+#include "Engine/Source/Model2/M2Model.h"
 #include <cstddef>
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
-#include <windows.h>
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/CAaBox.h"
@@ -47,10 +47,16 @@ class CMapObjDefGroup : public CMapBaseObj {
 
     CMapObjDefGroup();
     void UpdateLights();
+    void SetSequenceFinishedCallback(M2SequenceCallback callback, uint64_t param, uint16_t doodadSet);
+    bool IsAllLoaded();
 };
 
 class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_NONE> {
     public:
+    static void UpdateMatrix(CMapObjDef* mapObjDef, const C44Matrix& matrix);
+    void SetSequenceFinishedCallback(M2SequenceCallback callback, uint64_t param, uint16_t doodadSet);
+    static void UpdateMoved(CMapObjDef* mapObjDef);
+    static void UpdatePos(CMapObjDef* mapObjDef, const C3Vector* position, float facing, float a4, float a5);
     /* 003C */ C3Vector m_position;
     /* 0048 */ CAaBox m_bbox;
     /* 0060 */ CAaSphere m_sphere;
@@ -77,7 +83,7 @@ class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_N
     CMapObjDef();
     bool TestAABox(C3Vector& start, C3Vector& end);
     bool IsAllDrawable();
-    int32_t IsAllLoaded();
+    bool IsAllLoaded();
     int32_t GetGroundType(uint32_t groupNum, uint16_t faceIndex);
     void RenderWithCallback(TSGrowableArray<uint32_t>* groups);
     void CullMapObjDefGroupFromExterior(CMapObjDefGroup* mapObjDefGroup, CRect* rect, uint32_t skipOcclusion);

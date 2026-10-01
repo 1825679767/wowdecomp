@@ -14,6 +14,7 @@
 #include "Engine/Source/Base/CDataStore.h"
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Client.h"
 
 // STATIC: 0x00BEB568
 CGRaidMember* CGRaidInfo::m_members[40];
@@ -363,4 +364,25 @@ void CGRaidInfo::EnableMember(CGPlayer_C* player, int32_t enable) {
     msg.Put(player->m_obj->m_guid.m_guid);
     msg.Finalize();
     ClientServices::Send2(&msg);
+}
+
+// VERIFY: 9571779b manual
+// OFFSET: 0x00574310
+void CGRaidInfo::ShutdownGame() {
+    ClientServices::ClearMessageHandler(MSG_RAID_TARGET_UPDATE);
+    ClientServices::ClearMessageHandler(MSG_RAID_READY_CHECK);
+    ClientServices::ClearMessageHandler(MSG_RAID_READY_CHECK_CONFIRM);
+    ClientServices::ClearMessageHandler(MSG_RAID_READY_CHECK_FINISHED);
+    ClientServices::ClearMessageHandler(SMSG_READY_CHECK_ERROR);
+    ClientServices::ClearMessageHandler(MSG_NOTIFY_PARTY_SQUELCH);
+    ClientServices::ClearMessageHandler(SMSG_ECHO_PARTY_SQUELCH);
+
+    for (uint32_t i = 0; i < 40; i++) {
+        delete CGRaidInfo::m_members[i];
+        CGRaidInfo::m_members[i] = nullptr;
+    }
+
+    if (CGRaidInfo::m_readyCheckTimer) {
+        ClientKillTimer(CGRaidInfo::m_readyCheckTimer, CGRaidInfo::ProcessReadyCheckTimer, "ProcessReadyCheckTimer");
+    }
 }

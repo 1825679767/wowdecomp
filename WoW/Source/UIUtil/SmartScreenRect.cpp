@@ -442,3 +442,14 @@ void SmartScreenRectPositionFrame(uint32_t grid, CSimpleFrame* frame, CSimpleFra
     frame->SetPoint(center ? FRAMEPOINT_CENTER : FRAMEPOINT_TOP, parent, FRAMEPOINT_BOTTOMLEFT, point.x, point.y, 1);
     frame->SetFrameDepth(depth, true);
 }
+
+// VERIFY: 98e897bd auto
+// OFFSET: 0x00616060
+void SmartScreenRectShutdown() {
+    s_searchQueue.Clear();
+    s_freeNodes.Clear();
+
+    for (uint32_t i = 0; i < 2; i++) {
+        s_grids[i].Clear();
+    }
+}

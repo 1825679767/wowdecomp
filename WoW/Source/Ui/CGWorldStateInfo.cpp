@@ -7,6 +7,10 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include <ctime>
 #include "WoW/Source/Ui/MinimapFrame.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include "WoW/Source/Ui/QuestTextParser.h"
 
 // STATIC: 0x00BE8F40
 uint32_t CGWorldStateInfo::m_nextUITimeUpdate;
@@ -128,4 +132,106 @@ bool CGWorldStateInfo::SetWorldState(uint32_t state, uint32_t value) {
 
     RefreshWorldStatePOIs(state);
     return true;
+}
+
+// VERIFY: 597548a3 auto
+// OFFSET: 0x005486E0
+void CGWorldStateInfo::OnUITime(uint32_t time) {
+    CGWorldStateInfo::m_UITimeOffset = time - static_cast<uint32_t>(::time(nullptr));
+}
+
+// VERIFY: 004fb22d manual
+// OFFSET: 0x005487D0
+void CGWorldStateInfo::ResetWorldStateUI() {
+    CGWorldStateInfo::m_worldStateUI.m_count = 0;
+
+    for (int32_t i = 0; i < g_worldStateUIDB.m_numRecords; i++) {
+        WorldStateUIRec* rec = g_worldStateUIDB.GetRecordByIndex(i);
+
+        if (rec->m_mapID != -1 && rec->m_mapID != CGWorldStateInfo::m_mapID) {
+            continue;
+        }
+
+        if (rec->m_areaID && rec->m_areaID != CGWorldStateInfo::m_areaID && rec->m_areaID != CGWorldStateInfo::m_subAreaID) {
+            continue;
+        }
+
+        if (rec->m_phaseShift && !(rec->m_phaseShift & CGGameUI::unk_AC80A4)) {
+            continue;
+        }
+
+        if (rec->m_type && rec->m_type != 3 && rec->m_type != 1) {
+            continue;
+        }
+
+        WorldStateUIEntry* entry = CGWorldStateInfo::m_worldStateUI.New();
+        entry->m_id = rec->m_id;
+        entry->m_state = rec->m_type;
+    }
+}
+
+// VERIFY: 52346cc7 manual
+// OFFSET: 0x00548B20
+void CGWorldStateInfo::ShutdownGame() {
+    CGWorldStateInfo::m_worldStates.InternalClear(0);
+    CGWorldStateInfo::m_worldStateUI.Clear();
+}
+
+// VERIFY: 78ef8608 auto
+// OFFSET: 0x005770D0
+bool WorldStateParseText(const char* text, char* buffer, uint32_t size) {
+    if (!text) {
+        return false;
+    }
+
+    int32_t error = 0;
+    *buffer = '\0';
+    const char* start = text;
+
+    for (const char* percent = SStrChr(text, '%'); percent && *percent; percent = SStrChr(start, '%')) {
+        uint32_t length = percent - start;
+
+        if (length) {
+            uint32_t used = SStrLen(buffer);
+            SStrPack(buffer, start, size);
+
+            if (used + length < size) {
+                buffer[used + length] = '\0';
+            }
+        }
+
+        const char* cursor = percent + 1;
+        const char* number = cursor;
+
+        while (*cursor >= '0' && *cursor <= '9') {
+            cursor++;
+        }
+
+        switch (*cursor) {
+            case 'K':
+            case 'k':
+                ParseCountDownTimerText(buffer, size, GetWorldState(SStrToInt(number)));
+                cursor++;
+                break;
+
+            case 'W':
+            case 'w': {
+                char value[16];
+                SStrPrintf(value, sizeof(value), "%d", GetWorldState(SStrToInt(number)));
+                SStrPack(buffer, value, size);
+                cursor++;
+                break;
+            }
+
+            default:
+                error = 1;
+                SStrPack(buffer, "%", size);
+                break;
+        }
+
+        start = cursor;
+    }
+
+    SStrPack(buffer, start, size);
+    return error == 0;
 }

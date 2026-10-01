@@ -1194,9 +1194,9 @@ void CCharacterComponent::PasteOpaqueScale(void* texture, MipBits* dstMips, C2iV
     CCharacterComponent::PasteOpaque(texture, pal, dstMips, dstPos, dstStride >> 1, srcPos, srcSize, srcInfo, 0, 1);
 }
 
-// VERIFY: 6b5f02b6 auto
+// VERIFY: 049c43f4 auto
 // OFFSET: 0x004E8D30
-static CTexture* CreateTexture(const char* fileName, CStatus* status) {
+CTexture* CreateTexture(const char* fileName, CStatus* status) {
     CGxTexFlags flags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1);
 
     return TextureCreate(fileName, flags, status, 0);

@@ -687,6 +687,41 @@ bool CChunkLiquid::GetTris(World::TriData* triData, uint8_t* codes, const C2iVec
     return batch != nullptr;
 }
 
+// VERIFY: 9cf4f78e manual
+// OFFSET: 0x007CE960
+bool CChunkLiquid::GetTris(World::TriData* triData, const CAaBox& box, const CiRect& rect) {
+    CiRect query;
+    query.minY = rect.minY;
+    query.minX = rect.minX;
+    query.maxY = rect.maxY + 1;
+    query.maxX = rect.maxX + 1;
+    CiRect clip = reinterpret_cast<const CiRect&>(this->m_tileBegin) & query;
+    C2iVector size;
+    size.x = clip.maxX - clip.minX;
+    size.y = clip.maxY - clip.minY;
+    int32_t stride = this->m_tileEnd.y - this->m_tileBegin.y + 1;
+    C2iVector start;
+    start.x = clip.minX;
+    start.y = clip.minY;
+    const C3Vector* vert = &this->m_verts[(clip.minY - this->m_tileBegin.x) * stride - this->m_tileBegin.y + clip.minX];
+    uint8_t codes[81];
+    uint8_t* code = codes;
+
+    for (int32_t y = 0; y < size.y + 1; y++) {
+        for (int32_t x = 0; x < size.x + 1; x++) {
+            float below = vert->z - box.b.z + 0.019444443f;
+            float above = box.t.z - vert->z + 0.019444443f;
+            *code = static_cast<uint8_t>(((reinterpret_cast<uint32_t&>(below) >> 29) & 0x4) | ((reinterpret_cast<uint32_t&>(above) >> 26) & 0x20));
+            vert++;
+            code++;
+        }
+
+        vert += stride - (size.x + 1);
+    }
+
+    return this->GetTris(triData, codes, start, size);
+}
+
 // VERIFY: 22a3788a manual
 // OFFSET: 0x007CEB80
 bool CChunkLiquid::GetTris(World::TriData* triData, const CFrustum& frustum, const CiRect& rect) const {

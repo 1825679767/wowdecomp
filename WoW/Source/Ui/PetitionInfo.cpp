@@ -42,3 +42,9 @@ void CGPetitionInfo::EnterWorld() {
     CGPetitionInfo::m_petition = nullptr;
     CGPetitionInfo::m_signers.SetCount(10);
 }
+
+// VERIFY: 8452d77d auto
+// OFFSET: 0x005CE9F0
+void CGPetitionInfo::ShutdownGame() {
+    ClientServices::ClearMessageHandler(SMSG_OFFER_PETITION_ERROR);
+}

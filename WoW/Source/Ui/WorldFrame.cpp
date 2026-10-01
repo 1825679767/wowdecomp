@@ -2409,3 +2409,45 @@ int32_t CGWorldFrame::SpellEffectEnumProc(void* param, uint32_t flags, uint64_t 
 
     return 1;
 }
+
+// VERIFY: 57ad68af manual
+// OFFSET: 0x004FA390
+CGWorldFrame::~CGWorldFrame() {
+    EventUnregisterEx(EVENT_ID_IDLE, CGWorldFrame::Update, this, 0xFFFFFFFF);
+    EventSetMouseMode(MOUSE_MODE_NORMAL, 0);
+    CGWorldFrame::s_currentWorldFrame = nullptr;
+
+    for (uint32_t i = 0; i < sizeof(s_spellShadowTexture) / sizeof(s_spellShadowTexture[0]); i++) {
+        if (s_spellShadowTexture[i]) {
+            HandleClose(reinterpret_cast<HOBJECT>(s_spellShadowTexture[i]));
+        }
+
+        s_spellShadowTexture[i] = nullptr;
+    }
+
+    SmartScreenRectShutdown();
+    Spell_C_ClearInTransitList();
+    this->m_modelList.Clear();
+    this->m_hitModelList.Clear();
+    this->m_freeModelList.Clear();
+    delete this->m_camera;
+    this->m_camera = nullptr;
+
+    if (CGWorldFrame::ffxEffectGlow) {
+        delete CGWorldFrame::ffxEffectGlow;
+    }
+
+    if (CGWorldFrame::ffxEffectDeath) {
+        delete CGWorldFrame::ffxEffectDeath;
+    }
+
+    if (CGWorldFrame::ffxEffectNetherWorld) {
+        delete CGWorldFrame::ffxEffectNetherWorld;
+    }
+
+    if (CGWorldFrame::ffxEffectSwirlingFog) {
+        delete CGWorldFrame::ffxEffectSwirlingFog;
+    }
+
+    FFX::Destroy();
+}

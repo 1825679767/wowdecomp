@@ -1093,3 +1093,9 @@ int32_t PushUnitAura(lua_State* L, ScriptAuraInfo* info) {
 
     return 0;
 }
+
+// VERIFY: 9260c5f6 auto
+// OFFSET: 0x006147B0
+void ClearUniqueSignals() {
+    s_uniqueSignals.m_count = 0;
+}

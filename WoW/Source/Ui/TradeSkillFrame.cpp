@@ -62,6 +62,12 @@ uint32_t CGTradeSkillInfo::m_invSlots;
 // STATIC: 0x00C235E8
 int32_t CGTradeSkillInfo::m_skillRank;
 
+// STATIC: 0x00C235EC
+int32_t CGTradeSkillInfo::m_skillMaxRank;
+
+// STATIC: 0x00C235F0
+int32_t CGTradeSkillInfo::unk_C235F0;
+
 // STATIC: 0x00C235F4
 TSGrowableArray<TradeSkillInfo*> CGTradeSkillInfo::m_displayList;
 
@@ -612,4 +618,57 @@ void CGTradeSkillInfo::RefreshList(int32_t full) {
     }
 
     FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_SKILL_UPDATE, nullptr);
+}
+
+// VERIFY: 9ddd6131 manual
+// OFFSET: 0x005DCAF0
+void CGTradeSkillInfo::ShutdownGame() {
+    for (uint32_t i = 0; i < CGTradeSkillInfo::m_displayList.m_count; i++) {
+        delete CGTradeSkillInfo::m_displayList.m_data[i];
+    }
+
+    for (uint32_t i = 0; i < CGTradeSkillInfo::m_subClassList.m_count; i++) {
+        delete CGTradeSkillInfo::m_subClassList.m_data[i];
+    }
+
+    CGTradeSkillInfo::m_playerGuid = WOWGUID();
+    CGTradeSkillInfo::m_spellID = 0;
+    CGTradeSkillInfo::m_skillLineID = 0;
+    CGTradeSkillInfo::m_displayList.Clear();
+    CGTradeSkillInfo::m_subClassList.Clear();
+    CGTradeSkillInfo::m_numDisplayEntries = 0;
+    CGTradeSkillInfo::m_filteredSkills = 0;
+    CGTradeSkillInfo::m_numSubClasses = 0;
+
+    if (CGTradeSkillInfo::m_itemNameFilter) {
+        SMemFree(CGTradeSkillInfo::m_itemNameFilter, __FILE__, __LINE__, 0);
+    }
+
+    CGTradeSkillInfo::m_itemNameFilter = nullptr;
+    CGTradeSkillInfo::unk_C235F0 = 0;
+    CGTradeSkillInfo::m_recastSpellID = 0;
+    CGTradeSkillInfo::m_pendingRecastSpellID = 0;
+
+    if (CGTradeSkillInfo::m_linkData) {
+        SMemFree(CGTradeSkillInfo::m_linkData, __FILE__, __LINE__, 0);
+    }
+
+    CGTradeSkillInfo::m_linkData = nullptr;
+    CGTradeSkillInfo::m_skillRank = 0;
+    CGTradeSkillInfo::m_skillMaxRank = 0;
+}
+
+// VERIFY: 9c6c8940 manual
+// OFFSET: 0x005DA5A0
+void CGTradeSkillInfo::Close() {
+    CGTradeSkillInfo::m_spellID = 0;
+    CGTradeSkillInfo::m_skillLineID = 0;
+
+    if (CGTradeSkillInfo::m_recastSpellID || CGTradeSkillInfo::m_pendingRecastSpellID) {
+        CGTradeSkillInfo::m_recastSpellID = 0;
+        CGTradeSkillInfo::m_pendingRecastSpellID = 0;
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_TRADESKILL_RECAST, nullptr);
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_SKILL_CLOSE, nullptr);
 }

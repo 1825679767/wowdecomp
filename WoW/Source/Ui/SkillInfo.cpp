@@ -267,3 +267,17 @@ int32_t CGSkillInfo::GetSkillTypeCollapsed(uint32_t index) {
 
     return 0;
 }
+
+// VERIFY: 3727cac0 manual
+// OFFSET: 0x005CD3A0
+void CGSkillInfo::ShutdownGame() {
+    for (uint32_t i = 0; i < CGSkillInfo::m_lines.m_count; i++) {
+        delete CGSkillInfo::m_lines.m_data[i];
+        CGSkillInfo::m_lines.m_data[i] = nullptr;
+    }
+
+    for (uint32_t i = 0; i < CGSkillInfo::m_types.m_count; i++) {
+        delete CGSkillInfo::m_types.m_data[i];
+        CGSkillInfo::m_types.m_data[i] = nullptr;
+    }
+}

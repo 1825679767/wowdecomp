@@ -71,9 +71,11 @@ void BattlefieldNameCacheCallback(int32_t id, const WOWGUID& guid, void* param, 
 
 class CGBattlefieldInfo {
     public:
+    static void RequestBattlegroundInstanceInfo(uint32_t index);
     static void SetBattlemaster(WOWGUID battlemaster);
     static void EnterWorld();
     static void InitializeGame();
+    static void ShutdownGame();
     static WOWGUID m_arenaOpponentPets[5][2];
     static WOWGUID m_arenaOpponents[5];
     static CGPartyMemberState m_arenaOpponentStats[5];

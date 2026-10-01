@@ -112,8 +112,24 @@ struct ARCHIVELISTPARAMS {
     /* 000C */ void* m_param;
 };
 
+struct AdditionalCheckInterface {
+    /* 0000 */ void* (*m_memAlloc)(uint32_t bytes);
+    /* 0004 */ void (*m_memFree)(void* ptr);
+    /* 0008 */ void* (*m_loadLibrary)(const char* fileName);
+    /* 000C */ void* (*m_getLibraryEntryPoint)(void* module, const char* name);
+    /* 0010 */ void (*m_freeLibrary)(void* module);
+};
+
+extern uint8_t s_botCheckEnabled;
+extern int32_t s_botCheckDelay;
+extern volatile long s_additionalCheckArmed;
+
 void CheckAndSendBotDetected();
 void AdditionalCheck1();
+uint8_t AdditionalCheck1Scan(const AdditionalCheckInterface* iface, int32_t a2);
+void* Client_MemAlloc(uint32_t bytes);
+void Client_MemFree(void* ptr);
+void SendBotDetected2(uint32_t msgId, uint32_t code);
 int32_t GatherAdditionalChecks(uint8_t* check1, uint8_t* check2, uint8_t* check3);
 void ClientUpdateTaxiBenchmarkMode();
 void ClientKillTimer(uint32_t id, EVENTHANDLERFUNC handler, const char* name);

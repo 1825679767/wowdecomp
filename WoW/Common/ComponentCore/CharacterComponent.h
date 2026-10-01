@@ -66,6 +66,7 @@ class CComponentRequest {
     void DestroyCachedTextures();
 };
 
+class CStatus;
 class CCharacterComponent {
     public:
     static CVar* g_componentCompressVar;
@@ -265,5 +266,7 @@ class CCharacterComponent {
 };
 
 bool ComponentVarHandler(CVar* var, const char* oldValue, const char* value, void* arg);
+
+CTexture* CreateTexture(const char* fileName, CStatus* status);
 
 #endif

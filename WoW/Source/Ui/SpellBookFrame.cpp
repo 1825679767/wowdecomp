@@ -2159,3 +2159,22 @@ void CGSpellBook::DelKnownSpell(int32_t spellId, int32_t notify) {
 
     CGSpellBook::UpdateSpells(removed, 0, 1);
 }
+
+// VERIFY: 1789a24e manual
+// OFFSET: 0x0053F290
+void CGSpellBook::ShutdownGame() {
+    for (uint32_t i = 0; i < s_skillInfos.m_count; i++) {
+        delete s_skillInfos.m_data[i];
+    }
+
+    s_skillInfos.Clear();
+    s_numSkillInfos = 0;
+    s_knownSpellBits.m_count = 0;
+
+    if (s_knownSpellBits.m_bits.m_count) {
+        s_knownSpellBits.m_bits.Clear();
+    }
+
+    CGSpellBook::m_languageSpells.Clear();
+    s_spellsByName.Clear();
+}

@@ -294,3 +294,52 @@ CurrencyTypesRec* CGCurrencyTypes::GetBackpackCurrencyInfo(int32_t index) {
 
     return nullptr;
 }
+
+// VERIFY: 6cfe7d42 auto
+// OFFSET: 0x005EEB70
+void CGCurrencyTypes::ShutdownGame() {
+}
+
+// VERIFY: 01c6b2ac manual
+// OFFSET: 0x005AFFD0
+CurrencyTypesRec* CGCurrencyTypes::GetCurrencyRec(int32_t index) {
+    if (index < 0 || index >= CGCurrencyTypes::m_listSize) {
+        return nullptr;
+    }
+
+    for (int32_t i = 0; i < g_currencyTypesDB.m_numRecords; i++) {
+        CurrencyTypesRec* rec = &g_currencyTypesDB.m_records[i];
+
+        if (rec->m_itemID == CGCurrencyTypes::m_list[index].m_itemID) {
+            return rec;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 86e21a80 manual
+// OFFSET: 0x005B04F0
+int32_t CGCurrencyTypes::IsCurrencyShown(int32_t index) {
+    if (index < 0 || index >= CGCurrencyTypes::m_listSize) {
+        return 0;
+    }
+
+    if (CGCurrencyTypes::m_list[index].m_isHeader) {
+        return CGCurrencyTypes::m_list[index].m_categoryID == CGCurrencyTypes::m_categories[CGCurrencyTypes::m_numCategories - 1].m_id;
+    }
+
+    CurrencyTypesRec* rec = CGCurrencyTypes::GetCurrencyRec(index);
+
+    if (!rec) {
+        return 0;
+    }
+
+    int32_t bit = rec->m_bitIndex;
+
+    if (bit > 32) {
+        return (g_currencyTokensUnused2CVar->m_intValue & (1 << (bit - 33))) != 0;
+    }
+
+    return bit > 0 && (g_currencyTokensUnused1CVar->m_intValue & (1 << (bit - 1))) != 0;
+}

@@ -11,6 +11,7 @@ struct lua_State;
 class CGItemText {
     public:
     static void InitializeGame();
+    static void ShutdownGame();
     static WOWGUID m_itemGUID;
     static uint32_t m_currentPage;
     static uint8_t m_hasItemText;

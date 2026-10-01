@@ -348,7 +348,7 @@ namespace World {
             /* 0000 */ C44Matrix* m_matrix;
             /* 0004 */ C3Vector* m_vertexList;
             /* 0008 */ C3Vector* m_normalList;
-            /* 000C */ uint32_t unk_000C;
+            /* 000C */ float* m_heightList;
             /* 0010 */ uint16_t* m_indices;
             /* 0014 */ uint16_t* m_faceIndices;
             /* 0018 */ uint16_t m_indexCount;

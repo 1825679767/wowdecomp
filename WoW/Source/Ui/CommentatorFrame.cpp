@@ -177,3 +177,13 @@ void CGCommentator::PostInit(CGPlayer_C* player) {
 
     FrameScript_SignalEvent(SCRIPT_EVENT_COMMENTATOR_ENTER_WORLD, nullptr);
 }
+
+// VERIFY: acad482e auto
+// OFFSET: 0x00568340
+void CGCommentator::ShutdownGame() {
+    ClientServices::ClearMessageHandler(SMSG_COMMENTATOR_PLAYER_INFO);
+    ClientServices::ClearMessageHandler(SMSG_COMMENTATOR_MAP_INFO);
+    ClientServices::ClearMessageHandler(SMSG_COMMENTATOR_STATE_CHANGED);
+    ClientServices::ClearMessageHandler(SMSG_COMMENTATOR_SKIRMISH_QUEUE_RESULT1);
+    ClientServices::ClearMessageHandler(SMSG_COMMENTATOR_SKIRMISH_QUEUE_RESULT2);
+}

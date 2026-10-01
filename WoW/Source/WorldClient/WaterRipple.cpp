@@ -20,12 +20,16 @@
 #include "Engine/Source/Gx/CGxTexFlags.h"
 #include "Engine/Source/Services/Texture.h"
 #include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/WorldClient/MapObjGroup.h"
 
 // STATIC: 0x00ADF7F4
 static const char* unk_ADF7F4[2] = {
     "XTextures\\splash\\splash.blp",
     "XTextures\\splash\\wake.blp"
 };
+
+// STATIC: 0x00A3FAC0
+static float s_rippleFadeFraction[2] = { 0.40000001f, 0.40000001f };
 
 // STATIC: 0x00ADFB58
 static TSExplicitList<CWaterRipple, offsetof(CWaterRipple, m_link)> s_unk_ADFB58;
@@ -53,7 +57,6 @@ CGxShader* WaterRipple::s_psWaterRipples;
 
 // INLINED
 CWaterRipple::CWaterRipple() {
-    this->unk_004C = 0;
 }
 
 // VERIFY: 7160b523 manual
@@ -289,4 +292,78 @@ void WaterRipple::Destroy() {
     if (WaterRipple::s_psWaterRipples) {
         g_theGxDevicePtr->ShaderDestroy(WaterRipple::s_psWaterRipples);
     }
+}
+
+// VERIFY: 3fca29ac manual
+// OFFSET: 0x0079CF40
+void CWaterRipple::InitRipple(const C3Vector& pos, float rotation, float size, float alpha, float duration, float growth, int32_t type) {
+    int32_t directional = type != 0;
+    this->m_type = directional;
+    this->m_position = pos;
+    this->m_rotation = rotation;
+    this->m_size = size;
+    float endSize = growth * duration + size;
+    this->m_growth = (endSize - size) / duration;
+    this->m_alpha = 0.0f;
+    this->m_maxAlpha = alpha;
+    this->m_fadeIn = alpha / (s_rippleFadeFraction[directional] * duration);
+    this->m_fadeOut = -(alpha / ((1.0f - s_rippleFadeFraction[directional]) * duration));
+    this->m_endTime = duration + FrameTime::s_curTimeSec;
+    CAaBox box;
+    box.b.x = pos.x - endSize;
+    box.b.y = pos.y - endSize;
+    box.b.z = pos.z - 1.0f;
+    box.t.x = pos.x + endSize;
+    box.t.y = endSize + pos.y;
+    box.t.z = pos.z + 1.0f;
+    this->m_verts.SetCount(0);
+    World::TriData::statusFlags = 0;
+    World::TriData::nBatches = 0;
+    World::TriData::faceIndexCursor = 0;
+    World::TriData::indexCursor = 0;
+    World::TriData::unk_CB7538 = 0;
+    World::TriData triData;
+
+    if (!World::GetTris(box, &triData, 0x20000)) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < World::TriData::nBatches; i++) {
+        World::TriData::Batch& batch = World::TriData::batches[i];
+        const uint16_t* indices = batch.m_indices;
+        uint32_t base = this->m_verts.Count();
+        this->m_verts.SetCount(batch.m_faceCount + base + 2 * batch.m_faceCount);
+        C3Vector* out = &this->m_verts.m_data[base];
+
+        for (uint32_t j = 0; j < batch.m_faceCount; j++) {
+            *out++ = batch.m_vertexList[indices[0]] * *batch.m_matrix;
+            *out++ = batch.m_vertexList[indices[1]] * *batch.m_matrix;
+            *out++ = batch.m_vertexList[indices[2]] * *batch.m_matrix;
+            indices += 3;
+        }
+    }
+}
+
+// VERIFY: ab8c02c2 auto
+// OFFSET: 0x0079D180
+void WaterRipple::Create(const C3Vector& pos, float facing, float size, float alpha, float duration, float growth, int32_t type, int32_t player) {
+    uint32_t index;
+
+    if (player) {
+        index = WaterRipple::s_nextPlayerRipple++;
+
+        if (WaterRipple::s_nextPlayerRipple >= 32) {
+            WaterRipple::s_nextPlayerRipple = 0;
+        }
+    } else {
+        index = WaterRipple::s_nextUnitRipple++;
+
+        if (WaterRipple::s_nextUnitRipple >= 128) {
+            WaterRipple::s_nextUnitRipple = 32;
+        }
+    }
+
+    CWaterRipple* ripple = &unk_CDFFE0.m_data[index];
+    ripple->InitRipple(pos, -facing, size, alpha, duration, growth, type);
+    s_unk_ADFB58.LinkToTail(ripple);
 }

@@ -6684,3 +6684,79 @@ void CMovement_C::OnSetRawFacingLocal(uint32_t eventTime, float facing) {
 int32_t CMovement_C::UpdateTransportStatus(const CClientObjCreate& create) {
     return this->UpdateTransportStatus(WOWGUID{ CMovementShared::UpdateTransportStatus(create.m_move.m_status) }, create.m_move.m_status.m_transportSeat);
 }
+
+// VERIFY: 81c65e19 auto
+// OFFSET: 0x006EC390
+void CMovement_C::Disable() {
+    CMovementShared::Disable();
+    this->m_moveQueue.FreeAll();
+}
+
+// VERIFY: ba2b58d3 manual
+// OFFSET: 0x00760720
+void CMovement_C::CollideWithTransport(uint32_t time, uint32_t elapsed, float distance, const C3Vector& direction, const C44Matrix& transportMatrix) {
+    C3Vector position = this->m_position * transportMatrix;
+    World::IsValidPosition(position.x, position.y, position.z, 0.0f);
+    CAaBox box;
+    box.b = C3Vector(0.0f, 0.0f, 0.0f);
+    box.t = C3Vector(0.0f, 0.0f, 0.0f);
+    this->BuildCollisionBox(position, box);
+    s_queryBox = box;
+    CAaBox moved;
+    moved.b.x = box.b.x + direction.x * distance;
+    moved.b.y = box.b.y + direction.y * distance;
+    moved.b.z = box.b.z + direction.z * distance;
+    moved.t.x = box.t.x + direction.x * distance;
+    moved.t.y = box.t.y + direction.y * distance;
+    moved.t.z = box.t.z + direction.z * distance;
+    s_queryBox |= moved;
+    uint32_t flags = this->m_unit->IsClientControlled() ? 0x111 : 0x2111;
+    CGUnit_C* unit = this->m_unit;
+
+    if ((unit->m_obj->m_type & TYPEMASK_PLAYER) && (static_cast<CGPlayer_C*>(unit)->m_player->m_playerFlags & 0x10)) {
+        flags |= 0x8000;
+    }
+
+    if (!World::GetFacets(&box, &s_queryBox, &s_moveFacets, flags, nullptr)) {
+        return;
+    }
+
+    C4Plane planes[7];
+
+    for (uint32_t i = 0; i < 7; i++) {
+        planes[i].n = C3Vector(0.0f, 0.0f, 1.0f);
+        planes[i].d = 0.0f;
+    }
+
+    uint32_t facetIndex;
+    uint32_t planeCount;
+    float moveDist;
+    this->DistanceToMove(&s_moveFacets, direction, distance, &facetIndex, planes, &planeCount, &moveDist, &position);
+
+    if (facetIndex == s_moveFacets.facets.m_count) {
+        return;
+    }
+
+    if (this->m_spline && !(this->m_spline->m_flags & SPLINEFLAG_NO_SPLINE)) {
+        return;
+    }
+
+    CGGameObject_C* transport = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(this->m_transportGuid, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+    uint32_t eventTime = static_cast<uint32_t>(static_cast<int64_t>(moveDist / distance * static_cast<float>(elapsed) + 0.5f)) + transport->unk_0200 - elapsed + time;
+    uint32_t transportTime = transport->m_typeData->GetSequenceTimeFromRealTime(eventTime);
+    CMovementGlobals* globals = MovementGetGlobals();
+    uint32_t savedTime = globals->m_transportTime;
+    globals->m_transportTime2 = savedTime;
+    globals->m_transportTime = transportTime;
+    C44Matrix inverse = transportMatrix.AffineInverse();
+    C3Vector localDir = TransformDirection(direction, inverse);
+    C3Vector move(localDir.x * moveDist, localDir.y * moveDist, localDir.z * moveDist);
+    this->m_position.x = move.x + this->m_position.x;
+    this->m_position.y = move.y + this->m_position.y;
+    this->m_position.z = move.z + this->m_position.z;
+    this->m_fallStartZ = move.z + this->m_fallStartZ;
+    this->ForceSetTransport(WOWGUID(), 0xFF, 0);
+    this->QueueFallEvent(eventTime);
+    globals->m_transportTime2 = globals->m_transportTime;
+    globals->m_transportTime = savedTime;
+}

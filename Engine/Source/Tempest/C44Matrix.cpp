@@ -695,3 +695,24 @@ C44Matrix::C44Matrix(const C34Matrix& m) {
     this->d2 = m.d2;
     this->d3 = 1.0f;
 }
+
+// VERIFY: d0f80fc6 auto
+// OFFSET: 0x0078FBD0
+C44Matrix::C44Matrix(const C3Vector& x, const C3Vector& y, const C3Vector& z, const C3Vector& w) {
+    this->a0 = x.x;
+    this->a1 = x.y;
+    this->a2 = x.z;
+    this->a3 = 0.0f;
+    this->b0 = y.x;
+    this->b1 = y.y;
+    this->b2 = y.z;
+    this->b3 = 0.0f;
+    this->c0 = z.x;
+    this->c1 = z.y;
+    this->c2 = z.z;
+    this->c3 = 0.0f;
+    this->d0 = w.x;
+    this->d1 = w.y;
+    this->d2 = w.z;
+    this->d3 = 1.0f;
+}

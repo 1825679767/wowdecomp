@@ -23,6 +23,7 @@
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Object/Unit.h"
 #include "WoW/Source/Ui/Tutorial.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
 
 // STATIC: 0x00A1CE4C
 static const int32_t s_inventoryAlertSlots[12] = { 0, 2, 4, 5, 6, 7, 8, 9, 15, 16, 17, -1 };
@@ -558,4 +559,19 @@ int32_t CGCharacterInfo::CalculateInventoryAlertStatus(CGPlayer_C* player, uint3
 
     CGTutorial::TriggerTutorial(36);
     return 2;
+}
+
+// VERIFY: d40125b4 auto
+// OFFSET: 0x005E7690
+void CGCharacterInfo::ShutdownGame() {
+    ClientServices::ClearMessageHandler(MSG_INSPECT_HONOR_STATS);
+    ClientServices::ClearMessageHandler(MSG_INSPECT_ARENA_TEAMS);
+}
+
+// VERIFY: fbee3a82 auto
+// OFFSET: 0x005E7760
+void GuildNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        Script_SendUnitSignal(guid, SCRIPT_EVENT_PLAYER_GUILD_UPDATE);
+    }
 }

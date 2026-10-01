@@ -644,3 +644,22 @@ void DBCache_Idle() {
     g_wardenCache.Idle();
     g_arenaTeamCache.Idle();
 }
+
+// VERIFY: 2a9b337b auto
+// OFFSET: 0x00635680
+void DBCache_ClearPending() {
+    g_creatureDBCache.ClearPending();
+    g_gameObjectDBCache.ClearPending();
+    g_itemDBCache.ClearPending();
+    g_itemNameDBCache.ClearPending();
+    g_npcTextDBCache.ClearPending();
+    g_nameDBCache.ClearPending();
+    g_guildInfoCache.ClearPending();
+    g_questDBCache.ClearPending();
+    g_pageTextCache.ClearPending();
+    g_petNameCache.ClearPending();
+    g_petitionCache.ClearPending();
+    g_itemTextDBCache.ClearPending();
+    g_arenaTeamCache.ClearPending();
+    g_danceCache.ClearPending();
+}

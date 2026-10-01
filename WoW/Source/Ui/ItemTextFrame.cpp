@@ -26,3 +26,9 @@ void CGItemText::InitializeGame() {
     CGItemText::m_pages[1] = 0;
     CGItemText::m_text[0] = '\0';
 }
+
+// VERIFY: 954655b8 auto
+// OFFSET: 0x00589E50
+void CGItemText::ShutdownGame() {
+    CGItemText::m_pages.Clear();
+}

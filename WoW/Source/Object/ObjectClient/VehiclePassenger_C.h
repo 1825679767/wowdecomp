@@ -44,6 +44,7 @@ class CVehiclePassenger_C {
     static void Init(CGUnit_C* unit);
 
     void StopMovement();
+    void BeginTransition(WOWGUID vehicleGuid, uint8_t seat, uint8_t instant);
     void SetState(uint32_t state, CGUnit_C* vehicle, uint8_t seat, VehicleSeatRec* seatRec, uint32_t time, WOWGUID vehicleGuid);
 
     /* 0000 */ uint32_t m_memHandle;

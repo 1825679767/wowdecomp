@@ -123,3 +123,32 @@ void CGTutorial::LoadFlaggedTutorials() {
         list.m_cvar->Set(text, true, false, false, true);
     }
 }
+
+// VERIFY: 01796b88 auto
+// OFFSET: 0x005EEB70
+void CGTutorial::ShutdownGame() {
+}
+
+// VERIFY: f7491634 manual
+// OFFSET: 0x00530300
+void CGTutorial::SaveFlaggedTutorials() {
+    CVarIntListWrapper list;
+    list.m_cvar = CVar::Lookup("flaggedTutorials");
+    list.m_pos = 2;
+    list.m_state = 0;
+
+    for (uint32_t i = 0; i < 60; i++) {
+        if (!s_tutorialsCompleted[i]) {
+            break;
+        }
+
+        list.AddNextValue(s_tutorialsCompleted[i]);
+    }
+
+    if (list.m_state != 1) {
+        list.m_buffer[0] = 'v';
+        list.m_buffer[1] = 1;
+        list.m_buffer[list.m_pos] = 0;
+        list.m_cvar->Set(list.m_buffer, true, false, false, true);
+    }
+}

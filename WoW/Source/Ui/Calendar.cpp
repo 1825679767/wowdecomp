@@ -16,12 +16,28 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
+#include "WoW/Source/Ui/CalendarEvent.h"
 
 // STATIC: 0x00AD0340
 static TSList<CalendarPendingInvite, TSGetLink<CalendarPendingInvite> > s_pendingInvites;
 
 // STATIC: 0x00AD0350
 static CalendarEventClipboard s_eventClipboard;
+
+// STATIC: 0x00AD0328
+static TSList<CALENDARHOLIDAYNODE, TSGetLink<CALENDARHOLIDAYNODE> > s_holidays;
+
+// STATIC: 0x00AD0334
+static TSList<CALENDARRAIDRESETNODE, TSGetLink<CALENDARRAIDRESETNODE> > s_raidResets;
+
+// STATIC: 0x00C2080C
+static CalendarDayInfo s_days[3][31];
+
+// STATIC: 0x00C20DD8
+static CalendarEventTables s_eventTables;
+
+// STATIC: 0x00C20F38
+static TSHashTable<DYNAMICHOLIDAYHASH, HASHKEY_NONE> s_dynamicHolidays;
 
 // STATIC: 0x00C20F60
 static TSFixedArray<int32_t> s_eventTextures[2];
@@ -203,4 +219,192 @@ uint32_t CGCalendar::CountPendingInvites() {
     }
 
     return count > static_cast<uint32_t>(CGCalendar::m_numInitialPending) ? count : CGCalendar::m_numInitialPending;
+}
+
+// VERIFY: 6c9627bd manual
+// OFFSET: 0x005C3FE0
+int32_t PH_CALENDAR_GROUP(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint8_t clearPending = 1;
+
+    switch (msgId) {
+        case SMSG_CALENDAR_SEND_CALENDAR:
+            PH_SMSG_CALENDAR_SEND_CALENDAR(msg);
+            break;
+
+        case SMSG_CALENDAR_SEND_EVENT:
+            CGCalendar::ProcessGetEvent(msg);
+            break;
+
+        case SMSG_CALENDAR_FILTER_GUILD:
+        case SMSG_CALENDAR_ARENA_TEAM:
+            CGCalendar::ProcessInitialInviteList(msg);
+            break;
+
+        case SMSG_CALENDAR_EVENT_INVITE:
+            CGCalendar::ProcessInvite(msg, &clearPending);
+
+            if (!clearPending) {
+                return 1;
+            }
+
+            break;
+
+        case SMSG_CALENDAR_EVENT_INVITE_REMOVED:
+            CGCalendar::ProcessInviteRemoved(msg, &clearPending);
+
+            if (!clearPending) {
+                return 1;
+            }
+
+            break;
+
+        case SMSG_CALENDAR_EVENT_STATUS:
+            CGCalendar::ProcessInviteStatus(msg, &clearPending);
+
+            if (!clearPending) {
+                return 1;
+            }
+
+            break;
+
+        case SMSG_CALENDAR_RAID_LOCKOUT_ADDED:
+            CGCalendar::ProcessLockoutAdded(msg);
+            break;
+
+        case SMSG_CALENDAR_RAID_LOCKOUT_REMOVED:
+            CGCalendar::ProcessLockoutRemoved(msg);
+            break;
+
+        case SMSG_CALENDAR_EVENT_INVITE_ALERT:
+            CGCalendar::ProcessInviteAlert(msg);
+            return 1;
+
+        case SMSG_CALENDAR_EVENT_INVITE_REMOVED_ALERT:
+            CGCalendar::ProcessInviteRemovedAlert(msg);
+            return 1;
+
+        case SMSG_CALENDAR_EVENT_INVITE_STATUS_ALERT:
+            CGCalendar::ProcessInviteStatusAlert(msg);
+            return 1;
+
+        case SMSG_CALENDAR_EVENT_REMOVED_ALERT:
+            CGCalendar::ProcessEventRemovedAlert(msg, &clearPending);
+
+            if (!clearPending) {
+                return 1;
+            }
+
+            break;
+
+        case SMSG_CALENDAR_EVENT_UPDATED_ALERT:
+            CGCalendar::ProcessEventUpdatedAlert(msg, &clearPending);
+
+            if (!clearPending) {
+                return 1;
+            }
+
+            break;
+
+        case SMSG_CALENDAR_EVENT_MODERATOR_STATUS_ALERT:
+            CGCalendar::ProcessInviteModeratorStatusAlert(msg, &clearPending);
+
+            if (!clearPending) {
+                return 1;
+            }
+
+            break;
+
+        case SMSG_CALENDAR_SEND_NUM_PENDING:
+            CGCalendar::UpdatePendingInvites(msg);
+            break;
+
+        case SMSG_CALENDAR_EVENT_INVITE_NOTES:
+            CGCalendar::ProcessInviteNotes(msg, &clearPending);
+
+            if (!clearPending) {
+                return 1;
+            }
+
+            break;
+
+        case SMSG_CALENDAR_EVENT_INVITE_NOTES_ALERT:
+            CGCalendar::ProcessInviteNotesAlert(msg);
+            return 1;
+
+        case SMSG_CALENDAR_RAID_LOCKOUT_UPDATED:
+            CGCalendar::ProcessLockoutUpdated(msg);
+            break;
+    }
+
+    CGCalendar::m_actionPending = 0;
+    FrameScript_SignalEvent(SCRIPT_EVENT_CALENDAR_ACTION_PENDING, "%b", 0);
+    return 1;
+}
+
+// VERIFY: d895f606 manual
+// OFFSET: 0x005BE220
+void CalendarEventTables::Clear() {
+    for (uint32_t i = 0; i < 8; i++) {
+        this->m_counts[i] = 0;
+        this->m_tables[i].InternalClear(0);
+    }
+}
+
+// VERIFY: 4b509dcd manual
+// OFFSET: 0x005BEAD0
+void CGCalendar::ShutdownGame() {
+    if (CGCalendar::m_curEvent) {
+        delete CGCalendar::m_curEvent;
+    }
+
+    memset(&s_eventClipboard, 0, sizeof(s_eventClipboard));
+    s_eventTables.Clear();
+    s_holidays.Clear();
+    s_raidResets.Clear();
+    s_pendingInvites.Clear();
+    s_dynamicHolidays.InternalClear(0);
+
+    for (uint32_t month = 0; month < 3; month++) {
+        for (uint32_t day = 0; day < 31; day++) {
+            s_days[month][day].m_numEvents = 0;
+        }
+    }
+
+    for (uint32_t i = 0; i < 2; i++) {
+        if (s_eventTextures[i].m_count) {
+            s_eventTextures[i].Clear();
+        }
+    }
+
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_SEND_CALENDAR);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_SEND_EVENT);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_EVENT_INVITE);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_EVENT_INVITE_REMOVED);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_EVENT_STATUS);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_EVENT_INVITE_NOTES);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_FILTER_GUILD);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_ARENA_TEAM);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_RAID_LOCKOUT_REMOVED);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_RAID_LOCKOUT_ADDED);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_RAID_LOCKOUT_UPDATED);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_EVENT_INVITE_ALERT);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_EVENT_INVITE_REMOVED_ALERT);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_EVENT_INVITE_STATUS_ALERT);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_EVENT_INVITE_NOTES_ALERT);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_EVENT_REMOVED_ALERT);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_EVENT_UPDATED_ALERT);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_EVENT_MODERATOR_STATUS_ALERT);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_SEND_NUM_PENDING);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_CLEAR_PENDING_ACTION);
+}
+
+// VERIFY: 24ff9070 auto
+// OFFSET: 0x005B7CE0
+void CGCalendar::UpdatePendingInvites(CDataStore* msg) {
+    int32_t previous = CGCalendar::m_numInitialPending;
+    msg->Get(reinterpret_cast<uint32_t&>(CGCalendar::m_numInitialPending));
+
+    if (CGCalendar::m_numInitialPending != previous) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_CALENDAR_UPDATE_PENDING_INVITES, nullptr);
+    }
 }

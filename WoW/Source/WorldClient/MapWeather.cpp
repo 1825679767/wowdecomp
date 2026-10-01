@@ -543,3 +543,13 @@ void Weather::UpdatePosDeltas() {
         this->unk_016C = 0.0f;
     }
 }
+
+// VERIFY: e5f3f9ba auto
+// OFFSET: 0x00783B90
+void Weather::FillInDefaultPrecipTexturePath(uint32_t type) {
+    if (type == 1) {
+        SStrCopy(this->m_precipTexture, "textures\\Weather\\RainDrop01.blp", 0x7FFFFFFF);
+    } else if (type == 2) {
+        SStrCopy(this->m_precipTexture, "textures\\Weather\\SnowFlake01.blp", 0x7FFFFFFF);
+    }
+}

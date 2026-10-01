@@ -456,3 +456,19 @@ void CGClassTrainer::RefreshList() {
     CGClassTrainer::FilterAndSortServices();
     FrameScript_SignalEvent(SCRIPT_EVENT_TRAINER_UPDATE, nullptr);
 }
+
+// VERIFY: a07b4562 manual
+// OFFSET: 0x005963C0
+void CGClassTrainer::ShutdownGame() {
+    for (uint32_t i = 0; i < CGClassTrainer::m_services.m_count; i++) {
+        delete CGClassTrainer::m_services.m_data[i];
+    }
+
+    CGClassTrainer::m_services.m_count = 0;
+
+    for (uint32_t i = 0; i < CGClassTrainer::m_skillLines.m_count; i++) {
+        delete CGClassTrainer::m_skillLines.m_data[i];
+    }
+
+    CGClassTrainer::m_skillLines.m_count = 0;
+}

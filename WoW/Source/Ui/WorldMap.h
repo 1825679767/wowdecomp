@@ -76,6 +76,8 @@ class CGWorldMap {
     static void CreateArrowFrame(CSimpleFrame* parent);
     static void EnterWorld();
     static void InitializeGame();
+    static void ShutdownGame();
+    static void ClearArrowFrames();
     static void SetMapToCurrentZone(int32_t debug);
     static void RefreshCurrentMap();
     static void SetMap(uint32_t continent, uint32_t zone, int32_t dungeonMap);

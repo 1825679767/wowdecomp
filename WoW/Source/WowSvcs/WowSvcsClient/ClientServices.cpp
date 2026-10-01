@@ -20,6 +20,7 @@
 #include "WoW/Source/WowServices/LoginResponse.h"
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/AccountData.h"
+#include "WoW/Source/Ui/GameUI.h"
 
 // STATIC: 0x00AD91F0
 static const char* s_errorTokens[] = {
@@ -1324,4 +1325,15 @@ void ClientServices::LoginEnterToken(const char* token) {
     }
 
     ClientServices::s_loginObj->EnterToken(token);
+}
+
+// VERIFY: e448981b manual
+// OFFSET: 0x006B08B0
+void ClientConnection::HandleLogoutResponse(int32_t result, int32_t instant) {
+    if (result) {
+        CGGameUI::DisplayError(ERR_LOGOUT_FAILED);
+        this->m_loggingOut = 0;
+    } else if (!instant) {
+        FrameScript_SignalEvent(this->m_quitAfterLogout ? SCRIPT_EVENT_PLAYER_QUITING : SCRIPT_EVENT_PLAYER_CAMPING, nullptr);
+    }
 }

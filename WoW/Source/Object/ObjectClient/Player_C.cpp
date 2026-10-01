@@ -112,6 +112,11 @@
 #include "WoW/Source/Client.h"
 #include <cmath>
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Game/GameClient/CDrawBowString.h"
+#include "WoW/Source/DB/Rec/ItemDisplayInfoRec.h"
+#include "WoW/Source/Game/ValidateName.h"
+#include <cstdio>
+#include <cstring>
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -9177,6 +9182,42 @@ int32_t AreaTriggerCheck(const void* data, void* param) {
     return 1;
 }
 
+// VERIFY: 6fcd5d9e auto
+// OFFSET: 0x006D7720
+int32_t CGPlayer_C::UpdateMountedCollisionBox(float mountHeight, int32_t force) {
+    CreatureDisplayInfoRec* displayInfo = g_creatureDisplayInfoDB.GetRecord(this->m_unit->m_unitFieldNativedisplayid);
+    CreatureModelDataRec* modelData = displayInfo ? g_creatureModelDataDB.GetRecord(displayInfo->m_modelID) : nullptr;
+
+    if (!modelData) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    float modelScale;
+    float scale = this->GetScaledModelScale(displayInfo, modelData, &modelScale);
+    float height = this->m_mountScale * mountHeight + modelData->m_collisionHeight * 0.5f;
+
+    if (height <= modelData->m_collisionHeight) {
+        height = modelData->m_collisionHeight;
+    } else if (!force && this->IsActivePlayer()) {
+        C3Vector position = this->GetPosition();
+        CAaBox box(position, position);
+        box.b.z = this->m_movementData.m_collisionHeight + box.b.z;
+        box.t.z = height * scale + box.t.z;
+        box.b.x = box.b.x - this->m_movementData.m_collisionRadius;
+        box.t.x = box.t.x + this->m_movementData.m_collisionRadius;
+        box.b.y = box.b.y - this->m_movementData.m_collisionRadius;
+        box.t.y = box.t.y + this->m_movementData.m_collisionRadius;
+
+        if (this->m_movementData.CollisionBoxDoesntFit(box)) {
+            return 0;
+        }
+    }
+
+    this->m_movementData.SetCollisionBox(this->m_movementData.m_collisionRadius + this->m_movementData.m_collisionRadius, height, scale, modelScale, force);
+
+    return 1;
+}
+
 // VERIFY: 5cad3e09 auto
 // OFFSET: 0x006D78C0
 int32_t CGPlayer_C::UpdateUnitCollisionBox(int32_t a2, int32_t a3) {
@@ -9261,4 +9302,439 @@ uint32_t GetVisibleAuraEffectDisplay() {
 // OFFSET: 0x006CF2F0
 uint32_t GetVisibleAuraEffectFlags() {
     return s_unk_C9EAB4;
+}
+
+// VERIFY: 07b73796 auto
+// OFFSET: 0x005EEB70
+void PlayerShutdownSounds() {
+}
+
+// VERIFY: 71adbe9a auto
+// OFFSET: 0x006E0300
+void PlayerClientShutdown() {
+    CGPlayer_C::PlayerShutdownMessageHandlers();
+    PlayerShutdownSounds();
+
+    if (s_areaTriggerTimer) {
+        ClientKillTimer(s_areaTriggerTimer, AreaTriggerCheck, "AreaTriggerCheck");
+        s_areaTriggerTimer = 0;
+    }
+}
+
+// VERIFY: 8cf14677 auto
+// OFFSET: 0x006CE480
+void CGPlayer_C::PlayerShutdownMessageHandlers() {
+    ClientServices::ClearMessageHandler(SMSG_MOUNT_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_DISMOUNT_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_INVENTORY_CHANGE_FAILURE);
+    ClientServices::ClearMessageHandler(SMSG_OPEN_CONTAINER);
+    ClientServices::ClearMessageHandler(SMSG_ITEM_PUSH_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_VENDOR_INVENTORY);
+    ClientServices::ClearMessageHandler(SMSG_BUY_FAILED);
+    ClientServices::ClearMessageHandler(SMSG_BUY_SUCCEEDED);
+    ClientServices::ClearMessageHandler(SMSG_SELL_ITEM);
+    ClientServices::ClearMessageHandler(SMSG_ITEM_REFUND_INFO_RESPONSE);
+    ClientServices::ClearMessageHandler(SMSG_ITEM_PURCHASE_REFUND_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_LOOT_RESPONSE);
+    ClientServices::ClearMessageHandler(SMSG_LOOT_RELEASE);
+    ClientServices::ClearMessageHandler(SMSG_LOOT_REMOVED);
+    ClientServices::ClearMessageHandler(SMSG_LOOT_SLOT_CHANGED);
+    ClientServices::ClearMessageHandler(SMSG_LOOT_MONEY_NOTIFY);
+    ClientServices::ClearMessageHandler(SMSG_LOOT_ITEM_NOTIFY);
+    ClientServices::ClearMessageHandler(SMSG_LOOT_CLEAR_MONEY);
+    ClientServices::ClearMessageHandler(SMSG_LEARNED_SPELL);
+    ClientServices::ClearMessageHandler(SMSG_UNLEARNED_SPELLS);
+    ClientServices::ClearMessageHandler(SMSG_SUPERCEDED_SPELLS);
+    ClientServices::ClearMessageHandler(SMSG_SEND_KNOWN_SPELLS);
+    ClientServices::ClearMessageHandler(SMSG_UPDATE_ACTION_BUTTONS);
+    ClientServices::ClearMessageHandler(SMSG_GROUP_INVITE);
+    ClientServices::ClearMessageHandler(SMSG_GROUP_CANCEL);
+    ClientServices::ClearMessageHandler(SMSG_GROUP_DECLINE);
+    ClientServices::ClearMessageHandler(SMSG_GROUP_UNINVITE);
+    ClientServices::ClearMessageHandler(SMSG_GROUP_SET_LEADER);
+    ClientServices::ClearMessageHandler(SMSG_GROUP_DESTROYED);
+    ClientServices::ClearMessageHandler(SMSG_PARTY_COMMAND_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_GROUP_LIST);
+    ClientServices::ClearMessageHandler(SMSG_REAL_GROUP_UPDATE);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_GIVER_QUEST_LIST_MESSAGE);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_GIVER_INVALID_QUEST);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_GIVER_QUEST_DETAILS);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_GIVER_REQUEST_ITEMS);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_GIVER_OFFER_REWARD_MESSAGE);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_GIVER_QUEST_COMPLETE);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_GIVER_QUEST_FAILED);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_GIVER_STATUS);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_GIVER_STATUS_MULTIPLE);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_LOG_FULL);
+    ClientServices::ClearMessageHandler(SMSG_TRAINER_LIST);
+    ClientServices::ClearMessageHandler(SMSG_TRAINER_BUY_FAILED);
+    ClientServices::ClearMessageHandler(SMSG_SET_PROFICIENCY);
+    ClientServices::ClearMessageHandler(SMSG_RESURRECT_REQUEST);
+    ClientServices::ClearMessageHandler(SMSG_PLAYER_SKINNED);
+    ClientServices::ClearMessageHandler(SMSG_INSPECT_RESULTS_UPDATE);
+    ClientServices::ClearMessageHandler(SMSG_INSPECT_TALENT);
+    ClientServices::ClearMessageHandler(SMSG_READ_ITEM_RESULT_OK);
+    ClientServices::ClearMessageHandler(SMSG_READ_ITEM_RESULT_FAILED);
+    ClientServices::ClearMessageHandler(SMSG_CANCEL_COMBAT);
+    ClientServices::ClearMessageHandler(SMSG_TAXI_NODE_STATUS);
+    ClientServices::ClearMessageHandler(SMSG_SHOW_TAXI_NODES);
+    ClientServices::ClearMessageHandler(SMSG_ACTIVATE_TAXI_REPLY);
+    ClientServices::ClearMessageHandler(SMSG_GUILD_INVITE);
+    ClientServices::ClearMessageHandler(SMSG_GUILD_DECLINE);
+    ClientServices::ClearMessageHandler(SMSG_GUILD_INFO);
+    ClientServices::ClearMessageHandler(SMSG_GUILD_EVENT);
+    ClientServices::ClearMessageHandler(SMSG_GUILD_COMMAND_RESULT);
+    ClientServices::ClearMessageHandler(MSG_SAVE_GUILD_EMBLEM);
+    ClientServices::ClearMessageHandler(MSG_TABARDVENDOR_ACTIVATE);
+    ClientServices::ClearMessageHandler(SMSG_PETITION_SHOW_LIST);
+    ClientServices::ClearMessageHandler(SMSG_PETITION_SHOW_SIGNATURES);
+    ClientServices::ClearMessageHandler(SMSG_PETITION_SIGN_RESULTS);
+    ClientServices::ClearMessageHandler(MSG_PETITION_DECLINE);
+    ClientServices::ClearMessageHandler(SMSG_TURN_IN_PETITION_RESULT);
+    ClientServices::ClearMessageHandler(MSG_PETITION_RENAME);
+    ClientServices::ClearMessageHandler(SMSG_BIND_POINT_UPDATE);
+    ClientServices::ClearMessageHandler(SMSG_BINDZONEREPLY);
+    ClientServices::ClearMessageHandler(SMSG_EMOTE);
+    ClientServices::ClearMessageHandler(SMSG_PLAYER_BOUND);
+    ClientServices::ClearMessageHandler(SMSG_PLAYERBINDERROR);
+    ClientServices::ClearMessageHandler(SMSG_NEW_TAXI_PATH);
+    ClientServices::ClearMessageHandler(SMSG_PET_NAME_INVALID);
+    ClientServices::ClearMessageHandler(SMSG_EXPLORATION_EXPERIENCE);
+    ClientServices::ClearMessageHandler(SMSG_PARTY_MEMBER_STATS);
+    ClientServices::ClearMessageHandler(SMSG_PARTY_MEMBER_STATS_FULL);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_UPDATE_FAILED);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_UPDATE_FAILED_TIMER);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_UPDATE_COMPLETE);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_UPDATE_ADD_KILL);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_UPDATE_ADD_PVP_CREDIT);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_CONFIRM_ACCEPT);
+    ClientServices::ClearMessageHandler(SMSG_SHOW_BANK);
+    ClientServices::ClearMessageHandler(SMSG_BUY_BANK_SLOT_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_LEVEL_UP_INFO);
+    ClientServices::ClearMessageHandler(MSG_MINIMAP_PING);
+    ClientServices::ClearMessageHandler(SMSG_TRIGGER_CINEMATIC);
+    ClientServices::ClearMessageHandler(SMSG_ITEM_TIME_UPDATE);
+    ClientServices::ClearMessageHandler(SMSG_ITEM_ENCHANT_TIME_UPDATE);
+    ClientServices::ClearMessageHandler(MSG_RANDOM_ROLL);
+    ClientServices::ClearMessageHandler(SMSG_FISH_NOT_HOOKED);
+    ClientServices::ClearMessageHandler(SMSG_FISH_ESCAPED);
+    ClientServices::ClearMessageHandler(SMSG_FORCEACTIONSHOW);
+    ClientServices::ClearMessageHandler(SMSG_GOD_MODE);
+    ClientServices::ClearMessageHandler(SMSG_PETGODMODE);
+    ClientServices::ClearMessageHandler(SMSG_IGNORE_REQUIREMENTS_CHEAT);
+    ClientServices::ClearMessageHandler(SMSG_IGNORE_DIMINISHING_RETURNS_CHEAT);
+    ClientServices::ClearMessageHandler(SMSG_CLEAR_FAR_SIGHT_IMMEDIATE);
+    ClientServices::ClearMessageHandler(SMSG_CHAT_WRONG_FACTION);
+    ClientServices::ClearMessageHandler(SMSG_CHAT_PLAYER_NOTFOUND);
+    ClientServices::ClearMessageHandler(SMSG_CHAT_RESTRICTED);
+    ClientServices::ClearMessageHandler(SMSG_CHAT_NOT_IN_PARTY);
+    ClientServices::ClearMessageHandler(SMSG_GM_TICKET_GET_SYSTEM_STATUS);
+    ClientServices::ClearMessageHandler(SMSG_SPIRIT_HEALER_CONFIRM);
+    ClientServices::ClearMessageHandler(MSG_TALENT_WIPE_CONFIRM);
+    ClientServices::ClearMessageHandler(SMSG_BINDER_CONFIRM);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_EXECUTE_LOG);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_MISS_LOG);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_DAMAGE_SHIELD);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_INSTAKILL_LOG);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_NON_MELEE_DAMAGE_LOG);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_HEAL_LOG);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_ENERGIZE_LOG);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_DISPELL_LOG);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_STEAL_LOG);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_BREAK_LOG);
+    ClientServices::ClearMessageHandler(SMSG_RESURRECT_FAILED);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_OR_DAMAGE_IMMUNE);
+    ClientServices::ClearMessageHandler(MSG_QUEST_PUSH_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_DAMAGE_CALC_LOG);
+    ClientServices::ClearMessageHandler(SMSG_RAID_GROUP_ONLY);
+    ClientServices::ClearMessageHandler(SMSG_INSTANCE_LOCK_WARNING_QUERY);
+    ClientServices::ClearMessageHandler(SMSG_LOOT_START_ROLL);
+    ClientServices::ClearMessageHandler(SMSG_LOOT_ALL_PASSED);
+    ClientServices::ClearMessageHandler(SMSG_LOOT_ROLL_WON);
+    ClientServices::ClearMessageHandler(SMSG_LOOT_ROLL);
+    ClientServices::ClearMessageHandler(SMSG_LOOT_MASTER_LIST);
+    ClientServices::ClearMessageHandler(SMSG_TEST_DROP_RATE_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_SUMMON_REQUEST);
+    ClientServices::ClearMessageHandler(SMSG_SUMMON_CANCEL);
+    ClientServices::ClearMessageHandler(SMSG_PLAY_TIME_WARNING);
+    ClientServices::ClearMessageHandler(SMSG_ARENA_TEAM_INVITE);
+    ClientServices::ClearMessageHandler(SMSG_ARENA_TEAM_EVENT);
+    ClientServices::ClearMessageHandler(SMSG_ARENA_TEAM_COMMAND_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_ARENA_ERROR);
+    ClientServices::ClearMessageHandler(SMSG_DEATH_RELEASE_LOC);
+    ClientServices::ClearMessageHandler(SMSG_FORCED_DEATH_UPDATE);
+    ClientServices::ClearMessageHandler(SMSG_TIME_SYNC_REQUEST);
+    ClientServices::ClearMessageHandler(SMSG_VOICE_SESSION_ROSTER_UPDATE);
+    ClientServices::ClearMessageHandler(SMSG_VOICE_SESSION_LEAVE);
+    ClientServices::ClearMessageHandler(SMSG_VOICE_SET_TALKER_MUTED);
+    ClientServices::ClearMessageHandler(SMSG_VOICE_PARENTAL_CONTROLS);
+    ClientServices::ClearMessageHandler(SMSG_CROSSED_INEBRIATION_THRESHOLD);
+    ClientServices::ClearMessageHandler(SMSG_COMPLAINT_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_FEATURE_SYSTEM_STATUS);
+    ClientServices::ClearMessageHandler(SMSG_AVAILABLE_VOICE_CHANNEL);
+    ClientServices::ClearMessageHandler(SMSG_CALENDAR_COMMAND_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_REPORT_PVP_AFK_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_GROUP_ACTION_THROTTLED);
+    ClientServices::ClearMessageHandler(SMSG_SEND_UNLEARN_SPELLS);
+    ClientServices::ClearMessageHandler(SMSG_CONVERT_RUNE);
+    ClientServices::ClearMessageHandler(SMSG_RESYNC_RUNES);
+    ClientServices::ClearMessageHandler(SMSG_ADD_RUNE_POWER);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEGROUND_INFO_THROTTLED);
+    ClientServices::ClearMessageHandler(SMSG_UPDATE_TALENT_DATA);
+    ClientServices::ClearMessageHandler(SMSG_ARENA_TEAM_CHANGE_FAILED_QUEUED);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_POI_QUERY_RESPONSE);
+    ClientServices::ClearMessageHandler(SMSG_TOGGLE_XP_GAIN);
+    ClientServices::ClearMessageHandler(SMSG_DEBUG_SERVER_GEO);
+    ClientServices::ClearMessageHandler(SMSG_QUEST_FORCE_REMOVED);
+    ClientServices::ClearMessageHandler(SMSG_CAMERA_SHAKE);
+    ClientServices::ClearMessageHandler(SMSG_SOCKET_GEMS);
+    ClientServices::ClearMessageHandler(SMSG_COMBAT_LOG_MULTIPLE);
+}
+
+// VERIFY: d10a2943 auto
+// OFFSET: 0x006DB510
+bool CGPlayer_C::LoadGuildTextures(int32_t displayId) {
+    ItemDisplayInfoRec rec;
+
+    if (!this->m_characterComponent || !g_itemDisplayInfoDB.GetRecordByIndex(displayId, &rec) || (this->m_characterComponent->m_flags & 0x40)) {
+        return false;
+    }
+
+    this->m_characterComponent->AddItemBySlot(INVSLOT_TABARD, displayId, 0);
+
+    if (rec.m_flags & 0x1) {
+        int32_t emblemStyle;
+        int32_t emblemColor;
+        int32_t borderStyle;
+        int32_t borderColor;
+        int32_t background;
+
+        if (!GuildGetGuildTabard(this->m_obj->m_guid, this->m_player->m_playerGuildid, CGPlayer_C::TabardDrawCallback, this, emblemStyle, emblemColor, borderStyle, borderColor, background)) {
+            return false;
+        }
+
+        this->m_characterComponent->ApplyGuildColor(emblemStyle, emblemColor, borderStyle, borderColor, background);
+    }
+
+    return true;
+}
+
+// VERIFY: e750e015 manual
+// OFFSET: 0x006D92D0
+int32_t Packet_SMSG_GUILD_EVENT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint8_t event = 0;
+    uint8_t numStrings;
+    char strings[3][1024];
+    msg->Get(event);
+    msg->Get(numStrings);
+
+    for (uint8_t i = 0; i < numStrings; i++) {
+        msg->GetString(strings[i], sizeof(strings[i]));
+        TruncateNewLines(strings[i]);
+    }
+
+    UIErrors error;
+    WOWGUID guid;
+
+    switch (event) {
+        case 0:
+            error = ERR_GUILD_PROMOTE_SSS;
+            break;
+
+        case 1:
+            error = ERR_GUILD_DEMOTE_SSS;
+            break;
+
+        case 2:
+            FrameScript_SignalEvent(SCRIPT_EVENT_GUILD_MOTD, "%s", strings[0]);
+            CGGuildInfo::SetMOTD(strings[0]);
+            UpdateGuildRoster(1);
+            return 1;
+
+        case 3:
+            error = ERR_GUILD_JOIN_S;
+            msg->Get(guid.m_guid);
+            CGAutoCompleteName::AddFlags(guid, 34, 0, strings[0]);
+            break;
+
+        case 4:
+            error = ERR_GUILD_LEAVE_S;
+            msg->Get(guid.m_guid);
+            CGAutoCompleteName::RemoveFlags(guid, 2);
+            break;
+
+        case 5:
+            error = ERR_GUILD_REMOVE_SS;
+            CGAutoCompleteName::RemoveFlagsByName(strings[0], 2, 1, 0);
+
+            if (!SStrCmpUTF8I(ClientServices::GetCharacterName(), strings[0], STORM_MAX_STR)) {
+                CGAutoCompleteName::RemoveFlagsFromAllNodes(2);
+            }
+
+            break;
+
+        case 6:
+            error = ERR_GUILD_LEADER_IS_S;
+            break;
+
+        case 7:
+            error = ERR_GUILD_LEADER_CHANGED_SS;
+            break;
+
+        case 8:
+            error = ERR_GUILD_DISBANDED;
+            CGAutoCompleteName::RemoveFlagsFromAllNodes(2);
+            CGGuildBankInfo::SetGuildBanker(WOWGUID());
+            memset(CGGuildBankInfo::m_guildBankTabInfo, 0, sizeof(CGGuildBankInfo::m_guildBankTabInfo));
+            break;
+
+        case 10: {
+            CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+            if (!player) {
+                return 1;
+            }
+
+            WOWGUID none = WOWGUID();
+            GuildStats_C* stats = g_guildInfoCache.GetRecord(player->m_player->m_playerGuildid, none, nullptr, nullptr, false);
+
+            if (!stats) {
+                return 1;
+            }
+
+            uint32_t rank = SStrToInt(strings[0]);
+            char name[64];
+            SStrCopy(name, strings[1], sizeof(name));
+            ScrubString(name, stats->m_rankNames[rank], 16, sizeof(stats->m_rankNames[rank]), 1);
+            stats->m_numRanks = SStrToInt(strings[2]);
+            UpdateGuildRoster(1);
+
+            if (player->m_player->m_playerGuildrank != rank) {
+                return 1;
+            }
+
+            CGGuildInfo::QueryPermissions();
+
+            if (CGGuildBankInfo::m_banker == WOWGUID()) {
+                return 1;
+            }
+
+            SendGuildBankQueryTabOpcode(CGGuildBankInfo::m_currentTab);
+            return 1;
+        }
+
+        case 11: {
+            CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+            if (!player) {
+                return 1;
+            }
+
+            WOWGUID none = WOWGUID();
+            GuildStats_C* stats = g_guildInfoCache.GetRecord(player->m_player->m_playerGuildid, none, nullptr, nullptr, false);
+
+            if (!stats) {
+                return 1;
+            }
+
+            stats->m_numRanks = SStrToInt(strings[0]);
+            UpdateGuildRoster(1);
+            return 1;
+        }
+
+        case 12:
+            msg->Get(guid.m_guid);
+            CGAutoCompleteName::AddFlags(guid, 32, 0, strings[0]);
+
+            if (!g_guildMemberNotifyCVar->m_intValue || !SStrCmp(ClientServices::GetCharacterName(), strings[0], STORM_MAX_STR) || FriendList::s_friendList->IsFriend(guid)) {
+                return 1;
+            }
+
+            CGGameUI::DisplayError(ERR_FRIEND_ONLINE_SS, strings[0], strings[0]);
+            return 1;
+
+        case 13:
+            msg->Get(guid.m_guid);
+            CGAutoCompleteName::RemoveFlags(guid, 32);
+
+            if (!g_guildMemberNotifyCVar->m_intValue || !SStrCmp(ClientServices::GetCharacterName(), strings[0], STORM_MAX_STR) || FriendList::s_friendList->IsFriend(guid)) {
+                return 1;
+            }
+
+            CGGameUI::DisplayError(ERR_FRIEND_OFFLINE_S, strings[0]);
+            return 1;
+
+        case 14:
+            SendGuildBankQueryTabOpcode(CGGuildBankInfo::m_currentTab);
+            FrameScript_SignalEvent(SCRIPT_EVENT_GUILDBANKBAGSLOTS_CHANGED, nullptr);
+            return 1;
+
+        case 15:
+            CGGuildBankInfo::m_numTabs++;
+            FrameScript_SignalEvent(SCRIPT_EVENT_GUILDBANK_UPDATE_TABS, nullptr);
+            return 1;
+
+        case 16:
+            CGGuildBankInfo::UpdateTabInfo(static_cast<uint8_t>(SStrToInt(strings[0])), strings[1], strings[2]);
+            return 1;
+
+        case 17: {
+            uint64_t money;
+            sscanf(strings[0], "%016I64X", &money);
+            CGGuildBankInfo::m_money = money;
+            CDataStore query;
+            query.Put(static_cast<uint32_t>(MSG_GUILD_BANK_MONEY_WITHDRAWN));
+            query.Finalize();
+            ClientServices::Send2(&query);
+            FrameScript_SignalEvent(SCRIPT_EVENT_GUILDBANK_UPDATE_MONEY, nullptr);
+            return 1;
+        }
+
+        case 18: {
+            SendGuildBankQueryTabOpcode(CGGuildBankInfo::m_currentTab);
+            CDataStore query;
+            query.Put(static_cast<uint32_t>(MSG_GUILD_BANK_MONEY_WITHDRAWN));
+            query.Finalize();
+            ClientServices::Send2(&query);
+            return 1;
+        }
+
+        case 19: {
+            int32_t tab = atol(strings[0]);
+            CGGuildBankInfo::SetTextUpdate(tab, 1);
+            FrameScript_SignalEvent(SCRIPT_EVENT_GUILDBANK_TEXT_CHANGED, "%d", tab + 1);
+            return 1;
+        }
+
+        default:
+            error = ERR_GUILD_INTERNAL;
+            break;
+    }
+
+    switch (numStrings) {
+        case 1:
+            CGGameUI::DisplayError(error, strings[0]);
+            break;
+
+        case 2:
+            CGGameUI::DisplayError(error, strings[0], strings[1]);
+            break;
+
+        case 3:
+            CGGameUI::DisplayError(error, strings[0], strings[1], strings[2]);
+            break;
+
+        default:
+            CGGameUI::DisplayError(error);
+            break;
+    }
+
+    UpdateGuildRoster(1);
+    return 1;
+}
+
+// VERIFY: 4f7b81f9 manual
+// OFFSET: 0x007261B0
+bool CGPlayer_C::IsInFlyableZone(int32_t checkContinent) {
+    return IsInFlyableArea() && (!(this->m_obj->m_type & TYPEMASK_PLAYER) || !checkContinent || CGGameUI::m_iCurrentMapID != 571 || HasSpell(static_cast<uint32_t>(54197)));
 }

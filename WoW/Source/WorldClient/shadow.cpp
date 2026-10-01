@@ -13,6 +13,16 @@
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WorldClient/Map.h"
+#include "WoW/Source/Game/GameClient/ProjectTex.h"
+#include "WoW/Source/WorldClient/MapObjGroup.h"
+#include "WoW/Source/WorldClient/MapChunk.h"
+#include "WoW/Source/Ui/WorldFrame.h"
+#include "Engine/Source/Gx/CGxBuf.h"
+#include "Engine/Source/Gx/CGxVertexPC.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
+#include "Engine/Source/ShaderEffect/ShaderEffect.h"
+#include "Engine/Source/Tempest/C4Vector.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
 
 // STATIC: 0x00AF3E08
 int32_t s_shadowLOD = 1;
@@ -22,6 +32,30 @@ static uint32_t s_shadowTexelCount = 64 * 8;
 
 // STATIC: 0x00AF3E24
 static CImVector s_shadowTexels[64 * 8];
+
+// STATIC: 0x00AF3E0C
+static int32_t s_queryFrame = -1;
+
+// STATIC: 0x00AF4644
+static C3Vector s_projectNormal(0.0f, 0.0f, 1.0f);
+
+// STATIC: 0x00D38010
+static int32_t s_queryDoodads;
+
+// STATIC: 0x00D38014
+static CM2Model* s_doodadModelBuffer[10];
+
+// STATIC: 0x00D38050
+static uint32_t s_queryTriFlags;
+
+// STATIC: 0x00D38054
+static uint32_t s_doodadModelCount;
+
+// STATIC: 0x00D38058
+static CAaBox s_queryBox;
+
+// STATIC: 0x00D38070
+static World::TriData s_queryTriData;
 
 // STATIC: 0x00D3803C
 static CTexture* s_shadowModTexture;
@@ -212,4 +246,264 @@ void CWorldScene::RequestModelStreaming(CM2Model* model, const CAaBox* box) {
 // OFFSET: 0x007E2C40
 CGxTex* ProjectTex2dGetModFadeTex() {
     return TextureGetGxTex(s_shadowModTexture, 1, nullptr);
+}
+
+// VERIFY: 04f96856 manual
+// OFFSET: 0x007E2FD0
+static void ProjectTexBuildVertexBuffer(World::TriData::Batch* triBatch, CGxBatch* batch, uint32_t flags) {
+    CGxBuf* buf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, sizeof(CGxVertexPN), triBatch->m_indexCount);
+    CGxVertexPN* vertex = reinterpret_cast<CGxVertexPN*>(g_theGxDevicePtr->BufLock(buf));
+
+    if (triBatch->m_heightList) {
+        for (uint16_t i = 0; i < triBatch->m_indexCount; i++) {
+            uint16_t index = triBatch->m_indices[i];
+            vertex->m_position = triBatch->m_vertexList[index];
+            vertex->m_position.z = triBatch->m_heightList[index];
+            vertex->m_normal = s_projectNormal;
+            vertex++;
+        }
+    } else {
+        batch->m_count = 0;
+
+        if (flags & 0x4) {
+            for (uint32_t i = 0; i < triBatch->m_indexCount; i += 3) {
+                const C3Vector& v0 = triBatch->m_vertexList[triBatch->m_indices[i]];
+                const C3Vector& v1 = triBatch->m_vertexList[triBatch->m_indices[i + 1]];
+                const C3Vector& v2 = triBatch->m_vertexList[triBatch->m_indices[i + 2]];
+                vertex[0].m_position = v0;
+                vertex[0].m_normal = s_projectNormal;
+                vertex[1].m_position = v1;
+                vertex[1].m_normal = s_projectNormal;
+                vertex[2].m_position = v2;
+                vertex[2].m_normal = s_projectNormal;
+                batch->m_count += 3;
+                vertex += 3;
+            }
+        } else {
+            for (uint16_t i = 0; i < triBatch->m_indexCount; i += 3) {
+                const C3Vector& v0 = triBatch->m_vertexList[triBatch->m_indices[i]];
+                const C3Vector& v1 = triBatch->m_vertexList[triBatch->m_indices[i + 1]];
+                const C3Vector& v2 = triBatch->m_vertexList[triBatch->m_indices[i + 2]];
+
+                if ((v2.y - v0.y) * (v1.x - v0.x) - (v1.y - v0.y) * (v2.x - v0.x) >= 0.0f) {
+                    vertex[0].m_position = v0;
+                    vertex[0].m_normal = s_projectNormal;
+                    vertex[1].m_position = v1;
+                    vertex[1].m_normal = s_projectNormal;
+                    vertex[2].m_position = v2;
+                    vertex[2].m_normal = s_projectNormal;
+                    vertex += 3;
+                    batch->m_count += 3;
+                }
+            }
+        }
+    }
+
+    g_theGxDevicePtr->BufUnlock(buf, 0);
+    buf->unk_001C = 1;
+    GxPrimVertexPtr(buf, GxVBF_PN);
+}
+
+// VERIFY: 2dba67bb manual
+// OFFSET: 0x007E32F0
+static void ProjectTexBuildVertexBufferVariant(World::TriData::Batch* triBatch, CImVector color, CGxBatch* batch, uint32_t flags) {
+    CGxBuf* buf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, sizeof(CGxVertexPC), triBatch->m_indexCount);
+    CGxVertexPC* vertex = reinterpret_cast<CGxVertexPC*>(g_theGxDevicePtr->BufLock(buf));
+
+    if (triBatch->m_heightList) {
+        for (uint32_t i = 0; i < triBatch->m_indexCount; i++) {
+            uint16_t index = triBatch->m_indices[i];
+            vertex->p = triBatch->m_vertexList[index];
+            vertex->p.z = triBatch->m_heightList[index];
+            vertex->c = color;
+            vertex++;
+        }
+    } else {
+        batch->m_count = 0;
+
+        if (flags & 0x4) {
+            for (uint32_t i = 0; i < triBatch->m_indexCount; i += 3) {
+                const C3Vector& v0 = triBatch->m_vertexList[triBatch->m_indices[i]];
+                const C3Vector& v1 = triBatch->m_vertexList[triBatch->m_indices[i + 1]];
+                const C3Vector& v2 = triBatch->m_vertexList[triBatch->m_indices[i + 2]];
+                vertex[0].p = v0;
+                vertex[0].c = color;
+                vertex[1].p = v1;
+                vertex[1].c = color;
+                vertex[2].p = v2;
+                vertex[2].c = color;
+                batch->m_count += 3;
+                vertex += 3;
+            }
+        } else {
+            for (uint16_t i = 0; i < triBatch->m_indexCount; i += 3) {
+                const C3Vector& v0 = triBatch->m_vertexList[triBatch->m_indices[i]];
+                const C3Vector& v1 = triBatch->m_vertexList[triBatch->m_indices[i + 1]];
+                const C3Vector& v2 = triBatch->m_vertexList[triBatch->m_indices[i + 2]];
+
+                if ((v2.y - v0.y) * (v1.x - v0.x) - (v1.y - v0.y) * (v2.x - v0.x) >= 0.0f) {
+                    vertex[0].p = v0;
+                    vertex[0].c = color;
+                    vertex[1].p = v1;
+                    vertex[1].c = color;
+                    vertex[2].p = v2;
+                    vertex[2].c = color;
+                    vertex += 3;
+                    batch->m_count += 3;
+                }
+            }
+        }
+    }
+
+    g_theGxDevicePtr->BufUnlock(buf, 0);
+    buf->unk_001C = 1;
+    GxPrimVertexPtr(buf, GxVBF_PC);
+}
+
+// VERIFY: 2df38cbe auto
+// OFFSET: 0x007E3580
+static void ProjectTexRenderIndices(World::TriData::Batch* triBatch) {
+    CGxBuf* buf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, sizeof(uint16_t), triBatch->m_indexCount);
+    uint16_t* indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(buf));
+
+    for (uint32_t i = 0; i < triBatch->m_indexCount; i++) {
+        indices[i] = static_cast<uint16_t>(i);
+    }
+
+    g_theGxDevicePtr->BufUnlock(buf, 0);
+    buf->unk_001C = 1;
+    g_theGxDevicePtr->PrimIndexPtr(buf);
+}
+
+// VERIFY: 3c679037 auto
+// OFFSET: 0x007E35F0
+static int32_t ProjectTexRenderGetQuery2d(const CAaBox& box, uint32_t flags, uint32_t triFlags, int32_t* doodads, int32_t* tris) {
+    *doodads = flags & 0x1;
+    s_doodadModelCount = 0;
+    s_queryTriFlags = 0;
+    s_queryDoodads = 0;
+    *tris = triFlags != 0;
+    s_queryBox = box;
+    s_queryFrame = CWorld::frameCnt;
+
+    if (*doodads) {
+        s_queryDoodads = 1;
+        s_doodadModelCount = World::GetIntersectingDoodadModels(s_doodadModelBuffer, 10, box, 0x2000000);
+    }
+
+    if (*tris) {
+        s_queryTriFlags = triFlags;
+        World::TriData::statusFlags = 0;
+        World::TriData::nBatches = 0;
+        World::TriData::faceIndexCursor = 0;
+        World::TriData::indexCursor = 0;
+        World::TriData::unk_CB7538 = 0;
+        World::GetTris(box, &s_queryTriData, triFlags);
+    }
+
+    return s_doodadModelCount || World::TriData::nBatches;
+}
+
+// VERIFY: f32d24b7 manual
+// OFFSET: 0x007E3AA0
+void ProjectTex2dDrawShaderEffect(const CAaBox& box, const CImVector& color, uint32_t triFlags, uint32_t flags, float polygonOffset) {
+    int32_t doodads;
+    int32_t tris;
+
+    if (!ProjectTexRenderGetQuery2d(box, flags, triFlags, &doodads, &tris)) {
+        return;
+    }
+
+    CGxAppRenderState* states = g_theGxDevicePtr->m_appRenderStates.m_data;
+
+    if (states[GxRs_BlendingMode].m_value.m_data.i[0] == GxBlend_Mod) {
+        g_theGxDevicePtr->RsSet(GxRs_Texture1, TextureGetGxTex(s_shadowModTexture, 1, nullptr));
+    } else if (!states[GxRs_Texture1].m_value.m_data.i[0]) {
+        g_theGxDevicePtr->RsSet(GxRs_Texture1, TextureGetGxTex(s_shadowAddTexture, 1, nullptr));
+    }
+
+    float savedOffset = 0.0f;
+
+    if (polygonOffset != 0.0f) {
+        savedOffset = g_theGxDevicePtr->m_appRenderStates.m_data[GxRs_PolygonOffset].m_value.m_data.f[0];
+        GxRsSet(GxRs_PolygonOffset, (polygonOffset + polygonOffset) * 3.0518044e-05f);
+    }
+
+    CImVector packed = color;
+
+    if (flags & 0x2) {
+        CShaderEffect::SetDiffuse(C4Vector(color));
+    } else {
+        GxFormatColor(packed);
+    }
+
+    C3Vector cameraPos(0.0f, 0.0f, 0.0f);
+    CGWorldFrame::GetCameraPosition(&cameraPos);
+    C44Matrix view;
+    view.a0 = 1.0f;
+    view.a1 = 0.0f;
+    view.a2 = 0.0f;
+    view.a3 = 0.0f;
+    view.b0 = 0.0f;
+    view.b1 = 1.0f;
+    view.b2 = 0.0f;
+    view.b3 = 0.0f;
+    view.c0 = 0.0f;
+    view.c1 = 0.0f;
+    view.c2 = 1.0f;
+    view.c3 = 0.0f;
+    view.d0 = -cameraPos.x;
+    view.d1 = -cameraPos.y;
+    view.d2 = -cameraPos.z;
+    view.d3 = 1.0f;
+    g_theGxDevicePtr->XformPush(GxXform_World);
+
+    if (tris) {
+        for (uint32_t i = 0; i < World::TriData::nBatches; i++) {
+            World::TriData::Batch* triBatch = &World::TriData::batches[i];
+
+            if (3 * triBatch->m_indexCount > 0x10000 || !triBatch->m_matrix || !triBatch->m_vertexList || !triBatch->m_indices) {
+                continue;
+            }
+
+            GxXformSet(GxXform_World, *triBatch->m_matrix * view);
+            CGxBatch batch;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = 0;
+            batch.m_count = triBatch->m_indexCount;
+            batch.m_minIndex = 0;
+            batch.m_maxIndex = triBatch->m_indexCount - 1;
+
+            if (flags & 0x2) {
+                ProjectTexBuildVertexBuffer(triBatch, &batch, flags);
+            } else {
+                ProjectTexBuildVertexBufferVariant(triBatch, packed, &batch, flags);
+            }
+
+            ProjectTexRenderIndices(triBatch);
+            CShaderEffect::SetDefaultShaders(0);
+            CShaderEffect::UpdateWorldViewMatrix();
+
+            if (batch.m_count) {
+                GxDraw(&batch, 1);
+            }
+        }
+    }
+
+    if (doodads) {
+        for (uint32_t i = 0; i < s_doodadModelCount; i++) {
+            CM2Model* model = s_doodadModelBuffer[i];
+            C44Matrix world = model->m_worldTransform;
+            GxXformSet(GxXform_World, world * view);
+            CShaderEffect::UpdateWorldViewMatrix();
+            CShaderEffect::SetDiffuse(C4Vector(color));
+            model->RenderModelBatchesForProjectedTexture();
+        }
+    }
+
+    GxXformPop(GxXform_World);
+
+    if (polygonOffset != 0.0f) {
+        GxRsSet(GxRs_PolygonOffset, savedOffset);
+    }
 }

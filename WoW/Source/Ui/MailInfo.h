@@ -67,6 +67,7 @@ class CGMailInfo {
     static TSGrowableArray<MailboxMessageInfo*> m_inbox;
     static void EnterWorld();
     static void InitializeGame();
+    static void ShutdownGame();
     static void UpdatePendingMail(float elapsed);
     static uint32_t m_sendMoney;
     static uint32_t m_sendCOD;

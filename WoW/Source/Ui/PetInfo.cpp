@@ -778,3 +778,17 @@ void CGPetInfo::SetIsAttackingTarget(int32_t attacking) {
         CGPetInfo::m_attackingTarget = 0;
     }
 }
+
+// VERIFY: 62a49fb5 auto
+// OFFSET: 0x005D2F90
+void CGPetInfo::ShutdownGame() {
+    ClientServices::ClearMessageHandler(SMSG_PET_SPELLS_MESSAGE);
+    ClientServices::ClearMessageHandler(SMSG_PET_LEARNED_SPELLS);
+    ClientServices::ClearMessageHandler(SMSG_PET_UNLEARNED_SPELLS);
+    ClientServices::ClearMessageHandler(SMSG_PET_MODE);
+    ClientServices::ClearMessageHandler(SMSG_PET_ACTION_FEEDBACK);
+    ClientServices::ClearMessageHandler(SMSG_PET_BROKEN);
+    ClientServices::ClearMessageHandler(SMSG_PET_RENAMEABLE);
+    ClientServices::ClearMessageHandler(SMSG_PET_UPDATE_COMBO_POINTS);
+    ClientServices::ClearMessageHandler(SMSG_PET_GUIDS);
+}

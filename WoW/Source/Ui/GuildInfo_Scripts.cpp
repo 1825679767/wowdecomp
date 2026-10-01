@@ -399,6 +399,14 @@ static int32_t Script_GetGuildRosterMOTD(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 9075d012 auto
+// OFFSET: 0x005CB810
+int32_t Script_GuildRoster(lua_State* L) {
+    CGGuildInfo::QueryRosterAndRanks();
+
+    return 0;
+}
+
 // STATIC: 0x00AD0840
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetNumGuildMembers", &Script_GetNumGuildMembers },

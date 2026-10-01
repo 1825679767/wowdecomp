@@ -73,6 +73,13 @@
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "WoW/Source/DB/Rec/GameObjectDisplayInfoRec.h"
 #include "WoW/Source/Ui/PartyFrame.h"
+#include "WoW/Source/DB/Rec/SpellEffectCameraShakesRec.h"
+#include "WoW/Source/Ui/WorldFrame.h"
+#include "WoW/Source/UIUtil/Camera.h"
+#include "Engine/Source/Os/TimeManager.h"
+#include "WoW/Source/LoadingScreen.h"
+#include "Engine/Source/Services/AsyncFile.h"
+#include "Engine/Source/Tempest/C4Quaternion.h"
 
 // STATIC: 0x00A335E8
 static const uint32_t s_oneShotAnims[7] = { 0xFFFFFFFF, 0, 8, 9, 10, 11, 12 };
@@ -2442,4 +2449,328 @@ bool CGGameObject_C_TypeBase::CanUse() const {
 // OFFSET: 0x0070D7B0
 void CGGameObject_C_TypeAnimated::HandleAnimEvent(uint32_t eventId, uint32_t data, const C3Vector& position, uint32_t time) {
     GameObject_C_ProcessAnimEvent(eventId, this->m_owner->m_gameObject->m_displayID, data, position, &this->m_sound);
+}
+
+// VERIFY: c5be7d0b manual
+// OFFSET: 0x007110B0
+CMapEntity* CGGameObject_C::CreateWorldObject(uint64_t guid, int32_t a4, uint32_t doodadSetCount, const int16_t* doodadSets) {
+    const char* name = this->GetModelFileNameInternal();
+
+    if (!name) {
+        return nullptr;
+    }
+
+    C3Vector position = this->m_passenger.GetPosition(this->m_passenger.m_position);
+    CMapBaseObj* object = CWorld::ObjectCreate(name, position, this->GetFacing(), a4, 0, guid, doodadSetCount, doodadSets, nullptr, 0);
+
+    if (!object) {
+        SysMsgPrintf(STATUS_ERROR, 2, "Game object (%d): failed to load: \"%s\"", this->m_obj->m_entryID, name);
+    }
+
+    return static_cast<CMapEntity*>(object);
+}
+
+// VERIFY: b54abd63 auto
+// OFFSET: 0x00711A10
+void CGGameObject_C_Type_WorldObj::CreateWorldObj() {
+    switch (this->m_owner->m_gameObject->m_typeID) {
+        case 11:
+        case 15:
+        case 35:
+            this->m_worldObject = this->m_owner->CreateWorldObject(this->m_owner->m_obj->m_guid.m_guid, 0, 0, nullptr);
+
+            if (this->m_worldObject && this->m_owner->m_gameObject->m_typeID == 11) {
+                World::ObjectSetMoveable(this->m_worldObject, 1);
+            }
+
+            break;
+
+        case 33:
+            return;
+
+        default:
+            this->m_worldObject = this->m_owner->CreateWorldObject(0, 0, 0, nullptr);
+            break;
+    }
+}
+
+// VERIFY: 9c0b3858 auto
+// OFFSET: 0x007100D0
+void CGGameObject_C_Type_MapObjTransport::InitializeMovement() {
+    uint32_t time = OsGetAsyncTimeMs();
+    CGGameObject_C* owner = this->m_owner;
+    uint32_t index = CGameObjectDef::GetPropNum(owner->m_gameObject->m_typeID, 128);
+    GameObjectStats* stats = owner->m_stats;
+
+    if (stats && index < 24 && stats->m_propValue[index]) {
+        uint32_t offsetTime = time + this->m_owner->unk_0200;
+        this->m_shipPath.SetTimeOffset(offsetTime, this->m_owner->m_gameObject->m_pathProgress * 0.000015259022f);
+        CGGameObjectData* gameObject = this->m_owner->m_gameObject;
+
+        if (gameObject->m_dynamicFlags & 0x10) {
+            this->m_shipPath.WaitAtCurrentLocation(offsetTime);
+        } else {
+            this->m_shipPath.WaitAtNextPausePoint(offsetTime, gameObject->m_state == 1);
+        }
+    }
+
+    this->UpdateMovement(time, 0);
+}
+
+// VERIFY: ccfc2763 manual
+// OFFSET: 0x0070D7E0
+void CGGameObject_C_TypeAnimated::HandleAnimFinished() {
+    int32_t state = this->m_animState;
+    int32_t pending = this->unk_0014;
+    this->unk_0014 = -1;
+
+    switch (state) {
+        case 0:
+        case 8:
+        case 9:
+        case 10:
+        case 11:
+            if (!(this->m_owner->m_modelFlags & 0x100000)) {
+                this->UpdateState(this->m_owner->m_displayState, this->m_owner->m_displayState);
+            }
+
+            break;
+
+        case 1:
+        case 3:
+        case 6:
+            this->SetSequence(this->m_owner->m_worldModel);
+            break;
+
+        case 2:
+            this->UpdateAnimState(3);
+            break;
+
+        case 4:
+        case 7:
+            this->UpdateAnimState(1);
+            break;
+
+        case 5:
+            this->UpdateAnimState(6);
+            break;
+    }
+
+    if (pending != -1 && pending != 3 && pending != 1 && pending != 6) {
+        ClntObjMgrUnlockObject(this->m_owner->m_obj->m_guid, __FILE__, __LINE__);
+    }
+}
+
+// VERIFY: 96d91adb auto
+// OFFSET: 0x0070BF70
+static void GameObject_C_PlayAnimatedSound(uint32_t displayId, int32_t index, const C3Vector& position, SE2SoundKitObject* sound) {
+    if (index == -1) {
+        return;
+    }
+
+    GameObjectDisplayInfoRec* displayInfo = g_gameObjectDisplayInfoDB.GetRecord(displayId);
+
+    if (!displayInfo) {
+        return;
+    }
+
+    int32_t soundKitId = displayInfo->m_sound[index];
+    SE2SoundKitProperties properties;
+
+    if (!SI2::IsSoundKitLooping(soundKitId)) {
+        properties.ResetToDefaults();
+        properties.m_maxAudibleBehavior = 0;
+        SI2::PlaySoundKit(soundKitId, &position, nullptr, &properties, 0, nullptr, 1, 0);
+        return;
+    }
+
+    if (!sound || SI2::IsPlaying(sound) || SI2::IsTooCloseToExistingSoundKit(soundKitId, &position)) {
+        return;
+    }
+
+    properties.ResetToDefaults();
+    properties.m_loopMode = 1;
+    properties.m_streaming = true;
+    properties.m_software = 1;
+    properties.m_maxAudibleBehavior = 0;
+    SI2::PlaySoundKit(soundKitId, &position, sound, &properties, 0, nullptr, 1, 0);
+}
+
+// VERIFY: cfabb88c auto
+// OFFSET: 0x0070C050
+void GameObject_C_ProcessAnimEvent(uint32_t eventId, uint32_t displayId, uint32_t data, const C3Vector& position, SE2SoundKitObject* sound) {
+    switch (eventId) {
+        case '0OG$':
+            GameObject_C_PlayAnimatedSound(displayId, 0, position, sound);
+            break;
+
+        case '1OG$':
+            GameObject_C_PlayAnimatedSound(displayId, 1, position, sound);
+            break;
+
+        case '2OG$':
+            GameObject_C_PlayAnimatedSound(displayId, 2, position, sound);
+            break;
+
+        case '3OG$':
+            GameObject_C_PlayAnimatedSound(displayId, 3, position, sound);
+            break;
+
+        case '4OG$':
+            GameObject_C_PlayAnimatedSound(displayId, 4, position, sound);
+            break;
+
+        case '5OG$':
+            GameObject_C_PlayAnimatedSound(displayId, 5, position, sound);
+            break;
+
+        case '0CG$':
+            GameObject_C_PlayAnimatedSound(displayId, 6, position, sound);
+            break;
+
+        case '1CG$':
+            GameObject_C_PlayAnimatedSound(displayId, 7, position, sound);
+            break;
+
+        case '2CG$':
+            GameObject_C_PlayAnimatedSound(displayId, 8, position, sound);
+            break;
+
+        case '3CG$':
+            GameObject_C_PlayAnimatedSound(displayId, 9, position, sound);
+            break;
+
+        case 'DNS$':
+        case 'OSD$':
+            SI2::PlaySoundKit(data, &position, nullptr, nullptr, 0, nullptr, 1, 0);
+            break;
+
+        case 'LSD$':
+            if (sound && !SI2::IsPlaying(sound) && !SI2::IsTooCloseToExistingSoundKit(data, &position)) {
+                SE2SoundKitProperties properties;
+                properties.ResetToDefaults();
+                properties.m_fadeInTime = 1.0f;
+                properties.m_fadeOutTime = 1.0f;
+                properties.m_loopMode = 1;
+                properties.m_maxAudibleBehavior = 0;
+                properties.m_streaming = true;
+                properties.m_software = 1;
+                SI2::PlaySoundKit(data, &position, sound, &properties, 0, nullptr, 1, 0);
+            }
+
+            break;
+
+        case 'KHS$': {
+            SpellEffectCameraShakesRec* shakes = g_spellEffectCameraShakesDB.GetRecord(data);
+
+            if (shakes) {
+                for (int32_t i = 0; i < 3; i++) {
+                    CGWorldFrame::GetActiveCamera()->AddShakeById(shakes->m_cameraShake[i], &position);
+                }
+            }
+
+            break;
+        }
+    }
+}
+
+// VERIFY: 11b423bd manual
+// OFFSET: 0x007134A0
+void CGGameObject_C_Type_MapObjTransport::UpdateMovement(uint32_t time, uint32_t elapsed) {
+    C3Vector position(0.0f, 0.0f, 0.0f);
+    int32_t mapId = -1;
+    int32_t initial = this->unk_0038 == -1;
+    uint32_t pathTime = this->m_owner->unk_0200 + time;
+    uint32_t sequence;
+    float facing;
+    uint32_t leg;
+    float roll;
+    float pitch;
+    this->m_shipPath.GetPosition(pathTime, elapsed, &mapId, &sequence, &position, &facing, &leg, &roll, &pitch, 0);
+
+    if (mapId != static_cast<int32_t>(ClntObjMgrGetMapID())) {
+        CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (mover && mover->GetTransportGUID() == this->m_owner->m_obj->m_guid.m_guid) {
+            MovementSetTransportUpdateTime(this->m_transportUpdateTime);
+        }
+
+        return;
+    }
+
+    this->unk_0030 = pathTime;
+    this->m_transportUpdateTime = this->GetSequenceTimeFromRealTime(pathTime);
+    this->UpdateCurrentVelocity(elapsed, position, nullptr);
+    this->m_position = position;
+    C44Matrix& matrix = this->m_owner->m_matrix;
+    matrix.d3 = 1.0f;
+    matrix.c2 = 1.0f;
+    matrix.b1 = 1.0f;
+    matrix.a0 = 1.0f;
+    matrix.d2 = 0.0f;
+    matrix.d1 = 0.0f;
+    matrix.d0 = 0.0f;
+    matrix.c3 = 0.0f;
+    matrix.c1 = 0.0f;
+    matrix.c0 = 0.0f;
+    matrix.b3 = 0.0f;
+    matrix.b2 = 0.0f;
+    matrix.b0 = 0.0f;
+    matrix.a3 = 0.0f;
+    matrix.a2 = 0.0f;
+    matrix.a1 = 0.0f;
+    matrix.d0 = this->m_position.x;
+    matrix.d1 = this->m_position.y;
+    matrix.d2 = this->m_position.z;
+    matrix.RotateAroundZ(facing);
+    matrix.RotateAroundY(pitch);
+    matrix.RotateAroundX(roll);
+    CGGameObject_C* owner = this->m_owner;
+    C4Quaternion rotation;
+    rotation.x = 0.0f;
+    rotation.y = 0.0f;
+    rotation.z = 0.0f;
+    rotation.w = 0.0f;
+    rotation.FromRotationMatrix(owner->m_matrix);
+    reinterpret_cast<C4QuaternionCompressed&>(owner->m_passenger.m_facing) = rotation;
+    owner->m_passenger.unk_002C |= 0x2;
+
+    if (this->m_worldObject) {
+        World::ObjectUpdate(this->m_worldObject, matrix);
+
+        if (!this->unk_0034 && World::ObjectIsLoaded(this->m_worldObject)) {
+            World::ObjectSetSequenceFinishedCallback(this->m_worldObject, CGGameObject_C_Type_WorldObj::SequenceFinishedHandler, 0, 0);
+            this->unk_0034 = 1;
+        }
+
+        if (this->unk_0034 && this->unk_0038 != static_cast<int32_t>(sequence)) {
+            World::ObjectSetSequence(this->m_worldObject, sequence, 0, 0);
+            this->unk_0038 = sequence;
+            this->UpdateObjectEffectState(sequence);
+        }
+    }
+
+    int32_t moved;
+    this->MovePassengers(&moved);
+    uint32_t previousLeg = this->unk_0080;
+
+    if (previousLeg == leg) {
+        return;
+    }
+
+    this->unk_0080 = leg;
+
+    if (!moved || initial) {
+        return;
+    }
+
+    CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGWorldFrame::GetActiveCamera()->m_targetGUID, TYPEMASK_UNIT, __FILE__, __LINE__));
+    AsyncFileReadSetProgressCallback(LoadingScreenAsyncCallback, nullptr);
+    World::SetLoadProgressCallback(LoadingScreenWorldCallback, nullptr);
+    LoadingScreenEnableShipLeg(this->m_owner->m_obj->m_entryID, previousLeg);
+    World::Preload(target->GetPosition(), 0);
+    CGObject_C::UpdateAllWorldObjects();
+    LoadingScreenDisable();
+    AsyncFileReadSetProgressCallback(nullptr, nullptr);
+    World::SetLoadProgressCallback(nullptr, nullptr);
 }

@@ -683,6 +683,20 @@ static int32_t Script_GetBattlegroundInfo(lua_State* L) {
     return 5;
 }
 
+// VERIFY: 81438931 auto
+// OFFSET: 0x0054E6D0
+int32_t Script_RequestBattlegroundInstanceInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: RequestBattlegroundInstanceInfo(index)");
+        return 0;
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1));
+    CGBattlefieldInfo::RequestBattlegroundInstanceInfo(index - 1);
+
+    return 0;
+}
+
 // STATIC: 0x00ACD178
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetNumBattlefields", &Script_GetNumBattlefields },

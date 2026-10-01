@@ -268,3 +268,17 @@ int32_t CWorldMath::PointInPolygon(int32_t count, const C2Vector* points, const 
     *distance = sqrt(nearest);
     return inside;
 }
+
+// VERIFY: fd69952e auto
+// OFFSET: 0x0079F6F0
+void CWorldMath::MakeAaBox(CAaBox& box, const C3Vector& center, const float* size) {
+    float extent = (size[1] >= size[0] ? size[1] : size[0]) * 0.66000003f;
+    box.b = center;
+    box.t = center;
+    box.b.x -= extent;
+    box.b.y -= extent;
+    box.b.z -= extent;
+    box.t.x += extent;
+    box.t.y += extent;
+    box.t.z += extent;
+}

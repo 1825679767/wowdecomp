@@ -19,6 +19,7 @@ struct POIIcon : public TSLinkedNode<POIIcon> {
 
 class CGLCD {
     public:
+    static void Logout();
     static CEzLcd* m_lcd;
     static int32_t m_chatAlertLines;
     static uint8_t initComplete;

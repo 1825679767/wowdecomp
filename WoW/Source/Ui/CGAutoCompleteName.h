@@ -8,12 +8,16 @@
 struct lua_State;
 
 struct AUTOCOMPLETE_NAMENODE : public TSLinkedNode<AUTOCOMPLETE_NAMENODE> {
-    /* 0008 */ char m_name[312];
+    /* 0008 */ char m_name[308];
+    /* 013C */ uint32_t m_flags;
     /* 0140 */ uint32_t m_lastUsed;
+    /* 0144 */ uint32_t m_presenceId;
+    /* 0148 */ WOWGUID m_guid;
 };
 
 class CGAutoCompleteName {
     public:
+    static void RemoveFlagsFromAllNodes(uint32_t flags);
     static TSList<AUTOCOMPLETE_NAMENODE, TSGetLink<AUTOCOMPLETE_NAMENODE>> m_list;
     static bool s_resortNamesOnRecency;
     static void RemoveFlagsByName(const char* name, uint32_t flags, int32_t a3, int32_t a4);

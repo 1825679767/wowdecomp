@@ -11,10 +11,8 @@ struct TransportFrame {
     /* 0000 */ uint32_t unk_0000;
     /* 0004 */ uint32_t unk_0004;
     /* 0008 */ uint32_t m_time;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint32_t unk_0018;
+    /* 000C */ float m_pos[3];
+    /* 0018 */ uint32_t m_sequenceId;
 };
 
 class CGGameObject_C_Type_Transport : public CGGameObject_C_Type_TransportBase {
@@ -39,6 +37,13 @@ class CGGameObject_C_Type_Transport : public CGGameObject_C_Type_TransportBase {
     CGGameObject_C_Type_Transport(CGGameObject_C* owner);
     uint32_t GetSequenceTimeFromRealTime(int32_t state, uint32_t time) const;
     void InitializeMovement();
+    void InitializeStateChangeTime(uint32_t time);
+    void Interpolate(uint32_t time, C3Vector* offset, C4Quaternion* rotation);
+    uint32_t GetStateDuration(int32_t state);
+    uint32_t ResetStateChange(uint32_t time);
+    C3Vector GetMovement(uint32_t time);
+    C4Quaternion GetRotation(uint32_t time);
+    C44Matrix& UpdateOwnerMatrix();
 };
 
 #endif

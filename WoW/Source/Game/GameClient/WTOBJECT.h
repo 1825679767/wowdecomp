@@ -5,7 +5,9 @@
 #include <cstdint>
 
 class CM2Model;
-struct SWING;
+struct SWING {
+    /* 0000 */ uint8_t unk_0000[1560];
+};
 
 class WTOBJECT {
     public:
@@ -15,6 +17,7 @@ class WTOBJECT {
 
 WTOBJECT* WeaponTrailCreate(CM2Model* model);
 void WeaponTrailClose(WTOBJECT* trail);
+void WeaponTrailsShutdown();
 void WeaponTrailSetDrawTrail(WTOBJECT* trail, const uint32_t* a2, uint32_t a3);
 
 void WorldTextInitialize();

@@ -135,6 +135,7 @@ class CGUnitVirtualItem {
     /* 0006 */ uint8_t m_pad [2];
 };
 
+class UnitBloodRec;
 class CGUnit_C : public CGObject_C, public CGUnit {
     public:
     int32_t InitializeExtendedDisplay(CGPlayer_C* player, int32_t hasDisplayInfo);
@@ -144,6 +145,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t IsPlayingUnarmedAnim();
     float GetMeleeChanceToCrit() const;
     float GetHealthRegenRateFromSpirit() const;
+    float GetManaRegenRateFromSpirit() const;
     CGUnit_C* GetVehicleUnit() const;
     void SetWeaponTrail(CM2Model* model, uint32_t hand);
     static void InitActiveMover(const WOWGUID& guid);
@@ -227,8 +229,10 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     static bool __stdcall IsAreaInAreaGroup(int32_t areaId, int32_t areaGroupId, int32_t* checked);
     static float __fastcall ComputeTrackingElevationAngle(const C3Vector& position, const C3Vector& target);
     static void InitMissileTrajectorySystem();
+    static void ShutdownMissileTrajectorySystem();
     static void UpdateVehicleUISliders(CGUnit_C* unit, const VehicleRec* vehicleRec);
     static void AnimEndCallback(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
+    static void MountAnimEndCallback(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
     static void AnimEventCallback(CM2Model* model, uint32_t boneId, uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time, uint64_t param);
 
     /* 00DC */ TSList<void> m_unitMirrorLists [142];
@@ -468,7 +472,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t IsUpdatingMissileTrajectory() const;
     int32_t IsMissileTrajectoryUpdateWaitingForMissileRelease() const;
     void SendFinalMissileTrajectoryUpdate();
-    int32_t ComputeMissileTrajectory(const SpellRec* spell, int32_t* a2, CGUnit_C** a3, float* a4, C3Vector* position, float* facing, C3Vector* points, uint32_t* count, int32_t a9);
+    int32_t ComputeMissileTrajectory(const SpellRec* spell, int32_t* a2, CGUnit_C** a3, C3Vector* launchPosition, C3Vector* position, float* facing, C3Vector* points, uint32_t* count, int32_t a9);
     int32_t OverrideMissileFirePos(C3Vector* position, const SpellRec* spell);
     bool IsLocalClientControlled() const;
     void FreeComponent();
@@ -868,6 +872,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void SetAttacking(WOWGUID guid);
     void UpdateObjectEffectMovementStates();
     void DestroyUnitMount(int32_t a2);
+    void SetMountModel(CM2Model* model);
     void OnDeathAnimate();
     void ReadLootList(CDataStore* msg);
     void RemoveLootEffect();
@@ -942,12 +947,14 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t UnsheatheRightWeapon();
     int32_t UnsheatheLeftWeapon();
     void AnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time);
+    void MountAnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time);
     void OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequenceId);
     void ExchangeSheathedWeapon(const C3Vector* position, uint32_t hand, uint32_t flag);
     int32_t GetPrecastStartAnim();
     static void BowModelLoaded(CM2Model* model, void* arg);
     void PlayWoundAnimKit(int32_t crit);
     void ShowBloodSpurt(const WOWGUID& attacker, int32_t a3);
+    UnitBloodRec* GetBloodRecord();
     void ModifyPredictedPower(int32_t powerType, int32_t delta);
     void AddWorldText(const WOWGUID& source, int32_t reason, const SpellRec* spell, bool periodic);
     void AddWorldHealingText(const WOWGUID& source, int32_t amount, const SpellRec* spell, bool crit, int32_t a6);
@@ -1096,7 +1103,6 @@ void NameQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool succes
 float CalculateFacingTo(const C3Vector* from, const C3Vector* to);
 
 void WeaponTrailsInitialize();
-void WeaponTrailsShutdown();
 
 const char* GetObjectNameFromGuid(const WOWGUID& guid);
 void WriteMovementPacket(CGUnit_C* unit, uint32_t msgId, CDataStore* msg, int32_t include);

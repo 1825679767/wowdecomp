@@ -64,6 +64,7 @@ class CGReputationInfo {
     static void SortFactions();
     static bool IsFactionInactive(uint32_t index);
     static void InitializeGame();
+    static void ShutdownGame();
     static bool GetForcedReaction(int32_t faction, int32_t* reaction);
     static int32_t GetFactionStandingReaction(int32_t faction);
     static bool IsAtWar(int32_t faction);

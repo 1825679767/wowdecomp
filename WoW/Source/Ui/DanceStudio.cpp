@@ -5,6 +5,9 @@
 // STATIC: 0x00BEB630
 uint64_t CGDanceStudio::m_learnedDanceMoves;
 
+// STATIC: 0x00BEB638
+static TSHashTable<KNOWNDANCES, HASHKEY_NONE> s_knownDances;
+
 // VERIFY: 166fac44 auto
 // OFFSET: 0x00576A90
 void CGDanceStudio::InitializeGame() {
@@ -19,4 +22,14 @@ void CGDanceStudio::InitializeGame() {
 int32_t Packet_SMSG_LEARNED_DANCE_MOVES(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     msg->Get(CGDanceStudio::m_learnedDanceMoves);
     return 1;
+}
+
+// VERIFY: 02b8c154 auto
+// OFFSET: 0x00575F20
+void CGDanceStudio::ShutdownGame() {
+    ClientServices::ClearMessageHandler(SMSG_PLAY_DANCE);
+    ClientServices::ClearMessageHandler(SMSG_STOP_DANCE);
+    ClientServices::ClearMessageHandler(SMSG_NOTIFY_DANCE);
+    ClientServices::ClearMessageHandler(SMSG_LEARNED_DANCE_MOVES);
+    s_knownDances.InternalClear(0);
 }

@@ -450,3 +450,13 @@ void CGPartyInfo::EnableMember(CGPlayer_C* player, int32_t enable) {
 
     Script_SendUniqueSignal(SCRIPT_EVENT_PARTY_MEMBER_DISABLE);
 }
+
+// VERIFY: 4289bd20 auto
+// OFFSET: 0x0052BC10
+void CGPartyInfo::ShutdownGame() {
+    ClientServices::ClearMessageHandler(MSG_SET_DUNGEON_DIFFICULTY);
+    ClientServices::ClearMessageHandler(MSG_SET_RAID_DIFFICULTY);
+    ClientServices::ClearMessageHandler(SMSG_INSTANCE_SAVE_CREATED);
+    ClientServices::ClearMessageHandler(SMSG_CHANGE_PLAYER_DIFFICULTY_RESULT);
+    ConsoleCommandUnregister("changePlayerDifficulty");
+}

@@ -922,3 +922,19 @@ void CVehiclePassenger_C::UpdateAll(uint32_t time) {
         passenger = next;
     }
 }
+
+// VERIFY: 8bae8c48 manual
+// OFFSET: 0x00749CB0
+void CVehiclePassenger_C::ExecutePendingRescueTransitions() {
+    for (uint32_t i = 0; i < CVehiclePassenger_C::s_rescueTransitions->Count(); i++) {
+        VehiclePassengerRescueTransition& transition = CVehiclePassenger_C::s_rescueTransitions->m_data[i];
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(transition.m_passengerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit && unit->m_vehiclePassenger) {
+            unit->m_vehiclePassenger->BeginTransition(transition.m_vehicleGuid, transition.m_seat, transition.m_instant);
+        }
+    }
+
+    CVehiclePassenger_C::s_rescueTransitions->m_count = 0;
+    CVehiclePassenger_C::s_pendingCount = 0;
+}

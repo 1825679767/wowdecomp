@@ -334,6 +334,7 @@ extern WOWGUID s_highlightedObjectGuid;
 class WMOAreaTableRec;
 
 namespace World {
+    class TriData;
     class HitTestDebug;
 
     struct LiquidQueryResult {
@@ -386,6 +387,7 @@ namespace World {
     void Update(const C3Vector& position);
     int32_t QueryOutdoors(CMapEntity* entity);
     int32_t QueryObjectLiquid(CMapEntity* entity, int32_t* liquidType, float* height, int32_t* a4);
+    void NewFootprint(int32_t textureId, const float* size, const C3Vector* position, float facing, int32_t left, int32_t terrainType, int32_t activePlayer);
     int32_t QueryGroundType(CMapEntity* entity, int32_t* groundType);
     int32_t QueryObjectLiquidFlags(CMapEntity* entity, int32_t* flag8, int32_t* flag9);
     int32_t SceneCamLiquidStatus(float* depth);
@@ -446,7 +448,12 @@ float ValidateFarClip(float farClip, int32_t mapID);
     int32_t GetFlightBoundsLower(const C3Vector& pos, float* height);
     int32_t Intersect(const C3Vector& start, const C3Vector& end, C3Vector* hit, float* distance, uint32_t flags, HitTestDebug* debug);
     void ObjectSetModel(CMapEntity* entity, CM2Model* model);
+    void ObjectSetMoveable(CMapEntity* entity, int32_t moveable);
     int32_t ObjectIsLoaded(CMapBaseObj* object);
+    int32_t ObjectIsWMO(CMapBaseObj* object);
+    bool GetTris(const CAaBox& box, World::TriData* triData, uint32_t flags);
+    uint32_t GetIntersectingDoodadModels(CM2Model** models, uint32_t maxModels, const CAaBox& box, uint32_t flags);
+    void ObjectSetSequence(CMapEntity* entity, uint32_t sequence, int32_t a3, int32_t a4);
     void ObjectSetShadow(CMapEntity* entity, uint32_t shadow, uint32_t mask);
     void ObjectSetSequenceFinishedCallback(CMapEntity* entity, void (*callback)(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param), uint64_t param, uint16_t doodad);
     bool ObjectTestConvexVolume(CMapEntity* entity, const C3Vector& point);
@@ -504,6 +511,7 @@ class CWorld {
     static void Destroy();
     static void Initialize();
     static void LoadMap(const char* mapName, C3Vector* position, int32_t zoneID, int32_t a4);
+    static CMapBaseObj* ObjectCreate(const char* name, const C3Vector& position, float facing, int32_t waitLoad, int32_t snap, uint64_t guid, uint32_t doodadSetCount, const int16_t* doodadSets, float* radius, uint32_t id);
     static void Update(C3Vector* camPos, C3Vector* camTarget, C3Vector* position);
 };
 

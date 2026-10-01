@@ -323,6 +323,8 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     int32_t CanUseNow() const;
     int32_t CheckRange() const;
     void CloseInteraction();
+    void UseObject();
+    CMapEntity* CreateWorldObject(uint64_t guid, int32_t a4, uint32_t doodadSetCount, const int16_t* doodadSets);
     void AddWorldDamageText(int32_t amount);
     void AddWorldHealingText(int32_t amount, int32_t overheal);
     const char* GetCloseText() const;

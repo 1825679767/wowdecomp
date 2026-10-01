@@ -3,6 +3,7 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Object/Types.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "Engine/Source/Base/CDataAllocator.h"
 
 // STATIC: 0x00D3F60C
 static bool s_skillLineLinkInfoDirty;
@@ -18,6 +19,9 @@ static TSHashTable<SKILLLINEREC, HASHKEY_SKILLLINE> s_skillLineRecs;
 
 // STATIC: 0x00D3F688
 static TSGrowableArray<SkillLineLinkInfo> s_skillLineLinkInfo;
+
+// STATIC: 0x00D3F698
+static CDataAllocator s_skillLineRecAllocator(sizeof(SKILLLINEREC), 0x1000);
 
 // VERIFY: 87b0816a manual
 // OFFSET: 0x00810320
@@ -249,4 +253,15 @@ int32_t GetSkillTierCost(const SkillRaceClassInfoRec* info, uint32_t step) {
     }
 
     return tier->m_cost[step];
+}
+
+// VERIFY: e9c3aee4 auto
+// OFFSET: 0x00810920
+void SpellTableDestroy() {
+    s_skillLineRecs.Clear();
+    s_skillLineLinkInfoDirty = true;
+    s_raceClassInfo.Clear();
+    s_skillCostsInfo.Clear();
+    s_skillLineRecAllocator.Clear(typeid(SKILLLINEREC).raw_name(), SLOG_OBJECT, 1);
+    s_skillLineLinkInfo.m_count = 0;
 }

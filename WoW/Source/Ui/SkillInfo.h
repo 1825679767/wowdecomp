@@ -33,6 +33,7 @@ class CGSkillInfo {
     static TSFixedArray<SkillLineInfo*> m_lines;
     static TSFixedArray<SkillTypeInfo*> m_types;
     static void InitializeGame();
+    static void ShutdownGame();
     static int32_t GetSelectedIndex();
     static void UpdateSkillLines();
     static int32_t GetSkillTypeCollapsed(uint32_t index);

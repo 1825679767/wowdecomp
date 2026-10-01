@@ -14,6 +14,7 @@ class C4Plane;
 class CWorldMath {
     public:
     static void TransformAABox(C44Matrix& m, CAaBox& src, CAaBox& dst);
+    static void MakeAaBox(CAaBox& box, const C3Vector& center, const float* size);
     static void TransformAABoxInner(const float* row1, const float* row0, CAaBox& dst, CAaBox& src, const float* row2);
     static void TransformAABox(C33Matrix& m, CAaBox& src, CAaBox& dst);
     static bool VectorIntersectAABox2(CAaBox& box, C3Vector& start, C3Vector& end);

@@ -80,6 +80,8 @@
 #include "WoW/Source/WorldClient/WorldParam.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "WoW/Source/Game/GameClient/ProjectTex.h"
+#include "WoW/Source/DB/Rec/TerrainTypeRec.h"
 
 // STATIC: 0x00CF4938
 TSGrowableArray<CGxVertexPC> CMap::debugVertexArray;
@@ -232,7 +234,7 @@ uint32_t* CMap::areaHeap;
 uint32_t* CMap::areaMedHeap;
 
 // STATIC: 0x00D25418
-uint32_t* CMap::areaLowHeap;
+CMapAreaLowHeap* CMap::areaLowHeap;
 
 // STATIC: 0x00D2541C
 uint32_t* CMap::chunkHeap;
@@ -248,6 +250,15 @@ static uint32_t unk_CF4958;
 
 // STATIC: 0x00CF495C
 static uint32_t unk_CF495C;
+
+// STATIC: 0x00A405E8
+static const int32_t s_subVertexTriangles[12] = { 17, 9, 0, 9, 1, 0, 9, 17, 18, 9, 18, 1 };
+
+// STATIC: 0x00A40618
+static const int32_t s_subVertexIndexFlat[5] = { 0, 9, 17, 1, 18 };
+
+// STATIC: 0x00ADFD04
+static World::FacetData s_footprintFacets;
 
 // STATIC: 0x00CF4960
 static CMapFootprint s_footprints[144][4];
@@ -335,6 +346,9 @@ bool CMap::enableTerrainShaderVertex;
 
 // STATIC: 0x00CE04A3
 HASHKEY_NONE CMap::s_mapObjDefHashKey;
+
+// STATIC: 0x00ADFBF8
+TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > CMap::s_unk_ADFBF8 = TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>();
 
 // STATIC: 0x00ADFC04
 TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > CMap::mapObjDefLinkList = TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>();
@@ -642,7 +656,7 @@ void CMap::InitializePCFShaders() {
     g_theGxDevicePtr->ShaderCreate(CMap::pixelShader_Terrain3, GxSh_Pixel, "Shaders\\Pixel", CShaderEffect::s_usePcfFiltering ? "Terrain3_pcf" : "Terrain3", sizeof(CMap::pixelShader_Terrain3) / sizeof(CMap::pixelShader_Terrain3[0]));
 }
 
-// VERIFY: f2cf813b manual
+// VERIFY: 98a7e674 manual
 // OFFSET: 0x0079E7C0
 void CMap::Initialize() {
     CMapArea::Initialize();
@@ -739,7 +753,7 @@ void CMap::Initialize() {
     CMap::baseObjLinkHeap = new (__FILE__, __LINE__) uint32_t(ObjectAllocAddHeap(sizeof(CMapBaseObjLink), 10000, "WBASEOBJLINK", true));
     CMap::areaHeap = new (__FILE__, __LINE__) uint32_t(ObjectAllocAddHeap(sizeof(CMapArea), 16, "WAREA", true));
     CMap::areaMedHeap = new (__FILE__, __LINE__) uint32_t(ObjectAllocAddHeap(sizeof(CMapAreaMed), 16, "WAREAMED", true));
-    CMap::areaLowHeap = new (__FILE__, __LINE__) uint32_t(ObjectAllocAddHeap(sizeof(CMapAreaLow), 16, "WAREALOW", true));
+    CMap::areaLowHeap = new (__FILE__, __LINE__) CMapAreaLowHeap{ ObjectAllocAddHeap(sizeof(CMapAreaLow), 16, "WAREALOW", true) };
     CMap::chunkHeap = new (__FILE__, __LINE__) uint32_t(ObjectAllocAddHeap(sizeof(CMapChunk), 256, "WCHUNK", true));
     CMap::doodadDefHeap = new (__FILE__, __LINE__) uint32_t(ObjectAllocAddHeap(sizeof(CMapDoodadDef), 5000, "WDOODADDEF", true));
     CMap::entityHeap = new (__FILE__, __LINE__) uint32_t(ObjectAllocAddHeap(sizeof(CMapEntity), 128, "WENTITY", true));
@@ -2362,6 +2376,34 @@ CMapDoodadDef* CMap::CreateDoodadDef(const char* fileName, SMDoodadDef* doodadDe
     return mapDoodadDef;
 }
 
+// VERIFY: 84c1a3e9 manual
+// OFFSET: 0x007BEB40
+CMapDoodadDef* CMap::CreateDoodadDef(const char* fileName, const C3Vector* position, float facing, int32_t a4) {
+    int32_t id = CMap::uniqueId--;
+    HASHKEY_DWORD key = { 0 };
+    CMap::doodadDefHash.Ptr(id, key);
+    CMapDoodadDef* doodadDef = CMap::AllocDoodadDef();
+    HASHKEY_DWORD insertKey = { 0 };
+    CMap::doodadDefHash.Insert(doodadDef, id, insertKey);
+    doodadDef->m_position = *position;
+    doodadDef->m_scale = 1.0f;
+    doodadDef->m_sphere.r = 0.0f;
+    doodadDef->m_sphere.c = doodadDef->m_position;
+    doodadDef->m_bbox.b = doodadDef->m_position;
+    doodadDef->m_bbox.t = doodadDef->m_position;
+    doodadDef->m_mat = C44Matrix();
+    doodadDef->m_mat.d0 = position->x;
+    doodadDef->m_mat.d1 = position->y;
+    doodadDef->m_mat.d2 = position->z;
+    doodadDef->m_mat.RotateAroundZ(facing);
+    doodadDef->m_identity = C44Matrix();
+    doodadDef->m_flags = MAPOBJ_FLAG_UNPLACED;
+    doodadDef->m_model = nullptr;
+    CMapDoodadDef::CreateModel(fileName, doodadDef, a4, 0);
+
+    return doodadDef;
+}
+
 // VERIFY: ea13d7f6 manual
 // OFFSET: 0x007BEF40
 CMapDoodadDef* CMap::CreateDoodadDef(uint32_t doodadRef, SMODoodadDef* doodadDef, char* name, uint32_t key, C44Matrix* mat, uint16_t doodadSet) {
@@ -2499,6 +2541,83 @@ CMapObjDef* CMap::CreateMapObjDef(char* fileName, SMMapObjDef* mapObjectDef, C3V
 
     mapObjDef->m_lightsArray.m_count = 0;
     mapObjDef->m_owner = CMapObj::Create(fileName);
+
+    return mapObjDef;
+}
+
+// VERIFY: 5ac717a0 manual
+// OFFSET: 0x007BF120
+CMapObjDef* CMap::CreateMapObjDef(const char* fileName, const C3Vector* position, float facing, int32_t waitLoad, uint32_t doodadSetCount, const int16_t* doodadSets, float* radius, uint32_t id) {
+    uint32_t uniqueId = id;
+
+    if (!id) {
+        uniqueId = CMap::uniqueId--;
+    }
+
+    CMap::mapObjDefHash.Ptr(uniqueId, CMap::s_mapObjDefHashKey);
+    CMapObjDef* mapObjDef = CMap::AllocMapObjDef();
+    CMap::mapObjDefHash.Insert(mapObjDef, uniqueId, CMap::s_mapObjDefHashKey);
+    CMapObj* mapObj = CMapObj::Create(const_cast<char*>(fileName));
+    mapObjDef->m_owner = mapObj;
+
+    if (waitLoad && !mapObj->m_isGroupLoaded) {
+        mapObj->WaitLoad();
+    }
+
+    mapObjDef->m_flags = static_cast<MapObjFlag>(0);
+
+    if (doodadSetCount) {
+        mapObjDef->m_flags = MAPOBJ_FLAG_MAPOBJDEF;
+    }
+
+    mapObjDef->m_nameId = 0;
+    mapObjDef->m_doodadSet = 0;
+    mapObjDef->m_nameSet = 0;
+    mapObjDef->m_position = *position;
+    mapObjDef->m_objectGuid = WOWGUID();
+
+    for (int32_t i = 0; i < 3; i++) {
+        mapObjDef->m_doodadSetOverrides[i] = i < static_cast<int32_t>(doodadSetCount) ? doodadSets[i] : 0;
+    }
+
+    mapObjDef->m_mat = C44Matrix();
+    mapObjDef->m_mat.d0 = position->x;
+    mapObjDef->m_mat.d1 = position->y;
+    mapObjDef->m_mat.d2 = position->z;
+    mapObjDef->m_mat.RotateAroundZ(facing);
+    mapObjDef->m_invMat = mapObjDef->m_mat.AffineInverse();
+
+    if (mapObj->m_isGroupLoaded) {
+        CAaBox bounds(C3Vector(0.0f, 0.0f, 0.0f), C3Vector(0.0f, 0.0f, 0.0f));
+        mapObj->GetBounds(mapObjDef->m_sphere);
+        mapObjDef->m_sphere.c *= mapObjDef->m_mat;
+        mapObj->GetBounds(&bounds);
+        CWorldMath::TransformAABox(mapObjDef->m_mat, bounds, mapObjDef->m_bbox);
+        mapObjDef->m_lightsArray.m_count = 0;
+        return mapObjDef;
+    }
+
+    float sphereRadius;
+
+    if (radius) {
+        CAaBox extents;
+        extents.b.x = *radius * -1.0f;
+        extents.b.y = extents.b.x;
+        extents.b.z = extents.b.x;
+        extents.t.x = *radius;
+        extents.t.y = *radius;
+        extents.t.z = *radius;
+        CWorldMath::TransformAABox(mapObjDef->m_mat, extents, mapObjDef->m_bbox);
+        sphereRadius = *radius;
+    } else {
+        sphereRadius = 0.0f;
+        mapObjDef->m_bbox.b = *position;
+        mapObjDef->m_bbox.t = *position;
+    }
+
+    mapObjDef->m_sphere.c = *position;
+    mapObjDef->m_sphere.r = sphereRadius;
+    mapObjDef->m_lightsArray.m_count = 0;
 
     return mapObjDef;
 }
@@ -2990,13 +3109,13 @@ void CMap::FreeBaseObjLink(CMapBaseObjLink* link) {
     ObjectFree(*CMap::baseObjLinkHeap, link->m_objectIndex);
 }
 
-// VERIFY: c37a9deb auto
+// VERIFY: f22f4d25 auto
 // OFFSET: 0x007C0A90
 CMapAreaLow* CMap::AllocAreaLow() {
     uint32_t memHandle;
     void* object = nullptr;
 
-    if (!ObjectAlloc(*CMap::areaLowHeap, &memHandle, &object, false)) {
+    if (!ObjectAlloc(CMap::areaLowHeap->m_heapId, &memHandle, &object, false)) {
         return nullptr;
     }
 
@@ -3004,6 +3123,19 @@ CMapAreaLow* CMap::AllocAreaLow() {
     areaLow->m_objectIndex = memHandle;
 
     return areaLow;
+}
+
+// VERIFY: 41bd42d1 manual
+// OFFSET: 0x007C0AE0
+void CMapAreaLowHeap::Delete(CMapAreaLow* areaLow) {
+    areaLow->m_horizonLink.Unlink();
+    ObjectFree(this->m_heapId, areaLow->m_objectIndex);
+}
+
+// VERIFY: 51f512f8 auto
+// OFFSET: 0x007C0C60
+void CMap::FreeAreaLow(CMapAreaLow* areaLow) {
+    CMap::areaLowHeap->Delete(areaLow);
 }
 
 // VERIFY: 9da97e61 auto
@@ -4051,7 +4183,7 @@ bool CMap::GetChunkLiquidFacets(CMapChunk* chunk, CAaBox* box, CiRect* rect, CCh
     return World::TriDataToFacetData(&triData, facets, WOWGUID{ 0 }) != 0;
 }
 
-// VERIFY: be7caf2c manual
+// VERIFY: 92053872 manual
 // OFFSET: 0x007A5A60
 bool CMap::GetChunkFacets(int32_t chunkX, int32_t chunkY, CiRect* subRect, CAaBox* queryBox, CAaBox* box, World::FacetData* facets, uint32_t flags) {
     uint32_t first = facets->facets.Count();
@@ -4065,7 +4197,7 @@ bool CMap::GetChunkFacets(int32_t chunkX, int32_t chunkY, CiRect* subRect, CAaBo
             return false;
         }
 
-        if (chunk->m_header->m_flags & 0x40) {
+        if (chunk->m_flags & MAPOBJ_FLAG_IMPASSABLE) {
             CMap::CreateImpassableFacets(chunk, box, facets);
         }
 
@@ -5169,4 +5301,498 @@ void CMap::RenderFootprints() {
 
     GxXformPop(GxXform_World);
     g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 331b297f manual
+// OFFSET: 0x007C3830
+void CMap::Unload() {
+    CMap::PurgeMaps();
+    CMap::s_lowDetail.Unload();
+
+    for (CMapBaseObjLink* link = CMap::mapObjDefLinkList.Head(); link;) {
+        CMapBaseObjLink* next = CMap::mapObjDefLinkList.Next(link);
+        CMapObjDef* mapObjDef = static_cast<CMapObjDef*>(link->m_owner);
+        CMap::FreeBaseObjLink(link);
+        CMap::PurgeMapObjDef(mapObjDef);
+        link = next;
+    }
+
+    for (CMapBaseObjLink* link = CMap::s_unk_ADFBF8.Head(); link;) {
+        CMapBaseObjLink* next = CMap::s_unk_ADFBF8.Next(link);
+        CMapBaseObj* owner = link->m_owner;
+        CMap::FreeBaseObjLink(link);
+
+        if (!(owner->m_type & 0x200)) {
+            CMapDoodadDef::Purge(static_cast<CMapDoodadDef*>(owner));
+        }
+
+        link = next;
+    }
+
+    CDestructibleProxy* proxy = CMap::s_destructibleProxyList.Head();
+
+    while (!CMap::s_destructibleProxyList.IsEnd(proxy)) {
+        CDestructibleProxy* next = CMap::s_destructibleProxyList.RawNext(proxy);
+
+        if (proxy->m_uniqueId) {
+            CMap::s_destructibleProxyList.UnlinkNode(proxy);
+            CMap::s_destructibleProxyList.DeleteNode(proxy);
+        }
+
+        proxy = next;
+    }
+
+    CMap::s_destructibleProxyList.Clear();
+    CMapObj::ClearCache(1);
+    World::s_m2Scene->PurgeModelCache();
+    CMap::ClearAllFootprints();
+    CDetailDoodad::FreeGxBufMat();
+    CMapRenderChunk::Destroy();
+    CMapObj::DestroyPools();
+    TextureGxCacheFlush();
+    g_theGxDevicePtr->DeviceEvictResources();
+    DayNight::UnloadMap();
+    CMap::DestroyLight(CMap::s_mapLight);
+    CMap::FreeAllChunkLiquids();
+    CMap::bActive = 0;
+    CMap::bDungeon = 0;
+    CMap::enableChunkBatching = 0;
+    char path[260];
+    SStrCopy(path, CMap::wdtFilename, 0x7FFFFFFF);
+    SStrCopy(strrchr(path, '.'), ".tex", 0x7FFFFFFF);
+    TextureUnloadBlob(path);
+}
+
+// VERIFY: 6b4c3b7f auto
+// OFFSET: 0x0079D460
+void CMap::CreateWaterRipple(const C3Vector& pos, float a2, float a3, float a4, float a5, float a6, int32_t a7, int32_t a8) {
+    if (CWorld::s_waterRipples && !World::s_waterLOD) {
+        float alpha = 1.0f;
+
+        if (a5 < 0.16666667f) {
+            alpha = a5 * 6.0f;
+        }
+
+        WaterRipple::Create(pos, a2, a3, alpha, a4, a6, a7, a8);
+    }
+}
+
+// VERIFY: b6f5c768 auto
+// OFFSET: 0x007B4A50
+void CMap::SnapBaseObjToSubChunk(CMapBaseObj* baseObj, const C3Vector* position, float facing) {
+    C44Matrix rotation = C44Matrix::RotationAroundZ(facing);
+    CAaBox bounds(C3Vector(0.0f, 0.0f, 0.0f), C3Vector(0.0f, 0.0f, 0.0f));
+
+    if (baseObj->m_type & 0x8) {
+        static_cast<CMapObjDef*>(baseObj)->m_owner->GetBounds(&bounds);
+    } else {
+        bounds = static_cast<CMapStaticEntity*>(baseObj)->m_model->GetBoundingBox();
+    }
+
+    float centerX = (bounds.t.x + bounds.b.x) * 0.5f;
+    float centerY = (bounds.t.y + bounds.b.y) * 0.5f;
+    float centerZ = (bounds.t.z + bounds.b.z) * 0.5f;
+    bounds.t.x = bounds.t.x - centerX;
+    bounds.t.y = bounds.t.y - centerY;
+    bounds.t.z = bounds.t.z - centerZ;
+    bounds.b.x = bounds.b.x - centerX;
+    bounds.b.y = bounds.b.y - centerY;
+    bounds.b.z = bounds.b.z - centerZ;
+    CAaBox rotated(C3Vector(0.0f, 0.0f, 0.0f), C3Vector(0.0f, 0.0f, 0.0f));
+    CWorldMath::TransformAABox(rotation, bounds, rotated);
+    C3Vector* snapped = const_cast<C3Vector*>(position);
+    float x = snapped->x + rotated.t.x;
+    float y = snapped->y + rotated.t.y;
+    int32_t cellX = CMath::fint_((x + 4.1666665f) * 0.24f - 0.5f);
+    int32_t cellY = CMath::fint_((y + 4.1666665f) * 0.24f - 0.5f);
+    snapped->x = snapped->x - (x - cellX * 4.1666665f);
+    snapped->y = snapped->y - (y - 4.1666665f * cellY);
+}
+
+// VERIFY: 153db93c manual
+// OFFSET: 0x007B58C0
+void CMap::UpdateDoodadDef(CMapDoodadDef* doodadDef, const C3Vector* position, float facing) {
+    doodadDef->m_position = *position;
+    doodadDef->m_scale = 1.0f;
+    doodadDef->m_mat = C44Matrix();
+    doodadDef->m_mat.d0 = position->x;
+    doodadDef->m_mat.d1 = position->y;
+    doodadDef->m_mat.d2 = position->z;
+    doodadDef->m_mat.RotateAroundZ(facing);
+    CMap::UpdateDoodadDefBounds(doodadDef);
+}
+
+// VERIFY: 05946402 manual
+// OFFSET: 0x007B5870
+void CMap::UpdateDoodadDefTransform(CMapDoodadDef* doodadDef, const C44Matrix& matrix) {
+    doodadDef->m_position.x = matrix.d0;
+    doodadDef->m_position.y = matrix.d1;
+    doodadDef->m_position.z = matrix.d2;
+    doodadDef->m_scale = sqrtf(matrix.a2 * matrix.a2 + matrix.a1 * matrix.a1 + matrix.a0 * matrix.a0);
+    doodadDef->m_mat = matrix;
+    CMap::UpdateDoodadDefBounds(doodadDef);
+}
+
+// VERIFY: 7fce3415 manual
+// OFFSET: 0x0079F760
+void CMap::BuildFootprintMatrix(C44Matrix& matrix, const float* size, int32_t left, float facing) {
+    if (left) {
+        matrix.Scale(C3Vector(-1.0f, 1.0f, 1.0f));
+    }
+
+    if (size[1] <= size[0]) {
+        if (size[0] > size[1]) {
+            matrix.Scale(C3Vector(size[0] / size[1], 1.0f, 1.0f));
+        }
+    } else {
+        matrix.Scale(C3Vector(1.0f, size[1] / size[0], 1.0f));
+    }
+
+    matrix.RotateAroundZ(-facing);
+}
+
+// VERIFY: 1e420023 manual
+// OFFSET: 0x0079FA70
+void CMap::NewFootprint(int32_t textureId, const float* size, const C3Vector* position, float facing, int32_t left, int32_t terrainType, int32_t activePlayer) {
+    if (static_cast<uint32_t>(textureId) >= unk_CFBE60.Count()) {
+        return;
+    }
+
+    TerrainTypeRec* rec = g_terrainTypeDB.GetRecord(terrainType);
+
+    if (!rec || !(rec->m_flags & 0x1)) {
+        return;
+    }
+
+    CAaBox box;
+    box.b = C3Vector(0.0f, 0.0f, 0.0f);
+    box.t = C3Vector(0.0f, 0.0f, 0.0f);
+    CWorldMath::MakeAaBox(box, *position, size);
+
+    if (!World::GetFacets(&box, &s_footprintFacets, 0x200122, nullptr)) {
+        return;
+    }
+
+    CMapFootprint* footprint;
+
+    if (activePlayer) {
+        footprint = &s_footprints[0][0] + unk_CF4958++;
+
+        if (unk_CF4958 >= 64) {
+            unk_CF4958 = 0;
+        }
+    } else {
+        footprint = &s_footprints[0][0] + unk_CF495C++;
+
+        if (unk_CF495C >= 576) {
+            unk_CF495C = 64;
+        }
+    }
+
+    footprint->m_link.Unlink();
+    footprint->m_position = *position;
+    footprint->m_startTime = FrameTime::s_curTimeMs;
+    footprint->m_textureIndex = textureId;
+    C44Matrix texMatrix;
+    C44Matrix fadeMatrix;
+    C44Matrix rotation;
+    CMap::BuildFootprintMatrix(rotation, size, left, facing);
+    ProjectTex2dMakeMatrices(texMatrix, fadeMatrix, box, &rotation, 0.5f, 1);
+    footprint->m_vertices.SetCount(3 * s_footprintFacets.facets.m_count);
+    CGxVertexPT0T1* vertex = footprint->m_vertices.m_data;
+
+    for (uint32_t i = 0; i < s_footprintFacets.facets.m_count; i++) {
+        CFacet& facet = s_footprintFacets.facets.m_data[i];
+
+        for (uint32_t j = 0; j < 3; j++) {
+            vertex->m_position = facet.v[j];
+            vertex->m_texture0 = C2Vector(facet.v[j] * texMatrix);
+            vertex->m_texture1 = C2Vector(facet.v[j] * fadeMatrix);
+            vertex++;
+        }
+    }
+}
+
+// VERIFY: fe26d705 manual
+// OFFSET: 0x007A6260
+bool CMap::GetTriSubchunk(CMapChunk* chunk, const CiRect* rect, const CAaBox* box) {
+    int32_t base = 16 * rect->minY + rect->minX + rect->minY;
+    C3Vector* vertices = &CMapChunk::vertexList[base];
+    float* height = &chunk->m_height[base];
+    int32_t rowSkip = 17 - (rect->maxX - rect->minX + 1);
+    World::TriData::Batch* batch = nullptr;
+    uint16_t* indices = nullptr;
+    bool found = false;
+
+    for (int32_t y = rect->minY; y <= rect->maxY; y++, vertices += rowSkip, height += rowSkip) {
+        for (int32_t x = rect->minX; x <= rect->maxX; x++, vertices++, height++) {
+            if (chunk->m_header->m_holes & CMap::s_holeMask[4 * (y >> 1) + (x >> 1)]) {
+                continue;
+            }
+
+            uint8_t outcodes[20];
+
+            for (uint32_t i = 0; i < 5; i++) {
+                int32_t index = s_subVertexIndexFlat[i];
+                vertices[index].z = height[index];
+                outcodes[index] = static_cast<uint8_t>(CWorldMath::ComputeAaBoxOutcode(const_cast<CAaBox*>(box), &vertices[index]));
+            }
+
+            uint16_t vertexIndex = static_cast<uint16_t>(vertices - CMapChunk::vertexList);
+
+            for (uint32_t tri = 0; tri < 12; tri += 3) {
+                const int32_t* triangle = &s_subVertexTriangles[tri];
+
+                if (outcodes[triangle[0]] & outcodes[triangle[1]] & outcodes[triangle[2]]) {
+                    continue;
+                }
+
+                if (!found) {
+                    batch = World::TriData::AllocBatch();
+
+                    if (batch) {
+                        batch->m_def = reinterpret_cast<CMapObjDef*>(chunk);
+                        C44Matrix* matrix;
+
+                        if (World::TriData::unk_CB7538 + 1 < 32) {
+                            matrix = &World::TriData::matrixPool[World::TriData::unk_CB7538++];
+                        } else {
+                            World::TriData::statusFlags |= 1;
+                            matrix = nullptr;
+                        }
+
+                        matrix->a0 = 1.0f;
+                        matrix->a1 = 0.0f;
+                        matrix->a2 = 0.0f;
+                        matrix->a3 = 0.0f;
+                        matrix->b0 = 0.0f;
+                        matrix->b1 = 1.0f;
+                        matrix->b2 = 0.0f;
+                        matrix->b3 = 0.0f;
+                        matrix->c0 = 0.0f;
+                        matrix->c1 = 0.0f;
+                        matrix->c2 = 1.0f;
+                        matrix->c3 = 0.0f;
+                        matrix->d0 = chunk->m_topLeftCoords.x;
+                        matrix->d1 = chunk->m_topLeftCoords.y;
+                        matrix->d2 = chunk->m_topLeftCoords.z;
+                        matrix->d3 = 1.0f;
+                        batch->m_matrix = matrix;
+                        batch->m_vertexList = CMapChunk::vertexList;
+                        batch->m_heightList = chunk->m_height;
+                        batch->m_normalList = nullptr;
+                        indices = World::TriData::AllocIndices(12 * (rect->maxX - rect->minX + 1) * (rect->maxY - rect->minY + 1));
+                        batch->m_indices = indices;
+                    }
+                }
+
+                found = true;
+
+                if (!batch || !batch->m_indices || !batch->m_vertexList) {
+                    continue;
+                }
+
+                for (uint32_t i = 0; i < 3; i++) {
+                    uint16_t index = vertexIndex + static_cast<uint16_t>(triangle[i]);
+                    *indices++ = index;
+
+                    if (batch->m_minVertexIndex >= index) {
+                        batch->m_minVertexIndex = index;
+                    }
+
+                    if (batch->m_maxVertexIndex <= index) {
+                        batch->m_maxVertexIndex = index;
+                    }
+                }
+
+                batch->m_indexCount += 3;
+                batch->m_faceCount++;
+            }
+        }
+    }
+
+    return found;
+}
+
+// VERIFY: c11b2d43 manual
+// OFFSET: 0x007A6630
+bool CMap::GetTrisChunk(int32_t chunkX, int32_t chunkY, const CiRect& cellRect, const CAaBox& box, World::TriData* triData, uint32_t flags) {
+    CMapArea* area = CMap::m_areaTable[64 * ((chunkY >> 4) & 0x3F) + ((chunkX >> 4) & 0x3F)];
+
+    if (!area || area->m_asyncObject) {
+        return false;
+    }
+
+    CMapChunk* chunk = area->m_mapChunks[(chunkX & 0xF) + 16 * (chunkY & 0xF)];
+
+    if (!chunk) {
+        return false;
+    }
+
+    CAaBox localBox = box;
+    localBox.b.x = localBox.b.x - chunk->m_topLeftCoords.x;
+    localBox.b.y = localBox.b.y - chunk->m_topLeftCoords.y;
+    localBox.b.z = localBox.b.z - chunk->m_topLeftCoords.z;
+    localBox.t.x = localBox.t.x - chunk->m_topLeftCoords.x;
+    localBox.t.y = localBox.t.y - chunk->m_topLeftCoords.y;
+    localBox.t.z = localBox.t.z - chunk->m_topLeftCoords.z;
+    bool result = false;
+    static CiRect s_chunkRect(0, 0, 7, 7);
+    CiRect rect;
+    rect.minY = cellRect.minY - 8 * chunkY;
+    rect.minX = cellRect.minX - 8 * chunkX;
+    rect.maxY = cellRect.maxY - 8 * chunkY;
+    rect.maxX = cellRect.maxX - 8 * chunkX;
+    rect &= s_chunkRect;
+
+    if (flags & 0x100) {
+        result = CMap::GetTriSubchunk(chunk, &rect, &localBox);
+    }
+
+    if (flags & 0x30000) {
+        bool oceanOnly = (flags & 0x10000) && !(flags & 0x20000);
+
+        for (CChunkLiquid* liquid = chunk->m_liquidChunkLinkList.Head(); liquid; liquid = chunk->m_liquidChunkLinkList.Next(liquid)) {
+            if (oceanOnly && !(g_liquidTypeDB.GetRecord(liquid->m_type)->m_flags & 0x4)) {
+                continue;
+            }
+
+            result |= liquid->GetTris(triData, localBox, rect);
+        }
+    }
+
+    return result;
+}
+
+// VERIFY: bd067831 manual
+// OFFSET: 0x007A6830
+bool CMap::GetTrisTerrain(const CAaBox& box, World::TriData* triData, uint32_t flags) {
+    bool result = false;
+    CiRect cellRect;
+    cellRect.minY = CMath::fint_(-(box.t.x - 17066.666f) * 0.23999999f - 0.5f);
+    cellRect.minX = CMath::fint_(-(box.t.y - 17066.666f) * 0.23999999f - 0.5f);
+    cellRect.maxY = CMath::fint_(-(box.b.x - 17066.666f) * 0.23999999f - 0.5f);
+    cellRect.maxX = CMath::fint_(-(box.b.y - 17066.666f) * 0.23999999f - 0.5f);
+
+    for (int32_t chunkY = cellRect.minY >> 3; chunkY <= cellRect.maxY >> 3; chunkY++) {
+        for (int32_t chunkX = cellRect.minX >> 3; chunkX <= cellRect.maxX >> 3; chunkX++) {
+            result |= CMap::GetTrisChunk(chunkX, chunkY, cellRect, box, triData, flags);
+        }
+    }
+
+    return result;
+}
+
+// VERIFY: 24d73f6d manual
+// OFFSET: 0x007A6940
+bool CMap::QueryTrisMapObjDefs(const CAaBox& box, World::TriData* triData, uint32_t flags) {
+    CAaBox localBox;
+    localBox.b = C3Vector(0.0f, 0.0f, 0.0f);
+    localBox.t = C3Vector(0.0f, 0.0f, 0.0f);
+    C3Vector center((box.b.x + box.t.x) * 0.5f, (box.t.y + box.b.y) * 0.5f, 0.5f * (box.t.z + box.b.z));
+    CAaBox extents;
+    extents.b = box.b - center;
+    extents.t = box.t - center;
+    bool result = false;
+
+    for (CMapObjDef* mapObjDef = CMap::mapObjDefHash.m_fulllist.Head(); mapObjDef; mapObjDef = CMap::mapObjDefHash.Next(mapObjDef)) {
+        if (mapObjDef->m_flags & 0x20) {
+            continue;
+        }
+
+        CMapObj* mapObj = mapObjDef->m_owner;
+
+        if (!mapObj) {
+            continue;
+        }
+
+        C3Vector localCenter = center * mapObjDef->m_invMat;
+        C33Matrix rotation(mapObjDef->m_invMat);
+        CWorldMath::TransformAABox(rotation, extents, localBox);
+        localBox.b += localCenter;
+        localBox.t += localCenter;
+
+        if (mapObj->TestBounds(localBox)) {
+            result |= mapObj->GetTris(localBox, flags, triData, mapObjDef);
+        }
+    }
+
+    return result;
+}
+
+// VERIFY: 87b59ea2 auto
+// OFFSET: 0x007A6AF0
+bool CMap::QueryTris(const CAaBox& box, World::TriData* triData, uint32_t flags) {
+    bool result = false;
+
+    if (flags & 0x300F0) {
+        result = CMap::QueryTrisMapObjDefs(box, triData, flags);
+    }
+
+    if (flags & 0x30100) {
+        return CMap::GetTrisTerrain(box, triData, flags) | result;
+    }
+
+    return result;
+}
+
+// VERIFY: 0e38b513 manual
+// OFFSET: 0x007A2AA0
+uint32_t CMap::QueryIntersectingModels(CM2Model** models, uint32_t maxModels, const CAaBox& box, uint32_t flags) {
+    if (!maxModels) {
+        return 0;
+    }
+
+    uint32_t count = 0;
+
+    for (CMapObjDef* mapObjDef = CMap::mapObjDefHash.m_fulllist.Head(); mapObjDef; mapObjDef = CMap::mapObjDefHash.Next(mapObjDef)) {
+        if ((mapObjDef->m_flags & 0x100) || !mapObjDef->m_bbox.Intersects(box)) {
+            continue;
+        }
+
+        CMapObj* mapObj = mapObjDef->m_owner;
+
+        for (CMapBaseObjLink* link = mapObjDef->m_mapObjDefGroupLinkList.Head(); link; link = mapObjDef->m_mapObjDefGroupLinkList.Next(link)) {
+            CMapObjDefGroup* defGroup = static_cast<CMapObjDefGroup*>(link->m_owner);
+
+            if (!mapObj->IsGroupLoaded(defGroup->m_groupNum) || !defGroup->m_bbox.Intersects(box)) {
+                continue;
+            }
+
+            for (CMapBaseObjLink* doodadLink = defGroup->m_doodadDefLinkList.Head(); doodadLink; doodadLink = defGroup->m_doodadDefLinkList.Next(doodadLink)) {
+                CMapStaticEntity* doodadDef = static_cast<CMapStaticEntity*>(doodadLink->m_owner);
+                CM2Model* model = doodadDef->m_model;
+
+                if (!model) {
+                    continue;
+                }
+
+                uint32_t doodadFlags = doodadDef->m_flags;
+
+                if (!(doodadFlags & 0x80) || !doodadDef->m_bbox.Intersects(box)) {
+                    continue;
+                }
+
+                uint32_t match = (flags & 0x200122) != 0;
+
+                if (flags & 0x2000000) {
+                    match |= doodadFlags & 0x1000;
+                }
+
+                if (flags & 0x100111) {
+                    match |= (doodadFlags & 0x100) == 0;
+                }
+
+                if (match) {
+                    models[count++] = model;
+
+                    if (count == maxModels) {
+                        return count;
+                    }
+                }
+            }
+        }
+    }
+
+    return count;
 }

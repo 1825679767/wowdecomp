@@ -44,8 +44,11 @@ CMissile* CMissile::s_inFlightMissileList;
 // STATIC: 0x00CA0B5C
 CMissile* CMissile::s_missileDestroyList;
 
+// STATIC: 0x00CA0AF8
+static double s_msfNumbers[12];
+
 // STATIC: 0x00ADA828
-static SimpleScriptIO s_msfIO;
+static SimpleScriptIO s_msfIO(s_msfNumbers, 12);
 
 // STATIC: 0x00ADA7C0
 static const char* s_msfArgs[] = { "progress", "time", "missileIndex", "missileCount", "distanceToFirePos", "distanceToImpactPos", "startDistance", "totalDistance", "rand1", "rand2", "rand3", "spellID", nullptr };

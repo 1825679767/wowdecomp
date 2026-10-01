@@ -75,7 +75,11 @@ int32_t CountQuestItemDropsNeeded(int32_t questId, void (*callback)(int32_t id, 
 
 class CGQuestLog {
     public:
+    static void SaveTrackedQuests();
     static int32_t UpdateAllQuestPOI();
+    static uint32_t ComputeBlobQuestObjectives(int32_t questId);
+    static bool IsPOIVisibleOnDungeonMap(const int32_t* point, int32_t mapId, int32_t floor, int32_t dungeonMapId);
+    static bool IsPOIOnCurrentMap(const int32_t* point, int32_t mapId, int32_t currentMapId);
     static int32_t GetQuestLogSlot(int32_t index);
     static int32_t IsOnQuest(int32_t questId);
     static int32_t FindOrFreePOISlot(int32_t questId);
@@ -126,6 +130,7 @@ class CGQuestLog {
     static int32_t GetQuestGreenRange();
 
     static void InitializeGame();
+    static void ShutdownGame();
     static int32_t GetQuestAt(int32_t index);
     static int32_t GetQuestLeaderBoardForItem(int32_t questId, int32_t itemId, QuestLogLeaderBoardParams* params);
     static int32_t IsQuestCompleteEx(uint32_t index, int32_t a2);

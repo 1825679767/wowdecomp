@@ -19,6 +19,7 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/BattlemasterListRec.h"
 #include "WoW/Source/Ui/CGWorldStateInfo.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
 
 // STATIC: 0x00BEA4A8
 WorldPvPQueueStatus CGBattlefieldInfo::m_worldPvPQueues[1];
@@ -616,4 +617,65 @@ void CGBattlefieldInfo::AddVehicle(const WOWGUID& guid) {
     CGBattlefieldInfo::RemoveVehicle(guid);
     CGBattlefieldInfo::m_vehicleGuids[CGBattlefieldInfo::m_numVehicles] = guid;
     CGBattlefieldInfo::m_numVehicles++;
+}
+
+// VERIFY: e38a0e4a manual
+// OFFSET: 0x0054E220
+void CGBattlefieldInfo::ShutdownGame() {
+    ClientServices::ClearMessageHandler(SMSG_BATTLEFIELD_LIST);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEFIELD_STATUS);
+    ClientServices::ClearMessageHandler(MSG_PVP_LOG_DATA);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEFIELD_STATUS_QUEUED);
+    ClientServices::ClearMessageHandler(MSG_BATTLEGROUND_PLAYER_POSITIONS);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEGROUND_PLAYER_JOINED);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEGROUND_PLAYER_LEFT);
+    ClientServices::ClearMessageHandler(SMSG_ARENA_OPPONENT_UPDATE);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEFIELD_PORT_DENIED);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEFIELD_MGR_ENTRY_INVITE);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEFIELD_MGR_ENTERING);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEFIELD_MGR_QUEUE_REQUEST_RESPONSE);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEFIELD_MGR_EJECT_PENDING);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEFIELD_MGR_EJECTED);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEFIELD_MGR_QUEUE_INVITE);
+    ClientServices::ClearMessageHandler(SMSG_BATTLEFIELD_MGR_STATE_CHANGE);
+
+    for (uint32_t i = 0; i < 80; i++) {
+        delete CGBattlefieldInfo::m_scores[i];
+    }
+
+    CGBattlefieldInfo::m_battlegroundTypes.Clear();
+}
+
+// VERIFY: 8e23bef8 manual
+// OFFSET: 0x0054E5B0
+void CGBattlefieldInfo::RequestBattlegroundInstanceInfo(uint32_t index) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || static_cast<int32_t>(index) < 0 || index >= CGBattlefieldInfo::m_battlegroundTypes.m_count) {
+        return;
+    }
+
+    BattlemasterListRec* rec = g_battlemasterListDB.GetRecord(CGBattlefieldInfo::m_battlegroundTypes.m_data[index]);
+
+    if (!rec) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_BATTLEFIELD_LIST));
+    msg.Put(static_cast<uint32_t>(rec->m_id));
+    msg.Put(static_cast<uint8_t>(1));
+    uint8_t flag;
+
+    if (player->m_unit->m_unitFieldLevel >= player->m_player->m_playerFieldMaxLevel) {
+        flag = 0;
+    } else {
+        flag = (player->m_player->m_playerFlags >> 25) & 1;
+    }
+
+    msg.Put(flag);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    CGBattlefieldInfo::m_instances.Clear();
+    CGBattlefieldInfo::m_bgTypeID = rec->m_id;
 }

@@ -41,6 +41,7 @@ class CGCharacterInfo {
     static void EnterWorld();
     static void SetInspectTarget(const WOWGUID& guid);
     static void InitializeGame();
+    static void ShutdownGame();
     static void UpdateInventoryAlerts();
     static void UpdateItem(WOWGUID guid);
 };

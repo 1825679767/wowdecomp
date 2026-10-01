@@ -173,6 +173,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     static void __stdcall StartTaxiExpress(WOWGUID guid, const uint32_t* nodes, int32_t count);
     static void TalkToMailbox(WOWGUID guid);
     static void PlayerInitializeMessageHandlers();
+    static void PlayerShutdownMessageHandlers();
     static void __stdcall TalkToAuctioneer(const WOWGUID& guid);
     static void __stdcall TalkToBanker(const WOWGUID& guid);
     static void __stdcall TalkToBattleMaster(const WOWGUID& guid);
@@ -287,6 +288,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     const CGItem_C* EquippedItemMeetSpellRequirements(const SpellRec* spell, uint32_t slotMask);
     int32_t HasZoneExplored(int32_t zone);
     int32_t UpdateUnitCollisionBox(int32_t a2, int32_t a3);
+    int32_t UpdateMountedCollisionBox(float mountHeight, int32_t force);
     int32_t IsCommentatorUberOrInArena() const;
     int32_t IsInMelee() const;
     void OnLootGameObject(const WOWGUID& guid);
@@ -355,7 +357,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void ExitAutoCombatMode();
     void OnLevelChange();
     void CTMClickTerrain(const C3Vector& position);
-    bool IsInFlyableZone(int32_t a1);
+    bool IsInFlyableZone(int32_t checkContinent);
     int32_t SpellUsesWeaponSkill(const SpellRec* spell);
     CGPlayer_C(uint32_t time, const CClientObjCreate& create);
     void PostInit(uint32_t time, const CClientObjCreate& create, bool reenable);
@@ -373,7 +375,8 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     uint32_t GetEquippedItemDisplayId();
     int32_t GetAttackPowerContributionFromStat(int32_t stat, int32_t value);
     float GetCombatRatingPct(int32_t rating);
-    void LoadGuildTextures(int32_t displayId);
+    bool LoadGuildTextures(int32_t displayId);
+    static void TabardDrawCallback(int32_t guildID, const WOWGUID& guid, void* param, bool success);
     void UpdateHandItemVisual(GEOCOMPONENTLINKS link, int32_t hand);
     void UpdateObjComponentVisuals(const VisibleItem_C* item, GEOCOMPONENTLINKS link);
     void UpdateObjComponentVisualsSlot(const VisibleItem_C* item, int32_t slot);
@@ -531,6 +534,7 @@ void PlayerInitializeSounds();
 void AreaTriggersInitialize(uint32_t mapId);
 int32_t AreaTriggerCheck(const void* data, void* param);
 void PlayerClientShutdown();
+void PlayerShutdownSounds();
 int32_t Player_C_ZoneUpdateHandler(const void* data, void* param);
 int32_t GetModalNextSpell();
 

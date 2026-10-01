@@ -22,15 +22,17 @@ class CWaterRipple {
     /* 002C */ int32_t m_type;
     /* 0030 */ TSLink<CWaterRipple> m_link;
     /* 0038 */ TSLink<CWaterRipple> m_bucketLink;
-    /* 0040 */ TSFixedArray<C3Vector> m_verts;
-    /* 004C */ uint32_t unk_004C;
+    /* 0040 */ TSGrowableArray<C3Vector> m_verts;
 
     CWaterRipple();
     ~CWaterRipple();
+
+    void InitRipple(const C3Vector& pos, float rotation, float size, float alpha, float duration, float growth, int32_t type);
 };
 
 class WaterRipple {
     public:
+    static void Create(const C3Vector& pos, float facing, float size, float alpha, float duration, float growth, int32_t type, int32_t player);
     static uint32_t s_nextPlayerRipple;
     static uint32_t s_nextUnitRipple;
     static CGxShader* s_psWaterRipples;

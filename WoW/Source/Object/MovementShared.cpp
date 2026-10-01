@@ -2287,3 +2287,29 @@ void CMovementShared::ResetFallOnControlLoss() {
         this->m_currentSpeed = this->GetBaseSpeed(0);
     }
 }
+
+// VERIFY: 6c0feab8 manual
+// OFFSET: 0x0098C670
+void CMovementShared::Disable() {
+    this->m_flags2 &= ~0x80;
+
+    if (this->m_spline) {
+        MovementDelSpline(this->m_spline);
+        this->m_spline = nullptr;
+
+        if (!(this->m_flags & 0x1000)) {
+            this->m_currentSpeed = this->GetBaseSpeed(0);
+        }
+    }
+
+    this->m_globalUnitsLink.Unlink();
+    WOWGUID transport = this->m_link.m_next ? this->m_transportGuid : WOWGUID();
+    this->m_link.Unlink();
+    this->m_transportGuid = WOWGUID();
+
+    if (transport != WOWGUID()) {
+        MovementNotifyTransportUnitRemoved(*this->m_ownerGuid, transport, this->m_transportSeat);
+    }
+
+    this->m_flags &= 0x77FFFFFF;
+}

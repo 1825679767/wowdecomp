@@ -65,6 +65,7 @@ class FriendList {
     FriendInfo* GetFriend(WOWGUID guid);
     FriendInfo* ClearRecruitAFriend(WOWGUID guid);
     uint32_t GetNumFriends();
+    uint32_t GetNumIgnores();
 
     static void Destroy();
     static void Initialize();
@@ -95,7 +96,6 @@ int32_t Script_AddOrRemoveFriend(lua_State* L);
 int32_t Script_AddFriend(lua_State* L);
 int32_t Script_RemoveFriend(lua_State* L);
 int32_t Script_SetFriendNotes(lua_State* L);
-int32_t Script_GetNumIgnores(lua_State* L);
 int32_t Script_GetIgnoreName(lua_State* L);
 int32_t Script_SetSelectedIgnore(lua_State* L);
 int32_t Script_GetSelectedIgnore(lua_State* L);

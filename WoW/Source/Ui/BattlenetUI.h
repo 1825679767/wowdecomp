@@ -14,6 +14,13 @@ struct BattlenetPresenceValue {
     /* 0005 */ uint8_t unk_0005[519];
 };
 
+struct BattlenetBlockList {
+    /* 0000 */ uint32_t m_blockedCount;
+    /* 0004 */ uint32_t m_blocked[100];
+    /* 0194 */ uint32_t m_blockedToonCount;
+    /* 0198 */ uint32_t m_blockedToons[100];
+};
+
 struct BattlenetUIFriend {
     /* 0000 */ uint32_t m_presenceID;
     /* 0004 */ uint8_t unk_0004[820];
@@ -37,6 +44,7 @@ class BattlenetUI {
 namespace BattlenetAPI {
     bool IsRIDEnabled();
     BattlenetPresenceValue GetPresenceValue(uint32_t presenceID, uint32_t field);
+    BattlenetBlockList GetBlockList();
 }
 
 bool BattlenetUI_IsAvailable();
@@ -74,13 +82,11 @@ int32_t Script_BNGetNumConversationMembers(lua_State* L);
 int32_t Script_BNGetConversationMemberInfo(lua_State* L);
 int32_t Script_BNGetConversationInfo(lua_State* L);
 int32_t Script_BNListConversation(lua_State* L);
-int32_t Script_BNGetNumBlocked(lua_State* L);
 int32_t Script_BNGetBlockedInfo(lua_State* L);
 int32_t Script_BNIsBlocked(lua_State* L);
 int32_t Script_BNSetBlocked(lua_State* L);
 int32_t Script_BNSetSelectedBlock(lua_State* L);
 int32_t Script_BNGetSelectedBlock(lua_State* L);
-int32_t Script_BNGetNumBlockedToons(lua_State* L);
 int32_t Script_BNGetBlockedToonInfo(lua_State* L);
 int32_t Script_BNIsToonBlocked(lua_State* L);
 int32_t Script_BNSetToonBlocked(lua_State* L);

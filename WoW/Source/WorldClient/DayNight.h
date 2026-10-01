@@ -22,6 +22,7 @@ class CM2Model;
 class CM2Scene;
 class CTexture;
 class CGxQuery;
+class C44Matrix;
 class CPortalView;
 namespace DayNight { struct DNPlanet; }
 class LightRec;
@@ -119,12 +120,12 @@ struct DNClouds {
     void SetupBumpMap(C3Vector* shadeColor, C3Vector* sunColor, C3Vector* baseColor, C3Vector* sunPos, float* intensity);
     void UpdateTextureAnimation();
     void WorldToTexture(const C3Vector* world, C2Vector* uv);
+    float GetDensity(const C3Vector* position, float scale);
 };
 }
 
 namespace DayNight {
 struct DNGlare {
-    /* 0000 */ void* m_vtbl;
     /* 0004 */ CGxQuery* m_occlusionQuery;
     /* 0008 */ uint32_t m_enable;
     /* 000C */ C3Vector m_position;
@@ -137,7 +138,8 @@ struct DNGlare {
     /* 0030 */ float m_fade;
     /* 0034 */ float m_fadeTarget;
     /* 0038 */ uint32_t m_skipOcclusionOnce;
-    /* 003C */ uint8_t unk_003C [48];
+    /* 003C */ float unk_003C[8];
+    /* 005C */ uint32_t unk_005C[4];
     /* 006C */ uint32_t m_occlusionPixels;
     /* 0070 */ DNKeyframe m_alphaCurve [4];
     /* 0090 */ float m_scaleMin;
@@ -148,11 +150,28 @@ struct DNGlare {
     /* 00A4 */ float m_screenGlow;
     /* 00A8 */ DayNight::DNPlanet* m_planet;
 
+    virtual void Update(float deltaSec);
+    virtual void Render();
+    virtual float GetOcclusionFade();
+    virtual float GetCloudDensityFade() = 0;
+    virtual float GetLiquidDepthFade();
+
+    DNGlare();
     void Destroy();
     void Initialize(const char* fileName);
-    void Render();
-    void Update(float deltaSec);
+    float GetQueryOcclusion();
+    float GetPointOcclusion();
 };
+
+struct DNSunGlare : public DNGlare {
+    float GetCloudDensityFade() override;
+};
+
+struct DNMoonGlare : public DNGlare {
+    float GetCloudDensityFade() override;
+};
+
+void Billboard(C44Matrix& matrix, const C3Vector& direction);
 }
 
 namespace DayNight {
@@ -324,8 +343,8 @@ extern DNStars g_stars;
 extern DNSky g_sky;
 extern DNClouds g_clouds;
 extern DNPlanets g_planets;
-extern DNGlare g_sunGlare;
-extern DNGlare g_moonGlare;
+extern DNSunGlare g_sunGlare;
+extern DNMoonGlare g_moonGlare;
 extern TSGrowableArray<const LightRec*> g_areaLights;
 extern TSHashTable<DNOverrideSky, HASHKEY_STRI> g_overrideSky;
 }

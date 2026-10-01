@@ -517,3 +517,12 @@ void* CDataStore::ReAlloc(void* ptr, uint32_t bytes, const char* fileName, int32
 
     return SMemReAlloc(ptr, bytes, __FILE__, __LINE__, 0);
 }
+
+// VERIFY: 8b1ed662 auto
+// OFFSET: 0x00401140
+CDataStore& CDataStore::GetInt8(uint32_t& val) {
+    uint8_t value = 0;
+    this->Get(value);
+    val = value;
+    return *this;
+}

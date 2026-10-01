@@ -283,3 +283,60 @@ bool CGMailInfo::IsSendItem(WOWGUID item) {
 
     return false;
 }
+
+// VERIFY: 5655f664 manual
+// OFFSET: 0x0056DAF0
+int32_t Packet_MSG_QUERY_NEXT_MAIL_TIME(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    msg->Get(CGMailInfo::m_nextMailTime);
+    uint32_t count;
+    msg->Get(count);
+
+    for (uint32_t i = 0; i < count; i++) {
+        if (i >= 3) {
+            break;
+        }
+
+        MailSenderInfo& sender = s_recentSenders[i];
+        msg->Get(sender.m_guid.m_guid);
+        msg->Get(reinterpret_cast<uint32_t&>(sender.m_entry));
+        msg->Get(reinterpret_cast<uint32_t&>(sender.unk_000C));
+        msg->Get(reinterpret_cast<uint32_t&>(sender.unk_0010));
+        msg->Get(sender.unk_0014);
+    }
+
+    for (uint32_t i = count; i < 3; i++) {
+        MailSenderInfo& sender = s_recentSenders[i];
+        sender.unk_0014 = 0.0f;
+        sender.m_guid = WOWGUID();
+        sender.m_entry = 0;
+        sender.unk_000C = 0;
+        sender.unk_0010 = 0;
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_PENDING_MAIL, nullptr);
+    return 1;
+}
+
+// VERIFY: 7438366f manual
+// OFFSET: 0x00571630
+void CGMailInfo::ShutdownGame() {
+    uint32_t count = CGMailInfo::m_stationeries.m_count;
+
+    for (uint32_t i = 0; i < count; i++) {
+        delete CGMailInfo::m_stationeries.m_data[i];
+    }
+
+    CGMailInfo::m_stationeries.Clear();
+    count = CGMailInfo::m_inbox.m_count;
+
+    for (uint32_t i = 0; i < count; i++) {
+        delete CGMailInfo::m_inbox.m_data[i];
+    }
+
+    CGMailInfo::m_inbox.Clear();
+    ClientServices::ClearMessageHandler(SMSG_MAIL_COMMAND_RESULT);
+    ClientServices::ClearMessageHandler(SMSG_MAIL_LIST_RESULT);
+    ClientServices::ClearMessageHandler(MSG_QUERY_NEXT_MAIL_TIME);
+    ClientServices::ClearMessageHandler(SMSG_RECEIVED_MAIL);
+    ClientServices::ClearMessageHandler(SMSG_SHOW_MAILBOX);
+}

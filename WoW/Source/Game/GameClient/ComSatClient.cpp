@@ -94,6 +94,9 @@ int32_t s_comsatDisabledByClient;
 // STATIC: 0x00D37D5C
 SCritSect s_comsatDeviceLock;
 
+// STATIC: 0x00D37DD8
+static int32_t s_lastFoundSession;
+
 // STATIC: 0x00AF29B4
 int32_t s_currentSession = -1;
 
@@ -446,4 +449,41 @@ const char* ComSatClient_GetCurrentSessionName() {
     }
 
     return nullptr;
+}
+
+// VERIFY: b9f375ed manual
+// OFFSET: 0x007DB560
+int32_t ComSatClient_HasSession(int32_t type, const char* name) {
+    return ComSatClient_FindSessionByTypeAndName(type, name) >= 0;
+}
+
+// VERIFY: 1f2e0bf3 manual
+// OFFSET: 0x007DB400
+int32_t ComSatClient_FindSessionByTypeAndName(int32_t type, const char* name) {
+    int32_t cached = s_lastFoundSession;
+
+    if (s_comsatData[cached].m_type == type) {
+        if (type) {
+            return cached;
+        }
+
+        if (!SStrCmpUTF8I(s_comsatData[cached].m_name, name, 0x7FFFFFFF)) {
+            return s_lastFoundSession;
+        }
+    }
+
+    if (!type && !name) {
+        return -1;
+    }
+
+    for (int32_t i = 0; i < 32; i++) {
+        COMSATDATA* data = &s_comsatData[i];
+
+        if (data->m_sessionID && data->m_type == type && (type || !SStrCmpUTF8I(data->m_name, name, 0x7FFFFFFF))) {
+            s_lastFoundSession = i;
+            return i;
+        }
+    }
+
+    return -1;
 }

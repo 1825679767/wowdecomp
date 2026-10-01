@@ -9,6 +9,8 @@
 #include "WoW/Source/Glue/CGlueMgr.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "ThirdParty/zlib/zlib.h"
+#include "WoW/Source/Client.h"
+#include "Engine/Source/Event/Event.h"
 
 // STATIC: 0x00AD94E0
 static AccountDataInfo s_accountData[] = {
@@ -312,7 +314,50 @@ void DownloadAccountData(int32_t type) {
     s_accountData[type].m_downloading = true;
 }
 
-// VERIFY: ffb25893 manual
+// VERIFY: e1dd25e9 manual
+// OFFSET: 0x006B9340
+static int32_t SaveTimerHandler(const void* data, void* param) {
+    int32_t type = static_cast<int32_t>(reinterpret_cast<intptr_t>(param));
+    AccountDataInfo& info = s_accountData[type];
+    uint8_t digest[16];
+    MD5AccountFile(info.m_cacheFile, digest, info.m_global);
+
+    if (!memcmp(digest, info.m_md5, sizeof(digest))) {
+        info.m_changed = false;
+        info.m_time = info.m_serverTime;
+        SaveCachedChecksums(info.m_global);
+    } else {
+        UploadAccountData(type);
+    }
+
+    info.unk_0020 = 0;
+    return 1;
+}
+
+// VERIFY: e2437ae6 auto
+// OFFSET: 0x006B9440
+static void ScheduleAccountDataSave(int32_t type) {
+    AccountDataInfo& info = s_accountData[type];
+    info.m_changed = true;
+
+    if (!s_cvSynchronizeSettings->m_intValue) {
+        return;
+    }
+
+    CVar* cvar = CVar::Lookup(info.m_cvarName);
+
+    if ((cvar && !cvar->m_intValue) || info.m_localOnly) {
+        return;
+    }
+
+    if (info.unk_0020) {
+        ClientKillTimer(info.unk_0020, SaveTimerHandler, "SaveTimerHandler");
+        info.unk_0020 = 0;
+    }
+
+    info.unk_0020 = EventSetTimer(30000, SaveTimerHandler, reinterpret_cast<void*>(static_cast<intptr_t>(type)));
+}
+
 // OFFSET: 0x006B94C0
 static int32_t Packet_SMSG_ACCOUNT_DATA_TIMES(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint32_t serverTime = 0;
@@ -536,4 +581,39 @@ void AccountDataInitialize(bool global) {
         s_accountData[1].m_downloading = false;
         s_accountData[1].m_changed = true;
     }
+}
+
+// VERIFY: 8182067a auto
+// OFFSET: 0x006B9B90
+void AccountDataFlush() {
+    for (int32_t i = 0; i < static_cast<int32_t>(sizeof(s_accountData) / sizeof(s_accountData[0])); i++) {
+        if (s_accountData[i].unk_0020) {
+            ClientKillTimer(s_accountData[i].unk_0020, SaveTimerHandler, "SaveTimerHandler");
+            SaveTimerHandler(nullptr, reinterpret_cast<void*>(static_cast<intptr_t>(i)));
+        }
+    }
+}
+
+// VERIFY: aad4b10d auto
+// OFFSET: 0x006B9BE0
+void SaveAccountData(int32_t type, ACCOUNTDATALOADFUNC func, void* param) {
+    AccountDataInfo& info = s_accountData[type];
+
+    if (info.m_downloading) {
+        return;
+    }
+
+    HOSFILE localFile = OpenAccountFile(info.m_global, info.m_localFile, true);
+    HOSFILE cacheFile = OpenAccountFile(info.m_global, info.m_cacheFile, true);
+    func(localFile, cacheFile, param);
+
+    if (localFile != OS_INVALID_FILE) {
+        OsCloseFile(localFile);
+    }
+
+    if (cacheFile != OS_INVALID_FILE) {
+        OsCloseFile(cacheFile);
+    }
+
+    ScheduleAccountDataSave(type);
 }

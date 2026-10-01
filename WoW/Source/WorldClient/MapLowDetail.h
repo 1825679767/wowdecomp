@@ -30,6 +30,13 @@ class CMapAreaLow {
     CMapAreaLow();
 };
 
+class CMapAreaLowHeap {
+    public:
+    /* 0000 */ uint32_t m_heapId;
+
+    void Delete(CMapAreaLow* areaLow);
+};
+
 class CMapLowDetail {
     public:
     /* 0000 */ char* m_data;
@@ -45,6 +52,7 @@ class CMapLowDetail {
 
     void Load(const char* mapPath, const char* mapName);
     void Purge();
+    void Unload();
 };
 
 #endif

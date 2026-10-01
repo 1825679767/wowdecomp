@@ -1844,3 +1844,21 @@ int32_t CGItem_C::CanGoInSlot(int32_t itemId, uint32_t slot, int32_t bypass) {
 int32_t CGItem_C::CanGoInSlot(uint32_t slot, int32_t bypass) {
     return CGItem_C::CanGoInSlot(this->m_obj->m_entryID, slot, bypass);
 }
+
+// VERIFY: f2b21d47 auto
+// OFFSET: 0x00709DE0
+int32_t GetItemIDByName(const char* name) {
+    const char* link = SStrStr(name, "item:");
+
+    if (link) {
+        return SStrToInt(link + 5);
+    }
+
+    ITEMBYNAME* entry = s_itemByName.Ptr(name);
+
+    if (entry) {
+        return entry->m_itemId;
+    }
+
+    return 0;
+}

@@ -39,6 +39,14 @@ Liquid::IEnvironment::~IEnvironment() {
 Liquid::IGeomFactory::~IGeomFactory() {
 }
 
+// INLINED
+Liquid::IWaveManager::~IWaveManager() {
+}
+
+// INLINED
+Liquid::IMaterial::~IMaterial() {
+}
+
 // VERIFY: 4b95827e auto
 // OFFSET: 0x008A1770
 int32_t Liquid::Initialize(int32_t a1, float a2, int32_t a3, const char* a4, IDatabase<LiquidTypeRec>* liquidTypeDB, IDatabase<LiquidMaterialRec>* liquidMaterialDB) {

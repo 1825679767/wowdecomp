@@ -293,7 +293,6 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
 bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, WOWGUID target, PendingSpellCast* cast, bool confirmed);
 void UnitCombatLogCastStart(const WOWGUID& caster, const WOWGUID& target, int32_t spellId);
 void Spell_C_StopTargeting();
-void SpellTableDestroy();
 void SpellTableInitialize();
 
 int32_t Script_CancelUnitBuff(lua_State* L);

@@ -279,7 +279,7 @@ BspQuery::~BspQuery() {
     BspQuery::testFaceSub = 0;
 }
 
-// VERIFY: 1f9c3dca auto
+// VERIFY: 8fcd1fbd auto
 // OFFSET: 0x007C7710
 World::TriData::Batch* __stdcall World::TriData::AllocBatch(uint32_t indexCount, uint32_t faceCount) {
     if (World::TriData::nBatches + 1 >= 32 || indexCount + World::TriData::indexCursor >= 0xC000 || faceCount + World::TriData::faceIndexCursor >= 0x4000) {
@@ -291,7 +291,7 @@ World::TriData::Batch* __stdcall World::TriData::AllocBatch(uint32_t indexCount,
     batch->m_matrix = nullptr;
     batch->m_vertexList = nullptr;
     batch->m_normalList = nullptr;
-    batch->unk_000C = 0;
+    batch->m_heightList = nullptr;
     batch->m_indices = nullptr;
     batch->m_faceIndices = nullptr;
     batch->m_indexCount = 0;

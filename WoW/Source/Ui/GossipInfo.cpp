@@ -460,3 +460,11 @@ void CGGossipInfo::SelectGossipActiveQuest(int32_t index) {
         found++;
     }
 }
+
+// VERIFY: adc27a92 auto
+// OFFSET: 0x0058A520
+void CGGossipInfo::ShutdownGame() {
+    ClientServices::ClearMessageHandler(SMSG_GOSSIP_MESSAGE);
+    ClientServices::ClearMessageHandler(SMSG_GOSSIP_COMPLETE);
+    ClientServices::ClearMessageHandler(SMSG_GOSSIP_POI);
+}

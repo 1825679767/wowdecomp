@@ -210,7 +210,7 @@ void SSignatureVerifyStream_ProvideData(SSignatureData* token, const uint8_t* da
 
 const char* STORMAPI SStrAdvanceCharsUTF8(const char* string, size_t chars);
 char* SStrChr(const char* string, char search);
-char* SStrChrR(char* string, char search);
+char* SStrChrR(const char* string, char search);
 int32_t STORMAPI SStrCmp(const char* string1, const char* string2, size_t maxchars);
 int32_t STORMAPI SStrCmpI(const char* string1, const char* string2, size_t maxchars);
 int32_t STORMAPI SStrCmpUTF8I(const char* string1, const char* string2, size_t maxchars);

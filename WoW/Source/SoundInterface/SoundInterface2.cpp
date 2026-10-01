@@ -27,6 +27,7 @@
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "_Triage/AreaList.h"
+#include "Engine/Source/Tempest/CMath.h"
 
 // STATIC: 0x009F2010
 const char SI2::s_channelGroupNames[18][32] = {
@@ -71,6 +72,9 @@ const int32_t SI2::s_channelGroupMaxSounds[18] = {
     2,
     4,
 };
+
+// STATIC: 0x00AC384C
+static float s_unk_AC384C = 0.5f;
 
 // STATIC: 0x00B4A340
 int32_t SI2::s_channelGroupNumSounds[18];
@@ -1442,3 +1446,38 @@ void SI2::ForceUpdateZoneSounds() {
     AreaListUpdateSounds(zone, area, rootRec, groupRec, inside);
 }
 
+
+// VERIFY: 34fea195 manual
+// OFFSET: 0x004C5D60
+bool SI2::GetObjectPosition(uint64_t guid, C3Vector* position) {
+    CGObject_C* object = ClntObjMgrObjectPtr(WOWGUID{ guid }, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (object) {
+        *position = object->GetPosition();
+    }
+
+    return object != nullptr;
+}
+
+// VERIFY: 8084b184 manual
+// OFFSET: 0x004C6810
+int32_t SI2::GetChunkLocation(int32_t* mapId, int32_t* chunkX, int32_t* chunkY, int32_t* subchunkX, int32_t* subchunkY) {
+    *mapId = World::QueryMapId();
+    CGObject_C* player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__);
+
+    if (!player) {
+        return 0;
+    }
+
+    C3Vector position = player->GetPosition();
+    float x = -(position.x - 17066.666f);
+    float y = -(position.y - 17066.666f) * 0.029999999f;
+    *subchunkX = CMath::fint_(y - s_unk_AC384C);
+    x *= 0.029999999f;
+    *subchunkY = CMath::fint_(x - s_unk_AC384C);
+    *chunkX = (*subchunkX >> 4) & 0x3F;
+    *chunkY = (*subchunkY >> 4) & 0x3F;
+    *subchunkX &= 0xF;
+    *subchunkY &= 0xF;
+    return 1;
+}

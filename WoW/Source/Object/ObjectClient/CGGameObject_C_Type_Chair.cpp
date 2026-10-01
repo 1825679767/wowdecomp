@@ -69,3 +69,18 @@ bool CGGameObject_C_Type_Chair::CanUse() const {
 
     return true;
 }
+
+// VERIFY: 9259c9d2 manual
+// OFFSET: 0x004F55F0
+void GenerateChairPoints(const C44Matrix& matrix, uint32_t count, C3Vector* points, float offset) {
+    C3Vector point;
+    point.x = 0.0f;
+    point.y = -((static_cast<float>(count) - 1.0f) * 0.5f);
+    point.z = offset;
+
+    for (; count; count--) {
+        *points = point * matrix;
+        point.y += 1.0f;
+        points++;
+    }
+}

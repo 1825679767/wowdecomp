@@ -17,6 +17,7 @@ struct PetitionSignerInfo {
 
 class CGPetitionInfo {
     public:
+    static void ShutdownGame();
     static WOWGUID m_petitionGUID;
     static WOWGUID m_petitionItem;
     static uint32_t unk_C22B30;

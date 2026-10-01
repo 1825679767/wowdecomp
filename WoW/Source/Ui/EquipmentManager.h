@@ -46,6 +46,7 @@ class CGEquipmentManager {
     static int32_t SetContainsLockedItems(const EQUIPMENT_SET* set);
     static int32_t SetUsesLockedSlots(const EQUIPMENT_SET* set);
     static void InitializeGame();
+    static void ShutdownGame();
     static void EquipSet(int32_t id);
     static void GetFullIconPath(int32_t id, char* buffer, uint32_t size);
     static int32_t GetSetList(char* buffer, uint32_t size, const WOWGUID* item);

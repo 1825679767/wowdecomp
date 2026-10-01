@@ -53,6 +53,8 @@ class CGCalendarEvent {
     /* 054C */ uint32_t unk_054C;
     /* 0550 */ uint8_t unk_0550[3760];
     /* 1400 */ uint8_t unk_1400;
+
+    ~CGCalendarEvent();
 };
 
 #endif

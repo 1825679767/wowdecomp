@@ -184,3 +184,22 @@ int32_t Packet_SMSG_EQUIPMENT_SET_LIST(void* param, NETMESSAGE msgId, uint32_t t
     CGEquipmentManager::m_loaded = 1;
     return 1;
 }
+
+// VERIFY: 04c7f51f manual
+// OFFSET: 0x005AE1B0
+void CGEquipmentManager::ShutdownGame() {
+    ClientServices::ClearMessageHandler(SMSG_LOAD_EQUIPMENT_SET);
+    ClientServices::ClearMessageHandler(SMSG_EQUIPMENT_SET_ID);
+    ClientServices::ClearMessageHandler(SMSG_USE_EQUIPMENT_SET_RESULT);
+    CGEquipmentManager::m_swapPending = 0;
+    CGEquipmentManager::m_pendingSetID = 0;
+    CGEquipmentManager::m_loaded = 0;
+
+    for (EQUIPMENT_SET_NODE* node = CGEquipmentManager::s_equipmentSets.Head(); node; node = CGEquipmentManager::s_equipmentSets.Next(node)) {
+        ObjectFree(*CGEquipmentManager::s_equipmentSetHeap, node->m_set->m_handle);
+    }
+
+    CGEquipmentManager::s_equipmentSets.Clear();
+    delete CGEquipmentManager::s_equipmentSetHeap;
+    CGEquipmentManager::s_equipmentSetHeap = nullptr;
+}

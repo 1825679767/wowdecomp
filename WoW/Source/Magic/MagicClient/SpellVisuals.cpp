@@ -306,3 +306,58 @@ void SpellVisualsGetMountTransitionTransform(const MountTransitionObject* transi
     *up = transition->m_groundNormal;
     *facing = transition->m_facing;
 }
+
+// VERIFY: 77642498 manual
+// OFFSET: 0x007FCA30
+void SpellVisualsTick() {
+    uint32_t time = OsGetAsyncTimeMs();
+    LightningObject* lightning = s_lightningObjects.Head();
+
+    while (!s_lightningObjects.IsEnd(lightning)) {
+        LightningObject* next = s_lightningObjects.RawNext(lightning);
+
+        if (!lightning->Tick(time)) {
+            s_lightningObjects.UnlinkNode(lightning);
+
+            if (--lightning->m_refCount == 0) {
+                delete lightning;
+            }
+        }
+
+        lightning = next;
+    }
+
+    float elapsed = 0.0f;
+
+    if (s_unk_AF5090 != -1) {
+        elapsed = static_cast<float>((time - s_unk_AF5090) * 0.001);
+    }
+
+    s_unk_AF5090 = time;
+    s_lightningManager->Update(elapsed);
+    s_eclipse.Update(time);
+    BlizzardObject* blizzard = s_blizzardObjects.Head();
+
+    while (!s_blizzardObjects.IsEnd(blizzard)) {
+        BlizzardObject* next = s_blizzardObjects.RawNext(blizzard);
+
+        if (!blizzard->Update()) {
+            blizzard->~BlizzardObject();
+            s_blizzardObjectHeap.PutData(blizzard, nullptr, 0);
+        }
+
+        blizzard = next;
+    }
+
+    MountTransitionObject* transition = s_mountTransitions.Head();
+
+    while (!s_mountTransitions.IsEnd(transition)) {
+        MountTransitionObject* next = s_mountTransitions.RawNext(transition);
+
+        if (!transition->Tick()) {
+            s_mountTransitions.DeleteNode(transition);
+        }
+
+        transition = next;
+    }
+}

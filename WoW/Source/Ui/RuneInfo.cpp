@@ -299,3 +299,8 @@ bool CGRuneInfo::ComputeRuneSpellCooldown(const SpellRec* spell, uint32_t* coold
     *cooldown = blood <= other ? other : blood;
     return true;
 }
+
+// VERIFY: 31a366a2 auto
+// OFFSET: 0x005EEB70
+void CGRuneInfo::ShutdownGame() {
+}

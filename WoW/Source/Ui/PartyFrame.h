@@ -48,6 +48,7 @@ class CGPartyMemberState {
 
 class CGPartyInfo {
     public:
+    static void ChangeRaidDifficulty(int32_t heroic);
     static uint32_t m_memberRoles[4];
     static uint32_t unk_BD0D00;
     static uint32_t unk_BD1984;
@@ -55,6 +56,7 @@ class CGPartyInfo {
     static uint8_t unk_BD1989;
     static uint8_t m_playerRole;
     static void InitializeGame();
+    static void ShutdownGame();
     static void CheckClearLFGSlot();
     static int32_t IsMemberOrPet(const WOWGUID& guid);
     static void RegisterScriptFunctions();

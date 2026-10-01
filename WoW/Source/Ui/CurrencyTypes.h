@@ -25,6 +25,8 @@ class CurrencyTypesRec;
 
 class CGCurrencyTypes {
     public:
+    static CurrencyTypesRec* GetCurrencyRec(int32_t index);
+    static int32_t IsCurrencyShown(int32_t index);
     static int32_t m_listSize;
     static CurrencyListEntry m_list[95];
     static CurrencyCategoryInfo m_categories[32];
@@ -35,6 +37,7 @@ class CGCurrencyTypes {
     static int32_t CurrencyCategorySortCallback(const void* a, const void* b);
     static int32_t DisplayListSortCallback(const void* a, const void* b);
     static void InitializeGame();
+    static void ShutdownGame();
     static void EnterWorld();
 };
 

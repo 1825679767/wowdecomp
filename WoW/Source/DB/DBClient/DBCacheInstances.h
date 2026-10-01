@@ -56,6 +56,7 @@ template <>
 void DBCache<NameCache, uint64_t, CHashKeyGUID>::AddItem(NameCache* item, uint64_t key);
 
 void DBCache_ClearHandlers();
+void DBCache_ClearPending();
 void DBCache_Destroy();
 void DBCache_Idle();
 void DBCache_Initialize();

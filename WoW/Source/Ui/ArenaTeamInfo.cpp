@@ -201,3 +201,14 @@ void CGArenaTeamInfo::UpdateTeams(int32_t signal) {
 void CGArenaTeamInfo::EnterWorld() {
     CGArenaTeamInfo::UpdateTeams(0);
 }
+
+// VERIFY: 05e453ae auto
+// OFFSET: 0x005A3DD0
+void CGArenaTeamInfo::ShutdownGame() {
+    ClientServices::ClearMessageHandler(SMSG_ARENA_TEAM_ROSTER);
+    ClientServices::ClearMessageHandler(SMSG_ARENA_TEAM_STATS);
+
+    for (uint32_t i = 0; i < 3; i++) {
+        CGArenaTeamInfo::m_arenaTeams[i].FreeMemberArray();
+    }
+}

@@ -159,6 +159,8 @@
 #include <ctime>
 #include "WoW/Source/WowServices/WDataStore.h"
 #include "WoW/Source/Object/ObjectClient/Movement_C.h"
+#include "WoW/Source/Object/ObjectClient/Trade_C.h"
+#include "Engine/Source/Services/AsyncFile.h"
 
 // STATIC: 0x00ACC3F8
 static CImVector s_deadSelectionColor = CImVector(0x7F, 0x7F, 0x7F, 0xFF);
@@ -969,6 +971,12 @@ WOWGUID CGGameUI::m_cursorItem;
 // STATIC: 0x00BD0774
 CGTooltip* CGGameUI::m_gameTooltip;
 
+// STATIC: 0x00BD0C24
+static int32_t s_unk_BD0C24;
+
+// STATIC: 0x00BD0C40
+static TSHashTable<TAINTEVENT, HASHKEY_STR> s_taintEvents;
+
 // STATIC: 0x00BD0778
 CSimpleFrame* CGGameUI::m_UISimpleParent;
 
@@ -1097,9 +1105,6 @@ int32_t CGGameUI::m_iCurrentMapID;
 
 // STATIC: 0x00BD0894
 uint32_t CGGameUI::m_instanceDifficulty;
-
-// STATIC: 0x00BD1980
-uint32_t CGGameUI::unk_BD1980;
 
 // STATIC: 0x00BD0898
 uint32_t CGGameUI::m_dungeonDifficulty;
@@ -5222,7 +5227,7 @@ void CGGameUI::UpdateAreaSpiritHealerTime(WOWGUID guid, int32_t time) {
     }
 }
 
-// VERIFY: 69109a0f manual
+// VERIFY: 5827fa27 manual
 // OFFSET: 0x00526530
 int32_t CGGameUI::MessageHandler(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     switch (msgId) {
@@ -5470,7 +5475,7 @@ int32_t CGGameUI::MessageHandler(void* param, NETMESSAGE msgId, uint32_t time, C
             uint32_t unk;
             msg->Get(difficulty);
             msg->Get(unk);
-            CGGameUI::unk_BD1980 = unk;
+            CGPartyInfo::m_dynamicDifficulty = unk;
             CGGameUI::m_instanceDifficulty = difficulty;
             return 1;
         }
@@ -5821,6 +5826,61 @@ void CGGameUI::SetDungeonDifficulty(uint32_t difficulty, uint32_t unk, uint32_t 
     }
 }
 
+// VERIFY: dad7dd6b manual
+// OFFSET: 0x00524780
+void CGGameUI::SendRaidDifficultyMessage() {
+    char token[64];
+    MapRec* map = g_mapDB.GetRecord(CGGameUI::m_iCurrentMapID);
+
+    if (map && (map->m_flags & 0x100)) {
+        SStrPrintf(token, sizeof(token), "RAID_DIFFICULTY%d", CGGameUI::GetCurrentRaidDifficulty() + 1);
+        CGGameUI::DisplayError(ERR_RAID_LOCKOUT_CHANGED_S, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE));
+        SStrPrintf(token, sizeof(token), "PLAYER_DIFFICULTY%d", CGPartyInfo::m_dynamicDifficulty + 1);
+        CGGameUI::DisplayError(ERR_PLAYER_DIFFICULTY_CHANGED_S, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE));
+        return;
+    }
+
+    map = g_mapDB.GetRecord(CGGameUI::m_iCurrentMapID);
+
+    if (map->m_instanceType == 2) {
+        MapDifficultyRec* difficulty = GetMapDifficultyEntryByMapIdAndDifficulty(CGGameUI::m_iCurrentMapID, CGGameUI::m_instanceDifficulty, nullptr);
+        CGGameUI::DisplayError(ERR_RAID_DIFFICULTY_CHANGED_S, FrameScript_GetText(difficulty->m_difficultystring, -1, GENDER_NOT_APPLICABLE));
+    } else {
+        SStrPrintf(token, sizeof(token), "RAID_DIFFICULTY%d", CGGameUI::GetCurrentRaidDifficulty() + 1);
+        CGGameUI::DisplayError(ERR_RAID_DIFFICULTY_CHANGED_S, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE));
+    }
+}
+
+// VERIFY: 28031d67 manual
+// OFFSET: 0x005255A0
+void CGGameUI::SetRaidDifficulty(uint32_t difficulty, uint32_t unk, uint32_t inGroup) {
+    uint32_t previous = CGGameUI::GetCurrentRaidDifficulty();
+
+    if (unk) {
+        CGGameUI::m_raidDifficulty = difficulty;
+    }
+
+    if (inGroup) {
+        MapRec* map = g_mapDB.GetRecord(CGGameUI::m_iCurrentMapID);
+
+        if (map && (map->m_flags & 0x100)) {
+            CGPartyInfo::ChangeRaidDifficulty(difficulty > 1);
+        } else {
+            CGPartyInfo::m_raidDifficulty = difficulty;
+        }
+    }
+
+    uint32_t dungeonDifficulty = CGGameUI::GetCurrentDungeonDifficulty();
+
+    if (previous != CGGameUI::GetCurrentRaidDifficulty()) {
+        CGGameUI::SendRaidDifficultyMessage();
+    }
+
+    if (dungeonDifficulty != CGGameUI::GetCurrentDungeonDifficulty()) {
+        CGGameUI::ShowDungeonDifficultyChanged();
+    }
+}
+
 // VERIFY: fc4f2074 manual
 // OFFSET: 0x0057EA60
 void CGGameUI::LoadMinimapTrackingState(const char* state) {
@@ -5834,5 +5894,305 @@ void CGGameUI::LoadMinimapTrackingState(const char* state) {
             CGMinimapFrame::LoadTrackingInfo(&info);
             return;
         }
+    }
+}
+
+// VERIFY: be336278 manual
+// OFFSET: 0x00529160
+void CGGameUI::ShutdownGame() {
+    CGGameUI::Shutdown();
+    PortraitShutdown();
+    CGMinimapFrame::ShutdownGame();
+    CGChat::ShutdownGame();
+    CGPartyInfo::ShutdownGame();
+    CGSpellBook::ShutdownGame();
+    CGActionBar::ShutdownGame();
+    CGLootInfo::ShutdownGame();
+    CGItemText::ShutdownGame();
+    CGGossipInfo::ShutdownGame();
+    CGQuestLog::ShutdownGame();
+    CGTaxiMap::ShutdownGame();
+    CGClassTrainer::ShutdownGame();
+    CGTradeSkillInfo::ShutdownGame();
+    CGPetInfo::ShutdownGame();
+    CGWorldMap::ShutdownGame();
+    CGReputationInfo::ShutdownGame();
+    CGDuelInfo::ShutdownGame();
+    CGTutorial::ShutdownGame();
+    CGSkillInfo::ShutdownGame();
+    CGGuildInfo::ShutdownGame();
+    CGMailInfo::ShutdownGame();
+    CGBattlefieldInfo::ShutdownGame();
+    CGTalentInfo::ShutdownGame();
+    CGTalentInfo_Inspect::ShutdownGame();
+    CGAuctionHouse::ShutdownGame();
+    CGStableInfo::ShutdownGame();
+    CGRaidInfo::ShutdownGame();
+    CGChatBubbleFrame::ShutdownGame();
+    CGCharacterInfo::ShutdownGame();
+    CGWorldStateInfo::ShutdownGame();
+    CGMinigameInfo::ShutdownGame();
+    CGArenaTeamInfo::ShutdownGame();
+    CGLookingForGroup::ShutdownGame();
+    CGPetitionInfo::ShutdownGame();
+    CGCommentator::ShutdownGame();
+    CGCalendar::ShutdownGame();
+    CGDanceStudio::ShutdownGame();
+    CGBarberShop::ShutdownGame();
+    CGGuildBankInfo::ShutdownGame();
+    CGAchievementInfo::ShutdownGame();
+    CGRuneInfo::ShutdownGame();
+    CGCurrencyTypes::ShutdownGame();
+    CGEquipmentManager::ShutdownGame();
+    CGAutoCompleteName::m_list.Clear();
+    CGGMTicketInfo::ShutdownGame();
+    CGGMSurveyInfo::ShutdownGame();
+    FrameScript_Flush();
+
+    for (uint32_t i = 0; i < sizeof(s_readOnlyCVars) / sizeof(s_readOnlyCVars[0]); i++) {
+        CVar* var = CVar::Lookup(s_readOnlyCVars[i]);
+
+        if (var) {
+            var->SetReadOnly(false);
+        }
+    }
+
+    CGGameUI::m_areaID = 0;
+    CGGameUI::m_subzoneID = 0;
+    CGGameUI::m_wmoGroupID = 0;
+
+    if (CGGameUI::m_zoneText) {
+        SMemFree(const_cast<char*>(CGGameUI::m_zoneText), __FILE__, __LINE__, 0);
+    }
+
+    CGGameUI::m_zoneText = nullptr;
+
+    if (CGGameUI::m_subZoneText) {
+        SMemFree(const_cast<char*>(CGGameUI::m_subZoneText), __FILE__, __LINE__, 0);
+    }
+
+    CGGameUI::m_subZoneText = nullptr;
+
+    if (CGGameUI::m_realZoneText) {
+        SMemFree(const_cast<char*>(CGGameUI::m_realZoneText), __FILE__, __LINE__, 0);
+    }
+
+    CGGameUI::m_realZoneText = nullptr;
+
+    if (CGGameUI::m_minimapZoneText) {
+        SMemFree(const_cast<char*>(CGGameUI::m_minimapZoneText), __FILE__, __LINE__, 0);
+    }
+
+    CGGameUI::m_minimapZoneText = nullptr;
+    CGGameUI::s_threatMap.Clear();
+
+    for (int32_t i = 0; i < 3; i++) {
+        MirrorTimerInfo& timer = CGGameUI::m_mirrorTimerInfo[i];
+        timer.m_type = 3;
+        timer.unk_0018 = 0;
+        timer.m_spellId = 0;
+        timer.m_paused = 0;
+        timer.m_scale = 0;
+        timer.m_maxValue = 0;
+        timer.m_value = 0;
+    }
+
+    ClientServices::ClearMessageHandler(SMSG_PVP_CREDIT);
+    ClientServices::ClearMessageHandler(MSG_CORPSE_QUERY);
+    ClientServices::ClearMessageHandler(SMSG_CORPSE_RECLAIM_DELAY);
+    ClientServices::ClearMessageHandler(SMSG_GM_PLAYER_INFO);
+    ClientServices::ClearMessageHandler(CMSG_GM_REQUEST_PLAYER_INFO);
+    ClientServices::ClearMessageHandler(SMSG_PLAY_MUSIC);
+    ClientServices::ClearMessageHandler(SMSG_PLAY_SOUND);
+    ClientServices::ClearMessageHandler(SMSG_PLAY_OBJECT_SOUND);
+    ClientServices::ClearMessageHandler(SMSG_TRIGGER_MOVIE);
+    ClientServices::ClearMessageHandler(SMSG_AREA_TRIGGER_MESSAGE);
+    ClientServices::ClearMessageHandler(SMSG_AREA_TRIGGER_NO_CORPSE);
+    ClientServices::ClearMessageHandler(SMSG_INIT_WORLD_STATES);
+    ClientServices::ClearMessageHandler(SMSG_UPDATE_WORLD_STATE);
+    ClientServices::ClearMessageHandler(SMSG_AREA_SPIRIT_HEALER_TIME);
+    ClientServices::ClearMessageHandler(SMSG_INVALID_PROMOTION_CODE);
+    ClientServices::ClearMessageHandler(SMSG_WEATHER);
+    ClientServices::ClearMessageHandler(SMSG_OVERRIDE_LIGHT);
+    ClientServices::ClearMessageHandler(SMSG_INSTANCE_DIFFICULTY);
+    ClientServices::ClearMessageHandler(MSG_SET_DUNGEON_DIFFICULTY);
+    ClientServices::ClearMessageHandler(MSG_SET_RAID_DIFFICULTY);
+    ClientServices::ClearMessageHandler(SMSG_UPDATE_COMBO_POINTS);
+    ClientServices::ClearMessageHandler(SMSG_PHASE_SHIFT_CHANGE);
+    ClientServices::ClearMessageHandler(SMSG_TOTEM_CREATED);
+    ClientServices::ClearMessageHandler(SMSG_START_MIRROR_TIMER);
+    ClientServices::ClearMessageHandler(SMSG_PAUSE_MIRROR_TIMER);
+    ClientServices::ClearMessageHandler(SMSG_STOP_MIRROR_TIMER);
+    ClientServices::ClearMessageHandler(SMSG_PROPOSE_LEVEL_GRANT);
+    ClientServices::ClearMessageHandler(SMSG_REFER_A_FRIEND_FAILURE);
+    ClientServices::ClearMessageHandler(SMSG_REFER_A_FRIEND_EXPIRED);
+    ClientServices::ClearMessageHandler(SMSG_BREAK_TARGET);
+    ClientServices::ClearMessageHandler(SMSG_CORPSE_MAP_POSITION_QUERY_RESPONSE);
+    ClientServices::ClearMessageHandler(SMSG_REMOVED_FROM_PVP_QUEUE);
+    ClientServices::ClearMessageHandler(SMSG_UI_TIME);
+    ClientServices::ClearMessageHandler(SMSG_TALENTS_INVOLUNTARILY_RESET);
+}
+
+// VERIFY: 39e91d8f manual
+// OFFSET: 0x00528F00
+void CGGameUI::Shutdown() {
+    CGGameUI::unk_BD08C4++;
+    g_theGxDevicePtr->RemoveTextureRecreationCallback(UpdateAllPortraits);
+    g_theGxDevicePtr->RemoveDeviceRestoredCallback(UpdateAllPortraits);
+    CGChat::LeaveWorld();
+    CGGameUI::unk_BD08CC = 0;
+
+    if (CGGameUI::m_lockedTarget != WOWGUID()) {
+        CGGameUI::m_lastTarget = CGGameUI::m_lockedTarget;
+        CGGameUI::ClearTarget(CGGameUI::m_lockedTarget, 1);
+
+        if (Spell_C_GetAutoRepeatingSpell()) {
+            Spell_C_CancelAutoRepeat(true);
+        }
+    }
+
+    CGGameUI::SetFocusTarget(WOWGUID());
+    Trade_C_CancelTrade();
+    CGTradeSkillInfo::Close();
+
+    if (!(SFile::IsStreamingMode() | SFile::IsTrial())) {
+        AsyncFileReadWaitAll();
+    }
+
+    if (ClntObjMgrGetActivePlayer() != WOWGUID()) {
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (player) {
+            player->ClearTrackingTarget(false, true);
+
+            if (player->m_unit->m_unitFieldFlags & 0x80000) {
+                CGGameUI::m_simpleTop->m_allowProtectedActions = 1;
+                FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_REGEN_ENABLED, nullptr);
+                CGGameUI::UpdateCombatMode();
+            }
+        }
+
+        CGGameUI::LeaveWorld();
+    }
+
+    CGLCD::Logout();
+    FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_LOGOUT, nullptr);
+    ClearUniqueSignals();
+    CGGameUI::m_initialized = 0;
+    DBCache_ClearPending();
+    CSimpleScriptManager::Destroy();
+    CGUnit_C::NamePlateClearAll();
+    CGChatBubbleFrame::ClearAll();
+    CGWorldMap::ClearArrowFrames();
+    CGChat::SaveChatSettings();
+    CGUIMacros::SaveMacros();
+    CGUIMacros::Shutdown();
+    CGUIBindings::SaveBindings();
+    CGUIBindings::Shutdown();
+    CGQuestLog::SaveTrackedQuests();
+    CGAchievementInfo::SaveTrackedAchievements();
+    CGTutorial::SaveFlaggedTutorials();
+    CGGameUI::SaveSavedVariables();
+    SaveAccountData(6, SavePlacedFrames, CGGameUI::m_simpleTop);
+    SaveAccountData(0, SaveGameCVarsCallback, reinterpret_cast<void*>(16));
+    SaveAccountData(1, SaveGameCVarsCallback, reinterpret_cast<void*>(32));
+    CVar::SaveAll();
+    CVar::DeleteCharacterCVars();
+    AccountDataFlush();
+    UnloadAddOns();
+    SaveAddOnEnableState();
+
+    if (CGGameUI::m_simpleTop) {
+        delete CGGameUI::m_simpleTop;
+        CGGameUI::m_simpleTop = nullptr;
+        CGGameUI::m_UISimpleParent = nullptr;
+        CGGameUI::m_gameTooltip = nullptr;
+    }
+
+    CursorDestroy();
+
+    if (SFile::IsTrial()) {
+        StreamingSetState(0);
+    }
+
+    UnloadScriptFunctions();
+    EventUnregister(EVENT_ID_IDLE, CGGameUI::Idle);
+    DisableFadingScreen(0.0f, nullptr, nullptr);
+    CGChat::Resume();
+
+    if (s_taintLog) {
+        SLogClose(s_taintLog);
+        s_taintLog = nullptr;
+    }
+
+    s_unk_BD0C24 = 0;
+    s_taintEvents.InternalClear(0);
+}
+
+// VERIFY: 39aaac88 manual
+// OFFSET: 0x0051A1D0
+int32_t IsInFlyableArea() {
+    AreaTableRec* area = g_areaTableDB.GetRecord(CGGameUI::m_subzoneID);
+
+    if (!area) {
+        area = g_areaTableDB.GetRecord(CGGameUI::m_areaID);
+    }
+
+    if (area && (area->m_flags & 0x400) && !(area->m_flags & 0x20000000)) {
+        return 1;
+    }
+
+    return 0;
+}
+
+// VERIFY: 1314bc98 manual
+// OFFSET: 0x00527130
+void CGGameUI::SaveSavedVariables() {
+    int32_t created = 0;
+
+    for (int32_t i = 0; i < 2; i++) {
+        char path[260];
+
+        if (i) {
+            SStrPrintf(path, sizeof(path), "WTF\\Account\\%s\\%s\\%s", ClientServices::GetAccountName(), ClientServices::GetSelectedRealmName(), ClientServices::GetCharacterName());
+        } else {
+            SStrPrintf(path, sizeof(path), "WTF\\Account\\%s", ClientServices::GetAccountName());
+        }
+
+        if (!OsDirectoryExists(path)) {
+            OsCreateDirectory(path, 1);
+        }
+
+        SStrPack(path, "\\SavedVariables.lua", sizeof(path));
+
+        if (OsFileExists(path)) {
+            char backup[260];
+            SStrCopy(backup, path, sizeof(backup));
+            SStrPack(backup, ".bak", sizeof(backup));
+            OsMoveFile(path, backup);
+        } else {
+            created = 1;
+        }
+
+        HOSFILE file = OsCreateFile(path, OS_GENERIC_WRITE, 0, OS_CREATE_ALWAYS, OS_FILE_ATTRIBUTE_NORMAL, OS_FILE_TYPE_ANY);
+
+        if (file == OS_INVALID_FILE) {
+            return;
+        }
+
+        for (SAVEDVARIABLE* variable = CGGameUI::s_savedVariables[i].m_fulllist.Head(); variable; variable = CGGameUI::s_savedVariables[i].Next(variable)) {
+            HASHKEY_STR name;
+            name = variable->m_key.m_str;
+            FrameScript_PrintVariable(file, name.m_str);
+        }
+
+        uint32_t written;
+        OsWriteFile(file, "\r\n", 2, &written);
+        OsCloseFile(file);
+        CGGameUI::s_savedVariables[i].Clear();
+    }
+
+    if (created) {
+        SFile::RebuildHash();
     }
 }

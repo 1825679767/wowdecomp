@@ -127,7 +127,6 @@ int32_t Script_UnitIsSameServer(lua_State* L);
 int32_t Script_GetUnitHealthModifier(lua_State* L);
 int32_t Script_GetUnitMaxHealthModifier(lua_State* L);
 int32_t Script_GetUnitPowerModifier(lua_State* L);
-int32_t Script_GetUnitManaRegenRateFromSpirit(lua_State* L);
 int32_t Script_GetManaRegen(lua_State* L);
 int32_t Script_GetPowerRegen(lua_State* L);
 int32_t Script_GetRuneCount(lua_State* L);
@@ -150,7 +149,6 @@ int32_t Script_UnitSwitchToVehicleSeat(lua_State* L);
 int32_t Script_CanSwitchVehicleSeat(lua_State* L);
 int32_t Script_GetVehicleUIIndicator(lua_State* L);
 int32_t Script_GetVehicleUIIndicatorSeat(lua_State* L);
-int32_t Script_UnitDetailedThreatSituation(lua_State* L);
 int32_t Script_UnitIsControlling(lua_State* L);
 int32_t Script_EjectPassengerFromSeat(lua_State* L);
 int32_t Script_CanEjectPassengerFromSeat(lua_State* L);
@@ -2621,6 +2619,47 @@ static int32_t Script_UnitThreatSituation(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 8d073de3 manual
+// OFFSET: 0x00613B40
+static int32_t Script_UnitDetailedThreatSituation(lua_State* L) {
+    WOWGUID unitGuid;
+    WOWGUID mobGuid;
+
+    if (!Script_GetGUIDFromToken(lua_tolstring(L, 1, nullptr), unitGuid, false) || !Script_GetGUIDFromToken(lua_tolstring(L, 2, nullptr), mobGuid, false)) {
+        luaL_error(L, "Usage: UnitDetailedThreatSituation(\"unit\" [, \"mob\"])");
+        return 0;
+    }
+
+    CGUnit_C* mob = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(mobGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!mob) {
+        return 0;
+    }
+
+    uint8_t status;
+    uint8_t rawPercent;
+    float percent;
+    int32_t threat;
+    mob->CalculateThreat(unitGuid, &status, &rawPercent, &percent, &threat);
+
+    if (!status) {
+        return 0;
+    }
+
+    if (mob->m_highestThreatGuid == unitGuid) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    lua_pushnumber(L, status - 1);
+    lua_pushnumber(L, percent);
+    lua_pushnumber(L, rawPercent);
+    lua_pushnumber(L, threat);
+
+    return 5;
+}
+
 // VERIFY: 4231ad42 auto
 // OFFSET: 0x00614CA0
 static int32_t Script_UnitBuff(lua_State* L) {
@@ -3376,6 +3415,24 @@ void SystemUnregisterFunctions() {
     for (uint32_t i = 0; i < sizeof(s_SystemFunctions) / sizeof(s_SystemFunctions[0]); i++) {
         FrameScript_UnregisterFunction(s_SystemFunctions[i].m_name);
     }
+}
+
+// VERIFY: a8ddc867 auto
+// OFFSET: 0x00612A00
+static int32_t Script_GetUnitManaRegenRateFromSpirit(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: GetUnitManaRegenRateFromSpirit(\"unit\")");
+    }
+
+    CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
+
+    if (unit && (unit->IsActivePlayer() || unit->m_unit->m_unitFieldPetnumber)) {
+        lua_pushnumber(L, unit->GetManaRegenRateFromSpirit() + 0.001);
+    } else {
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 1;
 }
 
 // STATIC: 0x00AD21D8

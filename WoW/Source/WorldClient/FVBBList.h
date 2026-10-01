@@ -21,11 +21,13 @@ class FVBBList {
     /* 0000 */ CGxPool* m_pool;
     /* 0004 */ uint32_t m_blockSize;
     /* 0008 */ TSExplicitList<Block, offsetof(Block, m_link)> m_blocks;
+    /* 0014 */ TSExplicitList<Block, offsetof(Block, m_link)> m_usedBlocks;
 
     void Destroy();
     void Initialize(EGxPoolTarget target, EGxPoolUsage usage, uint32_t itemSize, uint32_t itemCount, uint32_t blockCount);
     void Release(Block* block);
     void AcquireBlock(Block** owner);
+    Block* AllocBlock(Block** owner);
 };
 
 #endif

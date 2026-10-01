@@ -43,6 +43,7 @@ int32_t RTAlphaSupported();
 void __fastcall UpdateAllPortraits();
 
 void PortraitInitialize();
+void PortraitShutdown();
 void UpdatePendingPortraits();
 void SetPortraitTexture(CSimpleTexture* texture, const char* fileName);
 void SetPortraitTexture(CSimpleTexture* texture, uint32_t race, uint32_t sex, WOWGUID guid);

@@ -1948,3 +1948,22 @@ void CGActionBar::PickupAction(uint32_t slot) {
         CGActionBar::RemoveAction(slot);
     }
 }
+
+// VERIFY: 01a1fb58 auto
+// OFFSET: 0x005EEB70
+void CGActionBar::ShutdownGame() {
+}
+
+// VERIFY: 58205ae6 auto
+// OFFSET: 0x005A7A90
+int32_t CGActionBar::GetMacroItem(uint32_t slot) {
+    uint32_t action = CGActionBar::m_slotActions[slot];
+    uint32_t macroId = (action && (action & 0xF0000000) == 0x40000000) ? action & 0xBFFFFFFF : 0;
+    MACRONODE* macro = CGUIMacros::GetMacroByID(macroId);
+
+    if (macro) {
+        return macro->m_itemID;
+    }
+
+    return 0;
+}

@@ -43,10 +43,13 @@ void MacroQueryCastSequence(MacroSubstring* text);
 
 class CGUIMacros {
     public:
+    static void SaveMacros();
+    static void Shutdown();
     static uint32_t m_state;
     static const char* m_macroRunning;
     static MACRONODE* m_macroButton;
     static uint32_t m_numMacros[2];
+    static int32_t m_saveMacros;
     static uint32_t m_sortedMacros[72];
 
     static MACRONODE* FindMacro(const char* name);
@@ -63,6 +66,7 @@ class CGUIMacros {
     static void CheckActionBar();
     static void LoadMacros();
     static void LoadMacrosCallback(HOSFILE localFile, HOSFILE cacheFile, void* param);
+    static void SaveMacrosCallback(HOSFILE localFile, HOSFILE cacheFile, void* param);
     static void RunMacro(MACRONODE* macro, const char* button);
     static void UpdateDynamicMacros();
     static void RunMacro(int32_t id, const char* button);
