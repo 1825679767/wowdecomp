@@ -219,7 +219,11 @@ TSGrowableArray<AreaPOIRec*>* MinimapGetPOI(int32_t* changed);
 float MinimapGetViewRadius();
 AreaPOIRec* MinimapGetGossipPoi();
 void UpdatePointsOfInterest();
+void RefreshWorldStatePOIs(uint32_t state);
 void MinimapSetCorpsePOI(float x, float y);
 void MinimapSetSpiritHealerPOI(float x, float y);
+
+int32_t MinimapGetZoom();
+int32_t MinimapGetZoomLevels();
 
 #endif

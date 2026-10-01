@@ -8,6 +8,7 @@
 #include "WoW/Source/WorldClient/Mists.h"
 #include "WoW/Source/WorldClient/Rain.h"
 #include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Tempest/CImVector.h"
 
 struct CVar;
 class WeatherRec;
@@ -18,7 +19,9 @@ struct SnowFlakeParticleBuffer;
 
 class Snow {
     public:
-    /* 0000 */ int32_t m_useWeatherShaders;
+    /* 0000 */ uint8_t m_useWeatherShaders;
+    /* 0001 */ uint8_t m_fadeOut;
+    /* 0002 */ uint8_t unk_0002[2];
     /* 0004 */ CAaBox m_bbox;
     /* 001C */ Mists m_mists;
     /* 0070 */ int32_t unk_0070;
@@ -36,7 +39,9 @@ class Snow {
     /* 00A0 */ int32_t unk_00A0;
     /* 00A4 */ int32_t unk_00A4;
 
+    Snow(float a1, float a2);
     ~Snow();
+    int32_t CountActivePackets();
     void Render();
 };
 
@@ -89,6 +94,8 @@ class WeatherGrid : public WeatherGridBase {
 };
 
 struct PosDelta : public TSLinkedNode<PosDelta> {
+    /* 0008 */ C3Vector m_delta;
+    /* 0014 */ uint32_t m_time;
 };
 
 class Sand;
@@ -112,7 +119,7 @@ class Weather {
     /* 0028 */ float unk_0028;
     /* 002C */ float unk_002C;
     /* 0030 */ float unk_0030;
-    /* 0034 */ uint8_t unk_0034[4];
+    /* 0034 */ CImVector m_color;
     /* 0038 */ char m_precipTexture[260];
     /* 013C */ Rain* m_rain;
     /* 0140 */ Snow* m_snow;
@@ -144,6 +151,10 @@ class Weather {
     void Clear();
     void Reset();
     void SetType(uint32_t type, float intensity, const WeatherRec* rec, bool immediate, float transitionTime);
+    void UpdatePosDeltas();
+    uint32_t GetType() const;
+    void FillInDefaultPrecipTexturePath(uint32_t type);
+    void SetStormIntensity(float target, float current);
 };
 
 extern float s_weatherDensity;

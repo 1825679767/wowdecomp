@@ -22,6 +22,11 @@
 #include "WoW/Source/DB/Rec/ResistancesRec.h"
 #include "WoW/Source/DB/Rec/SpellRec.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/WorldClient/Map.h"
+#include "WoW/Source/WorldClient/World.h"
+#include "_Triage/AreaList.h"
 
 // STATIC: 0x009F2010
 const char SI2::s_channelGroupNames[18][32] = {
@@ -1393,3 +1398,47 @@ void SI2::PlaySpellFizzleSound(uint32_t spellId, const void* object) {
         }
     }
 }
+
+// VERIFY: d94cc51b manual
+// OFFSET: 0x004C6710
+void SI2::ForceUpdateZoneSounds() {
+    CGObject_C* unit = ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__);
+
+    if (!unit) {
+        unit = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__);
+
+        if (!unit) {
+            return;
+        }
+    }
+
+    CMapEntity* entity = unit->m_worldObject;
+    uint32_t areaId = 0;
+
+    if (!CMap::QueryAreaId(entity, areaId)) {
+        return;
+    }
+
+    const AreaTableRec* area = g_areaTableDB.GetRecord(areaId);
+
+    if (!area) {
+        return;
+    }
+
+    const AreaTableRec* zone;
+
+    if (area->m_parentAreaID) {
+        zone = g_areaTableDB.GetRecord(area->m_parentAreaID);
+    } else {
+        zone = area;
+        area = nullptr;
+    }
+
+    WMOAreaTableRec* groupRec = nullptr;
+    WMOAreaTableRec* rootRec = nullptr;
+    int32_t wmoGroupId = 0;
+    int32_t inside = World::QueryObjectInside(entity);
+    World::QueryMapObjAreaTable(entity, &groupRec, &rootRec, &wmoGroupId);
+    AreaListUpdateSounds(zone, area, rootRec, groupRec, inside);
+}
+

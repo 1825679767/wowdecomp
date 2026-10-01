@@ -1,4 +1,5 @@
 #include "MacroSubstring.h"
+#include <cstring>
 
 // VERIFY: 8f25a363 manual
 // OFFSET: 0x005EEA40
@@ -43,4 +44,33 @@ bool MacroSubstring::operator==(const char* str) {
     }
 
     return cursor == this->m_end;
+}
+
+// VERIFY: ceea7ffe auto
+// OFFSET: 0x005EEAC0
+void MacroSubstring::GetText(char* buffer, uint32_t size) {
+    uint32_t length = size - 1;
+
+    if (length >= static_cast<uint32_t>(this->m_end - this->m_start)) {
+        length = static_cast<uint32_t>(this->m_end - this->m_start);
+    }
+
+    memcpy(buffer, this->m_start, length);
+    buffer[length] = '\0';
+}
+
+// VERIFY: a4778381 manual
+// OFFSET: 0x005EEB00
+int32_t MacroSubstring::ToNumber() {
+    int32_t value = 0;
+
+    for (const char* c = this->m_start; c < this->m_end; c++) {
+        if (*c < '0' || *c > '9') {
+            break;
+        }
+
+        value = *c + 10 * value - '0';
+    }
+
+    return value;
 }

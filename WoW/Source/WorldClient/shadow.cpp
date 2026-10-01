@@ -12,6 +12,7 @@
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "WoW/Source/WorldClient/World.h"
+#include "WoW/Source/WorldClient/Map.h"
 
 // STATIC: 0x00AF3E08
 int32_t s_shadowLOD = 1;
@@ -205,4 +206,10 @@ void CWorldScene::RequestModelStreaming(CM2Model* model, const CAaBox* box) {
     if (model && model->IsDrawable(0, 0) && !(model->m_fFlags & 0x4000) && !box->IsEmpty() && s_cvExtShadowQuality->m_intValue <= 0 && s_shadowLOD == 1) {
         CWorldScene::RenderStreamingRequestDecal(model, box, 0.4f);
     }
+}
+
+// VERIFY: 5c146ae6 auto
+// OFFSET: 0x007E2C40
+CGxTex* ProjectTex2dGetModFadeTex() {
+    return TextureGetGxTex(s_shadowModTexture, 1, nullptr);
 }

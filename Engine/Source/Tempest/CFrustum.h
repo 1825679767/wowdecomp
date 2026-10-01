@@ -33,6 +33,7 @@ class CFrustum {
     uint32_t CullInv(const CAaBox& box);
     void Extents(CAaBox& box);
     void InvertPlanes();
+    void SwapCorners();
     void Transform(const C44Matrix& m);
     void Translate(const C3Vector& v);
     CFrustum& operator=(const CFrustum& source);

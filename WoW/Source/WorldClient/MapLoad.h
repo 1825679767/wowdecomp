@@ -31,9 +31,7 @@ class CMapStaticEntity : public CMapBaseObj {
     /* 0025 */ uint8_t m_culled;
     /* 0026 */ uint8_t unk_0026;
     /* 0027 */ uint8_t unk_0027;
-    /* 0028 */ uint8_t unk_0028;
-    /* 0029 */ uint8_t unk_0029;
-    /* 002A */ uint8_t unk_002A;
+    /* 0028 */ uint8_t m_shadowStamps[3];
     /* 002B */ uint8_t unk_002B;
     /* 002C */ int32_t m_unkCounter;
     /* 0030 */ float m_distanceToCamera;

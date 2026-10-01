@@ -22,6 +22,7 @@ class CGWorldStateInfo {
     public:
     static int32_t m_mapID;
     static int32_t m_areaID;
+    static int32_t m_subAreaID;
     static uint32_t m_nextUpdateTime;
     static uint32_t m_UITimeOffset;
     static uint32_t m_nextUITimeUpdate;

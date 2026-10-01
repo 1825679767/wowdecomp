@@ -9,6 +9,8 @@
 #include "WoW/Source/Object/WGUID.h"
 
 struct CVar;
+class CEffect;
+class LightningObject;
 class SpellVisualKitModelAttachRec;
 class C44Matrix;
 class SpellRec;
@@ -96,18 +98,16 @@ class MountTransitionObject : public TSLinkedNode<MountTransitionObject> {
     /* 003C */ uint32_t unk_003C;
     /* 0040 */ uint32_t unk_0040;
     /* 0044 */ uint32_t unk_0044;
-    /* 0048 */ uint32_t unk_0048;
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050;
+    /* 0048 */ C3Vector m_position;
     /* 0054 */ C3Vector m_groundNormal;
     /* 0060 */ uint32_t m_startTime;
     /* 0064 */ uint32_t unk_0064;
     /* 0068 */ uint32_t unk_0068;
     /* 006C */ uint32_t unk_006C;
     /* 0070 */ uint32_t unk_0070;
-    /* 0074 */ uint32_t unk_0074;
+    /* 0074 */ float m_facing;
     /* 0078 */ uint32_t unk_0078;
-    /* 007C */ float unk_007C;
+    /* 007C */ float m_alpha;
     /* 0080 */ uint32_t unk_0080;
 };
 
@@ -123,6 +123,8 @@ void SpellVisualsShutdown();
 void SpellVisualsShutdownModelAttachLookup();
 int32_t SpellVisualsIsMountTransitionFinished(const MountTransitionObject* transition);
 float SpellVisualsGetMountTransitionHeight(const MountTransitionObject* transition);
+void SpellVisualsGetMountTransitionTransform(const MountTransitionObject* transition, C3Vector* position, C3Vector* up, float* facing);
+float SpellVisualsGetMountTransitionAlpha(const MountTransitionObject* transition);
 void SpellVisualsFlagMountTransitionFinished(MountTransitionObject* transition);
 void SpellVisualsPlayCameraShakeID(int32_t id, const C3Vector* position);
 void SpellVisualsBlizzardSetFrameOfReference(BlizzardObject* object, const C44Matrix* matrix);
@@ -131,6 +133,7 @@ uint32_t SpellVisualsGetModelAttachRecCount(uint32_t kitId);
 const SpellVisualKitModelAttachRec* SpellVisualsGetModelAttachRec(uint32_t kitId, uint32_t index);
 MountTransitionObject* SpellVisualsStartMountTransition(CGUnit_C* unit);
 void SpellVisualsCancelMountTransition(MountTransitionObject* transition);
+void SpellVisualsCreateChainLightning(CGUnit_C* target, CEffect* effect, int32_t type, bool param2, bool param3, uint32_t spellId, const WOWGUID* targets, uint32_t count, LightningObject** lightning, uint32_t maxLightning, const C3Vector* location, uint32_t seed);
 void SpellVisualsHandleEclipse(const CImVector* color, float fadeIn, const SpellRec* spell);
 
 #endif

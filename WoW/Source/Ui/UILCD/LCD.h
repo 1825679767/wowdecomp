@@ -37,6 +37,7 @@ class CGLCD {
     static void OnWhisper(const char* name);
     static void PushAlert(const char* text, int32_t a2);
     static void Login();
+    static void* GetHandle(const char* name);
     static void EnterWorld();
 };
 

@@ -110,6 +110,8 @@
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "WoW/Source/Client.h"
+#include <cmath>
+#include "WoW/Source/Ui/ScriptEvents.h"
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -4116,11 +4118,11 @@ int16_t CGPlayer_C::GetSkillModifier(int32_t index) {
     return this->m_player->m_playerSkillInfo[index].m_tempBonus;
 }
 
-// VERIFY: 30fe9fdf auto
+// VERIFY: c0b0e280 auto
 // OFFSET: 0x006E7B00
 void CGPlayer_C::AddKnownSpell(int32_t spellId, int32_t a2, int32_t a3, int32_t a4) {
     if (spellId > g_spellDB.m_maxID) {
-        SysMsgPrintf(STATUS_WARNING, 2, "NOSPELLIDFOUND|%d", spellId);
+        SysMsgPrintf(STATUS_ERROR, 2, "NOSPELLIDFOUND|%d", spellId);
         return;
     }
 
@@ -9173,4 +9175,90 @@ int32_t AreaTriggerCheck(const void* data, void* param) {
     }
 
     return 1;
+}
+
+// VERIFY: 5cad3e09 auto
+// OFFSET: 0x006D78C0
+int32_t CGPlayer_C::UpdateUnitCollisionBox(int32_t a2, int32_t a3) {
+    CreatureDisplayInfoRec* displayInfo = g_creatureDisplayInfoDB.GetRecord(this->m_unit->m_unitFieldNativedisplayid);
+    CreatureModelDataRec* modelData = displayInfo ? g_creatureModelDataDB.GetRecord(displayInfo->m_modelID) : nullptr;
+
+    if (!modelData) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    float modelScale;
+    float scale = this->GetScaledModelScale(displayInfo, modelData, &modelScale);
+
+    if (fabsf(modelData->m_collisionWidth) < 0.00000095367432f || fabsf(modelData->m_collisionHeight) < 0.00000095367432f) {
+        SysMsgPrintf(STATUS_ERROR, 0x10, "NOCOLLISIONBOX|%s", modelData->m_modelName);
+        return 1;
+    }
+
+    if (CMath::fequal(scale, 0.0f)) {
+        SysMsgPrintf(STATUS_ERROR, 2, "ZEROSCALEUNIT|%d|%s", this->m_obj->m_entryID, this->GetUnitName(nullptr, 1));
+        return 1;
+    }
+
+    if (modelData->m_collisionWidth + 0.00000011920929f < 0.4167f) {
+        SysMsgPrintf(STATUS_ERROR, 2, "CreatureModelData record %d (%s) collision width is too small.", displayInfo->m_modelID, modelData->m_modelName);
+    }
+
+    if (!a2 && this->IsActivePlayer() && this->m_movementData.CollisionBoxDoesntFit(modelData->m_collisionWidth, modelData->m_collisionHeight, scale)) {
+        return 0;
+    }
+
+    this->m_movementData.SetCollisionBox(modelData->m_collisionWidth, modelData->m_collisionHeight, scale, modelScale, a3);
+    return 1;
+}
+
+// VERIFY: 2a4f40b4 auto
+// OFFSET: 0x006DF7A0
+bool CGPlayer_C::OnGuildChanged(int32_t a2) {
+    this->UpdateUnitNameText();
+    FrameScript_SignalEvent(SCRIPT_EVENT_TABARD_CANSAVE_CHANGED, nullptr);
+    WOWGUID guid = this->m_obj->m_guid;
+    Script_SendUnitSignal(guid, SCRIPT_EVENT_PLAYER_GUILD_UPDATE);
+
+    if (a2 && ClntObjMgrGetActivePlayer() == this->m_obj->m_guid) {
+        CGCalendar::GuildChanged();
+    }
+
+    VisibleItem_C* tabard = &this->m_player->m_playerVisibleItems[18];
+
+    if (!tabard || tabard->GetInventoryType() != 19) {
+        return false;
+    }
+
+    int32_t displayId = tabard->GetDisplayID();
+
+    if (!displayId) {
+        return false;
+    }
+
+    if (this->CanEquipItemsInThisForm()) {
+        this->LoadGuildTextures(displayId);
+    }
+
+    return true;
+}
+
+// VERIFY: bdcb68fa manual
+// OFFSET: 0x006E73B0
+TSGrowableArray<int32_t>* CGPlayer_C::GetTradeSkillSpells(int32_t skillLine) {
+    TRADESKILLLINE* line = this->m_tradeSkillLines.Ptr(skillLine, HASHKEY_NONE());
+
+    return line ? &line->m_spells : nullptr;
+}
+
+// VERIFY: 1d2b7f27 auto
+// OFFSET: 0x006CF2E0
+uint32_t GetVisibleAuraEffectDisplay() {
+    return s_unk_C9EAB0;
+}
+
+// VERIFY: 189d8dee auto
+// OFFSET: 0x006CF2F0
+uint32_t GetVisibleAuraEffectFlags() {
+    return s_unk_C9EAB4;
 }

@@ -8961,3 +8961,31 @@ void PlayImpactVisual(const SpellRec* spell, const TSStackArray<WOWGUID>& target
 PendingSpellCast* Spell_C_GetDelayedTrajectoryCast() {
     return s_delayedTrajectoryCast;
 }
+
+// VERIFY: 4bee51ef auto
+// OFFSET: 0x008009B0
+bool SpellIsCallCompanion(const SpellRec* spell) {
+    if (spell->m_effect[0] == 28) {
+        SummonPropertiesRec* properties = g_summonPropertiesDB.GetRecord(spell->m_effectMiscValueB[0]);
+
+        if (properties && properties->m_slot == 5) {
+            return true;
+        }
+    }
+
+    return spell->m_effectAura[0] == 78;
+}
+
+// VERIFY: 4f8ab45f manual
+// OFFSET: 0x00804D20
+void Spell_C_ExpireDestLocSpellCasts(uint32_t time) {
+    for (DESTLOCSPELLCASTINDEXHASHNODE* node = s_destLocSpellCasts.m_fulllist.Head(); node; ) {
+        DESTLOCSPELLCASTINDEXHASHNODE* next = s_destLocSpellCasts.m_fulllist.Next(node);
+
+        if (static_cast<int32_t>(time - node->m_time) >= 0) {
+            s_destLocSpellCasts.Delete(node);
+        }
+
+        node = next;
+    }
+}

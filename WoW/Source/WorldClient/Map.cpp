@@ -76,6 +76,10 @@
 #include "WoW/Source/WorldClient/WaterRipple.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WorldClient/WorldView.h"
+#include "WoW/Source/DB/Rec/GroundEffectTextureRec.h"
+#include "WoW/Source/WorldClient/WorldParam.h"
+#include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
 
 // STATIC: 0x00CF4938
 TSGrowableArray<CGxVertexPC> CMap::debugVertexArray;
@@ -245,8 +249,8 @@ static uint32_t unk_CF4958;
 // STATIC: 0x00CF495C
 static uint32_t unk_CF495C;
 
-// STATIC: 0x00CF497C
-static CMapFootprint unk_CF497C[144][4];
+// STATIC: 0x00CF4960
+static CMapFootprint s_footprints[144][4];
 
 // STATIC: 0x00CFBE60
 static TSGrowableArray<CMapFootprintTexture> unk_CFBE60;
@@ -753,15 +757,15 @@ void CMap::Initialize() {
 // INLINED
 CMapFootprintTexture::CMapFootprintTexture() {
     this->m_texture = nullptr;
-    this->unk_0014 = 0;
+    this->m_vertexCount = 0;
 }
 
-// VERIFY: 3f4da488 manual
+// VERIFY: c360126c manual
 // OFFSET: 0x0079F860
 void CMap::FootprintDestroy() {
     for (uint32_t i = 0; i < 144; i++) {
         for (uint32_t j = 0; j < 4; j++) {
-            unk_CF497C[i][j].m_link.Unlink();
+            s_footprints[i][j].m_link.Unlink();
         }
     }
 
@@ -772,13 +776,13 @@ void CMap::FootprintDestroy() {
     }
 }
 
-// VERIFY: c24ffe6e manual
+// VERIFY: 3f19b093 manual
 // OFFSET: 0x0079FA10
 void CMap::ClearAllFootprints() {
     for (uint32_t i = 0; i < 144; i++) {
         for (uint32_t j = 0; j < 4; j++) {
-            unk_CF497C[i][j].m_vertices.SetCount(0);
-            unk_CF497C[i][j].m_link.Unlink();
+            s_footprints[i][j].m_vertices.SetCount(0);
+            s_footprints[i][j].m_link.Unlink();
         }
     }
 }
@@ -4863,4 +4867,306 @@ bool CMap::QueryFacets(CFrustum* frustum, World::FacetData* facets, uint32_t fla
 
     CMap::GetMapObjFacets(frustum, facets, flags, a4);
     return facets->facets.Count() != 0;
+}
+
+// VERIFY: 10d86f1c auto
+// OFFSET: 0x0077F8B0
+int32_t CMap::QueryFlightBounds(const C3Vector& pos, float* height) {
+    return CMap::GetFlightBounds(pos, height, 0);
+}
+
+// VERIFY: 680c26b6 manual
+// OFFSET: 0x007A0530
+bool CMap::QueryGroundTypeTerrain(C3Vector* pos, uint32_t* groundType) {
+    float y = -(pos->y - 17066.666f);
+    float x = -(pos->x - 17066.666f);
+
+    if (y < 0.0f || x < 0.0f || y >= 34133.332f || x >= 34133.332f) {
+        return false;
+    }
+
+    float cellYf = x * 0.24f;
+    float cellXf = y * 0.24f;
+    int32_t cellY = CMath::fint_(cellYf - 0.5f);
+    int32_t cellX = CMath::fint_(cellXf - 0.5f);
+
+    CMapArea* area = CMap::GetLoadedArea((cellX >> 7) & 0x3F, (cellY >> 7) & 0x3F);
+
+    if (!area) {
+        return false;
+    }
+
+    CMapChunk* chunk = area->m_mapChunks[16 * ((cellY >> 3) & 0xF) + ((cellX >> 3) & 0xF)];
+
+    if (!chunk) {
+        return false;
+    }
+
+    int32_t col = cellX & 7;
+    int32_t row = cellY & 7;
+
+    if (chunk->m_header->m_holes & CMap::s_holeMask[4 * (row >> 1) + (col >> 1)]) {
+        return false;
+    }
+
+    uint32_t layer = (CMap::s_2bitSplatMask[col] & reinterpret_cast<uint16_t*>(chunk->m_lowQualityTexMap)[row]) >> CMap::s_2bitSplatShft[col];
+    GroundEffectTextureRec* rec = g_groundEffectTextureDB.GetRecord(chunk->m_layers[layer].m_offectId);
+
+    if (!rec) {
+        return false;
+    }
+
+    *groundType = rec->m_sound;
+    return true;
+}
+
+// VERIFY: ddd4e04d manual
+// OFFSET: 0x0079D2B0
+void CMap::QueryLiquidSounds(C3Vector* pos, float radius, TSGrowableArray<World::LiquidQueryResult>& results) {
+    float x = -(pos->x - 17066.666f);
+    float cellYf = -(pos->y - 17066.666f) * 0.24f;
+    int32_t cellY = CMath::fint_(cellYf - 0.5f);
+    x = x * 0.24f;
+    int32_t cellX = CMath::fint_(x - 0.5f);
+
+    CAaSphere sphere;
+    sphere.c.x = pos->x;
+    sphere.c.y = pos->y;
+    sphere.c.z = 0.0f;
+    sphere.r = radius;
+
+    int32_t areaRow = (cellX >> 7) & 0x3F;
+    int32_t areaCol = (cellY >> 7) & 0x3F;
+    int32_t minRow = areaRow - 1 > 0 ? areaRow - 1 : 0;
+    int32_t maxRow = areaRow + 1 >= 63 ? 63 : areaRow + 1;
+    int32_t minCol = areaCol - 1 > 0 ? areaCol - 1 : 0;
+    int32_t maxCol = areaCol + 1 >= 63 ? 63 : areaCol + 1;
+
+    for (int32_t row = minRow; row <= maxRow; row++) {
+        for (int32_t col = minCol; col <= maxCol; col++) {
+            CMapArea* area = CMap::m_areaTable[(row << 6) + col];
+
+            if (!area || area->m_asyncObject) {
+                continue;
+            }
+
+            CAaBox box;
+            box.b.x = area->m_topLeft2.x - 533.33331f;
+            box.b.y = area->m_topLeft2.y - 533.33331f;
+            box.b.z = 0.0f;
+            box.t.x = area->m_topLeft2.x;
+            box.t.y = area->m_topLeft2.y;
+            box.t.z = 0.0f;
+
+            if (NTempest::Intersect2d(box, sphere, NTempest::SOLID_BOTH)) {
+                area->QueryLiquidSounds(pos, radius, results);
+            }
+        }
+    }
+}
+
+// STATIC: 0x00AEDF58
+static const uint32_t s_flightTriangles[8][3] = {
+    { 3, 0, 4 },
+    { 0, 1, 4 },
+    { 1, 2, 4 },
+    { 2, 5, 4 },
+    { 5, 8, 4 },
+    { 8, 7, 4 },
+    { 7, 6, 4 },
+    { 6, 3, 4 },
+};
+
+// STATIC: 0x00AEDFB8
+static const float s_flightVertices[9][2] = {
+    { 0.0f, 0.0f },
+    { 0.0f, -266.66666f },
+    { 0.0f, -533.33331f },
+    { -266.66666f, 0.0f },
+    { -266.66666f, -266.66666f },
+    { -266.66666f, -533.33331f },
+    { -533.33331f, 0.0f },
+    { -533.33331f, -266.66666f },
+    { -533.33331f, -533.33331f },
+};
+
+// VERIFY: b2919fa1 manual
+// OFFSET: 0x007AD700
+int32_t CMap::GetFlightBounds(const C3Vector& pos, float* height, int32_t which) {
+    if (CMap::bDungeon) {
+        return 0;
+    }
+
+    int32_t layer = which == 1 ? 9 : 0;
+    float x = -(pos.x - 17066.666f);
+    float y = -(pos.y - 17066.666f) * 0.00375f;
+    int32_t cellY = CMath::fint_(y - 0.5f);
+    x = x * 0.00375f;
+    int32_t cellX = CMath::fint_(x - 0.5f);
+
+    CMapArea* area = CMap::m_areaTable[((cellX >> 1) << 6) + (cellY >> 1)];
+
+    if (!area || area->m_asyncObject || !area->m_flyingBbox) {
+        return 0;
+    }
+
+    int16_t* bounds = area->m_flyingBbox;
+    float dx = pos.x - area->m_topLeft2.x;
+    float dy = pos.y - area->m_topLeft2.y;
+    uint32_t triangle;
+
+    if (cellY & 1) {
+        if (cellX & 1) {
+            triangle = dy < dx ? 4 : 5;
+        } else {
+            triangle = dy < -533.33331f - dx ? 3 : 2;
+        }
+    } else {
+        if (cellX & 1) {
+            triangle = dy < -533.33331f - dx ? 6 : 7;
+        } else {
+            triangle = dy < dx ? 1 : 0;
+        }
+    }
+
+    uint32_t a = s_flightTriangles[triangle][0];
+    uint32_t b = s_flightTriangles[triangle][1];
+    uint32_t c = s_flightTriangles[triangle][2];
+
+    float ax = s_flightVertices[a][0];
+    float ay = s_flightVertices[a][1];
+    float az = static_cast<float>(bounds[layer + a]);
+    float bx = s_flightVertices[b][0];
+    float by = s_flightVertices[b][1];
+    float bz = static_cast<float>(bounds[layer + b]);
+    float cx = s_flightVertices[c][0];
+    float cy = s_flightVertices[c][1];
+    float cz = static_cast<float>(bounds[layer + c]);
+
+    float e1x = bx - ax;
+    float e1y = by - ay;
+    float e1z = bz - az;
+    float e2x = cx - ax;
+    float e2y = cy - ay;
+    float e2z = cz - az;
+
+    C3Vector normal(e1y * e2z - e1z * e2y, e1z * e2x - e2z * e1x, e1x * e2y - e1y * e2x);
+    normal.Normalize();
+
+    *height = (normal.y * dy - (ax * normal.x + ay * normal.y + az * normal.z) + normal.x * dx) * (-1.0f / normal.z);
+    return 1;
+}
+
+// VERIFY: 8f356ec4 manual
+// OFFSET: 0x0079FCC0
+void CMap::RenderFootprints() {
+    if (!(CWorld::enables & 0x400)) {
+        return;
+    }
+
+    uint32_t now = FrameTime::s_curTimeMs;
+    uint32_t index = 0;
+    CMapFootprint* footprints = &s_footprints[0][0];
+
+    for (uint32_t n = 576; n; n--) {
+        CMapFootprint* footprint = &footprints[index];
+
+        if (footprint->m_vertices.Count()) {
+            uint32_t elapsed = now - footprint->m_startTime;
+            float fade = 1.0f - static_cast<float>(elapsed) * 0.00016666666f;
+
+            if (fade >= 0.0f) {
+                float alpha = fade * 255.0f;
+                int32_t value = CMath::fint_(alpha - 0.5f);
+                footprint->m_alpha = value < 127 ? CMath::fint_(alpha - 0.5f) : 127;
+                CMapFootprintTexture& texture = unk_CFBE60.m_data[footprint->m_textureIndex];
+                texture.unk_0004.Add(1, &index);
+                texture.m_vertexCount += footprint->m_vertices.Count();
+            } else {
+                footprint->m_vertices.SetCount(0);
+            }
+        }
+
+        if (++index >= 576) {
+            index = 0;
+        }
+    }
+
+    g_theGxDevicePtr->RsPush();
+    g_theGxDevicePtr->RsSet(GxRs_Texture1, ProjectTex2dGetModFadeTex());
+    GxRsSet(GxRs_BlendingMode, 2);
+    GxRsSet(GxRs_AlphaRef, static_cast<int32_t>(CGxDevice::s_alphaRef[2]));
+    GxRsSet(GxRs_DepthWrite, 0);
+    GxRsSet(GxRs_PolygonOffset, CWorldParam::cvar_footstepBias->m_floatValue * 0.0039063096f);
+
+    C44Matrix world;
+    world.d0 = -CWorldScene::s_activeWorldView.x;
+    world.d1 = -CWorldScene::s_activeWorldView.y;
+    world.d2 = -CWorldScene::s_activeWorldView.z;
+    g_theGxDevicePtr->XformPushAndSet(GxXform_World, world);
+
+    for (uint32_t t = 0; t < unk_CFBE60.Count(); t++) {
+        CMapFootprintTexture& texture = unk_CFBE60.m_data[t];
+
+        if (texture.m_vertexCount) {
+            CGxTex* gxTex = TextureGetGxTex(texture.m_texture, 0, nullptr);
+
+            if (gxTex) {
+                CGxBuf* vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, 44, texture.m_vertexCount);
+                float* vertices = reinterpret_cast<float*>(g_theGxDevicePtr->BufLock(vertexBuf));
+                CGxBuf* indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, texture.m_vertexCount);
+                uint16_t* indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+                uint16_t next = 0;
+
+                for (uint32_t k = 0; k < texture.unk_0004.Count(); k++) {
+                    CMapFootprint* footprint = &footprints[texture.unk_0004.m_data[k]];
+                    CImVector color;
+                    color.b = 0xFF;
+                    color.g = 0xFF;
+                    color.r = 0xFF;
+                    color.a = static_cast<uint8_t>(footprint->m_alpha);
+
+                    for (uint32_t v = 0; v < footprint->m_vertices.Count(); v++) {
+                        CGxVertexPT0T1& src = footprint->m_vertices.m_data[v];
+                        vertices[0] = src.m_position.x;
+                        vertices[1] = src.m_position.y;
+                        vertices[2] = src.m_position.z;
+                        vertices[3] = 0.0f;
+                        vertices[4] = 0.0f;
+                        vertices[5] = 1.0f;
+                        *reinterpret_cast<CImVector*>(&vertices[6]) = color;
+                        vertices[7] = src.m_texture0.x;
+                        vertices[8] = src.m_texture0.y;
+                        vertices[9] = src.m_texture1.x;
+                        vertices[10] = src.m_texture1.y;
+                        *indices = next++;
+                        vertices += 11;
+                        indices++;
+                    }
+                }
+
+                g_theGxDevicePtr->BufUnlock(vertexBuf, 0);
+                vertexBuf->unk_001C = 1;
+                g_theGxDevicePtr->BufUnlock(indexBuf, 0);
+                indexBuf->unk_001C = 1;
+                GxPrimVertexPtr(vertexBuf, GxVBF_PNCT2);
+                g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+                g_theGxDevicePtr->RsSet(GxRs_Texture0, gxTex);
+
+                CGxBatch batch;
+                batch.m_primType = GxPrim_Triangles;
+                batch.m_start = 0;
+                batch.m_count = texture.m_vertexCount;
+                batch.m_minIndex = 0;
+                batch.m_maxIndex = static_cast<uint16_t>(texture.m_vertexCount - 1);
+                g_theGxDevicePtr->Draw(&batch, 1);
+            }
+        }
+
+        texture.unk_0004.m_count = 0;
+        texture.m_vertexCount = 0;
+    }
+
+    GxXformPop(GxXform_World);
+    g_theGxDevicePtr->RsPop();
 }

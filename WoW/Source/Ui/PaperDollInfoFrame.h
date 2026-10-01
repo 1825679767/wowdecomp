@@ -57,7 +57,7 @@ int32_t Script_PutItemInBag(lua_State* L);
 int32_t Script_PickupBagFromSlot(lua_State* L);
 int32_t Script_ShowInventorySellCursor(lua_State* L);
 int32_t Script_SetInventoryPortraitTexture(lua_State* L);
-int32_t Script_GetGuildInfo(lua_State* L);
+void GuildNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 int32_t Script_RequestInspectHonorData(lua_State* L);
 int32_t Script_GetInspectArenaTeamData(lua_State* L);
 int32_t Script_ClearInspectPlayer(lua_State* L);

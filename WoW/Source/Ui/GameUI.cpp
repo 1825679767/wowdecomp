@@ -156,6 +156,9 @@
 #include "WoW/Source/WorldClient/DayNight.h"
 #include "WoW/Source/WorldClient/MapWeather.h"
 #include "WoW/Source/DB/Rec/WeatherRec.h"
+#include <ctime>
+#include "WoW/Source/WowServices/WDataStore.h"
+#include "WoW/Source/Object/ObjectClient/Movement_C.h"
 
 // STATIC: 0x00ACC3F8
 static CImVector s_deadSelectionColor = CImVector(0x7F, 0x7F, 0x7F, 0xFF);
@@ -914,6 +917,18 @@ CCapturePointUIManager g_capturePointUIManager;
 
 // STATIC: 0x00AC8A74
 static float s_maxMatchDistance = 10000.0f;
+
+// STATIC: 0x00AC8A78
+static float s_corpseRangeSq = 1600.0f;
+
+// STATIC: 0x00AC8AA0
+static C44Matrix s_corpseMapRotation;
+
+// STATIC: 0x00AC8AD0
+static C3Vector s_corpseMapPosition;
+
+// STATIC: 0x00BD0824
+static int32_t s_corpseQueryTime;
 
 // STATIC: 0x00BCFB88
 static uint32_t s_accountDataPending;
@@ -5597,6 +5612,227 @@ int32_t CGGameUI::MessageHandler(void* param, NETMESSAGE msgId, uint32_t time, C
         default: {
             SErrDisplayAppFatalMessage("", "", 0);
             return 1;
+        }
+    }
+}
+
+// VERIFY: 1e36d26d auto
+// OFFSET: 0x00512BD0
+void CGGameUI::SetCorpseMapPosition(const C3Vector& position, const float& facing) {
+    s_corpseMapRotation = C44Matrix::RotationAroundZ(facing);
+    s_corpseMapPosition = position;
+}
+
+// VERIFY: 647caecd manual
+// OFFSET: 0x0051F430
+void CGGameUI::GetCorpsePosition(C3Vector& position) {
+    if (!CGGameUI::m_corpseTransportGUID) {
+        position = CGGameUI::m_corpsePos;
+        return;
+    }
+
+    if (ClntObjMgrObjectPtr(CGGameUI::m_corpseTransportGUID, TYPEMASK_OBJECT, __FILE__, __LINE__)) {
+        C44Matrix transform;
+
+        if (!MovementGetTransportMtxX(CGGameUI::m_corpseTransportGUID, &transform, ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
+            position = CGGameUI::m_corpsePos;
+            return;
+        }
+
+        position = CGGameUI::m_corpsePos * transform;
+        s_corpseQueryTime = 0;
+        return;
+    }
+
+    if (!s_corpseQueryTime || static_cast<int32_t>(time(nullptr) - s_corpseQueryTime) >= 0) {
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_CORPSE_MAP_POSITION_QUERY));
+        msg.Put(static_cast<uint32_t>(CGGameUI::m_corpseTransportGUID.m_guid));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+        s_corpseQueryTime = static_cast<int32_t>(time(nullptr)) + 30;
+    }
+
+    position = CGGameUI::m_corpsePos * s_corpseMapRotation;
+}
+
+// VERIFY: ad5dc623 auto
+// OFFSET: 0x00512C40
+static void UpdateCorpseRange(int32_t inRange) {
+    if (inRange == CGGameUI::unk_BD0820) {
+        return;
+    }
+
+    CGGameUI::unk_BD0820 = inRange;
+
+    if (CGBattlefieldInfo::m_instanceType == 4) {
+        return;
+    }
+
+    if (inRange) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_CORPSE_IN_RANGE + (CGGameUI::m_corpseMapID != CGGameUI::m_corpseActualMapID), nullptr);
+    } else {
+        FrameScript_SignalEvent(SCRIPT_EVENT_CORPSE_OUT_OF_RANGE, nullptr);
+    }
+}
+
+// VERIFY: d4e934e0 manual
+// OFFSET: 0x0051F5C0
+void CGGameUI::UpdateCorpseDistance() {
+    int32_t inRange = 0;
+
+    if (CGGameUI::m_corpseMapID >= 0) {
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (player) {
+            C3Vector corpse = { 0.0f, 0.0f, 0.0f };
+            CGGameUI::GetCorpsePosition(corpse);
+
+            if (CGGameUI::m_corpseMapID == CGPlayer_C::GetNewContinentID()) {
+                MinimapSetCorpsePOI(corpse.x, corpse.y);
+            }
+
+            C3Vector position = player->GetPosition();
+            float dx = position.x - corpse.x;
+            float dy = position.y - corpse.y;
+            float dz = position.z - corpse.z;
+
+            if (dz * dz + dy * dy + dx * dx <= s_corpseRangeSq) {
+                inRange = 1;
+            }
+        }
+    }
+
+    UpdateCorpseRange(inRange);
+}
+
+// VERIFY: 5e07095c manual
+// OFFSET: 0x0051FDE0
+void CGGameUI::UpdateInteractTarget() {
+    if (!CGGameUI::m_interactTarget || CGGameUI::m_interactMaxDistSq <= 0.0f) {
+        return;
+    }
+
+    bool clear = false;
+    CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_interactTarget, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (!object || (object->m_modelFlags & 0x10000)) {
+        CGGameUI::ClearInteractTarget(CGGameUI::m_interactTarget, 0);
+        return;
+    }
+
+    if (object->m_obj->m_type & TYPEMASK_ITEM) {
+        return;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        CGGameUI::ClearInteractTarget(CGGameUI::m_interactTarget, 0);
+        return;
+    }
+
+    uint32_t type = object->m_obj->m_type;
+
+    if (type & TYPEMASK_GAMEOBJECT) {
+        CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(object);
+
+        if (!player->CGUnit_C::CanInteract(gameObject) || !gameObject->CheckRange()) {
+            CGGameUI::ClearInteractTarget(CGGameUI::m_interactTarget, 0);
+        }
+
+        return;
+    }
+
+    if (type & TYPEMASK_UNIT) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(object);
+
+        if (((type & TYPEMASK_PLAYER) && player->m_obj->m_guid != object->m_obj->m_guid && !player->CanCooperate(unit)) || (!(object->m_obj->m_type & TYPEMASK_PLAYER) && !player->CanInteract(unit))) {
+            clear = true;
+        }
+    }
+
+    if (player->GetDistanceToPos(object->GetPosition()) > CGGameUI::m_interactMaxDistSq || clear) {
+        CGGameUI::ClearInteractTarget(CGGameUI::m_interactTarget, 0);
+    }
+}
+
+// VERIFY: 75df0be0 manual
+// OFFSET: 0x00523F80
+static int32_t AreaSpiritHealerCheck(WOWGUID guid, void* param) {
+    CGUnit_C* player = static_cast<CGUnit_C*>(param);
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit && (unit->m_unit->m_unitNpcFlags & 0x8000) && unit->CanAssist(player, false) && unit->GetDistanceToPos(player->GetPosition()) <= 400.0f) {
+        CGGameUI::SetAreaSpiritHealer(unit->m_obj->m_guid);
+    }
+
+    return 1;
+}
+
+// VERIFY: 5df5fddf manual
+// OFFSET: 0x00524010
+void CGGameUI::UpdateAreaSpiritHealerDistance() {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !(player->m_player->m_playerFlags & 0x10)) {
+        CGGameUI::SetAreaSpiritHealer(WOWGUID());
+        return;
+    }
+
+    if (CGGameUI::m_areaSpiritHealerGUID) {
+        CGUnit_C* healer = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_areaSpiritHealerGUID, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (!healer || player->GetDistanceToPos(healer->GetPosition()) > 484.00003f) {
+            CGGameUI::SetAreaSpiritHealer(WOWGUID());
+        }
+
+        if (CGGameUI::m_areaSpiritHealerGUID) {
+            return;
+        }
+    }
+
+    ClntObjMgrEnumVisibleObjects(AreaSpiritHealerCheck, player);
+}
+
+// VERIFY: ae2fc0f2 auto
+// OFFSET: 0x00524720
+void CGGameUI::ShowDungeonDifficultyChanged() {
+    char token[64];
+    SStrPrintf(token, sizeof(token), "DUNGEON_DIFFICULTY%d", CGGameUI::GetCurrentDungeonDifficulty() + 1);
+    CGGameUI::DisplayError(ERR_DUNGEON_DIFFICULTY_CHANGED_S, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE));
+}
+
+// VERIFY: 8977cc20 manual
+// OFFSET: 0x00525530
+void CGGameUI::SetDungeonDifficulty(uint32_t difficulty, uint32_t unk, uint32_t inGroup) {
+    uint32_t previous = CGGameUI::GetCurrentDungeonDifficulty();
+
+    if (unk) {
+        CGGameUI::m_dungeonDifficulty = difficulty;
+    }
+
+    if (inGroup) {
+        CGPartyInfo::m_dungeonDifficulty = difficulty;
+    }
+
+    if (previous != CGGameUI::GetCurrentDungeonDifficulty()) {
+        CGGameUI::ShowDungeonDifficultyChanged();
+    }
+}
+
+// VERIFY: fc4f2074 manual
+// OFFSET: 0x0057EA60
+void CGGameUI::LoadMinimapTrackingState(const char* state) {
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    uint32_t classMask = player ? 1 << player->m_unit->m_unitFieldBytes0[1] : 0;
+
+    for (uint32_t i = 0; i < 15; i++) {
+        const TrackingTypeInfo& info = CGMinimapFrame::s_trackingTypes[i];
+
+        if (!SStrCmp(state, info.m_name, STORM_MAX_STR) && (!info.m_classMask || (info.m_classMask & classMask))) {
+            CGMinimapFrame::LoadTrackingInfo(&info);
+            return;
         }
     }
 }

@@ -11,6 +11,9 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WoW/Source/Object/Unit.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "WoW/Source/Net/Types.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
 
 // STATIC: 0x00BEB568
 CGRaidMember* CGRaidInfo::m_members[40];
@@ -335,4 +338,29 @@ void CGRaidInfo::ClearRecruitAFriend(WOWGUID guid) {
     if (stats) {
         stats->m_flags &= ~0x100;
     }
+}
+
+// VERIFY: 9403a697 manual
+// OFFSET: 0x00573070
+void CGRaidInfo::EnableMember(CGPlayer_C* player, int32_t enable) {
+    WOWGUID guid = player->m_obj->m_guid;
+    uint32_t index;
+
+    for (index = 0; index < CGRaidInfo::m_numMembers; index++) {
+        if (CGRaidInfo::m_members[index]->m_guid == guid) {
+            break;
+        }
+    }
+
+    if (index == CGRaidInfo::m_numMembers || enable) {
+        return;
+    }
+
+    player->FillPartyMemberState(&CGRaidInfo::m_members[index]->m_stats);
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_REQUEST_PARTY_MEMBER_STATS));
+    msg.Put(player->m_obj->m_guid.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
 }

@@ -8,7 +8,7 @@
 #include "WoW/Source/WorldClient/MapObjGroup.h"
 
 class CAaBsp;
-struct CAaBspNode;
+class CAaBspNode;
 
 struct BspQuery_SegmentLink : public BspQuery {
     /* 0010 */ C3Ray m_ray;

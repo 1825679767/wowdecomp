@@ -7,6 +7,15 @@
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 #include "WoW/Source/Ui/ChatFrame.h"
+#include "Engine/Source/Tempest/CRandom.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+
+// STATIC: 0x00B4AE54
+static float s_taxiFidgetElapsed;
+
+// STATIC: 0x00B4AE58
+static float s_taxiFidgetDelay;
 
 // STATIC: 0x00B4AE40
 int32_t CGChat::m_paused;
@@ -137,5 +146,55 @@ void SI2::PlayItemSound(int32_t type, int32_t displayId) {
 
     if (sounds) {
         SI2::PlaySoundKit(sounds->m_sound[type], nullptr, nullptr, nullptr, 0, nullptr, 1, 0);
+    }
+}
+
+// VERIFY: fa14db2b manual
+// OFFSET: 0x004D0110
+void SI2::UpdateTaxiSounds(float elapsed) {
+    // STATIC: 0x00B4AE5C
+    static SE2SoundKitObject s_taxiSound;
+
+    if (elapsed <= 0.0f) {
+        return;
+    }
+
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !(player->m_unit->m_unitFieldFlags & 0x100000)) {
+        return;
+    }
+
+    if (s_taxiFidgetDelay <= 0.0f) {
+        float delayMin = CreatureSoundDataGetFidgetDelayMin(player->GetSoundData());
+        float range = CreatureSoundDataGetFidgetDelayMax(player->GetSoundData());
+        range = range - CreatureSoundDataGetFidgetDelayMin(player->GetSoundData());
+
+        if (!CreatureSoundDataGetFidgetSound(player->GetSoundData(), 4)) {
+            s_taxiFidgetDelay = 5.0f;
+            s_taxiFidgetElapsed = 0.0f;
+            return;
+        }
+
+        if (range <= 0.0f) {
+            s_taxiFidgetDelay = 2.0f;
+            return;
+        }
+
+        uint32_t roll = CRandom::dice_(static_cast<uint32_t>(static_cast<int64_t>(range * 100.0f)), g_rndSeed);
+        s_taxiFidgetDelay = static_cast<float>(roll) * 0.0099999998f + delayMin;
+    }
+
+    if (!SI2::IsPlaying(&s_taxiSound)) {
+        s_taxiFidgetElapsed = s_taxiFidgetElapsed + elapsed;
+    }
+
+    if (s_taxiFidgetDelay <= s_taxiFidgetElapsed) {
+        int32_t soundKitId = CreatureSoundDataGetFidgetSound(player->GetSoundData(), 4);
+        C3Vector position = player->GetPosition();
+        SI2::PlaySoundKit(soundKitId, &position, &s_taxiSound, nullptr, 0, nullptr, 1, 0);
+        SI2::AttachToObject(&s_taxiSound, player->m_obj->m_guid);
+        s_taxiFidgetDelay = 0.0f;
+        s_taxiFidgetElapsed = 0.0f;
     }
 }

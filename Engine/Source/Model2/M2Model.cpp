@@ -7904,3 +7904,13 @@ void M2SequenceInfo::Clear() {
     this->m_center = C3Vector(0.0f, 0.0f, 0.0f);
     this->m_radius = 0.0f;
 }
+
+// VERIFY: 7851ad82 auto
+// OFFSET: 0x007BABA0
+uint32_t CM2Model::GetSharedUnk0198() const {
+    if (this->m_fFlags & 0x1) {
+        return this->m_shared->unk_0198;
+    }
+
+    return 0;
+}

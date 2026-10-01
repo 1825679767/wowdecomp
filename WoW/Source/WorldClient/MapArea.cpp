@@ -12,6 +12,9 @@
 #include "WoW/Source/WorldClient/MapRenderChunk.h"
 #include "WoW/Source/WorldClient/Types.h"
 #include "WoW/Source/WorldClient/World.h"
+#include <cmath>
+#include "Engine/Source/Tempest/CMath.h"
+#include "WoW/Source/WorldClient/CChunkLiquid.h"
 
 void CMapArea::Destroy() {
 }
@@ -387,4 +390,206 @@ void CMapArea::Load(const char* fileName) {
     this->m_asyncObject->m_userArg = this;
     this->m_asyncObject->m_userPostloadCallback = reinterpret_cast<void*>(&CMapArea::AsyncCallback);
     AsyncFileReadObject(this->m_asyncObject, 0);
+}
+
+namespace {
+
+struct LiquidChunkAndDistance {
+    /* 0000 */ CMapChunk* m_chunk;
+    /* 0004 */ CChunkLiquid* m_liquid;
+    /* 0008 */ float m_distance;
+};
+
+}
+
+// VERIFY: 38a1ef74 manual
+// OFFSET: 0x0079BAD0
+static void SortLiquidChunks(LiquidChunkAndDistance* array, uint32_t count) {
+    if (count < 2) {
+        return;
+    }
+
+    uint32_t start = (count >> 1) + 1;
+    LiquidChunkAndDistance* last = &array[count - 1];
+
+    for (;;) {
+        if (start > 1) {
+            start--;
+        } else {
+            LiquidChunkAndDistance swap = array[0];
+            array[0] = *last;
+            *last = swap;
+            count--;
+
+            if (count == 1) {
+                return;
+            }
+
+            last--;
+        }
+
+        uint32_t index = start;
+        LiquidChunkAndDistance* node = &array[start - 1];
+
+        while (2 * index <= count) {
+            index *= 2;
+            LiquidChunkAndDistance* parent = node;
+            node = &array[index - 1];
+
+            if (index < count && node[0].m_distance - node[1].m_distance < 0.0f) {
+                index++;
+                node++;
+            }
+
+            if (parent->m_distance - node->m_distance >= 0.0f) {
+                break;
+            }
+
+            LiquidChunkAndDistance swap = *parent;
+            *parent = *node;
+            *node = swap;
+        }
+    }
+}
+
+// VERIFY: 11cb6f50 manual
+// OFFSET: 0x0079C360
+void CMapArea::QueryLiquidSounds(C3Vector* pos, float radius, TSGrowableArray<World::LiquidQueryResult>& results) {
+    float relY = -(pos->y - this->m_topLeft2.y);
+    int32_t chunkX = CMath::fint_(-(pos->x - this->m_topLeft2.x) * 0.029999999f - 0.5f);
+    int32_t chunkY = CMath::fint_(relY * 0.029999999f - 0.5f);
+    int32_t chunkRadius = CMath::fint_(static_cast<float>(ceil(radius * 0.030000001f)) - 0.5f);
+    int32_t rowStart = chunkX - chunkRadius <= 0 ? 0 : chunkX - chunkRadius;
+    int32_t colStart = chunkY - chunkRadius <= 0 ? 0 : chunkY - chunkRadius;
+    int32_t rowEnd = chunkX + chunkRadius >= 15 ? 15 : chunkX + chunkRadius;
+    int32_t colEnd = chunkY + chunkRadius >= 15 ? 15 : chunkY + chunkRadius;
+    float radiusSq = radius * radius;
+
+    TSGrowableArray<LiquidChunkAndDistance> chunks;
+
+    for (int32_t row = rowStart; row <= rowEnd; row++) {
+        for (int32_t col = colStart; col <= colEnd; col++) {
+            CMapChunk* chunk = this->m_mapChunks[row * 16 + col];
+
+            if (!chunk) {
+                continue;
+            }
+
+            for (CChunkLiquid* liquid = chunk->m_liquidChunkLinkList.Head(); liquid; liquid = chunk->m_liquidChunkLinkList.Next(liquid)) {
+                float height = (liquid->m_height.y + liquid->m_height.x) * 0.5f;
+                LiquidChunkAndDistance* entry = chunks.New();
+                entry->m_chunk = chunk;
+                entry->m_liquid = liquid;
+                float dx = chunk->m_topLeftCoords.x - 16.666666f - pos->x;
+                float dy = chunk->m_topLeftCoords.y - 16.666666f - pos->y;
+                float dz = height - pos->z;
+                entry->m_distance = dx * dx + dz * dz + dy * dy - 277.77777f;
+            }
+        }
+    }
+
+    if (!chunks.Count()) {
+        return;
+    }
+
+    SortLiquidChunks(chunks.m_data, chunks.Count());
+
+    for (LiquidChunkAndDistance* entry = chunks.m_data; entry != chunks.m_data + chunks.Count(); entry++) {
+        CChunkLiquid* liquid = entry->m_liquid;
+
+        if (liquid->m_tiles) {
+            CMapChunk* chunk = entry->m_chunk;
+            float dx = chunk->m_topLeftCoords.x - pos->x;
+            float dy = chunk->m_topLeftCoords.y - pos->y;
+            float dz = (liquid->m_height.y + liquid->m_height.x) * 0.5f - pos->z;
+
+            for (uint32_t row = 0; row < 8; row++) {
+                for (uint32_t col = 0; col < 8; col++) {
+                    if ((liquid->m_tiles[row * 8 + col] & 0xF) != 0xF) {
+                        if (dx * dx + dy * dy + dz * dz > radiusSq) {
+                            continue;
+                        }
+
+                        World::LiquidQueryResult* result = results.New();
+                        result->m_liquidType = liquid->m_type;
+                        result->m_offset.x = dx;
+                        result->m_offset.y = dy;
+                        result->m_offset.z = dz;
+                    }
+
+                    dy -= 4.1666665f;
+                }
+
+                dy += 33.333332f;
+                dx -= 4.1666665f;
+            }
+        } else {
+            CMapChunk* chunk = entry->m_chunk;
+            float relTileY = -(pos->y - chunk->m_topLeftCoords.y);
+            float relTileX = -(pos->x - chunk->m_topLeftCoords.x);
+            int32_t tileRadius = CMath::fint_(static_cast<float>(ceil(radius * 0.24000001f)) - 0.5f);
+            int32_t tileY = CMath::fint_(relTileY * 0.23999999f - 0.5f);
+            int32_t tileX = CMath::fint_(relTileX * 0.23999999f - 0.5f);
+            int32_t tileRowStart = tileX - tileRadius;
+            int32_t tileColStart = tileY - tileRadius;
+            int32_t tileRowEnd = tileX + tileRadius + 1;
+            int32_t tileColEnd = tileY + tileRadius + 1;
+
+            if (tileColEnd >= liquid->m_tileEnd.y) {
+                tileColEnd = liquid->m_tileEnd.y;
+            }
+
+            if (tileRowEnd >= liquid->m_tileEnd.x) {
+                tileRowEnd = liquid->m_tileEnd.x;
+            }
+
+            if (tileColStart <= liquid->m_tileBegin.y) {
+                tileColStart = liquid->m_tileBegin.y;
+            }
+
+            if (tileRowStart <= liquid->m_tileBegin.x) {
+                tileRowStart = liquid->m_tileBegin.x;
+            }
+
+            if (tileRowStart >= tileRowEnd || tileColStart >= tileColEnd) {
+                continue;
+            }
+
+            float dx = chunk->m_topLeftCoords.x - static_cast<float>(tileRowStart) * 4.1666665f - 2.0833333f - pos->x;
+            float dy = chunk->m_topLeftCoords.y - static_cast<float>(tileColStart) * 4.1666665f - 2.0833333f - pos->y;
+            float dz = (liquid->m_height.y + liquid->m_height.x) * 0.5f - pos->z;
+
+            int32_t colBegin = tileColStart - liquid->m_tileBegin.y;
+            int32_t colEnd = tileColEnd - liquid->m_tileBegin.y;
+            int32_t colSpan = colEnd - colBegin;
+            int32_t rowLast = tileRowEnd - liquid->m_tileBegin.x;
+            int32_t stride = liquid->m_tileEnd.y - liquid->m_tileBegin.y;
+            int32_t rowFirst = tileRowStart - liquid->m_tileBegin.x;
+
+            if (rowFirst >= rowLast) {
+                continue;
+            }
+
+            float rowStep = static_cast<float>(colSpan) * 4.1666665f;
+            int32_t bitIndex = rowFirst * stride;
+
+            for (int32_t rows = rowLast - rowFirst; rows; rows--) {
+                for (int32_t col = colBegin; col < colEnd; col++) {
+                    if (liquid->m_tileBits.Get(bitIndex + col) && dy * dy + dx * dx + dz * dz <= radiusSq) {
+                        World::LiquidQueryResult* result = results.New();
+                        result->m_liquidType = liquid->m_type;
+                        result->m_offset.x = dx;
+                        result->m_offset.y = dy;
+                        result->m_offset.z = dz;
+                    }
+
+                    dy -= 4.1666665f;
+                }
+
+                bitIndex += stride;
+                dy += rowStep;
+                dx -= 4.1666665f;
+            }
+        }
+    }
 }

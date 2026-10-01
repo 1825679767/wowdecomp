@@ -4,6 +4,9 @@
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WorldClient/CWorldMath.h"
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
+#include "WoW/Source/WorldClient/MapObj.h"
+#include "WoW/Source/WorldClient/MapObjGroup.h"
+#include "WoW/Source/WorldClient/Types.h"
 
 // VERIFY: 18be6c93 auto
 // OFFSET: 0x007B3990
@@ -78,4 +81,20 @@ CMapObjDef::CMapObjDef() {
 // VERIFY: 3855c196 manual
 // OFFSET: 0x007B4500
 CMapObjDef::~CMapObjDef() {
+}
+
+// VERIFY: 3113f3c8 manual
+// OFFSET: 0x007B39B0
+int32_t CMapObjDef::GetGroundType(uint32_t groupNum, uint16_t faceIndex) {
+    CMapObjGroup* group = this->m_owner->GetGroup(groupNum, 0);
+
+    if (group && faceIndex < group->m_polyListSize) {
+        SMOPoly* poly = &group->m_polyList[faceIndex];
+
+        if (poly) {
+            return this->m_owner->m_materialList[poly->m_materialId].m_groundType;
+        }
+    }
+
+    return -1;
 }

@@ -6,6 +6,10 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/UILCD/Windows/EZ_LCD.h"
 #include "WoW/Source/Ui/UILCD/Windows/LCDUtils.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/ChrClassesRec.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
 
 // STATIC: 0x00B1C0BC
 TSList<POIIcon, TSGetLink<POIIcon> > CGLCD::m_POIIcons;
@@ -30,6 +34,12 @@ CGPlayer_C* CGLCD::m_player;
 
 // STATIC: 0x00D4131C
 uint8_t CGLCD::m_inWorld;
+
+// STATIC: 0x00D4131D
+static uint8_t s_classFlag8;
+
+// STATIC: 0x00B1C0A0
+static int32_t s_unk_B1C0A0;
 
 // VERIFY: d134d241 auto
 // OFFSET: 0x00848030
@@ -112,4 +122,59 @@ void CGLCD::EnterWorld() {
         CGLCD::m_inWorld = 1;
         CGLCD::m_player = ClntObjMgrGetActivePlayerObj();
     }
+}
+
+// VERIFY: 54eafed4 auto
+// OFFSET: 0x00848B70
+void CGLCD::Login() {
+    if (!CGLCD::m_lcd || !CGLCD::m_lcd->IsConnected() || !IsLCDAvailable() || !CGLCD::initComplete) {
+        return;
+    }
+
+    CGLCD::m_player = ClntObjMgrGetActivePlayerObj();
+    CGLCD::SetScreen(1);
+    CGLCD::m_lcd->ShowSubscreen(0);
+    CGPlayer_C* player = CGLCD::m_player;
+    s_unk_B1C0A0 = 0;
+    CGLCD::m_inWorld = 1;
+
+    ChrClassesRec* classRec = g_chrClassesDB.GetRecord(player->m_unit->m_unitFieldBytes0[1]);
+
+    if (classRec) {
+        s_classFlag8 = (classRec->m_flags >> 3) & 1;
+    }
+
+    int32_t soulShard;
+
+    switch (player->m_unit->m_unitFieldBytes0[1]) {
+        case 1:
+        case 3:
+        case 4: {
+            CGLCD::m_lcd->SetVisible(CGLCD::GetHandle("AMMO"), 1);
+            CGLCD::m_lcd->SetVisible(CGLCD::GetHandle("AMMO_FLD"), 1);
+            CGLCD::m_lcd->SetVisible(CGLCD::GetHandle("SOUL_SHARD"), 0);
+            soulShard = 0;
+            break;
+        }
+
+        case 9: {
+            CGLCD::m_lcd->SetVisible(CGLCD::GetHandle("AMMO"), 0);
+            CGLCD::m_lcd->SetVisible(CGLCD::GetHandle("AMMO_FLD"), 0);
+            CGLCD::m_lcd->SetVisible(CGLCD::GetHandle("SOUL_SHARD"), 1);
+            soulShard = 1;
+            break;
+        }
+
+        default: {
+            CGLCD::m_lcd->SetVisible(CGLCD::GetHandle("AMMO"), 0);
+            CGLCD::m_lcd->SetVisible(CGLCD::GetHandle("AMMO_FLD"), 0);
+            CGLCD::m_lcd->SetVisible(CGLCD::GetHandle("SOUL_SHARD"), 0);
+            soulShard = 0;
+            break;
+        }
+    }
+
+    CGLCD::m_lcd->SetVisible(CGLCD::GetHandle("SOUL_SHARD_FLD"), soulShard);
+    const char* text = FrameScript_GetText("BF_NOT_IN", -1, GENDER_NOT_APPLICABLE);
+    CGLCD::m_lcd->SetText(CGLCD::GetHandle("BF_NOT_IN"), text);
 }

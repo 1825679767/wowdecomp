@@ -7,6 +7,7 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 
+class VehicleRec;
 class CDataStore;
 class CM2Model;
 class CGUnit_C;
@@ -43,6 +44,7 @@ class CVehiclePassenger_C {
     static void Init(CGUnit_C* unit);
 
     void StopMovement();
+    void SetState(uint32_t state, CGUnit_C* vehicle, uint8_t seat, VehicleSeatRec* seatRec, uint32_t time, WOWGUID vehicleGuid);
 
     /* 0000 */ uint32_t m_memHandle;
     /* 0004 */ CVehiclePassenger_C* m_prev;
@@ -59,7 +61,8 @@ class CVehiclePassenger_C {
     /* 0034 */ uint32_t unk_0034 [3];
     /* 0040 */ WOWGUID m_startRelativeGuid;
     /* 0048 */ float m_facingBlend;
-    /* 004C */ uint32_t unk_004C [2];
+    /* 004C */ uint32_t unk_004C;
+    /* 0050 */ VehicleRec* m_vehicleRec;
     /* 0054 */ VehicleSeatRec* m_seatRec;
     /* 0058 */ WOWGUID m_rootVehicleGuid;
     /* 0060 */ CDataStore* m_deferredTransitionSpline;
@@ -103,6 +106,9 @@ class CVehiclePassenger_C {
     CGUnit_C* GetStoredRootVehicleUnit() const;
     void StartMirroringVehicleAnims();
     void Uninit();
+    void Update(uint32_t time);
+    void UpdateBlend(uint32_t time, VehicleSeatRec* seatRec);
+    int32_t UpdateState(CGUnit_C* vehicle, VehicleSeatRec* seatRec, uint32_t time);
     C3Vector ComputeStartWorldPosition(const C3Vector& offset, const C3Vector& fallback) const;
     void OnAnimEnd(uint32_t anim);
     int32_t PickHighPriorityAnimation(int32_t a2, uint32_t* anim) const;

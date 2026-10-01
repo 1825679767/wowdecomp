@@ -19,6 +19,7 @@
 #include "WoW/Source/Object/Item.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Object/Types.h"
+#include "WoW/Source/Object/ObjectClient/GuildStats_C.h"
 
 // VERIFY: c886e670 auto
 // OFFSET: 0x005E9BC0
@@ -421,6 +422,41 @@ static int32_t Script_GetWeaponEnchantInfo(lua_State* L) {
 }
 
 // STATIC: 0x00AD1270
+// VERIFY: d5cfb323 manual
+// OFFSET: 0x005EAAF0
+static int32_t Script_GetGuildInfo(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: GetGuildInfo(\"unit\")");
+        return 0;
+    }
+
+    CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
+
+    if (unit && (unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(unit);
+        int32_t guildId = player->m_player->m_playerGuildid;
+
+        if (guildId) {
+            WOWGUID guid = unit->m_obj->m_guid;
+            GuildStats_C* guild = g_guildInfoCache.GetRecord(guildId, guid, GuildNameCallback, nullptr, false);
+
+            if (guild) {
+                char rankName[64];
+                SStrCopy(rankName, guild->m_rankNames[player->m_player->m_playerGuildrank], STORM_MAX_STR);
+                lua_pushstring(L, guild->m_name);
+                lua_pushstring(L, rankName);
+                lua_pushnumber(L, player->m_player->m_playerGuildrank);
+                return 3;
+            }
+        }
+    }
+
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnumber(L, 0.0);
+    return 3;
+}
+
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetInventorySlotInfo", &Script_GetInventorySlotInfo },
     { "GetInventoryItemsForSlot", &Script_GetInventoryItemsForSlot },

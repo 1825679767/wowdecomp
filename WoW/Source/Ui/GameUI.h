@@ -249,6 +249,7 @@ class CGGameUI {
     static void DisplayPvPQueueRemovedError(int32_t reason);
     static void SetCorpseReclaimDelay(uint32_t delay);
     static void SetDungeonDifficulty(uint32_t difficulty, uint32_t unk, uint32_t inGroup);
+    static void ShowDungeonDifficultyChanged();
     static void SetRaidDifficulty(uint32_t difficulty, uint32_t unk, uint32_t inGroup);
     static void UpdateComboPoints(const WOWGUID& guid, uint32_t points);
     static void StartMovie(uint32_t movieId);

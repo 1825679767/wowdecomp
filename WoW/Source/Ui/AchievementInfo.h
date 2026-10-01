@@ -88,6 +88,7 @@ int32_t Script_GetAchievementInfoFromCriteria(lua_State* L);
 int32_t Script_GetStatistic(lua_State* L);
 int32_t Script_GetComparisonStatistic(lua_State* L);
 int32_t Script_GetComparisonAchievementPoints(lua_State* L);
+int32_t AddTrackedAchievement(int32_t id);
 int32_t Script_AddTrackedAchievement(lua_State* L);
 int32_t Script_RemoveTrackedAchievement(lua_State* L);
 int32_t Script_IsTrackedAchievement(lua_State* L);

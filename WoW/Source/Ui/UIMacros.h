@@ -38,6 +38,9 @@ class MACRONODE : public TSHashObject<MACRONODE, HASHKEY_NONE> {
     void DecrementActionBarCount();
 };
 
+int32_t EvaluateMacroOptions(const char* start, const char* end, MacroSubstring* result, MacroSubstring* target);
+void MacroQueryCastSequence(MacroSubstring* text);
+
 class CGUIMacros {
     public:
     static uint32_t m_state;

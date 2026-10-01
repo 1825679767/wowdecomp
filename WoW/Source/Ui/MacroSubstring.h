@@ -11,6 +11,8 @@ class MacroSubstring {
 
     void SetText(const char* start, const char* end, char delimiter, const char** next);
     bool operator==(const char* str);
+    void GetText(char* buffer, uint32_t size);
+    int32_t ToNumber();
 };
 
 #endif

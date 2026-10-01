@@ -77,7 +77,6 @@ class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID
     static void Shutdown();
     static int32_t UpdateAllObjectEffectManagers();
     static CGObject_C* GetFocusObject();
-    static void UpdateFadeoutList(uint32_t time);
     static void PrepareToFadeInt(CMapEntity* entity, float alpha, uint64_t transportGuid);
     static int32_t UpdateAllWorldObjects();
     static void LoopEffectHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);

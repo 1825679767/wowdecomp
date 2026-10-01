@@ -6,6 +6,7 @@
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include <ctime>
+#include "WoW/Source/Ui/MinimapFrame.h"
 
 // STATIC: 0x00BE8F40
 uint32_t CGWorldStateInfo::m_nextUITimeUpdate;
@@ -15,6 +16,9 @@ uint32_t CGWorldStateInfo::m_UITimeOffset;
 
 // STATIC: 0x00BE8F48
 uint32_t CGWorldStateInfo::m_nextUpdateTime;
+
+// STATIC: 0x00BE8F4C
+int32_t CGWorldStateInfo::m_subAreaID;
 
 // STATIC: 0x00BE8F50
 int32_t CGWorldStateInfo::m_areaID;
@@ -87,4 +91,41 @@ void CheckEventWorldStateUITimerUpdate() {
             return;
         }
     }
+}
+
+// VERIFY: 7e04e5b5 auto
+// OFFSET: 0x00548970
+bool CGWorldStateInfo::InitWorldStates(uint32_t mapId, uint32_t zoneId, uint32_t areaId) {
+    if (mapId == static_cast<uint32_t>(CGWorldStateInfo::m_mapID) && zoneId == static_cast<uint32_t>(CGWorldStateInfo::m_areaID) && areaId == static_cast<uint32_t>(CGWorldStateInfo::m_subAreaID)) {
+        return false;
+    }
+
+    CGWorldStateInfo::m_mapID = mapId;
+    CGWorldStateInfo::m_areaID = zoneId;
+    CGWorldStateInfo::m_subAreaID = areaId;
+    CGWorldStateInfo::ResetWorldStateUI();
+    return true;
+}
+
+// VERIFY: 3f42a7fa manual
+// OFFSET: 0x00549440
+bool CGWorldStateInfo::SetWorldState(uint32_t state, uint32_t value) {
+    WORLDSTATE* worldState = CGWorldStateInfo::m_worldStates.Ptr(state, HASHKEY_NONE());
+
+    if (!worldState) {
+        worldState = CGWorldStateInfo::m_worldStates.New(state, HASHKEY_NONE(), 0, 0);
+    }
+
+    if (worldState->m_value == static_cast<int32_t>(value)) {
+        return false;
+    }
+
+    worldState->m_value = value;
+
+    if (state == 3191) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_ARENA_SEASON_WORLD_STATE, nullptr);
+    }
+
+    RefreshWorldStatePOIs(state);
+    return true;
 }

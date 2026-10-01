@@ -22,6 +22,10 @@
 #include "WoW/Source/Ui/MerchantFrame.h"
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Object/Unit.h"
+#include "WoW/Source/Ui/Tutorial.h"
+
+// STATIC: 0x00A1CE4C
+static const int32_t s_inventoryAlertSlots[12] = { 0, 2, 4, 5, 6, 7, 8, 9, 15, 16, 17, -1 };
 
 // STATIC: 0x00C24230
 TSFixedArray<int32_t> CGCharacterInfo::m_invAlertStatus;
@@ -510,4 +514,48 @@ int32_t CGCharacterInfo::PutItemInBackpack(uint32_t slot) {
 
     CGGameUI::ClearCursor(0, 1);
     return 1;
+}
+
+// VERIFY: 19ee11f0 manual
+// OFFSET: 0x005E8FE0
+int32_t CGCharacterInfo::CalculateInventoryAlertStatus(CGPlayer_C* player, uint32_t slot) {
+    if (s_inventoryAlertSlots[slot] == -1) {
+        if (player->m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
+            return 0;
+        }
+
+        uint32_t ammo = player->m_player->m_playerAmmoId;
+
+        if (!ammo) {
+            return 0;
+        }
+
+        return static_cast<uint32_t>(player->m_bag.GetItemTypeCount(ammo, 0)) <= 20;
+    }
+
+    CGItem_C* item = player->m_bag.GetItemPointer(s_inventoryAlertSlots[slot]);
+
+    if (!item) {
+        return 0;
+    }
+
+    if (item->m_item->m_itemFieldFlags & 0x10) {
+        return 2;
+    }
+
+    if ((item->m_item->m_itemFieldFlags & 0x8) || !item->m_item->m_itemFieldMaxdurability) {
+        return 0;
+    }
+
+    if (!(item->m_item->m_itemFieldFlags & 0x8) && item->m_item->m_itemFieldDurability) {
+        if (item->GetDurability() > 5) {
+            return 0;
+        }
+
+        CGTutorial::TriggerTutorial(35);
+        return 1;
+    }
+
+    CGTutorial::TriggerTutorial(36);
+    return 2;
 }

@@ -14,6 +14,8 @@
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/UIUtil/InputControl.h"
+#include "WoW/Source/Ui/PartyFrame.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
 
 // STATIC: 0x00CA135C
 uint32_t* CVehiclePassenger_C::s_passengerPool;
@@ -552,7 +554,7 @@ void CVehiclePassenger_C::StartMirroringVehicleAnims() {
     }
 }
 
-// VERIFY: 5f117fc1 manual
+// VERIFY: 1779c574 manual
 // OFFSET: 0x00749790
 CVehiclePassenger_C* CVehiclePassenger_C::Alloc(CGUnit_C* unit) {
     uint32_t memHandle;
@@ -579,8 +581,8 @@ CVehiclePassenger_C* CVehiclePassenger_C::Alloc(CGUnit_C* unit) {
     passenger->unk_0034[0] = 0;
     passenger->unk_0034[1] = 0;
     passenger->m_startRelativeGuid = WOWGUID();
-    passenger->unk_004C[0] = 0;
-    passenger->unk_004C[1] = 0;
+    passenger->unk_004C = 0;
+    passenger->m_vehicleRec = nullptr;
     passenger->m_seatRec = nullptr;
     passenger->m_rootVehicleGuid = WOWGUID();
     passenger->m_deferredTransitionSpline = nullptr;
@@ -837,7 +839,7 @@ void CVehiclePassenger_C::ExecuteAllDeferredVehicleTransitionAnimSplines() {
     }
 }
 
-// VERIFY: 2c6b93a8 auto
+// VERIFY: df7afd61 auto
 // OFFSET: 0x00747FA0
 void CVehiclePassenger_C::StopMovement() {
     if (this->m_state != 3 || this->m_unit->m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
@@ -847,5 +849,76 @@ void CVehiclePassenger_C::StopMovement() {
     uint32_t time = FrameTime::s_curTimeMs;
     CGInputControl::GetActive()->StopMovementAndTurning(time);
     this->m_flags |= 0x8;
-    this->unk_004C[0] = time;
+    this->unk_004C = time;
+}
+
+// VERIFY: 20bfa0c2 manual
+// OFFSET: 0x007498E0
+void CVehiclePassenger_C::Init(CGUnit_C* unit) {
+    WOWGUID transport;
+    transport.m_guid = unit->GetTransportGUID();
+    uint32_t high = static_cast<uint32_t>(transport.m_guid >> 32);
+
+    if ((high & 0xF0F00000) == 0xF0500000 || (!(high & 0xF0000000) && ((high & 0xF07FFFFF) | static_cast<uint32_t>(transport.m_guid)))) {
+        CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(transport, TYPEMASK_UNIT, __FILE__, __LINE__));
+        uint8_t seat = unit->m_movementData.m_transportSeat;
+        unit->VehiclePassengerOnUpdateTransport(transport, seat, 1);
+        CVehiclePassenger_C* passenger = unit->m_vehiclePassenger;
+
+        if (passenger) {
+            passenger->SetState(3, vehicle, seat, passenger->m_seatRec, FrameTime::s_curTimeMs, transport);
+        }
+
+        return;
+    }
+
+    if (!(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+        return;
+    }
+
+    WOWGUID guid = unit->m_obj->m_guid;
+    CGPartyMemberState* state = CGPartyMemberStateRepository::GetState(guid);
+
+    if (!state || !(state->m_flags & 0x200)) {
+        return;
+    }
+
+    guid = unit->m_obj->m_guid;
+    Script_SendUnitSignal(guid, SCRIPT_EVENT_UNIT_EXITING_VEHICLE);
+    int32_t count;
+    char** tokens = Script_GetTokenIDsFromGUID(guid, &count);
+
+    for (int32_t i = 0; i < count; i++) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_UNIT_EXITED_VEHICLE, "%s%s", tokens[i], "");
+    }
+}
+
+// VERIFY: 825df5ed manual
+// OFFSET: 0x0074B0B0
+void CVehiclePassenger_C::Update(uint32_t time) {
+    VehicleSeatRec* seatRec = this->m_seatRec;
+    CGUnit_C* vehicle;
+
+    if (this->m_transitionVehicleGuid) {
+        vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_transitionVehicleGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    } else {
+        vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_vehicleGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    }
+
+    this->UpdateBlend(time, seatRec);
+
+    if (!this->UpdateState(vehicle, seatRec, time)) {
+        this->m_unit->VehiclePassengerOnUninit();
+        this->Uninit();
+    }
+}
+
+// VERIFY: 53b38716 auto
+// OFFSET: 0x0074B130
+void CVehiclePassenger_C::UpdateAll(uint32_t time) {
+    for (CVehiclePassenger_C* passenger = CVehiclePassenger_C::s_headPassenger; passenger; ) {
+        CVehiclePassenger_C* next = passenger->m_next;
+        passenger->Update(time);
+        passenger = next;
+    }
 }

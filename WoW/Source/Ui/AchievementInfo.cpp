@@ -7,6 +7,7 @@
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/DB/Rec/Achievement_CategoryRec.h"
 #include "WoW/Source/Ui/Types.h"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
 
 // STATIC: 0x00ACFD98
 static TSList<CLIENT_ACHIEVEMENT_CRITERIA, TSGetLink<CLIENT_ACHIEVEMENT_CRITERIA>> s_unkACFD98;
@@ -308,4 +309,49 @@ int32_t Packet_SMSG_ALL_ACHIEVEMENT_DATA(void* param, NETMESSAGE msgId, uint32_t
     FrameScript_SignalEvent(SCRIPT_EVENT_CRITERIA_UPDATE, nullptr);
     FrameScript_SignalEvent(SCRIPT_EVENT_RECEIVED_ACHIEVEMENT_LIST, nullptr);
     return 1;
+}
+
+// VERIFY: e308b3c1 manual
+// OFFSET: 0x005B23E0
+int32_t AddTrackedAchievement(int32_t id) {
+    int32_t count = 0;
+
+    for (CLIENT_ACHIEVEMENTS* node = s_trackedAchievements.Head(); node; node = s_trackedAchievements.Next(node)) {
+        count++;
+
+        if (node->m_id == id) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_TRACKED_ACHIEVEMENT_UPDATE, "%d", id);
+            return 1;
+        }
+
+        if (count == 10) {
+            return 0;
+        }
+    }
+
+    CLIENT_ACHIEVEMENTS* node = s_trackedAchievements.NewNode(2, 0, 0);
+    node->m_id = id;
+    FrameScript_SignalEvent(SCRIPT_EVENT_TRACKED_ACHIEVEMENT_UPDATE, "%d", id);
+    return 1;
+}
+
+// VERIFY: 9a464c17 manual
+// OFFSET: 0x005B3840
+void CGAchievementInfo::LoadTrackedAchievements() {
+    CVarIntListWrapper list;
+    list.m_cvar = CVar::Lookup("trackedAchievements");
+    list.m_pos = 2;
+    list.m_state = 0;
+
+    for (uint32_t id = list.GetNextValue(); id; id = list.GetNextValue()) {
+        AddTrackedAchievement(id);
+    }
+
+    if (list.m_state != 1) {
+        char value[256];
+        value[0] = 'v';
+        value[1] = 1;
+        value[list.m_pos] = '\0';
+        list.m_cvar->Set(value, true, false, false, true);
+    }
 }

@@ -17,6 +17,7 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/CAaBox.h"
 #include "Engine/Source/Tempest/CImVector.h"
+#include "WoW/Source/Game/GameClient/WTOBJECT.h"
 
 class CGPlayer_C;
 class CGWorldFrame;
@@ -146,7 +147,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     CGUnit_C* GetVehicleUnit() const;
     void SetWeaponTrail(CM2Model* model, uint32_t hand);
     static void InitActiveMover(const WOWGUID& guid);
-    void VehiclePassengerUpdateWorldCameraState(uint32_t a1, VehicleSeatRec* seatRec, uint32_t startTime, uint32_t endTime);
+    void VehiclePassengerUpdateWorldCameraState(VehicleRec* vehicleRec, VehicleSeatRec* seatRec, uint32_t startTime, uint32_t endTime);
     void VehiclePassengerUpdateWorldCameraStateInstantly();
     int32_t ClampRawAngleToLegalFacingRange(float& angle) const;
     static void UpdateMissileTrajectoryTargeting();
@@ -181,7 +182,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     static const uint32_t s_impactTypes[4];
     static C3Vector s_trackingPosition;
     static float s_trackingDirection;
-    static uint32_t s_vehiclePassengerCameraState[3];
+    static VehicleSeatRec* s_vehiclePassengerCameraSeat;
+    static VehicleRec* s_vehiclePassengerCameraVehicle;
+    static uint32_t s_vehiclePassengerCameraActive;
     static int32_t s_dismountSoundKitId;
     static WOWGUID s_lastNPCSoundGUID;
     static uint32_t s_flightStatusTime;
@@ -301,7 +304,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0A84 */ uint32_t m_channelStartTime;
     /* 0A88 */ uint32_t m_channelEndTime;
     /* 0A8C */ uint32_t unk_0A8C;
-    /* 0A90 */ uint32_t unk_0A90;
+    /* 0A90 */ uint32_t m_scriptRegistration;
     /* 0A94 */ float m_renderFacing;
     /* 0A98 */ float m_facingVelocity;
     /* 0A9C */ float m_facingBlend;
@@ -335,7 +338,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0B44 */ CM2Model* m_ammoModel;
     /* 0B48 */ uint32_t m_ammoDisplayId;
     /* 0B4C */ CCharacterComponent* m_characterComponent;
-    /* 0B50 */ uint32_t m_weaponTrails [2];
+    /* 0B50 */ WTOBJECT* m_weaponTrails [2];
     /* 0B58 */ uint32_t unk_0B58;
     /* 0B5C */ uint32_t m_sheatheState;
     /* 0B60 */ TSGrowableArray<WOWGUID> m_chainSpellTargets;
@@ -465,6 +468,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t IsUpdatingMissileTrajectory() const;
     int32_t IsMissileTrajectoryUpdateWaitingForMissileRelease() const;
     void SendFinalMissileTrajectoryUpdate();
+    int32_t ComputeMissileTrajectory(const SpellRec* spell, int32_t* a2, CGUnit_C** a3, float* a4, C3Vector* position, float* facing, C3Vector* points, uint32_t* count, int32_t a9);
     int32_t OverrideMissileFirePos(C3Vector* position, const SpellRec* spell);
     bool IsLocalClientControlled() const;
     void FreeComponent();
@@ -756,17 +760,21 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     const char* GetUnitName(const char** realm, int32_t a2);
     void SetCharacterModel(CM2Model* model);
     float GetModelScale(uint32_t displayId);
+    float GetScaledModelScale(const CreatureDisplayInfoRec* displayInfo, const CreatureModelDataRec* modelData, float* modelScale);
     float GetModelScale(const CreatureDisplayInfoRec* displayInfo, const CreatureModelDataRec* modelData);
     void OnMoveUpdate(uint32_t time, int32_t a3, int32_t a4);
     void UpdateFlightStatus(uint32_t time);
     void UpdateSwimmingStatus(uint32_t time, int32_t a3);
+    void StartSwimming(uint32_t time, int32_t spline);
+    void StopSwimming(uint32_t time, int32_t spline);
+    float GetHeightAboveGround();
     void VehiclePassengerInit();
     void DestroyVehicleCamera();
     void OnVehicleCameraPossiblyNeeded();
     void UpdateDisplay(uint32_t time);
     void UpdateMissileTrajectory();
     void OnVehicleCameraPossiblyUnneeded();
-    void UpdateUnitCollisionBox(int32_t a2, int32_t a3);
+    int32_t UpdateUnitCollisionBox(int32_t a2, int32_t a3);
     void CreateUnitMount(int32_t a2, int32_t a3);
     void ShowLootEffect();
     void CompleteMountTransition();
@@ -776,7 +784,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void ComputeSmoothedSwimMatrix(C44Matrix* matrix, float elapsed, int32_t a3);
     int32_t InitializeComponent();
     void MountTransitionSetCharacterTransform(float elapsed);
-    void Unk71FBF0();
+    void UpdateMountTransitionModel();
     int32_t DisplayInfoNeedsUpdate();
     int32_t IsDeadOrAttachmentDying();
     void RecreateNamePlate();
@@ -1058,7 +1066,6 @@ int32_t IsJumpAnim(uint32_t animId);
 int32_t IsJumpLandAnim(uint32_t animId);
 int32_t IsFishingAnim(uint32_t animId);
 int32_t IsRangedWeaponAnim(uint32_t animId);
-void WeaponTrailSetDrawTrail(uint32_t trail, const uint32_t* a2, uint32_t a3);
 
 namespace AnimationData {
     int32_t FindIdByBehaviorAndTier(uint32_t behavior, int32_t tier, uint32_t* anim);
@@ -1087,12 +1094,17 @@ class ClickToMove {
 
 void NameQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 float CalculateFacingTo(const C3Vector* from, const C3Vector* to);
-void WeaponTrailClose(uint32_t trail);
 
 void WeaponTrailsInitialize();
 void WeaponTrailsShutdown();
 
 const char* GetObjectNameFromGuid(const WOWGUID& guid);
 void WriteMovementPacket(CGUnit_C* unit, uint32_t msgId, CDataStore* msg, int32_t include);
+
+int32_t CreatureSoundDataGetFidgetSound(const CreatureSoundDataRec* rec, uint32_t index);
+float CreatureSoundDataGetFidgetDelayMin(const CreatureSoundDataRec* rec);
+float CreatureSoundDataGetFidgetDelayMax(const CreatureSoundDataRec* rec);
+
+int32_t MissileTrajectoryObjectCallback(void* param, uint32_t a2, uint64_t a3, uintptr_t a4);
 
 #endif

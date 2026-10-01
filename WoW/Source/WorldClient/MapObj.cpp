@@ -3056,3 +3056,70 @@ bool CMapObj::QueryMapObjMinimap(int32_t groupNum, CAaBox* box, TSStackArray<MIN
     this->QueryMapObjMinimapGroup(groupNum, groupNum, &query, quads, maxQuads, inside, flagsMask, 0);
     return true;
 }
+
+// VERIFY: 6b25295a manual
+// OFFSET: 0x007AF520
+bool CMapObj::VectorIntersectPortals(uint32_t groupNum, C3Segment& seg, float* t, int32_t* outGroups) {
+    if (!this->m_isGroupLoaded) {
+        return false;
+    }
+
+    CMapObjGroup* group = this->m_mapObjGroupArray[groupNum];
+
+    if (!(group->m_unkLoadedFlag & 1)) {
+        return false;
+    }
+
+    C3Ray ray;
+    ray.origin = seg.b;
+    float dx = seg.t.x - seg.b.x;
+    float dy = seg.t.y - seg.b.y;
+    float dz = seg.t.z - seg.b.z;
+    float length = sqrtf(dz * dz + dx * dx + dy * dy);
+    float inv = 1.0f / length;
+    ray.dir = C3Vector(dx * inv, dy * inv, inv * dz);
+
+    float maxT = length * *t;
+    bool found = false;
+    SMOPortalRef* ref = &this->m_portalRefList[group->m_portalStart];
+
+    for (int32_t i = 0; i < group->m_portalCount; i++, ref++) {
+        SMOPortal& portal = this->m_portalList[ref->m_portalIndex];
+
+        if (!this->m_isGroupLoaded || !(this->m_mapObjGroupArray[ref->m_groupIndex]->m_unkLoadedFlag & 1)) {
+            continue;
+        }
+
+        C3Vector point(0.0f, 0.0f, 0.0f);
+        float portalT;
+
+        if (!NTempest::Intersect(ray, portal.m_plane, &portalT, &point, 0.1f) || portalT < 0.0f || portalT > maxT) {
+            continue;
+        }
+
+        C3Vector::EAxis axis = portal.m_plane.n.MajorAxis();
+
+        if (!NTempest::Intersect(point, &this->m_portalVertexList[portal.m_startVertex], portal.m_count, axis)) {
+            continue;
+        }
+
+        found = true;
+        maxT = portalT;
+
+        float side = portal.m_plane.n.z * seg.b.z + portal.m_plane.n.y * seg.b.y + seg.b.x * portal.m_plane.n.x + portal.m_plane.d;
+
+        if ((side >= 0.0f && ref->m_side > 0) || (side < 0.0f && ref->m_side <= 0)) {
+            outGroups[0] = groupNum;
+            outGroups[1] = ref->m_groupIndex;
+        } else {
+            outGroups[0] = ref->m_groupIndex;
+            outGroups[1] = groupNum;
+        }
+    }
+
+    if (found) {
+        *t = maxT * inv;
+    }
+
+    return found;
+}

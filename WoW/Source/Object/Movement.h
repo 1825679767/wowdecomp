@@ -161,6 +161,7 @@ class CMovement_C : public CMovementShared {
     void OnTurnStartLocal(uint32_t eventTime, int32_t left);
     void OnPitchStartLocal(uint32_t eventTime, int32_t up);
     void OnSwimStartLocal(uint32_t eventTime);
+    void OnSwimStopLocal(uint32_t eventTime);
     int32_t OnWalkSpeedChange(float value);
     void OnWalkSpeedChange(uint32_t eventTime, float value);
     void OnWalkSpeedChangeLocal(uint32_t eventTime, uint32_t ackCounter, float value);
@@ -173,6 +174,7 @@ class CMovement_C : public CMovementShared {
     void SaveMoveState(MoveState& state) const;
     void SendTimeSyncResp(uint32_t clientTime, uint32_t counter);
     void SetCollisionBox(float width, float height, float scale, float referenceScale, int32_t force);
+    int32_t CollisionBoxDoesntFit(float width, float height, float scale);
     void SetInterpolation(uint32_t time);
     void SetSplineFaceAngle(float facing);
     void SetSplineFacePoint(const C3Vector& point);

@@ -101,4 +101,6 @@ class SCritSect;
 extern SCritSect s_comsatDeviceLock;
 void VoiceRegisterScriptFunctions();
 
+void VoiceSessionSetTalkerMuted(WOWGUID guid, int32_t muted);
+
 #endif

@@ -3396,3 +3396,15 @@ int32_t CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent& evt) {
     tooltip->Show();
     return 1;
 }
+
+// VERIFY: a04b4793 auto
+// OFFSET: 0x007F3B40
+int32_t MinimapGetZoom() {
+    return s_isIndoors ? s_indoorZoom : s_outdoorZoom;
+}
+
+// VERIFY: 07a4c72b auto
+// OFFSET: 0x007F3B60
+int32_t MinimapGetZoomLevels() {
+    return 6;
+}

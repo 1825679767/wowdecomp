@@ -9,6 +9,7 @@
 #include "WoW/Source/LiquidSystem/Liquid.h"
 #include "WoW/Source/WorldClient/MapBaseObj.h"
 #include "Engine/Source/Tempest/C2iVector.h"
+#include "WoW/Source/WorldClient/World.h"
 
 class CiRect;
 
@@ -35,6 +36,7 @@ class CMapAreaChunkLink {
 
 class CMapArea : public CMapBaseObj {
     public:
+    void QueryLiquidSounds(C3Vector* pos, float radius, TSGrowableArray<World::LiquidQueryResult>& results);
     static void Destroy();
     static void Initialize();
     static void* AllocAsyncLoadBuffer(int32_t fileSize);

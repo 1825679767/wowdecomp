@@ -22,6 +22,10 @@
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "Engine/Source/Base/ConvertUTF.h"
+#include "WoW/Source/Ui/ContainerFrame.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
+#include "WoW/Source/Object/ObjectClient/Bag_C.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
 
 // STATIC: 0x00ACE2A0
 static TSExplicitList<MACRONODE, offsetof(MACRONODE, m_dynamicLink)> s_dynamicMacros;
@@ -738,4 +742,139 @@ void CGUIMacros::LoadMacrosCallback(HOSFILE localFile, HOSFILE cacheFile, void* 
     if (CGGameUI::s_inWorld) {
         FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_SLOT_CHANGED, "%d", 0);
     }
+}
+
+// VERIFY: a7a6a7f6 manual
+// OFFSET: 0x005650C0
+int32_t MACRONODE::FindSpellID() {
+    MacroSubstring text = { nullptr, nullptr };
+    MacroSubstring target = { nullptr, nullptr };
+    int32_t itemId = 0;
+    int32_t spellId = 0;
+    uint32_t count = this->m_commands.Count();
+
+    if (count) {
+        uint32_t index;
+
+        for (index = 0; index < count; index++) {
+            MacroCommand& command = this->m_commands.m_data[index];
+            text.m_start = command.m_text.m_start;
+            text.m_end = command.m_text.m_end;
+
+            if (*text.m_start != '[') {
+                break;
+            }
+
+            if (EvaluateMacroOptions(text.m_start, text.m_end, &text, &target) && text.m_end != text.m_start) {
+                break;
+            }
+        }
+
+        if (index < count) {
+            int32_t type = this->m_commands.m_data[index].m_type;
+
+            if (type == 3) {
+                text.SetText(text.m_start, text.m_end, ',', nullptr);
+            } else if (type == 4) {
+                MacroQueryCastSequence(&text);
+            } else if (type == 6 && text.m_start < text.m_end) {
+                while (*text.m_start >= '0' && *text.m_start <= '9') {
+                    if (++text.m_start >= text.m_end) {
+                        break;
+                    }
+                }
+
+                while (text.m_start < text.m_end && *text.m_start == ' ') {
+                    text.m_start++;
+                }
+            }
+
+            if (*text.m_start < '0' || *text.m_start > '9') {
+                char name[1024];
+                text.GetText(name, sizeof(name));
+                itemId = GetItemIDByName(name);
+
+                if (itemId) {
+                    spellId = 0;
+                } else {
+                    int32_t commandType = this->m_commands.m_data[index].m_type;
+
+                    if (commandType != 5 && commandType != 6) {
+                        spellId = GetSpellIdByName(name, &this->m_spellFlags);
+                    }
+                }
+
+                if (!itemId && !spellId) {
+                    spellId = -1;
+                }
+            } else {
+                MacroSubstring first = { nullptr, nullptr };
+                MacroSubstring second = { nullptr, nullptr };
+                first.SetText(text.m_start, text.m_end, ' ', nullptr);
+                second.SetText(first.m_end, text.m_end, '\0', nullptr);
+                CGBag_C* bag = nullptr;
+                int32_t slot;
+                int32_t maxSlot;
+
+                if (second.m_end == second.m_start) {
+                    slot = first.ToNumber() - 1;
+                    maxSlot = 22;
+                    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+                    if (player) {
+                        bag = &player->m_bag;
+                    }
+                } else {
+                    int32_t bagIndex = first.ToNumber() - 1;
+                    slot = second.ToNumber() - 1;
+
+                    if (bagIndex == -1) {
+                        slot += 23;
+                        maxSlot = 38;
+                        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+                        if (player) {
+                            bag = &player->m_bag;
+                        }
+                    } else if (static_cast<uint32_t>(bagIndex) <= 3) {
+                        CGObject_C* container = ClntObjMgrObjectPtr(GetBagAtIndex(bagIndex), TYPEMASK_CONTAINER, __FILE__, __LINE__);
+
+                        if (container) {
+                            bag = container->GetBag();
+
+                            if (bag) {
+                                maxSlot = bag->m_numSlots - 1;
+                            }
+                        }
+                    }
+                }
+
+                CGItem_C* item = (bag && slot >= 0 && slot <= maxSlot) ? bag->GetItemPointer(slot) : nullptr;
+
+                if (item) {
+                    itemId = item->m_obj->m_entryID;
+                    spellId = 0;
+                } else {
+                    spellId = -1;
+                }
+            }
+        }
+    }
+
+    WOWGUID guid = WOWGUID();
+
+    if (target.m_end != target.m_start) {
+        char token[256];
+        target.GetText(token, sizeof(token));
+        Script_GetGUIDFromToken(token, guid, false);
+    }
+
+    if (itemId != this->m_itemID || spellId != this->m_spellID || guid != this->m_target) {
+        this->m_spellID = spellId;
+        this->m_itemID = itemId;
+        this->m_target = guid;
+        return 1;
+    }
+
+    return 0;
 }

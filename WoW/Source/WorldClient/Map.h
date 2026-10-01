@@ -100,9 +100,13 @@ class CGxVertexPT0T1 {
 };
 
 struct CMapFootprint {
-    /* 0000 */ TSGrowableArray<CGxVertexPT0T1> m_vertices;
-    /* 0010 */ TSLink<CMapFootprint> m_link;
-    /* 0018 */ uint8_t unk_0018[28];
+    /* 0000 */ uint32_t unk_0000[3];
+    /* 000C */ uint32_t m_alpha;
+    /* 0010 */ uint32_t m_textureIndex;
+    /* 0014 */ uint32_t unk_0014;
+    /* 0018 */ uint32_t m_startTime;
+    /* 001C */ TSGrowableArray<CGxVertexPT0T1> m_vertices;
+    /* 002C */ TSLink<CMapFootprint> m_link;
 };
 
 class CMapObj;
@@ -111,7 +115,7 @@ class CMapFootprintTexture {
     public:
     /* 0000 */ CTexture* m_texture;
     /* 0004 */ TSGrowableArray<uint32_t> unk_0004;
-    /* 0014 */ uint32_t unk_0014;
+    /* 0014 */ uint32_t m_vertexCount;
 
     CMapFootprintTexture();
 };
@@ -259,6 +263,8 @@ class CMap {
     static CMapChunk* GetChunkAtPosition(const C2Vector* pos);
     static CMapAreaLow* AllocAreaLow();
     static void RenderLowDetail(CMapAreaLow* area);
+    static void BuildLowDetailGridVertices(CMapAreaLow* area, CGxBuf* buf);
+    static void BuildLowDetailGridIndices(uint16_t* holes, int32_t pass, CGxBuf* buf);
     static void FreeArea(CMapArea* area);
     static void FreeAreaMed(CMapAreaMed* areaMed);
     static void FreeChunk(CMapChunk* chunk);
@@ -309,7 +315,7 @@ class CMap {
     static DepthCoordTable* GetDepthCoordTable(uint32_t liquidType);
     static CChunkLiquid* AllocChunkLiquid();
     static void CreateWaterRipple(const C3Vector& pos, float a2, float a3, float a4, float a5, float a6, int32_t a7, int32_t a8);
-    static bool QueryLiquidSounds(C3Vector* pos, float radius, TSGrowableArray<World::LiquidQueryResult>& results);
+    static void QueryLiquidSounds(C3Vector* pos, float radius, TSGrowableArray<World::LiquidQueryResult>& results);
     static bool QueryLiquidStatus(C3Vector* pos, int32_t* liquidType, float* height, int32_t* a4, int32_t checkGround);
     static bool QueryLiquidTerrain(const C3Vector* pos, int32_t* liquidType, float* height, int32_t checkGround);
     static void RenderWaterRipples();
@@ -320,6 +326,7 @@ class CMap {
     static void ProcessRenderChunkUpdateList();
     static CMapEntity* ObjectCreate(CM2Model* model, MAP_OBJECT_FUNC func, void* funcParam, uint64_t param64, uintptr_t param32, uint32_t a7);
     static CMapEntity* ObjectCreateStatic(CM2Model* model, const C44Matrix& matrix, MAP_OBJECT_FUNC func, void* funcParam, uintptr_t param32);
+    static CMapEntity* ObjectCreateStaticEx(CM2Model* model, const C44Matrix& matrix, MAP_OBJECT_FUNC func, void* funcParam, uint64_t param64, uintptr_t param32, const char* file, int32_t line);
     static void ObjectUpdate(CMapEntity* entity, C44Matrix& mat, CAaBox& box, CAaSphere& sphere, C3Vector& vec, bool a6, uint32_t a7);
     static void PrepareEntitys(int32_t addToScene);
     static void LinkStaticEntityMultiple2(CMapStaticEntity* entity);
@@ -375,6 +382,7 @@ class CMap {
     static void AppendMapObjFacets(CMapDoodadDef* def, CAaBox* box, World::FacetData* facets);
     static bool GetDoodadDefFacets(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* linkList, CAaBox* box, World::FacetData* facets, uint32_t flags);
     static int32_t GetFlightBounds(const C3Vector& pos, float* height, int32_t which);
+    static int32_t QueryFlightBounds(const C3Vector& pos, float* height);
 
     /* 0000 */ uint8_t unk_0000[180];
     /* 00B4 */ uint32_t unk_00B4;
@@ -386,5 +394,7 @@ extern WOWGUID s_lastCollisionGUID;
 const LiquidTypeRec* GetLiquidTypeRecForArea(uint32_t areaId, uint16_t liquidType);
 class WMOAreaTableRec;
 WMOAreaTableRec* GetWMOAreaRec(int32_t wmoId, int32_t nameSet, int32_t groupId);
+
+CGxTex* ProjectTex2dGetModFadeTex();
 
 #endif

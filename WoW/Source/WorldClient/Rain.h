@@ -70,7 +70,9 @@ struct Packet {
 
 class Rain {
     public:
-    /* 0000 */ int32_t m_useWeatherShaders;
+    /* 0000 */ uint8_t m_useWeatherShaders;
+    /* 0001 */ uint8_t m_fadeOut;
+    /* 0002 */ uint8_t unk_0002[2];
     /* 0004 */ CAaBox m_bbox;
     /* 001C */ Mists m_mists;
     /* 0070 */ PacketList<Packet<RainParticleBuffer>> m_rainDropPacketList;
@@ -85,7 +87,9 @@ class Rain {
     /* 00CC */ float m_particlesPerFrame;
     /* 00D0 */ float m_intensity;
 
+    Rain(float a1, float a2);
     ~Rain();
+    int32_t CountActivePackets();
     void Render();
 };
 

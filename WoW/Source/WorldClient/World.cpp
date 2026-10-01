@@ -97,6 +97,7 @@
 #include "WoW/Source/Ui/MinimapFrame.h"
 #include <malloc.h>
 #include <cstring>
+#include "WoW/Source/Object/ObjectClient/Object_C.h"
 
 // STATIC: 0x00ADEE48
 static const char* s_zonePaths[11] = {
@@ -4724,4 +4725,58 @@ void CWorldScene::GetFrustumCorners(C3Vector* corners) {
 // OFFSET: 0x0077F320
 void World::GetFrustumCorners(C3Vector* corners) {
     CWorldScene::GetFrustumCorners(corners);
+}
+
+// VERIFY: 66d860e9 manual
+// OFFSET: 0x0077F260
+int32_t World::QueryGroundType(CMapEntity* entity, int32_t* groundType) {
+    if (!entity) {
+        return 0;
+    }
+
+    if (entity->m_groundType == -1) {
+        return 0;
+    }
+
+    *groundType = entity->m_groundType;
+    return 1;
+}
+
+// VERIFY: 09260cf1 manual
+// OFFSET: 0x00782F20
+void World::UpdateObjectFadeouts() {
+    uint32_t now = OsGetAsyncTimeMs();
+
+    for (SWModelFadeout* fadeout = s_fadeoutList.Head(); fadeout; ) {
+        int32_t elapsed = now - fadeout->m_startTime;
+        CM2Model* model = fadeout->m_entity->m_model;
+        SWModelFadeout* next = s_fadeoutList.Next(fadeout);
+
+        if (elapsed <= 2000 && model->CanUpdateNonReadyTextures()) {
+            if (fadeout->m_transportGuid) {
+                CGObject_C* transport = ClntObjMgrObjectPtr(fadeout->m_transportGuid, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+
+                if (transport) {
+                    model->SetWorldTransform(fadeout->m_localTransform * transport->GetMatrix());
+                } else {
+                    fadeout->m_transportGuid = WOWGUID();
+                }
+            }
+
+            float alpha = (1.0f - static_cast<float>(elapsed) * 0.00050000002f) * fadeout->m_alpha;
+
+            if (alpha >= 0.0f) {
+                model->m_fadeAlpha = alpha <= 1.0f ? alpha * ((3.0f - (alpha + alpha)) * alpha) : 1.0f;
+            } else {
+                model->m_fadeAlpha = 0.0f;
+            }
+        } else {
+            World::ObjectDestroy(fadeout->m_entity);
+            fadeout->m_entity = nullptr;
+            fadeout->m_link.Unlink();
+            s_fadeoutDataPool.LinkToTail(fadeout);
+        }
+
+        fadeout = next;
+    }
 }

@@ -5,6 +5,7 @@
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include <cstring>
 
 // STATIC: 0x00BD19F0
 static int32_t s_tutorialsCompleted[60];
@@ -97,5 +98,28 @@ void CGTutorial::TriggerTutorial(uint32_t tutorial) {
     } else {
         CGTutorial::m_tutorialShown.m_bits.m_data[index] |= bit;
         CGTutorial::FlagTutorial(tutorial);
+    }
+}
+
+// VERIFY: fab94e36 manual
+// OFFSET: 0x005303A0
+void CGTutorial::LoadFlaggedTutorials() {
+    memset(s_tutorialsCompleted, 0, sizeof(s_tutorialsCompleted));
+    CVarIntListWrapper list;
+    list.m_cvar = CVar::Lookup("flaggedTutorials");
+    list.m_pos = 2;
+    list.m_state = 0;
+    int32_t* tutorial = s_tutorialsCompleted;
+
+    for (uint32_t value = list.GetNextValue(); value; value = list.GetNextValue()) {
+        *tutorial++ = value;
+    }
+
+    if (list.m_state != 1) {
+        char text[256];
+        text[0] = 'v';
+        text[1] = 1;
+        text[list.m_pos] = '\0';
+        list.m_cvar->Set(text, true, false, false, true);
     }
 }

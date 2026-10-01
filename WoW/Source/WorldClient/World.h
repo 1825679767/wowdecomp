@@ -122,7 +122,11 @@ struct WorldStatus {
 
 struct SWModelFadeout {
     /* 0000 */ CMapEntity* m_entity;
-    /* 0004 */ uint8_t unk_0004[84];
+    /* 0004 */ uint32_t m_startTime;
+    /* 0008 */ float m_alpha;
+    /* 000C */ uint32_t unk_000C;
+    /* 0010 */ WOWGUID m_transportGuid;
+    /* 0018 */ C44Matrix m_localTransform;
     /* 0058 */ TSLink<SWModelFadeout> m_link;
 };
 
@@ -131,6 +135,7 @@ extern TSExplicitList<SWModelFadeout, offsetof(SWModelFadeout, m_link)> s_fadeou
 
 class CWorldScene {
     public:
+    static bool IsBeyondFadeDistance(const C3Vector& position, uint32_t fadeLevel);
     static Liquid::CRenderer* s_unk_CD8610;
     static TSExplicitList<CWFrustum, offsetof(CWFrustum, m_link)> frustumFreeList;
     static int32_t frustumIndex;

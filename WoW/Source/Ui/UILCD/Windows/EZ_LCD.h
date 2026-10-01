@@ -48,6 +48,9 @@ class CEzLcd {
     virtual void OnSoftButtons(uint32_t buttons);
     int32_t Initialize(const char* friendlyName, int32_t lcdType, int32_t isAutoStartable, int32_t isPersistent, lgLcdConfigureContext* configContext, lgLcdSoftbuttonsChangedContext* softbuttonsChangedContext);
     int32_t IsConnected();
+    void ShowSubscreen(int32_t subscreen);
+    void SetVisible(void* handle, int32_t visible);
+    void SetText(void* handle, const char* text);
     int32_t IsDeviceAvailable(int32_t type);
     void Update();
 };

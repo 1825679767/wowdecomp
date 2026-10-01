@@ -15,6 +15,7 @@
 #include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/Ui/TradeSkillFrame.h"
 
+class CGPartyMemberState;
 class CClientObjCreate;
 class CDataStore;
 class CGItem_C;
@@ -270,6 +271,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     const char* GetPVPRankString(int32_t rank) const;
     int32_t GetPVPToggleTimer() const;
     int32_t GetSkillIndex(int32_t skillId) const;
+    TSGrowableArray<int32_t>* GetTradeSkillSpells(int32_t skillLine);
     uint32_t GetSkillMaxRank(int32_t index) const;
     int32_t GetSkillRank(int32_t skillId) const;
     uint32_t GetSkillValue(int32_t index) const;
@@ -284,6 +286,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     float GetModDamageDonePct(int32_t school) const;
     const CGItem_C* EquippedItemMeetSpellRequirements(const SpellRec* spell, uint32_t slotMask);
     int32_t HasZoneExplored(int32_t zone);
+    int32_t UpdateUnitCollisionBox(int32_t a2, int32_t a3);
     int32_t IsCommentatorUberOrInArena() const;
     int32_t IsInMelee() const;
     void OnLootGameObject(const WOWGUID& guid);
@@ -360,7 +363,10 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     int32_t RefreshVisibleItems();
     void OnDeath();
     void EquipItem(CGItem_C* item);
-    void OnGuildChanged(int32_t a2);
+    bool OnGuildChanged(int32_t a2);
+    void FillPartyMemberState(CGPartyMemberState* state);
+    static uint32_t BuildPartyMemberStatsChanges(const CGPartyMemberState* oldState, const CGPartyMemberState* newState);
+    static void DispatchPartyMemberStatsChanges(CGPartyMemberState* state, uint32_t changes, const CGPartyMemberState* oldState, const CGPartyMemberState* newState);
     const char* GetPlayerGuildNameText();
     void TogglePlayerFlag(uint32_t oldFlags);
     void UpdateInventoryComponent(INVENTORY_SLOTS slot, const VisibleItem_C* oldItem);
@@ -527,5 +533,8 @@ int32_t AreaTriggerCheck(const void* data, void* param);
 void PlayerClientShutdown();
 int32_t Player_C_ZoneUpdateHandler(const void* data, void* param);
 int32_t GetModalNextSpell();
+
+uint32_t GetVisibleAuraEffectDisplay();
+uint32_t GetVisibleAuraEffectFlags();
 
 #endif

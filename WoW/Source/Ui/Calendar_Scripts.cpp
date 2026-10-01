@@ -51,6 +51,13 @@ static int32_t Script_CalendarGetDate(lua_State* L) {
     return 4;
 }
 
+// VERIFY: 095feebb manual
+// OFFSET: 0x005BF830
+static int32_t Script_CalendarGetNumPendingInvites(lua_State* L) {
+    lua_pushnumber(L, CGCalendar::CountPendingInvites());
+    return 1;
+}
+
 // STATIC: 0x00AD0030
 static FrameScript_Method s_ScriptFunctions[] = {
     { "CalendarGetMonthNames", &Script_CalendarGetMonthNames },

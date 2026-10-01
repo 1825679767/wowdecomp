@@ -71,6 +71,8 @@
 #include "WoW/Source/Game/GameClient/PlayerName.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "WoW/Source/DB/Rec/GameObjectDisplayInfoRec.h"
+#include "WoW/Source/Ui/PartyFrame.h"
 
 // STATIC: 0x00A335E8
 static const uint32_t s_oneShotAnims[7] = { 0xFFFFFFFF, 0, 8, 9, 10, 11, 12 };
@@ -2169,4 +2171,275 @@ void CGGameObject_C::AddWorldHealingText(int32_t amount, int32_t overheal) {
         SStrPrintf(text, sizeof(text), "+%d", amount);
         PlayerNameCreateText(this->m_nameDesc, 9, text, nullptr, nullptr);
     }
+}
+
+// VERIFY: c0bf3ae0 manual
+// OFFSET: 0x00712400
+void CGGameObject_C::LoadBaseObject(GameObjectStats_C* stats) {
+    this->m_stats = stats;
+    this->m_typeData->PostInitWithStats();
+
+    GameObjectDisplayInfoRec* displayInfo = g_gameObjectDisplayInfoDB.GetRecord(this->m_stats->m_displayID);
+
+    if (displayInfo && displayInfo->m_objectEffectPackageID) {
+        void* mem = SMemAlloc(sizeof(CObjectEffectManager), __FILE__, __LINE__, 0);
+        this->m_effectManager = mem ? new (mem) CObjectEffectManager() : nullptr;
+        this->m_effectManager->Init(displayInfo->m_objectEffectPackageID, this);
+    }
+
+    this->CheckForPassiveHighlight();
+}
+
+// VERIFY: ac5cb052 manual
+// OFFSET: 0x0070D510
+void CGGameObject_C_TypeAnimated::UpdateAnimState(uint32_t state) {
+    if (static_cast<int32_t>(state) == this->m_animState) {
+        return;
+    }
+
+    CM2Model* model = nullptr;
+
+    if (this->m_owner->IsObjectModelLoaded()) {
+        model = this->m_owner->m_worldModel;
+
+        if (model && this->m_owner->m_gameObject->m_pathProgress == 0xFFFF) {
+            int32_t current = this->m_animState;
+
+            if ((current == 2 && state == 4) || (current == 4 && state == 2) || (current == 5 && state == 7) || (current == 7 && state == 5)) {
+                M2BoneSequenceInfo info;
+                model->GetBoneSequenceInfo(0xFFFFFFFF, info);
+
+                if (static_cast<int32_t>(info.m_endTime - info.m_startTime) > 0) {
+                    uint32_t elapsed = model->m_scene->m_time - info.m_startTime;
+                    float progress = static_cast<float>(elapsed) / static_cast<float>(info.m_endTime - info.m_startTime);
+
+                    if (progress <= 1.0f) {
+                        this->m_owner->SetPathProgress(1.0f - progress);
+                    }
+                }
+            }
+        }
+    }
+
+    this->m_animState = state;
+
+    if (model) {
+        this->SetSequence(model);
+    }
+}
+
+// VERIFY: a9620568 auto
+// OFFSET: 0x00711B50
+void CGGameObject_C_Type_MapObjTransport::PostInitWithStats() {
+    this->CreateWorldObj();
+
+    if (this->m_worldObject) {
+        MovementAddTransport(this->m_owner);
+    }
+
+    uint32_t physicsIndex = CGameObjectDef::GetPropNum(this->m_owner->m_gameObject->m_typeID, 99);
+    GameObjectStats* physicsStats = this->m_owner->m_stats;
+    int32_t physicsId = (physicsStats && physicsIndex < 24) ? physicsStats->m_propValue[physicsIndex] : 0;
+    TransportPhysicsRec* physics = g_transportPhysicsDB.GetRecord(physicsId);
+
+    uint32_t accelRateIndex = CGameObjectDef::GetPropNum(this->m_owner->m_gameObject->m_typeID, 43);
+    GameObjectStats* accelRateStats = this->m_owner->m_stats;
+    int32_t accelRate = (accelRateStats && accelRateIndex < 24) ? accelRateStats->m_propValue[accelRateIndex] : 0;
+
+    uint32_t moveSpeedIndex = CGameObjectDef::GetPropNum(this->m_owner->m_gameObject->m_typeID, 36);
+    GameObjectStats* moveSpeedStats = this->m_owner->m_stats;
+    int32_t moveSpeed = (moveSpeedStats && moveSpeedIndex < 24) ? moveSpeedStats->m_propValue[moveSpeedIndex] : 0;
+
+    uint32_t taxiPathIndex = CGameObjectDef::GetPropNum(this->m_owner->m_gameObject->m_typeID, 35);
+    GameObjectStats* taxiPathStats = this->m_owner->m_stats;
+    uint32_t taxiPathId = (taxiPathStats && taxiPathIndex < 24) ? taxiPathStats->m_propValue[taxiPathIndex] : 0;
+
+    this->m_shipPath.Init(taxiPathId, static_cast<float>(moveSpeed), static_cast<float>(accelRate), physics);
+    this->m_shipPath.SetTotalPathTime(this->m_owner->m_gameObject->m_level);
+    this->InitializeMovement();
+
+    if (this->m_worldObject) {
+        World::ObjectUpdate(this->m_worldObject, this->m_owner->GetMatrix());
+    }
+}
+
+// VERIFY: eb329d86 manual
+// OFFSET: 0x0070D1E0
+void CGGameObject_C_TypeAnimated::SetSequence(CM2Model* model) {
+    float speed = 1.0f;
+    uint32_t sequence = CGGameObject_C_TypeAnimated::s_animSequenceIds[this->m_animState];
+
+    if (model->IsLoaded(0, 0) && !model->HasSequence(sequence)) {
+        switch (sequence) {
+            case 146:
+                if (!model->HasSequence(148)) {
+                    sequence = 147;
+                }
+
+                break;
+
+            case 147:
+                if (!model->HasSequence(146)) {
+                    if (!model->HasSequence(148)) {
+                        sequence = 0;
+                        goto effects;
+                    }
+
+                    sequence = 148;
+                    speed = 0.0f;
+                }
+
+                break;
+
+            case 148:
+                if (!model->HasSequence(146)) {
+                    sequence = model->HasSequence(150) ? 150 : 149;
+                }
+
+                break;
+
+            case 149:
+                if (!model->HasSequence(148)) {
+                    if (model->HasSequence(146)) {
+                        sequence = 146;
+                        speed = 0.0f;
+                    } else {
+                        sequence = 151;
+                    }
+                }
+
+                break;
+        }
+
+        if (sequence == model->GetBoneSequenceId(0xFFFFFFFF)) {
+            return;
+        }
+    }
+
+effects:
+    if (this->m_owner->m_effectManager) {
+        uint32_t current = model->GetBoneSequenceId(0xFFFFFFFF);
+
+        if (current != sequence) {
+            int32_t exitState = FindObjectEffectStateFromAnimID(current, 0);
+
+            if (exitState) {
+                this->m_owner->m_effectManager->ExitState(exitState, 1);
+            }
+
+            int32_t enterState = FindObjectEffectStateFromAnimID(sequence, 0);
+
+            if (enterState) {
+                this->m_owner->m_effectManager->EnterState(enterState, 1, 0);
+            }
+        }
+    }
+
+    M2SequenceInfo info;
+    info.m_radius = 0.0f;
+    model->GetSequenceInfo(sequence, 0, info);
+
+    int32_t state = this->m_animState;
+    int32_t startTime = 0;
+    uint32_t keepTime = 0;
+
+    if (state == 2 || state == 4 || state == 5 || state == 7) {
+        keepTime = (this->m_owner->m_gameObject->m_flags >> 7) & 1;
+        uint16_t progress = this->m_owner->m_gameObject->m_pathProgress;
+
+        if (progress != 0xFFFF) {
+            startTime = CMath::fint_(static_cast<float>(progress) * 1.5259022e-05f * static_cast<float>(info.m_duration));
+            this->m_owner->SetPathProgress(1.0f);
+        }
+    }
+
+    model->SetBoneSequence(0xFFFFFFFF, sequence, 0xFFFFFFFF, startTime, speed, this->m_animState != 0, 1);
+
+    if (keepTime) {
+        uint32_t time = model->m_scene->m_time;
+        model->m_lastAnimTime = time ? time : 1;
+    } else {
+        model->m_lastAnimTime = 0;
+    }
+
+    state = this->m_animState;
+
+    if (state != 3 && state != 1 && state != 6) {
+        ClntObjMgrLockObject(this->m_owner->m_obj->m_guid);
+    }
+
+    this->unk_0014 = this->m_animState;
+
+    if (speed > 0.0f) {
+        this->m_nextAnimTime = FrameTime::s_curTimeMs + static_cast<uint32_t>(static_cast<float>(info.m_duration - startTime) / speed);
+    } else {
+        this->m_nextAnimTime = FrameTime::s_curTimeMs;
+    }
+}
+
+// VERIFY: 52c14f17 manual
+// OFFSET: 0x00710410
+bool CGGameObject_C::IsCreatorOnlyUse() const {
+    uint32_t creatorOnlyIndex = CGameObjectDef::GetPropNum(this->m_gameObject->m_typeID, 94);
+    GameObjectStats* creatorOnlyStats = this->m_stats;
+    return creatorOnlyStats && creatorOnlyIndex < 24 && creatorOnlyStats->m_propValue[creatorOnlyIndex];
+}
+
+// VERIFY: 78a5991c manual
+// OFFSET: 0x007112A0
+bool CGGameObject_C_TypeBase::CanUse() const {
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return false;
+    }
+
+    if (this->m_owner->m_gameObject->m_typeID == 6) {
+        if (!this->m_owner->GetLockRec() || this->m_owner->ObjectReaction(player) > 1) {
+            return false;
+        }
+
+        WOWGUID creatorGuid = this->m_owner->m_gameObject->m_createdBy;
+
+        if (!(creatorGuid.m_guid & 0xF000000000000000ULL) && (creatorGuid.m_guid & 0xF07FFFFFFFFFFFFFULL)) {
+            CGUnit_C* creator = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(creatorGuid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+            if (!creator) {
+                return false;
+            }
+
+            bool ffa = (creator->m_unit->m_unitFieldBytes2[1] & 0x4) && (!CGPartyInfo::InParty() || (!CGPartyInfo::IsMember(creator->m_obj->m_guid) && !IsGuidInMyRaid(creator->m_obj->m_guid)));
+
+            if (!(creator->m_unit->m_unitFieldBytes2[1] & 0x1) && !creator->IsDuelingWith(player) && !ffa) {
+                return false;
+            }
+        }
+    } else if (this->m_owner->ObjectReaction(player) <= 1) {
+        return false;
+    }
+
+    CGGameObject_C* owner = this->m_owner;
+    uint16_t dynamicFlags = owner->m_gameObject->m_dynamicFlags;
+
+    if (dynamicFlags & 0x4) {
+        return false;
+    }
+
+    uint32_t flags = owner->m_gameObject->m_flags;
+
+    if ((flags & 0x11) || (owner->m_modelFlags & 0x100000) || ((flags & 0x4) && !(dynamicFlags & 0x1))) {
+        return false;
+    }
+
+    if (owner->IsCreatorOnlyUse() && player->m_obj->m_guid != this->m_owner->m_gameObject->m_createdBy) {
+        return false;
+    }
+
+    return true;
+}
+
+// VERIFY: e3ea0361 auto
+// OFFSET: 0x0070D7B0
+void CGGameObject_C_TypeAnimated::HandleAnimEvent(uint32_t eventId, uint32_t data, const C3Vector& position, uint32_t time) {
+    GameObject_C_ProcessAnimEvent(eventId, this->m_owner->m_gameObject->m_displayID, data, position, &this->m_sound);
 }

@@ -223,7 +223,7 @@ uint32_t SpellVisualsGetModelAttachRecCount(uint32_t kitId) {
     return 0;
 }
 
-// VERIFY: 778c397e auto
+// VERIFY: 1fcb7f6f auto
 // OFFSET: 0x007FBE00
 MountTransitionObject* SpellVisualsStartMountTransition(CGUnit_C* unit) {
     MountTransitionObject* transition = s_mountTransitions.NewNode(2, 0, 0);
@@ -239,7 +239,7 @@ MountTransitionObject* SpellVisualsStartMountTransition(CGUnit_C* unit) {
     transition->unk_0020 = 0.0f;
     transition->unk_0024 = 0.0f;
     transition->unk_0028 = 0.0f;
-    transition->unk_007C = 0.0f;
+    transition->m_alpha = 0.0f;
     transition->unk_0080 = OsGetAsyncTimeMs();
     return transition;
 }
@@ -291,4 +291,18 @@ void SpellVisualsHandleEclipse(const CImVector* color, float fadeIn, const Spell
     s_eclipse.m_holdEnd = now + castTime;
     s_eclipse.m_fadeInEnd = static_cast<int32_t>(castTime * fadeIn) + now;
     s_eclipse.m_end = now + castTime + 100;
+}
+
+// VERIFY: b5145a50 auto
+// OFFSET: 0x007F9F10
+float SpellVisualsGetMountTransitionAlpha(const MountTransitionObject* transition) {
+    return transition->m_alpha;
+}
+
+// VERIFY: 85b7ab4a auto
+// OFFSET: 0x007F9F20
+void SpellVisualsGetMountTransitionTransform(const MountTransitionObject* transition, C3Vector* position, C3Vector* up, float* facing) {
+    *position = transition->m_position;
+    *up = transition->m_groundNormal;
+    *facing = transition->m_facing;
 }

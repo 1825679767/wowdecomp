@@ -22,6 +22,7 @@ class CGAutoCompleteName {
 
     static void ResortAll();
     static void AddFlags(const WOWGUID& guid, uint32_t flags, int32_t add, const char* name);
+    static int32_t RemoveFlags(const WOWGUID& guid, uint32_t flags);
 };
 
 int32_t Script_GetAutoCompleteResults(lua_State* L);

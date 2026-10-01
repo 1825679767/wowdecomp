@@ -23,7 +23,7 @@ float CMapStaticEntity::s_characterAmbient = 1.0f;
 // STATIC: 0x00AEEDF0
 C3Vector CMapStaticEntity::s_interiorSunDir = C3Vector(-0.30822f, -0.30822f, -0.9f);
 
-// VERIFY: cc3d4a96 manual
+// VERIFY: 4c01a51b manual
 // OFFSET: 0x007A0B50
 CMapStaticEntity::CMapStaticEntity() {
     this->m_sphere.c = C3Vector(0.0f, 0.0f, 0.0f);
@@ -35,9 +35,9 @@ CMapStaticEntity::CMapStaticEntity() {
     this->m_model = nullptr;
     this->m_diffuseLightScale = 0.0f;
     this->m_unkCounter = 0;
-    this->unk_0028 = 0;
-    this->unk_0029 = 0;
-    this->unk_002A = 0;
+    this->m_shadowStamps[0] = 0;
+    this->m_shadowStamps[1] = 0;
+    this->m_shadowStamps[2] = 0;
     this->unk_002B = 0;
     this->m_fadeLevel = 0;
     this->m_vec2 = C3Vector(0.0f, 0.0f, 0.0f);

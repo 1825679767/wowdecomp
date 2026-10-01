@@ -15,6 +15,10 @@
 #include "WoW/Source/Object/Unit.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
+
+// STATIC: 0x00AD0340
+static TSList<CalendarPendingInvite, TSGetLink<CalendarPendingInvite> > s_pendingInvites;
 
 // STATIC: 0x00AD0350
 static CalendarEventClipboard s_eventClipboard;
@@ -185,4 +189,18 @@ void CGCalendar::EnterWorld() {
     qsort(s_eventTextures[0].m_data, counts[0], sizeof(int32_t), QSortTextures);
     qsort(s_eventTextures[1].m_data, counts[1], sizeof(int32_t), QSortTextures);
     CGCalendar::m_initialize = 0;
+}
+
+// VERIFY: 963a0c94 manual
+// OFFSET: 0x005BEC70
+uint32_t CGCalendar::CountPendingInvites() {
+    uint32_t count = 0;
+
+    for (CalendarPendingInvite* invite = s_pendingInvites.Head(); invite; invite = s_pendingInvites.Next(invite)) {
+        if (invite->m_inviterGuid && !FriendList::s_friendList->IsIgnored(invite->m_inviterGuid, false)) {
+            count++;
+        }
+    }
+
+    return count > static_cast<uint32_t>(CGCalendar::m_numInitialPending) ? count : CGCalendar::m_numInitialPending;
 }

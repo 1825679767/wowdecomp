@@ -286,6 +286,7 @@ class CM2Model {
     void AttachToScene(CM2Scene* scene);
     void AttachToSceneRecursive(CM2Scene* scene);
     void GatherModelBatchesShadowMap(CModelBatchList& untextured, CModelBatchList& textured);
+    uint32_t GetSharedUnk0198() const;
     void CallCallbacks();
     void CallSequenceCallback(M2ModelCallback* entry);
     void CancelAllDeferredSequences();

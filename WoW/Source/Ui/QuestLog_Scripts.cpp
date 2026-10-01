@@ -27,6 +27,7 @@
 #include "WoW/Source/Ui/PartyFrame.h"
 #include "WoW/Source/Ui/RaidInfo.h"
 #include "WoW/Source/Ui/QuestLogLeaderBoardParams.h"
+#include "WoW/Source/Ui/WorldMap.h"
 
 // VERIFY: ee052397 auto
 // OFFSET: 0x005DF0D0
@@ -1557,6 +1558,32 @@ static int32_t Script_GetQuestLogLeaderBoard(lua_State* L) {
     }
 
     return 3;
+}
+
+// VERIFY: 6f8ab4c9 manual
+// OFFSET: 0x005E63D0
+static int32_t Script_QuestMapUpdateAllQuests(lua_State* L) {
+    int32_t areaId;
+
+    if (CGWorldMap::m_currentContinent < 0) {
+        areaId = CGWorldMap::m_currentOrphanZone;
+    } else if (CGWorldMap::m_currentZone < 0) {
+        areaId = CGWorldMap::m_continents.m_data[CGWorldMap::m_currentContinent].m_areaID;
+    } else {
+        areaId = CGWorldMap::m_continents.m_data[CGWorldMap::m_currentContinent].m_zones.m_data[CGWorldMap::m_currentZone];
+    }
+
+    WorldMapAreaRec* area = g_worldMapAreaDB.GetRecord(areaId);
+    int32_t dungeonMapId = CGWorldMap::m_currentOrphanZone == -1 ? -1 : CGWorldMap::m_currentDungeonMap;
+    DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecord(dungeonMapId);
+    int32_t updated = 0;
+
+    if ((area && (CGWorldMap::m_currentZone != -1 || CGWorldMap::m_currentContinent == -2)) || dungeonMap) {
+        updated = CGQuestLog::UpdateAllQuestPOI();
+    }
+
+    lua_pushnumber(L, updated);
+    return 1;
 }
 
 // STATIC: 0x00AD1020

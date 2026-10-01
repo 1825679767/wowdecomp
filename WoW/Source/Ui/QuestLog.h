@@ -75,6 +75,7 @@ int32_t CountQuestItemDropsNeeded(int32_t questId, void (*callback)(int32_t id, 
 
 class CGQuestLog {
     public:
+    static int32_t UpdateAllQuestPOI();
     static int32_t GetQuestLogSlot(int32_t index);
     static int32_t IsOnQuest(int32_t questId);
     static int32_t FindOrFreePOISlot(int32_t questId);
@@ -136,7 +137,6 @@ class CGQuestLog {
 
 int32_t Script_GetQuestLogItemDrop(lua_State* L);
 int32_t Script_GetQuestPOILeaderBoard(lua_State* L);
-int32_t Script_QuestMapUpdateAllQuests(lua_State* L);
 int32_t Script_QuestPOIUpdateTexture(lua_State* L);
 int32_t Script_QuestPOIGetIconInfo(lua_State* L);
 void QuestLogRegisterScriptFunctions();

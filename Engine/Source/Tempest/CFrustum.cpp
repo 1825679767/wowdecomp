@@ -207,3 +207,34 @@ CFrustum& CFrustum::operator=(const CFrustum& source) {
 
     return *this;
 }
+
+// VERIFY: cc1bdc3a manual
+// OFFSET: 0x007BA960
+void CFrustum::InvertPlanes() {
+    for (uint32_t i = 0; i < 6; i++) {
+        this->planes[i].n.x = -this->planes[i].n.x;
+        this->planes[i].n.y = -this->planes[i].n.y;
+        this->planes[i].n.z = -this->planes[i].n.z;
+        this->planes[i].d = -this->planes[i].d;
+    }
+}
+
+// VERIFY: aa9403a2 auto
+// OFFSET: 0x007BAAA0
+void CFrustum::SwapCorners() {
+    C3Vector corner = this->corners[0];
+    this->corners[0] = this->corners[3];
+    this->corners[3] = corner;
+
+    corner = this->corners[1];
+    this->corners[1] = this->corners[2];
+    this->corners[2] = corner;
+
+    corner = this->corners[4];
+    this->corners[4] = this->corners[7];
+    this->corners[7] = corner;
+
+    corner = this->corners[5];
+    this->corners[5] = this->corners[6];
+    this->corners[6] = corner;
+}

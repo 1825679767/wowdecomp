@@ -25,6 +25,7 @@ class FVBBList {
     void Destroy();
     void Initialize(EGxPoolTarget target, EGxPoolUsage usage, uint32_t itemSize, uint32_t itemCount, uint32_t blockCount);
     void Release(Block* block);
+    void AcquireBlock(Block** owner);
 };
 
 #endif

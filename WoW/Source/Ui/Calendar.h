@@ -3,10 +3,12 @@
 
 #include <cstdint>
 #include "WoW/Source/Net/Types.h"
+#include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Object/WGUID.h"
 
 class CDataStore;
 class CGCalendarEvent;
-class CVar;
+struct CVar;
 struct lua_State;
 
 struct CalendarEventClipboard {
@@ -16,8 +18,16 @@ struct CalendarEventClipboard {
 
 int32_t PH_CALENDAR_GROUP(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 
+struct CalendarPendingInvite : public TSLinkedNode<CalendarPendingInvite> {
+    /* 0008 */ uint8_t unk_0008[16];
+    /* 0018 */ WOWGUID m_inviterGuid;
+};
+
 class CGCalendar {
     public:
+    static void GuildChanged();
+    static uint32_t CountPendingInvites();
+    static void UpdateDisplayList(int32_t a1);
     static uint8_t m_actionPending;
     static void CalendarError(const char* error, int32_t a2);
     static CGCalendarEvent* m_curEvent;
@@ -50,7 +60,6 @@ int32_t Script_CalendarCloseEvent(lua_State* L);
 int32_t Script_CalendarGetEventInfo(lua_State* L);
 int32_t Script_CalendarGetHolidayInfo(lua_State* L);
 int32_t Script_CalendarGetRaidInfo(lua_State* L);
-int32_t Script_CalendarGetNumPendingInvites(lua_State* L);
 int32_t Script_CalendarEventGetNumInvites(lua_State* L);
 int32_t Script_CalendarEventGetInvite(lua_State* L);
 int32_t Script_CalendarEventGetInviteResponseTime(lua_State* L);

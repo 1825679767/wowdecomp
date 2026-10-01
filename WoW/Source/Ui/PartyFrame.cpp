@@ -10,6 +10,9 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Engine/Source/ConsoleBase/ConsoleCommand.h"
 #include "WoW/Source/Object/Unit.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "WoW/Source/Net/Types.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
 
 // STATIC: 0x00BD1948
 WOWGUID CGPartyInfo::m_members[4];
@@ -414,4 +417,36 @@ void CGPartyInfo::ClearRecruitAFriend(WOWGUID guid) {
     if (stats) {
         stats->m_flags &= ~0x100;
     }
+}
+
+// VERIFY: 28bb1991 manual
+// OFFSET: 0x0052C760
+void CGPartyInfo::EnableMember(CGPlayer_C* player, int32_t enable) {
+    WOWGUID guid = player->m_obj->m_guid;
+    uint32_t index;
+
+    for (index = 0; index < 4; index++) {
+        if (CGPartyInfo::m_members[index] == guid) {
+            break;
+        }
+    }
+
+    if (index == 4) {
+        return;
+    }
+
+    if (enable) {
+        Script_SendUniqueSignal(SCRIPT_EVENT_PARTY_MEMBER_ENABLE);
+        return;
+    }
+
+    player->FillPartyMemberState(&unk_BD0D08[index]);
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_REQUEST_PARTY_MEMBER_STATS));
+    msg.Put(player->m_obj->m_guid.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+
+    Script_SendUniqueSignal(SCRIPT_EVENT_PARTY_MEMBER_DISABLE);
 }

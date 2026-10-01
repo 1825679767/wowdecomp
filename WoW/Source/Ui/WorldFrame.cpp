@@ -1876,7 +1876,7 @@ void CGWorldFrame::OnLayerUpdate(float elapsedSec) {
     CGMailInfo::UpdatePendingMail(elapsedSec);
 }
 
-// VERIFY: 9ae77fc8 manual
+// VERIFY: b7190175 manual
 // OFFSET: 0x004FA5F0
 void CGWorldFrame::OnWorldUpdate() {
     float elapsedSec = this->m_elapsedSec;
@@ -1981,7 +1981,7 @@ void CGWorldFrame::OnWorldUpdate() {
     World::SetObjectCollisionCallback(ObjectCollisionProc);
     CEffect::CleanUpStaticLists();
     CMissile::UpdateStaticLists();
-    CGObject_C::UpdateFadeoutList(FrameTime::s_curTimeMs);
+    Spell_C_ExpireDestLocSpellCasts(FrameTime::s_curTimeMs);
     Spell_C_UpdateInTransitList();
 
     C3Vector position = (this->m_camera->m_model || !target) ? camPos : target->GetPosition();

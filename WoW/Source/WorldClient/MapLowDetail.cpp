@@ -10,6 +10,9 @@
 #include "WoW/Source/WorldClient/MapObj.h"
 #include "WoW/Source/WorldClient/MapObjDef.h"
 #include "WoW/Source/WorldClient/World.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
+#include "Engine/Source/Gx/Gx.h"
+#include "WoW/Source/WorldClient/DayNight__DNInfo.h"
 
 // VERIFY: pending
 // VERIFY: 3763adce auto
@@ -230,4 +233,87 @@ void CMapLowDetail::Load(const char* mapPath, const char* mapName) {
         mapObjDef->m_refCount++;
         this->m_mapObjDefList.m_data[i] = mapObjDef;
     }
+}
+
+// VERIFY: c20afbce manual
+// OFFSET: 0x007D5E70
+void CMap::RenderLowDetail(CMapAreaLow* area) {
+    if (static_cast<int32_t>(area->m_indexCount) <= 0) {
+        return;
+    }
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_Fog, 1);
+    GxRsSet(GxRs_DepthTest, 3);
+
+    DayNight::DNInfo* info = DayNight::GetInfo();
+    GxRsSet(GxRs_FogStart, 0.0f);
+    GxRsSet(GxRs_FogEnd, 1.0f);
+    CImVector color = info->m_fog.m_color;
+    GxRsSet(GxRs_FogColor, *reinterpret_cast<int32_t*>(&color));
+    GxRsSet(GxRs_Lighting, 0);
+
+    if (!area->m_block) {
+        CMap::s_vbbList.AcquireBlock(&area->m_block);
+    }
+
+    if (area->m_block) {
+        CGxBuf* buf = area->m_block->m_buf;
+
+        if (!buf->unk_001C || !buf->unk_001D) {
+            CMap::BuildLowDetailGridVertices(area, buf);
+        }
+
+        area->m_block->unk_0008 = CWorld::frameCnt;
+        GxPrimVertexPtr(area->m_block->m_buf, GxVBF_PC);
+    } else {
+        CGxBuf* buf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, 16, 545);
+        CMap::BuildLowDetailGridVertices(area, buf);
+        GxPrimVertexPtr(buf, GxVBF_PC);
+    }
+
+    uint32_t count;
+
+    if (!(area->unk_0058 & 0x1) && area->m_indexCount == 3072) {
+        GxRsSet(GxRs_Culling, 0);
+        CGxBuf* indexBuf = CMap::lowDetailIndexBuf;
+
+        if (!indexBuf->unk_001C || !indexBuf->unk_001D) {
+            CMap::BuildLowDetailGridIndices(nullptr, 0, CMap::lowDetailIndexBuf);
+            indexBuf = CMap::lowDetailIndexBuf;
+        }
+
+        g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+        count = 3072;
+    } else {
+        GxRsSet(GxRs_Culling, 0);
+        CGxBuf* indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, area->m_indexCount);
+        CMap::BuildLowDetailGridIndices(area->m_holes, 0, indexBuf);
+        g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+
+        CGxBatch batch;
+        batch.m_primType = GxPrim_Triangles;
+        batch.m_start = 0;
+        batch.m_count = area->m_indexCount;
+        batch.m_minIndex = 0;
+        batch.m_maxIndex = 544;
+        g_theGxDevicePtr->Draw(&batch, 1);
+
+        GxRsSet(GxRs_Culling, 1);
+        indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, 3072 - area->m_indexCount);
+        CMap::BuildLowDetailGridIndices(area->m_holes, 1, indexBuf);
+        g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+        count = 3072 - area->m_indexCount;
+    }
+
+    CGxBatch batch;
+    batch.m_primType = GxPrim_Triangles;
+    batch.m_start = 0;
+    batch.m_count = count;
+    batch.m_minIndex = 0;
+    batch.m_maxIndex = 544;
+    g_theGxDevicePtr->Draw(&batch, 1);
+
+    g_theGxDevicePtr->RsPop();
+    g_theGxDevicePtr->m_xforms[GxXform_Tex0].Identity();
 }

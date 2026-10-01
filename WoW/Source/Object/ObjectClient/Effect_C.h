@@ -101,6 +101,10 @@ class CEffect {
     int32_t UpdateAttachment();
     void InitLightningEndpoint();
     void LinkTo(CEffect** head);
+    void AddLightning(int32_t a2, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags);
+    void AddMountTransition(uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid);
+    void CreateProceduralEffectImpl(int32_t a2, float param, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags);
+    void InitProceduralEffect(int32_t a2, int32_t param, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags);
     void MoveToDestroyList();
     void EffectUpdate();
     void MoveToOrphanList();

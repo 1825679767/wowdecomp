@@ -74,6 +74,7 @@ class CGCamera : public CSimpleCamera {
     static int32_t CCommand_PitchLimit(const char* command, const char* arguments);
     static uint32_t GetCollisionQueryFlags();
     static float GetDefaultZoomMaxDistance();
+    float GetDefaultZoomMinDistance();
     static void __stdcall AddShakeOffset(C3Vector& offset, float facing, float amplitude, float time, float frequency, int32_t type, float damping, int32_t dir);
     void SetPositionAndTargetWithRoll(const C3Vector& position, const C3Vector& target, float roll);
     void CommentatorSetViewAndPosition(const C3Vector& position, float facing, float pitch);

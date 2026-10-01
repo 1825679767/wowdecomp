@@ -617,3 +617,14 @@ void CVehicle_C::HandleBoneAnimThrowEvent(uint32_t boneId, uint32_t eventId) {
         }
     }
 }
+
+// VERIFY: 35671fad manual
+// OFFSET: 0x00757180
+void CVehicle_C::EnterWorld() {
+    CGUnit_C::UpdateVehicleUISliders(nullptr, nullptr);
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player && player->m_vehicle && player->m_vehicle->m_vehicleRec) {
+        player->SignalPlayerGainsVehicleDataEvent();
+    }
+}

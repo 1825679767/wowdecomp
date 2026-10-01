@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class TransportPhysicsRec;
+
 class ShipPath {
     public:
     /* 0000 */ uint32_t unk_0000;
@@ -27,6 +29,8 @@ class ShipPath {
 
     ShipPath();
     void WaitAtNextPausePoint(uint32_t time, bool pause);
+    void Init(uint32_t taxiPathId, float moveSpeed, float accelRate, const TransportPhysicsRec* physics);
+    void SetTotalPathTime(uint32_t time);
 };
 
 #endif

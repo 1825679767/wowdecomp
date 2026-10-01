@@ -20,8 +20,6 @@ int32_t Script_SetPOIArrowTexture(lua_State* L);
 int32_t Script_SetStaticPOIArrowTexture(lua_State* L);
 int32_t Script_SetCorpsePOIArrowTexture(lua_State* L);
 int32_t Script_SetPlayerTexture(lua_State* L);
-int32_t Script_GetZoomLevels(lua_State* L);
-int32_t Script_GetZoom(lua_State* L);
 int32_t Script_SetZoom(lua_State* L);
 int32_t Script_PingLocation(lua_State* L);
 int32_t Script_GetPingPosition(lua_State* L);
@@ -166,6 +164,20 @@ static int32_t Script_GetTrackingInfo(lua_State* L) {
 
     lua_pushstring(L, "spell");
     return 4;
+}
+
+// VERIFY: e417bf52 manual
+// OFFSET: 0x0057BF50
+static int32_t Script_GetZoomLevels(lua_State* L) {
+    lua_pushnumber(L, static_cast<uint32_t>(MinimapGetZoomLevels()));
+    return 1;
+}
+
+// VERIFY: de4c09b0 manual
+// OFFSET: 0x0057BF90
+static int32_t Script_GetZoom(lua_State* L) {
+    lua_pushnumber(L, static_cast<uint32_t>(MinimapGetZoom()));
+    return 1;
 }
 
 // STATIC: 0x00ACEBB8

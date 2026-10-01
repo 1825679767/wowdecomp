@@ -38,6 +38,7 @@ class CMissileCollision {
     void Free();
     int32_t Init(const C3Vector* start, const C3Vector* end, float pitch, float speed, const SpellMissileRec* missile, CGUnit_C* caster);
     float ComputeSegmentImpactTime(const C3Vector* start, const C3Vector* end);
+    float ComputeUnitRank(CGUnit_C* unit);
 };
 
 #endif

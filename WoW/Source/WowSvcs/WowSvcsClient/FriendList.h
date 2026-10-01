@@ -70,10 +70,18 @@ class FriendList {
     static void Initialize();
     static void RegisterScriptFunctions();
 
+    void ReadPacket(CDataStore* msg);
     bool IsIgnored(WOWGUID guid, bool a2);
     bool IsFriend(WOWGUID guid);
 };
 
+int32_t QSortFriends(const void* a, const void* b);
+int32_t QSortIgnore(const void* a, const void* b);
+void FriendListNameCallbackWithSort(int32_t id, const WOWGUID& guid, void* param, bool success);
+void FriendListIgnoreNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void FriendListMuteNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void FriendListModuleLoaded();
+void LoadEncryptedModule(const uint8_t* key, uint32_t length, void (*callback)());
 int32_t Packet_SMSG_WHO(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_WHOIS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_RWHOIS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);

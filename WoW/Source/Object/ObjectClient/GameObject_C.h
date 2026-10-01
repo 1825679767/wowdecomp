@@ -109,6 +109,7 @@ class CGGameObject_C_TypeAnimated : public CGGameObject_C_TypeBase {
     virtual void UpdateAnimState(uint32_t state);
 
     CGGameObject_C_TypeAnimated(CGGameObject_C* owner);
+    void SetSequence(CM2Model* model);
     void ResetAnimState();
 };
 
@@ -317,6 +318,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     CGGameObject_C(uint32_t time, const CClientObjCreate& create);
     void AddToolTipInfo(CGTooltip* tooltip);
     bool CanUse() const;
+    bool IsCreatorOnlyUse() const;
     void CheckForPassiveHighlight();
     int32_t CanUseNow() const;
     int32_t CheckRange() const;
