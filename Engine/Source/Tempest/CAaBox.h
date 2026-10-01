@@ -18,6 +18,7 @@ class CAaBox {
     CAaBox() = default;
     CAaBox(const C3Vector& b, const C3Vector& t);
     bool ContainsPoint(const C3Vector& point) const;
+    bool ContainsPointExclusive(const C3Vector& point) const;
     bool Intersects(const CAaBox& box) const;
     bool IntersectsXY(const CAaBox& box) const;
     bool IsEmpty() const;

@@ -405,3 +405,13 @@ CGPartyMemberState* CGPartyInfo::GetMemberState(uint32_t index) {
 
     return nullptr;
 }
+
+// VERIFY: 141be72d auto
+// OFFSET: 0x0052C080
+void CGPartyInfo::ClearRecruitAFriend(WOWGUID guid) {
+    CGPartyMemberState* stats = CGPartyInfo::GetRemoteStats(guid);
+
+    if (stats) {
+        stats->m_flags &= ~0x100;
+    }
+}

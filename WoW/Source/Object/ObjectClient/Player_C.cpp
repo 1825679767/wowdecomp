@@ -107,6 +107,9 @@
 #include "WoW/Source/Ui/TradeFrame.h"
 #include "WoW/Source/DB/Rec/SpellShapeshiftFormRec.h"
 #include "WoW/Source/Object/ObjectClient/GuildStats_C.h"
+#include "Engine/Source/Tempest/CAaBox.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
+#include "WoW/Source/Client.h"
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -118,6 +121,21 @@ struct InitialSpellStruct {
     /* 0004 */ uint16_t unk_0004;
     /* 0006 */ uint16_t unk_0006;
 };
+
+// STATIC: 0x00C9D328
+static int32_t s_areaTriggerEnd;
+
+// STATIC: 0x00C9D32C
+static int32_t s_areaTriggerStart;
+
+// STATIC: 0x00C9D330
+static AreaTriggerRec* s_currentAreaTrigger;
+
+// STATIC: 0x00C9D334
+static uint32_t s_areaTriggerTimer;
+
+// STATIC: 0x00C9D338
+static int32_t s_areaTriggerMapID;
 
 // STATIC: 0x00C9D33C
 static int32_t s_unk_C9D33C;
@@ -8994,4 +9012,165 @@ const char* CGPlayer_C::GetPlayerGuildNameText() {
     }
 
     return stats->m_name;
+}
+
+// VERIFY: 00424069 manual
+// OFFSET: 0x00594760
+uint16_t CGPlayer_C::GetSkillStep(int32_t index) const {
+    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
+        return 0;
+    }
+
+    return this->m_player->m_playerSkillInfo[index].m_step;
+}
+
+// VERIFY: 1ab76c61 auto
+// OFFSET: 0x006D6660
+int32_t CGPlayer_C::GetSkillLineForSlot(int32_t hand) {
+    int32_t spell = 0;
+
+    if (hand < 3) {
+        const CGUnitVirtualItem* item = this->GetVirtualItem(hand, false);
+
+        if (!item || item->m_classID == 2) {
+            uint32_t subclass = item ? item->m_subclassID : ClientDBGetUnarmedWeapon();
+
+            if (subclass < s_weaponSkills.Count()) {
+                spell = s_weaponSkills.m_data[subclass];
+            }
+        }
+    }
+
+    SkillLineAbilityRec* ability = SpellTableLookupAbility(this->m_unit->m_unitFieldBytes0[0], this->m_unit->m_unitFieldBytes0[1], spell);
+
+    if (ability && ability->m_spell == spell) {
+        return ability->m_skillLine;
+    }
+
+    return 0;
+}
+
+// VERIFY: caa91b18 manual
+// OFFSET: 0x006CE140
+static bool AreaTriggerContains(const AreaTriggerRec* rec, const C3Vector& position) {
+    if (rec->m_continentID != s_areaTriggerMapID) {
+        return false;
+    }
+
+    if (rec->m_radius == 0.0f) {
+        CAaBox box;
+        box.t.x = rec->m_boxLength * 0.5f;
+        box.b.x = -box.t.x;
+        box.t.y = rec->m_boxWidth * 0.5f;
+        box.b.y = -box.t.y;
+        box.t.z = rec->m_boxHeight * 0.5f;
+        box.b.z = -box.t.z;
+
+        C44Matrix matrix;
+        matrix.Translate(*reinterpret_cast<const C3Vector*>(rec->m_pos));
+        matrix.RotateAroundZ(rec->m_boxYaw);
+        C3Vector local = position * matrix.AffineInverse();
+
+        return box.ContainsPointExclusive(local);
+    }
+
+    float dx = rec->m_pos[0] - position.x;
+    float dy = rec->m_pos[1] - position.y;
+    float dz = rec->m_pos[2] - position.z;
+
+    return dy * dy + dz * dz + dx * dx <= rec->m_radius * rec->m_radius;
+}
+
+// VERIFY: a211d644 manual
+// OFFSET: 0x006D2F70
+void AreaTriggersInitialize(uint32_t mapId) {
+    int32_t start = -1;
+    int32_t i = 0;
+    s_currentAreaTrigger = nullptr;
+    s_areaTriggerMapID = mapId;
+    s_areaTriggerStart = -1;
+
+    for (; i < g_areaTriggerDB.m_numRecords; i++) {
+        AreaTriggerRec* rec = g_areaTriggerDB.GetRecordByIndex(i);
+
+        if (!rec) {
+            s_areaTriggerStart = start;
+            SErrDisplayAppFatalMessage("", "", 0);
+        }
+
+        if (rec->m_continentID == static_cast<int32_t>(mapId)) {
+            if (start == -1) {
+                start = i;
+            }
+        } else if (rec->m_continentID > static_cast<int32_t>(mapId)) {
+            break;
+        }
+    }
+
+    s_areaTriggerStart = start;
+    s_areaTriggerEnd = i;
+    s_areaTriggerTimer = EventSetTimer(100, AreaTriggerCheck, nullptr);
+}
+
+// VERIFY: 9b5004f3 manual
+// OFFSET: 0x006DBE30
+int32_t AreaTriggerCheck(const void* data, void* param) {
+    s_areaTriggerTimer = EventSetTimer(100, AreaTriggerCheck, nullptr);
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || player->m_unit->m_unitFieldHealth <= 0) {
+        return 1;
+    }
+
+    if (ClntObjMgrGetMapID() != s_areaTriggerMapID) {
+        if (s_areaTriggerTimer) {
+            ClientKillTimer(s_areaTriggerTimer, AreaTriggerCheck, "AreaTriggerCheck");
+            s_areaTriggerTimer = 0;
+        }
+
+        AreaTriggersInitialize(ClntObjMgrGetMapID());
+    }
+
+    if (s_areaTriggerStart == -1) {
+        return 1;
+    }
+
+    C3Vector position = player->GetPosition();
+
+    if (s_currentAreaTrigger) {
+        if (AreaTriggerContains(s_currentAreaTrigger, position)) {
+            return 1;
+        }
+
+        s_currentAreaTrigger = nullptr;
+    }
+
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!mover) {
+        return 1;
+    }
+
+    for (int32_t i = s_areaTriggerStart; i < s_areaTriggerEnd; i++) {
+        AreaTriggerRec* rec = g_areaTriggerDB.GetRecordByIndex(i);
+
+        if (!rec) {
+            SErrDisplayAppFatalMessage("", "", 0);
+        }
+
+        if (AreaTriggerContains(rec, position)) {
+            mover->SendMovementUpdate(MSG_MOVE_HEARTBEAT);
+
+            CDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_AREA_TRIGGER));
+            msg.Put(static_cast<uint32_t>(rec->m_id));
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+            s_currentAreaTrigger = rec;
+
+            return 1;
+        }
+    }
+
+    return 1;
 }

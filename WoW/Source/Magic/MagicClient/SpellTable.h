@@ -45,5 +45,6 @@ SkillLineAbilityRec* SpellTableLookupPetAbility(int32_t skillLine, int32_t spell
 bool SpellTableGetSkillLineLinkInfo(int32_t skillLine, const SkillLineAbilityRec*& ability, uint32_t& count);
 const SkillRaceClassInfoRec* SpellTableLookupInfo(int32_t race, int32_t classId, int32_t skillId);
 SkillLineAbilityRec* SpellTableLookupAbility(int32_t race, int32_t classId, int32_t spellId);
+int32_t GetSkillTierCost(const SkillRaceClassInfoRec* info, uint32_t step);
 
 #endif

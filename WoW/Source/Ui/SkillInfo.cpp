@@ -249,3 +249,21 @@ void PlayerSignalSkillStatChanges() {
 
     CGSkillInfo::UpdateSkillLines();
 }
+
+// VERIFY: 8c467dbf auto
+// OFFSET: 0x005CD710
+int32_t CGSkillInfo::GetSkillTypeCollapsed(uint32_t index) {
+    if (index >= CGSkillInfo::m_numLines) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < CGSkillInfo::m_numTypes; i++) {
+        SkillTypeInfo* type = CGSkillInfo::m_types.m_data[i];
+
+        if (type->m_categoryID == CGSkillInfo::m_lines.m_data[index]->m_categoryID) {
+            return type->unk_0004;
+        }
+    }
+
+    return 0;
+}

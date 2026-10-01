@@ -190,6 +190,7 @@ class CGCamera : public CSimpleCamera {
     int32_t HasTargetOffset();
     void IncIgnoreFacing();
     void InitializeView();
+    void RestoreSavedDistancePitch();
     uint32_t IsBobbingAllowed(CGObject_C* target);
     int32_t IsCustomViewSmoothingActive();
     int32_t IsFirstPersonView();

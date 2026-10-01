@@ -83,6 +83,7 @@ class CGPartyInfo {
     static void EnableMember(CGPlayer_C* player, int32_t enable);
     static int32_t IsMemberPet(const WOWGUID& guid, int32_t* index);
     static CGPartyMemberState* GetRemoteStats(const WOWGUID& guid);
+    static void ClearRecruitAFriend(WOWGUID guid);
     static CGPartyMemberState* GetRemoteStatsFromPet(const WOWGUID& petGuid);
     static CGPartyMemberState* GetMemberState(uint32_t index);
     static int32_t IsPlayerOrPetInParty(const WOWGUID& guid);

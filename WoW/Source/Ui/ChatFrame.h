@@ -413,7 +413,6 @@ int32_t Script_ChannelSilenceAll(lua_State* L);
 int32_t Script_ChannelUnSilenceVoice(lua_State* L);
 int32_t Script_ChannelUnSilenceAll(lua_State* L);
 int32_t Script_ResetChatColors(lua_State* L);
-int32_t Script_GetChatWindowChannels(lua_State* L);
 int32_t Script_AddChatWindowChannel(lua_State* L);
 int32_t Script_RemoveChatWindowChannel(lua_State* L);
 int32_t Script_EnumerateServerChannels(lua_State* L);

@@ -3,14 +3,24 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/FFX/FFX.h"
+#include "Engine/Source/Tempest/C2Vector.h"
 
-class PassPropagateFog {
+class CGxShader;
+
+class PassPropagateFog : public FFX::Pass {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint8_t unk_0004[8];
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint8_t unk_0010[7];
-    /* 0017 */ uint8_t unk_0017[4];
+    /* 0030 */ uint32_t m_useRect;
+    /* 0034 */ CGxShader* m_pixelShader;
+    /* 0038 */ uint32_t unk_0038;
+    /* 003C */ C2Vector m_params[4];
+    /* 005C */ float unk_005C;
+
+    ~PassPropagateFog() override;
+    bool Valid() override;
+    void Execute() override;
+
+    PassPropagateFog(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, const C2Vector* params, EGxBlend blend, bool unk);
 };
 
 #endif

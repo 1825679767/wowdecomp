@@ -234,3 +234,19 @@ SkillLineAbilityRec* SpellTableLookupAbility(int32_t race, int32_t classId, int3
 
     return nullptr;
 }
+
+// VERIFY: 5dbfe9bd auto
+// OFFSET: 0x00810460
+int32_t GetSkillTierCost(const SkillRaceClassInfoRec* info, uint32_t step) {
+    if (!info->m_skillTierID) {
+        return 0;
+    }
+
+    SkillTiersRec* tier = g_skillTiersDB.GetRecord(info->m_skillTierID);
+
+    if (!tier || step >= 16) {
+        return 0;
+    }
+
+    return tier->m_cost[step];
+}

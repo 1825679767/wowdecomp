@@ -187,3 +187,9 @@ void CAaBox::Set(float min, float max) {
     this->b = C3Vector(min, min, min);
     this->t = C3Vector(max, max, max);
 }
+
+// VERIFY: ab29f5db manual
+// OFFSET: 0x006CB930
+bool CAaBox::ContainsPointExclusive(const C3Vector& point) const {
+    return this->b.x < point.x && this->b.y < point.y && this->b.z < point.z && this->t.x > point.x && this->t.y > point.y && this->t.z > point.z;
+}

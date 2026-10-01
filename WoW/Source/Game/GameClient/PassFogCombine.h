@@ -3,20 +3,31 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/FFX/FFX.h"
 
-class PassFogCombine {
+class CGxShader;
+struct CGxBuf;
+struct CGxPool;
+
+class PassFogCombine : public FFX::Pass {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint8_t unk_0004[8];
-    /* 000C */ uint8_t unk_000C[3];
-    /* 000F */ uint8_t unk_000F;
-    /* 0010 */ uint8_t unk_0010;
-    /* 0011 */ uint8_t unk_0011;
-    /* 0012 */ uint8_t unk_0012;
-    /* 0013 */ uint8_t unk_0013;
-    /* 0014 */ uint8_t unk_0014;
-    /* 0015 */ uint8_t unk_0015;
-    /* 0016 */ uint8_t unk_0016[4];
+    /* 0030 */ uint32_t m_useRect;
+    /* 0034 */ CGxShader* m_pixelShader;
+    /* 0038 */ uint32_t unk_0038;
+    /* 003C */ CGxPool* m_vertexPool;
+    /* 0040 */ CGxBuf* m_vertexBuf;
+    /* 0044 */ CGxPool* m_indexPool;
+    /* 0048 */ CGxBuf* m_indexBuf;
+    /* 004C */ uint32_t unk_004C;
+    /* 0050 */ uint32_t unk_0050;
+    /* 0054 */ float unk_0054;
+    /* 0058 */ float unk_0058;
+
+    ~PassFogCombine() override;
+    bool Valid() override;
+    void Execute() override;
+
+    PassFogCombine(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk);
 };
 
 #endif

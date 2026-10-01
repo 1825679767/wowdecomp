@@ -2662,6 +2662,46 @@ static int32_t Script_UnitAura(lua_State* L) {
     return PushUnitAura(L, &info);
 }
 
+// VERIFY: 8482affd manual
+// OFFSET: 0x00613600
+VehicleSeatRec* GetVehicleSeatRecAsPassengerFromLua(lua_State* L) {
+    const char* token = lua_tolstring(L, 1, nullptr);
+    WOWGUID guid;
+    guid.m_guid = 0;
+    Script_GetGUIDFromToken(token, guid, false);
+    WOWGUID unitGuid = guid;
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        CGPartyMemberState* state = CGPartyMemberStateRepository::GetState(unitGuid);
+
+        if (state && state->m_vehicleSeatId > 0) {
+            return g_vehicleSeatDB.GetRecord(state->m_vehicleSeatId);
+        }
+
+        return nullptr;
+    }
+
+    if (!unit->HasVehicleTransport()) {
+        return nullptr;
+    }
+
+    WOWGUID transportGuid;
+    transportGuid.m_guid = unit->GetTransportGUID();
+
+    if (!transportGuid) {
+        return nullptr;
+    }
+
+    CGUnit_C* transport = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(transportGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!transport || !transport->m_vehicle) {
+        return nullptr;
+    }
+
+    return transport->m_vehicle->GetVehicleSeatRec(unit->m_movementData.m_transportSeat);
+}
+
 // VERIFY: 2717e6ac auto
 // OFFSET: 0x00613740
 static int32_t Script_UnitHasVehicleUI(lua_State* L) {

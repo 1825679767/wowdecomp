@@ -4161,3 +4161,22 @@ void CGCamera::CommentatorSetViewAndPosition(const C3Vector& position, float fac
     this->m_position = position;
     this->SetView(6, 2, 0);
 }
+
+// VERIFY: fcc9622c auto
+// OFFSET: 0x005FF3E0
+void CGCamera::RestoreSavedDistancePitch() {
+    float distance = s_cvCameraSavedDistance->m_floatValue;
+
+    if (distance < 0.0f) {
+        distance = 0.0f;
+    } else if (distance >= 50.0f) {
+        distance = 50.0f;
+    }
+
+    this->m_distance = distance;
+    this->m_smoothDistance.m_target = distance;
+
+    float pitch = s_cvCameraSavedPitch->m_floatValue * 0.017453292f;
+    this->m_pitch = pitch;
+    this->m_smoothPitch.m_target = pitch;
+}

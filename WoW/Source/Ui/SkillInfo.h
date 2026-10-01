@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
 
+class SkillRaceClassInfoRec;
 struct lua_State;
 
 struct SkillLineInfo {
@@ -34,9 +35,10 @@ class CGSkillInfo {
     static void InitializeGame();
     static int32_t GetSelectedIndex();
     static void UpdateSkillLines();
+    static int32_t GetSkillTypeCollapsed(uint32_t index);
+    static int32_t GetSkillCostField(const SkillRaceClassInfoRec* info, int32_t skillValue);
 };
 
-int32_t Script_GetSkillLineInfo(lua_State* L);
 int32_t Script_AbandonSkill(lua_State* L);
 int32_t Script_CollapseSkillHeader(lua_State* L);
 int32_t Script_ExpandSkillHeader(lua_State* L);

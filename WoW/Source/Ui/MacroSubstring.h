@@ -6,8 +6,11 @@
 
 class MacroSubstring {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
+    /* 0000 */ const char* m_start;
+    /* 0004 */ const char* m_end;
+
+    void SetText(const char* start, const char* end, char delimiter, const char** next);
+    bool operator==(const char* str);
 };
 
 #endif

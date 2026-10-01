@@ -326,3 +326,13 @@ CGPartyMemberState* CGRaidInfo::GetRemoteStatsFromPet(const WOWGUID& petGuid) {
 
     return nullptr;
 }
+
+// VERIFY: 9af530d4 auto
+// OFFSET: 0x00572A90
+void CGRaidInfo::ClearRecruitAFriend(WOWGUID guid) {
+    CGPartyMemberState* stats = CGRaidInfo::GetRemoteStats(guid);
+
+    if (stats) {
+        stats->m_flags &= ~0x100;
+    }
+}

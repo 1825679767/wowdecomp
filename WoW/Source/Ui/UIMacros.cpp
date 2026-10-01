@@ -11,6 +11,17 @@
 #include "WoW/Source/Ui/PetInfo.h"
 #include "WoW/Source/Ui/UIMacroOptions.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/AccountData.h"
+#include <cstdlib>
+#include <cstring>
+#include <malloc.h>
+#include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "Engine/Source/Os/OsFile.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
+#include "WoW/Source/Client.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
+#include "Engine/Source/Base/ConvertUTF.h"
 
 // STATIC: 0x00ACE2A0
 static TSExplicitList<MACRONODE, offsetof(MACRONODE, m_dynamicLink)> s_dynamicMacros;
@@ -34,10 +45,19 @@ const char* CGUIMacros::m_macroRunning;
 MACRONODE* CGUIMacros::m_macroButton;
 
 // STATIC: 0x00BEAF50
-uint32_t CGUIMacros::m_numMacros;
+uint32_t CGUIMacros::m_numMacros[2];
 
-// STATIC: 0x00BEAF54
-uint32_t CGUIMacros::m_numCharacterMacros;
+// STATIC: 0x00BEAF58
+static uint32_t s_maxMacroID[2];
+
+// STATIC: 0x00A0F834
+static const uint32_t s_macroIDBase[2] = { 0, 0x1000000 };
+
+// STATIC: 0x00BEAF90
+static TSGrowableArray<char*> s_macroIcons;
+
+// STATIC: 0x00BEAFA0
+static TSGrowableArray<char*> s_macroItemIcons;
 
 // STATIC: 0x00BEAF60
 static uint16_t s_initCounter;
@@ -216,4 +236,506 @@ void CGUIMacros::LoadMacros() {
     s_pendingLoads = 0x30000;
     LoadAccountData(4, CGUIMacros::LoadMacrosCallback, reinterpret_cast<void*>(static_cast<uintptr_t>(s_initCounter | 0x10000)));
     LoadAccountData(5, CGUIMacros::LoadMacrosCallback, reinterpret_cast<void*>(static_cast<uintptr_t>(s_initCounter | 0x20000)));
+}
+
+// VERIFY: 1a2a9c35 auto
+// OFFSET: 0x00564A20
+static int32_t QSortIcons(const void* a, const void* b) {
+    const char* nameB = *static_cast<char* const*>(b);
+    const char* nameA = *static_cast<char* const*>(a);
+
+    if (!SStrCmp(nameA, "INV_Misc_QuestionMark", STORM_MAX_STR)) {
+        return -1;
+    }
+
+    if (!SStrCmp(nameB, "INV_Misc_QuestionMark", STORM_MAX_STR)) {
+        return 1;
+    }
+
+    return SStrCmpI(nameA, nameB, STORM_MAX_STR);
+}
+
+// VERIFY: 2e63df8f auto
+// OFFSET: 0x00564A80
+static int32_t QSortMacrosByName(const void* a, const void* b) {
+    return SStrCmpI((*static_cast<MACRONODE* const*>(a))->m_name, (*static_cast<MACRONODE* const*>(b))->m_name, STORM_MAX_STR);
+}
+
+// VERIFY: b423fecf manual
+// OFFSET: 0x00565550
+static void AddMacroIcon(const char* fileName) {
+    char* ext = SStrChrR(const_cast<char*>(fileName), '.');
+
+    if (!ext) {
+        return;
+    }
+
+    if (!SStrCmpI(ext, ".blp", STORM_MAX_STR) || !SStrCmpI(ext, ".tga", STORM_MAX_STR)) {
+        char* name = SStrDupA(fileName, __FILE__, __LINE__);
+        name[ext - fileName] = '\0';
+        *s_macroIcons.New() = name;
+    }
+}
+
+// VERIFY: f420fc9d manual
+// OFFSET: 0x005655C0
+static void AddMacroItemIcon(const char* fileName) {
+    char* ext = SStrChrR(const_cast<char*>(fileName), '.');
+
+    if (!ext) {
+        return;
+    }
+
+    if (!SStrCmpI(ext, ".blp", STORM_MAX_STR) || !SStrCmpI(ext, ".tga", STORM_MAX_STR)) {
+        char* name = SStrDupA(fileName, __FILE__, __LINE__);
+        name[ext - fileName] = '\0';
+        *s_macroItemIcons.New() = name;
+    }
+}
+
+// VERIFY: ae9495e2 auto
+// OFFSET: 0x00565630
+static int32_t IconListArchiveCallback(const char* fileName, void* param) {
+    const char* name = fileName + SStrLen(s_macroIconPath);
+
+    if (!SStrCmpI(name, "Ability_", SStrLen("Ability_")) || !SStrCmpI(name, "Spell_", SStrLen("Spell_"))) {
+        AddMacroIcon(name);
+    }
+
+    if (!SStrCmpI(name, "INV_", SStrLen("INV_"))) {
+        AddMacroItemIcon(name);
+    }
+
+    return 1;
+}
+
+// VERIFY: f321e4f2 auto
+// OFFSET: 0x005656B0
+static int32_t IconListDirectoryCallback(OS_FILE_DATA& data, void* param) {
+    if (data.flags & OS_FILE_ATTRIBUTE_DIRECTORY) {
+        return 0;
+    }
+
+    char name[260];
+
+    if (!SStrCmpI(data.fileName, "Ability_", SStrLen("Ability_")) || !SStrCmpI(data.fileName, "Spell_", SStrLen("Spell_"))) {
+        SStrCopy(name, data.fileName, sizeof(name));
+
+        for (char* dot = SStrChr(name, '.'); dot && *dot; dot = SStrChr(dot + 1, '.')) {
+            if (!SStrCmpI(dot, ".bz", STORM_MAX_STR)) {
+                *dot = '\0';
+                break;
+            }
+        }
+
+        AddMacroIcon(name);
+    }
+
+    if (!SStrCmpI(data.fileName, "INV_", SStrLen("INV_"))) {
+        SStrCopy(name, data.fileName, sizeof(name));
+
+        for (char* dot = SStrChr(name, '.'); dot && *dot; dot = SStrChr(dot + 1, '.')) {
+            if (!SStrCmpI(dot, ".bz", STORM_MAX_STR)) {
+                *dot = '\0';
+                break;
+            }
+        }
+
+        AddMacroItemIcon(name);
+    }
+
+    return 0;
+}
+
+// VERIFY: 53ef5430 auto
+// OFFSET: 0x00565810
+static int32_t IconListCustomCallback(OS_FILE_DATA& data, void* param) {
+    if (!(data.flags & OS_FILE_ATTRIBUTE_DIRECTORY)) {
+        AddMacroIcon(data.fileName);
+        AddMacroItemIcon(data.fileName);
+    }
+
+    return 0;
+}
+
+// VERIFY: d515d51e manual
+// OFFSET: 0x00565840
+void CGUIMacros::LoadIcons() {
+    s_macroIcons.m_chunk = 256;
+    s_macroItemIcons.m_chunk = 256;
+    *s_macroIcons.New() = SStrDupA("INV_Misc_QuestionMark", __FILE__, __LINE__);
+    *s_macroItemIcons.New() = SStrDupA("INV_Misc_QuestionMark", __FILE__, __LINE__);
+
+    ListInterfaceArchive(s_macroIconPath, IconListArchiveCallback, nullptr);
+
+    char path[260];
+    SStrPrintf(path, sizeof(path), "%s%s", SFile::GetDataPath(), s_macroIconPath);
+    OsFileList(path, "*", IconListDirectoryCallback, nullptr, 0);
+    OsFileList(s_macroIconPath, "*", IconListCustomCallback, nullptr, 0);
+
+    qsort(s_macroIcons.m_data, s_macroIcons.Count(), sizeof(char*), QSortIcons);
+    qsort(s_macroItemIcons.m_data, s_macroItemIcons.Count(), sizeof(char*), QSortIcons);
+
+    uint32_t count = s_macroIcons.Count();
+    uint32_t i = count - 1;
+
+    if (count != 1) {
+        do {
+            char* next = s_macroIcons.m_data[i];
+            i--;
+
+            if (!SStrCmpI(s_macroIcons.m_data[i], next, STORM_MAX_STR)) {
+                SMemFree(s_macroIcons.m_data[i], __FILE__, __LINE__, 0);
+                count--;
+
+                if (i < count) {
+                    memmove(&s_macroIcons.m_data[i], &s_macroIcons.m_data[i + 1], sizeof(char*) * (count - i));
+                }
+            }
+        } while (i);
+
+        if (count != s_macroIcons.Count()) {
+            s_macroIcons.SetCount(count);
+        }
+    }
+
+    count = s_macroItemIcons.Count();
+    i = count - 1;
+
+    if (count != 1) {
+        do {
+            char* next = s_macroItemIcons.m_data[i];
+            i--;
+
+            if (!SStrCmpI(s_macroItemIcons.m_data[i], next, STORM_MAX_STR)) {
+                SMemFree(s_macroItemIcons.m_data[i], __FILE__, __LINE__, 0);
+                count--;
+
+                if (i < count) {
+                    memmove(&s_macroItemIcons.m_data[i], &s_macroItemIcons.m_data[i + 1], sizeof(char*) * (count - i));
+                }
+            }
+        } while (i);
+
+        if (count != s_macroItemIcons.Count()) {
+            s_macroItemIcons.SetCount(count);
+        }
+    }
+}
+
+struct MacroSlashCommand {
+    const char* m_token;
+    size_t m_length;
+    int32_t m_type;
+};
+
+// VERIFY: e04b7c4d manual
+// OFFSET: 0x00565C40
+int32_t MACRONODE::Parse() {
+    lua_State* L = FrameScript_GetContext();
+    this->m_showTooltip = 0;
+    this->m_dynamic = 0;
+    this->m_commands.SetCount(0);
+
+    const char* cursor = this->m_body;
+    const char* end = this->m_body + SStrLen(this->m_body);
+    MacroSubstring line = { nullptr, nullptr };
+    MacroSubstring command = { nullptr, nullptr };
+    MacroSubstring args = { nullptr, nullptr };
+
+    while (cursor < end) {
+        int32_t type = 0;
+        line.SetText(cursor, end, '\n', &cursor);
+        cursor++;
+        command.SetText(line.m_start, line.m_end, ' ', &args.m_start);
+
+        if (*command.m_start == '/') {
+            // STATIC: 0x00ACE300
+            static MacroSlashCommand s_slashCommands[] = {
+                { "SLASH_CAST", SStrLen("SLASH_CAST"), 2 },
+                { "SLASH_CASTRANDOM", SStrLen("SLASH_CASTRANDOM"), 3 },
+                { "SLASH_CASTSEQUENCE", SStrLen("SLASH_CASTSEQUENCE"), 4 },
+                { "SLASH_USE", SStrLen("SLASH_USE"), 2 },
+                { "SLASH_USERANDOM", SStrLen("SLASH_USERANDOM"), 3 },
+                { "SLASH_EQUIP", SStrLen("SLASH_EQUIP"), 5 },
+                { "SLASH_EQUIP_TO_SLOT", SStrLen("SLASH_EQUIP_TO_SLOT"), 6 },
+            };
+
+            for (uint32_t i = 0; !type && i < sizeof(s_slashCommands) / sizeof(s_slashCommands[0]); i++) {
+                MacroSlashCommand& slash = s_slashCommands[i];
+
+                for (int32_t n = 1; n <= 9; n++) {
+                    char name[256];
+                    memcpy(name, slash.m_token, slash.m_length);
+                    name[slash.m_length] = static_cast<char>('0' + n);
+                    name[slash.m_length + 1] = '\0';
+
+                    lua_pushstring(L, name);
+                    lua_rawget(L, LUA_GLOBALSINDEX);
+                    const char* text = lua_tostring(L, -1);
+                    lua_pop(L, 1);
+
+                    if (!text || !*text) {
+                        break;
+                    }
+
+                    if (static_cast<size_t>(command.m_end - command.m_start) == SStrLen(text) && !SStrCmpUTF8I(command.m_start, text, SStrLenUTF8(text))) {
+                        type = slash.m_type;
+                        break;
+                    }
+                }
+            }
+
+            if (!type) {
+                continue;
+            }
+        } else {
+            if (*command.m_start != '#' || static_cast<size_t>(command.m_end - command.m_start) < 5 || SStrCmp(command.m_start, "#show", 5)) {
+                continue;
+            }
+
+            if (static_cast<size_t>(command.m_end - command.m_start) >= 12 && !SStrCmp(command.m_start + 5, "tooltip", 7)) {
+                this->m_showTooltip = 1;
+            }
+
+            type = 1;
+        }
+
+        args.SetText(args.m_start, line.m_end, '\0', nullptr);
+
+        if (args.m_end == args.m_start) {
+            continue;
+        }
+
+        if (args == "none") {
+            break;
+        }
+
+        const char* c = args.m_start;
+
+        if (type == 4 || *c == '[') {
+            this->m_dynamic = 1;
+        } else {
+            if (type == 6 && c < args.m_end) {
+                while (*c >= '0' && *c <= '9') {
+                    if (++c >= args.m_end) {
+                        break;
+                    }
+                }
+
+                while (c < args.m_end && *c == ' ') {
+                    c++;
+                }
+            }
+
+            if (*c >= '0' && *c <= '9') {
+                this->m_dynamic = 1;
+            }
+        }
+
+        MacroCommand* entry = this->m_commands.New();
+        entry->m_type = type;
+        entry->m_text = args;
+
+        if (type == 1 || !this->m_dynamic) {
+            break;
+        }
+    }
+
+    if (this->m_dynamic && static_cast<int32_t>(this->m_actionBarCount) > 0) {
+        s_dynamicMacros.LinkToTail(this);
+    } else {
+        s_dynamicMacros.UnlinkNode(this);
+    }
+
+    return this->FindSpellID();
+}
+
+// VERIFY: f206167d manual
+// OFFSET: 0x00566240
+void CGUIMacros::SortMacros() {
+    memset(CGUIMacros::m_sortedMacros, 0, sizeof(CGUIMacros::m_sortedMacros));
+    MACRONODE** sorted = static_cast<MACRONODE**>(alloca(sizeof(MACRONODE*) * 36));
+
+    for (uint32_t type = 0; type < 2; type++) {
+        MACRONODE** out = sorted;
+
+        for (MACRONODE* macro = s_macros.m_fulllist.Head(); macro; macro = s_macros.m_fulllist.Next(macro)) {
+            if (macro->m_type == type) {
+                *out++ = macro;
+            }
+        }
+
+        qsort(sorted, CGUIMacros::m_numMacros[type], sizeof(MACRONODE*), QSortMacrosByName);
+
+        for (uint32_t i = 0; i < CGUIMacros::m_numMacros[type]; i++) {
+            CGUIMacros::m_sortedMacros[type * 36 + i] = sorted[i]->m_id;
+        }
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_MACROS, nullptr);
+}
+
+// VERIFY: 18506b38 auto
+// OFFSET: 0x005663A0
+int32_t CGUIMacros::SetMacroBody(MACRONODE* macro, const char* body) {
+    SStrCopy(macro->m_body, body, sizeof(macro->m_body));
+    char* cursor = macro->m_body;
+    int32_t chars;
+
+    for (uint32_t i = 0; sgetu8(reinterpret_cast<const uint8_t*>(cursor), &chars) != 0xFFFFFFFF && i < 256; i++) {
+        cursor += chars;
+    }
+
+    *cursor = '\0';
+
+    return macro->Parse();
+}
+
+// VERIFY: 781ecbc4 manual
+// OFFSET: 0x00567520
+void CGUIMacros::CheckActionBar() {
+    for (MACRONODE* macro = s_macros.m_fulllist.Head(); macro; macro = s_macros.m_fulllist.Next(macro)) {
+        macro->m_actionBarCount = 0;
+        s_dynamicMacros.UnlinkNode(macro);
+    }
+
+    for (uint32_t i = 0; i < 144; i++) {
+        uint32_t action = CGActionBar::m_slotActions[i];
+
+        if (action && (action & 0xF0000000) == 0x40000000) {
+            uint32_t id = action & 0xBFFFFFFF;
+
+            if (id) {
+                MACRONODE* macro = s_macros.Ptr(id, HASHKEY_NONE());
+
+                if (macro) {
+                    macro->IncrementActionBarCount();
+                }
+            }
+        }
+    }
+}
+
+// VERIFY: 7e2f0778 manual
+// OFFSET: 0x00567C10
+void CGUIMacros::LoadMacrosCallback(HOSFILE localFile, HOSFILE cacheFile, void* param) {
+    uint32_t value = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(param));
+
+    if (static_cast<uint16_t>(value) != s_initCounter) {
+        return;
+    }
+
+    uint32_t flag = value & 0xFFFF0000;
+
+    if (!(flag & s_pendingLoads)) {
+        return;
+    }
+
+    s_pendingLoads &= ~flag;
+    uint32_t type = (flag >> 16) - 1;
+
+    for (MACRONODE* macro = s_macros.m_fulllist.Head(); macro; ) {
+        if (macro->m_type == type) {
+            macro = s_macros.DeleteNode(macro);
+        } else {
+            macro = s_macros.m_fulllist.Next(macro);
+        }
+    }
+
+    CGUIMacros::m_numMacros[type] = 0;
+    s_maxMacroID[type] = s_macroIDBase[type];
+
+    if (cacheFile != OS_INVALID_FILE) {
+        uint32_t size = static_cast<uint32_t>(OsGetFileSize(cacheFile));
+
+        if (size) {
+            char* buffer = static_cast<char*>(alloca(size + 1));
+            uint32_t bytesRead;
+
+            if (OsReadFile(cacheFile, buffer, size, &bytesRead)) {
+                buffer[bytesRead] = '\0';
+
+                MACRONODE* current = nullptr;
+                const char* cursor = buffer;
+                char body[1024];
+                char line[1024];
+                char token[1024];
+
+                do {
+                    SStrTokenize(&cursor, line, sizeof(line), "\r\n", nullptr);
+
+                    if (!line[0]) {
+                        continue;
+                    }
+
+                    if (current) {
+                        if (SStrCmpI(line, "END", STORM_MAX_STR)) {
+                            if (SStrLen(line)) {
+                                SStrPack(body, line, sizeof(body));
+                                SStrPack(body, "\n", sizeof(body));
+                            }
+                        } else {
+                            CGUIMacros::SetMacroBody(current, body);
+                            current = nullptr;
+                        }
+
+                        continue;
+                    }
+
+                    const char* tokens = line;
+                    SStrTokenize(&tokens, token, sizeof(token), " ", nullptr);
+
+                    if (SStrCmpI(token, "MACRO", STORM_MAX_STR) || CGUIMacros::m_numMacros[type] >= 36) {
+                        continue;
+                    }
+
+                    SStrTokenize(&tokens, token, sizeof(token), " ", nullptr);
+                    uint32_t id = SStrToInt(token);
+
+                    if (!id || s_macros.Ptr(id, HASHKEY_NONE())) {
+                        continue;
+                    }
+
+                    if (id < s_macroIDBase[type]) {
+                        id += s_macroIDBase[type];
+                    }
+
+                    if (id > s_maxMacroID[type]) {
+                        s_maxMacroID[type] = id;
+                    }
+
+                    SStrTokenize(&tokens, token, sizeof(token), " \"\r\n", nullptr);
+
+                    if (!token[0]) {
+                        continue;
+                    }
+
+                    CGUIMacros::m_numMacros[type]++;
+                    token[63] = '\0';
+
+                    current = s_macros.New(id, HASHKEY_NONE(), 0, 0);
+                    current->m_id = id;
+                    current->m_type = type;
+                    SStrCopy(current->m_name, token, sizeof(current->m_name));
+                    body[0] = '\0';
+
+                    SStrTokenize(&tokens, token, sizeof(token), " \"\r\n", nullptr);
+
+                    if (token[0]) {
+                        token[255] = '\0';
+                        SStrCopy(current->m_icon, token, sizeof(current->m_icon));
+                    }
+                } while (cursor && *cursor);
+            }
+        }
+    }
+
+    CGUIMacros::SortMacros();
+    CGUIMacros::UpdateMacroSpells();
+    CGUIMacros::CheckActionBar();
+
+    if (CGGameUI::s_inWorld) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_SLOT_CHANGED, "%d", 0);
+    }
 }

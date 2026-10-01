@@ -5,14 +5,20 @@
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/WGUID.h"
+#include "WoW/Source/Ui/MacroSubstring.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/AccountData.h"
 
 struct lua_State;
 
+struct MacroCommand {
+    /* 0000 */ int32_t m_type;
+    /* 0004 */ MacroSubstring m_text;
+};
+
 class MACRONODE : public TSHashObject<MACRONODE, HASHKEY_NONE> {
     public:
     /* 0018 */ uint32_t m_id;
-    /* 001C */ uint32_t unk_001C;
+    /* 001C */ uint32_t m_type;
     /* 0020 */ char m_name[64];
     /* 0060 */ char m_icon[256];
     /* 0160 */ char m_body[1024];
@@ -20,15 +26,14 @@ class MACRONODE : public TSHashObject<MACRONODE, HASHKEY_NONE> {
     /* 0564 */ int32_t m_spellID;
     /* 0568 */ int32_t m_itemID;
     /* 056C */ int32_t m_spellFlags;
-    /* 0570 */ uint32_t unk_0570;
+    /* 0570 */ uint32_t m_showTooltip;
     /* 0574 */ uint32_t m_dynamic;
     /* 0578 */ WOWGUID m_target;
-    /* 0580 */ uint32_t unk_0580;
-    /* 0584 */ uint32_t unk_0584;
-    /* 0588 */ uint8_t unk_0588[8];
+    /* 0580 */ TSGrowableArray<MacroCommand> m_commands;
     /* 0590 */ TSLink<MACRONODE> m_dynamicLink;
 
     int32_t FindSpellID();
+    int32_t Parse();
     void IncrementActionBarCount();
     void DecrementActionBarCount();
 };
@@ -38,8 +43,7 @@ class CGUIMacros {
     static uint32_t m_state;
     static const char* m_macroRunning;
     static MACRONODE* m_macroButton;
-    static uint32_t m_numMacros;
-    static uint32_t m_numCharacterMacros;
+    static uint32_t m_numMacros[2];
     static uint32_t m_sortedMacros[72];
 
     static MACRONODE* FindMacro(const char* name);
@@ -51,6 +55,9 @@ class CGUIMacros {
     static MACRONODE* GetMacroByIndex(uint32_t index);
     static void Initialize();
     static void LoadIcons();
+    static int32_t SetMacroBody(MACRONODE* macro, const char* body);
+    static void SortMacros();
+    static void CheckActionBar();
     static void LoadMacros();
     static void LoadMacrosCallback(HOSFILE localFile, HOSFILE cacheFile, void* param);
     static void RunMacro(MACRONODE* macro, const char* button);

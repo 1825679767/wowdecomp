@@ -7,12 +7,6 @@
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
-// STATIC: 0x00C7BFE0
-static uint32_t s_numWhoResults;
-
-// STATIC: 0x00C7BFE4
-static uint32_t s_totalWhoResults;
-
 // STATIC: 0x00C7BFEC
 static int32_t s_whoToUI;
 
@@ -23,11 +17,11 @@ static int32_t Script_SetWhoToUI(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b11dcf69 manual
+// VERIFY: 7237b97d manual
 // OFFSET: 0x006B33D0
 static int32_t Script_GetNumWhoResults(lua_State* L) {
-    lua_pushnumber(L, s_numWhoResults);
-    lua_pushnumber(L, s_totalWhoResults);
+    lua_pushnumber(L, FriendList::s_numWhoResults);
+    lua_pushnumber(L, FriendList::s_totalWhoResults);
     return 2;
 }
 
@@ -42,7 +36,7 @@ static int32_t Script_ShowFriends(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 1e7bd02b manual
+// VERIFY: dcb94d85 manual
 // OFFSET: 0x006B4060
 static int32_t Script_GetNumFriends(lua_State* L) {
     FriendList* list = FriendList::s_friendList;
@@ -58,7 +52,7 @@ static int32_t Script_GetNumFriends(lua_State* L) {
     uint32_t count = list->GetNumFriends();
 
     for (uint32_t i = 0; i < count; i++) {
-        if (i <= 100 && list->m_friends[i].m_status) {
+        if (i <= 100 && list->m_friends[i].m_connected) {
             online++;
         }
     }

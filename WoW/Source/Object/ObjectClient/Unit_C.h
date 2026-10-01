@@ -587,6 +587,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void SetMaxAlpha(float alpha);
     void PlaySplashSound(const C3Vector* position);
     void PlayAISound(int32_t soundKitId);
+    void ShowPlayerPVPHonorGained(WOWGUID victim, int32_t rank, int32_t honor);
     void PlayDismountSound();
     void Dismount();
     CGUnit_C* FindRootVehicle(CGUnit_C* stop);

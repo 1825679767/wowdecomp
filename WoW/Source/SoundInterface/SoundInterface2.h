@@ -192,6 +192,7 @@ class SI2 {
     static void SetUnderwaterStatus(int32_t underwater);
     static int32_t SetVolume(SE2SoundKitObject* object, float volume);
     static void SetWeatherKitID(int32_t soundKitId);
+    static void ForceUpdateZoneSounds();
     static void SetZoneAmbienceID(int32_t type, int32_t soundAmbienceId);
     static void SetZoneIntroMusicID(int32_t type, int32_t zoneIntroMusicId);
     static void SetZoneMusicID(int32_t type, int32_t zoneMusicId);

@@ -86,3 +86,9 @@ void CSimpleCamera::SetGxProjectionAndView(const CRect& rect) {
     GxuXformCreateLookAtSgCompat(eye, this->Forward(), this->Up(), view);
     g_theGxDevicePtr->XformSetView(view);
 }
+
+// VERIFY: 62c62fe7 auto
+// OFFSET: 0x00607C90
+void CSimpleCamera::SetScreenAspect(const CRect& rect) {
+    this->m_aspect = (rect.maxX - rect.minX) / (rect.maxY - rect.minY);
+}

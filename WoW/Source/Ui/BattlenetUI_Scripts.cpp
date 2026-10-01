@@ -2,6 +2,74 @@
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
+#include "WoW/Source/WowServices/BattlenetLogin.h"
+#include "WoW/Source/WowServices/Login.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+
+// STATIC: 0x00ACC9E8
+static uint32_t s_presenceOnlineField = 0x10002;
+
+// VERIFY: f52b1323 manual
+// OFFSET: 0x00534590
+static int32_t Script_BNGetNumFriends(lua_State* L) {
+    Login* login = ClientServices::LoginConnection();
+
+    if (!login || login->GetLoginServerType() != 1 || login->IsTrialAccount() || !BattlenetAPI::IsRIDEnabled() || !BattlenetUI::m_friendListLoaded) {
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        return 2;
+    }
+
+    if (!BattlenetUI_IsAvailable()) {
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        return 2;
+    }
+
+    lua_pushnumber(L, BattlenetUI::m_friends.Count());
+
+    uint32_t online = 0;
+
+    for (uint32_t i = 0; i < BattlenetUI::m_friends.Count(); i++) {
+        BattlenetPresenceValue value = BattlenetAPI::GetPresenceValue(BattlenetUI::m_friends.m_data[i].m_presenceID, s_presenceOnlineField);
+
+        if (value.m_type == 1 && value.m_bool) {
+            online++;
+        }
+    }
+
+    lua_pushnumber(L, online);
+    return 2;
+}
+
+// VERIFY: 32894792 auto
+// OFFSET: 0x00537010
+static int32_t Script_BNFeaturesEnabledAndConnected(lua_State* L) {
+    Login* login = ClientServices::LoginConnection();
+    lua_pushboolean(L, login && login->GetLoginServerType() == 1 && !login->IsTrialAccount() && BattlenetAPI::IsRIDEnabled() && static_cast<BattlenetLogin*>(login)->IsConnected());
+    return 1;
+}
+
+// VERIFY: ed1e6ea4 auto
+// OFFSET: 0x00537070
+static int32_t Script_BNFeaturesEnabled(lua_State* L) {
+    Login* login = ClientServices::LoginConnection();
+    lua_pushboolean(L, login && login->GetLoginServerType() == 1 && !login->IsTrialAccount() && BattlenetAPI::IsRIDEnabled());
+    return 1;
+}
+
+// VERIFY: 2e29ab78 auto
+// OFFSET: 0x00537A00
+static int32_t Script_BNGetMaxPlayersInConversation(lua_State* L) {
+    Login* login = ClientServices::LoginConnection();
+
+    if (!login || login->GetLoginServerType() != 1 || login->IsTrialAccount() || !BattlenetAPI::IsRIDEnabled()) {
+        return 0;
+    }
+
+    lua_pushnumber(L, 12.0);
+    return 1;
+}
 
 // STATIC: 0x00ACCAE8
 static FrameScript_Method s_ScriptFunctions[] = {

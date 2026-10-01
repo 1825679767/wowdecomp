@@ -2110,3 +2110,9 @@ int32_t Packet_SMSG_PLAYED_TIME(void* param, NETMESSAGE msgId, uint32_t time, CD
 
     return 1;
 }
+
+// VERIFY: 89d97e9f auto
+// OFFSET: 0x004033B0
+void ClientKillTimer(uint32_t id, EVENTHANDLERFUNC handler, const char* name) {
+    EventKillTimer(id, handler, name);
+}

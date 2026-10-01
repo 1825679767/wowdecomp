@@ -258,6 +258,8 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     uint32_t GetDefaultLanguage() const;
     int32_t GetLanguageSkill(uint32_t language, uint32_t& skill);
     int16_t GetSkillModifier(int32_t index);
+    uint16_t GetSkillStep(int32_t index) const;
+    int32_t GetSkillLineForSlot(int32_t hand);
     int32_t GetEquipBypassSkill(uint32_t index) const;
     uint32_t GetEquippedAmmoDisplayId() const;
     bool GetExpandedSkillRank(int32_t skillId, int32_t& rank, int32_t& bonus) const;
@@ -521,6 +523,7 @@ class LootRoll {
 void PlayerClientInitialize();
 void PlayerInitializeSounds();
 void AreaTriggersInitialize(uint32_t mapId);
+int32_t AreaTriggerCheck(const void* data, void* param);
 void PlayerClientShutdown();
 int32_t Player_C_ZoneUpdateHandler(const void* data, void* param);
 int32_t GetModalNextSpell();

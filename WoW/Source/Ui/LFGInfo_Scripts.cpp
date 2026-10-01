@@ -557,6 +557,75 @@ static int32_t Script_GetLFGRoleUpdateSlot(lua_State* L) {
     return CGLookingForGroup::GetLFGRoleUpdateSlot(L);
 }
 
+// VERIFY: 1da53d3d manual
+// OFFSET: 0x00554170
+static int32_t PushLFGProposalInfo(lua_State* L) {
+    if (!CGLookingForGroup::m_proposal.m_id) {
+        return 0;
+    }
+
+    LfgDungeonsRec* dungeon = g_lfgDungeonsDB.GetRecord(CGLookingForGroup::m_proposal.m_id & 0xFFFFFF);
+
+    if (!dungeon) {
+        return 0;
+    }
+
+    lua_pushboolean(L, 1);
+    lua_pushnumber(L, CGLookingForGroup::m_proposal.m_id >> 24);
+    lua_pushnumber(L, CGLookingForGroup::m_proposal.m_id & 0xFFFFFF);
+    lua_pushstring(L, dungeon->m_name);
+    lua_pushstring(L, dungeon->m_textureFilename);
+
+    uint32_t roles = 0;
+    uint32_t accepted = 0;
+
+    for (uint32_t i = 0; i < 5; i++) {
+        if (CGLookingForGroup::m_proposal.m_members[i].m_isLocal) {
+            roles = CGLookingForGroup::m_proposal.m_members[i].m_roles;
+            accepted = CGLookingForGroup::m_proposal.m_members[i].m_accepted;
+            break;
+        }
+    }
+
+    if (roles & 0x2) {
+        lua_pushstring(L, "TANK");
+    } else if (roles & 0x4) {
+        lua_pushstring(L, "HEALER");
+    } else if (roles & 0x8) {
+        lua_pushstring(L, "DAMAGER");
+    } else {
+        lua_pushstring(L, "UNKNOWN");
+    }
+
+    lua_pushboolean(L, accepted);
+
+    uint32_t total = 0;
+    uint32_t completed = 0;
+
+    if (dungeon->m_typeID == 6) {
+        total = 0;
+        completed = CGLookingForGroup::m_proposal.m_completedMask != 0;
+    } else if (dungeon->m_flags & 0x4) {
+        total = 1;
+        completed = CGLookingForGroup::m_proposal.m_completedMask != 0;
+    } else {
+        DungeonEncounterDB::CountMatchingRows(dungeon->m_mapID, dungeon->m_difficulty, CGLookingForGroup::m_proposal.m_completedMask, &total, &completed);
+    }
+
+    lua_pushnumber(L, total);
+    lua_pushnumber(L, completed);
+    lua_pushnumber(L, 5.0);
+    lua_pushboolean(L, roles & 0x1);
+    lua_pushboolean(L, (dungeon->m_flags >> 2) & 0x1);
+    return 12;
+}
+
+// VERIFY: a41527a2 auto
+// OFFSET: 0x00554370
+static int32_t Script_GetLFGProposal(lua_State* L) {
+    return PushLFGProposalInfo(L);
+}
+
 // STATIC: 0x00ACD668
 static FrameScript_Method s_ScriptFunctions[] = {
     { "SetLFGDungeon", &Script_SetLFGDungeon },

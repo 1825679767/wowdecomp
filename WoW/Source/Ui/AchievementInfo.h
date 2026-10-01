@@ -56,6 +56,7 @@ int32_t Packet_SMSG_QUERY_QUESTS_COMPLETED_RESPONSE(void* param, NETMESSAGE msgI
 class CGAchievementInfo {
     public:
     static int32_t m_showAchievementUI;
+    static void LoadTrackedAchievements();
     static WOWGUID m_inspect;
 
     static void InitializeGame();

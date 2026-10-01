@@ -11,6 +11,7 @@ struct lua_State;
 class CGTutorial {
     public:
     static void InitializeGame();
+    static void LoadFlaggedTutorials();
     static TSBitField<TSFixedArray<uint32_t> > m_tutorialShown;
     static TSBitField<TSFixedArray<uint32_t> > m_tutorialFlags;
 

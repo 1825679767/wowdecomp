@@ -344,4 +344,9 @@ inline CImVector InterpColor(const CImVector& a, const CImVector& b, float t) {
 }
 }
 
+namespace DayNight {
+void RemoveLightOverride(uint32_t lightId, uint32_t time);
+void AddLightOverride(uint32_t lightId, uint32_t overrideId, uint32_t time);
+}
+
 #endif

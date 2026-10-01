@@ -4,10 +4,20 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/FFX/FFX.h"
+#include "Engine/Source/Tempest/CRandom.h"
+
+class CGxShader;
 
 class PassNetherBlur : public FFX::Pass {
     public:
-    /* 0030 */ uint8_t unk_0030[616];
+    /* 0030 */ uint32_t m_useRect;
+    /* 0034 */ float m_noise[3][36];
+    /* 01E4 */ float unk_01E4[36];
+    /* 0274 */ float* m_noiseTables[3];
+    /* 0280 */ float unk_0280;
+    /* 0284 */ CRndSeed m_seed;
+    /* 028C */ CGxShader* m_vertexShader;
+    /* 0290 */ CGxShader* m_pixelShader;
 
     ~PassNetherBlur() override;
     bool Valid() override;
@@ -18,7 +28,10 @@ class PassNetherBlur : public FFX::Pass {
 
 class PassNetherCombine : public FFX::Pass {
     public:
-    /* 0030 */ uint8_t unk_0030[16];
+    /* 0030 */ uint32_t m_useRect;
+    /* 0034 */ CGxShader* m_pixelShader;
+    /* 0038 */ uint32_t unk_0038;
+    /* 003C */ float unk_003C;
 
     ~PassNetherCombine() override;
     bool Valid() override;

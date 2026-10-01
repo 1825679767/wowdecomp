@@ -5,6 +5,10 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Ui/LFGLIST.h"
 #include "WoW/Source/Object/WGUID.h"
+#include "WoW/Source/Net/Types.h"
+
+class CDataStore;
+class LfgDungeonExpansionRec;
 
 struct lua_State;
 
@@ -25,6 +29,8 @@ struct LFGDungeonEntry : public TSLinkedNode<LFGDungeonEntry> {
     /* 001C */ int32_t m_variableMoney;
     /* 0020 */ int32_t m_variableXP;
     /* 0024 */ TSList<LFGRewardItem, TSGetLink<LFGRewardItem>> m_rewards;
+
+    ~LFGDungeonEntry();
 };
 
 struct LFGInfo {
@@ -40,6 +46,8 @@ struct LFGInfo {
     /* 0018 */ int32_t m_numDungeons;
     /* 001C */ char m_comment[256];
     /* 011C */ uint32_t unk_011C;
+
+    void Reset();
 };
 
 struct LFGLockInfo : public TSLinkedNode<LFGLockInfo> {
@@ -48,12 +56,17 @@ struct LFGLockInfo : public TSLinkedNode<LFGLockInfo> {
     /* 000C */ uint32_t unk_000C;
     /* 0010 */ WOWGUID m_guid;
     /* 0018 */ TSList<LFGDungeonEntry, TSGetLink<LFGDungeonEntry>> m_dungeons;
+
+    ~LFGLockInfo();
+    void ClearDungeons();
 };
 
 struct LFGPartyLockInfo {
     /* 0000 */ uint8_t m_valid;
     /* 0001 */ uint8_t unk_0001[3];
     /* 0004 */ TSList<LFGLockInfo, TSGetLink<LFGLockInfo>> m_members;
+
+    void Clear();
 };
 
 struct LFGRewardInfo {
@@ -66,6 +79,27 @@ struct LFGRewardInfo {
     /* 0018 */ int32_t m_variableMoney;
     /* 001C */ int32_t m_variableXP;
     /* 0020 */ TSList<LFGRewardItem, TSGetLink<LFGRewardItem>> m_items;
+
+    void Reset();
+};
+
+struct LFGProposalMember {
+    /* 0000 */ uint32_t m_roles;
+    /* 0004 */ uint32_t m_isLocal;
+    /* 0008 */ uint32_t unk_0008;
+    /* 000C */ uint32_t unk_000C;
+    /* 0010 */ uint32_t m_accepted;
+    /* 0014 */ uint32_t unk_0014;
+};
+
+struct LFGProposal {
+    /* 0000 */ uint32_t m_id;
+    /* 0004 */ uint8_t m_state;
+    /* 0005 */ uint8_t unk_0005[3];
+    /* 0008 */ uint32_t unk_0008;
+    /* 000C */ uint32_t m_completedMask;
+    /* 0010 */ uint32_t unk_0010;
+    /* 0014 */ LFGProposalMember m_members[5];
 };
 
 struct LFGQueueStatus {
@@ -105,6 +139,11 @@ class CGLookingForGroup {
     static TSFixedArray<CGLookingForGroup::LFGEntryInfo> m_lfdEntries;
     static TSFixedArray<CGLookingForGroup::LFGEntryInfo> m_lfrEntries;
     static LFGLIST m_searchResults;
+    static LFGLIST m_prevSearchResults;
+    static LFGProposal m_proposal;
+    static CGLookingForGroup::LFGEntryInfo m_unkBEA820[7];
+    static uint8_t m_unkBEAA10;
+    static uint8_t m_unkACD660;
     static LFGInfo m_localInfo;
     static LFGInfo m_playerInfo;
     static LFGInfo m_partyInfo;
@@ -124,7 +163,18 @@ class CGLookingForGroup {
     static void ClearPartyInfo();
     static uint8_t GetClassRoles(uint32_t classID);
     static bool HasRaidDungeon(LFGInfo* info);
+    static void UpdateLFDEntries();
+    static void UpdateLFREntries();
 };
+
+namespace DungeonEncounterDB {
+    void CountMatchingRows(int32_t mapID, int32_t difficulty, uint32_t completedMask, uint32_t* total, uint32_t* completed);
+}
+
+LfgDungeonExpansionRec* GetLfgDungeonExpansionRec(int32_t dungeonID, int32_t expansionLevel);
+int32_t LFGPacketHandler(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_LFG_OPEN_FROM_GOSSIP(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_LFG_SEARCH_RESULTS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 
 int32_t Script_SetLFGDungeon(lua_State* L);
 int32_t Script_ClearLFGDungeon(lua_State* L);
@@ -142,7 +192,6 @@ int32_t Script_SearchLFGGetPartyResults(lua_State* L);
 int32_t Script_SearchLFGSort(lua_State* L);
 int32_t Script_GetLFGRoleUpdateMember(lua_State* L);
 int32_t Script_CompleteLFGRoleCheck(lua_State* L);
-int32_t Script_GetLFGProposal(lua_State* L);
 int32_t Script_GetLFGProposalMember(lua_State* L);
 int32_t Script_GetLFGProposalEncounter(lua_State* L);
 int32_t Script_AcceptProposal(lua_State* L);

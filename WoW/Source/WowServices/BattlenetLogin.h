@@ -99,6 +99,8 @@ class BattlenetLogin : public Login {
     int32_t GetLoginServerType() override;
 
     BattlenetLogin();
+
+    bool IsConnected();
 };
 
 class BNetAuthPacketSub1 {

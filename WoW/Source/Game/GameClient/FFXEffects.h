@@ -22,8 +22,8 @@ class EffectNetherWorld : public FFX::Effect {
 
 class EffectSwirlingFog : public FFX::Effect {
     public:
-    /* 001C */ FFX::Tex m_seedTex;
-    /* 0038 */ FFX::Tex m_fogTex;
+    /* 001C */ FFX::Tex m_fogTex;
+    /* 0038 */ FFX::Tex m_seedTex;
 
     virtual ~EffectSwirlingFog();
     void SetParameters(int32_t count, const int32_t* params) override;

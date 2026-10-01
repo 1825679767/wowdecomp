@@ -6071,7 +6071,7 @@ void CGTooltip::AddLine(const char* left, const char* right, int32_t wrap) {
     this->AddLine(left, right, titleColor, titleColor, wrap);
 }
 
-// VERIFY: 751e6184 manual
+// VERIFY: 153be78f manual
 // OFFSET: 0x00630D20
 int32_t CGTooltip::SetMacro(uint32_t macroId) {
     const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
@@ -6085,7 +6085,7 @@ int32_t CGTooltip::SetMacro(uint32_t macroId) {
 
     uint32_t dynamic = macro->m_dynamic;
 
-    if (macro->unk_0570) {
+    if (macro->m_showTooltip) {
         if (macro->m_itemID) {
             uint32_t duration = 0;
             uint32_t start = 0;

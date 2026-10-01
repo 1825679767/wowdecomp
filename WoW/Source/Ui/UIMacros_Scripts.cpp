@@ -29,11 +29,11 @@ static int32_t Script_GetRunningMacroButton(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 42a0c983 manual
+// VERIFY: a3632573 manual
 // OFFSET: 0x00564BB0
 static int32_t Script_GetNumMacros(lua_State* L) {
-    lua_pushnumber(L, CGUIMacros::m_numMacros);
-    lua_pushnumber(L, CGUIMacros::m_numCharacterMacros);
+    lua_pushnumber(L, CGUIMacros::m_numMacros[0]);
+    lua_pushnumber(L, CGUIMacros::m_numMacros[1]);
     return 2;
 }
 

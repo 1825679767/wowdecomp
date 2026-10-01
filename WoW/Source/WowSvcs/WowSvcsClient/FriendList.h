@@ -4,24 +4,66 @@
 #include <cstddef>
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
+#include "WoW/Source/Net/Types.h"
 
+class CDataStore;
 struct lua_State;
 
 struct FriendInfo {
-    /* 0000 */ uint8_t m_status;
+    /* 0000 */ uint8_t m_connected;
     /* 0001 */ uint8_t m_flags;
-    /* 0002 */ uint8_t unk_0002[518];
+    /* 0004 */ char* m_name;
+    /* 0008 */ char m_notes[512];
     /* 0208 */ WOWGUID m_guid;
-    /* 0210 */ uint8_t unk_0210[16];
+    /* 0210 */ uint32_t m_level;
+    /* 0214 */ uint32_t m_class;
+    /* 0218 */ uint32_t m_area;
+    /* 021C */ uint8_t unk_021C;
+
+    FriendInfo();
+    ~FriendInfo();
+};
+
+struct IgnoreInfo {
+    /* 0000 */ WOWGUID m_guid;
+    /* 0008 */ uint8_t m_flags;
+};
+
+struct WhoSortField {
+    /* 0000 */ int32_t m_field;
+    /* 0004 */ int32_t unk_0004;
 };
 
 class FriendList {
     public:
     static FriendList* s_friendList;
+    static WhoSortField s_whoSort[7];
+    static uint32_t s_numWhoResults;
+    static uint32_t s_totalWhoResults;
 
     /* 0000 */ FriendInfo m_friends[100];
+    /* D480 */ uint32_t m_pendingFriendNames;
+    /* D484 */ uint32_t unk_D484;
+    /* D488 */ uint32_t unk_D488;
+    /* D48C */ uint32_t unk_D48C;
+    /* D490 */ IgnoreInfo m_ignores[50];
+    /* D7B0 */ uint32_t m_pendingIgnoreNames;
+    /* D7B4 */ uint32_t unk_D7B4;
+    /* D7B8 */ uint32_t unk_D7B8;
+    /* D7BC */ uint32_t unk_D7BC;
+    /* D7C0 */ IgnoreInfo m_mutes[50];
+    /* DAE0 */ uint32_t m_pendingMuteNames;
+    /* DAE4 */ uint32_t unk_DAE4;
+    /* DAE8 */ uint32_t unk_DAE8;
+    /* DAEC */ uint32_t unk_DAEC;
+    /* DAF0 */ uint8_t unk_DAF0[256];
+    /* DBF0 */ uint8_t unk_DBF0[1448];
+
+    FriendList();
+    ~FriendList();
 
     FriendInfo* GetFriend(WOWGUID guid);
+    FriendInfo* ClearRecruitAFriend(WOWGUID guid);
     uint32_t GetNumFriends();
 
     static void Destroy();
@@ -32,6 +74,12 @@ class FriendList {
     bool IsFriend(WOWGUID guid);
 };
 
+int32_t Packet_SMSG_WHO(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_WHOIS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_RWHOIS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_CONTACT_LIST(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t Packet_SMSG_FRIEND_STATUS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t CCommand_Whois(const char* command, const char* arguments);
 int32_t Script_GetFriendInfo(lua_State* L);
 int32_t Script_SetSelectedFriend(lua_State* L);
 int32_t Script_GetSelectedFriend(lua_State* L);

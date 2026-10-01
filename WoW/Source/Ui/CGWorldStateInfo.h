@@ -30,6 +30,10 @@ class CGWorldStateInfo {
 
     static int32_t GetUITime();
     static void InitializeGame();
+    static bool InitWorldStates(uint32_t mapId, uint32_t zoneId, uint32_t areaId);
+    static bool SetWorldState(uint32_t state, uint32_t value);
+    static void OnUITime(uint32_t time);
+    static void ResetWorldStateUI();
 };
 
 int32_t Script_GetWorldStateUIInfo(lua_State* L);

@@ -1201,6 +1201,34 @@ static int32_t Script_GetSelectedDisplayChannel(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 2d162025 manual
+// OFFSET: 0x004FEFF0
+static int32_t Script_GetChatWindowChannels(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetChatWindowChannels(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index >= 10) {
+        return 0;
+    }
+
+    ChatWindowInfo& window = s_chatWindows[index];
+    int32_t count = 0;
+
+    for (uint32_t i = 0; i < window.m_channels.Count(); i++) {
+        if (window.m_channels.m_data[i]) {
+            lua_checkstack(L, 2);
+            lua_pushstring(L, window.m_channels.m_data[i]);
+            lua_pushnumber(L, window.m_channelIDs.m_data[i]);
+            count++;
+        }
+    }
+
+    return 2 * count;
+}
+
 // STATIC: 0x00AC7A58
 static FrameScript_Method s_ScriptFunctions[] = {
     { "SendChatMessage", &Script_SendChatMessage },

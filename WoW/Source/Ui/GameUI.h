@@ -99,6 +99,7 @@ struct UIErrorInfo {
 struct SAVEDVARIABLE : public TSHashObject<SAVEDVARIABLE, HASHKEY_STR> {
 };
 
+class SE2SoundKitObject;
 class CGGameUI {
     public:
     struct THREATMAP : public TSHashObject<THREATMAP, CHashKeyGUID> {
@@ -244,6 +245,17 @@ class CGGameUI {
     static void CloseInteraction();
     static AreaTableRec* GetCurrentSubzoneRec();
     static void SetAreaSpiritHealer(WOWGUID guid);
+    static void UpdateAreaSpiritHealerTime(WOWGUID guid, int32_t time);
+    static void DisplayPvPQueueRemovedError(int32_t reason);
+    static void SetCorpseReclaimDelay(uint32_t delay);
+    static void SetDungeonDifficulty(uint32_t difficulty, uint32_t unk, uint32_t inGroup);
+    static void SetRaidDifficulty(uint32_t difficulty, uint32_t unk, uint32_t inGroup);
+    static void UpdateComboPoints(const WOWGUID& guid, uint32_t points);
+    static void StartMovie(uint32_t movieId);
+    static void SetPhaseShift(uint32_t phase);
+    static void ProposeLevelGrant(WOWGUID guid);
+    static void SetCorpseMapPosition(const C3Vector& position, const float& facing);
+    static uint32_t unk_BD1980;
     static void CastSpiritHealSpell();
     static void SetCursorItem(WOWGUID item, WOWGUID container, uint32_t slot, int32_t a4, int32_t stackSplit, int32_t playSound);
     static WOWGUID m_lockedTarget;
@@ -265,6 +277,9 @@ class CGGameUI {
     static CSimpleTop* m_simpleTop;
 
     static int32_t CameraMusicIsPlaying();
+    static SE2SoundKitObject m_cinematicMusic;
+    static void LoadTrackedState();
+    static void LoadMinimapTrackingState(const char* state);
     static int32_t CanPerformAction(uint32_t action);
     static void CastItemSpell(WOWGUID guid, int32_t confirmed);
     static const char* LastErrorMessage();
@@ -584,5 +599,7 @@ extern CVar* s_cvLfgSelectedRoles;
 
 const char* MirrorTimerTypeToken(int32_t type);
 const char* GetMirrorTimerLabel(int32_t type, int32_t spellId);
+
+void BroadcastUIError(int32_t error, const char* name);
 
 #endif
