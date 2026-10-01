@@ -25,6 +25,11 @@
 #include "WoW/Source/Ui/TradeFrame.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Engine/Source/Base/CDataStore.h"
+#include "Engine/Source/Frame/CSimpleTexture.h"
+#include "WoW/Source/UIUtil/PortraitButton.h"
+#include "WoW/Source/Ui/QuestLog.h"
+#include "WoW/Source/Ui/LootFrame.h"
+#include "WoW/Source/Ui/ItemSocketInfo.h"
 
 // VERIFY: ebcdce34 auto
 // OFFSET: 0x005D6FF0
@@ -398,6 +403,169 @@ static int32_t Script_UseContainerItem(lua_State* L) {
     return 0;
 }
 
+// VERIFY: 535534c3 manual
+// OFFSET: 0x005D7FF0
+static int32_t Script_PickupContainerItem(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: PickupContainerItem(index, slot)");
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGBag_C* bag;
+    int32_t slot;
+    int32_t bank;
+
+    if (!player || (!CGGameUI::m_hasControl && !(player->m_unit->m_unitFieldFlags & 0x100000)) || !CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank)) {
+        return 0;
+    }
+
+    if (bag->m_hasBank && ((slot >= 39 && slot <= 66) || static_cast<uint32_t>(slot - 67) <= 6) && !CGBankInfo::m_banker) {
+        return 0;
+    }
+
+    WOWGUID cursorItem;
+    WOWGUID cursorContainer;
+    uint32_t cursorSlot;
+    CGGameUI::GetCursorItem(cursorItem, cursorContainer, cursorSlot);
+    int32_t virtualId;
+    int32_t virtualSlot;
+    CGGameUI::GetCursorVirtualItem(virtualId, virtualSlot);
+    CGItem_C* item = bag->GetItemPointer(slot);
+    WOWGUID itemGuid = item ? item->m_obj->m_guid : WOWGUID();
+
+    if (cursorItem) {
+        if (itemGuid == cursorItem) {
+            CGGameUI::ClearCursor(1, 1);
+            return 0;
+        }
+
+        if (CGGameUI::m_stackSplit) {
+            player->SplitItem(cursorItem, cursorContainer, cursorSlot, bag->m_guid, slot, CGGameUI::m_stackSplit);
+            CGGameUI::ClearCursor(0, 1);
+        } else if ((!itemGuid || cursorContainer) && (!item || !(item->m_itemFlags & 1))) {
+            CGGameUI::LockItem(itemGuid);
+            player->SwapItems(cursorItem, cursorContainer, cursorSlot, bag->m_guid, slot, 0);
+        }
+
+        return 0;
+    }
+
+    if (virtualId) {
+        switch (CGGameUI::m_cursorItemType) {
+            case 6:
+                player->PutLootInSlot(bag->m_guid, slot, virtualSlot);
+                CGGameUI::ClearCursor(1, 1);
+                return 0;
+
+            case 5:
+                if (CGMerchantInfo::m_merchant) {
+                    CGPlayer_C::BuyItemInSlot(CGMerchantInfo::m_merchant, CGMerchantInfo::GetItem(virtualSlot), 1, bag->m_guid, slot);
+                    CGGameUI::ClearCursor(1, 1);
+                }
+
+                return 0;
+
+            case 11: {
+                if (!CGGuildBankInfo::m_banker) {
+                    return 0;
+                }
+
+                int32_t bankItemId = 0;
+                int32_t bankSlot = 0;
+                CGGameUI::GetCursorVirtualItem(bankItemId, bankSlot);
+
+                if (!virtualId) {
+                    return 0;
+                }
+
+                uint8_t bagIndex = player->FindSlotIndex(bag->m_guid);
+                uint32_t count = 0;
+                WOWGUID none = WOWGUID();
+                ItemStats_C* stats = g_itemDBCache.GetRecord(bankItemId, none, nullptr, nullptr, false);
+                int32_t itemId = item ? item->m_obj->m_entryID : 0;
+
+                if (stats && stats->m_stackable) {
+                    int32_t maxStack = stats->m_stackable;
+
+                    if (!itemId) {
+                        count = CGGameUI::m_stackSplit;
+                    } else if (bankItemId == itemId) {
+                        int32_t room = maxStack - item->m_item->m_itemFieldStackCount;
+
+                        if (CGGameUI::m_stackSplit) {
+                            count = CGGameUI::m_stackSplit < room ? CGGameUI::m_stackSplit : room;
+                        } else {
+                            int32_t available = CGGameUI::GetVirtualItemCount(bankItemId, bankSlot, 0);
+                            count = available < room ? available : room;
+                        }
+                    } else if (virtualId == itemId) {
+                        CGGameUI::ClearCursor(1, 1);
+                        CGGameUI::UnlockVirtualItem(bankItemId, bankSlot, 0);
+                        return 0;
+                    }
+                } else if (virtualId == itemId) {
+                    CGGameUI::ClearCursor(1, 1);
+                    CGGameUI::UnlockVirtualItem(bankItemId, bankSlot, 0);
+                    return 0;
+                }
+
+                player->SwapGuildBankItem(bankItemId, bankSlot, bagIndex, slot, count);
+                break;
+            }
+
+            default:
+                break;
+        }
+
+        CGGameUI::ClearCursor(1, 1);
+        return 0;
+    }
+
+    if (!item) {
+        return 0;
+    }
+
+    if (Spell_C_IsTargeting()) {
+        Spell_C_StopTargeting();
+    }
+
+    if (CursorGetResetMode() == 17 && CGMerchantInfo::CanRepair()) {
+        uint32_t cost = CGMerchantInfo::GetRepairCost(item);
+
+        if (cost <= player->GetCoinage()) {
+            SI2::PlaySoundKit("ITEM_REPAIR", nullptr, nullptr, nullptr);
+            CDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_REPAIR_ITEM));
+            msg.Put(CGMerchantInfo::m_merchant.m_guid);
+            msg.Put(itemGuid.m_guid);
+            msg.Put(static_cast<uint8_t>(0));
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+        } else {
+            CGGameUI::DisplayError(ERR_NOT_ENOUGH_MONEY);
+        }
+
+        return 0;
+    }
+
+    if (CGPlayer_C::IsGiftWrapping()) {
+        CGPlayer_C* activePlayer = ClntObjMgrGetActivePlayerObj();
+
+        if (activePlayer) {
+            activePlayer->GiftWrap(item);
+        }
+
+        return 0;
+    }
+
+    if (!(item->m_itemFlags & 1)) {
+        CGGameUI::SetCursorItem(itemGuid, bag->m_guid, slot, 1, 0, 1);
+        CGGameUI::LockItem(itemGuid);
+    }
+
+    return 0;
+}
+
 // VERIFY: 5b61867b auto
 // OFFSET: 0x005D8BD0
 static int32_t Script_ShowContainerSellCursor(lua_State* L) {
@@ -424,6 +592,241 @@ static int32_t Script_ShowContainerSellCursor(lua_State* L) {
     }
 
     CursorSetMode(3);
+    return 0;
+}
+
+// VERIFY: 3b03056d manual
+// OFFSET: 0x005D7180
+static int32_t Script_SetBagPortraitTexture(lua_State* L) {
+    CSimpleTexture* texture = static_cast<CSimpleTexture*>(FrameScript_GetObjectThis(L, CSimpleTexture::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: SetBagPortraitTexture(texture, slot)");
+    }
+
+    int32_t slot = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+
+    if (slot < 0) {
+        return 0;
+    }
+
+    if (slot >= 11) {
+        luaL_error(L, "Invalid slot in SetBagPortraitTexture");
+    }
+
+    texture->SetTexture(static_cast<CTexture*>(nullptr));
+    CGItem_C* bag = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(GetBagAtIndex(slot), TYPEMASK_CONTAINER, __FILE__, __LINE__));
+
+    if (!bag) {
+        return 0;
+    }
+
+    const char* path = ClientDBStringLookup(3);
+    char fileName[260];
+    SStrPrintf(fileName, sizeof(fileName), "%s%s%s", path, *path ? "\\" : "", bag->GetInventoryArt());
+    SetPortraitTexture(texture, fileName);
+    return 0;
+}
+
+// VERIFY: a08906d1 manual
+// OFFSET: 0x005D9400
+static int32_t Script_GetContainerItemQuestInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: GetContainerItemQuestInfo(index, slot)");
+    }
+
+    CGBag_C* bag;
+    int32_t slot;
+    int32_t bank;
+    CGItem_C* item;
+    ItemStats_C* stats;
+    WOWGUID none = WOWGUID();
+
+    if (!CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank) || !(item = bag->GetItemPointer(slot)) || !(stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false))) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 3;
+    }
+
+    if (stats->m_bonding == 4) {
+        lua_pushboolean(L, 1);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (stats->m_startQuest) {
+        lua_pushnumber(L, stats->m_startQuest);
+        lua_pushboolean(L, CGQuestLog::IsOnQuest(stats->m_startQuest));
+    } else {
+        lua_pushnil(L);
+        lua_pushnil(L);
+    }
+
+    return 3;
+}
+
+// VERIFY: 917bca5d manual
+// OFFSET: 0x005D8D80
+static int32_t Script_GetContainerItemPurchaseInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: GetContainerItemPurchaseInfo(index, slot[, isEquipped])");
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 0;
+    }
+
+    CGItem_C* item;
+
+    if (lua_tonumber(L, 3)) {
+        CGBag_C* bag = &ClntObjMgrGetActivePlayerObj()->m_bag;
+        uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 2) - 1);
+
+        if (!bag || slot > 18) {
+            return 0;
+        }
+
+        item = bag->GetItemPointer(slot);
+    } else {
+        CGBag_C* bag;
+        int32_t slot;
+        int32_t bank;
+
+        if (!CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank)) {
+            return 0;
+        }
+
+        item = bag->GetItemPointer(slot);
+    }
+
+    if (!item || CGLootInfo::m_lootObj == item->m_obj->m_guid) {
+        return 0;
+    }
+
+    CGItem_C::ItemPurchaseData* data = item->m_itemPurchaseData;
+
+    if (!data || item->HasEnchantments()) {
+        return 0;
+    }
+
+    int32_t timeLeft = data->m_refundTimeLeft - player->GetPlayedTime() + 7200;
+
+    if (timeLeft <= 0) {
+        return 0;
+    }
+
+    int32_t itemCount = 0;
+
+    for (uint32_t i = 0; i < 5; i++) {
+        if (static_cast<int32_t>(data->m_itemCount[i]) > 0) {
+            itemCount++;
+        }
+    }
+
+    lua_pushnumber(L, data->m_money);
+    lua_pushnumber(L, data->m_honorPoints);
+    lua_pushnumber(L, data->m_arenaPoints);
+    lua_pushnumber(L, itemCount);
+    lua_pushnumber(L, timeLeft);
+    return 5;
+}
+
+// VERIFY: 4ee0a0e3 auto
+// OFFSET: 0x005D7C80
+static int32_t Script_GetContainerItemLink(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: GetContainerItemLink(index, slot)");
+    }
+
+    CGBag_C* bag;
+    int32_t slot;
+    int32_t bank;
+
+    if (!CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank)) {
+        return 0;
+    }
+
+    CGItem_C* item = bag->GetItemPointer(slot);
+
+    if (!item) {
+        return 0;
+    }
+
+    lua_pushstring(L, CGTooltip::GetItemHyperlinkString(item));
+    return 1;
+}
+
+// VERIFY: 0caa5591 manual
+// OFFSET: 0x005D84F0
+static int32_t Script_SplitContainerItem(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
+        luaL_error(L, "Usage: SplitContainerItem(index, slot, amount)");
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGBag_C* bag;
+    int32_t slot;
+    int32_t bank;
+
+    if (!player || (!CGGameUI::m_hasControl && !(player->m_unit->m_unitFieldFlags & 0x100000)) || !CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank)) {
+        return 0;
+    }
+
+    CGItem_C* item = bag->GetItemPointer(slot);
+    WOWGUID itemGuid = item ? item->m_obj->m_guid : WOWGUID();
+
+    if (!item || (item->m_itemFlags & 1)) {
+        return 0;
+    }
+
+    int32_t amount = static_cast<int32_t>(lua_tonumber(L, 3));
+
+    if (amount < 1 || amount > item->m_item->m_itemFieldStackCount) {
+        return 0;
+    }
+
+    CGGameUI::ClearCursor(1, 1);
+    Spell_C_StopTargeting();
+
+    if (amount == item->m_item->m_itemFieldStackCount) {
+        CGGameUI::SetCursorItem(itemGuid, bag->m_guid, slot, 1, 0, 1);
+    } else {
+        CGGameUI::SetCursorItem(itemGuid, bag->m_guid, slot, 1, amount, 1);
+    }
+
+    CGGameUI::LockItem(itemGuid);
+    return 0;
+}
+
+// VERIFY: c5b09c6b manual
+// OFFSET: 0x005D8B10
+static int32_t Script_SocketContainerItem(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: SocketContainerItem(index, slot)");
+    }
+
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        return 0;
+    }
+
+    CGBag_C* bag;
+    int32_t slot;
+    int32_t bank;
+
+    if (!CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank)) {
+        return 0;
+    }
+
+    CGItem_C* item = bag->GetItemPointer(slot);
+
+    if (!item || (item->m_itemFlags & 1) || !item->GetNumSockets()) {
+        return 0;
+    }
+
+    CGItemSocketInfo::SetItem(item->m_obj->m_guid);
     return 0;
 }
 

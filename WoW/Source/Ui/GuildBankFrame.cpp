@@ -96,3 +96,36 @@ void CGGuildBankInfo::EnterWorld() {
     msg.Finalize();
     ClientServices::Send2(&msg);
 }
+
+// VERIFY: be4957f6 auto
+// OFFSET: 0x005A42E0
+void CGGuildBankInfo::GetTabAndSlotFromVirtual(uint32_t virtualSlot, uint32_t* tab, uint32_t* slot) {
+    *tab = virtualSlot / 98;
+    *slot = virtualSlot % 98;
+}
+
+// VERIFY: 0087723a manual
+// OFFSET: 0x005A4C10
+GuildBankSlotInfo* CGGuildBankInfo::GetGuildBankItem(uint32_t tab, uint32_t slot) {
+    if (tab >= 6 || slot >= CGGuildBankInfo::m_tabSlots[tab].m_count) {
+        return nullptr;
+    }
+
+    GuildBankSlotInfo* info = &CGGuildBankInfo::m_tabSlots[tab].m_data[slot];
+    return info->m_itemID ? info : nullptr;
+}
+
+// VERIFY: 95bfeaf2 auto
+// OFFSET: 0x005A4CE0
+void CGGuildBankInfo::Unlock(int32_t itemId, uint32_t virtualSlot) {
+    uint32_t tab = virtualSlot / 98;
+    uint32_t slot = virtualSlot % 98;
+
+    if (tab < 6 && slot < CGGuildBankInfo::m_tabSlots[tab].m_count) {
+        GuildBankSlotInfo* info = &CGGuildBankInfo::m_tabSlots[tab].m_data[slot];
+
+        if (itemId == info->m_itemID) {
+            info->m_locked = 0;
+        }
+    }
+}

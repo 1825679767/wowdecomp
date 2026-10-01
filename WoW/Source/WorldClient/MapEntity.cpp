@@ -14,6 +14,8 @@
 #include "WoW/Source/WorldClient/MapObj.h"
 #include "WoW/Source/WorldClient/MapObjDef.h"
 #include "WoW/Source/WorldClient/MapObjGroup.h"
+#include "WoW/Source/Ui/MinimapFrame.h"
+#include "WoW/Source/WorldClient/CWorldMath.h"
 
 // STATIC: 0x00ADEEBC
 float CMapStaticEntity::s_characterAmbient = 1.0f;
@@ -713,6 +715,133 @@ bool CMapEntity::QueryMapObjIDs(int32_t* wmoId, int32_t* wmoHash, int32_t* group
             *wmoId = mapObj->m_header->m_wmoID;
             *wmoHash = mapObjDef->m_owner->m_hashval;
             *groupNum = mapObjDefGroup->m_groupNum;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 2b02ba04 manual
+// OFFSET: 0x007A1480
+int32_t CMapEntity::QueryInterior() {
+    for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
+        CMapBaseObj* ref = link->m_ref;
+
+        if (ref->m_type & 0x4) {
+            break;
+        }
+
+        CMapObjDefGroup* mapObjDefGroup = static_cast<CMapObjDefGroup*>(ref);
+        CMapObjDef* mapObjDef = static_cast<CMapObjDef*>(ref->m_parentLinkList.Head()->m_ref);
+        CMapObjGroup* group = mapObjDef->m_owner->GetGroup(mapObjDefGroup->m_groupNum, 0);
+
+        if (group) {
+            if (!(group->m_flags & 0x8)) {
+                return 1;
+            }
+
+            if (!(mapObjDef->m_flags & 0x400)) {
+                break;
+            }
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 4d2de931 manual
+// OFFSET: 0x007A1730
+int32_t CMapEntity::QueryMapObjFileName(const char** fileName) {
+    for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
+        CMapBaseObj* ref = link->m_ref;
+
+        if (ref->m_type & 0x4) {
+            *fileName = nullptr;
+            return 0;
+        }
+
+        CMapObjDefGroup* mapObjDefGroup = static_cast<CMapObjDefGroup*>(ref);
+        CMapObjDef* mapObjDef = static_cast<CMapObjDef*>(ref->m_parentLinkList.Head()->m_ref);
+        CMapObj* mapObj = mapObjDef->m_owner;
+        CMapObjGroup* group = mapObj->GetGroup(mapObjDefGroup->m_groupNum, 0);
+
+        if (group && (!(group->m_flags & 0x8) || !(mapObjDef->m_flags & 0x400))) {
+            *fileName = mapObj->m_wmoName;
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: c065df6f manual
+// OFFSET: 0x007A17E0
+bool CMapEntity::QueryMapObjMinimap(CAaBox* box, TSStackArray<MINIMAPQUADINFO>* quads, uint32_t maxQuads, int32_t inside, uint8_t indoorArea) {
+    for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
+        CMapBaseObj* ref = link->m_ref;
+
+        if (ref->m_type & 0x4) {
+            return false;
+        }
+
+        CMapObjDefGroup* mapObjDefGroup = static_cast<CMapObjDefGroup*>(ref);
+        CMapObjDef* mapObjDef = static_cast<CMapObjDef*>(ref->m_parentLinkList.Head()->m_ref);
+        CMapObj* mapObj = mapObjDef->m_owner;
+        uint8_t groupFlags = static_cast<uint8_t>(mapObj->GetGroupFlags(mapObjDefGroup->m_groupNum));
+
+        if (!(mapObjDef->m_flags & 0x400) || !(groupFlags & 0x8)) {
+            if (!(groupFlags & 0x48)) {
+                indoorArea = 0;
+            }
+
+            CAaBox local;
+            local.b = C3Vector(0.0f, 0.0f, 0.0f);
+            local.t = C3Vector(0.0f, 0.0f, 0.0f);
+            CWorldMath::TransformAABox(mapObjDef->m_invMat, *box, local);
+            return mapObj->QueryMapObjMinimap(mapObjDefGroup->m_groupNum, &local, quads, maxQuads, inside, indoorArea);
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: b0f36f16 manual
+// OFFSET: 0x007A1980
+bool CMapEntity::QueryMapObjMatrix(C44Matrix* matrix, C44Matrix* invMatrix) {
+    for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
+        CMapBaseObj* ref = link->m_ref;
+
+        if (ref->m_type & 0x4) {
+            return false;
+        }
+
+        CMapObjDefGroup* mapObjDefGroup = static_cast<CMapObjDefGroup*>(ref);
+        CMapObjDef* mapObjDef = static_cast<CMapObjDef*>(ref->m_parentLinkList.Head()->m_ref);
+
+        if (!(mapObjDef->m_flags & 0x400)) {
+            if (matrix) {
+                *matrix = mapObjDef->m_mat;
+            }
+
+            if (invMatrix) {
+                *invMatrix = mapObjDef->m_invMat;
+            }
+
+            return true;
+        }
+
+        CMapObjGroup* group = mapObjDef->m_owner->GetGroup(mapObjDefGroup->m_groupNum, 0);
+
+        if (group && !(group->m_flags & 0x8)) {
+            if (matrix) {
+                *matrix = mapObjDef->m_mat;
+            }
+
+            if (invMatrix) {
+                *invMatrix = mapObjDef->m_invMat;
+            }
+
             return true;
         }
     }

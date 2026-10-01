@@ -139,3 +139,19 @@ uint32_t CGTradeInfo::GetPlayerTradeMoney() {
 uint32_t CGTradeInfo::GetTargetTradeMoney() {
     return CGTradeInfo::m_playerTrade.m_targetMoney;
 }
+
+// VERIFY: b09af206 manual
+// OFFSET: 0x005864D0
+bool CGTradeInfo::IsItemBeingTraded(WOWGUID item) {
+    if (!CGTradeInfo::m_tradingPlayer) {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < 7; i++) {
+        if (CGTradeInfo::m_playerItems[i] == item) {
+            return true;
+        }
+    }
+
+    return false;
+}

@@ -2,6 +2,7 @@
 #define WOW_SOURCE_UIUTIL_CURSOR_H
 
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 
 struct MipBits;
 
@@ -9,6 +10,7 @@ int32_t CopyCursorImage(uint32_t* image, MipBits* mipImages, uint32_t width, uin
 void CursorInitialize();
 
 void CursorReleaseItemMips();
+void CursorSetHeldItem(WOWGUID item);
 uint32_t CursorGetResetMode();
 void CursorResetMode();
 void CursorSetMode(uint32_t mode);

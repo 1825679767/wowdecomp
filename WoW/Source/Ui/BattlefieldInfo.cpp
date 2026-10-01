@@ -47,6 +47,9 @@ uint32_t CGBattlefieldInfo::m_numWorldStateStats;
 // STATIC: 0x00BEA5B8
 uint32_t CGBattlefieldInfo::m_numVehicles;
 
+// STATIC: 0x00BE9F70
+WOWGUID CGBattlefieldInfo::m_vehicleGuids[40];
+
 // STATIC: 0x00BEA578
 uint32_t CGBattlefieldInfo::m_instanceStartTime;
 
@@ -559,4 +562,58 @@ int32_t CGBattlefieldInfo::GetArenaOpponentIndex(const WOWGUID& guid, int32_t* i
     }
 
     return 0;
+}
+
+// VERIFY: 24eb6783 manual
+// OFFSET: 0x00549810
+CGPartyMemberState* CGBattlefieldInfo::GetRemoteStatsFromPet(const WOWGUID& petGuid) {
+    for (uint32_t i = 0; i < 5; i++) {
+        if (CGBattlefieldInfo::m_arenaOpponents[i] && CGBattlefieldInfo::m_arenaOpponentStats[i].m_pet.m_guid == petGuid) {
+            return &CGBattlefieldInfo::m_arenaOpponentStats[i];
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: f935eb4f manual
+// OFFSET: 0x00549600
+WOWGUID CGBattlefieldInfo::GetVehicleGuid(uint32_t index) {
+    if (index >= CGBattlefieldInfo::m_numVehicles) {
+        return WOWGUID();
+    }
+
+    return CGBattlefieldInfo::m_vehicleGuids[index];
+}
+
+// VERIFY: de2a2830 manual
+// OFFSET: 0x00549740
+void CGBattlefieldInfo::RemoveVehicle(const WOWGUID& guid) {
+    uint32_t index = 0;
+
+    while (CGBattlefieldInfo::m_vehicleGuids[index] != guid) {
+        if (++index >= 40) {
+            return;
+        }
+    }
+
+    CGBattlefieldInfo::m_numVehicles--;
+
+    if (index != 39) {
+        memcpy(&CGBattlefieldInfo::m_vehicleGuids[index], &CGBattlefieldInfo::m_vehicleGuids[index + 1], sizeof(WOWGUID) * (39 - index));
+    }
+
+    CGBattlefieldInfo::m_vehicleGuids[39] = WOWGUID();
+}
+
+// VERIFY: a2ac32e1 auto
+// OFFSET: 0x0054ABA0
+void CGBattlefieldInfo::AddVehicle(const WOWGUID& guid) {
+    if (!guid || CGBattlefieldInfo::m_numVehicles >= 40) {
+        return;
+    }
+
+    CGBattlefieldInfo::RemoveVehicle(guid);
+    CGBattlefieldInfo::m_vehicleGuids[CGBattlefieldInfo::m_numVehicles] = guid;
+    CGBattlefieldInfo::m_numVehicles++;
 }

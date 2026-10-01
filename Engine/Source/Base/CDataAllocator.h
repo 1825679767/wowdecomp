@@ -33,7 +33,7 @@ class CDataAllocator {
 };
 
 // VERIFY: 6cf1bf27 manual
-// OFFSET: [0x007D4920]
+// OFFSET: [0x007D4920, 0x007E55F0, 0x007E6C60]
 template <class T>
 T* CDataAllocator::New(int32_t zero) {
     void* data = this->GetData(zero, typeid(T).raw_name(), SLOG_OBJECT);

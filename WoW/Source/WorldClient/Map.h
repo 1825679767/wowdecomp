@@ -258,6 +258,7 @@ class CMap {
     static CMapArea* GetAreaAtPosition(const C2Vector* pos);
     static CMapChunk* GetChunkAtPosition(const C2Vector* pos);
     static CMapAreaLow* AllocAreaLow();
+    static void RenderLowDetail(CMapAreaLow* area);
     static void FreeArea(CMapArea* area);
     static void FreeAreaMed(CMapAreaMed* areaMed);
     static void FreeChunk(CMapChunk* chunk);

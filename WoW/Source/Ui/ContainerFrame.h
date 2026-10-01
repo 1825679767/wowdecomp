@@ -21,18 +21,12 @@ class CGContainerInfo {
 };
 
 int32_t Script_GetContainerItemID(lua_State* L);
-int32_t Script_GetContainerItemLink(lua_State* L);
 int32_t Script_PickupContainerItem(lua_State* L);
-int32_t Script_SplitContainerItem(lua_State* L);
-int32_t Script_SocketContainerItem(lua_State* L);
-int32_t Script_SetBagPortraitTexture(lua_State* L);
 int32_t Script_GetContainerItemDurability(lua_State* L);
 int32_t Script_GetContainerFreeSlots(lua_State* L);
-int32_t Script_GetContainerItemPurchaseInfo(lua_State* L);
 int32_t Script_GetContainerItemPurchaseItem(lua_State* L);
 int32_t Script_ContainerRefundItemPurchase(lua_State* L);
 int32_t Script_GetContainerItemGems(lua_State* L);
-int32_t Script_GetContainerItemQuestInfo(lua_State* L);
 void ContainerRegisterScriptFunctions();
 
 int32_t InvUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);

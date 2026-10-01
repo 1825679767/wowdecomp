@@ -24,8 +24,10 @@ struct ShadowQueryBuffers {
 
 class CShadowQuery {
     public:
-    static void Update();
     static ShadowQueryBuffers s_unk_D25320[3];
+    static float s_cutoffHeight;
+
+    static void Update();
 
     static void FreeBuffers();
     static void FrustumCallback(CFrustum& frustum, C44Matrix& matrix, const C3Vector& direction, CShadowCacheQueryData& data, int32_t band);

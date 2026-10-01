@@ -148,6 +148,10 @@
 #include "WoW/Source/DB/Rec/ItemSubClassRec.h"
 #include "WoW/Source/DB/Rec/SpellItemEnchantmentRec.h"
 #include "WoW/Source/Object/ItemStats.h"
+#include "WoW/Source/DB/Rec/VehicleSeatRec.h"
+
+// STATIC: 0x00ACC3F8
+static CImVector s_deadSelectionColor = CImVector(0x7F, 0x7F, 0x7F, 0xFF);
 
 // STATIC: 0x00AC804C
 const char* g_macroTaint = "";
@@ -4614,4 +4618,214 @@ void CGGameUI::UnlockAllItems() {
 void CGGameUI::SetPendingItemSound(WOWGUID guid, int32_t itemId) {
     CGGameUI::unk_BD08B0 = guid;
     CGGameUI::unk_BD08A4 = itemId;
+}
+
+// VERIFY: 984d2d4b auto
+// OFFSET: 0x00513C70
+CGPartyMemberState* CGGameUI::GetPartyMemberStateFromPet(const WOWGUID& petGuid) {
+    CGPartyMemberState* state = nullptr;
+
+    if (petGuid) {
+        state = CGPartyInfo::GetRemoteStatsFromPet(petGuid);
+
+        if (!state) {
+            state = CGRaidInfo::GetRemoteStatsFromPet(petGuid);
+
+            if (!state) {
+                return CGBattlefieldInfo::GetRemoteStatsFromPet(petGuid);
+            }
+        }
+    }
+
+    return state;
+}
+
+// VERIFY: cc0c5e16 auto
+// OFFSET: 0x005136E0
+void CGGameUI::GetCursorVirtualItem(int32_t& id, int32_t& slot) {
+    id = CGGameUI::m_cursorVirtualID;
+    slot = CGGameUI::m_cursorVirtualSlot;
+}
+
+// VERIFY: db216ca5 auto
+// OFFSET: 0x00513800
+void CGGameUI::UnlockVirtualItem(int32_t id, uint32_t virtualSlot, int32_t a3) {
+    if (id && !a3) {
+        CGGuildBankInfo::Unlock(id, virtualSlot);
+        FrameScript_SignalEvent(SCRIPT_EVENT_GUILDBANK_ITEM_LOCK_CHANGED, nullptr);
+    }
+}
+
+// VERIFY: 4e4f1fbc manual
+// OFFSET: 0x00513830
+int32_t CGGameUI::GetVirtualItemCount(int32_t id, uint32_t virtualSlot, int32_t a3) {
+    if (!id || a3) {
+        return 0;
+    }
+
+    uint32_t tab = 0;
+    uint32_t slot = 0;
+    CGGuildBankInfo::GetTabAndSlotFromVirtual(virtualSlot, &tab, &slot);
+    return CGGuildBankInfo::GetGuildBankItem(tab, slot)->m_count;
+}
+
+// VERIFY: 2e88ceb5 manual
+// OFFSET: 0x00520770
+void CGGameUI::SetCursorItem(WOWGUID item, WOWGUID container, uint32_t slot, int32_t a4, int32_t stackSplit, int32_t playSound) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || (!CGGameUI::m_hasControl && !(player->m_unit->m_unitFieldFlags & 0x100000))) {
+        return;
+    }
+
+    CGGameUI::ClearCursor(a4, 1);
+
+    if (!item) {
+        return;
+    }
+
+    CGGameUI::m_cursorItemContainer = container;
+    CGGameUI::m_cursorItem = item;
+    CGGameUI::m_cursorItemSlot = slot;
+    CGGameUI::m_stackSplit = stackSplit;
+    CGGameUI::m_cursorItemType = 1;
+    CursorSetHeldItem(item);
+    CGItem_C* itemObject = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (itemObject) {
+        if (itemObject->CanBeUsed() || itemObject->GetInventoryType()) {
+            CGActionBar::ShowGrid();
+            CGGameUI::m_cursorHasAction = 1;
+        }
+
+        if (playSound) {
+            SndInterfacePlayItemSound(0, itemObject);
+        }
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_CURSOR_UPDATE, nullptr);
+}
+
+// VERIFY: 41a190dc manual
+// OFFSET: 0x00521BF0
+void CGGameUI::GetSelectionHighlightColor(const WOWGUID& guid, CImVector* color, int32_t a3) {
+    // STATIC: 0x00BD0C94
+    static CImVector s_reactionColors[8] = { CImVector(0x00, 0x00, 0xFF, 0xFF), CImVector(0x00, 0x00, 0xFF, 0xFF), CImVector(0x00, 0x80, 0xFF, 0xFF), CImVector(0x00, 0xFF, 0xFF, 0xFF), CImVector(0x00, 0xFF, 0x00, 0xFF), CImVector(0x00, 0xFF, 0x00, 0xFF), CImVector(0x00, 0xFF, 0x00, 0xFF), CImVector(0x00, 0xFF, 0x00, 0xFF) };
+
+    // STATIC: 0x00BD0C8C
+    static CImVector s_playerColors[2] = { CImVector(0xFF, 0x00, 0x00, 0xFF), CImVector(0xFF, 0x60, 0x60, 0xFF) };
+
+    // STATIC: 0x00BD0C88
+    static CImVector s_partyColor = CImVector(0xFF, 0xAA, 0xAA, 0xFF);
+
+    // STATIC: 0x00BD0C84
+    static CImVector s_partyPvpColor = CImVector(0xAA, 0xFF, 0xAA, 0xFF);
+
+    // STATIC: 0x00BD0C80
+    static CImVector s_friendColor = CImVector(0xFF, 0xC8, 0x53, 0xFF);
+
+    if (!color) {
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return;
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        bool pvp = false;
+
+        if (guid) {
+            CGPartyMemberState* state = CGPartyInfo::GetRemoteStats(guid);
+
+            if (state || (state = CGRaidInfo::GetRemoteStats(guid)) || (state = CGBattlefieldInfo::GetRemoteStats(guid))) {
+                pvp = (reinterpret_cast<const uint8_t*>(state)[8] & 2) != 0;
+            }
+        }
+
+        if (a3) {
+            if (CGPartyInfo::IsMemberOrPet(guid) && CGPartyInfo::m_realNumMembers) {
+                *color = pvp ? s_partyPvpColor : s_partyColor;
+                return;
+            }
+
+            if (FriendList::s_friendList->GetFriend(guid)) {
+                *color = s_friendColor;
+                return;
+            }
+        }
+
+        *color = pvp ? s_reactionColors[4] : s_playerColors[a3];
+        return;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* viewer = nullptr;
+
+    if (player) {
+        viewer = player->GetPossessedUnit();
+
+        if (!viewer) {
+            viewer = player;
+        }
+
+        VehicleSeatRec* seat = viewer->m_vehiclePassenger ? viewer->m_vehiclePassenger->m_seatRec : nullptr;
+
+        if (seat && (seat->m_flags & 0x100000)) {
+            CGUnit_C* vehicle = viewer->GetVehicleUnit();
+
+            if (vehicle) {
+                viewer = vehicle;
+            }
+        }
+    }
+
+    if (!viewer) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    if (unit->m_unit->m_unitFieldFlags & 0x8) {
+        if (unit->CanAttack(viewer)) {
+            *color = viewer->CanAttack(unit) ? s_reactionColors[1] : s_playerColors[a3];
+            return;
+        }
+
+        if (viewer->CanAttack(unit)) {
+            *color = s_reactionColors[3];
+            return;
+        }
+
+        uint8_t pvpFlags = unit->m_unit->m_unitFieldBytes2[1];
+        bool pvp = (pvpFlags & 1) && !(pvpFlags & 8) && !(viewer->m_unit->m_unitFieldBytes2[1] & 8) && CGBattlefieldInfo::m_instanceType != 4;
+
+        if (a3) {
+            if (CGPartyInfo::IsMemberOrPet(guid) && CGPartyInfo::m_realNumMembers) {
+                *color = pvp ? s_partyPvpColor : s_partyColor;
+                return;
+            }
+
+            if (FriendList::s_friendList->GetFriend(guid)) {
+                *color = s_friendColor;
+                return;
+            }
+        }
+
+        *color = pvp ? s_reactionColors[unit->UnitReaction(viewer)] : s_playerColors[a3];
+    } else if (a3 && (unit->m_unit->m_unitFieldHealth <= 0 || (unit->m_unit->m_unitDynamicFlags & 0x20))) {
+        *color = s_deadSelectionColor;
+    } else {
+        *color = s_reactionColors[unit->UnitReaction(viewer)];
+    }
+}
+
+// VERIFY: 8e316898 manual
+// OFFSET: 0x00512B00
+void CGGameUI::UnitNameUpdate(const WOWGUID& guid) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        CGGameUI::UnitTooltipUpdate(guid);
+        unit->UpdateUnitNameText();
+    }
+
+    Script_SendUnitSignal(guid, SCRIPT_EVENT_UNIT_NAME_UPDATE);
 }

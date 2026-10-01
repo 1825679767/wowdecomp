@@ -29,6 +29,7 @@ class CGBag_C {
     int32_t FindItemSlot(const CGItem_C* item) const;
     int32_t FindItemSlot(WOWGUID guid) const;
     void UnlockItemsOfType(int32_t itemId, uint32_t flags);
+    CGItem_C* FindItemOfBagFamily(uint32_t bagFamily, uint32_t flags);
     uint32_t GetAvgEquippedDurability() const;
     const CGItem_C* GetItemPointer(int32_t slot) const;
     int32_t GetNumFreeInvSlots();

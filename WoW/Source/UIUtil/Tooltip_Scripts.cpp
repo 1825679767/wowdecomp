@@ -36,15 +36,16 @@
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "WoW/Source/Ui/LootFrame.h"
 #include "WoW/Source/Object/ObjectClient/LootRoll.h"
+#include "WoW/Source/Object/Item.h"
+#include "Engine/Source/Tempest/CAaRect.h"
+#include "Engine/Source/Tempest/CImVector.h"
+#include "WoW/Source/Ui/MinimapFrame.h"
 
 int32_t Script_AddFontStrings(lua_State* L);
-int32_t Script_GetAnchorType(lua_State* L);
 int32_t Script_SetAnchorType(lua_State* L);
-int32_t Script_AddTexture(lua_State* L);
 int32_t Script_SetPetAction(lua_State* L);
 int32_t Script_SetShapeshift(lua_State* L);
 int32_t Script_SetPossession(lua_State* L);
-int32_t Script_TooltipSetTracking(lua_State* L);
 int32_t Script_SetQuestItem(lua_State* L);
 int32_t Script_SetQuestLogItem(lua_State* L);
 int32_t Script_SetTrainerService(lua_State* L);
@@ -69,9 +70,7 @@ int32_t Script_SetSocketedItem(lua_State* L);
 int32_t Script_SetSocketGem(lua_State* L);
 int32_t Script_SetExistingSocketGem(lua_State* L);
 int32_t Script_SetGuildBankItem(lua_State* L);
-int32_t Script_IsUnit(lua_State* L);
 int32_t Script_GetUnit(lua_State* L);
-int32_t Script_GetItem(lua_State* L);
 int32_t Script_GetSpell(lua_State* L);
 int32_t Script_SetTotem(lua_State* L);
 int32_t Script_SetCurrencyToken(lua_State* L);
@@ -81,6 +80,16 @@ int32_t Script_SetEquipmentSet(lua_State* L);
 int32_t Script_SetFrameStack(lua_State* L);
 int32_t Script_SetLFGDungeonReward(lua_State* L);
 int32_t Script_SetLFGCompletionReward(lua_State* L);
+
+// VERIFY: 30f18f7b manual
+// OFFSET: 0x0061A150
+static int32_t ReadTexCoordArgs(lua_State* L, int32_t index, CAaRect& coords) {
+    coords.minY = static_cast<float>(lua_tonumber(L, index));
+    coords.maxY = static_cast<float>(lua_tonumber(L, index + 1));
+    coords.minX = static_cast<float>(lua_tonumber(L, index + 2));
+    coords.maxX = static_cast<float>(lua_tonumber(L, index + 3));
+    return index + 4;
+}
 
 // VERIFY: 321f8a1a auto
 // OFFSET: 0x0061B470
@@ -1178,6 +1187,187 @@ static int32_t Script_SetLootRollItem(lua_State* L) {
     WOWGUID requester = WOWGUID();
     WOWGUID itemGuid = WOWGUID();
     tooltip->SetItem(roll->m_itemId, &requester, &itemGuid, 0, 0, 1, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+    return 0;
+}
+
+// VERIFY: 85edc8da auto
+// OFFSET: 0x0061DA20
+static int32_t Script_IsUnit(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isstring(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:IsUnit(\"unit\")", name ? name : "<unnamed>");
+    }
+
+    WOWGUID guid = GetGuidByKeyword(lua_tolstring(L, 2, nullptr));
+
+    if (guid && guid == tooltip->m_unitGuid) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 18424f75 manual
+// OFFSET: 0x0061EF10
+static int32_t Script_GetItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!tooltip->m_itemId) {
+        return 0;
+    }
+
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(tooltip->m_itemGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    ItemLinkInfo* link = tooltip->m_itemUseLinkInfo ? &tooltip->m_itemLinkInfo : nullptr;
+    bool wrapped = (item && (item->m_item->m_itemFieldFlags & 0x8)) || (link && link->m_wrapped);
+    int32_t randomPropertiesId = 0;
+
+    if (!wrapped) {
+        if (link && link->m_randomPropertiesId) {
+            randomPropertiesId = link->m_randomPropertiesId;
+        } else if (item) {
+            randomPropertiesId = item->m_item->m_itemFieldRandomPropertiesId;
+        }
+    }
+
+    char name[1024];
+    CGItem_C::BuildItemName(name, sizeof(name), tooltip->m_itemId, randomPropertiesId);
+    lua_pushstring(L, name);
+
+    if (item) {
+        lua_pushstring(L, CGTooltip::GetItemHyperlinkString(item));
+        return 2;
+    }
+
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(tooltip->m_itemId, none, nullptr, nullptr, false);
+    uint32_t quality = stats ? stats->m_quality : 1;
+
+    if (!link || wrapped) {
+        int32_t gems[3] = { 0, 0, 0 };
+        lua_pushstring(L, CGTooltip::CreateItemLink(tooltip->m_itemId, quality, 0, gems, 0, 0));
+        return 2;
+    }
+
+    lua_pushstring(L, CGTooltip::CreateItemLink(tooltip->m_itemId, quality, link->m_enchants[0], reinterpret_cast<const int32_t*>(&link->m_enchants[2]), link->m_randomPropertiesId, link->m_propertySeed));
+    return 2;
+}
+
+// VERIFY: 65b5ead8 manual
+// OFFSET: 0x0061D810
+static int32_t Script_AddTexture(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    const char* texture = nullptr;
+
+    if (lua_isstring(L, 2)) {
+        texture = lua_tolstring(L, 2, nullptr);
+    }
+
+    if (lua_isnumber(L, 3)) {
+        if (!lua_isnumber(L, 4) || !lua_isnumber(L, 5) || !lua_isnumber(L, 6)) {
+            const char* name = tooltip->GetName();
+            luaL_error(L, "Usage: %s:AddTexture(\"filename\" [, minx, maxx, miny, maxy])", name ? name : "<unnamed>");
+        }
+
+        CAaRect coords;
+        coords.minX = 0.0f;
+        coords.minY = 0.0f;
+        coords.maxX = 0.0f;
+        coords.maxY = 0.0f;
+        ReadTexCoordArgs(L, 3, coords);
+        tooltip->AddTexture(texture, coords, CImVector(0xFF, 0xFF, 0xFF, 0xFF));
+        return 0;
+    }
+
+    CAaRect coords;
+    coords.minX = 0.0f;
+    coords.minY = 0.0f;
+    coords.maxX = 1.0f;
+    coords.maxY = 1.0f;
+    tooltip->AddTexture(texture, coords, CImVector(0xFF, 0xFF, 0xFF, 0xFF));
+    return 0;
+}
+
+// VERIFY: 07131868 auto
+// OFFSET: 0x0061D650
+static int32_t Script_GetAnchorType(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    switch (tooltip->m_anchorType) {
+        case ANCHOR_LEFT:
+            lua_pushstring(L, "ANCHOR_LEFT");
+            return 1;
+
+        case ANCHOR_RIGHT:
+            lua_pushstring(L, "ANCHOR_RIGHT");
+            return 1;
+
+        case ANCHOR_BOTTOMLEFT:
+            lua_pushstring(L, "ANCHOR_BOTTOMLEFT");
+            return 1;
+
+        case ANCHOR_BOTTOM:
+            lua_pushstring(L, "ANCHOR_BOTTOM");
+            return 1;
+
+        case ANCHOR_BOTTOMRIGHT:
+            lua_pushstring(L, "ANCHOR_BOTTOMRIGHT");
+            return 1;
+
+        case ANCHOR_TOPLEFT:
+            lua_pushstring(L, "ANCHOR_TOPLEFT");
+            return 1;
+
+        case ANCHOR_TOP:
+            lua_pushstring(L, "ANCHOR_TOP");
+            return 1;
+
+        case ANCHOR_TOPRIGHT:
+            lua_pushstring(L, "ANCHOR_TOPRIGHT");
+            return 1;
+
+        case ANCHOR_CURSOR:
+            lua_pushstring(L, "ANCHOR_CURSOR");
+            return 1;
+
+        case ANCHOR_PRESERVE:
+            lua_pushstring(L, "ANCHOR_PRESERVE");
+            return 1;
+
+        case ANCHOR_CURSOR_RIGHT:
+            lua_pushstring(L, "ANCHOR_CURSOR_RIGHT");
+            return 1;
+
+        default:
+            lua_pushstring(L, "ANCHOR_NONE");
+            return 1;
+    }
+}
+
+// VERIFY: 90320666 auto
+// OFFSET: 0x00625940
+static int32_t Script_TooltipSetTracking(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    tooltip->ClearTooltip();
+    const char* text;
+
+    if (CGMinimapFrame::s_trackingInfo) {
+        text = FrameScript_GetText(CGMinimapFrame::s_trackingInfo->m_name, -1, GENDER_NOT_APPLICABLE);
+    } else {
+        if (CGMinimapFrame::s_trackingSpell) {
+            tooltip->SetBuff(CGMinimapFrame::s_trackingSpell, 1, 1, 0, 0, 0);
+            tooltip->Show();
+            return 0;
+        }
+
+        text = FrameScript_GetText("MINIMAP_TRACKING_TOOLTIP_NONE", -1, GENDER_NOT_APPLICABLE);
+    }
+
+    tooltip->AddLine(text, nullptr, reinterpret_cast<const CImVector&>(s_tooltipTitleColor), reinterpret_cast<const CImVector&>(s_tooltipTitleColor), 0);
+    tooltip->Show();
     return 0;
 }
 

@@ -2,12 +2,95 @@
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/lua-5.1/src/lauxlib.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/CurrencyTypesRec.h"
+#include "WoW/Source/Object/Item.h"
+#include "WoW/Source/Object/ItemStats.h"
+#include "WoW/Source/Object/ObjectClient/Bag_C.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/Object/Player.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 
 // VERIFY: 051f8586 auto
 // OFFSET: 0x005AFD10
 static int32_t Script_GetCurrencyListSize(lua_State* L) {
     lua_pushnumber(L, CGCurrencyTypes::m_listSize);
     return 1;
+}
+
+// VERIFY: 1b8d22da manual
+// OFFSET: 0x005B0A90
+static int32_t Script_GetBackpackCurrencyInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetBackpackCurrencyInfo(index)");
+    }
+
+    CurrencyTypesRec* currency = CGCurrencyTypes::GetBackpackCurrencyInfo(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats;
+
+    if (!currency || !(stats = g_itemDBCache.GetRecord(currency->m_itemID, none, nullptr, nullptr, false))) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 5;
+    }
+
+    if (stats->m_name[0]) {
+        lua_pushstring(L, stats->GetName(0));
+    } else {
+        lua_pushnil(L);
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+    } else {
+        uint32_t count = 0;
+        int32_t extraCurrencyType = 0;
+
+        if (currency->m_itemID == 43307) {
+            count = player->m_player->m_playerFieldArenaCurrency;
+            extraCurrencyType = 1;
+        } else if (currency->m_itemID == 43308) {
+            count = player->m_player->m_playerFieldHonorCurrency;
+            extraCurrencyType = 2;
+        } else {
+            CGBag_C* bag = player->GetBag();
+
+            if (bag) {
+                for (uint32_t slot = 118; slot <= 149; slot++) {
+                    WOWGUID itemGuid;
+                    itemGuid.m_guid = bag->GetItemGuid(slot);
+                    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(itemGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+                    if (item && static_cast<int32_t>(item->m_obj->m_entryID) == currency->m_itemID) {
+                        count = item->m_item->m_itemFieldStackCount;
+                        break;
+                    }
+                }
+            }
+        }
+
+        lua_pushnumber(L, count);
+        lua_pushnumber(L, extraCurrencyType);
+    }
+
+    const char* path = ClientDBStringLookup(3);
+    char texture[260];
+    SStrPrintf(texture, sizeof(texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(stats->m_displayId));
+    lua_pushstring(L, texture);
+    lua_pushinteger(L, currency->m_itemID);
+    return 5;
 }
 
 // STATIC: 0x00ACFC34

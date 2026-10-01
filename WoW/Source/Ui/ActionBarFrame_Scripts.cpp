@@ -193,6 +193,17 @@ static int32_t Script_IsCurrentAction(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 5bc31f23 manual
+// OFFSET: 0x005AC090
+static int32_t Script_PickupAction(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: PickupAction(slot)");
+    }
+
+    CGActionBar::PickupAction(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    return 0;
+}
+
 // VERIFY: 8e8b464f manual
 // OFFSET: 0x005AC000
 static int32_t Script_UseAction(lua_State* L) {

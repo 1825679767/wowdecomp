@@ -242,3 +242,55 @@ void CGCurrencyTypes::EnterWorld() {
     CGCurrencyTypes::BuildDisplayList();
     FrameScript_SignalEvent(SCRIPT_EVENT_CURRENCY_DISPLAY_UPDATE, nullptr);
 }
+
+// VERIFY: 2c0c3c91 manual
+// OFFSET: 0x005B0340
+CurrencyTypesRec* CGCurrencyTypes::GetBackpackCurrencyInfo(int32_t index) {
+    if (index < 0) {
+        return nullptr;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return nullptr;
+    }
+
+    uint32_t known1 = static_cast<uint32_t>(player->m_player->m_playerFieldKnownCurrencies.m_guid);
+    uint32_t known2 = static_cast<uint32_t>(player->m_player->m_playerFieldKnownCurrencies.m_guid >> 32);
+    int32_t found = 0;
+
+    for (int32_t i = 0; i < g_currencyTypesDB.m_numRecords; i++) {
+        CurrencyTypesRec* rec = g_currencyTypesDB.GetRecordByIndex(i);
+
+        if (!rec) {
+            continue;
+        }
+
+        uint32_t known = 0;
+        uint32_t shown = 0;
+        uint32_t bit = 0;
+
+        if (rec->m_bitIndex > 32) {
+            known = known2;
+            shown = g_currencyTokensBackpack2CVar->m_intValue;
+            bit = 1 << (rec->m_bitIndex - 33);
+        } else if (rec->m_bitIndex > 0) {
+            known = known1;
+            shown = g_currencyTokensBackpack1CVar->m_intValue;
+            bit = 1 << (rec->m_bitIndex - 1);
+        }
+
+        if (!(bit & known) || !(bit & shown)) {
+            continue;
+        }
+
+        if (found == index) {
+            return rec;
+        }
+
+        found++;
+    }
+
+    return nullptr;
+}

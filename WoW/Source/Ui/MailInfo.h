@@ -59,6 +59,7 @@ class CGMailInfo {
     static uint8_t m_lockSendItems;
     static uint32_t unk_BEB1C4;
     static void ClearSendMail(bool signal);
+    static bool IsSendItem(WOWGUID item);
     static void CloseMail(bool leavingWorld);
     static uint8_t m_sendMailShowing;
     static void AddItemToOutgoingMail(int32_t index, WOWGUID item, WOWGUID container, uint32_t slot);

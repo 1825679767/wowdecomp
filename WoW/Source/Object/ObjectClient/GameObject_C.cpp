@@ -67,9 +67,16 @@
 #include "WoW/Source/Object/MovementShared.h"
 #include "WoW/Source/Object/Passenger.h"
 #include "WoW/Source/UIUtil/Cursor.h"
+#include "WoW/Source/Ui/MinimapFrame.h"
+#include "WoW/Source/Game/GameClient/PlayerName.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
 
 // STATIC: 0x00A335E8
 static const uint32_t s_oneShotAnims[7] = { 0xFFFFFFFF, 0, 8, 9, 10, 11, 12 };
+
+// STATIC: 0x00ADA974
+static uint32_t s_buildingDamageColor = 0xFFFF8400;
 
 // STATIC: 0x00ADA938
 uint32_t CGGameObject_C_TypeAnimated::s_animSequenceIds[13] = { 145, 147, 148, 149, 146, 150, 151, 152, 153, 154, 155, 156, 157 };
@@ -2136,4 +2143,30 @@ int32_t CGGameObject_C::ObjectReaction(const CGUnit_C* unit) const {
     }
 
     return 3;
+}
+
+// VERIFY: 7fd3c3af auto
+// OFFSET: 0x0070F850
+bool CGGameObject_C::IsTracked() const {
+    return CGMinimapFrame::s_trackingInfo && CGMinimapFrame::s_trackingInfo->m_type == 2 && CGMinimapFrame::s_trackingInfo->m_npcFlags == static_cast<uint32_t>(this->m_gameObject->m_typeID);
+}
+
+// VERIFY: a1c0c530 auto
+// OFFSET: 0x0070F880
+void CGGameObject_C::AddWorldDamageText(int32_t amount) {
+    if (amount && g_combatDamageCVar->m_intValue && this->m_gameObject->m_typeID == 33) {
+        char text[32];
+        SStrPrintf(text, sizeof(text), "%d", amount);
+        PlayerNameCreateText(this->m_nameDesc, 8, text, reinterpret_cast<const CImVector*>(&s_buildingDamageColor), nullptr);
+    }
+}
+
+// VERIFY: 93d19404 auto
+// OFFSET: 0x0070F8E0
+void CGGameObject_C::AddWorldHealingText(int32_t amount, int32_t overheal) {
+    if (amount && g_combatHealingCVar->m_intValue && this->m_gameObject->m_typeID == 33) {
+        char text[32];
+        SStrPrintf(text, sizeof(text), "+%d", amount);
+        PlayerNameCreateText(this->m_nameDesc, 9, text, nullptr, nullptr);
+    }
 }

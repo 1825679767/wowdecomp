@@ -40,6 +40,7 @@ namespace Liquid {
 class CImVector;
 class CM2Scene;
 class CMapEntity;
+struct MINIMAPQUADINFO;
 class CTexture;
 class Particulate;
 class Weather;
@@ -134,6 +135,8 @@ class CWorldScene {
     static TSExplicitList<CWFrustum, offsetof(CWFrustum, m_link)> frustumFreeList;
     static int32_t frustumIndex;
     static C3Vector s_frustumCorners[8];
+
+    static void GetFrustumCorners(C3Vector* corners);
     static CWFrustum frustumStack[32];
     static GxuScene s_unk_B2EB68;
     static CTexture* s_defaultBlendTexture;
@@ -199,6 +202,7 @@ class CWorldScene {
     static void CullModelSplitBody(CM2Model* model, uint32_t boneId, int32_t skip);
     static void CullModelRecursive(CM2Model* model);
     static void RequestModelStreaming(CM2Model* model, const CAaBox* box);
+    static void RenderStreamingRequestDecal(CM2Model* model, const CAaBox* box, float scale);
     static void RenderBarriers(float elapsedSec);
     static void RenderParticulate();
     static void RenderWeather();
@@ -336,6 +340,7 @@ namespace World {
     extern void* s_loadProgressParam;
     extern C3Vector s_currentWorldPos;
 
+    void GetFrustumCorners(C3Vector* corners);
     void PrepareAreaOfInterest(const C3Vector& position);
     void SetLoadProgressCallback(CALLBACK_FUNC callback, void* param);
     void UnloadMap();
@@ -366,6 +371,9 @@ namespace World {
     int32_t QueryMapObjZoneName(CMapEntity* entity, const char** zoneName);
     int32_t QueryMapObjSubzoneName(CMapEntity* entity, const char** subzoneName, int32_t* areaId);
     bool QueryMapObjAreaTable(CMapEntity* entity, WMOAreaTableRec** groupRec, WMOAreaTableRec** rootRec, int32_t* wmoGroupId);
+    int32_t QueryMapObjFileName(CMapEntity* entity, const char** fileName);
+    bool QueryMapObjMinimap(CMapEntity* entity, CAaBox* box, TSStackArray<MINIMAPQUADINFO>* quads, uint32_t maxQuads, int32_t inside, uint8_t indoorArea);
+    bool QueryMapObjMatrix(CMapEntity* entity, C44Matrix* matrix, C44Matrix* invMatrix);
     void Preload(const C3Vector& position, int32_t a2);
     int32_t QueryMapId();
     void UpdateObjectFadeouts();

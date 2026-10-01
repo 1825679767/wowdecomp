@@ -18,7 +18,11 @@ struct GuildBankTabInfo {
 
 struct GuildBankSlotInfo {
     /* 0000 */ int32_t m_itemID;
-    /* 0004 */ uint8_t unk_0004[40];
+    /* 0004 */ uint8_t unk_0004[8];
+    /* 000C */ int32_t m_count;
+    /* 0010 */ uint8_t unk_0010[20];
+    /* 0024 */ int32_t m_locked;
+    /* 0028 */ uint32_t unk_0028;
 };
 
 int32_t Packet_SMSG_GUILD_BANK_LIST(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
@@ -46,7 +50,9 @@ class CGGuildBankInfo {
     static void EnterWorld();
     static void InitializeGame();
     static void ClearAllTabs();
-    static void Unlock(int32_t tab, uint32_t slot);
+    static void Unlock(int32_t itemId, uint32_t virtualSlot);
+    static void GetTabAndSlotFromVirtual(uint32_t virtualSlot, uint32_t* tab, uint32_t* slot);
+    static GuildBankSlotInfo* GetGuildBankItem(uint32_t tab, uint32_t slot);
 };
 
 int32_t Script_QueryGuildBankTab(lua_State* L);

@@ -10,6 +10,7 @@
 #include "WoW/Source/WorldClient/DayNight.h"
 #include "WoW/Source/WorldClient/MapLoad.h"
 
+struct MINIMAPQUADINFO;
 class CMapObjDef;
 namespace World { struct LiquidQueryResult; }
 
@@ -59,6 +60,9 @@ class CMapEntity : public CMapStaticEntity {
     int32_t QueryMapObjSubzoneName(const char** subzoneName, int32_t* areaId);
     bool QueryMapObjAreaTable(WMOAreaTableRec** groupRec, WMOAreaTableRec** rootRec, int32_t* wmoGroupId);
     bool QueryMapObjIDs(int32_t* wmoId, int32_t* wmoHash, int32_t* groupNum);
+    int32_t QueryMapObjFileName(const char** fileName);
+    bool QueryMapObjMinimap(CAaBox* box, TSStackArray<MINIMAPQUADINFO>* quads, uint32_t maxQuads, int32_t inside, uint8_t indoorArea);
+    bool QueryMapObjMatrix(C44Matrix* matrix, C44Matrix* invMatrix);
     void QueryLiquidSounds(TSGrowableArray<World::LiquidQueryResult>& results, uint32_t* distance);
     bool UpdateMapObjLiquid();
 };

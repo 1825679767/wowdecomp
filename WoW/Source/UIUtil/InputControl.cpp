@@ -31,6 +31,7 @@
 #include "WoW/Source/DB/Rec/SpellRec.h"
 #include "WoW/Source/Object/ObjectClient/Movement_C.h"
 #include "_Triage/WowMouse.h"
+#include "Engine/Source/Frame/CSimpleTop.h"
 
 // STATIC: 0x00AD192C
 uint32_t s_joystick = 0xFFFFFFFF;
@@ -1278,4 +1279,20 @@ void CGInputControl::StopMovementAndTurning(uint32_t time) {
 // OFFSET: 0x005F9540
 uint32_t GetJoystick() {
     return s_joystick;
+}
+
+// VERIFY: 321bafa5 auto
+// OFFSET: 0x005FC0F0
+void DescendStart() {
+    CGInputControl* inputControl = CGInputControl::s_inputControl;
+
+    if (CGGameUI::CanPerformAction(0)) {
+        uint32_t time = CSimpleTop::s_eventTime;
+
+        if (inputControl->SetControlBit(0x4000, time)) {
+            inputControl->UpdatePlayer(time, 1);
+        }
+    }
+
+    CheckToCancelCurrentChannelSpell();
 }

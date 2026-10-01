@@ -209,9 +209,6 @@ static const char* s_gemColorTokens[5] = { nullptr, "META_GEM", "RED_GEM", "YELL
 // STATIC: 0x00A246E0
 static const int32_t s_gemColorIndices[5] = { -1, 0, 1, 2, 3 };
 
-// STATIC: 0x00A2D288
-static const uint32_t s_inventoryTypeSlots[29] = { 0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 3072, 12288, 98304, 65536, 131072, 16384, 98304, 7864320, 262144, 16, 98304, 98304, 65536, 0, 131072, 131072, 0, 131072 };
-
 // STATIC: 0x00AD2A5C
 static const char* s_tooltipRedColorString = "|cffff2020";
 

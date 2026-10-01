@@ -18,6 +18,7 @@ class CGTradeInfo {
     public:
     static void SetTradePartner(WOWGUID partner, int32_t a2);
     static void SetEnchantingItem(CGItem_C* item);
+    static bool IsItemBeingTraded(WOWGUID item);
     static void AddPlayerItem(WOWGUID item, WOWGUID container, uint32_t slot);
     static WOWGUID m_enchantingItem;
     static void EnterWorld();

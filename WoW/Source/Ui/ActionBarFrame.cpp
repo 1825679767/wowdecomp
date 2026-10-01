@@ -1898,3 +1898,53 @@ void CGActionBar::UpdateItem(int32_t itemId) {
         }
     }
 }
+
+// VERIFY: b69420a0 manual
+// OFFSET: 0x005AE4F0
+bool CGActionBar::IsEquipmentSetValid(int32_t setId) {
+    for (EQUIPMENT_SET_NODE* node = CGEquipmentManager::s_equipmentSets.Head(); node; node = CGEquipmentManager::s_equipmentSets.Next(node)) {
+        if (node->m_set->m_id == setId) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 82e513fa manual
+// OFFSET: 0x005ABE70
+void CGActionBar::PickupAction(uint32_t slot) {
+    if (slot > 143 || !CGGameUI::CanPerformAction(14) || (slot >= 120 && slot < 132)) {
+        return;
+    }
+
+    if (CGGameUI::GetCursorSpell() || CGGameUI::GetCursorItem() || CGGameUI::m_cursorMacro || CGGameUI::GetCursorVirtualItemOfType(7) || CGGameUI::m_cursorEquipmentSet >= 0) {
+        CGActionBar::PutActionInSlot(slot);
+        return;
+    }
+
+    if (!CGActionBar::m_slotActions[slot]) {
+        return;
+    }
+
+    if (CGActionBar::IsItem(slot)) {
+        ItemRec* rec = g_itemDB.GetRecord(CGActionBar::GetItem(slot));
+        int32_t displayId = rec ? rec->m_displayInfoID : 0;
+        CGGameUI::SetCursorVirtualItem(CGActionBar::GetItem(slot), displayId, slot, 7, 0);
+        CGActionBar::RemoveAction(slot);
+    } else if (CGActionBar::IsSpell(slot)) {
+        int32_t petSpell;
+        int32_t spell = CGActionBar::GetSpell(slot, petSpell);
+        CGGameUI::SetCursorSpell(spell);
+        CGActionBar::RemoveAction(slot);
+    } else if (CGActionBar::IsMacro(slot) && CGActionBar::HasMacro(slot)) {
+        CGGameUI::SetCursorMacro(CGActionBar::GetMacroID(slot));
+        CGActionBar::RemoveAction(slot);
+    } else {
+        if (CGActionBar::IsEquipmentSet(slot) && CGActionBar::IsEquipmentSetValid(CGActionBar::GetEquipmentSetID(slot))) {
+            CGGameUI::SetCursorEquipmentSet(CGActionBar::GetEquipmentSetID(slot));
+        }
+
+        CGActionBar::RemoveAction(slot);
+    }
+}

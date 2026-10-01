@@ -6,6 +6,7 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/CMath.h"
 #include "WoW/Source/WorldClient/Sand.h"
+#include "WoW/Source/WorldClient/Rain.h"
 
 // STATIC: 0x00ADF1F8
 float s_weatherDensity = 0.66f;
@@ -180,4 +181,44 @@ void Weather::Reset() {
     this->unk_0030 = 1.0f;
     this->unk_002C = 1.0f;
     this->unk_0028 = 1.0f;
+}
+
+// VERIFY: 2089fdca manual
+// OFFSET: 0x00784A30
+bool Weather::GetActiveEffectBounds(CAaBox* bounds) {
+    if (this->m_rain) {
+        *bounds = this->m_rain->m_bbox;
+        return true;
+    }
+
+    if (this->m_snow) {
+        *bounds = this->m_snow->m_bbox;
+        return true;
+    }
+
+    if (this->m_sand) {
+        *bounds = this->m_sand->GetBoundingBox();
+        return true;
+    }
+
+    return false;
+}
+
+// OFFSET: 0x0078CA50
+void Weather::Render() {
+    if (!this->unk_0194) {
+        return;
+    }
+
+    if (this->m_rain) {
+        this->m_rain->Render();
+    }
+
+    if (this->m_snow) {
+        this->m_snow->Render();
+    }
+
+    if (this->m_sand) {
+        this->m_sand->Render();
+    }
 }

@@ -31,6 +31,7 @@ class CGItemSocketInfo {
     static int32_t unk_C20FE8;
 
     static void EnterWorld();
+    static void SetItem(WOWGUID item);
     static int32_t GemMatchesSocket(const ItemStats_C* item, const ItemStats_C* gem, int32_t socket);
 };
 

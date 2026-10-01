@@ -267,3 +267,19 @@ uint32_t CGMailInfo::GetNumSendItems() {
 
     return count;
 }
+
+// VERIFY: b8f834cd manual
+// OFFSET: 0x00753A10
+bool CGMailInfo::IsSendItem(WOWGUID item) {
+    if (!item) {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < 16; i++) {
+        if (CGMailInfo::m_sendItems[i].m_guid == item) {
+            return true;
+        }
+    }
+
+    return false;
+}

@@ -36,6 +36,8 @@ class CGCharacterInfo {
     static WOWGUID m_inspectTarget;
     static int32_t CanInspect(const CGPlayer_C* unit);
     static int32_t GetActivePlayerAmmoID(const CGPlayer_C* player);
+    static void PickupInventoryItem(int32_t slot);
+    static int32_t PutItemInBackpack(uint32_t slot);
     static void EnterWorld();
     static void SetInspectTarget(const WOWGUID& guid);
     static void InitializeGame();
@@ -44,27 +46,21 @@ class CGCharacterInfo {
 };
 
 int32_t Script_GetInventoryItemsForSlot(lua_State* L);
-int32_t Script_GetInventoryItemBroken(lua_State* L);
-int32_t Script_GetInventoryItemCount(lua_State* L);
 int32_t Script_GetInventoryItemQuality(lua_State* L);
 int32_t Script_GetInventoryItemDurability(lua_State* L);
 int32_t Script_GetInventoryItemLink(lua_State* L);
 int32_t Script_GetInventoryItemID(lua_State* L);
 int32_t Script_GetInventoryItemGems(lua_State* L);
-int32_t Script_PickupInventoryItem(lua_State* L);
 int32_t Script_UseInventoryItem(lua_State* L);
 int32_t Script_SocketInventoryItem(lua_State* L);
 int32_t Script_PutItemInBag(lua_State* L);
-int32_t Script_PutItemInBackpack(lua_State* L);
 int32_t Script_PickupBagFromSlot(lua_State* L);
-int32_t Script_CursorCanGoInSlot(lua_State* L);
 int32_t Script_ShowInventorySellCursor(lua_State* L);
 int32_t Script_SetInventoryPortraitTexture(lua_State* L);
 int32_t Script_GetGuildInfo(lua_State* L);
 int32_t Script_RequestInspectHonorData(lua_State* L);
 int32_t Script_GetInspectArenaTeamData(lua_State* L);
 int32_t Script_ClearInspectPlayer(lua_State* L);
-int32_t Script_GetWeaponEnchantInfo(lua_State* L);
 void CharacterInfoRegisterScriptFunctions();
 
 class CDataStore;

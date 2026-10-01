@@ -33,6 +33,7 @@ class CGActionBar {
     static int32_t IsEquipmentSet(uint32_t slot);
     static int32_t GetEquipmentSetID(uint32_t slot);
     static int32_t HasMacro(uint32_t slot);
+    static void PickupAction(uint32_t slot);
     static int32_t GetItem(uint32_t slot);
     static int32_t GetMacroItem(uint32_t slot);
     static int32_t GetMacroSpell(uint32_t slot, int32_t& petSpell);
@@ -83,7 +84,6 @@ class CGActionBar {
 void ItemStatsCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 
 int32_t Script_GetActionAutocast(lua_State* L);
-int32_t Script_PickupAction(lua_State* L);
 int32_t IsStackableAucItem(uint32_t slot);
 int32_t Script_ActionHasRange(lua_State* L);
 int32_t Script_GetMultiCastTotemSpells(lua_State* L);

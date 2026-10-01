@@ -598,7 +598,7 @@ void TSList<T, TGetLink>::Combine(TSList<T, TGetLink>* list, uint32_t linktype, 
 }
 
 // VERIFY: 58dea224 auto
-// OFFSET: 0x004BFEE0
+// OFFSET: [0x004BFEE0, 0x00723300]
 template <class T, class TGetLink>
 void TSList<T, TGetLink>::UnlinkNode(T* ptr) {
     this->Link(ptr)->Unlink();

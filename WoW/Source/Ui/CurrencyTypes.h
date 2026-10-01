@@ -21,6 +21,8 @@ struct CurrencyListEntry {
     /* 0014 */ int32_t m_isWatched;
 };
 
+class CurrencyTypesRec;
+
 class CGCurrencyTypes {
     public:
     static int32_t m_listSize;
@@ -28,6 +30,7 @@ class CGCurrencyTypes {
     static CurrencyCategoryInfo m_categories[32];
     static int32_t m_numCategories;
     static void BuildDisplayList();
+    static CurrencyTypesRec* GetBackpackCurrencyInfo(int32_t index);
     static int32_t CategoryHasKnownTypes(int32_t index, uint32_t known1, uint32_t known2, uint32_t unused1, uint32_t unused2);
     static int32_t CurrencyCategorySortCallback(const void* a, const void* b);
     static int32_t DisplayListSortCallback(const void* a, const void* b);
@@ -39,7 +42,6 @@ int32_t Script_GetCurrencyListInfo(lua_State* L);
 int32_t Script_ExpandCurrencyList(lua_State* L);
 int32_t Script_SetCurrencyUnused(lua_State* L);
 int32_t Script_SetCurrencyBackpack(lua_State* L);
-int32_t Script_GetBackpackCurrencyInfo(lua_State* L);
 void CurrencyTypesRegisterScriptFunctions();
 
 #endif

@@ -39,6 +39,10 @@
 #include "WoW/Source/Ui/RaidInfo.h"
 #include "Engine/Source/Tempest/CMath.h"
 #include "WoW/Source/Ui/PetInfo.h"
+#include "WoW/Source/UIUtil/PortraitButton.h"
+#include "Engine/Source/Frame/CSimpleTexture.h"
+#include "WoW/Source/Object/Unit.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
 
 int32_t Script_GetAccountExpansionLevel(lua_State* L);
 int32_t Script_UnitIsInMyGuild(lua_State* L);
@@ -58,7 +62,6 @@ int32_t Script_UnitIsEnemy(lua_State* L);
 int32_t Script_UnitCanAssist(lua_State* L);
 int32_t Script_UnitCanAttack(lua_State* L);
 int32_t Script_PlayerCanTeleport(lua_State* L);
-int32_t Script_UnitSelectionColor(lua_State* L);
 int32_t Script_UnitGUID(lua_State* L);
 int32_t Script_UnitName(lua_State* L);
 int32_t Script_UnitPVPName(lua_State* L);
@@ -71,12 +74,8 @@ int32_t Script_UnitClassBase(lua_State* L);
 int32_t Script_UnitResistance(lua_State* L);
 int32_t Script_UnitStat(lua_State* L);
 int32_t Script_UnitAttackBothHands(lua_State* L);
-int32_t Script_UnitDamage(lua_State* L);
 int32_t Script_UnitRangedDamage(lua_State* L);
 int32_t Script_UnitRangedAttack(lua_State* L);
-int32_t Script_UnitAttackSpeed(lua_State* L);
-int32_t Script_UnitAttackPower(lua_State* L);
-int32_t Script_UnitRangedAttackPower(lua_State* L);
 int32_t Script_UnitDefense(lua_State* L);
 int32_t Script_UnitArmor(lua_State* L);
 int32_t Script_UnitIsTapped(lua_State* L);
@@ -93,21 +92,17 @@ int32_t Script_IsArenaTeamCaptain(lua_State* L);
 int32_t Script_IsInArenaTeam(lua_State* L);
 int32_t Script_IsResting(lua_State* L);
 int32_t Script_GetCombatRating(lua_State* L);
-int32_t Script_GetCombatRatingBonus(lua_State* L);
 int32_t Script_GetMaxCombatRatingBonus(lua_State* L);
 int32_t Script_GetDodgeChance(lua_State* L);
 int32_t Script_GetBlockChance(lua_State* L);
 int32_t Script_GetShieldBlock(lua_State* L);
 int32_t Script_GetParryChance(lua_State* L);
-int32_t Script_GetCritChanceFromAgility(lua_State* L);
 int32_t Script_GetCritChance(lua_State* L);
 int32_t Script_GetRangedCritChance(lua_State* L);
 int32_t Script_GetSpellCritChance(lua_State* L);
 int32_t Script_GetSpellBonusHealing(lua_State* L);
 int32_t Script_GetPetSpellBonusDamage(lua_State* L);
 int32_t Script_GetSpellPenetration(lua_State* L);
-int32_t Script_GetArmorPenetration(lua_State* L);
-int32_t Script_GetAttackPowerForStat(lua_State* L);
 int32_t Script_UnitCreatureType(lua_State* L);
 int32_t Script_UnitCreatureFamily(lua_State* L);
 int32_t Script_GetResSicknessDuration(lua_State* L);
@@ -132,7 +127,6 @@ int32_t Script_UnitIsSameServer(lua_State* L);
 int32_t Script_GetUnitHealthModifier(lua_State* L);
 int32_t Script_GetUnitMaxHealthModifier(lua_State* L);
 int32_t Script_GetUnitPowerModifier(lua_State* L);
-int32_t Script_GetUnitHealthRegenRateFromSpirit(lua_State* L);
 int32_t Script_GetUnitManaRegenRateFromSpirit(lua_State* L);
 int32_t Script_GetManaRegen(lua_State* L);
 int32_t Script_GetPowerRegen(lua_State* L);
@@ -3016,6 +3010,303 @@ static int32_t Script_UnitIsFriend(lua_State* L) {
         lua_pushnumber(L, 1.0);
     } else {
         lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 8e5d90b9 auto
+// OFFSET: 0x00608540
+static void PortraitQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        CGGameUI::UnitModelUpdate(guid, 3);
+    }
+}
+
+// VERIFY: 7dcbffec manual
+// OFFSET: 0x006113E0
+static int32_t Script_SetPortraitTexture(lua_State* L) {
+    CSimpleTexture* texture = static_cast<CSimpleTexture*>(FrameScript_GetObjectThis(L, CSimpleTexture::GetObjectType()));
+
+    if (!lua_isstring(L, 2)) {
+        luaL_error(L, "Usage: SetPortraitTexture(texture, \"unit\")");
+    }
+
+    WOWGUID guid = WOWGUID();
+    Script_GetGUIDFromToken(lua_tolstring(L, 2, nullptr), guid, false);
+    WOWGUID unitGuid = guid;
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (object) {
+        if (object->m_obj->m_type & TYPEMASK_UNIT) {
+            RenderPortraitTexture(texture, static_cast<CGUnit_C*>(object));
+            lua_pushboolean(L, 1);
+            return 1;
+        }
+
+        if (object->m_obj->m_type & TYPEMASK_CORPSE) {
+            CGCorpse_C* corpse = static_cast<CGCorpse_C*>(object);
+            const char* portrait = corpse->GetPortraitTexture();
+
+            if (portrait && *portrait) {
+                char fileName[260];
+                SStrPrintf(fileName, sizeof(fileName), "interface\\icons\\%s", portrait);
+                SetPortraitTexture(texture, fileName);
+                lua_pushboolean(L, 1);
+                return 1;
+            }
+
+            WOWGUID requester = WOWGUID();
+            NameCache* name = g_nameDBCache.GetRecord(corpse->m_corpse->m_corpseFieldOwner.m_guid, requester, nullptr, nullptr, false);
+
+            if (name) {
+                SetPortraitTexture(texture, name->m_race, name->m_sex, name->m_guid);
+                lua_pushboolean(L, 1);
+                return 1;
+            }
+        }
+    } else if ((unitGuid.m_guid & 0xF000000000000000ull) || !(unitGuid.m_guid & 0xF07FFFFFFFFFFFFFull)) {
+        CGPartyPetState* petState = CGPartyMemberStateRepository::FindPetState(unitGuid);
+
+        if (petState) {
+            SetPortraitTexture(texture, petState->m_displayId, petState);
+            lua_pushboolean(L, 1);
+            return 1;
+        }
+    } else {
+        NameCache* name = g_nameDBCache.GetRecord(unitGuid.m_guid, unitGuid, PortraitQueryCallback, nullptr, false);
+
+        if (name) {
+            SetPortraitTexture(texture, name->m_race, name->m_sex, name->m_guid);
+            lua_pushboolean(L, 1);
+            return 1;
+        }
+    }
+
+    texture->SetTexture("", 0, 0, CSimpleTexture::s_textureFilterMode, ImageMode_Normal);
+    lua_pushboolean(L, 0);
+    return 1;
+}
+
+// VERIFY: 0e56bc2d manual
+// OFFSET: 0x0060DE70
+static int32_t Script_GetCombatRatingBonus(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetCombatRatingBonus(ratingIndex)");
+    }
+
+    int32_t rating = static_cast<int32_t>(lua_tonumber(L, 1));
+
+    if (static_cast<uint32_t>(rating - 1) >= 25) {
+        luaL_error(L, "ratingIndex is in the range 1 .. %d", 25);
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    lua_pushnumber(L, player ? player->GetCombatRatingPct(rating - 1) : 0.0);
+    return 1;
+}
+
+// VERIFY: dad31c33 manual
+// OFFSET: 0x0060E560
+static int32_t Script_GetAttackPowerForStat(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: Script_GetAttackPowerForStat(stat, value)");
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        int32_t stat = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+        int32_t value = static_cast<int32_t>(lua_tonumber(L, 2));
+        lua_pushnumber(L, player->GetAttackPowerContributionFromStat(stat, value));
+    } else {
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 1;
+}
+
+// VERIFY: ad0aaf8f manual
+// OFFSET: 0x00610860
+static int32_t Script_UnitDamage(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: UnitDamage(\"unit\")");
+    }
+
+    CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
+
+    if (!unit) {
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        return 7;
+    }
+
+    lua_pushnumber(L, unit->m_unit->m_unitFieldMindamage);
+    lua_pushnumber(L, unit->m_unit->m_unitFieldMaxdamage);
+    lua_pushnumber(L, unit->m_unit->m_unitFieldMinoffhanddamage);
+    lua_pushnumber(L, unit->m_unit->m_unitFieldMaxoffhanddamage);
+
+    if (unit->m_obj->m_type & TYPEMASK_PLAYER) {
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(unit);
+        lua_pushnumber(L, player->GetModDamageDonePos(0));
+        lua_pushnumber(L, player->GetModDamageDoneNeg(0));
+        lua_pushnumber(L, player->GetModDamageDonePct(0));
+    } else {
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 1.0);
+    }
+
+    return 7;
+}
+
+// VERIFY: 3ddf336a manual
+// OFFSET: 0x00610A00
+static int32_t Script_UnitAttackSpeed(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: UnitAttackSpeed(\"unit\")");
+    }
+
+    CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
+
+    if (!unit) {
+        lua_pushnumber(L, 0.0);
+        lua_pushnil(L);
+        return 2;
+    }
+
+    lua_pushnumber(L, unit->m_unit->m_unitFieldBaseattacktime[0] * 0.001);
+
+    if (unit->m_obj->m_type & TYPEMASK_PLAYER) {
+        WOWGUID offHand;
+        offHand.m_guid = static_cast<CGPlayer_C*>(unit)->m_bag.GetItemGuid(16);
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(offHand, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (item && item->GetClassID() == 2 && (ClntObjMgrGetActivePlayerObj() != unit || CGPlayer_C::CanDualWield())) {
+            lua_pushnumber(L, unit->m_unit->m_unitFieldBaseattacktime[1] * 0.001);
+            return 2;
+        }
+    }
+
+    lua_pushnil(L);
+    return 2;
+}
+
+// VERIFY: ab437090 manual
+// OFFSET: 0x0060DA00
+static int32_t Script_UnitSelectionColor(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: UnitSelectionColor(\"unit\")");
+    }
+
+    WOWGUID guid = WOWGUID();
+    Script_GetGUIDFromToken(lua_tolstring(L, 1, nullptr), guid, false);
+    CImVector color;
+    *reinterpret_cast<uint32_t*>(&color) = 0;
+    CGGameUI::GetSelectionHighlightColor(guid, &color, 0);
+    lua_pushnumber(L, color.r * 0.00392156);
+    lua_pushnumber(L, color.g * 0.00392156);
+    lua_pushnumber(L, color.b * 0.00392156);
+    lua_pushnumber(L, color.a * 0.00392156);
+    return 4;
+}
+
+// VERIFY: 371b347a auto
+// OFFSET: 0x0060E130
+static int32_t Script_GetCritChanceFromAgility(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: GetCritChanceFromAgility(\"unit\")");
+    }
+
+    CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
+
+    if (unit && (unit->IsActivePlayer() || unit->m_unit->m_unitFieldPetnumber)) {
+        lua_pushnumber(L, unit->GetMeleeChanceToCrit());
+    } else {
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 1;
+}
+
+// VERIFY: 1ceedc24 manual
+// OFFSET: 0x00610B60
+static int32_t Script_UnitAttackPower(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: UnitAttackPower(\"unit\")");
+    }
+
+    CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
+
+    if (!unit || !(unit->m_obj->m_type & TYPEMASK_UNIT)) {
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        return 3;
+    }
+
+    float multiplier = unit->m_unit->m_unitFieldAttackPowerMultiplier + 1.0f;
+    lua_pushnumber(L, multiplier * unit->m_unit->m_unitFieldAttackPower);
+    lua_pushnumber(L, (unit->m_unit->m_unitFieldAttackPowerMultiplier + 1.0f) * unit->m_unit->m_unitFieldAttackPowerMods[0]);
+    lua_pushnumber(L, (unit->m_unit->m_unitFieldAttackPowerMultiplier + 1.0f) * unit->m_unit->m_unitFieldAttackPowerMods[1]);
+    return 3;
+}
+
+// VERIFY: d0d5e159 manual
+// OFFSET: 0x00610CA0
+static int32_t Script_UnitRangedAttackPower(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: UnitAttackPower(\"unit\")");
+    }
+
+    CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
+
+    if (!unit || !(unit->m_obj->m_type & TYPEMASK_UNIT)) {
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        return 3;
+    }
+
+    float multiplier = unit->m_unit->m_unitFieldRangedAttackPowerMultiplier + 1.0f;
+    lua_pushnumber(L, multiplier * unit->m_unit->m_unitFieldRangedAttackPower);
+    lua_pushnumber(L, (unit->m_unit->m_unitFieldRangedAttackPowerMultiplier + 1.0f) * unit->m_unit->m_unitFieldRangedAttackPowerMods[0]);
+    lua_pushnumber(L, (unit->m_unit->m_unitFieldRangedAttackPowerMultiplier + 1.0f) * unit->m_unit->m_unitFieldRangedAttackPowerMods[1]);
+    return 3;
+}
+
+// VERIFY: 0f11e3f6 manual
+// OFFSET: 0x0060E4E0
+static int32_t Script_GetArmorPenetration(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        lua_pushnumber(L, 0.0);
+        return 1;
+    }
+
+    lua_pushnumber(L, player->GetCombatRatingPct(24) > 100.0f ? 100.0f : player->GetCombatRatingPct(24));
+    return 1;
+}
+
+// VERIFY: ab8a630e auto
+// OFFSET: 0x00612980
+static int32_t Script_GetUnitHealthRegenRateFromSpirit(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: GetUnitHealthRegenRateFromSpirit(\"unit\")");
+    }
+
+    CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
+
+    if (unit && (unit->IsActivePlayer() || unit->m_unit->m_unitFieldPetnumber)) {
+        lua_pushnumber(L, unit->GetHealthRegenRateFromSpirit());
+    } else {
+        lua_pushnumber(L, 0.0);
     }
 
     return 1;

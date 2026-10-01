@@ -2836,3 +2836,16 @@ void DayNight::SetFlashColor(CImVector color, float blend) {
     DayNight::g_dnInfo.m_flashColor = color;
     DayNight::g_dnInfo.m_flashBlend = static_cast<uint8_t>(blend * 255.0f);
 }
+
+// VERIFY: 8f429e9d auto
+// OFFSET: 0x007F0870
+void DayNight::RenderGlares() {
+    if (!DayNight::g_dnInfo.m_showSky) {
+        return;
+    }
+
+    DayNight::g_sunGlare.Update(DayNight::g_dnInfo.m_deltaSec);
+    DayNight::g_sunGlare.Render();
+    DayNight::g_moonGlare.Update(DayNight::g_dnInfo.m_deltaSec);
+    DayNight::g_moonGlare.Render();
+}

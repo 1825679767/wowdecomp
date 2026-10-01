@@ -139,6 +139,12 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t InitializeExtendedDisplay(CGPlayer_C* player, int32_t hasDisplayInfo);
     void ApplyComponentItemsFromEffects();
     void AddHandItem(int32_t hand);
+    void ClearWeaponTrail(int32_t hand);
+    int32_t IsPlayingUnarmedAnim();
+    float GetMeleeChanceToCrit() const;
+    float GetHealthRegenRateFromSpirit() const;
+    CGUnit_C* GetVehicleUnit() const;
+    void SetWeaponTrail(CM2Model* model, uint32_t hand);
     static void InitActiveMover(const WOWGUID& guid);
     void VehiclePassengerUpdateWorldCameraState(uint32_t a1, VehicleSeatRec* seatRec, uint32_t startTime, uint32_t endTime);
     void VehiclePassengerUpdateWorldCameraStateInstantly();
@@ -163,6 +169,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     static void UpdateAllSmoothFacing();
     static void ClearNamePlateFocus();
     static void SetNamePlateFocus(const C2Vector& position);
+    static void NamePlateClearAll();
     static WOWGUID s_activeMover;
     static uint32_t s_trackingType;
     static float s_trackingFacing;
@@ -472,6 +479,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     bool IsStandStateSplitBody() const;
     const char* GetDisplayBakeName() const;
     const char* GetPortraitTextureName() const;
+    uint32_t GetPortraitDisplayId();
     void SetAnimEventPosition(const C3Vector* position);
     void SetCastingSpell(uint8_t castCount, int32_t spellId);
     void SetCastSchoolImmunities(int32_t immunities);
@@ -485,6 +493,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     bool IsTreatAsRaidUnit() const;
     bool IsForceGossip() const;
     bool CanInteractWhileDead() const;
+    bool IsTracked() const;
     bool CanInteract(const CGGameObject_C* gameObject) const;
     void OnFlagChangedActivePlayer(uint32_t oldFlags, uint32_t changed);
     uint32_t GetSkinningType() const;
@@ -781,6 +790,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void Unk72E270();
     void CheckApplyPeriodicClientTriggers();
     void DestroyNamePlate();
+    void NamePlateUpdateRaidTarget();
+    void UpdateUnitNameText();
     void HandleScaleUpdate(float scale);
     void NPCFlagChanged(uint32_t oldFlags);
     void OnChannelObjectChanged(WOWGUID oldObject, int32_t oldSpell);
@@ -931,6 +942,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void ModifyPredictedPower(int32_t powerType, int32_t delta);
     void AddWorldText(const WOWGUID& source, int32_t reason, const SpellRec* spell, bool periodic);
     void AddWorldHealingText(const WOWGUID& source, int32_t amount, const SpellRec* spell, bool crit, int32_t a6);
+    void AddWorldHonorGainText(int32_t honor, int32_t pvpRank, const char* victimName);
     void PlayCombatSpellMissEffects(uint32_t reason, const WOWGUID& source);
     void CreateMissile(const SpellCastTargetPoint* point, PendingSpellCastData* data, uint32_t ammoDisplayId, uint32_t ammoInventoryType, const SpellVisualRec* visual, int32_t spellId, uint32_t delay);
     void CreateMissile(const TSStackArray<SpellCastTargetPoint>* points, PendingSpellCastData* data, uint32_t ammoDisplayId, uint32_t ammoInventoryType, const SpellVisualRec* visual, int32_t spellId, uint32_t delay);
@@ -1031,6 +1043,7 @@ int32_t IsThrownWeaponAnim(uint32_t animId);
 int32_t IsBowAnim(uint32_t animId);
 int32_t IsRifleAnim(uint32_t animId);
 int32_t IsMeleeAttackAnim(uint32_t animId);
+int32_t IsUnarmedAnim(uint32_t animId);
 void ApplyKitAnimFlags(uint32_t kitFlags, uint32_t* animFlags);
 int32_t IsFullBodyAnim(uint32_t animId);
 int32_t IsLocomotionAnimId(uint32_t animId);

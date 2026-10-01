@@ -15,6 +15,10 @@
 #include "WoW/Source/DB/Rec/PaperDollItemFrameRec.h"
 #include "WoW/Source/Object/ObjectClient/Bag_C.h"
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/DB/Rec/ItemSubClassRec.h"
+#include "WoW/Source/Object/Item.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Object/Types.h"
 
 // VERIFY: c886e670 auto
 // OFFSET: 0x005E9BC0
@@ -238,6 +242,182 @@ static int32_t Script_GetInventoryItemCooldown(lua_State* L) {
     }
 
     return 3;
+}
+
+// VERIFY: fa692082 manual
+// OFFSET: 0x005E9D80
+static int32_t Script_GetInventoryItemBroken(lua_State* L) {
+    const char* unitName;
+    int32_t slot = 0;
+
+    if (!GetUnitAndSlotFromLua(L, unitName, slot)) {
+        return 0;
+    }
+
+    CGPlayer_C* unit = static_cast<CGPlayer_C*>(GetUnitFromName(unitName));
+    CGItem_C* item;
+
+    if (!CGCharacterInfo::CanInspect(unit) || slot == -1 || !(item = unit->m_bag.GetItemPointer(slot)) || (item->m_item->m_itemFieldFlags & 0x8) || !item->m_item->m_itemFieldMaxdurability || item->GetDurability()) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    lua_pushnumber(L, 1.0);
+    return 1;
+}
+
+// VERIFY: 7734206d manual
+// OFFSET: 0x005E9E40
+static int32_t Script_GetInventoryItemCount(lua_State* L) {
+    const char* unitName;
+    int32_t slot = 0;
+
+    if (!GetUnitAndSlotFromLua(L, unitName, slot)) {
+        return 0;
+    }
+
+    CGPlayer_C* unit = static_cast<CGPlayer_C*>(GetUnitFromName(unitName));
+
+    if (!CGCharacterInfo::CanInspect(unit)) {
+        lua_pushnumber(L, 1.0);
+        return 1;
+    }
+
+    if (slot == -1) {
+        if (unit->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+            int32_t ammo = CGCharacterInfo::GetActivePlayerAmmoID(unit);
+
+            if (ammo) {
+                lua_pushnumber(L, unit->GetBag()->GetItemTypeCount(ammo, 0));
+                return 1;
+            }
+        }
+
+        lua_pushnumber(L, 1.0);
+        return 1;
+    }
+
+    CGItem_C* item = unit->m_bag.GetItemPointer(slot);
+
+    if (!item) {
+        lua_pushnumber(L, 1.0);
+        return 1;
+    }
+
+    if (!(item->m_obj->m_type & TYPEMASK_CONTAINER)) {
+        lua_pushnumber(L, item->m_item->m_itemFieldStackCount);
+        return 1;
+    }
+
+    if (slot > 22) {
+        lua_pushnumber(L, 0.0);
+        return 1;
+    }
+
+    for (int32_t i = 0; i < g_itemSubClassDB.m_numRecords; i++) {
+        ItemSubClassRec* rec = g_itemSubClassDB.GetRecordByIndex(i);
+
+        if (rec->m_classID != static_cast<int32_t>(item->GetClassID()) || rec->m_subClassID != static_cast<int32_t>(item->GetSubtypeID())) {
+            continue;
+        }
+
+        if (!(rec->m_displayFlags & 0x4)) {
+            break;
+        }
+
+        if (item->GetBag()->GetItemTypeCount(-1, 0) <= 0) {
+            lua_pushnumber(L, 0.0);
+        } else {
+            lua_pushnumber(L, item->GetBag()->GetItemTypeCount(-1, 0));
+        }
+
+        return 1;
+    }
+
+    lua_pushnumber(L, 0.0);
+    return 1;
+}
+
+// VERIFY: 864b2e9b auto
+// OFFSET: 0x005EA5F0
+static int32_t Script_PickupInventoryItem(lua_State* L) {
+    int32_t slot = 0;
+
+    if (ResolveInventorySlotArg(L, 1, slot)) {
+        CGCharacterInfo::PickupInventoryItem(slot);
+    }
+
+    return 0;
+}
+
+// VERIFY: c662896d auto
+// OFFSET: 0x005EA7F0
+static int32_t Script_PutItemInBackpack(lua_State* L) {
+    if (CGCharacterInfo::PutItemInBackpack(0xFF)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 307bdc3f manual
+// OFFSET: 0x005EA880
+static int32_t Script_CursorCanGoInSlot(lua_State* L) {
+    int32_t slot = 0;
+
+    if (!ResolveInventorySlotArg(L, 1, slot)) {
+        return 0;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if ((player && player->ValidateSlot(slot, CGGameUI::GetCursorItem())) || (slot == -1 && CGGameUI::m_cursorItemType == 9)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: f4825e25 manual
+// OFFSET: 0x005EACA0
+static int32_t Script_GetWeaponEnchantInfo(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 6;
+    }
+
+    for (int32_t slot = 15; slot <= 16; slot++) {
+        CGItem_C* item = player->m_bag.GetItemPointer(slot);
+
+        if (item && item->GetEnchantmentId(1)) {
+            lua_pushnumber(L, 1.0);
+
+            if (item->GetEnchantmentDuration(1)) {
+                lua_pushnumber(L, item->GetEnchantmentTimeLeft(1));
+            } else {
+                lua_pushnil(L);
+            }
+
+            lua_pushnumber(L, item->GetEnchantmentCharges(1));
+        } else {
+            lua_pushnil(L);
+            lua_pushnil(L);
+            lua_pushnil(L);
+        }
+    }
+
+    return 6;
 }
 
 // STATIC: 0x00AD1270

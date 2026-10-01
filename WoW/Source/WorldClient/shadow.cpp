@@ -9,6 +9,9 @@
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Tempest/CMath.h"
 #include "Engine/Source/Tempest/CiRect.h"
+#include "Engine/Source/Model2/M2Model.h"
+#include "Engine/Source/Tempest/CAaBox.h"
+#include "WoW/Source/WorldClient/World.h"
 
 // STATIC: 0x00AF3E08
 int32_t s_shadowLOD = 1;
@@ -194,4 +197,12 @@ void ShadowInit() {
 // OFFSET: 0x007E2C60
 CGxTex* ProjectTex2dGetAddFadeTex() {
     return TextureGetGxTex(s_shadowAddTexture, 1, nullptr);
+}
+
+// VERIFY: ff93aa7d auto
+// OFFSET: 0x007E49E0
+void CWorldScene::RequestModelStreaming(CM2Model* model, const CAaBox* box) {
+    if (model && model->IsDrawable(0, 0) && !(model->m_fFlags & 0x4000) && !box->IsEmpty() && s_cvExtShadowQuality->m_intValue <= 0 && s_shadowLOD == 1) {
+        CWorldScene::RenderStreamingRequestDecal(model, box, 0.4f);
+    }
 }

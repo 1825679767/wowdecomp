@@ -1157,3 +1157,13 @@ void CGWorldMap::CreateArrowFrame(CSimpleFrame* parent) {
         }
     }
 }
+
+// VERIFY: 6fd1c7d5 auto
+// OFFSET: 0x0050F490
+void CGWorldMap::RefreshCurrentMap() {
+    if (CGWorldMap::m_currentOrphanZone == -1) {
+        CGWorldMap::SetMap(CGWorldMap::m_currentContinent, CGWorldMap::m_currentZone, CGWorldMap::m_currentOrphanZone);
+    } else {
+        CGWorldMap::SetMap(CGWorldMap::m_currentContinent, CGWorldMap::m_currentOrphanZone, CGWorldMap::m_currentDungeonMap);
+    }
+}

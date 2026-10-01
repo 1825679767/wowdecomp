@@ -15,7 +15,8 @@ class CGPartyPetState {
     /* 0000 */ WOWGUID m_guid;
     /* 0008 */ uint8_t unk_0008[80];
     /* 0058 */ uint8_t m_powerType;
-    /* 0059 */ uint8_t unk_0059[3];
+    /* 0059 */ uint8_t unk_0059;
+    /* 005A */ uint16_t m_displayId;
     /* 005C */ uint32_t m_health;
     /* 0060 */ uint32_t m_maxHealth;
     /* 0064 */ uint16_t m_power;
@@ -41,7 +42,8 @@ class CGPartyMemberState {
     /* 0020 */ int32_t m_auras[64];
     /* 0120 */ uint8_t m_auraFlags[64];
     /* 0160 */ CGPartyPetState m_pet;
-    /* 0308 */ uint32_t unk_0308[2];
+    /* 0308 */ uint32_t m_vehicleSeatId;
+    /* 030C */ uint32_t unk_030C;
 };
 
 class CGPartyInfo {
@@ -81,6 +83,8 @@ class CGPartyInfo {
     static void EnableMember(CGPlayer_C* player, int32_t enable);
     static int32_t IsMemberPet(const WOWGUID& guid, int32_t* index);
     static CGPartyMemberState* GetRemoteStats(const WOWGUID& guid);
+    static CGPartyMemberState* GetRemoteStatsFromPet(const WOWGUID& petGuid);
+    static CGPartyMemberState* GetMemberState(uint32_t index);
     static int32_t IsPlayerOrPetInParty(const WOWGUID& guid);
     static CGPartyPetState* GetRemotePetStats(const WOWGUID& guid);
 };

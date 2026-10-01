@@ -86,6 +86,7 @@ class Rain {
     /* 00D0 */ float m_intensity;
 
     ~Rain();
+    void Render();
 };
 
 #endif

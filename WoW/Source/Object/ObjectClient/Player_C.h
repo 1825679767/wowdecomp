@@ -41,8 +41,12 @@ struct InspectData {
 class ItemSetRec;
 
 struct ITEMSWAP {
-    /* 0000 */ WOWGUID m_guid;
-    /* 0008 */ uint32_t unk_0008 [6];
+    /* 0000 */ WOWGUID m_srcContainer;
+    /* 0008 */ WOWGUID m_dstContainer;
+    /* 0010 */ uint32_t m_srcSlot;
+    /* 0014 */ uint32_t m_dstSlot;
+    /* 0018 */ int32_t m_itemId;
+    /* 001C */ uint32_t unk_001C;
 };
 
 struct TRADESKILLLINE : public TSHashObject<TRADESKILLLINE, HASHKEY_NONE> {
@@ -118,6 +122,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     static void __stdcall GetQuestReward(const WOWGUID& questGiver, int32_t questId, int32_t reward);
     static void __stdcall GiveQuestItems(const WOWGUID& questGiver, int32_t questId);
     static int32_t IsGiftWrapping();
+    static void BuyItemInSlot(WOWGUID merchant, const MerchantItem* item, uint32_t count, WOWGUID bag, uint8_t slot);
     static void CancelGiftWrap();
     static int32_t AutoCombatModeEventHandler(const void* data, void* param);
     static void __stdcall LeaveGroup();
@@ -233,7 +238,15 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     int32_t CheckBinderDistance();
     int32_t CheckSpiritHealerDistance();
     int32_t CheckTalentMasterDistance();
+    void AutoEquipCursorItem(int32_t ignoreBind);
+    void AutoStoreItemInBag(WOWGUID item, WOWGUID srcContainer, uint32_t srcSlot, WOWGUID dstBag, int32_t a5);
+    uint8_t FindItemSlot(WOWGUID container, const CGItem_C* item);
     uint8_t FindSlotIndex(WOWGUID guid) const;
+    void GiftWrap(CGItem_C* item);
+    void SplitItem(WOWGUID item, WOWGUID srcContainer, uint32_t srcSlot, WOWGUID dstContainer, uint32_t dstSlot, uint32_t count);
+    void SwapGuildBankItem(int32_t itemId, uint32_t virtualSlot, uint8_t bag, uint8_t slot, uint32_t count);
+    void SwapItems(WOWGUID item, WOWGUID srcContainer, uint32_t srcSlot, WOWGUID dstContainer, uint32_t dstSlot, int32_t ignoreBind);
+    int32_t ValidateSlot(uint32_t slot, WOWGUID item);
     bool GetPackAndSlot(const CGItem_C* item, uint8_t* bag, uint8_t* slot);
     void OpenLootItem(CGItem_C* item);
     void OpenWrappedItem(CGItem_C* item);
@@ -346,9 +359,16 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void OnDeath();
     void EquipItem(CGItem_C* item);
     void OnGuildChanged(int32_t a2);
+    const char* GetPlayerGuildNameText();
     void TogglePlayerFlag(uint32_t oldFlags);
     void UpdateInventoryComponent(INVENTORY_SLOTS slot, const VisibleItem_C* oldItem);
     uint32_t GetEquippedItemDisplayId();
+    int32_t GetAttackPowerContributionFromStat(int32_t stat, int32_t value);
+    float GetCombatRatingPct(int32_t rating);
+    void LoadGuildTextures(int32_t displayId);
+    void UpdateHandItemVisual(GEOCOMPONENTLINKS link, int32_t hand);
+    void UpdateObjComponentVisuals(const VisibleItem_C* item, GEOCOMPONENTLINKS link);
+    void UpdateObjComponentVisualsSlot(const VisibleItem_C* item, int32_t slot);
     void PostInitActivePlayer();
     void UpdatePartyMemberState();
     void SetActiveMirrorHandlers();
@@ -431,6 +451,7 @@ int32_t Packet_SMSG_INSPECT(void* param, NETMESSAGE msgId, uint32_t time, CDataS
 int32_t Packet_SMSG_INSPECT_TALENT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_Group_14(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_CANCEL_COMBAT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+void PlayerNameGuildCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 int32_t Packet_SMSG_GUILD_INVITE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_GUILD_DECLINE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_GUILD_INFO(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);

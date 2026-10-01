@@ -94,6 +94,9 @@
 #include "WoW/Source/WorldClient/WorldParam.h"
 #include "WoW/Source/WorldClient/WorldView.h"
 #include "WoW/Source/WorldClient/Zones.h"
+#include "WoW/Source/Ui/MinimapFrame.h"
+#include <malloc.h>
+#include <cstring>
 
 // STATIC: 0x00ADEE48
 static const char* s_zonePaths[11] = {
@@ -458,6 +461,12 @@ static C3Vector* s_clipInVerts[32];
 
 // STATIC: 0x00CDD300
 static C3Vector* s_clipOutVerts[32];
+
+// STATIC: 0x00ADEEE8
+static float s_horizonMinZ = 0.998046875f;
+
+// STATIC: 0x00ADEEEC
+static float s_horizonMaxZ = 0.9990234375f;
 
 // VERIFY: 8564474b manual
 // OFFSET: 0x005EEB70
@@ -4579,4 +4588,140 @@ CMapEntity* CMap::ObjectCreateStatic(CM2Model* model, const C44Matrix& matrix, M
     entity->m_func = func;
     entity->m_funcParam = funcParam;
     return entity;
+}
+
+// VERIFY: 146e9bb7 auto
+// OFFSET: 0x0077F110
+int32_t World::QueryMapObjFileName(CMapEntity* entity, const char** fileName) {
+    if (!entity) {
+        return 0;
+    }
+
+    return entity->QueryMapObjFileName(fileName);
+}
+
+// VERIFY: 51235d30 auto
+// OFFSET: 0x0077F130
+bool World::QueryMapObjMinimap(CMapEntity* entity, CAaBox* box, TSStackArray<MINIMAPQUADINFO>* quads, uint32_t maxQuads, int32_t inside, uint8_t indoorArea) {
+    if (!entity) {
+        return false;
+    }
+
+    return entity->QueryMapObjMinimap(box, quads, maxQuads, inside, indoorArea);
+}
+
+// VERIFY: 474c6326 auto
+// OFFSET: 0x0077F190
+bool World::QueryMapObjMatrix(CMapEntity* entity, C44Matrix* matrix, C44Matrix* invMatrix) {
+    if (!entity) {
+        return false;
+    }
+
+    return entity->QueryMapObjMatrix(matrix, invMatrix);
+}
+
+// VERIFY: 1c0aecde manual
+// OFFSET: 0x0077F030
+void CWorldScene::RenderWeather() {
+    World::s_weather->Render();
+}
+
+// VERIFY: dc10d6e4 auto
+// OFFSET: 0x0077F980
+void CWorldScene::RenderBarriers(float elapsedSec) {
+    CWorldScene::s_barrier.Render(CWorldScene::s_activeWorldView, elapsedSec);
+}
+
+// VERIFY: 0fc0d93c manual
+// OFFSET: 0x007911D0
+void CWorldScene::CullModelRecursive(CM2Model* model) {
+    CAaBox box = model->GetCurrentBoundingBox();
+    model->m_fFlags = (model->m_fFlags & ~0x2000u) | ((CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(box) == 0) << 13);
+
+    for (CM2Model* attached = model->m_attachList; attached; attached = attached->m_attachNext) {
+        CWorldScene::CullModelRecursive(attached);
+    }
+}
+
+// VERIFY: 545e3065 manual
+// OFFSET: 0x00795F80
+void CWorldScene::RenderHorizon() {
+    C44Matrix savedProjection;
+    C44Matrix projection;
+    CWorldScene::BuildHorizonProjection(&projection);
+    savedProjection = g_theGxDevicePtr->m_projection;
+    g_theGxDevicePtr->XformSetProjection(projection);
+    float minX = g_theGxDevicePtr->m_viewport.m_x.m_l;
+    float maxX = g_theGxDevicePtr->m_viewport.m_x.m_h;
+    float minY = g_theGxDevicePtr->m_viewport.m_y.m_l;
+    float maxY = g_theGxDevicePtr->m_viewport.m_y.m_h;
+    float minZ = g_theGxDevicePtr->m_viewport.m_z.m_l;
+    float maxZ = g_theGxDevicePtr->m_viewport.m_z.m_h;
+    GxXformSetViewport(minX, maxX, minY, maxY, s_horizonMinZ, s_horizonMaxZ);
+    g_theGxDevicePtr->RsPush();
+    C44Matrix world;
+    world.Translate(C3Vector(-CWorldScene::s_activeWorldView.x, -CWorldScene::s_activeWorldView.y, -CWorldScene::s_activeWorldView.z));
+    g_theGxDevicePtr->XformPushAndSet(GxXform_World, world);
+
+    CMapAreaLow* nextArea;
+
+    for (CMapAreaLow* area = CWorldScene::sortTable.m_horizonChunkList.Head(); area; area = nextArea) {
+        nextArea = CWorldScene::sortTable.m_horizonChunkList.Next(area);
+        CMap::RenderLowDetail(area);
+        area->m_horizonLink.Unlink();
+    }
+
+    uint32_t count = 0;
+    CMapObjGroup** groups = static_cast<CMapObjGroup**>(alloca(256 * sizeof(CMapObjGroup*)));
+    C44Matrix** matrices = static_cast<C44Matrix**>(alloca(256 * sizeof(C44Matrix*)));
+    CMapObjDef* nextDef;
+
+    for (CMapObjDef* def = CWorldScene::sortTable.m_horizonMapObjList.Head(); def; def = nextDef) {
+        CMapObj* mapObj = def->m_owner;
+        nextDef = CWorldScene::sortTable.m_horizonMapObjList.Next(def);
+
+        for (int32_t i = 0; i < mapObj->m_groupInfoCount; i++) {
+            if (mapObj->IsGroupLoaded(i)) {
+                CMapObjGroup* group = mapObj->GetGroup(i, 0);
+
+                if (group->m_flags & 0x8) {
+                    groups[count] = group;
+                    matrices[count] = &def->m_mat;
+                    count++;
+                }
+            } else if (!mapObj->IsGroupLoading(i)) {
+                mapObj->ReadGroup(i);
+            }
+        }
+
+        def->m_horizonLink.Unlink();
+    }
+
+    if (count) {
+        DayNight::DNInfo* info = DayNight::GetInfo();
+        GxRsSet(GxRs_FogStart, 0.0f);
+        GxRsSet(GxRs_FogEnd, 1.0f);
+        GxRsSet(GxRs_FogColor, *reinterpret_cast<int32_t*>(&info->m_fog.m_color));
+        GxRsSet(GxRs_Fog, 1);
+        GxRsSet(GxRs_Lighting, 0);
+        int32_t a5 = -1;
+        CMapObj::RenderMapObjGroupsColor(groups, count, matrices, &world, &a5);
+    }
+
+    GxXformPop(GxXform_World);
+    g_theGxDevicePtr->RsPop();
+    GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
+    g_theGxDevicePtr->XformSetProjection(savedProjection);
+}
+
+// VERIFY: f64c99f7 auto
+// OFFSET: 0x0078FAE0
+void CWorldScene::GetFrustumCorners(C3Vector* corners) {
+    memcpy(corners, CWorldScene::s_frustumCorners, sizeof(CWorldScene::s_frustumCorners));
+}
+
+// VERIFY: e2777b99 auto
+// OFFSET: 0x0077F320
+void World::GetFrustumCorners(C3Vector* corners) {
+    CWorldScene::GetFrustumCorners(corners);
 }

@@ -7,9 +7,36 @@
 #include "WoW/Source/Ui/CGBankInfo.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/Ui/AuctionHouse.h"
+#include "WoW/Source/Ui/MailInfo.h"
+#include "WoW/Source/Ui/TradeFrame.h"
 
 // STATIC: 0x00A37B10
 static const BAGSLOTRANGE s_bagSlotRanges[8] = { { 23, 38 }, { 19, 22 }, { 86, 117 }, { 39, 66 }, { 67, 73 }, { 118, 149 }, { 0, 18 }, { 74, 85 } };
+
+// VERIFY: 3944bddf auto
+// OFFSET: 0x00753B00
+static int32_t FindBagFamilyCallback(const CGItem_C* item, void* param) {
+    return *static_cast<uint32_t*>(param) & item->GetBagFamily();
+}
+
+// VERIFY: d68f4a94 auto
+// OFFSET: 0x00753FA0
+static int32_t UnlockItemTypeCallback(const CGItem_C* item, void* param) {
+    ItemTypeCountParam* count = static_cast<ItemTypeCountParam*>(param);
+
+    if ((static_cast<int32_t>(item->m_obj->m_entryID) != count->m_itemId && count->m_itemId != -1) || CGTradeInfo::IsItemBeingTraded(item->m_obj->m_guid)) {
+        return 0;
+    }
+
+    WOWGUID guid = item->m_obj->m_guid;
+
+    if (!CGMailInfo::IsSendItem(guid) && guid != CGAuctionHouse::m_sellItem && !CGAuctionHouse::IsItemForSell(guid)) {
+        const_cast<CGItem_C*>(item)->Unlock();
+    }
+
+    return 0;
+}
 
 // VERIFY: 94284adc manual
 // OFFSET: 0x00589C00
@@ -459,4 +486,23 @@ bool CGBag_C::ItemCountValid(int32_t itemId, const ItemStats_C* stats, int32_t c
     }
 
     return true;
+}
+
+// VERIFY: b3aecff9 auto
+// OFFSET: 0x00754D90
+void CGBag_C::UnlockItemsOfType(int32_t itemId, uint32_t flags) {
+    ItemTypeCountParam param;
+    param.m_itemId = itemId;
+    param.m_count = 0;
+    WOWGUID container;
+    uint32_t slot;
+    this->FindItem(UnlockItemTypeCallback, &param, container, slot, flags);
+}
+
+// VERIFY: 095e35cd auto
+// OFFSET: 0x00754AC0
+CGItem_C* CGBag_C::FindItemOfBagFamily(uint32_t bagFamily, uint32_t flags) {
+    WOWGUID container;
+    uint32_t slot;
+    return this->FindItem(FindBagFamilyCallback, &bagFamily, container, slot, flags);
 }

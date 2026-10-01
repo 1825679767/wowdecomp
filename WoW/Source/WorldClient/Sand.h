@@ -35,6 +35,11 @@ class Sand {
     /* 009C */ float unk_009C;
 
     ~Sand();
+    CAaBox GetBoundingBox() const;
+    void Render();
+    void RenderPackets();
+    void RenderPacketsShader();
+    void UpdatePackets();
 };
 
 #endif

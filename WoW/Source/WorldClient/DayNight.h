@@ -150,6 +150,8 @@ struct DNGlare {
 
     void Destroy();
     void Initialize(const char* fileName);
+    void Render();
+    void Update(float deltaSec);
 };
 }
 

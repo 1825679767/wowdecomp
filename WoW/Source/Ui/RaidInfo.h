@@ -47,6 +47,7 @@ class CGRaidInfo {
     static int32_t IsPartyMemberReadyCheckPending(uint32_t index);
     static int32_t IsPartyMemberReadyCheckReady(uint32_t index);
     static CGPartyMemberState* GetRemoteStats(const WOWGUID& guid);
+    static CGPartyMemberState* GetRemoteStatsFromPet(const WOWGUID& petGuid);
     static CGRaidMember* FindMemberByGuid(WOWGUID guid);
     static CGPartyPetState* GetRemotePetStats(const WOWGUID& guid);
 

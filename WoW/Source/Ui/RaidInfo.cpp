@@ -312,3 +312,17 @@ int32_t CGRaidInfo::IsPartyMemberReadyCheckPending(uint32_t index) {
 int32_t CGRaidInfo::IsPartyMemberReadyCheckReady(uint32_t index) {
     return index < 4 ? CGRaidInfo::m_partyReadyCheckReady[index] : 0;
 }
+
+// VERIFY: 052e75dd manual
+// OFFSET: 0x00572800
+CGPartyMemberState* CGRaidInfo::GetRemoteStatsFromPet(const WOWGUID& petGuid) {
+    for (uint32_t i = 0; i < sizeof(CGRaidInfo::m_members) / sizeof(CGRaidInfo::m_members[0]); i++) {
+        CGRaidMember* member = CGRaidInfo::m_members[i];
+
+        if (member->m_guid && member->m_stats.m_pet.m_guid == petGuid) {
+            return &CGRaidInfo::m_members[i]->m_stats;
+        }
+    }
+
+    return nullptr;
+}

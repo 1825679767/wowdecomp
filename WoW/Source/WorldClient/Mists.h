@@ -30,6 +30,8 @@ class Mists {
     /* 0050 */ uint32_t unk_0050;
 
     virtual ~Mists();
+
+    void Render();
 };
 
 #endif

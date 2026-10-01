@@ -11,6 +11,7 @@
 class CClientObjCreate;
 class CImVector;
 class ItemStats_C;
+class ItemGroupSoundsRec;
 class LockRec;
 
 struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
@@ -18,9 +19,12 @@ struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
 };
 
 struct ITEMBYNAME : public TSHashObject<ITEMBYNAME, HASHKEY_UTF8I> {
+    /* 0018 */ int32_t m_itemId;
 };
 
 int32_t GetItemIDByName(const char* name);
+
+extern const uint32_t s_inventoryTypeSlots[29];
 
 class CGItem_C : public CGObject_C, public CGItem {
     public:
@@ -50,7 +54,7 @@ class CGItem_C : public CGObject_C, public CGItem {
     /* 03A0 */ uint32_t m_expirationTime;
     /* 03A4 */ uint32_t m_enchantmentExpiration [12];
     /* 03D4 */ ItemPurchaseData* m_itemPurchaseData;
-    /* 03D8 */ uint32_t unk_03D8;
+    /* 03D8 */ const ItemGroupSoundsRec* m_groupSounds;
     /* 03DC */ uint8_t unk_03DC [4];
 
     ~CGItem_C() override;
@@ -62,6 +66,8 @@ class CGItem_C : public CGObject_C, public CGItem {
 
     CGItem_C(uint32_t time, const CClientObjCreate& create);
     uint32_t GetBagFamily() const;
+    static int32_t CanGoInSlot(int32_t itemId, uint32_t slot, int32_t bypass);
+    int32_t CanGoInSlot(uint32_t slot, int32_t bypass);
     uint32_t GetClassID() const;
     int32_t GetCurrentSpellCharges();
     uint32_t GetDisplayID() const;

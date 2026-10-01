@@ -187,6 +187,7 @@ class CGTooltip : public CSimpleFrame {
     void CalculateSize();
     void AppendText(const char* text);
     void ClearTooltip();
+    void SetBuff(int32_t spellId, int32_t a2, int32_t a3, int32_t a4, int32_t a5, int32_t a6);
     void FadeOut();
     void ResetPosition(int32_t force);
     void SetOwner(CSimpleFrame* owner, TOOLTIP_ANCHORPOINT anchorType, float offsetX, float offsetY);

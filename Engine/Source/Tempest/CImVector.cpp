@@ -38,3 +38,14 @@ CImVector& CImVector::operator=(const C3Vector& color) {
     this->b = static_cast<uint8_t>(CMath::fint_(color.z * 255.0f));
     return *this;
 }
+
+// VERIFY: 6899672e manual
+// OFFSET: 0x0057E480
+void CImVector::InterpColorRGB(uint32_t t, const CImVector* src) {
+    uint8_t r = this->r + ((t * (src->r - this->r)) >> 8);
+    uint8_t g = this->g + ((t * (src->g - this->g)) >> 8);
+    uint8_t b = this->b + ((t * (src->b - this->b)) >> 8);
+    this->r = r;
+    this->g = g;
+    this->b = b;
+}

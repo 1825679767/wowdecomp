@@ -1305,7 +1305,7 @@ void CGxDevice::MasterEnableSet(EGxMasterEnables state, int32_t enable) {
     }
 }
 
-// VERIFY: 988cfc26 manual
+// VERIFY: 5ca93879 auto
 // OFFSET: 0x00685F50
 void CGxDevice::RsSet(EGxRenderState which, void* value) {
     if (!this->m_context) {
@@ -1324,7 +1324,7 @@ void CGxDevice::RsSet(EGxRenderState which, void* value) {
     if (value && which >= GxRs_Texture0 && which <= GxRs_Texture15) {
         CGxTex* texId = static_cast<CGxTex*>(value);
 
-        if (texId->m_flags.m_bit31 && texId->m_needsUpdate) {
+        if (texId->m_flags.m_renderTarget && texId->m_needsUpdate) {
             this->ITexMarkAsUpdated(texId);
         }
     }

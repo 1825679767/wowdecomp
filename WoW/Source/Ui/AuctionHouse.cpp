@@ -5,6 +5,12 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
+// STATIC: 0x00C0E760
+TSGrowableArray<AuctionSellItem> CGAuctionHouse::m_sellItems;
+
+// STATIC: 0x00C0F434
+int32_t CGAuctionHouse::m_havePendingSell;
+
 // STATIC: 0x00C0F3F5
 uint8_t CGAuctionHouse::m_auctionsTabShowing;
 
@@ -276,4 +282,20 @@ void CGAuctionHouse::InitializeGame() {
     CGAuctionHouse::SetBidSortCriteria(4, false);
     CGAuctionHouse::SetBidSortCriteria(8, false);
     CGAuctionHouse::SetBidSortCriteria(3, false);
+}
+
+// VERIFY: 90d31b32 manual
+// OFFSET: 0x0059AA50
+bool CGAuctionHouse::IsItemForSell(WOWGUID item) {
+    if (!CGAuctionHouse::m_havePendingSell) {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < CGAuctionHouse::m_sellItems.Count(); i++) {
+        if (CGAuctionHouse::m_sellItems[i].m_guid == item) {
+            return true;
+        }
+    }
+
+    return false;
 }

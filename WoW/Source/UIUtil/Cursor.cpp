@@ -6,6 +6,10 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/Object/WGUID.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
 
 // STATIC: 0x00AD2808
 static const char* s_cursorNames[54] = {
@@ -299,4 +303,54 @@ void CursorReleaseItemMips() {
     s_cursorItemMipsWidth = 0;
     s_cursorItemMips = nullptr;
     UpdateCursor();
+}
+
+// VERIFY: b444a3d5 manual
+// OFFSET: 0x00616630
+void CursorSetHeldItem(WOWGUID item) {
+    if (s_cursorItemMips) {
+        TextureFreeMippedImg(s_cursorItemMips);
+        s_cursorItemMips = nullptr;
+        s_cursorItemMipsWidth = 0;
+        s_cursorItemMipsHeight = 0;
+    }
+
+    CGItem_C* itemObject = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (itemObject) {
+        const char* path = ClientDBStringLookup(3);
+        const char* art = itemObject->GetInventoryArt();
+        const char* separator = "\\";
+
+        if (!path || !*path || !art || !*art) {
+            separator = "";
+        }
+
+        char fileName[260];
+        SStrPrintf(fileName, sizeof(fileName), "%s%s%s", path, separator, art);
+        PIXEL_FORMAT format = PIXEL_ARGB8888;
+        s_cursorItemMips = TextureLoadImage(fileName, &s_cursorItemMipsWidth, &s_cursorItemMipsHeight, &format, nullptr, nullptr, nullptr, 0);
+    }
+
+    s_cursorItemType = 1;
+    CursorReleaseItemMips();
+}
+
+// VERIFY: 9fa05f0a auto
+// OFFSET: 0x006165B0
+void CursorGrabSpell(const char* texture) {
+    if (s_cursorItemMips) {
+        TextureFreeMippedImg(s_cursorItemMips);
+        s_cursorItemMips = nullptr;
+        s_cursorItemMipsWidth = 0;
+        s_cursorItemMipsHeight = 0;
+    }
+
+    if (texture) {
+        PIXEL_FORMAT format = PIXEL_ARGB8888;
+        s_cursorItemMips = TextureLoadImage(texture, &s_cursorItemMipsWidth, &s_cursorItemMipsHeight, &format, nullptr, nullptr, nullptr, 0);
+    }
+
+    s_cursorItemType = 3;
+    CursorReleaseItemMips();
 }

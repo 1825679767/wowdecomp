@@ -10,6 +10,18 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WoW/Source/Ui/TalentInfo.h"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/Object/ItemStats.h"
+#include "WoW/Source/Object/ObjectClient/Bag_C.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
+#include "WoW/Source/UIUtil/Cursor.h"
+#include "WoW/Source/Ui/CGBankInfo.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/MerchantFrame.h"
+#include "WoW/Source/Net/Types.h"
+#include "WoW/Source/Object/Unit.h"
 
 // STATIC: 0x00C24230
 TSFixedArray<int32_t> CGCharacterInfo::m_invAlertStatus;
@@ -255,4 +267,247 @@ void CGCharacterInfo::UpdateItem(WOWGUID guid) {
     }
 
     FrameScript_SignalEvent(SCRIPT_EVENT_UNIT_INVENTORY_CHANGED, "%s", "player");
+}
+
+// VERIFY: 8ae9eb90 auto
+// OFFSET: 0x005E79D0
+static void BuyItemInBag(WOWGUID merchant, const MerchantItem* item, uint32_t count, WOWGUID bag) {
+    CGPlayer_C::BuyItemInSlot(merchant, item, count, bag, 0xFF);
+}
+
+// VERIFY: 0f75a387 manual
+// OFFSET: 0x005E85D0
+void CGCharacterInfo::PickupInventoryItem(int32_t slot) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || (!CGGameUI::m_hasControl && !(player->m_unit->m_unitFieldFlags & 0x100000))) {
+        return;
+    }
+
+    if (((slot >= 39 && slot <= 66) || static_cast<uint32_t>(slot - 67) <= 6) && !CGBankInfo::m_banker) {
+        return;
+    }
+
+    WOWGUID cursorItem;
+    WOWGUID cursorContainer;
+    uint32_t cursorSlot;
+    CGGameUI::GetCursorItem(cursorItem, cursorContainer, cursorSlot);
+    int32_t virtualId;
+    int32_t virtualSlot;
+    CGGameUI::GetCursorVirtualItem(virtualId, virtualSlot);
+
+    if (slot == -1) {
+        if (cursorItem) {
+            CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(cursorItem, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+            if (item && item->GetClassID() == 6) {
+                CDataStore msg;
+                msg.Put(static_cast<uint32_t>(CMSG_SET_AMMO));
+                msg.Put(static_cast<uint32_t>(item->m_obj->m_entryID));
+                msg.Finalize();
+                ClientServices::Send2(&msg);
+                CGGameUI::ClearCursor(1, 1);
+                return;
+            }
+
+            player->AutoEquipCursorItem(0);
+            CGGameUI::ClearCursor(1, 1);
+            return;
+        }
+
+        if (virtualId && CGGameUI::m_cursorItemType == 9) {
+            CDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_SET_AMMO));
+            msg.Put(static_cast<uint32_t>(virtualId));
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+            CGGameUI::ClearCursor(1, 1);
+            return;
+        }
+
+        int32_t ammo = CGCharacterInfo::GetActivePlayerAmmoID(player);
+
+        if (!ammo || !player->GetBag()->GetItemTypeCount(ammo, 0)) {
+            CGGameUI::ClearCursor(1, 1);
+            return;
+        }
+
+        WOWGUID none = WOWGUID();
+        ItemStats_C* stats = g_itemDBCache.GetRecord(ammo, none, nullptr, nullptr, false);
+
+        if (stats) {
+            CGGameUI::SetCursorVirtualItem(ammo, stats->m_displayId, 0, 9, 0);
+        }
+
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_SET_AMMO));
+        msg.Put(static_cast<uint32_t>(0));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+        return;
+    }
+
+    WOWGUID itemGuid;
+    itemGuid.m_guid = player->m_bag.GetItemGuid(slot);
+
+    if (cursorItem) {
+        if (itemGuid == cursorItem) {
+            CGGameUI::ClearCursor(1, 1);
+            return;
+        }
+
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(itemGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (item && (item->m_itemFlags & 1)) {
+            return;
+        }
+
+        if (!player->ValidateSlot(slot, cursorItem)) {
+            if (cursorContainer == player->m_obj->m_guid && cursorSlot < 19) {
+                CGGameUI::ClearCursor(1, 1);
+                return;
+            }
+
+            player->AutoEquipCursorItem(0);
+        } else {
+            player->SwapItems(cursorItem, cursorContainer, cursorSlot, player->m_obj->m_guid, slot, 0);
+            CGGameUI::LockItem(itemGuid);
+        }
+
+        return;
+    }
+
+    if (virtualId) {
+        if (CGGameUI::m_cursorItemType == 5 && CGMerchantInfo::m_merchant) {
+            MerchantItem* merchantItem = CGMerchantInfo::GetItem(virtualSlot);
+
+            if (merchantItem) {
+                CGPlayer_C::BuyItemInSlot(CGMerchantInfo::m_merchant, merchantItem, 1, player->m_obj->m_guid, slot);
+                CGGameUI::ClearCursor(1, 1);
+            }
+        }
+
+        return;
+    }
+
+    if (!itemGuid) {
+        return;
+    }
+
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(itemGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item && (item->m_itemFlags & 1)) {
+        return;
+    }
+
+    if (Spell_C_IsTargeting() && Spell_C_CanTargetItems()) {
+        CGGameUI::CastItemSpell(itemGuid, 0);
+        return;
+    }
+
+    if (item && CursorGetResetMode() == 17 && CGMerchantInfo::CanRepair()) {
+        uint32_t cost = CGMerchantInfo::GetRepairCost(item);
+
+        if (cost > player->GetCoinage()) {
+            CGGameUI::DisplayError(ERR_NOT_ENOUGH_MONEY);
+            return;
+        }
+
+        SI2::PlaySoundKit("ITEM_REPAIR", nullptr, nullptr, nullptr);
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_REPAIR_ITEM));
+        msg.Put(CGMerchantInfo::m_merchant.m_guid);
+        msg.Put(itemGuid.m_guid);
+        msg.Put(static_cast<uint8_t>(0));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+        return;
+    }
+
+    CGGameUI::SetCursorItem(itemGuid, player->m_obj->m_guid, slot, 1, 0, 1);
+    CGGameUI::LockItem(itemGuid);
+}
+
+// VERIFY: a708b631 manual
+// OFFSET: 0x005E8D30
+int32_t CGCharacterInfo::PutItemInBackpack(uint32_t slot) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !CGGameUI::m_hasControl) {
+        return 0;
+    }
+
+    if (slot - 67 <= 6 && !CGBankInfo::m_banker) {
+        return 0;
+    }
+
+    WOWGUID cursorItem;
+    WOWGUID cursorContainer;
+    uint32_t cursorSlot;
+    CGGameUI::GetCursorItem(cursorItem, cursorContainer, cursorSlot);
+    int32_t virtualId;
+    int32_t virtualSlot;
+    CGGameUI::GetCursorVirtualItem(virtualId, virtualSlot);
+    WOWGUID bag;
+
+    if (slot == 0xFF) {
+        bag = player->m_obj->m_guid;
+    } else {
+        if (slot >= static_cast<uint32_t>(player->m_bag.m_numSlots)) {
+            CGCharacterInfo::PickupInventoryItem(slot);
+            return 0;
+        }
+
+        bag = player->m_bag.m_slots[slot];
+    }
+
+    if (!bag) {
+        CGCharacterInfo::PickupInventoryItem(slot);
+        return 0;
+    }
+
+    CGItem_C* bagItem = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(bag, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if ((bagItem && (bagItem->m_itemFlags & 1)) || cursorItem == bag) {
+        CGGameUI::ClearCursor(1, 1);
+        return 1;
+    }
+
+    if (!cursorItem && !virtualId) {
+        CGGameUI::ClearCursor(1, 1);
+        return 0;
+    }
+
+    if (cursorContainer == bag && (cursorContainer != player->m_obj->m_guid || cursorSlot - 23 <= 15)) {
+        CGGameUI::ClearCursor(1, 1);
+        return 1;
+    }
+
+    if (!cursorItem) {
+        if (CGGameUI::m_cursorItemType == 5 && CGMerchantInfo::m_merchant) {
+            BuyItemInBag(CGMerchantInfo::m_merchant, CGMerchantInfo::GetItem(virtualSlot), 1, bag);
+        }
+
+        CGGameUI::ClearCursor(1, 1);
+        return 0;
+    }
+
+    if (slot != 0xFF) {
+        CGItem_C* cursorObject;
+
+        if ((cursorContainer == player->m_obj->m_guid && cursorSlot - 19 <= 3) || ((cursorObject = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(cursorItem, TYPEMASK_ITEM, __FILE__, __LINE__))) && (cursorObject->m_obj->m_type & TYPEMASK_CONTAINER))) {
+            CGGameUI::LockItem(bag);
+            player->SwapItems(cursorItem, cursorContainer, cursorSlot, player->m_obj->m_guid, slot, 0);
+            return 1;
+        }
+    }
+
+    if (CGGameUI::m_stackSplit) {
+        player->SplitItem(cursorItem, cursorContainer, cursorSlot, bag, 0xFF, CGGameUI::m_stackSplit);
+    } else {
+        player->AutoStoreItemInBag(cursorItem, cursorContainer, cursorSlot, bag, 0);
+    }
+
+    CGGameUI::ClearCursor(0, 1);
+    return 1;
 }

@@ -13,6 +13,14 @@
 #include "WoW/Common/ComponentCore/CharacterComponent.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/UIUtil/PortraitButton.h"
+#include "WoW/Common/ComponentCore/Types.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/CreatureDisplayInfoRec.h"
+#include "WoW/Source/DB/Rec/CreatureModelDataRec.h"
+#include "Engine/Source/Services/Camera.h"
+#include "Engine/Source/Base/Handle.h"
+#include "Engine/Source/Tempest/CAaSphere.h"
 
 // STATIC: 0x00ACF510
 const char* CGCharacterModelBase::s_objectTypeName = "PlayerModel";
@@ -220,4 +228,97 @@ void CGCharacterModelBase::RefreshUnit(WOWGUID guid) {
             this->SetUpModel(unit);
         }
     }
+}
+
+// VERIFY: 838456da manual
+// OFFSET: 0x005975E0
+void CGCharacterModelBase::SetUpModel(CGUnit_C* unit) {
+    if (!ReadyModelForUI(unit, 3)) {
+        return;
+    }
+
+    CM2Model* model = this->GetDuplicateUnitCharacterModel(unit);
+
+    if (!model) {
+        return;
+    }
+
+    if (!(model->m_fFlags & 0x1)) {
+        model->WaitForLoad(nullptr);
+    }
+
+    CCharacterComponent::RemoveVisuals(model);
+    this->SetModel(model);
+    this->SetFrameAlpha(static_cast<uint8_t>(unit->GetBaseAlpha() * 255.0f));
+    model->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+
+    for (CM2Model* attached = model->m_attachList; attached; attached = attached->m_attachNext) {
+        if (attached->m_attachmentId == 2) {
+            CCharacterComponent::ComponentCloseFingers(model, COMP_HAND_LEFT);
+            break;
+        }
+    }
+
+    for (CM2Model* attached = model->m_attachList; attached; attached = attached->m_attachNext) {
+        if (attached->m_attachmentId == 1) {
+            CCharacterComponent::ComponentCloseFingers(model, COMP_HAND_RIGHT);
+            break;
+        }
+    }
+
+    model->Release();
+}
+
+// VERIFY: fc8b68ac manual
+// OFFSET: 0x00597700
+void CGCharacterModelBase::SetUpModel(int32_t displayId) {
+    CreatureDisplayInfoRec* displayRec = g_creatureDisplayInfoDB.GetRecord(displayId);
+
+    if (!displayRec) {
+        return;
+    }
+
+    CreatureModelDataRec* modelRec = g_creatureModelDataDB.GetRecord(displayRec->m_modelID);
+
+    if (!modelRec) {
+        return;
+    }
+
+    CM2Model* model = this->GetScene()->CreateModel(modelRec->m_modelName, 0);
+
+    if (!model) {
+        return;
+    }
+
+    CCharacterComponent::ReplaceMonsterSkin(model, displayRec, modelRec);
+    this->SetModel(model);
+    model->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+    model->Release();
+}
+
+// VERIFY: 24702114 auto
+// OFFSET: 0x005974A0
+void CGCharacterModelBase::ConfigureCamera() {
+    this->SetCameraByID(1);
+    CCamera* camera;
+
+    if (this->m_camera) {
+        float facing = this->m_facing;
+        this->m_facing = 0.0f;
+        this->UpdateModel();
+        this->m_model->SetAnimating(1);
+        this->GetScene()->Animate(C3Vector(0.0f, 0.0f, 0.0f));
+        this->m_facing = facing;
+        camera = CameraDuplicate(this->m_camera);
+    } else {
+        CAaSphere sphere = this->m_model->GetBoundingSphere();
+        camera = CameraCreate();
+        CameraSetFloat(camera, 4, 0.5f);
+        CameraSetCoord(camera, 8, sphere.c, 0);
+        CameraSetCoord(camera, 7, C3Vector(5.5555558f, 0.0f, 2.4166667f), 0);
+        CameraSetFloat(camera, 3, 0.027777778f);
+    }
+
+    this->SetCamera(camera);
+    HandleClose(reinterpret_cast<HOBJECT>(camera));
 }

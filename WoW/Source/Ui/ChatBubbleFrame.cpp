@@ -333,6 +333,7 @@ void CGChatBubbleFrame::ShutdownGame() {
     s_cameraPositionValid = 0;
 }
 
+// VERIFY: f2dda14b manual
 // OFFSET: 0x0056CDE0
 static void InsertSorted(CGChatBubbleFrame* bubble) {
     for (CGChatBubbleFrame* node = s_chatBubbles.Head(); node; node = s_chatBubbles.Next(node)) {
@@ -383,6 +384,7 @@ void CGChatBubbleFrame::ClearAll() {
     }
 }
 
+// VERIFY: c2f0f81c manual
 // OFFSET: 0x0056D050
 void CGChatBubbleFrame::OnWorldLayerUpdate() {
     if (!s_chatBubbles.Head()) {

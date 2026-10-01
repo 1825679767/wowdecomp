@@ -77,6 +77,7 @@ class CGWorldMap {
     static void EnterWorld();
     static void InitializeGame();
     static void SetMapToCurrentZone(int32_t debug);
+    static void RefreshCurrentMap();
     static void SetMap(uint32_t continent, uint32_t zone, int32_t dungeonMap);
     static int32_t GetZoneID(uint32_t continent, uint32_t zone);
     static uint32_t GetNumZones(uint32_t continent);

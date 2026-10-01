@@ -16,6 +16,11 @@ struct AuctionSortCriteria {
     /* 0008 */ int32_t m_valid;
 };
 
+struct AuctionSellItem {
+    /* 0000 */ WOWGUID m_guid;
+    /* 0008 */ uint32_t unk_0008[2];
+};
+
 struct OutbidItemInfo {
     /* 0000 */ int32_t unk_0000;
     /* 0004 */ int32_t unk_0004;
@@ -59,6 +64,7 @@ struct AuctionItemInfo {
 class CGAuctionHouse {
     public:
     static void CloseAuctionHouse();
+    static bool IsItemForSell(WOWGUID item);
     static AuctionSortCriteria m_bidSortCriteria[12];
     static AuctionSortCriteria m_ownedSortCriteria[12];
     static AuctionSortCriteria m_listSortCriteria[12];
@@ -71,6 +77,8 @@ class CGAuctionHouse {
     static WOWGUID m_auctioneer;
     static uint8_t m_sellItemSlot;
     static WOWGUID m_sellItem;
+    static TSGrowableArray<AuctionSellItem> m_sellItems;
+    static int32_t m_havePendingSell;
     static WOWGUID m_sellItemContainer;
     static uint32_t m_lastBrowseQueryTime;
     static uint32_t m_lastBidderQueryTime;

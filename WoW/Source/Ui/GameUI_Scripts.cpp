@@ -149,6 +149,9 @@
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 #include "WoW/Source/Object/Player.h"
 #include "WoW/Source/DB/Rec/SpellRec.h"
+#include "WoW/Source/Object/ItemStats.h"
+#include "WoW/Source/DB/Rec/CharTitlesRec.h"
+#include "WoW/Source/Object/Movement.h"
 
 // STATIC: 0x00BD0CC4
 static CWOWClientStatus* s_loadAddOnStatus;
@@ -2682,6 +2685,290 @@ static int32_t Script_GetThreatStatusColor(lua_State* L) {
     lua_pushnumber(L, ((color >> 8) & 0xFF) * 0.0039215689);
     lua_pushnumber(L, (color & 0xFF) * 0.0039215689);
     return 3;
+}
+
+// VERIFY: 6ef43428 auto
+// OFFSET: 0x00510920
+static int32_t Script_ResetCursor(lua_State* L) {
+    CursorResetMode();
+    return 0;
+}
+
+// VERIFY: 10d25911 manual
+// OFFSET: 0x00515200
+static int32_t Script_GetCursorInfo(lua_State* L) {
+    switch (CGGameUI::m_cursorItemType) {
+        case 1: {
+            CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGGameUI::GetCursorItem(), TYPEMASK_ITEM, __FILE__, __LINE__));
+
+            if (!item) {
+                return 0;
+            }
+
+            lua_pushstring(L, "item");
+            lua_pushnumber(L, item->m_obj->m_entryID);
+            lua_pushstring(L, CGTooltip::GetItemHyperlinkString(item));
+            return 3;
+        }
+
+        case 2:
+            lua_pushstring(L, "money");
+            lua_pushnumber(L, CGGameUI::m_cursorMoney);
+            return 2;
+
+        case 3: {
+            int32_t spellId = CGGameUI::m_cursorSpell;
+            SpellRec spell;
+            g_spellDB.GetRecord(spellId, &spell);
+
+            if (SpellRec::WillSummonCritter(&spell)) {
+                int32_t type = CGSpellBook::GetCompanionType(&spell);
+                lua_pushstring(L, "companion");
+                lua_pushnumber(L, CGSpellBook::FindCompanionSlotByID(spellId, type) + 1);
+
+                if (type == 0) {
+                    lua_pushstring(L, "CRITTER");
+                } else {
+                    if (type != 1) {
+                        lua_pushstring(L, "UNKNOWN");
+                        SErrDisplayAppFatalMessage("", "", 0);
+                    }
+
+                    lua_pushstring(L, "MOUNT");
+                }
+            } else {
+                int32_t petSpell = 0;
+                int32_t slot = GetSpellSlot(spellId, 0);
+
+                if (slot < 0) {
+                    slot = GetSpellSlot(spellId, 1);
+
+                    if (slot >= 0) {
+                        petSpell = 1;
+                    }
+                }
+
+                lua_pushstring(L, "spell");
+                lua_pushnumber(L, slot + 1);
+                lua_pushstring(L, petSpell ? "pet" : "spell");
+            }
+
+            return 3;
+        }
+
+        case 5:
+            lua_pushstring(L, "merchant");
+            lua_pushnumber(L, CGGameUI::m_cursorVirtualSlot + 1);
+            return 2;
+
+        case 7:
+        case 9:
+        case 11: {
+            int32_t itemId = CGGameUI::m_cursorVirtualID;
+            WOWGUID none = WOWGUID();
+            ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
+
+            if (!stats) {
+                return 0;
+            }
+
+            lua_pushstring(L, "item");
+            lua_pushnumber(L, itemId);
+            lua_pushstring(L, CGTooltip::GetItemHyperlinkString(itemId, stats->m_quality, 0, 0, 0));
+            return 3;
+        }
+
+        case 8:
+            lua_pushstring(L, "macro");
+            lua_pushnumber(L, CGUIMacros::GetMacroIndexByID(CGGameUI::m_cursorMacro) + 1);
+            return 2;
+
+        case 12:
+            lua_pushstring(L, "guildbankmoney");
+            lua_pushnumber(L, CGGameUI::m_cursorMoney);
+            return 2;
+
+        case 13: {
+            const EQUIPMENT_SET* set = CGEquipmentManager::GetSetByID(CGGameUI::m_cursorEquipmentSet);
+
+            if (!set) {
+                return 0;
+            }
+
+            lua_pushstring(L, "equipmentset");
+            lua_pushstring(L, set->m_name);
+            return 2;
+        }
+
+        default:
+            return 0;
+    }
+}
+
+// VERIFY: dfb090c7 manual
+// OFFSET: 0x0051A680
+static int32_t Script_AutoEquipCursorItem(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        player->AutoEquipCursorItem(0);
+    }
+
+    return 0;
+}
+
+// VERIFY: c2688421 manual
+// OFFSET: 0x0051AE80
+static int32_t Script_HasKey(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player && player->m_bag.FindItemOfBagFamily(0x100, 79)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 2f1870ab manual
+// OFFSET: 0x0051B410
+static int32_t Script_IsTitleKnown(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: IsTitleKnown(titleMaskID)");
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    uint32_t mask = static_cast<uint32_t>(lua_tonumber(L, 1));
+
+    if (player && mask && (player->m_player->m_playerFieldKnownTitles[mask >> 6] & (1ull << (mask & 63)))) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 1;
+}
+
+// VERIFY: ad446345 manual
+// OFFSET: 0x0051B4E0
+static int32_t Script_GetTitleName(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetTitleName(titleMaskID)");
+    }
+
+    int32_t maskId = static_cast<int32_t>(lua_tonumber(L, 1));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    int32_t gender = player ? player->m_player->m_playerBytes3[0] : 0;
+    char title[256];
+    title[0] = 0;
+    CharTitlesRec* rec = nullptr;
+
+    for (int32_t i = 0; i < g_charTitlesDB.m_numRecords; i++) {
+        CharTitlesRec* candidate = g_charTitlesDB.GetRecordByIndex(i);
+
+        if (candidate && candidate->m_maskID == maskId) {
+            rec = candidate;
+            break;
+        }
+    }
+
+    if (!rec) {
+        return 0;
+    }
+
+    if (gender == 1) {
+        strcpy(title, strcmp(rec->m_name1, "") ? rec->m_name1 : rec->m_name);
+    } else {
+        strcpy(title, strcmp(rec->m_name, "") ? rec->m_name : rec->m_name1);
+    }
+
+    char stripped[256];
+    int32_t length = 0;
+    bool skipping = false;
+
+    for (uint32_t i = 0; i < SStrLen(title); i++) {
+        char c = title[i];
+
+        if (!c) {
+            break;
+        }
+
+        if (c == '%') {
+            skipping = true;
+        } else if (!skipping) {
+            stripped[length++] = c;
+        } else if (c == ' ') {
+            skipping = false;
+            stripped[length++] = c;
+        }
+    }
+
+    stripped[length] = 0;
+    lua_pushstring(L, stripped);
+    return 1;
+}
+
+// VERIFY: 56c60ec4 manual
+// OFFSET: 0x0051B1D0
+static int32_t Script_SitStandOrDescendStart(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 0;
+    }
+
+    DescendStart();
+
+    if (player->m_movement->m_flags & 0x2000000) {
+        return 0;
+    }
+
+    if (!player->m_unit->m_unitFieldBytes1[0]) {
+        player->ChangeStandState(1);
+    } else {
+        player->ChangeStandState(0);
+    }
+
+    return 0;
+}
+
+// VERIFY: f1043ab0 auto
+// OFFSET: 0x005104A0
+static int32_t Script_SetCursor(lua_State* L) {
+    struct CursorName {
+        uint32_t m_mode;
+        const char* m_name;
+    };
+
+    CursorName cursors[52] = { { 1, "POINT_CURSOR" }, { 2, "CAST_CURSOR" }, { 3, "BUY_CURSOR" }, { 4, "ATTACK_CURSOR" }, { 5, "INTERACT_CURSOR" }, { 6, "SPEAK_CURSOR" }, { 7, "INSPECT_CURSOR" }, { 8, "PICKUP_CURSOR" }, { 9, "TAXI_CURSOR" }, { 10, "TRAINER_CURSOR" }, { 11, "MINE_CURSOR" }, { 12, "SKIN_CURSOR" }, { 13, "GATHER_CURSOR" }, { 14, "LOCK_CURSOR" }, { 15, "MAIL_CURSOR" }, { 16, "LOOT_ALL_CURSOR" }, { 17, "REPAIR_CURSOR" }, { 18, "REPAIRNPC_CURSOR" }, { 19, "ITEM_CURSOR" }, { 20, "SKIN_HORDE_CURSOR" }, { 21, "SKIN_ALLIANCE_CURSOR" }, { 22, "INNKEEPER_CURSOR" }, { 23, "QUEST_CURSOR" }, { 24, "QUEST_REPEATABLE_CURSOR" }, { 25, "QUEST_TURNIN_CURSOR" }, { 26, "VEHICLE_CURSOR" }, { 27, "POINT_ERROR_CURSOR" }, { 28, "CAST_ERROR_CURSOR" }, { 29, "BUY_ERROR_CURSOR" }, { 30, "ATTACK_ERROR_CURSOR" }, { 31, "INTERACT_ERROR_CURSOR" }, { 32, "SPEAK_ERROR_CURSOR" }, { 33, "INSPECT_ERROR_CURSOR" }, { 34, "PICKUP_ERROR_CURSOR" }, { 35, "TAXI_ERROR_CURSOR" }, { 36, "TRAINER_ERROR_CURSOR" }, { 37, "MINE_ERROR_CURSOR" }, { 38, "SKIN_ERROR_CURSOR" }, { 39, "GATHER_ERROR_CURSOR" }, { 40, "LOCK_ERROR_CURSOR" }, { 41, "MAIL_ERROR_CURSOR" }, { 42, "LOOT_ALL_ERROR_CURSOR" }, { 43, "REPAIR_ERROR_CURSOR" }, { 44, "REPAIRNPC_ERROR_CURSOR" }, { 45, "ITEM_ERROR_CURSOR" }, { 46, "SKIN_HORDE_ERROR_CURSOR" }, { 47, "SKIN_ALLIANCE_ERROR_CURSOR" }, { 48, "INNKEEPER_ERROR_CURSOR" }, { 49, "QUEST_ERROR_CURSOR" }, { 50, "QUEST_REPEATABLE_ERROR_CURSOR" }, { 51, "QUEST_TURNIN_ERROR_CURSOR" }, { 52, "VEHICLE_ERROR_CURSOR" } };
+
+    if (lua_type(L, 1) == LUA_TNIL) {
+        CursorResetMode();
+        return 0;
+    }
+
+    const char* name = lua_tolstring(L, 1, nullptr);
+
+    if (!name) {
+        luaL_error(L, "Usage: SetCursor(\"cursor\" or nil)");
+    }
+
+    for (uint32_t i = 0; i < 52; i++) {
+        if (!SStrCmpI(cursors[i].m_name, name, STORM_MAX_STR)) {
+            CursorSetMode(cursors[i].m_mode);
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    if (CursorSetFromName(name)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
 }
 
 static FrameScript_Method s_ScriptFunctions[] = {

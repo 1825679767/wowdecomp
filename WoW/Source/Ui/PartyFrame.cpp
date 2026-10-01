@@ -383,3 +383,25 @@ int32_t CGPartyInfo::IsMemberOrPet(const WOWGUID& guid) {
 
     return 0;
 }
+
+// VERIFY: 85f3761e manual
+// OFFSET: 0x0052BF30
+CGPartyMemberState* CGPartyInfo::GetRemoteStatsFromPet(const WOWGUID& petGuid) {
+    for (uint32_t i = 0; i < sizeof(CGPartyInfo::m_members) / sizeof(CGPartyInfo::m_members[0]); i++) {
+        if (CGPartyInfo::m_members[i] && unk_BD0D08[i].m_pet.m_guid == petGuid) {
+            return &unk_BD0D08[i];
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 8c75d456 auto
+// OFFSET: 0x00572420
+CGPartyMemberState* CGPartyInfo::GetMemberState(uint32_t index) {
+    if (CGPartyInfo::m_members[index]) {
+        return &unk_BD0D08[index];
+    }
+
+    return nullptr;
+}

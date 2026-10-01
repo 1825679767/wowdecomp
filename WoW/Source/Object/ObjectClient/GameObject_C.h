@@ -267,6 +267,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     public:
     static void Initialize();
     static void Shutdown();
+    bool IsTracked() const;
     static void AnimEventCallback(CM2Model* model, uint32_t boneId, uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time, uint64_t param);
     static int32_t OnAnimProgressChanged(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
     static int32_t OnFlagsChanged(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
@@ -320,6 +321,8 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     int32_t CanUseNow() const;
     int32_t CheckRange() const;
     void CloseInteraction();
+    void AddWorldDamageText(int32_t amount);
+    void AddWorldHealingText(int32_t amount, int32_t overheal);
     const char* GetCloseText() const;
     void GetCursorFile(char* buffer, uint32_t size) const;
     float GetInteractDistanceSquared() const;

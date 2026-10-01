@@ -43,6 +43,11 @@
 #include <cstring>
 #include <ctime>
 #include "WoW/Source/Ui/ItemTextFrame.h"
+#include "WoW/Source/DB/Rec/ItemGroupSoundsRec.h"
+#include "WoW/Source/Object/Item.h"
+
+// STATIC: 0x00A2D288
+const uint32_t s_inventoryTypeSlots[29] = { 0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 3072, 12288, 98304, 65536, 131072, 16384, 98304, 7864320, 262144, 16, 98304, 98304, 65536, 0, 131072, 131072, 0, 131072 };
 
 // STATIC: 0x00CA1140
 static TSHashTable<INVENTORYART, HASHKEY_NONE> s_inventoryArt;
@@ -261,12 +266,12 @@ static void LoadItemCacheCallback(int32_t id, const WOWGUID& guid, void* param, 
     }
 }
 
-// VERIFY: 00c0838b manual
+// VERIFY: 9264aaff manual
 // OFFSET: 0x00709840
 CGItem_C::CGItem_C(uint32_t time, const CClientObjCreate& create) : CGObject_C(time, create) {
     this->m_itemFlags = 0;
     this->m_expirationTime = 0;
-    this->unk_03D8 = 0;
+    this->m_groupSounds = nullptr;
 
     ClntObjMgrHideObject(this->m_obj->m_guid);
 
@@ -1689,4 +1694,153 @@ int32_t CGItem_C::UseItem(WOWGUID* target, int32_t a2) {
     CGItem_C::s_bindOnUseTarget = *target;
     FrameScript_SignalEvent(SCRIPT_EVENT_USE_BIND_CONFIRM, nullptr);
     return 0;
+}
+
+// VERIFY: 6c2aeb5c manual
+// OFFSET: 0x0070AA40
+void CGItem_C::PostInitWithStats() {
+    this->m_itemFlags |= 2;
+    ItemRec* rec = g_itemDB.GetRecord(this->m_obj->m_entryID);
+    this->m_virtualItem.m_classID = rec ? rec->m_classID : 0;
+    this->m_virtualItem.m_subclassID = rec ? rec->m_subclassID : 0;
+    this->m_virtualItem.m_material = rec ? rec->m_material : 0;
+    this->m_virtualItem.m_inventoryType = rec ? rec->m_inventoryType : 0;
+    this->m_virtualItem.m_sheatheType = rec ? rec->m_sheatheType : 0;
+    this->m_virtualItem.m_soundOverrideSubclassID = rec ? rec->m_soundOverrideSubclassID : 0xFF;
+    ItemDisplayInfoRec display;
+
+    if (g_itemDisplayInfoDB.GetRecord(rec ? rec->m_displayInfoID : 0, &display)) {
+        this->m_groupSounds = g_itemGroupSoundsDB.GetRecord(display.m_groupSoundIndex);
+    } else {
+        this->m_groupSounds = nullptr;
+    }
+
+    char name[1024];
+    CGItem_C::BuildItemName(name, sizeof(name), this->m_obj->m_entryID, (this->m_item->m_itemFieldFlags & 0x8) ? 0 : this->m_item->m_itemFieldRandomPropertiesId);
+
+    if (!s_itemByName.Ptr(name)) {
+        ITEMBYNAME* entry = s_itemByName.New(name, 0, 0);
+        entry->m_itemId = this->m_obj->m_entryID;
+    }
+
+    if (!CGGameUI::s_inWorld) {
+        return;
+    }
+
+    if (this->m_item->m_itemFieldOwner == ClntObjMgrGetActivePlayer()) {
+        WOWGUID none = WOWGUID();
+        ItemStats_C* stats = g_itemDBCache.GetRecord(this->m_obj->m_entryID, none, nullptr, nullptr, false);
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (stats->m_stackable <= 1) {
+            CGGameUI::UnlockItem(this->m_obj->m_guid);
+        } else if (player) {
+            player->m_bag.UnlockItemsOfType(this->m_obj->m_entryID, 0);
+        }
+
+        if (player) {
+            player->GetPendingEnchantTime(this);
+            int32_t slot = player->m_bag.FindItemSlot(this->m_obj->m_guid);
+
+            if (slot == 15 || slot == 16) {
+                CGActionBar::UpdateAttackAction();
+            } else if (slot == 17) {
+                CGActionBar::UpdateRangedAttackAction();
+            }
+        }
+
+        CGTradeSkillInfo::RefreshList(0);
+        CGActionBar::UpdateItem(this->m_obj->m_entryID);
+        CGQuestLog::UpdateQuestItem(this->m_obj->m_entryID);
+        CGContainerInfo::UpdateItem(this->m_obj->m_guid);
+
+        if ((stats->m_flags[0] & 0x1000) && !this->m_itemPurchaseData && !(this->m_itemFlags & 4)) {
+            this->RequestItemPurchaseData();
+        }
+
+        if (CGActionBar::GetMultiCastSlotMaskForTotemCategory(stats->m_totemCategory)) {
+            CGActionBar::UpdateMultiCastBar();
+        }
+    }
+
+    Script_SendUnitSignal(this->m_item->m_itemFieldOwner, SCRIPT_EVENT_UNIT_INVENTORY_CHANGED);
+}
+
+// VERIFY: f72af9bc manual
+// OFFSET: 0x007082B0
+int32_t CGItem_C::CanGoInSlot(int32_t itemId, uint32_t slot, int32_t bypass) {
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
+
+    if (!stats) {
+        return 0;
+    }
+
+    ItemRec* rec = g_itemDB.GetRecord(itemId);
+
+    if (!rec) {
+        return 0;
+    }
+
+    if (slot == 0xFFFFFFFF) {
+        return rec->m_classID == 6;
+    }
+
+    if (slot == 17) {
+        if (bypass != (rec->m_inventoryType == 28)) {
+            return 0;
+        }
+
+        return (s_inventoryTypeSlots[rec->m_inventoryType] & (1 << slot)) != 0;
+    }
+
+    if ((slot != 15 && slot != 16) || rec->m_classID != 2) {
+        if (slot >= 23) {
+            return 1;
+        }
+
+        return (s_inventoryTypeSlots[rec->m_inventoryType] & (1 << slot)) != 0;
+    }
+
+    if (slot == 16) {
+        if (rec->m_inventoryType != 17 && rec->m_inventoryType != 21) {
+            return (s_inventoryTypeSlots[rec->m_inventoryType] & (1 << slot)) != 0;
+        }
+    } else if (rec->m_inventoryType != 22) {
+        return (s_inventoryTypeSlots[rec->m_inventoryType] & (1 << slot)) != 0;
+    }
+
+    if ((stats->m_flags[0] & 0x40000000) || rec->m_subclassID == 13) {
+        return 0;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    for (uint32_t i = 0; i < player->m_equipBypassSkills.m_count; i++) {
+        SpellRec spell;
+
+        if (!g_spellDB.GetRecord(player->GetEquipBypassSkill(i), &spell) || rec->m_classID != spell.m_equippedItemClass || !((1 << rec->m_subclassID) & spell.m_equippedItemSubclass)) {
+            continue;
+        }
+
+        bool found = false;
+
+        for (int32_t invType = 0; invType < 29; invType++) {
+            if (((1 << invType) & spell.m_equippedItemInvTypes) && (s_inventoryTypeSlots[invType] & (1 << slot))) {
+                found = true;
+            }
+        }
+
+        if (found) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: e12d8511 auto
+// OFFSET: 0x00708500
+int32_t CGItem_C::CanGoInSlot(uint32_t slot, int32_t bypass) {
+    return CGItem_C::CanGoInSlot(this->m_obj->m_entryID, slot, bypass);
 }

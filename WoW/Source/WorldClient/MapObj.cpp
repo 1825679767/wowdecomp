@@ -51,6 +51,10 @@
 #include "WoW/Source/WorldClient/MapRenderChunk.h"
 #include "WoW/Source/WorldClient/Types.h"
 #include "WoW/Source/WorldClient/World.h"
+#include "WoW/Source/Ui/MinimapFrame.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include <new>
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
 
 // STATIC: 0x00AEE008
 uint32_t CMapObj::s_unk_AEE008 = 2;
@@ -2855,4 +2859,200 @@ bool CMapObj::GetTris(const CWFrustum& frustum, uint32_t flags, World::TriData* 
     }
 
     return result;
+}
+
+// STATIC: 0x00D1C418
+uint32_t CMapObj::sMinimapTag;
+
+// STATIC: 0x00AEE00C
+static float s_minimapTexelSize = 0.5f;
+
+// STATIC: 0x00D1C47C
+static float s_minimapQuadSize = s_minimapTexelSize * 256.0f;
+
+// VERIFY: 75e1421c manual
+// OFFSET: 0x007AE1F0
+static uint32_t ComputeAaBoxOutcodeExact(const C3Vector* point, const CAaBox* box) {
+    float delta[6];
+    delta[0] = point->x - box->b.x;
+    delta[1] = point->y - box->b.y;
+    delta[2] = point->z - box->b.z;
+    delta[3] = box->t.x - point->x;
+    delta[4] = box->t.y - point->y;
+    delta[5] = box->t.z - point->z;
+    uint32_t bits[6];
+    memcpy(bits, delta, sizeof(bits));
+    return (bits[0] >> 31) | ((bits[1] >> 30) & 2) | ((bits[2] >> 29) & 4) | ((bits[3] >> 28) & 8) | ((bits[4] >> 27) & 0x10) | ((bits[5] >> 26) & 0x20);
+}
+
+// VERIFY: c28f57e3 manual
+// OFFSET: 0x007AF8D0
+static void GetMinimapQuads(const CAaBox* bounds, const CAaBox* box, int32_t groupId, TSStackArray<MINIMAPQUADINFO>* quads, uint32_t maxQuads) {
+    float centerZ = (bounds->t.z + bounds->b.z) * 0.5f;
+    float inv = 1.0f / s_minimapQuadSize;
+    float sizeX = (bounds->t.x - bounds->b.x) * inv;
+    float sizeY = inv * (bounds->t.y - bounds->b.y);
+    float invLog2 = 1.0f / std::log10(2.0f);
+
+    float exponentY = invLog2 * std::log10(sizeY * 256.0f);
+    uint32_t texelsY;
+
+    if ((1u << static_cast<int32_t>(std::ceil(exponentY))) < 256 && (1u << static_cast<int32_t>(std::ceil(exponentY))) < 32) {
+        texelsY = 32;
+    } else if ((1u << static_cast<int32_t>(std::ceil(exponentY))) < 256) {
+        texelsY = 1u << static_cast<int32_t>(std::ceil(exponentY));
+    } else {
+        texelsY = 256;
+    }
+
+    float exponentX = std::log10(sizeX * 256.0f) * invLog2;
+    uint32_t texelsX;
+
+    if ((1u << static_cast<int32_t>(std::ceil(exponentX))) < 256 && (1u << static_cast<int32_t>(std::ceil(exponentX))) < 32) {
+        texelsX = 32;
+    } else if ((1u << static_cast<int32_t>(std::ceil(exponentX))) < 256) {
+        texelsX = 1u << static_cast<int32_t>(std::ceil(exponentX));
+    } else {
+        texelsX = 256;
+    }
+
+    int32_t countY = static_cast<int32_t>(std::ceil(sizeY));
+    int32_t countX = static_cast<int32_t>(std::ceil(sizeX));
+    float stepX = texelsX * s_minimapTexelSize;
+    float stepY = texelsY * s_minimapTexelSize;
+
+    for (int32_t y = 0; y < countY; y++) {
+        for (int32_t x = 0; x < countX; x++) {
+            float minX = x * stepX + bounds->b.x;
+            float minY = y * stepY + bounds->b.y;
+            float maxX = minX + stepX;
+            float maxY = minY + stepY;
+
+            static float s_border = s_minimapTexelSize + s_minimapTexelSize;
+
+            if (!x) {
+                minX = minX - s_border;
+            }
+
+            if (!y) {
+                minY = minY - s_border;
+            }
+
+            if (x == countX - 1) {
+                maxX = maxX + s_border;
+            }
+
+            if (y == countY - 1) {
+                maxY = maxY + s_border;
+            }
+
+            if (maxX >= box->b.x && maxY >= box->b.y && minX <= box->t.x && minY <= box->t.y && quads->m_count < maxQuads) {
+                MINIMAPQUADINFO* quad = new (&quads->m_data[quads->m_count++]) MINIMAPQUADINFO();
+                quad->m_groupId = groupId;
+                quad->m_y = y;
+                quad->m_bounds.b = C3Vector(minX, minY, centerZ);
+                quad->m_bounds.t = C3Vector(maxX, maxY, centerZ);
+                quad->m_x = x;
+            }
+        }
+    }
+}
+
+// VERIFY: eae22eb6 auto
+// OFFSET: 0x007AFE70
+void CMapObj::GetMinimapQuads(CAaBox* box, TSStackArray<MINIMAPQUADINFO>* quads, uint32_t maxQuads) {
+    CAaBox bounds = this->m_bbox;
+    ::GetMinimapQuads(&bounds, box, this->m_groupInfoCount, quads, maxQuads);
+}
+
+// VERIFY: 905ed32b manual
+// OFFSET: 0x007AFC70
+void CMapObj::QueryMapObjMinimapGroup(int32_t groupNum, int32_t fromGroup, CAaBox* box, TSStackArray<MINIMAPQUADINFO>* quads, uint32_t maxQuads, int32_t inside, uint32_t flagsMask, uint32_t depth) {
+    if (!this->m_isGroupLoaded) {
+        return;
+    }
+
+    CMapObjGroup* group = this->m_mapObjGroupArray[groupNum];
+
+    if (!(group->m_unkLoadedFlag & 1)) {
+        return;
+    }
+
+    if ((inside ? (group->m_flags & 0x48) : (group->m_flags & 0x8)) != flagsMask || group->m_minimapTag == static_cast<int32_t>(CMapObj::sMinimapTag)) {
+        return;
+    }
+
+    group->m_minimapTag = CMapObj::sMinimapTag;
+
+    if (!group->m_bbox.IntersectsXY(*box)) {
+        return;
+    }
+
+    ::GetMinimapQuads(&group->m_bbox, box, groupNum, quads, maxQuads);
+    int32_t wmoGroupId = group->m_wmoGroupId;
+
+    if (wmoGroupId == 23015 || wmoGroupId == 23016 || !group->m_portalCount || !g_minimapPortalMaxCVar || depth >= static_cast<uint32_t>(g_minimapPortalMaxCVar->m_intValue)) {
+        return;
+    }
+
+    for (int32_t i = 0; i < group->m_portalCount; i++) {
+        SMOPortalRef* portalRef = &this->m_portalRefList[group->m_portalStart + i];
+        uint32_t target = portalRef->m_groupIndex;
+
+        if (target == 0xFFFF || target == static_cast<uint32_t>(fromGroup) || (this->GetGroupFlags(target) & 0x80)) {
+            continue;
+        }
+
+        SMOPortal* portal = &this->m_portalList[portalRef->m_portalIndex];
+
+        if (!portal->m_count) {
+            continue;
+        }
+
+        uint32_t outcode = 0xFFFFFFFF;
+        C3Vector* vertex = &this->m_portalVertexList[portal->m_startVertex];
+
+        for (uint32_t j = 0; j < portal->m_count; j++) {
+            outcode &= ComputeAaBoxOutcodeExact(vertex, box);
+            vertex++;
+        }
+
+        if (outcode) {
+            continue;
+        }
+
+        CMapObjGroup* targetGroup;
+
+        if (!this->m_isGroupLoaded || !((targetGroup = this->m_mapObjGroupArray[target])->m_unkLoadedFlag & 1) || (targetGroup->m_wmoGroupId != 23015 && targetGroup->m_wmoGroupId != 23016)) {
+            this->QueryMapObjMinimapGroup(target, groupNum, box, quads, maxQuads, inside, flagsMask, ++depth);
+        }
+    }
+}
+
+// VERIFY: ddad8ead auto
+// OFFSET: 0x007B00A0
+bool CMapObj::QueryMapObjMinimap(int32_t groupNum, CAaBox* box, TSStackArray<MINIMAPQUADINFO>* quads, uint32_t maxQuads, int32_t inside, uint8_t indoorArea) {
+    CMapObj::sMinimapTag++;
+
+    if (!this->m_isGroupLoaded) {
+        return false;
+    }
+
+    CAaBox query = *box;
+    CMapObjGroup* group = this->m_mapObjGroupArray[groupNum];
+
+    if (!(group->m_unkLoadedFlag & 1)) {
+        return false;
+    }
+
+    query.t.z = group->m_bbox.t.z;
+
+    if (indoorArea) {
+        this->GetMinimapQuads(&query, quads, maxQuads);
+        return true;
+    }
+
+    uint32_t flagsMask = inside ? (this->m_groupInfo[groupNum].m_flags & 0x40) : 8;
+    this->QueryMapObjMinimapGroup(groupNum, groupNum, &query, quads, maxQuads, inside, flagsMask, 0);
+    return true;
 }

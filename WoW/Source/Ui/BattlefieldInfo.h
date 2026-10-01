@@ -114,6 +114,7 @@ class CGBattlefieldInfo {
     static uint32_t m_numScores;
     static uint32_t m_numWorldStateStats;
     static uint32_t m_numVehicles;
+    static WOWGUID m_vehicleGuids[40];
     static uint32_t m_instanceStartTime;
     static uint32_t m_instanceExpiration;
     static char m_teamNames[2][96];
@@ -131,9 +132,11 @@ class CGBattlefieldInfo {
     static int32_t GetBattlegroundType(int32_t index);
     static bool GetBracketForLevel(uint32_t level, const BattlemasterListRec* rec, int32_t* bracket);
     static void AddVehicle(const WOWGUID& guid);
+    static WOWGUID GetVehicleGuid(uint32_t index);
     static void AddArenaOpponentPet(const WOWGUID& petGuid, const WOWGUID& ownerGuid);
     static WOWGUID GetArenaOpponent(uint32_t index);
     static CGPartyMemberState* GetRemoteStats(const WOWGUID& guid);
+    static CGPartyMemberState* GetRemoteStatsFromPet(const WOWGUID& petGuid);
     static CGPartyPetState* GetRemotePetStats(const WOWGUID& guid);
     static WOWGUID GetArenaOpponentPet(uint32_t index);
     static int32_t GetArenaOpponentIndex(const WOWGUID& guid, int32_t* index);

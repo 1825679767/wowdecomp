@@ -37,6 +37,7 @@ class Snow {
     /* 00A4 */ int32_t unk_00A4;
 
     ~Snow();
+    void Render();
 };
 
 struct SnowFlakeParticle {
@@ -137,6 +138,7 @@ class Weather {
 
     Weather();
     bool GetActiveEffectBounds(CAaBox* bounds);
+    void Render();
     void Update();
     ~Weather();
     void Clear();

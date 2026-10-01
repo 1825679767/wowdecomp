@@ -25,6 +25,9 @@
 #include "WoW/Source/WorldClient/MapWeather.h"
 #include "WoW/Source/WorldClient/ShadowQuery.h"
 #include "WoW/Source/WorldClient/SortTable.h"
+#include "Engine/Source/Gx/CGxMatrixStack.h"
+#include "Engine/Source/ShaderEffect/ShadowCache.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
 
 // VERIFY: 78b69e1a manual
 // OFFSET: 0x007D5610
@@ -247,3 +250,23 @@ void CWorldScene::Render(const C3Vector& cameraPos, float time) {
     }
 }
 
+
+// VERIFY: 827be241 manual
+// OFFSET: 0x007BB670
+void CWorldScene::BuildViewMatrices(const C3Vector& position) {
+    C44Matrix view;
+    CGxMatrixStack& viewStack = g_theGxDevicePtr->m_xforms[GxXform_View];
+    view = viewStack.m_mtx[viewStack.m_level];
+    C44Matrix projection;
+    projection = g_theGxDevicePtr->m_projection;
+    C44Matrix viewProjection = view * projection;
+    C3Vector normal = TransformDirection(C3Vector(0.0f, 0.0f, 1.0f), view);
+    normal.Normalize();
+    C3Vector relative = position - CWorldScene::s_activeWorldView;
+    C3Vector projected = relative * viewProjection;
+    CShadowCache::s_cutoffPlane.x = normal.x;
+    CShadowCache::s_cutoffPlane.y = normal.y;
+    CShadowCache::s_cutoffPlane.z = normal.z;
+    CShadowCache::s_cutoffPlane.w = -(normal.x * projected.x + normal.y * projected.y + normal.z * projected.z);
+    CShadowQuery::s_cutoffHeight = position.z + 2.0f;
+}

@@ -23,6 +23,7 @@ class CGItem {
     int32_t IsUsable() const;
     uint32_t GetEnchantmentId(int32_t slot);
     uint32_t GetEnchantmentDuration(int32_t slot);
+    int32_t GetEnchantmentCharges(int32_t slot);
     uint32_t GetDurability() const;
     uint32_t GetMaxDurability() const;
     int32_t GetPetitionSignatures();

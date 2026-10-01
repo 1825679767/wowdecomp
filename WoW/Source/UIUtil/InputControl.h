@@ -100,6 +100,7 @@ extern int32_t s_joystickMouseEnabled;
 
 uint32_t GetJoystick();
 void CheckToCancelCurrentChannelSpell();
+void DescendStart();
 CGUnit_C* GetVehicleUnitPtr();
 void InputControlDestroy();
 void InputControlInitialize();

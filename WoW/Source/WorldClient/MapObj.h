@@ -12,6 +12,7 @@
 #include "Engine/Source/Tempest/CWFrustum.h"
 #include "WoW/Source/WorldClient/MapObjGroup.h"
 
+struct MINIMAPQUADINFO;
 class C2Vector;
 class C44Matrix;
 class CFrustum;
@@ -75,6 +76,7 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     int32_t IsAllLoaded();
     static void Destroy();
     static void Initialize();
+    static void RenderMapObjGroupsColor(CMapObjGroup** groups, uint32_t count, C44Matrix** matrices, const C44Matrix* world, int32_t* a5);
     static uint32_t CreateWmoIgnoreFlags(uint32_t a1);
     static void PrepareUpdate();
     static CMapObj* Create(char* fileName);
@@ -178,6 +180,10 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     void GetGroupBounds(CAaBox* box, int32_t index);
     int32_t GetDoodadSet(uint32_t index);
     uint32_t GetGroupFlags(int32_t index);
+    static uint32_t sMinimapTag;
+    bool QueryMapObjMinimap(int32_t groupNum, CAaBox* box, TSStackArray<MINIMAPQUADINFO>* quads, uint32_t maxQuads, int32_t inside, uint8_t indoorArea);
+    void QueryMapObjMinimapGroup(int32_t groupNum, int32_t fromGroup, CAaBox* box, TSStackArray<MINIMAPQUADINFO>* quads, uint32_t maxQuads, int32_t inside, uint32_t flagsMask, uint32_t depth);
+    void GetMinimapQuads(CAaBox* box, TSStackArray<MINIMAPQUADINFO>* quads, uint32_t maxQuads);
     SMOGroupInfo* GetGroupInfo(int32_t index);
     int32_t IsGroupLoaded(int32_t index);
     char* GetGroupName(int32_t index);

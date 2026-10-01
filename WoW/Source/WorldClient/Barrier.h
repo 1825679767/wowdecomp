@@ -56,6 +56,7 @@ class CBarrier {
     void AddBarrier(const CAaBox& box, float radius);
     void AddBarrierConvexPoly(C3Vector* verts, uint32_t count, float radius, C44Matrix* mat, int32_t flip, int32_t oneSided);
     void AddBarrierMapObjDefGroup(CMapObjDefGroup* mapObjDefGroup, float radius);
+    void Render(const C3Vector& viewerPos, float elapsedSec);
 };
 
 #endif
