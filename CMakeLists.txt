@@ -104,7 +104,7 @@ if (WOWDECOMP_ARCH_64)
     add_subdirectory(Tools/XvidDecoder)
 endif ()
 
-foreach (target Wow WowClient MapViewer M2Viewer GxTest MpqTest BlpTest DbcTest)
+foreach (target Wow WowClient MapViewer M2Viewer GxTest MpqTest BlpTest DbcTest AssetCheck)
     if (TARGET ${target})
         target_sources(${target} PRIVATE ${CMAKE_SOURCE_DIR}/waystone.rc)
     endif ()
