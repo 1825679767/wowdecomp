@@ -76,6 +76,7 @@ class CGCamera : public CSimpleCamera {
     static float GetDefaultZoomMaxDistance();
     static void __stdcall AddShakeOffset(C3Vector& offset, float facing, float amplitude, float time, float frequency, int32_t type, float damping, int32_t dir);
     void SetPositionAndTargetWithRoll(const C3Vector& position, const C3Vector& target, float roll);
+    void CommentatorSetViewAndPosition(const C3Vector& position, float facing, float pitch);
     int32_t FinishLoadingModel();
 
     /* 0048 */ CM2Model* m_model;
@@ -164,6 +165,7 @@ class CGCamera : public CSimpleCamera {
     CGCamera();
     ~CGCamera();
     void AddShake(const C3Vector& position, int32_t type, int32_t dir, float amplitude, float frequency, float duration, float timeOffset, float damping);
+    void AddShakeById(int32_t shakeId, const C3Vector* position);
     void BeginBobbingSmooth();
     void CalcTerrainTilt(CGObject_C* target, uint32_t time);
     void CameraTeleported(float facing);

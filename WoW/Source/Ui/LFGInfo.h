@@ -83,6 +83,14 @@ struct LFGQueueStatus {
     /* 0020 */ int32_t m_queuedTime;
 };
 
+struct LFGRoleCheckMember {
+    /* 0000 */ WOWGUID m_guid;
+    /* 0008 */ int32_t m_confirmed;
+    /* 000C */ uint32_t m_roles;
+    /* 0010 */ int32_t m_level;
+    /* 0014 */ uint32_t unk_0014;
+};
+
 class CGLookingForGroup {
     public:
     struct LFGEntryInfo {
@@ -91,6 +99,7 @@ class CGLookingForGroup {
     };
 
     static int32_t m_searchJoinedID;
+    static uint32_t m_lastProposalID;
     static uint32_t m_randomDungeonBestChoice;
     static TSFixedArray<uint32_t> m_randomDungeons;
     static TSFixedArray<CGLookingForGroup::LFGEntryInfo> m_lfdEntries;
@@ -103,8 +112,15 @@ class CGLookingForGroup {
     static LFGPartyLockInfo m_partyLockInfo;
     static LFGRewardInfo m_reward;
     static LFGQueueStatus m_queueStatus;
+    static int32_t m_roleCheckState;
+    static TSGrowableArray<uint32_t> m_roleCheckSlots;
+    static TSGrowableArray<LFGRoleCheckMember> m_roleCheckMembers;
     static void EnterWorld();
     static void InitializeGame();
+    static int32_t GetLFGRoleUpdate(lua_State* L);
+    static int32_t GetLFGRoleUpdateSlot(lua_State* L);
+    static void RequestLFGStatus();
+    static void RequestLFGPlayerInfo();
     static void ClearPartyInfo();
     static uint8_t GetClassRoles(uint32_t classID);
     static bool HasRaidDungeon(LFGInfo* info);
@@ -124,8 +140,6 @@ int32_t Script_SearchLFGGetResults(lua_State* L);
 int32_t Script_SearchLFGGetEncounterResults(lua_State* L);
 int32_t Script_SearchLFGGetPartyResults(lua_State* L);
 int32_t Script_SearchLFGSort(lua_State* L);
-int32_t Script_GetLFGRoleUpdate(lua_State* L);
-int32_t Script_GetLFGRoleUpdateSlot(lua_State* L);
 int32_t Script_GetLFGRoleUpdateMember(lua_State* L);
 int32_t Script_CompleteLFGRoleCheck(lua_State* L);
 int32_t Script_GetLFGProposal(lua_State* L);

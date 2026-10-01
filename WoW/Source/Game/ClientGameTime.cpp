@@ -156,3 +156,21 @@ void ClientInitializeGameTime() {
         s_timeCallbacks[i] = nullptr;
     }
 }
+
+// VERIFY: 3f0c07d8 auto
+// OFFSET: 0x007E27F0
+int32_t ClientGameTimeTickHandler(const void* data, void* param) {
+    g_clientGameTime.GameTimeUpdate(*static_cast<const float*>(data));
+    return 1;
+}
+
+// VERIFY: c94f4e8a manual
+// OFFSET: 0x007E2810
+void ClientDestroyGameTime() {
+    ClientServices::ClearMessageHandler(SMSG_GAME_SPEED_SET);
+    ClientServices::ClearMessageHandler(SMSG_LOGIN_SET_TIME_SPEED);
+    ClientServices::ClearMessageHandler(SMSG_GAME_TIME_UPDATE);
+    ClientServices::ClearMessageHandler(SMSG_SERVERTIME);
+    ClientServices::ClearMessageHandler(SMSG_GAME_TIME_SET);
+    g_clientGameTime.m_timeStamps.Clear();
+}

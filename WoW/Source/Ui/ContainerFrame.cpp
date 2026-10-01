@@ -7,6 +7,18 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/CGBankInfo.h"
 #include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/Ui/ActionBarFrame.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/Object/ItemStats.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
+#include "WoW/Source/Ui/CurrencyTypes.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
+#include "WoW/Source/Ui/TradeSkillFrame.h"
+#include "WoW/Source/Ui/Tutorial.h"
+#include <cstddef>
 
 // STATIC: 0x00C23540
 WOWGUID CGContainerInfo::m_containers[11];
@@ -125,4 +137,263 @@ bool CGContainerInfo::GetLuaBagAndSlot(lua_State* L, CGBag_C** bag, int32_t* slo
     }
 
     return *slot >= 0 && *slot < (*bag)->m_numSlots;
+}
+
+// VERIFY: 15a3090a manual
+// OFFSET: 0x005D7070
+void CGContainerInfo::UpdateContents(WOWGUID guid) {
+    CGActionBar::UpdateUsable();
+
+    if (guid == ClntObjMgrGetActivePlayer()) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_BAG_UPDATE, "%d", 0);
+        FrameScript_SignalEvent(SCRIPT_EVENT_BAG_UPDATE, "%d", -2);
+        FrameScript_SignalEvent(SCRIPT_EVENT_BAG_UPDATE, "%d", -4);
+        return;
+    }
+
+    for (uint32_t i = 0; i < 11; i++) {
+        if (CGContainerInfo::m_containers[i] == guid) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_BAG_UPDATE, "%d", i + 1);
+            return;
+        }
+    }
+}
+
+// VERIFY: 86768ce2 manual
+// OFFSET: 0x005D7320
+void CGContainerInfo::UpdateItem(WOWGUID guid) {
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item && item->m_item->m_itemFieldOwner == ClntObjMgrGetActivePlayer()) {
+        CGContainerInfo::UpdateContents(item->m_item->m_itemFieldContained);
+    }
+}
+
+// VERIFY: dcc6ac8d manual
+// OFFSET: 0x005D9540
+static void TriggerMultiCastBarUpdate(const ItemStats_C* stats) {
+    if (!stats) {
+        return;
+    }
+
+    uint32_t mask = CGActionBar::GetMultiCastSlotMaskForTotemCategory(stats->m_totemCategory);
+
+    if (!mask) {
+        return;
+    }
+
+    if (CGTutorial::m_tutorialShown.m_count && !(CGTutorial::m_tutorialShown.m_bits.m_data[1] & 0x4000)) {
+        for (uint32_t i = 0; i < 4; i++) {
+            if (((1 << i) & mask) && CGSpellBook::m_totemSpells[i].Count()) {
+                CGTutorial::TriggerTutorial(46);
+                break;
+            }
+        }
+    }
+
+    CGActionBar::UpdateMultiCastBar();
+}
+
+// VERIFY: d0cc9bd0 auto
+// OFFSET: 0x005D95C0
+static void MultiCastBarItemStatsCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        WOWGUID none = WOWGUID();
+        TriggerMultiCastBarUpdate(g_itemDBCache.GetRecord(id, none, nullptr, nullptr, false));
+    }
+}
+
+// VERIFY: 5cd3b92a manual
+// OFFSET: 0x005D9600
+int32_t UpdateContainerContents(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGContainer_C* container = static_cast<CGContainer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_CONTAINER, __FILE__, __LINE__));
+
+    if (!container) {
+        return 1;
+    }
+
+    uint32_t slot = (fieldOffset - offsetof(CGContainerData, m_containerFieldSlot1)) / sizeof(WOWGUID);
+    CGBag_C* bag = container->GetBag();
+    WOWGUID newGuid = slot < static_cast<uint32_t>(bag->m_numSlots) ? bag->m_slots[slot] : WOWGUID();
+    const WOWGUID& oldGuid = *static_cast<const WOWGUID*>(oldValue);
+    CGItem_C* oldItem = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(oldGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* newItem = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(newGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (oldGuid != newGuid) {
+        if (oldItem) {
+            CGActionBar::UpdateItem(oldItem->m_obj->m_entryID);
+        }
+
+        if (newItem) {
+            CGActionBar::UpdateItem(newItem->m_obj->m_entryID);
+        }
+
+        CGTradeSkillInfo::RefreshList(0);
+    }
+
+    CGGameUI::UnlockItem(newGuid);
+
+    if (CGGameUI::unk_BD08B0 == oldGuid || CGGameUI::unk_BD08B0 == newGuid || (!CGGameUI::unk_BD08B0 && CGGameUI::unk_BD08A4)) {
+        ItemRec* item = g_itemDB.GetRecord(CGGameUI::unk_BD08A4);
+
+        if (item) {
+            SI2::PlayItemSound(1, item->m_displayInfoID);
+        }
+    }
+
+    CGGameUI::unk_BD08B0 = WOWGUID();
+    CGGameUI::unk_BD08A4 = 0;
+    CGContainerInfo::UpdateContents(guid);
+
+    if (newItem) {
+        WOWGUID none = WOWGUID();
+        ItemStats_C* stats = g_itemDBCache.GetRecord(newItem->m_obj->m_entryID, none, MultiCastBarItemStatsCallback, nullptr, false);
+
+        if (stats) {
+            TriggerMultiCastBarUpdate(stats);
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: df5fd68c manual
+// OFFSET: 0x005D9790
+int32_t UpdateInvContents(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 1;
+    }
+
+    uint32_t slot = (fieldOffset - offsetof(CGPlayerLocalData, m_playerFieldInvSlotHead)) / sizeof(WOWGUID);
+    WOWGUID newGuid = slot < static_cast<uint32_t>(player->m_bag.m_numSlots) ? player->m_bag.m_slots[slot] : WOWGUID();
+    const WOWGUID& oldGuid = *static_cast<const WOWGUID*>(oldValue);
+    CGItem_C* oldItem = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(oldGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* newItem = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(newGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (oldGuid != newGuid) {
+        if (oldItem) {
+            CGActionBar::UpdateItem(oldItem->m_obj->m_entryID);
+        }
+
+        if (newItem) {
+            CGActionBar::UpdateItem(newItem->m_obj->m_entryID);
+        }
+
+        CGTradeSkillInfo::RefreshList(0);
+    }
+
+    CGGameUI::UnlockItem(newGuid);
+
+    if (CGGameUI::unk_BD08B0 == oldGuid || CGGameUI::unk_BD08B0 == newGuid || (!CGGameUI::unk_BD08B0 && CGGameUI::unk_BD08A4)) {
+        ItemRec* item = g_itemDB.GetRecord(CGGameUI::unk_BD08A4);
+
+        if (item) {
+            SI2::PlayItemSound(1, item->m_displayInfoID);
+        }
+    }
+
+    CGGameUI::unk_BD08B0 = WOWGUID();
+    CGGameUI::unk_BD08A4 = 0;
+    CGContainerInfo::UpdateContents(guid);
+
+    if ((oldItem && oldItem->GetClassID() == 10) || (newItem && newItem->GetClassID() == 10) || slot - 118 <= 31) {
+        CGCurrencyTypes::EnterWorld();
+    }
+
+    if (newItem) {
+        WOWGUID none = WOWGUID();
+        ItemStats_C* stats = g_itemDBCache.GetRecord(newItem->m_obj->m_entryID, none, MultiCastBarItemStatsCallback, nullptr, false);
+
+        if (stats) {
+            TriggerMultiCastBarUpdate(stats);
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 6dd08087 manual
+// OFFSET: 0x005D9960
+void CGContainerInfo::UpdateContainers() {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 11; i++) {
+        uint32_t slot = i < 4 ? i + 19 : i + 63;
+        WOWGUID guid = slot < static_cast<uint32_t>(player->m_bag.m_numSlots) ? player->m_bag.m_slots[slot] : WOWGUID();
+
+        if (guid == CGContainerInfo::m_containers[i]) {
+            continue;
+        }
+
+        if (CGContainerInfo::m_containers[i]) {
+            CGContainer_C* old = static_cast<CGContainer_C*>(ClntObjMgrObjectPtr(CGContainerInfo::m_containers[i], TYPEMASK_CONTAINER, __FILE__, __LINE__));
+
+            if (old && old->GetBag()) {
+                int32_t count = old->GetBag()->m_numSlots;
+
+                for (int32_t j = 0; j < count; j++) {
+                    ClntObjMgrUnsetObjMirrorHandler(CGContainerInfo::m_containers[i], ID_CONTAINER, offsetof(CGContainerData, m_containerFieldSlot1) + j * sizeof(WOWGUID), UpdateContainerContents, nullptr);
+                }
+            }
+
+            FrameScript_SignalEvent(SCRIPT_EVENT_BAG_CLOSED, "%d", i + 1);
+        }
+
+        CGContainerInfo::m_containers[i] = guid;
+
+        if (guid) {
+            CGContainer_C* container = static_cast<CGContainer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_CONTAINER, __FILE__, __LINE__));
+
+            if (container && container->GetBag()) {
+                int32_t count = container->GetBag()->m_numSlots;
+
+                for (int32_t j = 0; j < count; j++) {
+                    ClntObjMgrSetObjMirrorHandler(guid, ID_CONTAINER, offsetof(CGContainerData, m_containerFieldSlot1) + j * sizeof(WOWGUID), sizeof(WOWGUID), UpdateContainerContents, nullptr, static_cast<HANDLER_PRIORITY>(0), 1);
+                }
+            }
+
+            FrameScript_SignalEvent(SCRIPT_EVENT_BAG_UPDATE, "%d", i + 1);
+        }
+    }
+}
+
+// VERIFY: 4c8ee089 manual
+// OFFSET: 0x005D9B40
+int32_t InvUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 1;
+    }
+
+    uint32_t slot = (fieldOffset - offsetof(CGPlayerLocalData, m_playerFieldInvSlotHead)) / sizeof(WOWGUID);
+
+    if (slot < static_cast<uint32_t>(player->m_bag.m_numSlots) && player->m_bag.m_slots[slot]) {
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(player->m_bag.m_slots[slot], TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (item && (item->m_obj->m_type & TYPEMASK_CONTAINER)) {
+            CGBag_C* bag = item->GetBag();
+
+            if (bag) {
+                for (uint32_t i = 0; i < static_cast<uint32_t>(bag->m_numSlots); i++) {
+                    CGItem_C* contained = bag->GetItemPointer(i);
+
+                    if (contained) {
+                        CGActionBar::UpdateItem(contained->m_obj->m_entryID);
+                    }
+                }
+            }
+        }
+    }
+
+    CGContainerInfo::UpdateContents(guid);
+    CGContainerInfo::UpdateContainers();
+    CGTradeSkillInfo::RefreshList(0);
+    return 1;
 }

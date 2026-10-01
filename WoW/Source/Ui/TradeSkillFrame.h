@@ -2,6 +2,7 @@
 #define WOW_SOURCE_UI_TRADESKILLFRAME_H
 
 #include <cstdint>
+#include "WoW/Source/Object/WGUID.h"
 
 struct lua_State;
 
@@ -23,6 +24,9 @@ class CGTradeSkillInfo {
     static void SetLink(const char* link);
     static void CommitPendingRecast(int32_t spellId);
     static void DoRecast(int32_t spellId);
+    static void StopRecast();
+    static bool GetTradeSkillListLink(int32_t spellId, char* buffer, uint32_t bufferSize);
+    static void SetTradeSkill(int32_t spellId, const WOWGUID& guid, int32_t a3, int32_t a4, int32_t a5);
 };
 
 int32_t Script_GetTradeSkillInfo(lua_State* L);
@@ -56,5 +60,6 @@ int32_t Script_GetTradeSkillRecipeLink(lua_State* L);
 int32_t Script_GetTradeSkillListLink(lua_State* L);
 int32_t Script_IsTradeSkillLinked(lua_State* L);
 void TradeSkillRegisterScriptFunctions();
+void UpdateTradeSkillRecast(int32_t spellId);
 
 #endif

@@ -14,6 +14,11 @@ struct PLAYERPORTRAIT : public TSHashObject<PLAYERPORTRAIT, CHashKeyGUID> {
     /* 0024 */ CTexture* unk_0024;
 };
 
+struct PORTRAITREQUEST : public TSLinkedNode<PORTRAITREQUEST> {
+    /* 0008 */ WOWGUID m_guid;
+    /* 0010 */ uint32_t m_flags;
+};
+
 struct UNITPORTRAIT : public TSHashObject<UNITPORTRAIT, HASHKEY_DWORD> {
     /* 0018 */ uint8_t unk_0018;
     /* 0019 */ uint8_t unk_0019[3];

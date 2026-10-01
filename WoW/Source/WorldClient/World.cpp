@@ -442,7 +442,7 @@ TSList<void, TSGetExplicitLink<void> > CWorldScene::s_unkList9FreeList = TSExpli
 C44Matrix CWorldScene::camTransportView;
 
 // STATIC: 0x00CE04B0
-int32_t (*World::s_objectCollisionCallback)(WOWGUID* guid, uint32_t param, World::ObjectCollisionData* data, uint32_t flags);
+int32_t (*World::s_objectCollisionCallback)(WOWGUID* guid, uintptr_t param, World::ObjectCollisionData* data, uint32_t flags);
 
 // STATIC: 0x00ADEE74
 static const char* s_invisibleStalkerModel = "InvisibleStalker.m2";
@@ -614,9 +614,9 @@ void World::FindOrCreateDestructibleProxy(CDestructibleProxy* proxy) {
     CDestructibleProxy::FindOrCreate(proxy);
 }
 
-// VERIFY: fa5d1384 auto
+// VERIFY: f47c89de auto
 // OFFSET: 0x0077F2B0
-void World::SetObjectCollisionCallback(int32_t (*callback)(WOWGUID* guid, uint32_t param, ObjectCollisionData* data, uint32_t flags)) {
+void World::SetObjectCollisionCallback(int32_t (*callback)(WOWGUID* guid, uintptr_t param, ObjectCollisionData* data, uint32_t flags)) {
     World::s_objectCollisionCallback = callback;
 }
 
@@ -808,6 +808,34 @@ int32_t World::ObjectIsLoaded(CMapBaseObj* object) {
     return model->IsLoaded(0, 0);
 }
 
+// VERIFY: b8f47c0c auto
+// OFFSET: 0x007801C0
+void World::ObjectSetShadow(CMapEntity* entity, uint32_t shadow, uint32_t mask) {
+    if (mask & 0x1) {
+        entity->unk_007C ^= (entity->unk_007C ^ (shadow << 1)) & 0x2;
+    }
+
+    if (mask & 0x2) {
+        entity->unk_007C ^= (entity->unk_007C ^ ~(shadow << 10)) & 0x800;
+    }
+
+    if (mask & 0x4) {
+        entity->unk_007C ^= (entity->unk_007C ^ (shadow << 8)) & 0x400;
+    }
+
+    if (mask & 0x8) {
+        entity->unk_007C ^= (entity->unk_007C ^ (shadow << 10)) & 0x2000;
+    }
+
+    if (mask & 0x20) {
+        if (shadow & 0x20) {
+            entity->m_flags = static_cast<MapObjFlag>(entity->m_flags | MAPOBJ_FLAG_SHADOW_20000);
+        } else {
+            entity->m_flags = static_cast<MapObjFlag>(entity->m_flags & ~MAPOBJ_FLAG_SHADOW_20000);
+        }
+    }
+}
+
 // VERIFY: 4aa10153 manual
 // OFFSET: 0x00780240
 void CMap::ObjectUpdate(CMapEntity* entity, C44Matrix& mat, CAaBox& box, CAaSphere& sphere, C3Vector& vec, bool a6, uint32_t a7) {
@@ -857,9 +885,9 @@ void World::Update(const C3Vector& position) {
     CMap::PrepareUpdate(false);
 }
 
-// VERIFY: c32b5640 manual
+// VERIFY: 75ab3dc4 manual
 // OFFSET: 0x00781A10
-CMapEntity* CMap::ObjectCreate(CM2Model* model, MAP_OBJECT_FUNC func, void* funcParam, uint64_t param64, uint32_t param32, uint32_t a7) {
+CMapEntity* CMap::ObjectCreate(CM2Model* model, MAP_OBJECT_FUNC func, void* funcParam, uint64_t param64, uintptr_t param32, uint32_t a7) {
     CMapEntity* entity = CMap::AllocEntity((a7 >> 3) & 0x1);
     entity->m_model = model;
     entity->m_funcParam64 = param64;
@@ -4489,4 +4517,66 @@ double World::GetFramerate() {
     }
 
     return 1000.0;
+}
+
+// VERIFY: fa93aad1 auto
+// OFFSET: 0x0077F2C0
+void World::ObjectSetUpdateCallback(CMapEntity* entity, int32_t (*func)(void*, uint32_t, uint64_t, uintptr_t), void* param) {
+    entity->m_func = func;
+    entity->m_funcParam = param;
+}
+
+// VERIFY: e0c34576 manual
+// OFFSET: 0x00782000
+CMapEntity* CMap::ObjectCreateStatic(CM2Model* model, const C44Matrix& matrix, MAP_OBJECT_FUNC func, void* funcParam, uintptr_t param32) {
+    CMapEntity* entity = CMap::AllocEntity(0);
+    entity->m_type |= 0x200;
+    entity->unk_007C = (entity->unk_007C & 0xFFFFA390) | 0x400;
+    entity->m_flags = MAPOBJ_FLAG_UNPLACED;
+    entity->m_func = nullptr;
+    entity->unk_00B4 = 0;
+    C3Vector ambient = CMap::s_mapLight->m_light.m_ambColor;
+    CImVector color;
+    color.b = static_cast<uint8_t>(static_cast<int32_t>(ambient.z > 0.0f ? (ambient.z < 1.0f ? ambient.z * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.g = static_cast<uint8_t>(static_cast<int32_t>(ambient.y > 0.0f ? (ambient.y < 1.0f ? ambient.y * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.r = static_cast<uint8_t>(static_cast<int32_t>(ambient.x > 0.0f ? (ambient.x < 1.0f ? ambient.x * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.a = 0xFF;
+    entity->unk_00C0 = color;
+    entity->m_m2AmbientColor = color;
+    entity->m_funcParam32 = param32;
+    entity->m_model = model;
+    entity->m_sphere.c.x = matrix.d0;
+    entity->m_sphere.c.y = matrix.d1;
+    entity->m_diffuseLightScale = 1.0f;
+    entity->m_sphere.c.z = matrix.d2;
+    entity->unk_00C4 = 1.0f;
+    entity->m_sphere.r = 0.0f;
+    entity->m_vec2 = entity->m_sphere.c;
+    ambient = CMap::s_mapLight->m_light.m_ambColor;
+    color.b = static_cast<uint8_t>(static_cast<int32_t>(ambient.z > 0.0f ? (ambient.z < 1.0f ? ambient.z * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.g = static_cast<uint8_t>(static_cast<int32_t>(ambient.y > 0.0f ? (ambient.y < 1.0f ? ambient.y * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.r = static_cast<uint8_t>(static_cast<int32_t>(ambient.x > 0.0f ? (ambient.x < 1.0f ? ambient.x * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.a = 0xFF;
+    entity->unk_00C0 = color;
+    entity->m_m2AmbientColor = color;
+    entity->m_scale = sqrtf(matrix.a2 * matrix.a2 + matrix.a1 * matrix.a1 + matrix.a0 * matrix.a0);
+    entity->m_position.x = matrix.d0;
+    entity->m_position.y = matrix.d1;
+    entity->unk_007C |= 0x400;
+    entity->m_position.z = matrix.d2;
+    CMap::LinkStaticEntity(entity);
+
+    if (entity->m_model) {
+        if (!SStrCmpI(s_invisibleStalkerModel, model->m_shared->m_fileNameWithoutPath, STORM_MAX_STR)) {
+            entity->unk_007C |= 0x4000;
+        }
+
+        entity->m_model->m_lightingCallback = CMapStaticEntity::ModelLightingCallback;
+        entity->m_model->m_lightingArg = entity;
+        entity->m_model->m_refCount++;
+    }
+
+    entity->m_func = func;
+    entity->m_funcParam = funcParam;
+    return entity;
 }

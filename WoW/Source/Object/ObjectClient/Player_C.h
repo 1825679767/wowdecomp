@@ -61,6 +61,15 @@ struct PlayerPendingItemExpiration : public TSLinkedNode<PlayerPendingItemExpira
 
 struct MerchantItem;
 class ItemStats_C;
+struct PlayerLootItem {
+    /* 0000 */ int32_t m_itemId;
+    /* 0004 */ int32_t m_displayId;
+    /* 0008 */ int32_t m_count;
+    /* 000C */ int32_t m_randomSuffix;
+    /* 0010 */ int32_t m_randomPropertyId;
+    /* 0014 */ int32_t m_slotType;
+};
+
 class CGPlayer_C : public CGUnit_C, public CGPlayer {
     public:
     void DanceMoveAnimComplete();
@@ -147,6 +156,9 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     static void __stdcall RemoveTempEnchantment(int32_t slot);
     static void __stdcall RequestPetitionSignatures(WOWGUID petition);
     static void SaveBindPoint(CDataStore* msg);
+    static void ShowTaxiNodes(CDataStore* msg);
+    static void HandleActivateTaxiReply(uint32_t reply);
+    static void ServerBindConfirm(WOWGUID item, uint64_t a2, uint32_t a3, uint64_t a4, uint8_t a5);
     static void SellItem(WOWGUID vendor, WOWGUID item, uint32_t count);
     static void __stdcall SetLootMethod(uint32_t method, WOWGUID master, uint32_t threshold);
     static void __stdcall SetPartyAssignment(uint8_t assignment, WOWGUID guid);
@@ -222,6 +234,10 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     int32_t CheckSpiritHealerDistance();
     int32_t CheckTalentMasterDistance();
     uint8_t FindSlotIndex(WOWGUID guid) const;
+    bool GetPackAndSlot(const CGItem_C* item, uint8_t* bag, uint8_t* slot);
+    void OpenLootItem(CGItem_C* item);
+    void OpenWrappedItem(CGItem_C* item);
+    static void StartGiftWrap(CGItem_C* item);
     uint32_t GetCoinage() const;
     uint32_t GetCreatureTracking() const;
     uint32_t GetCurrentXP() const;
@@ -242,7 +258,10 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     uint32_t GetSkillMaxRank(int32_t index) const;
     int32_t GetSkillRank(int32_t skillId) const;
     uint32_t GetSkillValue(int32_t index) const;
+    uint16_t GetSkillLineID(int32_t index) const;
     const VisibleItem_C* GetVisibleItem(int32_t slot) const;
+    void EquipVisibleItem(const VisibleItem_C* item, int32_t slot);
+    int32_t ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* position, float facing);
     int32_t GetModDamageDonePos(int32_t school) const;
     bool MeetsItemSetSkill(const ItemSetRec* set) const;
     InspectItem* GetInspectedItem(int32_t slot);
@@ -265,10 +284,19 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void UpdateActiveMoverDisplay(uint32_t time);
     void SetPvpCooldownTimestamp(uint32_t flags);
     void TalkToBinder(const WOWGUID& guid);
+    bool ReportBagItemSubtypeMismatch(uint8_t bag);
+    void CheckForQuestItemLoot(uint32_t itemId, uint32_t count, uint32_t totalCount);
+    void TalkToTalentMaster(const WOWGUID& guid, uint32_t cost);
+    void UpdateRepopTimer();
+    void ClearFarSight();
     void TalkToTabardVendor(const WOWGUID& guid);
     void TalkToSpiritHealer(const WOWGUID& guid);
     void TalkToSpiritGuide(const WOWGUID& guid);
-    void ToggleFarSight(CGObject_C* object);
+    void CastRandomCritter();
+    void RemoveEquipBypassSkill(int32_t spellId);
+    static void UpdateXRayVision(const SpellRec* spell);
+    static int32_t XRayVisionEffectProc(WOWGUID guid, void* param);
+    bool ToggleFarSight(CGObject_C* object);
     void UpdateAttackPosition(const CGUnit_C* target);
     void UpdateQuestStatus(CGObject_C* object);
     void UpdateTaxiStatus(CGUnit_C* unit);
@@ -277,6 +305,14 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void SetCombatMode();
     CGUnit_C* GetPossessedUnit();
     int32_t OnLootResponse(uint32_t time, CDataStore* msg);
+    void ClearLootingObject();
+    void LootCorpse(CGCorpse_C* corpse, bool autoInteract);
+    static int32_t GetLootItem(uint32_t slot);
+    static int32_t GetLootItemDisplayId(uint32_t slot);
+    static int32_t GetLootItemCount(uint32_t slot);
+    static int32_t GetLootItemRandomSuffix(uint32_t slot);
+    static int32_t GetLootItemRandomPropertyId(uint32_t slot);
+    static int32_t GetLootItemSlotType(uint32_t slot);
     int32_t OnLootReleaseResponse(CDataStore* msg);
     int32_t OnLootRemoved(CDataStore* msg);
     int32_t OnLootSlotChanged(CDataStore* msg);
@@ -298,6 +334,8 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void CTMAttackUnit(CGUnit_C* unit);
     void CombatModeEnter(const WOWGUID& target, int32_t queueRanged, int32_t silent);
     void MeleeModeEnter(const WOWGUID& target);
+    void ExitAutoCombatMode();
+    void OnLevelChange();
     void CTMClickTerrain(const C3Vector& position);
     bool IsInFlyableZone(int32_t a1);
     int32_t SpellUsesWeaponSkill(const SpellRec* spell);
@@ -320,8 +358,8 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
 
 class PlaySpellVisuaKitData {
     public:
-    /* 0000 */ SpellRec* m_spellRec;
-    /* 0004 */ SpellVisualKitRec* m_impactVisualKit;
+    /* 0000 */ const SpellRec* m_spellRec;
+    /* 0004 */ const SpellVisualKitRec* m_impactVisualKit;
     /* 0008 */ uint32_t unk_0008;
     /* 000C */ C3Vector* m_position;
     /* 0010 */ WOWGUID m_transportGUID;
@@ -332,10 +370,12 @@ class PlaySpellVisuaKitData {
     /* 0028 */ WOWGUID m_someGUID;
     /* 0030 */ uint32_t unk_0030;
 
-    PlaySpellVisuaKitData(SpellRec* spellRec, SpellVisualKitRec* impactVisualKit, uint32_t a4);
+    PlaySpellVisuaKitData(const SpellRec* spellRec, const SpellVisualKitRec* impactVisualKit, uint32_t a4);
 };
 
 uint32_t FindEmptySwapIndex();
+int32_t ClientPlaySpellVisualHandler(WOWGUID guid, void* param);
+void EnumVisibleForAuraEffect(const SpellRec* spell, int32_t a2, int32_t a3);
 uint32_t GetDisplayIdFromRaceAndGender(uint32_t race, uint32_t gender);
 CreatureModelDataRec* GetModelDataRec(uint32_t race, uint32_t gender);
 int32_t OnArenaCurrencyChanged(WOWGUID guid, uint32_t offset, uint32_t count, const void* value);
@@ -366,6 +406,7 @@ int32_t OnUpdatePlayerGlyph(WOWGUID guid, uint32_t offset, uint32_t count, const
 int32_t OnUpdatePlayerGlyphSlotsEnabled(WOWGUID guid, uint32_t offset, uint32_t count, const void* value);
 int32_t Packet_SMSG_SET_PROFICIENCY(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_Group_9(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+void OnItemPushResult(WOWGUID guid, uint8_t bag, uint32_t slot, uint32_t itemId, uint32_t suffixFactor, uint32_t randomPropertyId, uint32_t received, uint32_t created, uint32_t showInChat, uint32_t count);
 int32_t Packet_Group_10(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t PH_LOOT_OPCODES(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_LEARNED_SPELL(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
@@ -442,6 +483,7 @@ void SetAttackSwingError(int32_t error);
 void __stdcall SignalPlayerAttackEvent(int32_t a1);
 void SignalPlayerSkillStatEvents();
 void PlayerSignalSkillStatChanges();
+void SendQuestGiverStatusMultipleQuery();
 int32_t SignalPetSpellPowerUpdate(WOWGUID guid);
 
 void Unk7FE510(uint32_t guidLow);

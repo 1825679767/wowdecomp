@@ -571,3 +571,49 @@ int32_t CVehicle_C::CanPlayBoneAnim(uint32_t animId) const {
 
     return animId <= 0x1F9;
 }
+
+// VERIFY: 86ddcfee manual
+// OFFSET: 0x00757060
+void CVehicle_C::HandleBoneAnimGrabEvent(uint32_t boneId, uint32_t eventId) {
+    if (boneId >= 35) {
+        boneId = 26;
+    }
+
+    for (uint32_t i = 0; i < 16; i++) {
+        BoneAnimListener& listener = this->m_boneAnimListeners[i];
+
+        if (!listener.m_guid || listener.m_boneId != boneId) {
+            continue;
+        }
+
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(listener.m_guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit && unit->m_vehiclePassenger && unit->m_vehiclePassenger->IsWaitingForVehicleTransitionAnimGrabEvent(eventId)) {
+            unit->m_vehiclePassenger->StopWaitingForVehicleTransitionAnim();
+            listener.m_guid = WOWGUID();
+        }
+    }
+}
+
+// VERIFY: b18617fe manual
+// OFFSET: 0x007570F0
+void CVehicle_C::HandleBoneAnimThrowEvent(uint32_t boneId, uint32_t eventId) {
+    if (boneId >= 35) {
+        boneId = 26;
+    }
+
+    for (uint32_t i = 0; i < 16; i++) {
+        BoneAnimListener& listener = this->m_boneAnimListeners[i];
+
+        if (!listener.m_guid || listener.m_boneId != boneId) {
+            continue;
+        }
+
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(listener.m_guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit && unit->m_vehiclePassenger && unit->m_vehiclePassenger->IsWaitingForVehicleTransitionAnimThrowEvent(eventId)) {
+            unit->m_vehiclePassenger->StopWaitingForVehicleTransitionAnim();
+            listener.m_guid = WOWGUID();
+        }
+    }
+}

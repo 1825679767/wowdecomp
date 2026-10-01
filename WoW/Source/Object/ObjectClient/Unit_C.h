@@ -22,6 +22,7 @@ class CGPlayer_C;
 class CGWorldFrame;
 class CGPartyPetState;
 class CGChatBubbleFrame;
+class CGGameObject_C;
 class CGNamePlateFrame;
 class CM2Model;
 class CMovementShared;
@@ -42,6 +43,7 @@ class CVehiclePassenger_C;
 class ItemDisplayInfoRec;
 class MountTransitionObject;
 class SpellRec;
+class PendingSpellCast;
 class CDataStore;
 class CMovementStatus;
 class C44Matrix;
@@ -103,11 +105,22 @@ struct DelayedSpellVisualKit {
     /* 002C */ int32_t unk_002C;
 };
 
-struct UnitThreat : public TSLinkedNode<UnitThreat>, public TSHashObject<UnitThreat, CHashKeyGUID> {
+struct UnitThreatHandle {
+    /* 0000 */ uint32_t m_memHandle;
+};
+
+struct UnitThreat : public UnitThreatHandle, public TSHashObject<UnitThreat, CHashKeyGUID> {
     /* 0028 */ uint8_t m_status;
     /* 0029 */ uint8_t m_percent;
     /* 002A */ uint8_t unk_002A[2];
     /* 002C */ int32_t m_threat;
+};
+
+class UnitThreatHeap {
+    public:
+    /* 0000 */ uint32_t m_heapId;
+
+    UnitThreat* New();
 };
 
 class CGUnitVirtualItem {
@@ -249,13 +262,13 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 09D4 */ int32_t m_displayId;
     /* 09D8 */ C3Vector m_groundNormal;
     /* 09E4 */ uint32_t m_targetChangeTime;
-    /* 09E8 */ uint32_t unk_09E8;
+    /* 09E8 */ uint32_t m_lastMissileTime;
     /* 09EC */ CMissile* m_missiles;
     /* 09F0 */ CMissile* m_pendingMissiles;
     /* 09F4 */ uint8_t m_shapeshiftSuppressed;
     /* 09F8 */ uint32_t unk_09F8;
     /* 09FC */ QUESTGIVEREMOTENODE m_emoteQueue [4];
-    /* 0A1C */ uint32_t unk_0A1C;
+    /* 0A1C */ uint32_t m_nextBloodPoolTime;
     /* 0A20 */ CCombatClient m_combat;
     /* 0A2C */ uint32_t m_stopAttackSent;
     /* 0A30 */ uint32_t m_clientFlags;
@@ -354,9 +367,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0FAC */ uint8_t m_precastCastCount;
     /* 0FB0 */ int32_t m_predictedHealth;
     /* 0FB4 */ int32_t m_predictedPower [7];
-    /* 0FD0 */ uint32_t unk_0FD0;
+    /* 0FD0 */ uint32_t m_powerRegenRemainder;
     /* 0FD4 */ uint32_t m_manaRegenInterruptTime;
-    /* 0FD8 */ uint32_t unk_0FD8 [2];
+    /* 0FD8 */ WOWGUID m_highestThreatGuid;
     /* 0FE0 */ TSHashTable<UnitThreat, CHashKeyGUID> m_threats;
 
     virtual void GetAFKText(char* buffer, uint32_t size) const;
@@ -444,6 +457,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void StopUpdatingMissileTrajectory(int32_t spellId);
     int32_t IsUpdatingMissileTrajectory() const;
     int32_t IsMissileTrajectoryUpdateWaitingForMissileRelease() const;
+    void SendFinalMissileTrajectoryUpdate();
+    int32_t OverrideMissileFirePos(C3Vector* position, const SpellRec* spell);
     bool IsLocalClientControlled() const;
     void FreeComponent();
     uint32_t GetCombatReadyAnim() const;
@@ -470,6 +485,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     bool IsTreatAsRaidUnit() const;
     bool IsForceGossip() const;
     bool CanInteractWhileDead() const;
+    bool CanInteract(const CGGameObject_C* gameObject) const;
+    void OnFlagChangedActivePlayer(uint32_t oldFlags, uint32_t changed);
     uint32_t GetSkinningType() const;
     void GetCursorFile(int32_t unable, char* buffer, uint32_t size) const;
     bool MountedCombatAllowed() const;
@@ -582,7 +599,6 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t ChooseFallAnim(uint32_t* anim) const;
     void SaveChainSpellTargets(const TSStackArray<WOWGUID>& targets);
     bool HasAuraBySpellId(int32_t spellId);
-    bool AffectedByAura(int32_t auraType, const SpellRec* spell);
     bool HasAuraActive(int32_t spellId);
     int32_t GetAuraIndex(int32_t spellId);
     bool IsVehiclePreventingTurning() const;
@@ -639,7 +655,6 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     bool CanBeSpellClickedByLocalPlayer(const CGPlayer_C* player) const;
     bool CanInteractNow(const CGUnit_C* unit) const;
     bool CanAutoStand() const;
-    int32_t VerifyAttackIconPressed(const WOWGUID& target, int32_t a3, int32_t a4, int32_t a5, bool a6);
     void SetTrackingDirection(const C3Vector& direction);
     void MoveEventHappened(uint32_t msgId);
     void HandlePendingTrackEvents();
@@ -660,6 +675,13 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t Unk71AE80() const;
     bool ShouldKneelForLoot() const;
     void SetVehicleExitVoluntary(int32_t enable);
+    void VehicleExit();
+    bool HasDispellableAura(int32_t dispelType, int32_t harmful, bool mechanic, bool steal);
+    void CheckVehicleExitOnCast();
+    uint8_t GetActivePlayerFieldBytes0();
+    bool GetSpellRequiredLevel(int32_t spellId, int32_t* level);
+    bool CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const SpellRec* spell, const CGItem_C* item);
+    void CancelShapeshiftForMount();
     void OnDismissControlledVehicleLocal(uint32_t eventTime);
     void SetEmoteQueue(const QUESTGIVEREMOTENODE* nodes, uint32_t count);
     void PlayEmotes(const QUESTGIVEREMOTEQUEUE& emotes);
@@ -700,16 +722,24 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     bool IgnoresAuraState(const SpellRec* spell) const;
     bool CheckStealthRules(const SpellRec* spell, int32_t* reason) const;
     bool CheckShapeshiftRules(const SpellRec* spell, int32_t* reason);
-    bool CanAutoCancelShapeshift() const;
     bool AffectedByAura(int32_t auraType, const SpellRec* spell) const;
-    bool HasAura(int32_t spellId) const;
     bool IsInMyPartyOrRaid(const CGUnit_C* unit) const;
     bool IsInMyParty(const CGUnit_C* unit) const;
     static uint8_t GetThreatSituation(const WOWGUID& guid);
-    bool CalculateThreat(const WOWGUID& guid, uint8_t* status, float* rawPercent, float* percent, int32_t* threat);
+    bool CalculateThreat(const WOWGUID& guid, uint8_t* status, uint8_t* rawPercent, float* percent, int32_t* threat);
+    UnitThreat* CreateThreatEntry(const WOWGUID& guid);
+    void UpdateThreat(CDataStore* msg, bool highest);
+    bool UpdateThreatEntry(UnitThreat* entry, int32_t highestThreat, bool activePlayer);
+    void UpdateThreatStatus();
+    void RemoveThreat(const WOWGUID& guid);
+    void AddWorldThreatUpdateText(int32_t oldStatus, int32_t newStatus);
+    void OnAiReaction(int32_t reaction);
+    void DoPowerRegen(int32_t powerType, uint32_t elapsed);
+    void DoPowerRegen(uint32_t elapsed);
     char* GetUnitChosenTitle(char* buffer, uint32_t size, int32_t showTitle, int32_t* lines);
     void RequestTalkEmote(int32_t index);
     void ChatBubbleShow(int32_t type, const char* text);
+    void ChatBubbleRemove();
     void PlayTextEmoteSound(uint32_t emote, uint32_t emoteNum);
     SkillLineAbilityRec* LookupAbility(int32_t spellId);
     void SignalPlayerGainsVehicleDataEvent();
@@ -728,7 +758,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void OnVehicleCameraPossiblyUnneeded();
     void UpdateUnitCollisionBox(int32_t a2, int32_t a3);
     void CreateUnitMount(int32_t a2, int32_t a3);
-    void Unk717BA0();
+    void ShowLootEffect();
+    void CompleteMountTransition();
+    void RefreshComponentItem(int32_t itemSlot);
     void UpdateReaction(bool a1);
     void ApplyModelFade();
     void ComputeSmoothedSwimMatrix(C44Matrix* matrix, float elapsed, int32_t a3);
@@ -757,6 +789,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void OnFlag2Changed(uint32_t oldFlags);
     void OnFlagChanged(uint32_t oldFlags);
     void OnLevelChange();
+    void AddWorldXPGainText(int32_t amount);
     void OnLife(bool a1);
     void OnMountDisplayChanged(int32_t displayId);
     void OnPvPFlagChanged(uint8_t oldFlags);
@@ -816,6 +849,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void UpdateObjectEffectMovementStates();
     void DestroyUnitMount(int32_t a2);
     void OnDeathAnimate();
+    void ReadLootList(CDataStore* msg);
+    void RemoveLootEffect();
     void Unk71EE70();
     void ClearTrackingTarget(bool a2, bool a3);
     void HandleTracking(float drunkness, float turnOffset);
@@ -846,6 +881,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t VehiclePassengerStartWaitingForVehicleTransitionAnim(uint64_t transport, uint8_t seat);
     void ClearAttackRound();
     void SetUICastingSpell(int32_t spellId, const WOWGUID& target, int32_t castTime);
+    void SetUIChannelSpell(int32_t spellId, int32_t duration);
     bool SetTrackingTarget(const WOWGUID& target, int32_t type);
     void ClearCastingSpell(int32_t spellId, bool clearChannel, bool a4);
     void ApplySpellVisualTrail(const SpellVisualRec* visual, int32_t a3);
@@ -853,7 +889,27 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void ResetUICastingSpell();
     void OnKeyBoneAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequenceId);
     int32_t OnAttackIconPressed(WOWGUID target, int32_t a3);
+    int32_t VerifyAttackIconPressed(WOWGUID* target, int32_t useGiven, int32_t checkRange, bool autoTarget, bool showErrors);
     void AddAuraSlot(uint8_t slot);
+    void SortAuras();
+    void ReleaseAurasBySpell(int32_t spellId);
+    void PlayParryAnimation();
+    void HandleAnimEvent(uint32_t boneId, uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time);
+    void HandleCombatAnimEvent(uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time);
+    void FootstepAnimEventHit(const C3Vector* position, int32_t left);
+    void PlayEmoteSound(int32_t soundKitId, bool checkCVars, int32_t fileIndex);
+    void PlayRangedItemPull();
+    void ShakeCameraOnHit();
+    void TriggerDamageFeedback();
+    void CreateProceduralEffect(const SpellRec* spell, const SpellVisualRec* visual, const SpellVisualKitRec* kit, int32_t a4, uint32_t flags, WOWGUID guid);
+    void PlaySpellVisualKit_PlayAnims(const SpellRec* spell, const SpellVisualKitRec* kit, SPELL_VISUAL_KIT_TYPE type, const C3Vector* position, int32_t a5, int32_t a6, WOWGUID guid, uint32_t a8, const SpellVisualRec* visual, uint32_t a10, int32_t a11) override;
+    void PlaySpellVisualKit_HandleWeapons(const SpellRec* spell, const SpellVisualKitRec* kit, const C3Vector* position, WOWGUID guid, uint32_t a5, uint32_t flags, void (*callback)(CM2Model*, uint32_t, uint32_t, int32_t, uint32_t, uint64_t), int32_t* hasEffect) override;
+    int32_t PlaySpellVisualKit_DelayLightningEffects(const SpellRec* spell, const SpellVisualKitRec* kit, SPELL_VISUAL_KIT_TYPE type, const C3Vector* position, WOWGUID guid, int32_t a6, int32_t a7, int32_t a8, int32_t a9, uint32_t a10, const SpellVisualRec* visual) override;
+    void HandleSpellEventSound();
+    int32_t IsHostileCritter();
+    float GetSpellChanceToCrit() const;
+    void InsertSortedAura(uint32_t list, uint32_t auraIndex, int32_t position);
+    uint32_t GetSortedAuraSlot(int32_t index, const char* name, const char* rank, uint32_t filter);
     void AddAuraEffect(uint32_t index, const SpellRec* spell);
     void RemoveAuraEffect(uint32_t index, const SpellRec* spell);
     void OnAuraAdded(uint32_t index, uint8_t a3, AuraData* aura, int32_t spellId);
@@ -874,8 +930,13 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void ShowBloodSpurt(const WOWGUID& attacker, int32_t a3);
     void ModifyPredictedPower(int32_t powerType, int32_t delta);
     void AddWorldText(const WOWGUID& source, int32_t reason, const SpellRec* spell, bool periodic);
+    void AddWorldHealingText(const WOWGUID& source, int32_t amount, const SpellRec* spell, bool crit, int32_t a6);
     void PlayCombatSpellMissEffects(uint32_t reason, const WOWGUID& source);
-    void CreateMissile(const TSStackArray<SpellCastTargetPoint>& points, PendingSpellCastData* data, uint32_t ammoDisplayId, uint32_t ammoInventoryType, const SpellVisualRec* visual, int32_t spellId, uint32_t delay);
+    void CreateMissile(const SpellCastTargetPoint* point, PendingSpellCastData* data, uint32_t ammoDisplayId, uint32_t ammoInventoryType, const SpellVisualRec* visual, int32_t spellId, uint32_t delay);
+    void CreateMissile(const TSStackArray<SpellCastTargetPoint>* points, PendingSpellCastData* data, uint32_t ammoDisplayId, uint32_t ammoInventoryType, const SpellVisualRec* visual, int32_t spellId, uint32_t delay);
+    CM2Model* CreateItemModel(uint32_t displayId, uint32_t inventoryType, float* scale);
+    CM2Model* CreateItemModel(uint32_t hand, float* scale);
+    void CreateMissile(const WOWGUID* target, PendingSpellCastData* data, uint32_t ammoDisplayId, uint32_t ammoInventoryType, int32_t hit, uint32_t missReason, uint32_t reflectResult, const SpellVisualRec* visual, int32_t spellId, const TSStackArray<WOWGUID>* targets, const TSStackArray<uint32_t>* missReasons, const TSStackArray<uint32_t>* reflectResults, uint32_t delay);
     void OnAuraUpdate(CDataStore* msg, bool updateAll);
     void OnAttackStop(uint64_t target, int32_t faceTarget);
     void PlayAttackerRound(const ATTACKROUNDINFO& info);
@@ -887,6 +948,10 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t VehiclePassengerShouldWaitForVehicleTransitionAnim(uint64_t transport, uint8_t seat) const;
     void AddWorldDamageText(const WOWGUID& source, int32_t amount, const SpellRec* spell, bool crit, bool periodic, bool spellColor);
     void UpdateSpellCastBars(uint32_t time);
+    void DelayCast(int32_t delay);
+    void SetUICastingDirect(int32_t spellId, const WOWGUID& target, uint32_t start, uint32_t end);
+    void SetUIChannelDirect(int32_t spellId, uint32_t start, uint32_t end);
+    void UpdateChainTargets(const TSStackArray<WOWGUID>& targets, int32_t spellId);
     void FillPartyMemberPetState(CGPartyPetState* state);
     void Unk71AEE0(uint32_t time);
 };
@@ -1014,5 +1079,6 @@ void WeaponTrailsInitialize();
 void WeaponTrailsShutdown();
 
 const char* GetObjectNameFromGuid(const WOWGUID& guid);
+void WriteMovementPacket(CGUnit_C* unit, uint32_t msgId, CDataStore* msg, int32_t include);
 
 #endif

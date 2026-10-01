@@ -75,6 +75,7 @@ class CGCommentator {
     WOWGUID GetArenaMember(uint32_t index);
     void Init();
     void OnUpdate(float elapsed);
+    void SnapCameraToPlayer();
     void UpdateCameraVelocity(uint32_t controlFlags, int32_t canControl);
 };
 

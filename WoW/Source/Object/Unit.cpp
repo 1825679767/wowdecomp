@@ -285,3 +285,10 @@ int32_t CGUnit::GetQuestGreenRange() const {
     uint32_t band = static_cast<int32_t>(this->m_unit->m_unitFieldLevel) / 5;
     return band < 20 ? s_questGreenRange[band] : 8;
 }
+
+// VERIFY: 467ea880 manual
+// OFFSET: 0x00716190
+bool CGUnit::IsSitting() const {
+    uint8_t standState = this->m_unit->m_unitFieldBytes1[0];
+    return standState == 1 || (standState >= 4 && standState <= 6);
+}

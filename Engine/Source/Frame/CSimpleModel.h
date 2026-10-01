@@ -78,6 +78,7 @@ class CSimpleModel : public CSimpleFrame {
     CM2Scene* GetScene();
     void ReplaceTexture(uint32_t type, const char* fileName);
     void SetCamera(CCamera* camera);
+    void SetPosition(const C3Vector& position);
     void SetCameraByID(uint32_t id);
     void SetCameraByIndex(uint32_t index);
     void SetLight(const CM2Light& light);

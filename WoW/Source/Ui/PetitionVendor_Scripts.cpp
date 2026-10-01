@@ -6,13 +6,10 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WoW/Source/Net/Types.h"
 
-// STATIC: 0x00C0F7D0
-static uint32_t s_numPetitionItems;
-
-// VERIFY: 7b8583d7 manual
+// VERIFY: f68ff2aa manual
 // OFFSET: 0x005A1F70
 static int32_t Script_GetNumPetitionItems(lua_State* L) {
-    lua_pushnumber(L, s_numPetitionItems);
+    lua_pushnumber(L, CGPetitionVendorInfo::m_numPetitionItems);
     return 1;
 }
 

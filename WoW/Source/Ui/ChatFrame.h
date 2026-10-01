@@ -7,10 +7,12 @@
 #include "Engine/Source/Tempest/CImVector.h"
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Object/WGUID.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/AccountData.h"
 
 struct lua_State;
 class CDataStore;
 class CGPlayer_C;
+class CGUnit_C;
 
 enum SLASH_COMMAND_ID {
     CHAT_MSG_SYSTEM = 0,
@@ -199,6 +201,11 @@ struct WORDLIST : public TSHashObject<WORDLIST, HASHKEY_LANGUAGE> {
     /* 001C */ TSGrowableArray<const LanguageWordsRec*> m_words;
 };
 
+struct ZoneChannelDefault {
+    /* 0000 */ int32_t m_channelID;
+    /* 0004 */ int32_t m_addedVersion;
+};
+
 struct ChatMessageGroup {
     /* 0000 */ const char* m_name;
     /* 0004 */ bool m_default;
@@ -209,8 +216,8 @@ class ChatWindowInfo {
     public:
     /* 0000 */ char m_name[128];
     /* 0080 */ uint8_t m_messageGroups[46];
-    /* 00B0 */ TSGrowableArray<uint32_t> m_unkB0;
-    /* 00C0 */ TSGrowableArray<int32_t> m_unkC0;
+    /* 00B0 */ TSGrowableArray<char*> m_channels;
+    /* 00C0 */ TSGrowableArray<int32_t> m_channelIDs;
     /* 00D0 */ int32_t m_unkD0;
     /* 00D4 */ CImVector m_color;
     /* 00D8 */ uint32_t m_unkD8;
@@ -224,7 +231,9 @@ class ChatWindowInfo {
     /* 00F8 */ float m_width;
     /* 00FC */ float m_height;
 
+    void AddChannel(const char* name, int32_t id);
     void Init();
+    void RemoveChannel(const char* name);
 };
 
 struct ChatRecord {
@@ -247,6 +256,8 @@ struct ChatColorInfo {
     /* 0048 */ uint8_t m_unk48;
 };
 
+int32_t Packet_SMSG_LOG_XPGAIN(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+
 class CGChat {
     public:
     static void ZoneUpdate();
@@ -256,9 +267,18 @@ class CGChat {
     static void EnterWorld();
     static void InitializeGame();
     static void LoadChatSettings();
+    static void LoadChatSettingsCallback(HOSFILE localFile, HOSFILE file, void* param);
+    static const char* GetChannelString(const char* name);
+    static bool ChatTokenToGUID(const char* token, WOWGUID& guid);
+    static CImVector GetChatColor(int32_t type);
+    static const char* GetChannelShortName(int32_t number, bool includeInactive);
+    static uint32_t FindDisplayChannelIndex(const char* name, int32_t type);
+    static int32_t AddChatChannel(const char* name, uint32_t id, bool silent, bool a4, bool a5, uint32_t number);
     static int32_t IsChatLogging(int32_t type);
     static void AddCombatMessage(const char* text);
     static int32_t m_afk;
+    static int32_t m_guildRecruitmentMode;
+    static int32_t m_areaID;
     static int32_t m_paused;
     static int32_t m_voiceChatSystemStatus;
     static ChatRecord m_chatHistory[60];
@@ -269,6 +289,10 @@ class CGChat {
     static TSExplicitList<PENDINGCHAT, 0> s_pendingChat;
     static TSExplicitList<PENDINGTEXTEMOTE, 0> s_pendingTextEmotes;
 
+    static void LogFeedPet(const WOWGUID& guid, int32_t itemId);
+    static void LogPetHappinessDecrease(const WOWGUID& caster, const WOWGUID& target, int32_t amount);
+    static void LogDismissPet(const WOWGUID& guid, const WOWGUID& pet);
+    static void LogTradeSkillCreate(const WOWGUID& guid, int32_t itemId);
     static void AddChatMessage(const char* text, int32_t type, const char* senderName, uint32_t language, const char* channelName, const char* targetName, const char* flags, WOWGUID senderGuid, uint32_t senderUnk, WOWGUID targetGuid, int32_t achievementID, bool isGM, const ChatConversation* conversation);
     static int32_t OnMessageChat(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
     static int32_t OnGMMessageChat(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
@@ -299,7 +323,8 @@ class CGChat {
     static int32_t OnCheckReloadSpamFilter(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
     static int32_t OnTitleEarned(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
     static int32_t OnResetFailedNotify(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
-    static int32_t OnLogXPGain(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+    static void OnLogXPGain(int32_t amount);
+    static void LogXPGain(CGUnit_C* unit, int32_t amount, int32_t type, int32_t bonus, float groupMult, bool referAFriend);
     static int32_t OnDurabilityDamageDeath(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
     static int32_t OnChannelMemberCount(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
     static int32_t OnComsatReconnectAttempt(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
@@ -336,7 +361,7 @@ class CGChat {
     static void AddChannelThrottled(const char* channel, uint32_t time);
     static void AddThrottledChat(int32_t type, uint32_t language, const char* target, const char* text);
     static int32_t GetActiveVoiceSession();
-    static void SetGuildRecruitmentMode(int32_t mode, int32_t a2);
+    static void SetGuildRecruitmentMode(int32_t mode, bool fromJoin);
     static const char* GetChannelStringForDisplay(int32_t session, int32_t* type);
     static int32_t IsPaused();
     static int32_t IsVoiceChatAllowed();
@@ -350,6 +375,9 @@ class CGChat {
 int32_t StringToChatType(const char* string, int32_t* type);
 int32_t StringToLanguage(const char* string, uint32_t* language);
 ChatChannel* GetChannelByName(const char* name);
+int32_t FormatTime(char* buffer, uint32_t size, int32_t seconds);
+bool InternalJoinChannel(const char* channelName, const char* password, uint32_t window, bool checkRecruitment, const char** zoneChannelName, int32_t* zoneChannelID, bool silent, int32_t a8, int32_t a9, uint32_t number);
+int32_t InternalLeaveChannel(const char* channelName, bool clearRecruitment, bool force);
 bool ProfanityFilter(char* text, bool cache, bool force);
 void SetCurrentActiveDisplayChannel(const char* name, int32_t type);
 uint32_t BuildPartyDisplayList();
@@ -395,8 +423,6 @@ int32_t Script_SetSavedInstanceExtend(lua_State* L);
 int32_t Script_ResetChatWindows(lua_State* L);
 int32_t Script_CanComplainChat(lua_State* L);
 int32_t Script_ComplainChat(lua_State* L);
-int32_t Script_GetChannelDisplayInfo(lua_State* L);
-int32_t Script_GetSelectedDisplayChannel(lua_State* L);
 int32_t Script_SetSelectedDisplayChannel(lua_State* L);
 int32_t Script_GetChannelRosterInfo(lua_State* L);
 int32_t Script_GetNumChannelMembers(lua_State* L);
@@ -415,6 +441,8 @@ int32_t Script_DeclineInvite(lua_State* L);
 void ChatRegisterScriptFunctions();
 
 extern uint32_t s_numDisplayChannels;
+
+extern int32_t s_activeDisplayChannelType;
 
 extern int32_t s_activeVoiceChannel;
 

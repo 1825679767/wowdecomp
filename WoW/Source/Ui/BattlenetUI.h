@@ -8,6 +8,10 @@ struct lua_State;
 
 class BattlenetUI {
     public:
+    static int32_t unk_BD1B00;
+    static uint8_t m_friendListLoaded;
+    static uint32_t m_numFriends;
+
     /* 0000 */ uint8_t unk_0000 [4];
     /* 0004 */ int32_t unk_0004;
     /* 0008 */ int32_t unk_0008;

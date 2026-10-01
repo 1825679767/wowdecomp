@@ -13,6 +13,7 @@
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/UIUtil/InputControl.h"
 
 // STATIC: 0x00CA135C
 uint32_t* CVehiclePassenger_C::s_passengerPool;
@@ -834,4 +835,17 @@ void CVehiclePassenger_C::ExecuteAllDeferredVehicleTransitionAnimSplines() {
     if (spline) {
         delete spline;
     }
+}
+
+// VERIFY: 2c6b93a8 auto
+// OFFSET: 0x00747FA0
+void CVehiclePassenger_C::StopMovement() {
+    if (this->m_state != 3 || this->m_unit->m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
+        return;
+    }
+
+    uint32_t time = FrameTime::s_curTimeMs;
+    CGInputControl::GetActive()->StopMovementAndTurning(time);
+    this->m_flags |= 0x8;
+    this->unk_004C[0] = time;
 }

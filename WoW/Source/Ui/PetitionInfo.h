@@ -18,9 +18,14 @@ struct PetitionSignerInfo {
 class CGPetitionInfo {
     public:
     static WOWGUID m_petitionGUID;
+    static WOWGUID m_petitionItem;
+    static uint32_t unk_C22B30;
     static int32_t m_signed;
+    static uint32_t m_numPetitionNames;
+    static int32_t m_pendingNameQueries;
     static CGPetition* m_petition;
     static TSGrowableArray<PetitionSignerInfo> m_signers;
+
     static void EnterWorld();
     static void InitializeGame();
 };

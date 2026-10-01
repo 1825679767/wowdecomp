@@ -37,6 +37,7 @@ class CGCharacterInfo {
     static int32_t CanInspect(const CGPlayer_C* unit);
     static int32_t GetActivePlayerAmmoID(const CGPlayer_C* player);
     static void EnterWorld();
+    static void SetInspectTarget(const WOWGUID& guid);
     static void InitializeGame();
     static void UpdateInventoryAlerts();
     static void UpdateItem(WOWGUID guid);
@@ -46,7 +47,6 @@ int32_t Script_GetInventoryItemsForSlot(lua_State* L);
 int32_t Script_GetInventoryItemBroken(lua_State* L);
 int32_t Script_GetInventoryItemCount(lua_State* L);
 int32_t Script_GetInventoryItemQuality(lua_State* L);
-int32_t Script_GetInventoryItemCooldown(lua_State* L);
 int32_t Script_GetInventoryItemDurability(lua_State* L);
 int32_t Script_GetInventoryItemLink(lua_State* L);
 int32_t Script_GetInventoryItemID(lua_State* L);

@@ -18,7 +18,9 @@ void PetitionVendorClose();
 class CGPetitionVendorInfo {
     public:
     static WOWGUID m_vendor;
+    static uint32_t m_numPetitionItems;
     static WOWGUID m_petitionItem;
+
     static void EnterWorld();
 };
 

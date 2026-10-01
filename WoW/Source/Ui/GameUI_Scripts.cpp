@@ -148,6 +148,7 @@
 #include "_Triage/GxRestart.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 #include "WoW/Source/Object/Player.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
 
 // STATIC: 0x00BD0CC4
 static CWOWClientStatus* s_loadAddOnStatus;
@@ -2522,7 +2523,167 @@ static int32_t Script_GetCurrentTitle(lua_State* L) {
     return 1;
 }
 
+// VERIFY: c9010307 manual
+// OFFSET: 0x00510FC0
+static int32_t Script_GetItemCooldown(lua_State* L) {
+    int32_t itemId = 0;
+
+    if (lua_isnumber(L, 1)) {
+        itemId = lua_tointeger(L, 1);
+    } else if (lua_isstring(L, 1)) {
+        itemId = GetItemIDByName(lua_tolstring(L, 1, nullptr));
+    }
+
+    uint32_t start = 0;
+    uint32_t duration = 0;
+    uint32_t enable = 0;
+
+    if (itemId) {
+        CGItem_C* item = CGActionBar::FindUseEnchantItemPtr(itemId);
+
+        if (item) {
+            Spell_C_GetItemCooldown(item, &duration, &start, &enable);
+        } else {
+            Spell_C_GetItemCooldown(itemId, &duration, &start, &enable);
+        }
+    }
+
+    lua_pushnumber(L, start * 0.001);
+    lua_pushnumber(L, duration * 0.001);
+    lua_pushnumber(L, enable);
+    return 3;
+}
+
+// VERIFY: 75f296f7 auto
+// OFFSET: 0x00517100
+static int32_t Script_GetItemSpell(lua_State* L) {
+    SpellRec spell;
+    int32_t itemId = 0;
+
+    if (lua_isnumber(L, 1)) {
+        itemId = lua_tointeger(L, 1);
+    } else if (lua_isstring(L, 1)) {
+        itemId = GetItemIDByName(lua_tolstring(L, 1, nullptr));
+    }
+
+    CGItem_C* item = CGActionBar::FindUseEnchantItemPtr(itemId);
+    int32_t spellId = item ? item->GetEnchantmentSpell(0) : CGItem_C::GetUseSpell(itemId);
+
+    if (g_spellDB.GetRecord(spellId, &spell)) {
+        lua_pushstring(L, spell.m_name);
+        lua_pushstring(L, spell.m_nameSubtext);
+    } else {
+        lua_pushnil(L);
+        lua_pushnil(L);
+    }
+
+    return 2;
+}
+
+// VERIFY: 42d23833 manual
+// OFFSET: 0x00517C60
+static int32_t Script_GetTotemTimeLeft(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetTotemTimeLeft(slot)");
+    }
+
+    uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (slot > 3) {
+        luaL_error(L, "Totem slot must be in range of 1 to %d", 4);
+    }
+
+    TotemInfo* totem = &CGGameUI::m_totems[slot];
+
+    if (totem && totem->m_guid.m_guid) {
+        lua_pushnumber(L, totem->GetSpawnTimeLeft() / 1000);
+    } else {
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 1;
+}
+
+// VERIFY: 8266a857 manual
+// OFFSET: 0x00525A90
+static int32_t Script_TargetNearest(lua_State* L) {
+    if (CGUIMacros::IsActionAllowed(5)) {
+        TargetNearestEnemy(StringToBOOL(L, 1, 0), 0);
+        CGUIMacros::m_state &= ~0x20u;
+    }
+
+    return 0;
+}
+
+// VERIFY: 54ce30e6 manual
+// OFFSET: 0x00525AD0
+static int32_t Script_TargetNearestEnemy(lua_State* L) {
+    if (CGUIMacros::IsActionAllowed(5)) {
+        TargetNearestEnemy(StringToBOOL(L, 1, 0), 1);
+        CGUIMacros::m_state &= ~0x20u;
+    }
+
+    return 0;
+}
+
+// VERIFY: 32d545fd manual
+// OFFSET: 0x00525B10
+static int32_t Script_TargetNearestEnemyPlayer(lua_State* L) {
+    if (CGUIMacros::IsActionAllowed(5)) {
+        TargetNearestEnemy(StringToBOOL(L, 1, 0), 2);
+        CGUIMacros::m_state &= ~0x20u;
+    }
+
+    return 0;
+}
+
+// VERIFY: bcf021cd manual
+// OFFSET: 0x00525B50
+static int32_t Script_TargetNearestFriend(lua_State* L) {
+    if (CGUIMacros::IsActionAllowed(5)) {
+        TargetNearestEnemy(StringToBOOL(L, 1, 0), 3);
+        CGUIMacros::m_state &= ~0x20u;
+    }
+
+    return 0;
+}
+
+// VERIFY: 04298fa1 manual
+// OFFSET: 0x00525B90
+static int32_t Script_TargetNearestFriendPlayer(lua_State* L) {
+    if (CGUIMacros::IsActionAllowed(5)) {
+        TargetNearestEnemy(StringToBOOL(L, 1, 0), 4);
+        CGUIMacros::m_state &= ~0x20u;
+    }
+
+    return 0;
+}
+
+// VERIFY: b149bc61 auto
+// OFFSET: 0x00525BD0
+static int32_t Script_TargetNearestPartyMember(lua_State* L) {
+    TargetNearestEnemy(StringToBOOL(L, 1, 0), 5);
+    return 0;
+}
+
+// VERIFY: 3be6e022 auto
+// OFFSET: 0x00525C00
+static int32_t Script_TargetNearestRaidMember(lua_State* L) {
+    TargetNearestEnemy(StringToBOOL(L, 1, 0), 6);
+    return 0;
+}
+
 // STATIC: 0x00AC80B0
+// VERIFY: ea127e1f manual
+// OFFSET: 0x00511FE0
+static int32_t Script_GetThreatStatusColor(lua_State* L) {
+    uint32_t color = *CGTooltip::GetThreatStateColor(static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, 1) + 1.0)));
+    lua_pushnumber(L, ((color >> 16) & 0xFF) * 0.0039215689);
+    lua_pushnumber(L, ((color >> 8) & 0xFF) * 0.0039215689);
+    lua_pushnumber(L, (color & 0xFF) * 0.0039215689);
+    return 3;
+}
+
 static FrameScript_Method s_ScriptFunctions[] = {
     { "FrameXML_Debug", &Script_FrameXML_Debug },
     { "GetBuildInfo", &Script_GetBuildInfo },

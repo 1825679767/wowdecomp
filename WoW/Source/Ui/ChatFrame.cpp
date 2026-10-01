@@ -8,6 +8,8 @@
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Frame/CSimpleRender.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
+#include "Engine/Source/FrameXML/LoadXML.h"
+#include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/CRandom.h"
@@ -15,6 +17,7 @@
 #include "WoW/Source/Client.h"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/ChatChannelsRec.h"
 #include "WoW/Source/Game/GameClient/ComSatClient.h"
 #include "WoW/Source/Game/ValidateName.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
@@ -28,10 +31,13 @@
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/RaidInfo.h"
 #include "WoW/Source/Ui/Tutorial.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Game/GameClient/NameCache.h"
 #include "WoW/Source/Ui/UILCD/LCD.h"
 #include "WoW/Source/WowServices/WDataStore.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
+#include "Engine/Source/Tempest/CMath.h"
 
 // STATIC: 0x00BCEFEC
 int32_t CGChat::m_afk;
@@ -319,7 +325,7 @@ static uint32_t s_activeDisplayChannelFlags;
 static int32_t s_displayChannelMemberCount;
 
 // STATIC: 0x00B743DC
-static int32_t s_activeDisplayChannelType;
+int32_t s_activeDisplayChannelType;
 
 // STATIC: 0x00B743E0
 char CGChat::s_activeDisplayChannelName[128];
@@ -365,6 +371,39 @@ static TSFixedArray<PENDINGUSERLIST> s_pendingUsers;
 
 // STATIC: 0x00AC7D48
 TSExplicitList<PENDINGTEXTEMOTE, 0> CGChat::s_pendingTextEmotes;
+
+// STATIC: 0x00AC7A3C
+int32_t CGChat::m_guildRecruitmentMode = 1;
+
+// STATIC: 0x00BCEFF0
+int32_t CGChat::m_areaID;
+
+// STATIC: 0x00AC7A54
+static const char* s_guildRecruitmentOption = "OPTION_GUILD_RECRUITMENT_CHANNEL";
+
+// STATIC: 0x009FB9E8
+static const ZoneChannelDefault s_zoneChannelDefaults[1] = { { 26, 4 } };
+
+// STATIC: 0x00B759E0
+static char s_recruitmentChannelName[128];
+
+// STATIC: 0x00BCEFE0
+static int32_t s_chatSettingsDirty;
+
+// STATIC: 0x00BCF008
+static bool s_recruitmentChannelFound;
+
+// STATIC: 0x00BCF00C
+static int32_t s_recruitmentChannelID;
+
+// STATIC: 0x00BCFAB0
+static TSGrowableArray<char*> s_pendingChannelNames;
+
+// STATIC: 0x00BCFAC0
+static TSGrowableArray<int32_t> s_pendingChannelFlags;
+
+// STATIC: 0x00BCFAD0
+static TSGrowableArray<int32_t> s_pendingChannelNumbers;
 
 // VERIFY: 36ed0e4f auto
 // OFFSET: 0x004FBAF0
@@ -1833,7 +1872,7 @@ int32_t CGChat::OnUpdateInstance(void* param, NETMESSAGE msgId, uint32_t time, C
     return 1;
 }
 
-// VERIFY: 2d29df86 manual
+// VERIFY: c0e57704 manual
 // OFFSET: 0x00501800
 void ChatWindowInfo::Init() {
     CImVector color;
@@ -1849,12 +1888,12 @@ void ChatWindowInfo::Init() {
     this->m_shown = 0;
     this->m_unkE4 = 0;
     this->m_color = color;
-    this->m_unkB0.SetCount(10);
-    this->m_unkC0.SetCount(10);
+    this->m_channels.SetCount(10);
+    this->m_channelIDs.SetCount(10);
 
     for (uint32_t i = 0; i < 10; i++) {
-        this->m_unkB0.m_data[i] = 0;
-        this->m_unkC0.m_data[i] = 0;
+        this->m_channels.m_data[i] = nullptr;
+        this->m_channelIDs.m_data[i] = 0;
     }
 
     this->m_unkE8 = 6;
@@ -2729,7 +2768,7 @@ int32_t CGChat::OnChannelNotify(void* param, NETMESSAGE msgId, uint32_t time, CD
     return 1;
 }
 
-// VERIFY: 50925462 manual
+// VERIFY: 34edfdb5 manual
 // OFFSET: 0x0050EDD0
 void CGChat::InitializeGame() {
     for (int32_t i = 0; i < g_languageWordsDB.m_numRecords; i++) {
@@ -2840,7 +2879,7 @@ void CGChat::InitializeGame() {
     ClientServices::SetMessageHandler(SMSG_TITLE_EARNED, CGChat::OnTitleEarned, nullptr);
     ClientServices::SetMessageHandler(SMSG_RESET_FAILED_NOTIFY, CGChat::OnResetFailedNotify, nullptr);
     ClientServices::SetMessageHandler(SMSG_GM_MESSAGECHAT, CGChat::OnGMMessageChat, nullptr);
-    ClientServices::SetMessageHandler(SMSG_LOG_XP_GAIN, CGChat::OnLogXPGain, nullptr);
+    ClientServices::SetMessageHandler(SMSG_LOG_XP_GAIN, Packet_SMSG_LOG_XPGAIN, nullptr);
     ClientServices::SetMessageHandler(SMSG_DURABILITY_DAMAGE_DEATH, CGChat::OnDurabilityDamageDeath, nullptr);
     ClientServices::SetMessageHandler(SMSG_CHANNEL_MEMBER_COUNT, CGChat::OnChannelMemberCount, nullptr);
     ClientServices::SetMessageHandler(SMSG_COMSAT_RECONNECT_TRY, CGChat::OnComsatReconnectAttempt, nullptr);
@@ -2852,6 +2891,140 @@ void CGChat::InitializeGame() {
     ClientServices::SetMessageHandler(SMSG_USERLIST_UPDATE, CGChat::OnUserListUpdate, nullptr);
     ClientServices::SetMessageHandler(SMSG_VOICESESSION_FULL, CGChat::OnVoicesessionFull, nullptr);
     ClientServices::SetMessageHandler(SMSG_SERVER_FIRST_ACHIEVEMENT, CGChat::OnServerFirstAchievement, nullptr);
+}
+
+// VERIFY: c17ad011 auto
+// OFFSET: 0x0050B660
+void CGChat::OnLogXPGain(int32_t amount) {
+    char text[3000];
+    SStrPrintf(text, sizeof(text), FrameScript_GetText("COMBATLOG_XPLOSS_FIRSTPERSON_UNNAMED", -1, GENDER_NOT_APPLICABLE), -amount);
+    CGChat::AddChatMessage(text, 33, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+}
+
+// VERIFY: bb42bd2f manual
+// OFFSET: 0x0050B1D0
+static void UnitCombatLogShowXPGained(CGUnit_C* unit, int32_t amount, float groupMult) {
+    char text[3000];
+    int32_t base = static_cast<int32_t>(amount / groupMult);
+
+    if (unit && (unit->m_obj->m_type & TYPEMASK_UNIT)) {
+        if (base == amount) {
+            SStrPrintf(text, sizeof(text), FrameScript_GetText("COMBATLOG_XPGAIN_FIRSTPERSON", -1, GENDER_NOT_APPLICABLE), unit->GetUnitName(nullptr, 1), amount);
+        } else {
+            const char* token = base >= amount ? "COMBATLOG_XPGAIN_FIRSTPERSON_RAID" : "COMBATLOG_XPGAIN_FIRSTPERSON_GROUP";
+            SStrPrintf(text, sizeof(text), FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE), unit->GetUnitName(nullptr, 1), amount, abs(amount - base));
+        }
+    } else if (base == amount) {
+        SStrPrintf(text, sizeof(text), FrameScript_GetText("COMBATLOG_XPGAIN_FIRSTPERSON_UNNAMED", -1, GENDER_NOT_APPLICABLE), amount);
+    } else {
+        const char* token = base >= amount ? "COMBATLOG_XPGAIN_FIRSTPERSON_UNNAMED_RAID" : "COMBATLOG_XPGAIN_FIRSTPERSON_UNNAMED_GROUP";
+        SStrPrintf(text, sizeof(text), FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE), amount, abs(amount - base));
+    }
+
+    CGChat::AddChatMessage(text, 33, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+}
+
+// STATIC: 0x00AC7FB4
+static const char* s_exhaustionTokens[7] = { nullptr, "COMBATLOG_XPGAIN_EXHAUSTION1", "COMBATLOG_XPGAIN_EXHAUSTION2", "NULL", "COMBATLOG_XPGAIN_EXHAUSTION4", "COMBATLOG_XPGAIN_EXHAUSTION5", "COMBATLOG_XPGAIN_EXHAUSTION1" };
+
+// VERIFY: 610143a3 manual
+// OFFSET: 0x0050B300
+void CGChat::LogXPGain(CGUnit_C* unit, int32_t amount, int32_t type, int32_t bonus, float groupMult, bool referAFriend) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        player->AddWorldXPGainText(amount);
+    }
+
+    if (unit && !type) {
+        if (!player) {
+            return;
+        }
+
+        uint32_t restState = player->m_player->m_playerBytes2[3];
+
+        if (referAFriend) {
+            restState = 6;
+        }
+
+        ExhaustionRec* exhaustion = g_exhaustionDB.GetRecord(restState);
+
+        if (exhaustion && !fequal(exhaustion->m_factor, 0.0f) && !fequal(exhaustion->m_factor, 1.0f)) {
+            if (restState >= 7) {
+                SErrDisplayAppFatalMessage("", "", 0);
+            }
+
+            char token[256];
+            int32_t base = static_cast<int32_t>(bonus / groupMult);
+
+            if (base == bonus) {
+                SStrCopy(token, s_exhaustionTokens[restState], sizeof(token));
+            } else if (base < bonus) {
+                SStrPrintf(token, sizeof(token), "%s_GROUP", s_exhaustionTokens[restState]);
+            } else {
+                SStrPrintf(token, sizeof(token), "%s_RAID", s_exhaustionTokens[restState]);
+            }
+
+            char bonusText[32];
+            SStrPrintf(bonusText, sizeof(bonusText), "%s%d", amount - bonus >= 0 ? "+" : "", amount - bonus);
+            char text[3000];
+
+            if (base == bonus) {
+                SStrPrintf(text, sizeof(text), FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE), unit->GetUnitName(nullptr, 1), amount, bonusText, exhaustion->m_name);
+            } else {
+                SStrPrintf(text, sizeof(text), FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE), unit->GetUnitName(nullptr, 1), amount, bonusText, exhaustion->m_name, abs(bonus - base));
+            }
+
+            CGChat::AddChatMessage(text, 33, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+            return;
+        }
+
+        UnitCombatLogShowXPGained(unit, amount, groupMult);
+        return;
+    }
+
+    if (!referAFriend || (type != 1 && type != 6)) {
+        UnitCombatLogShowXPGained(unit, amount, groupMult);
+        return;
+    }
+
+    int32_t rafBonus = CMath::fint_(amount * 0.6666667f);
+    char bonusText[32];
+    SStrPrintf(bonusText, sizeof(bonusText), "%s%d", rafBonus >= 0 ? "+" : "", rafBonus);
+    ExhaustionRec* exhaustion = g_exhaustionDB.GetRecord(6);
+    char text[3000];
+    SStrPrintf(text, sizeof(text), FrameScript_GetText("COMBATLOG_XPGAIN_QUEST", -1, GENDER_NOT_APPLICABLE), amount, bonusText, exhaustion->m_name, rafBonus);
+    CGChat::AddChatMessage(text, 33, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+}
+
+// VERIFY: 294836e5 manual
+// OFFSET: 0x0050C720
+int32_t Packet_SMSG_LOG_XPGAIN(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID guid = WOWGUID();
+    msg->Get(guid.m_guid);
+    uint32_t amount = 0;
+    msg->Get(amount);
+    uint8_t type = 0;
+    msg->Get(type);
+    float groupMult = 1.0f;
+    uint32_t bonus = 0;
+
+    if (!type) {
+        msg->Get(bonus);
+        msg->Get(groupMult);
+    }
+
+    uint8_t referAFriend = 0;
+    msg->Get(referAFriend);
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (guid == ClntObjMgrGetActivePlayer()) {
+        CGChat::OnLogXPGain(amount);
+    } else {
+        CGChat::LogXPGain(unit, amount, type, bonus, groupMult, referAFriend != 0);
+    }
+
+    return 1;
 }
 
 // VERIFY: 743763ce manual
@@ -3757,4 +3930,947 @@ void CGChat::AddCombatMessage(const char* text) {
     if (s_chatLogging[1]) {
         SLogWrite(s_chatLog, "%s", text);
     }
+}
+
+// VERIFY: 4cc22e44 auto
+// OFFSET: 0x0050BBF0
+void CGChat::LogPetHappinessDecrease(const WOWGUID& caster, const WOWGUID& target, int32_t amount) {
+    char text[3000];
+
+    if (caster == ClntObjMgrGetActivePlayer()) {
+        const char* targetName = GetObjectNameFromGuid(target);
+        SStrPrintf(text, sizeof(text), FrameScript_GetText("SPELLHAPPINESSDRAINSELF", -1, GENDER_NOT_APPLICABLE), targetName, amount);
+    } else {
+        const char* targetName = GetObjectNameFromGuid(target);
+        const char* casterName = GetObjectNameFromGuid(caster);
+        SStrPrintf(text, sizeof(text), FrameScript_GetText("SPELLHAPPINESSDRAINOTHER", -1, GENDER_NOT_APPLICABLE), casterName, targetName, amount);
+    }
+
+    CGChat::AddChatMessage(text, CHAT_MSG_PET_INFO, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID{ 0 }, 0, WOWGUID{ 0 }, 0, false, nullptr);
+}
+
+// VERIFY: 0afea745 auto
+// OFFSET: 0x0050BCC0
+void CGChat::LogDismissPet(const WOWGUID& guid, const WOWGUID& pet) {
+    char text[3000];
+
+    if (guid == ClntObjMgrGetActivePlayer()) {
+        const char* petName = GetObjectNameFromGuid(pet);
+        SStrPrintf(text, sizeof(text), FrameScript_GetText("SPELLDISMISSPETSELF", -1, GENDER_NOT_APPLICABLE), petName);
+    } else {
+        const char* petName = GetObjectNameFromGuid(pet);
+        const char* name = GetObjectNameFromGuid(guid);
+        SStrPrintf(text, sizeof(text), FrameScript_GetText("SPELLDISMISSPETOTHER", -1, GENDER_NOT_APPLICABLE), name, petName);
+    }
+
+    CGChat::AddChatMessage(text, CHAT_MSG_PET_INFO, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID{ 0 }, 0, WOWGUID{ 0 }, 0, false, nullptr);
+}
+
+// VERIFY: 5985c2bf manual
+// OFFSET: 0x004FD260
+void ChatWindowInfo::RemoveChannel(const char* name) {
+    for (uint32_t i = 0; i < this->m_channels.m_count; i++) {
+        if (this->m_channels.m_data[i] && !SStrCmpUTF8I(this->m_channels.m_data[i], name, STORM_MAX_STR)) {
+            if (this->m_channels.m_data[i]) {
+                SMemFree(this->m_channels.m_data[i], __FILE__, __LINE__, 0);
+            }
+
+            this->m_channels.m_data[i] = nullptr;
+            this->m_channelIDs.m_data[i] = 0;
+            return;
+        }
+    }
+}
+
+// VERIFY: 107c4716 auto
+// OFFSET: 0x004FE160
+const char* CGChat::GetChannelString(const char* name) {
+    if (!name || !*name) {
+        return nullptr;
+    }
+
+    int32_t number = SStrToInt(name);
+
+    if (!number) {
+        return name;
+    }
+
+    if (number >= 1 && number <= static_cast<int32_t>(CGChat::s_channels.m_count)) {
+        ChatChannel* channel = &CGChat::s_channels.m_data[number - 1];
+
+        if (channel->m_channelNumber == number && !channel->m_unk9C) {
+            return channel->m_name;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: c7274882 manual
+// OFFSET: 0x004FE260
+static bool FindGuildRecruitmentChannel() {
+    bool found = s_recruitmentChannelFound;
+
+    if (!found) {
+        for (int32_t i = 0; i < g_chatChannelsDB.m_numRecords; i++) {
+            ChatChannelsRec* rec = g_chatChannelsDB.GetRecordByIndex(i);
+
+            if (rec && (rec->m_flags & 0x20000)) {
+                s_recruitmentChannelID = rec->m_id;
+                SStrCopy(s_recruitmentChannelName, rec->m_shortcut, sizeof(s_recruitmentChannelName));
+                found = true;
+                s_recruitmentChannelFound = true;
+            }
+        }
+    }
+
+    return found;
+}
+
+// VERIFY: 48808181 manual
+// OFFSET: 0x00501A70
+void ChatWindowInfo::AddChannel(const char* name, int32_t id) {
+    for (uint32_t i = 0; i < this->m_channels.m_count; i++) {
+        if (this->m_channels.m_data[i] && !SStrCmpUTF8I(this->m_channels.m_data[i], name, STORM_MAX_STR)) {
+            return;
+        }
+    }
+
+    uint32_t index;
+
+    for (index = 0; index < this->m_channels.m_count; index++) {
+        if (!this->m_channels.m_data[index]) {
+            this->m_channels.m_data[index] = SStrDupA(name, __FILE__, __LINE__);
+            this->m_channelIDs.m_data[index] = id;
+            return;
+        }
+    }
+
+    this->m_channels.SetCount(this->m_channels.m_count * 2);
+    this->m_channelIDs.SetCount(this->m_channelIDs.m_count * 2);
+    this->m_channels.m_data[index] = SStrDupA(name, __FILE__, __LINE__);
+    this->m_channelIDs.m_data[index] = id;
+
+    for (uint32_t i = index + 1; i < this->m_channels.m_count; i++) {
+        this->m_channels.m_data[i] = nullptr;
+        this->m_channelIDs.m_data[i] = 0;
+    }
+}
+
+// VERIFY: f2e39696 manual
+// OFFSET: 0x005076B0
+int32_t CGChat::AddChatChannel(const char* name, uint32_t id, bool silent, bool a4, bool a5, uint32_t number) {
+    if (GetChannelByName(name)) {
+        return 0;
+    }
+
+    if (id && CGChat::GetChannelByChatChannelID(id)) {
+        return 0;
+    }
+
+    uint32_t slot;
+
+    if (number && number <= 10) {
+        if (number > CGChat::s_channels.m_count) {
+            CGChat::s_channels.SetCount(number);
+            slot = number - 1;
+        } else if (!CGChat::s_channels.m_data[number - 1].m_channelNumber) {
+            slot = number - 1;
+        } else {
+            slot = CGChat::s_channels.m_count;
+        }
+    } else {
+        slot = CGChat::s_channels.m_count;
+    }
+
+    if (slot == CGChat::s_channels.m_count) {
+        for (slot = 0; slot < CGChat::s_channels.m_count; slot++) {
+            if (!CGChat::s_channels.m_data[slot].m_channelNumber) {
+                break;
+            }
+        }
+
+        if (slot == CGChat::s_channels.m_count) {
+            if (CGChat::s_channels.m_count == 10) {
+                if (!silent) {
+                    CGGameUI::DisplayError(ERR_TOO_MANY_CHAT_CHANNELS);
+                }
+
+                return 0;
+            }
+
+            CGChat::s_channels.SetCount(CGChat::s_channels.m_count + 1);
+        }
+    }
+
+    ChatChannel* channel = &CGChat::s_channels.m_data[slot];
+    channel->m_channelNumber = slot + 1;
+    SStrCopy(channel->m_name, name, sizeof(channel->m_name));
+    channel->m_zoneChannelID = id;
+    channel->m_unk9C = 1;
+    channel->m_unkA0 = 0;
+    channel->m_unkA4 = a4;
+    channel->m_unkA5 = a5;
+    return 1;
+}
+
+// VERIFY: 8b7bb244 manual
+// OFFSET: 0x00507A80
+bool InternalJoinChannel(const char* channelName, const char* password, uint32_t window, bool checkRecruitment, const char** zoneChannelName, int32_t* zoneChannelID, bool silent, int32_t a8, int32_t a9, uint32_t number) {
+    *zoneChannelName = nullptr;
+    *zoneChannelID = 0;
+
+    char name[256];
+    SStrCopy(name, channelName, sizeof(name));
+    const char* zoneText = CGGameUI::m_zoneText;
+    AreaTableRec* area = g_areaTableDB.GetRecord(CGGameUI::m_areaID);
+
+    for (int32_t i = 0; i < g_chatChannelsDB.m_numRecords; i++) {
+        ChatChannelsRec* rec = g_chatChannelsDB.GetRecordByIndex(i);
+
+        if (SStrCmpUTF8I(rec->m_shortcut, channelName, STORM_MAX_STR)) {
+            continue;
+        }
+
+        const char* text = area && (rec->m_flags & 0x20) && (area->m_flags & 0x100) && s_cityArea ? s_cityArea->m_areaName : zoneText;
+
+        if (!text || !*text) {
+            return false;
+        }
+
+        *zoneChannelName = rec->m_shortcut;
+        *zoneChannelID = rec->m_id;
+        SStrPrintf(name, sizeof(name), rec->m_name, text);
+        password = "";
+
+        if (checkRecruitment && (rec->m_flags & 0x20000)) {
+            CGChat::SetGuildRecruitmentMode(0, true);
+        }
+
+        break;
+    }
+
+    ChatChannel* channel = *zoneChannelID ? CGChat::GetChannelByChatChannelID(*zoneChannelID) : GetChannelByName(name);
+
+    if (!channel) {
+        if (!CGChat::AddChatChannel(name, *zoneChannelID, silent, a8 != 0, a9 != 0, number)) {
+            return false;
+        }
+
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_CHAT_JOIN_CHANNEL));
+        msg.Put(static_cast<uint32_t>(*zoneChannelID));
+        msg.Put(static_cast<uint8_t>(silent));
+        msg.Put(static_cast<uint8_t>(a8));
+        msg.PutString(name);
+        msg.PutString(password);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    if (window < 10) {
+        s_chatWindows[window].AddChannel(*zoneChannelName ? *zoneChannelName : name, *zoneChannelID);
+        s_chatSettingsDirty = 1;
+    }
+
+    return true;
+}
+
+// VERIFY: 3d422a41 manual
+// OFFSET: 0x00507D30
+void CGChat::UpdateGuildStatus() {
+    if (CGChat::m_guildRecruitmentMode != 1 || !CGChat::m_registered) {
+        return;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !FindGuildRecruitmentChannel()) {
+        return;
+    }
+
+    ChatChannel* channel = CGChat::GetChannelByChatChannelID(s_recruitmentChannelID);
+
+    if (player->m_player->m_playerGuildid) {
+        if (channel) {
+            InternalLeaveChannel(s_recruitmentChannelName, false, true);
+            FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_WINDOWS, nullptr);
+        }
+    } else if (!channel) {
+        const char* zoneChannelName = nullptr;
+        int32_t zoneChannelID = 0;
+        InternalJoinChannel(s_recruitmentChannelName, "", 0, false, &zoneChannelName, &zoneChannelID, true, 0, 1, 0);
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_WINDOWS, nullptr);
+    }
+}
+
+// VERIFY: 3583052f manual
+// OFFSET: 0x00508090
+void CGChat::ZoneUpdate() {
+    if (!CGChat::m_loaded) {
+        return;
+    }
+
+    if (CGGameUI::m_zoneText && *CGGameUI::m_zoneText) {
+        CGChat::m_areaID = CGGameUI::m_areaID;
+
+        if (!CGChat::m_registered) {
+            if (!g_areaTableDB.GetRecord(CGGameUI::m_areaID)) {
+                return;
+            }
+
+            const char* zoneChannelName;
+            int32_t zoneChannelID;
+
+            for (int32_t i = 0; i < g_chatChannelsDB.m_numRecords; i++) {
+                ChatChannelsRec* rec = g_chatChannelsDB.GetRecordByIndex(i);
+
+                if ((1 << (rec->m_id - 1)) & s_joinedZoneChannels) {
+                    InternalJoinChannel(rec->m_shortcut, "", 10, false, &zoneChannelName, &zoneChannelID, true, 0, 1, 0);
+                }
+            }
+
+            if (s_pendingChannelNames.m_count) {
+                for (uint32_t i = 0; i < s_pendingChannelNames.m_count; i++) {
+                    InternalJoinChannel(s_pendingChannelNames.m_data[i], "", 10, false, &zoneChannelName, &zoneChannelID, true, s_pendingChannelFlags.m_data[i], 1, s_pendingChannelNumbers.m_data[i]);
+
+                    if (s_pendingChannelNames.m_data[i]) {
+                        SMemFree(s_pendingChannelNames.m_data[i], __FILE__, __LINE__, 0);
+                    }
+                }
+
+                s_pendingChannelNames.Clear();
+                s_pendingChannelFlags.Clear();
+                s_pendingChannelNumbers.Clear();
+            }
+
+            CGChat::m_registered = 1;
+        }
+    }
+
+    CGChat::UpdateGuildStatus();
+}
+
+// VERIFY: ce71b96d auto
+// OFFSET: 0x00508260
+void CGChat::SetGuildRecruitmentMode(int32_t mode, bool fromJoin) {
+    if (CGChat::m_guildRecruitmentMode == mode) {
+        return;
+    }
+
+    CGChat::m_guildRecruitmentMode = mode;
+
+    if (!CGChat::m_registered) {
+        return;
+    }
+
+    if (mode == 1) {
+        CGChat::UpdateGuildStatus();
+    } else if (!fromJoin && FindGuildRecruitmentChannel()) {
+        InternalLeaveChannel(s_recruitmentChannelName, false, true);
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_WINDOWS, nullptr);
+    }
+}
+
+// VERIFY: a08ae344 manual
+// OFFSET: 0x00508320
+void CGChat::LoadChatSettingsCallback(HOSFILE localFile, HOSFILE file, void* param) {
+    int32_t version = 0;
+    int32_t addedVersion = 0;
+    uint32_t allChannels = 0;
+
+    for (int32_t i = 0; i < g_chatChannelsDB.m_numRecords; i++) {
+        ChatChannelsRec* rec = g_chatChannelsDB.GetRecordByIndex(i);
+
+        if (rec->m_id > 32) {
+            SErrDisplayAppFatalMessage("", "", 0);
+        }
+
+        allChannels |= 1 << (rec->m_id - 1);
+    }
+
+    char* buffer = nullptr;
+    uint32_t size = 0;
+
+    if (file != OS_INVALID_FILE) {
+        size = static_cast<uint32_t>(OsGetFileSize(file));
+
+        if (size) {
+            buffer = static_cast<char*>(alloca(size + 1));
+            uint32_t bytesRead;
+
+            if (!OsReadFile(file, buffer, size, &bytesRead)) {
+                buffer = nullptr;
+            } else if (bytesRead != size) {
+                SErrDisplayAppFatalMessage("", "", 0);
+                buffer = nullptr;
+            }
+        }
+    }
+
+    if (buffer) {
+        buffer[size] = '\0';
+
+        for (uint32_t i = 0; i < s_pendingChannelNames.m_count; i++) {
+            if (s_pendingChannelNames.m_data[i]) {
+                SMemFree(s_pendingChannelNames.m_data[i], __FILE__, __LINE__, 0);
+            }
+        }
+
+        s_pendingChannelNames.Clear();
+        s_pendingChannelFlags.Clear();
+        s_pendingChannelNumbers.Clear();
+
+        int32_t state = 0;
+        uint32_t window = 0;
+        const char* cursor = buffer;
+        char line[128];
+        char token[256];
+        char word[256];
+        char value[256];
+        SStrTokenize(&cursor, line, sizeof(line), "\r\n", nullptr);
+
+        if (!SStrCmpI(line, "VERSION", SStrLen("VERSION"))) {
+            const char* rest = &line[SStrLen("VERSION")];
+            SStrTokenize(&rest, value, sizeof(value), " \r\n", nullptr);
+            version = SStrToInt(value);
+
+            if (version >= 2) {
+                SStrTokenize(&cursor, line, sizeof(line), "\r\n", nullptr);
+
+                if (!SStrCmpI(line, "ADDEDVERSION", SStrLen("ADDEDVERSION"))) {
+                    const char* added = &line[SStrLen("ADDEDVERSION")];
+                    SStrTokenize(&added, value, sizeof(value), " \r\n", nullptr);
+                    addedVersion = SStrToInt(value);
+                }
+            }
+        } else {
+            cursor = buffer;
+        }
+
+        for (uint32_t i = 0; i < 10; i++) {
+            memset(s_chatWindows[i].m_messageGroups, 0, sizeof(s_chatWindows[i].m_messageGroups));
+        }
+
+        do {
+            SStrTokenize(&cursor, line, sizeof(line), "\r\n", nullptr);
+
+            if (!line[0]) {
+                continue;
+            }
+
+            if (!state) {
+                if (!SStrCmpI(line, "CHANNELS", STORM_MAX_STR)) {
+                    state = 1;
+                    continue;
+                }
+
+                if (!SStrCmpI(line, "COLORS", STORM_MAX_STR)) {
+                    state = 2;
+                    continue;
+                }
+
+                if (!SStrCmpI(line, "WINDOW", SStrLen("WINDOW"))) {
+                    if (SStrLen(line) < SStrLen("WINDOW") + 2) {
+                        continue;
+                    }
+
+                    uint32_t index = SStrToInt(&line[SStrLen("WINDOW") + 1]) - 1;
+
+                    if (index > 10) {
+                        continue;
+                    }
+
+                    window = index;
+                    state = 3;
+                }
+
+                if (!SStrCmpI(line, "ZONECHANNELS", SStrLen("ZONECHANNELS"))) {
+                    const char* rest = &line[SStrLen("ZONECHANNELS")];
+                    SStrTokenize(&rest, value, sizeof(value), " \r\n", nullptr);
+                    s_joinedZoneChannels = SStrToInt(value) & allChannels;
+                    continue;
+                }
+
+                if (SStrCmpI(line, s_guildRecruitmentOption, SStrLen(s_guildRecruitmentOption))) {
+                    continue;
+                }
+
+                const char* rest = &line[SStrLen(s_guildRecruitmentOption)];
+                SStrTokenize(&rest, token, sizeof(token), " \r\n", nullptr);
+                int32_t mode = 1;
+
+                if (!SStrCmpI(token, "STANDARD", STORM_MAX_STR)) {
+                    mode = 0;
+                } else {
+                    SStrCmpI(token, "AUTO", STORM_MAX_STR);
+                }
+
+                if (CGChat::m_guildRecruitmentMode == mode) {
+                    continue;
+                }
+
+                CGChat::m_guildRecruitmentMode = mode;
+
+                if (CGChat::m_registered && mode == 1) {
+                    CGChat::UpdateGuildStatus();
+                }
+
+                continue;
+            }
+
+            if (state == 3) {
+                if (!SStrCmpI(line, "CHANNELS", STORM_MAX_STR)) {
+                    state = 4;
+                    continue;
+                }
+
+                if (!SStrCmpI(line, "MESSAGES", STORM_MAX_STR)) {
+                    state = 5;
+                    continue;
+                }
+            }
+
+            if (!SStrCmpI(line, "END", STORM_MAX_STR)) {
+                state = state == 4 || state == 5 ? 3 : 0;
+                continue;
+            }
+
+            const char* rest = line;
+            SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+
+            if (!word[0]) {
+                continue;
+            }
+
+            switch (state) {
+                case 1: {
+                    if (version < 3) {
+                        break;
+                    }
+
+                    token[0] = '\0';
+                    SStrTokenize(&rest, token, sizeof(token), " \r\n", nullptr);
+                    value[0] = '\0';
+                    SStrTokenize(&rest, value, sizeof(value), " \r\n", nullptr);
+                    s_pendingChannelNames.SetCount(s_pendingChannelNames.m_count + 1);
+                    s_pendingChannelNames.m_data[s_pendingChannelNames.m_count - 1] = SStrDupA(word, __FILE__, __LINE__);
+                    s_pendingChannelFlags.SetCount(s_pendingChannelFlags.m_count + 1);
+                    s_pendingChannelFlags.m_data[s_pendingChannelFlags.m_count - 1] = atol(token);
+                    s_pendingChannelNumbers.SetCount(s_pendingChannelNumbers.m_count + 1);
+                    s_pendingChannelNumbers.m_data[s_pendingChannelNumbers.m_count - 1] = atol(value);
+                    break;
+                }
+
+                case 2: {
+                    ChatColorInfo* color = nullptr;
+
+                    for (uint32_t i = 0; i < CHAT_MSG_MAX; i++) {
+                        if (!SStrCmpI(word, s_chatColors[i].m_name, STORM_MAX_STR)) {
+                            color = &s_chatColors[i];
+                            break;
+                        }
+                    }
+
+                    if (!color) {
+                        if (SStrCmpI(word, "CHANNEL", SStrLen("CHANNEL"))) {
+                            break;
+                        }
+
+                        uint32_t index = SStrToInt(&word[SStrLen("CHANNEL")]);
+
+                        if (!index || index > s_channelColors.m_count) {
+                            break;
+                        }
+
+                        color = &s_channelColors.m_data[index - 1];
+
+                        if (!color) {
+                            break;
+                        }
+                    }
+
+                    SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                    color->m_color[0] = SStrToInt(word);
+                    SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                    color->m_color[1] = SStrToInt(word);
+                    SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                    color->m_color[2] = SStrToInt(word);
+                    SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+
+                    if (word[0] == 'Y' || word[0] == 'N') {
+                        color->m_unk48 = word[0] == 'Y';
+                    }
+
+                    break;
+                }
+
+                case 3: {
+                    ChatWindowInfo* info = &s_chatWindows[window];
+
+                    if (!SStrCmpI(word, "NAME", STORM_MAX_STR)) {
+                        SStrTokenize(&rest, info->m_name, sizeof(info->m_name), "\r\n", nullptr);
+                        break;
+                    }
+
+                    if (!SStrCmpI(word, "SIZE", STORM_MAX_STR)) {
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        info->m_unkD0 = SStrToInt(word);
+                        break;
+                    }
+
+                    if (!SStrCmpI(word, "COLOR", STORM_MAX_STR)) {
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        info->m_color.r = SStrToInt(word);
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        info->m_color.g = SStrToInt(word);
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        info->m_color.b = SStrToInt(word);
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        info->m_color.a = SStrToInt(word);
+                    }
+
+                    if (!SStrCmpI(word, "LOCKED", STORM_MAX_STR)) {
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        info->m_unkD8 = SStrToInt(word);
+                    }
+
+                    if (!SStrCmpI(word, "UNINTERACTABLE", STORM_MAX_STR)) {
+                        SStrTokenize(&rest, word, sizeof(word), "\r\n", nullptr);
+                        info->m_unkE4 = SStrToInt(word);
+                    }
+
+                    if (!SStrCmpI(word, "DOCKED", STORM_MAX_STR)) {
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        info->m_docked = SStrToInt(word);
+                    }
+
+                    if (!SStrCmpI(word, "SHOWN", STORM_MAX_STR)) {
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        info->m_shown = SStrToInt(word);
+                    }
+
+                    if (!SStrCmpI(word, "POSITION", STORM_MAX_STR)) {
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        StringToFramePoint(word, reinterpret_cast<FRAMEPOINT&>(info->m_unkE8));
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        float x = SStrToFloat(word);
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        float y = SStrToFloat(word);
+                        info->m_unkEC = x;
+                        info->m_unkF0 = y;
+                        info->m_unkF4 = 1;
+                    }
+
+                    if (!SStrCmpI(word, "DIMENSIONS", STORM_MAX_STR)) {
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        float width = SStrToFloat(word);
+                        SStrTokenize(&rest, word, sizeof(word), " \r\n", nullptr);
+                        float height = SStrToFloat(word);
+                        info->m_width = width;
+                        info->m_height = height;
+                        info->m_unkF4 = 1;
+                    }
+
+                    if (!SStrCmpI(word, "ZONECHANNELS", STORM_MAX_STR)) {
+                        SStrTokenize(&rest, word, sizeof(word), "\r\n", nullptr);
+                        uint32_t channels = SStrToInt(word) & allChannels;
+
+                        for (int32_t i = 0; i < g_chatChannelsDB.m_numRecords; i++) {
+                            ChatChannelsRec* rec = g_chatChannelsDB.GetRecordByIndex(i);
+
+                            if (channels & (1 << (rec->m_id - 1))) {
+                                info->AddChannel(rec->m_shortcut, rec->m_id);
+                            }
+                        }
+                    }
+
+                    break;
+                }
+
+                case 4: {
+                    s_chatWindows[window].AddChannel(word, 0);
+                    break;
+                }
+
+                case 5: {
+                    for (uint32_t i = 0; i < sizeof(s_chatMessageGroups) / sizeof(s_chatMessageGroups[0]); i++) {
+                        if (!SStrCmpI(word, s_chatMessageGroups[i].m_name, STORM_MAX_STR)) {
+                            s_chatWindows[window].m_messageGroups[i] = 1;
+                            break;
+                        }
+                    }
+
+                    break;
+                }
+
+                default: {
+                    break;
+                }
+            }
+        } while (cursor && *cursor);
+
+        if (addedVersion < 13) {
+            for (uint32_t i = 0; i < sizeof(s_zoneChannelDefaults) / sizeof(s_zoneChannelDefaults[0]); i++) {
+                if (s_zoneChannelDefaults[i].m_addedVersion <= addedVersion) {
+                    continue;
+                }
+
+                ChatChannelsRec* rec = g_chatChannelsDB.GetRecord(s_zoneChannelDefaults[i].m_channelID);
+
+                if (!rec || !(rec->m_flags & 1)) {
+                    continue;
+                }
+
+                if (rec->m_id > 32) {
+                    SErrDisplayAppFatalMessage("", "", 0);
+                }
+
+                uint32_t bit = 1 << (rec->m_id - 1);
+
+                if (!(bit & s_joinedZoneChannels)) {
+                    s_joinedZoneChannels |= bit;
+                    s_chatWindows[0].AddChannel(rec->m_shortcut, rec->m_id);
+                }
+            }
+
+            for (uint32_t i = 0; i < sizeof(s_chatMessageGroups) / sizeof(s_chatMessageGroups[0]); i++) {
+                if (s_chatMessageGroups[i].m_default && s_chatMessageGroups[i].m_type > addedVersion) {
+                    s_chatWindows[i < 40 ? 0 : 1].m_messageGroups[i] = 1;
+                }
+            }
+
+            for (uint32_t i = 0; i < CHAT_MSG_MAX; i++) {
+                if (s_chatTypeInfo[i].m_unk44 > addedVersion) {
+                    s_chatColors[i].m_color[0] = s_chatTypeInfo[i].m_color[0];
+                    s_chatColors[i].m_color[1] = s_chatTypeInfo[i].m_color[1];
+                    s_chatColors[i].m_color[2] = s_chatTypeInfo[i].m_color[2];
+                    s_chatColors[i].m_unk48 = s_chatTypeInfo[i].m_unk48;
+                }
+            }
+        }
+
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_WINDOWS, nullptr);
+
+        for (uint32_t i = 0; i < CHAT_MSG_MAX; i++) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_COLOR, "%s%f%f%f", s_chatColors[i].m_name, s_chatColors[i].m_color[0] * (1.0f / 255.0f), s_chatColors[i].m_color[1] * (1.0f / 255.0f), s_chatColors[i].m_color[2] * (1.0f / 255.0f));
+            FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_COLOR_NAME_BY_CLASS, "%s%b", s_chatColors[i].m_name, s_chatColors[i].m_unk48);
+        }
+
+        for (uint32_t i = 0; i < s_channelColors.m_count; i++) {
+            ChatColorInfo* color = &s_channelColors.m_data[i];
+            FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_COLOR, "%s%f%f%f", color->m_name, color->m_color[0] * (1.0f / 255.0f), color->m_color[1] * (1.0f / 255.0f), color->m_color[2] * (1.0f / 255.0f));
+            FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_COLOR_NAME_BY_CLASS, "%s%b", color->m_name, color->m_unk48);
+        }
+    } else {
+        for (int32_t i = 0; i < g_chatChannelsDB.m_numRecords; i++) {
+            ChatChannelsRec* rec = g_chatChannelsDB.GetRecordByIndex(i);
+
+            if (!(rec->m_flags & 1)) {
+                continue;
+            }
+
+            if (rec->m_id >= 32) {
+                SErrDisplayAppFatalMessage("", "", 0);
+            }
+
+            s_joinedZoneChannels |= 1 << (rec->m_id - 1);
+            s_chatWindows[0].AddChannel(rec->m_shortcut, rec->m_id);
+        }
+
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_WINDOWS, nullptr);
+
+        for (uint32_t i = 0; i < CHAT_MSG_MAX; i++) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_COLOR, "%s%f%f%f", s_chatColors[i].m_name, s_chatColors[i].m_color[0] * (1.0f / 255.0f), s_chatColors[i].m_color[1] * (1.0f / 255.0f), s_chatColors[i].m_color[2] * (1.0f / 255.0f));
+            FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_COLOR_NAME_BY_CLASS, "%s%b", s_chatColors[i].m_name, s_chatColors[i].m_unk48);
+        }
+
+        for (uint32_t i = 0; i < s_channelColors.m_count; i++) {
+            ChatColorInfo* color = &s_channelColors.m_data[i];
+            FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_COLOR, "%s%f%f%f", color->m_name, color->m_color[0] * (1.0f / 255.0f), color->m_color[1] * (1.0f / 255.0f), color->m_color[2] * (1.0f / 255.0f));
+            FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_COLOR_NAME_BY_CLASS, "%s%b", color->m_name, color->m_unk48);
+        }
+    }
+
+    CGChat::m_loaded = 1;
+    CGChat::ZoneUpdate();
+}
+
+// VERIFY: 77a9b802 manual
+// OFFSET: 0x005093F0
+int32_t InternalLeaveChannel(const char* channelName, bool clearRecruitment, bool force) {
+    const char* channelString = force ? channelName : CGChat::GetChannelString(channelName);
+
+    if (!channelString) {
+        return 0;
+    }
+
+    const char* zoneChannelName = nullptr;
+    char name[256];
+    SStrCopy(name, channelString, sizeof(name));
+    const char* zoneText = CGGameUI::m_zoneText;
+    int32_t zoneChannelID = 0;
+    AreaTableRec* area = g_areaTableDB.GetRecord(CGGameUI::m_areaID);
+
+    for (int32_t i = 0; i < g_chatChannelsDB.m_numRecords; i++) {
+        ChatChannelsRec* rec = g_chatChannelsDB.GetRecordByIndex(i);
+
+        if (SStrCmpUTF8I(rec->m_shortcut, channelName, STORM_MAX_STR)) {
+            continue;
+        }
+
+        const char* text = area && (rec->m_flags & 0x20) && (area->m_flags & 0x100) && s_cityArea ? s_cityArea->m_areaName : zoneText;
+
+        if (!text || !*text) {
+            return 0;
+        }
+
+        zoneChannelName = rec->m_shortcut;
+        zoneChannelID = rec->m_id;
+        SStrPrintf(name, sizeof(name), rec->m_name, text);
+
+        if (clearRecruitment && (rec->m_flags & 0x20000) && CGChat::m_guildRecruitmentMode) {
+            CGChat::m_guildRecruitmentMode = 0;
+        }
+
+        break;
+    }
+
+    for (uint32_t i = 0; i < 10; i++) {
+        s_chatWindows[i].RemoveChannel(zoneChannelName ? zoneChannelName : name);
+    }
+
+    ChatChannel* channel = zoneChannelID ? CGChat::GetChannelByChatChannelID(zoneChannelID) : GetChannelByName(name);
+
+    if (channel && (!channel->m_unk9C || force)) {
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_CHAT_LEAVE_CHANNEL));
+        msg.Put(static_cast<uint32_t>(channel->m_zoneChannelID));
+        msg.PutString(channel->m_name);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+
+        uint32_t id = channel->m_zoneChannelID;
+        channel->m_unkA0 = 1;
+
+        if (id) {
+            s_joinedZoneChannels &= ~(1 << (id - 1));
+        }
+
+        if (channel->m_unk9C == 1) {
+            ChatChannel* entry = id ? CGChat::GetChannelByChatChannelID(id) : GetChannelByName(channel->m_name);
+
+            if (entry) {
+                entry->m_channelNumber = 0;
+                entry->m_name[0] = '\0';
+                entry->m_zoneChannelID = 0;
+                entry->m_unk9C = 1;
+                entry->m_unkA0 = 1;
+            }
+
+            CGChat::OnChannelsUpdated();
+        }
+    }
+
+    s_chatSettingsDirty = 1;
+    return 0;
+}
+
+// VERIFY: 2a2301d1 auto
+// OFFSET: 0x00509780
+void CGChat::LoadChatSettings() {
+    LoadAccountData(7, CGChat::LoadChatSettingsCallback, nullptr);
+}
+
+// VERIFY: 024941a0 auto
+// OFFSET: 0x004FDF50
+const char* CGChat::GetChannelShortName(int32_t number, bool includeInactive) {
+    if (number < 1 || number > static_cast<int32_t>(CGChat::s_channels.m_count)) {
+        return nullptr;
+    }
+
+    ChatChannel* channel = &CGChat::s_channels.m_data[number - 1];
+
+    if (channel->m_channelNumber != number || (!includeInactive && channel->m_unk9C)) {
+        return nullptr;
+    }
+
+    if (channel->m_zoneChannelID) {
+        ChatChannelsRec* rec = g_chatChannelsDB.GetRecord(channel->m_zoneChannelID);
+
+        if (rec) {
+            return rec->m_shortcut;
+        }
+    }
+
+    return channel->m_name;
+}
+
+// VERIFY: 6aa5aad3 auto
+// OFFSET: 0x004FF4F0
+uint32_t CGChat::FindDisplayChannelIndex(const char* name, int32_t type) {
+    for (uint32_t i = 0; i < s_numDisplayChannels; i++) {
+        if (static_cast<uint32_t>(CGChat::s_displayChannels[i].m_channelIndex) > CGChat::s_channels.m_count || CGChat::s_displayChannels[i].m_headerIndex >= 0) {
+            continue;
+        }
+
+        int32_t displayType;
+        const char* channel = CGChat::GetChannelStringForDisplay(i, &displayType);
+
+        if (!channel || displayType == 4 || displayType != type) {
+            continue;
+        }
+
+        if (displayType) {
+            return i + 1;
+        }
+
+        if (name && !SStrCmpUTF8I(channel, name, STORM_MAX_STR)) {
+            return i + 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: ab2de665 manual
+// OFFSET: 0x004FB580
+bool CGChat::ChatTokenToGUID(const char* token, WOWGUID& guid) {
+    NameCache* rec = g_nameDBCache.GetRecordByName(token);
+
+    if (!rec) {
+        return Script_GetGUIDFromToken(token, guid, false);
+    }
+
+    guid = rec->m_guid;
+    return true;
+}
+
+// VERIFY: 8d38700f auto
+// OFFSET: 0x004FB9C0
+CImVector CGChat::GetChatColor(int32_t type) {
+    CImVector color;
+
+    if (type < CHAT_MSG_MAX) {
+        color.b = s_chatColors[type].m_color[2];
+        color.g = s_chatColors[type].m_color[1];
+        color.a = 0xFF;
+        color.r = s_chatColors[type].m_color[0];
+    } else {
+        color.b = 0xFF;
+        color.g = 0xFF;
+        color.a = 0xFF;
+        color.r = 0xFF;
+    }
+
+    return color;
+}
+
+// VERIFY: 50e36d6f manual
+// OFFSET: 0x004FBA10
+int32_t FormatTime(char* buffer, uint32_t size, int32_t seconds) {
+    int32_t days = seconds / 86400;
+    int32_t hours = seconds % 86400 / 3600;
+    int32_t minutes = (seconds - 3600 * (hours + 24 * days)) / 60;
+    return SStrPrintf(buffer, size, "%dd %dh %dm %ds", days, hours, minutes, seconds % 60);
 }

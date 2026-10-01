@@ -202,7 +202,7 @@ static int32_t Script_SelectStationery(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f642dbb8 manual
+// VERIFY: a8f5093e manual
 // OFFSET: 0x0056DF80
 static int32_t Script_GetStationeryInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -220,7 +220,7 @@ static int32_t Script_GetStationeryInfo(lua_State* L) {
         lua_pushstring(L, stats->m_name[0]);
         lua_pushstring(L, s_stationeryTexture);
 
-        if (stationery->unk_0010) {
+        if (stationery->m_itemGUID) {
             lua_pushnil(L);
         } else {
             lua_pushnumber(L, stats->m_buyPrice);
@@ -278,6 +278,46 @@ static int32_t Script_GetPackageInfo(lua_State* L) {
 // OFFSET: 0x0056E1E0
 static int32_t Script_GetNumPackages(lua_State* L) {
     lua_pushnumber(L, g_packageDB.m_numRecords);
+    return 1;
+}
+
+// VERIFY: 12b74c11 auto
+// OFFSET: 0x00571B00
+static int32_t Script_GetSendMailPrice(lua_State* L) {
+    uint32_t price = 30;
+    uint32_t itemPrice = 30 * CGMailInfo::GetNumSendItems();
+
+    if (itemPrice >= 30) {
+        price = itemPrice;
+    }
+
+    if (CGMailInfo::m_selectedStationery) {
+        for (uint32_t i = 0; i < CGMailInfo::m_numStationeries; i++) {
+            StationeryInfo* stationery = CGMailInfo::m_stationeries.m_data[i];
+
+            if (stationery->m_id == CGMailInfo::m_selectedStationery) {
+                if (!stationery->m_itemGUID) {
+                    ItemStats_C* stats = g_itemDBCache.GetRecord(stationery->m_itemID, WOWGUID{ 0 }, nullptr, nullptr, false);
+
+                    if (stats) {
+                        price += stats->m_buyPrice;
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+
+    if (CGMailInfo::m_selectedPackage) {
+        PackageRec* rec = g_packageDB.GetRecord(CGMailInfo::m_selectedPackage);
+
+        if (rec) {
+            price += rec->m_cost;
+        }
+    }
+
+    lua_pushnumber(L, price + CGMailInfo::m_sendMoney);
     return 1;
 }
 

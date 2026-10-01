@@ -4,6 +4,8 @@
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
 
+class CGItem_C;
+
 struct lua_State;
 
 struct PlayerTradeState {
@@ -15,6 +17,9 @@ struct PlayerTradeState {
 class CGTradeInfo {
     public:
     static void SetTradePartner(WOWGUID partner, int32_t a2);
+    static void SetEnchantingItem(CGItem_C* item);
+    static void AddPlayerItem(WOWGUID item, WOWGUID container, uint32_t slot);
+    static WOWGUID m_enchantingItem;
     static void EnterWorld();
     static uint32_t GetPlayerTradeMoney();
     static uint32_t GetTargetTradeMoney();

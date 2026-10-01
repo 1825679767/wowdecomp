@@ -9,6 +9,7 @@
 struct lua_State;
 class AreaPOIRec;
 class C3Vector;
+class CSimpleFrame;
 class CSimpleModel;
 class WorldMapContinentRec;
 
@@ -72,6 +73,7 @@ class CGWorldMap {
     static CSimpleModel* m_playerMiniArrowFrame;
     static CSimpleModel* m_playerArrowEffectFrame;
     static CSimpleModel* m_playerMiniArrowEffectFrame;
+    static void CreateArrowFrame(CSimpleFrame* parent);
     static void EnterWorld();
     static void InitializeGame();
     static void SetMapToCurrentZone(int32_t debug);
@@ -100,8 +102,6 @@ int32_t Script_SetMapByID(lua_State* L);
 int32_t Script_ProcessMapClick(lua_State* L);
 int32_t Script_GetCorpseMapPosition(lua_State* L);
 int32_t Script_GetDeathReleasePosition(lua_State* L);
-int32_t Script_CreateWorldMapArrowFrame(lua_State* L);
-int32_t Script_InitWorldMapPing(lua_State* L);
 int32_t Script_CreateMiniWorldMapArrowFrame(lua_State* L);
 int32_t Script_UpdateWorldMapArrowFrames(lua_State* L);
 int32_t Script_ClickLandmark(lua_State* L);

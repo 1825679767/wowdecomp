@@ -5,6 +5,8 @@
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/CGBankInfo.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/Types.h"
 
 // STATIC: 0x00A37B10
 static const BAGSLOTRANGE s_bagSlotRanges[8] = { { 23, 38 }, { 19, 22 }, { 86, 117 }, { 39, 66 }, { 67, 73 }, { 118, 149 }, { 0, 18 }, { 74, 85 } };
@@ -320,4 +322,141 @@ uint64_t CGBag_C::GetItemGuid(uint32_t slot) const {
     }
 
     return 0;
+}
+
+// VERIFY: cfc4d837 auto
+// OFFSET: 0x00754CD0
+CGItem_C* CGBag_C::FindItem(int32_t (*callback)(const CGItem_C* item, void* param), void* param, uint32_t flags) {
+    WOWGUID container;
+    return this->FindItem(callback, param, container, flags, flags);
+}
+
+// VERIFY: 35fbcc70 manual
+// OFFSET: 0x007546F0
+CGItem_C* CGBag_C::FindItem(int32_t (*callback)(const CGItem_C* item, void* param), void* param, WOWGUID& container, uint32_t& slot, uint32_t flags) {
+    if (this->m_hasBank && !(flags & 0x247)) {
+        flags |= 0x247;
+    }
+
+    container = WOWGUID();
+    slot = 0;
+    uint32_t numSlots = this->m_numSlots;
+    CGItem_C* best = nullptr;
+    uint32_t index = this->m_hasBank ? 23 : 0;
+
+    if (index >= numSlots) {
+        return best;
+    }
+
+    while (true) {
+        if (!this->m_hasBank || SlotMatchesSearchFlags(index, flags)) {
+            WOWGUID guid = index < numSlots ? this->m_slots[index] : WOWGUID();
+            CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+            if (item && !(item->m_modelFlags & 0x10000) && ((flags & 0x80) || (((item->m_item->m_itemFieldFlags & 0x8) || !item->m_item->m_itemFieldMaxdurability || item->m_item->m_itemFieldDurability) && !(item->m_item->m_itemFieldFlags & 0x10))) && (!(flags & 0x20) || (item->GetBag() && !(flags & 0x10)) || (item->GetEnchantmentSpell(0) && item->GetCurrentSpellCharges()))) {
+                if (callback(item, param)) {
+                    container = this->m_guid;
+                    slot = index;
+                } else if (item->GetBag() && !(flags & 0x10)) {
+                    item = item->GetBag()->FindItem(callback, param, container, slot, flags);
+                } else {
+                    item = nullptr;
+                }
+
+                if (item) {
+                    if (!(flags & 0x100)) {
+                        return item;
+                    }
+
+                    if (!best || item->m_item->m_itemFieldStackCount < best->m_item->m_itemFieldStackCount) {
+                        best = item;
+                    }
+                }
+            }
+        }
+
+        numSlots = this->m_numSlots;
+
+        if (index >= numSlots) {
+            index = numSlots;
+        } else if (this->m_hasBank) {
+            uint32_t range = 0;
+
+            while (s_bagSlotRanges[range].m_last != index) {
+                if (++range >= 8) {
+                    break;
+                }
+            }
+
+            if (range >= 8) {
+                index++;
+            } else if (range >= 7) {
+                index = numSlots;
+            } else {
+                index = s_bagSlotRanges[range + 1].m_first;
+            }
+        } else {
+            index++;
+        }
+
+        if (index >= numSlots) {
+            return best;
+        }
+    }
+}
+
+// VERIFY: 82130edd auto
+// OFFSET: 0x00754590
+int32_t GetItemLimitCategoryCallback(const CGItem_C* item, void* param) {
+    int32_t* data = static_cast<int32_t*>(param);
+
+    if (item && item->GetStats() && static_cast<int32_t>(item->GetStats()->m_itemLimitCategory) == data[0]) {
+        data[1] += item->m_item->m_itemFieldStackCount;
+    }
+
+    return 0;
+}
+
+// VERIFY: 2670f6b3 auto
+// OFFSET: 0x00754DD0
+bool CGBag_C::ItemCountValid(int32_t itemId, const ItemStats_C* stats, int32_t count, bool showError) {
+    if (stats->m_maxCount) {
+        int32_t current;
+
+        if (itemId == -2) {
+            current = this->GetNumFreeInvSlots();
+        } else {
+            int32_t data[2] = { itemId, 0 };
+            WOWGUID container;
+            uint32_t slot;
+            this->FindItem(GetItemTypeCountCallback, data, container, slot, 79);
+            current = data[1];
+        }
+
+        if (count + current > static_cast<int32_t>(stats->m_maxCount)) {
+            if (showError) {
+                CGGameUI::DisplayError(ERR_ITEM_MAX_COUNT);
+            }
+
+            return false;
+        }
+    }
+
+    if (stats->m_itemLimitCategory) {
+        ItemLimitCategoryRec* category = g_itemLimitCategoryDB.GetRecord(stats->m_itemLimitCategory);
+        int32_t data[2] = { static_cast<int32_t>(stats->m_itemLimitCategory), 0 };
+        WOWGUID container;
+        uint32_t slot;
+        this->FindItem(GetItemLimitCategoryCallback, data, container, slot, 79);
+
+        if (count + data[1] > category->m_quantity) {
+            if (showError) {
+                CGGameUI::DisplayError(ERR_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED_IS, category->m_quantity, category->m_name);
+            }
+
+            return false;
+        }
+    }
+
+    return true;
 }

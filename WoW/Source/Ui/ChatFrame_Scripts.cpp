@@ -1,5 +1,6 @@
 #include "ChatFrame.h"
 #include <cstdint>
+#include "Engine/Source/lua-5.1/src/lua.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
@@ -23,6 +24,9 @@
 #include "WoW/Source/DB/Rec/ChatChannelsRec.h"
 #include "WoW/Source/Game/GameClient/ComSatClient.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+
+// STATIC: 0x00AC7A48
+static const char* s_channelCategories[3] = { "CHANNEL_CATEGORY_GROUP", "CHANNEL_CATEGORY_WORLD", "CHANNEL_CATEGORY_CUSTOM" };
 
 // VERIFY: 3ea62573 manual
 // OFFSET: 0x0050D170
@@ -1060,6 +1064,141 @@ static int32_t Script_RemoveChatWindowMessages(lua_State* L) {
     }
 
     return 0;
+}
+
+// VERIFY: 93fcf20f manual
+// OFFSET: 0x004FF580
+static int32_t Script_GetChannelDisplayInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetChannelDisplayInfo(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index >= s_numDisplayChannels) {
+        return 0;
+    }
+
+    DisplayChannel* display = &CGChat::s_displayChannels[index];
+
+    if (display->m_headerIndex >= 0) {
+        lua_pushstring(L, FrameScript_GetText(s_channelCategories[display->m_headerIndex], -1, GENDER_NOT_APPLICABLE));
+        lua_pushnumber(L, 1.0);
+
+        if (display->m_collapsed) {
+            lua_pushnumber(L, 1.0);
+        } else {
+            lua_pushnil(L);
+        }
+
+        lua_pushnil(L);
+
+        if (display->m_count) {
+            lua_pushnumber(L, display->m_count);
+        } else {
+            lua_pushnil(L);
+        }
+
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 9;
+    }
+
+    int32_t channelIndex = display->m_channelIndex;
+
+    if (channelIndex < 0) {
+        const char* token;
+
+        switch (channelIndex) {
+            case -1:
+                token = "CHAT_MSG_PARTY";
+                break;
+
+            case -2:
+                token = "CHAT_MSG_RAID";
+                break;
+
+            case -3:
+                token = "CHAT_MSG_BATTLEGROUND";
+                break;
+
+            default:
+                for (int32_t i = 0; i < 9; i++) {
+                    lua_pushnil(L);
+                }
+
+                return 9;
+        }
+
+        lua_pushstring(L, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE));
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+
+        if (display->m_count) {
+            lua_pushnumber(L, display->m_count);
+        } else {
+            lua_pushnil(L);
+        }
+
+        if (display->m_enabled) {
+            lua_pushnumber(L, 1.0);
+        } else {
+            lua_pushnil(L);
+        }
+
+        lua_pushstring(L, s_channelCategories[0]);
+    } else {
+        const char* name = CGChat::GetChannelShortName(channelIndex + 1, true);
+        lua_pushstring(L, name ? name : "");
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnumber(L, CGChat::s_channels.m_data[display->m_channelIndex].m_channelNumber);
+
+        if (display->m_count) {
+            lua_pushnumber(L, display->m_count);
+        } else {
+            lua_pushnil(L);
+        }
+
+        if (display->m_enabled) {
+            lua_pushnumber(L, 1.0);
+        } else {
+            lua_pushnil(L);
+        }
+
+        lua_pushstring(L, display->m_flags & 1 ? s_channelCategories[1] : s_channelCategories[2]);
+    }
+
+    if (display->m_voiceEnabled) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (static_cast<uint32_t>(s_activeVoiceChannel) == index) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 9;
+}
+
+// VERIFY: 4af53a4c auto
+// OFFSET: 0x004FFA10
+static int32_t Script_GetSelectedDisplayChannel(lua_State* L) {
+    uint32_t index = CGChat::FindDisplayChannelIndex(CGChat::s_activeDisplayChannelName, s_activeDisplayChannelType);
+
+    if (index) {
+        lua_pushnumber(L, index);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
 }
 
 // STATIC: 0x00AC7A58

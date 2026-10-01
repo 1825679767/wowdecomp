@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Object/WGUID.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/AccountData.h"
 
 struct lua_State;
 
@@ -20,7 +22,8 @@ class MACRONODE : public TSHashObject<MACRONODE, HASHKEY_NONE> {
     /* 056C */ int32_t m_spellFlags;
     /* 0570 */ uint32_t unk_0570;
     /* 0574 */ uint32_t m_dynamic;
-    /* 0578 */ uint8_t unk_0578[12];
+    /* 0578 */ WOWGUID m_target;
+    /* 0580 */ uint32_t unk_0580;
     /* 0584 */ uint32_t unk_0584;
     /* 0588 */ uint8_t unk_0588[8];
     /* 0590 */ TSLink<MACRONODE> m_dynamicLink;
@@ -32,6 +35,7 @@ class MACRONODE : public TSHashObject<MACRONODE, HASHKEY_NONE> {
 
 class CGUIMacros {
     public:
+    static uint32_t m_state;
     static const char* m_macroRunning;
     static MACRONODE* m_macroButton;
     static uint32_t m_numMacros;
@@ -39,12 +43,16 @@ class CGUIMacros {
     static uint32_t m_sortedMacros[72];
 
     static MACRONODE* FindMacro(const char* name);
+    static void RemoveDynamicMacro(MACRONODE* macro);
+    static bool IsActionAllowed(uint32_t action);
     static void UpdateMacroSpells();
     static MACRONODE* GetMacroByID(uint32_t id);
     static int32_t GetMacroIndexByID(uint32_t id);
     static MACRONODE* GetMacroByIndex(uint32_t index);
     static void Initialize();
+    static void LoadIcons();
     static void LoadMacros();
+    static void LoadMacrosCallback(HOSFILE localFile, HOSFILE cacheFile, void* param);
     static void RunMacro(MACRONODE* macro, const char* button);
     static void UpdateDynamicMacros();
     static void RunMacro(int32_t id, const char* button);
@@ -61,8 +69,6 @@ int32_t Script_DeleteMacro(lua_State* L);
 int32_t Script_EditMacro(lua_State* L);
 int32_t Script_SetMacroItem(lua_State* L);
 int32_t Script_GetMacroItem(lua_State* L);
-int32_t Script_SetMacroSpell(lua_State* L);
-int32_t Script_GetMacroSpell(lua_State* L);
 int32_t Script_GetNumMacroIcons(lua_State* L);
 int32_t Script_GetNumMacroItemIcons(lua_State* L);
 int32_t Script_GetMacroIconInfo(lua_State* L);

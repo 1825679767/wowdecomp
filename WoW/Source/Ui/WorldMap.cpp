@@ -25,6 +25,11 @@
 #include "WoW/Source/Ui/MinimapFrame.h"
 #include "WoW/Source/Ui/PartyFrame.h"
 #include "WoW/Source/Ui/Types.h"
+#include <new>
+#include <typeinfo>
+#include "Engine/Source/Base/Coordinate.h"
+#include "Engine/Source/Frame/CSimpleModel.h"
+#include "Engine/Source/Model2/M2Model.h"
 
 // STATIC: 0x00BE8EE0
 uint32_t CGWorldMap::m_numLandmarks;
@@ -1109,4 +1114,46 @@ const char* CGWorldMap::GetZoneName(uint32_t continent, uint32_t zone) {
     }
 
     return areaRec->m_areaName;
+}
+
+// VERIFY: 7155245b manual
+// OFFSET: 0x005446F0
+static void CenterArrowModel(CSimpleModel* model) {
+    float x = model->GetWidth() * 0.5f;
+    float height = model->GetHeight();
+    model->m_position.x = x;
+    model->m_position.y = height * 0.5f;
+    model->m_position.z = 0.0f;
+}
+
+// VERIFY: b5a7a84c auto
+// OFFSET: 0x00544750
+void CGWorldMap::CreateArrowFrame(CSimpleFrame* parent) {
+    if (!parent) {
+        return;
+    }
+
+    if (!CGWorldMap::m_playerArrowFrame) {
+        void* data = CSimpleModel::s_allocator.GetData(0, typeid(CSimpleModel).raw_name(), SLOG_OBJECT);
+        CGWorldMap::m_playerArrowFrame = data ? new (data) CSimpleModel(parent) : nullptr;
+        CGWorldMap::m_playerArrowFrame->SetModel("Interface\\Minimap\\MinimapArrow.mdx");
+        CGWorldMap::m_playerArrowFrame->m_modelScale = NDCToDDCHeight(1.0f) * 1.6666666f;
+        CGWorldMap::m_playerArrowFrame->SetName("PlayerArrowFrame");
+
+        if (CGWorldMap::m_playerArrowFrame->m_model && CGWorldMap::m_playerArrowFrame->m_model->IsLoaded(0, 0)) {
+            CenterArrowModel(CGWorldMap::m_playerArrowFrame);
+        }
+    }
+
+    if (!CGWorldMap::m_playerArrowEffectFrame) {
+        void* data = CSimpleModel::s_allocator.GetData(0, typeid(CSimpleModel).raw_name(), SLOG_OBJECT);
+        CGWorldMap::m_playerArrowEffectFrame = data ? new (data) CSimpleModel(parent) : nullptr;
+        CGWorldMap::m_playerArrowEffectFrame->SetModel("Interface\\Minimap\\MinimapArrow.mdx");
+        CGWorldMap::m_playerArrowEffectFrame->m_modelScale = NDCToDDCHeight(1.0f) * 1.6666666f;
+        CGWorldMap::m_playerArrowEffectFrame->SetName("PlayerArrowEffectFrame");
+
+        if (CGWorldMap::m_playerArrowEffectFrame->m_model && CGWorldMap::m_playerArrowEffectFrame->m_model->IsLoaded(0, 0)) {
+            CenterArrowModel(CGWorldMap::m_playerArrowEffectFrame);
+        }
+    }
 }

@@ -592,3 +592,9 @@ void CSimpleModel::ReplaceTexture(uint32_t type, const char* fileName) {
         HandleClose(reinterpret_cast<HOBJECT>(texture));
     }
 }
+
+// VERIFY: 06d1129f auto
+// OFFSET: 0x00542F80
+void CSimpleModel::SetPosition(const C3Vector& position) {
+    this->m_position = position;
+}

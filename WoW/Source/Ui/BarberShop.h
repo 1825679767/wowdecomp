@@ -3,7 +3,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Net/Types.h"
+#include "WoW/Source/Ui/USEABLESTYLE.h"
 
 struct lua_State;
 
@@ -15,11 +17,15 @@ int32_t Packet_SMSG_BARBER_SHOP_RESULT(void* param, NETMESSAGE msgId, uint32_t t
 class CGBarberShop {
     public:
     static void EnterWorld();
+    static STYLEREC* GetStyle(int32_t type, int32_t race, int32_t sex, int32_t data);
     static float GetMinCameraDistance();
     static int32_t m_barberShopEnabled;
     static float m_minCameraDistance;
     static uint8_t m_resetPortrait;
-    static int32_t m_currentSkinColor;
+    static STYLEREC* m_currentHairStyle;
+    static STYLEREC* m_currentFacialHair;
+    static STYLEREC* m_currentSkinColor;
+    static TSHashTable<USEABLESTYLE, HASHKEY_NONE> m_useableStyles;
     static uint8_t m_initialized;
 
     static void AppearanceApplied();

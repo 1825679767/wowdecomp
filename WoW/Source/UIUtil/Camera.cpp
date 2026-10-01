@@ -4150,3 +4150,14 @@ void CGCamera::CalcModelCamera(uint32_t time) {
     DataMgrGetCoord(reinterpret_cast<CDataMgr*>(this->unk_0050), 8, &target);
     this->SetPositionAndTargetWithRoll(position, target, CameraGetFloat(reinterpret_cast<CCamera*>(this->unk_0050), 5));
 }
+
+// VERIFY: 399367f6 auto
+// OFFSET: 0x006038A0
+void CGCamera::CommentatorSetViewAndPosition(const C3Vector& position, float facing, float pitch) {
+    this->m_views[6][0] = 0.0f;
+    this->m_views[6][2] = facing;
+    this->m_views[6][1] = pitch;
+    this->m_position = position;
+    this->m_position = position;
+    this->SetView(6, 2, 0);
+}

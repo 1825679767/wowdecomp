@@ -22,8 +22,7 @@ struct StationeryInfo {
     /* 0004 */ int32_t m_itemID;
     /* 0008 */ int32_t m_isDefault;
     /* 000C */ int32_t unk_000C;
-    /* 0010 */ int32_t unk_0010;
-    /* 0014 */ int32_t unk_0014;
+    /* 0010 */ WOWGUID m_itemGUID;
 };
 
 struct MailboxMessageInfo {
@@ -62,6 +61,7 @@ class CGMailInfo {
     static void ClearSendMail(bool signal);
     static void CloseMail(bool leavingWorld);
     static uint8_t m_sendMailShowing;
+    static void AddItemToOutgoingMail(int32_t index, WOWGUID item, WOWGUID container, uint32_t slot);
     static TSFixedArray<StationeryInfo*> m_stationeries;
     static TSGrowableArray<MailboxMessageInfo*> m_inbox;
     static void EnterWorld();
@@ -77,7 +77,17 @@ class CGMailInfo {
     static WOWGUID m_object;
     static uint32_t m_nextUpdateTime;
     static int32_t m_commandPending;
+    static uint32_t m_numStationeries;
+    static uint32_t m_pendingStationeryCallbacks;
+    static int32_t m_doPendingQuery;
+    static int32_t m_autoLooting;
+
+    static uint32_t GetNumSendItems();
+    static void QueryNextMailTime();
+    static void UpdateStationeryList();
 };
+
+void StationeryItemCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 
 int32_t Script_CloseMail(lua_State* L);
 int32_t Script_ClearSendMail(lua_State* L);
@@ -87,7 +97,6 @@ int32_t Script_SetSendMailCOD(lua_State* L);
 int32_t Script_GetNumStationeries(lua_State* L);
 int32_t Script_GetSendMailItem(lua_State* L);
 int32_t Script_GetSendMailItemLink(lua_State* L);
-int32_t Script_GetSendMailPrice(lua_State* L);
 int32_t Script_SendMail(lua_State* L);
 int32_t Script_GetInboxHeaderInfo(lua_State* L);
 int32_t Script_GetInboxText(lua_State* L);

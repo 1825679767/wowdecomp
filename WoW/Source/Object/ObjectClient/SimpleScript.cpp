@@ -3,6 +3,7 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
+#include "Engine/Source/Base/DynamicString.h"
 
 // STATIC: 0x00CA1610
 void (*CSimpleScriptManager::s_callbacks[16])(uint32_t);
@@ -267,4 +268,150 @@ void CSimpleScriptManager::Uninit() {
 
     luaL_unref(L, LUA_REGISTRYINDEX, this->m_envRef);
     this->m_hashMask = -1;
+}
+
+// VERIFY: e64eaffe manual
+// OFFSET: 0x00758390
+SimpleScriptFunction* CSimpleScriptManager::GetFunction(uint32_t handle) {
+    if (handle == 0xFFFFFFFF) {
+        return nullptr;
+    }
+
+    TSGrowableArray<SimpleScriptFunction>* list = &this->m_buckets[handle >> 16];
+
+    if (handle >= list->m_count) {
+        return nullptr;
+    }
+
+    return &list->m_data[handle];
+}
+
+// VERIFY: 2600d97c auto
+// OFFSET: 0x007587D0
+uint32_t CSimpleScriptManager::CreateFunction(int32_t id, const SimpleScriptFunctionDesc& desc) {
+    CDynamicString script;
+    script.SetCapacity(512);
+    script += "return function(";
+    int32_t separator = 0;
+    int32_t numArgs = 0;
+    int32_t numStringArgs = 0;
+
+    if (desc.m_args && *desc.m_args) {
+        do {
+            if (separator) {
+                script += ", ";
+            }
+
+            script += desc.m_args[numArgs];
+            separator = 1;
+            numArgs++;
+        } while (desc.m_args[numArgs]);
+    }
+
+    if (desc.m_stringArgs && *desc.m_stringArgs) {
+        do {
+            if (separator) {
+                script += ", ";
+            }
+
+            script += desc.m_stringArgs[numStringArgs];
+            separator = 1;
+            numStringArgs++;
+        } while (desc.m_stringArgs[numStringArgs]);
+    }
+
+    script += ")\n";
+    int32_t numReturns = 0;
+    int32_t numStringReturns = 0;
+
+    if (desc.m_returns && *desc.m_returns) {
+        do {
+            script += "local ";
+            script += desc.m_returns[numReturns];
+            script += " = 0.0\n";
+            numReturns++;
+        } while (desc.m_returns[numReturns]);
+    }
+
+    if (desc.m_stringReturns && *desc.m_stringReturns) {
+        do {
+            script += "local ";
+            script += desc.m_stringReturns[numStringReturns];
+            script += " = \"\"\n";
+            numStringReturns++;
+        } while (desc.m_stringReturns[numStringReturns]);
+    }
+
+    script += desc.m_body;
+    script += "\nreturn ";
+    separator = 0;
+
+    if (desc.m_returns) {
+        for (int32_t i = 0; desc.m_returns[i]; i++) {
+            if (separator) {
+                script += ", ";
+            }
+
+            script += desc.m_returns[i];
+            separator = 1;
+        }
+    }
+
+    if (desc.m_stringReturns) {
+        for (int32_t i = 0; desc.m_stringReturns[i]; i++) {
+            if (separator) {
+                script += ", ";
+            }
+
+            script += desc.m_stringReturns[i];
+            separator = 1;
+        }
+    }
+
+    script += "\nend\n";
+    lua_State* L = FrameScript_GetContext();
+    lua_rawgeti(L, LUA_REGISTRYINDEX, FrameScript_GetErrorHandlerReference());
+
+    if (luaL_loadbuffer(L, script.m_buffer, script.m_length, desc.m_name)) {
+        if (lua_pcall(L, 1, 0, 0)) {
+            lua_settop(L, -2);
+        }
+
+        return 0xFFFFFFFF;
+    }
+
+    if (lua_pcall(L, 0, 1, 1)) {
+        lua_settop(L, -3);
+        return 0xFFFFFFFF;
+    }
+
+    lua_rawgeti(L, LUA_REGISTRYINDEX, this->m_envRef);
+    lua_setfenv(L, -2);
+    uint32_t handle = this->FindFunction(id);
+    SimpleScriptFunction local;
+    SimpleScriptFunction* function;
+
+    if (handle == 0xFFFFFFFF) {
+        function = &local;
+    } else {
+        function = this->GetFunction(handle);
+        luaL_unref(L, LUA_REGISTRYINDEX, function->m_luaRef);
+    }
+
+    function->m_id = id;
+    function->m_luaRef = luaL_ref(L, LUA_REGISTRYINDEX);
+    lua_settop(L, -2);
+    function->m_numArgs = numArgs;
+    function->m_numStringArgs = numStringArgs;
+    function->m_numReturns = numReturns;
+    function->m_numStringReturns = numStringReturns;
+
+    if (handle != 0xFFFFFFFF) {
+        return handle;
+    }
+
+    uint32_t bucket = id & this->m_hashMask;
+    TSGrowableArray<SimpleScriptFunction>* list = &this->m_buckets[bucket];
+    list->Add(1, function);
+    return (bucket << 16) | (list->m_count - 1);
 }

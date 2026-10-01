@@ -31,6 +31,7 @@ WOWGUID GetGuidByKeyword(const char* token);
 bool GetUnitByKeyword(const char* token, CGUnit_C** unit, bool defaultToTarget);
 int32_t Script_GetUnitAuraInfo(lua_State* L, int32_t index, ScriptAuraInfo* info);
 int32_t PushUnitAura(lua_State* L, ScriptAuraInfo* info);
+const char* Script_GetAuraTokenFromGUID(const WOWGUID* guid);
 VehicleSeatRec* GetVehicleSeatRecAsPassengerFromLua(lua_State* L);
 void UnitNameQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 bool Script_GetGUIDFromString(const char** name, WOWGUID& guid);

@@ -4,6 +4,8 @@
 #include <cstring>
 #include "Client.h"
 #include "_Triage/AreaList.h"
+#include "WoW/Source/Net/NetClient/NetClient.h"
+#include "_Triage/SHA1.h"
 #include "_Triage/DataPreload.h"
 #include "_Triage/GameClientCommands.h"
 #include "_Triage/StartupReport.h"
@@ -76,6 +78,7 @@
 #include "WoW/Source/Object/ObjectClient/Movement_C.h"
 #include "WoW/Source/Object/ObjectClient/ObjectEffect.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/Object/ObjectClient/Trade_C.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/ObjectAlloc/HeapUsage.h"
@@ -104,6 +107,7 @@
 #include "WoW/Source/WorldClient/shadow.h"
 #include "WoW/Source/WowServices/PatchFiles.h"
 #include "WoW/Source/WowServices/RealmConnection.h"
+#include "WoW/Source/WowServices/WDataStore.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/AccountData.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
@@ -283,6 +287,24 @@ static int32_t s_clientTaxiBenchIsOnTaxi;
 // STATIC: 0x00B2F9AC
 static int32_t s_clientTaxiBenchEnabled;
 
+// STATIC: 0x00B2F9B0
+static double s_clientTaxiBenchMinFPS;
+
+// STATIC: 0x00B2F9B8
+static double s_clientTaxiBenchMaxFPS;
+
+// STATIC: 0x00B2F9C0
+static double s_clientTaxiBenchTotalTime;
+
+// STATIC: 0x00B2F9C8
+static uint32_t s_clientTaxiBenchTotalFrames;
+
+// STATIC: 0x00B2F9CC
+static uint32_t s_clientTaxiBenchDelayTime;
+
+// STATIC: 0x00B2F9D0
+static uint64_t s_clientTaxiTimestamp;
+
 // STATIC: 0x00B2F9E0
 static uint8_t s_botCheckEnabled;
 
@@ -290,7 +312,7 @@ static uint8_t s_botCheckEnabled;
 static uint32_t s_botCheckStartTime;
 
 // STATIC: 0x00B2F9E8
-static uint32_t s_botCheckDelay;
+static int32_t s_botCheckDelay;
 
 // STATIC: 0x00B2FA1C
 static C3Vector s_spawnPosition;
@@ -1440,7 +1462,7 @@ int32_t ForEveryRunOnceWTF::AppendFileName(OS_FILE_DATA& data, void* param) {
     return 0;
 }
 
-// VERIFY: 0f3b98a4 manual
+// VERIFY: fedc85e6 manual
 // OFFSET: 0x00406510
 void ClientDestroyGame(int32_t charSelect, int32_t resumeGlue, int32_t worldLogin) {
     if (!s_gameInitialized) {
@@ -1476,7 +1498,7 @@ void ClientDestroyGame(int32_t charSelect, int32_t resumeGlue, int32_t worldLogi
     CGGameObject_C::Shutdown();
     CGObject_C::Shutdown();
     MovementDestroy();
-    LootRollDestroy();
+    LootRollShutdown();
     EventUnregister(EVENT_ID_IDLE, MovementIdleMoveUnits);
     Spell_C_StopTargeting();
     ClntObjMgrDestroy();
@@ -1901,6 +1923,189 @@ int32_t STORMAPI SendErrorLog(uint32_t errorcode, const char* description, const
         char commandLine[520];
         SStrPrintf(commandLine, sizeof(commandLine), "%s %s", "WowError.exe", path);
         SCreateProcess("WowError.exe", commandLine, nullptr, nullptr);
+    }
+
+    return 1;
+}
+
+// VERIFY: b4bcd439 manual
+// OFFSET: 0x00404EE0
+static void ClientBeginTaxiBenchmarkMode() {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || !(player->m_player->m_playerFlags & 0x20000)) {
+        return;
+    }
+
+    s_clientTaxiBenchEnabled = 1;
+    s_clientTaxiBenchMinFPS = 99999.0;
+    s_clientTaxiBenchIsOnTaxi = 1;
+    s_clientTaxiBenchTotalFrames = 0;
+    s_clientTaxiBenchMaxFPS = 0.0;
+    s_clientTaxiBenchTotalTime = 0.0;
+    s_clientTaxiBenchDelayTime = OsGetAsyncTimeMs() + 5000;
+}
+
+// VERIFY: a664a31a manual
+// OFFSET: 0x00404F60
+static void ClientEndTaxiBenchmarkMode(int32_t silent) {
+    if (!s_clientTaxiBenchEnabled) {
+        return;
+    }
+
+    s_clientTaxiBenchEnabled = 0;
+    s_clientTaxiBenchIsOnTaxi = 0;
+
+    if (silent || !s_clientTaxiBenchTotalFrames) {
+        return;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || player->IsDeadOrGhost()) {
+        return;
+    }
+
+    char text[3000];
+    CGChat::AddChatMessage(FrameScript_GetText("BENCHMARK_TAXI_RESULTS", -1, GENDER_NOT_APPLICABLE), CHAT_MSG_SYSTEM, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+    SStrPrintf(text, sizeof(text), FrameScript_GetText("BENCHMARK_TAXI_MIN_FPS", -1, GENDER_NOT_APPLICABLE), s_clientTaxiBenchMinFPS);
+    CGChat::AddChatMessage(text, CHAT_MSG_SYSTEM, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+    SStrPrintf(text, sizeof(text), FrameScript_GetText("BENCHMARK_TAXI_MAX_FPS", -1, GENDER_NOT_APPLICABLE), s_clientTaxiBenchMaxFPS);
+    CGChat::AddChatMessage(text, CHAT_MSG_SYSTEM, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+    SStrPrintf(text, sizeof(text), FrameScript_GetText("BENCHMARK_TAXI_AVERAGE_FPS", -1, GENDER_NOT_APPLICABLE), s_clientTaxiBenchTotalFrames / s_clientTaxiBenchTotalTime);
+    CGChat::AddChatMessage(text, CHAT_MSG_SYSTEM, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+}
+
+// VERIFY: 79999d66 manual
+// OFFSET: 0x00405130
+void ClientUpdateTaxiBenchmarkMode() {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return;
+    }
+
+    if (s_clientTaxiBenchIsOnTaxi) {
+        if (!(player->m_unit->m_unitFieldFlags & 0x100000) || !(player->m_player->m_playerFlags & 0x20000)) {
+            ClientEndTaxiBenchmarkMode(0);
+        }
+    } else if ((player->m_unit->m_unitFieldFlags & 0x100000) && (player->m_player->m_playerFlags & 0x20000)) {
+        ClientBeginTaxiBenchmarkMode();
+    }
+
+    if (!s_clientTaxiBenchEnabled) {
+        return;
+    }
+
+    uint64_t now = OsGetAsyncTimeClocks();
+    double elapsed = static_cast<double>(static_cast<int64_t>(now - s_clientTaxiTimestamp)) / static_cast<double>(OsGetAsyncClocksPerSecond());
+
+    if (elapsed <= 0.0) {
+        return;
+    }
+
+    s_clientTaxiTimestamp = now;
+
+    if (static_cast<int32_t>(OsGetAsyncTimeMs() - s_clientTaxiBenchDelayTime) < 0) {
+        return;
+    }
+
+    s_clientTaxiBenchTotalFrames++;
+    double fps = 1.0 / elapsed;
+    s_clientTaxiBenchTotalTime += elapsed;
+
+    if (fps <= s_clientTaxiBenchMinFPS) {
+        s_clientTaxiBenchMinFPS = fps;
+    }
+
+    if (fps >= s_clientTaxiBenchMaxFPS) {
+        s_clientTaxiBenchMaxFPS = fps;
+    }
+}
+
+// VERIFY: ada684ee auto
+// OFFSET: 0x00403FC0
+void CheckAndSendBotDetected() {
+    if (!s_botCheckEnabled) {
+        return;
+    }
+
+    ClientConnection* connection = ClientServices::Connection();
+
+    if (!s_gameInitialized || !connection) {
+        return;
+    }
+
+    uint32_t now = OsGetAsyncTimeMs();
+
+    if (now - s_botCheckStartTime < 1000) {
+        return;
+    }
+
+    s_botCheckStartTime = now;
+
+    if (--s_botCheckDelay > 0) {
+        return;
+    }
+
+    s_botCheckEnabled = 0;
+
+    uint8_t check1;
+    uint8_t check2;
+    uint8_t check3;
+
+    if (!GatherAdditionalChecks(&check1, &check2, &check3)) {
+        return;
+    }
+
+    SHA1 sha;
+    sha.Prepare();
+    sha.Process(connection->GetSessionKey(), sizeof(LoginData::m_sessionKey));
+    sha.Process(&check1, sizeof(check1));
+    sha.Process(&check2, sizeof(check2));
+    sha.Process(&check3, sizeof(check3));
+    sha.Process(connection->GetSessionKey(), sizeof(LoginData::m_sessionKey));
+    SHA1::Digest digest;
+    sha.Finish(digest);
+
+    WDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_BOT_DETECTED));
+    msg.Put(check1);
+    msg.Put(check2);
+    msg.Put(check3);
+    msg.PutArray(digest.m_data, sizeof(digest.m_data));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: b337a4a2 manual
+// OFFSET: 0x00401390
+int32_t Packet_SMSG_PLAYED_TIME(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    int32_t total;
+    int32_t level;
+    uint8_t show = 0;
+    msg->Get(reinterpret_cast<uint32_t&>(total));
+    msg->Get(reinterpret_cast<uint32_t&>(level));
+    msg->Get(show);
+
+    WOWGUID guid = ClntObjMgrGetActivePlayer();
+
+    if (guid) {
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (player) {
+            player->SetPlayedTime(total);
+        }
+    }
+
+    if (show) {
+        char text[256];
+        ConsolePrintf("Time played:");
+        FormatTime(text, sizeof(text), total);
+        ConsolePrintf("Total: %s", text);
+        FormatTime(text, sizeof(text), level);
+        ConsolePrintf("Level: %s", text);
+        FrameScript_SignalEvent(SCRIPT_EVENT_TIME_PLAYED_MSG, "%d%d", total, level);
     }
 
     return 1;

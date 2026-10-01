@@ -3,6 +3,24 @@
 #include "WoW/Source/DB/Rec/HolidayNamesRec.h"
 #include "WoW/Source/DB/Rec/HolidaysRec.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include <cstdlib>
+#include <cstring>
+#include "Engine/Source/Base/CDataStore.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include "WoW/Source/DB/Rec/FactionTemplateRec.h"
+#include "WoW/Source/DB/Rec/LfgDungeonsRec.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/Object/Unit.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Ui/Types.h"
+
+// STATIC: 0x00AD0350
+static CalendarEventClipboard s_eventClipboard;
+
+// STATIC: 0x00C20F60
+static TSFixedArray<int32_t> s_eventTextures[2];
 
 // STATIC: 0x00C207EC
 CGCalendarEvent* CGCalendar::m_curEvent;
@@ -64,4 +82,107 @@ const char* GetHolidayName(int32_t holidayId) {
 
     HolidayNamesRec* name = g_holidayNamesDB.GetRecord(holiday->m_holidayNameID);
     return name ? name->m_name : nullptr;
+}
+
+// VERIFY: 0d10e0e8 auto
+// OFFSET: 0x005B8E50
+static int32_t QSortTextures(const void* a, const void* b) {
+    LfgDungeonsRec* recA = g_lfgDungeonsDB.GetRecord(*static_cast<const int32_t*>(a));
+    LfgDungeonsRec* recB = g_lfgDungeonsDB.GetRecord(*static_cast<const int32_t*>(b));
+    int32_t result = recB->m_expansionLevel - recA->m_expansionLevel;
+
+    if (!result) {
+        return SStrSortUTF8I(recA->m_name, recB->m_name, STORM_MAX_STR);
+    }
+
+    return result;
+}
+
+// VERIFY: de197260 manual
+// OFFSET: 0x005BBBB0
+void CGCalendar::QueryPendingInvites() {
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_CALENDAR_GET_NUM_PENDING));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 9ea81fd7 manual
+// OFFSET: 0x005BE2A0
+void CGCalendar::EnterWorld() {
+    CGCalendar::m_actionPending = 0;
+    FrameScript_SignalEvent(SCRIPT_EVENT_CALENDAR_ACTION_PENDING, "%b", 0);
+
+    if (!CGCalendar::m_initialize) {
+        return;
+    }
+
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return;
+    }
+
+    memset(&s_eventClipboard, 0, sizeof(s_eventClipboard));
+    CGCalendar::QueryPendingInvites();
+
+    uint32_t counts[2] = { 0, 0 };
+    int32_t numRecords = g_lfgDungeonsDB.m_numRecords;
+
+    for (int32_t i = 0; i < numRecords; i++) {
+        LfgDungeonsRec* rec = g_lfgDungeonsDB.GetRecordByIndex(i);
+
+        if (!rec) {
+            continue;
+        }
+
+        if (rec->m_faction >= 0) {
+            FactionTemplateRec* faction = g_factionTemplateDB.GetRecord(player->m_unit->m_unitFieldFactiontemplate);
+            int32_t group = (faction->m_factionGroup & 0x4) ? 0 : ((faction->m_factionGroup & 0x2) ? 1 : -1);
+
+            if (group != rec->m_faction) {
+                continue;
+            }
+        }
+
+        if (rec->m_typeID == 1) {
+            counts[0]++;
+        } else if (rec->m_typeID == 2) {
+            counts[1]++;
+        }
+    }
+
+    for (uint32_t i = 0; i < 2; i++) {
+        s_eventTextures[i].SetCount(counts[i]);
+    }
+
+    counts[0] = 0;
+    counts[1] = 0;
+
+    for (int32_t i = 0; i < numRecords; i++) {
+        LfgDungeonsRec* rec = g_lfgDungeonsDB.GetRecordByIndex(i);
+
+        if (!rec) {
+            continue;
+        }
+
+        if (rec->m_faction >= 0) {
+            FactionTemplateRec* faction = g_factionTemplateDB.GetRecord(player->m_unit->m_unitFieldFactiontemplate);
+            int32_t group = (faction->m_factionGroup & 0x4) ? 0 : ((faction->m_factionGroup & 0x2) ? 1 : -1);
+
+            if (group != rec->m_faction) {
+                continue;
+            }
+        }
+
+        if (rec->m_typeID == 1) {
+            s_eventTextures[0].m_data[counts[0]++] = rec->m_id;
+        } else if (rec->m_typeID == 2) {
+            s_eventTextures[1].m_data[counts[1]++] = rec->m_id;
+        }
+    }
+
+    qsort(s_eventTextures[0].m_data, counts[0], sizeof(int32_t), QSortTextures);
+    qsort(s_eventTextures[1].m_data, counts[1], sizeof(int32_t), QSortTextures);
+    CGCalendar::m_initialize = 0;
 }

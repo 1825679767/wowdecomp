@@ -5,6 +5,7 @@
 #include "WoW/Source/Object/WGUID.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Net/Types.h"
+#include "WoW/Common/WowTime.h"
 
 class AchievementRec;
 class Achievement_CriteriaRec;
@@ -12,10 +13,20 @@ class CDataStore;
 struct lua_State;
 
 struct CLIENT_ACHIEVEMENT_CRITERIA : public TSLinkedNode<CLIENT_ACHIEVEMENT_CRITERIA> {
+    /* 0008 */ int32_t m_id;
+    /* 000C */ uint32_t unk_000C;
+    /* 0010 */ uint64_t m_counter;
+    /* 0018 */ uint32_t m_flags;
+    /* 001C */ WowTime m_date;
+    /* 003C */ uint32_t unk_003C;
+    /* 0040 */ WOWGUID m_player;
+    /* 0048 */ uint32_t m_timer1;
+    /* 004C */ uint32_t m_timer2;
 };
 
 struct CLIENT_ACHIEVEMENTS : public TSLinkedNode<CLIENT_ACHIEVEMENTS> {
     /* 0008 */ int32_t m_id;
+    /* 000C */ WowTime m_date;
 };
 
 struct COMPLETED_QUESTS : public TSLinkedNode<COMPLETED_QUESTS> {
@@ -44,9 +55,13 @@ int32_t Packet_SMSG_QUERY_QUESTS_COMPLETED_RESPONSE(void* param, NETMESSAGE msgI
 
 class CGAchievementInfo {
     public:
-    static void InitializeGame();
     static int32_t m_showAchievementUI;
     static WOWGUID m_inspect;
+
+    static void InitializeGame();
+    static bool IsCriteriaStat(int32_t criteriaId);
+    static void UpdateAchievement(int32_t id, WowTime date);
+    static void UpdateCriteria(int32_t id, uint64_t counter, uint32_t flags, WowTime date, WOWGUID player, uint32_t timer1, uint32_t timer2);
 };
 
 int32_t Script_GetCategoryList(lua_State* L);

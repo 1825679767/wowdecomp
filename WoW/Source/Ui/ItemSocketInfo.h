@@ -24,7 +24,11 @@ class ItemStats_C;
 
 class CGItemSocketInfo {
     public:
+    static uint8_t unk_C20FA8[3];
+    static WOWGUID m_gemItemContainer[3];
     static WOWGUID m_gemItems[3];
+    static WOWGUID m_socketItem;
+    static int32_t unk_C20FE8;
 
     static void EnterWorld();
     static int32_t GemMatchesSocket(const ItemStats_C* item, const ItemStats_C* gem, int32_t socket);

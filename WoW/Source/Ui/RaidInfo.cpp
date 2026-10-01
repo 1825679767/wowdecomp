@@ -39,6 +39,12 @@ WOWGUID CGRaidInfo::m_readyCheckInitiator;
 // STATIC: 0x00BEB628
 uint32_t CGRaidInfo::m_readyCheckTimer;
 
+// STATIC: 0x00BD0CE0
+int32_t CGRaidInfo::m_partyReadyCheckReady[4];
+
+// STATIC: 0x00BD0CF0
+int32_t CGRaidInfo::m_partyReadyCheckPending[4];
+
 // STATIC: 0x00ACE788
 uint8_t CGRaidInfo::m_rosterCounter = 0xFF;
 
@@ -281,4 +287,28 @@ int32_t CGRaidInfo::IsPlayerOrPetInRaid(const WOWGUID& guid) {
     }
 
     return 0;
+}
+
+// VERIFY: 2ceb7b94 manual
+// OFFSET: 0x005723E0
+int32_t CGRaidInfo::GetPartyMemberIndex(WOWGUID guid) {
+    for (int32_t i = 0; i < 4; i++) {
+        if (CGPartyInfo::m_members[i] == guid) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+// VERIFY: 7ec85a21 manual
+// OFFSET: 0x00572450
+int32_t CGRaidInfo::IsPartyMemberReadyCheckPending(uint32_t index) {
+    return index < 4 ? CGRaidInfo::m_partyReadyCheckPending[index] : 0;
+}
+
+// VERIFY: 1c65956c manual
+// OFFSET: 0x00572470
+int32_t CGRaidInfo::IsPartyMemberReadyCheckReady(uint32_t index) {
+    return index < 4 ? CGRaidInfo::m_partyReadyCheckReady[index] : 0;
 }

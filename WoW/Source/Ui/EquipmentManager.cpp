@@ -1,4 +1,5 @@
 #include "EquipmentManager.h"
+#include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "WoW/Source/Ui/ActionBarFrame.h"
 #include <new>
@@ -13,6 +14,9 @@ uint32_t* CGEquipmentManager::s_equipmentSetHeap;
 
 // STATIC: 0x00C1E954
 uint8_t CGEquipmentManager::m_lastCanUseEquipmentSetsValue;
+
+// STATIC: 0x00C1E955
+uint8_t CGEquipmentManager::m_loaded;
 
 // STATIC: 0x00C1E956
 uint8_t CGEquipmentManager::m_swapPending;
@@ -116,4 +120,67 @@ const EQUIPMENT_SET* CGEquipmentManager::GetSetByID(int32_t id) {
     }
 
     return nullptr;
+}
+
+// INLINED
+EQUIPMENT_SET::EQUIPMENT_SET() {
+    this->m_guid = WOWGUID{ 0 };
+    memset(this->m_items, 0, sizeof(this->m_items));
+    this->unk_0230 = 0;
+}
+
+// VERIFY: 816e8bf2 manual
+// OFFSET: 0x005AF490
+int32_t Packet_SMSG_EQUIPMENT_SET_LIST(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t count = 0;
+    msg->Get(count);
+
+    uint32_t existing = 0;
+
+    for (EQUIPMENT_SET_NODE* node = CGEquipmentManager::s_equipmentSets.Head(); !CGEquipmentManager::s_equipmentSets.IsEnd(node); node = CGEquipmentManager::s_equipmentSets.RawNext(node)) {
+        existing++;
+    }
+
+    if (CGEquipmentManager::m_loaded && count == existing) {
+        msg->m_read = msg->m_size;
+        return 1;
+    }
+
+    if (existing) {
+        for (EQUIPMENT_SET_NODE* node = CGEquipmentManager::s_equipmentSets.Head(); !CGEquipmentManager::s_equipmentSets.IsEnd(node); node = CGEquipmentManager::s_equipmentSets.RawNext(node)) {
+            ObjectFree(*CGEquipmentManager::s_equipmentSetHeap, node->m_set->m_handle);
+        }
+
+        CGEquipmentManager::s_equipmentSets.Clear();
+    }
+
+    for (int32_t i = 0; i < static_cast<int32_t>(count) && i < 10; i++) {
+        EQUIPMENT_SET* set = nullptr;
+        uint32_t handle;
+        void* object = nullptr;
+
+        if (ObjectAlloc(*CGEquipmentManager::s_equipmentSetHeap, &handle, &object, false)) {
+            set = object ? new (object) EQUIPMENT_SET() : nullptr;
+            set->m_handle = handle;
+        }
+
+        SmartGUID guid;
+        *msg >> guid;
+        set->m_guid = guid;
+        msg->Get(reinterpret_cast<uint32_t&>(set->m_id));
+        msg->GetString(set->m_name, sizeof(set->m_name));
+        msg->GetString(set->m_icon, sizeof(set->m_icon));
+
+        for (uint32_t slot = 0; slot < 19; slot++) {
+            SmartGUID item;
+            *msg >> item;
+            set->m_items[slot] = item;
+        }
+
+        EQUIPMENT_SET_NODE* node = CGEquipmentManager::s_equipmentSets.NewNode(2, 0, 0);
+        node->m_set = set;
+    }
+
+    CGEquipmentManager::m_loaded = 1;
+    return 1;
 }

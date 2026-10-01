@@ -100,10 +100,13 @@ class CGTooltip : public CSimpleFrame {
     static const char* GetItemQualityColorString(uint32_t quality);
     static const char* CreateItemLink(int32_t itemId, uint32_t quality, int32_t enchant, const int32_t* gems, int32_t randomPropertiesId, int32_t seed);
     static const char* GetItemHyperlinkString(CGItem_C* item);
+    static const uint32_t* GetThreatStateColor(uint32_t status);
     static const char* GetItemHyperlinkString(int32_t itemId, uint32_t quality, int32_t enchant, int32_t randomPropertiesId, int32_t seed);
     static const char* GetQuestDifficultyColorString(int32_t level);
     static const char* GetQuestLink(int32_t questId, int32_t level);
     static const char* GetSpellLink(int32_t spellId);
+    static const char* GetGlyphLink(int32_t slotId, int32_t glyphId);
+    static const char* GetTalentHyperlinkString(const TalentRec* talent, const char* name, int32_t rank);
     static const char* GetAchievementHyperlink(int32_t achievementId, WOWGUID guid, int32_t a3, WowTime time, int32_t a5, int32_t a6, int32_t a7, int32_t a8);
     static int32_t GetObjectType();
     static void RegisterScriptMethods(lua_State* L);
@@ -134,7 +137,7 @@ class CGTooltip : public CSimpleFrame {
     /* 0364 */ int32_t m_spellId;
     /* 0368 */ uint32_t unk_0368;
     /* 036C */ uint32_t unk_036C;
-    /* 0370 */ uint32_t unk_0370;
+    /* 0370 */ int32_t m_nextRankSpellId;
     /* 0374 */ uint32_t unk_0374 [4];
     /* 0384 */ WowTime m_time;
     /* 03A4 */ uint32_t unk_03A4 [4];
@@ -193,6 +196,9 @@ class CGTooltip : public CSimpleFrame {
     void SetCorpse(const WOWGUID& guid);
     void AddFontStrings(CSimpleFontString* left, CSimpleFontString* right);
     void AddLine(const char* left, const char* right, const CImVector& leftColor, const CImVector& rightColor, int32_t wrap);
+    void AddLine(const char* left, const char* right, int32_t wrap);
+    int32_t SetMacro(uint32_t macroId);
+    int32_t SetEquipmentSet(uint32_t setId);
     void AddTexture(const char* texture, const CAaRect& coords, const CImVector& color);
     void AddEmpathyText(CGUnit_C* unit, char* buffer, uint32_t size);
     void AddSkinnableText(CGUnit_C* unit, char* buffer, uint32_t size);
@@ -208,8 +214,8 @@ class CGTooltip : public CSimpleFrame {
     int32_t AddTalentPrereqs(const TalentRec* talent, CGTalentGroup_C* group, int32_t isInspect, int32_t isPet, int32_t usePreview);
     void AddTalentLearnText(const TalentRec* talent, CGTalentGroup_C* group, int32_t prereqsMet, int32_t rank, int32_t maxRank, int32_t a7, int32_t a8, int32_t isPet, int32_t usePreview);
     int32_t SetQuest(int32_t questId);
-    void SetGlyph(int32_t glyphId, int32_t spellId, int32_t a3, int32_t a4, int32_t a5);
-    void SetTalent(const TalentRec* talent, CGTalentGroup_C* group, int32_t a3, int32_t a4, int32_t rank, int32_t a6, int32_t a7);
+    void SetGlyph(int32_t slotId, int32_t glyphId, int32_t enabled, int32_t hideRemove, int32_t parseUnit);
+    void SetTalent(const TalentRec* talent, CGTalentGroup_C* group, int32_t isInspect, int32_t useRank, int32_t rank, int32_t isPet, int32_t usePreview);
     int32_t SetAchievement(int32_t achievementId, uint64_t guid, bool completed, WowTime time, uint32_t criteria1, uint32_t criteria2, uint32_t criteria3, uint32_t criteria4, int32_t a10);
     int32_t SetSpell(int32_t spellId, int32_t brief, uint32_t cooldown, int32_t isPet, int32_t showRank, int32_t isInspect, int32_t a8, const TalentRec* talent, CGTalentGroup_C* talentGroup, int32_t append, int32_t usePreview, int32_t a13, int32_t rank, int32_t maxRank, int32_t showLearn);
     int32_t SetItem(int32_t itemId, const WOWGUID* requester, const WOWGUID* itemGuid, int32_t nameOnly, int32_t compare, int32_t useLinkInfo, int32_t append, WOWGUID owner, int32_t socketPreview, FILE* stream, int32_t hideCharges, const ItemLinkInfo* link, int32_t minimumLevel, int32_t skipLock, int32_t skipSellPrice);
@@ -244,5 +250,6 @@ class CSimpleUI {
 };
 
 extern uint32_t s_tooltipTitleColor;
+extern uint32_t s_tooltipTextColor;
 
 #endif

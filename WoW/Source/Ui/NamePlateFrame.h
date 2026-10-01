@@ -17,6 +17,8 @@ class CGNamePlateFrame : public CSimpleFrame {
     public:
     static CGNamePlateFrame* GetNamePlateFocus();
 
+    void UpdateLevelDisplay(CGUnit_C* unit);
+
     /* 029C */ TSLink<CGNamePlateFrame> m_link;
     /* 02A4 */ uint32_t unk_02A4;
     /* 02A8 */ WOWGUID m_guid;

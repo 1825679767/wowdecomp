@@ -116,7 +116,7 @@ class CMapFootprintTexture {
     CMapFootprintTexture();
 };
 
-typedef int32_t (*MAP_OBJECT_FUNC)(void*, uint32_t, uint64_t, uint32_t);
+typedef int32_t (*MAP_OBJECT_FUNC)(void*, uint32_t, uint64_t, uintptr_t);
 
 struct MapObjIntersectCandidate {
     /* 0000 */ CMapObjDef* def;
@@ -317,7 +317,8 @@ class CMap {
     static void ProcessChunkLiquidUpdateList();
     static void PrepareMapDoodadDefs();
     static void ProcessRenderChunkUpdateList();
-    static CMapEntity* ObjectCreate(CM2Model* model, MAP_OBJECT_FUNC func, void* funcParam, uint64_t param64, uint32_t param32, uint32_t a7);
+    static CMapEntity* ObjectCreate(CM2Model* model, MAP_OBJECT_FUNC func, void* funcParam, uint64_t param64, uintptr_t param32, uint32_t a7);
+    static CMapEntity* ObjectCreateStatic(CM2Model* model, const C44Matrix& matrix, MAP_OBJECT_FUNC func, void* funcParam, uintptr_t param32);
     static void ObjectUpdate(CMapEntity* entity, C44Matrix& mat, CAaBox& box, CAaSphere& sphere, C3Vector& vec, bool a6, uint32_t a7);
     static void PrepareEntitys(int32_t addToScene);
     static void LinkStaticEntityMultiple2(CMapStaticEntity* entity);

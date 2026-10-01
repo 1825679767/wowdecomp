@@ -2121,3 +2121,19 @@ void CGGameObject_C_Type_TransportBase::AddPassenger(CPassenger* passenger, int3
 int32_t CGGameObject_C::GetPageTextMaterial() const {
     return this->GetPropertyValue(CGameObjectDef::GetPropNum(this->m_gameObject->m_typeID, 17));
 }
+
+// VERIFY: d9d6f845 manual
+// OFFSET: 0x0070EDD0
+int32_t CGGameObject_C::ObjectReaction(const CGUnit_C* unit) const {
+    CGUnit_C* creator = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_gameObject->m_createdBy, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (creator) {
+        return creator->UnitReaction(unit);
+    }
+
+    if (this->m_gameObject->m_faction) {
+        return CGUnit_C::UnitReaction(this->m_gameObject->m_faction, unit);
+    }
+
+    return 3;
+}

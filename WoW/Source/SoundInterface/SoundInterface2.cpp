@@ -19,6 +19,9 @@
 #include "WoW/Source/SoundInterface/SoundInterface2ZoneSounds.h"
 #include "WoW/Source/Ui/ChatFrame.h"
 #include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/DB/Rec/ResistancesRec.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
+#include "WoW/Source/Object/ObjectClient/Object_C.h"
 
 // STATIC: 0x009F2010
 const char SI2::s_channelGroupNames[18][32] = {
@@ -1361,4 +1364,32 @@ int32_t SI2::Init(int32_t restart) {
     }
 
     return 0;
+}
+
+// VERIFY: db4e7763 manual
+// OFFSET: 0x004CFF30
+void SI2::PlaySpellFizzleSound(uint32_t spellId, const void* object) {
+    if (!object) {
+        return;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return;
+    }
+
+    for (int32_t i = 0; i < 7; i++) {
+        if (!((1 << i) & spell.m_schoolMask)) {
+            continue;
+        }
+
+        ResistancesRec* resistance = g_resistancesDB.GetRecord(i);
+
+        if (resistance) {
+            C3Vector position = static_cast<const CGObject_C*>(object)->GetPosition();
+            SI2::PlaySoundKit(resistance->m_fizzleSoundID, &position, nullptr, nullptr, 0, nullptr, 1, 0);
+            return;
+        }
+    }
 }

@@ -7,6 +7,8 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Object/Player.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "Engine/Source/Os/TimeManager.h"
 
 // STATIC: 0x00A15ABC
 static const int32_t s_arenaBracketTypes[3] = { 2, 3, 5 };
@@ -131,4 +133,71 @@ bool CGArenaTeamInfo::CheckPersonalAndTeamRating(uint32_t rating, int32_t bracke
     }
 
     return false;
+}
+
+// VERIFY: 3cf409c5 manual
+// OFFSET: 0x005A3600
+void CGArenaTeamInfo::QueryRoster(uint32_t index) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || index >= 3) {
+        return;
+    }
+
+    uint32_t* info = &player->m_player->m_playerFieldArenaTeamInfo11[index * 7];
+
+    if (!info || !*info) {
+        return;
+    }
+
+    uint32_t now = OsGetAsyncTimeMs();
+
+    if (CGArenaTeamInfo::m_nextAllowedQuery[index] && static_cast<int32_t>(now - CGArenaTeamInfo::m_nextAllowedQuery[index]) < 0) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_ARENA_TEAM_ROSTER));
+    msg.Put(*info);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    CGArenaTeamInfo::m_nextAllowedQuery[index] = now + 10000;
+}
+
+// VERIFY: 45de7426 manual
+// OFFSET: 0x005A3700
+void CGArenaTeamInfo::UpdateTeams(int32_t signal) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        uint32_t* info = i < 3 ? &player->m_player->m_playerFieldArenaTeamInfo11[i * 7] : nullptr;
+
+        if (!info) {
+            continue;
+        }
+
+        if (CGArenaTeamInfo::m_arenaTeams[i].m_teamId && !*info) {
+            g_arenaTeamCache.Invalidate(CGArenaTeamInfo::m_arenaTeams[i].m_teamId);
+        }
+
+        CGArenaTeamInfo::m_arenaTeams[i].m_teamId = *info;
+
+        if (*info) {
+            CGArenaTeamInfo::QueryRoster(i);
+        }
+    }
+
+    if (signal) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_ARENA_TEAM_UPDATE, nullptr);
+    }
+}
+
+// VERIFY: de2c9b7d auto
+// OFFSET: 0x005A3DC0
+void CGArenaTeamInfo::EnterWorld() {
+    CGArenaTeamInfo::UpdateTeams(0);
 }

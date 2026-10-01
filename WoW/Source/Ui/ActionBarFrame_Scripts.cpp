@@ -431,6 +431,61 @@ static int32_t Script_GetMultiCastBarOffset(lua_State* L) {
 }
 
 // STATIC: 0x00ACF9E0
+// VERIFY: c199b98c auto
+// OFFSET: 0x005A9BA0
+static int32_t Script_IsAttackAction(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: IsAttackAction(slot)");
+    }
+
+    int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1));
+
+    if (CGActionBar::IsAttackAction(slot - 1)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 651b85d6 auto
+// OFFSET: 0x005A9C10
+static int32_t Script_IsAutoRepeatAction(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: IsAutorepeatAction(slot)");
+    }
+
+    int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1));
+
+    if (CGActionBar::IsAutoRepeatAction(slot - 1)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: a6dadaad manual
+// OFFSET: 0x005A9D50
+static int32_t Script_IsActionInRange(lua_State* L) {
+    if (lua_isnumber(L, 1)) {
+        int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1));
+        int32_t inRange = 0;
+        WOWGUID target = WOWGUID();
+        Script_GetGUIDFromToken(lua_tolstring(L, 2, nullptr), target, false);
+
+        if (CGActionBar::HasValidTarget(slot - 1, target, &inRange)) {
+            lua_pushnumber(L, inRange ? 1.0 : 0.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetActionInfo", &Script_GetActionInfo },
     { "GetActionTexture", &Script_GetActionTexture },

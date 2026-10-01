@@ -1,4 +1,7 @@
 #include "MerchantFrame.h"
+#include <cstddef>
+#include <cstdlib>
+#include "WoW/Source/Object/Player.h"
 #include "Engine/Source/Tempest/CMath.h"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
@@ -137,4 +140,79 @@ ItemStats_C* CGMerchantInfo::GetItemStats(int32_t itemId) {
     }
 
     return stats;
+}
+
+// VERIFY: e792c48f manual
+// OFFSET: 0x005841A0
+static int32_t QSortBuybackTimestamps(const void* a, const void* b) {
+    uint32_t timeA = static_cast<const BuybackEntry*>(a)->m_timestamp;
+    uint32_t timeB = static_cast<const BuybackEntry*>(b)->m_timestamp;
+
+    if (timeB > timeA) {
+        return -1;
+    }
+
+    return timeB < timeA;
+}
+
+// VERIFY: e50eb21c manual
+// OFFSET: 0x00584BB0
+void CGMerchantInfo::SortBuybackItems() {
+    memset(CGMerchantInfo::m_buybackSlots, 0, sizeof(CGMerchantInfo::m_buybackSlots));
+    CGMerchantInfo::m_numBuybackItems = 0;
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return;
+    }
+
+    BuybackEntry entries[12];
+
+    for (uint32_t slot = 74; slot - 74 < 12; slot++) {
+        if (slot < static_cast<uint32_t>(player->m_bag.m_numSlots) && player->m_bag.m_slots[slot] && slot - 74 < 12 && player->m_player->m_playerFieldBuybackPrice1[slot - 74]) {
+            entries[CGMerchantInfo::m_numBuybackItems].m_timestamp = player->m_player->m_playerFieldBuybackTimestamp1[slot - 74];
+            entries[CGMerchantInfo::m_numBuybackItems].m_slot = slot;
+            CGMerchantInfo::m_numBuybackItems++;
+        }
+    }
+
+    qsort(entries, CGMerchantInfo::m_numBuybackItems, sizeof(BuybackEntry), QSortBuybackTimestamps);
+
+    for (uint32_t i = 0; i < CGMerchantInfo::m_numBuybackItems; i++) {
+        CGMerchantInfo::m_buybackSlots[i] = entries[i].m_slot;
+    }
+}
+
+// VERIFY: 620ce8ba auto
+// OFFSET: 0x00585F60
+static int32_t BuybackUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGMerchantInfo::SortBuybackItems();
+    FrameScript_SignalEvent(SCRIPT_EVENT_MERCHANT_UPDATE, nullptr);
+    return 1;
+}
+
+// VERIFY: 6e746dba auto
+// OFFSET: 0x00585F80
+void CGMerchantInfo::EnterWorld() {
+    CGMerchantInfo::m_merchant = WOWGUID{ 0 };
+    CGMerchantInfo::m_numMerchantItems = 0;
+    memset(CGMerchantInfo::m_items, 0, sizeof(CGMerchantInfo::m_items));
+    ClntObjMgrSetObjMirrorHandler(ClntObjMgrGetActivePlayer(), ID_PLAYER, offsetof(CGPlayerLocalData, m_playerFieldBuybackPrice1), sizeof(CGPlayerLocalData::m_playerFieldBuybackPrice1) + sizeof(CGPlayerLocalData::m_playerFieldBuybackTimestamp1), BuybackUpdateHandler, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    CGMerchantInfo::SortBuybackItems();
+}
+
+// VERIFY: 20b7ca61 auto
+// OFFSET: 0x005840C0
+void CGMerchantInfo::RefreshList() {
+    if (CGMerchantInfo::m_merchant) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_MERCHANT_UPDATE, nullptr);
+    }
+}
+
+// VERIFY: ceeabfca manual
+// OFFSET: 0x005845B0
+int32_t CGMerchantInfo::CanRepair() {
+    CGUnit_C* merchant = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGMerchantInfo::m_merchant, TYPEMASK_UNIT, __FILE__, __LINE__));
+    return merchant && (merchant->m_unit->m_unitNpcFlags & 0x1000);
 }

@@ -322,3 +322,14 @@ C3Vector operator*(const C3Vector& v, const C33Matrix& m) {
     result.z = m.b2 * v.y + m.a2 * v.x + m.c2 * v.z;
     return result;
 }
+
+// VERIFY: 50c0b42d auto
+// OFFSET: 0x0050F520
+C3Vector operator*=(C3Vector& v, const C33Matrix& m) {
+    float y = m.c1 * v.z + m.b1 * v.y + m.a1 * v.x;
+    float z = m.c2 * v.z + m.b2 * v.y + m.a2 * v.x;
+    v.x = m.c0 * v.z + m.b0 * v.y + v.x * m.a0;
+    v.y = y;
+    v.z = z;
+    return v;
+}

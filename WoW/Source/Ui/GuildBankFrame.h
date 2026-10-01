@@ -2,6 +2,7 @@
 #define WOW_SOURCE_UI_GUILDBANKFRAME_H
 
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Object/WGUID.h"
 
@@ -15,6 +16,11 @@ struct GuildBankTabInfo {
     /* 2140 */ int32_t unk_2140;
 };
 
+struct GuildBankSlotInfo {
+    /* 0000 */ int32_t m_itemID;
+    /* 0004 */ uint8_t unk_0004[40];
+};
+
 int32_t Packet_SMSG_GUILD_BANK_LIST(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_MSG_GUILD_BANK_LOG_QUERY(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_MSG_GUILD_BANK_MONEY_WITHDRAWN(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
@@ -24,13 +30,19 @@ class CGGuildBankInfo {
     public:
     static WOWGUID m_banker;
     static WOWGUID m_pendingBanker;
-    static void SetGuildBanker(const WOWGUID& banker);
+    static void AutoStoreItem(WOWGUID item, WOWGUID container, uint32_t slot);
     static int32_t m_numMoneyTransactions;
     static uint8_t m_numTabs;
     static GuildBankTabInfo m_guildBankTabInfo[6];
     static uint8_t m_currentTab;
     static int32_t m_remainingWithdrawMoney;
     static uint64_t m_money;
+    static int32_t m_numLogEntries[6];
+    static uint8_t unk_ACF8C8;
+    static int32_t unk_C0F8E8[6];
+    static TSGrowableArray<GuildBankSlotInfo> m_tabSlots[6];
+
+    static void SetGuildBanker(const WOWGUID& banker);
     static void EnterWorld();
     static void InitializeGame();
     static void ClearAllTabs();

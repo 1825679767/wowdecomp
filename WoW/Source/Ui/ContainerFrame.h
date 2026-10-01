@@ -12,20 +12,19 @@ class CGContainerInfo {
     public:
     static WOWGUID m_containers[11];
     static void UpdateContainers();
+    static void OpenContainer(WOWGUID guid);
     static void EnterWorld();
     static void UpdateCooldowns();
     static void UpdateItem(WOWGUID guid);
+    static void UpdateContents(WOWGUID guid);
     static bool GetLuaBagAndSlot(lua_State* L, CGBag_C** bag, int32_t* slot, int32_t* bank);
 };
 
 int32_t Script_GetContainerItemID(lua_State* L);
 int32_t Script_GetContainerItemLink(lua_State* L);
-int32_t Script_GetContainerItemCooldown(lua_State* L);
 int32_t Script_PickupContainerItem(lua_State* L);
 int32_t Script_SplitContainerItem(lua_State* L);
-int32_t Script_UseContainerItem(lua_State* L);
 int32_t Script_SocketContainerItem(lua_State* L);
-int32_t Script_ShowContainerSellCursor(lua_State* L);
 int32_t Script_SetBagPortraitTexture(lua_State* L);
 int32_t Script_GetContainerItemDurability(lua_State* L);
 int32_t Script_GetContainerFreeSlots(lua_State* L);
@@ -38,6 +37,7 @@ void ContainerRegisterScriptFunctions();
 
 int32_t InvUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
 int32_t UpdateInvContents(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
+int32_t UpdateContainerContents(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
 
 WOWGUID GetBagAtIndex(uint32_t index);
 

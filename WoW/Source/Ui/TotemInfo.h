@@ -14,6 +14,8 @@ class TotemInfo {
     /* 0014 */ int32_t m_duration;
     /* 0018 */ uint32_t m_startTime;
     /* 001C */ const char* m_icon;
+
+    uint32_t GetSpawnTimeLeft();
 };
 
 #endif

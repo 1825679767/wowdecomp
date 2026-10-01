@@ -35,10 +35,10 @@ class WMOAreaTableRec;
 class CMapEntity : public CMapStaticEntity {
     public:
     void Tick();
-    /* 0090 */ int32_t (*m_func)(void*, uint32_t, uint64_t, uint32_t);
+    /* 0090 */ int32_t (*m_func)(void*, uint32_t, uint64_t, uintptr_t);
     /* 0094 */ void* m_funcParam;
     /* 0098 */ uint64_t m_funcParam64;
-    /* 00A0 */ uint32_t m_funcParam32;
+    /* 00A0 */ uintptr_t m_funcParam32;
     /* 00A4 */ uint32_t unk_00A4;
     /* 00A8 */ C3Vector unk_00A8;
     /* 00B4 */ uint32_t unk_00B4;

@@ -8,6 +8,8 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/Ui/TalentInfo.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
 
 // STATIC: 0x00C24230
 TSFixedArray<int32_t> CGCharacterInfo::m_invAlertStatus;
@@ -206,4 +208,51 @@ int32_t Packet_MSG_INSPECT_ARENA_TEAMS(void* param, NETMESSAGE msgId, uint32_t t
     msg->Get(CGCharacterInfo::m_inspectArenaTeams[slot].m_personalRating);
     FrameScript_SignalEvent(SCRIPT_EVENT_INSPECT_HONOR_UPDATE, nullptr);
     return 1;
+}
+
+// VERIFY: aedc8113 auto
+// OFFSET: 0x005E76B0
+void CGCharacterInfo::SetInspectTarget(const WOWGUID& guid) {
+    if (guid == CGCharacterInfo::m_inspectTarget) {
+        return;
+    }
+
+    CGCharacterInfo::m_inspectTarget = guid;
+    CGCharacterInfo::m_hasHonorData = 0;
+    CGCharacterInfo::m_honorRequestPending = 0;
+
+    for (uint32_t i = 0; i < 3; i++) {
+        CGCharacterInfo::m_inspectArenaTeams[i].m_teamId = 0;
+    }
+
+    CGTalentInfo_Inspect::SetInspectTarget(guid);
+}
+
+// VERIFY: dcb1d352 manual
+// OFFSET: 0x005E84C0
+void CGCharacterInfo::UpdateItem(WOWGUID guid) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return;
+    }
+
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    int32_t slot = player->m_bag.FindItemSlot(guid);
+
+    if (slot == -1 && item && item->m_item->m_itemFieldContained != ClntObjMgrGetActivePlayer()) {
+        slot = player->m_bag.FindItemSlot(item->m_item->m_itemFieldContained);
+    }
+
+    if (static_cast<uint32_t>(slot) > 22) {
+        if ((slot >= 39 && slot <= 66) || static_cast<uint32_t>(slot - 67) <= 6) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_PLAYERBANKSLOTS_CHANGED, "%d", slot - 38);
+        }
+
+        if (!item || item->m_obj->m_entryID != CGCharacterInfo::GetActivePlayerAmmoID(player)) {
+            return;
+        }
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_UNIT_INVENTORY_CHANGED, "%s", "player");
 }

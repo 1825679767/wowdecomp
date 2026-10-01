@@ -25,6 +25,7 @@ class CGPetInfo {
     static int32_t m_possessSpell;
     static WOWGUID m_comboTarget;
     static void PetClearTarget();
+    static void PetDismiss();
     static void PetAttackTarget(const WOWGUID& target, int32_t a2);
     static int32_t m_attackingTarget;
     static uint32_t m_actions[10];
@@ -35,8 +36,18 @@ class CGPetInfo {
     static void SetPetCount(uint32_t count);
     static int32_t IsAttackAction(uint32_t index);
     static uint32_t GetPetMode();
-    static void SetPet(WOWGUID pet, uint32_t a2, int32_t a3);
+    static void SetPet(WOWGUID pet, uint32_t expiration, int32_t family);
+    static void SetComboPoints(WOWGUID target, uint8_t points);
+    static void SetIsAttackingTarget(int32_t attacking);
+    static void UpdatePetTempBar();
     static void SendPetAction(const uint32_t& action, const WOWGUID& target, int32_t a3);
+    static uint32_t* GetPetSpellAction(int32_t spellId);
+    static void UpdatePetSpellAction(const uint32_t* action);
+    static void SetPossessedSpell(int32_t spellId);
+    static void SetAction(uint32_t index, const uint32_t& action, int32_t a3);
+    static void SetSpellAutocast(int32_t spellId, int32_t enable);
+    static void SetPetMode(uint32_t mode);
+    static void SetPetOrders(uint32_t orders);
     static const char* GetModeToken(uint32_t mode);
     static const char* GetOrdersToken(uint32_t order);
 };

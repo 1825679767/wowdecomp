@@ -35,6 +35,16 @@
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
 #include <cmath>
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
+#include "WoW/Source/DB/Rec/SpellVisualKitRec.h"
+#include "Engine/Source/Os/TimeManager.h"
+#include "WoW/Source/Magic/MagicClient/SpellVisuals.h"
+#include "WoW/Source/Object/ObjectClient/Movement_C.h"
+#include "WoW/Source/Object/MovementShared.h"
+#include "WoW/Source/DB/Rec/SpellVisualRec.h"
+#include "WoW/Source/DB/Rec/SpellVisualEffectNameRec.h"
+#include "WoW/Source/DB/Rec/SpellVisualKitModelAttachRec.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
 
 // STATIC: 0x00ADAC98
 CGObject_C::InteractIcon CGObject_C::s_interactIcons[12] = {
@@ -111,21 +121,6 @@ static int32_t ScaleUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t f
     }
 
     return 1;
-}
-
-// INLINED
-CHashKeyGUID::CHashKeyGUID() {
-    this->m_guid.m_guid = 0;
-}
-
-// INLINED
-CHashKeyGUID::CHashKeyGUID(uint64_t guid) {
-    this->m_guid.m_guid = guid;
-}
-
-// INLINED
-bool CHashKeyGUID::operator==(const CHashKeyGUID& key) {
-    return this->m_guid == key.m_guid;
 }
 
 // VERIFY: 76f8c467 auto
@@ -872,9 +867,9 @@ float CGObject_C::GetSpeed() const {
 void CGObject_C::PlaySpellVisualKit_PlayAnims(const SpellRec* spell, const SpellVisualKitRec* kit, SPELL_VISUAL_KIT_TYPE type, const C3Vector* position, int32_t a5, int32_t a6, WOWGUID guid, uint32_t a8, const SpellVisualRec* visual, uint32_t a10, int32_t a11) {
 }
 
-// VERIFY: f1546aca auto
+// VERIFY: 6ea82269 auto
 // OFFSET: 0x00743560
-void CGObject_C::PlaySpellVisualKit_HandleWeapons(const SpellRec* spell, const SpellVisualKitRec* kit, const C3Vector* position, WOWGUID guid, uint32_t a5, void (*callback)(CM2Model*, uint32_t, uint32_t, int32_t, uint32_t, uint64_t), uint32_t a7, int32_t* a8) {
+void CGObject_C::PlaySpellVisualKit_HandleWeapons(const SpellRec* spell, const SpellVisualKitRec* kit, const C3Vector* position, WOWGUID guid, uint32_t a5, uint32_t flags, void (*callback)(CM2Model*, uint32_t, uint32_t, int32_t, uint32_t, uint64_t), int32_t* hasEffect) {
 }
 
 // VERIFY: acfa0e6e auto
@@ -1426,4 +1421,506 @@ CGObject_C* CGObject_C::GetFocusObject() {
 
     CGObject_C* target = ClntObjMgrObjectPtr(WOWGUID{ farSight }, TYPEMASK_OBJECT, __FILE__, __LINE__);
     return target ? target : object;
+}
+
+// VERIFY: bdeb4d6c auto
+// OFFSET: 0x00743230
+void CGObject_C::AuraDecayHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param) {
+    if (!interrupted) {
+        reinterpret_cast<CEffect*>(static_cast<uintptr_t>(param))->MoveToDestroyList();
+    }
+}
+
+// VERIFY: 8bec8c39 auto
+// OFFSET: 0x00743250
+void CGObject_C::OnSpellEffectClear(CEffect* effect) {
+    if (effect->m_model && effect->m_model->IsLoaded(0, 0) && effect->m_model->HasSequence(159)) {
+        effect->m_flags &= ~0x1000;
+        effect->m_model->SetBoneSequence(0xFFFFFFFF, 159, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+        effect->m_model->SetSequenceCallback(reinterpret_cast<void*>(&CGObject_C::AuraDecayHandler), reinterpret_cast<uintptr_t>(effect));
+        return;
+    }
+
+    if (effect->m_flags & 0x40) {
+        SI2::StopSound(&effect->m_soundKitObject, 0, 0.3f, 1);
+    }
+
+    effect->MoveToDestroyList();
+}
+
+// VERIFY: 5c5abd1d auto
+// OFFSET: 0x00743580
+void CGObject_C::EffectDecayHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param) {
+    CEffect* effect = reinterpret_cast<CEffect*>(static_cast<uintptr_t>(param));
+
+    if (!interrupted && effect) {
+        effect->MoveToDestroyList();
+    }
+}
+
+// VERIFY: 509f8bf8 auto
+// OFFSET: 0x00744920
+void CGObject_C::AuraEffectHoldHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param) {
+    CEffect* effect = reinterpret_cast<CEffect*>(static_cast<uintptr_t>(param));
+
+    if (interrupted || !effect || !effect->m_model) {
+        return;
+    }
+
+    uint32_t endTime = effect->unk_00CC;
+
+    if (endTime && static_cast<int32_t>(OsGetAsyncTimeMs() - endTime) > 0) {
+        if (effect->m_model->HasSequence(159)) {
+            effect->m_model->SetSequenceCallback(reinterpret_cast<void*>(&CGObject_C::EffectDecayHandler), reinterpret_cast<uintptr_t>(effect));
+            effect->m_model->SetBoneSequence(0xFFFFFFFF, 159, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+        } else {
+            effect->MoveToDestroyList();
+        }
+    } else {
+        effect->m_model->SetBoneSequence(0xFFFFFFFF, sequenceId, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+    }
+}
+
+// VERIFY: 4c989a64 auto
+// OFFSET: 0x007449C0
+void CGObject_C::AuraEffectHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param) {
+    CEffect* effect = reinterpret_cast<CEffect*>(static_cast<uintptr_t>(param));
+
+    if (interrupted || !effect || !effect->m_model) {
+        return;
+    }
+
+    if (effect->m_kitRec && (effect->m_kitRec->m_flags & 0x20)) {
+        effect->m_model->SetSequenceCallback(reinterpret_cast<void*>(&CGObject_C::AuraEffectHoldHandler), reinterpret_cast<uintptr_t>(effect));
+        effect->m_model->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+    } else if (effect->m_model->HasSequence(158)) {
+        effect->m_model->SetSequenceCallback(reinterpret_cast<void*>(&CGObject_C::AuraEffectHoldHandler), reinterpret_cast<uintptr_t>(effect));
+        effect->m_model->SetBoneSequence(0xFFFFFFFF, 158, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+    }
+}
+
+// VERIFY: 241a7a4c manual
+// OFFSET: 0x00744790
+void CGObject_C::PlayEffectName(int32_t attachType, uint32_t a3, int32_t spellId, const SpellVisualKitRec* kit, const SpellVisualEffectNameRec* effectName, uint32_t* flags, void (*callback)(CM2Model*, uint32_t, uint32_t, int32_t, uint32_t, uint64_t), const C3Vector* position, WOWGUID target, uint32_t a11, const SpellVisualKitModelAttachRec* attach) {
+    CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
+    effect->unk_00CC = a3;
+
+    WOWGUID source = this->m_obj->m_guid;
+
+    if (!target.m_guid) {
+        target = this->m_obj->m_guid;
+    }
+
+    effect->AddEffect(attachType, spellId, kit, effectName, &target, &source, *flags, callback, position, a11, attach);
+
+    if (*flags & 0x40000) {
+        effect->SetEnabled(0);
+    }
+
+    if (kit->m_flags & 0x200) {
+        effect->m_flags |= 0x2000000;
+    }
+
+    effect->Release();
+    *flags = (*flags & ~0x411) | 0x400;
+}
+
+// VERIFY: 82722487 manual
+// OFFSET: 0x00745230
+void CGObject_C::PlaySpellVisualKit(const PlaySpellVisuaKitData& data) {
+    uint32_t flags = 0;
+    int32_t spellId = 0;
+    int32_t hasEffect = 0;
+
+    if (data.m_spellRec) {
+        spellId = data.m_spellRec->m_id;
+    }
+
+    if (!data.m_impactVisualKit) {
+        return;
+    }
+
+    C3Vector transformed = { 0.0f, 0.0f, 0.0f };
+    const C3Vector* position = nullptr;
+
+    if (data.m_position) {
+        if (data.m_transportGUID.m_guid) {
+            position = &transformed;
+            C44Matrix transport;
+            MovementGetTransportMtxX(data.m_transportGUID, &transport, WOWGUID{ 0 }, __FILE__, __LINE__);
+            transformed = *data.m_position * transport;
+        } else {
+            position = data.m_position;
+        }
+    }
+
+    void (*callback)(CM2Model*, uint32_t, uint32_t, int32_t, uint32_t, uint64_t) = nullptr;
+
+    if (data.m_impactVisualKit->m_shakeID) {
+        flags = 0x10;
+    }
+
+    if (SI2::IsSoundKitLooping(data.m_impactVisualKit->m_soundID)) {
+        flags |= 0x1;
+    }
+
+    const SpellRec* spell = data.m_spellRec;
+
+    if (spell && spell->m_spellMissileID > 0) {
+        flags |= 0x400000;
+    }
+
+    const SpellVisualRec* visual = spell ? g_spellVisualDB.GetRecord(spell->m_spellVisualID[0]) : nullptr;
+
+    if (this->PlaySpellVisualKit_DelayLightningEffects(spell, data.m_impactVisualKit, static_cast<SPELL_VISUAL_KIT_TYPE>(data.unk_0008), data.m_position, data.m_transportGUID, data.unk_0018, data.unk_001C, data.unk_0020, data.unk_0024, flags, visual)) {
+        return;
+    }
+
+    if (visual && (visual->m_flags & 0x10)) {
+        flags |= 0x200000;
+    }
+
+    const SpellVisualKitRec* kit = data.m_impactVisualKit;
+
+    if (kit->m_flags & 0xC) {
+        flags |= 0x1000000;
+    }
+
+    int32_t animParam = data.unk_0018;
+
+    switch (data.unk_0008) {
+        case 0:
+            flags |= 0x80;
+            callback = &CGObject_C::EffectOnceHandler;
+            flags = (flags & ~0x21) | 0x20;
+            break;
+
+        case 1:
+        case 5:
+        case 6:
+        case 8:
+            callback = &CGObject_C::EffectOnceHandler;
+            flags = (flags & ~0x21) | 0x20;
+            break;
+
+        case 2:
+            flags |= 0x21000;
+            callback = &CGObject_C::AuraEffectHandler;
+
+            if (spell) {
+                if (spell->m_effectAura[0] == 78) {
+                    flags |= 0x800000;
+                }
+
+                if (spell->m_effectAura[1] == 78) {
+                    flags |= 0x800000;
+                }
+
+                if (spell->m_effectAura[2] == 78) {
+                    flags |= 0x800000;
+                }
+            }
+
+            break;
+
+        case 3:
+            if (spell) {
+                callback = &CGObject_C::EffectOnceHandler;
+                flags = (flags & ~0x21) | 0x20;
+            }
+
+            animParam = 0;
+            flags |= 0x22000;
+            break;
+
+        case 4:
+            callback = &CGObject_C::LoopEffectHandler;
+            flags |= 0x40;
+            break;
+
+        case 7:
+            if (spell) {
+                callback = &CGObject_C::LoopEffectHandler;
+            }
+
+            flags |= 0x22000;
+            break;
+
+        default:
+            break;
+    }
+
+    SpellVisualEffectNameRec* effectName = g_spellVisualEffectNameDB.GetRecord(kit->m_headEffect);
+
+    if (effectName) {
+        this->PlayEffectName(20, 0, spellId, kit, effectName, &flags, callback, position, data.m_someGUID, 0, nullptr);
+        hasEffect = 1;
+    }
+
+    effectName = g_spellVisualEffectNameDB.GetRecord(data.m_impactVisualKit->m_worldEffect);
+
+    if (effectName) {
+        CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
+        effect->unk_00CC = 0;
+
+        if (data.m_spellRec && !data.m_position) {
+            for (uint32_t i = 0; i < 3; i++) {
+                if (data.m_spellRec->m_effectAura[i] == 26) {
+                    flags |= 0x4000;
+                    break;
+                }
+            }
+        }
+
+        WOWGUID transport = data.m_transportGUID;
+        C3Vector objectPosition = { 0.0f, 0.0f, 0.0f };
+
+        if (!data.m_position) {
+            flags |= 0x200;
+            objectPosition = this->GetRawPosition();
+            transport.m_guid = this->GetTransportGUID();
+
+            if ((this->m_obj->m_type & 0x8) && (static_cast<CGUnit_C*>(this)->m_movement->m_flags & 0x40000000)) {
+                objectPosition.z -= static_cast<CGUnit_C*>(this)->m_unit->m_unitFieldHoverheight;
+            }
+        }
+
+        WOWGUID guid = this->m_obj->m_guid;
+        const C3Vector* effectPosition = data.m_position ? data.m_position : &objectPosition;
+        effect->InitFromUnit(*effectPosition, OsGetAsyncTimeMs(), spellId, data.m_impactVisualKit, effectName, &guid, flags, callback, data.unk_0030, nullptr, transport);
+        effect->Release();
+        flags = (flags & ~0x411) | 0x400;
+        hasEffect = 1;
+    }
+
+    if (flags & 0x2000) {
+        effectName = g_spellVisualEffectNameDB.GetRecord(data.m_impactVisualKit->m_baseEffect);
+
+        if (!effectName || !data.m_position) {
+            goto attachments;
+        }
+
+        CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
+        effect->unk_00CC = 0;
+        WOWGUID guid = this->m_obj->m_guid;
+        effect->InitFromUnit(*data.m_position, OsGetAsyncTimeMs(), spellId, data.m_impactVisualKit, effectName, &guid, flags, callback, data.unk_0030, nullptr, data.m_transportGUID);
+        effect->Release();
+        flags = (flags & ~0x411) | 0x400;
+    } else {
+        effectName = g_spellVisualEffectNameDB.GetRecord(data.m_impactVisualKit->m_baseEffect);
+
+        if (effectName) {
+            this->PlayEffectName(19, 0, spellId, data.m_impactVisualKit, effectName, &flags, callback, position, data.m_someGUID, data.unk_0030, nullptr);
+            hasEffect = 1;
+        }
+
+        effectName = g_spellVisualEffectNameDB.GetRecord(data.m_impactVisualKit->m_leftHandEffect);
+
+        if (effectName) {
+            this->PlayEffectName(21, 0, spellId, data.m_impactVisualKit, effectName, &flags, callback, position, data.m_someGUID, data.unk_0030, nullptr);
+            hasEffect = 1;
+        }
+
+        effectName = g_spellVisualEffectNameDB.GetRecord(data.m_impactVisualKit->m_rightHandEffect);
+
+        if (effectName) {
+            this->PlayEffectName(22, 0, spellId, data.m_impactVisualKit, effectName, &flags, callback, position, data.m_someGUID, data.unk_0030, nullptr);
+            hasEffect = 1;
+        }
+
+        effectName = g_spellVisualEffectNameDB.GetRecord(data.m_impactVisualKit->m_breathEffect);
+
+        if (effectName) {
+            this->PlayEffectName(17, 0, spellId, data.m_impactVisualKit, effectName, &flags, callback, position, data.m_someGUID, data.unk_0030, nullptr);
+            hasEffect = 1;
+        }
+
+        effectName = g_spellVisualEffectNameDB.GetRecord(data.m_impactVisualKit->m_chestEffect);
+
+        if (effectName) {
+            this->PlayEffectName(34, 0, spellId, data.m_impactVisualKit, effectName, &flags, callback, position, data.m_someGUID, data.unk_0030, nullptr);
+            hasEffect = 1;
+        }
+
+        this->PlaySpellVisualKit_HandleWeapons(data.m_spellRec, data.m_impactVisualKit, position, data.m_someGUID, data.unk_0030, flags, callback, &hasEffect);
+
+        const SpellVisualKitRec* special = data.m_impactVisualKit;
+        effectName = g_spellVisualEffectNameDB.GetRecord(special->m_specialEffect[0]);
+
+        if (effectName) {
+            this->PlayEffectName(23, 0, spellId, special, effectName, &flags, callback, position, data.m_someGUID, data.unk_0030, nullptr);
+            hasEffect = 1;
+        }
+
+        effectName = g_spellVisualEffectNameDB.GetRecord(data.m_impactVisualKit->m_specialEffect[1]);
+
+        if (effectName) {
+            this->PlayEffectName(24, 0, spellId, data.m_impactVisualKit, effectName, &flags, callback, position, data.m_someGUID, data.unk_0030, nullptr);
+            hasEffect = 1;
+        }
+
+        effectName = g_spellVisualEffectNameDB.GetRecord(data.m_impactVisualKit->m_specialEffect[2]);
+
+        if (!effectName) {
+            goto attachments;
+        }
+
+        this->PlayEffectName(25, 0, spellId, data.m_impactVisualKit, effectName, &flags, callback, data.m_position, data.m_someGUID, data.unk_0030, nullptr);
+    }
+
+    hasEffect = 1;
+
+attachments:
+    int32_t attachCount = SpellVisualsGetModelAttachRecCount(data.m_impactVisualKit->m_id);
+
+    for (int32_t i = 0; i < attachCount; i++) {
+        const SpellVisualKitModelAttachRec* attach = SpellVisualsGetModelAttachRec(data.m_impactVisualKit->m_id, i);
+        SpellVisualEffectNameRec* attachEffect = attach ? g_spellVisualEffectNameDB.GetRecord(attach->m_spellVisualEffectNameID) : nullptr;
+
+        if (!attachEffect) {
+            continue;
+        }
+
+        if (flags & 0x2000) {
+            if (!data.m_position) {
+                continue;
+            }
+
+            CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
+            effect->unk_00CC = 0;
+            WOWGUID guid = this->m_obj->m_guid;
+            effect->InitFromUnit(*data.m_position, OsGetAsyncTimeMs(), spellId, data.m_impactVisualKit, attachEffect, &guid, flags, callback, data.unk_0030, attach, data.m_transportGUID);
+            effect->Release();
+            flags = (flags & ~0x411) | 0x400;
+        } else if (attach->m_attachmentID == -1) {
+            CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
+            effect->unk_00CC = 0;
+
+            if (data.m_spellRec && !data.m_position) {
+                for (uint32_t j = 0; j < 3; j++) {
+                    if (data.m_spellRec->m_effectAura[j] == 26) {
+                        flags |= 0x4000;
+                        break;
+                    }
+                }
+            }
+
+            WOWGUID transport = data.m_transportGUID;
+            C3Vector objectPosition = { 0.0f, 0.0f, 0.0f };
+
+            if (!data.m_position) {
+                flags |= 0x200;
+                objectPosition = this->GetRawPosition();
+                transport.m_guid = this->GetTransportGUID();
+
+                if ((this->m_obj->m_type & 0x8) && (static_cast<CGUnit_C*>(this)->m_movement->m_flags & 0x40000000)) {
+                    objectPosition.z -= static_cast<CGUnit_C*>(this)->m_unit->m_unitFieldHoverheight;
+                }
+            }
+
+            WOWGUID guid = this->m_obj->m_guid;
+            const C3Vector* effectPosition = data.m_position ? data.m_position : &objectPosition;
+            effect->InitFromUnit(*effectPosition, OsGetAsyncTimeMs(), spellId, data.m_impactVisualKit, attachEffect, &guid, flags, callback, data.unk_0030, attach, transport);
+            effect->Release();
+            flags = (flags & ~0x411) | 0x400;
+        } else {
+            this->PlayEffectName(attach->m_attachmentID, 0, spellId, data.m_impactVisualKit, attachEffect, &flags, callback, position, data.m_someGUID, data.unk_0030, attach);
+        }
+
+        hasEffect = 1;
+    }
+
+    this->PlaySpellVisualKit_PlayAnims(data.m_spellRec, data.m_impactVisualKit, static_cast<SPELL_VISUAL_KIT_TYPE>(data.unk_0008), position, animParam, data.unk_001C, data.m_someGUID, data.unk_0030, visual, flags, hasEffect);
+}
+
+// VERIFY: 1d3e05cf auto
+// OFFSET: 0x00744870
+void CGObject_C::EffectOnceHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param) {
+    CEffect* effect = reinterpret_cast<CEffect*>(static_cast<uintptr_t>(param));
+
+    if (interrupted || !effect) {
+        return;
+    }
+
+    if (effect->m_model && effect->m_model->HasSequence(159)) {
+        effect->m_model->SetSequenceCallback(reinterpret_cast<void*>(&CGObject_C::EffectDecayHandler), reinterpret_cast<uintptr_t>(effect));
+        effect->m_model->SetBoneSequence(0xFFFFFFFF, 159, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+        return;
+    }
+
+    M2BoneSequenceInfo info;
+    effect->m_model->GetBoneSequenceInfo(boneId, info);
+    effect->m_model->SetBoneSequenceTime(boneId, info.m_endTime - info.m_startTime - 1);
+    uint32_t sceneTime = effect->m_model->m_scene->m_time;
+
+    if (!sceneTime) {
+        sceneTime = 1;
+    }
+
+    effect->m_model->m_lastAnimTime = sceneTime;
+    effect->MoveToDestroyList();
+}
+
+// VERIFY: 211f8e2d auto
+// OFFSET: 0x00744BD0
+void CGObject_C::ClearEffectKit(int32_t spellId, int32_t kitType, int32_t a4, int32_t a5, int32_t a6) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return;
+    }
+
+    SpellVisualRec visualRec;
+    const SpellVisualRec* visual = this->GetAppropriateSpellVisual(&spell, visualRec, 0, 0);
+
+    if (!visual) {
+        return;
+    }
+
+    SpellVisualKitRec* kit;
+
+    switch (kitType) {
+    case 0:
+        kit = g_spellVisualKitDB.GetRecord(visual->m_castKit);
+        break;
+    case 1:
+        kit = g_spellVisualKitDB.GetRecord(visual->m_impactKit);
+        break;
+    case 2:
+        kit = g_spellVisualKitDB.GetRecord(visual->m_stateKit);
+        break;
+    case 4:
+        kit = g_spellVisualKitDB.GetRecord(visual->m_precastKit);
+        break;
+    case 5:
+        kit = g_spellVisualKitDB.GetRecord(visual->m_casterImpactKit);
+        break;
+    case 6:
+        kit = g_spellVisualKitDB.GetRecord(visual->m_targetImpactKit);
+        break;
+    case 7:
+        kit = g_spellVisualKitDB.GetRecord(visual->m_missileTargetingKit);
+        break;
+    case 8:
+        kit = g_spellVisualKitDB.GetRecord(visual->m_stateDoneKit);
+        break;
+    default:
+        return;
+    }
+
+    if (!kit) {
+        return;
+    }
+
+    CEffect* effect = this->m_effectList;
+
+    while (effect) {
+        CEffect* next = effect->m_next;
+
+        if (effect->m_kitRec && effect->m_kitRec->m_id == kit->m_id && (!a5 || effect->m_spellId == static_cast<uint32_t>(spellId)) && (!a6 || effect->unk_00A0 == static_cast<uint32_t>(a4))) {
+            effect->MoveToDestroyList();
+        }
+
+        effect = next;
+    }
 }

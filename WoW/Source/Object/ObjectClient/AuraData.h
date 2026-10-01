@@ -25,8 +25,8 @@ class AuraData {
 
 class SortedAuraInfo {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
+    /* 0000 */ uint32_t m_auraIndex;
+    /* 0004 */ int32_t m_spellId;
 };
 #pragma pack(pop)
 

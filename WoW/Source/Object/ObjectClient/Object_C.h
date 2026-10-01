@@ -29,6 +29,8 @@ class CPassenger;
 class PLAYERNAMEDESC;
 class SpellRec;
 class SpellVisualKitRec;
+class SpellVisualEffectNameRec;
+class SpellVisualKitModelAttachRec;
 class SpellVisualRec;
 enum OUT_OF_RANGE_TYPE : int32_t;
 enum SPELL_VISUAL_KIT_TYPE : int32_t;
@@ -41,6 +43,21 @@ class CHashKeyGUID {
     CHashKeyGUID(uint64_t guid);
     bool operator==(const CHashKeyGUID& key);
 };
+
+// INLINED
+inline CHashKeyGUID::CHashKeyGUID() {
+    this->m_guid.m_guid = 0;
+}
+
+// INLINED
+inline CHashKeyGUID::CHashKeyGUID(uint64_t guid) {
+    this->m_guid.m_guid = guid;
+}
+
+// INLINED
+inline bool CHashKeyGUID::operator==(const CHashKeyGUID& key) {
+    return this->m_guid == key.m_guid;
+}
 
 class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID> {
     public:
@@ -65,6 +82,10 @@ class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID
     static int32_t UpdateAllWorldObjects();
     static void LoopEffectHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
     static void EffectOnceHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
+    static void EffectDecayHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
+    static void AuraDecayHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
+    static void AuraEffectHoldHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
+    static void AuraEffectHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
 
     /* 0038 */ TSLink<void> m_link;
     /* 0040 */ uint32_t m_disableTime;
@@ -154,7 +175,7 @@ class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID
     virtual int32_t AddPassenger(CPassenger* passenger, int32_t a2);
     virtual float GetSpeed() const;
     virtual void PlaySpellVisualKit_PlayAnims(const SpellRec* spell, const SpellVisualKitRec* kit, SPELL_VISUAL_KIT_TYPE type, const C3Vector* position, int32_t a5, int32_t a6, WOWGUID guid, uint32_t a8, const SpellVisualRec* visual, uint32_t a10, int32_t a11);
-    virtual void PlaySpellVisualKit_HandleWeapons(const SpellRec* spell, const SpellVisualKitRec* kit, const C3Vector* position, WOWGUID guid, uint32_t a5, void (*callback)(CM2Model*, uint32_t, uint32_t, int32_t, uint32_t, uint64_t), uint32_t a7, int32_t* a8);
+    virtual void PlaySpellVisualKit_HandleWeapons(const SpellRec* spell, const SpellVisualKitRec* kit, const C3Vector* position, WOWGUID guid, uint32_t a5, uint32_t flags, void (*callback)(CM2Model*, uint32_t, uint32_t, int32_t, uint32_t, uint64_t), int32_t* hasEffect);
     virtual int32_t PlaySpellVisualKit_DelayLightningEffects(const SpellRec* spell, const SpellVisualKitRec* kit, SPELL_VISUAL_KIT_TYPE type, const C3Vector* position, WOWGUID guid, int32_t a6, int32_t a7, int32_t a8, int32_t a9, uint32_t a10, const SpellVisualRec* visual);
 
     CGObject_C();
@@ -162,6 +183,7 @@ class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID
     void ClearEffectList(int32_t all);
     void ClearSpellEffect(uint32_t spellId, int32_t all);
     void DoFade(float alpha, uint32_t time);
+    void PlayEffectName(int32_t attachType, uint32_t a3, int32_t spellId, const SpellVisualKitRec* kit, const SpellVisualEffectNameRec* effectName, uint32_t* flags, void (*callback)(CM2Model*, uint32_t, uint32_t, int32_t, uint32_t, uint64_t), const C3Vector* position, WOWGUID target, uint32_t a11, const SpellVisualKitModelAttachRec* attach);
     C44Matrix GetModelMatrix();
     C3Vector GetModelPosition();
     int32_t GetQuestGiverCursor(int32_t highlighted);

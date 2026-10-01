@@ -7,11 +7,13 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/Os/Time.h"
+#include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "Engine/Source/FrameXML/LoadXML.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
 
 // VERIFY: 3ff51581 manual
 // OFFSET: 0x00572B40
@@ -147,7 +149,102 @@ static int32_t Script_IsRaidOfficer(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 9510fc76 manual
+// OFFSET: 0x00574180
+static int32_t Script_GetReadyCheckStatus(lua_State* L) {
+    WOWGUID guid = GetGuidByKeyword(lua_tolstring(L, 1, nullptr));
+    const char* status = nullptr;
+
+    if (!CGRaidInfo::m_numMembers) {
+        if (!CGPartyInfo::m_members[0] || CGPartyInfo::m_leader != ClntObjMgrGetActivePlayer()) {
+            lua_pushstring(L, status);
+            return 1;
+        }
+
+        int32_t index = CGRaidInfo::GetPartyMemberIndex(guid);
+        uint32_t now = OsGetAsyncTimeMs();
+
+        if (!CGRaidInfo::m_readyCheckTime || static_cast<int32_t>(now - CGRaidInfo::m_readyCheckTime) >= 0 || CGRaidInfo::m_readyCheckTime == now) {
+            lua_pushstring(L, status);
+            return 1;
+        }
+
+        if (index == -1) {
+            if (guid == CGRaidInfo::m_readyCheckInitiator) {
+                status = "ready";
+            }
+
+            lua_pushstring(L, status);
+            return 1;
+        }
+
+        if (CGRaidInfo::IsPartyMemberReadyCheckPending(index)) {
+            lua_pushstring(L, "waiting");
+            return 1;
+        }
+
+        if (CGRaidInfo::IsPartyMemberReadyCheckReady(index)) {
+            lua_pushstring(L, "ready");
+            return 1;
+        }
+
+        lua_pushstring(L, "notready");
+        return 1;
+    }
+
+    CGRaidMember* self = CGRaidInfo::FindMemberByGuid(ClntObjMgrGetActivePlayer());
+
+    if (!self || self->m_rank <= 0) {
+        lua_pushstring(L, status);
+        return 1;
+    }
+
+    CGRaidMember* member = CGRaidInfo::FindMemberByGuid(guid);
+    uint32_t now = OsGetAsyncTimeMs();
+
+    if (!CGRaidInfo::m_readyCheckTime || static_cast<int32_t>(now - CGRaidInfo::m_readyCheckTime) >= 0 || CGRaidInfo::m_readyCheckTime == now || !member) {
+        lua_pushstring(L, status);
+        return 1;
+    }
+
+    if (guid == CGRaidInfo::m_readyCheckInitiator) {
+        lua_pushstring(L, "ready");
+        return 1;
+    }
+
+    if (member->m_readyCheckPending) {
+        lua_pushstring(L, "waiting");
+        return 1;
+    }
+
+    if (member->m_readyCheckReady) {
+        lua_pushstring(L, "ready");
+        return 1;
+    }
+
+    lua_pushstring(L, "notready");
+    return 1;
+}
+
 // STATIC: 0x00ACE790
+// VERIFY: 86d61574 auto
+// OFFSET: 0x00572AB0
+static int32_t Script_GetRaidTargetIndex(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: GetRaidTargetIndex(unit)");
+    }
+
+    uint32_t index = GetRaidTargetIndexFromGuid(GetGuidByKeyword(lua_tolstring(L, 1, nullptr)));
+
+    if (index == 8) {
+        lua_pushnil(L);
+    } else {
+        lua_pushnumber(L, index + 1);
+    }
+
+    return 1;
+}
+
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetNumRaidMembers", &Script_GetNumRaidMembers },
     { "GetRealNumRaidMembers", &Script_GetRealNumRaidMembers },

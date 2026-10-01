@@ -350,10 +350,10 @@ namespace World {
         ObjectCollisionData();
     };
 
-    extern int32_t (*s_objectCollisionCallback)(WOWGUID* guid, uint32_t param, ObjectCollisionData* data, uint32_t flags);
+    extern int32_t (*s_objectCollisionCallback)(WOWGUID* guid, uintptr_t param, ObjectCollisionData* data, uint32_t flags);
 
     C3Vector* GetCamPos();
-    void SetObjectCollisionCallback(int32_t (*callback)(WOWGUID* guid, uint32_t param, ObjectCollisionData* data, uint32_t flags));
+    void SetObjectCollisionCallback(int32_t (*callback)(WOWGUID* guid, uintptr_t param, ObjectCollisionData* data, uint32_t flags));
     void FindOrCreateDestructibleProxy(CDestructibleProxy* proxy);
     void CreateWaterRipple(const C3Vector& pos, float a2, float a3, float a4, float a5, float a6, int32_t a7, int32_t a8);
     int32_t QueryLiquidSounds(CMapEntity* entity, float radius, TSGrowableArray<World::LiquidQueryResult>& results);
@@ -413,6 +413,7 @@ int32_t ProjectPositionCallback(const C3Vector& position, float& height, void* p
 void ProjectTextureCallback(const CAaBox& box, const CImVector& color, int32_t index, void* param, int32_t flags);
 bool MapIsDungeon();
 void ObjectDestroy(CMapEntity* entity);
+void ObjectSetUpdateCallback(CMapEntity* entity, int32_t (*func)(void*, uint32_t, uint64_t, uintptr_t), void* param);
 void SetDetailDoodadDensity(int32_t density);
 void SetDetailDoodadDist(float dist);
 void SetFarClip(float farClip);
@@ -433,6 +434,7 @@ float ValidateFarClip(float farClip, int32_t mapID);
     int32_t Intersect(const C3Vector& start, const C3Vector& end, C3Vector* hit, float* distance, uint32_t flags, HitTestDebug* debug);
     void ObjectSetModel(CMapEntity* entity, CM2Model* model);
     int32_t ObjectIsLoaded(CMapBaseObj* object);
+    void ObjectSetShadow(CMapEntity* entity, uint32_t shadow, uint32_t mask);
     void ObjectSetSequenceFinishedCallback(CMapEntity* entity, void (*callback)(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param), uint64_t param, uint16_t doodad);
     bool ObjectTestConvexVolume(CMapEntity* entity, const C3Vector& point);
     void ObjectUpdate(CMapEntity* entity, const C44Matrix& matrix);

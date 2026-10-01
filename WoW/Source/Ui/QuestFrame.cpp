@@ -883,3 +883,19 @@ int32_t CGQuestInfo::QuestItemInfo(const char* type, uint32_t index, char* name,
 
     return 1;
 }
+
+// VERIFY: 1981b73a auto
+// OFFSET: 0x0058B940
+void CGQuestInfo::EnterWorld() {
+    CGQuestInfo::m_npc = WOWGUID{ 0 };
+    CGQuestInfo::m_npcInform = WOWGUID{ 0 };
+    CGQuestInfo::m_state = 0;
+    CGQuestInfo::m_currentQuest = 0;
+    CGQuestInfo::m_canComplete = 0;
+    CGQuestInfo::m_autoLaunched = 0;
+    CGQuestInfo::m_requiredMoney = 0;
+    CGQuestInfo::m_lastChosenItem = 0;
+    CGQuestInfo::m_questFlags = 0;
+    CGQuestInfo::ClearState();
+    CGQuestInfo::ClearQuestItems();
+}

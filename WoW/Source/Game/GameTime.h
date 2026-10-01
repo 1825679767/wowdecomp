@@ -15,7 +15,7 @@ class CGameTime : public WowTime {
     /* 002C */ int32_t m_minuteTicks;
     /* 0030 */ float m_minutesPerSecond;
     /* 0034 */ float m_fracMinutes;
-    /* 0038 */ int32_t m_elapsedMinutes;
+    /* 0038 */ uint32_t m_elapsedMinutes;
     /* 003C */ uint32_t m_lastTickMs;
     /* 0040 */ uint8_t m_running;
     /* 0041 */ uint8_t unk_0041[3];
@@ -27,9 +27,12 @@ class CGameTime : public WowTime {
     CGameTime();
     float GameTimeGetDayProgression();
     float GameTimeSetMinutesPerSecond(float minutesPerSecond);
-    void GameTimeSetTime(const WowTime& time, bool a2);
+    void GameTimeSetTime(const WowTime& time, bool tick);
     void GameTimeSync(const WowTime& time, bool a2);
+    void GameTimeUpdate(float elapsed);
     bool IsDaytime();
+    void TickMinute();
+    void UpdateTimeStamps(int32_t minutes);
 };
 
 extern CGameTime g_clientGameTime;

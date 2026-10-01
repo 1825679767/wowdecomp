@@ -17,6 +17,8 @@ struct ItemTypeCountParam {
     /* 0004 */ int32_t m_count;
 };
 
+class ItemStats_C;
+
 class CGBag_C {
     public:
     /* 0000 */ int32_t m_numSlots;
@@ -44,11 +46,14 @@ class CGBag_C {
     CGItem_C* FindItemOfType(int32_t itemId, WOWGUID& container, uint32_t& slot, uint32_t flags);
     int32_t GetItemTypeCount(int32_t itemId, uint32_t flags);
     int32_t GetItemTypeCharges(int32_t itemId, uint32_t flags);
+    bool ItemCountValid(int32_t itemId, const ItemStats_C* stats, int32_t count, bool showError);
 };
 
 int32_t GetItemTypeCountCallback(const CGItem_C* item, void* param);
 int32_t GetItemTypeChargesCallback(const CGItem_C* item, void* param);
 int32_t FindItemIDCallback(const CGItem_C* item, void* param);
 int32_t FindItemClassCallback(const CGItem_C* item, void* param);
+int32_t GetItemLimitCategoryCallback(const CGItem_C* item, void* param);
+int32_t GetDisplayErrorByInventoryError(int32_t error);
 
 #endif

@@ -1,4 +1,5 @@
 #include "BattlefieldInfo.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
@@ -580,6 +581,106 @@ static int32_t Script_GetNumBattlegroundTypes(lua_State* L) {
 static int32_t Script_RequestBattlefieldPositions(lua_State* L) {
     CGBattlefieldInfo::RequestPlayerPositions();
     return 0;
+}
+
+// VERIFY: 9f46881d manual
+// OFFSET: 0x0054D770
+static int32_t Script_GetBattlefieldInfo(lua_State* L) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 0;
+    }
+
+    BattlemasterListRec* rec = g_battlemasterListDB.GetRecord(CGBattlefieldInfo::m_bgTypeID);
+
+    if (!rec) {
+        return 0;
+    }
+
+    MapRec* map = g_mapDB.GetRecord(rec->m_mapID[0]);
+
+    if (!map) {
+        return 0;
+    }
+
+    lua_checkstack(L, 10);
+    lua_pushstring(L, rec->m_name);
+    int32_t faction = player->GetPVPFactionIndex();
+
+    if (faction == 0) {
+        lua_pushstring(L, map->m_mapDescription0);
+    } else if (faction == 1) {
+        lua_pushstring(L, map->m_mapDescription1);
+    }
+
+    lua_pushnumber(L, rec->m_maxGroupSize);
+    int32_t bracket;
+
+    if (CGBattlefieldInfo::GetBracketForLevel(player->m_unit->m_unitFieldLevel, rec, &bracket)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (GetWorldState(rec->m_holidayWorldState)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (rec->m_id == 32) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 6;
+}
+
+// VERIFY: b5c47118 manual
+// OFFSET: 0x0054E010
+static int32_t Script_GetBattlegroundInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetBattlegroundInfo(index)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player || index < 0 || index >= static_cast<int32_t>(CGBattlefieldInfo::m_battlegroundTypes.m_count)) {
+        return 0;
+    }
+
+    BattlemasterListRec* rec = g_battlemasterListDB.GetRecord(CGBattlefieldInfo::GetBattlegroundType(index));
+
+    if (!rec) {
+        return 0;
+    }
+
+    lua_pushstring(L, rec->m_name);
+    int32_t bracket;
+
+    if (CGBattlefieldInfo::GetBracketForLevel(player->m_unit->m_unitFieldLevel, rec, &bracket)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (GetWorldState(rec->m_holidayWorldState)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (rec->m_id == 32) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    lua_pushnumber(L, rec->m_id);
+    return 5;
 }
 
 // STATIC: 0x00ACD178

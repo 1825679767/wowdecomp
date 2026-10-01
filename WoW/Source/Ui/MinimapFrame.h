@@ -8,6 +8,8 @@
 #include "Engine/Source/Gx/CGxTex.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C2Vector.h"
+#include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Object/WGUID.h"
 
 class CRenderBatch;
 class CScriptRegion;
@@ -17,6 +19,10 @@ class XMLNode;
 struct lua_State;
 
 class AreaPOIRec;
+
+struct MINIMAPMD5NAME : public TSHashObject<MINIMAPMD5NAME, HASHKEY_STRI> {
+    /* 0018 */ char m_md5Name[40];
+};
 
 struct TrackingTypeInfo {
     /* 0000 */ int32_t m_type;
@@ -32,8 +38,10 @@ class CGMinimapFrame : public CSimpleFrame {
     public:
     static void EnterWorld();
     static CDataAllocator s_minimapHeap;
+    static void SetPingPosition(const WOWGUID& guid, const C2Vector& position);
     static void MinimapTextureCallback(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevel, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);
     static void SetTrackingSpell(int32_t spellId);
+    static void LoadTrackingInfo(int32_t a1);
     static int32_t s_metatable;
     static int32_t s_objectType;
 
@@ -93,7 +101,9 @@ int32_t Script_SetTracking(lua_State* L);
 void MinimapRegisterScriptFunctions();
 
 void MinimapInitialize(int32_t mapId);
+float MinimapGetViewRadius();
 AreaPOIRec* MinimapGetGossipPoi();
+void UpdatePointsOfInterest();
 void MinimapSetCorpsePOI(float x, float y);
 void MinimapSetSpiritHealerPOI(float x, float y);
 

@@ -9,6 +9,7 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "WoW/Source/Net/Types.h"
 
+class BattlemasterListRec;
 class CGPartyMemberState;
 class CGPartyPetState;
 struct lua_State;
@@ -75,6 +76,7 @@ class CGBattlefieldInfo {
     static void InitializeGame();
     static WOWGUID m_arenaOpponentPets[5][2];
     static WOWGUID m_arenaOpponents[5];
+    static CGPartyMemberState m_arenaOpponentStats[5];
     static int32_t m_instanceType;
     static int32_t m_activeIndex;
     static BattlefieldStatus m_status[2];
@@ -126,6 +128,8 @@ class CGBattlefieldInfo {
     static TSGrowableArray<int32_t> m_battlegroundTypes;
 
     static void AddArenaOpponent(const WOWGUID& guid);
+    static int32_t GetBattlegroundType(int32_t index);
+    static bool GetBracketForLevel(uint32_t level, const BattlemasterListRec* rec, int32_t* bracket);
     static void AddVehicle(const WOWGUID& guid);
     static void AddArenaOpponentPet(const WOWGUID& petGuid, const WOWGUID& ownerGuid);
     static WOWGUID GetArenaOpponent(uint32_t index);
@@ -139,7 +143,6 @@ class CGBattlefieldInfo {
 
 uint32_t GetArenaPetGUIDCount();
 
-int32_t Script_GetBattlefieldInfo(lua_State* L);
 int32_t Script_JoinBattlefield(lua_State* L);
 int32_t Script_AcceptBattlefieldPort(lua_State* L);
 int32_t Script_CloseBattlefield(lua_State* L);
@@ -151,7 +154,6 @@ int32_t Script_GetBattlefieldFlagPosition(lua_State* L);
 int32_t Script_GetBattlefieldVehicleInfo(lua_State* L);
 int32_t Script_SortBattlefieldScoreData(lua_State* L);
 int32_t Script_CanHearthAndResurrectFromArea(lua_State* L);
-int32_t Script_GetBattlegroundInfo(lua_State* L);
 int32_t Script_RequestBattlegroundInstanceInfo(lua_State* L);
 int32_t Script_BattlefieldMgrEntryInviteResponse(lua_State* L);
 int32_t Script_BattlefieldMgrQueueRequest(lua_State* L);

@@ -14,6 +14,7 @@
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
 #include "WoW/Source/DB/Rec/PaperDollItemFrameRec.h"
 #include "WoW/Source/Object/ObjectClient/Bag_C.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
 
 // VERIFY: c886e670 auto
 // OFFSET: 0x005E9BC0
@@ -207,6 +208,36 @@ static int32_t Script_IsInventoryItemLocked(lua_State* L) {
     }
 
     return 1;
+}
+
+// VERIFY: 2fff9517 manual
+// OFFSET: 0x005E7E60
+static int32_t Script_GetInventoryItemCooldown(lua_State* L) {
+    const char* unitName;
+    int32_t slot = 0;
+
+    if (!GetUnitAndSlotFromLua(L, unitName, slot)) {
+        return 0;
+    }
+
+    CGPlayer_C* unit;
+    CGItem_C* item;
+
+    if (slot != -1 && CGCharacterInfo::CanInspect(unit = static_cast<CGPlayer_C*>(GetUnitFromName(unitName))) && (item = unit->m_bag.GetItemPointer(slot)) && item->GetEnchantmentSpell(0) && (!item->GetUsableSpellCharges() || item->GetCurrentSpellCharges())) {
+        uint32_t start = 0;
+        uint32_t duration = 0;
+        uint32_t enable = 0;
+        Spell_C_GetItemCooldown(item, &duration, &start, &enable);
+        lua_pushnumber(L, start * 0.001);
+        lua_pushnumber(L, duration * 0.001);
+        lua_pushnumber(L, enable);
+    } else {
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 3;
 }
 
 // STATIC: 0x00AD1270

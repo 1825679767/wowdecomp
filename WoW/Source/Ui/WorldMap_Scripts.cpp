@@ -794,6 +794,65 @@ static int32_t Script_SetMapZoom(lua_State* L) {
 }
 
 // STATIC: 0x00ACCF18
+// VERIFY: 0a301e02 manual
+// OFFSET: 0x00545E60
+static int32_t Script_CreateWorldMapArrowFrame(lua_State* L) {
+    if (lua_type(L, 1) != LUA_TTABLE) {
+        luaL_error(L, "Usage: CreateWorldMapArrowFrame(parent)");
+    }
+
+    lua_rawgeti(L, 1, 0);
+    CSimpleFrame* parent = static_cast<CSimpleFrame*>(lua_touserdata(L, -1));
+    lua_settop(L, -2);
+
+    if (!parent) {
+        luaL_error(L, "CreateWorldMapArrowFrame(): Couldn't find 'this' in parent object");
+    }
+
+    if (!parent->IsA(CSimpleFrame::GetObjectType())) {
+        luaL_error(L, "CreateWorldMapArrowFrame(): Wrong object type, expected frame");
+    }
+
+    CGWorldMap::CreateArrowFrame(parent);
+    return 0;
+}
+
+// VERIFY: 230343d0 manual
+// OFFSET: 0x00545FF0
+static int32_t Script_InitWorldMapPing(lua_State* L) {
+    if (lua_type(L, 1) != LUA_TTABLE) {
+        luaL_error(L, "Usage: InitWorldMapPing(parent)");
+    }
+
+    lua_rawgeti(L, 1, 0);
+    CSimpleFrame* parent = static_cast<CSimpleFrame*>(lua_touserdata(L, -1));
+    lua_settop(L, -2);
+
+    if (!parent) {
+        luaL_error(L, "InitWorldMapPing(): Couldn't find 'this' in parent object");
+    }
+
+    if (!parent->IsA(CSimpleFrame::GetObjectType())) {
+        luaL_error(L, "InitWorldMapPing(): Wrong object type, expected frame");
+    }
+
+    CLayoutFrame* layout = parent->GetLayoutFrameByName("WorldMapPing");
+
+    if (!layout) {
+        return 0;
+    }
+
+    CSimpleModel* ping = static_cast<CSimpleModel*>(layout);
+
+    if (!ping) {
+        return 0;
+    }
+
+    C3Vector position(layout->GetWidth() * 0.5f, ping->GetHeight() * 0.5f, 0.0f);
+    ping->SetPosition(position);
+    return 0;
+}
+
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetMapContinents", &Script_GetMapContinents },
     { "GetMapZones", &Script_GetMapZones },

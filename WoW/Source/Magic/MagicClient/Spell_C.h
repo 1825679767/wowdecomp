@@ -8,6 +8,7 @@
 #include "_Triage/PendingSpellCastData.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "WoW/Source/Object/ObjectClient/Object_C.h"
 
 struct lua_State;
 class CGGameObject_C;
@@ -15,6 +16,8 @@ class CGCorpse_C;
 class CDataStore;
 class SpellRec;
 class SpellVisualRec;
+class SpellVisualKitRec;
+class ItemSubClassRec;
 
 class CMapEntity;
 class ItemStats_C;
@@ -23,6 +26,7 @@ class CGItem_C;
 class CGObject_C;
 class CGPlayer_C;
 class CGUnit_C;
+class CM2Model;
 class CTerrainClickEvent;
 class PendingSpellCast : public TSLinkedNode<PendingSpellCast> {
     public:
@@ -31,8 +35,7 @@ class PendingSpellCast : public TSLinkedNode<PendingSpellCast> {
     /* 0139 */ uint8_t unk_0139;
     /* 013A */ uint8_t unk_013A [2];
     /* 013C */ uint32_t m_dwordC;
-    /* 0140 */ uint32_t unk_0140;
-    /* 0144 */ uint32_t unk_0144;
+    /* 0140 */ WOWGUID m_petGuid;
 
     PendingSpellCast();
     void OnSpellStartPacket(CDataStore* msg);
@@ -95,6 +98,37 @@ class SpellHistory {
     void ClearOnHold(int32_t spellId, uint32_t time, bool remove);
     void GarbageCollect(uint32_t time);
     bool GetSpellCooldown(int32_t spellId, int32_t itemId, uint32_t* duration, uint32_t* start, uint32_t* enable);
+    void ClearAll();
+    void RemoveStartCooldown(int32_t startRecoveryCategory);
+    void DelayCooldown(int32_t spellId, int32_t delay);
+    int32_t RecentlyCast(int32_t spellId, int32_t itemId);
+};
+
+struct AmmoSearch {
+    /* 0000 */ int32_t m_ammoType;
+    /* 0004 */ int32_t m_ammoId;
+    /* 0008 */ const CGItem_C* m_item;
+};
+
+struct PeriodicClientTrigger : public TSLinkedNode<PeriodicClientTrigger> {
+    /* 0008 */ int32_t m_auraSpellId;
+    /* 000C */ int32_t m_spellId;
+    /* 0010 */ uint32_t m_nextTime;
+    /* 0014 */ uint32_t m_period;
+    /* 0018 */ WOWGUID m_caster;
+};
+
+struct DESTLOCSPELLCASTINDEXHASHNODE : public TSHashObject<DESTLOCSPELLCASTINDEXHASHNODE, CHashKeyGUID> {
+    /* 0020 */ uint8_t m_castCount;
+    /* 0021 */ uint8_t unk_0021[3];
+    /* 0024 */ uint32_t m_time;
+};
+
+struct ITEMCOOLDOWNHASHNODE : public TSHashObject<ITEMCOOLDOWNHASHNODE, HASHKEY_NONE> {
+    /* 0018 */ int32_t m_spellId;
+    /* 001C */ uint32_t m_time;
+    /* 0020 */ bool m_onHold;
+    /* 0021 */ uint8_t unk_0021[3];
 };
 
 class Spell_C {
@@ -102,9 +136,10 @@ class Spell_C {
     /* 0000 */ uint8_t unk_0000[8];
     /* 0008 */ uint32_t unk_0008;
 
-    static void SendPendingCast(bool a1);
+    static void SendPendingCast(PendingSpellCast* cast, bool hideVisuals);
     static void GetSpellRange(CGUnit_C* caster, int32_t spellId, float* minRange, float* maxRange, CGObject_C* target);
     static bool HandleSpriteRay(const WOWGUID& guid, bool checkRange);
+    static bool CastSpell(int32_t spellId, const CGItem_C* item, WOWGUID target, bool confirmed);
 };
 
 int32_t Packet_Group_30(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
@@ -151,7 +186,7 @@ bool Spell_C_TargetingSpellAllowsTerrain();
 bool Spell_C_CanTargetCorpse(const CGCorpse_C* corpse);
 bool Spell_C_CanTargetObject(const CGGameObject_C* object);
 bool Spell_C_IsTargeting();
-bool Spell_C_RangeCheckSelected(CGUnit_C* caster, const SpellRec* spell, WOWGUID target, uint8_t* inRange, int32_t a5, int32_t a6);
+bool Spell_C_RangeCheckSelected(CGUnit_C* caster, const SpellRec* spell, WOWGUID target, uint8_t* inRange, bool report, PendingSpellCast* cast);
 extern PendingSpellCast* s_targetingSpell;
 extern uint32_t s_needTargets;
 int32_t Spell_C_IsCursorWorldObjectHousing();
@@ -166,16 +201,21 @@ void Spell_C_CancelSpellByCaster(const WOWGUID& caster);
 void Spell_C_CancelCastingSpellByMovement();
 void Spell_C_CancelChannelSpell(int32_t spellId);
 int32_t Spell_C_GetAutoRepeatingSpell();
-void Spell_C_SetCooldownLeft(int32_t spellId, uint32_t itemId, uint32_t category, int32_t a4, int32_t cooldown, bool a6, int32_t a7);
+void Spell_C_SetCooldownLeft(int32_t spellId, uint32_t itemId, uint32_t category, int32_t cooldownLeft, int32_t categoryCooldownLeft, bool onHold, int32_t pet);
 int32_t Spell_C_GetMinMaxPoints(const SpellRec* spell, uint32_t effectIndex, int32_t* minPoints, int32_t* maxPoints, int32_t a5, int32_t a6, int32_t a7, int32_t a8);
 void Spell_C_CancelAutoRepeat(bool a1);
 void Spell_C_CancelSpellsWithId(int32_t spellId);
 void Spell_C_SetAutoRangedCombatSpell(int32_t spellId);
 int32_t Spell_C_GetAutoRangedCombatSpell();
+PendingSpellCast* Spell_C_GetDelayedTrajectoryCast();
+int32_t Spell_C_SendDelayedMissileTrajectoryCast(CGUnit_C* unit);
 void Spell_C_ClearLastAutoRangedCombatError();
 bool Spell_C_HandleTerrainClick(const CTerrainClickEvent& evt);
-void Spell_C_HandleSpriteClick(CGObject_C* object, PendingSpellCast* spell);
-int32_t Spell_C_HandleItemDrop(CGItem_C* item, CGUnit_C* unit);
+bool Spell_C_HandleSpriteClick(CGObject_C* object, PendingSpellCast* cast);
+bool Spell_C_HandleGlyphClick(int32_t socket);
+int32_t Spell_C_TargetTradeItem();
+bool Spell_C_TargetUnitByGuid(const WOWGUID& guid);
+bool Spell_C_HandleItemDrop(CGItem_C* item, CGUnit_C* unit);
 void Spell_C_CancelMeleeSpells();
 bool Spell_C_IsRestrictedAbility(const SpellRec* spell);
 bool Spell_C_HasEffect(const SpellRec* spell, int32_t effect);
@@ -186,10 +226,15 @@ int32_t Spell_C_IsActionOnHold(const int32_t* spellId, int32_t index);
 int32_t Spell_C_NeedsCooldownEvent(int32_t itemId);
 bool Spell_C_IsUsableAction(CGUnit_C* unit, const SpellRec* spell, const WOWGUID& target, const ItemStats_C* item, bool ignoreControl);
 bool Spell_C_GetSpellModifiers(const SpellRec* spell, int32_t modifier, int32_t& flat, int32_t& pct);
-int32_t Spell_C_CancelsAuraEffect(const SpellRec* spell, int32_t auraType, int32_t a3);
-int32_t Spell_C_CancelsCharm(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason);
-int32_t Spell_C_HaveSpellTokens(CGUnit_C* unit, const SpellRec* spell, bool a3, PendingSpellCast* cast);
-int32_t Spell_C_HaveEquippedSpellItems(CGUnit_C* unit, const SpellRec* spell, bool a3, PendingSpellCast* cast);
+bool Spell_C_CancelsAuraEffect(const CGUnit_C* unit, const SpellRec* spell, int32_t auraType, int32_t* reason);
+bool Spell_C_CancelsStun(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason);
+bool Spell_C_CancelsSilence(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason);
+bool Spell_C_CancelsPacify(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason);
+bool Spell_C_CancelsFear(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason);
+bool Spell_C_CancelsConfuse(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason);
+bool Spell_C_CancelsCharm(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason);
+bool Spell_C_HaveSpellTokens(CGUnit_C* unit, const SpellRec* spell, bool report, PendingSpellCast* cast);
+bool Spell_C_HaveEquippedSpellItems(CGUnit_C* unit, const SpellRec* spell, bool checkAmmo, bool report, PendingSpellCast* cast);
 float GetGameTableValue(int32_t table, int32_t index, int32_t a3);
 void ItemCheckCooldownCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 
@@ -197,9 +242,14 @@ class QuestTextParser {
     public:
     static int32_t Spell_C_SpellGetSpellIDForDifficulty(int32_t spellId);
 };
-void Spell_C_RemovePeriodicClientTrigger(WOWGUID guid, int32_t a2);
+void Spell_C_RemovePeriodicClientTrigger(WOWGUID caster, int32_t auraSpellId);
+void Spell_C_AddPeriodicClientTrigger(WOWGUID caster, int32_t auraSpellId, int32_t spellId, uint32_t period);
+void Spell_C_StopCasting();
+bool Spell_C_IsActivePlayerCasting();
+bool OnCancelCombat();
 
 void Spell_C_ClearCooldowns();
+void Spell_C_ClearPetCooldowns();
 const SpellVisualRec* GetSpellVisual(const SpellRec* spell);
 void Spell_C_Destroy();
 void Spell_C_Initialize();
@@ -238,21 +288,17 @@ int32_t Spell_C_GetDuration(const SpellRec* spell, int32_t isPet, int32_t isUnit
 bool Spell_C_HasNoReagentCost(CGPlayer_C* player, const SpellRec* spell);
 int32_t Spell_C_GetTargetingSpell();
 bool Spell_C_GetItemCooldown(CGItem_C* item, uint32_t* duration, uint32_t* start, uint32_t* enable);
-void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t reason, int32_t a4, int32_t a5, bool a6);
-int32_t Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, WOWGUID target, PendingSpellCast* cast, bool a6);
+void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t reason, int32_t misc1, int32_t misc2, bool resetCooldown);
+bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, WOWGUID target, PendingSpellCast* cast, bool confirmed);
 void UnitCombatLogCastStart(const WOWGUID& caster, const WOWGUID& target, int32_t spellId);
 void Spell_C_StopTargeting();
 void SpellTableDestroy();
 void SpellTableInitialize();
 
-int32_t Script_SpellTargetItem(lua_State* L);
-int32_t Script_SpellCanTargetUnit(lua_State* L);
-int32_t Script_SpellTargetUnit(lua_State* L);
-int32_t Script_SpellStopTargeting(lua_State* L);
-int32_t Script_SpellStopCasting(lua_State* L);
 int32_t Script_CancelUnitBuff(lua_State* L);
 int32_t Script_CancelItemTempEnchantment(lua_State* L);
 void SpellRegisterScriptFunctions();
+void SpellUnregisterScriptFunctions();
 
 bool SpellIsTrackingAura(const SpellRec* spell);
 bool SpellHasAuraEffect(const SpellRec* spell, int32_t aura);
@@ -263,8 +309,43 @@ int32_t Spell_C_GetSpellReagentUses(const SpellRec* spell);
 int32_t Spell_C_GetSpellReagentUses(int32_t spellId);
 bool Spell_C_IsCurrentItem(int32_t itemId);
 bool Spell_C_IsCurrentSpell(int32_t spellId);
-void Spell_C_GetItemCooldown(const CGItem_C* item, uint32_t* duration, uint32_t* start, uint32_t* enable);
-void Spell_C_GetItemCooldown(int32_t itemId, uint32_t* duration, uint32_t* start, uint32_t* enable);
+bool Spell_C_GetItemCooldown(int32_t itemId, uint32_t* duration, uint32_t* start, uint32_t* enable);
+const char* GetSpellFailedResult(int32_t reason);
+bool Spell_C_SpellUsesReagent(const SpellRec* spell, int32_t itemId);
+PendingSpellCast* Spell_C_GetTargetingSpellCast();
+int32_t Spell_C_CanTargetItems();
+CM2Model* Spell_C_GetCursorWorldObjectModel();
+void Spell_C_SetCursorWorldObjectPosition(const C3Vector& position);
+const C3Vector& Spell_C_GetCursorWorldObjectPosition();
+float Spell_C_GetCursorWorldObjectFacing();
+uint32_t GetRequiredAuraVisionBitmask(const SpellRec* spell);
+void SpellMissingItemCallback(int32_t itemId, const WOWGUID& guid, void* param, bool success);
+void SpellMissingItemsCallback(int32_t itemId, const WOWGUID& guid, void* param, bool success);
+void GetCustomSpellFailedString(char* buffer, uint32_t size, int32_t customError);
+void Spell_C_PetSpellFailedUpdateCooldowns(int32_t spellId);
+void Spell_C_ClearInTransitList();
+int32_t Spell_C_PrepareMissileTrajectoryCast(CGUnit_C* caster, PendingSpellCast* cast, const SpellRec* spell, uint32_t* count, float* pitch, float* speed);
+uint32_t Spell_C_EncodeSequenceIntoMissileTrajectory(uint32_t* pitch, uint32_t* speed, uint32_t* source, uint32_t* dest);
+ItemSubClassRec* FindAnyItemSubclassRec(int32_t classId, int32_t subclassMask);
+void ShowPetSpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t reason, int32_t misc1, int32_t misc2);
+void Spell_C_StartSpellCooldown(const SpellRec* spell, CGUnit_C* unit);
+int32_t Spell_C_WasSpellRecentlyUsed(int32_t spellId, int32_t pet);
+int32_t Spell_C_WasItemRecentlyUsed(int32_t itemId);
+bool Spell_C_IsCastingInterruptedByCombat(const WOWGUID& guid);
+int32_t Spell_C_HandleTerrainRay(const CTerrainClickEvent& evt, bool checkRange);
+void Spell_C_FailPendingCast(PendingSpellCast* cast, const SpellRec* spell, int32_t reason);
+bool Spell_C_IsModal(const WOWGUID& item);
+PendingSpellCast* Spell_C_GetActivePlayerPendingCast();
+void Spell_C_CancelSpell(PendingSpellCast* cast, bool stopRecast, bool notifyServer, int32_t reason);
+void Spell_C_CancelRangedSpells();
+void Spell_C_CancelAura(const SpellRec* spell, CGUnit_C* unit, int32_t auraIndex);
+void Spell_C_PetTameFailure(uint8_t reason);
+bool SpellAppliesNonStanceShapeshift(const SpellRec* spell);
+void Spell_C_SetAutoRepeatingSpell(int32_t spellId);
+SpellVisualKitRec* Spell_C_GetAppropriateImpactKit(const SpellVisualRec* visual, int32_t caster);
+float Spell_C_GetSpellRadius();
+void Spell_C_ModifyCooldown(int32_t spellId, uint32_t time, int32_t index, int32_t remove);
+void Spell_C_DelayCooldown(int32_t index, int32_t spellId, int32_t delay);
 bool Spell_C_GetSpellCooldown(int32_t spellId, int32_t petSpell, uint32_t* duration, uint32_t* start, uint32_t* enable);
 bool Spell_C_IsActiveSpell(const SpellRec* spell, const CGUnit_C* unit);
 uint32_t Spell_C_GetPowerDisplayMod(uint32_t powerType);

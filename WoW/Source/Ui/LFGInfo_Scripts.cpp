@@ -545,6 +545,18 @@ static int32_t Script_IsListedInLFR(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 31a496e4 auto
+// OFFSET: 0x00554680
+static int32_t Script_GetLFGRoleUpdate(lua_State* L) {
+    return CGLookingForGroup::GetLFGRoleUpdate(L);
+}
+
+// VERIFY: bd40434c auto
+// OFFSET: 0x00554740
+static int32_t Script_GetLFGRoleUpdateSlot(lua_State* L) {
+    return CGLookingForGroup::GetLFGRoleUpdateSlot(L);
+}
+
 // STATIC: 0x00ACD668
 static FrameScript_Method s_ScriptFunctions[] = {
     { "SetLFGDungeon", &Script_SetLFGDungeon },

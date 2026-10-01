@@ -20,6 +20,11 @@ struct MerchantItem {
     /* 001C */ int32_t m_extendedCostID;
 };
 
+struct BuybackEntry {
+    /* 0000 */ uint32_t m_timestamp;
+    /* 0004 */ uint32_t m_slot;
+};
+
 class CGMerchantInfo {
     public:
     static uint32_t m_buybackSlots[12];
@@ -27,8 +32,11 @@ class CGMerchantInfo {
     static ItemStats_C* GetItemStats(int32_t itemId);
     static uint32_t m_pendingItemStats;
     static void SetMerchant(WOWGUID merchant, const MerchantItem* items, int32_t count);
+    static void RefreshList();
+    static int32_t CanRepair();
     static void CloseMerchant();
     static void EnterWorld();
+    static void SortBuybackItems();
     static MerchantItem* FindItemById(int32_t itemId);
     static int32_t GetRepairCost(CGItem_C* item);
     static MerchantItem m_items[150];

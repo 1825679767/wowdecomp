@@ -4,7 +4,9 @@
 #include <cstddef>
 #include <cstdint>
 
+class C3Vector;
 class CGUnit_C;
+class SpellMissileRec;
 class CMissileCollision;
 
 class CMissileCollisionHeap {
@@ -34,6 +36,8 @@ class CMissileCollision {
 
     CMissileCollision();
     void Free();
+    int32_t Init(const C3Vector* start, const C3Vector* end, float pitch, float speed, const SpellMissileRec* missile, CGUnit_C* caster);
+    float ComputeSegmentImpactTime(const C3Vector* start, const C3Vector* end);
 };
 
 #endif

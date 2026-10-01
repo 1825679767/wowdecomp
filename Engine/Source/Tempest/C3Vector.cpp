@@ -217,3 +217,13 @@ float C3Vector::Distance(const C3Vector& a, const C3Vector& b) {
     float dx = a.x - b.x;
     return sqrt(dx * dx + dz * dz + dy * dy);
 }
+
+// VERIFY: 9db61a8f auto
+// OFFSET: 0x004BEC40
+C3Vector operator*(const C3Vector& l, float r) {
+    C3Vector result;
+    result.x = l.x * r;
+    result.y = l.y * r;
+    result.z = r * l.z;
+    return result;
+}

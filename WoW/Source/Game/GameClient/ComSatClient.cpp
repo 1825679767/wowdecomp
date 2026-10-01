@@ -80,7 +80,7 @@ static TSFixedArray<ComSatCallback> s_comsatCallbacks;
 static SMutex unk_D37D54;
 
 // STATIC: 0x00D37D88
-static TSHashTable<TALKINGPLAYER, CHashKeyGUID> unk_D37D88;
+TSHashTable<TALKINGPLAYER, CHashKeyGUID> unk_D37D88;
 
 // STATIC: 0x00D37DB0
 static TSHashTable<MUTEDPLAYER, CHashKeyGUID> unk_D37DB0;

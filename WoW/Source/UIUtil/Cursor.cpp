@@ -278,3 +278,25 @@ void CursorResetMode() {
         FrameScript_SignalEvent(SCRIPT_EVENT_CURSOR_UPDATE, nullptr);
     }
 }
+
+// VERIFY: 27d3e602 manual
+// OFFSET: 0x006164B0
+void CursorReleaseItemMips() {
+    MipBits* mips = s_cursorItemMips;
+
+    if (!mips) {
+        return;
+    }
+
+    if (s_cursorItemType) {
+        CopyCursorImage(s_cursorItem, mips, s_cursorItemMipsWidth, s_cursorItemMipsHeight);
+        TextureFreeMippedImg(mips);
+    } else {
+        TextureFreeMippedImg(s_cursorItemMips);
+    }
+
+    s_cursorItemMipsHeight = 0;
+    s_cursorItemMipsWidth = 0;
+    s_cursorItemMips = nullptr;
+    UpdateCursor();
+}

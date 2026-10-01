@@ -35,6 +35,7 @@ extern TSExplicitList<PLAYERNAMEDESC, offsetof(PLAYERNAMEDESC, m_link)> s_player
 PLAYERNAMEDESC* PlayerNameCreate(const WOWGUID& guid);
 void PlayerNameDelete(PLAYERNAMEDESC* desc);
 void PlayerNameCreateText(PLAYERNAMEDESC* desc, uint32_t type, const char* text, const CImVector* color, const CImVector* shadowColor);
+void PlayerNameDeleteText(PLAYERNAMEDESC* desc, uint32_t type);
 
 void PlayerNameTriggerColorUpdate(PLAYERNAMEDESC* desc);
 void PlayerNameTriggerNameRegenerate(PLAYERNAMEDESC* desc);

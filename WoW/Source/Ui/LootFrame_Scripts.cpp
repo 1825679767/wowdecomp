@@ -13,6 +13,9 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Game/GameClient/NameCache.h"
 #include "WoW/Source/Ui/Types.h"
+#include "Engine/Source/FrameXML/LoadXML.h"
+#include "WoW/Source/UIUtil/Tooltip.h"
+#include "WoW/Source/Ui/GameUI.h"
 
 // VERIFY: 58fe7575 manual
 // OFFSET: 0x00588CC0
@@ -180,6 +183,155 @@ static int32_t Script_GetMasterLootCandidate(lua_State* L) {
     }
 
     return 1;
+}
+
+// VERIFY: c26f542e auto
+// OFFSET: 0x00588540
+static int32_t Script_GetNumLootItems(lua_State* L) {
+    lua_pushnumber(L, CGLootWindow::GetNumLootItems());
+    return 1;
+}
+
+// VERIFY: d7d7a642 manual
+// OFFSET: 0x00588570
+static int32_t Script_GetLootSlotInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetLootSlotInfo(slot)");
+    }
+
+    uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    lua_pushstring(L, CGLootInfo::GetLootSlotTexture(slot));
+    char text[256];
+    CGLootInfo::GetLootSlotText(text, sizeof(text), slot);
+    lua_pushstring(L, text);
+    lua_pushnumber(L, CGLootInfo::GetLootItemCount(slot));
+    lua_pushnumber(L, CGLootWindow::GetLootItemRarity(slot));
+    uint32_t index = slot;
+
+    if (CGLootInfo::m_lootObj) {
+        if (CGLootInfo::m_coins) {
+            if (!slot) {
+                lua_pushnil(L);
+                return 5;
+            }
+
+            index = slot - 1;
+        }
+
+        if (index < 18 && CGLootInfo::m_slots[index].m_slotType == 3) {
+            lua_pushnumber(L, 1.0);
+            return 5;
+        }
+    }
+
+    lua_pushnil(L);
+    return 5;
+}
+
+// VERIFY: c50a7ab9 manual
+// OFFSET: 0x005886D0
+static int32_t Script_GetLootSlotLink(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetLootSlotLink(slot)");
+    }
+
+    char link[1024];
+    lua_pushstring(L, CGLootInfo::GetLootSlotLink(static_cast<int32_t>(lua_tonumber(L, 1)) - 1, link, sizeof(link)));
+    return 1;
+}
+
+// VERIFY: a1b183d2 auto
+// OFFSET: 0x005888B0
+static int32_t Script_CloseLoot(lua_State* L) {
+    CGGameUI::CloseLoot(true, false, StringToBOOL(L, 1, 0) != 0);
+    return 0;
+}
+
+// VERIFY: 520678de manual
+// OFFSET: 0x00588C00
+static int32_t Script_GetLootRollItemLink(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetLootRollItemLink(id)");
+    }
+
+    PendingLootRoll* roll = FindRoll(static_cast<int32_t>(lua_tonumber(L, 1)));
+
+    if (!roll) {
+        return 0;
+    }
+
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(roll->m_itemId, none, nullptr, nullptr, false);
+
+    if (!stats) {
+        return 0;
+    }
+
+    lua_pushstring(L, CGTooltip::GetItemHyperlinkString(roll->m_itemId, stats->m_quality, 0, roll->m_randomPropertyId, roll->m_randomSuffix));
+    return 1;
+}
+
+// VERIFY: c94773c2 auto
+// OFFSET: 0x00588D60
+static int32_t Script_RollOnLoot(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: RollOnLoot(id, rollType)");
+    }
+
+    int32_t id = static_cast<int32_t>(lua_tonumber(L, 1));
+    LootRoll(id, static_cast<int32_t>(lua_tonumber(L, 2)), false);
+    return 0;
+}
+
+// VERIFY: cb1996cb manual
+// OFFSET: 0x00588DD0
+static int32_t Script_ConfirmLootRoll(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: ConfirmLootRoll(id, rollType)");
+    }
+
+    int32_t id = static_cast<int32_t>(lua_tonumber(L, 1));
+    LootRoll(id, static_cast<int32_t>(lua_tonumber(L, 2)), true);
+    return 0;
+}
+
+// VERIFY: 87cfdafa manual
+// OFFSET: 0x00589520
+static int32_t Script_LootSlot(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: LootSlot(slot)");
+    }
+
+    CGLootInfo::LootSlot(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    return 0;
+}
+
+// VERIFY: c2324f9f manual
+// OFFSET: 0x00589590
+static int32_t Script_ConfirmLootSlot(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: LootSlot(slot)");
+    }
+
+    CGLootInfo::ConfirmLootSlot(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    return 0;
+}
+
+// VERIFY: f12b832e manual
+// OFFSET: 0x00589600
+static int32_t Script_GiveMasterLoot(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: GiveMasterLoot(slot, index)");
+    }
+
+    uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    WOWGUID target = GetMasterLootCandidate(static_cast<int32_t>(lua_tonumber(L, 2)) - 1);
+
+    if (target) {
+        CGLootInfo::GiveMasterLoot(slot, target);
+    }
+
+    return 0;
 }
 
 // STATIC: 0x00ACEE28

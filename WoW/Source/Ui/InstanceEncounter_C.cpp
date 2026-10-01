@@ -1,4 +1,6 @@
 #include "InstanceEncounter_C.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
 // STATIC: 0x00C242FC
 int32_t CGInstanceEncounter_C::m_units;
@@ -20,4 +22,12 @@ WOWGUID CGInstanceEncounter_C::GetBoss(uint32_t index) {
 // OFFSET: 0x005ED740
 uint32_t CGInstanceEncounter_C::GetNumBossSlots() {
     return CGInstanceEncounter_C::m_units;
+}
+
+// VERIFY: e1fb6f4f auto
+// OFFSET: 0x005EDED0
+void CGInstanceEncounter_C::EnterWorld() {
+    if (!CGGameUI::m_currentlyReloadingUI) {
+        ClientServices::SetMessageHandler(SMSG_UPDATE_INSTANCE_ENCOUNTER_UNIT, Packet_SMSG_UPDATE_INSTANCE_ENCOUNTER_UNIT, nullptr);
+    }
 }

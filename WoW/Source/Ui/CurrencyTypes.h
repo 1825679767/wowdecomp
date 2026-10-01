@@ -15,10 +15,10 @@ struct CurrencyCategoryInfo {
 struct CurrencyListEntry {
     /* 0000 */ const char* m_name;
     /* 0004 */ int32_t m_itemID;
-    /* 0008 */ int32_t unk_0008;
+    /* 0008 */ int32_t m_categoryID;
     /* 000C */ int32_t m_isHeader;
     /* 0010 */ int32_t m_isExpanded;
-    /* 0014 */ int32_t m_isUnused;
+    /* 0014 */ int32_t m_isWatched;
 };
 
 class CGCurrencyTypes {
@@ -27,7 +27,10 @@ class CGCurrencyTypes {
     static CurrencyListEntry m_list[95];
     static CurrencyCategoryInfo m_categories[32];
     static int32_t m_numCategories;
+    static void BuildDisplayList();
+    static int32_t CategoryHasKnownTypes(int32_t index, uint32_t known1, uint32_t known2, uint32_t unused1, uint32_t unused2);
     static int32_t CurrencyCategorySortCallback(const void* a, const void* b);
+    static int32_t DisplayListSortCallback(const void* a, const void* b);
     static void InitializeGame();
     static void EnterWorld();
 };

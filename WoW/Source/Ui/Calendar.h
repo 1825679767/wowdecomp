@@ -9,18 +9,26 @@ class CGCalendarEvent;
 class CVar;
 struct lua_State;
 
+struct CalendarEventClipboard {
+    /* 0000 */ uint64_t m_eventID;
+    /* 0008 */ uint8_t unk_0008[200];
+};
+
 int32_t PH_CALENDAR_GROUP(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 
 class CGCalendar {
     public:
-    static void EnterWorld();
     static uint8_t m_actionPending;
+    static void CalendarError(const char* error, int32_t a2);
     static CGCalendarEvent* m_curEvent;
     static uint8_t m_initialize;
     static uint8_t m_openedCalendar;
     static uint8_t unk_C207F2;
     static int32_t m_numInitialPending;
+
+    static void EnterWorld();
     static void InitializeGame();
+    static void QueryPendingInvites();
     static void SetFilter(CVar* var, int32_t value);
 };
 

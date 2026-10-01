@@ -229,7 +229,7 @@ int32_t CGActionBar::IsRangedAttackAction(uint32_t slot) {
     return 0;
 }
 
-// VERIFY: 8b6cbfa9 manual
+// VERIFY: 22df6d59 manual
 // OFFSET: 0x005A9E20
 int32_t CGActionBar::UpdateUsableAction(uint32_t slot, int32_t& noMana) {
     noMana = 0;
@@ -343,7 +343,7 @@ int32_t CGActionBar::UpdateUsableAction(uint32_t slot, int32_t& noMana) {
             MACRONODE* macro = CGUIMacros::GetMacroByID(CGActionBar::GetMacroID(slot));
 
             if (macro) {
-                target = *reinterpret_cast<WOWGUID*>(&macro->unk_0578[0]);
+                target = macro->m_target;
             }
         }
 
@@ -486,9 +486,9 @@ uint32_t CGPetInfo::GetPetMode() {
     return static_cast<uint8_t>(CGPetInfo::m_petMode);
 }
 
-// VERIFY: 0bd264de auto
+// VERIFY: 332acd46 auto
 // OFFSET: 0x005A79A0
-static uint32_t* GetPetAction(uint32_t index) {
+uint32_t* GetPetAction(uint32_t index) {
     if (CGPetInfo::GetPet(0) && index < sizeof(CGPetInfo::m_actions) / sizeof(CGPetInfo::m_actions[0])) {
         return &CGPetInfo::m_actions[index];
     }
@@ -1493,4 +1493,408 @@ int32_t CGActionBar::IsConsumableAction(uint32_t slot) {
     }
 
     return 0;
+}
+
+// VERIFY: 167e06af auto
+// OFFSET: 0x005A7CC0
+void CGActionBar::SignalUpdateCooldown() {
+    FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_UPDATE_COOLDOWN, nullptr);
+}
+
+// VERIFY: 243b49e9 manual
+// OFFSET: 0x005AAB10
+void CGActionBar::OnAuraChanged(int32_t spellId) {
+    if (!spellId) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 144; i++) {
+        int32_t petSpell;
+
+        if (CGActionBar::GetSpell(i, petSpell) == spellId && !petSpell) {
+            CGActionBar::SlotChanged(i, 0, 0);
+        }
+    }
+}
+
+// VERIFY: 8f9b1721 manual
+// OFFSET: 0x005A7920
+uint32_t CGActionBar::GetSlotSpellAction(uint32_t slot) {
+    uint32_t action = CGActionBar::m_slotActions[slot];
+
+    if (action && (action & 0xF0000000) == 0x10000000) {
+        return action & 0xEFFFFFFF;
+    }
+
+    return 0;
+}
+
+// VERIFY: eaef0f5d auto
+// OFFSET: 0x005A7C80
+static int32_t HasOverrideSpellData(const OverrideSpellDataRec* rec) {
+    if (!rec) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < 10; i++) {
+        if (rec->m_spells[i]) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 5c0eac99 auto
+// OFFSET: 0x005A7CF0
+static int32_t GetOverrideSpell(uint32_t index, const void* data) {
+    if (data && index < 10) {
+        return static_cast<const OverrideSpellDataRec*>(data)->m_spells[index];
+    }
+
+    return 0;
+}
+
+// VERIFY: 4f453604 manual
+// OFFSET: 0x005ABB40
+void CGActionBar::UpdateOverrideSpellBar() {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    OverrideSpellDataRec* rec;
+
+    if (player && (rec = g_overrideSpellDataDB.GetRecord(static_cast<int16_t>(player->m_player->m_playerFieldBytes2))) && HasOverrideSpellData(rec)) {
+        CGActionBar::UpdateTemporaryActionBar(&GetOverrideSpell, rec);
+        CGActionBar::m_tempPageActiveFlags |= 0x4;
+    } else {
+        CGActionBar::m_tempPageActiveFlags &= ~0x4;
+    }
+}
+
+// VERIFY: a5c3e3b2 auto
+// OFFSET: 0x005AAB90
+void CGActionBar::RemoveMacro(int32_t spellId) {
+    for (uint32_t i = 0; i < 144; i++) {
+        int32_t petSpell;
+
+        if (CGActionBar::GetSpell(i, petSpell) != spellId) {
+            continue;
+        }
+
+        uint32_t action = CGActionBar::m_slotActions[i];
+
+        if (action && (action & 0xF0000000) == 0x40000000) {
+            CGUIMacros::GetMacroByID(action & 0xBFFFFFFF)->FindSpellID();
+        }
+
+        CGActionBar::RemoveAction(i);
+    }
+}
+
+// VERIFY: d191a5f1 manual
+// OFFSET: 0x005AAA90
+void CGActionBar::RemoveAction(uint32_t slot) {
+    if (static_cast<int32_t>(slot) < 0 || slot >= 144) {
+        return;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || player->unk_1954) {
+        return;
+    }
+
+    if (CGActionBar::IsMacro(slot)) {
+        MACRONODE* macro = CGUIMacros::GetMacroByID(CGActionBar::GetMacroID(slot));
+
+        if (macro) {
+            macro->DecrementActionBarCount();
+        }
+    }
+
+    CGActionBar::m_slotActions[slot] = 0;
+    CGActionBar::SlotChanged(slot, 1, 0);
+}
+
+// VERIFY: 9df78218 auto
+// OFFSET: 0x005AA920
+void CGActionBar::UpdateMacro(uint32_t macroId) {
+    if (!macroId) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 144; i++) {
+        uint32_t action = CGActionBar::m_slotActions[i];
+        uint32_t id = action && (action & 0xF0000000) == 0x40000000 ? action & 0xBFFFFFFF : 0;
+
+        if (id != macroId) {
+            continue;
+        }
+
+        int32_t count = 0;
+
+        if (CGActionBar::GetItem(i)) {
+            count = CGActionBar::CalculateItemCount(CGActionBar::GetItem(i));
+        } else {
+            int32_t petSpell;
+            int32_t spellId = CGActionBar::GetSpell(i, petSpell);
+
+            if (spellId && !petSpell) {
+                count = Spell_C_GetSpellReagentUses(spellId);
+            }
+        }
+
+        CGActionBar::m_slotItemCount[i] = count;
+        int32_t noMana;
+        CGActionBar::m_slotUsable[i] = CGActionBar::UpdateUsableAction(i, noMana);
+        CGActionBar::m_slotNoMana[i] = noMana;
+        FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_SLOT_CHANGED, "%d", i + 1);
+    }
+}
+
+// VERIFY: c1c240db auto
+// OFFSET: 0x005A7C20
+void CGActionBar::SetTemporaryActionBarFlags(uint32_t flags, int32_t enable) {
+    if (enable) {
+        CGActionBar::m_tempPageActiveFlags |= flags;
+    } else {
+        CGActionBar::m_tempPageActiveFlags &= ~flags;
+    }
+}
+
+// VERIFY: 990974c3 auto
+// OFFSET: 0x005AB800
+void CGActionBar::UpdateTemporaryActionBar(int32_t (*getSpell)(uint32_t index, const void* data), const void* data) {
+    if (!getSpell) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 12; i++) {
+        CGActionBar::SetAction(i + 120, getSpell(i, data), 0, 0);
+    }
+}
+
+// VERIFY: c3611dc4 manual
+// OFFSET: 0x005A8D30
+void CGActionBar::UpdateUsablePower() {
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    SpellRec spell;
+    int32_t changed = 0;
+
+    for (uint32_t i = 0; i < 144; i++) {
+        if (!CGActionBar::m_slotUsable[i]) {
+            continue;
+        }
+
+        int32_t noMana = 0;
+        int32_t petSpell;
+        int32_t spellId = CGActionBar::GetSpell(i, petSpell);
+
+        if (spellId && g_spellDB.GetRecord(spellId, &spell)) {
+            CGUnit_C* caster = petSpell ? static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPEMASK_UNIT, __FILE__, __LINE__)) : player;
+
+            if (caster) {
+                noMana = !Spell_C_HaveSpellPower(caster, &spell);
+            }
+        }
+
+        if (noMana != CGActionBar::m_slotNoMana[i]) {
+            CGActionBar::m_slotNoMana[i] = noMana;
+            changed = 1;
+        }
+    }
+
+    if (changed) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_UPDATE_USABLE, nullptr);
+    }
+}
+
+// VERIFY: 6a47ffb3 auto
+// OFFSET: 0x005A7CD0
+static int32_t GetFormPresetSpell(uint32_t index, const void* data) {
+    const SpellShapeshiftFormRec* form = static_cast<const SpellShapeshiftFormRec*>(data);
+
+    if (form && index < 8) {
+        return form->m_presetSpellID[index];
+    }
+
+    return 0;
+}
+
+// VERIFY: 82a1fae7 manual
+// OFFSET: 0x005ABAC0
+void CGActionBar::UpdateShapeShiftBar() {
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    SpellShapeshiftFormRec* form;
+
+    if (player && (form = g_spellShapeshiftFormDB.GetRecord(player->GetShapeshiftForm())) && FormHasActionBar(form)) {
+        CGActionBar::UpdateTemporaryActionBar(GetFormPresetSpell, form);
+        CGActionBar::m_tempPageActiveFlags |= 2;
+    } else {
+        CGActionBar::m_tempPageActiveFlags &= ~2u;
+    }
+}
+
+// VERIFY: 3645420e manual
+// OFFSET: 0x005A9470
+int32_t CGActionBar::IsAutoRepeatAction(uint32_t slot) {
+    if (slot > 143) {
+        return 0;
+    }
+
+    int32_t petSpell;
+    int32_t spellId = CGActionBar::GetSpell(slot, petSpell);
+
+    return spellId && !petSpell && (Spell_C_GetAutoRepeatingSpell() == spellId || Spell_C_GetAutoRangedCombatSpell() == spellId);
+}
+
+// VERIFY: 7fa85525 manual
+// OFFSET: 0x005A94C0
+int32_t CGActionBar::HasValidTarget(uint32_t slot, WOWGUID target, int32_t* inRange) {
+    if (slot > 143) {
+        return 0;
+    }
+
+    SpellRec spell;
+    int32_t petSpell;
+
+    if (!g_spellDB.GetRecord(CGActionBar::GetSpell(slot, petSpell), &spell)) {
+        return 0;
+    }
+
+    if (!target && CGActionBar::IsMacro(slot)) {
+        MACRONODE* macro = CGUIMacros::GetMacroByID(CGActionBar::GetMacroID(slot));
+
+        if (macro) {
+            target = macro->m_target;
+        }
+    }
+
+    CGUnit_C* caster = petSpell ? static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPEMASK_UNIT, __FILE__, __LINE__)) : ClntObjMgrGetActivePlayerObj();
+    uint8_t result;
+
+    if (caster && Spell_C_RangeCheckSelected(caster, &spell, target, &result, false, nullptr)) {
+        *inRange = result;
+        return 1;
+    }
+
+    return 0;
+}
+
+// VERIFY: 5e49e6d0 manual
+// OFFSET: 0x005AA5C0
+void CGActionBar::UpdateItem(int32_t itemId) {
+    if (!itemId) {
+        return;
+    }
+
+    int32_t count = CGActionBar::CalculateItemCount(itemId);
+
+    for (uint32_t i = 0; i < 144; i++) {
+        uint32_t action = CGActionBar::m_slotActions[i];
+
+        if (action && (action & 0xF0000000) == 0x40000000) {
+            MACRONODE* macro = CGUIMacros::GetMacroByID(action & 0xBFFFFFFF);
+
+            if (macro && macro->m_spellID < 0) {
+                macro->FindSpellID();
+            }
+        }
+
+        int32_t item = CGActionBar::GetItem(i);
+
+        if (!item) {
+            int32_t petSpell;
+            int32_t spellId = CGActionBar::GetSpell(i, petSpell);
+
+            if (!spellId || petSpell) {
+                continue;
+            }
+
+            SpellRec spell;
+
+            if (g_spellDB.GetRecord(spellId, &spell) && Spell_C_SpellUsesReagent(&spell, itemId)) {
+                CGActionBar::m_slotItemCount[i] = Spell_C_GetSpellReagentUses(&spell);
+                int32_t noMana;
+                CGActionBar::m_slotUsable[i] = CGActionBar::UpdateUsableAction(i, noMana);
+                CGActionBar::m_slotNoMana[i] = noMana;
+                FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_SLOT_CHANGED, "%d", i + 1);
+            }
+
+            continue;
+        }
+
+        if (item == itemId) {
+            if (!count) {
+                WOWGUID none = WOWGUID();
+                ItemStats_C* stats = g_itemDBCache.GetRecord(item, none, nullptr, nullptr, false);
+
+                if (stats) {
+                    uint32_t index = 0;
+
+                    while (stats->m_spellTrigger[index] != 6) {
+                        if (++index >= 5) {
+                            break;
+                        }
+                    }
+
+                    if (index < 5) {
+                        uint32_t spellId = stats->m_spellId[index];
+
+                        if (spellId && spellId <= static_cast<uint32_t>(g_spellDB.m_maxID) && (s_knownSpellBits.m_bits.m_data[spellId >> 5] & (1 << (spellId & 0x1F)))) {
+                            CGActionBar::SetAction(i, spellId, 1, 0);
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            CGActionBar::m_slotItemCount[i] = count;
+            int32_t noMana;
+            CGActionBar::m_slotUsable[i] = CGActionBar::UpdateUsableAction(i, noMana);
+            CGActionBar::m_slotNoMana[i] = noMana;
+            FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_SLOT_CHANGED, "%d", i + 1);
+            continue;
+        }
+
+        WOWGUID none = WOWGUID();
+        ItemStats_C* stats = g_itemDBCache.GetRecord(item, none, nullptr, nullptr, false);
+
+        if (!stats || stats->m_stackable > 1) {
+            continue;
+        }
+
+        CGItem_C* enchantItem = CGActionBar::FindUseEnchantItemPtr(item);
+        int32_t charges = enchantItem ? enchantItem->GetUsableSpellCharges() : CGItem_C::NumBaseCharges(item);
+
+        if (charges < 0) {
+            continue;
+        }
+
+        int32_t spellId = enchantItem ? enchantItem->GetEnchantmentSpell(0) : CGItem_C::GetUseSpell(item);
+
+        if (!spellId) {
+            continue;
+        }
+
+        SpellRec spell;
+
+        if (!g_spellDB.GetRecord(spellId, &spell)) {
+            continue;
+        }
+
+        uint32_t reagent = 0;
+
+        while (!spell.m_reagent[reagent] || spell.m_reagentCount[reagent] <= 0) {
+            if (++reagent >= 8) {
+                break;
+            }
+        }
+
+        if (reagent < 8 && Spell_C_SpellUsesReagent(&spell, itemId)) {
+            CGActionBar::m_slotItemCount[i] = Spell_C_GetSpellReagentUses(&spell);
+            int32_t noMana;
+            CGActionBar::m_slotUsable[i] = CGActionBar::UpdateUsableAction(i, noMana);
+            CGActionBar::m_slotNoMana[i] = noMana;
+            FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_SLOT_CHANGED, "%d", i + 1);
+        }
+    }
 }

@@ -23,6 +23,15 @@
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "Engine/Source/Tempest/CMath.h"
 #include "WoW/Source/DB/Rec/AreaPOIRec.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/Types.h"
+#include <cmath>
+#include <cstring>
+#include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/Ui/CGWorldStateInfo.h"
 
 // STATIC: 0x00ACEBAC
 int32_t CGMinimapFrame::s_scaleChanged = 1;
@@ -145,8 +154,68 @@ const TrackingTypeInfo CGMinimapFrame::s_trackingTypes[15] = {
     { 3, 0x0, "MINIMAP_TRACKING_TRIVIAL_QUESTS", "TrivialQuests", 0x0 },
 };
 
+// STATIC: 0x00A41E04
+static const int32_t s_outdoorZoomTiles[6] = { 14, 12, 10, 8, 6, 4 };
+
+// STATIC: 0x00A41E1C
+static const float s_indoorZoomRadius[6] = { 150.0f, 120.0f, 90.0f, 60.0f, 40.0f, 25.0f };
+
+// STATIC: 0x00AF4E48
+static int32_t s_mapId = -1;
+
+// STATIC: 0x00AF4E4C
+static int32_t s_outdoorZoom = 3;
+
+// STATIC: 0x00AF4E50
+static int32_t s_indoorZoom = 3;
+
+// STATIC: 0x00AF4E58
+static const char* s_minimapTexturePath = "Textures\\Minimap";
+
+// STATIC: 0x00D39210
+static float s_closestPOIFacing[3];
+
+// STATIC: 0x00D3921C
+static int32_t s_closestPOIs[3];
+
+// STATIC: 0x00D39228
+static int32_t s_poisChanged;
+
+// STATIC: 0x00D39230
+static char s_dynamicPOINames[4][64];
+
+// STATIC: 0x00D39434
+static uint8_t s_isIndoors;
+
+// STATIC: 0x00D39444
+static uint32_t s_numPOIs;
+
+// STATIC: 0x00D39448
+static uint32_t s_numClosestPOIs;
+
+// STATIC: 0x00D3944C
+static int32_t s_closestPOIsChanged;
+
+// STATIC: 0x00D39454
+static C3Vector s_playerPosition;
+
 // STATIC: 0x00D39490
-static AreaPOIRec s_dynamicPOIs[2];
+static AreaPOIRec s_dynamicPOIs[4];
+
+// STATIC: 0x00D395F0
+static TSFixedArray<AreaPOIRec*> s_pois;
+
+// STATIC: 0x00D395FC
+static TSFixedArray<int32_t> s_poiVisible;
+
+// STATIC: 0x00D39608
+static TSFixedArray<int32_t> s_poiOnEdge;
+
+// STATIC: 0x00D39614
+static TSGrowableArray<AreaPOIRec*> s_visiblePOIs;
+
+// STATIC: 0x00D39624
+static TSHashTable<MINIMAPMD5NAME, HASHKEY_STRI> s_md5Names;
 
 // INLINED
 void CGMinimapFrame::operator delete(void* ptr) {
@@ -476,4 +545,272 @@ const TrackingTypeInfo* CGMinimapFrame::GetTrackingTypeByIndex(int32_t index) {
 // OFFSET: 0x007F3BE0
 AreaPOIRec* MinimapGetGossipPoi() {
     return &s_dynamicPOIs[1];
+}
+
+// VERIFY: 23614ed9 manual
+// OFFSET: 0x0057EA30
+void CGMinimapFrame::SetTrackingSpell(int32_t spellId) {
+    CGMinimapFrame::s_trackingSpell = spellId;
+
+    if (spellId) {
+        CGMinimapFrame::LoadTrackingInfo(0);
+    } else {
+        Script_SendUniqueSignal(SCRIPT_EVENT_MINIMAP_UPDATE_TRACKING);
+    }
+}
+
+// VERIFY: 08401ea1 auto
+// OFFSET: 0x007F3B90
+float MinimapGetViewRadius() {
+    if (s_isIndoors) {
+        return s_indoorZoomRadius[s_indoorZoom];
+    }
+
+    return s_outdoorZoomTiles[s_outdoorZoom] * 0.5f * 33.333332f;
+}
+
+// VERIFY: 10a7b5c4 manual
+// OFFSET: 0x007F44A0
+void UpdatePointsOfInterest() {
+    if (s_mapId == -1) {
+        return;
+    }
+
+    s_visiblePOIs.SetCount(0);
+    float viewRadius = MinimapGetViewRadius();
+
+    for (uint32_t i = 0; i < s_numPOIs; i++) {
+        AreaPOIRec* poi = s_pois.m_data[i];
+
+        if ((poi->m_pos[0] == 0.0f && poi->m_pos[1] == 0.0f) || (poi->m_worldStateID && !GetWorldState(poi->m_worldStateID))) {
+            if (!s_poiVisible.m_data[i] && !s_poiOnEdge.m_data[i]) {
+                continue;
+            }
+
+            s_poiVisible.m_data[i] = 0;
+            s_poiOnEdge.m_data[i] = 0;
+            s_poisChanged = 1;
+            continue;
+        }
+
+        float dy = s_playerPosition.y - poi->m_pos[1];
+        float dx = s_playerPosition.x - poi->m_pos[0];
+
+        if (sqrt(dx * dx + dy * dy) / viewRadius > 0.8f) {
+            if (!s_poiVisible.m_data[i] && s_poiOnEdge.m_data[i]) {
+                continue;
+            }
+
+            s_poiVisible.m_data[i] = 0;
+            s_poiOnEdge.m_data[i] = 1;
+            s_poisChanged = 1;
+            continue;
+        }
+
+        if (!(poi->m_flags & 2)) {
+            if (!s_poiVisible.m_data[i] && !s_poiOnEdge.m_data[i]) {
+                continue;
+            }
+
+            s_poiVisible.m_data[i] = 0;
+            s_poiOnEdge.m_data[i] = 0;
+            s_poisChanged = 1;
+            continue;
+        }
+
+        *s_visiblePOIs.New() = poi;
+
+        if (s_poiVisible.m_data[i] && !s_poiOnEdge.m_data[i]) {
+            continue;
+        }
+
+        s_poiVisible.m_data[i] = 1;
+        s_poiOnEdge.m_data[i] = 0;
+        s_poisChanged = 1;
+    }
+
+    int32_t worst = -1;
+    uint32_t count = 0;
+    float distances[3] = { 694.44446f, 694.44446f, 694.44446f };
+    int32_t indices[3] = { -1, -1, -1 };
+    int32_t importance[3];
+
+    for (uint32_t i = 0; i < s_numPOIs; i++) {
+        if (!s_poiOnEdge.m_data[i]) {
+            continue;
+        }
+
+        AreaPOIRec* poi = s_pois.m_data[i];
+        float dy = poi->m_pos[1] - s_playerPosition.y;
+        float dx = poi->m_pos[0] - s_playerPosition.x;
+        float distance = sqrt(dx * dx + dy * dy);
+
+        if (distance > 694.44446f && poi != &s_dynamicPOIs[2]) {
+            continue;
+        }
+
+        if (worst == -1) {
+            distances[count] = distance;
+            indices[count] = i;
+            importance[count] = poi->m_importance;
+            count++;
+        } else if (poi->m_importance < importance[worst] || (poi->m_importance == importance[worst] && distance < distances[worst])) {
+            distances[worst] = distance;
+            indices[worst] = i;
+            importance[worst] = poi->m_importance;
+        }
+
+        if (count == 3) {
+            worst = 0;
+
+            for (int32_t j = 1; j < 3; j++) {
+                if (importance[j] > importance[worst] || (importance[j] == importance[worst] && distances[worst] < distances[j])) {
+                    worst = j;
+                }
+            }
+        }
+    }
+
+    if (s_numClosestPOIs != count) {
+        s_numClosestPOIs = count;
+        s_closestPOIsChanged = 1;
+    } else {
+        for (uint32_t j = 0; j < count; j++) {
+            if (indices[j] != s_closestPOIs[j]) {
+                s_closestPOIsChanged = 1;
+                break;
+            }
+        }
+    }
+
+    for (uint32_t j = 0; j < count; j++) {
+        s_closestPOIs[j] = indices[j];
+        AreaPOIRec* poi = s_pois.m_data[indices[j]];
+        C3Vector position(poi->m_pos[0], poi->m_pos[1], s_playerPosition.z);
+        s_closestPOIFacing[j] = CalculateFacingTo(&s_playerPosition, &position);
+    }
+}
+
+// VERIFY: 3a8b6454 auto
+// OFFSET: 0x007F4990
+void MinimapSetCorpsePOI(float x, float y) {
+    const char* name = FrameScript_GetText("CORPSE_RED", -1, GENDER_NOT_APPLICABLE);
+    s_dynamicPOIs[2].m_pos[0] = x;
+    s_dynamicPOIs[2].m_pos[1] = y;
+    s_dynamicPOIs[2].m_flags = 2;
+    s_dynamicPOIs[2].m_continentID = s_mapId;
+    s_dynamicPOIs[2].m_icon[0] = 8;
+    s_dynamicPOIs[2].m_importance = -1;
+    SStrCopy(s_dynamicPOINames[2], name, sizeof(s_dynamicPOINames[2]));
+    UpdatePointsOfInterest();
+    s_closestPOIsChanged = 1;
+}
+
+// VERIFY: 7ee85ac8 auto
+// OFFSET: 0x007F4A00
+void MinimapSetSpiritHealerPOI(float x, float y) {
+    const char* name = FrameScript_GetText("SPIRIT_HEALER_RELEASE_RED", -1, GENDER_NOT_APPLICABLE);
+    s_dynamicPOIs[3].m_pos[0] = x;
+    s_dynamicPOIs[3].m_pos[1] = y;
+    s_dynamicPOIs[3].m_flags = 2;
+    s_dynamicPOIs[3].m_continentID = s_mapId;
+    s_dynamicPOIs[3].m_icon[0] = 8;
+    s_dynamicPOIs[3].m_importance = -1;
+    SStrCopy(s_dynamicPOINames[3], name, sizeof(s_dynamicPOINames[3]));
+    UpdatePointsOfInterest();
+    s_closestPOIsChanged = 1;
+}
+
+// VERIFY: 0eda32e5 manual
+// OFFSET: 0x007F6540
+static void LoadMD5Names() {
+    char path[260];
+    SStrPrintf(path, sizeof(path), "%s\\md5translate.trs", s_minimapTexturePath);
+    void* data;
+
+    if (!SFile::LoadFile(path, &data, nullptr, 1, nullptr)) {
+        return;
+    }
+
+    const char* cursor = static_cast<const char*>(data);
+    char line[260];
+    memset(line, 0, sizeof(line));
+
+    do {
+        SStrTokenize(&cursor, line, sizeof(line), "\r\n", nullptr);
+
+        if (!*cursor || !line[0]) {
+            break;
+        }
+
+        if (!SStrCmp(line, "dir:", SStrLen("dir:"))) {
+            continue;
+        }
+
+        char* tab = SStrChr(line, '\t');
+
+        if (!tab) {
+            continue;
+        }
+
+        *tab = '\0';
+        MINIMAPMD5NAME* entry = s_md5Names.Ptr(line);
+
+        if (!entry) {
+            entry = s_md5Names.New(line, 0, 0);
+        }
+
+        SStrCopy(entry->m_md5Name, tab + 1, sizeof(entry->m_md5Name));
+    } while (line[0] && *cursor);
+
+    SFile::Unload(data);
+}
+
+// VERIFY: 885c45ba manual
+// OFFSET: 0x007F6730
+void MinimapInitialize(int32_t mapId) {
+    s_numPOIs = 0;
+
+    for (int32_t pass = 0; pass < 2; pass++) {
+        if (pass > 0) {
+            s_pois.SetCount(s_numPOIs);
+            s_poiVisible.SetCount(s_numPOIs);
+            s_poiOnEdge.SetCount(s_numPOIs);
+            memset(s_poiVisible.m_data, 0, sizeof(int32_t) * s_poiVisible.m_count);
+            memset(s_poiOnEdge.m_data, 0, sizeof(int32_t) * s_poiOnEdge.m_count);
+        }
+
+        uint32_t count = 0;
+
+        for (int32_t i = g_areaPOIDB.m_numRecords - 1; i >= 0; i--) {
+            AreaPOIRec* rec = g_areaPOIDB.GetRecordByIndex(i);
+
+            if (rec->m_continentID == mapId && (rec->m_flags & 1)) {
+                if (pass > 0) {
+                    s_pois.m_data[count] = rec;
+                }
+
+                count++;
+            }
+        }
+
+        s_numPOIs = count + 4;
+    }
+
+    for (uint32_t i = 0; i < 4; i++) {
+        s_pois.m_data[s_numPOIs - 4 + i] = &s_dynamicPOIs[i];
+        memset(&s_dynamicPOIs[i], 0, sizeof(s_dynamicPOIs[i]));
+        s_dynamicPOIs[i].m_name = s_dynamicPOINames[i];
+    }
+
+    s_closestPOIFacing[0] = -1.0f;
+    s_closestPOIFacing[1] = -1.0f;
+    s_closestPOIFacing[2] = -1.0f;
+    s_closestPOIs[0] = -1;
+    s_closestPOIs[1] = -1;
+    s_closestPOIs[2] = -1;
+    s_outdoorZoom = g_minimapZoomCVar->m_intValue;
+    s_indoorZoom = g_minimapInsideZoomCVar->m_intValue;
+    FrameScript_SignalEvent(SCRIPT_EVENT_MINIMAP_UPDATE_ZOOM, nullptr);
+    LoadMD5Names();
 }

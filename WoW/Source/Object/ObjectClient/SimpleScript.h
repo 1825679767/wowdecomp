@@ -14,6 +14,15 @@ struct SimpleScriptFunction {
     /* 0014 */ int32_t m_numStringReturns;
 };
 
+struct SimpleScriptFunctionDesc {
+    /* 0000 */ const char* m_name;
+    /* 0004 */ const char** m_args;
+    /* 0008 */ const char** m_stringArgs;
+    /* 000C */ const char* m_body;
+    /* 0010 */ const char** m_returns;
+    /* 0014 */ const char** m_stringReturns;
+};
+
 struct SimpleScriptIO {
     /* 0000 */ TSGrowableArray<double> m_numbers;
     /* 0010 */ uint32_t m_stringSize;
@@ -41,6 +50,8 @@ class CSimpleScriptManager {
     void CopyGlobal(const char* name);
     int32_t Execute(const char* script, const char* name);
     uint32_t FindFunction(int32_t id);
+    SimpleScriptFunction* GetFunction(uint32_t handle);
+    uint32_t CreateFunction(int32_t id, const SimpleScriptFunctionDesc& desc);
     int32_t Init(uint32_t bits);
     void Uninit();
 };

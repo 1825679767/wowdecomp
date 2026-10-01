@@ -247,6 +247,12 @@ void NetClient::SetLoginData(LoginData* loginData) {
     memcpy(&this->m_loginData, loginData, sizeof(this->m_loginData));
 }
 
+// VERIFY: 10a620f0 auto
+// OFFSET: 0x00631F90
+uint8_t* NetClient::GetSessionKey() {
+    return this->m_loginData.m_sessionKey;
+}
+
 // VERIFY: f1080d7c auto
 // OFFSET: 0x00631FA0
 void NetClient::SetMessageHandler(NETMESSAGE msgId, MESSAGE_HANDLER handler, void* param) {

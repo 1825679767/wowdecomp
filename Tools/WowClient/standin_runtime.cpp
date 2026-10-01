@@ -11,6 +11,7 @@ extern "C" const int g_standinCount;
 
 static char s_logPath[MAX_PATH];
 static HANDLE s_console = INVALID_HANDLE_VALUE;
+static HANDLE s_logFile = INVALID_HANDLE_VALUE;
 
 static void LogLine(const char* text) {
     fputs(text, stderr);
@@ -21,11 +22,9 @@ static void LogLine(const char* text) {
         WriteFile(s_console, text, static_cast<DWORD>(strlen(text)), &written, nullptr);
     }
 
-    FILE* file = nullptr;
-
-    if (s_logPath[0] && fopen_s(&file, s_logPath, "a") == 0 && file) {
-        fputs(text, file);
-        fclose(file);
+    if (s_logFile != INVALID_HANDLE_VALUE) {
+        DWORD written = 0;
+        WriteFile(s_logFile, text, static_cast<DWORD>(strlen(text)), &written, nullptr);
     }
 }
 
@@ -181,6 +180,7 @@ static struct StandinRuntimeInit {
         }
 
         DeleteFileA(s_logPath);
+        s_logFile = CreateFileA(s_logPath, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 
         if (AllocConsole()) {
             SetConsoleTitleA("WowClient stand-ins");

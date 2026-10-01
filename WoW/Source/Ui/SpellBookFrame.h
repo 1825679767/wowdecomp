@@ -8,6 +8,7 @@
 
 struct lua_State;
 class CGUnit_C;
+class AuraData;
 
 struct SpellUsableInfo {
     /* 0000 */ int32_t m_spellId;
@@ -38,6 +39,7 @@ class SpellRec;
 
 class CGSpellBook {
     public:
+    static void GetAppropriateSpellRank(uint32_t* spellId, CGUnit_C* caster, CGUnit_C* target);
     static const char* GetSpellTexture(int32_t slot, int32_t petSpell);
     static int32_t IsSelectedSlot(int32_t slot, int32_t petSpell);
     static int32_t FindSpellByName(const char* name, const char* subtext, int32_t* petSpell);
@@ -75,12 +77,31 @@ class CGSpellBook {
     static void MakeKnownSpellModelsLocal();
     static int32_t GetSkinningSpell(const CGUnit_C* unit);
     static void ReplaceSpell(int32_t oldSpell, int32_t newSpell);
+    static void DelKnownSpell(int32_t spellId, int32_t notify);
+    static void SendCompanionUpdate(int32_t type);
+    static int32_t GetSpellRankOrLevel(const SpellRec* spell);
+    static void PickupSpell(int32_t slot, int32_t petSpell);
+    static void PickupCompanion(int32_t type, uint32_t index);
+    static int32_t IsAuraCaster(WOWGUID guid, const WOWGUID* caster);
+    static int32_t FindRaidDispel(int32_t dispelType);
+    static bool IsUnlearnedSpell(int32_t spellId);
+    static void AddPetSpell(int32_t spellId);
+    static void DelSpellFromNameCache(int32_t spellId, int32_t petSpell);
+    static uint32_t GetShapeshiftForm(int32_t requireForm);
+    static int32_t CanShowAura(const SpellRec* spell, const WOWGUID* caster, bool helpful);
+    static int32_t CanApplyAura(const AuraData* aura);
+    static int32_t FindRaidBuff(int32_t spellId);
+    static int32_t IsShapeshiftSpell(int32_t spellId);
+    static int32_t CanStealAura(const CGUnit_C* unit, const AuraData* aura, const SpellRec* spell);
 };
 
 int32_t IsValidSpell(const char* name, int32_t* petSpell);
 int32_t GetSpellSlot(int32_t spellId, int32_t petSpell);
 int32_t GetSpellIdBySlot(int32_t slot, int32_t petSpell);
 bool HasSpell(int32_t spellId, int32_t petSpell);
+bool HasSpell(uint32_t spellId);
+void ClearPetSpellInfo();
+extern const char* s_companionTypes[2];
 extern TSGrowableArray<SpellUsableInfo> s_shapeshiftSpells;
 extern uint32_t s_numSkillInfos;
 extern uint32_t s_unkBE5D88[1024];
@@ -90,31 +111,8 @@ extern uint32_t s_unkBE8D9C;
 extern TSGrowableArray<SpellBookSkillInfo*> s_skillInfos;
 void PrefetchSpellVisuals(int32_t spellId);
 
-int32_t Script_GetSpellLink(lua_State* L);
-int32_t Script_GetSpellInfo(lua_State* L);
-int32_t Script_GetSpellAutocast(lua_State* L);
-int32_t Script_ToggleSpellAutocast(lua_State* L);
-int32_t Script_EnableSpellAutocast(lua_State* L);
-int32_t Script_DisableSpellAutocast(lua_State* L);
-int32_t Script_PickupSpell(lua_State* L);
-int32_t Script_CastSpell(lua_State* L);
-int32_t Script_IsCurrentSpell(lua_State* L);
-int32_t Script_IsUsableSpell(lua_State* L);
-int32_t Script_SpellHasRange(lua_State* L);
-int32_t Script_IsSpellInRange(lua_State* L);
-int32_t Script_GetShapeshiftForm(lua_State* L);
-int32_t Script_CancelShapeshiftForm(lua_State* L);
-int32_t Script_GetShapeshiftFormInfo(lua_State* L);
-int32_t Script_CastShapeshiftForm(lua_State* L);
-int32_t Script_GetShapeshiftFormCooldown(lua_State* L);
-int32_t Script_CastSpellByName(lua_State* L);
-int32_t Script_CastSpellByID(lua_State* L);
-int32_t Script_GetCompanionCooldown(lua_State* L);
-int32_t Script_PickupCompanion(lua_State* L);
-int32_t Script_CallCompanion(lua_State* L);
-int32_t Script_DismissCompanion(lua_State* L);
-int32_t Script_SummonRandomCritter(lua_State* L);
 void SpellBookRegisterScriptFunctions();
+void SpellBookUnregisterScriptFunctions();
 
 int32_t GetActionBarPageOffset(const CGPlayer_C* player, const SpellRec* spell);
 int __cdecl SortSpellUsableInfo(const void* a, const void* b);

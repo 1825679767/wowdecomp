@@ -5,6 +5,9 @@
 // STATIC: 0x00BEAA14
 int32_t CGLookingForGroup::m_searchJoinedID;
 
+// STATIC: 0x00BEAA18
+uint32_t CGLookingForGroup::m_lastProposalID;
+
 // STATIC: 0x00BEAA24
 uint32_t CGLookingForGroup::m_randomDungeonBestChoice;
 
@@ -40,6 +43,15 @@ LFGRewardInfo CGLookingForGroup::m_reward;
 
 // STATIC: 0x00BEAA28
 LFGQueueStatus CGLookingForGroup::m_queueStatus;
+
+// STATIC: 0x00BEAA4C
+int32_t CGLookingForGroup::m_roleCheckState;
+
+// STATIC: 0x00BEAA50
+TSGrowableArray<uint32_t> CGLookingForGroup::m_roleCheckSlots;
+
+// STATIC: 0x00BEAA60
+TSGrowableArray<LFGRoleCheckMember> CGLookingForGroup::m_roleCheckMembers;
 
 // VERIFY: 0e4c2bfa manual
 // OFFSET: 0x00557260

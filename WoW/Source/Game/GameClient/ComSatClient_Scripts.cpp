@@ -1,4 +1,6 @@
 #include "ComSatClient.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
+#include "WoW/Source/Ui/ChatFrame.h"
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
@@ -259,6 +261,25 @@ static int32_t Script_GetNumVoiceSessionMembersBySessionID(lua_State* L) {
     }
 
     return 0;
+}
+
+// VERIFY: 09dafb32 auto
+// OFFSET: 0x007DF0B0
+static int32_t Script_UnitIsTalking(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        return 0;
+    }
+
+    WOWGUID guid = { 0 };
+    CGChat::ChatTokenToGUID(lua_tolstring(L, 1, nullptr), guid);
+
+    if (guid && unk_D37D88.Ptr(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid))) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
 }
 
 // STATIC: 0x00AF29C0

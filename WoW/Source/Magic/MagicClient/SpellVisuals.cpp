@@ -9,6 +9,16 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/UIUtil/Camera.h"
 #include "WoW/Source/Ui/WorldFrame.h"
+#include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/Model2/M2Model.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/Object/ObjectClient/Effect_C.h"
+#include "WoW/Source/Object/MovementShared.h"
+#include "WoW/Source/DB/Rec/SpellEffectCameraShakesRec.h"
+#include "WoW/Source/WorldClient/DayNight__DNInfo.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
 
 // STATIC: 0x00D39750
 static CLightningManager* s_lightningManager;
@@ -27,6 +37,12 @@ static CDataAllocator s_blizzardObjectHeap(sizeof(BlizzardObject), 8);
 
 // STATIC: 0x00D39770
 static CDataAllocator s_shardHeap(sizeof(Shard), 32);
+
+// STATIC: 0x00D39798
+static EclipseState s_eclipse;
+
+// STATIC: 0x00AF50AC
+static TSList<MountTransitionObject> s_mountTransitions;
 
 // STATIC: 0x00D39758
 static TSGrowableArray<TSGrowableArray<const SpellVisualKitModelAttachRec*>*>* s_modelAttachLookup;
@@ -132,4 +148,147 @@ int32_t SpellVisualsIsMountTransitionFinished(const MountTransitionObject* trans
 // OFFSET: 0x007F9EC0
 void SpellVisualsRender() {
     s_lightningManager->Render(CGWorldFrame::GetActiveCamera()->m_position);
+}
+
+// VERIFY: 6a5e8212 auto
+// OFFSET: 0x007F9F00
+float SpellVisualsGetMountTransitionHeight(const MountTransitionObject* transition) {
+    return transition->m_height;
+}
+
+// VERIFY: 21a8f719 auto
+// OFFSET: 0x007F9F60
+void SpellVisualsFlagMountTransitionFinished(MountTransitionObject* transition) {
+    transition->unk_0078 |= 0x2;
+}
+
+// VERIFY: 985816b3 auto
+// OFFSET: 0x007FA620
+void SpellVisualsPlayCameraShakeID(int32_t id, const C3Vector* position) {
+    SpellEffectCameraShakesRec* rec = g_spellEffectCameraShakesDB.GetRecord(id);
+
+    if (!rec) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (rec->m_cameraShake[i]) {
+            CGWorldFrame::GetActiveCamera()->AddShakeById(rec->m_cameraShake[i], position);
+        }
+    }
+}
+
+// VERIFY: 3532766c auto
+// OFFSET: 0x007FA680
+void SpellVisualsBlizzardSetFrameOfReference(BlizzardObject* object, const C44Matrix* matrix) {
+    object->SetFrameOfReference(matrix);
+}
+
+// VERIFY: eeefbc3b manual
+// OFFSET: 0x007FA930
+void SpellVisualsComputeMountTransitionJumpVec(const MountTransitionObject* transition, C3Vector* jump) {
+    *jump = transition->m_jumpVector;
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(transition->m_unitGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit || !unit->m_mountTransitionEffect) {
+        return;
+    }
+
+    CM2Model* model = unit->m_mountTransitionEffect->m_model;
+
+    if (!model) {
+        return;
+    }
+
+    C3Vector world = model->GetWorldPosition();
+    C3Vector attach = model->GetAttachmentPosition(0);
+    jump->x = attach.x - world.x;
+    jump->y = attach.y - world.y;
+    jump->z = attach.z - world.z;
+
+    float height = transition->m_height;
+    jump->x = jump->x * height;
+    jump->y = jump->y * height;
+    jump->z = height * jump->z;
+}
+
+// VERIFY: 32467c5c manual
+// OFFSET: 0x007FA9F0
+uint32_t SpellVisualsGetModelAttachRecCount(uint32_t kitId) {
+    if (kitId < s_modelAttachLookup->m_count && s_modelAttachLookup->m_data[kitId]) {
+        return s_modelAttachLookup->m_data[kitId]->m_count;
+    }
+
+    return 0;
+}
+
+// VERIFY: 778c397e auto
+// OFFSET: 0x007FBE00
+MountTransitionObject* SpellVisualsStartMountTransition(CGUnit_C* unit) {
+    MountTransitionObject* transition = s_mountTransitions.NewNode(2, 0, 0);
+
+    if (!transition) {
+        return nullptr;
+    }
+
+    transition->unk_0078 = 0;
+    transition->m_unitGuid = unit->m_obj->m_guid;
+    transition->m_groundNormal = unit->m_movement->GetGroundNormal();
+    transition->m_startTime = OsGetAsyncTimeMs();
+    transition->unk_0020 = 0.0f;
+    transition->unk_0024 = 0.0f;
+    transition->unk_0028 = 0.0f;
+    transition->unk_007C = 0.0f;
+    transition->unk_0080 = OsGetAsyncTimeMs();
+    return transition;
+}
+
+// VERIFY: c6399436 auto
+// OFFSET: 0x007FC9D0
+void SpellVisualsCancelMountTransition(MountTransitionObject* transition) {
+    if (transition) {
+        s_mountTransitions.DeleteNode(transition);
+    }
+}
+
+// VERIFY: 1bb4ee05 auto
+// OFFSET: 0x007FAA20
+const SpellVisualKitModelAttachRec* SpellVisualsGetModelAttachRec(uint32_t kitId, uint32_t index) {
+    return s_modelAttachLookup->m_data[kitId]->m_data[index];
+}
+
+// VERIFY: 4bfbe4ed manual
+// OFFSET: 0x007F9E10
+void EclipseState::Update(uint32_t time) {
+    if (this->m_start == this->m_end) {
+        return;
+    }
+
+    float blend = 0.0f;
+
+    if (time < this->m_fadeInEnd) {
+        blend = static_cast<float>(time - this->m_start) / static_cast<float>(this->m_fadeInEnd - this->m_start);
+    } else if (time < this->m_holdEnd) {
+        blend = 1.0f;
+    } else if (time < this->m_end) {
+        blend = 1.0f - static_cast<float>(time - this->m_holdEnd) / static_cast<float>(this->m_end - this->m_holdEnd);
+    } else {
+        this->m_end = 0;
+        this->m_start = 0;
+    }
+
+    DayNight::SetFlashColor(this->m_color, blend);
+}
+
+// VERIFY: 21c0a07b manual
+// OFFSET: 0x007FA450
+void SpellVisualsHandleEclipse(const CImVector* color, float fadeIn, const SpellRec* spell) {
+    uint32_t castTime = SpellRec::GetCastTime(spell, 0, 0, 0);
+    s_eclipse.m_color = *color;
+    uint32_t now = OsGetAsyncTimeMs();
+    s_eclipse.m_start = now;
+    s_eclipse.m_holdEnd = now + castTime;
+    s_eclipse.m_fadeInEnd = static_cast<int32_t>(castTime * fadeIn) + now;
+    s_eclipse.m_end = now + castTime + 100;
 }

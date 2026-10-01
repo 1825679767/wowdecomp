@@ -1,4 +1,5 @@
 #include "Spell_C.h"
+#include "WoW/Source/Magic/Types.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Tempest/CMath.h"
@@ -60,6 +61,35 @@
 #include "WoW/Source/Object/ObjectClient/VehiclePassenger_C.h"
 #include "WoW/Source/Ui/PaperDollInfoFrame.h"
 #include "WoW/Source/WowServices/WDataStore.h"
+#include "WoW/Source/DB/Rec/SpellRadiusRec.h"
+#include "WoW/Source/Magic/Spell.h"
+#include "WoW/Source/DB/Rec/VehicleSeatRec.h"
+#include "WoW/Source/Object/ObjectClient/Vehicle_C.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
+#include "WoW/Source/Ui/TradeFrame.h"
+#include "WoW/Source/DB/Rec/SkillLineAbilityRec.h"
+#include "WoW/Source/DB/Rec/ItemSubClassRec.h"
+#include "WoW/Source/DB/Rec/ItemSubClassMaskRec.h"
+#include "WoW/Source/DB/Rec/PowerDisplayRec.h"
+#include "WoW/Source/DB/Rec/AreaTableRec.h"
+#include "WoW/Source/DB/Rec/SpellFocusObjectRec.h"
+#include "WoW/Source/DB/Rec/SpellMechanicRec.h"
+#include "WoW/Source/DB/Rec/ItemLimitCategoryRec.h"
+#include "WoW/Source/DB/Rec/TotemCategoryRec.h"
+#include "WoW/Source/DB/Rec/SkillLineRec.h"
+#include "WoW/Source/UIUtil/Tooltip.h"
+#include "WoW/Source/Ui/Tutorial.h"
+#include "WoW/Source/Ui/UIMacros.h"
+#include "Engine/Source/Event/Event.h"
+#include "Engine/Source/ConsoleBase/IConsole.h"
+#include "WoW/Source/WorldClient/FrameTime.h"
+#include "WoW/Source/DB/Rec/GameObjectDisplayInfoRec.h"
+#include "Engine/Source/Model2/M2Scene.h"
+#include "WoW/Source/WorldClient/Map.h"
+#include "WoW/Source/Object/GameObjectStats.h"
+#include "Engine/Source/Frame/CSimpleTop.h"
+#include "WoW/Source/DB/Rec/GlyphPropertiesRec.h"
+#include "WoW/Source/DB/Rec/GlyphSlotRec.h"
 #if defined(_MSC_VER)
 #include <malloc.h>
 #else
@@ -85,7 +115,7 @@ uint32_t s_needTargets;
 PendingSpellCast* s_targetingSpell;
 
 // STATIC: 0x00D3F4E8
-static uint32_t unk_D3F4E8;
+static PendingSpellCast* s_delayedTrajectoryCast;
 
 // STATIC: 0x00D397B0
 static CVar* s_enableErrorSpeechCVar;
@@ -97,10 +127,19 @@ static int32_t s_spellClassSet;
 static const CSoftFloat s_softPercent = { 0x3C23D70A };
 
 // STATIC: 0x00D397B8
-static uint32_t unk_D397B8;
+static uint32_t s_feedPetSpell;
 
 // STATIC: 0x00D397C4
 static uint32_t unk_D397C4;
+
+// STATIC: 0x00D397C0
+static int32_t s_lastFailedReason;
+
+// STATIC: 0x00D397BC
+static uint32_t s_lastFailedTime;
+
+// STATIC: 0x00A439C8
+static const UIErrors s_powerErrors[] = { ERR_OUT_OF_MANA, ERR_OUT_OF_RAGE, ERR_OUT_OF_FOCUS, ERR_OUT_OF_ENERGY, ERR_NOT_HAPPY_ENOUGH, ERR_OUT_OF_RUNES, ERR_OUT_OF_RUNIC_POWER };
 
 // STATIC: 0x00D397D8
 static int32_t s_spellPctModifiers[96][31];
@@ -137,6 +176,30 @@ static uint8_t s_cursorWorldObjectHousing;
 
 // STATIC: 0x00D3F4DC
 static float s_cursorWorldObjectFacing;
+
+// STATIC: 0x00D3F578
+static C3Vector s_cursorWorldObjectPosition;
+
+// STATIC: 0x00D3F4D8
+static float s_cursorWorldObjectScale;
+
+// STATIC: 0x00D3F4F0
+static char s_targetString[128];
+
+// STATIC: 0x00AF53C4
+static uint8_t s_meleeTutorialActive;
+
+// STATIC: 0x00D3F604
+static uint32_t s_meleeTutorialCount;
+
+// STATIC: 0x00D3F584
+static TSHashTable<ITEMCOOLDOWNHASHNODE, HASHKEY_NONE> s_itemCooldowns;
+
+// STATIC: 0x00AF5264
+static TSList<PeriodicClientTrigger, TSGetLink<PeriodicClientTrigger>> s_periodicClientTriggers;
+
+// STATIC: 0x00D3F5DC
+static TSHashTable<DESTLOCSPELLCASTINDEXHASHNODE, CHashKeyGUID> s_destLocSpellCasts;
 
 // VERIFY: f852b51c manual
 // OFFSET: 0x008008D0
@@ -188,7 +251,7 @@ void Spell_C_ClearLastAutoRangedCombatError() {
     s_lastAutoRangedCombatError = 187;
 }
 
-// VERIFY: e5501e2c manual
+// VERIFY: 7a4c1c3e manual
 // OFFSET: 0x0080C340
 bool Spell_C_HandleTerrainClick(const CTerrainClickEvent& evt) {
     PendingSpellCast* spell = s_targetingSpell;
@@ -216,7 +279,7 @@ bool Spell_C_HandleTerrainClick(const CTerrainClickEvent& evt) {
     s_needTargets = needTargets;
 
     if (!needTargets) {
-        Spell_C::SendPendingCast(false);
+        Spell_C::SendPendingCast(spell, false);
     }
 
     return true;
@@ -436,7 +499,7 @@ int32_t Spell_C_NeedsCooldownEvent(int32_t itemId) {
     return 0;
 }
 
-// VERIFY: 091fab9f manual
+// VERIFY: a6fcb014 manual
 // OFFSET: 0x0080B5D0
 bool Spell_C_IsUsableAction(CGUnit_C* unit, const SpellRec* spell, const WOWGUID& target, const ItemStats_C* item, bool ignoreControl) {
     if (!unit) {
@@ -479,11 +542,11 @@ bool Spell_C_IsUsableAction(CGUnit_C* unit, const SpellRec* spell, const WOWGUID
     if (!CGGameUI::m_hasControl && !ignoreControl) {
         int32_t allowed = 0;
 
-        if ((unit->m_unit->m_unitFieldFlags & 0x800000) && ((spell->m_attributesExE & 0x20000) || Spell_C_CancelsAuraEffect(spell, 7, 0))) {
+        if ((unit->m_unit->m_unitFieldFlags & 0x800000) && ((spell->m_attributesExE & 0x20000) || Spell_C_CancelsAuraEffect(unit, spell, 7, nullptr))) {
             allowed = 1;
         }
 
-        if ((unit->m_unit->m_unitFieldFlags & 0x400000) && ((spell->m_attributesExE & 0x40000) || Spell_C_CancelsAuraEffect(spell, 5, 0))) {
+        if ((unit->m_unit->m_unitFieldFlags & 0x400000) && ((spell->m_attributesExE & 0x40000) || Spell_C_CancelsAuraEffect(unit, spell, 5, nullptr))) {
             allowed = 1;
         }
 
@@ -500,7 +563,7 @@ bool Spell_C_IsUsableAction(CGUnit_C* unit, const SpellRec* spell, const WOWGUID
         return false;
     }
 
-    if (!Spell_C_HaveEquippedSpellItems(unit, spell, true, nullptr)) {
+    if (!Spell_C_HaveEquippedSpellItems(unit, spell, true, false, nullptr)) {
         return false;
     }
 
@@ -516,7 +579,7 @@ bool Spell_C_IsUsableAction(CGUnit_C* unit, const SpellRec* spell, const WOWGUID
 
     int32_t reason;
 
-    if (!unit->CheckShapeshiftRules(spell, &reason) && (reason == 94 || !unit->CanAutoCancelShapeshift())) {
+    if (!unit->CheckShapeshiftRules(spell, &reason) && (reason == 94 || !unit->CanAutoUnshift())) {
         return false;
     }
 
@@ -534,13 +597,13 @@ bool Spell_C_IsUsableAction(CGUnit_C* unit, const SpellRec* spell, const WOWGUID
 
     int32_t casterAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_casterAuraSpell);
 
-    if (casterAura && !unit->HasAura(casterAura) && !unit->IgnoresAuraState(spell)) {
+    if (casterAura && !unit->HasAuraBySpellId(casterAura) && !unit->IgnoresAuraState(spell)) {
         return false;
     }
 
     int32_t excludeCasterAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_excludeCasterAuraSpell);
 
-    if (excludeCasterAura && unit->HasAura(excludeCasterAura) && !unit->IgnoresAuraState(spell)) {
+    if (excludeCasterAura && unit->HasAuraBySpellId(excludeCasterAura) && !unit->IgnoresAuraState(spell)) {
         return false;
     }
 
@@ -573,11 +636,11 @@ bool Spell_C_IsUsableAction(CGUnit_C* unit, const SpellRec* spell, const WOWGUID
                 return false;
             }
 
-            if (targetAura && !targetUnit->HasAura(targetAura) && !unit->IgnoresAuraState(spell)) {
+            if (targetAura && !targetUnit->HasAuraBySpellId(targetAura) && !unit->IgnoresAuraState(spell)) {
                 return false;
             }
 
-            if (excludeTargetAura && targetUnit->HasAura(excludeTargetAura) && !unit->IgnoresAuraState(spell)) {
+            if (excludeTargetAura && targetUnit->HasAuraBySpellId(excludeTargetAura) && !unit->IgnoresAuraState(spell)) {
                 return false;
             }
 
@@ -634,7 +697,7 @@ bool Spell_C_IsUsableAction(CGUnit_C* unit, const SpellRec* spell, const WOWGUID
     return (!(spell->m_attributesExD & 0x4000000) || static_cast<CGPlayer_C*>(unit)->IsInFlyableZone(1)) && (!(spell->m_attributesExC & 0x800) || !map || map->m_instanceType == 3) && (!(spell->m_attributesExF & 0x800) || !map || map->m_instanceType != 2);
 }
 
-// VERIFY: e4a633f9 auto
+// VERIFY: e589f6bd auto
 // OFFSET: 0x008100E0
 void Spell_C_Initialize() {
     ClientServices::SetMessageHandler(SMSG_SPELL_START, Packet_Group_30, nullptr);
@@ -673,9 +736,9 @@ void Spell_C_Initialize() {
     s_autoRangedCombatSpell = 0;
     s_lastAutoRangedCombatError = 187;
     unk_D397C4 = 0;
-    unk_D397B8 = 0;
+    s_feedPetSpell = 0;
     s_spellClassSet = 0;
-    unk_D3F4E8 = 0;
+    s_delayedTrajectoryCast = nullptr;
     s_enableErrorSpeechCVar = CVar::Lookup("Sound_EnableErrorSpeech");
 }
 
@@ -1713,7 +1776,7 @@ void SpellHistory::GarbageCollect(uint32_t time) {
     }
 }
 
-// VERIFY: 41117beb manual
+// VERIFY: 234969f9 manual
 // OFFSET: 0x0080E1B0
 void PendingSpellCast::OnSpellGo(CDataStore* msg) {
     WOWGUID castItem = this->m_data.m_castItem;
@@ -2128,7 +2191,7 @@ void PendingSpellCast::OnSpellGo(CDataStore* msg) {
                     LaunchMissileVisual(hits, misses, unit, &spell, visual, ammoDisplayId, ammoInventoryType, &this->m_data, missReasons, reflectResults, delay);
 
                     if ((visual->m_hasMissile || ammoDisplayId) && points.m_count) {
-                        unit->CreateMissile(points, &this->m_data, ammoDisplayId, ammoInventoryType, visual, spell.m_id, delay);
+                        unit->CreateMissile(&points, &this->m_data, ammoDisplayId, ammoInventoryType, visual, spell.m_id, delay);
                     }
                 } else {
                     CreateMissilesForTargets(hits, unit, &spell, visual, ammoDisplayId, ammoInventoryType, &this->m_data, nullptr, nullptr, delay);
@@ -2417,10 +2480,10 @@ int32_t Spell_C_IsCursorWorldObjectHousing() {
     return s_cursorWorldObjectHousing;
 }
 
-// VERIFY: 61051f38 auto
+// VERIFY: 53c745f7 auto
 // OFFSET: 0x007FE1A0
 void SpellSetFeedPetSpell(int32_t spellId) {
-    unk_D397B8 = spellId;
+    s_feedPetSpell = spellId;
 }
 
 // VERIFY: 54519a8f manual
@@ -3788,4 +3851,5113 @@ bool Spell_C_GetItemCooldown(CGItem_C* item, uint32_t* duration, uint32_t* start
     }
 
     return s_spellHistory[0].GetSpellCooldown(item->GetEnchantmentSpell(0), item->m_obj->m_entryID, duration, start, enable);
+}
+
+// VERIFY: dac09432 auto
+// OFFSET: 0x007FCCA0
+const char* GetSpellFailedResult(int32_t reason) {
+    switch (reason) {
+        case SPELL_FAILED_SUCCESS:
+            return "SPELL_FAILED_SUCCESS";
+        case SPELL_FAILED_AFFECTING_COMBAT:
+            return "SPELL_FAILED_AFFECTING_COMBAT";
+        case SPELL_FAILED_ALREADY_AT_FULL_HEALTH:
+            return "SPELL_FAILED_ALREADY_AT_FULL_HEALTH";
+        case SPELL_FAILED_ALREADY_AT_FULL_MANA:
+            return "SPELL_FAILED_ALREADY_AT_FULL_MANA";
+        case SPELL_FAILED_ALREADY_AT_FULL_POWER:
+            return "SPELL_FAILED_ALREADY_AT_FULL_POWER";
+        case SPELL_FAILED_ALREADY_BEING_TAMED:
+            return "SPELL_FAILED_ALREADY_BEING_TAMED";
+        case SPELL_FAILED_ALREADY_HAVE_CHARM:
+            return "SPELL_FAILED_ALREADY_HAVE_CHARM";
+        case SPELL_FAILED_ALREADY_HAVE_SUMMON:
+            return "SPELL_FAILED_ALREADY_HAVE_SUMMON";
+        case SPELL_FAILED_ALREADY_OPEN:
+            return "SPELL_FAILED_ALREADY_OPEN";
+        case SPELL_FAILED_AURA_BOUNCED:
+            return "SPELL_FAILED_AURA_BOUNCED";
+        case SPELL_FAILED_AUTOTRACK_INTERRUPTED:
+            return "SPELL_FAILED_AUTOTRACK_INTERRUPTED";
+        case SPELL_FAILED_BAD_IMPLICIT_TARGETS:
+            return "SPELL_FAILED_BAD_IMPLICIT_TARGETS";
+        case SPELL_FAILED_BAD_TARGETS:
+            return "SPELL_FAILED_BAD_TARGETS";
+        case SPELL_FAILED_CANT_BE_CHARMED:
+            return "SPELL_FAILED_CANT_BE_CHARMED";
+        case SPELL_FAILED_CANT_BE_DISENCHANTED:
+            return "SPELL_FAILED_CANT_BE_DISENCHANTED";
+        case SPELL_FAILED_CANT_BE_DISENCHANTED_SKILL:
+            return "SPELL_FAILED_CANT_BE_DISENCHANTED_SKILL";
+        case SPELL_FAILED_CANT_BE_MILLED:
+            return "SPELL_FAILED_CANT_BE_MILLED";
+        case SPELL_FAILED_CANT_BE_PROSPECTED:
+            return "SPELL_FAILED_CANT_BE_PROSPECTED";
+        case SPELL_FAILED_CANT_CAST_ON_TAPPED:
+            return "SPELL_FAILED_CANT_CAST_ON_TAPPED";
+        case SPELL_FAILED_CANT_DUEL_WHILE_INVISIBLE:
+            return "SPELL_FAILED_CANT_DUEL_WHILE_INVISIBLE";
+        case SPELL_FAILED_CANT_DUEL_WHILE_STEALTHED:
+            return "SPELL_FAILED_CANT_DUEL_WHILE_STEALTHED";
+        case SPELL_FAILED_CANT_STEALTH:
+            return "SPELL_FAILED_CANT_STEALTH";
+        case SPELL_FAILED_CASTER_AURASTATE:
+            return "SPELL_FAILED_CASTER_AURASTATE";
+        case SPELL_FAILED_CASTER_DEAD:
+            return "SPELL_FAILED_CASTER_DEAD";
+        case SPELL_FAILED_CHARMED:
+            return "SPELL_FAILED_CHARMED";
+        case SPELL_FAILED_CHEST_IN_USE:
+            return "SPELL_FAILED_CHEST_IN_USE";
+        case SPELL_FAILED_CONFUSED:
+            return "SPELL_FAILED_CONFUSED";
+        case SPELL_FAILED_DONT_REPORT:
+            return "SPELL_FAILED_DONT_REPORT";
+        case SPELL_FAILED_EQUIPPED_ITEM:
+            return "SPELL_FAILED_EQUIPPED_ITEM";
+        case SPELL_FAILED_EQUIPPED_ITEM_CLASS:
+            return "SPELL_FAILED_EQUIPPED_ITEM_CLASS";
+        case SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND:
+            return "SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND";
+        case SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND:
+            return "SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND";
+        case SPELL_FAILED_ERROR:
+            return "SPELL_FAILED_ERROR";
+        case SPELL_FAILED_FIZZLE:
+            return "SPELL_FAILED_FIZZLE";
+        case SPELL_FAILED_FLEEING:
+            return "SPELL_FAILED_FLEEING";
+        case SPELL_FAILED_FOOD_LOWLEVEL:
+            return "SPELL_FAILED_FOOD_LOWLEVEL";
+        case SPELL_FAILED_HIGHLEVEL:
+            return "SPELL_FAILED_HIGHLEVEL";
+        case SPELL_FAILED_HUNGER_SATIATED:
+            return "SPELL_FAILED_HUNGER_SATIATED";
+        case SPELL_FAILED_IMMUNE:
+            return "SPELL_FAILED_IMMUNE";
+        case SPELL_FAILED_INCORRECT_AREA:
+            return "SPELL_FAILED_INCORRECT_AREA";
+        case SPELL_FAILED_INTERRUPTED:
+            return "SPELL_FAILED_INTERRUPTED";
+        case SPELL_FAILED_INTERRUPTED_COMBAT:
+            return "SPELL_FAILED_INTERRUPTED_COMBAT";
+        case SPELL_FAILED_ITEM_ALREADY_ENCHANTED:
+            return "SPELL_FAILED_ITEM_ALREADY_ENCHANTED";
+        case SPELL_FAILED_ITEM_GONE:
+            return "SPELL_FAILED_ITEM_GONE";
+        case SPELL_FAILED_ITEM_NOT_FOUND:
+            return "SPELL_FAILED_ITEM_NOT_FOUND";
+        case SPELL_FAILED_ITEM_NOT_READY:
+            return "SPELL_FAILED_ITEM_NOT_READY";
+        case SPELL_FAILED_LEVEL_REQUIREMENT:
+            return "SPELL_FAILED_LEVEL_REQUIREMENT";
+        case SPELL_FAILED_LINE_OF_SIGHT:
+            return "SPELL_FAILED_LINE_OF_SIGHT";
+        case SPELL_FAILED_LOWLEVEL:
+            return "SPELL_FAILED_LOWLEVEL";
+        case SPELL_FAILED_LOW_CASTLEVEL:
+            return "SPELL_FAILED_LOW_CASTLEVEL";
+        case SPELL_FAILED_MAINHAND_EMPTY:
+            return "SPELL_FAILED_MAINHAND_EMPTY";
+        case SPELL_FAILED_MOVING:
+            return "SPELL_FAILED_MOVING";
+        case SPELL_FAILED_NEED_AMMO:
+            return "SPELL_FAILED_NEED_AMMO";
+        case SPELL_FAILED_NEED_AMMO_POUCH:
+            return "SPELL_FAILED_NEED_AMMO_POUCH";
+        case SPELL_FAILED_NEED_EXOTIC_AMMO:
+            return "SPELL_FAILED_NEED_EXOTIC_AMMO";
+        case SPELL_FAILED_NEED_MORE_ITEMS:
+            return "SPELL_FAILED_NEED_MORE_ITEMS";
+        case SPELL_FAILED_NOPATH:
+            return "SPELL_FAILED_NOPATH";
+        case SPELL_FAILED_NOT_BEHIND:
+            return "SPELL_FAILED_NOT_BEHIND";
+        case SPELL_FAILED_NOT_FISHABLE:
+            return "SPELL_FAILED_NOT_FISHABLE";
+        case SPELL_FAILED_NOT_FLYING:
+            return "SPELL_FAILED_NOT_FLYING";
+        case SPELL_FAILED_NOT_HERE:
+            return "SPELL_FAILED_NOT_HERE";
+        case SPELL_FAILED_NOT_INFRONT:
+            return "SPELL_FAILED_NOT_INFRONT";
+        case SPELL_FAILED_NOT_IN_CONTROL:
+            return "SPELL_FAILED_NOT_IN_CONTROL";
+        case SPELL_FAILED_NOT_KNOWN:
+            return "SPELL_FAILED_NOT_KNOWN";
+        case SPELL_FAILED_NOT_MOUNTED:
+            return "SPELL_FAILED_NOT_MOUNTED";
+        case SPELL_FAILED_NOT_ON_TAXI:
+            return "SPELL_FAILED_NOT_ON_TAXI";
+        case SPELL_FAILED_NOT_ON_TRANSPORT:
+            return "SPELL_FAILED_NOT_ON_TRANSPORT";
+        case SPELL_FAILED_NOT_READY:
+            return "SPELL_FAILED_NOT_READY";
+        case SPELL_FAILED_NOT_SHAPESHIFT:
+            return "SPELL_FAILED_NOT_SHAPESHIFT";
+        case SPELL_FAILED_NOT_STANDING:
+            return "SPELL_FAILED_NOT_STANDING";
+        case SPELL_FAILED_NOT_TRADEABLE:
+            return "SPELL_FAILED_NOT_TRADEABLE";
+        case SPELL_FAILED_NOT_TRADING:
+            return "SPELL_FAILED_NOT_TRADING";
+        case SPELL_FAILED_NOT_UNSHEATHED:
+            return "SPELL_FAILED_NOT_UNSHEATHED";
+        case SPELL_FAILED_NOT_WHILE_GHOST:
+            return "SPELL_FAILED_NOT_WHILE_GHOST";
+        case SPELL_FAILED_NOT_WHILE_LOOTING:
+            return "SPELL_FAILED_NOT_WHILE_LOOTING";
+        case SPELL_FAILED_NO_AMMO:
+            return "SPELL_FAILED_NO_AMMO";
+        case SPELL_FAILED_NO_CHARGES_REMAIN:
+            return "SPELL_FAILED_NO_CHARGES_REMAIN";
+        case SPELL_FAILED_NO_CHAMPION:
+            return "SPELL_FAILED_NO_CHAMPION";
+        case SPELL_FAILED_NO_COMBO_POINTS:
+            return "SPELL_FAILED_NO_COMBO_POINTS";
+        case SPELL_FAILED_NO_DUELING:
+            return "SPELL_FAILED_NO_DUELING";
+        case SPELL_FAILED_NO_ENDURANCE:
+            return "SPELL_FAILED_NO_ENDURANCE";
+        case SPELL_FAILED_NO_FISH:
+            return "SPELL_FAILED_NO_FISH";
+        case SPELL_FAILED_NO_ITEMS_WHILE_SHAPESHIFTED:
+            return "SPELL_FAILED_NO_ITEMS_WHILE_SHAPESHIFTED";
+        case SPELL_FAILED_NO_MOUNTS_ALLOWED:
+            return "SPELL_FAILED_NO_MOUNTS_ALLOWED";
+        case SPELL_FAILED_NO_PET:
+            return "SPELL_FAILED_NO_PET";
+        case SPELL_FAILED_NO_POWER:
+            return "SPELL_FAILED_NO_POWER";
+        case SPELL_FAILED_NOTHING_TO_DISPEL:
+            return "SPELL_FAILED_NOTHING_TO_DISPEL";
+        case SPELL_FAILED_NOTHING_TO_STEAL:
+            return "SPELL_FAILED_NOTHING_TO_STEAL";
+        case SPELL_FAILED_ONLY_ABOVEWATER:
+            return "SPELL_FAILED_ONLY_ABOVEWATER";
+        case SPELL_FAILED_ONLY_DAYTIME:
+            return "SPELL_FAILED_ONLY_DAYTIME";
+        case SPELL_FAILED_ONLY_INDOORS:
+            return "SPELL_FAILED_ONLY_INDOORS";
+        case SPELL_FAILED_ONLY_MOUNTED:
+            return "SPELL_FAILED_ONLY_MOUNTED";
+        case SPELL_FAILED_ONLY_NIGHTTIME:
+            return "SPELL_FAILED_ONLY_NIGHTTIME";
+        case SPELL_FAILED_ONLY_OUTDOORS:
+            return "SPELL_FAILED_ONLY_OUTDOORS";
+        case SPELL_FAILED_ONLY_SHAPESHIFT:
+            return "SPELL_FAILED_ONLY_SHAPESHIFT";
+        case SPELL_FAILED_ONLY_STEALTHED:
+            return "SPELL_FAILED_ONLY_STEALTHED";
+        case SPELL_FAILED_ONLY_UNDERWATER:
+            return "SPELL_FAILED_ONLY_UNDERWATER";
+        case SPELL_FAILED_OUT_OF_RANGE:
+            return "SPELL_FAILED_OUT_OF_RANGE";
+        case SPELL_FAILED_PACIFIED:
+            return "SPELL_FAILED_PACIFIED";
+        case SPELL_FAILED_POSSESSED:
+            return "SPELL_FAILED_POSSESSED";
+        case SPELL_FAILED_REAGENTS:
+            return "SPELL_FAILED_REAGENTS";
+        case SPELL_FAILED_REQUIRES_AREA:
+            return "SPELL_FAILED_REQUIRES_AREA";
+        case SPELL_FAILED_REQUIRES_SPELL_FOCUS:
+            return "SPELL_FAILED_REQUIRES_SPELL_FOCUS";
+        case SPELL_FAILED_ROOTED:
+            return "SPELL_FAILED_ROOTED";
+        case SPELL_FAILED_SILENCED:
+            return "SPELL_FAILED_SILENCED";
+        case SPELL_FAILED_SPELL_IN_PROGRESS:
+            return "SPELL_FAILED_SPELL_IN_PROGRESS";
+        case SPELL_FAILED_SPELL_LEARNED:
+            return "SPELL_FAILED_SPELL_LEARNED";
+        case SPELL_FAILED_SPELL_UNAVAILABLE:
+            return "SPELL_FAILED_SPELL_UNAVAILABLE";
+        case SPELL_FAILED_STUNNED:
+            return "SPELL_FAILED_STUNNED";
+        case SPELL_FAILED_TARGETS_DEAD:
+            return "SPELL_FAILED_TARGETS_DEAD";
+        case SPELL_FAILED_TARGET_AFFECTING_COMBAT:
+            return "SPELL_FAILED_TARGET_AFFECTING_COMBAT";
+        case SPELL_FAILED_TARGET_AURASTATE:
+            return "SPELL_FAILED_TARGET_AURASTATE";
+        case SPELL_FAILED_TARGET_DUELING:
+            return "SPELL_FAILED_TARGET_DUELING";
+        case SPELL_FAILED_TARGET_ENEMY:
+            return "SPELL_FAILED_TARGET_ENEMY";
+        case SPELL_FAILED_TARGET_ENRAGED:
+            return "SPELL_FAILED_TARGET_ENRAGED";
+        case SPELL_FAILED_TARGET_FRIENDLY:
+            return "SPELL_FAILED_TARGET_FRIENDLY";
+        case SPELL_FAILED_TARGET_IN_COMBAT:
+            return "SPELL_FAILED_TARGET_IN_COMBAT";
+        case SPELL_FAILED_TARGET_IS_PLAYER:
+            return "SPELL_FAILED_TARGET_IS_PLAYER";
+        case SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED:
+            return "SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED";
+        case SPELL_FAILED_TARGET_NOT_DEAD:
+            return "SPELL_FAILED_TARGET_NOT_DEAD";
+        case SPELL_FAILED_TARGET_NOT_IN_PARTY:
+            return "SPELL_FAILED_TARGET_NOT_IN_PARTY";
+        case SPELL_FAILED_TARGET_NOT_LOOTED:
+            return "SPELL_FAILED_TARGET_NOT_LOOTED";
+        case SPELL_FAILED_TARGET_NOT_PLAYER:
+            return "SPELL_FAILED_TARGET_NOT_PLAYER";
+        case SPELL_FAILED_TARGET_NO_POCKETS:
+            return "SPELL_FAILED_TARGET_NO_POCKETS";
+        case SPELL_FAILED_TARGET_NO_WEAPONS:
+            return "SPELL_FAILED_TARGET_NO_WEAPONS";
+        case SPELL_FAILED_TARGET_NO_RANGED_WEAPONS:
+            return "SPELL_FAILED_TARGET_NO_RANGED_WEAPONS";
+        case SPELL_FAILED_TARGET_UNSKINNABLE:
+            return "SPELL_FAILED_TARGET_UNSKINNABLE";
+        case SPELL_FAILED_THIRST_SATIATED:
+            return "SPELL_FAILED_THIRST_SATIATED";
+        case SPELL_FAILED_TOO_CLOSE:
+            return "SPELL_FAILED_TOO_CLOSE";
+        case SPELL_FAILED_TOO_MANY_OF_ITEM:
+            return "SPELL_FAILED_TOO_MANY_OF_ITEM";
+        case SPELL_FAILED_TOTEM_CATEGORY:
+            return "SPELL_FAILED_TOTEM_CATEGORY";
+        case SPELL_FAILED_TOTEMS:
+            return "SPELL_FAILED_TOTEMS";
+        case SPELL_FAILED_TRY_AGAIN:
+            return "SPELL_FAILED_TRY_AGAIN";
+        case SPELL_FAILED_UNIT_NOT_BEHIND:
+            return "SPELL_FAILED_UNIT_NOT_BEHIND";
+        case SPELL_FAILED_UNIT_NOT_INFRONT:
+            return "SPELL_FAILED_UNIT_NOT_INFRONT";
+        case SPELL_FAILED_WRONG_PET_FOOD:
+            return "SPELL_FAILED_WRONG_PET_FOOD";
+        case SPELL_FAILED_NOT_WHILE_FATIGUED:
+            return "SPELL_FAILED_NOT_WHILE_FATIGUED";
+        case SPELL_FAILED_TARGET_NOT_IN_INSTANCE:
+            return "SPELL_FAILED_TARGET_NOT_IN_INSTANCE";
+        case SPELL_FAILED_NOT_WHILE_TRADING:
+            return "SPELL_FAILED_NOT_WHILE_TRADING";
+        case SPELL_FAILED_TARGET_NOT_IN_RAID:
+            return "SPELL_FAILED_TARGET_NOT_IN_RAID";
+        case SPELL_FAILED_TARGET_FREEFORALL:
+            return "SPELL_FAILED_TARGET_FREEFORALL";
+        case SPELL_FAILED_NO_EDIBLE_CORPSES:
+            return "SPELL_FAILED_NO_EDIBLE_CORPSES";
+        case SPELL_FAILED_ONLY_BATTLEGROUNDS:
+            return "SPELL_FAILED_ONLY_BATTLEGROUNDS";
+        case SPELL_FAILED_TARGET_NOT_GHOST:
+            return "SPELL_FAILED_TARGET_NOT_GHOST";
+        case SPELL_FAILED_TRANSFORM_UNUSABLE:
+            return "SPELL_FAILED_TRANSFORM_UNUSABLE";
+        case SPELL_FAILED_WRONG_WEATHER:
+            return "SPELL_FAILED_WRONG_WEATHER";
+        case SPELL_FAILED_DAMAGE_IMMUNE:
+            return "SPELL_FAILED_DAMAGE_IMMUNE";
+        case SPELL_FAILED_PREVENTED_BY_MECHANIC:
+            return "SPELL_FAILED_PREVENTED_BY_MECHANIC";
+        case SPELL_FAILED_PLAY_TIME:
+            return "SPELL_FAILED_PLAY_TIME";
+        case SPELL_FAILED_REPUTATION:
+            return "SPELL_FAILED_REPUTATION";
+        case SPELL_FAILED_MIN_SKILL:
+            return "SPELL_FAILED_MIN_SKILL";
+        case SPELL_FAILED_NOT_IN_ARENA:
+            return "SPELL_FAILED_NOT_IN_ARENA";
+        case SPELL_FAILED_NOT_ON_SHAPESHIFT:
+            return "SPELL_FAILED_NOT_ON_SHAPESHIFT";
+        case SPELL_FAILED_NOT_ON_STEALTHED:
+            return "SPELL_FAILED_NOT_ON_STEALTHED";
+        case SPELL_FAILED_NOT_ON_DAMAGE_IMMUNE:
+            return "SPELL_FAILED_NOT_ON_DAMAGE_IMMUNE";
+        case SPELL_FAILED_NOT_ON_MOUNTED:
+            return "SPELL_FAILED_NOT_ON_MOUNTED";
+        case SPELL_FAILED_TOO_SHALLOW:
+            return "SPELL_FAILED_TOO_SHALLOW";
+        case SPELL_FAILED_TARGET_NOT_IN_SANCTUARY:
+            return "SPELL_FAILED_TARGET_NOT_IN_SANCTUARY";
+        case SPELL_FAILED_TARGET_IS_TRIVIAL:
+            return "SPELL_FAILED_TARGET_IS_TRIVIAL";
+        case SPELL_FAILED_BM_OR_INVISGOD:
+            return "SPELL_FAILED_BM_OR_INVISGOD";
+        case SPELL_FAILED_EXPERT_RIDING_REQUIREMENT:
+            return "SPELL_FAILED_EXPERT_RIDING_REQUIREMENT";
+        case SPELL_FAILED_ARTISAN_RIDING_REQUIREMENT:
+            return "SPELL_FAILED_ARTISAN_RIDING_REQUIREMENT";
+        case SPELL_FAILED_NOT_IDLE:
+            return "SPELL_FAILED_NOT_IDLE";
+        case SPELL_FAILED_NOT_INACTIVE:
+            return "SPELL_FAILED_NOT_INACTIVE";
+        case SPELL_FAILED_PARTIAL_PLAYTIME:
+            return "SPELL_FAILED_PARTIAL_PLAYTIME";
+        case SPELL_FAILED_NO_PLAYTIME:
+            return "SPELL_FAILED_NO_PLAYTIME";
+        case SPELL_FAILED_NOT_IN_BATTLEGROUND:
+            return "SPELL_FAILED_NOT_IN_BATTLEGROUND";
+        case SPELL_FAILED_NOT_IN_RAID_INSTANCE:
+            return "SPELL_FAILED_NOT_IN_RAID_INSTANCE";
+        case SPELL_FAILED_ONLY_IN_ARENA:
+            return "SPELL_FAILED_ONLY_IN_ARENA";
+        case SPELL_FAILED_TARGET_LOCKED_TO_RAID_INSTANCE:
+            return "SPELL_FAILED_TARGET_LOCKED_TO_RAID_INSTANCE";
+        case SPELL_FAILED_ON_USE_ENCHANT:
+            return "SPELL_FAILED_ON_USE_ENCHANT";
+        case SPELL_FAILED_NOT_ON_GROUND:
+            return "SPELL_FAILED_NOT_ON_GROUND";
+        case SPELL_FAILED_CUSTOM_ERROR:
+            return "SPELL_FAILED_CUSTOM_ERROR";
+        case SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW:
+            return "SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW";
+        case SPELL_FAILED_TOO_MANY_SOCKETS:
+            return "SPELL_FAILED_TOO_MANY_SOCKETS";
+        case SPELL_FAILED_INVALID_GLYPH:
+            return "SPELL_FAILED_INVALID_GLYPH";
+        case SPELL_FAILED_UNIQUE_GLYPH:
+            return "SPELL_FAILED_UNIQUE_GLYPH";
+        case SPELL_FAILED_GLYPH_SOCKET_LOCKED:
+            return "SPELL_FAILED_GLYPH_SOCKET_LOCKED";
+        case SPELL_FAILED_NO_VALID_TARGETS:
+            return "SPELL_FAILED_NO_VALID_TARGETS";
+        case SPELL_FAILED_ITEM_AT_MAX_CHARGES:
+            return "SPELL_FAILED_ITEM_AT_MAX_CHARGES";
+        case SPELL_FAILED_NOT_IN_BARBERSHOP:
+            return "SPELL_FAILED_NOT_IN_BARBERSHOP";
+        case SPELL_FAILED_FISHING_TOO_LOW:
+            return "SPELL_FAILED_FISHING_TOO_LOW";
+        case SPELL_FAILED_ITEM_ENCHANT_TRADE_WINDOW:
+            return "SPELL_FAILED_ITEM_ENCHANT_TRADE_WINDOW";
+        case SPELL_FAILED_SUMMON_PENDING:
+            return "SPELL_FAILED_SUMMON_PENDING";
+        case SPELL_FAILED_MAX_SOCKETS:
+            return "SPELL_FAILED_MAX_SOCKETS";
+        case SPELL_FAILED_PET_CAN_RENAME:
+            return "SPELL_FAILED_PET_CAN_RENAME";
+        case SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED:
+            return "SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED";
+        default:
+            return "SPELL_FAILED_UNKNOWN";
+    }
+}
+
+// VERIFY: 338bf6ad auto
+// OFFSET: 0x007FD5F0
+bool Spell_C_SpellUsesReagent(const SpellRec* spell, int32_t itemId) {
+    for (uint32_t i = 0; i < sizeof(spell->m_reagent) / sizeof(spell->m_reagent[0]); i++) {
+        if (spell->m_reagent[i] == itemId && spell->m_reagentCount[i] > 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 102740d5 auto
+// OFFSET: 0x007FD640
+PendingSpellCast* Spell_C_GetTargetingSpellCast() {
+    return s_targetingSpell;
+}
+
+// VERIFY: 1e96df1d auto
+// OFFSET: 0x007FD760
+int32_t Spell_C_CanTargetItems() {
+    return (s_needTargets & 0x4010) != 0;
+}
+
+// VERIFY: e4e8f874 auto
+// OFFSET: 0x007FD7A0
+CM2Model* Spell_C_GetCursorWorldObjectModel() {
+    return s_spellWorldModel;
+}
+
+// VERIFY: e512de8b auto
+// OFFSET: 0x007FD7B0
+void Spell_C_SetCursorWorldObjectPosition(const C3Vector& position) {
+    s_cursorWorldObjectPosition = position;
+}
+
+// VERIFY: 1a823145 auto
+// OFFSET: 0x007FD7E0
+const C3Vector& Spell_C_GetCursorWorldObjectPosition() {
+    return s_cursorWorldObjectPosition;
+}
+
+// VERIFY: 9616d0ac manual
+// OFFSET: 0x007FDFA0
+static bool SpellCancelsAura(const SpellRec* spell, const SpellRec* aura, uint32_t auraEffect) {
+    if (!spell || !(spell->m_attributesEx & 0x8000) || (aura->m_attributes & 0x20000000)) {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < sizeof(spell->m_effect) / sizeof(spell->m_effect[0]); i++) {
+        if (spell->m_effect[i] != 6) {
+            continue;
+        }
+
+        int32_t misc = spell->m_effectMiscValue[i];
+
+        switch (spell->m_effectAura[i]) {
+            case 38:
+                if (misc == aura->m_effectAura[auraEffect]) {
+                    return true;
+                }
+
+                break;
+
+            case 39:
+            case 267:
+                if (!(aura->m_attributesExB & 0x4000000) && (aura->m_schoolMask & misc)) {
+                    return true;
+                }
+
+                break;
+
+            case 41:
+                if (misc == aura->m_dispelType) {
+                    return true;
+                }
+
+                break;
+
+            case 77:
+                if (misc == aura->m_mechanic || misc == aura->m_effectMechanic[auraEffect]) {
+                    return true;
+                }
+
+                break;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 4e168416 manual
+// OFFSET: 0x007FE3E0
+uint32_t GetRequiredAuraVisionBitmask(const SpellRec* spell) {
+    uint32_t mask = spell->m_requiredAuraVision > 0 ? 1 << (spell->m_requiredAuraVision - 1) : 0;
+
+    for (uint32_t i = 0; i < sizeof(spell->m_effectAura) / sizeof(spell->m_effectAura[0]); i++) {
+        if (spell->m_effectAura[i] == 17) {
+            mask |= 0x20;
+        }
+
+        if (spell->m_effectAura[i] == 19 && (!spell->m_effectMiscValue[i] || spell->m_effectMiscValue[i] == 10)) {
+            mask |= 0x40;
+        }
+    }
+
+    return mask;
+}
+
+// VERIFY: 62cca87e manual
+// OFFSET: 0x007FE890
+bool SpellRec::NotUsableInShapeshiftForm(const SpellRec* spell, int32_t form) {
+    if (form < 0) {
+        return false;
+    }
+
+    return (spell->m_shapeshiftExclude[form / 32] & (1 << (form % 32))) != 0;
+}
+
+// VERIFY: 2ba175f5 manual
+// OFFSET: 0x007FEA80
+void SpellMissingItemCallback(int32_t itemId, const WOWGUID& guid, void* param, bool success) {
+    int32_t reason = static_cast<int32_t>(reinterpret_cast<intptr_t>(param));
+    UIErrors error = ERR_SPELL_FAILED_S;
+    char format[1024];
+    SStrCopy(format, FrameScript_GetText(GetSpellFailedResult(reason), -1, GENDER_NOT_APPLICABLE), sizeof(format));
+
+    if (reason == SPELL_FAILED_REAGENTS) {
+        error = ERR_SPELL_FAILED_REAGENTS;
+    } else if (reason == SPELL_FAILED_TOTEMS) {
+        error = ERR_SPELL_FAILED_TOTEMS;
+    }
+
+    char text[1024];
+    WOWGUID none = { 0 };
+    ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
+
+    if (stats) {
+        SStrPrintf(text, sizeof(text), format, stats->m_name[0]);
+    } else {
+        SStrPrintf(text, sizeof(text), format, "UNKNOWN");
+    }
+
+    CGGameUI::DisplayError(error, text);
+}
+
+// VERIFY: 2f537c65 auto
+// OFFSET: 0x007FEB50
+void SpellMissingItemsCallback(int32_t itemId, const WOWGUID& guid, void* param, bool success) {
+    char format[1024];
+    SStrCopy(format, FrameScript_GetText("SPELL_FAILED_NEED_MORE_ITEMS", -1, GENDER_NOT_APPLICABLE), sizeof(format));
+
+    char text[1024];
+    WOWGUID none = { 0 };
+    ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
+
+    if (stats) {
+        SStrPrintf(text, sizeof(text), format, static_cast<int32_t>(reinterpret_cast<intptr_t>(param)), stats->m_name[0]);
+    } else {
+        SStrPrintf(text, sizeof(text), format, 0, "UNKNOWN");
+    }
+
+    CGGameUI::DisplayError(ERR_SPELL_FAILED_S, text);
+}
+
+// VERIFY: 52758823 auto
+// OFFSET: 0x007FEF10
+void GetCustomSpellFailedString(char* buffer, uint32_t size, int32_t customError) {
+    char token[64];
+    SStrPrintf(token, sizeof(token), "%s_%d", "SPELL_FAILED_CUSTOM_ERROR", customError);
+    SStrCopy(buffer, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE), size);
+    CGGameUI::DisplayError(ERR_SPELL_FAILED_S, buffer);
+}
+
+// VERIFY: 0e3e8924 manual
+// OFFSET: 0x007FFF60
+float Spell_C_GetCursorWorldObjectFacing() {
+    if (s_cursorWorldObjectHousing) {
+        return s_cursorWorldObjectFacing;
+    }
+
+    CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_targetingSpell->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!caster) {
+        return s_cursorWorldObjectFacing;
+    }
+
+    s_cursorWorldObjectFacing = caster->GetFacing();
+    return s_cursorWorldObjectFacing;
+}
+
+// VERIFY: 78608420 manual
+// OFFSET: 0x00802A50
+void SpellHistory::ClearAll() {
+    while (SPELLHISTORY* history = this->m_history.Head()) {
+        this->m_free.LinkToTail(history);
+    }
+}
+
+// VERIFY: 81391441 auto
+// OFFSET: 0x00804110
+int32_t Packet_SMSG_COOLDOWN_CHEAT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID guid;
+    msg->Get(guid.m_guid);
+
+    if (guid == ClntObjMgrGetActivePlayer()) {
+        s_spellHistory[0].ClearAll();
+        CGSpellBook::UpdateCooldowns();
+        CGContainerInfo::UpdateCooldowns();
+        return 1;
+    }
+
+    if (guid == CGPetInfo::GetPet(0)) {
+        s_spellHistory[1].ClearAll();
+        CGSpellBook::UpdateCooldowns();
+        CGPetInfo::UpdateCooldowns();
+    }
+
+    return 1;
+}
+
+// VERIFY: 7425edb0 manual
+// OFFSET: 0x00804430
+bool Spell_C_CancelsAuraEffect(const CGUnit_C* unit, const SpellRec* spell, int32_t auraType, int32_t* reason) {
+    bool found = false;
+    SpellRec aura;
+
+    for (uint32_t i = 0; i < unit->GetAuraCount(); i++) {
+        int32_t spellId = const_cast<CGUnit_C*>(unit)->m_auras[i].m_spellId;
+
+        if (!spellId || !g_spellDB.GetRecord(spellId, &aura)) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < sizeof(aura.m_effectAura) / sizeof(aura.m_effectAura[0]); j++) {
+            if (aura.m_effectAura[j] != auraType) {
+                continue;
+            }
+
+            found = true;
+
+            if (!SpellCancelsAura(spell, &aura, j)) {
+                if (reason) {
+                    if (aura.m_effectMechanic[j]) {
+                        *reason = aura.m_effectMechanic[j];
+                    } else if (aura.m_mechanic) {
+                        *reason = aura.m_mechanic;
+                    }
+                }
+
+                return false;
+            }
+        }
+    }
+
+    return found;
+}
+
+// VERIFY: 6bd9469f auto
+// OFFSET: 0x00804590
+bool Spell_C_CancelsStun(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason) {
+    if (reason) {
+        *reason = 0;
+    }
+
+    return Spell_C_CancelsAuraEffect(unit, spell, 12, reason);
+}
+
+// VERIFY: 65a88e05 auto
+// OFFSET: 0x008045C0
+bool Spell_C_CancelsSilence(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason) {
+    if (reason) {
+        *reason = 0;
+    }
+
+    return Spell_C_CancelsAuraEffect(unit, spell, 27, reason) || Spell_C_CancelsAuraEffect(unit, spell, 60, reason);
+}
+
+// VERIFY: c9a4c918 auto
+// OFFSET: 0x00804610
+bool Spell_C_CancelsPacify(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason) {
+    if (reason) {
+        *reason = 0;
+    }
+
+    return Spell_C_CancelsAuraEffect(unit, spell, 25, reason) || Spell_C_CancelsAuraEffect(unit, spell, 60, reason);
+}
+
+// VERIFY: 851db6e3 auto
+// OFFSET: 0x00804660
+bool Spell_C_CancelsFear(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason) {
+    if (reason) {
+        *reason = 0;
+    }
+
+    return Spell_C_CancelsAuraEffect(unit, spell, 7, reason);
+}
+
+// VERIFY: bb2a34cc auto
+// OFFSET: 0x00804690
+bool Spell_C_CancelsConfuse(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason) {
+    if (reason) {
+        *reason = 0;
+    }
+
+    return Spell_C_CancelsAuraEffect(unit, spell, 5, reason);
+}
+
+// VERIFY: 7ba2f519 auto
+// OFFSET: 0x008046C0
+bool Spell_C_CancelsCharm(const CGUnit_C* unit, const SpellRec* spell, int32_t* reason) {
+    if (reason) {
+        *reason = 0;
+    }
+
+    return Spell_C_CancelsAuraEffect(unit, spell, 6, reason) || Spell_C_CancelsAuraEffect(unit, spell, 177, reason) || Spell_C_CancelsAuraEffect(unit, spell, 2, reason);
+}
+
+// VERIFY: 751283a6 manual
+// OFFSET: 0x00804720
+void SpellHistory::RemoveStartCooldown(int32_t startRecoveryCategory) {
+    bool removed = false;
+
+    for (SPELLHISTORY* history = this->m_history.Head(); history; history = this->m_history.Next(history)) {
+        if (history->m_spellId == startRecoveryCategory) {
+            history->m_startRecoveryCategory = 0;
+            history->m_startRecoveryTime = 0;
+            removed = true;
+        }
+    }
+
+    if (removed) {
+        this->GarbageCollect(OsGetAsyncTimeMs());
+        CGSpellBook::UpdateCooldowns();
+    }
+}
+
+// VERIFY: 3c3b6e25 auto
+// OFFSET: 0x00804780
+void Spell_C_PetSpellFailedUpdateCooldowns(int32_t spellId) {
+    s_spellHistory[1].RemoveStartCooldown(spellId);
+    CGPetInfo::UpdateCooldowns();
+}
+
+// VERIFY: 474b58ab manual
+// OFFSET: 0x008047A0
+void Spell_C_ClearInTransitList() {
+    SpellInTransit* spell = s_spellsInTransit.Head();
+
+    while (spell) {
+        SpellInTransit* next = s_spellsInTransit.Next(spell);
+        s_spellsInTransit.UnlinkNode(spell);
+        delete spell;
+        spell = next;
+    }
+}
+
+// VERIFY: e7eb7309 auto
+// OFFSET: 0x00804AF0
+void Spell_C_ClearCooldowns() {
+    s_itemCooldowns.InternalClear(0);
+
+    for (uint32_t i = 0; i < sizeof(s_spellHistory) / sizeof(s_spellHistory[0]); i++) {
+        s_spellHistory[i].ClearAll();
+    }
+}
+
+// VERIFY: 1d8a9dca manual
+// OFFSET: 0x00804C10
+void Spell_C_UpdateInTransitList() {
+    uint32_t now = OsGetAsyncTimeMs();
+    SpellInTransit* spell = s_spellsInTransit.Head();
+
+    while (spell) {
+        SpellInTransit* next = s_spellsInTransit.Next(spell);
+
+        if (static_cast<int32_t>(now - spell->m_arrivalTime) < 0) {
+            break;
+        }
+
+        s_spellsInTransit.UnlinkNode(spell);
+        delete spell;
+        spell = next;
+    }
+}
+
+// VERIFY: 28603e8e manual
+// OFFSET: 0x00804CC0
+int32_t Spell_C_IsSpellInTransit(WOWGUID caster, uint32_t spellId, uint32_t castTime) {
+    for (SpellInTransit* spell = s_spellsInTransit.Head(); spell; spell = s_spellsInTransit.Next(spell)) {
+        if (spell->m_caster == caster && spell->m_spellId == static_cast<int32_t>(spellId) && spell->m_serverTime == castTime) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+// VERIFY: dbeddd39 manual
+// OFFSET: 0x00809030
+bool Spell_C_GetItemCooldown(int32_t itemId, uint32_t* duration, uint32_t* start, uint32_t* enable) {
+    WOWGUID player = ClntObjMgrGetActivePlayer();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, player, ItemCheckCooldownCallback, nullptr, true);
+
+    if (!stats) {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < sizeof(stats->m_spellId) / sizeof(stats->m_spellId[0]); i++) {
+        if (static_cast<int32_t>(stats->m_spellId[i]) > 0 && !stats->m_spellTrigger[i]) {
+            return s_spellHistory[0].GetSpellCooldown(stats->m_spellId[i], itemId, duration, start, enable);
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 95db2eb3 auto
+// OFFSET: 0x0080ABE0
+void ItemCheckCooldownCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success && Spell_C_GetItemCooldown(id, nullptr, nullptr, nullptr)) {
+        CGSpellBook::UpdateCooldowns();
+        CGContainerInfo::UpdateCooldowns();
+    }
+}
+
+// VERIFY: 41a8c8a3 manual
+// OFFSET: 0x0080E060
+void Spell_C_AddPendingItemCooldown(int32_t itemId, int32_t spellId, uint32_t time, bool onHold) {
+    HASHKEY_NONE key;
+    ITEMCOOLDOWNHASHNODE* node = s_itemCooldowns.Ptr(itemId, key);
+
+    if (!node) {
+        node = s_itemCooldowns.New(itemId, key, 0, 0);
+    }
+
+    node->m_spellId = spellId;
+    node->m_time = time;
+    node->m_onHold = onHold;
+}
+
+// VERIFY: bcfe0d9d auto
+// OFFSET: 0x007FE470
+static bool SpellVisualKitHasChainEffect(const SpellVisualKitRec* kit) {
+    for (uint32_t i = 0; i < sizeof(kit->m_charProc) / sizeof(kit->m_charProc[0]); i++) {
+        if (!kit->m_charProc[i]) {
+            return false;
+        }
+
+        if (kit->m_charProc[i] == 12) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 88789792 auto
+// OFFSET: 0x00800390
+void Spell_C_PetTameFailure(uint8_t reason) {
+    const char* token;
+
+    switch (reason) {
+        case 1:
+            token = "PETTAME_INVALIDCREATURE";
+            break;
+
+        case 2:
+            token = "PETTAME_TOOMANY";
+            break;
+
+        case 3:
+            token = "PETTAME_CREATUREALREADYOWNED";
+            break;
+
+        case 4:
+            token = "PETTAME_NOTTAMEABLE";
+            break;
+
+        case 5:
+            token = "PETTAME_ANOTHERSUMMONACTIVE";
+            break;
+
+        case 6:
+            token = "PETTAME_UNITSCANTTAME";
+            break;
+
+        case 7:
+            token = "PETTAME_NOPETAVAILABLE";
+            break;
+
+        case 8:
+            token = "PETTAME_INTERNALERROR";
+            break;
+
+        case 9:
+            token = "PETTAME_TOOHIGHLEVEL";
+            break;
+
+        case 10:
+            token = "PETTAME_DEAD";
+            break;
+
+        case 11:
+            token = "PETTAME_NOTDEAD";
+            break;
+
+        case 12:
+            token = "PETTAME_CANTCONTROLEXOTIC";
+            break;
+
+        default:
+            token = "PETTAME_UNKNOWNERROR";
+            break;
+    }
+
+    char text[1024];
+    SStrCopy(text, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE), sizeof(text));
+    CGGameUI::DisplayError(ERR_TAME_FAILED, text);
+}
+
+// VERIFY: af4cb118 manual
+// OFFSET: 0x00800470
+int32_t Packet_SMSG_SPELL_UPDATE_CHAIN_TARGETS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID caster;
+    msg->Get(caster.m_guid);
+    int32_t spellId;
+    msg->Get(reinterpret_cast<uint32_t&>(spellId));
+    uint32_t count = 0;
+    msg->Get(count);
+    TSStackArray<WOWGUID> targets(static_cast<WOWGUID*>(alloca(sizeof(WOWGUID) * count)), count, 1);
+
+    for (uint32_t i = 0; i < count; i++) {
+        msg->Get(targets.m_data[i].m_guid);
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        unit->UpdateChainTargets(targets, spellId);
+    }
+
+    return 1;
+}
+
+// VERIFY: 679f44cf manual
+// OFFSET: 0x00800610
+int32_t Packet_SMSG_PLAY_SPELL_VISUAL(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID guid;
+    msg->Get(guid.m_guid);
+    uint32_t kitId;
+    msg->Get(kitId);
+    SpellVisualKitRec* kit = g_spellVisualKitDB.GetRecord(kitId);
+
+    if (kit) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            PlaySpellVisuaKitData kitData(nullptr, kit, 0);
+            unit->PlaySpellVisualKit(kitData);
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: d9c2084e manual
+// OFFSET: 0x008006C0
+int32_t Packet_SMSG_PLAY_SPELL_IMPACT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID guid;
+    msg->Get(guid.m_guid);
+    uint32_t kitId;
+    msg->Get(kitId);
+    SpellVisualKitRec* kit = g_spellVisualKitDB.GetRecord(kitId);
+
+    if (kit) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            PlaySpellVisuaKitData kitData(nullptr, kit, 1);
+            unit->PlaySpellVisualKit(kitData);
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 23ec14f4 auto
+// OFFSET: 0x00800950
+bool SpellAppliesNonStanceShapeshift(const SpellRec* spell) {
+    for (uint32_t i = 0; i < sizeof(spell->m_effectAura) / sizeof(spell->m_effectAura[0]); i++) {
+        if (spell->m_effectAura[i] != 36) {
+            continue;
+        }
+
+        SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecord(spell->m_effectMiscValue[i]);
+
+        if (!form || !(form->m_flags & 0x1)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 28d55e5b manual
+// OFFSET: 0x00800A00
+void Spell_C_SetAutoRepeatingSpell(int32_t spellId) {
+    if (s_autoRepeatingSpell == spellId) {
+        return;
+    }
+
+    s_autoRepeatingSpell = spellId;
+
+    if (!s_autoRangedCombatSpell) {
+        if (spellId) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_START_AUTOREPEAT_SPELL, nullptr);
+        } else {
+            FrameScript_SignalEvent(SCRIPT_EVENT_STOP_AUTOREPEAT_SPELL, nullptr);
+        }
+    }
+
+    if (s_autoRepeatingSpell) {
+        ClntObjMgrGetActivePlayerObj()->MeleeModeLeave();
+    }
+}
+
+// VERIFY: 9a0a630e manual
+// OFFSET: 0x00800BF0
+bool Spell_C_SpellVisualHasChainEffect(const SpellVisualRec* visual) {
+    SpellVisualKitRec* kit = g_spellVisualKitDB.GetRecord(visual->m_castKit);
+
+    if (kit && SpellVisualKitHasChainEffect(kit)) {
+        return true;
+    }
+
+    kit = g_spellVisualKitDB.GetRecord(visual->m_impactKit);
+
+    if (kit && SpellVisualKitHasChainEffect(kit)) {
+        return true;
+    }
+
+    kit = g_spellVisualKitDB.GetRecord(visual->m_stateKit);
+
+    if (kit && SpellVisualKitHasChainEffect(kit)) {
+        return true;
+    }
+
+    kit = g_spellVisualKitDB.GetRecord(visual->m_channelKit);
+
+    if (kit && SpellVisualKitHasChainEffect(kit)) {
+        return true;
+    }
+
+    kit = g_spellVisualKitDB.GetRecord(visual->m_casterImpactKit);
+
+    if (kit && SpellVisualKitHasChainEffect(kit)) {
+        return true;
+    }
+
+    kit = g_spellVisualKitDB.GetRecord(visual->m_targetImpactKit);
+    return kit && SpellVisualKitHasChainEffect(kit);
+}
+
+// VERIFY: 2d56a1b9 manual
+// OFFSET: 0x00800D00
+SpellVisualKitRec* Spell_C_GetAppropriateImpactKit(const SpellVisualRec* visual, int32_t caster) {
+    SpellVisualKitRec* kit = g_spellVisualKitDB.GetRecord(caster ? visual->m_casterImpactKit : visual->m_targetImpactKit);
+
+    if (kit) {
+        return kit;
+    }
+
+    return g_spellVisualKitDB.GetRecord(visual->m_impactKit);
+}
+
+// VERIFY: 50dd76ca manual
+// OFFSET: 0x008019C0
+float Spell_C_GetSpellRadius() {
+    PendingSpellCast* cast = s_targetingSpell;
+
+    if (!cast) {
+        return 0.0f;
+    }
+
+    CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!caster) {
+        return 0.0f;
+    }
+
+    SpellRec spell;
+    g_spellDB.GetRecord(cast->m_data.m_spellId, &spell);
+
+    SpellRadiusRec* radiusRec = g_spellRadiusDB.GetRecord(spell.m_effectRadiusIndex[0]);
+    float radius = radiusRec ? radiusRec->m_radius + static_cast<int32_t>(caster->m_unit->m_unitFieldLevel) * radiusRec->m_radiusPerLevel : 0.0f;
+
+    radiusRec = g_spellRadiusDB.GetRecord(spell.m_effectRadiusIndex[1]);
+    float radius2 = radiusRec ? radiusRec->m_radius + static_cast<int32_t>(caster->m_unit->m_unitFieldLevel) * radiusRec->m_radiusPerLevel : 0.0f;
+
+    if (radius2 >= radius) {
+        radius = radius2;
+    }
+
+    int32_t flat;
+    int32_t pct;
+
+    if (Spell_C_GetSpellModifiers(&spell, 6, flat, pct)) {
+        radius = (radius + flat) * pct * 0.01f;
+    }
+
+    return radius;
+}
+
+// VERIFY: 780f5311 manual
+// OFFSET: 0x00801B80
+int32_t Packet_SMSG_SPELL_DELAYED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    SmartGUID guid;
+    *msg >> guid;
+    int32_t delay;
+    msg->Get(reinterpret_cast<uint32_t&>(delay));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(unit->m_castingSpellId, &spell)) {
+            if ((spell.m_attributesExD & 0x8000000) || (!(spell.m_attributes & 0x2) && (unit->m_obj->m_guid == ClntObjMgrGetActivePlayer() || (!(spell.m_attributes & 0x180) && !(spell.m_attributesExD & 0x1))))) {
+                unit->DelayCast(delay);
+                Script_SendUnitSpellSignal(guid, unit->m_castCount, &spell, 329);
+            }
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: ca8bfe75 manual
+// OFFSET: 0x008020C0
+int32_t Packet_SMSG_UNIT_SPELLCAST_START(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    SmartGUID caster;
+    *msg >> caster;
+    SmartGUID target;
+    *msg >> target;
+    int32_t spellId;
+    msg->Get(reinterpret_cast<uint32_t&>(spellId));
+    uint32_t remaining;
+    msg->Get(remaining);
+    uint32_t duration;
+    msg->Get(duration);
+    uint32_t end = OsGetAsyncTimeMs() + remaining;
+    uint32_t start = end - duration;
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell)) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            int32_t signal;
+
+            if (spell.m_attributesEx & 0x4) {
+                unit->SetUIChannelDirect(spellId, start, end);
+                signal = 331;
+            } else {
+                unit->SetUICastingDirect(spellId, target, start, end);
+                signal = 324;
+            }
+
+            Script_SendUnitSpellSignal(caster, 0, &spell, signal);
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 24535fb9 manual
+// OFFSET: 0x00802A10
+void SpellHistory::DelayCooldown(int32_t spellId, int32_t delay) {
+    for (SPELLHISTORY* history = this->m_history.Head(); history; history = this->m_history.Next(history)) {
+        if (history->m_spellId == spellId) {
+            history->m_time += delay;
+            history->m_categoryTime += delay;
+        }
+    }
+}
+
+// VERIFY: 6a53b8e9 auto
+// OFFSET: 0x00802BA0
+void Spell_C_ModifyCooldown(int32_t spellId, uint32_t time, int32_t index, int32_t remove) {
+    s_spellHistory[index].ClearOnHold(spellId, time, remove != 0);
+    CGSpellBook::UpdateCooldowns();
+    CGSpellBook::UpdateUsable();
+
+    if (index) {
+        CGPetInfo::UpdateCooldowns();
+    } else {
+        CGContainerInfo::UpdateCooldowns();
+    }
+}
+
+// VERIFY: d71e0c5b auto
+// OFFSET: 0x00802BF0
+void Spell_C_DelayCooldown(int32_t index, int32_t spellId, int32_t delay) {
+    s_spellHistory[index].DelayCooldown(spellId, delay);
+    CGSpellBook::UpdateCooldowns();
+    CGSpellBook::UpdateUsable();
+
+    if (index) {
+        CGPetInfo::UpdateCooldowns();
+    } else {
+        CGContainerInfo::UpdateCooldowns();
+    }
+}
+
+// VERIFY: 019f1364 auto
+// OFFSET: 0x007FDF20
+static bool SpellHasUnitAuraEffect(const SpellRec* spell) {
+    for (uint32_t i = 0; i < sizeof(spell->m_effect) / sizeof(spell->m_effect[0]); i++) {
+        if (Spell_IsUnitAuraEffect(spell->m_effect[i])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 76133823 manual
+// OFFSET: 0x00802CB0
+bool Spell_C_IsActiveSpell(const SpellRec* spell, const CGUnit_C* unit) {
+    if (!unit) {
+        return false;
+    }
+
+    if (!spell->m_activeIconID && !SpellRec::WillSummonCritter(spell)) {
+        return false;
+    }
+
+    CGUnit_C* vehicle = unit->m_vehiclePassenger ? unit->m_vehiclePassenger->GetVehicleUnit() : nullptr;
+
+    for (uint32_t i = 0; i < sizeof(spell->m_effect) / sizeof(spell->m_effect[0]); i++) {
+        if (spell->m_effect[i] != 28) {
+            continue;
+        }
+
+        if (vehicle && vehicle->m_obj->m_entryID == spell->m_effectMiscValue[i] && vehicle->m_unit->m_unitFieldCreatedby == ClntObjMgrGetActivePlayer()) {
+            return true;
+        }
+
+        SummonPropertiesRec* properties = g_summonPropertiesDB.GetRecord(spell->m_effectMiscValueB[0]);
+
+        if (properties && properties->m_slot == 5) {
+            return static_cast<int32_t>((unit->m_unit->m_unitFieldCritter.m_guid >> 24) & 0xFFFFFFF) == spell->m_effectMiscValue[i];
+        }
+    }
+
+    bool active = false;
+    CGUnit_C* self = const_cast<CGUnit_C*>(unit);
+
+    for (uint32_t i = 0; i < unit->GetAuraCount(); i++) {
+        if (self->m_auras[i].m_spellId != spell->m_id) {
+            continue;
+        }
+
+        if (self->IsActivePlayer() && SpellRec::HasAura(spell, 36) && unit->m_shapeshiftSuppressed) {
+            break;
+        }
+
+        if (self->m_auras[i].m_flags & 0x10) {
+            return true;
+        }
+    }
+
+    if (spell->m_effectAura[0] == 78) {
+        SpellRec aura;
+
+        for (uint32_t i = 0; i < unit->GetAuraCount(); i++) {
+            if (g_spellDB.GetRecord(self->m_auras[i].m_spellId, &aura) && aura.m_effectAura[0] == 78 && aura.m_effectMiscValue[0] == spell->m_effectMiscValue[0]) {
+                active = true;
+                break;
+            }
+        }
+    }
+
+    return active;
+}
+
+// VERIFY: 399e67df manual
+// OFFSET: 0x00802F80
+void Spell_C_CancelAura(const SpellRec* spell, CGUnit_C* unit, int32_t auraIndex) {
+    if (!spell || !unit) {
+        return;
+    }
+
+    if (!unit->IsActivePlayer()) {
+        if (SpellHasUnitAuraEffect(spell)) {
+            CDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_PET_CANCEL_AURA));
+            msg.Put(unit->m_obj->m_guid.m_guid);
+            msg.Put(static_cast<uint32_t>(spell->m_id));
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+        }
+
+        return;
+    }
+
+    if (unit->m_unit->m_unitFieldCharmedby) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < sizeof(spell->m_effect) / sizeof(spell->m_effect[0]); i++) {
+        if (spell->m_effect[i] != 28) {
+            continue;
+        }
+
+        SummonPropertiesRec* properties = g_summonPropertiesDB.GetRecord(spell->m_effectMiscValueB[0]);
+
+        if (properties && properties->m_slot == 5 && static_cast<int32_t>((unit->m_unit->m_unitFieldCritter.m_guid >> 24) & 0xFFFFFFF) == spell->m_effectMiscValue[i]) {
+            CDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_DISMISS_CRITTER));
+            msg.Put(unit->m_unit->m_unitFieldCritter.m_guid);
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+        }
+    }
+
+    if (!SpellHasUnitAuraEffect(spell)) {
+        return;
+    }
+
+    if (unit->m_mountDisplayId > 0 && !(unit->m_clientFlags & 0x10000000) && SpellRec::HasAura(spell, 78)) {
+        SpellRec mount;
+
+        for (uint32_t i = 0; i < unit->GetAuraCount(); i++) {
+            if (g_spellDB.GetRecord(unit->m_auras[i].m_spellId, &mount) && mount.m_effectAura[0] == 78 && mount.m_effectMiscValue[0] == spell->m_effectMiscValue[0] && mount.m_id != spell->m_id) {
+                Spell_C_CancelAura(&mount, unit, -1);
+                return;
+            }
+        }
+
+        unit->OnMountDisplayChanged(0);
+    }
+
+    if (unit->GetShapeshiftForm() && SpellRec::HasAura(spell, 36)) {
+        if (lua_tainted) {
+            for (uint32_t i = s_shapeshiftSpells.Count(); i; ) {
+                i--;
+
+                if (s_shapeshiftSpells.m_data[i].m_spellId == spell->m_id) {
+                    return;
+                }
+            }
+        }
+
+        for (uint32_t i = 0; i < sizeof(spell->m_effectAura) / sizeof(spell->m_effectAura[0]); i++) {
+            if (spell->m_effectAura[i] != 36) {
+                continue;
+            }
+
+            SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecord(spell->m_effectMiscValue[i]);
+
+            if (!form || (form->m_flags & 0x2)) {
+                return;
+            }
+
+            if (unit->GetShapeshiftForm() == static_cast<uint32_t>(spell->m_effectMiscValue[i])) {
+                unit->PreemptivelyCancelShapeshift();
+                break;
+            }
+        }
+    }
+
+    if ((spell->m_attributesEx & 0x2000) && !(spell->m_attributesEx & 0x4) && (unit->m_obj->m_type & TYPEMASK_PLAYER) && static_cast<CGPlayer_C*>(unit)->ToggleFarSight(nullptr)) {
+        return;
+    }
+
+    if (spell->m_id == 2584) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_AREA_SPIRIT_HEALER_OUT_OF_RANGE, nullptr);
+    }
+
+    for (uint32_t i = 0; i < sizeof(spell->m_effectAura) / sizeof(spell->m_effectAura[0]); i++) {
+        if (spell->m_effectAura[i] != 236) {
+            continue;
+        }
+
+        const WOWGUID* controlled = &unit->m_unit->m_unitFieldCharm;
+
+        if (!*controlled) {
+            controlled = &unit->m_unit->m_unitFieldSummon;
+        }
+
+        if (controlled->m_guid == unit->GetTransportGUID()) {
+            WOWGUID transport = { unit->GetTransportGUID() };
+            CGUnit_C* transportUnit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(transport, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+            if (transportUnit) {
+                CVehicle_C* vehicle = transportUnit->m_vehicle;
+                uint8_t seat = unit->m_movementData.m_transportSeat;
+
+                if (vehicle) {
+                    VehicleSeatRec* seatRec = vehicle->GetVehicleSeatRec(seat);
+
+                    if (seatRec && (seatRec->m_flags & 0x2000000)) {
+                        CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+                        if (mover) {
+                            mover->VehicleExit();
+
+                            if (auraIndex >= 0 && unit->m_obj->m_guid.m_guid == unit->GetAuraCaster(auraIndex)) {
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        break;
+    }
+
+    CGUnit_C* vehicleUnit = unit->m_vehiclePassenger ? unit->m_vehiclePassenger->GetVehicleUnit() : nullptr;
+
+    for (uint32_t i = 0; i < sizeof(spell->m_effect) / sizeof(spell->m_effect[0]); i++) {
+        if (spell->m_effect[i] == 28 && vehicleUnit && vehicleUnit->m_obj->m_entryID == spell->m_effectMiscValue[i]) {
+            CGInputControl* input = CGInputControl::GetActive();
+            CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+            if (mover && input->IsVehicleSeatFlagSet(0x2000000)) {
+                mover->VehicleExit();
+            }
+        }
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_CANCEL_AURA));
+    msg.Put(static_cast<uint32_t>(spell->m_id));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: c6760f6a manual
+// OFFSET: 0x008038F0
+bool Spell_C_IsCastingInterruptedByCombat(const WOWGUID& guid) {
+    for (PendingSpellCast* cast = s_pendingSpellCasts.Head(); cast; cast = s_pendingSpellCasts.Next(cast)) {
+        if (cast->m_data.m_caster == guid) {
+            SpellRec spell;
+
+            if (g_spellDB.GetRecord(cast->m_data.m_spellId, &spell) && (spell.m_interruptFlags & 0x8)) {
+                return true;
+            }
+        }
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit && unit->m_unit->m_unitChannelSpell) {
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(unit->m_unit->m_unitChannelSpell, &spell) && (spell.m_channelInterruptFlags & 0x1000)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 839db5ad manual
+// OFFSET: 0x00803EE0
+int32_t Spell_C_HandleTerrainRay(const CTerrainClickEvent& evt, bool checkRange) {
+    if (!(s_needTargets & 0x60)) {
+        return 1;
+    }
+
+    PendingSpellCastData* data = s_targetingSpell ? &s_targetingSpell->m_data : nullptr;
+    CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(data->m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!caster) {
+        return 1;
+    }
+
+    if (!checkRange) {
+        return 0;
+    }
+
+    C3Vector position = evt.m_point;
+
+    if (evt.m_guid) {
+        CGObject_C* object = ClntObjMgrObjectPtr(evt.m_guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+        if (object) {
+            position *= object->GetMatrix();
+        }
+    }
+
+    float distance = caster->GetDistanceToPos(position);
+    float minRange;
+    float maxRange;
+    Spell_C::GetSpellRange(caster, data->m_spellId, &minRange, &maxRange, nullptr);
+
+    if (distance >= minRange * minRange && maxRange * maxRange >= distance) {
+        return 0;
+    }
+
+    return maxRange * maxRange * 16.0f >= distance ? 1 : 2;
+}
+
+// VERIFY: 047edb41 manual
+// OFFSET: 0x008055C0
+void Spell_C_FailPendingCast(PendingSpellCast* cast, const SpellRec* spell, int32_t reason) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        HandleSpellFailedOrGo(unit, cast, spell, reason);
+        FinishPendingSpellCast(cast, spell, unit);
+    }
+}
+
+// VERIFY: fee48a29 manual
+// OFFSET: 0x00805EF0
+bool Spell_C_IsModal(const WOWGUID& item) {
+    for (PendingSpellCast* cast = s_pendingSpellCasts.Head(); cast; cast = s_pendingSpellCasts.Next(cast)) {
+        if (cast->m_data.m_castItem == item) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: c6982e6a manual
+// OFFSET: 0x00805F30
+static bool Spell_C_IsSpellPending(int32_t spellId) {
+    for (PendingSpellCast* cast = s_pendingSpellCasts.Head(); cast; cast = s_pendingSpellCasts.Next(cast)) {
+        if (cast->m_data.m_spellId == static_cast<uint32_t>(spellId)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: a0204cde manual
+// OFFSET: 0x00806030
+bool Spell_C_IsCurrentSpell(int32_t spellId) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return false;
+    }
+
+    if (Spell_C_IsSpellPending(spellId)) {
+        return true;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (spell.m_effect[0] == 78) {
+        return player && player->m_combat.m_attacking;
+    }
+
+    if (spell.m_effect[0] == 47) {
+        if (player) {
+            SkillLineAbilityRec* ability = player->LookupAbility(spell.m_id);
+
+            if (ability && !CGTradeSkillInfo::m_linkData && CGTradeSkillInfo::m_skillLineID == ability->m_skillLine) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    if (!SpellRec::WillSummonCritter(&spell) && !SpellRec::HasAura(&spell, 36)) {
+        return false;
+    }
+
+    return Spell_C_IsActiveSpell(&spell, player);
+}
+
+// VERIFY: 07e6999f manual
+// OFFSET: 0x008061A0
+PendingSpellCast* Spell_C_GetActivePlayerPendingCast() {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return nullptr;
+    }
+
+    return GetPendingSpellCast(player->m_castCount, player->m_castSpellId, player->m_obj->m_guid);
+}
+
+// VERIFY: fd2d4d6a manual
+// OFFSET: 0x00806200
+void Spell_C_CancelSpell(PendingSpellCast* cast, bool stopRecast, bool notifyServer, int32_t reason) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(cast->m_data.m_spellId, &spell)) {
+        return;
+    }
+
+    if (CGTradeInfo::m_enchantingItem && CGTradeInfo::m_enchantingItem == cast->m_data.m_castItem) {
+        CGTradeInfo::SetEnchantingItem(nullptr);
+    }
+
+    if (cast != s_targetingSpell && notifyServer) {
+        CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if ((caster && caster->GetSpellCastingTime(&spell) > 0) || (spell.m_attributes & 0x404)) {
+            CDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_CANCEL_CAST));
+            msg.Put(cast->m_data.m_castCount);
+            msg.Put(static_cast<uint32_t>(cast->m_data.m_spellId));
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+        }
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        HandleSpellFailedOrGo(unit, cast, &spell, reason);
+        FinishPendingSpellCast(cast, &spell, unit);
+    }
+
+    if (stopRecast) {
+        CGTradeSkillInfo::StopRecast();
+    }
+}
+
+// VERIFY: a7ca1637 manual
+// OFFSET: 0x00806390
+void Spell_C_CancelSpellByCaster(const WOWGUID& caster) {
+    PendingSpellCast* cast = s_pendingSpellCasts.Head();
+
+    while (cast) {
+        PendingSpellCast* next = s_pendingSpellCasts.Next(cast);
+
+        if (cast->m_data.m_castItem == caster) {
+            Spell_C_CancelSpell(cast, true, true, 27);
+        }
+
+        cast = next;
+    }
+}
+
+// VERIFY: 099397b4 manual
+// OFFSET: 0x008063E0
+void Spell_C_CancelSpellByTarget(const WOWGUID& target, int32_t reason) {
+    PendingSpellCast* cast = s_pendingSpellCasts.Head();
+
+    while (cast) {
+        PendingSpellCast* next = s_pendingSpellCasts.Next(cast);
+
+        if (cast->m_data.m_objectTarget == target) {
+            Spell_C_CancelSpell(cast, true, true, reason);
+        }
+
+        cast = next;
+    }
+}
+
+// VERIFY: 98e4a5c1 manual
+// OFFSET: 0x00806440
+void Spell_C_CancelSpellsWithId(int32_t spellId) {
+    PendingSpellCast* cast = s_pendingSpellCasts.Head();
+
+    while (cast) {
+        PendingSpellCast* next = s_pendingSpellCasts.Next(cast);
+
+        if (cast->m_data.m_spellId == static_cast<uint32_t>(spellId)) {
+            Spell_C_CancelSpell(cast, true, true, 27);
+        }
+
+        cast = next;
+    }
+}
+
+// VERIFY: 09c12820 manual
+// OFFSET: 0x00806480
+void Spell_C_CancelMeleeSpells() {
+    PendingSpellCast* cast = s_pendingSpellCasts.Head();
+
+    while (cast) {
+        PendingSpellCast* next = s_pendingSpellCasts.Next(cast);
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(cast->m_data.m_spellId, &spell) && (spell.m_attributes & 0x404)) {
+            Spell_C_CancelSpell(cast, false, true, 27);
+        }
+
+        cast = next;
+    }
+}
+
+// VERIFY: 6f75e1c3 manual
+// OFFSET: 0x00806550
+void Spell_C_CancelRangedSpells() {
+    PendingSpellCast* cast = s_pendingSpellCasts.Head();
+
+    while (cast) {
+        PendingSpellCast* next = s_pendingSpellCasts.Next(cast);
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(cast->m_data.m_spellId, &spell) && (spell.m_attributes & 0x2)) {
+            Spell_C_CancelSpell(cast, false, true, 27);
+        }
+
+        cast = next;
+    }
+}
+
+// VERIFY: 3a7b6437 manual
+// OFFSET: 0x00806620
+void Spell_C_CancelCastingSpellByMovement() {
+    PendingSpellCast* cast = s_pendingSpellCasts.Head();
+
+    while (cast) {
+        PendingSpellCast* next = s_pendingSpellCasts.Next(cast);
+
+        if (cast != s_targetingSpell) {
+            SpellRec spell;
+
+            if (g_spellDB.GetRecord(cast->m_data.m_spellId, &spell) && (spell.m_interruptFlags & 0x1)) {
+                Spell_C_CancelSpell(cast, false, true, 40);
+            }
+        }
+
+        cast = next;
+    }
+}
+
+// VERIFY: 627f2c2d manual
+// OFFSET: 0x00806AD0
+int32_t Packet_SMSG_SPELL_FAILED_OTHER(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    SmartGUID caster;
+    *msg >> caster;
+    uint8_t castCount;
+    msg->Get(castCount);
+    uint32_t spellId;
+    msg->Get(spellId);
+    uint8_t reason;
+    msg->Get(reason);
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return 1;
+    }
+
+    PendingSpellCast local;
+    PendingSpellCast* cast = FindPendingSpellCast(caster, &local, castCount, spellId, caster);
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        HandleSpellFailedOrGo(unit, cast, &spell, reason);
+        FinishPendingSpellCast(cast, &spell, unit);
+    }
+
+    return 1;
+}
+
+// VERIFY: 29396807 manual
+// OFFSET: 0x00807060
+int32_t Packet_SMSG_ITEM_COOLDOWN(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID guid;
+    msg->Get(guid.m_guid);
+    uint32_t spellId;
+    msg->Get(spellId);
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell)) {
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (item) {
+            int32_t itemId = item->m_obj->m_entryID;
+            SpellHistory& history = s_spellHistory[0];
+            SPELLHISTORY* entry = history.m_free.Head();
+
+            if (entry) {
+                history.m_free.UnlinkNode(entry);
+                history.m_history.LinkToTail(entry);
+            } else {
+                entry = history.m_history.NewNode(2, 0, 8);
+            }
+
+            entry->m_spellId = spellId;
+            entry->m_itemId = itemId;
+            entry->m_time = time;
+            entry->m_recoveryTime = 30000;
+            entry->m_category = 0;
+            entry->m_categoryTime = 0;
+            entry->m_categoryRecoveryTime = 0;
+            entry->m_onHold = false;
+            entry->m_startRecoveryCategory = 0;
+            entry->m_startRecoveryTime = 0;
+        }
+    }
+
+    CGSpellBook::UpdateCooldowns();
+    CGContainerInfo::UpdateCooldowns();
+    return 1;
+}
+
+// VERIFY: d5a8355c auto
+// OFFSET: 0x008073A0
+void Spell_C_Destroy() {
+    ClientServices::ClearMessageHandler(SMSG_SPELL_START);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_GO);
+    ClientServices::ClearMessageHandler(SMSG_CAST_FAILED);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_FAILURE);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_FAILED_OTHER);
+    ClientServices::ClearMessageHandler(SMSG_PET_CAST_FAILED);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_COOLDOWN);
+    ClientServices::ClearMessageHandler(SMSG_ITEM_COOLDOWN);
+    ClientServices::ClearMessageHandler(SMSG_COOLDOWN_EVENT);
+    ClientServices::ClearMessageHandler(SMSG_CLEAR_COOLDOWN);
+    ClientServices::ClearMessageHandler(SMSG_MODIFY_COOLDOWN);
+    ClientServices::ClearMessageHandler(SMSG_COOLDOWN_CHEAT);
+    ClientServices::ClearMessageHandler(SMSG_PET_TAME_FAILURE);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_DELAYED);
+    ClientServices::ClearMessageHandler(MSG_CHANNEL_START);
+    ClientServices::ClearMessageHandler(MSG_CHANNEL_UPDATE);
+    ClientServices::ClearMessageHandler(SMSG_PLAY_SPELL_VISUAL);
+    ClientServices::ClearMessageHandler(SMSG_PLAY_SPELL_IMPACT);
+    ClientServices::ClearMessageHandler(SMSG_SET_FLAT_SPELL_MODIFIER);
+    ClientServices::ClearMessageHandler(SMSG_SET_PCT_SPELL_MODIFIER);
+    ClientServices::ClearMessageHandler(SMSG_CANCEL_AUTO_REPEAT);
+    ClientServices::ClearMessageHandler(SMSG_GAME_OBJECT_RESET_STATE);
+    ClientServices::ClearMessageHandler(SMSG_FEIGN_DEATH_RESISTED);
+    ClientServices::ClearMessageHandler(SMSG_SPELL_UPDATE_CHAIN_TARGETS);
+    ClientServices::ClearMessageHandler(SMSG_NOTIFY_DEST_LOC_SPELL_CAST);
+    ClientServices::ClearMessageHandler(SMSG_ON_CANCEL_EXPECTED_RIDE_VEHICLE_AURA);
+    ClientServices::ClearMessageHandler(SMSG_SET_PROJECTILE_POSITION);
+    ClientServices::ClearMessageHandler(SMSG_RESET_RANGED_COMBAT_TIMER);
+    ClientServices::ClearMessageHandler(SMSG_RESUME_CAST_BAR);
+    s_itemCooldowns.InternalClear(0);
+
+    for (uint32_t i = 0; i < sizeof(s_spellHistory) / sizeof(s_spellHistory[0]); i++) {
+        s_spellHistory[i].ClearAll();
+    }
+
+    if (s_spellWorldObject) {
+        World::ObjectDestroy(s_spellWorldObject);
+        s_spellWorldObject = nullptr;
+    }
+
+    if (s_spellWorldModel) {
+        s_spellWorldModel->Release();
+        s_spellWorldModel = nullptr;
+    }
+
+    s_pendingSpellCasts.Clear();
+    s_freePendingSpellCasts.Clear();
+    s_periodicClientTriggers.Clear();
+    s_destLocSpellCasts.InternalClear(0);
+    s_enableErrorSpeechCVar = nullptr;
+}
+
+// VERIFY: f60bc498 manual
+// OFFSET: 0x00807D40
+int32_t SpellHistory::RecentlyCast(int32_t spellId, int32_t itemId) {
+    uint32_t now = OsGetAsyncTimeMs();
+
+    for (SPELLHISTORY* history = this->m_history.Head(); history; history = this->m_history.Next(history)) {
+        if (history->m_spellId == spellId && history->m_itemId == itemId && static_cast<int32_t>(now - history->m_time - 1500) < 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 293fcda8 manual
+// OFFSET: 0x007FEA30
+ItemSubClassRec* FindAnyItemSubclassRec(int32_t classId, int32_t subclassMask) {
+    for (int32_t i = 0; i < g_itemSubClassDB.m_numRecords; i++) {
+        ItemSubClassRec* rec = i < 0 || i >= g_itemSubClassDB.m_numRecords ? nullptr : &g_itemSubClassDB.m_records[i];
+
+        if (rec->m_classID == classId && ((1 << rec->m_subClassID) & subclassMask)) {
+            return rec;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: e5a5e4cb manual
+// OFFSET: 0x00805610
+void ShowPetSpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t reason, int32_t misc1, int32_t misc2) {
+    char format[1024];
+    char text[1024];
+
+    switch (reason) {
+        case 1:
+            CGGameUI::DisplayError(ERR_PET_SPELL_AFFECTING_COMBAT);
+            break;
+
+        case 23:
+            CGGameUI::DisplayError(ERR_PET_SPELL_DEAD);
+            break;
+
+        case 29:
+        case 30:
+        case 31: {
+            FormatString(GetSpellFailedResult(reason), -1, GENDER_NOT_APPLICABLE, format, sizeof(format));
+            bool found = false;
+
+            for (int32_t i = 0; i < g_itemSubClassMaskDB.m_numRecords; i++) {
+                ItemSubClassMaskRec* rec = i < 0 || i >= g_itemSubClassMaskDB.m_numRecords ? nullptr : &g_itemSubClassMaskDB.m_records[i];
+
+                if (rec->m_classID == misc1 && rec->m_mask == misc2) {
+                    SStrPrintf(text, sizeof(text), format, rec->m_name);
+                    CGGameUI::DisplayError(ERR_SPELL_FAILED_S, text);
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                ItemSubClassRec* rec = FindAnyItemSubclassRec(misc1, misc2);
+
+                if (rec) {
+                    SStrPrintf(text, sizeof(text), format, rec->m_displayName);
+                    CGGameUI::DisplayError(ERR_SPELL_FAILED_S, text);
+                }
+            }
+
+            break;
+        }
+
+        case 56:
+            CGGameUI::DisplayError(ERR_PET_SPELL_NOPATH);
+            break;
+
+        case 57:
+            CGGameUI::DisplayError(ERR_PET_SPELL_NOT_BEHIND);
+            break;
+
+        case 67:
+            CGGameUI::DisplayError(static_cast<UIErrors>(((spell->m_attributes & 0x10) | 0x340) >> 4));
+            break;
+
+        case 85: {
+            PowerDisplayRec* display = g_powerDisplayDB.GetRecord(spell->m_powerDisplayID);
+
+            if (display) {
+                char power[128];
+                FormatString(display->m_globalStringBaseTag, -1, GENDER_NOT_APPLICABLE, power, 127);
+                CGGameUI::DisplayError(ERR_OUT_OF_POWER_DISPLAY, power);
+            } else if (spell->m_powerType == -2) {
+                CGGameUI::DisplayError(ERR_OUT_OF_HEALTH);
+            } else {
+                CGGameUI::DisplayError(s_powerErrors[spell->m_powerType]);
+            }
+
+            break;
+        }
+
+        case 94: {
+            FormatString(GetSpellFailedResult(reason), -1, GENDER_NOT_APPLICABLE, text, sizeof(text));
+            uint32_t count = g_spellShapeshiftFormDB.m_numRecords;
+
+            if (count > 64) {
+                count = 64;
+            }
+
+            for (uint32_t i = 0; i < count; i++) {
+                if (!SpellRec::UsableInShapeshift(spell, i)) {
+                    continue;
+                }
+
+                SpellShapeshiftFormRec* form = static_cast<int32_t>(i) < 0 || static_cast<int32_t>(i) >= g_spellShapeshiftFormDB.m_numRecords ? nullptr : &g_spellShapeshiftFormDB.m_records[i];
+
+                if (form && form->m_name && *form->m_name) {
+                    SStrPrintf(format, sizeof(format), text, form->m_name);
+                    CGGameUI::DisplayError(ERR_SPELL_FAILED_SHAPESHIFT_FORM_S, format);
+                    break;
+                }
+            }
+
+            break;
+        }
+
+        case 97:
+            CGGameUI::DisplayError(ERR_PET_SPELL_OUT_OF_RANGE);
+            break;
+
+        case 101: {
+            FormatString(GetSpellFailedResult(reason), -1, GENDER_NOT_APPLICABLE, text, sizeof(text));
+            AreaTableRec* area = g_areaTableDB.GetRecord(misc1);
+
+            if (area) {
+                SStrPrintf(format, sizeof(format), text, area->m_areaName);
+                CGGameUI::DisplayError(ERR_SPELL_FAILED_S, format);
+            }
+
+            break;
+        }
+
+        case 102: {
+            FormatString(GetSpellFailedResult(reason), -1, GENDER_NOT_APPLICABLE, text, sizeof(text));
+            SpellFocusObjectRec* focus = g_spellFocusObjectDB.GetRecord(misc1);
+
+            if (focus) {
+                SStrPrintf(format, sizeof(format), text, focus->m_name);
+                CGGameUI::DisplayError(ERR_SPELL_FAILED_S, format);
+            }
+
+            break;
+        }
+
+        case 103:
+            CGGameUI::DisplayError(ERR_PET_SPELL_ROOTED);
+            break;
+
+        case 109:
+            CGGameUI::DisplayError(ERR_PET_SPELL_TARGETS_DEAD);
+            break;
+
+        case 147: {
+            FormatString(GetSpellFailedResult(reason), -1, GENDER_NOT_APPLICABLE, text, sizeof(text));
+            SpellMechanicRec* mechanic = g_spellMechanicDB.GetRecord(misc1);
+
+            if (mechanic) {
+                SStrPrintf(format, sizeof(format), text, mechanic->m_stateName);
+                CGGameUI::DisplayError(ERR_SPELL_FAILED_S, format);
+            }
+
+            break;
+        }
+
+        case 172:
+            GetCustomSpellFailedString(text, sizeof(text), misc1);
+            break;
+
+        default:
+            CGGameUI::DisplayError(ERR_SPELL_FAILED_S, FrameScript_GetText(GetSpellFailedResult(reason), -1, GENDER_NOT_APPLICABLE));
+            break;
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        HandleSpellFailedOrGo(unit, cast, spell, reason);
+        FinishPendingSpellCast(cast, spell, unit);
+    }
+}
+
+// VERIFY: 3494eae5 manual
+// OFFSET: 0x00805B10
+void Spell_C_SetCooldownLeft(int32_t spellId, uint32_t itemId, uint32_t category, int32_t cooldownLeft, int32_t categoryCooldownLeft, bool onHold, int32_t pet) {
+    uint32_t now = OsGetAsyncTimeMs();
+    int32_t time = 0;
+    int32_t recovery = 0;
+    int32_t categoryTime = 0;
+    int32_t categoryRecovery = 0;
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return;
+    }
+
+    ItemStats_C* stats = nullptr;
+    int32_t index = 0;
+
+    if (itemId) {
+        WOWGUID none = { 0 };
+        stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
+
+        if (stats) {
+            for (index = 0; index < 5; index++) {
+                if (stats->m_spellId[index] == static_cast<uint32_t>(spellId)) {
+                    break;
+                }
+            }
+
+            if (index >= 5) {
+                stats = nullptr;
+            }
+        }
+    }
+
+    if (cooldownLeft > 0) {
+        int32_t value;
+
+        if (!stats || (value = static_cast<int32_t>(stats->m_spellCooldown[index])) < 0) {
+            value = spell.m_recoveryTime;
+        }
+
+        if (value <= cooldownLeft) {
+            value = cooldownLeft;
+        }
+
+        if (Spell_C_GetSpellModifiers(&spell, 11, time, recovery)) {
+            value = (time + value) * recovery / 100;
+        }
+
+        recovery = value;
+        time = now - (value - cooldownLeft);
+    }
+
+    if (categoryCooldownLeft > 0) {
+        int32_t value;
+
+        if (!stats || (value = static_cast<int32_t>(stats->m_spellCategoryCooldown[index])) < 0) {
+            categoryRecovery = spell.m_categoryRecoveryTime;
+            Spell_C_ModifyCategoryRecovery(categoryRecovery, &spell, pet);
+            value = categoryRecovery;
+        }
+
+        if (value <= categoryCooldownLeft) {
+            value = categoryCooldownLeft;
+        }
+
+        categoryTime = now - (value - categoryCooldownLeft);
+        categoryRecovery = value;
+    }
+
+    if (recovery || categoryRecovery || onHold) {
+        SpellHistory& history = s_spellHistory[pet];
+        SPELLHISTORY* entry = history.m_free.Head();
+
+        if (entry) {
+            history.m_free.UnlinkNode(entry);
+            history.m_history.LinkToTail(entry);
+        } else {
+            entry = history.m_history.NewNode(2, 0, 8);
+        }
+
+        entry->m_spellId = spellId;
+        entry->m_itemId = itemId;
+        entry->m_time = time;
+        entry->m_recoveryTime = recovery;
+        entry->m_category = category;
+        entry->m_categoryTime = categoryTime;
+        entry->m_categoryRecoveryTime = categoryRecovery;
+        entry->m_onHold = onHold;
+        entry->m_startRecoveryCategory = 0;
+        entry->m_startRecoveryTime = 0;
+    }
+}
+
+// VERIFY: 8f7722c4 manual
+// OFFSET: 0x00805D70
+void Spell_C_StartSpellCooldown(const SpellRec* spell, CGUnit_C* unit) {
+    if (!spell->m_startRecoveryCategory && !spell->m_startRecoveryTime) {
+        return;
+    }
+
+    int32_t time = spell->m_startRecoveryTime;
+    int32_t recovery = time;
+    int32_t flat;
+    int32_t pct;
+
+    if (Spell_C_GetSpellModifiers(spell, 21, flat, pct)) {
+        recovery = (recovery + flat) * pct / 100;
+    }
+
+    if (spell->m_startRecoveryCategory == 133 && time == 1500 && spell->m_defenseType != 2 && spell->m_defenseType != 3 && !(spell->m_attributes & 0x12)) {
+        float scaled = recovery * unit->m_unit->m_unitModCastSpeed;
+        recovery = CMath::fint_(scaled - 0.5f);
+
+        if (static_cast<uint32_t>(recovery - 1000) > 500) {
+            recovery = recovery - 1000 < 0 ? 1000 : 1500;
+        }
+    }
+
+    if (!recovery) {
+        return;
+    }
+
+    bool pet = unit->m_obj->m_guid == CGPetInfo::GetPet(0);
+    bool onHold = Spell_C_HasCooldownOnEvent(spell, unit->m_obj->m_guid);
+    s_spellHistory[pet].AddHistory(spell->m_id, 0, OsGetAsyncTimeMs(), 0, 0, OsGetAsyncTimeMs(), 0, onHold, spell->m_startRecoveryCategory, recovery);
+    CGSpellBook::UpdateCooldowns();
+
+    if (spell->m_attributes & 0x2000000) {
+        CGSpellBook::UpdateUsable();
+    }
+
+    if (pet) {
+        CGPetInfo::UpdateCooldowns();
+    }
+}
+
+// VERIFY: 10210842 manual
+// OFFSET: 0x00807DA0
+int32_t SpellHistory::IsOnHold(int32_t spellId, int32_t itemId) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return 0;
+    }
+
+    int32_t category = spell.m_category;
+
+    if (itemId) {
+        WOWGUID none = { 0 };
+        ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
+
+        if (stats) {
+            for (uint32_t i = 0; i < 5; i++) {
+                if (stats->m_spellId[i] == static_cast<uint32_t>(spellId) && static_cast<int32_t>(stats->m_spellCategory[i]) > 0) {
+                    category = stats->m_spellCategory[i];
+                }
+            }
+        }
+    }
+
+    for (SPELLHISTORY* history = this->m_history.Head(); history; history = this->m_history.Next(history)) {
+        if (history->m_spellId == spellId && history->m_itemId == itemId && (history->m_recoveryTime || history->m_onHold) && history->m_onHold) {
+            return 1;
+        }
+
+        if (history->m_category == category && history->m_categoryRecoveryTime && history->m_onHold) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 50546e74 manual
+// OFFSET: 0x00807F10
+static UIErrors GetSpellFailedError(int32_t reason, const SpellRec* spell, int32_t misc) {
+    UIErrors error = ERR_SPELL_FAILED_S;
+
+    switch (reason) {
+        case 2:
+            return ERR_SPELL_FAILED_ALREADY_AT_FULL_HEALTH;
+
+        case 3:
+            return ERR_SPELL_FAILED_ALREADY_AT_FULL_MANA;
+
+        case 4:
+            return ERR_SPELL_FAILED_ALREADY_AT_FULL_POWER_S;
+
+        case 11:
+            return ERR_GENERIC_NO_TARGET;
+
+        case 12:
+            if (spell->m_targets & 0x10) {
+                return ERR_INVALID_ITEM_TARGET;
+            }
+
+            if (spell->m_targets & 0x20000) {
+                return ERR_INVALID_GLYPH_SLOT;
+            }
+
+            return error;
+
+        case 28:
+            return ERR_SPELL_FAILED_EQUIPPED_ITEM;
+
+        case 29:
+        case 30:
+        case 31:
+            return ERR_SPELL_FAILED_EQUIPPED_ITEM_CLASS_S;
+
+        case 45:
+            switch (spell->m_category) {
+                case 4:
+                case 9:
+                    return ERR_POTION_COOLDOWN;
+
+                case 10:
+                case 11:
+                    return ERR_FOOD_COOLDOWN;
+
+                default:
+                    return ERR_ITEM_COOLDOWN;
+            }
+
+        case 52:
+            return ERR_NOAMMO_S;
+
+        case 67:
+            switch (spell->m_category) {
+                case 4:
+                case 9:
+                    error = ERR_POTION_COOLDOWN;
+                    break;
+
+                case 10:
+                case 11:
+                    error = ERR_FOOD_COOLDOWN;
+                    break;
+
+                default:
+                    error = static_cast<UIErrors>(((spell->m_attributes & 0x10) | 0x340) >> 4);
+                    break;
+            }
+
+            if (misc || !s_spellHistory[0].IsOnHold(spell->m_id, 0)) {
+                return error;
+            }
+
+            s_spellHistory[0].ClearOnHold(spell->m_id, 0, true);
+            CGSpellBook::UpdateCooldowns();
+            CGSpellBook::UpdateUsable();
+            CGContainerInfo::UpdateCooldowns();
+            return error;
+
+        case 72:
+            return ERR_SPELL_FAILED_NOTUNSHEATHED;
+
+        case 94:
+            return ERR_SPELL_FAILED_SHAPESHIFT_FORM_S;
+
+        case 97:
+            return ERR_SPELL_OUT_OF_RANGE;
+
+        case 100:
+            return ERR_SPELL_FAILED_REAGENTS;
+
+        case 129:
+            if (misc > 0) {
+                error = ERR_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED_IS;
+            }
+
+            return error;
+
+        case 131:
+            return ERR_SPELL_FAILED_TOTEMS;
+
+        case 148:
+            return ERR_PLAY_TIME_EXCEEDED;
+
+        case 170:
+            return ERR_BAD_ON_USE_ENCHANT;
+
+        case 174:
+            return ERR_TOO_MANY_SOCKETS;
+
+        case 178:
+            return ERR_GENERIC_NO_VALID_TARGETS;
+
+        case 184:
+            return ERR_MAX_SOCKETS;
+
+        default:
+            return error;
+    }
+}
+
+// VERIFY: 8b2b158f manual
+// OFFSET: 0x00808200
+void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t reason, int32_t misc1, int32_t misc2, bool resetCooldown) {
+    int32_t spellId = cast->m_data.m_spellId;
+    bool suppress = false;
+
+    if (cast == s_delayedTrajectoryCast) {
+        s_delayedTrajectoryCast = nullptr;
+    }
+
+    UpdateTradeSkillRecast(spellId);
+
+    if (s_autoRepeatingSpell && (reason == 67 || reason == 105)) {
+        SpellRec autoRepeat;
+
+        if (g_spellDB.GetRecord(s_autoRepeatingSpell, &autoRepeat) && (autoRepeat.m_attributesExC & 0x400000)) {
+            CDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_CANCEL_CAST));
+            msg.Put(static_cast<uint8_t>(0));
+            msg.Put(static_cast<uint32_t>(s_autoRepeatingSpell));
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+            Spell_C_CancelAutoRepeat(true);
+        }
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && reason != 27) {
+        SI2::PlaySpellFizzleSound(spellId, player);
+    }
+
+    UIErrors error = GetSpellFailedError(reason, spell, misc1);
+
+    if (player) {
+        if (reason == 52) {
+            CGTutorial::TriggerTutorial(44);
+        }
+
+        bool autoRepeat = false;
+
+        if (cast == s_targetingSpell) {
+            autoRepeat = spellId == s_autoRepeatingSpell;
+        } else if (spellId == s_autoRepeatingSpell) {
+            autoRepeat = true;
+        } else {
+            switch (reason) {
+                case 47:
+                case 52:
+                case 53:
+                case 54:
+                case 97:
+                case 128:
+                case 134:
+                    player->CancelRangedMode();
+                    break;
+            }
+        }
+
+        if (autoRepeat) {
+            bool cancel = reason != 27;
+            bool check = true;
+
+            if (spellId == s_autoRangedCombatSpell && resetCooldown) {
+                switch (reason) {
+                    case 11:
+                    case 12:
+                    case 23:
+                    case 28:
+                    case 29:
+                    case 30:
+                    case 31:
+                    case 52:
+                    case 97:
+                    case 128:
+                    case 134:
+                        break;
+
+                    default:
+                        check = false;
+                        break;
+                }
+            }
+
+            if (check && cancel) {
+                Spell_C_CancelAutoRepeat(true);
+
+                switch (reason) {
+                    case 29:
+                    case 52:
+                    case 53:
+                    case 54:
+                    case 97:
+                    case 128:
+                    case 134:
+                        player->CancelRangedMode();
+                        break;
+                }
+            }
+        }
+
+        if (spellId == s_autoRangedCombatSpell) {
+            if (reason == s_lastAutoRangedCombatError) {
+                suppress = true;
+            }
+
+            s_lastAutoRangedCombatError = reason;
+        }
+
+        uint32_t now = OsGetAsyncTimeMs();
+
+        if (static_cast<uint32_t>(spellId) == unk_D397C4 && reason == s_lastFailedReason) {
+            if (static_cast<int32_t>(now - s_lastFailedTime - 3000) < 0) {
+                suppress = true;
+            }
+        } else {
+            unk_D397C4 = spellId;
+            s_lastFailedReason = reason;
+        }
+
+        s_lastFailedTime = now;
+    }
+
+    if (reason == 27) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            HandleSpellFailedOrGo(unit, cast, spell, 27);
+            FinishPendingSpellCast(cast, spell, unit);
+        }
+
+        return;
+    }
+
+    char format[1024];
+    format[0] = 0;
+    bool pet = spell->m_effect[0] == 57 || (spell->m_effect[0] == 36 && spell->m_implicitTargetA[0] == 5);
+
+    if (pet) {
+        char token[64];
+        SStrPrintf(token, sizeof(token), "%s_PET", GetSpellFailedResult(reason));
+
+        if (player) {
+            SStrCopy(format, player->GetFrameScriptText(token, -1), sizeof(format));
+        } else {
+            SStrCopy(format, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE), sizeof(format));
+        }
+    }
+
+    if (!format[0]) {
+        if (reason == 172) {
+            GetCustomSpellFailedString(format, sizeof(format), misc1);
+            suppress = true;
+        }
+
+        if (!format[0]) {
+            if (player) {
+                SStrCopy(format, player->GetFrameScriptText(GetSpellFailedResult(reason), -1), sizeof(format));
+            } else {
+                SStrCopy(format, FrameScript_GetText(GetSpellFailedResult(reason), -1, GENDER_NOT_APPLICABLE), sizeof(format));
+            }
+        }
+    }
+
+    if (resetCooldown) {
+        s_spellHistory[0].RemoveStartCooldown(spellId);
+    }
+
+    if (spell->m_startRecoveryCategory && spell->m_startRecoveryTime) {
+        CGUIMacros::m_state &= ~0x4u;
+    }
+
+    char text[1024];
+    const char* message = format;
+
+    switch (reason) {
+        case 4: {
+            if (!player) {
+                Spell_C_FailPendingCast(cast, spell, 27);
+                return;
+            }
+
+            uint32_t powerType = player->m_unit->m_unitFieldBytes0[3];
+
+            if (powerType > 6) {
+                Spell_C_FailPendingCast(cast, spell, 27);
+                return;
+            }
+
+            const char* power = FrameScript_GetText(GetPowerString(powerType), -1, GENDER_NOT_APPLICABLE);
+
+            if (!power || !*power) {
+                Spell_C_FailPendingCast(cast, spell, 27);
+                return;
+            }
+
+            SStrCopy(text, power, sizeof(text));
+            message = text;
+            break;
+        }
+
+        case 29:
+        case 30:
+        case 31: {
+            bool found = false;
+
+            for (int32_t i = 0; i < g_itemSubClassMaskDB.m_numRecords; i++) {
+                ItemSubClassMaskRec* rec = i < 0 || i >= g_itemSubClassMaskDB.m_numRecords ? nullptr : &g_itemSubClassMaskDB.m_records[i];
+
+                if (rec->m_classID == misc1 && rec->m_mask == misc2) {
+                    SStrPrintf(text, sizeof(text), format, rec->m_name);
+                    message = text;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                ItemSubClassRec* rec = FindAnyItemSubclassRec(misc1, misc2);
+
+                if (rec) {
+                    SStrPrintf(text, sizeof(text), format, rec->m_displayName);
+                    message = text;
+                }
+            }
+
+            break;
+        }
+
+        case 54: {
+            ItemSubClassRec* rec = FindAnyItemSubclassRec(6, 1 << misc1);
+
+            if (rec) {
+                SStrPrintf(text, sizeof(text), format, rec->m_displayName);
+                message = text;
+            }
+
+            break;
+        }
+
+        case 55: {
+            WOWGUID guid = { static_cast<uint64_t>(static_cast<int64_t>(spellId)) | 0x1FE0000000000000ull };
+            ItemStats_C* stats = g_itemDBCache.GetRecord(misc1, guid, SpellMissingItemsCallback, reinterpret_cast<void*>(static_cast<intptr_t>(misc2)), false);
+
+            if (!stats) {
+                Spell_C_FailPendingCast(cast, spell, 27);
+                return;
+            }
+
+            SStrPrintf(text, sizeof(text), format, misc2, stats->GetName(FrameScript_GetPluralIndex(misc2)));
+            message = text;
+            break;
+        }
+
+        case 85: {
+            PowerDisplayRec* display = g_powerDisplayDB.GetRecord(spell->m_powerDisplayID);
+
+            if (display) {
+                char power[128];
+                FormatString(display->m_globalStringBaseTag, -1, GENDER_NOT_APPLICABLE, power, 127);
+                CGGameUI::DisplayError(ERR_OUT_OF_POWER_DISPLAY, power);
+            } else if (spell->m_powerType == -2) {
+                error = ERR_OUT_OF_HEALTH;
+            } else {
+                error = s_powerErrors[spell->m_powerType];
+            }
+
+            text[0] = 0;
+            message = text;
+            break;
+        }
+
+        case 94: {
+            uint32_t count = g_spellShapeshiftFormDB.m_numRecords;
+
+            if (count > 64) {
+                count = 64;
+            }
+
+            if (!count) {
+                Spell_C_FailPendingCast(cast, spell, 27);
+                return;
+            }
+
+            char forms[512];
+            bool first = true;
+
+            for (uint32_t i = 0; i < count; i++) {
+                if (!SpellRec::UsableInShapeshift(spell, i)) {
+                    continue;
+                }
+
+                SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecordByIndex(i);
+
+                if (!form || !form->m_name || !*form->m_name) {
+                    continue;
+                }
+
+                if (first) {
+                    SStrCopy(forms, form->m_name, sizeof(forms));
+                    first = false;
+                } else {
+                    SStrPack(forms, ", ", sizeof(forms));
+                    SStrPack(forms, form->m_name, sizeof(forms));
+                }
+            }
+
+            if (first) {
+                Spell_C_FailPendingCast(cast, spell, 27);
+                return;
+            }
+
+            SStrPrintf(text, sizeof(text), format, forms);
+            message = text;
+            break;
+        }
+
+        case 100:
+        case 131: {
+            if (reason == 100 && misc1 == -2) {
+                error = static_cast<UIErrors>(0);
+                text[0] = 0;
+                message = text;
+                break;
+            }
+
+            WOWGUID guid = { static_cast<uint64_t>(static_cast<int64_t>(spellId)) | 0x1FE0000000000000ull };
+            ItemStats_C* stats = g_itemDBCache.GetRecord(misc1, guid, SpellMissingItemCallback, reinterpret_cast<void*>(static_cast<intptr_t>(reason)), false);
+
+            if (!stats) {
+                Spell_C_FailPendingCast(cast, spell, 27);
+                return;
+            }
+
+            SStrPrintf(text, sizeof(text), format, stats->GetName(0));
+            message = text;
+            break;
+        }
+
+        case 101: {
+            AreaTableRec* area = g_areaTableDB.GetRecord(misc1);
+
+            if (area) {
+                SStrPrintf(text, sizeof(text), format, area->m_areaName);
+                message = text;
+            }
+
+            break;
+        }
+
+        case 102: {
+            SpellFocusObjectRec* focus = g_spellFocusObjectDB.GetRecord(misc1);
+
+            if (focus) {
+                SStrPrintf(text, sizeof(text), format, focus->m_name);
+                message = text;
+            }
+
+            break;
+        }
+
+        case 129: {
+            if (!misc1) {
+                break;
+            }
+
+            ItemLimitCategoryRec* limit = g_itemLimitCategoryDB.GetRecord(misc1);
+
+            if (!limit) {
+                break;
+            }
+
+            CGGameUI::DisplayError(error, limit->m_quantity, limit->m_name);
+            UnitCombatLogSpellFail(ClntObjMgrGetActivePlayer(), spellId, CGGameUI::LastErrorMessage());
+            suppress = true;
+            break;
+        }
+
+        case 130: {
+            TotemCategoryRec* totem = g_totemCategoryDB.GetRecord(misc1);
+
+            if (!totem) {
+                Spell_C_FailPendingCast(cast, spell, 27);
+                return;
+            }
+
+            SStrPrintf(text, sizeof(text), format, totem->m_name);
+            message = text;
+            break;
+        }
+
+        case 147: {
+            SpellMechanicRec* mechanic = g_spellMechanicDB.GetRecord(misc1);
+
+            if (mechanic) {
+                SStrPrintf(text, sizeof(text), format, mechanic->m_stateName);
+                message = text;
+            }
+
+            break;
+        }
+
+        case 150: {
+            SkillLineRec* skill = g_skillLineDB.GetRecord(misc1);
+            SStrPrintf(text, sizeof(text), format, skill ? skill->m_displayName : "UNKNOWN", misc2);
+            message = text;
+            break;
+        }
+
+        case 176: {
+            CGObject_C* object = ClntObjMgrObjectPtr(cast->m_data.m_castItem, TYPEMASK_OBJECT, __FILE__, __LINE__);
+            const char* name = spell->m_name;
+
+            if (object && (object->m_obj->m_type & TYPEMASK_ITEM)) {
+                WOWGUID none = { 0 };
+                ItemStats_C* stats = g_itemDBCache.GetRecord(object->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+                if (stats && stats->GetName(0)) {
+                    name = stats->GetName(0);
+                }
+            }
+
+            SStrPrintf(text, sizeof(text), format, name);
+            break;
+        }
+
+        case 181:
+            SStrPrintf(text, sizeof(text), format, misc1);
+            message = text;
+            break;
+    }
+
+    if (!suppress) {
+        CGGameUI::DisplayError(error, message);
+
+        if (*message) {
+            UnitCombatLogSpellFail(ClntObjMgrGetActivePlayer(), spellId, message);
+        } else {
+            UnitCombatLogSpellFail(ClntObjMgrGetActivePlayer(), spellId, CGGameUI::LastErrorMessage());
+        }
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        HandleSpellFailedOrGo(unit, cast, spell, reason);
+        FinishPendingSpellCast(cast, spell, unit);
+    }
+}
+
+// VERIFY: 0c19acb4 manual
+// OFFSET: 0x00808DE0
+void Spell_C_PendingItemCooldownCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    HASHKEY_NONE key;
+    ITEMCOOLDOWNHASHNODE* node = s_itemCooldowns.Ptr(id, key);
+
+    if (!node) {
+        return;
+    }
+
+    WOWGUID none = { 0 };
+    ItemStats_C* stats = g_itemDBCache.GetRecord(id, none, nullptr, nullptr, false);
+
+    if (stats) {
+        uint32_t index;
+
+        for (index = 0; index < 5; index++) {
+            if (stats->m_spellId[index] == static_cast<uint32_t>(node->m_spellId)) {
+                break;
+            }
+        }
+
+        if (index < 5) {
+            SpellRec spell;
+            g_spellDB.GetRecord(node->m_spellId, &spell);
+            int32_t recovery = static_cast<int32_t>(stats->m_spellCooldown[index]) >= 0 ? static_cast<int32_t>(stats->m_spellCooldown[index]) : spell.m_recoveryTime;
+            int32_t category = 0;
+            int32_t categoryRecovery = 0;
+
+            if (param) {
+                category = static_cast<int32_t>(stats->m_spellCategory[index]) > 0 ? static_cast<int32_t>(stats->m_spellCategory[index]) : spell.m_category;
+                categoryRecovery = static_cast<int32_t>(stats->m_spellCategoryCooldown[index]) >= 0 ? static_cast<int32_t>(stats->m_spellCategoryCooldown[index]) : spell.m_categoryRecoveryTime;
+            }
+
+            if (recovery || categoryRecovery) {
+                bool onHold = node->m_onHold;
+                int32_t spellId = node->m_spellId;
+                uint32_t time = node->m_time;
+
+                if (recovery || categoryRecovery || onHold) {
+                    SpellHistory& history = s_spellHistory[0];
+                    SPELLHISTORY* entry = history.m_free.Head();
+
+                    if (entry) {
+                        history.m_free.UnlinkNode(entry);
+                        history.m_history.LinkToTail(entry);
+                    } else {
+                        entry = history.m_history.NewNode(2, 0, 8);
+                    }
+
+                    entry->m_spellId = spellId;
+                    entry->m_itemId = id;
+                    entry->m_time = time;
+                    entry->m_recoveryTime = recovery;
+                    entry->m_category = category;
+                    entry->m_categoryTime = time;
+                    entry->m_categoryRecoveryTime = categoryRecovery;
+                    entry->m_onHold = onHold;
+                    entry->m_startRecoveryCategory = 0;
+                    entry->m_startRecoveryTime = 0;
+                }
+            }
+        }
+
+        CGSpellBook::UpdateCooldowns();
+        CGContainerInfo::UpdateCooldowns();
+    }
+
+    s_itemCooldowns.Delete(node);
+}
+
+// VERIFY: 588a8016 auto
+// OFFSET: 0x00809100
+int32_t Spell_C_WasSpellRecentlyUsed(int32_t spellId, int32_t pet) {
+    if (!g_secureAbilityToggleCVar->m_intValue) {
+        return 0;
+    }
+
+    return s_spellHistory[pet].RecentlyCast(spellId, 0);
+}
+
+// VERIFY: 0adfd8d9 manual
+// OFFSET: 0x00809130
+int32_t Spell_C_WasItemRecentlyUsed(int32_t itemId) {
+    WOWGUID none = { 0 };
+    ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
+
+    if (!stats) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < sizeof(stats->m_spellId) / sizeof(stats->m_spellId[0]); i++) {
+        if (static_cast<int32_t>(stats->m_spellId[i]) > 0 && !stats->m_spellTrigger[i]) {
+            return s_spellHistory[0].RecentlyCast(stats->m_spellId[i], itemId);
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 35a53b59 auto
+// OFFSET: 0x007FFD60
+static int32_t FindAmmoByType(const CGItem_C* item, void* param) {
+    AmmoSearch* search = static_cast<AmmoSearch*>(param);
+
+    if (item->GetClassID() == 6 && item->GetSubtypeID() == search->m_ammoType) {
+        if (!search->m_ammoId || item->m_obj->m_entryID == search->m_ammoId) {
+            search->m_item = item;
+            return 1;
+        }
+    } else if (const_cast<CGItem_C*>(item)->GetBag() && search->m_item) {
+        search->m_item = const_cast<CGItem_C*>(item)->GetBag()->FindItem(FindAmmoByType, search, 0);
+        return 1;
+    }
+
+    return 0;
+}
+
+// VERIFY: 58b676ca manual
+// OFFSET: 0x007FFDE0
+bool Spell_C_IsActivePlayerCasting() {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    return player && player->m_castSpellId;
+}
+
+// VERIFY: 613e3fb2 manual
+// OFFSET: 0x00800BA0
+bool OnCancelCombat() {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !(player->m_obj->m_type & TYPEMASK_PLAYER) || !(player->m_combatModeFlags & 0x4)) {
+        return false;
+    }
+
+    player->SetCombatMode();
+    return true;
+}
+
+// VERIFY: c523775a manual
+// OFFSET: 0x00803850
+static bool RangeCheck(CGUnit_C* caster, int32_t spellId, CGObject_C* target, uint8_t* tooFar) {
+    if (tooFar) {
+        *tooFar = 0;
+    }
+
+    float minRange;
+    float maxRange;
+    Spell_C::GetSpellRange(caster, spellId, &minRange, &maxRange, target);
+    C3Vector targetPos = target->GetPosition();
+    C3Vector casterPos = caster->GetPosition();
+    float dx = casterPos.x - targetPos.x;
+    float dy = casterPos.y - targetPos.y;
+    float dz = casterPos.z - targetPos.z;
+    float distance = dx * dx + dz * dz + dy * dy;
+
+    if (minRange * minRange > distance) {
+        return false;
+    }
+
+    if (maxRange * maxRange >= distance) {
+        return true;
+    }
+
+    if (tooFar) {
+        *tooFar = 1;
+    }
+
+    return false;
+}
+
+// VERIFY: 9b57db2a auto
+// OFFSET: 0x008091D0
+bool Spell_C_HaveSpellTokens(CGUnit_C* unit, const SpellRec* spell, bool report, PendingSpellCast* cast) {
+    if (!unit->IsActivePlayer()) {
+        return true;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(unit);
+
+    for (uint32_t i = 0; i < sizeof(spell->m_totem) / sizeof(spell->m_totem[0]); i++) {
+        if (spell->m_totem[i] && !player->m_bag.FindItemOfType(spell->m_totem[i], 0)) {
+            if (report) {
+                Spell_C_SpellFailed(cast, spell, 131, spell->m_totem[i], -1, false);
+            }
+
+            return false;
+        }
+    }
+
+    for (uint32_t i = 0; i < sizeof(spell->m_requiredTotemCategoryID) / sizeof(spell->m_requiredTotemCategoryID[0]); i++) {
+        if (spell->m_requiredTotemCategoryID[i] && !player->m_bag.FindTotemCategory(spell->m_requiredTotemCategoryID[i], 0)) {
+            if (report) {
+                Spell_C_SpellFailed(cast, spell, 130, spell->m_requiredTotemCategoryID[i], -1, false);
+            }
+
+            return false;
+        }
+    }
+
+    if (Spell_C_HasNoReagentCost(player, spell)) {
+        return true;
+    }
+
+    for (uint32_t i = 0; i < sizeof(spell->m_reagent) / sizeof(spell->m_reagent[0]); i++) {
+        if (!spell->m_reagent[i]) {
+            continue;
+        }
+
+        int32_t count = player->m_bag.GetItemTypeCount(spell->m_reagent[i], 0);
+        int32_t needed = spell->m_reagentCount[i];
+        WOWGUID none = { 0 };
+        ItemStats_C* stats = g_itemDBCache.GetRecord(spell->m_reagent[i], none, nullptr, nullptr, false);
+
+        if (stats) {
+            for (uint32_t j = 0; j < 5; j++) {
+                if (stats->m_spellId[j] == static_cast<uint32_t>(spell->m_id) && stats->m_spellCharges[j]) {
+                    needed++;
+                }
+            }
+        }
+
+        if (count < needed) {
+            if (report) {
+                Spell_C_SpellFailed(cast, spell, 100, spell->m_reagent[i], -1, false);
+            }
+
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// VERIFY: 3e98536b auto
+// OFFSET: 0x008093D0
+bool Spell_C_HaveEquippedSpellItems(CGUnit_C* unit, const SpellRec* spell, bool checkAmmo, bool report, PendingSpellCast* cast) {
+    if (!unit->IsActivePlayer()) {
+        return true;
+    }
+
+    if ((spell->m_targets & 0x10) || spell->m_equippedItemClass < 0 || !spell->m_equippedItemSubclass) {
+        return true;
+    }
+
+    uint32_t slots;
+
+    if (spell->m_attributesExC & 0x400) {
+        slots = 0x8000;
+    } else if (spell->m_attributesExC & 0x1000000) {
+        slots = 0x10000;
+    } else {
+        slots = (spell->m_attributes & 0x2) ? 0x20000 : 0xFFFFFFFF;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(unit);
+    const CGItem_C* item = player->EquippedItemMeetSpellRequirements(spell, slots);
+
+    if (!item) {
+        if (report) {
+            int32_t reason = (spell->m_attributesExC & 0x400) ? 30 : ((spell->m_attributesExC & 0x1000000) | 0xE800000) >> 23;
+            Spell_C_SpellFailed(cast, spell, reason, spell->m_equippedItemClass, spell->m_equippedItemSubclass, false);
+        }
+
+        return false;
+    }
+
+    if ((spell->m_attributesExC & 0x1000400) == 0x1000400 && !player->EquippedItemMeetSpellRequirements(spell, 0x10000)) {
+        if (report) {
+            Spell_C_SpellFailed(cast, spell, 31, spell->m_equippedItemClass, spell->m_equippedItemSubclass, false);
+        }
+
+        return false;
+    }
+
+    if (!checkAmmo) {
+        return true;
+    }
+
+    uint32_t count = g_itemSubClassDB.m_numRecords;
+
+    for (uint32_t i = 0; i < count; i++) {
+        ItemSubClassRec* subClass = g_itemSubClassDB.GetRecordByIndex(i);
+
+        if (subClass->m_classID == item->GetClassID() && subClass->m_subClassID == item->GetSubtypeID()) {
+            if (subClass->m_flags & 0x10) {
+                return true;
+            }
+
+            break;
+        }
+    }
+
+    WOWGUID none = { 0 };
+    ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+    if (!stats) {
+        return true;
+    }
+
+    int32_t ammoType = stats->m_ammoType;
+
+    if (!ammoType) {
+        return true;
+    }
+
+    if (!CGCharacterInfo::GetActivePlayerAmmoID(player)) {
+        if (report) {
+            Spell_C_SpellFailed(cast, spell, 52, ammoType, -1, false);
+        }
+
+        return false;
+    }
+
+    AmmoSearch search;
+    search.m_ammoType = ammoType;
+    search.m_ammoId = CGCharacterInfo::GetActivePlayerAmmoID(player);
+    search.m_item = nullptr;
+
+    if (!player->m_bag.FindItem(FindAmmoByType, &search, 0)) {
+        if (report) {
+            Spell_C_SpellFailed(cast, spell, 52, ammoType, -1, false);
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+// VERIFY: 66bd63ba manual
+// OFFSET: 0x00809610
+bool Spell_C_RangeCheckSelected(CGUnit_C* caster, const SpellRec* spell, WOWGUID target, uint8_t* inRange, bool report, PendingSpellCast* cast) {
+    if (!target) {
+        target = CGGameUI::m_lockedTarget;
+    }
+
+    CGObject_C* object = ClntObjMgrObjectPtr(target, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (!object) {
+        return false;
+    }
+
+    uint32_t needTargets = static_cast<uint16_t>(spell->m_targets);
+    bool pet = false;
+
+    for (uint32_t i = 0; i < sizeof(spell->m_implicitTargetA) / sizeof(spell->m_implicitTargetA[0]); i++) {
+        switch (spell->m_implicitTargetA[i]) {
+            case 1:
+                if (needTargets & 0x400) {
+                    needTargets &= 0xFBFF;
+                }
+
+                break;
+
+            case 5:
+                pet = true;
+
+                if (needTargets & 0x8000) {
+                    needTargets &= 0x7FFF;
+                }
+
+                break;
+
+            case 6:
+            case 53:
+                needTargets |= 0x80;
+                break;
+
+            case 21:
+            case 45:
+                needTargets |= 0x100;
+                break;
+
+            case 23:
+                needTargets |= 0x800;
+                break;
+
+            case 25:
+            case 63:
+            case 64:
+            case 65:
+            case 66:
+            case 67:
+            case 68:
+            case 69:
+            case 70:
+            case 71:
+            case 74:
+            case 75:
+                needTargets |= 0x2;
+                break;
+
+            case 26:
+                needTargets |= 0x4000;
+                break;
+
+            case 35:
+                needTargets |= 0x8;
+                break;
+
+            case 57:
+            case 61:
+                needTargets |= 0x4;
+                break;
+        }
+    }
+
+    if (pet && !(needTargets & 0x2)) {
+        object = ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+        if (!object) {
+            return false;
+        }
+
+        needTargets |= 0x2;
+    }
+
+    uint8_t flag = 0;
+    uint32_t type = object->m_obj->m_type;
+    bool check = false;
+
+    if (type & TYPEMASK_UNIT) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(object);
+
+        if (spell->m_attributesExE & 0x800) {
+            unit = Spell_C_TargetImpliedTarget(unit, spell, static_cast<uint16_t>(needTargets), caster);
+
+            if (!unit) {
+                return false;
+            }
+
+            object = unit;
+        }
+
+        if ((unit->m_unit->m_unitFieldFlags & 0x10000) && !(spell->m_attributesExF & 0x1000000)) {
+            return false;
+        }
+
+        if (spell->m_targetCreatureType && (!unit->GetCreatureType() || !((1 << (unit->GetCreatureType() - 1)) & spell->m_targetCreatureType))) {
+            return false;
+        }
+
+        int32_t health = unit->m_unit->m_unitFieldHealth;
+
+        if (health <= 0 && !(unit->m_unit->m_unitDynamicFlags & 0x20) && !(needTargets & 0x8600) && !(spell->m_attributesExB & 0x1)) {
+            return false;
+        }
+
+        if (health > 0 && (needTargets & 0x400)) {
+            return false;
+        }
+
+        if ((needTargets & 0x8) && caster->IsInMyPartyOrRaid(unit) && caster->CanAssist(unit, false)) {
+            check = true;
+        } else if ((needTargets & 0x4) && caster->IsInMyParty(unit) && caster->CanAssist(unit, false)) {
+            check = true;
+        } else if ((needTargets & 0x100) && caster->CanAssist(unit, (spell->m_attributesExF >> 3) & 1)) {
+            check = true;
+        } else if ((needTargets & 0x80) && caster->CanAttack(unit)) {
+            check = true;
+        } else if ((needTargets & 0x2) && !(unit->m_unit->m_unitFieldFlags & 0x100)) {
+            check = true;
+        } else if ((needTargets & 0x8000) && unit->m_unit->m_unitFieldHealth <= 0 && ((unit->m_obj->m_type & TYPEMASK_PLAYER) || unit->m_unit->m_unitFieldPetnumber)) {
+            if (!caster->CanAssist(unit, false)) {
+                return false;
+            }
+
+            check = true;
+        } else if ((needTargets & 0x200) && unit->m_unit->m_unitFieldHealth <= 0 && (unit->m_obj->m_type & TYPEMASK_PLAYER) && !caster->CanAssist(unit, false)) {
+            check = true;
+        } else {
+            return false;
+        }
+    } else if (type & TYPEMASK_GAMEOBJECT) {
+        if (!(needTargets & 0x4800)) {
+            return false;
+        }
+
+        check = true;
+    } else if (type & TYPEMASK_CORPSE) {
+        const CGCorpse_C* corpse = static_cast<const CGCorpse_C*>(object);
+
+        if ((needTargets & 0x8000) && !(corpse->m_corpse->m_corpseFieldFlags & 0x1) && caster->CanAssist(corpse)) {
+            flag = 1;
+        }
+
+        if ((needTargets & 0x200) && !(corpse->m_corpse->m_corpseFieldFlags & 0x1) && !caster->CanAssist(corpse)) {
+            check = true;
+        } else if (flag) {
+            check = true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+
+    bool result = RangeCheck(caster, spell->m_id, object, &flag);
+    *inRange = result;
+
+    if (!result && report) {
+        if (flag) {
+            Spell_C_SpellFailed(cast, spell, 97, -1, -1, false);
+        } else {
+            Spell_C_SpellFailed(cast, spell, 128, -1, -1, false);
+        }
+    }
+
+    return true;
+}
+
+// VERIFY: 5b621a4e auto
+// OFFSET: 0x00809A60
+void Spell_C_StopTargeting() {
+    if (s_targetingSpell) {
+        Spell_C_CancelSpell(s_targetingSpell, true, true, 27);
+    }
+}
+
+// VERIFY: 287a51ff manual
+// OFFSET: 0x00809A80
+void Spell_C_StopCasting() {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && player->m_castSpellId) {
+        Spell_C_CancelSpell(Spell_C_GetActivePlayerPendingCast(), true, true, 27);
+    }
+}
+
+// VERIFY: 1ec35f12 auto
+// OFFSET: 0x00809AC0
+void Spell_C_CancelPlayerSpells() {
+    WOWGUID player = ClntObjMgrGetActivePlayer();
+    Spell_C_CancelSpellByCaster(player);
+}
+
+// VERIFY: b8318ed4 manual
+// OFFSET: 0x0080DDD0
+static int32_t Spell_C_Idle(const void* data, void* param) {
+    for (PeriodicClientTrigger* trigger = s_periodicClientTriggers.Head(); trigger; trigger = s_periodicClientTriggers.Next(trigger)) {
+        if (static_cast<int32_t>(OsGetAsyncTimeMs() - trigger->m_nextTime) < 0) {
+            continue;
+        }
+
+        CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(trigger->m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (caster) {
+            WOWGUID none = { 0 };
+            Spell_C_CastSpell(caster, trigger->m_spellId, nullptr, none, nullptr, false);
+
+            if (s_targetingSpell) {
+                Spell_C_CancelSpell(s_targetingSpell, true, true, 27);
+            }
+        }
+
+        trigger->m_nextTime = OsGetAsyncTimeMs() + trigger->m_period;
+    }
+
+    return 1;
+}
+
+// VERIFY: b47f2bb5 manual
+// OFFSET: 0x0080DF10
+void Spell_C_AddPeriodicClientTrigger(WOWGUID caster, int32_t auraSpellId, int32_t spellId, uint32_t period) {
+    if (!s_periodicClientTriggers.Head()) {
+        EventRegister(EVENT_ID_IDLE, Spell_C_Idle);
+    }
+
+    PeriodicClientTrigger* trigger = s_periodicClientTriggers.NewNode(2, 0, 8);
+    trigger->m_auraSpellId = auraSpellId;
+    trigger->m_spellId = spellId;
+    trigger->m_period = period;
+    trigger->m_nextTime = OsGetAsyncTimeMs() + period;
+    trigger->m_caster = caster;
+}
+
+// VERIFY: 11d8e07f manual
+// OFFSET: 0x0080DFE0
+void Spell_C_RemovePeriodicClientTrigger(WOWGUID caster, int32_t auraSpellId) {
+    PeriodicClientTrigger* trigger = s_periodicClientTriggers.Head();
+
+    while (trigger) {
+        if (trigger->m_caster == caster && (trigger->m_auraSpellId == auraSpellId || !auraSpellId)) {
+            trigger = s_periodicClientTriggers.DeleteNode(trigger);
+        } else {
+            trigger = s_periodicClientTriggers.Next(trigger);
+        }
+    }
+
+    if (!s_periodicClientTriggers.Head()) {
+        EventUnregister(EVENT_ID_IDLE, Spell_C_Idle);
+    }
+}
+
+// VERIFY: e91e9c97 manual
+// OFFSET: 0x0080E100
+void Spell_C_AddProcessedDestLocSpellCast(WOWGUID caster, uint8_t count, uint32_t time) {
+    CHashKeyGUID key;
+    key.m_guid = caster;
+    DESTLOCSPELLCASTINDEXHASHNODE* node = s_destLocSpellCasts.Ptr(static_cast<uint32_t>(caster.m_guid), key);
+
+    if (!node) {
+        node = s_destLocSpellCasts.New(static_cast<uint32_t>(caster.m_guid), key, 0, 0);
+    }
+
+    node->m_castCount = count;
+    node->m_time = time + 10000;
+}
+
+// VERIFY: 1250aa97 auto
+// OFFSET: 0x00810050
+int32_t Packet_SMSG_NOTIFY_DEST_LOC_SPELL_CAST(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    NotifyDestLocSpellCastData data;
+    data.m_destLocation = C3Vector();
+    data.m_destPosition = C3Vector();
+    msg->GetData(&data, sizeof(data));
+
+    if (data.m_caster) {
+        CHashKeyGUID key;
+        key.m_guid = data.m_caster;
+        DESTLOCSPELLCASTINDEXHASHNODE* node = s_destLocSpellCasts.Ptr(static_cast<uint32_t>(data.m_caster.m_guid), key);
+
+        if (node && static_cast<int8_t>(data.unk_0038 - node->m_castCount) <= 0) {
+            return 1;
+        }
+
+        Spell_C_AddProcessedDestLocSpellCast(data.m_caster, data.unk_0038, OsGetAsyncTimeMs());
+    }
+
+    Spell_C_PlayDestLocVisualsWithoutCaster(&data);
+    return 1;
+}
+
+// VERIFY: 97984ce5 manual
+// OFFSET: 0x007FFAC0
+static bool CheckEnchantItemLevel(const PendingSpellCast* cast, const SpellRec* spell, const ItemStats_C* stats, const CGItem_C* item, int32_t* reason) {
+    CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!caster) {
+        *reason = 27;
+        return false;
+    }
+
+    int32_t maxLevel = 0;
+
+    if (cast->m_data.m_castItem != caster->m_obj->m_guid && item && (item->m_obj->m_type & TYPEMASK_ITEM)) {
+        maxLevel = spell->m_maxLevel;
+    }
+
+    int32_t level = stats->m_requiredLevel ? stats->m_requiredLevel : stats->m_itemLevel;
+
+    if (level < spell->m_baseLevel) {
+        if (!(spell->m_attributesExB & 0x8)) {
+            *reason = 48;
+            return false;
+        }
+    } else if (maxLevel > 0 && static_cast<int32_t>(stats->m_itemLevel) > maxLevel) {
+        *reason = 36;
+        return false;
+    }
+
+    return true;
+}
+
+// VERIFY: f6aa96ed manual
+// OFFSET: 0x007FFB60
+static bool CheckItemRequirement(const PendingSpellCast* cast, const SpellRec* spell, WOWGUID itemGuid, int32_t* reason) {
+    if (!itemGuid) {
+        return true;
+    }
+
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(itemGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (!item) {
+        *reason = 178;
+        return false;
+    }
+
+    WOWGUID none = { 0 };
+    ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+    if (!stats) {
+        return true;
+    }
+
+    for (uint32_t i = 0; i < sizeof(spell->m_effect) / sizeof(spell->m_effect[0]); i++) {
+        int32_t effect = spell->m_effect[i];
+
+        if ((effect == 53 || effect == 54 || effect == 156) && !CheckEnchantItemLevel(cast, spell, stats, item, reason)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// VERIFY: 126c913a manual
+// OFFSET: 0x00803500
+static bool ValidateSpellTarget(CGUnit_C* caster, const SpellRec* spell, uint32_t count, CGUnit_C** targets, int32_t* reason, bool casterIncluded) {
+    if (!count) {
+        return true;
+    }
+
+    int32_t targetAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_targetAuraSpell);
+    int32_t excludeTargetAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_excludeTargetAuraSpell);
+
+    if (spell->m_targetAuraState || spell->m_excludeTargetAuraState || targetAura || excludeTargetAura) {
+        int32_t valid = 0;
+        uint32_t i = count;
+
+        do {
+            CGUnit_C* target = targets[i - 1];
+            i--;
+
+            if (!target || !(target->m_obj->m_type & TYPEMASK_UNIT)) {
+                continue;
+            }
+
+            if (casterIncluded && !i) {
+                break;
+            }
+
+            if (spell->m_targetAuraState && !(target->m_unit->m_unitFieldAurastate & (1 << (spell->m_targetAuraState - 1))) && !caster->IgnoresAuraState(spell)) {
+                continue;
+            }
+
+            if (spell->m_excludeTargetAuraState && (target->m_unit->m_unitFieldAurastate & (1 << (spell->m_excludeTargetAuraState - 1))) && !caster->IgnoresAuraState(spell)) {
+                continue;
+            }
+
+            if (targetAura && !target->HasAuraBySpellId(targetAura)) {
+                continue;
+            }
+
+            if (excludeTargetAura && target->HasAuraBySpellId(excludeTargetAura)) {
+                continue;
+            }
+
+            valid++;
+        } while (i);
+
+        if (!valid) {
+            *reason = 111;
+            return false;
+        }
+    }
+
+    if (spell->m_attributesEx & 0x100) {
+        int32_t valid = 0;
+        uint32_t i = count;
+
+        do {
+            CGUnit_C* target = targets[i - 1];
+            i--;
+
+            if (target && (target->m_obj->m_type & TYPEMASK_UNIT) && !(target->m_unit->m_unitFieldFlags & 0x80000)) {
+                valid++;
+            }
+        } while (i);
+
+        if (!valid) {
+            *reason = 110;
+            return false;
+        }
+    }
+
+    bool dispel = false;
+    bool steal = false;
+
+    for (uint32_t j = 0; j < sizeof(spell->m_effect) / sizeof(spell->m_effect[0]); j++) {
+        if (spell->m_effect[j] == 38 || spell->m_effect[j] == 108) {
+            dispel = true;
+        }
+
+        if (spell->m_effect[j] == 126) {
+            steal = true;
+        }
+    }
+
+    if (!dispel && !steal) {
+        return true;
+    }
+
+    int32_t found = 0;
+    bool immune = false;
+    uint32_t i = count;
+
+    do {
+        CGUnit_C* target = targets[i - 1];
+        i--;
+
+        if (!target || !(target->m_obj->m_type & TYPEMASK_UNIT)) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < sizeof(spell->m_effect) / sizeof(spell->m_effect[0]); j++) {
+            int32_t effect = spell->m_effect[j];
+
+            if (effect != 38 && effect != 108 && effect != 126) {
+                continue;
+            }
+
+            int32_t misc = spell->m_effectMiscValue[j];
+            bool mechanic = effect == 108;
+            bool isSteal = effect == 126;
+            int32_t harmful;
+
+            if (spell->m_attributesEx & 0x10000) {
+                harmful = -1;
+            } else if (caster->CanAttack(target)) {
+                harmful = 1;
+            } else if (caster->CanAssist(target, false)) {
+                harmful = 0;
+            } else {
+                continue;
+            }
+
+            if (target->HasDispellableAura(misc, harmful, mechanic, isSteal)) {
+                found++;
+            } else if ((0x20000000 << j) & spell->m_attributesExD) {
+                immune = true;
+            }
+        }
+    } while (i);
+
+    if (found) {
+        return true;
+    }
+
+    if (!immune) {
+        for (uint32_t j = 0; j < sizeof(spell->m_effect) / sizeof(spell->m_effect[0]); j++) {
+            int32_t effect = spell->m_effect[j];
+
+            if (effect && effect != 38 && effect != 108 && effect != 126) {
+                return true;
+            }
+        }
+    }
+
+    *reason = dispel ? 86 : 87;
+    return false;
+}
+
+// VERIFY: 48f3382c manual
+// OFFSET: 0x0080AC90
+void Spell_C::SendPendingCast(PendingSpellCast* cast, bool hideVisuals) {
+    WOWGUID castItem = cast->m_data.m_castItem == cast->m_data.m_caster ? WOWGUID{ 0 } : cast->m_data.m_castItem;
+
+    if (s_spellWorldObject) {
+        World::ObjectDestroy(s_spellWorldObject);
+        s_spellWorldObject = nullptr;
+    }
+
+    if (s_spellWorldModel) {
+        s_spellWorldModel->Release();
+        s_spellWorldModel = nullptr;
+    }
+
+    CursorSetResetMode(1);
+    CursorSetMode(1);
+    CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!caster) {
+        if (cast == s_targetingSpell) {
+            s_targetingSpell = nullptr;
+            CGInputControl* input = CGInputControl::GetActive();
+            input->m_mouseModeFlags &= ~0x10u;
+            input->UpdateMouseMode(0);
+        }
+
+        ReleasePendingSpellCast(cast);
+        return;
+    }
+
+    if (!castItem) {
+        CGSpellBook::GetAppropriateSpellRank(&cast->m_data.m_spellId, caster, static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_objectTarget, TYPEMASK_UNIT, __FILE__, __LINE__)));
+    }
+
+    SpellRec spell;
+    g_spellDB.GetRecord(cast->m_data.m_spellId, &spell);
+    CGUnit_C** targets = static_cast<CGUnit_C**>(alloca(sizeof(CGUnit_C*) * 2));
+    uint32_t count = 0;
+    bool casterIncluded = false;
+
+    for (uint32_t i = 0; i < sizeof(spell.m_implicitTargetA) / sizeof(spell.m_implicitTargetA[0]); i++) {
+        if (spell.m_implicitTargetA[i] == 1 || spell.m_implicitTargetB[i] == 1) {
+            count = 1;
+            targets[0] = caster;
+            casterIncluded = true;
+            break;
+        }
+    }
+
+    if (cast->m_data.m_objectTarget) {
+        targets[count++] = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_objectTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+    }
+
+    int32_t reason;
+
+    if (!ValidateSpellTarget(caster, &spell, count, targets, &reason, casterIncluded) || (cast->m_data.m_itemTarget && !(cast->m_data.m_targetFlags & 0x1000) && !CheckItemRequirement(cast, &spell, cast->m_data.m_itemTarget, &reason))) {
+        Spell_C_SpellFailed(cast, &spell, reason, -1, -1, false);
+        return;
+    }
+
+    if (!(spell.m_attributes & 0x8000000) && caster->GetClientStandState()) {
+        if (!caster->CanAutoStand()) {
+            Spell_C_SpellFailed(cast, &spell, 69, -1, -1, false);
+            return;
+        }
+
+        caster->ChangeStandState(0);
+    }
+
+    if (!(spell.m_attributes & 0x1000000) && static_cast<int32_t>(caster->m_unit->m_unitFieldMountdisplayid) > 0 && !caster->MountedCombatAllowed() && caster->m_mountDisplayId > 0 && !(caster->m_clientFlags & 0x10000000)) {
+        if (!caster->CanAutoDismount()) {
+            Spell_C_SpellFailed(cast, &spell, 64, -1, -1, false);
+            return;
+        }
+
+        caster->Dismount();
+    }
+
+    if (caster->HasVehicleTransport() && !(spell.m_attributesExF & 0x1000)) {
+        caster->CheckVehicleExitOnCast();
+    }
+
+    if (!caster->CheckShapeshiftRules(&spell, &reason)) {
+        if (reason == 94 || !caster->CanAutoUnshift()) {
+            Spell_C_SpellFailed(cast, &spell, reason, -1, -1, false);
+            return;
+        }
+
+        caster->CancelShapeshift();
+    }
+
+    for (uint32_t i = 0; i < sizeof(spell.m_effectAura) / sizeof(spell.m_effectAura[0]); i++) {
+        if (spell.m_effectAura[i] == 78) {
+            if (!caster->CanCurrentFormMount() && caster->CanAutoUnshift()) {
+                caster->CancelShapeshiftForMount();
+            }
+
+            break;
+        }
+    }
+
+    if (caster->m_movement->m_flags & 0x2000000) {
+        if ((static_cast<int32_t>(caster->m_unit->m_unitFieldMountdisplayid) > 0 && (caster->m_mountDisplayId <= 0 || (caster->m_clientFlags & 0x10000000))) || caster->m_shapeshiftSuppressed) {
+            if ((spell.m_attributesEx & 0x44) && (spell.m_channelInterruptFlags & 0x18)) {
+                Spell_C_SpellFailed(cast, &spell, 51, -1, -1, false);
+                return;
+            }
+
+            if ((spell.m_interruptFlags & 0x1) && !(spell.m_attributesExB & 0x20) && (SpellRec::GetCastTime(&spell, caster->m_unit->m_unitFieldPetnumber != 0, 0, 0) || (spell.m_auraInterruptFlags & 0x18))) {
+                Spell_C_SpellFailed(cast, &spell, 51, -1, -1, false);
+                return;
+            }
+        }
+    }
+
+    CDataStore msg;
+    uint8_t castFlags = 0;
+
+    if (castItem) {
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(castItem, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (!item) {
+            ConsoleWrite("Casting item not found", DEFAULT_COLOR);
+            Spell_C_SpellFailed(cast, &spell, 32, -1, -1, false);
+            return;
+        }
+
+        CGObject_C* container = ClntObjMgrObjectPtr(item->m_item->m_itemFieldContained, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+        if (!container) {
+            ConsoleWrite("Casting item's container not found", DEFAULT_COLOR);
+            Spell_C_SpellFailed(cast, &spell, 32, -1, -1, false);
+            return;
+        }
+
+        int32_t slot = container->GetBag()->FindItemSlot(item->m_obj->m_guid);
+
+        if (slot < 0) {
+            ConsoleWrite("Casting item not found in container", DEFAULT_COLOR);
+            Spell_C_SpellFailed(cast, &spell, 32, -1, -1, false);
+            return;
+        }
+
+        CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(item->m_item->m_itemFieldOwner, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (!owner) {
+            ConsoleWrite("Active player not found", DEFAULT_COLOR);
+            Spell_C_SpellFailed(cast, &spell, 32, -1, -1, false);
+            return;
+        }
+
+        uint8_t bag = owner->FindSlotIndex(item->m_item->m_itemFieldContained);
+
+        if (item->GetInventoryType() && (bag != 0xFF || slot > 18)) {
+            Spell_C_SpellFailed(cast, &spell, 28, -1, -1, false);
+            return;
+        }
+
+        msg.Put(static_cast<uint32_t>(CMSG_USE_ITEM));
+        msg.Put(bag);
+        msg.Put(static_cast<uint8_t>(slot));
+        msg.Put(cast->m_data.m_castCount);
+        msg.Put(static_cast<uint32_t>(cast->m_data.m_spellId));
+        msg.Put(castItem.m_guid);
+        msg.Put(cast->m_data.unk_0124);
+    } else if (caster->IsActivePlayer() && !(spell.m_attributesExF & 0x40000)) {
+        msg.Put(static_cast<uint32_t>(CMSG_CAST_SPELL));
+        msg.Put(cast->m_data.m_castCount);
+        msg.Put(static_cast<uint32_t>(cast->m_data.m_spellId));
+    } else {
+        msg.Put(static_cast<uint32_t>(CMSG_PET_CAST_SPELL));
+        msg.Put(cast->m_petGuid.m_guid);
+        msg.Put(cast->m_data.m_castCount);
+        msg.Put(static_cast<uint32_t>(cast->m_data.m_spellId));
+    }
+
+    SpellMissileRec* missile = g_spellMissileDB.GetRecord(spell.m_spellMissileID);
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (missile && (missile->m_flags & 0x1)) {
+        if (mover != caster) {
+            ConsoleWrite("Missile trajectory does not have active mover caster", DEFAULT_COLOR);
+            Spell_C_SpellFailed(cast, &spell, 27, -1, -1, false);
+            return;
+        }
+
+        castFlags = 2;
+        CGUnit_C::SetMissileTrajectoryTargetingSpell(spell.m_id);
+    }
+
+    msg.Put(castFlags);
+
+    if (castFlags & 0x2) {
+        float pitch;
+        float speed;
+
+        if (!Spell_C_PrepareMissileTrajectoryCast(caster, cast, &spell, &count, &pitch, &speed)) {
+            return;
+        }
+
+        Spell_C_EncodeSequenceIntoMissileTrajectory(reinterpret_cast<uint32_t*>(&pitch), reinterpret_cast<uint32_t*>(&speed), reinterpret_cast<uint32_t*>(&cast->m_data.m_sourcePos), reinterpret_cast<uint32_t*>(&cast->m_data.m_destPos));
+        PendingSpellCastData::WriteTargetInfo(&cast->m_data, &msg);
+        msg.Put(pitch);
+        msg.Put(speed);
+        WriteMovementPacket(mover, MSG_MOVE_STOP, &msg, 1);
+        caster->PreStartUpdatingMissileTrajectory(cast->m_data.m_spellId, OsGetAsyncTimeMs());
+    } else {
+        PendingSpellCastData::WriteTargetInfo(&cast->m_data, &msg);
+    }
+
+    if (cast == s_delayedTrajectoryCast) {
+        s_delayedTrajectoryCast = nullptr;
+    }
+
+    if (mover && mover == caster && (spell.m_attributesExG & 0x80)) {
+        CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+        if (player && player->m_vehiclePassenger) {
+            player->m_vehiclePassenger->StopMovement();
+        }
+
+        mover->OnMoveStopLocal(FrameTime::s_curTimeMs);
+    }
+
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    s_targetingSpell = nullptr;
+    CGInputControl* input = CGInputControl::GetActive();
+    input->m_mouseModeFlags &= ~0x10u;
+    input->UpdateMouseMode(0);
+
+    if (caster->IsActivePlayer()) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_UNIT_SPELLCAST_SENT, "%s%s%s%s", "player", spell.m_name, spell.m_nameSubtext, cast->m_data.m_objectTarget ? GetObjectNameFromGuid(cast->m_data.m_objectTarget) : "");
+    }
+
+    if (!hideVisuals) {
+        StartSpellCastVisuals(caster, cast, &spell, 0, true);
+    }
+
+    Spell_C_StartSpellCooldown(&spell, caster);
+}
+
+// VERIFY: 42f238a6 auto
+// OFFSET: 0x009AB8B0
+void PendingSpellCastData::WriteTargetInfo(const PendingSpellCastData* data, CDataStore* msg) {
+    msg->Put(data->m_targetFlags);
+
+    if (data->m_targetFlags & 0x18A02) {
+        SmartGUID guid;
+        guid.m_guid = data->m_objectTarget.m_guid;
+        *msg << guid;
+    }
+
+    if (data->m_targetFlags & 0x1010) {
+        SmartGUID guid;
+        guid.m_guid = data->m_itemTarget.m_guid;
+        *msg << guid;
+    }
+
+    if (data->m_targetFlags & 0x20) {
+        SmartGUID guid;
+        guid.m_guid = data->m_sourceTarget.m_guid;
+        *msg << guid;
+        msg->Put(data->m_sourcePos.x);
+        msg->Put(data->m_sourcePos.y);
+        msg->Put(data->m_sourcePos.z);
+    }
+
+    if (data->m_targetFlags & 0x40) {
+        SmartGUID guid;
+        guid.m_guid = data->m_destTarget.m_guid;
+        *msg << guid;
+        msg->Put(data->m_destPos.x);
+        msg->Put(data->m_destPos.y);
+        msg->Put(data->m_destPos.z);
+    }
+
+    if (data->m_targetFlags & 0x2000) {
+        msg->PutArray(reinterpret_cast<const uint8_t*>(data->m_targetString), sizeof(data->m_targetString));
+    }
+}
+
+// VERIFY: 7abd47d0 auto
+// OFFSET: 0x007FD410
+static void Spell_C_ClearMacroCooldownState(const SpellRec* spell) {
+    if (spell->m_startRecoveryCategory && spell->m_startRecoveryTime) {
+        CGUIMacros::m_state &= ~0x4u;
+    }
+}
+
+// VERIFY: 2a122241 manual
+// OFFSET: 0x007FE940
+static int32_t Spell_C_UpdateSpellWorldObject(void* param, uint32_t a2, uint64_t a3, uintptr_t a4) {
+    if (s_spellWorldModel) {
+        C44Matrix matrix(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, s_cursorWorldObjectPosition.x, s_cursorWorldObjectPosition.y, s_cursorWorldObjectPosition.z, 1.0f);
+        matrix.RotateAroundZ(s_cursorWorldObjectFacing);
+        matrix.Scale(s_cursorWorldObjectScale);
+        s_spellWorldModel->m_fFlags |= 0x8000;
+        s_spellWorldModel->m_worldTransform = matrix;
+    }
+
+    return 1;
+}
+
+// VERIFY: d383a005 manual
+// OFFSET: 0x007FE9E0
+static void Spell_C_CreateSpellWorldObject(const GameObjectDisplayInfoRec* display) {
+    s_spellWorldModel = World::s_m2Scene->CreateModel(display->m_modelName, 0);
+
+    if (s_spellWorldModel) {
+        s_spellWorldObject = CMap::ObjectCreate(s_spellWorldModel, Spell_C_UpdateSpellWorldObject, nullptr, 0, 0, 10);
+    }
+}
+
+// VERIFY: f7a09138 auto
+// OFFSET: 0x007FFE20
+static void GameObjectStatsCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!s_targetingSpell || s_targetingSpell->m_data.m_castCount != static_cast<uint8_t>(reinterpret_cast<uintptr_t>(param))) {
+        return;
+    }
+
+    WOWGUID none = { 0 };
+    GameObjectStats_C* stats = g_gameObjectDBCache.GetRecord(id, none, nullptr, nullptr, false);
+
+    if (!stats) {
+        return;
+    }
+
+    GameObjectDisplayInfoRec* display = g_gameObjectDisplayInfoDB.GetRecord(stats->m_displayID);
+
+    if (display) {
+        s_cursorWorldObjectScale = stats->m_scale;
+        Spell_C_CreateSpellWorldObject(display);
+    }
+}
+
+// VERIFY: 95fdd19a manual
+// OFFSET: 0x00805F60
+static bool Spell_C_IsSpellPending(const WOWGUID& castItem, int32_t spellId, const PendingSpellCast* except) {
+    for (PendingSpellCast* cast = s_pendingSpellCasts.Head(); cast; cast = s_pendingSpellCasts.Next(cast)) {
+        if (cast != except && (!castItem || cast->m_data.m_castItem == castItem) && cast->m_data.m_spellId == static_cast<uint32_t>(spellId)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: 6fd9b453 manual
+// OFFSET: 0x0080C790
+static bool Spell_C_BeginCast(CGUnit_C* caster, const SpellRec* spell, WOWGUID target, PendingSpellCast* cast, bool confirmed) {
+    uint32_t needTargets = spell->m_targets;
+    s_needTargets = needTargets;
+    bool noTarget = false;
+
+    switch (spell->m_implicitTargetA[0]) {
+        case 1:
+            if (needTargets & 0x400) {
+                s_needTargets = needTargets & ~0x400u;
+            }
+
+            break;
+
+        case 5:
+            if (needTargets & 0x8000) {
+                s_needTargets = needTargets & ~0x8000u;
+            }
+
+            break;
+
+        case 6:
+        case 53:
+            s_needTargets = needTargets | 0x80;
+            break;
+
+        case 16:
+            noTarget = true;
+            break;
+
+        case 21:
+        case 45:
+            s_needTargets = needTargets | 0x100;
+            break;
+
+        case 23:
+            s_needTargets = needTargets | 0x800;
+            break;
+
+        case 25:
+        case 63:
+        case 64:
+        case 65:
+        case 66:
+        case 67:
+        case 68:
+        case 69:
+        case 70:
+        case 71:
+        case 74:
+        case 75:
+            s_needTargets = needTargets | 0x2;
+            break;
+
+        case 26:
+            s_needTargets = needTargets | 0x4000;
+            break;
+
+        case 35:
+            s_needTargets = needTargets | 0x8;
+            break;
+
+        case 57:
+        case 61:
+            s_needTargets = needTargets | 0x4;
+            break;
+
+        case 89: {
+            SpellMissileRec* missile = g_spellMissileDB.GetRecord(spell->m_spellMissileID);
+
+            if (missile && (missile->m_flags & 0x1)) {
+                s_needTargets = needTargets & ~0x40u;
+            }
+
+            break;
+        }
+
+        case 90:
+            s_needTargets = needTargets | 0x10000;
+            break;
+    }
+
+    if ((s_needTargets & 0x2000) && s_targetString[0]) {
+        SStrPrintf(cast->m_data.m_targetString, sizeof(cast->m_data.m_targetString), "%s", s_targetString);
+        s_needTargets &= ~0x2000u;
+        s_targetString[0] = 0;
+        cast->m_data.m_targetFlags |= 0x2000;
+    }
+
+    if (!s_needTargets) {
+        Spell_C::SendPendingCast(cast, false);
+        return true;
+    }
+
+    if (spell->m_attributesExE & 0x800) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* implied = unit ? Spell_C_TargetImpliedTarget(unit, spell, s_needTargets, caster) : nullptr;
+
+        if (implied) {
+            if (implied != unit) {
+                target = implied->m_obj->m_guid;
+            }
+        } else if ((s_needTargets & 0x8) | 0x104) {
+            s_needTargets |= 0x80;
+        } else if (s_needTargets & 0x80) {
+            s_needTargets |= 0x100;
+        }
+    }
+
+    if (noTarget || (static_cast<uint32_t>(target.m_guid) & static_cast<uint32_t>(target.m_guid >> 32)) == 0xFFFFFFFF || target.m_guid == 0xFFFFFFFFFFFFFFFEull) {
+        return false;
+    }
+
+    if ((caster->m_obj->m_type & TYPEMASK_PLAYER) && (spell->m_attributes & 0x200)) {
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(caster);
+        bool found = false;
+
+        for (uint32_t i = 0; i < sizeof(spell->m_effect) / sizeof(spell->m_effect[0]); i++) {
+            if (spell->m_effect[i] != 54) {
+                continue;
+            }
+
+            CGItem_C* items[2];
+            items[0] = player->m_bag.GetItemPointer(15);
+            items[1] = player->m_bag.GetItemPointer(16);
+
+            if (spell->m_equippedItemSubclass) {
+                for (uint32_t j = 0; j < 2; j++) {
+                    CGItem_C* item = items[j];
+
+                    if (item && (spell->m_equippedItemClass != item->GetClassID() || !((1 << item->GetSubtypeID()) & spell->m_equippedItemSubclass))) {
+                        items[j] = nullptr;
+                    }
+                }
+            }
+
+            CGItem_C* mainHand = items[0];
+            CGItem_C* offHand = items[1];
+            uint32_t mainEnchant = mainHand ? mainHand->GetEnchantmentId(1) : 0;
+            uint32_t offEnchant = offHand ? offHand->GetEnchantmentId(1) : 0;
+            CGItem_C* chosen = offHand;
+
+            if (mainHand) {
+                if (offHand) {
+                    if (!mainEnchant) {
+                        chosen = mainHand;
+                    } else if (offEnchant) {
+                        uint32_t misc = spell->m_effectMiscValue[i];
+
+                        if (mainEnchant == misc) {
+                            if (offEnchant == misc) {
+                                if (mainHand->GetEnchantmentDuration(1) <= offHand->GetEnchantmentDuration(1)) {
+                                    chosen = mainHand;
+                                }
+                            } else {
+                                chosen = mainHand;
+                            }
+                        } else if (offEnchant != misc) {
+                            continue;
+                        }
+                    }
+                } else {
+                    chosen = mainHand;
+                }
+            } else if (!offHand) {
+                continue;
+            }
+
+            if (!chosen) {
+                continue;
+            }
+
+            if (chosen->IsBound() && !chosen->IsPermanentlyBoundForTrade() && !confirmed) {
+                CGGameUI::SetLastItemSpellTarget(chosen->m_obj->m_guid);
+                CGGameUI::SetLastEnchantSpellID(cast->m_data.m_spellId);
+                ReleasePendingSpellCast(cast);
+                FrameScript_SignalEvent(SCRIPT_EVENT_REPLACE_ENCHANT, "%s", "spellenchant");
+                return true;
+            }
+
+            target = chosen->m_obj->m_guid;
+
+            if (target) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            target.m_guid = player->m_bag.m_numSlots > 15 ? player->m_bag.m_slots[15].m_guid : 0;
+        }
+    } else if (!target) {
+        target = CGGameUI::m_lockedTarget;
+    }
+
+    CGObject_C* object = ClntObjMgrObjectPtr(target, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (target && !object) {
+        float minRange;
+        float maxRange;
+        Spell_C::GetSpellRange(caster, spell->m_id, &minRange, &maxRange, nullptr);
+
+        if (100.0f < maxRange) {
+            cast->m_data.m_objectTarget = target;
+            Spell_C::SendPendingCast(cast, false);
+            return true;
+        }
+    }
+
+    if (Spell_C_HandleSpriteClick(object, cast)) {
+        return true;
+    }
+
+    if (!g_autoSelfCastCVar->m_intValue) {
+        return false;
+    }
+
+    if (target && (!object || !(object->m_obj->m_type & TYPEMASK_UNIT) || caster->CanAssist(static_cast<CGUnit_C*>(object), false))) {
+        return false;
+    }
+
+    if (Spell_C_HandleSpriteClick(ClntObjMgrGetActivePlayerObj(), cast)) {
+        return true;
+    }
+
+    if (caster->IsActivePlayer()) {
+        return false;
+    }
+
+    return Spell_C_HandleSpriteClick(caster, cast);
+}
+
+// VERIFY: 0e25cbb1 manual
+// OFFSET: 0x0080CCE0
+bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, WOWGUID target, PendingSpellCast* cast, bool confirmed) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell) || (spell.m_attributes & 0x40)) {
+        return false;
+    }
+
+    CGUnit_C* unit = caster;
+    WOWGUID petGuid = caster ? caster->m_obj->m_guid : WOWGUID{ 0 };
+
+    if (!caster) {
+        return false;
+    }
+
+    if (spell.m_attributesExF & 0x40000) {
+        CGUnitData* data = caster->m_unit;
+        const WOWGUID* owner = &data->m_unitFieldCharmedby;
+
+        if (!*owner) {
+            owner = &data->m_unitFieldCreatedby;
+        }
+
+        unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*owner, TYPEMASK_UNIT, __FILE__, __LINE__));
+    }
+
+    if (!unit || unit->IsAlteredFormTransitionPreventingMovement()) {
+        return false;
+    }
+
+    if (!cast) {
+        cast = CreatePendingSpellCast(true);
+        cast->m_data.m_spellId = spellId;
+        cast->m_data.m_castItem = item ? item->m_obj->m_guid : unit->m_obj->m_guid;
+        cast->m_data.m_caster = unit->m_obj->m_guid;
+    }
+
+    cast->m_petGuid = petGuid;
+    bool melee;
+
+    if (spell.m_effect[0] == 78 || (spell.m_attributes & 0x2) || (spell.m_attributesExB & 0x20)) {
+        melee = true;
+    } else {
+        melee = false;
+
+        if (!item && (unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+            int16_t overrideId = static_cast<int16_t>(static_cast<CGPlayer_C*>(unit)->m_player->m_playerFieldBytes2);
+
+            if (overrideId) {
+                OverrideSpellDataRec* rec = g_overrideSpellDataDB.GetRecord(overrideId);
+
+                if (rec && !(rec->m_flags & 0x4) && !Spell_C_IsOverride(spellId, rec)) {
+                    Spell_C_SpellFailed(cast, &spell, 173, -1, -1, false);
+                    return false;
+                }
+            }
+        }
+    }
+
+    if (!IsTutorialFlagged(5)) {
+        s_meleeTutorialActive = 1;
+        s_meleeTutorialCount = 0;
+    }
+
+    if ((unit->m_obj->m_type & TYPEMASK_PLAYER) && s_meleeTutorialActive && IsTutorialFlagged(5)) {
+        if (melee) {
+            s_meleeTutorialCount++;
+        } else {
+            s_meleeTutorialActive = 0;
+        }
+
+        if (s_meleeTutorialCount > 10) {
+            CGTutorial::TriggerTutorial(59);
+        }
+    }
+
+    if (unit->HasVehicleTransport()) {
+        WOWGUID transport = { unit->GetTransportGUID() };
+        CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(transport, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (vehicle) {
+            VehicleSeatRec* seat = vehicle->GetVehicleSeatRec(unit->m_movementData.m_transportSeat);
+
+            if (seat) {
+                uint32_t required = 0;
+
+                if (SpellAppliesNonStanceShapeshift(&spell)) {
+                    required = 0x2000;
+                }
+
+                if (SpellRec::HasAura(&spell, 78)) {
+                    required |= 0x1000;
+                }
+
+                if (!required) {
+                    required = 0x4000;
+                }
+
+                if (!(spell.m_attributesExF & 0x1000) && !(spell.m_attributes & 0x1000000) && (seat->m_flags & required) != required) {
+                    Spell_C_SpellFailed(cast, &spell, 173, -1, -1, false);
+                    return false;
+                }
+
+                if ((unit->m_obj->m_type & TYPEMASK_PLAYER) && (seat->m_flags & 0x40000800)) {
+                    for (uint32_t i = 0; i < sizeof(spell.m_effect) / sizeof(spell.m_effect[0]); i++) {
+                        for (int32_t j = 0; j < 4; j++) {
+                            if (spell.m_effect[i] != j) {
+                                continue;
+                            }
+
+                            SummonPropertiesRec* properties = g_summonPropertiesDB.GetRecord(spell.m_effectMiscValueB[i]);
+
+                            if (properties && properties->m_control) {
+                                Spell_C_SpellFailed(cast, &spell, 173, -1, -1, false);
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    int32_t effect = spell.m_effect[0];
+
+    if (effect != 83 && effect != 152 && effect != 162 && !CGSpellBook::IsTrackingSpell(spellId) && !SpellRec::WillSummonCritter(&spell)) {
+        uint32_t action = spell.m_effect[0] == 47 || (spell.m_attributes & 0x20) ? 6 : 2;
+
+        if (!CGGameUI::CanPerformAction(action)) {
+            ReleasePendingSpellCast(cast);
+            return false;
+        }
+    }
+
+    effect = spell.m_effect[0];
+
+    if (spell.m_startRecoveryTime && !CGUIMacros::IsActionAllowed(2)) {
+        ReleasePendingSpellCast(cast);
+        return false;
+    }
+
+    if (effect == 47) {
+        CGTradeSkillInfo::SetTradeSkill(spell.m_id, unit->m_obj->m_guid, 0, 0, 0);
+        Spell_C_FailPendingCast(cast, &spell, 187);
+        return false;
+    }
+
+    if (unit->m_obj->m_type & TYPEMASK_PLAYER) {
+        uint32_t flags = static_cast<CGPlayer_C*>(unit)->m_player->m_playerFlags;
+
+        if (flags & 0x1000000) {
+            if (melee || Spell_C_IsRestrictedAbility(&spell)) {
+                Spell_C_SpellFailed(cast, &spell, 173, -1, -1, false);
+                return false;
+            }
+        } else if (!melee && (flags & 0x800000)) {
+            Spell_C_SpellFailed(cast, &spell, 173, -1, -1, false);
+            return false;
+        }
+    }
+
+    if (unit->IsDeadOrGhost() && !(spell.m_attributes & 0x800000)) {
+        Spell_C_SpellFailed(cast, &spell, 23, -1, -1, false);
+        return false;
+    }
+
+    effect = spell.m_effect[0];
+
+    if (effect == 78) {
+        if (unit->OnAttackIconPressed(target, 0)) {
+            Spell_C_FailPendingCast(cast, &spell, 187);
+            return false;
+        }
+
+        Spell_C_ClearMacroCooldownState(&spell);
+        ReleasePendingSpellCast(cast);
+        return false;
+    }
+
+    if ((effect == 99 || effect == 127 || effect == 158) && unit->GetComboPointTarget()) {
+        Spell_C_SpellFailed(cast, &spell, 74, -1, -1, false);
+        return false;
+    }
+
+    if (((effect == 53 || effect == 54 || effect == 92 || effect == 156) && unit->GetComboPointTarget()) || unit->unk_09CC) {
+        Spell_C_SpellFailed(cast, &spell, 105, -1, -1, false);
+        return false;
+    }
+
+    WOWGUID casterGuid = unit->m_obj->m_guid;
+
+    if (Spell_C_IsSpellPending(casterGuid, spellId, cast)) {
+        if (Spell_C_GetSpellCooldown(spellId, !unit->IsActivePlayer(), nullptr, nullptr, nullptr) || (spell.m_attributes & 0x404)) {
+            if (s_enableErrorSpeechCVar && s_enableErrorSpeechCVar->m_intValue) {
+                SE2SoundKitProperties properties;
+                properties.ResetToDefaults();
+                properties.m_suppressorMode = 2;
+                SI2::PlaySoundKit("igPlayerInviteDecline", nullptr, nullptr, &properties);
+            }
+
+            ReleasePendingSpellCast(cast);
+            return false;
+        }
+    }
+
+    Spell_C_StopTargeting();
+
+    if (item) {
+        const_cast<CGItem_C*>(item)->HasUseEffect();
+    }
+
+    if ((spell.m_attributesExG & 0x8) && !(unit->m_unit->m_unitFieldFlags2 & 0x40000)) {
+        Spell_C_SpellFailed(cast, &spell, 107, -1, -1, false);
+        return false;
+    }
+
+    if ((!item || !(const_cast<CGItem_C*>(item)->GetItemStaticFlags(0) & 0x10000000)) && !Spell_C_HaveSpellTokens(unit, &spell, true, cast)) {
+        ReleasePendingSpellCast(cast);
+        return false;
+    }
+
+    if (!Spell_C_HaveEquippedSpellItems(unit, &spell, true, true, cast)) {
+        ReleasePendingSpellCast(cast);
+        return false;
+    }
+
+    if (spell.m_attributes & 0x2) {
+        bool usable;
+
+        if (unit->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+            CGItem_C* weapon = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(WOWGUID{ static_cast<CGPlayer_C*>(unit)->m_bag.GetItemGuid(17) }, TYPEMASK_ITEM, __FILE__, __LINE__));
+            usable = weapon && weapon->IsUsable();
+        } else {
+            usable = unit->GetVirtualItem(2, false) != nullptr;
+        }
+
+        if (!usable) {
+            Spell_C_SpellFailed(cast, &spell, 28, spell.m_equippedItemClass, spell.m_equippedItemSubclass, false);
+            return false;
+        }
+    }
+
+    if (spell.m_attributesEx & 0x500000) {
+        bool noComboPoints;
+
+        if (unit->m_obj->m_guid == ClntObjMgrGetActivePlayer() && !CGGameUI::GetComboPoints(target)) {
+            noComboPoints = true;
+        } else {
+            noComboPoints = unit->m_obj->m_guid == CGPetInfo::GetPet(0) && !CGPetInfo::GetComboPoints(target);
+        }
+
+        if (noComboPoints && !unit->IgnoresAuraState(&spell)) {
+            Spell_C_SpellFailed(cast, &spell, unit->m_unit->m_unitFieldBytes0[1] == 1 ? 22 : 78, -1, -1, false);
+            return false;
+        }
+    }
+
+    bool autoAttack = false;
+
+    if (Spell_C_IsRestrictedAbility(&spell)) {
+        bool face = !((spell.m_attributesExF >> 28) & 1);
+
+        if (!unit->IsInMelee() && !unit->VerifyAttackIconPressed(&target, 0, 0, face, true)) {
+            Spell_C_ClearMacroCooldownState(&spell);
+            ReleasePendingSpellCast(cast);
+            return false;
+        }
+
+        if (!(spell.m_attributesExB & 0x100000)) {
+            autoAttack = true;
+        }
+    }
+
+    uint8_t inRange;
+
+    if (Spell_C_RangeCheckSelected(unit, &spell, target, &inRange, true, cast) && !inRange) {
+        ReleasePendingSpellCast(cast);
+        return false;
+    }
+
+    if (!unit->CheckAndReportSpellInhibitFlags(cast, &spell, item)) {
+        ReleasePendingSpellCast(cast);
+        return false;
+    }
+
+    if (item) {
+        SndInterfacePlayItemSound(2, const_cast<CGItem_C*>(item));
+    } else if (spell.m_attributes & 0x10) {
+        SI2::PlaySoundKit("GAMEABILITYACTIVATE", nullptr, nullptr, nullptr);
+    } else {
+        SI2::PlaySoundKit("GAMESPELLACTIVATE", nullptr, nullptr, nullptr);
+    }
+
+    if (!Spell_C_BeginCast(unit, &spell, target, cast, confirmed)) {
+        if (target.m_guid == 0xFFFFFFFFFFFFFFFEull) {
+            Spell_C_SpellFailed(cast, &spell, 11, -1, -1, false);
+            return false;
+        }
+
+        if ((spell.m_attributes & 0x200) && (!(unit->m_obj->m_type & TYPEMASK_PLAYER) || !static_cast<CGPlayer_C*>(unit)->m_bag.GetItemGuid(15))) {
+            Spell_C_SpellFailed(cast, &spell, 50, -1, -1, false);
+            return false;
+        }
+
+        if ((s_needTargets & 0x80) && (static_cast<uint32_t>(target.m_guid) & static_cast<uint32_t>(target.m_guid >> 32)) != 0xFFFFFFFF && (!(spell.m_attributesExE & 0x800) || !(s_needTargets & 0x10C))) {
+            Spell_C_SpellFailed(cast, &spell, CGGameUI::m_lockedTarget ? 12 : 11, -1, -1, false);
+            return false;
+        }
+
+        s_targetingSpell = cast;
+        CursorSetResetMode(2);
+        CursorSetMode(28);
+        CGSpellBook::UpdateSelection();
+        CGInputControl* input = CGInputControl::GetActive();
+        input->m_mouseModeFlags |= 0x10;
+        input->UpdateMouseMode(0);
+        s_cursorWorldObjectFacing = 0.0f;
+        s_cursorWorldObjectHousing = 0;
+        s_cursorWorldObjectScale = 1.0f;
+
+        for (uint32_t i = 0; i < sizeof(spell.m_effect) / sizeof(spell.m_effect[0]); i++) {
+            int32_t objectEffect = spell.m_effect[i];
+
+            if (objectEffect == 50 || objectEffect == 104 || objectEffect == 105 || objectEffect == 106 || objectEffect == 107 || objectEffect == 76 || objectEffect == 81) {
+                if (objectEffect == 81) {
+                    s_cursorWorldObjectHousing = 1;
+                }
+
+                WOWGUID guid = { static_cast<uint64_t>(static_cast<int64_t>(spell.m_id)) | 0x1FE0000000000000ull };
+                GameObjectStats_C* stats = g_gameObjectDBCache.GetRecord(spell.m_effectMiscValue[i], guid, GameObjectStatsCallback, reinterpret_cast<void*>(static_cast<uintptr_t>(s_targetingSpell->m_data.m_castCount)), false);
+
+                if (stats) {
+                    GameObjectDisplayInfoRec* display = g_gameObjectDisplayInfoDB.GetRecord(stats->m_displayID);
+
+                    if (display) {
+                        s_cursorWorldObjectScale = stats->m_scale;
+                        Spell_C_CreateSpellWorldObject(display);
+                    }
+                }
+
+                break;
+            }
+        }
+
+        CSimpleTop::s_instance->m_checkFocus = 1;
+    }
+
+    if (!s_targetingSpell) {
+        if (autoAttack && !unit->IsInMelee() && unit->IsActivePlayer()) {
+            CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+            if (!player->IsInMelee()) {
+                unit->OnAttackIconPressed(target, 0);
+            }
+
+            player->MeleeModeEnter(target);
+        }
+
+        if (!s_targetingSpell && spellId == GetModalNextSpell() && unit->IsActivePlayer() && !ClntObjMgrGetActivePlayerObj()->IsInMelee()) {
+            unit->OnAttackIconPressed(target, 0);
+        }
+    }
+
+    if (spell.m_attributesExB & 0x20) {
+        if (unit->IsActivePlayer()) {
+            Spell_C_SetAutoRepeatingSpell(spellId);
+            return true;
+        }
+    } else if (s_autoRepeatingSpell) {
+        SpellRec autoRepeat;
+
+        if (g_spellDB.GetRecord(s_autoRepeatingSpell, &autoRepeat) && autoRepeat.m_equippedItemClass == 2 && (autoRepeat.m_equippedItemSubclass & 0x80000)) {
+            Spell_C_CancelAutoRepeat(true);
+        }
+    }
+
+    return true;
+}
+
+// VERIFY: 5c215492 manual
+// OFFSET: 0x0080DA40
+bool Spell_C::CastSpell(int32_t spellId, const CGItem_C* item, WOWGUID target, bool confirmed) {
+    return Spell_C_CastSpell(ClntObjMgrGetActivePlayerObj(), spellId, item, target, nullptr, confirmed);
+}
+
+// VERIFY: e8a1babb manual
+// OFFSET: 0x0080BC80
+bool Spell_C_HandleSpriteClick(CGObject_C* object, PendingSpellCast* cast) {
+    if (!cast) {
+        cast = s_targetingSpell;
+    }
+
+    if (!object || !cast) {
+        return false;
+    }
+
+    CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!caster) {
+        return false;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(cast->m_data.m_spellId, &spell)) {
+        return false;
+    }
+
+    uint32_t needTargets = s_needTargets;
+
+    if (spell.m_effect[0] != 83) {
+        uint32_t action = spell.m_effect[0] == 47 || (spell.m_attributes & 0x20) ? 6 : 2;
+
+        if (!CGGameUI::CanPerformAction(action)) {
+            return false;
+        }
+    }
+
+    bool result = false;
+    uint32_t type = object->m_obj->m_type;
+
+    if (type & TYPEMASK_UNIT) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(object);
+
+        if (spell.m_attributesExE & 0x800) {
+            unit = Spell_C_TargetImpliedTarget(unit, &spell, s_needTargets, caster);
+
+            if (!unit) {
+                return false;
+            }
+
+            object = unit;
+
+            if (s_needTargets & 0x10C) {
+                s_needTargets &= ~0x80u;
+            } else if (s_needTargets & 0x80) {
+                s_needTargets &= ~0x100u;
+            }
+        }
+
+        if (unit->m_obj->m_guid == cast->m_data.m_caster && (spell.m_attributesEx & 0x80000)) {
+            return false;
+        }
+
+        if ((unit->m_unit->m_unitFieldFlags & 0x10000) && !(spell.m_attributesExF & 0x1000000)) {
+            return false;
+        }
+
+        if (spell.m_targetCreatureType && (!unit->GetCreatureType() || !((1 << (unit->GetCreatureType() - 1)) & spell.m_targetCreatureType))) {
+            return false;
+        }
+
+        int32_t health = unit->m_unit->m_unitFieldHealth;
+
+        if (health <= 0 && !(unit->m_unit->m_unitDynamicFlags & 0x20) && !(s_needTargets & 0x8600) && !(spell.m_attributesExB & 0x1)) {
+            return false;
+        }
+
+        if (health > 0 && (s_needTargets & 0x400)) {
+            return false;
+        }
+
+        if ((s_needTargets & 0x8) && caster->IsInMyPartyOrRaid(unit) && caster->CanAssist(unit, false)) {
+            cast->m_data.m_targetFlags |= 0x2;
+            s_needTargets &= ~0x8u;
+            cast->m_data.m_objectTarget = unit->m_obj->m_guid;
+
+            if (unit->m_unit->m_unitFieldHealth <= 0) {
+                s_needTargets &= ~0x400u;
+            }
+
+            result = true;
+        } else if ((s_needTargets & 0x4) && caster->IsInMyParty(unit) && caster->CanAssist(unit, false)) {
+            cast->m_data.m_targetFlags |= 0x2;
+            s_needTargets &= ~0x4u;
+            cast->m_data.m_objectTarget = unit->m_obj->m_guid;
+
+            if (unit->m_unit->m_unitFieldHealth <= 0) {
+                s_needTargets &= ~0x400u;
+            }
+
+            result = true;
+        } else if ((s_needTargets & 0x100) && caster->CanAssist(unit, (spell.m_attributesExF >> 3) & 1)) {
+            cast->m_data.m_targetFlags |= 0x2;
+            s_needTargets &= ~0x100u;
+            cast->m_data.m_objectTarget = unit->m_obj->m_guid;
+
+            if (unit->m_unit->m_unitFieldHealth <= 0) {
+                s_needTargets &= ~0x400u;
+            }
+
+            result = true;
+        } else if ((s_needTargets & 0x80) && caster->CanAttack(unit)) {
+            cast->m_data.m_targetFlags |= 0x2;
+            s_needTargets &= ~0x80u;
+            cast->m_data.m_objectTarget = unit->m_obj->m_guid;
+
+            if (unit->m_unit->m_unitFieldHealth <= 0) {
+                s_needTargets &= ~0x400u;
+            }
+
+            result = true;
+        } else if ((s_needTargets & 0x2) && (!(unit->m_unit->m_unitFieldFlags & 0x100) || (spell.m_attributesExC & 0x10000000) || (spell.m_attributesExE & 0x200000))) {
+            cast->m_data.m_objectTarget = unit->m_obj->m_guid;
+            cast->m_data.m_targetFlags |= 0x2;
+            uint32_t remaining = s_needTargets & ~0x2u;
+            s_needTargets = remaining;
+
+            if (unit->m_unit->m_unitFieldHealth <= 0) {
+                s_needTargets = remaining & 0xFFFF79FF;
+            }
+
+            result = true;
+        } else if ((s_needTargets & 0x8000) && unit->m_unit->m_unitFieldHealth <= 0 && ((unit->m_obj->m_type & TYPEMASK_PLAYER) || unit->m_unit->m_unitFieldPetnumber)) {
+            if (!caster->CanAssist(unit, false)) {
+                return result;
+            }
+
+            cast->m_data.m_objectTarget = unit->m_obj->m_guid;
+            cast->m_data.m_targetFlags |= 0x2;
+            s_needTargets &= ~0x8000u;
+            result = true;
+        } else if ((s_needTargets & 0x200) && unit->m_unit->m_unitFieldHealth <= 0 && (unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+            if (caster->CanAssist(unit, false)) {
+                return result;
+            }
+
+            cast->m_data.m_objectTarget = unit->m_obj->m_guid;
+            cast->m_data.m_targetFlags |= 0x2;
+            s_needTargets &= ~0x200u;
+            result = true;
+        } else if (s_needTargets & 0x10000) {
+            if (unit->GetCreatureType() != 12) {
+                return result;
+            }
+
+            cast->m_data.m_objectTarget = unit->m_obj->m_guid;
+            cast->m_data.m_targetFlags |= 0x10000;
+            s_needTargets &= ~0x10000u;
+            result = true;
+        } else if ((s_needTargets & 0x100) && (spell.m_attributesExF & 0x200) && unit->IsCharmed() && !caster->CanAttack(unit)) {
+            cast->m_data.m_objectTarget = unit->m_obj->m_guid;
+            cast->m_data.m_targetFlags |= 0x100;
+            s_needTargets &= ~0x100u;
+            result = true;
+        } else {
+            return result;
+        }
+    } else if (type & TYPEMASK_ITEM) {
+        if (!(s_needTargets & 0x4010)) {
+            return result;
+        }
+
+        cast->m_data.m_itemTarget = object->m_obj->m_guid;
+        cast->m_data.m_targetFlags |= 0x10;
+        s_needTargets &= 0xFFFFBFEF;
+        result = true;
+    } else if (type & TYPEMASK_GAMEOBJECT) {
+        if (!(s_needTargets & 0x4800)) {
+            return result;
+        }
+
+        cast->m_data.m_objectTarget = object->m_obj->m_guid;
+        cast->m_data.m_targetFlags |= 0x800;
+        s_needTargets &= 0xFFFFB7FF;
+        result = true;
+    } else if (type & TYPEMASK_CORPSE) {
+        CGCorpse_C* corpse = static_cast<CGCorpse_C*>(object);
+
+        if ((s_needTargets & 0x8000) && !(corpse->m_corpse->m_corpseFieldFlags & 0x1) && caster->CanAssist(corpse)) {
+            cast->m_data.m_objectTarget = object->m_obj->m_guid;
+            cast->m_data.m_targetFlags |= 0x8000;
+            s_needTargets &= ~0x8000u;
+            result = true;
+        }
+
+        if ((s_needTargets & 0x200) && !(corpse->m_corpse->m_corpseFieldFlags & 0x1) && !caster->CanAssist(corpse)) {
+            cast->m_data.m_objectTarget = object->m_obj->m_guid;
+            cast->m_data.m_targetFlags |= 0x200;
+            s_needTargets &= ~0x200u;
+            result = true;
+        } else if (!result) {
+            return result;
+        }
+    } else {
+        return result;
+    }
+
+    if ((cast->m_data.m_targetFlags & 0x18202) && cast->m_data.m_objectTarget == object->m_obj->m_guid) {
+        uint8_t tooFar;
+
+        if (!RangeCheck(caster, cast->m_data.m_spellId, object, &tooFar)) {
+            Spell_C_SpellFailed(cast, &spell, tooFar ? 97 : 128, -1, -1, false);
+            cast->m_data.m_objectTarget = WOWGUID{ 0 };
+            s_needTargets = needTargets;
+            return false;
+        }
+    }
+
+    if (!s_needTargets) {
+        Spell_C::SendPendingCast(cast, false);
+    }
+
+    return result;
+}
+
+// VERIFY: 0d56c0f6 manual
+// OFFSET: 0x0080C3E0
+bool Spell_C_HandleGlyphClick(int32_t socket) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return false;
+    }
+
+    SpellRec spell;
+    PendingSpellCast* cast = s_targetingSpell;
+
+    if (!cast || !g_spellDB.GetRecord(cast->m_data.m_spellId, &spell)) {
+        return false;
+    }
+
+    CGPlayerLocalData* data = static_cast<CGPlayerLocalData*>(player->m_player);
+
+    if (!((1 << socket) & data->m_playerGlyphsEnabled)) {
+        Spell_C_SpellFailed(cast, &spell, 177, -1, -1, false);
+        return false;
+    }
+
+    for (uint32_t i = 0; i < sizeof(spell.m_effect) / sizeof(spell.m_effect[0]); i++) {
+        if (spell.m_effect[i] != 74) {
+            continue;
+        }
+
+        GlyphPropertiesRec* properties = g_glyphPropertiesDB.GetRecord(spell.m_effectMiscValue[i]);
+        GlyphSlotRec* slot = g_glyphSlotDB.GetRecord(data->m_playerFieldGlyphSlots1[socket]);
+
+        if (!properties || !slot) {
+            cast = s_targetingSpell;
+            continue;
+        }
+
+        if (slot->m_type != properties->m_glyphSlotFlags) {
+            Spell_C_SpellFailed(s_targetingSpell, &spell, 175, -1, -1, false);
+            return false;
+        }
+
+        for (uint32_t j = 0; j < sizeof(data->m_playerFieldGlyphs1) / sizeof(data->m_playerFieldGlyphs1[0]); j++) {
+            if (data->m_playerFieldGlyphs1[j] == static_cast<uint32_t>(spell.m_effectMiscValue[i])) {
+                Spell_C_SpellFailed(s_targetingSpell, &spell, 176, -1, -1, false);
+                return false;
+            }
+        }
+
+        cast = s_targetingSpell;
+        cast->m_data.unk_0124 = socket;
+        bool result = false;
+
+        if (s_needTargets & 0x20000) {
+            cast->m_data.m_targetFlags |= 0x20000;
+            s_needTargets &= ~0x20000u;
+            result = true;
+
+            if (!s_needTargets) {
+                Spell_C::SendPendingCast(cast, false);
+            }
+        }
+
+        return result;
+    }
+
+    Spell_C_SpellFailed(cast, &spell, 175, -1, -1, false);
+    return false;
+}
+
+// VERIFY: d31bf1c5 auto
+// OFFSET: 0x0080C5F0
+int32_t Spell_C_TargetTradeItem() {
+    if (!(s_needTargets & 0x4010) || !CGTradeInfo::m_targetItemID[6]) {
+        return 0;
+    }
+
+    PendingSpellCast* cast = s_targetingSpell;
+    cast->m_data.m_targetFlags |= 0x1000;
+    s_needTargets &= 0xFFFFBFEF;
+    cast->m_data.m_itemTarget.m_guid = 6;
+
+    if (!s_needTargets) {
+        Spell_C::SendPendingCast(cast, true);
+        Spell_C_CancelSpell(cast, false, false, 27);
+    }
+
+    return 1;
+}
+
+// VERIFY: 25171a69 manual
+// OFFSET: 0x0080DA80
+void Spell_C_ClickSpell(int32_t spellId, const CGItem_C* item, WOWGUID target) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return;
+    }
+
+    if (Spell_C_IsActiveSpell(&spell, player)) {
+        if (!g_secureAbilityToggleCVar->m_intValue || !s_spellHistory[0].RecentlyCast(spellId, 0)) {
+            Spell_C_CancelAura(&spell, player, -1);
+        }
+
+        return;
+    }
+
+    if (spellId == GetModalNextSpell()) {
+        WOWGUID none = { 0 };
+        player->OnAttackIconPressed(none, 0);
+        return;
+    }
+
+    if (spellId == s_autoRepeatingSpell) {
+        Spell_C_CancelAutoRepeat(true);
+        return;
+    }
+
+    if (spellId == Spell_C_GetTargetingSpell()) {
+        Spell_C_StopTargeting();
+        return;
+    }
+
+    Spell_C::CastSpell(spellId, item, target, false);
+}
+
+// VERIFY: 0ae47ac1 manual
+// OFFSET: 0x0080DBD0
+bool Spell_C_TargetUnitByGuid(const WOWGUID& guid) {
+    return Spell_C_HandleSpriteClick(ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__), nullptr);
+}
+
+// VERIFY: 88279f66 manual
+// OFFSET: 0x0080DCF0
+bool Spell_C_HandleItemDrop(CGItem_C* item, CGUnit_C* unit) {
+    if (!item || !unit || !unit->m_unit->m_unitFieldPetnumber || !s_feedPetSpell) {
+        return false;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || unit->m_unit->m_unitFieldCreatedby != player->m_obj->m_guid) {
+        return false;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(s_feedPetSpell, &spell)) {
+        return false;
+    }
+
+    WOWGUID none = { 0 };
+
+    if (!Spell_C::CastSpell(spell.m_id, nullptr, none, false)) {
+        return false;
+    }
+
+    return Spell_C_HandleSpriteClick(item, nullptr);
+}
+
+// VERIFY: 6676674c manual
+// OFFSET: 0x007FFFB0
+void CreateMissilesForTargets(const TSStackArray<WOWGUID>& targets, CGUnit_C* unit, const SpellRec* spell, const SpellVisualRec* visual, uint32_t ammoDisplayId, uint32_t ammoInventoryType, PendingSpellCastData* data, const TSStackArray<uint32_t>* missReasons, const TSStackArray<uint32_t>* reflectResults, uint32_t delay) {
+    if (!unit || (!visual->m_hasMissile && !ammoDisplayId)) {
+        return;
+    }
+
+    uint32_t targetFlags = data->m_targetFlags;
+    int32_t hit = missReasons == nullptr;
+    bool unitTargets = !(targetFlags & 0x60) || (visual->m_flags & 0x1);
+
+    if (targets.m_count && (targetFlags & 0x802) && unitTargets) {
+        for (uint32_t i = 0; i < targets.m_count; i++) {
+            if (ClntObjMgrObjectPtr(targets.m_data[i], TYPEMASK_OBJECT, __FILE__, __LINE__)) {
+                uint32_t reflectResult = reflectResults ? reflectResults->m_data[i] : 0;
+                uint32_t missReason = missReasons ? missReasons->m_data[i] : 1;
+                unit->CreateMissile(&targets.m_data[i], data, ammoDisplayId, ammoInventoryType, hit, missReason, reflectResult, visual, spell->m_id, &targets, nullptr, nullptr, delay);
+            }
+        }
+    } else if ((targetFlags & 0x60) && (targets.m_count || !(visual->m_flags & 0x100))) {
+        WOWGUID none = { 0 };
+        unit->CreateMissile(&none, data, ammoDisplayId, ammoInventoryType, missReasons == nullptr, 1, 0, visual, spell->m_id, &targets, missReasons, reflectResults, delay);
+    }
+}
+
+// VERIFY: 9a06bb93 auto
+// OFFSET: 0x00800120
+void CreateMissilesForTargetPoints(const TSStackArray<SpellCastTargetPoint>& points, CGUnit_C* unit, const SpellRec* spell, const SpellVisualRec* visual, uint32_t ammoDisplayId, uint32_t ammoInventoryType, PendingSpellCastData* data, uint32_t delay) {
+    if (!unit || (!visual->m_hasMissile && !ammoDisplayId)) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < points.m_count; i++) {
+        unit->CreateMissile(&points.m_data[i], data, ammoDisplayId, ammoInventoryType, visual, spell->m_id, delay);
+    }
+}
+
+// VERIFY: 8b98e965 manual
+// OFFSET: 0x00800180
+void LaunchMissileVisual(const TSStackArray<WOWGUID>& hits, const TSStackArray<WOWGUID>& misses, CGUnit_C* unit, const SpellRec* spell, const SpellVisualRec* visual, uint32_t ammoDisplayId, uint32_t ammoInventoryType, PendingSpellCastData* data, const TSStackArray<uint32_t>& missReasons, const TSStackArray<uint32_t>& reflectResults, uint32_t delay) {
+    if (!unit || (!visual->m_hasMissile && !ammoDisplayId)) {
+        return;
+    }
+
+    uint32_t count = hits.m_count + misses.m_count;
+
+    TSStackArray<WOWGUID> targets(static_cast<WOWGUID*>(alloca(sizeof(WOWGUID) * count)), count, 0);
+
+    TSStackArray<uint32_t> reasons(static_cast<uint32_t*>(alloca(sizeof(uint32_t) * count)), count, 0);
+
+    TSStackArray<uint32_t> reflects(static_cast<uint32_t*>(alloca(sizeof(uint32_t) * count)), count, 0);
+
+    uint32_t index = 0;
+
+    if (!(data->m_castFlags & 0x400)) {
+        for (; index < hits.m_count; index++) {
+            targets.m_data[index] = hits.m_data[index];
+            reasons.m_data[index] = 0;
+            reflects.m_data[index] = 0;
+        }
+
+        for (uint32_t i = 0; i < misses.m_count; i++, index++) {
+            targets.m_data[index] = misses.m_data[i];
+            reasons.m_data[index] = missReasons.m_data[i];
+            reflects.m_data[index] = reflectResults.m_data[i];
+        }
+    } else {
+        for (uint32_t i = 0; i < misses.m_count; i++, index++) {
+            targets.m_data[index] = misses.m_data[index];
+            reasons.m_data[index] = missReasons.m_data[index];
+            reflects.m_data[index] = reflectResults.m_data[index];
+        }
+
+        for (uint32_t i = 0; i < hits.m_count; i++, index++) {
+            targets.m_data[index] = hits.m_data[i];
+            reasons.m_data[index] = 0;
+            reflects.m_data[index] = 0;
+        }
+    }
+
+    WOWGUID none = { 0 };
+    unit->CreateMissile(&none, data, ammoDisplayId, ammoInventoryType, 1, 1, 0, visual, spell->m_id, &targets, &reasons, &reflects, delay);
+}
+
+// VERIFY: 7426a6ef auto
+// OFFSET: 0x00804420
+void Spell_C_ClearPetCooldowns() {
+    s_spellHistory[1].ClearAll();
+}
+
+// VERIFY: 9daeef29 manual
+// OFFSET: 0x00801F10
+void PlayImpactVisual(const SpellRec* spell, const TSStackArray<WOWGUID>& targets, CGUnit_C* unit, const SpellVisualRec* visual) {
+    if (!spell || !visual || !targets.m_count) {
+        return;
+    }
+
+    SpellVisualKitRec* casterKit = g_spellVisualKitDB.GetRecord(visual->m_casterImpactKit);
+
+    if (!casterKit) {
+        casterKit = g_spellVisualKitDB.GetRecord(visual->m_impactKit);
+    }
+
+    SpellVisualKitRec* targetKit = g_spellVisualKitDB.GetRecord(visual->m_targetImpactKit);
+
+    if (!targetKit) {
+        targetKit = g_spellVisualKitDB.GetRecord(visual->m_impactKit);
+    }
+
+    if (!casterKit && !targetKit) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < targets.m_count; i++) {
+        CGObject_C* object = ClntObjMgrObjectPtr(targets.m_data[i], TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+        if (!object) {
+            continue;
+        }
+
+        SpellVisualKitRec* kit = object == unit ? casterKit : targetKit;
+
+        if (kit) {
+            PlaySpellVisuaKitData data(spell, kit, 1);
+            data.unk_001C = SpellRec::IsHelpfulOrHarmful(spell) == 2;
+            object->PlaySpellVisualKit(data);
+        }
+    }
+}
+
+// VERIFY: 7d12c6fb auto
+// OFFSET: 0x007FE500
+PendingSpellCast* Spell_C_GetDelayedTrajectoryCast() {
+    return s_delayedTrajectoryCast;
 }

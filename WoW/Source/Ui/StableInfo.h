@@ -7,9 +7,23 @@
 
 struct lua_State;
 
+struct StablePetInfo {
+    /* 0000 */ int32_t unk_0000;
+    /* 0004 */ int32_t unk_0004;
+    /* 0008 */ int32_t unk_0008;
+    /* 000C */ char m_name[80];
+    /* 005C */ uint8_t unk_005C;
+    /* 005D */ uint8_t unk_005D[3];
+};
+
 class CGStableInfo {
     public:
+    static StablePetInfo m_pets[6];
     static WOWGUID m_stableMaster;
+    static int32_t unk_C0F6C8;
+    static int32_t unk_C0F6CC;
+    static int32_t unk_C0F6D0;
+
     static void CloseStables(bool force);
     static void EnterWorld();
     static void InitializeGame();

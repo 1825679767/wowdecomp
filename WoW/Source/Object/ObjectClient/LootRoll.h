@@ -39,8 +39,10 @@ extern uint32_t s_numShownLootRolls;
 PendingLootRoll* FindRoll(int32_t id);
 WOWGUID GetMasterLootCandidate(uint32_t index);
 void LootRollShowPending();
+void LootRoll(int32_t id, int32_t rollType, bool confirmed);
 
 void CloseAllLootRolls();
 void LootRollDestroy();
+void LootRollShutdown();
 
 #endif

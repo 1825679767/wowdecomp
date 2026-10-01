@@ -13,7 +13,9 @@
 #include "WoW/Source/Ui/TotemInfo.h"
 #include "WoW/Source/Ui/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Object/ObjectClient/Object_C.h"
 
+class CGUnit_C;
 class AreaTableRec;
 class CImVector;
 class CDataStore;
@@ -63,7 +65,14 @@ extern CVar* s_cvQuestLogCollapseFilter;
 extern CVar* s_cvAutoRangedCombat;
 extern CVar* s_cvAutoFilledMultiCastSlots;
 extern CVar* g_threatWarningCVar;
+extern CVar* g_threatWorldTextCVar;
+extern CVar* g_currencyTokensUnused1CVar;
+extern CVar* g_currencyTokensUnused2CVar;
+extern CVar* g_currencyTokensBackpack1CVar;
+extern CVar* g_currencyTokensBackpack2CVar;
+extern CVar* s_cvThreatPlaySounds;
 extern CVar* g_autoSelfCastCVar;
+extern CVar* g_secureAbilityToggleCVar;
 extern CVar* g_predictedHealthCVar;
 extern const char* g_macroTaint;
 
@@ -80,6 +89,21 @@ struct SAVEDVARIABLE : public TSHashObject<SAVEDVARIABLE, HASHKEY_STR> {
 
 class CGGameUI {
     public:
+    struct THREATMAP : public TSHashObject<THREATMAP, CHashKeyGUID> {
+        /* 0020 */ TSGrowableArray<WOWGUID> m_units;
+
+        uint8_t ComputeMaxThreatLevel(const WOWGUID& guid);
+        void RemoveUnit(const WOWGUID& guid);
+        void AddUnit(const WOWGUID& guid);
+    };
+
+    static TSHashTable<THREATMAP, CHashKeyGUID> s_threatMap;
+    static void ThreatMapRemove(const WOWGUID& unit, const WOWGUID& target);
+    static void ThreatMapAdd(const WOWGUID& unit, const WOWGUID& target);
+    static void UnitTooltipUpdate(const WOWGUID& guid);
+    static void UnlockAllItems();
+    static void SetRegenEnabled(int32_t enabled);
+
     static TSHashTable<SAVEDVARIABLE, HASHKEY_STR> s_savedVariables[2];
     static int32_t HandleMouseDown(const CMouseEvent& evt);
     static void OnClientControlChanged(int32_t control);
@@ -119,6 +143,9 @@ class CGGameUI {
     static int32_t unk_BD08CC;
     static void InitClientControlState(const WOWGUID& guid);
     static void StartCinematic(int32_t cinematic);
+    static void SetInstanceLockTime(uint32_t time, uint32_t a2, uint32_t a3);
+    static void SetInstanceBootTime(uint32_t time);
+    static void DisplayNameError(uint32_t error);
     static void UpdateActivePlayer();
     static void ClearClientControls();
     static void OpenPlayerSkinned(bool a1);
@@ -170,6 +197,9 @@ class CGGameUI {
     static int32_t IsAutoLooting();
     static void ShowCombatFeedback(const WOWGUID& guid, int32_t amount, uint32_t schoolMask, uint32_t flags);
     static void ShowSpellMissFeedback(const WOWGUID& guid, int32_t reason);
+    static void ShowHealingFeedback(const WOWGUID& guid, int32_t amount, bool crit);
+    static void ShowEnergizeFeedback(const WOWGUID& guid, int32_t powerType, int32_t amount);
+    static void SignalUnitCombat(const WOWGUID& guid, const char* action, int32_t amount, uint32_t schoolMask, uint32_t flags);
     static void ShowCombatFeedbackAttackRoundInfo(const ATTACKROUNDINFO* info);
     static void HandleFocusChanged(const CFocusEvent& evt);
     static int32_t Idle(const void* data, void* param);
@@ -194,6 +224,7 @@ class CGGameUI {
     static void Shutdown();
     static void ShutdownGame();
     static WOWGUID m_currentObjectTrack;
+    static WOWGUID m_pendingItem;
     static WOWGUID m_interactTarget;
     static float m_interactMaxDistSq;
     static WOWGUID m_areaSpiritHealerGUID;
@@ -223,6 +254,12 @@ class CGGameUI {
 
     static int32_t CameraMusicIsPlaying();
     static int32_t CanPerformAction(uint32_t action);
+    static void CastItemSpell(WOWGUID guid, int32_t confirmed);
+    static const char* LastErrorMessage();
+    static void SetLastEnchantSpellID(int32_t spellId);
+    static void SetLastItemSpellTarget(WOWGUID guid);
+    static int32_t m_lastEnchantSpellID;
+    static WOWGUID m_lastItemSpellTarget;
     static void OnMouseModeNormal();
     static void OnMouseModeRelative();
     static uint32_t GetCurrentDungeonDifficulty();
@@ -240,10 +277,16 @@ class CGGameUI {
     static void InvalidatePlayer(const WOWGUID& guid);
     static int32_t SequenceMusicIsPlaying();
     static TotemInfo* GetTotemInfo(WOWGUID guid);
+    static TotemInfo* GetTotemInfo(uint32_t slot);
     static int32_t IsKeyDown(KEY key);
     static int32_t IsRaidMemberOrPet(const WOWGUID& guid);
     static void ClearInteractTarget(const WOWGUID& guid, int32_t a2);
     static void CloseLoot(bool a1, bool a2, bool a3);
+    static void OpenLoot(CGObject_C* object, int32_t coins, uint32_t lootType);
+    static void ClearLootSlot(uint8_t slot);
+    static void LootSlotChanged(uint8_t slot);
+    static void LockItem(WOWGUID guid);
+    static void SetPendingItemSound(WOWGUID guid, int32_t itemId);
     static void EnterWorld();
     static void RegisterSavedVariable(const char* name, int32_t perCharacter);
     static void BreakTarget(WOWGUID guid);
@@ -262,6 +305,7 @@ class CGGameUI {
     static int32_t GetCursorVirtualItemOfType(int32_t type);
     static void DropCursorSpell();
     static void SetCursorSpell(int32_t spellId);
+    static void SetCursorPetAction(const uint32_t* action);
     static void SetCursorMacro(int32_t macroId);
     static void SetCursorVirtualItem(int32_t id, int32_t displayId, int32_t slot, int32_t type, int32_t stackSplit);
     static void SetCursorEquipmentSet(int32_t setId);
@@ -388,13 +432,8 @@ int32_t Script_DeleteCursorItem(lua_State* L);
 int32_t Script_EquipPendingItem(lua_State* L);
 int32_t Script_CancelPendingEquip(lua_State* L);
 int32_t Script_TargetUnit(lua_State* L);
-int32_t Script_TargetNearest(lua_State* L);
-int32_t Script_TargetNearestEnemy(lua_State* L);
-int32_t Script_TargetNearestEnemyPlayer(lua_State* L);
-int32_t Script_TargetNearestFriend(lua_State* L);
-int32_t Script_TargetNearestFriendPlayer(lua_State* L);
-int32_t Script_TargetNearestPartyMember(lua_State* L);
-int32_t Script_TargetNearestRaidMember(lua_State* L);
+void TargetNearestEnemy(int32_t reverse, int32_t type);
+int32_t UnitMatchesTargetType(CGUnit_C* unit, CGUnit_C* target, int32_t type);
 int32_t Script_TargetDirectionEnemy(lua_State* L);
 int32_t Script_TargetDirectionFriend(lua_State* L);
 int32_t Script_TargetLastTarget(lua_State* L);
@@ -462,8 +501,6 @@ int32_t Script_GetExtendedItemInfo(lua_State* L);
 int32_t Script_GetItemIcon(lua_State* L);
 int32_t Script_GetItemFamily(lua_State* L);
 int32_t Script_GetItemCount(lua_State* L);
-int32_t Script_GetItemSpell(lua_State* L);
-int32_t Script_GetItemCooldown(lua_State* L);
 int32_t Script_PickupItem(lua_State* L);
 int32_t Script_IsCurrentItem(lua_State* L);
 int32_t Script_IsUsableItem(lua_State* L);
@@ -509,7 +546,6 @@ int32_t Script_CanGrantLevel(lua_State* L);
 int32_t Script_GrantLevel(lua_State* L);
 int32_t Script_CanSummonFriend(lua_State* L);
 int32_t Script_SummonFriend(lua_State* L);
-int32_t Script_GetTotemTimeLeft(lua_State* L);
 int32_t Script_GetNumDeclensionSets(lua_State* L);
 int32_t Script_DeclineName(lua_State* L);
 int32_t Script_AcceptLevelGrant(lua_State* L);
@@ -517,7 +553,6 @@ int32_t Script_UploadSettings(lua_State* L);
 int32_t Script_DownloadSettings(lua_State* L);
 int32_t Script_GetMovieResolution(lua_State* L);
 int32_t Script_GameMovieFinished(lua_State* L);
-int32_t Script_GetThreatStatusColor(lua_State* L);
 int32_t Script_GetItemUniqueness(lua_State* L);
 int32_t Script_EndRefund(lua_State* L);
 int32_t Script_EndBoundTradeable(lua_State* L);
@@ -525,6 +560,12 @@ int32_t Script_GetAccountExpansionLevel(lua_State* L);
 
 extern CVar* g_profanityFilterCVar;
 extern CVar* g_spamFilterCVar;
+extern CVar* g_serviceTypeFilterCVar;
+extern CVar* g_minimapZoomCVar;
+extern CVar* g_minimapInsideZoomCVar;
+extern CVar* g_enablePVPNotifyAFKCVar;
+extern CVar* g_chatBubblesCVar;
+extern CVar* g_chatBubblesPartyCVar;
 
 void UpdateInstanceOwnershipPacket(int32_t owns);
 

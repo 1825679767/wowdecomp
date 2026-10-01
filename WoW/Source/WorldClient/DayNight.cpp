@@ -2829,3 +2829,10 @@ void DayNight::DNStars::Destroy() {
         this->m_scene = nullptr;
     }
 }
+
+// VERIFY: cfbe1734 manual
+// OFFSET: 0x007EE300
+void DayNight::SetFlashColor(CImVector color, float blend) {
+    DayNight::g_dnInfo.m_flashColor = color;
+    DayNight::g_dnInfo.m_flashBlend = static_cast<uint8_t>(blend * 255.0f);
+}

@@ -4,6 +4,12 @@
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
 
 // VERIFY: bf97997d auto
 // OFFSET: 0x007FDCD0
@@ -55,6 +61,137 @@ static int32_t Script_CannotBeResurrected(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 7914559b manual
+// OFFSET: 0x008007E0
+static int32_t Script_SpellTargetItem(lua_State* L) {
+    if (!CGGameUI::CanPerformAction(2) || !s_targetingSpell || !(s_needTargets & 0x4010)) {
+        return 0;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    CGItem_C* item;
+
+    if (lua_isnumber(L, 1)) {
+        item = player->m_bag.FindItemOfType(static_cast<int32_t>(lua_tonumber(L, 1)), 0);
+    } else if (lua_isstring(L, 1)) {
+        item = player->m_bag.FindItemByName(lua_tolstring(L, 1, nullptr), 0);
+    } else {
+        luaL_error(L, "Usage: SpellTargetItem(itemID|\"name\"|\"itemlink\")");
+        return 0;
+    }
+
+    if (item) {
+        CGGameUI::CastItemSpell(item->m_obj->m_guid, 0);
+    }
+
+    return 0;
+}
+
+// VERIFY: 7282e805 manual
+// OFFSET: 0x0080DC00
+static int32_t Script_SpellTargetUnit(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        return luaL_error(L, "Usage: SpellTargetUnit(\"unit\")");
+    }
+
+    if (!CGGameUI::CanPerformAction(2) || !s_targetingSpell) {
+        return 0;
+    }
+
+    CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
+
+    if (unit && (unit->m_obj->m_type & TYPEMASK_UNIT)) {
+        WOWGUID guid = unit->m_obj->m_guid;
+        Spell_C_TargetUnitByGuid(guid);
+        return 0;
+    }
+
+    SpellRec spell;
+    PendingSpellCast* cast = s_targetingSpell;
+    g_spellDB.GetRecord(cast->m_data.m_spellId, &spell);
+    Spell_C_SpellFailed(cast, &spell, 97, -1, -1, false);
+    return 0;
+}
+
+// VERIFY: dc844493 auto
+// OFFSET: 0x00804190
+static int32_t Script_SpellCanTargetUnit(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        return luaL_error(L, "Usage: SpellCanTargetUnit(\"unit\")");
+    }
+
+    WOWGUID guid = GetGuidByKeyword(lua_tolstring(L, 1, nullptr));
+
+    if (guid && Spell_C::HandleSpriteRay(guid, true)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: a88df190 auto
+// OFFSET: 0x00809E30
+static int32_t Script_SpellStopTargeting(lua_State* L) {
+    if (CGGameUI::CanPerformAction(2)) {
+        bool targeting = s_targetingSpell != nullptr;
+
+        if (s_targetingSpell) {
+            Spell_C_CancelSpell(s_targetingSpell, true, true, 27);
+        }
+
+        if (targeting) {
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 0e0daa18 manual
+// OFFSET: 0x00809EA0
+static int32_t Script_SpellStopCasting(lua_State* L) {
+    if (!CGGameUI::CanPerformAction(2)) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && player->m_unit->m_unitFieldCharmedby) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    if (OnCancelCombat()) {
+        lua_pushnumber(L, 1.0);
+        return 1;
+    }
+
+    if (Spell_C_IsActivePlayerCasting()) {
+        Spell_C_StopCasting();
+        lua_pushnumber(L, 1.0);
+        return 1;
+    }
+
+    if (!Spell_C_GetAutoRepeatingSpell()) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    Spell_C_CancelAutoRepeat(true);
+    lua_pushnumber(L, 1.0);
+    return 1;
+}
+
 // STATIC: 0x00AF51C8
 static FrameScript_Method s_ScriptFunctions[] = {
     { "SpellIsTargeting", &Script_SpellIsTargeting },
@@ -75,5 +212,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void SpellRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 302aa8ec auto
+// OFFSET: 0x007FDDE0
+void SpellUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

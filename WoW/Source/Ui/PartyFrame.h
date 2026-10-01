@@ -20,7 +20,8 @@ class CGPartyPetState {
     /* 0060 */ uint32_t m_maxHealth;
     /* 0064 */ uint16_t m_power;
     /* 0066 */ uint16_t m_maxPower;
-    /* 0068 */ uint8_t unk_0068[320];
+    /* 0068 */ int32_t m_auras[64];
+    /* 0168 */ uint8_t m_auraFlags[64];
 };
 
 class CGPartyMemberState {
@@ -37,7 +38,8 @@ class CGPartyMemberState {
     /* 001A */ uint16_t m_zoneID;
     /* 001C */ int16_t m_posX;
     /* 001E */ int16_t m_posY;
-    /* 0020 */ uint8_t unk_0020[320];
+    /* 0020 */ int32_t m_auras[64];
+    /* 0120 */ uint8_t m_auraFlags[64];
     /* 0160 */ CGPartyPetState m_pet;
     /* 0308 */ uint32_t unk_0308[2];
 };
@@ -52,6 +54,7 @@ class CGPartyInfo {
     static uint8_t m_playerRole;
     static void InitializeGame();
     static void CheckClearLFGSlot();
+    static int32_t IsMemberOrPet(const WOWGUID& guid);
     static void RegisterScriptFunctions();
     static WOWGUID m_members[4];
     static uint32_t m_dungeonDifficulty;

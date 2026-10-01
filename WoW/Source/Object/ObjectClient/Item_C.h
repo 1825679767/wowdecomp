@@ -20,6 +20,8 @@ struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
 struct ITEMBYNAME : public TSHashObject<ITEMBYNAME, HASHKEY_UTF8I> {
 };
 
+int32_t GetItemIDByName(const char* name);
+
 class CGItem_C : public CGObject_C, public CGItem {
     public:
     static void Initialize();
@@ -65,6 +67,8 @@ class CGItem_C : public CGObject_C, public CGItem {
     uint32_t GetDisplayID() const;
     uint32_t GetEnchantmentTimeLeft(int32_t slot) const;
     int32_t UseItem(WOWGUID* target, int32_t a2);
+    static WOWGUID s_bindOnUseTarget;
+    static WOWGUID s_bindOnUseItem;
     int32_t CanBeUsed();
     uint32_t GetExpirationTimeLeft() const;
     char* GetFullItemName(char* buffer, uint32_t size) const;
@@ -85,6 +89,8 @@ class CGItem_C : public CGObject_C, public CGItem {
     int32_t HasUseEffect();
     bool IsBound();
     void Unlock();
+    void Lock();
+    static void SignalEvent(CGItem_C* item, uint32_t event);
     static int32_t GetUseSpell(int32_t itemId);
     static int32_t GetRandomPropertyValue(int32_t slot, int32_t randomPropertiesId, int32_t points);
     static int32_t IsLocked(const LockRec* lock, int32_t itemLevel, int32_t* spellId, int32_t* skillValue, int32_t* requiredSkill, int32_t* lockIndex, CGItem_C** key, int32_t* entry);

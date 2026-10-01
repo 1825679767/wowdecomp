@@ -42,6 +42,7 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include <cstring>
 #include <ctime>
+#include "WoW/Source/Ui/ItemTextFrame.h"
 
 // STATIC: 0x00CA1140
 static TSHashTable<INVENTORYART, HASHKEY_NONE> s_inventoryArt;
@@ -1380,4 +1381,312 @@ int32_t CGItem_C::GetRandomPropertyValue(int32_t slot) {
 // OFFSET: 0x00708C10
 int32_t CGItem_C::CanBeUsed() {
     return this->GetEnchantmentSpell(0) != 0;
+}
+
+// VERIFY: 2efe0bae auto
+// OFFSET: 0x006081E0
+static int32_t FindItemCallback(const CGItem_C* item, void* param) {
+    return item == param;
+}
+
+// VERIFY: cb205c40 manual
+// OFFSET: 0x0060BFE0
+void CGItem_C::SignalEvent(CGItem_C* item, uint32_t event) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return;
+    }
+
+    CGBag_C* bag = &player->m_bag;
+
+    if (!bag) {
+        return;
+    }
+
+    WOWGUID container;
+    uint32_t slot;
+
+    if (!bag->FindItem(FindItemCallback, item, container, slot, 136)) {
+        return;
+    }
+
+    if (container == player->m_bag.m_guid) {
+        if (slot <= 22) {
+            FrameScript_SignalEvent(event, "%d", slot + 1);
+        } else if (slot - 23 <= 15) {
+            FrameScript_SignalEvent(event, "%d%d", 0, slot - 22);
+        } else if ((slot >= 39 && slot <= 66) || slot - 67 <= 6) {
+            FrameScript_SignalEvent(event, "%d%d", -1, slot - 38);
+        } else if (slot - 86 <= 31) {
+            FrameScript_SignalEvent(event, "%d%d", -2, slot - 85);
+        } else if (slot - 118 <= 31) {
+            FrameScript_SignalEvent(event, "%d%d", -4, slot - 117);
+        }
+
+        return;
+    }
+
+    for (uint32_t i = 0; i < 4; i++) {
+        WOWGUID guid = i + 19 < static_cast<uint32_t>(bag->m_numSlots) ? bag->m_slots[i + 19] : WOWGUID();
+
+        if (guid == container) {
+            FrameScript_SignalEvent(event, "%d%d", i + 1, slot + 1);
+            return;
+        }
+    }
+
+    for (uint32_t i = 0; i < 7; i++) {
+        WOWGUID guid = i + 67 < static_cast<uint32_t>(bag->m_numSlots) ? bag->m_slots[i + 67] : WOWGUID();
+
+        if (guid == container) {
+            FrameScript_SignalEvent(event, "%d%d", i + 5, slot + 1);
+            return;
+        }
+    }
+}
+
+// VERIFY: 06278cc4 auto
+// OFFSET: 0x00706FE0
+void CGItem_C::Lock() {
+    if (!(this->m_itemFlags & 1)) {
+        this->m_itemFlags |= 1;
+        CGItem_C::SignalEvent(this, SCRIPT_EVENT_ITEM_LOCK_CHANGED);
+        CGItem_C::SignalEvent(this, SCRIPT_EVENT_ITEM_LOCKED);
+    }
+}
+
+// VERIFY: 8c3234ae auto
+// OFFSET: 0x00707020
+void CGItem_C::Unlock() {
+    if (this->m_itemFlags & 1) {
+        this->m_itemFlags &= ~1u;
+        CGItem_C::SignalEvent(this, SCRIPT_EVENT_ITEM_LOCK_CHANGED);
+        CGItem_C::SignalEvent(this, SCRIPT_EVENT_ITEM_UNLOCKED);
+    }
+}
+
+// STATIC: 0x00CA1128
+WOWGUID CGItem_C::s_bindOnUseTarget;
+
+// STATIC: 0x00CA1138
+WOWGUID CGItem_C::s_bindOnUseItem;
+
+// VERIFY: 92b5a602 manual
+// OFFSET: 0x00708C20
+int32_t CGItem_C::UseItem(WOWGUID* target, int32_t a2) {
+    if ((this->m_obj->m_type & TYPEMASK_CONTAINER) || (this->m_itemFlags & 1)) {
+        return 0;
+    }
+
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(this->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+    if (!stats) {
+        return 0;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 0;
+    }
+
+    int32_t spellId = this->GetEnchantmentSpell(0);
+    SpellRec spell;
+    int32_t hasSpell = g_spellDB.GetRecord(spellId, &spell);
+    int16_t overrideId = static_cast<int16_t>(player->m_player->m_playerFieldBytes2);
+
+    if (overrideId) {
+        OverrideSpellDataRec* overrideRec = g_overrideSpellDataDB.GetRecord(overrideId);
+
+        if (overrideRec && !(overrideRec->m_flags & 1)) {
+            CGGameUI::DisplayError(ERR_CLIENT_LOCKED_OUT);
+            return 0;
+        }
+    }
+
+    if (player->HasVehicleTransport() && !hasSpell) {
+        WOWGUID transport;
+        transport.m_guid = player->GetTransportGUID();
+        CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(transport, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (vehicle) {
+            VehicleSeatRec* seat = vehicle->GetVehicleSeatRec(player->m_movementData.m_transportSeat);
+
+            if (seat && !(seat->m_flags & 0x4000)) {
+                CGGameUI::DisplayError(ERR_CLIENT_LOCKED_OUT);
+                return 0;
+            }
+        }
+    }
+
+    if (Spell_C_IsTargeting() && Spell_C_CanTargetItems()) {
+        CGGameUI::CastItemSpell(this->m_obj->m_guid, 0);
+        return 0;
+    }
+
+    if (stats->m_flags[0] & 0x200) {
+        if (this->m_item->m_itemFieldFlags & 0x8) {
+            player->OpenWrappedItem(this);
+        } else {
+            CGPlayer_C::StartGiftWrap(this);
+        }
+
+        return 0;
+    }
+
+    if (stats->m_startQuest) {
+        CGPlayer_C::QueryQuest(this->m_obj->m_guid, stats->m_startQuest);
+        return 0;
+    }
+
+    MapRec* map = g_mapDB.GetRecord(CGGameUI::m_iCurrentMapID);
+
+    if (map && map->m_instanceType == 4 && !(stats->m_flags[0] & 0x200000)) {
+        uint32_t cooldown;
+        uint32_t categoryCooldown;
+        uint32_t category;
+
+        if (stats->m_bonding == 4 || (stats->m_flags[0] & 0x4000000) || (this->GetSpellCooldownInfo(cooldown, categoryCooldown, category), this->GetUsableSpellCharges() < 0) || cooldown > 900000 || categoryCooldown > 900000) {
+            CGGameUI::DisplayError(ERR_CANT_USE_ITEM_IN_ARENA);
+            return 0;
+        }
+    }
+
+    int32_t error = ERR_MAX_VALUE;
+
+    if (!player->CanUseItem(stats, error)) {
+        if (error != ERR_CANT_EQUIP_LEVEL_I) {
+            CGGameUI::DisplayError(static_cast<UIErrors>(error));
+        } else {
+            CGGameUI::DisplayError(ERR_CANT_EQUIP_LEVEL_I, stats->m_requiredLevel);
+        }
+
+        return 0;
+    }
+
+    uint32_t enchantId = this->GetSpellItemEnchantmentId();
+
+    if (enchantId) {
+        SpellItemEnchantmentRec* enchant = g_spellItemEnchantmentDB.GetRecord(enchantId);
+
+        if (enchant && enchant->m_requiredSkillID && static_cast<int32_t>(player->GetSkillValue(player->GetSkillIndex(enchant->m_requiredSkillID))) < enchant->m_requiredSkillRank) {
+            CGGameUI::DisplayError(static_cast<UIErrors>(GetDisplayErrorByInventoryError(2)));
+            return 0;
+        }
+    }
+
+    if (stats->m_pageText || (this->m_item->m_itemFieldFlags & 0x200)) {
+        CGItemText::SetItem(this->m_obj->m_guid, 0);
+        return 0;
+    }
+
+    if (!CGGameUI::m_hasControl) {
+        int32_t allowed = 0;
+
+        if (!hasSpell) {
+            CGGameUI::DisplayError(ERR_CLIENT_LOCKED_OUT);
+            return 0;
+        }
+
+        if ((player->m_unit->m_unitFieldFlags & 0x800000) && ((spell.m_attributesExE & 0x20000) || Spell_C_CancelsFear(player, &spell, 0))) {
+            allowed = 1;
+        }
+
+        if ((player->m_unit->m_unitFieldFlags & 0x400000) && ((spell.m_attributesExE & 0x40000) || Spell_C_CancelsConfuse(player, &spell, 0))) {
+            allowed = 1;
+        }
+
+        int32_t charmAllowed = player->IsCharmed() && Spell_C_CancelsCharm(player, &spell, 0) ? 1 : allowed;
+
+        if ((!(player->m_unit->m_unitFieldFlags & 0x100000) || !(spell.m_attributes & 0x1000000)) && !charmAllowed) {
+            CGGameUI::DisplayError(ERR_CLIENT_LOCKED_OUT);
+            return 0;
+        }
+    }
+
+    if (stats->m_flags[0] & 0x4) {
+        player->OpenLootItem(this);
+        return 0;
+    }
+
+    if (stats->m_flags[0] & 0x2000) {
+        CGPlayer_C::RequestPetitionSignatures(this->m_obj->m_guid);
+        return 0;
+    }
+
+    if (!this->GetEnchantmentSpell(0)) {
+        return 0;
+    }
+
+    if (this->GetInventoryType()) {
+        if (this->m_item->m_itemFieldContained != ClntObjMgrGetActivePlayer()) {
+            CGGameUI::DisplayError(ERR_MUST_EQUIP_ITEM);
+            return 0;
+        }
+
+        if (this->GetMaxDurability() && !this->GetDurability()) {
+            CGGameUI::DisplayError(ERR_MUST_REPAIR_DURABILITY);
+            return 0;
+        }
+
+        int32_t slot = player->GetBag()->FindItemSlot(this->m_obj->m_guid);
+
+        if (slot == 15) {
+            if (player->IsDisarmed(0)) {
+                CGGameUI::DisplayError(ERR_CANT_USE_DISARMED);
+                return 0;
+            }
+        } else if (slot == 16) {
+            if (player->IsDisarmed(1)) {
+                CGGameUI::DisplayError(ERR_CANT_USE_DISARMED);
+                return 0;
+            }
+        } else if (slot >= 23) {
+            CGGameUI::DisplayError(ERR_MUST_EQUIP_ITEM);
+            return 0;
+        }
+    }
+
+    if (hasSpell) {
+        if (Spell_C_IsActiveSpell(&spell, player)) {
+            if (!Spell_C_WasItemRecentlyUsed(this->m_obj->m_entryID)) {
+                Spell_C_CancelAura(&spell, player, -1);
+            }
+
+            return 0;
+        }
+
+        if (this->GetUsableSpellCharges() > 0 && !this->GetCurrentSpellCharges()) {
+            CGGameUI::DisplayError(ERR_SPELL_FAILED_S, FrameScript_GetText("SPELL_FAILED_NO_CHARGES_REMAIN", -1, GENDER_NOT_APPLICABLE));
+            return 0;
+        }
+
+        if (SpellRec::HasAura(&spell, 78) && !player->CanCurrentFormMount() && player->CanAutoUnshift()) {
+            player->CancelShapeshiftForMount();
+        }
+    }
+
+    if (player->IsShapeShifted()) {
+        SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecord(player->GetShapeshiftForm());
+
+        if (form && !(form->m_flags & 0x80) && (!(form->m_flags & 0x40) || !this->GetInventoryType()) && !(stats->m_flags[0] & 0x800000)) {
+            if (!player->CanAutoUnshift()) {
+                CGGameUI::DisplayError(ERR_NO_ITEMS_WHILE_SHAPESHIFTED);
+                return 0;
+            }
+
+            player->CancelShapeshift();
+        }
+    }
+
+    if (stats->m_bonding != 3 || this->IsBound() || a2) {
+        return Spell_C::CastSpell(spellId, this, *target, false);
+    }
+
+    CGItem_C::s_bindOnUseItem = this->m_obj->m_guid;
+    CGItem_C::s_bindOnUseTarget = *target;
+    FrameScript_SignalEvent(SCRIPT_EVENT_USE_BIND_CONFIRM, nullptr);
+    return 0;
 }

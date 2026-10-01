@@ -42,6 +42,8 @@ class CVehiclePassenger_C {
     static CVehiclePassenger_C* Alloc(CGUnit_C* unit);
     static void Init(CGUnit_C* unit);
 
+    void StopMovement();
+
     /* 0000 */ uint32_t m_memHandle;
     /* 0004 */ CVehiclePassenger_C* m_prev;
     /* 0008 */ CVehiclePassenger_C* m_next;

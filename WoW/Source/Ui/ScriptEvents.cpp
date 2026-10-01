@@ -17,6 +17,12 @@
 #include "WoW/Source/Ui/CommentatorFrame.h"
 #include "WoW/Source/Ui/InstanceEncounter_C.h"
 #include "WoW/Source/Ui/QuestFrame.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
+#include "WoW/Source/DB/Rec/SpellDispelTypeRec.h"
+#include "WoW/Source/DB/Rec/SpellIconRec.h"
+#include "WoW/Source/Object/ObjectClient/AuraData.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
 
 // STATIC: 0x00C24EB0
 const char* g_scriptEvents[NUM_SCRIPT_EVENTS];
@@ -575,6 +581,194 @@ bool Script_GetGUIDFromString(const char** name, WOWGUID& guid) {
     return guid != WOWGUID();
 }
 
+// STATIC: 0x00C25B7C
+static char s_auraToken[32];
+
+// VERIFY: 4748d1fc manual
+// OFFSET: 0x0060B420
+const char* Script_GetAuraTokenFromGUID(const WOWGUID* guid) {
+    if (!*guid) {
+        return nullptr;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return nullptr;
+    }
+
+    if (*guid == player->m_obj->m_guid) {
+        return "player";
+    }
+
+    if (player->IsSeatedInVehicle() && guid->m_guid == player->GetTransportGUID()) {
+        return "vehicle";
+    }
+
+    if (*guid == (player->m_unit->m_unitFieldCharm ? player->m_unit->m_unitFieldCharm : player->m_unit->m_unitFieldSummon)) {
+        return "pet";
+    }
+
+    for (uint32_t i = 0; i < CGPartyInfo::GetNumPartyMembers(); i++) {
+        if (*guid == CGGameUI::GetPartyMember(i)) {
+            SStrPrintf(s_auraToken, sizeof(s_auraToken), "party%d", i + 1);
+            return s_auraToken;
+        }
+
+        if (*guid == CGGameUI::GetPartyMemberPet(i)) {
+            SStrPrintf(s_auraToken, sizeof(s_auraToken), "partypet%d", i + 1);
+            return s_auraToken;
+        }
+    }
+
+    for (uint32_t i = 0; i < CGRaidInfo::m_numMembers; i++) {
+        if (*guid == GetRaidMemberGUID(i)) {
+            SStrPrintf(s_auraToken, sizeof(s_auraToken), "raid%d", i + 1);
+            return s_auraToken;
+        }
+
+        if (*guid == CGGameUI::GetRaidMemberPet(i)) {
+            SStrPrintf(s_auraToken, sizeof(s_auraToken), "raidpet%d", i + 1);
+            return s_auraToken;
+        }
+    }
+
+    for (uint32_t i = 0; i < GetArenaPetGUIDCount(); i++) {
+        if (*guid == CGBattlefieldInfo::GetArenaOpponent(i)) {
+            SStrPrintf(s_auraToken, sizeof(s_auraToken), "arena%d", i + 1);
+            return s_auraToken;
+        }
+
+        if (*guid == CGBattlefieldInfo::GetArenaOpponentPet(i)) {
+            SStrPrintf(s_auraToken, sizeof(s_auraToken), "arenapet%d", i + 1);
+            return s_auraToken;
+        }
+    }
+
+    if (*guid == CGGameUI::m_lockedTarget) {
+        return "target";
+    }
+
+    if (*guid == CGGameUI::unk_BD07D0) {
+        return "focus";
+    }
+
+    if (*guid == CGGameUI::m_interactTarget) {
+        return "npc";
+    }
+
+    if (*guid == CGGameUI::m_currentObjectTrack) {
+        return "mouseover";
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return nullptr;
+    }
+
+    WOWGUID owner = unit->m_unit->m_unitFieldCharmedby ? unit->m_unit->m_unitFieldCharmedby : unit->m_unit->m_unitFieldCreatedby;
+    WOWGUID charm = unit->m_unit->m_unitFieldCharm ? unit->m_unit->m_unitFieldCharm : unit->m_unit->m_unitFieldSummon;
+
+    if (owner) {
+        if (owner == player->m_obj->m_guid) {
+            return "player";
+        }
+    } else if (!charm) {
+        return nullptr;
+    }
+
+    if (charm && charm == player->m_obj->m_guid) {
+        return "player";
+    }
+
+    if (player->IsSeatedInVehicle()) {
+        if (owner && owner.m_guid == player->GetTransportGUID()) {
+            return "vehicle";
+        }
+
+        if (charm && charm.m_guid == player->GetTransportGUID()) {
+            return "vehicle";
+        }
+    }
+
+    WOWGUID playerPet = player->m_unit->m_unitFieldCharm ? player->m_unit->m_unitFieldCharm : player->m_unit->m_unitFieldSummon;
+
+    if (owner && owner == playerPet) {
+        return "pet";
+    }
+
+    if (charm && charm == playerPet) {
+        return "pet";
+    }
+
+    for (uint32_t i = 0; i < CGPartyInfo::GetNumPartyMembers(); i++) {
+        WOWGUID member = CGGameUI::GetPartyMember(i);
+
+        if ((owner && owner == member) || (charm && charm == member)) {
+            SStrPrintf(s_auraToken, sizeof(s_auraToken), "party%d", i + 1);
+            return s_auraToken;
+        }
+
+        WOWGUID memberPet = CGGameUI::GetPartyMemberPet(i);
+
+        if ((owner && owner == memberPet) || (charm && charm == memberPet)) {
+            SStrPrintf(s_auraToken, sizeof(s_auraToken), "partypet%d", i + 1);
+            return s_auraToken;
+        }
+    }
+
+    for (uint32_t i = 0; i < CGRaidInfo::m_numMembers; i++) {
+        WOWGUID member = GetRaidMemberGUID(i);
+
+        if ((owner && owner == member) || (charm && charm == member)) {
+            SStrPrintf(s_auraToken, sizeof(s_auraToken), "raid%d", i + 1);
+            return s_auraToken;
+        }
+
+        WOWGUID memberPet = CGGameUI::GetRaidMemberPet(i);
+
+        if ((owner && owner == memberPet) || (charm && charm == memberPet)) {
+            SStrPrintf(s_auraToken, sizeof(s_auraToken), "raidpet%d", i + 1);
+            return s_auraToken;
+        }
+    }
+
+    for (uint32_t i = 0; i < GetArenaPetGUIDCount(); i++) {
+        WOWGUID opponent = CGBattlefieldInfo::GetArenaOpponent(i);
+
+        if ((owner && owner == opponent) || (charm && charm == opponent)) {
+            SStrPrintf(s_auraToken, sizeof(s_auraToken), "arena%d", i + 1);
+            return s_auraToken;
+        }
+
+        WOWGUID opponentPet = CGBattlefieldInfo::GetArenaOpponentPet(i);
+
+        if ((owner && owner == opponentPet) || (charm && charm == opponentPet)) {
+            SStrPrintf(s_auraToken, sizeof(s_auraToken), "arenapet%d", i + 1);
+            return s_auraToken;
+        }
+    }
+
+    if ((owner && owner == CGGameUI::m_lockedTarget) || (charm && charm == CGGameUI::m_lockedTarget)) {
+        return "target";
+    }
+
+    if ((owner && owner == CGGameUI::unk_BD07D0) || (charm && charm == CGGameUI::unk_BD07D0)) {
+        return "focus";
+    }
+
+    if ((owner && owner == CGGameUI::m_interactTarget) || (charm && charm == CGGameUI::m_interactTarget)) {
+        return "npc";
+    }
+
+    if ((owner && owner == CGGameUI::m_currentObjectTrack) || (charm && charm == CGGameUI::m_currentObjectTrack)) {
+        return "mouseover";
+    }
+
+    return nullptr;
+}
+
 // VERIFY: fba1c703 manual
 // OFFSET: 0x0060BB70
 char** Script_GetTokenIDsFromGUID(const WOWGUID& guid, int32_t* count) {
@@ -671,6 +865,22 @@ void Script_SendUnitSignal(const WOWGUID& guid, int32_t signal) {
     }
 }
 
+// VERIFY: b717b06c manual
+// OFFSET: 0x0060BF60
+void Script_SendUnitSpellSignal(const WOWGUID& guid, uint8_t castCount, const SpellRec* spell, int32_t signal) {
+    if (!spell) {
+        Script_SendUnitSignal(guid, signal);
+        return;
+    }
+
+    int32_t count;
+    char** tokens = Script_GetTokenIDsFromGUID(guid, &count);
+
+    for (int32_t i = 0; i < count; i++) {
+        FrameScript_SignalEvent(signal, "%s%s%s%d", tokens[i], spell->m_name, spell->m_nameSubtext, castCount);
+    }
+}
+
 // VERIFY: 3289c731 auto
 // OFFSET: 0x00608390
 static int32_t Script_GetAuraInfo(lua_State* L, int32_t index, ScriptAuraInfo* info) {
@@ -735,4 +945,151 @@ int32_t Script_GetUnitAuraInfo(lua_State* L, int32_t index, ScriptAuraInfo* info
     Script_GetGUIDFromToken(lua_tostring(L, index), guid, false);
     info->m_guid = guid;
     return Script_GetAuraInfo(L, index + 1, info);
+}
+
+// VERIFY: f63fded5 manual
+// OFFSET: 0x006147C0
+int32_t PushUnitAura(lua_State* L, ScriptAuraInfo* info) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info->m_guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        if ((unit->m_auraEffectMask[36] & 0x80) && ClntObjMgrGetActivePlayer() && !unit->IsFriendly(ClntObjMgrGetActivePlayerObj())) {
+            return 0;
+        }
+
+        if (!(unit->m_modelFlags & 0x10000)) {
+            uint32_t slot = unit->GetSortedAuraSlot(info->m_index, info->m_name, info->m_rank, info->m_filter);
+            SpellRec spell;
+
+            if (static_cast<int32_t>(slot) < 0 || !g_spellDB.GetRecord(unit->GetAuraSpellId(slot), &spell)) {
+                return 0;
+            }
+
+            AuraData* aura = unit->GetAura(slot);
+            const char* debuffType = nullptr;
+
+            if (spell.m_dispelType) {
+                SpellDispelTypeRec* dispel = g_spellDispelTypeDB.GetRecord(spell.m_dispelType);
+
+                if (dispel && dispel->m_immunityPossible) {
+                    debuffType = dispel->m_internalName;
+                }
+            }
+
+            SpellIconRec* icon = g_spellIconDB.GetRecord(spell.m_spellIconID);
+            lua_pushstring(L, spell.m_name);
+            lua_pushstring(L, spell.m_nameSubtext);
+            lua_pushstring(L, icon ? icon->m_textureFilename : nullptr);
+            lua_pushnumber(L, aura->m_stackCount);
+            lua_pushstring(L, debuffType);
+
+            if (aura->m_duration > 0) {
+                lua_pushnumber(L, aura->m_duration * 0.001);
+                lua_pushnumber(L, aura->m_endTime * 0.001);
+            } else {
+                lua_pushnumber(L, 0.0);
+                lua_pushnumber(L, 0.0);
+            }
+
+            lua_pushstring(L, Script_GetAuraTokenFromGUID(&aura->m_creator));
+
+            if (CGSpellBook::CanStealAura(unit, aura, &spell)) {
+                lua_pushnumber(L, 1.0);
+            } else {
+                lua_pushnil(L);
+            }
+
+            if (spell.m_attributesExG & 0x10000000) {
+                lua_pushnumber(L, 1.0);
+            } else {
+                lua_pushnil(L);
+            }
+
+            lua_pushnumber(L, spell.m_id);
+            return 11;
+        }
+    }
+
+    int32_t* auras;
+    uint8_t* auraFlags;
+
+    if (CGPartyMemberState* state = CGPartyMemberStateRepository::GetState(info->m_guid)) {
+        if (!(state->m_flags & 0x1)) {
+            return 0;
+        }
+
+        auras = state->m_auras;
+        auraFlags = state->m_auraFlags;
+    } else if (CGPartyPetState* petState = CGPartyMemberStateRepository::FindPetState(info->m_guid)) {
+        auras = petState->m_auras;
+        auraFlags = petState->m_auraFlags;
+    } else {
+        return 0;
+    }
+
+    bool helpful = info->m_filter & 0x1;
+    bool raid = (info->m_filter & 0x8) != 0;
+    int32_t found = 0;
+
+    for (uint32_t i = 0; i < 64 && auras[i]; i++) {
+        if (helpful != !(auraFlags[i] & 0x80)) {
+            continue;
+        }
+
+        SpellRec spell;
+
+        if (!g_spellDB.GetRecord(auras[i], &spell)) {
+            continue;
+        }
+
+        WOWGUID caster = { 0 };
+
+        if (!CGSpellBook::CanShowAura(&spell, &caster, (auraFlags[i] & 0x8) != 0)) {
+            continue;
+        }
+
+        if (raid && !(helpful ? CGSpellBook::FindRaidBuff(auras[i]) : CGSpellBook::FindRaidDispel(spell.m_dispelType))) {
+            continue;
+        }
+
+        if ((auraFlags[i] & 0x10) ? (info->m_filter & 0x20) : (info->m_filter & 0x10)) {
+            continue;
+        }
+
+        if ((info->m_index >= 0 && info->m_index == found) || (info->m_name && !SStrCmpUTF8I(info->m_name, spell.m_name, STORM_MAX_STR) && (!info->m_rank || !SStrCmpUTF8I(info->m_rank, spell.m_nameSubtext, STORM_MAX_STR)))) {
+            const char* debuffType = nullptr;
+
+            if (spell.m_dispelType) {
+                SpellDispelTypeRec* dispel = g_spellDispelTypeDB.GetRecord(spell.m_dispelType);
+
+                if (dispel && dispel->m_immunityPossible) {
+                    debuffType = dispel->m_internalName;
+                }
+            }
+
+            SpellIconRec* icon = g_spellIconDB.GetRecord(spell.m_spellIconID);
+            lua_pushstring(L, spell.m_name);
+            lua_pushstring(L, spell.m_nameSubtext);
+            lua_pushstring(L, icon ? icon->m_textureFilename : nullptr);
+            lua_pushnumber(L, 1.0);
+            lua_pushstring(L, debuffType);
+            lua_pushnumber(L, 0.0);
+            lua_pushnumber(L, 0.0);
+            lua_pushnil(L);
+            lua_pushnil(L);
+
+            if (spell.m_attributesExG & 0x10000000) {
+                lua_pushnumber(L, 1.0);
+            } else {
+                lua_pushnil(L);
+            }
+
+            lua_pushnumber(L, spell.m_id);
+            return 11;
+        }
+
+        found++;
+    }
+
+    return 0;
 }

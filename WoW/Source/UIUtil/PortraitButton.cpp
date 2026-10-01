@@ -6,6 +6,12 @@
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "Engine/Source/Base/Status.h"
 #include "Engine/Source/Services/Texture.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/Types.h"
+#include "Engine/Source/Model2/M2Model.h"
+#include "WoW/Common/ComponentCore/CharacterComponent.h"
 
 // STATIC: 0x00C5CDF0
 static CTexture* s_portraitMaskTexture;
@@ -30,6 +36,12 @@ static TSHashTable<PLAYERPORTRAIT, CHashKeyGUID> unk_C5CE08;
 
 // STATIC: 0x00C5CE30
 static TSHashTable<UNITPORTRAIT, HASHKEY_DWORD> unk_C5CE30;
+
+// STATIC: 0x00AD28E4
+static TSList<PORTRAITREQUEST, TSGetLink<PORTRAITREQUEST>> s_pendingPortraits;
+
+// STATIC: 0x00AD28F0
+static TSList<PORTRAITREQUEST, TSGetLink<PORTRAITREQUEST>> s_freePortraits;
 
 static void PortraitDepthTextureCallback(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevel, void* userArg, uint32_t& texelStrideInBytes, const void*& texels) {
 }
@@ -102,4 +114,82 @@ void PortraitInitialize() {
 
     unk_C5CE00 = 0;
     unk_C5CE04 = 0;
+}
+
+// VERIFY: 59c574b9 auto
+// OFFSET: 0x00616B40
+static int32_t IsPortraitDrawable(CGUnit_C* unit) {
+    if (unit->m_clientFlags & 0x400000) {
+        return 0;
+    }
+
+    if (unit->m_characterComponent && (!unit->m_characterComponent->RenderPrep(0) || (unit->m_characterComponent->m_flags & 4))) {
+        return 0;
+    }
+
+    if (!unit->m_worldModel) {
+        return 0;
+    }
+
+    return unit->m_worldModel->IsDrawable(0, 1);
+}
+
+// VERIFY: 66b97025 manual
+// OFFSET: 0x00616E80
+void UpdatePendingPortraits() {
+    if (!g_theGxDevicePtr || !g_theGxDevicePtr->CapsIsWindowVisible(-1) || !g_theGxDevicePtr || !g_theGxDevicePtr->CapsHasContext(-1)) {
+        return;
+    }
+
+    PORTRAITREQUEST* next;
+
+    for (PORTRAITREQUEST* request = s_pendingPortraits.Head(); !s_pendingPortraits.IsEnd(request); request = next) {
+        next = s_pendingPortraits.RawNext(request);
+        WOWGUID guid = request->m_guid;
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (!unit) {
+            s_freePortraits.LinkToTail(request);
+            continue;
+        }
+
+        if ((unit->m_clientFlags & 0x400000) && !unit->InitializeComponent()) {
+            continue;
+        }
+
+        if (!IsPortraitDrawable(unit)) {
+            continue;
+        }
+
+        uint32_t flags = request->m_flags;
+        s_freePortraits.LinkToTail(request);
+
+        if (flags & 2) {
+            Script_SendUnitSignal(guid, SCRIPT_EVENT_UNIT_PORTRAIT_UPDATE);
+        }
+
+        if (flags & 1) {
+            Script_SendUnitSignal(guid, SCRIPT_EVENT_UNIT_MODEL_CHANGED);
+        }
+    }
+}
+
+// VERIFY: 90c0e005 auto
+// OFFSET: 0x00618110
+void UpdateModelForUI(const WOWGUID& guid, uint32_t flags) {
+    if (flags & 2) {
+        PLAYERPORTRAIT* portrait = unk_C5CE08.Ptr(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid));
+
+        if (portrait) {
+            portrait->unk_0020 = 1;
+        }
+    }
+
+    if (flags & 2) {
+        Script_SendUniqueSignal(guid, SCRIPT_EVENT_UNIT_PORTRAIT_UPDATE);
+    }
+
+    if (flags & 1) {
+        Script_SendUniqueSignal(guid, SCRIPT_EVENT_UNIT_MODEL_CHANGED);
+    }
 }

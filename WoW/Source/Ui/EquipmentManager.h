@@ -15,9 +15,12 @@ struct EQUIPMENT_SET {
     /* 0008 */ WOWGUID m_guid;
     /* 0010 */ int32_t m_id;
     /* 0014 */ char m_icon[256];
-    /* 0114 */ char m_name[132];
+    /* 0114 */ char m_name[128];
+    /* 0194 */ uint32_t unk_0194;
     /* 0198 */ WOWGUID m_items[19];
     /* 0230 */ uint32_t unk_0230;
+
+    EQUIPMENT_SET();
 };
 
 struct EQUIPMENT_SET_NODE : public TSLinkedNode<EQUIPMENT_SET_NODE> {
@@ -34,6 +37,7 @@ class CGEquipmentManager {
     static TSList<EQUIPMENT_SET_NODE> s_equipmentSets;
     static void EnterWorld();
     static uint8_t m_lastCanUseEquipmentSetsValue;
+    static uint8_t m_loaded;
     static uint8_t m_swapPending;
     static int32_t m_ignoredSlots[19];
     static int32_t m_pendingSetID;

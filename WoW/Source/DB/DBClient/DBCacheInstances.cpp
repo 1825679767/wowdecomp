@@ -625,3 +625,22 @@ void DBCache<NameCache, uint64_t, CHashKeyGUID>::AddItem(NameCache* item, uint64
         this->Invalidate(key);
     }
 }
+
+// VERIFY: b863bbfc auto
+// OFFSET: 0x00635100
+void DBCache_Idle() {
+    g_creatureDBCache.Idle();
+    g_gameObjectDBCache.Idle();
+    g_itemDBCache.Idle();
+    g_itemNameDBCache.Idle();
+    g_npcTextDBCache.Idle();
+    g_nameDBCache.Idle();
+    g_guildInfoCache.Idle();
+    g_questDBCache.Idle();
+    g_pageTextCache.Idle();
+    g_petNameCache.Idle();
+    g_petitionCache.Idle();
+    g_itemTextDBCache.Idle();
+    g_wardenCache.Idle();
+    g_arenaTeamCache.Idle();
+}

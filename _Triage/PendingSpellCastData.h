@@ -6,6 +6,8 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "WoW/Source/Object/WGUID.h"
 
+class CDataStore;
+
 class PendingSpellCastData {
     public:
     /* 0000 */ WOWGUID m_castItem;
@@ -47,6 +49,7 @@ class PendingSpellCastData {
 
     PendingSpellCastData();
     C3Vector GetDestLocation() const;
+    static void WriteTargetInfo(const PendingSpellCastData* data, CDataStore* msg);
 };
 
 class CDataStore;

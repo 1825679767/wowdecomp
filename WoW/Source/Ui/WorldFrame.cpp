@@ -1347,9 +1347,9 @@ void CGWorldFrame::OnFrameSizeChanged(const CRect& rect) {
     this->m_viewportNDC.maxY = this->m_viewportNDC.maxY < 1.0f ? this->m_viewportNDC.maxY : 1.0f;
 }
 
-// VERIFY: 8e9977d0 manual
+// VERIFY: c2e6c990 manual
 // OFFSET: 0x004F6560
-static int32_t ObjectCollisionProc(WOWGUID* guid, uint32_t param, World::ObjectCollisionData* data, uint32_t flags) {
+static int32_t ObjectCollisionProc(WOWGUID* guid, uintptr_t param, World::ObjectCollisionData* data, uint32_t flags) {
     CGObject_C* object = ClntObjMgrObjectPtr(*guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
 
     if (!object || !object->Unk40(flags) || !(object->m_obj->m_type & TYPEMASK_GAMEOBJECT)) {
@@ -1714,9 +1714,9 @@ void CGWorldFrame::OnWorldRender() {
     CVehiclePassenger_C::PostRenderUpdateAll();
 }
 
-// VERIFY: 897b16f5 manual
+// VERIFY: 79b17fb9 manual
 // OFFSET: 0x004F9F70
-int32_t CGWorldFrame::ObjectEnumProc(void* param, uint32_t flags, uint64_t guid, uint32_t a4) {
+int32_t CGWorldFrame::ObjectEnumProc(void* param, uint32_t flags, uint64_t guid, uintptr_t a4) {
     CGWorldFrame* frame = CGWorldFrame::s_currentWorldFrame;
     CGObject_C* object = ClntObjMgrObjectPtr(WOWGUID{ guid }, TYPEMASK_OBJECT, __FILE__, __LINE__);
 
@@ -2389,4 +2389,23 @@ int32_t CGWorldFrame::OnLayerMouseWheel(const CMouseEvent& evt) {
 
     int32_t down = CGUIBindings::s_bindings->ExecKey(evt.m_data.m_metaKeyState, binding, 1, 1, static_cast<BINDING_MODE>(4));
     return CGUIBindings::s_bindings->ExecKey(evt.m_data.m_metaKeyState, binding, 0, 1, static_cast<BINDING_MODE>(4)) + down;
+}
+
+// VERIFY: 548e1cb9 manual
+// OFFSET: 0x004F5910
+int32_t CGWorldFrame::MissileEnumProc(void* param, uint32_t flags, uint64_t guid, uintptr_t a4) {
+    CMissile* missile = reinterpret_cast<CMissile*>(a4);
+    return !missile || missile->m_mapEntity != nullptr;
+}
+
+// VERIFY: c40ba1e3 auto
+// OFFSET: 0x004F5930
+int32_t CGWorldFrame::SpellEffectEnumProc(void* param, uint32_t flags, uint64_t guid, uintptr_t a4) {
+    CEffect* effect = reinterpret_cast<CEffect*>(a4);
+
+    if (effect) {
+        effect->UpdateWorldObject(CGWorldFrame::s_currentWorldFrame->m_elapsedSec, flags);
+    }
+
+    return 1;
 }

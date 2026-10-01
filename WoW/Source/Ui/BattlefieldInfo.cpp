@@ -1,4 +1,8 @@
 #include "BattlefieldInfo.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/BattlemasterListRec.h"
+#include "WoW/Source/DB/Rec/PvpDifficultyRec.h"
+#include "WoW/Source/Ui/PartyFrame.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include <cstring>
@@ -30,6 +34,9 @@ WOWGUID CGBattlefieldInfo::m_arenaOpponentPets[5][2];
 
 // STATIC: 0x00BE9F48
 WOWGUID CGBattlefieldInfo::m_arenaOpponents[5];
+
+// STATIC: 0x00BE8F90
+CGPartyMemberState CGBattlefieldInfo::m_arenaOpponentStats[5];
 
 // STATIC: 0x00BEA580
 uint32_t CGBattlefieldInfo::m_numScores;
@@ -459,4 +466,97 @@ void CGBattlefieldInfo::SetBattlemaster(WOWGUID battlemaster) {
     FrameScript_SignalEvent(SCRIPT_EVENT_BATTLEFIELDS_CLOSED, nullptr);
     CGGameUI::ClearInteractTarget(CGBattlefieldInfo::m_battlemaster, 0);
     CGBattlefieldInfo::m_battlemaster = WOWGUID();
+}
+
+// VERIFY: 3c940682 manual
+// OFFSET: 0x005497C0
+CGPartyMemberState* CGBattlefieldInfo::GetRemoteStats(const WOWGUID& guid) {
+    if (!guid) {
+        return nullptr;
+    }
+
+    for (uint32_t i = 0; i < 5; i++) {
+        if (CGBattlefieldInfo::m_arenaOpponents[i] == guid) {
+            return &CGBattlefieldInfo::m_arenaOpponentStats[i];
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: f926b6be manual
+// OFFSET: 0x00549860
+CGPartyPetState* CGBattlefieldInfo::GetRemotePetStats(const WOWGUID& guid) {
+    if (!guid) {
+        return nullptr;
+    }
+
+    for (uint32_t i = 0; i < 5; i++) {
+        if (CGBattlefieldInfo::m_arenaOpponents[i] && CGBattlefieldInfo::m_arenaOpponentStats[i].m_pet.m_guid == guid) {
+            return &CGBattlefieldInfo::m_arenaOpponentStats[i].m_pet;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: e2ac477e manual
+// OFFSET: 0x0054A510
+int32_t CGBattlefieldInfo::GetBattlegroundType(int32_t index) {
+    if (index >= static_cast<int32_t>(CGBattlefieldInfo::m_battlegroundTypes.m_count)) {
+        return 0;
+    }
+
+    return CGBattlefieldInfo::m_battlegroundTypes.m_data[index];
+}
+
+// VERIFY: 072dadd4 manual
+// OFFSET: 0x0054BA00
+bool CGBattlefieldInfo::GetBracketForLevel(uint32_t level, const BattlemasterListRec* rec, int32_t* bracket) {
+    if (!rec || !bracket) {
+        return false;
+    }
+
+    *bracket = 0;
+
+    if (rec->m_id == 32) {
+        *bracket = 0;
+        return level == 80;
+    }
+
+    bool foundMap = false;
+
+    for (int32_t i = 0; i < g_pvpDifficultyDB.m_numRecords; i++) {
+        PvpDifficultyRec* difficulty = g_pvpDifficultyDB.GetRecordByIndex(i);
+
+        if (!difficulty || difficulty->m_mapID != rec->m_mapID[0]) {
+            if (foundMap) {
+                return false;
+            }
+
+            continue;
+        }
+
+        if (level >= static_cast<uint32_t>(difficulty->m_minLevel) && level <= static_cast<uint32_t>(difficulty->m_maxLevel)) {
+            *bracket = difficulty->m_rangeIndex;
+            return true;
+        }
+
+        foundMap = true;
+    }
+
+    return false;
+}
+
+// VERIFY: 1d516d84 manual
+// OFFSET: 0x006CF670
+int32_t CGBattlefieldInfo::GetArenaOpponentIndex(const WOWGUID& guid, int32_t* index) {
+    for (int32_t i = 0; i < 5; i++) {
+        if (CGBattlefieldInfo::m_arenaOpponents[i] == guid) {
+            *index = i;
+            return 1;
+        }
+    }
+
+    return 0;
 }

@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
 
 // STATIC: 0x00C22ACC
 int32_t CGGuildInfo::m_numEventLogEntries;
@@ -103,5 +105,26 @@ void CGGuildInfo::SetShowOffline(int32_t show) {
     if (CGGuildInfo::m_numMembers) {
         qsort(CGGuildInfo::m_roster.m_data, CGGuildInfo::m_numMembers, sizeof(GuildMemberInfo*), QSortRoster);
         FrameScript_SignalEvent(SCRIPT_EVENT_GUILD_ROSTER_UPDATE, nullptr);
+    }
+}
+
+// VERIFY: 504618a5 manual
+// OFFSET: 0x005CB900
+void CGGuildInfo::EnterWorld() {
+    CGGuildInfo::m_infoText[0] = '\0';
+    CGGuildInfo::m_motd[0] = '\0';
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player && player->m_player->m_playerGuildid) {
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(MSG_GUILD_PERMISSIONS));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    for (int32_t i = 0; i < 6; i++) {
+        CGGuildInfo::m_rankInfo[0].m_bankTabRights[i] = -1;
+        CGGuildInfo::m_rankInfo[0].m_bankTabStacksPerDay[i] = -1;
     }
 }

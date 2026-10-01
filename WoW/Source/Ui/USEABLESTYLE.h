@@ -3,11 +3,18 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
 
-class USEABLESTYLE {
+class BarberShopStyleRec;
+
+struct STYLEREC : public TSLinkedNode<STYLEREC> {
+    /* 0008 */ const BarberShopStyleRec* m_rec;
+};
+
+class USEABLESTYLE : public TSHashObject<USEABLESTYLE, HASHKEY_NONE> {
     public:
-    /* 0000 */ uint8_t unk_0000[24];
-    /* 0018 */ uint32_t unk_0018[6];
+    /* 0018 */ TSList<STYLEREC, TSGetLink<STYLEREC>> m_styles;
+    /* 0024 */ uint32_t unk_0024[3];
 };
 
 #endif

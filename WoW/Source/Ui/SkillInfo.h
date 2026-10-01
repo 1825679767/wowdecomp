@@ -27,11 +27,13 @@ class CGSkillInfo {
     static uint32_t m_numSkillLines;
     static int32_t m_selectedSkill;
     static int32_t unk_C22AF8;
+    static int32_t unk_C22AFC;
     static int32_t m_skillUpPoints;
     static TSFixedArray<SkillLineInfo*> m_lines;
     static TSFixedArray<SkillTypeInfo*> m_types;
     static void InitializeGame();
     static int32_t GetSelectedIndex();
+    static void UpdateSkillLines();
 };
 
 int32_t Script_GetSkillLineInfo(lua_State* L);

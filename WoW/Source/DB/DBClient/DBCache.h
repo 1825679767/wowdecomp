@@ -9,6 +9,7 @@
 #include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
 #include "Engine/Source/ConsoleBase/IConsole.h"
 #include "Engine/Source/Os/OsFile.h"
+#include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
@@ -77,9 +78,11 @@ class DBCache : public Blizzard::Using::GlobalUse {
     void Invalidate(TKey key);
     REVERSEENTRY* FindReverseEntry(const char* name);
     T* GetRecordByName(const char* name);
+    void Idle();
     void RemoveReverseEntry(const char* name);
     void ItemAdded(T* item);
     void Load();
+    bool QueryLimitReached();
     void RetryItem(TKey key);
     void Save();
     void SendSingleQuery(DBCACHEHASH* hash);
@@ -622,6 +625,41 @@ void DBCache<T, TKey, THashKey>::Invalidate(TKey key) {
         hash->m_invalidatePending = true;
     } else {
         this->m_entries.Delete(hash);
+    }
+}
+
+// VERIFY: bad8a014 auto
+// OFFSET: 0x00668890
+template <class T, class TKey, class THashKey>
+bool DBCache<T, TKey, THashKey>::QueryLimitReached() {
+    return this->m_maxQueriesPerPump && this->m_queriesSent >= this->m_maxQueriesPerPump;
+}
+
+// VERIFY: 8c6b274a manual
+// OFFSET: [0x00669350, 0x00669420, 0x006694F0, 0x006695C0, 0x00669690, 0x00669760, 0x00669830, 0x00669900, 0x006699D0, 0x00669AA0, 0x00669B70, 0x00669C40, 0x00669D10, 0x00669DE0]
+template <class T, class TKey, class THashKey>
+void DBCache<T, TKey, THashKey>::Idle() {
+    if (!this->m_maxQueriesPerPump || !this->m_loaded) {
+        return;
+    }
+
+    if (this->m_nextQueryTime && static_cast<int32_t>(OsGetAsyncTimeMs() - this->m_nextQueryTime) < 0) {
+        return;
+    }
+
+    this->m_queriesSent = 0;
+    this->m_nextQueryTime = OsGetAsyncTimeMs() + 30000;
+
+    DBCACHEHASH* next;
+
+    for (DBCACHEHASH* hash = this->m_pending.Head(); !this->m_pending.IsEnd(hash); hash = next) {
+        next = this->m_pending.RawNext(hash);
+        this->m_pending.UnlinkNode(hash);
+        this->SendSingleQuery(hash);
+
+        if (this->QueryLimitReached()) {
+            break;
+        }
     }
 }
 

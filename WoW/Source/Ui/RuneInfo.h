@@ -3,11 +3,15 @@
 
 #include <cstdint>
 
+class CDataStore;
 class SpellRec;
 
 class CGRuneInfo {
     public:
     static int32_t m_runes[8];
+    static void ConvertRune(uint8_t rune, uint8_t type);
+    static void ResyncRunes(CDataStore* msg);
+    static void AddRunePower(CDataStore* msg);
     static int32_t m_baseRunes[8];
     static uint32_t m_runeCooldowns[8];
     static uint32_t m_runeLastUsed[8];
@@ -21,6 +25,7 @@ class CGRuneInfo {
     static bool ComputeRuneSpellCooldown(const SpellRec* spell, uint32_t* cooldown);
     static bool IsRuneIndexValid(int32_t index);
     static int32_t GetRuneTypeByIndex(int32_t index, bool base);
+    static uint32_t GetRuneLastUsedTime(int32_t index);
 };
 
 #endif

@@ -13,6 +13,18 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/UIUtil/Tooltip.h"
 #include "WoW/Source/Ui/CGBankInfo.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
+#include "WoW/Source/UIUtil/Cursor.h"
+#include "WoW/Source/Ui/AuctionHouse.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/GuildBankFrame.h"
+#include "WoW/Source/Ui/MailInfo.h"
+#include "WoW/Source/Ui/MerchantFrame.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/TradeFrame.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "Engine/Source/Base/CDataStore.h"
 
 // VERIFY: ebcdce34 auto
 // OFFSET: 0x005D6FF0
@@ -208,7 +220,213 @@ static int32_t Script_GetContainerItemInfo(lua_State* L) {
     return 7;
 }
 
+// VERIFY: 2cd3f9c3 manual
+// OFFSET: 0x005D7D90
+static int32_t Script_GetContainerItemCooldown(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: GetContainerItemCooldown(index, slot)");
+        return 0;
+    }
+
+    CGBag_C* bag;
+    int32_t slot;
+    int32_t bank;
+    CGItem_C* item;
+
+    if (CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank) && (item = bag->GetItemPointer(slot)) && (!item->GetUsableSpellCharges() || item->GetCurrentSpellCharges() || (item->GetUsableSpellCharges() < 0 && !item->GetCurrentSpellCharges()))) {
+        uint32_t start = 0;
+        uint32_t duration = 0;
+        uint32_t enable = 0;
+        Spell_C_GetItemCooldown(item, &duration, &start, &enable);
+        lua_pushnumber(L, start * 0.001);
+        lua_pushnumber(L, duration * 0.001);
+        lua_pushnumber(L, enable);
+    } else {
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 3;
+}
+
 // STATIC: 0x00AD0D50
+// VERIFY: 0745872b manual
+// OFFSET: 0x005D8650
+static int32_t Script_UseContainerItem(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: UseContainerItem(index, slot[, target])");
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 0;
+    }
+
+    CGBag_C* bag;
+    int32_t slot;
+    int32_t bank;
+
+    if (!CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank)) {
+        return 0;
+    }
+
+    WOWGUID target;
+
+    if (!Script_GetGUIDFromToken(lua_tolstring(L, 3, nullptr), target, true)) {
+        return 0;
+    }
+
+    CGGameUI::ClearCursor(1, 1);
+    CGItem_C* item = bag->GetItemPointer(slot);
+
+    if (!item || (item->m_itemFlags & 1)) {
+        return 0;
+    }
+
+    WOWGUID guid = item->m_obj->m_guid;
+    int32_t itemId = item->m_obj->m_entryID;
+
+    if (Spell_C_IsTargeting() && !Spell_C_CanTargetItems()) {
+        Spell_C_StopTargeting();
+    }
+
+    if (Spell_C_IsTargeting()) {
+        CGGameUI::CastItemSpell(guid, 0);
+        return 0;
+    }
+
+    if (CursorGetResetMode() == 17 && CGMerchantInfo::CanRepair()) {
+        uint32_t cost = CGMerchantInfo::GetRepairCost(item);
+
+        if (cost <= player->GetCoinage()) {
+            SI2::PlaySoundKit("ITEM_REPAIR", nullptr, nullptr, nullptr);
+            CDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_REPAIR_ITEM));
+            msg.Put(CGMerchantInfo::m_merchant.m_guid);
+            msg.Put(guid.m_guid);
+            msg.Put(static_cast<uint8_t>(0));
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+        } else {
+            CGGameUI::DisplayError(ERR_NOT_ENOUGH_MONEY);
+        }
+
+        return 0;
+    }
+
+    if (bank) {
+        player->AutoStoreBankItem(bag->m_guid, slot);
+        CGGameUI::SetPendingItemSound(guid, itemId);
+        CGGameUI::LockItem(guid);
+        return 0;
+    }
+
+    if (CGBankInfo::m_banker) {
+        player->AutoBankItem(bag->m_guid, slot);
+        CGGameUI::SetPendingItemSound(guid, itemId);
+        CGGameUI::LockItem(guid);
+        return 0;
+    }
+
+    if (CGMerchantInfo::m_merchant) {
+        player->SellItem(CGMerchantInfo::m_merchant, guid, 0);
+        CGGameUI::LockItem(guid);
+        return 0;
+    }
+
+    if (CGMailInfo::m_sendMailShowing && CGMailInfo::m_object) {
+        CGMailInfo::AddItemToOutgoingMail(-1, guid, bag->m_guid, slot);
+        return 0;
+    }
+
+    if (CGAuctionHouse::m_auctionsTabShowing && CGAuctionHouse::m_auctioneer) {
+        if (!CGAuctionHouse::IsSellItemValid(item, 1)) {
+            return 0;
+        }
+
+        WOWGUID sellItem;
+        uint8_t sellBag;
+        uint8_t sellSlot;
+        CGAuctionHouse::GetSellItem(&sellItem, &sellBag, &sellSlot);
+
+        if (sellItem) {
+            CGGameUI::UnlockItem(sellItem);
+        }
+
+        CGGameUI::LockItem(guid);
+        CGAuctionHouse::SetSellItem(guid, bag->m_guid, slot);
+        FrameScript_SignalEvent(SCRIPT_EVENT_NEW_AUCTION_UPDATE, nullptr);
+        return 0;
+    }
+
+    if (CGTradeInfo::m_tradingPlayer) {
+        int32_t enchant = item->GetEnchantmentSpell(53) || item->GetEnchantmentSpell(54) || item->GetEnchantmentSpell(156) || item->GetEnchantmentSpell(33);
+
+        if (CGTradeInfo::m_enchantingItem && enchant) {
+            CGTradeInfo::SetEnchantingItem(item);
+        } else {
+            CGTradeInfo::AddPlayerItem(guid, bag->m_guid, slot);
+        }
+
+        return 0;
+    }
+
+    if (CGGuildBankInfo::m_banker) {
+        CGGuildBankInfo::AutoStoreItem(guid, bag->m_guid, slot);
+        CGGameUI::SetPendingItemSound(guid, itemId);
+        return 0;
+    }
+
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+    if (item->GetInventoryType() && (!stats || !stats->m_startQuest)) {
+        if (CGGameUI::m_hasControl || (player->m_unit->m_unitFieldFlags & 0x100000)) {
+            player->AutoEquipItem(bag->m_guid, slot, 0);
+        }
+
+        return 0;
+    }
+
+    if (stats && stats->m_class == 16) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_USE_GLYPH, nullptr);
+    }
+
+    item->UseItem(&target, 0);
+    return 0;
+}
+
+// VERIFY: 5b61867b auto
+// OFFSET: 0x005D8BD0
+static int32_t Script_ShowContainerSellCursor(lua_State* L) {
+    if (Spell_C_IsTargeting() || CursorGetResetMode() != 1) {
+        return 0;
+    }
+
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: ShowContainerSellCursor(index, slot)");
+    }
+
+    CGBag_C* bag;
+    int32_t slot;
+    int32_t bank;
+
+    if (!CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank)) {
+        return 0;
+    }
+
+    CGItem_C* item = bag->GetItemPointer(slot);
+
+    if (!item || (item->m_itemFlags & 1)) {
+        return 0;
+    }
+
+    CursorSetMode(3);
+    return 0;
+}
+
 static FrameScript_Method s_ScriptFunctions[] = {
     { "ContainerIDToInventoryID", &Script_ContainerIDToInventoryID },
     { "GetContainerNumSlots", &Script_GetContainerNumSlots },

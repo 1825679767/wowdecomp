@@ -41,5 +41,6 @@ class C33Matrix {
 
 C33Matrix operator*(const C33Matrix& l, const C33Matrix& r);
 C3Vector operator*(const C3Vector& v, const C33Matrix& m);
+C3Vector operator*=(C3Vector& v, const C33Matrix& m);
 
 #endif

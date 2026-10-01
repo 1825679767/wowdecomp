@@ -30,6 +30,7 @@ class CGUnit {
     bool HasSummoner() const;
     bool IsPossessedBy(const WOWGUID& guid) const;
     bool IsCharmed() const;
+    bool IsSitting() const;
     bool IsGuildMaster() const;
     int32_t GetSpellCostModifier(int32_t schoolMask) const;
     float GetSpellCostMultiplier(int32_t schoolMask) const;

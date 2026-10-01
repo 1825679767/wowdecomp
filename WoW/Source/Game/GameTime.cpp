@@ -78,3 +78,98 @@ bool CGameTime::IsDaytime() {
 
     return time.InRange(start, end);
 }
+
+// VERIFY: 7db0b0c3 manual
+// OFFSET: 0x0076D650
+void CGameTime::UpdateTimeStamps(int32_t minutes) {
+    HASHKEY_NONE key;
+    TIMESTAMPSTRUCT* stamp = this->m_timeStamps.Ptr(minutes, key);
+
+    if (!stamp) {
+        return;
+    }
+
+    TIMESTAMPCALLBACK* callback = stamp->m_callbacks.Head();
+
+    while (callback) {
+        TIMESTAMPCALLBACK* next = stamp->m_callbacks.Next(callback);
+        callback->m_callback(this, callback->m_param);
+        callback = next;
+    }
+}
+
+// VERIFY: eef716d6 manual
+// OFFSET: 0x0076D740
+void CGameTime::TickMinute() {
+    int32_t minutes = (this->GetHourAndMinutes() + 1) % 1440;
+    this->SetHourAndMinutes(minutes);
+
+    if (!minutes) {
+        this->AddDays(1, false);
+    }
+
+    this->m_minuteTicks++;
+    this->UpdateTimeStamps(minutes);
+    this->m_lastTickMs = OsGetAsyncTimeMs();
+    this->m_running = 1;
+    this->m_baseMinuteOfDay = minutes + this->m_fracMinutes;
+}
+
+// VERIFY: 71f0267b manual
+// OFFSET: 0x0076D810
+void CGameTime::GameTimeSetTime(const WowTime& time, bool tick) {
+    WowTime newTime = time;
+
+    if (this->m_minuteOffset) {
+        int32_t minutes = newTime.GetHourAndMinutes() + this->m_minuteOffset;
+        newTime.SetHourAndMinutes(minutes < 0 ? minutes + 1440 : minutes % 1440);
+    }
+
+    if (this->m_dayOffset) {
+        newTime.AddDays(this->m_dayOffset, false);
+    }
+
+    newTime.m_tzHours = time.m_tzHours;
+    *static_cast<WowTime*>(this) = newTime;
+
+    if (!tick) {
+        return;
+    }
+
+    if (this->m_minute) {
+        this->m_minute--;
+    } else {
+        this->m_minute = 59;
+
+        if (this->m_hour) {
+            this->m_hour--;
+        } else {
+            this->m_hour = 23;
+            this->AddDays(-1, false);
+        }
+    }
+
+    this->TickMinute();
+}
+
+// VERIFY: b37d545d manual
+// OFFSET: 0x0076D900
+void CGameTime::GameTimeUpdate(float elapsed) {
+    this->m_fracMinutes = this->m_minutesPerSecond * elapsed + this->m_fracMinutes;
+
+    if (this->m_elapsedMinutes && this->m_fracMinutes >= 1.0f) {
+        uint32_t minutes = static_cast<uint32_t>(this->m_fracMinutes);
+
+        if (this->m_elapsedMinutes < minutes) {
+            minutes = this->m_elapsedMinutes;
+        }
+
+        this->m_elapsedMinutes -= minutes;
+        this->m_fracMinutes -= minutes;
+    }
+
+    while (this->m_fracMinutes >= 1.0f) {
+        this->m_fracMinutes -= 1.0f;
+        this->TickMinute();
+    }
+}

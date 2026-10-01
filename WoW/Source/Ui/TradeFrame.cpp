@@ -3,6 +3,9 @@
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/Types.h"
 
+// STATIC: 0x00BFA680
+WOWGUID CGTradeInfo::m_enchantingItem;
+
 // STATIC: 0x00BFA658
 WOWGUID CGTradeInfo::m_tradingPlayer;
 

@@ -61,6 +61,7 @@ struct COMSATDATA {
 
 extern COMSATDATA s_comsatData[32];
 extern int32_t s_currentSession;
+extern TSHashTable<TALKINGPLAYER, CHashKeyGUID> unk_D37D88;
 extern CVar* s_cvarEnableMicrophone;
 extern CVar* s_cvarEnableVoiceChat;
 extern CVar* s_cvarPushToTalkButton;
@@ -98,7 +99,6 @@ extern int32_t s_comsatDisabledByClient;
 
 class SCritSect;
 extern SCritSect s_comsatDeviceLock;
-int32_t Script_UnitIsTalking(lua_State* L);
 void VoiceRegisterScriptFunctions();
 
 #endif

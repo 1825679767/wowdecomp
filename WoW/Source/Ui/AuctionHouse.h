@@ -7,6 +7,7 @@
 #include "WoW/Source/Net/Types.h"
 
 class CDataStore;
+class CGItem_C;
 struct lua_State;
 
 struct AuctionSortCriteria {
@@ -96,6 +97,9 @@ class CGAuctionHouse {
     static void EnterWorld();
     static void InitializeGame();
     static uint8_t m_auctionsTabShowing;
+    static bool IsSellItemValid(CGItem_C* item, int32_t showError);
+    static void GetSellItem(WOWGUID* item, uint8_t* bag, uint8_t* slot);
+    static void SetSellItem(WOWGUID item, WOWGUID container, uint32_t slot);
     static int32_t m_auctionHouseID;
 };
 

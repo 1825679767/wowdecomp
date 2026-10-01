@@ -84,6 +84,8 @@ class CVehicle_C {
     CVehicle_C* FindVehicleToPlayBoneAnim();
     void StartMirroringAnimsToPassengers();
     int32_t PlayBoneAnim(uint32_t boneId, uint32_t animId);
+    void HandleBoneAnimGrabEvent(uint32_t boneId, uint32_t eventId);
+    void HandleBoneAnimThrowEvent(uint32_t boneId, uint32_t eventId);
     void RemoveAllPassengersLocally();
 };
 

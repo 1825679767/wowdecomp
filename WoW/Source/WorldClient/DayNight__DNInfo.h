@@ -87,6 +87,7 @@ extern DNInfo g_dnInfo;
 
 DNInfo* GetInfo();
 CImVector LoadLightIntBand(int32_t time, const LightParamsRec* params, int32_t band);
+void SetFlashColor(CImVector color, float blend);
 }
 
 // INLINED

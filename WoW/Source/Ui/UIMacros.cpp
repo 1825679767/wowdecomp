@@ -9,6 +9,8 @@
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/PetInfo.h"
+#include "WoW/Source/Ui/UIMacroOptions.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/AccountData.h"
 
 // STATIC: 0x00ACE2A0
 static TSExplicitList<MACRONODE, offsetof(MACRONODE, m_dynamicLink)> s_dynamicMacros;
@@ -22,6 +24,9 @@ static TSHashTable<MACRONODE, HASHKEY_NONE> s_macros;
 // STATIC: 0x00ACE1E8
 static const char* s_macroIconPath = "Interface\\Icons\\";
 
+// STATIC: 0x00BEAF44
+uint32_t CGUIMacros::m_state;
+
 // STATIC: 0x00BEAF48
 const char* CGUIMacros::m_macroRunning;
 
@@ -33,6 +38,12 @@ uint32_t CGUIMacros::m_numMacros;
 
 // STATIC: 0x00BEAF54
 uint32_t CGUIMacros::m_numCharacterMacros;
+
+// STATIC: 0x00BEAF60
+static uint16_t s_initCounter;
+
+// STATIC: 0x00BEAF64
+static uint32_t s_pendingLoads;
 
 // VERIFY: 395f9dc1 auto
 // OFFSET: 0x00564AB0
@@ -174,4 +185,35 @@ MACRONODE* CGUIMacros::FindMacro(const char* name) {
     }
 
     return nullptr;
+}
+
+// VERIFY: ebb01234 auto
+// OFFSET: 0x0050F4D0
+bool CGUIMacros::IsActionAllowed(uint32_t action) {
+    return !CGUIMacros::m_macroButton || ((1 << action) & CGUIMacros::m_state);
+}
+
+// VERIFY: 2f0aa8c8 auto
+// OFFSET: 0x00565AD0
+void CGUIMacros::RemoveDynamicMacro(MACRONODE* macro) {
+    s_dynamicMacros.UnlinkNode(macro);
+}
+
+// VERIFY: 4406f3d1 auto
+// OFFSET: 0x00566140
+void CGUIMacros::Initialize() {
+    do {
+        s_initCounter++;
+    } while (!s_initCounter);
+
+    InitializeMacroOptions();
+    CGUIMacros::LoadIcons();
+}
+
+// VERIFY: 7d331447 auto
+// OFFSET: 0x00567FD0
+void CGUIMacros::LoadMacros() {
+    s_pendingLoads = 0x30000;
+    LoadAccountData(4, CGUIMacros::LoadMacrosCallback, reinterpret_cast<void*>(static_cast<uintptr_t>(s_initCounter | 0x10000)));
+    LoadAccountData(5, CGUIMacros::LoadMacrosCallback, reinterpret_cast<void*>(static_cast<uintptr_t>(s_initCounter | 0x20000)));
 }

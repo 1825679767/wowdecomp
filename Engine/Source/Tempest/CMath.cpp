@@ -700,3 +700,17 @@ float CMath::sin_(float x) {
 float OrganicSmooth(float from, float to, float t) {
     return from + (to - from) * ((1.0f - cosf(t * 3.1415927f)) * 0.5f);
 }
+
+// VERIFY: 0fa97e20 auto
+// OFFSET: 0x006F7A60
+void CMath::sincos_(float x, float* s, float* c) {
+    float turns = x * 0.31830987f;
+    float frac;
+    int32_t whole;
+    CMath::split_(turns - 0.5f, &frac, &whole);
+    float value = 1.0f - frac * ((6.0f - 4.0f * frac) * frac);
+    *s = (whole & 1) ? -value : value;
+    CMath::split_(turns, &frac, &whole);
+    value = 1.0f - frac * ((6.0f - 4.0f * frac) * frac);
+    *c = (whole & 1) ? -value : value;
+}

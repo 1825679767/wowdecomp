@@ -3,6 +3,10 @@
 #include "WoW/Source/DB/Rec/AchievementRec.h"
 #include "WoW/Source/DB/Rec/Achievement_CriteriaRec.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include <ctime>
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "WoW/Source/DB/Rec/Achievement_CategoryRec.h"
+#include "WoW/Source/Ui/Types.h"
 
 // STATIC: 0x00ACFD98
 static TSList<CLIENT_ACHIEVEMENT_CRITERIA, TSGetLink<CLIENT_ACHIEVEMENT_CRITERIA>> s_unkACFD98;
@@ -95,4 +99,213 @@ void CGAchievementInfo::InitializeGame() {
             achievement->m_criteria.NewNode(2, 0, 0)->m_criteria = rec;
         }
     }
+}
+
+// VERIFY: 1479ef2e auto
+// OFFSET: 0x005B0DE0
+bool CGAchievementInfo::IsCriteriaStat(int32_t criteriaId) {
+    Achievement_CriteriaRec* criteria = g_achievement_CriteriaDB.GetRecord(criteriaId);
+
+    if (!criteria) {
+        return false;
+    }
+
+    AchievementRec* achievement = g_achievementDB.GetRecord(criteria->m_achievementID);
+
+    if (!achievement) {
+        return false;
+    }
+
+    Achievement_CategoryRec* category = g_achievement_CategoryDB.GetRecord(achievement->m_category);
+
+    if (!category) {
+        return false;
+    }
+
+    if (category->m_id == 1) {
+        return true;
+    }
+
+    category = g_achievement_CategoryDB.GetRecord(category->m_parent);
+
+    if (!category) {
+        return false;
+    }
+
+    while (category->m_id != 1) {
+        category = g_achievement_CategoryDB.GetRecord(category->m_parent);
+
+        if (!category) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// VERIFY: 06c77f2b manual
+// OFFSET: 0x005B2520
+void CGAchievementInfo::UpdateCriteria(int32_t id, uint64_t counter, uint32_t flags, WowTime date, WOWGUID player, uint32_t timer1, uint32_t timer2) {
+    CLIENT_ACHIEVEMENT_CRITERIA* criteria = nullptr;
+
+    for (CLIENT_ACHIEVEMENT_CRITERIA* node = s_unkACFD98.Head(); node; node = s_unkACFD98.Next(node)) {
+        if (node->m_id == id) {
+            criteria = node;
+            break;
+        }
+    }
+
+    if (!criteria) {
+        criteria = s_unkACFD98.NewNode(0, 0, 0);
+        CLIENT_ACHIEVEMENT_CRITERIA* position = s_unkACFD98.Head();
+
+        while (position && position->m_date > date) {
+            position = s_unkACFD98.Next(position);
+        }
+
+        s_unkACFD98.LinkNode(criteria, 2, position);
+    }
+
+    criteria->m_counter = counter;
+    criteria->m_id = id;
+    criteria->m_flags = flags;
+    criteria->m_date = date;
+    criteria->m_player = player;
+    criteria->m_timer1 = timer1;
+    criteria->m_timer2 = timer2;
+
+    if (flags & 1) {
+        s_unkACFD98.UnlinkNode(criteria);
+        delete criteria;
+        return;
+    }
+
+    if (!CGAchievementInfo::IsCriteriaStat(id)) {
+        return;
+    }
+
+    CLIENT_ACHIEVEMENT_CRITERIA* recent = s_unkACFDA4.NewNode(0, 0, 0);
+    recent->m_id = criteria->m_id;
+    recent->m_counter = criteria->m_counter;
+    recent->m_flags = criteria->m_flags;
+    recent->m_date = criteria->m_date;
+    recent->m_player = criteria->m_player;
+    recent->m_timer1 = criteria->m_timer1;
+
+    Achievement_CriteriaRec* rec = g_achievement_CriteriaDB.GetRecord(recent->m_id);
+    CLIENT_ACHIEVEMENT_CRITERIA* node = s_unkACFDA4.Head();
+    s_unkACFDA4.LinkNode(recent, 2, node);
+
+    for (int32_t count = 0; node; ) {
+        Achievement_CriteriaRec* nodeRec = g_achievement_CriteriaDB.GetRecord(node->m_id);
+
+        if (nodeRec) {
+            if (node->m_id == recent->m_id || nodeRec->m_achievementID == rec->m_achievementID) {
+                s_unkACFDA4.UnlinkNode(node);
+                delete node;
+                node = nullptr;
+            } else {
+                node = s_unkACFDA4.Next(node);
+            }
+        }
+
+        if (++count >= 5) {
+            if (node) {
+                s_unkACFDA4.UnlinkNode(node);
+                delete node;
+            }
+
+            return;
+        }
+    }
+}
+
+// VERIFY: b31d5df0 manual
+// OFFSET: 0x005B28D0
+void CGAchievementInfo::UpdateAchievement(int32_t id, WowTime date) {
+    CLIENT_ACHIEVEMENTS* achievement = nullptr;
+
+    for (CLIENT_ACHIEVEMENTS* node = s_completedAchievements.Head(); node; node = s_completedAchievements.Next(node)) {
+        if (node->m_id == id) {
+            achievement = node;
+            break;
+        }
+    }
+
+    AchievementRec* rec = g_achievementDB.GetRecord(id);
+
+    if (!rec) {
+        return;
+    }
+
+    if (!achievement) {
+        achievement = s_completedAchievements.NewNode(0, 0, 0);
+        CLIENT_ACHIEVEMENTS* position = s_completedAchievements.Head();
+        bool found = false;
+
+        while (position && position->m_date >= date && !found) {
+            if (position->m_date == date) {
+                while (position && position->m_date >= date && !found) {
+                    AchievementRec* other = g_achievementDB.GetRecord(position->m_id);
+
+                    if (other && rec->m_uiOrder > other->m_uiOrder) {
+                        found = true;
+                    } else {
+                        position = s_completedAchievements.Next(position);
+                    }
+                }
+            } else {
+                position = s_completedAchievements.Next(position);
+            }
+        }
+
+        s_completedAchievements.LinkNode(achievement, 2, position);
+    }
+
+    achievement->m_id = id;
+    achievement->m_date = date;
+}
+
+// VERIFY: 27756e9f manual
+// OFFSET: 0x005B32F0
+int32_t Packet_SMSG_ALL_ACHIEVEMENT_DATA(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    CGAchievementInfo::m_showAchievementUI = 1;
+    WowTime date;
+    int32_t now = static_cast<int32_t>(::time(nullptr));
+    int32_t id;
+    msg->Get(reinterpret_cast<uint32_t&>(id));
+
+    while (id >= 0) {
+        *msg >> date;
+        CGAchievementInfo::UpdateAchievement(id, date);
+        msg->Get(reinterpret_cast<uint32_t&>(id));
+    }
+
+    msg->Get(reinterpret_cast<uint32_t&>(id));
+
+    while (id >= 0) {
+        SmartGUID counter;
+        SmartGUID player;
+        uint32_t flags;
+        uint32_t timer1;
+        uint32_t timer2;
+        *msg >> counter;
+        *msg >> player;
+        msg->Get(flags);
+        *msg >> date;
+        msg->Get(timer1);
+        msg->Get(timer2);
+        CGAchievementInfo::UpdateCriteria(id, counter.m_guid, flags, date, player, now - timer1, now - timer2);
+        Achievement_CriteriaRec* rec = g_achievement_CriteriaDB.GetRecord(id);
+
+        if (rec && rec->m_timerTime) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_TRACKED_ACHIEVEMENT_UPDATE, "%d%d%d%d", rec->m_achievementID, rec->m_id, timer1, rec->m_timerTime);
+        }
+
+        msg->Get(reinterpret_cast<uint32_t&>(id));
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_CRITERIA_UPDATE, nullptr);
+    FrameScript_SignalEvent(SCRIPT_EVENT_RECEIVED_ACHIEVEMENT_LIST, nullptr);
+    return 1;
 }

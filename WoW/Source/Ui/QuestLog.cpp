@@ -181,6 +181,26 @@ int32_t CGQuestLog::GetSelectedLogEntry() {
     return index;
 }
 
+// VERIFY: 17b653c2 auto
+// OFFSET: 0x005DFF40
+void CGQuestLog::SetServerTime(int32_t serverTime, int32_t resetTime) {
+    int32_t now = static_cast<int32_t>(time(nullptr));
+    CGQuestLog::m_timeOffset = now - serverTime;
+
+    if (now == serverTime) {
+        CGQuestLog::m_timeOffset = 1;
+    }
+
+    CGQuestLog::m_questResetTime = now + resetTime;
+    CGQuestLog::m_nextQuestUpdate = now + 3600;
+
+    if (now + 3600 >= now + resetTime) {
+        CGQuestLog::m_nextQuestUpdate = now + resetTime;
+    }
+
+    Script_SendUniqueSignal(SCRIPT_EVENT_QUEST_LOG_UPDATE);
+}
+
 // VERIFY: 98372535 manual
 // OFFSET: 0x005DFFA0
 void CGQuestLog::SetSelectedQuest(int32_t index) {
@@ -731,6 +751,17 @@ const char* GetQuestTag(int32_t index) {
 int32_t CGQuestLog::IsSelectedQuestExpired() {
     uint32_t index = CGQuestLog::GetSelectedLogEntry();
     return index < static_cast<uint32_t>(CGQuestLog::m_numQuest) && !CGQuestLog::m_quests[index].m_isHeader && CGQuestLog::m_quests[index].m_expired;
+}
+
+// VERIFY: e7d44bdf auto
+// OFFSET: 0x005E08A0
+int32_t Packet_SMSG_QUERY_TIME_RESPONSE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t serverTime = 0;
+    uint32_t resetTime;
+    msg->Get(serverTime);
+    msg->Get(resetTime);
+    CGQuestLog::SetServerTime(serverTime, resetTime);
+    return 1;
 }
 
 // VERIFY: f903a683 manual
@@ -1725,4 +1756,68 @@ int32_t CGQuestLog::IsQuestExpiredByID(int32_t questId) {
     }
 
     return 0;
+}
+
+// VERIFY: f75725e2 auto
+// OFFSET: 0x005DFEF0
+void CGQuestLog::UpdateWatchTimers() {
+    for (uint32_t i = 0; i < CGQuestLog::m_numQuestWatches; i++) {
+        if (CGQuestLog::m_questWatches[i].m_expireTime > 0 && static_cast<int32_t>(time(nullptr)) >= CGQuestLog::m_questWatches[i].m_expireTime) {
+            CGQuestLog::RemoveQuestWatch(CGQuestLog::m_questWatches[i].m_questId);
+            Script_SendUniqueSignal(SCRIPT_EVENT_QUEST_LOG_UPDATE);
+        }
+    }
+}
+
+// VERIFY: 993444bb manual
+// OFFSET: 0x005E1250
+void CGQuestLog::UpdateQuestItem(int32_t itemId) {
+    for (int32_t i = 0; i < CGQuestLog::m_numQuest; i++) {
+        WOWGUID none = WOWGUID();
+        QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_quests[i].m_questId, none, nullptr, nullptr, false);
+
+        if (!quest) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < 6; j++) {
+            if (static_cast<int32_t>(quest->m_collectItemId[j]) == itemId) {
+                Script_SendUniqueSignal(SCRIPT_EVENT_QUEST_LOG_UPDATE);
+
+                if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+                    CGPlayer_C::QueryQuestGiverStatusMultiple();
+                }
+
+                return;
+            }
+        }
+    }
+}
+
+// VERIFY: 4d319090 manual
+// OFFSET: 0x005E5840
+int32_t CGQuestLog::SetQuestExpiredByID(int32_t questId) {
+    uint32_t index = 0;
+
+    if (!CGQuestLog::m_numQuest) {
+        return 0;
+    }
+
+    while (CGQuestLog::m_quests[index].m_questId != questId) {
+        if (++index >= static_cast<uint32_t>(CGQuestLog::m_numQuest)) {
+            return 0;
+        }
+    }
+
+    if (index >= static_cast<uint32_t>(CGQuestLog::m_numQuest) || CGQuestLog::IsQuestCompleteEx(index, 1)) {
+        return 0;
+    }
+
+    CGQuestLog::m_quests[index].m_expired = 1;
+
+    if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+        CGPlayer_C::QueryQuestGiverStatusMultiple();
+    }
+
+    return 1;
 }

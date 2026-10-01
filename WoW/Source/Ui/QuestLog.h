@@ -110,6 +110,7 @@ class CGQuestLog {
     static int32_t m_nextQuestUpdate;
     static int32_t GetSelectedLogEntry();
     static void SetSelectedQuest(int32_t index);
+    static void SetServerTime(int32_t serverTime, int32_t resetTime);
     static int32_t SetQuestExpired(uint32_t index);
     static void UpdateQuestPOIFromUserServer();
     static QuestWatch m_questWatches[25];
@@ -127,6 +128,7 @@ class CGQuestLog {
     static int32_t GetQuestAt(int32_t index);
     static int32_t GetQuestLeaderBoardForItem(int32_t questId, int32_t itemId, QuestLogLeaderBoardParams* params);
     static int32_t IsQuestCompleteEx(uint32_t index, int32_t a2);
+    static int32_t SetQuestExpiredByID(int32_t questId);
     static void UpdateWatchTimers();
     static void UpdateQuestItem(int32_t itemId);
     static void HandlePOIQueryResponse(CDataStore* msg);

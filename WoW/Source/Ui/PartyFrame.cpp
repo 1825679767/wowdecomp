@@ -337,3 +337,49 @@ int32_t CGPartyInfo::IsPlayerOrPetInParty(const WOWGUID& guid) {
 
     return 0;
 }
+
+// VERIFY: a81ee60b manual
+// OFFSET: 0x0052D310
+int32_t CGPartyInfo::IsMemberOrPet(const WOWGUID& guid) {
+    if (!guid) {
+        return 0;
+    }
+
+    if (guid == ClntObjMgrGetActivePlayer()) {
+        return 1;
+    }
+
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        const WOWGUID& pet = player->m_unit->m_unitFieldCharm ? player->m_unit->m_unitFieldCharm : player->m_unit->m_unitFieldSummon;
+
+        if (pet == guid) {
+            return 1;
+        }
+    }
+
+    for (uint32_t i = 0; i < 4; i++) {
+        if (!CGPartyInfo::m_members[i]) {
+            continue;
+        }
+
+        if (CGPartyInfo::m_members[i] == guid) {
+            return 1;
+        }
+
+        CGUnit_C* member = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPartyInfo::m_members[i], TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (member) {
+            const WOWGUID& pet = member->m_unit->m_unitFieldCharm ? member->m_unit->m_unitFieldCharm : member->m_unit->m_unitFieldSummon;
+
+            if (pet == guid) {
+                return 1;
+            }
+        } else if ((unk_BD0D08[i].m_flags & 1) && unk_BD0D08[i].m_pet.m_guid == guid) {
+            return 1;
+        }
+    }
+
+    return 0;
+}

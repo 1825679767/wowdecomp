@@ -19,7 +19,9 @@ class CGRaidMember {
     /* 0008 */ uint32_t unk_0008;
     /* 000C */ int32_t m_rank;
     /* 0010 */ CGPartyMemberState m_stats;
-    /* 0320 */ uint32_t unk_0320[3];
+    /* 0320 */ int32_t m_readyCheckPending;
+    /* 0324 */ int32_t m_readyCheckReady;
+    /* 0328 */ uint32_t unk_0328;
     /* 032C */ uint32_t m_groupRole;
 };
 
@@ -36,9 +38,14 @@ class CGRaidInfo {
     static WOWGUID m_readyCheckInitiator;
     static uint32_t m_readyCheckTimer;
     static uint8_t m_rosterCounter;
+    static int32_t m_partyReadyCheckReady[4];
+    static int32_t m_partyReadyCheckPending[4];
 
     static void EnterWorld();
     static void InitializeGame();
+    static int32_t GetPartyMemberIndex(WOWGUID guid);
+    static int32_t IsPartyMemberReadyCheckPending(uint32_t index);
+    static int32_t IsPartyMemberReadyCheckReady(uint32_t index);
     static CGPartyMemberState* GetRemoteStats(const WOWGUID& guid);
     static CGRaidMember* FindMemberByGuid(WOWGUID guid);
     static CGPartyPetState* GetRemotePetStats(const WOWGUID& guid);
@@ -60,9 +67,7 @@ int32_t Script_PromoteToLeader(lua_State* L);
 int32_t Script_PromoteToAssistant(lua_State* L);
 int32_t Script_DemoteAssistant(lua_State* L);
 int32_t Script_SetRaidTarget(lua_State* L);
-int32_t Script_GetRaidTargetIndex(lua_State* L);
 int32_t Script_DoReadyCheck(lua_State* L);
-int32_t Script_GetReadyCheckStatus(lua_State* L);
 void RaidInfoRegisterScriptFunctions();
 
 void RaidRosterNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success);

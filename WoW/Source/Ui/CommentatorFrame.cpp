@@ -3,6 +3,11 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/UIUtil/Camera.h"
+#include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/WorldClient/World.h"
 
 // STATIC: 0x00ACE4A8
 CGCommentator CGCommentator::s_Commentator;
@@ -130,4 +135,45 @@ void CGCommentator::InitializeGame() {
     ClientServices::SetMessageHandler(SMSG_COMMENTATOR_STATE_CHANGED, CGCommentator::OnStateChanged, nullptr);
     ClientServices::SetMessageHandler(SMSG_COMMENTATOR_SKIRMISH_QUEUE_RESULT1, CGCommentator::OnSkirmishPlayersInQueue, nullptr);
     ClientServices::SetMessageHandler(SMSG_COMMENTATOR_SKIRMISH_QUEUE_RESULT2, CGCommentator::OnSkirmishPlayersModeState, nullptr);
+}
+
+// VERIFY: 4126a5f5 manual
+// OFFSET: 0x0056B510
+void CGCommentator::SnapCameraToPlayer() {
+    if (!CGWorldFrame::s_currentWorldFrame) {
+        return;
+    }
+
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+
+    if (!camera) {
+        return;
+    }
+
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return;
+    }
+
+    this->m_pitch = player->GetPitch();
+    this->m_facing = player->GetFacing();
+    this->m_position = player->GetPosition();
+    this->m_position.z += 1.5f;
+    camera->CommentatorSetViewAndPosition(this->m_position, this->m_facing, this->m_pitch);
+}
+
+// VERIFY: a88d79fe auto
+// OFFSET: 0x0056B830
+void CGCommentator::PostInit(CGPlayer_C* player) {
+    if (player && player->IsCommentatorUberOrInArena()) {
+        World::ObjectSetShadow(player->m_worldObject, 2, 2);
+
+        if (CGWorldFrame::s_currentWorldFrame) {
+            CGWorldFrame::GetActiveCamera()->SetView(6, 2, 0);
+            CGCommentator::s_Commentator.SnapCameraToPlayer();
+        }
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_COMMENTATOR_ENTER_WORLD, nullptr);
 }

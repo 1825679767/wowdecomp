@@ -8,13 +8,10 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 
-// STATIC: 0x00C22B38
-static uint32_t s_numPetitionNames;
-
-// VERIFY: d50f1520 manual
+// VERIFY: b24a9953 manual
 // OFFSET: 0x005CEAC0
 static int32_t Script_GetNumPetitionNames(lua_State* L) {
-    lua_pushnumber(L, s_numPetitionNames);
+    lua_pushnumber(L, CGPetitionInfo::m_numPetitionNames);
     return 1;
 }
 
@@ -42,7 +39,7 @@ static int32_t Script_SignPetition(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 05f0a836 manual
+// VERIFY: 5cff31d5 manual
 // OFFSET: 0x005CF040
 static int32_t Script_CanSignPetition(lua_State* L) {
     CGPetition* petition = CGPetitionInfo::m_petition;
@@ -52,7 +49,7 @@ static int32_t Script_CanSignPetition(lua_State* L) {
         if (petition->m_staticType == 0 || petition->m_staticType == 1) {
             CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
 
-            if ((!petition->m_staticType && player && player->m_player->m_playerGuildid) || static_cast<int32_t>(s_numPetitionNames) >= static_cast<int32_t>(petition->m_maxSignatures)) {
+            if ((!petition->m_staticType && player && player->m_player->m_playerGuildid) || static_cast<int32_t>(CGPetitionInfo::m_numPetitionNames) >= static_cast<int32_t>(petition->m_maxSignatures)) {
                 canSign = 0;
             }
         }
@@ -63,8 +60,8 @@ static int32_t Script_CanSignPetition(lua_State* L) {
         }
     }
 
-    for (uint32_t i = 0; i < s_numPetitionNames; i++) {
-        PetitionSignerInfo* signer = i < s_numPetitionNames ? &CGPetitionInfo::m_signers.m_data[i] : nullptr;
+    for (uint32_t i = 0; i < CGPetitionInfo::m_numPetitionNames; i++) {
+        PetitionSignerInfo* signer = i < CGPetitionInfo::m_numPetitionNames ? &CGPetitionInfo::m_signers.m_data[i] : nullptr;
 
         if (signer && signer->m_guid == ClntObjMgrGetActivePlayer()) {
             lua_pushnil(L);

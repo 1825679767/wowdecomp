@@ -7,6 +7,7 @@
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 #include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WorldClient/MapEntity.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
@@ -235,4 +236,68 @@ void AreaListRegisterLocation(int32_t mapId, CMapEntity* entity) {
     const char* zoneText = zoneName && *zoneName ? zoneName : nullptr;
     int32_t subzoneId = area ? area->m_id : 0;
     CGGameUI::NewZoneFeedback(zone->m_id, subzoneId, s_wmoGroupID, zoneText, subZoneText, realZoneText, World::QueryObjectInside(entity));
+}
+
+// VERIFY: cc53ae16 auto
+// OFFSET: 0x0078E960
+void AreaListShutdown() {
+    s_lastAreaID = -1;
+    s_lastSubAreaID = -1;
+    s_lastMapID = -1;
+    s_inMapObj = 0;
+    s_lastWMOID = -1;
+    s_lastWMOHash = -1;
+    s_lastWMOGroupNum = -1;
+    s_wmoGroupID = -1;
+}
+
+// VERIFY: f319121e manual
+// OFFSET: 0x0078F1F0
+bool AreaListZoneHasBreathParticles(CMapEntity* entity) {
+    AreaTableRec* area;
+
+    if (!World::QueryObjectInside(entity)) {
+        uint32_t areaId = 0;
+
+        if (!CMap::QueryAreaId(entity, areaId)) {
+            return false;
+        }
+
+        area = g_areaTableDB.GetRecord(areaId);
+
+        if (!area) {
+            return false;
+        }
+    } else {
+        WMOAreaTableRec* groupRec = nullptr;
+        WMOAreaTableRec* rootRec = nullptr;
+        int32_t groupId = 0;
+
+        if (!World::QueryMapObjAreaTable(entity, &groupRec, &rootRec, &groupId)) {
+            return false;
+        }
+
+        area = groupRec ? g_areaTableDB.GetRecord(groupRec->m_areaTableID) : nullptr;
+
+        if (!area) {
+            if (!rootRec) {
+                return false;
+            }
+
+            area = g_areaTableDB.GetRecord(rootRec->m_areaTableID);
+
+            if (!area) {
+                return false;
+            }
+        }
+    }
+
+    AreaTableRec* parent = g_areaTableDB.GetRecord(area->m_parentAreaID);
+    int32_t flags = area->m_flags;
+
+    if (!(flags & 2) && parent) {
+        flags = parent->m_flags;
+    }
+
+    return flags & 1;
 }

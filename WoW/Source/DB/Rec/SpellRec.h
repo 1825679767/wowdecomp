@@ -127,6 +127,7 @@ class SpellRec {
     static const int32_t* GetClassMask(const SpellRec* spell, int32_t effect);
     static bool IsAffectedBy(const SpellRec* spell, const SpellRec* modifier, int32_t effect);
     static bool UsableInShapeshift(const SpellRec* spell, int32_t form);
+    static bool NotUsableInShapeshiftForm(const SpellRec* spell, int32_t form);
     static int32_t GetCastTime(const SpellRec* spell, int32_t isPet, int32_t isUnit, int32_t allowNegative);
     static bool IsMeleeRange(const SpellRec* spell);
     static bool IsMinimumRange(const SpellRec* spell);

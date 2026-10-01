@@ -9,6 +9,7 @@ struct lua_State;
 class CGAutoCompleteName {
     public:
     static bool s_resortNamesOnRecency;
+    static void RemoveFlagsByName(const char* name, uint32_t flags, int32_t a3, int32_t a4);
     static bool s_whenEditingFromCenter;
     static bool s_useContext;
 

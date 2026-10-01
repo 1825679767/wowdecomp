@@ -27,6 +27,16 @@
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "WoW/Source/Object/ObjectClient/AuraData.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/SpellItemEnchantmentRec.h"
+#include "WoW/Source/DB/Rec/SpellMechanicRec.h"
+#include "Engine/Source/Tempest/CMath.h"
+#include "WoW/Source/DB/Rec/SpellDurationRec.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/Game/GameClient/PlayerName.h"
+#include "WoW/Source/Game/ValidateName.h"
+#include "Engine/Source/Base/ConvertUTF.h"
+#include "WoW/Source/Object/CreatureStats.h"
+#include "WoW/Source/DB/Rec/SummonPropertiesRec.h"
 
 // STATIC: 0x00ADB758
 static const char* s_combatLogEventNames[50] = {
@@ -133,6 +143,9 @@ static const char* s_combatTextTypes[48] = {
     "HEAL_ABSORB",
     "ARENA_POINTS_GAINED"
 };
+
+// STATIC: 0x00ADB93C
+static const uint32_t s_mechanicTextColor = 0xFFFFDE00;
 
 // STATIC: 0x00ADB944
 static TSList<InvalidatedName, TSGetLink<InvalidatedName> > s_invalidatedNames;
@@ -1441,4 +1454,1331 @@ int32_t CombatLogEntry::PushEvent(lua_State* L) {
     }
 
     return count;
+}
+
+// VERIFY: c56cea32 auto
+// OFFSET: 0x00750210
+void CombatLogEntry::SetExecuteItem(int32_t itemId) {
+    this->m_infoFlags |= 0x200;
+    this->m_info.m_values[0] = itemId;
+    PendingCombatLogData* data = GetPendingCombatLogData(this, WOWGUID{ 0 }, 4);
+    data->m_id = itemId;
+    data->m_type = 5;
+    this->m_info.m_names[1] = this->ResolveName(data, nullptr, true);
+}
+
+// VERIFY: ed94944b manual
+// OFFSET: 0x00750500
+void CombatLog::QueueMissedSpellText(const WOWGUID& source, const WOWGUID& dest, int32_t event, const SpellRec* spell, int32_t missType, int32_t amount, uint32_t timeOffset) {
+    CombatLogEntry* entry = GetCombatLogEntry(source, dest, event, spell);
+    entry->SetMissInfo(missType, amount);
+
+    if (s_combatTextActiveUnit == dest) {
+        switch (missType) {
+            case 1:
+                SendToCombatText(event == 8 ? 15 : 3);
+                break;
+
+            case 2:
+                SendToCombatText(event == 8 ? 22 : 10);
+                break;
+
+            case 3:
+                SendToCombatText(event == 8 ? 16 : 4);
+                break;
+
+            case 4:
+                SendToCombatText(event == 8 ? 17 : 5);
+                break;
+
+            case 5:
+                SendToCombatText(event == 8 ? 23 : 11);
+                break;
+
+            case 6:
+                SendToCombatText(event == 8 ? 18 : 6);
+                break;
+
+            case 7:
+            case 8:
+                SendToCombatText(event == 8 ? 19 : 7);
+                break;
+
+            case 9:
+                SendToCombatText(event == 8 ? 20 : 8);
+                break;
+
+            case 10:
+                SendToCombatText(event == 8 ? 24 : 12);
+                break;
+
+            case 11:
+                SendToCombatText(event == 8 ? 21 : 9);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    QueueCombatLogEntry(entry, timeOffset);
+}
+
+// VERIFY: 66f75cea auto
+// OFFSET: 0x00751050
+int32_t Packet_SMSG_ENCHANTMENTLOG(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    SmartGUID target;
+    SmartGUID caster;
+    *msg >> target;
+    *msg >> caster;
+    uint32_t itemId;
+    msg->Get(itemId);
+    uint32_t enchantId;
+    msg->Get(enchantId);
+
+    SpellItemEnchantmentRec* enchant = g_spellItemEnchantmentDB.GetRecord(enchantId);
+
+    if (enchant && !(enchant->m_flags & 0x2)) {
+        CombatLogEntry* entry = GetCombatLogEntry(caster, target, caster.m_guid ? 31 : 32, nullptr);
+        entry->m_infoFlags |= 0x1000;
+        entry->m_info.m_names[2] = enchant->m_name;
+        entry->SetExecuteItem(itemId);
+        QueueCombatLogEntry(entry, 0);
+    }
+
+    return 1;
+}
+
+// VERIFY: c50eda39 auto
+// OFFSET: 0x00751AD0
+void UnitCombatLogSpellFail(const WOWGUID& caster, int32_t spellId, const char* reason) {
+    if (!reason || !*reason) {
+        return;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        WOWGUID dest = { 0 };
+        CombatLogEntry* entry = GetCombatLogEntry(caster, dest, 7, &spell);
+        entry->SetFailReason(reason);
+        QueueCombatLogEntry(entry, 0);
+    }
+}
+
+// VERIFY: 94b0219d auto
+// OFFSET: 0x00751B80
+void UnitCombatLogSpellMissed(const WOWGUID& casterGuid, const WOWGUID& targetGuid, int32_t spellId, int32_t missType, bool a5, bool a6, int32_t a7) {
+    if (!missType) {
+        return;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        int32_t event;
+
+        if (a6) {
+            event = 33;
+        } else if (a5) {
+            event = 41;
+        } else {
+            event = (spell.m_attributesExC & 0x8000) ? 4 : 8;
+        }
+
+        CombatLog::QueueMissedSpellText(casterGuid, targetGuid, event, &spell, missType, 0, a7);
+    }
+}
+
+// VERIFY: d5382c97 manual
+// OFFSET: 0x007522A0
+void CombatLog::AddSpellCastEntry(const WOWGUID& source, const WOWGUID& dest, int32_t spellId) {
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        int32_t event = (static_cast<uint32_t>(dest.m_guid >> 32) & 0xF0F00000) == 0xF0100000 ? 16 : 15;
+        CombatLogEntry* entry = GetCombatLogEntry(source, dest, event, &spell);
+        QueueCombatLogEntry(entry, 0);
+    }
+}
+
+// VERIFY: 5431f565 auto
+// OFFSET: 0x00752340
+void CombatLog::AddSpellResurrectEntry(const WOWGUID& source, const WOWGUID& dest, int32_t spellId) {
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        CombatLogEntry* entry = GetCombatLogEntry(source, dest, 46, &spell);
+        QueueCombatLogEntry(entry, 0);
+    }
+}
+
+// VERIFY: 397ad275 auto
+// OFFSET: 0x007523D0
+void UnitCombatLogInterrupt(const WOWGUID& casterGuid, const WOWGUID& targetGuid, int32_t spellId, int32_t interruptedSpellId) {
+    SpellRec spell;
+    SpellRec interrupted;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name && g_spellDB.GetRecord(interruptedSpellId, &interrupted) && !(interrupted.m_attributes & 0x180) && *interrupted.m_name) {
+        CombatLogEntry* entry = GetCombatLogEntry(casterGuid, targetGuid, 17, &spell);
+        entry->m_infoFlags |= 0x100;
+        entry->m_info.m_values[0] = interruptedSpellId;
+        QueueCombatLogEntry(entry, 0);
+
+        if (IsCombatTextActiveUnit(targetGuid)) {
+            SendToCombatText(0, interrupted.m_name);
+        }
+
+        SpellMechanicRec* mechanic = g_spellMechanicDB.GetRecord(26);
+
+        if (mechanic) {
+            DisplayMechanicEffect(&targetGuid, &casterGuid, &spell, mechanic);
+        }
+    }
+}
+
+// VERIFY: 130013bd auto
+// OFFSET: 0x00752520
+void CombatLog::AddSpellDamageEntry(const WOWGUID& source, const WOWGUID& dest, int32_t spellId, int32_t damage, uint32_t timeOffset) {
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name && damage) {
+        CombatLogEntry* entry = GetCombatLogEntry(source, dest, 18, &spell);
+        entry->m_infoFlags |= 0x1;
+        entry->m_info.m_values[0] = damage;
+        QueueCombatLogEntry(entry, timeOffset);
+
+        if (s_combatTextActiveUnit == dest) {
+            SendToCombatText(41, damage);
+        }
+    }
+}
+
+// VERIFY: 5dd1e7d2 auto
+// OFFSET: 0x007525E0
+void CombatLog::AddSpellExecuteEntry(const WOWGUID& source, const WOWGUID& dest, int32_t itemId, int32_t spellId) {
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        CombatLogEntry* entry = GetCombatLogEntry(source, dest, 19, &spell);
+        entry->SetExecuteItem(itemId);
+        QueueCombatLogEntry(entry, 0);
+    }
+}
+
+// VERIFY: 52db4556 auto
+// OFFSET: 0x00752680
+void CombatLog::AddSpellEnergizeEntry(const WOWGUID& source, const WOWGUID& dest, int32_t spellId) {
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        CombatLogEntry* entry = GetCombatLogEntry(source, dest, 20, &spell);
+        QueueCombatLogEntry(entry, 0);
+    }
+}
+
+// VERIFY: 8c0f6497 manual
+// OFFSET: 0x006D3220
+int32_t CombatLog::HandleSpellLogExecute(CDataStore* msg, int32_t timeOffset) {
+    SmartGUID caster;
+    *msg >> caster;
+    uint32_t spellId = 0;
+    msg->Get(spellId);
+    uint32_t effectCount = 0;
+    msg->Get(effectCount);
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        msg->m_read = msg->m_size;
+        return 1;
+    }
+
+    for (int32_t i = effectCount; i > 0; i--) {
+        uint32_t effect = 0;
+        msg->Get(effect);
+        uint32_t targetCount = 0;
+        msg->Get(targetCount);
+
+        for (int32_t j = targetCount; j > 0; j--) {
+            SmartGUID target;
+
+            switch (effect) {
+                case 8:
+                case 62: {
+                    *msg >> target;
+                    uint32_t amount = 0;
+                    msg->Get(amount);
+                    uint32_t powerType = 0;
+                    msg->Get(powerType);
+                    float multiplier = 0.0f;
+                    msg->Get(multiplier);
+                    UnitCombatLogPowerDrain(caster, target, spellId, powerType, amount, multiplier, (spell.m_attributesExC & 0x2000000) != 0, timeOffset);
+                    break;
+                }
+
+                case 18:
+                case 113:
+                    *msg >> target;
+                    CombatLog::AddSpellResurrectEntry(caster, target, spellId);
+                    break;
+
+                case 19: {
+                    *msg >> target;
+                    uint32_t damage = 0;
+                    msg->Get(damage);
+                    CombatLog::AddSpellDamageEntry(caster, target, spellId, damage, timeOffset);
+                    break;
+                }
+
+                case 24:
+                case 59:
+                case 157: {
+                    uint32_t itemId = 0;
+                    msg->Get(itemId);
+                    CGChat::LogTradeSkillCreate(caster, itemId);
+                    break;
+                }
+
+                case 28:
+                case 50:
+                case 56:
+                case 76:
+                case 81:
+                case 83:
+                case 104:
+                case 105:
+                case 106:
+                case 107:
+                    *msg >> target;
+                    CombatLog::AddSpellCastEntry(caster, target, spellId);
+                    break;
+
+                case 33:
+                    *msg >> target;
+                    CombatLog::GetSpellLogLinkInfo(caster, target, spellId);
+                    break;
+
+                case 68: {
+                    *msg >> target;
+                    uint32_t interrupted = 0;
+                    msg->Get(interrupted);
+                    UnitCombatLogInterrupt(caster, target, spellId, interrupted);
+                    break;
+                }
+
+                case 101: {
+                    uint32_t itemId = 0;
+                    msg->Get(itemId);
+                    CGChat::LogFeedPet(caster, itemId);
+                    break;
+                }
+
+                case 102:
+                    *msg >> target;
+                    CGChat::LogDismissPet(caster, target);
+                    break;
+
+                case 111: {
+                    *msg >> target;
+                    uint32_t itemId = 0;
+                    msg->Get(itemId);
+                    uint32_t extra = 0;
+                    msg->Get(extra);
+
+                    if (itemId == 0xFFFFFFFF && extra == 0xFFFFFFFF) {
+                        CombatLog::AddSpellEnergizeEntry(caster, target, spellId);
+                    } else {
+                        CombatLog::AddSpellExecuteEntry(caster, target, itemId, spellId);
+                    }
+
+                    break;
+                }
+
+                default:
+                    break;
+            }
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: ae480a8e manual
+// OFFSET: 0x00751F70
+void UnitCombatLogHeal(const WOWGUID& casterGuid, const WOWGUID& targetGuid, int32_t spellId, int32_t amount, int32_t overheal, int32_t absorbed, bool crit, bool periodic, uint32_t timeOffset) {
+    if (!amount && !overheal && !absorbed) {
+        return;
+    }
+
+    CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(targetGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (target) {
+        target->ModifyPredictedHealth(amount);
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        SendHealEvent(periodic ? 35 : 10, casterGuid, targetGuid, &spell, amount, overheal, absorbed, crit, timeOffset);
+    }
+}
+
+// VERIFY: 9de2c0e0 manual
+// OFFSET: 0x00752040
+void UnitCombatLogEnergize(const WOWGUID& casterGuid, const WOWGUID& targetGuid, int32_t spellId, int32_t powerType, int32_t amount, bool periodic, uint32_t timeOffset) {
+    if (!amount) {
+        return;
+    }
+
+    CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(targetGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (target) {
+        target->ModifyPredictedPower(powerType, amount);
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        SendEnergizeEvent(periodic ? 36 : 11, casterGuid, targetGuid, &spell, powerType, amount, timeOffset);
+    }
+}
+
+// VERIFY: 013ab8d4 manual
+// OFFSET: 0x00752710
+void UnitCombatLogAuraAddedOrRemoved(CGUnit_C* unit, AuraData* aura, const SpellRec* spell, uint8_t harmful, int32_t added) {
+    if (unit->m_unit->m_unitFieldHealth <= 0 && !added) {
+        return;
+    }
+
+    if (!spell || !spell->m_id || (spell->m_attributes & 0x180) || !*spell->m_name || (spell->m_attributes & 0x40) || (spell->m_attributesExF & 0x400)) {
+        return;
+    }
+
+    WOWGUID guid = unit->m_obj->m_guid;
+    CombatLogEntry* entry = GetCombatLogEntry(aura->m_creator, guid, added ? 21 : 24, spell);
+    entry->m_infoFlags |= 0x400;
+    reinterpret_cast<uint8_t&>(entry->m_info.m_values[1]) = harmful;
+    QueueCombatLogEntry(entry, 0);
+
+    if (added) {
+        WOWGUID unitGuid = unit->m_obj->m_guid;
+        UnitCombatLogSpellMechanic(unitGuid, aura, spell);
+    }
+
+    if (!IsCombatTextActiveUnit(unit->m_obj->m_guid)) {
+        return;
+    }
+
+    if (added) {
+        if (harmful) {
+            SendToCombatText(34, spell->m_name);
+        } else if (!(spell->m_attributesExF & 0x40)) {
+            SendToCombatText(33, spell->m_name);
+        }
+    } else {
+        SendToCombatText(harmful ? 32 : 31, spell->m_name);
+    }
+}
+
+// VERIFY: db86f760 manual
+// OFFSET: 0x006D3090
+int32_t CombatLog::HandleSpellLogMiss(CDataStore* msg, int32_t timeOffset) {
+    uint32_t spellId = 0;
+    msg->Get(spellId);
+    uint64_t value = 0;
+    msg->Get(value);
+    WOWGUID caster = WOWGUID{ value };
+    uint8_t debug = 0;
+    msg->Get(debug);
+    bool hasDebug = debug != 0;
+    uint32_t count = 0;
+    msg->Get(count);
+
+    SpellRec spell;
+    int32_t found = g_spellDB.GetRecord(spellId, &spell);
+
+    for (; count; count--) {
+        uint64_t targetValue = 0;
+        msg->Get(targetValue);
+        WOWGUID target = WOWGUID{ targetValue };
+        uint8_t missType = 0;
+        msg->Get(missType);
+
+        if (hasDebug) {
+            float a = 0.0f;
+            msg->Get(a);
+            float b = 0.0f;
+            msg->Get(b);
+        } else if (found && !(spell.m_attributes & 0x100)) {
+            CGGameUI::ShowSpellMissFeedback(target, missType);
+            UnitCombatLogSpellMissed(caster, target, spellId, missType, true, false, timeOffset);
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+            if (unit) {
+                unit->AddWorldText(caster, missType, &spell, false);
+            }
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: b28f2a2e manual
+// OFFSET: 0x006D3C30
+int32_t CombatLog::HandleSpellHealLog(CDataStore* msg, int32_t timeOffset) {
+    SmartGUID target;
+    SmartGUID caster;
+    *msg >> target;
+    *msg >> caster;
+    uint32_t spellId = 0;
+    msg->Get(spellId);
+    uint32_t amount = 0;
+    msg->Get(amount);
+    uint32_t overheal = 0;
+    msg->Get(overheal);
+    uint32_t absorbed = 0;
+    msg->Get(absorbed);
+    uint8_t critByte = 0;
+    msg->Get(critByte);
+    bool crit = critByte != 0;
+    uint8_t unused = 0;
+    msg->Get(unused);
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return 1;
+    }
+
+    if (!(spell.m_attributes & 0x100)) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit && !amount && absorbed) {
+            WOWGUID source = caster;
+            unit->AddWorldText(source, 10, &spell, true);
+        }
+
+        WOWGUID dest = target;
+        CGGameUI::ShowHealingFeedback(dest, amount, crit);
+    }
+
+    UnitCombatLogHeal(caster, target, spellId, amount, overheal, absorbed, crit, (spell.m_attributesExC & 0x2000000) != 0, timeOffset);
+    return 1;
+}
+
+// VERIFY: c6dd3152 manual
+// OFFSET: 0x006D3DF0
+int32_t CombatLog::HandleSpellLogEnergizeLog(CDataStore* msg, int32_t timeOffset) {
+    SmartGUID target;
+    SmartGUID caster;
+    *msg >> target;
+    *msg >> caster;
+    uint32_t spellId = 0;
+    msg->Get(spellId);
+    uint32_t powerType = 0;
+    msg->Get(powerType);
+    uint32_t amount = 0;
+    msg->Get(amount);
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell)) {
+        if (!(spell.m_attributes & 0x100)) {
+            CGGameUI::ShowEnergizeFeedback(target, powerType, amount);
+        }
+
+        UnitCombatLogEnergize(caster, target, spellId, powerType, amount, (spell.m_attributesExC & 0x2000000) != 0, timeOffset);
+    }
+
+    return 1;
+}
+
+// VERIFY: 4b332cb3 manual
+// OFFSET: 0x00750860
+void SendHealEvent(int32_t event, const WOWGUID& source, const WOWGUID& dest, const SpellRec* spell, int32_t amount, int32_t overheal, int32_t absorbed, bool crit, uint32_t timeOffset) {
+    CombatLogEntry* entry = GetCombatLogEntry(source, dest, event, spell);
+    entry->m_infoFlags |= 0x20;
+    entry->m_info.m_values[1] = overheal;
+    entry->m_info.m_values[0] = amount;
+    entry->m_info.m_values[2] = absorbed;
+    reinterpret_cast<uint8_t&>(entry->m_info.m_values[3]) = crit;
+    QueueCombatLogEntry(entry, timeOffset);
+
+    if (event == 35) {
+        SpellDurationRec* duration = g_spellDurationDB.GetRecord(spell->m_durationIndex);
+
+        if (duration) {
+            int32_t value = duration->m_duration + duration->m_durationPerLevel * static_cast<int32_t>(Spell_C_GetSpellLevel(spell, 0, 0)) >= duration->m_maxDuration ? duration->m_maxDuration : duration->m_duration + duration->m_durationPerLevel * static_cast<int32_t>(Spell_C_GetSpellLevel(spell, 0, 0));
+
+            if (value > 30000) {
+                return;
+            }
+        }
+    }
+
+    if (s_combatTextActiveUnit == dest) {
+        if (absorbed) {
+            if (event == 35) {
+                FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%s%d%d", s_combatTextTypes[44], GetObjectNameFromGuid(source), amount, absorbed);
+            } else {
+                SendToCombatText(crit ? 45 : 46, GetObjectNameFromGuid(source), amount, absorbed);
+            }
+        } else if (event == 35) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%s%d", s_combatTextTypes[27], GetObjectNameFromGuid(source), amount);
+        } else {
+            SendToCombatText(crit ? 37 : 38, GetObjectNameFromGuid(source), amount);
+        }
+    } else {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(dest, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            unit->AddWorldHealingText(source, amount, spell, crit, 0);
+        }
+    }
+}
+
+// VERIFY: f15c546c manual
+// OFFSET: 0x00750A90
+void SendEnergizeEvent(int32_t event, const WOWGUID& source, const WOWGUID& dest, const SpellRec* spell, int32_t powerType, int32_t amount, uint32_t timeOffset) {
+    int32_t value = amount / Spell_C_GetPowerDisplayMod(powerType);
+    CombatLogEntry* entry = GetCombatLogEntry(source, dest, event, spell);
+    entry->m_infoFlags |= 0x40;
+    entry->m_info.m_values[0] = value;
+    entry->m_info.m_values[1] = powerType;
+    QueueCombatLogEntry(entry, timeOffset);
+
+    if (s_combatTextActiveUnit == dest) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%d%s", s_combatTextTypes[(event == 36) + 28], value, GetPowerString(powerType));
+    }
+}
+
+// VERIFY: a94001c7 manual
+// OFFSET: 0x00750B60
+void AddPowerDrainEntry(int32_t event, const WOWGUID& source, const WOWGUID& dest, const SpellRec* spell, int32_t amount, int32_t powerType, int32_t extra, uint32_t timeOffset) {
+    uint32_t mod = Spell_C_GetPowerDisplayMod(powerType);
+    int32_t value = amount / mod;
+    int32_t extraValue = extra / mod;
+    CombatLogEntry* entry = GetCombatLogEntry(source, dest, event, spell);
+    entry->m_infoFlags |= 0x80;
+    entry->m_info.m_values[2] = extraValue;
+    entry->m_info.m_values[0] = value;
+    entry->m_info.m_values[1] = powerType;
+    QueueCombatLogEntry(entry, timeOffset);
+
+    if (s_combatTextActiveUnit == dest && value) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%d%s", s_combatTextTypes[28], -value, GetPowerString(powerType));
+    }
+
+    if (s_combatTextActiveUnit == source && extraValue) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%d%s", s_combatTextTypes[(event == 38) + 28], extraValue, GetPowerString(powerType));
+    }
+}
+
+// VERIFY: d355aaa8 manual
+// OFFSET: 0x00752100
+void UnitCombatLogPowerDrain(const WOWGUID& casterGuid, const WOWGUID& targetGuid, int32_t spellId, uint32_t powerType, uint32_t amount, float multiplier, bool a7, uint32_t timeOffset) {
+    if (!amount) {
+        return;
+    }
+
+    if (powerType == 4) {
+        CGChat::LogPetHappinessDecrease(casterGuid, targetGuid, amount / Spell_C_GetPowerDisplayMod(4));
+        return;
+    }
+
+    CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(targetGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (target) {
+        target->ModifyPredictedPower(powerType, -static_cast<int32_t>(amount));
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !(spell.m_attributes & 0x180) && *spell.m_name) {
+        int32_t extra = CMath::ftrunc(amount * multiplier);
+        int32_t event = extra ? (a7 ? 38 : 13) : (a7 ? 37 : 12);
+        AddPowerDrainEntry(event, casterGuid, targetGuid, &spell, amount, powerType, extra, timeOffset);
+    }
+}
+
+// VERIFY: 048b1785 auto
+// OFFSET: 0x0074D3D0
+bool SpellHasOpenLockEffect(const SpellRec* spell) {
+    for (uint32_t i = 0; i < 3; i++) {
+        if (spell->m_effect[i] == 33) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: f32a38df auto
+// OFFSET: 0x0074D3F0
+bool SpellIsHiddenInCombatLog(const SpellRec* spell) {
+    if ((spell->m_attributes & 0x180) || !*spell->m_name) {
+        return true;
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (spell->m_effect[i] == 36) {
+            return true;
+        }
+    }
+
+    return (spell->m_attributesExD & 0x1) != 0;
+}
+
+// VERIFY: 6e0bb93c auto
+// OFFSET: 0x0074DA00
+static bool ShouldShowMechanicText(WOWGUID guid, const SpellRec* spell) {
+    if (!(spell->m_attributesExF & 0x200000)) {
+        return false;
+    }
+
+    CVar* all = CVar::Lookup("fctAllSpellMechanics");
+
+    if (all && all->m_intValue > 0) {
+        return true;
+    }
+
+    CVar* mechanics = CVar::Lookup("fctSpellMechanics");
+
+    if (!mechanics || !mechanics->m_intValue) {
+        return false;
+    }
+
+    CVar* other = CVar::Lookup("fctSpellMechanicsOther");
+
+    if (IsCombatTextActiveUnit(guid)) {
+        return true;
+    }
+
+    return other && other->m_intValue;
+}
+
+// VERIFY: 9c33925c manual
+// OFFSET: 0x0074DA70
+void DisplayMechanicEffect(const WOWGUID* unitGuid, const WOWGUID* sourceGuid, const SpellRec* spell, const SpellMechanicRec* mechanic) {
+    if (!ShouldShowMechanicText(*sourceGuid, spell)) {
+        return;
+    }
+
+    char text[148];
+    uint16_t wide[64];
+    char state[64];
+    SUniConvertUTF8to16(wide, 64, mechanic->m_stateName, STORM_MAX_STR, nullptr, nullptr);
+    wide[0] = ToUpper(wide[0]);
+    SUniConvertUTF16to8(state, 64, wide, STORM_MAX_STR, nullptr, nullptr);
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*unitGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (s_combatTextActiveUnit == *sourceGuid) {
+        SStrCopy(text, state, STORM_MAX_STR);
+    } else {
+        SStrPrintf(text, sizeof(text), "%s (%s)", state, GetObjectNameFromGuid(*sourceGuid));
+    }
+
+    if (unit) {
+        PlayerNameCreateText(unit->m_nameDesc, 0, text, reinterpret_cast<const CImVector*>(&s_mechanicTextColor), nullptr);
+    }
+}
+
+// VERIFY: 0a6910f9 manual
+// OFFSET: 0x0074DB80
+void UnitCombatLogSpellMechanic(const WOWGUID& guid, const AuraData* aura, const SpellRec* spell) {
+    if (SpellIsHiddenInCombatLog(spell)) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (spell->m_effect[i] == 33) {
+            return;
+        }
+    }
+
+    for (int32_t i = 0; i < 3; i++) {
+        int32_t mechanicId = spell->m_effectMechanic[i];
+
+        if (!mechanicId) {
+            continue;
+        }
+
+        bool duplicate = false;
+
+        for (int32_t j = i - 1; j >= 0; j--) {
+            if (mechanicId == spell->m_effectMechanic[j]) {
+                duplicate = true;
+            }
+        }
+
+        if (duplicate) {
+            continue;
+        }
+
+        SpellMechanicRec* mechanic = g_spellMechanicDB.GetRecord(mechanicId);
+
+        if (mechanic && mechanic->m_id != 26) {
+            DisplayMechanicEffect(&guid, &aura->m_creator, spell, mechanic);
+        }
+    }
+
+    int32_t mechanicId = spell->m_mechanic;
+
+    if (!mechanicId) {
+        return;
+    }
+
+    bool listed = spell->m_effectMechanic[0] == mechanicId;
+
+    if (spell->m_effectMechanic[1] == mechanicId) {
+        listed = true;
+    }
+
+    if (spell->m_effectMechanic[2] == mechanicId || listed) {
+        return;
+    }
+
+    SpellMechanicRec* mechanic = g_spellMechanicDB.GetRecord(mechanicId);
+
+    if (mechanic && mechanic->m_id != 26) {
+        DisplayMechanicEffect(&guid, &aura->m_creator, spell, mechanic);
+    }
+}
+
+// VERIFY: ecea9cd0 manual
+// OFFSET: 0x00751920
+void UnitCombatLogCastStart(const WOWGUID& caster, const WOWGUID& target, int32_t spellId) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && !SpellIsHiddenInCombatLog(&spell) && unit->GetSpellCastingTime(&spell)) {
+        WOWGUID dest = { 0 };
+        CombatLogEntry* entry = GetCombatLogEntry(caster, dest, 5, &spell);
+        QueueCombatLogEntry(entry, 0);
+    }
+}
+
+// VERIFY: d9765cf5 manual
+// OFFSET: 0x007519E0
+void UnitCombatLogCastGo(const WOWGUID& caster, const WOWGUID& target, int32_t spellId) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(caster, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell) || SpellIsHiddenInCombatLog(&spell) || SpellHasOpenLockEffect(&spell)) {
+        return;
+    }
+
+    if (!unit->GetSpellCastingTime(&spell)) {
+        CombatLogEntry* entry = GetCombatLogEntry(caster, target, 6, &spell);
+        QueueCombatLogEntry(entry, 0);
+    }
+
+    if (IsCombatTextActiveUnit(caster) && (spell.m_attributesExF & 0x40)) {
+        SendToCombatText(30, spell.m_name);
+    }
+}
+
+// VERIFY: 5bc10808 auto
+// OFFSET: 0x00752930
+void CombatLog::AddAuraReplacedEntry(const WOWGUID& source, const WOWGUID& dest, int32_t spellId, int32_t replacedSpellId, uint8_t harmful, bool stolen, uint32_t timeOffset) {
+    SpellRec spell;
+    SpellRec replaced;
+
+    if (!g_spellDB.GetRecord(spellId, &spell) || (spell.m_attributes & 0x180) || !*spell.m_name) {
+        return;
+    }
+
+    if (!g_spellDB.GetRecord(replacedSpellId, &replaced) || (replaced.m_attributes & 0x180) || !*replaced.m_name) {
+        return;
+    }
+
+    CombatLogEntry* entry = GetCombatLogEntry(source, dest, stolen + 26, &spell);
+    entry->m_infoFlags |= 0x500;
+    entry->m_info.m_values[0] = replacedSpellId;
+    reinterpret_cast<uint8_t&>(entry->m_info.m_values[1]) = harmful;
+    QueueCombatLogEntry(entry, timeOffset);
+
+    if (IsCombatTextActiveUnit(dest)) {
+        SendToCombatText(40, replaced.m_name);
+    }
+}
+
+// VERIFY: c935fa27 auto
+// OFFSET: 0x00752A40
+void CombatLog::AddSpellRemoveEntry(const WOWGUID& source, const WOWGUID& dest, int32_t dispelSpellId, int32_t spellId, uint8_t harmful) {
+    SpellRec dispel;
+    SpellRec spell;
+    memset(&dispel, 0, sizeof(dispel));
+
+    if (dispelSpellId && (!g_spellDB.GetRecord(dispelSpellId, &dispel) || (dispel.m_attributes & 0x180) || !*dispel.m_name)) {
+        return;
+    }
+
+    if (!g_spellDB.GetRecord(spellId, &spell) || (spell.m_attributes & 0x180) || !*spell.m_name) {
+        return;
+    }
+
+    WOWGUID remover = (dispel.m_attributesExD & 0x2000) ? WOWGUID{ 0 } : source;
+    CombatLogEntry* entry = GetCombatLogEntry(remover, dest, (dispelSpellId != 0) + 28, &spell);
+
+    if (dispelSpellId) {
+        entry->m_infoFlags |= 0x100;
+        entry->m_info.m_values[0] = dispelSpellId;
+    }
+
+    entry->m_infoFlags |= 0x400;
+    reinterpret_cast<uint8_t&>(entry->m_info.m_values[1]) = harmful;
+    QueueCombatLogEntry(entry, 0);
+
+    if (s_combatTextActiveUnit == dest) {
+        SendToCombatText(40, spell.m_name);
+    }
+}
+
+// VERIFY: 6403f90e auto
+// OFFSET: 0x00752BA0
+void UnitCombatLogAuraRefreshed(CGUnit_C* unit, const AuraData* aura, int32_t spellId, uint8_t a4) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell) || (spell.m_attributes & 0x180) || !*spell.m_name || (spell.m_attributes & 0x40) || (spell.m_attributesExF & 0x400)) {
+        return;
+    }
+
+    WOWGUID guid = unit->m_obj->m_guid;
+    CombatLogEntry* entry = GetCombatLogEntry(aura->m_creator, guid, 25, &spell);
+    entry->m_infoFlags |= 0x400;
+    reinterpret_cast<uint8_t&>(entry->m_info.m_values[1]) = a4;
+    QueueCombatLogEntry(entry, 0);
+
+    WOWGUID unitGuid = unit->m_obj->m_guid;
+    UnitCombatLogSpellMechanic(unitGuid, aura, &spell);
+}
+
+// VERIFY: 9d679be0 manual
+// OFFSET: 0x00750660
+void SendDamageEvent(int32_t event, const WOWGUID& source, const WOWGUID& dest, const SpellRec* spell, int32_t damage, int32_t overkill, uint32_t school, int32_t resisted, int32_t blocked, int32_t absorbed, bool crit, bool a11, bool a12, uint32_t timeOffset) {
+    if (event != 1) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(dest, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            unit->ModifyPredictedHealth(-damage);
+        }
+    }
+
+    CombatLogEntry* entry = GetCombatLogEntry(source, dest, event, spell);
+    entry->m_infoFlags |= 0x10;
+    entry->m_info.m_values[3] = school;
+    entry->m_info.m_values[4] = absorbed;
+    entry->m_info.m_values[1] = damage;
+    entry->m_info.m_values[5] = resisted;
+    entry->m_info.m_values[2] = overkill;
+    entry->m_info.m_values[6] = blocked;
+    entry->m_infoBits = (entry->m_infoBits & ~0x7) | (crit & 1) | (((a11 & 1) | ((a12 & 1) << 1)) << 1);
+    QueueCombatLogEntry(entry, timeOffset);
+
+    if (s_combatTextActiveUnit != dest) {
+        return;
+    }
+
+    if (resisted > 0) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%d%d", s_combatTextTypes[event == 9 ? 22 : 10], damage, resisted);
+    } else if (blocked) {
+        SendToCombatText(event == 9 ? 23 : 11, damage, blocked);
+    } else if (absorbed) {
+        SendToCombatText(event == 9 ? 24 : 12, damage, absorbed);
+    } else if (crit) {
+        SendToCombatText(event == 9 ? 13 : 1, damage);
+    } else if (event == 40) {
+        SendToCombatText(39, damage);
+    } else {
+        SendToCombatText(event == 9 ? 14 : 2, damage);
+    }
+}
+
+// VERIFY: d14d7c4f manual
+// OFFSET: 0x00751C40
+void UnitCombatLogSpellDamage(const WOWGUID& source, const WOWGUID& dest, int32_t spellId, int32_t damage, int32_t overkill, uint32_t school, int32_t absorbed, int32_t resisted, int32_t blocked, uint32_t hitInfo, bool periodic, uint32_t timeOffset) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell) || (spell.m_attributes & 0x180) || !*spell.m_name) {
+        return;
+    }
+
+    if (damage) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(dest, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            unit->TriggerDamageFeedback();
+        }
+
+        int32_t event = periodic ? 34 : ((spell.m_attributesExC & 0x8000) ? 3 : 9);
+        SendDamageEvent(event, source, dest, &spell, damage, overkill, school, resisted, blocked, absorbed, (hitInfo >> 1) & 1, false, false, timeOffset);
+        return;
+    }
+
+    int32_t event = periodic ? 33 : ((spell.m_attributesExC & 0x8000) ? 4 : 8);
+
+    if (absorbed) {
+        CombatLogEntry* entry = GetCombatLogEntry(source, dest, event, &spell);
+        entry->m_infoFlags |= 0x2004;
+        entry->m_info.m_values[0] = 10;
+        entry->m_info.m_values[4] = absorbed;
+
+        if (s_combatTextActiveUnit == dest) {
+            SendToCombatText(event == 8 ? 24 : 12);
+        }
+
+        QueueCombatLogEntry(entry, 0);
+    } else if (blocked) {
+        CombatLogEntry* entry = GetCombatLogEntry(source, dest, event, &spell);
+        entry->m_infoFlags |= 0x8004;
+        entry->m_info.m_values[0] = 5;
+        entry->m_info.m_values[6] = blocked;
+
+        if (s_combatTextActiveUnit == dest) {
+            SendToCombatText(event == 8 ? 23 : 11);
+        }
+
+        QueueCombatLogEntry(entry, 0);
+    } else if (resisted) {
+        CombatLogEntry* entry = GetCombatLogEntry(source, dest, event, &spell);
+        entry->m_infoFlags |= 0x4004;
+        entry->m_info.m_values[0] = 2;
+        entry->m_info.m_values[5] = resisted;
+
+        if (s_combatTextActiveUnit == dest) {
+            SendToCombatText(event == 8 ? 22 : 10);
+        }
+
+        QueueCombatLogEntry(entry, 0);
+    }
+}
+
+// VERIFY: 9129ea05 manual
+// OFFSET: 0x00752DE0
+void UnitCombatLogSplitDamage(const WOWGUID& source, const WOWGUID& dest, int32_t spellId, int32_t damage, int32_t overkill, uint32_t school, int32_t absorbed, int32_t resisted, int32_t blocked, uint32_t hitInfo, uint32_t timeOffset) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell) || (spell.m_attributes & 0x180) || !*spell.m_name) {
+        return;
+    }
+
+    SendDamageEvent(42, source, dest, &spell, damage, overkill, school, resisted, blocked, absorbed, (hitInfo >> 1) & 1, false, false, timeOffset);
+
+    if (s_combatTextActiveUnit == dest) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_COMBAT_TEXT_UPDATE, "%s%d", s_combatTextTypes[42], damage);
+    }
+}
+
+// VERIFY: 06a9b4e3 auto
+// OFFSET: 0x006CE2B0
+int32_t CombatLog::HandleSpellRemoveLog(NETMESSAGE msgId, CDataStore* msg, int32_t timeOffset) {
+    uint32_t dispelSpellId = 0;
+    uint8_t unused = 0;
+    SmartGUID target;
+    SmartGUID caster;
+    *msg >> target;
+    *msg >> caster;
+    msg->Get(dispelSpellId);
+    msg->Get(unused);
+    uint32_t count = 0;
+    msg->Get(count);
+
+    while (count) {
+        count--;
+        uint32_t spellId;
+        msg->Get(spellId);
+        uint8_t harmful;
+        msg->Get(harmful);
+
+        if (msgId == SMSG_SPELL_BREAK_LOG) {
+            CombatLog::AddSpellRemoveEntry(caster, target, dispelSpellId, spellId, harmful != 0);
+        } else {
+            CombatLog::AddAuraReplacedEntry(caster, target, dispelSpellId, spellId, harmful != 0, msgId == SMSG_SPELL_STEAL_LOG, timeOffset);
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: f5db08bc manual
+// OFFSET: 0x006D3840
+int32_t CombatLog::HandleSpellNonMeleeDamageLog(CDataStore* msg, int32_t timeOffset) {
+    SmartGUID target;
+    SmartGUID caster;
+    *msg >> target;
+    *msg >> caster;
+    uint32_t spellId = 0;
+    msg->Get(spellId);
+    uint32_t damage = 0;
+    msg->Get(damage);
+    uint32_t overkill = 0;
+    msg->Get(overkill);
+    uint8_t schoolByte = 0;
+    msg->Get(schoolByte);
+    uint32_t school = schoolByte;
+    uint32_t absorbed = 0;
+    msg->Get(absorbed);
+    uint32_t resisted = 0;
+    msg->Get(resisted);
+    uint8_t periodic = 0;
+    msg->Get(periodic);
+    uint8_t unused = 0;
+    msg->Get(unused);
+    uint32_t blocked = 0;
+    msg->Get(blocked);
+    uint32_t hitInfo = 0;
+    msg->Get(hitInfo);
+    uint8_t debug = 0;
+    msg->Get(debug);
+
+    bool crit = (hitInfo & 0x2) != 0;
+    uint32_t flags = crit ? 0x200 : 0;
+
+    if (absorbed) {
+        flags |= 0x20;
+    }
+
+    if (blocked) {
+        flags |= 0x2000;
+    }
+
+    if (resisted) {
+        flags |= 0x80;
+    }
+
+    SpellRec spell;
+    int32_t found = g_spellDB.GetRecord(spellId, &spell);
+
+    if (hitInfo & 0x8) {
+        UnitCombatLogSplitDamage(caster, target, spellId, damage, overkill, school, absorbed, resisted, blocked, hitInfo, timeOffset);
+
+        if (found && !(spell.m_attributes & 0x100)) {
+            CGGameUI::ShowCombatFeedback(target, damage, school, flags);
+        }
+
+        return 1;
+    }
+
+    WOWGUID source = (hitInfo & 0x10) ? target : caster;
+    UnitCombatLogSpellDamage(source, target, spellId, damage, overkill, school, absorbed, resisted, blocked, hitInfo, periodic, timeOffset);
+
+    if (found && !(spell.m_attributes & 0x100)) {
+        CGGameUI::ShowCombatFeedback(target, damage, school, flags);
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            if (damage) {
+                unit->AddWorldDamageText(caster, damage, &spell, crit, false, false);
+            } else if (absorbed) {
+                unit->AddWorldText(caster, 10, &spell, false);
+            } else if (blocked) {
+                unit->AddWorldText(caster, 5, &spell, false);
+            } else if (resisted) {
+                unit->AddWorldText(caster, 2, &spell, false);
+            }
+        }
+    }
+
+    if (debug) {
+        float value;
+
+        if (hitInfo & 0x1) {
+            value = 0.0f;
+            msg->Get(value);
+            value = 0.0f;
+            msg->Get(value);
+        }
+
+        if (hitInfo & 0x4) {
+            value = 0.0f;
+            msg->Get(value);
+            value = 0.0f;
+            msg->Get(value);
+        }
+
+        if (hitInfo & 0x20) {
+            for (uint32_t i = 0; i < 6; i++) {
+                value = 0.0f;
+                msg->Get(value);
+            }
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: f255adaa manual
+// OFFSET: 0x007531F0
+int32_t CombatLog::HandlePeriodicAuraLog(CDataStore* msg, int32_t timeOffset) {
+    SmartGUID target;
+    SmartGUID caster;
+    *msg >> target;
+    *msg >> caster;
+    uint32_t spellId = 0;
+    msg->Get(spellId);
+    uint32_t count = 0;
+    msg->Get(count);
+
+    SpellRec spell;
+    CGUnit_C* unit;
+
+    if (!g_spellDB.GetRecord(spellId, &spell) || !(unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPEMASK_UNIT, __FILE__, __LINE__)))) {
+        msg->m_read = msg->m_size;
+        return 1;
+    }
+
+    for (int32_t i = 0; i < static_cast<int32_t>(count); i++) {
+        uint32_t auraType = 0;
+        msg->Get(auraType);
+
+        switch (auraType) {
+            case 3:
+            case 89: {
+                uint32_t damage = 0;
+                msg->Get(damage);
+                uint32_t overkill = 0;
+                msg->Get(overkill);
+                uint32_t school = 0;
+                msg->Get(school);
+                uint32_t absorbed = 0;
+                msg->Get(absorbed);
+                uint32_t resisted = 0;
+                msg->Get(resisted);
+                uint8_t crit = 0;
+                msg->Get(crit);
+                uint8_t hitInfo = 0;
+
+                if (!(spell.m_attributes & 0x100)) {
+                    if (damage) {
+                        unit->AddWorldDamageText(caster, damage, &spell, crit != 0, true, false);
+                    } else if (absorbed) {
+                        unit->AddWorldText(caster, 10, &spell, true);
+                    } else if (resisted) {
+                        unit->AddWorldText(caster, 2, &spell, true);
+                    }
+
+                    uint32_t flags = 0;
+
+                    if (absorbed) {
+                        flags = 0x20;
+                    }
+
+                    if (resisted) {
+                        flags |= 0x80;
+                    }
+
+                    if (crit) {
+                        flags |= 0x200;
+                        hitInfo = 2;
+                    }
+
+                    CGGameUI::ShowCombatFeedback(target, damage, school, flags);
+                }
+
+                UnitCombatLogSpellDamage(caster, target, spellId, damage, overkill, school, absorbed, resisted, 0, hitInfo, true, timeOffset);
+                break;
+            }
+
+            case 8:
+            case 20: {
+                uint32_t amount = 0;
+                msg->Get(amount);
+                uint32_t overheal = 0;
+                msg->Get(overheal);
+                uint32_t absorbed = 0;
+                msg->Get(absorbed);
+                uint8_t crit = 0;
+                msg->Get(crit);
+
+                if (!(spell.m_attributes & 0x100)) {
+                    if (!amount && absorbed) {
+                        unit->AddWorldText(caster, 10, &spell, true);
+                    }
+
+                    CGGameUI::ShowHealingFeedback(target, amount, crit != 0);
+                }
+
+                UnitCombatLogHeal(caster, target, spellId, amount, overheal, absorbed, crit != 0, true, timeOffset);
+                break;
+            }
+
+            case 21:
+            case 24: {
+                uint32_t powerType = 0;
+                msg->Get(powerType);
+                uint32_t amount = 0;
+                msg->Get(amount);
+
+                if (!(spell.m_attributes & 0x100)) {
+                    CGGameUI::ShowEnergizeFeedback(target, powerType, amount);
+                }
+
+                UnitCombatLogEnergize(caster, target, spellId, powerType, amount, true, timeOffset);
+                break;
+            }
+
+            case 64: {
+                uint32_t powerType = 0;
+                msg->Get(powerType);
+                uint32_t amount = 0;
+                msg->Get(amount);
+                float multiplier = 0.0f;
+                msg->Get(multiplier);
+                UnitCombatLogPowerDrain(caster, target, spellId, powerType, amount, multiplier, true, timeOffset);
+                break;
+            }
+
+            default:
+                msg->m_read = msg->m_size;
+                return 1;
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 150dd800 auto
+// OFFSET: 0x00753710
+int32_t Packet_SMSG_PERIODICAURALOG(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    return CombatLog::HandlePeriodicAuraLog(msg, 0);
+}
+
+// VERIFY: c5d9ed0a manual
+// OFFSET: 0x00752ED0
+void UnitCombatLogUnitDead(CGUnit_C* unit) {
+    int32_t event = 44;
+    WOWGUID none = WOWGUID();
+    CreatureStats_C* creature = g_creatureDBCache.GetRecord(unit->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+    if (creature && creature->m_type == 13) {
+        event = 49;
+    } else {
+        SpellRec spell;
+
+        if (!g_spellDB.GetRecord(unit->m_unit->m_unitCreatedBySpell, &spell) && spell.m_effect[0] == 28) {
+            SummonPropertiesRec* summon = g_summonPropertiesDB.GetRecord(spell.m_effectMiscValueB[0]);
+
+            if (summon && static_cast<uint32_t>(summon->m_slot - 1) <= 3) {
+                event = 45;
+            }
+        }
+    }
+
+    WOWGUID dest = unit->m_obj->m_guid;
+    WOWGUID source = WOWGUID();
+    CombatLogEntry* entry = GetCombatLogEntry(source, dest, event, nullptr);
+    QueueCombatLogEntry(entry, 0);
 }
