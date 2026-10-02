@@ -7564,3 +7564,14 @@ const char* CGGameUI::GetErrorToken(int32_t error) {
 
     return s_errorInfo[error].m_token;
 }
+
+// VERIFY: d1aeabdd auto
+// OFFSET: 0x0051D960
+void CGGameUI::Reload() {
+    if (lua_tainted && CGGameUI::m_simpleTop && !CGGameUI::m_simpleTop->unk_1250) {
+        CGGameUI::ShowBlockedActionFeedback(nullptr, 1);
+        return;
+    }
+
+    CGGameUI::m_reloadUIRequested = 1;
+}

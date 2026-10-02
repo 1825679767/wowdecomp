@@ -51,6 +51,9 @@ static const char* s_currencyAmountTokens[3] = { "COPPER_AMOUNT", "SILVER_AMOUNT
 // STATIC: 0x00AF4920
 static const char* s_currencyTextureTokens[3] = { "COPPER_AMOUNT_TEXTURE", "SILVER_AMOUNT_TEXTURE", "GOLD_AMOUNT_TEXTURE" };
 
+// STATIC: 0x00AF492C
+static const char* s_currencySymbolTokens[3] = { "COPPER_AMOUNT_SYMBOL", "SILVER_AMOUNT_SYMBOL", "GOLD_AMOUNT_SYMBOL" };
+
 // STATIC: 0x00D3813C
 static uint8_t s_lootInitialized;
 
@@ -805,4 +808,33 @@ void CGLootInfo::OnLootSlotChanged(uint8_t slot) {
 // VERIFY: 29eb8814 auto
 // OFFSET: 0x005EEB70
 void CGLootInfo::ShutdownGame() {
+}
+
+// VERIFY: 072a9880 auto
+// OFFSET: 0x007E7EE0
+void GetCurrencyShortText(int32_t amount, char* buffer, uint32_t size, const char* separator) {
+    if (!amount) {
+        SStrPrintf(buffer, size, "%d%s", 0, FrameScript_GetText(s_currencySymbolTokens[0], -1, GENDER_NOT_APPLICABLE));
+        return;
+    }
+
+    int32_t parts[3];
+    CurrencyBreakdown(amount, parts);
+    *buffer = 0;
+
+    for (int32_t i = 2; i >= 0; i--) {
+        int32_t value = parts[i];
+
+        if (!value) {
+            continue;
+        }
+
+        if (*buffer) {
+            SStrPack(buffer, separator, size);
+        }
+
+        char text[1024];
+        SStrPrintf(text, sizeof(text), "%d%s", value, FrameScript_GetText(s_currencySymbolTokens[i], -1, GENDER_NOT_APPLICABLE));
+        SStrPack(buffer, text, size);
+    }
 }

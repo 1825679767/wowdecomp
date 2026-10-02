@@ -8,31 +8,38 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Tempest/CRect.h"
 
 class CRenderBatch;
 class CStatus;
 class CTexture;
 class XMLNode;
+struct QuestPOIBlob;
+struct QuestPOIInfo;
+struct QuestPOIPoint;
 struct lua_State;
 
 class CGQuestPOIFrame : public CSimpleFrame {
     public:
     struct QuestPOIRenderData {
-        /* 0000 */ uint32_t m_questId;
+        /* 0000 */ QuestPOIBlob* m_blob;
         /* 0004 */ TSGrowableArray<C3Vector> m_fillVerts;
         /* 0014 */ TSGrowableArray<C2Vector> m_fillTexCoords;
         /* 0024 */ TSGrowableArray<uint16_t> m_fillIndices;
         /* 0034 */ TSGrowableArray<C3Vector> m_borderVerts;
         /* 0044 */ TSGrowableArray<C2Vector> m_borderTexCoords;
         /* 0054 */ TSGrowableArray<uint16_t> m_borderIndices;
-        /* 0064 */ uint32_t unk_0064 [10];
+        /* 0064 */ CRect m_bounds;
+        /* 0074 */ int32_t m_objectives[4];
+        /* 0084 */ uint32_t m_numObjectives;
+        /* 0088 */ uint8_t m_valid;
 
         ~QuestPOIRenderData();
     };
 
     struct QuestPOIRenderGroup {
-        /* 0000 */ uint32_t m_count;
-        /* 0004 */ uint32_t unk_0004;
+        /* 0000 */ QuestPOIInfo* m_info;
+        /* 0004 */ uint8_t m_dirty;
         /* 0008 */ TSGrowableArray<QuestPOIRenderData> m_renderData;
     };
 
@@ -58,9 +65,9 @@ class CGQuestPOIFrame : public CSimpleFrame {
     /* 02AD */ uint8_t m_merging;
     /* 02B0 */ float m_mergeThreshold;
     /* 02B4 */ uint32_t m_numSplinePoints;
-    /* 02B8 */ uint32_t unk_02B8;
-    /* 02BC */ uint32_t unk_02BC;
-    /* 02C0 */ uint32_t unk_02C0 [4];
+    /* 02B8 */ int32_t m_mouseOverQuestId;
+    /* 02BC */ uint32_t m_mouseOverCount;
+    /* 02C0 */ int32_t m_mouseOverObjectives[4];
     /* 02D0 */ QuestPOIRenderGroup m_groups [4];
 
     ~CGQuestPOIFrame() override;
@@ -73,6 +80,13 @@ class CGQuestPOIFrame : public CSimpleFrame {
 
     CGQuestPOIFrame(CSimpleFrame* parent);
     void Render();
+    void UpdateMouseOverPOI(float x, float y);
+    void MergeBlobs(uint32_t index);
+    void BuildBlobOutline(QuestPOIBlob* blob, TSGrowableArray<QuestPOIPoint>* points);
+    void BuildBlobRenderData(QuestPOIRenderData* data, QuestPOIBlob* blob);
+    void RemoveQuest(int32_t questId);
+    bool BuildRenderData(uint32_t index);
+    void AddQuest(QuestPOIInfo* info);
     void SetBorderTexture(const char* fileName);
     void SetFillTexture(const char* fileName);
 };

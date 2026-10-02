@@ -393,6 +393,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     static void DispatchPartyMemberStatsChanges(const WOWGUID& guid, uint32_t changes, const CGPartyMemberState* oldState, const CGPartyMemberState* newState);
     const char* GetPlayerGuildNameText();
     void TogglePlayerFlag(uint32_t oldFlags);
+    void UpdateGhostStatus();
     void UpdateInventoryComponent(INVENTORY_SLOTS slot, const VisibleItem_C* oldItem);
     uint32_t GetEquippedItemDisplayId();
     int32_t GetAttackPowerContributionFromStat(int32_t stat, int32_t value);

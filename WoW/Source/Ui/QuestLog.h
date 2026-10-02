@@ -104,6 +104,8 @@ class CGQuestLog {
     static bool SortQuestWatches();
     static void CollapseHeader(uint32_t index, int32_t collapse);
     static int32_t GetQuestIndex(int32_t questId);
+    static int32_t GetQuestPOIIndex(int32_t questId);
+    static QuestPOIInfo* GetQuestPOIInfo(int32_t questId);
     static int32_t IsQuestFailed(uint32_t index);
     static bool HasNoObjectives(uint32_t index);
     static int32_t IsQuestExpiredByID(int32_t questId);

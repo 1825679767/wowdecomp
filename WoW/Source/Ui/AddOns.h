@@ -34,5 +34,8 @@ uint32_t LoadAddOnFileCount();
 void LoadAddOns(CStatus* status);
 void UnloadAddOns();
 void SaveAddOnEnableState();
+bool IsAddonVersionCheckEnabled();
+const char* GetAddOnURL(const char* name);
+bool IsAddOnUpdateAvailable(const char* name);
 
 #endif

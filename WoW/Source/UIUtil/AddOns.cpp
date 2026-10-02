@@ -1751,3 +1751,34 @@ void SaveAddOnEnableState() {
         SFile::RebuildHash();
     }
 }
+
+// VERIFY: 631a1581 manual
+// OFFSET: 0x005F4CA0
+bool IsAddonVersionCheckEnabled() {
+    return g_checkAddonVersionVar->m_intValue != 0;
+}
+
+// VERIFY: caf3378a manual
+// OFFSET: 0x005F74B0
+const char* GetAddOnURL(const char* name) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (!addon) {
+        return nullptr;
+    }
+
+    const char* url = addon->m_url;
+
+    if (!url || !*url || addon->m_status == 2) {
+        return nullptr;
+    }
+
+    return url;
+}
+
+// VERIFY: 0ce75a0e auto
+// OFFSET: 0x005F7540
+bool IsAddOnUpdateAvailable(const char* name) {
+    UIADDON* addon = s_addons.Ptr(name);
+    return addon ? addon->m_outOfDate : false;
+}

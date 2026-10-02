@@ -124,6 +124,11 @@
 #include "WoW/Source/Ui/PetitionInfo.h"
 #include "WoW/Source/Ui/PetitionVendor.h"
 #include "WoW/Source/Object/ObjectClient/VehiclePassenger_C.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
+#include "WoW/Source/Ui/Tutorial.h"
+#include "WoW/Source/Ui/WorldFrame.h"
+#include "WoW/Source/UIUtil/PortraitButton.h"
+#include "WoW/Source/Game/GameClient/PlayerName.h"
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -12985,4 +12990,127 @@ int32_t Packet_HandlePartyMemberStats(void* param, NETMESSAGE msgId, uint32_t ti
 
     CGPlayer_C::DispatchPartyMemberStatsChanges(guid, changes, &oldState, &newState);
     return 1;
+}
+
+// VERIFY: 646d304f manual
+// OFFSET: 0x006DF710
+void CGPlayer_C::UpdateGhostStatus() {
+    if (this->m_player->m_playerFlags & 0x10) {
+        CGTutorial::TriggerTutorial(24);
+    } else {
+        CGGameUI::SetAreaSpiritHealer(WOWGUID());
+        C3Vector position(0.0f, 0.0f, 0.0f);
+        CGGameUI::SetDeathReleaseLocation(-1, position);
+        FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_UNGHOST, nullptr);
+    }
+
+    CGGameUI::UpdateCorpseLocation();
+    CGWorldFrame::UpdateScreenEffect();
+    SendQuestGiverStatusMultipleQuery();
+    ClntObjMgrEnumVisibleObjects(TrackingMaskUpdateProc, nullptr);
+    PlayerNameTriggerColorUpdateAll();
+    this->UpdateReaction(false);
+}
+
+// VERIFY: f8ed8b8a manual
+// OFFSET: 0x006E0FD0
+void CGPlayer_C::TogglePlayerFlag(uint32_t oldFlags) {
+    uint32_t changed = oldFlags ^ this->m_player->m_playerFlags;
+
+    if (changed & 0x800E) {
+        PlayerNameTriggerNameRegenerate(this->m_nameDesc);
+
+        if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+            CGChat::m_afk = this->m_player->m_playerFlags & 0x2;
+        }
+    }
+
+    if (changed & 0x40300) {
+        this->SetPvpCooldownTimestamp(oldFlags);
+    }
+
+    if (changed & 0xC00) {
+        UpdateModelForUI(this->m_obj->m_guid, 3);
+    }
+
+    Script_SendUnitSignal(this->m_obj->m_guid, SCRIPT_EVENT_PLAYER_FLAGS_CHANGED);
+
+    if (changed & 0x400) {
+        if (this->m_player->m_playerFlags & 0x400) {
+            this->HideHelm();
+        } else {
+            this->ShowHelm();
+        }
+    }
+
+    if (changed & 0x800) {
+        if (this->m_player->m_playerFlags & 0x800) {
+            this->HideCloak();
+        } else {
+            this->ShowCloak();
+        }
+    }
+
+    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
+        return;
+    }
+
+    if (changed & 0x10) {
+        this->UpdateGhostStatus();
+    }
+
+    if (changed & 0x20) {
+        if (this->m_player->m_playerFlags & 0x20) {
+            CGTutorial::TriggerTutorial(29);
+            CGTutorial::TriggerTutorial(30);
+        }
+
+        FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_UPDATE_RESTING, nullptr);
+    }
+
+    if (changed & 0x200) {
+        const char* text;
+
+        if (this->m_player->m_playerFlags & 0x200) {
+            CGGameUI::DisplayError(ERR_PVP_TOGGLE_ON);
+            text = FrameScript_GetText("PVP_TOGGLE_ON_VERBOSE", -1, GENDER_NOT_APPLICABLE);
+        } else {
+            CGGameUI::DisplayError(ERR_PVP_TOGGLE_OFF);
+            text = FrameScript_GetText("PVP_TOGGLE_OFF_VERBOSE", -1, GENDER_NOT_APPLICABLE);
+        }
+
+        CGChat::AddChatMessage(text, 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+    }
+
+    if (changed & 0x3000) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_PLAYTIME_CHANGED, nullptr);
+    }
+
+    if (changed & 0x20000) {
+        if (this->m_player->m_playerFlags & 0x20000) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_ENABLE_TAXI_BENCHMARK, nullptr);
+        } else {
+            FrameScript_SignalEvent(SCRIPT_EVENT_DISABLE_TAXI_BENCHMARK, nullptr);
+        }
+    }
+
+    if (changed & 0x1800000) {
+        CGSpellBook::UpdateUsable();
+    }
+
+    if (changed & 0x2000000) {
+        if (this->m_player->m_playerFlags & 0x2000000) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_DISABLE_XP_GAIN, nullptr);
+        } else {
+            FrameScript_SignalEvent(SCRIPT_EVENT_ENABLE_XP_GAIN, nullptr);
+        }
+    }
+
+    if (changed & 0x10000) {
+        if (this->m_player->m_playerFlags & 0x10000) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_ENABLE_LOW_LEVEL_RAID, nullptr);
+        } else {
+            FrameScript_SignalEvent(SCRIPT_EVENT_DISABLE_LOW_LEVEL_RAID, nullptr);
+        }
+    }
 }

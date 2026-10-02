@@ -102,6 +102,8 @@
 #include "Engine/Source/Os/TimeManager.h"
 #include "WoW/Source/Ui/SpellBookFrame.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/DB/Rec/AchievementRec.h"
+#include "WoW/Source/Ui/ChatFrame.h"
 
 // STATIC: 0x00AD2AAC
 static const char* s_spellLinkColorString = "|cff71d5ff";
@@ -519,6 +521,21 @@ static int32_t ObjHealthUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32
     }
 
     return 1;
+}
+
+// VERIFY: a6e35840 auto
+// OFFSET: 0x0061BFF0
+const char* CGTooltip::GetAchievementHyperlink(int32_t achievementId, WOWGUID guid, int32_t a3, WowTime time, int32_t a5, int32_t a6, int32_t a7, int32_t a8) {
+    AchievementRec* achievement = g_achievementDB.GetRecord(achievementId);
+
+    if (!achievement) {
+        return "";
+    }
+
+    char name[800];
+    QuestParserParseText(achievement->m_title, name, sizeof(name), guid, nullptr, 0);
+    SStrPrintf(s_itemLink, sizeof(s_itemLink), "%s|Hachievement:%d:%016I64X:%d:%d:%d:%d:%u:%u:%u:%u|h[%s]|h%s", "|cffffff00", achievementId, guid.m_guid, static_cast<uint8_t>(a3), time.m_month + 1, time.m_monthDay + 1, time.m_year, a5, a6, a7, a8, name, "|r");
+    return s_itemLink;
 }
 
 // INLINED

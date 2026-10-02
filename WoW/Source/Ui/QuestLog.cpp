@@ -2492,3 +2492,93 @@ void CGQuestLog::UpdatePOIIcons() {
         poi->m_iconY = static_cast<int32_t>(poi->m_iconY * 1.3333f);
     }
 }
+
+// VERIFY: 44e619f4 manual
+// OFFSET: 0x005E2900
+int32_t CGQuestLog::GetQuestPOIIndex(int32_t questId) {
+    if (!ClntObjMgrGetActivePlayerObj() || questId <= 0) {
+        return -1;
+    }
+
+    for (int32_t i = 0; i < 25; i++) {
+        if (CGQuestLog::m_questPOIs[i].m_questId == questId) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+// VERIFY: a15a7449 manual
+// OFFSET: 0x005E3AC0
+QuestPOIInfo* CGQuestLog::GetQuestPOIInfo(int32_t questId) {
+    uint32_t index = CGQuestLog::GetQuestPOIIndex(questId);
+
+    if (index > 24) {
+        return nullptr;
+    }
+
+    return &CGQuestLog::m_questPOIs[index];
+}
+
+// VERIFY: c90d8914 manual
+// OFFSET: 0x005E3840
+int32_t CGQuestLog::GetPOIQuestIDByVisibleIndex(int32_t index) {
+    if (static_cast<uint32_t>(index) > 24) {
+        return -1;
+    }
+
+    int32_t visible = 0;
+
+    for (uint32_t i = 0; i < 25; i++) {
+        QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[i];
+
+        if (!poi->unk_0028) {
+            continue;
+        }
+
+        if (CGQuestLog::IsQuestCompleteEx(CGQuestLog::GetQuestIndex(poi->m_questId) - 1, 1) || CGQuestLog::HasNoObjectives(CGQuestLog::GetQuestIndex(poi->m_questId) - 1)) {
+            if (index == visible++) {
+                return CGQuestLog::m_questPOIs[i].m_questId;
+            }
+        }
+    }
+
+    for (int32_t i = 0; i < static_cast<int32_t>(CGQuestLog::m_numQuestWatches); i++) {
+        int32_t questId = CGQuestLog::m_questWatches[i].m_questId;
+
+        if (CGQuestLog::IsQuestCompleteEx(CGQuestLog::GetQuestIndex(questId) - 1, 1) || CGQuestLog::HasNoObjectives(CGQuestLog::GetQuestIndex(questId) - 1)) {
+            continue;
+        }
+
+        int32_t poi = CGQuestLog::GetQuestPOIIndex(questId);
+
+        if (poi >= 0 && CGQuestLog::m_questPOIs[poi].unk_0028 && index == visible++) {
+            return CGQuestLog::m_questPOIs[poi].m_questId;
+        }
+    }
+
+    for (uint32_t i = 0; i < 25; i++) {
+        QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[i];
+
+        if (!poi->unk_0028) {
+            continue;
+        }
+
+        if (CGQuestLog::IsQuestCompleteEx(CGQuestLog::GetQuestIndex(poi->m_questId) - 1, 1) || CGQuestLog::HasNoObjectives(CGQuestLog::GetQuestIndex(poi->m_questId) - 1)) {
+            continue;
+        }
+
+        uint32_t watch = 0;
+
+        while (watch < CGQuestLog::m_numQuestWatches && CGQuestLog::m_questWatches[watch].m_questId != poi->m_questId) {
+            watch++;
+        }
+
+        if (watch >= CGQuestLog::m_numQuestWatches && index == visible++) {
+            return CGQuestLog::m_questPOIs[i].m_questId;
+        }
+    }
+
+    return -1;
+}

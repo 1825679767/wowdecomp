@@ -4,11 +4,10 @@
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
+#include "WoW/Source/Ui/QuestLog.h"
 
-int32_t Script_DrawQuestBlob(lua_State* L);
 int32_t Script_SetMergeThreshold(lua_State* L);
 int32_t Script_SetNumSplinePoints(lua_State* L);
-int32_t Script_UpdateMouseOverTooltip(lua_State* L);
 int32_t Script_GetTooltipIndex(lua_State* L);
 int32_t Script_GetNumTooltips(lua_State* L);
 
@@ -112,6 +111,42 @@ static int32_t Script_SetBorderScalar(lua_State* L) {
 
     frame->m_borderScalar = scalar;
     return 0;
+}
+
+// VERIFY: 87ceb563 manual
+// OFFSET: 0x005905F0
+static int32_t Script_DrawQuestBlob(lua_State* L) {
+    CGQuestPOIFrame* frame = static_cast<CGQuestPOIFrame*>(FrameScript_GetObjectThis(L, CGQuestPOIFrame::GetObjectType()));
+    int32_t questId = static_cast<int32_t>(lua_tointeger(L, 2));
+
+    if (lua_toboolean(L, 3)) {
+        QuestPOIInfo* info = CGQuestLog::GetQuestPOIInfo(questId);
+
+        if (info) {
+            frame->AddQuest(info);
+        }
+    } else {
+        frame->RemoveQuest(questId);
+    }
+
+    return 0;
+}
+
+// VERIFY: aaa0eec9 manual
+// OFFSET: 0x0058E9C0
+static int32_t Script_UpdateMouseOverTooltip(lua_State* L) {
+    CGQuestPOIFrame* frame = static_cast<CGQuestPOIFrame*>(FrameScript_GetObjectThis(L, CGQuestPOIFrame::GetObjectType()));
+    float x = static_cast<float>(lua_tonumber(L, 2));
+    float y = static_cast<float>(lua_tonumber(L, 3));
+    frame->UpdateMouseOverPOI(x, y);
+
+    if (!frame->m_mouseOverQuestId) {
+        return 0;
+    }
+
+    lua_pushinteger(L, CGQuestLog::GetQuestIndex(frame->m_mouseOverQuestId));
+    lua_pushinteger(L, frame->m_mouseOverCount);
+    return 2;
 }
 
 // STATIC: 0x00ACF180

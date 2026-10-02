@@ -61,6 +61,10 @@ class CGAchievementInfo {
     static void LoadTrackedAchievements();
     static void RemoveTrackedAchievement(int32_t id);
     static WOWGUID m_inspect;
+    static bool IsRealAchievement(int32_t id);
+    static bool IsSupersededByCompleted(int32_t id);
+    static uint64_t BuildOutputString(char* buffer, int32_t size, uint64_t sum, uint64_t highest, int32_t highestId, uint64_t count, uint64_t value, CLIENT_ACHIEVEMENT_CRITERIA* criteria, int32_t flags, int32_t criteriaFlags, bool completed, const AchievementRec* achievement, const Achievement_CriteriaRec* criteriaRec, int32_t required);
+    static void ReleaseInspect();
 
     static void InitializeGame();
     static void ShutdownGame();
@@ -71,36 +75,18 @@ class CGAchievementInfo {
     static void UpdateInspectCriteria(WOWGUID guid, int32_t id, uint64_t counter, WOWGUID player, uint32_t flags, WowTime date, uint32_t timer1, uint32_t timer2);
 };
 
-int32_t Script_GetStatisticsCategoryList(lua_State* L);
-int32_t Script_GetCategoryNumAchievements(lua_State* L);
-int32_t Script_GetComparisonCategoryNumAchievements(lua_State* L);
-int32_t Script_GetAchievementInfo(lua_State* L);
-int32_t Script_GetAchievementNumCriteria(lua_State* L);
-int32_t Script_GetAchievementCriteriaInfo(lua_State* L);
-int32_t Script_ClearAchievementComparisonUnit(lua_State* L);
-int32_t Script_GetAchievementComparisonInfo(lua_State* L);
-int32_t Script_GetNextAchievement(lua_State* L);
-int32_t Script_GetAchievementLink(lua_State* L);
-int32_t Script_GetNumCompletedAchievements(lua_State* L);
-int32_t Script_GetNumComparisonCompletedAchievements(lua_State* L);
-int32_t Script_GetLatestCompletedAchievements(lua_State* L);
-int32_t Script_GetLatestUpdatedStats(lua_State* L);
-int32_t Script_GetLatestCompletedComparisonAchievements(lua_State* L);
-int32_t Script_GetLatestUpdatedComparisonStats(lua_State* L);
-int32_t Script_GetAchievementInfoFromCriteria(lua_State* L);
-int32_t Script_GetStatistic(lua_State* L);
-int32_t Script_GetComparisonStatistic(lua_State* L);
-int32_t Script_GetComparisonAchievementPoints(lua_State* L);
 int32_t AddTrackedAchievement(int32_t id);
-int32_t Script_AddTrackedAchievement(lua_State* L);
-int32_t Script_RemoveTrackedAchievement(lua_State* L);
-int32_t Script_IsTrackedAchievement(lua_State* L);
-int32_t Script_GetNumTrackedAchievements(lua_State* L);
-int32_t Script_GetQuestsCompleted(lua_State* L);
 void AchievementInfoRegisterScriptFunctions();
 void AchievementInfoUnregisterScriptFunctions();
 
+extern TSList<CLIENT_ACHIEVEMENT_CRITERIA, TSGetLink<CLIENT_ACHIEVEMENT_CRITERIA>> s_criteria;
+extern TSList<CLIENT_ACHIEVEMENT_CRITERIA, TSGetLink<CLIENT_ACHIEVEMENT_CRITERIA>> s_recentCriteria;
 extern TSList<CLIENT_ACHIEVEMENTS, TSGetLink<CLIENT_ACHIEVEMENTS>> s_completedAchievements;
+extern TSList<CLIENT_ACHIEVEMENT_CRITERIA, TSGetLink<CLIENT_ACHIEVEMENT_CRITERIA>> s_inspectCriteria;
+extern TSList<CLIENT_ACHIEVEMENT_CRITERIA, TSGetLink<CLIENT_ACHIEVEMENT_CRITERIA>> s_inspectRecentCriteria;
 extern TSList<CLIENT_ACHIEVEMENTS, TSGetLink<CLIENT_ACHIEVEMENTS>> s_trackedAchievements;
+extern TSList<CLIENT_ACHIEVEMENTS, TSGetLink<CLIENT_ACHIEVEMENTS>> s_inspectAchievements;
+extern TSList<COMPLETED_QUESTS, TSGetLink<COMPLETED_QUESTS>> s_completedQuests;
+extern TSHashTable<ACHIEVEMENT, HASHKEY_NONE> s_achievements;
 
 #endif

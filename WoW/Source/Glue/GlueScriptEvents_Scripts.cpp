@@ -37,7 +37,6 @@ int32_t Script_PlayCreditsMusic(lua_State* L);
 int32_t Script_PatchDownloadProgress(lua_State* L);
 int32_t Script_PatchDownloadCancel(lua_State* L);
 int32_t Script_PatchDownloadApply(lua_State* L);
-int32_t Script_GetAddOnInfo(lua_State* L);
 int32_t Script_LaunchAddOnURL(lua_State* L);
 int32_t Script_GetAddOnDependencies(lua_State* L);
 int32_t Script_GetAddOnEnableState(lua_State* L);
@@ -45,9 +44,7 @@ int32_t Script_EnableAddOn(lua_State* L);
 int32_t Script_EnableAllAddOns(lua_State* L);
 int32_t Script_DisableAddOn(lua_State* L);
 int32_t Script_DisableAllAddOns(lua_State* L);
-int32_t Script_SaveAddOns(lua_State* L);
 int32_t Script_ResetAddOns(lua_State* L);
-int32_t Script_IsAddonVersionCheckEnabled(lua_State* L);
 int32_t Script_SetAddonVersionCheck(lua_State* L);
 int32_t Script_GetBillingTimeRemaining(lua_State* L);
 int32_t Script_GetBillingPlan(lua_State* L);
@@ -59,7 +56,6 @@ int32_t Script_MatrixRevert(lua_State* L);
 int32_t Script_MatrixCommit(lua_State* L);
 int32_t Script_GetMatrixCoordinates(lua_State* L);
 int32_t Script_IsLinuxClient(lua_State* L);
-int32_t Script_SetRealmSplitState(lua_State* L);
 int32_t Script_CancelLogin(lua_State* L);
 int32_t Script_GetCVarAbsoluteMin(lua_State* L);
 int32_t Script_GetCVarAbsoluteMax(lua_State* L);
@@ -1005,6 +1001,110 @@ static int32_t Script_GetCreditsText(lua_State* L) {
 static int32_t Script_TokenEntered(lua_State* L) {
     if (lua_isstring(L, 1)) {
         CGlueMgr::LoginEnterToken(lua_tolstring(L, 1, nullptr));
+    }
+
+    return 0;
+}
+
+// VERIFY: 516d9613 manual
+// OFFSET: 0x004DC560
+static int32_t Script_GetAddOnInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetAddOnInfo(index)");
+    }
+
+    const char* name = GetAddOnByIndex(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1);
+
+    if (!name) {
+        luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+    }
+
+    lua_pushstring(L, name);
+    const char* title = GetAddOnTitle(name);
+
+    if (title) {
+        lua_pushstring(L, title);
+    } else {
+        lua_pushnil(L);
+    }
+
+    const char* notes = GetAddOnNotes(name);
+
+    if (notes) {
+        lua_pushstring(L, notes);
+    } else {
+        lua_pushnil(L);
+    }
+
+    const char* url = GetAddOnURL(name);
+
+    if (url) {
+        lua_pushstring(L, url);
+    } else {
+        lua_pushnil(L);
+    }
+
+    UIADDON_LOADABLE_REASON reason = UIADDON_LOADABLE;
+    UIADDON_LOADABLE_REASON dependencyReason = UIADDON_LOADABLE;
+
+    if (IsAddOnLoadable(name, false, reason, dependencyReason, nullptr)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (reason || dependencyReason) {
+        char buffer[128];
+        lua_pushstring(L, AddOnUnloadableToken(reason, dependencyReason, buffer, sizeof(buffer)));
+    } else {
+        lua_pushnil(L);
+    }
+
+    lua_pushstring(L, AddOnSecurityToken(GetAddOnSecurity(name)));
+
+    if (IsAddOnUpdateAvailable(name)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 8;
+}
+
+// VERIFY: 21cbee05 auto
+// OFFSET: 0x004DCAC0
+static int32_t Script_SaveAddOns(lua_State* L) {
+    SaveAddOnEnableState();
+    return 0;
+}
+
+// VERIFY: fceeae16 auto
+// OFFSET: 0x004DCAE0
+static int32_t Script_IsAddonVersionCheckEnabled(lua_State* L) {
+    if (IsAddonVersionCheckEnabled()) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: c57b30ea auto
+// OFFSET: 0x004DE250
+static int32_t Script_SetRealmSplitState(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: SetRealmSplitState(1 or 2)");
+    }
+
+    uint32_t state = static_cast<uint32_t>(lua_tonumber(L, 1));
+
+    if (state <= 2) {
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_REALM_SPLIT));
+        msg.Put(state);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
     }
 
     return 0;
