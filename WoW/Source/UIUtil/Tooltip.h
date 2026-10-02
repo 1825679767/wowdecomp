@@ -68,6 +68,14 @@ class ScalingStatValuesRec;
 class SpellItemEnchantmentRec;
 class SpellRec;
 
+struct FrameStackInfo {
+    /* 0000 */ char m_name [1024];
+    /* 0400 */ int32_t m_strata;
+    /* 0404 */ int32_t m_level;
+    /* 0408 */ bool m_mouseEnabled;
+    /* 040C */ uint32_t m_visible;
+};
+
 struct ItemSetTooltipData {
     /* 0000 */ CGTooltip* m_tooltip;
     /* 0004 */ const ItemSetRec* m_set;
@@ -86,6 +94,9 @@ bool ResolveItemSetItem(ItemSetTooltipData* data, int32_t pass, int32_t itemId, 
 void TooltipUnitNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 void TooltipCorpseCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 void TooltipSpellCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void TooltipObjectCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void TooltipQuestCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void TooltipAchievementCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 int32_t FormatString(const char* token, int32_t count, FRAMESCRIPT_GENDER gender, char* buffer, uint32_t size);
 int32_t TimeFractionBelow(float time, float fraction);
 
@@ -127,8 +138,7 @@ class CGTooltip : public CSimpleFrame {
     /* 02FC */ uint32_t m_textureLines [10];
     /* 0324 */ uint32_t m_numTextures;
     /* 0328 */ WOWGUID m_unitGuid;
-    /* 0330 */ uint32_t unk_0330;
-    /* 0334 */ uint32_t unk_0334;
+    /* 0330 */ WOWGUID m_objectGuid;
     /* 0338 */ uint32_t unk_0338;
     /* 033C */ uint32_t unk_033C;
     /* 0340 */ WOWGUID m_itemGuid;
@@ -138,12 +148,14 @@ class CGTooltip : public CSimpleFrame {
     /* 0358 */ WOWGUID m_healthGuid;
     /* 0360 */ int32_t m_itemId;
     /* 0364 */ int32_t m_spellId;
-    /* 0368 */ uint32_t unk_0368;
-    /* 036C */ uint32_t unk_036C;
+    /* 0368 */ int32_t m_questId;
+    /* 036C */ int32_t m_achievementId;
     /* 0370 */ int32_t m_nextRankSpellId;
-    /* 0374 */ uint32_t unk_0374 [4];
-    /* 0384 */ WowTime m_time;
-    /* 03A4 */ uint32_t unk_03A4 [4];
+    /* 0374 */ uint32_t unk_0374;
+    /* 0378 */ WOWGUID m_achievementGuid;
+    /* 0380 */ bool m_achievementCompleted;
+    /* 0384 */ WowTime m_achievementTime;
+    /* 03A4 */ uint32_t m_achievementCriteria [4];
     /* 03B4 */ int32_t m_itemNameOnly;
     /* 03B8 */ int32_t m_itemSocketPreview;
     /* 03BC */ int32_t m_itemCompare;
@@ -194,6 +206,7 @@ class CGTooltip : public CSimpleFrame {
     void AddColoredItemStat(int32_t value, const char* name, int32_t* first);
     int32_t SetItemDelta(const CGItemStatsSummary* summary, int32_t append);
     void SetBuff(int32_t spellId, int32_t a2, int32_t a3, int32_t a4, int32_t a5, int32_t a6);
+    void SetFrameStack(bool showHidden);
     void FadeOut();
     void ResetPosition(int32_t force);
     void SetOwner(CSimpleFrame* owner, TOOLTIP_ANCHORPOINT anchorType, float offsetX, float offsetY);
@@ -223,7 +236,7 @@ class CGTooltip : public CSimpleFrame {
     int32_t SetQuest(int32_t questId);
     void SetGlyph(int32_t slotId, int32_t glyphId, int32_t enabled, int32_t hideRemove, int32_t parseUnit);
     void SetTalent(const TalentRec* talent, CGTalentGroup_C* group, int32_t isInspect, int32_t useRank, int32_t rank, int32_t isPet, int32_t usePreview);
-    int32_t SetAchievement(int32_t achievementId, uint64_t guid, bool completed, WowTime time, uint32_t criteria1, uint32_t criteria2, uint32_t criteria3, uint32_t criteria4, int32_t a10);
+    int32_t SetAchievement(int32_t achievementId, WOWGUID guid, bool completed, WowTime time, uint32_t criteria1, uint32_t criteria2, uint32_t criteria3, uint32_t criteria4, int32_t a10);
     int32_t SetSpell(int32_t spellId, int32_t brief, uint32_t cooldown, int32_t isPet, int32_t showRank, int32_t isInspect, int32_t a8, const TalentRec* talent, CGTalentGroup_C* talentGroup, int32_t append, int32_t usePreview, int32_t a13, int32_t rank, int32_t maxRank, int32_t showLearn);
     int32_t SetItem(int32_t itemId, const WOWGUID* requester, const WOWGUID* itemGuid, int32_t nameOnly, int32_t compare, int32_t useLinkInfo, int32_t append, WOWGUID owner, int32_t socketPreview, FILE* stream, int32_t hideCharges, const ItemLinkInfo* link, int32_t minimumLevel, int32_t skipLock, int32_t skipSellPrice);
 };

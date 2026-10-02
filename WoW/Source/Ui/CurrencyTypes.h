@@ -27,6 +27,7 @@ class CGCurrencyTypes {
     public:
     static CurrencyTypesRec* GetCurrencyRec(int32_t index);
     static int32_t IsCurrencyShown(int32_t index);
+    static CurrencyListEntry* GetDisplayListInfo(int32_t index);
     static int32_t m_listSize;
     static CurrencyListEntry m_list[95];
     static CurrencyCategoryInfo m_categories[32];

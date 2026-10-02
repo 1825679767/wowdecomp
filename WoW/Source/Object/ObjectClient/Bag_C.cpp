@@ -527,6 +527,54 @@ bool CGBag_C::FindTotemCategory(int32_t type, int32_t& mask, bool recurse, uint3
     return false;
 }
 
+// VERIFY: 0476a53f manual
+// OFFSET: 0x007540B0
+bool CGBag_C::ContainsItem(WOWGUID guid, bool recurse, uint32_t flags) const {
+    int32_t hasBank = this->m_hasBank;
+    uint32_t slot = hasBank ? s_bagSlotRanges[0].m_first : 0;
+
+    while (slot < static_cast<uint32_t>(this->m_numSlots)) {
+        if (!hasBank || SlotMatchesSearchFlags(slot, flags)) {
+            WOWGUID slotGuid = slot < static_cast<uint32_t>(this->m_numSlots) ? this->m_slots[slot] : WOWGUID();
+            CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(slotGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+            if (item && (!hasBank || slot < 74 || slot > 85)) {
+                WOWGUID itemGuid = slot < static_cast<uint32_t>(this->m_numSlots) ? this->m_slots[slot] : WOWGUID();
+
+                if (itemGuid == guid) {
+                    return true;
+                }
+
+                if (recurse && (item->m_obj->m_type & TYPEMASK_CONTAINER) && item->GetBag() && item->GetBag()->ContainsItem(guid, false, flags)) {
+                    return true;
+                }
+            }
+        }
+
+        if (slot < static_cast<uint32_t>(this->m_numSlots)) {
+            uint32_t i = 0;
+
+            if (this->m_hasBank) {
+                for (; i < sizeof(s_bagSlotRanges) / sizeof(s_bagSlotRanges[0]); i++) {
+                    if (s_bagSlotRanges[i].m_last == slot) {
+                        break;
+                    }
+                }
+            }
+
+            if (this->m_hasBank && i < sizeof(s_bagSlotRanges) / sizeof(s_bagSlotRanges[0])) {
+                slot = i >= sizeof(s_bagSlotRanges) / sizeof(s_bagSlotRanges[0]) - 1 ? this->m_numSlots : s_bagSlotRanges[i + 1].m_first;
+            } else {
+                slot++;
+            }
+        } else {
+            slot = this->m_numSlots;
+        }
+    }
+
+    return false;
+}
+
 // VERIFY: 6ed45ee8 auto
 // OFFSET: 0x007548F0
 bool CGBag_C::FindTotemCategory(int32_t category, uint32_t flags) {

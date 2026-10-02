@@ -104,6 +104,14 @@
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "WoW/Source/DB/Rec/AchievementRec.h"
 #include "WoW/Source/Ui/ChatFrame.h"
+#include "WoW/Source/DB/Rec/CreatureFamilyRec.h"
+#include "WoW/Source/DB/Rec/ItemPetFoodRec.h"
+#include "WoW/Source/DB/Rec/SpellDispelTypeRec.h"
+#include "WoW/Source/DB/Rec/Achievement_CriteriaRec.h"
+#include "WoW/Source/Ui/AchievementInfo.h"
+#include "WoW/Source/Ui/CGBankInfo.h"
+#include "Engine/Source/FrameXML/LoadXML.h"
+#include "Engine/Source/Frame/CBackdropGenerator.h"
 
 // STATIC: 0x00AD2AAC
 static const char* s_spellLinkColorString = "|cff71d5ff";
@@ -257,6 +265,21 @@ static const char* s_useAllPowerTokens[7] = { "SPELL_USE_ALL_MANA", "SPELL_USE_A
 
 // STATIC: 0x00C5CF50
 static char s_itemLink[1024];
+
+// STATIC: 0x00AD2D4C
+static uint32_t s_tooltipObjectBackdropColor = 0xFF002E5A;
+
+// STATIC: 0x00AD2DB0
+static uint32_t s_frameStackMouseColors[2] = { 0xFFFF9966, 0xFFDDDD88 };
+
+// STATIC: 0x00AD2DB8
+static uint32_t s_frameStackColors[2] = { 0xFF6699FF, 0xFF88DDDD };
+
+// STATIC: 0x00AD2DC0
+static uint32_t s_frameStackHiddenColors[2] = { 0xFF666666, 0xFF999999 };
+
+// STATIC: 0x00C5D368
+static TSGrowableArray<FrameStackInfo> s_frameStack;
 
 // VERIFY: e25b476e auto
 // OFFSET: 0x0061B5B0
@@ -864,7 +887,7 @@ void CGTooltip::OnLayerUpdate(float elapsedSec) {
     }
 }
 
-// VERIFY: 2b94260a manual
+// VERIFY: f1de934c manual
 // OFFSET: 0x0061C620
 void CGTooltip::ClearTooltip() {
     if (this->m_healthGuid != WOWGUID()) {
@@ -878,16 +901,15 @@ void CGTooltip::ClearTooltip() {
     }
 
     this->m_unitGuid = WOWGUID();
-    this->unk_0330 = 0;
-    this->unk_0334 = 0;
+    this->m_objectGuid = WOWGUID();
     this->unk_0338 = 0;
     this->unk_033C = 0;
     this->m_corpseGuid.m_guid = 0;
     this->m_healthGuid = WOWGUID();
     this->m_itemId = 0;
     this->m_spellId = 0;
-    this->unk_0368 = 0;
-    this->unk_036C = 0;
+    this->m_questId = 0;
+    this->m_achievementId = 0;
     this->m_nextRankSpellId = 0;
 
     for (uint32_t i = 0; i < this->m_numTextures; i++) {
@@ -1073,7 +1095,7 @@ int32_t CGTooltip::ShowThis() {
     return CSimpleFrame::ShowThis();
 }
 
-// VERIFY: 41c491c8 manual
+// VERIFY: 14f9b7d7 manual
 // OFFSET: 0x0061DEE0
 CGTooltip::CGTooltip(CSimpleFrame* parent) : CSimpleFrame(parent) {
     this->m_itemLinkInfo.Clear();
@@ -1086,8 +1108,7 @@ CGTooltip::CGTooltip(CSimpleFrame* parent) : CSimpleFrame(parent) {
     this->m_maxLines = 0;
     this->m_numTextures = 0;
     this->m_unitGuid = WOWGUID();
-    this->unk_0330 = 0;
-    this->unk_0334 = 0;
+    this->m_objectGuid = WOWGUID();
     this->unk_0338 = 0;
     this->unk_033C = 0;
     this->m_itemGuid = WOWGUID();
@@ -1095,8 +1116,8 @@ CGTooltip::CGTooltip(CSimpleFrame* parent) : CSimpleFrame(parent) {
     this->m_healthGuid = WOWGUID();
     this->m_itemId = 0;
     this->m_spellId = 0;
-    this->unk_0368 = 0;
-    this->unk_036C = 0;
+    this->m_questId = 0;
+    this->m_achievementId = 0;
     this->m_nextRankSpellId = 0;
     this->m_itemNameOnly = 0;
     this->m_itemSocketPreview = 0;
@@ -7218,5 +7239,870 @@ int32_t SetCompareItem(CGTooltip* tooltip, uint32_t itemId, int32_t offset, int3
         }
     }
 
+    return 1;
+}
+
+// VERIFY: 2c134cf7 manual
+// OFFSET: 0x0061A5B0
+static int32_t QSortFrameStack(const void* a, const void* b) {
+    const FrameStackInfo* infoA = static_cast<const FrameStackInfo*>(a);
+    const FrameStackInfo* infoB = static_cast<const FrameStackInfo*>(b);
+
+    if (infoA->m_strata < infoB->m_strata) {
+        return 1;
+    }
+
+    if (infoA->m_strata > infoB->m_strata) {
+        return -1;
+    }
+
+    if (infoA->m_level < infoB->m_level) {
+        return 1;
+    }
+
+    if (infoA->m_level > infoB->m_level) {
+        return -1;
+    }
+
+    return SStrCmpI(infoA->m_name, infoB->m_name, STORM_MAX_STR);
+}
+
+// VERIFY: eedaf448 auto
+// OFFSET: 0x0061DCE0
+void TooltipObjectCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!success) {
+        return;
+    }
+
+    CGTooltip* tooltip = static_cast<CGTooltip*>(param);
+
+    if (static_cast<uint32_t>(tooltip->m_objectGuid.m_guid)) {
+        WOWGUID object = tooltip->m_objectGuid;
+        tooltip->SetObject(object);
+        tooltip->CalculateSize();
+    }
+}
+
+// VERIFY: 18827091 auto
+// OFFSET: 0x0061DE20
+void TooltipQuestCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!success) {
+        return;
+    }
+
+    CGTooltip* tooltip = static_cast<CGTooltip*>(param);
+
+    if (tooltip->m_questId) {
+        tooltip->SetQuest(tooltip->m_questId);
+        tooltip->CalculateSize();
+    }
+}
+
+// VERIFY: b4a0294d manual
+// OFFSET: 0x0061DE50
+void TooltipAchievementCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!success) {
+        return;
+    }
+
+    CGTooltip* tooltip = static_cast<CGTooltip*>(param);
+
+    if (tooltip->m_achievementId) {
+        tooltip->SetAchievement(tooltip->m_achievementId, tooltip->m_achievementGuid, tooltip->m_achievementCompleted, tooltip->m_achievementTime, tooltip->m_achievementCriteria[0], tooltip->m_achievementCriteria[1], tooltip->m_achievementCriteria[2], tooltip->m_achievementCriteria[3], 1);
+        tooltip->CalculateSize();
+    }
+}
+
+// VERIFY: 32b57856 manual
+// OFFSET: 0x00620950
+void CGTooltip::AddEmpathyText(CGUnit_C* unit, char* buffer, uint32_t size) {
+    const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
+    int32_t minDamage = static_cast<int32_t>(unit->m_unit->m_unitFieldMindamage);
+    int32_t maxDamage = static_cast<int32_t>(ceil(static_cast<double>(unit->m_unit->m_unitFieldMaxdamage)));
+
+    if (minDamage == maxDamage) {
+        SStrPrintf(buffer, size, FrameScript_GetText("SINGLE_DAMAGE_TEMPLATE", -1, GENDER_NOT_APPLICABLE), minDamage);
+    } else {
+        SStrPrintf(buffer, size, FrameScript_GetText("DAMAGE_TEMPLATE", -1, GENDER_NOT_APPLICABLE), minDamage, maxDamage);
+    }
+
+    this->AddLine(buffer, nullptr, textColor, textColor, 0);
+
+    int32_t armor = unit->m_unit->m_unitFieldResistances[GetPhysicalDamageClassID()] > 0 ? unit->m_unit->m_unitFieldResistances[GetPhysicalDamageClassID()] : 0;
+    SStrPrintf(buffer, size, FrameScript_GetText("ARMOR_TEMPLATE", -1, GENDER_NOT_APPLICABLE), armor);
+    this->AddLine(buffer, nullptr, textColor, textColor, 0);
+
+    SStrPrintf(buffer, size, FrameScript_GetText("HP_TEMPLATE", -1, GENDER_NOT_APPLICABLE), unit->m_unit->m_unitFieldHealth);
+    this->AddLine(buffer, nullptr, textColor, textColor, 0);
+
+    for (int32_t i = 0; i < 7; i++) {
+        if (i == GetPhysicalDamageClassID() || unit->m_unit->m_unitFieldResistances[i] <= 0) {
+            continue;
+        }
+
+        char token[32];
+        SStrPrintf(token, sizeof(token), "RESISTANCE%d_NAME", i);
+        const char* name = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
+
+        if (name && *name) {
+            SStrPrintf(buffer, size, FrameScript_GetText("RESISTANCE_TEMPLATE", -1, GENDER_NOT_APPLICABLE), unit->m_unit->m_unitFieldResistances[i], name);
+            this->AddLine(buffer, nullptr, textColor, textColor, 0);
+        }
+    }
+
+    CreatureFamilyRec* family = g_creatureFamilyDB.GetRecord(unit->GetCreatureFamily());
+
+    if (family && family->m_petFoodMask) {
+        char diet[256];
+        diet[0] = '\0';
+        int32_t first = 1;
+        uint32_t count = g_itemPetFoodDB.m_numRecords;
+
+        for (uint32_t i = 0; i < count; i++) {
+            ItemPetFoodRec* food = g_itemPetFoodDB.GetRecordByIndex(i);
+
+            if (food && ((1 << (food->m_id - 1)) & family->m_petFoodMask)) {
+                if (!first) {
+                    SStrPack(diet, ", ", sizeof(diet));
+                }
+
+                SStrPack(diet, food->m_name, sizeof(diet));
+                first = 0;
+            }
+        }
+
+        if (!first) {
+            SStrPrintf(buffer, size, FrameScript_GetText("PET_DIET_TEMPLATE", -1, GENDER_NOT_APPLICABLE), diet);
+            this->AddLine(buffer, nullptr, textColor, textColor, 0);
+        }
+    }
+
+    CreatureStats_C* stats = unit->m_creatureCacheEntry;
+
+    if (!stats || !(stats->m_typeFlags & 0x1) || !stats->m_family) {
+        this->AddLine(FrameScript_GetText("NOT_TAMEABLE", -1, GENDER_NOT_APPLICABLE), nullptr, textColor, textColor, 0);
+        return;
+    }
+
+    this->AddLine(FrameScript_GetText(stats->m_typeFlags & 0x10000 ? "TAMEABLE_EXOTIC" : "TAMEABLE", -1, GENDER_NOT_APPLICABLE), nullptr, textColor, textColor, 0);
+
+    family = g_creatureFamilyDB.GetRecord(unit->GetCreatureFamily());
+
+    if (!family) {
+        return;
+    }
+
+    char spells[512];
+    spells[0] = '\0';
+    int32_t first = 1;
+
+    for (uint32_t j = 0; j < 2; j++) {
+        for (int32_t i = 0; i < g_skillLineAbilityDB.m_numRecords; i++) {
+            SkillLineAbilityRec* ability = g_skillLineAbilityDB.GetRecordByIndex(i);
+
+            if (!ability || ability->m_skillLine != family->m_skillLine[j]) {
+                continue;
+            }
+
+            SpellRec spell;
+
+            if (g_spellDB.GetRecord(ability->m_spell, &spell) && !(spell.m_attributes & 0xC0) && !ability->m_supercededBySpell && ability->m_acquireMethod == 2) {
+                if (!first) {
+                    SStrPack(spells, ", ", sizeof(spells));
+                }
+
+                SStrPack(spells, spell.m_name, sizeof(spells));
+                first = 0;
+            }
+        }
+    }
+
+    if (!first) {
+        SStrPrintf(buffer, size, FrameScript_GetText("PET_SPELLS_TEMPLATE", -1, GENDER_NOT_APPLICABLE), spells);
+        this->AddLine(buffer, nullptr, textColor, textColor, 0);
+    }
+}
+
+// VERIFY: fa5a7b6d auto
+// OFFSET: 0x00620EE0
+void CGTooltip::AddSkinnableText(CGUnit_C* unit, char* buffer, uint32_t size) {
+    *buffer = '\0';
+    CImVector color = *reinterpret_cast<const CImVector*>(&s_skillColors[4]);
+    const char* suffix = "";
+    int32_t skinningSpell = CGSpellBook::GetSkinningSpell(unit);
+
+    if (skinningSpell) {
+        SpellRec spell;
+        g_spellDB.GetRecord(skinningSpell, &spell);
+
+        for (uint32_t i = 0; i < 3; i++) {
+            if (spell.m_effect[i] != 95) {
+                continue;
+            }
+
+            int32_t skill;
+            int32_t maxSkill;
+            Spell_C_GetMinMaxPoints(&spell, i, &skill, &maxSkill, 0, 0, 0, 0);
+
+            if (skill > 0) {
+                int32_t level = unit->m_unit->m_unitFieldLevel;
+                int32_t required;
+
+                if (level <= 10) {
+                    required = 1;
+                } else if (level < 20) {
+                    required = (5 * level - 50) * 2;
+                } else {
+                    required = 5 * level;
+                }
+
+                color = *GetSkillColor(required, skill, &suffix);
+            }
+
+            break;
+        }
+    }
+
+    const char* token;
+
+    switch (unit->GetSkinningType()) {
+        case 0:
+            token = "UNIT_SKINNABLE_LEATHER";
+            break;
+        case 1:
+            token = "UNIT_SKINNABLE_HERB";
+            break;
+        case 2:
+            token = "UNIT_SKINNABLE_ROCK";
+            break;
+        case 3:
+            token = "UNIT_SKINNABLE_BOLTS";
+            break;
+        default:
+            return;
+    }
+
+    SStrPrintf(buffer, size, "%s%s", suffix, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE));
+
+    if (*buffer) {
+        this->AddLine(buffer, nullptr, color, color, 0);
+    }
+}
+
+// VERIFY: 214e3d9a auto
+// OFFSET: 0x00622960
+int32_t CGTooltip::SetQuest(int32_t questId) {
+    const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
+    const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
+    const CImVector& greenColor = *reinterpret_cast<const CImVector*>(&s_tooltipGreenColor);
+
+    this->ClearTooltip();
+
+    WOWGUID requester = { 0 };
+    this->m_questId = questId;
+    QuestCache* quest = g_questDBCache.GetRecord(questId, requester, TooltipQuestCallback, this, false);
+
+    if (!quest) {
+        return 0;
+    }
+
+    this->AddLine(quest->m_name, nullptr, titleColor, titleColor, 0);
+
+    if (CGQuestLog::GetQuestIndex(questId) > 0) {
+        this->AddLine(FrameScript_GetText("QUEST_TOOLTIP_ACTIVE", -1, GENDER_NOT_APPLICABLE), nullptr, greenColor, greenColor, 0);
+    }
+
+    this->AddLine(" ", nullptr, titleColor, titleColor, 0);
+
+    char text[1024];
+    WOWGUID player = ClntObjMgrGetActivePlayer();
+    QuestParserParseText(quest->m_objText, text, sizeof(text), player, nullptr, 0);
+    this->AddLine(text, nullptr, textColor, textColor, 1);
+
+    int32_t count = GetNumQuestLeaderBoards(questId, TooltipQuestCallback, this);
+
+    if (count > 0) {
+        this->AddLine(" ", nullptr, titleColor, titleColor, 0);
+        this->AddLine(FrameScript_GetText("QUEST_TOOLTIP_REQUIREMENTS", -1, GENDER_NOT_APPLICABLE), nullptr, titleColor, titleColor, 0);
+
+        QuestLogLeaderBoardParams params;
+        params.m_showProgress = 0;
+        params.m_questCallback = TooltipQuestCallback;
+        params.m_objectCallback = TooltipQuestCallback;
+        params.m_creatureCallback = TooltipQuestCallback;
+        params.m_itemCallback = TooltipQuestCallback;
+        params.m_param = this;
+
+        for (int32_t i = 0; i < count; i++) {
+            params.m_index = i;
+
+            if (CGQuestLog::GetQuestLeaderBoardByID(questId, &params)) {
+                char line[4099] = " - ";
+                SStrPack(line, params.m_text, STORM_MAX_STR);
+                this->AddLine(line, nullptr, textColor, textColor, 0);
+            }
+        }
+    }
+
+    if (this->m_onTooltipSetQuest.m_luaRef) {
+        this->RunScript(this->m_onTooltipSetQuest, 0, nullptr);
+    }
+
+    this->Show();
+    return 1;
+}
+
+// VERIFY: b202b707 manual
+// OFFSET: 0x00622DD0
+int32_t CGTooltip::SetEquipmentSet(uint32_t setId) {
+    const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
+    const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
+    const CImVector& redColor = *reinterpret_cast<const CImVector*>(&s_tooltipRedColor);
+    const CImVector& grayColor = *reinterpret_cast<const CImVector*>(&s_tooltipGrayColor);
+
+    this->ClearTooltip();
+
+    const EQUIPMENT_SET* set = CGEquipmentManager::GetSetByID(setId);
+
+    if (!set) {
+        return 0;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    int32_t equipped = 0;
+    int32_t inInventory = 0;
+    int32_t numMissing = 0;
+    int32_t ignored = 0;
+    uint32_t flags = CGBankInfo::m_banker.m_guid ? 14 : 6;
+    int32_t missing[19];
+
+    for (int32_t slot = 0; slot <= 18; slot++) {
+        WOWGUID guid = set->m_items[slot];
+
+        if (!guid.m_guid) {
+            continue;
+        }
+
+        if (guid.m_guid == 1) {
+            ignored++;
+        } else if (static_cast<uint32_t>(player->m_bag.FindItemSlot(guid)) > 18) {
+            if (player->m_bag.ContainsItem(guid, true, flags)) {
+                inInventory++;
+            } else {
+                missing[numMissing++] = slot;
+            }
+        } else {
+            equipped++;
+        }
+    }
+
+    char text[1024];
+    SStrPrintf(text, sizeof(text), FrameScript_GetText("ITEMS_VARIABLE_QUANTITY", -1, GENDER_NOT_APPLICABLE), equipped + inInventory + numMissing);
+
+    if (text[0]) {
+        this->AddLine(set->m_name, text, textColor, titleColor, 0);
+    } else {
+        this->AddLine(set->m_name, nullptr, textColor, textColor, 0);
+    }
+
+    if (equipped) {
+        SStrPrintf(text, sizeof(text), FrameScript_GetText("ITEMS_EQUIPPED", -1, GENDER_NOT_APPLICABLE), equipped);
+        this->AddLine(text, nullptr, titleColor, titleColor, 0);
+    }
+
+    if (inInventory) {
+        SStrPrintf(text, sizeof(text), FrameScript_GetText("ITEMS_IN_INVENTORY", -1, GENDER_NOT_APPLICABLE), inInventory);
+        this->AddLine(text, nullptr, textColor, textColor, 0);
+    }
+
+    if (ignored) {
+        SStrPrintf(text, sizeof(text), FrameScript_GetText("ITEM_SLOTS_IGNORED", -1, GENDER_NOT_APPLICABLE), ignored);
+        this->AddLine(text, nullptr, grayColor, grayColor, 0);
+    }
+
+    for (int32_t i = numMissing; i > 0; i--) {
+        const char* slotName = FrameScript_GetText(GetInventorySlotToken(missing[i - 1]), -1, GENDER_NOT_APPLICABLE);
+        SStrPrintf(text, sizeof(text), FrameScript_GetText("ITEM_MISSING", -1, GENDER_NOT_APPLICABLE), slotName);
+        this->AddLine(text, nullptr, redColor, redColor, 0);
+    }
+
+    if (this->m_onTooltipSetEquipmentSet.m_luaRef) {
+        this->RunScript(this->m_onTooltipSetEquipmentSet, 0, nullptr);
+    }
+
+    this->Show();
+    return 0;
+}
+
+// VERIFY: ccbe79da manual
+// OFFSET: 0x006230D0
+void CGTooltip::SetFrameStack(bool showHidden) {
+    const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
+    const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
+
+    this->ClearTooltip();
+
+    CSimpleTop* top = CSimpleTop::s_instance;
+    float x = 0.0f;
+    float y = 0.0f;
+    NDCToDDC(top->m_mousePosition.m_x, top->m_mousePosition.m_y, &x, &y);
+
+    CSimpleFrame* frame = top->m_frames.Head();
+
+    if (!frame) {
+        return;
+    }
+
+    char text[1024] = { 0 };
+    CRect rect;
+    rect.minY = 0.0f;
+    rect.minX = 0.0f;
+    rect.maxY = 0.0f;
+    rect.maxX = 0.0f;
+    lua_State* L = FrameScript_GetContext();
+
+    for (; frame; frame = frame->m_framesLink.Next()) {
+        if (!frame->GetRect(&rect)) {
+            continue;
+        }
+
+        uint32_t visible = frame->m_isVisible;
+
+        if ((!visible && !showHidden) || x < rect.minX || x > rect.maxX || y > rect.maxY || y < rect.minY) {
+            continue;
+        }
+
+        FrameStackInfo info;
+        const char* name = frame->GetName();
+
+        if (!name || !*name) {
+            if (!frame->m_luaRegistered) {
+                frame->RegisterScriptObject(nullptr);
+            }
+
+            lua_rawgeti(L, LUA_REGISTRYINDEX, frame->m_luaObjectRef);
+            SStrPrintf(info.m_name, sizeof(info.m_name), "%s: %p", lua_typename(L, lua_type(L, -1)), lua_topointer(L, -1));
+            lua_settop(L, -2);
+        } else {
+            lua_pushstring(L, name);
+            lua_rawget(L, LUA_GLOBALSINDEX);
+
+            if (lua_type(L, -1) == LUA_TTABLE) {
+                lua_rawgeti(L, -1, 0);
+                void* object = lua_touserdata(L, -1);
+                lua_settop(L, -3);
+
+                if (object && object == frame) {
+                    SStrCopy(info.m_name, name, STORM_MAX_STR);
+                } else {
+                    lua_rawgeti(L, LUA_REGISTRYINDEX, frame->GetLuaObjectRef());
+                    SStrPrintf(info.m_name, sizeof(info.m_name), "%s: %p (%s)", lua_typename(L, lua_type(L, -1)), lua_topointer(L, -1), name);
+                    lua_settop(L, -2);
+                }
+            } else {
+                SStrPrintf(info.m_name, sizeof(info.m_name), "%s: %p (%s)", lua_typename(L, lua_type(L, -1)), lua_topointer(L, -1), name);
+                lua_settop(L, -2);
+            }
+        }
+
+        info.m_strata = frame->m_strata;
+        info.m_level = frame->m_level;
+        info.m_mouseEnabled = (frame->m_enabledEventsBitmask & 0x4) != 0;
+        info.m_visible = visible;
+        s_frameStack.Add(1, &info);
+    }
+
+    qsort(s_frameStack.m_data, s_frameStack.m_count, sizeof(FrameStackInfo), QSortFrameStack);
+
+    SStrPrintf(text, sizeof(text), "(%.2f, %.2f)", DDCToNDCWidth(CoordinateGetAspectCompensation() * 1024.0f * x), DDCToNDCWidth(CoordinateGetAspectCompensation() * 1024.0f * y));
+    this->AddLine(FrameScript_GetText("DEBUG_FRAMESTACK", -1, GENDER_NOT_APPLICABLE), text, textColor, titleColor, 0);
+
+    int32_t toggle = 1;
+    int32_t lastStrata = 9;
+    int32_t lastLevel = 0;
+
+    for (uint32_t i = 0; i < s_frameStack.m_count; i++) {
+        FrameStackInfo* info = &s_frameStack.m_data[i];
+        int32_t strata = info->m_strata;
+
+        if (strata != lastStrata) {
+            this->AddLine(FrameStrataToString(static_cast<FRAME_STRATA>(strata)), nullptr, textColor, textColor, 0);
+            lastLevel = info->m_level;
+            lastStrata = strata;
+            toggle = 0;
+        }
+
+        if (info->m_level != lastLevel) {
+            toggle = (toggle + 1) % 2;
+            lastLevel = info->m_level;
+        }
+
+        SStrPrintf(text, sizeof(text), " <%d> %s", info->m_level, info->m_name);
+
+        if (info->m_visible) {
+            const CImVector* color = info->m_mouseEnabled ? reinterpret_cast<const CImVector*>(&s_frameStackMouseColors[toggle]) : reinterpret_cast<const CImVector*>(&s_frameStackColors[toggle]);
+            this->AddLine(text, nullptr, *color, *color, 0);
+        } else {
+            this->AddLine(text, nullptr, *reinterpret_cast<const CImVector*>(&s_frameStackHiddenColors[toggle]), *reinterpret_cast<const CImVector*>(&s_frameStackHiddenColors[toggle]), 0);
+        }
+    }
+
+    if (this->m_onTooltipSetFrameStack.m_luaRef) {
+        this->RunScript(this->m_onTooltipSetFrameStack, 0, nullptr);
+    }
+
+    this->Show();
+    s_frameStack.m_count = 0;
+}
+
+// VERIFY: 21654104 auto
+// OFFSET: 0x00625350
+void CGTooltip::SetBuff(int32_t spellId, int32_t a2, int32_t a3, int32_t a4, int32_t a5, int32_t a6) {
+    const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
+    const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
+
+    this->ClearTooltip();
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        this->Hide();
+        return;
+    }
+
+    if (spell.m_cumulativeAura <= 1) {
+        a3 = 1;
+    }
+
+    const char* dispelName = nullptr;
+
+    if (spell.m_dispelType) {
+        SpellDispelTypeRec* dispel = g_spellDispelTypeDB.GetRecord(spell.m_dispelType);
+
+        if (dispel && dispel->m_immunityPossible) {
+            dispelName = dispel->m_name;
+        }
+    }
+
+    this->AddLine(spell.m_name, dispelName, titleColor, titleColor, 0);
+
+    if (spell.m_auraDescription && *spell.m_auraDescription) {
+        char text[1024];
+        SpellParserParseText(&spell, text, sizeof(text), a6, a5, a2, 1, a3, 1);
+        this->AddLine(text, nullptr, textColor, textColor, 1);
+    }
+}
+
+// VERIFY: 96f1d53f manual
+// OFFSET: 0x00626720
+void CGTooltip::SetObject(const WOWGUID& guid) {
+    const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
+    const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
+
+    this->ClearTooltip();
+
+    CGGameObject_C* object = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+
+    if (!object) {
+        this->Hide();
+        return;
+    }
+
+    this->m_objectGuid = guid;
+
+    if (this->m_backdropGenerator) {
+        this->m_backdropGenerator->SetVertexColor(*reinterpret_cast<const CImVector*>(&s_tooltipObjectBackdropColor));
+    }
+
+    this->AddLine(object->CGGameObject_C::GetObjectName(), nullptr, titleColor, titleColor, 0);
+    object->AddToolTipInfo(this);
+
+    char text[4096];
+
+    if (object->m_gameObject->m_flags & 0x2) {
+        CImVector color = *reinterpret_cast<const CImVector*>(&s_skillColors[4]);
+        int32_t spellId = 0;
+        int32_t skillValue = 0;
+        int32_t requiredSkill = 0;
+        CGItem_C* key = nullptr;
+        text[0] = '\0';
+
+        if (!object->IsLocked(&spellId, &skillValue, &requiredSkill, &key, nullptr)) {
+            if (spellId && !key) {
+                const char* suffix;
+                color = *GetSkillColor(requiredSkill, skillValue, &suffix);
+                SStrCopy(text, suffix, sizeof(text));
+            } else {
+                color = *reinterpret_cast<const CImVector*>(&s_skillColors[1]);
+            }
+        }
+
+        SStrPack(text, FrameScript_GetText("LOCKED", -1, GENDER_NOT_APPLICABLE), sizeof(text));
+        this->AddLine(FrameScript_GetText("LOCKED", -1, GENDER_NOT_APPLICABLE), nullptr, color, color, 0);
+    }
+
+    LockRec* lock = object->GetLockRec();
+
+    if (lock && object->IsValidOpenAction(lock->m_action[0])) {
+        switch (lock->m_type[0]) {
+            case 1: {
+                WOWGUID requester = object->m_obj->m_guid;
+                ItemStats_C* stats = g_itemDBCache.GetRecord(lock->m_index[0], requester, TooltipObjectCallback, this, true);
+
+                if (stats) {
+                    SStrPrintf(text, sizeof(text), FrameScript_GetText("LOCKED_WITH_ITEM", -1, GENDER_NOT_APPLICABLE), stats->GetName(0));
+                    this->AddLine(text, nullptr, textColor, textColor, 0);
+                }
+
+                break;
+            }
+            case 2: {
+                int32_t spellId = 0;
+                int32_t skillValue = 0;
+                int32_t requiredSkill = 0;
+                CImVector color = textColor;
+                const char* suffix = "";
+                char format[128];
+                object->IsLocked(&spellId, &skillValue, &requiredSkill, nullptr, nullptr);
+
+                if (spellId) {
+                    color = *GetSkillColor(requiredSkill, skillValue, &suffix);
+                    FormatString("LOCKED_WITH_SPELL_KNOWN", -1, GENDER_NOT_APPLICABLE, format, sizeof(format));
+                } else if (!(object->m_gameObject->m_flags & 0x2)) {
+                    color.Set(1.0f, 1.0f, 0.0f, 0.0f);
+                    FormatString("LOCKED_WITH_SPELL", -1, GENDER_NOT_APPLICABLE, format, sizeof(format));
+                } else {
+                    break;
+                }
+
+                char skill[256];
+                LockTypeRec* lockType = g_lockTypeDB.GetRecord(lock->m_index[0]);
+                SStrPrintf(skill, sizeof(skill), format, lockType ? lockType->m_name : "UNKNOWN");
+                SStrPrintf(text, sizeof(text), "%s%s", suffix, skill);
+                this->AddLine(text, nullptr, color, color, 0);
+                break;
+            }
+            case 3: {
+                SpellRec spell;
+
+                if (g_spellDB.GetRecord(lock->m_index[0], &spell)) {
+                    this->AddSpellReagents(&spell, "LOCKED_WITH_SPELL", TooltipObjectCallback);
+                }
+
+                break;
+            }
+        }
+    }
+    CVar* questTracking = CVar::Lookup("showQuestTrackingTooltips");
+
+    if (questTracking && questTracking->m_intValue) {
+        QuestLogLeaderBoardParams params;
+        params.m_questCallback = TooltipObjectCallback;
+        params.m_objectCallback = TooltipObjectCallback;
+        params.m_creatureCallback = TooltipObjectCallback;
+        params.m_itemCallback = TooltipObjectCallback;
+        params.m_param = this;
+        const char* objective = params.m_text;
+        char buffer[4099];
+
+        for (uint32_t i = 0; i < static_cast<uint32_t>(CGQuestLog::m_numQuest); i++) {
+            WOWGUID requester = { 0 };
+            QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::GetQuestAt(i), requester, TooltipObjectCallback, this, false);
+
+            if (!quest) {
+                continue;
+            }
+
+            bool header = false;
+
+            if (CGQuestLog::GetQuestLeaderBoardForObject(quest->m_id, object->m_obj->m_entryID | 0x80000000, &params)) {
+                this->AddLine(quest->m_name, nullptr, titleColor, titleColor, 0);
+                SStrPrintf(buffer, sizeof(buffer), " - %s", objective);
+                this->AddLine(buffer, nullptr, textColor, textColor, 0);
+                header = true;
+            }
+
+            GameObjectStats* stats = object->m_stats;
+
+            if (!stats) {
+                continue;
+            }
+
+            for (uint32_t j = 0; j < sizeof(stats->m_questItems) / sizeof(stats->m_questItems[0]); j++) {
+                uint32_t itemId = stats->m_questItems[j];
+
+                if (!itemId) {
+                    break;
+                }
+
+                if (CGQuestLog::GetQuestLeaderBoardForItem(quest->m_id, itemId, &params)) {
+                    if (!header) {
+                        this->AddLine(quest->m_name, nullptr, titleColor, titleColor, 0);
+                        header = true;
+                    }
+
+                    SStrPrintf(buffer, sizeof(buffer), " - %s", objective);
+                    this->AddLine(buffer, nullptr, textColor, textColor, 0);
+                }
+
+                if (CGQuestLog::IsQuestCompleteEx(i, 1)) {
+                    continue;
+                }
+
+                for (uint32_t k = 0; k < sizeof(quest->m_intermediateItemId) / sizeof(quest->m_intermediateItemId[0]); k++) {
+                    if (quest->m_intermediateItemId[k] != itemId) {
+                        continue;
+                    }
+
+                    if (!header) {
+                        this->AddLine(quest->m_name, nullptr, titleColor, titleColor, 0);
+                        header = true;
+                    }
+
+                    WOWGUID itemRequester = { 0 };
+                    ItemStats_C* itemStats = g_itemDBCache.GetRecord(quest->m_intermediateItemId[k], itemRequester, TooltipUnitNameCallback, this, false);
+
+                    if (itemStats) {
+                        SStrPrintf(buffer, sizeof(buffer), " - %s", itemStats->m_name[0]);
+                        this->AddLine(buffer, nullptr, textColor, textColor, 0);
+                    }
+                }
+            }
+        }
+    }
+
+    if (this->m_statusBar && object->m_gameObject->m_typeID == 33) {
+        this->m_healthGuid = this->m_objectGuid;
+        ClntObjMgrSetObjMirrorHandler(this->m_healthGuid, ID_GAMEOBJECT, offsetof(CGGameObjectData, m_animProgress), sizeof(uint8_t), ObjHealthUpdateHandler, this->m_statusBar, static_cast<HANDLER_PRIORITY>(0), 0);
+        this->m_statusBar->SetMinMaxValues(0.0f, 1.0f);
+        this->m_statusBar->SetValue(static_cast<float>(object->m_gameObject->m_animProgress) * 0.0039215689f);
+        this->m_statusBar->Show();
+        this->Show();
+    } else {
+        this->m_healthGuid = WOWGUID();
+        this->Show();
+    }
+}
+
+// VERIFY: b08d75d5 manual
+// OFFSET: 0x00627220
+int32_t CGTooltip::SetAchievement(int32_t achievementId, WOWGUID guid, bool completed, WowTime time, uint32_t criteria1, uint32_t criteria2, uint32_t criteria3, uint32_t criteria4, int32_t a10) {
+    const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
+    const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
+    const CImVector& greenColor = *reinterpret_cast<const CImVector*>(&s_tooltipGreenColor);
+
+    AchievementRec* rec = g_achievementDB.GetRecord(achievementId);
+
+    if (!rec) {
+        return 0;
+    }
+
+    WOWGUID requester = { 0 };
+    NameCache* name = g_nameDBCache.GetRecord(guid.m_guid, requester, TooltipAchievementCallback, this, true);
+
+    if (!name && !a10) {
+        return 1;
+    }
+
+    this->ClearTooltip();
+    this->m_achievementGuid = guid;
+    this->m_achievementId = achievementId;
+    this->m_achievementCriteria[1] = criteria2;
+    this->m_achievementTime = time;
+    this->m_achievementCompleted = completed;
+    this->m_achievementCriteria[2] = criteria3;
+    this->m_achievementCriteria[0] = criteria1;
+    this->m_achievementCriteria[3] = criteria4;
+
+    char title[800];
+    QuestParserParseText(rec->m_title, title, sizeof(title), guid, nullptr, 0);
+    this->AddLine(title, nullptr, textColor, textColor, 0);
+    this->AddLine(" ", nullptr, titleColor, titleColor, 0);
+
+    char status[1024];
+
+    if (completed) {
+        SStrPrintf(status, sizeof(status), FrameScript_GetText("ACHIEVEMENT_TOOLTIP_COMPLETE", -1, GENDER_NOT_APPLICABLE), name ? name->m_name : FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE), time.m_month, time.m_monthDay, time.m_year);
+    } else {
+        SStrPrintf(status, sizeof(status), FrameScript_GetText("ACHIEVEMENT_TOOLTIP_IN_PROGRESS", -1, GENDER_NOT_APPLICABLE), name ? name->m_name : FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE));
+    }
+
+    this->AddLine(status, nullptr, greenColor, greenColor, 0);
+    this->AddLine(" ", nullptr, titleColor, titleColor, 0);
+
+    char description[3000];
+    QuestParserParseText(rec->m_description, description, sizeof(description), guid, nullptr, 0);
+    this->AddLine(description, nullptr, textColor, textColor, 1);
+
+    char left[1024];
+    char right[1024];
+    left[0] = '\0';
+    right[0] = '\0';
+    this->AddLine(" ", nullptr, titleColor, titleColor, 0);
+
+    CImVector leftColor(0, 0, 0, 0);
+    CImVector rightColor(0, 0, 0, 0);
+    int32_t index = 0;
+
+    ACHIEVEMENT* achievement = s_achievements.Ptr(achievementId, HASHKEY_NONE());
+
+    if (achievement->m_rec->m_sharesCriteria) {
+        achievement = s_achievements.Ptr(achievement->m_rec->m_sharesCriteria, HASHKEY_NONE());
+    }
+
+    if (achievement && (!achievement->m_rec->m_minimumCriteria || criteria1 != 0xFFFFFFFF || criteria2 != 0xFFFFFFFF || criteria3 != 0xFFFFFFFF || criteria4 != 0xFFFFFFFF)) {
+        for (SPECIFIC_CRITERIA* node = achievement->m_criteria.Head(); node; node = achievement->m_criteria.Next(node)) {
+            Achievement_CriteriaRec* criteria = node->m_criteria;
+
+            if (!criteria || (criteria->m_flags & 0x2)) {
+                continue;
+            }
+
+            bool met;
+
+            if (index < 32) {
+                met = ((1 << index) & criteria1) != 0;
+            } else if (index < 64) {
+                met = ((1 << (index - 32)) & criteria2) != 0;
+            } else if (index < 96) {
+                met = ((1 << (index - 64)) & criteria3) != 0;
+            } else if (index < 128) {
+                met = ((1 << (index - 96)) & criteria4) != 0;
+            } else {
+                met = false;
+            }
+
+            index++;
+
+            if (left[0]) {
+                SStrPrintf(right, sizeof(right), criteria->m_description);
+                rightColor = *reinterpret_cast<const CImVector*>(met ? &s_skillColors[1] : &s_skillColors[0]);
+            } else {
+                SStrPrintf(left, sizeof(left), criteria->m_description);
+                leftColor = *reinterpret_cast<const CImVector*>(met ? &s_skillColors[1] : &s_skillColors[0]);
+            }
+
+            if (right[0]) {
+                this->AddLine(left, right, leftColor, rightColor, 0);
+                left[0] = '\0';
+                right[0] = '\0';
+            }
+        }
+    }
+
+    if (!right[0] && left[0]) {
+        this->AddLine(left, nullptr, leftColor, leftColor, 0);
+    }
+
+    if (this->m_onTooltipSetAchievement.m_luaRef) {
+        this->RunScript(this->m_onTooltipSetAchievement, 0, nullptr);
+    }
+
+    this->Show();
     return 1;
 }

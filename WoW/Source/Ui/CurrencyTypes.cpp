@@ -46,6 +46,16 @@ int32_t CGCurrencyTypes::CurrencyCategorySortCallback(const void* a, const void*
     return result;
 }
 
+// VERIFY: a269ad8c manual
+// OFFSET: 0x005AFC80
+CurrencyListEntry* CGCurrencyTypes::GetDisplayListInfo(int32_t index) {
+    if (index < 0 || index >= CGCurrencyTypes::m_listSize) {
+        return nullptr;
+    }
+
+    return &CGCurrencyTypes::m_list[index];
+}
+
 // VERIFY: 32676bed manual
 // OFFSET: 0x005AFCB0
 void CGCurrencyTypes::SetCategoryExpand(int32_t index, int32_t expand) {

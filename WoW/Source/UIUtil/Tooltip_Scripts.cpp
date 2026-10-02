@@ -58,13 +58,9 @@
 #include "WoW/Source/Ui/CurrencyTypes.h"
 #include "WoW/Source/DB/Rec/SpellItemEnchantmentRec.h"
 #include "WoW/Source/DB/Rec/CurrencyTypesRec.h"
-
-int32_t Script_SetBuybackItem(lua_State* L);
-int32_t Script_SetCurrencyToken(lua_State* L);
-int32_t Script_SetEquipmentSet(lua_State* L);
-int32_t Script_SetFrameStack(lua_State* L);
-int32_t Script_SetLFGDungeonReward(lua_State* L);
-int32_t Script_SetLFGCompletionReward(lua_State* L);
+#include "WoW/Source/Ui/EquipmentManager.h"
+#include "WoW/Source/Ui/LFGInfo.h"
+#include "WoW/Source/DB/Rec/LfgDungeonsRec.h"
 
 // VERIFY: 30f18f7b manual
 // OFFSET: 0x0061A150
@@ -523,7 +519,7 @@ static int32_t Script_SetSpellByID(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 6f832080 manual
+// VERIFY: e0a3c738 manual
 // OFFSET: 0x0062DAE0
 static int32_t Script_SetHyperlink(lua_State* L) {
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
@@ -606,7 +602,7 @@ static int32_t Script_SetHyperlink(lua_State* L) {
     if ((cursor = SStrStr(link, "quest:")) != nullptr) {
         int32_t questId = SStrToInt(cursor + 6);
 
-        if (tooltip->m_isShown && questId == static_cast<int32_t>(tooltip->unk_0368)) {
+        if (tooltip->m_isShown && questId == tooltip->m_questId) {
             tooltip->Hide();
             return 0;
         }
@@ -643,12 +639,12 @@ static int32_t Script_SetHyperlink(lua_State* L) {
         cursor += 12;
         int32_t achievementId = SStrToInt(cursor);
 
-        if (tooltip->m_isShown && achievementId == static_cast<int32_t>(tooltip->unk_036C)) {
+        if (tooltip->m_isShown && achievementId == tooltip->m_achievementId) {
             tooltip->Hide();
             return 0;
         }
 
-        uint64_t guid = 0;
+        WOWGUID guid = { 0 };
         WowTime time;
         int32_t completed = 0;
         uint32_t criteria1 = 0;
@@ -659,7 +655,7 @@ static int32_t Script_SetHyperlink(lua_State* L) {
 
         if (field) {
             field++;
-            sscanf(field, "%I64X:", &guid);
+            sscanf(field, "%I64X:", &guid.m_guid);
         }
 
         if ((field = SStrChr(field, ':')) != nullptr) {
@@ -2464,6 +2460,169 @@ static int32_t Script_SetQuestLogSpecialItem(lua_State* L) {
         WOWGUID itemGuid = item->m_obj->m_guid;
         WOWGUID requester = ClntObjMgrGetActivePlayer();
         tooltip->SetItem(item->m_obj->m_entryID, &requester, &itemGuid, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+    }
+
+    return 0;
+}
+
+// VERIFY: 7ded9ad2 manual
+// OFFSET: [0x006264D0, 0x00626546]
+static int32_t Script_SetEquipmentSet(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isstring(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetEquipmentSet(\"setName\")", name ? name : "<unnamed>");
+        return 0;
+    }
+
+    EQUIPMENT_SET* set = CGEquipmentManager::GetSetByName(lua_tolstring(L, 2, nullptr));
+
+    if (set) {
+        tooltip->SetEquipmentSet(set->m_id);
+    }
+
+    return 0;
+}
+
+// VERIFY: 8d7263f7 manual
+// OFFSET: 0x00626560
+static int32_t Script_SetFrameStack(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (lua_toboolean(L, 2)) {
+        tooltip->SetFrameStack(true);
+    } else {
+        tooltip->SetFrameStack(false);
+    }
+
+    return 0;
+}
+
+// VERIFY: 90a12da2 manual
+// OFFSET: [0x0062FF60, 0x00630061]
+static int32_t Script_SetBuybackItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetBuybackItem(slot)", name ? name : "<unnamed>");
+        return 0;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    uint32_t slot = index < CGMerchantInfo::m_numBuybackItems ? CGMerchantInfo::m_buybackSlots[index] : 0;
+
+    if (!player || !slot) {
+        return 0;
+    }
+
+    const CGBag_C& bag = player->m_bag;
+
+    if (slot >= static_cast<uint32_t>(bag.m_numSlots) || !bag.m_slots[slot]) {
+        return 0;
+    }
+
+    const CGItem_C* item = bag.GetItemPointer(slot);
+
+    if (item) {
+        WOWGUID itemGuid = item->m_obj->m_guid;
+        WOWGUID requester = player->m_obj->m_guid;
+        tooltip->SetItem(item->m_obj->m_entryID, &requester, &itemGuid, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+    }
+
+    return 0;
+}
+
+// VERIFY: bcd1e677 manual
+// OFFSET: 0x00630620
+static int32_t Script_SetCurrencyToken(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetCurrencyToken(index)", name ? name : "<unnamed>");
+        return 0;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    CurrencyListEntry* entry = CGCurrencyTypes::GetDisplayListInfo(static_cast<int32_t>(lua_tonumber(L, 2)) - 1);
+
+    if (!tooltip || !player || !entry || entry->m_isHeader) {
+        return 0;
+    }
+
+    for (uint32_t slot = 118; slot <= 149; slot++) {
+        WOWGUID guid = slot < static_cast<uint32_t>(player->m_bag.m_numSlots) ? player->m_bag.m_slots[slot] : WOWGUID();
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (item && item->m_obj->m_entryID == entry->m_itemID) {
+            WOWGUID itemGuid = item->m_obj->m_guid;
+            WOWGUID requester = player->m_obj->m_guid;
+            tooltip->SetItem(item->m_obj->m_entryID, &requester, &itemGuid, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 1);
+            return 0;
+        }
+    }
+
+    WOWGUID itemGuid = WOWGUID();
+    WOWGUID requester = WOWGUID();
+    tooltip->SetItem(entry->m_itemID, &requester, &itemGuid, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 1);
+    return 0;
+}
+
+// VERIFY: d3d02168 manual
+// OFFSET: 0x00630A80
+static int32_t Script_SetLFGDungeonReward(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
+        luaL_error(L, "Usage: Tooltip:SetLFGDungeonReward(dungeonID, lootIndex)");
+        return 0;
+    }
+
+    int32_t dungeonId = lua_tointeger(L, 2);
+    int32_t index = lua_tointeger(L, 3) - 1;
+    LfgDungeonsRec* dungeon = g_lfgDungeonsDB.GetRecord(dungeonId);
+
+    if (!dungeon) {
+        return 0;
+    }
+
+    LFGRewardItem* reward = CGLookingForGroup::GetDungeonRewardItem((dungeon->m_id & 0xFFFFFF) | (dungeon->m_typeID << 24), index);
+
+    if (reward) {
+        tooltip->m_itemLinkInfo.Clear();
+        tooltip->m_itemLinkInfo.m_stackCount = reward->m_quantity;
+        WOWGUID itemGuid = WOWGUID();
+        WOWGUID requester = WOWGUID();
+        tooltip->SetItem(reward->m_itemID, &requester, &itemGuid, 0, 0, 1, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+    }
+
+    return 0;
+}
+
+// VERIFY: d1656f9d manual
+// OFFSET: 0x00630B90
+static int32_t Script_SetLFGCompletionReward(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: Tooltip:SetLFGCompletionReward(lootIndex)");
+        return 0;
+    }
+
+    int32_t index = lua_tointeger(L, 2) - 1;
+
+    for (LFGRewardItem* reward = CGLookingForGroup::m_reward.m_items.Head(); reward; reward = CGLookingForGroup::m_reward.m_items.Next(reward)) {
+        if (!index--) {
+            tooltip->m_itemLinkInfo.Clear();
+            tooltip->m_itemLinkInfo.m_stackCount = reward->m_quantity;
+            WOWGUID itemGuid = WOWGUID();
+            WOWGUID requester = WOWGUID();
+            tooltip->SetItem(reward->m_itemID, &requester, &itemGuid, 0, 0, 1, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+            return 0;
+        }
     }
 
     return 0;

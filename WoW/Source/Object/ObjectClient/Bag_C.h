@@ -43,6 +43,7 @@ class CGBag_C {
     CGItem_C* GetItemIdByName(const char* name, WOWGUID& container, uint32_t& slot, uint32_t flags);
     CGItem_C* GetItemPointer(int32_t slot);
 
+    bool ContainsItem(WOWGUID guid, bool recurse, uint32_t flags) const;
     bool FindTotemCategory(int32_t category, uint32_t flags);
     bool FindTotemCategory(int32_t type, int32_t& mask, bool recurse, uint32_t flags);
     CGItem_C* FindItem(int32_t (*callback)(const CGItem_C* item, void* param), void* param, WOWGUID& container, uint32_t& slot, uint32_t flags);
