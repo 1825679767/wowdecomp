@@ -171,6 +171,9 @@ CVar* s_cvCalendarShowLockouts;
 // STATIC: 0x00BD09A8
 CVar* s_cvCalendarShowResets;
 
+// STATIC: 0x00BD09AC
+CVar* unk_BD09AC;
+
 // STATIC: 0x00BD09B0
 CVar* g_useUiScaleCVar;
 

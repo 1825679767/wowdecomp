@@ -25,6 +25,8 @@
 #include "WoW/Source/Game/GameClient/ComSatClient.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "WoW/Source/Game/GameClient/NameCache.h"
 
 // STATIC: 0x00AC7A48
 static const char* s_channelCategories[3] = { "CHANNEL_CATEGORY_GROUP", "CHANNEL_CATEGORY_WORLD", "CHANNEL_CATEGORY_CUSTOM" };
@@ -1337,6 +1339,99 @@ static int32_t Script_GetMuteStatus(lua_State* L) {
     }
 
     return 1;
+}
+
+// VERIFY: 5681a1a2 manual
+// OFFSET: 0x00504F30
+static int32_t Script_GetChannelRosterInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        return 0;
+    }
+
+    int32_t type;
+    const char* name = CGChat::GetChannelStringForDisplay(static_cast<int32_t>(lua_tonumber(L, 1)) - 1, &type);
+
+    if (!name || type == 4) {
+        return 0;
+    }
+
+    if (!ChannelNamesEqual(CGChat::s_activeDisplayChannelName, name, s_activeDisplayChannelType, type)) {
+        SetCurrentActiveDisplayChannel(name, type);
+
+        switch (type) {
+            case 0:
+                ChannelDisplayCommand(L, CMSG_CHAT_CHANNEL_DISPLAY_LIST, "GetChannelRosterInfo");
+                return 0;
+
+            case 2:
+                BuildPartyDisplayList();
+                return 0;
+
+            case 1:
+            case 3:
+                BuildRaidDisplayList(type);
+                break;
+        }
+
+        return 0;
+    }
+
+    if (s_displayChannelMemberCount) {
+        return 0;
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
+
+    if (index >= s_pendingUsers.Count()) {
+        return 0;
+    }
+
+    PENDINGUSERLIST* user = &s_pendingUsers.m_data[index];
+
+    if (!user) {
+        return 0;
+    }
+
+    WOWGUID none = WOWGUID();
+    NameCache* record = g_nameDBCache.GetRecord(user->m_guid.m_guid, none, nullptr, nullptr, false);
+
+    if (record && record->m_name[0]) {
+        lua_pushstring(L, record->m_name);
+    } else {
+        lua_pushstring(L, FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE));
+    }
+
+    if (user->m_flags & 0x1) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (user->m_flags & 0x2) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (user->m_flags & 0x20) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (user->m_flags & 0x40) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (user->m_flags & 0x80) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 6;
 }
 
 // STATIC: 0x00AC7A58

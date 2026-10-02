@@ -10,6 +10,9 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WoW/Source/WowServices/RealmConnection.h"
+#include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "WoW/Source/Ui/GameUI.h"
 
 // STATIC: 0x00ACFFB4
 static const char* s_monthNames[12] = { "MONTH_JANUARY", "MONTH_FEBRUARY", "MONTH_MARCH", "MONTH_APRIL", "MONTH_MAY", "MONTH_JUNE", "MONTH_JULY", "MONTH_AUGUST", "MONTH_SEPTEMBER", "MONTH_OCTOBER", "MONTH_NOVEMBER", "MONTH_DECEMBER" };
@@ -226,6 +229,71 @@ static int32_t Script_CalendarSetAbsMonth(lua_State* L) {
     CGCalendar::ClampAbsMonthDay(month, year, &CGCalendar::m_absMonth, &CGCalendar::m_absYear, &CGCalendar::m_absMonthDays, &weekDay);
     CGCalendar::CalculateEvents(true);
     return 0;
+}
+
+// VERIFY: 90f38e2c auto
+// OFFSET: 0x005B8410
+static int32_t Script_CalendarGetMaxCreateDate(lua_State* L) {
+    WowTime date;
+    GameCalendarGetMaxCreateDate(&date);
+    lua_pushnumber(L, date.m_weekDay + 1);
+    lua_pushnumber(L, date.m_month + 1);
+    lua_pushnumber(L, date.m_monthDay + 1);
+    lua_pushnumber(L, date.m_year + 2000);
+    return 4;
+}
+
+// VERIFY: 6bc9ca17 auto
+// OFFSET: 0x005B8B30
+static int32_t Script_CalendarCanSendInvite(lua_State* L) {
+    uint32_t now;
+
+    if (CGCalendar::m_actionPending || ((!unk_BD09AC || !unk_BD09AC->m_intValue) && (now = OsGetAsyncTimeMs(), CGCalendar::m_lastInviteTime) && now - CGCalendar::m_lastInviteTime < 2000)) {
+        lua_pushboolean(L, 0);
+    } else {
+        lua_pushboolean(L, 1);
+    }
+
+    return 1;
+}
+
+// VERIFY: 3aba7d21 auto
+// OFFSET: 0x005BCC00
+static int32_t Script_CalendarSetMonth(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: CalendarSetMonth(offsetMonths)");
+    }
+
+    int32_t weekDay;
+    CGCalendar::GetMonth(static_cast<int32_t>(lua_tonumber(L, 1)), &CGCalendar::m_absMonth, &CGCalendar::m_absYear, &CGCalendar::m_absMonthDays, &weekDay);
+    CGCalendar::CalculateEvents(true);
+    return 0;
+}
+
+// VERIFY: 6784fd0d manual
+// OFFSET: 0x005B9BF0
+static int32_t Script_CalendarGetNumDayEvents(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: CalendarGetNumDayEvents([-1,0,1], monthDay)");
+    }
+
+    uint32_t offset = static_cast<int32_t>(lua_tonumber(L, 1));
+    uint32_t day = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
+    lua_pushnumber(L, CGCalendar::GetNumDayEvents(offset, day));
+    return 1;
+}
+
+// VERIFY: 7681b03c manual
+// OFFSET: 0x005B9E10
+static int32_t Script_CalendarGetFirstPendingInvite(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: CalendarGetDay([-1,0,1], monthDay)");
+    }
+
+    uint32_t offset = static_cast<int32_t>(lua_tonumber(L, 1));
+    uint32_t day = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
+    lua_pushinteger(L, CGCalendar::GetFirstPendingInviteIndex(offset, day) + 1);
+    return 1;
 }
 
 // STATIC: 0x00AD0030

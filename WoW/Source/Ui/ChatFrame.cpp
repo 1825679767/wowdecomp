@@ -324,7 +324,7 @@ static bool s_pendingUserListActive;
 static uint32_t s_activeDisplayChannelFlags;
 
 // STATIC: 0x00B743D8
-static int32_t s_displayChannelMemberCount;
+int32_t s_displayChannelMemberCount;
 
 // STATIC: 0x00B743DC
 int32_t s_activeDisplayChannelType;
@@ -372,7 +372,7 @@ ChatWindowInfo s_chatWindows[10];
 static TSHashTable<WORDLIST, HASHKEY_LANGUAGE> s_wordLists;
 
 // STATIC: 0x00BCFB68
-static TSFixedArray<PENDINGUSERLIST> s_pendingUsers;
+TSFixedArray<PENDINGUSERLIST> s_pendingUsers;
 
 // STATIC: 0x00AC7D48
 TSExplicitList<PENDINGTEXTEMOTE, 0> CGChat::s_pendingTextEmotes;
@@ -5435,5 +5435,119 @@ int32_t CGChat::SetActiveVoiceSession(const char* name, int32_t type, int32_t in
     }
 
     s_activeVoiceChannel = index;
+    return 1;
+}
+
+// VERIFY: 4967472f auto
+// OFFSET: 0x004FCA90
+bool ChannelNamesEqual(const char* activeName, const char* name, int32_t activeType, int32_t type) {
+    return type == activeType && (type || (name && activeName && !SStrCmpUTF8I(name, activeName, STORM_MAX_STR)));
+}
+
+// VERIFY: 145d9311 manual
+// OFFSET: 0x004FFE30
+void CGChat::NameDisplayQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!s_displayChannelMemberCount) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < s_pendingUsers.Count(); i++) {
+        if (s_pendingUsers.m_data[i].m_guid == guid) {
+            if (!--s_displayChannelMemberCount) {
+                qsort(s_pendingUsers.m_data, s_pendingUsers.Count(), sizeof(PENDINGUSERLIST), QSortDisplayListMembers);
+                uint32_t index = CGChat::FindDisplayChannelIndex(CGChat::s_activeDisplayChannelName, s_activeDisplayChannelType);
+
+                if (index) {
+                    CGChat::s_displayChannels[index - 1].m_count = s_pendingUsers.Count();
+                    FrameScript_SignalEvent(SCRIPT_EVENT_CHANNEL_COUNT_UPDATE, "%d%d", index, s_pendingUsers.Count());
+                    FrameScript_SignalEvent(SCRIPT_EVENT_CHANNEL_ROSTER_UPDATE, "%d%d", index, s_pendingUsers.Count());
+                }
+            }
+
+            return;
+        }
+    }
+}
+
+// VERIFY: 5ddb35c2 manual
+// OFFSET: 0x00503990
+int32_t CGChat::OnDisplayChannelList(CDataStore* msg) {
+    char name[128];
+    msg->GetString(name, sizeof(name));
+
+    if (s_activeDisplayChannelType || SStrCmpUTF8I(name, CGChat::s_activeDisplayChannelName, STORM_MAX_STR)) {
+        msg->m_read = msg->m_size;
+        return 1;
+    }
+
+    uint8_t flags;
+    uint32_t count;
+    msg->Get(flags);
+    msg->Get(count);
+    s_displayChannelMemberCount = 0;
+    s_pendingUsers.Clear();
+    s_activeDisplayChannelFlags = 0;
+    s_pendingUsers.SetCount(count);
+
+    uint32_t index = CGChat::FindDisplayChannelIndex(name, 0);
+
+    if (index) {
+        ChatChannel* channel = &CGChat::s_channels.m_data[CGChat::s_displayChannels[index - 1].m_channelIndex];
+
+        if (channel->m_flags != flags) {
+            channel->m_flags = flags;
+            FrameScript_SignalEvent(SCRIPT_EVENT_CHANNEL_FLAGS_UPDATED, "%d", index);
+        }
+    }
+
+    for (uint32_t i = 0; i < count; i++) {
+        PENDINGUSERLIST* user = &s_pendingUsers.m_data[i];
+        WOWGUID guid;
+        uint8_t userFlags;
+        msg->Get(guid.m_guid);
+        msg->Get(userFlags);
+
+        if (user) {
+            user->m_guid = guid;
+            user->m_flags = userFlags;
+
+            if (ComSatClient_IsMemberInVoiceSession(user->m_guid, 0, name)) {
+                user->m_flags |= 0x40;
+            }
+
+            if (ComSatClient_Unk7DB830(user->m_guid, 0, name)) {
+                user->m_flags |= 0x80;
+            }
+
+            if (ComSatClient_IsPlayerMuted(user->m_guid) || ComSatClient_IsTalkerSquelchedInChannel(user->m_guid, 0, name)) {
+                user->m_flags |= 0x20;
+            }
+        }
+
+        if (ClntObjMgrGetActivePlayer() && ClntObjMgrGetActivePlayerObj()->m_obj->m_guid) {
+            if (user->m_guid == ClntObjMgrGetActivePlayerObj()->m_obj->m_guid) {
+                s_activeDisplayChannelFlags = user->m_flags;
+
+                if (index) {
+                    FrameScript_SignalEvent(SCRIPT_EVENT_CHANNEL_FLAGS_UPDATED, "%d", index);
+                }
+            }
+        }
+
+        if (!g_nameDBCache.GetRecord(user->m_guid.m_guid, user->m_guid, CGChat::NameDisplayQueryCallback, nullptr, false)) {
+            s_displayChannelMemberCount++;
+        }
+    }
+
+    if (!s_displayChannelMemberCount) {
+        qsort(s_pendingUsers.m_data, count, sizeof(PENDINGUSERLIST), QSortDisplayListMembers);
+
+        if (index) {
+            CGChat::s_displayChannels[index - 1].m_count = count;
+            FrameScript_SignalEvent(SCRIPT_EVENT_CHANNEL_COUNT_UPDATE, "%d%d", index, count);
+            FrameScript_SignalEvent(SCRIPT_EVENT_CHANNEL_ROSTER_UPDATE, "%d%d", index, count);
+        }
+    }
+
     return 1;
 }

@@ -360,6 +360,7 @@ class CGChat {
     static void OnChannelsUpdated();
     static void UpdateLanguages();
     static int32_t OnDisplayChannelList(CDataStore* msg);
+    static void NameDisplayQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
     static void DisplayPendingUserList(ChatChannel* channel);
     static void AddTextEmoteMessage(const WOWGUID& guid, uint32_t emote, const char* target, uint32_t emoteNum);
     static void QueueTextEmote(const WOWGUID& guid, uint32_t emote, const char* target, int32_t queued, uint32_t emoteNum);
@@ -397,6 +398,10 @@ int32_t InternalLeaveChannel(const char* channelName, bool clearRecruitment, boo
 bool ProfanityFilter(char* text, bool cache, bool force);
 ChatRecord* GetChatRecord(int32_t index);
 void SetCurrentActiveDisplayChannel(const char* name, int32_t type);
+bool ChannelNamesEqual(const char* activeName, const char* name, int32_t activeType, int32_t type);
+extern int32_t s_activeDisplayChannelType;
+extern int32_t s_displayChannelMemberCount;
+extern TSFixedArray<PENDINGUSERLIST> s_pendingUsers;
 uint32_t BuildPartyDisplayList();
 uint32_t BuildRaidDisplayList(int32_t type);
 void RebuildDisplayChannelList(int32_t a1);
@@ -438,7 +443,6 @@ int32_t Script_SetSavedInstanceExtend(lua_State* L);
 int32_t Script_ResetChatWindows(lua_State* L);
 int32_t Script_CanComplainChat(lua_State* L);
 int32_t Script_ComplainChat(lua_State* L);
-int32_t Script_GetChannelRosterInfo(lua_State* L);
 int32_t Script_GetNumChannelMembers(lua_State* L);
 int32_t Script_SetActiveVoiceChannel(lua_State* L);
 int32_t Script_ChannelVoiceOn(lua_State* L);

@@ -839,6 +839,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void UpdateClientStandState(uint32_t standState);
     void UpdateModelScale(const CreatureModelDataRec* modelRec);
     void UpdateScriptRegistration();
+    void UpdateUnitNameColor();
     void UpdateBreathState(uint32_t time);
     void Unk720DB0(uint32_t time);
     void ProcessEmoteQueue();

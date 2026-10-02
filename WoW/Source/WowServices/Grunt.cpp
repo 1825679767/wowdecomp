@@ -207,6 +207,23 @@ void Grunt::ClientLink::LogonNewSession(const Grunt::ClientLink::Logon& logon) {
     memset(password, 0, SStrLen(password));
 }
 
+// VERIFY: 902b90a7 manual
+// OFFSET: 0x008CD9F0
+void Grunt::ClientLink::LogonStoredSession(const Grunt::ClientLink::Logon& logon) {
+    this->SetState(3);
+
+    SStrCopy(this->m_accountName, logon.m_accountName, sizeof(this->m_accountName));
+    SStrUpper(this->m_accountName);
+    memcpy(this->m_reconnectKey, logon.m_password, sizeof(this->m_reconnectKey));
+
+    CDataStoreCache<1024> msg;
+    msg.Put(static_cast<uint8_t>(2));
+    msg.Put(static_cast<uint8_t>(8));
+    this->PackLogon(msg, logon);
+    msg.Finalize();
+    this->Send(msg);
+}
+
 // VERIFY: 01aad7f9 auto
 // OFFSET: 0x008CE5C0
 void Grunt::Timer::Insert(Grunt::Timer::Event& event) {

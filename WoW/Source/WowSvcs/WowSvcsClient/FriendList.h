@@ -18,7 +18,7 @@ struct FriendInfo {
     /* 0210 */ uint32_t m_level;
     /* 0214 */ uint32_t m_class;
     /* 0218 */ uint32_t m_area;
-    /* 021C */ uint8_t unk_021C;
+    /* 021C */ uint8_t m_deleted;
 
     FriendInfo();
     ~FriendInfo();
@@ -106,6 +106,29 @@ class FriendList {
     bool IsComplained(WOWGUID guid);
     void AddComplained(WOWGUID guid);
     bool IsFriend(WOWGUID guid);
+    static void __stdcall RemoveFriend(WOWGUID guid);
+    static void __stdcall DelIgnore(WOWGUID guid);
+    static void __stdcall DelVoiceIgnore(WOWGUID guid);
+    bool GetFriendDeleted(WOWGUID guid);
+    void SetFriendDeleted(WOWGUID guid, uint8_t deleted);
+    void SortIgnoreList();
+    void SortMuteList();
+    void FriendRemoved(WOWGUID guid);
+    uint32_t GetFriendIndexByGuid(WOWGUID guid);
+    void SetName(WOWGUID guid, const char* name);
+    void SetConnected(WOWGUID guid, uint8_t connected);
+    void DecrementPendingFriendName();
+    void DecrementPendingIgnoreName();
+    void DecrementPendingMuteName();
+    bool GetIgnoreDeleted(WOWGUID guid);
+    void SetIgnoreDeleted(WOWGUID guid, uint8_t deleted);
+    bool GetMuteDeleted(WOWGUID guid);
+    void SetMuteDeleted(WOWGUID guid, uint8_t deleted);
+    void IgnoreRemoved(WOWGUID guid);
+    void MuteRemoved(WOWGUID guid);
+    void IgnoreAdded(WOWGUID guid, int32_t lookupName);
+    void MuteAdded(WOWGUID guid, int32_t lookupName);
+    void HandleStatus(uint8_t status, WOWGUID guid, CDataStore* msg);
 };
 
 int32_t QSortFriends(const void* a, const void* b);
@@ -113,6 +136,7 @@ int32_t QSortIgnore(const void* a, const void* b);
 void FriendListNameCallbackWithSort(int32_t id, const WOWGUID& guid, void* param, bool success);
 void FriendListIgnoreNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 void FriendListMuteNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void FriendListNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 void FriendListModuleLoaded();
 void LoadEncryptedModule(const uint8_t* key, uint32_t length, void (*callback)());
 int32_t Packet_SMSG_WHO(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);

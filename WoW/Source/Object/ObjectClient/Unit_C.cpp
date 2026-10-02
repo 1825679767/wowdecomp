@@ -23987,3 +23987,13 @@ void CGUnit_C::PlayTextEmoteSound(uint32_t emote, uint32_t emoteNum) {
 
     this->PlayEmoteSound(soundKitId, false, emoteNum);
 }
+
+// VERIFY: 1f03226b auto
+// OFFSET: 0x00715530
+void CGUnit_C::UpdateUnitNameColor() {
+    PlayerNameTriggerColorUpdate(this->m_nameDesc);
+
+    if (this->m_namePlateFrame) {
+        this->m_namePlateFrame->UpdateColorDisplay(this);
+    }
+}

@@ -1108,7 +1108,7 @@ bool CGWorldMap::GetPlayerPosition(WOWGUID guid, float* x, float* y) {
     return result;
 }
 
-// VERIFY: 172ec41a manual
+// VERIFY: 560d4ae3 manual
 // OFFSET: 0x00543E50
 int32_t CGWorldMap::GetMapAreaFromPos(float x, float y) {
     int32_t areaID = CGWorldMap::GetCurrentAreaID();
@@ -1148,7 +1148,7 @@ int32_t CGWorldMap::GetMapAreaFromPos(float x, float y) {
         return 0;
     }
 
-    return CGWorldMap::m_continents.m_data[CGWorldMap::m_currentContinent].m_zoneMap[static_cast<int32_t>(gridX * 128.0)][static_cast<int32_t>(gridY * 128.0)];
+    return CGWorldMap::m_continents.m_data[CGWorldMap::m_currentContinent].m_zoneMap[static_cast<int32_t>(gridY * 128.0)][static_cast<int32_t>(gridX * 128.0)];
 }
 
 // VERIFY: 41ac249f manual
