@@ -2582,3 +2582,338 @@ int32_t CGQuestLog::GetPOIQuestIDByVisibleIndex(int32_t index) {
 
     return -1;
 }
+
+// VERIFY: ad3a094a manual
+// OFFSET: 0x005E2630
+int32_t CGQuestLog::GetQuestLeaderBoardForItem(int32_t questId, int32_t itemId, QuestLogLeaderBoardParams* params) {
+    if (!params) {
+        return 0;
+    }
+
+    char* text = params->m_text;
+    params->m_text[0] = 0;
+    char* type = params->m_type;
+    params->m_type[0] = 0;
+    params->m_complete = 0;
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 0;
+    }
+
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(questId, none, params->m_questCallback, params->m_param, false);
+    int32_t index = CGQuestLog::GetQuestIndex(questId) - 1;
+    PlayerQuestLogEntry* entry = nullptr;
+
+    if (index >= 0 && index < CGQuestLog::m_numQuest && !CGQuestLog::m_quests[index].m_isHeader) {
+        uint32_t slot = CGQuestLog::m_quests[index].m_logSlot;
+
+        if (slot <= 25) {
+            entry = &player->m_player->m_playerQuestLog[slot];
+        }
+    }
+
+    if (!quest || !entry) {
+        return 0;
+    }
+
+    uint32_t i;
+
+    for (i = 0; static_cast<int32_t>(quest->m_collectItemId[i]) != itemId || (quest->m_collectItemId[i] == quest->m_startingItemId && static_cast<int32_t>(quest->m_collectItemCount[i]) <= 1); i++) {
+        if (i + 1 >= 6) {
+            return 0;
+        }
+    }
+
+    ItemStats_C* item = g_itemDBCache.GetRecord(quest->m_collectItemId[i], none, params->m_itemCallback, params->m_param, false);
+    uint32_t plural = FrameScript_GetPluralIndex(quest->m_collectItemCount[i]);
+    int32_t required = quest->m_collectItemCount[i];
+    int32_t have = required;
+
+    if (player->m_bag.GetItemTypeCount(quest->m_collectItemId[i], 8) < required) {
+        have = player->m_bag.GetItemTypeCount(quest->m_collectItemId[i], 8);
+    }
+
+    const char* format = FrameScript_GetText("QUEST_ITEMS_NEEDED", -1, GENDER_NOT_APPLICABLE);
+    char buffer[4096];
+    SStrPrintf(buffer, sizeof(buffer), format, item ? item->GetName(plural) : " ", have, quest->m_collectItemCount[i]);
+    params->m_complete = have >= static_cast<int32_t>(quest->m_collectItemCount[i]);
+    SStrCopy(text, buffer, STORM_MAX_STR);
+    SStrCopy(type, "item", STORM_MAX_STR);
+    return 1;
+}
+
+// VERIFY: d30d7e2c manual
+// OFFSET: 0x005E2B60
+int32_t CGQuestLog::GetQuestWorldMapAreaID(int32_t questId, int32_t* floor) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || questId <= 0) {
+        return 0;
+    }
+
+    CGWorldMap::SetMapToCurrentZone(0);
+    WorldMapAreaRec* current = g_worldMapAreaDB.GetRecord(CGWorldMap::GetCurrentAreaID());
+    int32_t dungeonMapId = CGWorldMap::m_currentOrphanZone != -1 ? CGWorldMap::m_currentDungeonMap : -1;
+    DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecord(dungeonMapId);
+    int32_t currentFloor = dungeonMap ? dungeonMap->m_floorIndex : 0;
+
+    if (current) {
+        uint32_t index;
+
+        for (index = 0; index < 25 && CGQuestLog::m_questPOIs[index].m_questId != questId; index++) {
+        }
+
+        if (index < 25) {
+            QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[index];
+            uint32_t objectives = CGQuestLog::ComputeBlobQuestObjectives(poi->m_questId);
+            float bestDistance = 3.4028235e38f;
+            poi->unk_002C = objectives;
+            int32_t bestArea = 0;
+            int32_t bestFloor = 0;
+            int32_t bestFloorDelta = 0x7FFFFFFF;
+
+            for (int32_t i = 0; i < static_cast<int32_t>(poi->m_blobs.m_count); i++) {
+                QuestPOIBlob* blob = &poi->m_blobs.m_data[i];
+
+                if (objectives == 0xFFFFFFFF) {
+                    if (blob->unk_001C != -1) {
+                        continue;
+                    }
+                } else if (blob->unk_001C == -1 || !((1 << blob->unk_001C) & objectives)) {
+                    continue;
+                }
+
+                if (current->m_id == blob->unk_0024 && currentFloor == blob->unk_0028) {
+                    *floor = poi->m_blobs.m_data[i].unk_0028;
+                    return poi->m_blobs.m_data[i].unk_0024;
+                }
+
+                WorldMapAreaRec* area = g_worldMapAreaDB.GetRecord(blob->unk_0024);
+
+                if (!area) {
+                    continue;
+                }
+
+                if (area->m_mapID == current->m_mapID) {
+                    C3Vector position = player->GetPosition();
+                    float dx = position.x - blob->m_centerX;
+                    float dy = position.y - blob->m_centerY;
+                    int32_t floorDelta = abs(currentFloor - blob->unk_0028);
+                    float distance = dx * dx + dy * dy;
+
+                    if (floorDelta < bestFloorDelta || (floorDelta == bestFloorDelta && bestDistance > distance)) {
+                        bestDistance = distance;
+                        bestFloorDelta = floorDelta;
+                        bestArea = blob->unk_0024;
+                        bestFloor = blob->unk_0028;
+                    }
+                } else if (!bestArea) {
+                    bestArea = blob->unk_0024;
+                    bestFloor = blob->unk_0028;
+                }
+            }
+
+            if (bestArea) {
+                *floor = bestFloor;
+                return bestArea;
+            }
+        }
+    }
+
+    uint32_t header = 0;
+    uint32_t i;
+
+    for (i = 0; i < 50; i++) {
+        if (CGQuestLog::m_quests[i].m_isHeader) {
+            header = i;
+        } else if (CGQuestLog::m_quests[i].m_questId == questId) {
+            break;
+        }
+    }
+
+    if (i >= 50) {
+        return 0;
+    }
+
+    int32_t areaId = CGQuestLog::m_quests[header].m_questId;
+
+    if (areaId <= 0) {
+        return 0;
+    }
+
+    AreaTableRec* area;
+
+    while (true) {
+        area = g_areaTableDB.GetRecord(areaId);
+
+        if (!area) {
+            return 0;
+        }
+
+        if (!area->m_parentAreaID) {
+            break;
+        }
+
+        areaId = area->m_parentAreaID;
+    }
+
+    if (!areaId) {
+        return 0;
+    }
+
+    for (int32_t j = 0; j < g_worldMapAreaDB.m_numRecords; j++) {
+        WorldMapAreaRec* map = g_worldMapAreaDB.GetRecordByIndex(j);
+
+        if (map && map->m_areaID == areaId) {
+            return map->m_id;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: b4c14128 manual
+// OFFSET: 0x005E3AF0
+static int QSortQuestWatches(const void* a, const void* b) {
+    const QuestWatch* watchA = static_cast<const QuestWatch*>(a);
+    const QuestWatch* watchB = static_cast<const QuestWatch*>(b);
+    int32_t questA = watchA->m_questId;
+    int32_t questB = watchB->m_questId;
+    int32_t sort = g_trackerSortingCVar->m_intValue;
+
+    if (sort == 1) {
+        return watchB->m_distance >= watchA->m_distance ? -1 : 1;
+    }
+
+    if (sort <= 1 || sort > 3) {
+        return questA - questB;
+    }
+
+    int32_t levelA = GetQuestLevel(questA);
+    int32_t levelB = GetQuestLevel(questB);
+
+    if (levelA == levelB) {
+        return questA - questB;
+    }
+
+    return sort == 3 ? levelA - levelB : levelB - levelA;
+}
+
+// VERIFY: 3900de0c manual
+// OFFSET: 0x005E3B90
+static float GetQuestPOIDistance(int32_t questId) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0.0f;
+    }
+
+    int32_t index = CGQuestLog::GetQuestPOIIndex(questId);
+
+    if (index < 0) {
+        return 3.4028235e38f;
+    }
+
+    float bestDistance = 3.4028235e38f;
+    int32_t bestFloorDelta = 0x7FFFFFFF;
+    int32_t continent = CGPlayer_C::GetNewContinentID();
+    int32_t dungeonMapId = CGWorldMap::m_currentOrphanZone != -1 ? CGWorldMap::m_currentDungeonMap : -1;
+    DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecord(dungeonMapId);
+    int32_t currentFloor = dungeonMap ? dungeonMap->m_floorIndex : 0;
+    QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[index];
+    uint32_t objectives = CGQuestLog::ComputeBlobQuestObjectives(poi->m_questId);
+    poi->unk_002C = objectives;
+
+    for (int32_t i = 0; i < static_cast<int32_t>(poi->m_blobs.m_count); i++) {
+        QuestPOIBlob* blob = &poi->m_blobs.m_data[i];
+
+        if (objectives == 0xFFFFFFFF) {
+            if (blob->unk_001C != -1) {
+                continue;
+            }
+        } else if (blob->unk_001C == -1 || !((1 << blob->unk_001C) & objectives)) {
+            continue;
+        }
+
+        WorldMapAreaRec* area = g_worldMapAreaDB.GetRecord(blob->unk_0024);
+
+        if (!area || area->m_mapID != continent) {
+            continue;
+        }
+
+        C3Vector position = player->GetPosition();
+        float dx = position.x - blob->m_centerX;
+        float dy = position.y - blob->m_centerY;
+        int32_t floorDelta = abs(currentFloor - blob->unk_0028);
+        float distance = dx * dx + dy * dy;
+
+        if (floorDelta < bestFloorDelta || (floorDelta == bestFloorDelta && bestDistance > distance)) {
+            bestDistance = distance;
+            bestFloorDelta = floorDelta;
+        }
+    }
+
+    return bestDistance;
+}
+
+// VERIFY: b3c23830 manual
+// OFFSET: 0x005E5C10
+bool CGQuestLog::SortQuestWatches() {
+    int32_t sort = g_trackerSortingCVar->m_intValue;
+
+    if (!sort || CGQuestLog::m_numQuestWatches <= 1) {
+        return false;
+    }
+
+    if (sort == 1) {
+        float last = 0.0f;
+        bool sorted = true;
+
+        for (uint32_t i = 0; i < CGQuestLog::m_numQuestWatches; i++) {
+            float distance = GetQuestPOIDistance(CGQuestLog::m_questWatches[i].m_questId);
+            CGQuestLog::m_questWatches[i].m_distance = distance;
+
+            if (sorted) {
+                if (last <= distance) {
+                    last = distance;
+                } else {
+                    sorted = false;
+                }
+            }
+        }
+
+        if (sorted) {
+            return false;
+        }
+    }
+
+    qsort(CGQuestLog::m_questWatches, CGQuestLog::m_numQuestWatches, sizeof(QuestWatch), QSortQuestWatches);
+    return true;
+}
+
+// VERIFY: f8c30a89 manual
+// OFFSET: 0x005E70D0
+void CGQuestLog::UpdateQuestPOIFromUserServer() {
+    for (uint32_t i = 0; i < 25; i++) {
+        QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[i];
+
+        for (uint32_t j = 0; j < poi->m_blobs.m_count; j++) {
+            poi->m_blobs.m_data[j].m_points.Clear();
+        }
+
+        poi->m_blobs.Clear();
+        poi->m_questId = 0;
+        poi->m_iconMapId = 0;
+        poi->m_iconFloor = 0;
+        poi->unk_001C = 0;
+        poi->m_iconX = 0;
+        poi->m_iconY = 0;
+        poi->unk_0029 = 0;
+        poi->unk_0028 = 0;
+        poi->unk_002C = 0;
+    }
+
+    CGQuestLog::Update(1);
+}

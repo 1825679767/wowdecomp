@@ -22,6 +22,7 @@
 #include <ctime>
 #include "WoW/Source/Game/ValidateName.h"
 #include "Engine/Source/Os/Time.h"
+#include "WoW/Source/Ui/LFGHandler.h"
 
 struct LFGJoinResultError {
     /* 0000 */ uint32_t m_result;
@@ -1606,7 +1607,7 @@ void CGLookingForGroup::SetLFGComment(const char* comment) {
     ClientServices::Send2(&msg);
 }
 
-// VERIFY: 8eb2e7f5 manual
+// VERIFY: 906cd50a manual
 // OFFSET: 0x00558F90
 void CGLookingForGroup::LeaveLFGSearch() {
     if (!CGLookingForGroup::m_searchJoinedID) {
@@ -1619,8 +1620,142 @@ void CGLookingForGroup::LeaveLFGSearch() {
     msg.Finalize();
     ClientServices::Send2(&msg);
     CGLookingForGroup::m_prevSearchResults.Clear();
-    CGLookingForGroup::m_prevSearchResults.unk_0004 = OsGetAsyncTimeMs();
+    CGLookingForGroup::m_prevSearchResults.m_time = OsGetAsyncTimeMs();
     CGLookingForGroup::m_searchJoinedID = 0;
     CGLookingForGroup::m_searchResults.Clear();
     FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_LFG_LIST, nullptr);
+}
+
+// STATIC: 0x00BEAA1C
+static uint32_t s_searchType;
+
+// STATIC: 0x00BEAA20
+static uint32_t s_searchID;
+
+// VERIFY: 068db115 auto
+// OFFSET: 0x005528A0
+void LFGNameCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!CGLookingForGroup::m_prevSearchResults.m_pendingNames || !--CGLookingForGroup::m_prevSearchResults.m_pendingNames) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_LFG_LIST, nullptr);
+    }
+}
+
+// VERIFY: 74fc5fd3 auto
+// OFFSET: 0x005528D0
+int32_t Packet_SMSG_LFG_OPEN_FROM_GOSSIP(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t slot;
+    msg->Get(slot);
+    FrameScript_SignalEvent(SCRIPT_EVENT_LFG_OPEN_FROM_GOSSIP, "%d", slot);
+    return 1;
+}
+
+// VERIFY: d167d656 manual
+// OFFSET: 0x0055B770
+int32_t Packet_SMSG_LFG_SEARCH_RESULTS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    bool changed = false;
+    msg->Get(s_searchType);
+    msg->Get(s_searchID);
+    int32_t lfgID = (s_searchID & 0xFFFFFF) | (s_searchType << 24);
+
+    if (lfgID != CGLookingForGroup::m_searchJoinedID) {
+        msg->m_read = msg->m_size;
+        return 1;
+    }
+
+    LFGLIST* list = &CGLookingForGroup::m_prevSearchResults;
+
+    if (static_cast<uint32_t>(lfgID) != list->m_lfgID) {
+        changed = true;
+    }
+
+    uint8_t incremental = 0;
+    msg->Get(incremental);
+
+    if (incremental) {
+        uint32_t count;
+        msg->Get(count);
+
+        for (uint32_t i = 0; i < count; i++) {
+            uint64_t guid;
+            msg->Get(guid);
+
+            if ((guid & 0xF000000000000000ull) || !(guid & 0xF07FFFFFFFFFFFFFull)) {
+                LFGListParty* party = list->m_parties.Ptr(static_cast<uint32_t>(guid), CHashKeyGUID(guid));
+
+                if (party) {
+                    list->DeleteParty(party);
+                }
+            } else {
+                LFGListPlayer* player = list->m_players.Ptr(static_cast<uint32_t>(guid), CHashKeyGUID(guid));
+
+                if (player) {
+                    list->RemovePlayer(player);
+                    delete player;
+                }
+            }
+        }
+    } else {
+        list->Clear();
+    }
+
+    list->m_lfgID = lfgID;
+    uint32_t count;
+    msg->Get(count);
+    msg->Get(list->m_totalParties);
+
+    for (uint32_t i = 0; i < count; i++) {
+        uint64_t guid;
+        msg->Get(guid);
+        LFGListParty* party = list->m_parties.Ptr(static_cast<uint32_t>(guid), CHashKeyGUID(guid));
+
+        if (!party) {
+            party = new (__FILE__, __LINE__) LFGListParty();
+            list->m_parties.Insert(party, static_cast<uint32_t>(guid), CHashKeyGUID(guid));
+        }
+
+        LFGHandler::ReadGroupInfo(msg, party);
+
+        if (party->m_index < 0) {
+            uint32_t index = list->m_partyList.Count();
+            list->m_partyList.SetCount(index + 1);
+            list->m_partyList.m_data[index] = party;
+            party->m_index = index;
+        }
+    }
+
+    msg->Get(count);
+    msg->Get(list->m_totalPlayers);
+
+    for (uint32_t i = 0; i < count; i++) {
+        WOWGUID guid;
+        msg->Get(guid.m_guid);
+        LFGListPlayer* player = list->m_players.Ptr(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid));
+
+        if (!player) {
+            player = new (__FILE__, __LINE__) LFGListPlayer();
+            list->m_players.Insert(player, static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid));
+
+            if (!g_nameDBCache.GetRecord(guid.m_guid, guid, LFGNameCacheCallback, nullptr, false)) {
+                list->m_pendingNames++;
+            }
+        }
+
+        LFGHandler::ReadPlayerInfo(msg, list, player);
+
+        if (player->m_party) {
+            player->m_party->AddPlayer(player);
+        } else if (player->m_index < 0) {
+            uint32_t index = list->m_playerList.Count();
+            list->m_playerList.SetCount(index + 1);
+            list->m_playerList.m_data[index] = player;
+            player->m_index = index;
+        }
+    }
+
+    if (changed) {
+        CGLookingForGroup::m_searchResults.Copy(*list);
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_LFG_LIST, nullptr);
+    }
+
+    return 1;
 }

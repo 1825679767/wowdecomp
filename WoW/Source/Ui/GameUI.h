@@ -42,6 +42,7 @@ struct lua_State;
 extern CVar* g_autoClearAFKCVar;
 extern CVar* g_assistAttackCVar;
 extern CVar* g_questPOICVar;
+extern CVar* g_trackerSortingCVar;
 extern CVar* unk_BD09AC;
 extern CVar* s_cvCalendarShowWeeklyHolidays;
 extern CVar* s_cvCalendarShowDarkmoon;
@@ -233,6 +234,7 @@ class CGGameUI {
     static TotemInfo m_totems[4];
     static MirrorTimerInfo m_mirrorTimerInfo[3];
     static MirrorTimerInfo* MirrorTimerGetInfo(uint32_t index);
+    static uint32_t GetInstanceDifficulty();
 
     static int32_t FilterMouseDown(CMouseEvent* evt);
     static int32_t FilterMouseMotion(CMouseEvent* evt);

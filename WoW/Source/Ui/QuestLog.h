@@ -55,7 +55,7 @@ struct QuestPOIInfo {
 struct QuestWatch {
     /* 0000 */ int32_t m_questId;
     /* 0004 */ int32_t m_expireTime;
-    /* 0008 */ uint32_t unk_0008;
+    /* 0008 */ float m_distance;
 };
 
 void QuestQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);

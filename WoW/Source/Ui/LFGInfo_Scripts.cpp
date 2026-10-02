@@ -27,6 +27,12 @@
 #include "WoW/Source/Object/ItemStats.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/Game/GameClient/NameCache.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
+#include "WoW/Source/Ui/ChatFrame.h"
+#include "WoW/Source/Ui/BattlefieldInfo.h"
+#include "WoW/Source/UIUtil/Tooltip.h"
+#include "WoW/Source/DB/Rec/AreaTableRec.h"
 
 // STATIC: 0x00ACDD60
 static int32_t s_playerLockRequests = 2;
@@ -353,14 +359,14 @@ static int32_t Script_GetPartyLFGBackfillInfo(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 7827dd34 manual
+// VERIFY: 582b07ce manual
 // OFFSET: 0x00553BA0
 static int32_t Script_SearchLFGGetNumResults(lua_State* L) {
     double numPlayers;
 
-    if (CGLookingForGroup::m_searchResults.unk_0000) {
-        lua_pushnumber(L, CGLookingForGroup::m_searchResults.unk_007C + CGLookingForGroup::m_searchResults.unk_006C);
-        numPlayers = CGLookingForGroup::m_searchResults.unk_000C + CGLookingForGroup::m_searchResults.unk_0008;
+    if (CGLookingForGroup::m_searchResults.m_lfgID) {
+        lua_pushnumber(L, CGLookingForGroup::m_searchResults.m_playerList.m_count + CGLookingForGroup::m_searchResults.m_partyList.m_count);
+        numPlayers = CGLookingForGroup::m_searchResults.m_totalParties + CGLookingForGroup::m_searchResults.m_totalPlayers;
     } else {
         lua_pushnumber(L, 0.0);
         numPlayers = 0.0;
@@ -1363,6 +1369,636 @@ static int32_t Script_SearchLFGLeave(lua_State* L) {
         CGLookingForGroup::LeaveLFGSearch();
     }
 
+    return 0;
+}
+
+// STATIC: 0x00ACDD54
+static int32_t s_roleCheckCount = 2;
+
+// STATIC: 0x00BEABAC
+static float s_roleCheckTime;
+
+// STATIC: 0x00ACDD68
+static int32_t s_teleportCount = 2;
+
+// STATIC: 0x00BEABC0
+static float s_teleportTime;
+
+// VERIFY: c5cfe210 manual
+// OFFSET: 0x005529E0
+static int32_t AddLFGPlayerInfo(lua_State* L, LFGListPlayer* player) {
+    if (player) {
+        lua_pushboolean(L, player->m_roles & 0x1);
+        lua_pushboolean(L, player->m_roles & 0x2);
+        lua_pushboolean(L, player->m_roles & 0x4);
+        lua_pushboolean(L, player->m_roles & 0x8);
+        lua_pushnumber(L, player->unk_0064);
+        lua_pushnumber(L, player->m_talents[0]);
+        lua_pushnumber(L, player->m_talents[1]);
+        lua_pushnumber(L, player->m_talents[2]);
+        lua_pushboolean(L, player->m_leader);
+        lua_pushnumber(L, player->m_armor);
+        lua_pushnumber(L, player->m_spellDamage);
+        lua_pushnumber(L, player->m_spellHeal);
+        lua_pushnumber(L, player->m_critMelee);
+        lua_pushnumber(L, player->m_critRanged);
+        lua_pushnumber(L, player->m_critSpell);
+        lua_pushnumber(L, player->m_mp5);
+        lua_pushnumber(L, player->m_mp5Combat);
+        lua_pushnumber(L, player->m_attackPower);
+        lua_pushnumber(L, player->m_agility);
+        lua_pushnumber(L, player->m_maxHealth);
+        lua_pushnumber(L, player->m_maxMana);
+        lua_pushnumber(L, player->m_avgItemLevel);
+        lua_pushnumber(L, player->m_defenseSkill);
+        lua_pushnumber(L, player->m_dodge);
+        lua_pushnumber(L, player->m_block);
+        lua_pushnumber(L, player->m_parry);
+        lua_pushnumber(L, player->m_haste);
+        lua_pushnumber(L, player->m_expertise);
+    } else {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushboolean(L, 0);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+    }
+
+    return 28;
+}
+
+// VERIFY: 4b03e77f auto
+// OFFSET: 0x00553110
+static int32_t Script_GetLFGProposalMember(lua_State* L) {
+    return CGLookingForGroup::GetLFGProposalMember(L);
+}
+
+// VERIFY: eec094ff manual
+// OFFSET: 0x00553530
+static bool GetLFGInfoByIndex(uint32_t index, LFGListParty** party, LFGListPlayer** player) {
+    LFGLIST* list = &CGLookingForGroup::m_searchResults;
+
+    if (CGLookingForGroup::m_unkACD660) {
+        if (index < list->m_playerList.m_count) {
+            *party = nullptr;
+            *player = list->m_playerList.m_data[index];
+            return true;
+        }
+
+        if (index - list->m_playerList.m_count < list->m_partyList.m_count) {
+            LFGListParty* entry = list->m_partyList.m_data[index - list->m_playerList.m_count];
+            *party = entry;
+            *player = entry && entry->m_members.m_count ? entry->m_members.m_data[0] : nullptr;
+            return true;
+        }
+
+        return false;
+    }
+
+    if (index >= list->m_partyList.m_count) {
+        if (index - list->m_partyList.m_count < list->m_playerList.m_count) {
+            *party = nullptr;
+            *player = list->m_playerList.m_data[index - list->m_partyList.m_count];
+            return true;
+        }
+
+        return false;
+    }
+
+    LFGListParty* entry = list->m_partyList.m_data[index];
+    *party = entry;
+    *player = entry && entry->m_members.m_count ? entry->m_members.m_data[0] : nullptr;
+    return true;
+}
+
+// VERIFY: 61a19424 manual
+// OFFSET: 0x00553C30
+static int32_t Script_SearchLFGGetEncounterResults(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: SearchLFGGetEncounterResults(index, encounterIndex)");
+    }
+
+    LfgDungeonsRec* rec = g_lfgDungeonsDB.GetRecord(CGLookingForGroup::m_searchResults.m_lfgID & 0xFFFFFF);
+
+    if (!rec) {
+        return 0;
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1));
+    double encounter = lua_tonumber(L, 2);
+    LFGListPlayer* player = nullptr;
+    LFGListParty* party = nullptr;
+
+    if (!GetLFGInfoByIndex(index - 1, &party, &player)) {
+        return 0;
+    }
+
+    if (!player) {
+        return PushDungeonEncounterInfo(L, 0, 0, 0, 0);
+    }
+
+    uint32_t mask = party ? party->m_encounterMask : player->m_encounterMask;
+    return PushDungeonEncounterInfo(L, rec->m_mapID, rec->m_difficulty, static_cast<int32_t>(encounter - 1.0), mask);
+}
+
+// VERIFY: f272c3fa manual
+// OFFSET: 0x00553E20
+static int32_t Script_CompleteLFGRoleCheck(lua_State* L) {
+    if (++s_roleCheckCount > 2) {
+        float now = OsGetAsyncTimeSec();
+
+        if (now - s_roleCheckTime < 10.0) {
+            if (s_roleCheckCount > 2) {
+                return 0;
+            }
+        } else {
+            s_roleCheckTime = now;
+            s_roleCheckCount = 0;
+        }
+    }
+
+    if (!s_cvLfgSelectedRoles) {
+        return 0;
+    }
+
+    uint8_t roles = 0;
+
+    if (StringToBOOL(L, 1, 0)) {
+        roles = FilterRolesByClass(static_cast<uint8_t>(s_cvLfgSelectedRoles->m_intValue));
+
+        if (!(roles & 0xE)) {
+            CGGameUI::DisplayError(ERR_LFG_NO_ROLES_SELECTED);
+            lua_pushboolean(L, 0);
+            return 1;
+        }
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_LFG_SET_ROLES));
+    msg.Put(roles);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    lua_pushboolean(L, 1);
+    return 1;
+}
+
+// VERIFY: c34393b3 auto
+// OFFSET: 0x00554160
+static int32_t Script_LeaveLFG(lua_State* L) {
+    CGLookingForGroup::LeaveLFG();
+    return 0;
+}
+
+// VERIFY: 3b50b521 auto
+// OFFSET: 0x00554440
+static int32_t Script_GetLFGProposalEncounter(lua_State* L) {
+    return CGLookingForGroup::GetLFGProposalEncounter(L);
+}
+
+// VERIFY: e41907d8 auto
+// OFFSET: 0x005545E0
+static int32_t Script_AcceptProposal(lua_State* L) {
+    if (CGGameUI::CanPerformAction(9)) {
+        CGLookingForGroup::ProposalResponse(true);
+    }
+
+    return 0;
+}
+
+// VERIFY: e3b26d99 auto
+// OFFSET: 0x00554600
+static int32_t Script_RejectProposal(lua_State* L) {
+    CGLookingForGroup::ProposalResponse(false);
+    return 0;
+}
+
+// VERIFY: dc7cb7a4 auto
+// OFFSET: 0x005548E0
+static int32_t Script_GetLFGRoleUpdateMember(lua_State* L) {
+    return CGLookingForGroup::GetLFGRoleUpdateMember(L);
+}
+
+// VERIFY: a316c04f auto
+// OFFSET: 0x00554A50
+static int32_t Script_SetLFGBootVote(lua_State* L) {
+    return CGLookingForGroup::SetLFGBootVote(L);
+}
+
+// VERIFY: 4d375cba auto
+// OFFSET: 0x00554BD0
+static int32_t Script_GetLFGBootProposal(lua_State* L) {
+    return CGLookingForGroup::GetLFGBootProposal(L);
+}
+
+// VERIFY: 679121ab auto
+// OFFSET: 0x00555660
+static int32_t Script_IsInLFGDungeon(lua_State* L) {
+    if (!CGPartyInfo::m_lfgSlot) {
+        return 0;
+    }
+
+    LfgDungeonsRec* rec = g_lfgDungeonsDB.GetRecord(CGPartyInfo::m_lfgSlot & 0xFFFFFF);
+
+    if (!rec) {
+        return 0;
+    }
+
+    lua_pushboolean(L, rec->m_mapID == CGGameUI::m_iCurrentMapID && rec->m_difficulty == static_cast<int32_t>(CGGameUI::GetInstanceDifficulty()));
+    return 1;
+}
+
+// VERIFY: 14ad353c manual
+// OFFSET: 0x00555FD0
+static int32_t Script_SearchLFGGetResults(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: SearchLFGGetResults(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tointeger(L, 1)) - 1;
+    LfgDungeonsRec* rec = g_lfgDungeonsDB.GetRecord(CGLookingForGroup::m_searchResults.m_lfgID & 0xFFFFFF);
+
+    if (!rec) {
+        return 0;
+    }
+
+    LFGListPlayer* player = nullptr;
+    LFGListParty* party = nullptr;
+
+    if (!GetLFGInfoByIndex(index, &party, &player) || !player) {
+        return 0;
+    }
+
+    NameCache* name = g_nameDBCache.GetRecord(player->m_key.m_guid.m_guid, WOWGUID(), nullptr, nullptr, false);
+    lua_pushstring(L, name ? name->m_name : FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE));
+    lua_pushnumber(L, player->m_level);
+    AreaTableRec* area = g_areaTableDB.GetRecord(player->m_areaID);
+    lua_pushstring(L, area ? area->m_areaName : FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE));
+    const char* className;
+
+    if (name && (className = CGUnit_C::GetDisplayClassName(nullptr, name))) {
+        lua_pushstring(L, className);
+    } else {
+        lua_pushstring(L, FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE));
+    }
+
+    char comment[256];
+
+    if (party) {
+        SStrCopy(comment, party->m_comment, STORM_MAX_STR);
+    } else {
+        SStrCopy(comment, player->m_comment, STORM_MAX_STR);
+    }
+
+    ProfanityFilter(comment, false, false);
+    lua_pushstring(L, comment);
+    lua_pushnumber(L, party ? party->GetNumMembers() : 0);
+    lua_pushboolean(L, player->unk_0088 != 0);
+    ChrClassesRec* classRec;
+
+    if (name && (classRec = g_chrClassesDB.GetRecord(name->m_class)) && classRec->m_filename) {
+        lua_pushstring(L, classRec->m_filename);
+    } else {
+        lua_pushnil(L);
+    }
+
+    uint32_t mask = party ? party->m_encounterMask : player->m_encounterMask;
+    uint32_t total = 0;
+    uint32_t completed = 0;
+    DungeonEncounterCountMatchingRows(rec->m_mapID, rec->m_difficulty, mask, &total, &completed);
+    lua_pushnumber(L, total);
+    lua_pushnumber(L, completed);
+    return AddLFGPlayerInfo(L, player) + 10;
+}
+
+// VERIFY: ae53c1d8 manual
+// OFFSET: 0x00556280
+static int32_t Script_SearchLFGGetPartyResults(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: SearchLFGGetPartyResults(index, partyIndex)");
+        return 0;
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t partyIndex = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    LFGListParty* party = nullptr;
+    LFGListPlayer* leader;
+
+    if (!GetLFGInfoByIndex(index, &party, &leader)) {
+        return 0;
+    }
+
+    LFGListPlayer* player;
+    NameCache* name;
+
+    if (party && (player = party->GetMember(partyIndex)) && (name = g_nameDBCache.GetRecord(player->m_key.m_guid.m_guid, WOWGUID(), nullptr, nullptr, false))) {
+        lua_pushstring(L, name->m_name);
+        lua_pushnumber(L, player->m_level);
+
+        if (FriendList::s_friendList->IsIgnored(player->m_key.m_guid, true)) {
+            lua_pushstring(L, "ignored");
+        } else if (FriendList::s_friendList->IsFriend(player->m_key.m_guid)) {
+            lua_pushstring(L, "friend");
+        } else {
+            lua_pushnil(L);
+        }
+
+        const char* className = CGUnit_C::GetDisplayClassName(nullptr, name);
+        lua_pushstring(L, className ? className : "");
+        AreaTableRec* area = g_areaTableDB.GetRecord(player->m_areaID);
+        lua_pushstring(L, area ? area->m_areaName : FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE));
+        char comment[256];
+        SStrCopy(comment, player->m_comment, STORM_MAX_STR);
+        ProfanityFilter(comment, false, false);
+        lua_pushstring(L, comment);
+        return AddLFGPlayerInfo(L, player) + 6;
+    }
+
+    lua_pushnil(L);
+    lua_pushstring(L, "");
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
+    return AddLFGPlayerInfo(L, nullptr) + 5;
+}
+
+// VERIFY: 8f4a590b manual
+// OFFSET: 0x00556AD0
+static int32_t Script_SetLFGHeaderCollapsed(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: SetLFGHeaderCollapsed(headerID, isCollapsed)");
+    }
+
+    int32_t header = static_cast<int32_t>(lua_tonumber(L, 1));
+    int32_t collapsed = StringToBOOL(L, 2, 0);
+
+    if (header < 0 && g_lfgDungeonGroupDB.GetRecord(-header)) {
+        CGLookingForGroup::SetHeaderCollapsed(-header, collapsed != 0);
+    }
+
+    return 0;
+}
+
+// VERIFY: f9b9f3e2 auto
+// OFFSET: 0x00556B60
+static int32_t Script_SetLFGDungeonEnabled(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: SetLFGDungeonEnabled(dungeonID, isEnabled)");
+    }
+
+    int32_t dungeon = static_cast<int32_t>(lua_tonumber(L, 1));
+    int32_t enabled = StringToBOOL(L, 2, 1);
+
+    if (dungeon > 0) {
+        CGLookingForGroup::SetDungeonEnabled(dungeon, enabled != 0);
+    }
+
+    return 0;
+}
+
+// VERIFY: d43adb8c manual
+// OFFSET: 0x00556BC0
+static int32_t Script_LFGTeleport(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    if (++s_teleportCount > 2) {
+        float now = OsGetAsyncTimeSec();
+
+        if (now - s_teleportTime < 10.0) {
+            if (s_teleportCount > 2) {
+                lua_pushboolean(L, 0);
+                return 1;
+            }
+        } else {
+            s_teleportTime = now;
+            s_teleportCount = 0;
+        }
+    }
+
+    if (player->IsInCombat()) {
+        CGGameUI::DisplayError(ERR_NOT_IN_COMBAT);
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+
+    if (player->IsDeadOrGhost()) {
+        CGGameUI::DisplayError(ERR_PLAYER_DEAD);
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+
+    if (player->m_movement->m_flags & 0x1000) {
+        CGGameUI::DisplayError(ERR_NOT_WHILE_FALLING);
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+
+    if (IsOnTransport(player)) {
+        CGGameUI::DisplayError(ERR_CLIENT_LOCKED_OUT);
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+
+    MirrorTimerInfo* timer = CGGameUI::MirrorTimerGetInfo(0);
+
+    if (timer && timer->m_scale < 0) {
+        CGGameUI::DisplayError(ERR_NOT_WHILE_FATIGUED);
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+
+    int32_t out = StringToBOOL(L, 1, 0);
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_LFG_TELEPORT));
+    msg.Put(static_cast<uint8_t>(out != 0));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    lua_pushboolean(L, 1);
+    return 1;
+}
+
+// VERIFY: 33222d7f auto
+// OFFSET: 0x00557D60
+static int32_t Script_GetLFGDungeonRewardLink(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: GetLFGDungeonRewardLink(dungeonID, lootIndex)");
+    }
+
+    uint32_t slot = (lua_tointeger(L, 1) & 0xFFFFFF) | 0x6000000;
+    int32_t index = lua_tointeger(L, 2) - 1;
+    LFGRewardItem* item = CGLookingForGroup::GetDungeonRewardItem(slot, index);
+
+    if (!item) {
+        return 0;
+    }
+
+    ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_itemID, WOWGUID(), nullptr, nullptr, false);
+
+    if (!stats) {
+        return 0;
+    }
+
+    lua_pushstring(L, CGTooltip::GetItemHyperlinkString(item->m_itemID, stats->m_quality, 0, 0, 0));
+    return 1;
+}
+
+// VERIFY: 74851aa9 manual
+// OFFSET: 0x00559400
+static int32_t Script_SearchLFGJoin(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: SearchLFGJoin(typeID, lfgID)");
+    }
+
+    if (!CGGameUI::CanPerformAction(9)) {
+        return 0;
+    }
+
+    int32_t type = static_cast<int32_t>(lua_tonumber(L, 1));
+    int32_t id = static_cast<int32_t>(lua_tonumber(L, 2));
+
+    if (type < 7 && g_lfgDungeonsDB.GetRecord(id)) {
+        CGLookingForGroup::JoinLFGSearch((type << 24) | (id & 0xFFFFFF));
+    }
+
+    return 0;
+}
+
+// VERIFY: 374d8965 manual
+// OFFSET: 0x00559500
+static int32_t Script_ClearLFGDungeon(lua_State* L) {
+    if (!lua_isnumber(L, 1) && !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: ClearLFGDungeon(type, id)");
+    }
+
+    uint32_t type = static_cast<uint32_t>(lua_tonumber(L, 1));
+    int32_t id = static_cast<int32_t>(lua_tonumber(L, 2));
+
+    if (type < 7 && g_lfgDungeonsDB.GetRecord(id)) {
+        CGLookingForGroup::ClearLFGDungeon((type << 24) | (id & 0xFFFFFF));
+    }
+
+    return 0;
+}
+
+// VERIFY: ce8b2ea6 manual
+// OFFSET: 0x00559FF0
+static int32_t Script_GetLastQueueStatusIndex(lua_State* L) {
+    if (CGLookingForGroup::GetQueueStatusIndex() < 0) {
+        lua_pushnil(L);
+    } else {
+        lua_pushnumber(L, CGLookingForGroup::GetQueueStatusIndex() + 1);
+    }
+
+    return 1;
+}
+
+// VERIFY: 2226b738 auto
+// OFFSET: 0x0055A0C0
+static int32_t Script_PartyLFGStartBackfill(lua_State* L) {
+    if (!s_cvLfgSelectedRoles || !(s_cvLfgSelectedRoles->m_intValue & 0xFFFFFFFE)) {
+        CGGameUI::DisplayError(ERR_LFG_NO_ROLES_SELECTED);
+        return 0;
+    }
+
+    if (!CGPartyInfo::m_realNumMembers || CGPartyInfo::m_realNumMembers >= 4 || !CGPartyInfo::m_lfgSlot || (CGPartyInfo::unk_BD1989 & 0x2)) {
+        return 0;
+    }
+
+    CGLookingForGroup::ClearDungeonList();
+    CGLookingForGroup::SetLFGDungeon(CGPartyInfo::m_lfgSlot);
+    CGLookingForGroup::JoinLFG();
+    lua_pushboolean(L, 1);
+    return 1;
+}
+
+// VERIFY: 2f1b3eba auto
+// OFFSET: 0x0055D280
+static int32_t Script_RefreshLFGList(lua_State* L) {
+    CGLookingForGroup::m_searchResults.Copy(CGLookingForGroup::m_prevSearchResults);
+    FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_LFG_LIST, nullptr);
+    return 0;
+}
+
+// VERIFY: 79bb4034 manual
+// OFFSET: 0x0055D2B0
+static int32_t Script_SearchLFGSort(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: SearchLFGSort(\"type\")");
+    }
+
+    int32_t type = 3;
+    const char* name = lua_tolstring(L, 1, nullptr);
+
+    if (!SStrCmpI(name, "group", STORM_MAX_STR)) {
+        CGLookingForGroup::m_unkACD660 = !CGLookingForGroup::m_unkACD660;
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_LFG_LIST, nullptr);
+        return 0;
+    }
+
+    if (!SStrCmpI(name, "name", STORM_MAX_STR)) {
+        type = 3;
+    } else if (!SStrCmpI(name, "level", STORM_MAX_STR)) {
+        type = 1;
+    } else if (!SStrCmpI(name, "class", STORM_MAX_STR)) {
+        type = 2;
+    } else if (!SStrCmpI(name, "zone", STORM_MAX_STR)) {
+        type = 0;
+    } else if (!SStrCmpI(name, "tank", STORM_MAX_STR)) {
+        type = 4;
+    } else if (!SStrCmpI(name, "healer", STORM_MAX_STR)) {
+        type = 5;
+    } else if (!SStrCmpI(name, "damage", STORM_MAX_STR)) {
+        type = 6;
+    }
+
+    int32_t index = 0;
+
+    while (CGLookingForGroup::m_unkBEA820[index].m_id != type) {
+        if (++index >= 7) {
+            CGLookingForGroup::ResortLFGLists();
+            return 0;
+        }
+    }
+
+    int32_t order = CGLookingForGroup::m_unkBEA820[index].m_order;
+
+    if (!index) {
+        order = !order;
+    }
+
+    for (int32_t i = index; i > 0; i--) {
+        CGLookingForGroup::m_unkBEA820[i] = CGLookingForGroup::m_unkBEA820[i - 1];
+    }
+
+    CGLookingForGroup::m_unkBEA820[0].m_id = type;
+    CGLookingForGroup::m_unkBEA820[0].m_order = order;
+    CGLookingForGroup::ResortLFGLists();
     return 0;
 }
 

@@ -7575,3 +7575,9 @@ void CGGameUI::Reload() {
 
     CGGameUI::m_reloadUIRequested = 1;
 }
+
+// VERIFY: cbded0a3 auto
+// OFFSET: 0x005138C0
+uint32_t CGGameUI::GetInstanceDifficulty() {
+    return CGGameUI::m_instanceDifficulty;
+}
