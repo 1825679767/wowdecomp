@@ -16,6 +16,20 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include <cstdio>
+#include "WoW/Source/Client.h"
+#include "WoW/Source/DB/Rec/GemPropertiesRec.h"
+#include "WoW/Source/DB/Rec/ItemSubClassRec.h"
+#include "WoW/Source/DB/Rec/SkillLineRec.h"
+#include "WoW/Source/DB/Rec/SpellFocusObjectRec.h"
+#include "WoW/Source/DB/Rec/SpellItemEnchantmentRec.h"
+#include "WoW/Source/DB/Rec/TotemCategoryRec.h"
+#include "WoW/Source/Game/ValidateName.h"
+#include "WoW/Source/Ui/QuestTextParser.h"
+#include "WoW/Source/UIUtil/Tooltip.h"
+
+// STATIC: 0x00A1B640
+static const char s_base64Encode[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 // STATIC: 0x00A1B688
 static const uint8_t s_base64Decode[128] = {
@@ -32,11 +46,17 @@ static const uint8_t s_base64Decode[128] = {
 // STATIC: 0x00AD0E00
 uint32_t CGTradeSkillInfo::m_subClassFilter = 0xFFFFFFFF;
 
+// STATIC: 0x00AD0E04
+uint32_t CGTradeSkillInfo::m_subClassFilterIndex = 0xFFFFFFFF;
+
 // STATIC: 0x00AD0E08
 uint32_t CGTradeSkillInfo::m_invTypeFilter = 0xFFFFFFFF;
 
 // STATIC: 0x00AD0E0C
 uint32_t CGTradeSkillInfo::m_collapseFilter = 0xFFFFFFFF;
+
+// STATIC: 0x00AD0E10
+const char* s_invSlotTokens[27] = { "HEADSLOT", "NECKSLOT", "SHOULDERSLOT", "SHIRTSLOT", "CHESTSLOT", "WAISTSLOT", "LEGSSLOT", "FEETSLOT", "WRISTSLOT", "HANDSSLOT", "FINGER0SLOT", "FINGER1SLOT", "TRINKET0SLOT", "TRINKET1SLOT", "BACKSLOT", "MAINHANDSLOT", "SECONDARYHANDSLOT", "RANGEDSLOT", "TABARDSLOT", "BAGSLOT", "BAGSLOT", "BAGSLOT", "BAGSLOT", "ENCHSLOT_WEAPON", "ENCHSLOT_2HWEAPON", "SHIELDSLOT", "NONEQUIPSLOT" };
 
 // STATIC: 0x00C23598
 WOWGUID CGTradeSkillInfo::m_playerGuid;
@@ -671,4 +691,743 @@ void CGTradeSkillInfo::Close() {
     }
 
     FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_SKILL_CLOSE, nullptr);
+}
+
+// VERIFY: 1ba498d5 auto
+// OFFSET: 0x005D9F00
+const char* GetInventorySlotToken(int32_t slot) {
+    switch (slot) {
+        case 10:
+            return "FINGER0SLOT_UNIQUE";
+        case 11:
+            return "FINGER1SLOT_UNIQUE";
+        case 12:
+            return "TRINKET0SLOT_UNIQUE";
+        case 13:
+            return "TRINKET1SLOT_UNIQUE";
+        default:
+            return s_invSlotTokens[slot];
+    }
+}
+
+// VERIFY: 3b6d91ea manual
+// OFFSET: 0x005D9F50
+static void TradeSkillLinkNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        CGTradeSkillInfo::SetLink(static_cast<const char*>(param));
+    }
+
+    SMemFree(param, __FILE__, __LINE__, 0);
+}
+
+// VERIFY: da75f0ab manual
+// OFFSET: 0x005D9FA0
+void CGTradeSkillInfo::DoTradeSkill(int32_t spellId, uint32_t times) {
+    if (spellId == CGTradeSkillInfo::m_recastSpellID) {
+        CGTradeSkillInfo::m_recastTimes = times;
+    } else {
+        CGTradeSkillInfo::m_pendingRecastSpellID = spellId;
+        CGTradeSkillInfo::m_pendingRecastTimes = times;
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_TRADESKILL_RECAST, nullptr);
+}
+
+// VERIFY: 4ff75582 auto
+// OFFSET: 0x005DA5F0
+SkillLineRec* CGTradeSkillInfo::GetSkillLineRec(int32_t spellId, const WOWGUID& guid) {
+    WOWGUID none = WOWGUID();
+    NameCache* name = g_nameDBCache.GetRecord(guid.m_guid, none, nullptr, nullptr, false);
+
+    if (!name) {
+        return nullptr;
+    }
+
+    SkillLineAbilityRec* ability = SpellTableLookupAbility(name->m_race, name->m_class, spellId);
+
+    if (!ability) {
+        return nullptr;
+    }
+
+    return g_skillLineDB.GetRecord(ability->m_skillLine);
+}
+
+// VERIFY: 51645b21 auto
+// OFFSET: 0x005DA670
+int32_t CGTradeSkillInfo::GetSelectionIndex() {
+    if (!CGTradeSkillInfo::m_selectedSkill) {
+        return -1;
+    }
+
+    uint32_t i;
+
+    for (i = 0; i < CGTradeSkillInfo::m_numDisplayEntries; i++) {
+        if (CGTradeSkillInfo::m_displayList.m_data[i]->m_spellId == CGTradeSkillInfo::m_selectedSkill) {
+            break;
+        }
+    }
+
+    if (i == CGTradeSkillInfo::m_numDisplayEntries) {
+        return -1;
+    }
+
+    return i;
+}
+
+// VERIFY: 734704f2 manual
+// OFFSET: 0x005DA6B0
+int32_t QSortSubClasses(const void* a, const void* b) {
+    const TradeSkillSubClassInfo* subClassA = *static_cast<TradeSkillSubClassInfo* const*>(a);
+    const TradeSkillSubClassInfo* subClassB = *static_cast<TradeSkillSubClassInfo* const*>(b);
+
+    if (subClassA->m_itemClass != subClassB->m_itemClass) {
+        return subClassA->m_itemClass > subClassB->m_itemClass ? 1 : -1;
+    }
+
+    ItemSubClassRec* recA = nullptr;
+    ItemSubClassRec* recB = nullptr;
+
+    for (int32_t i = 0; i < g_itemSubClassDB.m_numRecords; i++) {
+        ItemSubClassRec* rec = g_itemSubClassDB.GetRecordByIndex(i);
+
+        if (rec->m_classID == subClassA->m_itemClass && rec->m_subClassID == subClassA->m_itemSubClass) {
+            recA = rec;
+
+            if (recB) {
+                break;
+            }
+        }
+
+        if (rec->m_classID == subClassB->m_itemClass && rec->m_subClassID == subClassB->m_itemSubClass) {
+            recB = rec;
+
+            if (recA) {
+                break;
+            }
+        }
+    }
+
+    if (recA && recB) {
+        const char* nameA = recA->m_verboseName && *recA->m_verboseName ? recA->m_verboseName : recA->m_displayName;
+        const char* nameB = recB->m_verboseName && *recB->m_verboseName ? recB->m_verboseName : recB->m_displayName;
+
+        if (nameA && nameB) {
+            return SStrSortUTF8I(nameA, nameB, STORM_MAX_STR);
+        }
+
+        return 0;
+    }
+
+    if (!recA && !recB) {
+        return 0;
+    }
+
+    return recA ? 1 : -1;
+}
+
+// VERIFY: e2741a4a manual
+// OFFSET: 0x005DA830
+bool CGTradeSkillInfo::IsCollapsedHeader(uint32_t index) {
+    if (index >= CGTradeSkillInfo::m_numDisplayEntries) {
+        return false;
+    }
+
+    TradeSkillInfo* info = CGTradeSkillInfo::m_displayList.m_data[index];
+
+    if (info->m_spellId >= 0) {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < CGTradeSkillInfo::m_numSubClasses; i++) {
+        TradeSkillSubClassInfo* subClass = CGTradeSkillInfo::m_subClassList.m_data[i];
+
+        if (subClass->m_itemClass == info->m_itemClass && subClass->m_itemSubClass == info->m_itemSubClass) {
+            return !(CGTradeSkillInfo::m_collapseFilter & (1 << i));
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: c19145e7 manual
+// OFFSET: 0x005DACE0
+uint32_t CGTradeSkillInfo::GetInvSlotFilter() {
+    TradeSkillSubClassInfo* subClass;
+
+    if (CGTradeSkillInfo::m_subClassFilterIndex < CGTradeSkillInfo::m_numSubClasses && (subClass = CGTradeSkillInfo::m_subClassList.m_data[CGTradeSkillInfo::m_subClassFilterIndex])) {
+        return subClass->m_invTypeMask & CGTradeSkillInfo::m_invSlots;
+    }
+
+    return CGTradeSkillInfo::m_invSlots;
+}
+
+// VERIFY: ed9c0233 manual
+// OFFSET: 0x005DAE00
+int32_t CGTradeSkillInfo::GetSkillMaxRank() {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || CGTradeSkillInfo::m_playerGuid != player->m_obj->m_guid) {
+        return CGTradeSkillInfo::m_skillMaxRank;
+    }
+
+    return player->GetSkillMaxRank(player->GetSkillIndex(CGTradeSkillInfo::m_skillLineID));
+}
+
+// VERIFY: adda32be manual
+// OFFSET: 0x005DAE60
+int32_t QSortSkills(const void* a, const void* b) {
+    const TradeSkillInfo* infoA = *static_cast<TradeSkillInfo* const*>(a);
+    const TradeSkillInfo* infoB = *static_cast<TradeSkillInfo* const*>(b);
+
+    if (CGTradeSkillInfo::m_numSubClasses) {
+        int32_t shownA = 1;
+        int32_t shownB = 1;
+        uint32_t indexA = 0;
+        uint32_t indexB = 0;
+
+        for (uint32_t i = 0; i < CGTradeSkillInfo::m_numSubClasses; i++) {
+            TradeSkillSubClassInfo* subClass = CGTradeSkillInfo::m_subClassList.m_data[i];
+
+            if (subClass->m_itemClass == infoA->m_itemClass && subClass->m_itemSubClass == infoA->m_itemSubClass) {
+                indexA = i;
+                shownA = infoA->m_visible && subClass->m_shown;
+            }
+
+            if (subClass->m_itemClass == infoB->m_itemClass && subClass->m_itemSubClass == infoB->m_itemSubClass) {
+                indexB = i;
+                shownB = infoB->m_visible && subClass->m_shown;
+            }
+        }
+
+        if (!shownA) {
+            return shownB ? 1 : 0;
+        }
+
+        if (!shownB) {
+            return -1;
+        }
+
+        if (indexB != indexA) {
+            return indexB < indexA ? 1 : -1;
+        }
+    }
+
+    if (infoA->m_spellId == -1 || infoB->m_spellId == -1) {
+        return infoB->m_spellId == -1 ? 1 : -1;
+    }
+
+    SpellRec spellA;
+    SpellRec spellB;
+
+    if (!g_spellDB.GetRecord(infoA->m_spellId, &spellA) || !g_spellDB.GetRecord(infoB->m_spellId, &spellB)) {
+        return 0;
+    }
+
+    if (infoA->m_difficulty != infoB->m_difficulty) {
+        return infoA->m_difficulty > infoB->m_difficulty ? 1 : -1;
+    }
+
+    if (infoA->m_skillLineRank != infoB->m_skillLineRank) {
+        return infoA->m_skillLineRank < infoB->m_skillLineRank ? 1 : -1;
+    }
+
+    if (infoA->m_itemLevel != infoB->m_itemLevel) {
+        return infoA->m_itemLevel < infoB->m_itemLevel ? 1 : -1;
+    }
+
+    return SStrSortUTF8I(spellA.m_name, spellB.m_name, STORM_MAX_STR);
+}
+
+// VERIFY: 414f239b manual
+// OFFSET: 0x005DB060
+bool CGTradeSkillInfo::GetTradeSkillListLink(int32_t spellId, char* buffer, uint32_t bufferSize) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return false;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell) || spell.m_effect[0] != 47) {
+        return false;
+    }
+
+    WOWGUID guid = player->m_obj->m_guid;
+    SkillLineRec* skillLine = CGTradeSkillInfo::GetSkillLineRec(spellId, guid);
+
+    if (!skillLine || !skillLine->m_canLink) {
+        return false;
+    }
+
+    const SkillLineAbilityRec* ability = nullptr;
+    uint32_t count = 0;
+
+    if (!SpellTableGetSkillLineLinkInfo(skillLine->m_id, ability, count)) {
+        return false;
+    }
+
+    int32_t index = player->GetSkillIndex(skillLine->m_id);
+    uint32_t value = player->GetSkillValue(index);
+    uint32_t maxRank = player->GetSkillMaxRank(index);
+    SStrPrintf(buffer, bufferSize, "|cffffd000|Htrade:%d:%d:%d:%I64X:", spellId, value, maxRank, player->m_obj->m_guid.m_guid);
+
+    uint32_t chars = count / 6;
+
+    if (6 * chars != count) {
+        chars++;
+    }
+
+    if (SStrLen(buffer) + chars + 1 >= bufferSize) {
+        return false;
+    }
+
+    int32_t race = player->m_unit->m_unitFieldBytes0[0];
+    int32_t classId = player->m_unit->m_unitFieldBytes0[1];
+    uint8_t bits = 0;
+    uint8_t bit = 0;
+    char* out = &buffer[SStrLen(buffer)];
+
+    for (uint32_t i = 0; i < count; i++) {
+        if (player->IsSpellKnown(ability->m_spell) && SpellTableMatchRaceClass(race, classId, ability->m_raceMask, ability->m_classMask, 0, 0)) {
+            bits |= 1 << bit;
+        }
+
+        if (++bit >= 6) {
+            *out++ = s_base64Encode[bits];
+            bit = 0;
+            bits = 0;
+        }
+
+        ability++;
+    }
+
+    if (bit) {
+        *out++ = s_base64Encode[bits];
+    }
+
+    *out = 0;
+    SStrPrintf(out, buffer + bufferSize - out, "|h[%s]|h|r", spell.m_name);
+    return true;
+}
+
+// VERIFY: fd75f39d manual
+// OFFSET: 0x005DC110
+bool Profession_FilterSpell(int32_t spellId, int32_t minLevel, int32_t maxLevel, const char* name) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return false;
+    }
+
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(spell.m_effectItemType[0], none, nullptr, nullptr, false);
+
+    if (stats && ((minLevel && static_cast<int32_t>(stats->m_requiredLevel) < minLevel) || (maxLevel && static_cast<int32_t>(stats->m_requiredLevel) > maxLevel))) {
+        return false;
+    }
+
+    if (!name) {
+        return true;
+    }
+
+    char text[1024];
+    char format[1024];
+
+    if (stats) {
+        for (uint32_t i = 0; i < 10; i++) {
+            int32_t value = stats->m_statValue[i];
+
+            if (value <= 0 || static_cast<int32_t>(stats->m_statType[i]) < 0) {
+                continue;
+            }
+
+            SStrCopy(format, FrameScript_GetText(s_itemModTokens[stats->m_statType[i]], -1, GENDER_NOT_APPLICABLE), sizeof(format));
+            SStrPrintf(text, sizeof(text), format, value > 0 ? '+' : '-', abs(value));
+            CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+            if (SStrStr(text, name)) {
+                return true;
+            }
+        }
+
+        int32_t all = stats->m_resistances[1];
+        uint32_t school;
+
+        for (school = 2; school <= 6; school++) {
+            if (static_cast<int32_t>(stats->m_resistances[school]) != all) {
+                break;
+            }
+        }
+
+        if (school <= 6) {
+            for (school = 2; school <= 6; school++) {
+                int32_t value = stats->m_resistances[school];
+
+                if (!value) {
+                    continue;
+                }
+
+                char token[64];
+                char schoolName[1024];
+                SStrPrintf(token, sizeof(token), "SPELL_SCHOOL%d_CAP", school);
+                SStrCopy(schoolName, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE), sizeof(schoolName));
+                SStrCopy(format, FrameScript_GetText("ITEM_RESIST_SINGLE", -1, GENDER_NOT_APPLICABLE), sizeof(format));
+                SStrPrintf(text, sizeof(text), format, value > 0 ? '+' : '-', abs(value), schoolName);
+                CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+                if (SStrStr(text, name)) {
+                    return true;
+                }
+            }
+        } else if (all) {
+            SStrCopy(format, FrameScript_GetText("ITEM_RESIST_ALL", -1, GENDER_NOT_APPLICABLE), sizeof(format));
+            SStrPrintf(text, sizeof(text), format, all > 0 ? '+' : '-', abs(all));
+            CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+            if (SStrStr(text, name)) {
+                return true;
+            }
+        }
+
+        SpellRec itemSpell;
+
+        for (uint32_t i = 0; i < 5; i++) {
+            if (!g_spellDB.GetRecord(stats->m_spellId[i], &itemSpell)) {
+                continue;
+            }
+
+            SpellParserParseText(&itemSpell, format, sizeof(format), 0, 0, 0, 0, 1, 0);
+
+            switch (stats->m_spellTrigger[i]) {
+                case 0:
+                    SStrPrintf(text, sizeof(text), "%s %s", FrameScript_GetText("ITEM_SPELL_TRIGGER_ONUSE", -1, GENDER_NOT_APPLICABLE), format);
+                    break;
+                case 1:
+                    SStrPrintf(text, sizeof(text), "%s %s", FrameScript_GetText("ITEM_SPELL_TRIGGER_ONEQUIP", -1, GENDER_NOT_APPLICABLE), format);
+                    break;
+                case 2:
+                    SStrPrintf(text, sizeof(text), "%s %s", FrameScript_GetText("ITEM_SPELL_TRIGGER_ONPROC", -1, GENDER_NOT_APPLICABLE), format);
+                    break;
+                default:
+                    SStrCopy(text, format, sizeof(text));
+                    break;
+            }
+
+            CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+            if (SStrStr(text, name)) {
+                return true;
+            }
+        }
+
+        for (uint32_t i = 0; i < 3; i++) {
+            uint32_t color = stats->m_socketColor[i];
+
+            if (!color) {
+                continue;
+            }
+
+            for (uint32_t j = 0; j < 4; j++) {
+                if (!((1 << j) & color)) {
+                    continue;
+                }
+
+                char colorName[32];
+                SStrCopy(colorName, s_socketColorNames[j], STORM_MAX_STR);
+                SStrUpper(colorName);
+                SStrPrintf(format, sizeof(format), "%s%s", "EMPTY_SOCKET_", colorName);
+                SStrPrintf(text, sizeof(text), FrameScript_GetText(format, -1, GENDER_NOT_APPLICABLE));
+                CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+                if (SStrStr(text, name)) {
+                    return true;
+                }
+            }
+        }
+
+        GemPropertiesRec* gem;
+        SpellItemEnchantmentRec* enchant;
+
+        if (stats->m_gemProperties && (gem = g_gemPropertiesDB.GetRecord(stats->m_gemProperties)) && (enchant = g_spellItemEnchantmentDB.GetRecord(abs(gem->m_enchantID)))) {
+            SStrCopy(text, enchant->m_name, sizeof(text));
+            CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+            if (SStrStr(text, name)) {
+                return true;
+            }
+        }
+
+        if (stats->m_description && *stats->m_description) {
+            SStrCopy(text, stats->m_description, STORM_MAX_STR);
+            CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+            if (SStrStr(text, name)) {
+                return true;
+            }
+        }
+    }
+
+    SStrCopy(text, spell.m_name, STORM_MAX_STR);
+    CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+    if (SStrStr(text, name)) {
+        return true;
+    }
+
+    for (uint32_t i = 0; i < 8; i++) {
+        if (!spell.m_reagent[i] || !spell.m_reagentCount[i]) {
+            continue;
+        }
+
+        ItemStats_C* reagent = g_itemDBCache.GetRecord(spell.m_reagent[i], none, nullptr, nullptr, false);
+
+        if (reagent) {
+            SStrCopy(text, reagent->m_name[0], STORM_MAX_STR);
+            CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+            if (SStrStr(text, name)) {
+                return true;
+            }
+        }
+    }
+
+    for (uint32_t i = 0; i < 2; i++) {
+        if (!spell.m_totem[i]) {
+            continue;
+        }
+
+        ItemStats_C* totem = g_itemDBCache.GetRecord(spell.m_totem[i], none, nullptr, nullptr, false);
+
+        if (totem) {
+            SStrCopy(text, totem->m_name[0], STORM_MAX_STR);
+            CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+            if (SStrStr(text, name)) {
+                return true;
+            }
+        }
+    }
+
+    for (uint32_t i = 0; i < 2; i++) {
+        TotemCategoryRec* category;
+
+        if (spell.m_requiredTotemCategoryID[i] && (category = g_totemCategoryDB.GetRecord(spell.m_requiredTotemCategoryID[i]))) {
+            SStrCopy(text, category->m_name, STORM_MAX_STR);
+            CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+            if (SStrStr(text, name)) {
+                return true;
+            }
+        }
+    }
+
+    SpellFocusObjectRec* focus;
+
+    if (spell.m_requiresSpellFocus && (focus = g_spellFocusObjectDB.GetRecord(spell.m_requiresSpellFocus))) {
+        SStrCopy(text, focus->m_name, STORM_MAX_STR);
+        CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+        if (SStrStr(text, name)) {
+            return true;
+        }
+    }
+
+    if (spell.m_description && *spell.m_description) {
+        SpellParserParseText(&spell, text, sizeof(text), 0, 0, 0, 0, 1, 0);
+        CaseAccentInsensitiveParse(text, sizeof(text), s_locale);
+
+        if (SStrStr(text, name)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// VERIFY: fa78f097 manual
+// OFFSET: 0x005DCF00
+void CGTradeSkillInfo::SetSubClassFilter(uint32_t filter, uint32_t index) {
+    CGTradeSkillInfo::m_subClassFilter = filter;
+    CGTradeSkillInfo::m_subClassFilterIndex = index;
+    CGTradeSkillInfo::SetInvTypeFilter(1);
+    FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_SKILL_UPDATE, nullptr);
+}
+
+// VERIFY: 232e3cb9 auto
+// OFFSET: 0x005DCF30
+void CGTradeSkillInfo::SetInvSlotFilter(uint32_t filter) {
+    CGTradeSkillInfo::m_invTypeFilter = filter;
+    CGTradeSkillInfo::SetInvTypeFilter(1);
+    FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_SKILL_UPDATE, nullptr);
+}
+
+// VERIFY: af7343c8 manual
+// OFFSET: 0x005DCF60
+void CGTradeSkillInfo::SetItemNameFilter(const char* filter) {
+    if (filter && !*filter) {
+        filter = nullptr;
+    }
+
+    if (filter) {
+        if (CGTradeSkillInfo::m_itemNameFilter) {
+            if (!SStrCmpUTF8I(filter, CGTradeSkillInfo::m_itemNameFilter, STORM_MAX_STR)) {
+                return;
+            }
+
+            SMemFree(CGTradeSkillInfo::m_itemNameFilter, __FILE__, __LINE__, 0);
+        }
+    } else {
+        if (!CGTradeSkillInfo::m_itemNameFilter) {
+            return;
+        }
+
+        SMemFree(CGTradeSkillInfo::m_itemNameFilter, __FILE__, __LINE__, 0);
+    }
+
+    if (filter) {
+        char buffer[1024];
+        SStrCopy(buffer, filter, sizeof(buffer));
+        CaseAccentInsensitiveParse(buffer, sizeof(buffer), s_locale);
+        CGTradeSkillInfo::m_itemNameFilter = SStrDupA(buffer, __FILE__, __LINE__);
+    } else {
+        CGTradeSkillInfo::m_itemNameFilter = nullptr;
+    }
+
+    CGTradeSkillInfo::SetInvTypeFilter(1);
+    FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_SKILL_FILTER_UPDATE, nullptr);
+}
+
+// VERIFY: 7971dd57 auto
+// OFFSET: 0x005DD030
+void CGTradeSkillInfo::SetItemLevelFilter(int32_t minLevel, int32_t maxLevel) {
+    if (minLevel != CGTradeSkillInfo::m_itemMinLevelFilter || maxLevel != CGTradeSkillInfo::m_itemMaxLevelFilter) {
+        CGTradeSkillInfo::m_itemMinLevelFilter = minLevel;
+        CGTradeSkillInfo::m_itemMaxLevelFilter = maxLevel;
+        CGTradeSkillInfo::SetInvTypeFilter(1);
+        FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_SKILL_UPDATE, nullptr);
+    }
+}
+
+// VERIFY: acb5de8f manual
+// OFFSET: 0x005DE120
+void CGTradeSkillInfo::SetTradeSkill(int32_t spellId, const WOWGUID& guid, const char* link, int32_t skillRank, int32_t skillMaxRank) {
+    SkillLineRec* skillLine = CGTradeSkillInfo::GetSkillLineRec(spellId, guid);
+
+    if (!skillLine) {
+        return;
+    }
+
+    if (link) {
+        if (!skillLine->m_canLink) {
+            return;
+        }
+
+        const SkillLineAbilityRec* ability = nullptr;
+        uint32_t count = 0;
+
+        if (!SpellTableGetSkillLineLinkInfo(skillLine->m_id, ability, count)) {
+            return;
+        }
+
+        uint32_t chars = count / 6;
+
+        if (6 * chars != count) {
+            chars++;
+        }
+
+        if (chars != SStrLen(link)) {
+            return;
+        }
+    }
+
+    if (CGTradeSkillInfo::m_recastSpellID || CGTradeSkillInfo::m_pendingRecastSpellID) {
+        CGTradeSkillInfo::m_recastSpellID = 0;
+        CGTradeSkillInfo::m_pendingRecastSpellID = 0;
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_TRADESKILL_RECAST, nullptr);
+    }
+
+    CGTradeSkillInfo::ClearItemCallbacks();
+
+    if (!link && !CGTradeSkillInfo::m_linkData && skillLine->m_id == CGTradeSkillInfo::m_skillLineID) {
+        CGTradeSkillInfo::Close();
+        return;
+    }
+
+    CGTradeSkillInfo::m_playerGuid = guid;
+    CGTradeSkillInfo::m_spellID = spellId;
+    CGTradeSkillInfo::m_skillLineID = skillLine->m_id;
+    CGTradeSkillInfo::m_skillRank = skillRank;
+    CGTradeSkillInfo::m_skillMaxRank = skillMaxRank;
+
+    if (CGTradeSkillInfo::m_linkData) {
+        SMemFree(CGTradeSkillInfo::m_linkData, __FILE__, __LINE__, 0);
+    }
+
+    CGTradeSkillInfo::m_linkData = link ? SStrDupA(link, __FILE__, __LINE__) : nullptr;
+
+    if (CGTradeSkillInfo::unk_C235F0 != CGTradeSkillInfo::m_skillLineID) {
+        if (CGTradeSkillInfo::m_itemNameFilter) {
+            SMemFree(CGTradeSkillInfo::m_itemNameFilter, __FILE__, __LINE__, 0);
+        }
+
+        CGTradeSkillInfo::m_itemNameFilter = nullptr;
+        CGTradeSkillInfo::m_itemMinLevelFilter = 0;
+        CGTradeSkillInfo::m_itemMaxLevelFilter = 0;
+        CGTradeSkillInfo::m_showOnlyMakeable = 0;
+        CGTradeSkillInfo::m_subClassFilter = 0xFFFFFFFF;
+        CGTradeSkillInfo::m_invTypeFilter = 0xFFFFFFFF;
+        CGTradeSkillInfo::m_collapseFilter = 0xFFFFFFFF;
+        CGTradeSkillInfo::m_invSlots = 0;
+        CGTradeSkillInfo::m_selectedSkill = 0;
+    }
+
+    CGTradeSkillInfo::RefreshList(1);
+    CGTradeSkillInfo::unk_C235F0 = CGTradeSkillInfo::m_skillLineID;
+
+    if (CGTradeSkillInfo::m_numDisplayEntries) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_SKILL_SHOW, nullptr);
+    }
+}
+
+// VERIFY: 9ca14fae manual
+// OFFSET: 0x005DE300
+void CGTradeSkillInfo::SetLink(const char* link) {
+    if (!link || !*link) {
+        return;
+    }
+
+    int32_t spellId = SStrToInt(link);
+
+    if (!spellId) {
+        return;
+    }
+
+    const char* colon = SStrChr(link, ':');
+
+    if (!colon) {
+        return;
+    }
+
+    const char* data = colon + 1;
+    int32_t skillRank = 0;
+    int32_t skillMaxRank = 0;
+    WOWGUID guid = WOWGUID();
+    sscanf(data, "%d:%d:%I64X:", &skillRank, &skillMaxRank, &guid.m_guid);
+
+    if (!guid.m_guid) {
+        return;
+    }
+
+    char* copy = SStrDupA(link, __FILE__, __LINE__);
+    WOWGUID none = WOWGUID();
+
+    if (g_nameDBCache.GetRecord(guid.m_guid, none, TradeSkillLinkNameCallback, copy, true)) {
+        SMemFree(copy, __FILE__, __LINE__, 0);
+        const char* bits = SStrChrR(data, ':');
+
+        if (bits) {
+            CGTradeSkillInfo::SetTradeSkill(spellId, guid, bits + 1, skillRank, skillMaxRank);
+        }
+    }
 }

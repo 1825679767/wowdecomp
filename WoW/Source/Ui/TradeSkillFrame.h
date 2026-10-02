@@ -6,6 +6,7 @@
 #include "WoW/Source/Object/WGUID.h"
 
 struct lua_State;
+class SkillLineRec;
 
 struct TradeSkillInfo {
     /* 0000 */ int32_t m_spellId;
@@ -67,42 +68,26 @@ class CGTradeSkillInfo {
     static void DoRecast(int32_t spellId);
     static void StopRecast();
     static bool GetTradeSkillListLink(int32_t spellId, char* buffer, uint32_t bufferSize);
-    static void SetTradeSkill(int32_t spellId, const WOWGUID& guid, int32_t a3, int32_t a4, int32_t a5);
+    static void SetTradeSkill(int32_t spellId, const WOWGUID& guid, const char* link, int32_t skillRank, int32_t skillMaxRank);
+    static uint32_t m_subClassFilterIndex;
+    static void DoTradeSkill(int32_t spellId, uint32_t times);
+    static SkillLineRec* GetSkillLineRec(int32_t spellId, const WOWGUID& guid);
+    static int32_t GetSelectionIndex();
+    static bool IsCollapsedHeader(uint32_t index);
+    static uint32_t GetInvSlotFilter();
+    static int32_t GetSkillMaxRank();
+    static void SetSubClassFilter(uint32_t filter, uint32_t index);
+    static void SetInvSlotFilter(uint32_t filter);
+    static void SetItemNameFilter(const char* filter);
+    static void SetItemLevelFilter(int32_t minLevel, int32_t maxLevel);
 };
 
 int32_t QSortSubClasses(const void* a, const void* b);
 int32_t QSortSkills(const void* a, const void* b);
+extern const char* s_invSlotTokens[27];
+
+const char* GetInventorySlotToken(int32_t slot);
 bool Profession_FilterSpell(int32_t spellId, int32_t minLevel, int32_t maxLevel, const char* name);
-int32_t Script_GetTradeSkillInfo(lua_State* L);
-int32_t Script_SelectTradeSkill(lua_State* L);
-int32_t Script_GetTradeSkillSelectionIndex(lua_State* L);
-int32_t Script_GetTradeSkillCooldown(lua_State* L);
-int32_t Script_GetTradeSkillIcon(lua_State* L);
-int32_t Script_GetTradeSkillNumMade(lua_State* L);
-int32_t Script_GetTradeSkillLine(lua_State* L);
-int32_t Script_GetTradeSkillItemLink(lua_State* L);
-int32_t Script_SetTradeSkillItemNameFilter(lua_State* L);
-int32_t Script_SetTradeSkillItemLevelFilter(lua_State* L);
-int32_t Script_GetTradeSkillNumReagents(lua_State* L);
-int32_t Script_GetTradeSkillReagentInfo(lua_State* L);
-int32_t Script_GetTradeSkillReagentItemLink(lua_State* L);
-int32_t Script_GetTradeSkillTools(lua_State* L);
-int32_t Script_GetTradeSkillDescription(lua_State* L);
-int32_t Script_GetTradeSkillSubClasses(lua_State* L);
-int32_t Script_GetTradeSkillInvSlots(lua_State* L);
-int32_t Script_SetTradeSkillSubClassFilter(lua_State* L);
-int32_t Script_GetTradeSkillSubClassFilter(lua_State* L);
-int32_t Script_SetTradeSkillInvSlotFilter(lua_State* L);
-int32_t Script_GetTradeSkillInvSlotFilter(lua_State* L);
-int32_t Script_TradeSkillOnlyShowMakeable(lua_State* L);
-int32_t Script_TradeSkillOnlyShowSkillUps(lua_State* L);
-int32_t Script_CollapseTradeSkillSubClass(lua_State* L);
-int32_t Script_ExpandTradeSkillSubClass(lua_State* L);
-int32_t Script_GetFirstTradeSkill(lua_State* L);
-int32_t Script_DoTradeSkill(lua_State* L);
-int32_t Script_GetTradeSkillRecipeLink(lua_State* L);
-int32_t Script_GetTradeSkillListLink(lua_State* L);
-int32_t Script_IsTradeSkillLinked(lua_State* L);
 void TradeSkillRegisterScriptFunctions();
 void TradeSkillUnregisterScriptFunctions();
 void UpdateTradeSkillRecast(int32_t spellId);

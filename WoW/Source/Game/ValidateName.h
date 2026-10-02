@@ -34,6 +34,7 @@ bool IsNumeric(uint16_t c);
 bool IsUpper(uint16_t c);
 uint16_t ToUpper(uint16_t c);
 uint16_t ToLower(uint16_t c);
+void CaseAccentInsensitiveParse(char* string, uint32_t size, int32_t locale);
 bool StripHyperlinks(const char* text, char* buffer, uint32_t size);
 
 bool ScrubString(const char* source, char* dest, int32_t maxChars, uint32_t destSize, int32_t flags);

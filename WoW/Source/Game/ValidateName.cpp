@@ -1,4 +1,5 @@
 #include "ValidateName.h"
+#include <cstring>
 #include "Engine/Source/Base/ConvertUTF.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -702,6 +703,135 @@ uint16_t ToLower(uint16_t c) {
     }
 
     return c;
+}
+
+// VERIFY: 118ecf13 manual
+// OFFSET: 0x007E11D0
+void CaseAccentInsensitiveParse(char* string, uint32_t size, int32_t locale) {
+    uint16_t wide[512];
+    uint16_t folded[512];
+    memset(wide, 0, 512);
+    memset(folded, 0, 512);
+
+    switch (locale) {
+        case 0: {
+            SUniConvertUTF8to16(wide, 512, string, size, nullptr, nullptr);
+
+            for (uint32_t i = 0; i < 512; i++) {
+                folded[i] = ToLower(wide[i]);
+            }
+
+            break;
+        }
+
+        case 2: {
+            SUniConvertUTF8to16(wide, 512, string, size, nullptr, nullptr);
+            uint16_t* src = wide;
+
+            for (uint32_t i = 0; i < 512; i++, src++) {
+                uint16_t c = ToLower(*src);
+                *src = c;
+
+                if (c == 0xE0 || c == 0xE2 || c == 0xE4) {
+                    folded[i] = 'a';
+                } else if (wide[i] == 0xE6) {
+                    folded[i++] = 'a';
+                    folded[i] = 'e';
+                } else if (c == 0xE7) {
+                    folded[i] = 'c';
+                } else if (c >= 0xE8 && c <= 0xEB) {
+                    folded[i] = 'e';
+                } else if (c == 0xEE || c == 0xEF) {
+                    folded[i] = 'i';
+                } else if (c >= 0xF2 && c <= 0xF6 && c != 0xF5) {
+                    folded[i] = 'o';
+                } else if (c == 0x153) {
+                    folded[i++] = 'o';
+                    folded[i] = 'e';
+                } else if (c >= 0xF9 && c <= 0xFC) {
+                    folded[i] = 'u';
+                } else {
+                    folded[i] = c;
+                }
+            }
+
+            break;
+        }
+
+        case 3: {
+            SUniConvertUTF8to16(wide, 512, string, size, nullptr, nullptr);
+            uint16_t* src = wide;
+
+            for (uint32_t i = 0; i < 512; i++, src++) {
+                uint16_t c = ToLower(*src);
+                *src = c;
+
+                if (c == 0xDF) {
+                    folded[i++] = 's';
+                    folded[i] = 's';
+                } else {
+                    folded[i] = c;
+                }
+            }
+
+            break;
+        }
+
+        case 6:
+        case 7: {
+            SUniConvertUTF8to16(wide, 512, string, size, nullptr, nullptr);
+
+            for (uint32_t i = 0; i < 512; i++) {
+                uint16_t c = ToLower(wide[i]);
+                wide[i] = c;
+
+                switch (c) {
+                    case 0xE1:
+                        folded[i] = 'a';
+                        break;
+                    case 0xE9:
+                        folded[i] = 'e';
+                        break;
+                    case 0xED:
+                        folded[i] = 'i';
+                        break;
+                    case 0xF3:
+                        folded[i] = 'o';
+                        break;
+                    case 0xFA:
+                    case 0xFC:
+                        folded[i] = 'u';
+                        break;
+                    case 0xF1:
+                        folded[i] = 'n';
+                        break;
+                    default:
+                        folded[i] = c;
+                        break;
+                }
+            }
+
+            break;
+        }
+
+        case 8: {
+            SUniConvertUTF8to16(wide, 512, string, size, nullptr, nullptr);
+
+            for (uint32_t i = 0; i < 512; i++) {
+                uint16_t c = ToLower(wide[i]);
+                wide[i] = c;
+                folded[i] = c == 0x451 ? 0x435 : c;
+            }
+
+            break;
+        }
+
+        default:
+            return;
+    }
+
+    memset(string, 0, size);
+    SUniConvertUTF16to8(string, size, folded, 512, nullptr, nullptr);
 }
 
 // VERIFY: e07359a4 manual
