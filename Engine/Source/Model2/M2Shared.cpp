@@ -794,7 +794,7 @@ int32_t M2Init<M2Event>(uint8_t* base, uint32_t size, const M2Data& data, M2Arra
     return 1;
 }
 
-// VERIFY: 5acd4130 manual
+// VERIFY: 6ef16f8f manual
 // OFFSET: 0x00837250
 void CM2Shared::ConvertTextureValuesToCombos() {
     uint32_t count = this->m_skinData->m_batches.m_count;
@@ -861,6 +861,29 @@ void CM2Shared::ConvertTextureValuesToCombos() {
         }
     }
 
+#if defined(WOWDECOMP_ARCH_64)
+    uint32_t comboBytes = combos.m_count > this->m_data->m_textureCombos.m_count ? sizeof(uint16_t) * combos.m_count : 0;
+    uint32_t transformBytes = transforms.m_count > this->m_data->m_textureTransformCombos.m_count ? sizeof(uint16_t) * transforms.m_count : 0;
+
+    if (comboBytes || transformBytes) {
+        uint32_t size = (this->m_fileSize + 15) & ~15u;
+        M2Data* data = static_cast<M2Data*>(SIMD::AllocA16(size + comboBytes + transformBytes, __FILE__, __LINE__));
+        memcpy(data, this->m_data, this->m_fileSize);
+        SIMD::FreeA16(this->m_data);
+        this->m_data = data;
+        this->m_fileSize = size + comboBytes + transformBytes;
+        uint8_t* tail = reinterpret_cast<uint8_t*>(data) + size;
+
+        if (comboBytes) {
+            data->m_textureCombos.Set(reinterpret_cast<uint16_t*>(tail));
+            tail += comboBytes;
+        }
+
+        if (transformBytes) {
+            data->m_textureTransformCombos.Set(reinterpret_cast<uint16_t*>(tail));
+        }
+    }
+#else
     if (combos.m_count > this->m_data->m_textureCombos.m_count) {
         this->m_data->m_textureCombos.Set(static_cast<uint16_t*>(SMemAlloc(sizeof(uint16_t) * combos.m_count, __FILE__, __LINE__, 0)));
         this->m_data->m_flags |= 0x20;
@@ -870,6 +893,7 @@ void CM2Shared::ConvertTextureValuesToCombos() {
         this->m_data->m_textureTransformCombos.Set(static_cast<uint16_t*>(SMemAlloc(sizeof(uint16_t) * transforms.m_count, __FILE__, __LINE__, 0)));
         this->m_data->m_flags |= 0x40;
     }
+#endif
 
     memcpy(this->m_data->m_textureCombos.Data(), combos.m_data, sizeof(uint16_t) * combos.m_count);
     this->m_data->m_textureCombos.m_count = combos.m_count;
@@ -1095,7 +1119,7 @@ void CM2Shared::SubstituteSpecializedShaders() {
     }
 }
 
-// VERIFY: 22f3057b manual
+// VERIFY: 8f38aa48 manual
 // OFFSET: 0x00837A40
 int32_t CM2Shared::InitializeSkinProfile() {
     M2SkinProfile* skinData = this->m_skinData;
@@ -1185,8 +1209,22 @@ int32_t CM2Shared::InitializeSkinProfile() {
             memcpy(this->m_data->m_vertices.Data(), vertices, sizeof(M2Vertex) * this->m_skinData->m_vertices.m_count);
             delete[] vertices;
         } else {
+#if defined(WOWDECOMP_ARCH_64)
+            uint32_t size = (this->m_fileSize + 15) & ~15u;
+            uint32_t bytes = sizeof(M2Vertex) * this->m_skinData->m_vertices.m_count;
+            M2Data* data = static_cast<M2Data*>(SIMD::AllocA16(size + bytes, __FILE__, __LINE__));
+            memcpy(data, this->m_data, this->m_fileSize);
+            SIMD::FreeA16(this->m_data);
+            this->m_data = data;
+            this->m_fileSize = size + bytes;
+            M2Vertex* tail = reinterpret_cast<M2Vertex*>(reinterpret_cast<uint8_t*>(data) + size);
+            memcpy(tail, vertices, bytes);
+            delete[] vertices;
+            data->m_vertices.Set(tail);
+#else
             this->m_flags |= 8;
             this->m_data->m_vertices.Set(vertices);
+#endif
         }
 
         this->m_data->m_vertices.m_count = this->m_skinData->m_vertices.m_count;
@@ -1695,6 +1733,8 @@ int32_t CM2Shared::FinishLoading() {
         return 0;
     }
 
+    this->m_data->m_flags &= ~0x60u;
+
     if (!this->Initialize()) {
         DebugLog("Failed to initialize model: %s", this->m_fileName);
         return 0;
@@ -1797,7 +1837,7 @@ void CM2Shared::CancelAllDeferredSequences() {
     }
 }
 
-// VERIFY: c182ebea manual
+// VERIFY: 28b4d893 manual
 // OFFSET: 0x0083D5B0
 CM2Shared::~CM2Shared() {
     this->CancelAllDeferredSequences();
@@ -1856,6 +1896,7 @@ CM2Shared::~CM2Shared() {
         this->m_lowPrioritySequenceCapacity = 0;
     }
 
+#if !defined(WOWDECOMP_ARCH_64)
     if (this->m_flags & 8) {
         delete[] this->m_data->m_vertices.Data();
     }
@@ -1869,6 +1910,7 @@ CM2Shared::~CM2Shared() {
             SMemFree(this->m_data->m_textureTransformCombos.Data(), __FILE__, __LINE__, 0);
         }
     }
+#endif
 
     if (!pending) {
         SIMD::FreeA16(this->m_data);
