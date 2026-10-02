@@ -23,6 +23,7 @@
 #include "Engine/Source/ShaderEffect/ShaderEffectManager.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/CImVector.h"
+#include "Engine/Source/Os/OsMemory.h"
 
 // STATIC: 0x00A45644
 static const uint32_t s_skinProfileBoneCounts[4] = { 256, 64, 53, 21 };
@@ -49,6 +50,14 @@ static void AsyncFileReadFreeA16(CAsyncObject* object) {
     AsyncFileReadDestroyObject(object);
     SIMD::FreeA16(buffer);
 }
+
+#if defined(WOWDECOMP_ARCH_64)
+static void AsyncFileReadFreeNear(CAsyncObject* object) {
+    void* buffer = object->m_buffer;
+    AsyncFileReadDestroyObject(object);
+    OsFreeNear(buffer);
+}
+#endif
 
 // VERIFY: d89467e7 manual
 // OFFSET: 0x00835970
@@ -1119,7 +1128,7 @@ void CM2Shared::SubstituteSpecializedShaders() {
     }
 }
 
-// VERIFY: 8f38aa48 manual
+// VERIFY: 6736c39f manual
 // OFFSET: 0x00837A40
 int32_t CM2Shared::InitializeSkinProfile() {
     M2SkinProfile* skinData = this->m_skinData;
@@ -1209,20 +1218,14 @@ int32_t CM2Shared::InitializeSkinProfile() {
             memcpy(this->m_data->m_vertices.Data(), vertices, sizeof(M2Vertex) * this->m_skinData->m_vertices.m_count);
             delete[] vertices;
         } else {
-#if defined(WOWDECOMP_ARCH_64)
-            uint32_t size = (this->m_fileSize + 15) & ~15u;
-            uint32_t bytes = sizeof(M2Vertex) * this->m_skinData->m_vertices.m_count;
-            M2Data* data = static_cast<M2Data*>(SIMD::AllocA16(size + bytes, __FILE__, __LINE__));
-            memcpy(data, this->m_data, this->m_fileSize);
-            SIMD::FreeA16(this->m_data);
-            this->m_data = data;
-            this->m_fileSize = size + bytes;
-            M2Vertex* tail = reinterpret_cast<M2Vertex*>(reinterpret_cast<uint8_t*>(data) + size);
-            memcpy(tail, vertices, bytes);
-            delete[] vertices;
-            data->m_vertices.Set(tail);
-#else
             this->m_flags |= 8;
+#if defined(WOWDECOMP_ARCH_64)
+            uint32_t bytes = sizeof(M2Vertex) * this->m_skinData->m_vertices.m_count;
+            M2Vertex* buffer = static_cast<M2Vertex*>(OsAllocNear(this->m_data, bytes));
+            memcpy(buffer, vertices, bytes);
+            delete[] vertices;
+            this->m_data->m_vertices.Set(buffer);
+#else
             this->m_data->m_vertices.Set(vertices);
 #endif
         }
@@ -1817,12 +1820,16 @@ int32_t CM2Shared::Load(SFileImpl* file, int32_t flags, CAaBox* boundingBox) {
     return 1;
 }
 
-// VERIFY: 88e7f7e7 manual
+// VERIFY: 6a40d9ac manual
 // OFFSET: 0x0083D510
 void CM2Shared::CancelAllDeferredSequences() {
     for (CM2SequenceLoad* load = this->m_sequenceLoads.Head(); !this->m_sequenceLoads.IsEnd(load); load = this->m_sequenceLoads.RawNext(load)) {
         if (load->m_asyncObject) {
+#if defined(WOWDECOMP_ARCH_64)
+            if (!AsyncFile::Cancel(load->m_asyncObject, AsyncFileReadFreeNear)) {
+#else
             if (!AsyncFile::Cancel(load->m_asyncObject, AsyncFileReadFreeA16)) {
+#endif
                 this->m_lowPrioritySequenceBuffers[load->m_sequenceBufferIndex] = nullptr;
             }
 
@@ -1837,7 +1844,7 @@ void CM2Shared::CancelAllDeferredSequences() {
     }
 }
 
-// VERIFY: 28b4d893 manual
+// VERIFY: 7f65a462 manual
 // OFFSET: 0x0083D5B0
 CM2Shared::~CM2Shared() {
     this->CancelAllDeferredSequences();
@@ -1888,7 +1895,11 @@ CM2Shared::~CM2Shared() {
 
     if (this->m_lowPrioritySequenceCapacity) {
         for (uint32_t i = 0; i < this->m_lowPrioritySequenceCount; i++) {
+#if defined(WOWDECOMP_ARCH_64)
+            OsFreeNear(this->m_lowPrioritySequenceBuffers[i]);
+#else
             SIMD::FreeA16(this->m_lowPrioritySequenceBuffers[i]);
+#endif
         }
 
         SMemFree(this->m_lowPrioritySequenceBuffers, __FILE__, __LINE__, 0);
@@ -1896,11 +1907,15 @@ CM2Shared::~CM2Shared() {
         this->m_lowPrioritySequenceCapacity = 0;
     }
 
-#if !defined(WOWDECOMP_ARCH_64)
     if (this->m_flags & 8) {
+#if defined(WOWDECOMP_ARCH_64)
+        OsFreeNear(this->m_data->m_vertices.Data());
+#else
         delete[] this->m_data->m_vertices.Data();
+#endif
     }
 
+#if !defined(WOWDECOMP_ARCH_64)
     if (this->m_flags & 1) {
         if (this->m_data->m_flags & 0x20) {
             SMemFree(this->m_data->m_textureCombos.Data(), __FILE__, __LINE__, 0);
@@ -1978,7 +1993,7 @@ void CM2Shared::LowPrioritySequenceFailedCallback(void* param) {
     SMemFree(load, typeid(CM2SequenceLoad).raw_name(), SLOG_OBJECT, 0);
 }
 
-// VERIFY: e6ab6ea6 manual
+// VERIFY: 0ec0803c manual
 // OFFSET: 0x0083DA10
 CM2SequenceLoad* CM2Shared::LoadLowPrioritySequence(uint16_t sequenceIndex) {
     M2Sequence* sequence = &this->m_data->m_sequences[sequenceIndex];
@@ -2009,7 +2024,11 @@ CM2SequenceLoad* CM2Shared::LoadLowPrioritySequence(uint16_t sequenceIndex) {
     }
 
     uint32_t size = SFileGetFileSize(file, nullptr);
+#if defined(WOWDECOMP_ARCH_64)
+    uint8_t* buffer = static_cast<uint8_t*>(OsAllocNear(this->m_data, size));
+#else
     uint8_t* buffer = static_cast<uint8_t*>(SIMD::AllocA16(size, __FILE__, __LINE__));
+#endif
 
     if (!buffer) {
         this->m_sequenceLoads.DeleteNode(load);
@@ -2021,7 +2040,11 @@ CM2SequenceLoad* CM2Shared::LoadLowPrioritySequence(uint16_t sequenceIndex) {
 
     if (!load->m_asyncObject) {
         SFileCloseFile(file);
+#if defined(WOWDECOMP_ARCH_64)
+        OsFreeNear(buffer);
+#else
         SIMD::FreeA16(buffer);
+#endif
         this->m_sequenceLoads.DeleteNode(load);
         return nullptr;
     }
