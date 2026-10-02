@@ -1,4 +1,9 @@
 #include "ComSatClient.h"
+#include <cstring>
+#include "WoW/Source/Ui/RaidInfo.h"
+#include "WoW/Source/Ui/PartyFrame.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
+#include "WoW/Source/Ui/ChatFrame.h"
 #include <new>
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
@@ -772,6 +777,316 @@ void ComSatClient_LeaveAllSessions(WOWGUID guid) {
                 FrameScript_SignalEvent(SCRIPT_EVENT_VOICE_SESSIONS_UPDATE, nullptr);
             }
         }
+    }
+
+    s_comsatDeviceLock.Leave();
+}
+
+// VERIFY: 02135c1e manual
+// OFFSET: 0x007DB580
+int32_t ComSatClient_IsCurrentSession(uint64_t session) {
+    return s_currentSession >= 0 && s_comsatData[s_currentSession].m_sessionID == session;
+}
+
+// VERIFY: 242ea58b manual
+// OFFSET: 0x007DC830
+static bool FillComsatData(uint64_t session, int32_t type, const char* name) {
+    int32_t index = -1;
+    int32_t i;
+
+    for (i = 0; i < 32; i++) {
+        if (s_comsatData[i].m_sessionID == session) {
+            break;
+        }
+
+        if (index == -1 && !static_cast<uint32_t>(s_comsatData[i].m_sessionID)) {
+            index = i;
+        }
+    }
+
+    if (i < 32) {
+        index = i;
+        s_comsatData[index].m_sessionID = 0;
+    }
+
+    if (index == -1) {
+        return false;
+    }
+
+    s_comsatData[index].m_sessionID = session;
+    s_comsatData[index].m_type = type;
+    s_comsatData[index].m_numMembers = 0;
+
+    if (type) {
+        s_comsatData[index].m_name[0] = 0;
+    } else {
+        SStrCopy(s_comsatData[index].m_name, name, sizeof(s_comsatData[index].m_name));
+    }
+
+    if (CGGameUI::m_initialized) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_VOICE_SESSIONS_UPDATE, nullptr);
+    }
+
+    CGChat::NewVoiceSession(name, type);
+    return true;
+}
+
+// VERIFY: 0521ea5d auto
+// OFFSET: 0x007DD6F0
+static bool ComSatClient_IsPlayerTalking(WOWGUID guid) {
+    return unk_D37D88.Ptr(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid)) != nullptr;
+}
+
+// VERIFY: 6f6aa26e auto
+// OFFSET: 0x007DE440
+void ComSatClient_PopulateSessionDataWithoutJoin(uint64_t session, int32_t type, const char* name, uint64_t self) {
+    if (!name) {
+        return;
+    }
+
+    s_comsatDeviceLock.Enter();
+    ComSat::Interface* comsat = ComSatThread::s_comsat;
+
+    if (!comsat) {
+        s_comsatDeviceLock.Leave();
+        return;
+    }
+
+    if (comsat->SessionCreate(session)) {
+        comsat->SessionAddLocal(session, 0, self);
+
+        if (!FillComsatData(session, type, name)) {
+            s_comsatDeviceLock.Leave();
+            return;
+        }
+
+        if (type == 2 || type == 3 || type == 1) {
+            Script_SendUniqueSignal(SCRIPT_EVENT_VOICE_STATUS_UPDATE);
+        }
+
+        WOWGUID player = ClntObjMgrGetActivePlayer();
+
+        if (ComSatClient_IsPlayerTalking(player)) {
+            Script_SendUnitSignal(player, SCRIPT_EVENT_VOICE_START);
+            ComSatClient_SendEvent(SCRIPT_EVENT_VOICE_PLATE_START, player);
+        }
+
+        if ((type == 2 || type == 3 || type == 1) && (CGPartyInfo::m_members[0] || CGRaidInfo::m_numMembers)) {
+            CGChat::JoiningParty(type == 3 || type == 1, type == 1);
+        }
+    }
+
+    CGChat::VoiceSessionUpdate(type ? "" : name, type);
+    s_comsatDeviceLock.Leave();
+}
+
+// VERIFY: 6ce4a12d manual
+// OFFSET: 0x007DE5A0
+void VoiceSessionRosterUpdate(uint64_t session, uint16_t networkId, int32_t type, const char* name, const uint8_t* key, uint64_t self, uint8_t selfNetworkId, uint8_t selfFlags, int32_t count, VoiceRosterMember* members) {
+    s_comsatDeviceLock.Enter();
+    ComSat::Interface* comsat = ComSatThread::s_comsat;
+
+    if (!comsat || !name) {
+        s_comsatDeviceLock.Leave();
+        return;
+    }
+
+    if (comsat->SessionCreate(session)) {
+        comsat->SessionAddLocal(session, 0, self);
+
+        if (!FillComsatData(session, type, name)) {
+            s_comsatDeviceLock.Leave();
+            return;
+        }
+
+        WOWGUID player = ClntObjMgrGetActivePlayer();
+
+        if (ComSatClient_IsPlayerTalking(player)) {
+            Script_SendUnitSignal(player, SCRIPT_EVENT_VOICE_START);
+            ComSatClient_SendEvent(SCRIPT_EVENT_VOICE_PLATE_START, player);
+        }
+
+        if ((type == 2 || type == 3 || type == 1) && (CGPartyInfo::m_members[0] || CGRaidInfo::m_numMembers)) {
+            CGChat::JoiningParty(type == 3 || type == 1, type == 1);
+        }
+    }
+
+    comsat->SessionSetNetworkId(session, networkId);
+    comsat->SessionSetTalkerNetworkIdLocal(session, self, selfNetworkId);
+    int32_t index;
+
+    for (index = 0; index < 32; index++) {
+        if (s_comsatData[index].m_sessionID == session) {
+            break;
+        }
+    }
+
+    if (index < 32 && s_comsatData[index].m_type != type) {
+        s_comsatData[index].m_type = type;
+
+        if (type) {
+            s_comsatData[index].m_name[0] = 0;
+        } else {
+            SStrCopy(s_comsatData[index].m_name, name, sizeof(s_comsatData[index].m_name));
+        }
+    }
+
+    int32_t talkers = comsat->SessionNumMembers(session);
+
+    for (int32_t i = 0; i < talkers; i++) {
+        uint64_t talker;
+        uint8_t flags;
+
+        if (!comsat->SessionGetTalkerByIndex(session, i, talker, flags) || flags != 0xFF) {
+            continue;
+        }
+
+        int32_t j = 0;
+
+        if (count >= 0) {
+            for (; j <= count; j++) {
+                if (members[j].m_guid.m_guid == talker) {
+                    break;
+                }
+            }
+        }
+
+        if (j != count) {
+            continue;
+        }
+
+        comsat->SessionRemove(session, talker);
+        i--;
+        talkers--;
+
+        if (unk_D37D88.Ptr(static_cast<uint32_t>(talker), CHashKeyGUID(talker))) {
+            WOWGUID guid;
+            guid.m_guid = talker;
+            Script_SendUnitSignal(guid, SCRIPT_EVENT_VOICE_STOP);
+            ComSatClient_SendEvent(SCRIPT_EVENT_VOICE_PLATE_STOP, guid);
+            TALKINGPLAYER* talking = unk_D37D88.Ptr(static_cast<uint32_t>(talker), CHashKeyGUID(talker));
+
+            if (talking) {
+                unk_D37D88.Delete(talking);
+            }
+        }
+    }
+
+    uint8_t sessionKey[16];
+    memcpy(sessionKey, key, sizeof(sessionKey));
+
+    for (int32_t i = 0; i < count; i++) {
+        comsat->SessionAddRemote(session, members[i].m_guid.m_guid, members[i].m_priority, sessionKey, members[i].m_address);
+        comsat->SessionSetTalkerPriority(session, members[i].m_guid.m_guid, members[i].m_talkerPriority);
+    }
+
+    COMSATDATA* data = &s_comsatData[index];
+    data->m_members[0].m_guid.m_guid = self;
+    data->m_members[0].m_flags = selfFlags;
+    data->m_numMembers = count + 1;
+
+    for (uint32_t k = 1; k < data->m_numMembers; k++) {
+        data->m_members[k].m_guid = members[k - 1].m_guid;
+        data->m_members[k].m_flags = members[k - 1].m_flags;
+    }
+
+    for (int32_t i = 0; i < count; i++) {
+        uint32_t j;
+
+        for (j = 0; j < FriendList::s_friendList->GetNumIgnores(); j++) {
+            if (members[i].m_guid.m_guid == FriendList::s_friendList->GetIgnore(j)) {
+                break;
+            }
+        }
+
+        if (j < FriendList::s_friendList->GetNumIgnores()) {
+            comsat->MuteTalker(0, members[i].m_guid.m_guid, static_cast<ComSat::MuteSetting>(0));
+            continue;
+        }
+
+        for (uint32_t k = 0; k < FriendList::s_friendList->GetNumMutes(); k++) {
+            if (members[i].m_guid.m_guid == FriendList::s_friendList->GetIgnore(k)) {
+                comsat->MuteTalker(0, members[i].m_guid.m_guid, static_cast<ComSat::MuteSetting>(0));
+            }
+        }
+    }
+
+    if (s_voiceChatWasEnabled) {
+        switch (type) {
+            case 2:
+                CGChat::JoiningParty(false, 0);
+                s_voiceChatWasEnabled = 0;
+                break;
+            case 3:
+                CGChat::JoiningParty(true, 0);
+                s_voiceChatWasEnabled = 0;
+                break;
+            case 1:
+                CGChat::JoiningParty(true, 1);
+                s_voiceChatWasEnabled = 0;
+                break;
+            default:
+                break;
+        }
+    }
+
+    CGChat::VoiceSessionUpdate(type ? "" : name, type);
+
+    if (type == 2 || type == 3 || type == 1) {
+        Script_SendUniqueSignal(SCRIPT_EVENT_VOICE_STATUS_UPDATE);
+    } else {
+        Script_SendUniqueSignal(SCRIPT_EVENT_VOICE_CHANNEL_STATUS_UPDATE);
+    }
+
+    s_comsatDeviceLock.Leave();
+}
+
+// VERIFY: bea9cbd2 manual
+// OFFSET: 0x007DEBF0
+void VoiceSessionLeave(uint64_t talker, uint64_t session, int32_t type) {
+    s_comsatDeviceLock.Enter();
+    ComSat::Interface* comsat = ComSatThread::s_comsat;
+
+    if (!comsat) {
+        s_comsatDeviceLock.Leave();
+        return;
+    }
+
+    comsat->SessionRemove(session, talker);
+    comsat->SessionDestroy(session);
+    int32_t index;
+
+    for (index = 0; index < 32; index++) {
+        if (s_comsatData[index].m_sessionID == session || (type == s_comsatData[index].m_type && (type == 2 || type == 3))) {
+            break;
+        }
+    }
+
+    if (index < 32) {
+        if (s_currentSession == index) {
+            ComSatClient_LeaveSessionNotifyAll(index);
+
+            if (CGGameUI::m_initialized) {
+                FrameScript_SignalEvent(SCRIPT_EVENT_VOICE_LEFT_SESSION, nullptr);
+            }
+
+            s_currentSession = -1;
+            WOWGUID player = ClntObjMgrGetActivePlayer();
+
+            if (unk_D37D88.Ptr(static_cast<uint32_t>(player.m_guid), CHashKeyGUID(player.m_guid))) {
+                Script_SendUnitSignal(player, SCRIPT_EVENT_VOICE_STOP);
+                ComSatClient_SendEvent(SCRIPT_EVENT_VOICE_PLATE_STOP, player);
+            }
+        }
+
+        s_comsatData[index].m_sessionID = 0;
+        s_comsatData[index].m_name[0] = 0;
+        s_comsatData[index].m_type = 4;
+        s_comsatData[index].m_numMembers = 0;
+    }
+
+    if (CGGameUI::m_initialized) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_VOICE_SESSIONS_UPDATE, nullptr);
     }
 
     s_comsatDeviceLock.Leave();

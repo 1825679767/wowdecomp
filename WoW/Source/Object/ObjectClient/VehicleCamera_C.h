@@ -26,6 +26,7 @@ class CVehicleCamera_C {
 
     static void InitSystem();
     static void UninitSystem();
+    static CVehicleCamera_C* Create(CGUnit_C* unit, uint32_t time);
     static int32_t ConvertFromRawToWorld(float& facing, CGObject_C* relativeTo);
     static int32_t ConvertFromRawOrOffsetToWorld(C3Vector& position, CGObject_C* relativeTo);
     static int32_t ConvertFromWorldToRawOrOffset(C3Vector& position, CGObject_C* relativeTo);

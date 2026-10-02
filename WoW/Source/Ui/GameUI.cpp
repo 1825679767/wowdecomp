@@ -7581,3 +7581,19 @@ void CGGameUI::Reload() {
 uint32_t CGGameUI::GetInstanceDifficulty() {
     return CGGameUI::m_instanceDifficulty;
 }
+
+// VERIFY: bf3170ba manual
+// OFFSET: 0x00513EA0
+void CGGameUI::CancelMirrorTimers() {
+    for (int32_t i = 0; i < 3; i++) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_MIRROR_TIMER_STOP, "%s", MirrorTimerTypeToken(i));
+        MirrorTimerInfo* info = &CGGameUI::m_mirrorTimerInfo[i];
+        info->m_type = 3;
+        info->unk_0018 = 0;
+        info->m_spellId = 0;
+        info->m_paused = 0;
+        info->m_scale = 0;
+        info->m_maxValue = 0;
+        info->m_value = 0;
+    }
+}

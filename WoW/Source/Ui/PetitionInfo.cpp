@@ -172,3 +172,33 @@ void CGPetitionInfo::SetSignatures(uint8_t count, const WOWGUID* guids, const ui
         FrameScript_SignalEvent(SCRIPT_EVENT_PETITION_SHOW, nullptr);
     }
 }
+
+// VERIFY: 3e6bcccf manual
+// OFFSET: 0x005CF710
+void CGPetitionInfo::AddSignature(WOWGUID petition, WOWGUID signer) {
+    uint32_t count = CGPetitionInfo::m_numPetitionNames;
+
+    for (uint32_t i = 0; i < count; i++) {
+        if (CGPetitionInfo::m_signers.m_data[i].m_guid == signer) {
+            return;
+        }
+    }
+
+    if (CGPetitionInfo::m_numPetitionNames == CGPetitionInfo::m_signers.Count()) {
+        CGPetitionInfo::m_signers.SetCount(CGPetitionInfo::m_signers.Count() + 1);
+    }
+
+    CGPetitionInfo::m_signers.m_data[CGPetitionInfo::m_numPetitionNames].m_guid = signer;
+    CGPetitionInfo::m_numPetitionNames++;
+    NameCache* name = g_nameDBCache.GetRecord(signer.m_guid, signer, SignatureNameQueryCallback, nullptr, false);
+
+    if (name) {
+        CGGameUI::DisplayError(ERR_PETITION_SIGNED_S, name->m_name);
+    } else {
+        CGPetitionInfo::m_pendingNameQueries++;
+    }
+
+    if (!CGPetitionInfo::m_pendingNameQueries && CGPetitionInfo::m_petition) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_PETITION_SHOW, nullptr);
+    }
+}

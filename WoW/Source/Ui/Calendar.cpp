@@ -422,6 +422,14 @@ int32_t PH_CALENDAR_GROUP(void* param, NETMESSAGE msgId, uint32_t time, CDataSto
     return 1;
 }
 
+// VERIFY: 11872a05 manual
+// OFFSET: 0x005C1E40
+CalendarEventTables::CalendarEventTables() {
+    for (int32_t i = 0; i < 8; i++) {
+        this->m_counts[i] = 0;
+    }
+}
+
 // VERIFY: d895f606 manual
 // OFFSET: 0x005BE220
 void CalendarEventTables::Clear() {

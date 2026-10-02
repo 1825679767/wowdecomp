@@ -104,6 +104,7 @@ class CalendarEventTables {
     /* 0000 */ TSHashTable<CALENDAREVENTHASH, HASHKEY_NONE> m_tables[8];
     /* 0140 */ int32_t m_counts[8];
 
+    CalendarEventTables();
     void Clear();
     bool Delete(int32_t table, uint32_t date, uint64_t eventID);
     CalendarDayEvent* GetEvent(int32_t table, uint32_t date, uint64_t eventID);

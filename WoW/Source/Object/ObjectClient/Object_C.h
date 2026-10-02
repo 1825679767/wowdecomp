@@ -208,8 +208,8 @@ class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID
     void ShowHighlightType(int32_t type);
     void UpdateEffectAttachments();
     void Fadeout();
-    void BuildSelectionRotMatrix(C44Matrix* matrix, const C3Vector* position);
-    int32_t SetCircleRenderStates() const;
+    static void __stdcall BuildSelectionRotMatrix(C44Matrix* matrix, const C3Vector* position);
+    static int32_t SetCircleRenderStates();
     void SetModelFinish(CM2Model* model);
     void SetModel(CM2Model* model);
     void PlaySpellVisualKit(const PlaySpellVisuaKitData& data);

@@ -1,4 +1,5 @@
 #include "RuneInfo.h"
+#include "Engine/Source/Os/TimeManager.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/SpellRec.h"
 #include "WoW/Source/DB/Rec/SpellRuneCostRec.h"
@@ -303,4 +304,38 @@ bool CGRuneInfo::ComputeRuneSpellCooldown(const SpellRec* spell, uint32_t* coold
 // VERIFY: 31a366a2 auto
 // OFFSET: 0x005EEB70
 void CGRuneInfo::ShutdownGame() {
+}
+
+// VERIFY: 8a4f7690 auto
+// OFFSET: 0x005EDFA0
+void CGRuneInfo::SetRuneLastUsedTime(int32_t index, uint32_t time) {
+    CGRuneInfo::m_runeLastUsed[index] = time;
+}
+
+// VERIFY: 89906422 manual
+// OFFSET: 0x005EE110
+uint32_t CGRuneInfo::GetRuneLastUsedTime(int32_t index) {
+    if (!ClntObjMgrGetActivePlayerObj()) {
+        return 0;
+    }
+
+    return CGRuneInfo::m_runeLastUsed[index];
+}
+
+// VERIFY: 0b8f3a32 manual
+// OFFSET: 0x005EE140
+void CGRuneInfo::ComputeRuneRechargeTime(int32_t index, float progress) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return;
+    }
+
+    float rate = player->m_player->m_playerRuneRegen1[CGRuneInfo::m_runes[index]];
+
+    if (rate >= 0.0099999998f) {
+        CGRuneInfo::m_runeCooldowns[index] = OsGetAsyncTimeMs() - static_cast<int32_t>(1.0f / rate * (1.0f - progress) * -1000.0f);
+    } else {
+        CGRuneInfo::m_runeCooldowns[index] = 0;
+    }
 }

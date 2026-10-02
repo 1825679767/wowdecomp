@@ -1,4 +1,7 @@
 #include "Object_C.h"
+#include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
+#include "WoW/Source/Game/GameClient/ProjectTex.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Model2/M2Model.h"
@@ -1939,4 +1942,52 @@ void CGObject_C::SetModel(CM2Model* model) {
     CM2Model* old = this->m_worldModel;
     this->m_worldModel = model;
     this->SetModelFinish(old);
+}
+
+// VERIFY: 51db1246 auto
+// OFFSET: 0x00744150
+void __stdcall CGObject_C::BuildSelectionRotMatrix(C44Matrix* matrix, const C3Vector* position) {
+    matrix->d3 = 1.0f;
+    matrix->c2 = 1.0f;
+    matrix->b1 = 1.0f;
+    matrix->a0 = 1.0f;
+    matrix->d2 = 0.0f;
+    matrix->d1 = 0.0f;
+    matrix->d0 = 0.0f;
+    matrix->c3 = 0.0f;
+    matrix->c1 = 0.0f;
+    matrix->c0 = 0.0f;
+    matrix->b3 = 0.0f;
+    matrix->b2 = 0.0f;
+    matrix->b0 = 0.0f;
+    matrix->a3 = 0.0f;
+    matrix->a2 = 0.0f;
+    matrix->a1 = 0.0f;
+
+    C3Vector camera(0.0f, 0.0f, 0.0f);
+    CGWorldFrame::GetCameraPosition(&camera);
+    matrix->RotateAroundZ(-CalculateFacingTo(&camera, position));
+}
+
+// VERIFY: ab1865e5 manual
+// OFFSET: 0x00744EB0
+int32_t CGObject_C::SetCircleRenderStates() {
+    CGxTex* texture = TextureGetGxTex(CGObject_C::s_selectionTexture, 0, nullptr);
+
+    if (!texture) {
+        return 0;
+    }
+
+    GxRsSet(GxRs_BlendingMode, GxBlend_Add);
+    GxRsSet(GxRs_AlphaRef, static_cast<int32_t>(CGxDevice::s_alphaRef[g_theGxDevicePtr->m_appRenderStates.m_data[GxRs_BlendingMode].m_value.m_data.i[0]]));
+    GxRsSet(GxRs_Culling, 0);
+    GxRsSet(GxRs_Lighting, 0);
+    GxRsSet(GxRs_DepthWrite, 0);
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, texture);
+    g_theGxDevicePtr->RsSet(GxRs_Texture1, ProjectTex2dGetAddFadeTex());
+    GxRsSet(GxRs_ColorOp0, 0);
+    GxRsSet(GxRs_AlphaOp0, 0);
+    GxRsSet(GxRs_ColorOp1, 0);
+    GxRsSet(GxRs_AlphaOp1, 0);
+    return 1;
 }

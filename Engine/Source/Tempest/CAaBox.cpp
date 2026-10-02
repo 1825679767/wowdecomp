@@ -193,3 +193,33 @@ void CAaBox::Set(float min, float max) {
 bool CAaBox::ContainsPointExclusive(const C3Vector& point) const {
     return this->b.x < point.x && this->b.y < point.y && this->b.z < point.z && this->t.x > point.x && this->t.y > point.y && this->t.z > point.z;
 }
+
+// VERIFY: 230daf18 auto
+// OFFSET: 0x006CB900
+CAaBox::CAaBox(const C3Vector& point) {
+    this->b = point;
+    this->t = point;
+}
+
+// VERIFY: c685adae auto
+// OFFSET: 0x006FC150
+void CAaBox::Expand(const C3Vector& amount) {
+    this->b.x -= amount.x;
+    this->b.y -= amount.y;
+    this->b.z -= amount.z;
+    this->t.x += amount.x;
+    this->t.y += amount.y;
+    this->t.z += amount.z;
+}
+
+// VERIFY: a822e7ee auto
+// OFFSET: 0x004F5DE0
+C3Vector CAaBox::Center() const {
+    float y = this->t.y + this->b.y;
+    float z = this->t.z + this->b.z;
+    C3Vector center;
+    center.x = (this->t.x + this->b.x) * 0.5f;
+    center.y = y * 0.5f;
+    center.z = 0.5f * z;
+    return center;
+}

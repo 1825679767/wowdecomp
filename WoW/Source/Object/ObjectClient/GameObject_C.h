@@ -233,6 +233,7 @@ class CGGameObject_C_Type_DestructibleBuilding : public CGGameObject_C_Type_Worl
     virtual void UpdateDisplay(uint32_t time);
     virtual void CreateWorldObj();
     virtual void DestroyWorldObj();
+    C3Vector GetNamePosition() const;
 
     CGGameObject_C_Type_DestructibleBuilding(CGGameObject_C* owner);
     uint16_t GetImpactEffectDoodadSet(int32_t state) const;
@@ -263,6 +264,7 @@ class CGGameObject_C_Type_MeetingStone : public CGGameObject_C_TypeAnimated {
     virtual void AddToolTipInfo(CGTooltip* tooltip);
 
     CGGameObject_C_Type_MeetingStone(CGGameObject_C* owner);
+    int32_t CheckUseRange(uint32_t level) const;
 };
 
 class CGGameObject_C_Type_Ritual : public CGGameObject_C_TypeAnimated {
@@ -322,6 +324,14 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     virtual int32_t AddPassenger(CPassenger* passenger, int32_t a2);
     virtual float GetSpeed() const;
     virtual ShipPath* GetShipPath() const;
+    C3Vector GetNamePosition() const override;
+    void RefreshInteractIcon() override;
+    void UpdateInteractIcon() override;
+    int32_t CanHighlight() const override;
+    int32_t FloatingTooltip() const override;
+    void OnRightClick() override;
+    int32_t GetPageTextID(void (*callback)(int32_t, const WOWGUID&, void*, bool)) const override;
+    void PostReenable() override;
 
     CGGameObject_C(uint32_t time, const CClientObjCreate& create);
     ~CGGameObject_C() override;
@@ -363,6 +373,11 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     void UpdateObjectEffectAnimationStates(uint32_t anim);
     CAaBox GetWorldBounds() const;
     void UpdateDisplay(uint32_t time);
+    uint32_t GetProperty(int32_t prop) const;
+    bool IsLocked(int32_t* spellId, int32_t* skillValue, int32_t* requiredSkill, CGItem_C** key, uint32_t* entry) const;
+    bool IsUsableInCombat() const;
+    bool IsUsableMounted() const;
+    bool IsUsableWhileImmune() const;
 };
 
 void ApplyGameObjectArtKit(CM2Model* model, int32_t artKit);

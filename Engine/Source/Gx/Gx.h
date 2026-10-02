@@ -85,6 +85,7 @@ int32_t GxTexCreate(uint32_t width, uint32_t height, EGxTexFormat format, CGxTex
 void GxXformPush(EGxXform xf, const C44Matrix& matrix);
 void GxCapsWindowSizeInScreenCoords(CRect& rect);
 void GxFormatColor(CImVector& color);
+CImVector GxSwizzleColor(const CImVector& color);
 void GxDraw(CGxBatch* batch, int32_t count);
 void GxDevDestroy(CGxDevice* device);
 void GxDrawLockedElements();

@@ -18,14 +18,34 @@ static TSHashTable<RACECLASSINFO, HASHKEY_NONE> s_raceClassInfo;
 // STATIC: 0x00D3F638
 static TSHashTable<SKILLCOSTSINFO, HASHKEY_NONE> s_skillCostsInfo;
 
+class SkillLineRecTable : public TSHashTable<SKILLLINEREC, HASHKEY_SKILLLINE> {
+    public:
+    void InternalDelete(SKILLLINEREC* ptr) override;
+    SKILLLINEREC* InternalNew(TSExplicitList<SKILLLINEREC>* listptr, size_t extrabytes, uint32_t flags) override;
+};
+
 // STATIC: 0x00D3F660
-static TSHashTable<SKILLLINEREC, HASHKEY_SKILLLINE> s_skillLineRecs;
+static SkillLineRecTable s_skillLineRecs;
 
 // STATIC: 0x00D3F688
 static TSGrowableArray<SkillLineLinkInfo> s_skillLineLinkInfo;
 
 // STATIC: 0x00D3F698
 static CDataAllocator s_skillLineRecAllocator(sizeof(SKILLLINEREC), 0x1000);
+
+// VERIFY: ce9d9398 auto
+// OFFSET: 0x00811C90
+void SkillLineRecTable::InternalDelete(SKILLLINEREC* ptr) {
+    s_skillLineRecAllocator.Delete(ptr);
+}
+
+// VERIFY: 4ba0fa22 manual
+// OFFSET: 0x00811CC0
+SKILLLINEREC* SkillLineRecTable::InternalNew(TSExplicitList<SKILLLINEREC>* listptr, size_t extrabytes, uint32_t flags) {
+    SKILLLINEREC* rec = s_skillLineRecAllocator.New<SKILLLINEREC>(1);
+    listptr->LinkToHead(rec);
+    return rec;
+}
 
 // VERIFY: 87b0816a manual
 // OFFSET: 0x00810320

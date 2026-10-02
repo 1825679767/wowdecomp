@@ -38,7 +38,7 @@ void CGDanceStudio::ShutdownGame() {
     s_knownDances.InternalClear(0);
 }
 
-// VERIFY: 92fc2321 manual
+// VERIFY: bdf23759 manual
 // OFFSET: 0x00576100
 void PlayDance(const char* name) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -47,7 +47,7 @@ void PlayDance(const char* name) {
         return;
     }
 
-    if (player->unk_1944) {
+    if (player->m_dance) {
         ConsoleWrite("WARNING! Cannot start a new dance while one is in progress", ERROR_COLOR);
         return;
     }

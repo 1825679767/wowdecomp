@@ -677,3 +677,14 @@ void CVehicle_C::EnterWorld() {
         player->SignalPlayerGainsVehicleDataEvent();
     }
 }
+
+// VERIFY: 269d0959 auto
+// OFFSET: 0x00757420
+void CVehicle_C::PlayBoneAnimOrFallback(CM2Model* model, uint32_t boneId) {
+    uint32_t bone = boneId == 26 ? 0xFFFFFFFF : boneId;
+
+    if (!this->m_unit->UnsetKeyBoneSequence(model, bone, 1, 1, 0)) {
+        this->BoneAnimEndHandler(model, bone, 0xFFFFFFFF, 1, 0);
+        this->m_unit->UpdateBaseAnimation(0, -1);
+    }
+}

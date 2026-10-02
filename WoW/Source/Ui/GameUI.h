@@ -132,6 +132,7 @@ class CGGameUI {
     static void UpdateThreatWarningFromCVar();
     static void HandleScreenshot(int32_t success);
     static void LeaveWorld();
+    static void CancelMirrorTimers();
     static void SaveSavedVariables();
     struct THREATMAP : public TSHashObject<THREATMAP, CHashKeyGUID> {
         /* 0020 */ TSGrowableArray<WOWGUID> m_units;

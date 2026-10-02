@@ -1,4 +1,6 @@
 #include "FriendList.h"
+#include "Engine/Source/ConsoleBase/IConsole.h"
+#include "WoW/Source/WowServices/WDataStore.h"
 #include <cstring>
 #include "Engine/Source/ConsoleBase/ConsoleCommand.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -95,7 +97,7 @@ FriendInfo::~FriendInfo() {
     }
 }
 
-// VERIFY: 0ba18adc manual
+// VERIFY: 45a360ac manual
 // OFFSET: 0x006B3190
 FriendList::FriendList() {
     memset(this->m_friends, 0, sizeof(this->m_friends));
@@ -103,14 +105,11 @@ FriendList::FriendList() {
     memset(this->m_mutes, 0, sizeof(this->m_mutes));
     memset(this->m_complained, 0, sizeof(this->m_complained));
     this->m_pendingFriendNames = 0;
-    this->unk_D488 = 0;
-    this->unk_D48C = 0;
+    this->m_selectedFriend = WOWGUID();
     this->m_pendingIgnoreNames = 0;
-    this->unk_D7B8 = 0;
-    this->unk_D7BC = 0;
+    this->m_selectedIgnore = WOWGUID();
     this->m_pendingMuteNames = 0;
-    this->unk_DAE8 = 0;
-    this->unk_DAEC = 0;
+    this->m_selectedMute = WOWGUID();
 }
 
 // VERIFY: 2f86035c manual
@@ -469,9 +468,9 @@ bool FriendList::IsIgnored(WOWGUID guid, bool a2) {
     return a2 && CGChat::m_complaintsSystemStatus == 2 && this->IsComplained(guid);
 }
 
-// VERIFY: f9db88f3 auto
+// VERIFY: de50a749 auto
 // OFFSET: 0x006B4C80
-static int32_t CompareWhoResults(const void* a, const void* b) {
+int32_t CompareWhoResults(const void* a, const void* b) {
     if (!a || !b) {
         SErrDisplayAppFatalMessage("", "", 0);
     }
@@ -1949,4 +1948,460 @@ bool FriendList::IsFriend(WOWGUID guid) {
     }
 
     return false;
+}
+
+// VERIFY: 72aa79dc auto
+// OFFSET: 0x006B3280
+int32_t Packet_SMSG_WHOIS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    char text[256];
+    msg->GetString(text, sizeof(text));
+    ConsoleWrite(text, DEFAULT_COLOR);
+    return 1;
+}
+
+// VERIFY: cd698c9b manual
+// OFFSET: 0x006B32C0
+int32_t Packet_SMSG_RWHOIS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t accounts = 0;
+    msg->Get(accounts);
+
+    if (accounts == 0xFFFFFFFF) {
+        ConsoleWriteA("RWhoIs failed\n", ERROR_COLOR);
+        return 1;
+    }
+
+    if (!accounts) {
+        ConsoleWriteA("Not found\n", WARNING_COLOR);
+        return 1;
+    }
+
+    for (int32_t i = 0; i < static_cast<int32_t>(accounts); i++) {
+        char account[1280];
+        msg->GetString(account, sizeof(account));
+        ConsolePrintf("Account: %s\n", account);
+        uint32_t characters = 0;
+        msg->Get(characters);
+        uint32_t current = 0;
+        msg->Get(current);
+
+        for (int32_t j = 0; j < static_cast<int32_t>(characters); j++) {
+            char name[48];
+            msg->GetString(name, sizeof(name));
+            ConsoleWriteA("  %s\n", j != static_cast<int32_t>(current) ? DEFAULT_COLOR : WARNING_COLOR, name);
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 775234b1 manual
+// OFFSET: 0x006B3570
+FriendInfo* FriendList::GetFriendInfoByName(const char* name) {
+    if (!name) {
+        return nullptr;
+    }
+
+    for (uint32_t i = 0; i < 100; i++) {
+        if (this->m_friends[i].m_name && !SStrCmpUTF8I(this->m_friends[i].m_name, name, STORM_MAX_STR)) {
+            return &this->m_friends[i];
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: e93b4d10 manual
+// OFFSET: 0x006B35E0
+int32_t FriendList::GetFriendSelectionIndex() {
+    if (!this->m_selectedFriend) {
+        return -1;
+    }
+
+    for (uint32_t i = 0; i < 100; i++) {
+        if (this->m_friends[i].m_guid == this->m_selectedFriend) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+// VERIFY: 7765f6be auto
+// OFFSET: 0x006B3680
+uint32_t FriendList::GetNumMutes() {
+    uint32_t count = 0;
+
+    while (count < 50 && this->m_mutes[count].m_guid) {
+        count++;
+    }
+
+    return count;
+}
+
+// VERIFY: 7cdd7e91 manual
+// OFFSET: 0x006B36D0
+uint64_t FriendList::GetIgnore(uint32_t index) {
+    if (index > 50) {
+        return 0;
+    }
+
+    return this->m_ignores[index].m_guid.m_guid;
+}
+
+// VERIFY: c2df352a manual
+// OFFSET: 0x006B3800
+int32_t FriendList::GetIgnoreSelectionIndex() {
+    if (!this->m_selectedIgnore) {
+        return -1;
+    }
+
+    for (uint32_t i = 0; i < 50; i++) {
+        if (this->m_ignores[i].m_guid == this->m_selectedIgnore) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+// VERIFY: e4ca9a3b manual
+// OFFSET: 0x006B3840
+int32_t FriendList::GetMuteSelectionIndex() {
+    if (!this->m_selectedMute) {
+        return -1;
+    }
+
+    for (uint32_t i = 0; i < 50; i++) {
+        if (this->m_mutes[i].m_guid == this->m_selectedMute) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+// VERIFY: bbb66701 manual
+// OFFSET: 0x006B3FE0
+int32_t CCommand_Whois(const char* command, const char* arguments) {
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_WHO_IS));
+    msg.PutString(arguments);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 1;
+}
+
+// VERIFY: a2847f86 manual
+// OFFSET: 0x006B5220
+void FriendListModuleLoaded() {
+    WDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_BOT_DETECTED2));
+    msg.Put(static_cast<uint32_t>(0x2BD76673));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 1f5c9d24 manual
+// OFFSET: 0x006B5540
+void FriendList::SetNotes(WOWGUID guid, const char* notes) {
+    uint32_t i;
+
+    for (i = 0; i < 100; i++) {
+        if (this->m_friends[i].m_guid == guid) {
+            break;
+        }
+    }
+
+    if (i >= 100) {
+        return;
+    }
+
+    char* text = this->m_friends[i].m_notes;
+    SStrCopy(text, notes, sizeof(this->m_friends[i].m_notes));
+    FrameScript_SignalEvent(SCRIPT_EVENT_FRIENDLIST_UPDATE, nullptr);
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_SET_CONTACT_NOTES));
+    msg.Put(guid.m_guid);
+    msg.PutString(text);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: c5c51c69 manual
+// OFFSET: 0x006B5DE0
+void FriendList::AddOrDelIgnore(const char* name) {
+    for (uint32_t i = 0; i < 50; i++) {
+        if (!static_cast<uint32_t>(this->m_ignores[i].m_guid.m_guid)) {
+            continue;
+        }
+
+        WOWGUID none = WOWGUID();
+        NameCache* record = g_nameDBCache.GetRecord(this->m_ignores[i].m_guid.m_guid, none, nullptr, nullptr, false);
+
+        if (!record) {
+            continue;
+        }
+
+        char fullName[305];
+
+        if (record->m_realmName[0]) {
+            SStrPrintf(fullName, sizeof(fullName), "%s-%s", record->m_name, record->m_realmName);
+        } else {
+            SStrCopy(fullName, record->m_name, sizeof(fullName));
+        }
+
+        if (!SStrCmpUTF8I(fullName, name, STORM_MAX_STR)) {
+            CDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_DEL_IGNORE));
+            msg.Put(this->m_ignores[i].m_guid.m_guid);
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+            return;
+        }
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_ADD_IGNORE));
+    msg.PutString(name);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: e1657bfc manual
+// OFFSET: 0x006B5F70
+void FriendList::AddIgnore(const char* name) {
+    for (uint32_t i = 0; i < 50; i++) {
+        if (!static_cast<uint32_t>(this->m_ignores[i].m_guid.m_guid)) {
+            continue;
+        }
+
+        WOWGUID none = WOWGUID();
+        NameCache* record = g_nameDBCache.GetRecord(this->m_ignores[i].m_guid.m_guid, none, nullptr, nullptr, false);
+
+        if (!record) {
+            continue;
+        }
+
+        char fullName[305];
+
+        if (record->m_realmName[0]) {
+            SStrPrintf(fullName, sizeof(fullName), "%s-%s", record->m_name, record->m_realmName);
+        } else {
+            SStrCopy(fullName, record->m_name, sizeof(fullName));
+        }
+
+        if (!SStrCmpUTF8I(fullName, name, STORM_MAX_STR)) {
+            CGGameUI::DisplayError(ERR_IGNORE_ALREADY_S, record->m_name);
+            return;
+        }
+    }
+
+    char text[256];
+    SStrCopy(text, name, sizeof(text));
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_ADD_IGNORE));
+    msg.PutString(text);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 6e20d65d manual
+// OFFSET: 0x006B6130
+void FriendList::AddOrDelVoiceIgnore(const char* name) {
+    for (uint32_t i = 0; i < 50; i++) {
+        if (!static_cast<uint32_t>(this->m_mutes[i].m_guid.m_guid)) {
+            continue;
+        }
+
+        WOWGUID none = WOWGUID();
+        NameCache* record = g_nameDBCache.GetRecord(this->m_mutes[i].m_guid.m_guid, none, nullptr, nullptr, false);
+
+        if (!record) {
+            continue;
+        }
+
+        char fullName[305];
+
+        if (record->m_realmName[0]) {
+            SStrPrintf(fullName, sizeof(fullName), "%s-%s", record->m_name, record->m_realmName);
+        } else {
+            SStrCopy(fullName, record->m_name, sizeof(fullName));
+        }
+
+        if (!SStrCmpUTF8I(fullName, name, STORM_MAX_STR)) {
+            CDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_VOICE_DEL_IGNORE));
+            msg.Put(this->m_mutes[i].m_guid.m_guid);
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+            return;
+        }
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_VOICE_ADD_IGNORE));
+    msg.PutString(name);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: fa35cca2 manual
+// OFFSET: 0x006B62C0
+void FriendList::AddVoiceIgnore(const char* name) {
+    for (uint32_t i = 0; i < 50; i++) {
+        if (!static_cast<uint32_t>(this->m_mutes[i].m_guid.m_guid)) {
+            continue;
+        }
+
+        WOWGUID none = WOWGUID();
+        NameCache* record = g_nameDBCache.GetRecord(this->m_mutes[i].m_guid.m_guid, none, nullptr, nullptr, false);
+
+        if (!record) {
+            continue;
+        }
+
+        char fullName[305];
+
+        if (record->m_realmName[0]) {
+            SStrPrintf(fullName, sizeof(fullName), "%s-%s", record->m_name, record->m_realmName);
+        } else {
+            SStrCopy(fullName, record->m_name, sizeof(fullName));
+        }
+
+        if (!SStrCmpUTF8I(fullName, name, STORM_MAX_STR)) {
+            CGGameUI::DisplayError(ERR_VOICE_IGNORE_ALREADY_S, record->m_name);
+            return;
+        }
+    }
+
+    char text[305];
+    SStrCopy(text, name, sizeof(text));
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_VOICE_ADD_IGNORE));
+    msg.PutString(text);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: b6a1d181 manual
+// OFFSET: 0x006B6E10
+void FriendList::AddOrRemoveFriend(const char* name, const char* notes) {
+    for (uint32_t i = 0; i < 100; i++) {
+        if (!static_cast<uint32_t>(this->m_friends[i].m_guid.m_guid)) {
+            continue;
+        }
+
+        WOWGUID none = WOWGUID();
+        NameCache* record = g_nameDBCache.GetRecord(this->m_friends[i].m_guid.m_guid, none, nullptr, nullptr, false);
+
+        if (!record) {
+            continue;
+        }
+
+        char fullName[305];
+
+        if (record->m_realmName[0]) {
+            SStrPrintf(fullName, sizeof(fullName), "%s-%s", record->m_name, record->m_realmName);
+        } else {
+            SStrCopy(fullName, record->m_name, sizeof(fullName));
+        }
+
+        if (!SStrCmpUTF8I(fullName, name, STORM_MAX_STR)) {
+            FriendList::RemoveFriend(this->m_friends[i].m_guid);
+            return;
+        }
+    }
+
+    FriendList::AddFriend(name, notes);
+}
+
+// VERIFY: 24072892 manual
+// OFFSET: 0x006B6F00
+void FriendList::RemoveFriend(const char* name) {
+    for (uint32_t i = 0; i < 100; i++) {
+        if (this->m_friends[i].m_name && !SStrCmpUTF8I(this->m_friends[i].m_name, name, STORM_MAX_STR)) {
+            FriendList::RemoveFriend(this->m_friends[i].m_guid);
+            return;
+        }
+    }
+
+    CGGameUI::DisplayError(ERR_FRIEND_NOT_FOUND);
+}
+
+// VERIFY: 835f4662 manual
+// OFFSET: 0x006B6F70
+void FriendList::SetFriendNotes(const char* name, const char* notes) {
+    for (uint32_t i = 0; i < 100; i++) {
+        if (this->m_friends[i].m_name && !SStrCmpUTF8I(this->m_friends[i].m_name, name, STORM_MAX_STR)) {
+            this->SetNotes(this->m_friends[i].m_guid, notes);
+            return;
+        }
+    }
+
+    CGGameUI::DisplayError(ERR_FRIEND_NOT_FOUND);
+}
+
+// VERIFY: e018fa92 manual
+// OFFSET: 0x006B7040
+void FriendList::DelIgnore(const char* name) {
+    for (uint32_t i = 0; i < 50; i++) {
+        if (!static_cast<uint32_t>(this->m_ignores[i].m_guid.m_guid)) {
+            continue;
+        }
+
+        WOWGUID none = WOWGUID();
+        NameCache* record = g_nameDBCache.GetRecord(this->m_ignores[i].m_guid.m_guid, none, nullptr, nullptr, false);
+
+        if (!record) {
+            continue;
+        }
+
+        char fullName[305];
+
+        if (record->m_realmName[0]) {
+            SStrPrintf(fullName, sizeof(fullName), "%s-%s", record->m_name, record->m_realmName);
+        } else {
+            SStrCopy(fullName, record->m_name, sizeof(fullName));
+        }
+
+        if (!SStrCmpUTF8I(fullName, name, STORM_MAX_STR)) {
+            FriendList::DelIgnore(this->m_ignores[i].m_guid);
+            return;
+        }
+    }
+
+    CGGameUI::DisplayError(ERR_IGNORE_NOT_FOUND);
+}
+
+// VERIFY: d0866dbb manual
+// OFFSET: 0x006B7120
+void FriendList::DelMute(const char* name) {
+    for (uint32_t i = 0; i < 50; i++) {
+        if (!static_cast<uint32_t>(this->m_mutes[i].m_guid.m_guid)) {
+            continue;
+        }
+
+        WOWGUID none = WOWGUID();
+        NameCache* record = g_nameDBCache.GetRecord(this->m_mutes[i].m_guid.m_guid, none, nullptr, nullptr, false);
+
+        if (!record) {
+            continue;
+        }
+
+        char fullName[305];
+
+        if (record->m_realmName[0]) {
+            SStrPrintf(fullName, sizeof(fullName), "%s-%s", record->m_name, record->m_realmName);
+        } else {
+            SStrCopy(fullName, record->m_name, sizeof(fullName));
+        }
+
+        if (!SStrCmpUTF8I(fullName, name, STORM_MAX_STR)) {
+            FriendList::DelVoiceIgnore(this->m_mutes[i].m_guid);
+            return;
+        }
+    }
+
+    CGGameUI::DisplayError(ERR_VOICE_IGNORE_NOT_FOUND);
 }

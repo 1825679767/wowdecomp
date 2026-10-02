@@ -1139,3 +1139,20 @@ GxDrawListEntry::GxDrawListEntry() {
     this->m_depth = 0.0f;
     this->m_vtxStream = 0;
 }
+
+// VERIFY: e3f930cc auto
+// OFFSET: 0x00482A60
+CImVector GxSwizzleColor(const CImVector& color) {
+    CImVector result;
+
+    if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+        result.b = color.r;
+        result.g = color.g;
+        result.r = color.b;
+        result.a = color.a;
+    } else {
+        result = color;
+    }
+
+    return result;
+}

@@ -81,6 +81,7 @@ bool CheckDataFilesExist();
 void ClientDestroyGame(int32_t charSelect, int32_t resumeGlue, int32_t worldLogin);
 void ClientInitializeGame(uint32_t mapId, C3Vector position);
 void ClientPostClose(int32_t reason);
+uint32_t ClientSetTimer(uint32_t delay, EVENTHANDLERGUIDFUNC handler, uint64_t guid, void* param);
 void ClientRegisterConsoleCommands();
 int32_t CommonMain();
 int32_t DestroyEngineCallback(const void* data, void* param);

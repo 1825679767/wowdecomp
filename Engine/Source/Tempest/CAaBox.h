@@ -17,6 +17,7 @@ class CAaBox {
 
     CAaBox() = default;
     CAaBox(const C3Vector& b, const C3Vector& t);
+    explicit CAaBox(const C3Vector& point);
     bool ContainsPoint(const C3Vector& point) const;
     bool ContainsPointExclusive(const C3Vector& point) const;
     bool Intersects(const CAaBox& box) const;
@@ -24,6 +25,8 @@ class CAaBox {
     bool IsEmpty() const;
     bool IsValid() const;
     void Expand(float amount);
+    void Expand(const C3Vector& amount);
+    C3Vector Center() const;
     void Set(float min, float max);
     CAaBox& operator*=(float scale);
     CAaBox operator|=(const CAaBox& box);

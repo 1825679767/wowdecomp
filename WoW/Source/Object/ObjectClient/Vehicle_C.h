@@ -70,6 +70,7 @@ class CVehicle_C {
     int32_t HasHighPriorityCastingAnim() const;
     uint32_t IsBoneAnimPlaying(uint32_t bone) const;
     void BoneAnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time);
+    void PlayBoneAnimOrFallback(CM2Model* model, uint32_t boneId);
     int32_t HasHighPriorityAnim() const;
     int32_t GetVirtualSeatCount() const;
     int32_t GetVehicleAndSeatFromVirtualSeatsRemaining(int32_t& remaining, const CVehicle_C*& vehicle, uint8_t& seat) const;

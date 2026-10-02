@@ -76,6 +76,15 @@ struct PlayerLootItem {
     /* 0014 */ int32_t m_slotType;
 };
 
+struct PlayerDance {
+    /* 0000 */ int16_t* m_moves;
+    /* 0004 */ int32_t m_start;
+    /* 0008 */ int32_t m_count;
+};
+
+class DanceMovesRec;
+class CEffect;
+
 class CGPlayer_C : public CGUnit_C, public CGPlayer {
     public:
     void DanceMoveAnimComplete();
@@ -173,7 +182,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     static void SaveBindPoint(CDataStore* msg);
     static void __stdcall ShowTaxiNodes(CDataStore* msg);
     static void __stdcall HandleActivateTaxiReply(uint32_t reply);
-    static void ServerBindConfirm(WOWGUID item, uint64_t a2, uint32_t a3, uint64_t a4, uint8_t a5);
+    static void __stdcall ServerBindConfirm(WOWGUID item, uint64_t a2, uint32_t a3, uint64_t a4, uint8_t a5);
     static void SellItem(WOWGUID vendor, WOWGUID item, uint32_t count);
     static void __stdcall SetLootMethod(uint32_t method, WOWGUID master, uint32_t threshold);
     static void __stdcall SetPartyAssignment(uint8_t assignment, WOWGUID guid);
@@ -216,18 +225,35 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     /* 18E9 */ uint8_t unk_18E9 [3];
     /* 18EC */ uint32_t unk_18EC;
     /* 18F0 */ CGBag_C m_bag;
-    /* 1908 */ uint32_t unk_1908 [6];
+    /* 1908 */ CGUnitVirtualItem m_virtualItems [3];
     /* 1920 */ uint32_t m_clientStandState;
     /* 1924 */ int32_t m_gemCounts [4];
     /* 1934 */ uint32_t m_combatModeTime;
     /* 1938 */ WOWGUID m_combatTarget;
     /* 1940 */ uint32_t m_pvpCooldownTimestamp;
-    /* 1944 */ uint32_t unk_1944;
-    /* 1948 */ uint32_t unk_1948;
+    /* 1944 */ PlayerDance* m_dance;
+    /* 1948 */ int32_t m_danceMoveIndex;
     /* 194C */ int32_t m_playedTime;
     /* 1950 */ uint32_t m_playedTimeBase;
     /* 1954 */ uint32_t unk_1954;
 
+    ~CGPlayer_C() override;
+    void Disable() override;
+    void OnSpellEffectClear(CEffect* effect) override;
+    void PlayUnitSound(uint32_t soundType, int32_t force) override;
+    void PlayFoleySound() override;
+    const CGUnitVirtualItem* GetVirtualItem(uint32_t slot, bool ignoreDisarm) const override;
+    uint32_t GetVirtualItemDisplayID(uint32_t slot) const override;
+    int32_t GetSpellRank(const SpellRec* spell) const override;
+    void GetDefenseSkillRank(int32_t& rank, int32_t& bonus) const override;
+    void GetAttackSkillRank(int32_t hand, int32_t& rank, int32_t& bonus) const override;
+    int32_t GetSpellCastingTime(const SpellRec* spell) const override;
+    void StopDance();
+    void Dance();
+    void StartDance(PlayerDance* dance);
+    void DanceMoveComplete();
+    void PlayDanceMove(const DanceMovesRec* move);
+    void DestructActivePlayer();
     const CGBag_C* GetBag() const override;
     CGBag_C* GetBag() override;
     void GetAFKText(char* buffer, uint32_t size) const override;
@@ -301,7 +327,9 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     uint16_t GetSkillLineID(int32_t index) const;
     const VisibleItem_C* GetVisibleItem(int32_t slot) const;
     void EquipVisibleItem(const VisibleItem_C* item, int32_t slot);
-    int32_t ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* position, float facing);
+    bool ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* position, float facing);
+    bool CTMFace(float facing);
+    bool CTMInteractGO(const WOWGUID& guid, float range);
     int32_t GetModDamageDonePos(int32_t school) const;
     bool MeetsItemSetSkill(const ItemSetRec* set) const;
     InspectItem* GetInspectedItem(int32_t slot);
@@ -375,12 +403,12 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void LootUnit(CGUnit_C* unit, bool autoInteract);
     void HandleSkinning(CGUnit_C* unit, bool autoInteract, bool a4);
     void HandleOnRightClick(CGUnit_C* unit, bool autoInteract);
-    void CTMAttackUnit(CGUnit_C* unit);
+    bool CTMAttackUnit(CGUnit_C* unit);
     void CombatModeEnter(const WOWGUID& target, int32_t queueRanged, int32_t silent);
     void MeleeModeEnter(const WOWGUID& target);
     void ExitAutoCombatMode();
     void OnLevelChange();
-    void CTMClickTerrain(const C3Vector& position);
+    bool CTMClickTerrain(const C3Vector& position);
     bool IsInFlyableZone(int32_t checkContinent);
     int32_t SpellUsesWeaponSkill(const SpellRec* spell);
     CGPlayer_C(uint32_t time, const CClientObjCreate& create);

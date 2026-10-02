@@ -125,4 +125,18 @@ void VoiceUnregisterScriptFunctions();
 
 void VoiceSessionSetTalkerMuted(WOWGUID guid, int32_t muted);
 
+struct VoiceRosterMember {
+    /* 0000 */ WOWGUID m_guid;
+    /* 0008 */ uint8_t m_priority;
+    /* 0009 */ char m_address[32];
+    /* 0029 */ uint8_t m_talkerPriority;
+    /* 002A */ uint8_t m_flags;
+    /* 002B */ uint8_t unk_002B[5];
+};
+
+int32_t ComSatClient_IsCurrentSession(uint64_t session);
+void ComSatClient_PopulateSessionDataWithoutJoin(uint64_t session, int32_t type, const char* name, uint64_t self);
+void VoiceSessionRosterUpdate(uint64_t session, uint16_t networkId, int32_t type, const char* name, const uint8_t* key, uint64_t self, uint8_t selfNetworkId, uint8_t selfFlags, int32_t count, VoiceRosterMember* members);
+void VoiceSessionLeave(uint64_t talker, uint64_t session, int32_t type);
+
 #endif

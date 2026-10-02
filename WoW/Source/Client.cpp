@@ -2199,3 +2199,9 @@ void SendBotDetected2(uint32_t msgId, uint32_t code) {
     msg.Finalize();
     ClientServices::Send2(&msg);
 }
+
+// VERIFY: 25a365e6 auto
+// OFFSET: 0x00403380
+uint32_t ClientSetTimer(uint32_t delay, EVENTHANDLERGUIDFUNC handler, uint64_t guid, void* param) {
+    return EventSetTimer(delay, handler, guid, param);
+}

@@ -36,6 +36,8 @@ class C3Spline_CatmullRom;
 class CClientMoveUpdate;
 class CClientObjCreate;
 class CGCorpse_C;
+class CAaSphere;
+class C2Vector;
 class SummonPropertiesRec;
 struct MissileCollisionData;
 class CVehicle_C;
@@ -225,7 +227,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     static int32_t __stdcall MaybeDeferTeleport(const WOWGUID* transport);
     static void VehiclePassengerInitWorldCameraState();
     static bool __stdcall IsSpellAllowedInArena(const SpellRec* spell);
-    static void ApplyGuildTabard(int32_t guildId, const WOWGUID& guid, int32_t a3, bool apply);
+    static void ApplyGuildTabard(int32_t guildId, const WOWGUID& guid, void* param, bool apply);
     static int32_t __stdcall Unk715D00(int32_t hand, const CGUnitVirtualItem* mainHand, const CGUnitVirtualItem* offHand);
     static bool __stdcall IsAreaInAreaGroup(int32_t areaId, int32_t areaGroupId, int32_t* checked);
     static float __fastcall ComputeTrackingElevationAngle(const C3Vector& position, const C3Vector& target);
@@ -450,6 +452,13 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void ShouldRender(uint32_t flags, int32_t& culled, int32_t& hidden) override;
     void Reenable() override;
     void PostReenable() override;
+    void CleanUpVehicleBoneAnimsBeforeObjectModelChange() override;
+    void OnReceiveMirrorImageDataFromServer(CDataStore* msg);
+    void RenderTargetSelection() const override;
+    void RenderPetTargetSelection() const override;
+    void OnSpecialMountAnim() override;
+    const SpellVisualRec* GetAppropriateSpellVisual(const SpellRec* spell, SpellVisualRec& visual, int32_t a3, int32_t a4) const override;
+    void ConnectToLightningThisFrame(uint32_t a1, int32_t a2) override;
 
     bool IsActivePlayer();
     CGUnit_C(uint32_t time, const CClientObjCreate& create);
@@ -482,7 +491,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t IsUpdatingMissileTrajectory() const;
     int32_t IsMissileTrajectoryUpdateWaitingForMissileRelease() const;
     void SendFinalMissileTrajectoryUpdate();
-    int32_t ComputeMissileTrajectory(const SpellRec* spell, int32_t* a2, CGUnit_C** a3, C3Vector* launchPosition, C3Vector* position, float* facing, C3Vector* points, uint32_t* count, int32_t a9);
+    int32_t ComputeMissileTrajectory(const SpellRec* spell, float* pitch, float* speed, C3Vector* launch, C3Vector* impact, float* time, C3Vector* points, uint32_t* count, int32_t preview);
+    void GetMissileCollisionSphere(CAaSphere* sphere, const C2Vector& direction) const;
+    void RecordMissileTrajectoryUpdate(uint8_t castId, const C3Vector* impact, float pitch, float speed, float time);
     int32_t OverrideMissileFirePos(C3Vector* position, const SpellRec* spell);
     bool IsLocalClientControlled() const;
     void FreeComponent();
@@ -748,7 +759,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     bool CanAttackNow(const CGUnit_C* unit) const;
     bool CanCooperate(const CGUnit_C* unit) const;
     void HandleNPCFeedback();
-    void CreateVehicleCamera();
+    CVehicleCamera_C* CreateVehicleCamera();
     bool IsOutdoors() const;
     int32_t GetPredictedPower(int32_t powerType) const;
     bool IgnoresAuraState(const SpellRec* spell) const;
@@ -774,6 +785,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void ChatBubbleRemove();
     void PlayTextEmoteSound(uint32_t emote, uint32_t emoteNum);
     SkillLineAbilityRec* LookupAbility(int32_t spellId);
+    int32_t GetAbilitySkillLine(int32_t spellId);
     void SignalPlayerGainsVehicleDataEvent();
     const char* GetUnitName(const char** realm, int32_t a2);
     const char* GetVisibleUnitName(const char** realm, int32_t a2);
@@ -926,7 +938,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void SetUIChannelSpell(int32_t spellId, int32_t duration);
     bool SetTrackingTarget(const WOWGUID& target, int32_t type);
     void ClearCastingSpell(int32_t spellId, bool clearChannel, bool a4);
-    void ApplySpellVisualTrail(const SpellVisualRec* visual, int32_t a3);
+    void AttachPrecastMissileModel(const SpellVisualRec* visual, uint8_t castCount);
     void SpellInterrupted(uint8_t castCount, int32_t spellId);
     void ResetUICastingSpell();
     void OnKeyBoneAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequenceId);
@@ -1001,7 +1013,16 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void SetUIChannelDirect(int32_t spellId, uint32_t start, uint32_t end);
     void UpdateChainTargets(const TSStackArray<WOWGUID>& targets, int32_t spellId);
     void FillPartyMemberPetState(CGPartyPetState* state);
-    void Unk71AEE0(uint32_t time);
+    void TrackingStopMove(uint32_t time);
+    bool CanMoveTo(int32_t action, const C3Vector& position);
+    bool GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, float* distance);
+    bool IsValidFollowTarget(CGUnit_C* unit);
+    void HandleTrackingMoveThreshold();
+    void TrackingStartMove(uint32_t time);
+    void TrackingSetPitch(uint32_t time, float pitch);
+    void TrackingSetTurn(uint32_t time, float facing);
+    bool HandleTrackingPitch(float targetZ, float z, float pitch, float maxStep, uint32_t time, bool* overshoot);
+    bool HandleTrackingFacing(float facing, float maxTurn, uint32_t time);
 };
 
 void CreatureQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);

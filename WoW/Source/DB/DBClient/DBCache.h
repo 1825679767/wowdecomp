@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 #include "WoW/Source/Object/WGUID.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -42,6 +43,8 @@ class DBCache : public Blizzard::Using::GlobalUse {
         bool m_dispatching;
         bool m_invalidatePending;
         TSLink<DBCACHEHASH> m_pendingLink;
+
+        ~DBCACHEHASH();
     };
 
     struct REVERSEENTRY : public TSHashObject<REVERSEENTRY, HASHKEY_CONSTSTR> {
@@ -124,6 +127,13 @@ template <class T, class TKey, class THashKey>
 DBCache<T, TKey, THashKey>::~DBCache() {
     this->m_entries.InternalClear(0);
     this->m_reverse.InternalClear(0);
+}
+
+// VERIFY: f6530008 manual
+// OFFSET: [0x00672DA0, 0x00673050, 0x006735B0, 0x00673860, 0x00673B10, 0x00673DD0, 0x00674070, 0x00674310, 0x006745C0, 0x00674870, 0x00674B10, 0x00674DB0, 0x00675050, 0x006752F0]
+template <class T, class TKey, class THashKey>
+DBCache<T, TKey, THashKey>::DBCACHEHASH::~DBCACHEHASH() {
+    this->m_callbacks.Clear();
 }
 
 // INLINED
@@ -332,7 +342,7 @@ T* DBCache<T, TKey, THashKey>::GetRecord(TKey key, const WOWGUID& guid, void (*c
 }
 
 // VERIFY: def725c6 manual
-// OFFSET: [0x0067A0F0, 0x0067A3A0, 0x0067A8C0]
+// OFFSET: [0x00679E10, 0x0067A0F0, 0x0067A3A0, 0x0067A570, 0x0067A8C0]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::CancelCallback(TKey key, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param) {
     DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
@@ -360,7 +370,7 @@ void DBCache<T, TKey, THashKey>::CancelCallback(TKey key, void (*callback)(int32
 }
 
 // VERIFY: 4266cb5c manual
-// OFFSET: 0x00668DA0
+// OFFSET: [0x00668970, 0x00668A20, 0x00668AD0, 0x00668B80, 0x00668C30, 0x00668CE0, 0x00668DA0, 0x00668E50, 0x00668F00, 0x00668FB0, 0x00669060, 0x00669110, 0x006691D0, 0x006692A0]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::SendSingleQuery(DBCACHEHASH* hash) {
     CDataStore msg;
@@ -488,7 +498,7 @@ void DBCache<T, TKey, THashKey>::VerifyAndUpdateVersion(uint32_t version) {
 }
 
 // VERIFY: 27b57ae6 manual
-// OFFSET: [0x0067CBD0]
+// OFFSET: [0x0067B840, 0x0067BEE0, 0x0067CBD0, 0x0067D270, 0x0067E570]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::AddItems(CDataStore* msg, bool single) {
     uint8_t count;
@@ -558,7 +568,7 @@ void DBCache<T, TKey, THashKey>::AddItems(CDataStore* msg, bool single) {
 }
 
 // VERIFY: 0168a135 manual
-// OFFSET: [0x0067E030]
+// OFFSET: [0x0067DAD0, 0x0067E030, 0x0067EBD0, 0x0067F110, 0x0067F680, 0x00680310, 0x00680870]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::AddItem(T* item, TKey key) {
     DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
@@ -587,8 +597,8 @@ void DBCache<T, TKey, THashKey>::AddItem(T* item, TKey key) {
     }
 }
 
-// VERIFY: e5e95050 manual
-// OFFSET: [0x0067A070]
+// VERIFY: 89cede44 manual
+// OFFSET: [0x0067A070, 0x0067A1E0, 0x0067A2D0, 0x0067A4F0, 0x0067A660, 0x0067A750, 0x0067A840, 0x0067A9B0, 0x0067AAA0, 0x0067ABB0, 0x0067AD70, 0x0067AE60]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::DenyItem(TKey key) {
     DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
@@ -601,7 +611,7 @@ void DBCache<T, TKey, THashKey>::DenyItem(TKey key) {
 
     for (DBCACHECALLBACK* node = hash->m_callbacks.Head(); node;) {
         DBCACHECALLBACK* next = hash->m_callbacks.Next(node);
-        node->m_callback(static_cast<int32_t>(key), node->m_guid, node->m_param, false);
+        node->m_callback(static_cast<int32_t>(DBCacheHashKey(key)), node->m_guid, node->m_param, false);
         node = next;
     }
 
@@ -610,7 +620,7 @@ void DBCache<T, TKey, THashKey>::DenyItem(TKey key) {
 }
 
 // VERIFY: 80ad7a9d auto
-// OFFSET: [0x0067A170, 0x0067A5F0]
+// OFFSET: [0x0067A170, 0x0067A260, 0x0067A5F0, 0x0067A6E0, 0x0067A7D0, 0x0067A940, 0x0067AA30, 0x0067AB30, 0x0067ACA0, 0x0067ADF0, 0x0067AEE0]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::Invalidate(TKey key) {
     DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
@@ -625,6 +635,39 @@ void DBCache<T, TKey, THashKey>::Invalidate(TKey key) {
         hash->m_invalidatePending = true;
     } else {
         this->m_entries.Delete(hash);
+    }
+}
+
+// VERIFY: fa68c33a auto
+// OFFSET: [0x0067B4F0, 0x0067B500, 0x0067B510, 0x0067B520, 0x0067B530, 0x0067B550, 0x0067B560, 0x0067B570, 0x0067B580, 0x0067B590, 0x0067B5A0, 0x0067B5C0, 0x0067B5E0, 0x0067B5F0]
+template <class T, class TKey, class THashKey>
+void DBCache<T, TKey, THashKey>::InvalidateIntKey(int32_t key) {
+    if constexpr (std::is_same<TKey, CWardenKey>::value) {
+        this->Invalidate(TKey());
+    } else {
+        this->Invalidate(static_cast<TKey>(key));
+    }
+}
+
+// VERIFY: ef2558a4 auto
+// OFFSET: 0x0067A360
+template <class T, class TKey, class THashKey>
+void DBCache<T, TKey, THashKey>::RetryItem(TKey key) {
+    DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
+
+    if (hash) {
+        this->m_pending.LinkToTail(hash);
+    }
+}
+
+// VERIFY: e8d5c343 auto
+// OFFSET: 0x0067A4C0
+template <class T, class TKey, class THashKey>
+void DBCache<T, TKey, THashKey>::SetTemporary(TKey key) {
+    DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
+
+    if (hash) {
+        hash->m_noSave = true;
     }
 }
 

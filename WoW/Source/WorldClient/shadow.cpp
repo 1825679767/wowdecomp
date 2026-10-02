@@ -507,3 +507,121 @@ void ProjectTex2dDrawShaderEffect(const CAaBox& box, const CImVector& color, uin
         GxRsSet(GxRs_PolygonOffset, savedOffset);
     }
 }
+
+// VERIFY: f18827e8 manual
+// OFFSET: 0x007E3E80
+static void ProjectTexRender2d(const CAaBox& box, const CImVector& color, uint32_t triFlags, uint32_t flags, float polygonOffset) {
+    int32_t doodads;
+    int32_t tris;
+
+    if (!ProjectTexRenderGetQuery2d(box, flags, triFlags, &doodads, &tris)) {
+        return;
+    }
+
+    g_theGxDevicePtr->RsPush();
+    CGxAppRenderState* states = g_theGxDevicePtr->m_appRenderStates.m_data;
+
+    if (states[GxRs_BlendingMode].m_value.m_data.i[0] == GxBlend_Mod) {
+        g_theGxDevicePtr->RsSet(GxRs_Texture1, TextureGetGxTex(s_shadowModTexture, 1, nullptr));
+        GxRsSet(GxRs_ColorOp1, 2);
+        GxRsSet(GxRs_AlphaOp1, 2);
+    } else if (!states[GxRs_Texture1].m_value.m_data.i[0]) {
+        g_theGxDevicePtr->RsSet(GxRs_Texture1, TextureGetGxTex(s_shadowAddTexture, 1, nullptr));
+        GxRsSet(GxRs_ColorOp1, 0);
+        GxRsSet(GxRs_AlphaOp1, 0);
+    }
+
+    if (polygonOffset != 0.0f) {
+        GxRsSet(GxRs_PolygonOffset, (polygonOffset + polygonOffset) * 3.0518044e-05f);
+    }
+
+    GxRsSet(GxRs_TexGen0, 2);
+    GxRsSet(GxRs_TexGen1, 2);
+    GxRsSet(GxRs_TextureShader0, 1);
+    GxRsSet(GxRs_TextureShader1, 1);
+
+    CImVector packed = color;
+
+    if (flags & 0x2) {
+        GxRsSet(GxRs_MatDiffuse, *reinterpret_cast<const int32_t*>(&color));
+    } else {
+        GxFormatColor(packed);
+    }
+
+    C3Vector cameraPos(0.0f, 0.0f, 0.0f);
+    CGWorldFrame::GetCameraPosition(&cameraPos);
+    C44Matrix view;
+    view.a0 = 1.0f;
+    view.a1 = 0.0f;
+    view.a2 = 0.0f;
+    view.a3 = 0.0f;
+    view.b0 = 0.0f;
+    view.b1 = 1.0f;
+    view.b2 = 0.0f;
+    view.b3 = 0.0f;
+    view.c0 = 0.0f;
+    view.c1 = 0.0f;
+    view.c2 = 1.0f;
+    view.c3 = 0.0f;
+    view.d0 = -cameraPos.x;
+    view.d1 = -cameraPos.y;
+    view.d2 = -cameraPos.z;
+    view.d3 = 1.0f;
+    g_theGxDevicePtr->XformPush(GxXform_World);
+
+    if (tris) {
+        for (uint32_t i = 0; i < World::TriData::nBatches; i++) {
+            World::TriData::Batch* triBatch = &World::TriData::batches[i];
+
+            if (3 * triBatch->m_indexCount > 0x10000 || !triBatch->m_matrix || !triBatch->m_vertexList || !triBatch->m_indices) {
+                continue;
+            }
+
+            GxXformSet(GxXform_World, *triBatch->m_matrix * view);
+            CGxBatch batch;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = 0;
+            batch.m_count = triBatch->m_indexCount;
+            batch.m_minIndex = 0;
+            batch.m_maxIndex = triBatch->m_indexCount - 1;
+
+            if (flags & 0x2) {
+                ProjectTexBuildVertexBuffer(triBatch, &batch, flags);
+            } else {
+                ProjectTexBuildVertexBufferVariant(triBatch, packed, &batch, flags);
+            }
+
+            ProjectTexRenderIndices(triBatch);
+
+            if (batch.m_count) {
+                GxDraw(&batch, 1);
+            }
+        }
+    }
+
+    if (doodads) {
+        for (uint32_t i = 0; i < s_doodadModelCount; i++) {
+            CM2Model* model = s_doodadModelBuffer[i];
+            C44Matrix world = model->m_worldTransform;
+            GxXformSet(GxXform_World, world * view);
+            GxRsSet(GxRs_MatDiffuse, *reinterpret_cast<const int32_t*>(&color));
+            model->RenderModelBatchesForProjectedTexture();
+        }
+    }
+
+    GxXformPop(GxXform_World);
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 5f932eb3 manual
+// OFFSET: 0x007E4370
+void ProjectTex::Render2d(const CAaBox& box, const CImVector& color, const C44Matrix* matrix, float fade, uint32_t a5, uint32_t a6, float polygonOffset) {
+    C44Matrix texMatrix;
+    C44Matrix fadeMatrix;
+    ProjectTex2dMakeMatrices(texMatrix, fadeMatrix, box, matrix, fade, 0);
+    g_theGxDevicePtr->XformPushAndSet(GxXform_Tex0, texMatrix);
+    g_theGxDevicePtr->XformPushAndSet(GxXform_Tex1, fadeMatrix);
+    ProjectTexRender2d(box, color, a5, a6, polygonOffset);
+    GxXformPop(GxXform_Tex0);
+    GxXformPop(GxXform_Tex1);
+}

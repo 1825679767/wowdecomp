@@ -33,6 +33,7 @@ class CGPetitionInfo {
     static void ClearSignatures();
     static void SetPetition(WOWGUID petition, int32_t id, WOWGUID item);
     static void SetSignatures(uint8_t count, const WOWGUID* guids, const uint32_t* choices);
+    static void AddSignature(WOWGUID petition, WOWGUID signer);
 };
 
 void PetitionInfoRegisterScriptFunctions();

@@ -58,6 +58,11 @@
 #include "WoW/Source/Ui/ItemTextFrame.h"
 #include "WoW/Source/WorldClient/CWorldMath.h"
 #include "WoW/Source/WorldClient/Map.h"
+#include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
+#include "WoW/Source/Ui/RaidInfo.h"
+#include "WoW/Source/Ui/PartyFrame.h"
+#include "WoW/Source/UIUtil/Tooltip.h"
 #include "Engine/Source/Tempest/CAaSphere.h"
 #include "WoW/Source/WorldClient/FrameTime.h"
 #include "WoW/Source/WorldClient/MapEntity.h"
@@ -1508,7 +1513,7 @@ CGGameObject_C_Type_FishingNode::CGGameObject_C_Type_FishingNode(CGGameObject_C*
 }
 
 // VERIFY: 2b1b955c manual
-// OFFSET: 0x00712980
+// OFFSET: [0x00712980, 0x00713D70]
 CGGameObject_C_Type_DestructibleBuilding::~CGGameObject_C_Type_DestructibleBuilding() {
     if (this->m_proxy.m_uniqueId) {
         World::FindOrCreateDestructibleProxy(&this->m_proxy);
@@ -1621,7 +1626,7 @@ C3Vector CGGameObject_C_TypeBase::GetPosition() const {
 }
 
 // VERIFY: 109c062c manual
-// OFFSET: 0x00712B80
+// OFFSET: [0x00712B80, 0x00713F20]
 CGGameObject_C::~CGGameObject_C() {
     if (!this->m_stats) {
         g_gameObjectDBCache.CancelCallback(this->m_obj->m_entryID, &GameObjectStatsCallback, this);
@@ -3602,5 +3607,772 @@ void CGGameObject_C_Type_TransportBase::MovePassengers(int32_t* moved) {
 
     if (mover && mover->GetTransportGUID() == this->m_owner->m_obj->m_guid.m_guid) {
         MovementSetTransportUpdateTime(this->m_transportUpdateTime);
+    }
+}
+
+// VERIFY: 142d2a6b manual
+// OFFSET: 0x0070EC10
+C3Vector CGGameObject_C_Type_DestructibleBuilding::GetNamePosition() const {
+    uint32_t state = (this->m_owner->m_gameObject->m_flags >> 9) & 0x7;
+    CAaBox extents;
+    extents.b = C3Vector(0.0f, 0.0f, 0.0f);
+    extents.t = C3Vector(0.0f, 0.0f, 0.0f);
+    World::ObjectGetExtents(this->m_states[state].m_object, &extents);
+    C3Vector position = this->GetPosition();
+    position.z = extents.t.y - extents.b.y + position.z;
+    return position;
+}
+
+// VERIFY: da097b7f auto
+// OFFSET: 0x0070EEF0
+uint32_t CGGameObject_C::GetProperty(int32_t prop) const {
+    uint32_t index = CGameObjectDef::GetPropNum(this->m_gameObject->m_typeID, prop);
+
+    if (this->m_stats && index < 24) {
+        return this->m_stats->m_propValue[index];
+    }
+
+    return 0;
+}
+
+// VERIFY: 9dd592e6 manual
+// OFFSET: 0x0070F160
+bool CGGameObject_C::IsLocked(int32_t* spellId, int32_t* skillValue, int32_t* requiredSkill, CGItem_C** key, uint32_t* entry) const {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return false;
+    }
+
+    LockRec* lock = this->GetLockRec();
+
+    if (!lock) {
+        return false;
+    }
+
+    bool locked = false;
+
+    for (uint32_t i = 0; i < 8; i++) {
+        int32_t type = lock->m_type[i];
+
+        if (!type) {
+            continue;
+        }
+
+        if (type == 2) {
+            locked = true;
+
+            if (!this->IsValidOpenAction(lock->m_action[i])) {
+                continue;
+            }
+
+            for (uint32_t j = 0; j < s_openLockSpells.m_count; j++) {
+                SpellRec spell;
+                g_spellDB.GetRecord(s_openLockSpells.m_data[j], &spell);
+
+                for (uint32_t effect = 0; effect < 3; effect++) {
+                    if (spell.m_effect[effect] != 33 || spell.m_effectMiscValue[effect] != lock->m_index[i]) {
+                        continue;
+                    }
+
+                    int32_t required = lock->m_skill[i] ? lock->m_skill[i] : 5 * this->m_gameObject->m_level;
+                    int32_t minPoints;
+                    int32_t maxPoints;
+                    Spell_C_GetMinMaxPoints(&spell, effect, &minPoints, &maxPoints, 0, 0, 0, 0);
+
+                    if (spellId) {
+                        *spellId = s_openLockSpells.m_data[j];
+                    }
+
+                    if (skillValue) {
+                        *skillValue = minPoints;
+                    }
+
+                    if (requiredSkill) {
+                        *requiredSkill = required;
+                    }
+
+                    if (minPoints >= required) {
+                        if (entry) {
+                            *entry = i;
+                        }
+
+                        return false;
+                    }
+                }
+
+                if (Spell_C_IsTargeting()) {
+                    int32_t targetingSpell = Spell_C_GetTargetingSpell();
+                    SpellRec targeting;
+                    g_spellDB.GetRecord(targetingSpell, &targeting);
+
+                    for (uint32_t effect = 0; effect < 3; effect++) {
+                        if (targeting.m_effect[effect] != 33 || targeting.m_effectMiscValue[effect] != lock->m_index[i]) {
+                            continue;
+                        }
+
+                        int32_t required = lock->m_skill[i] ? lock->m_skill[i] : 5 * this->m_gameObject->m_level;
+                        int32_t minPoints;
+                        int32_t maxPoints;
+                        Spell_C_GetMinMaxPoints(&targeting, effect, &minPoints, &maxPoints, 0, 0, 0, 0);
+
+                        if (spellId) {
+                            *spellId = targetingSpell;
+                        }
+
+                        if (skillValue) {
+                            *skillValue = minPoints;
+                        }
+
+                        if (requiredSkill) {
+                            *requiredSkill = required;
+                        }
+
+                        if (minPoints >= required) {
+                            if (entry) {
+                                *entry = i;
+                            }
+
+                            return false;
+                        }
+                    }
+                }
+            }
+        } else if (type == 3) {
+            locked = true;
+
+            if (!this->IsValidOpenAction(lock->m_action[i])) {
+                continue;
+            }
+
+            SpellRec spell;
+            g_spellDB.GetRecord(lock->m_index[i], &spell);
+
+            for (uint32_t effect = 0; effect < 3; effect++) {
+                if (spell.m_effect[effect] == 33) {
+                    if (spellId) {
+                        *spellId = spell.m_id;
+                    }
+
+                    if (entry) {
+                        *entry = i;
+                    }
+
+                    return false;
+                }
+            }
+        } else if (type == 1) {
+            locked = true;
+
+            if (!this->IsValidOpenAction(lock->m_action[i])) {
+                continue;
+            }
+
+            CGItem_C* item = player->m_bag.FindItemOfType(lock->m_index[i], 0);
+
+            if (item) {
+                if (spellId) {
+                    *spellId = item->GetEnchantmentSpell(33);
+                }
+
+                if (key) {
+                    *key = item;
+                }
+
+                if (entry) {
+                    *entry = i;
+                }
+
+                return false;
+            }
+        }
+    }
+
+    return locked;
+}
+
+// VERIFY: a7ddafb5 manual
+// OFFSET: 0x0070F580
+int32_t CGGameObject_C::CanHighlight() const {
+    if (!this->m_typeData->CanHighlight()) {
+        return 0;
+    }
+
+    int32_t questId = static_cast<int32_t>(this->GetPropertyValue(CGameObjectDef::GetPropNum(this->m_gameObject->m_typeID, 20)));
+
+    if (questId <= 0) {
+        return 1;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < 25; i++) {
+        if (player->GetQuestLogEntry(i)->m_questId == static_cast<uint32_t>(questId)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: cf65be3a auto
+// OFFSET: 0x0070F630
+int32_t CGGameObject_C::FloatingTooltip() const {
+    return this->GetPropertyValue(CGameObjectDef::GetPropNum(this->m_gameObject->m_typeID, 19)) != 0;
+}
+
+// VERIFY: 3b7ec338 manual
+// OFFSET: 0x0070F680
+void CGGameObject_C::UseObject() {
+    GAME_ERROR_TYPE error;
+    float distance;
+    const char* errorText = nullptr;
+
+    if (this->m_typeData->CanUseNow(&error, &distance, &errorText)) {
+        this->m_typeData->Use();
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_GAME_OBJ_REPORT_USE));
+        msg.Put(this->m_obj->m_guid.m_guid);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+        return;
+    }
+
+    if (error == ERR_USE_TOO_FAR && this->m_gameObject->m_typeID != 17) {
+        WOWGUID guid = this->m_obj->m_guid;
+        CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+        if (player->CTMInteractGO(guid, distance)) {
+            return;
+        }
+    }
+
+    if (errorText) {
+        CGGameUI::DisplayError(static_cast<UIErrors>(error), errorText);
+    } else {
+        CGGameUI::DisplayError(static_cast<UIErrors>(error));
+    }
+}
+
+// VERIFY: 3d05c647 auto
+// OFFSET: 0x0070F940
+C3Vector CGGameObject_C::GetNamePosition() const {
+    if (this->m_gameObject->m_typeID == 33) {
+        return static_cast<CGGameObject_C_Type_DestructibleBuilding*>(this->m_typeData)->GetNamePosition();
+    }
+
+    C3Vector position = this->GetPosition();
+    position.z = this->m_height * this->m_scale * 1.25f + position.z;
+    return position;
+}
+
+// VERIFY: 114aa488 auto
+// OFFSET: 0x0070F9B0
+int32_t CGGameObject_C_TypeBase::CanChangeCursor() const {
+    bool canUse = this->CanUseNow(nullptr, nullptr, nullptr);
+    LockRec* lock = this->m_owner->GetLockRec();
+
+    if (lock) {
+        LockTypeRec* lockType = g_lockTypeDB.GetRecord(lock->m_index[0]);
+
+        if (lockType && lockType->m_cursorName && *lockType->m_cursorName) {
+            char cursor[32];
+
+            if (lockType->m_id == 1 || canUse) {
+                SStrCopy(cursor, lockType->m_cursorName, sizeof(cursor));
+            } else {
+                SStrPrintf(cursor, sizeof(cursor), "Unable%s", lockType->m_cursorName);
+            }
+
+            return CursorGetModeFromName(cursor);
+        }
+    }
+
+    return canUse ? 5 : 31;
+}
+
+// VERIFY: 7a1f42bf manual
+// OFFSET: 0x0070FA70
+int32_t CGGameObject_C_TypeBase::CheckRange() const {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    float range = this->m_interactDistance;
+    int32_t spellId = 0;
+
+    if (this->m_owner->IsLocked(&spellId, nullptr, nullptr, nullptr, nullptr) || !spellId) {
+        if (this->m_owner->m_displayState == 2) {
+            return 0;
+        }
+    } else {
+        float minRange;
+        Spell_C::GetSpellRange(player, spellId, &minRange, &range, nullptr);
+    }
+
+    CGGameObject_C* owner = this->m_owner;
+
+    if (owner->m_gameObject->m_typeID == 8) {
+        C3Vector position = owner->GetPosition();
+        return range * range >= player->GetDistanceToPos(position);
+    }
+
+    CM2Model* model = owner->m_worldModel;
+    CAaBox box;
+
+    if (!owner->m_gameObject->m_typeID) {
+        M2BoneSequenceInfo info;
+        model->GetBoneSequenceInfo(0xFFFFFFFF, info);
+        M2SequenceInfo sequence;
+        sequence.Clear();
+        model->GetSequenceInfo(info.m_sequenceId, info.m_variationIndex, sequence);
+        box = sequence.m_bounds;
+    } else {
+        GameObjectDisplayInfoRec* displayInfo = owner->m_stats ? g_gameObjectDisplayInfoDB.GetRecord(owner->m_stats->m_displayID) : nullptr;
+
+        if (displayInfo) {
+            box.b = C3Vector(displayInfo->m_geoBoxMin[0], displayInfo->m_geoBoxMin[1], displayInfo->m_geoBoxMin[2]);
+            box.t = C3Vector(displayInfo->m_geoBoxMax[0], displayInfo->m_geoBoxMax[1], displayInfo->m_geoBoxMax[2]);
+        } else if (model->IsLoaded(0, 0)) {
+            box = model->GetBoundingBox();
+        } else {
+            return 0;
+        }
+    }
+
+    float scale = this->m_owner->m_obj->m_scale;
+    box *= scale;
+    box.b.x = box.b.x - range;
+    box.b.y = box.b.y - range;
+    box.b.z = box.b.z - range;
+    box.t.x = box.t.x + range;
+    box.t.y = box.t.y + range;
+    box.t.z = range + box.t.z;
+
+    C44Matrix matrix = this->m_owner->GetMatrix();
+    matrix.Scale(1.0f / scale);
+    C44Matrix inverse = matrix.AffineInverse();
+    C3Vector local = player->GetPosition() * inverse;
+    return box.ContainsPointExclusive(local);
+}
+
+// VERIFY: ab880379 auto
+// OFFSET: 0x0070FD10
+void CGGameObject_C_TypeAnimated::OnUpdateAnimProgress() {
+    CGGameObject_C* owner = this->m_owner;
+
+    if (!(owner->m_modelFlags & 0x20000) && owner->IsObjectModelLoaded() && this->m_owner->m_worldModel) {
+        this->SetSequence(this->m_owner->m_worldModel);
+    }
+}
+
+// VERIFY: 3078ec2b auto
+// OFFSET: 0x00710280
+int32_t CGGameObject_C::GetPageTextID(void (*callback)(int32_t, const WOWGUID&, void*, bool)) const {
+    return this->GetPropertyValue(CGameObjectDef::GetPropNum(this->m_gameObject->m_typeID, 15));
+}
+
+// VERIFY: 78d5d80c auto
+// OFFSET: 0x00710340
+bool CGGameObject_C::IsUsableInCombat() const {
+    return !this->GetPropertyValue(CGameObjectDef::GetPropNum(this->m_gameObject->m_typeID, 62));
+}
+
+// VERIFY: 1e16ed95 auto
+// OFFSET: 0x00710390
+bool CGGameObject_C::IsUsableMounted() const {
+    int8_t type = this->m_gameObject->m_typeID;
+
+    if (type == 19) {
+        return true;
+    }
+
+    if (type == 32) {
+        return false;
+    }
+
+    return this->GetProperty(91) != 0;
+}
+
+// VERIFY: b8153735 auto
+// OFFSET: 0x007103C0
+bool CGGameObject_C::IsUsableWhileImmune() const {
+    int8_t type = this->m_gameObject->m_typeID;
+
+    if (type == 3) {
+        return false;
+    }
+
+    return !this->GetPropertyValue(CGameObjectDef::GetPropNum(type, 57));
+}
+
+// VERIFY: 2c6373c2 auto
+// OFFSET: 0x007108D0
+void CGGameObject_C_Type_MeetingStone::AddToolTipInfo(CGTooltip* tooltip) {
+    CGGameObject_C* owner = this->m_owner;
+    AreaTableRec* area = g_areaTableDB.GetRecord(owner->GetPropertyValue(CGameObjectDef::GetPropNum(owner->m_gameObject->m_typeID, 53)));
+
+    if (area) {
+        tooltip->AddLine(area->m_areaName, nullptr, 0);
+    }
+}
+
+// VERIFY: 76e49e4b manual
+// OFFSET: 0x00711140
+void CGGameObject_C::OnRightClick() {
+    if (!this->m_typeData->CanUse()) {
+        return;
+    }
+
+    CGGameUI::CloseLoot(true, false, false);
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player) {
+        player->SetAutoLoot(CGGameUI::IsAutoLooting());
+    }
+
+    this->UseObject();
+}
+
+// VERIFY: 14267f07 manual
+// OFFSET: 0x007111A0
+void CGGameObject_C::RefreshInteractIcon() {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return;
+    }
+
+    if (this->ObjectReaction(player) >= 3 && this->IsQuestGiver()) {
+        player->UpdateQuestStatus(this);
+    } else {
+        this->m_questStatus = 0;
+        this->m_interactIconType = 0;
+        this->RemoveInteractIcon();
+    }
+}
+
+// VERIFY: 083ab44d manual
+// OFFSET: 0x00711470
+bool CGGameObject_C_TypeBase::CanUseNow(GAME_ERROR_TYPE* error, float* distance, const char** errorText) const {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || player->IsDeadOrGhost()) {
+        if (error) {
+            *error = static_cast<GAME_ERROR_TYPE>(ERR_PLAYER_DEAD);
+        }
+
+        return false;
+    }
+
+    if (!CGGameUI::m_hasControl) {
+        if (error) {
+            *error = static_cast<GAME_ERROR_TYPE>(ERR_CLIENT_LOCKED_OUT);
+        }
+
+        return false;
+    }
+
+    if (player->m_unit->m_unitFieldFlags & 0x40000) {
+        if (error) {
+            int32_t mechanic;
+            Spell_C_CancelsStun(player, nullptr, &mechanic);
+
+            if (mechanic && errorText) {
+                *errorText = g_spellMechanicDB.GetRecord(mechanic)->m_stateName;
+                *error = static_cast<GAME_ERROR_TYPE>(ERR_USE_PREVENTED_BY_MECHANIC_S);
+            } else {
+                *error = static_cast<GAME_ERROR_TYPE>(ERR_GENERIC_STUNNED);
+            }
+        }
+
+        return false;
+    }
+
+    if (!this->m_owner->GetLockRec()) {
+        if (player->IsMounted() && !this->m_owner->IsUsableMounted() && !player->CanAutoDismount()) {
+            if (error) {
+                *error = static_cast<GAME_ERROR_TYPE>(ERR_NOT_WHILE_MOUNTED);
+            }
+
+            return false;
+        }
+
+        if (player->IsShapeShifted()) {
+            SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecord(player->GetShapeshiftForm());
+
+            if ((!form || !(form->m_flags & 0x8)) && !player->CanAutoUnshift()) {
+                if (error) {
+                    *error = static_cast<GAME_ERROR_TYPE>(ERR_NOT_WHILE_SHAPESHIFTED);
+                }
+
+                return false;
+            }
+        }
+    }
+
+    if ((player->m_unit->m_unitFieldFlags & 0x80000) && !this->m_owner->IsUsableInCombat()) {
+        if (error) {
+            *error = static_cast<GAME_ERROR_TYPE>(ERR_NOT_IN_COMBAT);
+        }
+
+        return false;
+    }
+
+    if ((player->m_unit->m_unitFieldFlags & 0x80000000) && !this->m_owner->IsUsableWhileImmune()) {
+        if (error) {
+            *error = static_cast<GAME_ERROR_TYPE>(ERR_USE_CANT_IMMUNE);
+        }
+
+        return false;
+    }
+
+    CGGameObject_C* owner = this->m_owner;
+
+    if ((owner->m_gameObject->m_flags & 0x2) && owner->IsLocked(nullptr, nullptr, nullptr, nullptr, nullptr)) {
+        if (error) {
+            *error = static_cast<GAME_ERROR_TYPE>(this->unk_0008);
+        }
+
+        return false;
+    }
+
+    if (distance) {
+        *distance = this->m_interactDistance;
+    }
+
+    bool result = this->CheckRange() != 0;
+
+    if (!result && error) {
+        *error = static_cast<GAME_ERROR_TYPE>(ERR_USE_TOO_FAR);
+    }
+
+    return result;
+}
+
+// VERIFY: b1cd0162 manual
+// OFFSET: 0x007116C0
+bool CGGameObject_C_TypeBase::Use() {
+    int32_t spellId = 0;
+    CGItem_C* key = nullptr;
+    uint32_t entry;
+
+    if (this->m_owner->IsLocked(&spellId, nullptr, nullptr, &key, &entry)) {
+        LockRec* lock = this->m_owner->GetLockRec();
+        CGGameObject_C* owner = this->m_owner;
+
+        if (!owner->IsValidOpenAction(lock->m_action[0])) {
+            if (owner->m_gameObject->m_typeID == 3 && !owner->m_displayState) {
+                CGGameUI::DisplayError(ERR_CHEST_IN_USE);
+            }
+
+            return false;
+        }
+
+        if (lock->m_type[0] != 1) {
+            if (lock->m_type[0] == 2) {
+                LockTypeRec* lockType = g_lockTypeDB.GetRecord(lock->m_index[0]);
+                int32_t required = lock->m_skill[0] ? lock->m_skill[0] : 5 * owner->m_gameObject->m_level;
+
+                if (spellId) {
+                    CGGameUI::DisplayError(ERR_USE_LOCKED_WITH_SPELL_KNOWN_SI, lockType ? lockType->m_name : "UNKNOWN", required);
+                } else {
+                    CGGameUI::DisplayError(ERR_USE_LOCKED_WITH_SPELL_S, lockType ? lockType->m_name : "UNKNOWN");
+                }
+            } else if (lock->m_type[0] == 3) {
+                SpellRec spell;
+
+                if (g_spellDB.GetRecord(lock->m_index[0], &spell)) {
+                    CGGameUI::DisplayError(ERR_USE_LOCKED_WITH_SPELL_S, spell.m_name);
+                }
+            } else {
+                CGGameUI::DisplayError(ERR_USE_CANT_OPEN);
+            }
+
+            return false;
+        }
+
+        WOWGUID guid = owner->m_obj->m_guid;
+        ItemStats_C* stats = g_itemDBCache.GetRecord(lock->m_index[0], guid, nullptr, nullptr, false);
+
+        if (stats) {
+            CGGameUI::DisplayError(ERR_USE_LOCKED_WITH_ITEM_S, stats->GetName(0));
+        }
+
+        return false;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (spellId) {
+        WOWGUID none = WOWGUID();
+
+        if (!Spell_C::CastSpell(spellId, key, none, false)) {
+            return false;
+        }
+
+        Spell_C_HandleSpriteClick(this->m_owner, nullptr);
+    } else {
+        if (!player) {
+            return false;
+        }
+
+        if (player->m_mountDisplayId > 0 && !(player->m_clientFlags & 0x10000000) && !this->m_owner->IsUsableMounted()) {
+            player->Dismount();
+        }
+
+        if (player->IsShapeShifted()) {
+            SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecord(player->GetShapeshiftForm());
+
+            if (!form || !(form->m_flags & 0x8)) {
+                player->CancelShapeshift();
+            }
+        }
+
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_GAME_OBJ_USE));
+        msg.Put(this->m_owner->m_obj->m_guid.m_guid);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    if (player && player->HasVehicleTransport()) {
+        player->CheckVehicleExitOnCast();
+    }
+
+    return true;
+}
+
+// VERIFY: dd557bea manual
+// OFFSET: 0x00712080
+bool CGGameObject_C_Type_Ritual::CanUseNow(GAME_ERROR_TYPE* error, float* distance, const char** errorText) const {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return false;
+    }
+
+    SpellRec spell;
+    CGGameObject_C* owner = this->m_owner;
+    int32_t spellId = owner->GetPropertyValue(CGameObjectDef::GetPropNum(owner->m_gameObject->m_typeID, 10));
+
+    if (g_spellDB.GetRecord(spellId, &spell) && (spell.m_attributes & 0x10000000) && player->IsInCombat() && !player->IgnoresAuraState(&spell)) {
+        return false;
+    }
+
+    const WOWGUID& creator = this->m_owner->m_gameObject->m_createdBy;
+
+    if (!(creator.m_guid & 0xF000000000000000ULL) && (creator.m_guid & 0xF07FFFFFFFFFFFFFULL)) {
+        CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(creator, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (!caster || (!player->IsInMyPartyOrRaid(caster) && !player->IsInMyParty(caster))) {
+            return false;
+        }
+    }
+
+    return CGGameObject_C_TypeBase::CanUseNow(error, distance, errorText);
+}
+
+// VERIFY: 27f027c7 auto
+// OFFSET: 0x007121E0
+int32_t CGGameObject_C_Type_MeetingStone::CheckUseRange(uint32_t level) const {
+    CGGameObject_C* owner = this->m_owner;
+
+    if (level < owner->GetPropertyValue(CGameObjectDef::GetPropNum(owner->m_gameObject->m_typeID, 51))) {
+        return false;
+    }
+
+    owner = this->m_owner;
+    return level <= owner->GetPropertyValue(CGameObjectDef::GetPropNum(owner->m_gameObject->m_typeID, 52));
+}
+
+// VERIFY: 3fa35c2b manual
+// OFFSET: 0x00712270
+bool CGGameObject_C_Type_MeetingStone::Use() {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return false;
+    }
+
+    if (!CGPartyInfo::m_members[0] && !CGRaidInfo::m_numMembers) {
+        CGGameUI::DisplayError(ERR_MEETING_STONE_NEED_PARTY);
+        return false;
+    }
+
+    if (!CGGameUI::m_lockedTarget) {
+        CGGameUI::DisplayError(ERR_GENERIC_NO_TARGET);
+        return false;
+    }
+
+    if (!this->CheckUseRange(player->m_unit->m_unitFieldLevel)) {
+        CGGameUI::DisplayError(ERR_MEETING_STONE_INVALID_LEVEL);
+        return false;
+    }
+
+    if (!CGPartyInfo::IsMember(CGGameUI::m_lockedTarget) && !IsGuidInMyRaid(CGGameUI::m_lockedTarget)) {
+        CGGameUI::DisplayError(ERR_MEETING_STONE_TARGET_NOT_IN_PARTY);
+        return false;
+    }
+
+    uint32_t level;
+    CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_lockedTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (target) {
+        level = target->m_unit->m_unitFieldLevel;
+    } else {
+        WOWGUID guid = CGGameUI::m_lockedTarget;
+        CGPartyMemberState* stats = CGPartyInfo::GetRemoteStats(guid);
+
+        if (!stats) {
+            stats = CGRaidInfo::GetRemoteStats(guid);
+        }
+
+        if (!stats || !stats->m_level || !(stats->m_flags & 0x1)) {
+            CGGameUI::DisplayError(ERR_MEETING_STONE_NOT_FOUND);
+            return false;
+        }
+
+        level = stats->m_level;
+    }
+
+    if (this->CheckUseRange(level)) {
+        return CGGameObject_C_TypeBase::Use();
+    }
+
+    CGGameUI::DisplayError(ERR_MEETING_STONE_TARGET_INVALID_LEVEL);
+    return false;
+}
+
+// VERIFY: 0015bde7 auto
+// OFFSET: 0x007124A0
+void CGGameObject_C::UpdateInteractIcon() {
+    this->CGObject_C::UpdateInteractIcon();
+    this->CheckForPassiveHighlight();
+}
+
+// VERIFY: cf171b41 auto
+// OFFSET: 0x00713130
+void CGGameObject_C::PostReenable() {
+    this->m_passenger.Reenable();
+    this->CGObject_C::PostReenable();
+
+    if (this->m_stats) {
+        this->m_typeData->PostReenable();
+        this->CheckForPassiveHighlight();
+        return;
+    }
+
+    WOWGUID guid = this->m_obj->m_guid;
+    GameObjectStats_C* stats = g_gameObjectDBCache.GetRecord(this->m_obj->m_entryID, guid, GameObjectStatsCallback, this, false);
+
+    if (stats) {
+        this->LoadBaseObject(stats);
     }
 }

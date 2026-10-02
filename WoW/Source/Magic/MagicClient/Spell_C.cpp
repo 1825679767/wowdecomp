@@ -944,7 +944,7 @@ void ClearSpellCastState(CGUnit_C* unit, PendingSpellCast* cast, const SpellRec*
     unit->StopUpdatingMissileTrajectory(cast->m_data.m_spellId);
 }
 
-// VERIFY: 29db1480 manual
+// VERIFY: 4345f843 manual
 // OFFSET: 0x007FA2E0
 void SpellVisualsHandleCastStart(CGUnit_C* unit, PendingSpellCastData* data, const SpellRec* spell) {
     if (!unit) {
@@ -990,7 +990,7 @@ void SpellVisualsHandleCastStart(CGUnit_C* unit, PendingSpellCastData* data, con
         }
 
         if (visual->m_flags & 0x20) {
-            unit->ApplySpellVisualTrail(visual, data->m_castCount);
+            unit->AttachPrecastMissileModel(visual, data->m_castCount);
         }
     }
 }

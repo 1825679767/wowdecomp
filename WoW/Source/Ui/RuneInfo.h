@@ -27,6 +27,8 @@ class CGRuneInfo {
     static bool IsRuneIndexValid(int32_t index);
     static int32_t GetRuneTypeByIndex(int32_t index, bool base);
     static uint32_t GetRuneLastUsedTime(int32_t index);
+    static void SetRuneLastUsedTime(int32_t index, uint32_t time);
+    static void ComputeRuneRechargeTime(int32_t index, float progress);
 };
 
 #endif

@@ -1,4 +1,24 @@
 #include "Player_C.h"
+#include <malloc.h>
+#include "Engine/Source/Tempest/CRandom.h"
+#include "WoW/Source/DB/Rec/DanceMovesRec.h"
+#include "WoW/Source/DB/Rec/SpellCastTimesRec.h"
+#include "WoW/Source/DB/Rec/SpellVisualKitRec.h"
+#include "WoW/Source/DB/Rec/SpellVisualRec.h"
+#include "WoW/Source/DB/Rec/ItemBagFamilyRec.h"
+#include "WoW/Source/DB/Rec/TeamContributionPointsRec.h"
+#include "WoW/Source/DB/Rec/VehicleRec.h"
+#include "WoW/Source/Object/ObjectClient/Effect_C.h"
+#include "WoW/Source/Object/ObjectClient/UnitSound_C.h"
+#include "WoW/Source/Object/ObjectClient/VisibleItem_C.h"
+#include "WoW/Source/Game/GameClient/ComSatClient.h"
+#include "WoW/Source/Game/GameClient/CDrawBowString.h"
+#include "WoW/Source/Ui/ItemTextFrame.h"
+#include "WoW/Source/Ui/PetitionInfo.h"
+#include "WoW/Source/Ui/RuneInfo.h"
+#include "WoW/Source/Ui/GossipInfo.h"
+#include "WoW/Source/Client.h"
+#include "WoW/Source/WowServices/WDataStore.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
@@ -2756,7 +2776,7 @@ void __stdcall CGPlayer_C::ClearAFK(int32_t force) {
     ClientServices::Send2(&msg);
 }
 
-// VERIFY: f4bf6af2 manual
+// VERIFY: aeb9ac80 manual
 // OFFSET: 0x006E6B40
 CGPlayer_C::CGPlayer_C(uint32_t time, const CClientObjCreate& create)
     : CGUnit_C(time, create),
@@ -2796,8 +2816,8 @@ CGPlayer_C::CGPlayer_C(uint32_t time, const CClientObjCreate& create)
     this->m_gemCounts[1] = 0;
     this->m_gemCounts[2] = 0;
     this->m_gemCounts[3] = 0;
-    this->unk_1944 = 0;
-    this->unk_1948 = 0;
+    this->m_dance = nullptr;
+    this->m_danceMoveIndex = 0;
 
     if (create.m_updateFlags & 0x1) {
         Unk7FE510(static_cast<uint32_t>(this->m_obj->m_guid.m_guid));
@@ -10948,7 +10968,7 @@ int32_t __stdcall CGPlayer_C::CanSummonFriend(WOWGUID guid) {
     return Spell_C_GetSpellCooldown(CGSpellBook::m_summonFriendSpell, 0, nullptr, nullptr, nullptr) ? 11 : 0;
 }
 
-// VERIFY: 6fcd5d9e auto
+// VERIFY: 0c3db187 auto
 // OFFSET: 0x006D7720
 int32_t CGPlayer_C::UpdateMountedCollisionBox(float mountHeight, int32_t force) {
     CreatureDisplayInfoRec* displayInfo = g_creatureDisplayInfoDB.GetRecord(this->m_unit->m_unitFieldNativedisplayid);
@@ -10966,7 +10986,7 @@ int32_t CGPlayer_C::UpdateMountedCollisionBox(float mountHeight, int32_t force) 
         height = modelData->m_collisionHeight;
     } else if (!force && this->IsActivePlayer()) {
         C3Vector position = this->GetPosition();
-        CAaBox box(position, position);
+        CAaBox box(position);
         box.b.z = this->m_movementData.m_collisionHeight + box.b.z;
         box.t.z = height * scale + box.t.z;
         box.b.x = box.b.x - this->m_movementData.m_collisionRadius;
@@ -13177,4 +13197,1521 @@ void CGPlayer_C::SendTextEmote(const EmotesTextRec* emote, WOWGUID target) {
     msg.Put(target.m_guid);
     msg.Finalize();
     ClientServices::Send2(&msg);
+}
+
+// VERIFY: e2d4b50d manual
+// OFFSET: 0x006CF300
+void CGPlayer_C::StopDance() {
+    PlayerDance* dance = this->m_dance;
+
+    if (dance) {
+        delete[] dance->m_moves;
+        dance->m_moves = nullptr;
+        delete dance;
+    }
+
+    this->m_dance = nullptr;
+}
+
+// VERIFY: 36496829 manual
+// OFFSET: 0x006DE870
+void CGPlayer_C::Dance() {
+    PlayerDance* dance = this->m_dance;
+
+    if (!dance) {
+        return;
+    }
+
+    int32_t index = this->m_danceMoveIndex;
+
+    if (index < dance->m_count) {
+        DanceMovesRec* move = g_danceMovesDB.GetRecord(dance->m_moves[index]);
+
+        if (move) {
+            this->PlayDanceMove(move);
+        } else {
+            char text[512];
+            SStrPrintf(text, sizeof(text), "ERROR! danceMovesDB does not have record id %d", dance->m_moves[index]);
+            ConsoleWrite(text, ERROR_COLOR);
+        }
+
+        return;
+    }
+
+    delete[] dance->m_moves;
+    dance->m_moves = nullptr;
+    delete dance;
+    this->m_dance = nullptr;
+
+    WDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_STOP_DANCE));
+    msg.Put(static_cast<uint8_t>(0));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    this->UpdateBaseAnimation(0, -1);
+}
+
+// VERIFY: fb947d00 auto
+// OFFSET: 0x006E1780
+void CGPlayer_C::StartDance(PlayerDance* dance) {
+    if (this->m_dance) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    this->m_dance = dance;
+    this->m_danceMoveIndex = dance->m_start;
+    this->Dance();
+}
+
+// VERIFY: daebf535 manual
+// OFFSET: 0x006E17C0
+void CGPlayer_C::DanceMoveComplete() {
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_SYNC_DANCE));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    this->m_danceMoveIndex++;
+    this->Dance();
+}
+
+// VERIFY: 5cf70f73 manual
+// OFFSET: 0x006E1890
+static int32_t DanceTimerCallback(const void* data, uint64_t guid, void* param) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(WOWGUID{ guid }, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        player->DanceMoveComplete();
+    }
+
+    return 1;
+}
+
+// VERIFY: 1a816aa2 manual
+// OFFSET: 0x006E18D0
+void CGPlayer_C::PlayDanceMove(const DanceMovesRec* move) {
+    switch (move->m_type) {
+        case 0:
+            this->PlayBaseAnimation(move->m_param, 0);
+            break;
+
+        case 1: {
+            SpellVisualKitRec* kit = g_spellVisualKitDB.GetRecord(move->m_param);
+
+            if (kit) {
+                PlaySpellVisuaKitData data(nullptr, kit, 0);
+                this->PlaySpellVisualKit(data);
+            }
+
+            break;
+        }
+
+        case 2: {
+            C3Vector position = this->GetPosition();
+            CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+            if (player && (CGPartyInfo::IsMember(this->m_obj->m_guid) || player->m_unit->m_unitFieldTarget == this->m_obj->m_guid || ClntObjMgrGetActivePlayer() == this->m_obj->m_guid)) {
+                SI2::PlaySoundKit(move->m_param, &position, nullptr, nullptr, 0, nullptr, 1, 0);
+            }
+
+            this->DanceMoveComplete();
+            break;
+        }
+
+        case 3:
+        case 4: {
+            ClientSetTimer(1000 * move->m_param, DanceTimerCallback, this->m_obj->m_guid.m_guid, nullptr);
+
+            if (move->m_type == 4) {
+                DanceMovesRec* previous = g_danceMovesDB.GetRecord(this->m_dance->m_moves[this->m_danceMoveIndex - 1]);
+
+                if (previous->m_type == 4 || previous->m_type == 3) {
+                    SErrDisplayAppFatalMessage("", "", 0);
+                }
+
+                this->PlayDanceMove(previous);
+            }
+
+            break;
+        }
+
+        default:
+            break;
+    }
+}
+
+// VERIFY: e19725e3 auto
+// OFFSET: 0x006E2E10
+void CGPlayer_C::DanceMoveAnimComplete() {
+    PlayerDance* dance = this->m_dance;
+
+    if (!dance) {
+        return;
+    }
+
+    int32_t index = this->m_danceMoveIndex;
+    DanceMovesRec* move = g_danceMovesDB.GetRecord(dance->m_moves[index]);
+
+    if (move->m_type == 4 && index > 0) {
+        this->PlayDanceMove(g_danceMovesDB.GetRecord(dance->m_moves[index - 1]));
+    } else {
+        this->DanceMoveComplete();
+    }
+}
+
+// VERIFY: 2c8a74b4 manual
+// OFFSET: 0x006E5090
+void CGPlayer_C::DestructActivePlayer() {
+    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    if (ClntObjMgrGetPlayerType() != 1) {
+        if (this->m_unit->m_unitFieldFlags & 0x80000) {
+            CGGameUI::SetRegenEnabled(1);
+        }
+
+        CGGameUI::LeaveWorld();
+    }
+
+    for (uint32_t i = 0; i < 1002; i++) {
+        this->m_playerLocalMirrorLists[i].~TSList<void>();
+    }
+
+    Spell_C_SetAutoRangedCombatSpell(0);
+    EventUnregister(EVENT_ID_IDLE, CGPlayer_C::AutoCombatModeEventHandler);
+    this->m_combatModeFlags &= ~0xEu;
+    CGGameUI::UpdateCombatMode();
+    s_unk_C9EAB0 = 0;
+    s_unk_C9EAB4 = 0;
+}
+
+// VERIFY: 87e023cc manual
+// OFFSET: 0x006E6020
+void CGPlayer_C::Disable() {
+    int32_t guildId = this->m_player->m_playerGuildid;
+
+    if (guildId) {
+        WOWGUID none = WOWGUID();
+
+        if (!g_guildInfoCache.GetRecord(guildId, none, nullptr, nullptr, false)) {
+            g_guildInfoCache.CancelCallback(this->m_player->m_playerGuildid, PlayerNameGuildCallback, this);
+            g_guildInfoCache.CancelCallback(this->m_player->m_playerGuildid, CGPlayer_C::TabardDrawCallback, this);
+        }
+    }
+
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        this->UnsetActiveMirrorHandlers();
+        CGGameUI::CancelMirrorTimers();
+        CGGameUI::LeaveWorld();
+    }
+
+    CGPartyInfo::EnableMember(this, 0);
+    CGRaidInfo::EnableMember(this, 0);
+
+    if (this->m_obj->m_guid == CGPetitionInfo::m_petitionItem) {
+        CGPetitionInfo::SetPetition(WOWGUID(), 0, WOWGUID());
+    }
+
+    CGUnit_C::Disable();
+    PlayerDance* dance = this->m_dance;
+
+    if (dance) {
+        delete[] dance->m_moves;
+        dance->m_moves = nullptr;
+        delete dance;
+    }
+
+    this->m_dance = nullptr;
+
+    if (s_inspectData && s_inspectData->m_guid == this->m_obj->m_guid) {
+        s_inspectData->m_guid = WOWGUID();
+    }
+}
+
+// VERIFY: cdeaa713 manual
+// OFFSET: [0x006E6FE0, 0x006E78D0]
+CGPlayer_C::~CGPlayer_C() {
+    this->m_tradeSkillLines.InternalClear(0);
+    this->m_proficiencySpells.InternalClear(0);
+    this->m_pendingItemExpirations.Clear();
+
+    if (!(this->m_modelFlags & 0x10000)) {
+        CGPartyInfo::EnableMember(this, 0);
+        CGRaidInfo::EnableMember(this, 0);
+    }
+
+    int32_t guildId = this->m_player->m_playerGuildid;
+
+    if (guildId) {
+        WOWGUID none = WOWGUID();
+
+        if (!g_guildInfoCache.GetRecord(guildId, none, nullptr, nullptr, false)) {
+            g_guildInfoCache.CancelCallback(this->m_player->m_playerGuildid, PlayerNameGuildCallback, this);
+            g_guildInfoCache.CancelCallback(this->m_player->m_playerGuildid, CGPlayer_C::TabardDrawCallback, this);
+        }
+    }
+
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        this->DestructActivePlayer();
+    }
+
+    PlayerDance* dance = this->m_dance;
+
+    if (dance) {
+        delete[] dance->m_moves;
+        dance->m_moves = nullptr;
+        delete dance;
+    }
+
+    this->m_dance = nullptr;
+}
+
+// VERIFY: f05ee4d4 auto
+// OFFSET: 0x006D68D0
+int32_t CGPlayer_C::GetSpellCastingTime(const SpellRec* spell) const {
+    if (!spell) {
+        return 0;
+    }
+
+    SpellCastTimesRec* castTime = g_spellCastTimesDB.GetRecord(spell->m_castingTimeIndex);
+
+    if (!castTime) {
+        return 0;
+    }
+
+    int32_t time = castTime->m_base + castTime->m_perLevel * static_cast<int32_t>(static_cast<uint32_t>(this->GetSpellRank(spell)) / 5 - spell->m_baseLevel);
+
+    if (time < castTime->m_minimum) {
+        time = castTime->m_minimum;
+    }
+
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        Spell_C_ModifySpellValue(spell, time, 10);
+    }
+
+    if (!(spell->m_attributes & 0x30) && !(spell->m_attributesExC & 0x20000000) && time > 0) {
+        CGUnitData* unit = this->m_unit;
+
+        if (fnotequal(unit->m_unitModCastSpeed, 1.0f)) {
+            time = static_cast<int32_t>(time * unit->m_unitModCastSpeed);
+        }
+    }
+
+    if (spell->m_attributes & 0x2) {
+        time += 500;
+    }
+
+    return time <= 0 ? 0 : time;
+}
+
+// VERIFY: b8dca1f6 auto
+// OFFSET: 0x006DC330
+int32_t CGPlayer_C::GetSpellRank(const SpellRec* spell) const {
+    SpellRec weaponSpell;
+    const SpellRec* rankSpell = spell;
+    int32_t spellId = const_cast<CGPlayer_C*>(this)->SpellUsesWeaponSkill(spell);
+
+    if (spellId != spell->m_id) {
+        if (!g_spellDB.GetRecord(spellId, &weaponSpell)) {
+            return 0;
+        }
+
+        rankSpell = &weaponSpell;
+    }
+
+    SkillLineAbilityRec* ability = SpellTableLookupAbility(this->m_unit->m_unitFieldBytes0[0], this->m_unit->m_unitFieldBytes0[1], spellId);
+
+    if (!ability) {
+        return 0;
+    }
+
+    int32_t rank = this->GetSkillRank(ability->m_skillLine);
+    int32_t maxLevel = rankSpell->m_maxLevel;
+
+    if (maxLevel > 0 && rank >= 5 * maxLevel) {
+        rank = 5 * maxLevel;
+    }
+
+    if (rank < 0) {
+        rank = 0;
+    }
+
+    return rank;
+}
+
+// VERIFY: fe044af3 auto
+// OFFSET: 0x006DE6D0
+void CGPlayer_C::GetDefenseSkillRank(int32_t& rank, int32_t& bonus) const {
+    int32_t defenseSpell = s_unk_C9D33C;
+    bonus = 0;
+    rank = 0;
+    SkillLineAbilityRec* ability = SpellTableLookupAbility(this->m_unit->m_unitFieldBytes0[0], this->m_unit->m_unitFieldBytes0[1], defenseSpell);
+
+    if (ability && ability->m_spell == s_unk_C9D33C) {
+        this->GetExpandedSkillRank(ability->m_skillLine, rank, bonus);
+    }
+
+    bonus += static_cast<int32_t>(const_cast<CGPlayer_C*>(this)->GetCombatRatingPct(1) - 0.5f);
+}
+
+// VERIFY: 7a00b174 manual
+// OFFSET: 0x006E0C30
+void CGPlayer_C::GetAttackSkillRank(int32_t hand, int32_t& rank, int32_t& bonus) const {
+    bonus = 0;
+    rank = 0;
+    int32_t skillSpell = 0;
+
+    if (hand < 3) {
+        const CGUnitVirtualItem* item = this->GetVirtualItem(hand, false);
+        uint32_t subclass;
+
+        if (!item) {
+            subclass = ClientDBGetUnarmedWeapon();
+        } else if (item->m_classID == 2) {
+            subclass = item->m_subclassID;
+        } else {
+            subclass = 0xFFFFFFFF;
+        }
+
+        if (subclass < s_weaponSkills.Count()) {
+            skillSpell = s_weaponSkills.m_data[subclass];
+        }
+    }
+
+    SkillLineAbilityRec* ability = SpellTableLookupAbility(this->m_unit->m_unitFieldBytes0[0], this->m_unit->m_unitFieldBytes0[1], skillSpell);
+
+    if (ability && ability->m_spell == skillSpell) {
+        this->GetExpandedSkillRank(ability->m_skillLine, rank, bonus);
+    }
+
+    CGPlayer_C* player = const_cast<CGPlayer_C*>(this);
+    bonus += static_cast<int32_t>(player->GetCombatRatingPct(0) - 0.5f);
+
+    if (hand == 0) {
+        bonus += static_cast<int32_t>(player->GetCombatRatingPct(20) - 0.5f);
+    } else if (hand == 1) {
+        bonus += static_cast<int32_t>(player->GetCombatRatingPct(21) - 0.5f);
+    }
+}
+
+// VERIFY: a1437c5c manual
+// OFFSET: 0x006E04D0
+const CGUnitVirtualItem* CGPlayer_C::GetVirtualItem(uint32_t slot, bool ignoreDisarm) const {
+    VisibleItem_C* item = nullptr;
+
+    if (slot == 0) {
+        if (!ignoreDisarm && this->IsDisarmed(0)) {
+            return nullptr;
+        }
+
+        item = &this->m_player->m_playerVisibleItems[15];
+    } else if (slot == 1) {
+        if (!ignoreDisarm && this->IsDisarmed(1)) {
+            return nullptr;
+        }
+
+        item = &this->m_player->m_playerVisibleItems[16];
+    } else if (slot == 2) {
+        if (!ignoreDisarm && (this->m_unit->m_unitFieldFlags2 & 0x400)) {
+            return nullptr;
+        }
+
+        item = &this->m_player->m_playerVisibleItems[17];
+    }
+
+    if ((ignoreDisarm || (item && item->m_itemId > 0)) && item && abs(item->m_itemId)) {
+        CGUnitVirtualItem* virtualItem = &const_cast<CGPlayer_C*>(this)->m_virtualItems[slot];
+        virtualItem->m_classID = item->GetClassID();
+        virtualItem->m_subclassID = item->GetSubtypeID();
+        virtualItem->m_material = item->GetMaterial();
+        virtualItem->m_inventoryType = item->GetInventoryType();
+        virtualItem->m_sheatheType = item->GetSheatheType();
+        virtualItem->m_soundOverrideSubclassID = item->GetSoundOverrideSubclassID();
+        return virtualItem;
+    }
+
+    return nullptr;
+}
+
+// VERIFY: db19cffe manual
+// OFFSET: 0x006E05D0
+uint32_t CGPlayer_C::GetVirtualItemDisplayID(uint32_t slot) const {
+    VisibleItem_C* item;
+
+    if (slot == 0) {
+        if (this->IsDisarmed(0)) {
+            return 0;
+        }
+
+        item = &this->m_player->m_playerVisibleItems[15];
+    } else if (slot == 1) {
+        if (this->IsDisarmed(1)) {
+            return 0;
+        }
+
+        item = &this->m_player->m_playerVisibleItems[16];
+    } else if (slot == 2) {
+        item = &this->m_player->m_playerVisibleItems[17];
+    } else {
+        return 0;
+    }
+
+    return item ? item->GetDisplayID() : 0;
+}
+
+// VERIFY: 5d485eba manual
+// OFFSET: 0x0073C1D0
+void CGPlayer_C::OnSpellEffectClear(CEffect* effect) {
+    bool updateAnimation = effect->m_kitRec && effect->m_kitRec->m_animID > 0 && (effect->m_flags & 0x1000);
+    CGObject_C::OnSpellEffectClear(effect);
+
+    if (updateAnimation) {
+        this->UpdateBaseAnimation(0, -1);
+    }
+}
+
+// STATIC: 0x00ADBA74
+static const uint32_t s_playerSoundChance[14] = { 35, 100, 30, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 0 };
+
+// VERIFY: 904e0dd6 manual
+// OFFSET: 0x007631A0
+void CGPlayer_C::PlayUnitSound(uint32_t soundType, int32_t force) {
+    if (!force && static_cast<uint32_t>((static_cast<uint64_t>(CRandom::uint32_(g_rndSeed)) * 101) >> 32) > s_playerSoundChance[soundType]) {
+        return;
+    }
+
+    if (!CheckUnitSoundTimer(soundType)) {
+        return;
+    }
+
+    int32_t soundKitId = GetSoundID(this->GetSoundData(), soundType);
+
+    if (!soundKitId) {
+        return;
+    }
+
+    int32_t group;
+
+    if ((soundType == 2 || soundType == 3 || soundType == 9) && this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        group = 12;
+    } else {
+        group = this->GetUnitSoundKitIndex(soundType);
+    }
+
+    C3Vector position = this->GetPosition();
+    position.z += 2.0f;
+    static CVar* s_listenerAtCharacter = CVar::Lookup("Sound_ListenerAtCharacter");
+    int32_t listenerAtCharacter = s_listenerAtCharacter->m_intValue;
+    SE2SoundKitProperties properties;
+    const C3Vector* soundPosition;
+
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        properties.ResetToDefaults();
+        properties.m_group = group;
+
+        if (listenerAtCharacter) {
+            properties.m_volumeScale = 0.64999998f;
+        }
+
+        properties.m_priority = 110;
+
+        if (soundType == 7) {
+            properties.m_maxAudibleBehavior = 0;
+        } else if (soundType != 5 && soundType != 6 && soundType != 10 && soundType != 11 && soundType != 12 && soundType != 13 && this->m_unit->m_unitFieldBytes0[1] == 6) {
+            properties.m_useDspChain = 1;
+            SI2::DK_GetPlayerFilterName(this, properties.m_dspChainName, sizeof(properties.m_dspChainName));
+        }
+
+        soundPosition = listenerAtCharacter ? nullptr : &position;
+    } else {
+        properties.ResetToDefaults();
+        properties.m_group = group;
+
+        if (soundType != 5 && soundType != 6 && soundType != 7 && soundType != 10 && soundType != 11 && soundType != 12 && soundType != 13 && this->m_unit->m_unitFieldBytes0[1] == 6) {
+            properties.m_useDspChain = 1;
+            SI2::DK_GetPlayerFilterName(this, properties.m_dspChainName, sizeof(properties.m_dspChainName));
+        }
+
+        soundPosition = &position;
+    }
+
+    SI2::PlaySoundKit(soundKitId, soundPosition, nullptr, &properties, 0, nullptr, 1, 0);
+}
+
+// VERIFY: f8cee1ae manual
+// OFFSET: 0x007633F0
+void CGPlayer_C::PlayFoleySound() {
+    static CVar* s_enableForSelf = CVar::Lookup("Sound_EnableArmorFoleySoundForSelf");
+    static CVar* s_enableForOthers = CVar::Lookup("Sound_EnableArmorFoleySoundForOthers");
+
+    if ((this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && s_enableForSelf && s_enableForSelf->m_intValue) || (this->m_obj->m_guid != ClntObjMgrGetActivePlayer() && s_enableForOthers && s_enableForOthers->m_intValue)) {
+        VisibleItem_C* chest = const_cast<VisibleItem_C*>(this->GetVisibleItem(4));
+
+        if (chest) {
+            int32_t local = this->m_obj->m_guid == ClntObjMgrGetActivePlayer();
+            C3Vector position = this->GetPosition();
+            SI2::PlayFoleySound(chest->GetMaterial(), &position, local);
+        }
+    }
+}
+
+// STATIC: 0x00C9EB0C
+static uint32_t s_talentWipeCost;
+
+// VERIFY: 0a6ad881 manual
+// OFFSET: 0x006CEFD0
+int32_t CGPlayer_C::OnSignedResults(CDataStore* msg) {
+    WOWGUID petition;
+    msg->Get(petition.m_guid);
+    WOWGUID signer;
+    msg->Get(signer.m_guid);
+    uint32_t result;
+    msg->Get(result);
+
+    if (signer != this->m_obj->m_guid) {
+        CGPetitionInfo::AddSignature(petition, signer);
+        return 1;
+    }
+
+    switch (result) {
+        case 0:
+            CGGameUI::DisplayError(ERR_PETITION_SIGNED);
+            FrameScript_SignalEvent(SCRIPT_EVENT_PETITION_CLOSED, nullptr);
+            break;
+        case 1:
+            CGGameUI::DisplayError(ERR_PETITION_ALREADY_SIGNED);
+            break;
+        case 2:
+            CGGameUI::DisplayError(ERR_PETITION_IN_GUILD);
+            break;
+        case 3:
+            CGGameUI::DisplayError(ERR_PETITION_CREATOR);
+            break;
+        case 5:
+            CGGameUI::DisplayError(ERR_PETITION_NOT_SAME_SERVER);
+            break;
+        case 8:
+            CGGameUI::DisplayError(ERR_PETITION_FULL);
+            break;
+        case 10:
+            CGGameUI::DisplayError(ERR_PETITION_ALREADY_SIGNED_OTHER);
+            break;
+        case 11:
+            CGGameUI::DisplayError(ERR_PETITION_RESTRICTED_ACCOUNT);
+            break;
+        default:
+            ConsoleWrite("Petition error", DEFAULT_COLOR);
+            break;
+    }
+
+    return 1;
+}
+
+// VERIFY: c09c936c auto
+// OFFSET: 0x006D12C0
+int32_t __stdcall CGPlayer_C::OnTrainerList(CDataStore* msg) {
+    WOWGUID trainer;
+    msg->Get(trainer.m_guid);
+    uint32_t type;
+    msg->Get(type);
+    uint32_t count;
+    msg->Get(count);
+
+    int32_t* spellIds = static_cast<int32_t*>(alloca(sizeof(int32_t) * count));
+    uint8_t* states = static_cast<uint8_t*>(alloca(count));
+    int32_t* moneyCosts = static_cast<int32_t*>(alloca(sizeof(int32_t) * count));
+    int32_t* talentCosts = static_cast<int32_t*>(alloca(sizeof(int32_t) * count));
+    int32_t* professionCosts = static_cast<int32_t*>(alloca(sizeof(int32_t) * count));
+    uint8_t* levelReqs = static_cast<uint8_t*>(alloca(count));
+    int32_t* skillReqs = static_cast<int32_t*>(alloca(sizeof(int32_t) * count));
+    int32_t* skillRankReqs = static_cast<int32_t*>(alloca(sizeof(int32_t) * count));
+    int32_t* stepSpells = static_cast<int32_t*>(alloca(sizeof(int32_t) * count));
+    int32_t* abilityReqs0 = static_cast<int32_t*>(alloca(sizeof(int32_t) * count));
+    int32_t* abilityReqs1 = static_cast<int32_t*>(alloca(sizeof(int32_t) * count));
+    int32_t* abilityReqs2 = static_cast<int32_t*>(alloca(sizeof(int32_t) * count));
+
+    for (uint32_t i = 0; i < count; i++) {
+        msg->Get(reinterpret_cast<uint32_t&>(spellIds[i]));
+        msg->Get(states[i]);
+        msg->Get(reinterpret_cast<uint32_t&>(moneyCosts[i]));
+        msg->Get(reinterpret_cast<uint32_t&>(talentCosts[i]));
+        msg->Get(reinterpret_cast<uint32_t&>(professionCosts[i]));
+        msg->Get(levelReqs[i]);
+        msg->Get(reinterpret_cast<uint32_t&>(skillReqs[i]));
+        msg->Get(reinterpret_cast<uint32_t&>(skillRankReqs[i]));
+        stepSpells[i] = 0;
+        msg->Get(reinterpret_cast<uint32_t&>(abilityReqs0[i]));
+        msg->Get(reinterpret_cast<uint32_t&>(abilityReqs1[i]));
+        msg->Get(reinterpret_cast<uint32_t&>(abilityReqs2[i]));
+    }
+
+    char greeting[2048];
+    msg->GetString(greeting, sizeof(greeting));
+    const int32_t* pointCosts[2] = { talentCosts, professionCosts };
+    const int32_t* abilityReqs[3] = { abilityReqs0, abilityReqs1, abilityReqs2 };
+
+    if (trainer == s_lastTrainerRequest || trainer == CGGossipInfo::m_gossip) {
+        CGClassTrainer::SetTrainer(trainer, type);
+        CGClassTrainer::AddServices(count, spellIds, moneyCosts, pointCosts, levelReqs, skillReqs, skillRankReqs, stepSpells, abilityReqs, states, greeting);
+    }
+
+    return 1;
+}
+
+// VERIFY: 17f8c3c1 manual
+// OFFSET: 0x006D2840
+void CGPlayer_C::TabardDrawCallback(int32_t guildID, const WOWGUID& guid, void* param, bool success) {
+    if (!guildID || !success) {
+        return;
+    }
+
+    WOWGUID none = WOWGUID();
+
+    if (!g_guildInfoCache.GetRecord(guildID, none, nullptr, nullptr, false)) {
+        return;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return;
+    }
+
+    int32_t emblemStyle;
+    int32_t emblemColor;
+    int32_t borderStyle;
+    int32_t borderColor;
+    int32_t background;
+
+    if (GuildGetGuildTabard(guid, guildID, nullptr, nullptr, emblemStyle, emblemColor, borderStyle, borderColor, background) && player->m_characterComponent) {
+        player->m_characterComponent->ApplyGuildColor(emblemStyle, emblemColor, borderStyle, borderColor, background);
+    }
+}
+
+// VERIFY: 061077e2 manual
+// OFFSET: 0x006D5D90
+void __stdcall CGPlayer_C::ReadItemResult(NETMESSAGE msgId, CDataStore* msg) {
+    WOWGUID guid;
+    msg->Get(guid.m_guid);
+
+    if (msgId == SMSG_READ_ITEM_RESULT_OK) {
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (!item) {
+            return;
+        }
+
+        item->SetTranslated();
+        CGItemText::DisplayText(guid, 1);
+        return;
+    }
+
+    uint8_t result;
+    msg->Get(result);
+
+    if (!result) {
+        CGItemText::DisplayText(guid, 1);
+    } else if (result == 1) {
+        CGItemText::DisplayText(guid, 0);
+        uint32_t delay;
+        msg->Get(delay);
+        FrameScript_SignalEvent(SCRIPT_EVENT_ITEM_TEXT_TRANSLATION, "%f", delay * 0.001);
+    } else if (guid == CGItemText::m_itemGUID) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_ITEM_TEXT_CLOSED, nullptr);
+    }
+}
+
+// VERIFY: 196810c7 manual
+// OFFSET: 0x006D6720
+bool CGPlayer_C::ReportBagItemSubtypeMismatch(uint8_t bag) {
+    if (bag == 0xFF) {
+        return false;
+    }
+
+    WOWGUID guid = bag < this->m_bag.m_numSlots ? this->m_bag.m_slots[bag] : WOWGUID();
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (!item || !item->GetBagFamily()) {
+        return false;
+    }
+
+    int32_t index = CMath::fint_n(CMath::log2_(static_cast<float>(item->GetBagFamily()))) + 1;
+
+    if (!index) {
+        return false;
+    }
+
+    ItemBagFamilyRec* family = g_itemBagFamilyDB.GetRecord(index);
+
+    if (!family) {
+        return false;
+    }
+
+    CGGameUI::DisplayError(ERR_WRONG_BAG_TYPE_SUBCLASS, family->m_name);
+    return true;
+}
+
+// VERIFY: 70226cb9 manual
+// OFFSET: 0x006D67E0
+void CGPlayer_C::StartGiftWrap(CGItem_C* item) {
+    s_giftWrapItem = item->m_obj->m_guid;
+    CGGameUI::LockItem(s_giftWrapItem);
+    CursorSetResetMode(2);
+    CursorSetMode(2);
+}
+
+// VERIFY: 35dbeab8 manual
+// OFFSET: 0x006D6BA0
+void CGPlayer_C::UpdateObjComponentVisuals(const VisibleItem_C* item, GEOCOMPONENTLINKS link) {
+    int32_t visual = const_cast<VisibleItem_C*>(item)->GetItemEnchantmentVisualID();
+
+    if (visual == -1) {
+        return;
+    }
+
+    for (CM2Model* model = this->m_worldModel->m_attachList; model; model = model->m_attachNext) {
+        if (model->m_attachmentId == static_cast<uint32_t>(link)) {
+            CCharacterComponent::ComponentUtilAddItemVisual(model, visual);
+            CGGameUI::UnitModelUpdate(this->m_obj->m_guid, 3);
+            return;
+        }
+    }
+}
+
+// VERIFY: fc6715be auto
+// OFFSET: 0x006D6F40
+void CGPlayer_C::HandleSkinning(CGUnit_C* unit, bool autoInteract, bool a4) {
+    float minRange;
+    float maxRange;
+    Spell_C::GetSpellRange(this, CGSpellBook::GetSkinningSpell(unit), &minRange, &maxRange, unit);
+    C3Vector target = unit->GetPosition();
+    C3Vector position = this->GetPosition();
+    float dx = position.x - target.x;
+    float dy = position.y - target.y;
+    float dz = position.z - target.z;
+
+    if (maxRange * maxRange <= dx * dx + dz * dz + dy * dy && autoInteract) {
+        this->SetTrackingTarget(unit->m_obj->m_guid, 9);
+    } else {
+        Spell_C::CastSpell(CGSpellBook::GetSkinningSpell(unit), nullptr, unit->m_obj->m_guid, false);
+    }
+
+    if (a4) {
+        this->m_autoLoot = CGGameUI::IsAutoLooting() != 0;
+
+        if (this->m_autoLoot && this->m_lootTarget) {
+            CGLootInfo::DoAutoLoot(0);
+        }
+    }
+}
+
+// VERIFY: 1b6ef3fb manual
+// OFFSET: 0x006D73E0
+int32_t CGPlayer_C::XRayVisionEffectProc(WOWGUID guid, void* param) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit || !unit->UsesNpcBakedTexture()) {
+        return 1;
+    }
+
+    CCharacterComponent* component = unit->m_characterComponent;
+
+    if (component) {
+        component->RemoveItemBySlot(INVSLOT_HEAD);
+        component->RemoveItemBySlot(INVSLOT_SHOULDER);
+    }
+
+    unit->FreeComponent();
+    const SpellRec* spell = static_cast<const SpellRec*>(param);
+
+    if (!spell) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    const SpellVisualRec* visual = GetSpellVisual(spell);
+
+    if (visual) {
+        SpellVisualKitRec* kit = g_spellVisualKitDB.GetRecord(visual->m_targetImpactKit);
+
+        if (kit) {
+            PlaySpellVisuaKitData data(spell, kit, 6);
+            unit->PlaySpellVisualKit(data);
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: e620b509 manual
+// OFFSET: 0x006D9B40
+int32_t CGPlayer_C::OnItemRefundResult(CDataStore* msg) {
+    WOWGUID guid;
+    msg->Get(guid.m_guid);
+    uint32_t result;
+    msg->Get(result);
+
+    if (guid) {
+        ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__);
+    }
+
+    if (result) {
+        char text[256];
+
+        if (result == 10) {
+            CGGameUI::DisplayError(ERR_INV_FULL);
+        } else if (result == 11) {
+            CGGameUI::DisplayError(ERR_CURRENCY_FULL);
+        } else {
+            CGChat::AddChatMessage(FrameScript_GetText("UNABLE_TO_REFUND_ITEM", -1, GENDER_NOT_APPLICABLE), 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+        }
+
+        SStrPrintf(text, sizeof(text), "Item purchase refund error code %d", result);
+        ConsoleWrite(text, ERROR_COLOR);
+        return 1;
+    }
+
+    int32_t money;
+    msg->Get(reinterpret_cast<uint32_t&>(money));
+    int32_t honor;
+    msg->Get(reinterpret_cast<uint32_t&>(honor));
+    int32_t arena;
+    msg->Get(reinterpret_cast<uint32_t&>(arena));
+    int32_t items[5];
+    int32_t counts[5];
+
+    for (uint32_t i = 0; i < 5; i++) {
+        msg->Get(reinterpret_cast<uint32_t&>(items[i]));
+        msg->Get(reinterpret_cast<uint32_t&>(counts[i]));
+    }
+
+    char text[3000];
+    SStrPrintf(text, sizeof(text), FrameScript_GetText("ITEM_REFUND_MSG", -1, GENDER_NOT_APPLICABLE));
+    CGChat::AddChatMessage(text, 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+
+    if (money > 0) {
+        GetCurrencyText(money, text, sizeof(text), ", ");
+        CGChat::AddChatMessage(text, 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+    }
+
+    if (honor > 0) {
+        uint32_t current = this->m_player->m_playerFieldHonorCurrency;
+
+        if (current + honor <= 75000) {
+            SStrPrintf(text, sizeof(text), FrameScript_GetText("CURRENCY_AMOUNT_REFUND_FORMAT", -1, GENDER_NOT_APPLICABLE), honor, FrameScript_GetText("HONOR_POINTS", -1, GENDER_NOT_APPLICABLE));
+        } else {
+            SStrPrintf(text, sizeof(text), FrameScript_GetText("CURRENCY_AMOUNT_REFUND_FORMAT", -1, GENDER_NOT_APPLICABLE), 75000 - current, FrameScript_GetText("HONOR_POINTS", -1, GENDER_NOT_APPLICABLE));
+        }
+
+        CGChat::AddChatMessage(text, 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+    }
+
+    if (arena > 0) {
+        uint32_t current = this->m_player->m_playerFieldArenaCurrency;
+
+        if (current + arena <= 10000) {
+            SStrPrintf(text, sizeof(text), FrameScript_GetText("CURRENCY_AMOUNT_REFUND_FORMAT", -1, GENDER_NOT_APPLICABLE), arena, FrameScript_GetText("ARENA_POINTS", -1, GENDER_NOT_APPLICABLE));
+        } else {
+            SStrPrintf(text, sizeof(text), FrameScript_GetText("CURRENCY_AMOUNT_REFUND_FORMAT", -1, GENDER_NOT_APPLICABLE), 10000 - current, FrameScript_GetText("ARENA_POINTS", -1, GENDER_NOT_APPLICABLE));
+        }
+
+        CGChat::AddChatMessage(text, 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+    }
+
+    for (uint32_t i = 0; i < 5; i++) {
+        if (counts[i] <= 0) {
+            continue;
+        }
+
+        WOWGUID none = WOWGUID();
+        ItemStats_C* stats = g_itemDBCache.GetRecord(items[i], none, nullptr, nullptr, false);
+
+        if (!stats) {
+            continue;
+        }
+
+        const char* name = stats->m_name[FrameScript_GetPluralIndex(counts[i])];
+
+        if (!name || !*name) {
+            name = stats->m_name[0];
+        }
+
+        SStrPrintf(text, sizeof(text), FrameScript_GetText("CURRENCY_AMOUNT_REFUND_FORMAT", -1, GENDER_NOT_APPLICABLE), counts[i], name);
+        CGChat::AddChatMessage(text, 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+    }
+
+    return 1;
+}
+
+// VERIFY: 76b03ffe manual
+// OFFSET: 0x006DA8F0
+int32_t OnUpdatePlayerRuneRegen(WOWGUID guid, uint32_t offset, uint32_t count, const void* value, void* param) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 1;
+    }
+
+    float rate = *static_cast<const float*>(value);
+    uint32_t type = (offset - 0x1214) >> 2;
+    uint32_t predicted = CGRuneInfo::m_predictedRunes;
+    float current = player->m_player->m_playerRuneRegen1[type];
+
+    if (rate < 0.0099999998f || current < 0.0099999998f) {
+        return 1;
+    }
+
+    for (int32_t i = 0; i < 8; i++) {
+        if (static_cast<uint32_t>(CGRuneInfo::GetRuneTypeByIndex(i, false)) != type || ((1 << i) & predicted) || !CGRuneInfo::GetRuneLastUsedTime(i)) {
+            continue;
+        }
+
+        uint32_t now = FrameTime::s_curTimeMs;
+        double progress = (now - CGRuneInfo::GetRuneLastUsedTime(i)) * rate * 0.001;
+        float clamped = static_cast<float>(progress);
+
+        if (progress > 1.0) {
+            progress = 1.0;
+            clamped = 1.0f;
+        } else if (progress < 0.0) {
+            progress = 0.0;
+            clamped = 0.0f;
+        }
+
+        CGRuneInfo::SetRuneLastUsedTime(i, FrameTime::s_curTimeMs - static_cast<uint32_t>(progress * 1000.0 / current));
+        CGRuneInfo::ComputeRuneRechargeTime(i, clamped);
+        CGActionBar::SignalUpdateCooldown();
+    }
+
+    return 1;
+}
+
+// VERIFY: 0d412843 manual
+// OFFSET: 0x006DB1C0
+void CGPlayer_C::TalkToTalentMaster(const WOWGUID& guid, uint32_t cost) {
+    WOWGUID target = guid ? guid : s_talentMaster;
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return;
+    }
+
+    C3Vector position = this->GetPosition();
+    C3Vector unitPosition = unit->GetPosition();
+    float dy = unitPosition.y - position.y;
+    float dx = unitPosition.x - position.x;
+    float reach = unit->m_unit->m_unitFieldCombatreach + 4.0f;
+
+    if (reach * reach < dx * dx + dy * dy + (unitPosition.z - position.z) * (unitPosition.z - position.z)) {
+        return;
+    }
+
+    if (guid) {
+        s_talentMaster = guid;
+        s_talentWipeCost = cost;
+        FrameScript_SignalEvent(SCRIPT_EVENT_CONFIRM_TALENT_WIPE, "%d", cost);
+    } else if (s_talentWipeCost <= this->GetCoinage()) {
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(MSG_TALENT_WIPE_CONFIRM));
+        msg.Put(s_talentMaster.m_guid);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    } else {
+        CGGameUI::DisplayError(ERR_NOT_ENOUGH_MONEY);
+    }
+}
+
+// VERIFY: 8224adbd manual
+// OFFSET: 0x006DB5F0
+void CGPlayer_C::TurnOffGuildTabardPurchase() {
+    if (this->m_characterComponent) {
+        this->m_characterComponent->TurnOffGuildTabardPurchase();
+    }
+
+    CGBag_C* bag = this->GetBag();
+
+    if (!bag) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    WOWGUID tabard = bag->m_numSlots > 18 ? bag->m_slots[18] : WOWGUID();
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(tabard, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item && item->GetInventoryType() == 19) {
+        int32_t displayId = item->GetDisplayID();
+
+        if (displayId) {
+            this->LoadGuildTextures(displayId);
+        }
+    }
+
+    CGGameUI::UnitModelUpdate(this->m_obj->m_guid, 3);
+}
+
+// VERIFY: 670b0b5c manual
+// OFFSET: 0x006DC640
+void CGPlayer_C::SetAFK(const char* message) {
+    const char* text = message;
+
+    if (!text || !*text) {
+        text = FrameScript_GetText("DEFAULT_AFK_MESSAGE", -1, GENDER_NOT_APPLICABLE);
+    }
+
+    if (!CGChat::m_afk) {
+        if (this->m_player->m_playerFlags & 0x4) {
+            CGChat::AddChatMessage(FrameScript_GetText("CLEARED_DND", -1, GENDER_NOT_APPLICABLE), 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+        }
+
+        char buffer[3000];
+        SStrPrintf(buffer, sizeof(buffer), FrameScript_GetText("MARKED_AFK_MESSAGE", -1, GENDER_NOT_APPLICABLE), text);
+        CGChat::AddChatMessage(buffer, 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+        CGChat::m_afk = 1;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_MESSAGECHAT));
+    msg.Put(static_cast<uint32_t>(23));
+    msg.Put(static_cast<uint32_t>(0));
+    msg.PutString(text);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 498dd8bc manual
+// OFFSET: 0x006DCE70
+void CGPlayer_C::OpenWrappedItem(CGItem_C* item) {
+    uint8_t bag;
+    uint8_t slot;
+
+    if (!this->GetPackAndSlot(item, &bag, &slot)) {
+        return;
+    }
+
+    SI2::PlaySoundKit("UnwrapGift", nullptr, nullptr, nullptr);
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_OPEN_ITEM));
+    msg.Put(bag);
+    msg.Put(slot);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 4d76dd50 auto
+// OFFSET: 0x006E0B90
+void CGPlayer_C::EquipItem(CGItem_C* item) {
+    if (!item || !this->m_characterComponent || item->GetDisplayID() <= 0) {
+        return;
+    }
+
+    VisibleItem_C visible;
+    visible.m_itemId = item->m_obj->m_entryID;
+    visible.m_enchantment[0] = 0;
+    visible.m_enchantment[1] = 0;
+
+    for (int32_t i = 0; i < 19; i++) {
+        if (!((1 << i) & 0x7C3FD)) {
+            continue;
+        }
+
+        WOWGUID slotGuid = i < this->m_bag.m_numSlots ? this->m_bag.m_slots[i] : WOWGUID();
+
+        if (slotGuid == item->m_obj->m_guid) {
+            this->EquipVisibleItem(&visible, i);
+        }
+    }
+}
+
+// VERIFY: a64adceb manual
+// OFFSET: 0x006E12E0
+void CGPlayer_C::FillPartyMemberState(CGPartyMemberState* state) {
+    state->m_flags = 1;
+
+    if (this->m_player->m_playerFlags & 0x10) {
+        state->m_flags = 9;
+    }
+
+    if (this->m_unit->m_unitFieldBytes2[1] & 0x1) {
+        state->m_flags |= 0x2;
+    }
+
+    if (this->m_unit->m_unitFieldBytes2[1] & 0x4) {
+        state->m_flags |= 0x10;
+    }
+
+    if (this->m_unit->m_unitFieldHealth <= 0) {
+        state->m_flags |= 0x4;
+    }
+
+    if (this->m_player->m_playerFlags & 0x2) {
+        state->m_flags |= 0x40;
+    }
+
+    if (this->m_player->m_playerFlags & 0x4) {
+        state->m_flags |= 0x80;
+    }
+
+    if (this->m_unit->m_unitDynamicFlags & 0x40) {
+        state->m_flags |= 0x100;
+    }
+
+    if (this->HasVehicleTransport()) {
+        state->m_flags |= 0x200;
+    }
+
+    state->m_health = this->m_unit->m_unitFieldHealth;
+    state->m_maxHealth = this->m_unit->m_unitFieldMaxhealth;
+    uint8_t powerType = this->m_unit->m_unitFieldBytes0[3];
+    state->m_powerType = powerType;
+    state->m_power = this->m_unit->m_unitFieldPower[powerType];
+    state->m_maxPower = this->m_unit->m_unitFieldMaxpower[powerType];
+    state->m_level = this->m_unit->m_unitFieldLevel;
+
+    if (this->GetTransportGUID()) {
+        state->m_zoneID = 0;
+    } else {
+        state->m_zoneID = CGGameUI::m_areaID;
+        C3Vector position = this->GetPosition();
+        state->m_posX = static_cast<int16_t>(position.x);
+        state->m_posY = static_cast<int16_t>(position.y);
+    }
+
+    uint32_t count = 0;
+
+    for (uint32_t i = 0; i < this->GetAuraCount(); i++) {
+        AuraData* aura = this->GetAura(i);
+
+        if (!aura->m_spellId || !(aura->m_flags & 0x7)) {
+            continue;
+        }
+
+        state->m_auras[count] = aura->m_spellId;
+        state->m_auraFlags[count] = aura->m_flags;
+        count++;
+
+        if (count == 64) {
+            break;
+        }
+    }
+
+    if (count < 64) {
+        memset(&state->m_auras[count], 0, sizeof(int32_t) * (64 - count));
+    }
+
+    CGUnitData* unit = this->m_unit;
+    state->m_pet.m_guid = unit->m_unitFieldCharm ? unit->m_unitFieldCharm : unit->m_unitFieldSummon;
+
+    if (!(state->m_flags & 0x200)) {
+        state->m_vehicleSeatId = 0;
+        return;
+    }
+
+    CGUnit_C* transport = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPEMASK_UNIT, __FILE__, __LINE__));
+    VehicleRec* vehicle = transport && transport->m_vehicle ? transport->m_vehicle->m_vehicleRec : nullptr;
+    uint8_t seat = this->m_movementData.m_transportSeat;
+
+    if (vehicle && seat < 8) {
+        state->m_vehicleSeatId = vehicle->m_seatID[seat];
+    } else {
+        state->m_vehicleSeatId = 0;
+    }
+}
+
+// VERIFY: a376ebe3 manual
+// OFFSET: 0x006E15A0
+void CGPlayer_C::UpdatePartyMemberState() {
+    CGPartyMemberState* remote = CGPartyInfo::GetRemoteStats(this->m_obj->m_guid);
+    CGPartyMemberState* raid = CGRaidInfo::GetRemoteStats(this->m_obj->m_guid);
+
+    if (!remote) {
+        if (!raid) {
+            return;
+        }
+
+        remote = raid;
+    }
+
+    CGPartyMemberState oldState = *remote;
+    CGPartyMemberState newState = oldState;
+    this->FillPartyMemberState(&newState);
+    uint32_t changes = CGPlayer_C::BuildPartyMemberStatsChanges(&oldState, &newState);
+    CGPlayer_C::DispatchPartyMemberStatsChanges(this->m_obj->m_guid, changes, &oldState, &newState);
+}
+
+// VERIFY: 1ec0ea5b manual
+// OFFSET: 0x006E1A70
+void __stdcall CGPlayer_C::ServerBindConfirm(WOWGUID item, uint64_t a2, uint32_t a3, uint64_t a4, uint8_t a5) {
+    CGItem_C* object = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (!object) {
+        return;
+    }
+
+    CGGameUI::SetCursorItem(item, WOWGUID{ a2 }, a3, 1, 0, 1);
+    uint32_t index = FindEmptySwapIndex();
+    ITEMSWAP* swap = &s_itemSwaps.m_data[index];
+    swap->m_srcContainer.m_guid = a2;
+    swap->m_srcSlot = a3;
+    swap->m_dstContainer.m_guid = a4;
+    swap->m_dstSlot = a5;
+    swap->m_itemId = object->m_obj->m_entryID;
+    FrameScript_SignalEvent(SCRIPT_EVENT_AUTOEQUIP_BIND_CONFIRM, "%d", index);
+}
+
+// VERIFY: 0cd657ae manual
+// OFFSET: 0x006E2880
+bool CGPlayer_C::ToggleFarSight(CGObject_C* object) {
+    WOWGUID farsight = this->m_obj->m_guid == ClntObjMgrGetActivePlayer() ? this->m_player->m_playerFarsight : WOWGUID();
+    CGObject_C* target = ClntObjMgrObjectPtr(farsight, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    bool hasFarsight = this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && this->m_player->m_playerFarsight;
+
+    if (hasFarsight && !target) {
+        if (Spell_C_IsTargeting()) {
+            Spell_C_StopTargeting();
+        }
+
+        CGGameUI::ResetCamera(WOWGUID());
+        CGUnit_C::SetActiveMover(this->IsLocalClientControlled() ? this->m_obj->m_guid.m_guid : 0);
+        CGInputControl::GetActive()->UpdatePlayer(FrameTime::s_curTimeMs, 1);
+        return false;
+    }
+
+    if (target && (object || !(this->m_combatModeFlags & 0x1))) {
+        if (!(this->m_combatModeFlags & 0x1)) {
+            WDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_FAR_SIGHT));
+            msg.Put(static_cast<uint8_t>(1));
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+            this->m_combatModeFlags |= 0x1;
+        }
+
+        this->SetCombatMode();
+
+        if ((target->m_obj->m_type & TYPEMASK_UNIT) && static_cast<CGUnit_C*>(target)->IsLocalClientControlled()) {
+            CGUnit_C::SetActiveMover(target->m_obj->m_guid.m_guid);
+            CGWorldFrame::s_currentWorldFrame->SetCameraTarget(target, 0);
+        } else {
+            CGUnit_C::SetActiveMover(this->IsLocalClientControlled() ? this->m_obj->m_guid.m_guid : 0);
+            CGInputControl::GetActive()->UpdatePlayer(OsGetAsyncTimeMs(), 1);
+            CGWorldFrame::s_currentWorldFrame->SetCameraTarget(target, 0);
+        }
+
+        CGInputControl::GetActive()->UpdatePlayer(FrameTime::s_curTimeMs, 1);
+        return true;
+    }
+
+    if (this->m_combatModeFlags & 0x1) {
+        this->m_combatModeFlags &= ~0x1u;
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_FAR_SIGHT));
+        msg.Put(static_cast<uint8_t>(0));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    if (Spell_C_IsTargeting()) {
+        Spell_C_StopTargeting();
+    }
+
+    CGGameUI::ResetCamera(WOWGUID());
+    CGUnit_C::SetActiveMover(this->IsLocalClientControlled() ? this->m_obj->m_guid.m_guid : 0);
+    CGInputControl::GetActive()->UpdatePlayer(FrameTime::s_curTimeMs, 1);
+    return true;
+}
+
+// VERIFY: 8ae4c78f auto
+// OFFSET: 0x006E2B00
+void CGPlayer_C::ClearFarSight() {
+    if (!(this->m_combatModeFlags & 0x1)) {
+        return;
+    }
+
+    this->ToggleFarSight(nullptr);
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+
+    if (camera) {
+        camera->PickVehicleCamera();
+        this->VehiclePassengerUpdateWorldCameraStateInstantly();
+    }
+}
+
+// VERIFY: 53fbb7d1 manual
+// OFFSET: 0x006E4FD0
+int32_t FarsightChangeHandler(WOWGUID guid, uint32_t offset, uint32_t count, const void* value, void* param) {
+    if (guid != ClntObjMgrGetActivePlayer()) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!player) {
+        return 1;
+    }
+
+    CGObject_C* target = ClntObjMgrObjectPtr(WOWGUID{ player->GetFarSightGuid() }, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (target) {
+        player->ToggleFarSight(target);
+        CGPetInfo::FindPossessedSpell();
+    } else {
+        player->ClearFarSight();
+        CGPetInfo::SetPossessedSpell(0);
+    }
+
+    CGPetInfo::UpdatePetTempBar();
+    FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_FARSIGHT_FOCUS_CHANGED, nullptr);
+
+    if (player->m_unit->m_unitFieldHealth <= 0) {
+        CGGameUI::UpdateActivePlayer();
+    }
+
+    return 1;
+}
+
+// VERIFY: d6443501 manual
+// OFFSET: 0x007554F0
+float CGPlayer_C::CalcRewardHonor(float honor) {
+    if (!(this->m_obj->m_type & TYPEMASK_PLAYER)) {
+        return 0.0f;
+    }
+
+    int32_t index = this->m_unit->m_unitFieldLevel - 1;
+
+    if (index >= g_teamContributionPointsDB.m_numRecords) {
+        return 0.0f;
+    }
+
+    return g_teamContributionPointsDB.GetRecordByIndex(index)->m_data * honor;
+}
+
+// VERIFY: bef8bf80 manual
+// OFFSET: 0x006CCF10
+int32_t Packet_SMSG_VOICE_SESSION_ROSTER_UPDATE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint64_t session = 0;
+    msg->Get(session);
+    uint16_t networkId = 0;
+    msg->Get(networkId);
+    uint8_t type = 0;
+    msg->Get(type);
+    char name[128];
+    msg->GetString(name, sizeof(name));
+    uint8_t key[16];
+    msg->GetArray(key, sizeof(key));
+    uint32_t ip = 0;
+    msg->Get(ip);
+    uint16_t port = 0;
+    msg->Get(port);
+    char address[32];
+    SStrPrintf(address, sizeof(address), "%d.%d.%d.%d:%d", ip >> 24, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF, port);
+    uint8_t count = 0;
+    msg->Get(count);
+    uint64_t self = 0;
+    msg->Get(self);
+    uint8_t selfNetworkId = 0;
+    msg->Get(selfNetworkId);
+    uint8_t selfFlags = 0;
+    msg->Get(selfFlags);
+    VoiceRosterMember members[40];
+    int32_t remote = count - 1;
+
+    for (int32_t i = 0; i < remote; i++) {
+        uint64_t guid = 0;
+        msg->Get(guid);
+        members[i].m_guid.m_guid = guid;
+        uint8_t value = 0;
+        msg->Get(value);
+        members[i].m_priority = value;
+        value = 0;
+        msg->Get(value);
+        members[i].m_talkerPriority = value;
+        value = 0;
+        msg->Get(value);
+        members[i].m_flags = value;
+        SStrCopy(members[i].m_address, address, sizeof(members[i].m_address));
+    }
+
+    VoiceSessionRosterUpdate(session, networkId, type, name, key, self, selfNetworkId, selfFlags, remote, members);
+    ConsolePrintf("VoiceSessionRosterUpdate - type %d, channelName <%s>, %d members", type, name, count);
+    return 1;
+}
+
+// VERIFY: f847071c auto
+// OFFSET: 0x006CD0E0
+int32_t Packet_SMSG_AVAILABLE_VOICE_CHANNEL(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint64_t session = 0;
+    msg->Get(session);
+    uint8_t type = 0;
+    msg->Get(type);
+    char name[128];
+    msg->GetString(name, sizeof(name));
+    uint64_t self = 0;
+    msg->Get(self);
+    int32_t current = ComSatClient_IsCurrentSession(session);
+    VoiceSessionLeave(self, session, type);
+    ComSatClient_PopulateSessionDataWithoutJoin(session, type, name, self);
+
+    if (current) {
+        ComSatClient_SetCurrentSession(type, name);
+    }
+
+    ConsolePrintf("OnAvailableVoiceSession - type %d, name = <%s>", type, name);
+    return 1;
+}
+
+// VERIFY: 6a474b57 auto
+// OFFSET: 0x006CD1B0
+int32_t Packet_SMSG_VOICE_SESSION_LEAVE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint64_t talker = 0;
+    msg->Get(talker);
+    uint64_t session = 0;
+    msg->Get(session);
+    VoiceSessionLeave(talker, session, 4);
+    return 1;
+}
+
+// VERIFY: d2f40e6b auto
+// OFFSET: 0x006CD210
+int32_t Packet_SMSG_VOICE_SET_TALKER_MUTED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID guid;
+    guid.m_guid = 0;
+    msg->Get(guid.m_guid);
+    uint8_t muted = 0;
+    msg->Get(muted);
+    VoiceSessionSetTalkerMuted(guid, muted == 0);
+    return 1;
+}
+
+// VERIFY: 56fcd2e9 auto
+// OFFSET: 0x006CFEF0
+int32_t Packet_SMSG_VOICE_PARENTAL_CONTROLS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint8_t value = 0;
+    msg->Get(value);
+    int32_t voiceChat = value;
+    value = 0;
+    msg->Get(value);
+    int32_t microphone = value;
+
+    if (!s_cvarEnableVoiceChat || !s_cvarEnableMicrophone) {
+        return 1;
+    }
+
+    int32_t oldVoiceChat = s_cvarEnableVoiceChat->m_intValue;
+    int32_t oldMicrophone = s_cvarEnableMicrophone->m_intValue;
+    char text[10];
+    SStrPrintf(text, sizeof(text), "%i", voiceChat);
+    s_cvarEnableVoiceChat->Set(text, true, false, false, true);
+    SStrPrintf(text, sizeof(text), "%i", microphone);
+    s_cvarEnableMicrophone->Set(text, true, false, false, true);
+
+    if (!voiceChat && oldVoiceChat) {
+        if (CGGameUI::m_initialized) {
+            CGChat::DisplayParentControlsNotice(ERR_VOICE_CHAT_PARENTAL_DISABLE_ALL);
+        }
+    } else if (!microphone && oldMicrophone && CGGameUI::m_initialized) {
+        CGChat::DisplayParentControlsNotice(ERR_VOICE_CHAT_PARENTAL_DISABLE_MIC);
+    }
+
+    return 1;
 }
