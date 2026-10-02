@@ -66,7 +66,7 @@ void CWorldScene::RenderCollisionDebug() {
     g_theGxDevicePtr->RsPop();
 }
 
-// VERIFY: 941562fc manual
+// VERIFY: f0d89212 manual
 // OFFSET: 0x0079A870
 void CWorldScene::Render(const C3Vector& cameraPos, float time) {
     if (!CWorldScene::s_viewerMapObjDef) {
@@ -162,7 +162,7 @@ void CWorldScene::Render(const C3Vector& cameraPos, float time) {
         clearColor.a = 0xFF;
     } else if (CWorldScene::s_unk_ADF570.m_maxViewDepth < 0.0f) {
         clearColor = info->m_fogInterior.m_color;
-    } else if (World::s_liquidTypeId || (!info->m_showSky && DayNight::GetFogOverride())) {
+    } else if (s_liquidTypeId || (!info->m_showSky && DayNight::GetFogOverride())) {
         clearColor = info->m_fog.m_color;
     } else {
         clearColor.b = 0x00;
@@ -213,7 +213,7 @@ void CWorldScene::Render(const C3Vector& cameraPos, float time) {
             DayNight::SetBlendSky(1, nullptr, 0, 0.0f);
         }
 
-        if (!World::s_liquidTypeId) {
+        if (!s_liquidTypeId) {
             DayNight::RenderSky(&CWorldScene::s_unk_ADF570);
         }
     }

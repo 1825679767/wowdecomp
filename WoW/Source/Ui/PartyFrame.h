@@ -46,13 +46,19 @@ class CGPartyMemberState {
     /* 030C */ uint32_t unk_030C;
 };
 
+struct PartyReadyCheckInfo {
+    /* 0000 */ WOWGUID m_guid;
+    /* 0008 */ int32_t m_pending;
+    /* 000C */ int32_t m_ready;
+};
+
 class CGPartyInfo {
     public:
     static void ChangeRaidDifficulty(int32_t heroic);
     static uint32_t m_memberRoles[4];
-    static uint32_t unk_BD0D00;
+    static uint8_t m_memberAssignments[4];
     static uint32_t unk_BD1984;
-    static uint8_t unk_BD1988;
+    static uint8_t m_playerAssignments;
     static uint8_t unk_BD1989;
     static uint8_t m_playerRole;
     static void InitializeGame();
@@ -60,6 +66,7 @@ class CGPartyInfo {
     static void CheckClearLFGSlot();
     static int32_t IsMemberOrPet(const WOWGUID& guid);
     static void RegisterScriptFunctions();
+    static void UnregisterScriptFunctions();
     static WOWGUID m_members[4];
     static uint32_t m_dungeonDifficulty;
     static uint32_t m_raidDifficulty;
@@ -81,7 +88,19 @@ class CGPartyInfo {
     static uint32_t GetGroupRole(const WOWGUID& guid);
     static int32_t IsMember(const WOWGUID& guid);
     static uint8_t GetPartyAssignments(const WOWGUID& guid);
+    static int32_t GetPartyAssignments(lua_State* L, int32_t assignment);
+    static uint32_t m_lastAssignmentTime;
     static void RemoveAll(int32_t a1);
+    static void AddMember(WOWGUID guid, int32_t online, const CGPartyMemberState* state, uint8_t assignments, uint32_t role, const PartyReadyCheckInfo* readyCheck);
+    static void GetReadyCheckInfo(PartyReadyCheckInfo* info, uint32_t index);
+    static void SetReadyCheckInfo(const PartyReadyCheckInfo* info, uint32_t index);
+    static void ResetLootMethod();
+    static void SetLeader(WOWGUID leader);
+    static void SetLfgRestricted(int32_t restricted);
+    static void SetLfgSlot(int32_t slot);
+    static int32_t SetLootMethod(int32_t method, WOWGUID master, int32_t threshold, int32_t force);
+    static void UpdateRealStats(uint32_t count, WOWGUID leader);
+    static void SetOptOutOfLoot(int32_t optOut);
     static void EnableMember(CGPlayer_C* player, int32_t enable);
     static int32_t IsMemberPet(const WOWGUID& guid, int32_t* index);
     static CGPartyMemberState* GetRemoteStats(const WOWGUID& guid);
@@ -103,17 +122,9 @@ extern CGPartyMemberState unk_BD0D08[4];
 WOWGUID GetPartyMemberGUID(uint32_t index);
 WOWGUID GetPartyPetGUID(uint32_t index);
 
-int32_t Script_SetLootMethod(lua_State* L);
-int32_t Script_SetPartyAssignment(lua_State* L);
-int32_t Script_ClearPartyAssignment(lua_State* L);
-int32_t Script_GetPartyAssignment(lua_State* L);
-int32_t Script_SilenceMember(lua_State* L);
-int32_t Script_UnSilenceMember(lua_State* L);
-int32_t Script_SetOptOutOfLoot(lua_State* L);
-int32_t Script_CanChangePlayerDifficulty(lua_State* L);
-int32_t Script_ChangePlayerDifficulty(lua_State* L);
 
 int32_t IsGuidInMyRaid(const WOWGUID& guid);
+int32_t CanSendPartyCommand();
 
 int32_t Packet_SMSG_INSTANCE_SAVE_CREATED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_PLAYER_DIFFICULTY_CHANGE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);

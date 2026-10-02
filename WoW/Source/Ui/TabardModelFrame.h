@@ -8,6 +8,7 @@
 #include "WoW/Source/Ui/CharacterModelBase.h"
 
 class CSimpleFrame;
+class CGPlayer_C;
 struct lua_State;
 
 class CGTabardModelFrame : public CGCharacterModelBase {
@@ -24,7 +25,13 @@ class CGTabardModelFrame : public CGCharacterModelBase {
     static int32_t GetObjectType();
     static void RegisterScriptMethods(lua_State* L);
 
-    /* 0380 */ uint32_t unk_0380 [6];
+    /* 0380 */ int32_t m_variations [5];
+    /* 0394 */ uint32_t unk_0394;
+
+    void Save();
+    void ApplyGuildColorFromPlayer();
+    void CycleVariation(uint32_t variation, int32_t delta);
+    void InitializeTabardColors(CGPlayer_C* player);
 
     ~CGTabardModelFrame() override;
     int32_t GetScriptMetaTable() override;

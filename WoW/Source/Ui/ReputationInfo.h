@@ -44,7 +44,7 @@ struct FACTION : public TSHashObject<FACTION, HASHKEY_NONE> {
 
 class CGReputationInfo {
     public:
-    static TSGrowableArray<FactionRec*>* GetFactionChildren(int32_t faction);
+    static TSGrowableArray<const FactionRec*>* GetFactionChildren(int32_t faction);
     static FactionStanding m_factionStandings[128];
     static const int32_t m_reactionThresholds[9];
     static FactionHeader* m_headers[64];
@@ -68,16 +68,15 @@ class CGReputationInfo {
     static bool GetForcedReaction(int32_t faction, int32_t* reaction);
     static int32_t GetFactionStandingReaction(int32_t faction);
     static bool IsAtWar(int32_t faction);
+    static void SetAtWar(int32_t faction, bool atWar);
+    static void SetWatchedFaction(int32_t faction);
+    static void SetFactionInactive(int32_t faction, bool inactive);
+    static int32_t GetSelectedFactionIndex();
 };
 
-int32_t Script_GetFactionInfo(lua_State* L);
-int32_t Script_GetFactionInfoByID(lua_State* L);
-int32_t Script_SetWatchedFactionIndex(lua_State* L);
-int32_t Script_FactionToggleAtWar(lua_State* L);
-int32_t Script_SetFactionInactive(lua_State* L);
-int32_t Script_SetFactionActive(lua_State* L);
-int32_t Script_GetSelectedFaction(lua_State* L);
+int32_t GetFactionInfoHelper(lua_State* L, int32_t faction);
 void ReputationInfoRegisterScriptFunctions();
+void ReputationInfoUnregisterScriptFunctions();
 int32_t Packet_SMSG_INITIALIZE_FACTIONS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_SET_FACTION_ATWAR(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_SET_FACTION_VISIBLE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);

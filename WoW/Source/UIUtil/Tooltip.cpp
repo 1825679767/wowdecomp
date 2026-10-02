@@ -100,6 +100,8 @@
 #include "WoW/Source/Ui/UIMacros.h"
 #include "WoW/Source/Ui/ActionBarFrame.h"
 #include "Engine/Source/Os/TimeManager.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
 
 // STATIC: 0x00AD2AAC
 static const char* s_spellLinkColorString = "|cff71d5ff";
@@ -186,13 +188,46 @@ static const char* s_colorblindSuffixes[5] = { "", "[+] ", "[++] ", "[+++] ", "[
 static const char* s_colorStrings[4] = { "|cffffffff", "|cff808080", "|cffff2020", "|cff00ff00" };
 
 // STATIC: 0x00AC7FD8
-static const char* s_inventoryTypeTokens[29] = { "", "INVTYPE_HEAD", "INVTYPE_NECK", "INVTYPE_SHOULDER", "INVTYPE_BODY", "INVTYPE_CHEST", "INVTYPE_WAIST", "INVTYPE_LEGS", "INVTYPE_FEET", "INVTYPE_WRIST", "INVTYPE_HAND", "INVTYPE_FINGER", "INVTYPE_TRINKET", "INVTYPE_WEAPON", "INVTYPE_SHIELD", "INVTYPE_RANGED", "INVTYPE_CLOAK", "INVTYPE_2HWEAPON", "INVTYPE_BAG", "INVTYPE_TABARD", "INVTYPE_ROBE", "INVTYPE_WEAPONMAINHAND", "INVTYPE_WEAPONOFFHAND", "INVTYPE_HOLDABLE", "INVTYPE_AMMO", "INVTYPE_THROWN", "INVTYPE_RANGEDRIGHT", "INVTYPE_QUIVER", "INVTYPE_RELIC" };
+const char* s_inventoryTypeTokens[29] = { "", "INVTYPE_HEAD", "INVTYPE_NECK", "INVTYPE_SHOULDER", "INVTYPE_BODY", "INVTYPE_CHEST", "INVTYPE_WAIST", "INVTYPE_LEGS", "INVTYPE_FEET", "INVTYPE_WRIST", "INVTYPE_HAND", "INVTYPE_FINGER", "INVTYPE_TRINKET", "INVTYPE_WEAPON", "INVTYPE_SHIELD", "INVTYPE_RANGED", "INVTYPE_CLOAK", "INVTYPE_2HWEAPON", "INVTYPE_BAG", "INVTYPE_TABARD", "INVTYPE_ROBE", "INVTYPE_WEAPONMAINHAND", "INVTYPE_WEAPONOFFHAND", "INVTYPE_HOLDABLE", "INVTYPE_AMMO", "INVTYPE_THROWN", "INVTYPE_RANGEDRIGHT", "INVTYPE_QUIVER", "INVTYPE_RELIC" };
 
 // STATIC: 0x00AD6640
 static const char* s_itemModTokens[49] = { "ITEM_MOD_MANA", "ITEM_MOD_HEALTH", "", "ITEM_MOD_AGILITY", "ITEM_MOD_STRENGTH", "ITEM_MOD_INTELLECT", "ITEM_MOD_SPIRIT", "ITEM_MOD_STAMINA", "", "", "", "", "ITEM_MOD_DEFENSE_SKILL_RATING", "ITEM_MOD_DODGE_RATING", "ITEM_MOD_PARRY_RATING", "ITEM_MOD_BLOCK_RATING", "ITEM_MOD_HIT_MELEE_RATING", "ITEM_MOD_HIT_RANGED_RATING", "ITEM_MOD_HIT_SPELL_RATING", "ITEM_MOD_CRIT_MELEE_RATING", "ITEM_MOD_CRIT_RANGED_RATING", "ITEM_MOD_CRIT_SPELL_RATING", "ITEM_MOD_HIT_TAKEN_MELEE_RATING", "ITEM_MOD_HIT_TAKEN_RANGED_RATING", "ITEM_MOD_HIT_TAKEN_SPELL_RATING", "ITEM_MOD_CRIT_TAKEN_MELEE_RATING", "ITEM_MOD_CRIT_TAKEN_RANGED_RATING", "ITEM_MOD_CRIT_TAKEN_SPELL_RATING", "ITEM_MOD_HASTE_MELEE_RATING", "ITEM_MOD_HASTE_RANGED_RATING", "ITEM_MOD_HASTE_SPELL_RATING", "ITEM_MOD_HIT_RATING", "ITEM_MOD_CRIT_RATING", "ITEM_MOD_HIT_TAKEN_RATING", "ITEM_MOD_CRIT_TAKEN_RATING", "ITEM_MOD_RESILIENCE_RATING", "ITEM_MOD_HASTE_RATING", "ITEM_MOD_EXPERTISE_RATING", "ITEM_MOD_ATTACK_POWER", "ITEM_MOD_RANGED_ATTACK_POWER", "", "ITEM_MOD_SPELL_HEALING_DONE", "ITEM_MOD_SPELL_DAMAGE_DONE", "ITEM_MOD_MANA_REGENERATION", "ITEM_MOD_ARMOR_PENETRATION_RATING", "ITEM_MOD_SPELL_POWER", "ITEM_MOD_HEALTH_REGEN", "ITEM_MOD_SPELL_PENETRATION", "ITEM_MOD_BLOCK_VALUE" };
 
+// STATIC: 0x00A248F8
+static const int32_t s_attackPowerGroup[3] = { 8, 9, 54 };
+
+// STATIC: 0x00A24900
+static const int32_t s_manaRegenGroup[3] = { 54, 39, 40 };
+
+// STATIC: 0x00A24904
+static const int32_t s_hasteRatingGroup[3] = { 39, 40, 41 };
+
+// STATIC: 0x00A24910
+static const int32_t s_critTakenRatingGroup[3] = { 36, 37, 38 };
+
+// STATIC: 0x00A2491C
+static const int32_t s_hitTakenRatingGroup[3] = { 33, 34, 35 };
+
+// STATIC: 0x00A24928
+static const int32_t s_critRatingGroup[3] = { 30, 31, 32 };
+
+// STATIC: 0x00A24934
+static const int32_t s_hitRatingGroup[3] = { 27, 28, 29 };
+
+// STATIC: 0x00A24940
+static const int32_t s_spellPowerGroup[2] = { 53, 52 };
+
+// STATIC: 0x00AD2DC8
+static const int32_t s_combatRatingStats[25] = { 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, -1, -1, -1, 37, 44 };
+
+// STATIC: 0x00AD2A64
+static const char* s_negativeDeltaColor = "|cffff2020";
+
+// STATIC: 0x00AD2EBC
+static int32_t s_comparisonIndex = 1;
+
 // STATIC: 0x00AD6704
-static const char* s_socketColorNames[5] = { "Meta", "Red", "Yellow", "Blue", "Major" };
+const char* s_socketColorNames[5] = { "Meta", "Red", "Yellow", "Blue", "Major" };
 
 // STATIC: 0x00A262F0
 static const int32_t s_primaryStatOrder[11] = { 4, 3, 7, 5, 6, 1, 0, 8, 9, 2, 10 };
@@ -220,6 +255,243 @@ static const char* s_useAllPowerTokens[7] = { "SPELL_USE_ALL_MANA", "SPELL_USE_A
 
 // STATIC: 0x00C5CF50
 static char s_itemLink[1024];
+
+// VERIFY: e25b476e auto
+// OFFSET: 0x0061B5B0
+void CGItemStatsSummary::Create() {
+    memset(this->m_stats, 0, sizeof(this->m_stats));
+    this->m_dps = 0.0f;
+    this->m_flags = 0;
+}
+
+// VERIFY: 7ea645b6 manual
+// OFFSET: 0x0061B5E0
+void CGItemStatsSummary::AddSpellEffects(const SpellRec* spell) {
+    if (!(spell->m_attributes & 0x40)) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (spell->m_effect[i] != 6) {
+            continue;
+        }
+
+        int32_t value = spell->m_effectBasePoints[i] + 1;
+        int32_t misc = spell->m_effectMiscValue[i];
+
+        switch (spell->m_effectAura[i]) {
+            case 13:
+                this->m_stats[53] += value;
+                break;
+
+            case 22:
+                for (uint32_t r = 0; r < 7; r++) {
+                    if (misc & (1 << r)) {
+                        this->m_stats[r] += value;
+                    }
+                }
+
+                break;
+
+            case 85:
+                this->m_stats[misc + 61] += value;
+                break;
+
+            case 99:
+                this->m_stats[8] += value;
+                break;
+
+            case 123:
+                this->m_stats[58] += -1 - spell->m_effectBasePoints[i];
+                break;
+
+            case 124:
+                this->m_stats[9] += value;
+                break;
+
+            case 135:
+                this->m_stats[52] += value;
+                break;
+
+            case 150:
+                this->m_stats[26] += value;
+                break;
+
+            case 158:
+                this->m_stats[60] += value;
+                break;
+
+            case 161:
+                this->m_stats[68] += value;
+                break;
+
+            case 189:
+                for (int32_t r = 0; r < 25; r++) {
+                    if ((misc & (1 << r)) && s_combatRatingStats[r] != -1) {
+                        this->m_stats[s_combatRatingStats[r] + 11] += value;
+                    }
+                }
+
+                break;
+
+            default:
+                break;
+        }
+    }
+}
+
+// VERIFY: 8aff4a3b auto
+// OFFSET: 0x0061B8E0
+void CGItemStatsSummary::AddResistances(const ItemStats_C* stats) {
+    this->m_flags |= 0x8;
+
+    for (uint32_t i = 0; i < 7; i++) {
+        this->m_stats[i] += stats->m_resistances[i];
+    }
+}
+
+// VERIFY: 1662301b manual
+// OFFSET: 0x0061B930
+void CGItemStatsSummary::GetSocketFlags(const ItemStats_C* stats) {
+    this->m_flags |= 0x10;
+
+    for (uint32_t i = 0; i < 3; i++) {
+        uint32_t color = stats->m_socketColor[i];
+
+        if (color & 0x1) {
+            this->m_stats[69]++;
+        }
+
+        if (color & 0x2) {
+            this->m_stats[70]++;
+        }
+
+        if (color & 0x4) {
+            this->m_stats[71]++;
+        }
+
+        if (color & 0x8) {
+            this->m_stats[72]++;
+        }
+    }
+}
+
+// VERIFY: 59d9b28c manual
+// OFFSET: 0x0061B990
+void CGItemStatsSummary::AddStatMods(const ItemStats_C* stats) {
+    this->m_flags |= 0x20;
+
+    for (int32_t i = 0; i < stats->m_statsCount; i++) {
+        uint32_t type = stats->m_statType[i];
+        int32_t value = stats->m_statValue[i];
+        this->m_stats[type + 11] += value;
+
+        if (type == 38) {
+            this->m_stats[8] += value;
+            this->m_stats[9] += value;
+        } else if (type == 39) {
+            this->m_stats[9] += value;
+        }
+    }
+}
+
+// VERIFY: d44a4a8d manual
+// OFFSET: 0x0061B9E0
+void CGItemStatsSummary::MakeStatNamesPretty(int32_t stat, const int32_t* group, uint32_t count, int32_t merge) {
+    int32_t value = this->m_stats[stat];
+    int32_t previous = 0;
+
+    for (uint32_t i = 0; i < count; i++) {
+        this->m_stats[group[i]] += value;
+        merge = merge && (!i || this->m_stats[group[i]] == previous);
+        previous = this->m_stats[group[i]];
+    }
+
+    if (merge) {
+        this->m_stats[stat] = this->m_stats[group[0]];
+
+        for (uint32_t i = 0; i < count; i++) {
+            this->m_stats[group[i]] = 0;
+        }
+    } else {
+        this->m_stats[stat] = 0;
+    }
+}
+
+// VERIFY: 7fc47552 auto
+// OFFSET: 0x0061BA90
+void CGItemStatsSummary::CleanStatNames() {
+    if (this->m_stats[8] == this->m_stats[10]) {
+        this->m_stats[10] = 0;
+    }
+
+    this->MakeStatNamesPretty(56, s_spellPowerGroup, 2, 1);
+    this->MakeStatNamesPretty(42, s_hitRatingGroup, 3, 1);
+    this->MakeStatNamesPretty(43, s_critRatingGroup, 3, 1);
+    this->MakeStatNamesPretty(44, s_hitTakenRatingGroup, 3, 1);
+    this->MakeStatNamesPretty(45, s_critTakenRatingGroup, 3, 1);
+    this->MakeStatNamesPretty(47, s_hasteRatingGroup, 3, 1);
+    this->MakeStatNamesPretty(61, s_manaRegenGroup, 1, 1);
+    this->MakeStatNamesPretty(7, s_attackPowerGroup, 2, 1);
+}
+
+// VERIFY: e5cf160b auto
+// OFFSET: 0x0061BB20
+char* CGItem_C::GetStatName(uint32_t stat, char* buffer, int32_t size) {
+    if (stat - 11 <= 48) {
+        SStrPrintf(buffer, size, "%s%s", s_itemModTokens[stat - 11], "_SHORT");
+        return buffer;
+    }
+
+    if (stat < 7) {
+        SStrPrintf(buffer, size, "%s%d%s", "RESISTANCE", stat, "_NAME");
+        return buffer;
+    }
+
+    if (stat - 69 <= 3) {
+        char color[64];
+        SStrCopy(color, s_socketColorNames[stat - 69], sizeof(color));
+        SStrUpper(color);
+        SStrPrintf(buffer, size, "%s%s", "EMPTY_SOCKET_", color);
+        return buffer;
+    }
+
+    if (stat - 61 <= 6) {
+        SStrPrintf(buffer, size, "%s%d%s", "ITEM_MOD_POWER_REGEN", stat - 61, "_SHORT");
+        return buffer;
+    }
+
+    switch (stat) {
+        case 7:
+            SStrCopy(buffer, "ITEM_MOD_ATTACK_POWER_SHORT", size);
+            break;
+
+        case 8:
+            SStrCopy(buffer, "ITEM_MOD_MELEE_ATTACK_POWER_SHORT", size);
+            break;
+
+        case 9:
+            SStrCopy(buffer, "ITEM_MOD_RANGED_ATTACK_POWER_SHORT", size);
+            break;
+
+        case 10:
+            SStrCopy(buffer, "ITEM_MOD_FERAL_ATTACK_POWER_SHORT", size);
+            break;
+
+        case 60:
+            SStrCopy(buffer, "ITEM_MOD_BLOCK_VALUE_SHORT", size);
+            break;
+
+        case 68:
+            SStrCopy(buffer, "ITEM_MOD_HEALTH_REGEN_SHORT", size);
+            break;
+
+        default:
+            break;
+    }
+
+    return buffer;
+}
 
 // VERIFY: 1bfb61f6 manual
 // OFFSET: 0x0061BF10
@@ -575,7 +847,7 @@ void CGTooltip::OnLayerUpdate(float elapsedSec) {
     }
 }
 
-// VERIFY: e3ff3caf manual
+// VERIFY: 2b94260a manual
 // OFFSET: 0x0061C620
 void CGTooltip::ClearTooltip() {
     if (this->m_healthGuid != WOWGUID()) {
@@ -593,8 +865,7 @@ void CGTooltip::ClearTooltip() {
     this->unk_0334 = 0;
     this->unk_0338 = 0;
     this->unk_033C = 0;
-    this->unk_0348 = 0;
-    this->unk_034C = 0;
+    this->m_corpseGuid.m_guid = 0;
     this->m_healthGuid = WOWGUID();
     this->m_itemId = 0;
     this->m_spellId = 0;
@@ -785,7 +1056,7 @@ int32_t CGTooltip::ShowThis() {
     return CSimpleFrame::ShowThis();
 }
 
-// VERIFY: c76e7f35 manual
+// VERIFY: 41c491c8 manual
 // OFFSET: 0x0061DEE0
 CGTooltip::CGTooltip(CSimpleFrame* parent) : CSimpleFrame(parent) {
     this->m_itemLinkInfo.Clear();
@@ -803,8 +1074,7 @@ CGTooltip::CGTooltip(CSimpleFrame* parent) : CSimpleFrame(parent) {
     this->unk_0338 = 0;
     this->unk_033C = 0;
     this->m_itemGuid = WOWGUID();
-    this->unk_0348 = 0;
-    this->unk_034C = 0;
+    this->m_corpseGuid.m_guid = 0;
     this->m_healthGuid = WOWGUID();
     this->m_itemId = 0;
     this->m_spellId = 0;
@@ -888,6 +1158,212 @@ void CGTooltip::SetOwner(CSimpleFrame* owner, TOOLTIP_ANCHORPOINT anchorType, fl
 int32_t CGTooltip::HideThis() {
     this->SetOwner(nullptr, ANCHOR_LEFT, 0.0f, 0.0f);
     return CSimpleFrame::HideThis();
+}
+
+// VERIFY: 82cc22f3 auto
+// OFFSET: 0x0061F2B0
+void CGItemStatsSummary::AddEnchantEffect(int32_t type, int32_t arg, int32_t amount) {
+    switch (type) {
+        case 3: {
+            SpellRec spell;
+
+            if (g_spellDB.GetRecord(arg, &spell)) {
+                this->AddSpellEffects(&spell);
+            }
+
+            break;
+        }
+
+        case 4:
+            this->m_stats[arg] += amount;
+            break;
+
+        case 5:
+            this->m_stats[arg + 11] += amount;
+
+            if (arg == 38) {
+                this->m_stats[8] += amount;
+                this->m_stats[9] += amount;
+            } else if (arg == 39) {
+                this->m_stats[9] += amount;
+            }
+
+            break;
+    }
+}
+
+// VERIFY: a73b50c1 auto
+// OFFSET: 0x0061F350
+void CGItemStatsSummary::ScanEnchantSpells(const ItemStats_C* stats) {
+    this->m_flags |= 0x1;
+
+    for (uint32_t i = 0; i < 5; i++) {
+        if (static_cast<int32_t>(stats->m_spellId[i]) <= 0) {
+            continue;
+        }
+
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(stats->m_spellId[i], &spell)) {
+            this->AddSpellEffects(&spell);
+        }
+    }
+}
+
+// VERIFY: 6294a102 manual
+// OFFSET: 0x0061F410
+void CGItemStatsSummary::AccumulateDpsStat(const ItemStats_C* stats) {
+    this->m_flags |= 0x4;
+    float mainAverage = (stats->m_damageMax[0] + stats->m_damageMin[0]) * 0.5f;
+    this->m_dps = mainAverage / (stats->m_delay * 0.001f) + this->m_dps;
+    float offAverage = 0.5f * (stats->m_damageMax[1] + stats->m_damageMin[1]);
+    this->m_dps = offAverage / (0.001f * stats->m_delay) + this->m_dps;
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && player->m_unit->m_unitFieldBytes0[1] == 11) {
+        this->m_stats[10] += this->m_stats[8] + GetFeralAttackPower(stats, mainAverage + offAverage);
+    }
+}
+
+// VERIFY: 4f967d8e auto
+// OFFSET: 0x0061F4C0
+void CGItemStatsSummary::AccumulateStats(const ItemStats_C* stats) {
+    this->AddStatMods(stats);
+    this->ScanEnchantSpells(stats);
+    this->m_flags |= 0x8;
+
+    for (uint32_t i = 0; i < 7; i++) {
+        this->m_stats[i] += stats->m_resistances[i];
+    }
+
+    this->GetSocketFlags(stats);
+    this->m_flags |= 0x40;
+    this->m_stats[60] += stats->m_block;
+    this->AccumulateDpsStat(stats);
+}
+
+// VERIFY: b9de4bb7 manual
+// OFFSET: 0x0061F550
+void CGItemStatsSummary::FillOutScalingItem(const ItemStats_C* stats, int32_t level) {
+    this->m_flags |= 0x80;
+
+    if (!level) {
+        level = CGTooltip::GetDisplayedScalingItemLevel(stats, nullptr, WOWGUID(), 0);
+    }
+
+    ScalingStatDistributionRec* distribution = g_scalingStatDistributionDB.GetRecord(stats->m_scalingStatDistribution);
+    ScalingStatValuesRec* values = g_scalingStatValuesDB.GetRecordByIndex(level - 1);
+
+    if (!distribution || !values) {
+        return;
+    }
+
+    this->ScanEnchantSpells(stats);
+
+    if (stats->m_scalingStatValue) {
+        int32_t budget = GetScalingStatBudget(values, stats->m_scalingStatValue);
+
+        for (uint32_t i = 0; i < 10; i++) {
+            int32_t type = distribution->m_statID[i];
+
+            if (type <= 0) {
+                continue;
+            }
+
+            int32_t value = budget * distribution->m_bonus[i] / 10000;
+            this->m_stats[type + 11] += value;
+
+            if (type == 38) {
+                this->m_stats[8] += value;
+                this->m_stats[9] += value;
+            } else if (type == 39) {
+                this->m_stats[9] += value;
+            }
+        }
+    } else {
+        this->AddStatMods(stats);
+    }
+
+    if (stats->m_scalingStatValue & 0xF801E0) {
+        this->m_stats[0] += GetScalingStatArmor(values, stats->m_scalingStatValue);
+    } else {
+        this->AddResistances(stats);
+    }
+
+    if (stats->m_scalingStatValue & 0x7E00) {
+        float minDamage;
+        float maxDamage;
+        GetScalingStatDamage(values, stats->m_scalingStatValue, &minDamage, &maxDamage);
+        float total = minDamage + maxDamage;
+        this->m_dps = 0.5f * total;
+        float damage = total * stats->m_delay * 0.00050000002f;
+        CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+        if (player && player->m_unit->m_unitFieldBytes0[1] == 11) {
+            this->m_stats[10] += this->m_stats[8] + GetFeralAttackPower(stats, damage);
+        }
+    } else {
+        this->AccumulateDpsStat(stats);
+    }
+
+    if (stats->m_scalingStatValue & 0x8000) {
+        this->m_stats[56] += values->m_spellPower;
+    }
+}
+
+// VERIFY: e578015f auto
+// OFFSET: 0x0061F940
+void CGItemStatsSummary::AddEnchantment(const SpellItemEnchantmentRec* enchant) {
+    for (uint32_t i = 0; i < 3; i++) {
+        this->AddEnchantEffect(enchant->m_effect[i], enchant->m_effectArg[i], (enchant->m_effectPointsMin[i] + enchant->m_effectPointsMax[i]) / 2);
+    }
+}
+
+// VERIFY: f46f01b2 auto
+// OFFSET: 0x0061F980
+void CGItemStatsSummary::AddEnchantment(const SpellItemEnchantmentRec* enchant, int32_t amount) {
+    for (uint32_t i = 0; i < 3; i++) {
+        this->AddEnchantEffect(enchant->m_effect[i], enchant->m_effectArg[i], amount);
+    }
+}
+
+// VERIFY: b5f42f92 manual
+// OFFSET: 0x0061FA20
+void CGItemStatsSummary::FillOutRandomProperties(int32_t randomPropertiesId, uint32_t seed) {
+    this->m_flags |= 0x2;
+
+    if (randomPropertiesId > 0) {
+        ItemRandomPropertiesRec* properties = g_itemRandomPropertiesDB.GetRecord(randomPropertiesId);
+
+        if (!properties) {
+            return;
+        }
+
+        for (uint32_t i = 0; i < 5; i++) {
+            SpellItemEnchantmentRec* enchant = g_spellItemEnchantmentDB.GetRecord(properties->m_enchantment[i]);
+
+            if (enchant) {
+                this->AddEnchantment(enchant);
+            }
+        }
+
+        return;
+    }
+
+    ItemRandomSuffixRec* suffix = g_itemRandomSuffixDB.GetRecord(-randomPropertiesId);
+
+    if (!suffix) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 5; i++) {
+        int32_t amount = CGItem_C::GetRandomPropertyValue(i + 7, randomPropertiesId, static_cast<uint16_t>(seed));
+        SpellItemEnchantmentRec* enchant = g_spellItemEnchantmentDB.GetRecord(suffix->m_enchantment[i]);
+
+        if (enchant) {
+            this->AddEnchantment(enchant, amount);
+        }
+    }
 }
 
 // VERIFY: 37802838 manual
@@ -1064,6 +1540,145 @@ void CGTooltip::AddLine(const char* left, const char* right, const CImVector& le
     }
 
     this->m_lineWrap.m_data[this->m_numLines++] = lineWrap;
+}
+
+// VERIFY: 77aa9693 auto
+// OFFSET: 0x006206D0
+int32_t CGItemStatsSummary::Create(CGItem_C* item, int32_t level) {
+    this->Create();
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+    if (stats->m_scalingStatValue) {
+        this->FillOutScalingItem(stats, level);
+        this->CleanStatNames();
+        return 1;
+    }
+
+    this->AccumulateStats(stats);
+
+    if (item->m_item->m_itemFieldRandomPropertiesId) {
+        this->FillOutRandomProperties(item->m_item->m_itemFieldRandomPropertiesId, item->m_item->m_itemFieldPropertySeed);
+    }
+
+    this->CleanStatNames();
+    return 1;
+}
+
+// VERIFY: fe542a77 manual
+// OFFSET: 0x006207A0
+int32_t CGItemStatsSummary::Fill(const char* link) {
+    memset(this->m_stats, 0, sizeof(this->m_stats));
+    this->m_dps = 0.0f;
+    this->m_flags = 0;
+    int32_t randomPropertiesId = 0;
+    uint32_t seed = 0;
+    int32_t level = 0;
+    const char* cursor = SStrStr(link, "item:");
+
+    if (!cursor) {
+        return 0;
+    }
+
+    cursor += 5;
+    int32_t itemId = SStrToInt(cursor);
+
+    if (itemId <= 0) {
+        return 0;
+    }
+
+    if (*cursor) {
+        while (*cursor != ':') {
+            if (!*++cursor) {
+                break;
+            }
+        }
+
+        if (*cursor) {
+            cursor++;
+        }
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (*cursor) {
+            while (*cursor != ':') {
+                if (!*++cursor) {
+                    break;
+                }
+            }
+
+            if (*cursor) {
+                cursor++;
+            }
+        }
+    }
+
+    if (*cursor) {
+        while (*cursor != ':') {
+            if (!*++cursor) {
+                goto lookup;
+            }
+        }
+
+        if (*cursor && *++cursor) {
+            while (*cursor != ':') {
+                if (!*++cursor) {
+                    goto lookup;
+                }
+            }
+
+            if (*cursor) {
+                cursor++;
+                randomPropertiesId = SStrToInt(cursor);
+
+                if (*cursor) {
+                    while (*cursor != ':') {
+                        if (!*++cursor) {
+                            goto lookup;
+                        }
+                    }
+
+                    if (*cursor) {
+                        cursor++;
+                        seed = SStrToInt(cursor);
+
+                        if (*cursor) {
+                            while (*cursor != ':') {
+                                if (!*++cursor) {
+                                    goto lookup;
+                                }
+                            }
+
+                            if (*cursor) {
+                                level = SStrToInt(cursor + 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+lookup:
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
+
+    if (!stats) {
+        return 0;
+    }
+
+    if (stats->m_scalingStatValue) {
+        this->FillOutScalingItem(stats, level);
+    } else {
+        this->AccumulateStats(stats);
+
+        if (randomPropertiesId) {
+            this->FillOutRandomProperties(randomPropertiesId, seed);
+        }
+    }
+
+    this->CleanStatNames();
+    return 1;
 }
 
 // VERIFY: af81c6a3 manual
@@ -1539,7 +2154,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
     return result;
 }
 
-// VERIFY: 1a6dfa97 manual
+// VERIFY: 047a2a17 manual
 // OFFSET: 0x00622410
 void CGTooltip::SetCorpse(const WOWGUID& guid) {
     const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
@@ -1553,7 +2168,7 @@ void CGTooltip::SetCorpse(const WOWGUID& guid) {
         return;
     }
 
-    *reinterpret_cast<WOWGUID*>(&this->unk_0348) = guid;
+    this->m_corpseGuid = guid;
     *reinterpret_cast<WOWGUID*>(&this->unk_0350) = corpse->m_corpse->m_corpseFieldOwner;
     NameCache* name = g_nameDBCache.GetRecord(reinterpret_cast<WOWGUID*>(&this->unk_0350)->m_guid, *reinterpret_cast<WOWGUID*>(&this->unk_0350), TooltipCorpseCallback, this, true);
 
@@ -2459,6 +3074,34 @@ static void AddSpellUseAllPowerLine(CGTooltip* tooltip, const SpellRec* spell, c
     tooltip->AddLine(text, nullptr, textColor, textColor, 0);
 }
 
+// VERIFY: 9ae7315a manual
+// OFFSET: 0x006237C0
+void CGTooltip::AddDeltaHeader(int32_t* first) {
+    if (!*first) {
+        return;
+    }
+
+    const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
+    this->AddLine(" ", nullptr, titleColor, titleColor, 0);
+    this->AddLine(FrameScript_GetText("ITEM_DELTA_DESCRIPTION", -1, GENDER_NOT_APPLICABLE), nullptr, titleColor, titleColor, 1);
+    *first = 0;
+}
+
+// VERIFY: 2d962f56 auto
+// OFFSET: 0x00623810
+void CGTooltip::AddColoredItemStat(int32_t value, const char* name, int32_t* first) {
+    if (!value) {
+        return;
+    }
+
+    this->AddDeltaHeader(first);
+    const char* color = value > 0 ? s_colorStrings[3] : s_negativeDeltaColor;
+    char text[512];
+    SStrPrintf(text, sizeof(text), "%s%c%d%s %s", color, value > 0 ? '+' : '-', abs(value), "|r", name);
+    const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
+    this->AddLine(text, nullptr, textColor, textColor, 0);
+}
+
 // VERIFY: 8edeac88 manual
 // OFFSET: 0x006238A0
 int32_t CGTooltip::SetSpell(int32_t spellId, int32_t brief, uint32_t cooldown, int32_t isPet, int32_t showRank, int32_t isInspect, int32_t a8, const TalentRec* talent, CGTalentGroup_C* talentGroup, int32_t append, int32_t usePreview, int32_t a13, int32_t rank, int32_t maxRank, int32_t showLearn) {
@@ -2639,6 +3282,12 @@ int32_t CGTooltip::SetSpell(int32_t spellId, int32_t brief, uint32_t cooldown, i
     this->Show();
     this->CalculateSize();
     return result;
+}
+
+// VERIFY: dc2ceb4a auto
+// OFFSET: 0x006081D0
+CGItemStatsSummary::CGItemStatsSummary() {
+    this->Create();
 }
 
 // VERIFY: 16a2d627 auto
@@ -3230,6 +3879,133 @@ int32_t CGTooltip::SetItemNoStats() {
     this->Show();
     this->CalculateSize();
     return 0;
+}
+
+// VERIFY: 8eac5de9 manual
+// OFFSET: 0x00625F00
+int32_t SetTooltipUnitAura(CGTooltip* tooltip, ScriptAuraInfo* info) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info->m_guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        if ((unit->m_auraEffectMask[36] & 0x80) && ClntObjMgrGetActivePlayer() && !unit->IsFriendly(ClntObjMgrGetActivePlayerObj())) {
+            return 0;
+        }
+
+        if (unit->m_obj->m_guid != CGCharacterInfo::m_inspectTarget) {
+            CGPetInfo::GetPet(0);
+        }
+
+        if (!(unit->m_modelFlags & 0x10000)) {
+            uint32_t slot = unit->GetSortedAuraSlot(info->m_index, info->m_name, info->m_rank, info->m_filter);
+
+            if (static_cast<int32_t>(slot) < 0) {
+                return 0;
+            }
+
+            uint8_t flags = unit->GetAuraFlags(slot);
+            uint8_t stackCount = unit->GetAuraStackCount(slot);
+            uint8_t level = unit->GetAuraLevel(slot);
+            tooltip->SetBuff(unit->GetAuraSpellId(slot), level, stackCount, flags, 0, 0);
+            AuraData* aura = unit->GetAura(slot);
+
+            if (aura && aura->m_duration > 0) {
+                int32_t remaining = aura->m_endTime - OsGetAsyncTimeMs();
+
+                if (remaining < 0) {
+                    remaining = 0;
+                }
+
+                char buffer[1024];
+                CGTooltip::GetDurationString(buffer, sizeof(buffer), remaining, "SPELL_TIME_REMAINING", nullptr, 1, 0);
+                tooltip->AddLine(buffer, nullptr, 0);
+            }
+
+            tooltip->Show();
+            return 0;
+        }
+    }
+
+    int32_t* auras;
+    uint8_t* auraFlags;
+
+    if (CGPartyMemberState* state = CGPartyMemberStateRepository::GetState(info->m_guid)) {
+        if (!(state->m_flags & 0x1)) {
+            return 0;
+        }
+
+        auras = state->m_auras;
+        auraFlags = state->m_auraFlags;
+    } else if (CGPartyPetState* petState = CGPartyMemberStateRepository::FindPetState(info->m_guid)) {
+        auras = petState->m_auras;
+        auraFlags = petState->m_auraFlags;
+    } else {
+        return 0;
+    }
+
+    if (!auras) {
+        return 0;
+    }
+
+    bool helpful = info->m_filter & 0x1;
+    bool raid = (info->m_filter & 0x8) != 0;
+    int32_t found = 0;
+
+    for (uint32_t i = 0; i < 64 && auras[i]; i++) {
+        if (helpful != !(auraFlags[i] & 0x80)) {
+            continue;
+        }
+
+        SpellRec spell;
+
+        if (!g_spellDB.GetRecord(auras[i], &spell)) {
+            continue;
+        }
+
+        WOWGUID caster = { 0 };
+
+        if (!CGSpellBook::CanShowAura(&spell, &caster, (auraFlags[i] & 0x8) != 0)) {
+            continue;
+        }
+
+        if (raid && !(helpful ? CGSpellBook::FindRaidBuff(auras[i]) : CGSpellBook::FindRaidDispel(spell.m_dispelType))) {
+            continue;
+        }
+
+        if ((auraFlags[i] & 0x10) ? (info->m_filter & 0x20) : (info->m_filter & 0x10)) {
+            continue;
+        }
+
+        if ((info->m_index >= 0 && info->m_index == found) || (info->m_name && !SStrCmpUTF8I(info->m_name, spell.m_name, STORM_MAX_STR) && (!info->m_rank || !SStrCmpUTF8I(info->m_rank, spell.m_nameSubtext, STORM_MAX_STR)))) {
+            tooltip->SetBuff(auras[i], 0, 1, 0, 0, 0);
+            tooltip->Show();
+            return 0;
+        }
+
+        found++;
+    }
+
+    return 0;
+}
+
+// VERIFY: fd306634 auto
+// OFFSET: 0x006265C0
+int32_t CGItemStatsSummary::Create(const ItemStats_C* stats, const ItemLinkInfo* link, int32_t level) {
+    this->Create();
+
+    if (stats->m_scalingStatValue) {
+        this->FillOutScalingItem(stats, level);
+        this->CleanStatNames();
+        return 1;
+    }
+
+    this->AccumulateStats(stats);
+
+    if (link) {
+        this->FillOutRandomProperties(link->m_randomPropertiesId, link->m_propertySeed);
+    }
+
+    this->CleanStatNames();
+    return 1;
 }
 
 // VERIFY: 38b9e6db auto
@@ -6071,6 +6847,68 @@ void CGTooltip::AddLine(const char* left, const char* right, int32_t wrap) {
     this->AddLine(left, right, titleColor, titleColor, wrap);
 }
 
+// VERIFY: 1678db84 auto
+// OFFSET: 0x0062D930
+int32_t CGTooltip::SetItemDelta(const CGItemStatsSummary* summary, int32_t append) {
+    if (!append) {
+        this->ClearTooltip();
+    }
+
+    int32_t first = 1;
+    char text[1024];
+
+    if (fabs(summary->m_dps) > 0.00000011920929f) {
+        this->AddDeltaHeader(&first);
+        char sign = summary->m_dps <= 0.0f ? '-' : '+';
+        const char* color = summary->m_dps <= 0.0f ? s_negativeDeltaColor : s_colorStrings[3];
+        float dps = fabs(summary->m_dps);
+        SStrPrintf(text, sizeof(text), "%s%c%.1f%s %s", color, sign, dps, "|r", FrameScript_GetText("ITEM_MOD_DAMAGE_PER_SECOND_SHORT", -1, GENDER_NOT_APPLICABLE));
+        const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
+        this->AddLine(text, nullptr, textColor, textColor, 0);
+    }
+
+    for (uint32_t i = 0; i < 73; i++) {
+        if (i < 69 && i != 49 && i != 50) {
+            this->AddColoredItemStat(summary->m_stats[i], FrameScript_GetText(CGItem_C::GetStatName(i, text, sizeof(text)), -1, GENDER_NOT_APPLICABLE), &first);
+        }
+    }
+
+    char name[1024];
+
+    for (uint32_t i = 69; i < 73; i++) {
+        if (!summary->m_stats[i]) {
+            continue;
+        }
+
+        const char* label = FrameScript_GetText(CGItem_C::GetStatName(i, name, sizeof(name)), -1, GENDER_NOT_APPLICABLE);
+        SStrPrintf(text, sizeof(text), "|TInterface\\ItemSocketingFrame\\UI-EmptySocket-%s.blp:12|t  %s", s_socketColorNames[i - 69], label);
+        this->AddColoredItemStat(summary->m_stats[i], text, &first);
+    }
+
+    return 1;
+}
+
+// VERIFY: 39a89fbc manual
+// OFFSET: 0x00630C70
+int32_t CGItemStatsSummary::CreateFromTooltip(CGTooltip* tooltip) {
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(tooltip->m_itemGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item) {
+        this->Create(item, tooltip->m_itemDisplayedLevel);
+        return 1;
+    }
+
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(tooltip->m_itemId, none, nullptr, nullptr, false);
+
+    if (!stats) {
+        return 0;
+    }
+
+    this->Create(stats, &tooltip->m_itemLinkInfo, tooltip->m_itemDisplayedLevel);
+    return 1;
+}
+
 // VERIFY: 153be78f manual
 // OFFSET: 0x00630D20
 int32_t CGTooltip::SetMacro(uint32_t macroId) {
@@ -6152,4 +6990,216 @@ const uint32_t* CGTooltip::GetThreatStateColor(uint32_t status) {
     }
 
     return &s_threatStatusColors[status];
+}
+
+// VERIFY: a3a22009 auto
+// OFFSET: 0x0061DBC0
+CGItemStatsSummary CGItemStatsSummary::operator-(const CGItemStatsSummary& other) const {
+    CGItemStatsSummary result;
+    memset(result.m_stats, 0, sizeof(result.m_stats));
+    result.m_dps = 0.0f;
+    result.m_flags = 0;
+
+    for (uint32_t i = 0; i < 73; i++) {
+        result.m_stats[i] = this->m_stats[i] - other.m_stats[i];
+    }
+
+    result.m_dps = this->m_dps - other.m_dps;
+    result.CleanStatNames();
+    return result;
+}
+
+// VERIFY: e2f9e6ae auto
+// OFFSET: 0x0061DD20
+void TooltipCorpseCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (!success) {
+        return;
+    }
+
+    CGTooltip* tooltip = static_cast<CGTooltip*>(param);
+
+    if (static_cast<uint32_t>(tooltip->m_corpseGuid.m_guid)) {
+        WOWGUID corpse = tooltip->m_corpseGuid;
+        tooltip->SetCorpse(corpse);
+        tooltip->CalculateSize();
+    }
+}
+
+// VERIFY: 746c613d manual
+// OFFSET: 0x00631590
+int32_t CGItemStatsSummary::GetItemComparison(CGTooltip* first, CGTooltip* second, CGItemStatsSummary* result) {
+    struct ComparisonEntry {
+        CGItemStatsSummary m_summary;
+        int32_t m_itemIds[2];
+        int32_t m_randomProperties[2];
+        uint32_t m_seeds[2];
+        int32_t m_levels[2];
+
+        ComparisonEntry() {
+            this->m_summary.Create();
+            memset(this->m_itemIds, 0, sizeof(this->m_itemIds));
+            memset(this->m_randomProperties, 0, sizeof(this->m_randomProperties));
+            memset(this->m_seeds, 0, sizeof(this->m_seeds));
+            memset(this->m_levels, 0, sizeof(this->m_levels));
+        }
+    };
+
+    static ComparisonEntry s_cache[2];
+    int32_t itemIds[2];
+    uint32_t seeds[2];
+    int32_t randomProperties[2];
+    int32_t levels[2];
+
+    for (int32_t i = 0; i < 2; i++) {
+        CGTooltip* tooltip = i ? second : first;
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(tooltip->m_itemGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (item) {
+            itemIds[i] = item->m_obj->m_entryID;
+            randomProperties[i] = item->m_item->m_itemFieldRandomPropertiesId;
+            seeds[i] = item->m_item->m_itemFieldPropertySeed;
+        } else {
+            randomProperties[i] = tooltip->m_itemLinkInfo.m_randomPropertiesId;
+            seeds[i] = tooltip->m_itemLinkInfo.m_propertySeed;
+            itemIds[i] = tooltip->m_itemId;
+        }
+
+        levels[i] = tooltip->m_itemDisplayedLevel;
+    }
+
+    for (uint32_t i = 0; i < 2; i++) {
+        ComparisonEntry& entry = s_cache[i];
+
+        if (itemIds[0] == entry.m_itemIds[0] && randomProperties[0] == entry.m_randomProperties[0] && (!randomProperties[0] || seeds[0] == entry.m_seeds[0]) && levels[0] == entry.m_levels[0] && itemIds[1] == entry.m_itemIds[1] && randomProperties[1] == entry.m_randomProperties[1] && (!randomProperties[1] || seeds[1] == entry.m_seeds[1]) && levels[1] == entry.m_levels[1]) {
+            memcpy(result, &entry.m_summary, sizeof(CGItemStatsSummary));
+            return 1;
+        }
+    }
+
+    CGItemStatsSummary firstSummary;
+    firstSummary.Create();
+    CGItemStatsSummary secondSummary;
+    secondSummary.Create();
+
+    if (!firstSummary.CreateFromTooltip(first) || !secondSummary.CreateFromTooltip(second)) {
+        return 0;
+    }
+
+    int32_t index = 1 - s_comparisonIndex;
+    ComparisonEntry& entry = s_cache[index];
+    entry.m_itemIds[0] = itemIds[0];
+    entry.m_randomProperties[0] = randomProperties[0];
+    entry.m_seeds[0] = seeds[0];
+    entry.m_levels[0] = levels[0];
+    entry.m_itemIds[1] = itemIds[1];
+    entry.m_randomProperties[1] = randomProperties[1];
+    entry.m_seeds[1] = seeds[1];
+    entry.m_levels[1] = levels[1];
+    s_comparisonIndex = index;
+    CGItemStatsSummary delta = firstSummary - secondSummary;
+    memcpy(&entry.m_summary, &delta, sizeof(CGItemStatsSummary));
+    memcpy(result, &entry.m_summary, sizeof(CGItemStatsSummary));
+    return 1;
+}
+
+// VERIFY: 09f37021 manual
+// OFFSET: 0x00631850
+int32_t SetCompareItem(CGTooltip* tooltip, uint32_t itemId, int32_t offset, int32_t shift, CGTooltip* compare) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, &TooltipItemCallback, tooltip, false);
+
+    if (!player || !stats) {
+        return 0;
+    }
+
+    uint32_t slots = s_inventoryTypeSlots[stats->m_inventoryType];
+
+    if (offset == 2) {
+        if (stats->m_scalingStatValue && CGMerchantInfo::m_merchant && !shift) {
+            WOWGUID itemGuid = WOWGUID();
+            WOWGUID merchant = CGMerchantInfo::m_merchant;
+            tooltip->SetItem(itemId, &merchant, &itemGuid, 0, 0, 0, 0, WOWGUID{ 0 }, 0, nullptr, 0, nullptr, 1, 0, 0);
+            return 1;
+        }
+
+        return 0;
+    }
+
+    CGItem_C* item = nullptr;
+
+    if ((slots & 0x8000) || (slots & 0x10000)) {
+        CGItem_C* mainHand = nullptr;
+
+        if (((slots & 0x8000) && (slots & 0x10000)) || stats->m_inventoryType == 17) {
+            mainHand = player->m_bag.GetItemPointer(15);
+            CGItem_C* offHand = player->m_bag.GetItemPointer(16);
+
+            if (mainHand != offHand && mainHand && offHand) {
+                item = offset ? mainHand : offHand;
+            } else if (offset) {
+                return 0;
+            } else {
+                item = mainHand ? mainHand : offHand;
+            }
+        } else {
+            if (offset) {
+                return 0;
+            }
+
+            if (slots & 0x8000) {
+                item = player->m_bag.GetItemPointer(15);
+            } else if (!(slots & 0x10000)) {
+                return 0;
+            } else {
+                item = player->m_bag.GetItemPointer(16);
+
+                if (!item) {
+                    mainHand = player->m_bag.GetItemPointer(15);
+                    item = mainHand && mainHand->GetInventoryType() == 17 ? mainHand : nullptr;
+                }
+            }
+        }
+
+        if (!item) {
+            return 0;
+        }
+    } else {
+        for (int32_t slot = 0; slot <= 18; slot++) {
+            if (!((1 << slot) & slots)) {
+                continue;
+            }
+
+            CGItem_C* candidate = player->m_bag.GetItemPointer(slot);
+
+            if (!candidate) {
+                continue;
+            }
+
+            if (!offset) {
+                item = candidate;
+                break;
+            }
+
+            offset--;
+        }
+
+        if (!item) {
+            return 0;
+        }
+    }
+
+    WOWGUID itemGuid = item->m_obj->m_guid;
+    WOWGUID requester = player->m_obj->m_guid;
+    tooltip->SetItem(item->m_obj->m_entryID, &requester, &itemGuid, 0, 1, 0, 0, WOWGUID{ 0 }, 0, nullptr, 0, nullptr, 0, 0, 0);
+
+    if (compare) {
+        CGItemStatsSummary summary;
+
+        if (CGItemStatsSummary::GetItemComparison(compare, tooltip, &summary)) {
+            tooltip->SetItemDelta(&summary, 1);
+        }
+    }
+
+    return 1;
 }

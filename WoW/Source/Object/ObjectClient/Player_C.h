@@ -47,7 +47,7 @@ struct ITEMSWAP {
     /* 0010 */ uint32_t m_srcSlot;
     /* 0014 */ uint32_t m_dstSlot;
     /* 0018 */ int32_t m_itemId;
-    /* 001C */ uint32_t unk_001C;
+    /* 001C */ CGItem_C* m_item;
 };
 
 struct TRADESKILLLINE : public TSHashObject<TRADESKILLLINE, HASHKEY_NONE> {
@@ -105,6 +105,9 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     static void __stdcall AcceptResurrectRequest(int32_t accept);
     static void __stdcall AutoStoreLootItem(uint8_t slot);
     static void __stdcall BuyPetition(const WOWGUID& vendor, CGPetition* petition);
+    static int32_t s_turnInArenaCharter;
+    void TurnInGuildCharter();
+    int32_t TurnInArenaCharter(int32_t turnIn);
     static void __stdcall ClearAFK(int32_t force);
     static void __stdcall ClearPartyAssignment(uint8_t assignment, WOWGUID guid);
     static void __stdcall CompleteQuest(const WOWGUID& questGiver, int32_t questId);
@@ -155,22 +158,27 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     static void __stdcall QueryQuest(const WOWGUID& questGiver, int32_t questId);
     static void __stdcall QueryQuestGiverStatus(const WOWGUID& questGiver);
     static void QueryQuestGiverStatusMultiple();
-    bool IsRAFPlayer(WOWGUID guid);
+    static bool __stdcall IsRAFPlayer(WOWGUID guid);
+    static int32_t __stdcall CanSummonFriend(WOWGUID guid);
+    int32_t CanGrantLevel(WOWGUID guid);
+    void TurnOnGuildTabardPurchase();
+    void GetRangedAttackSkillRank(int32_t& rank, int32_t& bonus);
+    static void __stdcall ReportPVPAFK(WOWGUID guid);
     static void __stdcall QueryTaxiNodes(const WOWGUID& guid);
     static void __stdcall QuestLogRemoveQuest(uint8_t slot);
     static void __stdcall ReadItem(uint8_t bag, uint8_t slot);
     static void __stdcall RemoveTempEnchantment(int32_t slot);
     static void __stdcall RequestPetitionSignatures(WOWGUID petition);
     static void SaveBindPoint(CDataStore* msg);
-    static void ShowTaxiNodes(CDataStore* msg);
-    static void HandleActivateTaxiReply(uint32_t reply);
+    static void __stdcall ShowTaxiNodes(CDataStore* msg);
+    static void __stdcall HandleActivateTaxiReply(uint32_t reply);
     static void ServerBindConfirm(WOWGUID item, uint64_t a2, uint32_t a3, uint64_t a4, uint8_t a5);
     static void SellItem(WOWGUID vendor, WOWGUID item, uint32_t count);
     static void __stdcall SetLootMethod(uint32_t method, WOWGUID master, uint32_t threshold);
     static void __stdcall SetPartyAssignment(uint8_t assignment, WOWGUID guid);
     static void __stdcall SilencePlayer(WOWGUID guid, bool silence);
-    static void __stdcall StartTaxi(WOWGUID guid, uint32_t source, uint32_t destination);
-    static void __stdcall StartTaxiExpress(WOWGUID guid, const uint32_t* nodes, int32_t count);
+    void StartTaxi(WOWGUID guid, uint32_t source, uint32_t destination);
+    void StartTaxiExpress(WOWGUID guid, const uint32_t* nodes, int32_t count);
     static void TalkToMailbox(WOWGUID guid);
     static void PlayerInitializeMessageHandlers();
     static void PlayerShutdownMessageHandlers();
@@ -184,6 +192,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     static void __stdcall TalkToGossip(const WOWGUID& guid);
     static void __stdcall TalkToQuestUnit(const WOWGUID& guid);
     static void __stdcall TalkToTrainer(const WOWGUID& guid);
+    static void TrainerBuySpell(uint32_t index);
     static void __stdcall TalkToGuildBanker(const WOWGUID& guid);
     static void __stdcall ShopFromMerchant(const WOWGUID& guid);
     static void __stdcall Uninvite(WOWGUID guid, const char* name);
@@ -241,8 +250,19 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     int32_t CheckSpiritHealerDistance();
     int32_t CheckTalentMasterDistance();
     void AutoEquipCursorItem(int32_t ignoreBind);
+    void AutoEquipItemToSlot(CGItem_C* item, uint32_t slot, int32_t ignoreBind);
+    void ClearPendingEquip(uint32_t index, int32_t equip);
+    void GroupInvite(const char* name, uint32_t flags);
+    CGItem_C* GetSoulstone();
+    void ShowHelm();
+    void HideHelm();
+    void ShowCloak();
+    void HideCloak();
+    void ToggleSheathe();
     void AutoStoreItemInBag(WOWGUID item, WOWGUID srcContainer, uint32_t srcSlot, WOWGUID dstBag, int32_t a5);
-    uint8_t FindItemSlot(WOWGUID container, const CGItem_C* item);
+    static uint8_t FindItemSlot(WOWGUID container, const CGItem_C* item);
+    void SaveTabard(int32_t emblemStyle, int32_t emblemColor, int32_t borderStyle, int32_t borderColor, int32_t background, WOWGUID npc);
+    static bool CanSaveTabardNow();
     uint8_t FindSlotIndex(WOWGUID guid) const;
     void GiftWrap(CGItem_C* item);
     void SplitItem(WOWGUID item, WOWGUID srcContainer, uint32_t srcSlot, WOWGUID dstContainer, uint32_t dstSlot, uint32_t count);
@@ -261,6 +281,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     int32_t GetLanguageSkill(uint32_t language, uint32_t& skill);
     int16_t GetSkillModifier(int32_t index);
     uint16_t GetSkillStep(int32_t index) const;
+    int32_t GetCharacterPoints(int32_t index) const;
     int32_t GetSkillLineForSlot(int32_t hand);
     int32_t GetEquipBypassSkill(uint32_t index) const;
     uint32_t GetEquippedAmmoDisplayId() const;
@@ -308,6 +329,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void CheckForQuestItemLoot(uint32_t itemId, uint32_t count, uint32_t totalCount);
     void TalkToTalentMaster(const WOWGUID& guid, uint32_t cost);
     void UpdateRepopTimer();
+    void ReceiveResurrectRequest(const char* name);
     void ClearFarSight();
     void TalkToTabardVendor(const WOWGUID& guid);
     void TalkToSpiritHealer(const WOWGUID& guid);
@@ -470,6 +492,8 @@ int32_t Packet_SMSG_GUILD_EVENT(void* param, NETMESSAGE msgId, uint32_t time, CD
 int32_t Packet_SMSG_GUILD_COMMAND_RESULT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_MSG_SAVE_GUILD_EMBLEM(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_MSG_TABARDVENDOR_ACTIVATE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+void GuildCharterTurnInCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void ArenaCharterTurnInCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 int32_t Packet_Group_15(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_EMOTE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_HandlePartyMemberStats(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);

@@ -14,6 +14,9 @@
 #include "WoW/Source/Object/ObjectClient/Vehicle_C.h"
 #include "WoW/Source/DB/Rec/VehicleRec.h"
 #include <cmath>
+#include "Engine/Source/lua-5.1/src/lua.h"
+#include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/UIUtil/Types.h"
 
 // VERIFY: 46af036c manual
 // OFFSET: 0x005FBF80
@@ -683,6 +686,120 @@ static int32_t Script_VehicleAimRequestNormAngle(lua_State* L) {
     return 0;
 }
 
+// VERIFY: 2a01745d auto
+// OFFSET: 0x005FA050
+static int32_t Script_DetectWowMouse(lua_State* L) {
+    CGInputControl::s_inputControl->DetectWowMouse();
+    return 0;
+}
+
+// VERIFY: 67de4681 manual
+// OFFSET: 0x005FB660
+static int32_t Script_VehicleExit(lua_State* L) {
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!mover) {
+        return 0;
+    }
+
+    if (!CGInputControl::s_inputControl->IsVehicleSeatFlagSet(0x2000000)) {
+        CGGameUI::DisplayError(ERR_SPELL_FAILED_S, FrameScript_GetText("SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW", -1, GENDER_NOT_APPLICABLE));
+        return 0;
+    }
+
+    mover->VehicleExit();
+    return 0;
+}
+
+// VERIFY: aedf0962 manual
+// OFFSET: 0x005FB6D0
+static int32_t Script_VehiclePrevSeat(lua_State* L) {
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (mover && CGInputControl::s_inputControl->IsVehicleSeatFlagSet(0x4000000)) {
+        mover->VehiclePrevSeat();
+    }
+
+    return 0;
+}
+
+// VERIFY: 5481f00f manual
+// OFFSET: 0x005FB720
+static int32_t Script_VehicleNextSeat(lua_State* L) {
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (mover && CGInputControl::s_inputControl->IsVehicleSeatFlagSet(0x4000000)) {
+        mover->VehicleNextSeat();
+    }
+
+    return 0;
+}
+
+// VERIFY: f9b60516 auto
+// OFFSET: 0x005FB770
+static int32_t Script_VehicleAimIncrement(lua_State* L) {
+    uint32_t time = CSimpleTop::s_eventTime;
+    CGInputControl* input = CGInputControl::s_inputControl;
+
+    if (lua_isnumber(L, 1)) {
+        input->VehicleAimChange(time, static_cast<float>(lua_tonumber(L, 1)));
+    } else {
+        input->VehicleAimChange(time, 0.1f);
+    }
+
+    return 0;
+}
+
+// VERIFY: 40c0ff35 auto
+// OFFSET: 0x005FB7D0
+static int32_t Script_VehicleAimDecrement(lua_State* L) {
+    uint32_t time = CSimpleTop::s_eventTime;
+    CGInputControl* input = CGInputControl::s_inputControl;
+    double delta = lua_isnumber(L, 1) ? lua_tonumber(L, 1) : 0.1;
+    input->VehicleAimChange(time, static_cast<float>(-delta));
+    return 0;
+}
+
+// VERIFY: 6579b2cf auto
+// OFFSET: 0x005FC780
+static int32_t Script_MoveAndSteerStart(lua_State* L) {
+    CGInputControl* input = CGInputControl::s_inputControl;
+
+    if (!CGGameUI::CanPerformAction(0)) {
+        return 0;
+    }
+
+    uint32_t time = CSimpleTop::s_eventTime;
+
+    if (!(input->m_flags & 3)) {
+        input->m_pendingDefaultAction = PENDING_ACTION_LEFT;
+        CGWorldFrame::s_currentWorldFrame->SetupDefaultAction();
+    }
+
+    if (input->SetControlBit(2, time)) {
+        if ((input->m_flags & 1) && (input->m_flags & 2)) {
+            CheckToCancelCurrentChannelSpell();
+        }
+
+        input->UpdatePlayer(time, 1);
+    }
+
+    if (!(input->m_flags & 3)) {
+        input->m_pendingDefaultAction = PENDING_ACTION_RIGHT;
+        CGWorldFrame::s_currentWorldFrame->SetupDefaultAction();
+    }
+
+    if (input->SetControlBit(1, time)) {
+        if ((input->m_flags & 1) && (input->m_flags & 2)) {
+            CheckToCancelCurrentChannelSpell();
+        }
+
+        input->UpdatePlayer(time, 1);
+    }
+
+    return 0;
+}
+
 // STATIC: 0x00AD1938
 static FrameScript_Method s_ScriptFunctions[] = {
     { "JumpOrAscendStart", &Script_JumpOrAscendStart },
@@ -744,5 +861,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void InputControlRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: b76a41b1 auto
+// OFFSET: 0x005F95B0
+void InputControlUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

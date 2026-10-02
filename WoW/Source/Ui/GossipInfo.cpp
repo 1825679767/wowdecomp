@@ -468,3 +468,10 @@ void CGGossipInfo::ShutdownGame() {
     ClientServices::ClearMessageHandler(SMSG_GOSSIP_COMPLETE);
     ClientServices::ClearMessageHandler(SMSG_GOSSIP_POI);
 }
+
+// VERIFY: afffe065 auto
+// OFFSET: 0x0058A840
+int32_t Packet_SMSG_GOSSIP_COMPLETE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    CGGossipInfo::SetGossip(WOWGUID());
+    return 1;
+}

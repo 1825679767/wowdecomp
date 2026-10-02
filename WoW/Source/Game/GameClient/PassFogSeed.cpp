@@ -17,3 +17,9 @@ PassFogSeed::PassFogSeed(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EG
     s_deviceRestored = 1;
     g_theGxDevicePtr->AddDeviceRestoredCallback(PassFogSeed::DeviceRestoredCallback);
 }
+
+// VERIFY: bd3db29a manual
+// OFFSET: 0x007E9260
+PassFogSeed::~PassFogSeed() {
+    g_theGxDevicePtr->RemoveDeviceRestoredCallback(PassFogSeed::DeviceRestoredCallback);
+}

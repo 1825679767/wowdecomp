@@ -249,7 +249,7 @@ void CEffect::AddFishingLine(CGObject_C* object, const WOWGUID& target) {
     this->m_targetGuid = target;
 }
 
-// VERIFY: d3ed0a31 manual
+// VERIFY: 0145e3d7 manual
 // OFFSET: 0x006F9D70
 CEffect::CEffect() {
     this->m_attachmentId = -1;
@@ -294,7 +294,7 @@ CEffect::CEffect() {
     this->unk_00E8 = 0.0f;
     this->m_mapEntity = nullptr;
     this->m_refCount = 1;
-    this->unk_00F8 = 0;
+    this->m_lightningRefCount = 0;
     this->m_lightningState = 0;
     this->m_attachRec = nullptr;
     this->m_prevLink = nullptr;
@@ -534,6 +534,14 @@ void CEffect::AddAnimKitEffect(int32_t spellId, const SpellVisualKitRec* kit, co
 
 // STATIC: 0x00A32AF4
 static const int32_t s_specialUnitEffectAttachments[] = { 50, 50, 17, 17, 19, 19, 19, 17, 19, 19, 34, 19 };
+
+// VERIFY: f48d6796 auto
+// OFFSET: 0x006F8F40
+void CEffect::ReleaseLightningRef() {
+    if (--this->m_lightningRefCount == 0) {
+        this->MoveToDestroyList();
+    }
+}
 
 // VERIFY: e6c5c900 manual
 // OFFSET: 0x006F9260
@@ -933,6 +941,24 @@ float __stdcall CEffect::ComputeModelScaleFromTarget(CGObject_C* object) {
     }
 
     return size * scale;
+}
+
+// VERIFY: 296a53c9 manual
+// OFFSET: 0x006F8040
+void CEffect::AddLightning(int32_t a2, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return;
+    }
+
+    this->LinkTo(&unit->m_effectList);
+    this->m_refCount++;
+    this->m_kitRec = kit;
+    this->unk_00CC = a2;
+    this->m_spellId = spellId;
+    this->m_sourceGuid = *guid;
+    this->m_flags = flags;
 }
 
 // VERIFY: bf2f00fc manual

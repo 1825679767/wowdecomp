@@ -19,6 +19,9 @@ bool IsAlphaRussian(uint16_t c);
 int32_t ValidateCharacterNameConst(uint32_t language, const char* name, bool profanity, bool chatProfanity, bool reserved, bool english, int32_t extraLength);
 int32_t ValidateName(uint32_t language, const uint16_t* allowed, const char* name, uint32_t* length, int32_t* charset, bool profanity, bool chatProfanity, bool reserved, bool relaxed, bool english, int32_t charsetMask);
 int32_t NameNeedsDeclensions(int32_t locale, const char* name);
+int32_t ValidateGuildName(uint32_t language, const char* name);
+int32_t ValidateGuildBankTabName(uint32_t language, const char* name);
+int32_t ValidatePetName(uint32_t language, const char* name, bool profanity, bool chatProfanity, bool reserved, bool english, uint32_t extraLength);
 int32_t RussianNameNeedsDeclensions(const char* name);
 bool IsRussian(uint16_t c);
 void ValidateNameDestroy();
@@ -34,5 +37,10 @@ uint16_t ToLower(uint16_t c);
 bool StripHyperlinks(const char* text, char* buffer, uint32_t size);
 
 bool ScrubString(const char* source, char* dest, int32_t maxChars, uint32_t destSize, int32_t flags);
+
+int32_t GetNumRussianNameDeclensionSets(const char* name, int32_t sex);
+int32_t GetRussianNameDeclensions(char* declensions, const char* name, int32_t sex, uint32_t set);
+int32_t GetNumNameDeclensionSets(int32_t locale, const char* name, int32_t sex);
+int32_t GetNameDeclensions(int32_t locale, char* declensions, const char* name, int32_t sex, uint32_t set);
 
 #endif

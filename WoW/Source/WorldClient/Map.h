@@ -139,6 +139,7 @@ struct MapObjIntersectData {
 class CDestructibleProxy {
     public:
     static void FindOrCreate(CDestructibleProxy* proxy);
+    static void FreeMatching(CDestructibleProxy* proxy);
 
     /* 0000 */ uint32_t unk_0000;
     /* 0004 */ TSLink<CDestructibleProxy> m_link;
@@ -314,6 +315,8 @@ class CMap {
     static CMapDoodadDef* CreateDoodadDef(uint32_t doodadRef, SMODoodadDef* doodadDef, char* name, uint32_t key, C44Matrix* mat, uint16_t doodadSet);
     static void FreeBaseObjLinksInBounds(CAaBox* box);
     static void FreeBaseObjLink(CMapBaseObjLink* link);
+    static void LinkDoodadDefToMapObjDefs(CMapDoodadDef* doodadDef, CMapObjDef* skip);
+    static void Preload();
     static CMapArea* PrepareArea(int32_t areaIndexX, int32_t areaIndexY);
     static void LoadArea(CMapArea* area);
     static void PrepareUpdate(bool a1);
@@ -356,6 +359,9 @@ class CMap {
     static bool LinkIntersectMapObjDef(CMapObjDef* mapObjDef, C3Vector& start, C3Vector& end, C3Vector& mid, MapObjIntersectData* interiorHit, MapObjIntersectData* groundHit);
     static bool LinkIntersectMapObjDefs(C3Vector& start, C3Vector& end, C3Vector& mid, MapObjIntersectData* interiorHit, MapObjIntersectData* groundHit, CMapChunk* chunk);
     static bool GetHeightTerrain(CMapChunk* chunk, C3Vector& pos, int32_t cellX, int32_t cellY, float* outHeight);
+    static void QueryDoodadDefHitTests(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> >* list, const C3Vector& start, const C3Vector& end);
+    static void VectorIntersectMapObjs(CMapChunk* chunk, const C3Vector& start, const C3Vector& end, float* t);
+    static bool QueryHeight(const C3Vector& position, float range, float* height);
     static bool LinkStaticEntityGetChunk(C3Vector& pos, float* outHeight, CMapChunk** outChunk);
     static void ClassifyStaticEntityLink(CMapStaticEntity* entity, CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup, uint32_t faceInfo, C3Vector* pos);
     static bool LinkObjectToMapExterior(CMapStaticEntity* object);

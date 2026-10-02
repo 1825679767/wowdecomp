@@ -18,12 +18,12 @@ class Particulate {
     /* FA00 */ uint32_t m_maxParticles;
     /* FA04 */ C3Vector m_prevCameraPos;
     /* FA10 */ CTexture* m_texture;
-    /* FA14 */ uint8_t m_unkByte;
+    /* FA14 */ uint8_t m_enabled;
     /* FA15 */ uint8_t m_padding [3];
     /* FA18 */ float m_particleSize;
     /* FA1C */ float m_spawnAreaSize;
     /* FA20 */ float m_unkFloat1;
-    /* FA24 */ uint32_t m_unkValue;
+    /* FA24 */ uint32_t m_liquidType;
     /* FA28 */ C3Vector m_direction;
     /* FA34 */ float m_speed;
     /* FA38 */ float m_timer;
@@ -31,6 +31,7 @@ class Particulate {
 
     Particulate(float particleSize, float spawnAreaSize, const char* textureName);
     ~Particulate();
+    C3Vector ComputeMovement(float elapsed);
     void InitMovement();
     void InitParticles(uint32_t count);
     void Render();

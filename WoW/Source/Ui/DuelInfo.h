@@ -13,12 +13,13 @@ class CGDuelInfo {
     static WOWGUID m_dueler;
 
     static void InitializeGame();
+    static int32_t ProcessCountdown(const void* data, void* param);
+    static void AcceptDuel();
+    static void CancelDuel();
 };
 
-int32_t Script_StartDuel(lua_State* L);
-int32_t Script_AcceptDuel(lua_State* L);
-int32_t Script_CancelDuel(lua_State* L);
 void DuelInfoRegisterScriptFunctions();
+void DuelInfoUnregisterScriptFunctions();
 
 class CDataStore;
 

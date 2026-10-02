@@ -11,6 +11,9 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "_Triage/CClientObjCreate.h"
 
+// STATIC: 0x00AD6734
+static const char* s_vehicleSeatTypes[3] = { "None", "Root", "Child" };
+
 // STATIC: 0x00CA1604
 CVehicleHeap* CVehicle_C::s_vehiclePool;
 
@@ -282,6 +285,42 @@ CGUnit_C* CVehicle_C::FindPassengerUnit(uint8_t seat) {
     return nullptr;
 }
 
+// VERIFY: e0aa5b39 manual
+// OFFSET: 0x007579E0
+int32_t CVehicle_C::GetVirtualSeatInfo(int32_t virtualSeat, const char*& type, const char*& occupant, const char*& realm, int32_t& canEject, int32_t& canSwitch) const {
+    const CVehicle_C* vehicle;
+    uint8_t seat;
+
+    if (!this->GetVehicleAndSeatFromVirtualSeatsRemaining(virtualSeat, vehicle, seat)) {
+        return 0;
+    }
+
+    VehicleSeatRec* seatRec;
+
+    if (seat >= 8 || !vehicle->m_vehicleRec || !(seatRec = g_vehicleSeatDB.GetRecord(vehicle->m_vehicleRec->m_seatID[seat]))) {
+        return 0;
+    }
+
+    if (seatRec->m_flags & 0x800) {
+        type = vehicle == this ? s_vehicleSeatTypes[1] : s_vehicleSeatTypes[2];
+    } else {
+        type = s_vehicleSeatTypes[0];
+    }
+
+    realm = nullptr;
+    CGUnit_C* passenger = const_cast<CVehicle_C*>(vehicle)->FindPassengerUnit(seat);
+
+    if (passenger) {
+        occupant = passenger->GetUnitName(&realm, 1);
+    } else {
+        occupant = nullptr;
+    }
+
+    canEject = seatRec->m_flagsB & 0x20;
+    canSwitch = (seatRec->m_flags >> 26) & 1;
+    return 1;
+}
+
 // VERIFY: d1b6b7db manual
 // OFFSET: 0x00757AE0
 CVehicle_C::CVehicle_C() {
@@ -432,6 +471,16 @@ int32_t CVehicle_C::AddPassenger(CPassenger* passenger) {
     passenger->m_link.Unlink();
     this->m_passengers.LinkToTail(passenger);
     return 1;
+}
+
+// VERIFY: c435c0c9 auto
+// OFFSET: 0x00757BB0
+void CVehicle_C::Destroy(int32_t removePassengers) {
+    if (removePassengers) {
+        this->RemoveAllPassengersLocally();
+    }
+
+    CVehicle_C::s_vehiclePool->Delete(this);
 }
 
 // VERIFY: f33a02d3 manual

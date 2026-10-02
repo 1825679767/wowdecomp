@@ -255,3 +255,104 @@ void CGCorpse_C::Initialize() {
     ClntObjMgrSetTypeMirrorHandler(ID_CORPSE, offsetof(CGCorpseData, m_corpseFieldFlags), sizeof(uint32_t), CorpseFlagUpdateHandler, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
     ClntObjMgrSetTypeMirrorHandler(ID_CORPSE, offsetof(CGCorpseData, m_corpseFieldDynamicFlags), sizeof(uint32_t), CorpseDynamicFlagUpdateHandler, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
 }
+
+// VERIFY: b1c4d0d1 auto
+// OFFSET: 0x00705900
+void CGCorpse_C::ShowLootEffect() {
+    if (this->m_lootEffect) {
+        return;
+    }
+
+    const SpellVisualEffectNameRec* effect = GetSpecialSpellVisualEffectNameRec(4);
+    this->m_lootEffect = this->m_worldModel->m_scene->CreateModel(effect->m_fileName, 0);
+
+    if (this->m_lootEffect) {
+        this->m_lootEffect->AttachToParent(this->m_worldModel, 19, nullptr, 0);
+    }
+}
+
+// VERIFY: 865254c2 auto
+// OFFSET: 0x00706120
+void CGCorpse_C::OnFlagChanged(uint32_t oldFlags) {
+    if (this->m_lootEffect) {
+        if (this->m_lootEffect->m_attachParent) {
+            this->m_lootEffect->DetachFromParent();
+        }
+
+        this->m_lootEffect->Release();
+        this->m_lootEffect = nullptr;
+    }
+
+    this->Fadeout();
+
+    if (this->m_component) {
+        CCharacterComponent::FreeComponent(this->m_component);
+        this->m_component = nullptr;
+    }
+
+    this->m_corpseFlags &= ~0x1;
+    const char* fileName;
+
+    if (!this->GetModelFileName(&fileName)) {
+        return;
+    }
+
+    CM2Model* model = World::s_m2Scene->CreateModel(fileName, 0);
+    this->SetModel(model);
+
+    if (this->m_corpse->m_corpseFieldDynamicFlags & 0x1) {
+        this->ShowLootEffect();
+    }
+
+    if (model) {
+        model->Release();
+    }
+
+    this->AddWorldObject();
+}
+
+// VERIFY: b8476d46 auto
+// OFFSET: 0x007061E0
+void CGCorpse_C::OnDynamicFlagChanged(uint32_t oldFlags) {
+    if (!((static_cast<uint8_t>(oldFlags) ^ this->m_corpse->m_corpseFieldDynamicFlags) & 0x1)) {
+        return;
+    }
+
+    if (this->m_corpse->m_corpseFieldDynamicFlags & 0x1) {
+        this->ShowLootEffect();
+        return;
+    }
+
+    if (this->m_lootEffect) {
+        if (this->m_lootEffect->m_attachParent) {
+            this->m_lootEffect->DetachFromParent();
+        }
+
+        this->m_lootEffect->Release();
+        this->m_lootEffect = nullptr;
+    }
+}
+
+// VERIFY: bab5ab7f manual
+// OFFSET: 0x00706240
+int32_t CorpseFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGCorpse_C* corpse = static_cast<CGCorpse_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_CORPSE, __FILE__, __LINE__));
+
+    if (corpse) {
+        corpse->OnFlagChanged(*static_cast<const uint32_t*>(oldValue));
+    }
+
+    return 1;
+}
+
+// VERIFY: c5f353fa manual
+// OFFSET: 0x00706280
+int32_t CorpseDynamicFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGCorpse_C* corpse = static_cast<CGCorpse_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_CORPSE, __FILE__, __LINE__));
+
+    if (corpse) {
+        corpse->OnDynamicFlagChanged(*static_cast<const uint32_t*>(oldValue));
+    }
+
+    return 1;
+}

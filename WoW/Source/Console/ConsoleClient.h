@@ -58,4 +58,6 @@ void GenerateNodeString(CONSOLELINE* node);
 const char* GetConsoleMessage();
 void SetConsoleMessage(const char* message);
 
+void SetConsoleKey(KEY key);
+
 #endif

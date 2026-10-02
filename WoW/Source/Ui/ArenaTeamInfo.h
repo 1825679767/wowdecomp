@@ -15,7 +15,7 @@ struct ArenaTeamMember {
     /* 0038 */ uint32_t m_level;
     /* 003C */ uint32_t m_class;
     /* 0040 */ uint32_t m_rank;
-    /* 0044 */ uint32_t m_online;
+    /* 0044 */ int32_t m_online;
     /* 0048 */ uint32_t m_weekGames;
     /* 004C */ uint32_t m_weekWins;
     /* 0050 */ uint32_t m_seasonGames;
@@ -58,18 +58,18 @@ class CGArenaTeamInfo {
     static void InitializeGame();
     static void ShutdownGame();
     static void QueryRoster(uint32_t index);
+    static void UpdateRoster(uint32_t index, int32_t reset);
     static void UpdateTeams(int32_t signal);
     static bool CheckPersonalAndTeamRating(uint32_t rating, int32_t bracket);
+    static ArenaTeamMember* SelectMember(uint32_t team, uint32_t index);
+    static void SetRosterShowOffline(int32_t showOffline);
+    static void SortRoster(int32_t column);
+    static int32_t GetSelectedMemberIndex(uint32_t team);
+    static ArenaTeam* GetArenaTeam(uint32_t index);
 };
 
-int32_t Script_GetArenaTeamRosterInfo(lua_State* L);
-int32_t Script_SetArenaTeamRosterSelection(lua_State* L);
-int32_t Script_GetArenaTeamRosterSelection(lua_State* L);
-int32_t Script_SortArenaTeamRoster(lua_State* L);
-int32_t Script_SetArenaTeamRosterShowOffline(lua_State* L);
-int32_t Script_CloseArenaTeamRoster(lua_State* L);
-int32_t Script_ArenaTeamRoster(lua_State* L);
 void ArenaTeamInfoRegisterScriptFunctions();
+void ArenaTeamInfoUnregisterScriptFunctions();
 int32_t Packet_SMSG_ARENA_TEAM_STATS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_ARENA_TEAM_ROSTER(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 

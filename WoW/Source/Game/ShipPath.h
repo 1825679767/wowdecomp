@@ -74,7 +74,8 @@ class ShipPath {
     void SetTimeOffset(uint32_t time, float progress);
     void WaitAtCurrentLocation(uint32_t time);
     bool TimeInRange(uint32_t start, uint32_t end, uint32_t time);
-    uint32_t GetPathTime(uint32_t time, uint32_t elapsed, int32_t absolute);
+    uint32_t GetPathTime(uint32_t time) const;
+    uint32_t UpdatePathTime(uint32_t time, uint32_t elapsed, int32_t absolute);
     float GetDecelDistance(float t, float segTime, uint32_t* sequence, float* speed);
     float GetAccelDecelDistance(float t, float segTime, uint32_t* sequence, float* speed);
     void GetRollAndPitch(uint32_t time, float speed, float turn, C3Vector* position, float* roll, float* pitch);

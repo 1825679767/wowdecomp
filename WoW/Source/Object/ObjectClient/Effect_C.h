@@ -77,7 +77,7 @@ class CEffect {
     /* 00EC */ CImVector m_color;
     /* 00F0 */ CMapEntity* m_mapEntity;
     /* 00F4 */ int32_t m_refCount;
-    /* 00F8 */ uint32_t unk_00F8;
+    /* 00F8 */ uint32_t m_lightningRefCount;
     /* 00FC */ int32_t m_lightningState;
     /* 0100 */ const SpellVisualKitModelAttachRec* m_attachRec;
     /* 0104 */ CEffect** m_prevLink;
@@ -106,6 +106,7 @@ class CEffect {
     void CreateProceduralEffectImpl(int32_t a2, float param, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags);
     void InitProceduralEffect(int32_t a2, int32_t param, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags);
     void MoveToDestroyList();
+    void ReleaseLightningRef();
     void EffectUpdate();
     void MoveToOrphanList();
     void Release();

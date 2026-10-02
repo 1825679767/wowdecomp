@@ -12,11 +12,18 @@
 class BattlemasterListRec;
 class CGPartyMemberState;
 class CGPartyPetState;
+class CGObject_C;
 struct lua_State;
 
 struct BattlefieldScore {
     /* 0000 */ WOWGUID m_guid;
-    /* 0008 */ uint8_t unk_0008[28];
+    /* 0008 */ uint32_t m_killingBlows;
+    /* 000C */ uint32_t m_honorableKills;
+    /* 0010 */ uint32_t m_deaths;
+    /* 0014 */ uint32_t m_bonusHonor;
+    /* 0018 */ uint32_t m_damageDone;
+    /* 001C */ uint32_t m_healingDone;
+    /* 0020 */ int32_t m_faction;
     /* 0024 */ int32_t m_stats[9];
 };
 
@@ -67,10 +74,15 @@ int32_t Packet_SMSG_BATTLEFIELD_MGR_EJECTED(void* param, NETMESSAGE msgId, uint3
 int32_t Packet_SMSG_BATTLEFIELD_MGR_QUEUE_INVITE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_BATTLEFIELD_MGR_STATE_CHANGE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t QSortBattlefields(const void* a, const void* b);
-void BattlefieldNameCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void BattlefieldNameCacheCallback();
+void WorldMapNameUpdateCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+int32_t QSortScoreData(const void* a, const void* b);
+bool IsOnTransport(CGObject_C* object);
+bool IsCurrentMapArena();
 
 class CGBattlefieldInfo {
     public:
+    static void JoinBattlefield(uint32_t index, int32_t asGroup, int32_t isRated);
     static void RequestBattlegroundInstanceInfo(uint32_t index);
     static void SetBattlemaster(WOWGUID battlemaster);
     static void EnterWorld();
@@ -131,10 +143,20 @@ class CGBattlefieldInfo {
     static TSGrowableArray<int32_t> m_battlegroundTypes;
 
     static void AddArenaOpponent(const WOWGUID& guid);
+    static void OnArenaUnitDestroyed(const WOWGUID& guid);
     static int32_t GetBattlegroundType(int32_t index);
     static bool GetBracketForLevel(uint32_t level, const BattlemasterListRec* rec, int32_t* bracket);
     static void AddVehicle(const WOWGUID& guid);
     static WOWGUID GetVehicleGuid(uint32_t index);
+    static WOWGUID GetFlagCarrier(uint32_t index);
+    static int32_t GetFlagPosition(uint32_t index, C3Vector* position);
+    static void RequestScoreData();
+    static void SetScoreSortColumn(int32_t column);
+    static const char* GetFlagToken(uint32_t index);
+    static void BattlefieldMgrEntryInviteResponse(int32_t battleId, uint8_t accept);
+    static void BattlefieldMgrQueueRequest(int32_t battleId);
+    static void BattlefieldMgrQueueInviteResponse(int32_t battleId, uint8_t accept);
+    static void BattlefieldMgrExitRequest(int32_t battleId);
     static void AddArenaOpponentPet(const WOWGUID& petGuid, const WOWGUID& ownerGuid);
     static WOWGUID GetArenaOpponent(uint32_t index);
     static CGPartyMemberState* GetRemoteStats(const WOWGUID& guid);
@@ -148,23 +170,9 @@ class CGBattlefieldInfo {
 
 uint32_t GetArenaPetGUIDCount();
 
-int32_t Script_JoinBattlefield(lua_State* L);
-int32_t Script_AcceptBattlefieldPort(lua_State* L);
-int32_t Script_CloseBattlefield(lua_State* L);
-int32_t Script_RequestBattlefieldScoreData(lua_State* L);
-int32_t Script_GetBattlefieldScore(lua_State* L);
-int32_t Script_SetBattlefieldScoreFaction(lua_State* L);
-int32_t Script_GetBattlefieldPosition(lua_State* L);
-int32_t Script_GetBattlefieldFlagPosition(lua_State* L);
-int32_t Script_GetBattlefieldVehicleInfo(lua_State* L);
-int32_t Script_SortBattlefieldScoreData(lua_State* L);
 int32_t Script_CanHearthAndResurrectFromArea(lua_State* L);
 int32_t Script_RequestBattlegroundInstanceInfo(lua_State* L);
-int32_t Script_BattlefieldMgrEntryInviteResponse(lua_State* L);
-int32_t Script_BattlefieldMgrQueueRequest(lua_State* L);
-int32_t Script_BattlefieldMgrQueueInviteResponse(lua_State* L);
-int32_t Script_BattlefieldMgrExitRequest(lua_State* L);
-int32_t Script_SortBGList(lua_State* L);
 void BattlefieldInfoRegisterScriptFunctions();
+void BattlefieldInfoUnregisterScriptFunctions();
 
 #endif

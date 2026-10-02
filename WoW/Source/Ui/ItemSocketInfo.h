@@ -6,19 +6,8 @@
 
 struct lua_State;
 
-int32_t Script_CloseSocketInfo(lua_State* L);
-int32_t Script_GetSocketItemInfo(lua_State* L);
-int32_t Script_GetNumSockets(lua_State* L);
-int32_t Script_GetExistingSocketInfo(lua_State* L);
-int32_t Script_GetExistingSocketLink(lua_State* L);
-int32_t Script_GetNewSocketInfo(lua_State* L);
-int32_t Script_GetNewSocketLink(lua_State* L);
-int32_t Script_ClickSocketButton(lua_State* L);
-int32_t Script_AcceptSockets(lua_State* L);
-int32_t Script_GetSocketTypes(lua_State* L);
-int32_t Script_GetSocketItemRefundable(lua_State* L);
-int32_t Script_GetSocketItemBoundTradeable(lua_State* L);
 void ItemSocketInfoRegisterScriptFunctions();
+void ItemSocketInfoUnregisterScriptFunctions();
 
 class ItemStats_C;
 
@@ -28,11 +17,18 @@ class CGItemSocketInfo {
     static WOWGUID m_gemItemContainer[3];
     static WOWGUID m_gemItems[3];
     static WOWGUID m_socketItem;
-    static int32_t unk_C20FE8;
+    static ItemStats_C* m_socketItemStats;
 
     static void EnterWorld();
+    static void Accept();
+    static void GetGemItemForSlot(uint32_t slot, WOWGUID& item, WOWGUID& container, uint8_t& containerSlot);
+    static int32_t SetGem(uint32_t slot, WOWGUID item, WOWGUID container, uint8_t containerSlot);
+    static bool IsSocketItemBoundTradeable();
+    static bool IsSocketItemRefundable();
     static void SetItem(WOWGUID item);
     static int32_t GemMatchesSocket(const ItemStats_C* item, const ItemStats_C* gem, int32_t socket);
 };
+
+void EnchantItemCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 
 #endif

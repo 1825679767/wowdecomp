@@ -32,6 +32,8 @@
 #include "WoW/Source/Object/ObjectClient/Movement_C.h"
 #include "_Triage/WowMouse.h"
 #include "Engine/Source/Frame/CSimpleTop.h"
+#include "Engine/Source/Event/CFocusEvent.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
 
 // STATIC: 0x00AD192C
 uint32_t s_joystick = 0xFFFFFFFF;
@@ -192,6 +194,29 @@ float CGInputControl::GetUIVehiclePower() {
 // OFFSET: 0x005F9750
 int32_t CGInputControl::WowMouseEnabled() {
     return s_cvEnableWowMouse && s_cvEnableWowMouse->m_intValue;
+}
+
+// VERIFY: 21c02d86 auto
+// OFFSET: 0x005F9770
+int32_t CGInputControl::WowMouseConnected() {
+    return this->m_wowMouse && this->m_wowMouse->IsConnected();
+}
+
+// VERIFY: 60b26448 auto
+// OFFSET: 0x005F9790
+bool CGInputControl::DetectWowMouse() {
+    s_cvEnableWowMouse->Set("1", true, false, false, true);
+
+    if (this->m_wowMouse) {
+        bool connected = this->m_wowMouse->IsConnected();
+
+        if (connected) {
+            return connected;
+        }
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_WOW_MOUSE_NOT_FOUND, nullptr);
+    return s_cvEnableWowMouse->Set("0", true, false, false, true);
 }
 
 // VERIFY: 7c49134b auto
@@ -506,6 +531,16 @@ int32_t CGInputControl::CameraCanPitchPlayer() {
     return 1;
 }
 
+// VERIFY: ed61b82c auto
+// OFFSET: 0x005FAC60
+void CGInputControl::EnterWorld() {
+    uint32_t time = OsGetAsyncTimeMs();
+    this->UnsetControlBit(0xFFFFFFFF, time, 0);
+    this->m_time = time;
+    this->m_joystickLookX = 0.0f;
+    this->m_joystickLookY = 0.0f;
+}
+
 // VERIFY: 988e7786 manual
 // OFFSET: 0x005FAC90
 int32_t __stdcall CGInputControl::CanMove(CGUnit_C* unit) {
@@ -543,6 +578,19 @@ void __stdcall ScaleMouseDeltaByFov(float* dx, float* dy) {
     float scale = 0.050000001f + clamped * 0.94999999f;
     *dx = *dx * scale;
     *dy = scale * *dy;
+}
+
+// VERIFY: c6ecfaf7 manual
+// OFFSET: 0x005FB4B0
+void CGInputControl::VehicleAimChange(uint32_t time, float delta) {
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!mover) {
+        return;
+    }
+
+    float aim = this->m_vehicleAimValid ? this->m_vehicleAim : mover->GetPitch();
+    this->SetPlayerPitch(mover, time, aim + delta);
 }
 
 // VERIFY: 384b5dd4 manual
@@ -1295,4 +1343,21 @@ void DescendStart() {
     }
 
     CheckToCancelCurrentChannelSpell();
+}
+
+// VERIFY: c131355d auto
+// OFFSET: 0x005FC960
+void CGInputControl::OnFocusChange(const CFocusEvent& event) {
+    if (!event.m_data.m_focus) {
+        this->m_flags &= 0xFFFFF00F;
+        this->UpdatePlayer(OsGetAsyncTimeMs(), 1);
+    }
+
+    if (event.m_data.m_focus) {
+        this->m_mouseModeFlags &= ~0x20u;
+    } else {
+        this->m_mouseModeFlags |= 0x20u;
+    }
+
+    this->UpdateMouseMode(0);
 }

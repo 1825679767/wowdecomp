@@ -46,6 +46,21 @@ int32_t CGCurrencyTypes::CurrencyCategorySortCallback(const void* a, const void*
     return result;
 }
 
+// VERIFY: 32676bed manual
+// OFFSET: 0x005AFCB0
+void CGCurrencyTypes::SetCategoryExpand(int32_t index, int32_t expand) {
+    if (index < 0 || index >= CGCurrencyTypes::m_listSize || !CGCurrencyTypes::m_list[index].m_isHeader) {
+        return;
+    }
+
+    for (int32_t i = 0; i < CGCurrencyTypes::m_numCategories; i++) {
+        if (CGCurrencyTypes::m_categories[i].m_id == CGCurrencyTypes::m_list[index].m_itemID) {
+            CGCurrencyTypes::m_categories[i].m_expanded = expand;
+            return;
+        }
+    }
+}
+
 // VERIFY: 7bd12f82 manual
 // OFFSET: 0x005AFD90
 void CGCurrencyTypes::InitializeGame() {
@@ -318,6 +333,44 @@ CurrencyTypesRec* CGCurrencyTypes::GetCurrencyRec(int32_t index) {
     return nullptr;
 }
 
+// VERIFY: a4265f41 manual
+// OFFSET: 0x005B0440
+void CGCurrencyTypes::SetUnused(int32_t index, int32_t unused) {
+    if (index < 0 || index >= CGCurrencyTypes::m_listSize || CGCurrencyTypes::m_list[index].m_isHeader) {
+        return;
+    }
+
+    CurrencyTypesRec* rec = CGCurrencyTypes::GetCurrencyRec(index);
+
+    if (!rec) {
+        return;
+    }
+
+    int32_t bit = rec->m_bitIndex;
+
+    if (bit <= 32) {
+        if (bit <= 0) {
+            return;
+        }
+
+        int32_t mask = 1 << (bit - 1);
+
+        if (unused) {
+            g_currencyTokensUnused1CVar->Set(mask | g_currencyTokensUnused1CVar->m_intValue, true, false, false, true);
+        } else {
+            g_currencyTokensUnused1CVar->Set(~mask & g_currencyTokensUnused1CVar->m_intValue, true, false, false, true);
+        }
+    } else {
+        int32_t mask = 1 << (bit - 33);
+
+        if (unused) {
+            g_currencyTokensUnused2CVar->Set(mask | g_currencyTokensUnused2CVar->m_intValue, true, false, false, true);
+        } else {
+            g_currencyTokensUnused2CVar->Set(~mask & g_currencyTokensUnused2CVar->m_intValue, true, false, false, true);
+        }
+    }
+}
+
 // VERIFY: 86e21a80 manual
 // OFFSET: 0x005B04F0
 int32_t CGCurrencyTypes::IsCurrencyShown(int32_t index) {
@@ -342,4 +395,50 @@ int32_t CGCurrencyTypes::IsCurrencyShown(int32_t index) {
     }
 
     return bit > 0 && (g_currencyTokensUnused1CVar->m_intValue & (1 << (bit - 1))) != 0;
+}
+
+// VERIFY: 6b745ff7 manual
+// OFFSET: 0x005B0590
+void CGCurrencyTypes::SetBackpack(int32_t index, int32_t backpack) {
+    if (index < 0 || index >= CGCurrencyTypes::m_listSize || CGCurrencyTypes::m_list[index].m_isHeader) {
+        return;
+    }
+
+    CurrencyTypesRec* rec = CGCurrencyTypes::GetCurrencyRec(index);
+
+    if (!rec) {
+        return;
+    }
+
+    int32_t bit = rec->m_bitIndex;
+
+    if (bit <= 32) {
+        if (bit <= 0) {
+            return;
+        }
+
+        int32_t mask = 1 << (bit - 1);
+
+        if (backpack) {
+            g_currencyTokensBackpack1CVar->Set(mask | g_currencyTokensBackpack1CVar->m_intValue, true, false, false, true);
+        } else {
+            g_currencyTokensBackpack1CVar->Set(~mask & g_currencyTokensBackpack1CVar->m_intValue, true, false, false, true);
+        }
+    } else {
+        int32_t mask = 1 << (bit - 33);
+
+        if (backpack) {
+            g_currencyTokensBackpack2CVar->Set(mask | g_currencyTokensBackpack2CVar->m_intValue, true, false, false, true);
+        } else {
+            g_currencyTokensBackpack2CVar->Set(~mask & g_currencyTokensBackpack2CVar->m_intValue, true, false, false, true);
+        }
+    }
+}
+
+// VERIFY: ceeaf02e auto
+// OFFSET: 0x005B0640
+int32_t SignalKnownCurrencyTypesUpdate(WOWGUID guid, uint32_t offset, uint32_t count, const void* value, void* param) {
+    CGCurrencyTypes::BuildDisplayList();
+    FrameScript_SignalEvent(SCRIPT_EVENT_KNOWN_CURRENCY_TYPES_UPDATE, nullptr);
+    return 1;
 }

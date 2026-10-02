@@ -180,6 +180,45 @@ int32_t Script_GetCurrencyListInfo(lua_State* L) {
     return 9;
 }
 
+// VERIFY: 3b71bf98 manual
+// OFFSET: 0x005B0940
+static int32_t Script_ExpandCurrencyList(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: ExpandCurrencyList(index,expand)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    CGCurrencyTypes::SetCategoryExpand(index, static_cast<int32_t>(lua_tonumber(L, 2)));
+    CGCurrencyTypes::BuildDisplayList();
+    return 0;
+}
+
+// VERIFY: e70d3509 manual
+// OFFSET: 0x005B09B0
+static int32_t Script_SetCurrencyUnused(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: SetCurrencyUnused(index,unused)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    CGCurrencyTypes::SetUnused(index, static_cast<int32_t>(lua_tonumber(L, 2)));
+    CGCurrencyTypes::BuildDisplayList();
+    return 0;
+}
+
+// VERIFY: 74da2452 manual
+// OFFSET: 0x005B0A20
+static int32_t Script_SetCurrencyBackpack(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: SetCurrencyBackpack(index,backpack)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    CGCurrencyTypes::SetBackpack(index, static_cast<int32_t>(lua_tonumber(L, 2)));
+    CGCurrencyTypes::BuildDisplayList();
+    return 0;
+}
+
 // STATIC: 0x00ACFC34
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetCurrencyListSize", &Script_GetCurrencyListSize },
@@ -195,5 +234,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void CurrencyTypesRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: b539a1b6 auto
+// OFFSET: 0x005AFD70
+void CurrencyTypesUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

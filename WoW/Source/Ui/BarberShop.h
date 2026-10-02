@@ -19,7 +19,9 @@ class CGBarberShop {
     static void EnterWorld();
     static STYLEREC* GetStyle(int32_t type, int32_t race, int32_t sex, int32_t data);
     static float GetMinCameraDistance();
-    static int32_t m_barberShopEnabled;
+    static uint8_t m_barberShopEnabled;
+    static uint8_t m_helmHidden;
+    static int32_t m_prevView;
     static float m_minCameraDistance;
     static uint8_t m_resetPortrait;
     static STYLEREC* m_currentHairStyle;
@@ -30,18 +32,20 @@ class CGBarberShop {
 
     static void AppearanceApplied();
     static void DisableBarberShop();
+    static const BarberShopStyleRec* GetCurrentStyle(int32_t type);
+    static void ResetAppearance();
+    static bool IsCurrentStyle(int32_t type);
+    static int32_t GetTotalCost();
+    static void ApplyAppearanceChange();
+    static void Reset();
+    static void SetNextBarberShopStyle(int32_t type, bool backward);
     static void InitializeGame();
     static void ShutdownGame();
     static void RegisterScriptFunctions();
+    static void UnregisterScriptFunctions();
 };
 
-int32_t Script_GetBarberShopStyleInfo(lua_State* L);
-int32_t Script_SetNextBarberShopStyle(lua_State* L);
-int32_t Script_GetBarberShopTotalCost(lua_State* L);
-int32_t Script_ApplyBarberShopStyle(lua_State* L);
-int32_t Script_CancelBarberShop(lua_State* L);
 int32_t Script_GetHairCustomization(lua_State* L);
 int32_t Script_GetFacialHairCustomization(lua_State* L);
-int32_t Script_BarberShopReset(lua_State* L);
 
 #endif

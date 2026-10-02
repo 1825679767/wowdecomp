@@ -27,7 +27,7 @@ class CGSkillInfo {
     static uint32_t m_numTypes;
     static uint32_t m_numSkillLines;
     static int32_t m_selectedSkill;
-    static int32_t unk_C22AF8;
+    static int32_t m_expandedTypes;
     static int32_t unk_C22AFC;
     static int32_t m_skillUpPoints;
     static TSFixedArray<SkillLineInfo*> m_lines;
@@ -38,16 +38,13 @@ class CGSkillInfo {
     static void UpdateSkillLines();
     static int32_t GetSkillTypeCollapsed(uint32_t index);
     static int32_t GetSkillCostField(const SkillRaceClassInfoRec* info, int32_t skillValue);
+    static void CollapseHeader(uint32_t index);
+    static void ExpandHeader(uint32_t index);
+    static void AddSkillUp(uint32_t index);
+    static void RemoveSkillUp(uint32_t index);
 };
 
-int32_t Script_AbandonSkill(lua_State* L);
-int32_t Script_CollapseSkillHeader(lua_State* L);
-int32_t Script_ExpandSkillHeader(lua_State* L);
-int32_t Script_AddSkillUp(lua_State* L);
-int32_t Script_RemoveSkillUp(lua_State* L);
-int32_t Script_AcceptSkillUps(lua_State* L);
-int32_t Script_CancelSkillUps(lua_State* L);
-int32_t Script_BuySkillTier(lua_State* L);
 void SkillInfoRegisterScriptFunctions();
+void SkillInfoUnregisterScriptFunctions();
 
 #endif

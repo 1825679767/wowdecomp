@@ -17,6 +17,19 @@
 #include "WoW/Source/DB/Rec/WorldStateUIRec.h"
 #include "WoW/Source/DB/Rec/AreaTableRec.h"
 #include "WoW/Source/Ui/CGWorldStateInfo.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/Types.h"
+#include "Engine/Source/FrameXML/LoadXML.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "WoW/Source/DB/Rec/ChrClassesRec.h"
+#include "WoW/Source/DB/Rec/VehicleRec.h"
+#include "WoW/Source/Game/GameClient/NameCache.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/Object/Unit.h"
+#include "WoW/Source/Object/Movement.h"
+#include "WoW/Source/Ui/WorldMap.h"
+#include "WoW/Source/Ui/UILCD/LCD.h"
 
 // VERIFY: 0203d343 manual
 // OFFSET: 0x00549E80
@@ -576,11 +589,34 @@ static int32_t Script_GetNumBattlegroundTypes(lua_State* L) {
     return 1;
 }
 
+// VERIFY: bb156e6b manual
+// OFFSET: 0x0054D990
+static int32_t Script_JoinBattlefield(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: JoinBattlefield(index)");
+        return 0;
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t asGroup = StringToBOOL(L, 2, 0);
+    int32_t isRated = StringToBOOL(L, 3, 0);
+    CGBattlefieldInfo::JoinBattlefield(index, asGroup, isRated);
+    return 0;
+}
+
 // VERIFY: 97f10f1d auto
 // OFFSET: 0x0054DCB0
 static int32_t Script_RequestBattlefieldPositions(lua_State* L) {
     CGBattlefieldInfo::RequestPlayerPositions();
     return 0;
+}
+
+// VERIFY: 64123e08 auto
+// OFFSET: 0x0054C9F0
+static int32_t Script_SortBGList(lua_State* L) {
+    lua_pushboolean(L, 1);
+    qsort(CGBattlefieldInfo::m_battlegroundTypes.m_data, CGBattlefieldInfo::m_battlegroundTypes.Count(), sizeof(int32_t), QSortBattlefields);
+    return 1;
 }
 
 // VERIFY: 9f46881d manual
@@ -697,6 +733,406 @@ int32_t Script_RequestBattlegroundInstanceInfo(lua_State* L) {
     return 0;
 }
 
+// VERIFY: 35f0aa8d manual
+// OFFSET: 0x00549B40
+static int32_t Script_CloseBattlefield(lua_State* L) {
+    FrameScript_SignalEvent(SCRIPT_EVENT_BATTLEFIELDS_CLOSED, nullptr);
+    CGGameUI::ClearInteractTarget(CGBattlefieldInfo::m_battlemaster, 0);
+    CGBattlefieldInfo::m_battlemaster = WOWGUID();
+    return 0;
+}
+
+// VERIFY: 8091a1d8 manual
+// OFFSET: 0x0054BE90
+static int32_t Script_GetBattlefieldScore(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetBattlefieldScore(index)");
+    }
+
+    lua_checkstack(L, 12);
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    BattlefieldScore* score;
+    NameCache* name;
+    WOWGUID none = WOWGUID();
+
+    if (index >= CGBattlefieldInfo::m_numScoreEntries || !(score = CGBattlefieldInfo::m_scores[index]) || !(name = g_nameDBCache.GetRecord(score->m_guid.m_guid, none, nullptr, nullptr, false))) {
+        lua_pushnil(L);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        return 12;
+    }
+
+    char fullName[308];
+    lua_pushstring(L, name->FullName(fullName, 305));
+    lua_pushnumber(L, static_cast<int32_t>(score->m_killingBlows));
+    lua_pushnumber(L, static_cast<int32_t>(score->m_honorableKills));
+    lua_pushnumber(L, static_cast<int32_t>(score->m_deaths));
+    lua_pushnumber(L, static_cast<int32_t>(score->m_bonusHonor));
+    lua_pushnumber(L, score->m_faction);
+    lua_pushnumber(L, 0.0);
+    lua_pushstring(L, CGUnit_C::GetDisplayRaceName(nullptr, name));
+    ChrClassesRec* chrClass = g_chrClassesDB.GetRecord(name->m_class);
+    const char* className = CGUnit_C::GetDisplayClassName(nullptr, name);
+
+    if (chrClass && className) {
+        lua_pushstring(L, className);
+        lua_pushstring(L, chrClass->m_filename);
+    } else {
+        lua_pushnil(L);
+        lua_pushnil(L);
+    }
+
+    lua_pushnumber(L, static_cast<int32_t>(score->m_damageDone));
+    lua_pushnumber(L, static_cast<int32_t>(score->m_healingDone));
+    return 12;
+}
+
+// VERIFY: f2afaa8c auto
+// OFFSET: 0x0054C120
+static int32_t Script_SetBattlefieldScoreFaction(lua_State* L) {
+    int32_t faction = -1;
+
+    if (!lua_isnumber(L, 1) || (faction = static_cast<int32_t>(lua_tonumber(L, 1)), faction == -1) || static_cast<uint32_t>(faction) < 2) {
+        CGBattlefieldInfo::m_logFilterFaction = faction;
+        BattlefieldNameCacheCallback();
+    }
+
+    return 0;
+}
+
+// VERIFY: c79fcaf4 manual
+// OFFSET: 0x0054C2E0
+static int32_t Script_GetBattlefieldPosition(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetBattlefieldPosition(index)");
+    }
+
+    int32_t remaining = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index;
+    WOWGUID guid;
+
+    for (index = 0; index < CGBattlefieldInfo::m_numPlayerPositions; index++) {
+        guid = index >= CGBattlefieldInfo::m_numPlayerPositions ? WOWGUID() : CGBattlefieldInfo::m_playerPositionGuids[index];
+
+        if (CGPartyInfo::IsMember(guid) || IsGuidInMyRaid(guid)) {
+            continue;
+        }
+
+        if (!remaining) {
+            break;
+        }
+
+        remaining--;
+    }
+
+    if (index >= CGBattlefieldInfo::m_numPlayerPositions) {
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnil(L);
+        return 3;
+    }
+
+    C3Vector position(0.0f, 0.0f, 0.0f);
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        position = player->GetPosition();
+    } else if (!CGBattlefieldInfo::GetPlayerPosition(index, &position)) {
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnil(L);
+        return 3;
+    }
+
+    float x;
+    float y;
+    CGWorldMap::GetWorldPosition(position, CGBattlefieldInfo::m_activeMapID, &x, &y, nullptr, false, 0);
+    lua_pushnumber(L, x);
+    lua_pushnumber(L, y);
+    NameCache* name = g_nameDBCache.GetRecord(guid.m_guid, guid, &WorldMapNameUpdateCallback, nullptr, false);
+
+    if (name) {
+        char fullName[308];
+        lua_pushstring(L, name->FullName(fullName, 305));
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 3;
+}
+
+// STATIC: 0x00AD6B14
+static const char* s_vehicleTypes[5] = { "Drive", "Fly", "Idle", "Airship Horde", "Airship Alliance" };
+
+// VERIFY: d321c450 manual
+// OFFSET: 0x0054C4D0
+static int32_t Script_GetBattlefieldVehicleInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetBattlefieldVehicleInfo(index)");
+    }
+
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    WOWGUID guid = index >= CGBattlefieldInfo::m_numVehicles ? WOWGUID() : CGBattlefieldInfo::m_vehicleGuids[index];
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return 0;
+    }
+
+    float x = 0.0f;
+    float y = 0.0f;
+
+    if (!CGWorldMap::GetWorldPosition(unit->GetPosition(), CGGameUI::m_iCurrentMapID, &x, &y, nullptr, false, 0) || !(x != 0.0f) || !(y != 0.0f)) {
+        return 0;
+    }
+
+    VehicleRec* vehicle = unit->GetVehicleRec();
+    bool hasType = vehicle && (vehicle->m_flags & 0x10000000);
+    lua_pushnumber(L, x);
+    lua_pushnumber(L, y);
+    lua_pushstring(L, unit->GetUnitName(nullptr, true));
+    lua_pushboolean(L, (unit->m_unit->m_unitFieldFlags >> 24) & 0x1);
+
+    if (hasType) {
+        lua_pushstring(L, s_vehicleTypes[vehicle->m_uiLocomotionType]);
+    } else {
+        lua_pushnil(L);
+    }
+
+    lua_pushnumber(L, unit->GetFacing());
+    lua_pushboolean(L, unit->IsLocalClientControlled());
+    lua_pushboolean(L, !unit->IsDeadOrGhost());
+    return 8;
+}
+
+// VERIFY: 4c82eb67 manual
+// OFFSET: 0x0054DA10
+static int32_t Script_AcceptBattlefieldPort(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: AcceptBattlefieldPort(index, accept)");
+    }
+
+    if (!CGGameUI::CanPerformAction(20)) {
+        return 0;
+    }
+
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    BattlefieldStatus* status;
+
+    if (index >= 2 || !(status = &CGBattlefieldInfo::m_status[index])) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    uint8_t accept = StringToBOOL(L, 2, 0) != 0;
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && accept && !IsCurrentMapArena()) {
+        if (player->m_unit->m_unitFieldFlags & 0x800) {
+            CGGameUI::DisplayError(ERR_NOT_IN_COMBAT);
+            lua_pushnil(L);
+            return 1;
+        }
+
+        if (player->IsDeadOrGhost()) {
+            CGGameUI::DisplayError(ERR_PLAYER_DEAD);
+            lua_pushnil(L);
+            return 1;
+        }
+
+        if (player->m_movement->m_flags & 0x1000) {
+            CGGameUI::DisplayError(ERR_NOT_WHILE_FALLING);
+            lua_pushnil(L);
+            return 1;
+        }
+
+        if (IsOnTransport(player)) {
+            CGGameUI::DisplayError(ERR_CLIENT_LOCKED_OUT);
+            lua_pushnil(L);
+            return 1;
+        }
+
+        MirrorTimerInfo* timer = CGGameUI::MirrorTimerGetInfo(0);
+
+        if (timer && timer->m_scale < 0) {
+            CGGameUI::DisplayError(ERR_NOT_WHILE_FATIGUED);
+            lua_pushnil(L);
+            return 1;
+        }
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_BATTLEGROUND_PORT_AND_LEAVE));
+    msg.Put(status->m_queueData);
+    msg.Put(accept);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+
+    if (!accept) {
+        CGLCD::HideBattlefieldAlert();
+
+        if (status->m_bgTypeID == static_cast<uint32_t>(CGBattlefieldInfo::m_bgTypeID)) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_BATTLEFIELDS_CLOSED, nullptr);
+        }
+    }
+
+    lua_pushnumber(L, 1.0);
+    return 1;
+}
+
+// VERIFY: 56d21a3b auto
+// OFFSET: 0x0054DCA0
+static int32_t Script_RequestBattlefieldScoreData(lua_State* L) {
+    CGBattlefieldInfo::RequestScoreData();
+    return 0;
+}
+
+// VERIFY: 94f01935 manual
+// OFFSET: 0x0054DCC0
+static int32_t Script_GetBattlefieldFlagPosition(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetBattlefieldFlagPosition(index)");
+    }
+
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    WOWGUID carrier = CGBattlefieldInfo::GetFlagCarrier(index);
+    C3Vector position(0.0f, 0.0f, 0.0f);
+
+    if (!carrier || (CGWorldMap::GetPlayerPosition(carrier, &position.x, &position.y), 0.0f == position.x && 0.0f == position.y)) {
+        if (CGBattlefieldInfo::GetFlagPosition(index, &position)) {
+            float x;
+            float y;
+            CGWorldMap::GetWorldPosition(position, CGBattlefieldInfo::m_activeMapID, &x, &y, nullptr, false, 0);
+            position.x = x;
+            position.y = y;
+            position.z = 0.0f;
+        }
+    }
+
+    lua_pushnumber(L, position.x);
+    lua_pushnumber(L, position.y);
+    const char* token = CGBattlefieldInfo::GetFlagToken(index);
+
+    if (token) {
+        lua_pushstring(L, token);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 3;
+}
+
+// VERIFY: 0ee48b8b auto
+// OFFSET: 0x0054DE00
+static int32_t Script_SortBattlefieldScoreData(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usgae: SortBattlefieldScoreData(\"type\")");
+    }
+
+    int32_t column = 0;
+    const char* type = lua_tolstring(L, 1, nullptr);
+
+    if (!SStrCmpI(type, "kills", STORM_MAX_STR)) {
+        CGBattlefieldInfo::SetScoreSortColumn(0);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "deaths", STORM_MAX_STR)) {
+        CGBattlefieldInfo::SetScoreSortColumn(1);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "cp", STORM_MAX_STR)) {
+        CGBattlefieldInfo::SetScoreSortColumn(2);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "name", STORM_MAX_STR)) {
+        CGBattlefieldInfo::SetScoreSortColumn(3);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "class", STORM_MAX_STR)) {
+        CGBattlefieldInfo::SetScoreSortColumn(4);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "hk", STORM_MAX_STR)) {
+        CGBattlefieldInfo::SetScoreSortColumn(5);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "damage", STORM_MAX_STR)) {
+        CGBattlefieldInfo::SetScoreSortColumn(6);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "healing", STORM_MAX_STR)) {
+        CGBattlefieldInfo::SetScoreSortColumn(7);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "team", STORM_MAX_STR)) {
+        CGBattlefieldInfo::SetScoreSortColumn(8);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "stat", 4)) {
+        type += 4;
+        uint32_t stat = SStrToUnsigned(type) + 8;
+
+        if (stat >= 17) {
+            return 0;
+        }
+
+        column = stat;
+    }
+
+    CGBattlefieldInfo::SetScoreSortColumn(column);
+    return 0;
+}
+
+// VERIFY: 991cd414 auto
+// OFFSET: 0x0054E160
+static int32_t Script_BattlefieldMgrEntryInviteResponse(lua_State* L) {
+    int32_t battleId = static_cast<int32_t>(lua_tonumber(L, 1));
+    uint8_t accept = static_cast<uint8_t>(StringToBOOL(L, 2, 0));
+    CGBattlefieldInfo::BattlefieldMgrEntryInviteResponse(battleId, accept);
+    return 0;
+}
+
+// VERIFY: cd03887f auto
+// OFFSET: 0x0054E1A0
+static int32_t Script_BattlefieldMgrQueueRequest(lua_State* L) {
+    CGBattlefieldInfo::BattlefieldMgrQueueRequest(static_cast<int32_t>(lua_tonumber(L, 1)));
+    return 0;
+}
+
+// VERIFY: fe4c5bdd auto
+// OFFSET: 0x0054E1C0
+static int32_t Script_BattlefieldMgrQueueInviteResponse(lua_State* L) {
+    int32_t battleId = static_cast<int32_t>(lua_tonumber(L, 1));
+    uint8_t accept = static_cast<uint8_t>(StringToBOOL(L, 2, 0));
+    CGBattlefieldInfo::BattlefieldMgrQueueInviteResponse(battleId, accept);
+    return 0;
+}
+
+// VERIFY: de36536c auto
+// OFFSET: 0x0054E200
+static int32_t Script_BattlefieldMgrExitRequest(lua_State* L) {
+    CGBattlefieldInfo::BattlefieldMgrExitRequest(static_cast<int32_t>(lua_tonumber(L, 1)));
+    return 0;
+}
+
 // STATIC: 0x00ACD178
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetNumBattlefields", &Script_GetNumBattlefields },
@@ -757,5 +1193,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void BattlefieldInfoRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: c6111526 auto
+// OFFSET: 0x0054A410
+void BattlefieldInfoUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

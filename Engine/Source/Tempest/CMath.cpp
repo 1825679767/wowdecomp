@@ -714,3 +714,16 @@ void CMath::sincos_(float x, float* s, float* c) {
     value = 1.0f - frac * ((6.0f - 4.0f * frac) * frac);
     *c = (whole & 1) ? -value : value;
 }
+
+// VERIFY: 7fd316a4 auto
+// OFFSET: 0x005C59F0
+int32_t Clamp(int32_t value, int32_t min, int32_t max) {
+    uint32_t offset = value - min;
+    uint32_t range = max - min;
+
+    if (offset > range) {
+        return min + (range & ~(static_cast<int32_t>(offset) >> 31));
+    }
+
+    return value;
+}

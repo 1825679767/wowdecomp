@@ -70,10 +70,246 @@ World::TriData::Batch World::TriData::batches[32];
 // STATIC: 0x00CD7880
 C44Matrix World::TriData::matrixPool[32];
 
+struct SpanRange {
+    /* 0000 */ int32_t m_min;
+    /* 0004 */ int32_t m_max;
+
+    SpanRange Merge(const SpanRange& other);
+};
+
+class SpanRasterizer {
+    public:
+    /* 0004 */ int32_t m_width;
+    /* 0008 */ int32_t m_height;
+    /* 000C */ SpanRange* m_spans;
+
+    SpanRasterizer(const C2iVector& size, SpanRange* spans);
+    virtual void VisitSpan(int32_t x0, int32_t x1, int32_t y) = 0;
+    void VisitRange(int32_t x0, int32_t x1, int32_t y);
+    void AddSpan(int32_t x0, int32_t x1, int32_t y);
+    void AddRing(int32_t x, int32_t y, int32_t radius);
+};
+
+class LiquidSoundQuery : public SpanRasterizer {
+    public:
+    /* 0010 */ C3Vector m_position;
+    /* 001C */ int32_t m_liquidType;
+    /* 0020 */ const SMOLTile* m_tiles;
+    /* 0024 */ const SMOLiquidVert* m_verts;
+    /* 0028 */ TSGrowableArray<World::LiquidQueryResult>* m_results;
+    /* 002C */ float m_radiusSq;
+    /* 0030 */ uint8_t m_found;
+
+    LiquidSoundQuery(const C2iVector& size, SpanRange* spans, const C3Vector& position, int32_t liquidType, const SMOLTile* tiles, const SMOLiquidVert* verts, TSGrowableArray<World::LiquidQueryResult>* results);
+    void VisitSpan(int32_t x0, int32_t x1, int32_t y) override;
+};
+
+// STATIC: 0x00A3FA48
+static const float s_liquidSoundRings[26] = { 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 12.0f, 14.0f, 16.0f, 18.0f, 20.0f, 24.0f, 28.0f, 32.0f, 36.0f, 40.0f, 44.0f, 48.0f, 52.0f, 56.0f, 60.0f };
+
+// STATIC: 0x00ADF804
+static float s_liquidTileScale = 0.24f;
+
 // VERIFY: 23ad3913 auto
 // OFFSET: 0x00431F30
 int32_t CMapObjGroup::GetLiquidType() const {
     return this->m_liquidType;
+}
+
+// VERIFY: 3d3b1760 manual
+// OFFSET: 0x0079B310
+void SpanRasterizer::VisitRange(int32_t x0, int32_t x1, int32_t y) {
+    if (x0 <= x1) {
+        this->VisitSpan(x0, x1, y);
+    }
+}
+
+// VERIFY: a611df78 auto
+// OFFSET: 0x0079B400
+SpanRange SpanRange::Merge(const SpanRange& other) {
+    int32_t maximum = this->m_max > other.m_max ? this->m_max : other.m_max;
+    int32_t minimum = this->m_min < other.m_min ? this->m_min : other.m_min;
+    this->m_max = maximum;
+    this->m_min = minimum;
+    SpanRange result;
+    result.m_min = minimum;
+    result.m_max = maximum;
+    return result;
+}
+
+// VERIFY: 3943ee70 auto
+// OFFSET: 0x0079B470
+SpanRasterizer::SpanRasterizer(const C2iVector& size, SpanRange* spans) {
+    this->m_width = size.x;
+    this->m_spans = spans;
+    this->m_height = size.y;
+
+    for (int32_t i = 0; i < this->m_height; i++) {
+        this->m_spans[i].m_min = 0x7FFFFFFF;
+        this->m_spans[i].m_max = static_cast<int32_t>(0x80000000);
+    }
+}
+
+// VERIFY: 3fe4e8a0 manual
+// OFFSET: 0x0079B4C0
+void SpanRasterizer::AddSpan(int32_t x0, int32_t x1, int32_t y) {
+    if (y < 0 || y >= this->m_height || x1 < 0 || x0 >= this->m_width) {
+        return;
+    }
+
+    int32_t start = Clamp(x0, 0, this->m_width - 1);
+    int32_t end = Clamp(x1, 0, this->m_width - 1);
+    SpanRange& span = this->m_spans[y];
+
+    if (span.m_max >= span.m_min) {
+        this->VisitRange(start, span.m_min - 1, y);
+        this->VisitRange(this->m_spans[y].m_max + 1, end, y);
+    } else {
+        this->VisitRange(start, end, y);
+    }
+
+    SpanRange range;
+    range.m_min = start;
+    range.m_max = end;
+    this->m_spans[y].Merge(range);
+}
+
+// VERIFY: 7f7f8ecb manual
+// OFFSET: 0x0079B590
+void SpanRasterizer::AddRing(int32_t x, int32_t y, int32_t radius) {
+    if (!radius) {
+        this->AddSpan(x, x, y);
+        return;
+    }
+
+    if (radius == 1) {
+        this->AddSpan(x - 1, x + 1, y);
+        this->AddSpan(x - 1, x + 1, y - 1);
+        this->AddSpan(x - 1, x + 1, y + 1);
+        return;
+    }
+
+    int32_t right = x + radius - 1;
+    int32_t error = radius - 1;
+    int32_t limit = radius - 1;
+    this->AddSpan(x - (radius - 1), right, y);
+    int32_t step = 0;
+
+    if (radius - 1 < 0) {
+        return;
+    }
+
+    int32_t left = x - (radius - 1);
+    int32_t dx = 1;
+    int32_t dy = 1 - 2 * (radius - 1);
+    int32_t nextDy = dy;
+    int32_t up = x;
+    int32_t down = x;
+    int32_t offset = y - x;
+
+    while (true) {
+        step++;
+        int32_t nextDx = dx + 2;
+        up++;
+        down--;
+        error -= dx;
+
+        if (error < 0) {
+            limit--;
+            left++;
+            right--;
+            error -= dy;
+            nextDy = dy + 2;
+        }
+
+        this->AddSpan(left, right, offset + down);
+        this->AddSpan(left, right, offset + up);
+        this->AddSpan(down, up, offset + left);
+        this->AddSpan(down, up, offset + right);
+
+        if (step > limit) {
+            break;
+        }
+
+        dx = nextDx;
+        dy = nextDy;
+    }
+}
+
+// VERIFY: fc3235a2 auto
+// OFFSET: 0x0079B700
+LiquidSoundQuery::LiquidSoundQuery(const C2iVector& size, SpanRange* spans, const C3Vector& position, int32_t liquidType, const SMOLTile* tiles, const SMOLiquidVert* verts, TSGrowableArray<World::LiquidQueryResult>* results) : SpanRasterizer(size, spans) {
+    this->m_position = position;
+    this->m_liquidType = liquidType;
+    this->m_results = results;
+    this->m_tiles = tiles;
+    this->m_verts = verts;
+    this->m_found = 0;
+}
+
+// VERIFY: 04c2b9e5 manual
+// OFFSET: 0x0079B760
+void CMapObjGroup::QueryLiquidSounds(const C3Vector& pos, TSGrowableArray<World::LiquidQueryResult>& results) {
+    if (!this->m_liquidType || !this->m_liquidTiles.x || !this->m_liquidTiles.y) {
+        return;
+    }
+
+    C3Vector local;
+    local.x = pos.x - this->m_liquidCorner.x;
+    local.y = pos.y - this->m_liquidCorner.y;
+    local.z = pos.z;
+    int32_t tileX = static_cast<int32_t>(local.x * s_liquidTileScale);
+    int32_t tileY = static_cast<int32_t>(s_liquidTileScale * local.y);
+    SpanRange* spans = static_cast<SpanRange*>(alloca(sizeof(SpanRange) * this->m_liquidTiles.y));
+    LiquidSoundQuery query(this->m_liquidTiles, spans, local, this->m_liquidType, this->m_liquidTileList, this->m_liquidVertexList, &results);
+
+    for (uint32_t i = 0; i < sizeof(s_liquidSoundRings) / sizeof(s_liquidSoundRings[0]); i++) {
+        if (query.m_found) {
+            break;
+        }
+
+        float ring = s_liquidSoundRings[i];
+        query.m_radiusSq = 4.1666665f * ring * (4.1666665f * ring);
+        query.AddRing(tileX, tileY, static_cast<int32_t>(ring));
+    }
+}
+
+// VERIFY: dd010149 manual
+// OFFSET: 0x0079C1A0
+void LiquidSoundQuery::VisitSpan(int32_t x0, int32_t x1, int32_t y) {
+    const SMOLTile* tile = &this->m_tiles[x0 + y * this->m_width];
+    const SMOLiquidVert* vert = &this->m_verts[x0 + y * (this->m_width + 1)];
+
+    for (int32_t x = x0; x <= x1; x++, tile++, vert++) {
+        if ((tile->m_flags & 0xF) == 0xF) {
+            continue;
+        }
+
+        World::LiquidQueryResult* result = nullptr;
+
+        for (uint32_t i = 0; i < this->m_results->Count(); i++) {
+            if (this->m_results->m_data[i].m_liquidType == this->m_liquidType) {
+                result = &this->m_results->m_data[i];
+                break;
+            }
+        }
+
+        float dz = vert->m_waterVert.m_height - this->m_position.z;
+
+        if (result) {
+            if (dz * dz + this->m_radiusSq >= result->m_offset.z * result->m_offset.z + result->m_offset.y * result->m_offset.y + result->m_offset.x * result->m_offset.x) {
+                continue;
+            }
+        } else {
+            result = this->m_results->New();
+        }
+
+        result->m_liquidType = this->m_liquidType;
+        result->m_offset.x = x * 4.1666665f - this->m_position.x;
+        result->m_offset.y = y * 4.1666665f - this->m_position.y;
+        result->m_offset.z = dz;
+        this->m_found = 1;
+    }
 }
 
 // OFFSET: 0x007C6C30

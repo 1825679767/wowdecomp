@@ -24,6 +24,8 @@ class CMapObjDefMapObjDefGroupLink;
 
 class CMapObjDefGroup : public CMapBaseObj {
     public:
+    void Update(const C44Matrix& matrix);
+    void SetSequence(uint32_t sequence, int32_t a3, uint16_t doodadSet);
     /* 0024 */ CAaBox m_bbox;
     /* 003C */ CAaSphere m_sphere;
     /* 004C */ float m_distanceToCamera;
@@ -49,6 +51,7 @@ class CMapObjDefGroup : public CMapBaseObj {
     void UpdateLights();
     void SetSequenceFinishedCallback(M2SequenceCallback callback, uint64_t param, uint16_t doodadSet);
     bool IsAllLoaded();
+    void SetEventCallback(M2EventCallback callback, uint64_t param, uint16_t doodadSet);
 };
 
 class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_NONE> {
@@ -57,6 +60,11 @@ class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_N
     void SetSequenceFinishedCallback(M2SequenceCallback callback, uint64_t param, uint16_t doodadSet);
     static void UpdateMoved(CMapObjDef* mapObjDef);
     static void UpdatePos(CMapObjDef* mapObjDef, const C3Vector* position, float facing, float a4, float a5);
+    static void LinkDoodadDef(CMapDoodadDef* doodadDef, CMapObjDef* mapObjDef, int32_t testBounds);
+    static int32_t MoveDoodadDefs(CMapObjDef* source, uint16_t doodadSet, CMapObjDef* target, uint16_t targetDoodadSet);
+    static void SetDoodadEmittersIgnoresDistance(CMapObjDef* mapObjDef, int32_t ignore, uint16_t doodadSet);
+    static void SetDoodadsEnabled(CMapObjDef* mapObjDef, int32_t enable, uint16_t doodadSet);
+    void SetEventCallback(M2EventCallback callback, uint64_t param, uint16_t doodadSet);
     /* 003C */ C3Vector m_position;
     /* 0048 */ CAaBox m_bbox;
     /* 0060 */ CAaSphere m_sphere;
@@ -87,6 +95,7 @@ class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_N
     int32_t GetGroundType(uint32_t groupNum, uint16_t faceIndex);
     void RenderWithCallback(TSGrowableArray<uint32_t>* groups);
     void CullMapObjDefGroupFromExterior(CMapObjDefGroup* mapObjDefGroup, CRect* rect, uint32_t skipOcclusion);
+    void SetSequence(uint32_t sequence, int32_t a3, uint16_t doodadSet);
 };
 
 #endif

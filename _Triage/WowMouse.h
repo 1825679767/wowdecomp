@@ -9,6 +9,7 @@ class WowMouse {
     /* 0004 */ void* m_hidManager;
 
     virtual ~WowMouse();
+    virtual int32_t IsConnected();
 
     WowMouse();
 };

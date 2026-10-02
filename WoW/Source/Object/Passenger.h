@@ -33,6 +33,7 @@ class CPassenger {
     float GetRawFacingFromRotation() const;
     float RemoveFromTransportFinish(const C44Matrix& matrix);
     float AddToTransport(WOWGUID transport, C44Matrix* inverse, C44Matrix* transportMatrix);
+    void SetTransport(WOWGUID transport);
     float RemoveFromTransport(C44Matrix* matrix);
 };
 #pragma pack(pop)

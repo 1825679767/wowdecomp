@@ -202,6 +202,56 @@ static int32_t Script_CombatLogGetCurrentEntry(lua_State* L) {
     return s_currentEntry->PushEvent(L);
 }
 
+// VERIFY: 3636a3c6 manual
+// OFFSET: 0x0074FC20
+static int32_t Script_CombatLogAdvanceEntry(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: CombatLogAdvanceEntry(count [,ignoreFilter])");
+    }
+
+    int32_t count = lua_tointeger(L, 1);
+    int32_t ignoreFilter = StringToBOOL(L, 2, 0);
+
+    if (count) {
+        CombatLogEntry* entry = s_currentEntry;
+        CombatLogEntry* result = nullptr;
+
+        if (count <= 0) {
+            while (entry) {
+                if ((ignoreFilter || entry->MatchesFilter()) && !count++) {
+                    result = entry;
+                    break;
+                }
+
+                entry = entry->m_link.Prev();
+            }
+        } else if (entry) {
+            while (entry != s_pendingEntries) {
+                if ((ignoreFilter || entry->MatchesFilter()) && !count--) {
+                    result = entry;
+                    break;
+                }
+
+                entry = s_entries.Next(entry);
+
+                if (!entry) {
+                    break;
+                }
+            }
+        }
+
+        s_currentEntry = result;
+    }
+
+    if (s_currentEntry) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
 // STATIC: 0x00ADB8E0
 static FrameScript_Method s_ScriptFunctions[] = {
     { "CombatLogResetFilter", &Script_CombatLogResetFilter },
@@ -222,5 +272,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void UnitCombatLogRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 0a1f56dd auto
+// OFFSET: 0x0074D6E0
+void UnitCombatLogUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

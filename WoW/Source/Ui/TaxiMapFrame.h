@@ -18,10 +18,10 @@ struct TaxiNodeInfo {
     /* 0004 */ float m_x;
     /* 0008 */ float m_y;
     /* 000C */ uint8_t m_noDirectPath;
-    /* 000D */ uint8_t unk_000D;
+    /* 000D */ uint8_t m_reachable;
     /* 000E */ uint8_t unk_000E[2];
-    /* 0010 */ int32_t unk_0010[5];
-    /* 0024 */ int32_t unk_0024;
+    /* 0010 */ int32_t m_costs[5];
+    /* 0024 */ uint32_t* m_path;
     /* 0028 */ uint32_t m_numHops;
     /* 002C */ float m_distance;
 };
@@ -55,12 +55,18 @@ class CGTaxiMap {
     static void ShutdownGame();
     static void FreeRouteLines();
     static void RegisterScriptFunctions();
+    static void UnregisterScriptFunctions();
+    static void SetupMap(const WOWGUID& unit, int32_t currentNode, const uint64_t* nodeMask);
+    static void GeneratePaths();
+    static void RecursePath(uint32_t index, uint32_t parent, int32_t cost);
+    static float CalculateAccurateDistance(uint32_t index, uint32_t parent);
+    static void TaxiNodeSetCurrent(uint32_t index);
+    static void TakeTaxiNode(uint32_t index);
+    static const char* TaxiNodeType(uint32_t index);
 };
 
-int32_t Script_TaxiNodeCost(lua_State* L);
-int32_t Script_TakeTaxiNode(lua_State* L);
-int32_t Script_CloseTaxiMap(lua_State* L);
-int32_t Script_TaxiNodeGetType(lua_State* L);
-int32_t Script_TaxiNodeSetCurrent(lua_State* L);
+bool TaxiRouteExists(uint32_t from, uint32_t to);
+int32_t TaxiNodeCost(uint32_t index);
+
 
 #endif

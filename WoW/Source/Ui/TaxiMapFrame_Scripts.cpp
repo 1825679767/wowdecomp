@@ -150,6 +150,66 @@ static int32_t Script_TaxiGetDestY(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 80d905ad auto
+// OFFSET: 0x00590EC0
+static int32_t Script_CloseTaxiMap(lua_State* L) {
+    CGTaxiMap::CloseMap();
+    return 0;
+}
+
+// VERIFY: b6dd9ddf manual
+// OFFSET: 0x00590ED0
+static int32_t Script_TaxiNodeGetType(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: TaxiNodeGetType(slot)");
+    }
+
+    int64_t slot = static_cast<int64_t>(lua_tonumber(L, 1));
+    lua_pushstring(L, CGTaxiMap::TaxiNodeType(static_cast<uint32_t>(slot - 1)));
+    return 1;
+}
+
+// VERIFY: 8f67b73d manual
+// OFFSET: 0x005915E0
+static int32_t Script_TaxiNodeCost(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: TaxiNodeCost(slot)");
+    }
+
+    uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (slot >= static_cast<uint32_t>(CGTaxiMap::m_numNodes)) {
+        luaL_error(L, "Invalid taxi node slot");
+    }
+
+    lua_pushnumber(L, TaxiNodeCost(slot));
+    return 1;
+}
+
+// VERIFY: 9b6d526d manual
+// OFFSET: 0x00591680
+static int32_t Script_TakeTaxiNode(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: TakeTaxiNode(slot)");
+    }
+
+    int64_t slot = static_cast<int64_t>(lua_tonumber(L, 1));
+    CGTaxiMap::TakeTaxiNode(static_cast<uint32_t>(slot - 1));
+    return 0;
+}
+
+// VERIFY: bf20d58d manual
+// OFFSET: 0x00591E60
+static int32_t Script_TaxiNodeSetCurrent(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: TaxiNodeSetCurrent(slot)");
+    }
+
+    int64_t slot = static_cast<int64_t>(lua_tonumber(L, 1));
+    CGTaxiMap::TaxiNodeSetCurrent(static_cast<uint32_t>(slot - 1));
+    return 0;
+}
+
 // STATIC: 0x00ACF258
 static FrameScript_Method s_ScriptFunctions[] = {
     { "SetTaxiMap", &Script_SetTaxiMap },
@@ -173,5 +233,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void CGTaxiMap::RegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: a19c6364 auto
+// OFFSET: 0x00590780
+void CGTaxiMap::UnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

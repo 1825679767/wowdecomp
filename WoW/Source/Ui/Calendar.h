@@ -55,7 +55,8 @@ class CGCalendar {
     static uint32_t CountPendingInvites();
     static void UpdateDisplayList(int32_t a1);
     static uint8_t m_actionPending;
-    static void CalendarError(const char* error, int32_t a2);
+    static void CalendarError(const char* error, uintptr_t arg);
+    static size_t GetDateTimeText(char* buffer, uint32_t size, uint32_t time);
     static CGCalendarEvent* m_curEvent;
     static uint8_t m_initialize;
     static uint8_t m_openedCalendar;
@@ -177,6 +178,9 @@ int32_t Script_CalendarCanSendInvite(lua_State* L);
 int32_t Script_CalendarCanAddEvent(lua_State* L);
 int32_t Script_OpenCalendar(lua_State* L);
 void CalendarRegisterScriptFunctions();
+void CalendarUnregisterScriptFunctions();
 const char* GetHolidayName(int32_t holidayId);
+
+extern const char* s_weekdayNames[7];
 
 #endif

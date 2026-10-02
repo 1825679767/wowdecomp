@@ -38,6 +38,7 @@ class CMapDoodadDef : public CMapStaticEntity, public TSHashObject<CMapDoodadDef
     CMapDoodadDef();
     void UpdateBounds();
     void ExtendChunkBounds();
+    void UpdateMatrixOnly(const C44Matrix& matrix);
 };
 
 #endif

@@ -380,6 +380,13 @@ LOGIN_STATE GruntLogin::NextSecurityState(LOGIN_STATE state) {
     return LOGIN_STATE_CHECKINGVERSIONS;
 }
 
+// VERIFY: 63b104b5 auto
+// OFFSET: 0x008CA700
+void GruntLogin::Reconnect() {
+    this->m_reconnect = true;
+    this->m_clientLink->Connect(this->m_loginResponse->GetLoginServer());
+}
+
 // VERIFY: acb6d000 auto
 // OFFSET: 0x008CA730
 void GruntLogin::GetRealmList() {

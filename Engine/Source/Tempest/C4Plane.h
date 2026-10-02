@@ -10,7 +10,16 @@ class C4Plane {
     /* 0000 */ C3Vector n;
     /* 000C */ float d;
 
+    C4Plane();
     void From3Pos(const C3Vector& p0, const C3Vector& p1, const C3Vector& p2);
 };
+
+// INLINED
+inline C4Plane::C4Plane() {
+    this->n.x = 0.0f;
+    this->n.y = 0.0f;
+    this->n.z = 1.0f;
+    this->d = 0.0f;
+}
 
 #endif

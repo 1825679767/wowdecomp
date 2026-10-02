@@ -22,22 +22,20 @@ class CGGMTicketInfo {
     static void ShutdownGame();
     static int32_t m_ticketID;
     static int32_t m_responseID;
+    static void CreateTicket(const char* text, int32_t needResponse, uint32_t moreHelp);
 };
 
-int32_t Script_NewGMTicket(lua_State* L);
-int32_t Script_UpdateGMTicket(lua_State* L);
-int32_t Script_DeleteGMTicket(lua_State* L);
-int32_t Script_GMResponseNeedMoreHelp(lua_State* L);
-int32_t Script_GMResponseResolve(lua_State* L);
-int32_t Script_GMSurveyQuestion(lua_State* L);
-int32_t Script_GMSurveyNumAnswers(lua_State* L);
-int32_t Script_GMSurveyAnswer(lua_State* L);
-int32_t Script_GMSurveyAnswerSubmit(lua_State* L);
-int32_t Script_GMSurveyCommentSubmit(lua_State* L);
-int32_t Script_GMSurveySubmit(lua_State* L);
-int32_t Script_GMReportLag(lua_State* L);
+class CGGMReportLag {
+    public:
+    static void Submit(int32_t type);
+};
+
 void GMTicketInfoRegisterScriptFunctions();
+void GMTicketInfoUnregisterScriptFunctions();
 
 void SendGetTicketOpcode();
+void SendGMTicketUpdateText(const char* text);
+void SendGMTicketDeleteTicket();
+void SendGMResponseResolve();
 
 #endif

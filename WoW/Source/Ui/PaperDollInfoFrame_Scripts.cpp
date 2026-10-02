@@ -20,6 +20,18 @@
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Object/Types.h"
 #include "WoW/Source/Object/ObjectClient/GuildStats_C.h"
+#include <cstdlib>
+#include "WoW/Source/DB/Rec/ChrClassesRec.h"
+#include "WoW/Source/DB/Rec/SpellItemEnchantmentRec.h"
+#include "WoW/Source/Object/ArenaTeamCache.h"
+#include "WoW/Source/UIUtil/Cursor.h"
+#include "WoW/Source/UIUtil/PortraitButton.h"
+#include "WoW/Source/UIUtil/Tooltip.h"
+#include "WoW/Source/Ui/CGBankInfo.h"
+#include "WoW/Source/Ui/ContainerFrame.h"
+#include "WoW/Source/Ui/TalentInfo.h"
+#include "WoW/Source/Ui/Types.h"
+#include "Engine/Source/Frame/CSimpleTexture.h"
 
 // VERIFY: c886e670 auto
 // OFFSET: 0x005E9BC0
@@ -421,7 +433,6 @@ static int32_t Script_GetWeaponEnchantInfo(lua_State* L) {
     return 6;
 }
 
-// STATIC: 0x00AD1270
 // VERIFY: d5cfb323 manual
 // OFFSET: 0x005EAAF0
 static int32_t Script_GetGuildInfo(lua_State* L) {
@@ -455,6 +466,595 @@ static int32_t Script_GetGuildInfo(lua_State* L) {
     lua_pushnil(L);
     lua_pushnumber(L, 0.0);
     return 3;
+}
+
+// VERIFY: f2ea1f12 auto
+// OFFSET: 0x005EA780
+static int32_t Script_PutItemInBag(lua_State* L) {
+    int32_t slot = 0;
+
+    if (!ResolveInventorySlotArg(L, 1, slot) || slot < 19) {
+        return 0;
+    }
+
+    if (CGCharacterInfo::PutItemInBackpack(slot)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// STATIC: 0x00AD1270
+// VERIFY: 092345f5 auto
+// OFFSET: 0x005E7640
+static void InspectArenaTeamCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_INSPECT_HONOR_UPDATE, nullptr);
+    }
+}
+
+// VERIFY: f116b920 manual
+// OFFSET: 0x005E7890
+static int32_t Script_ClearInspectPlayer(lua_State* L) {
+    WOWGUID none = WOWGUID();
+
+    if (CGCharacterInfo::m_inspectTarget) {
+        CGCharacterInfo::m_inspectTarget = WOWGUID();
+        CGCharacterInfo::m_hasHonorData = 0;
+        CGCharacterInfo::m_honorRequestPending = 0;
+        CGCharacterInfo::m_inspectArenaTeams[0].m_teamId = 0;
+        CGCharacterInfo::m_inspectArenaTeams[1].m_teamId = 0;
+        CGCharacterInfo::m_inspectArenaTeams[2].m_teamId = 0;
+        CGTalentInfo_Inspect::SetInspectTarget(none);
+    }
+
+    return 0;
+}
+
+// VERIFY: 3a52554c manual
+// OFFSET: 0x005E8030
+static int32_t Script_GetInspectArenaTeamData(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetInspectArenaTeamData(index)");
+    }
+
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index >= 3) {
+        return 0;
+    }
+
+    InspectArenaTeam* team = &CGCharacterInfo::m_inspectArenaTeams[index];
+
+    if (!team || !team->m_teamId) {
+        return 0;
+    }
+
+    WOWGUID requester = CGCharacterInfo::m_inspectTarget;
+    ArenaTeamCache* cache = g_arenaTeamCache.GetRecord(team->m_teamId, requester, &InspectArenaTeamCacheCallback, nullptr, false);
+
+    if (!cache) {
+        return 0;
+    }
+
+    lua_pushstring(L, cache->m_name);
+    lua_pushnumber(L, static_cast<int32_t>(cache->m_type));
+    lua_pushnumber(L, static_cast<int32_t>(team->m_rating));
+    lua_pushnumber(L, static_cast<int32_t>(team->m_weekGames));
+    lua_pushnumber(L, static_cast<int32_t>(team->m_weekWins));
+    lua_pushnumber(L, static_cast<int32_t>(team->m_seasonGames));
+    lua_pushnumber(L, static_cast<int32_t>(team->m_personalRating));
+    uint32_t color = cache->m_backgroundColor;
+    lua_pushnumber(L, static_cast<uint8_t>(color >> 16) * 0.0039215689);
+    lua_pushnumber(L, static_cast<uint8_t>(color >> 8) * 0.0039215689);
+    lua_pushnumber(L, static_cast<uint8_t>(color) * 0.0039215689);
+    lua_pushnumber(L, static_cast<int32_t>(cache->m_emblemStyle));
+    color = cache->m_emblemColor;
+    lua_pushnumber(L, static_cast<uint8_t>(color >> 16) * 0.0039215689);
+    lua_pushnumber(L, static_cast<uint8_t>(color >> 8) * 0.0039215689);
+    lua_pushnumber(L, static_cast<uint8_t>(color) * 0.0039215689);
+    lua_pushnumber(L, static_cast<int32_t>(cache->m_borderStyle));
+    color = cache->m_borderColor;
+    lua_pushnumber(L, static_cast<uint8_t>(color >> 16) * 0.0039215689);
+    lua_pushnumber(L, static_cast<uint8_t>(color >> 8) * 0.0039215689);
+    lua_pushnumber(L, static_cast<uint8_t>(color) * 0.0039215689);
+    return 18;
+}
+
+// VERIFY: 0fde0b48 manual
+// OFFSET: 0x005E95C0
+static int32_t Script_GetInventoryItemsForSlot(lua_State* L) {
+    uint32_t slot = 0;
+
+    if (lua_isnumber(L, 1)) {
+        slot = static_cast<int32_t>(lua_tonumber(L, 1) - 1.0);
+
+        if (slot > 18) {
+            return 0;
+        }
+    } else {
+        if (lua_isstring(L, 1)) {
+            const char* name = lua_tolstring(L, 1, nullptr);
+
+            for (int32_t i = 0; i < g_paperDollItemFrameDB.m_numRecords; i++) {
+                PaperDollItemFrameRec* rec = i >= 0 && i < g_paperDollItemFrameDB.m_numRecords ? &g_paperDollItemFrameDB.m_records[i] : nullptr;
+
+                if (rec && !SStrCmpI(rec->m_itemButtonName, name, STORM_MAX_STR)) {
+                    slot = rec->m_slotNumber;
+                }
+            }
+        }
+
+        if (!slot) {
+            luaL_error(L, "Usage: GetInventoryItemsForSlot(slot [, returnTable])");
+        }
+    }
+
+    if (lua_type(L, 2) != LUA_TTABLE) {
+        lua_createtable(L, 0, 0);
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    CGBag_C* inventory = player->GetBag();
+    ChrClassesRec* chrClass = g_chrClassesDB.GetRecord(player->m_unit->m_unitFieldBytes0[1]);
+
+    if (!chrClass) {
+        return 0;
+    }
+
+    int32_t bypass = (chrClass->m_flags & 0x8) != 0;
+
+    for (int32_t i = 0; i <= 18; i++) {
+        CGItem_C* item = inventory->GetItemPointer(i);
+
+        if (item && item->CanGoInSlot(slot, bypass) && CGCharacterInfo::CanEquipItem(item, slot)) {
+            lua_checkstack(L, 2);
+            lua_pushnumber(L, i + 0x100001);
+            lua_pushnumber(L, static_cast<int32_t>(item->m_obj->m_entryID));
+            lua_settable(L, -3);
+        }
+    }
+
+    for (int32_t i = 23; i <= 38; i++) {
+        CGItem_C* item = inventory->GetItemPointer(i);
+
+        if (item && item->CanGoInSlot(slot, bypass)) {
+            WOWGUID none = WOWGUID();
+            ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+            if (stats && CGCharacterInfo::CanEquipItemInSlot(stats, slot)) {
+                lua_checkstack(L, 2);
+                lua_pushnumber(L, i + 0x2FFFEA);
+                lua_pushnumber(L, static_cast<int32_t>(item->m_obj->m_entryID));
+                lua_settable(L, -3);
+            }
+        }
+    }
+
+    for (uint32_t bagIndex = 0; bagIndex < 4; bagIndex++) {
+        CGObject_C* container = ClntObjMgrObjectPtr(GetBagAtIndex(bagIndex), TYPEMASK_CONTAINER, __FILE__, __LINE__);
+
+        if (!container) {
+            continue;
+        }
+
+        CGBag_C* bag = container->GetBag();
+        int32_t location = ((bagIndex + 1) << 8) | 0x300000;
+
+        for (int32_t i = 0; i <= bag->m_numSlots; i++) {
+            CGItem_C* item = bag->GetItemPointer(i);
+
+            if (item && item->CanGoInSlot(slot, bypass)) {
+                WOWGUID none = WOWGUID();
+                ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+                if (stats && CGCharacterInfo::CanEquipItemInSlot(stats, slot)) {
+                    lua_checkstack(L, 2);
+                    lua_pushnumber(L, i + location + 1);
+                    lua_pushnumber(L, static_cast<int32_t>(item->m_obj->m_entryID));
+                    lua_settable(L, -3);
+                }
+            }
+        }
+    }
+
+    if (!CGBankInfo::m_banker) {
+        return 1;
+    }
+
+    for (int32_t i = 39; i <= 66; i++) {
+        CGItem_C* item = inventory->GetItemPointer(i);
+
+        if (item && item->CanGoInSlot(slot, bypass)) {
+            WOWGUID none = WOWGUID();
+            ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+            if (stats && CGCharacterInfo::CanEquipItemInSlot(stats, slot)) {
+                lua_checkstack(L, 2);
+                lua_pushnumber(L, i + 0x400001);
+                lua_pushnumber(L, static_cast<int32_t>(item->m_obj->m_entryID));
+                lua_settable(L, -3);
+            }
+        }
+    }
+
+    for (uint32_t bagIndex = 4; bagIndex < 11; bagIndex++) {
+        CGObject_C* container = ClntObjMgrObjectPtr(GetBagAtIndex(bagIndex), TYPEMASK_CONTAINER, __FILE__, __LINE__);
+
+        if (!container) {
+            continue;
+        }
+
+        CGBag_C* bag = container->GetBag();
+
+        for (int32_t i = 0; i <= bag->m_numSlots; i++) {
+            CGItem_C* item = bag->GetItemPointer(i);
+
+            if (item && item->CanGoInSlot(slot, bypass)) {
+                WOWGUID none = WOWGUID();
+                ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+                if (stats && CGCharacterInfo::CanEquipItemInSlot(stats, slot)) {
+                    lua_checkstack(L, 2);
+                    lua_pushnumber(L, static_cast<int32_t>((((bagIndex - 3) | 0x6000) << 8) + i + 1));
+                    lua_pushnumber(L, static_cast<int32_t>(item->m_obj->m_entryID));
+                    lua_settable(L, -3);
+                }
+            }
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 07e57135 manual
+// OFFSET: 0x005EA040
+static int32_t Script_GetInventoryItemQuality(lua_State* L) {
+    const char* token;
+    int32_t slot = 0;
+
+    if (!GetUnitAndSlotFromLua(L, token, slot)) {
+        return 0;
+    }
+
+    CGPlayer_C* unit = static_cast<CGPlayer_C*>(GetUnitFromName(token));
+
+    if (!CGCharacterInfo::CanInspect(unit)) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    ItemStats_C* stats;
+
+    if (slot != -1) {
+        CGItem_C* item = unit->m_bag.GetItemPointer(slot);
+
+        if (!item) {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        WOWGUID none = WOWGUID();
+        stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
+    } else {
+        if (unit->m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        int32_t ammo = CGCharacterInfo::GetActivePlayerAmmoID(unit);
+
+        if (!ammo) {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        WOWGUID requester = unit->m_obj->m_guid;
+        stats = g_itemDBCache.GetRecord(ammo, requester, &UnitInventoryChangedCallback, nullptr, false);
+    }
+
+    if (!stats) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    lua_pushnumber(L, stats->m_inventoryType ? static_cast<int32_t>(stats->m_quality) : -1);
+    return 1;
+}
+
+// VERIFY: 37cd6434 manual
+// OFFSET: 0x005EA170
+static int32_t Script_GetInventoryItemDurability(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetInventoryItemDurability(slot)");
+    }
+
+    int32_t slot = 0;
+
+    if (!ResolveInventorySlotArg(L, 1, slot) || slot == -1) {
+        return 0;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    CGItem_C* item = player->m_bag.GetItemPointer(slot);
+
+    if (!item) {
+        return 0;
+    }
+
+    int32_t maxDurability = item->GetMaxDurability();
+
+    if (!maxDurability) {
+        return 0;
+    }
+
+    lua_pushnumber(L, static_cast<int32_t>(item->GetDurability()));
+    lua_pushnumber(L, maxDurability);
+    return 2;
+}
+
+// VERIFY: ab73b077 manual
+// OFFSET: 0x005EA270
+static int32_t Script_GetInventoryItemLink(lua_State* L) {
+    const char* token;
+    int32_t slot = 0;
+
+    if (!GetUnitAndSlotFromLua(L, token, slot)) {
+        return 0;
+    }
+
+    CGPlayer_C* unit = static_cast<CGPlayer_C*>(GetUnitFromName(token));
+
+    if (!CGCharacterInfo::CanInspect(unit)) {
+        return 0;
+    }
+
+    WOWGUID guid = unit->m_obj->m_guid;
+    WOWGUID activePlayer = ClntObjMgrGetActivePlayer();
+
+    if (slot == -1) {
+        int32_t ammo = guid == activePlayer ? CGCharacterInfo::GetActivePlayerAmmoID(unit) : 0;
+        WOWGUID none = WOWGUID();
+        ItemStats_C* stats = g_itemDBCache.GetRecord(ammo, none, nullptr, nullptr, false);
+
+        if (stats) {
+            lua_pushstring(L, CGTooltip::GetItemHyperlinkString(ammo, stats->m_quality, 0, 0, 0));
+            return 1;
+        }
+    } else if (guid == activePlayer) {
+        CGItem_C* item = unit->m_bag.GetItemPointer(slot);
+
+        if (item) {
+            lua_pushstring(L, CGTooltip::GetItemHyperlinkString(item));
+            return 1;
+        }
+    } else {
+        InspectItem* inspected = unit->GetInspectedItem(slot);
+
+        if (inspected && inspected->m_itemId) {
+            WOWGUID none = WOWGUID();
+            ItemStats_C* stats = g_itemDBCache.GetRecord(inspected->m_itemId, none, nullptr, nullptr, false);
+
+            if (stats) {
+                lua_pushstring(L, CGTooltip::CreateItemLink(inspected->m_itemId, stats->m_quality, inspected->m_enchants[0], &inspected->m_enchants[2], static_cast<uint16_t>(inspected->m_randomPropertiesId), inspected->m_propertySeed));
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 69e24afc manual
+// OFFSET: 0x005EA3E0
+static int32_t Script_GetInventoryItemID(lua_State* L) {
+    const char* token;
+    int32_t slot = 0;
+
+    if (!GetUnitAndSlotFromLua(L, token, slot)) {
+        return 0;
+    }
+
+    CGPlayer_C* unit = static_cast<CGPlayer_C*>(GetUnitFromName(token));
+
+    if (!CGCharacterInfo::CanInspect(unit)) {
+        return 0;
+    }
+
+    WOWGUID guid = unit->m_obj->m_guid;
+    WOWGUID activePlayer = ClntObjMgrGetActivePlayer();
+
+    if (slot == -1) {
+        if (guid == activePlayer) {
+            int32_t ammo = CGCharacterInfo::GetActivePlayerAmmoID(unit);
+
+            if (ammo) {
+                lua_pushnumber(L, ammo);
+                return 1;
+            }
+        }
+    } else if (guid == activePlayer) {
+        CGItem_C* item = unit->m_bag.GetItemPointer(slot);
+
+        if (item) {
+            lua_pushnumber(L, static_cast<int32_t>(item->m_obj->m_entryID));
+            return 1;
+        }
+    } else {
+        const VisibleItem_C* visible = unit->GetVisibleItem(slot);
+
+        if (visible) {
+            int32_t itemId = abs(visible->m_itemId);
+
+            if (itemId) {
+                lua_pushnumber(L, itemId);
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 631b6b15 manual
+// OFFSET: 0x005EA4F0
+static int32_t Script_GetInventoryItemGems(lua_State* L) {
+    int32_t slot;
+
+    if (!lua_isnumber(L, 1) || (slot = 0, !ResolveInventorySlotArg(L, 1, slot))) {
+        luaL_error(L, "Usage: GetInventoryItemGems(slot)");
+    }
+
+    if (slot == -1) {
+        return 0;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 3;
+    }
+
+    CGItem_C* item = player->m_bag.GetItemPointer(slot);
+
+    if (!item) {
+        return 0;
+    }
+
+    for (int32_t i = 0; i < 3; i++) {
+        SpellItemEnchantmentRec* enchant = g_spellItemEnchantmentDB.GetRecord(item->GetEnchantmentId(i + 2));
+
+        if (enchant && enchant->m_srcItemID) {
+            lua_pushnumber(L, enchant->m_srcItemID);
+        } else {
+            lua_pushnil(L);
+        }
+    }
+
+    return 3;
+}
+
+// VERIFY: 3c11a723 auto
+// OFFSET: 0x005EA630
+static int32_t Script_UseInventoryItem(lua_State* L) {
+    int32_t slot = 0;
+
+    if (!ResolveInventorySlotArg(L, 1, slot) || slot == -1) {
+        return 0;
+    }
+
+    WOWGUID target;
+
+    if (Script_GetGUIDFromToken(lua_tolstring(L, 2, nullptr), target, true)) {
+        CGCharacterInfo::UseItem(slot, &target);
+    }
+
+    return 0;
+}
+
+// VERIFY: 8abca478 auto
+// OFFSET: 0x005EA6A0
+static int32_t Script_SocketInventoryItem(lua_State* L) {
+    int32_t slot = 0;
+
+    if (ResolveInventorySlotArg(L, 1, slot) && slot != -1) {
+        CGCharacterInfo::SocketInventoryItem(slot);
+    }
+
+    return 0;
+}
+
+// VERIFY: d7ebadef auto
+// OFFSET: 0x005EA840
+static int32_t Script_PickupBagFromSlot(lua_State* L) {
+    int32_t slot = 0;
+
+    if (ResolveInventorySlotArg(L, 1, slot) && slot >= 19) {
+        CGCharacterInfo::PickupBag(slot);
+    }
+
+    return 0;
+}
+
+// VERIFY: 6371d69b auto
+// OFFSET: 0x005EA930
+static int32_t Script_ShowInventorySellCursor(lua_State* L) {
+    if (Spell_C_IsTargeting() || CursorGetResetMode() != 1) {
+        return 0;
+    }
+
+    int32_t slot = 0;
+
+    if (!ResolveInventorySlotArg(L, 1, slot) || slot == -1) {
+        return 0;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    CGItem_C* item = player->GetBag()->GetItemPointer(slot);
+
+    if (item && !(item->m_itemFlags & 0x1)) {
+        CursorSetMode(3);
+    }
+
+    return 0;
+}
+
+// VERIFY: fca941f7 manual
+// OFFSET: 0x005EA9B0
+static int32_t Script_SetInventoryPortraitTexture(lua_State* L) {
+    CSimpleTexture* texture = static_cast<CSimpleTexture*>(FrameScript_GetObjectThis(L, CSimpleTexture::GetObjectType()));
+    texture->SetTexture(static_cast<CTexture*>(nullptr));
+    int32_t slot = 0;
+
+    if (!lua_isstring(L, 2)) {
+        luaL_error(L, "Usage: SetInventoryPortraitTexture(texture, unit, slot)");
+    }
+
+    if (!ResolveInventorySlotArg(L, 3, slot)) {
+        return 0;
+    }
+
+    CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 2, nullptr));
+
+    if (!unit || !(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+        return 0;
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(unit);
+    CGItem_C* item = slot == -1 ? player->m_bag.FindItemOfType(CGCharacterInfo::GetActivePlayerAmmoID(player), 0) : player->m_bag.GetItemPointer(slot);
+
+    if (item) {
+        const char* path = ClientDBStringLookup(3);
+        char buffer[260];
+        SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, *path ? "\\" : "", item->GetInventoryArt());
+        SetPortraitTexture(texture, buffer);
+    }
+
+    return 0;
+}
+
+// VERIFY: 3325159b auto
+// OFFSET: 0x005EAC90
+static int32_t Script_RequestInspectHonorData(lua_State* L) {
+    CGCharacterInfo::RequestInspectHonorData();
+    return 0;
 }
 
 static FrameScript_Method s_ScriptFunctions[] = {
@@ -498,5 +1098,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void CharacterInfoRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 0cab0d3c auto
+// OFFSET: 0x005E7920
+void CharacterInfoUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

@@ -56,7 +56,7 @@ struct ADDONSTATE : public TSHashObject<ADDONSTATE, HASHKEY_STRI> {
 
 struct ADDONSTATELIST : public TSLinkedNode<ADDONSTATELIST> {
     /* 0008 */ char* m_name;
-    /* 000C */ bool m_accountWide;
+    /* 000C */ bool m_dirty;
     /* 000D */ uint8_t unk_000D[3];
     /* 0010 */ TSHashTable<ADDONSTATE, HASHKEY_STRI> m_states;
 

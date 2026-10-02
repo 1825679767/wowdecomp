@@ -54,6 +54,7 @@ class ClientConnection : public RealmConnection {
     void CharacterLogin(WOWGUID guid, int32_t a2);
     int32_t CharacterLoggingOut();
     void CharacterLogout(bool quit, bool instant);
+    void CharacterForceLogout();
     void CharacterSetInGame(int32_t inGame);
     void Connect();
     void Disconnect();
@@ -88,6 +89,7 @@ class ClientServices : public LoginResponse {
     static ClientServices* m_instance;
     static RealmResponse* s_clientRealmResponse;
     static char s_accountName[1280];
+    static char* GetClientStamp();
     static Login* s_loginObj;
     static CVar* s_serverAlertVar;
     static CVar* s_realmListBNVar;
@@ -106,6 +108,7 @@ class ClientServices : public LoginResponse {
     static int32_t CharacterValidateName(const char* name);
     static void ClearMessageHandler(NETMESSAGE msgId);
     static void Send2(CDataStore* msg);
+    static void SendPacket(CDataStore* msg);
     static ClientConnection* Connection();
     static void Destroy();
     static void ConnectToSelectedServer();
@@ -125,6 +128,7 @@ class ClientServices : public LoginResponse {
     static void Logon(const char* username, const char* password);
     static void SetAccountName(const char* accountName);
     static void SetCharacterInfo(const CHARACTER_INFO* info);
+    static CHARACTER_INFO* GetCharacterInfo();
     static REALM_INFO* GetRealmInfoByIndex(uint32_t index);
     static REALM_INFO* GetSelectedRealm();
     static void Initialize();
@@ -147,5 +151,7 @@ class ClientServices : public LoginResponse {
 extern ClientConnection* g_clientConnection;
 
 int32_t ConsoleCommand_Logout(const char* command, const char* arguments);
+
+int32_t SendBugOpcode(uint32_t suggestion, const char* text);
 
 #endif

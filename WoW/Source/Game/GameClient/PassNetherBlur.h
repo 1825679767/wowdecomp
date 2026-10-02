@@ -17,7 +17,7 @@ class PassNetherBlur : public FFX::Pass {
     /* 0280 */ float unk_0280;
     /* 0284 */ CRndSeed m_seed;
     /* 028C */ CGxShader* m_vertexShader;
-    /* 0290 */ CGxShader* m_pixelShader;
+    /* 0290 */ CGxShader* m_pixelShaders[2];
 
     ~PassNetherBlur() override;
     bool Valid() override;
@@ -29,8 +29,7 @@ class PassNetherBlur : public FFX::Pass {
 class PassNetherCombine : public FFX::Pass {
     public:
     /* 0030 */ uint32_t m_useRect;
-    /* 0034 */ CGxShader* m_pixelShader;
-    /* 0038 */ uint32_t unk_0038;
+    /* 0034 */ CGxShader* m_pixelShaders[2];
     /* 003C */ float unk_003C;
 
     ~PassNetherCombine() override;

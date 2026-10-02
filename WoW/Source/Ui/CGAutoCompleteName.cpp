@@ -3,6 +3,9 @@
 #include <new>
 #include <typeinfo>
 #include "WoW/Source/WorldClient/FrameTime.h"
+#include "WoW/Source/WowServices/RealmConnection.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
 
 // STATIC: 0x00ACEB70
 TSList<AUTOCOMPLETE_NAMENODE, TSGetLink<AUTOCOMPLETE_NAMENODE>> CGAutoCompleteName::m_list;
@@ -43,6 +46,39 @@ static void SortNameNode(AUTOCOMPLETE_NAMENODE* node) {
     CGAutoCompleteName::m_list.LinkToTail(node);
 }
 
+// VERIFY: 22923be0 manual
+// OFFSET: 0x0057B250
+int32_t CGAutoCompleteName::GetMatchingResults(lua_State* L, const char* text, uint32_t include, uint32_t exclude, int32_t numReturns, int32_t cursor, bool allowFullMatch) {
+    int32_t count = 0;
+
+    for (AUTOCOMPLETE_NAMENODE* node = CGAutoCompleteName::m_list.Head(); node; node = CGAutoCompleteName::m_list.Next(node)) {
+        if (!CGAutoCompleteName::NodeMatchesParams(node, text, include, exclude, cursor, allowFullMatch)) {
+            continue;
+        }
+
+        lua_pushstring(L, node->m_name);
+
+        if (++count == numReturns) {
+            break;
+        }
+    }
+
+    return count;
+}
+
+// VERIFY: dd3503e3 manual
+// OFFSET: 0x0057B2C0
+int32_t CGAutoCompleteName::GetPresenceID(const char* name, uint32_t* presenceId) {
+    for (AUTOCOMPLETE_NAMENODE* node = CGAutoCompleteName::m_list.Head(); node; node = CGAutoCompleteName::m_list.Next(node)) {
+        if (node->m_presenceId && !SStrCmpUTF8I(name, node->m_name, STORM_MAX_STR)) {
+            *presenceId = node->m_presenceId;
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 // VERIFY: 70f6d109 manual
 // OFFSET: 0x0057B330
 void CGAutoCompleteName::ResortAll() {
@@ -51,6 +87,64 @@ void CGAutoCompleteName::ResortAll() {
         SortNameNode(node);
         node = next;
     }
+}
+
+// VERIFY: 70e01eea manual
+// OFFSET: 0x0057ACA0
+int32_t CGAutoCompleteName::NodeMatchesParams(AUTOCOMPLETE_NAMENODE* node, const char* text, uint32_t include, uint32_t exclude, int32_t cursor, bool allowFullMatch) {
+    if (CGAutoCompleteName::s_useContext && ((node->m_flags & exclude) || !(node->m_flags & include))) {
+        return 0;
+    }
+
+    if (node->m_guid == ClientServices::GetCharacterInfo()->m_guid) {
+        return 0;
+    }
+
+    if (!allowFullMatch) {
+        int32_t result = SStrCmpUTF8I(text, node->m_name, STORM_MAX_STR);
+
+        if (!result) {
+            return result;
+        }
+    }
+
+    if (!CGAutoCompleteName::s_whenEditingFromCenter) {
+        return SStrCmpUTF8I(text, node->m_name, SStrLenUTF8(text)) ? 0 : 1;
+    }
+
+    if (SStrCmpUTF8I(text, node->m_name, cursor)) {
+        return 0;
+    }
+
+    int32_t nameLength = SStrLenUTF8(node->m_name);
+    int32_t textLength = SStrLenUTF8(text);
+    int32_t tail = textLength - cursor;
+
+    if (nameLength < textLength) {
+        return 0;
+    }
+
+    if (textLength == cursor) {
+        return 1;
+    }
+
+    const char* namePosition = SStrAdvanceCharsUTF8(node->m_name, cursor);
+    int32_t remaining = nameLength - tail - cursor;
+    const char* textPosition = SStrAdvanceCharsUTF8(text, cursor);
+
+    if (!remaining) {
+        return 0;
+    }
+
+    while (SStrCmpUTF8I(namePosition, textPosition, tail)) {
+        if (!--remaining) {
+            return 0;
+        }
+
+        namePosition = SStrAdvanceCharsUTF8(namePosition, 1);
+    }
+
+    return 1;
 }
 
 // VERIFY: cd399474 manual
@@ -127,6 +221,23 @@ void CGAutoCompleteName::AddFlags(const WOWGUID& guid, uint32_t flags, int32_t a
     } else {
         AllocNameNode(guid, flags, add ? FrameTime::s_curTimeMs : 0, name);
     }
+}
+
+// VERIFY: 1e7342ce auto
+// OFFSET: 0x0057AF80
+int32_t CGAutoCompleteName::SetName(const WOWGUID& guid, const char* name, bool overwrite) {
+    AUTOCOMPLETE_NAMENODE* node = FindNodeByGuid(guid);
+
+    if (!node) {
+        return 0;
+    }
+
+    if (node->m_name[0] && !overwrite) {
+        return 0;
+    }
+
+    SStrCopy(node->m_name, name, 305);
+    return 1;
 }
 
 // VERIFY: 912690b2 auto

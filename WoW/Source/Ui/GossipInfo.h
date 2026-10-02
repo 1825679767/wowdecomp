@@ -49,6 +49,7 @@ class CGGossipInfo {
 };
 
 void GossipInfoRegisterScriptFunctions();
+void GossipInfoUnregisterScriptFunctions();
 
 class CDataStore;
 

@@ -23,6 +23,13 @@ class CGTradeInfo {
     static WOWGUID m_enchantingItem;
     static void EnterWorld();
     static uint32_t GetPlayerTradeMoney();
+    static void RemoveMoney(uint32_t amount);
+    static int32_t m_supressMoneyEvent;
+    static int32_t GetTargetEnchant(uint32_t slot);
+    static void GetPlayerItem(uint32_t slot, WOWGUID& item, WOWGUID& container, uint8_t& containerSlot);
+    static int32_t SetPlayerItem(uint32_t slot, WOWGUID item, WOWGUID container, uint8_t containerSlot);
+    static bool AddMoney(int32_t amount);
+    static bool SetMoney(uint32_t amount);
     static uint32_t GetTargetTradeMoney();
     static WOWGUID m_tradingPlayer;
     static PlayerTradeState m_playerTrade;
@@ -54,17 +61,9 @@ class CGTradeInfo {
     static void InitiateTrade(WOWGUID guid, int32_t a2);
 };
 
-int32_t Script_CloseTrade(lua_State* L);
-int32_t Script_ClickTradeButton(lua_State* L);
-int32_t Script_ClickTargetTradeButton(lua_State* L);
-int32_t Script_GetTradeTargetItemInfo(lua_State* L);
-int32_t Script_GetTradeTargetItemLink(lua_State* L);
-int32_t Script_GetTradePlayerItemInfo(lua_State* L);
-int32_t Script_GetTradePlayerItemLink(lua_State* L);
-int32_t Script_AcceptTrade(lua_State* L);
-int32_t Script_PickupTradeMoney(lua_State* L);
-int32_t Script_AddTradeMoney(lua_State* L);
-int32_t Script_SetTradeMoney(lua_State* L);
 void TradeInfoRegisterScriptFunctions();
+void TradeInfoUnregisterScriptFunctions();
+
+void TradeItemStatsCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 
 #endif

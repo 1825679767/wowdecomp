@@ -307,3 +307,11 @@ void CameraRegisterScriptFunctions() {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
     }
 }
+
+// VERIFY: cfd72b5f auto
+// OFFSET: 0x005FE2F0
+void CameraUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
+    }
+}

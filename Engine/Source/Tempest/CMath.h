@@ -46,6 +46,7 @@ CSoftFloat operator+(const CSoftFloat& l, const CSoftFloat& r);
 float fclamp(float value, float min, float max);
 bool fequal(float a, float b);
 int32_t fequalz(float a, float b, float z);
+int32_t Clamp(int32_t value, int32_t min, int32_t max);
 int32_t fnotequalz(float a, float b, float z);
 uint32_t CeilToInt64(float value);
 int32_t FloatToInt64(float value);

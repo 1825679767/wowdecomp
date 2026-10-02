@@ -50,21 +50,21 @@ class CGEquipmentManager {
     static void EquipSet(int32_t id);
     static void GetFullIconPath(int32_t id, char* buffer, uint32_t size);
     static int32_t GetSetList(char* buffer, uint32_t size, const WOWGUID* item);
+    static void ClearIgnoredSlots();
+    static bool UseEquipmentSet(const EQUIPMENT_SET* set);
+    static void SaveSet(EQUIPMENT_SET* set, const char* name, const char* icon);
+    static bool DeleteEquipmentSet(EQUIPMENT_SET* set);
+    static bool HasSet(const char* name);
+    static int32_t GetNextFreeSetID();
+    static EQUIPMENT_SET* GetSetByIndex(int32_t index);
+    static EQUIPMENT_SET* GetSetByName(const char* name);
+    static bool ModifyEquipmentSet(EQUIPMENT_SET* set, const char* name);
+    static bool CanCreateSet();
+    static void CreateEquipmentSet(const char* name, const char* icon);
+    static void SaveSetByName(const char* name, const char* icon);
 };
 
-int32_t Script_SaveEquipmentSet(lua_State* L);
-int32_t Script_DeleteEquipmentSet(lua_State* L);
-int32_t Script_RenameEquipmentSet(lua_State* L);
-int32_t Script_EquipmentManagerClearIgnoredSlotsForSave(lua_State* L);
-int32_t Script_GetEquipmentSetLocations(lua_State* L);
-int32_t Script_GetEquipmentSetItemIDs(lua_State* L);
-int32_t Script_GetNumEquipmentSets(lua_State* L);
-int32_t Script_GetEquipmentSetInfo(lua_State* L);
-int32_t Script_GetEquipmentSetInfoByName(lua_State* L);
-int32_t Script_EquipmentSetContainsLockedItems(lua_State* L);
-int32_t Script_PickupEquipmentSetByName(lua_State* L);
-int32_t Script_PickupEquipmentSet(lua_State* L);
-int32_t Script_UseEquipmentSet(lua_State* L);
 void EquipmentManagerRegisterScriptFunctions();
+void EquipmentManagerUnregisterScriptFunctions();
 
 #endif

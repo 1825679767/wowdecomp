@@ -75,6 +75,7 @@ class CMovement_C : public CMovementShared {
     /* 0144 */ CGUnit_C* m_unit;
 
     CMovement_C(const C3Vector& position, float facing, const WOWGUID& ownerGuid, CGUnit_C* unit);
+    ~CMovement_C();
     void SetUpdateInfo(uint32_t time, const CClientMoveUpdate* update, int32_t activePlayer);
     void AddPlayerChangeSeatsEvent(uint32_t eventTime, MoveEventId eventId, bool needAck, WOWGUID transport, uint8_t seat);
     void AddPlayerMoveEvent(uint32_t eventTime, MoveEventId eventId, bool needAck, uint32_t ackCounter, float facing, float pitch, uint16_t extraFlags);
@@ -108,6 +109,7 @@ class CMovement_C : public CMovementShared {
     void OnDisableGravityLocal(uint32_t eventTime, uint32_t ackCounter, int32_t disable);
     void OnDismissControlledVehicleLocal(uint32_t eventTime);
     void OnFallLocal(uint32_t eventTime);
+    int32_t TryStartFallingLocal();
     void OnFeatherFall(int32_t enable);
     void OnFeatherFallLocal(uint32_t eventTime, uint32_t ackCounter, int32_t featherFall);
     int32_t OnFlightBackSpeedChange(float value);
@@ -176,6 +178,7 @@ class CMovement_C : public CMovementShared {
     void SetCollisionBox(float width, float height, float scale, float referenceScale, int32_t force);
     int32_t CollisionBoxDoesntFit(float width, float height, float scale);
     int32_t CollisionBoxDoesntFit(const CAaBox& box);
+    int32_t BoxDoesntFit(float height, float radius);
     void SetInterpolation(uint32_t time);
     void SetSplineFaceAngle(float facing);
     void SetSplineFacePoint(const C3Vector& point);

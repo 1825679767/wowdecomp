@@ -6,19 +6,16 @@
 
 struct lua_State;
 
-int32_t Script_CloseGuildRegistrar(lua_State* L);
-int32_t Script_BuyGuildCharter(lua_State* L);
-int32_t Script_TurnInGuildCharter(lua_State* L);
-int32_t Script_GetTabardInfo(lua_State* L);
 void GuildRegistrarRegisterScriptFunctions();
+void GuildRegistrarUnregisterScriptFunctions();
 
 struct GuildPetitionInfo {
-    /* 0000 */ uint32_t unk_0000;
+    /* 0000 */ uint32_t m_index;
     /* 0004 */ uint32_t m_itemID;
     /* 0008 */ uint32_t m_displayID;
     /* 000C */ uint32_t m_cost;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
+    /* 0010 */ uint32_t m_charterType;
+    /* 0014 */ uint32_t m_requiredSignatures;
 };
 
 class CGGuildRegistrar {
@@ -27,6 +24,9 @@ class CGGuildRegistrar {
     static void CloseRegistrar();
     static void EnterWorld();
     static GuildPetitionInfo m_petition;
+    static void SetRegistrar(WOWGUID registrar, const GuildPetitionInfo* petition);
+    static int32_t ValidateAndReportGuildName(const char* name);
+    static void BuyGuildCharter(const char* name);
 };
 
 #endif

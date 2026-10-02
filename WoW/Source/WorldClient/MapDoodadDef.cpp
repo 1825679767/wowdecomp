@@ -18,6 +18,8 @@
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WorldClient/WorldView.h"
 #include "Engine/Source/Model2/M2Scene.h"
+#include "WoW/Source/WorldClient/DayNight.h"
+#include "Engine/Source/Tempest/C3Segment.h"
 
 // VERIFY: 4012bf37 manual
 // OFFSET: 0x007B4FA0
@@ -246,4 +248,99 @@ void CMapDoodadDef::CreateModel(const char* fileName, CMapDoodadDef* doodadDef, 
     if (waitForLoad) {
         doodadDef->m_model->IsLoaded(1, 0);
     }
+}
+
+// VERIFY: 5cc39abd manual
+// OFFSET: 0x007C1380
+void CMapDoodadDef::UpdateMatrixOnly(const C44Matrix& matrix) {
+    if (!this->m_model) {
+        return;
+    }
+
+    this->m_flags = static_cast<MapObjFlag>(this->m_flags | MAPOBJ_FLAG_UNPLACED);
+    this->m_position.x = this->m_identity.d0;
+    this->m_position.y = this->m_identity.d1;
+    this->m_position.z = this->m_identity.d2;
+    this->m_position *= matrix;
+    this->m_mat = this->m_identity * matrix;
+    CAaBox box;
+    box.b = C3Vector(0.0f, 0.0f, 0.0f);
+    box.t = C3Vector(0.0f, 0.0f, 0.0f);
+    CAaBox collisionBox;
+    collisionBox.b = C3Vector(0.0f, 0.0f, 0.0f);
+    collisionBox.t = C3Vector(0.0f, 0.0f, 0.0f);
+    CAaSphere sphere;
+    sphere.c = C3Vector(0.0f, 0.0f, 0.0f);
+    sphere.r = 0.0f;
+
+    if (this->m_model->IsLoaded(0, 0)) {
+        box = this->m_model->GetBoundingBox();
+        CM2Model* model = this->m_model;
+
+        if (!(model->m_shared->m_flags & 0x1)) {
+            model->WaitForLoad(nullptr);
+        }
+
+        collisionBox = model->m_shared->m_data->m_collisionBounds.m_extent;
+        sphere = this->m_model->GetBoundingSphere();
+    } else {
+        collisionBox = this->m_model->m_shared->m_boundingBox;
+    }
+
+    this->m_sphere.c = sphere.c * this->m_mat;
+    this->m_sphere.r = this->m_scale * sphere.r;
+    CWorldMath::TransformAABox(this->m_mat, box, this->m_bbox);
+    CWorldMath::TransformAABox(this->m_mat, collisionBox, this->m_bboxDoodadDef);
+    CM2Model* model = this->m_model;
+    model->m_fFlags |= 0x8000;
+    model->m_worldTransform = this->m_mat;
+    SI2::Set3DPosition(&this->m_soundKitObject, &this->m_position);
+}
+
+// VERIFY: 33a4955f manual
+// OFFSET: 0x007C1C40
+bool CMapDoodadDef::QueryInteriorLighting(CMapObjDef* mapObjDef, int32_t groupNum, uint16_t* faceIndex, C3Vector* pos) {
+    CImVector color;
+    *reinterpret_cast<uint32_t*>(&color) = 0;
+    uint8_t flag;
+    bool result;
+
+    if (faceIndex) {
+        C3Vector local = *pos * mapObjDef->m_invMat;
+        result = mapObjDef->m_owner->QueryLighting(groupNum, local, *faceIndex, &color, &flag);
+    } else {
+        C3Vector top(this->m_position.x, this->m_position.y, this->m_position.z + 1.5f);
+        C3Vector start = top * mapObjDef->m_invMat;
+        C3Vector bottom(this->m_position.x, this->m_position.y, this->m_position.z - 1760.0f);
+        C3Vector end = bottom * mapObjDef->m_invMat;
+        C3Segment seg;
+        seg.b = start;
+        seg.t = end;
+        result = mapObjDef->m_owner->QueryLighting(groupNum, seg, &color, &flag);
+    }
+
+    if (!result) {
+        return result;
+    }
+
+    CImVector limit;
+    *reinterpret_cast<uint32_t*>(&limit) = 0xA8;
+    this->AdjustLightmap(&color, &this->m_m2DiffuseColor, limit, &this->m_m2AmbientColor, 96);
+
+    if (!flag) {
+        this->unk_007C &= ~0x1000;
+        return result;
+    }
+
+    DayNight::DNInfo* info = DayNight::GetInfo();
+    uint8_t alpha = color.a;
+
+    if (alpha) {
+        this->m_m2DiffuseColor.InterpColor(alpha, &info->m_light1.m_diffuse);
+        this->m_m2AmbientColor.InterpColor(alpha, &info->m_light1.m_ambient);
+    }
+
+    this->unk_007C |= 0x1000;
+    this->m_m2DiffuseColor.a = color.a;
+    return result;
 }

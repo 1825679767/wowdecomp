@@ -34,6 +34,8 @@
 #include "WoW/Source/Ui/QuestLogLeaderBoardParams.h"
 #include "WoW/Source/Ui/WorldMap.h"
 #include <cmath>
+#include "WoW/Source/DB/Rec/DungeonMapRec.h"
+#include "Engine/Source/Tempest/CMath.h"
 
 // STATIC: 0x00C23618
 int32_t CGQuestLog::m_sortTypes[25];
@@ -131,7 +133,7 @@ int32_t CGQuestLog::GetQuestAt(int32_t index) {
     return CGQuestLog::m_quests[index].m_questId;
 }
 
-// VERIFY: 5dca5cb5 manual
+// VERIFY: 8ecc7915 manual
 // OFFSET: 0x005E71A0
 void CGQuestLog::InitializeGame() {
     CGQuestLog::m_selectedQuest = 0;
@@ -147,11 +149,11 @@ void CGQuestLog::InitializeGame() {
     for (uint32_t i = 0; i < 25; i++) {
         QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[i];
         poi->m_questId = 0;
-        poi->unk_0014 = 0;
-        poi->unk_0018 = 0;
+        poi->m_iconMapId = 0;
+        poi->m_iconFloor = 0;
         poi->unk_001C = 0;
-        poi->unk_0020 = 0;
-        poi->unk_0024 = 0;
+        poi->m_iconX = 0;
+        poi->m_iconY = 0;
         poi->unk_0029 = 0;
         poi->unk_0028 = 0;
         poi->unk_002C = 0;
@@ -257,6 +259,35 @@ void QuestQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool succe
     } else {
         ConsoleWrite("Invalid quest log entry", DEFAULT_COLOR);
     }
+}
+
+// VERIFY: 39afcd7d manual
+// OFFSET: 0x005DED90
+int32_t GetQuestItemRewards(const char* type, int32_t index) {
+    if (!type || !*type || index < 0) {
+        return 0;
+    }
+
+    WOWGUID none = WOWGUID();
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+
+    if (!quest) {
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "reward", STORM_MAX_STR)) {
+        if (index < 4) {
+            return quest->m_rewardItem[index];
+        }
+
+        return 0;
+    }
+
+    if (SStrCmpI(type, "choice", STORM_MAX_STR) || index >= 6) {
+        return 0;
+    }
+
+    return quest->m_rewardChoiceItem[index];
 }
 
 // VERIFY: 88d84110 auto
@@ -622,6 +653,26 @@ uint32_t IsDailyQuest(int32_t index) {
     }
 
     return quest->m_flags & 0x1000;
+}
+
+// VERIFY: f4f6307a manual
+// OFFSET: 0x005DEEE0
+bool CGQuestLog::GetQuestPOIIcon(int32_t questId, bool* complete, int32_t* mapId, uint32_t* a4, float* x, float* y, int32_t* floor) {
+    for (uint32_t i = 0; i < 25; i++) {
+        QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[i];
+
+        if (poi->m_questId == questId) {
+            *complete = poi->unk_002C == 0xFFFFFFFF;
+            *mapId = poi->m_iconMapId;
+            *a4 = poi->unk_001C;
+            *x = poi->m_iconX;
+            *y = poi->m_iconY;
+            *floor = poi->m_iconFloor;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // VERIFY: e94a9f5a manual
@@ -1543,6 +1594,98 @@ int32_t CGQuestLog::GetQuestLeaderBoardByID(int32_t questId, QuestLogLeaderBoard
     return 1;
 }
 
+// VERIFY: 964f20dc manual
+// OFFSET: 0x005E20A0
+int32_t CGQuestLog::GetQuestLogItemDropByID(int32_t questId, QuestLogLeaderBoardParams* params) {
+    if (!params) {
+        return 0;
+    }
+
+    char* text = params->m_text;
+    params->m_text[0] = 0;
+    char* type = params->m_type;
+    params->m_type[0] = 0;
+    params->m_complete = 0;
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    if (!questId) {
+        questId = CGQuestLog::m_selectedQuest;
+    }
+
+    int32_t requireLog = params->m_requireLogEntry;
+    int32_t slot = -1;
+
+    if (requireLog) {
+        int32_t index = CGQuestLog::GetQuestIndex(questId) - 1;
+
+        if (index < 0) {
+            int32_t selected = CGQuestLog::GetSelectedLogEntry();
+            slot = selected < 0 ? 0 : CGQuestLog::m_quests[selected].m_logSlot;
+        } else {
+            slot = CGQuestLog::GetQuestLogSlot(index);
+        }
+    }
+
+    if (questId <= 0 || (requireLog && slot < 0)) {
+        return 0;
+    }
+
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(questId, none, params->m_questCallback, params->m_param, false);
+    PlayerQuestLogEntry* entry = static_cast<uint32_t>(slot) > 25 ? nullptr : &player->m_player->m_playerQuestLog[slot];
+
+    if (!quest || (params->m_requireLogEntry && !entry)) {
+        return 0;
+    }
+
+    int32_t found = -1;
+    char buffer[4096];
+
+    for (uint32_t i = 0; found < params->m_index && i < 4; i++) {
+        if (static_cast<int32_t>(quest->m_intermediateItemId[i]) <= 0) {
+            if (params->m_countEmpty) {
+                found++;
+            }
+
+            continue;
+        }
+
+        if (++found != params->m_index) {
+            continue;
+        }
+
+        WOWGUID itemGuid = { 0 };
+        ItemStats_C* stats = g_itemDBCache.GetRecord(quest->m_intermediateItemId[i], itemGuid, params->m_itemCallback, params->m_param, false);
+        uint32_t plural = FrameScript_GetPluralIndex(1);
+
+        if (params->m_showProgress) {
+            int32_t required = quest->m_intermediateItemCount[i];
+            int32_t count = required;
+
+            if (player->m_bag.GetItemTypeCount(quest->m_intermediateItemId[i], 8) < required) {
+                count = player->m_bag.GetItemTypeCount(quest->m_intermediateItemId[i], 8);
+            }
+
+            const char* format = FrameScript_GetText("QUEST_ITEMS_NEEDED", -1, GENDER_NOT_APPLICABLE);
+            SStrPrintf(buffer, sizeof(buffer), format, stats ? stats->GetName(plural) : " ", count, quest->m_intermediateItemCount[i]);
+            params->m_complete = count >= static_cast<int32_t>(quest->m_intermediateItemCount[i]);
+        } else {
+            const char* format = FrameScript_GetText("QUEST_ITEMS_NEEDED_NOPROGRESS", -1, GENDER_NOT_APPLICABLE);
+            SStrPrintf(buffer, sizeof(buffer), format, stats ? stats->GetName(plural) : " ", quest->m_intermediateItemCount[i]);
+        }
+
+        SStrCopy(text, buffer, STORM_MAX_STR);
+        SStrCopy(type, "item", STORM_MAX_STR);
+        return 1;
+    }
+
+    return 0;
+}
+
 // VERIFY: 12e81cb8 manual
 // OFFSET: 0x005E2370
 int32_t CGQuestLog::GetQuestLeaderBoardForObject(int32_t questId, int32_t objectId, QuestLogLeaderBoardParams* params) {
@@ -1657,7 +1800,7 @@ int32_t CGQuestLog::FindOrFreePOISlot(int32_t questId) {
     return -1;
 }
 
-// VERIFY: a2ce7d25 manual
+// VERIFY: 89be692d manual
 // OFFSET: 0x005E7370
 void CGQuestLog::HandlePOIQueryResponse(CDataStore* msg) {
     if (!msg) {
@@ -1682,11 +1825,11 @@ void CGQuestLog::HandlePOIQueryResponse(CDataStore* msg) {
             poi = &CGQuestLog::m_questPOIs[slot];
             poi->m_questId = questId;
             poi->m_blobs.SetCount(numBlobs);
-            poi->unk_0014 = 0;
-            poi->unk_0018 = 0;
+            poi->m_iconMapId = 0;
+            poi->m_iconFloor = 0;
             poi->unk_001C = 0;
-            poi->unk_0020 = 0;
-            poi->unk_0024 = 0;
+            poi->m_iconX = 0;
+            poi->m_iconY = 0;
             poi->unk_0029 = 0;
             poi->unk_0028 = 0;
             poi->unk_002C = 0;
@@ -1821,6 +1964,74 @@ int32_t CGQuestLog::SetQuestExpiredByID(int32_t questId) {
         CGPlayer_C::QueryQuestGiverStatusMultiple();
     }
 
+    return 1;
+}
+
+// VERIFY: 6a79749a manual
+// OFFSET: 0x005E58C0
+int32_t CGQuestLog::GetQuestPOILeaderBoardByID(int32_t questId, QuestLogLeaderBoardParams* params) {
+    if (!params) {
+        return 0;
+    }
+
+    params->m_text[0] = 0;
+    params->m_type[0] = 0;
+    params->m_complete = 0;
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    if (!questId) {
+        questId = CGQuestLog::m_selectedQuest;
+    }
+
+    if (questId <= 0) {
+        return 0;
+    }
+
+    WOWGUID none = { 0 };
+    QuestCache* quest = g_questDBCache.GetRecord(questId, none, params->m_questCallback, params->m_param, false);
+
+    if (!quest) {
+        return 0;
+    }
+
+    int32_t index = params->m_index;
+
+    if (index >= 0 && index < 4) {
+        return CGQuestLog::GetQuestLeaderBoardForObject(questId, quest->m_objectiveId[index], params);
+    }
+
+    if (index >= 0 && index < 10) {
+        return CGQuestLog::GetQuestLeaderBoardForItem(questId, quest->m_collectItemId[index - 4], params);
+    }
+
+    if (index >= 0 && index < 16) {
+        return CGQuestLog::GetQuestLeaderBoardForItem(questId, quest->m_intermediateItemId[index - 10], params);
+    }
+
+    if (index != 16 && index != 17) {
+        return 0;
+    }
+
+    int32_t logIndex = CGQuestLog::GetQuestIndex(questId) - 1;
+
+    if (logIndex < 0) {
+        return 0;
+    }
+
+    int32_t slot = CGQuestLog::GetQuestLogSlot(logIndex);
+    PlayerQuestLogEntry* entry = player->GetQuestLogEntry(slot);
+
+    if (!entry || !quest->m_endText[0]) {
+        return 0;
+    }
+
+    SStrCopy(params->m_text, quest->m_endText, STORM_MAX_STR);
+    SStrCopy(params->m_type, "event", STORM_MAX_STR);
+    params->m_complete = entry->m_state & 1;
     return 1;
 }
 
@@ -1976,6 +2187,27 @@ bool CGQuestLog::IsPOIOnCurrentMap(const int32_t* point, int32_t mapId, int32_t 
     }
 
     return !outland && fabs(fabs(x * y)) >= 0.001f;
+}
+
+// VERIFY: 6344359d auto
+// OFFSET: 0x005E0180
+bool CGQuestLog::IsPOIVisibleOnDungeonMap(const int32_t* point, int32_t mapId, int32_t floor, int32_t dungeonMapId) {
+    DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecord(dungeonMapId);
+
+    if (!dungeonMap || mapId != dungeonMap->m_mapID || floor != dungeonMap->m_floorIndex) {
+        return false;
+    }
+
+    C3Vector position(static_cast<float>(point[0]), static_cast<float>(point[1]), 0.0f);
+    float x;
+    float y;
+    bool outland;
+
+    if (!CGWorldMap::GetWorldPosition(position, mapId, &x, &y, &outland, false, dungeonMapId) || outland) {
+        return false;
+    }
+
+    return !fequalz(fabs(x * y), 0.0f, 0.001f);
 }
 
 // VERIFY: 2b97ec8b manual

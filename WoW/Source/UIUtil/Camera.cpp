@@ -10,6 +10,7 @@
 #include "Engine/Source/Model2/M2Shared.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Services/SysMessage.h"
+#include "Engine/Source/Base/Status.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Tempest/C2Vector.h"
@@ -364,6 +365,15 @@ CGCamera::~CGCamera() {
     }
 
     ConsoleCommandUnregister("pitchLimit");
+}
+
+// VERIFY: 6952a863 manual
+// OFFSET: 0x00603900
+void CGCamera::BarberShopSetView(float distance, float facing, float pitch) {
+    this->m_views[7][0] = distance;
+    this->m_views[7][2] = facing;
+    this->m_views[7][1] = pitch;
+    this->SetView(7, 1, 0);
 }
 
 // VERIFY: 3e9e8f60 manual
@@ -1023,6 +1033,62 @@ void CGCamera::SetModeNormal() {
 
     SysMsgAdd("Camera NORMAL", STATUS_INFO);
     this->m_state &= ~0x4000;
+}
+
+// VERIFY: 62256cd1 manual
+// OFFSET: 0x00606570
+int32_t CGCamera::SetModelCamera(const char* fileName, const C3Vector* position, float facing, void (*callback)(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param), uint64_t param) {
+    if (this->m_model) {
+        this->m_state &= ~0x4;
+
+        if (this->unk_0050) {
+            HandleClose(this->unk_0050);
+            this->unk_0050 = nullptr;
+        }
+
+        this->m_model->Release();
+        this->m_model = nullptr;
+    }
+
+    CStatus status;
+    this->m_model = this->GetScene()->CreateModel(fileName, 0);
+    SysMsgAdd(&status);
+
+    if (!this->m_model) {
+        return 0;
+    }
+
+    this->m_model->SetSequenceCallback(reinterpret_cast<void*>(callback), param);
+    this->m_modelMatrix.c2 = 1.0f;
+    this->m_modelMatrix.b1 = 1.0f;
+    this->m_modelMatrix.a0 = 1.0f;
+    this->m_modelMatrix.d2 = 0.0f;
+    this->m_modelMatrix.d1 = 0.0f;
+    this->m_modelMatrix.d0 = 0.0f;
+    this->m_modelMatrix.c1 = 0.0f;
+    this->m_modelMatrix.c0 = 0.0f;
+    this->m_modelMatrix.b2 = 0.0f;
+    this->m_modelMatrix.b0 = 0.0f;
+    this->m_modelMatrix.a2 = 0.0f;
+    this->m_modelMatrix.a1 = 0.0f;
+    this->m_modelMatrix.d0 = position->x;
+    this->m_modelMatrix.d1 = position->y;
+    this->m_modelMatrix.d2 = position->z;
+    this->m_modelMatrix.RotateAroundZ(facing);
+    CM2Model* model = this->m_model;
+    model->m_fFlags |= 0x8000;
+    model->m_worldTransform = C44Matrix(this->m_modelMatrix);
+
+    if (!this->m_model->IsLoaded(1, 0)) {
+        this->m_state &= ~0x4;
+        return 1;
+    }
+
+    if (!this->FinishLoadingModel()) {
+        return 0;
+    }
+
+    return 1;
 }
 
 // VERIFY: 13e871f6 manual

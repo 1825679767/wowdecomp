@@ -24,6 +24,12 @@
 #include "WoW/Source/Object/Unit.h"
 #include "WoW/Source/Ui/Tutorial.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/ActionBarFrame.h"
+#include "WoW/Source/DB/Rec/ChrRacesRec.h"
+#include "WoW/Source/DB/Rec/ChrClassesRec.h"
+#include "WoW/Source/Ui/ItemSocketInfo.h"
+#include "WoW/Source/Ui/ReputationInfo.h"
+#include "WoW/Source/WowServices/WDataStore.h"
 
 // STATIC: 0x00A1CE4C
 static const int32_t s_inventoryAlertSlots[12] = { 0, 2, 4, 5, 6, 7, 8, 9, 15, 16, 17, -1 };
@@ -60,6 +66,35 @@ uint16_t CGCharacterInfo::m_inspectTodayHonorableKills;
 
 // STATIC: 0x00C2422C
 int32_t CGCharacterInfo::m_honorRequestPending;
+
+// VERIFY: d0d1018f manual
+// OFFSET: 0x005E83E0
+int32_t PlayerEquipmentChangedHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        player->UpdateAmmoModel(player->GetEquippedAmmoDisplayId(), 24);
+        CGActionBar::UpdateUsable();
+        FrameScript_SignalEvent(SCRIPT_EVENT_UNIT_INVENTORY_CHANGED, "%s", "player");
+    }
+
+    return 1;
+}
+
+// VERIFY: eebb5365 manual
+// OFFSET: 0x005E8330
+int32_t PlayerCharacterPointsUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player) {
+        const int32_t* oldPoints = static_cast<const int32_t*>(oldValue);
+        int32_t points2 = player->m_obj->m_guid == ClntObjMgrGetActivePlayer() ? player->m_player->m_playerCharacterPoints[1] : 0;
+        int32_t points1 = player->m_obj->m_guid == ClntObjMgrGetActivePlayer() ? player->m_player->m_playerCharacterPoints[0] : 0;
+        FrameScript_SignalEvent(SCRIPT_EVENT_CHARACTER_POINTS_CHANGED, "%d%d", points1 - oldPoints[0], points2 - oldPoints[1]);
+    }
+
+    return 1;
+}
 
 // VERIFY: 37e279b1 auto
 // OFFSET: 0x005E8440
@@ -431,6 +466,231 @@ void CGCharacterInfo::PickupInventoryItem(int32_t slot) {
 
     CGGameUI::SetCursorItem(itemGuid, player->m_obj->m_guid, slot, 1, 0, 1);
     CGGameUI::LockItem(itemGuid);
+}
+
+// VERIFY: f443ce5b manual
+// OFFSET: 0x005E8A60
+void CGCharacterInfo::UseItem(int32_t slot, WOWGUID* target) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return;
+    }
+
+    CGGameUI::ClearCursor(1, 1);
+    CGItem_C* item = player->m_bag.GetItemPointer(slot);
+
+    if (!item) {
+        return;
+    }
+
+    if (Spell_C_IsTargeting() && !Spell_C_CanTargetItems()) {
+        Spell_C_StopTargeting();
+    }
+
+    if (Spell_C_IsTargeting()) {
+        CGGameUI::CastItemSpell(item->m_obj->m_guid, 0);
+    } else if (CursorGetResetMode() == 17 && CGMerchantInfo::CanRepair()) {
+        uint32_t cost = CGMerchantInfo::GetRepairCost(item);
+
+        if (cost <= player->GetCoinage()) {
+            SI2::PlaySoundKit("ITEM_REPAIR", nullptr, nullptr, nullptr);
+            WDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_REPAIR_ITEM));
+            msg.Put(CGMerchantInfo::m_merchant.m_guid);
+            msg.Put(item->m_obj->m_guid.m_guid);
+            msg.Put(static_cast<uint8_t>(0));
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+        } else {
+            CGGameUI::DisplayError(ERR_NOT_ENOUGH_MONEY);
+        }
+    } else {
+        item->UseItem(target, 0);
+    }
+}
+
+// VERIFY: 4fffb962 manual
+// OFFSET: 0x005E8BC0
+void CGCharacterInfo::SocketInventoryItem(int32_t slot) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return;
+    }
+
+    CGItem_C* item = player->m_bag.GetItemPointer(slot);
+
+    if (item && !(item->m_itemFlags & 0x1) && item->GetNumSockets()) {
+        CGItemSocketInfo::SetItem(item->m_obj->m_guid);
+    }
+}
+
+// VERIFY: e40f790d manual
+// OFFSET: 0x005E8C30
+void CGCharacterInfo::PickupBag(uint32_t slot) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !CGGameUI::m_hasControl || (slot - 67 <= 6 && !CGBankInfo::m_banker)) {
+        return;
+    }
+
+    WOWGUID cursorItem;
+    WOWGUID cursorContainer;
+    uint32_t cursorSlot;
+    CGGameUI::GetCursorItem(cursorItem, cursorContainer, cursorSlot);
+
+    if (cursorItem) {
+        CGGameUI::ClearCursor(1, 1);
+    }
+
+    WOWGUID bag = static_cast<int32_t>(slot) < player->m_bag.m_numSlots ? player->m_bag.m_slots[slot] : WOWGUID();
+
+    if (!bag) {
+        CGCharacterInfo::PickupInventoryItem(slot);
+        return;
+    }
+
+    CGItem_C* container = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(bag, TYPEMASK_CONTAINER, __FILE__, __LINE__));
+
+    if (container && !(container->m_itemFlags & 0x1)) {
+        CGGameUI::SetCursorItem(bag, player->m_obj->m_guid, slot, 1, 0, 1);
+        CGGameUI::LockItem(bag);
+    }
+}
+
+// VERIFY: 5e4c7a87 manual
+// OFFSET: 0x005E9140
+void CGCharacterInfo::RequestInspectHonorData() {
+    if (CGCharacterInfo::m_hasHonorData || CGCharacterInfo::m_honorRequestPending || !CGCharacterInfo::m_inspectTarget) {
+        return;
+    }
+
+    CDataStore honor;
+    honor.Put(static_cast<uint32_t>(MSG_INSPECT_HONOR_STATS));
+    honor.Put(CGCharacterInfo::m_inspectTarget.m_guid);
+    honor.Finalize();
+    ClientServices::Send2(&honor);
+    CDataStore arena;
+    arena.Put(static_cast<uint32_t>(MSG_INSPECT_ARENA_TEAMS));
+    arena.Put(CGCharacterInfo::m_inspectTarget.m_guid);
+    arena.Finalize();
+    ClientServices::Send2(&arena);
+    CGCharacterInfo::m_honorRequestPending = 1;
+}
+
+// VERIFY: 957733e3 manual
+// OFFSET: 0x005E9250
+bool CGCharacterInfo::CanEquipItemInSlot(const ItemStats_C* stats, uint32_t slot) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return false;
+    }
+
+    if (stats->m_requiredLevel > 1 && static_cast<int32_t>(stats->m_requiredLevel) > player->m_unit->m_unitFieldLevel) {
+        return false;
+    }
+
+    uint32_t proficiency = CGPlayer_C::GetProficiency(static_cast<uint8_t>(stats->m_class));
+
+    if (proficiency && !((1 << stats->m_subClass) & proficiency)) {
+        return false;
+    }
+
+    if (slot == 16 && (stats->m_inventoryType == 22 || stats->m_inventoryType == 13) && !CGPlayer_C::CanDualWield()) {
+        return false;
+    }
+
+    int32_t allowed = 1;
+
+    if (!((stats->m_allowableRace - 1) & stats->m_allowableRace) && !((stats->m_allowableClass - 1) & stats->m_allowableClass)) {
+        for (int32_t i = 0; i < g_chrRacesDB.m_numRecords; i++) {
+            ChrRacesRec* race = g_chrRacesDB.GetRecordByIndex(i);
+
+            if (race && !(race->m_flags & 0x1) && ((1 << (race->m_id - 1)) & stats->m_allowableRace) && player->m_unit->m_unitFieldBytes0[0] != race->m_id) {
+                return false;
+            }
+        }
+
+        for (int32_t i = 0; i < g_chrClassesDB.m_numRecords; i++) {
+            ChrClassesRec* chrClass = g_chrClassesDB.GetRecordByIndex(i);
+
+            if (chrClass && ((1 << (chrClass->m_id - 1)) & stats->m_allowableClass) && player->m_unit->m_unitFieldBytes0[1] != chrClass->m_id) {
+                return false;
+            }
+        }
+
+        return !stats->m_requiredReputationFaction || GetRepListRepValue(stats->m_requiredReputationFaction) >= CGReputationInfo::m_reactionThresholds[stats->m_requiredReputationRank];
+    }
+
+    int32_t allRaces = 1;
+    int32_t allClasses = 1;
+
+    for (int32_t i = 0; i < g_chrRacesDB.m_numRecords; i++) {
+        ChrRacesRec* race = g_chrRacesDB.GetRecordByIndex(i);
+
+        if (race && !(race->m_flags & 0x1) && !((1 << (race->m_id - 1)) & stats->m_allowableRace)) {
+            allRaces = 0;
+            break;
+        }
+    }
+
+    for (int32_t i = 0; i < g_chrClassesDB.m_numRecords; i++) {
+        ChrClassesRec* chrClass = g_chrClassesDB.GetRecordByIndex(i);
+
+        if (chrClass && !((1 << (chrClass->m_id - 1)) & stats->m_allowableClass)) {
+            allClasses = 0;
+            break;
+        }
+    }
+
+    if (!allRaces) {
+        allowed = 0;
+
+        for (int32_t i = 0; i < g_chrRacesDB.m_numRecords; i++) {
+            ChrRacesRec* race = g_chrRacesDB.GetRecordByIndex(i);
+
+            if (race && !(race->m_flags & 0x1) && ((1 << (race->m_id - 1)) & stats->m_allowableRace) && player->m_unit->m_unitFieldBytes0[0] == race->m_id) {
+                allowed = 1;
+            }
+        }
+
+        if (!allowed) {
+            return false;
+        }
+    }
+
+    if (!allClasses) {
+        allowed = 0;
+
+        for (int32_t i = 0; i < g_chrClassesDB.m_numRecords; i++) {
+            ChrClassesRec* chrClass = g_chrClassesDB.GetRecordByIndex(i);
+
+            if (chrClass && ((1 << (chrClass->m_id - 1)) & stats->m_allowableClass) && player->m_unit->m_unitFieldBytes0[1] == chrClass->m_id) {
+                allowed = 1;
+            }
+        }
+    }
+
+    if (!allowed) {
+        return false;
+    }
+
+    return !stats->m_requiredReputationFaction || GetRepListRepValue(stats->m_requiredReputationFaction) >= CGReputationInfo::m_reactionThresholds[stats->m_requiredReputationRank];
+}
+
+// VERIFY: a84d2b4c manual
+// OFFSET: 0x005E9570
+bool CGCharacterInfo::CanEquipItem(CGItem_C* item, uint32_t slot) {
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+    if (stats) {
+        return CGCharacterInfo::CanEquipItemInSlot(stats, slot);
+    }
+
+    return false;
 }
 
 // VERIFY: a708b631 manual

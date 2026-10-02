@@ -41,6 +41,7 @@ class CGWorldStateInfo {
 
 int32_t Script_GetWorldStateUIInfo(lua_State* L);
 void WorldStateInfoRegisterScriptFunctions();
+void WorldStateInfoUnregisterScriptFunctions();
 
 void CheckEventWorldStateUITimerUpdate();
 

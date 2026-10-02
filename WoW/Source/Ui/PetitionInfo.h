@@ -20,7 +20,7 @@ class CGPetitionInfo {
     static void ShutdownGame();
     static WOWGUID m_petitionGUID;
     static WOWGUID m_petitionItem;
-    static uint32_t unk_C22B30;
+    static uint32_t m_petitionId;
     static int32_t m_signed;
     static uint32_t m_numPetitionNames;
     static int32_t m_pendingNameQueries;
@@ -29,17 +29,19 @@ class CGPetitionInfo {
 
     static void EnterWorld();
     static void InitializeGame();
+    static void SetPetitionStats(int32_t id);
+    static void ClearSignatures();
+    static void SetPetition(WOWGUID petition, int32_t id, WOWGUID item);
+    static void SetSignatures(uint8_t count, const WOWGUID* guids, const uint32_t* choices);
 };
 
-int32_t Script_ClosePetition(lua_State* L);
-int32_t Script_GetPetitionInfo(lua_State* L);
-int32_t Script_GetPetitionNameInfo(lua_State* L);
-int32_t Script_OfferPetition(lua_State* L);
-int32_t Script_RenamePetition(lua_State* L);
 void PetitionInfoRegisterScriptFunctions();
+void PetitionInfoUnregisterScriptFunctions();
 
 class CDataStore;
 
 int32_t Packet_SMSG_OFFER_PETITION_ERROR(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+void SignatureNameQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+void PetitionQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 
 #endif

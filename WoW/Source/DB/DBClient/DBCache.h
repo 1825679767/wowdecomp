@@ -610,7 +610,7 @@ void DBCache<T, TKey, THashKey>::DenyItem(TKey key) {
 }
 
 // VERIFY: 80ad7a9d auto
-// OFFSET: [0x0067A170]
+// OFFSET: [0x0067A170, 0x0067A5F0]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::Invalidate(TKey key) {
     DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);

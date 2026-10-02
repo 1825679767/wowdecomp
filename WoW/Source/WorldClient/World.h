@@ -405,8 +405,6 @@ namespace World {
     };
 
 extern CM2Scene* s_m2Scene;
-extern float s_viewerLiquidDepth;
-extern uint32_t s_liquidTypeId;
 extern Weather* s_weather;
 extern float groundEffectDistValueSqr;
 extern C4Vector texVect[8];
@@ -441,6 +439,7 @@ float ValidateFarClip(float farClip, int32_t mapID);
     bool GetFacets(CAaBox* a1, CAaBox* a2, FacetData* a3, uint32_t a4, uint32_t* a5);
     bool NDCXform(CFrustum* frustum, C44Matrix* out, bool includeTranslation);
     bool IsValidPosition(float x, float y, float z, float a4);
+    bool IsValidPosition(const C3Vector& position, float a4);
     void AddAaBoxFacets(CAaBox* box, FacetData* facets);
     uint32_t TriDataToFacetData(void* unused, FacetData* facets, WOWGUID guid);
     bool GetFacets(CAaBox* box, FacetData* facets, uint32_t flags, uint32_t* status);
@@ -451,6 +450,18 @@ float ValidateFarClip(float farClip, int32_t mapID);
     void ObjectSetMoveable(CMapEntity* entity, int32_t moveable);
     int32_t ObjectIsLoaded(CMapBaseObj* object);
     int32_t ObjectIsWMO(CMapBaseObj* object);
+    void ObjectSetHidden(CMapEntity* entity, int32_t hidden);
+    void ObjectEnableCollision(CMapBaseObj* object, int32_t enable);
+    void FreeDestructibleProxy(CDestructibleProxy* proxy);
+    void ObjectUpdate(CMapBaseObj* object, const C3Vector* position, float facing, float a4, float a5, int32_t snap);
+    void ObjectSetAlwaysExterior(CMapBaseObj* object, int32_t enable);
+    int32_t ObjectMoveDoodads(CMapBaseObj* source, uint16_t doodadSet, CMapBaseObj* target, uint16_t targetDoodadSet);
+    void ObjectSetDoodadEmittersIgnoresDistance(CMapBaseObj* object, int32_t ignore, uint16_t doodadSet);
+    void ObjectSetDoodadsEnabled(CMapBaseObj* object, int32_t enable, uint16_t doodadSet);
+    void ObjectSetEventCallback(CMapBaseObj* object, void (*callback)(CM2Model* model, uint32_t boneId, uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time, uint64_t param), uint64_t param, uint16_t doodadSet);
+    void ObjectGetExtents(CMapBaseObj* object, CAaBox* extents);
+    uint64_t QueryObjectParentParam64(CMapBaseObj* object);
+    void ObjectSetRenderEnabled(CMapBaseObj* object, int32_t enable);
     bool GetTris(const CAaBox& box, World::TriData* triData, uint32_t flags);
     uint32_t GetIntersectingDoodadModels(CM2Model** models, uint32_t maxModels, const CAaBox& box, uint32_t flags);
     void ObjectSetSequence(CMapEntity* entity, uint32_t sequence, int32_t a3, int32_t a4);
@@ -511,8 +522,12 @@ class CWorld {
     static void Destroy();
     static void Initialize();
     static void LoadMap(const char* mapName, C3Vector* position, int32_t zoneID, int32_t a4);
+    static void ObjectDestroy(CMapBaseObj* object);
     static CMapBaseObj* ObjectCreate(const char* name, const C3Vector& position, float facing, int32_t waitLoad, int32_t snap, uint64_t guid, uint32_t doodadSetCount, const int16_t* doodadSets, float* radius, uint32_t id);
     static void Update(C3Vector* camPos, C3Vector* camTarget, C3Vector* position);
 };
+
+extern float s_viewerLiquidDepth;
+extern uint32_t s_liquidTypeId;
 
 #endif

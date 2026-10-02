@@ -8,6 +8,9 @@
 #include "WoW/Source/Object/Player.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/DB/Rec/SkillLineRec.h"
+#include "WoW/Source/Object/Unit.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
 
 // STATIC: 0x00C22AE8
 uint32_t CGSkillInfo::m_numLines;
@@ -22,7 +25,7 @@ uint32_t CGSkillInfo::m_numSkillLines;
 int32_t CGSkillInfo::m_selectedSkill;
 
 // STATIC: 0x00C22AF8
-int32_t CGSkillInfo::unk_C22AF8;
+int32_t CGSkillInfo::m_expandedTypes;
 
 // STATIC: 0x00C22AFC
 int32_t CGSkillInfo::unk_C22AFC;
@@ -36,7 +39,71 @@ TSFixedArray<SkillLineInfo*> CGSkillInfo::m_lines;
 // STATIC: 0x00C22B10
 TSFixedArray<SkillTypeInfo*> CGSkillInfo::m_types;
 
-// VERIFY: 8c16c042 manual
+// VERIFY: f1687dc0 manual
+// OFFSET: 0x005CDBF0
+void CGSkillInfo::AddSkillUp(uint32_t index) {
+    if (index >= CGSkillInfo::m_numLines) {
+        return;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return;
+    }
+
+    SkillLineRec* skillLine = g_skillLineDB.GetRecord(CGSkillInfo::m_lines.m_data[index]->m_skillLineID);
+    const SkillRaceClassInfoRec* info = SpellTableLookupInfo(player->m_unit->m_unitFieldBytes0[0], player->m_unit->m_unitFieldBytes0[1], CGSkillInfo::m_lines.m_data[index]->m_skillLineID);
+
+    if (!skillLine || !info) {
+        return;
+    }
+
+    int32_t skillIndex = player->GetSkillIndex(CGSkillInfo::m_lines.m_data[index]->m_skillLineID);
+    int32_t value = player->GetSkillValue(skillIndex);
+
+    if (value + CGSkillInfo::m_lines.m_data[index]->m_skillUps >= static_cast<int32_t>(player->GetSkillMaxRank(skillIndex))) {
+        return;
+    }
+
+    int32_t cost = CGSkillInfo::GetSkillCostField(info, CGSkillInfo::m_lines.m_data[index]->m_skillUps + value + 1);
+
+    if (cost + CGSkillInfo::m_skillUpPoints <= player->GetCharacterPoints(1)) {
+        CGSkillInfo::m_lines.m_data[index]->m_skillUps++;
+        CGSkillInfo::m_skillUpPoints += cost;
+        FrameScript_SignalEvent(SCRIPT_EVENT_SKILL_LINES_CHANGED, nullptr);
+    }
+}
+
+// VERIFY: c1910f28 manual
+// OFFSET: 0x005CDD20
+void CGSkillInfo::RemoveSkillUp(uint32_t index) {
+    if (index >= CGSkillInfo::m_numLines) {
+        return;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !CGSkillInfo::m_lines.m_data[index]->m_skillUps) {
+        return;
+    }
+
+    SkillLineRec* skillLine = g_skillLineDB.GetRecord(CGSkillInfo::m_lines.m_data[index]->m_skillLineID);
+    const SkillRaceClassInfoRec* info = SpellTableLookupInfo(player->m_unit->m_unitFieldBytes0[0], player->m_unit->m_unitFieldBytes0[1], CGSkillInfo::m_lines.m_data[index]->m_skillLineID);
+
+    if (!skillLine || !info) {
+        return;
+    }
+
+    int32_t skillIndex = player->GetSkillIndex(CGSkillInfo::m_lines.m_data[index]->m_skillLineID);
+    int32_t value = player->GetSkillValue(skillIndex);
+    int32_t cost = CGSkillInfo::GetSkillCostField(info, value + CGSkillInfo::m_lines.m_data[index]->m_skillUps);
+    CGSkillInfo::m_lines.m_data[index]->m_skillUps--;
+    CGSkillInfo::m_skillUpPoints -= cost;
+    FrameScript_SignalEvent(SCRIPT_EVENT_SKILL_LINES_CHANGED, nullptr);
+}
+
+// VERIFY: 579e798b manual
 // OFFSET: 0x005CE880
 void CGSkillInfo::InitializeGame() {
     uint32_t numTypes = g_skillLineCategoryDB.m_numRecords;
@@ -64,7 +131,7 @@ void CGSkillInfo::InitializeGame() {
     CGSkillInfo::m_numSkillLines = 0;
     CGSkillInfo::m_selectedSkill = 0;
     CGSkillInfo::m_skillUpPoints = 0;
-    CGSkillInfo::unk_C22AF8 = -1;
+    CGSkillInfo::m_expandedTypes = -1;
 }
 
 // VERIFY: c9c769d1 manual
@@ -146,13 +213,13 @@ static int32_t SortSkillLines(const void* a, const void* b) {
     return SStrSortUTF8I(recA->m_displayName, recB->m_displayName, STORM_MAX_STR);
 }
 
-// VERIFY: 243b4cba auto
+// VERIFY: f7f8fa48 auto
 // OFFSET: 0x005CD5E0
 void CGSkillInfo::UpdateSkillLines() {
     CGSkillInfo::m_numSkillLines = CGSkillInfo::m_numLines;
 
     for (uint32_t i = 0; i < CGSkillInfo::m_numTypes; i++) {
-        CGSkillInfo::m_types.m_data[i]->unk_0004 = !(CGSkillInfo::unk_C22AF8 & (1 << i));
+        CGSkillInfo::m_types.m_data[i]->unk_0004 = !(CGSkillInfo::m_expandedTypes & (1 << i));
     }
 
     for (uint32_t i = 0; i < CGSkillInfo::m_numLines; i++) {
@@ -187,7 +254,39 @@ void CGSkillInfo::UpdateSkillLines() {
     FrameScript_SignalEvent(SCRIPT_EVENT_SKILL_LINES_CHANGED, nullptr);
 }
 
-// VERIFY: 4f4bdc99 manual
+// VERIFY: 8003513c auto
+// OFFSET: 0x005CD760
+void CGSkillInfo::CollapseHeader(uint32_t index) {
+    if (index >= CGSkillInfo::m_numLines) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < CGSkillInfo::m_numTypes; i++) {
+        if (CGSkillInfo::m_types.m_data[i]->m_categoryID == CGSkillInfo::m_lines.m_data[index]->m_categoryID) {
+            CGSkillInfo::m_expandedTypes &= ~(1 << i);
+            CGSkillInfo::UpdateSkillLines();
+            return;
+        }
+    }
+}
+
+// VERIFY: 58bf5833 auto
+// OFFSET: 0x005CD7C0
+void CGSkillInfo::ExpandHeader(uint32_t index) {
+    if (index >= CGSkillInfo::m_numLines) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < CGSkillInfo::m_numTypes; i++) {
+        if (CGSkillInfo::m_types.m_data[i]->m_categoryID == CGSkillInfo::m_lines.m_data[index]->m_categoryID) {
+            CGSkillInfo::m_expandedTypes |= 1 << i;
+            CGSkillInfo::UpdateSkillLines();
+            return;
+        }
+    }
+}
+
+// VERIFY: c12af19b manual
 // OFFSET: 0x005CD9B0
 void PlayerSignalSkillStatChanges() {
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -196,7 +295,7 @@ void PlayerSignalSkillStatChanges() {
         return;
     }
 
-    CGSkillInfo::unk_C22AF8 = -1;
+    CGSkillInfo::m_expandedTypes = -1;
     CGSkillInfo::m_numLines = 0;
     CGSkillInfo::m_numTypes = 0;
     CGSkillInfo::m_numSkillLines = 0;

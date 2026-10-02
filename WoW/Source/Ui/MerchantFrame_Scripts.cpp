@@ -776,3 +776,11 @@ void MerchantRegisterScriptFunctions() {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
     }
 }
+
+// VERIFY: d1fc8388 auto
+// OFFSET: 0x00584480
+void MerchantUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
+    }
+}

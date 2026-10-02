@@ -20,8 +20,8 @@
 #include "WoW/Source/Ui/LFGInfo.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "_Triage/Types.h"
+#include "WoW/Source/Ui/BarberShop.h"
 
-int32_t Script_PaidChange_GetPreviousRaceIndex(lua_State* L);
 
 // VERIFY: a2e71192 auto
 // OFFSET: 0x004E05B0
@@ -222,9 +222,9 @@ static int32_t Script_GetAvailableClasses(lua_State* L) {
     return 3 * count;
 }
 
-// VERIFY: 68c07c79 auto
+// VERIFY: 3d392030 auto
 // OFFSET: 0x004E0900
-static int32_t Script_GetHairCustomization(lua_State* L) {
+int32_t Script_GetHairCustomization(lua_State* L) {
     int32_t raceID = CCharacterCreation::m_raceIndex < CCharacterCreation::m_races.Count() ? CCharacterCreation::m_races.m_data[CCharacterCreation::m_raceIndex] : 0;
     ChrRacesRec* raceRec = g_chrRacesDB.GetRecord(raceID);
 
@@ -237,9 +237,9 @@ static int32_t Script_GetHairCustomization(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 33f1dd6a auto
+// VERIFY: 485ac57c auto
 // OFFSET: 0x004E0970
-static int32_t Script_GetFacialHairCustomization(lua_State* L) {
+int32_t Script_GetFacialHairCustomization(lua_State* L) {
     int32_t raceID = CCharacterCreation::m_raceIndex < CCharacterCreation::m_races.Count() ? CCharacterCreation::m_races.m_data[CCharacterCreation::m_raceIndex] : 0;
     ChrRacesRec* raceRec = g_chrRacesDB.GetRecord(raceID);
 
@@ -553,6 +553,13 @@ static int32_t Script_CustomizeExistingCharacter(lua_State* L) {
 
     CCharacterCreation::SetToExistingCharacter(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1);
     return 0;
+}
+
+// VERIFY: a77b42fd auto
+// OFFSET: 0x00608560
+static int32_t Script_PaidChange_GetPreviousRaceIndex(lua_State* L) {
+    lua_pushnumber(L, 0.0);
+    return 1;
 }
 
 // STATIC: 0x00AC4228

@@ -1924,3 +1924,19 @@ void CGObject_C::ClearEffectKit(int32_t spellId, int32_t kitType, int32_t a4, in
         effect = next;
     }
 }
+
+// VERIFY: b35e56bd auto
+// OFFSET: 0x00743730
+void CGObject_C::SetModel(CM2Model* model) {
+    if (model == this->m_worldModel) {
+        return;
+    }
+
+    if (model) {
+        model->m_refCount++;
+    }
+
+    CM2Model* old = this->m_worldModel;
+    this->m_worldModel = model;
+    this->SetModelFinish(old);
+}

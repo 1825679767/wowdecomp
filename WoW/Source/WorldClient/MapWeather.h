@@ -9,13 +9,31 @@
 #include "WoW/Source/WorldClient/Rain.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/CImVector.h"
+#include "Engine/Source/Tempest/CiRect.h"
+#include "Engine/Source/Tempest/C2iVector.h"
 
 struct CVar;
 class WeatherRec;
 
 class CGxShader;
 class CTexture;
-struct SnowFlakeParticleBuffer;
+struct SnowFlakeParticle {
+    /* 0000 */ C3Vector m_position;
+    /* 000C */ C3Vector m_velocity;
+    /* 0018 */ float m_startTime;
+    /* 001C */ float m_endTime;
+};
+
+struct SnowFlakeParticleBuffer {
+    static const char* const s_packetName;
+    static const uint32_t s_vertexSize = 32;
+    static const uint32_t s_verticesPerParticle = 1;
+
+    /* 0000 */ uint32_t m_particleCount;
+    /* 0004 */ SnowFlakeParticle m_particles [6144];
+
+    SnowFlakeParticleBuffer();
+};
 
 class Snow {
     public:
@@ -24,54 +42,42 @@ class Snow {
     /* 0002 */ uint8_t unk_0002[2];
     /* 0004 */ CAaBox m_bbox;
     /* 001C */ Mists m_mists;
-    /* 0070 */ int32_t unk_0070;
-    /* 0074 */ void* unk_0074;
-    /* 0078 */ void* unk_0078;
-    /* 007C */ int32_t m_activePacketsCount;
-    /* 0080 */ int32_t m_freePacketsCount;
-    /* 0084 */ int32_t unk_0084;
-    /* 0088 */ void* unk_0088;
-    /* 008C */ void* unk_008C;
+    /* 0070 */ PacketList<Packet<SnowFlakeParticleBuffer>> m_snowFlakePacketList;
     /* 0090 */ Packet<SnowFlakeParticleBuffer>* m_snowFlakePacketPtr;
-    /* 0094 */ float unk_0094;
+    /* 0094 */ float m_maxBuildTime;
     /* 0098 */ CTexture* m_snowFlakeTex;
     /* 009C */ CGxShader* m_shaderPtr;
-    /* 00A0 */ int32_t unk_00A0;
-    /* 00A4 */ int32_t unk_00A4;
+    /* 00A0 */ float m_particlesPerFrame;
+    /* 00A4 */ float m_intensity;
 
-    Snow(float a1, float a2);
+    Snow(float width, float height);
+    void SetStormIntensity(float intensity);
     ~Snow();
     int32_t CountActivePackets();
+    void InitFlake(SnowFlakeParticle* flake, float time, const C3Vector* origin, const C3Vector* wind);
     void Render();
-};
-
-struct SnowFlakeParticle {
-    /* 0000 */ C3Vector m_position;
-    /* 000C */ C3Vector m_velocity;
-    /* 0018 */ float m_lifetime;
-    /* 001C */ float m_size;
-};
-
-struct SnowFlakeParticleBuffer {
-    /* 0000 */ uint32_t m_particleCount;
-    /* 0004 */ SnowFlakeParticle m_particles [6144];
+    void RenderPackets();
+    void RenderPacketsSW();
+    void UpdatePacket(Packet<SnowFlakeParticleBuffer>* packet, float count, const C3Vector* origin, const C3Vector* wind);
+    void UpdatePackets();
 };
 
 struct WeatherGridCell {
     /* 0000 */ float m_heights[1024];
-    /* 1000 */ int32_t unk_1000;
-    /* 1004 */ int32_t unk_1004;
+    /* 1000 */ int32_t m_cellX;
+    /* 1004 */ int32_t m_cellY;
 
     WeatherGridCell();
+    float GetHeight(const C3Vector* position);
 };
 
 class WeatherGridBase {
     public:
-    virtual void* unk_0000(void* a2) = 0;
-    virtual int32_t UpdateOriginCell(float* position) = 0;
-    virtual bool ComputeCellBounds(float* a2, float* a3, float* a4) = 0;
-    virtual void GetCellAtPosition(float* position) = 0;
-    virtual void Unk10(float* a1, float* a2) = 0;
+    virtual CiRect* GetCellBounds(CiRect* bounds) = 0;
+    virtual void UpdateOriginCell(const C3Vector* position) = 0;
+    virtual bool Raycast(const C3Vector* start, const C3Vector* end, C3Vector* hit) = 0;
+    virtual float GetHeight(const C3Vector* position) = 0;
+    virtual void GetCellSpacing(float* cellSize, float* cellsPerYard) = 0;
     virtual ~WeatherGridBase();
 };
 
@@ -80,17 +86,23 @@ class WeatherGrid : public WeatherGridBase {
     /* 0004 */ float unk_0004;
     /* 0008 */ float unk_0008;
     /* 000C */ float unk_000C;
-    /* 0010 */ int32_t unk_0010[6];
+    /* 0010 */ int32_t m_originX;
+    /* 0014 */ int32_t m_originY;
+    /* 0018 */ int32_t m_minCellX;
+    /* 001C */ int32_t m_minCellY;
+    /* 0020 */ int32_t m_minX;
+    /* 0024 */ int32_t m_minY;
     /* 0028 */ WeatherGridCell* m_cells[5][5];
 
-    virtual void* unk_0000(void* a2);
-    virtual int32_t UpdateOriginCell(float* position);
-    virtual bool ComputeCellBounds(float* a2, float* a3, float* a4);
-    virtual void GetCellAtPosition(float* position);
-    virtual void Unk10(float* a1, float* a2);
-    virtual ~WeatherGrid();
+    CiRect* GetCellBounds(CiRect* bounds) override;
+    void UpdateOriginCell(const C3Vector* position) override;
+    bool Raycast(const C3Vector* start, const C3Vector* end, C3Vector* hit) override;
+    float GetHeight(const C3Vector* position) override;
+    void GetCellSpacing(float* cellSize, float* cellsPerYard) override;
+    ~WeatherGrid() override;
 
     WeatherGrid();
+    float GetSubCellHeight(const C2iVector* cell, float z);
 };
 
 struct PosDelta : public TSLinkedNode<PosDelta> {
@@ -153,6 +165,7 @@ class Weather {
     void SetType(uint32_t type, float intensity, const WeatherRec* rec, bool immediate, float transitionTime);
     void UpdatePosDeltas();
     uint32_t GetType() const;
+    C3Vector* GetPosition(C3Vector* position);
     void FillInDefaultPrecipTexturePath(uint32_t type);
     void SetStormIntensity(float target, float current);
 };

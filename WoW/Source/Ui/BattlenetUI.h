@@ -26,8 +26,15 @@ struct BattlenetUIFriend {
     /* 0004 */ uint8_t unk_0004[820];
 };
 
+struct BattlenetInviteList {
+    /* 0000 */ uint32_t unk_0000;
+    /* 0004 */ uint32_t unk_0004;
+    /* 0008 */ uint32_t m_count;
+};
+
 class BattlenetUI {
     public:
+    static BattlenetInviteList* m_friendInvites;
     static int32_t unk_BD1B00;
     static uint8_t m_friendListLoaded;
     static TSGrowableArray<BattlenetUIFriend> m_friends;
@@ -61,7 +68,6 @@ int32_t Script_BNRemoveFriend(lua_State* L);
 int32_t Script_BNSetFriendNote(lua_State* L);
 int32_t Script_BNSetSelectedFriend(lua_State* L);
 int32_t Script_BNGetSelectedFriend(lua_State* L);
-int32_t Script_BNGetNumFriendInvites(lua_State* L);
 int32_t Script_BNGetFriendInviteInfo(lua_State* L);
 int32_t Script_BNSendFriendInvite(lua_State* L);
 int32_t Script_BNSendFriendInviteByID(lua_State* L);
@@ -103,5 +109,6 @@ int32_t Script_BNGetMatureLanguageFilter(lua_State* L);
 int32_t Script_BNIsSelf(lua_State* L);
 int32_t Script_BNIsFriend(lua_State* L);
 void BattlenetUI_RegisterScriptFunctions();
+void BattlenetUI_UnregisterScriptFunctions();
 
 #endif

@@ -48,8 +48,40 @@ static uint32_t s_currencyMultiplier[3];
 // STATIC: 0x00AF4914
 static const char* s_currencyAmountTokens[3] = { "COPPER_AMOUNT", "SILVER_AMOUNT", "GOLD_AMOUNT" };
 
+// STATIC: 0x00AF4920
+static const char* s_currencyTextureTokens[3] = { "COPPER_AMOUNT_TEXTURE", "SILVER_AMOUNT_TEXTURE", "GOLD_AMOUNT_TEXTURE" };
+
 // STATIC: 0x00D3813C
 static uint8_t s_lootInitialized;
+
+// VERIFY: cde3bd49 auto
+// OFFSET: 0x007E7E10
+void GetCurrencyTextureString(int32_t amount, char* buffer, uint32_t size, int32_t height) {
+    if (!amount) {
+        SStrPrintf(buffer, size, FrameScript_GetText(s_currencyTextureTokens[0], -1, GENDER_NOT_APPLICABLE), 0, height, height);
+        return;
+    }
+
+    int32_t parts[3];
+    CurrencyBreakdown(amount, parts);
+    *buffer = 0;
+
+    for (int32_t i = 2; i >= 0; i--) {
+        int32_t value = parts[i];
+
+        if (!value) {
+            continue;
+        }
+
+        if (*buffer) {
+            SStrPack(buffer, " ", size);
+        }
+
+        char text[1024];
+        SStrPrintf(text, sizeof(text), FrameScript_GetText(s_currencyTextureTokens[i], -1, GENDER_NOT_APPLICABLE), value, height, height);
+        SStrPack(buffer, text, size);
+    }
+}
 
 // VERIFY: 4a4538a7 auto
 // OFFSET: 0x007E7FA0

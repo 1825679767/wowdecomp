@@ -358,6 +358,7 @@ static void ScheduleAccountDataSave(int32_t type) {
     info.unk_0020 = EventSetTimer(30000, SaveTimerHandler, reinterpret_cast<void*>(static_cast<intptr_t>(type)));
 }
 
+// VERIFY: ffb25893 manual
 // OFFSET: 0x006B94C0
 static int32_t Packet_SMSG_ACCOUNT_DATA_TIMES(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint32_t serverTime = 0;
@@ -616,4 +617,33 @@ void SaveAccountData(int32_t type, ACCOUNTDATALOADFUNC func, void* param) {
     }
 
     ScheduleAccountDataSave(type);
+}
+
+// VERIFY: 7c0bceb5 manual
+// OFFSET: 0x006B9C60
+void UploadAccountData() {
+    AccountDataFlush();
+
+    for (uint32_t i = 0; i < sizeof(s_accountData) / sizeof(s_accountData[0]); i++) {
+        AccountDataInfo& info = s_accountData[i];
+        info.m_downloading = false;
+
+        if (info.m_changed || info.m_time != info.m_serverTime) {
+            UploadAccountData(i);
+        }
+    }
+}
+
+// VERIFY: 5a1491a5 manual
+// OFFSET: 0x006B9CA0
+void DownloadAccountData() {
+    AccountDataFlush();
+
+    for (uint32_t i = 0; i < sizeof(s_accountData) / sizeof(s_accountData[0]); i++) {
+        AccountDataInfo& info = s_accountData[i];
+
+        if ((info.m_changed || info.m_time != info.m_serverTime) && !info.m_downloading) {
+            DownloadAccountData(i);
+        }
+    }
 }

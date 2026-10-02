@@ -402,7 +402,7 @@ void CGQuestInfo::InitRewRepShowMask(uint32_t mask) {
     CGQuestInfo::m_rewardFactionMask = mask;
 }
 
-// VERIFY: bc8e35a2 manual
+// VERIFY: 9b223ab0 manual
 // OFFSET: 0x0058C790
 void ProcessQuestRewardFactions(int32_t factionId, int32_t amount, int32_t upperRank, int32_t lowerRank, int32_t source, int32_t noSpillover) {
     FactionRec* faction = g_factionDB.GetRecord(factionId);
@@ -462,14 +462,14 @@ void ProcessQuestRewardFactions(int32_t factionId, int32_t amount, int32_t upper
         }
     }
 
-    TSGrowableArray<FactionRec*>* children = CGReputationInfo::GetFactionChildren(faction->m_id);
+    TSGrowableArray<const FactionRec*>* children = CGReputationInfo::GetFactionChildren(faction->m_id);
 
     if (!children) {
         return;
     }
 
     for (uint32_t i = children->m_count; i; i--) {
-        FactionRec* child = children->m_data[i - 1];
+        const FactionRec* child = children->m_data[i - 1];
 
         if (child->m_id == source) {
             continue;

@@ -2,6 +2,12 @@
 #include <cstring>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/Object/ObjectClient/Trade_C.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "WoW/Source/Net/Types.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/Object/ObjectClient/Item_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 
 // STATIC: 0x00BFA680
 WOWGUID CGTradeInfo::m_enchantingItem;
@@ -75,8 +81,43 @@ int32_t CGTradeInfo::unk_BFA670;
 // STATIC: 0x00BFA674
 int32_t CGTradeInfo::unk_BFA674;
 
+// STATIC: 0x00BFA678
+int32_t CGTradeInfo::m_supressMoneyEvent;
+
 // STATIC: 0x00CA0B68
 PlayerTradeState CGTradeInfo::m_playerTrade;
+
+// VERIFY: 2df8b30b manual
+// OFFSET: 0x0050F470
+int32_t CGTradeInfo::GetTargetEnchant(uint32_t slot) {
+    if (slot > 6) {
+        return 0;
+    }
+
+    return CGTradeInfo::m_targetEnchant[slot];
+}
+
+// VERIFY: 6a67b734 auto
+// OFFSET: 0x00586010
+void CGTradeInfo::GetPlayerItem(uint32_t slot, WOWGUID& item, WOWGUID& container, uint8_t& containerSlot) {
+    item = slot > 6 ? WOWGUID() : CGTradeInfo::m_playerItems[slot];
+
+    if (!item) {
+        container = WOWGUID();
+        containerSlot = 0;
+    } else {
+        container = CGTradeInfo::unk_BFA5E8[slot];
+        containerSlot = CGTradeInfo::unk_BFA5DC[slot];
+    }
+}
+
+// VERIFY: efb17c1b auto
+// OFFSET: 0x00586080
+void TradeItemStatsCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_UPDATE, nullptr);
+    }
+}
 
 // VERIFY: ffaeea99 auto
 // OFFSET: 0x005860A0
@@ -128,6 +169,38 @@ void CGTradeInfo::UpdatePlayerItem(WOWGUID guid) {
     }
 }
 
+// VERIFY: 4934db1f manual
+// OFFSET: 0x005869A0
+int32_t CGTradeInfo::SetPlayerItem(uint32_t slot, WOWGUID item, WOWGUID container, uint8_t containerSlot) {
+    if (slot > 6) {
+        return 0;
+    }
+
+    if (item) {
+        if (!Trade_C_AddItem(item, container, containerSlot, static_cast<uint8_t>(slot))) {
+            return 0;
+        }
+
+        if (slot == 6) {
+            CGItem_C* object = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPEMASK_ITEM, __FILE__, __LINE__));
+            bool bound = object && object->IsBound() && !object->IsBoundForTrade();
+            FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_POTENTIAL_BIND_ENCHANT, "%b", bound);
+        }
+    } else {
+        Trade_C_RemoveItem(static_cast<uint8_t>(slot));
+
+        if (slot == 6) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_POTENTIAL_BIND_ENCHANT, "%b", 0);
+        }
+    }
+
+    CGTradeInfo::m_playerItems[slot] = item;
+    CGTradeInfo::unk_BFA5E8[slot] = container;
+    CGTradeInfo::unk_BFA5DC[slot] = containerSlot;
+    FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_PLAYER_ITEM_CHANGED, "%d", slot + 1);
+    return 1;
+}
+
 // VERIFY: da0e456c auto
 // OFFSET: 0x00703CB0
 uint32_t CGTradeInfo::GetPlayerTradeMoney() {
@@ -154,4 +227,21 @@ bool CGTradeInfo::IsItemBeingTraded(WOWGUID item) {
     }
 
     return false;
+}
+
+// VERIFY: e66b37a5 manual
+// OFFSET: 0x00704320
+void CGTradeInfo::RemoveMoney(uint32_t amount) {
+    if (!amount || amount > CGTradeInfo::m_playerTrade.m_money) {
+        return;
+    }
+
+    uint32_t money = CGTradeInfo::m_playerTrade.m_money - amount;
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_SET_TRADE_GOLD));
+    msg.Put(money);
+    s_clientStateIndex++;
+    msg.Finalize();
+    CGTradeInfo::m_playerTrade.m_money = money;
+    ClientServices::Send2(&msg);
 }

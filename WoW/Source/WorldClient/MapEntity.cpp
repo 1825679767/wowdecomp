@@ -381,6 +381,28 @@ FogQ FogQueue::Pop() {
     return top;
 }
 
+// VERIFY: 5f34315e manual
+// OFFSET: 0x007A1B10
+void CMapEntity::QueryLiquidSounds(TSGrowableArray<World::LiquidQueryResult>& results, uint32_t* distance) {
+    if (!(this->unk_007C & 0x1)) {
+        return;
+    }
+
+    for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
+        CMapBaseObj* ref = link->m_ref;
+
+        if (!(ref->m_type & 0x10)) {
+            continue;
+        }
+
+        CMapObjDefGroup* mapObjDefGroup = static_cast<CMapObjDefGroup*>(ref);
+        CMapObjDef* mapObjDef = static_cast<CMapObjDef*>(ref->m_parentLinkList.Head()->m_ref);
+        CMapObj* mapObj = mapObjDef->m_owner;
+        C3Vector position = this->m_position * mapObjDef->m_invMat;
+        mapObj->QueryLiquidSounds(mapObjDefGroup->m_groupNum, mapObjDefGroup->m_groupNum, 0, distance, position, results);
+    }
+}
+
 // VERIFY: 254daf94 manual
 // OFFSET: 0x007A1E90
 void CMapEntity::Tick() {

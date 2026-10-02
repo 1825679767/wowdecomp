@@ -4,6 +4,10 @@
 #include "WoW/Source/Object/Types.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "Engine/Source/Base/CDataAllocator.h"
+#include "WoW/Source/Ui/SkillInfo.h"
+#include "WoW/Source/DB/Rec/SkillLineRec.h"
+#include "WoW/Source/DB/Rec/SkillCostsDataRec.h"
+#include "WoW/Source/DB/Rec/SkillRaceClassInfoRec.h"
 
 // STATIC: 0x00D3F60C
 static bool s_skillLineLinkInfoDirty;
@@ -84,6 +88,25 @@ const SkillRaceClassInfoRec* SpellTableLookupInfo(int32_t race, int32_t classId,
     }
 
     return nullptr;
+}
+
+// VERIFY: f2eba80a auto
+// OFFSET: 0x00810F50
+int32_t CGSkillInfo::GetSkillCostField(const SkillRaceClassInfoRec* info, int32_t skillValue) {
+    SkillLineRec* skillLine = g_skillLineDB.GetRecord(info->m_skillID);
+
+    if (!skillLine || !skillLine->m_skillCostsID) {
+        return 0;
+    }
+
+    HASHKEY_NONE key;
+    SKILLCOSTSINFO* costs = s_skillCostsInfo.Ptr(skillLine->m_skillCostsID, key);
+
+    if (!costs || skillValue > costs->m_count) {
+        return 0;
+    }
+
+    return costs->m_info[skillValue - 1].m_cost[info->m_skillCostIndex];
 }
 
 // VERIFY: 6585c0df manual

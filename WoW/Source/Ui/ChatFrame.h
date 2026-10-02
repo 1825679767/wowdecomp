@@ -271,6 +271,8 @@ int32_t Packet_SMSG_LOG_XPGAIN(void* param, NETMESSAGE msgId, uint32_t time, CDa
 
 class CGChat {
     public:
+    static void InformTargetIcon(WOWGUID setter, WOWGUID target, int32_t index);
+    static void JoiningParty(bool raid, int32_t pvp);
     static void SaveChatSettings();
     static void ZoneUpdate();
     static void ProcessPendingChatQueue();
@@ -382,7 +384,7 @@ class CGChat {
     static void ProcessThrottledChat();
     static void LeaveWorld();
     static void Resume();
-    static void SetActiveVoiceSession(const char* channel, int32_t type, int32_t index);
+    static int32_t SetActiveVoiceSession(const char* channel, int32_t type, int32_t index);
     static void UpdateGuildStatus();
 };
 
@@ -393,9 +395,10 @@ int32_t FormatTime(char* buffer, uint32_t size, int32_t seconds);
 bool InternalJoinChannel(const char* channelName, const char* password, uint32_t window, bool checkRecruitment, const char** zoneChannelName, int32_t* zoneChannelID, bool silent, int32_t a8, int32_t a9, uint32_t number);
 int32_t InternalLeaveChannel(const char* channelName, bool clearRecruitment, bool force);
 bool ProfanityFilter(char* text, bool cache, bool force);
+ChatRecord* GetChatRecord(int32_t index);
 void SetCurrentActiveDisplayChannel(const char* name, int32_t type);
 uint32_t BuildPartyDisplayList();
-uint32_t BuildRaidDisplayList();
+uint32_t BuildRaidDisplayList(int32_t type);
 void RebuildDisplayChannelList(int32_t a1);
 bool SpamFilter(char* text, bool cache);
 bool ChatParserParseText(const char* text, char* buffer, uint32_t size);
@@ -430,13 +433,11 @@ int32_t Script_ResetChatColors(lua_State* L);
 int32_t Script_AddChatWindowChannel(lua_State* L);
 int32_t Script_RemoveChatWindowChannel(lua_State* L);
 int32_t Script_EnumerateServerChannels(lua_State* L);
-int32_t Script_GetNumSavedInstances(lua_State* L);
 int32_t Script_GetSavedInstanceInfo(lua_State* L);
 int32_t Script_SetSavedInstanceExtend(lua_State* L);
 int32_t Script_ResetChatWindows(lua_State* L);
 int32_t Script_CanComplainChat(lua_State* L);
 int32_t Script_ComplainChat(lua_State* L);
-int32_t Script_SetSelectedDisplayChannel(lua_State* L);
 int32_t Script_GetChannelRosterInfo(lua_State* L);
 int32_t Script_GetNumChannelMembers(lua_State* L);
 int32_t Script_SetActiveVoiceChannel(lua_State* L);
@@ -450,14 +451,16 @@ int32_t Script_IsSilenced(lua_State* L);
 int32_t Script_GetMuteStatus(lua_State* L);
 int32_t Script_UnitIsSilenced(lua_State* L);
 int32_t Script_SetChannelWatch(lua_State* L);
-int32_t Script_DeclineInvite(lua_State* L);
 void ChatRegisterScriptFunctions();
+void ChatUnregisterScriptFunctions();
 
 extern uint32_t s_numDisplayChannels;
 
 extern int32_t s_activeDisplayChannelType;
 
 extern int32_t s_activeVoiceChannel;
+
+extern uint32_t s_numSavedInstances;
 
 extern uint8_t s_collapsedHeaders[3];
 

@@ -10,6 +10,17 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "WoW/Source/DB/Rec/AreaTableRec.h"
+#include "WoW/Source/DB/Rec/ChrClassesRec.h"
+#include "WoW/Source/Object/ObjectClient/GuildStats_C.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include <ctime>
+#include "Engine/Source/Storm/H/storm.h"
+#include "WoW/Source/Game/GameClient/NameCache.h"
+#include "WoW/Source/Game/ValidateName.h"
+#include "WoW/Source/Object/Player.h"
 
 
 // STATIC: 0x00AD07B8
@@ -407,6 +418,556 @@ int32_t Script_GuildRoster(lua_State* L) {
     return 0;
 }
 
+// VERIFY: c8a5453a manual
+// OFFSET: 0x005CA130
+static int32_t Script_GetNumGuildMembers(lua_State* L) {
+    int32_t all = StringToBOOL(L, 1, 0);
+    lua_pushnumber(L, CGGuildInfo::m_showOffline || all ? CGGuildInfo::m_numMembers : CGGuildInfo::m_numOnlineMembers);
+    return 1;
+}
+
+// VERIFY: 59f8e8c8 auto
+// OFFSET: 0x005CAFD0
+static int32_t Script_GetGuildRosterSelection(lua_State* L) {
+    lua_pushnumber(L, CGGuildInfo::GetSelectedMemberIndex() + 1);
+    return 1;
+}
+
+// VERIFY: 42f4aef6 manual
+// OFFSET: 0x005CC9C0
+static int32_t Script_GetGuildRosterInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetGuildRosterInfo(index)");
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    GuildStats_C* stats;
+    GuildMemberInfo* member;
+    uint32_t index;
+
+    if (!player || !(stats = g_guildInfoCache.GetRecord(player->m_player->m_playerGuildid, player->m_obj->m_guid, GuildInfoCacheCallback, nullptr, false)) || (index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1) >= CGGuildInfo::m_numMembers || !(member = CGGuildInfo::m_roster.m_data[index])) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushstring(L, "");
+        lua_pushnil(L);
+        return 11;
+    }
+
+    lua_pushstring(L, member->m_name);
+    char rankName[64];
+    SStrCopy(rankName, stats->m_rankNames[member->m_rank], STORM_MAX_STR);
+    lua_pushstring(L, rankName);
+    lua_pushnumber(L, member->m_rank);
+    lua_pushnumber(L, member->m_level);
+    ChrClassesRec* chrClass = g_chrClassesDB.GetRecord(member->m_class);
+    const char* className = CGUnit_C::GetDisplayClassNameFromRecord(chrClass, member->m_gender, nullptr);
+
+    if (className) {
+        lua_pushstring(L, className);
+    } else {
+        lua_pushnil(L);
+    }
+
+    AreaTableRec* area = g_areaTableDB.GetRecord(member->m_zoneID);
+
+    if (area) {
+        lua_pushstring(L, area->m_areaName);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (member->unk_0051) {
+        member->unk_0051 = 0;
+    }
+
+    lua_pushstring(L, member->m_note);
+
+    if (member->unk_0051) {
+        member->unk_0051 = 0;
+    }
+
+    lua_pushstring(L, member->m_officerNote);
+
+    if (member->m_online) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (member->m_status & 0x4) {
+        lua_pushstring(L, FrameScript_GetText("CHAT_FLAG_DND", -1, GENDER_NOT_APPLICABLE));
+    } else if (member->m_status & 0x2) {
+        lua_pushstring(L, FrameScript_GetText("CHAT_FLAG_AFK", -1, GENDER_NOT_APPLICABLE));
+    } else {
+        lua_pushstring(L, "");
+    }
+
+    if (chrClass) {
+        lua_pushstring(L, chrClass->m_filename);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 11;
+}
+
+// VERIFY: ee3ac040 manual
+// OFFSET: 0x005CA090
+static void SetGuildControlRank(uint32_t rank) {
+    if (rank > 16) {
+        s_guildControlRank = -1;
+        return;
+    }
+
+    uint32_t rights = CGGuildInfo::m_rankInfo[rank].m_rights;
+    s_guildControlRank = rank;
+
+    for (uint32_t i = 0; i < 17; i++) {
+        s_guildRankFlags[i].m_enabled = rights & s_guildRankFlags[i].m_mask;
+    }
+}
+
+// VERIFY: e2bc4d66 auto
+// OFFSET: 0x005CA260
+static int32_t Script_GuildControlSetRank(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GuildControlSetRank(rank)");
+    }
+
+    SetGuildControlRank(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    return 0;
+}
+
+// VERIFY: b9372943 auto
+// OFFSET: 0x005CA330
+static int32_t Script_GetGuildInfoText(lua_State* L) {
+    lua_pushstring(L, CGGuildInfo::m_infoText);
+    return 1;
+}
+
+// VERIFY: b3a7ccfd manual
+// OFFSET: 0x005CABB0
+static int32_t Script_GetGuildRosterLastOnline(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetGuildRosterLastOnline(index)");
+    }
+
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    GuildMemberInfo* member;
+
+    if (index >= CGGuildInfo::m_numMembers || !(member = CGGuildInfo::m_roster.m_data[index]) || member->m_online) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 4;
+    }
+
+    float time = member->m_lastOnline;
+    int32_t years = static_cast<int32_t>(time * 0.0027397261f);
+    time -= years * 365.0f;
+    int32_t months = static_cast<int32_t>(time * 0.033333335f);
+    time -= months * 30.0f;
+    int32_t days = static_cast<int32_t>(time);
+    lua_pushnumber(L, years);
+    lua_pushnumber(L, months);
+    lua_pushnumber(L, days);
+    lua_pushnumber(L, static_cast<int32_t>((time - days) * 24.0f));
+    return 4;
+}
+
+// VERIFY: f2c398b9 manual
+// OFFSET: 0x005CAD00
+static int32_t Script_GuildRosterSetPublicNote(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
+        luaL_error(L, "Usage: GuildRosterSetPublicNote(index, note)");
+    }
+
+    const char* note = lua_tolstring(L, 2, nullptr);
+    char scrubbed[128];
+    ScrubString(note, scrubbed, 32, sizeof(scrubbed), 1);
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index >= CGGuildInfo::m_numMembers) {
+        return 0;
+    }
+
+    GuildMemberInfo* member = CGGuildInfo::m_roster.m_data[index];
+
+    if (!member || !note) {
+        return 0;
+    }
+
+    if (member->unk_0051) {
+        member->unk_0051 = 0;
+    }
+
+    if (SStrCmp(member->m_note, note, STORM_MAX_STR)) {
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_GUILD_SET_PUBLIC_NOTE));
+        msg.PutString(member->m_name);
+        msg.PutString(scrubbed);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 0;
+}
+
+// VERIFY: 61555267 manual
+// OFFSET: 0x005CAE20
+static int32_t Script_GuildRosterSetOfficerNote(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
+        luaL_error(L, "Usage: GuildRosterSetOfficerNote(index, note)");
+    }
+
+    const char* note = lua_tolstring(L, 2, nullptr);
+    char scrubbed[128];
+    ScrubString(note, scrubbed, 32, sizeof(scrubbed), 1);
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index >= CGGuildInfo::m_numMembers) {
+        return 0;
+    }
+
+    GuildMemberInfo* member = CGGuildInfo::m_roster.m_data[index];
+
+    if (!member || !note) {
+        return 0;
+    }
+
+    if (member->unk_0051) {
+        member->unk_0051 = 0;
+    }
+
+    if (SStrCmp(member->m_officerNote, note, STORM_MAX_STR)) {
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_GUILD_SET_OFFICER_NOTE));
+        msg.PutString(member->m_name);
+        msg.PutString(scrubbed);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 0;
+}
+
+// VERIFY: edb0cb80 auto
+// OFFSET: 0x005CB000
+static int32_t Script_SortGuildRoster(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: SortGuildRoster(\"type\")");
+    }
+
+    int32_t column = 2;
+    const char* type = lua_tolstring(L, 1, nullptr);
+
+    if (SStrCmpI(type, "name", STORM_MAX_STR)) {
+        if (!SStrCmpI(type, "level", STORM_MAX_STR)) {
+            CGGuildInfo::SortRoster(1);
+            return 0;
+        }
+
+        if (!SStrCmpI(type, "class", STORM_MAX_STR)) {
+            CGGuildInfo::SortRoster(4);
+            return 0;
+        }
+
+        if (!SStrCmpI(type, "group", STORM_MAX_STR)) {
+            CGGuildInfo::SortRoster(5);
+            return 0;
+        }
+
+        if (!SStrCmpI(type, "rank", STORM_MAX_STR)) {
+            CGGuildInfo::SortRoster(0);
+            return 0;
+        }
+
+        if (!SStrCmpI(type, "zone", STORM_MAX_STR)) {
+            CGGuildInfo::SortRoster(3);
+            return 0;
+        }
+
+        if (!SStrCmpI(type, "online", STORM_MAX_STR)) {
+            CGGuildInfo::SortRoster(6);
+            return 0;
+        }
+
+        if (!SStrCmpI(type, "note", STORM_MAX_STR)) {
+            column = 7;
+        }
+    }
+
+    CGGuildInfo::SortRoster(column);
+    return 0;
+}
+
+// VERIFY: c40ee4fa manual
+// OFFSET: 0x005CB170
+static int32_t Script_GuildControlSaveRank(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: GuildControlSaveRank(name)");
+    }
+
+    const char* name = lua_tolstring(L, 1, nullptr);
+
+    if (!name || !*name) {
+        return 0;
+    }
+
+    char rankName[64];
+    ScrubString(name, rankName, 16, sizeof(rankName), 1);
+    int32_t rank = s_guildControlRank;
+
+    if (static_cast<uint32_t>(rank) >= CGGuildInfo::m_numRanks) {
+        return 0;
+    }
+
+    uint32_t rights = CGGuildInfo::m_rankInfo[rank].m_rights;
+
+    for (uint32_t i = 0; i < 17; i++) {
+        if (s_guildRankFlags[i].m_enabled) {
+            rights |= s_guildRankFlags[i].m_mask;
+        } else {
+            rights &= ~s_guildRankFlags[i].m_mask;
+        }
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_GUILD_SET_RANK_PERMISSIONS));
+    msg.Put(static_cast<uint32_t>(rank));
+    msg.Put(rights);
+    msg.PutString(rankName);
+    msg.Put(static_cast<uint32_t>(10000 * CGGuildInfo::m_rankInfo[s_guildControlRank].m_bankMoneyPerDay));
+
+    for (uint32_t i = 0; i < 6; i++) {
+        msg.Put(CGGuildInfo::m_rankInfo[s_guildControlRank].m_bankTabRights[i]);
+        msg.Put(static_cast<uint32_t>(CGGuildInfo::m_rankInfo[s_guildControlRank].m_bankTabStacksPerDay[i]));
+    }
+
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: b0fcc11f manual
+// OFFSET: 0x005CB330
+static int32_t Script_GuildControlAddRank(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: GuildControlAddRank(name)");
+    }
+
+    const char* name = lua_tolstring(L, 1, nullptr);
+
+    if (!name || !*name) {
+        return 0;
+    }
+
+    char rankName[64];
+    ScrubString(name, rankName, 16, sizeof(rankName), 1);
+
+    if (CGGuildInfo::m_numRanks < 10) {
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_GUILD_ADD_RANK));
+        msg.PutString(rankName);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 0;
+}
+
+// VERIFY: 7ab68cf8 manual
+// OFFSET: 0x005CB560
+static int32_t Script_GetGuildBankTabPermissions(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetGuildBankTabPermissions(tab)");
+    }
+
+    uint8_t tab = static_cast<uint8_t>(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    uint32_t rights = tab < 6 ? CGGuildInfo::m_rankInfo[s_guildControlRank].m_bankTabRights[tab] : 0;
+
+    if (rights & 0x1) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (rights & 0x2) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (rights & 0x4) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    lua_pushnumber(L, tab < 6 ? CGGuildInfo::m_rankInfo[s_guildControlRank].m_bankTabStacksPerDay[tab] : 0);
+    return 4;
+}
+
+// VERIFY: 08c5cb51 manual
+// OFFSET: 0x005CB820
+static int32_t Script_SetGuildInfoText(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: SetGuildInfoText(text)");
+    }
+
+    const char* text = lua_tolstring(L, 1, nullptr);
+    char scrubbed[2004];
+    scrubbed[0] = '\0';
+
+    if (text && *text) {
+        ScrubString(text, scrubbed, 501, sizeof(scrubbed), 0);
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_GUILD_INFO_TEXT));
+    msg.PutString(scrubbed);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: d82115c8 manual
+// OFFSET: 0x005CCC90
+static int32_t Script_GuildControlGetRankName(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GuildControlGetRankName(index)");
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    char name[64] = { 0 };
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (player && index < CGGuildInfo::m_numRanks) {
+        GuildStats_C* stats = g_guildInfoCache.GetRecord(player->m_player->m_playerGuildid, player->m_obj->m_guid, GuildInfoCacheCallback, nullptr, false);
+
+        if (stats) {
+            SStrCopy(name, stats->m_rankNames[index], STORM_MAX_STR);
+            TruncateNewLines(name);
+        }
+    }
+
+    lua_pushstring(L, name);
+    return 1;
+}
+
+// VERIFY: 8b34b42d manual
+// OFFSET: 0x005CCD90
+static int32_t Script_GetGuildEventInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetGuildEventInfo(index)");
+    }
+
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    GuildEventLogEntry* entry;
+
+    if (index >= static_cast<uint32_t>(CGGuildInfo::m_numEventLogEntries) || !(entry = &CGGuildInfo::m_eventLog[index])) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        return 8;
+    }
+
+    char type[16];
+
+    switch (entry->m_type) {
+        case 1:
+            SStrCopy(type, "invite", STORM_MAX_STR);
+            break;
+
+        case 2:
+            SStrCopy(type, "join", STORM_MAX_STR);
+            break;
+
+        case 3:
+            SStrCopy(type, "promote", STORM_MAX_STR);
+            break;
+
+        case 4:
+            SStrCopy(type, "demote", STORM_MAX_STR);
+            break;
+
+        case 5:
+            SStrCopy(type, "remove", STORM_MAX_STR);
+            break;
+
+        case 6:
+            SStrCopy(type, "quit", STORM_MAX_STR);
+            break;
+
+        default:
+            SStrCopy(type, "none", STORM_MAX_STR);
+            break;
+    }
+
+    lua_pushstring(L, type);
+    WOWGUID none = WOWGUID();
+    NameCache* player1 = g_nameDBCache.GetRecord(entry->m_player1.m_guid, none, nullptr, nullptr, false);
+
+    if (player1) {
+        lua_pushstring(L, player1->m_name);
+    } else {
+        lua_pushnil(L);
+    }
+
+    none = WOWGUID();
+    NameCache* player2 = g_nameDBCache.GetRecord(entry->m_player2.m_guid, none, nullptr, nullptr, false);
+
+    if (player2) {
+        lua_pushstring(L, player2->m_name);
+    } else {
+        lua_pushnil(L);
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && entry->m_rank < CGGuildInfo::m_numRanks) {
+        GuildStats_C* stats = g_guildInfoCache.GetRecord(player->m_player->m_playerGuildid, player->m_obj->m_guid, GuildInfoCacheCallback, nullptr, false);
+
+        if (stats) {
+            char rankName[64];
+            SStrCopy(rankName, stats->m_rankNames[entry->m_rank], STORM_MAX_STR);
+            lua_pushstring(L, rankName);
+        } else {
+            lua_pushnil(L);
+        }
+    }
+
+    int32_t hours = (static_cast<int32_t>(time(nullptr)) - static_cast<int32_t>(entry->m_time)) / 3600;
+    int32_t years = hours / 8760;
+    int32_t remainder = hours % 8760;
+    int32_t months = remainder / 720;
+    remainder %= 720;
+    lua_pushnumber(L, years);
+    lua_pushnumber(L, months);
+    lua_pushnumber(L, remainder / 24);
+    lua_pushnumber(L, remainder % 24);
+    return 8;
+}
+
+// VERIFY: 6874103e auto
+// OFFSET: 0x008E5250
+static int32_t Script_CloseGuildRoster(lua_State* L) {
+    return 0;
+}
+
 // STATIC: 0x00AD0840
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetNumGuildMembers", &Script_GetNumGuildMembers },
@@ -459,5 +1020,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void GuildInfoRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 74512400 auto
+// OFFSET: 0x005CA3B0
+void GuildInfoUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

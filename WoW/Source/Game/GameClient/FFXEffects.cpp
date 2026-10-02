@@ -3,6 +3,8 @@
 #include "Engine/Source/FFX/PassBox4.h"
 #include "Engine/Source/FFX/PassGauss4.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
+#include "Engine/Source/Gx/CGxPool.h"
+#include "Engine/Source/Gx/CGxBuf.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Game/GameClient/PassDeath.h"
 #include "WoW/Source/Game/GameClient/PassNetherBlur.h"
@@ -19,6 +21,36 @@
 
 // STATIC: 0x00D38140
 static uint32_t* s_seedTexels;
+
+// VERIFY: 34ad1008 auto
+// OFFSET: 0x007E82A0
+PassFogCombine::~PassFogCombine() {
+    for (uint32_t i = 0; i < sizeof(this->m_pixelShaders) / sizeof(this->m_pixelShaders[0]); i++) {
+        if (this->m_pixelShaders[i]) {
+            g_theGxDevicePtr->ShaderDestroy(this->m_pixelShaders[i]);
+        }
+    }
+
+    CGxBuf* vertexBuf = this->m_vertexBuf;
+
+    if (vertexBuf && vertexBuf != g_theGxDevicePtr->BufStream(vertexBuf->m_pool->m_target, 0, 0)) {
+        g_theGxDevicePtr->BufDestroy(vertexBuf);
+    }
+
+    CGxBuf* indexBuf = this->m_indexBuf;
+
+    if (indexBuf && indexBuf != g_theGxDevicePtr->BufStream(indexBuf->m_pool->m_target, 0, 0)) {
+        g_theGxDevicePtr->BufDestroy(indexBuf);
+    }
+
+    if (this->m_vertexPool) {
+        g_theGxDevicePtr->PoolDestroy(this->m_vertexPool);
+    }
+
+    if (this->m_indexPool) {
+        g_theGxDevicePtr->PoolDestroy(this->m_indexPool);
+    }
+}
 
 // VERIFY: 874a5f41 manual
 // OFFSET: 0x007E86A0
@@ -112,16 +144,26 @@ EffectNetherWorld::EffectNetherWorld() {
     this->m_passes.New(pass);
 }
 
-// VERIFY: 7be538d2 manual
+// VERIFY: 0058ee1b manual
 // OFFSET: 0x007E80B0
 PassPropagateFog::PassPropagateFog(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, const C2Vector* params, EGxBlend blend, bool unk) : FFX::Pass(inputs, count, output, blend, unk) {
     this->unk_005C = 0.0f;
     this->m_useRect = FFX::s_useRECT != 0;
     memcpy(this->m_params, params, sizeof(this->m_params));
-    g_theGxDevicePtr->ShaderCreate(&this->m_pixelShader, GxSh_Pixel, "Shaders\\Pixel", "FFXPropagateFog", 2);
+    g_theGxDevicePtr->ShaderCreate(this->m_pixelShaders, GxSh_Pixel, "Shaders\\Pixel", "FFXPropagateFog", 2);
 }
 
-// VERIFY: cb293048 auto
+// VERIFY: be1f217d manual
+// OFFSET: 0x007E8140
+PassPropagateFog::~PassPropagateFog() {
+    for (uint32_t i = 0; i < sizeof(this->m_pixelShaders) / sizeof(this->m_pixelShaders[0]); i++) {
+        if (this->m_pixelShaders[i]) {
+            g_theGxDevicePtr->ShaderDestroy(this->m_pixelShaders[i]);
+        }
+    }
+}
+
+// VERIFY: 06969c1d auto
 // OFFSET: 0x007E81B0
 PassFogCombine::PassFogCombine(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk) : FFX::Pass(inputs, count, output, blend, unk) {
     this->unk_004C = 0;
@@ -133,10 +175,10 @@ PassFogCombine::PassFogCombine(FFX::Tex** inputs, uint32_t count, FFX::Tex* outp
     this->m_vertexBuf = g_theGxDevicePtr->BufCreate(this->m_vertexPool, 32, 1089, 0);
     this->m_indexBuf = g_theGxDevicePtr->BufCreate(this->m_indexPool, 2, 6144, 0);
     this->m_useRect = FFX::s_useRECT != 0;
-    g_theGxDevicePtr->ShaderCreate(&this->m_pixelShader, GxSh_Pixel, "Shaders\\Pixel", "FFXFogCombine", 2);
+    g_theGxDevicePtr->ShaderCreate(this->m_pixelShaders, GxSh_Pixel, "Shaders\\Pixel", "FFXFogCombine", 2);
 }
 
-// VERIFY: be808feb manual
+// VERIFY: b495395e manual
 // OFFSET: 0x007E8990
 PassNetherBlur::PassNetherBlur(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk) : FFX::Pass(inputs, count, output, blend, unk) {
     this->m_seed.SetSeed(0);
@@ -146,7 +188,7 @@ PassNetherBlur::PassNetherBlur(FFX::Tex** inputs, uint32_t count, FFX::Tex* outp
         this->m_useRect = 1;
     }
 
-    g_theGxDevicePtr->ShaderCreate(&this->m_pixelShader, GxSh_Pixel, "Shaders\\Pixel", "FFXNetherBlur", 2);
+    g_theGxDevicePtr->ShaderCreate(this->m_pixelShaders, GxSh_Pixel, "Shaders\\Pixel", "FFXNetherBlur", 2);
     g_theGxDevicePtr->ShaderCreate(&this->m_vertexShader, GxSh_Vertex, "Shaders\\Vertex", "FFXNetherBlur", 1);
     this->m_seed.SetSeed(0xABCDEF01);
 
@@ -163,7 +205,21 @@ PassNetherBlur::PassNetherBlur(FFX::Tex** inputs, uint32_t count, FFX::Tex* outp
     this->m_noiseTables[2] = this->m_noise[2];
 }
 
-// VERIFY: 46ec84d3 auto
+// VERIFY: 32e95e2f auto
+// OFFSET: 0x007E8B30
+PassNetherBlur::~PassNetherBlur() {
+    for (uint32_t i = 0; i < sizeof(this->m_pixelShaders) / sizeof(this->m_pixelShaders[0]); i++) {
+        if (this->m_pixelShaders[i]) {
+            g_theGxDevicePtr->ShaderDestroy(this->m_pixelShaders[i]);
+        }
+    }
+
+    if (this->m_vertexShader) {
+        g_theGxDevicePtr->ShaderDestroy(this->m_vertexShader);
+    }
+}
+
+// VERIFY: 0c5ddefb auto
 // OFFSET: 0x007E8BD0
 PassNetherCombine::PassNetherCombine(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk) : FFX::Pass(inputs, count, output, blend, unk) {
     this->m_useRect = 0;
@@ -172,8 +228,18 @@ PassNetherCombine::PassNetherCombine(FFX::Tex** inputs, uint32_t count, FFX::Tex
         this->m_useRect = 1;
     }
 
-    g_theGxDevicePtr->ShaderCreate(&this->m_pixelShader, GxSh_Pixel, "Shaders\\Pixel", "FFXNetherCombine", 2);
+    g_theGxDevicePtr->ShaderCreate(this->m_pixelShaders, GxSh_Pixel, "Shaders\\Pixel", "FFXNetherCombine", 2);
     this->unk_003C = 0.0f;
+}
+
+// VERIFY: e5b4d009 manual
+// OFFSET: 0x007E8C40
+PassNetherCombine::~PassNetherCombine() {
+    for (uint32_t i = 0; i < sizeof(this->m_pixelShaders) / sizeof(this->m_pixelShaders[0]); i++) {
+        if (this->m_pixelShaders[i]) {
+            g_theGxDevicePtr->ShaderDestroy(this->m_pixelShaders[i]);
+        }
+    }
 }
 
 // VERIFY: 2a01a46e manual
@@ -258,4 +324,48 @@ EffectSwirlingFog::EffectSwirlingFog() {
 
     pass = new (__FILE__, __LINE__) PassFogCombine(fogInputs, 2, &FFX::s_screen, GxBlend_Opaque, true);
     this->m_passes.New(pass);
+}
+
+// VERIFY: 07dd5136 manual
+// OFFSET: 0x007EA5A0
+EffectNetherWorld::~EffectNetherWorld() {
+    for (uint32_t i = 0; i < this->m_passes.Count(); i++) {
+        if (this->m_passes[i]) {
+            delete this->m_passes[i];
+        }
+    }
+}
+
+// VERIFY: 08c57bfc manual
+// OFFSET: 0x007EA850
+EffectSwirlingFog::~EffectSwirlingFog() {
+    for (uint32_t i = 0; i < this->m_passes.Count(); i++) {
+        if (this->m_passes[i]) {
+            delete this->m_passes[i];
+        }
+    }
+
+    if (this->m_fogTex.m_texture) {
+        HandleClose(reinterpret_cast<HOBJECT>(this->m_fogTex.m_texture));
+    }
+
+    this->m_fogTex.m_texture = nullptr;
+    this->m_fogTex.m_texSize.x = 0;
+    this->m_fogTex.m_texSize.y = 0;
+    this->m_fogTex.m_size.x = 0;
+    this->m_fogTex.m_size.y = 0;
+    this->m_fogTex.m_texelSize.x = 0.0f;
+    this->m_fogTex.m_texelSize.y = 0.0f;
+
+    if (this->m_seedTex.m_texture) {
+        HandleClose(reinterpret_cast<HOBJECT>(this->m_seedTex.m_texture));
+    }
+
+    this->m_seedTex.m_texture = nullptr;
+    this->m_seedTex.m_texSize.x = 0;
+    this->m_seedTex.m_texSize.y = 0;
+    this->m_seedTex.m_size.x = 0;
+    this->m_seedTex.m_size.y = 0;
+    this->m_seedTex.m_texelSize.x = 0.0f;
+    this->m_seedTex.m_texelSize.y = 0.0f;
 }

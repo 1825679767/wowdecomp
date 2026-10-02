@@ -21,6 +21,9 @@
 #include "WoW/Source/Object/ObjectClient/Vehicle_C.h"
 #include "WoW/Source/DB/Rec/VehicleSeatRec.h"
 #include "Engine/Source/Os/TimeManager.h"
+#include "WoW/Source/Object/ObjectClient/VehiclePassenger_C.h"
+#include "WoW/Source/Ui/StableInfo.h"
+#include "WoW/Source/WorldClient/FrameTime.h"
 
 // STATIC: 0x00C234DC
 int32_t CGPetInfo::m_attackingTarget;
@@ -60,6 +63,12 @@ uint32_t CGPetInfo::m_petBarState;
 
 // STATIC: 0x00C23530
 static TSGrowableArray<uint32_t> s_petSpellActions;
+
+// VERIFY: a9652c6a auto
+// OFFSET: 0x005D3070
+void CGPetInfo::ShowGrid() {
+    FrameScript_SignalEvent(SCRIPT_EVENT_PET_BAR_SHOWGRID, nullptr);
+}
 
 // VERIFY: 0f361a6f auto
 // OFFSET: 0x005D3080
@@ -163,6 +172,68 @@ WOWGUID CGPetInfo::GetTarget() {
 // OFFSET: 0x005D64F0
 void CGPetInfo::SetPetCount(uint32_t count) {
     s_pets.SetCount(count);
+}
+
+// VERIFY: 47cf0b39 manual
+// OFFSET: 0x005D3FD0
+int32_t CGPetInfo::PetActionSlotUsable(const uint32_t* action) {
+    if (!action) {
+        return 1;
+    }
+
+    uint32_t type = (*action >> 24) & 0x3F;
+
+    if (type != 1 && (type <= 7 || type > 0x11)) {
+        return CGPetInfo::PetActionsUsable(false) ? 1 : 0;
+    }
+
+    if (!CGPetInfo::PetActionsUsable(true)) {
+        return 0;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(*action & 0xFFFFFF, &spell)) {
+        return 0;
+    }
+
+    uint32_t count = s_pets.m_count;
+    uint32_t stunned = 0;
+    uint32_t pacified = 0;
+    uint32_t silenced = 0;
+    uint32_t unusable = 0;
+
+    if (!count) {
+        return 1;
+    }
+
+    for (uint32_t i = 0; i < count; i++) {
+        CGUnit_C* pet = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(i), TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (!pet) {
+            return 0;
+        }
+
+        if (!(spell.m_attributesExE & 0x8) && (pet->m_unit->m_unitFieldFlags & 0x40000)) {
+            stunned++;
+        } else if (!(spell.m_attributesExE & 0x20000) && (pet->m_unit->m_unitFieldFlags & 0x800000)) {
+            pacified++;
+        } else if (!(spell.m_attributesExE & 0x40000) && (pet->m_unit->m_unitFieldFlags & 0x400000)) {
+            silenced++;
+        }
+
+        WOWGUID target = pet->m_unit->m_unitFieldTarget;
+
+        if (!Spell_C_IsUsableAction(pet, &spell, target, nullptr, true)) {
+            unusable++;
+        }
+    }
+
+    if ((stunned && stunned == count) || (pacified && pacified == count) || (silenced && silenced == count) || (unusable && unusable == count)) {
+        return 0;
+    }
+
+    return 1;
 }
 
 // VERIFY: 5e3e4434 auto
@@ -269,6 +340,206 @@ void CGPetInfo::UpdatePetSpellAction(const uint32_t* action) {
             return;
         }
     }
+}
+
+// VERIFY: 4970332e manual
+// OFFSET: 0x005D4C30
+int32_t Packet_Group_7(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    char name[512];
+    uint32_t spellId;
+
+    switch (msgId) {
+        case SMSG_PET_LEARNED_SPELLS: {
+            msg->Get(spellId);
+            SpellRec spell;
+
+            if (g_spellDB.GetRecord(spellId, &spell)) {
+                if (*spell.m_nameSubtext) {
+                    SStrPrintf(name, sizeof(name), "%s (%s)", spell.m_name, spell.m_nameSubtext);
+                } else {
+                    SStrCopy(name, spell.m_name, sizeof(name));
+                }
+
+                CGGameUI::DisplayError(static_cast<UIErrors>(ERR_PET_LEARN_SPELL_S + ((spell.m_attributes & 0x10) != 0)), name);
+            }
+
+            break;
+        }
+
+        case SMSG_PET_UNLEARNED_SPELLS: {
+            msg->Get(spellId);
+            SpellRec spell;
+
+            if (g_spellDB.GetRecord(spellId, &spell)) {
+                if (*spell.m_nameSubtext) {
+                    SStrPrintf(name, sizeof(name), "%s (%s)", spell.m_name, spell.m_nameSubtext);
+                } else {
+                    SStrCopy(name, spell.m_name, sizeof(name));
+                }
+
+                CGGameUI::DisplayError(ERR_PET_SPELL_UNLEARNED_S, name);
+            }
+
+            break;
+        }
+
+        default: {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: f2816ce6 auto
+// OFFSET: 0x005D4DA0
+int32_t Packet_SMSG_PET_ACTION_FEEDBACK(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint8_t feedback;
+    msg->Get(feedback);
+
+    switch (feedback) {
+        case 1: {
+            CGGameUI::DisplayError(ERR_PET_SPELL_DEAD);
+            break;
+        }
+
+        case 2: {
+            uint32_t spellId = 0;
+            msg->Get(spellId);
+            SpellRec spell;
+            UIErrors error = ERR_NO_ATTACK_TARGET;
+
+            if (g_spellDB.GetRecord(spellId, &spell) && SpellRec::IsHelpfulOrHarmful(&spell) == 1) {
+                error = ERR_GENERIC_NO_VALID_TARGETS;
+            }
+
+            CGGameUI::DisplayError(error);
+            Spell_C_PetSpellFailedUpdateCooldowns(spellId);
+            break;
+        }
+
+        case 3: {
+            CGGameUI::DisplayError(ERR_INVALID_ATTACK_TARGET);
+            uint32_t spellId = 0;
+            msg->Get(spellId);
+            Spell_C_PetSpellFailedUpdateCooldowns(spellId);
+            break;
+        }
+
+        case 4: {
+            CGGameUI::DisplayError(ERR_PET_SPELL_NOPATH);
+            break;
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: b9573d51 manual
+// OFFSET: 0x005D5AD0
+int32_t CGPetInfo::SetAction(uint32_t index, const uint32_t& action, int32_t a3) {
+    if (!CGGameUI::CanPerformAction(14) || (a3 && !CGPetInfo::PetActionsUsable(false))) {
+        return 0;
+    }
+
+    if (action == CGPetInfo::m_actions[index]) {
+        return 0;
+    }
+
+    if ((action & 0x3F000000) == 0x1000000) {
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(action & 0xFFFFFF, &spell) && (spell.m_attributes & 0x40)) {
+            return 0;
+        }
+    }
+
+    int32_t swap = -1;
+
+    if ((action & 0x3F000000) != 0x1000000 || (action & 0xFFFFFF)) {
+        for (uint32_t i = 0; i < 10; i++) {
+            if ((CGPetInfo::m_actions[i] & 0x3FFFFFFF) == (action & 0x3FFFFFFF) && i != index) {
+                CGPetInfo::m_actions[i] = 0;
+                swap = i;
+                break;
+            }
+        }
+    }
+
+    if (swap < 0) {
+        uint32_t type = (CGPetInfo::m_actions[index] >> 24) & 0x3F;
+
+        if (type == 6 || type == 7) {
+            for (uint32_t i = 0; i < 10; i++) {
+                uint32_t slotType = (CGPetInfo::m_actions[i] >> 24) & 0x3F;
+
+                if (slotType != 6 && slotType != 7 && !(CGPetInfo::m_actions[i] & 0xFFFFFF)) {
+                    swap = i;
+                    break;
+                }
+            }
+
+            if (swap < 0) {
+                return 0;
+            }
+        }
+    }
+
+    if (swap >= 0) {
+        CGPetInfo::m_actions[swap] = CGPetInfo::m_actions[index];
+    }
+
+    CGPetInfo::m_actions[index] = action;
+
+    if (a3) {
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_PET_SET_ACTION));
+        msg.Put(CGPetInfo::GetPet(0).m_guid);
+
+        if (swap >= 0) {
+            msg.Put(static_cast<uint32_t>(swap));
+            msg.Put(CGPetInfo::m_actions[swap]);
+        }
+
+        msg.Put(index);
+        msg.Put(CGPetInfo::m_actions[index]);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+        FrameScript_SignalEvent(SCRIPT_EVENT_PET_BAR_UPDATE, nullptr);
+    }
+
+    return swap < 0;
+}
+
+// VERIFY: f5756ab5 manual
+// OFFSET: 0x005D5D20
+void CGPetInfo::SetAutocast(uint32_t index, int32_t enable) {
+    if (!CGGameUI::CanPerformAction(2) || !CGPetInfo::PetActionsUsable(false)) {
+        return;
+    }
+
+    uint32_t* action = &CGPetInfo::m_actions[index];
+
+    if (action && (*action & 0x80000000)) {
+        bool on = enable < 0 ? !(*action & 0x40000000) : enable != 0;
+
+        if (on) {
+            *action |= 0x40000000;
+        } else {
+            *action &= ~0x40000000;
+        }
+
+        CGPetInfo::UpdatePetSpellAction(action);
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_PET_SET_ACTION));
+        msg.Put(CGPetInfo::GetPet(0).m_guid);
+        msg.Put(index);
+        msg.Put(CGPetInfo::m_actions[index]);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_PET_BAR_UPDATE, nullptr);
 }
 
 // VERIFY: 9c92f690 manual
@@ -504,6 +775,32 @@ void CGPetInfo::SendPetAction(const uint32_t& action, const WOWGUID& target, int
     ClientServices::Send2(&msg);
 }
 
+// VERIFY: 4be041fd manual
+// OFFSET: 0x005D6020
+void CGPetInfo::PlaceAction(const uint32_t& action, uint32_t index) {
+    uint32_t* current = GetPetAction(index);
+    uint32_t previous = current ? *current : 0;
+
+    if (CGPetInfo::SetAction(index, action, 1)) {
+        CGGameUI::SetCursorPetAction(&previous);
+    }
+}
+
+// VERIFY: 3d4eb244 auto
+// OFFSET: 0x005D64A0
+void CGPetInfo::PickupAction(uint32_t index, int32_t a2) {
+    if (index < 10) {
+        uint32_t action = CGPetInfo::m_actions[index] & 0xFF000000;
+        CGPetInfo::SetAction(index, action, a2);
+    }
+}
+
+// VERIFY: f6a7da89 auto
+// OFFSET: 0x005D64D0
+void CGPetInfo::PlaceCursorAction(uint32_t action, uint32_t index) {
+    CGPetInfo::PlaceAction(action, index);
+}
+
 // VERIFY: 4d63ce45 manual
 // OFFSET: 0x005D62A0
 void CGPetInfo::FindPossessedSpell() {
@@ -626,6 +923,20 @@ int32_t Packet_SMSG_PET_SPELLS(void* param, NETMESSAGE msgId, uint32_t time, CDa
     return 1;
 }
 
+// VERIFY: 920e2dde auto
+// OFFSET: 0x005D3120
+int32_t Packet_SMSG_PET_BROKEN(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    CGGameUI::DisplayError(ERR_PET_BROKEN);
+    return 1;
+}
+
+// VERIFY: 859710c8 auto
+// OFFSET: 0x005D3140
+int32_t Packet_SMSG_PET_RENAMEABLE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    FrameScript_SignalEvent(SCRIPT_EVENT_PET_RENAMEABLE, nullptr);
+    return 1;
+}
+
 // VERIFY: 2c74fc11 manual
 // OFFSET: 0x005D3240
 static int32_t PetTempActionBarCallback(uint32_t index, const void* data) {
@@ -640,6 +951,95 @@ void CGPetInfo::SetComboPoints(WOWGUID target, uint8_t points) {
     CGSpellBook::UpdateUsable();
     Script_SendUnitSignal(CGPetInfo::GetPet(0), 149);
     FrameScript_SignalEvent(SCRIPT_EVENT_PET_BAR_UPDATE_USABLE, nullptr);
+}
+
+// VERIFY: 0f67ae3d manual
+// OFFSET: 0x005D46F0
+void CGPetInfo::PetDismiss() {
+    if (!CGPetInfo::PetActionsUsable(false)) {
+        return;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (CGPetInfo::GetPet(0) == CGUnit_C::s_activeMover && player && CGPetInfo::GetPet(0).m_guid == player->GetTransportGUID()) {
+        CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (mover) {
+            uint8_t seat = static_cast<uint8_t>(player->m_movementData.m_transportSeat);
+
+            if (mover->m_vehicle) {
+                VehicleSeatRec* seatRec = mover->m_vehicle->GetVehicleSeatRec(seat);
+
+                if (seatRec && (seatRec->m_flags & 0x2000000)) {
+                    if (player->m_vehiclePassenger) {
+                        player->m_vehiclePassenger->StopMovement();
+                    }
+
+                    mover->OnDismissControlledVehicleLocal(FrameTime::s_curTimeMs);
+                }
+            }
+
+            return;
+        }
+    }
+
+    CGUnit_C* pet = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPEMASK_UNIT, __FILE__, __LINE__));
+    SummonPropertiesRec* properties;
+
+    if (pet && (properties = pet->GetSummonProperties()) && (properties->m_flags & 0x20)) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_PET_ACTION));
+    msg.Put(CGPetInfo::GetPet(0).m_guid);
+    msg.Put(static_cast<uint32_t>(0x07000003));
+    msg.Put(static_cast<uint64_t>(0));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    FrameScript_SignalEvent(SCRIPT_EVENT_PET_DISMISS_START, "%d", 10000);
+}
+
+// VERIFY: 344c914b manual
+// OFFSET: 0x005D4900
+void CGPetInfo::PetAbandon() {
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_PET_ABANDON));
+    msg.Put(CGPetInfo::GetPet(0).m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+
+    if (CGStableInfo::m_stableMaster) {
+        CDataStore list;
+        list.Put(static_cast<uint32_t>(MSG_LIST_STABLED_PETS));
+        list.Put(CGStableInfo::m_stableMaster.m_guid);
+        list.Finalize();
+        ClientServices::Send2(&list);
+    }
+}
+
+// VERIFY: 3feade6b manual
+// OFFSET: 0x005D4A00
+void CGPetInfo::PetRename(const char* name, const char* declinedNames) {
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_PET_RENAME));
+    msg.Put(CGPetInfo::GetPet(0).m_guid);
+    msg.PutString(name);
+
+    if (declinedNames) {
+        msg.Put(static_cast<uint8_t>(1));
+
+        for (uint32_t i = 0; i < 5; i++) {
+            msg.PutString(declinedNames);
+            declinedNames += 96;
+        }
+    } else {
+        msg.Put(static_cast<uint8_t>(0));
+    }
+
+    msg.Finalize();
+    ClientServices::Send2(&msg);
 }
 
 // VERIFY: 1003d217 manual
@@ -661,6 +1061,25 @@ void CGPetInfo::UpdatePetTempBar() {
     CGActionBar::SetTemporaryActionBarFlags(1, active);
     CGActionBar::UpdateBonusBar();
     FrameScript_SignalEvent(SCRIPT_EVENT_PET_BAR_UPDATE, nullptr);
+}
+
+// VERIFY: 5d3e1ddc auto
+// OFFSET: 0x005D6550
+int32_t Packet_SMSG_PET_GUIDS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t count;
+    msg->Get(count);
+    CGPetInfo::SetPetCount(count);
+
+    for (uint32_t i = 0; i < count; i++) {
+        WOWGUID guid;
+        msg->Get(guid.m_guid);
+
+        if (i < s_pets.m_count) {
+            s_pets.m_data[i] = guid;
+        }
+    }
+
+    return 1;
 }
 
 // VERIFY: 138ffa1d manual
@@ -748,6 +1167,22 @@ void CGPetInfo::SetPet(WOWGUID pet, uint32_t expiration, int32_t family) {
 void CGPetInfo::PetAttackTarget(const WOWGUID& target, int32_t a2) {
     uint32_t action = 0x7000002;
     CGPetInfo::SendPetAction(action, target, a2);
+}
+
+// VERIFY: 317c171a manual
+// OFFSET: 0x005D3630
+int32_t Packet_SMSG_PET_MODE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID pet;
+    uint32_t mode;
+    msg->Get(pet.m_guid);
+    msg->Get(mode);
+
+    if (pet == CGPetInfo::GetPet(0)) {
+        CGPetInfo::m_petMode = mode;
+        FrameScript_SignalEvent(SCRIPT_EVENT_PET_BAR_UPDATE, nullptr);
+    }
+
+    return 1;
 }
 
 // VERIFY: a7d77109 manual

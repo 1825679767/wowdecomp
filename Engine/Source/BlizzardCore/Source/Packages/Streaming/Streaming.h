@@ -79,6 +79,7 @@ extern bool s_isStreamingTrial;
 int32_t CheckFileRange(const char* path, int64_t offset, uint32_t count, const char* name, int32_t flags);
 uint32_t GetIsLocalAmount(const char* path, int64_t offset, uint32_t size, const char* name);
 bool IsStreamedFile(const char* path);
+std::string ResolveFilePath(const std::string& path);
 bool IsStreamingMode();
 void SetZone(int32_t areaId, int32_t subzoneId);
 bool ScanDirectoryForManifest(const Blizzard::File::ProcessDirParms& parms);
@@ -93,6 +94,7 @@ class StreamingManager {
 };
 
 bool CheckIfStreamingAndTrial();
+void StringToLower(char* str);
 StreamingManager* GetStreamingManagerSingleton();
 void SetClientInitialized(uint8_t initialized);
 void ShutdownStreamingIfTrial();

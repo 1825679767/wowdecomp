@@ -102,6 +102,14 @@ void ScrnLayerSetFlags(HLAYER layer, uint32_t flags) {
     reinterpret_cast<CILayer*>(layer)->m_flags = flags;
 }
 
+// VERIFY: 2c71a8fb auto
+// OFFSET: 0x004A8550
+void ScrnScreenshot(void (*callback)(int32_t success), uint8_t* data, uint32_t size) {
+    s_screenshotCallback = callback;
+    s_screenshotData = data;
+    s_screenshotDataSize = size;
+}
+
 // VERIFY: 90b31936 auto
 // OFFSET: 0x004A8570
 static int32_t CaptureScreen() {
@@ -248,6 +256,12 @@ void ILayerInitialize() {
     EventRegister(EVENT_ID_PAINT, OnPaint);
 }
 
+// VERIFY: 7c08fb34 auto
+// OFFSET: 0x004A8BA0
+static void ILayerPaint() {
+    OnPaint(nullptr, nullptr);
+}
+
 // VERIFY: 38fdd351 manual
 // OFFSET: 0x004A8BB0
 void ScrnLayerCreate(const RECTF* rect, float zorder, uint32_t flags, void* param, void (*paintFunc)(void* param, const RECTF* rect, const RECTF* visible, float elapsedSec), HLAYER* layer) {
@@ -282,4 +296,10 @@ CILayer::~CILayer() {
 void ILayerDestroy() {
     EventUnregister(EVENT_ID_IDLE, OnIdle);
     EventUnregister(EVENT_ID_PAINT, OnPaint);
+}
+
+// VERIFY: 867daeb1 auto
+// OFFSET: 0x004A8D00
+void ScrnLayerPaint() {
+    ILayerPaint();
 }

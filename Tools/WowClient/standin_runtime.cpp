@@ -163,6 +163,9 @@ static int CrtReportHook(int type, char* message, int* returnValue) {
     LogLine(line);
 
     if (type != _CRT_WARN) {
+        CONTEXT context;
+        RtlCaptureContext(&context);
+        LogStack(&context);
         ExitProcess(0x5718);
     }
 

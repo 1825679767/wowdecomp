@@ -8,11 +8,11 @@
 struct lua_State;
 
 struct StablePetInfo {
-    /* 0000 */ int32_t unk_0000;
-    /* 0004 */ int32_t unk_0004;
-    /* 0008 */ int32_t unk_0008;
+    /* 0000 */ uint32_t m_petNumber;
+    /* 0004 */ uint32_t m_level;
+    /* 0008 */ int32_t m_entry;
     /* 000C */ char m_name[80];
-    /* 005C */ uint8_t unk_005C;
+    /* 005C */ uint8_t m_state;
     /* 005D */ uint8_t unk_005D[3];
 };
 
@@ -21,30 +21,20 @@ class CGStableInfo {
     static void ShutdownGame();
     static StablePetInfo m_pets[6];
     static WOWGUID m_stableMaster;
-    static int32_t unk_C0F6C8;
-    static int32_t unk_C0F6CC;
-    static int32_t unk_C0F6D0;
+    static uint32_t m_numPets;
+    static int32_t m_numSlots;
+    static int32_t m_selectedPet;
 
     static void CloseStables(bool force);
     static void EnterWorld();
     static void InitializeGame();
+    static StablePetInfo* GetPet(uint32_t index);
+    static void SelectPet(uint32_t index);
+    static int32_t GetSelectedPetIndex();
 };
 
-int32_t Script_ClosePetStables(lua_State* L);
-int32_t Script_StablePet(lua_State* L);
-int32_t Script_UnstablePet(lua_State* L);
-int32_t Script_BuyStableSlot(lua_State* L);
-int32_t Script_GetNumStablePets(lua_State* L);
-int32_t Script_GetNumStableSlots(lua_State* L);
-int32_t Script_GetStablePetInfo(lua_State* L);
-int32_t Script_GetNextStableSlotCost(lua_State* L);
-int32_t Script_ClickStablePet(lua_State* L);
-int32_t Script_PickupStablePet(lua_State* L);
-int32_t Script_GetSelectedStablePet(lua_State* L);
-int32_t Script_SetPetStablePaperdoll(lua_State* L);
-int32_t Script_GetStablePetFoodTypes(lua_State* L);
-int32_t Script_IsAtStableMaster(lua_State* L);
 void StableInfoRegisterScriptFunctions();
+void StableInfoUnregisterScriptFunctions();
 
 class CDataStore;
 

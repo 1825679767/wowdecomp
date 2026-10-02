@@ -57,6 +57,8 @@ struct WorldMapLandmarkInfo {
     /* 0010 */ int32_t m_isGossip;
 };
 
+bool WorldMapTransformPosition(int32_t mapID, float x, float y, int32_t* outMapID, float* outX, float* outY, int32_t* outDungeonMapID);
+
 class CGWorldMap {
     public:
     static uint32_t m_numLandmarks;
@@ -74,6 +76,10 @@ class CGWorldMap {
     static CSimpleModel* m_playerArrowEffectFrame;
     static CSimpleModel* m_playerMiniArrowEffectFrame;
     static void CreateArrowFrame(CSimpleFrame* parent);
+    static void CreateMiniArrowFrame(CSimpleFrame* parent);
+    static void UpdateArrowFrames();
+    static void ProcessClick(float x, float y);
+    static void SetDungeonLevel(int32_t level);
     static void EnterWorld();
     static void InitializeGame();
     static void ShutdownGame();
@@ -99,20 +105,8 @@ class CGWorldMap {
     static int32_t GetCurrentAreaID();
 };
 
-int32_t Script_ZoomOut(lua_State* L);
-int32_t Script_SetDungeonMapLevel(lua_State* L);
-int32_t Script_SetMapByID(lua_State* L);
-int32_t Script_ProcessMapClick(lua_State* L);
-int32_t Script_GetCorpseMapPosition(lua_State* L);
-int32_t Script_GetDeathReleasePosition(lua_State* L);
-int32_t Script_CreateMiniWorldMapArrowFrame(lua_State* L);
-int32_t Script_UpdateWorldMapArrowFrames(lua_State* L);
-int32_t Script_ClickLandmark(lua_State* L);
-int32_t Script_GetMapDebugObjectInfo(lua_State* L);
-int32_t Script_TeleportToDebugObject(lua_State* L);
-int32_t Script_GetDebugZoneMap(lua_State* L);
-int32_t Script_CanQueueForWintergrasp(lua_State* L);
 void WorldMapRegisterScriptFunctions();
+void WorldMapUnregisterScriptFunctions();
 
 // INLINED
 inline WorldMapContinent::WorldMapContinent() {

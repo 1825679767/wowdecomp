@@ -11,6 +11,9 @@
 struct CVar;
 class CEffect;
 class LightningObject;
+class SpellChainEffectsRec;
+class CTexture;
+class CGObject_C;
 class SpellVisualKitModelAttachRec;
 class C44Matrix;
 class SpellRec;
@@ -57,30 +60,35 @@ class Shard {
 
 class LightningObject : public TSLinkedNode<LightningObject> {
     public:
-    /* 0008 */ uint8_t unk_0008[3];
-    /* 000B */ uint8_t unk_000B[4];
-    /* 000F */ uint8_t unk_000F[1];
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint8_t unk_0014[1];
-    /* 0015 */ uint8_t unk_0015[4];
-    /* 0019 */ uint8_t unk_0019[3];
-    /* 001C */ uint32_t unk_001C;
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint8_t unk_0024[4];
-    /* 0028 */ uint32_t unk_0028;
-    /* 002C */ uint32_t unk_002C;
-    /* 0030 */ uint32_t unk_0030;
-    /* 0034 */ uint32_t unk_0034;
-    /* 0038 */ uint8_t unk_0038[12];
-    /* 0044 */ uint32_t unk_0044;
-    /* 0048 */ uint32_t unk_0048;
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050;
-    /* 0054 */ uint8_t unk_0054[4];
-    /* 0058 */ uint32_t unk_0058;
+    struct Bolt {
+        /* 0000 */ uint16_t m_source;
+        /* 0002 */ uint16_t m_target;
+        /* 0004 */ uint32_t m_startTime;
+        /* 0008 */ uint32_t m_endTime;
+        /* 000C */ uint32_t m_lightning;
+        /* 0010 */ int32_t m_attachment;
+    };
+
+    static void CreateFromSpell(CGObject_C* caster, CEffect* effect, uint32_t chainEffectsId, const WOWGUID* targets, uint32_t count, uint32_t spellId, bool persist, bool reverse, LightningObject** lightning, uint32_t maxLightning, const C3Vector* location, int32_t attachment);
+    static C3Vector GetCasterPosition(CGUnit_C* unit, uint32_t attachment, const C3Vector& offset, int32_t raw);
+    static C3Vector GetImpactPosition(CGUnit_C* unit, uint32_t spellId);
+
+    /* 0008 */ TSGrowableArray<uint64_t> m_targets;
+    /* 0018 */ TSGrowableArray<Bolt> m_bolts;
+    /* 0028 */ uint32_t m_endTime;
+    /* 002C */ CTexture* m_texture;
+    /* 0030 */ uint32_t m_spellId;
+    /* 0034 */ uint32_t m_sourceAttachment;
+    /* 0038 */ C3Vector m_sourceOffset;
+    /* 0044 */ C3Vector m_targetOffset;
+    /* 0050 */ uint32_t m_flags;
+    /* 0054 */ CEffect* m_effect;
+    /* 0058 */ SpellChainEffectsRec* m_chainEffects;
     /* 005C */ int32_t m_refCount;
 
+    LightningObject();
     ~LightningObject();
+    void InitializeBolts(CGObject_C* caster, const WOWGUID* targets, uint32_t count, bool reverse, int32_t attachment);
     bool Tick(uint32_t time);
 };
 
@@ -138,7 +146,7 @@ uint32_t SpellVisualsGetModelAttachRecCount(uint32_t kitId);
 const SpellVisualKitModelAttachRec* SpellVisualsGetModelAttachRec(uint32_t kitId, uint32_t index);
 MountTransitionObject* SpellVisualsStartMountTransition(CGUnit_C* unit);
 void SpellVisualsCancelMountTransition(MountTransitionObject* transition);
-void SpellVisualsCreateChainLightning(CGUnit_C* target, CEffect* effect, int32_t type, bool param2, bool param3, uint32_t spellId, const WOWGUID* targets, uint32_t count, LightningObject** lightning, uint32_t maxLightning, const C3Vector* location, uint32_t seed);
+void SpellVisualsCreateChainLightning(CGUnit_C* caster, CEffect* effect, uint32_t chainEffectsId, bool persist, bool reverse, uint32_t spellId, const WOWGUID* targets, uint32_t count, LightningObject** lightning, uint32_t maxLightning, const C3Vector* location, int32_t attachment);
 void SpellVisualsHandleEclipse(const CImVector* color, float fadeIn, const SpellRec* spell);
 
 #endif

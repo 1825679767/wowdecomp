@@ -13,6 +13,8 @@ class WTOBJECT {
     public:
     /* 0000 */ SWING* m_swing;
     /* 0004 */ CM2Model* m_model;
+
+    ~WTOBJECT();
 };
 
 WTOBJECT* WeaponTrailCreate(CM2Model* model);

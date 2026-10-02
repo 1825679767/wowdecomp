@@ -26,7 +26,7 @@ ItemStats_C::~ItemStats_C() {
     }
 }
 
-// VERIFY: 56384c03 manual
+// VERIFY: eb115b6b manual
 // OFFSET: 0x0098D910
 void ItemStats_C::Unpack(CDataStore* msg) {
     char name[400];
@@ -98,7 +98,7 @@ void ItemStats_C::Unpack(CDataStore* msg) {
         msg->Get(this->m_resistances[i]);
     }
 
-    msg->Get(this->m_delay);
+    msg->Get(reinterpret_cast<uint32_t&>(this->m_delay));
     msg->Get(this->m_ammoType);
     msg->Get(reinterpret_cast<uint32_t&>(this->m_rangedModRange));
 
@@ -149,7 +149,7 @@ void ItemStats_C::Unpack(CDataStore* msg) {
     msg->Get(this->m_holidayId);
 }
 
-// VERIFY: 3e9ef6ed auto
+// VERIFY: 4da68567 auto
 // OFFSET: 0x0098DDB0
 void ItemStats_C::Pack(CDataStore* msg) {
     msg->Put(this->m_class);
@@ -208,7 +208,7 @@ void ItemStats_C::Pack(CDataStore* msg) {
         msg->Put(this->m_resistances[i]);
     }
 
-    msg->Put(this->m_delay);
+    msg->Put(static_cast<uint32_t>(this->m_delay));
     msg->Put(this->m_ammoType);
     msg->Put(reinterpret_cast<uint32_t&>(this->m_rangedModRange));
 

@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cctype>
 #include <cstring>
 #include <string>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -100,6 +101,18 @@ bool Blizzard::Streaming::IsStreamingMode() {
 // OFFSET: 0x00428010
 bool CheckIfStreamingAndTrial() {
     return Blizzard::Streaming::s_streamingReady && Blizzard::Streaming::s_isStreamingTrial;
+}
+
+// VERIFY: 49758334 manual
+// OFFSET: 0x00428800
+void StringToLower(char* str) {
+    if (!str) {
+        return;
+    }
+
+    for (; *str; str++) {
+        *str = tolower(*str);
+    }
 }
 
 // VERIFY: 657b98b1 auto

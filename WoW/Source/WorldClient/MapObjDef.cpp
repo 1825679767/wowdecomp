@@ -11,6 +11,7 @@
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/Model2/M2Model.h"
 #include "WoW/Source/WorldClient/MapLoad.h"
+#include "Engine/Source/Services/ParticleSystem2.h"
 
 // VERIFY: 18be6c93 auto
 // OFFSET: 0x007B3990
@@ -153,6 +154,22 @@ void CMapObjDef::UpdateMatrix(CMapObjDef* mapObjDef, const C44Matrix& matrix) {
     CMapObjDef::UpdateMoved(mapObjDef);
 }
 
+// VERIFY: 8b83ad81 manual
+// OFFSET: 0x007B4270
+void CMapObjDefGroup::SetEventCallback(M2EventCallback callback, uint64_t param, uint16_t doodadSet) {
+    for (CMapBaseObjLink* link = this->m_doodadDefLinkList.Head(); link; link = this->m_doodadDefLinkList.Next(link)) {
+        CMapDoodadDef* doodadDef = static_cast<CMapDoodadDef*>(link->m_owner);
+
+        if (doodadSet && !doodadDef->unk_016C) {
+            break;
+        }
+
+        if (doodadDef->m_model && doodadDef->unk_016C == doodadSet) {
+            doodadDef->m_model->SetEventCallback(reinterpret_cast<void*>(callback), param);
+        }
+    }
+}
+
 // VERIFY: 04ab0ef9 manual
 // OFFSET: 0x007B42F0
 bool CMapObjDefGroup::IsAllLoaded() {
@@ -175,6 +192,14 @@ bool CMapObjDefGroup::IsAllLoaded() {
     return true;
 }
 
+// VERIFY: 918f4e3d manual
+// OFFSET: 0x007B46A0
+void CMapObjDef::SetEventCallback(M2EventCallback callback, uint64_t param, uint16_t doodadSet) {
+    for (CMapBaseObjLink* link = this->m_mapObjDefGroupLinkList.Head(); link; link = this->m_mapObjDefGroupLinkList.Next(link)) {
+        static_cast<CMapObjDefGroup*>(link->m_owner)->SetEventCallback(callback, param, doodadSet);
+    }
+}
+
 // VERIFY: c4f26801 manual
 // OFFSET: 0x007B4760
 bool CMapObjDef::IsAllLoaded() {
@@ -193,4 +218,256 @@ bool CMapObjDef::IsAllLoaded() {
     }
 
     return true;
+}
+
+// VERIFY: 18569df0 manual
+// OFFSET: 0x007B40F0
+void CMapObjDefGroup::Update(const C44Matrix& matrix) {
+    this->m_flags = static_cast<MapObjFlag>(this->m_flags | MAPOBJ_FLAG_UNPLACED);
+
+    for (CMapBaseObjLink* link = this->m_doodadDefLinkList.Head(); link; link = this->m_doodadDefLinkList.Next(link)) {
+        static_cast<CMapDoodadDef*>(link->m_owner)->UpdateMatrixOnly(matrix);
+    }
+
+    for (CMapBaseObjLink* link = this->m_entityLinkList.Head(); link; link = this->m_entityLinkList.Next(link)) {
+        link->m_owner->m_flags = static_cast<MapObjFlag>(link->m_owner->m_flags | MAPOBJ_FLAG_UNPLACED);
+    }
+}
+
+// VERIFY: 5e0dde28 manual
+// OFFSET: 0x007B4170
+void CMapObjDefGroup::SetSequence(uint32_t sequence, int32_t a3, uint16_t doodadSet) {
+    for (CMapBaseObjLink* link = this->m_doodadDefLinkList.Head(); link; link = this->m_doodadDefLinkList.Next(link)) {
+        CMapDoodadDef* doodadDef = static_cast<CMapDoodadDef*>(link->m_owner);
+
+        if (doodadSet && !doodadDef->unk_016C) {
+            break;
+        }
+
+        if (doodadDef->m_model && doodadDef->unk_016C == doodadSet) {
+            doodadDef->m_model->SetBoneSequence(0xFFFFFFFF, sequence, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+        }
+    }
+}
+
+// VERIFY: b408ed84 manual
+// OFFSET: 0x007B45F0
+void CMapObjDef::SetSequence(uint32_t sequence, int32_t a3, uint16_t doodadSet) {
+    for (CMapBaseObjLink* link = this->m_mapObjDefGroupLinkList.Head(); link; link = this->m_mapObjDefGroupLinkList.Next(link)) {
+        static_cast<CMapObjDefGroup*>(link->m_owner)->SetSequence(sequence, a3, doodadSet);
+    }
+}
+
+// VERIFY: c20df2dc manual
+// OFFSET: 0x007B64F0
+void CMapObjDef::UpdateMoved(CMapObjDef* mapObjDef) {
+    mapObjDef->m_flags = static_cast<MapObjFlag>(mapObjDef->m_flags | MAPOBJ_FLAG_NO_DEPTH_SORT);
+    CMapObj* owner = mapObjDef->m_owner;
+
+    if (!owner->m_isGroupLoaded) {
+        mapObjDef->m_sphere.r = 0.0f;
+        mapObjDef->m_sphere.c = mapObjDef->m_position;
+        mapObjDef->m_bbox.t = mapObjDef->m_position;
+        mapObjDef->m_bbox.b = mapObjDef->m_position;
+        return;
+    }
+
+    CAaBox box;
+    box.b = C3Vector(0.0f, 0.0f, 0.0f);
+    box.t = C3Vector(0.0f, 0.0f, 0.0f);
+    owner->GetBounds(mapObjDef->m_sphere);
+    mapObjDef->m_sphere.c *= mapObjDef->m_mat;
+    owner->GetBounds(&box);
+    CWorldMath::TransformAABox(mapObjDef->m_mat, box, mapObjDef->m_bbox);
+
+    for (CMapBaseObjLink* link = mapObjDef->m_mapObjDefGroupLinkList.Head(); link; link = mapObjDef->m_mapObjDefGroupLinkList.Next(link)) {
+        CMapObjDefGroup* defGroup = static_cast<CMapObjDefGroup*>(link->m_owner);
+        CMapObjGroup* group = owner->GetGroup(defGroup->m_groupNum, 0);
+
+        if (group) {
+            for (int32_t i = 0; i < group->m_lightRefListCount; i++) {
+                uint16_t lightIndex = group->m_lightRefList[i];
+                CMapLight* light = mapObjDef->m_lightsArray.m_data[lightIndex];
+
+                if (light) {
+                    light->m_light.SetPosition(owner->m_lightList[lightIndex].m_position * mapObjDef->m_mat);
+
+                    if (!(defGroup->m_flags & MAPOBJ_FLAG_INTERIOR)) {
+                        CMap::UpdateLight(light);
+                    }
+                }
+            }
+        }
+
+        CAaBox groupBox;
+        groupBox.b = C3Vector(0.0f, 0.0f, 0.0f);
+        groupBox.t = C3Vector(0.0f, 0.0f, 0.0f);
+        owner->GetGroupBounds(&defGroup->m_sphere, defGroup->m_groupNum);
+        defGroup->m_sphere.c *= mapObjDef->m_mat;
+        owner->GetGroupBounds(&groupBox, defGroup->m_groupNum);
+        CWorldMath::TransformAABox(mapObjDef->m_mat, groupBox, defGroup->m_bbox);
+        defGroup->Update(mapObjDef->m_mat);
+    }
+}
+
+// VERIFY: cfdd9f32 manual
+// OFFSET: 0x007B6800
+void CMapObjDef::LinkDoodadDef(CMapDoodadDef* doodadDef, CMapObjDef* mapObjDef, int32_t testBounds) {
+    CMapObj* mapObj = mapObjDef->m_owner;
+
+    for (CMapBaseObjLink* link = mapObjDef->m_mapObjDefGroupLinkList.Head(); link; link = mapObjDef->m_mapObjDefGroupLinkList.Next(link)) {
+        CMapObjDefGroup* group = static_cast<CMapObjDefGroup*>(link->m_owner);
+
+        if (mapObj->GetGroupFlags(group->m_groupNum) & 0x410080) {
+            continue;
+        }
+
+        if (testBounds && !doodadDef->m_bbox.Intersects(group->m_bbox)) {
+            continue;
+        }
+
+        CMapBaseObjLink* doodadLink = CMap::AllocBaseObjLink(doodadDef);
+        doodadLink->m_ref = group;
+        group->m_doodadDefLinkList.LinkToHead(doodadLink);
+        CMapDoodadDef::ExtendBounds(doodadDef, group);
+    }
+}
+
+// VERIFY: 4eadefc9 manual
+// OFFSET: 0x007B68A0
+int32_t CMapObjDef::MoveDoodadDefs(CMapObjDef* source, uint16_t doodadSet, CMapObjDef* target, uint16_t targetDoodadSet) {
+    if (!(target->m_flags & MAPOBJ_FLAG_PREPARED) || !target->m_mapObjDefGroupLinkList.Head()) {
+        return 0;
+    }
+
+    for (CMapBaseObjLink* link = source->m_mapObjDefGroupLinkList.Head(); link; link = source->m_mapObjDefGroupLinkList.Next(link)) {
+        CMapObjDefGroup* group = static_cast<CMapObjDefGroup*>(link->m_owner);
+        CMapBaseObjLink* next;
+
+        for (CMapBaseObjLink* doodadLink = group->m_doodadDefLinkList.Head(); doodadLink; doodadLink = next) {
+            CMapDoodadDef* doodadDef = static_cast<CMapDoodadDef*>(doodadLink->m_owner);
+            next = group->m_doodadDefLinkList.Next(doodadLink);
+
+            if (!doodadDef->unk_016C) {
+                break;
+            }
+
+            if (doodadDef->unk_016C != doodadSet) {
+                continue;
+            }
+
+            CMapBaseObjLink* parentNext;
+
+            for (CMapBaseObjLink* parentLink = doodadDef->m_parentLinkList.Head(); parentLink; parentLink = parentNext) {
+                parentNext = doodadDef->m_parentLinkList.Next(parentLink);
+                CMap::FreeBaseObjLink(parentLink);
+            }
+
+            CMapObjDef::LinkDoodadDef(doodadDef, target, 0);
+            doodadDef->unk_016C = targetDoodadSet;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 8aef7968 manual
+// OFFSET: 0x007B69C0
+void CMapObjDef::SetDoodadEmittersIgnoresDistance(CMapObjDef* mapObjDef, int32_t ignore, uint16_t doodadSet) {
+    for (CMapBaseObjLink* link = mapObjDef->m_mapObjDefGroupLinkList.Head(); link; link = mapObjDef->m_mapObjDefGroupLinkList.Next(link)) {
+        CMapObjDefGroup* group = static_cast<CMapObjDefGroup*>(link->m_owner);
+
+        for (CMapBaseObjLink* doodadLink = group->m_doodadDefLinkList.Head(); doodadLink; doodadLink = group->m_doodadDefLinkList.Next(doodadLink)) {
+            CMapDoodadDef* doodadDef = static_cast<CMapDoodadDef*>(doodadLink->m_owner);
+
+            if (!doodadDef->unk_016C) {
+                break;
+            }
+
+            if (doodadDef->unk_016C != doodadSet || !doodadDef->m_model) {
+                continue;
+            }
+
+            for (uint32_t i = 0;; i++) {
+                CM2Model* model = doodadDef->m_model;
+
+                if (!(model->m_fFlags & 0x1)) {
+                    model->WaitForLoad(nullptr);
+                }
+
+                if (i >= model->m_shared->m_data->m_particles.m_count) {
+                    break;
+                }
+
+                model = doodadDef->m_model;
+
+                if (!(model->m_fFlags & 0x1)) {
+                    model->WaitForLoad(nullptr);
+                }
+
+                CParticleEmitter2* emitter = model->m_particleEmitters[i];
+
+                if (ignore) {
+                    emitter->m_flags |= 0x400000;
+                } else {
+                    emitter->m_flags &= ~0x400000u;
+                }
+            }
+        }
+    }
+}
+
+// VERIFY: 7dcf5e0d auto
+// OFFSET: 0x007B6ED0
+void CMap::LinkDoodadDefToMapObjDefs(CMapDoodadDef* doodadDef, CMapObjDef* skip) {
+    for (CMapObjDef* mapObjDef = CMap::mapObjDefHash.m_fulllist.Head(); mapObjDef; mapObjDef = CMap::mapObjDefHash.m_fulllist.Next(mapObjDef)) {
+        if (mapObjDef == skip) {
+            continue;
+        }
+
+        if (!(mapObjDef->m_flags & MAPOBJ_FLAG_MAPOBJDEF) && (mapObjDef->m_flags & MAPOBJ_FLAG_PREPARED) && mapObjDef->m_mapObjDefGroupLinkList.Head() && doodadDef->m_bbox.Intersects(mapObjDef->m_bbox)) {
+            CMapObjDef::LinkDoodadDef(doodadDef, mapObjDef, 1);
+        }
+    }
+}
+
+// VERIFY: 973b4b33 manual
+// OFFSET: 0x007B6F60
+void CMapObjDef::SetDoodadsEnabled(CMapObjDef* mapObjDef, int32_t enable, uint16_t doodadSet) {
+    for (CMapBaseObjLink* link = mapObjDef->m_mapObjDefGroupLinkList.Head(); link; link = mapObjDef->m_mapObjDefGroupLinkList.Next(link)) {
+        CMapObjDefGroup* group = static_cast<CMapObjDefGroup*>(link->m_owner);
+        CMapBaseObjLink* next;
+
+        for (CMapBaseObjLink* doodadLink = group->m_doodadDefLinkList.Head(); doodadLink; doodadLink = next) {
+            CMapDoodadDef* doodadDef = static_cast<CMapDoodadDef*>(doodadLink->m_owner);
+            next = group->m_doodadDefLinkList.Next(doodadLink);
+
+            if (!doodadDef->unk_016C) {
+                break;
+            }
+
+            if (doodadDef->unk_016C != doodadSet || !doodadDef->m_model) {
+                continue;
+            }
+
+            if (enable) {
+                doodadDef->m_flags = static_cast<MapObjFlag>(doodadDef->m_flags & ~(MAPOBJ_FLAG_DISABLED | MAPOBJ_FLAG_NO_HITTEST));
+                doodadDef->unk_007C &= ~0xE0u;
+                CMap::LinkDoodadDefToMapObjDefs(doodadDef, mapObjDef);
+                continue;
+            }
+
+            doodadDef->m_flags = static_cast<MapObjFlag>(doodadDef->m_flags | MAPOBJ_FLAG_DISABLED | MAPOBJ_FLAG_NO_HITTEST);
+            CMapBaseObjLink* parentNext;
+
+            for (CMapBaseObjLink* parentLink = doodadDef->m_parentLinkList.Head(); parentLink; parentLink = parentNext) {
+                parentNext = doodadDef->m_parentLinkList.Next(parentLink);
+                CMapBaseObj* parent = parentLink->m_ref;
+
+                if (!(parent->m_type & 0x10) || parent->m_parentLinkList.Head()->m_ref != mapObjDef) {
+                    CMap::FreeBaseObjLink(parentLink);
+                }
+            }
+        }
+    }
 }

@@ -100,6 +100,7 @@ class CGQuestInfo {
 struct lua_State;
 
 void QuestInfoRegisterScriptFunctions();
+void QuestInfoUnregisterScriptFunctions();
 void ProcessQuestRewardFactions(int32_t factionId, int32_t amount, int32_t upperRank, int32_t lowerRank, int32_t source, int32_t noSpillover);
 
 #endif

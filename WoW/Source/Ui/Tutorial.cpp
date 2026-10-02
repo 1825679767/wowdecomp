@@ -6,6 +6,7 @@
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include <cstring>
+#include "WoW/Source/Net/Types.h"
 
 // STATIC: 0x00BD19F0
 static int32_t s_tutorialsCompleted[60];
@@ -77,6 +78,58 @@ void CGTutorial::FlagTutorial(uint32_t tutorial) {
     ClientServices::Send2(&msg);
 }
 
+// VERIFY: 42da6124 manual
+// OFFSET: 0x00530510
+void CGTutorial::ClearTutorials() {
+    if (CGTutorial::m_tutorialShown.m_count) {
+        memset(CGTutorial::m_tutorialShown.m_bits.m_data, 0xFF, sizeof(uint32_t) * CGTutorial::m_tutorialShown.m_bits.m_count);
+    }
+
+    if (CGTutorial::m_tutorialFlags.m_count) {
+        memset(CGTutorial::m_tutorialFlags.m_bits.m_data, 0xFF, sizeof(uint32_t) * CGTutorial::m_tutorialFlags.m_bits.m_count);
+    }
+
+    for (int32_t i = 0; i < 60; i++) {
+        if (CGTutorial::m_tutorialFlags.m_count && (CGTutorial::m_tutorialFlags.m_bits.m_data[i >> 5] & (1 << (i & 0x1F)))) {
+            continue;
+        }
+
+        for (int32_t j = 0; j < 60; j++) {
+            if (s_tutorialsCompleted[j] == i + 1) {
+                break;
+            }
+
+            if (!s_tutorialsCompleted[j]) {
+                s_tutorialsCompleted[j] = i + 1;
+                break;
+            }
+        }
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_TUTORIAL_CLEAR));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 0e473917 manual
+// OFFSET: 0x00530630
+void CGTutorial::ResetTutorials() {
+    if (CGTutorial::m_tutorialShown.m_count) {
+        memset(CGTutorial::m_tutorialShown.m_bits.m_data, 0, sizeof(uint32_t) * CGTutorial::m_tutorialShown.m_bits.m_count);
+    }
+
+    if (CGTutorial::m_tutorialFlags.m_count) {
+        memset(CGTutorial::m_tutorialFlags.m_bits.m_data, 0, sizeof(uint32_t) * CGTutorial::m_tutorialFlags.m_bits.m_count);
+    }
+
+    memset(s_tutorialsCompleted, 0, sizeof(s_tutorialsCompleted));
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_TUTORIAL_RESET));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
 // VERIFY: 2e754cd0 manual
 // OFFSET: 0x00530840
 void CGTutorial::TriggerTutorial(uint32_t tutorial) {
@@ -127,6 +180,42 @@ void CGTutorial::LoadFlaggedTutorials() {
 // VERIFY: 01796b88 auto
 // OFFSET: 0x005EEB70
 void CGTutorial::ShutdownGame() {
+}
+
+// VERIFY: 9e9dfba8 manual
+// OFFSET: 0x00530140
+int32_t CGTutorial::GetNextCompletedTutorial(int32_t tutorial) {
+    bool found = false;
+
+    for (int32_t i = 0; i < 60; i++) {
+        if (found && s_tutorialsCompleted[i]) {
+            return s_tutorialsCompleted[i];
+        }
+
+        if (s_tutorialsCompleted[i] == tutorial + 1) {
+            found = true;
+        }
+    }
+
+    return 60;
+}
+
+// VERIFY: 26a4dcd7 manual
+// OFFSET: 0x00530190
+int32_t CGTutorial::GetPrevCompletedTutorial(int32_t tutorial) {
+    bool found = false;
+
+    for (int32_t i = 60; i >= 0; i--) {
+        if (found && s_tutorialsCompleted[i]) {
+            return s_tutorialsCompleted[i];
+        }
+
+        if (s_tutorialsCompleted[i] == tutorial + 1) {
+            found = true;
+        }
+    }
+
+    return 0;
 }
 
 // VERIFY: f7491634 manual

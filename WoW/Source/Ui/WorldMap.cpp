@@ -30,6 +30,8 @@
 #include "Engine/Source/Base/Coordinate.h"
 #include "Engine/Source/Frame/CSimpleModel.h"
 #include "Engine/Source/Model2/M2Model.h"
+#include "WoW/Source/Ui/WorldFrame.h"
+#include "WoW/Source/UIUtil/Camera.h"
 
 // STATIC: 0x00BE8EE0
 uint32_t CGWorldMap::m_numLandmarks;
@@ -866,6 +868,92 @@ void CGWorldMap::SetMapToCurrentZone(int32_t debug) {
     ConsolePrintf("%s\n", text);
 }
 
+// VERIFY: 7155245b manual
+// OFFSET: 0x005446F0
+static void CenterArrowModel(CSimpleModel* model) {
+    float x = model->GetWidth() * 0.5f;
+    float height = model->GetHeight();
+    model->m_position.x = x;
+    model->m_position.y = height * 0.5f;
+    model->m_position.z = 0.0f;
+}
+
+// VERIFY: d4b2fbc3 auto
+// OFFSET: 0x005448A0
+void CGWorldMap::CreateMiniArrowFrame(CSimpleFrame* parent) {
+    if (!parent) {
+        return;
+    }
+
+    if (!CGWorldMap::m_playerMiniArrowFrame) {
+        void* data = CSimpleModel::s_allocator.GetData(0, typeid(CSimpleModel).raw_name(), SLOG_OBJECT);
+        CGWorldMap::m_playerMiniArrowFrame = data ? new (data) CSimpleModel(parent) : nullptr;
+        CGWorldMap::m_playerMiniArrowFrame->SetModel("Interface\\Minimap\\MinimapArrow.mdx");
+        CGWorldMap::m_playerMiniArrowFrame->m_modelScale = NDCToDDCHeight(1.0f) * 1.1111112f;
+        CGWorldMap::m_playerMiniArrowFrame->SetName("PlayerMiniArrowFrame");
+
+        if (CGWorldMap::m_playerMiniArrowFrame->m_model && CGWorldMap::m_playerMiniArrowFrame->m_model->IsLoaded(0, 0)) {
+            CenterArrowModel(CGWorldMap::m_playerMiniArrowFrame);
+        }
+    }
+
+    if (!CGWorldMap::m_playerMiniArrowEffectFrame) {
+        void* data = CSimpleModel::s_allocator.GetData(0, typeid(CSimpleModel).raw_name(), SLOG_OBJECT);
+        CGWorldMap::m_playerMiniArrowEffectFrame = data ? new (data) CSimpleModel(parent) : nullptr;
+        CGWorldMap::m_playerMiniArrowEffectFrame->SetModel("Interface\\Minimap\\MinimapArrow.mdx");
+        CGWorldMap::m_playerMiniArrowEffectFrame->m_modelScale = NDCToDDCHeight(1.0f) * 1.1111112f;
+        CGWorldMap::m_playerMiniArrowEffectFrame->SetName("PlayerMiniArrowEffectFrame");
+
+        if (CGWorldMap::m_playerMiniArrowEffectFrame->m_model && CGWorldMap::m_playerMiniArrowEffectFrame->m_model->IsLoaded(0, 0)) {
+            CenterArrowModel(CGWorldMap::m_playerMiniArrowEffectFrame);
+        }
+    }
+}
+
+// VERIFY: c2a167a7 manual
+// OFFSET: 0x005449F0
+void CGWorldMap::UpdateArrowFrames() {
+    if (CGWorldMap::m_playerArrowFrame && CGWorldMap::m_playerArrowFrame->m_model && CGWorldMap::m_playerArrowFrame->m_model->IsLoaded(0, 0)) {
+        CenterArrowModel(CGWorldMap::m_playerArrowFrame);
+    }
+
+    if (CGWorldMap::m_playerArrowEffectFrame && CGWorldMap::m_playerArrowEffectFrame->m_model && CGWorldMap::m_playerArrowEffectFrame->m_model->IsLoaded(0, 0)) {
+        CenterArrowModel(CGWorldMap::m_playerArrowEffectFrame);
+    }
+
+    if (CGWorldMap::m_playerMiniArrowFrame && CGWorldMap::m_playerMiniArrowFrame->m_model && CGWorldMap::m_playerMiniArrowFrame->m_model->IsLoaded(0, 0)) {
+        CenterArrowModel(CGWorldMap::m_playerMiniArrowFrame);
+    }
+
+    if (CGWorldMap::m_playerMiniArrowEffectFrame && CGWorldMap::m_playerMiniArrowEffectFrame->m_model && CGWorldMap::m_playerMiniArrowEffectFrame->m_model->IsLoaded(0, 0)) {
+        CenterArrowModel(CGWorldMap::m_playerMiniArrowEffectFrame);
+    }
+
+    CGObject_C* target = ClntObjMgrObjectPtr(CGWorldFrame::GetActiveCamera()->m_targetGUID, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (!target) {
+        return;
+    }
+
+    float facing = target->GetFacing();
+
+    if (CGWorldMap::m_playerArrowFrame) {
+        CGWorldMap::m_playerArrowFrame->m_facing = facing;
+    }
+
+    if (CGWorldMap::m_playerArrowEffectFrame) {
+        CGWorldMap::m_playerArrowEffectFrame->m_facing = facing;
+    }
+
+    if (CGWorldMap::m_playerMiniArrowFrame) {
+        CGWorldMap::m_playerMiniArrowFrame->m_facing = facing;
+    }
+
+    if (CGWorldMap::m_playerMiniArrowEffectFrame) {
+        CGWorldMap::m_playerMiniArrowEffectFrame->m_facing = facing;
+    }
+}
+
 // VERIFY: 46e10d7a manual
 // OFFSET: 0x00546190
 int32_t CGWorldMap::GetNumDungeonLevels() {
@@ -1116,16 +1204,6 @@ const char* CGWorldMap::GetZoneName(uint32_t continent, uint32_t zone) {
     return areaRec->m_areaName;
 }
 
-// VERIFY: 7155245b manual
-// OFFSET: 0x005446F0
-static void CenterArrowModel(CSimpleModel* model) {
-    float x = model->GetWidth() * 0.5f;
-    float height = model->GetHeight();
-    model->m_position.x = x;
-    model->m_position.y = height * 0.5f;
-    model->m_position.z = 0.0f;
-}
-
 // VERIFY: b5a7a84c auto
 // OFFSET: 0x00544750
 void CGWorldMap::CreateArrowFrame(CSimpleFrame* parent) {
@@ -1192,6 +1270,60 @@ void CGWorldMap::ClearArrowFrames() {
     }
 }
 
+// VERIFY: 8f17368a manual
+// OFFSET: 0x00547A70
+void CGWorldMap::SetDungeonLevel(int32_t level) {
+    if (CGWorldMap::m_currentOrphanZone < 0) {
+        return;
+    }
+
+    if (CGWorldMap::m_currentContinent >= 0) {
+        WorldMapContinent& entry = CGWorldMap::m_continents.m_data[CGWorldMap::m_currentContinent];
+        int32_t zoneArea = CGWorldMap::m_currentZone < 0 ? entry.m_areaID : entry.m_zones.m_data[CGWorldMap::m_currentZone];
+
+        if (zoneArea != CGWorldMap::m_currentOrphanZone) {
+            return;
+        }
+    }
+
+    WorldMapAreaRec* area = g_worldMapAreaDB.GetRecord(CGWorldMap::m_currentOrphanZone);
+
+    if (!area) {
+        return;
+    }
+
+    int32_t mapID = area->m_mapID;
+
+    if (!level) {
+        CGWorldMap::m_currentDungeonMap = -1;
+        CGWorldMap::SetMap(-2, area->m_id, -1);
+        return;
+    }
+
+    bool inMap = false;
+
+    for (int32_t i = 0; i < g_dungeonMapDB.m_numRecords; i++) {
+        DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecordByIndex(i);
+
+        if (dungeonMap->m_mapID == mapID) {
+            if (dungeonMap->m_floorIndex == level) {
+                if (dungeonMap->m_id > 0) {
+                    CGWorldMap::m_currentDungeonMap = dungeonMap->m_id;
+                    CGWorldMap::RefreshCurrentMap();
+                }
+
+                return;
+            }
+
+            if (!inMap) {
+                inMap = true;
+            }
+        } else if (inMap) {
+            return;
+        }
+    }
+}
+
 // VERIFY: f429796e manual
 // OFFSET: 0x00547D20
 void CGWorldMap::ShutdownGame() {
@@ -1205,4 +1337,83 @@ void CGWorldMap::ShutdownGame() {
     CGWorldMap::m_landmarks.Clear();
     CGWorldMap::m_overlays.Clear();
     CGWorldMap::m_orphanZones.Clear();
+}
+
+// VERIFY: a323fb54 manual
+// OFFSET: 0x005468F0
+void CGWorldMap::ProcessClick(float x, float y) {
+    uint32_t continent = CGWorldMap::m_currentContinent;
+
+    if (continent == static_cast<uint32_t>(-2)) {
+        return;
+    }
+
+    if (continent == static_cast<uint32_t>(-1)) {
+        for (uint32_t i = 0; i < CGWorldMap::m_continents.Count(); i++) {
+            WorldMapContinent& entry = CGWorldMap::m_continents.m_data[i];
+
+            if (entry.unk_10024 && x >= entry.unk_10018 && x <= entry.unk_10020 && entry.unk_10014 <= y && entry.unk_1001C >= y) {
+                CGWorldMap::SetMap(i, -1, -1);
+                return;
+            }
+        }
+
+        return;
+    }
+
+    int32_t area = CGWorldMap::GetMapAreaFromPos(x, y);
+
+    if (!area) {
+        return;
+    }
+
+    for (uint32_t zone = 0; continent < CGWorldMap::m_continents.Count(); zone++) {
+        WorldMapContinent& entry = CGWorldMap::m_continents.m_data[continent];
+
+        if (zone >= entry.m_zones.Count()) {
+            break;
+        }
+
+        if (entry.m_zones.m_data[zone] == area) {
+            CGWorldMap::SetMap(continent, zone, -1);
+            return;
+        }
+    }
+}
+
+// VERIFY: a5a7a1db auto
+// OFFSET: 0x005470D0
+int32_t PlayerExploredZonesUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    if (CGWorldMap::m_currentOrphanZone == -1) {
+        CGWorldMap::SetMap(CGWorldMap::m_currentContinent, CGWorldMap::m_currentZone, CGWorldMap::m_currentOrphanZone);
+    } else {
+        CGWorldMap::SetMap(CGWorldMap::m_currentContinent, CGWorldMap::m_currentOrphanZone, CGWorldMap::m_currentDungeonMap);
+    }
+
+    return 1;
+}
+
+// VERIFY: c0334dbd manual
+// OFFSET: 0x00543920
+bool WorldMapTransformPosition(int32_t mapID, float x, float y, int32_t* outMapID, float* outX, float* outY, int32_t* outDungeonMapID) {
+    *outX = x;
+    *outY = y;
+    *outMapID = mapID;
+    *outDungeonMapID = 0;
+
+    for (int32_t i = 0; i < g_worldMapTransformsDB.m_numRecords; i++) {
+        WorldMapTransformsRec* transform = g_worldMapTransformsDB.GetRecordByIndex(i);
+
+        if (!transform || mapID != transform->m_mapID || transform->m_regionMin[0] > x || transform->m_regionMax[0] < x || y < transform->m_regionMin[1] || y > transform->m_regionMax[1]) {
+            continue;
+        }
+
+        *outMapID = transform->m_newMapID;
+        *outX = transform->m_regionOffset[0] + *outX;
+        *outY = transform->m_regionOffset[1] + *outY;
+        *outDungeonMapID = transform->m_newDungeonMapID;
+        return true;
+    }
+
+    return false;
 }

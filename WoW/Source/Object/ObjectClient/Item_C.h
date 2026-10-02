@@ -75,10 +75,12 @@ class CGItem_C : public CGObject_C, public CGItem {
     int32_t UseItem(WOWGUID* target, int32_t a2);
     static WOWGUID s_bindOnUseTarget;
     static WOWGUID s_bindOnUseItem;
+    static void ConfirmBindOnUse();
     int32_t CanBeUsed();
     uint32_t GetExpirationTimeLeft() const;
     char* GetFullItemName(char* buffer, uint32_t size) const;
     uint32_t GetInventoryType() const;
+    static char* GetStatName(uint32_t stat, char* buffer, int32_t size);
     int32_t GetNumSockets();
     int32_t GetOnUseSlot() const;
     int32_t GetPrismaticSocketCount();

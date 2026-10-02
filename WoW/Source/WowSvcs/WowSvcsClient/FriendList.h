@@ -29,6 +29,18 @@ struct IgnoreInfo {
     /* 0008 */ uint8_t m_flags;
 };
 
+class CGPlayer_C;
+
+struct WhoResult {
+    /* 0000 */ char m_name[48];
+    /* 0030 */ char m_guild[96];
+    /* 0090 */ int32_t m_level;
+    /* 0094 */ int32_t m_race;
+    /* 0098 */ int32_t m_class;
+    /* 009C */ int32_t m_gender;
+    /* 00A0 */ int32_t m_zone;
+};
+
 struct WhoSortField {
     /* 0000 */ int32_t m_field;
     /* 0004 */ int32_t unk_0004;
@@ -36,10 +48,13 @@ struct WhoSortField {
 
 class FriendList {
     public:
+    static void __stdcall AddFriend(const char* name, const char* note);
     static FriendList* s_friendList;
     static WhoSortField s_whoSort[7];
     static uint32_t s_numWhoResults;
     static uint32_t s_totalWhoResults;
+    static WhoResult s_whoResults[50];
+    static int32_t s_whoToUI;
 
     /* 0000 */ FriendInfo m_friends[100];
     /* D480 */ uint32_t m_pendingFriendNames;
@@ -56,13 +71,25 @@ class FriendList {
     /* DAE4 */ uint32_t unk_DAE4;
     /* DAE8 */ uint32_t unk_DAE8;
     /* DAEC */ uint32_t unk_DAEC;
-    /* DAF0 */ uint8_t unk_DAF0[256];
-    /* DBF0 */ uint8_t unk_DBF0[1448];
+    /* DAF0 */ uint64_t m_complained[32];
+    /* DBF0 */ int32_t m_whoMinLevel;
+    /* DBF4 */ int32_t m_whoMaxLevel;
+    /* DBF8 */ char m_whoName[48];
+    /* DC28 */ char m_whoGuild[96];
+    /* DC88 */ int32_t m_whoRaceMask;
+    /* DC8C */ int32_t m_whoClassMask;
+    /* DC90 */ int32_t m_whoStringCount;
+    /* DC94 */ char m_whoStrings[10][128];
+    /* E094 */ uint8_t unk_E094[260];
 
     FriendList();
     ~FriendList();
 
     FriendInfo* GetFriend(WOWGUID guid);
+    void SendWho(const char* filter);
+    int32_t DoLocalWho();
+    bool AllMatchFilter(CGPlayer_C* player);
+    static bool __stdcall MatchesFilter(CGPlayer_C* player, const char* filter);
     FriendInfo* ClearRecruitAFriend(WOWGUID guid);
     uint32_t GetNumFriends();
     uint32_t GetNumIgnores();
@@ -70,9 +97,12 @@ class FriendList {
     static void Destroy();
     static void Initialize();
     static void RegisterScriptFunctions();
+    static void UnregisterScriptFunctions();
 
     void ReadPacket(CDataStore* msg);
     bool IsIgnored(WOWGUID guid, bool a2);
+    bool IsComplained(WOWGUID guid);
+    void AddComplained(WOWGUID guid);
     bool IsFriend(WOWGUID guid);
 };
 
@@ -93,7 +123,6 @@ int32_t Script_GetFriendInfo(lua_State* L);
 int32_t Script_SetSelectedFriend(lua_State* L);
 int32_t Script_GetSelectedFriend(lua_State* L);
 int32_t Script_AddOrRemoveFriend(lua_State* L);
-int32_t Script_AddFriend(lua_State* L);
 int32_t Script_RemoveFriend(lua_State* L);
 int32_t Script_SetFriendNotes(lua_State* L);
 int32_t Script_GetIgnoreName(lua_State* L);
@@ -112,8 +141,6 @@ int32_t Script_DelMute(lua_State* L);
 int32_t Script_IsIgnored(lua_State* L);
 int32_t Script_IsMuted(lua_State* L);
 int32_t Script_IsIgnoredOrMuted(lua_State* L);
-int32_t Script_SendWho(lua_State* L);
-int32_t Script_GetWhoInfo(lua_State* L);
 int32_t Script_SortWho(lua_State* L);
 
 #endif

@@ -14,6 +14,7 @@
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 #include "WoW/Source/Object/Passenger.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
+#include "WoW/Source/WorldClient/Map.h"
 
 class CMapBaseObj;
 class CDataStore;
@@ -21,6 +22,7 @@ class CGGameObject_C;
 class CGTooltip;
 class CM2Model;
 class CMapEntity;
+class DestructibleModelDataRec;
 class GameObjectStats;
 class GameObjectStats_C;
 class LockRec;
@@ -187,6 +189,15 @@ class CGGameObject_C_Type_MapObjTransport : public CGGameObject_C_Type_Transport
     void UpdateObjectEffectState(uint32_t anim);
 };
 
+struct DestructibleBuildingState {
+    /* 0000 */ const char* m_modelName;
+    /* 0004 */ int32_t m_displayId;
+    /* 0008 */ CMapEntity* m_object;
+    /* 000C */ uint8_t m_loading;
+    /* 000D */ uint8_t m_animate;
+    /* 000E */ uint8_t unk_000E[2];
+};
+
 class CGGameObject_C_Type_DestructibleBuilding : public CGGameObject_C_Type_WorldObj {
     public:
     static void AmbientSequenceFinishedHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
@@ -195,27 +206,20 @@ class CGGameObject_C_Type_DestructibleBuilding : public CGGameObject_C_Type_Worl
     static void ImpactEffectSequenceFinishedHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
     static void MovedDoodadSequenceHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
 
-    /* 0014 */ uint8_t unk_0014[64];
-    /* 0054 */ int32_t unk_0054;
-    /* 0058 */ float unk_0058;
-    /* 005C */ uint32_t unk_005C;
-    /* 0060 */ uint32_t unk_0060;
-    /* 0064 */ uint32_t unk_0064;
-    /* 0068 */ uint32_t unk_0068;
-    /* 006C */ float unk_006C;
-    /* 0070 */ float unk_0070;
+    /* 0014 */ DestructibleBuildingState m_states [4];
+    /* 0054 */ int32_t m_previousState;
+    /* 0058 */ float m_baseZ;
+    /* 005C */ uint32_t m_animStartTime;
+    /* 0060 */ uint32_t m_animDuration;
+    /* 0064 */ CMapEntity* m_rebuildEffect;
+    /* 0068 */ CMapEntity* m_baseCollision;
+    /* 006C */ float m_sinkDepth;
+    /* 0070 */ float m_previousSinkDepth;
     /* 0074 */ SE2SoundKitObject m_sound;
-    /* 0088 */ uint32_t unk_0088;
-    /* 008C */ uint32_t unk_008C;
-    /* 0090 */ uint32_t unk_0090;
-    /* 0094 */ float unk_0094;
-    /* 0098 */ float unk_0098;
-    /* 009C */ float unk_009C;
-    /* 00A0 */ uint32_t unk_00A0;
-    /* 00A4 */ uint32_t unk_00A4;
-    /* 00A8 */ uint32_t* unk_00A8;
-    /* 00AC */ uint8_t unk_00AC;
-    /* 00AD */ uint8_t unk_00AD;
+    /* 0088 */ CDestructibleProxy m_proxy;
+    /* 00A8 */ DestructibleModelDataRec* m_modelData;
+    /* 00AC */ uint8_t m_loadPending;
+    /* 00AD */ uint8_t m_animating;
 
     virtual ~CGGameObject_C_Type_DestructibleBuilding();
     virtual bool CanHighlight() const;
@@ -231,6 +235,10 @@ class CGGameObject_C_Type_DestructibleBuilding : public CGGameObject_C_Type_Worl
     virtual void DestroyWorldObj();
 
     CGGameObject_C_Type_DestructibleBuilding(CGGameObject_C* owner);
+    uint16_t GetImpactEffectDoodadSet(int32_t state) const;
+    uint16_t GetDestructionDoodadSet(int32_t state) const;
+    uint16_t GetAmbientDoodadSet(int32_t state) const;
+    void UpdateDestructibleState();
 };
 
 class CGGameObject_C_Type_FishingNode : public CGGameObject_C_TypeAnimated {
@@ -316,6 +324,9 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     virtual ShipPath* GetShipPath() const;
 
     CGGameObject_C(uint32_t time, const CClientObjCreate& create);
+    ~CGGameObject_C() override;
+    void Disable() override;
+    void Reenable() override;
     void AddToolTipInfo(CGTooltip* tooltip);
     bool CanUse() const;
     bool IsCreatorOnlyUse() const;
@@ -334,6 +345,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     const char* GetOpenText() const;
     uint32_t GetPropertyValue(uint32_t index) const;
     int32_t GetPageTextMaterial() const;
+    int32_t GetPageTextLanguage() const;
     bool IsValidOpenAction(int32_t action) const;
     void LoadBaseObject(GameObjectStats_C* stats);
     void PlayCustomAnim(uint32_t anim);

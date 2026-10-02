@@ -16,6 +16,10 @@
 #include "Engine/Source/FrameXML/LoadXML.h"
 #include "WoW/Source/UIUtil/Tooltip.h"
 #include "WoW/Source/Ui/GameUI.h"
+#include "Engine/Source/Frame/CSimpleTexture.h"
+#include "WoW/Source/UIUtil/PortraitButton.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
 
 // VERIFY: 58fe7575 manual
 // OFFSET: 0x00588CC0
@@ -334,6 +338,23 @@ static int32_t Script_GiveMasterLoot(lua_State* L) {
     return 0;
 }
 
+// VERIFY: 9813f818 manual
+// OFFSET: 0x00588F00
+static int32_t Script_SetLootPortrait(lua_State* L) {
+    CSimpleTexture* texture = static_cast<CSimpleTexture*>(FrameScript_GetObjectThis(L, CSimpleTexture::GetObjectType()));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGLootInfo::m_lootObj, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        RenderPortraitTexture(texture, unit);
+        lua_pushnumber(L, 1.0);
+    } else {
+        texture->SetTexture(nullptr);
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
 // STATIC: 0x00ACEE28
 static FrameScript_Method s_ScriptFunctions[] = {
     { "SetLootPortrait", &Script_SetLootPortrait },
@@ -360,5 +381,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void LootInfoRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 2186206f auto
+// OFFSET: 0x00588E90
+void LootInfoUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

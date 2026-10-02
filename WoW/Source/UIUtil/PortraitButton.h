@@ -52,4 +52,6 @@ void RenderPortraitTexture(CSimpleTexture* texture, CGUnit_C* unit);
 
 int32_t ReadyModelForUI(CGUnit_C* unit, uint32_t flags);
 
+extern const char* s_sexNames[3];
+
 #endif

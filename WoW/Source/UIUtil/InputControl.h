@@ -21,6 +21,8 @@ struct MOUSELOOKBINDING : public TSHashObject<MOUSELOOKBINDING, HASHKEY_STRI> {
 
 class CMouseEvent;
 
+class CFocusEvent;
+
 class CGInputControl {
     public:
     void SetMouselookOverrideBindings();
@@ -75,7 +77,11 @@ class CGInputControl {
     void UpdateJoystickMouseMode();
     void UpdateHalted();
     void UpdateMouseMode(int32_t force);
+    void EnterWorld();
+    void OnFocusChange(const CFocusEvent& event);
     int32_t WowMouseConnected();
+    bool DetectWowMouse();
+    void VehicleAimChange(uint32_t time, float delta);
     void UpdateMoveStopped();
     void UpdatePlayer(uint32_t time, int32_t a2);
     void ToggleControlBit(uint32_t bit, int32_t enable, uint32_t time, int32_t a5);
@@ -109,13 +115,7 @@ bool JoystickCallback(CVar* var, const char* oldValue, const char* value, void* 
 XMLTree* LoadJoystickConfig(XMLNode*& config);
 bool WowMouseCVarCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 
-int32_t Script_MoveAndSteerStart(lua_State* L);
-int32_t Script_VehicleExit(lua_State* L);
-int32_t Script_VehiclePrevSeat(lua_State* L);
-int32_t Script_VehicleNextSeat(lua_State* L);
-int32_t Script_VehicleAimIncrement(lua_State* L);
-int32_t Script_VehicleAimDecrement(lua_State* L);
-int32_t Script_DetectWowMouse(lua_State* L);
 void InputControlRegisterScriptFunctions();
+void InputControlUnregisterScriptFunctions();
 
 #endif

@@ -1301,6 +1301,12 @@ void ConsoleScreenDestroy() {
     s_inputString = nullptr;
 }
 
+// VERIFY: 0aea2766 auto
+// OFFSET: 0x00763C40
+void SetConsoleKey(KEY key) {
+    s_consoleHotKey = key;
+}
+
 // VERIFY: d98debac auto
 // OFFSET: 0x00763C50
 void ConsolePostClose() {

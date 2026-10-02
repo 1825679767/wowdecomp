@@ -19,6 +19,7 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Engine/Source/FrameXML/LoadXML.h"
 #include "WoW/Source/Ui/PetInfo.h"
+#include "WoW/Source/DB/Rec/TotemCategoryRec.h"
 
 // VERIFY: e372e728 manual
 // OFFSET: 0x005A7E60
@@ -441,7 +442,6 @@ static int32_t Script_GetMultiCastBarOffset(lua_State* L) {
     return 1;
 }
 
-// STATIC: 0x00ACF9E0
 // VERIFY: c199b98c auto
 // OFFSET: 0x005A9BA0
 static int32_t Script_IsAttackAction(lua_State* L) {
@@ -497,6 +497,117 @@ static int32_t Script_IsActionInRange(lua_State* L) {
     return 1;
 }
 
+// VERIFY: d1b7a27b manual
+// OFFSET: 0x005A8330
+static int32_t Script_GetMultiCastTotemSpells(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetMultiCastTotemSpells(slot)");
+    }
+
+    uint32_t slot = (lua_tointeger(L, 1) - 1) & 3;
+    uint32_t count = 0;
+
+    if (slot < 4) {
+        TSGrowableArray<int32_t>* spells = &CGSpellBook::m_totemSpells[slot];
+
+        if (spells) {
+            count = spells->m_count;
+
+            for (uint32_t i = 0; i < count; i++) {
+                lua_pushinteger(L, spells->m_data[i]);
+            }
+        }
+    }
+
+    return count;
+}
+
+// VERIFY: 753b762a manual
+// OFFSET: 0x005A9290
+static int32_t Script_GetActionAutocast(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetActionAutocast(slot)");
+    }
+
+    double slot = lua_tonumber(L, 1);
+    uint32_t* action = nullptr;
+    int32_t petSpell;
+    int32_t spellId = CGActionBar::GetSpell(static_cast<uint32_t>(slot - 1.0), petSpell);
+
+    if (petSpell && (action = CGPetInfo::GetPetSpellAction(spellId)) && static_cast<int32_t>(*action) < 0) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (action && (*action & 0x40000000)) {
+        lua_pushnumber(L, 1.0);
+        return 2;
+    }
+
+    lua_pushnil(L);
+    return 2;
+}
+
+// VERIFY: 3af652b3 auto
+// OFFSET: 0x005A9CF0
+static int32_t Script_ActionHasRange(lua_State* L) {
+    if (lua_isnumber(L, 1) && CGActionBar::ActionHasRange(static_cast<int32_t>(lua_tonumber(L, 1)) - 1)) {
+        lua_pushnumber(L, 1.0);
+        return 1;
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 6567a621 manual
+// OFFSET: 0x005AB8A0
+static int32_t Script_SetMultiCastSpell(lua_State* L) {
+    if (!lua_isnumber(L, 1) && !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: SetMultiCastSpell(slot, spellID)");
+    }
+
+    if (!CGGameUI::CanPerformAction(14)) {
+        return 0;
+    }
+
+    int32_t slot = lua_tointeger(L, 1) - 1;
+
+    if (slot < 132 || static_cast<uint32_t>(slot) >= 144) {
+        return 0;
+    }
+
+    int32_t spellId = lua_tointeger(L, 2);
+
+    if (!spellId) {
+        CGActionBar::RemoveAction(slot);
+        return 0;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return 0;
+    }
+
+    int32_t category;
+
+    if (IsMultiCastSpellForSlot(slot, &spell, &category)) {
+        CGActionBar::SetAction(slot, spellId, 1, 0);
+        return 0;
+    }
+
+    TotemCategoryRec* totem = g_totemCategoryDB.GetRecord(category);
+
+    if (totem) {
+        CGGameUI::DisplayError(ERR_MULTI_CAST_ACTION_TOTEM_S, totem->m_name);
+    }
+
+    return 0;
+}
+
+// STATIC: 0x00ACF9E0
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetActionInfo", &Script_GetActionInfo },
     { "GetActionTexture", &Script_GetActionTexture },
@@ -533,5 +644,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void ActionBarRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: f87c01bd auto
+// OFFSET: 0x005A8050
+void ActionBarUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

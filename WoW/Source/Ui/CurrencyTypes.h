@@ -32,6 +32,9 @@ class CGCurrencyTypes {
     static CurrencyCategoryInfo m_categories[32];
     static int32_t m_numCategories;
     static void BuildDisplayList();
+    static void SetCategoryExpand(int32_t index, int32_t expand);
+    static void SetUnused(int32_t index, int32_t unused);
+    static void SetBackpack(int32_t index, int32_t backpack);
     static CurrencyTypesRec* GetBackpackCurrencyInfo(int32_t index);
     static int32_t CategoryHasKnownTypes(int32_t index, uint32_t known1, uint32_t known2, uint32_t unused1, uint32_t unused2);
     static int32_t CurrencyCategorySortCallback(const void* a, const void* b);
@@ -42,9 +45,7 @@ class CGCurrencyTypes {
 };
 
 int32_t Script_GetCurrencyListInfo(lua_State* L);
-int32_t Script_ExpandCurrencyList(lua_State* L);
-int32_t Script_SetCurrencyUnused(lua_State* L);
-int32_t Script_SetCurrencyBackpack(lua_State* L);
 void CurrencyTypesRegisterScriptFunctions();
+void CurrencyTypesUnregisterScriptFunctions();
 
 #endif

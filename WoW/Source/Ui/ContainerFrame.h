@@ -20,14 +20,9 @@ class CGContainerInfo {
     static bool GetLuaBagAndSlot(lua_State* L, CGBag_C** bag, int32_t* slot, int32_t* bank);
 };
 
-int32_t Script_GetContainerItemID(lua_State* L);
 int32_t Script_PickupContainerItem(lua_State* L);
-int32_t Script_GetContainerItemDurability(lua_State* L);
-int32_t Script_GetContainerFreeSlots(lua_State* L);
-int32_t Script_GetContainerItemPurchaseItem(lua_State* L);
-int32_t Script_ContainerRefundItemPurchase(lua_State* L);
-int32_t Script_GetContainerItemGems(lua_State* L);
 void ContainerRegisterScriptFunctions();
+void ContainerUnregisterScriptFunctions();
 
 int32_t InvUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);
 int32_t UpdateInvContents(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);

@@ -78,6 +78,7 @@ class CGCamera : public CSimpleCamera {
     static void __stdcall AddShakeOffset(C3Vector& offset, float facing, float amplitude, float time, float frequency, int32_t type, float damping, int32_t dir);
     void SetPositionAndTargetWithRoll(const C3Vector& position, const C3Vector& target, float roll);
     void CommentatorSetViewAndPosition(const C3Vector& position, float facing, float pitch);
+    void BarberShopSetView(float distance, float facing, float pitch);
     int32_t FinishLoadingModel();
 
     /* 0048 */ CM2Model* m_model;
@@ -178,6 +179,7 @@ class CGCamera : public CSimpleCamera {
     void ClampPitchAndNormalize();
     void ClampPitchToLimits(float delta);
     void ClearModelCamera();
+    int32_t SetModelCamera(const char* fileName, const C3Vector* position, float facing, void (*callback)(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param), uint64_t param);
     void ClearVehicleExitZoomDistance();
     void CreateViewFromCamera(uint32_t view);
     void DecIgnoreFacing();
@@ -319,5 +321,6 @@ extern CVar* s_cvMouseInvertYaw;
 void CameraRegisterCVars();
 
 void CameraRegisterScriptFunctions();
+void CameraUnregisterScriptFunctions();
 
 #endif

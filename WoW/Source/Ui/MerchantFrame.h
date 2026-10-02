@@ -33,7 +33,9 @@ class CGMerchantInfo {
     static uint32_t m_pendingItemStats;
     static void SetMerchant(WOWGUID merchant, const MerchantItem* items, int32_t count);
     static void RefreshList();
+    static void UpdateItemQuantity(WOWGUID merchant, int32_t slot, int32_t quantity);
     static int32_t CanRepair();
+    static bool IsBuybackItem(WOWGUID item);
     static void CloseMerchant();
     static void EnterWorld();
     static void SortBuybackItems();
@@ -46,5 +48,6 @@ class CGMerchantInfo {
 };
 
 void MerchantRegisterScriptFunctions();
+void MerchantUnregisterScriptFunctions();
 
 #endif

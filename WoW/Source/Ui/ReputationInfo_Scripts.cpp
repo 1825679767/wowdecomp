@@ -7,6 +7,7 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Object/Player.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "Engine/Source/lua-5.1/src/lauxlib.h"
 
 // VERIFY: 1e40863f auto
 // OFFSET: 0x005D1FC0
@@ -85,6 +86,37 @@ static int32_t Script_SetSelectedFaction(lua_State* L) {
     return 0;
 }
 
+// VERIFY: 08160303 auto
+// OFFSET: 0x005D0820
+static int32_t Script_GetSelectedFaction(lua_State* L) {
+    lua_pushnumber(L, CGReputationInfo::GetSelectedFactionIndex() + 1);
+    return 1;
+}
+
+// VERIFY: d98fde42 manual
+// OFFSET: 0x005D1150
+static int32_t Script_GetFactionInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetFactionInfo(index)");
+        return 0;
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t faction = index <= CGReputationInfo::m_numFactions ? CGReputationInfo::m_factionList.m_data[index]->m_factionId : 0;
+    return GetFactionInfoHelper(L, faction);
+}
+
+// VERIFY: 5a6cb739 manual
+// OFFSET: 0x005D11E0
+static int32_t Script_GetFactionInfoByID(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetFactionInfoByID(id)");
+        return 0;
+    }
+
+    return GetFactionInfoHelper(L, static_cast<int32_t>(lua_tonumber(L, 1)));
+}
+
 // VERIFY: 941cdb0b manual
 // OFFSET: 0x005D1240
 static int32_t Script_GetWatchedFactionInfo(lua_State* L) {
@@ -118,6 +150,81 @@ static int32_t Script_GetWatchedFactionInfo(lua_State* L) {
     return 5;
 }
 
+// VERIFY: 571ae289 manual
+// OFFSET: 0x005D1390
+static int32_t Script_FactionToggleAtWar(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: FactionToggleAtWar(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index <= CGReputationInfo::m_numFactions && CGReputationInfo::m_factionList.m_data[index]->m_factionId) {
+        int32_t faction = CGReputationInfo::m_factionList.m_data[index]->m_factionId;
+        CGReputationInfo::SetAtWar(faction, !CGReputationInfo::IsAtWar(faction));
+    }
+
+    return 0;
+}
+
+// VERIFY: 139fa5f2 auto
+// OFFSET: 0x005D1420
+static int32_t Script_SetWatchedFactionIndex(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: SetWatchedFactionIndex(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index <= CGReputationInfo::m_numFactions) {
+        CGReputationInfo::SetWatchedFaction(CGReputationInfo::m_factionList.m_data[index]->m_factionId);
+    } else {
+        CGReputationInfo::SetWatchedFaction(0);
+    }
+
+    return 0;
+}
+
+// VERIFY: 38bb0dbb manual
+// OFFSET: 0x005D1E50
+static int32_t Script_SetFactionInactive(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: SetFactionInactive(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index <= CGReputationInfo::m_numFactions) {
+        int32_t faction = CGReputationInfo::m_factionList.m_data[index]->m_factionId;
+
+        if (faction) {
+            CGReputationInfo::SetFactionInactive(faction, true);
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 5d8e8c20 manual
+// OFFSET: 0x005D1EE0
+static int32_t Script_SetFactionActive(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: SetFactionActive(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index <= CGReputationInfo::m_numFactions) {
+        int32_t faction = CGReputationInfo::m_factionList.m_data[index]->m_factionId;
+
+        if (faction) {
+            CGReputationInfo::SetFactionInactive(faction, false);
+        }
+    }
+
+    return 0;
+}
+
 // STATIC: 0x00AD0AE8
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetNumFactions", &Script_GetNumFactions },
@@ -142,5 +249,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void ReputationInfoRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 86abcaf1 auto
+// OFFSET: 0x005CFF90
+void ReputationInfoUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

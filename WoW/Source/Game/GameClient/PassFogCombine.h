@@ -12,8 +12,7 @@ struct CGxPool;
 class PassFogCombine : public FFX::Pass {
     public:
     /* 0030 */ uint32_t m_useRect;
-    /* 0034 */ CGxShader* m_pixelShader;
-    /* 0038 */ uint32_t unk_0038;
+    /* 0034 */ CGxShader* m_pixelShaders[2];
     /* 003C */ CGxPool* m_vertexPool;
     /* 0040 */ CGxBuf* m_vertexBuf;
     /* 0044 */ CGxPool* m_indexPool;

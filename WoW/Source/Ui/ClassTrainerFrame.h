@@ -36,6 +36,7 @@ struct TrainerSkillLineInfo {
 class CGClassTrainer {
     public:
     static void ShutdownGame();
+    static TrainerServiceInfo* GetService(uint32_t index);
     static WOWGUID m_trainer;
     static char m_greetingText[2048];
     static int32_t m_trainerType;
@@ -53,25 +54,20 @@ class CGClassTrainer {
     static void FilterAndSortServices();
     static void RefreshList();
     static void InitializeGame();
+    static int32_t GetSelectionIndex();
+    static const char* GetServiceType(uint32_t index);
+    static int32_t GetSkillLineIndexFromService(uint32_t index);
+    static int32_t IsCollapsedHeader(uint32_t index);
+    static void BuyService();
+    static const char* GetServiceName(uint32_t index);
+    static const char* GetServiceSubtext(uint32_t index);
+    static void SetServiceTypeFilter(int32_t filter);
+    static void SetSkillLineFilter(uint32_t filter);
 };
 
-int32_t Script_OpenTrainer(lua_State* L);
-int32_t Script_CloseTrainer(lua_State* L);
-int32_t Script_GetTrainerServiceInfo(lua_State* L);
-int32_t Script_GetTrainerSelectionIndex(lua_State* L);
-int32_t Script_GetTrainerServiceIcon(lua_State* L);
-int32_t Script_GetTrainerServiceSkillReq(lua_State* L);
-int32_t Script_GetTrainerServiceAbilityReq(lua_State* L);
-int32_t Script_GetTrainerServiceStepReq(lua_State* L);
-int32_t Script_GetTrainerServiceDescription(lua_State* L);
-int32_t Script_GetTrainerServiceStepIncrease(lua_State* L);
-int32_t Script_BuyTrainerService(lua_State* L);
-int32_t Script_SetTrainerServiceTypeFilter(lua_State* L);
-int32_t Script_SetTrainerSkillLineFilter(lua_State* L);
-int32_t Script_GetTrainerServiceTypeFilter(lua_State* L);
-int32_t Script_CollapseTrainerSkillLine(lua_State* L);
-int32_t Script_ExpandTrainerSkillLine(lua_State* L);
-int32_t Script_GetTrainerServiceItemLink(lua_State* L);
+void TrainerItemCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
+
 void ClassTrainerRegisterScriptFunctions();
+void ClassTrainerUnregisterScriptFunctions();
 
 #endif

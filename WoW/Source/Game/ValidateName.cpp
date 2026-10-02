@@ -449,6 +449,54 @@ int32_t ValidateCharacterNameConst(uint32_t language, const char* name, bool pro
     return result;
 }
 
+// VERIFY: 53aaaa1d auto
+// OFFSET: 0x007E1F00
+int32_t ValidatePetName(uint32_t language, const char* name, bool profanity, bool chatProfanity, bool reserved, bool english, uint32_t extraLength) {
+    uint32_t length;
+    int32_t charset;
+    int32_t result = ValidateName(language, nullptr, name, &length, &charset, profanity, chatProfanity, reserved, false, english, -1);
+
+    if (!result) {
+        uint32_t maxLength = charset == 3 || charset == 4 ? 8 : 12;
+
+        if (length > extraLength + maxLength) {
+            return 4;
+        }
+    }
+
+    return result;
+}
+
+// VERIFY: d212548d auto
+// OFFSET: 0x007E1F60
+int32_t ValidateGuildName(uint32_t language, const char* name) {
+    uint16_t allowed[2] = { 32, 0 };
+    uint32_t length;
+    int32_t charset;
+    int32_t result = ValidateName(language, allowed, name, &length, &charset, true, true, false, false, false, -1);
+
+    if (!result && length > 24) {
+        return 4;
+    }
+
+    return result;
+}
+
+// VERIFY: 6eb0d307 manual
+// OFFSET: 0x007E1FB0
+int32_t ValidateGuildBankTabName(uint32_t language, const char* name) {
+    uint16_t allowed[12] = { 32, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 0 };
+    uint32_t length;
+    int32_t charset;
+    int32_t result = ValidateName(language, allowed, name, &length, &charset, true, true, false, true, false, -1);
+
+    if (!result && length > 16) {
+        return 4;
+    }
+
+    return result;
+}
+
 // VERIFY: cc5abb34 manual
 // OFFSET: 0x007E21B0
 void ValidateNameDestroy() {
@@ -773,6 +821,26 @@ bool StripHyperlinks(const char* text, char* buffer, uint32_t size) {
 // OFFSET: 0x0076DD20
 int32_t NameNeedsDeclensions(int32_t locale, const char* name) {
     return locale == 8 && RussianNameNeedsDeclensions(name);
+}
+
+// VERIFY: d7a13e28 auto
+// OFFSET: 0x0076DD40
+int32_t GetNumNameDeclensionSets(int32_t locale, const char* name, int32_t sex) {
+    if (locale == 8) {
+        return GetNumRussianNameDeclensionSets(name, sex);
+    }
+
+    return 0;
+}
+
+// VERIFY: d0bee4f8 auto
+// OFFSET: 0x0076DD60
+int32_t GetNameDeclensions(int32_t locale, char* declensions, const char* name, int32_t sex, uint32_t set) {
+    if (locale == 8) {
+        return GetRussianNameDeclensions(declensions, name, sex, set);
+    }
+
+    return 0;
 }
 
 // VERIFY: a66e9458 auto

@@ -6,6 +6,8 @@
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
+#include "WoW/Source/Ui/UIBindings.h"
 
 // STATIC: 0x00C2438C
 TSHashTable<MacroConditions, HASHKEY_STR> s_macroConditions;
@@ -298,4 +300,58 @@ void MacroCondition::Parse(const char* start, const char* end) {
             arg->m_end--;
         }
     }
+}
+
+// VERIFY: ecf7f26a manual
+// OFFSET: 0x005EEFB0
+int32_t EvaluateStance(const WOWGUID* unit, const TSGrowableArray<MacroSubstring>* args) {
+    uint32_t form = CGSpellBook::GetShapeshiftForm(1);
+
+    if (!args->m_count) {
+        return form != 0;
+    }
+
+    for (uint32_t i = args->m_count; i; i--) {
+        const MacroSubstring& arg = args->m_data[i - 1];
+        uint32_t value = 0;
+
+        for (const char* c = arg.m_start; c < arg.m_end && *c >= '0' && *c <= '9'; c++) {
+            value = *c + 10 * value - '0';
+        }
+
+        if (value == form) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: aa9e3f6d manual
+// OFFSET: 0x005EF040
+int32_t EvaluateModifier(const WOWGUID* unit, const TSGrowableArray<MacroSubstring>* args) {
+    CGUIBindings* bindings = CGUIBindings::s_bindings;
+
+    if (!args->m_count) {
+        return bindings->IsModifiedClick(nullptr);
+    }
+
+    for (uint32_t i = args->m_count; i; i--) {
+        const MacroSubstring& arg = args->m_data[i - 1];
+        char action[1024];
+        uint32_t length = arg.m_end - arg.m_start;
+
+        if (length > 1023) {
+            length = 1023;
+        }
+
+        memcpy(action, arg.m_start, length);
+        action[length] = '\0';
+
+        if (bindings->IsModifiedClick(action)) {
+            return 1;
+        }
+    }
+
+    return 0;
 }

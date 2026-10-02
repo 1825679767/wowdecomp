@@ -124,7 +124,7 @@ MOUSEBUTTON IndexToMouseButton(uint32_t index);
 int32_t MouseButtonToIndex(uint32_t button);
 MOUSEBUTTON StringToMouseButton(const char* string);
 
-int32_t Script_GetClickFrame(lua_State* L);
 void UIBindingsRegisterScriptFunctions();
+void UIBindingsUnegisterScriptFunctions();
 
 #endif

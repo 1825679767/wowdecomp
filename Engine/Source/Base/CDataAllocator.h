@@ -30,6 +30,9 @@ class CDataAllocator {
 
     template <class T>
     T* New(int32_t zero);
+
+    template <class T>
+    void Delete(T* object);
 };
 
 // VERIFY: 6cf1bf27 manual
@@ -38,6 +41,14 @@ template <class T>
 T* CDataAllocator::New(int32_t zero) {
     void* data = this->GetData(zero, typeid(T).raw_name(), SLOG_OBJECT);
     return data ? new (data) T : nullptr;
+}
+
+// VERIFY: c1fae0dd auto
+// OFFSET: 0x007E4C60
+template <class T>
+void CDataAllocator::Delete(T* object) {
+    object->~T();
+    this->PutData(object, nullptr, 0);
 }
 
 #endif

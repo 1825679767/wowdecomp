@@ -64,6 +64,7 @@ struct LFGLockInfo : public TSLinkedNode<LFGLockInfo> {
     /* 0010 */ WOWGUID m_guid;
     /* 0018 */ TSList<LFGDungeonEntry, TSGetLink<LFGDungeonEntry>> m_dungeons;
 
+    LFGLockInfo();
     ~LFGLockInfo();
     void ClearDungeons();
     LFGDungeonEntry* AddDungeon(uint32_t slot);
@@ -75,6 +76,8 @@ struct LFGPartyLockInfo {
     /* 0004 */ TSList<LFGLockInfo, TSGetLink<LFGLockInfo>> m_members;
 
     void Clear();
+    LFGLockInfo* FindMember(WOWGUID guid);
+    LFGLockInfo* AddMember(WOWGUID guid);
 };
 
 struct LFGRewardInfo {
@@ -188,6 +191,11 @@ class CGLookingForGroup {
     static int32_t GetLFGRoleUpdate(lua_State* L);
     static int32_t GetLFGRoleUpdateSlot(lua_State* L);
     static void RequestLFGStatus();
+    static void JoiningParty();
+    static void ClearDungeonList();
+    static void SetLFGDungeon(uint32_t slot);
+    static void JoinLFG();
+    static LFGRewardItem* GetDungeonRewardItem(uint32_t slot, int32_t index);
     static void RequestLFGPlayerInfo();
     static void ClearPartyInfo();
     static uint8_t GetClassRoles(uint32_t classID);
@@ -201,6 +209,7 @@ class CGLookingForGroup {
     static bool IsRandomDungeonUnlocked(const LfgDungeonsRec* rec);
     static bool UpdateRandomDungeonBestChoice();
     static bool IsSlotValidForAll(uint32_t slot);
+    static void RequestLFGPartyInfo();
 };
 
 namespace DungeonEncounterDB {
@@ -212,12 +221,9 @@ int32_t LFGPacketHandler(void* param, NETMESSAGE msgId, uint32_t time, CDataStor
 int32_t Packet_SMSG_LFG_OPEN_FROM_GOSSIP(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_LFG_SEARCH_RESULTS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 
-int32_t Script_SetLFGDungeon(lua_State* L);
 int32_t Script_ClearLFGDungeon(lua_State* L);
-int32_t Script_ClearAllLFGDungeons(lua_State* L);
 int32_t Script_SetLFGComment(lua_State* L);
 int32_t Script_LFGTeleport(lua_State* L);
-int32_t Script_JoinLFG(lua_State* L);
 int32_t Script_LeaveLFG(lua_State* L);
 int32_t Script_RefreshLFGList(lua_State* L);
 int32_t Script_SearchLFGJoin(lua_State* L);
@@ -235,24 +241,17 @@ int32_t Script_RejectProposal(lua_State* L);
 int32_t Script_GetLFGBootProposal(lua_State* L);
 int32_t Script_SetLFGBootVote(lua_State* L);
 int32_t Script_GetLastQueueStatusIndex(lua_State* L);
-int32_t Script_GetLFGDungeonInfo(lua_State* L);
-int32_t Script_GetLFGRandomDungeonInfo(lua_State* L);
-int32_t Script_IsLFGDungeonJoinable(lua_State* L);
 int32_t Script_SetLFGHeaderCollapsed(lua_State* L);
 int32_t Script_SetLFGDungeonEnabled(lua_State* L);
 int32_t Script_IsInLFGDungeon(lua_State* L);
 int32_t Script_PartyLFGStartBackfill(lua_State* L);
 int32_t Script_UnitHasLFGRandomCooldown(lua_State* L);
 int32_t Script_UnitHasLFGDeserter(lua_State* L);
-int32_t Script_GetLFDChoiceInfo(lua_State* L);
-int32_t Script_GetLFDChoiceCollapseState(lua_State* L);
-int32_t Script_GetLFDChoiceEnabledState(lua_State* L);
-int32_t Script_GetLFDLockInfo(lua_State* L);
-int32_t Script_RequestLFDPlayerLockInfo(lua_State* L);
-int32_t Script_RequestLFDPartyLockInfo(lua_State* L);
-int32_t Script_GetLFGDungeonRewards(lua_State* L);
-int32_t Script_GetLFGDungeonRewardInfo(lua_State* L);
 int32_t Script_GetLFGDungeonRewardLink(lua_State* L);
 void LookingForGroupRegisterScriptFunctions();
+void LookingForGroupUnregisterScriptFunctions();
+
+void DungeonEncounterCountMatchingRows(int32_t mapId, int32_t difficulty, uint32_t completedMask, uint32_t* total, uint32_t* completed);
+int32_t PushDungeonEncounterInfo(lua_State* L, int32_t mapId, int32_t difficulty, int32_t index, uint32_t completedMask);
 
 #endif

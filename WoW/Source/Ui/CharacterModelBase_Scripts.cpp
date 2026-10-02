@@ -5,8 +5,8 @@
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
-
-int32_t Script_SetCreature(lua_State* L);
+#include "WoW/Source/DB/DBClient/CreatureStats_C.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 
 // VERIFY: 6ff99da1 auto
 // OFFSET: 0x00597250
@@ -19,6 +19,31 @@ void CGCharacterModelBase::DestroyScriptMetaTable() {
 // OFFSET: 0x00597A80
 void CGCharacterModelBase::CreateScriptMetaTable() {
     CGCharacterModelBase::s_metatable = FrameScript_Object::CreateScriptMetaTable(FrameScript_GetContext(), &CGCharacterModelBase::RegisterScriptMethods);
+}
+
+// VERIFY: 8f11348e manual
+// OFFSET: 0x00597960
+static int32_t Script_SetCreature(lua_State* L) {
+    CGCharacterModelBase* model = static_cast<CGCharacterModelBase*>(FrameScript_GetObjectThis(L, CGCharacterModelBase::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: SetCreature(creatureID)");
+        return 0;
+    }
+
+    WOWGUID guid = WOWGUID();
+    CreatureStats_C* stats = g_creatureDBCache.GetRecord(lua_tointeger(L, 2), guid, nullptr, nullptr, false);
+
+    if (stats) {
+        model->m_unitGuid = WOWGUID();
+        model->m_creatureStats = stats;
+
+        if (model->m_isVisible) {
+            model->SetUpModel(stats);
+        }
+    }
+
+    return 0;
 }
 
 // VERIFY: 46572d0f manual

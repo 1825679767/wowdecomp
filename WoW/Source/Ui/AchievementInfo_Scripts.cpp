@@ -8,6 +8,9 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/AchievementRec.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/DB/Rec/Achievement_CategoryRec.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
+#include "Engine/Source/lua-5.1/src/lauxlib.h"
 
 // VERIFY: e0dcaa80 auto
 // OFFSET: 0x005B0CE0
@@ -145,6 +148,78 @@ static int32_t Script_HasCompletedAnyAchievement(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 209a02f3 manual
+// OFFSET: 0x005B1390
+static int32_t Script_GetCategoryList(lua_State* L) {
+    int32_t count = 1;
+
+    if (lua_type(L, 1) != LUA_TTABLE) {
+        lua_createtable(L, 0, 0);
+    }
+
+    for (int32_t i = 0; i < g_achievement_CategoryDB.m_numRecords; i++) {
+        Achievement_CategoryRec* category = g_achievement_CategoryDB.GetRecordByIndex(i);
+
+        if (!category || category->m_id == 1) {
+            continue;
+        }
+
+        Achievement_CategoryRec* parent = g_achievement_CategoryDB.GetRecord(category->m_parent);
+
+        while (parent && parent->m_id != 1) {
+            parent = g_achievement_CategoryDB.GetRecord(parent->m_parent);
+        }
+
+        if (parent) {
+            continue;
+        }
+
+        lua_checkstack(L, 2);
+        lua_pushnumber(L, count);
+        lua_pushnumber(L, category->m_id);
+        lua_settable(L, -3);
+        count++;
+    }
+
+    return 1;
+}
+
+// VERIFY: 7dc14888 manual
+// OFFSET: 0x005B15C0
+static int32_t Script_GetCategoryInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetCategoryInfo(categoryID)");
+    }
+
+    Achievement_CategoryRec* category = g_achievement_CategoryDB.GetRecord(static_cast<int32_t>(lua_tonumber(L, 1)));
+
+    if (!category) {
+        return 0;
+    }
+
+    lua_pushstring(L, category->m_name);
+    lua_pushnumber(L, category->m_parent == 1 ? -1.0 : category->m_parent);
+    lua_pushnumber(L, 0.0);
+    return 3;
+}
+
+// VERIFY: 2fc15aff auto
+// OFFSET: 0x005B1DC0
+static int32_t Script_GetTotalAchievementPoints(lua_State* L) {
+    int32_t points = 0;
+
+    for (CLIENT_ACHIEVEMENTS* node = s_completedAchievements.Head(); node; node = s_completedAchievements.Next(node)) {
+        AchievementRec* achievement = g_achievementDB.GetRecord(node->m_id);
+
+        if (achievement) {
+            points += achievement->m_points;
+        }
+    }
+
+    lua_pushnumber(L, points);
+    return 1;
+}
+
 // STATIC: 0x00ACFC70
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetCategoryList", &Script_GetCategoryList },
@@ -191,5 +266,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void AchievementInfoRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: f7d67813 auto
+// OFFSET: 0x005B0D30
+void AchievementInfoUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

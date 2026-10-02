@@ -38,6 +38,9 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
     uint32_t GetFactionTemplate() const;
     const char* GetPortraitTexture() const;
     void PostInit(uint32_t time, const CClientObjCreate& create, bool a3);
+    void ShowLootEffect();
+    void OnFlagChanged(uint32_t oldFlags);
+    void OnDynamicFlagChanged(uint32_t oldFlags);
 };
 
 int32_t CorpseDynamicFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);

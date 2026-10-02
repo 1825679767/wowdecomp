@@ -6,14 +6,16 @@
 #include "Engine/Source/Base/CDataStore.h"
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/AreaTableRec.h"
+#include "WoW/Source/DB/Rec/ChrClassesRec.h"
+#include "WoW/Source/DB/Rec/ChrRacesRec.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
 
-// STATIC: 0x00C7BFEC
-static int32_t s_whoToUI;
-
-// VERIFY: cec9da47 auto
+// VERIFY: 294a1c8f auto
 // OFFSET: 0x006B3430
 static int32_t Script_SetWhoToUI(lua_State* L) {
-    s_whoToUI = StringToBOOL(L, 1, 0);
+    FriendList::s_whoToUI = StringToBOOL(L, 1, 0);
     return 0;
 }
 
@@ -73,6 +75,84 @@ static int32_t Script_GetNumIgnores(lua_State* L) {
     return 1;
 }
 
+// VERIFY: b7b26623 manual
+// OFFSET: 0x006B4A80
+static int32_t Script_GetWhoInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetWhoInfo(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index > FriendList::s_numWhoResults) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnumber(L, 0.0);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 7;
+    }
+
+    WhoResult& result = FriendList::s_whoResults[index];
+    lua_pushstring(L, result.m_name);
+    lua_pushstring(L, result.m_guild);
+    lua_pushnumber(L, result.m_level);
+    const char* raceName = CGUnit_C::GetDisplayRaceNameFromRecord(g_chrRacesDB.GetRecord(result.m_race), result.m_gender, nullptr);
+
+    if (!raceName) {
+        raceName = FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE);
+    }
+
+    lua_pushstring(L, raceName);
+    ChrClassesRec* chrClass = g_chrClassesDB.GetRecord(result.m_class);
+    const char* className = CGUnit_C::GetDisplayClassNameFromRecord(chrClass, result.m_gender, nullptr);
+
+    if (!className) {
+        className = FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE);
+    }
+
+    lua_pushstring(L, className);
+    AreaTableRec* area = g_areaTableDB.GetRecord(result.m_zone);
+    lua_pushstring(L, area ? area->m_areaName : FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE));
+
+    if (chrClass) {
+        lua_pushstring(L, chrClass->m_filename);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 7;
+}
+
+// VERIFY: 80b26e35 auto
+// OFFSET: 0x006B6AF0
+static int32_t Script_AddFriend(lua_State* L) {
+    const char* name = lua_tolstring(L, 1, nullptr);
+    const char* note = lua_isstring(L, 2) ? lua_tolstring(L, 2, nullptr) : nullptr;
+
+    if (name) {
+        FriendList::AddFriend(name, note ? note : "");
+    }
+
+    return 0;
+}
+
+// VERIFY: 8a3bef9d auto
+// OFFSET: 0x006B6B50
+static int32_t Script_SendWho(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: SendWho(\"filter\")");
+    }
+
+    if (FriendList::s_friendList) {
+        FriendList::s_friendList->SendWho(lua_tolstring(L, 1, nullptr));
+    }
+
+    return 0;
+}
+
 // STATIC: 0x00AD93D8
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetNumFriends", &Script_GetNumFriends },
@@ -113,5 +193,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void FriendList::RegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: d595ed83 auto
+// OFFSET: 0x006B3480
+void FriendList::UnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

@@ -13,6 +13,8 @@
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/UIUtil/Camera.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/WorldClient/World.h"
 
 // VERIFY: b9b450f8 manual
 // OFFSET: 0x00569230
@@ -75,10 +77,10 @@ static int32_t Script_CommentatorGetNumMaps(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 8822c7cf manual
+// VERIFY: eaec034b manual
 // OFFSET: 0x005693E0
 static int32_t Script_CommentatorGetMapInfo(lua_State* L) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
     if (!player || !(player->m_player->m_playerFlags & 0x80000)) {
         return 0;
@@ -100,7 +102,7 @@ static int32_t Script_CommentatorGetMapInfo(lua_State* L) {
     lua_pushnumber(L, map->unk_0000);
     lua_pushnumber(L, map->unk_0004);
     lua_pushnumber(L, map->unk_0008);
-    lua_pushnumber(L, map->unk_0014);
+    lua_pushnumber(L, map->m_instances.Count());
     return 4;
 }
 
@@ -306,6 +308,670 @@ static int32_t Script_CommentatorZoomOut(lua_State* L) {
     return 0;
 }
 
+// VERIFY: 153d331e manual
+// OFFSET: 0x005692A0
+static int32_t Script_CommentatorUpdatePlayerInfo(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    CGCommentator::MapInfo* map;
+    CGCommentator::InstanceInfo* instance;
+
+    if (player && (player->m_player->m_playerFlags & 0x80000) && CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_GET_PLAYER_INFO));
+        msg.Put(instance->m_mapID);
+        instance->m_key.Write(&msg);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 0;
+}
+
+// VERIFY: b827f089 manual
+// OFFSET: 0x00569340
+static int32_t Script_CommentatorUpdateMapInfo(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && (player->m_player->m_playerFlags & 0x80000)) {
+        const char* name = "";
+
+        if (lua_isstring(L, 1)) {
+            name = lua_tolstring(L, 1, nullptr);
+        }
+
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_GET_MAP_INFO));
+        msg.PutString(name);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 0;
+}
+
+// VERIFY: 9ec71bc7 manual
+// OFFSET: 0x00569520
+static int32_t Script_CommentatorGetInstanceInfo(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !(player->m_player->m_playerFlags & 0x80000)) {
+        return 0;
+    }
+
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: CommentatorGetMapInfo(mapIndex,instanceIndex)");
+    }
+
+    uint32_t mapIndex = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t instanceIndex = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
+
+    if (mapIndex >= CGCommentator::s_Commentator.m_maps.Count()) {
+        luaL_error(L, "no map at that index");
+    }
+
+    CGCommentator::MapInfo* map = CGCommentator::s_Commentator.GetMapInfoByIndex(mapIndex);
+
+    if (instanceIndex >= map->m_instances.Count()) {
+        luaL_error(L, "no instance at that index");
+    }
+
+    CGCommentator::InstanceInfo* instance = &map->m_instances.m_data[instanceIndex];
+    lua_pushnumber(L, instance->m_mapID);
+    lua_pushnumber(L, instance->unk_0018);
+    lua_pushnumber(L, static_cast<uint32_t>(instance->m_guid.m_guid));
+    lua_pushnumber(L, static_cast<uint32_t>(instance->m_guid.m_guid >> 32));
+    return 4;
+}
+
+// VERIFY: a58b94e7 manual
+// OFFSET: 0x005696E0
+static int32_t Script_CommentatorEnterInstance(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !(player->m_player->m_playerFlags & 0x80000)) {
+        return 0;
+    }
+
+    CGCommentator::MapInfo* map;
+    CGCommentator::InstanceInfo* instance;
+
+    if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
+        luaL_error(L, "Unable to enter instance.");
+    }
+
+    WDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_ENTER_INSTANCE));
+    msg.Put(instance->m_mapID);
+    instance->m_key.Write(&msg);
+    msg.Put(instance->m_guid.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: 04f8c067 manual
+// OFFSET: 0x005697B0
+static int32_t Script_CommentatorExitInstance(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && (player->m_player->m_playerFlags & 0x80000)) {
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_EXIT_INSTANCE));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 0;
+}
+
+// VERIFY: 4ff6a3f3 manual
+// OFFSET: 0x00569820
+static int32_t Script_CommentatorGetNumPlayers(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: CommentatorGetNumPlayers(faction)");
+    }
+
+    uint32_t faction = static_cast<uint32_t>(lua_tonumber(L, 1));
+
+    if (faction - 1 >= 2) {
+        luaL_error(L, "Error: faction index too large");
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    CGCommentator::MapInfo* map;
+    CGCommentator::InstanceInfo* instance;
+
+    if (player && (player->m_player->m_playerFlags & 0x80000) && CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
+        lua_pushnumber(L, instance->m_numPlayers[faction - 1]);
+    } else {
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 1;
+}
+
+// VERIFY: c7a5f30a manual
+// OFFSET: 0x00569910
+static int32_t Script_CommentatorGetPlayerInfo(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !(player->m_player->m_playerFlags & 0x80000)) {
+        return 0;
+    }
+
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: CommentatorGetPlayerInfo(factionIndex,playerIndex)");
+    }
+
+    uint32_t faction = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
+
+    if (faction >= 2) {
+        luaL_error(L, "Error: faction index too large");
+    }
+
+    CGCommentator::MapInfo* map;
+    CGCommentator::InstanceInfo* instance;
+
+    if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
+        luaL_error(L, "Unable to find instance.");
+    }
+
+    if (index < instance->m_numPlayers[faction]) {
+        CGCommentator::PlayerInfo* info = &instance->m_players[faction][index];
+        lua_pushstring(L, info->m_name);
+        lua_pushnumber(L, info->m_faction);
+        lua_pushnumber(L, info->unk_002C);
+        lua_pushnumber(L, info->unk_0030);
+        lua_pushnumber(L, info->unk_0034);
+        lua_pushnumber(L, info->unk_0038);
+        lua_pushnumber(L, info->unk_0008);
+    } else {
+        lua_pushstring(L, "Unknown");
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 7;
+}
+
+// VERIFY: b9d68b9c manual
+// OFFSET: 0x00569B50
+static int32_t Script_CommentatorFollowPlayer(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !player->IsCommentatorUberOrInArena()) {
+        return 0;
+    }
+
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: CommentatorFollowPlayer(factionIndex,playerIndex)");
+    }
+
+    uint32_t faction = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 2));
+
+    if (faction >= 2) {
+        luaL_error(L, "Error: faction index too large");
+    }
+
+    if (!index) {
+        CGCommentator::s_Commentator.m_followTarget = WOWGUID();
+        CGCommentator::s_Commentator.m_lookAtTarget = WOWGUID();
+        return 0;
+    }
+
+    index--;
+
+    CGCommentator::MapInfo* map;
+    CGCommentator::InstanceInfo* instance;
+
+    if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
+        luaL_error(L, "Unable to find instance.");
+    }
+
+    if (index < instance->m_numPlayers[faction] && CGWorldFrame::s_currentWorldFrame) {
+        CGCommentator::s_Commentator.m_lookAtTarget = WOWGUID();
+        CGCommentator::s_Commentator.m_followTarget = instance->m_players[faction][index].m_guid;
+    }
+
+    return 0;
+}
+
+// VERIFY: 5a46c051 manual
+// OFFSET: 0x00569CD0
+static int32_t Script_CommentatorLookatPlayer(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !player->IsCommentatorUberOrInArena()) {
+        return 0;
+    }
+
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: CommentatorLookatPlayer(factionIndex,playerIndex)");
+    }
+
+    uint32_t faction = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 2));
+
+    if (faction >= 2) {
+        luaL_error(L, "Error: faction index too large");
+    }
+
+    if (!index) {
+        CGCommentator::s_Commentator.m_lookAtTarget = WOWGUID();
+        CGCommentator::s_Commentator.m_followTarget = WOWGUID();
+        return 0;
+    }
+
+    index--;
+
+    CGCommentator::MapInfo* map;
+    CGCommentator::InstanceInfo* instance;
+
+    if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
+        luaL_error(L, "Unable to find instance.");
+    }
+
+    if (index < instance->m_numPlayers[faction]) {
+        CGCommentator::s_Commentator.m_followTarget = WOWGUID();
+        CGCommentator::s_Commentator.m_lookAtTarget = instance->m_players[faction][index].m_guid;
+    }
+
+    return 0;
+}
+
+// VERIFY: 8bebed75 manual
+// OFFSET: 0x00569E50
+static int32_t Script_CommentatorSetMapAndInstanceIndex(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !(player->m_player->m_playerFlags & 0x80000)) {
+        return 0;
+    }
+
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: CommentatorSetMapAndInstanceIndex(mapIndex,instanceIndex)");
+    }
+
+    uint32_t mapIndex = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (mapIndex >= CGCommentator::s_Commentator.m_maps.Count()) {
+        luaL_error(L, "no map at that index");
+    }
+
+    CGCommentator::MapInfo* map = CGCommentator::s_Commentator.GetMapInfoByIndex(mapIndex);
+    uint32_t instanceIndex = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
+
+    if (instanceIndex >= map->m_instances.Count()) {
+        luaL_error(L, "no instance at that index");
+    }
+
+    CGCommentator::InstanceInfo* instance = &map->m_instances.m_data[instanceIndex];
+    CGCommentator::s_Commentator.m_mapID = instance->m_mapID;
+    CGCommentator::s_Commentator.m_key.unk_0000 = instance->m_key.unk_0000;
+    CGCommentator::s_Commentator.m_key.unk_0008 = instance->m_key.unk_0008;
+    CGCommentator::s_Commentator.m_key.unk_0004 = instance->m_key.unk_0004;
+    return 0;
+}
+
+// VERIFY: c27bb49f manual
+// OFFSET: 0x00569FA0
+static int32_t Script_CommentatorSetPlayerIndex(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !(player->m_player->m_playerFlags & 0x80000)) {
+        return 0;
+    }
+
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: CommentatorSetPlayerIndex(factionIndex,playerIndex)");
+    }
+
+    uint32_t faction = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
+
+    if (faction >= 2) {
+        luaL_error(L, "Error: faction index too large");
+    }
+
+    CGCommentator::MapInfo* map;
+    CGCommentator::InstanceInfo* instance;
+
+    if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
+        luaL_error(L, "Unable to find instance.");
+    }
+
+    if (index >= instance->m_numPlayers[faction]) {
+        luaL_error(L, "Error: player index too large");
+    }
+
+    CGCommentator::s_Commentator.m_playerIndex = index;
+    CGCommentator::s_Commentator.m_playerFaction = faction;
+    return 0;
+}
+
+// VERIFY: 17a87bbc manual
+// OFFSET: 0x0056A0F0
+static int32_t Script_CommentatorSetCamera(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !player->IsCommentatorUberOrInArena()) {
+        return 0;
+    }
+
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4) || !lua_isnumber(L, 5) || !lua_isnumber(L, 6)) {
+        luaL_error(L, "Usage: CommentatorSetCamera(xPos,yPos,zPos,yaw,pitch,fov)");
+    }
+
+    C3Vector position;
+    position.x = lua_tonumber(L, 1);
+    position.y = lua_tonumber(L, 2);
+    position.z = lua_tonumber(L, 3);
+
+    if (!World::IsValidPosition(position, 0.0f)) {
+        return 0;
+    }
+
+    float yaw = lua_tonumber(L, 4);
+    float pitch = lua_tonumber(L, 5) * 0.017453292;
+    CGCommentator::s_Commentator.SetPosYawPitch(position, 0.017453292f * yaw, pitch);
+
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+
+    if (camera) {
+        float fov = lua_tonumber(L, 6) * 0.017453292;
+
+        if (fov > 0.017453292f) {
+            if (fov >= 2.0943952f) {
+                fov = 2.0943952f;
+            }
+        } else {
+            fov = 0.017453292f;
+        }
+
+        CGCommentator::s_Commentator.m_fov = fov;
+        CGCommentator::s_Commentator.SetFov(fov);
+        camera->m_fov = fov;
+    }
+
+    return 0;
+}
+
+// VERIFY: 6c0f38d2 manual
+// OFFSET: 0x0056A380
+static int32_t Script_CommentatorGetCurrentMapID(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    CGCommentator::MapInfo* map;
+    CGCommentator::InstanceInfo* instance;
+
+    if (!player || !(player->m_player->m_playerFlags & 0x80000) || !CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance) || !instance) {
+        return 0;
+    }
+
+    lua_pushnumber(L, instance->m_mapID);
+    return 1;
+}
+
+// VERIFY: 26508296 manual
+// OFFSET: 0x0056A410
+static int32_t Script_CommentatorStartInstance(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !(player->m_player->m_playerFlags & 0x400000)) {
+        return 0;
+    }
+
+    if (!CGCommentator::s_Commentator.m_battlemaster) {
+        luaL_error(L, "Battlemaster must be set first.");
+    }
+
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4)) {
+        luaL_error(L, "Usage: CommentatorStartInstance(mapID,teamSize,minLevel,maxLevel)");
+    }
+
+    uint32_t mapID = static_cast<uint32_t>(lua_tonumber(L, 1));
+    uint32_t teamSize = static_cast<uint32_t>(lua_tonumber(L, 2));
+    uint32_t minLevel = static_cast<uint32_t>(lua_tonumber(L, 3));
+    uint32_t maxLevel = static_cast<uint32_t>(lua_tonumber(L, 4));
+
+    if (teamSize != 2 && teamSize != 3 && teamSize != 5) {
+        luaL_error(L, "Unknown team size. Use 2, 3, or 5.");
+    }
+
+    WDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_INSTANCE_COMMAND));
+    msg.Put(static_cast<uint64_t>(0));
+    msg.Put(static_cast<uint64_t>(0));
+    msg.Put(CGCommentator::s_Commentator.m_battlemaster.m_guid);
+    msg.Put(static_cast<uint32_t>(0));
+    msg.Put(mapID);
+    msg.Put(teamSize);
+    msg.Put(minLevel);
+    msg.Put(maxLevel);
+    msg.Put(static_cast<uint32_t>(0));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: 0412ca65 manual
+// OFFSET: 0x0056A640
+static int32_t Script_CommentatorAddPlayer(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !(player->m_player->m_playerFlags & 0x400000)) {
+        return 0;
+    }
+
+    if (!CGGameUI::m_lockedTarget) {
+        luaL_error(L, "A player must be targeted.");
+    }
+
+    CGObject_C* target = ClntObjMgrObjectPtr(player->m_unit->m_unitFieldTarget, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (!target || !(target->m_obj->m_type & TYPEMASK_PLAYER)) {
+        luaL_error(L, "Must target a player.");
+    }
+
+    CGCommentator::MapInfo* map;
+    CGCommentator::InstanceInfo* instance;
+
+    if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
+        luaL_error(L, "Must select an instance first.");
+    }
+
+    if (!CGCommentator::s_Commentator.m_battlemaster) {
+        luaL_error(L, "Must set Battlemaster first.");
+    }
+
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: CommentatorAddPlayer(teamNumber)");
+    }
+
+    uint32_t team = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (team > 1) {
+        team = 0;
+    }
+
+    WDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_INSTANCE_COMMAND));
+    msg.Put(instance->m_guid.m_guid);
+    msg.Put(target->m_obj->m_guid.m_guid);
+    msg.Put(CGCommentator::s_Commentator.m_battlemaster.m_guid);
+    msg.Put(static_cast<uint32_t>(1));
+    msg.Put(instance->m_mapID);
+    msg.Put(map->unk_0000);
+    msg.Put(map->unk_0004);
+    msg.Put(map->unk_0008);
+    msg.Put(team);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: c90d6410 manual
+// OFFSET: 0x0056A860
+static int32_t Script_CommentatorRemovePlayer(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !(player->m_player->m_playerFlags & 0x400000)) {
+        return 0;
+    }
+
+    CGCommentator::MapInfo* map;
+    CGCommentator::InstanceInfo* instance;
+
+    if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
+        luaL_error(L, "Must select an instance first.");
+    }
+
+    if (!CGCommentator::s_Commentator.m_battlemaster) {
+        luaL_error(L, "Must set Battlemaster first.");
+    }
+
+    uint32_t faction = CGCommentator::s_Commentator.m_playerFaction;
+
+    if (faction > 2) {
+        luaL_error(L, "Error: Faction of current player is invalid.");
+    }
+
+    uint32_t index = CGCommentator::s_Commentator.m_playerIndex;
+
+    if (index >= instance->m_numPlayers[faction]) {
+        luaL_error(L, "Error: Index of current player is invalid.");
+    }
+
+    WDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_INSTANCE_COMMAND));
+    msg.Put(instance->m_guid.m_guid);
+    msg.Put(instance->m_players[faction][index].m_guid.m_guid);
+    msg.Put(CGCommentator::s_Commentator.m_battlemaster.m_guid);
+    msg.Put(static_cast<uint32_t>(2));
+    msg.Put(instance->m_mapID);
+    msg.Put(map->unk_0000);
+    msg.Put(map->unk_0004);
+    msg.Put(map->unk_0008);
+    msg.Put(faction);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: bc9088b3 manual
+// OFFSET: 0x0056AAF0
+static int32_t Script_CommentatorSetMoveSpeed(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && player->IsCommentatorUberOrInArena()) {
+        if (!lua_isnumber(L, 1)) {
+            luaL_error(L, "Usage: CommentatorSetMoveSpeed(speed)");
+        }
+
+        CGCommentator::s_Commentator.SetMoveSpeed(lua_tonumber(L, 1));
+    }
+
+    return 0;
+}
+
+// VERIFY: ed7ce6f7 manual
+// OFFSET: 0x0056AC90
+static int32_t Script_CommentatorSetSkirmishMatchmakingMode(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !(player->m_player->m_playerFlags & 0x80000) || !(player->m_player->m_playerFlags & 0x400000)) {
+        return 0;
+    }
+
+    if (lua_isnumber(L, 1)) {
+        uint8_t mode = static_cast<int32_t>(lua_tonumber(L, 1));
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_SKIRMISH_QUEUE_COMMAND));
+        msg.Put(static_cast<uint32_t>(0));
+        msg.Put(static_cast<uint32_t>(mode));
+        msg.Put(static_cast<uint64_t>(0));
+        msg.Put(static_cast<uint64_t>(0));
+        msg.Put(static_cast<uint32_t>(0));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 0;
+}
+
+// VERIFY: 42dd2161 manual
+// OFFSET: 0x0056ADA0
+static int32_t Script_CommentatorRequestSkirmishQueueData(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && (player->m_player->m_playerFlags & 0x80000)) {
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_SKIRMISH_QUEUE_COMMAND));
+        msg.Put(static_cast<uint32_t>(1));
+        msg.Put(static_cast<uint32_t>(1));
+        msg.Put(static_cast<uint64_t>(0));
+        msg.Put(static_cast<uint64_t>(0));
+        msg.Put(static_cast<uint32_t>(0));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 0;
+}
+
+// VERIFY: cb620e1e manual
+// OFFSET: 0x0056AE50
+static int32_t Script_CommentatorRequestSkirmishMode(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && (player->m_player->m_playerFlags & 0x80000)) {
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_SKIRMISH_QUEUE_COMMAND));
+        msg.Put(static_cast<uint32_t>(3));
+        msg.Put(static_cast<uint32_t>(1));
+        msg.Put(static_cast<uint64_t>(0));
+        msg.Put(static_cast<uint64_t>(0));
+        msg.Put(static_cast<uint32_t>(0));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 0;
+}
+
+// VERIFY: 1af6c281 manual
+// OFFSET: 0x0056B0B0
+static int32_t Script_CommentatorStartSkirmishMatch(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && (player->m_player->m_playerFlags & 0x80000) && lua_isstring(L, 1) && lua_isstring(L, 2)) {
+        WOWGUID first = StringToGuid(lua_tolstring(L, 1, nullptr));
+        WOWGUID second = StringToGuid(lua_tolstring(L, 2, nullptr));
+        int32_t team = -1;
+
+        if (lua_isnumber(L, 3)) {
+            team = static_cast<int32_t>(lua_tonumber(L, 3));
+        }
+
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_COMMENTATOR_SKIRMISH_QUEUE_COMMAND));
+        msg.Put(static_cast<uint32_t>(2));
+        msg.Put(static_cast<uint32_t>(1));
+        msg.Put(first.m_guid);
+        msg.Put(second.m_guid);
+        msg.Put(static_cast<uint32_t>(team));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 0;
+}
+
 // STATIC: 0x00ACE370
 static FrameScript_Method s_ScriptFunctions[] = {
     { "CommentatorSetMode", &Script_CommentatorSetMode },
@@ -350,5 +1016,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void CGCommentator::RegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 01b4e0a3 auto
+// OFFSET: 0x00568490
+void CGCommentator::UnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

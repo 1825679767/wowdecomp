@@ -8,6 +8,7 @@
 #include "WoW/Source/Object/WGUID.h"
 
 class CGUnit_C;
+class CreatureStats_C;
 class CM2Model;
 class CSimpleFrame;
 struct lua_State;
@@ -29,7 +30,7 @@ class CGCharacterModelBase : public CSimpleModel {
     /* 0368 */ WOWGUID m_unitGuid;
     /* 0370 */ uint32_t m_sequenceSet;
     /* 0374 */ uint32_t m_sequenceResetTime;
-    /* 0378 */ int32_t m_displayId;
+    /* 0378 */ CreatureStats_C* m_creatureStats;
     /* 037C */ uint32_t unk_037C;
 
     ~CGCharacterModelBase() override;
@@ -48,7 +49,8 @@ class CGCharacterModelBase : public CSimpleModel {
     void ConfigureCamera();
     void RefreshUnit(WOWGUID guid);
     void SetUpModel(CGUnit_C* unit);
-    void SetUpModel(int32_t displayId);
+    void SetUpModel(CreatureStats_C* stats);
+    void SetCreature(CreatureStats_C* stats);
     void RotateModel(float facing);
 };
 

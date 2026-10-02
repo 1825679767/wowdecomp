@@ -63,6 +63,72 @@ static int32_t Script_IsTutorialFlagged(lua_State* L) {
     return 1;
 }
 
+// VERIFY: c71cc525 auto
+// OFFSET: 0x00530700
+static int32_t Script_CanResetTutorials(lua_State* L) {
+    for (uint32_t i = CGTutorial::m_tutorialShown.m_bits.m_count; i; ) {
+        i--;
+
+        if (CGTutorial::m_tutorialShown.m_bits.m_data[i]) {
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 7bfe935d auto
+// OFFSET: 0x00530820
+static int32_t Script_ClearTutorials(lua_State* L) {
+    CGTutorial::ClearTutorials();
+    return 0;
+}
+
+// VERIFY: 545db5cf auto
+// OFFSET: 0x00530830
+static int32_t Script_ResetTutorials(lua_State* L) {
+    CGTutorial::ResetTutorials();
+    return 0;
+}
+
+// VERIFY: 5bbd7e2c manual
+// OFFSET: 0x005301D0
+static int32_t Script_GetNextCompleatedTutorial(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetNextCompleatedTutorial(\"tutorial\")");
+    }
+
+    int32_t tutorial = static_cast<int32_t>(lua_tonumber(L, 1));
+    int32_t next = CGTutorial::GetNextCompletedTutorial(tutorial - 1);
+
+    if (next == 60) {
+        return 0;
+    }
+
+    lua_pushnumber(L, next);
+    return 1;
+}
+
+// VERIFY: 3c733227 manual
+// OFFSET: 0x00530240
+static int32_t Script_GetPrevCompleatedTutorial(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetPrevCompleatedTutorial(\"tutorial\")");
+    }
+
+    int32_t tutorial = static_cast<int32_t>(lua_tonumber(L, 1));
+    int32_t prev = CGTutorial::GetPrevCompletedTutorial(tutorial - 1);
+
+    if (!prev) {
+        return 0;
+    }
+
+    lua_pushnumber(L, prev);
+    return 1;
+}
+
 // STATIC: 0x00ACC868
 static FrameScript_Method s_ScriptFunctions[] = {
     { "CanResetTutorials", &Script_CanResetTutorials },
@@ -80,5 +146,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void TutorialRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 32936793 auto
+// OFFSET: 0x005302E0
+void TutorialUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

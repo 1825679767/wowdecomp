@@ -211,6 +211,7 @@ class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID
     void BuildSelectionRotMatrix(C44Matrix* matrix, const C3Vector* position);
     int32_t SetCircleRenderStates() const;
     void SetModelFinish(CM2Model* model);
+    void SetModel(CM2Model* model);
     void PlaySpellVisualKit(const PlaySpellVisuaKitData& data);
     void ClearEffectKit(int32_t spellId, int32_t kitType, int32_t a4, int32_t a5, int32_t a6);
 };

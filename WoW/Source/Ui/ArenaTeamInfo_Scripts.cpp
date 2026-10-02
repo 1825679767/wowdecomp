@@ -12,6 +12,11 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/CGWorldStateInfo.h"
 #include "WoW/Source/Ui/Types.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/ChrClassesRec.h"
+#include "WoW/Source/Game/GameClient/NameCache.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
 
 // VERIFY: 1f34a576 auto
 // OFFSET: 0x005A2A00
@@ -148,6 +153,161 @@ static int32_t Script_GetPreviousArenaSeason(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 338e4a8c manual
+// OFFSET: 0x005A2FC0
+static int32_t Script_GetArenaTeamRosterInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: GetArenaTeamRosterInfo(team, index)");
+    }
+
+    uint32_t team = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
+    ArenaTeamMember* member;
+
+    if (team >= 3 || index >= CGArenaTeamInfo::m_arenaTeams[team].m_numMembers || !(member = CGArenaTeamInfo::m_arenaTeams[team].m_members.m_data[index])) {
+        lua_pushnil(L);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        lua_pushnumber(L, 0.0);
+        return 10;
+    }
+
+    lua_pushstring(L, member->m_name);
+    lua_pushnumber(L, member->m_rank);
+    lua_pushnumber(L, static_cast<int32_t>(member->m_level));
+    ChrClassesRec* chrClass = g_chrClassesDB.GetRecord(member->m_class);
+
+    if (chrClass) {
+        WOWGUID none = WOWGUID();
+        const char* className = CGUnit_C::GetDisplayClassName(nullptr, g_nameDBCache.GetRecord(member->m_guid.m_guid, none, nullptr, nullptr, false));
+
+        if (className) {
+            lua_pushstring(L, className);
+        } else {
+            lua_pushstring(L, chrClass->m_name);
+        }
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (member->m_online) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    lua_pushnumber(L, member->m_weekGames);
+    lua_pushnumber(L, member->m_weekWins);
+    lua_pushnumber(L, member->m_seasonGames);
+    lua_pushnumber(L, member->m_seasonWins);
+    lua_pushnumber(L, member->m_personalRating);
+    return 10;
+}
+
+// VERIFY: ecd919be manual
+// OFFSET: 0x005A3370
+static int32_t Script_SetArenaTeamRosterSelection(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: SetArenaTeamRosterSelection(team, index)");
+    }
+
+    uint32_t team = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
+    CGArenaTeamInfo::SelectMember(team, index);
+    return 0;
+}
+
+// VERIFY: d74e026b manual
+// OFFSET: 0x005A3410
+static int32_t Script_GetArenaTeamRosterSelection(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetArenaTeamRosterSelection(team)");
+    }
+
+    uint32_t team = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    lua_pushnumber(L, CGArenaTeamInfo::GetSelectedMemberIndex(team) + 1);
+    return 1;
+}
+
+// VERIFY: 5d0b0870 manual
+// OFFSET: 0x005A3490
+static int32_t Script_SortArenaTeamRoster(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usgae: SortArenaTeamRoster(\"type\")");
+    }
+
+    int32_t column = 0;
+    const char* type = lua_tolstring(L, 1, nullptr);
+
+    if (!SStrCmpI(type, "name", STORM_MAX_STR)) {
+        CGArenaTeamInfo::SortRoster(0);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "class", STORM_MAX_STR)) {
+        CGArenaTeamInfo::SortRoster(1);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "played", STORM_MAX_STR)) {
+        CGArenaTeamInfo::SortRoster(2);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "won", STORM_MAX_STR)) {
+        CGArenaTeamInfo::SortRoster(3);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "seasonplayed", STORM_MAX_STR)) {
+        CGArenaTeamInfo::SortRoster(4);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "seasonwon", STORM_MAX_STR)) {
+        CGArenaTeamInfo::SortRoster(5);
+        return 0;
+    }
+
+    if (!SStrCmpI(type, "rating", STORM_MAX_STR)) {
+        column = 6;
+    }
+
+    CGArenaTeamInfo::SortRoster(column);
+    return 0;
+}
+
+// VERIFY: c5ef8996 auto
+// OFFSET: 0x005A35E0
+static int32_t Script_SetArenaTeamRosterShowOffline(lua_State* L) {
+    CGArenaTeamInfo::SetRosterShowOffline(StringToBOOL(L, 1, 1));
+    return 0;
+}
+
+// VERIFY: 5053c75c auto
+// OFFSET: 0x008E5250
+static int32_t Script_CloseArenaTeamRoster(lua_State* L) {
+    return 0;
+}
+
+// VERIFY: fa985c25 manual
+// OFFSET: 0x005A3CF0
+static int32_t Script_ArenaTeamRoster(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: ArenaTeamRoster(team)");
+    }
+
+    uint32_t team = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    CGArenaTeamInfo::QueryRoster(team);
+    return 0;
+}
+
 // STATIC: 0x00ACF838
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetArenaTeam", &Script_GetArenaTeam },
@@ -170,5 +330,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void ArenaTeamInfoRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 066ee713 auto
+// OFFSET: 0x005A2AD0
+void ArenaTeamInfoUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

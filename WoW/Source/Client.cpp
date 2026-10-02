@@ -365,6 +365,60 @@ CommandManager::~CommandManager() {
     }
 }
 
+// VERIFY: 8b322739 manual
+// OFFSET: 0x00401280
+int32_t Packet_SMSG_NOTIFICATION(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    char text[4096];
+    const char* message = text;
+    bool show = true;
+    bool chat = false;
+    msg->GetString(text, sizeof(text));
+
+    if (!SStrCmp(text, "DEBUGACTION: ", 13)) {
+        message = &text[13];
+    }
+
+    if (*message != '~') {
+        CGGameUI::AddErrorMessage(message, 1);
+        ConsoleWriteA("%s", ERROR_COLOR, message);
+        return 1;
+    }
+
+    message++;
+
+    if (*message == '>') {
+        show = false;
+        message++;
+    }
+
+    if (*message == '#') {
+        show = false;
+        chat = true;
+        message++;
+    }
+
+    int32_t type = 0;
+    int32_t color = ERROR_COLOR;
+
+    if (*message == '^') {
+        type = message[1] - '0';
+        color = type;
+        message += 2;
+    }
+
+    if (show) {
+        CGGameUI::AddErrorMessage(message, color == ERROR_COLOR);
+    }
+
+    ConsoleWriteA("%s", static_cast<COLOR_T>(color), message);
+
+    if (chat) {
+        CGChat::AddChatMessage(message, type, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+    }
+
+    return 1;
+}
+
 // VERIFY: 004111ad auto
 // OFFSET: 0x00401520
 static void MovementInit() {

@@ -1026,6 +1026,18 @@ int32_t ClientDBGetNumWeaponSubClasses() {
     return s_weaponSubclasses.Count();
 }
 
+// VERIFY: 9c6cf3e8 auto
+// OFFSET: 0x00634A80
+int32_t GetMapResetTime(int32_t mapId, uint32_t difficulty) {
+    MapDifficultyRec* entry = GetMapDifficultyEntryByMapIdAndDifficulty(mapId, difficulty, nullptr);
+
+    if (entry) {
+        return entry->m_raidDuration;
+    }
+
+    return 0;
+}
+
 // VERIFY: d0ca7548 manual
 // OFFSET: 0x00634AE0
 void InitResistances() {

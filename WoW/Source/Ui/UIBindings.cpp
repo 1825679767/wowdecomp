@@ -827,6 +827,64 @@ void CGUIBindings::ClearOverrideBindings(void* owner, bool checkPermission) {
     }
 }
 
+// VERIFY: 62581540 manual
+// OFFSET: 0x00562990
+CSimpleFrame* GetClickFrame(lua_State* L, const char* name, uint32_t length) {
+    char* buffer = static_cast<char*>(alloca(length + 1));
+    memcpy(buffer, name, length);
+    buffer[length] = '\0';
+    CLICKFRAME* entry = s_clickFrames.Ptr(buffer);
+
+    if (!entry) {
+        lua_taintexpected++;
+        CSimpleFrame* frame = nullptr;
+        const char* savedTaint = lua_tainted;
+        lua_pushstring(L, buffer);
+        lua_rawget(L, LUA_GLOBALSINDEX);
+
+        if (lua_type(L, -1) == LUA_TTABLE) {
+            lua_rawgeti(L, -1, 0);
+            frame = static_cast<CSimpleFrame*>(lua_touserdata(L, -1));
+            lua_settop(L, -2);
+
+            if (frame) {
+                if (!frame->IsA(CSimpleFrame::GetObjectType())) {
+                    frame = nullptr;
+                } else {
+                    const char* frameName = frame->GetName();
+
+                    if (!frameName) {
+                        frameName = "<unnamed>";
+                    }
+
+                    if (SStrCmp(frameName, buffer, STORM_MAX_STR)) {
+                        frame = nullptr;
+                    }
+                }
+            }
+        }
+
+        lua_settop(L, -2);
+
+        if (lua_taintexpected && !lua_taintedclosure) {
+            lua_tainted = savedTaint;
+        }
+
+        if (--lua_taintexpected <= 0) {
+            lua_taintexpected = 0;
+        }
+
+        if (!frame) {
+            return nullptr;
+        }
+
+        entry = s_clickFrames.New(buffer, 0, 0);
+        entry->m_frame = frame;
+    }
+
+    return entry->m_frame;
+}
+
 // VERIFY: d1b98282 manual
 // OFFSET: 0x00562B80
 void CGUIBindings::CopyBindings(BINDING_SET source, BINDING_SET dest) {

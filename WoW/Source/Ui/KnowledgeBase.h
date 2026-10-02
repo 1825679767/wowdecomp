@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Os/OsURLDownload.h"
 #include "Engine/Source/Storm/Source/SLock.h"
 
 class CDynamicString;
@@ -29,12 +30,14 @@ class CKBPage {
     static void Shutdown();
     static void UpdateLoadingQueue();
 
-    /* 0004 */ uint32_t unk_0004;
+    static bool LoadingCallback(void* param, const char* data, uint32_t size, bool done, HTTPError::ErrorCode error);
+
+    /* 0004 */ uint32_t m_state;
     /* 0008 */ SCritSect m_lock;
-    /* 0030 */ CDynamicString* unk_0030;
-    /* 0034 */ XMLTree* unk_0034;
+    /* 0030 */ CDynamicString* m_data;
+    /* 0034 */ XMLTree* m_tree;
     /* 0038 */ CKBPage* m_loadingNext;
-    /* 003C */ uint32_t unk_003C;
+    /* 003C */ uint32_t m_inQueue;
 
     CKBPage();
     virtual ~CKBPage();
@@ -60,6 +63,7 @@ class CKBSetup : public CKBPage {
     /* 0070 */ uint32_t unk_0070;
 
     CKBSetup();
+    int32_t BeginLoading(int32_t numArticles, int32_t pageNumber);
     virtual void _ComputeCachedData();
     virtual void _SendSuccessEvent();
     virtual void _SendFailureEvent();
@@ -67,7 +71,6 @@ class CKBSetup : public CKBPage {
 
 extern CKBSetup g_KnowledgeBaseSetup;
 
-int32_t Script_KBSetup_BeginLoading(lua_State* L);
 int32_t Script_KBSetup_GetLanguageData(lua_State* L);
 int32_t Script_KBSetup_GetCategoryData(lua_State* L);
 int32_t Script_KBSetup_GetSubCategoryCount(lua_State* L);
@@ -79,6 +82,8 @@ int32_t Script_KBQuery_GetArticleHeaderData(lua_State* L);
 int32_t Script_KBQuery_GetTotalArticleCount(lua_State* L);
 int32_t Script_KBArticle_BeginLoading(lua_State* L);
 int32_t Script_KBArticle_GetData(lua_State* L);
+const char* KnowledgeBaseGetURLForLocale();
 void KnowledgeBase_RegisterScriptFunctions();
+void KnowledgeBase_UnregisterScriptFunctions();
 
 #endif

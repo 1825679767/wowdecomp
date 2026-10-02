@@ -47,6 +47,9 @@ class ItemLinkInfo {
     int32_t GetItemIdFromLink(const char* link);
 };
 
+extern const char* s_inventoryTypeTokens[29];
+
+class CGItemStatsSummary;
 class CGTalentGroup_C;
 struct ScriptAuraInfo;
 class CGTooltip;
@@ -129,8 +132,7 @@ class CGTooltip : public CSimpleFrame {
     /* 0338 */ uint32_t unk_0338;
     /* 033C */ uint32_t unk_033C;
     /* 0340 */ WOWGUID m_itemGuid;
-    /* 0348 */ uint32_t unk_0348;
-    /* 034C */ uint32_t unk_034C;
+    /* 0348 */ WOWGUID m_corpseGuid;
     /* 0350 */ uint32_t unk_0350;
     /* 0354 */ uint32_t unk_0354;
     /* 0358 */ WOWGUID m_healthGuid;
@@ -188,6 +190,9 @@ class CGTooltip : public CSimpleFrame {
     void CalculateSize();
     void AppendText(const char* text);
     void ClearTooltip();
+    void AddDeltaHeader(int32_t* first);
+    void AddColoredItemStat(int32_t value, const char* name, int32_t* first);
+    int32_t SetItemDelta(const CGItemStatsSummary* summary, int32_t append);
     void SetBuff(int32_t spellId, int32_t a2, int32_t a3, int32_t a4, int32_t a5, int32_t a6);
     void FadeOut();
     void ResetPosition(int32_t force);
@@ -225,16 +230,33 @@ class CGTooltip : public CSimpleFrame {
 
 class CGItemStatsSummary {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[28];
-    /* 0024 */ uint32_t unk_0024;
-    /* 0028 */ uint32_t unk_0028;
-    /* 002C */ uint32_t unk_002C;
-    /* 0030 */ uint8_t unk_0030[180];
-    /* 00E4 */ uint32_t unk_00E4;
-    /* 00E8 */ uint8_t unk_00E8[64];
-    /* 0128 */ uint32_t unk_0128;
+    static int32_t GetItemComparison(CGTooltip* first, CGTooltip* second, CGItemStatsSummary* result);
+
+    /* 0000 */ float m_dps;
+    /* 0004 */ int32_t m_stats[73];
+    /* 0128 */ uint32_t m_flags;
+
+    CGItemStatsSummary();
+    void Create();
+    int32_t Create(CGItem_C* item, int32_t level);
+    int32_t Create(const ItemStats_C* stats, const ItemLinkInfo* link, int32_t level);
+    int32_t CreateFromTooltip(CGTooltip* tooltip);
+    int32_t Fill(const char* link);
+    CGItemStatsSummary operator-(const CGItemStatsSummary& other) const;
+    void AccumulateStats(const ItemStats_C* stats);
+    void AddStatMods(const ItemStats_C* stats);
+    void AddResistances(const ItemStats_C* stats);
+    void AddSpellEffects(const SpellRec* spell);
+    void AddEnchantEffect(int32_t type, int32_t arg, int32_t amount);
+    void AddEnchantment(const SpellItemEnchantmentRec* enchant);
+    void AddEnchantment(const SpellItemEnchantmentRec* enchant, int32_t amount);
+    void AccumulateDpsStat(const ItemStats_C* stats);
+    void ScanEnchantSpells(const ItemStats_C* stats);
+    void GetSocketFlags(const ItemStats_C* stats);
+    void FillOutScalingItem(const ItemStats_C* stats, int32_t level);
+    void FillOutRandomProperties(int32_t randomPropertiesId, uint32_t seed);
+    void MakeStatNamesPretty(int32_t stat, const int32_t* group, uint32_t count, int32_t merge);
+    void CleanStatNames();
 };
 
 class CSimpleUI {
@@ -256,5 +278,7 @@ extern uint32_t s_tooltipTextColor;
 
 int32_t SetCompareItem(CGTooltip* tooltip, uint32_t itemId, int32_t offset, int32_t shift, CGTooltip* compare);
 int32_t SetTooltipUnitAura(CGTooltip* tooltip, ScriptAuraInfo* info);
+
+extern const char* s_socketColorNames[5];
 
 #endif

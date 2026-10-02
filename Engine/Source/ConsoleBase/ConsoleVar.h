@@ -64,7 +64,9 @@ struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
 class CVarArrayWrapper {
     public:
     /* 0000 */ CVar* m_cvar;
+    /* 0004 */ uint8_t m_defaultValue;
 
+    CVarArrayWrapper(CVar* cvar);
     bool RawGetValue(uint32_t index) const;
     bool RawSetValue(uint32_t index, bool value);
     void UpdateFromVersion(int32_t version);
@@ -82,5 +84,16 @@ class CVarIntListWrapper {
     void UpdateFromVersion(int32_t version);
     void WriteVersionTag();
 };
+
+// INLINED
+inline CVarArrayWrapper::CVarArrayWrapper(CVar* cvar) {
+    this->m_cvar = cvar;
+    this->m_defaultValue = 0;
+    uint8_t version = static_cast<uint8_t>(cvar->m_stringValue.m_str[0]);
+
+    if (version != 2) {
+        this->UpdateFromVersion(version);
+    }
+}
 
 #endif

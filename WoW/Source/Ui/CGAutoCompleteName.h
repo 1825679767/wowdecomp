@@ -25,12 +25,15 @@ class CGAutoCompleteName {
     static bool s_useContext;
 
     static void ResortAll();
+    static int32_t GetPresenceID(const char* name, uint32_t* presenceId);
     static void AddFlags(const WOWGUID& guid, uint32_t flags, int32_t add, const char* name);
     static int32_t RemoveFlags(const WOWGUID& guid, uint32_t flags);
+    static int32_t SetName(const WOWGUID& guid, const char* name, bool overwrite);
+    static int32_t NodeMatchesParams(AUTOCOMPLETE_NAMENODE* node, const char* text, uint32_t include, uint32_t exclude, int32_t cursor, bool allowFullMatch);
+    static int32_t GetMatchingResults(lua_State* L, const char* text, uint32_t include, uint32_t exclude, int32_t numReturns, int32_t cursor, bool allowFullMatch);
 };
 
-int32_t Script_GetAutoCompleteResults(lua_State* L);
-int32_t Script_GetAutoCompletePresenceID(lua_State* L);
 void AutoCompleteRegisterScriptFunctions();
+void AutoCompleteUnregisterScriptFunctions();
 
 #endif

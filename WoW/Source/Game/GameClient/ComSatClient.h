@@ -45,6 +45,9 @@ int32_t ComSatClient_HasSession(int32_t type, const char* name);
 int32_t ComSatClient_FindSessionByTypeAndName(int32_t type, const char* name);
 int32_t ComSatClient_IsMemberInVoiceSession(WOWGUID guid, int32_t type, const char* name);
 int32_t ComSatClient_Unk7DB830(WOWGUID guid, int32_t type, const char* name);
+int32_t ComSatClient_IsTalkerSquelched(WOWGUID guid, uint32_t session);
+int32_t ComSatClient_IsMemberVoiceActive(WOWGUID guid, uint32_t session);
+int32_t ComSatClient_GetMemberVoiceStatus(WOWGUID guid, uint32_t session);
 bool ComSatClient_IsPlayerMuted(WOWGUID guid);
 int32_t ComSatClient_IsTalkerSquelchedInChannel(WOWGUID guid, int32_t type, const char* name);
 int32_t ComSatClient_GetCurrentSessionType();
@@ -57,12 +60,18 @@ void VoiceStart();
 void VoiceStop();
 }
 
+struct COMSATMEMBER {
+    /* 0000 */ WOWGUID m_guid;
+    /* 0008 */ uint8_t m_flags;
+    /* 0009 */ uint8_t unk_0009[7];
+};
+
 struct COMSATDATA {
     /* 0000 */ uint64_t m_sessionID;
     /* 0008 */ int32_t m_type;
     /* 000C */ char m_name[128];
     /* 008C */ uint32_t m_numMembers;
-    /* 0090 */ uint8_t unk_0090[640];
+    /* 0090 */ COMSATMEMBER m_members[40];
 };
 
 extern COMSATDATA s_comsatData[32];
@@ -78,6 +87,9 @@ extern int32_t s_voiceActivation;
 extern int32_t s_voiceChatWasEnabled;
 
 void AddComSatEvent(uint32_t type, uint32_t value, uint64_t guid);
+void ComSatClient_SendEvent(int32_t event, WOWGUID guid);
+int32_t ComSatClient_SetCurrentSession(int32_t type, const char* name);
+void ComSatClient_DisableCurrentSession();
 void AddComSatEvent(uint32_t type, float value, uint64_t guid);
 void ComSatClient_SetCaptureDevice(int32_t index);
 void ComSatClient_SetOutputDevice(int32_t index);
@@ -106,6 +118,7 @@ extern int32_t s_comsatDisabledByClient;
 class SCritSect;
 extern SCritSect s_comsatDeviceLock;
 void VoiceRegisterScriptFunctions();
+void VoiceUnregisterScriptFunctions();
 
 void VoiceSessionSetTalkerMuted(WOWGUID guid, int32_t muted);
 

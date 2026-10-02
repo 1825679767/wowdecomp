@@ -16,6 +16,7 @@ int32_t Script_GetMinigameType(lua_State* L);
 int32_t Script_MakeMinigameMove(lua_State* L);
 int32_t Script_GetMinigameState(lua_State* L);
 void MinigameInfoRegisterScriptFunctions();
+void MinigameInfoUnregisterScriptFunctions();
 
 class CDataStore;
 

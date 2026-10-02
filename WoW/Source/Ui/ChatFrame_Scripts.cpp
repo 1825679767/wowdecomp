@@ -328,6 +328,60 @@ static int32_t Script_GetDefaultLanguage(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 53c096da manual
+// OFFSET: 0x004FE530
+static void ChannelDisplayCommand(lua_State* L, uint32_t msgId, const char* name) {
+    if (!lua_isnumber(L, 1)) {
+        char usage[512];
+        SStrPrintf(usage, sizeof(usage), "Usage: %s(\"displayIndex\")", name);
+        luaL_error(L, usage);
+    }
+
+    int32_t type;
+    const char* channel = CGChat::GetChannelStringForDisplay(static_cast<int32_t>(lua_tonumber(L, 1)) - 1, &type);
+
+    if (!channel || type) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(msgId);
+    msg.PutString(channel);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 1247ad54 manual
+// OFFSET: 0x00504E50
+static int32_t Script_SetSelectedDisplayChannel(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return 0;
+    }
+
+    int32_t type;
+    const char* channel = CGChat::GetChannelStringForDisplay(static_cast<int32_t>(lua_tonumber(L, 1)) - 1, &type);
+
+    if (!channel || type == 4) {
+        return 0;
+    }
+
+    if (type == s_activeDisplayChannelType && (type || !SStrCmpUTF8I(channel, CGChat::s_activeDisplayChannelName, STORM_MAX_STR))) {
+        return 0;
+    }
+
+    SetCurrentActiveDisplayChannel(channel, type);
+
+    if (!type) {
+        ChannelDisplayCommand(L, CMSG_CHAT_CHANNEL_DISPLAY_LIST, "GetChannelRosterInfo");
+    } else if (type == 2) {
+        BuildPartyDisplayList();
+    } else if (type == 3 || type == 1) {
+        BuildRaidDisplayList(type);
+    }
+
+    return 0;
+}
+
 // VERIFY: da51be8e manual
 // OFFSET: 0x005052E0
 static int32_t Script_CollapseChannelHeader(lua_State* L) {
@@ -741,6 +795,36 @@ static int32_t Script_GetChatWindowInfo(lua_State* L) {
     }
 
     return 10;
+}
+
+// VERIFY: c8fb4c79 manual
+// OFFSET: 0x004FE460
+static void ChannelCommand(lua_State* L, uint32_t msgId, const char* name) {
+    if (!lua_isstring(L, 1)) {
+        char usage[512];
+        SStrPrintf(usage, sizeof(usage), "Usage: %s(\"channel\")", name);
+        luaL_error(L, usage);
+        return;
+    }
+
+    const char* channel = CGChat::GetChannelString(lua_tolstring(L, 1, nullptr));
+
+    if (!channel) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(msgId);
+    msg.PutString(channel);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: c193a79d auto
+// OFFSET: 0x004FFCC0
+static int32_t Script_DeclineInvite(lua_State* L) {
+    ChannelCommand(L, CMSG_CHAT_CHANNEL_DECLINE_INVITE, "DeclineInvite");
+    return 0;
 }
 
 // VERIFY: 96bea800 manual
@@ -1229,6 +1313,13 @@ static int32_t Script_GetChatWindowChannels(lua_State* L) {
     return 2 * count;
 }
 
+// VERIFY: 75fea573 manual
+// OFFSET: 0x004FCA50
+static int32_t Script_GetNumSavedInstances(lua_State* L) {
+    lua_pushnumber(L, s_numSavedInstances);
+    return 1;
+}
+
 // STATIC: 0x00AC7A58
 static FrameScript_Method s_ScriptFunctions[] = {
     { "SendChatMessage", &Script_SendChatMessage },
@@ -1327,5 +1418,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void ChatRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: bbd469da auto
+// OFFSET: 0x004FCF20
+void ChatUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

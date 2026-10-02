@@ -1731,6 +1731,12 @@ float CMovement_C::GetTimeJustFallen(float elapsed, float timeFallen, C3Vector* 
     return remaining;
 }
 
+// VERIFY: 9474deaa manual
+// OFFSET: 0x0072FE00
+CMovement_C::~CMovement_C() {
+    this->Disable();
+}
+
 // VERIFY: 927722c0 manual
 // OFFSET: 0x006EBD30
 CMovement_C::CMovement_C(const C3Vector& position, float facing, const WOWGUID& ownerGuid, CGUnit_C* unit) : CMovementShared(WOWGUID(), position, facing, ownerGuid) {
@@ -2246,6 +2252,168 @@ static int32_t ClipGenericPolygon(ClipPolygon& polygon, const C4Plane* planes, u
 
     *distance = best;
     return 1;
+}
+
+// VERIFY: 8a756579 auto
+// OFFSET: 0x0075BB00
+static int32_t ClipPolygonToFrustum(ClipPolygon& polygon, const CAaBox& box) {
+    C4Plane plane;
+
+    plane.n = C3Vector(-1.0f, 0.0f, 0.0f);
+    plane.d = box.b.x;
+    ClipPolygonToPlane(polygon, -1, plane);
+
+    if (!polygon.m_count) {
+        return 0;
+    }
+
+    plane.n = C3Vector(1.0f, 0.0f, 0.0f);
+    plane.d = -box.t.x;
+    ClipPolygonToPlane(polygon, -1, plane);
+
+    if (!polygon.m_count) {
+        return 0;
+    }
+
+    plane.n = C3Vector(0.0f, -1.0f, 0.0f);
+    plane.d = box.b.y;
+    ClipPolygonToPlane(polygon, -1, plane);
+
+    if (!polygon.m_count) {
+        return 0;
+    }
+
+    plane.n = C3Vector(0.0f, 1.0f, 0.0f);
+    plane.d = -box.t.y;
+    ClipPolygonToPlane(polygon, -1, plane);
+
+    if (!polygon.m_count) {
+        return 0;
+    }
+
+    plane.n = C3Vector(0.0f, 0.0f, -1.0f);
+    plane.d = box.b.z;
+    ClipPolygonToPlane(polygon, -1, plane);
+
+    if (!polygon.m_count) {
+        return 0;
+    }
+
+    plane.n = C3Vector(0.0f, 0.0f, 1.0f);
+    plane.d = -box.t.z;
+    ClipPolygonToPlane(polygon, -1, plane);
+
+    return polygon.m_count != 0;
+}
+
+// VERIFY: 87ab8510 auto
+// OFFSET: 0x0075C6F0
+static int32_t PolygonAtPoint(const ClipPolygon& polygon, const C3Vector& point) {
+    for (uint32_t i = 0; i < static_cast<uint32_t>(polygon.m_count); i++) {
+        float dy = point.y - polygon.m_v[i].y;
+        float dz = point.z - polygon.m_v[i].z;
+        float dx = point.x - polygon.m_v[i].x;
+
+        if (dx * dx + dz * dz + dy * dy > 0.00077160494f) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 31d8651a manual
+// OFFSET: 0x0075C750
+static int32_t ClipCollisionBox(const CAaBox& box) {
+    ClipPolygon polygon;
+    polygon.m_count = 3;
+
+    for (uint32_t i = 0; i < s_moveFacets.facets.m_count; i++) {
+        memcpy(polygon.m_v, s_moveFacets.facets.m_data[i].v, sizeof(s_moveFacets.facets.m_data[i].v));
+        memset(polygon.m_flags, 0xFF, sizeof(int32_t) * 3);
+        polygon.m_count = 3;
+
+        if (ClipPolygonToFrustum(polygon, box)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: dd41383e manual
+// OFFSET: 0x0075C800
+static int32_t ClipBoxAgainstPlanes(const C3Vector& position, const C4Plane* planes, uint32_t count) {
+    ClipPolygon polygon;
+    polygon.m_count = 3;
+
+    for (uint32_t i = 0; i < s_moveFacets.facets.m_count; i++) {
+        memcpy(polygon.m_v, s_moveFacets.facets.m_data[i].v, sizeof(s_moveFacets.facets.m_data[i].v));
+        polygon.m_count = 3;
+        memset(polygon.m_flags, 0xFF, sizeof(int32_t) * 3);
+
+        for (uint32_t j = 0; j < count; j++) {
+            ClipPolygonToPlane(polygon, j, planes[j]);
+
+            if (!polygon.m_count) {
+                break;
+            }
+        }
+
+        if (polygon.m_count && !PolygonAtPoint(polygon, position)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 124c195e auto
+// OFFSET: 0x0075E480
+int32_t CMovement_C::CollisionBoxDoesntFit(const CAaBox& box) {
+    uint32_t flags = this->GetFacetQueryFlags();
+    s_queryBox = box;
+
+    if (!World::GetFacets(&s_queryBox, &s_moveFacets, flags, nullptr)) {
+        return 1;
+    }
+
+    return ClipCollisionBox(box);
+}
+
+// VERIFY: a677f218 manual
+// OFFSET: 0x0075E500
+int32_t CMovement_C::BoxDoesntFit(float height, float radius) {
+    uint32_t flags = this->GetFacetQueryFlags();
+    s_queryBox.b = C3Vector(-radius, -radius, 0.0f);
+    s_queryBox.t = C3Vector(radius, radius, height);
+    C3Vector position = CPassenger::GetPosition(this->m_position);
+    s_queryBox.b.x = s_queryBox.b.x + position.x;
+    s_queryBox.b.y = position.y + s_queryBox.b.y;
+    s_queryBox.b.z = position.z + s_queryBox.b.z;
+    s_queryBox.t.x = s_queryBox.t.x + position.x;
+    s_queryBox.t.y = position.y + s_queryBox.t.y;
+    s_queryBox.t.z = position.z + s_queryBox.t.z;
+
+    if (!World::GetFacets(&s_queryBox, &s_moveFacets, flags, nullptr)) {
+        return 1;
+    }
+
+    C4Plane planes[9];
+    this->BuildCollisionVolumePlanes(this->m_position, height, radius, planes);
+    return ClipBoxAgainstPlanes(this->m_position, planes, 9);
+}
+
+// VERIFY: cc7ae3d9 auto
+// OFFSET: 0x006E8FF0
+int32_t CMovement_C::CollisionBoxDoesntFit(float width, float height, float scale) {
+    float radius = width * scale * 0.5f;
+
+    if (radius * 1.849399f > scale) {
+        radius = scale * 0.54071623f;
+    }
+
+    return this->BoxDoesntFit(height * scale, radius);
 }
 
 // VERIFY: ae5e5bd7 manual
@@ -6353,6 +6521,24 @@ void CMovement_C::SetSplineAnimation(uint8_t animType, uint32_t effectStartTime)
         this->SetAnimTierInTrans(1);
         this->m_unit->SetAnimType(animType);
     }
+}
+
+// VERIFY: ac05273e auto
+// OFFSET: 0x006EB650
+int32_t CMovement_C::TryStartFallingLocal() {
+    if (!this->TryStartFalling()) {
+        return 0;
+    }
+
+    if (!this->m_globalUnitsLink.IsLinked()) {
+        CMovementGlobals* globals = MovementGetGlobals();
+
+        if (globals) {
+            globals->m_movers.LinkToHead(this);
+        }
+    }
+
+    return 1;
 }
 
 // VERIFY: b800678d manual

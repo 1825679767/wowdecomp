@@ -159,8 +159,8 @@ bool SpellHasOpenLockEffect(const SpellRec* spell);
 class SpellMechanicRec;
 void DisplayMechanicEffect(const WOWGUID* unitGuid, const WOWGUID* sourceGuid, const SpellRec* spell, const SpellMechanicRec* mechanic);
 
-int32_t Script_CombatLogAdvanceEntry(lua_State* L);
 void UnitCombatLogRegisterScriptFunctions();
+void UnitCombatLogUnregisterScriptFunctions();
 
 // INLINED
 inline CombatLogFilter::CombatLogFilter() {

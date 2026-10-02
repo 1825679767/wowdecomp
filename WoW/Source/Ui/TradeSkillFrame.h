@@ -104,6 +104,7 @@ int32_t Script_GetTradeSkillRecipeLink(lua_State* L);
 int32_t Script_GetTradeSkillListLink(lua_State* L);
 int32_t Script_IsTradeSkillLinked(lua_State* L);
 void TradeSkillRegisterScriptFunctions();
+void TradeSkillUnregisterScriptFunctions();
 void UpdateTradeSkillRecast(int32_t spellId);
 
 #endif

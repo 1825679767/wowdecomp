@@ -8,12 +8,32 @@
 #include <cmath>
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/Magic/MagicClient/SpellTable.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
+#include "Engine/Source/lua-5.1/src/lauxlib.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "WoW/Source/Net/Types.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/DB/Rec/SkillLineRec.h"
+#include "WoW/Source/DB/Rec/SkillRaceClassInfoRec.h"
+#include "WoW/Source/Object/Unit.h"
 
 // VERIFY: b1ab49e5 manual
 // OFFSET: 0x005CD1B0
 static int32_t Script_GetNumSkillLines(lua_State* L) {
     lua_pushnumber(L, CGSkillInfo::m_numSkillLines);
     return 1;
+}
+
+// VERIFY: 6e3565d9 auto
+// OFFSET: 0x005CD820
+static int32_t Script_CancelSkillUps(lua_State* L) {
+    for (uint32_t i = 0; i < CGSkillInfo::m_numLines; i++) {
+        CGSkillInfo::m_lines.m_data[i]->m_skillUps = 0;
+    }
+
+    CGSkillInfo::m_skillUpPoints = 0;
+    FrameScript_SignalEvent(SCRIPT_EVENT_SKILL_LINES_CHANGED, nullptr);
+    return 0;
 }
 
 // VERIFY: 6d37f79d manual
@@ -183,6 +203,168 @@ static int32_t Script_GetSkillLineInfo(lua_State* L) {
     return 13;
 }
 
+// VERIFY: 8e1b48e5 manual
+// OFFSET: 0x005CE2C0
+static int32_t Script_AbandonSkill(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: AbandonSkill(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index < CGSkillInfo::m_numLines) {
+        SkillLineInfo* line = CGSkillInfo::m_lines.m_data[index];
+
+        if (line) {
+            CDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_UNLEARN_SKILL));
+            msg.Put(static_cast<uint32_t>(line->m_skillLineID));
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 19628834 auto
+// OFFSET: 0x005CE3A0
+static int32_t Script_CollapseSkillHeader(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: CollapseSkillHeader(index)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index >= 0) {
+        CGSkillInfo::CollapseHeader(index);
+    } else {
+        CGSkillInfo::m_expandedTypes = 0;
+        CGSkillInfo::UpdateSkillLines();
+    }
+
+    return 0;
+}
+
+// VERIFY: 1235676b auto
+// OFFSET: 0x005CE400
+static int32_t Script_ExpandSkillHeader(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: ExpandSkillHeader(index)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index >= 0) {
+        CGSkillInfo::ExpandHeader(index);
+    } else {
+        CGSkillInfo::m_expandedTypes = -1;
+        CGSkillInfo::UpdateSkillLines();
+    }
+
+    return 0;
+}
+
+// VERIFY: 04976012 manual
+// OFFSET: 0x005CE460
+static int32_t Script_AddSkillUp(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: AddSkillUp(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    CGSkillInfo::AddSkillUp(index);
+    return 0;
+}
+
+// VERIFY: 020eae34 manual
+// OFFSET: 0x005CE4D0
+static int32_t Script_RemoveSkillUp(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: RemoveSkillUp(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    CGSkillInfo::RemoveSkillUp(index);
+    return 0;
+}
+
+// VERIFY: 32c1e0b1 manual
+// OFFSET: 0x005CE5D0
+static int32_t Script_AcceptSkillUps(lua_State* L) {
+    if (!CGSkillInfo::m_skillUpPoints) {
+        return 0;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_SKILL_BUY_RANK));
+    uint32_t count = 0;
+    uint32_t countPos = msg.m_size;
+    msg.Put(static_cast<uint32_t>(0));
+
+    for (uint32_t i = 0; i < CGSkillInfo::m_numSkillLines; i++) {
+        SkillLineInfo* line = i < CGSkillInfo::m_numLines ? CGSkillInfo::m_lines.m_data[i] : nullptr;
+
+        if (line->m_skillLineID && line->m_skillUps) {
+            msg.Put(static_cast<uint32_t>(line->m_skillLineID));
+            msg.Put(static_cast<uint32_t>(line->m_skillUps));
+            count++;
+        }
+    }
+
+    msg.Set(countPos, count);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+
+    for (uint32_t i = 0; i < CGSkillInfo::m_numLines; i++) {
+        CGSkillInfo::m_lines.m_data[i]->m_skillUps = 0;
+    }
+
+    CGSkillInfo::m_skillUpPoints = 0;
+    return 0;
+}
+
+// VERIFY: 1526bb4d manual
+// OFFSET: 0x005CE6F0
+static int32_t Script_BuySkillTier(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: BuySkillTier(index)");
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    SkillLineInfo* line = index < CGSkillInfo::m_numLines ? CGSkillInfo::m_lines.m_data[index] : nullptr;
+
+    if (!player || !line) {
+        return 0;
+    }
+
+    SkillLineRec* skillLine = g_skillLineDB.GetRecord(line->m_skillLineID);
+    const SkillRaceClassInfoRec* info = SpellTableLookupInfo(player->m_unit->m_unitFieldBytes0[0], player->m_unit->m_unitFieldBytes0[1], line->m_skillLineID);
+
+    if (!skillLine || !info) {
+        return 0;
+    }
+
+    uint32_t step = player->GetSkillStep(player->GetSkillIndex(line->m_skillLineID));
+
+    if (!(info->m_flags & 8) && (step || !(info->m_flags & 4))) {
+        return 0;
+    }
+
+    int32_t cost = GetSkillTierCost(info, step);
+
+    if (cost && cost <= player->GetCharacterPoints(1)) {
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_SKILL_BUY_STEP));
+        msg.Put(static_cast<uint32_t>(line->m_skillLineID));
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+    }
+
+    return 0;
+}
+
 // STATIC: 0x00AD09B8
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetNumSkillLines", &Script_GetNumSkillLines },
@@ -205,5 +387,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void SkillInfoRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: bec2993b auto
+// OFFSET: 0x005CD220
+void SkillInfoUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

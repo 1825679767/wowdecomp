@@ -196,6 +196,7 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     void CreateMaterials();
     bool TestBounds(CAaBox& box);
     bool TestBounds(C3Vector& start, C3Vector& end);
+    bool VectorIntersect(C3Vector& start, C3Vector& end, uint32_t flags, uint32_t groupIgnoreFlags, float* t, uint16_t* hitFace, CMapObjDef* mapObjDef, float* normalDot, uint32_t* hitGroup);
     bool ContainsPointInBounds(C3Vector& point);
     bool TestGroupBounds(C3Vector& start, C3Vector& end, uint32_t groupNum);
     bool TestGroupBounds(const C3Vector& point, uint32_t groupNum);

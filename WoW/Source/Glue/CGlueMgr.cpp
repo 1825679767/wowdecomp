@@ -676,6 +676,16 @@ void CGlueMgr::UpdateCurrentScreen(const char* screen) {
     }
 }
 
+// VERIFY: 7d4f3c79 manual
+// OFFSET: 0x004D8540
+void CGlueMgr::HandleScreenshot(int32_t success) {
+    if (success) {
+        FrameScript_SignalEvent(GLUE_EVENT_GLUE_SCREENSHOT_SUCCEEDED, nullptr);
+    } else {
+        FrameScript_SignalEvent(GLUE_EVENT_GLUE_SCREENSHOT_FAILED, nullptr);
+    }
+}
+
 // VERIFY: b2ebc87e manual
 // OFFSET: 0x004D8570
 int32_t CGlueMgr::ShowChangedOptionWarnings() {

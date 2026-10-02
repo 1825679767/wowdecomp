@@ -3,34 +3,46 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 
 class CTexture;
 
 class Mists {
     public:
-    /* 0004 */ C3Vector m_position;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint32_t unk_0018;
-    /* 001C */ float m_scale;
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ float m_rotationSpeed;
-    /* 0028 */ float m_fadeSpeed;
-    /* 002C */ uint32_t unk_002C;
-    /* 0030 */ float m_opacity;
-    /* 0034 */ float m_lifeTime;
-    /* 0038 */ float m_spawnRate;
-    /* 003C */ uint8_t unk_003C;
+    struct Mist {
+        /* 0000 */ uint32_t m_maxHeights;
+        /* 0004 */ float m_heights[64];
+        /* 0104 */ int32_t m_heightCount;
+        /* 0108 */ C3Vector m_position;
+        /* 0114 */ C3Vector m_velocity;
+        /* 0120 */ uint32_t m_startTick;
+        /* 0124 */ uint32_t m_endTick;
+        /* 0128 */ float m_acceleration;
+
+        Mist();
+    };
+
+    /* 0004 */ C3Vector m_extents;
+    /* 0010 */ C3Vector unk_0010;
+    /* 001C */ float m_size;
+    /* 0020 */ float m_spawnRate;
+    /* 0024 */ float m_angle;
+    /* 0028 */ float m_angleVariance;
+    /* 002C */ float m_spawnAccum;
+    /* 0030 */ float m_fadeTime;
+    /* 0034 */ float m_speed;
+    /* 0038 */ float m_speedVariance;
+    /* 003C */ uint8_t m_fadeOut;
     /* 003D */ uint8_t m_padding [3];
-    /* 0040 */ CTexture* m_mistTexture;
-    /* 0044 */ uint32_t m_particleCount;
-    /* 0048 */ uint32_t unk_0048;
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050;
+    /* 0040 */ CTexture* m_texture;
+    /* 0044 */ TSGrowableArray<Mist> m_mists;
 
-    virtual ~Mists();
+    virtual void InitMist(Mist* mist, uint32_t startTick);
 
+    Mists(float size, const C3Vector& extents, const char* textureName, float angle, float angleVariance, float speed, float speedVariance, uint32_t count);
+    ~Mists();
+    void CreateMist(Mist* mist, uint32_t startTick);
     void Render();
 };
 

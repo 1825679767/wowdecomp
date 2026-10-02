@@ -13,6 +13,10 @@
 #include "WoW/Source/WorldClient/World.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "WoW/Source/DB/Rec/WeatherRec.h"
+#include "WoW/Source/WorldClient/Map.h"
+#include "WoW/Source/WorldClient/DayNight.h"
+#include "WoW/Source/WorldClient/DayNight__DNInfo.h"
+#include "Engine/Source/Os/Time.h"
 
 // STATIC: 0x00ADF1F8
 float s_weatherDensity = 0.66f;
@@ -29,12 +33,111 @@ int32_t Weather::TimeToFixed(float seconds) {
 
 // INLINED
 WeatherGridCell::WeatherGridCell() {
-    this->unk_1000 = -9999;
-    this->unk_1004 = -9999;
+    this->m_cellX = -9999;
+    this->m_cellY = -9999;
 
     for (uint32_t i = 0; i < sizeof(this->m_heights) / sizeof(this->m_heights[0]); i++) {
         this->m_heights[i] = FLT_MAX;
     }
+}
+
+// VERIFY: 4502f4fc auto
+// OFFSET: 0x00783BD0
+static float __stdcall GetHeightOrDefault(const C3Vector* position) {
+    float height;
+
+    if (CMap::QueryHeight(*position, 200.0f, &height)) {
+        return height;
+    }
+
+    return position->z - 200.0f;
+}
+
+// VERIFY: 4e33c407 manual
+// OFFSET: 0x00783C10
+float WeatherGridCell::GetHeight(const C3Vector* position) {
+    float x = position->x - this->m_cellX * 33.333332f;
+    float y = position->y - this->m_cellY * 33.333332f;
+
+    if (x < 0.0f || y < 0.0f) {
+        return FLT_MAX;
+    }
+
+    float scaledY = y * 0.96f;
+    int32_t cellY = CMath::fint_(scaledY - 0.5f);
+    float scaledX = x * 0.96f;
+    int32_t cellX = CMath::fint_(scaledX - 0.5f);
+
+    if (cellX < 0 || cellY < 0 || cellX >= 32 || cellY >= 32) {
+        return FLT_MAX;
+    }
+
+    float* height = &this->m_heights[cellY * 32 + cellX];
+
+    if (*height == FLT_MAX) {
+        *height = GetHeightOrDefault(position);
+    }
+
+    return *height;
+}
+
+// VERIFY: 46769949 auto
+// OFFSET: 0x00783CE0
+float WeatherGrid::GetSubCellHeight(const C2iVector* cell, float z) {
+    WeatherGridCell* gridCell = this->m_cells[cell->y >> 5][cell->x >> 5];
+    float* height = &gridCell->m_heights[(cell->y & 0x1F) * 32 + (cell->x & 0x1F)];
+    C3Vector position(cell->x * 1.0416666f + this->m_minCellX * 33.333332f + 0.52083331f, cell->y * 1.0416666f + this->m_minCellY * 33.333332f + 0.52083331f, z);
+
+    if (*height != FLT_MAX) {
+        return *height;
+    }
+
+    float result;
+
+    if (CMap::QueryHeight(position, 200.0f, &result)) {
+        *height = result;
+    } else {
+        *height = z - 200.0f;
+    }
+
+    return *height;
+}
+
+// VERIFY: bbd3deed manual
+// OFFSET: 0x00783DC0
+CiRect* WeatherGrid::GetCellBounds(CiRect* bounds) {
+    bounds->minY = 0xFFFF;
+    bounds->maxY = -0xFFFF;
+    bounds->minX = 0xFFFF;
+    bounds->maxX = -0xFFFF;
+
+    for (uint32_t y = 0; y < 5; y++) {
+        for (uint32_t x = 0; x < 5; x++) {
+            WeatherGridCell* cell = this->m_cells[y][x];
+
+            if (!cell) {
+                continue;
+            }
+
+            if (cell->m_cellX < bounds->minX) {
+                bounds->minX = cell->m_cellX;
+            }
+
+            if (cell->m_cellX > bounds->maxX) {
+                bounds->maxX = cell->m_cellX;
+            }
+
+            if (cell->m_cellY < bounds->minY) {
+                bounds->minY = cell->m_cellY;
+            }
+
+            if (cell->m_cellY > bounds->maxY) {
+                bounds->maxY = cell->m_cellY;
+            }
+        }
+    }
+
+    return bounds;
 }
 
 // VERIFY: b61c5f42 manual
@@ -42,18 +145,18 @@ WeatherGridCell::WeatherGridCell() {
 WeatherGridBase::~WeatherGridBase() {
 }
 
-// VERIFY: 1c1b6708 manual
+// VERIFY: d6faa539 manual
 // OFFSET: 0x00784AB0
 WeatherGrid::WeatherGrid() {
     this->unk_0004 = 0.0f;
     this->unk_0008 = 0.0f;
     this->unk_000C = 0.0f;
-    this->unk_0010[0] = 0;
-    this->unk_0010[1] = 0;
-    this->unk_0010[2] = 0;
-    this->unk_0010[3] = 0;
-    this->unk_0010[4] = 0;
-    this->unk_0010[5] = 0;
+    this->m_originX = 0;
+    this->m_originY = 0;
+    this->m_minCellX = 0;
+    this->m_minCellY = 0;
+    this->m_minX = 0;
+    this->m_minY = 0;
 
     for (uint32_t y = 0; y < 5; y++) {
         for (uint32_t x = 0; x < 5; x++) {
@@ -72,6 +175,253 @@ WeatherGrid::~WeatherGrid() {
             }
         }
     }
+}
+
+// VERIFY: b6c66264 auto
+// OFFSET: 0x00784B60
+void WeatherGrid::GetCellSpacing(float* cellSize, float* cellsPerYard) {
+    *cellSize = 1.0416666f;
+    *cellsPerYard = 0.96f;
+}
+
+// VERIFY: 8e6d2779 auto
+// OFFSET: 0x00784BE0
+float WeatherGrid::GetHeight(const C3Vector* position) {
+    uint32_t x = static_cast<int32_t>(floor(position->x * 0.03f)) - this->m_minCellX;
+    uint32_t y = static_cast<int32_t>(floor(position->y * 0.03f)) - this->m_minCellY;
+
+    if (x > 4 || y > 4) {
+        return FLT_MAX;
+    }
+
+    return this->m_cells[y][x]->GetHeight(position);
+}
+
+// VERIFY: efebdce6 manual
+// OFFSET: 0x00784C60
+bool WeatherGrid::Raycast(const C3Vector* start, const C3Vector* end, C3Vector* hit) {
+    *hit = *start;
+    int32_t startX = static_cast<int32_t>(floor(start->x * 0.96f)) - this->m_minX;
+    int32_t startY = static_cast<int32_t>(floor(start->y * 0.96f)) - this->m_minY;
+    int32_t endX = static_cast<int32_t>(floor(end->x * 0.96f)) - this->m_minX;
+    int32_t endY = static_cast<int32_t>(floor(end->y * 0.96f)) - this->m_minY;
+    C3Vector delta(end->x - start->x, end->y - start->y, end->z - start->z);
+    C2iVector distance;
+    distance.x = abs(endX - startX);
+    distance.y = abs(endY - startY);
+    int32_t steps;
+    int32_t error;
+    int32_t errorDiagonal;
+    int32_t errorStraight;
+    int32_t straightX;
+    int32_t straightY;
+    int32_t diagonalX;
+
+    if (distance.MajorAxis()) {
+        steps = distance.y;
+        error = 2 * distance.x - distance.y;
+        errorDiagonal = 2 * (distance.x - distance.y);
+        errorStraight = 2 * distance.x;
+        straightX = 0;
+        diagonalX = 1;
+        straightY = 1;
+    } else {
+        steps = distance.x;
+        error = 2 * distance.y - distance.x;
+        errorStraight = 2 * distance.y;
+        errorDiagonal = 2 * (distance.y - distance.x);
+        straightX = 1;
+        diagonalX = 1;
+        straightY = 0;
+    }
+
+    int32_t diagonalY = 1;
+
+    if (end->x < start->x) {
+        straightX = -straightX;
+        diagonalX = -1;
+    }
+
+    if (end->y < start->y) {
+        straightY = -straightY;
+        diagonalY = -1;
+    }
+
+    int32_t count = steps <= 0 ? 1 : steps;
+    C2iVector cell;
+    cell.x = startX;
+    cell.y = startY;
+    float step = 1.0f / count;
+    int32_t i = 0;
+
+    while (cell.x >= 0 && cell.y >= 0 && cell.x < 160 && cell.y < 160) {
+        float t = i * step;
+        hit->x = delta.x * t + start->x;
+        hit->y = delta.y * t + start->y;
+        hit->z = delta.z * t + start->z;
+        float z = hit->z;
+        float height = this->GetSubCellHeight(&cell, hit->z);
+
+        if (height > z) {
+            hit->z = height;
+            return true;
+        }
+
+        if (error > 0) {
+            error += errorDiagonal;
+            cell.x += diagonalX;
+            cell.y += diagonalY;
+        } else {
+            error += errorStraight;
+            cell.x += straightX;
+            cell.y += straightY;
+        }
+
+        if (i == count) {
+            *hit = *end;
+        }
+
+        if (++i > count) {
+            return false;
+        }
+    }
+
+    *hit = *start;
+    return false;
+}
+
+// VERIFY: 32392fc5 auto
+// OFFSET: 0x00784F20
+void WeatherGrid::UpdateOriginCell(const C3Vector* position) {
+    int32_t x = static_cast<int32_t>(floor(position->x * 0.03f));
+    int32_t y = static_cast<int32_t>(floor(position->y * 0.03f));
+
+    if (x == this->m_originX && y == this->m_originY) {
+        return;
+    }
+
+    this->m_originY = y;
+    this->m_minCellY = y - 2;
+    this->m_minCellX = x - 2;
+    this->m_originX = x;
+    this->m_minX = 32 * this->m_minCellX;
+    this->m_minY = 32 * this->m_minCellY;
+    WeatherGridCell* cells[25];
+
+    for (uint32_t row = 0; row < 5; row++) {
+        for (uint32_t col = 0; col < 5; col++) {
+            cells[row * 5 + col] = this->m_cells[row][col];
+            this->m_cells[row][col] = nullptr;
+        }
+    }
+
+    for (int32_t row = 0; row < 5; row++) {
+        for (int32_t col = 0; col < 5; col++) {
+            for (uint32_t i = 0; i < 25; i++) {
+                if (cells[i] && cells[i]->m_cellX == col + this->m_minCellX && cells[i]->m_cellY == row + this->m_minCellY) {
+                    this->m_cells[row][col] = cells[i];
+                    cells[i] = nullptr;
+                    break;
+                }
+            }
+        }
+    }
+
+    for (int32_t row = 0; row < 5; row++) {
+        for (int32_t col = 0; col < 5; col++) {
+            if (this->m_cells[row][col]) {
+                continue;
+            }
+
+            for (uint32_t i = 0; i < 25; i++) {
+                if (!cells[i]) {
+                    continue;
+                }
+
+                WeatherGridCell* cell = cells[i];
+                this->m_cells[row][col] = cell;
+                cells[i] = nullptr;
+                cell->m_cellX = col + this->m_minCellX;
+                cell->m_cellY = row + this->m_minCellY;
+
+                for (uint32_t j = 0; j < sizeof(cell->m_heights) / sizeof(cell->m_heights[0]); j++) {
+                    cell->m_heights[j] = FLT_MAX;
+                }
+
+                break;
+            }
+        }
+    }
+}
+
+// VERIFY: 9756c64f manual
+// OFFSET: 0x007844F0
+void Snow::SetStormIntensity(float intensity) {
+    uint8_t useShaders = this->m_useWeatherShaders;
+    this->m_intensity = intensity;
+    float rate = useShaders ? 14000.0f : 1300.0f;
+    this->m_particlesPerFrame = s_weatherDensity * rate * intensity;
+    this->m_maxBuildTime = rate * 0.00016276042f;
+    float mistRate = useShaders ? 48.0f : 24.0f;
+    float excess = intensity - 0.5f;
+    float scale = excess >= 0.0f ? s_weatherDensity * (excess + excess) : s_weatherDensity * (0.0f + 0.0f);
+    this->m_mists.m_spawnRate = mistRate * scale;
+}
+
+// VERIFY: a06d73a5 manual
+// OFFSET: 0x00784850
+void Weather::SetStormIntensity(float target, float current) {
+    uint32_t now = OsGetAsyncTimeMs();
+    float delta = current - target;
+    float t = (now - this->unk_0018) * 0.001f / (fabs(delta + 0.001f) * 10.0f);
+
+    if (t < 0.0f) {
+        t = 0.0f;
+    } else if (t >= 1.0f) {
+        t = 1.0f;
+    }
+
+    this->unk_0008 = target + delta * t;
+    float intensity = (this->unk_0008 - 0.25f) * 1.3333334f;
+
+    if (intensity < 0.0f) {
+        intensity = 0.0f;
+    }
+
+    if (this->m_rain) {
+        this->m_rain->SetStormIntensity(intensity);
+    }
+
+    if (this->m_snow) {
+        this->m_snow->SetStormIntensity(intensity);
+    }
+
+    if (this->m_sand) {
+        this->m_sand->SetStormIntensity(intensity);
+    }
+
+    float elapsed = (now - this->unk_001C) * 0.001f;
+    float fade = elapsed / (fabs((this->unk_000C - this->unk_0010) * 4.0f + 0.001f) * 10.0f);
+
+    if (fade < 0.0f) {
+        fade = 0.0f;
+    } else if (fade >= 1.0f) {
+        fade = 1.0f;
+    }
+
+    this->unk_0014 = this->unk_0010 + fade * (this->unk_000C - this->unk_0010);
+    float blend = elapsed / (fabs(0.001f + 4.0f * (this->unk_0030 - this->unk_002C)) * 5.0f);
+
+    if (blend < 0.0f) {
+        blend = 0.0f;
+    } else if (1.0f <= blend) {
+        blend = 1.0f;
+    }
+
+    this->unk_0028 = blend * (this->unk_0030 - this->unk_002C) + this->unk_002C;
+    DayNight::GetInfo()->m_weatherIntensity = this->unk_0014 * this->unk_0028;
+    DayNight::ResetFogAccumulators(false);
+    this->m_densityChanged = 0;
 }
 
 // VERIFY: 9b569e0a manual
@@ -229,7 +579,7 @@ void Weather::Render() {
     }
 }
 
-// VERIFY: 496365da manual
+// VERIFY: 596caa86 manual
 // OFFSET: 0x0078D170
 void Weather::Update() {
     this->UpdatePosDeltas();
@@ -292,17 +642,17 @@ void Weather::Update() {
 
             if (this->m_snow) {
                 this->m_snow->m_fadeOut = 1;
-                this->m_snow->m_mists.unk_003C = 1;
+                this->m_snow->m_mists.m_fadeOut = 1;
             }
 
             if (this->m_rain) {
                 this->m_rain->m_fadeOut = 1;
-                this->m_rain->m_mists.unk_003C = 1;
+                this->m_rain->m_mists.m_fadeOut = 1;
             }
 
             if (this->m_sand) {
                 this->m_sand->m_fadeOut = 1;
-                this->m_sand->m_mists.unk_003C = 1;
+                this->m_sand->m_mists.m_fadeOut = 1;
             }
         } else {
             this->Clear();
@@ -334,7 +684,7 @@ void Weather::Update() {
     }
 
     if (this->m_rain || this->m_snow || this->m_sand) {
-        this->m_grid->UpdateOriginCell(reinterpret_cast<float*>(&CWorldScene::s_activeWorldView));
+        this->m_grid->UpdateOriginCell(&CWorldScene::s_activeWorldView);
     }
 
     bool changed = fabsf(this->unk_0008 - this->unk_0000) >= 0.00000023841858f || fabsf(this->unk_0014 - this->unk_000C) >= 0.00000023841858f || fabsf(this->unk_0028 - this->unk_0030) >= 0.00000023841858f;

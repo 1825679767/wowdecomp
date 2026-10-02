@@ -10,6 +10,9 @@ int32_t BattlenetUI::unk_BD1B00;
 // STATIC: 0x00BD1B05
 uint8_t BattlenetUI::m_friendListLoaded;
 
+// STATIC: 0x00BD1B08
+BattlenetInviteList* BattlenetUI::m_friendInvites;
+
 // STATIC: 0x00BD1B24
 TSGrowableArray<BattlenetUIFriend> BattlenetUI::m_friends;
 

@@ -28,6 +28,9 @@
 #include "WoW/Source/Ui/RaidInfo.h"
 #include "WoW/Source/Ui/QuestLogLeaderBoardParams.h"
 #include "WoW/Source/Ui/WorldMap.h"
+#include <cmath>
+#include "WoW/Source/DB/Rec/DungeonMapRec.h"
+#include "Engine/Source/Tempest/C3Vector.h"
 
 // VERIFY: ee052397 auto
 // OFFSET: 0x005DF0D0
@@ -1586,6 +1589,113 @@ static int32_t Script_QuestMapUpdateAllQuests(lua_State* L) {
     return 1;
 }
 
+// VERIFY: e9f011c6 auto
+// OFFSET: 0x005E0590
+static int32_t Script_QuestPOIGetIconInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: QuestPOIGetIconInfo(questID)");
+    }
+
+    bool complete;
+    int32_t mapId;
+    uint32_t unknown;
+    float x;
+    float y;
+    int32_t floor;
+
+    if (!CGQuestLog::GetQuestPOIIcon(static_cast<int32_t>(lua_tonumber(L, 1)), &complete, &mapId, &unknown, &x, &y, &floor)) {
+        return 0;
+    }
+
+    C3Vector position;
+    position.x = x;
+    position.y = y;
+    position.z = 0.0f;
+    int32_t dungeonMapId = CGWorldMap::m_currentOrphanZone == -1 ? -1 : CGWorldMap::m_currentDungeonMap;
+    DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecord(dungeonMapId);
+    bool outland;
+
+    if (!CGWorldMap::GetWorldPosition(position, mapId, &y, &x, &outland, false, dungeonMap ? dungeonMap->m_id : 0) || outland || fabs(fabs(y * x)) < 0.001) {
+        return 0;
+    }
+
+    lua_pushboolean(L, complete);
+    lua_pushnumber(L, y);
+    lua_pushnumber(L, x);
+    lua_pushinteger(L, floor);
+    return 4;
+}
+
+// VERIFY: a26fc811 manual
+// OFFSET: 0x005E60D0
+static int32_t Script_GetQuestLogItemDrop(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetQuestLogItemDrop(index)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    QuestLogLeaderBoardParams params;
+    params.m_index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    params.m_requireLogEntry = 1;
+    int32_t questId = index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader ? 0 : CGQuestLog::m_quests[index].m_questId;
+
+    if (!CGQuestLog::GetQuestLogItemDropByID(questId, &params)) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 3;
+    }
+
+    lua_pushstring(L, params.m_text);
+    lua_pushstring(L, params.m_type);
+
+    if (params.m_complete) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 3;
+}
+
+// VERIFY: 3e8b8240 manual
+// OFFSET: 0x005E6650
+static int32_t Script_GetQuestPOILeaderBoard(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetQuestLogLeaderBoard(index)");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    QuestLogLeaderBoardParams params;
+    params.m_index = static_cast<int32_t>(lua_tonumber(L, 1));
+    params.m_requireLogEntry = 1;
+    int32_t questId = index < 0 || index >= CGQuestLog::m_numQuest || CGQuestLog::m_quests[index].m_isHeader ? 0 : CGQuestLog::m_quests[index].m_questId;
+
+    if (!CGQuestLog::GetQuestPOILeaderBoardByID(questId, &params)) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 3;
+    }
+
+    lua_pushstring(L, params.m_text);
+    lua_pushstring(L, params.m_type);
+
+    if (params.m_complete) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 3;
+}
+
+// VERIFY: e6195e77 auto
+// OFFSET: 0x008E5250
+static int32_t Script_QuestPOIUpdateTexture(lua_State* L) {
+    return 0;
+}
+
 // STATIC: 0x00AD1020
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetNumQuestLogEntries", &Script_GetNumQuestLogEntries },
@@ -1662,5 +1772,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void QuestLogRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 8c72da83 auto
+// OFFSET: 0x005DFD50
+void QuestLogUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

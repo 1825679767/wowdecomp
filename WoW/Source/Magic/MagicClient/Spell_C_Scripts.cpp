@@ -192,6 +192,32 @@ static int32_t Script_SpellStopCasting(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 07d2d114 manual
+// OFFSET: 0x008021D0
+static int32_t Script_CancelItemTempEnchantment(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    uint32_t slot;
+
+    if (!lua_isnumber(L, 1) || (slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1, slot > 1)) {
+        luaL_error(L, "Usage: CancelItemTempEnchantment(slot)");
+    }
+
+    int32_t invSlot = slot + 15;
+    CGItem_C* item = player->m_bag.GetItemPointer(invSlot);
+
+    if (!item || !item->GetEnchantmentId(1)) {
+        return 0;
+    }
+
+    CGPlayer_C::RemoveTempEnchantment(invSlot);
+    return 0;
+}
+
 // STATIC: 0x00AF51C8
 static FrameScript_Method s_ScriptFunctions[] = {
     { "SpellIsTargeting", &Script_SpellIsTargeting },

@@ -21,6 +21,20 @@
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/AccountData.h"
 #include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Common/WowTime.h"
+#include "WoW/Source/Game/GameTime.h"
+#include "Engine/Source/Os/Processor.h"
+#include "Engine/Source/Os/TimeManager.h"
+#include "WoW/Source/DB/Rec/ChrClassesRec.h"
+#include "WoW/Source/DB/Rec/ChrRacesRec.h"
+#include "WoW/Source/DB/Rec/MapRec.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/UIUtil/PortraitButton.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Magic/MagicClient/SpellTable.h"
+#include "_Triage/GameClientCommands.h"
 
 // STATIC: 0x00AD91F0
 static const char* s_errorTokens[] = {
@@ -168,6 +182,10 @@ static CLIENTCDKEY s_cdKey;
 
 // STATIC: 0x00C79CEA
 static bool s_cdKeyLoaded;
+
+// VERIFY: a1007b9c auto
+// STATIC: 0x00AD93C0
+static const char* s_processorVendors[] = { "Unknown", "intel", "AMD", "PPC" };
 
 // VERIFY: a1007b9c auto
 // OFFSET: 0x006B02C0
@@ -624,6 +642,12 @@ void ClientServices::Destroy() {
     }
 }
 
+// VERIFY: fa6032ac auto
+// OFFSET: 0x006B21F0
+void ClientConnection::CharacterForceLogout() {
+    this->CharacterLogout(false, true);
+}
+
 // VERIFY: 0e65977c manual
 // OFFSET: 0x006B2200
 void ClientServices::Initialize() {
@@ -638,6 +662,151 @@ void ClientServices::Initialize() {
 
     ClientServices::s_currentConnection = g_clientConnection;
     ConsoleCommandRegister("logout", ConsoleCommand_Logout, CATEGORY_DEFAULT, nullptr);
+}
+
+// VERIFY: 8f39a885 manual
+// OFFSET: 0x006B22A0
+int32_t SendBugOpcode(uint32_t suggestion, const char* text) {
+    if (!text || !*text) {
+        return 0;
+    }
+
+    char info[4096] = { 0 };
+    char line[256];
+    char name[256];
+    uint32_t size = sizeof(name);
+
+    if (OsGetUserName(name, &size)) {
+        SStrPrintf(line, sizeof(line), "Username:\t%s\n", name);
+        SStrPack(info, line, sizeof(info));
+    }
+
+    size = sizeof(name);
+
+    if (OsGetComputerName(name, &size)) {
+        SStrPrintf(line, sizeof(line), "Computer:\t%s\n", name);
+        SStrPack(info, line, sizeof(info));
+    }
+
+    SStrPrintf(line, sizeof(line), "Processors:\t%u\n", OsGetNumberOfProcessors());
+    SStrPack(info, line, sizeof(info));
+    int32_t vendor;
+    OsGetProcessorFeaturesEx(vendor);
+
+    if (static_cast<uint32_t>(vendor) > 4) {
+        vendor = 0;
+    }
+
+    SStrPrintf(line, sizeof(line), "Processor vendor:\t%s\n", s_processorVendors[vendor]);
+    SStrPack(info, line, sizeof(info));
+    uint64_t clocks = OsGetAsyncClocksPerSecond();
+    double speed;
+    char unit;
+
+    if (clocks >= 990000000) {
+        speed = static_cast<double>(clocks / 1000000);
+        unit = 'G';
+    } else {
+        speed = static_cast<double>(clocks / 1000);
+        unit = 'M';
+    }
+
+    SStrPrintf(line, sizeof(line), "Processor speed:\t%6.2f%cHz\n", speed * 0.001, unit);
+    SStrPack(info, line, sizeof(info));
+    SStrPrintf(line, sizeof(line), "Memory:\t%uMB\n", static_cast<uint32_t>(OsGetPhysicalMemory() >> 20));
+    SStrPack(info, line, sizeof(info));
+    SStrPack(info, "OS:\t\t", sizeof(info));
+    OsGetVersionString(line, sizeof(line));
+    SStrPack(info, line, sizeof(info));
+    SStrPack(info, "\n", sizeof(info));
+    SStrPrintf(line, sizeof(line), "Version:\t%s\n", "WoW [Release] Build 12340 (Jun 24 2010 23:54:57)");
+    SStrPack(info, line, sizeof(info));
+    const char* account = ClientServices::s_accountName[0] ? ClientServices::s_accountName : nullptr;
+
+    if (account) {
+        SStrPrintf(line, sizeof(line), "Realm:\t%s\n", ClientServices::GetSelectedRealmName());
+        SStrPack(info, line, sizeof(info));
+        SStrPrintf(line, sizeof(line), "Account:\t%s\n", account);
+        SStrPack(info, line, sizeof(info));
+
+        if (ClientServices::Connection() && ClientServices::Connection()->m_inGame) {
+            CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+            if (player) {
+                CGUnitData* unit = player->m_unit;
+                ChrRacesRec* race = g_chrRacesDB.GetRecord(unit->m_unitFieldBytes0[0]);
+                ChrClassesRec* playerClass = g_chrClassesDB.GetRecord(unit->m_unitFieldBytes0[1]);
+                const char* className = playerClass ? playerClass->m_name : "Unknown";
+                const char* raceName = race ? race->m_name : "Unknown";
+                SStrPrintf(line, sizeof(line), "Character:\t%s (level %i %s %s %s)\n", player->GetUnitName(nullptr, 1), player->m_unit->m_unitFieldLevel, raceName, s_sexNames[player->m_unit->m_unitFieldBytes0[2]], className);
+                SStrPack(info, line, sizeof(info));
+                int32_t mapId = CGPlayer_C::GetNewContinentID();
+                MapRec* map = g_mapDB.GetRecord(mapId);
+
+                if (map) {
+                    SStrPrintf(line, sizeof(line), "Map:\t\t%u (%s)\n", mapId, map->m_directory);
+                } else {
+                    SStrPrintf(line, sizeof(line), "Map:\t\t%u\n", mapId);
+                }
+
+                SStrPack(info, line, sizeof(info));
+
+                if (CGGameUI::m_zoneText && *CGGameUI::m_zoneText) {
+                    SStrPrintf(line, sizeof(line), "Zone:\t\t%s", CGGameUI::m_zoneText);
+                    SStrPack(info, line, sizeof(info));
+
+                    if (CGGameUI::m_subZoneText && *CGGameUI::m_subZoneText) {
+                        SStrPrintf(line, sizeof(line), " - %s", CGGameUI::m_subZoneText);
+                        SStrPack(info, line, sizeof(info));
+                    }
+
+                    SStrPack(info, "\n", sizeof(info));
+                }
+
+                C3Vector position = player->GetPosition();
+                SStrPrintf(line, sizeof(line), "Position:\t%f %f %f, %f\n", position.x, position.y, position.z, player->GetFacing());
+                SStrPack(info, line, sizeof(info));
+
+                if (CGGameUI::m_lockedTarget) {
+                    CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_lockedTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+                    if (target) {
+                        SStrPrintf(line, sizeof(line), "Target:\t%s\n", target->GetUnitName(nullptr, 1));
+                        SStrPack(info, line, sizeof(info));
+                    }
+                }
+
+                SStrPrintf(line, sizeof(line), "Auras:\n");
+                SStrPack(info, line, sizeof(info));
+                SpellRec spell;
+
+                for (uint32_t i = 0; i < player->GetAuraCount(); i++) {
+                    int32_t spellId = player->GetAuraSpellId(i);
+
+                    if (!spellId) {
+                        continue;
+                    }
+
+                    const char* spellName = g_spellDB.GetRecord(spellId, &spell) ? spell.m_name : "UNKNOWN";
+                    SStrPrintf(line, sizeof(line), "\t%s(%d)\n", spellName, spellId);
+                    SStrPack(info, line, sizeof(info));
+                }
+            }
+        }
+    }
+
+    uint32_t infoSize = SStrLen(info) + 1;
+    uint32_t textSize = SStrLen(text) + 1;
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_BUG));
+    msg.Put(suggestion);
+    msg.Put(infoSize);
+    msg.PutData(info, infoSize);
+    msg.Put(textSize);
+    msg.PutData(text, textSize);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 1;
 }
 
 // VERIFY: 619198b6 manual
@@ -710,6 +879,66 @@ void ClientServices::Logon(const char* username, const char* password) {
     ClientServices::s_loginObj->Logon(realmList, portal);
 }
 
+// STATIC: 0x00C79B40
+static char s_clientStamp[88];
+
+// VERIFY: 7f19facb manual
+// OFFSET: 0x006B1C70
+char* ClientServices::GetClientStamp() {
+    const char* account = ClientServices::s_accountName[0] ? ClientServices::s_accountName : nullptr;
+    REALM_INFO* realm = ClientServices::m_selectRealmInfoValid ? &ClientServices::m_selectRealmInfo : nullptr;
+    uint32_t time;
+    WowTime::WowEncodeTime(time, &g_clientGameTime);
+    memset(s_clientStamp, 0, sizeof(s_clientStamp));
+
+    if (!account || !realm) {
+        return s_clientStamp;
+    }
+
+    SStrCopy(s_clientStamp, account, STORM_MAX_STR);
+    const char* address = realm->m_realmAddress;
+    *reinterpret_cast<uint32_t*>(&s_clientStamp[64]) = time;
+    const char* source = &address[SStrLen(address) - 1];
+    memset(&s_clientStamp[68], '0', 17);
+    char* dest = &s_clientStamp[84];
+
+    while (*source >= '0' && *source <= '9') {
+        *dest-- = *source--;
+    }
+
+    source--;
+    dest = &s_clientStamp[79];
+
+    while (*source >= '0' && *source <= '9') {
+        *dest-- = *source--;
+    }
+
+    source--;
+    dest = &s_clientStamp[76];
+
+    while (*source >= '0' && *source <= '9') {
+        *dest-- = *source--;
+    }
+
+    source--;
+    dest = &s_clientStamp[73];
+
+    while (*source >= '0' && *source <= '9') {
+        *dest-- = *source--;
+    }
+
+    source--;
+
+    for (dest = &s_clientStamp[70]; source >= address; dest--) {
+        *dest = *source--;
+    }
+
+    s_clientStamp[85] = static_cast<char>(0xFF);
+    s_clientStamp[86] = 63;
+    s_clientStamp[87] = 15;
+    return s_clientStamp;
+}
+
 // VERIFY: 9a7893f1 auto
 // OFFSET: 0x006B1E00
 void ClientServices::LoginServerStatus(LOGIN_STATE state, LOGIN_RESULT result, const char* addressString, const char* stateString, const char* resultString, uint16_t flags) {
@@ -734,6 +963,12 @@ void ClientServices::LoginServerStatus(LOGIN_STATE state, LOGIN_RESULT result, c
     CGlueMgr::SetCurrentAccount(loginData.m_account);
     InitializeAddOns(loginData.m_account);
     CVar::DeleteAccountCVars();
+}
+
+// VERIFY: c43cea73 manual
+// OFFSET: 0x00406F40
+void ClientServices::SendPacket(CDataStore* msg) {
+    StaticSingleton<CommandManager>::Instance()->m_connection->Send(msg);
 }
 
 // VERIFY: 89403ad4 manual
@@ -1077,6 +1312,12 @@ void ClientServices::SetCharacterInfo(const CHARACTER_INFO* info) {
     }
 
     memcpy(&ClientServices::s_characterInfo, info, sizeof(ClientServices::s_characterInfo));
+}
+
+// VERIFY: 68b19d7a auto
+// OFFSET: 0x006B1050
+CHARACTER_INFO* ClientServices::GetCharacterInfo() {
+    return &ClientServices::s_characterInfo;
 }
 
 // VERIFY: 9c058f7c auto

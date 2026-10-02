@@ -40,39 +40,27 @@
 #include "Engine/Source/Tempest/CAaRect.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include "WoW/Source/Ui/MinimapFrame.h"
+#include "Engine/Source/Frame/CSimpleRender.h"
+#include "WoW/Source/Ui/TotemInfo.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/QuestFrame.h"
+#include "WoW/Source/Ui/QuestLog.h"
+#include "WoW/Source/Object/QuestCache.h"
+#include "WoW/Source/Ui/ClassTrainerFrame.h"
+#include "WoW/Source/DB/Rec/ItemExtendedCostRec.h"
+#include <cstring>
+#include "WoW/Source/Ui/TradeFrame.h"
+#include "WoW/Source/Object/ObjectClient/Trade_C.h"
+#include "WoW/Source/Ui/MailInfo.h"
+#include "WoW/Source/Ui/AuctionHouse.h"
+#include "WoW/Source/Ui/ItemSocketInfo.h"
+#include "WoW/Source/Ui/GuildBankFrame.h"
+#include "WoW/Source/Ui/CurrencyTypes.h"
+#include "WoW/Source/DB/Rec/SpellItemEnchantmentRec.h"
+#include "WoW/Source/DB/Rec/CurrencyTypesRec.h"
 
-int32_t Script_AddFontStrings(lua_State* L);
-int32_t Script_SetAnchorType(lua_State* L);
-int32_t Script_SetPetAction(lua_State* L);
-int32_t Script_SetPossession(lua_State* L);
-int32_t Script_SetQuestItem(lua_State* L);
-int32_t Script_SetQuestLogItem(lua_State* L);
-int32_t Script_SetTrainerService(lua_State* L);
-int32_t Script_SetTradeSkillItem(lua_State* L);
-int32_t Script_SetMerchantItem(lua_State* L);
-int32_t Script_SetMerchantCostItem(lua_State* L);
-int32_t Script_SetTradePlayerItem(lua_State* L);
-int32_t Script_SetTradeTargetItem(lua_State* L);
-int32_t Script_SetUnit(lua_State* L);
-int32_t Script_SetUnitBuff(lua_State* L);
-int32_t Script_SetUnitDebuff(lua_State* L);
-int32_t Script_SetSendMailItem(lua_State* L);
-int32_t Script_SetInboxItem(lua_State* L);
-int32_t Script_SetAuctionSellItem(lua_State* L);
-int32_t Script_SetAuctionItem(lua_State* L);
-int32_t Script_SetQuestRewardSpell(lua_State* L);
-int32_t Script_SetQuestLogRewardSpell(lua_State* L);
 int32_t Script_SetBuybackItem(lua_State* L);
-int32_t Script_SetSocketedItem(lua_State* L);
-int32_t Script_SetSocketGem(lua_State* L);
-int32_t Script_SetExistingSocketGem(lua_State* L);
-int32_t Script_SetGuildBankItem(lua_State* L);
-int32_t Script_GetUnit(lua_State* L);
-int32_t Script_GetSpell(lua_State* L);
-int32_t Script_SetTotem(lua_State* L);
 int32_t Script_SetCurrencyToken(lua_State* L);
-int32_t Script_SetBackpackToken(lua_State* L);
-int32_t Script_SetQuestLogSpecialItem(lua_State* L);
 int32_t Script_SetEquipmentSet(lua_State* L);
 int32_t Script_SetFrameStack(lua_State* L);
 int32_t Script_SetLFGDungeonReward(lua_State* L);
@@ -1224,7 +1212,6 @@ static int32_t Script_SetHyperlinkCompareItem(lua_State* L) {
     return 1;
 }
 
-// STATIC: 0x00AD2AE0
 // VERIFY: da7bc442 manual
 // OFFSET: 0x0062E520
 static int32_t Script_SetLootItem(lua_State* L) {
@@ -1466,6 +1453,1019 @@ static int32_t Script_TooltipSetTracking(lua_State* L) {
 
     tooltip->AddLine(text, nullptr, reinterpret_cast<const CImVector&>(s_tooltipTitleColor), reinterpret_cast<const CImVector&>(s_tooltipTitleColor), 0);
     tooltip->Show();
+    return 0;
+}
+
+// STATIC: 0x00AD2AE0
+// VERIFY: b7d41ab7 auto
+// OFFSET: 0x0061D3D0
+static int32_t Script_SetAnchorType(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isstring(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetAnchorType( anchorType [,Xoffset] [,Yoffset] )", name ? name : "<unnamed>");
+    }
+
+    int32_t anchorType = 0;
+
+    if (lua_isstring(L, 2)) {
+        const char* token = lua_tolstring(L, 2, nullptr);
+
+        if (!SStrCmpI(token, "ANCHOR_LEFT", STORM_MAX_STR)) {
+            anchorType = 0;
+        } else if (!SStrCmpI(token, "ANCHOR_RIGHT", STORM_MAX_STR)) {
+            anchorType = 1;
+        } else if (!SStrCmpI(token, "ANCHOR_BOTTOMLEFT", STORM_MAX_STR)) {
+            anchorType = 2;
+        } else if (!SStrCmpI(token, "ANCHOR_BOTTOM", STORM_MAX_STR)) {
+            anchorType = 3;
+        } else if (!SStrCmpI(token, "ANCHOR_BOTTOMRIGHT", STORM_MAX_STR)) {
+            anchorType = 4;
+        } else if (!SStrCmpI(token, "ANCHOR_TOPLEFT", STORM_MAX_STR)) {
+            anchorType = 5;
+        } else if (!SStrCmpI(token, "ANCHOR_TOP", STORM_MAX_STR)) {
+            anchorType = 6;
+        } else if (!SStrCmpI(token, "ANCHOR_TOPRIGHT", STORM_MAX_STR)) {
+            anchorType = 7;
+        } else if (!SStrCmpI(token, "ANCHOR_CURSOR", STORM_MAX_STR)) {
+            anchorType = 8;
+        } else if (!SStrCmpI(token, "ANCHOR_NONE", STORM_MAX_STR)) {
+            anchorType = 9;
+        } else if (!SStrCmpI(token, "ANCHOR_PRESERVE", STORM_MAX_STR)) {
+            anchorType = 10;
+        } else if (!SStrCmpI(token, "ANCHOR_CURSOR_RIGHT", STORM_MAX_STR)) {
+            anchorType = 11;
+        }
+    }
+
+    float offsetX = 0.0f;
+
+    if (lua_isnumber(L, 3)) {
+        float value = static_cast<float>(lua_tonumber(L, 3));
+        offsetX = NDCToDDCWidth(value / (CoordinateGetAspectCompensation() * 1024.0f));
+    }
+
+    float offsetY;
+
+    if (lua_isnumber(L, 4)) {
+        float value = static_cast<float>(lua_tonumber(L, 4));
+        offsetY = NDCToDDCWidth(value / (CoordinateGetAspectCompensation() * 1024.0f));
+    } else {
+        offsetY = 0.0f;
+    }
+
+    tooltip->m_offsetX = offsetX;
+    tooltip->m_offsetY = offsetY;
+
+    if (tooltip->m_owner) {
+        tooltip->m_anchorType = anchorType;
+    }
+
+    tooltip->ResetPosition(1);
+    return 0;
+}
+
+// VERIFY: 16f43b69 manual
+// OFFSET: 0x0061DAD0
+static int32_t Script_GetUnit(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    WOWGUID guid = tooltip->m_unitGuid;
+    const char* token = Script_GetTokenFromGUID(&guid);
+    const char* name = nullptr;
+
+    if (token && Script_GetNameFromToken(token, &name, true, false)) {
+        lua_pushstring(L, name);
+        lua_pushstring(L, token);
+        return 2;
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(tooltip->m_unitGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return 0;
+    }
+
+    lua_pushstring(L, unit->GetUnitName(nullptr, 1));
+    lua_pushstring(L, token);
+    return 2;
+}
+
+// VERIFY: 209cfc2d auto
+// OFFSET: 0x0061F0F0
+static int32_t Script_GetSpell(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    int32_t count = 0;
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(tooltip->m_spellId, &spell)) {
+        lua_pushstring(L, spell.m_name);
+        lua_pushstring(L, spell.m_nameSubtext);
+        lua_pushnumber(L, tooltip->m_spellId);
+        count = 3;
+    }
+
+    if (g_spellDB.GetRecord(tooltip->m_nextRankSpellId, &spell)) {
+        lua_pushstring(L, spell.m_name);
+        lua_pushstring(L, spell.m_nameSubtext);
+        lua_pushnumber(L, tooltip->m_nextRankSpellId);
+        count += 3;
+    }
+
+    return count;
+}
+
+// VERIFY: 9905ae95 manual
+// OFFSET: 0x006201F0
+static int32_t Script_AddFontStrings(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    CSimpleFontString* strings[2];
+
+    for (int32_t i = 2; i - 2 < 2; i++) {
+        if (lua_type(L, i) != LUA_TTABLE) {
+            const char* name = tooltip->GetName();
+            luaL_error(L, "Usage: %s:AddFontStrings(leftstring, rightstring)", name ? name : "<unnamed>");
+        }
+
+        lua_rawgeti(L, i, 0);
+        CSimpleFontString* string = static_cast<CSimpleFontString*>(lua_touserdata(L, -1));
+        lua_settop(L, -2);
+
+        if (!string) {
+            const char* name = tooltip->GetName();
+            luaL_error(L, "%s:AddFontStrings(): Couldn't find 'this' in fontstring", name ? name : "<unnamed>");
+        }
+
+        if (!string->IsA(CSimpleFontString::GetObjectType())) {
+            const char* name = tooltip->GetName();
+            luaL_error(L, "%s:AddFontStrings(): Wrong object type, expected fontstring", name ? name : "<unnamed>");
+        }
+
+        strings[i - 2] = string;
+    }
+
+    tooltip->AddFontStrings(strings[0], strings[1]);
+    return 0;
+}
+
+// VERIFY: e9f54139 manual
+// OFFSET: 0x006205C0
+static int32_t Script_SetTotem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetTotem(slot)", name ? name : "<unnamed>");
+    }
+
+    uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 2));
+    TotemInfo* totem = CGGameUI::GetTotemInfo(slot - 1);
+
+    if (!totem || !totem->unk_0004) {
+        return 0;
+    }
+
+    tooltip->ClearTooltip();
+    tooltip->AddLine(totem->m_name, nullptr, *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor), *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor), 0);
+    char buffer[1024];
+    CGTooltip::GetDurationString(buffer, sizeof(buffer), totem->GetSpawnTimeLeft(), "SPELL_TIME_REMAINING", nullptr, 1, 0);
+    tooltip->AddLine(buffer, nullptr, *reinterpret_cast<const CImVector*>(&s_tooltipTextColor), *reinterpret_cast<const CImVector*>(&s_tooltipTextColor), 0);
+    tooltip->Show();
+    return 0;
+}
+
+// VERIFY: 9ef88dc9 manual
+// OFFSET: 0x00625470
+static int32_t Script_SetPetAction(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetPetAction(slot)", name ? name : "<unnamed>");
+    }
+
+    uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
+    uint32_t* action = CGPetInfo::GetPet(0) && slot < 10 ? &CGPetInfo::m_actions[slot] : nullptr;
+
+    if (!action || !*action) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    uint32_t type = (*action >> 24) & 0x3F;
+    uint32_t start = 0;
+    uint32_t duration = 0;
+    uint32_t enable = 0;
+    int32_t result;
+
+    if ((type == 1 || type - 8 <= 9) && (Spell_C_GetSpellCooldown(*action & 0xFFFFFF, 1, &duration, &start, &enable), enable) && start && duration) {
+        int32_t spellId = *action & 0xFFFFFF;
+        result = tooltip->SetSpell(spellId, 0, start + duration - OsGetAsyncTimeMs(), 1, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+    } else {
+        result = tooltip->SetSpell(*action & 0xFFFFFF, 0, 0, 1, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+    }
+
+    if (result) {
+        lua_pushnumber(L, 1.0);
+        return 1;
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: a1f2ad30 manual
+// OFFSET: 0x006257C0
+static int32_t Script_SetPossession(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetPossession(slot)", name ? name : "<unnamed>");
+    }
+
+    if (static_cast<int64_t>(lua_tonumber(L, 2)) == 1) {
+        uint32_t enable = 0;
+        uint32_t start = 0;
+        uint32_t duration = 0;
+        Spell_C_GetSpellCooldown(CGPetInfo::m_possessSpell, 0, &duration, &start, &enable);
+        int32_t brief = 1;
+        CVar* uberTooltips = CVar::Lookup("UberTooltips");
+
+        if (uberTooltips && uberTooltips->m_intValue) {
+            brief = 0;
+        }
+
+        int32_t result;
+
+        if (enable && start && duration) {
+            int32_t spellId = CGPetInfo::m_possessSpell;
+            result = tooltip->SetSpell(spellId, brief, start + duration - OsGetAsyncTimeMs(), 0, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+        } else {
+            result = tooltip->SetSpell(CGPetInfo::m_possessSpell, brief, 0, 0, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+        }
+
+        if (result) {
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: c5678e1d auto
+// OFFSET: 0x00625E10
+static int32_t Script_SetUnit(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isstring(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetUnit(\"unit\"[, hideStatus])", name ? name : "<unnamed>");
+    }
+
+    WOWGUID guid = GetGuidByKeyword(lua_tolstring(L, 2, nullptr));
+    int32_t hideStatus = StringToBOOL(L, 3, 0);
+    WOWGUID none;
+
+    if (guid && guid.m_guid != 0xFFFFFFFFFFFFFFFEULL && (none = WOWGUID(), tooltip->SetUnit(guid, 1, none, hideStatus))) {
+        lua_pushnumber(L, 1.0);
+        return 1;
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: d9810071 auto
+// OFFSET: 0x006262C0
+static int32_t Script_SetUnitBuff(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    ScriptAuraInfo info;
+
+    if (!Script_GetUnitAuraInfo(L, 2, &info)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetUnitBuff(\"unit\", [index] or [\"name\", \"rank\"][, \"filter\"])", name ? name : "<unnamed>");
+    }
+
+    info.m_filter = (info.m_filter & 0xFC) | 0x1;
+    return SetTooltipUnitAura(tooltip, &info);
+}
+
+// VERIFY: 1ceddf4b auto
+// OFFSET: 0x00626350
+static int32_t Script_SetUnitDebuff(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    ScriptAuraInfo info;
+
+    if (!Script_GetUnitAuraInfo(L, 2, &info)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetUnitDebuff(\"unit\", [index] or [\"name\", \"rank\"][, \"filter\"])", name ? name : "<unnamed>");
+    }
+
+    info.m_filter = (info.m_filter & 0xFC) | 0x2;
+    return SetTooltipUnitAura(tooltip, &info);
+}
+
+// VERIFY: d2a5d303 manual
+// OFFSET: 0x006263E0
+static int32_t Script_SetQuestRewardSpell(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (CGQuestInfo::m_rewardSpell) {
+        tooltip->SetSpell(CGQuestInfo::m_rewardSpell, 0, 0, 0, 0, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+    }
+
+    return 0;
+}
+
+// VERIFY: 3f811e34 auto
+// OFFSET: 0x00626440
+static int32_t Script_SetQuestLogRewardSpell(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    WOWGUID none = WOWGUID();
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+
+    if (quest && quest->m_rewardSpellId) {
+        tooltip->SetSpell(quest->m_rewardSpellId, 0, 0, 0, 0, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+    }
+
+    return 0;
+}
+
+// VERIFY: c44d9562 manual
+// OFFSET: 0x0062E670
+static int32_t Script_SetQuestItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    const char* type;
+    uint32_t index;
+    int32_t itemId;
+
+    if (!lua_isstring(L, 2) || !lua_isnumber(L, 3) || (type = lua_tolstring(L, 2, nullptr), index = static_cast<uint32_t>(lua_tonumber(L, 3)) - 1, itemId = CGQuestInfo::GetQuestItemID(type, index), itemId <= 0)) {
+        luaL_error(L, "Invalid quest item in SetQuestItem(\"type\", index)");
+    }
+
+    char texture[260];
+    char name[256];
+    int32_t count;
+    int32_t quality;
+    int32_t usable;
+    CGQuestInfo::QuestItemInfo(type, index, name, sizeof(name), texture, sizeof(texture), &count, &quality, &usable);
+    tooltip->m_itemLinkInfo.Clear();
+    WOWGUID itemGuid = WOWGUID();
+    tooltip->m_itemLinkInfo.m_stackCount = count;
+    tooltip->SetItem(itemId, &CGQuestInfo::m_npc, &itemGuid, 0, 0, 1, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+    return 0;
+}
+
+// VERIFY: bddbaeb1 manual
+// OFFSET: 0x0062E790
+static int32_t Script_SetQuestLogItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    const char* type;
+    int32_t index;
+    int32_t itemId;
+
+    if (!lua_isstring(L, 2) || !lua_isnumber(L, 3) || (type = lua_tolstring(L, 2, nullptr), index = static_cast<int32_t>(lua_tonumber(L, 3)) - 1, itemId = GetQuestItemRewards(type, index), itemId <= 0)) {
+        luaL_error(L, "Invalid quest item in SetQuestLogItem(\"type\", index)");
+    }
+
+    tooltip->m_itemLinkInfo.Clear();
+    WOWGUID none = WOWGUID();
+    QuestCache* quest = g_questDBCache.GetRecord(CGQuestLog::m_selectedQuest, none, nullptr, nullptr, false);
+
+    if (quest && index >= 0) {
+        if (!SStrCmpI(type, "reward", STORM_MAX_STR) && index < 4) {
+            tooltip->m_itemLinkInfo.m_stackCount = quest->m_rewardItemCount[index];
+        } else if (!SStrCmpI(type, "choice", STORM_MAX_STR) && index < 6) {
+            tooltip->m_itemLinkInfo.m_stackCount = quest->m_rewardChoiceItemCount[index];
+        }
+    }
+
+    WOWGUID itemGuid = WOWGUID();
+    WOWGUID requester = WOWGUID();
+    tooltip->SetItem(itemId, &requester, &itemGuid, 0, 0, 1, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+    return 0;
+}
+
+// VERIFY: 0d337e4c auto
+// OFFSET: 0x0062E900
+static int32_t Script_SetTrainerService(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    TrainerServiceInfo* service;
+
+    if (!lua_isnumber(L, 2) || (service = CGClassTrainer::GetService(static_cast<int32_t>(lua_tonumber(L, 2)) - 1)) == nullptr) {
+        luaL_error(L, "Invalid trainer service in SetTrainerService(index)");
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(service->m_spellID, &spell)) {
+        luaL_error(L, "Invalid trainer service in SetTrainerService(index)");
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (spell.m_effect[i] != 36 && spell.m_effect[i] != 57) {
+            continue;
+        }
+
+        SpellRec learned;
+
+        if (!g_spellDB.GetRecord(spell.m_effectTriggerSpell[i], &learned)) {
+            continue;
+        }
+
+        if ((learned.m_attributes & 0x20) && (learned.m_effect[0] == 24 || learned.m_effect[0] == 157 || learned.m_effect[0] == 59) && learned.m_effectItemType[0]) {
+            WOWGUID requester;
+            requester.m_guid = static_cast<uint64_t>(static_cast<int64_t>(learned.m_id)) | 0x1FE0000000000000ULL;
+            WOWGUID itemGuid = WOWGUID();
+            tooltip->SetItem(learned.m_effectItemType[0], &requester, &itemGuid, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 1);
+        } else {
+            tooltip->SetSpell(learned.m_id, 0, 0, spell.m_effect[i] == 57, 0, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+        }
+
+        return 0;
+    }
+
+    tooltip->SetSpell(spell.m_id, 0, 0, 0, 0, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+    return 0;
+}
+
+// VERIFY: 0c5a503b manual
+// OFFSET: 0x0062EAE0
+static int32_t Script_SetTradeSkillItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    uint32_t index;
+    TradeSkillInfo* skill;
+
+    if (!lua_isnumber(L, 2) || (index = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1, index >= CGTradeSkillInfo::m_numDisplayEntries) || (skill = CGTradeSkillInfo::m_displayList.m_data[index]) == nullptr) {
+        luaL_error(L, "Invalid trade skill item in SetTradeSkillItem(index [,reagent])");
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(skill->m_spellId, &spell)) {
+        luaL_error(L, "Invalid trade skill item in SetTradeSkillItem(index [,reagent])");
+    }
+
+    if (lua_isnumber(L, 3)) {
+        int32_t reagent = static_cast<int32_t>(lua_tonumber(L, 3));
+        int32_t count = 0;
+        uint32_t i;
+
+        for (i = 0; i < 8; i++) {
+            if (spell.m_reagent[i] && ++count == reagent) {
+                break;
+            }
+        }
+
+        if (i >= 8) {
+            luaL_error(L, "Invalid trade skill item in SetTradeSkillItem(index [,reagent])");
+        }
+
+        tooltip->m_itemLinkInfo.Clear();
+        tooltip->m_itemLinkInfo.m_stackCount = spell.m_reagentCount[i];
+        WOWGUID requester;
+        requester.m_guid = static_cast<uint64_t>(static_cast<int64_t>(skill->m_spellId)) | 0x1FE0000000000000ULL;
+        WOWGUID itemGuid = WOWGUID();
+        tooltip->SetItem(spell.m_reagent[i], &requester, &itemGuid, 0, 0, 1, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+        return 0;
+    }
+
+    if ((spell.m_effect[0] == 24 || spell.m_effect[0] == 157 || spell.m_effect[0] == 59) && spell.m_effectItemType[0]) {
+        int32_t minPoints;
+        int32_t maxPoints;
+        Spell_C_GetMinMaxPoints(&spell, 0, &minPoints, &maxPoints, 0, 0, 0, 0);
+        tooltip->m_itemLinkInfo.Clear();
+        tooltip->m_itemLinkInfo.m_stackCount = minPoints;
+        tooltip->m_itemLinkInfo.m_maxStackCount = maxPoints;
+
+        if (spell.m_effect[0] == 24) {
+            tooltip->m_itemLinkInfo.m_spellCharges = CGItem_C::NumBaseCharges(spell.m_effectItemType[0]);
+        }
+
+        WOWGUID requester;
+        requester.m_guid = static_cast<uint64_t>(static_cast<int64_t>(skill->m_spellId)) | 0x1FE0000000000000ULL;
+        WOWGUID itemGuid = WOWGUID();
+        tooltip->SetItem(spell.m_effectItemType[0], &requester, &itemGuid, 0, 0, 1, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+        return 0;
+    }
+
+    tooltip->SetSpell(skill->m_spellId, 0, 0, 0, 0, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+    return 0;
+}
+
+// VERIFY: 2efa241a manual
+// OFFSET: 0x0062ED70
+static int32_t Script_SetMerchantItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        luaL_error(L, "Invalid merchant slot in SetMerchantItem");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 2) - 1.0);
+    MerchantItem* item;
+
+    if (index < 0 || index >= CGMerchantInfo::m_numMerchantItems || !CGMerchantInfo::m_merchant || (item = &CGMerchantInfo::m_items[index]) == nullptr || !item->m_itemID) {
+        return 0;
+    }
+
+    WOWGUID requester = CGMerchantInfo::m_merchant;
+    WOWGUID itemGuid = WOWGUID();
+    tooltip->SetItem(item->m_itemID, &requester, &itemGuid, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 1);
+    return 0;
+}
+
+// VERIFY: 956acb94 manual
+// OFFSET: 0x0062EE70
+static int32_t Script_SetMerchantCostItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
+        luaL_error(L, "Invalid merchant slot in SetMerchantCostItem");
+    }
+
+    int32_t index = static_cast<int32_t>(lua_tonumber(L, 2) - 1.0);
+    int32_t costIndex = static_cast<int32_t>(lua_tonumber(L, 3) - 1.0);
+    MerchantItem* item;
+    ItemExtendedCostRec* cost;
+
+    if (index < 0 || index >= CGMerchantInfo::m_numMerchantItems || !CGMerchantInfo::m_merchant || (item = &CGMerchantInfo::m_items[index]) == nullptr || !item->m_itemID || (cost = g_itemExtendedCostDB.GetRecord(item->m_extendedCostID)) == nullptr) {
+        return 0;
+    }
+
+    int32_t found = 0;
+
+    for (uint32_t i = 0; i < 5; i++) {
+        if (!cost->m_itemID[i]) {
+            continue;
+        }
+
+        if (found != costIndex) {
+            found++;
+            continue;
+        }
+
+        WOWGUID requester = CGMerchantInfo::m_merchant;
+        WOWGUID itemGuid = WOWGUID();
+        tooltip->SetItem(cost->m_itemID[i], &requester, &itemGuid, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 1);
+        return 0;
+    }
+
+    return 0;
+}
+
+// VERIFY: 3dce7a35 manual
+// OFFSET: 0x0062EFF0
+static int32_t Script_SetTradePlayerItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        luaL_error(L, "Invalid trade slot in SetTradePlayerItem");
+    }
+
+    uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 2) - 1.0);
+    WOWGUID guid = slot > 6 ? WOWGUID() : CGTradeInfo::m_playerItems[slot];
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (!item) {
+        return 0;
+    }
+
+    ItemLinkInfo& link = tooltip->m_itemLinkInfo;
+    link.Clear();
+    memset(link.m_enchants, 0, sizeof(link.m_enchants));
+    memset(link.m_enchantDurations, 0, sizeof(link.m_enchantDurations));
+    memset(link.m_enchantCharges, 0, sizeof(link.m_enchantCharges));
+
+    for (uint32_t i = 0; i < 12; i++) {
+        link.m_enchants[i] = 0;
+        link.m_enchantDurations[i] = 0;
+        link.m_enchantCharges[i] = 0;
+    }
+
+    link.m_cooldown = 0;
+    const CGItemData* mirror = item->m_item;
+    link.m_creator = mirror->m_itemFieldCreator;
+    link.m_wrapped = (mirror->m_itemFieldFlags >> 3) & 1;
+    link.m_giftCreator = mirror->m_itemFieldGiftcreator;
+    int32_t onUseSlot = item->GetOnUseSlot();
+
+    if (onUseSlot >= 0) {
+        link.m_spellCharges = mirror->m_itemFieldSpellCharges[onUseSlot];
+    }
+
+    link.m_proposedEnchant = slot == 6 ? Trade_C_GetEnchantSpell(1) : 0;
+    WOWGUID itemGuid = item->m_obj->m_guid;
+    WOWGUID requester = item->m_obj->m_guid;
+    tooltip->SetItem(item->m_obj->m_entryID, &requester, &itemGuid, 0, 0, 1, 0, WOWGUID(), 0, nullptr, onUseSlot < 0, nullptr, 0, 0, 0);
+    return 0;
+}
+
+// VERIFY: b7c84bbf manual
+// OFFSET: 0x0062F1E0
+static int32_t Script_SetTradeTargetItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        luaL_error(L, "Invalid trade slot in SetTradeTargetItem");
+    }
+
+    uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 2) - 1.0);
+
+    if (slot > 6) {
+        return 0;
+    }
+
+    int32_t itemId = CGTradeInfo::m_targetItemID[slot];
+
+    if (itemId <= 0) {
+        return 0;
+    }
+
+    ItemLinkInfo& link = tooltip->m_itemLinkInfo;
+    link.Clear();
+    memset(link.m_enchants, 0, sizeof(link.m_enchants));
+    memset(link.m_enchantDurations, 0, sizeof(link.m_enchantDurations));
+    memset(link.m_enchantCharges, 0, sizeof(link.m_enchantCharges));
+    link.m_enchants[0] = CGTradeInfo::m_targetEnchant[slot];
+    link.m_enchants[2] = CGTradeInfo::m_targetSocketEnchants[slot][0];
+    link.m_enchantDurations[2] = 0;
+    link.m_enchantCharges[2] = 0;
+    link.m_enchants[3] = CGTradeInfo::m_targetSocketEnchants[slot][1];
+    link.m_enchantDurations[3] = 0;
+    link.m_enchantCharges[3] = 0;
+    link.m_enchants[4] = CGTradeInfo::m_targetSocketEnchants[slot][2];
+    link.m_enchantDurations[4] = 0;
+    link.m_enchantCharges[4] = 0;
+    link.m_cooldown = 0;
+    link.m_proposedEnchant = 0;
+    link.m_creator = CGTradeInfo::m_targetCreator[slot];
+    link.m_wrapped = CGTradeInfo::m_targetWrapped[slot];
+    link.m_lockId = CGTradeInfo::m_targetLockID[slot];
+    link.m_giftCreator = CGTradeInfo::m_targetGiftCreator[slot];
+    link.m_propertySeed = CGTradeInfo::m_targetSuffixFactor[slot];
+    link.m_randomPropertiesId = CGTradeInfo::m_targetRandomPropertyID[slot];
+    link.m_spellCharges = CGTradeInfo::m_targetSpellCharges[slot];
+    link.m_proposedEnchant = slot == 6 ? Trade_C_GetEnchantSpell(0) : 0;
+    link.m_maxDurability = CGTradeInfo::m_targetMaxDurability[slot];
+    link.m_durability = CGTradeInfo::m_targetDurability[slot];
+    link.m_stackCount = CGTradeInfo::m_targetCount[slot];
+    WOWGUID requester = CGTradeInfo::m_tradingPlayer;
+    WOWGUID itemGuid = WOWGUID();
+    tooltip->SetItem(itemId, &requester, &itemGuid, 0, 0, 1, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+    return 0;
+}
+
+// VERIFY: 7939b284 manual
+// OFFSET: 0x0062F8B0
+static int32_t Script_SetSendMailItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    uint32_t index;
+
+    if (lua_isnumber(L, 2)) {
+        index = static_cast<int32_t>(lua_tonumber(L, 2) - 1.0);
+
+        if (index >= 16) {
+            lua_pushnil(L);
+            return 1;
+        }
+    } else {
+        index = 0;
+    }
+
+    WOWGUID guid = CGMailInfo::m_sendItems[index].m_guid;
+
+    if (guid) {
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (item && tooltip->SetItem(item->m_obj->m_entryID, &guid, &guid, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0)) {
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 117fc8ce manual
+// OFFSET: 0x0062F9E0
+static int32_t Script_SetInboxItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetInboxItem(messageIndex, attachmentIndex)", name ? name : "<unnamed>");
+    }
+
+    int32_t messageIndex = static_cast<int32_t>(lua_tonumber(L, 2));
+    MailboxMessageInfo* message;
+
+    if (static_cast<uint32_t>(messageIndex - 1) >= CGMailInfo::m_numInboxItems || (message = CGMailInfo::m_inbox.m_data[messageIndex - 1]) == nullptr) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    MailAttachmentInfo* attachment;
+    int32_t attachmentIndex;
+
+    if (lua_isnumber(L, 3) && (attachmentIndex = static_cast<int32_t>(lua_tonumber(L, 3))) != 0) {
+        if (static_cast<uint32_t>(attachmentIndex - 1) >= 16) {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        attachment = &message->m_attachments[attachmentIndex - 1];
+    } else {
+        attachment = GetFirstAttachment(message);
+    }
+
+    if (attachment && attachment->m_itemID) {
+        ItemLinkInfo& link = tooltip->m_itemLinkInfo;
+        link.Clear();
+
+        for (uint32_t i = 0; i < 12; i++) {
+            if (i >= 7) {
+                link.m_enchants[i] = 0;
+                link.m_enchantDurations[i] = 0;
+                link.m_enchantCharges[i] = 0;
+            } else {
+                link.m_enchants[i] = attachment->m_enchantIDs[i];
+                link.m_enchantDurations[i] = attachment->m_enchantDurations[i];
+                link.m_enchantCharges[i] = attachment->m_enchantCharges[i];
+            }
+        }
+
+        link.m_cooldown = 0;
+        link.m_proposedEnchant = 0;
+        link.m_creator = WOWGUID();
+        link.m_wrapped = 0;
+        link.m_giftCreator = WOWGUID();
+        link.m_spellCharges = attachment->m_spellCharges;
+        link.m_propertySeed = attachment->m_suffixFactor;
+        link.m_randomPropertiesId = attachment->m_randomPropertiesID;
+        link.m_maxDurability = attachment->m_maxDurability;
+        link.m_durability = attachment->m_durability;
+        link.m_stackCount = attachment->m_count;
+        WOWGUID itemGuid = WOWGUID();
+        WOWGUID requester = WOWGUID();
+
+        if (tooltip->SetItem(attachment->m_itemID, &requester, &itemGuid, 0, 0, 1, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, attachment->unk_0078, 0)) {
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: fc10993a manual
+// OFFSET: 0x0062FC20
+static int32_t Script_SetAuctionSellItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    WOWGUID item = CGAuctionHouse::m_sellItem;
+    CGItem_C* object;
+
+    if (CGAuctionHouse::m_sellItem && (object = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGAuctionHouse::m_sellItem, TYPEMASK_ITEM, __FILE__, __LINE__))) != nullptr && tooltip->SetItem(object->m_obj->m_entryID, &item, &item, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0)) {
+        lua_pushnumber(L, 1.0);
+        return 1;
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: e54be545 manual
+// OFFSET: 0x0062FCF0
+static int32_t Script_SetAuctionItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isstring(L, 2) || !lua_isnumber(L, 3)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetAuctionItem(\"type\", index)", name ? name : "<unnamed>");
+    }
+
+    const char* type = lua_tolstring(L, 2, nullptr);
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 3)) - 1;
+    AuctionItemInfo* auction;
+
+    if (!SStrCmpI(type, "owner", STORM_MAX_STR)) {
+        if (index >= CGAuctionHouse::m_ownerList.m_count) {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        auction = &CGAuctionHouse::m_ownerList.m_data[index];
+    } else if (!SStrCmpI(type, "bidder", STORM_MAX_STR)) {
+        auction = GetBidderAuction(index);
+    } else if (!SStrCmpI(type, "list", STORM_MAX_STR)) {
+        auction = GetListAuction(index);
+    } else {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    if (auction && auction->m_itemID) {
+        ItemLinkInfo& link = tooltip->m_itemLinkInfo;
+        link.Clear();
+
+        for (uint32_t i = 0; i < 12; i++) {
+            if (i >= 7) {
+                link.m_enchants[i] = 0;
+                link.m_enchantDurations[i] = 0;
+                link.m_enchantCharges[i] = 0;
+            } else {
+                link.m_enchants[i] = auction->m_enchantID[i];
+                link.m_enchantDurations[i] = auction->m_enchantDuration[i];
+                link.m_enchantCharges[i] = auction->m_enchantCharges[i];
+            }
+        }
+
+        link.m_cooldown = 0;
+        link.m_proposedEnchant = 0;
+        link.m_creator = WOWGUID();
+        link.m_wrapped = 0;
+        link.m_giftCreator = WOWGUID();
+        link.m_spellCharges = auction->m_spellCharges;
+        link.m_propertySeed = auction->m_suffixFactor;
+        link.m_randomPropertiesId = auction->m_randomPropertyID;
+        link.m_stackCount = auction->m_count;
+        WOWGUID none = WOWGUID();
+        ItemStats_C* stats = g_itemDBCache.GetRecord(auction->m_itemID, none, nullptr, nullptr, false);
+        link.m_lockId = !stats || (auction->m_flags & 0x4) ? 0 : stats->m_lockId;
+        WOWGUID itemGuid = WOWGUID();
+        WOWGUID requester = WOWGUID();
+
+        if (tooltip->SetItem(auction->m_itemID, &requester, &itemGuid, 0, 0, 1, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 1)) {
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: dc74da5e manual
+// OFFSET: 0x006301A0
+static int32_t Script_SetSocketedItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGItemSocketInfo::m_socketItem, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item) {
+        WOWGUID itemGuid = item->m_obj->m_guid;
+        WOWGUID requester = WOWGUID();
+        tooltip->SetItem(item->m_obj->m_entryID, &requester, &itemGuid, 0, 0, 0, 0, WOWGUID(), 1, nullptr, 0, nullptr, 0, 0, 0);
+    }
+
+    return 0;
+}
+
+// VERIFY: 83e79f79 manual
+// OFFSET: 0x00630250
+static int32_t Script_SetSocketGem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetSocketGem(index)", name ? name : "<unnamed>");
+    }
+
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    WOWGUID gem = index >= 3 ? WOWGUID() : CGItemSocketInfo::m_gemItems[index];
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(gem, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item) {
+        WOWGUID itemGuid = item->m_obj->m_guid;
+        WOWGUID requester = WOWGUID();
+        tooltip->SetItem(item->m_obj->m_entryID, &requester, &itemGuid, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+    }
+
+    return 0;
+}
+
+// VERIFY: 32a676a6 manual
+// OFFSET: 0x00630370
+static int32_t Script_SetExistingSocketGem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetSocketGem(index, [toDestroy])", name ? name : "<unnamed>");
+    }
+
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    int32_t toDestroy = StringToBOOL(L, 3, 0);
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGItemSocketInfo::m_socketItem, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item && index < 3) {
+        SpellItemEnchantmentRec* enchant = g_spellItemEnchantmentDB.GetRecord(item->GetEnchantmentId(index + 2));
+
+        if (enchant && enchant->m_srcItemID) {
+            WOWGUID itemGuid = WOWGUID();
+            WOWGUID requester = WOWGUID();
+            tooltip->SetItem(enchant->m_srcItemID, &requester, &itemGuid, 0, toDestroy, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: c26318ae manual
+// OFFSET: 0x006304A0
+static int32_t Script_SetGuildBankItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
+        luaL_error(L, "Invalid tab or slot in SetGuildBankItem");
+    }
+
+    uint32_t tab = static_cast<int32_t>(lua_tonumber(L, 2) - 1.0);
+    uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 3) - 1.0);
+    GuildBankSlotInfo* info = CGGuildBankInfo::GetGuildBankItem(tab, slot);
+
+    if (!info) {
+        return 0;
+    }
+
+    ItemLinkInfo& link = tooltip->m_itemLinkInfo;
+    link.Clear();
+    link.m_enchants[0] = info->unk_0010;
+    link.m_enchants[2] = info->m_enchants[0];
+    link.m_enchants[3] = info->m_enchants[1];
+    link.m_enchants[4] = info->m_enchants[2];
+    link.m_propertySeed = info->m_suffixFactor;
+    link.m_randomPropertiesId = info->m_randomPropertyID;
+    link.m_spellCharges = static_cast<uint8_t>(info->unk_0014);
+    link.m_stackCount = info->m_count;
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player) {
+        WOWGUID itemGuid = player->m_obj->m_guid;
+        WOWGUID requester = WOWGUID();
+        tooltip->SetItem(info->m_itemID, &requester, &itemGuid, 0, 0, 1, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, info->unk_0028 & 0x4, 0);
+    }
+
+    return 0;
+}
+
+// VERIFY: 9d18ea8d manual
+// OFFSET: 0x006307E0
+static int32_t Script_SetBackpackToken(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetBackpackToken(index)", name ? name : "<unnamed>");
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    CurrencyTypesRec* currency = CGCurrencyTypes::GetBackpackCurrencyInfo(static_cast<int32_t>(lua_tonumber(L, 2)) - 1);
+
+    if (!tooltip || !player || !currency) {
+        return 0;
+    }
+
+    for (uint32_t slot = 118; slot <= 149; slot++) {
+        WOWGUID guid = static_cast<int32_t>(slot) < player->m_bag.m_numSlots ? player->m_bag.m_slots[slot] : WOWGUID();
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+        if (item && item->m_obj->m_entryID == currency->m_itemID) {
+            WOWGUID itemGuid = item->m_obj->m_guid;
+            WOWGUID requester = player->m_obj->m_guid;
+            tooltip->SetItem(item->m_obj->m_entryID, &requester, &itemGuid, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+            return 0;
+        }
+    }
+
+    WOWGUID itemGuid = WOWGUID();
+    WOWGUID requester = WOWGUID();
+    tooltip->SetItem(currency->m_itemID, &requester, &itemGuid, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 1);
+    return 0;
+}
+
+// VERIFY: 0565efa8 manual
+// OFFSET: 0x00630990
+static int32_t Script_SetQuestLogSpecialItem(lua_State* L) {
+    CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
+
+    if (!lua_isnumber(L, 2)) {
+        const char* name = tooltip->GetName();
+        luaL_error(L, "Usage: %s:SetQuestLogSpecialItem(index)", name ? name : "<unnamed>");
+    }
+
+    CGItem_C* item = CGQuestLog::GetQuestSpecialItem(static_cast<int32_t>(lua_tonumber(L, 2)) - 1);
+
+    if (item) {
+        WOWGUID itemGuid = item->m_obj->m_guid;
+        WOWGUID requester = ClntObjMgrGetActivePlayer();
+        tooltip->SetItem(item->m_obj->m_entryID, &requester, &itemGuid, 0, 0, 0, 0, WOWGUID(), 0, nullptr, 0, nullptr, 0, 0, 0);
+    }
+
     return 0;
 }
 

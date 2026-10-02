@@ -7,6 +7,11 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/Types.h"
+#include <ctime>
+#include <malloc.h>
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Ui/ChatFrame.h"
 
 // STATIC: 0x00C1E8D0
 int32_t CGGMTicketInfo::m_ticketID;
@@ -32,6 +37,157 @@ void CGGMTicketInfo::InitializeGame() {
     ClientServices::SetMessageHandler(SMSG_GMRESPONSE_RECEIVED, Packet_Group_5, nullptr);
     ClientServices::SetMessageHandler(SMSG_GMRESPONSE_STATUS_UPDATE, Packet_Group_5, nullptr);
     ClientServices::SetMessageHandler(SMSG_GM_TICKET_STATUS_UPDATE, Packet_Group_5, nullptr);
+}
+
+// VERIFY: bc332241 auto
+// OFFSET: 0x005AC170
+static int32_t IsTicketTextValid(const char* text) {
+    if (SStrLenUTF8(text) > 500) {
+        CGGameUI::DisplayError(ERR_TICKET_TEXT_TOO_LONG);
+        return 0;
+    }
+
+    char token[2000];
+    const char* string = text;
+    SStrTokenize(&string, token, sizeof(token), " \t\r\n", nullptr);
+
+    if (!token[0]) {
+        CGGameUI::DisplayError(ERR_TICKET_NO_TEXT);
+        return 0;
+    }
+
+    return 1;
+}
+
+// VERIFY: 5d46286a manual
+// OFFSET: 0x005AC8F0
+void CGGMTicketInfo::CreateTicket(const char* text, int32_t needResponse, uint32_t moreHelp) {
+    if (moreHelp) {
+        if (!CGGMTicketInfo::m_responseID) {
+            return;
+        }
+    } else if (CGGMTicketInfo::m_ticketID) {
+        return;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !IsTicketTextValid(text)) {
+        return;
+    }
+
+    C3Vector position = player->GetPosition();
+    int32_t continent = CGPlayer_C::GetNewContinentID();
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_GM_TICKET_CREATE));
+    msg.Put(static_cast<uint32_t>(continent));
+    msg.Put(position.x);
+    msg.Put(position.y);
+    msg.Put(position.z);
+    msg.PutString(text);
+    msg.Put(static_cast<uint32_t>(needResponse ? 17 : 1));
+    msg.Put(static_cast<uint8_t>(moreHelp != 0));
+    uint32_t lines = 0;
+    char* chat = static_cast<char*>(SMemAlloc(180000, __FILE__, __LINE__, 0));
+    *chat = '\0';
+
+    for (int32_t i = 0; i < 60; i++) {
+        ChatRecord* record = GetChatRecord(i);
+
+        if (record && record->m_description[0]) {
+            SStrPack(chat, record->m_description, 180000);
+            SStrPack(chat, "\n", 180000);
+            lines++;
+        }
+    }
+
+    msg.Put(lines);
+    uint32_t now = static_cast<uint32_t>(::time(nullptr));
+
+    for (int32_t i = 0; i < 60; i++) {
+        ChatRecord* record = GetChatRecord(i);
+
+        if (record && record->m_description[0]) {
+            msg.Put(now - record->m_time);
+        }
+    }
+
+    if (strlen(chat)) {
+        uint32_t length = static_cast<uint32_t>(strlen(chat)) + 1;
+        uint32_t size = length / 1000 + length + 13;
+        uint8_t* compressed = static_cast<uint8_t*>(alloca(size));
+        zlib_compress(compressed, &size, reinterpret_cast<uint8_t*>(chat), length, -1);
+        msg.Put(length);
+        msg.PutData(compressed, size);
+    } else {
+        msg.Put(static_cast<uint32_t>(0));
+    }
+
+    SMemFree(chat, "delete[]", -1, 0);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: b82c7923 manual
+// OFFSET: 0x005ACB50
+void SendGMTicketUpdateText(const char* text) {
+    if (!CGGMTicketInfo::m_ticketID || CGGMTicketInfo::m_responseID || !IsTicketTextValid(text)) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_GM_TICKET_UPDATE_TEXT));
+    msg.PutString(text);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: bbb7574f manual
+// OFFSET: 0x005ACC60
+void SendGMTicketDeleteTicket() {
+    if (!CGGMTicketInfo::m_ticketID || CGGMTicketInfo::m_responseID) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_GM_TICKET_DELETE_TICKET));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 3a43cbfe manual
+// OFFSET: 0x005ACCE0
+void SendGMResponseResolve() {
+    if (!CGGMTicketInfo::m_responseID) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_GM_TICKET_RESPONSE_RESOLVE));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: f9216848 manual
+// OFFSET: 0x005ACF30
+void CGGMReportLag::Submit(int32_t type) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return;
+    }
+
+    C3Vector position = player->GetPosition();
+    int32_t continent = CGPlayer_C::GetNewContinentID();
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_GM_LAG_REPORT));
+    msg.Put(static_cast<uint32_t>(type - 1));
+    msg.Put(static_cast<uint32_t>(continent));
+    msg.Put(position.x);
+    msg.Put(position.y);
+    msg.Put(position.z);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
 }
 
 // VERIFY: 4c103e06 manual

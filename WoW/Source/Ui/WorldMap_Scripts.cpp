@@ -25,6 +25,8 @@
 #include "WoW/Source/Ui/MinimapFrame.h"
 #include "WoW/Source/Ui/PartyFrame.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "Engine/Source/Frame/CSimpleFrame.h"
 
 // VERIFY: 6b834e58 manual
 // OFFSET: 0x00543020
@@ -793,7 +795,6 @@ static int32_t Script_SetMapZoom(lua_State* L) {
     return 0;
 }
 
-// STATIC: 0x00ACCF18
 // VERIFY: 0a301e02 manual
 // OFFSET: 0x00545E60
 static int32_t Script_CreateWorldMapArrowFrame(lua_State* L) {
@@ -853,6 +854,292 @@ static int32_t Script_InitWorldMapPing(lua_State* L) {
     return 0;
 }
 
+// VERIFY: 17164b20 auto
+// OFFSET: 0x00543600
+static int32_t Script_CanQueueForWintergrasp(lua_State* L) {
+    if (GetWorldState(4375)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: ef6f67cf auto
+// OFFSET: 0x00545950
+static int32_t Script_GetCorpseMapPosition(lua_State* L) {
+    C3Vector position(0.0f, 0.0f, 0.0f);
+    int32_t mapID;
+    int32_t actualMapID;
+    CGGameUI::GetCorpseLocation(mapID, position, actualMapID);
+    float x;
+    float y;
+    CGWorldMap::GetWorldPosition(position, mapID, &x, &y, nullptr, false, 0);
+    lua_pushnumber(L, x);
+    lua_pushnumber(L, y);
+    return 2;
+}
+
+// VERIFY: 5b5ef994 auto
+// OFFSET: 0x005459C0
+static int32_t Script_GetDeathReleasePosition(lua_State* L) {
+    C3Vector position(0.0f, 0.0f, 0.0f);
+    int32_t mapID;
+    CGGameUI::GetDeathReleaseLocation(mapID, position);
+    float x;
+    float y;
+    CGWorldMap::GetWorldPosition(position, mapID, &x, &y, nullptr, false, 0);
+    lua_pushnumber(L, x);
+    lua_pushnumber(L, y);
+    return 2;
+}
+
+// VERIFY: c2d919f5 manual
+// OFFSET: 0x00545F20
+static int32_t Script_CreateMiniWorldMapArrowFrame(lua_State* L) {
+    if (lua_type(L, 1) != LUA_TTABLE) {
+        luaL_error(L, "Usage: CreateMiniWorldMapArrowFrame(parent)");
+    }
+
+    lua_rawgeti(L, 1, 0);
+    CSimpleFrame* parent = static_cast<CSimpleFrame*>(lua_touserdata(L, -1));
+    lua_settop(L, -2);
+
+    if (!parent) {
+        luaL_error(L, "CreateMiniWorldMapArrowFrame(): Couldn't find 'this' in parent object");
+    }
+
+    if (!parent->IsA(CSimpleFrame::GetObjectType())) {
+        luaL_error(L, "CreateMiniWorldMapArrowFrame(): Wrong object type, expected frame");
+    }
+
+    CGWorldMap::CreateMiniArrowFrame(parent);
+    return 0;
+}
+
+// VERIFY: 34d0d0e9 auto
+// OFFSET: 0x00545FE0
+static int32_t Script_UpdateWorldMapArrowFrames(lua_State* L) {
+    CGWorldMap::UpdateArrowFrames();
+    return 0;
+}
+
+// VERIFY: d8fa6699 manual
+// OFFSET: 0x00546A90
+static int32_t Script_ZoomOut(lua_State* L) {
+    int32_t parent;
+
+    if (CGWorldMap::m_currentOrphanZone == -1 || CGWorldMap::m_currentDungeonMap <= 0) {
+        if (CGWorldMap::m_currentContinent != -2) {
+            return 0;
+        }
+
+        WorldMapAreaRec* area = g_worldMapAreaDB.GetRecord(CGWorldMap::GetCurrentAreaID());
+
+        if (!area) {
+            return 0;
+        }
+
+        parent = area->m_parentWorldMapID;
+
+        if (!parent) {
+            for (int32_t i = 0; i < g_dungeonMapDB.m_numRecords; i++) {
+                DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecordByIndex(i);
+
+                if (dungeonMap && dungeonMap->m_mapID == area->m_mapID && dungeonMap->m_floorIndex == 1) {
+                    parent = dungeonMap->m_parentWorldMapID;
+                }
+            }
+
+            if (!parent) {
+                return 0;
+            }
+        }
+    } else {
+        DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecord(CGWorldMap::m_currentDungeonMap);
+
+        if (!dungeonMap || !dungeonMap->m_parentWorldMapID) {
+            return 0;
+        }
+
+        parent = dungeonMap->m_parentWorldMapID;
+    }
+
+    WorldMapAreaRec* parentArea = g_worldMapAreaDB.GetRecord(parent);
+
+    if (!parentArea) {
+        return 0;
+    }
+
+    for (uint32_t continent = 0; continent < CGWorldMap::m_continents.Count(); continent++) {
+        WorldMapContinent& entry = CGWorldMap::m_continents.m_data[continent];
+
+        if (entry.m_mapID != parentArea->m_mapID) {
+            continue;
+        }
+
+        for (uint32_t zone = 0; zone < entry.m_zones.Count(); zone++) {
+            if (entry.m_zones.m_data[zone] == parentArea->m_id) {
+                CGWorldMap::SetMap(continent, zone, -1);
+                return 0;
+            }
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: d5b636f3 manual
+// OFFSET: 0x00546C50
+static int32_t Script_SetMapByID(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: SetMapByID(mapID)");
+    }
+
+    int32_t mapID = static_cast<int32_t>(lua_tonumber(L, 1));
+    WorldMapAreaRec* area = g_worldMapAreaDB.GetRecord(mapID);
+
+    if (!area) {
+        return 0;
+    }
+
+    for (uint32_t continent = 0; continent < CGWorldMap::m_continents.Count(); continent++) {
+        int32_t displayMapID = area->m_displayMapID;
+
+        if (displayMapID < 0) {
+            displayMapID = area->m_mapID;
+        }
+
+        WorldMapContinent& entry = CGWorldMap::m_continents.m_data[continent];
+
+        if (entry.m_mapID != displayMapID) {
+            continue;
+        }
+
+        if (area->m_defaultDungeonFloor > 0) {
+            CGWorldMap::SetMap(-2, area->m_id, area->m_defaultDungeonFloor);
+            lua_pushboolean(L, 1);
+            return 1;
+        }
+
+        if (!area->m_areaID) {
+            CGWorldMap::SetMap(continent, -1, -1);
+            lua_pushboolean(L, 1);
+            return 1;
+        }
+
+        for (uint32_t zone = 0; zone < entry.m_zones.Count(); zone++) {
+            if (entry.m_zones.m_data[zone] == area->m_id) {
+                CGWorldMap::SetMap(continent, zone, -1);
+                lua_pushboolean(L, 1);
+                return 1;
+            }
+        }
+    }
+
+    if (area->m_defaultDungeonFloor == -1) {
+        CGWorldMap::SetMap(-2, mapID, -1);
+        lua_pushboolean(L, 1);
+        return 1;
+    }
+
+    for (int32_t i = 0; i < g_dungeonMapDB.m_numRecords; i++) {
+        DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecordByIndex(i);
+
+        if (dungeonMap && dungeonMap->m_mapID == area->m_mapID && dungeonMap->m_floorIndex == 1) {
+            CGWorldMap::SetMap(-2, mapID, dungeonMap->m_id);
+            lua_pushboolean(L, 1);
+            return 1;
+        }
+    }
+
+    CGWorldMap::SetMap(-2, mapID, -1);
+    lua_pushboolean(L, 1);
+    return 1;
+}
+
+// VERIFY: 4f3b2103 manual
+// OFFSET: 0x00546E80
+static int32_t Script_ProcessMapClick(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: ProcessMapClick(x, y)");
+    }
+
+    float x = lua_tonumber(L, 1);
+    float y = lua_tonumber(L, 2);
+    CGWorldMap::ProcessClick(x, y);
+    return 0;
+}
+
+// VERIFY: ab6bdd23 manual
+// OFFSET: 0x00546EF0
+static int32_t Script_ClickLandmark(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: ClickLandmark(mapLinkID)");
+    }
+
+    int32_t id = static_cast<int32_t>(lua_tonumber(L, 1));
+    DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecord(id);
+
+    if (!dungeonMap) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < CGWorldMap::m_orphanZones.Count(); i++) {
+        WorldMapAreaRec* area = g_worldMapAreaDB.GetRecord(CGWorldMap::m_orphanZones.m_data[i]);
+
+        if (area && area->m_mapID == dungeonMap->m_mapID) {
+            CGWorldMap::SetMap(-2, area->m_id, id);
+            return 0;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: c656caf0 auto
+// OFFSET: 0x00547B80
+static int32_t Script_SetDungeonMapLevel(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: SetDungeonMapLevel(level)");
+    }
+
+    int32_t level = static_cast<int32_t>(lua_tonumber(L, 1));
+    WorldMapAreaRec* area = g_worldMapAreaDB.GetRecord(CGWorldMap::m_currentOrphanZone);
+
+    if (area && area->m_defaultDungeonFloor == -1) {
+        if (--level < 0) {
+            return 0;
+        }
+
+        CGWorldMap::SetDungeonLevel(level);
+    } else if (level > 0) {
+        CGWorldMap::SetDungeonLevel(level);
+    }
+
+    return 0;
+}
+
+// VERIFY: 5c8fe2ff auto
+// OFFSET: 0x008E5250
+static int32_t Script_GetMapDebugObjectInfo(lua_State* L) {
+    return 0;
+}
+
+// VERIFY: 254a479d auto
+// OFFSET: 0x008E5250
+static int32_t Script_TeleportToDebugObject(lua_State* L) {
+    return 0;
+}
+
+// VERIFY: 0d559bc9 auto
+// OFFSET: 0x008E5250
+static int32_t Script_GetDebugZoneMap(lua_State* L) {
+    return 0;
+}
+
+// STATIC: 0x00ACCF18
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetMapContinents", &Script_GetMapContinents },
     { "GetMapZones", &Script_GetMapZones },
@@ -896,10 +1183,19 @@ static FrameScript_Method s_ScriptFunctions[] = {
     { "CanQueueForWintergrasp", &Script_CanQueueForWintergrasp },
 };
 
+
 // VERIFY: 9f60c73b auto
 // OFFSET: 0x00543650
 void WorldMapRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 554803ad auto
+// OFFSET: 0x00543680
+void WorldMapUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

@@ -6,12 +6,13 @@
 
 struct lua_State;
 
-int32_t Script_CloseTabardCreation(lua_State* L);
 void TabardCreationRegisterScriptFunctions();
+void TabardCreationUnregisterScriptFunctions();
 
 class CGTabardCreationFrame {
     public:
     static void Close();
+    static void Open(const WOWGUID& vendor);
     static void EnterWorld();
     static WOWGUID m_vendor;
 };

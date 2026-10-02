@@ -20,6 +20,7 @@ uint32_t CursorGetModeFromName(const char* name);
 int32_t CursorSetFromName(const char* name);
 void CursorDropItem();
 void UpdateCursor();
+void CursorGrabMoney(uint32_t amount);
 void CursorGrabSpell(const char* texture);
 void CursorGrabVirtualItem(int32_t displayId);
 

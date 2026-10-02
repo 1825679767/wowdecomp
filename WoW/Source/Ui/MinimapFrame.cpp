@@ -98,6 +98,9 @@ int32_t CGMinimapFrame::s_rotateMinimap;
 // STATIC: 0x00BEBA70
 float CGMinimapFrame::s_facing;
 
+// STATIC: 0x00BEBA8C
+C2Vector CGMinimapFrame::s_pingPosition;
+
 // STATIC: 0x00BEBA88
 CGMinimapFrame* CGMinimapFrame::s_minimapFrame;
 
@@ -120,25 +123,25 @@ static CTexture* s_vehicleTextures[7];
 static CTexture* s_groupArrowTexture;
 
 // STATIC: 0x00BEBA24
-static CTexture* s_staticPOIArrowTexture;
+CTexture* s_staticPOIArrowTexture;
 
 // STATIC: 0x00BEBA28
-static CTexture* s_corpseArrowTexture;
+CTexture* s_corpseArrowTexture;
 
 // STATIC: 0x00BEBA2C
-static CTexture* s_poiArrowTexture;
+CTexture* s_poiArrowTexture;
 
 // STATIC: 0x00BEBA30
-static CTexture* s_maskTexture;
+CTexture* s_maskTexture;
 
 // STATIC: 0x00BEBA34
-static CTexture* s_classBlipTexture;
+CTexture* s_classBlipTexture;
 
 // STATIC: 0x00BEBA38
-static CTexture* s_blipTexture;
+CTexture* s_blipTexture;
 
 // STATIC: 0x00BEBA3C
-static CTexture* s_iconTexture;
+CTexture* s_iconTexture;
 
 // STATIC: 0x00BF6148
 static C2Vector s_iconTexCoords[196][4];
@@ -852,6 +855,20 @@ void UpdatePointsOfInterest() {
         C3Vector position(poi->m_pos[0], poi->m_pos[1], s_playerPosition.z);
         s_closestPOIFacing[j] = CalculateFacingTo(&s_playerPosition, &position);
     }
+}
+
+// VERIFY: 52931454 auto
+// OFFSET: 0x007F4930
+void DisplayQuestPoint(float x, float y, int32_t importance, const char* name) {
+    s_dynamicPOIs[0].m_pos[0] = x;
+    s_dynamicPOIs[0].m_pos[1] = y;
+    s_dynamicPOIs[0].m_flags = 0;
+    s_dynamicPOIs[0].m_continentID = s_mapId;
+    s_dynamicPOIs[0].m_icon[0] = 6;
+    s_dynamicPOIs[0].m_importance = importance;
+    SStrCopy(s_dynamicPOINames[0], name, sizeof(s_dynamicPOINames[0]));
+    UpdatePointsOfInterest();
+    s_closestPOIsChanged = 1;
 }
 
 // VERIFY: 3a8b6454 auto
@@ -2099,6 +2116,56 @@ C2Vector CGMinimapFrame::WorldPosToMinimapFrameCoords(C3Vector center, float rad
     return coords;
 }
 
+// VERIFY: 43050227 manual
+// OFFSET: 0x0057EB80
+void CGMinimapFrame::SetPingPosition(const WOWGUID& guid, const C2Vector& position) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return;
+    }
+
+    CGMinimapFrame::s_pingPosition = position;
+    char unit[32] = "player";
+
+    if (guid != player->m_obj->m_guid) {
+        bool found = false;
+
+        for (uint32_t i = 0; i < CGPartyInfo::GetNumPartyMembers(); i++) {
+            if (guid == CGGameUI::GetPartyMember(i)) {
+                SStrPrintf(unit, sizeof(unit), "party%d", i + 1);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            for (uint32_t j = 0; j < CGRaidInfo::m_numMembers; j++) {
+                if (guid == GetRaidMemberGUID(j)) {
+                    SStrPrintf(unit, sizeof(unit), "raid%d", j + 1);
+                    break;
+                }
+            }
+        }
+    }
+
+    C2Vector playerPosition(player->GetPosition());
+    C2Vector offset;
+    offset.x = position.x - playerPosition.x;
+    offset.y = position.y - playerPosition.y;
+
+    if (g_rotateMinimapCVar->m_intValue) {
+        C44Matrix rotation = C44Matrix::Rotation(-CGMinimapFrame::s_facing, C3Vector(0.0f, 0.0f, 1.0f), true);
+        C2Vector rotated;
+        rotated.x = rotation.c0 * 0.0f + rotation.a0 * offset.x + rotation.b0 * offset.y;
+        rotated.y = offset.y * rotation.b1 + offset.x * rotation.a1 + 0.0f * rotation.c1;
+        offset = rotated;
+    }
+
+    float radius = MinimapGetViewRadius();
+    FrameScript_SignalEvent(SCRIPT_EVENT_MINIMAP_PING, "%s%f%f", unit, -(1.0 / (radius + radius) * offset.y), offset.x * (1.0 / (radius + radius)));
+}
+
 // VERIFY: 7e3ce000 manual
 // OFFSET: 0x0057F7F0
 int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
@@ -2379,7 +2446,7 @@ static void MinimapGetPartyMembers(MEMBERINFO* members) {
     }
 }
 
-// VERIFY: d6d8f6ef manual
+// VERIFY: 18766529 manual
 // OFFSET: 0x007F4390
 static void MinimapGetRaidMembers(MEMBERINFO* members) {
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -2393,7 +2460,7 @@ static void MinimapGetRaidMembers(MEMBERINFO* members) {
     for (uint32_t i = 0; i < 40; i++) {
         CGRaidMember* raidMember;
 
-        if (i < CGRaidInfo::m_numMembers && (raidMember = CGRaidInfo::m_members[i]) != nullptr && self && raidMember->m_guid && raidMember->unk_0008 != self->unk_0008) {
+        if (i < CGRaidInfo::m_numMembers && (raidMember = CGRaidInfo::m_members[i]) != nullptr && self && raidMember->m_guid && raidMember->m_subgroup != self->m_subgroup) {
             SetMemberData(raidMember->m_guid, &members[i], player, i, true);
         } else {
             members[i].m_onMap = 0;
@@ -3395,6 +3462,20 @@ int32_t CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent& evt) {
     tooltip->AddLine(text, nullptr, 0);
     tooltip->Show();
     return 1;
+}
+
+// VERIFY: b4f3e5a1 auto
+// OFFSET: 0x007F3AE0
+void MinimapSetZoom(uint32_t zoom) {
+    uint8_t indoors = s_isIndoors;
+    int32_t* current = indoors ? &s_indoorZoom : &s_outdoorZoom;
+    int32_t previous = *current;
+    *current = zoom >= 5 ? 5 : zoom;
+
+    if (previous != *current) {
+        s_updateFlags |= 0x1;
+        (indoors ? g_minimapInsideZoomCVar : g_minimapZoomCVar)->Set(*current, true, false, false, true);
+    }
 }
 
 // VERIFY: a04b4793 auto

@@ -195,6 +195,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     static C3Vector* s_trajectoryPoints;
     static WOWGUID s_deferredClientControlUpdateGUID;
     static uint8_t s_deferredClientControlUpdateState;
+    static void SetDeferredClientControl(WOWGUID guid, uint8_t state);
     static float s_unk_CA11D0;
     static uint32_t s_unk_CA11D4;
     static WOWGUID s_trackingGUID;
@@ -402,6 +403,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     virtual int32_t GetSpellRank(const SpellRec* spell) const;
     virtual void GetDefenseSkillRank(int32_t& rank, int32_t& bonus) const;
     virtual void GetAttackSkillRank(int32_t hand, int32_t& rank, int32_t& bonus) const;
+    void GetRangedAttackSkillRank(int32_t& rank, int32_t& bonus);
+    double GetHealthModifier();
+    double GetPowerModifier();
     virtual int32_t GetSpellCastingTime(const SpellRec* spell) const;
     virtual float GetPitch() const;
     int32_t ShouldFadeout() override;
@@ -449,6 +453,10 @@ class CGUnit_C : public CGObject_C, public CGUnit {
 
     bool IsActivePlayer();
     CGUnit_C(uint32_t time, const CClientObjCreate& create);
+    ~CGUnit_C();
+    void ClearWeaponTrailHandles();
+    void DestroyVehicleData(int32_t removePassengers);
+    void SignalPlayerLosesVehicleDataEvent();
     void OnDeath();
     void PostInit(uint32_t time, const CClientObjCreate& create, bool reenable);
     void SetClientInitData(const CClientObjCreate& create, bool activeMover);
@@ -464,6 +472,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void PostAnimate(CGWorldFrame* worldFrame);
     AuraData* GetAura(uint32_t index);
     uint8_t GetAuraFlags(uint32_t index);
+    uint8_t GetAuraLevel(uint32_t index);
+    uint8_t GetAuraStackCount(uint32_t index);
     int32_t IsControllable() const;
     VehicleSeatRec* GetVehicleSeatRec(uint8_t seat) const;
     void PreStartUpdatingMissileTrajectory(int32_t spellId, uint32_t castId);
@@ -683,6 +693,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void UpdateAuraEffectMask();
     void UpdateObjectEffectAnimationStates();
     bool HasAuraEffect(int32_t auraType) const;
+    void CancelOpenStable();
     void Unk716040();
     C3Spline_CatmullRom* GetSpline();
     float GetSplineElapsedTime();
@@ -694,6 +705,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     bool ShouldKneelForLoot() const;
     void SetVehicleExitVoluntary(int32_t enable);
     void VehicleExit();
+    void VehiclePrevSeat();
+    void VehicleNextSeat();
+    int32_t SwitchToVehicleSeat(CGUnit_C* vehicle, int32_t virtualSeat);
     bool HasDispellableAura(int32_t dispelType, int32_t harmful, bool mechanic, bool steal);
     void CheckVehicleExitOnCast();
     uint8_t GetActivePlayerFieldBytes0();
@@ -762,6 +776,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     SkillLineAbilityRec* LookupAbility(int32_t spellId);
     void SignalPlayerGainsVehicleDataEvent();
     const char* GetUnitName(const char** realm, int32_t a2);
+    const char* GetVisibleUnitName(const char** realm, int32_t a2);
     void SetCharacterModel(CM2Model* model);
     float GetModelScale(uint32_t displayId);
     float GetScaledModelScale(const CreatureDisplayInfoRec* displayInfo, const CreatureModelDataRec* modelData, float* modelScale);
@@ -976,6 +991,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t VehiclePassengerShouldWaitForVehicleTransitionAnim(uint64_t transport, uint8_t seat) const;
     void AddWorldDamageText(const WOWGUID& source, int32_t amount, const SpellRec* spell, bool crit, bool periodic, bool spellColor);
     void UpdateSpellCastBars(uint32_t time);
+    void OnChannelUpdate(int32_t remaining);
+    void ClearUIChannel();
+    void RemoveChannelEffects(int32_t spellId);
     void DelayCast(int32_t delay);
     void SetUICastingDirect(int32_t spellId, const WOWGUID& target, uint32_t start, uint32_t end);
     void SetUIChannelDirect(int32_t spellId, uint32_t start, uint32_t end);

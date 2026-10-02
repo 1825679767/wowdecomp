@@ -8,6 +8,12 @@
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/RaidInfo.h"
+#include "Engine/Source/FrameXML/LoadXML.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include "WoW/Source/Ui/ChatFrame.h"
+#include "WoW/Source/Ui/Types.h"
+#include "Engine/Source/Os/Time.h"
+#include <ctime>
 
 // VERIFY: 4f5603dd manual
 // OFFSET: 0x0052C110
@@ -218,6 +224,285 @@ static int32_t Script_GetLootMethod(lua_State* L) {
     return 3;
 }
 
+// VERIFY: 1eec9288 auto
+// OFFSET: 0x0052CF00
+static int32_t Script_SetOptOutOfLoot(lua_State* L) {
+    int32_t optOut = lua_toboolean(L, 1);
+    CGPartyInfo::SetOptOutOfLoot(optOut);
+    CGChat::AddChatMessage(FrameScript_GetText(optOut ? "OPT_OUT_LOOT_TOGGLE_ON" : "OPT_OUT_LOOT_TOGGLE_OFF", -1, GENDER_NOT_APPLICABLE), 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+    return 0;
+}
+
+// VERIFY: f1613827 auto
+// OFFSET: 0x0052CF60
+static int32_t Script_GetPartyAssignment(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: GetPartyAssignment(\"assignment\" [,\"raidmember\"] [,exactMatch])");
+    }
+
+    const char* assignment = lua_tolstring(L, 1, nullptr);
+
+    if (!SStrCmpI(assignment, "MAINTANK", STORM_MAX_STR)) {
+        return CGPartyInfo::GetPartyAssignments(L, 0);
+    }
+
+    if (SStrCmpI(assignment, "MAINASSIST", STORM_MAX_STR)) {
+        luaL_error(L, "GetPartyAssignment(): Invalid party assignment");
+    }
+
+    return CGPartyInfo::GetPartyAssignments(L, 1);
+}
+
+// VERIFY: 07abcb2f manual
+// OFFSET: 0x0052D000
+static int32_t Script_CanChangePlayerDifficulty(lua_State* L) {
+    lua_pushboolean(L, CGGameUI::CanChangePlayerDifficulty());
+    bool cooldown = CGPartyInfo::unk_BD1984 && static_cast<int32_t>(static_cast<uint32_t>(::time(nullptr)) - CGPartyInfo::unk_BD1984) < 0;
+    lua_pushboolean(L, !cooldown);
+    return 2;
+}
+
+// VERIFY: bce11cea manual
+// OFFSET: 0x0052D9C0
+static int32_t Script_SilenceMember(lua_State* L) {
+    if ((!CGRaidInfo::m_numMembers && !CGPartyInfo::m_members[0]) || !lua_isstring(L, 1)) {
+        return 0;
+    }
+
+    const char* name = lua_tolstring(L, 1, nullptr);
+    WOWGUID guid = CGGameUI::ClosestObjectMatch(name, TYPEMASK_PLAYER, (CGRaidInfo::m_numMembers != 0) + 5, 0, 3.4028235e38f, 0);
+
+    if (!guid) {
+        CGGameUI::DisplayError(ERR_TARGET_NOT_IN_GROUP_S, name);
+        return 0;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    if (CGRaidInfo::m_numMembers) {
+        WOWGUID playerGuid = player->m_obj->m_guid;
+
+        if (CGRaidInfo::IsPlayerRaidOfficer(playerGuid)) {
+            CGPlayer_C::SilencePlayer(guid, CGRaidInfo::IsPVPRaid());
+            return 0;
+        }
+    } else if (CGPartyInfo::m_leader == player->m_obj->m_guid) {
+        CGPlayer_C::SilencePlayer(guid, CGRaidInfo::IsPVPRaid());
+    }
+
+    return 0;
+}
+
+// VERIFY: 7f79bf87 manual
+// OFFSET: 0x0052DAF0
+static int32_t Script_UnSilenceMember(lua_State* L) {
+    if ((!CGRaidInfo::m_numMembers && !CGPartyInfo::m_members[0]) || !lua_isstring(L, 1)) {
+        return 0;
+    }
+
+    const char* name = lua_tolstring(L, 1, nullptr);
+    WOWGUID guid = CGGameUI::ClosestObjectMatch(name, TYPEMASK_PLAYER, (CGRaidInfo::m_numMembers != 0) + 5, 0, 3.4028235e38f, 0);
+
+    if (!guid) {
+        CGGameUI::DisplayError(ERR_TARGET_NOT_IN_GROUP_S, name);
+        return 0;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    if (CGRaidInfo::m_numMembers) {
+        WOWGUID playerGuid = player->m_obj->m_guid;
+
+        if (CGRaidInfo::IsPlayerRaidOfficer(playerGuid)) {
+            CGPlayer_C::UnSilencePlayer(guid, CGRaidInfo::IsPVPRaid());
+            return 0;
+        }
+    } else if (CGPartyInfo::m_leader == player->m_obj->m_guid) {
+        CGPlayer_C::UnSilencePlayer(guid, CGRaidInfo::IsPVPRaid());
+    }
+
+    return 0;
+}
+
+// VERIFY: b20405b2 manual
+// OFFSET: 0x0052DC20
+static int32_t Script_SetLootMethod(lua_State* L) {
+    if (!CGPartyInfo::m_members[0] && !CGRaidInfo::m_numMembers) {
+        CGGameUI::DisplayError(ERR_NOT_IN_GROUP);
+        return 0;
+    }
+
+    if (CGPartyInfo::m_leader != ClntObjMgrGetActivePlayer()) {
+        CGGameUI::DisplayError(ERR_NOT_LEADER);
+        return 0;
+    }
+
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: SetLootMethod(\"method\" [,master])");
+    }
+
+    const char* method = lua_tolstring(L, 1, nullptr);
+    uint32_t lootMethod;
+
+    if (!SStrCmpI(method, "freeforall", STORM_MAX_STR)) {
+        lootMethod = 0;
+    } else if (!SStrCmpI(method, "roundrobin", STORM_MAX_STR)) {
+        lootMethod = 1;
+    } else if (!SStrCmpI(method, "master", STORM_MAX_STR)) {
+        lootMethod = 2;
+    } else if (!SStrCmpI(method, "group", STORM_MAX_STR)) {
+        lootMethod = 3;
+    } else {
+        if (SStrCmpI(method, "needbeforegreed", STORM_MAX_STR)) {
+            luaL_error(L, "Invalid loot method");
+        }
+
+        lootMethod = 4;
+    }
+
+    WOWGUID master = WOWGUID();
+
+    if (lootMethod == 2) {
+        const char* name;
+
+        if (!lua_isstring(L, 2) || !(name = lua_tolstring(L, 2, nullptr)) || !*name) {
+            CGGameUI::DisplayError(ERR_SPECIFY_MASTER_LOOTER);
+            return 0;
+        }
+
+        if (CGRaidInfo::m_numMembers) {
+            master = CGGameUI::ClosestObjectMatch(name, TYPEMASK_PLAYER, 6, StringToBOOL(L, 3, 0), 3.4028235e38f, 0);
+        } else {
+            master = CGGameUI::ClosestObjectMatch(name, TYPEMASK_PLAYER, 5, StringToBOOL(L, 3, 0), 3.4028235e38f, 0);
+        }
+
+        if (!master || (!CGPartyInfo::IsMember(master) && !IsGuidInMyRaid(master))) {
+            CGGameUI::DisplayError(ERR_TARGET_NOT_IN_GROUP_S, name);
+            return 0;
+        }
+    }
+
+    if (ClntObjMgrGetActivePlayerObj()) {
+        CGPlayer_C::SetLootMethod(lootMethod, master, CGPartyInfo::m_lootThreshold);
+    }
+
+    return 0;
+}
+
+// VERIFY: 44f76d0e manual
+// OFFSET: 0x0052DF40
+static int32_t SetOrClearAssignment(lua_State* L, bool set) {
+    if (set && !CGGameUI::CanPerformAction(4)) {
+        return 0;
+    }
+
+    if (!CGPartyInfo::m_members[0] && !CGRaidInfo::m_numMembers) {
+        CGGameUI::DisplayError(ERR_NOT_IN_GROUP);
+        return 0;
+    }
+
+    if (CGPartyInfo::m_leader != ClntObjMgrGetActivePlayer()) {
+        WOWGUID player = ClntObjMgrGetActivePlayer();
+
+        if (!CGRaidInfo::IsPlayerRaidOfficer(player)) {
+            CGGameUI::DisplayError(ERR_NOT_LEADER);
+            return 0;
+        }
+    }
+
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: %s(\"assignment\" [,\"raidmember\"] [,exactMatch])", set ? "SetPartyAssignment" : "ClearPartyAssignment");
+    }
+
+    WOWGUID guid = WOWGUID();
+    const char* assignmentName = lua_tolstring(L, 1, nullptr);
+    uint8_t assignment;
+
+    if (!SStrCmpI(assignmentName, "MAINTANK", STORM_MAX_STR)) {
+        assignment = 0;
+    } else {
+        if (SStrCmpI(assignmentName, "MAINASSIST", STORM_MAX_STR)) {
+            luaL_error(L, "Invalid Party assignment");
+        }
+
+        assignment = 1;
+    }
+
+    if (!CanSendPartyCommand()) {
+        return 0;
+    }
+
+    if (lua_isstring(L, 2)) {
+        const char* name = lua_tolstring(L, 2, nullptr);
+        guid = CGGameUI::ClosestObjectMatch(name, TYPEMASK_PLAYER, 6, StringToBOOL(L, 3, 0), 3.4028235e38f, 0);
+
+        if (!guid) {
+            WOWGUID unit = CGGameUI::ClosestObjectMatch(name, TYPEMASK_UNIT, 0, StringToBOOL(L, 3, 0), 3.4028235e38f, 0);
+
+            if (ClntObjMgrObjectPtr(unit, TYPEMASK_UNIT, __FILE__, __LINE__)) {
+                CGGameUI::DisplayError(ERR_MEETING_STONE_TARGET_NOT_IN_PARTY);
+            } else if (name && *name && SStrCmpI(name, "target", STORM_MAX_STR)) {
+                CGGameUI::DisplayError(ERR_UNIT_NOT_FOUND);
+            } else {
+                CGGameUI::DisplayError(ERR_GENERIC_NO_TARGET);
+            }
+
+            return 0;
+        }
+    }
+
+    if (ClntObjMgrGetActivePlayerObj()) {
+        CGPartyInfo::m_lastAssignmentTime = OsGetAsyncTimeMs();
+
+        if (set) {
+            CGPlayer_C::SetPartyAssignment(assignment, guid);
+            return 0;
+        }
+
+        CGPlayer_C::ClearPartyAssignment(assignment, guid);
+    }
+
+    return 0;
+}
+
+// VERIFY: af1ffdeb manual
+// OFFSET: 0x0052E1B0
+static int32_t Script_SetPartyAssignment(lua_State* L) {
+    return SetOrClearAssignment(L, true);
+}
+
+// VERIFY: dab7ea29 auto
+// OFFSET: 0x0052E400
+static int32_t Script_ClearPartyAssignment(lua_State* L) {
+    return SetOrClearAssignment(L, false);
+}
+
+// VERIFY: 4154fb5e manual
+// OFFSET: 0x0052E420
+static int32_t Script_ChangePlayerDifficulty(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: SetPlayerDifficulty(\"difficulty\")");
+    }
+
+    if (CGGameUI::CanChangePlayerDifficulty()) {
+        double difficulty = lua_tonumber(L, 1);
+
+        if (difficulty <= 1.0) {
+            CGPartyInfo::ChangeRaidDifficulty(static_cast<int32_t>(difficulty));
+        }
+    }
+
+    return 0;
+}
+
 // STATIC: 0x00ACC6D0
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetNumPartyMembers", &Script_GetNumPartyMembers },
@@ -249,5 +534,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void CGPartyInfo::RegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 4dbd4e0a auto
+// OFFSET: 0x0052C3A0
+void CGPartyInfo::UnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

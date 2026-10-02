@@ -28,12 +28,12 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WoW/Source/ConsoleDevice/ConsoleDevice.h"
 #include "WoW/Source/WowServices/RealmConnection.h"
+#include "Engine/Source/Scrn/Scrn.h"
 
 int32_t Script_IsShiftKeyDown(lua_State* L);
 int32_t Script_GetLocale(lua_State* L);
 int32_t Script_QuitGameAndRunLauncher(lua_State* L);
 int32_t Script_PlayCreditsMusic(lua_State* L);
-int32_t Script_Screenshot(lua_State* L);
 int32_t Script_PatchDownloadProgress(lua_State* L);
 int32_t Script_PatchDownloadCancel(lua_State* L);
 int32_t Script_PatchDownloadApply(lua_State* L);
@@ -934,6 +934,13 @@ static int32_t Script_GetBillingPlan(lua_State* L) {
     lua_pushnumber(L, (flags & 0x20) != 0);
     lua_pushnumber(L, (flags & 0x8) != 0);
     return 3;
+}
+
+// VERIFY: 6d5a65a7 auto
+// OFFSET: 0x004DC520
+static int32_t Script_Screenshot(lua_State* L) {
+    ScrnScreenshot(&CGlueMgr::HandleScreenshot, reinterpret_cast<uint8_t*>(ClientServices::GetClientStamp()), 88);
+    return 0;
 }
 
 // VERIFY: 10a06b79 manual

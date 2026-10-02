@@ -296,7 +296,6 @@ void Spell_C_StopTargeting();
 void SpellTableInitialize();
 
 int32_t Script_CancelUnitBuff(lua_State* L);
-int32_t Script_CancelItemTempEnchantment(lua_State* L);
 void SpellRegisterScriptFunctions();
 void SpellUnregisterScriptFunctions();
 

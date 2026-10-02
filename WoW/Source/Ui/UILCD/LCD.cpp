@@ -10,6 +10,9 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/ChrClassesRec.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/Ui/BattlefieldInfo.h"
+#include "WoW/Source/DB/Rec/BattlemasterListRec.h"
+#include "WoW/Source/DB/Rec/MapRec.h"
 
 // STATIC: 0x00B1C0BC
 TSList<POIIcon, TSGetLink<POIIcon> > CGLCD::m_POIIcons;
@@ -40,6 +43,15 @@ static uint8_t s_classFlag8;
 
 // STATIC: 0x00D4131E
 static uint8_t s_unk_D4131E;
+
+// STATIC: 0x00D412D0
+static char s_battlefieldAlert[64];
+
+// STATIC: 0x00D41320
+static uint32_t s_battlefieldPortExpiration;
+
+// STATIC: 0x00D4132C
+static uint32_t s_battlefieldStartTime;
 
 // STATIC: 0x00B1C098
 static int32_t s_currentScreen = -1;
@@ -73,6 +85,15 @@ static bool IsLCDAvailable() {
     }
 }
 
+// VERIFY: cdaa7032 auto
+// OFFSET: 0x00848140
+void CGLCD::ShowBattlefieldScreen() {
+    if (CGLCD::m_lcd && CGLCD::m_lcd->IsConnected() && IsLCDAvailable() && CGLCD::initComplete) {
+        s_unk_D4131E = 0;
+        CGLCD::SetScreen(1);
+    }
+}
+
 // VERIFY: e986adf3 auto
 // OFFSET: 0x00848180
 void CGLCD::ClearWaitQueueScreen() {
@@ -94,6 +115,17 @@ void CGLCD::Initialize() {
     }
 
     EventRegister(EVENT_ID_IDLE, CGLCD::Update);
+}
+
+// VERIFY: 03c1a51c auto
+// OFFSET: 0x0084A6E0
+void CGLCD::OnBattlefieldActive() {
+    if (CGLCD::m_lcd && CGLCD::m_lcd->IsConnected() && IsLCDAvailable() && CGLCD::initComplete) {
+        s_unk_D4131E = 1;
+        s_battlefieldStartTime = CGBattlefieldInfo::m_instanceStartTime;
+        CGLCD::UpdateBattlefieldStats();
+        CGLCD::SetScreen(3);
+    }
 }
 
 // VERIFY: 20771c88 auto
@@ -121,6 +153,72 @@ void CGLCD::Shutdown() {
 void CGLCD::OnWhisper(const char* name) {
     if (CGLCD::m_lcd && CGLCD::m_lcd->IsConnected() && IsLCDAvailable() && CGLCD::initComplete) {
         CGLCD::PushAlert(name, 1);
+    }
+}
+
+// VERIFY: 0fd36640 auto
+// OFFSET: 0x0084A5B0
+void CGLCD::AuctionOutbid(const char* name) {
+    if (CGLCD::m_lcd && CGLCD::m_lcd->IsConnected() && IsLCDAvailable() && CGLCD::initComplete) {
+        CGLCD::PushAlert(name, 3);
+    }
+}
+
+// VERIFY: 29915760 auto
+// OFFSET: 0x0084A5F0
+void CGLCD::AuctionExpired(const char* name) {
+    if (CGLCD::m_lcd && CGLCD::m_lcd->IsConnected() && IsLCDAvailable() && CGLCD::initComplete && CGLCD::m_lcd->IsDeviceAvailable(1)) {
+        CGLCD::PushAlert(name, 4);
+    }
+}
+
+// VERIFY: ed6aa2a2 auto
+// OFFSET: 0x0084A640
+void CGLCD::AuctionSold(const char* name) {
+    if (CGLCD::m_lcd && CGLCD::m_lcd->IsConnected() && IsLCDAvailable() && CGLCD::initComplete && CGLCD::m_lcd->IsDeviceAvailable(1)) {
+        CGLCD::PushAlert(name, 6);
+    }
+}
+
+// VERIFY: e4264b44 auto
+// OFFSET: 0x0084A690
+void CGLCD::AuctionWon(const char* name) {
+    if (CGLCD::m_lcd && CGLCD::m_lcd->IsConnected() && IsLCDAvailable() && CGLCD::initComplete && CGLCD::m_lcd->IsDeviceAvailable(1)) {
+        CGLCD::PushAlert(name, 5);
+    }
+}
+
+// VERIFY: b3ae8be5 auto
+// OFFSET: 0x00848380
+void CGLCD::HideBattlefieldAlert() {
+    if (CGLCD::m_lcd && CGLCD::m_lcd->IsConnected() && IsLCDAvailable() && CGLCD::initComplete && s_currentScreen == 2) {
+        CGLCD::SetScreen(s_previousScreen);
+    }
+}
+
+// VERIFY: a406c5e1 auto
+// OFFSET: 0x008483C0
+void CGLCD::OnBattlefieldReady(const BattlefieldStatus* status) {
+    if (!CGLCD::m_lcd || !CGLCD::m_lcd->IsConnected() || !IsLCDAvailable() || !CGLCD::initComplete || !status) {
+        return;
+    }
+
+    if (status->m_bgTypeID == 32) {
+        BattlemasterListRec* rec = g_battlemasterListDB.GetRecord(32);
+
+        if (rec) {
+            CGLCD::SetScreen(2);
+            SStrPrintf(s_battlefieldAlert, sizeof(s_battlefieldAlert), "%s", rec->m_name);
+            s_battlefieldPortExpiration = status->m_portExpiration;
+        }
+    } else {
+        MapRec* map = g_mapDB.GetRecord(status->m_mapID);
+
+        if (map) {
+            CGLCD::SetScreen(2);
+            SStrPrintf(s_battlefieldAlert, sizeof(s_battlefieldAlert), "%s %d", map->m_mapName, status->m_instanceID);
+            s_battlefieldPortExpiration = status->m_portExpiration;
+        }
     }
 }
 

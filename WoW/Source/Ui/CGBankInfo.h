@@ -14,8 +14,7 @@ class CGBankInfo {
     static WOWGUID m_banker;
 };
 
-int32_t Script_PurchaseSlot(lua_State* L);
-int32_t Script_CloseBankFrame(lua_State* L);
 void BankRegisterScriptFunctions();
+void BankUnregisterScriptFunctions();
 
 #endif

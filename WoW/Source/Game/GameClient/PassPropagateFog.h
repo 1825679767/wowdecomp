@@ -11,8 +11,7 @@ class CGxShader;
 class PassPropagateFog : public FFX::Pass {
     public:
     /* 0030 */ uint32_t m_useRect;
-    /* 0034 */ CGxShader* m_pixelShader;
-    /* 0038 */ uint32_t unk_0038;
+    /* 0034 */ CGxShader* m_pixelShaders[2];
     /* 003C */ C2Vector m_params[4];
     /* 005C */ float unk_005C;
 

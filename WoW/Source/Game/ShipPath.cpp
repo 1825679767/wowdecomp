@@ -374,9 +374,27 @@ bool ShipPath::TimeInRange(uint32_t start, uint32_t end, uint32_t time) {
     return true;
 }
 
-// VERIFY: 0ba77058 auto
+// VERIFY: c709f2c7 manual
+// OFFSET: 0x007F7810
+uint32_t ShipPath::GetPathTime(uint32_t time) const {
+    uint32_t total = this->m_totalPathTime;
+
+    if (!total) {
+        return 0;
+    }
+
+    uint32_t pathTime = (time + this->m_timeOffset) % total;
+
+    if (this->m_waitReached) {
+        return this->m_waitTime;
+    }
+
+    return pathTime;
+}
+
+// VERIFY: 96558271 auto
 // OFFSET: 0x007F7840
-uint32_t ShipPath::GetPathTime(uint32_t time, uint32_t elapsed, int32_t absolute) {
+uint32_t ShipPath::UpdatePathTime(uint32_t time, uint32_t elapsed, int32_t absolute) {
     uint32_t total = this->m_totalPathTime;
 
     if (!total) {
@@ -559,11 +577,11 @@ void ShipPath::ComputeRollAndPitch(float speed, float facing, float distance, ui
     this->GetRollAndPitch(time, speed, turn, position, roll, pitch);
 }
 
-// VERIFY: 6b846269 manual
+// VERIFY: bebfa321 manual
 // OFFSET: 0x007F82B0
 void ShipPath::GetPosition(uint32_t time, uint32_t elapsed, int32_t* mapId, uint32_t* sequence, C3Vector* position, float* facing, uint32_t* leg, float* roll, float* pitch, int32_t absolute) {
     C44Matrix frame;
-    uint32_t pathTime = this->GetPathTime(time, elapsed, absolute);
+    uint32_t pathTime = this->UpdatePathTime(time, elapsed, absolute);
     *sequence = ANIM_STAND;
     float speed = 0.0f;
     position->x = 0.0f;

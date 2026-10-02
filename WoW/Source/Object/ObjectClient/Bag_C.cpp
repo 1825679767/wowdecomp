@@ -10,6 +10,7 @@
 #include "WoW/Source/Ui/AuctionHouse.h"
 #include "WoW/Source/Ui/MailInfo.h"
 #include "WoW/Source/Ui/TradeFrame.h"
+#include "WoW/Source/UIUtil/Tooltip.h"
 
 // STATIC: 0x00A37B10
 static const BAGSLOTRANGE s_bagSlotRanges[8] = { { 23, 38 }, { 19, 22 }, { 86, 117 }, { 39, 66 }, { 67, 73 }, { 118, 149 }, { 0, 18 }, { 74, 85 } };
@@ -184,6 +185,264 @@ static int32_t __stdcall SlotMatchesSearchFlags(uint32_t slot, uint32_t flags) {
     return (slot <= 18 && (flags & 0x1)) || (slot - 23 <= 15 && (flags & 0x4)) || (slot - 19 <= 3 && (flags & 0x2)) || (((slot >= 39 && slot <= 66) || slot - 67 <= 6) && (flags & 0x8)) || (slot - 86 <= 31 && (flags & 0x40)) || (slot - 118 <= 31 && (flags & 0x200));
 }
 
+// VERIFY: ddfa3202 auto
+// OFFSET: 0x00753B70
+static int32_t FindItemFullNameCallback(const CGItem_C* item, void* param) {
+    char fullName[1024];
+    item->GetFullItemName(fullName, sizeof(fullName));
+    return SStrCmpUTF8I(static_cast<const char*>(param), fullName, STORM_MAX_STR) == 0;
+}
+
+// VERIFY: e5b71395 auto
+// OFFSET: 0x00753BB0
+int32_t GetDisplayErrorByInventoryError(int32_t error) {
+    switch (error) {
+        case 0:
+        case 81:
+        case 83:
+            return ERR_MAX_VALUE;
+
+        case 1:
+            return ERR_CANT_EQUIP_LEVEL_I;
+
+        case 2:
+            return ERR_CANT_EQUIP_SKILL;
+
+        case 3:
+            return ERR_WRONG_SLOT;
+
+        case 5:
+            return ERR_BAG_IN_BAG;
+
+        case 6:
+            return ERR_TRADE_EQUIPPED_BAG;
+
+        case 7:
+            return ERR_AMMO_ONLY;
+
+        case 8:
+            return ERR_PROFICIENCY_NEEDED;
+
+        case 9:
+        case 12:
+        case 18:
+            return ERR_NO_SLOT_AVAILABLE;
+
+        case 10:
+        case 11:
+            return ERR_CANT_EQUIP_EVER;
+
+        case 13:
+            return ERR_2HANDED_EQUIPPED;
+
+        case 14:
+            return ERR_2HSKILLNOTFOUND;
+
+        case 15:
+        case 16:
+            return ERR_WRONG_BAG_TYPE;
+
+        case 17:
+            return ERR_ITEM_MAX_COUNT;
+
+        case 19:
+        case 55:
+            return ERR_CANT_STACK;
+
+        case 20:
+            return ERR_NOT_EQUIPPABLE;
+
+        case 21:
+            return ERR_CANT_SWAP;
+
+        case 22:
+            return ERR_SLOT_EMPTY;
+
+        case 23:
+        case 54:
+            return ERR_ITEM_NOT_FOUND;
+
+        case 24:
+            return ERR_DROP_BOUND_ITEM;
+
+        case 25:
+            return ERR_OUT_OF_RANGE;
+
+        case 26:
+            return ERR_TOO_FEW_TO_SPLIT;
+
+        case 27:
+            return ERR_SPLIT_FAILED;
+
+        case 28:
+            return ERR_SPELL_FAILED_REAGENTS_GENERIC;
+
+        case 29:
+            return ERR_NOT_ENOUGH_MONEY;
+
+        case 30:
+            return ERR_NOT_A_BAG;
+
+        case 31:
+            return ERR_DESTROY_NONEMPTY_BAG;
+
+        case 32:
+            return ERR_NOT_OWNER;
+
+        case 33:
+            return ERR_ONLY_ONE_QUIVER;
+
+        case 34:
+            return ERR_NO_BANK_SLOT;
+
+        case 35:
+            return ERR_NO_BANK_HERE;
+
+        case 36:
+            return ERR_ITEM_LOCKED;
+
+        case 37:
+            return ERR_GENERIC_STUNNED;
+
+        case 38:
+            return ERR_PLAYER_DEAD;
+
+        case 39:
+            return ERR_CLIENT_LOCKED_OUT;
+
+        case 40:
+        case 73:
+            return ERR_INTERNAL_BAG_ERROR;
+
+        case 41:
+            return ERR_ONLY_ONE_BOLT;
+
+        case 42:
+            return ERR_ONLY_ONE_AMMO;
+
+        case 43:
+            return ERR_CANT_WRAP_STACKABLE;
+
+        case 44:
+            return ERR_CANT_WRAP_EQUIPPED;
+
+        case 45:
+            return ERR_CANT_WRAP_WRAPPED;
+
+        case 46:
+            return ERR_CANT_WRAP_BOUND;
+
+        case 47:
+            return ERR_CANT_WRAP_UNIQUE;
+
+        case 48:
+            return ERR_CANT_WRAP_BAGS;
+
+        case 49:
+            return ERR_LOOT_GONE;
+
+        case 50:
+            return ERR_INV_FULL;
+
+        case 51:
+            return ERR_BANK_FULL;
+
+        case 52:
+        case 57:
+            return ERR_VENDOR_SOLD_OUT;
+
+        case 58:
+            return ERR_OBJECT_IS_BUSY;
+
+        case 59:
+            return ERR_CANT_BE_DISENCHANTED;
+
+        case 60:
+            return ERR_NOT_IN_COMBAT;
+
+        case 61:
+            return ERR_NOT_WHILE_DISARMED;
+
+        case 63:
+            return ERR_CANT_EQUIP_RANK;
+
+        case 64:
+            return ERR_CANT_EQUIP_REPUTATION;
+
+        case 65:
+            return ERR_TOO_MANY_SPECIAL_BAGS;
+
+        case 66:
+            return ERR_LOOT_CANT_LOOT_THAT_NOW;
+
+        case 67:
+            return ERR_ITEM_UNIQUE_EQUIPPABLE;
+
+        case 68:
+            return ERR_VENDOR_MISSING_TURNINS;
+
+        case 69:
+            return ERR_NOT_ENOUGH_HONOR_POINTS;
+
+        case 70:
+            return ERR_NOT_ENOUGH_ARENA_POINTS;
+
+        case 71:
+            return ERR_ITEM_MAX_COUNT_SOCKETED;
+
+        case 72:
+            return ERR_MAIL_BOUND_ITEM;
+
+        case 75:
+            return ERR_ITEM_MAX_COUNT_EQUIPPED_SOCKETED;
+
+        case 76:
+            return ERR_ITEM_UNIQUE_EQUIPPABLE_SOCKETED;
+
+        case 77:
+            return ERR_TOO_MUCH_GOLD;
+
+        case 78:
+            return ERR_NOT_DURING_ARENA_MATCH;
+
+        case 79:
+            return ERR_TRADE_BOUND_ITEM;
+
+        case 80:
+            return ERR_CANT_EQUIP_RATING;
+
+        case 82:
+            return ERR_NOT_SAME_ACCOUNT;
+
+        case 84:
+            return ERR_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED_IS;
+
+        case 85:
+            return ERR_ITEM_MAX_LIMIT_CATEGORY_SOCKETED_EXCEEDED_IS;
+
+        case 86:
+            return ERR_SCALING_STAT_ITEM_LEVEL_EXCEEDED;
+
+        case 87:
+            return ERR_PURCHASE_LEVEL_TOO_LOW;
+
+        case 88:
+            return ERR_CANT_EQUIP_NEED_TALENT;
+
+        case 89:
+            return ERR_ITEM_MAX_LIMIT_CATEGORY_EQUIPPED_EXCEEDED_IS;
+
+        case 90:
+            return ERR_SHAPESHIFT_FORM_CANNOT_EQUIP;
+
+        case 91:
+            return ERR_ITEM_INVENTORY_FULL_SATCHEL;
+
+        default:
+            return ERR_BAG_FULL;
+    }
+}
+
 // VERIFY: 9c2bc99e auto
 // OFFSET: 0x00753F60
 int32_t GetItemTypeChargesCallback(const CGItem_C* item, void* param) {
@@ -349,6 +608,99 @@ uint64_t CGBag_C::GetItemGuid(uint32_t slot) const {
     }
 
     return 0;
+}
+
+// VERIFY: eb9a8ff7 manual
+// OFFSET: 0x007545D0
+static int32_t FindItemLinkCallback(const CGItem_C* item, void* param) {
+    const ItemLinkInfo* link = static_cast<const ItemLinkInfo*>(param);
+    CGItem_C* object = const_cast<CGItem_C*>(item);
+
+    if (static_cast<int32_t>(link->m_itemId) != object->m_obj->m_entryID) {
+        return 0;
+    }
+
+    if (object->m_item->m_itemFieldFlags & 0x8) {
+        if (link->m_enchants[0]) {
+            return 0;
+        }
+
+        for (uint32_t i = 0; i < 3; i++) {
+            if (link->m_enchants[2 + i]) {
+                return 0;
+            }
+        }
+
+        if (link->m_randomPropertiesId) {
+            return 0;
+        }
+
+        return !link->m_propertySeed;
+    }
+
+    if (link->m_enchants[0] && link->m_enchants[0] != object->GetEnchantmentId(0)) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (link->m_enchants[2 + i] && link->m_enchants[2 + i] != object->GetEnchantmentId(2 + i)) {
+            return 0;
+        }
+    }
+
+    if (link->m_randomPropertiesId && link->m_randomPropertiesId != object->m_item->m_itemFieldRandomPropertiesId) {
+        return 0;
+    }
+
+    if (link->m_propertySeed && link->m_propertySeed != object->m_item->m_itemFieldPropertySeed) {
+        return 0;
+    }
+
+    return 1;
+}
+
+// VERIFY: b7f49e2f auto
+// OFFSET: 0x00753B20
+static int32_t FindItemNameCallback(const CGItem_C* item, void* param) {
+    const char* name = static_cast<const char*>(param);
+    int32_t length = SStrLenUTF8(name);
+    char fullName[1024];
+    item->GetFullItemName(fullName, sizeof(fullName));
+    return SStrCmpUTF8I(name, fullName, length) == 0;
+}
+
+// VERIFY: 57bdbcdf manual
+// OFFSET: 0x00754B90
+CGItem_C* CGBag_C::GetItemIdByName(const char* name, WOWGUID& container, uint32_t& slot, uint32_t flags) {
+    if (!name || !*name) {
+        return nullptr;
+    }
+
+    if (!SStrStr(name, "item:")) {
+        return this->FindItem(&FindItemNameCallback, const_cast<char*>(name), container, slot, flags);
+    }
+
+    ItemLinkInfo link;
+    link.Clear();
+    link.GetItemIdFromLink(name);
+    return this->FindItem(&FindItemLinkCallback, &link, container, slot, flags);
+}
+
+// VERIFY: f40a505c manual
+// OFFSET: 0x00754C30
+CGItem_C* CGBag_C::FindItemByFullName(const char* name, uint32_t flags) {
+    if (!name || !*name) {
+        return nullptr;
+    }
+
+    if (!SStrStr(name, "item:")) {
+        return this->FindItem(&FindItemFullNameCallback, const_cast<char*>(name), flags);
+    }
+
+    ItemLinkInfo link;
+    link.Clear();
+    link.GetItemIdFromLink(name);
+    return this->FindItem(&FindItemLinkCallback, &link, flags);
 }
 
 // VERIFY: cfc4d837 auto

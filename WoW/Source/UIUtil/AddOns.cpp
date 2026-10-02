@@ -22,7 +22,7 @@
 #include "WoW/Source/Ui/UIBindings.h"
 
 // STATIC: 0x00AD17B4
-static const char* s_addOnLoadableTokens[10] = { "LOADABLE", "MISSING", "DISABLED", "BANNED", "CORRUPT", "INSECURE", "DEMAND_LOADED", "INTERFACE_VERSION", "INCOMPATIBLE", "SECURE" };
+static const char* s_addOnLoadableTokens[12] = { "LOADABLE", "MISSING", "DISABLED", "BANNED", "CORRUPT", "INSECURE", "DEMAND_LOADED", "INTERFACE_VERSION", "INCOMPATIBLE", "SECURE", "INSECURE", "BANNED" };
 
 // STATIC: 0x00AD17A8
 static TSList<ADDONSTATELIST> s_addOnStates;
@@ -119,6 +119,12 @@ char* AddOnUnloadableToken(UIADDON_LOADABLE_REASON reason, UIADDON_LOADABLE_REAS
     }
 
     return buffer;
+}
+
+// VERIFY: 200fce53 auto
+// OFFSET: 0x005F4C90
+const char* AddOnSecurityToken(int32_t security) {
+    return s_addOnLoadableTokens[UIADDON_SECURE + security];
 }
 
 // VERIFY: 6c5d7816 auto
@@ -434,6 +440,78 @@ UIADDON::~UIADDON() {
     this->m_metadata.Clear();
 }
 
+// VERIFY: c3d9c443 auto
+// OFFSET: 0x005F7410
+const char* GetAddOnName(const char* name) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (addon) {
+        return addon->m_key.m_str;
+    }
+
+    return nullptr;
+}
+
+// VERIFY: d2ea37a9 auto
+// OFFSET: 0x005F7430
+const char* GetAddOnTitle(const char* name) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (addon) {
+        UIADDON::METADATA* metadata = addon->m_metadata.Ptr("Title");
+
+        if (metadata) {
+            return metadata->m_value;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 3bd36ab0 auto
+// OFFSET: 0x005F7470
+const char* GetAddOnNotes(const char* name) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (addon) {
+        UIADDON::METADATA* metadata = addon->m_metadata.Ptr("Notes");
+
+        if (metadata) {
+            return metadata->m_value;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 8330d5de auto
+// OFFSET: 0x005F74E0
+const char* GetAddOnMetadata(const char* name, const char* key) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (addon) {
+        UIADDON::METADATA* metadata = addon->m_metadata.Ptr(key);
+
+        if (metadata) {
+            return metadata->m_value;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 17c36db3 manual
+// OFFSET: 0x005F7520
+TSGrowableArray<char*>* GetAddonDeps(const char* name) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (addon) {
+        return &addon->m_requiredDeps;
+    }
+
+    return nullptr;
+}
+
 // VERIFY: dad9fd3c manual
 // OFFSET: 0x005F7570
 static int32_t ComputeAddOnEnableState(const char* name) {
@@ -467,6 +545,18 @@ static int32_t ComputeAddOnEnableState(const char* name) {
     }
 
     return 2 - (enabled < total);
+}
+
+// VERIFY: 8a5c7a5a auto
+// OFFSET: 0x005F7610
+bool IsAddOnLoadOnDemand(const char* name) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (addon) {
+        return addon->m_loadOnDemand;
+    }
+
+    return false;
 }
 
 // VERIFY: 5af7c1e1 auto
@@ -1334,7 +1424,36 @@ void InitializeAddOns(const char* accountName) {
     s_addOnsInitialized = true;
 }
 
-// VERIFY: 5ee39a1a manual
+// VERIFY: ee1f2414 manual
+// OFFSET: 0x005F90B0
+void SetAddOnEnableState(const char* name, const char* character, int32_t state) {
+    bool enabled = state != 0;
+
+    for (ADDONSTATELIST* list = s_addOnStates.Head(); list; list = s_addOnStates.Next(list)) {
+        if (character && SStrCmpI(list->m_name, character, STORM_MAX_STR)) {
+            continue;
+        }
+
+        ADDONSTATE* addonState = list->m_states.Ptr(name);
+
+        if (addonState) {
+            if (enabled != addonState->m_enabled) {
+                addonState->m_enabled = enabled;
+                list->m_dirty = true;
+            }
+        } else {
+            addonState = list->m_states.New(name, 0, 0);
+            addonState->m_enabled = enabled;
+            list->m_dirty = true;
+        }
+
+        if (character) {
+            break;
+        }
+    }
+}
+
+// VERIFY: c1cbd847 manual
 // OFFSET: 0x005F91E0
 void LoadAddOnEnableState(const char* character) {
     if (!character) {
@@ -1349,7 +1468,7 @@ void LoadAddOnEnableState(const char* character) {
 
     while (!TSList<ADDONSTATELIST, TSGetLink<ADDONSTATELIST> >::IsEnd(list)) {
         if (!SStrCmpI(character, list->m_name, STORM_MAX_STR)) {
-            list->m_accountWide = false;
+            list->m_dirty = false;
             list->m_states.InternalClear(0);
             break;
         }
@@ -1374,7 +1493,7 @@ void LoadAddOnEnableState(const char* character) {
             return;
         }
 
-        list->m_accountWide = true;
+        list->m_dirty = true;
     }
 
     const char* cursor = static_cast<const char*>(data);
@@ -1574,17 +1693,29 @@ void UnloadAddOns() {
     }
 }
 
-// VERIFY: fceb3ea4 manual
+// VERIFY: 1697dec4 auto
+// OFFSET: 0x005F7670
+int32_t GetAddOnSecurity(const char* name) {
+    UIADDON* addon = s_addons.Ptr(name);
+
+    if (addon) {
+        return addon->m_status;
+    }
+
+    return 1;
+}
+
+// VERIFY: 6b68ae99 manual
 // OFFSET: 0x005F76A0
 void SaveAddOnEnableState() {
     int32_t created = 0;
 
     for (ADDONSTATELIST* list = s_addOnStates.Head(); list; list = s_addOnStates.Next(list)) {
-        if (!list->m_accountWide) {
+        if (!list->m_dirty) {
             continue;
         }
 
-        list->m_accountWide = false;
+        list->m_dirty = false;
         char path[260];
         SStrPrintf(path, sizeof(path), "WTF\\Account\\%s\\%s\\%s", s_addOnAccountName, ClientServices::GetSelectedRealmName(), list->m_name);
 

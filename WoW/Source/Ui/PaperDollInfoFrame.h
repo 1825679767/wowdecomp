@@ -9,6 +9,8 @@
 struct lua_State;
 
 class CGPlayer_C;
+class CGItem_C;
+class ItemStats_C;
 
 struct InspectArenaTeam {
     /* 0000 */ uint32_t m_teamId;
@@ -44,25 +46,17 @@ class CGCharacterInfo {
     static void ShutdownGame();
     static void UpdateInventoryAlerts();
     static void UpdateItem(WOWGUID guid);
+    static void UseItem(int32_t slot, WOWGUID* target);
+    static void PickupBag(uint32_t slot);
+    static void SocketInventoryItem(int32_t slot);
+    static void RequestInspectHonorData();
+    static bool CanEquipItemInSlot(const ItemStats_C* stats, uint32_t slot);
+    static bool CanEquipItem(CGItem_C* item, uint32_t slot);
 };
 
-int32_t Script_GetInventoryItemsForSlot(lua_State* L);
-int32_t Script_GetInventoryItemQuality(lua_State* L);
-int32_t Script_GetInventoryItemDurability(lua_State* L);
-int32_t Script_GetInventoryItemLink(lua_State* L);
-int32_t Script_GetInventoryItemID(lua_State* L);
-int32_t Script_GetInventoryItemGems(lua_State* L);
-int32_t Script_UseInventoryItem(lua_State* L);
-int32_t Script_SocketInventoryItem(lua_State* L);
-int32_t Script_PutItemInBag(lua_State* L);
-int32_t Script_PickupBagFromSlot(lua_State* L);
-int32_t Script_ShowInventorySellCursor(lua_State* L);
-int32_t Script_SetInventoryPortraitTexture(lua_State* L);
 void GuildNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
-int32_t Script_RequestInspectHonorData(lua_State* L);
-int32_t Script_GetInspectArenaTeamData(lua_State* L);
-int32_t Script_ClearInspectPlayer(lua_State* L);
 void CharacterInfoRegisterScriptFunctions();
+void CharacterInfoUnregisterScriptFunctions();
 
 class CDataStore;
 

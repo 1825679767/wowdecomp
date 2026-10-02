@@ -16,12 +16,13 @@ struct lua_State;
 class CGRaidMember {
     public:
     /* 0000 */ WOWGUID m_guid;
-    /* 0008 */ uint32_t unk_0008;
+    /* 0008 */ uint32_t m_subgroup;
     /* 000C */ int32_t m_rank;
     /* 0010 */ CGPartyMemberState m_stats;
     /* 0320 */ int32_t m_readyCheckPending;
     /* 0324 */ int32_t m_readyCheckReady;
-    /* 0328 */ uint32_t unk_0328;
+    /* 0328 */ uint8_t m_assignments;
+    /* 0329 */ uint8_t unk_0329[3];
     /* 032C */ uint32_t m_groupRole;
 };
 
@@ -55,24 +56,28 @@ class CGRaidInfo {
     static CGPartyPetState* GetRemotePetStats(const WOWGUID& guid);
 
     static void EnableMember(CGPlayer_C* player, int32_t enable);
+    static void UpdateRealStats(uint32_t count, WOWGUID leader);
+    static void ClearRoster();
+    static void CheckReadyCheckTime();
+    static void InitiateReadyCheck(const char* name);
+    static void SetRaidTarget(uint32_t index, const WOWGUID& guid);
+    static void RosterUpdateRefreshReadyCheck(uint32_t removed, WOWGUID leader);
+    static void UpdateRoster(const WOWGUID* guids, const uint32_t* subgroups, const uint8_t* flags, const uint32_t* roles, const uint8_t* online, uint32_t count, uint8_t battleground);
     static int32_t IsPetInRaid(const WOWGUID& guid, int32_t* index);
     static int32_t IsPlayerRaidOfficer(const WOWGUID& guid);
     static int32_t IsPVPRaid();
     static int32_t GetMemberIndexByGuid(WOWGUID guid);
+    static CGRaidMember* GetMember(uint32_t index);
+    static int32_t GetSelectedMemberIndex();
+    static void SendReadyCheck();
     static uint8_t GetPartyAssignments(const WOWGUID& guid);
+    static int32_t GetPartyAssignments(lua_State* L, int32_t assignment);
     static void GetMapNameWithDifficulty(char* buffer, uint32_t size, int32_t mapId, int32_t difficulty);
 };
 
-int32_t Script_GetRaidRosterInfo(lua_State* L);
-int32_t Script_GetRaidRosterSelection(lua_State* L);
-int32_t Script_SetRaidSubgroup(lua_State* L);
-int32_t Script_SwapRaidSubgroup(lua_State* L);
-int32_t Script_PromoteToLeader(lua_State* L);
-int32_t Script_PromoteToAssistant(lua_State* L);
-int32_t Script_DemoteAssistant(lua_State* L);
-int32_t Script_SetRaidTarget(lua_State* L);
 int32_t Script_DoReadyCheck(lua_State* L);
 void RaidInfoRegisterScriptFunctions();
+void RaidInfoUnregisterScriptFunctions();
 
 void RaidRosterNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 int32_t Packet_MSG_RAID_TARGET_UPDATE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);

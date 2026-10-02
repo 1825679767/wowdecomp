@@ -8,6 +8,12 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/BankBagSlotPricesRec.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "WoW/Source/Net/Types.h"
+#include "WoW/Source/Object/Player.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/Types.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
 // VERIFY: 5ee8d6b2 manual
 // OFFSET: 0x0057B940
@@ -63,6 +69,50 @@ static int32_t Script_GetBankSlotCost(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 0c83382f auto
+// OFFSET: 0x0057B9C0
+static int32_t Script_CloseBankFrame(lua_State* L) {
+    WOWGUID none = WOWGUID();
+    CGBankInfo::SetBanker(none);
+    return 0;
+}
+
+// VERIFY: a2ef1f87 manual
+// OFFSET: 0x0057BA30
+static uint32_t GetBankSlotCost(int32_t slot) {
+    BankBagSlotPricesRec* rec = g_bankBagSlotPricesDB.GetRecord(slot);
+
+    if (rec) {
+        return rec->m_cost;
+    }
+
+    return 0;
+}
+
+// VERIFY: 3176635c manual
+// OFFSET: 0x0057BBC0
+static int32_t Script_PurchaseSlot(lua_State* L) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !CGGameUI::m_hasControl || !CGBankInfo::m_banker || player->m_player->m_playerBytes2[2] >= 7) {
+        return 0;
+    }
+
+    uint32_t cost = GetBankSlotCost(player->m_player->m_playerBytes2[2] + 1);
+
+    if (player->GetCoinage() < cost) {
+        CGGameUI::DisplayError(ERR_BANKSLOT_INSUFFICIENT_FUNDS);
+        return 0;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_BUY_BANK_SLOT));
+    msg.Put(CGGameUI::m_interactTarget.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
 // STATIC: 0x00ACEB7C
 static FrameScript_Method s_ScriptFunctions[] = {
     { "BankButtonIDToInvSlotID", &Script_BankButtonIDToInvSlotID },
@@ -77,5 +127,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void BankRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 73ed23b9 auto
+// OFFSET: 0x0057BA10
+void BankUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

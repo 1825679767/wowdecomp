@@ -20,12 +20,14 @@
 #include "WoW/Source/Ui/EquipmentManager.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/PetInfo.h"
+#include "Engine/Source/Tempest/CMath.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "WoW/Source/Ui/SpellBookFrame.h"
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/Ui/UIBindings.h"
 #include "WoW/Source/Ui/UIMacros.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/DB/Rec/SummonPropertiesRec.h"
 
 // STATIC: 0x00C1DC98
 int32_t CGActionBar::m_slotNoMana[144];
@@ -193,6 +195,38 @@ int32_t CGActionBar::GetSpell(uint32_t slot, int32_t& petSpell) {
     }
 
     return 0;
+}
+
+// VERIFY: 356cf1ff manual
+// OFFSET: 0x005A95E0
+int32_t CGActionBar::ActionHasRange(uint32_t slot) {
+    if (slot > 143) {
+        return 0;
+    }
+
+    SpellRec spell;
+    int32_t petSpell;
+    int32_t spellId = CGActionBar::GetSpell(slot, petSpell);
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return 0;
+    }
+
+    CGUnit_C* caster = petSpell ? static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPEMASK_UNIT, __FILE__, __LINE__)) : ClntObjMgrGetActivePlayerObj();
+
+    if (!caster) {
+        return 0;
+    }
+
+    float minRange;
+    float maxRange;
+    Spell_C_GetMinMaxRange(caster, &spell, &minRange, &maxRange, nullptr);
+
+    if (fequal(minRange, 0.0f) && fequal(maxRange, 0.0f)) {
+        return 0;
+    }
+
+    return 1;
 }
 
 // VERIFY: c3489cdd auto
@@ -542,9 +576,9 @@ uint32_t CGActionBar::GetMultiCastSlotMaskForTotemCategory(int32_t category) {
     return 0;
 }
 
-// VERIFY: 6e861881 manual
+// VERIFY: 48490470 manual
 // OFFSET: 0x005A7BC0
-static int32_t IsMultiCastSpellForSlot(int32_t slot, const SpellRec* spell, int32_t* category) {
+int32_t IsMultiCastSpellForSlot(int32_t slot, const SpellRec* spell, int32_t* category) {
     int32_t totem = (spell->m_attributesExG & 0x20) ? 1 : 0;
     *category = GetMultiCastTotemCategory(slot);
 
@@ -941,6 +975,40 @@ void CGActionBar::SlotChanged(int32_t slot, int32_t sendToServer, int32_t silent
 void ItemStatsCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
     if (success) {
         CGActionBar::UpdateItem(id);
+    }
+}
+
+// VERIFY: b0ac32c1 auto
+// OFFSET: 0x005AADD0
+void CGActionBar::RemoveMacroActions(uint32_t macroId) {
+    if (!macroId) {
+        return;
+    }
+
+    for (uint32_t slot = 0; slot < 144; slot++) {
+        uint32_t action = CGActionBar::m_slotActions[slot];
+        uint32_t id = action && (action & 0xF0000000) == 0x40000000 ? action & 0xBFFFFFFF : 0;
+
+        if (id == macroId) {
+            CGActionBar::RemoveAction(slot);
+        }
+    }
+}
+
+// VERIFY: bd659b06 manual
+// OFFSET: 0x005AAE20
+void CGActionBar::RemoveEquipmentSet(uint32_t id) {
+    if (id > 9) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 144; i++) {
+        uint32_t action = CGActionBar::m_slotActions[i];
+        uint32_t set = action && (action & 0xF0000000) == 0x20000000 ? action & 0xDFFFFFFF : static_cast<uint32_t>(-1);
+
+        if (set == id) {
+            CGActionBar::RemoveAction(i);
+        }
     }
 }
 
@@ -1589,6 +1657,26 @@ void CGActionBar::RemoveMacro(int32_t spellId) {
     }
 }
 
+// VERIFY: 751f1f9d manual
+// OFFSET: 0x005AAA00
+void CGActionBar::UpdateEquipmentSet(uint32_t id) {
+    if (id > 9) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 144; i++) {
+        uint32_t action = CGActionBar::m_slotActions[i];
+        uint32_t set = action && (action & 0xF0000000) == 0x20000000 ? action & 0xDFFFFFFF : static_cast<uint32_t>(-1);
+
+        if (set == id) {
+            int32_t noMana;
+            CGActionBar::m_slotUsable[i] = CGActionBar::UpdateUsableAction(i, noMana);
+            CGActionBar::m_slotNoMana[i] = noMana;
+            FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_SLOT_CHANGED, "%d", i + 1);
+        }
+    }
+}
+
 // VERIFY: d191a5f1 manual
 // OFFSET: 0x005AAA90
 void CGActionBar::RemoveAction(uint32_t slot) {
@@ -1966,4 +2054,74 @@ int32_t CGActionBar::GetMacroItem(uint32_t slot) {
     }
 
     return 0;
+}
+
+// VERIFY: 8c44577f auto
+// OFFSET: 0x005AAFD0
+void CGActionBar::ReplaceSpell(int32_t oldSpell, int32_t newSpell) {
+    SpellRec newRec;
+    int32_t found = g_spellDB.GetRecord(newSpell, &newRec);
+    int32_t newRank = found ? CGSpellBook::GetSpellProgressionRank(&newRec) : 0;
+
+    for (uint32_t slot = 0; slot < 144; slot++) {
+        int32_t petSpell;
+        int32_t spellId = CGActionBar::GetSpell(slot, petSpell);
+
+        if (!spellId) {
+            continue;
+        }
+
+        if (spellId != oldSpell) {
+            bool replace = false;
+            SpellRec rec;
+
+            if (found && g_spellDB.GetRecord(spellId, &rec) && !SStrCmp(rec.m_name, newRec.m_name, STORM_MAX_STR) && newRank == CGSpellBook::GetSpellProgressionRank(&rec) + 1) {
+                replace = true;
+            }
+
+            if (!replace) {
+                continue;
+            }
+        }
+
+        uint32_t action = CGActionBar::m_slotActions[slot];
+
+        if (!action) {
+            continue;
+        }
+
+        if (!(action & 0xF0000000)) {
+            CGActionBar::SetAction(slot, newSpell, 1, 0);
+        } else if ((action & 0xF0000000) == 0x40000000) {
+            CGUIMacros::GetMacroByID(action & 0xBFFFFFFF)->m_spellID = newSpell;
+        }
+    }
+}
+
+// VERIFY: c90d9c09 auto
+// OFFSET: 0x005AAC00
+void CGActionBar::UpdateCritter(int32_t critter) {
+    if (!critter) {
+        return;
+    }
+
+    SpellRec spell;
+
+    for (uint32_t slot = 0; slot < 144; slot++) {
+        int32_t petSpell;
+
+        if (!g_spellDB.GetRecord(CGActionBar::GetSpell(slot, petSpell), &spell)) {
+            continue;
+        }
+
+        for (uint32_t i = 0; i < 3; i++) {
+            if (spell.m_effect[i] == 28 && g_summonPropertiesDB.GetRecord(spell.m_effectMiscValueB[0]) && spell.m_effectMiscValue[i] == critter) {
+                int32_t noMana;
+                CGActionBar::m_slotUsable[slot] = CGActionBar::UpdateUsableAction(slot, noMana);
+                CGActionBar::m_slotNoMana[slot] = noMana;
+                FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_SLOT_CHANGED, "%d", slot + 1);
+                break;
+            }
+        }
+    }
 }

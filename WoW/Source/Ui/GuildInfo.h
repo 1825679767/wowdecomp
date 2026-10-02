@@ -21,7 +21,7 @@ struct GuildMemberInfo {
     /* 0008 */ char m_name[48];
     /* 0038 */ int32_t m_level;
     /* 003C */ int32_t m_class;
-    /* 0040 */ int32_t unk_0040;
+    /* 0040 */ int32_t m_gender;
     /* 0044 */ int32_t m_zoneID;
     /* 0048 */ int32_t m_rank;
     /* 004C */ int32_t m_online;
@@ -38,6 +38,15 @@ struct GuildRosterSortCriteria {
     /* 0004 */ int32_t m_descending;
 };
 
+struct GuildEventLogEntry {
+    /* 0000 */ uint32_t m_type;
+    /* 0004 */ uint32_t unk_0004;
+    /* 0008 */ WOWGUID m_player1;
+    /* 0010 */ WOWGUID m_player2;
+    /* 0018 */ uint32_t m_rank;
+    /* 001C */ uint32_t m_time;
+};
+
 struct GuildRankFlag {
     /* 0000 */ uint32_t m_mask;
     /* 0004 */ int32_t m_enabled;
@@ -45,6 +54,8 @@ struct GuildRankFlag {
 
 class CGGuildInfo {
     public:
+    static uint32_t GetGuildBankTabPermissionsByRankID(uint8_t tab, uint32_t rank);
+    static int32_t GetNumGuildBankTabItemWithdrawalsByRankID(uint8_t tab, uint32_t rank);
     static void SetMOTD(const char* motd);
     static void SaveToFile();
     static void QueryRosterAndRanks();
@@ -56,17 +67,20 @@ class CGGuildInfo {
     static int32_t m_showOffline;
     static WOWGUID m_selectedMember;
     static int32_t unk_C22AC8;
-    static int32_t unk_C22AD0;
+    static int32_t m_pendingEventLogNames;
     static uint8_t unk_C22AD4;
     static TSGrowableArray<GuildMemberInfo*> m_roster;
     static GuildRankInfo m_rankInfo[10];
     static int32_t m_numEventLogEntries;
     static uint32_t m_numRanks;
+    static GuildEventLogEntry m_eventLog[100];
+    static void SortRoster(int32_t column);
     static void EnterWorld();
     static void InitializeGame();
     static void ShutdownGame();
     static void QueryPermissions();
     static void SetShowOffline(int32_t show);
+    static int32_t GetSelectedMemberIndex();
 };
 
 extern int32_t s_guildControlRank;
@@ -75,25 +89,11 @@ int32_t Packet_SMSG_GUILD_ROSTER(void* param, NETMESSAGE msgId, uint32_t time, C
 int32_t Packet_MSG_GUILD_PERMISSIONS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_MSG_GUILD_EVENT_LOG_QUERY(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t QSortRoster(const void* a, const void* b);
+void GuildInfoCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 void UpdateGuildRoster(int32_t a1);
 
-int32_t Script_GetNumGuildMembers(lua_State* L);
-int32_t Script_GetGuildRosterInfo(lua_State* L);
-int32_t Script_GetGuildRosterLastOnline(lua_State* L);
-int32_t Script_GuildRosterSetPublicNote(lua_State* L);
-int32_t Script_GuildRosterSetOfficerNote(lua_State* L);
-int32_t Script_GetGuildRosterSelection(lua_State* L);
-int32_t Script_SortGuildRoster(lua_State* L);
-int32_t Script_GuildControlGetRankName(lua_State* L);
-int32_t Script_GuildControlSetRank(lua_State* L);
-int32_t Script_GuildControlSaveRank(lua_State* L);
-int32_t Script_GuildControlAddRank(lua_State* L);
-int32_t Script_GetGuildBankTabPermissions(lua_State* L);
-int32_t Script_CloseGuildRoster(lua_State* L);
 int32_t Script_GuildRoster(lua_State* L);
-int32_t Script_GetGuildInfoText(lua_State* L);
-int32_t Script_SetGuildInfoText(lua_State* L);
-int32_t Script_GetGuildEventInfo(lua_State* L);
 void GuildInfoRegisterScriptFunctions();
+void GuildInfoUnregisterScriptFunctions();
 
 #endif

@@ -177,3 +177,23 @@ float CPassenger::AddToTransport(WOWGUID transport, C44Matrix* inverse, C44Matri
 
     return facing;
 }
+
+// VERIFY: 346a66a5 auto
+// OFFSET: 0x004F4970
+void CPassenger::SetTransport(WOWGUID transport) {
+    if (transport == this->m_transportGuid || (transport && !MovementObjIsTransport(transport))) {
+        return;
+    }
+
+    C44Matrix matrix;
+
+    if (this->m_transportGuid) {
+        this->RemoveFromTransport(&matrix);
+    }
+
+    if (transport) {
+        this->AddToTransport(transport, &matrix, nullptr);
+    }
+
+    this->m_transportGuid = transport;
+}

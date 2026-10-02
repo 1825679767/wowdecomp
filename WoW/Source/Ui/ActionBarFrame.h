@@ -5,6 +5,7 @@
 #include "WoW/Source/Object/WGUID.h"
 
 struct lua_State;
+class SpellRec;
 
 class CGItem_C;
 
@@ -60,12 +61,17 @@ class CGActionBar {
     static void HideGrid();
     static void UpdateUsable();
     static void UpdateUsablePower();
+    static void UpdateCritter(int32_t critter);
     static void RemoveAction(uint32_t slot);
+    static int32_t ActionHasRange(uint32_t slot);
+    static void UpdateEquipmentSet(uint32_t id);
+    static void RemoveEquipmentSet(uint32_t id);
     static void ReplaceSpell(int32_t oldSpell, int32_t newSpell);
     static int32_t HasAction(uint32_t slot);
     static void PutActionInSlot(int32_t slot);
     static void UpdateMultiCastBar();
     static void RemoveMacro(int32_t spellId);
+    static void RemoveMacroActions(uint32_t macroId);
     static uint32_t GetMultiCastSlotMaskForTotemCategory(int32_t category);
     static bool IsEquipmentSetValid(int32_t setId);
     static int32_t IsSpell(uint32_t slot);
@@ -84,11 +90,9 @@ class CGActionBar {
 
 void ItemStatsCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 
-int32_t Script_GetActionAutocast(lua_State* L);
 int32_t IsStackableAucItem(uint32_t slot);
-int32_t Script_ActionHasRange(lua_State* L);
-int32_t Script_GetMultiCastTotemSpells(lua_State* L);
-int32_t Script_SetMultiCastSpell(lua_State* L);
+int32_t IsMultiCastSpellForSlot(int32_t slot, const SpellRec* spell, int32_t* category);
 void ActionBarRegisterScriptFunctions();
+void ActionBarUnregisterScriptFunctions();
 
 #endif

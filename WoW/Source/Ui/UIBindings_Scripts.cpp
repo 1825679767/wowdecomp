@@ -594,6 +594,29 @@ static int32_t Script_SetOverrideBindingClick(lua_State* L) {
     return 0;
 }
 
+// VERIFY: f4ee5a5f manual
+// OFFSET: 0x00564130
+static int32_t Script_GetClickFrame(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: GetClickFrame(\"name\")");
+    }
+
+    const char* name = lua_tolstring(L, 1, nullptr);
+    CSimpleFrame* frame = GetClickFrame(L, name, SStrLen(name));
+
+    if (!frame) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    if (!frame->m_luaRegistered) {
+        frame->RegisterScriptObject(nullptr);
+    }
+
+    lua_rawgeti(L, LUA_REGISTRYINDEX, frame->m_luaObjectRef);
+    return 1;
+}
+
 // STATIC: 0x00ACDE38
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetNumBindings", &Script_GetNumBindings },
@@ -629,5 +652,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void UIBindingsRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 3982d8aa auto
+// OFFSET: 0x0055DCC0
+void UIBindingsUnegisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

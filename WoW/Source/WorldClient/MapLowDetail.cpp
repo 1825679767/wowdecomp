@@ -15,7 +15,6 @@
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
 #include "Engine/Source/Gx/CGxVertexPC.h"
 
-// VERIFY: pending
 // VERIFY: 3763adce auto
 // OFFSET: 0x007C06E0
 CMapAreaLow::CMapAreaLow() {
@@ -46,7 +45,6 @@ void CMapLowDetail::Purge() {
     }
 }
 
-// VERIFY: pending
 // VERIFY: 3b80ddc7 manual
 // OFFSET: 0x007CC0B0
 void CMapLowDetail::CullHorizonAreas(const C3Vector* pos) {

@@ -131,7 +131,7 @@ struct TrackingTypeInfo {
     /* 0010 */ uint32_t m_classMask;
 };
 
-void DisplayQuestPoint(float x, float y, int32_t a3, const char* name);
+void DisplayQuestPoint(float x, float y, int32_t importance, const char* name);
 
 class CGMinimapFrame : public CSimpleFrame {
     public:
@@ -150,6 +150,7 @@ class CGMinimapFrame : public CSimpleFrame {
     static CGMinimapFrame* s_minimapFrame;
     static int32_t s_rotateMinimap;
     static float s_facing;
+    static C2Vector s_pingPosition;
     static int32_t s_scaleChanged;
     static float s_blipSize1;
     static float s_blipHalfSize1;
@@ -211,8 +212,8 @@ class CGMinimapFrame : public CSimpleFrame {
     void UpdateRotation(float facing);
 };
 
-int32_t Script_SetTracking(lua_State* L);
 void MinimapRegisterScriptFunctions();
+void MinimapUnregisterScriptFunctions();
 
 void MinimapInitialize(int32_t mapId);
 int32_t MinimapUpdate(CMapEntity* entity, int32_t mapId, const C3Vector* position, C2Vector* center, float* scale, MINIMAPTILE* tiles, MINIMAPINDOOR* indoor, int32_t force);
@@ -226,5 +227,15 @@ void MinimapSetSpiritHealerPOI(float x, float y);
 
 int32_t MinimapGetZoom();
 int32_t MinimapGetZoomLevels();
+
+extern CTexture* s_staticPOIArrowTexture;
+extern CTexture* s_corpseArrowTexture;
+extern CTexture* s_poiArrowTexture;
+extern CTexture* s_maskTexture;
+extern CTexture* s_classBlipTexture;
+extern CTexture* s_blipTexture;
+extern CTexture* s_iconTexture;
+
+void MinimapSetZoom(uint32_t zoom);
 
 #endif

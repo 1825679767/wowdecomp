@@ -15,3 +15,11 @@ void CGDanceStudio::RegisterScriptFunctions() {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
     }
 }
+
+// VERIFY: 5268fde5 auto
+// OFFSET: 0x00575840
+void CGDanceStudio::UnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
+    }
+}

@@ -100,6 +100,66 @@ char* GetComponentVersionData(uint32_t* size) {
     return data;
 }
 
+// VERIFY: 59db56f0 manual
+// OFFSET: 0x0044B570
+std::string Blizzard::Streaming::ResolveFilePath(const std::string& path) {
+    if (!unk_B38298) {
+        return std::string();
+    }
+
+    if ((*unk_B38298)[path].size()) {
+        return (*unk_B38298)[path];
+    }
+
+    char absolute[260];
+
+    if (!Blizzard::File::MakeAbsolutePath(path.c_str(), absolute, 260, false)) {
+        return std::string();
+    }
+
+    char normalized[260];
+    char* dst = normalized;
+    const char* src = absolute;
+    uint32_t left = 260;
+
+    while (true) {
+        char c = *src++;
+        left--;
+
+        if (!c) {
+            *dst = '\0';
+            break;
+        }
+
+        *dst++ = c == '/' ? '\\' : c;
+
+        if (!left) {
+            dst[-1] = '\0';
+            break;
+        }
+    }
+
+    StringToLower(normalized);
+    (*unk_B38298)[path].assign(normalized, strlen(normalized));
+    return std::string((*unk_B38298)[path]);
+}
+
+// VERIFY: 745bac15 manual
+// OFFSET: 0x0044EFB0
+bool Blizzard::Streaming::IsStreamedFile(const char* path) {
+    if (!Blizzard::Streaming::s_streamingReady || !path) {
+        return false;
+    }
+
+    std::string resolved = Blizzard::Streaming::ResolveFilePath(std::string(path));
+
+    if (!unk_B38174) {
+        return false;
+    }
+
+    return unk_B38174->find(resolved) != unk_B38174->end();
+}
+
 // VERIFY: 5b965645 manual
 // OFFSET: 0x004508B0
 static void StopThread() {

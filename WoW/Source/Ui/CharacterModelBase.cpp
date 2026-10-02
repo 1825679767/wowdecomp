@@ -21,6 +21,7 @@
 #include "Engine/Source/Services/Camera.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Tempest/CAaSphere.h"
+#include "WoW/Source/DB/DBClient/CreatureStats_C.h"
 
 // STATIC: 0x00ACF510
 const char* CGCharacterModelBase::s_objectTypeName = "PlayerModel";
@@ -126,13 +127,13 @@ bool CGCharacterModelBase::IsA(const char* typeName) {
     return !SStrCmpI(typeName, CGCharacterModelBase::s_objectTypeName, STORM_MAX_STR) || !SStrCmpI(typeName, CSimpleModel::s_objectTypeName, STORM_MAX_STR) || CSimpleFrame::IsA(typeName);
 }
 
-// VERIFY: d50994d2 auto
+// VERIFY: db00ef5c auto
 // OFFSET: 0x00597370
 CGCharacterModelBase::CGCharacterModelBase(CSimpleFrame* parent) : CSimpleModel(parent) {
     this->m_unitGuid = WOWGUID();
     this->m_sequenceSet = 0;
     this->m_sequenceResetTime = 0;
-    this->m_displayId = 0;
+    this->m_creatureStats = nullptr;
     this->m_light.SetLightType(M2LIGHT_DIRECT);
     this->m_light.SetDirection(C3Vector(0.0f, -0.70710599f, -0.70710599f));
     this->m_light.m_dirColor = C3Vector(0.8f, 0.8f, 0.64f);
@@ -158,7 +159,18 @@ void CGCharacterModelBase::OnModelLoaded(CM2Model* model) {
     this->ConfigureCamera();
 }
 
-// VERIFY: 8308b968 manual
+// VERIFY: ab38d930 manual
+// OFFSET: 0x00597840
+void CGCharacterModelBase::SetCreature(CreatureStats_C* stats) {
+    this->m_unitGuid = WOWGUID();
+    this->m_creatureStats = stats;
+
+    if (this->m_isVisible && stats) {
+        this->SetUpModel(stats);
+    }
+}
+
+// VERIFY: c0c76e1e manual
 // OFFSET: 0x00597870
 int32_t CGCharacterModelBase::ShowThis() {
     if (!this->m_isVisible) {
@@ -169,8 +181,8 @@ int32_t CGCharacterModelBase::ShowThis() {
                 this->SetUpModel(unit);
                 return CSimpleFrame::ShowThis();
             }
-        } else if (this->m_displayId) {
-            this->SetUpModel(this->m_displayId);
+        } else if (this->m_creatureStats) {
+            this->SetUpModel(this->m_creatureStats);
         }
     }
 
@@ -215,11 +227,11 @@ void CGCharacterModelBase::RotateModel(float facing) {
     this->m_facing = facing;
 }
 
-// VERIFY: 4d21f06c manual
+// VERIFY: 7b36912a manual
 // OFFSET: 0x005977E0
 void CGCharacterModelBase::RefreshUnit(WOWGUID guid) {
     this->m_unitGuid = guid;
-    this->m_displayId = 0;
+    this->m_creatureStats = nullptr;
 
     if (this->m_isVisible) {
         CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
@@ -269,10 +281,14 @@ void CGCharacterModelBase::SetUpModel(CGUnit_C* unit) {
     model->Release();
 }
 
-// VERIFY: fc8b68ac manual
+// VERIFY: 5476abab auto
 // OFFSET: 0x00597700
-void CGCharacterModelBase::SetUpModel(int32_t displayId) {
-    CreatureDisplayInfoRec* displayRec = g_creatureDisplayInfoDB.GetRecord(displayId);
+void CGCharacterModelBase::SetUpModel(CreatureStats_C* stats) {
+    if (!stats) {
+        return;
+    }
+
+    CreatureDisplayInfoRec* displayRec = g_creatureDisplayInfoDB.GetRecord(stats->m_displayId[0]);
 
     if (!displayRec) {
         return;

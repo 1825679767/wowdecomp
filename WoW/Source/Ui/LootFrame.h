@@ -75,10 +75,11 @@ class CGLootDisplay {
     static uint32_t GetLootAcquireType();
 };
 
-int32_t Script_SetLootPortrait(lua_State* L);
 void LootInfoRegisterScriptFunctions();
+void LootInfoUnregisterScriptFunctions();
 
 void CurrencyBreakdown(int32_t amount, int32_t* parts);
+void GetCurrencyTextureString(int32_t amount, char* buffer, uint32_t size, int32_t height);
 void GetCurrencyText(int32_t amount, char* buffer, uint32_t size, const char* separator);
 void GetCurrencyIcon(int32_t amount, char* buffer, uint32_t size);
 

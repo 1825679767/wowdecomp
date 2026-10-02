@@ -114,7 +114,7 @@ TSGrowableArray<int32_t> s_trackingSpells;
 TSGrowableArray<int32_t> CGSpellBook::m_companions[2];
 
 // STATIC: 0x00BE8E14
-static TSGrowableArray<int32_t> s_openLockSpells;
+TSGrowableArray<int32_t> s_openLockSpells;
 
 // STATIC: 0x00BE8E34
 static TSGrowableArray<int32_t> s_dispelTypes;

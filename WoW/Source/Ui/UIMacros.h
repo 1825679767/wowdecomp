@@ -32,6 +32,8 @@ class MACRONODE : public TSHashObject<MACRONODE, HASHKEY_NONE> {
     /* 0580 */ TSGrowableArray<MacroCommand> m_commands;
     /* 0590 */ TSLink<MACRONODE> m_dynamicLink;
 
+    MACRONODE();
+    ~MACRONODE();
     int32_t FindSpellID();
     int32_t Parse();
     void IncrementActionBarCount();
@@ -71,24 +73,21 @@ class CGUIMacros {
     static void UpdateDynamicMacros();
     static void RunMacro(int32_t id, const char* button);
     static void GetFullIconPath(uint32_t id, char* buffer, uint32_t size);
+    static int32_t GetSortedIndexByName(const char* name);
+    static void EditMacro(uint32_t id, const char* name, const char* icon, const char* body);
+    static void DeleteMacro(uint32_t id);
+    static uint32_t CreateMacro(const char* name, const char* icon, const char* body, int32_t perCharacter);
+    static void CountActionBarSlots(MACRONODE* macro);
 };
 
-int32_t Script_SecureCmdOptionParse(lua_State* L);
-int32_t Script_RunMacro(lua_State* L);
-int32_t Script_RunMacroText(lua_State* L);
-int32_t Script_CreateMacro(lua_State* L);
-int32_t Script_GetMacroInfo(lua_State* L);
-int32_t Script_GetMacroBody(lua_State* L);
-int32_t Script_DeleteMacro(lua_State* L);
-int32_t Script_EditMacro(lua_State* L);
-int32_t Script_SetMacroItem(lua_State* L);
-int32_t Script_GetMacroItem(lua_State* L);
-int32_t Script_GetNumMacroIcons(lua_State* L);
-int32_t Script_GetNumMacroItemIcons(lua_State* L);
-int32_t Script_GetMacroIconInfo(lua_State* L);
-int32_t Script_GetMacroItemIconInfo(lua_State* L);
-int32_t Script_PickupMacro(lua_State* L);
-int32_t Script_GetMacroIndexByName(lua_State* L);
 void UIMacrosRegisterScriptFunctions();
+void UIMacrosUnegisterScriptFunctions();
+
+const char* GetMacroIcon(uint32_t index);
+const char* GetMacroItemIcon(uint32_t index);
+extern const char* s_macroIconPath;
+extern TSGrowableArray<char*> s_macroIcons;
+extern TSGrowableArray<char*> s_macroItemIcons;
+uint32_t GetNumMacroIcons();
 
 #endif

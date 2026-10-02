@@ -133,6 +133,20 @@
 #include "WoW/Source/DB/Rec/VehicleRec.h"
 #include "WoW/Source/DB/Rec/TerrainTypeRec.h"
 #include "WoW/Source/DB/Rec/UnitBloodRec.h"
+#include "ThirdParty/zlib/zlib.h"
+#include "WoW/Source/Ui/GossipInfo.h"
+#include "WoW/Source/Ui/QuestFrame.h"
+#include "WoW/Source/Ui/TaxiMapFrame.h"
+#include "WoW/Source/Ui/ClassTrainerFrame.h"
+#include "WoW/Source/Ui/CGBankInfo.h"
+#include "WoW/Source/Ui/GuildBankFrame.h"
+#include "WoW/Source/Ui/MailInfo.h"
+#include "WoW/Source/DB/Rec/SpellShapeshiftFormRec.h"
+#include "WoW/Source/Game/GameClient/WTOBJECT.h"
+#include "WoW/Source/Object/WGUID.h"
+
+// STATIC: 0x00ADB674
+static float s_emoteSoundHeight = 2.0f;
 
 // STATIC: 0x00ADAC04
 static INVENTORY_SLOTS s_virtualItemInvSlots[2] = { INVSLOT_MAINHAND, INVSLOT_OFFHAND };
@@ -2129,6 +2143,20 @@ void CGUnit_C::RefreshInteractIcon() {
     }
 }
 
+// VERIFY: 136d61d4 auto
+// OFFSET: 0x00724D90
+void CGUnit_C::OnPvPFlagChanged(uint8_t oldFlags) {
+    if (oldFlags == this->m_unit->m_unitFieldBytes2[1]) {
+        return;
+    }
+
+    this->UpdateReaction(false);
+
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && (this->m_unit->m_unitFieldBytes2[1] & 0x1)) {
+        CGTutorial::TriggerTutorial(31);
+    }
+}
+
 // VERIFY: 631e67e1 auto
 // OFFSET: 0x00724DF0
 void CGUnit_C::ScaleChangeUpdate() {
@@ -3029,6 +3057,22 @@ float CGUnit_C::GetPlayerDiscount(const CGUnit_C* unit) const {
         default:
             return 0.0f;
     }
+}
+
+// VERIFY: bf2201d9 manual
+// OFFSET: 0x004FD0E0
+const char* CGUnit_C::GetVisibleUnitName(const char** realm, int32_t a2) {
+    if (!(this->m_unit->m_unitFieldFlags & 0x2000000)) {
+        return this->GetUnitName(realm, a2);
+    }
+
+    uint32_t high = static_cast<uint32_t>(this->m_obj->m_guid.m_guid >> 32);
+
+    if ((this->m_obj->m_type & TYPEMASK_PLAYER) || ((high & 0xF0F00000) == 0xF0500000 && this->GetControllingPlayer())) {
+        return this->GetUnitName(realm, a2);
+    }
+
+    return nullptr;
 }
 
 // VERIFY: 7c461897 auto
@@ -6636,6 +6680,18 @@ int32_t CGUnit_C::IsPVPLeader() const {
     return 1;
 }
 
+// VERIFY: 931b5cd6 manual
+// OFFSET: 0x0071B740
+void CGUnit_C::GetRangedAttackSkillRank(int32_t& rank, int32_t& bonus) {
+    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+        static_cast<CGPlayer_C*>(this)->GetRangedAttackSkillRank(rank, bonus);
+        return;
+    }
+
+    rank = 0;
+    bonus = 0;
+}
+
 // VERIFY: 514b93b6 auto
 // OFFSET: 0x0071B770
 uint32_t CGUnit_C::GetBasePowerForType(int32_t powerType) const {
@@ -9774,6 +9830,18 @@ void CGUnit_C::Unk738440() {
     }
 }
 
+// VERIFY: 9afd57a2 manual
+// OFFSET: 0x0061F890
+uint8_t CGUnit_C::GetAuraLevel(uint32_t index) {
+    return this->m_auras[index].m_level;
+}
+
+// VERIFY: 8b0d6c44 manual
+// OFFSET: 0x0061F8D0
+uint8_t CGUnit_C::GetAuraStackCount(uint32_t index) {
+    return this->m_auras[index].m_stackCount;
+}
+
 // VERIFY: 4d921ef3 auto
 // OFFSET: 0x00653A10
 void CGUnit_C::GetAFKText(char* buffer, uint32_t size) const {
@@ -10646,6 +10714,149 @@ void CGUnit_C::ClearTrackingTarget(bool a2, bool a3) {
     CGUnit_C::s_trackingFlags = 0;
     CGUnit_C::s_unk_CA11D4 = 0;
     CGUnit_C::s_trackingType = 13;
+}
+
+// VERIFY: c1cb1df0 auto
+// OFFSET: 0x00715B70
+void CGUnit_C::ClearWeaponTrailHandles() {
+    for (int32_t i = 0; i < 2; i++) {
+        if (this->m_weaponTrails[i]) {
+            WeaponTrailClose(this->m_weaponTrails[i]);
+            this->m_weaponTrails[i] = nullptr;
+        }
+    }
+}
+
+// VERIFY: abf1b455 auto
+// OFFSET: 0x0074BC50
+void CGUnit_C::SignalPlayerLosesVehicleDataEvent() {
+    WOWGUID guid = this->m_obj->m_guid;
+    int32_t count;
+    char** tokens = Script_GetTokenIDsFromGUID(guid, &count);
+
+    for (int32_t i = 0; i < count; i++) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_LOSES_VEHICLE_DATA, "%s", tokens[i]);
+    }
+}
+
+// VERIFY: d3f8bddf auto
+// OFFSET: 0x0074C7B0
+void CGUnit_C::DestroyVehicleData(int32_t removePassengers) {
+    if (!this->m_vehicle) {
+        return;
+    }
+
+    this->m_vehicle->Destroy(removePassengers);
+    this->m_vehicle = nullptr;
+
+    if (this->IsActivePlayer()) {
+        this->SignalPlayerLosesVehicleDataEvent();
+    }
+}
+
+// VERIFY: e7c232db manual
+// OFFSET: 0x00734B50
+CGUnit_C::~CGUnit_C() {
+    while (this->m_missiles) {
+        this->m_missiles->DeleteSelf();
+    }
+
+    while (this->m_pendingMissiles) {
+        this->m_pendingMissiles->DeleteSelf();
+    }
+
+    this->RemoveMountModel();
+    SI2::StopSound(&this->m_npcInteractSound, 1, -1.0f, 1);
+    this->KillCreatureLoopSound();
+    this->DestroyNamePlate();
+
+    if (this->m_chatBubble) {
+        CGChatBubbleFrame::Remove(this->m_chatBubble);
+        this->m_chatBubble = nullptr;
+    }
+
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover) {
+        CGUnit_C::s_trackingType = 13;
+        CGUnit_C::s_unk_CA11D4 = 0;
+        CGUnit_C::s_activeMover = WOWGUID();
+    }
+
+    if (this->m_nameDesc) {
+        PlayerNameDelete(this->m_nameDesc);
+    }
+
+    this->m_nameDesc = nullptr;
+
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        if (this->m_worldModel) {
+            this->m_worldModel->m_lastAnimTime = 0;
+        }
+
+        CCharacterComponent::m_activePlayerComponent = this->m_characterComponent;
+        CGPlayer_C::s_displayId = this->m_unit->m_unitFieldDisplayid;
+    } else if (this->m_characterComponent) {
+        CCharacterComponent::FreeComponent(this->m_characterComponent);
+        this->m_characterComponent = nullptr;
+        this->m_clientFlags = (this->m_clientFlags & ~0x420000) | 0x400000;
+    }
+
+    this->ClearWeaponTrailHandles();
+
+    for (CEffect* effect = this->m_effectList; effect; effect = effect->m_next) {
+        if (effect->m_flags & 0x8) {
+            effect->MoveToDestroyList();
+            break;
+        }
+    }
+
+    while (this->m_auraEffects) {
+        this->m_auraEffects->Release();
+    }
+
+    while (this->m_procEffects) {
+        this->m_procEffects->Release();
+    }
+
+    if (this->m_fishingLineEffect) {
+        this->m_fishingLineEffect->Release();
+        this->m_fishingLineEffect = nullptr;
+    }
+
+    if (this->unk_0988) {
+        this->unk_0988->DeleteSelf();
+    }
+
+    if (this->unk_0B40) {
+        this->unk_0B40->SetLoadedCallback(nullptr, nullptr);
+        this->unk_0B40->m_fFlags |= 0x20;
+        this->unk_0B40->m_drawCallback = nullptr;
+        this->unk_0B40->m_drawArg = nullptr;
+        this->unk_0B40->Release();
+    }
+
+    if (this->m_ammoModel) {
+        this->m_ammoModel->Release();
+    }
+
+    g_nameDBCache.CancelCallback(this->m_obj->m_guid.m_guid, &NameQueryCallback, nullptr);
+    g_petNameCache.CancelCallback(this->m_unit->m_unitFieldPetnumber, &NameQueryCallback, nullptr);
+
+    if (this->m_precastMissileModel) {
+        if (this->m_precastMissileModel->m_attachParent) {
+            this->m_precastMissileModel->DetachFromParent();
+        }
+
+        this->m_precastMissileModel->Release();
+        this->m_precastMissileModel = nullptr;
+        this->m_precastCastCount = 0;
+    }
+
+    this->m_clientFlags &= ~0x1000000;
+    this->DestroyVehicleData(0);
+
+    if (this->m_vehiclePassenger) {
+        this->m_vehiclePassenger->Free();
+    }
 }
 
 // VERIFY: 2effa1bf manual
@@ -11886,6 +12097,19 @@ void CGUnit_C::UpdateSpellCastBars(uint32_t time) {
     }
 
     this->StopNamePlateSpellbar();
+}
+
+// VERIFY: 756cf89e auto
+// OFFSET: 0x00726280
+void CGUnit_C::OnChannelUpdate(int32_t remaining) {
+    uint32_t duration = this->m_channelEndTime - this->m_channelStartTime;
+    uint32_t end = remaining + OsGetAsyncTimeMs();
+    this->m_channelEndTime = end;
+    this->m_channelStartTime = end - duration;
+    this->m_castingSpellId = 0;
+    this->m_castStartTime = 0;
+    this->m_castEndTime = 0;
+    this->UpdateSpellCastBars(FrameTime::s_curTimeMs);
 }
 
 // VERIFY: 3a616bc4 manual
@@ -16302,6 +16526,15 @@ const char* CGUnit_C::GetDisplayClassName(const CGUnit_C* unit, const NameCache*
     return CGUnit_C::GetDisplayClassName(unit, name, nullptr);
 }
 
+// VERIFY: 4ca89022 auto
+// OFFSET: 0x00726220
+void CGUnit_C::ClearUIChannel() {
+    this->m_channelSpellId = 0;
+    this->m_channelStartTime = 0;
+    this->m_channelEndTime = 0;
+    this->UpdateSpellCastBars(FrameTime::s_curTimeMs);
+}
+
 // VERIFY: 96f9d57c auto
 // OFFSET: 0x00726240
 void CGUnit_C::DelayCast(int32_t delay) {
@@ -16503,6 +16736,91 @@ bool CGUnit_C::HasDispellableAura(int32_t dispelType, int32_t harmful, bool mech
     }
 
     return false;
+}
+
+// VERIFY: d32caa20 manual
+// OFFSET: 0x0074C8B0
+void CGUnit_C::VehiclePrevSeat() {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    WOWGUID guid = this->m_obj->m_guid;
+
+    if (guid == CGUnit_C::s_activeMover && player && player->GetTransportGUID() == guid.m_guid) {
+        if (player->m_vehiclePassenger) {
+            player->m_vehiclePassenger->StopMovement();
+        }
+
+        this->m_movementData.OnChangeSeatsOnControlledVehicleLocal(FrameTime::s_curTimeMs, WOWGUID(), 0xFF);
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_REQUEST_VEHICLE_PREV_SEAT));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 55253920 manual
+// OFFSET: 0x0074C9A0
+void CGUnit_C::VehicleNextSeat() {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    WOWGUID guid = this->m_obj->m_guid;
+
+    if (guid == CGUnit_C::s_activeMover && player && player->GetTransportGUID() == guid.m_guid) {
+        if (player->m_vehiclePassenger) {
+            player->m_vehiclePassenger->StopMovement();
+        }
+
+        this->m_movementData.OnChangeSeatsOnControlledVehicleLocal(FrameTime::s_curTimeMs, WOWGUID(), 1);
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_REQUEST_VEHICLE_NEXT_SEAT));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: a64bdd42 manual
+// OFFSET: 0x0074CA90
+int32_t CGUnit_C::SwitchToVehicleSeat(CGUnit_C* vehicle, int32_t virtualSeat) {
+    CVehicle_C* root = vehicle->m_vehicle;
+    const CVehicle_C* target;
+    uint8_t seat;
+
+    if (!root || !root->m_vehicleRec || !root->GetVehicleAndSeatFromVirtualSeat(virtualSeat, target, seat)) {
+        return 0;
+    }
+
+    VehicleSeatRec* seatRec = target->GetVehicleSeatRec(seat);
+
+    if (!seatRec || const_cast<CVehicle_C*>(target)->FindPassengerUnit(seat) || !(seatRec->m_flags & 0x4000000) || !CGInputControl::GetActive() || !CGInputControl::GetActive()->IsVehicleSeatFlagSet(0x4000000)) {
+        return 0;
+    }
+
+    if (this->GetTransportGUID() != CGUnit_C::s_activeMover.m_guid) {
+        CDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_REQUEST_VEHICLE_SWITCH_SEAT));
+        SmartGUID guid;
+        guid.m_guid = target->m_unit->m_obj->m_guid.m_guid;
+        msg << guid;
+        msg.Put(seat);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+        return 1;
+    }
+
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!mover) {
+        return 1;
+    }
+
+    if (this->m_vehiclePassenger) {
+        this->m_vehiclePassenger->StopMovement();
+    }
+
+    mover->OnChangeSeatsOnControlledVehicleLocal(FrameTime::s_curTimeMs, target->m_unit->m_obj->m_guid, seat);
+    return 1;
 }
 
 // VERIFY: 29d19ef8 manual
@@ -19112,7 +19430,6 @@ void CGUnit_C::ClearCastingSpell(int32_t spellId, bool clearChannel, bool a4) {
     }
 }
 
-// VERIFY: 388611be manual
 // VERIFY: d1a0635a manual
 // OFFSET: 0x0072DF00
 void CGUnit_C::ReleaseMissiles(const C3Vector& position) {
@@ -20799,6 +21116,56 @@ float CGUnit_C::GetMeleeChanceToCrit() const {
     return (ratio * agility + base) * 100.0f;
 }
 
+// VERIFY: 0dddf6dd manual
+// OFFSET: 0x0071B8D0
+double CGUnit_C::GetHealthModifier() {
+    if (this->m_unit->m_unitFieldPetnumber) {
+        CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldCreatedby, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (owner && owner->m_unit->m_unitFieldBytes0[1] == 3) {
+            return 1.0;
+        }
+    }
+
+    WOWGUID none = WOWGUID();
+    CreatureStats_C* stats = g_creatureDBCache.GetRecord(this->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+    if (stats) {
+        return stats->m_hpModifier;
+    }
+
+    return 0.0;
+}
+
+// VERIFY: 213318bc manual
+// OFFSET: 0x0071B960
+double CGUnit_C::GetPowerModifier() {
+    if (this->m_unit->m_unitFieldPetnumber) {
+        CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldCreatedby, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (owner && owner->m_unit->m_unitFieldBytes0[1] == 3) {
+            return 1.0;
+        }
+    }
+
+    WOWGUID none = WOWGUID();
+    CreatureStats_C* stats = g_creatureDBCache.GetRecord(this->m_obj->m_entryID, none, nullptr, nullptr, false);
+
+    if (stats) {
+        return stats->m_mpModifier;
+    }
+
+    return 0.0;
+}
+
+// VERIFY: 1cb19458 manual
+// OFFSET: 0x0071B9F0
+float CGUnit_C::GetManaRegenRateFromSpirit() const {
+    int32_t spirit = this->m_unit->m_unitFieldStat[4] < 0 ? 0 : this->m_unit->m_unitFieldStat[4];
+    int32_t intellect = this->m_unit->m_unitFieldStat[3] < 0 ? 0 : this->m_unit->m_unitFieldStat[3];
+    return GetGameTableValue(10, this->m_unit->m_unitFieldLevel - 1, this->m_unit->m_unitFieldBytes0[1] - 1) * sqrt(static_cast<double>(intellect)) * spirit;
+}
+
 // VERIFY: b1a33141 manual
 // OFFSET: 0x0071BA60
 float CGUnit_C::GetHealthRegenRateFromSpirit() const {
@@ -21141,6 +21508,80 @@ void CGUnit_C::UnitNameplatesReposition(CGWorldFrame* worldFrame) {
     CLayoutFrame::ResizePending();
 }
 
+// VERIFY: fb0e4f71 manual
+// OFFSET: 0x00726E10
+void CGUnit_C::CancelOpenStable() {
+    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer() || !this->HasAuraEffect(292)) {
+        return;
+    }
+
+    SpellRec spell;
+
+    for (uint32_t i = 0; i < this->GetAuraCount(); i++) {
+        if (!(this->GetAura(i)->m_flags & 0x10)) {
+            continue;
+        }
+
+        if (!g_spellDB.GetRecord(this->GetAura(i)->m_spellId, &spell)) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < 3; j++) {
+            if (spell.m_effectAura[j] == 292) {
+                Spell_C_CancelAura(&spell, this, -1);
+            }
+        }
+    }
+}
+
+// VERIFY: aacf89f7 manual
+// OFFSET: 0x00726F30
+void CGUnit_C::CancelShapeshiftForMount() {
+    if (this->IsShapeShifted()) {
+        this->CancelShapeshift();
+    }
+
+    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer() || this->m_unit->m_unitFieldNativedisplayid == this->m_unit->m_unitFieldDisplayid) {
+        return;
+    }
+
+    SpellRec spell;
+
+    for (uint32_t i = 0; i < this->GetAuraCount(); i++) {
+        AuraData& aura = this->m_auras[i];
+
+        if (!(aura.m_flags & 0x10) || !g_spellDB.GetRecord(aura.m_spellId, &spell)) {
+            continue;
+        }
+
+        for (uint32_t effect = 0; effect < 3; effect++) {
+            if (spell.m_effectAura[effect] != 36) {
+                continue;
+            }
+
+            SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecord(spell.m_effectMiscValue[effect]);
+
+            if (!form) {
+                continue;
+            }
+
+            for (uint32_t d = 0; d < 4; d++) {
+                if (!form->m_creatureDisplayID[d]) {
+                    continue;
+                }
+
+                CreatureDisplayInfoRec* display = g_creatureDisplayInfoDB.GetRecord(form->m_creatureDisplayID[d]);
+                CreatureModelDataRec* model = display ? g_creatureModelDataDB.GetRecord(display->m_modelID) : nullptr;
+
+                if (model && model->m_flags >= 0) {
+                    Spell_C_CancelAura(&spell, this, -1);
+                    break;
+                }
+            }
+        }
+    }
+}
+
 // VERIFY: 5f551aa3 manual
 // OFFSET: 0x00727130
 void CGUnit_C::NamePlateClearAll() {
@@ -21375,6 +21816,27 @@ float CGUnit_C::GetHeightAboveGround() {
     World::Intersect(start, end, &hit, &distance, 0x100111, nullptr);
 
     return start.z - hit.z;
+}
+
+// VERIFY: c691843b auto
+// OFFSET: 0x00721190
+void CGUnit_C::RemoveChannelEffects(int32_t spellId) {
+    for (uint32_t i = 0; i < (this->unk_0EDC.m_count == 0xFFFFFFFF ? this->unk_0EDC.m_dynamic.m_count : this->unk_0EDC.m_count); i++) {
+        if (this->unk_0EDC[i] == static_cast<uint32_t>(spellId)) {
+            return;
+        }
+    }
+
+    CEffect* effect = this->m_effectList;
+
+    while (effect) {
+        CEffect* current = effect;
+        effect = effect->m_next;
+
+        if (current->m_spellId == static_cast<uint32_t>(spellId) && (current->m_flags & 0x3040)) {
+            current->MoveToDestroyList();
+        }
+    }
 }
 
 // VERIFY: 7afdcd82 auto
@@ -22974,4 +23436,554 @@ void CGUnit_C::OnVirtualItemChanged(uint32_t slot, int32_t oldItemId) {
 
         this->SetWeaponTrail(this->m_worldModel, slot);
     }
+}
+
+// VERIFY: 58b6d207 manual
+// OFFSET: 0x00746D60
+void CGUnit_C::PlayEmoteSound(int32_t soundKitId, bool checkCVars, int32_t fileIndex) {
+    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && this->m_unit->m_unitFieldHealth <= 0) {
+        return;
+    }
+
+    if (checkCVars) {
+        static CVar* s_enableEmoteSounds = CVar::Lookup("Sound_EnableEmoteSounds");
+
+        if (!s_enableEmoteSounds || !s_enableEmoteSounds->m_intValue) {
+            return;
+        }
+
+        static CVar* s_enablePetSounds = CVar::Lookup("Sound_EnablePetSounds");
+
+        if (s_enablePetSounds && !s_enablePetSounds->m_intValue && this->m_unit->m_unitFieldPetnumber) {
+            return;
+        }
+    }
+
+    static CVar* s_listenerAtCharacter = CVar::Lookup("Sound_ListenerAtCharacter");
+    int32_t listenerAtCharacter = s_listenerAtCharacter->m_intValue;
+    int32_t local;
+    int32_t atCharacter;
+
+    if (CGUnit_C::s_activeMover != this->m_obj->m_guid && !this->IsActivePlayer()) {
+        local = 0;
+        atCharacter = 0;
+    } else {
+        local = 1;
+        atCharacter = listenerAtCharacter ? 1 : 0;
+    }
+
+    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && static_cast<CGPlayer_C*>(this)->unk_1944) {
+        return;
+    }
+
+    C3Vector position;
+    CM2Model* model = this->m_worldModel;
+
+    if (model && model->IsLoaded(0, 0) && model->HasAttachment(17)) {
+        position = model->GetAttachmentPosition(17);
+    } else {
+        C3Vector offset(0.0f, 0.0f, s_emoteSoundHeight);
+        C3Vector base = this->m_vehiclePassenger ? this->GetModelPosition() : this->GetPosition();
+        position = base + offset;
+    }
+
+    SE2SoundKitProperties properties;
+    properties.ResetToDefaults();
+    properties.m_fileIndex = fileIndex;
+    properties.m_suppressorMode = 2;
+
+    if (local) {
+        properties.m_priority = 110;
+
+        if (atCharacter) {
+            properties.m_volumeScale = 0.64999998f;
+        }
+    }
+
+    if (soundKitId != 6576 && this->m_unit->m_unitFieldBytes0[1] == 6) {
+        properties.m_useDspChain = 1;
+        SI2::DK_GetPlayerFilterName(this, properties.m_dspChainName, sizeof(properties.m_dspChainName));
+    }
+
+    SI2::PlaySoundKit(soundKitId, atCharacter ? nullptr : &position, &this->unk_0934, &properties, 0, nullptr, 1, 0);
+
+    if (!atCharacter) {
+        SI2::AttachToObject(&this->unk_0934, this->m_obj->m_guid);
+    }
+}
+
+// VERIFY: b524e80c manual
+// OFFSET: 0x00726CE0
+void CGUnit_C::CancelShapeshift() {
+    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer() || this->m_shapeshiftSuppressed) {
+        return;
+    }
+
+    if (!this->m_unit->m_unitFieldBytes2[3]) {
+        return;
+    }
+
+    SpellRec spell;
+
+    for (uint32_t i = 0; i < this->GetAuraCount(); i++) {
+        AuraData* aura = this->GetAura(i);
+
+        if (!(aura->m_flags & 0x10) || !g_spellDB.GetRecord(this->GetAura(i)->m_spellId, &spell)) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < 3; j++) {
+            if (spell.m_effectAura[j] == 36 && spell.m_effectMiscValue[j] == static_cast<int32_t>(this->GetShapeshiftForm())) {
+                Spell_C_CancelAura(&spell, this, -1);
+            }
+        }
+    }
+}
+
+// VERIFY: 8e89ab2b manual
+// OFFSET: 0x00719B80
+void CGUnit_C::ComputeSmoothedSwimMatrix(C44Matrix* matrix, float elapsed, int32_t a3) {
+    if (elapsed < 0.011111111f) {
+        elapsed = 0.011111111f;
+    } else if (elapsed >= 0.050000001f) {
+        elapsed = 0.050000001f;
+    }
+
+    uint32_t moveFlags = this->m_movement->m_flags;
+    float pitch;
+
+    if (moveFlags & 0x3) {
+        uint32_t flags = this->m_movementData.m_flags;
+
+        if (flags & 0x400000) {
+            pitch = 0.78539819f;
+        } else if (flags & 0x800000) {
+            pitch = -0.78539819f;
+        } else {
+            pitch = this->m_movementData.m_pitch;
+        }
+    } else {
+        pitch = 0.0f;
+    }
+
+    float basePitch = 0.0f;
+    float targetPitch = pitch;
+
+    if (this->m_movementData.m_flags & 0xC) {
+        targetPitch = 0.0f;
+    } else {
+        basePitch = pitch;
+    }
+
+    if ((moveFlags & 0x2) && (this->m_movementData.m_flags & 0xC00000)) {
+        targetPitch = basePitch * -1.0f;
+    }
+
+    float facing = this->GetRenderFacing();
+    float facingDelta = facing - this->m_smoothFacing;
+    this->m_smoothFacing = facing;
+
+    if (facingDelta > 3.1415927f) {
+        facingDelta = facingDelta - 6.2831855f;
+    } else if (facingDelta < -3.1415927f) {
+        facingDelta = facingDelta + 6.2831855f;
+    }
+
+    float pitchDelta = targetPitch - this->unk_08D4;
+
+    if (fabs(pitchDelta) >= 0.0099999998f) {
+        if (pitchDelta > 3.1415927f) {
+            pitchDelta = pitchDelta - 6.2831855f;
+        } else if (pitchDelta < -3.1415927f) {
+            pitchDelta = pitchDelta + 6.2831855f;
+        }
+
+        float rate = elapsed * 12.566371f;
+
+        if (rate < 0.0f) {
+            rate = 0.0f;
+        } else if (rate >= 1.0f) {
+            rate = 1.0f;
+        }
+
+        float smoothed = pitchDelta * rate + this->unk_08D4;
+        this->unk_08D4 = smoothed;
+
+        if (smoothed > 3.1415927f) {
+            this->unk_08D4 = smoothed - 6.2831855f;
+        } else if (smoothed < -3.1415927f) {
+            this->unk_08D4 = smoothed + 6.2831855f;
+        }
+    } else {
+        this->unk_08D4 = targetPitch;
+    }
+
+    float targetRoll;
+
+    if (a3) {
+        targetRoll = facingDelta / elapsed * -0.15000001f;
+        float rollDelta = targetRoll - this->unk_08D8;
+        float rate = elapsed * 1.5707964f;
+
+        if (!(this->m_movement->m_flags & 0x3)) {
+            rate = rate * 4.0f;
+        }
+
+        if (rate < 0.0f) {
+            rate = 0.0f;
+        } else if (rate >= 1.0f) {
+            rate = 1.0f;
+        }
+
+        float roll = rollDelta * rate + this->unk_08D8;
+
+        if (roll < -0.78539819f) {
+            this->unk_08D8 = -0.78539819f;
+        } else if (roll >= 0.78539819f) {
+            this->unk_08D8 = 0.78539819f;
+        } else {
+            this->unk_08D8 = roll;
+        }
+    } else {
+        targetRoll = 0.0f;
+    }
+
+    if (fabs(facingDelta) > 1.5707964f) {
+        this->unk_0A34 |= 0x4;
+    }
+
+    if (this->unk_0A34 & 0x4) {
+        float yawDelta = facing - this->m_smoothFacingTarget;
+
+        if (yawDelta > 3.1415927f) {
+            yawDelta = yawDelta - 6.2831855f;
+        } else if (yawDelta < -3.1415927f) {
+            yawDelta = yawDelta + 6.2831855f;
+        }
+
+        float rate = elapsed * 12.566371f;
+        float clamped = 0.0f;
+
+        if (rate >= 0.0f) {
+            clamped = rate;
+
+            if (rate >= 1.0f) {
+                clamped = 1.0f;
+            }
+        }
+
+        this->m_smoothFacingTarget = CMath::normalizeangle0to2pi_(clamped * yawDelta + this->m_smoothFacingTarget);
+    } else {
+        this->m_smoothFacingTarget = facing;
+    }
+
+    C33Matrix rotation;
+    rotation.FromEulerAnglesZYX(-(6.2831855f - this->m_smoothFacingTarget), 6.2831855f - this->unk_08D4, this->unk_08D8);
+    matrix->a0 = rotation.a0;
+    matrix->a1 = rotation.a1;
+    matrix->a2 = rotation.a2;
+    matrix->a3 = 0.0f;
+    matrix->b0 = rotation.b0;
+    matrix->b1 = rotation.b1;
+    matrix->b2 = rotation.b2;
+    matrix->b3 = 0.0f;
+    matrix->c0 = rotation.c0;
+    matrix->c1 = rotation.c1;
+    matrix->c2 = rotation.c2;
+    matrix->c3 = 0.0f;
+    matrix->d0 = 0.0f;
+    matrix->d1 = 0.0f;
+    matrix->d2 = 0.0f;
+    matrix->d3 = 1.0f;
+    matrix->Scale(this->GetTrueScale());
+    C3Vector position = this->GetPosition();
+    matrix->d0 = position.x;
+    matrix->d1 = position.y;
+    matrix->d2 = position.z;
+    uint32_t flags = this->unk_0A34 & 0xFFFFFFF8;
+    flags |= fabs(this->unk_08D4 - targetPitch) > 0.0099999998f;
+    this->unk_0A34 = flags;
+    flags |= fabs(this->unk_08D8 - targetRoll) <= 0.0099999998f ? 0 : 2;
+    this->unk_0A34 = flags;
+
+    if (fabs(this->m_smoothFacingTarget - facing) <= 0.0099999998f) {
+        this->unk_0A34 = flags;
+    } else {
+        this->unk_0A34 = flags | 0x4;
+    }
+}
+
+// VERIFY: 37162a11 manual
+// OFFSET: 0x007169A0
+static int32_t UnpackAndProcessOpcodes(CDataStore* msg, uint32_t time, int32_t compressed) {
+    uint32_t size;
+    msg->Get(size);
+    uint32_t unpackedSize = size;
+    void* data;
+
+    if (compressed) {
+        uint8_t* buffer = static_cast<uint8_t*>(alloca(size));
+        uint32_t packedSize = msg->m_size - msg->m_read;
+        void* packed;
+        msg->GetDataInSitu(packed, packedSize);
+        zlib_uncompress(buffer, &unpackedSize, static_cast<const uint8_t*>(packed), packedSize);
+        data = buffer;
+    } else {
+        unpackedSize = msg->m_size - msg->m_read;
+        msg->GetDataInSitu(data, unpackedSize);
+    }
+
+    CDataStore stream(static_cast<uint8_t*>(data), unpackedSize);
+
+    if (unpackedSize) {
+        do {
+            uint8_t length;
+            stream.Get(length);
+            void* message;
+            stream.GetDataInSitu(message, length);
+            CDataStore packet(static_cast<uint8_t*>(message), length);
+            ClientServices::Connection()->ProcessMessage(time, &packet, 0);
+        } while (stream.m_read != stream.m_size);
+    }
+
+    return 1;
+}
+
+// VERIFY: 4e5b26bd auto
+// OFFSET: 0x00716AD0
+int32_t Packet_SMSG_COMPRESSED_MOVES(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    return UnpackAndProcessOpcodes(msg, time, 1);
+}
+
+// VERIFY: 01cd5559 auto
+// OFFSET: 0x00716AF0
+int32_t Packet_SMSG_MULTIPLE_MOVES(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    return UnpackAndProcessOpcodes(msg, time, 0);
+}
+
+// VERIFY: 3187bcbb auto
+// OFFSET: 0x00716D80
+int32_t Packet_SMSG_PRE_RESURRECT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    SmartGUID guid;
+    *msg >> guid;
+    CMissile::ClearInFlightMissilesWithTarget(guid);
+    return 1;
+}
+
+// VERIFY: 6511af3b manual
+// OFFSET: 0x0071A0B0
+void CGUnit_C::NPCFlagChanged(uint32_t oldFlags) {
+    uint32_t flags = this->m_unit->m_unitNpcFlags;
+    uint32_t changed = oldFlags ^ flags;
+
+    if ((changed & 0x1) && !(flags & 0x1) && CGGossipInfo::m_gossip == this->m_obj->m_guid) {
+        CGGossipInfo::SetGossip(WOWGUID());
+    }
+
+    if (changed & 0x2) {
+        this->RefreshInteractIcon();
+
+        if (!(flags & 0x2) && CGQuestInfo::m_npc == this->m_obj->m_guid) {
+            CGQuestInfo::QuestGiverFinished(0, 0, 0);
+        }
+    }
+
+    if (changed & 0x2000) {
+        this->RefreshInteractIcon();
+
+        if (!(flags & 0x2000) && CGTaxiMap::m_unit == this->m_obj->m_guid) {
+            CGTaxiMap::CloseMap();
+        }
+    }
+
+    if ((changed & 0x10) && !(flags & 0x10) && CGClassTrainer::m_trainer == this->m_obj->m_guid) {
+        CGClassTrainer::SetTrainer(WOWGUID(), 0);
+    }
+
+    if ((changed & 0x20000) && !(flags & 0x20000) && CGBankInfo::m_banker == this->m_obj->m_guid) {
+        CGBankInfo::SetBanker(WOWGUID());
+    }
+
+    if ((changed & 0x800000) && !(flags & 0x800000) && CGGuildBankInfo::m_banker == this->m_obj->m_guid) {
+        CGGuildBankInfo::SetGuildBanker(WOWGUID());
+    }
+
+    if ((changed & 0x4000000) && !(flags & 0x4000000) && CGMailInfo::m_object == this->m_obj->m_guid) {
+        CGPlayer_C::TalkToMailbox(WOWGUID());
+    }
+}
+
+// VERIFY: dacfedb2 manual
+// OFFSET: 0x00740450
+void CGUnit_C::OnMountDisplayChanged(int32_t displayId) {
+    int32_t current = this->m_mountDisplayId;
+
+    if (displayId == current) {
+        return;
+    }
+
+    if (!displayId && this->m_vehicle && this->m_vehicle->m_passengers.Head()) {
+        this->m_clientFlags |= 0x10000000;
+        return;
+    }
+
+    this->m_clientFlags &= ~0x10000000;
+
+    if (current) {
+        this->DestroyUnitMount(displayId == 0);
+    }
+
+    int32_t wasMounted = this->m_mountDisplayId == 0;
+    this->m_mountDisplayId = displayId;
+
+    if (displayId) {
+        bool noTransition = this->m_mountTransition == nullptr;
+        this->CreateUnitMount(0, wasMounted);
+
+        if (noTransition) {
+            void* memory = SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0);
+            CEffect* effect = memory ? new (memory) CEffect() : nullptr;
+            WOWGUID guid = this->m_obj->m_guid;
+            effect->AddSpecialEffect(6, guid, CGObject_C::EffectOnceHandler);
+            effect->m_flags |= 0x20;
+            effect->Release();
+        }
+    }
+
+    this->CheckLoopSound();
+    this->UpdateInteractIconAttach();
+    PlayerNameTriggerNameRegenerate(this->m_nameDesc);
+    this->CreateOrDestroyObjectEffectManager();
+}
+
+// VERIFY: 9f0a7724 manual
+// OFFSET: 0x007412E0
+void CGUnit_C::Dismount() {
+    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer() || (this->m_unit->m_unitFieldFlags & 0x100000)) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_CANCEL_MOUNT_AURA));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+
+    if (!this->m_mountDisplayId) {
+        return;
+    }
+
+    if (this->m_vehicle && this->m_vehicle->m_passengers.Head()) {
+        this->m_clientFlags |= 0x10000000;
+        return;
+    }
+
+    this->m_clientFlags &= ~0x10000000;
+    this->DestroyUnitMount(1);
+    this->m_mountDisplayId = 0;
+    this->CheckLoopSound();
+    this->UpdateInteractIconAttach();
+    PlayerNameTriggerNameRegenerate(this->m_nameDesc);
+    this->CreateOrDestroyObjectEffectManager();
+}
+
+// VERIFY: 0fd6f153 manual
+// OFFSET: 0x00741A40
+int32_t Packet_SMSG_DISMOUNT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    SmartGUID guid;
+    *msg >> guid;
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit || !unit->m_mountDisplayId) {
+        return 1;
+    }
+
+    if (unit->m_vehicle && unit->m_vehicle->m_passengers.Head()) {
+        unit->m_clientFlags |= 0x10000000;
+        return 1;
+    }
+
+    unit->m_clientFlags &= ~0x10000000;
+    unit->DestroyUnitMount(1);
+    unit->m_mountDisplayId = 0;
+    unit->CheckLoopSound();
+    unit->UpdateInteractIconAttach();
+    PlayerNameTriggerNameRegenerate(unit->m_nameDesc);
+    unit->CreateOrDestroyObjectEffectManager();
+    return 1;
+}
+
+// VERIFY: df49bcb3 auto
+// OFFSET: 0x00716060
+void CGUnit_C::SetDeferredClientControl(WOWGUID guid, uint8_t state) {
+    if (!CGUnit_C::s_deferredClientControlUpdateGUID || CGUnit_C::s_deferredClientControlUpdateGUID == guid || !CGUnit_C::s_deferredClientControlUpdateState || state) {
+        CGUnit_C::s_deferredClientControlUpdateGUID = guid;
+        CGUnit_C::s_deferredClientControlUpdateState = state;
+    }
+}
+
+// VERIFY: 1e9d4731 manual
+// OFFSET: 0x0072D0B0
+int32_t Packet_SMSG_CLIENT_CONTROL_UPDATE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    SmartGUID guid;
+    uint8_t state;
+    *msg >> guid;
+    msg->Get(state);
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        unit->ExecuteClientControlUpdate(guid, state);
+    } else {
+        CGUnit_C::SetDeferredClientControl(guid, state);
+    }
+
+    return 1;
+}
+
+// VERIFY: b0ae9f03 manual
+// OFFSET: 0x0072D130
+int32_t Packet_SMSG_CANCEL_AUTO_REPEAT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    SmartGUID guid;
+    *msg >> guid;
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        if (unit->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+            Spell_C_CancelAutoRepeat(false);
+        }
+
+        unit->m_animationState &= ~0x200;
+        unit->CancelRangedMode();
+    }
+
+    return 1;
+}
+
+// VERIFY: 972d06e0 auto
+// OFFSET: 0x00747000
+void CGUnit_C::PlayTextEmoteSound(uint32_t emote, uint32_t emoteNum) {
+    CVar* cvar = CVar::Lookup("Sound_EnableEmoteSounds");
+
+    if (!cvar || !cvar->m_intValue) {
+        return;
+    }
+
+    if (!this->IsActivePlayer()) {
+        WOWGUID guid = this->m_obj->m_guid;
+
+        if (!CGGameUI::IsInParty(guid)) {
+            return;
+        }
+    }
+
+    int32_t soundKitId = SI2::GetTextEmoteSoundID(emote, this->GetDisplayRace(), this->GetVoiceSex());
+
+    if (this->IsShapeShifted()) {
+        SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecord(this->GetShapeshiftForm());
+
+        if (form && (form->m_flags & 0x1000)) {
+            return;
+        }
+    }
+
+    this->PlayEmoteSound(soundKitId, false, emoteNum);
 }

@@ -116,6 +116,28 @@ static int32_t Script_BNGetNumBlockedToons(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 26d1ff36 manual
+// OFFSET: 0x00535080
+static int32_t Script_BNGetNumFriendInvites(lua_State* L) {
+    Login* login = ClientServices::LoginConnection();
+
+    if (!login || login->GetLoginServerType() != 1 || login->IsTrialAccount() || !BattlenetAPI::IsRIDEnabled() || !BattlenetUI::m_friendInvites) {
+        lua_pushnumber(L, 0.0);
+        return 1;
+    }
+
+    if (BattlenetUI_IsAvailable()) {
+        uint32_t count = BattlenetUI::m_friendInvites->m_count;
+        lua_pushnumber(L, count);
+        DebugLog("BNUI: Num friend invites: %d", count);
+    } else {
+        lua_pushnumber(L, 0.0);
+        DebugLog("BNUI: Num friend invites: 0, NOT CONNNECTED");
+    }
+
+    return 1;
+}
+
 // STATIC: 0x00ACCAE8
 static FrameScript_Method s_ScriptFunctions[] = {
     { "BNGetInfo", &Script_BNGetInfo },
@@ -181,5 +203,12 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void BattlenetUI_RegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// INLINED
+void BattlenetUI_UnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

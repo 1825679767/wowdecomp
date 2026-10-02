@@ -10,6 +10,7 @@
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/Ui/LootFrame.h"
 
 // STATIC: 0x00AD2808
 static const char* s_cursorNames[54] = {
@@ -336,6 +337,24 @@ void CursorSetHeldItem(WOWGUID item) {
     CursorReleaseItemMips();
 }
 
+// VERIFY: 22c5ea5f auto
+// OFFSET: 0x00616510
+void CursorGrabMoney(uint32_t amount) {
+    if (s_cursorItemMips) {
+        TextureFreeMippedImg(s_cursorItemMips);
+        s_cursorItemMips = nullptr;
+        s_cursorItemMipsWidth = 0;
+        s_cursorItemMipsHeight = 0;
+    }
+
+    char fileName[260];
+    GetCurrencyIcon(amount, fileName, sizeof(fileName));
+    PIXEL_FORMAT format = PIXEL_ARGB8888;
+    s_cursorItemMips = TextureLoadImage(fileName, &s_cursorItemMipsWidth, &s_cursorItemMipsHeight, &format, nullptr, nullptr, nullptr, 0);
+    s_cursorItemType = 2;
+    CursorReleaseItemMips();
+}
+
 // VERIFY: 9fa05f0a auto
 // OFFSET: 0x006165B0
 void CursorGrabSpell(const char* texture) {
@@ -353,4 +372,17 @@ void CursorGrabSpell(const char* texture) {
 
     s_cursorItemType = 3;
     CursorReleaseItemMips();
+}
+
+// VERIFY: 10223bc1 auto
+// OFFSET: 0x00616220
+void CursorDestroy() {
+    if (!s_cursorItemMips) {
+        return;
+    }
+
+    TextureFreeMippedImg(s_cursorItemMips);
+    s_cursorItemMips = nullptr;
+    s_cursorItemMipsWidth = 0;
+    s_cursorItemMipsHeight = 0;
 }

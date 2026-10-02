@@ -224,6 +224,18 @@ static int32_t OnUpdateEnchantments(WOWGUID guid, uint32_t fieldOffset, uint32_t
     return 1;
 }
 
+// VERIFY: d37d5a1a manual
+// OFFSET: 0x007093F0
+void CGItem_C::ConfirmBindOnUse() {
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGItem_C::s_bindOnUseItem, TYPEMASK_ITEM, __FILE__, __LINE__));
+
+    if (item) {
+        item->UseItem(&CGItem_C::s_bindOnUseTarget, 1);
+    }
+
+    CGItem_C::s_bindOnUseItem = WOWGUID();
+}
+
 // VERIFY: 6840b2f7 auto
 // OFFSET: 0x00709440
 void CGItem_C::Initialize() {

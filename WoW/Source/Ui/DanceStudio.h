@@ -25,6 +25,7 @@ class CGDanceStudio {
     static void ShutdownGame();
     static void LoadDance(int32_t danceId);
     static void RegisterScriptFunctions();
+    static void UnregisterScriptFunctions();
 };
 
 int32_t Script_PlayDance(lua_State* L);

@@ -219,7 +219,7 @@ void UpdateModelForUI(const WOWGUID& guid, uint32_t flags) {
 }
 
 // STATIC: 0x00AD6628
-static const char* s_sexNames[] = { "Male", "Female", "NOSEX" };
+const char* s_sexNames[3] = { "Male", "Female", "NOSEX" };
 
 // VERIFY: 3458775d auto
 // OFFSET: 0x00616950

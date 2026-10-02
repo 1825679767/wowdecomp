@@ -17,6 +17,8 @@
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
 #include "WoW/Source/Ui/CalendarEvent.h"
+#include "WoW/Common/WowTime.h"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
 
 // STATIC: 0x00AD0340
 static TSList<CalendarPendingInvite, TSGetLink<CalendarPendingInvite> > s_pendingInvites;
@@ -104,6 +106,49 @@ const char* GetHolidayName(int32_t holidayId) {
     return name ? name->m_name : nullptr;
 }
 
+// STATIC: 0x00ACFFE4
+static const char* s_fullDateMonthNames[12] = { "FULLDATE_MONTH_JANUARY", "FULLDATE_MONTH_FEBRUARY", "FULLDATE_MONTH_MARCH", "FULLDATE_MONTH_APRIL", "FULLDATE_MONTH_MAY", "FULLDATE_MONTH_JUNE", "FULLDATE_MONTH_JULY", "FULLDATE_MONTH_AUGUST", "FULLDATE_MONTH_SEPTEMBER", "FULLDATE_MONTH_OCTOBER", "FULLDATE_MONTH_NOVEMBER", "FULLDATE_MONTH_DECEMBER" };
+
+// VERIFY: f2885c19 manual
+// OFFSET: 0x005B7E50
+size_t CGCalendar::GetDateTimeText(char* buffer, uint32_t size, uint32_t time) {
+    WowTime date;
+    WowTime::WowDecodeTime(time, &date);
+    char dateText[256] = { 0 };
+
+    if (date.m_year >= 0 && date.m_month >= 0 && date.m_monthDay >= 0 && date.m_weekDay >= 0) {
+        SStrPrintf(dateText, sizeof(dateText), FrameScript_GetText("FULLDATE", -1, GENDER_NOT_APPLICABLE), FrameScript_GetText(s_weekdayNames[date.m_weekDay], -1, GENDER_NOT_APPLICABLE), FrameScript_GetText(s_fullDateMonthNames[date.m_month], -1, GENDER_NOT_APPLICABLE), date.m_monthDay + 1, date.m_year + 2000, date.m_month + 1);
+    }
+
+    char timeText[64] = { 0 };
+    int32_t hour = date.m_hour;
+
+    if (hour >= 0) {
+        int32_t minute = date.m_minute;
+
+        if (minute >= 0) {
+            if (CVar::Lookup("timeMgrUseMilitaryTime")->m_intValue) {
+                SStrPrintf(timeText, sizeof(timeText), FrameScript_GetText("TIME_TWENTYFOURHOURS", -1, GENDER_NOT_APPLICABLE), hour, minute);
+            } else {
+                const char* token = "TIME_TWELVEHOURAM";
+
+                if (!hour) {
+                    hour = 12;
+                } else if (hour == 12) {
+                    token = "TIME_TWELVEHOURPM";
+                } else if (hour > 12) {
+                    hour -= 12;
+                    token = "TIME_TWELVEHOURPM";
+                }
+
+                SStrPrintf(timeText, sizeof(timeText), FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE), hour, minute);
+            }
+        }
+    }
+
+    return SStrPrintf(buffer, size, FrameScript_GetText("FULLDATE_AND_TIME", -1, GENDER_NOT_APPLICABLE), dateText, timeText);
+}
+
 // VERIFY: 0d10e0e8 auto
 // OFFSET: 0x005B8E50
 static int32_t QSortTextures(const void* a, const void* b) {
@@ -116,6 +161,22 @@ static int32_t QSortTextures(const void* a, const void* b) {
     }
 
     return result;
+}
+
+// VERIFY: 14fb4767 auto
+// OFFSET: 0x005B9960
+void CGCalendar::CalendarError(const char* error, uintptr_t arg) {
+    char buffer[3000];
+
+    if (arg) {
+        SStrPrintf(buffer, sizeof(buffer), FrameScript_GetText(error, -1, GENDER_NOT_APPLICABLE), arg);
+    } else {
+        SStrPrintf(buffer, sizeof(buffer), FrameScript_GetText(error, -1, GENDER_NOT_APPLICABLE));
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_CALENDAR_UPDATE_ERROR, "%s", buffer);
+    CGCalendar::m_actionPending = 0;
+    FrameScript_SignalEvent(SCRIPT_EVENT_CALENDAR_ACTION_PENDING, "%b", 0);
 }
 
 // VERIFY: de197260 manual

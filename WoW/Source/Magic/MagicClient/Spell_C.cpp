@@ -1574,6 +1574,51 @@ int32_t Packet_SMSG_SPELL_FAILURE(void* param, NETMESSAGE msgId, uint32_t time, 
     return 1;
 }
 
+// VERIFY: a8100be0 manual
+// OFFSET: 0x00806C30
+int32_t Packet_SMSG_PET_CAST_FAILED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    WOWGUID pet;
+
+    if (player) {
+        pet = player->m_unit->m_unitFieldCharm.m_guid ? player->m_unit->m_unitFieldCharm : player->m_unit->m_unitFieldSummon;
+    } else {
+        pet = WOWGUID();
+    }
+
+    uint8_t castCount;
+    uint32_t spellId;
+    uint8_t reason;
+    msg->Get(castCount);
+    msg->Get(spellId);
+    msg->Get(reason);
+    uint32_t misc1 = -1;
+    uint32_t misc2 = -1;
+
+    if (msg->m_read < msg->m_size) {
+        msg->Get(misc1);
+    }
+
+    if (msg->m_read < msg->m_size) {
+        msg->Get(misc2);
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell)) {
+        PendingSpellCast local;
+        WOWGUID caster = pet;
+        WOWGUID castItem = pet;
+        local.unk_0139 = 0;
+        PendingSpellCast* cast = FindPendingSpellCast(castItem, &local, castCount, spellId, caster);
+        s_spellHistory[1].RemoveStartCooldown(spellId);
+        CGPetInfo::UpdateCooldowns();
+        ShowPetSpellFailed(cast, &spell, reason, misc1, misc2);
+    }
+
+    return 1;
+}
+
 // VERIFY: b5828213 manual
 // OFFSET: 0x00806DD0
 int32_t Packet_SMSG_SPELL_COOLDOWN(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
@@ -4435,6 +4480,50 @@ void SpellHistory::ClearAll() {
     }
 }
 
+// VERIFY: 7c88da8e auto
+// OFFSET: 0x00804010
+int32_t Packet_Group_31(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t spellId;
+    WOWGUID guid;
+    msg->Get(spellId);
+    msg->Get(guid.m_guid);
+    int32_t pet = guid == CGPetInfo::GetPet(0);
+
+    switch (msgId) {
+        case SMSG_COOLDOWN_EVENT:
+        case SMSG_CLEAR_COOLDOWN: {
+            Spell_C_ModifyCooldown(spellId, time, pet, msgId == SMSG_CLEAR_COOLDOWN);
+            break;
+        }
+
+        case SMSG_COOLDOWN_CHEAT: {
+            s_spellHistory[pet].ClearAll();
+            CGSpellBook::UpdateCooldowns();
+
+            if (pet) {
+                CGPetInfo::UpdateCooldowns();
+            } else {
+                CGContainerInfo::UpdateCooldowns();
+            }
+
+            break;
+        }
+
+        case SMSG_MODIFY_COOLDOWN: {
+            uint32_t delay;
+            msg->Get(delay);
+
+            if (spellId) {
+                Spell_C_DelayCooldown(pet, spellId, delay);
+            }
+
+            break;
+        }
+    }
+
+    return 1;
+}
+
 // VERIFY: 81391441 auto
 // OFFSET: 0x00804110
 int32_t Packet_SMSG_COOLDOWN_CHEAT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
@@ -4780,6 +4869,35 @@ int32_t Packet_SMSG_SPELL_UPDATE_CHAIN_TARGETS(void* param, NETMESSAGE msgId, ui
     return 1;
 }
 
+// VERIFY: 40ea9fd4 manual
+// OFFSET: 0x00800550
+static int32_t UnitOnRemoteMissileTrajectoryCollision(WOWGUID guid, void* param) {
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+    if (object && (object->m_obj->m_type & TYPEMASK_UNIT)) {
+        static_cast<CGUnit_C*>(object)->OnRemoteMissileTrajectoryCollision(static_cast<MissileCollisionData*>(param));
+    }
+
+    return 1;
+}
+
+// VERIFY: e6b2f017 auto
+// OFFSET: 0x008005A0
+int32_t Packet_SMSG_SET_PROJECTILE_POSITION(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    MissileCollisionData data;
+    data.m_position.x = 0.0f;
+    data.m_position.y = 0.0f;
+    data.m_position.z = 0.0f;
+    msg->Get(data.m_casterGuid.m_guid);
+    msg->Get(data.m_castID);
+    msg->Get(data.m_position.x);
+    msg->Get(data.m_position.y);
+    msg->Get(data.m_position.z);
+    CMissile::OnRemoteMissileTrajectoryCollision(data);
+    ClntObjMgrEnumVisibleObjects(UnitOnRemoteMissileTrajectoryCollision, &data);
+    return 1;
+}
+
 // VERIFY: 679f44cf manual
 // OFFSET: 0x00800610
 int32_t Packet_SMSG_PLAY_SPELL_VISUAL(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
@@ -4969,6 +5087,15 @@ int32_t Packet_SMSG_SPELL_DELAYED(void* param, NETMESSAGE msgId, uint32_t time, 
         }
     }
 
+    return 1;
+}
+
+// VERIFY: 5bdf9b1f auto
+// OFFSET: 0x00802090
+int32_t Packet_SMSG_PET_TAME_FAILURE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint8_t reason;
+    msg->Get(reason);
+    Spell_C_PetTameFailure(reason);
     return 1;
 }
 
@@ -5634,6 +5761,24 @@ int32_t Packet_SMSG_ITEM_COOLDOWN(void* param, NETMESSAGE msgId, uint32_t time, 
 
     CGSpellBook::UpdateCooldowns();
     CGContainerInfo::UpdateCooldowns();
+    return 1;
+}
+
+// VERIFY: 011808de manual
+// OFFSET: 0x008071C0
+int32_t Packet_SMSG_MEETINGSTONE_IN_PROGRESS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t cooldown;
+    msg->Get(cooldown);
+
+    for (uint32_t i = 0; i < s_numSpells; i++) {
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(GetSpellIdBySlot(i, 0), &spell) && (spell.m_attributes & 0x2) && !(spell.m_attributesExB & 0x20000) && !(spell.m_attributesExD & 0x10000000)) {
+            s_spellHistory[0].AddHistory(spell.m_id, 0, OsGetAsyncTimeMs(), cooldown, 0, 0, 0, false, 0, 0);
+            CGSpellBook::UpdateCooldowns();
+        }
+    }
+
     return 1;
 }
 
@@ -8914,6 +9059,72 @@ void LaunchMissileVisual(const TSStackArray<WOWGUID>& hits, const TSStackArray<W
 // OFFSET: 0x00804420
 void Spell_C_ClearPetCooldowns() {
     s_spellHistory[1].ClearAll();
+}
+
+// VERIFY: b323a3a8 manual
+// OFFSET: 0x00801C90
+int32_t Packet_MSG_CHANNEL_START(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    SmartGUID smartGuid;
+    *msg >> smartGuid;
+    WOWGUID guid = smartGuid;
+    uint32_t spellId;
+    msg->Get(spellId);
+    int32_t duration;
+    msg->Get(reinterpret_cast<uint32_t&>(duration));
+
+    if (duration <= 0) {
+        return 1;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(spellId, &spell) && ((spell.m_attributesExD & 0x8000000) || (!(spell.m_attributes & 0x2) && (guid == ClntObjMgrGetActivePlayer() || (!(spell.m_attributes & 0x180) && !(spell.m_attributesExC & 0x2000) && !(spell.m_attributesExD & 0x1)))))) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (unit) {
+            unit->SetUIChannelSpell(spellId, duration);
+            WOWGUID signalGuid = guid;
+            Script_SendUnitSpellSignal(signalGuid, 0, &spell, SCRIPT_EVENT_UNIT_SPELLCAST_CHANNEL_START);
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: e57ade70 manual
+// OFFSET: 0x00801DB0
+int32_t Packet_MSG_CHANNEL_UPDATE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    SmartGUID smartGuid;
+    *msg >> smartGuid;
+    WOWGUID guid = smartGuid;
+    int32_t remaining;
+    msg->Get(reinterpret_cast<uint32_t&>(remaining));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return 1;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(unit->m_channelSpellId, &spell) && ((spell.m_attributesExD & 0x8000000) || (!(spell.m_attributes & 0x2) && (guid == ClntObjMgrGetActivePlayer() || (!(spell.m_attributes & 0x180) && !(spell.m_attributesExC & 0x2000) && !(spell.m_attributesExD & 0x1)))))) {
+        unit->OnChannelUpdate(remaining);
+
+        if (remaining) {
+            WOWGUID signalGuid = guid;
+            Script_SendUnitSpellSignal(signalGuid, 0, &spell, SCRIPT_EVENT_UNIT_SPELLCAST_CHANNEL_UPDATE);
+        } else {
+            unit->ClearUIChannel();
+            WOWGUID signalGuid = guid;
+            Script_SendUnitSpellSignal(signalGuid, 0, &spell, SCRIPT_EVENT_UNIT_SPELLCAST_CHANNEL_STOP);
+        }
+
+        if (!remaining) {
+            unit->RemoveChannelEffects(spell.m_id);
+        }
+    }
+
+    return 1;
 }
 
 // VERIFY: 9daeef29 manual

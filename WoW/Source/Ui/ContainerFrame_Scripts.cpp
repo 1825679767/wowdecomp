@@ -30,6 +30,10 @@
 #include "WoW/Source/Ui/QuestLog.h"
 #include "WoW/Source/Ui/LootFrame.h"
 #include "WoW/Source/Ui/ItemSocketInfo.h"
+#include "WoW/Source/DB/Rec/ItemRec.h"
+#include "WoW/Source/DB/Rec/SpellItemEnchantmentRec.h"
+#include "WoW/Source/WowServices/WDataStore.h"
+#include "WoW/Source/Net/Types.h"
 
 // VERIFY: ebcdce34 auto
 // OFFSET: 0x005D6FF0
@@ -255,8 +259,7 @@ static int32_t Script_GetContainerItemCooldown(lua_State* L) {
     return 3;
 }
 
-// STATIC: 0x00AD0D50
-// VERIFY: 0745872b manual
+// VERIFY: 954704b6 manual
 // OFFSET: 0x005D8650
 static int32_t Script_UseContainerItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -352,9 +355,9 @@ static int32_t Script_UseContainerItem(lua_State* L) {
         }
 
         WOWGUID sellItem;
-        uint8_t sellBag;
+        WOWGUID sellContainer;
         uint8_t sellSlot;
-        CGAuctionHouse::GetSellItem(&sellItem, &sellBag, &sellSlot);
+        CGAuctionHouse::GetSellItem(&sellItem, &sellContainer, &sellSlot);
 
         if (sellItem) {
             CGGameUI::UnlockItem(sellItem);
@@ -830,6 +833,327 @@ static int32_t Script_SocketContainerItem(lua_State* L) {
     return 0;
 }
 
+// VERIFY: cc760869 manual
+// OFFSET: 0x005D72A0
+static bool BuildItemIconPath(int32_t itemId, char* buffer, uint32_t size) {
+    if (!itemId) {
+        return false;
+    }
+
+    ItemRec* rec = g_itemDB.GetRecord(itemId);
+
+    if (!rec) {
+        return false;
+    }
+
+    const char* path = ClientDBStringLookup(3);
+    SStrPrintf(buffer, size, "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(rec->m_displayInfoID));
+    return true;
+}
+
+// VERIFY: d4b7b41d manual
+// OFFSET: 0x005D7820
+static int32_t Script_GetContainerFreeSlots(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetContainerFreeSlots(index [, returnTable])");
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    if (lua_type(L, 2) != LUA_TTABLE) {
+        lua_createtable(L, 0, 0);
+    }
+
+    uint32_t count = 1;
+    double index = lua_tonumber(L, 1);
+
+    if (index == 0.0) {
+        for (int32_t i = 23; i <= 38; i++) {
+            if (static_cast<uint32_t>(i) >= static_cast<uint32_t>(player->m_bag.m_numSlots) || !player->m_bag.m_slots[i]) {
+                lua_checkstack(L, 2);
+                lua_pushnumber(L, count);
+                lua_pushnumber(L, i - 22);
+                lua_settable(L, -3);
+                count++;
+            }
+        }
+
+        return 1;
+    }
+
+    if (index == -1.0) {
+        if (!CGBankInfo::m_banker) {
+            return 0;
+        }
+
+        for (int32_t i = 39; i <= 66; i++) {
+            if (static_cast<uint32_t>(i) >= static_cast<uint32_t>(player->m_bag.m_numSlots) || !player->m_bag.m_slots[i]) {
+                lua_checkstack(L, 2);
+                lua_pushnumber(L, count);
+                lua_pushnumber(L, i - 38);
+                lua_settable(L, -3);
+                count++;
+            }
+        }
+
+        return 1;
+    }
+
+    if (static_cast<uint32_t>(index - 1.0) > 10) {
+        return 0;
+    }
+
+    CGItem_C* container = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(GetBagAtIndex(static_cast<uint32_t>(index - 1.0)), TYPEMASK_CONTAINER, __FILE__, __LINE__));
+
+    if (!container) {
+        return 0;
+    }
+
+    CGBag_C* bag = container->GetBag();
+
+    if (!bag) {
+        return 0;
+    }
+
+    for (uint32_t slot = 0; slot < static_cast<uint32_t>(bag->m_numSlots); slot++) {
+        if (!bag->GetItemGuid(slot)) {
+            lua_checkstack(L, 2);
+            lua_pushnumber(L, count);
+            lua_pushnumber(L, slot + 1);
+            lua_settable(L, -3);
+            count++;
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: ca39c834 manual
+// OFFSET: 0x005D7D00
+static int32_t Script_GetContainerItemID(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: GetContainerItemID(index, slot)");
+    }
+
+    CGBag_C* bag;
+    int32_t slot;
+    int32_t bank;
+
+    if (!CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank)) {
+        return 0;
+    }
+
+    CGItem_C* item = bag->GetItemPointer(slot);
+
+    if (!item) {
+        return 0;
+    }
+
+    lua_pushnumber(L, item->m_obj->m_entryID);
+    return 1;
+}
+
+// VERIFY: 2e98e6f0 manual
+// OFFSET: 0x005D7EF0
+static int32_t Script_GetContainerItemDurability(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: GetContainerItemDurability(index, slot)");
+    }
+
+    CGBag_C* bag;
+    int32_t slot;
+    int32_t bank;
+
+    if (!CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank)) {
+        return 0;
+    }
+
+    CGItem_C* item = bag->GetItemPointer(slot);
+
+    if (!item) {
+        return 0;
+    }
+
+    uint32_t maxDurability = (item->m_item->m_itemFieldFlags & 8) ? 0 : item->m_item->m_itemFieldMaxdurability;
+    uint32_t durability = (item->m_item->m_itemFieldFlags & 8) ? 0 : item->m_item->m_itemFieldDurability;
+
+    if (!maxDurability) {
+        return 0;
+    }
+
+    lua_pushnumber(L, durability);
+    lua_pushnumber(L, maxDurability);
+    return 2;
+}
+
+// VERIFY: af636008 manual
+// OFFSET: 0x005D8F70
+static int32_t Script_GetContainerItemPurchaseItem(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
+        luaL_error(L, "Usage: ContainerItemPurchaseItem(bag, slot, itemIndex[, isEquipped])");
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    CGItem_C* item;
+
+    if (lua_tonumber(L, 4)) {
+        CGBag_C* bag = &ClntObjMgrGetActivePlayerObj()->m_bag;
+        uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 2) - 1);
+
+        if (!bag || slot > 18) {
+            return 0;
+        }
+
+        item = bag->GetItemPointer(slot);
+    } else {
+        CGBag_C* bag;
+        int32_t slot;
+        int32_t bank;
+
+        if (!CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank)) {
+            return 0;
+        }
+
+        item = bag->GetItemPointer(slot);
+    }
+
+    if (!item || CGLootInfo::m_lootObj == item->m_obj->m_guid) {
+        return 0;
+    }
+
+    CGItem_C::ItemPurchaseData* data = item->m_itemPurchaseData;
+
+    if (!data || item->HasEnchantments() || static_cast<int32_t>(data->m_refundTimeLeft + 7200 - player->GetPlayedTime()) <= 0) {
+        return 0;
+    }
+
+    int32_t wanted = static_cast<int32_t>(lua_tonumber(L, 3)) - 1;
+    int32_t found = 0;
+    uint32_t i;
+
+    for (i = 0; i < 5; i++) {
+        if (static_cast<int32_t>(data->m_itemId[i]) <= 0) {
+            continue;
+        }
+
+        if (found == wanted) {
+            break;
+        }
+
+        found++;
+    }
+
+    if (i >= 5) {
+        return 0;
+    }
+
+    char texture[260];
+
+    if (BuildItemIconPath(data->m_itemId[i], texture, sizeof(texture))) {
+        lua_pushstring(L, texture);
+    } else {
+        lua_pushnil(L);
+    }
+
+    lua_pushnumber(L, data->m_itemCount[i]);
+    WOWGUID none = WOWGUID();
+    ItemStats_C* stats = g_itemDBCache.GetRecord(data->m_itemId[i], none, nullptr, nullptr, true);
+
+    if (stats) {
+        lua_pushstring(L, CGTooltip::GetItemHyperlinkString(data->m_itemId[i], stats->m_quality, 0, 0, 0));
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 3;
+}
+
+// VERIFY: f3dbff82 manual
+// OFFSET: 0x005D91B0
+static int32_t Script_ContainerRefundItemPurchase(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: ContainerRefundItemPurchase(index, slot[, isEquipped])");
+    }
+
+    CGItem_C* item;
+
+    if (static_cast<int32_t>(lua_tonumber(L, 3))) {
+        CGBag_C* bag = &ClntObjMgrGetActivePlayerObj()->m_bag;
+        uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 2) - 1);
+
+        if (!bag || slot > 18) {
+            CGGameUI::DisplayError(ERR_INTERNAL_BAG_ERROR);
+            return 0;
+        }
+
+        item = bag->GetItemPointer(slot);
+    } else {
+        CGBag_C* bag;
+        int32_t slot;
+        int32_t bank;
+
+        if (!CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank)) {
+            CGGameUI::DisplayError(ERR_INTERNAL_BAG_ERROR);
+            return 0;
+        }
+
+        item = bag->GetItemPointer(slot);
+    }
+
+    if (item && item->m_itemPurchaseData && CGMerchantInfo::m_merchant) {
+        WDataStore msg;
+        msg.Put(static_cast<uint32_t>(CMSG_ITEM_PURCHASE_REFUND));
+        msg.Put(item->m_obj->m_guid.m_guid);
+        msg.Finalize();
+        ClientServices::Send2(&msg);
+        return 0;
+    }
+
+    CGGameUI::DisplayError(ERR_INTERNAL_BAG_ERROR);
+    return 0;
+}
+
+// VERIFY: 02fc1e66 manual
+// OFFSET: 0x005D9300
+static int32_t Script_GetContainerItemGems(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        luaL_error(L, "Usage: GetContainerItemGems(bag, slot)");
+    }
+
+    CGBag_C* bag;
+    int32_t slot;
+    int32_t bank;
+
+    if (CGContainerInfo::GetLuaBagAndSlot(L, &bag, &slot, &bank)) {
+        CGItem_C* item = bag->GetItemPointer(slot);
+
+        if (item) {
+            for (int32_t i = 0; i < 3; i++) {
+                int32_t enchantId = (item->GetItemStaticFlags(0) & 0x2000) ? 0 : item->m_item->m_itemFieldEnchantment[2 + i].m_id;
+                SpellItemEnchantmentRec* enchant = g_spellItemEnchantmentDB.GetRecord(enchantId);
+
+                if (enchant && enchant->m_srcItemID) {
+                    lua_pushnumber(L, enchant->m_srcItemID);
+                } else {
+                    lua_pushnil(L);
+                }
+            }
+        }
+    }
+
+    return 3;
+}
+
+// STATIC: 0x00AD0D50
 static FrameScript_Method s_ScriptFunctions[] = {
     { "ContainerIDToInventoryID", &Script_ContainerIDToInventoryID },
     { "GetContainerNumSlots", &Script_GetContainerNumSlots },
@@ -860,5 +1184,13 @@ static FrameScript_Method s_ScriptFunctions[] = {
 void ContainerRegisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_ScriptFunctions[i].m_name, s_ScriptFunctions[i].m_method);
+    }
+}
+
+// VERIFY: 372ff3b8 auto
+// OFFSET: 0x005D7050
+void ContainerUnregisterScriptFunctions() {
+    for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
+        FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
 }

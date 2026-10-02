@@ -38,7 +38,7 @@ uint32_t CGUIMacros::m_sortedMacros[72];
 static TSHashTable<MACRONODE, HASHKEY_NONE> s_macros;
 
 // STATIC: 0x00ACE1E8
-static const char* s_macroIconPath = "Interface\\Icons\\";
+const char* s_macroIconPath = "Interface\\Icons\\";
 
 // STATIC: 0x00BEAF40
 int32_t CGUIMacros::m_saveMacros;
@@ -58,14 +58,17 @@ uint32_t CGUIMacros::m_numMacros[2];
 // STATIC: 0x00BEAF58
 static uint32_t s_maxMacroID[2];
 
+// STATIC: 0x00A0F82C
+static const uint32_t s_maxMacros[2] = { 36, 18 };
+
 // STATIC: 0x00A0F834
 static const uint32_t s_macroIDBase[2] = { 0, 0x1000000 };
 
 // STATIC: 0x00BEAF90
-static TSGrowableArray<char*> s_macroIcons;
+TSGrowableArray<char*> s_macroIcons;
 
 // STATIC: 0x00BEAFA0
-static TSGrowableArray<char*> s_macroItemIcons;
+TSGrowableArray<char*> s_macroItemIcons;
 
 // STATIC: 0x00BEAF60
 static uint16_t s_initCounter;
@@ -113,6 +116,24 @@ void CGUIMacros::UpdateMacroSpells() {
             CGActionBar::UpdateMacro(macro->m_id);
         }
     }
+}
+
+// VERIFY: 27651ef3 auto
+// OFFSET: 0x00566620
+int32_t CGUIMacros::GetSortedIndexByName(const char* name) {
+    MACRONODE* macro = CGUIMacros::FindMacro(name);
+
+    if (!macro) {
+        return -1;
+    }
+
+    for (int32_t i = 0; i < 72; i++) {
+        if (CGUIMacros::m_sortedMacros[i] == macro->m_id) {
+            return i;
+        }
+    }
+
+    return -1;
 }
 
 // VERIFY: e9bab52e manual
@@ -437,6 +458,36 @@ struct MacroSlashCommand {
     int32_t m_type;
 };
 
+// VERIFY: 899df668 manual
+// OFFSET: 0x00565B30
+MACRONODE::~MACRONODE() {
+}
+
+// VERIFY: 3c4c57e8 auto
+// OFFSET: 0x00565BA0
+MACRONODE::MACRONODE() {
+    this->m_name[0] = '\0';
+    this->m_icon[0] = '\0';
+    this->m_body[0] = '\0';
+    this->m_actionBarCount = 0;
+    this->m_spellID = 0;
+    this->m_itemID = 0;
+    this->m_spellFlags = 0;
+    this->m_showTooltip = 0;
+    this->m_dynamic = 0;
+    this->m_target = WOWGUID();
+}
+
+// VERIFY: 31c32426 auto
+// OFFSET: 0x00565C20
+uint32_t GetNumMacroIcons() {
+    if (!s_macroIcons.m_count) {
+        CGUIMacros::LoadIcons();
+    }
+
+    return s_macroIcons.m_count;
+}
+
 // VERIFY: e04b7c4d manual
 // OFFSET: 0x00565C40
 int32_t MACRONODE::Parse() {
@@ -559,6 +610,26 @@ int32_t MACRONODE::Parse() {
     return this->FindSpellID();
 }
 
+// VERIFY: 2141c271 auto
+// OFFSET: 0x005661C0
+void CGUIMacros::CountActionBarSlots(MACRONODE* macro) {
+    macro->m_actionBarCount = 0;
+    CGUIMacros::RemoveDynamicMacro(macro);
+
+    for (uint32_t slot = 0; slot < 144; slot++) {
+        uint32_t action = CGActionBar::m_slotActions[slot];
+        uint32_t id = action && (action & 0xF0000000) == 0x40000000 ? action & 0xBFFFFFFF : 0;
+
+        if (id == macro->m_id) {
+            if (macro->m_dynamic && !macro->m_actionBarCount) {
+                s_dynamicMacros.LinkToTail(macro);
+            }
+
+            macro->m_actionBarCount++;
+        }
+    }
+}
+
 // VERIFY: f206167d manual
 // OFFSET: 0x00566240
 void CGUIMacros::SortMacros() {
@@ -598,6 +669,50 @@ int32_t CGUIMacros::SetMacroBody(MACRONODE* macro, const char* body) {
     *cursor = '\0';
 
     return macro->Parse();
+}
+
+// VERIFY: 8cfe58b9 auto
+// OFFSET: 0x00566CD0
+void CGUIMacros::EditMacro(uint32_t id, const char* name, const char* icon, const char* body) {
+    HASHKEY_NONE key;
+    MACRONODE* macro = s_macros.Ptr(id, key);
+
+    if (!macro) {
+        return;
+    }
+
+    if (name) {
+        SStrCopy(macro->m_name, name, sizeof(macro->m_name));
+    }
+
+    if (icon) {
+        SStrCopy(macro->m_icon, icon, sizeof(macro->m_icon));
+    }
+
+    if (body) {
+        CGUIMacros::SetMacroBody(macro, body);
+    }
+
+    CGUIMacros::m_saveMacros = 1;
+    CGUIMacros::SortMacros();
+    CGActionBar::UpdateMacro(id);
+}
+
+// VERIFY: e32ab7eb auto
+// OFFSET: 0x00566D50
+void CGUIMacros::DeleteMacro(uint32_t id) {
+    HASHKEY_NONE key;
+    MACRONODE* macro = s_macros.Ptr(id, key);
+
+    if (!macro) {
+        return;
+    }
+
+    CGUIMacros::m_numMacros[macro->m_type]--;
+    s_macros.Delete(macro);
+    CGUIMacros::m_saveMacros = 1;
+    CGActionBar::RemoveMacroActions(id);
+    CGUIMacros::SortMacros();
 }
 
 // VERIFY: 781ecbc4 manual
@@ -745,6 +860,65 @@ void CGUIMacros::LoadMacrosCallback(HOSFILE localFile, HOSFILE cacheFile, void* 
 
     if (CGGameUI::s_inWorld) {
         FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_SLOT_CHANGED, "%d", 0);
+    }
+}
+
+// VERIFY: 1545e138 manual
+// OFFSET: 0x00564D70
+const char* GetMacroIcon(uint32_t index) {
+    if (index >= s_macroIcons.m_count) {
+        return nullptr;
+    }
+
+    return s_macroIcons.m_data[index];
+}
+
+// VERIFY: 4487aa80 manual
+// OFFSET: 0x00564D90
+const char* GetMacroItemIcon(uint32_t index) {
+    if (index >= s_macroItemIcons.m_count) {
+        return nullptr;
+    }
+
+    return s_macroItemIcons.m_data[index];
+}
+
+// VERIFY: 436ee2a2 auto
+// OFFSET: 0x00564DB0
+void CGUIMacros::RunMacro(MACRONODE* macro, const char* button) {
+    MACRONODE* savedMacro = CGUIMacros::m_macroButton;
+    const char* savedButton = CGUIMacros::m_macroRunning;
+
+    if (!CGGameUI::CanPerformAction(3) || !macro) {
+        return;
+    }
+
+    if (!CGUIMacros::m_macroButton) {
+        CGUIMacros::m_state = 0xFFFFFFFF;
+    }
+
+    CGUIMacros::m_macroButton = macro;
+    CGUIMacros::m_macroRunning = button;
+    const char* text = macro->m_body;
+
+    if (text) {
+        do {
+            if (!*text || !CGUIMacros::m_macroButton) {
+                break;
+            }
+
+            char line[1024];
+            SStrTokenize(&text, line, sizeof(line), "\r\n", nullptr);
+
+            if (line[0] && line[0] != '-' && line[0] != '#') {
+                FrameScript_SignalEvent(SCRIPT_EVENT_EXECUTE_CHAT_LINE, "%s", line);
+            }
+        } while (text);
+    }
+
+    if (CGGameUI::CanPerformAction(3)) {
+        CGUIMacros::m_macroButton = savedMacro;
+        CGUIMacros::m_macroRunning = savedButton;
     }
 }
 
@@ -947,4 +1121,44 @@ void CGUIMacros::SaveMacros() {
     CGUIMacros::m_saveMacros = 0;
     SaveAccountData(4, CGUIMacros::SaveMacrosCallback, nullptr);
     SaveAccountData(5, CGUIMacros::SaveMacrosCallback, reinterpret_cast<void*>(1));
+}
+
+// VERIFY: 9cd8630d manual
+// OFFSET: 0x00568020
+uint32_t CGUIMacros::CreateMacro(const char* name, const char* icon, const char* body, int32_t perCharacter) {
+    if (!name || !*name) {
+        return 0;
+    }
+
+    uint32_t type = perCharacter != 0;
+
+    if (CGUIMacros::m_numMacros[type] >= s_maxMacros[type]) {
+        return 0;
+    }
+
+    uint32_t id = ++s_maxMacroID[type];
+    HASHKEY_NONE key;
+    MACRONODE* macro = s_macros.New(id, key, 0, 0);
+    macro->m_id = id;
+    macro->m_type = type;
+    SStrCopy(macro->m_name, name, sizeof(macro->m_name));
+
+    if (icon) {
+        SStrCopy(macro->m_icon, icon, sizeof(macro->m_icon));
+    }
+
+    if (body) {
+        CGUIMacros::SetMacroBody(macro, body);
+    }
+
+    CGUIMacros::m_numMacros[type]++;
+    CGUIMacros::m_saveMacros = 1;
+    CGUIMacros::SortMacros();
+    CGUIMacros::CountActionBarSlots(macro);
+
+    if (macro->m_itemID > 0 || macro->m_spellID > 0) {
+        CGActionBar::UpdateMacro(macro->m_id);
+    }
+
+    return id;
 }

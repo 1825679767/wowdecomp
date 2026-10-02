@@ -78,6 +78,7 @@ class CVehicle_C {
     void UpdateLargestPassengerBoundsRadius();
     void UpdateFreeSeatMask();
     int32_t GetVehicleAndSeatFromVirtualSeat(int32_t virtualSeat, const CVehicle_C*& vehicle, uint8_t& seat) const;
+    int32_t GetVirtualSeatInfo(int32_t virtualSeat, const char*& type, const char*& occupant, const char*& realm, int32_t& canEject, int32_t& canSwitch) const;
     int32_t AddPassenger(CPassenger* passenger);
     void ReceiveVehicleRecIDFromServer(int32_t vehicleId);
     void UpdateWorldMatrix();
@@ -87,6 +88,7 @@ class CVehicle_C {
     void HandleBoneAnimGrabEvent(uint32_t boneId, uint32_t eventId);
     void HandleBoneAnimThrowEvent(uint32_t boneId, uint32_t eventId);
     void RemoveAllPassengersLocally();
+    void Destroy(int32_t removePassengers);
 };
 
 #endif

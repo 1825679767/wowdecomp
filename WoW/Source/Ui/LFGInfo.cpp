@@ -167,6 +167,30 @@ static int QSortLFGDungeons(const void* a, const void* b) {
     return SStrCmpUTF8I(leftRec->m_name, rightRec->m_name, 0x7FFFFFFF);
 }
 
+// VERIFY: 2c369f9d manual
+// OFFSET: 0x005574C0
+LFGRewardItem* CGLookingForGroup::GetDungeonRewardItem(uint32_t slot, int32_t index) {
+    if (!CGLookingForGroup::m_playerLockInfo.m_valid) {
+        return nullptr;
+    }
+
+    for (LFGDungeonEntry* dungeon = CGLookingForGroup::m_playerLockInfo.m_dungeons.Head(); dungeon; dungeon = CGLookingForGroup::m_playerLockInfo.m_dungeons.Next(dungeon)) {
+        if (dungeon->m_slot != slot) {
+            continue;
+        }
+
+        for (LFGRewardItem* item = dungeon->m_rewards.Head(); item; item = dungeon->m_rewards.Next(item)) {
+            if (!index--) {
+                return item;
+            }
+        }
+
+        return nullptr;
+    }
+
+    return nullptr;
+}
+
 // VERIFY: ab53bd79 manual
 // OFFSET: 0x00558350
 void CGLookingForGroup::UpdateLFDEntries() {
@@ -313,6 +337,28 @@ void LFGInfo::Reset() {
     this->m_numDungeons = 0;
 }
 
+// VERIFY: f46f62a0 auto
+// OFFSET: 0x00559310
+void CGLookingForGroup::JoiningParty() {
+    CGLookingForGroup::m_playerInfo.Reset();
+    CGLookingForGroup::m_partyInfo.Reset();
+    CGLookingForGroup::RequestLFGStatus();
+    FrameScript_SignalEvent(SCRIPT_EVENT_LFG_UPDATE, "%b", 1);
+}
+
+// VERIFY: ced25f9e manual
+// OFFSET: 0x00559340
+void CGLookingForGroup::ClearDungeonList() {
+    for (LFGDungeonEntry* dungeon = CGLookingForGroup::m_localInfo.m_dungeons.Head(); !CGLookingForGroup::m_localInfo.m_dungeons.IsEnd(dungeon); ) {
+        LFGDungeonEntry* next = dungeon->RawNext();
+        delete dungeon;
+        dungeon = next;
+    }
+
+    CGLookingForGroup::m_localInfo.m_numDungeons = 0;
+    CGLookingForGroup::m_localInfo.unk_0003 = 1;
+}
+
 // VERIFY: ff1fe1c8 manual
 // OFFSET: 0x00559800
 void LFGLockInfo::ClearDungeons() {
@@ -321,6 +367,13 @@ void LFGLockInfo::ClearDungeons() {
         delete dungeon;
         dungeon = next;
     }
+}
+
+// INLINED
+LFGLockInfo::LFGLockInfo() {
+    this->m_valid = 0;
+    this->m_guid.m_guid = 0;
+    this->ClearDungeons();
 }
 
 // VERIFY: 9ea636a6 manual
@@ -621,6 +674,22 @@ static const LFGJoinResultError s_joinResultErrors[17] = {
     { 17, ERR_LFG_CANT_USE_DUNGEONS },
     { 18, ERR_LFG_ROLE_CHECK_FAILED },
 };
+
+// VERIFY: 5418061a manual
+// OFFSET: 0x0055B080
+void CGLookingForGroup::ParsePartyInfo(CDataStore* msg) {
+    uint8_t count;
+    msg->Get(count);
+
+    for (uint32_t i = 0; i < count; i++) {
+        WOWGUID guid;
+        msg->Get(guid.m_guid);
+        LFGLockInfo* member = CGLookingForGroup::m_partyLockInfo.AddMember(guid);
+        member->ClearDungeons();
+        member->m_valid = 1;
+        CGLookingForGroup::ParseBlackList(msg, member);
+    }
+}
 
 // VERIFY: dc655d6f manual
 // OFFSET: 0x0055BDC0
@@ -1229,6 +1298,33 @@ int32_t LFGPacketHandler(void* param, NETMESSAGE msgId, uint32_t time, CDataStor
     return 1;
 }
 
+// VERIFY: d69dd684 manual
+// OFFSET: 0x0055AE60
+LFGLockInfo* LFGPartyLockInfo::FindMember(WOWGUID guid) {
+    for (LFGLockInfo* member = this->m_members.Head(); member; member = this->m_members.Next(member)) {
+        if (member->m_guid == guid) {
+            return member;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: d37b8c89 manual
+// OFFSET: 0x0055AEA0
+LFGLockInfo* LFGPartyLockInfo::AddMember(WOWGUID guid) {
+    LFGLockInfo* member = this->FindMember(guid);
+
+    if (member) {
+        return member;
+    }
+
+    member = new (__FILE__, __LINE__) LFGLockInfo();
+    member->m_guid = guid;
+    this->m_members.LinkToTail(member);
+    return member;
+}
+
 // VERIFY: 55669ffa auto
 // OFFSET: 0x0055AF20
 void CGLookingForGroup::ShutdownGame() {
@@ -1336,6 +1432,46 @@ void CGLookingForGroup::UpdateRandomDungeons() {
     CGLookingForGroup::UpdateRandomDungeonBestChoice();
 }
 
+// VERIFY: 15a7a01d manual
+// OFFSET: 0x00559B70
+void CGLookingForGroup::SetLFGDungeon(uint32_t slot) {
+    uint32_t type = slot >> 24;
+    bool clear = false;
+
+    if (type == 1 || type == 5) {
+        for (LFGDungeonEntry* dungeon = CGLookingForGroup::m_localInfo.m_dungeons.Head(); dungeon; dungeon = CGLookingForGroup::m_localInfo.m_dungeons.Next(dungeon)) {
+            uint8_t dungeonType = static_cast<uint8_t>(dungeon->m_slot >> 24);
+
+            if (dungeonType != 1 && dungeonType != 5) {
+                clear = true;
+                break;
+            }
+        }
+    } else if (type != 2 || CGPartyInfo::GetNumPartyMembers()) {
+        clear = true;
+    } else {
+        for (LFGDungeonEntry* dungeon = CGLookingForGroup::m_localInfo.m_dungeons.Head(); dungeon; dungeon = CGLookingForGroup::m_localInfo.m_dungeons.Next(dungeon)) {
+            if (static_cast<uint8_t>(dungeon->m_slot >> 24) != 2) {
+                clear = true;
+                break;
+            }
+        }
+    }
+
+    if (clear) {
+        CGLookingForGroup::ClearDungeonList();
+    }
+
+    for (LFGDungeonEntry* dungeon = CGLookingForGroup::m_localInfo.m_dungeons.Head(); dungeon; dungeon = CGLookingForGroup::m_localInfo.m_dungeons.Next(dungeon)) {
+        if (dungeon->m_slot == slot) {
+            return;
+        }
+    }
+
+    CGLookingForGroup::m_localInfo.AddDungeon(slot);
+    CGLookingForGroup::m_localInfo.unk_0003 = 1;
+}
+
 // VERIFY: 000b89b3 manual
 // OFFSET: 0x00559C90
 bool CGLookingForGroup::IsSlotValidForAll(uint32_t slot) {
@@ -1419,4 +1555,13 @@ bool CGLookingForGroup::UpdateRandomDungeonBestChoice() {
 
     CGLookingForGroup::m_randomDungeonBestChoice = 0;
     return previous != 0;
+}
+
+// VERIFY: 027a866a manual
+// OFFSET: 0x00555A00
+void CGLookingForGroup::RequestLFGPartyInfo() {
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_LFG_PARTY_LOCK_INFO_REQUEST));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
 }

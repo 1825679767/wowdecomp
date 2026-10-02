@@ -19,13 +19,11 @@ class CGItemText {
     static TSGrowableArray<int32_t> m_pages;
 
     static void SetItem(const WOWGUID& guid, int32_t a2);
+    static void DisplayText(const WOWGUID& guid, int32_t translate);
+    static void ItemTextCallback(int32_t id, const WOWGUID& guid, void* param, bool success);
 };
 
-int32_t Script_ItemTextGetCreator(lua_State* L);
-int32_t Script_ItemTextGetMaterial(lua_State* L);
-int32_t Script_ItemTextPrevPage(lua_State* L);
-int32_t Script_ItemTextNextPage(lua_State* L);
-int32_t Script_CloseItemText(lua_State* L);
 void ItemTextRegisterScriptFunctions();
+void ItemTextUnregisterScriptFunctions();
 
 #endif

@@ -42,11 +42,11 @@ struct QuestPOIBlob {
 struct QuestPOIInfo {
     /* 0000 */ int32_t m_questId;
     /* 0004 */ TSGrowableArray<QuestPOIBlob> m_blobs;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint32_t unk_0018;
+    /* 0014 */ int32_t m_iconMapId;
+    /* 0018 */ int32_t m_iconFloor;
     /* 001C */ uint32_t unk_001C;
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint32_t unk_0024;
+    /* 0020 */ float m_iconX;
+    /* 0024 */ float m_iconY;
     /* 0028 */ uint8_t unk_0028;
     /* 0029 */ uint8_t unk_0029;
     /* 002C */ uint32_t unk_002C;
@@ -133,6 +133,9 @@ class CGQuestLog {
     static void ShutdownGame();
     static int32_t GetQuestAt(int32_t index);
     static int32_t GetQuestLeaderBoardForItem(int32_t questId, int32_t itemId, QuestLogLeaderBoardParams* params);
+    static bool GetQuestPOIIcon(int32_t questId, bool* complete, int32_t* mapId, uint32_t* a4, float* x, float* y, int32_t* floor);
+    static int32_t GetQuestLogItemDropByID(int32_t questId, QuestLogLeaderBoardParams* params);
+    static int32_t GetQuestPOILeaderBoardByID(int32_t questId, QuestLogLeaderBoardParams* params);
     static int32_t IsQuestCompleteEx(uint32_t index, int32_t a2);
     static int32_t SetQuestExpiredByID(int32_t questId);
     static void UpdateWatchTimers();
@@ -140,16 +143,15 @@ class CGQuestLog {
     static void HandlePOIQueryResponse(CDataStore* msg);
 };
 
-int32_t Script_GetQuestLogItemDrop(lua_State* L);
-int32_t Script_GetQuestPOILeaderBoard(lua_State* L);
-int32_t Script_QuestPOIUpdateTexture(lua_State* L);
-int32_t Script_QuestPOIGetIconInfo(lua_State* L);
 void QuestLogRegisterScriptFunctions();
+void QuestLogUnregisterScriptFunctions();
 void AddQuestPointDisplay();
 void RemoveQuestPointDisplay(int32_t questId);
 void DisplayQuestFailed(int32_t id, const WOWGUID& guid, void* param, bool success);
 int32_t Packet_SMSG_QUERY_TIME_RESPONSE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t UpdateQuestPOIHandler(const char* command, const char* arguments);
 
+
+int32_t GetQuestItemRewards(const char* type, int32_t index);
 
 #endif

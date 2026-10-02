@@ -38,6 +38,7 @@ struct LoginErrorURL {
 
 class CGlueMgr {
     public:
+    static void HandleScreenshot(int32_t success);
     struct Agreements {
         /* 0000 */ TSGrowableArray<char> m_data;
         /* 0010 */ int32_t m_complete;

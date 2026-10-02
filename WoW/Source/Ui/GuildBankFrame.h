@@ -16,6 +16,18 @@ struct GuildBankTabInfo {
     /* 2140 */ int32_t unk_2140;
 };
 
+struct GuildBankLogEntry {
+    /* 0000 */ uint32_t m_type;
+    /* 0004 */ uint32_t unk_0004;
+    /* 0008 */ WOWGUID m_guid;
+    /* 0010 */ int32_t m_itemID;
+    /* 0014 */ uint32_t m_count;
+    /* 0018 */ uint32_t m_money;
+    /* 001C */ uint32_t m_otherTab;
+    /* 0020 */ uint32_t m_index;
+    /* 0024 */ uint32_t m_time;
+};
+
 struct GuildBankSlotInfo {
     /* 0000 */ int32_t m_itemID;
     /* 0004 */ uint32_t m_suffixFactor;
@@ -43,14 +55,14 @@ class CGGuildBankInfo {
     static WOWGUID m_banker;
     static WOWGUID m_pendingBanker;
     static void AutoStoreItem(WOWGUID item, WOWGUID container, uint32_t slot);
-    static int32_t m_numMoneyTransactions;
     static uint8_t m_numTabs;
     static GuildBankTabInfo m_guildBankTabInfo[6];
     static uint8_t m_currentTab;
     static int32_t m_remainingWithdrawMoney;
     static uint64_t m_money;
-    static int32_t m_numLogEntries[6];
-    static uint8_t unk_ACF8C8;
+    static int32_t m_numLogEntries[7];
+    static uint8_t m_logTab;
+    static GuildBankLogEntry m_log[7][25];
     static int32_t unk_C0F8E8[6];
     static TSGrowableArray<GuildBankSlotInfo> m_tabSlots[6];
 
@@ -62,29 +74,20 @@ class CGGuildBankInfo {
     static void Unlock(int32_t itemId, uint32_t virtualSlot);
     static void GetTabAndSlotFromVirtual(uint32_t virtualSlot, uint32_t* tab, uint32_t* slot);
     static GuildBankSlotInfo* GetGuildBankItem(uint32_t tab, uint32_t slot);
+    static int32_t IsLocked(int32_t itemId, uint32_t virtualSlot);
+    static void Lock(int32_t itemId, uint32_t virtualSlot);
+    static void BuyGuildBankTab();
+    static void SwapItems(uint8_t tab, uint32_t slot, WOWGUID item, WOWGUID container, uint32_t containerSlot, int32_t split);
+    static void SwapBankItems(uint8_t tab, uint32_t slot, int32_t itemId, uint32_t virtualSlot, int32_t split);
+    static void QueryGuildBankLog(uint8_t tab);
+    static void QueryGuildBankText(uint8_t tab);
+    static void SetTabInfo(uint8_t tab, const char* name, const char* icon);
+    static void DepositMoney(uint32_t amount);
+    static void WithdrawMoney(uint32_t amount);
+    static void SetGuildBankText(uint8_t tab, const char* text);
 };
 
-int32_t Script_QueryGuildBankTab(lua_State* L);
-int32_t Script_GetGuildBankItemInfo(lua_State* L);
-int32_t Script_SetGuildBankTabInfo(lua_State* L);
-int32_t Script_GetGuildBankItemLink(lua_State* L);
-int32_t Script_PickupGuildBankItem(lua_State* L);
-int32_t Script_AutoStoreGuildBankItem(lua_State* L);
-int32_t Script_SplitGuildBankItem(lua_State* L);
-int32_t Script_GetGuildBankTabInfo(lua_State* L);
-int32_t Script_BuyGuildBankTab(lua_State* L);
-int32_t Script_DepositGuildBankMoney(lua_State* L);
-int32_t Script_WithdrawGuildBankMoney(lua_State* L);
-int32_t Script_PickupGuildBankMoney(lua_State* L);
-int32_t Script_CloseGuildBankFrame(lua_State* L);
-int32_t Script_GetGuildTabardFileNames(lua_State* L);
-int32_t Script_QueryGuildBankLog(lua_State* L);
-int32_t Script_GetNumGuildBankTransactions(lua_State* L);
-int32_t Script_GetGuildBankTransaction(lua_State* L);
-int32_t Script_GetGuildBankMoneyTransaction(lua_State* L);
-int32_t Script_QueryGuildBankText(lua_State* L);
-int32_t Script_GetGuildBankText(lua_State* L);
-int32_t Script_SetGuildBankText(lua_State* L);
 void GuildBankRegisterScriptFunctions();
+void GuildBankUnregisterScriptFunctions();
 
 #endif

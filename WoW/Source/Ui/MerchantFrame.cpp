@@ -21,6 +21,9 @@ uint32_t CGMerchantInfo::m_buybackSlots[12];
 // STATIC: 0x00BFA3F8
 uint32_t CGMerchantInfo::m_pendingItemStats;
 
+// STATIC: 0x00BFA3E8
+WOWGUID CGMerchantInfo::m_merchant;
+
 // STATIC: 0x00BFA3F0
 int32_t CGMerchantInfo::m_numMerchantItems;
 
@@ -184,6 +187,26 @@ void CGMerchantInfo::SortBuybackItems() {
     }
 }
 
+// VERIFY: 9d924543 manual
+// OFFSET: 0x00584D90
+bool CGMerchantInfo::IsBuybackItem(WOWGUID item) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < 12; i++) {
+        WOWGUID guid = static_cast<int32_t>(i + 74) < player->m_bag.m_numSlots ? player->m_bag.m_slots[i + 74] : WOWGUID();
+
+        if (guid == item) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // VERIFY: 620ce8ba auto
 // OFFSET: 0x00585F60
 static int32_t BuybackUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
@@ -215,4 +238,21 @@ void CGMerchantInfo::RefreshList() {
 int32_t CGMerchantInfo::CanRepair() {
     CGUnit_C* merchant = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGMerchantInfo::m_merchant, TYPEMASK_UNIT, __FILE__, __LINE__));
     return merchant && (merchant->m_unit->m_unitNpcFlags & 0x1000);
+}
+
+// VERIFY: f4c282b1 manual
+// OFFSET: 0x005840E0
+void CGMerchantInfo::UpdateItemQuantity(WOWGUID merchant, int32_t slot, int32_t quantity) {
+    if (merchant != CGMerchantInfo::m_merchant) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 150; i++) {
+        if (CGMerchantInfo::m_items[i].m_slot == slot) {
+            CGMerchantInfo::m_items[i].m_maxCount = quantity;
+            break;
+        }
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_MERCHANT_UPDATE, nullptr);
 }

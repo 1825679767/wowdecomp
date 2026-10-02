@@ -13,6 +13,14 @@
 #include "WoW/Source/Object/Player.h"
 #include "WoW/Source/Object/Unit.h"
 #include "WoW/Source/Ui/SpellBookFrame.h"
+#include "WoW/Source/DB/Rec/SkillLineRec.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "WoW/Source/Net/Types.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "Engine/Source/FrameScript/Types.h"
+
+// STATIC: 0x00A13E08
+static const char s_tradeSkillServiceHeaders[4][64] = { "", "TRADESKILL_SERVICE_STEP", "TRADESKILL_SERVICE_LEARN", "TRADESKILL_SERVICE_PASSIVE" };
 
 // STATIC: 0x00C0E490
 WOWGUID CGClassTrainer::m_trainer;
@@ -76,6 +84,14 @@ void CGClassTrainer::SetTrainer(const WOWGUID& trainer, int32_t type) {
     CGClassTrainer::m_trainerType = type;
 }
 
+// VERIFY: c25a1094 auto
+// OFFSET: 0x00593CA0
+void TrainerItemCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    if (success) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_TRAINER_DESCRIPTION_UPDATE, nullptr);
+    }
+}
+
 // VERIFY: d723d8b2 auto
 // OFFSET: 0x00593CC0
 void CGClassTrainer::EnterWorld() {
@@ -83,6 +99,106 @@ void CGClassTrainer::EnterWorld() {
     CGClassTrainer::m_currentSelection = 0;
     CGClassTrainer::m_numServices = 0;
     CGClassTrainer::m_greetingText[0] = '\0';
+}
+
+// VERIFY: a1f9f4bf auto
+// OFFSET: 0x00594170
+int32_t CGClassTrainer::GetSelectionIndex() {
+    if (!CGClassTrainer::m_currentSelection) {
+        return -1;
+    }
+
+    uint32_t i;
+
+    for (i = 0; i < CGClassTrainer::m_numServices; i++) {
+        if (CGClassTrainer::m_services.m_data[i]->m_spellID == CGClassTrainer::m_currentSelection) {
+            break;
+        }
+    }
+
+    if (i == CGClassTrainer::m_numServices) {
+        return -1;
+    }
+
+    return i;
+}
+
+// VERIFY: 0107b6eb manual
+// OFFSET: 0x00594240
+TrainerServiceInfo* CGClassTrainer::GetService(uint32_t index) {
+    if (index < CGClassTrainer::m_numServices) {
+        return CGClassTrainer::m_services.m_data[index];
+    }
+
+    return nullptr;
+}
+
+// VERIFY: a0d27311 manual
+// OFFSET: 0x00594260
+const char* CGClassTrainer::GetServiceType(uint32_t index) {
+    if (index >= CGClassTrainer::m_numServices) {
+        return nullptr;
+    }
+
+    TrainerServiceInfo* service = CGClassTrainer::m_services.m_data[index];
+
+    if (service->m_spellID < 0) {
+        return "header";
+    }
+
+    if (!service->m_state) {
+        return "available";
+    }
+
+    if (service->m_state == 2) {
+        return "used";
+    }
+
+    return "unavailable";
+}
+
+// VERIFY: 1710d0ee manual
+// OFFSET: 0x005942B0
+int32_t CGClassTrainer::GetSkillLineIndexFromService(uint32_t index) {
+    if (index >= CGClassTrainer::m_numServices) {
+        return -1;
+    }
+
+    TrainerServiceInfo* service = CGClassTrainer::m_services.m_data[index];
+
+    if (service->m_spellID >= 0) {
+        return -1;
+    }
+
+    for (int32_t i = 0; i < CGClassTrainer::m_numSkillLines; i++) {
+        if (CGClassTrainer::m_skillLines.m_data[i]->m_skillLine == service->m_skillLine) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+// VERIFY: b36e2c37 manual
+// OFFSET: 0x00594300
+int32_t CGClassTrainer::IsCollapsedHeader(uint32_t index) {
+    if (index >= CGClassTrainer::m_numServices) {
+        return 0;
+    }
+
+    TrainerServiceInfo* service = CGClassTrainer::m_services.m_data[index];
+
+    if (service->m_spellID >= 0) {
+        return 0;
+    }
+
+    for (int32_t i = 0; i < CGClassTrainer::m_numSkillLines; i++) {
+        if (CGClassTrainer::m_skillLines.m_data[i]->m_skillLine == service->m_skillLine) {
+            return !(CGClassTrainer::m_expandedSkillLines & (1 << i));
+        }
+    }
+
+    return 0;
 }
 
 // VERIFY: 53d4c1b1 manual
@@ -453,6 +569,90 @@ void CGClassTrainer::RefreshList() {
         }
     }
 
+    CGClassTrainer::FilterAndSortServices();
+    FrameScript_SignalEvent(SCRIPT_EVENT_TRAINER_UPDATE, nullptr);
+}
+
+// VERIFY: 19f1da85 manual
+// OFFSET: 0x00594DA0
+void CGPlayer_C::TrainerBuySpell(uint32_t index) {
+    if (index >= CGClassTrainer::m_numServices) {
+        return;
+    }
+
+    TrainerServiceInfo* service = CGClassTrainer::m_services.m_data[index];
+
+    if (!service || service->m_state) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_TRAINER_BUY_SPELL));
+    msg.Put(CGClassTrainer::m_trainer.m_guid);
+    msg.Put(static_cast<uint32_t>(service->m_spellID));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: c1d5fe20 auto
+// OFFSET: 0x00594E50
+void CGClassTrainer::BuyService() {
+    for (uint32_t i = 0; i < CGClassTrainer::m_filteredServices; i++) {
+        CGPlayer_C::TrainerBuySpell(i);
+    }
+}
+
+// VERIFY: f21793b5 manual
+// OFFSET: 0x00594E80
+const char* CGClassTrainer::GetServiceName(uint32_t index) {
+    if (index >= CGClassTrainer::m_numServices) {
+        return nullptr;
+    }
+
+    TrainerServiceInfo* service = CGClassTrainer::m_services.m_data[index];
+
+    if (service->m_spellID < 0) {
+        if (CGClassTrainer::m_trainerType == 2) {
+            return FrameScript_GetText(s_tradeSkillServiceHeaders[service->m_skillLine], -1, GENDER_NOT_APPLICABLE);
+        }
+
+        SkillLineRec* skillLine = g_skillLineDB.GetRecord(service->m_skillLine);
+        return skillLine ? skillLine->m_displayName : nullptr;
+    }
+
+    SpellRec spell;
+    const char* name = g_spellDB.GetRecord(CGClassTrainer::m_services.m_data[index]->m_spellID, &spell) ? spell.m_name : nullptr;
+    return name;
+}
+
+// VERIFY: bba747ef auto
+// OFFSET: 0x00594F60
+const char* CGClassTrainer::GetServiceSubtext(uint32_t index) {
+    if (index >= CGClassTrainer::m_numServices) {
+        return nullptr;
+    }
+
+    if (CGClassTrainer::m_services.m_data[index]->m_spellID < 0) {
+        return "";
+    }
+
+    SpellRec spell;
+    const char* subtext = g_spellDB.GetRecord(CGClassTrainer::m_services.m_data[index]->m_spellID, &spell) ? spell.m_nameSubtext : nullptr;
+    return subtext;
+}
+
+// VERIFY: 2bfe5774 auto
+// OFFSET: 0x00594FE0
+void CGClassTrainer::SetServiceTypeFilter(int32_t filter) {
+    g_serviceTypeFilterCVar->Set(filter, true, false, false, true);
+    CGClassTrainer::FilterAndSortServices();
+    FrameScript_SignalEvent(SCRIPT_EVENT_TRAINER_UPDATE, nullptr);
+}
+
+// VERIFY: 46387f38 auto
+// OFFSET: 0x00595010
+void CGClassTrainer::SetSkillLineFilter(uint32_t filter) {
+    CGClassTrainer::m_skillLineFilter = filter;
     CGClassTrainer::FilterAndSortServices();
     FrameScript_SignalEvent(SCRIPT_EVENT_TRAINER_UPDATE, nullptr);
 }

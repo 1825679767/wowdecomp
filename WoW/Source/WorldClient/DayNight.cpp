@@ -29,6 +29,8 @@
 #include "WoW/Source/WorldClient/CPortalView.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WorldClient/WorldParam.h"
+#include "Engine/Source/Gxu/Gxu.h"
+#include "WoW/Source/Ui/WorldFrame.h"
 
 // STATIC: 0x00AF4C20
 static C2Vector s_starFadeTable[4] = { C2Vector(0.125f, 1.0f), C2Vector(0.1875f, 0.0f), C2Vector(0.9375f, 0.0f), C2Vector(1.0f, 1.0f) };
@@ -3035,6 +3037,124 @@ void DayNight::DNGlare::Render() {
     GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
     GxXformPop(GxXform_World);
     g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 32953b81 auto
+// OFFSET: 0x009ABC60
+float DayNight::DNGlare::GetPointOcclusion() {
+    DayNight::DNInfo* info = DayNight::GetInfo();
+    float dx = this->m_position.x - info->m_cameraPos.x;
+    float dy = this->m_position.y - info->m_cameraPos.y;
+    float dz = this->m_position.z - info->m_cameraPos.z;
+    float inverse = 1.0f / sqrt(dz * dz + dy * dy + dx * dx);
+    float nx = dx * inverse;
+    float ny = dy * inverse;
+    float nz = inverse * dz;
+    C3Vector start;
+    start.x = nx * 0.5f + info->m_cameraPos.x;
+    start.y = ny * 0.5f + info->m_cameraPos.y;
+    start.z = 0.5f * nz + info->m_cameraPos.z;
+    C3Vector hit;
+    C3Vector end;
+    end.x = nx * info->m_farClip + info->m_cameraPos.x;
+    end.y = ny * info->m_farClip + info->m_cameraPos.y;
+    end.z = nz * info->m_farClip + info->m_cameraPos.z;
+    float distance = 1.0f;
+
+    if (World::Intersect(start, end, &hit, &distance, 0x200112, nullptr)) {
+        return 0.0f;
+    }
+
+    return !CGWorldFrame::s_currentWorldFrame->HitTestModelList(start, end);
+}
+
+// VERIFY: 5f4e0628 manual
+// OFFSET: 0x009ABE00
+float DayNight::DNGlare::GetQueryOcclusion() {
+    uint32_t pixels = 0;
+    uint32_t available;
+    GxQueryGetParam(this->m_occlusionQuery, GxQueryParam_Unk1, &available);
+
+    if (!available || !GxQueryGetData(this->m_occlusionQuery, &pixels)) {
+        pixels = this->m_occlusionPixels;
+    }
+
+    this->m_occlusionPixels = pixels;
+
+    if (available) {
+        GxQueryBegin(this->m_occlusionQuery);
+    }
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_ColorWrite, 0);
+    GxRsSet(GxRs_DepthWrite, 0);
+    GxRsSet(GxRs_Fog, 0);
+    GxRsSet(GxRs_Lighting, 0);
+    C3Vector verts[6];
+    CImVector colors[6] = {};
+    C3Vector screen[6];
+    C2Vector texCoords[6];
+    uint16_t indices[8];
+    uint32_t vertCount;
+    uint32_t indexCount;
+    this->m_planet->GenGeometry(verts, texCoords, colors, indices, &vertCount, &indexCount);
+    float minX;
+    float maxX;
+    float minY;
+    float maxY;
+    float minZ;
+    float maxZ;
+    GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
+    GxXformSetViewport(minX, maxX, minY, maxY, s_skyMinZ, s_skyMaxZ);
+    C44Matrix view;
+    GxXformView(view);
+    DayNight::DNInfo* info = DayNight::GetInfo();
+    C3Vector direction(view.a2, view.b2, view.c2);
+    C44Matrix world;
+    DayNight::Billboard(world, direction);
+    world.d0 = this->m_position.x - info->m_cameraPos.x;
+    world.d1 = this->m_position.y - info->m_cameraPos.y;
+    world.d2 = this->m_position.z - info->m_cameraPos.z;
+    g_theGxDevicePtr->XformPush(GxXform_World);
+    g_theGxDevicePtr->m_xforms[GxXform_World].Identity();
+    g_theGxDevicePtr->XformSetView(world * view);
+
+    if (available) {
+        GxPrimVertexPtr(vertCount, verts, sizeof(C3Vector), nullptr, 0, colors, sizeof(CImVector), nullptr, 0, nullptr, 0);
+        GxPrimIndexPtr(indexCount, indices);
+        CGxBatch batch;
+        batch.m_primType = GxPrim_TriangleStrip;
+        batch.m_start = 0;
+        batch.m_count = indexCount;
+        batch.m_minIndex = 0;
+        batch.m_maxIndex = vertCount - 1;
+        g_theGxDevicePtr->Draw(&batch, 1);
+    }
+
+    GxuXformCalc3dScreenCoords(vertCount, verts, screen);
+    float area = fabs(screen[1].x - screen[0].x) * fabs(screen[2].y - screen[0].y);
+    GxXformPop(GxXform_World);
+    g_theGxDevicePtr->XformSetView(view);
+    GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
+    g_theGxDevicePtr->RsPop();
+
+    if (available) {
+        GxQueryEnd(this->m_occlusionQuery);
+    }
+
+    float result = 0.0f;
+
+    if (this->m_skipOcclusionOnce) {
+        this->m_skipOcclusionOnce = 0;
+    } else if (area > 1.0f) {
+        result = pixels / area;
+
+        if (result > 1.0f) {
+            return 1.0f;
+        }
+    }
+
+    return result;
 }
 
 // VERIFY: 736a9501 auto

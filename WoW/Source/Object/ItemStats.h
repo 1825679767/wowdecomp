@@ -42,7 +42,7 @@ class ItemStats_C {
     /* 00C8 */ float m_damageMax [2];
     /* 00D0 */ uint32_t m_damageType [2];
     /* 00D8 */ uint32_t m_resistances [7];
-    /* 00F4 */ uint32_t m_delay;
+    /* 00F4 */ int32_t m_delay;
     /* 00F8 */ uint32_t m_ammoType;
     /* 00FC */ float m_rangedModRange;
     /* 0100 */ uint32_t m_spellId [5];

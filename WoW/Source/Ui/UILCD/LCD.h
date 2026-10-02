@@ -6,6 +6,7 @@
 
 class CEzLcd;
 class CGPlayer_C;
+struct BattlefieldStatus;
 
 struct LCDHANDLE : public TSHashObject<LCDHANDLE, HASHKEY_CONSTSTRI> {
     /* 0018 */ void* unk_0018;
@@ -33,9 +34,18 @@ class CGLCD {
     static void IdleDisconnectWarning();
     static void Initialize();
     static void SetScreen(int32_t screen);
+    static void ShowBattlefieldScreen();
+    static void HideBattlefieldAlert();
+    static void OnBattlefieldReady(const BattlefieldStatus* status);
+    static void OnBattlefieldActive();
+    static void UpdateBattlefieldStats();
     static void Shutdown();
     static int32_t Update(const void* data, void* param);
     static void OnWhisper(const char* name);
+    static void AuctionOutbid(const char* name);
+    static void AuctionExpired(const char* name);
+    static void AuctionSold(const char* name);
+    static void AuctionWon(const char* name);
     static void PushAlert(const char* text, int32_t a2);
     static void Login();
     static void* GetHandle(const char* name);

@@ -147,6 +147,9 @@ static int32_t s_shadowInterior;
 // STATIC: 0x00CFBEB0
 static int32_t s_fogMode;
 
+// STATIC: 0x00CFBEB4
+int32_t CWorldScene::s_fogPermute;
+
 // STATIC: 0x00D1BEF8
 static uint32_t s_lastSidnColor;
 
@@ -3209,4 +3212,165 @@ void CMapObj::RenderMapObjGroupsShadowMap(void* groups, uint32_t count, void* gr
 // OFFSET: 0x007AE050
 void CMapObj::DestroyPools() {
     CMapObj::bPoolsDirty = 1;
+}
+
+// VERIFY: 45ac5b73 manual
+// OFFSET: 0x007ABAC0
+void CMapObj::RenderMapObjGroupsColor(CMapObjGroup** groups, uint32_t count, C44Matrix** matrices, const C44Matrix* world, int32_t* a5) {
+    uint32_t color = static_cast<uint32_t>(*a5);
+
+    if (g_theGxDevicePtr->Caps().m_colorFormat == GxCF_rgba) {
+        color = (color & 0xFF00FF00) | ((color >> 16) & 0xFF) | ((color & 0xFF) << 16);
+    }
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_BlendingMode, 0);
+    GxRsSet(GxRs_AlphaRef, static_cast<int32_t>(CGxDevice::s_alphaRef[g_theGxDevicePtr->m_appRenderStates.m_data[GxRs_BlendingMode].m_value.m_data.i[0]]));
+    GxRsSet(GxRs_VertexShader, static_cast<void*>(nullptr));
+    GxRsSet(GxRs_PixelShader, static_cast<void*>(nullptr));
+
+    for (uint32_t i = 0; i < count; i++) {
+        CMapObjGroup* group = groups[i];
+        CMapObj* mapObj = group->m_parent;
+        C44Matrix transform = *matrices[i] * *world;
+        CGxMatrixStack& stack = g_theGxDevicePtr->m_xforms[GxXform_World];
+        stack.m_dirty = 1;
+        stack.m_flags[stack.m_level] &= ~CGxMatrixStack::F_Identity;
+        stack.m_mtx[stack.m_level] = transform;
+
+        if (!group->m_batchListCount) {
+            continue;
+        }
+
+        CGxBuf* vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, sizeof(CGxVertexPNC), group->m_vertexListCount);
+        CGxVertexPNC* vertex = reinterpret_cast<CGxVertexPNC*>(g_theGxDevicePtr->BufLock(vertexBuf));
+
+        for (int32_t j = 0; j < group->m_vertexListCount; j++) {
+            vertex->m_position = group->m_vertexList[j];
+            vertex->m_normal = group->m_normalList[j];
+            *reinterpret_cast<uint32_t*>(&vertex->m_color) = color;
+            vertex++;
+        }
+
+        g_theGxDevicePtr->BufUnlock(vertexBuf, 0);
+        vertexBuf->unk_001C = 1;
+        GxPrimVertexPtr(vertexBuf, GxVBF_PNC);
+        CGxBuf* indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, sizeof(uint16_t), group->m_indicesCount);
+        memcpy(g_theGxDevicePtr->BufLock(indexBuf), group->m_indices, sizeof(uint16_t) * group->m_indicesCount);
+        g_theGxDevicePtr->BufUnlock(indexBuf, 0);
+        indexBuf->unk_001C = 1;
+        g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+
+        if (group->m_unkLoadedFlag & 0x4) {
+            GxRsSet(GxRs_Texture0, static_cast<void*>(nullptr));
+            CGxBatch batch;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = group->m_indexMin;
+            batch.m_count = group->m_indexMax - group->m_indexMin + 1;
+            batch.m_minIndex = group->m_vertexMin;
+            batch.m_maxIndex = group->m_vertexMax;
+            g_theGxDevicePtr->Draw(&batch, 1);
+            continue;
+        }
+
+        for (int32_t j = 0; j < group->m_batchListCount; j++) {
+            SMOBatch& smoBatch = group->m_batchList[j];
+            CGxTex* gxTex = TextureGetGxTex(mapObj->m_materialList[smoBatch.m_texture].Textures()[0], 0, nullptr);
+
+            if (!gxTex) {
+                continue;
+            }
+
+            g_theGxDevicePtr->RsSet(GxRs_Texture0, gxTex);
+            CGxBatch batch;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = smoBatch.m_indexStart;
+            batch.m_count = smoBatch.m_indexCount;
+            batch.m_minIndex = smoBatch.m_vertexStart;
+            batch.m_maxIndex = smoBatch.m_vertexEnd;
+            g_theGxDevicePtr->Draw(&batch, 1);
+        }
+    }
+
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 44371f63 auto
+// OFFSET: 0x007AECB0
+bool CMapObj::VectorIntersect(C3Vector& start, C3Vector& end, uint32_t flags, uint32_t groupIgnoreFlags, float* t, uint16_t* hitFace, CMapObjDef* mapObjDef, float* normalDot, uint32_t* hitGroup) {
+    if (!this->m_isGroupLoaded) {
+        return false;
+    }
+
+    C3Vector normal(0.0f, 0.0f, 0.0f);
+    C3Segment seg;
+    seg.b = start;
+    seg.t = end;
+    uint16_t face = 0;
+    bool hit = false;
+    uint16_t ignoreFlags = static_cast<uint16_t>(CMapObj::CreateWmoIgnoreFlags(flags));
+
+    for (int32_t i = 0; i < this->m_groupInfoCount; i++) {
+        if (!this->m_isGroupLoaded) {
+            continue;
+        }
+
+        CMapObjGroup* group = this->m_mapObjGroupArray[i];
+
+        if (!(group->m_unkLoadedFlag & 1) || (groupIgnoreFlags & group->m_flags)) {
+            continue;
+        }
+
+        if (!CWorldMath::VectorIntersectAABox2(this->m_groupInfo[i].m_boundingBox, start, end)) {
+            continue;
+        }
+
+        World::TriData::statusFlags = 0;
+        World::TriData::nBatches = 0;
+        World::TriData::faceIndexCursor = 0;
+        World::TriData::indexCursor = 0;
+        World::TriData::unk_CB7538 = 0;
+        World::TriData triData;
+
+        if (!group->GetTris(seg, t, flags, ignoreFlags, &triData, mapObjDef)) {
+            continue;
+        }
+
+        if (World::TriData::batches[0].m_faceIndices) {
+            face = *World::TriData::batches[0].m_faceIndices;
+
+            if (normalDot) {
+                C3Vector* vertices = World::TriData::batches[0].m_vertexList;
+                uint16_t* indices = World::TriData::batches[0].m_indices;
+                C3Vector& v0 = vertices[indices[0]];
+                C3Vector& v1 = vertices[indices[1]];
+                C3Vector& v2 = vertices[indices[2]];
+                normal = C3Vector::Cross(v1 - v0, v2 - v0);
+                *normalDot = (seg.t.z - seg.b.z) * normal.z + (seg.t.y - seg.b.y) * normal.y + (seg.t.x - seg.b.x) * normal.x;
+            }
+        }
+
+        if (hitGroup) {
+            *hitGroup = i;
+        }
+
+        hit = true;
+    }
+
+    if (hit && hitFace) {
+        *hitFace = face;
+    }
+
+    if (!normalDot) {
+        return hit;
+    }
+
+    float length = sqrtf(normal.z * normal.z + normal.y * normal.y + normal.x * normal.x);
+
+    if (fabs(length) < 0.00000023841858f) {
+        return hit;
+    }
+
+    *normalDot = *normalDot / length;
+    return hit;
 }

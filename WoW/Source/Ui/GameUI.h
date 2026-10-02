@@ -14,6 +14,7 @@
 #include "WoW/Source/Ui/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
 
 class CGUnit_C;
 class AreaTableRec;
@@ -39,6 +40,7 @@ class FrameScript_Object;
 struct lua_State;
 
 extern CVar* g_autoClearAFKCVar;
+extern CVar* g_assistAttackCVar;
 extern CVar* g_questPOICVar;
 extern CVar* g_nameplateShowEnemiesCVar;
 extern CVar* g_nameplateShowEnemyPetsCVar;
@@ -79,6 +81,8 @@ extern CVar* s_cvQuestLogCollapseFilter;
 extern CVar* s_cvAutoRangedCombat;
 extern CVar* s_cvAutoFilledMultiCastSlots;
 extern CVar* g_threatWarningCVar;
+extern CVar* g_autojoinPartyVoiceCVar;
+extern CVar* g_autojoinBGVoiceCVar;
 extern CVar* g_threatWorldTextCVar;
 extern CVar* g_currencyTokensUnused1CVar;
 extern CVar* g_currencyTokensUnused2CVar;
@@ -102,9 +106,24 @@ struct SAVEDVARIABLE : public TSHashObject<SAVEDVARIABLE, HASHKEY_STR> {
 };
 
 class SE2SoundKitObject;
+class CM2Model;
+class CinematicCameraRec;
+class CinematicSequencesRec;
+struct CinematicInfo {
+    /* 0000 */ CinematicSequencesRec* m_sequence;
+    /* 0004 */ SE2SoundKitObject m_music;
+    /* 0018 */ uint32_t m_cameraIndex;
+    /* 001C */ CinematicCameraRec* m_camera;
+    /* 0020 */ SE2SoundKitObject m_cameraMusic;
+    /* 0034 */ uint32_t unk_0034;
+};
+
 class CGGameUI {
     public:
     static void SendRaidDifficultyMessage();
+    static void CheckInstanceDifficultyMessages(uint32_t dungeonDifficulty, uint32_t raidDifficulty);
+    static void UpdateThreatWarningFromCVar();
+    static void HandleScreenshot(int32_t success);
     static void LeaveWorld();
     static void SaveSavedVariables();
     struct THREATMAP : public TSHashObject<THREATMAP, CHashKeyGUID> {
@@ -207,6 +226,7 @@ class CGGameUI {
     static uint16_t unk_BD08C4;
     static TotemInfo m_totems[4];
     static MirrorTimerInfo m_mirrorTimerInfo[3];
+    static MirrorTimerInfo* MirrorTimerGetInfo(uint32_t index);
 
     static int32_t FilterMouseDown(CMouseEvent* evt);
     static int32_t FilterMouseMotion(CMouseEvent* evt);
@@ -242,7 +262,6 @@ class CGGameUI {
     static void Shutdown();
     static void ShutdownGame();
     static WOWGUID m_currentObjectTrack;
-    static WOWGUID m_pendingItem;
     static WOWGUID m_interactTarget;
     static float m_interactMaxDistSq;
     static WOWGUID m_areaSpiritHealerGUID;
@@ -253,6 +272,10 @@ class CGGameUI {
     static void UpdateAreaSpiritHealerTime(WOWGUID guid, int32_t time);
     static void DisplayPvPQueueRemovedError(int32_t reason);
     static void SetCorpseReclaimDelay(uint32_t delay);
+    static void SetRepopTimeLeft(uint32_t time);
+    static void ClearRepopTime();
+    static void AddErrorMessage(const char* text, int32_t error);
+    static const char* GetErrorToken(int32_t error);
     static void SetDungeonDifficulty(uint32_t difficulty, uint32_t unk, uint32_t inGroup);
     static void ShowDungeonDifficultyChanged();
     static void SetRaidDifficulty(uint32_t difficulty, uint32_t unk, uint32_t inGroup);
@@ -262,6 +285,18 @@ class CGGameUI {
     static void ProposeLevelGrant(WOWGUID guid);
     static void SetCorpseMapPosition(const C3Vector& position, const float& facing);
     static void CastSpiritHealSpell();
+    static void StopMovie();
+    static void OpenGuildInvite(const char* inviter, const char* guild);
+    static void AcceptLevelGrant();
+    static void AcceptAreaSpiritHeal();
+    static void TargetDirection(float facing, float angle, int32_t type);
+    static WOWGUID ClosestObjectMatch(const char* name, uint32_t typeMask, int32_t targetType, int32_t exact, float maxDistance, int32_t ignoreHostileTotems);
+    static bool CanInspect(CGUnit_C* unit);
+    static void SetCursorMoney(uint32_t amount);
+    static void SetCursorMoney(uint32_t amount, int32_t type, int32_t event);
+    static int32_t VirtualItemIsLocked(int32_t id, uint32_t virtualSlot, int32_t a3);
+    static void LockVirtualItem(int32_t id, uint32_t virtualSlot, int32_t a3);
+    static void TargetTradeItem();
     static void SetCursorItem(WOWGUID item, WOWGUID container, uint32_t slot, int32_t a4, int32_t stackSplit, int32_t playSound);
     static WOWGUID m_lockedTarget;
     static int32_t m_visible;
@@ -269,6 +304,8 @@ class CGGameUI {
     static WOWGUID m_corpseGUID;
     static int32_t m_initialized;
     static int32_t m_inMovie;
+    static int32_t m_movieFileDataID;
+    static int32_t m_movieVolume;
     static float m_aspect;
     static int32_t m_iCurrentMapID;
     static uint32_t m_uiLastInstanceTime;
@@ -282,10 +319,12 @@ class CGGameUI {
     static CSimpleTop* m_simpleTop;
 
     static int32_t CameraMusicIsPlaying();
-    static SE2SoundKitObject m_cinematicMusic;
+    static CinematicInfo m_cinematic;
     static void LoadTrackedState();
     static void LoadMinimapTrackingState(const char* state);
     static int32_t CanPerformAction(uint32_t action);
+    static int32_t IsDynamicDifficultyMap();
+    static bool CanChangePlayerDifficulty();
     static void CastItemSpell(WOWGUID guid, int32_t confirmed);
     static const char* LastErrorMessage();
     static void SetLastEnchantSpellID(int32_t spellId);
@@ -296,6 +335,10 @@ class CGGameUI {
     static void OnMouseModeRelative();
     static uint32_t GetCurrentDungeonDifficulty();
     static uint32_t GetCurrentRaidDifficulty();
+    static uint32_t GetEffectiveRaidDifficulty();
+    static void GetInstanceLockInfo(uint32_t* remaining, uint32_t* completedMask, uint32_t* extending);
+    static int32_t MirrorTimerToIndex(const char* timer);
+    static int32_t CanResetInstance();
     static void SetLastInstanceTime(uint32_t time, int32_t mapId, int32_t currentMapId);
     static void ShowBlockedActionFeedback(FrameScript_Object* object, uint32_t type);
     static void Reload();
@@ -342,6 +385,7 @@ class CGGameUI {
     static void DropCursorSpell();
     static void SetCursorSpell(int32_t spellId);
     static void SetCursorPetAction(const uint32_t* action);
+    static void SetCursorPet(int32_t index);
     static void SetCursorMacro(int32_t macroId);
     static void SetCursorVirtualItem(int32_t id, int32_t displayId, int32_t slot, int32_t type, int32_t stackSplit);
     static void SetCursorEquipmentSet(int32_t setId);
@@ -360,10 +404,16 @@ class CGGameUI {
     static C3Vector m_corpsePos;
     static C3Vector m_deathReleaseLoc;
     static void GetCorpsePosition(C3Vector& position);
+    static void GetCorpseLocation(int32_t& mapID, C3Vector& position, int32_t& actualMapID);
+    static void GetDeathReleaseLocation(int32_t& mapID, C3Vector& position);
     static void SetCorpseLocation(int32_t mapId, const C3Vector& position, int32_t actualMapId, int32_t transport);
     static void UpdateCorpseLocation();
     static void SetDeathReleaseLocation(int32_t mapId, const C3Vector& position);
     static void BeginCinematicInternal(void* param);
+    static void StopCinematicInternal(void* param);
+    static void NextCinematicInternal(void* param);
+    static void NextCinematic(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param);
+    static int32_t StartCinematicCamera();
 };
 
 void EnableFadingScreen(float duration, void (*callback)(void*), void* param);
@@ -450,149 +500,18 @@ bool SetTaintLogCallback(CVar* var, const char* oldValue, const char* value, voi
 bool ShowClassColorInNameplateCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 void TaintEventCallback(lua_State* L, int32_t event, const char* name, const char* taint);
 
-int32_t Script_GetBuildInfo(lua_State* L);
-int32_t Script_ReloadUI(lua_State* L);
-int32_t Script_SetConsoleKey(lua_State* L);
-int32_t Script_Screenshot(lua_State* L);
-int32_t Script_TogglePerformanceDisplay(lua_State* L);
-int32_t Script_TogglePerformancePause(lua_State* L);
-int32_t Script_TogglePerformanceValues(lua_State* L);
-int32_t Script_ResetPerformanceValues(lua_State* L);
-int32_t Script_GetDebugStats(lua_State* L);
-int32_t Script_RegisterCVar(lua_State* L);
-int32_t Script_GetCVarAbsoluteMin(lua_State* L);
-int32_t Script_GetCVarAbsoluteMax(lua_State* L);
-int32_t Script_ToggleTris(lua_State* L);
-int32_t Script_TogglePortals(lua_State* L);
-int32_t Script_ToggleCollision(lua_State* L);
-int32_t Script_ToggleCollisionDisplay(lua_State* L);
-int32_t Script_TogglePlayerBounds(lua_State* L);
-int32_t Script_Stuck(lua_State* L);
-int32_t Script_Logout(lua_State* L);
-int32_t Script_EquipCursorItem(lua_State* L);
-int32_t Script_DeleteCursorItem(lua_State* L);
-int32_t Script_EquipPendingItem(lua_State* L);
-int32_t Script_CancelPendingEquip(lua_State* L);
-int32_t Script_TargetUnit(lua_State* L);
 void TargetNearestEnemy(int32_t reverse, int32_t type);
 int32_t UnitMatchesTargetType(CGUnit_C* unit, CGUnit_C* target, int32_t type);
-int32_t Script_TargetDirectionEnemy(lua_State* L);
-int32_t Script_TargetDirectionFriend(lua_State* L);
-int32_t Script_TargetLastTarget(lua_State* L);
-int32_t Script_TargetLastEnemy(lua_State* L);
-int32_t Script_TargetLastFriend(lua_State* L);
-int32_t Script_AttackTarget(lua_State* L);
-int32_t Script_AssistUnit(lua_State* L);
-int32_t Script_FollowUnit(lua_State* L);
-int32_t Script_InteractUnit(lua_State* L);
-int32_t Script_ClearFocus(lua_State* L);
-int32_t Script_ToggleSheath(lua_State* L);
-int32_t Script_InitiateTrade(lua_State* L);
-int32_t Script_CanInspect(lua_State* L);
-int32_t Script_NotifyInspect(lua_State* L);
-int32_t Script_InviteUnit(lua_State* L);
-int32_t Script_UninviteUnit(lua_State* L);
-int32_t Script_ResurrectGetOfferer(lua_State* L);
-int32_t Script_ResurrectHasSickness(lua_State* L);
-int32_t Script_ResurrectHasTimer(lua_State* L);
-int32_t Script_ForceLogout(lua_State* L);
-int32_t Script_PickupPlayerMoney(lua_State* L);
-int32_t Script_HasSoulstone(lua_State* L);
-int32_t Script_UseSoulstone(lua_State* L);
-int32_t Script_GuildSetMOTD(lua_State* L);
-int32_t Script_GetInstanceLockTimeRemaining(lua_State* L);
-int32_t Script_GetInstanceLockTimeRemainingEncounter(lua_State* L);
-int32_t Script_GetSummonConfirmSummoner(lua_State* L);
-int32_t Script_ConfirmSummon(lua_State* L);
-int32_t Script_StopCinematic(lua_State* L);
-int32_t Script_RunScript(lua_State* L);
-int32_t Script_CheckInteractDistance(lua_State* L);
 int32_t Script_IsWindowsClient(lua_State* L);
 int32_t Script_IsMacClient(lua_State* L);
-int32_t Script_IsLinuxClient(lua_State* L);
-int32_t Script_AcceptXPLoss(lua_State* L);
-int32_t Script_BindEnchant(lua_State* L);
-int32_t Script_ReplaceEnchant(lua_State* L);
-int32_t Script_ReplaceTradeEnchant(lua_State* L);
-int32_t Script_GetTimeToWellRested(lua_State* L);
-int32_t Script_GMRequestPlayerInfo(lua_State* L);
-int32_t Script_GetCoinIcon(lua_State* L);
-int32_t Script_GetCoinText(lua_State* L);
-int32_t Script_GetCoinTextureString(lua_State* L);
-int32_t Script_ConfirmBindOnUse(lua_State* L);
-int32_t Script_SetPortraitToTexture(lua_State* L);
 int32_t Script_GetLocale(lua_State* L);
-int32_t Script_GetGMTicketCategories(lua_State* L);
-int32_t Script_DropItemOnUnit(lua_State* L);
 int32_t Script_RestartGx(lua_State* L);
 int32_t Script_RestoreVideoResolutionDefaults(lua_State* L);
 int32_t Script_RestoreVideoEffectsDefaults(lua_State* L);
 int32_t Script_RestoreVideoStereoDefaults(lua_State* L);
-int32_t Script_ConfirmTalentWipe(lua_State* L);
-int32_t Script_ConfirmBinder(lua_State* L);
-int32_t Script_ShowHelm(lua_State* L);
-int32_t Script_ShowCloak(lua_State* L);
-int32_t Script_AcceptAreaSpiritHeal(lua_State* L);
-int32_t Script_CancelAreaSpiritHeal(lua_State* L);
-int32_t Script_GetItemInfo(lua_State* L);
-int32_t Script_GetItemGem(lua_State* L);
-int32_t Script_GetExtendedItemInfo(lua_State* L);
-int32_t Script_GetItemIcon(lua_State* L);
-int32_t Script_GetItemFamily(lua_State* L);
-int32_t Script_GetItemCount(lua_State* L);
-int32_t Script_PickupItem(lua_State* L);
-int32_t Script_IsCurrentItem(lua_State* L);
-int32_t Script_IsUsableItem(lua_State* L);
-int32_t Script_IsHelpfulItem(lua_State* L);
-int32_t Script_IsHarmfulItem(lua_State* L);
-int32_t Script_IsConsumableItem(lua_State* L);
-int32_t Script_IsEquippableItem(lua_State* L);
-int32_t Script_IsEquippedItem(lua_State* L);
-int32_t Script_IsEquippedItemType(lua_State* L);
-int32_t Script_IsDressableItem(lua_State* L);
-int32_t Script_ItemHasRange(lua_State* L);
-int32_t Script_IsItemInRange(lua_State* L);
 int32_t Script_GetNumAddOns(lua_State* L);
-int32_t Script_GetAddOnInfo(lua_State* L);
-int32_t Script_GetAddOnMetadata(lua_State* L);
-int32_t Script_GetAddOnMemoryUsage(lua_State* L);
-int32_t Script_GetAddOnCPUUsage(lua_State* L);
-int32_t Script_GetFrameCPUUsage(lua_State* L);
-int32_t Script_GetAddOnDependencies(lua_State* L);
-int32_t Script_EnableAddOn(lua_State* L);
-int32_t Script_EnableAllAddOns(lua_State* L);
-int32_t Script_DisableAddOn(lua_State* L);
-int32_t Script_DisableAllAddOns(lua_State* L);
-int32_t Script_IsAddOnLoadOnDemand(lua_State* L);
 int32_t Script_GetBillingTimeRested(lua_State* L);
-int32_t Script_CanShowResetInstances(lua_State* L);
-int32_t Script_SetDungeonDifficulty(lua_State* L);
-int32_t Script_SetRaidDifficulty(lua_State* L);
-int32_t Script_ReportBug(lua_State* L);
-int32_t Script_ReportSuggestion(lua_State* L);
-int32_t Script_GetMirrorTimerProgress(lua_State* L);
-int32_t Script_SetCurrentTitle(lua_State* L);
-int32_t Script_UseItemByName(lua_State* L);
-int32_t Script_EquipItemByName(lua_State* L);
-int32_t Script_StartAttack(lua_State* L);
-int32_t Script_StopAttack(lua_State* L);
-int32_t Script_Dismount(lua_State* L);
-int32_t Script_VoicePushToTalkStart(lua_State* L);
-int32_t Script_VoicePushToTalkStop(lua_State* L);
-int32_t Script_CanGrantLevel(lua_State* L);
-int32_t Script_GrantLevel(lua_State* L);
-int32_t Script_CanSummonFriend(lua_State* L);
-int32_t Script_SummonFriend(lua_State* L);
-int32_t Script_GetNumDeclensionSets(lua_State* L);
-int32_t Script_DeclineName(lua_State* L);
-int32_t Script_AcceptLevelGrant(lua_State* L);
-int32_t Script_UploadSettings(lua_State* L);
-int32_t Script_DownloadSettings(lua_State* L);
 int32_t Script_GetMovieResolution(lua_State* L);
-int32_t Script_GameMovieFinished(lua_State* L);
-int32_t Script_GetItemUniqueness(lua_State* L);
-int32_t Script_EndRefund(lua_State* L);
-int32_t Script_EndBoundTradeable(lua_State* L);
 int32_t Script_GetAccountExpansionLevel(lua_State* L);
 
 extern CVar* g_profanityFilterCVar;
@@ -610,10 +529,17 @@ void UpdateInstanceOwnershipPacket(int32_t owns);
 void UpdateModelForUI(const WOWGUID& guid, uint32_t flags);
 
 extern CVar* s_cvLfgSelectedRoles;
+extern CVar* s_cvLfdCollapsedHeaders;
+extern CVar* s_cvLfdSelectedDungeons;
 
 const char* MirrorTimerTypeToken(int32_t type);
 const char* GetMirrorTimerLabel(int32_t type, int32_t spellId);
 
 void BroadcastUIError(int32_t error, const char* name);
+
+extern float s_duelDistSq;
+extern float s_playerInteractDistSq;
+extern float s_inspectDistSq;
+extern float s_followDistSq;
 
 #endif
