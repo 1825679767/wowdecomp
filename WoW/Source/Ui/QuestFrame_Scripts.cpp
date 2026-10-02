@@ -203,10 +203,10 @@ static int32_t Script_ConfirmAcceptQuest(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 838b33fa auto
+// VERIFY: b325b2e2 auto
 // OFFSET: 0x0058C190
 static int32_t Script_GetNumQuestRewards(lua_State* L) {
-    int32_t count = 0;
+    uint32_t count = 0;
 
     for (uint32_t i = 0; i < 6; i++) {
         if (!CGQuestInfo::m_questItems[i].m_reward.m_itemID) {
@@ -220,10 +220,10 @@ static int32_t Script_GetNumQuestRewards(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b0f00d3b auto
+// VERIFY: 60a90bc4 auto
 // OFFSET: 0x0058C1F0
 static int32_t Script_GetNumQuestChoices(lua_State* L) {
-    int32_t count = 0;
+    uint32_t count = 0;
 
     for (uint32_t i = 0; i < 6; i++) {
         if (!CGQuestInfo::m_questItems[i].m_choice.m_itemID) {
@@ -237,10 +237,10 @@ static int32_t Script_GetNumQuestChoices(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 530b342a auto
+// VERIFY: fc39ff45 auto
 // OFFSET: 0x0058C250
 static int32_t Script_GetNumQuestItems(lua_State* L) {
-    int32_t count = 0;
+    uint32_t count = 0;
 
     for (uint32_t i = 0; i < 6; i++) {
         if (!CGQuestInfo::m_questItems[i].m_required.unk_0004) {

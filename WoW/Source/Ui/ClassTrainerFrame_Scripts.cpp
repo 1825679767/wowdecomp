@@ -118,7 +118,7 @@ static int32_t Script_GetTrainerServiceLevelReq(lua_State* L) {
     return 1;
 }
 
-// VERIFY: fbed307c auto
+// VERIFY: 023b70fb auto
 // OFFSET: 0x005945B0
 static int32_t Script_GetTrainerServiceNumAbilityReq(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -128,7 +128,7 @@ static int32_t Script_GetTrainerServiceNumAbilityReq(lua_State* L) {
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
     TrainerServiceInfo* service = index < CGClassTrainer::m_numServices ? CGClassTrainer::m_services.m_data[index] : nullptr;
-    int32_t count = 0;
+    uint32_t count = 0;
 
     if (service) {
         if (service->m_abilityReq[0] > 0) {

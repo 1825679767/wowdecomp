@@ -437,7 +437,7 @@ extern uint32_t s_numDisplayChannels;
 
 extern int32_t s_activeDisplayChannelType;
 
-extern int32_t s_activeVoiceChannel;
+extern uint32_t s_activeVoiceChannel;
 
 extern uint32_t s_numSavedInstances;
 

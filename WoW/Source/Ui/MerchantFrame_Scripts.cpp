@@ -95,7 +95,7 @@ static int32_t Script_GetMerchantItemMaxStack(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b19e5ef0 auto
+// VERIFY: 5f012ea7 auto
 // OFFSET: 0x005846E0
 static int32_t Script_GetMerchantItemCostInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -110,7 +110,7 @@ static int32_t Script_GetMerchantItemCostInfo(lua_State* L) {
     if (item && item->m_itemID && (cost = g_itemExtendedCostDB.GetRecord(item->m_extendedCostID))) {
         lua_pushnumber(L, cost->m_honorPoints);
         lua_pushnumber(L, cost->m_arenaPoints);
-        int32_t count = cost->m_itemID[0] != 0;
+        uint32_t count = cost->m_itemID[0] != 0;
 
         if (cost->m_itemID[1]) {
             count++;

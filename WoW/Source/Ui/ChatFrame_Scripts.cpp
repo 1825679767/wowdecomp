@@ -1281,17 +1281,17 @@ static int32_t Script_GetChannelDisplayInfo(lua_State* L) {
     return 9;
 }
 
-// VERIFY: 4af53a4c auto
+// VERIFY: 8f46d408 auto
 // OFFSET: 0x004FFA10
 static int32_t Script_GetSelectedDisplayChannel(lua_State* L) {
-    uint32_t index = CGChat::FindDisplayChannelIndex(CGChat::s_activeDisplayChannelName, s_activeDisplayChannelType);
+    int32_t index = CGChat::FindDisplayChannelIndex(CGChat::s_activeDisplayChannelName, s_activeDisplayChannelType);
 
-    if (index) {
-        lua_pushnumber(L, index);
-    } else {
+    if (!index) {
         lua_pushnil(L);
+        return 1;
     }
 
+    lua_pushnumber(L, index);
     return 1;
 }
 

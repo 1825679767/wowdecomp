@@ -694,7 +694,7 @@ void CGLookingForGroup::ParsePartyInfo(CDataStore* msg) {
     }
 }
 
-// VERIFY: dc655d6f manual
+// VERIFY: b597272d manual
 // OFFSET: 0x0055BDC0
 int32_t LFGPacketHandler(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     switch (msgId) {
@@ -754,7 +754,7 @@ int32_t LFGPacketHandler(void* param, NETMESSAGE msgId, uint32_t time, CDataStor
                 reward.m_items.LinkToTail(item);
                 msg->Get(reinterpret_cast<uint32_t&>(item->m_itemID));
                 msg->Get(reinterpret_cast<uint32_t&>(item->m_displayID));
-                msg->Get(reinterpret_cast<uint32_t&>(item->m_quantity));
+                msg->Get(item->m_quantity);
                 DebugLog("LFG_PLAYER_REWARD: Receiving Item %u, Display %u, Quantity: %u", item->m_itemID, item->m_displayID, item->m_quantity);
             }
 
@@ -1260,7 +1260,7 @@ int32_t LFGPacketHandler(void* param, NETMESSAGE msgId, uint32_t time, CDataStor
                     dungeon->m_rewards.LinkToTail(item);
                     msg->Get(reinterpret_cast<uint32_t&>(item->m_itemID));
                     msg->Get(reinterpret_cast<uint32_t&>(item->m_displayID));
-                    msg->Get(reinterpret_cast<uint32_t&>(item->m_quantity));
+                    msg->Get(item->m_quantity);
                 }
             }
 

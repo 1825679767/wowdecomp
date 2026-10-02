@@ -15,7 +15,7 @@ struct lua_State;
 struct LFGRewardItem : public TSLinkedNode<LFGRewardItem> {
     /* 0008 */ int32_t m_itemID;
     /* 000C */ int32_t m_displayID;
-    /* 0010 */ int32_t m_quantity;
+    /* 0010 */ uint32_t m_quantity;
 };
 
 struct LFGDungeonEntry : public TSLinkedNode<LFGDungeonEntry> {
@@ -44,7 +44,7 @@ struct LFGInfo {
     /* 0006 */ uint8_t m_roles[3];
     /* 0009 */ uint8_t unk_0009[3];
     /* 000C */ TSList<LFGDungeonEntry, TSGetLink<LFGDungeonEntry>> m_dungeons;
-    /* 0018 */ int32_t m_numDungeons;
+    /* 0018 */ uint32_t m_numDungeons;
     /* 001C */ char m_comment[256];
     /* 011C */ uint32_t unk_011C;
 

@@ -57,7 +57,7 @@ class CTexture : public CHandleObject, public TSHashObject<CTexture, HASHKEY_TEX
     /* 0054 */ EGxTexFormat m_dataFormat;
     /* 0058 */ CGxTexFlags m_gxTexFlags;
     /* 005C */ CTextureAtlas* m_atlas;
-    /* 0060 */ uint32_t m_atlasBlockIndex;
+    /* 0060 */ int32_t m_atlasBlockIndex;
     /* 0064 */ TSLink<CTexture> m_link;
     /* 006C */ char m_filename[260];
 

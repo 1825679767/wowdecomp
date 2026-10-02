@@ -7,7 +7,7 @@
 
 class CKBQuery : public CKBPage {
     public:
-    /* 0040 */ uint32_t unk_0040;
+    /* 0040 */ int32_t unk_0040;
     /* 0044 */ uint32_t unk_0044;
     /* 0048 */ uint32_t unk_0048;
 

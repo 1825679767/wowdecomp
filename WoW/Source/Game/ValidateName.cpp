@@ -953,9 +953,9 @@ int32_t NameNeedsDeclensions(int32_t locale, const char* name) {
     return locale == 8 && RussianNameNeedsDeclensions(name);
 }
 
-// VERIFY: d7a13e28 auto
+// VERIFY: d8c709a0 auto
 // OFFSET: 0x0076DD40
-int32_t GetNumNameDeclensionSets(int32_t locale, const char* name, int32_t sex) {
+uint32_t GetNumNameDeclensionSets(int32_t locale, const char* name, int32_t sex) {
     if (locale == 8) {
         return GetNumRussianNameDeclensionSets(name, sex);
     }

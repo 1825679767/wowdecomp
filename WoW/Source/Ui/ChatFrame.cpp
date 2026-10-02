@@ -324,7 +324,7 @@ const ChatMessageGroup s_chatMessageGroups[46] = {
 };
 
 // STATIC: 0x00B743CC
-int32_t s_activeVoiceChannel;
+uint32_t s_activeVoiceChannel;
 
 // STATIC: 0x00B743D0
 uint8_t s_collapsedHeaders[3];

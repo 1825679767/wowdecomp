@@ -1266,14 +1266,14 @@ static int32_t Script_CloseMail(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 2b058c29 auto
+// VERIFY: 0b1d4227 auto
 // OFFSET: 0x00571AB0
 static int32_t Script_GetNumStationeries(lua_State* L) {
     if (!CGMailInfo::m_pendingStationeryCallbacks) {
         CGMailInfo::UpdateStationeryList();
     }
 
-    lua_pushnumber(L, static_cast<int32_t>(CGMailInfo::m_numStationeries));
+    lua_pushnumber(L, CGMailInfo::m_numStationeries);
     return 1;
 }
 

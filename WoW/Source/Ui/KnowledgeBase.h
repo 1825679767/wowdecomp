@@ -48,10 +48,10 @@ class CKBPage {
 
 class CKBSetup : public CKBPage {
     public:
-    /* 0040 */ uint32_t unk_0040;
-    /* 0044 */ uint32_t unk_0044;
+    /* 0040 */ int32_t unk_0040;
+    /* 0044 */ int32_t unk_0044;
     /* 0048 */ uint32_t unk_0048;
-    /* 004C */ uint32_t unk_004C;
+    /* 004C */ int32_t unk_004C;
     /* 0050 */ int32_t unk_0050;
     /* 0054 */ uint32_t unk_0054;
     /* 0058 */ uint32_t unk_0058;

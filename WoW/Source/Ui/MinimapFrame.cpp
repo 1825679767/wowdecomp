@@ -190,7 +190,7 @@ const TrackingTypeInfo CGMinimapFrame::s_trackingTypes[15] = {
 };
 
 // STATIC: 0x00A41E04
-static const int32_t s_outdoorZoomTiles[6] = { 14, 12, 10, 8, 6, 4 };
+static const uint32_t s_outdoorZoomTiles[6] = { 14, 12, 10, 8, 6, 4 };
 
 // STATIC: 0x00A41E1C
 static const float s_indoorZoomRadius[6] = { 150.0f, 120.0f, 90.0f, 60.0f, 40.0f, 25.0f };
@@ -1250,7 +1250,7 @@ static void SetupTextureHandles(const int32_t* tile, int32_t reset, MINIMAPTILE*
     }
 }
 
-// VERIFY: 61a049c7 auto
+// VERIFY: db65bbd1 manual
 // OFFSET: 0x007F5930
 static int32_t MinimapUpdatePosition(int32_t mapId, const C3Vector* position, C2Vector* center, float* scale, MINIMAPTILE* tiles) {
     int32_t mapChanged = mapId != s_mapId;
@@ -1297,7 +1297,7 @@ static int32_t MinimapUpdatePosition(int32_t mapId, const C3Vector* position, C2
     C3Vector origin(17066.666f - baseTile[1] * 533.33331f, s_mapOrigin - 533.33331f * baseTile[0], 0.0f);
     C2Vector origin2(origin);
     float inv = 1.0f / s_tileSize.y;
-    int32_t halfTiles = s_outdoorZoomTiles[s_outdoorZoom] >> 1;
+    uint32_t halfTiles = s_outdoorZoomTiles[s_outdoorZoom] >> 1;
     float centerX = (origin2.y - position->y) * inv;
     float centerY = (origin2.x - position->x) / s_tileSize.x;
     *scale = inv * (halfTiles * 33.333332f);
@@ -2306,7 +2306,7 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
     return 1;
 }
 
-// VERIFY: 60938d36 manual
+// VERIFY: 1ba06c1a manual
 // OFFSET: 0x007F3F40
 static void SetMemberData(WOWGUID guid, MEMBERINFO* member, CGPlayer_C* player, uint32_t index, bool raid) {
     float dx = s_playerPosition.x;
@@ -2411,7 +2411,7 @@ static void SetMemberData(WOWGUID guid, MEMBERINFO* member, CGPlayer_C* player, 
         }
     }
 
-    float range = s_isIndoors ? s_indoorZoomRadius[s_indoorZoom] : static_cast<float>(static_cast<uint32_t>(s_outdoorZoomTiles[s_outdoorZoom])) * 0.5f * 33.333332f;
+    float range = s_isIndoors ? s_indoorZoomRadius[s_indoorZoom] : static_cast<float>(s_outdoorZoomTiles[s_outdoorZoom]) * 0.5f * 33.333332f;
 
     if (std::sqrt(dy * dy + dx * dx) / range <= 0.8f) {
         member->m_offMap = 0;

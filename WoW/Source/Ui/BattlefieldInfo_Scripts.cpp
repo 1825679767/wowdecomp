@@ -465,10 +465,10 @@ static int32_t Script_GetNumBattlefieldPositions(lua_State* L) {
     return 1;
 }
 
-// VERIFY: f466d1f1 auto
+// VERIFY: a5910517 auto
 // OFFSET: 0x0054A0E0
 static int32_t Script_GetNumBattlefieldFlagPositions(lua_State* L) {
-    int32_t count;
+    uint32_t count;
 
     if (CGBattlefieldInfo::m_flagCarriers[1]) {
         count = 2;
