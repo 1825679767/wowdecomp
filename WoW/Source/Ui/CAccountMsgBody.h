@@ -3,14 +3,18 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Ui/KnowledgeBase.h"
 
-class CAccountMsgBody {
+class CAccountMsgBody : public CKBPage {
     public:
-    /* 0000 */ uint8_t unk_0000[4];
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[52];
-    /* 003C */ uint32_t unk_003C;
-    /* 0040 */ uint32_t unk_0040;
+    /* 0040 */ CKBIterator m_iterator;
+
+    virtual ~CAccountMsgBody();
+    virtual void _SendSuccessEvent();
+    virtual void _SendFailureEvent();
+    int32_t LoadBody(int32_t messageId);
 };
+
+extern CAccountMsgBody g_accountMsgBody;
 
 #endif

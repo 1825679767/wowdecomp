@@ -14,6 +14,7 @@ class CGContainerInfo {
     static void UpdateContainers();
     static void OpenContainer(WOWGUID guid);
     static void EnterWorld();
+    static void LeaveWorld();
     static void UpdateCooldowns();
     static void UpdateItem(WOWGUID guid);
     static void UpdateContents(WOWGUID guid);

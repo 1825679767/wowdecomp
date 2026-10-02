@@ -8,6 +8,7 @@
 class CKBArticle : public CKBPage {
     public:
     CKBArticle();
+    int32_t BeginLoading(int32_t articleId, int32_t searchType);
     virtual void _ComputeCachedData();
     virtual void _SendSuccessEvent();
     virtual void _SendFailureEvent();

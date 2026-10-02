@@ -45,7 +45,4 @@ class CGBarberShop {
     static void UnregisterScriptFunctions();
 };
 
-int32_t Script_GetHairCustomization(lua_State* L);
-int32_t Script_GetFacialHairCustomization(lua_State* L);
-
 #endif

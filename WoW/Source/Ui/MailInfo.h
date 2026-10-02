@@ -87,6 +87,7 @@ class CGMailInfo {
     static void EnterWorld();
     static void InitializeGame();
     static void ShutdownGame();
+    static void LeaveWorld();
     static void UpdatePendingMail(float elapsed);
     static uint32_t m_sendMoney;
     static uint32_t m_sendCOD;

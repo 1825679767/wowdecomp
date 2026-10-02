@@ -240,3 +240,49 @@ bool CGItemSocketInfo::IsSocketItemRefundable() {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
     return static_cast<int32_t>(purchase->m_refundTimeLeft + 7200 - player->GetPlayedTime()) > 0;
 }
+
+// VERIFY: 47e2ebf9 auto
+// OFFSET: 0x005C4EE0
+void CGItemSocketInfo::LeaveWorld() {
+    CGItemSocketInfo::SetItem(WOWGUID{ 0 });
+}
+
+// VERIFY: e9a41a83 auto
+// OFFSET: 0x005C4EF0
+void CGItemSocketInfo::UpdateItem(WOWGUID item) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player) {
+        player->CountEquippedGems();
+    }
+
+    if (item == CGItemSocketInfo::m_socketItem) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_SOCKET_INFO_UPDATE, nullptr);
+    }
+}
+
+// VERIFY: db24a767 manual
+// OFFSET: 0x005C4F40
+void CGItemSocketInfo::RemoveItem(WOWGUID item) {
+    if (item == CGItemSocketInfo::m_socketItem) {
+        CGItemSocketInfo::SetItem(WOWGUID{ 0 });
+        return;
+    }
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (item == CGItemSocketInfo::m_gemItems[i]) {
+            if (CGItemSocketInfo::m_socketItem.m_guid && CGItemSocketInfo::m_socketItemStats) {
+                CGItemSocketInfo::m_gemItems[i] = WOWGUID{ 0 };
+                FrameScript_SignalEvent(SCRIPT_EVENT_SOCKET_INFO_UPDATE, nullptr);
+            }
+
+            break;
+        }
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player) {
+        player->CountEquippedGems();
+    }
+}

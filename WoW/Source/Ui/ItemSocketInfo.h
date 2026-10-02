@@ -26,6 +26,9 @@ class CGItemSocketInfo {
     static bool IsSocketItemBoundTradeable();
     static bool IsSocketItemRefundable();
     static void SetItem(WOWGUID item);
+    static void LeaveWorld();
+    static void UpdateItem(WOWGUID item);
+    static void RemoveItem(WOWGUID item);
     static int32_t GemMatchesSocket(const ItemStats_C* item, const ItemStats_C* gem, int32_t socket);
 };
 

@@ -6,6 +6,10 @@
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "Engine/Source/Base/CDataStore.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
+#include "WoW/Source/Ui/Types.h"
 // STATIC: 0x00C24304
 int32_t CGRuneInfo::m_runes[8];
 
@@ -338,4 +342,91 @@ void CGRuneInfo::ComputeRuneRechargeTime(int32_t index, float progress) {
     } else {
         CGRuneInfo::m_runeCooldowns[index] = 0;
     }
+}
+
+// VERIFY: 4de899c0 auto
+// OFFSET: 0x005EE020
+void CGRuneInfo::ConvertRune(uint8_t rune, uint8_t type) {
+    CGRuneInfo::m_runes[rune] = type;
+    FrameScript_SignalEvent(SCRIPT_EVENT_RUNE_TYPE_UPDATE, "%d", rune + 1);
+    CGSpellBook::UpdateUsable();
+}
+
+// VERIFY: c2cf4661 manual
+// OFFSET: 0x005EE240
+void CGRuneInfo::SetPredictedRunes(uint8_t available, uint8_t used, const uint8_t* cooldowns) {
+    if (!ClntObjMgrGetActivePlayerObj()) {
+        return;
+    }
+
+    CGRuneInfo::m_predictedRunes = used;
+
+    for (int32_t i = 0; i < 8; i++) {
+        int32_t bit = 1 << i;
+
+        if ((available & bit) && !(used & bit)) {
+            if (!CGRuneInfo::GetRuneLastUsedTime(i)) {
+                float progress = 0.0f;
+
+                if (cooldowns) {
+                    progress = cooldowns[i] * 0.0039215689f;
+
+                    if (progress > 1.0f) {
+                        progress = 1.0f;
+                    }
+                }
+
+                CGRuneInfo::m_runeLastUsed[i] = OsGetAsyncTimeMs() - static_cast<int32_t>(10000.0f * progress);
+                CGRuneInfo::ComputeRuneRechargeTime(i, progress);
+                FrameScript_SignalEvent(SCRIPT_EVENT_RUNE_POWER_UPDATE, "%d%b", i + 1, 0);
+            }
+        } else if ((!(available & bit) && (used & bit)) || ((CGRuneInfo::m_predictedRunes & bit) && CGRuneInfo::GetRuneLastUsedTime(i))) {
+            CGRuneInfo::m_runeLastUsed[i] = 0;
+            CGRuneInfo::m_runeCooldowns[i] = 0;
+            FrameScript_SignalEvent(SCRIPT_EVENT_RUNE_POWER_UPDATE, "%d%b", i + 1, 1);
+        }
+    }
+
+    CGSpellBook::UpdateUsable();
+}
+
+// VERIFY: ff3c5eda auto
+// OFFSET: 0x005EE440
+void CGRuneInfo::ResyncRunes(CDataStore* msg) {
+    msg->Get(CGRuneInfo::m_numRunes);
+
+    for (int32_t i = 0; i < static_cast<int32_t>(CGRuneInfo::m_numRunes); i++) {
+        uint8_t type;
+        msg->Get(type);
+        CGRuneInfo::m_runes[i] = type;
+        CGRuneInfo::m_baseRunes[i] = type;
+        uint8_t cooldown;
+        msg->Get(cooldown);
+        float progress = cooldown * 0.0039215689f;
+
+        if (progress > 1.0f) {
+            progress = 1.0f;
+        }
+
+        CGRuneInfo::m_runeLastUsed[i] = OsGetAsyncTimeMs() - static_cast<int32_t>(10000.0f * progress);
+        CGRuneInfo::ComputeRuneRechargeTime(i, progress);
+        FrameScript_SignalEvent(SCRIPT_EVENT_RUNE_POWER_UPDATE, "%d%b", i + 1, 0);
+    }
+}
+
+// VERIFY: a086b4eb auto
+// OFFSET: 0x005EE520
+void CGRuneInfo::AddRunePower(CDataStore* msg) {
+    uint32_t runes;
+    msg->Get(runes);
+
+    for (int32_t i = 0; i < static_cast<int32_t>(CGRuneInfo::m_numRunes); i++) {
+        if (((1 << i) & runes) && !((1 << i) & CGRuneInfo::m_predictedRunes)) {
+            CGRuneInfo::m_runeLastUsed[i] = OsGetAsyncTimeMs() - 10000;
+            CGRuneInfo::ComputeRuneRechargeTime(i, 1.0f);
+            FrameScript_SignalEvent(SCRIPT_EVENT_RUNE_POWER_UPDATE, "%d%b", i + 1, 0);
+        }
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_UPDATE_COOLDOWN, nullptr);
 }

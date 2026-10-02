@@ -16,6 +16,7 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/ChatFrame.h"
 #include "WoW/Source/Net/Types.h"
+#include "WoW/Source/Ui/MinimapFrame.h"
 
 // STATIC: 0x00A12FD0
 static const int32_t s_questGreenRange[20] = { 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8 };
@@ -474,4 +475,30 @@ void CGGossipInfo::ShutdownGame() {
 int32_t Packet_SMSG_GOSSIP_COMPLETE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     CGGossipInfo::SetGossip(WOWGUID());
     return 1;
+}
+
+// VERIFY: 06b6b0c5 auto
+// OFFSET: 0x0058A870
+int32_t Packet_SMSG_GOSSIP_POI(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t flags;
+    float x;
+    float y;
+    uint32_t icon;
+    uint32_t importance;
+    char name[64];
+    msg->Get(flags);
+    msg->Get(x);
+    msg->Get(y);
+    msg->Get(icon);
+    msg->Get(importance);
+    msg->GetString(name, sizeof(name));
+    MinimapSetDynamicPOI(1, flags, x, y, icon, importance, name);
+    return 1;
+}
+
+// VERIFY: f5f2eac6 auto
+// OFFSET: 0x0058AB20
+void CGGossipInfo::LeaveWorld() {
+    CGGossipInfo::SetGossip(WOWGUID{ 0 });
+    CGGossipInfo::ClearOptions();
 }

@@ -5,16 +5,17 @@
 #include "WoW/Source/Net/Types.h"
 
 struct lua_State;
+class CMinigame_C;
 
 class CGMinigameInfo {
     public:
+    static CMinigame_C* m_minigame;
+
+    static void LeaveWorld();
     static void ShutdownGame();
     static void InitializeGame();
 };
 
-int32_t Script_GetMinigameType(lua_State* L);
-int32_t Script_MakeMinigameMove(lua_State* L);
-int32_t Script_GetMinigameState(lua_State* L);
 void MinigameInfoRegisterScriptFunctions();
 void MinigameInfoUnregisterScriptFunctions();
 

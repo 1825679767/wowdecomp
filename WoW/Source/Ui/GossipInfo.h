@@ -44,6 +44,7 @@ class CGGossipInfo {
     static char m_gossipText[2048];
     static void InitializeGame();
     static void ShutdownGame();
+    static void LeaveWorld();
     static WOWGUID m_gossip;
     static uint32_t m_gossipOptionsCount;
 };

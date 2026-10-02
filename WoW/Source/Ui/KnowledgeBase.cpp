@@ -1,4 +1,5 @@
 #include "KnowledgeBase.h"
+#include <cstdlib>
 #include "Engine/Source/Base/DynamicString.h"
 #include "Engine/Source/FrameXML/XMLTree.h"
 #include "Engine/Source/Os/TimeManager.h"
@@ -17,7 +18,8 @@ CKBSetup g_KnowledgeBaseSetup;
 // STATIC: 0x00BEA7F8
 CKBPage* CKBPage::s_pLoadingQueue_Head;
 
-// INLINED
+// VERIFY: 17635375 auto
+// OFFSET: 0x00550AE0
 CKBPage::CKBPage() {
     this->m_state = 0;
     this->m_data = nullptr;
@@ -106,7 +108,7 @@ bool CKBPage::LoadingCallback(void* param, const char* data, uint32_t size, bool
     return true;
 }
 
-// VERIFY: b649a859 auto
+// VERIFY: ec9f19a2 auto
 // OFFSET: 0x00550E10
 int32_t CKBSetup::BeginLoading(int32_t numArticles, int32_t pageNumber) {
     if (this->m_state == 1 || this->m_inQueue) {
@@ -132,11 +134,11 @@ int32_t CKBSetup::BeginLoading(int32_t numArticles, int32_t pageNumber) {
         return 0;
     }
 
-    this->unk_0050 = -1;
-    this->unk_0054 = 0;
-    this->unk_005C = 0;
-    this->unk_0064 = 0;
-    this->unk_006C = 0;
+    this->m_currentCategory = -1;
+    this->m_languages.m_node = nullptr;
+    this->m_categories.m_node = nullptr;
+    this->m_subCategories.m_node = nullptr;
+    this->m_articleHeaders.m_node = nullptr;
     this->m_state = 1;
     this->m_loadingNext = CKBPage::s_pLoadingQueue_Head;
     CKBPage::s_pLoadingQueue_Head = this;
@@ -145,7 +147,7 @@ int32_t CKBSetup::BeginLoading(int32_t numArticles, int32_t pageNumber) {
 }
 
 // VERIFY: 772164f4 auto
-// OFFSET: 0x005526D0
+// OFFSET: [0x00550B10, 0x005526D0]
 CKBPage::~CKBPage() {
     if (this->m_tree) {
         XMLTree_Free(this->m_tree);
@@ -159,30 +161,334 @@ CKBPage::~CKBPage() {
     }
 }
 
+// VERIFY: 14b81430 auto
+// OFFSET: 0x005EEB70
 void CKBPage::_ComputeCachedData() {
 }
 
+// VERIFY: 8bb4a93d auto
+// OFFSET: 0x00550B60
+int32_t CKBPage::_BeginLoading() {
+    this->m_state = 1;
+    this->m_loadingNext = CKBPage::s_pLoadingQueue_Head;
+    CKBPage::s_pLoadingQueue_Head = this;
+    this->m_inQueue = 1;
+    return 1;
+}
+
+// VERIFY: de149e18 manual
+// OFFSET: 0x00550D10
+XMLNode* CKBPage::_GetRoot(CKBIterator& iterator) {
+    XMLNode* root = XMLTree_GetRoot(this->m_tree);
+
+    if (root) {
+        iterator.m_node = root;
+        iterator.m_index = 0;
+    }
+
+    return root;
+}
+
+// VERIFY: bb9406ad auto
+// OFFSET: [0x00550D40, 0x00551010]
+int32_t CKBPage::_GetInt(XMLNode* node, const char* attribute) const {
+    if (this->m_state != 2 || !this->m_tree || !node) {
+        return 0;
+    }
+
+    const char* value = node->GetAttributeByName(attribute);
+    return value ? atol(value) : 0;
+}
+
+// VERIFY: 24e29a0d auto
+// OFFSET: 0x00550D80
+const char* CKBPage::_GetBodyString(XMLNode* node) const {
+    if (this->m_state != 2 || !this->m_tree) {
+        return nullptr;
+    }
+
+    return node->m_body;
+}
+
+// VERIFY: c12a4731 auto
+// OFFSET: 0x00550DA0
+bool CKBPage::_GetBodyBool(const char* element, const char* child) const {
+    const char* body = this->_GetBodyString(element, child);
+    return body && !SStrCmpI(body, "true", STORM_MAX_STR);
+}
+
+// VERIFY: 9b5ccfb5 manual
+// OFFSET: [0x005510B0, 0x005512B0]
+bool CKBPage::_GetBool(XMLNode* node, const char* attribute) const {
+    if (this->m_state != 2 || !this->m_tree || !node) {
+        return false;
+    }
+
+    const char* value = node->GetAttributeByName(attribute);
+    return value && !SStrCmpI(value, "true", STORM_MAX_STR);
+}
+
+// VERIFY: d61059d6 manual
+// OFFSET: 0x00551300
+int32_t CKBPage::_GetInt(const char* element, const char* attribute) const {
+    if (this->m_state != 2 || !this->m_tree) {
+        return 0;
+    }
+
+    XMLNode* root = XMLTree_GetRoot(this->m_tree);
+
+    if (!root) {
+        return 0;
+    }
+
+    XMLNode* node = root->GetChildByName(element);
+
+    if (!node) {
+        return 0;
+    }
+
+    const char* value = node->GetAttributeByName(attribute);
+    return value ? atol(value) : 0;
+}
+
+// INLINED
+const char* CKBPage::_GetBodyString(const char* element, const char* child) const {
+    if (this->m_state != 2 || !this->m_tree) {
+        return nullptr;
+    }
+
+    XMLNode* root = XMLTree_GetRoot(this->m_tree);
+
+    if (!root) {
+        return nullptr;
+    }
+
+    XMLNode* node = root->GetChildByName(element);
+
+    if (!node) {
+        return nullptr;
+    }
+
+    node = node->GetChildByName(child);
+    return node ? node->m_body : nullptr;
+}
+
+// VERIFY: 58d9c09c manual
+// OFFSET: [0x00551550, 0x005515A0]
+int32_t CKBPage::_GetBodyInt(const char* element, const char* child) const {
+    const char* body = this->_GetBodyString(element, child);
+    return body ? atol(body) : 0;
+}
+
+// VERIFY: 8c81adf5 manual
+// OFFSET: 0x00550F50
+XMLNode* CKBSetup::GetLanguage(int32_t index) {
+    if (this->m_state != 2 || !this->m_tree) {
+        return nullptr;
+    }
+
+    if (!this->m_languages.m_node) {
+        XMLNode* root = XMLTree_GetRoot(this->m_tree);
+
+        if (root) {
+            XMLNode* languages = root->GetChildByName("Languages");
+
+            if (languages) {
+                this->m_languages.m_node = languages->m_child;
+                this->m_languages.m_index = 0;
+            }
+        }
+    }
+
+    this->m_languages.GoTo(index);
+    return this->m_languages.m_node;
+}
+
+// VERIFY: 6baf22c5 manual
+// OFFSET: 0x00550FB0
+XMLNode* CKBSetup::GetCategoryNode(int32_t index) {
+    if (this->m_state != 2 || !this->m_tree) {
+        return nullptr;
+    }
+
+    if (!this->m_categories.m_node) {
+        XMLNode* root = XMLTree_GetRoot(this->m_tree);
+
+        if (root) {
+            XMLNode* categories = root->GetChildByName("Categories");
+
+            if (categories) {
+                this->m_categories.m_node = categories->m_child;
+                this->m_categories.m_index = 0;
+            }
+        }
+    }
+
+    this->m_categories.GoTo(index);
+    return this->m_categories.m_node;
+}
+
+// VERIFY: 80098012 manual
+// OFFSET: 0x00551050
+XMLNode* CKBSetup::GetArticleHeader(int32_t index) {
+    if (this->m_state != 2 || !this->m_tree) {
+        return nullptr;
+    }
+
+    if (!this->m_articleHeaders.m_node) {
+        XMLNode* root = XMLTree_GetRoot(this->m_tree);
+
+        if (root) {
+            XMLNode* headers = root->GetChildByName("ArticleHeaders");
+
+            if (headers) {
+                this->m_articleHeaders.m_node = headers->m_child;
+                this->m_articleHeaders.m_index = 0;
+            }
+        }
+    }
+
+    this->m_articleHeaders.GoTo(index);
+    return this->m_articleHeaders.m_node;
+}
+
+// VERIFY: 34a727b3 manual
+// OFFSET: 0x00551100
+void CKBSetup::_ComputeCachedData() {
+    XMLNode* node = nullptr;
+    XMLNode* root = XMLTree_GetRoot(this->m_tree);
+
+    if (root) {
+        XMLNode* languages = root->GetChildByName("Languages");
+
+        if (languages) {
+            node = languages->m_child;
+            this->m_articleHeaders.m_node = node;
+            this->m_articleHeaders.m_index = 0;
+        }
+    }
+
+    for (this->m_numLanguages = 0; node; node = node->m_next) {
+        this->m_numLanguages++;
+    }
+
+    root = XMLTree_GetRoot(this->m_tree);
+
+    if (root) {
+        XMLNode* categories = root->GetChildByName("Categories");
+
+        if (categories) {
+            node = categories->m_child;
+            this->m_articleHeaders.m_node = node;
+            this->m_articleHeaders.m_index = 0;
+        }
+    }
+
+    for (this->m_numCategories = 0; node; node = node->m_next) {
+        this->m_numCategories++;
+    }
+
+    this->m_numSubCategories = 0;
+    root = XMLTree_GetRoot(this->m_tree);
+
+    if (root) {
+        XMLNode* headers = root->GetChildByName("ArticleHeaders");
+
+        if (headers) {
+            node = headers->m_child;
+            this->m_articleHeaders.m_node = node;
+            this->m_articleHeaders.m_index = 0;
+        }
+    }
+
+    for (this->m_numArticleHeaders = 0; node; node = node->m_next) {
+        this->m_numArticleHeaders++;
+    }
+}
+
+// VERIFY: 63e48dff auto
+// OFFSET: 0x005511E0
+void CKBSetup::GetCategory(int32_t category) {
+    this->m_subCategories.m_node = nullptr;
+    this->m_subCategories.m_index = 0;
+    this->m_numSubCategories = 0;
+    this->m_currentCategory = -1;
+
+    XMLNode* node = this->GetCategoryNode(category);
+
+    if (!node) {
+        return;
+    }
+
+    XMLNode* subCategories = node->GetChildByName("SubCategories");
+
+    if (!subCategories) {
+        return;
+    }
+
+    XMLNode* child = subCategories->m_child;
+
+    if (!child) {
+        return;
+    }
+
+    this->m_currentCategory = category;
+    this->m_subCategories.m_node = child;
+
+    do {
+        this->m_numSubCategories++;
+        child = child->m_next;
+    } while (child);
+}
+
+// VERIFY: a20cef53 manual
+// OFFSET: 0x005520B0
+XMLNode* CKBSetup::GetSubCategory(int32_t category, int32_t subCategory) {
+    if (this->m_state != 2 || !this->m_tree || category < 0) {
+        return nullptr;
+    }
+
+    if (this->m_currentCategory != category || !this->m_subCategories.m_node) {
+        this->GetCategory(category);
+    }
+
+    this->m_subCategories.GoTo(subCategory);
+    return this->m_subCategories.m_node;
+}
+
+// VERIFY: f258e870 auto
+// OFFSET: 0x00552100
+void CKBSetup::_SendSuccessEvent() {
+    if (CGGameUI::m_initialized) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_KNOWLEDGE_BASE_SETUP_LOAD_SUCCESS, nullptr);
+    }
+}
+
+// VERIFY: f1e62326 auto
+// OFFSET: 0x005EEB70
 void CKBPage::_SendSuccessEvent() {
 }
 
+// VERIFY: 5d3a5e30 auto
+// OFFSET: 0x005EEB70
 void CKBPage::_SendFailureEvent() {
 }
 
 // INLINED
 CKBSetup::CKBSetup() {
-    this->unk_0040 = 0;
-    this->unk_0044 = 0;
-    this->unk_0048 = 0;
-    this->unk_004C = 0;
-    this->unk_0050 = -1;
-    this->unk_0054 = 0;
-    this->unk_0058 = 0;
-    this->unk_005C = 0;
-    this->unk_0060 = 0;
-    this->unk_0064 = 0;
-    this->unk_0068 = 0;
-    this->unk_006C = 0;
-    this->unk_0070 = 0;
+    this->m_numLanguages = 0;
+    this->m_numCategories = 0;
+    this->m_numSubCategories = 0;
+    this->m_numArticleHeaders = 0;
+    this->m_currentCategory = -1;
+    this->m_languages.m_node = nullptr;
+    this->m_languages.m_index = 0;
+    this->m_categories.m_node = nullptr;
+    this->m_categories.m_index = 0;
+    this->m_subCategories.m_node = nullptr;
+    this->m_subCategories.m_index = 0;
+    this->m_articleHeaders.m_node = nullptr;
+    this->m_articleHeaders.m_index = 0;
 }
 
 // VERIFY: 1b2d7a48 manual

@@ -26,6 +26,11 @@
 #include "WoW/Source/Ui/Types.h"
 #include "Engine/Source/Os/Time.h"
 #include <ctime>
+#include "WoW/Source/LoadingScreen.h"
+#include "WoW/Source/Ui/ChatFrame.h"
+#include "WoW/Source/DB/Rec/MapDifficultyRec.h"
+#include "Engine/Source/ConsoleBase/IConsole.h"
+#include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00BD1948
 WOWGUID CGPartyInfo::m_members[4];
@@ -928,4 +933,101 @@ void CGPartyInfo::ShutdownGame() {
     ClientServices::ClearMessageHandler(SMSG_INSTANCE_SAVE_CREATED);
     ClientServices::ClearMessageHandler(SMSG_CHANGE_PLAYER_DIFFICULTY_RESULT);
     ConsoleCommandUnregister("changePlayerDifficulty");
+}
+
+// VERIFY: c2ece242 auto
+// OFFSET: 0x0052C460
+int32_t Packet_SMSG_PLAYER_DIFFICULTY_CHANGE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t result;
+    uint8_t difficulty;
+    uint32_t value;
+    char duration[1024];
+    char token[64];
+    msg->Get(result);
+
+    switch (result) {
+        case 0:
+            msg->Get(difficulty);
+            CGPartyInfo::m_dynamicDifficulty = difficulty;
+            break;
+
+        case 1:
+            msg->Get(value);
+            CGTooltip::GetDurationString(duration, sizeof(duration), 1000 * value, "INT_SPELL_DURATION", nullptr, 1, 0);
+            CGGameUI::DisplayError(ERR_DIFFICULTY_CHANGE_COOLDOWN_S, duration);
+            break;
+
+        case 2:
+            CGGameUI::DisplayError(ERR_DIFFICULTY_CHANGE_WORLDSTATE);
+            break;
+
+        case 3:
+            CGGameUI::DisplayError(ERR_DIFFICULTY_CHANGE_ENCOUNTER);
+            break;
+
+        case 4:
+            CGGameUI::DisplayError(ERR_DIFFICULTY_CHANGE_COMBAT);
+            break;
+
+        case 5:
+            CGGameUI::DisplayError(ERR_DIFFICULTY_CHANGE_PLAYER_BUSY);
+            break;
+
+        case 6:
+            msg->Get(value);
+            CGPartyInfo::unk_BD1984 = value + static_cast<uint32_t>(::time(nullptr));
+            LoadingScreenEnable(CGGameUI::m_iCurrentMapID, false);
+            break;
+
+        case 7:
+            CGGameUI::DisplayError(ERR_DIFFICULTY_CHANGE_ALREADY_STARTED);
+            break;
+
+        case 8: {
+            msg->Get(value);
+            MapDifficultyRec* rec = g_mapDifficultyDB.GetRecord(value);
+
+            if (rec && rec->m_message) {
+                CGChat::AddChatMessage(rec->m_message, 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+            }
+
+            break;
+        }
+
+        case 9:
+            LoadingScreenDisable();
+            ConsoleWrite("Changed difficulty successfully", DEFAULT_COLOR);
+            FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_DIFFICULTY_CHANGED, nullptr);
+            SStrPrintf(token, sizeof(token), "PLAYER_DIFFICULTY%d", CGPartyInfo::m_dynamicDifficulty + 1);
+            CGGameUI::DisplayError(ERR_PLAYER_DIFFICULTY_CHANGED_S, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE));
+            break;
+    }
+
+    return 1;
+}
+
+// VERIFY: 940f24d5 manual
+// OFFSET: 0x0052D060
+int32_t CCommand_SetDifficulty(const char* command, const char* arguments) {
+    uint32_t difficulty = SStrToInt(arguments);
+
+    if (difficulty > 1) {
+        ConsoleWrite("Invalid difficulty", ERROR_COLOR);
+        return 1;
+    }
+
+    WDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_CHANGEPLAYER_DIFFICULTY));
+    msg.Put(difficulty);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 1;
+}
+
+// VERIFY: a24a260e manual
+// OFFSET: 0x0052D1E0
+void CGPartyInfo::LeaveWorld() {
+    if (ClntObjMgrGetActivePlayerObj()) {
+        CGPlayer_C::DeclineGroup();
+    }
 }

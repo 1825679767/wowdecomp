@@ -9,9 +9,15 @@
 #include "WoW/Source/Ui/TradeFrame.h"
 #include "WoW/Source/WorldClient/FrameTime.h"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
+#include "WoW/Source/Ui/Types.h"
+#include <cstring>
 
 // STATIC: 0x00CA0B7C
 uint32_t s_clientStateIndex;
+
+// STATIC: 0x00CA0B80
+static TRADE_ITEM s_tradeItems[2][7];
 
 // STATIC: 0x00CA0FE0
 static int32_t s_unk_CA0FE0;
@@ -27,6 +33,24 @@ static int32_t s_tradeEnchantSpell[2];
 
 // STATIC: 0x00CA0FF8
 static uint32_t s_nextTradeRequestTime;
+
+// VERIFY: 43528ed3 auto
+// OFFSET: 0x00703C10
+WOWGUID Trade_C_GetTradeTarget() {
+    return s_unk_CA0FE8;
+}
+
+// VERIFY: 522e8804 auto
+// OFFSET: 0x00703C20
+int32_t Trade_C_IsTradeRequested() {
+    return s_unk_CA0FE0;
+}
+
+// VERIFY: 714e84f5 auto
+// OFFSET: 0x00703C30
+int32_t Trade_C_UseCursorItem() {
+    return s_unk_CA0FE0 && s_unk_CA0FE4;
+}
 
 // VERIFY: 71c6ebe1 auto
 // OFFSET: 0x00703C50
@@ -111,12 +135,12 @@ void Trade_C_PlayerIgnored() {
     ClientServices::Send2(&msg);
 }
 
-// VERIFY: db33ff5b manual
+// VERIFY: 6f4e5623 manual
 // OFFSET: 0x00703F50
 void Trade_C_AcceptTrade() {
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_ACCEPT_TRADE));
-    msg.Put(CGTradeInfo::m_playerTrade.unk_0000[2]);
+    msg.Put(CGTradeInfo::m_playerTrade.m_stateIndex[1]);
     msg.Finalize();
     ClientServices::Send2(&msg);
 }
@@ -173,14 +197,14 @@ void Trade_C_RemoveItem(uint8_t tradeSlot) {
     ClientServices::Send2(&msg);
 }
 
-// VERIFY: 9b901e66 manual
+// VERIFY: d84bfa10 manual
 // OFFSET: 0x00704220
 bool CGTradeInfo::AddMoney(int32_t amount) {
     if (!amount) {
         return true;
     }
 
-    uint32_t total = CGTradeInfo::m_playerTrade.m_money + amount;
+    uint32_t total = CGTradeInfo::m_playerTrade.m_money[0] + amount;
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
     if (!player || player->GetCoinage() < total) {
@@ -192,12 +216,12 @@ bool CGTradeInfo::AddMoney(int32_t amount) {
     msg.Put(total);
     s_clientStateIndex++;
     msg.Finalize();
-    CGTradeInfo::m_playerTrade.m_money = total;
+    CGTradeInfo::m_playerTrade.m_money[0] = total;
     ClientServices::Send2(&msg);
     return true;
 }
 
-// VERIFY: 01456882 manual
+// VERIFY: 1c5417e1 manual
 // OFFSET: 0x007043C0
 bool CGTradeInfo::SetMoney(uint32_t amount) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -211,7 +235,7 @@ bool CGTradeInfo::SetMoney(uint32_t amount) {
     msg.Put(amount);
     s_clientStateIndex++;
     msg.Finalize();
-    CGTradeInfo::m_playerTrade.m_money = amount;
+    CGTradeInfo::m_playerTrade.m_money[0] = amount;
     ClientServices::Send2(&msg);
     return true;
 }
@@ -224,4 +248,169 @@ void Trade_C_Initialize() {
     s_unk_CA0FE8 = WOWGUID();
     ClientServices::SetMessageHandler(SMSG_TRADE_STATUS, Packet_SMSG_TRADE_STATUS, nullptr);
     ClientServices::SetMessageHandler(SMSG_TRADE_STATUS_EXTENDED, Packet_SMSG_TRADE_STATUS_EXTENDED, nullptr);
+}
+
+// VERIFY: 991b8783 manual
+// OFFSET: 0x007044A0
+int32_t Packet_SMSG_TRADE_STATUS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t status;
+    msg->Get(status);
+    int32_t reset = 0;
+    uint32_t bagResult = 0;
+    uint8_t target = 0;
+    uint32_t itemId = 0;
+    uint8_t slot = 0;
+
+    switch (status) {
+        case 0:
+        case 5:
+        case 6:
+        case 10:
+        case 11:
+        case 14:
+        case 15:
+        case 16:
+        case 17:
+        case 18:
+        case 19:
+        case 20:
+        case 21:
+            reset = 1;
+            break;
+
+        case 1: {
+            uint64_t guid;
+            msg->Get(guid);
+
+            if (s_unk_CA0FE0) {
+                Trade_C_PlayerBusy();
+            } else {
+                s_unk_CA0FE8.m_guid = guid;
+            }
+
+            break;
+        }
+
+        case 2:
+            s_clientStateIndex = 1;
+            CGTradeInfo::m_playerTrade.m_stateIndex[0] = 1;
+            CGTradeInfo::m_playerTrade.m_stateIndex[1] = 1;
+            memset(s_tradeItems, 0, sizeof(s_tradeItems));
+            CGTradeInfo::m_playerTrade.m_money[0] = 0;
+            CGTradeInfo::m_playerTrade.m_money[1] = 0;
+            s_tradeEnchantSpell[0] = 0;
+            s_tradeEnchantSpell[1] = 0;
+            msg->Get(CGTradeInfo::m_playerTrade.m_tradeId);
+            break;
+
+        case 3:
+        case 13:
+            reset = 1;
+            memset(s_tradeItems, 0, sizeof(s_tradeItems));
+            CGTradeInfo::m_playerTrade.m_money[0] = 0;
+            CGTradeInfo::m_playerTrade.m_money[1] = 0;
+            FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_MONEY, nullptr);
+            break;
+
+        case 12:
+            msg->Get(bagResult);
+            msg->Get(target);
+            msg->Get(itemId);
+
+        case 8:
+            reset = 1;
+            memset(s_tradeItems, 0, sizeof(s_tradeItems));
+            CGTradeInfo::m_playerTrade.m_money[0] = 0;
+            CGTradeInfo::m_playerTrade.m_money[1] = 0;
+            break;
+
+        case 22:
+        case 23:
+            msg->Get(slot);
+
+            if (slot == 0xFF) {
+                CGTradeInfo::m_playerTrade.m_money[0] = 0;
+            }
+
+            break;
+    }
+
+    CGTradeInfo::HandleTradeMessage(status, bagResult, target != 0, itemId, slot);
+
+    if (reset) {
+        s_unk_CA0FE0 = 0;
+        s_unk_CA0FE8 = WOWGUID();
+    }
+
+    return 1;
+}
+
+// VERIFY: 6a4a3506 manual
+// OFFSET: 0x00704680
+int32_t Packet_SMSG_TRADE_STATUS_EXTENDED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint8_t side;
+    uint32_t tradeId;
+    uint32_t stateIndex;
+    msg->Get(side);
+    msg->Get(tradeId);
+    msg->Get(stateIndex);
+
+    if (tradeId != CGTradeInfo::m_playerTrade.m_tradeId) {
+        Trade_C_CancelTrade();
+        return 1;
+    }
+
+    if (!side && stateIndex < s_clientStateIndex) {
+        msg->m_read = msg->m_size;
+        return 1;
+    }
+
+    msg->Get(CGTradeInfo::m_playerTrade.m_stateIndex[side]);
+    msg->Get(CGTradeInfo::m_playerTrade.m_money[side]);
+    bool received[7] = {};
+    msg->Get(reinterpret_cast<uint32_t&>(s_tradeEnchantSpell[side]));
+
+    while (msg->m_read < msg->m_size) {
+        uint8_t slot;
+        TRADE_ITEM item;
+        msg->Get(slot);
+        msg->Get(reinterpret_cast<uint32_t&>(item.m_itemID));
+        msg->Get(reinterpret_cast<uint32_t&>(item.m_displayID));
+        msg->Get(reinterpret_cast<uint32_t&>(item.m_count));
+        msg->Get(reinterpret_cast<uint32_t&>(item.m_wrapped));
+        msg->Get(item.m_giftCreator.m_guid);
+        msg->Get(reinterpret_cast<uint32_t&>(item.m_enchant));
+
+        for (uint32_t i = 0; i < 3; i++) {
+            msg->Get(reinterpret_cast<uint32_t&>(item.m_socketEnchants[i]));
+        }
+
+        msg->Get(item.m_creator.m_guid);
+        msg->Get(reinterpret_cast<uint32_t&>(item.m_spellCharges));
+        msg->Get(reinterpret_cast<uint32_t&>(item.m_suffixFactor));
+        msg->Get(reinterpret_cast<uint32_t&>(item.m_randomPropertyID));
+        msg->Get(reinterpret_cast<uint32_t&>(item.m_lockID));
+        msg->Get(reinterpret_cast<uint32_t&>(item.m_maxDurability));
+        msg->Get(reinterpret_cast<uint32_t&>(item.m_durability));
+
+        if (!side && s_tradeItems[0][slot].m_itemID && !item.m_itemID) {
+            CGTradeInfo::DenyPlayerItem(slot);
+        }
+
+        s_tradeItems[side][slot] = item;
+        received[slot] = true;
+    }
+
+    for (uint32_t i = 0; i < 7; i++) {
+        if (!received[i]) {
+            if (!side && s_tradeItems[0][i].m_itemID) {
+                CGTradeInfo::DenyPlayerItem(i);
+            }
+
+            memset(&s_tradeItems[side][i], 0, sizeof(TRADE_ITEM));
+        }
+    }
+
+    CGTradeInfo::OnTradeUpdated(s_tradeItems[1]);
+    return 1;
 }

@@ -35,7 +35,7 @@ struct DebugElement {
     /* 0068 */ int32_t unk_0068;
 };
 
-struct WorldMapContinent {
+struct WorldMapContinentInfo {
     /* 00000 */ int32_t m_mapID;
     /* 00004 */ int32_t m_areaID;
     /* 00008 */ TSFixedArray<int32_t> m_zones;
@@ -46,7 +46,7 @@ struct WorldMapContinent {
     /* 10020 */ float unk_10020;
     /* 10024 */ int32_t unk_10024;
 
-    WorldMapContinent();
+    WorldMapContinentInfo();
 };
 
 struct WorldMapLandmarkInfo {
@@ -67,7 +67,7 @@ class CGWorldMap {
     static int32_t m_currentZone;
     static int32_t m_currentDungeonMap;
     static int32_t m_currentOrphanZone;
-    static TSFixedArray<WorldMapContinent> m_continents;
+    static TSFixedArray<WorldMapContinentInfo> m_continents;
     static TSGrowableArray<WorldMapLandmarkInfo> m_landmarks;
     static TSGrowableArray<int32_t> m_overlays;
     static TSFixedArray<int32_t> m_orphanZones;
@@ -81,6 +81,8 @@ class CGWorldMap {
     static void ProcessClick(float x, float y);
     static void SetDungeonLevel(int32_t level);
     static void EnterWorld();
+    static void LeaveWorld();
+    static bool GetContinentPosition(float x, float y, int32_t mapID, float* mapX, float* mapY);
     static void InitializeGame();
     static void ShutdownGame();
     static void ClearArrowFrames();
@@ -109,7 +111,7 @@ void WorldMapRegisterScriptFunctions();
 void WorldMapUnregisterScriptFunctions();
 
 // INLINED
-inline WorldMapContinent::WorldMapContinent() {
+inline WorldMapContinentInfo::WorldMapContinentInfo() {
     this->unk_10014 = 0.0f;
     this->unk_10018 = 0.0f;
     this->unk_1001C = 0.0f;

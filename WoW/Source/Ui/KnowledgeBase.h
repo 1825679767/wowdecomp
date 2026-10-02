@@ -5,8 +5,10 @@
 #include <cstdint>
 #include "Engine/Source/Os/OsURLDownload.h"
 #include "Engine/Source/Storm/Source/SLock.h"
+#include "WoW/Source/Ui/CKBIterator.h"
 
 class CDynamicString;
+class XMLNode;
 struct XMLTree;
 struct lua_State;
 
@@ -44,26 +46,36 @@ class CKBPage {
     virtual void _ComputeCachedData();
     virtual void _SendSuccessEvent();
     virtual void _SendFailureEvent();
+    int32_t _BeginLoading();
+    XMLNode* _GetRoot(CKBIterator& iterator);
+    int32_t _GetInt(XMLNode* node, const char* attribute) const;
+    int32_t _GetInt(const char* element, const char* attribute) const;
+    bool _GetBool(XMLNode* node, const char* attribute) const;
+    const char* _GetBodyString(XMLNode* node) const;
+    const char* _GetBodyString(const char* element, const char* child) const;
+    bool _GetBodyBool(const char* element, const char* child) const;
+    int32_t _GetBodyInt(const char* element, const char* child) const;
 };
 
 class CKBSetup : public CKBPage {
     public:
-    /* 0040 */ int32_t unk_0040;
-    /* 0044 */ int32_t unk_0044;
-    /* 0048 */ uint32_t unk_0048;
-    /* 004C */ int32_t unk_004C;
-    /* 0050 */ int32_t unk_0050;
-    /* 0054 */ uint32_t unk_0054;
-    /* 0058 */ uint32_t unk_0058;
-    /* 005C */ uint32_t unk_005C;
-    /* 0060 */ uint32_t unk_0060;
-    /* 0064 */ uint32_t unk_0064;
-    /* 0068 */ uint32_t unk_0068;
-    /* 006C */ uint32_t unk_006C;
-    /* 0070 */ uint32_t unk_0070;
+    /* 0040 */ int32_t m_numLanguages;
+    /* 0044 */ int32_t m_numCategories;
+    /* 0048 */ int32_t m_numSubCategories;
+    /* 004C */ int32_t m_numArticleHeaders;
+    /* 0050 */ int32_t m_currentCategory;
+    /* 0054 */ CKBIterator m_languages;
+    /* 005C */ CKBIterator m_categories;
+    /* 0064 */ CKBIterator m_subCategories;
+    /* 006C */ CKBIterator m_articleHeaders;
 
     CKBSetup();
     int32_t BeginLoading(int32_t numArticles, int32_t pageNumber);
+    XMLNode* GetLanguage(int32_t index);
+    XMLNode* GetCategoryNode(int32_t index);
+    XMLNode* GetArticleHeader(int32_t index);
+    void GetCategory(int32_t category);
+    XMLNode* GetSubCategory(int32_t category, int32_t subCategory);
     virtual void _ComputeCachedData();
     virtual void _SendSuccessEvent();
     virtual void _SendFailureEvent();
@@ -71,17 +83,6 @@ class CKBSetup : public CKBPage {
 
 extern CKBSetup g_KnowledgeBaseSetup;
 
-int32_t Script_KBSetup_GetLanguageData(lua_State* L);
-int32_t Script_KBSetup_GetCategoryData(lua_State* L);
-int32_t Script_KBSetup_GetSubCategoryCount(lua_State* L);
-int32_t Script_KBSetup_GetSubCategoryData(lua_State* L);
-int32_t Script_KBSetup_GetArticleHeaderData(lua_State* L);
-int32_t Script_KBSetup_GetTotalArticleCount(lua_State* L);
-int32_t Script_KBQuery_BeginLoading(lua_State* L);
-int32_t Script_KBQuery_GetArticleHeaderData(lua_State* L);
-int32_t Script_KBQuery_GetTotalArticleCount(lua_State* L);
-int32_t Script_KBArticle_BeginLoading(lua_State* L);
-int32_t Script_KBArticle_GetData(lua_State* L);
 const char* KnowledgeBaseGetURLForLocale();
 void KnowledgeBase_RegisterScriptFunctions();
 void KnowledgeBase_UnregisterScriptFunctions();

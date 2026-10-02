@@ -273,6 +273,18 @@ static void ReleaseBattlefieldNameCacheRef(int32_t id, const WOWGUID& guid, void
     }
 }
 
+// VERIFY: 8a2636c7 manual
+// OFFSET: 0x0054E330
+void CGBattlefieldInfo::LeaveWorld() {
+    if (!CGGameUI::m_currentlyReloadingUI) {
+        memset(CGBattlefieldInfo::m_vehicleGuids, 0, sizeof(CGBattlefieldInfo::m_vehicleGuids));
+        CGBattlefieldInfo::m_numVehicles = 0;
+    }
+
+    CGBattlefieldInfo::m_instances.Clear();
+    CGBattlefieldInfo::m_instanceType = 0;
+}
+
 // VERIFY: cf91ab36 manual
 // OFFSET: 0x0054CA50
 void CGBattlefieldInfo::EnterWorld() {
@@ -1502,6 +1514,45 @@ void CGBattlefieldInfo::AddVehicle(const WOWGUID& guid) {
     CGBattlefieldInfo::RemoveVehicle(guid);
     CGBattlefieldInfo::m_vehicleGuids[CGBattlefieldInfo::m_numVehicles] = guid;
     CGBattlefieldInfo::m_numVehicles++;
+}
+
+// VERIFY: d69a70d5 manual
+// OFFSET: 0x0054ABF0
+void CGBattlefieldInfo::OnArenaUnitOutOfRange(const WOWGUID& guid) {
+    char token[32];
+
+    for (uint32_t i = 0; i < 5; i++) {
+        const WOWGUID& opponent = CGBattlefieldInfo::m_arenaOpponents[i];
+
+        if (opponent == guid) {
+            SStrPrintf(token, sizeof(token), "arena%d", i + 1);
+            FrameScript_SignalEvent(SCRIPT_EVENT_ARENA_OPPONENT_UPDATE, "%s%s", token, "unseen");
+            return;
+        }
+
+        if (opponent) {
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(opponent, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+            if (unit) {
+                CGUnitData* data = unit->m_unit;
+                const WOWGUID& pet = data->m_unitFieldCharm ? data->m_unitFieldCharm : data->m_unitFieldSummon;
+
+                if (pet == guid) {
+                    SStrPrintf(token, sizeof(token), "arenapet%d", i + 1);
+                    FrameScript_SignalEvent(SCRIPT_EVENT_ARENA_OPPONENT_UPDATE, "%s%s", token, "unseen");
+                    return;
+                }
+            }
+        }
+    }
+
+    for (uint32_t i = 0; i < 5; i++) {
+        if (CGBattlefieldInfo::m_arenaOpponentPets[i][0] == guid) {
+            SStrPrintf(token, sizeof(token), "arenapet%d", i + 1);
+            FrameScript_SignalEvent(SCRIPT_EVENT_ARENA_OPPONENT_UPDATE, "%s%s", token, "unseen");
+            return;
+        }
+    }
 }
 
 // STATIC: 0x00ACD310

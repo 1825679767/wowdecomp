@@ -212,3 +212,9 @@ void CGItemText::ItemTextCallback(int32_t id, const WOWGUID& guid, void* param, 
         CGItemText::SetItem(guid, 1);
     }
 }
+
+// VERIFY: d0e6f233 auto
+// OFFSET: 0x0058A430
+void CGItemText::LeaveWorld() {
+    CGItemText::SetItem(WOWGUID{ 0 }, 0);
+}

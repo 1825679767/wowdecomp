@@ -3,21 +3,29 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Ui/KnowledgeBase.h"
 
-class CAccountMsgHeaders {
+class CAccountMsgHeaders : public CKBPage {
     public:
-    /* 0000 */ uint8_t unk_0000[4];
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint8_t unk_0008[52];
-    /* 003C */ uint32_t unk_003C;
-    /* 0040 */ uint32_t unk_0040;
-    /* 0044 */ uint32_t unk_0044;
-    /* 0048 */ uint32_t unk_0048;
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint32_t unk_0050;
-    /* 0054 */ uint32_t unk_0054;
-    /* 0058 */ uint32_t unk_0058;
+    /* 0040 */ int32_t m_count;
+    /* 0044 */ CKBIterator m_iterator;
+    /* 004C */ TSGrowableArray<int32_t> m_opened;
+
+    virtual ~CAccountMsgHeaders();
+    virtual void _SendSuccessEvent();
+    virtual void _SendFailureEvent();
+    int32_t LoadHeaders();
+    const char* GetHeaderSubject(int32_t index);
+    int32_t GetHeaderPriority(int32_t index);
+    int32_t GetMessageId(int32_t index);
+    int32_t GetNumUnreadUrgentMsgs();
+    int32_t GetIndexHighestPriorityUnreadMsg();
+    int32_t GetIndexNextUnreadMsg(int32_t index);
+    int32_t SetMsgRead(int32_t index);
 };
+
+extern CAccountMsgHeaders g_accountMsgHeaders;
 
 void AccountMsg_RegisterScriptFunctions();
 void AccountMsg_UnregisterScriptFunctions();

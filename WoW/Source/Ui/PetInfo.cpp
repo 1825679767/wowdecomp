@@ -1227,3 +1227,14 @@ void CGPetInfo::ShutdownGame() {
     ClientServices::ClearMessageHandler(SMSG_PET_UPDATE_COMBO_POINTS);
     ClientServices::ClearMessageHandler(SMSG_PET_GUIDS);
 }
+
+// VERIFY: 92931bd9 auto
+// OFFSET: 0x005D3360
+void CGPetInfo::LeaveWorld() {
+    int32_t possessSpell = CGPetInfo::m_possessSpell;
+    CGPetInfo::m_possessSpell = 0;
+
+    if (possessSpell) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_BONUS_ACTIONBAR, nullptr);
+    }
+}

@@ -6,6 +6,7 @@
 #include "WoW/Source/WowServices/RealmConnection.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 
 // STATIC: 0x00ACEB70
 TSList<AUTOCOMPLETE_NAMENODE, TSGetLink<AUTOCOMPLETE_NAMENODE>> CGAutoCompleteName::m_list;
@@ -271,4 +272,141 @@ int32_t CGAutoCompleteName::RemoveFlagsFromAllNodes(uint32_t flags) {
     }
 
     return 1;
+}
+
+// VERIFY: 92a5fc59 manual
+// OFFSET: 0x0057AED0
+static AUTOCOMPLETE_NAMENODE* FindNodeByPresenceId(const uint32_t& presenceId) {
+    for (AUTOCOMPLETE_NAMENODE* node = CGAutoCompleteName::m_list.Head(); node; node = CGAutoCompleteName::m_list.Next(node)) {
+        if (node->m_presenceId && presenceId == static_cast<uint32_t>(node->m_guid.m_guid)) {
+            return node;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 8f504a74 manual
+// OFFSET: 0x0057AF10
+AUTOCOMPLETE_NAMENODE* CGAutoCompleteName::FindNodeByName(const char* name, bool characters, bool battlenet) {
+    for (AUTOCOMPLETE_NAMENODE* node = CGAutoCompleteName::m_list.Head(); node; node = CGAutoCompleteName::m_list.Next(node)) {
+        if (SStrCmpUTF8I(name, node->m_name, STORM_MAX_STR)) {
+            continue;
+        }
+
+        if (node->m_presenceId) {
+            if (battlenet) {
+                return node;
+            }
+        } else if (characters) {
+            return node;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: e746300b auto
+// OFFSET: 0x0057AFC0
+int32_t CGAutoCompleteName::SetName(const uint32_t& presenceId, const char* name, bool overwrite) {
+    AUTOCOMPLETE_NAMENODE* node = FindNodeByPresenceId(presenceId);
+
+    if (!node) {
+        return 0;
+    }
+
+    if (node->m_name[0] && !overwrite) {
+        return 0;
+    }
+
+    SStrCopy(node->m_name, name, 305);
+    return 1;
+}
+
+// VERIFY: fcee10bc auto
+// OFFSET: 0x0057B040
+int32_t CGAutoCompleteName::RemoveFlags(const uint32_t& presenceId, uint32_t flags) {
+    AUTOCOMPLETE_NAMENODE* node = FindNodeByPresenceId(presenceId);
+
+    if (node) {
+        node->m_flags &= ~flags;
+
+        if (!(node->m_flags & ~0x20)) {
+            CGAutoCompleteName::m_list.DeleteNode(node);
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: a6f29eb9 auto
+// OFFSET: 0x0057B080
+int32_t CGAutoCompleteName::RemoveFlagsByName(const char* name, uint32_t flags, bool characters, bool battlenet) {
+    AUTOCOMPLETE_NAMENODE* node = CGAutoCompleteName::FindNodeByName(name, characters, battlenet);
+
+    if (node) {
+        node->m_flags &= ~flags;
+
+        if (!(node->m_flags & ~0x20) && CGAutoCompleteName::s_useContext) {
+            CGAutoCompleteName::m_list.DeleteNode(node);
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 511f942a auto
+// OFFSET: 0x0057B580
+static void AutoCompleteNameQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    WOWGUID none = WOWGUID();
+    const char* name = reinterpret_cast<const char*>(g_nameDBCache.GetRecord(guid.m_guid, none, nullptr, nullptr, false));
+
+    if (!name) {
+        return;
+    }
+
+    AUTOCOMPLETE_NAMENODE* node = FindNodeByGuid(guid);
+
+    if (node) {
+        SStrCopy(node->m_name, name, 305);
+    }
+}
+
+// VERIFY: a0c16f63 auto
+// OFFSET: 0x0057B5E0
+void CGAutoCompleteName::RefreshName(const WOWGUID& guid) {
+    const char* name = reinterpret_cast<const char*>(g_nameDBCache.GetRecord(guid.m_guid, guid, AutoCompleteNameQueryCallback, nullptr, false));
+
+    if (!name) {
+        return;
+    }
+
+    AUTOCOMPLETE_NAMENODE* node = FindNodeByGuid(guid);
+
+    if (node) {
+        SStrCopy(node->m_name, name, 305);
+    }
+}
+
+// VERIFY: 2cdda694 manual
+// OFFSET: 0x0057B730
+AUTOCOMPLETE_NAMENODE* CGAutoCompleteName::AddPlayerToList(const uint32_t& presenceId, uint32_t flags, uint32_t lastUsed, const char* name) {
+    AUTOCOMPLETE_NAMENODE* node = new (SMemAlloc(sizeof(AUTOCOMPLETE_NAMENODE), typeid(AUTOCOMPLETE_NAMENODE).raw_name(), -2, 0x8)) AUTOCOMPLETE_NAMENODE;
+    node->m_presenceId = 1;
+    *reinterpret_cast<uint32_t*>(&node->m_guid) = presenceId;
+
+    if (name) {
+        SStrCopy(node->m_name, name, 305);
+    } else {
+        node->m_name[0] = '\0';
+    }
+
+    if (node->m_lastUsed != lastUsed) {
+        node->m_lastUsed = lastUsed;
+        SortNameNode(node);
+    }
+
+    node->m_flags = flags | 0x8;
+    SortNameNode(node);
+    return node;
 }

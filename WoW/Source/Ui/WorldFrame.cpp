@@ -292,6 +292,82 @@ void CGWorldFrame::GetCameraPosition(C3Vector* position) {
     *position = CGWorldFrame::s_currentWorldFrame->m_camera->m_position;
 }
 
+// VERIFY: 1fde8745 auto
+// OFFSET: 0x004F66C0
+void CGWorldFrame::OnLayerTrackTerrain(const HITTESTRESULT& result) {
+    if (!Spell_C_IsTargeting() || !Spell_C_CanTargetTerrain()) {
+        CursorResetMode();
+        this->HandleSpriteTrack(WOWGUID());
+        return;
+    }
+
+    s_spellShadowPos = result.m_point;
+    CTerrainClickEvent evt;
+    evt.m_point = s_spellShadowPos;
+    evt.m_guid = WOWGUID();
+
+    if ((result.m_guid.m_guid & 0xF000000000000000ull) == 0x1000000000000000ull && (result.m_guid.m_guid & 0x0FF0000000000000ull) == 0x0FC0000000000000ull) {
+        CGObject_C* transport = ClntObjMgrObjectPtr(result.m_guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+        if (transport) {
+            evt.m_guid = result.m_guid;
+            s_spellShadowPos *= transport->GetMatrix();
+        }
+    }
+
+    Spell_C_SetCursorWorldObjectPosition(s_spellShadowPos);
+
+    switch (Spell_C_HandleTerrainRay(evt, true)) {
+        case 0: {
+            s_spellShadowStyle = 0;
+            float radius = Spell_C_GetSpellRadius();
+            s_spellShadowSize = radius > 20.0f ? 20.0f : Spell_C_GetSpellRadius();
+            CursorSetMode(2);
+            break;
+        }
+
+        case 1:
+            s_spellShadowStyle = 1;
+            s_spellShadowSize = 0.0f;
+            CursorSetMode(28);
+            break;
+
+        case 2:
+            s_spellShadowStyle = 3;
+            s_spellShadowSize = 0.0f;
+            CursorSetMode(28);
+            break;
+    }
+
+    CMapEntity* entity = Spell_C_GetSpellWorldObject();
+
+    if (!entity) {
+        return;
+    }
+
+    CM2Model* model = Spell_C_GetCursorWorldObjectModel();
+    CAaBox box;
+    box.b = C3Vector(0.0f, 0.0f, 0.0f);
+    box.t = C3Vector(0.0f, 0.0f, 0.0f);
+    CAaSphere sphere = { { 0.0f, 0.0f, 0.0f }, 0.0f };
+    C3Vector center = { 0.0f, 0.0f, 0.0f };
+
+    if (model->IsLoaded(0, 0)) {
+        box = model->GetBoundingBox();
+        sphere = model->GetBoundingSphere();
+        center = sphere.c;
+    }
+
+    C44Matrix matrix;
+    const C3Vector& position = Spell_C_GetCursorWorldObjectPosition();
+    matrix.d0 = position.x;
+    matrix.d1 = position.y;
+    matrix.d2 = position.z;
+    matrix.RotateAroundZ(Spell_C_GetCursorWorldObjectFacing());
+    CMap::ObjectUpdate(entity, matrix, box, sphere, center, false, 0xFFFFFFFF);
+    World::ObjectSetHidden(entity, s_spellShadowStyle != 0);
+}
+
 // VERIFY: 364a9bc8 auto
 // OFFSET: 0x004F6680
 void CGWorldFrame::GetCameraFacing(C3Vector* facing) {
@@ -2411,7 +2487,7 @@ int32_t CGWorldFrame::SpellEffectEnumProc(void* param, uint32_t flags, uint64_t 
 }
 
 // VERIFY: 57ad68af manual
-// OFFSET: 0x004FA390
+// OFFSET: [0x004FA390, 0x004FAF60]
 CGWorldFrame::~CGWorldFrame() {
     EventUnregisterEx(EVENT_ID_IDLE, CGWorldFrame::Update, this, 0xFFFFFFFF);
     EventSetMouseMode(MOUSE_MODE_NORMAL, 0);

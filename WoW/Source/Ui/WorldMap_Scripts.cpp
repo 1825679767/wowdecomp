@@ -925,7 +925,7 @@ static int32_t Script_UpdateWorldMapArrowFrames(lua_State* L) {
     return 0;
 }
 
-// VERIFY: d8fa6699 manual
+// VERIFY: ab8c4937 manual
 // OFFSET: 0x00546A90
 static int32_t Script_ZoomOut(lua_State* L) {
     int32_t parent;
@@ -973,7 +973,7 @@ static int32_t Script_ZoomOut(lua_State* L) {
     }
 
     for (uint32_t continent = 0; continent < CGWorldMap::m_continents.Count(); continent++) {
-        WorldMapContinent& entry = CGWorldMap::m_continents.m_data[continent];
+        WorldMapContinentInfo& entry = CGWorldMap::m_continents.m_data[continent];
 
         if (entry.m_mapID != parentArea->m_mapID) {
             continue;
@@ -990,7 +990,7 @@ static int32_t Script_ZoomOut(lua_State* L) {
     return 0;
 }
 
-// VERIFY: d5b636f3 manual
+// VERIFY: 1bf5645d manual
 // OFFSET: 0x00546C50
 static int32_t Script_SetMapByID(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1011,7 +1011,7 @@ static int32_t Script_SetMapByID(lua_State* L) {
             displayMapID = area->m_mapID;
         }
 
-        WorldMapContinent& entry = CGWorldMap::m_continents.m_data[continent];
+        WorldMapContinentInfo& entry = CGWorldMap::m_continents.m_data[continent];
 
         if (entry.m_mapID != displayMapID) {
             continue;

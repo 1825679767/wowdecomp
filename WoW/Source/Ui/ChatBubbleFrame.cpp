@@ -442,6 +442,6 @@ void CGChatBubbleFrame::OnWorldLayerUpdate() {
 }
 
 // VERIFY: 28f3deba manual
-// OFFSET: 0x0098FFE0
+// OFFSET: [0x0098FFE0, 0x0056CF50]
 CGChatBubbleFrame::~CGChatBubbleFrame() {
 }

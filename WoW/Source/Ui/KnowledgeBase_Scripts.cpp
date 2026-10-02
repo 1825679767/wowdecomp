@@ -8,6 +8,8 @@
 #include "WoW/Source/Ui/CKBQuery.h"
 #include "WoW/Source/Ui/CKBArticle.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
+#include "Engine/Source/FrameXML/XMLTree.h"
+#include "Engine/Source/Storm/H/storm.h"
 
 // VERIFY: 9e42057a auto
 // OFFSET: 0x00551FB0
@@ -60,48 +62,262 @@ static int32_t Script_KBArticle_IsLoaded(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 755e1b76 auto
+// VERIFY: 3bb58cb3 auto
 // OFFSET: 0x00551790
 static int32_t Script_KBSetup_GetLanguageCount(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
         return luaL_error(L, "KBSetup_GetLanguageCount() failed because setup is not loaded");
     }
 
-    lua_pushnumber(L, g_KnowledgeBaseSetup.unk_0040);
+    lua_pushnumber(L, g_KnowledgeBaseSetup.m_numLanguages);
     return 1;
 }
 
-// VERIFY: 4a05c9da auto
+// VERIFY: 453300cc auto
 // OFFSET: 0x005518C0
 static int32_t Script_KBSetup_GetCategoryCount(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
         return luaL_error(L, "KBSetup_GetCategoryCount() failed because setup is not loaded");
     }
 
-    lua_pushnumber(L, g_KnowledgeBaseSetup.unk_0044);
+    lua_pushnumber(L, g_KnowledgeBaseSetup.m_numCategories);
     return 1;
 }
 
-// VERIFY: e7e8714f auto
+// VERIFY: 039b02dc auto
 // OFFSET: 0x005519F0
 static int32_t Script_KBSetup_GetArticleHeaderCount(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
         return luaL_error(L, "KBSetup_GetArticleHeaderCount() failed because setup is not loaded");
     }
 
-    lua_pushnumber(L, g_KnowledgeBaseSetup.unk_004C);
+    lua_pushnumber(L, g_KnowledgeBaseSetup.m_numArticleHeaders);
     return 1;
 }
 
-// VERIFY: 6c7bcdb3 auto
+// VERIFY: 516cbb9d auto
 // OFFSET: 0x00551BC0
 static int32_t Script_KBQuery_GetArticleHeaderCount(lua_State* L) {
     if (g_KnowledgeBaseQuery.m_state != 2) {
         return luaL_error(L, "KBQuery_GetArticleHeaderCount() failed because query is not loaded");
     }
 
-    lua_pushnumber(L, g_KnowledgeBaseQuery.unk_0040);
+    lua_pushnumber(L, g_KnowledgeBaseQuery.m_numArticleHeaders);
     return 1;
+}
+
+// VERIFY: 8c822b85 manual
+// OFFSET: 0x005517D0
+static int32_t Script_KBSetup_GetLanguageData(lua_State* L) {
+    if (g_KnowledgeBaseSetup.m_state != 2) {
+        luaL_error(L, "KBSetup_GetLanguageData() failed because setup is not loaded");
+    }
+
+    XMLNode* node = g_KnowledgeBaseSetup.GetLanguage(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+
+    if (!node) {
+        luaL_error(L, "KBSetup_GetLanguageData() called with invalid category index");
+    }
+
+    lua_pushnumber(L, g_KnowledgeBaseSetup._GetInt(node, "id"));
+    lua_pushstring(L, g_KnowledgeBaseSetup.m_state == 2 && g_KnowledgeBaseSetup.m_tree ? node->GetAttributeByName("caption") : nullptr);
+    return 2;
+}
+
+// VERIFY: 3a3144f9 manual
+// OFFSET: 0x00551900
+static int32_t Script_KBSetup_GetCategoryData(lua_State* L) {
+    if (g_KnowledgeBaseSetup.m_state != 2) {
+        luaL_error(L, "KBSetup_GetCategoryData() failed because setup is not loaded");
+    }
+
+    XMLNode* node = g_KnowledgeBaseSetup.GetCategoryNode(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+
+    if (!node) {
+        luaL_error(L, "KBSetup_GetCategoryData() called with invalid category index");
+    }
+
+    lua_pushnumber(L, g_KnowledgeBaseSetup._GetInt(node, "id"));
+    lua_pushstring(L, g_KnowledgeBaseSetup.m_state == 2 && g_KnowledgeBaseSetup.m_tree ? node->GetAttributeByName("caption") : nullptr);
+    return 2;
+}
+
+// VERIFY: 52004c77 manual
+// OFFSET: 0x00551A30
+static int32_t Script_KBSetup_GetArticleHeaderData(lua_State* L) {
+    if (g_KnowledgeBaseSetup.m_state != 2) {
+        luaL_error(L, "KBSetup_GetArticleHeaderData() failed because setup is not loaded");
+    }
+
+    XMLNode* node = g_KnowledgeBaseSetup.GetArticleHeader(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+
+    if (!node) {
+        luaL_error(L, "KBSetup_GetArticleHeaderData() called with invalid article header index");
+    }
+
+    lua_pushnumber(L, g_KnowledgeBaseSetup._GetInt(node, "id"));
+    lua_pushstring(L, g_KnowledgeBaseSetup.m_state == 2 && g_KnowledgeBaseSetup.m_tree ? node->GetAttributeByName("subject") : nullptr);
+    lua_pushboolean(L, g_KnowledgeBaseSetup._GetBool(node, "hotIssue"));
+    lua_pushboolean(L, g_KnowledgeBaseSetup._GetBool(node, "updated"));
+    return 4;
+}
+
+// VERIFY: 620ab044 auto
+// OFFSET: 0x00551B40
+static int32_t Script_KBSetup_GetTotalArticleCount(lua_State* L) {
+    if (g_KnowledgeBaseSetup.m_state != 2) {
+        luaL_error(L, "KBSetup_GetTotalArticleCount() failed because setup is not loaded");
+    }
+
+    lua_pushnumber(L, g_KnowledgeBaseSetup._GetInt("ArticleHeaders", "articleCount"));
+    return 1;
+}
+
+// VERIFY: 0efd23c7 manual
+// OFFSET: 0x00551C00
+static int32_t Script_KBQuery_GetArticleHeaderData(lua_State* L) {
+    if (g_KnowledgeBaseQuery.m_state != 2) {
+        luaL_error(L, "KBQuery_GetArticleHeaderData() failed because query is not loaded");
+    }
+
+    XMLNode* node = g_KnowledgeBaseQuery.GetArticleHeader(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+
+    if (!node) {
+        luaL_error(L, "KBQuery_GetArticleHeaderData() called with invalid article header index");
+    }
+
+    lua_pushnumber(L, g_KnowledgeBaseQuery._GetInt(node, "id"));
+    lua_pushstring(L, g_KnowledgeBaseQuery.m_state == 2 && g_KnowledgeBaseQuery.m_tree ? node->GetAttributeByName("subject") : nullptr);
+    lua_pushboolean(L, g_KnowledgeBaseQuery._GetBool(node, "hotIssue"));
+    lua_pushboolean(L, g_KnowledgeBaseQuery._GetBool(node, "updated"));
+    return 4;
+}
+
+// VERIFY: cee4ac95 auto
+// OFFSET: 0x00551D10
+static int32_t Script_KBQuery_GetTotalArticleCount(lua_State* L) {
+    if (g_KnowledgeBaseQuery.m_state != 2) {
+        luaL_error(L, "KBQuery_GetTotalArticleCount() failed because query is not loaded");
+    }
+
+    lua_pushnumber(L, g_KnowledgeBaseQuery._GetInt("ArticleHeaders", "articleCount"));
+    return 1;
+}
+
+// VERIFY: f4fc784c auto
+// OFFSET: 0x00551D60
+static int32_t Script_KBArticle_BeginLoading(lua_State* L) {
+    int32_t articleId = static_cast<int32_t>(lua_tonumber(L, 1));
+    int32_t searchType = static_cast<int32_t>(lua_tonumber(L, 2));
+    g_KnowledgeBaseArticle.BeginLoading(articleId, searchType);
+    return 0;
+}
+
+// VERIFY: e8f7141c manual
+// OFFSET: 0x00551DD0
+static int32_t Script_KBArticle_GetData(lua_State* L) {
+    if (g_KnowledgeBaseArticle.m_state != 2) {
+        luaL_error(L, "KBArticle_GetData() failed because article is not loaded");
+    }
+
+    lua_pushnumber(L, g_KnowledgeBaseArticle._GetBodyInt("Article", "id"));
+    lua_pushstring(L, g_KnowledgeBaseArticle._GetBodyString("Article", "subject"));
+    lua_pushstring(L, g_KnowledgeBaseArticle._GetBodyString("Article", "subjectAlt"));
+    lua_pushstring(L, g_KnowledgeBaseArticle._GetBodyString("Article", "ArticleText"));
+    lua_pushstring(L, g_KnowledgeBaseArticle._GetBodyString("Article", "keyword"));
+    lua_pushnumber(L, g_KnowledgeBaseArticle._GetBodyInt("Article", "languageId"));
+    lua_pushboolean(L, g_KnowledgeBaseArticle._GetBodyBool("Article", "hotIssue"));
+    return 7;
+}
+
+// VERIFY: f2eea941 manual
+// OFFSET: 0x005523A0
+static int32_t Script_KBSetup_GetSubCategoryCount(lua_State* L) {
+    if (g_KnowledgeBaseSetup.m_state != 2) {
+        luaL_error(L, "KBSetup_GetSubCategoryCount() failed because setup is not loaded");
+    }
+
+    double category = lua_tonumber(L, 1);
+    int32_t count;
+
+    if (g_KnowledgeBaseSetup.m_currentCategory == category - 1.0) {
+        count = g_KnowledgeBaseSetup.m_numSubCategories;
+    } else if (g_KnowledgeBaseSetup.m_state == 2 && g_KnowledgeBaseSetup.m_tree) {
+        g_KnowledgeBaseSetup.GetCategory(static_cast<int32_t>(category - 1.0));
+        count = g_KnowledgeBaseSetup.m_numSubCategories;
+    } else {
+        count = 0;
+    }
+
+    lua_pushnumber(L, count);
+    return 1;
+}
+
+// VERIFY: 3092339c manual
+// OFFSET: 0x00552440
+static int32_t Script_KBSetup_GetSubCategoryData(lua_State* L) {
+    if (g_KnowledgeBaseSetup.m_state != 2) {
+        luaL_error(L, "KBSetup_GetSubCategoryData() failed because setup is not loaded");
+    }
+
+    int32_t subCategory = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    int32_t category = static_cast<int32_t>(lua_tonumber(L, 1) - 1.0);
+    XMLNode* node = g_KnowledgeBaseSetup.GetSubCategory(category, subCategory);
+
+    if (!node) {
+        luaL_error(L, "KBSetup_GetSubCategoryData() called with invalid category or sub category index");
+    }
+
+    lua_pushnumber(L, g_KnowledgeBaseSetup._GetInt(node, "id"));
+    lua_pushstring(L, g_KnowledgeBaseSetup.m_state == 2 && g_KnowledgeBaseSetup.m_tree ? node->GetAttributeByName("caption") : nullptr);
+    return 2;
+}
+
+// VERIFY: 6c845c8e manual
+// OFFSET: 0x00552580
+static int32_t Script_KBQuery_BeginLoading(lua_State* L) {
+    if (g_KnowledgeBaseSetup.m_state != 2) {
+        luaL_error(L, "KBQuery_BeginLoading() failed because setup is not loaded");
+    }
+
+    const char* query = lua_tolstring(L, 1, nullptr);
+
+    if (!query) {
+        luaL_error(L, "KBQuery_BeginLoading() called with a null string for search query");
+    }
+
+    if (SStrLen(query) > 128) {
+        luaL_error(L, "KBQuery_BeginLoading() called with a string > 128 bytes for search query");
+    }
+
+    int32_t category = static_cast<int32_t>(lua_tonumber(L, 2));
+    int32_t subCategory = static_cast<int32_t>(lua_tonumber(L, 3));
+    int32_t numArticles = static_cast<int32_t>(lua_tonumber(L, 4));
+    int32_t pageNumber = static_cast<int32_t>(lua_tonumber(L, 5));
+    int32_t categoryId = -1;
+
+    if (subCategory || category) {
+        XMLNode* node;
+
+        if (subCategory) {
+            if (!category) {
+                luaL_error(L, "KBQuery_BeginLoading() called with subcategory without category");
+            }
+
+            node = g_KnowledgeBaseSetup.GetSubCategory(category - 1, subCategory - 1);
+        } else {
+            node = g_KnowledgeBaseSetup.GetCategoryNode(category - 1);
+        }
+
+        if (!node) {
+            luaL_error(L, "KBSetup_GetCategoryData() called with invalid category index");
+        }
+
+        categoryId = g_KnowledgeBaseSetup._GetInt(node, "id");
+    }
+
+    g_KnowledgeBaseQuery.BeginLoading(query, categoryId, numArticles, pageNumber);
+    return 0;
 }
 
 // STATIC: 0x00ACD488

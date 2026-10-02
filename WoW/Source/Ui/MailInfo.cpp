@@ -1482,3 +1482,35 @@ void CGMailInfo::ShutdownGame() {
     ClientServices::ClearMessageHandler(SMSG_RECEIVED_MAIL);
     ClientServices::ClearMessageHandler(SMSG_SHOW_MAILBOX);
 }
+
+// VERIFY: ffc9f0e4 auto
+// OFFSET: 0x00571730
+void CGMailInfo::CloseMail(bool leavingWorld) {
+    CGMailInfo::ClearSendMail(false);
+
+    if (leavingWorld) {
+        CGMailInfo::m_object = WOWGUID{ 0 };
+        CGMailInfo::m_numInboxItems = 0;
+        CGMailInfo::m_totalInboxItems = 0;
+        CGMailInfo::m_autoLooting = nullptr;
+    } else if (CGMailInfo::m_object.m_guid) {
+        CGGameUI::ClearInteractTarget(CGMailInfo::m_object, 0);
+        CGMailInfo::m_object = WOWGUID{ 0 };
+        CGMailInfo::m_autoLooting = nullptr;
+        FrameScript_SignalEvent(SCRIPT_EVENT_MAIL_CLOSED, nullptr);
+
+        if (CGMailInfo::m_doPendingQuery) {
+            CGMailInfo::QueryNextMailTime();
+        }
+    }
+}
+
+// VERIFY: 6fccb8fb manual
+// OFFSET: 0x00571BE0
+void CGMailInfo::LeaveWorld() {
+    CGMailInfo::CloseMail(true);
+
+    for (uint32_t i = 0; i < CGMailInfo::m_stationeries.Count(); i++) {
+        g_itemDBCache.CancelCallback(CGMailInfo::m_stationeries.m_data[i]->m_itemID, StationeryItemCallback, nullptr);
+    }
+}

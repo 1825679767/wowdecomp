@@ -112,6 +112,20 @@ static int32_t Script_SetNextBarberShopStyle(lua_State* L) {
     return 0;
 }
 
+// VERIFY: 270ee40e auto
+// OFFSET: 0x0052E9B0
+static int32_t Script_GetHairCustomization(lua_State* L) {
+    lua_pushstring(L, CGPlayer_C::GetHairCustomizationName());
+    return 1;
+}
+
+// VERIFY: eceedfeb auto
+// OFFSET: 0x0052E9D0
+static int32_t Script_GetFacialHairCustomization(lua_State* L) {
+    lua_pushstring(L, CGPlayer_C::GetFacialHairCustomizationName());
+    return 1;
+}
+
 // STATIC: 0x00ACC790
 static FrameScript_Method s_ScriptFunctions[] = {
     { "GetBarberShopStyleInfo", &Script_GetBarberShopStyleInfo },

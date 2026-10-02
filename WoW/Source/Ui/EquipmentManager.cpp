@@ -18,6 +18,7 @@
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/WowServices/WDataStore.h"
 #include "WoW/Source/Object/Unit.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
 
 // STATIC: 0x00C1E95C
 uint32_t* CGEquipmentManager::s_equipmentSetHeap;
@@ -388,6 +389,125 @@ int32_t CGEquipmentManager::SetContainsLockedItems(const EQUIPMENT_SET* set) {
     }
 
     return 0;
+}
+
+// VERIFY: 82f5bbb0 manual
+// OFFSET: 0x005AE040
+int32_t CGEquipmentManager::SetUsesLockedSlots(const EQUIPMENT_SET* set) {
+    if (!set) {
+        return 0;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return 0;
+    }
+
+    for (int32_t slot = 0; slot <= 18; slot++) {
+        if (set->m_items[slot].m_guid == 1) {
+            continue;
+        }
+
+        CGItem_C* item = player->m_bag.GetItemPointer(slot);
+
+        if (item && (item->m_itemFlags & 0x1)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: c926fac3 manual
+// OFFSET: 0x005AE660
+void CGEquipmentManager::EquipSet(int32_t id) {
+    const EQUIPMENT_SET* set = CGEquipmentManager::GetSetByID(id);
+
+    if (set) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_WEAR_EQUIPMENT_SET, "%s", set->m_name);
+    }
+}
+
+// VERIFY: 5bdd1316 manual
+// OFFSET: 0x005AE6B0
+void CGEquipmentManager::GetFullIconPath(int32_t id, char* buffer, uint32_t size) {
+    const EQUIPMENT_SET* set = CGEquipmentManager::GetSetByID(id);
+
+    if (!set) {
+        SStrPrintf(buffer, size, "");
+        return;
+    }
+
+    const char* path = ClientDBStringLookup(3);
+    const char* icon = set->m_icon;
+
+    if (!icon || !*icon) {
+        SStrPrintf(buffer, size, "");
+        return;
+    }
+
+    SStrPrintf(buffer, size, "%s%s%s", path, *path ? "\\" : "", icon);
+}
+
+// VERIFY: 7e1e9f40 manual
+// OFFSET: 0x005AE760
+static void OnEquipmentSetSaved(int32_t id, WOWGUID guid) {
+    EQUIPMENT_SET* set = const_cast<EQUIPMENT_SET*>(CGEquipmentManager::GetSetByID(id));
+
+    if (!set) {
+        return;
+    }
+
+    if (guid.m_guid) {
+        set->m_guid = guid;
+        set->unk_0230 = 0;
+        return;
+    }
+
+    for (EQUIPMENT_SET_NODE* node = CGEquipmentManager::s_equipmentSets.Head(); node; node = CGEquipmentManager::s_equipmentSets.Next(node)) {
+        if (node->m_set->m_id == id) {
+            CGEquipmentManager::s_equipmentSets.DeleteNode(node);
+            break;
+        }
+    }
+
+    ObjectFree(*CGEquipmentManager::s_equipmentSetHeap, set->m_handle);
+}
+
+// VERIFY: 591dc89b auto
+// OFFSET: 0x005AF6C0
+int32_t Packet_SMSG_EQUIPMENT_SET_SAVED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    int32_t id = 0;
+    msg->Get(reinterpret_cast<uint32_t&>(id));
+    SmartGUID guid;
+    *msg >> guid;
+    OnEquipmentSetSaved(id, guid);
+    return 1;
+}
+
+// VERIFY: f8a867f0 manual
+// OFFSET: 0x005AF710
+int32_t Packet_SMSG_EQUIPMENT_SET_USE_RESULT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    CGEquipmentManager::m_swapPending = 0;
+    uint8_t result = 0;
+    msg->Get(result);
+
+    if (result) {
+        const EQUIPMENT_SET* set = CGEquipmentManager::GetSetByID(CGEquipmentManager::m_pendingSetID);
+        FrameScript_SignalEvent(SCRIPT_EVENT_EQUIPMENT_SWAP_FINISHED, "%b%s", 0, set ? set->m_name : nullptr);
+
+        if (result == 4) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_UI_ERROR_MESSAGE, "%s", FrameScript_GetText("EQUIPMENT_MANAGER_BAGS_FULL", -1, GENDER_NOT_APPLICABLE));
+        }
+    } else {
+        const EQUIPMENT_SET* set = CGEquipmentManager::GetSetByID(CGEquipmentManager::m_pendingSetID);
+        FrameScript_SignalEvent(SCRIPT_EVENT_EQUIPMENT_SWAP_FINISHED, "%b%s", 1, set ? set->m_name : nullptr);
+    }
+
+    CGActionBar::UpdateUsable();
+    CGEquipmentManager::m_pendingSetID = 0;
+    return 1;
 }
 
 // VERIFY: 12a136d2 manual

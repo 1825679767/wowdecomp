@@ -28,7 +28,7 @@ void DanceCache::Pack(CDataStore* msg) {
     msg->Put(this->unk_0098);
 }
 
-// VERIFY: a4007070 manual
+// VERIFY: 54057452 manual
 // OFFSET: 0x0098D300
 void DanceCache::Unpack(CDataStore* msg) {
     msg->Get(reinterpret_cast<uint32_t&>(this->m_id));
@@ -40,7 +40,7 @@ void DanceCache::Unpack(CDataStore* msg) {
     *msg >> static_cast<SmartGUID&>(this->m_guid);
     msg->GetString(this->m_name, sizeof(this->m_name));
     msg->Get(this->m_dataCount);
-    this->m_data = new (__FILE__, __LINE__) uint32_t[this->m_dataCount];
+    this->m_data = new (__FILE__, __LINE__) DANCEMOVE[this->m_dataCount];
     msg->GetData(this->m_data, 4 * this->m_dataCount);
     msg->Get(this->unk_0098);
 }

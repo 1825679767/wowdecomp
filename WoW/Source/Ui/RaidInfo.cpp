@@ -1294,3 +1294,11 @@ void CGRaidInfo::ShutdownGame() {
         ClientKillTimer(CGRaidInfo::m_readyCheckTimer, CGRaidInfo::ProcessReadyCheckTimer, "ProcessReadyCheckTimer");
     }
 }
+
+// VERIFY: 7980cdfb auto
+// OFFSET: 0x00573670
+int32_t CGRaidInfo::ProcessReadyCheckTimer(const void* data, void* param) {
+    CGRaidInfo::m_readyCheckTimer = 0;
+    CGRaidInfo::CheckReadyCheckTime();
+    return 1;
+}

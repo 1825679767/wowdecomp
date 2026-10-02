@@ -9,9 +9,28 @@ class CGItem_C;
 struct lua_State;
 
 struct PlayerTradeState {
-    /* 0000 */ uint32_t unk_0000[3];
-    /* 000C */ uint32_t m_money;
-    /* 0010 */ uint32_t m_targetMoney;
+    /* 0000 */ uint32_t m_tradeId;
+    /* 0004 */ uint32_t m_stateIndex[2];
+    /* 000C */ uint32_t m_money[2];
+};
+
+struct TRADE_ITEM {
+    /* 0000 */ int32_t m_itemID;
+    /* 0004 */ int32_t m_displayID;
+    /* 0008 */ int32_t m_count;
+    /* 000C */ int32_t m_enchant;
+    /* 0010 */ int32_t m_socketEnchants[3];
+    /* 001C */ uint32_t unk_001C;
+    /* 0020 */ WOWGUID m_creator;
+    /* 0028 */ int32_t m_wrapped;
+    /* 002C */ uint32_t unk_002C;
+    /* 0030 */ WOWGUID m_giftCreator;
+    /* 0038 */ int32_t m_spellCharges;
+    /* 003C */ int32_t m_suffixFactor;
+    /* 0040 */ int32_t m_randomPropertyID;
+    /* 0044 */ int32_t m_lockID;
+    /* 0048 */ int32_t m_maxDurability;
+    /* 004C */ int32_t m_durability;
 };
 
 class CGTradeInfo {
@@ -19,7 +38,7 @@ class CGTradeInfo {
     static void SetTradePartner(WOWGUID partner, int32_t a2);
     static void SetEnchantingItem(CGItem_C* item);
     static bool IsItemBeingTraded(WOWGUID item);
-    static void AddPlayerItem(WOWGUID item, WOWGUID container, uint32_t slot);
+    static bool AddPlayerItem(WOWGUID item, WOWGUID container, uint8_t slot);
     static WOWGUID m_enchantingItem;
     static void EnterWorld();
     static uint32_t GetPlayerTradeMoney();
@@ -59,6 +78,14 @@ class CGTradeInfo {
     static void UpdatePlayerItem(WOWGUID guid);
     static void AddCursorItem(int32_t bound);
     static void InitiateTrade(WOWGUID guid, int32_t a2);
+    static void UnlockTradeItems();
+    static void DenyPlayerItem(int32_t slot);
+    static int32_t GetGameError(int32_t error, int32_t target);
+    static void PlayerAccept();
+    static void RemovePlayerItem(WOWGUID item);
+    static void OnTradeUpdated(const TRADE_ITEM* items);
+    static void HandleTradeMessage(int32_t status, int32_t bagResult, int32_t target, int32_t itemId, uint8_t slot);
+    static void LeaveWorld();
 };
 
 void TradeInfoRegisterScriptFunctions();

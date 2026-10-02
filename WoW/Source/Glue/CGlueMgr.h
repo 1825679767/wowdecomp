@@ -80,7 +80,7 @@ class CGlueMgr {
     static int32_t m_rereadContest;
     static int32_t m_acceptedContest;
     static uint8_t m_authenticated;
-    static uint8_t s_scriptFunctionsLoaded;
+    static bool s_scriptFunctionsLoaded;
     static int32_t m_screenWidth;
     static int32_t m_screenHeight;
     static float m_aspect;
@@ -117,6 +117,7 @@ class CGlueMgr {
     static void ChangeRealm(REALM_INFO* realm);
     static void CreateCharacter(const CHARACTER_CREATE_INFO* info);
     static void CustomizeCharacter(WOWGUID guid, const CHARACTER_CREATE_INFO* info);
+    static bool AreScriptFunctionsLoaded();
     static bool DeclineCharacter(WOWGUID guid, const char** names);
     static void DeleteCharacter(WOWGUID guid);
     static void EnterWorld();

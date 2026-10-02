@@ -2236,7 +2236,7 @@ void CGQuestLog::SaveTrackedQuests() {
 // STATIC: 0x00AD1264
 static int32_t s_poiOverlapIterations = 20;
 
-// VERIFY: c2014316 manual
+// VERIFY: 0b11702f manual
 // OFFSET: 0x005E2EB0
 void CGQuestLog::UpdatePOIIcons() {
     if (!g_questPOICVar->m_intValue) {
@@ -2355,7 +2355,7 @@ void CGQuestLog::UpdatePOIIcons() {
     if (CGWorldMap::m_currentContinent < 0) {
         zoneId = CGWorldMap::m_currentOrphanZone;
     } else {
-        WorldMapContinent* continent = &CGWorldMap::m_continents.m_data[CGWorldMap::m_currentContinent];
+        WorldMapContinentInfo* continent = &CGWorldMap::m_continents.m_data[CGWorldMap::m_currentContinent];
         zoneId = CGWorldMap::m_currentZone < 0 ? continent->m_areaID : continent->m_zones.m_data[CGWorldMap::m_currentZone];
     }
 

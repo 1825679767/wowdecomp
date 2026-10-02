@@ -4993,17 +4993,17 @@ static int32_t Script_IsUsableItem(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 2bf67451 auto
+// VERIFY: 35e2d9c5 auto
 // OFFSET: 0x005176F0
-static int32_t CanEquipInSlotCallback(const CGItem_C* item, void* param) {
+int32_t CanEquipInSlotCallback(const CGItem_C* item, void* param) {
     WOWGUID none = WOWGUID();
     ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
     return stats && static_cast<int32_t>(stats->m_inventoryType) == *static_cast<int32_t*>(param);
 }
 
-// VERIFY: c43ef09a auto
+// VERIFY: 50448300 manual
 // OFFSET: 0x00517740
-static int32_t FindItemClassTypeCallback(const CGItem_C* item, void* param) {
+int32_t FindItemClassTypeCallback(const CGItem_C* item, void* param) {
     const char* type = static_cast<const char*>(param);
     WOWGUID none = WOWGUID();
     ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);

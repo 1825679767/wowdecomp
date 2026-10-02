@@ -86,6 +86,7 @@ class CGBattlefieldInfo {
     static void RequestBattlegroundInstanceInfo(uint32_t index);
     static void SetBattlemaster(WOWGUID battlemaster);
     static void EnterWorld();
+    static void LeaveWorld();
     static void InitializeGame();
     static void ShutdownGame();
     static WOWGUID m_arenaOpponentPets[5][2];
@@ -143,6 +144,7 @@ class CGBattlefieldInfo {
     static TSGrowableArray<int32_t> m_battlegroundTypes;
 
     static void AddArenaOpponent(const WOWGUID& guid);
+    static void OnArenaUnitOutOfRange(const WOWGUID& guid);
     static void OnArenaUnitDestroyed(const WOWGUID& guid);
     static int32_t GetBattlegroundType(int32_t index);
     static bool GetBracketForLevel(uint32_t level, const BattlemasterListRec* rec, int32_t* bracket);

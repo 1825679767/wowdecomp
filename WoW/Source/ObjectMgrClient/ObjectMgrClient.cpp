@@ -1531,7 +1531,7 @@ static int32_t ObjectUpdateSecondPass(CDataStore* msg, uint32_t time, uint32_t c
     return 1;
 }
 
-// VERIFY: 6d778ab3 manual
+// VERIFY: 3bda6338 manual
 // OFFSET: 0x004D7230
 static void UpdateOutOfRangeObjects(CDataStore* msg) {
     uint32_t count;
@@ -1557,7 +1557,7 @@ static void UpdateOutOfRangeObjects(CDataStore* msg) {
 
         if (CGBattlefieldInfo::m_instanceType == 4) {
             WOWGUID objectGuid = object->m_obj->m_guid;
-            CGBattlefieldInfo::AddArenaOpponent(objectGuid);
+            CGBattlefieldInfo::OnArenaUnitOutOfRange(objectGuid);
         }
 
         object->HandleOutOfRange(static_cast<OUT_OF_RANGE_TYPE>(0));

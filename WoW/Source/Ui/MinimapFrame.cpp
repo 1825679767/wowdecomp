@@ -26,6 +26,7 @@
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "WoW/Source/Ui/Types.h"
 #include <cmath>
+#include <cfloat>
 #include <cstring>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
@@ -871,6 +872,31 @@ void DisplayQuestPoint(float x, float y, int32_t importance, const char* name) {
     s_closestPOIsChanged = 1;
 }
 
+// VERIFY: e9f5e6ef auto
+// OFFSET: 0x007F4870
+void MinimapSetDynamicPOI(int32_t index, int32_t flags, float x, float y, int32_t icon, int32_t importance, const char* name) {
+    s_dynamicPOIs[index].m_flags = flags;
+    s_dynamicPOIs[index].m_pos[0] = x;
+    s_dynamicPOIs[index].m_icon[0] = icon;
+    s_dynamicPOIs[index].m_continentID = s_mapId;
+    s_dynamicPOIs[index].m_pos[1] = y;
+    s_dynamicPOIs[index].m_importance = importance;
+    SStrCopy(s_dynamicPOINames[index], name, sizeof(s_dynamicPOINames[index]));
+
+    if (index == 1) {
+        s_worldMapRefreshTime = static_cast<uint32_t>(time(nullptr)) + 480;
+
+        if (CGWorldMap::m_currentOrphanZone == -1) {
+            CGWorldMap::SetMap(CGWorldMap::m_currentContinent, CGWorldMap::m_currentZone, CGWorldMap::m_currentOrphanZone);
+        } else {
+            CGWorldMap::SetMap(CGWorldMap::m_currentContinent, CGWorldMap::m_currentOrphanZone, CGWorldMap::m_currentDungeonMap);
+        }
+    }
+
+    UpdatePointsOfInterest();
+    s_closestPOIsChanged = 1;
+}
+
 // VERIFY: 3a8b6454 auto
 // OFFSET: 0x007F4990
 void MinimapSetCorpsePOI(float x, float y) {
@@ -944,6 +970,24 @@ static void LoadMD5Names() {
     } while (line[0] && *cursor);
 
     SFile::Unload(data);
+}
+
+// VERIFY: 446a7368 auto
+// OFFSET: 0x007F4E50
+void MinimapShutdown() {
+    s_playerPosition.x = FLT_MAX;
+    s_playerPosition.z = FLT_MAX;
+    s_playerPosition.y = FLT_MAX;
+    s_tileMaxY = -1;
+    s_tileMinY = -1;
+    s_mapId = -1;
+    s_tileMaxX = -1;
+    s_tileMinX = -1;
+    s_mapObjId = 0;
+    s_mapObjGroup = 0;
+    s_mapObjAreaGroup = -1;
+    s_updateFlags = 0;
+    s_md5Names.InternalClear(0);
 }
 
 // VERIFY: 885c45ba manual
@@ -2584,6 +2628,36 @@ void CGMinimapFrame::RenderOverlay(const C44Matrix& rotation) {
         GxDrawLockedElements(GxPrim_TriangleStrip, 4, s_arrowIndices);
         GxPrimUnlockVertexPtrs();
     }
+}
+
+// VERIFY: 596d6a8a manual
+// OFFSET: 0x0057FBD0
+void CGMinimapFrame::LeaveWorld() {
+    MinimapShutdown();
+
+    for (uint32_t i = 0; i < 256; i++) {
+        if (s_tiles[i].m_texture) {
+            HandleClose(reinterpret_cast<HOBJECT>(s_tiles[i].m_texture));
+            s_tiles[i].m_texture = nullptr;
+        }
+
+        s_tiles[i].m_flags = 0;
+        s_tiles[i].m_x = -1;
+        s_tiles[i].m_y = -1;
+    }
+
+    if (s_indoor.m_texture) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_indoor.m_texture));
+    }
+
+    s_indoor.m_texture = nullptr;
+    s_poiInfo.Clear();
+
+    for (uint32_t i = 0; i < 23; i++) {
+        s_objInfo[i].Clear();
+    }
+
+    s_unkBEBA40 = 0;
 }
 
 // VERIFY: 5b02e890 manual

@@ -53,6 +53,63 @@ void CGContainerInfo::EnterWorld() {
     CGContainerInfo::UpdateContainers();
 }
 
+// VERIFY: 9a1d25a2 auto
+// OFFSET: 0x005D7110
+void CGContainerInfo::OpenContainer(WOWGUID guid) {
+    if (guid == ClntObjMgrGetActivePlayer()) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_BAG_OPEN, "%d", 0);
+        return;
+    }
+
+    for (uint32_t i = 0; i < 11; i++) {
+        if (CGContainerInfo::m_containers[i] == guid) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_BAG_OPEN, "%d", i + 1);
+        }
+    }
+}
+
+// VERIFY: bf060c1c manual
+// OFFSET: 0x005D9D90
+void CGContainerInfo::LeaveWorld() {
+    for (uint32_t i = 0; i < 11; i++) {
+        if (!CGContainerInfo::m_containers[i]) {
+            continue;
+        }
+
+        CGContainer_C* container = static_cast<CGContainer_C*>(ClntObjMgrObjectPtr(CGContainerInfo::m_containers[i], TYPEMASK_CONTAINER, __FILE__, __LINE__));
+
+        if (!container) {
+            continue;
+        }
+
+        int32_t count = container->GetBag()->m_numSlots;
+
+        for (int32_t j = 0; j < count; j++) {
+            ClntObjMgrUnsetObjMirrorHandler(CGContainerInfo::m_containers[i], ID_CONTAINER, offsetof(CGContainerData, m_containerFieldSlot1) + j * sizeof(WOWGUID), UpdateContainerContents, nullptr);
+        }
+    }
+
+    for (uint32_t offset = 0x378; offset <= 0x3F0; offset += sizeof(WOWGUID)) {
+        ClntObjMgrUnsetObjMirrorHandler(ClntObjMgrGetActivePlayer(), ID_PLAYER, offset, UpdateInvContents, nullptr);
+    }
+
+    for (uint32_t offset = 0x358; offset <= 0x370; offset += sizeof(WOWGUID)) {
+        ClntObjMgrUnsetObjMirrorHandler(ClntObjMgrGetActivePlayer(), ID_PLAYER, offset, InvUpdateHandler, nullptr);
+    }
+
+    for (uint32_t offset = 0x4D8; offset <= 0x508; offset += sizeof(WOWGUID)) {
+        ClntObjMgrUnsetObjMirrorHandler(ClntObjMgrGetActivePlayer(), ID_PLAYER, offset, InvUpdateHandler, nullptr);
+    }
+
+    for (uint32_t offset = 0x570; offset <= 0x668; offset += sizeof(WOWGUID)) {
+        ClntObjMgrUnsetObjMirrorHandler(ClntObjMgrGetActivePlayer(), ID_PLAYER, offset, UpdateInvContents, nullptr);
+    }
+
+    for (uint32_t offset = 0x670; offset <= 0x768; offset += sizeof(WOWGUID)) {
+        ClntObjMgrUnsetObjMirrorHandler(ClntObjMgrGetActivePlayer(), ID_PLAYER, offset, UpdateInvContents, nullptr);
+    }
+}
+
 // VERIFY: bf489b49 auto
 // OFFSET: 0x005D6F10
 void CGContainerInfo::UpdateCooldowns() {

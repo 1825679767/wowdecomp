@@ -55,6 +55,7 @@ struct PartyReadyCheckInfo {
 class CGPartyInfo {
     public:
     static void ChangeRaidDifficulty(int32_t heroic);
+    static void LeaveWorld();
     static uint32_t m_memberRoles[4];
     static uint8_t m_memberAssignments[4];
     static uint32_t unk_BD1984;

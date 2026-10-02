@@ -224,7 +224,7 @@ int32_t CGlueMgr::m_acceptedContest;
 uint8_t CGlueMgr::m_authenticated;
 
 // STATIC: 0x00B6AF79
-uint8_t CGlueMgr::s_scriptFunctionsLoaded;
+bool CGlueMgr::s_scriptFunctionsLoaded;
 
 // STATIC: 0x00B6AF7C
 int32_t CGlueMgr::m_screenWidth;
@@ -447,6 +447,12 @@ static void RequestLatestAgreements() {
     if (!OsURLDownload(FrameScript_GetText("LATEST_AGREEMENTS_URL", -1, GENDER_NOT_APPLICABLE), CGlueMgr::AgreementsURLCallback, &CGlueMgr::m_latestAgreements)) {
         CGlueMgr::m_latestAgreements.m_complete = 1;
     }
+}
+
+// VERIFY: f4782413 auto
+// OFFSET: 0x004D7880
+bool CGlueMgr::AreScriptFunctionsLoaded() {
+    return CGlueMgr::s_scriptFunctionsLoaded;
 }
 
 // VERIFY: 60565de3 auto

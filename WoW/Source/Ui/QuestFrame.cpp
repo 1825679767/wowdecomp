@@ -16,6 +16,7 @@
 #include "WoW/Source/DB/Rec/QuestFactionRewardRec.h"
 #include "WoW/Source/Ui/ReputationInfo.h"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
+#include "WoW/Source/Game/GameClient/NameCache.h"
 #include "WoW/Source/Object/ItemStats.h"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
@@ -898,4 +899,21 @@ void CGQuestInfo::EnterWorld() {
     CGQuestInfo::m_questFlags = 0;
     CGQuestInfo::ClearState();
     CGQuestInfo::ClearQuestItems();
+}
+
+// VERIFY: 8b9ea6e9 auto
+// OFFSET: 0x0058BC50
+void CGQuestInfo::ConfirmAcceptQuest(int32_t questId, const char* title, const WOWGUID* guid) {
+    CGQuestInfo::m_pendingQuest = questId;
+    NameCache* name = g_nameDBCache.GetRecord(guid->m_guid, WOWGUID{ 0 }, nullptr, nullptr, false);
+
+    if (name) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_QUEST_ACCEPT_CONFIRM, "%s%s", name->m_name, title);
+    }
+}
+
+// VERIFY: 5ae7745b auto
+// OFFSET: 0x0058DD30
+void CGQuestInfo::LeaveWorld() {
+    CGQuestInfo::QuestGiverFinished(0, CGQuestInfo::m_currentQuest, 1);
 }

@@ -80,6 +80,7 @@ class CGQuestInfo {
     static uint32_t m_pendingQuest;
 
     static void ConfirmAcceptQuest(int32_t questId, const char* title, const WOWGUID* guid);
+    static void LeaveWorld();
     static int32_t m_canComplete;
     static void AddQuest(int32_t questId, const char* title, int32_t level, int32_t flags, int32_t turnIn, int32_t repeatable);
     static void AddQuestInProgress(int32_t questId, const char* title, int32_t level, int32_t flags, int32_t repeatable);

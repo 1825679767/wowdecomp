@@ -17,6 +17,7 @@
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 
 class CGUnit_C;
+class CGItem_C;
 class AreaTableRec;
 class CImVector;
 class CDataStore;
@@ -498,6 +499,8 @@ struct TAINTEVENT : public TSHashObject<TAINTEVENT, HASHKEY_STR> {
 
 void LoadScriptFunctions();
 int32_t IsInFlyableArea();
+int32_t CanEquipInSlotCallback(const CGItem_C* item, void* param);
+int32_t FindItemClassTypeCallback(const CGItem_C* item, void* param);
 void UnloadScriptFunctions();
 void SavePlacedFrames(HOSFILE localFile, HOSFILE file, void* param);
 void SaveGameCVarsCallback(HOSFILE localFile, HOSFILE file, void* param);
