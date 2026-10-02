@@ -8,6 +8,10 @@ namespace Storm {
 
 class IORefcount {
     public:
+    /* 0004 */ IORefcount* m_refcount;
+    /* 0008 */ int32_t m_count;
+
+    virtual ~IORefcount();
     void Release();
 };
 

@@ -28,6 +28,7 @@ class CGPetitionInfo {
     static TSGrowableArray<PetitionSignerInfo> m_signers;
 
     static void EnterWorld();
+    static void LeaveWorld();
     static void InitializeGame();
     static void SetPetitionStats(int32_t id);
     static void ClearSignatures();

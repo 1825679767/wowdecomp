@@ -859,3 +859,10 @@ void CGClassTrainer::AddServices(uint32_t count, const int32_t* spellIds, const 
 
     FrameScript_SignalEvent(SCRIPT_EVENT_TRAINER_SHOW, nullptr);
 }
+
+// VERIFY: 0b0f7a6c auto
+// OFFSET: 0x005947B0
+void CGClassTrainer::LeaveWorld() {
+    WOWGUID trainer = { 0 };
+    CGClassTrainer::SetTrainer(trainer, 0);
+}

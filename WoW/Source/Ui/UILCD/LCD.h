@@ -2,6 +2,7 @@
 #define WOW_SOURCE_UI_UILCD_LCD_H
 
 #include <cstdint>
+#include "Engine/Source/Base/RCString.h"
 #include "Engine/Source/Storm/H/stpl.h"
 
 class CEzLcd;
@@ -9,7 +10,10 @@ class CGPlayer_C;
 struct BattlefieldStatus;
 
 struct LCDHANDLE : public TSHashObject<LCDHANDLE, HASHKEY_CONSTSTRI> {
-    /* 0018 */ void* unk_0018;
+    /* 0018 */ uint32_t unk_0018[3];
+    /* 0024 */ RCString m_text;
+
+    void SetText(const char* text);
 };
 
 struct MAPDATA : public TSLinkedNode<MAPDATA> {

@@ -13,7 +13,7 @@ ItemStats_C::ItemStats_C() {
 }
 
 // VERIFY: 8d459023 manual
-// OFFSET: 0x00668020
+// OFFSET: [0x00668020, 0x00668860]
 ItemStats_C::~ItemStats_C() {
     for (uint32_t i = 0; i < 4; i++) {
         if (this->m_name[i]) {

@@ -202,3 +202,9 @@ void CGPetitionInfo::AddSignature(WOWGUID petition, WOWGUID signer) {
         FrameScript_SignalEvent(SCRIPT_EVENT_PETITION_SHOW, nullptr);
     }
 }
+
+// VERIFY: 3777712c auto
+// OFFSET: 0x005CF610
+void CGPetitionInfo::LeaveWorld() {
+    CGPetitionInfo::m_signers.Clear();
+}

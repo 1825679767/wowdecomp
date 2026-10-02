@@ -4790,6 +4790,62 @@ CMapEntity* CMap::ObjectCreateStatic(CM2Model* model, const C44Matrix& matrix, M
     return entity;
 }
 
+// VERIFY: d82f4501 manual
+// OFFSET: 0x00781C90
+CMapEntity* CMap::ObjectCreateStaticEx(CM2Model* model, const C44Matrix& matrix, MAP_OBJECT_FUNC func, void* funcParam, uint64_t param64, uintptr_t param32, const char* file, int32_t line) {
+    CMapEntity* entity = CMap::AllocEntity(0);
+    entity->m_type |= 0x300;
+    entity->unk_007C = (entity->unk_007C & 0xFFFFA7D0) | 0x400;
+    entity->m_func = nullptr;
+    entity->unk_00B4 = 0;
+    entity->m_flags = MAPOBJ_FLAG_UNPLACED;
+    C3Vector ambient = CMap::s_mapLight->m_light.m_ambColor;
+    CImVector color;
+    color.b = static_cast<uint8_t>(static_cast<int32_t>(ambient.z > 0.0f ? (ambient.z < 1.0f ? ambient.z * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.g = static_cast<uint8_t>(static_cast<int32_t>(ambient.y > 0.0f ? (ambient.y < 1.0f ? ambient.y * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.r = static_cast<uint8_t>(static_cast<int32_t>(ambient.x > 0.0f ? (ambient.x < 1.0f ? ambient.x * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.a = 0xFF;
+    entity->unk_00C0 = color;
+    entity->m_m2AmbientColor = color;
+    entity->m_flags = MAPOBJ_FLAG_UNPLACED;
+    entity->m_funcParam32 = param32;
+    entity->m_funcParam64 = param64;
+    entity->m_model = model;
+    entity->m_sphere.c.x = matrix.d0;
+    entity->m_sphere.c.y = matrix.d1;
+    entity->m_diffuseLightScale = 1.0f;
+    entity->m_sphere.c.z = matrix.d2;
+    entity->unk_00C4 = 1.0f;
+    entity->m_sphere.r = 0.0f;
+    entity->m_vec2 = entity->m_sphere.c;
+    ambient = CMap::s_mapLight->m_light.m_ambColor;
+    color.b = static_cast<uint8_t>(static_cast<int32_t>(ambient.z > 0.0f ? (ambient.z < 1.0f ? ambient.z * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.g = static_cast<uint8_t>(static_cast<int32_t>(ambient.y > 0.0f ? (ambient.y < 1.0f ? ambient.y * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.r = static_cast<uint8_t>(static_cast<int32_t>(ambient.x > 0.0f ? (ambient.x < 1.0f ? ambient.x * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.a = 0xFF;
+    entity->unk_00C0 = color;
+    entity->m_m2AmbientColor = color;
+    entity->m_scale = sqrtf(matrix.a2 * matrix.a2 + matrix.a1 * matrix.a1 + matrix.a0 * matrix.a0);
+    entity->m_position.x = matrix.d0;
+    entity->m_position.y = matrix.d1;
+    entity->m_position.z = matrix.d2;
+    CMap::LinkStaticEntity(entity);
+
+    if (entity->m_model) {
+        if (!SStrCmpI(s_invisibleStalkerModel, model->m_shared->m_fileNameWithoutPath, STORM_MAX_STR)) {
+            entity->unk_007C |= 0x4000;
+        }
+
+        entity->m_model->m_lightingCallback = CMapStaticEntity::ModelLightingCallback;
+        entity->m_model->m_lightingArg = entity;
+        entity->m_model->m_refCount++;
+    }
+
+    entity->m_func = func;
+    entity->m_funcParam = funcParam;
+    return entity;
+}
+
 // VERIFY: 146e9bb7 auto
 // OFFSET: 0x0077F110
 int32_t World::QueryMapObjFileName(CMapEntity* entity, const char** fileName) {

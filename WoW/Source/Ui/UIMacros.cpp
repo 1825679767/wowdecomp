@@ -162,6 +162,12 @@ MACRONODE* CGUIMacros::GetMacroByID(uint32_t id) {
     return s_macros.Ptr(id, HASHKEY_NONE());
 }
 
+// VERIFY: 7fa1863e auto
+// OFFSET: 0x00566DC0
+void CGUIMacros::RunMacro(int32_t id, const char* button) {
+    CGUIMacros::RunMacro(s_macros.Ptr(id, HASHKEY_NONE()), button);
+}
+
 // VERIFY: 1c1a9d37 manual
 // OFFSET: 0x00566AC0
 void CGUIMacros::GetFullIconPath(uint32_t id, char* buffer, uint32_t size) {
@@ -1161,4 +1167,44 @@ uint32_t CGUIMacros::CreateMacro(const char* name, const char* icon, const char*
     }
 
     return id;
+}
+
+// VERIFY: 1e57ffdd auto
+// OFFSET: 0x00564900
+void MacroQueryCastSequence(MacroSubstring* text) {
+    lua_State* L = FrameScript_GetContext();
+    lua_taintexpected++;
+    const char* savedTaint = lua_tainted;
+
+    if (lua_taintexpected && !lua_taintedclosure) {
+        lua_tainted = nullptr;
+    }
+
+    lua_rawgeti(L, LUA_REGISTRYINDEX, FrameScript_GetErrorHandlerReference());
+    lua_pushstring(L, "QueryCastSequence");
+    lua_rawget(L, LUA_GLOBALSINDEX);
+    lua_pushlstring(L, text->m_start, text->m_end - text->m_start);
+
+    if (lua_pcall(L, 1, 3, -3)) {
+        lua_settop(L, -3);
+    } else {
+        const char* spell = lua_tolstring(L, -2, nullptr);
+        const char* item = lua_tolstring(L, -1, nullptr);
+
+        if (spell) {
+            text->SetText(spell, spell + SStrLen(spell), 0, nullptr);
+        } else if (item) {
+            text->SetText(item, item + SStrLen(item), 0, nullptr);
+        }
+
+        lua_settop(L, -5);
+    }
+
+    if (lua_taintexpected && !lua_taintedclosure) {
+        lua_tainted = savedTaint;
+    }
+
+    if (--lua_taintexpected <= 0) {
+        lua_taintexpected = 0;
+    }
 }

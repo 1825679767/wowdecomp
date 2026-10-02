@@ -835,3 +835,29 @@ void GuildNameCallback(int32_t id, const WOWGUID& guid, void* param, bool succes
         Script_SendUnitSignal(guid, SCRIPT_EVENT_PLAYER_GUILD_UPDATE);
     }
 }
+
+// VERIFY: 610b1ef3 manual
+// OFFSET: 0x005EAF70
+void CGCharacterInfo::LeaveWorld() {
+    WOWGUID guid = ClntObjMgrGetActivePlayer();
+
+    if (guid) {
+        ClntObjMgrUnsetObjMirrorHandler(guid, ID_PLAYER, 0xDA0, PlayerCharacterPointsUpdateHandler, nullptr);
+        ClntObjMgrUnsetObjMirrorHandler(guid, ID_PLAYER, 0x1068, PlayerEquipmentChangedHandler, nullptr);
+    }
+
+    CGCharacterInfo::m_invAlertStatus.Clear();
+    WOWGUID none = { 0 };
+
+    if (CGCharacterInfo::m_inspectTarget) {
+        CGCharacterInfo::m_inspectTarget = WOWGUID();
+        CGCharacterInfo::m_hasHonorData = 0;
+        CGCharacterInfo::m_honorRequestPending = 0;
+
+        for (uint32_t i = 0; i < 3; i++) {
+            CGCharacterInfo::m_inspectArenaTeams[i].m_teamId = 0;
+        }
+
+        CGTalentInfo_Inspect::SetInspectTarget(none);
+    }
+}

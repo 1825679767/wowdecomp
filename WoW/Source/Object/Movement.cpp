@@ -1956,6 +1956,29 @@ void CMovement_C::OnSwimStartLocal(uint32_t eventTime) {
     this->AddPlayerMoveEvent(eventTime, MOVEEVENT_START_SWIM, true, 0, 0.0f, 0.0f, 0);
 }
 
+// VERIFY: a91c7c3b manual
+// OFFSET: 0x006EEA50
+void CMovement_C::OnSwimStopLocal(uint32_t eventTime) {
+    if (this->IsOnSpline()) {
+        this->StopSwim();
+
+        if ((this->m_flags & 0xC010FF) || this->m_moveQueue.Head()) {
+            if (!this->m_globalUnitsLink.IsLinked()) {
+                CMovementGlobals* globals = MovementGetGlobals();
+
+                if (globals) {
+                    globals->m_movers.LinkToHead(this);
+                }
+            }
+        }
+
+        this->m_unit->ProcessLocalMoveEvent(eventTime, MSG_MOVE_STOP_SWIM, true, 0.0f, 0, 0, 255);
+        return;
+    }
+
+    this->AddPlayerMoveEvent(eventTime, MOVEEVENT_STOP_SWIM, true, 0, 0.0f, 0.0f, 0);
+}
+
 // VERIFY: 1011e33b auto
 // OFFSET: 0x006F0F70
 void CMovement_C::OnTurnStartLocal(uint32_t eventTime, int32_t left) {

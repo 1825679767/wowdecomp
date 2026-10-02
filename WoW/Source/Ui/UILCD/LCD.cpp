@@ -314,3 +314,9 @@ void CGLCD::Logout() {
         CGLCD::m_lcd->Update();
     }
 }
+
+// VERIFY: 6c3ba040 auto
+// OFFSET: 0x00847E90
+void LCDHANDLE::SetText(const char* text) {
+    this->m_text.Copy(text);
+}

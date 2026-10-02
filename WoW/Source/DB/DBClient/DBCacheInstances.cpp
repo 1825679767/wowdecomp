@@ -546,6 +546,33 @@ NameCache* DBCache<NameCache, uint64_t, CHashKeyGUID>::GetRecordByName(const cha
     return entry ? entry->m_record : nullptr;
 }
 
+// INLINED
+template <>
+DBCache<PetNameCache, int32_t, HASHKEY_INT>::REVERSEENTRY* DBCache<PetNameCache, int32_t, HASHKEY_INT>::FindReverseEntry(const char* name) {
+    if (this->m_reverse.m_slotmask == 0xFFFFFFFF) {
+        return nullptr;
+    }
+
+    uint32_t hashval = SStrHashHT(name);
+    TSExplicitList<REVERSEENTRY>& list = this->m_reverse.m_slotlistarray[hashval & this->m_reverse.m_slotmask];
+
+    for (REVERSEENTRY* entry = list.Head(); entry; entry = list.Next(entry)) {
+        if (entry->m_hashval == hashval && (entry->m_key.m_str == name || !SStrCmpUTF8I(entry->m_key.m_str, name, STORM_MAX_STR))) {
+            return entry;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: cb2e9c40 auto
+// OFFSET: 0x006701F0
+template <>
+PetNameCache* DBCache<PetNameCache, int32_t, HASHKEY_INT>::GetRecordByName(const char* name) {
+    REVERSEENTRY* entry = this->FindReverseEntry(name);
+    return entry ? entry->m_record : nullptr;
+}
+
 // VERIFY: fd608d3a manual
 // OFFSET: 0x00678F20
 template <>

@@ -31,7 +31,8 @@ int32_t Liquid::s_unk_D43AF8;
 // STATIC: 0x00D43AFC
 int32_t Liquid::s_unk_D43AFC;
 
-// INLINED
+// VERIFY: 96a38663 manual
+// OFFSET: 0x008A32C0
 Liquid::IEnvironment::~IEnvironment() {
 }
 

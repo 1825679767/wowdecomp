@@ -51,6 +51,7 @@ class CGClassTrainer {
 
     static void SetTrainer(const WOWGUID& trainer, int32_t type);
     static void EnterWorld();
+    static void LeaveWorld();
     static void FilterAndSortServices();
     static void RefreshList();
     static void InitializeGame();

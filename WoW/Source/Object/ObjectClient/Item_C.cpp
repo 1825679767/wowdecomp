@@ -310,7 +310,7 @@ CGItem_C::CGItem_C(uint32_t time, const CClientObjCreate& create) : CGObject_C(t
 }
 
 // VERIFY: 6bc496ea manual
-// OFFSET: 0x0070B120
+// OFFSET: [0x0070B120, 0x0070B1F0]
 CGItem_C::~CGItem_C() {
     if (!(this->m_itemFlags & 0x2)) {
         g_itemDBCache.CancelCallback(this->m_obj->m_entryID, &LoadItemCacheCallback, this);

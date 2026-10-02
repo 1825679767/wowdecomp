@@ -565,3 +565,9 @@ void CGBarberShop::ShutdownGame() {
     ClientServices::ClearMessageHandler(SMSG_ENABLE_BARBER_SHOP);
     ClientServices::ClearMessageHandler(SMSG_BARBER_SHOP_RESULT);
 }
+
+// VERIFY: a8bfef3b manual
+// OFFSET: 0x0052F190
+USEABLESTYLE::~USEABLESTYLE() {
+    this->m_styles.Clear();
+}

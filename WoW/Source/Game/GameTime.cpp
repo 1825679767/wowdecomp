@@ -208,3 +208,9 @@ TIMESTAMPCALLBACK* CGameTime::GameTimeRegisterCallback(const WowTime* time, void
     node->m_callback = callback;
     return node;
 }
+
+// VERIFY: 6e0cf24b manual
+// OFFSET: 0x004C9730
+TIMESTAMPSTRUCT::~TIMESTAMPSTRUCT() {
+    this->m_callbacks.Clear();
+}

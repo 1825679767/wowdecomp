@@ -227,3 +227,15 @@ C3Vector operator*(const C3Vector& l, float r) {
     result.z = r * l.z;
     return result;
 }
+
+// VERIFY: ac16577f auto
+// OFFSET: 0x007E2CE0
+void C3Vector::Minimize(const C3Vector& v) {
+    *this = C3Vector::Min(*this, v);
+}
+
+// VERIFY: 1831a383 auto
+// OFFSET: 0x007E2D20
+void C3Vector::Maximize(const C3Vector& v) {
+    *this = C3Vector::Max(*this, v);
+}

@@ -38,6 +38,7 @@ class CGMerchantInfo {
     static bool IsBuybackItem(WOWGUID item);
     static void CloseMerchant();
     static void EnterWorld();
+    static void LeaveWorld();
     static void SortBuybackItems();
     static MerchantItem* FindItemById(int32_t itemId);
     static int32_t GetRepairCost(CGItem_C* item);

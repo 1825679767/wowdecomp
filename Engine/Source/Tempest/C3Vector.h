@@ -31,6 +31,8 @@ class C3Vector {
     C3Vector(const CImVector& color);
     EAxis MajorAxis() const;
     EAxis MinorAxis() const;
+    void Maximize(const C3Vector& v);
+    void Minimize(const C3Vector& v);
     void Normalize();
     void NormalizeSafe();
     float SquaredMag() const;

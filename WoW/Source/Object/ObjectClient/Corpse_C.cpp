@@ -356,3 +356,23 @@ int32_t CorpseDynamicFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint3
 
     return 1;
 }
+
+// VERIFY: 12175e66 auto
+// OFFSET: 0x00706530
+float CGCorpse_C::GetFacing() const {
+    return this->m_passenger.GetFacing(this->m_passenger.m_facing);
+}
+
+// VERIFY: 63ae9671 manual
+// OFFSET: 0x00705850
+void CGCorpse_C::ModelLoaded(CM2Model* model) {
+    this->CGObject_C::ModelLoaded(model);
+
+    if (this->m_corpseFlags & 0x2) {
+        model->SetBoneSequence(0xFFFFFFFF, 132, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+    } else {
+        model->SetBoneSequence(0xFFFFFFFF, 6, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+    }
+
+    this->m_selectionRadius = model->GetBoundingSphere().r * 0.5f;
+}

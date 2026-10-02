@@ -287,6 +287,13 @@ bool Blizzard::Mopaq::SFileGetArchiveName(System_SFile::ARCHIVEREC* handle, char
     return true;
 }
 
+// VERIFY: 77e33064 manual
+// OFFSET: 0x0042BF00
+bool Blizzard::Mopaq::SFileUnloadFile(void* data) {
+    SMemFree(data, __FILE__, __LINE__, 0);
+    return true;
+}
+
 // VERIFY: 678ca972 manual
 // OFFSET: 0x0045A4B0
 bool Blizzard::Mopaq::SFileReadFile(IOMpqUnit* file, void* buffer, uint32_t count, uint32_t* bytesRead) {

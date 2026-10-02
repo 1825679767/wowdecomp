@@ -640,6 +640,21 @@ CSoftFloat CSoftFloat::Ceil(const CSoftFloat& value) {
     return result;
 }
 
+// VERIFY: d339c8ab manual
+// OFFSET: 0x0095D620
+CSoftFloat CSoftFloat::FromRatio(int32_t numerator, int32_t denominator) {
+    CSoftFloat den = CSoftFloat::FromInt(denominator);
+    CSoftFloat num = CSoftFloat::FromInt(numerator);
+
+    if (num.m_bits == den.m_bits) {
+        CSoftFloat result;
+        result.m_bits = 0x3F800000;
+        return result;
+    }
+
+    return num * CSoftFloat::Reciprocal(den);
+}
+
 // VERIFY: 4edb999a auto
 // OFFSET: 0x0095D590
 CSoftFloat CSoftFloat::Round(const CSoftFloat& value) {

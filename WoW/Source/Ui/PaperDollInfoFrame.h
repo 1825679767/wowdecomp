@@ -41,6 +41,7 @@ class CGCharacterInfo {
     static void PickupInventoryItem(int32_t slot);
     static int32_t PutItemInBackpack(uint32_t slot);
     static void EnterWorld();
+    static void LeaveWorld();
     static void SetInspectTarget(const WOWGUID& guid);
     static void InitializeGame();
     static void ShutdownGame();

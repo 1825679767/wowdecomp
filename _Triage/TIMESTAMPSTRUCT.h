@@ -16,6 +16,8 @@ class TIMESTAMPSTRUCT : public TSHashObject<TIMESTAMPSTRUCT, HASHKEY_NONE> {
     public:
     /* 0018 */ TSList<TIMESTAMPCALLBACK, TSGetLink<TIMESTAMPCALLBACK>> m_callbacks;
     /* 0024 */ uint32_t unk_0024[3];
+
+    ~TIMESTAMPSTRUCT();
 };
 
 #endif

@@ -57,6 +57,7 @@ class CGReputationInfo {
     static TSHashTable<FACTION, HASHKEY_NONE> m_factions;
     static uint32_t m_collapsedHeaders;
     static void EnterWorld();
+    static void LeaveWorld();
     static uint32_t AddHeader(int32_t factionId, int32_t parent);
     static uint32_t AddFactionHeader(int32_t factionId);
     static int32_t AddVisibleFaction(uint32_t repListId, int32_t announce);

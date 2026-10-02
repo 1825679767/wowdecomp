@@ -21,6 +21,8 @@
 #include "WoW/Source/WorldClient/CPortalView.h"
 #include "WoW/Source/WorldClient/FrameTime.h"
 #include "WoW/Source/WorldClient/World.h"
+#include "Engine/Source/Gx/CGxBuf.h"
+#include "Engine/Source/Tempest/C2Vector.h"
 
 const char* const SnowFlakeParticleBuffer::s_packetName = ".?AU?$Packet@UFlake@Snow@@$0BIAA@$00@@";
 
@@ -395,6 +397,123 @@ void Snow::RenderPackets() {
         batch.m_minIndex = 0;
         batch.m_maxIndex = 0;
         g_theGxDevicePtr->Draw(&batch, 0);
+    }
+
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 48bcd365 manual
+// OFFSET: 0x0078B370
+void Snow::RenderPacketsSW() {
+    if (!this->m_snowFlakePacketList.m_activePackets.Head()) {
+        return;
+    }
+
+    CGxTex* texture = TextureGetGxTex(this->m_snowFlakeTex, 0, nullptr);
+
+    if (!texture) {
+        return;
+    }
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_BlendingMode, 2);
+    GxRsSet(GxRs_AlphaRef, static_cast<int32_t>(CGxDevice::s_alphaRef[g_theGxDevicePtr->m_appRenderStates.m_data[GxRs_BlendingMode].m_value.m_data.i[0]]));
+    GxRsSet(GxRs_DepthWrite, 0);
+    GxRsSet(GxRs_Lighting, 0);
+    GxRsSet(GxRs_Culling, 0);
+    GxRsSet(GxRs_Fog, 0);
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, texture);
+
+    C44Matrix view;
+    GxXformView(view);
+    float upX = view.a1;
+    float upY = view.b1;
+    float upZ = view.c1;
+    C3Vector corners[3];
+    C3Vector right(view.a0 - upX, view.b0 - upY, view.c0 - upZ);
+    C3Vector left(-view.a0 - upX, -view.b0 - upY, -view.c0 - upZ);
+    float upScale = 1.0f / sqrtf(upZ * upZ + upY * upY + upX * upX);
+    float rightScale = 1.0f / sqrtf(right.y * right.y + right.x * right.x + right.z * right.z);
+    float leftScale = 1.0f / sqrtf(left.x * left.x + left.z * left.z + left.y * left.y);
+    corners[0].x = upX * upScale * 0.083333336f;
+    corners[0].y = upY * upScale * 0.083333336f;
+    corners[0].z = upZ * upScale * 0.083333336f;
+    corners[1].x = right.x * rightScale * 0.083333336f;
+    corners[1].y = right.y * rightScale * 0.083333336f;
+    corners[1].z = right.z * rightScale * 0.083333336f;
+    corners[2].x = left.x * leftScale * 0.083333336f;
+    corners[2].y = left.y * leftScale * 0.083333336f;
+    corners[2].z = 0.083333336f * (leftScale * left.z);
+
+    C3Vector camera = *World::GetCamPos();
+    uint32_t now = CWorld::s_elapsedTicks;
+    CImVector color = World::s_weather->m_color;
+    GxFormatColor(color);
+
+    for (Packet<SnowFlakeParticleBuffer>* packet = this->m_snowFlakePacketList.m_activePackets.Head(); packet; packet = this->m_snowFlakePacketList.m_activePackets.Next(packet)) {
+        if (packet->m_packetStartTick >= now) {
+            continue;
+        }
+
+        float age = (now - packet->m_packetStartTick) * 0.0009765625f;
+        CGxBuf* buf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, 24, 3 * packet->m_currParticle);
+        uint8_t* vertices = reinterpret_cast<uint8_t*>(g_theGxDevicePtr->BufLock(buf));
+        uint32_t vertexCount = 0;
+
+        for (uint32_t i = 0; i < packet->m_currParticle; i++) {
+            static C2Vector s_texCoords[3] = { C2Vector(0.5f, -0.75f), C2Vector(-0.5f, 1.5f), C2Vector(1.5f, 1.5f) };
+            const SnowFlakeParticle& flake = packet->m_particlesBuffer.m_particles[i];
+
+            if (age < flake.m_startTime || flake.m_endTime + 0.25f < age) {
+                continue;
+            }
+
+            float elapsed = (age >= flake.m_endTime ? flake.m_endTime : age) - flake.m_startTime;
+            float faded = age - flake.m_endTime;
+            float fadeTime = faded >= 0.0f ? faded : 0.0f;
+            C3Vector position(flake.m_velocity.x * elapsed + flake.m_position.x, flake.m_velocity.y * elapsed + flake.m_position.y, flake.m_velocity.z * elapsed + flake.m_position.z);
+            float fade = 1.0f - fadeTime * 4.0f;
+            float fadeAlpha = 0.0f;
+
+            if (fade >= 0.0f) {
+                fadeAlpha = fade >= 1.0f ? 1.0f : fade;
+            }
+
+            float alpha = elapsed <= 1.0f ? elapsed : 1.0f;
+
+            if (fadeAlpha < 1.0f) {
+                alpha = fadeAlpha;
+            }
+
+            color.a = static_cast<uint8_t>(static_cast<int32_t>(alpha * 255.0f));
+            C3Vector relative(position.x - camera.x, position.y - camera.y, position.z - camera.z);
+
+            for (uint32_t j = 0; j < 3; j++) {
+                C3Vector* p = reinterpret_cast<C3Vector*>(vertices);
+                p->x = relative.x + corners[j].x;
+                p->y = relative.y + corners[j].y;
+                p->z = relative.z + corners[j].z;
+                *reinterpret_cast<CImVector*>(vertices + 12) = color;
+                *reinterpret_cast<C2Vector*>(vertices + 16) = s_texCoords[j];
+                vertices += 24;
+            }
+
+            vertexCount += 3;
+        }
+
+        g_theGxDevicePtr->BufUnlock(buf, 0);
+        buf->unk_001C = 1;
+
+        if (vertexCount) {
+            GxPrimVertexPtr(buf, GxVBF_PCT);
+            CGxBatch batch;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = 0;
+            batch.m_count = vertexCount;
+            batch.m_minIndex = 0;
+            batch.m_maxIndex = 0;
+            g_theGxDevicePtr->Draw(&batch, 0);
+        }
     }
 
     g_theGxDevicePtr->RsPop();

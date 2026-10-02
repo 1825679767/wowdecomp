@@ -112,8 +112,6 @@ void ComSatClient_Shutdown();
 void UpdatePushToTalkKey();
 int32_t VoiceChat_TickWrapper(const void* data, void* param);
 
-int32_t Script_VoiceGetCurrentOutputDevice(lua_State* L);
-int32_t Script_SetActiveVoiceChannelBySessionID(lua_State* L);
 int32_t Script_GetVoiceSessionMemberInfoBySessionID(lua_State* L);
 
 extern int32_t s_comsatDisabledByClient;

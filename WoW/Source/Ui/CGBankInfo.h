@@ -11,6 +11,7 @@ class CGBankInfo {
     public:
     static void SetBanker(const WOWGUID& banker);
     static void EnterWorld();
+    static void LeaveWorld();
     static WOWGUID m_banker;
 };
 

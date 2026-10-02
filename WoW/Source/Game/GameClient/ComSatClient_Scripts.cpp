@@ -8,6 +8,9 @@
 #include "Engine/Source/Storm/Source/SLock.h"
 #include <cstring>
 
+// STATIC: 0x00D31A8C
+static int32_t s_currentOutputDevice;
+
 // STATIC: 0x00D31A90
 static int32_t s_currentCaptureDevice;
 
@@ -320,6 +323,53 @@ static int32_t Script_GetVoiceStatus(lua_State* L) {
 }
 
 // STATIC: 0x00AF29C0
+// VERIFY: fa0885a1 manual
+// OFFSET: 0x007DAF90
+static int32_t Script_VoiceGetCurrentOutputDevice(lua_State* L) {
+    if (ComSatThread::s_comsat) {
+        lua_pushnumber(L, s_currentOutputDevice);
+    } else {
+        lua_pushnumber(L, -1.0);
+    }
+
+    return 1;
+}
+
+// VERIFY: 1197ff58 manual
+// OFFSET: 0x007DB280
+static int32_t Script_SetActiveVoiceChannelBySessionID(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    int32_t id = static_cast<int32_t>(lua_tonumber(L, 1));
+
+    if (id <= 0) {
+        CGChat::SetActiveVoiceSession(nullptr, 4, -1);
+        lua_pushnumber(L, 1.0);
+        return 1;
+    }
+
+    if (id >= 32) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    int32_t count = 0;
+
+    for (int32_t i = 0; i < 32; i++) {
+        if (s_comsatData[i].m_sessionID && ++count == id) {
+            CGChat::SetActiveVoiceSession(s_comsatData[i].m_name, s_comsatData[i].m_type, -1);
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
 static FrameScript_Method s_ScriptFunctions[] = {
     { "VoiceEnumerateOutputDevices", &Script_VoiceEnumerateOutputDevices },
     { "VoiceEnumerateCaptureDevices", &Script_VoiceEnumerateCaptureDevices },

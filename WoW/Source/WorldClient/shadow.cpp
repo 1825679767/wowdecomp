@@ -23,6 +23,7 @@
 #include "Engine/Source/ShaderEffect/ShaderEffect.h"
 #include "Engine/Source/Tempest/C4Vector.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
+#include "Engine/Source/Tempest/C33Matrix.h"
 
 // STATIC: 0x00AF3E08
 int32_t s_shadowLOD = 1;
@@ -240,6 +241,102 @@ void CWorldScene::RequestModelStreaming(CM2Model* model, const CAaBox* box) {
     if (model && model->IsDrawable(0, 0) && !(model->m_fFlags & 0x4000) && !box->IsEmpty() && s_cvExtShadowQuality->m_intValue <= 0 && s_shadowLOD == 1) {
         CWorldScene::RenderStreamingRequestDecal(model, box, 0.4f);
     }
+}
+
+// STATIC: 0x00AF3E14
+static float s_decalDepthBelow = 1.6666666f;
+
+// STATIC: 0x00AF3E18
+static float s_decalDepthAbove = 1.0f;
+
+// VERIFY: e1de2e5e manual
+// OFFSET: 0x007E4480
+void CWorldScene::RenderStreamingRequestDecal(CM2Model* model, const CAaBox* box, float scale) {
+    if (!(box->b.x <= box->t.x || box->b.y <= box->t.y || box->b.z <= box->t.z)) {
+        return;
+    }
+
+    float halfX = (box->t.x - box->b.x) * 0.5f;
+    float halfY = 0.5f * (box->t.y - box->b.y);
+
+    if (fabs(halfX) < 0.00000023841858f || fabs(halfY) < 0.00000023841858f || fabs(box->t.z - box->b.z) < 0.00000023841858f) {
+        return;
+    }
+
+    CAaBox local;
+    local.b.x = -halfX;
+    local.b.y = -halfY;
+    local.b.z = box->b.z;
+    local.t.x = halfX;
+    local.t.y = halfY;
+    local.t.z = box->t.z;
+    C44Matrix transform = model->m_worldTransform;
+    float modelScale = sqrt(transform.a0 * transform.a0 + transform.a1 * transform.a1 + transform.a2 * transform.a2);
+    local *= modelScale;
+    local.b.Minimize(C3Vector(5.0f, 5.0f, 5.0f));
+    local.b.Maximize(C3Vector(-5.0f, -5.0f, -5.0f));
+    local.t.Minimize(C3Vector(5.0f, 5.0f, 5.0f));
+    local.t.Maximize(C3Vector(-5.0f, -5.0f, -5.0f));
+    float halfZ = (local.t.z - local.b.z) * 0.5f;
+    C33Matrix rotation(transform);
+
+    if (!fequal(modelScale, 1.0f)) {
+        float inverse = 1.0f / modelScale;
+        rotation.Scale(C3Vector(inverse, inverse, inverse));
+    }
+
+    C3Vector corners[4];
+    corners[0] = C3Vector(local.t.x, local.t.y, 0.0f) * rotation;
+    corners[1] = C3Vector(local.t.x, local.b.y, 0.0f) * rotation;
+    corners[2] = C3Vector(local.b.x, local.b.y, 0.0f) * rotation;
+    corners[3] = C3Vector(local.b.x, local.t.y, 0.0f) * rotation;
+    CAaBox bounds = CAaBox::Bounding(corners, 4);
+    bounds.b.x += transform.d0;
+    bounds.b.y += transform.d1;
+    bounds.t.x += transform.d0;
+    bounds.t.y += transform.d1;
+    bounds.b.z = transform.d2 - s_decalDepthBelow * halfZ;
+    bounds.t.z = transform.d2 + halfZ * s_decalDepthAbove;
+
+    C33Matrix boundsScale(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+    boundsScale.Scale(C3Vector(bounds.t.y - bounds.b.y, bounds.t.x - bounds.b.x, 1.0f));
+    C33Matrix localScale(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+    localScale.Scale(1.0f / fabs(local.t.y - local.b.y), 1.0f / fabs(local.t.x - local.b.x), 1.0f);
+    C33Matrix transpose(rotation.a0, rotation.b0, rotation.c0, rotation.a1, rotation.b1, rotation.c1, rotation.a2, rotation.b2, rotation.c2);
+    C44Matrix projection(boundsScale * transpose * localScale);
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_BlendingMode, 4);
+    GxUpdateAlphaRef(GxRs_AlphaRef);
+    GxRsSet(GxRs_Lighting, 0);
+    GxRsSet(GxRs_Fog, 0);
+    GxRsSet(GxRs_DepthWrite, 0);
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, TextureGetGxTex(s_shadowBlobTexture, 1, nullptr));
+    GxRsSet(GxRs_FogColor, static_cast<int32_t>(0xFFFFFFFF));
+    GxRsSet(GxRs_ColorOp0, 5);
+    GxRsSet(GxRs_AlphaOp0, 3);
+    float alpha = 0.0f;
+
+    if (0.0f == scale) {
+        GxRsSet(GxRs_DepthFunc, 1);
+        alpha = 0.0f;
+    }
+
+    if (model->m_fadeAlpha >= alpha) {
+        alpha = model->m_fadeAlpha;
+
+        if (alpha > 1.0f) {
+            alpha = 1.0f;
+        }
+    }
+
+    CImVector color;
+    color.b = 0xFF;
+    color.g = 0xFF;
+    color.r = 0xFF;
+    color.a = static_cast<uint8_t>(static_cast<int32_t>(alpha * 255.0f + 0.5f));
+    ProjectTex::Render2d(bounds, color, &projection, 0.5f, 0x220122, 0, scale);
+    g_theGxDevicePtr->RsPop();
 }
 
 // VERIFY: 5c146ae6 auto

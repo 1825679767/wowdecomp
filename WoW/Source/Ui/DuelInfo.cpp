@@ -182,3 +182,14 @@ void CGDuelInfo::ShutdownGame() {
     ClientServices::ClearMessageHandler(SMSG_DUEL_COMPLETE);
     ClientServices::ClearMessageHandler(SMSG_DUEL_WINNER);
 }
+
+// VERIFY: d4b09e29 auto
+// OFFSET: 0x005CFA10
+void CGDuelInfo::LeaveWorld() {
+    s_duelArbiter = WOWGUID();
+
+    if (s_countdownTimer) {
+        ClientKillTimer(s_countdownTimer, CGDuelInfo::ProcessCountdown, "ProcessCountdown");
+        s_countdownTimer = 0;
+    }
+}

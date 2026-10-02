@@ -301,6 +301,12 @@ void SHA1::Process(const void* _data, uint32_t length) {
     }
 }
 
+// VERIFY: 6e49fbc0 auto
+// OFFSET: 0x006CA240
+void SHA1::Process(const char* string) {
+    this->Process(string, static_cast<uint32_t>(strlen(string)));
+}
+
 // VERIFY: 41a87762 manual
 // OFFSET: 0x006CA270
 void SHA1::Finish(SHA1::Digest& digest) {

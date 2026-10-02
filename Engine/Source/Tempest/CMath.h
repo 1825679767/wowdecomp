@@ -34,6 +34,7 @@ class CSoftFloat {
     static uint32_t CountLeadingZeros(uint32_t value);
     static CSoftFloat Floor(const CSoftFloat& value);
     static CSoftFloat FromInt(int32_t value);
+    static CSoftFloat FromRatio(int32_t numerator, int32_t denominator);
     static CSoftFloat Reciprocal(const CSoftFloat& value);
     static CSoftFloat Round(const CSoftFloat& value);
 

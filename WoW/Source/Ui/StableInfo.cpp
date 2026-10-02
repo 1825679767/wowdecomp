@@ -187,3 +187,9 @@ void CGStableInfo::ShutdownGame() {
     ClientServices::ClearMessageHandler(MSG_LIST_STABLED_PETS);
     ClientServices::ClearMessageHandler(SMSG_STABLE_RESULT);
 }
+
+// VERIFY: 37d7284c auto
+// OFFSET: 0x005A1160
+void CGStableInfo::LeaveWorld() {
+    CGStableInfo::CloseStables(false);
+}

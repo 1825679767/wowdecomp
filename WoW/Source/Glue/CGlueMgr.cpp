@@ -758,6 +758,105 @@ bool CGlueMgr::AgreementsURLCallback(void* param, const char* data, uint32_t siz
     return true;
 }
 
+// VERIFY: 644e39b6 manual
+// OFFSET: 0x004D7940
+void ProcessAgreement(SFileImpl* file, const char* name, CVar* cvar, bool localized) {
+    char path[264];
+    SStrCopy(path, "data", STORM_MAX_STR);
+    SStrPack(path, "\\", STORM_MAX_STR);
+
+    if (localized) {
+        SStrPack(path, s_localeCode, STORM_MAX_STR);
+        SStrPack(path, "\\", STORM_MAX_STR);
+    }
+
+    SStrPack(path, name, STORM_MAX_STR);
+
+    void* existing = nullptr;
+    uint32_t existingSize = 0;
+
+    if (OsFileExists(path)) {
+        HOSFILE input = OsCreateFile(path, OS_GENERIC_READ, 3, OS_OPEN_EXISTING, OS_FILE_ATTRIBUTE_NORMAL, OS_FILE_TYPE_ANY);
+
+        if (input != OS_INVALID_FILE) {
+            uint32_t size = static_cast<uint32_t>(OsGetFileSize(input));
+            existing = SMemAlloc(size, __FILE__, __LINE__, 0);
+
+            if (existing) {
+                OsReadFile(input, existing, size, &existingSize);
+            }
+
+            OsCloseFile(input);
+        }
+    }
+
+    uint32_t size = SFileGetFileSize(file, nullptr);
+    void* data = SMemAlloc(size, __FILE__, __LINE__, 0);
+
+    if (!data) {
+        if (existing) {
+            SMemFree(existing, __FILE__, __LINE__, 0);
+        }
+
+        return;
+    }
+
+    uint32_t read = 0;
+
+    if (!SFileReadFile(file, data, size, &read, nullptr, 0)) {
+        SMemFree(data, __FILE__, __LINE__, 0);
+
+        if (existing) {
+            SMemFree(existing, __FILE__, __LINE__, 0);
+        }
+
+        return;
+    }
+
+    if (existingSize == read && !memcmp(existing, data, existingSize)) {
+        SMemFree(data, __FILE__, __LINE__, 0);
+
+        if (existing) {
+            SMemFree(existing, __FILE__, __LINE__, 0);
+        }
+
+        return;
+    }
+
+    if (existing) {
+        SMemFree(existing, __FILE__, __LINE__, 0);
+    }
+
+    if (OsFileExists(path) && !OsDeleteFile(path)) {
+        SMemFree(data, __FILE__, __LINE__, 0);
+        return;
+    }
+
+    HOSFILE output = OsCreateFile(path, OS_GENERIC_WRITE, 0, OS_CREATE_ALWAYS, OS_FILE_ATTRIBUTE_NORMAL, OS_FILE_TYPE_ANY);
+
+    if (output == OS_INVALID_FILE) {
+        SMemFree(data, __FILE__, __LINE__, 0);
+        return;
+    }
+
+    uint32_t written = 0;
+
+    if (!OsWriteFile(output, data, read, &written) || read != written) {
+        SMemFree(data, __FILE__, __LINE__, 0);
+        OsCloseFile(output);
+        return;
+    }
+
+    SMemFree(data, __FILE__, __LINE__, 0);
+    OsCloseFile(output);
+
+    if (cvar->m_intValue >= 1) {
+        cvar->Set("-1", true, false, false, true);
+    } else {
+        cvar->Set("-2", true, false, false, true);
+    }
+}
+
 // VERIFY: 42fb8ddc manual
 // OFFSET: 0x004DB9F0
 void CGlueMgr::Initialize() {

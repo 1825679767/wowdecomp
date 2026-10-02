@@ -127,6 +127,12 @@ void CGDynamicObject_C::ShouldRender(uint32_t flags, int32_t& render, int32_t& a
     }
 }
 
+// VERIFY: 4e1858a9 auto
+// OFFSET: 0x00706530
+float CGDynamicObject_C::GetFacing() const {
+    return this->m_passenger.GetFacing(this->m_passenger.m_facing);
+}
+
 // VERIFY: 7501382d manual
 // OFFSET: 0x007064E0
 C3Vector CGDynamicObject_C::GetPosition() const {

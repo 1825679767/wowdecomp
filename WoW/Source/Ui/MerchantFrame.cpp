@@ -256,3 +256,10 @@ void CGMerchantInfo::UpdateItemQuantity(WOWGUID merchant, int32_t slot, int32_t 
 
     FrameScript_SignalEvent(SCRIPT_EVENT_MERCHANT_UPDATE, nullptr);
 }
+
+// VERIFY: ff887f91 auto
+// OFFSET: 0x00585FE0
+void CGMerchantInfo::LeaveWorld() {
+    CGMerchantInfo::CloseMerchant();
+    ClntObjMgrUnsetObjMirrorHandler(ClntObjMgrGetActivePlayer(), ID_PLAYER, offsetof(CGPlayerLocalData, m_playerFieldBuybackPrice1), BuybackUpdateHandler, nullptr);
+}

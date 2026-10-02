@@ -18,6 +18,7 @@ class SHA1 {
 
     void Prepare();
     void Process(const void* data, uint32_t length);
+    void Process(const char* string);
     void Finish(SHA1::Digest& digest);
 };
 
@@ -61,7 +62,8 @@ void HMAC<T>::Init(const uint8_t* key, uint32_t length) {
     this->m_hash.Process(this->m_innerPad, sizeof(this->m_innerPad));
 }
 
-// INLINED
+// VERIFY: 05f98492 auto
+// OFFSET: 0x00465780
 template <class T>
 void HMAC<T>::Finish(typename T::Digest& digest) {
     typename T::Digest inner;

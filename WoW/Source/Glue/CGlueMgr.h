@@ -9,6 +9,8 @@
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/WowServices/Types.h"
 
+class CVar;
+class SFileImpl;
 class CDataStore;
 struct CHARACTER_CREATE_INFO;
 class CHARACTER_INFO;
@@ -176,5 +178,6 @@ extern const uint8_t InterfaceKey[256];
 
 void CancelRealmListQuery();
 CharacterSelectionDisplay* GetCharacterInfo(int32_t index);
+void ProcessAgreement(SFileImpl* file, const char* name, CVar* cvar, bool localized);
 
 #endif

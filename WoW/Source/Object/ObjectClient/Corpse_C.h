@@ -29,6 +29,8 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
     int32_t ShouldFadeout() override;
     float GetTrueScale() const override;
     int32_t CanHighlight() const override;
+    float GetFacing() const override;
+    void ModelLoaded(CM2Model* model) override;
 
     CGCorpse_C(uint32_t time, const CClientObjCreate& create);
     void ApplyGuildColor(int32_t request);

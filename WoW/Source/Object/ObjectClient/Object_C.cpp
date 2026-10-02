@@ -1271,7 +1271,7 @@ void CGObject_C::ClearEffectList(int32_t all) {
 }
 
 // VERIFY: 82510f34 manual
-// OFFSET: 0x00745F90
+// OFFSET: [0x004D6010, 0x00745F90]
 CGObject_C::~CGObject_C() {
     if (this->m_worldObject) {
         World::ObjectDestroy(this->m_worldObject);

@@ -2,8 +2,10 @@
 #include "WoW/Source/Object/GameObjectDef.h"
 #include "WoW/Source/Object/GameObjectStats.h"
 #include "Engine/Source/Tempest/C4Quaternion.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Ui/Types.h"
 
 // VERIFY: a7465a7c manual
 // OFFSET: 0x0070C6A0
@@ -68,6 +70,44 @@ bool CGGameObject_C_Type_Chair::CanUse() const {
     }
 
     return true;
+}
+
+// VERIFY: c5c874e1 manual
+// OFFSET: 0x00711DB0
+bool CGGameObject_C_Type_Chair::CanUseNow(GAME_ERROR_TYPE* error, float* distance, const char** errorText) const {
+    if (!CGGameObject_C_TypeBase::CanUseNow(error, distance, errorText)) {
+        return false;
+    }
+
+    float rangeSquared = this->m_interactDistance * this->m_interactDistance;
+
+    if (distance) {
+        *distance = this->m_interactDistance;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+    uint32_t count;
+
+    if (player && (count = this->GetNumSlots()) != 0) {
+        while (count) {
+            count--;
+            C3Vector slot = this->m_owner->m_passenger.GetPosition(this->m_slots[count]);
+            C3Vector position = player->GetPosition();
+            float dx = position.x - slot.x;
+            float dy = position.y - slot.y;
+            float dz = position.z - slot.z;
+
+            if (dx * dx + dz * dz + dy * dy < rangeSquared) {
+                return true;
+            }
+        }
+    }
+
+    if (error) {
+        *error = static_cast<GAME_ERROR_TYPE>(ERR_USE_TOO_FAR);
+    }
+
+    return false;
 }
 
 // VERIFY: 9259c9d2 manual

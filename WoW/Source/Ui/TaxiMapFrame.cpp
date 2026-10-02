@@ -697,3 +697,10 @@ void CGTaxiMap::ShutdownGame() {
     s_pathNodes.InternalClear(0);
     CGTaxiMap::FreeRouteLines();
 }
+
+// VERIFY: 93b0ba02 auto
+// OFFSET: 0x00591AC0
+void CGTaxiMap::LeaveWorld() {
+    CGTaxiMap::FreeRouteLines();
+    CGTaxiMap::CloseMap();
+}

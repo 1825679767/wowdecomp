@@ -244,6 +244,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void PlayFoleySound() override;
     const CGUnitVirtualItem* GetVirtualItem(uint32_t slot, bool ignoreDisarm) const override;
     uint32_t GetVirtualItemDisplayID(uint32_t slot) const override;
+    int32_t GetVirtualItemDisplayRec(uint32_t slot, ItemDisplayInfoRec& rec) const override;
     int32_t GetSpellRank(const SpellRec* spell) const override;
     void GetDefenseSkillRank(int32_t& rank, int32_t& bonus) const override;
     void GetAttackSkillRank(int32_t hand, int32_t& rank, int32_t& bonus) const override;
@@ -380,6 +381,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void ClearLootingObject();
     void LootCorpse(CGCorpse_C* corpse, bool autoInteract);
     static int32_t GetLootItem(uint32_t slot);
+    static void ClearLootItemSlotType(WOWGUID lootObject, uint32_t slot);
     static int32_t GetLootItemDisplayId(uint32_t slot);
     static int32_t GetLootItemCount(uint32_t slot);
     static int32_t GetLootItemRandomSuffix(uint32_t slot);

@@ -98,6 +98,15 @@ void LoginResponse::UpdateLoginStatus(LOGIN_STATE state, LOGIN_RESULT result, co
     this->LoginServerStatus(state, result, addressString, stateString, resultString, flags);
 }
 
+// VERIFY: 070438dd auto
+// OFFSET: 0x00465550
+void Login::GetFileStatus(const char* fileName, uint64_t size, const uint8_t* md5) {
+    this->m_fileSize = size;
+    SStrCopy(this->m_fileName, fileName, sizeof(this->m_fileName));
+    memcpy(this->m_fileMD5, md5, sizeof(this->m_fileMD5));
+    this->m_loginResponse->UpdateLoginStatus(LOGIN_STATE_DOWNLOADFILE, LOGIN_OK, nullptr, 0);
+}
+
 // VERIFY: c69b7588 auto
 // OFFSET: 0x00465520
 bool Login::OnlineIdle() {

@@ -24,7 +24,7 @@ EvtContext::EvtContext(uint32_t flags, uint32_t idleTime, uint32_t schedWeight, 
 }
 
 // VERIFY: a33f23a6 manual
-// OFFSET: 0x0047F6C0
+// OFFSET: [0x0047F6C0, 0x0047F920]
 EvtContext::~EvtContext() {
     for (uint32_t i = 0; i < EVENTIDS; i++) {
         this->m_queueHandlerList[i].Clear();

@@ -18,6 +18,8 @@
 #include "WoW/Source/Game/GameClient/PassFogSeed.h"
 #include "WoW/Source/Game/GameClient/PassPropagateFog.h"
 #include "WoW/Source/Game/GameClient/PassFogCombine.h"
+#include "WoW/Source/WorldClient/FrameTime.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
 
 // STATIC: 0x00D38140
 static uint32_t* s_seedTexels;
@@ -72,7 +74,7 @@ PassDeath::PassDeath(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBle
 }
 
 // VERIFY: 5970ea32 manual
-// OFFSET: 0x007E8770
+// OFFSET: [0x007E8770, 0x007E9920]
 PassDeath::~PassDeath() {
     for (uint32_t i = 0; i < sizeof(this->m_shaders) / sizeof(this->m_shaders[0]); i++) {
         if (this->m_shaders[i]) {
@@ -85,6 +87,43 @@ PassDeath::~PassDeath() {
 // OFFSET: 0x007E8920
 PassDeathNVRC::PassDeathNVRC(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk) : FFX::Pass(inputs, count, output, blend, unk) {
     g_theGxDevicePtr->ShaderCreate(&this->m_shader, GxSh_Pixel, "Shaders\\Pixel", "FFXDeath_nvrc", 1);
+}
+
+// VERIFY: b3213b19 manual
+// OFFSET: 0x007E9950
+PassDeathNVRC::~PassDeathNVRC() {
+    if (this->m_shader) {
+        g_theGxDevicePtr->ShaderDestroy(this->m_shader);
+    }
+}
+
+// VERIFY: 7ab3fdf0 manual
+// OFFSET: 0x007E8970
+bool PassDeathNVRC::Valid() {
+    return this->m_shader && this->m_shader->Valid();
+}
+
+// VERIFY: 45689fc4 manual
+// OFFSET: 0x007E99A0
+void PassDeathNVRC::Execute() {
+    FFX::SetupGx(this->m_output);
+    FFX::SetupGeo_Quad(this->m_output->m_size, this->m_inputs[0]->m_size, this->m_inputs[0]->m_texSize, FFX::s_gridPos, FFX::s_gridTex, this->unk_002C);
+
+    CImVector color;
+    color.b = 0xA8;
+    color.g = 0x93;
+    color.r = 0x53;
+    color.a = 0xFF;
+    GxPrimVertexPtr(4, FFX::s_gridPos, sizeof(C3Vector), nullptr, 0, &color, 0, FFX::s_gridTex, sizeof(C2Vector), nullptr, 0);
+    GxPrimIndexPtr(4, FFX::s_quadIndices);
+
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, TextureGetGxTex(this->m_inputs[0]->m_texture, 1, nullptr));
+    g_theGxDevicePtr->RsSet(GxRs_PixelShader, this->m_shader);
+    GxRsSet(GxRs_BlendingMode, this->m_blend);
+    GxUpdateAlphaRef(GxRs_AlphaRef);
+    g_theGxDevicePtr->Draw(&FFX::s_quadBatch, 1);
+
+    FFX::SetupReset();
 }
 
 // VERIFY: 22ef7cce manual
@@ -368,4 +407,139 @@ EffectSwirlingFog::~EffectSwirlingFog() {
     this->m_seedTex.m_size.y = 0;
     this->m_seedTex.m_texelSize.x = 0.0f;
     this->m_seedTex.m_texelSize.y = 0.0f;
+}
+
+// STATIC: 0x00D38150
+static float s_netherBlurPhase;
+
+// VERIFY: 487db931 manual
+// OFFSET: 0x007E9B10
+void PassNetherBlur::Execute() {
+    float scale = 8.0f;
+    float elapsed = FrameTime::s_tickTimeSec;
+    s_netherBlurPhase = static_cast<float>(fmod(elapsed + elapsed + s_netherBlurPhase, 6.2831854820251465));
+
+    const C44Matrix* view = FFX::GetOldViewMtx();
+    float x = (view->c0 + view->b0) * 0.0f + view->a0;
+    float y = (view->c1 + view->b1) * 0.0f + view->a1;
+    float z = (view->c2 + view->b2) * 0.0f + view->a2;
+
+    if (fabs(z) > 0.000099999997f) {
+        float inv = 1.0f / z;
+        x *= inv;
+        y *= inv;
+    }
+
+    float invLength = 1.0f / sqrt(y * y + x * x);
+    x *= invLength;
+    y *= invLength;
+
+    float angle = static_cast<float>(acos(x));
+
+    if (y < 0.0f) {
+        angle = 6.2831855f - angle;
+    }
+
+    angle = static_cast<float>(cos(s_netherBlurPhase) * 0.5f + angle);
+
+    if (this->unk_0280 > 1.0f) {
+        this->unk_0280 = static_cast<float>(fmod(this->unk_0280, 1.0));
+        float* oldest = this->m_noiseTables[0];
+        this->m_noiseTables[0] = this->m_noiseTables[1];
+        this->m_noiseTables[1] = this->m_noiseTables[2];
+        this->m_noiseTables[2] = oldest;
+
+        for (uint32_t i = 0; i < 36; i++) {
+            uint32_t bits = (CRandom::uint32_(this->m_seed) & 0x7FFFFF) | 0x3F800000;
+            float random = *reinterpret_cast<float*>(&bits) - 1.0f;
+            this->m_noiseTables[2][i] = static_cast<float>(fmod(random + random - 1.0f, 1.0));
+        }
+    }
+
+    for (uint32_t i = 0; i < 36; i++) {
+        this->unk_01E4[i] = (1.0f - this->unk_0280) * this->m_noiseTables[0][i] + this->m_noiseTables[1][i] * this->unk_0280;
+    }
+
+    this->unk_0280 = elapsed * 1.5f + this->unk_0280;
+
+    FFX::SetupGx(this->m_output);
+
+    if (!FFX::s_useRECT) {
+        FFX::SetupGeo_Grid(this->m_output->m_size, this->m_inputs[0]->m_size, this->m_inputs[0]->m_texSize, FFX::s_gridPos, FFX::s_gridTex, 6, this->unk_002C);
+        FFX::SetupVB_PCT(36, FFX::s_gridPos, FFX::s_gridTex, this->unk_01E4);
+    }
+
+    g_theGxDevicePtr->PrimVertexMask(0x51);
+    FFX::SetupIB(6, 6);
+    g_theGxDevicePtr->RsSet(GxRs_VertexShader, this->m_vertexShader);
+    g_theGxDevicePtr->RsSet(GxRs_PixelShader, this->m_pixelShaders[this->m_useRect]);
+
+    float constants[4];
+    constants[0] = angle;
+    constants[1] = 0.0f;
+    constants[2] = 0.0f;
+    constants[3] = 0.0f;
+    g_theGxDevicePtr->ShaderConstantsSet(GxSh_Vertex, 0, constants, 1);
+
+    if (FFX::s_useRECT) {
+        scale = 4.0f;
+        constants[0] = 4.0f;
+        constants[1] = 4.0f;
+    } else {
+        constants[0] = 8.0f * this->m_inputs[0]->m_texelSize.x;
+        constants[1] = this->m_inputs[0]->m_texelSize.y * 8.0f;
+    }
+
+    constants[2] = 0.0f;
+    constants[3] = 0.0f;
+    g_theGxDevicePtr->ShaderConstantsSet(GxSh_Vertex, 1, constants, 1);
+
+    float convergence = g_theGxDevicePtr->StereoGetConvergence();
+    g_theGxDevicePtr->ShaderConstantsSet(GxSh_Vertex, 2, &convergence, 1);
+
+    CGxTex* target = TextureGetGxTex(FFX::s_quart[1].m_texture, 1, nullptr);
+    GxRsSet(GxRs_ScissorTest, 0);
+    g_theGxDevicePtr->DeviceSetRenderTarget(GxBuffers_Color, target, 0);
+    GxXformSetViewport(0.0f, static_cast<float>(FFX::s_quart[1].m_size.x) / FFX::s_quart[1].m_texSize.x, 0.0f, static_cast<float>(FFX::s_quart[1].m_size.y) / FFX::s_quart[1].m_texSize.y, 0.0f, 1.0f);
+    GxSceneClear(1, CImVector(0xFF, 0xFF, 0xFF, 0xFF));
+
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, TextureGetGxTex(this->m_inputs[0]->m_texture, 1, nullptr));
+    g_theGxDevicePtr->RsSet(GxRs_Texture1, TextureGetGxTex(this->m_inputs[0]->m_texture, 1, nullptr));
+    g_theGxDevicePtr->RsSet(GxRs_Texture2, TextureGetGxTex(this->m_inputs[0]->m_texture, 1, nullptr));
+    g_theGxDevicePtr->RsSet(GxRs_Texture3, TextureGetGxTex(this->m_inputs[0]->m_texture, 1, nullptr));
+
+    if (FFX::s_useRECT) {
+        FFX::SetupGeo_Grid(FFX::s_quart[1].m_size, this->m_inputs[0]->m_size, this->m_inputs[0]->m_texSize, FFX::s_gridPos, FFX::s_gridTex, 6, this->unk_002C);
+        FFX::SetupVB_PCT(36, FFX::s_gridPos, FFX::s_gridTex, this->unk_01E4);
+    }
+
+    g_theGxDevicePtr->Draw(&FFX::s_gridBatch, 1);
+
+    target = TextureGetGxTex(this->m_output->m_texture, 1, nullptr);
+    GxRsSet(GxRs_ScissorTest, 0);
+    g_theGxDevicePtr->DeviceSetRenderTarget(GxBuffers_Color, target, 0);
+    GxXformSetViewport(0.0f, static_cast<float>(this->m_output->m_size.x) / this->m_output->m_texSize.x, 0.0f, static_cast<float>(this->m_output->m_size.y) / this->m_output->m_texSize.y, 0.0f, 1.0f);
+    GxSceneClear(1, CImVector(0xFF, 0xFF, 0xFF, 0xFF));
+
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, TextureGetGxTex(FFX::s_quart[1].m_texture, 1, nullptr));
+    g_theGxDevicePtr->RsSet(GxRs_Texture1, TextureGetGxTex(FFX::s_quart[1].m_texture, 1, nullptr));
+    g_theGxDevicePtr->RsSet(GxRs_Texture2, TextureGetGxTex(FFX::s_quart[1].m_texture, 1, nullptr));
+    g_theGxDevicePtr->RsSet(GxRs_Texture3, TextureGetGxTex(FFX::s_quart[1].m_texture, 1, nullptr));
+
+    if (FFX::s_useRECT) {
+        constants[0] = 0.0f;
+        constants[1] = 0.0f;
+        constants[2] = 0.0f;
+        constants[3] = 0.0f;
+        constants[0] = this->m_inputs[0]->m_texelSize.x / FFX::s_quart[1].m_texelSize.x * scale;
+        constants[1] = scale * (this->m_inputs[0]->m_texelSize.y / FFX::s_quart[1].m_texelSize.y);
+        constants[2] = 0.0f;
+        constants[3] = 0.0f;
+        g_theGxDevicePtr->ShaderConstantsSet(GxSh_Vertex, 1, constants, 1);
+        FFX::SetupGeo_Grid(this->m_output->m_size, FFX::s_quart[1].m_size, FFX::s_quart[1].m_texSize, FFX::s_gridPos, FFX::s_gridTex, 6, this->unk_002C);
+        FFX::SetupVB_PCT(36, FFX::s_gridPos, FFX::s_gridTex, this->unk_01E4);
+    }
+
+    g_theGxDevicePtr->Draw(&FFX::s_gridBatch, 1);
+    FFX::SetupReset();
 }

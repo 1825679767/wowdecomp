@@ -654,6 +654,6 @@ CGNamePlateFrame::CGNamePlateFrame(CSimpleFrame* parent) : CSimpleFrame(parent),
 }
 
 // VERIFY: 44471dc3 manual
-// OFFSET: 0x0098FFE0
+// OFFSET: [0x0098FFE0, 0x00990030]
 CGNamePlateFrame::~CGNamePlateFrame() {
 }

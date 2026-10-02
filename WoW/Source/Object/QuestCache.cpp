@@ -1,5 +1,6 @@
 #include "QuestCache.h"
 #include "Engine/Source/Base/CDataStore.h"
+#include "Engine/Source/Storm/H/storm.h"
 
 // VERIFY: 43c9bc4a manual
 // OFFSET: 0x00634E70
@@ -260,4 +261,82 @@ void QuestCache::Unpack(CDataStore* msg) {
     for (uint32_t i = 0; i < 4; i++) {
         msg->GetString(this->m_objectiveText[i], 0x7FFFFFFF);
     }
+}
+
+// VERIFY: 7c3f82e4 auto
+// OFFSET: 0x00668170
+QuestCache& QuestCache::operator=(const QuestCache& source) {
+    this->m_id = source.m_id;
+    this->m_method = source.m_method;
+    this->m_level = source.m_level;
+    this->m_requiredLevel = source.m_requiredLevel;
+    this->m_areaIdOrSortId = source.m_areaIdOrSortId;
+    this->m_infoId = source.m_infoId;
+    this->m_suggestedPlayers = source.m_suggestedPlayers;
+    this->m_friendlyFactionId = source.m_friendlyFactionId;
+    this->m_friendlyFactionAmount = source.m_friendlyFactionAmount;
+    this->m_hostileFactionId = source.m_hostileFactionId;
+    this->m_hostileFactionAmount = source.m_hostileFactionAmount;
+    this->m_nextQuestId = source.m_nextQuestId;
+    this->m_xPId = source.m_xPId;
+    this->m_rewardMoney = source.m_rewardMoney;
+    this->m_rewardMoneyInsteadOfXp = source.m_rewardMoneyInsteadOfXp;
+    this->m_rewardSpellId = source.m_rewardSpellId;
+    this->m_effectOnPlayer = source.m_effectOnPlayer;
+    this->m_rewardHonor = source.m_rewardHonor;
+    this->m_rewardHonorBonus = source.m_rewardHonorBonus;
+    this->m_startingItemId = source.m_startingItemId;
+    this->m_flags = source.m_flags;
+    this->m_rewardTitleId = source.m_rewardTitleId;
+    this->m_requiredPlayersKilled = source.m_requiredPlayersKilled;
+    this->m_rewardTalentPoints = source.m_rewardTalentPoints;
+    this->m_rewardArenaPoints = source.m_rewardArenaPoints;
+    this->unk_28E0 = source.unk_28E0;
+
+    for (uint32_t i = 0; i < 5; i++) {
+        this->m_rewardReputationFaction[i] = source.m_rewardReputationFaction[i];
+    }
+
+    for (uint32_t i = 0; i < 5; i++) {
+        this->m_factionRewardId[i] = source.m_factionRewardId[i];
+    }
+
+    for (uint32_t i = 0; i < 5; i++) {
+        this->m_rewardReputationOverride[i] = source.m_rewardReputationOverride[i];
+    }
+
+    for (uint32_t i = 0; i < 4; i++) {
+        this->m_rewardItem[i] = source.m_rewardItem[i];
+        this->m_rewardItemCount[i] = source.m_rewardItemCount[i];
+    }
+
+    for (uint32_t i = 0; i < 6; i++) {
+        this->m_rewardChoiceItem[i] = source.m_rewardChoiceItem[i];
+        this->m_rewardChoiceItemCount[i] = source.m_rewardChoiceItemCount[i];
+    }
+
+    this->m_pointMapId = source.m_pointMapId;
+    this->m_pointX = source.m_pointX;
+    this->m_pointY = source.m_pointY;
+    this->m_pointOptional = source.m_pointOptional;
+    SStrCopy(this->m_name, source.m_name, sizeof(this->m_name));
+    SStrCopy(this->m_objText, source.m_objText, sizeof(this->m_objText));
+    SStrCopy(this->m_description, source.m_description, sizeof(this->m_description));
+    SStrCopy(this->m_endText, source.m_endText, sizeof(this->m_endText));
+    SStrCopy(this->m_completionText, source.m_completionText, sizeof(this->m_completionText));
+
+    for (uint32_t i = 0; i < 4; i++) {
+        this->m_objectiveId[i] = source.m_objectiveId[i];
+        this->m_objectiveRequiredCount[i] = source.m_objectiveRequiredCount[i];
+        this->m_intermediateItemId[i] = source.m_intermediateItemId[i];
+        this->m_intermediateItemCount[i] = source.m_intermediateItemCount[i];
+        SStrCopy(this->m_objectiveText[i], source.m_objectiveText[i], sizeof(this->m_objectiveText[i]));
+    }
+
+    for (uint32_t i = 0; i < 6; i++) {
+        this->m_collectItemId[i] = source.m_collectItemId[i];
+        this->m_collectItemCount[i] = source.m_collectItemCount[i];
+    }
+
+    return *this;
 }

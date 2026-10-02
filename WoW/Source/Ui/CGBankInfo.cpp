@@ -34,3 +34,9 @@ void CGBankInfo::SetBanker(const WOWGUID& banker) {
     CGGameUI::ClearInteractTarget(CGBankInfo::m_banker, 0);
     CGBankInfo::m_banker = WOWGUID();
 }
+
+// VERIFY: adbb2d02 auto
+// OFFSET: 0x0057BA90
+void CGBankInfo::LeaveWorld() {
+    ClntObjMgrUnsetObjMirrorHandler(ClntObjMgrGetActivePlayer(), ID_PLAYER, 0x1A, BankUpdateHandler, nullptr);
+}

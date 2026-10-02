@@ -50,6 +50,9 @@ template <>
 NameCache* DBCache<NameCache, uint64_t, CHashKeyGUID>::GetRecordByName(const char* name);
 
 template <>
+PetNameCache* DBCache<PetNameCache, int32_t, HASHKEY_INT>::GetRecordByName(const char* name);
+
+template <>
 void DBCache<NameCache, uint64_t, CHashKeyGUID>::RemoveReverseEntry(const char* name);
 
 template <>

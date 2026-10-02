@@ -27,6 +27,7 @@ class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
     ~CGDynamicObject_C() override;
     virtual C3Vector GetPosition() const;
     virtual C3Vector GetRawPosition() const;
+    virtual float GetFacing() const;
     virtual C44Matrix GetMatrix() const;
     virtual void ShouldRender(uint32_t flags, int32_t& render, int32_t& a3);
 

@@ -14,6 +14,7 @@ class CGDuelInfo {
 
     static void InitializeGame();
     static int32_t ProcessCountdown(const void* data, void* param);
+    static void LeaveWorld();
     static void AcceptDuel();
     static void CancelDuel();
 };

@@ -4,6 +4,9 @@
 #include "Engine/Source/Services/SysMessage.h"
 #include "Engine/Source/Storm/H/storm.h"
 
+// STATIC: 0x00AC3208
+static const SYSMSGSEVERITY s_severities[4] = { { 0xFF, 0xFF, 0xFF, 0, 10.0f }, { 0xFF, 0xFF, 0x7F, 0, 15.0f }, { 0xFF, 0x7F, 0x7F, 0, 15.0f }, { 0x7F, 0xFF, 0xFF, 0, 20.0f } };
+
 // STATIC: 0x00AC3228
 static int32_t s_enabled = 1;
 
@@ -15,6 +18,14 @@ static uint32_t s_categoryFilter = 0xFFFFFFFF;
 
 // STATIC: 0x00B49C74
 static int32_t s_minSeverity;
+
+// VERIFY: 847a42a2 auto
+// OFFSET: 0x004B4EE0
+void SysMsgGetSeverityColor(STATUS_TYPE severity, float& red, float& green, float& blue) {
+    red = s_severities[severity].m_red * 0.0039215689f;
+    green = s_severities[severity].m_green * 0.0039215689f;
+    blue = s_severities[severity].m_blue * 0.0039215689f;
+}
 
 // VERIFY: e98afe5a manual
 // OFFSET: 0x004B4F60

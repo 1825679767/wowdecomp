@@ -10,5 +10,6 @@ struct DECLINEDWORD : public TSHashObject<DECLINEDWORD, HASHKEY_CONSTSTRI> {
 };
 
 void DeclinedWordsDestroy();
+void DeclinedWordsInitialize();
 
 #endif

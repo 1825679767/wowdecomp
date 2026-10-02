@@ -27,6 +27,8 @@ class CMapStaticEntity : public CMapBaseObj {
     static void ModelEventCallback(CM2Model* model, uint32_t boneId, uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time, uint64_t param);
     static void ModelLightingCallback(CM2Model* model, CM2Lighting* lighting, void* userArg);
 
+    ~CMapStaticEntity() override;
+
     /* 0024 */ uint8_t m_fadeLevel;
     /* 0025 */ uint8_t m_culled;
     /* 0026 */ uint8_t unk_0026;

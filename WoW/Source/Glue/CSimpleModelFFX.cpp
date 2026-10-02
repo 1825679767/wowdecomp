@@ -116,7 +116,7 @@ void CSimpleModelFFX::Render(void* arg) {
 }
 
 // VERIFY: 68232335 manual
-// OFFSET: 0x004E6230
+// OFFSET: [0x004E6230, 0x004E62D0]
 CSimpleModelFFX::~CSimpleModelFFX() {
 }
 

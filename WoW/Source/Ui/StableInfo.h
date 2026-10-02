@@ -27,6 +27,7 @@ class CGStableInfo {
 
     static void CloseStables(bool force);
     static void EnterWorld();
+    static void LeaveWorld();
     static void InitializeGame();
     static StablePetInfo* GetPet(uint32_t index);
     static void SelectPet(uint32_t index);

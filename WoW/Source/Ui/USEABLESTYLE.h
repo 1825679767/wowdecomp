@@ -15,6 +15,8 @@ class USEABLESTYLE : public TSHashObject<USEABLESTYLE, HASHKEY_NONE> {
     public:
     /* 0018 */ TSList<STYLEREC, TSGetLink<STYLEREC>> m_styles;
     /* 0024 */ uint32_t unk_0024[3];
+
+    ~USEABLESTYLE();
 };
 
 #endif

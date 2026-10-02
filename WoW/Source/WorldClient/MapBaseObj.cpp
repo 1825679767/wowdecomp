@@ -1,7 +1,7 @@
 #include "MapBaseObj.h"
 
 // VERIFY: a9c26690 manual
-// OFFSET: 0x007D71D0
+// OFFSET: [0x007D71D0, 0x007D72A0]
 CMapBaseObj::~CMapBaseObj() {
 }
 

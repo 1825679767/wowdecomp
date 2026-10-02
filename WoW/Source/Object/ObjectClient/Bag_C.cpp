@@ -717,6 +717,26 @@ static int32_t FindItemNameCallback(const CGItem_C* item, void* param) {
     return SStrCmpUTF8I(name, fullName, length) == 0;
 }
 
+// VERIFY: 19b67d6e manual
+// OFFSET: 0x00754AF0
+CGItem_C* CGBag_C::FindItemByName(const char* name, uint32_t flags) {
+    if (!name || !*name) {
+        return nullptr;
+    }
+
+    WOWGUID container;
+    uint32_t slot;
+
+    if (!SStrStr(name, "item:")) {
+        return this->FindItem(&FindItemNameCallback, const_cast<char*>(name), container, slot, flags);
+    }
+
+    ItemLinkInfo link;
+    link.Clear();
+    link.GetItemIdFromLink(name);
+    return this->FindItem(&FindItemLinkCallback, &link, container, slot, flags);
+}
+
 // VERIFY: 57bdbcdf manual
 // OFFSET: 0x00754B90
 CGItem_C* CGBag_C::GetItemIdByName(const char* name, WOWGUID& container, uint32_t& slot, uint32_t flags) {

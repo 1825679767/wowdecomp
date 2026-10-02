@@ -61,6 +61,7 @@ class QuestCache {
     /* 28E0 */ uint32_t unk_28E0;
 
     QuestCache();
+    QuestCache& operator=(const QuestCache& source);
     void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);
 };

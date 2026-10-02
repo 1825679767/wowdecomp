@@ -1161,3 +1161,10 @@ TSGrowableArray<const FactionRec*>* CGReputationInfo::GetFactionChildren(int32_t
     FACTION* node = CGReputationInfo::m_factions.Ptr(faction, HASHKEY_NONE());
     return node ? &node->m_children : nullptr;
 }
+
+// VERIFY: 8b2534a1 auto
+// OFFSET: 0x005D24C0
+void CGReputationInfo::LeaveWorld() {
+    CGReputationInfo::m_forcedReactions.m_count = 0;
+    CGReputationInfo::m_factions.InternalClear(0);
+}

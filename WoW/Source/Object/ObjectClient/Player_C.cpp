@@ -4855,6 +4855,48 @@ void Unk7FE510(uint32_t guidLow) {
     unk_D3F4EC = guidLow;
 }
 
+// INLINED
+static uint32_t SetTrajectoryCheckBit(uint32_t value, uint32_t shift) {
+    uint32_t masked = value & ~(1u << shift);
+    uint32_t fold = masked ^ (masked >> 16);
+    fold ^= fold >> 8;
+    fold = (fold ^ (fold >> 4)) & 0xF;
+    return masked | (((0x28D7 >> fold) & 1) << shift);
+}
+
+// VERIFY: 2a929aab manual
+// OFFSET: 0x007FE520
+uint32_t Spell_C_EncodeSequenceIntoMissileTrajectory(uint32_t* pitch, uint32_t* speed, uint32_t* source, uint32_t* dest) {
+    uint32_t sequence = unk_D3F4EC++;
+    uint32_t key[2];
+    key[0] = (((source[0] ^ (source[2] & 0xF000)) & 0x2F000) ^ (source[1] & 0x300EE630) ^ (pitch[0] & 0x6000CF0) ^ (dest[1] & 0x60E0400) ^ (speed[0] & 0x240E00) ^ (dest[0] & 0xA9070F01) ^ sequence) | 0x1010101;
+    key[1] = 0;
+    uint32_t hash = SStrHash(reinterpret_cast<const char*>(key), 1, 0);
+
+    pitch[0] = (pitch[0] & ~0x3u) | ((hash >> 10) & 1) | ((hash >> 27) & 2);
+    speed[0] = (speed[0] & ~0x9u) | ((hash >> 1) & 1) | ((hash >> 19) & 8);
+    source[0] = (source[0] & ~0x6u) | (((hash & 0x8000) | ((hash >> 9) & 0x10000)) >> 14);
+    source[1] ^= ((hash >> 1) ^ source[1]) & 2;
+    source[1] ^= ((hash >> 11) ^ source[1]) & 8;
+    source[2] ^= ((hash >> 6) ^ source[2]) & 8;
+    source[2] ^= ((hash >> 28) ^ source[2]) & 4;
+    dest[0] = (dest[0] & ~0x6u) | ((hash >> 6) & 2) | ((hash >> 3) & 4);
+    dest[1] ^= ((hash >> 29) ^ dest[1]) & 1;
+    dest[1] ^= ((hash >> 3) ^ dest[1]) & 8;
+    dest[2] ^= ((hash >> 20) ^ dest[2]) & 1;
+    dest[2] ^= ((hash >> 10) ^ dest[2]) & 4;
+
+    pitch[0] = SetTrajectoryCheckBit(pitch[0], 3);
+    speed[0] = SetTrajectoryCheckBit(speed[0], 1);
+    source[0] = SetTrajectoryCheckBit(source[0], 3);
+    source[1] = SetTrajectoryCheckBit(source[1], 2);
+    source[2] = SetTrajectoryCheckBit(source[2], 0);
+    dest[0] = SetTrajectoryCheckBit(dest[0], 0);
+    dest[1] = SetTrajectoryCheckBit(dest[1], 2);
+    dest[2] = SetTrajectoryCheckBit(dest[2], 1);
+    return dest[2];
+}
+
 // VERIFY: 3100171d manual
 // OFFSET: 0x0060A600
 uint32_t CGPlayer_C::GetNextLevelXP() const {
@@ -8435,6 +8477,20 @@ int32_t CGPlayer_C::GetLootItemSlotType(uint32_t slot) {
     }
 
     return s_lootItems[slot].m_slotType;
+}
+
+// VERIFY: 5e3e02c7 manual
+// OFFSET: 0x006DC770
+void CGPlayer_C::ClearLootItemSlotType(WOWGUID lootObject, uint32_t slot) {
+    if (slot >= 18) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player && player->m_lootTarget == lootObject) {
+        s_lootItems[slot].m_slotType = 0;
+    }
 }
 
 // VERIFY: 6d310e19 auto
@@ -14714,4 +14770,10 @@ int32_t Packet_SMSG_VOICE_PARENTAL_CONTROLS(void* param, NETMESSAGE msgId, uint3
     }
 
     return 1;
+}
+
+// VERIFY: a5006ce1 auto
+// OFFSET: 0x006DC7E0
+int32_t CGPlayer_C::GetVirtualItemDisplayRec(uint32_t slot, ItemDisplayInfoRec& rec) const {
+    return g_itemDisplayInfoDB.GetRecord(this->GetVirtualItemDisplayID(slot), &rec);
 }

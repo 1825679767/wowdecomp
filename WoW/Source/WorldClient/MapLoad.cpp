@@ -32,6 +32,16 @@ void CMapStaticEntity::ModelLightingCallback(CM2Model* model, CM2Lighting* light
     lighting->m_flags &= ~8u;
 }
 
+// VERIFY: 1601e867 manual
+// OFFSET: 0x007A0C10
+CMapStaticEntity::~CMapStaticEntity() {
+    if (this->m_model) {
+        this->m_model->m_lightingCallback = nullptr;
+        this->m_model->m_lightingArg = nullptr;
+        this->m_model->Release();
+    }
+}
+
 // VERIFY: acf45154 manual
 // OFFSET: 0x007BD5A0
 void CMapStaticEntity::ModelEventCallback(CM2Model* model, uint32_t boneId, uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time, uint64_t param) {
