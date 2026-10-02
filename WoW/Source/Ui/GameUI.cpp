@@ -1667,10 +1667,10 @@ int32_t CGGameUI::CanPerformAction(uint32_t action) {
     return 1;
 }
 
-// VERIFY: 7aefdc7e manual
+// VERIFY: ba028438 manual
 // OFFSET: 0x0052A980
 void CGGameUI::InitializeFrameXML() {
-    CGChat::LeaveWorld();
+    CGChat::Pause();
 
     g_taintLogCVar = CVar::Register("taintLog", "Whether taint logging is enabled", 0, "0", SetTaintLogCallback, 5, false, nullptr, false);
     g_scriptProfileCVar = CVar::Register("scriptProfile", "Whether or not script profiling is enabled", 0, "0", nullptr, 5, false, nullptr, false);
@@ -3663,7 +3663,7 @@ void CGGameUI::BeginCinematicInternal(void* param) {
     }
 }
 
-// VERIFY: d86f0438 manual
+// VERIFY: 5e672376 manual
 // OFFSET: 0x00528010
 void CGGameUI::EnterWorld() {
     if (CGGameUI::s_inWorld) {
@@ -3671,7 +3671,7 @@ void CGGameUI::EnterWorld() {
     }
 
     CGGameUI::s_inWorld = 1;
-    CGChat::LeaveWorld();
+    CGChat::Pause();
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
     CM2Model* model = player ? player->GetObjectModel() : nullptr;
 
@@ -7232,13 +7232,13 @@ void CGGameUI::StartCinematic(int32_t cinematic) {
     }
 }
 
-// VERIFY: 39e91d8f manual
+// VERIFY: a01598ea manual
 // OFFSET: 0x00528F00
 void CGGameUI::Shutdown() {
     CGGameUI::unk_BD08C4++;
     g_theGxDevicePtr->RemoveTextureRecreationCallback(UpdateAllPortraits);
     g_theGxDevicePtr->RemoveDeviceRestoredCallback(UpdateAllPortraits);
-    CGChat::LeaveWorld();
+    CGChat::Pause();
     CGGameUI::unk_BD08CC = 0;
 
     if (CGGameUI::m_lockedTarget != WOWGUID()) {

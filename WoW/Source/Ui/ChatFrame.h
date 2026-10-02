@@ -8,11 +8,15 @@
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/AccountData.h"
+#include "WoW/Source/Ui/Types.h"
 
 struct lua_State;
 class CDataStore;
 class CGPlayer_C;
 class CGUnit_C;
+class SpellRec;
+class ItemStats_C;
+class GameObjectStats_C;
 
 enum SLASH_COMMAND_ID {
     CHAT_MSG_SYSTEM = 0,
@@ -379,11 +383,22 @@ class CGChat {
     static void AddThrottledChat(int32_t type, uint32_t language, const char* target, const char* text);
     static int32_t GetActiveVoiceSession();
     static void SetGuildRecruitmentMode(int32_t mode, bool fromJoin);
+    static int32_t IsVoiceChatEnabled();
+    static bool CanComplain(WOWGUID guid);
+    static void VoiceSessionUpdate(const char* name, int32_t type);
+    static void NewVoiceSession(const char* name, int32_t type);
+    static void SilencePartyMember(bool silence, const char* name);
+    static void UpdateRosterMember(WOWGUID guid);
+    static void LogHonorGain(CGUnit_C* unit, const WOWGUID& victim, int32_t rank, int32_t honor);
+    static void DisplayParentControlsNotice(UIErrors error);
+    static void LogOpenLock(const WOWGUID& guid, const SpellRec* spell, const ItemStats_C* stats);
+    static void LogOpenLock(const WOWGUID& guid, const SpellRec* spell, const GameObjectStats_C* stats);
     static const char* GetChannelStringForDisplay(int32_t session, int32_t* type);
     static int32_t IsPaused();
     static int32_t IsVoiceChatAllowed();
     static void ProcessThrottledChat();
     static void LeaveWorld();
+    static void Pause();
     static void Resume();
     static int32_t SetActiveVoiceSession(const char* channel, int32_t type, int32_t index);
     static void UpdateGuildStatus();
@@ -401,7 +416,9 @@ void SetCurrentActiveDisplayChannel(const char* name, int32_t type);
 bool ChannelNamesEqual(const char* activeName, const char* name, int32_t activeType, int32_t type);
 extern int32_t s_activeDisplayChannelType;
 extern int32_t s_displayChannelMemberCount;
-extern TSFixedArray<PENDINGUSERLIST> s_pendingUsers;
+extern TSGrowableArray<PENDINGUSERLIST> s_pendingUsers;
+ChatRecord* GetChatRecordEx(const char* name, const char* text, uint32_t lineID);
+void ComplainChat(const char* name, const char* text, uint32_t lineID);
 uint32_t BuildPartyDisplayList();
 uint32_t BuildRaidDisplayList(int32_t type);
 void RebuildDisplayChannelList(int32_t a1);
@@ -410,50 +427,7 @@ bool ChatParserParseText(const char* text, char* buffer, uint32_t size);
 bool InebriatedParseText(const char* text, char* buffer, uint32_t size, float drunkness);
 int32_t QuestParserParseText(const char* text, char* buffer, uint32_t size, const WOWGUID& guid, const char* name, int32_t a6);
 
-int32_t Script_DoEmote(lua_State* L);
-int32_t Script_LoggingChat(lua_State* L);
-int32_t Script_LoggingCombat(lua_State* L);
 int32_t Script_JoinChannelByName(lua_State* L);
-int32_t Script_JoinTemporaryChannel(lua_State* L);
-int32_t Script_JoinPermanentChannel(lua_State* L);
-int32_t Script_LeaveChannelByName(lua_State* L);
-int32_t Script_ListChannelByName(lua_State* L);
-int32_t Script_SetChannelPassword(lua_State* L);
-int32_t Script_SetChannelOwner(lua_State* L);
-int32_t Script_DisplayChannelOwner(lua_State* L);
-int32_t Script_ChannelModerator(lua_State* L);
-int32_t Script_ChannelUnmoderator(lua_State* L);
-int32_t Script_ChannelMute(lua_State* L);
-int32_t Script_ChannelUnmute(lua_State* L);
-int32_t Script_ChannelInvite(lua_State* L);
-int32_t Script_ChannelKick(lua_State* L);
-int32_t Script_ChannelBan(lua_State* L);
-int32_t Script_ChannelUnban(lua_State* L);
-int32_t Script_ChannelToggleAnnouncements(lua_State* L);
-int32_t Script_ChannelSilenceVoice(lua_State* L);
-int32_t Script_ChannelSilenceAll(lua_State* L);
-int32_t Script_ChannelUnSilenceVoice(lua_State* L);
-int32_t Script_ChannelUnSilenceAll(lua_State* L);
-int32_t Script_ResetChatColors(lua_State* L);
-int32_t Script_AddChatWindowChannel(lua_State* L);
-int32_t Script_RemoveChatWindowChannel(lua_State* L);
-int32_t Script_EnumerateServerChannels(lua_State* L);
-int32_t Script_GetSavedInstanceInfo(lua_State* L);
-int32_t Script_SetSavedInstanceExtend(lua_State* L);
-int32_t Script_ResetChatWindows(lua_State* L);
-int32_t Script_CanComplainChat(lua_State* L);
-int32_t Script_ComplainChat(lua_State* L);
-int32_t Script_GetNumChannelMembers(lua_State* L);
-int32_t Script_SetActiveVoiceChannel(lua_State* L);
-int32_t Script_ChannelVoiceOn(lua_State* L);
-int32_t Script_ChannelVoiceOff(lua_State* L);
-int32_t Script_DisplayChannelVoiceOn(lua_State* L);
-int32_t Script_DisplayChannelVoiceOff(lua_State* L);
-int32_t Script_IsDisplayChannelOwner(lua_State* L);
-int32_t Script_IsDisplayChannelModerator(lua_State* L);
-int32_t Script_IsSilenced(lua_State* L);
-int32_t Script_UnitIsSilenced(lua_State* L);
-int32_t Script_SetChannelWatch(lua_State* L);
 void ChatRegisterScriptFunctions();
 void ChatUnregisterScriptFunctions();
 
@@ -474,5 +448,17 @@ extern const ChatMessageGroup s_chatMessageGroups[46];
 extern ChatColorInfo s_chatColors[CHAT_MSG_MAX];
 
 extern TSGrowableArray<ChatColorInfo> s_channelColors;
+
+extern int32_t s_chatLogging[2];
+
+extern HSLOG s_chatLog[2];
+
+extern const ChatColorInfo s_chatTypeInfo[CHAT_MSG_MAX];
+
+extern uint32_t s_activeDisplayChannelFlags;
+
+extern uint32_t s_joinedZoneChannels;
+
+extern TSGrowableArray<RaidInstanceInfo> s_savedInstances;
 
 #endif

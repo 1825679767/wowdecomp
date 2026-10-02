@@ -66,6 +66,7 @@ struct PlayerPendingItemExpiration : public TSLinkedNode<PlayerPendingItemExpira
 
 struct MerchantItem;
 class ItemStats_C;
+class EmotesTextRec;
 struct PlayerLootItem {
     /* 0000 */ int32_t m_itemId;
     /* 0004 */ int32_t m_displayId;
@@ -321,6 +322,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void SetFarSightFocus(CGObject_C* object);
     void SetPlayedTime(int32_t playedTime);
     void ChangeStandState(uint32_t standState);
+    void SendTextEmote(const EmotesTextRec* emote, WOWGUID target);
     void SetAFK(const char* message);
     void UpdateActiveMoverDisplay(uint32_t time);
     void SetPvpCooldownTimestamp(uint32_t flags);

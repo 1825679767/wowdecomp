@@ -686,7 +686,7 @@ int32_t ComSatClient_IsTalkerSquelchedInCurrent(WOWGUID guid) {
 }
 
 // STATIC: 0x00ADC098
-static const char* s_sessionTypeNames[3] = { "Battleground", "Party", "Raid" };
+const char* s_sessionTypeNames[3] = { "Battleground", "Party", "Raid" };
 
 // VERIFY: c896b767 auto
 // OFFSET: 0x007DB860
@@ -704,4 +704,75 @@ int32_t ComSatClient_DetermineSessionTypeFromName(const char* name) {
     }
 
     return !SStrCmpI(name, s_sessionTypeNames[0], STORM_MAX_STR);
+}
+
+// VERIFY: ea38ef44 auto
+// OFFSET: 0x007DEB00
+static void ComSatClient_LeaveSessionNotifyAll(int32_t index) {
+    for (int32_t i = 0; i < static_cast<int32_t>(s_comsatData[index].m_numMembers); i++) {
+        WOWGUID guid = s_comsatData[index].m_members[i].m_guid;
+
+        if (!guid || guid == ClntObjMgrGetActivePlayer()) {
+            continue;
+        }
+
+        Script_SendUnitSignal(guid, SCRIPT_EVENT_VOICE_STOP);
+        ComSatClient_SendEvent(SCRIPT_EVENT_VOICE_PLATE_STOP, guid);
+        TALKINGPLAYER* talker = unk_D37D88.Ptr(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid));
+
+        if (talker) {
+            unk_D37D88.Delete(talker);
+        }
+
+        if (--unk_D37CB0 < 0) {
+            unk_D37CB0 = 0;
+        }
+    }
+}
+
+// VERIFY: ccd50750 manual
+// OFFSET: 0x007DED60
+void ComSatClient_LeaveAllSessions(WOWGUID guid) {
+    s_comsatDeviceLock.Enter();
+    ComSat::Interface* comsat = ComSatThread::s_comsat;
+
+    if (comsat) {
+        int32_t index = 0;
+
+        while (!static_cast<uint32_t>(s_comsatData[index].m_sessionID)) {
+            if (++index >= 32) {
+                break;
+            }
+        }
+
+        if (index < 32) {
+            comsat->SessionRemove(s_comsatData[index].m_sessionID, guid.m_guid);
+            comsat->SessionDestroy(s_comsatData[index].m_sessionID);
+            ComSatClient_LeaveSessionNotifyAll(index);
+            s_comsatData[index].m_sessionID = 0;
+            s_comsatData[index].m_name[0] = 0;
+            s_comsatData[index].m_type = 4;
+            s_comsatData[index].m_numMembers = 0;
+
+            if (s_currentSession == index) {
+                s_currentSession = -1;
+                WOWGUID player = ClntObjMgrGetActivePlayer();
+
+                if (unk_D37D88.Ptr(static_cast<uint32_t>(player.m_guid), CHashKeyGUID(player.m_guid))) {
+                    Script_SendUnitSignal(player, SCRIPT_EVENT_VOICE_STOP);
+                    ComSatClient_SendEvent(SCRIPT_EVENT_VOICE_PLATE_STOP, player);
+                }
+            }
+        }
+
+        if (CGGameUI::m_initialized) {
+            FrameScript_SignalEvent(SCRIPT_EVENT_VOICE_LEFT_SESSION, nullptr);
+
+            if (CGGameUI::m_initialized) {
+                FrameScript_SignalEvent(SCRIPT_EVENT_VOICE_SESSIONS_UPDATE, nullptr);
+            }
+        }
+    }
+
+    s_comsatDeviceLock.Leave();
 }

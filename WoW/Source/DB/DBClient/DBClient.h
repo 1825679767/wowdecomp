@@ -370,6 +370,7 @@ extern WowClientDB<MapRec> g_mapDB;
 extern WowClientDB<MapDifficultyRec> g_mapDifficultyDB;
 
 MapDifficultyRec* GetMapDifficultyEntryByMapIdAndDifficulty(int32_t mapId, uint32_t difficulty, int32_t* a3);
+int32_t GetMaxPlayersForMap(const MapRec* map, int32_t difficulty);
 int32_t GetMapResetTime(int32_t mapId, uint32_t difficulty);
 extern WowClientDB<MaterialRec> g_materialDB;
 extern WowClientDB<MovieRec> g_movieDB;

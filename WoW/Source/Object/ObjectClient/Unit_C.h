@@ -847,6 +847,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void SmoothFacingAngle(float facing);
     void RotateWheels();
     int32_t Unk71DE90();
+    int32_t Unk724410();
     void UpdateDelayedSpellVisualKits();
     void PlayFallLandAnimation(uint32_t oldFlags, int32_t jumping);
     void HandleEnvironmentDamage(uint32_t type, int32_t damage, int32_t absorbed, int32_t resisted);

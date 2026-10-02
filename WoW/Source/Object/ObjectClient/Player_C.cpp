@@ -129,6 +129,8 @@
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/UIUtil/PortraitButton.h"
 #include "WoW/Source/Game/GameClient/PlayerName.h"
+#include "WoW/Source/DB/Rec/EmotesTextRec.h"
+#include "WoW/Source/DB/Rec/EmotesRec.h"
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -13113,4 +13115,66 @@ void CGPlayer_C::TogglePlayerFlag(uint32_t oldFlags) {
             FrameScript_SignalEvent(SCRIPT_EVENT_DISABLE_LOW_LEVEL_RAID, nullptr);
         }
     }
+}
+
+// STATIC: 0x00ADA2E0
+static uint32_t s_textEmoteStandStates = 0x10B;
+
+// VERIFY: 5713559b manual
+// OFFSET: 0x006DD9E0
+void CGPlayer_C::SendTextEmote(const EmotesTextRec* emote, WOWGUID target) {
+    if (!emote || (this->m_unit->m_unitFieldFlags & 0x1000000)) {
+        return;
+    }
+
+    EmotesRec* rec = g_emotesDB.GetRecord(emote->m_emoteID);
+
+    if (!rec) {
+        return;
+    }
+
+    int32_t standUp;
+
+    if (!this->CanPlayEmote(rec->m_emoteFlags, 1, &standUp)) {
+        return;
+    }
+
+    if (standUp && this->IsClientControlled()) {
+        CGGameUI::DisplayError(ERR_NOEMOTEWHILERUNNING);
+        return;
+    }
+
+    if (this->GetClientStandState() == 3 && rec->m_emoteSpecProc != 1) {
+        return;
+    }
+
+    if (target == this->m_obj->m_guid) {
+        target = WOWGUID();
+    }
+
+    this->SetSheatheState(0, 1, 0);
+
+    if (rec->m_emoteSpecProc == 1 && ((1 << rec->m_emoteSpecProcParam) & s_textEmoteStandStates)) {
+        this->ChangeStandState(rec->m_emoteSpecProcParam);
+    } else if (rec->m_animID && this->Unk724410()) {
+        this->PlayBaseAnimation(rec->m_animID, 0);
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_SEND_TEXT_EMOTE));
+    msg.Put(static_cast<uint32_t>(emote->m_id));
+    uint32_t sound;
+
+    if (this->m_unit->m_unitFieldNativedisplayid == this->m_unit->m_unitFieldDisplayid) {
+        sound = SI2::GetTextEmoteSoundIndex(emote->m_id, this->m_unit->m_unitFieldBytes0[0], this->m_unit->m_unitFieldBytes0[2]);
+    } else {
+        uint32_t sex = this->GetDisplaySex();
+        uint32_t race = this->GetDisplayRace();
+        sound = SI2::GetTextEmoteSoundIndex(emote->m_id, race, sex);
+    }
+
+    msg.Put(sound);
+    msg.Put(target.m_guid);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
 }

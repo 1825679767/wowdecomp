@@ -27,6 +27,13 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/Game/GameClient/NameCache.h"
+#include "WoW/Source/DB/Rec/MapRec.h"
+#include "WoW/Source/DB/Rec/MapDifficultyRec.h"
+#include "WoW/Source/DB/Rec/AreaTableRec.h"
+#include "WoW/Source/DB/Rec/EmotesTextRec.h"
+#include "WoW/Source/Ui/DanceStudio.h"
+#include "Engine/Source/Os/OsFile.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
 
 // STATIC: 0x00AC7A48
 static const char* s_channelCategories[3] = { "CHANNEL_CATEGORY_GROUP", "CHANNEL_CATEGORY_WORLD", "CHANNEL_CATEGORY_CUSTOM" };
@@ -1432,6 +1439,948 @@ static int32_t Script_GetChannelRosterInfo(lua_State* L) {
     }
 
     return 6;
+}
+
+// STATIC: 0x00AC7A40
+static const char* s_chatLogNames[2] = { "Logs\\WoWChatLog.txt", "Logs\\WoWCombatLog.txt" };
+
+// VERIFY: 2b604692 auto
+// OFFSET: 0x004FBC60
+static int32_t EnableLogging(lua_State* L, int32_t index) {
+    if (lua_gettop(L) > 0) {
+        s_chatLogging[index] = StringToBOOL(L, 1, 1);
+
+        if (s_chatLogging[index] && !s_chatLog[index]) {
+            OsCreateDirectory("Logs", 0);
+
+            if (!SLogCreate(s_chatLogNames[index], 4, &s_chatLog[index])) {
+                s_chatLogging[index] = 0;
+            }
+        }
+    }
+
+    if (s_chatLogging[index]) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: feb7e35b auto
+// OFFSET: 0x004FBD00
+static int32_t Script_LoggingChat(lua_State* L) {
+    return EnableLogging(L, 0);
+}
+
+// VERIFY: 70d23c41 auto
+// OFFSET: 0x004FBD20
+static int32_t Script_LoggingCombat(lua_State* L) {
+    return EnableLogging(L, 1);
+}
+
+// VERIFY: c5c8be87 auto
+// OFFSET: 0x004FCCF0
+static int32_t Script_UnitIsSilenced(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        return 0;
+    }
+
+    WOWGUID guid = WOWGUID();
+    const char* name = lua_tolstring(L, 1, nullptr);
+    NameCache* record = g_nameDBCache.GetRecordByName(name);
+
+    if (record) {
+        guid = record->m_guid;
+    } else {
+        Script_GetGUIDFromToken(name, guid, false);
+    }
+
+    if (guid) {
+        int32_t silenced;
+
+        if (lua_type(L, 2)) {
+            int32_t type = ComSatClient_DetermineSessionTypeFromName(lua_tolstring(L, 2, nullptr));
+            silenced = ComSatClient_IsTalkerSquelchedInChannel(guid, type, lua_tolstring(L, 2, nullptr));
+        } else {
+            silenced = ComSatClient_IsTalkerSquelchedInCurrent(guid);
+        }
+
+        if (silenced) {
+            lua_pushnumber(L, 1.0);
+            return 1;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 3c1405f5 manual
+// OFFSET: 0x004FE330
+static void ChannelPlayerCommand(lua_State* L, uint32_t msgId, const char* name) {
+    if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
+        char usage[512];
+        SStrPrintf(usage, sizeof(usage), "Usage: %s(\"channel\", \"name\")", name);
+        luaL_error(L, usage);
+        return;
+    }
+
+    const char* channel = CGChat::GetChannelString(lua_tolstring(L, 1, nullptr));
+
+    if (!channel) {
+        return;
+    }
+
+    const char* player = lua_tolstring(L, 2, nullptr);
+
+    if (player && SStrLen(player) > 48) {
+        luaL_error(L, "Name too long");
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(msgId);
+    msg.PutString(channel);
+    msg.PutString(player);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: a6a85309 auto
+// OFFSET: 0x004FE630
+static int32_t Script_ListChannelByName(lua_State* L) {
+    ChannelCommand(L, CMSG_CHAT_CHANNEL_LIST, "ListChannelByName");
+    return 0;
+}
+
+// VERIFY: 7f0835d3 manual
+// OFFSET: 0x004FE720
+static int32_t Script_SetChannelPassword(lua_State* L) {
+    if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
+        luaL_error(L, "Usage: SetChannelPassword(\"name\", \"password\")");
+    }
+
+    const char* channel = CGChat::GetChannelString(lua_tolstring(L, 1, nullptr));
+
+    if (!channel) {
+        return 0;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_CHAT_CHANNEL_PASSWORD));
+    msg.PutString(channel);
+    msg.PutString(lua_tolstring(L, 2, nullptr));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: e28cce39 auto
+// OFFSET: 0x004FE810
+static int32_t Script_SetChannelOwner(lua_State* L) {
+    ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_SET_OWNER, "SetChannelOwner");
+    return 0;
+}
+
+// VERIFY: 790ff67b auto
+// OFFSET: 0x004FE830
+static int32_t Script_DisplayChannelOwner(lua_State* L) {
+    ChannelCommand(L, CMSG_CHAT_CHANNEL_OWNER, "DisplayChannelOwner");
+    return 0;
+}
+
+// VERIFY: 9a576864 auto
+// OFFSET: 0x004FE950
+static int32_t Script_ChannelModerator(lua_State* L) {
+    ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_MODERATOR, "ChannelModerator");
+    return 0;
+}
+
+// VERIFY: 93b3844b auto
+// OFFSET: 0x004FE970
+static int32_t Script_ChannelUnmoderator(lua_State* L) {
+    ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_UNMODERATOR, "ChannelUnmoderator");
+    return 0;
+}
+
+// VERIFY: c8fe72f5 auto
+// OFFSET: 0x004FE990
+static int32_t Script_ChannelMute(lua_State* L) {
+    ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_MUTE, "ChannelMute");
+    return 0;
+}
+
+// VERIFY: b0eb619c auto
+// OFFSET: 0x004FE9B0
+static int32_t Script_ChannelUnmute(lua_State* L) {
+    ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_UNMUTE, "ChannelUnmute");
+    return 0;
+}
+
+// VERIFY: 3e482345 auto
+// OFFSET: 0x004FE9D0
+static int32_t Script_ChannelInvite(lua_State* L) {
+    ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_INVITE, "ChannelInvite");
+    return 0;
+}
+
+// VERIFY: e731c8b1 auto
+// OFFSET: 0x004FE9F0
+static int32_t Script_ChannelKick(lua_State* L) {
+    ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_KICK, "ChannelKick");
+    return 0;
+}
+
+// VERIFY: b999d424 auto
+// OFFSET: 0x004FEA10
+static int32_t Script_ChannelBan(lua_State* L) {
+    ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_BAN, "ChannelBan");
+    return 0;
+}
+
+// VERIFY: 1fa630d1 auto
+// OFFSET: 0x004FEA30
+static int32_t Script_ChannelUnban(lua_State* L) {
+    ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_UNBAN, "ChannelUnban");
+    return 0;
+}
+
+// VERIFY: df0661fb auto
+// OFFSET: 0x004FEA50
+static int32_t Script_ChannelToggleAnnouncements(lua_State* L) {
+    ChannelCommand(L, CMSG_CHAT_CHANNEL_ANNOUNCEMENTS, "ChannelToggleAnnouncements");
+    return 0;
+}
+
+// VERIFY: 2cbb7fbd auto
+// OFFSET: 0x004FEA70
+static int32_t Script_ChannelVoiceOn(lua_State* L) {
+    ChannelCommand(L, CMSG_CHAT_CHANNEL_VOICE_ON, "ChannelVoiceOn");
+    return 0;
+}
+
+// VERIFY: 3973fbf1 auto
+// OFFSET: 0x004FEA90
+static int32_t Script_ChannelVoiceOff(lua_State* L) {
+    ChannelCommand(L, CMSG_CHAT_CHANNEL_VOICE_OFF, "ChannelVoiceOff");
+    return 0;
+}
+
+// VERIFY: f4e8a33f auto
+// OFFSET: 0x004FEAB0
+static int32_t Script_DisplayChannelVoiceOn(lua_State* L) {
+    ChannelDisplayCommand(L, CMSG_CHAT_CHANNEL_VOICE_ON, "DisplayChannelVoiceOn");
+    return 0;
+}
+
+// VERIFY: 34bb18fb auto
+// OFFSET: 0x004FEAD0
+static int32_t Script_DisplayChannelVoiceOff(lua_State* L) {
+    ChannelDisplayCommand(L, CMSG_CHAT_CHANNEL_VOICE_OFF, "DisplayChannelVoiceOff");
+    return 0;
+}
+
+// VERIFY: 4923e2e0 manual
+// OFFSET: 0x004FED10
+static int32_t Script_ResetChatColors(lua_State* L) {
+    for (uint32_t i = 0; i < CHAT_MSG_MAX; i++) {
+        SStrCopy(s_chatColors[i].m_name, s_chatTypeInfo[i].m_name, sizeof(s_chatColors[i].m_name));
+        s_chatColors[i].m_color[0] = s_chatTypeInfo[i].m_color[0];
+        s_chatColors[i].m_color[1] = s_chatTypeInfo[i].m_color[1];
+        s_chatColors[i].m_color[2] = s_chatTypeInfo[i].m_color[2];
+    }
+
+    for (uint32_t i = 0; i < s_channelColors.Count(); i++) {
+        s_channelColors.m_data[i].m_color[0] = s_chatColors[CHAT_MSG_CHANNEL].m_color[0];
+        s_channelColors.m_data[i].m_color[1] = s_chatColors[CHAT_MSG_CHANNEL].m_color[1];
+        s_channelColors.m_data[i].m_color[2] = s_chatColors[CHAT_MSG_CHANNEL].m_color[2];
+    }
+
+    return 0;
+}
+
+// VERIFY: 94afe789 manual
+// OFFSET: 0x004FF0D0
+static int32_t Script_RemoveChatWindowChannel(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
+        luaL_error(L, "Usage: RemoveChatWindowChannel(index, \"channel\")");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index >= 10) {
+        return 0;
+    }
+
+    const char* channel = CGChat::GetChannelString(lua_tolstring(L, 2, nullptr));
+
+    if (!channel) {
+        return 0;
+    }
+
+    const char* zoneText = CGGameUI::m_zoneText;
+
+    for (int32_t i = 0; i < g_chatChannelsDB.m_numRecords; i++) {
+        ChatChannelsRec* rec = g_chatChannelsDB.GetRecordByIndex(i);
+
+        if (SStrCmpUTF8I(rec->m_shortcut, channel, STORM_MAX_STR)) {
+            continue;
+        }
+
+        if (!zoneText || !*zoneText) {
+            return 0;
+        }
+
+        if (rec->m_shortcut) {
+            s_chatWindows[index].RemoveChannel(rec->m_shortcut);
+            return 0;
+        }
+
+        break;
+    }
+
+    s_chatWindows[index].RemoveChannel(channel);
+    return 0;
+}
+
+// VERIFY: 42e197eb manual
+// OFFSET: 0x004FF200
+static int32_t Script_EnumerateServerChannels(lua_State* L) {
+    int32_t count = g_chatChannelsDB.m_numRecords;
+    lua_checkstack(L, count);
+    AreaTableRec* area = g_areaTableDB.GetRecord(CGGameUI::m_areaID);
+
+    if (!area) {
+        return 0;
+    }
+
+    int32_t pushed = 0;
+
+    for (int32_t i = 0; i < count; i++) {
+        ChatChannelsRec* rec = g_chatChannelsDB.GetRecordByIndex(i);
+
+        if (!(rec->m_flags & 0x10) || (area->m_flags & 0x8)) {
+            lua_pushstring(L, *rec->m_shortcut ? rec->m_shortcut : rec->m_name);
+            pushed++;
+        }
+    }
+
+    return pushed;
+}
+
+// VERIFY: 7755816f manual
+// OFFSET: 0x004FF2C0
+static int32_t Script_GetSavedInstanceInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetSavedInstanceInfo(index)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    MapRec* map;
+
+    if (index >= s_numSavedInstances || !(map = g_mapDB.GetRecord(s_savedInstances.m_data[index].m_mapID))) {
+        lua_pushnil(L);
+        lua_pushnumber(L, 0.0);
+        lua_pushnil(L);
+        lua_pushnumber(L, 0.0);
+        lua_pushboolean(L, 0);
+        lua_pushboolean(L, 0);
+        lua_pushnumber(L, 0.0);
+        lua_pushboolean(L, 0);
+        lua_pushnumber(L, 0.0);
+        lua_pushstring(L, "");
+        return 10;
+    }
+
+    RaidInstanceInfo* info = &s_savedInstances.m_data[index];
+    int32_t mapId = info->m_mapID;
+    int32_t difficulty = info->m_difficulty;
+    lua_pushstring(L, map->m_mapName);
+    lua_pushnumber(L, static_cast<uint32_t>(info->m_instanceID));
+    lua_pushnumber(L, info->m_resetTime);
+    lua_pushnumber(L, difficulty + 1);
+    lua_pushboolean(L, info->m_locked);
+    lua_pushboolean(L, info->m_extended);
+    lua_pushnumber(L, static_cast<uint32_t>(info->m_instanceID >> 32));
+    lua_pushboolean(L, map->m_instanceType == 2);
+    lua_pushnumber(L, GetMaxPlayersForMap(map, info->m_difficulty));
+    MapDifficultyRec* entry = GetMapDifficultyEntryByMapIdAndDifficulty(mapId, difficulty, nullptr);
+
+    if (!entry) {
+        lua_pushstring(L, "");
+        return 10;
+    }
+
+    lua_pushstring(L, FrameScript_GetText(entry->m_difficultystring, -1, GENDER_NOT_APPLICABLE));
+    return 10;
+}
+
+// VERIFY: d4942645 auto
+// OFFSET: 0x004FFA70
+static int32_t Script_IsDisplayChannelOwner(lua_State* L) {
+    uint32_t index = CGChat::FindDisplayChannelIndex(CGChat::s_activeDisplayChannelName, s_activeDisplayChannelType);
+
+    if (index && CGChat::s_displayChannels[index - 1].m_headerIndex < 0 && (s_activeDisplayChannelFlags & 0x1)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: e21c4119 auto
+// OFFSET: 0x004FFAE0
+static int32_t Script_IsDisplayChannelModerator(lua_State* L) {
+    uint32_t index = CGChat::FindDisplayChannelIndex(CGChat::s_activeDisplayChannelName, s_activeDisplayChannelType);
+
+    if (index && CGChat::s_displayChannels[index - 1].m_headerIndex < 0 && (s_activeDisplayChannelFlags & 0x3)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: e3f46617 manual
+// OFFSET: 0x004FFB50
+static int32_t Script_IsSilenced(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        return 0;
+    }
+
+    WOWGUID guid = WOWGUID();
+    const char* name = lua_tolstring(L, 1, nullptr);
+    NameCache* record = g_nameDBCache.GetRecordByName(name);
+
+    if (record) {
+        guid = record->m_guid;
+    } else {
+        Script_GetGUIDFromToken(name, guid, false);
+    }
+
+    if (guid) {
+        for (uint32_t i = 0; i < s_pendingUsers.Count(); i++) {
+            if (s_pendingUsers.m_data[i].m_guid != guid) {
+                continue;
+            }
+
+            if (!(s_pendingUsers.m_data[i].m_flags & 0x10)) {
+                lua_pushnumber(L, 1.0);
+                return 1;
+            }
+
+            break;
+        }
+    }
+
+    lua_pushnil(L);
+    return 1;
+}
+
+// VERIFY: 18b5285f auto
+// OFFSET: 0x004FFC30
+static int32_t Script_SetChannelWatch(lua_State* L) {
+    ChannelCommand(L, CMSG_SET_CHANNEL_WATCH, "SetChannelWatch");
+    return 0;
+}
+
+// VERIFY: 5e2650e5 manual
+// OFFSET: 0x00500980
+static int32_t Script_DoEmote(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: DoEmote(\"emote\"[, \"target\"])");
+    }
+
+    const char* emote = lua_tolstring(L, 1, nullptr);
+    const char* dance;
+
+    if (!SStrCmpI(emote, "DANCE", STORM_MAX_STR) && (dance = lua_tolstring(L, 2, nullptr)) && CGDanceStudio::HasDance(dance)) {
+        PlayDance(dance);
+        return 0;
+    }
+
+    int32_t i = g_emotesTextDB.m_numRecords;
+
+    if (!i) {
+        return 0;
+    }
+
+    EmotesTextRec* rec;
+
+    while (true) {
+        i--;
+        rec = g_emotesTextDB.GetRecordByIndex(i);
+
+        if (!SStrCmpI(emote, rec->m_name, STORM_MAX_STR)) {
+            break;
+        }
+
+        if (!i) {
+            return 0;
+        }
+    }
+
+    WOWGUID target = CGGameUI::m_lockedTarget;
+    const char* token = lua_tolstring(L, 2, nullptr);
+
+    if (token && *token && *token != '%') {
+        target = CGGameUI::ClosestObjectMatch(token, TYPEMASK_PLAYER, 0, 0, 3.4028235e38f, 0);
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player) {
+        player->SendTextEmote(rec, target);
+    }
+
+    return 0;
+}
+
+// VERIFY: 0d3e664e manual
+// OFFSET: 0x00500AE0
+static int32_t Script_SetActiveVoiceChannel(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        return 0;
+    }
+
+    if (lua_tonumber(L, 1)) {
+        int32_t type;
+        int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+        const char* channel = CGChat::GetChannelStringForDisplay(index, &type);
+
+        if (channel && CGChat::s_displayChannels[index].m_voiceEnabled) {
+            CGChat::SetActiveVoiceSession(channel, type, index);
+        }
+
+        return 0;
+    }
+
+    if (CGChat::s_displayChannels[s_activeVoiceChannel].m_voiceEnabled) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_CHANNEL_VOICE_UPDATE, "%d%d", s_activeVoiceChannel + 1, CGChat::s_displayChannels[s_activeVoiceChannel].m_voiceEnabled);
+    } else {
+        FrameScript_SignalEvent(SCRIPT_EVENT_CHANNEL_VOICE_UPDATE, "%d", s_activeVoiceChannel + 1);
+    }
+
+    s_activeVoiceChannel = 0;
+    ComSatClient_DisableCurrentSession();
+    return 0;
+}
+
+// VERIFY: 6cc353e2 manual
+// OFFSET: 0x00500C80
+static int32_t Script_CanComplainChat(lua_State* L) {
+    const char* text = nullptr;
+    ChatRecord* record;
+
+    if (lua_isnumber(L, 1)) {
+        record = GetChatRecordEx(nullptr, nullptr, static_cast<uint32_t>(lua_tonumber(L, 1)));
+    } else {
+        if (!lua_isstring(L, 1)) {
+            luaL_error(L, "Usage: CanComplainChat(lineID) or CanComplainChat(name) or CanComplainChat(name, text)");
+        }
+
+        const char* name = lua_tolstring(L, 1, nullptr);
+
+        if (lua_isstring(L, 2)) {
+            text = lua_tolstring(L, 2, nullptr);
+        }
+
+        record = GetChatRecordEx(name, text, 0);
+    }
+
+    if (record && CGChat::CanComplain(record->m_senderGuid)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 3ec7fd25 auto
+// OFFSET: 0x00501140
+static int32_t Script_ChannelSilenceVoice(lua_State* L) {
+    const char* channel = CGChat::GetChannelString(lua_tolstring(L, 1, nullptr));
+
+    if (!channel) {
+        return 0;
+    }
+
+    if (SStrCmpI(channel, s_sessionTypeNames[1], STORM_MAX_STR) && SStrCmpI(channel, s_sessionTypeNames[2], STORM_MAX_STR) && SStrCmpI(channel, s_sessionTypeNames[0], STORM_MAX_STR) && SStrCmpI(channel, FrameScript_GetText("PARTY", -1, GENDER_NOT_APPLICABLE), STORM_MAX_STR) && SStrCmpI(channel, FrameScript_GetText("RAID", -1, GENDER_NOT_APPLICABLE), STORM_MAX_STR) && SStrCmpI(channel, FrameScript_GetText("BATTLEFIELDS", -1, GENDER_NOT_APPLICABLE), STORM_MAX_STR)) {
+        ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_SILENCE_VOICE, "ChannelSilenceVoice");
+        return 0;
+    }
+
+    CGChat::SilencePartyMember(true, lua_tolstring(L, 2, nullptr));
+    return 0;
+}
+
+// VERIFY: 0fd7e161 auto
+// OFFSET: 0x00501250
+static int32_t Script_ChannelSilenceAll(lua_State* L) {
+    const char* channel = CGChat::GetChannelString(lua_tolstring(L, 1, nullptr));
+
+    if (!channel) {
+        return 0;
+    }
+
+    if (SStrCmpI(channel, s_sessionTypeNames[1], STORM_MAX_STR) && SStrCmpI(channel, s_sessionTypeNames[2], STORM_MAX_STR) && SStrCmpI(channel, s_sessionTypeNames[0], STORM_MAX_STR)) {
+        ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_SILENCE_ALL, "ChannelSilenceAll");
+        return 0;
+    }
+
+    CGChat::SilencePartyMember(true, lua_tolstring(L, 2, nullptr));
+    return 0;
+}
+
+// VERIFY: a21194b2 auto
+// OFFSET: 0x005012F0
+static int32_t Script_ChannelUnSilenceVoice(lua_State* L) {
+    const char* channel = CGChat::GetChannelString(lua_tolstring(L, 1, nullptr));
+
+    if (!channel) {
+        return 0;
+    }
+
+    if (SStrCmpI(channel, s_sessionTypeNames[1], STORM_MAX_STR) && SStrCmpI(channel, s_sessionTypeNames[2], STORM_MAX_STR) && SStrCmpI(channel, s_sessionTypeNames[0], STORM_MAX_STR) && SStrCmpI(channel, FrameScript_GetText("PARTY", -1, GENDER_NOT_APPLICABLE), STORM_MAX_STR) && SStrCmpI(channel, FrameScript_GetText("RAID", -1, GENDER_NOT_APPLICABLE), STORM_MAX_STR) && SStrCmpI(channel, FrameScript_GetText("BATTLEFIELDS", -1, GENDER_NOT_APPLICABLE), STORM_MAX_STR)) {
+        ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_UNSILENCE_VOICE, "ChannelUnSilenceVoice");
+        return 0;
+    }
+
+    CGChat::SilencePartyMember(false, lua_tolstring(L, 2, nullptr));
+    return 0;
+}
+
+// VERIFY: b7b4f70f auto
+// OFFSET: 0x00501400
+static int32_t Script_ChannelUnSilenceAll(lua_State* L) {
+    const char* channel = CGChat::GetChannelString(lua_tolstring(L, 1, nullptr));
+
+    if (!channel) {
+        return 0;
+    }
+
+    if (SStrCmpI(channel, s_sessionTypeNames[1], STORM_MAX_STR) && SStrCmpI(channel, s_sessionTypeNames[2], STORM_MAX_STR) && SStrCmpI(channel, s_sessionTypeNames[0], STORM_MAX_STR)) {
+        ChannelPlayerCommand(L, CMSG_CHAT_CHANNEL_UNSILENCE_ALL, "ChannelUnSilenceAll");
+        return 0;
+    }
+
+    CGChat::SilencePartyMember(false, lua_tolstring(L, 2, nullptr));
+    return 0;
+}
+
+// VERIFY: 21a225ec manual
+// OFFSET: 0x00501DB0
+static int32_t Script_AddChatWindowChannel(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
+        luaL_error(L, "Usage: AddChatWindowChannel(index, \"channel\")");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+
+    if (index >= 10) {
+        return 0;
+    }
+
+    const char* channel = lua_tolstring(L, 2, nullptr);
+    const char* zoneChannel = nullptr;
+    int32_t channelId = 0;
+    const char* zoneText = CGGameUI::m_zoneText;
+
+    for (int32_t i = 0; i < g_chatChannelsDB.m_numRecords; i++) {
+        ChatChannelsRec* rec = g_chatChannelsDB.GetRecordByIndex(i);
+
+        if (SStrCmpUTF8I(rec->m_shortcut, channel, STORM_MAX_STR)) {
+            continue;
+        }
+
+        if (!zoneText || !*zoneText) {
+            return 0;
+        }
+
+        zoneChannel = rec->m_shortcut;
+        channelId = rec->m_id;
+        break;
+    }
+
+    lua_pushnumber(L, channelId);
+    s_chatWindows[index].AddChannel(zoneChannel ? zoneChannel : channel, channelId);
+    return 1;
+}
+
+// VERIFY: fcd817cd manual
+// OFFSET: 0x00501F00
+static int32_t Script_ResetChatWindows(lua_State* L) {
+    for (uint32_t i = 0; i < CHAT_MSG_MAX; i++) {
+        SStrCopy(s_chatColors[i].m_name, s_chatTypeInfo[i].m_name, sizeof(s_chatColors[i].m_name));
+        s_chatColors[i].m_color[0] = s_chatTypeInfo[i].m_color[0];
+        s_chatColors[i].m_color[1] = s_chatTypeInfo[i].m_color[1];
+        s_chatColors[i].m_color[2] = s_chatTypeInfo[i].m_color[2];
+        s_chatColors[i].m_unk48 = s_chatTypeInfo[i].m_unk48;
+    }
+
+    s_channelColors.SetCount(10);
+
+    for (uint32_t i = 0; i < 10; i++) {
+        SStrPrintf(s_channelColors.m_data[i].m_name, sizeof(s_channelColors.m_data[i].m_name), "CHANNEL%d", i + 1);
+        s_channelColors.m_data[i].m_color[0] = s_chatColors[CHAT_MSG_CHANNEL].m_color[0];
+        s_channelColors.m_data[i].m_color[1] = s_chatColors[CHAT_MSG_CHANNEL].m_color[1];
+        s_channelColors.m_data[i].m_color[2] = s_chatColors[CHAT_MSG_CHANNEL].m_color[2];
+        s_channelColors.m_data[i].m_unk48 = s_chatColors[CHAT_MSG_CHANNEL].m_unk48;
+    }
+
+    for (uint32_t i = 0; i < 10; i++) {
+        memset(s_chatWindows[i].m_messageGroups, 0, sizeof(s_chatWindows[i].m_messageGroups));
+        s_chatWindows[i].Reset();
+        s_chatWindows[i].Init();
+
+        if (i == 0) {
+            s_chatWindows[0].m_shown = 1;
+
+            for (uint32_t j = 0; j < 40; j++) {
+                s_chatWindows[0].m_messageGroups[j] = s_chatMessageGroups[j].m_default != 0;
+            }
+
+            s_chatWindows[0].m_docked = 1;
+        } else if (i == 1) {
+            s_chatWindows[1].m_shown = 1;
+            s_chatWindows[1].m_docked = 2;
+            s_chatWindows[1].m_messageGroups[40] = 1;
+            s_chatWindows[1].m_messageGroups[41] = 1;
+            s_chatWindows[1].m_messageGroups[42] = 1;
+            s_chatWindows[1].m_messageGroups[43] = 1;
+            s_chatWindows[1].m_messageGroups[44] = 1;
+            s_chatWindows[1].m_messageGroups[45] = 1;
+        }
+    }
+
+    int32_t count = g_chatChannelsDB.m_numRecords;
+
+    for (int32_t i = 0; i < count; i++) {
+        ChatChannelsRec* rec = g_chatChannelsDB.GetRecordByIndex(i);
+
+        if (!(rec->m_flags & 0x1)) {
+            continue;
+        }
+
+        if (rec->m_id >= 32) {
+            SErrDisplayAppFatalMessage("", "", 0);
+        }
+
+        s_joinedZoneChannels |= 1 << (rec->m_id - 1);
+        s_chatWindows[0].AddChannel(rec->m_shortcut, rec->m_id);
+    }
+
+    FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_WINDOWS, nullptr);
+
+    for (uint32_t i = 0; i < CHAT_MSG_MAX; i++) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_COLOR, "%s%f%f%f", s_chatColors[i].m_name, s_chatColors[i].m_color[0] * (1.0f / 255.0f), s_chatColors[i].m_color[1] * (1.0f / 255.0f), s_chatColors[i].m_color[2] * (1.0f / 255.0f));
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_COLOR_NAME_BY_CLASS, "%s%b", s_chatColors[i].m_name, s_chatColors[i].m_unk48);
+    }
+
+    for (uint32_t i = 0; i < s_channelColors.Count(); i++) {
+        ChatColorInfo* color = &s_channelColors.m_data[i];
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_COLOR, "%s%f%f%f", color->m_name, color->m_color[0] * (1.0f / 255.0f), color->m_color[1] * (1.0f / 255.0f), color->m_color[2] * (1.0f / 255.0f));
+        FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_CHAT_COLOR_NAME_BY_CLASS, "%s%b", color->m_name, color->m_unk48);
+    }
+
+    return 0;
+}
+
+// VERIFY: 08d3e881 manual
+// OFFSET: 0x00505190
+static int32_t Script_GetNumChannelMembers(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    int32_t type;
+    const char* channel = CGChat::GetChannelStringForDisplay(static_cast<int32_t>(lua_tonumber(L, 1)) - 1, &type);
+
+    if (!channel || type == 4) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    uint32_t count;
+
+    if (!ChannelNamesEqual(CGChat::s_activeDisplayChannelName, channel, s_activeDisplayChannelType, type)) {
+        SetCurrentActiveDisplayChannel(channel, type);
+
+        switch (type) {
+            case 0:
+                ChannelDisplayCommand(L, CMSG_CHAT_CHANNEL_DISPLAY_LIST, "GetNumChannelMembers");
+                lua_pushnil(L);
+                return 1;
+
+            case 2:
+                count = BuildPartyDisplayList();
+                break;
+
+            case 1:
+            case 3:
+                count = BuildRaidDisplayList(type);
+                break;
+
+            default:
+                lua_pushnil(L);
+                return 1;
+        }
+    } else {
+        if (s_displayChannelMemberCount) {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        count = s_pendingUsers.Count();
+    }
+
+    if (!count) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    lua_pushnumber(L, count);
+    return 1;
+}
+
+// VERIFY: 42b92c7b manual
+// OFFSET: 0x005096D0
+static int32_t Script_LeaveChannelByName(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: LeaveChannelByName(\"name\")");
+    }
+
+    InternalLeaveChannel(lua_tolstring(L, 1, nullptr), true, false);
+    return 0;
+}
+
+// VERIFY: 64995a1c manual
+// OFFSET: 0x0050D900
+static int32_t JoinChannelFromScript(lua_State* L, int32_t permanent) {
+    if (!lua_isstring(L, 1)) {
+        char function[1024];
+        luaL_error(L, "Usage: %s(\"name\" [,\"password\"] [,index] [,hasVoice])", FrameScript_GetCurrentFunction(L, function, sizeof(function)));
+    }
+
+    const char* name = lua_tolstring(L, 1, nullptr);
+    const char* password = lua_isstring(L, 2) ? lua_tolstring(L, 2, nullptr) : "";
+
+    if (SStrChr(name, ' ') || SStrLen(name) >= 128 || SStrLen(password) >= 128) {
+        return 0;
+    }
+
+    char filtered[128];
+    strcpy(filtered, name);
+
+    if (ProfanityFilter(filtered, false, true)) {
+        CGGameUI::DisplayError(ERR_PROFANE_CHAT_NAME);
+        return 0;
+    }
+
+    uint32_t window = 0xFFFFFFFF;
+
+    if (lua_isnumber(L, 3)) {
+        window = static_cast<uint32_t>(lua_tonumber(L, 3)) - 1;
+    }
+
+    int32_t voice = StringToBOOL(L, 4, 0);
+    const char* zoneChannelName = nullptr;
+    int32_t zoneChannelID = 0;
+
+    if (!InternalJoinChannel(name, password, window, true, &zoneChannelName, &zoneChannelID, false, voice, permanent, 0)) {
+        return 0;
+    }
+
+    lua_pushnumber(L, zoneChannelID);
+
+    if (zoneChannelName) {
+        lua_pushstring(L, zoneChannelName);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 2;
+}
+
+// VERIFY: c8a46eac auto
+// OFFSET: 0x0050DAA0
+static int32_t Script_JoinTemporaryChannel(lua_State* L) {
+    return JoinChannelFromScript(L, 0);
+}
+
+// VERIFY: feab0619 auto
+// OFFSET: 0x0050DAC0
+static int32_t Script_JoinPermanentChannel(lua_State* L) {
+    return JoinChannelFromScript(L, 1);
+}
+
+// VERIFY: b423dacc manual
+// OFFSET: 0x0050DC10
+static int32_t Script_SetSavedInstanceExtend(lua_State* L) {
+    if (!lua_isnumber(L, 1) || lua_type(L, 2) != LUA_TBOOLEAN) {
+        luaL_error(L, "Usage: SetSavedInstanceExtend(index, extend)");
+    }
+
+    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t extend = lua_toboolean(L, 2);
+
+    if (index >= s_numSavedInstances) {
+        return 0;
+    }
+
+    RaidInstanceInfo* info = &s_savedInstances.m_data[index];
+    info->m_extended = extend;
+    char mapName[1024];
+    CGRaidInfo::GetMapNameWithDifficulty(mapName, sizeof(mapName), info->m_mapID, info->m_difficulty);
+    const char* format;
+
+    if (extend) {
+        format = FrameScript_GetText("RAID_INSTANCE_LOCK_EXTENDED", -1, GENDER_NOT_APPLICABLE);
+    } else {
+        format = FrameScript_GetText("RAID_INSTANCE_LOCK_NOT_EXTENDED", -1, GENDER_NOT_APPLICABLE);
+    }
+
+    char text[1024];
+    SStrPrintf(text, sizeof(text), format, mapName);
+    CGChat::AddChatMessage(text, CHAT_MSG_SYSTEM, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_SET_SAVED_INSTANCE_EXTEND));
+    msg.Put(info->m_mapID);
+    msg.Put(info->m_difficulty);
+    msg.Put(static_cast<uint8_t>(extend != 0));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    return 0;
+}
+
+// VERIFY: 614ce5cf manual
+// OFFSET: 0x0050ED00
+static int32_t Script_ComplainChat(lua_State* L) {
+    const char* text = nullptr;
+
+    if (lua_isnumber(L, 1)) {
+        ComplainChat(nullptr, nullptr, static_cast<uint32_t>(lua_tonumber(L, 1)));
+        return 0;
+    }
+
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: ComplainChat(lineID) or ComplainChat(name) or ComplainChat(name, text)");
+    }
+
+    const char* name = lua_tolstring(L, 1, nullptr);
+
+    if (lua_isstring(L, 2)) {
+        text = lua_tolstring(L, 2, nullptr);
+    }
+
+    ComplainChat(name, text, 0);
+    return 0;
 }
 
 // STATIC: 0x00AC7A58

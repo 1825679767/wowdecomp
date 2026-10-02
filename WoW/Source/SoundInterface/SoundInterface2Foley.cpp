@@ -6,7 +6,6 @@
 #include "WoW/Source/DB/Rec/ItemGroupSoundsRec.h"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
-#include "WoW/Source/Ui/ChatFrame.h"
 #include "Engine/Source/Tempest/CRandom.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
@@ -16,9 +15,6 @@ static float s_taxiFidgetElapsed;
 
 // STATIC: 0x00B4AE58
 static float s_taxiFidgetDelay;
-
-// STATIC: 0x00B4AE40
-int32_t CGChat::m_paused;
 
 // VERIFY: 88e41fa1 auto
 // OFFSET: 0x004CFB50
@@ -30,24 +26,6 @@ void SI2::SetPitch(SE2SoundKitObject* object, float pitch) {
 // OFFSET: 0x004CFB70
 void SI2::Detach(SE2SoundKitObject* object) {
     object->m_sound.Detach();
-}
-
-// VERIFY: f6cf06fb auto
-// OFFSET: 0x004CFB80
-void CGChat::LeaveWorld() {
-    CGChat::m_paused++;
-}
-
-// VERIFY: 62ef2d2f auto
-// OFFSET: 0x004CFB90
-void CGChat::Resume() {
-    CGChat::m_paused--;
-}
-
-// VERIFY: 7732767c auto
-// OFFSET: 0x004CFBA0
-int32_t CGChat::IsPaused() {
-    return CGChat::m_paused;
 }
 
 // VERIFY: f4fa7734 manual

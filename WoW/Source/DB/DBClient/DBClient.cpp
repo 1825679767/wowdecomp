@@ -1197,3 +1197,15 @@ MapDifficultyRec* GetMapDifficultyEntryByMapIdAndDifficulty(int32_t mapId, uint3
 
     return nullptr;
 }
+
+// VERIFY: 126b0ac4 auto
+// OFFSET: 0x00634AB0
+int32_t GetMaxPlayersForMap(const MapRec* map, int32_t difficulty) {
+    MapDifficultyRec* entry = GetMapDifficultyEntryByMapIdAndDifficulty(map->m_id, difficulty, nullptr);
+
+    if (!entry || !entry->m_maxPlayers) {
+        return map->m_maxPlayers;
+    }
+
+    return entry->m_maxPlayers;
+}

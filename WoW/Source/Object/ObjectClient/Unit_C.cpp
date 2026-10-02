@@ -23997,3 +23997,35 @@ void CGUnit_C::UpdateUnitNameColor() {
         this->m_namePlateFrame->UpdateColorDisplay(this);
     }
 }
+
+// VERIFY: f33cfb52 manual
+// OFFSET: 0x00724410
+int32_t CGUnit_C::Unk724410() {
+    if (this->IsDeadOrAttachmentDying() || this->IsDeadOrGhost() || this->GetClientStandState() == 9) {
+        return 0;
+    }
+
+    uint32_t flags = this->m_movementData.m_flags;
+
+    if ((flags & 0x1000) && (flags & 0x2000)) {
+        return 0;
+    }
+
+    if (this->IsJumping() || !(flags & 0xF)) {
+        return 0;
+    }
+
+    if (this->IsLooting() && this->ShouldKneelForLoot()) {
+        return 0;
+    }
+
+    if (this->m_unit->m_unitChannelSpell || (this->m_animationState & 0x400) || this->IsInMelee() || this->Unk71DE90()) {
+        return 0;
+    }
+
+    if (this->m_sheatheState == 2 && (this->m_animationState & 0x200)) {
+        return 0;
+    }
+
+    return !this->GetClientStandState() && !this->unk_09F8;
+}
