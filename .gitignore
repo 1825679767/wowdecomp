@@ -32,6 +32,7 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+[Oo]ut/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -406,3 +407,6 @@ FodyWeavers.xsd
 !Engine/Source/BlizzardCore/Source/System/Debug/
 !Engine/Source/BlizzardCore/Source/System/Log/
 !ThirdParty/nvapi/x86/
+
+# Local Visual Studio CMake settings (absolute paths to re/tools)
+CMakeSettings.json

@@ -114,7 +114,11 @@ extern "C" double StandinReport(int index, void* returnAddress) {
     static int s_continue = -1;
 
     if (s_continue < 0) {
+#ifdef WOWCLIENT_STANDIN_CONTINUE_DEFAULT
+        s_continue = 1;
+#else
         s_continue = GetEnvironmentVariableA("WOWCLIENT_STANDIN_CONTINUE", nullptr, 0) ? 1 : 0;
+#endif
     }
 
     if (!s_continue) {
