@@ -7,6 +7,7 @@
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/Object/Player.h"
 #include "WoW/Source/Ui/GuildBankFrame.h"
 #include "WoW/Source/Game/ValidateName.h"
 #include "WoW/Source/Ui/CGAutoCompleteName.h"
@@ -567,4 +568,16 @@ void GuildInfoCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool s
     if (CGGuildInfo::unk_C22AD4) {
         CGGuildInfo::SaveToFile();
     }
+}
+
+// VERIFY: b420c257 manual
+// OFFSET: 0x005CBCA0
+bool CGGuildInfo::CanEditGuildEvent() {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player || !player->m_player->m_playerGuildid) {
+        return false;
+    }
+
+    return (CGGuildInfo::m_rankInfo[player->m_player->m_playerGuildrank].m_rights >> 20) & 1;
 }

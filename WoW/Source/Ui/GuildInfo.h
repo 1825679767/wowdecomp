@@ -81,6 +81,7 @@ class CGGuildInfo {
     static void QueryPermissions();
     static void SetShowOffline(int32_t show);
     static int32_t GetSelectedMemberIndex();
+    static bool CanEditGuildEvent();
 };
 
 extern int32_t s_guildControlRank;

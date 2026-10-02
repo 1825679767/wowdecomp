@@ -910,3 +910,45 @@ bool ScrubString(const char* source, char* dest, int32_t maxChars, uint32_t dest
 
     return valid;
 }
+
+// VERIFY: 62097c42 manual
+// OFFSET: 0x007E2040
+bool FixCharacterNameCase(char* dest, const char* source, uint32_t size) {
+    if (!dest || !size) {
+        return false;
+    }
+
+    uint16_t buffer[1024];
+    SUniConvertUTF8to16(buffer, 1024, source, STORM_MAX_STR, nullptr, nullptr);
+
+    for (uint32_t i = 0; buffer[i]; i++) {
+        uint16_t c = buffer[i];
+
+        if (i) {
+            if (static_cast<uint16_t>(c - 'A') <= 25 || static_cast<uint16_t>(c - 0xC0) <= 30) {
+                c += 32;
+            } else if (c == 0x152) {
+                c = 0x153;
+            } else if (static_cast<uint16_t>(c - 0x410) <= 31) {
+                c += 32;
+            } else if (c == 0x401) {
+                c = 0x451;
+            }
+        } else if (c >= 'a' && c <= 'z') {
+            c -= 32;
+        } else if (c >= 0xE0 && c <= 0xFE) {
+            c -= 32;
+        } else if (c == 0x153) {
+            c = 0x152;
+        } else if (c >= 0x430 && c <= 0x44F) {
+            c -= 32;
+        } else if (c == 0x451) {
+            c = 0x401;
+        }
+
+        buffer[i] = c;
+    }
+
+    SUniConvertUTF16to8(dest, size, buffer, STORM_MAX_STR, nullptr, nullptr);
+    return true;
+}

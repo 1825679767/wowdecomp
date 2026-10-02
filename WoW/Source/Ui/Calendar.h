@@ -8,14 +8,12 @@
 
 class CDataStore;
 class CGCalendarEvent;
+class CGameTime;
 class WowTime;
+struct TIMESTAMPCALLBACK;
 struct CVar;
+struct EventInviteInfo;
 struct lua_State;
-
-struct CalendarEventClipboard {
-    /* 0000 */ uint64_t m_eventID;
-    /* 0008 */ uint8_t unk_0008[200];
-};
 
 int32_t PH_CALENDAR_GROUP(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 void PH_SMSG_CALENDAR_SEND_CALENDAR(CDataStore* msg);
@@ -58,35 +56,39 @@ struct DYNAMICHOLIDAYHASH : public TSHashObject<DYNAMICHOLIDAYHASH, HASHKEY_NONE
     /* 0028 */ int32_t m_date[26];
     /* 0090 */ int32_t m_duration[10];
     /* 00B8 */ int32_t m_calendarFlags[10];
+    /* 00E0 */ char m_textureFileName[64];
 };
 
 struct CALENDAREVENTHASH : public TSHashObject<CALENDAREVENTHASH, HASHKEY_NONE> {
     /* 0018 */ TSGrowableArray<CalendarDayEvent*> m_events;
+
+    ~CALENDAREVENTHASH();
 };
 
-struct CalendarDayEvent {
+struct CalendarEventData {
     /* 0000 */ uint64_t m_eventID;
     /* 0008 */ char m_title[128];
     /* 0088 */ uint32_t m_startTime;
-    /* 008C */ uint32_t unk_008C;
+    /* 008C */ uint32_t m_alarmTime;
     /* 0090 */ uint32_t m_endTime;
     /* 0094 */ uint32_t m_holidayID;
     /* 0098 */ uint32_t m_type;
     /* 009C */ uint32_t m_flags;
-    /* 00A0 */ int32_t unk_00A0;
-    /* 00A4 */ uint32_t unk_00A4;
-    /* 00A8 */ uint8_t unk_00A8;
-    /* 00AC */ uint32_t unk_00AC;
-    /* 00B0 */ uint32_t unk_00B0;
-    /* 00B4 */ uint32_t unk_00B4;
+    /* 00A0 */ int32_t m_eventType;
+    /* 00A4 */ int32_t m_textureID;
+    /* 00A8 */ uint8_t m_inviteStatus;
+    /* 00B0 */ uint64_t m_inviteID;
     /* 00B8 */ WOWGUID m_creatorGUID;
-    /* 00C0 */ uint32_t unk_00C0;
+    /* 00C0 */ TIMESTAMPCALLBACK* m_alarmCallback;
     /* 00C4 */ uint32_t m_sequenceIndex;
     /* 00C8 */ uint32_t m_sequenceLength;
-    /* 00CC */ uint32_t unk_00CC;
+};
 
+struct CalendarDayEvent : public CalendarEventData {
     CalendarDayEvent();
+    ~CalendarDayEvent();
     int32_t GetSequenceType() const;
+    void ScheduleAlarm();
 };
 
 struct CalendarEventSelection {
@@ -103,12 +105,26 @@ class CalendarEventTables {
     /* 0140 */ int32_t m_counts[8];
 
     void Clear();
+    bool Delete(int32_t table, uint32_t date, uint64_t eventID);
+    CalendarDayEvent* GetEvent(int32_t table, uint32_t date, uint64_t eventID);
 };
 
 struct CalendarPendingInvite : public TSLinkedNode<CalendarPendingInvite> {
-    /* 0008 */ uint8_t unk_0008[16];
+    /* 0008 */ uint64_t m_eventID;
+    /* 0010 */ uint64_t m_inviteID;
     /* 0018 */ WOWGUID m_inviterGuid;
+    /* 0020 */ uint8_t m_status;
+    /* 0021 */ uint8_t m_rank;
+    /* 0022 */ uint8_t m_inviteType;
+    /* 0023 */ uint8_t m_valid;
+
+    CalendarPendingInvite();
 };
+
+// INLINED
+inline CalendarPendingInvite::CalendarPendingInvite() {
+    this->m_eventID = 0;
+}
 
 class CGCalendar {
     public:
@@ -121,7 +137,9 @@ class CGCalendar {
     static CGCalendarEvent* m_curEvent;
     static uint8_t m_initialize;
     static uint8_t m_openedCalendar;
-    static uint8_t unk_C207F2;
+    static uint8_t m_calendarReceived;
+    static CalendarDayEvent* m_contextEventInfo;
+    static uint32_t m_lastEventTime;
     static int32_t m_numInitialPending;
 
     static void EnterWorld();
@@ -163,91 +181,64 @@ class CGCalendar {
     static int32_t GetNumDayEvents(uint32_t offset, uint32_t day);
     static int32_t GetFirstPendingInviteIndex(uint32_t offset, uint32_t day);
     static void InsertEvent(CalendarDayEvent* event, int32_t table);
+    static bool ValidateCreateDate(const WowTime* date);
+    static bool CanEditCurrentEvent();
+    static void SetInviteStatus(uint32_t index, uint32_t status);
+    static void SetModeratorStatus(uint32_t index, uint32_t status);
+    static void SetActionPending(uint8_t pending);
+    static const char* GetCalendarTypeString(uint32_t flags);
+    static uint32_t GetDateKey(uint32_t time);
+    static CalendarDayEvent* GetDayEvent(uint32_t offset, uint32_t day, uint32_t index);
+    static void GetEvent(uint32_t offset, uint32_t day, uint32_t index);
+    static bool SetEventDate(uint32_t month, uint32_t monthDay, uint32_t year);
+    static bool SetEventTime(uint32_t hour, uint32_t minute);
+    static bool SetEventLockoutDate(uint32_t month, uint32_t monthDay, uint32_t year);
+    static bool SetEventLockoutTime(uint32_t hour, uint32_t minute);
+    static void SetEventTextureID(uint32_t index);
+    static void RemoveEvent();
+    static int32_t GetTextureIndex(uint32_t type, int32_t textureID);
+    static EventInviteInfo* GetCurrentEventInvite(WOWGUID guid);
+    static void RemoveInvite(uint32_t index);
+    static void SelectContextEvent(uint32_t offset, uint32_t day, uint32_t index);
+    static void ContextMenuInviteRSVP(CalendarDayEvent* event, uint32_t status);
+    static void GetCalendar();
+    static void AddEvent();
+    static void CreatePlayerEvent();
+    static void CreateGuildAnnouncement();
+    static void CreateGuildEvent();
+    static void GuildFilter(uint32_t minLevel, uint32_t maxLevel, uint32_t minRank);
+    static void ArenaTeam(uint32_t index);
+    static void UpdateEvent();
+    static void Invite(const char* name);
+    static void InviteRSVP(uint32_t status);
+    static void EventSignUp();
+    static void ContextMenuInviteRemove(CalendarDayEvent* event);
+    static void ContextMenuEventSignUp(CalendarDayEvent* event, uint8_t tentative);
+    static void ContextMenuEventRemove(CalendarDayEvent* event);
+    static void ContextMenuEventCopy(CalendarDayEvent* event);
+    static void ContextMenuEventPaste(int32_t offset, uint32_t day);
+    static bool CanComplainAboutEvent(CalendarDayEvent* event);
+    static void Complain(CalendarDayEvent* event);
+    static bool HasPendingInvite(uint64_t eventID);
+    static void InvalidatePlayer(WOWGUID guid);
+    static void AddPendingInvite(CalendarDayEvent* event);
+    static bool DeletePendingInvite(uint64_t eventID);
+    static void SetInviteFlag(uint64_t eventID, uint32_t flag, bool set);
+    static void InsertLockoutEvent(int32_t mapID, int32_t difficulty, uint64_t instanceID, uint32_t time);
 };
 
-int32_t Script_CalendarGetMaxDate(lua_State* L);
-int32_t Script_CalendarGetMinHistoryDate(lua_State* L);
-int32_t Script_CalendarGetAbsMonth(lua_State* L);
-int32_t Script_CalendarGetDayEvent(lua_State* L);
-int32_t Script_CalendarGetDayEventSequenceInfo(lua_State* L);
-int32_t Script_CalendarOpenEvent(lua_State* L);
-int32_t Script_CalendarGetEventInfo(lua_State* L);
-int32_t Script_CalendarGetHolidayInfo(lua_State* L);
-int32_t Script_CalendarGetRaidInfo(lua_State* L);
-int32_t Script_CalendarEventGetNumInvites(lua_State* L);
-int32_t Script_CalendarEventGetInvite(lua_State* L);
-int32_t Script_CalendarEventGetInviteResponseTime(lua_State* L);
-int32_t Script_CalendarAddEvent(lua_State* L);
-int32_t Script_CalendarNewEvent(lua_State* L);
-int32_t Script_CalendarMassInviteGuild(lua_State* L);
-int32_t Script_CalendarMassInviteArenaTeam(lua_State* L);
-int32_t Script_CalendarNewGuildAnnouncement(lua_State* L);
-int32_t Script_CalendarNewGuildEvent(lua_State* L);
-int32_t Script_CalendarUpdateEvent(lua_State* L);
-int32_t Script_CalendarRemoveEvent(lua_State* L);
-int32_t Script_CalendarEventSelectInvite(lua_State* L);
-int32_t Script_CalendarEventGetSelectedInvite(lua_State* L);
-int32_t Script_CalendarContextSelectEvent(lua_State* L);
-int32_t Script_CalendarContextDeselectEvent(lua_State* L);
-int32_t Script_CalendarContextInviteIsPending(lua_State* L);
-int32_t Script_CalendarContextInviteModeratorStatus(lua_State* L);
-int32_t Script_CalendarContextInviteStatus(lua_State* L);
-int32_t Script_CalendarContextInviteType(lua_State* L);
-int32_t Script_CalendarContextInviteAvailable(lua_State* L);
-int32_t Script_CalendarContextInviteTentative(lua_State* L);
-int32_t Script_CalendarContextInviteDecline(lua_State* L);
-int32_t Script_CalendarContextInviteRemove(lua_State* L);
-int32_t Script_CalendarContextEventSignUp(lua_State* L);
-int32_t Script_CalendarContextEventRemove(lua_State* L);
-int32_t Script_CalendarContextEventCopy(lua_State* L);
-int32_t Script_CalendarContextEventPaste(lua_State* L);
-int32_t Script_CalendarContextEventClipboard(lua_State* L);
-int32_t Script_CalendarContextEventCanComplain(lua_State* L);
-int32_t Script_CalendarContextEventComplain(lua_State* L);
-int32_t Script_CalendarContextEventCanEdit(lua_State* L);
-int32_t Script_CalendarContextEventGetCalendarType(lua_State* L);
-int32_t Script_CalendarEventInvite(lua_State* L);
-int32_t Script_CalendarEventRemoveInvite(lua_State* L);
-int32_t Script_CalendarEventAvailable(lua_State* L);
-int32_t Script_CalendarEventTentative(lua_State* L);
-int32_t Script_CalendarEventDecline(lua_State* L);
-int32_t Script_CalendarEventSignUp(lua_State* L);
-int32_t Script_CalendarEventSortInvites(lua_State* L);
-int32_t Script_CalendarEventGetInviteSortCriterion(lua_State* L);
-int32_t Script_CalendarEventGetStatusOptions(lua_State* L);
-int32_t Script_CalendarEventSetStatus(lua_State* L);
-int32_t Script_CalendarEventSetModerator(lua_State* L);
-int32_t Script_CalendarEventClearModerator(lua_State* L);
-int32_t Script_CalendarEventCanModerate(lua_State* L);
-int32_t Script_CalendarEventIsModerator(lua_State* L);
-int32_t Script_CalendarEventSetTitle(lua_State* L);
-int32_t Script_CalendarEventSetDescription(lua_State* L);
-int32_t Script_CalendarEventSetType(lua_State* L);
-int32_t Script_CalendarEventSetRepeatOption(lua_State* L);
-int32_t Script_CalendarEventSetSize(lua_State* L);
-int32_t Script_CalendarEventSetDate(lua_State* L);
-int32_t Script_CalendarEventSetTime(lua_State* L);
-int32_t Script_CalendarEventSetLockoutDate(lua_State* L);
-int32_t Script_CalendarEventSetLockoutTime(lua_State* L);
-int32_t Script_CalendarEventSetTextureID(lua_State* L);
-int32_t Script_CalendarEventSetLocked(lua_State* L);
-int32_t Script_CalendarEventClearLocked(lua_State* L);
-int32_t Script_CalendarEventSetAutoApprove(lua_State* L);
-int32_t Script_CalendarEventClearAutoApprove(lua_State* L);
-int32_t Script_CalendarEventGetTextures(lua_State* L);
-int32_t Script_CalendarEventHasPendingInvite(lua_State* L);
-int32_t Script_CalendarEventHaveSettingsChanged(lua_State* L);
-int32_t Script_CalendarEventCanEdit(lua_State* L);
-int32_t Script_CalendarEventGetCalendarType(lua_State* L);
-int32_t Script_CalendarCanAddEvent(lua_State* L);
-int32_t Script_OpenCalendar(lua_State* L);
 void CalendarRegisterScriptFunctions();
 void CalendarUnregisterScriptFunctions();
 const char* GetHolidayName(int32_t holidayId);
 const char* GetEventTypeString(uint32_t type);
 bool GameCalendarGetMaxCreateDate(WowTime* date);
+const char* GetHolidayDescription(int32_t holidayId);
+DYNAMICHOLIDAYHASH* CalendarGetHolidayInfo(int32_t holidayId);
 const char* GetEventRepeatString(uint32_t repeat);
 
 extern const char* s_weekdayNames[7];
+extern CalendarEventData s_eventClipboard;
+extern TSHashTable<DYNAMICHOLIDAYHASH, HASHKEY_NONE> s_dynamicHolidays;
+extern TSFixedArray<int32_t> s_eventTextures[2];
 
 #endif

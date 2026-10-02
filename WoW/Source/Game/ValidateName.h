@@ -37,6 +37,7 @@ uint16_t ToLower(uint16_t c);
 bool StripHyperlinks(const char* text, char* buffer, uint32_t size);
 
 bool ScrubString(const char* source, char* dest, int32_t maxChars, uint32_t destSize, int32_t flags);
+bool FixCharacterNameCase(char* dest, const char* source, uint32_t size);
 
 int32_t GetNumRussianNameDeclensionSets(const char* name, int32_t sex);
 int32_t GetRussianNameDeclensions(char* declensions, const char* name, int32_t sex, uint32_t set);

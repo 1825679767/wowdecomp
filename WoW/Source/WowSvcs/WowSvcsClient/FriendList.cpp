@@ -1938,3 +1938,15 @@ int32_t Packet_SMSG_FRIEND_STATUS(void* param, NETMESSAGE msgId, uint32_t time, 
 
     return 1;
 }
+
+// VERIFY: 762d6418 manual
+// OFFSET: 0x006B3920
+bool FriendList::IsFriend(WOWGUID guid) {
+    for (uint32_t i = 0; i < 100; i++) {
+        if (this->m_friends[i].m_guid == guid) {
+            return true;
+        }
+    }
+
+    return false;
+}

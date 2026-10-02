@@ -1,5 +1,6 @@
 #include "GameTime.h"
 #include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00D37F98
 CGameTime g_clientGameTime;
@@ -172,4 +173,38 @@ void CGameTime::GameTimeUpdate(float elapsed) {
         this->m_fracMinutes -= 1.0f;
         this->TickMinute();
     }
+}
+
+// VERIFY: 580cfeb5 manual
+// OFFSET: 0x0076D1D0
+void __stdcall CGameTime::GameTimeUnregisterCallback(TIMESTAMPCALLBACK* callback) {
+    callback->m_link.Unlink();
+    delete callback;
+}
+
+// VERIFY: d53477cf manual
+// OFFSET: 0x0076DB30
+TIMESTAMPCALLBACK* CGameTime::GameTimeRegisterCallback(const WowTime* time, void (__stdcall* callback)(CGameTime* time, void* param), void* param) {
+    if (!callback) {
+        DebugValidate("callback");
+        SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
+        return nullptr;
+    }
+
+    if (time->m_hour < 0 || time->m_minute < 0) {
+        return nullptr;
+    }
+
+    int32_t minutes = time->GetHourAndMinutes();
+    HASHKEY_NONE key;
+    TIMESTAMPSTRUCT* stamp = this->m_timeStamps.Ptr(minutes, key);
+
+    if (!stamp) {
+        stamp = this->m_timeStamps.New(minutes, key, 0, 0);
+    }
+
+    TIMESTAMPCALLBACK* node = stamp->m_callbacks.NewNode(2, 0, 0);
+    node->m_param = param;
+    node->m_callback = callback;
+    return node;
 }

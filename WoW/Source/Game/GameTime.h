@@ -24,8 +24,11 @@ class CGameTime : public WowTime {
     /* 004C */ float unk_004C;
     /* 0050 */ TSHashTable<TIMESTAMPSTRUCT, HASHKEY_NONE> m_timeStamps;
 
+    static void __stdcall GameTimeUnregisterCallback(TIMESTAMPCALLBACK* callback);
+
     CGameTime();
     float GameTimeGetDayProgression();
+    TIMESTAMPCALLBACK* GameTimeRegisterCallback(const WowTime* time, void (__stdcall* callback)(CGameTime* time, void* param), void* param);
     float GameTimeSetMinutesPerSecond(float minutesPerSecond);
     void GameTimeSetTime(const WowTime& time, bool tick);
     void GameTimeSync(const WowTime& time, bool a2);

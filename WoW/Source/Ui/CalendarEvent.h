@@ -3,58 +3,112 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Common/WowTime.h"
+#include "WoW/Source/Object/WGUID.h"
+
+class CDataStore;
+
+struct EventInviteInfo {
+    /* 0000 */ uint64_t m_inviteID;
+    /* 0008 */ WOWGUID m_guid;
+    /* 0010 */ uint32_t m_responseTime;
+    /* 0014 */ uint8_t m_level;
+    /* 0015 */ uint8_t m_status;
+    /* 0016 */ uint8_t m_moderatorStatus;
+    /* 0017 */ uint8_t m_inviteType;
+    /* 0018 */ char m_notes[128];
+
+    EventInviteInfo();
+};
+
+// INLINED
+inline EventInviteInfo::EventInviteInfo() {
+    this->m_inviteID = 0;
+    this->m_guid = WOWGUID();
+    this->m_responseTime = 0;
+    this->m_level = 0;
+    this->m_status = 0;
+    this->m_moderatorStatus = 0;
+    this->m_inviteType = 0;
+    this->m_notes[0] = '\0';
+}
+
+struct InviteSortCriterion {
+    /* 0000 */ uint32_t m_criterion;
+    /* 0004 */ uint8_t m_reverse;
+};
 
 class CGCalendarEvent {
     public:
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint16_t unk_0004;
-    /* 0006 */ uint16_t unk_0006;
-    /* 0008 */ uint32_t unk_0008;
-    /* 000C */ uint32_t unk_000C;
-    /* 0010 */ uint32_t unk_0010;
-    /* 0014 */ uint32_t unk_0014;
-    /* 0018 */ uint32_t unk_0018;
-    /* 001C */ uint8_t unk_001C[4];
-    /* 0020 */ uint32_t unk_0020;
-    /* 0024 */ uint32_t unk_0024;
-    /* 0028 */ uint32_t unk_0028;
-    /* 002C */ uint32_t unk_002C;
-    /* 0030 */ uint8_t unk_0030;
-    /* 0031 */ uint8_t unk_0031[288];
-    /* 0151 */ uint8_t unk_0151[4];
-    /* 0155 */ uint8_t unk_0155[859];
-    /* 04B0 */ uint32_t unk_04B0;
-    /* 04B4 */ uint32_t unk_04B4;
-    /* 04B8 */ uint32_t unk_04B8;
-    /* 04BC */ uint32_t unk_04BC;
-    /* 04C0 */ uint32_t unk_04C0;
-    /* 04C4 */ uint8_t unk_04C4[4];
-    /* 04C8 */ uint32_t unk_04C8;
-    /* 04CC */ uint32_t unk_04CC;
-    /* 04D0 */ uint32_t unk_04D0;
-    /* 04D4 */ uint8_t unk_04D4[8];
-    /* 04DC */ uint32_t unk_04DC;
-    /* 04E0 */ uint32_t unk_04E0;
-    /* 04E4 */ uint8_t unk_04E4[4];
-    /* 04E8 */ uint32_t unk_04E8;
-    /* 04EC */ uint32_t unk_04EC;
-    /* 04F0 */ uint32_t unk_04F0;
-    /* 04F4 */ uint8_t unk_04F4[8];
-    /* 04FC */ uint32_t unk_04FC;
-    /* 0500 */ uint8_t unk_0500;
-    /* 0501 */ uint8_t unk_0501;
-    /* 0502 */ uint8_t unk_0502[6];
-    /* 0508 */ uint32_t unk_0508;
-    /* 050C */ uint32_t unk_050C;
-    /* 0510 */ uint32_t unk_0510;
-    /* 0514 */ uint8_t unk_0514[48];
-    /* 0544 */ uint32_t unk_0544;
-    /* 0548 */ uint32_t unk_0548;
-    /* 054C */ uint32_t unk_054C;
-    /* 0550 */ uint8_t unk_0550[3760];
-    /* 1400 */ uint8_t unk_1400;
+    /* 0000 */ uint64_t m_eventID;
+    /* 0008 */ TSGrowableArray<EventInviteInfo*> m_invites;
+    /* 0018 */ uint32_t m_numInvites;
+    /* 0020 */ uint64_t m_selectedInviteID;
+    /* 0028 */ uint64_t m_moderatorInviteID;
+    /* 0030 */ char m_title[128];
+    /* 00B0 */ char m_description[1024];
+    /* 04B0 */ uint32_t m_type;
+    /* 04B4 */ uint32_t m_repeatOption;
+    /* 04B8 */ uint32_t m_maxSize;
+    /* 04BC */ WowTime m_date;
+    /* 04DC */ WowTime m_lockoutDate;
+    /* 04FC */ uint32_t m_flags;
+    /* 0500 */ uint8_t m_new;
+    /* 0501 */ uint8_t m_changed;
+    /* 0508 */ WOWGUID m_creatorGUID;
+    /* 0510 */ int32_t m_textureID;
+    /* 0514 */ InviteSortCriterion m_sortCriteria[6];
+    /* 0544 */ uint32_t m_sortType;
+    /* 0548 */ uint32_t m_pendingNames;
+    /* 054C */ uint32_t m_signalType;
+    /* 0550 */ uint32_t m_guildID;
 
+    CGCalendarEvent();
+    CGCalendarEvent(WOWGUID guid, uint8_t level, int32_t calendarType);
     ~CGCalendarEvent();
+    void Clear();
+    void SetTitle(const char* title);
+    void SetDescription(const char* description);
+    void SetType(uint32_t type);
+    void SetRepeatOption(uint32_t repeatOption);
+    void SetSize(uint32_t size);
+    bool SetDate(uint32_t month, uint32_t monthDay, uint32_t year);
+    bool SetTime(uint32_t hour, uint32_t minute);
+    bool SetLockoutDate(uint32_t month, uint32_t monthDay, uint32_t year);
+    bool SetLockoutTime(uint32_t hour, uint32_t minute);
+    void SetTextureID(int32_t textureID);
+    void SetFlag(uint32_t flag);
+    void ClearFlag(uint32_t flag);
+    void SetSignalType(uint32_t signalType);
+    bool ProcessUpdateEvent(CDataStore* msg);
+    void InviteRemoved(WOWGUID guid);
+    void UpdateInviteStatus(WOWGUID guid, uint8_t status, uint32_t responseTime);
+    void UpdateInviteNotes(WOWGUID guid, const char* notes);
+    bool CanModerate(uint32_t index);
+    bool SortInvites(uint32_t criterion, bool toggle);
+    void SelectInvite(uint32_t index);
+    bool IsModerator();
+    bool AddEvent();
+    bool RemoveEvent();
+    bool Update();
+    bool Invite(const char* name);
+    bool RemoveInvite(uint32_t index);
+    bool RemoveInviteByGUID(WOWGUID guid);
+    bool InviteRSVP(uint32_t status);
+    bool SignUp(uint8_t tentative);
+    void UpdateInviteModeratorStatus(WOWGUID guid, uint8_t status);
+    bool CanSetInviteStatus(uint32_t index, uint32_t status);
+    void SetInviteStatus(uint32_t index, uint32_t status);
+    void SetModeratorStatus(uint32_t index, uint32_t status);
+    bool ProcessGetEvent(CDataStore* msg, int32_t* status);
+    bool ProcessInitialInviteList(CDataStore* msg);
+    void AddInvite(uint64_t inviteID, WOWGUID guid, uint8_t level, uint8_t status, uint8_t inviteType, uint32_t responseTime);
+    EventInviteInfo* GetInvite(WOWGUID guid);
+    int32_t GetInviteIndex(WOWGUID guid);
+    int32_t GetSelectedInviteIndex();
 };
+
+const char* GetEventStatusString(uint32_t status);
 
 #endif
