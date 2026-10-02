@@ -1066,9 +1066,14 @@ static int32_t VerifySignature(const uint8_t* data, uint32_t size, const uint8_t
     return SSignatureVerifyStream_Finish(token, modulus, s_signaturePublicExponent);
 }
 
-// VERIFY: d459ba04 manual
+// VERIFY: 29422f35 manual
 // OFFSET: 0x008165E0
 int32_t FrameXML_CheckSignature(const char* tocFile, const char* extraFile, const uint8_t* modulus, uint8_t* digest) {
+#ifdef DISABLE_SIGNATURE_CHECKS
+    CalculateSignatureMD5(tocFile, extraFile, digest);
+    return 3;
+#endif
+
     char sigFile[260];
     SStrPrintf(sigFile, sizeof(sigFile), "%s.sig", tocFile);
 

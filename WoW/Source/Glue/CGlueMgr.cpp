@@ -510,7 +510,7 @@ void CGlueMgr::HandleDisplaySizeChanged(const CSizeEvent& event) {
     CGlueMgr::m_reload = 1;
 }
 
-// VERIFY: 31f583be manual
+// VERIFY: e486096e manual
 // OFFSET: 0x004DA5F0
 void CGlueMgr::Resume() {
     CGlueMgr::m_disconnectPending = 0;
@@ -592,9 +592,11 @@ void CGlueMgr::Resume() {
             uint8_t digest[16];
             MD5Final(digest, &md5);
 
+#ifndef DISABLE_SIGNATURE_CHECKS
             if (memcmp(expectedDigest, digest, sizeof(digest))) {
                 break;
             }
+#endif
 
             FrameScript_SignalEvent(GLUE_EVENT_FRAMES_LOADED, nullptr);
             CGlueMgr::InitializeFFX();

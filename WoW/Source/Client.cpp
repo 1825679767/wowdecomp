@@ -671,9 +671,13 @@ static void CheckAvailableLocales(char* locale) {
 
     SStrCopy(locale, g_localeNames[index], STORM_MAX_STR);
 }
-// VERIFY: 93c1bfa0 manual
+// VERIFY: 979d57c4 manual
 // OFFSET: 0x00402F60
 static void LoadMopaqFileSigningData(const char* locale) {
+#ifdef DISABLE_SIGNATURE_CHECKS
+    return;
+#endif
+
     SFileClearAllFileFlags();
 
     char* data;

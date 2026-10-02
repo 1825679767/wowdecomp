@@ -1667,7 +1667,7 @@ int32_t CGGameUI::CanPerformAction(uint32_t action) {
     return 1;
 }
 
-// VERIFY: d5e3b07e manual
+// VERIFY: 7aefdc7e manual
 // OFFSET: 0x0052A980
 void CGGameUI::InitializeFrameXML() {
     CGChat::LeaveWorld();
@@ -1779,9 +1779,11 @@ void CGGameUI::InitializeFrameXML() {
     uint8_t digest[16];
     MD5Final(digest, &md5);
 
+#ifndef DISABLE_SIGNATURE_CHECKS
     if (memcmp(signature, digest, sizeof(digest))) {
         ClientPostClose(10);
     }
+#endif
 
     CGGameUI::m_UISimpleParent = static_cast<CSimpleFrame*>(CScriptObject::GetScriptObjectByName("UIParent", CSimpleFrame::GetObjectType()));
 

@@ -997,7 +997,7 @@ static void LoadAddOnMetadata(UIADDON* addon, const char* line) {
     addon->SetMetadata(key, end);
 }
 
-// VERIFY: 1d3a10ae manual
+// VERIFY: 1e6f21da manual
 // OFFSET: 0x005F80B0
 bool LoadAddOn(const char* name, bool demandLoad, CStatus* status) {
     UIADDON* addon = s_addons.Ptr(name);
@@ -1080,9 +1080,11 @@ bool LoadAddOn(const char* name, bool demandLoad, CStatus* status) {
         uint8_t digest[16];
         MD5Final(digest, &md5);
 
+#ifndef DISABLE_SIGNATURE_CHECKS
         if (!addon->m_status && memcmp(addon->m_digest, digest, sizeof(digest))) {
             ClientPostClose(10);
         }
+#endif
 
         lua_gctag = savedTag;
 
