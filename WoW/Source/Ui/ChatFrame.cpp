@@ -5583,6 +5583,21 @@ int32_t CGChat::IsPaused() {
     return CGChat::m_paused;
 }
 
+// VERIFY: 969b4800 manual
+// OFFSET: 0x00502960
+ChatChannel::ChatChannel() {
+    this->m_channelNumber = 0;
+    this->m_name[0] = 0;
+    this->m_pendingUsers.Clear();
+    this->m_flags = 0;
+    this->m_zoneChannelID = 0;
+    this->m_unk98 = 0;
+    this->m_unkA4 = 0;
+    this->m_unkA5 = 0;
+    this->m_unk9C = 1;
+    this->m_unkA0 = 1;
+}
+
 // VERIFY: 2c5750ac auto
 // OFFSET: 0x004FB190
 void CGChat::LeaveWorld() {

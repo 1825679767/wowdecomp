@@ -173,6 +173,8 @@ class ChatChannel {
     /* 00A0 */ int32_t m_unkA0;
     /* 00A4 */ uint8_t m_unkA4;
     /* 00A5 */ uint8_t m_unkA5;
+
+    ChatChannel();
 };
 
 struct DisplayChannel {

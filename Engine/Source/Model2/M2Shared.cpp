@@ -1820,7 +1820,7 @@ int32_t CM2Shared::Load(SFileImpl* file, int32_t flags, CAaBox* boundingBox) {
     return 1;
 }
 
-// VERIFY: 6a40d9ac manual
+// VERIFY: 33be3357 manual
 // OFFSET: 0x0083D510
 void CM2Shared::CancelAllDeferredSequences() {
     for (CM2SequenceLoad* load = this->m_sequenceLoads.Head(); !this->m_sequenceLoads.IsEnd(load); load = this->m_sequenceLoads.RawNext(load)) {
