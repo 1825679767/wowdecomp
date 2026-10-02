@@ -282,6 +282,43 @@ static int32_t Script_UnitIsTalking(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 43533d45 manual
+// OFFSET: 0x007DB8D0
+static int32_t Script_GetVoiceStatus(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        return 0;
+    }
+
+    WOWGUID guid = WOWGUID();
+    CGChat::ChatTokenToGUID(lua_tolstring(L, 1, nullptr), guid);
+
+    if (!guid) {
+        return 0;
+    }
+
+    int32_t status;
+
+    if (lua_isstring(L, 2)) {
+        int32_t type = ComSatClient_DetermineSessionTypeFromName(lua_tolstring(L, 2, nullptr));
+        status = ComSatClient_IsMemberInVoiceSession(guid, type, lua_tolstring(L, 2, nullptr));
+    } else {
+        if (s_currentSession < 0) {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        status = ComSatClient_GetMemberVoiceStatus(guid, s_currentSession);
+    }
+
+    if (status) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
 // STATIC: 0x00AF29C0
 static FrameScript_Method s_ScriptFunctions[] = {
     { "VoiceEnumerateOutputDevices", &Script_VoiceEnumerateOutputDevices },

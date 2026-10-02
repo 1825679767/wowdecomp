@@ -255,3 +255,20 @@ int32_t CGAutoCompleteName::RemoveFlags(const WOWGUID& guid, uint32_t flags) {
 
     return 1;
 }
+
+// VERIFY: 3098f7ff manual
+// OFFSET: 0x0057B0D0
+int32_t CGAutoCompleteName::RemoveFlagsFromAllNodes(uint32_t flags) {
+    for (AUTOCOMPLETE_NAMENODE* node = CGAutoCompleteName::m_list.Head(); !CGAutoCompleteName::m_list.IsEnd(node); ) {
+        AUTOCOMPLETE_NAMENODE* next = node->RawNext();
+        node->m_flags &= ~flags;
+
+        if (!(node->m_flags & ~0x20) && CGAutoCompleteName::s_useContext) {
+            CGAutoCompleteName::m_list.DeleteNode(node);
+        }
+
+        node = next;
+    }
+
+    return 1;
+}

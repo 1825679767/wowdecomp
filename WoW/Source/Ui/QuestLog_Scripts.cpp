@@ -1589,7 +1589,7 @@ static int32_t Script_QuestMapUpdateAllQuests(lua_State* L) {
     return 1;
 }
 
-// VERIFY: e9f011c6 auto
+// VERIFY: 11fdb03d auto
 // OFFSET: 0x005E0590
 static int32_t Script_QuestPOIGetIconInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1599,18 +1599,20 @@ static int32_t Script_QuestPOIGetIconInfo(lua_State* L) {
     bool complete;
     int32_t mapId;
     uint32_t unknown;
-    float x;
-    float y;
+    int32_t iconX;
+    int32_t iconY;
     int32_t floor;
 
-    if (!CGQuestLog::GetQuestPOIIcon(static_cast<int32_t>(lua_tonumber(L, 1)), &complete, &mapId, &unknown, &x, &y, &floor)) {
+    if (!CGQuestLog::GetQuestPOIIcon(static_cast<int32_t>(lua_tonumber(L, 1)), &complete, &mapId, &unknown, &iconX, &iconY, &floor)) {
         return 0;
     }
 
     C3Vector position;
-    position.x = x;
-    position.y = y;
+    position.x = iconX;
+    position.y = iconY;
     position.z = 0.0f;
+    float x;
+    float y;
     int32_t dungeonMapId = CGWorldMap::m_currentOrphanZone == -1 ? -1 : CGWorldMap::m_currentDungeonMap;
     DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecord(dungeonMapId);
     bool outland;

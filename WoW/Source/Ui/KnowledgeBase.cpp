@@ -7,6 +7,9 @@
 #include "WoW/Source/Ui/CKBQuery.h"
 #include "WoW/Source/Client.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/Types.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
 
 // STATIC: 0x00ACD538
 CKBSetup g_KnowledgeBaseSetup;
@@ -298,4 +301,12 @@ void CKBPage::Shutdown() {
     }
 
     g_KnowledgeBaseArticle.m_state = 0;
+}
+
+// VERIFY: 22ec21ae auto
+// OFFSET: 0x00552120
+void CKBSetup::_SendFailureEvent() {
+    if (CGGameUI::m_initialized) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_KNOWLEDGE_BASE_SETUP_LOAD_FAILURE, nullptr);
+    }
 }

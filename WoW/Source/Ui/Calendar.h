@@ -31,9 +31,29 @@ struct DYNAMICHOLIDAYHASH : public TSHashObject<DYNAMICHOLIDAYHASH, HASHKEY_NONE
 struct CALENDAREVENTHASH : public TSHashObject<CALENDAREVENTHASH, HASHKEY_NONE> {
 };
 
+struct CalendarDayEvent {
+    /* 0000 */ uint64_t m_eventID;
+    /* 0008 */ uint8_t unk_0008[128];
+    /* 0088 */ uint32_t m_startTime;
+    /* 008C */ uint32_t unk_008C;
+    /* 0090 */ uint32_t m_endTime;
+    /* 0094 */ uint32_t m_holidayID;
+    /* 0098 */ uint32_t m_type;
+    /* 009C */ uint8_t unk_009C[52];
+};
+
 struct CalendarDayInfo {
-    /* 0000 */ int32_t m_numEvents;
-    /* 0004 */ uint32_t unk_0004[3];
+    /* 0000 */ uint32_t m_numEvents;
+    /* 0004 */ CalendarDayEvent** m_events;
+    /* 0008 */ uint32_t unk_0008[2];
+};
+
+struct CalendarEventSelection {
+    /* 0000 */ uint64_t m_eventID;
+    /* 0008 */ uint32_t m_startTime;
+    /* 000C */ uint32_t m_endTime;
+    /* 0010 */ uint32_t m_holidayID;
+    /* 0014 */ int32_t unk_0014;
 };
 
 class CalendarEventTables {
@@ -85,23 +105,28 @@ class CGCalendar {
     static void ProcessInviteNotes(CDataStore* msg, uint8_t* clearPending);
     static void ProcessInviteNotesAlert(CDataStore* msg);
     static void UpdatePendingInvites(CDataStore* msg);
+    static int32_t m_absMonth;
+    static int32_t m_absYear;
+    static int32_t m_absMonthDays;
+    static CalendarEventSelection m_selectedEvent;
+    static CalendarEventSelection m_contextEvent;
+    static int32_t GetDaysInMonth(int32_t month, int32_t year, int32_t* days, int32_t* weekDay);
+    static int32_t GetMonth(int32_t offset, int32_t* month, int32_t* year, int32_t* days, int32_t* weekDay);
+    static int32_t ClampAbsMonthDay(int32_t month, int32_t year, int32_t* outMonth, int32_t* outYear, int32_t* days, int32_t* weekDay);
+    static bool ComputeEventIndex(const CalendarEventSelection* selection, int32_t* monthOffset, int32_t* day, int32_t* index);
+    static void CalculateEvents(bool a1);
 };
 
-int32_t Script_CalendarGetMinDate(lua_State* L);
 int32_t Script_CalendarGetMaxDate(lua_State* L);
 int32_t Script_CalendarGetMinHistoryDate(lua_State* L);
 int32_t Script_CalendarGetMaxCreateDate(lua_State* L);
-int32_t Script_CalendarGetMonth(lua_State* L);
 int32_t Script_CalendarGetAbsMonth(lua_State* L);
 int32_t Script_CalendarSetMonth(lua_State* L);
-int32_t Script_CalendarSetAbsMonth(lua_State* L);
 int32_t Script_CalendarGetNumDayEvents(lua_State* L);
 int32_t Script_CalendarGetDayEvent(lua_State* L);
 int32_t Script_CalendarGetDayEventSequenceInfo(lua_State* L);
 int32_t Script_CalendarGetFirstPendingInvite(lua_State* L);
 int32_t Script_CalendarOpenEvent(lua_State* L);
-int32_t Script_CalendarGetEventIndex(lua_State* L);
-int32_t Script_CalendarCloseEvent(lua_State* L);
 int32_t Script_CalendarGetEventInfo(lua_State* L);
 int32_t Script_CalendarGetHolidayInfo(lua_State* L);
 int32_t Script_CalendarGetRaidInfo(lua_State* L);
@@ -114,14 +139,12 @@ int32_t Script_CalendarMassInviteGuild(lua_State* L);
 int32_t Script_CalendarMassInviteArenaTeam(lua_State* L);
 int32_t Script_CalendarNewGuildAnnouncement(lua_State* L);
 int32_t Script_CalendarNewGuildEvent(lua_State* L);
-int32_t Script_CalendarDefaultGuildFilter(lua_State* L);
 int32_t Script_CalendarUpdateEvent(lua_State* L);
 int32_t Script_CalendarRemoveEvent(lua_State* L);
 int32_t Script_CalendarEventSelectInvite(lua_State* L);
 int32_t Script_CalendarEventGetSelectedInvite(lua_State* L);
 int32_t Script_CalendarContextSelectEvent(lua_State* L);
 int32_t Script_CalendarContextDeselectEvent(lua_State* L);
-int32_t Script_CalendarContextGetEventIndex(lua_State* L);
 int32_t Script_CalendarContextInviteIsPending(lua_State* L);
 int32_t Script_CalendarContextInviteModeratorStatus(lua_State* L);
 int32_t Script_CalendarContextInviteStatus(lua_State* L);
@@ -153,8 +176,6 @@ int32_t Script_CalendarEventSetModerator(lua_State* L);
 int32_t Script_CalendarEventClearModerator(lua_State* L);
 int32_t Script_CalendarEventCanModerate(lua_State* L);
 int32_t Script_CalendarEventIsModerator(lua_State* L);
-int32_t Script_CalendarEventGetTypes(lua_State* L);
-int32_t Script_CalendarEventGetRepeatOptions(lua_State* L);
 int32_t Script_CalendarEventSetTitle(lua_State* L);
 int32_t Script_CalendarEventSetDescription(lua_State* L);
 int32_t Script_CalendarEventSetType(lua_State* L);
@@ -180,6 +201,8 @@ int32_t Script_OpenCalendar(lua_State* L);
 void CalendarRegisterScriptFunctions();
 void CalendarUnregisterScriptFunctions();
 const char* GetHolidayName(int32_t holidayId);
+const char* GetEventTypeString(uint32_t type);
+const char* GetEventRepeatString(uint32_t repeat);
 
 extern const char* s_weekdayNames[7];
 

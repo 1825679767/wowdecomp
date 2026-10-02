@@ -1681,7 +1681,7 @@ lookup:
     return 1;
 }
 
-// VERIFY: af81c6a3 manual
+// VERIFY: 6f35979f manual
 // OFFSET: 0x00621070
 int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUID& healthGuid, int32_t a4) {
     const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
@@ -1800,7 +1800,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
             this->AddLine(name->m_name, nullptr, titleColor, titleColor, 0);
         }
     } else if (petState) {
-        this->AddLine(reinterpret_cast<const char*>(&petState->unk_0008[0]), nullptr, titleColor, titleColor, 0);
+        this->AddLine(petState->m_name, nullptr, titleColor, titleColor, 0);
     } else if (creature) {
         this->AddLine(creature->m_name[0], nullptr, titleColor, titleColor, 0);
     }

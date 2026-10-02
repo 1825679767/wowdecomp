@@ -42,6 +42,7 @@ class CVehiclePassenger_C {
     static void AddPendingRescueTransition(WOWGUID passengerGuid, WOWGUID vehicleGuid, uint8_t seat, int32_t instant);
     static CVehiclePassenger_C* Alloc(CGUnit_C* unit);
     static void Init(CGUnit_C* unit);
+    static void SendTransitionUIEvents(WOWGUID guid, int32_t a3, VehicleSeatRec* seatRec, int32_t fromState, int32_t toState);
 
     void StopMovement();
     void BeginTransition(WOWGUID vehicleGuid, uint8_t seat, uint8_t instant);

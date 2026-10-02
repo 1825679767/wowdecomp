@@ -36,6 +36,7 @@
 #include <cmath>
 #include "WoW/Source/DB/Rec/DungeonMapRec.h"
 #include "Engine/Source/Tempest/CMath.h"
+#include "WoW/Source/DB/Rec/WorldMapAreaRec.h"
 
 // STATIC: 0x00C23618
 int32_t CGQuestLog::m_sortTypes[25];
@@ -655,9 +656,9 @@ uint32_t IsDailyQuest(int32_t index) {
     return quest->m_flags & 0x1000;
 }
 
-// VERIFY: f4f6307a manual
+// VERIFY: d701767c manual
 // OFFSET: 0x005DEEE0
-bool CGQuestLog::GetQuestPOIIcon(int32_t questId, bool* complete, int32_t* mapId, uint32_t* a4, float* x, float* y, int32_t* floor) {
+bool CGQuestLog::GetQuestPOIIcon(int32_t questId, bool* complete, int32_t* mapId, uint32_t* a4, int32_t* x, int32_t* y, int32_t* floor) {
     for (uint32_t i = 0; i < 25; i++) {
         QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[i];
 
@@ -2229,5 +2230,265 @@ void CGQuestLog::SaveTrackedQuests() {
         list.m_buffer[1] = 1;
         list.m_buffer[list.m_pos] = 0;
         list.m_cvar->Set(list.m_buffer, true, false, false, true);
+    }
+}
+
+// STATIC: 0x00AD1264
+static int32_t s_poiOverlapIterations = 20;
+
+// VERIFY: c2014316 manual
+// OFFSET: 0x005E2EB0
+void CGQuestLog::UpdatePOIIcons() {
+    if (!g_questPOICVar->m_intValue) {
+        return;
+    }
+
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return;
+    }
+
+    WorldMapAreaRec* area = nullptr;
+    int32_t dungeonMapId = CGWorldMap::m_currentOrphanZone != -1 ? CGWorldMap::m_currentDungeonMap : -1;
+    DungeonMapRec* dungeonMap = g_dungeonMapDB.GetRecord(dungeonMapId);
+
+    if (!dungeonMap) {
+        area = g_worldMapAreaDB.GetRecord(CGWorldMap::GetCurrentAreaID());
+
+        if (CGWorldMap::GetCurrentAreaID() == -1 || !area) {
+            return;
+        }
+    }
+
+    C3Vector position = player->GetPosition();
+    int32_t numActive = 0;
+    int32_t numComplete = 0;
+    int32_t chain[25];
+    int32_t completeList[25];
+    memset(chain, 0, sizeof(chain));
+    uint8_t movable[25];
+    memset(movable, 0, sizeof(movable));
+    int32_t activeList[25];
+
+    for (uint32_t i = 0; i < 25; i++) {
+        QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[i];
+        float bestDistance = 3.4028235e38f;
+        int32_t best = -1;
+        int32_t bestPriority = 10;
+
+        for (int32_t j = 0; j < static_cast<int32_t>(poi->m_blobs.Count()); j++) {
+            QuestPOIBlob* blob = &poi->m_blobs.m_data[j];
+            int32_t floor = blob->unk_001C;
+
+            if (!((floor == -1 && poi->unk_002C == 0xFFFFFFFF) || (poi->unk_002C != 0xFFFFFFFF && ((1 << floor) & poi->unk_002C)))) {
+                continue;
+            }
+
+            bool visible;
+
+            if (dungeonMap) {
+                visible = CGQuestLog::IsPOIVisibleOnDungeonMap(&blob->m_centerX, blob->unk_0020, blob->unk_0028, dungeonMap->m_id);
+            } else {
+                if (!area || ((blob->unk_002C & 0x4) && blob->unk_0024 != area->m_id)) {
+                    continue;
+                }
+
+                visible = CGQuestLog::IsPOIOnCurrentMap(&blob->m_centerX, blob->unk_0020, area->m_mapID);
+            }
+
+            if (!visible) {
+                continue;
+            }
+
+            int32_t priority = blob->unk_0030;
+            float dy = fabs(position.y - blob->m_centerY);
+            float dx = fabs(position.x - blob->m_centerX);
+            float distance = dx * dx + dy * dy;
+
+            if (priority < bestPriority || (bestDistance > distance && priority == bestPriority)) {
+                bestDistance = distance;
+                best = j;
+                bestPriority = priority;
+            }
+        }
+
+        if (best == -1) {
+            poi->m_iconMapId = 0;
+            poi->m_iconFloor = 0;
+            poi->unk_001C = 0;
+            poi->m_iconX = 999999;
+            poi->m_iconY = 999999;
+            continue;
+        }
+
+        QuestPOIBlob* blob = &poi->m_blobs.m_data[best];
+        poi->m_iconMapId = blob->unk_0020;
+        poi->m_iconFloor = blob->unk_001C;
+        poi->unk_001C = blob->unk_0028;
+        poi->m_iconX = blob->m_centerX;
+        poi->m_iconY = blob->m_centerY;
+
+        uint32_t logIndex = 0;
+
+        for (uint32_t k = 0; k < 50; k++) {
+            if (!CGQuestLog::m_quests[k].m_isHeader && CGQuestLog::m_quests[k].m_questId == poi->m_questId) {
+                logIndex = k + 1;
+                break;
+            }
+        }
+
+        if (CGQuestLog::IsQuestCompleteEx(logIndex - 1, 1)) {
+            completeList[numComplete++] = i;
+        } else {
+            movable[i] = blob->m_points.Count() != 1;
+            activeList[numActive++] = i;
+        }
+    }
+
+    if (!area) {
+        return;
+    }
+
+    int32_t zoneId;
+
+    if (CGWorldMap::m_currentContinent < 0) {
+        zoneId = CGWorldMap::m_currentOrphanZone;
+    } else {
+        WorldMapContinent* continent = &CGWorldMap::m_continents.m_data[CGWorldMap::m_currentContinent];
+        zoneId = CGWorldMap::m_currentZone < 0 ? continent->m_areaID : continent->m_zones.m_data[CGWorldMap::m_currentZone];
+    }
+
+    if (zoneId == -1) {
+        return;
+    }
+
+    int32_t nudges[3][2] = { { 0, 2 }, { 1, -2 }, { -2, 1 } };
+    int32_t span = static_cast<int32_t>(fabs(area->m_locLeft - area->m_locRight));
+    float radius = span * (CGQuestLog::m_questIconOverlapDist + CGQuestLog::m_questIconOverlapDist) * 0.0009765625f;
+    uint32_t nudge = 0;
+    float maxStep = 0.050000001f * radius;
+    float radiusSq = radius * radius;
+
+    for (int32_t k = 0; k < numActive; k++) {
+        QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[activeList[k]];
+        poi->m_iconY = static_cast<int32_t>(poi->m_iconY * 0.75001878f);
+    }
+
+    for (int32_t iteration = 0; iteration < s_poiOverlapIterations; iteration++) {
+        int32_t forces[25][2];
+        memset(forces, 0, sizeof(forces));
+
+        for (int32_t a = 0; a < numActive; a++) {
+            int32_t indexA = activeList[a];
+            int32_t ax = CGQuestLog::m_questPOIs[indexA].m_iconX;
+            int32_t ay = CGQuestLog::m_questPOIs[indexA].m_iconY;
+
+            for (int32_t b = a + 1; b < numActive; b++) {
+                int32_t indexB = activeList[b];
+                int32_t dx = ax - CGQuestLog::m_questPOIs[indexB].m_iconX;
+                int32_t dy = ay - CGQuestLog::m_questPOIs[indexB].m_iconY;
+                int32_t distanceSq = dx * dx + dy * dy;
+
+                if (distanceSq >= radiusSq) {
+                    continue;
+                }
+
+                if (!distanceSq) {
+                    dx = nudges[nudge][0];
+                    dy = nudges[nudge][1];
+                    nudge = (nudge + 1) % 3;
+                }
+
+                double scale = radius / sqrt(static_cast<double>(dx) * dx + static_cast<double>(dy) * dy);
+                int32_t fx = static_cast<int32_t>(dx * scale);
+                int32_t fy = static_cast<int32_t>(scale * dy);
+
+                if (movable[indexA]) {
+                    forces[indexA][0] += fx;
+                    forces[indexA][1] += fy;
+                }
+
+                if (distanceSq && movable[indexB]) {
+                    forces[indexB][0] -= fx;
+                    forces[indexB][1] -= fy;
+                }
+            }
+        }
+
+        float maxForce = -9999999.0f;
+
+        for (int32_t k = 0; k < numActive; k++) {
+            float fx = fabs(static_cast<float>(forces[activeList[k]][0]));
+            float fy = fabs(static_cast<float>(forces[activeList[k]][1]));
+
+            if (fx > maxForce) {
+                maxForce = fx;
+            }
+
+            if (fy > maxForce) {
+                maxForce = fy;
+            }
+        }
+
+        if (0.0f == maxForce) {
+            break;
+        }
+
+        if (maxStep < maxForce) {
+            float scale = maxStep / maxForce;
+
+            for (int32_t k = 0; k < numActive; k++) {
+                int32_t index = activeList[k];
+                forces[index][0] = static_cast<int32_t>(forces[index][0] * scale);
+                forces[index][1] = static_cast<int32_t>(forces[index][1] * scale);
+            }
+        }
+
+        for (int32_t k = 0; k < numActive; k++) {
+            int32_t index = activeList[k];
+            CGQuestLog::m_questPOIs[index].m_iconX += forces[index][0];
+            CGQuestLog::m_questPOIs[index].m_iconY += forces[index][1];
+        }
+    }
+
+    if (s_cvPOIShiftComplete && s_cvPOIShiftComplete->m_floatValue > 0.001f) {
+        for (int32_t c = 0; c < numComplete - 1; c++) {
+            int32_t indexC = completeList[c + 1];
+            int32_t cx = CGQuestLog::m_questPOIs[indexC].m_iconX;
+            int32_t cy = CGQuestLog::m_questPOIs[indexC].m_iconY;
+            float threshold = s_cvPOIShiftComplete->m_floatValue * 100.0f;
+
+            for (int32_t d = c; d >= 0; d--) {
+                QuestPOIInfo* other = &CGQuestLog::m_questPOIs[completeList[d]];
+                int32_t distanceSq = (cx - other->m_iconX) * (cx - other->m_iconX) + (cy - other->m_iconY) * (cy - other->m_iconY);
+
+                if (distanceSq < threshold) {
+                    chain[indexC] = chain[completeList[d]] + 1;
+                    break;
+                }
+            }
+        }
+
+        int32_t offsets[4][2] = { { 50, 86 }, { -86, 50 }, { -50, 86 }, { -90, 10 } };
+        int32_t offset = 0;
+
+        for (int32_t k = 1; k < numComplete; k++) {
+            int32_t index = completeList[k];
+
+            if (chain[index]) {
+                float shift = s_cvPOIShiftComplete->m_floatValue;
+                int32_t ox = offsets[offset][0];
+                int32_t oy = offsets[offset][1];
+                offset = (offset + 1) & 3;
+                CGQuestLog::m_questPOIs[index].m_iconX += static_cast<int32_t>(ox * shift);
+                CGQuestLog::m_questPOIs[index].m_iconY += static_cast<int32_t>(shift * oy);
+            }
+        }
+    }
+
+    for (int32_t k = 0; k < numActive; k++) {
+        QuestPOIInfo* poi = &CGQuestLog::m_questPOIs[activeList[k]];
+        poi->m_iconY = static_cast<int32_t>(poi->m_iconY * 1.3333f);
     }
 }

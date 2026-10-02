@@ -1827,3 +1827,94 @@ int32_t Packet_SMSG_BATTLEFIELD_LIST(void* param, NETMESSAGE msgId, uint32_t tim
 
     return 1;
 }
+
+// VERIFY: 225ed4a9 manual
+// OFFSET: 0x0054B840
+void CGBattlefieldInfo::AddArenaOpponentToSlot(const WOWGUID& guid, int32_t slot) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (CGBattlefieldInfo::m_arenaOpponents[slot] != guid) {
+        CGBattlefieldInfo::m_arenaOpponents[slot] = guid;
+        memset(&CGBattlefieldInfo::m_arenaOpponentStats[slot], 0, sizeof(CGPartyMemberState));
+
+        if (unit) {
+            unit->RegisterScript(0x4000);
+        }
+    }
+
+    char token[32];
+    SStrPrintf(token, sizeof(token), "arena%d", slot + 1);
+    FrameScript_SignalEvent(SCRIPT_EVENT_ARENA_OPPONENT_UPDATE, "%s%s", token, "seen");
+
+    if (!unit) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_ARENA_OPPONENT_UPDATE, "%s%s", token, "unseen");
+    }
+}
+
+// VERIFY: c68ace60 manual
+// OFFSET: 0x0054B920
+void CGBattlefieldInfo::AddArenaOpponentPetToSlot(const WOWGUID& petGuid, const WOWGUID& ownerGuid, int32_t slot, int32_t registerNew) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(petGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (registerNew && CGBattlefieldInfo::m_arenaOpponentPets[slot][0] != petGuid && unit) {
+        unit->RegisterScript(0x4000);
+    }
+
+    CGBattlefieldInfo::m_arenaOpponentPets[slot][0] = petGuid;
+    CGBattlefieldInfo::m_arenaOpponentPets[slot][1] = ownerGuid;
+
+    char token[32];
+    SStrPrintf(token, sizeof(token), "arenapet%d", slot + 1);
+    FrameScript_SignalEvent(SCRIPT_EVENT_ARENA_OPPONENT_UPDATE, "%s%s", token, "seen");
+
+    if (!unit) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_ARENA_OPPONENT_UPDATE, "%s%s", token, "unseen");
+    }
+}
+
+// VERIFY: a9f9f494 manual
+// OFFSET: 0x0054D100
+void CGBattlefieldInfo::AddArenaOpponent(const WOWGUID& guid) {
+    for (uint32_t i = 0; i < 5; i++) {
+        if (CGBattlefieldInfo::m_arenaOpponentPets[i][1] == guid) {
+            CGUnit_C* pet = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGBattlefieldInfo::m_arenaOpponentPets[i][0], TYPEMASK_UNIT, __FILE__, __LINE__));
+
+            if (pet) {
+                pet->UnregisterScript(0x4000);
+            }
+
+            CGBattlefieldInfo::AddArenaOpponentToSlot(guid, i);
+            return;
+        }
+    }
+
+    for (int32_t i = 0; i < 5; i++) {
+        if (!CGBattlefieldInfo::m_arenaOpponentPets[i][0] && (CGBattlefieldInfo::m_arenaOpponents[i] == guid || !CGBattlefieldInfo::m_arenaOpponents[i])) {
+            CGBattlefieldInfo::AddArenaOpponentToSlot(guid, i);
+            return;
+        }
+    }
+}
+
+// VERIFY: 93acc678 manual
+// OFFSET: 0x0054D1C0
+void CGBattlefieldInfo::AddArenaOpponentPet(const WOWGUID& petGuid, const WOWGUID& ownerGuid) {
+    for (uint32_t i = 0; i < 5; i++) {
+        if (CGBattlefieldInfo::m_arenaOpponents[i] == ownerGuid) {
+            CGBattlefieldInfo::AddArenaOpponentPetToSlot(petGuid, ownerGuid, i, 0);
+            return;
+        }
+
+        if (CGBattlefieldInfo::m_arenaOpponentPets[i][1] == ownerGuid) {
+            CGBattlefieldInfo::AddArenaOpponentPetToSlot(petGuid, ownerGuid, i, 1);
+            return;
+        }
+    }
+
+    for (uint32_t i = 0; i < 5; i++) {
+        if (!CGBattlefieldInfo::m_arenaOpponents[i] && !CGBattlefieldInfo::m_arenaOpponentPets[i][0]) {
+            CGBattlefieldInfo::AddArenaOpponentPetToSlot(petGuid, ownerGuid, i, 1);
+            return;
+        }
+    }
+}

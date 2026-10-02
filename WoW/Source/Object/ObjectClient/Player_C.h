@@ -390,7 +390,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     bool OnGuildChanged(int32_t a2);
     void FillPartyMemberState(CGPartyMemberState* state);
     static uint32_t BuildPartyMemberStatsChanges(const CGPartyMemberState* oldState, const CGPartyMemberState* newState);
-    static void DispatchPartyMemberStatsChanges(CGPartyMemberState* state, uint32_t changes, const CGPartyMemberState* oldState, const CGPartyMemberState* newState);
+    static void DispatchPartyMemberStatsChanges(const WOWGUID& guid, uint32_t changes, const CGPartyMemberState* oldState, const CGPartyMemberState* newState);
     const char* GetPlayerGuildNameText();
     void TogglePlayerFlag(uint32_t oldFlags);
     void UpdateInventoryComponent(INVENTORY_SLOTS slot, const VisibleItem_C* oldItem);

@@ -678,3 +678,30 @@ int32_t ComSatClient_SetCurrentSession(int32_t type, const char* name) {
 void ComSatClient_DisableCurrentSession() {
     ComSatClient_SetCurrentSessionI(-1);
 }
+
+// VERIFY: ee86b5ab auto
+// OFFSET: 0x007DB690
+int32_t ComSatClient_IsTalkerSquelchedInCurrent(WOWGUID guid) {
+    return ComSatClient_IsTalkerSquelched(guid, s_currentSession);
+}
+
+// STATIC: 0x00ADC098
+static const char* s_sessionTypeNames[3] = { "Battleground", "Party", "Raid" };
+
+// VERIFY: c896b767 auto
+// OFFSET: 0x007DB860
+int32_t ComSatClient_DetermineSessionTypeFromName(const char* name) {
+    if (!name || !*name) {
+        return 4;
+    }
+
+    if (!SStrCmpI(name, s_sessionTypeNames[1], STORM_MAX_STR)) {
+        return 2;
+    }
+
+    if (!SStrCmpI(name, s_sessionTypeNames[2], STORM_MAX_STR)) {
+        return 3;
+    }
+
+    return !SStrCmpI(name, s_sessionTypeNames[0], STORM_MAX_STR);
+}

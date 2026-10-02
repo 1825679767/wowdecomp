@@ -22233,7 +22233,7 @@ void CGUnit_C::CreateOrDestroyObjectEffectManager() {
     }
 }
 
-// VERIFY: f79ff343 manual
+// VERIFY: 789b4a86 manual
 // OFFSET: 0x0072A950
 void CGUnit_C::UpdatePartyMemberPetState() {
     WOWGUID guid = this->m_obj->m_guid;
@@ -22269,7 +22269,7 @@ void CGUnit_C::UpdatePartyMemberPetState() {
     CGPartyMemberState newState = *source;
     this->FillPartyMemberPetState(&newState.m_pet);
     uint32_t changes = CGPlayer_C::BuildPartyMemberStatsChanges(&oldState, &newState);
-    CGPlayer_C::DispatchPartyMemberStatsChanges(&newState, changes, &oldState, &newState);
+    CGPlayer_C::DispatchPartyMemberStatsChanges(newState.m_guid, changes, &oldState, &newState);
 }
 
 // VERIFY: cd9f8160 manual

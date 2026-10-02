@@ -1047,3 +1047,33 @@ int32_t Packet_SMSG_WHO(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
 
     return 1;
 }
+
+// VERIFY: a407c9d6 manual
+// OFFSET: 0x006B5350
+bool FriendList::IsMuted(WOWGUID guid) {
+    if (!guid) {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < 50; i++) {
+        if (this->m_mutes[i].m_guid == guid) {
+            return true;
+        }
+    }
+
+    return CGChat::m_complaintsSystemStatus == 2 && this->IsComplained(guid);
+}
+
+// VERIFY: 1c11f1a1 auto
+// OFFSET: 0x006B53B0
+bool FriendList::IsIgnoredOrMuted(WOWGUID guid) {
+    if (!guid) {
+        return false;
+    }
+
+    if (this->IsIgnored(guid, true)) {
+        return true;
+    }
+
+    return this->IsMuted(guid);
+}

@@ -44,6 +44,8 @@ class ComSatClientAllocator : public ComSat::Allocator {
 int32_t ComSatClient_HasSession(int32_t type, const char* name);
 int32_t ComSatClient_FindSessionByTypeAndName(int32_t type, const char* name);
 int32_t ComSatClient_IsMemberInVoiceSession(WOWGUID guid, int32_t type, const char* name);
+int32_t ComSatClient_IsTalkerSquelchedInCurrent(WOWGUID guid);
+int32_t ComSatClient_DetermineSessionTypeFromName(const char* name);
 int32_t ComSatClient_Unk7DB830(WOWGUID guid, int32_t type, const char* name);
 int32_t ComSatClient_IsTalkerSquelched(WOWGUID guid, uint32_t session);
 int32_t ComSatClient_IsMemberVoiceActive(WOWGUID guid, uint32_t session);
@@ -109,7 +111,6 @@ void UpdatePushToTalkKey();
 int32_t VoiceChat_TickWrapper(const void* data, void* param);
 
 int32_t Script_VoiceGetCurrentOutputDevice(lua_State* L);
-int32_t Script_GetVoiceStatus(lua_State* L);
 int32_t Script_SetActiveVoiceChannelBySessionID(lua_State* L);
 int32_t Script_GetVoiceSessionMemberInfoBySessionID(lua_State* L);
 

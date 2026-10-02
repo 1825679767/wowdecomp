@@ -13,7 +13,7 @@ struct lua_State;
 class CGPartyPetState {
     public:
     /* 0000 */ WOWGUID m_guid;
-    /* 0008 */ uint8_t unk_0008[80];
+    /* 0008 */ char m_name[80];
     /* 0058 */ uint8_t m_powerType;
     /* 0059 */ uint8_t unk_0059;
     /* 005A */ uint16_t m_displayId;

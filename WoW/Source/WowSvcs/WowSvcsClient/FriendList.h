@@ -101,6 +101,8 @@ class FriendList {
 
     void ReadPacket(CDataStore* msg);
     bool IsIgnored(WOWGUID guid, bool a2);
+    bool IsMuted(WOWGUID guid);
+    bool IsIgnoredOrMuted(WOWGUID guid);
     bool IsComplained(WOWGUID guid);
     void AddComplained(WOWGUID guid);
     bool IsFriend(WOWGUID guid);

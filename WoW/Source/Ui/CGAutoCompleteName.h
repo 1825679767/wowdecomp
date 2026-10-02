@@ -17,7 +17,7 @@ struct AUTOCOMPLETE_NAMENODE : public TSLinkedNode<AUTOCOMPLETE_NAMENODE> {
 
 class CGAutoCompleteName {
     public:
-    static void RemoveFlagsFromAllNodes(uint32_t flags);
+    static int32_t RemoveFlagsFromAllNodes(uint32_t flags);
     static TSList<AUTOCOMPLETE_NAMENODE, TSGetLink<AUTOCOMPLETE_NAMENODE>> m_list;
     static bool s_resortNamesOnRecency;
     static void RemoveFlagsByName(const char* name, uint32_t flags, int32_t a3, int32_t a4);

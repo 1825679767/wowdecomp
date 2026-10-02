@@ -448,7 +448,6 @@ int32_t Script_DisplayChannelVoiceOff(lua_State* L);
 int32_t Script_IsDisplayChannelOwner(lua_State* L);
 int32_t Script_IsDisplayChannelModerator(lua_State* L);
 int32_t Script_IsSilenced(lua_State* L);
-int32_t Script_GetMuteStatus(lua_State* L);
 int32_t Script_UnitIsSilenced(lua_State* L);
 int32_t Script_SetChannelWatch(lua_State* L);
 void ChatRegisterScriptFunctions();

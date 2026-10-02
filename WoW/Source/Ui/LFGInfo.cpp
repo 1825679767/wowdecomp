@@ -20,6 +20,8 @@
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include <ctime>
+#include "WoW/Source/Game/ValidateName.h"
+#include "Engine/Source/Os/Time.h"
 
 struct LFGJoinResultError {
     /* 0000 */ uint32_t m_result;
@@ -1564,4 +1566,61 @@ void CGLookingForGroup::RequestLFGPartyInfo() {
     msg.Put(static_cast<uint32_t>(CMSG_LFG_PARTY_LOCK_INFO_REQUEST));
     msg.Finalize();
     ClientServices::Send2(&msg);
+}
+
+// STATIC: 0x00ACDD50
+static int32_t s_commentSendCount = 2;
+
+// STATIC: 0x00BEABA8
+static float s_commentSendTime;
+
+// VERIFY: 7afbdf39 manual
+// OFFSET: 0x005539A0
+void CGLookingForGroup::SetLFGComment(const char* comment) {
+    char scrubbed[256];
+    ScrubString(comment, scrubbed, 64, sizeof(scrubbed), 1);
+    SStrCopy(CGLookingForGroup::m_localInfo.m_comment, scrubbed, sizeof(CGLookingForGroup::m_localInfo.m_comment));
+
+    if (!CGLookingForGroup::m_localInfo.m_joined) {
+        CGLookingForGroup::m_localInfo.unk_0003 = 1;
+        return;
+    }
+
+    if (++s_commentSendCount > 2) {
+        float now = OsGetAsyncTimeSec();
+
+        if (now - s_commentSendTime < 2.0) {
+            if (s_commentSendCount > 2) {
+                return;
+            }
+        } else {
+            s_commentSendTime = now;
+            s_commentSendCount = 0;
+        }
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_LFG_SET_COMMENT));
+    msg.PutString(CGLookingForGroup::m_localInfo.m_comment);
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+}
+
+// VERIFY: 8eb2e7f5 manual
+// OFFSET: 0x00558F90
+void CGLookingForGroup::LeaveLFGSearch() {
+    if (!CGLookingForGroup::m_searchJoinedID) {
+        return;
+    }
+
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_LFG_LFR_LEAVE));
+    msg.Put(static_cast<uint32_t>(CGLookingForGroup::m_searchJoinedID));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    CGLookingForGroup::m_prevSearchResults.Clear();
+    CGLookingForGroup::m_prevSearchResults.unk_0004 = OsGetAsyncTimeMs();
+    CGLookingForGroup::m_searchJoinedID = 0;
+    CGLookingForGroup::m_searchResults.Clear();
+    FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_LFG_LIST, nullptr);
 }

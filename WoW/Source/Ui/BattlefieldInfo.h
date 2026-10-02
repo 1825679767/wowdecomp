@@ -158,6 +158,8 @@ class CGBattlefieldInfo {
     static void BattlefieldMgrQueueInviteResponse(int32_t battleId, uint8_t accept);
     static void BattlefieldMgrExitRequest(int32_t battleId);
     static void AddArenaOpponentPet(const WOWGUID& petGuid, const WOWGUID& ownerGuid);
+    static void AddArenaOpponentToSlot(const WOWGUID& guid, int32_t slot);
+    static void AddArenaOpponentPetToSlot(const WOWGUID& petGuid, const WOWGUID& ownerGuid, int32_t slot, int32_t registerNew);
     static WOWGUID GetArenaOpponent(uint32_t index);
     static CGPartyMemberState* GetRemoteStats(const WOWGUID& guid);
     static CGPartyMemberState* GetRemoteStatsFromPet(const WOWGUID& petGuid);

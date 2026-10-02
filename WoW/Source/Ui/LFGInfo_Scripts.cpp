@@ -25,6 +25,8 @@
 #include "WoW/Source/DB/Rec/MapDifficultyRec.h"
 #include "WoW/Source/WowServices/RealmConnection.h"
 #include "WoW/Source/Object/ItemStats.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
 
 // STATIC: 0x00ACDD60
 static int32_t s_playerLockRequests = 2;
@@ -1265,6 +1267,103 @@ static int32_t Script_RequestLFDPartyLockInfo(lua_State* L) {
     CGLookingForGroup::RequestLFGPartyInfo();
     lua_pushboolean(L, 1);
     return 1;
+}
+
+// VERIFY: eaa7e759 auto
+// OFFSET: 0x00553F50
+static int32_t Script_SetLFGComment(lua_State* L) {
+    const char* comment = nullptr;
+
+    if (lua_isstring(L, 1)) {
+        comment = lua_tolstring(L, 1, nullptr);
+    }
+
+    CGLookingForGroup::SetLFGComment(comment);
+    return 0;
+}
+
+// VERIFY: ca970612 manual
+// OFFSET: 0x00555760
+static int32_t Script_UnitHasLFGRandomCooldown(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: UnitHasLFGRandomCooldown(\"unit\")");
+    }
+
+    WOWGUID guid = GetGuidByKeyword(lua_tolstring(L, 1, nullptr));
+
+    if (!guid) {
+        return 0;
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        lua_pushboolean(L, unit->HasAuraBySpellId(71328));
+        return 1;
+    }
+
+    CGPartyMemberState* state = CGPartyMemberStateRepository::GetState(guid);
+
+    if (!state) {
+        return 0;
+    }
+
+    for (int32_t i = 0; i < 64; i++) {
+        if (state->m_auras[i] == 71328) {
+            lua_pushboolean(L, 1);
+            return 1;
+        }
+    }
+
+    lua_pushboolean(L, 0);
+    return 1;
+}
+
+// VERIFY: 1d04b62d manual
+// OFFSET: 0x00555840
+static int32_t Script_UnitHasLFGDeserter(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: UnitHasLFGDeserter(\"unit\")");
+    }
+
+    WOWGUID guid = GetGuidByKeyword(lua_tolstring(L, 1, nullptr));
+
+    if (!guid) {
+        return 0;
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        lua_pushboolean(L, unit->HasAuraBySpellId(71041));
+        return 1;
+    }
+
+    CGPartyMemberState* state = CGPartyMemberStateRepository::GetState(guid);
+
+    if (!state) {
+        return 0;
+    }
+
+    for (int32_t i = 0; i < 64; i++) {
+        if (state->m_auras[i] == 71041) {
+            lua_pushboolean(L, 1);
+            return 1;
+        }
+    }
+
+    lua_pushboolean(L, 0);
+    return 1;
+}
+
+// VERIFY: a86675b0 auto
+// OFFSET: 0x005594E0
+static int32_t Script_SearchLFGLeave(lua_State* L) {
+    if (CGGameUI::CanPerformAction(9)) {
+        CGLookingForGroup::LeaveLFGSearch();
+    }
+
+    return 0;
 }
 
 // STATIC: 0x00ACD668

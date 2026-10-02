@@ -795,7 +795,7 @@ static int32_t Script_AppendToFile(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 507fc501 manual
+// VERIFY: a4a7d960 manual
 // OFFSET: 0x0060E740
 static int32_t Script_UnitName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -851,7 +851,7 @@ static int32_t Script_UnitName(lua_State* L) {
             }
         }
     } else if (CGPartyPetState* petState = CGPartyMemberStateRepository::FindPetState(unitGuid)) {
-        name = reinterpret_cast<const char*>(petState->unk_0008);
+        name = petState->m_name;
     } else if ((unitGuid.m_guid & 0xF0F0000000000000ULL) == 0xF040000000000000ULL) {
         PetNameCache* record = g_petNameCache.GetRecord(static_cast<int32_t>((unitGuid.m_guid >> 24) & 0xFFFFFFF), unitGuid, UnitNameQueryCallback, nullptr, true);
 

@@ -24,6 +24,7 @@
 #include "WoW/Source/DB/Rec/ChatChannelsRec.h"
 #include "WoW/Source/Game/GameClient/ComSatClient.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
 
 // STATIC: 0x00AC7A48
 static const char* s_channelCategories[3] = { "CHANNEL_CATEGORY_GROUP", "CHANNEL_CATEGORY_WORLD", "CHANNEL_CATEGORY_CUSTOM" };
@@ -1317,6 +1318,24 @@ static int32_t Script_GetChatWindowChannels(lua_State* L) {
 // OFFSET: 0x004FCA50
 static int32_t Script_GetNumSavedInstances(lua_State* L) {
     lua_pushnumber(L, s_numSavedInstances);
+    return 1;
+}
+
+// VERIFY: ed393229 auto
+// OFFSET: 0x004FCDF0
+static int32_t Script_GetMuteStatus(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        return 0;
+    }
+
+    WOWGUID guid;
+
+    if (FriendList::s_friendList && (guid = WOWGUID(), CGChat::ChatTokenToGUID(lua_tolstring(L, 1, nullptr), guid), guid) && (FriendList::s_friendList->IsIgnoredOrMuted(guid) || (lua_isstring(L, 2) ? ComSatClient_IsTalkerSquelchedInChannel(guid, ComSatClient_DetermineSessionTypeFromName(lua_tolstring(L, 2, nullptr)), lua_tolstring(L, 2, nullptr)) : ComSatClient_IsTalkerSquelchedInCurrent(guid)))) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
     return 1;
 }
 

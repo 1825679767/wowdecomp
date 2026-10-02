@@ -45,8 +45,8 @@ struct QuestPOIInfo {
     /* 0014 */ int32_t m_iconMapId;
     /* 0018 */ int32_t m_iconFloor;
     /* 001C */ uint32_t unk_001C;
-    /* 0020 */ float m_iconX;
-    /* 0024 */ float m_iconY;
+    /* 0020 */ int32_t m_iconX;
+    /* 0024 */ int32_t m_iconY;
     /* 0028 */ uint8_t unk_0028;
     /* 0029 */ uint8_t unk_0029;
     /* 002C */ uint32_t unk_002C;
@@ -133,7 +133,7 @@ class CGQuestLog {
     static void ShutdownGame();
     static int32_t GetQuestAt(int32_t index);
     static int32_t GetQuestLeaderBoardForItem(int32_t questId, int32_t itemId, QuestLogLeaderBoardParams* params);
-    static bool GetQuestPOIIcon(int32_t questId, bool* complete, int32_t* mapId, uint32_t* a4, float* x, float* y, int32_t* floor);
+    static bool GetQuestPOIIcon(int32_t questId, bool* complete, int32_t* mapId, uint32_t* a4, int32_t* x, int32_t* y, int32_t* floor);
     static int32_t GetQuestLogItemDropByID(int32_t questId, QuestLogLeaderBoardParams* params);
     static int32_t GetQuestPOILeaderBoardByID(int32_t questId, QuestLogLeaderBoardParams* params);
     static int32_t IsQuestCompleteEx(uint32_t index, int32_t a2);

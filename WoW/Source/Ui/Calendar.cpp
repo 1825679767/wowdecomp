@@ -19,6 +19,7 @@
 #include "WoW/Source/Ui/CalendarEvent.h"
 #include "WoW/Common/WowTime.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "WoW/Source/Game/GameTime.h"
 
 // STATIC: 0x00AD0340
 static TSList<CalendarPendingInvite, TSGetLink<CalendarPendingInvite> > s_pendingInvites;
@@ -468,4 +469,176 @@ void CGCalendar::UpdatePendingInvites(CDataStore* msg) {
     if (CGCalendar::m_numInitialPending != previous) {
         FrameScript_SignalEvent(SCRIPT_EVENT_CALENDAR_UPDATE_PENDING_INVITES, nullptr);
     }
+}
+
+// STATIC: 0x00ACFF8C
+int32_t CGCalendar::m_absMonth = -1;
+
+// STATIC: 0x00ACFF90
+int32_t CGCalendar::m_absYear = 4;
+
+// STATIC: 0x00C20800
+int32_t CGCalendar::m_absMonthDays;
+
+// STATIC: 0x00C20F78
+CalendarEventSelection CGCalendar::m_selectedEvent;
+
+// STATIC: 0x00C20F90
+CalendarEventSelection CGCalendar::m_contextEvent;
+
+// VERIFY: e086b5b0 auto
+// OFFSET: 0x005B7A10
+int32_t CGCalendar::GetDaysInMonth(int32_t month, int32_t year, int32_t* days, int32_t* weekDay) {
+    WowTime date;
+    date.m_month = month;
+    date.m_monthDay = 0;
+    date.m_year = year;
+    date.AddDays(0, false);
+    *weekDay = date.m_weekDay;
+    date.m_month = month + 1;
+
+    if (month == 12) {
+        year++;
+        date.m_month = 0;
+    }
+
+    date.m_year = year;
+    date.AddDays(-1, false);
+    *days = date.m_monthDay + 1;
+    return date.m_monthDay + 1;
+}
+
+// VERIFY: a29063fa manual
+// OFFSET: 0x005B8EC0
+int32_t CGCalendar::GetMonth(int32_t offset, int32_t* month, int32_t* year, int32_t* days, int32_t* weekDay) {
+    if (CGCalendar::m_absMonthDays) {
+        *month = CGCalendar::m_absMonth;
+        *year = CGCalendar::m_absYear;
+    } else {
+        *month = g_clientGameTime.m_month;
+        *year = g_clientGameTime.m_year;
+    }
+
+    if (offset) {
+        *year += offset / 12;
+        *month += offset % 12;
+
+        if (*month >= 12) {
+            ++*year;
+            *month -= 12;
+        } else if (*month < 0) {
+            --*year;
+            *month += 12;
+        }
+    }
+
+    int32_t clampedYear = *year;
+
+    if (clampedYear >= 30) {
+        clampedYear = 30;
+    }
+
+    *year = clampedYear;
+
+    if (clampedYear <= 4) {
+        *year = 4;
+        int32_t clampedMonth = *month;
+
+        if (clampedMonth <= 10) {
+            clampedMonth = 10;
+        }
+
+        *month = clampedMonth;
+    }
+
+    return CGCalendar::GetDaysInMonth(*month, *year, days, weekDay);
+}
+
+// VERIFY: 897b7493 manual
+// OFFSET: 0x005B8F70
+int32_t CGCalendar::ClampAbsMonthDay(int32_t month, int32_t year, int32_t* outMonth, int32_t* outYear, int32_t* days, int32_t* weekDay) {
+    int32_t minYear = g_clientGameTime.m_year - 5;
+    int32_t maxYear = minYear + 10;
+
+    if (year < minYear) {
+        *outYear = minYear;
+    } else if (year <= maxYear) {
+        *outYear = year;
+    } else {
+        *outYear = maxYear;
+    }
+
+    int32_t clampedYear = *outYear;
+
+    if (clampedYear >= 30) {
+        clampedYear = 30;
+    }
+
+    *outYear = clampedYear;
+
+    if (clampedYear < 4) {
+        *outYear = 4;
+    }
+
+    *outMonth = abs(month % 12);
+    return CGCalendar::GetDaysInMonth(*outMonth, *outYear, days, weekDay);
+}
+
+// VERIFY: 2b9c14f8 manual
+// OFFSET: 0x005B9000
+bool CGCalendar::ComputeEventIndex(const CalendarEventSelection* selection, int32_t* monthOffset, int32_t* day, int32_t* index) {
+    *monthOffset = 0;
+    *day = 0;
+    *index = 0;
+
+    if (!selection->m_eventID && !selection->m_holidayID && !selection->m_startTime) {
+        return false;
+    }
+
+    WowTime date;
+    WowTime::WowDecodeTime(selection->m_startTime, &date);
+    uint32_t month = 12 * (date.m_year - CGCalendar::m_absYear) - CGCalendar::m_absMonth + date.m_month + 1;
+
+    if (month > 2) {
+        return false;
+    }
+
+    CalendarDayInfo* info = &s_days[month][date.m_monthDay];
+
+    for (uint32_t i = 0; i < info->m_numEvents; i++) {
+        CalendarDayEvent* event = info->m_events[i];
+
+        if (!event) {
+            continue;
+        }
+
+        bool match = false;
+
+        if (selection->m_eventID) {
+            match = selection->m_eventID == event->m_eventID;
+        }
+
+        if (selection->m_holidayID) {
+            match = selection->m_holidayID == event->m_holidayID;
+
+            if (!match) {
+                continue;
+            }
+
+            if (selection->unk_0014 < 0) {
+                match = selection->m_endTime == event->m_endTime;
+            }
+        }
+
+        if (!match) {
+            continue;
+        }
+
+        *monthOffset = month - 1;
+        *day = date.m_monthDay;
+        *index = i;
+        return true;
+    }
+
+    return false;
 }
