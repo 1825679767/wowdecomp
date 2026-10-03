@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
+#include "Engine/Source/Tempest/C3Vector.h"
 
 class CGUnitData;
 class CMovement_C;
@@ -21,6 +22,8 @@ class CGUnit {
     /* 0000 */ CGUnitData* m_unit;
     /* 0004 */ void* m_unitMirror;
     /* 0008 */ CMovement_C* m_movement;
+
+    C3Vector GetVelocity() const;
 
     bool CanSwim() const;
     int32_t CanPlayEmote(uint32_t emoteFlags, int32_t targeted, int32_t* standUp) const;

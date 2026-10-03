@@ -1,5 +1,6 @@
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
 #include <cmath>
+#include <new>
 #include <typeinfo>
 #include <cstdio>
 #include <cstdlib>
@@ -3205,4 +3206,84 @@ float DayNight::DNSunGlare::GetCloudDensityFade() {
 float DayNight::DNMoonGlare::GetCloudDensityFade() {
     float density = DayNight::g_clouds.GetDensity(&this->m_position, 1.0f) - 0.5f;
     return 1.0f - fabs(density + density);
+}
+
+// VERIFY: fea873d6 auto
+// OFFSET: 0x007EEA80
+void DayNight::UpdateStars() {
+    DayNight::g_stars.Update();
+}
+
+// VERIFY: aa435fb6 auto
+// OFFSET: 0x007F10A0
+void DayNight::AddLightOverride(int32_t lightId, int32_t overrideId, uint32_t duration) {
+    LightRec* light = g_lightDB.GetRecord(lightId);
+    LightRec* overrideLight = g_lightDB.GetRecord(overrideId);
+
+    if (!light || !overrideLight) {
+        return;
+    }
+
+    void* data = s_lightAllocator.GetData(0, typeid(LightRec).raw_name(), SLOG_OBJECT);
+
+    if (!data) {
+        return;
+    }
+
+    LightRec* rec = new (data) LightRec();
+    *rec = *overrideLight;
+    rec->m_gameCoords[0] = light->m_gameCoords[0];
+    rec->m_gameCoords[1] = light->m_gameCoords[1];
+    rec->m_gameCoords[2] = light->m_gameCoords[2];
+    rec->m_gameFalloffStart = light->m_gameFalloffStart;
+    rec->m_gameFalloffEnd = light->m_gameFalloffEnd;
+
+    AreaLightOverride* entry = s_areaLightOverrides.New();
+
+    if (!entry) {
+        return;
+    }
+
+    entry->m_light = rec;
+    entry->m_fade = 0.0f;
+    entry->m_id = lightId;
+    entry->m_state = 1;
+    entry->m_lastTime = OsGetAsyncTimeMs();
+    entry->m_duration = duration;
+    DayNight::ResetFogAccumulators(true);
+}
+
+// VERIFY: 1e2f3fef auto
+// OFFSET: 0x007F11A0
+void DayNight::RemoveLightOverride(int32_t lightId, uint32_t duration) {
+    for (uint32_t i = 0; i < s_areaLightOverrides.m_count; i++) {
+        if (s_areaLightOverrides.m_data[i].m_id != static_cast<uint32_t>(lightId)) {
+            continue;
+        }
+
+        AreaLightOverride* entry = &s_areaLightOverrides.m_data[i];
+        entry->m_state = 2;
+        entry->m_lastTime = OsGetAsyncTimeMs();
+        entry->m_duration = duration;
+        DayNight::ResetFogAccumulators(true);
+        return;
+    }
+}
+
+// VERIFY: 1d606d65 auto
+// OFFSET: 0x007F31C0
+void DayNight::SetBlendSky(uint32_t index, const char* sky, int32_t a3, float blend) {
+    if (index > 3) {
+        return;
+    }
+
+    if (sky) {
+        DayNight::g_dnInfo.m_blendSkybox[index] = DayNight::GetOverrideSky(sky, a3);
+        DayNight::g_dnInfo.m_blendSkyboxWeight[index] = blend;
+        DayNight::g_dnInfo.m_blendSkyboxFlags[index] = 0;
+    } else {
+        DayNight::g_dnInfo.m_blendSkybox[index] = nullptr;
+        DayNight::g_dnInfo.m_blendSkyboxWeight[index] = 0.0f;
+        DayNight::g_dnInfo.m_blendSkyboxFlags[index] = 0;
+    }
 }

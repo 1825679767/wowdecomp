@@ -72,3 +72,8 @@ void CKBSystem::CacheServerMessage(const char* text, int32_t id) {
 
     FrameScript_SignalEvent(SCRIPT_EVENT_KNOWLEDGE_BASE_SERVER_MESSAGE, nullptr);
 }
+
+// VERIFY: 687699c0 auto
+// OFFSET: 0x005EEB70
+void CKBSystem::LeaveWorld() {
+}

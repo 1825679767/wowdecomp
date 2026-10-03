@@ -430,3 +430,8 @@ void CGRuneInfo::AddRunePower(CDataStore* msg) {
 
     FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_UPDATE_COOLDOWN, nullptr);
 }
+
+// VERIFY: 59e48eda auto
+// OFFSET: 0x005EEB70
+void CGRuneInfo::LeaveWorld() {
+}

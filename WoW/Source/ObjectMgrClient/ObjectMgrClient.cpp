@@ -1288,6 +1288,17 @@ static CGObject_C* GetUpdateObject(WOWGUID guid, int32_t* reenabled) {
     return object;
 }
 
+// VERIFY: ebf77040 auto
+// OFFSET: 0x004D6F10
+void ClntObjMgrReenableObject(WOWGUID guid) {
+    int32_t reenabled;
+    CGObject_C* object = GetUpdateObject(guid, &reenabled);
+
+    if (object && reenabled) {
+        object->Reenable();
+    }
+}
+
 // VERIFY: 3154e6f8 manual
 // OFFSET: 0x004D6C00
 static int32_t CreateObject(CDataStore* msg, uint32_t time) {

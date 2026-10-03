@@ -290,7 +290,7 @@ void DBCache<T, TKey, THashKey>::Load() {
 }
 
 // VERIFY: a9ebf5d0 manual
-// OFFSET: [0x0067B6A0, 0x0067BD40, 0x0067CA30, 0x0067D0D0, 0x0067D930, 0x0067DE90, 0x0067E3E0, 0x0067F4C0, 0x006806D0]
+// OFFSET: [0x0067B6A0, 0x0067BD40, 0x0067CA30, 0x0067D0D0, 0x0067D930, 0x0067DE90, 0x0067E3E0, 0x0067F4C0, 0x006806D0, 0x0067C3E0, 0x0067FA80]
 template <class T, class TKey, class THashKey>
 T* DBCache<T, TKey, THashKey>::GetRecord(TKey key, const WOWGUID& guid, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param, bool unique) {
     if (DBCacheIsNullKey(key)) {
@@ -342,7 +342,7 @@ T* DBCache<T, TKey, THashKey>::GetRecord(TKey key, const WOWGUID& guid, void (*c
 }
 
 // VERIFY: def725c6 manual
-// OFFSET: [0x00679E10, 0x0067A0F0, 0x0067A3A0, 0x0067A570, 0x0067A8C0]
+// OFFSET: [0x00679E10, 0x0067A0F0, 0x0067A3A0, 0x0067A570, 0x0067A8C0, 0x00679F00]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::CancelCallback(TKey key, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param) {
     DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
@@ -498,7 +498,7 @@ void DBCache<T, TKey, THashKey>::VerifyAndUpdateVersion(uint32_t version) {
 }
 
 // VERIFY: 27b57ae6 manual
-// OFFSET: [0x0067B840, 0x0067BEE0, 0x0067CBD0, 0x0067D270, 0x0067E570]
+// OFFSET: [0x0067B840, 0x0067BEE0, 0x0067CBD0, 0x0067D270, 0x0067E570, 0x0067C570]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::AddItems(CDataStore* msg, bool single) {
     uint8_t count;
@@ -568,7 +568,7 @@ void DBCache<T, TKey, THashKey>::AddItems(CDataStore* msg, bool single) {
 }
 
 // VERIFY: 0168a135 manual
-// OFFSET: [0x0067DAD0, 0x0067E030, 0x0067EBD0, 0x0067F110, 0x0067F680, 0x00680310, 0x00680870]
+// OFFSET: [0x0067DAD0, 0x0067E030, 0x0067EBD0, 0x0067F110, 0x0067F680, 0x00680310, 0x00680870, 0x0067FC90]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::AddItem(T* item, TKey key) {
     DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);

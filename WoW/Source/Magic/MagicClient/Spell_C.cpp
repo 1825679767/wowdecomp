@@ -746,7 +746,7 @@ void Spell_C_Initialize() {
 inline PendingSpellCast::PendingSpellCast() : unk_0139(0) {
 }
 
-// VERIFY: 85ca0dc3 auto
+// VERIFY: 2ee73875 auto
 // OFFSET: 0x009AB770
 PendingSpellCastData::PendingSpellCastData() {
     this->m_castItem = WOWGUID{ 0 };
@@ -756,8 +756,7 @@ PendingSpellCastData::PendingSpellCastData() {
     this->m_targetFlags = 0;
     this->m_objectTarget = WOWGUID{ 0 };
     this->m_itemTarget = WOWGUID{ 0 };
-    this->unk_0038 = 0;
-    this->unk_003C = 0;
+    this->unk_0038 = WOWGUID{ 0 };
     this->m_sourceTarget = WOWGUID{ 0 };
     this->m_destTarget = WOWGUID{ 0 };
     this->m_sourcePos = C3Vector();
@@ -9199,4 +9198,38 @@ void Spell_C_ExpireDestLocSpellCasts(uint32_t time) {
 
         node = next;
     }
+}
+
+// VERIFY: 2e242e97 manual
+// OFFSET: 0x0080DE60
+int32_t Spell_C_SendDelayedMissileTrajectoryCast(CGUnit_C* unit) {
+    PendingSpellCast* cast = s_delayedTrajectoryCast;
+
+    if (!cast) {
+        return 0;
+    }
+
+    if (unit->m_obj->m_guid != CGUnit_C::s_activeMover) {
+        s_delayedTrajectoryCast = nullptr;
+        return 0;
+    }
+
+    CGItem_C* item;
+
+    if (cast->m_data.m_castItem) {
+        CGObject_C* object = ClntObjMgrObjectPtr(cast->m_data.m_castItem, TYPEMASK_OBJECT, __FILE__, __LINE__);
+
+        if (object && !(object->m_obj->m_type & TYPEMASK_ITEM)) {
+            object = nullptr;
+        }
+
+        item = static_cast<CGItem_C*>(object);
+        cast = s_delayedTrajectoryCast;
+    } else {
+        item = nullptr;
+    }
+
+    int32_t result = Spell_C_CastSpell(unit, cast->m_data.m_spellId, item, cast->m_data.unk_0038, cast, false);
+    s_delayedTrajectoryCast = nullptr;
+    return result;
 }

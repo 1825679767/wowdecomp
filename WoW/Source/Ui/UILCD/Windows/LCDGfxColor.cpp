@@ -1,4 +1,5 @@
 #include "WoW/Source/Ui/UILCD/Windows/LCDGfx.h"
+#include <cstring>
 
 // VERIFY: f9cf7e53 auto
 // OFFSET: 0x0095BF90
@@ -29,4 +30,18 @@ HRESULT CLCDGfxColor::Initialize() {
     hr = this->CreateBitmap(32);
 
     return FAILED(hr) ? hr : S_OK;
+}
+
+// VERIFY: ac930c58 manual
+// OFFSET: 0x0095C000
+lgLcdBitmapHeader* CLCDGfxColor::GetLCDScreen() {
+    this->m_lcdBitmap.hdr.Format = LGLCD_BMP_FORMAT_QVGAx32;
+    memcpy(this->m_lcdBitmap.pixels, this->m_pBitmapBits, 4 * this->m_nWidth * this->m_nHeight);
+    return this->m_pLCDScreen;
+}
+
+// VERIFY: 2f296ced auto
+// OFFSET: 0x0095BFB0
+uint32_t CLCDGfxColor::GetFamily() {
+    return LGLCD_DEVICE_FAMILY_QVGA_BASIC;
 }

@@ -76,6 +76,8 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     static void DestroyPools();
 
     int32_t IsAllLoaded();
+    int32_t IsAllDrawable();
+    bool TestConvexVolume(const C3Vector& point);
     static void Destroy();
     static void Initialize();
     static void RenderMapObjGroupsColor(CMapObjGroup** groups, uint32_t count, C44Matrix** matrices, const C44Matrix* world, int32_t* a5);
@@ -83,7 +85,7 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     static void PrepareUpdate();
     static CMapObj* Create(char* fileName);
     static void PostloadCallback(void* arg);
-    static void RenderGroupCollidableFaces(CMapObjGroup* mapObjGroup);
+    static void __stdcall RenderGroupCollidableFaces(CMapObjGroup* mapObjGroup);
     static void AsyncFailedCallback(CAsyncObject* object);
     static void ProcessAsyncLoadQueue();
     static CMapObjOccluder* AllocOccluder();
@@ -92,7 +94,7 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     static void InitDefGroup(CMapObj* mapObj, CMapObjGroup* mapObjGroup, CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup);
     static void SetEmissiveAmbient(CImVector color);
     static bool CullBatch(SMOBatch* batch);
-    static void RenderNormals(CMapObjGroup* group);
+    static void __stdcall RenderNormals(CMapObjGroup* group);
     static void InvokeGroupRenderCallback(CMapObj* mapObj, uint32_t groupNum);
     static void SetGroupRenderCallback(RENDER_CALLBACK callback, void* param);
     static void SetRenderModeLight();

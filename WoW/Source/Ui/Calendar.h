@@ -129,6 +129,7 @@ inline CalendarPendingInvite::CalendarPendingInvite() {
 
 class CGCalendar {
     public:
+    static void LeaveWorld();
     static void GuildChanged();
     static uint32_t CountPendingInvites();
     static void UpdateDisplayList(bool signal);

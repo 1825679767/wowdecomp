@@ -620,6 +620,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void PlayDismountSound();
     void Dismount();
     CGUnit_C* FindRootVehicle(CGUnit_C* stop);
+    CGUnit_C* GetRootVehicleUnit();
+    void PlayVehicleExitEndAnimation(const VehicleSeatRec* seat, uint32_t anim);
     CGUnit_C* FindRootVehicleOfPassengerChain(CGUnit_C* stop);
     int32_t VehiclePassengerIsTransitionAllowed(const VehicleSeatRec* seat, int32_t checkSeat) const;
     int32_t ShouldUseVehicleSeatExitAnimation(const VehicleSeatRec* seat) const;

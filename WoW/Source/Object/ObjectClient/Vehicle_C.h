@@ -61,6 +61,7 @@ class CVehicle_C {
     uint32_t IsSpecialBoneAnimPlaying() const;
     int32_t InstallBoneAnimListener(WOWGUID guid, uint32_t boneId, void (*callback)(CGUnit_C* unit, int32_t& a2, TSGrowableArray<CVehiclePassenger_C*>& passengers));
     void UninstallBoneAnimListener(WOWGUID guid);
+    void RemoveBoneAnimListener(uint32_t boneId, WOWGUID guid);
     int32_t CanPlayBoneAnim(uint32_t animId) const;
     void SetBoneAnimForceFacing(WOWGUID guid, uint32_t boneId);
     bool IsMirroringAnimsToPassengers() const;

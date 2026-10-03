@@ -1,4 +1,5 @@
 #include "ShipPath.h"
+#include "Engine/Source/Tempest/CMath.h"
 #include <malloc.h>
 #include <new>
 #include "Engine/Source/Tempest/C3Vector.h"
@@ -696,4 +697,106 @@ frame:
     }
 
     *mapId = this->m_legs.m_data[*leg].m_mapId;
+}
+
+// VERIFY: 574c5d75 auto
+// OFFSET: 0x007F78C0
+void ShipPath::SetTimeOffsetToPoint(uint32_t time, uint32_t point) {
+    uint32_t total = this->m_totalPathTime;
+    uint32_t current = time % total;
+
+    if (point <= current) {
+        this->m_timeOffset = point + total - current;
+    } else {
+        this->m_timeOffset = point - current;
+    }
+}
+
+// VERIFY: ef046ea6 manual
+// OFFSET: 0x007F7D30
+void ShipPath::FindLegAndSegment(uint32_t pathTime, uint32_t* leg, uint32_t* segment) {
+    for (uint32_t i = 0; i < this->m_legs.m_count; i++) {
+        ShipPathLeg& current = this->m_legs.m_data[i];
+
+        if (pathTime >= current.m_endTime) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < current.m_segments.m_count - 1; j++) {
+            ShipPathSegment& entry = current.m_segments.m_data[j];
+
+            if (pathTime < entry.m_time + entry.m_delay) {
+                *leg = i;
+                *segment = j;
+                return;
+            }
+        }
+    }
+
+    *leg = 0;
+    *segment = 0;
+}
+
+// VERIFY: f3f0526d manual
+// OFFSET: 0x007F8000
+void ShipPath::WaitAtNextPausePoint(uint32_t time, bool pause) {
+    uint32_t total = this->m_totalPathTime;
+
+    if (!total || this->m_waiting == pause) {
+        return;
+    }
+
+    uint8_t reached = this->m_waitReached;
+    uint32_t pathTime = reached ? this->m_waitTime + total - 1 : time + this->m_timeOffset;
+    uint32_t leg;
+    uint32_t segment;
+    this->FindLegAndSegment(pathTime % total, &leg, &segment);
+    ShipPathSegment& entry = this->m_legs.m_data[leg].m_segments.m_data[segment];
+
+    if (pause) {
+        this->m_waitTime = (entry.m_time + entry.m_delay) % total;
+    } else if (reached) {
+        this->SetTimeOffsetToPoint(time, entry.m_time + entry.m_delay);
+    }
+
+    this->m_waiting = pause;
+    this->m_waitReached = 0;
+    this->unk_003E = 0;
+}
+
+// VERIFY: defabc1a manual
+// OFFSET: 0x007F80A0
+void ShipPath::WaitAtCurrentLocation(uint32_t time) {
+    uint32_t total = this->m_totalPathTime;
+
+    if (!total || this->m_waitReached) {
+        return;
+    }
+
+    uint32_t leg;
+    uint32_t segment;
+    this->FindLegAndSegment((total + this->m_timeOffset + time - 1) % total, &leg, &segment);
+    ShipPathSegment& entry = this->m_legs.m_data[leg].m_segments.m_data[segment];
+    this->m_waiting = 1;
+    this->m_waitReached = 1;
+    this->unk_003E = 0;
+    this->m_waitTime = (entry.m_time + entry.m_delay) % total;
+}
+
+// VERIFY: 18f10a1b manual
+// OFFSET: 0x007F8120
+void ShipPath::SetTimeOffset(uint32_t time, float progress) {
+    if (!this->m_totalPathTime) {
+        return;
+    }
+
+    uint32_t point = CMath::fint_(static_cast<float>(this->m_totalPathTime) * progress);
+    uint32_t total = this->m_totalPathTime;
+    uint32_t current = time % total;
+
+    if (point <= current) {
+        this->m_timeOffset = point + total - current;
+    } else {
+        this->m_timeOffset = point - current;
+    }
 }

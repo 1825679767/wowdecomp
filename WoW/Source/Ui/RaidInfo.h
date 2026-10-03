@@ -28,6 +28,7 @@ class CGRaidMember {
 
 class CGRaidInfo {
     public:
+    static void LeaveWorld();
     static CGRaidMember* m_members[40];
     static uint32_t m_numMembers;
     static WOWGUID m_raidTargets[8];

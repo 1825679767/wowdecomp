@@ -452,3 +452,8 @@ int32_t SignalKnownCurrencyTypesUpdate(WOWGUID guid, uint32_t offset, uint32_t c
     FrameScript_SignalEvent(SCRIPT_EVENT_KNOWN_CURRENCY_TYPES_UPDATE, nullptr);
     return 1;
 }
+
+// VERIFY: e1912fc6 auto
+// OFFSET: 0x005EEB70
+void CGCurrencyTypes::LeaveWorld() {
+}

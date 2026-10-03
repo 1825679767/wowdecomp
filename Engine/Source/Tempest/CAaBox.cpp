@@ -223,3 +223,20 @@ C3Vector CAaBox::Center() const {
     center.z = 0.5f * z;
     return center;
 }
+
+// VERIFY: 1cc9efa2 auto
+// OFFSET: 0x00705630
+void CAaBox::operator+=(const C3Vector& v) {
+    this->b.x = v.x + this->b.x;
+    this->b.y = this->b.y + v.y;
+    this->b.z = this->b.z + v.z;
+    this->t.x = this->t.x + v.x;
+    this->t.y = this->t.y + v.y;
+    this->t.z = this->t.z + v.z;
+}
+
+// VERIFY: dacfd862 auto
+// OFFSET: 0x007BD450
+bool CAaBox::IsInverted() const {
+    return this->b.x > this->t.x && this->b.y > this->t.y && this->b.z > this->t.z;
+}

@@ -48,6 +48,7 @@ class CMapObjDefGroup : public CMapBaseObj {
     virtual void SelectLights(CM2Lighting* lighting);
 
     CMapObjDefGroup();
+    ~CMapObjDefGroup() override;
     void UpdateLights();
     void SetSequenceFinishedCallback(M2SequenceCallback callback, uint64_t param, uint16_t doodadSet);
     bool IsAllLoaded();

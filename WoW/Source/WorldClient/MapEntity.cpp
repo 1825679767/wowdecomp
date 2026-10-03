@@ -870,3 +870,8 @@ bool CMapEntity::QueryMapObjMatrix(C44Matrix* matrix, C44Matrix* invMatrix) {
 
     return false;
 }
+
+// VERIFY: 0284b305 manual
+// OFFSET: [0x007A10A0, 0x007A1120]
+CMapEntity::~CMapEntity() {
+}

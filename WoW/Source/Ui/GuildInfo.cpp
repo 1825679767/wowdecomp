@@ -581,3 +581,20 @@ bool CGGuildInfo::CanEditGuildEvent() {
 
     return (CGGuildInfo::m_rankInfo[player->m_player->m_playerGuildrank].m_rights >> 20) & 1;
 }
+
+// VERIFY: bc5c65cc manual
+// OFFSET: 0x005CAAF0
+void CGGuildInfo::InvalidatePlayer(const WOWGUID& guid) {
+    uint32_t time = OsGetAsyncTimeMs();
+
+    for (uint32_t i = 0; i < CGGuildInfo::m_numMembers; i++) {
+        if (CGGuildInfo::m_roster.m_data[i]->m_guid == guid) {
+            CDataStore msg;
+            msg.Put(static_cast<uint32_t>(CMSG_GUILD_GET_ROSTER));
+            msg.Finalize();
+            ClientServices::Send2(&msg);
+            CGGuildInfo::unk_C22AC8 = time + 10000;
+            return;
+        }
+    }
+}

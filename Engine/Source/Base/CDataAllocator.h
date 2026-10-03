@@ -44,7 +44,7 @@ T* CDataAllocator::New(int32_t zero) {
 }
 
 // VERIFY: c1fae0dd auto
-// OFFSET: 0x007E4C60
+// OFFSET: [0x007E4C60, 0x007FC010]
 template <class T>
 void CDataAllocator::Delete(T* object) {
     object->~T();

@@ -13,6 +13,7 @@ uint32_t* GetPetAction(uint32_t index);
 
 class CGActionBar {
     public:
+    static void LeaveWorld();
     static void SignalUpdateCooldown();
     static uint32_t m_tempPageActiveFlags;
     static uint32_t m_currentPage;

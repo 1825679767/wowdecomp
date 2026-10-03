@@ -239,3 +239,12 @@ void C3Vector::Minimize(const C3Vector& v) {
 void C3Vector::Maximize(const C3Vector& v) {
     *this = C3Vector::Max(*this, v);
 }
+
+// VERIFY: a2bee705 auto
+// OFFSET: 0x00568680
+C3Vector& C3Vector::operator-=(const C3Vector& v) {
+    this->x = this->x - v.x;
+    this->y = this->y - v.y;
+    this->z = this->z - v.z;
+    return *this;
+}

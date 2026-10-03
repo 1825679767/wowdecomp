@@ -2914,9 +2914,9 @@ void CGGameObject_C::AddWorldDamageText(int32_t amount) {
     }
 }
 
-// VERIFY: 93d19404 auto
+// VERIFY: 879b3c82 auto
 // OFFSET: 0x0070F8E0
-void CGGameObject_C::AddWorldHealingText(int32_t amount, int32_t overheal) {
+void CGGameObject_C::AddWorldHealingText(int32_t amount, const SpellRec* spell) {
     if (amount && g_combatHealingCVar->m_intValue && this->m_gameObject->m_typeID == 33) {
         char text[32];
         SStrPrintf(text, sizeof(text), "+%d", amount);

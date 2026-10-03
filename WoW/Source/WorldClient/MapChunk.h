@@ -85,8 +85,7 @@ class CMapChunk : public CMapBaseObj {
     /* 00A8 */ CMapRenderChunk* m_renderChunk;
     /* 00AC */ int32_t m_bLoaded;
     /* 00B0 */ int32_t m_areaId;
-    /* 00B4 */ int32_t unk_00B4;
-    /* 00B8 */ int32_t unk_00B8;
+    /* 00B4 */ TSLink<CMapChunk> m_link;
     /* 00BC */ TSLink<CMapChunk> m_sortListLink;
     /* 00C4 */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_doodadDefLinkList;
     /* 00D0 */ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > m_mapObjDefLinkList;
@@ -113,6 +112,7 @@ class CMapChunk : public CMapBaseObj {
     virtual void SelectLights(CM2Lighting* lighting);
 
     CMapChunk();
+    ~CMapChunk() override;
     void Create(SIffChunk* headerChunk, bool a3);
     void CreateRefs(CMapArea* mapChunk, uint32_t* mcrfPtr, uint32_t doodadRefs, uint32_t mapObjRefs);
     void ProcessIffChunks(bool a3);

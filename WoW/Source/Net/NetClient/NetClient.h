@@ -77,6 +77,8 @@ class NetClient : public WowConnectionResponse {
 
     struct HELDMESSAGE : public TSLinkedNode<NetClient::HELDMESSAGE> {
         /* 0008 */ CDataStore m_msg;
+
+        ~HELDMESSAGE();
     };
 
     /* 0004 */ LoginData m_loginData;
@@ -88,7 +90,7 @@ class NetClient : public WowConnectionResponse {
     /* 2E34 */ NETEVENTQUEUE* m_netEventQueue;
     /* 2E38 */ WowConnection* m_serverConnection;
     /* 2E3C */ WowConnection* m_redirectConnection;
-    /* 2E40 */ uint32_t unk_2E40;
+    /* 2E40 */ uint32_t m_redirectKey;
     /* 2E44 */ ATOMIC32 m_refCount;
     /* 2E48 */ bool m_deleteMe;
     /* 2E49 */ uint8_t unk_2E49[3];
@@ -111,7 +113,7 @@ class NetClient : public WowConnectionResponse {
     void WCDisconnected(WowConnection* connection, uint32_t timeStamp, const NETCONNADDR* addr) override;
     virtual int32_t Initialize();
     virtual void Destroy();
-    virtual void DelayedDelete();
+    virtual int32_t DelayedDelete();
     virtual int32_t HandleData(uint32_t timeReceived, void* data, int32_t size);
     virtual void HandleAuthChallenge(AuthenticationChallenge* challenge) = 0;
     virtual int32_t HandleConnect();

@@ -171,7 +171,7 @@ void CStatus::Add(STATUS_TYPE severity, const char* format, ...) {
 }
 
 // VERIFY: 25d08b32 manual
-// OFFSET: 0x0047C500
+// OFFSET: [0x0047C500, 0x0055F830]
 CStatus::~CStatus() {
     this->Clear();
 }

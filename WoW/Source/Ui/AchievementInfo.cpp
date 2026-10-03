@@ -948,3 +948,8 @@ void CGAchievementInfo::ReleaseInspect() {
         node = s_inspectAchievements.DeleteNode(node);
     }
 }
+
+// VERIFY: 011d99d0 auto
+// OFFSET: 0x005EEB70
+void CGAchievementInfo::LeaveWorld() {
+}

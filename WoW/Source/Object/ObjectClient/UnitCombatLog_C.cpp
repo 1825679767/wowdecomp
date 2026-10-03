@@ -2869,3 +2869,397 @@ void UnitCombatClientShutdown() {
     ClientServices::ClearMessageHandler(SMSG_COMBAT_EVENT_FAILED);
     UnitCombatLogShutdown();
 }
+
+// VERIFY: 5e3c090e manual
+// OFFSET: 0x0074D280
+static void PackHex(char*& cursor, uint32_t& remaining, uint32_t value) {
+    if (remaining > 1) {
+        *cursor++ = ',';
+        remaining--;
+    }
+
+    if (remaining < 10) {
+        return;
+    }
+
+    *cursor++ = '0';
+    *cursor++ = 'x';
+    remaining -= 2;
+
+    if (!value) {
+        *cursor++ = '0';
+        remaining--;
+        return;
+    }
+
+    uint32_t mask = 0xF0000000;
+    int32_t digits = 8;
+
+    while (!(mask & value)) {
+        mask >>= 4;
+        digits--;
+    }
+
+    cursor += digits;
+
+    do {
+        cursor--;
+        uint8_t digit = value & 0xF;
+        *cursor = digit >= 10 ? digit + 'a' - 10 : digit + '0';
+        value >>= 4;
+    } while (value);
+
+    cursor += digits;
+    remaining -= digits;
+}
+
+// VERIFY: 9e0977cb manual
+// OFFSET: 0x0074D310
+static void PackString(char*& cursor, uint32_t& remaining, const char* string) {
+    if (remaining > 1) {
+        *cursor++ = ',';
+        remaining--;
+    }
+
+    for (char c = *string; c && remaining; c = *++string) {
+        *cursor++ = c;
+        remaining--;
+    }
+}
+
+// VERIFY: aa86aa1a manual
+// OFFSET: 0x0074D350
+static void PackQuotedString(char*& cursor, uint32_t& remaining, const char* string) {
+    if (remaining > 1) {
+        *cursor++ = ',';
+
+        if (--remaining > 1) {
+            *cursor++ = '"';
+            remaining--;
+        }
+    }
+
+    for (char c = *string; c && remaining; c = *++string) {
+        if ((c == '"' || c == '\\') && remaining > 1) {
+            *cursor++ = '\\';
+            remaining--;
+        }
+
+        *cursor++ = *string;
+        remaining--;
+    }
+
+    if (remaining > 1) {
+        *cursor++ = '"';
+        remaining--;
+    }
+}
+
+// INLINED
+static inline void PackInt(char*& cursor, uint32_t& remaining, int32_t value) {
+    if (remaining > 1) {
+        *cursor++ = ',';
+        remaining--;
+    }
+
+    uint32_t length = SStrPrintf(cursor, remaining, "%d", value);
+
+    if (length && length < remaining) {
+        cursor += length;
+        remaining -= length;
+    }
+}
+
+// INLINED
+static inline void PackUnit(char*& cursor, uint32_t& remaining, const WOWGUID& guid, const char* name, const char* realm, uint32_t flags) {
+    if (remaining > 1) {
+        *cursor++ = ',';
+        remaining--;
+    }
+
+    if (remaining > 18) {
+        GUIDToHexString(guid, cursor);
+        cursor += 18;
+        remaining -= 18;
+    }
+
+    if (!name) {
+        PackString(cursor, remaining, "nil");
+    } else if (realm) {
+        char fullName[305];
+        SStrPrintf(fullName, sizeof(fullName), "%s-%s", name, realm);
+        PackQuotedString(cursor, remaining, fullName);
+    } else {
+        PackQuotedString(cursor, remaining, name);
+    }
+
+    PackHex(cursor, remaining, flags);
+}
+
+// VERIFY: 18bf57c5 manual
+// OFFSET: 0x0074E880
+void CombatLogEntry::PackEvent(char* buffer, uint32_t size) {
+    char* cursor = buffer;
+    uint32_t remaining = size;
+    size_t length = SStrCopy(buffer, s_combatLogEventNames[this->m_event], size);
+    remaining += static_cast<uint32_t>(length);
+    cursor += length;
+    PackUnit(cursor, remaining, this->m_sourceGuid, this->m_sourceName, this->m_sourceRealm, this->m_sourceFlags);
+    PackUnit(cursor, remaining, this->m_destGuid, this->m_destName, this->m_destRealm, this->m_destFlags);
+
+    if (this->m_spellId) {
+        PackInt(cursor, remaining, this->m_spellId);
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(this->m_spellId, &spell)) {
+            PackQuotedString(cursor, remaining, spell.m_name);
+            PackHex(cursor, remaining, spell.m_schoolMask);
+        } else {
+            PackString(cursor, remaining, "nil");
+
+            if (remaining > 1) {
+                *cursor++ = ',';
+                remaining--;
+            }
+
+            if (remaining >= 10) {
+                *cursor++ = '0';
+                *cursor++ = 'x';
+                *cursor++ = '0';
+                remaining -= 3;
+            }
+        }
+    }
+
+    uint32_t flags = this->m_infoFlags;
+
+    if (flags & 0x1) {
+        PackInt(cursor, remaining, this->m_info.m_values[0]);
+    }
+
+    if (flags & 0x2) {
+        PackQuotedString(cursor, remaining, this->m_info.m_text);
+    }
+
+    if (flags & 0x4) {
+        PackString(cursor, remaining, g_spellMissStrings[this->m_info.m_values[0]]);
+    }
+
+    if (flags & 0x8) {
+        PackString(cursor, remaining, s_environmentalDamageTypes[this->m_info.m_values[0]]);
+    }
+
+    if (flags & 0x10) {
+        PackInt(cursor, remaining, this->m_info.m_values[1]);
+        PackInt(cursor, remaining, this->m_info.m_values[2]);
+        PackInt(cursor, remaining, this->m_info.m_values[3]);
+        PackInt(cursor, remaining, this->m_info.m_values[5]);
+        PackInt(cursor, remaining, this->m_info.m_values[6]);
+        PackInt(cursor, remaining, this->m_info.m_values[4]);
+
+        if (this->m_infoBits & 0x1) {
+            PackInt(cursor, remaining, 1);
+        } else {
+            PackString(cursor, remaining, "nil");
+        }
+
+        if (this->m_infoBits & 0x2) {
+            PackInt(cursor, remaining, 1);
+        } else {
+            PackString(cursor, remaining, "nil");
+        }
+
+        if (this->m_infoBits & 0x4) {
+            PackInt(cursor, remaining, 1);
+        } else {
+            PackString(cursor, remaining, "nil");
+        }
+    }
+
+    if (flags & 0x2000) {
+        PackInt(cursor, remaining, this->m_info.m_values[4]);
+    }
+
+    if (flags & 0x4000) {
+        PackInt(cursor, remaining, this->m_info.m_values[5]);
+    }
+
+    if (flags & 0x8000) {
+        PackInt(cursor, remaining, this->m_info.m_values[6]);
+    }
+
+    if (flags & 0x20) {
+        PackInt(cursor, remaining, this->m_info.m_values[0]);
+        PackInt(cursor, remaining, this->m_info.m_values[1]);
+        PackInt(cursor, remaining, this->m_info.m_values[2]);
+
+        if (this->m_info.m_values[3]) {
+            PackInt(cursor, remaining, 1);
+        } else {
+            PackString(cursor, remaining, "nil");
+        }
+    }
+
+    if (flags & 0x40) {
+        PackInt(cursor, remaining, this->m_info.m_values[0]);
+        PackInt(cursor, remaining, this->m_info.m_values[1]);
+    }
+
+    if (flags & 0x80000000) {
+        PackInt(cursor, remaining, this->m_info.m_values[0]);
+        PackInt(cursor, remaining, this->m_info.m_values[1]);
+        PackInt(cursor, remaining, this->m_info.m_values[2]);
+    }
+
+    if (flags & 0x100) {
+        PackInt(cursor, remaining, this->m_info.m_values[0]);
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(this->m_info.m_values[0], &spell)) {
+            PackQuotedString(cursor, remaining, spell.m_name);
+            PackInt(cursor, remaining, spell.m_schoolMask);
+        } else {
+            PackString(cursor, remaining, "nil");
+            PackInt(cursor, remaining, 0);
+        }
+    }
+
+    if (flags & 0x1000) {
+        PackQuotedString(cursor, remaining, this->m_info.m_names[2]);
+    }
+
+    if (flags & 0x200) {
+        PackInt(cursor, remaining, this->m_info.m_values[0]);
+        PackQuotedString(cursor, remaining, this->m_info.m_names[1]);
+    }
+
+    if (flags & 0x400) {
+        PackString(cursor, remaining, this->m_info.m_values[1] ? "DEBUFF" : "BUFF");
+    }
+
+    if (flags & 0x800) {
+        PackInt(cursor, remaining, this->m_info.m_values[2]);
+    }
+
+    *cursor = '\0';
+}
+
+// VERIFY: 8242155b manual
+// OFFSET: 0x00751150
+void UnitCombatLog(const WOWGUID& guid, uint32_t type, int32_t damage, int32_t absorbed, int32_t resisted) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (unit) {
+        unit->ModifyPredictedHealth(-damage);
+        unit->TriggerDamageFeedback();
+    }
+
+    CombatLogEntry* entry = GetCombatLogEntry(WOWGUID(), guid, 0, nullptr);
+    entry->m_infoFlags |= 0x8;
+    entry->m_info.m_values[0] = type;
+    entry->m_infoBits &= ~0x7;
+    entry->m_infoFlags |= 0x10;
+    entry->m_info.m_values[3] = 1 << s_environmentalDamageSchools[type];
+    entry->m_info.m_values[5] = resisted;
+    entry->m_info.m_values[1] = damage;
+    entry->m_info.m_values[2] = 0;
+    entry->m_info.m_values[6] = 0;
+    entry->m_info.m_values[4] = absorbed;
+    QueueCombatLogEntry(entry, 0);
+
+    if (s_combatTextActiveUnit != guid) {
+        return;
+    }
+
+    if (resisted) {
+        SendToCombatText(10, damage, resisted);
+    } else if (absorbed) {
+        SendToCombatText(12, damage, absorbed);
+    } else {
+        SendToCombatText(2, damage);
+    }
+}
+
+// VERIFY: b02c1457 manual
+// OFFSET: 0x00753000
+void UnitCombatLogBuildingDamage(const WOWGUID& caster, const WOWGUID& owner, const WOWGUID& building, int32_t damage, int32_t spellId) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell) || (spell.m_attributes & 0x180) || !*spell.m_name) {
+        return;
+    }
+
+    CombatLogEntry* entry = GetCombatLogEntry(caster, building, 47, &spell);
+    entry->m_infoFlags |= 0x10;
+    entry->m_infoBits &= ~0x7;
+    entry->m_info.m_values[1] = damage;
+    entry->m_info.m_values[2] = 0;
+    entry->m_info.m_values[3] = spell.m_schoolMask;
+    entry->m_info.m_values[5] = 0;
+    entry->m_info.m_values[6] = 0;
+    entry->m_info.m_values[4] = 0;
+    QueueCombatLogEntry(entry, 0);
+
+    if (owner == ClntObjMgrGetActivePlayer()) {
+        CGGameObject_C* object = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(building, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+
+        if (object) {
+            object->AddWorldDamageText(damage);
+        }
+    }
+}
+
+// VERIFY: 50749369 auto
+// OFFSET: 0x00753100
+void UnitCombatLogBuildingHeal(const WOWGUID& caster, const WOWGUID& owner, const WOWGUID& building, int32_t amount, int32_t spellId) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell) || (spell.m_attributes & 0x180) || !*spell.m_name) {
+        return;
+    }
+
+    CombatLogEntry* entry = GetCombatLogEntry(caster, building, 48, &spell);
+    entry->m_infoFlags |= 0x20;
+    entry->m_info.m_values[0] = amount;
+    entry->m_info.m_values[1] = 0;
+    entry->m_info.m_values[2] = 0;
+    entry->m_info.m_values[3] = 0;
+    QueueCombatLogEntry(entry, 0);
+
+    if (owner == ClntObjMgrGetActivePlayer()) {
+        CGGameObject_C* object = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(building, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+
+        if (object) {
+            object->AddWorldHealingText(amount, &spell);
+        }
+    }
+}
+
+// VERIFY: e38662ad auto
+// OFFSET: 0x00753730
+int32_t Packet_SMSG_DESTRUCTIBLE_BUILDING_DAMAGE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    SmartGUID building;
+    SmartGUID caster;
+    SmartGUID owner;
+    int32_t damage;
+    int32_t spellId;
+    *msg >> building;
+    *msg >> caster;
+    *msg >> owner;
+    msg->Get(reinterpret_cast<uint32_t&>(damage));
+    msg->Get(reinterpret_cast<uint32_t&>(spellId));
+
+    if (damage <= 0) {
+        WOWGUID a = caster;
+        WOWGUID b = owner;
+        WOWGUID c = building;
+        UnitCombatLogBuildingHeal(a, b, c, -damage, spellId);
+    } else {
+        WOWGUID c = building;
+        WOWGUID b = owner;
+        WOWGUID a = caster;
+        UnitCombatLogBuildingDamage(a, b, c, damage, spellId);
+    }
+
+    return 1;
+}

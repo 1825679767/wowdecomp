@@ -8,6 +8,7 @@
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Model2/M2Shared.h"
+#include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/CAaSphere.h"
@@ -209,6 +210,93 @@ void CCharacterSelection::GuildCallback(int32_t guildID, const WOWGUID& guid, vo
 
         if (GuildGetGuildTabard(WOWGUID(), guildID, nullptr, nullptr, emblemStyle, emblemColor, borderStyle, borderColor, background)) {
             CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->ApplyGuildColor(emblemStyle, emblemColor, borderStyle, borderColor, background);
+        }
+    }
+}
+
+// VERIFY: 9fe08e4d auto
+// OFFSET: 0x004E2870
+void CCharacterSelection::UpdateCharacterName(WOWGUID guid, const char* name) {
+    uint32_t index;
+
+    for (index = 0; index < CCharacterSelection::s_characterList.Count(); index++) {
+        if (CCharacterSelection::s_characterList[index].m_characterInfo.m_guid == guid) {
+            break;
+        }
+    }
+
+    if (index >= CCharacterSelection::s_characterList.Count()) {
+        return;
+    }
+
+    char oldPath[260];
+    char newPath[260];
+    SStrPrintf(oldPath, sizeof(oldPath), "WTF\\Account\\%s\\%s\\%s", CGlueMgr::m_accountName, ClientServices::GetSelectedRealmName(), CCharacterSelection::s_characterList[index].m_characterInfo.m_name);
+    SStrPrintf(newPath, sizeof(newPath), "WTF\\Account\\%s\\%s\\%s", CGlueMgr::m_accountName, ClientServices::GetSelectedRealmName(), name);
+    OsMoveFile(oldPath, newPath);
+    SStrPrintf(oldPath, sizeof(oldPath), "WTF\\Account\\%s\\%s", CGlueMgr::m_accountName, CCharacterSelection::s_characterList[index].m_characterInfo.m_name);
+    SStrPrintf(newPath, sizeof(newPath), "WTF\\Account\\%s\\%s", CGlueMgr::m_accountName, name);
+    OsMoveFile(oldPath, newPath);
+    ClearAddOnEnableState(CCharacterSelection::s_characterList[index].m_characterInfo.m_name);
+    LoadAddOnEnableState(name);
+    SStrCopy(CCharacterSelection::s_characterList[index].m_characterInfo.m_name, name, sizeof(CCharacterSelection::s_characterList[index].m_characterInfo.m_name));
+    CCharacterSelection::s_characterList[index].m_characterInfo.m_flags &= ~0x4000;
+    CCharacterSelection::s_characterList[index].m_characterInfo.m_flags &= ~0x2000000;
+    FrameScript_SignalEvent(GLUE_EVENT_CHARACTER_LIST_UPDATE, nullptr);
+}
+
+// VERIFY: 945f4dbd auto
+// OFFSET: 0x004E29E0
+void CCharacterSelection::UpdateCharacterInfo(WOWGUID guid, const char* name, uint8_t sexID, uint8_t skinColorID, uint8_t faceID, uint8_t hairStyleID, uint8_t hairColorID, uint8_t facialHairStyleID, uint8_t raceID) {
+    uint32_t index;
+
+    for (index = 0; index < CCharacterSelection::s_characterList.Count(); index++) {
+        if (CCharacterSelection::s_characterList[index].m_characterInfo.m_guid == guid) {
+            break;
+        }
+    }
+
+    if (index >= CCharacterSelection::s_characterList.Count()) {
+        return;
+    }
+
+    if (SStrCmpI(name, CCharacterSelection::s_characterList[index].m_characterInfo.m_name, STORM_MAX_STR)) {
+        char oldPath[260];
+        char newPath[260];
+        SStrPrintf(oldPath, sizeof(oldPath), "WTF\\Account\\%s\\%s\\%s", CGlueMgr::m_accountName, ClientServices::GetSelectedRealmName(), CCharacterSelection::s_characterList[index].m_characterInfo.m_name);
+        SStrPrintf(newPath, sizeof(newPath), "WTF\\Account\\%s\\%s\\%s", CGlueMgr::m_accountName, ClientServices::GetSelectedRealmName(), name);
+        OsMoveFile(oldPath, newPath);
+        SStrPrintf(oldPath, sizeof(oldPath), "WTF\\Account\\%s\\%s", CGlueMgr::m_accountName, CCharacterSelection::s_characterList[index].m_characterInfo.m_name);
+        SStrPrintf(newPath, sizeof(newPath), "WTF\\Account\\%s\\%s", CGlueMgr::m_accountName, name);
+        OsMoveFile(oldPath, newPath);
+        ClearAddOnEnableState(CCharacterSelection::s_characterList[index].m_characterInfo.m_name);
+        LoadAddOnEnableState(name);
+        SStrCopy(CCharacterSelection::s_characterList[index].m_characterInfo.m_name, name, sizeof(CCharacterSelection::s_characterList[index].m_characterInfo.m_name));
+    }
+
+    CHARACTER_INFO& info = CCharacterSelection::s_characterList[index].m_characterInfo;
+    info.m_sexID = sexID;
+    info.m_skinColorID = skinColorID;
+    info.m_faceID = faceID;
+    info.m_hairStyleID = hairStyleID;
+    info.m_hairColorID = hairColorID;
+    info.m_facialHairStyleID = facialHairStyleID;
+
+    if (raceID) {
+        info.m_raceID = raceID;
+    }
+
+    info.m_customizeFlags &= 0xFFEEFFFE;
+    FrameScript_SignalEvent(GLUE_EVENT_CHARACTER_LIST_UPDATE, nullptr);
+}
+
+// VERIFY: db6735fe manual
+// OFFSET: 0x004E2BD0
+void CCharacterSelection::UpdateCharacterNameDeclension(WOWGUID guid) {
+    for (uint32_t index = 0; index < CCharacterSelection::s_characterList.Count(); index++) {
+        if (CCharacterSelection::s_characterList[index].m_characterInfo.m_guid == guid) {
+            CCharacterSelection::s_characterList[index].m_characterInfo.m_flags |= 0x2000000;
+            return;
         }
     }
 }

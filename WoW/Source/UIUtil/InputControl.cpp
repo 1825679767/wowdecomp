@@ -34,6 +34,7 @@
 #include "Engine/Source/Frame/CSimpleTop.h"
 #include "Engine/Source/Event/CFocusEvent.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/UIBindings.h"
 
 // STATIC: 0x00AD192C
 uint32_t s_joystick = 0xFFFFFFFF;
@@ -1360,4 +1361,14 @@ void CGInputControl::OnFocusChange(const CFocusEvent& event) {
     }
 
     this->UpdateMouseMode(0);
+}
+
+// VERIFY: 0826014e manual
+// OFFSET: 0x005FCB20
+void CGInputControl::SetMouselookOverrideBindings() {
+    CGUIBindings* bindings = CGUIBindings::s_bindings;
+
+    for (MOUSELOOKBINDING* entry = this->m_mouseLookBindings.m_fulllist.Head(); entry; entry = this->m_mouseLookBindings.Next(entry)) {
+        bindings->SetOverrideBinding(this, 1, entry->m_key.m_str, entry->m_binding, false);
+    }
 }

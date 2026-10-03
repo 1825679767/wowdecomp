@@ -123,6 +123,15 @@ class ClientServices : public LoginResponse {
     static const char* GetSelectedRealmName();
     static int32_t LaunchURL(const char* url);
     static void LoginEnterToken(const char* token);
+    static void LoginEnterPIN(int32_t count, uint8_t* digits);
+    static void LoginEnterMatrix(uint8_t value);
+    static void LoginCommitMatrix();
+    static void LoginFinalizeMatrix();
+    static void FileAccept(bool accept, uint64_t offset);
+    static void StartDownload();
+    static void SendSurveyData(uint16_t size, uint8_t* data);
+    static void SendSurveyFailed();
+    static int32_t GetSurveyId();
     static const char* GetServerAlertURL();
     static Login* LoginConnection();
     static void Logon(const char* username, const char* password);

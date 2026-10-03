@@ -448,6 +448,13 @@ int32_t CMissile::CallMotionScriptFunction(SimpleScriptIO& io) {
     return 1;
 }
 
+// VERIFY: f5fcb978 auto
+// OFFSET: 0x006FECA0
+ChaserState::ChaserState(const C3Vector& position, const C3Vector& velocity) {
+    this->m_position = position;
+    this->m_velocity = velocity;
+}
+
 // VERIFY: 17e0df9b manual
 // OFFSET: 0x006FF4C0
 void ChaserState::ChaserImplementation(const C3Vector& target, float stiffness, float elapsed) {

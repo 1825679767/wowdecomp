@@ -1,4 +1,5 @@
 #include "Container_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 
 // VERIFY: 5c3fa743 manual
 // OFFSET: 0x00706A20
@@ -10,7 +11,7 @@ CGContainer_C::CGContainer_C(uint32_t time, const CClientObjCreate& create) : CG
 }
 
 // VERIFY: e44f2652 manual
-// OFFSET: 0x00706AE0
+// OFFSET: [0x00706AE0, 0x00706B60]
 CGContainer_C::~CGContainer_C() {
 }
 
@@ -55,4 +56,16 @@ void CGContainer_C::SetStorage(uint32_t* storage, uint32_t* saved) {
 // VERIFY: 0f5f4e76 auto
 // OFFSET: 0x005EEB70
 void CGContainer_C::Initialize() {
+}
+
+// VERIFY: 03677fda manual
+// OFFSET: 0x007069A0
+void CGContainer_C::Reenable() {
+    CGObject_C::Reenable();
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(this->m_bag.m_numSlots); i++) {
+        if (this->m_bag.m_slots[i]) {
+            ClntObjMgrReenableObject(this->m_bag.m_slots[i]);
+        }
+    }
 }

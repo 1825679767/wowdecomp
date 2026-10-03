@@ -203,7 +203,7 @@ static int32_t s_attackFlashToggle;
 static uint32_t s_attackFlashTime;
 
 // STATIC: 0x00A2D394
-static const uint32_t s_environmentalDamageSchools[6] = { 0, 0, 0, 2, 3, 2 };
+extern const uint32_t s_environmentalDamageSchools[6] = { 0, 0, 0, 2, 3, 2 };
 
 // STATIC: 0x00A349B4
 static const int32_t s_animTierFallback[5] = { 0, 0, 3, 0, 0 };

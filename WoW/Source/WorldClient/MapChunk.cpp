@@ -886,7 +886,7 @@ void CMapChunk::CullAndBucketChunk() {
     }
 }
 
-// VERIFY: 743ab331 manual
+// VERIFY: 555895ad manual
 // OFFSET: 0x007C5C50
 CMapChunk::CMapChunk() {
     this->m_aIndex.x = 0;
@@ -897,8 +897,8 @@ CMapChunk::CMapChunk() {
     this->m_cOffset.y = 0;
     this->m_sphere.r = 0.0f;
     this->m_sphere.c = C3Vector(0.0f, 0.0f, 0.0f);
-    this->unk_00B4 = 0;
-    this->unk_00B8 = 0;
+    this->m_link.m_prevLink = nullptr;
+    this->m_link.m_next = nullptr;
     this->m_sortListLink.m_prevLink = nullptr;
     this->m_sortListLink.m_next = nullptr;
     this->m_doodadDefLinkList.SetLinkOffset(offsetof(CMapBaseObjLink, m_refLink));
@@ -1590,4 +1590,9 @@ void CMapChunk::Intersect(CiRect* rect, const CFrustum* frustum, TSGrowableArray
         vertices += rowSkip;
         height += rowSkip;
     }
+}
+
+// VERIFY: 15f51c4a manual
+// OFFSET: [0x007C5E50, 0x007C6480]
+CMapChunk::~CMapChunk() {
 }

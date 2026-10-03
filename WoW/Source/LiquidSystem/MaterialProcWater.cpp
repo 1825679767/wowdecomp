@@ -117,7 +117,7 @@ Liquid::CMaterialProcWater::CMaterialProcWater() {
 }
 
 // VERIFY: 0b2449de manual
-// OFFSET: 0x008A3EC0
+// OFFSET: [0x008A3EC0, 0x008A4740]
 Liquid::CMaterialProcWater::~CMaterialProcWater() {
     if (Liquid::CMaterialProcWater::s_refCount-- == 1) {
         for (uint32_t i = 0; i < 4; i++) {

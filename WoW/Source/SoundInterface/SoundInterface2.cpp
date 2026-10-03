@@ -19,6 +19,9 @@
 #include "WoW/Source/SoundInterface/SoundInterface2ZoneSounds.h"
 #include "WoW/Source/Ui/ChatFrame.h"
 #include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/Types.h"
+#include "Engine/Source/Frame/CSimpleMovieFrame.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/DB/Rec/ResistancesRec.h"
 #include "WoW/Source/DB/Rec/SpellRec.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
@@ -1490,4 +1493,21 @@ int32_t SI2::GetChunkLocation(int32_t* mapId, int32_t* chunkX, int32_t* chunkY, 
 void SI2::DK_GetPlayerFilterName(CGUnit_C* unit, char* name, uint32_t size) {
     uint8_t race = unit->m_unit->m_unitFieldBytes0[0];
     SStrPrintf(name, size, "Death Knight %s %s", s_raceFileNames[race], unit->m_unit->m_unitFieldBytes0[2] ? "Female" : "Male");
+}
+
+// VERIFY: 8858e33e auto
+// OFFSET: 0x004C66B0
+int32_t SI2::HandleSoundDeviceChange(const void* data, void* param) {
+    EventUnregister(EVENT_ID_POLL, SI2::HandleSoundDeviceChange);
+    CSimpleMovieFrame::AudioDeviceChanged_ShutDown();
+    SI2::ValidateOutputDriver();
+    SI2::ValidateVoiceChatOutputDriver();
+    SI2::ValidateVoiceChatInputDriver();
+
+    if (CGGameUI::m_initialized) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_SOUND_DEVICE_UPDATE, nullptr);
+    }
+
+    CSimpleMovieFrame::AudioDeviceChanged_Restart();
+    return 1;
 }

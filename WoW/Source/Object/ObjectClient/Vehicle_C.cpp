@@ -10,12 +10,20 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "_Triage/CClientObjCreate.h"
+#include "WoW/Source/Object/Movement.h"
+#include "WoW/Source/Object/Passenger.h"
+#include "WoW/Source/UIUtil/Camera.h"
+#include "WoW/Source/Ui/WorldFrame.h"
+#include "WoW/Source/WorldClient/FrameTime.h"
 
 // STATIC: 0x00AD6734
 static const char* s_vehicleSeatTypes[3] = { "None", "Root", "Child" };
 
 // STATIC: 0x00CA1604
 CVehicleHeap* CVehicle_C::s_vehiclePool;
+
+// STATIC: 0x00CA1608
+static int32_t s_inBoneAnimEnd;
 
 // VERIFY: 94e658f9 auto
 // OFFSET: 0x00756C90
@@ -686,5 +694,128 @@ void CVehicle_C::PlayBoneAnimOrFallback(CM2Model* model, uint32_t boneId) {
     if (!this->m_unit->UnsetKeyBoneSequence(model, bone, 1, 1, 0)) {
         this->BoneAnimEndHandler(model, bone, 0xFFFFFFFF, 1, 0);
         this->m_unit->UpdateBaseAnimation(0, -1);
+    }
+}
+
+// VERIFY: f94bb593 manual
+// OFFSET: 0x007577E0
+void CVehicle_C::RemoveBoneAnimListener(uint32_t boneId, WOWGUID guid) {
+    CM2Model* model = this->m_unit->GetObjectModel();
+
+    if (!model) {
+        return;
+    }
+
+    if (boneId >= 35) {
+        boneId = 26;
+    }
+
+    this->UninstallBoneAnimListener(guid);
+    uint32_t i;
+
+    for (i = 0; i < 16; i++) {
+        if (this->m_boneAnimListeners[i].m_guid && this->m_boneAnimListeners[i].m_boneId == boneId) {
+            break;
+        }
+    }
+
+    if (i != 16 || !((1 << (boneId & 0x1F)) & this->m_playingBoneAnims[boneId >> 5])) {
+        return;
+    }
+
+    if (boneId == 26) {
+        boneId = 0xFFFFFFFF;
+    }
+
+    if (!this->m_unit->UnsetKeyBoneSequence(model, boneId, 1, 1, 0)) {
+        this->BoneAnimEndHandler(model, boneId, 0xFFFFFFFF, 1, 0);
+        this->m_unit->UpdateBaseAnimation(0, -1);
+    }
+}
+
+// VERIFY: e3016364 manual
+// OFFSET: 0x00757280
+void CVehicle_C::BoneAnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time) {
+    if (interrupted && s_inBoneAnimEnd) {
+        return;
+    }
+
+    if (boneId >= 35) {
+        boneId = 26;
+    }
+
+    TSGrowableArray<CVehiclePassenger_C*> passengers;
+    int32_t handled = 0;
+
+    for (int32_t i = 0; i < 16; i++) {
+        BoneAnimListener& listener = this->m_boneAnimListeners[i];
+
+        if (!listener.m_guid || listener.m_boneId != boneId) {
+            continue;
+        }
+
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(listener.m_guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+        int32_t keep = 0;
+
+        if (unit && listener.m_callback && (listener.m_callback(unit, keep, passengers), keep)) {
+            handled = 1;
+        } else {
+            listener.m_guid = WOWGUID{ 0 };
+        }
+    }
+
+    if (interrupted || !handled) {
+        this->m_playingBoneAnims[boneId >> 5] &= ~(1 << (boneId & 0x1F));
+    }
+
+    if (boneId == this->m_forceFacingBone) {
+        this->m_forceFacingGuid = WOWGUID{ 0 };
+        this->m_forceFacingBone = 0xFFFFFFFF;
+    }
+
+    if (!interrupted) {
+        if (handled) {
+            s_inBoneAnimEnd = 1;
+            this->m_unit->SetKeyBoneSequence(model, boneId == 26 ? 0xFFFFFFFF : boneId, sequenceId, 0xFFFFFFFF, time, 1.0f, 1, 1, 0);
+            s_inBoneAnimEnd = 0;
+        } else if (boneId == 26) {
+            this->m_unit->UpdateBaseAnimation(0, -1);
+        } else {
+            this->PlayBoneAnimOrFallback(model, boneId);
+        }
+    }
+
+    for (uint32_t i = 0; i < passengers.Count(); i++) {
+        passengers[i]->StopWaitingForVehicleTransitionAnim();
+    }
+}
+
+// VERIFY: 26bcc49f auto
+// OFFSET: 0x007576E0
+void CVehicle_C::RemoveAllPassengersLocally() {
+    CGCamera* camera = CGWorldFrame::GetActiveCamera();
+    uint32_t time = FrameTime::s_curTimeMs;
+    CPassenger* passenger = this->m_passengers.Head();
+
+    while (passenger) {
+        CPassenger* next = this->m_passengers.Next(passenger);
+
+        if (camera->m_targetGUID == *passenger->m_ownerGuid) {
+            camera->MakeRelativeTo(WOWGUID{ 0 });
+        }
+
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CMovement_C* movement = static_cast<CMovement_C*>(passenger);
+
+        if (unit->m_obj->m_guid == CGUnit_C::s_activeMover) {
+            movement->OnFallLocal(time);
+        } else {
+            movement->TryStartFallingLocal();
+        }
+
+        unit->m_clientFlags |= 0x20000000;
+        movement->ForceSetTransport(WOWGUID{ 0 }, 0xFF, 1);
+        unit->m_clientFlags &= ~0x20000000;
+        passenger = next;
     }
 }

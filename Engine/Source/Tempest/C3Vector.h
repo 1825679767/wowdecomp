@@ -39,6 +39,7 @@ class C3Vector {
     void Zero();
     C3Vector operator-() const;
     C3Vector& operator+=(const C3Vector& v);
+    C3Vector& operator-=(const C3Vector& v);
     C3Vector& operator*=(float s);
     C3Vector& operator/=(float s);
 };

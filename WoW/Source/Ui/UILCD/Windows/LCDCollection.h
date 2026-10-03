@@ -18,6 +18,8 @@ class CLCDCollection : public CLCDBase {
     virtual void OnDraw(CLCDGfxBase& gfx);
     virtual void OnUpdate(uint32_t timestamp);
     virtual void ShowSubscreen(int32_t subscreen);
+
+    bool AddObject(CLCDBase* object);
 };
 
 #endif

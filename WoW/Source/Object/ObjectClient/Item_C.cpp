@@ -1,4 +1,7 @@
 #include "Item_C.h"
+#include "WoW/Source/DB/Rec/ItemVisualsRec.h"
+#include "WoW/Source/Ui/ItemSocketInfo.h"
+#include "WoW/Source/Ui/LootFrame.h"
 #include "Engine/Source/Services/SysMessage.h"
 #include "Engine/Source/Services/Texture.h"
 #include "WoW/Source/DB/Rec/ItemDisplayInfoRec.h"
@@ -1873,4 +1876,120 @@ int32_t GetItemIDByName(const char* name) {
     }
 
     return 0;
+}
+
+// VERIFY: 6c2f725a manual
+// OFFSET: 0x00707F50
+void CGItem_C::UpdateEnchantments() {
+    if (this->GetItemStaticFlags(0) & 0x2000) {
+        return;
+    }
+
+    CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_item->m_itemFieldOwner, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (!owner) {
+        return;
+    }
+
+    if (owner->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        CGActionBar::UpdateItem(this->m_obj->m_entryID);
+        CGTradeInfo::UpdatePlayerItem(this->m_obj->m_guid);
+        CGContainerInfo::UpdateItem(this->m_obj->m_guid);
+        CGCharacterInfo::UpdateItem(this->m_obj->m_guid);
+        CGCharacterInfo::UpdateInventoryAlerts();
+        CGItemSocketInfo::UpdateItem(this->m_obj->m_guid);
+    }
+
+    uint8_t slot = owner->FindSlotIndex(this->m_obj->m_guid);
+
+    if (slot <= 18) {
+        owner->UpdateObjComponentVisualsSlot(owner->GetVisibleItem(slot), slot);
+    }
+}
+
+// VERIFY: 43b3d3d7 manual
+// OFFSET: 0x00708040
+int32_t CGItem_C::GetItemEnchantmentVisualID() const {
+    ItemDisplayInfoRec displayRec;
+    ItemRec* rec = g_itemDB.GetRecord(this->m_obj->m_entryID);
+    int32_t displayId = rec ? rec->m_displayInfoID : 0;
+
+    if (!g_itemDisplayInfoDB.GetRecord(displayId, &displayRec)) {
+        return 0;
+    }
+
+    if (g_itemVisualsDB.GetRecord(displayRec.m_itemVisual)) {
+        return -1;
+    }
+
+    for (uint32_t i = 0; i < 12; i++) {
+        SpellItemEnchantmentRec* enchantment = g_spellItemEnchantmentDB.GetRecord(this->m_item->m_itemFieldEnchantment[i].m_id);
+
+        if (enchantment && enchantment->m_itemVisual) {
+            return enchantment->m_itemVisual;
+        }
+    }
+
+    return 0;
+}
+
+// VERIFY: 8be7f81c auto
+// OFFSET: 0x007081B0
+void CGItem_C::UpdateSockets(uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5) {
+    if (a2) {
+        this->m_item->m_itemFieldEnchantment[2].m_id = a2;
+    }
+
+    if (a3) {
+        this->m_item->m_itemFieldEnchantment[3].m_id = a3;
+    }
+
+    if (a4) {
+        this->m_item->m_itemFieldEnchantment[4].m_id = a4;
+    }
+
+    if (a5) {
+        this->m_item->m_itemFieldEnchantment[5].m_id = a5;
+    }
+
+    this->UpdateEnchantments();
+}
+
+// VERIFY: ccea7448 auto
+// OFFSET: 0x0070AFC0
+void CGItem_C::Disable() {
+    CGObject_C::Disable();
+
+    if (CGLootInfo::m_lootObj == this->m_obj->m_guid) {
+        CGGameUI::CloseLoot(true, false, false);
+    }
+
+    WOWGUID guid = this->m_obj->m_guid;
+    Spell_C_CancelSpellByCaster(guid);
+
+    if (this->m_obj->m_guid == CGGameUI::GetCursorItem()) {
+        CGGameUI::ClearCursor(1, 1);
+    }
+
+    if (this->m_obj->m_guid == CGItemText::m_itemGUID) {
+        CGItemText::SetItem(WOWGUID(), 0);
+    }
+
+    if (!(this->m_itemFlags & 0x2)) {
+        g_itemDBCache.CancelCallback(this->m_obj->m_entryID, &LoadItemCacheCallback, this);
+        CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_item->m_itemFieldOwner, TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+        if (owner) {
+            owner->unk_18B8--;
+        }
+    }
+
+    if (this->m_item->m_itemFieldOwner == ClntObjMgrGetActivePlayer()) {
+        CGTradeSkillInfo::RefreshList(0);
+        CGActionBar::UpdateItem(this->m_obj->m_entryID);
+        CGTradeInfo::RemovePlayerItem(this->m_obj->m_guid);
+        CGQuestLog::UpdateQuestItem(this->m_obj->m_entryID);
+        CGCharacterInfo::UpdateItem(this->m_obj->m_guid);
+        CGItemSocketInfo::RemoveItem(this->m_obj->m_guid);
+    }
 }

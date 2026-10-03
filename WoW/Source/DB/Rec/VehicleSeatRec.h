@@ -58,7 +58,7 @@ class VehicleSeatRec {
     /* 00B4 */ int32_t m_flagsB;
     /* 00B8 */ float m_field33512213044;
     /* 00BC */ float m_field33512213045;
-    /* 00C0 */ int32_t m_field33512213046;
+    /* 00C0 */ float m_field33512213046;
     /* 00C4 */ float m_field33512213047;
     /* 00C8 */ float m_field33512213048;
     /* 00CC */ float m_field33512213049;

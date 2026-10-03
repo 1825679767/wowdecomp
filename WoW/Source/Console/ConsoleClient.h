@@ -38,6 +38,7 @@ extern char s_repeatBuffer[64];
 extern uint32_t s_repeatCount;
 extern HTEXTFONT s_textFont;
 
+int32_t ConsoleGetActive();
 int32_t ConsoleCommand_AppendLogToFile(const char* command, const char* arguments);
 int32_t ConsoleCommand_BackGroundColor(const char* command, const char* arguments);
 int32_t ConsoleCommand_BufferSize(const char* command, const char* arguments);

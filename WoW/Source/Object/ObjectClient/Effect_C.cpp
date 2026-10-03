@@ -1,5 +1,6 @@
 #include "Effect_C.h"
 #include <cstring>
+#include <cmath>
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Model2/M2Data.h"
 #include "Engine/Source/Model2/M2Model.h"
@@ -28,6 +29,14 @@
 #include "WoW/Source/DB/Rec/SpellVisualKitModelAttachRec.h"
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/DB/Rec/SpellRec.h"
+#include "Engine/Source/Gx/CGxBuf.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
+#include "Engine/Source/Gx/CGxVertexPC.h"
+#include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Model2/M2Light.h"
+#include "WoW/Source/DB/Rec/CreatureDisplayInfoRec.h"
+#include "WoW/Source/DB/Rec/ItemDisplayInfoRec.h"
+#include "WoW/Source/Object/CreatureStats.h"
 
 // STATIC: 0x00ADA764
 static const char* s_specialUnitEffectNames[] = {
@@ -1424,5 +1433,319 @@ void CEffect::PostInitialize() {
 
     if (!listenerAtCharacter && !(this->m_flags & 0x200000) && object) {
         SI2::AttachToObject(&this->m_soundKitObject, object->m_obj->m_guid);
+    }
+}
+
+// VERIFY: 5e1b1086 auto
+// OFFSET: 0x006F7480
+static void MountTransitionSequenceCB(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param) {
+    if (sequenceId != 127) {
+        return;
+    }
+
+    CEffect* effect = reinterpret_cast<CEffect*>(static_cast<uintptr_t>(param));
+
+    if (effect->m_mountTransition) {
+        SpellVisualsFlagMountTransitionFinished(effect->m_mountTransition);
+    }
+}
+
+// VERIFY: 84fadc9f auto
+// OFFSET: 0x006F7D60
+void CEffect::InitAtPosition(int32_t spellId, const SpellVisualKitRec* kit, const SpellVisualEffectNameRec* effectName, uint32_t flags, void (*callback)(CM2Model*, uint32_t, uint32_t, int32_t, uint32_t, uint64_t), const C3Vector* position, uint32_t a8, WOWGUID transport) {
+    this->m_effectNameRec = effectName;
+    this->m_attachmentId = -1;
+    this->m_sourceGuid = WOWGUID();
+    this->m_targetGuid = WOWGUID();
+    this->m_position = *position;
+    this->m_transportGuid = transport;
+    this->m_spellId = spellId;
+    this->m_kitRec = kit;
+    this->m_effectNameRec = effectName;
+    this->m_flags = flags | 0x2;
+    this->unk_00A0 = a8;
+    this->m_model = World::s_m2Scene->CreateModel(effectName->m_fileName, 0);
+
+    if (this->m_model) {
+        this->m_refCount++;
+        this->m_model->SetLoadedCallback(&CEffect::CreateModelFromEffect, this);
+        this->m_model->SetSequenceCallback(reinterpret_cast<void*>(callback), reinterpret_cast<uintptr_t>(this));
+        this->m_model->SetEventCallback(reinterpret_cast<void*>(&CEffect::EffectEvent), reinterpret_cast<uintptr_t>(this));
+
+        if (this->m_flags & 0x400000) {
+            this->SetEmissionRateIgnoresDistance(1);
+        }
+    }
+
+    this->LinkTo(&s_orphanedEffects);
+}
+
+// VERIFY: 08a4eb22 auto
+// OFFSET: 0x006F80B0
+void CEffect::CreateProceduralEffectImpl(int32_t a2, float param, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return;
+    }
+
+    this->LinkTo(&unit->m_effectList);
+    this->m_refCount++;
+
+    if (unit->m_mountModel && unit->m_mountModel->IsLoaded(0, 0)) {
+        this->unk_00D8 = unit->m_mountModel->m_lastAnimTime == 0;
+
+        if (param > 0.0f) {
+            uint32_t duration = static_cast<uint32_t>(param * 1000.0f);
+            uint32_t animId = unit->GetCurrentTorsoAnimId();
+            M2SequenceInfo info;
+            info.Clear();
+            unit->m_mountModel->GetSequenceInfo(animId, 0, info);
+
+            if (info.m_duration < duration) {
+                duration = info.m_duration;
+            }
+
+            unit->SetBoneSequenceTimeRecursive(unit->m_mountModel, 0xFFFFFFFF, duration, 0);
+        }
+
+        unit->UpdateBoneSequenceFlags(unit->m_mountModel, 1, 0);
+    } else {
+        this->unk_00D8 = 1;
+    }
+
+    if (unit->m_worldModel && unit->m_worldModel->IsLoaded(0, 0)) {
+        this->unk_00D4 = unit->m_worldModel->m_lastAnimTime == 0;
+
+        if (param > 0.0f) {
+            uint32_t duration = static_cast<uint32_t>(param * 1000.0f);
+            uint32_t animId = unit->GetCurrentTorsoAnimId();
+            M2SequenceInfo info;
+            info.Clear();
+            unit->m_worldModel->GetSequenceInfo(animId, 0, info);
+
+            if (info.m_duration < duration) {
+                duration = info.m_duration;
+            }
+
+            unit->SetBoneSequenceTimeRecursive(unit->m_worldModel, 0xFFFFFFFF, duration, 0);
+        }
+
+        unit->UpdateBoneSequenceFlags(unit->m_worldModel, 1, 0);
+    } else {
+        this->unk_00D4 = 1;
+    }
+
+    this->m_kitRec = kit;
+    this->unk_00CC = a2;
+    this->m_spellId = spellId;
+    this->m_sourceGuid = *guid;
+    this->m_flags |= flags | 0x4;
+}
+
+// VERIFY: fc96753b manual
+// OFFSET: 0x006F82D0
+void CEffect::ApplyItemVisual() {
+    if (!(this->m_flags & 0x80000) || this->m_itemSlot >= 12 || !this->m_displayId) {
+        return;
+    }
+
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_sourceGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return;
+    }
+
+    ItemDisplayInfoRec rec;
+    bool firstSlot = this->m_itemSlot == 0;
+    bool canEquip = unit->CanEquipItemsInThisForm() && (unit->m_obj->m_type & TYPEMASK_PLAYER);
+
+    if ((firstSlot || canEquip) && g_itemDisplayInfoDB.GetRecord(this->m_displayId, &rec)) {
+        CCharacterComponent* component = unit->m_characterComponent;
+
+        if (component) {
+            component->RemoveItem(static_cast<ITEM_SLOT>(this->m_itemSlot));
+            component->AddItem(static_cast<ITEM_SLOT>(this->m_itemSlot), &rec, 0);
+            CGGameUI::UnitModelUpdate(this->m_sourceGuid, 3);
+        }
+    }
+}
+
+// VERIFY: 0b274ac7 manual
+// OFFSET: 0x006F83D0
+int32_t CEffect::LoadMountTransitionModel() {
+    if (!this->m_displayId) {
+        return 0;
+    }
+
+    CreatureDisplayInfoRec* display = g_creatureDisplayInfoDB.GetRecord(this->m_displayId);
+
+    if (!display) {
+        return 0;
+    }
+
+    CreatureModelDataRec* modelData = g_creatureModelDataDB.GetRecord(display->m_modelID);
+
+    if (!modelData) {
+        return 0;
+    }
+
+    this->m_model = World::s_m2Scene->CreateModel(modelData->m_modelName, 0);
+    this->m_model->SetSequenceCallback(reinterpret_cast<void*>(&MountTransitionSequenceCB), reinterpret_cast<uintptr_t>(this));
+    this->m_model->SetEventCallback(reinterpret_cast<void*>(&CEffect::EffectEvent), reinterpret_cast<uintptr_t>(this));
+    CCharacterComponent::ReplaceMonsterSkin(this->m_model, display, modelData);
+    this->m_model->SetBoneSequence(0xFFFFFFFF, 127, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+    CM2Model* model = this->m_model;
+
+    if (model->m_attachParent) {
+        model->m_fFlags &= ~0x80;
+    } else {
+        model->m_fFlags &= ~0x8;
+    }
+
+    if (model->m_attachParent) {
+        model->m_fFlags &= ~0x20000;
+    } else {
+        model->m_fFlags &= ~0x10000;
+    }
+
+    this->m_model->SetAnimating(1);
+    return 1;
+}
+
+// VERIFY: ed2a520e auto
+// OFFSET: 0x006F8650
+void CEffect::InitProceduralEffect(int32_t a2, int32_t param, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags) {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return;
+    }
+
+    this->unk_00CC = a2;
+    this->m_spellId = spellId;
+    this->m_kitRec = kit;
+    this->m_sourceGuid = *guid;
+    this->m_flags |= flags | 0x80000;
+    this->m_pendingCacheId = param;
+    this->LinkTo(&unit->m_effectList);
+    this->m_refCount++;
+
+    if (g_itemDBCache.GetRecord(this->m_pendingCacheId, *guid, &CEffect::ApplyItemVisualByItemId, this, false)) {
+        CEffect::ApplyItemVisualByItemId(param, *guid, this, true);
+    }
+}
+
+// VERIFY: 78e5d527 manual
+// OFFSET: 0x006F8F50
+void CEffect::DrawFishingString(CM2Model* model, const CM2Lighting* lighting, void* arg) {
+    if (!model->HasEvent('HCC$')) {
+        return;
+    }
+
+    CEffect* effect = static_cast<CEffect*>(arg);
+    CGObject_C* bobber = ClntObjMgrObjectPtr(effect->m_targetGuid, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+
+    if (!bobber) {
+        return;
+    }
+
+    C3Vector start = model->GetEventPosition('HCC$');
+    C3Vector end = bobber->GetPosition();
+    end.z = bobber->GetScale() * bobber->m_height * 0.2f + end.z;
+    float dx = end.x - start.x;
+    float dy = end.y - start.y;
+    float dz = end.z - start.z;
+    CGxBuf* buf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, sizeof(CGxVertexPC), 65);
+    CGxVertexPC* vertices = reinterpret_cast<CGxVertexPC*>(g_theGxDevicePtr->BufLock(buf));
+    const C3Vector& ambient = lighting->m_sunAmbient;
+    CImVector color;
+    color.b = static_cast<uint8_t>(static_cast<int32_t>(ambient.z > 0.0f ? (ambient.z < 1.0f ? ambient.z * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.g = static_cast<uint8_t>(static_cast<int32_t>(ambient.y > 0.0f ? (ambient.y < 1.0f ? ambient.y * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.r = static_cast<uint8_t>(static_cast<int32_t>(ambient.x > 0.0f ? (ambient.x < 1.0f ? ambient.x * 255.0f + 0.5f : 255.0f) : 0.0f));
+    color.a = 0xFF;
+    GxFormatColor(color);
+
+    for (int32_t i = 0; i < 65; i++) {
+        float t = i * 0.015625f;
+        vertices[i].p.x = dx * t + start.x;
+        vertices[i].p.y = dy * t + start.y;
+        vertices[i].p.z = dz * t + start.z;
+        vertices[i].p.z = vertices[i].p.z - sinf(t * 3.1415927f) * 0.5f;
+        vertices[i].c = color;
+    }
+
+    GxBufUnlock(buf, 0);
+    GxPrimVertexPtr(buf, GxVBF_PC);
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_Lighting, 0);
+    GxRsSet(GxRs_Texture0, 0);
+    CGxBatch batch;
+    batch.m_primType = GxPrim_LineStrip;
+    batch.m_start = 0;
+    batch.m_count = 65;
+    batch.m_minIndex = 0;
+    batch.m_maxIndex = 64;
+    g_theGxDevicePtr->Draw(&batch, 0);
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 891c7da6 auto
+// OFFSET: 0x006F9610
+void CEffect::MountTransitionCacheCB(int32_t id, const WOWGUID& guid, void* param, bool success) {
+    CEffect* effect = static_cast<CEffect*>(param);
+    WOWGUID key = { static_cast<uint64_t>(effect->m_spellId) | 0x1FE0000000000000ull };
+    CreatureStats_C* stats = g_creatureDBCache.GetRecord(id, key, nullptr, nullptr, false);
+
+    if (stats) {
+        effect->m_displayId = stats->m_displayId[0];
+        effect->m_pendingCacheId = 0;
+        effect->LoadMountTransitionModel();
+        effect->UpdateAttachment();
+    }
+}
+
+// VERIFY: c6d8c4e1 auto
+// OFFSET: 0x006F9670
+void CEffect::AddMountTransition(uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid) {
+    this->m_sourceGuid = *guid;
+    this->m_spellId = spellId;
+    this->m_kitRec = kit;
+    this->m_attachmentId = 19;
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_sourceGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return;
+    }
+
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return;
+    }
+
+    this->m_pendingCacheId = 0;
+    this->m_displayId = 0;
+
+    for (uint32_t i = 0; i < 3; i++) {
+        if (spell.m_effect[i] == 6 && spell.m_effectAura[i] == 78) {
+            int32_t creatureId = spell.m_effectMiscValue[i];
+            this->m_pendingCacheId = creatureId;
+            WOWGUID key = { static_cast<uint64_t>(spellId) | 0x1FE0000000000000ull };
+            CreatureStats_C* stats = g_creatureDBCache.GetRecord(creatureId, key, &CEffect::MountTransitionCacheCB, this, false);
+
+            if (stats) {
+                this->m_displayId = stats->m_displayId[0];
+                this->m_pendingCacheId = 0;
+                break;
+            }
+        }
+    }
+
+    if (this->m_displayId ? this->LoadMountTransitionModel() : this->m_pendingCacheId) {
+        this->LinkTo(&unit->m_effectList);
+        this->m_refCount++;
+        this->m_mountTransition = SpellVisualsStartMountTransition(unit);
+        unit->StartMountTransition(this->m_mountTransition, this);
     }
 }

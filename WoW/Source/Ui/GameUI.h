@@ -41,6 +41,8 @@ class FrameScript_Object;
 struct lua_State;
 
 extern CVar* g_autoClearAFKCVar;
+extern CVar* g_showLootSpamCVar;
+extern CImVector s_deadSelectionColor;
 extern CVar* g_assistAttackCVar;
 extern CVar* g_questPOICVar;
 extern CVar* g_trackerSortingCVar;
@@ -471,6 +473,7 @@ class CCapturePointUIManager {
 
     void AddCapturePoint(CGGameObject_C* object, uint32_t worldState, uint32_t radius);
     void RemoveCapturePoint(CGGameObject_C* object);
+    void DeleteNode(CapturePointUIManagerNode* node);
     void Update();
 };
 

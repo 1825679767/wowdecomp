@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Storm/H/storm.h"
 
 class SEvent;
 class SThread;
@@ -17,6 +18,8 @@ class ComSatThread {
     static SThread s_comsatThread;
     static int32_t s_threadRunning;
     static SEvent s_threadShutdownEvent;
+
+    static uint32_t STORMAPI Work(void* param);
 };
 
 #endif

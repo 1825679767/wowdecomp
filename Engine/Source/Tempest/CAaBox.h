@@ -23,12 +23,14 @@ class CAaBox {
     bool Intersects(const CAaBox& box) const;
     bool IntersectsXY(const CAaBox& box) const;
     bool IsEmpty() const;
+    bool IsInverted() const;
     bool IsValid() const;
     void Expand(float amount);
     void Expand(const C3Vector& amount);
     C3Vector Center() const;
     void Set(float min, float max);
     CAaBox& operator*=(float scale);
+    void operator+=(const C3Vector& v);
     CAaBox operator|=(const CAaBox& box);
 };
 

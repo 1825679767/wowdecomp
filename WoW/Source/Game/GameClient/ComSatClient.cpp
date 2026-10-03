@@ -1,4 +1,7 @@
 #include "ComSatClient.h"
+#include "Engine/Source/SoundEngine/SoundEngine.h"
+#include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/ComSat/ComSatInterface.h"
 #include <cstring>
 #include "WoW/Source/Ui/RaidInfo.h"
 #include "WoW/Source/Ui/PartyFrame.h"
@@ -45,6 +48,9 @@ static float unk_D37CAC;
 // STATIC: 0x00D37CB0
 static int32_t unk_D37CB0;
 
+// STATIC: 0x00D37CB4
+static uint8_t s_voiceFadeActive;
+
 // STATIC: 0x00D37CB8
 static CVar* unk_D37CB8;
 
@@ -53,6 +59,15 @@ static CVar* unk_D37CBC;
 
 // STATIC: 0x00D37CC0
 static CVar* unk_D37CC0;
+
+// STATIC: 0x00D37CC4
+static CVar* s_cvarChatSoundVolume;
+
+// STATIC: 0x00D37CC8
+static CVar* s_cvarChatMusicVolume;
+
+// STATIC: 0x00D37CCC
+static CVar* s_cvarChatAmbienceVolume;
 
 // STATIC: 0x00D37CD0
 static float unk_D37CD0;
@@ -72,8 +87,35 @@ static float unk_D37CE0;
 // STATIC: 0x00D37CE4
 static float unk_D37CE4;
 
+// STATIC: 0x00AF29B8
+uint32_t s_comsatSleepTime = 10;
+
 // STATIC: 0x00AF29BC
 int32_t s_pushToTalkKey = -1;
+
+// STATIC: 0x00D37CE8
+static CVar* s_cvarStartTalkingDelay;
+
+// STATIC: 0x00D37CEC
+static CVar* s_cvarStartTalkingTime;
+
+// STATIC: 0x00D37CF0
+static CVar* s_cvarStopTalkingDelay;
+
+// STATIC: 0x00D37CF4
+static CVar* s_cvarStopTalkingTime;
+
+// STATIC: 0x00D37D08
+static uint32_t s_comsatIdleTimeout;
+
+// STATIC: 0x00D37D0C
+static CVar* s_cvarComSatSleepTime;
+
+// STATIC: 0x00D31A94
+static int32_t s_lastPushToTalkDown;
+
+// STATIC: 0x00D31A98
+static int32_t s_localTalking;
 
 // STATIC: 0x00D31A88
 uint32_t s_pushToTalkModifiers;
@@ -88,7 +130,7 @@ int32_t s_voiceChatWasEnabled;
 uint32_t s_pushToTalkMouseButton;
 
 // STATIC: 0x00D37D34
-static TSFixedArray<ComSatCallback> s_comsatCallbacks;
+static TSGrowableArray<ComSatCallback> s_comsatCallbacks;
 
 // STATIC: 0x00D37D54
 static SMutex unk_D37D54;
@@ -101,6 +143,9 @@ static TSHashTable<MUTEDPLAYER, CHashKeyGUID> unk_D37DB0;
 
 // STATIC: 0x00D37D44
 static TSGrowableArray<ComSatEvent> s_comSatEvents;
+
+// STATIC: 0x00D37D10
+static WOWGUID s_localPlayer;
 
 // STATIC: 0x00D37D18
 int32_t s_comsatDisabledByClient;
@@ -1090,4 +1135,448 @@ void VoiceSessionLeave(uint64_t talker, uint64_t session, int32_t type) {
     }
 
     s_comsatDeviceLock.Leave();
+}
+
+// VERIFY: 80ee3aa2 auto
+// OFFSET: 0x007DD6A0
+static void RemoveTalkingPlayer(WOWGUID guid) {
+    TALKINGPLAYER* talker = unk_D37D88.Ptr(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid));
+
+    if (talker) {
+        unk_D37D88.Delete(talker);
+    }
+}
+
+// VERIFY: c8281370 auto
+// OFFSET: 0x007DE2B0
+void Comsat::VoiceStop() {
+    if (!s_localPlayer && !(s_localPlayer = ClntObjMgrGetActivePlayer())) {
+        return;
+    }
+
+    Script_SendUnitSignal(s_localPlayer, SCRIPT_EVENT_VOICE_STOP);
+    ComSatClient_SendEvent(SCRIPT_EVENT_VOICE_PLATE_STOP, s_localPlayer);
+    RemoveTalkingPlayer(s_localPlayer);
+}
+
+// VERIFY: 994a0138 manual
+// OFFSET: 0x007DE310
+void Comsat::VoicePlateStop(uint64_t sessionId, uint64_t guid) {
+    WOWGUID none = { 0 };
+    NameCache* name = g_nameDBCache.GetRecord(guid, none, nullptr, nullptr, false);
+
+    if (!name) {
+        return;
+    }
+
+    int32_t index;
+
+    for (index = 0; index < 32; index++) {
+        if (s_comsatData[index].m_sessionID == sessionId) {
+            break;
+        }
+    }
+
+    if (index >= 32) {
+        return;
+    }
+
+    Script_SendUnitSignal(name->m_guid, SCRIPT_EVENT_VOICE_STOP);
+    ComSatClient_SendEvent(SCRIPT_EVENT_VOICE_PLATE_STOP, name->m_guid);
+    WOWGUID player = name->m_guid;
+    TALKINGPLAYER* talker = unk_D37D88.Ptr(static_cast<uint32_t>(player.m_guid), CHashKeyGUID(player.m_guid));
+
+    if (talker) {
+        unk_D37D88.Delete(talker);
+    }
+
+    if (--unk_D37CB0 < 0) {
+        unk_D37CB0 = 0;
+    }
+}
+
+// VERIFY: 9f1016db manual
+// OFFSET: 0x007DF410
+static void AddTalkingPlayer(WOWGUID guid) {
+    if (!unk_D37D88.Ptr(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid))) {
+        unk_D37D88.New(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid), 0, 0);
+    }
+}
+
+// VERIFY: da6e9fc2 auto
+// OFFSET: 0x007DF580
+void Comsat::VoiceStart() {
+    if ((s_localPlayer || (s_localPlayer = ClntObjMgrGetActivePlayer())) && s_currentSession >= 0) {
+        Script_SendUnitSignal(s_localPlayer, SCRIPT_EVENT_VOICE_START);
+        ComSatClient_SendEvent(SCRIPT_EVENT_VOICE_PLATE_START, s_localPlayer);
+        AddTalkingPlayer(s_localPlayer);
+    }
+}
+
+// VERIFY: 67f8e60a manual
+// OFFSET: 0x007DF5F0
+void Comsat::VoicePlateStart(uint64_t sessionId, uint64_t guid) {
+    WOWGUID none = { 0 };
+    NameCache* name = g_nameDBCache.GetRecord(guid, none, nullptr, nullptr, false);
+
+    if (!name) {
+        return;
+    }
+
+    int32_t index;
+
+    for (index = 0; index < 32; index++) {
+        if (s_comsatData[index].m_sessionID == sessionId) {
+            break;
+        }
+    }
+
+    if (index >= 32) {
+        return;
+    }
+
+    Script_SendUnitSignal(name->m_guid, SCRIPT_EVENT_VOICE_START);
+    ComSatClient_SendEvent(SCRIPT_EVENT_VOICE_PLATE_START, name->m_guid);
+    AddTalkingPlayer(name->m_guid);
+    unk_D37CB0++;
+}
+
+// OFFSET: 0x007DBAC0
+static int32_t AcquireSingleInstanceMutex() {
+    unk_D37D54.Create(1, "WOWCOMSATCLIENT12340");
+
+    if (unk_D37D54.Valid()) {
+        if (!unk_D37D54.Wait(0)) {
+            return 1;
+        }
+
+        unk_D37D54.Close();
+        unk_D37D54.Release();
+    }
+
+    return 0;
+}
+
+// VERIFY: f2d97132 auto
+// OFFSET: 0x007DC380
+static void InitSoundGroupFadeRates() {
+    if (s_voiceFadeActive) {
+        return;
+    }
+
+    s_voiceFadeActive = 1;
+    float delay = s_cvarStartTalkingDelay ? s_cvarStartTalkingDelay->m_floatValue : 0.0f;
+    unk_D37CA8 = 0.0f == delay ? 0.0f : 1.0f / delay;
+    float time = s_cvarStartTalkingTime ? s_cvarStartTalkingTime->m_floatValue : 0.2f;
+    unk_D37CAC = 0.0f != time ? 1.0f / time : 0.0f;
+    unk_D37CD0 = SI2::GetChannelGroupVolume(0);
+    unk_D37CD4 = SI2::GetChannelGroupVolume(1);
+    unk_D37CD8 = SI2::GetChannelGroupVolume(2);
+
+    if (unk_D37CB8 && s_cvarChatSoundVolume) {
+        unk_D37CDC = s_cvarChatSoundVolume->m_floatValue * unk_D37CB8->m_floatValue - unk_D37CD0;
+    }
+
+    if (unk_D37CBC && s_cvarChatMusicVolume) {
+        unk_D37CE0 = s_cvarChatMusicVolume->m_floatValue * unk_D37CBC->m_floatValue - unk_D37CD4;
+    }
+
+    if (unk_D37CC0 && s_cvarChatAmbienceVolume) {
+        unk_D37CE4 = s_cvarChatAmbienceVolume->m_floatValue * unk_D37CC0->m_floatValue - unk_D37CD8;
+    }
+}
+
+// VERIFY: 842ac43f auto
+// OFFSET: 0x007DC4A0
+static void UpdateSoundGroupFadeRates() {
+    if (!s_voiceFadeActive) {
+        return;
+    }
+
+    s_voiceFadeActive = 0;
+    unk_D37CA4 = static_cast<float>(OsGetAsyncTimeMs() * 0.001);
+    float delay = s_cvarStopTalkingDelay ? s_cvarStopTalkingDelay->m_floatValue : 3.0f;
+    unk_D37CA8 = 0.0f == delay ? 0.0f : 1.0f / delay;
+    float time = s_cvarStopTalkingTime ? s_cvarStopTalkingTime->m_floatValue : 3.0f;
+    unk_D37CAC = 0.0f != time ? 1.0f / time : 0.0f;
+    unk_D37CD0 = SI2::GetChannelGroupVolume(0);
+    unk_D37CD4 = SI2::GetChannelGroupVolume(1);
+    unk_D37CD8 = SI2::GetChannelGroupVolume(2);
+
+    if (unk_D37CB8) {
+        unk_D37CDC = unk_D37CB8->m_floatValue - unk_D37CD0;
+    }
+
+    if (unk_D37CBC) {
+        unk_D37CE0 = unk_D37CBC->m_floatValue - unk_D37CD4;
+    }
+
+    if (unk_D37CC0) {
+        unk_D37CE4 = unk_D37CC0->m_floatValue - unk_D37CD8;
+    }
+}
+
+// VERIFY: 6adfea94 auto
+// OFFSET: 0x007DC680
+static void UpdateConnectionState() {
+    if (s_pushToTalkDown != s_lastPushToTalkDown) {
+        if (s_pushToTalkDown) {
+            Script_SendUniqueSignal(SCRIPT_EVENT_VOICE_PUSH_TO_TALK_START);
+        } else {
+            Script_SendUniqueSignal(SCRIPT_EVENT_VOICE_PUSH_TO_TALK_STOP);
+        }
+    }
+
+    if (ComSatThread::s_comsat) {
+        s_currentOutputDevice = ComSatThread::s_comsat->LocalTalkerGetCurrentOutputDeviceIndex(0);
+        s_currentCaptureDevice = ComSatThread::s_comsat->LocalTalkerGetCurrentCaptureDeviceIndex(0);
+        s_lastPushToTalkDown = s_pushToTalkDown;
+        s_localTalking = s_localTalkerActive;
+    } else {
+        s_currentOutputDevice = -1;
+        s_currentCaptureDevice = -1;
+        s_lastPushToTalkDown = 0;
+        s_localTalking = 0;
+    }
+
+    if (s_cvarComSatSleepTime) {
+        s_comsatSleepTime = s_cvarComSatSleepTime->m_intValue;
+    } else {
+        s_comsatSleepTime = 10;
+    }
+}
+
+// VERIFY: 958cb9ef auto
+// OFFSET: 0x007DCA40
+static void DoComSatWork() {
+    if (ComSatThread::s_threadRunning) {
+        return;
+    }
+
+    ComSatThread::s_threadRunning = 1;
+    ComSatThread::s_threadShutdownEvent.Reset();
+    SThread::Create(ComSatThread::Work, nullptr, ComSatThread::s_comsatThread, const_cast<char*>("ComSatThread"), 0);
+    ComSatThread::s_comsatThread.SetPriority(4);
+}
+
+// VERIFY: be7752b7 manual
+// OFFSET: 0x007DCC20
+static void DispatchComSatEvents() {
+    if (ComSatThread::s_comsat) {
+        for (uint32_t i = 0; i < s_comSatEvents.Count(); i++) {
+            ComSatEvent& event = s_comSatEvents[i];
+
+            switch (event.m_type) {
+                case 1:
+                    ComSatThread::s_comsat->LocalTalkerSetSessionVolume(0, event.m_guid, event.m_floatValue);
+                    break;
+
+                case 2:
+                    s_pushToTalkDown = 0;
+                    ComSatThread::s_comsat->LocalTalkerEnable(0, event.m_uintValue != 0);
+                    break;
+
+                case 3:
+                    ComSatThread::s_comsat->LocalTalkerThreshold(0, event.m_floatValue);
+                    break;
+
+                case 4:
+                    ComSatThread::s_comsat->MuteTalker(0, event.m_guid, static_cast<ComSat::MuteSetting>(event.m_uintValue));
+                    break;
+
+                case 5:
+                    ComSatThread::s_comsat->LocalTalkerSelectSession(0, event.m_guid);
+                    break;
+
+                case 6:
+                    ComSatThread::s_comsat->LocalTalkerSetSessionPriority(0, event.m_guid, static_cast<uint8_t>(event.m_uintValue));
+                    break;
+
+                case 7:
+                    ComSatThread::s_comsat->MuteSession(0, event.m_guid, static_cast<ComSat::MuteSetting>(event.m_uintValue));
+                    break;
+
+                case 8:
+                    ComSatThread::s_comsat->DebugSetSequenceDelay(event.m_uintValue);
+                    break;
+
+                case 9:
+                    ComSatThread::s_comsat->DebugSetSoundOutputDelay(0, event.m_uintValue);
+                    break;
+
+                case 10:
+                    UpdatePushToTalkKey();
+                    break;
+            }
+        }
+    }
+
+    s_comSatEvents.Clear();
+}
+
+// VERIFY: 7588964d auto
+// OFFSET: 0x007DD720
+bool ComSatClient_IsMutedPlayer(WOWGUID guid) {
+    return unk_D37DB0.Ptr(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid)) != nullptr;
+}
+
+// VERIFY: 597e09d8 auto
+// OFFSET: 0x007DDFF0
+static bool IsVoiceActive() {
+    if (unk_D37CB0 > 0) {
+        return true;
+    }
+
+    WOWGUID player = s_localPlayer;
+
+    if (!unk_D37D88.Ptr(static_cast<uint32_t>(player.m_guid), CHashKeyGUID(player.m_guid)) && !SI2::VoiceChat_IsRecordingLoopbackSound() && !SI2::VoiceChat_IsPlayingLoopbackSound()) {
+        return false;
+    }
+
+    return true;
+}
+
+// VERIFY: b00c6ee1 auto
+// OFFSET: 0x007DE050
+static void ApplySoundGroupFade(uint32_t time) {
+    double now = time * 0.001;
+
+    if (unk_D37CA8 == 0.0f) {
+        if (unk_D37CAC == 0.0f) {
+            if (IsVoiceActive()) {
+                if (unk_D37CB8 && s_cvarChatSoundVolume) {
+                    float volume = s_cvarChatSoundVolume->m_floatValue * unk_D37CB8->m_floatValue;
+
+                    if (volume != SI2::GetChannelGroupVolume(0)) {
+                        SI2::SetChannelGroupVolume(0, s_cvarChatSoundVolume->m_floatValue * unk_D37CB8->m_floatValue);
+                    }
+                }
+
+                if (unk_D37CBC && s_cvarChatMusicVolume) {
+                    float volume = s_cvarChatMusicVolume->m_floatValue * unk_D37CBC->m_floatValue;
+
+                    if (volume != SI2::GetChannelGroupVolume(1)) {
+                        SI2::SetChannelGroupVolume(1, s_cvarChatMusicVolume->m_floatValue * unk_D37CBC->m_floatValue);
+                    }
+                }
+
+                if (unk_D37CC0 && s_cvarChatAmbienceVolume) {
+                    float volume = s_cvarChatAmbienceVolume->m_floatValue * unk_D37CC0->m_floatValue;
+
+                    if (volume != SI2::GetChannelGroupVolume(2)) {
+                        SI2::SetChannelGroupVolume(2, s_cvarChatAmbienceVolume->m_floatValue * unk_D37CC0->m_floatValue);
+                    }
+                }
+            }
+        } else {
+            float fade = static_cast<float>(unk_D37CAC * (now - unk_D37CA4));
+
+            if (fade >= 1.0f) {
+                fade = 1.0f;
+                unk_D37CAC = 0.0f;
+                unk_D37CA4 = 0.0f;
+            }
+
+            SI2::SetChannelGroupVolume(0, fade * unk_D37CDC + unk_D37CD0);
+            SI2::SetChannelGroupVolume(1, unk_D37CE0 * fade + unk_D37CD4);
+            SI2::SetChannelGroupVolume(2, unk_D37CE4 * fade + unk_D37CD8);
+        }
+    } else if (unk_D37CA8 * (now - unk_D37CA4) >= 1.0) {
+        unk_D37CA8 = 0.0f;
+        unk_D37CA4 = static_cast<float>(now);
+    }
+
+    if (!s_voiceFadeActive) {
+        if (IsVoiceActive()) {
+            InitSoundGroupFadeRates();
+            return;
+        }
+
+        if (!s_voiceFadeActive) {
+            return;
+        }
+    }
+
+    if (!IsVoiceActive()) {
+        UpdateSoundGroupFadeRates();
+    }
+}
+
+// VERIFY: bd72bee4 manual
+// OFFSET: 0x007DF4B0
+static void MarkPlayerMuted(WOWGUID guid, int32_t muted) {
+    MUTEDPLAYER* entry = unk_D37DB0.Ptr(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid));
+
+    if (entry) {
+        if (!muted) {
+            unk_D37DB0.Delete(entry);
+        }
+    } else if (muted) {
+        unk_D37DB0.New(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid), 0, 0);
+    }
+}
+
+// VERIFY: 2b056783 auto
+// OFFSET: 0x007DF6F0
+void VoiceSessionSetTalkerMuted(WOWGUID guid, int32_t muted) {
+    AddComSatEvent(4, static_cast<uint32_t>(muted), guid.m_guid);
+
+    if (muted == 2) {
+        MarkPlayerMuted(guid, unk_D37DB0.Ptr(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid)) == nullptr);
+    } else {
+        MarkPlayerMuted(guid, muted == 0);
+    }
+
+    if (CGGameUI::m_initialized) {
+        CGChat::UpdateRosterMember(guid);
+        Script_SendUniqueSignal(SCRIPT_EVENT_VOICE_STATUS_UPDATE);
+    }
+}
+
+// VERIFY: 71e5c0a2 auto
+// OFFSET: 0x007DF830
+static void VoiceChat_Tick() {
+    s_comsatDeviceLock.Enter();
+    ProcessComSatCallbacks();
+    UpdateConnectionState();
+    DispatchComSatEvents();
+    int32_t active = s_localTalking | (CGChat::IsVoiceChatEnabled() && s_currentSession != -1);
+    s_comsatDeviceLock.Leave();
+
+    if (active) {
+        DoComSatWork();
+        s_comsatIdleTimeout = OsGetAsyncTimeMs() + 3000;
+    } else if (!s_comsatIdleTimeout || OsGetAsyncTimeMs() > s_comsatIdleTimeout) {
+        if (ComSatThread::s_threadRunning) {
+            ComSatThread::s_threadRunning = 0;
+            ComSatThread::s_threadShutdownEvent.Set();
+            ComSatThread::s_comsatThread.Wait(0xFFFFFFFF);
+        }
+
+        SE2::CaptureWork();
+        s_comsatIdleTimeout = 0;
+    }
+}
+
+// VERIFY: e26b5a8c auto
+// OFFSET: 0x007DF8E0
+int32_t VoiceChat_TickWrapper(const void* data, void* param) {
+    if (ComSatThread::s_comsat) {
+        VoiceChat_Tick();
+    }
+
+    ApplySoundGroupFade(OsGetAsyncTimeMs());
+    return 1;
+}
+
+// VERIFY: 77a116ad manual
+// OFFSET: 0x007DCB90
+void AddComSatCallback(uint32_t type, uint64_t a2, uint64_t a3) {
+    ComSatCallback* callback = s_comsatCallbacks.New();
+
+    if (callback) {
+        callback->m_type = type;
+        callback->unk_0008 = a2;
+        callback->unk_0010 = a3;
+    }
 }

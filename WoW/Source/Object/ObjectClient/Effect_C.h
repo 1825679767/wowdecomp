@@ -25,7 +25,7 @@ class CEffect {
     void ApplyItemVisual();
     static void ApplyItemVisualByItemId(int32_t id, const WOWGUID& guid, void* param, bool success);
     static void MountTransitionCacheCB(int32_t id, const WOWGUID& guid, void* param, bool success);
-    void LoadMountTransitionModel();
+    int32_t LoadMountTransitionModel();
     void ClearItemVisualEffect();
     void ClearLightning();
     C3Vector TransformPositionByTransport();
@@ -103,6 +103,7 @@ class CEffect {
     void LinkTo(CEffect** head);
     void AddLightning(int32_t a2, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags);
     void AddMountTransition(uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid);
+    void InitAtPosition(int32_t spellId, const SpellVisualKitRec* kit, const SpellVisualEffectNameRec* effectName, uint32_t flags, void (*callback)(CM2Model*, uint32_t, uint32_t, int32_t, uint32_t, uint64_t), const C3Vector* position, uint32_t a8, WOWGUID transport);
     void CreateProceduralEffectImpl(int32_t a2, float param, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags);
     void InitProceduralEffect(int32_t a2, int32_t param, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags);
     void MoveToDestroyList();

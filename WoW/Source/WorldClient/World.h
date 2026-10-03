@@ -409,6 +409,7 @@ extern Weather* s_weather;
 extern float groundEffectDistValueSqr;
 extern C4Vector texVect[8];
 extern int32_t lodMax;
+void SetFrameCntCallback(void (*callback)());
 extern int32_t lodMin;
 extern C44Matrix idMat;
 extern float s_farClip;
@@ -529,5 +530,7 @@ class CWorld {
 
 extern float s_viewerLiquidDepth;
 extern uint32_t s_liquidTypeId;
+
+extern int32_t s_disableAreaAmbient;
 
 #endif

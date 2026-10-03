@@ -21,8 +21,7 @@ class PendingSpellCastData {
     /* 0024 */ uint32_t unk_0024;
     /* 0028 */ WOWGUID m_objectTarget;
     /* 0030 */ WOWGUID m_itemTarget;
-    /* 0038 */ uint32_t unk_0038;
-    /* 003C */ uint32_t unk_003C;
+    /* 0038 */ WOWGUID unk_0038;
     /* 0040 */ WOWGUID m_sourceTarget;
     /* 0048 */ WOWGUID m_destTarget;
     /* 0050 */ C3Vector m_sourcePos;

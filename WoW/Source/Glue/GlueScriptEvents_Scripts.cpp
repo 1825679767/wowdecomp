@@ -18,6 +18,7 @@
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
 #include "WoW/Source/Client.h"
+#include "WoW/Source/Console/ConsoleClient.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
 #include "WoW/Source/Net/Types.h"
@@ -43,7 +44,6 @@ int32_t Script_GetAddOnEnableState(lua_State* L);
 int32_t Script_EnableAddOn(lua_State* L);
 int32_t Script_EnableAllAddOns(lua_State* L);
 int32_t Script_DisableAddOn(lua_State* L);
-int32_t Script_DisableAllAddOns(lua_State* L);
 int32_t Script_ResetAddOns(lua_State* L);
 int32_t Script_SetAddonVersionCheck(lua_State* L);
 int32_t Script_GetBillingTimeRemaining(lua_State* L);
@@ -57,8 +57,6 @@ int32_t Script_MatrixCommit(lua_State* L);
 int32_t Script_GetMatrixCoordinates(lua_State* L);
 int32_t Script_IsLinuxClient(lua_State* L);
 int32_t Script_CancelLogin(lua_State* L);
-int32_t Script_GetCVarAbsoluteMin(lua_State* L);
-int32_t Script_GetCVarAbsoluteMax(lua_State* L);
 int32_t Script_AcceptChangedOptionWarnings(lua_State* L);
 int32_t Script_GetNumDeclensionSets(lua_State* L);
 int32_t Script_DeclineName(lua_State* L);
@@ -70,8 +68,6 @@ int32_t Script_RestoreVideoResolutionDefaults(lua_State* L);
 int32_t Script_RestoreVideoEffectsDefaults(lua_State* L);
 int32_t Script_RestoreVideoStereoDefaults(lua_State* L);
 int32_t Script_IsStreamingMode(lua_State* L);
-int32_t Script_IsConsoleActive(lua_State* L);
-int32_t Script_RunScript(lua_State* L);
 
 // VERIFY: 51aeb88d auto
 // OFFSET: 0x004DBE60
@@ -244,6 +240,18 @@ static int32_t Script_StatusDialogClick(lua_State* L) {
     return 0;
 }
 
+// VERIFY: 932722c3 auto
+// OFFSET: 0x004DCA70
+static int32_t Script_DisableAllAddOns(lua_State* L) {
+    const char* character = lua_tolstring(L, 1, nullptr);
+
+    for (uint32_t i = 0; i < GetNumAddOns(); i++) {
+        SetAddOnEnableState(GetAddOnByIndex(i), character, 0);
+    }
+
+    return 0;
+}
+
 // VERIFY: 3e217cb6 auto
 // OFFSET: 0x004DCB60
 static int32_t Script_GetCursorPosition(lua_State* L) {
@@ -378,6 +386,32 @@ int32_t Script_RestartGx(lua_State* L) {
 // OFFSET: 0x004DD440
 static int32_t Script_IsStreamingTrial(lua_State* L) {
     return SFile::IsTrial();
+}
+
+// VERIFY: e53cb78a auto
+// OFFSET: 0x004DD450
+static int32_t Script_IsConsoleActive(lua_State* L) {
+    if (ConsoleGetActive()) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 7284312f auto
+// OFFSET: 0x004DD490
+static int32_t Script_RunScript(lua_State* L) {
+    if (lua_isstring(L, 1)) {
+        const char* script = lua_tolstring(L, 1, nullptr);
+
+        if (script && *script) {
+            FrameScript_Execute(script, script, nullptr);
+        }
+    }
+
+    return 0;
 }
 
 // VERIFY: be94c246 auto
@@ -708,6 +742,50 @@ static int32_t Script_GetCVarMax(lua_State* L) {
         lua_pushnumber(L, 1277.0);
     } else {
         lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 50da2212 auto
+// OFFSET: 0x004DE090
+static int32_t Script_GetCVarAbsoluteMin(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: GetCVarAbsoluteMin(\"cvar\")");
+    }
+
+    CVar* var = CVar::LookupRegistered(lua_tolstring(L, 1, nullptr));
+
+    if (!var) {
+        luaL_error(L, "Couldn't find CVar named '%s'", lua_tolstring(L, 1, nullptr));
+    }
+
+    if (SStrCmpI(var->m_key.m_str, "extShadowQuality", STORM_MAX_STR)) {
+        lua_pushnil(L);
+    } else {
+        lua_pushnumber(L, 0.0);
+    }
+
+    return 1;
+}
+
+// VERIFY: 66589bae manual
+// OFFSET: 0x004DE130
+static int32_t Script_GetCVarAbsoluteMax(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: GetCVarAbsoluteMax(\"cvar\")");
+    }
+
+    CVar* var = CVar::LookupRegistered(lua_tolstring(L, 1, nullptr));
+
+    if (!var) {
+        luaL_error(L, "Couldn't find CVar named '%s'", lua_tolstring(L, 1, nullptr));
+    }
+
+    if (SStrCmpI(var->m_key.m_str, "extShadowQuality", STORM_MAX_STR)) {
+        lua_pushnil(L);
+    } else {
+        lua_pushnumber(L, CShadowCache::GetMaxShadowMode());
     }
 
     return 1;

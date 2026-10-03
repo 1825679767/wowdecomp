@@ -261,3 +261,8 @@ void PlayDance(const char* name) {
 bool CGDanceStudio::HasDance(const char* name) {
     return s_knownDances.Ptr(name) != nullptr;
 }
+
+// VERIFY: 1b286450 auto
+// OFFSET: 0x005EEB70
+void CGDanceStudio::LeaveWorld() {
+}

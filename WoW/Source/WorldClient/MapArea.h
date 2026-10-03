@@ -71,6 +71,7 @@ class CMapArea : public CMapBaseObj {
     /* 00BC */ CMapChunk* m_mapChunks [256];
 
     CMapArea();
+    ~CMapArea() override;
     void Load(const char* fileName);
     void LoadTextures(char* fileNames, uint32_t fileNamesSize);
     void LoadTerrainTexture(CMapAreaTexture* areaTexture, int32_t textureId);

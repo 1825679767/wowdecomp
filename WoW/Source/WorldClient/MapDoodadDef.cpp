@@ -344,3 +344,8 @@ bool CMapDoodadDef::QueryInteriorLighting(CMapObjDef* mapObjDef, int32_t groupNu
     this->m_m2DiffuseColor.a = color.a;
     return result;
 }
+
+// VERIFY: aa96dd41 manual
+// OFFSET: [0x007C2350, 0x007C2E40]
+CMapDoodadDef::~CMapDoodadDef() {
+}

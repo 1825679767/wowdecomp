@@ -8,6 +8,7 @@ class SpellRec;
 
 class CGRuneInfo {
     public:
+    static void LeaveWorld();
     static int32_t m_runes[8];
     static void ConvertRune(uint8_t rune, uint8_t type);
     static void ResyncRunes(CDataStore* msg);

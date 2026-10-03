@@ -11,6 +11,7 @@
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/UIUtil/Camera.h"
+#include "WoW/Source/WorldClient/FrameTime.h"
 
 // VERIFY: bc21d620 manual
 // OFFSET: 0x0074C650
@@ -335,5 +336,129 @@ void CGUnit_C::DestroyVehicleCamera() {
 
     if (unit) {
         unit->OnVehicleCameraPossiblyUnneeded();
+    }
+}
+
+// VERIFY: 404e4e04 auto
+// OFFSET: 0x004F6230
+CGUnit_C* CGUnit_C::GetRootVehicleUnit() {
+    if (this->m_vehiclePassenger) {
+        return this->m_vehiclePassenger->GetStoredRootVehicleUnit();
+    }
+
+    return this->FindRootVehicle(nullptr);
+}
+
+// VERIFY: 218b4093 auto
+// OFFSET: 0x0074B9C0
+void CGUnit_C::PlayVehicleExitEndAnimation(const VehicleSeatRec* seat, uint32_t anim) {
+    if (!seat || !(seat->m_flags & 0x200000) || anim == 0xFFFFFFFF) {
+        uint32_t flags = this->m_movement->m_flags;
+
+        if (flags & 0x1000) {
+            this->PlayBaseAnimation(ANIM_FALL, 0);
+            this->m_animationState |= 0x1000000;
+            return;
+        }
+
+        if (flags & 0x200000) {
+            this->PlayBaseAnimation(ANIM_SWIM_IDLE, 0);
+            return;
+        }
+
+        if ((flags & 0x2000000) || anim == 0xFFFFFFFF) {
+            return;
+        }
+    }
+
+    this->PlayBaseAnimation(anim, 1);
+}
+
+// VERIFY: d8cede4e auto
+// OFFSET: 0x0074C4E0
+void CGUnit_C::OnVehicleCameraPossiblyUnneeded() {
+    CVehicleCamera_C* camera = this->m_vehicleCamera;
+
+    if (!camera || static_cast<int8_t>(camera->m_flags) < 0) {
+        return;
+    }
+
+    CGCamera* active = CGWorldFrame::GetActiveCamera();
+
+    if (active) {
+        CVehicleCamera_C* current = active->m_vehicleCamera;
+
+        while (current) {
+            if (current == this->m_vehicleCamera) {
+                return;
+            }
+
+            if (!current->m_nextCameraGuid) {
+                break;
+            }
+
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(current->m_nextCameraGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+            if (!unit) {
+                break;
+            }
+
+            current = unit->m_vehicleCamera;
+        }
+    }
+
+    this->DestroyVehicleCamera();
+}
+
+// VERIFY: 6c23ff21 auto
+// OFFSET: 0x0074CF30
+void CGUnit_C::VehiclePassengerOnUpdateTransport(WOWGUID transport, uint8_t seat, int32_t a3) {
+    if (!(this->m_clientFlags & 0x80000) && !a3) {
+        return;
+    }
+
+    CGUnit_C* root = this->m_vehiclePassenger ? this->m_vehiclePassenger->GetStoredRootVehicleUnit() : this->FindRootVehicle(nullptr);
+
+    if (root) {
+        root->SetMaxAlpha(1.0f);
+    }
+
+    WOWGUID guid = transport;
+    uint32_t high = static_cast<uint32_t>(guid.m_guid >> 32);
+    CGUnit_C* vehicle;
+
+    if ((high & 0xF0F00000) == 0xF0500000 || (!(high & 0xF0000000) && ((high & 0xF07FFFFF) | static_cast<uint32_t>(guid.m_guid)))) {
+        vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+        if (!vehicle) {
+            guid = WOWGUID{ 0 };
+            seat = 0xFF;
+
+            if (!this->m_vehiclePassenger || !this->m_vehiclePassenger->m_transitionVehicleGuid) {
+                return;
+            }
+        }
+    } else {
+        vehicle = nullptr;
+    }
+
+    if (!this->m_vehiclePassenger) {
+        if (!guid) {
+            return;
+        }
+
+        this->m_vehiclePassenger = CVehiclePassenger_C::Alloc(this);
+    }
+
+    this->m_vehiclePassenger->OnUpdateTransport(guid, seat, vehicle, a3);
+
+    if (this->m_vehicleCamera) {
+        this->m_vehicleCamera->BeginTransition(FrameTime::s_curTimeMs);
+
+        if (!this->m_vehicleCamera->m_state) {
+            this->DestroyVehicleCamera();
+        }
+    } else {
+        this->OnVehicleCameraPossiblyNeeded();
     }
 }

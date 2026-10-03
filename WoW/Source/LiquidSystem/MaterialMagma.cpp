@@ -36,7 +36,7 @@ Liquid::CMaterialMagma::CMaterialMagma() {
 }
 
 // VERIFY: 90d48f71 auto
-// OFFSET: 0x008A4200
+// OFFSET: [0x008A4200, 0x008A48A0]
 Liquid::CMaterialMagma::~CMaterialMagma() {
     if (Liquid::CMaterialMagma::s_refCount-- == 1) {
         if (Liquid::CMaterialMagma::s_vertexShader) {

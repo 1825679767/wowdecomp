@@ -604,13 +604,13 @@ void NetClient::Send(CDataStore* msg) {
     }
 }
 
-// VERIFY: 8b86ade7 manual
+// VERIFY: 30fc936b manual
 // OFFSET: 0x00632C10
 void NetClient::WCCantConnect(WowConnection* connection, uint32_t timeStamp, const NETCONNADDR* addr) {
     if (connection == this->m_redirectConnection) {
         CDataStore msg;
         msg.Put(static_cast<uint32_t>(CMSG_CONNECT_TO_FAILED));
-        msg.Put(this->unk_2E40);
+        msg.Put(this->m_redirectKey);
         msg.Finalize();
         this->Send(&msg);
         this->m_redirectConnection->Release();
@@ -714,7 +714,7 @@ void NetClient::Destroy() {
 }
 
 // VERIFY: a5e5149c manual
-// OFFSET: 0x006331B0
+// OFFSET: [0x006331B0, 0x00633300]
 NetClient::~NetClient() {
     this->Destroy();
 
@@ -810,5 +810,60 @@ void NetClient::HandleResumeComms(WowConnection* connection, CDataStore* msg) {
 
     for (NetClient::HELDMESSAGE* held = this->m_heldMessages.Head(); held; held = this->m_heldMessages.DeleteNode(held)) {
         this->Send(&held->m_msg);
+    }
+}
+
+// VERIFY: 4e75a52e auto
+// OFFSET: 0x00632390
+int32_t NetClient::DelayedDelete() {
+    if (!this->m_netState) {
+        return 0;
+    }
+
+    this->Disconnect();
+    this->m_netEventQueue->AddEvent(EVENT_ID_NET_DESTROY, nullptr, this, nullptr, 0);
+    return 1;
+}
+
+// VERIFY: 1be3a11a manual
+// OFFSET: 0x00632970
+NetClient::HELDMESSAGE::~HELDMESSAGE() {
+}
+
+// VERIFY: e0527e61 manual
+// OFFSET: 0x00632E00
+void NetClient::HandleRedirectClient(WowConnection* connection, CDataStore* msg) {
+    uint32_t address = 0;
+    uint16_t port = 0;
+    this->m_redirectKey = 0;
+    msg->Get(address);
+    msg->Get(port);
+    msg->Get(this->m_redirectKey);
+
+    if (this->m_redirectConnection || this->m_suspended) {
+        CDataStore response;
+        response.Put(static_cast<uint32_t>(CMSG_CONNECT_TO_FAILED));
+        response.Put(this->m_redirectKey);
+        response.Finalize();
+        this->Send(&response);
+        return;
+    }
+
+    this->m_redirectConnection = new (SMemAlloc(sizeof(WowConnection), __FILE__, __LINE__, 0)) WowConnection(this, nullptr);
+
+    HMAC<SHA1> hmac;
+    SHA1::Digest digest;
+    hmac.Init(this->m_loginData.m_sessionKey, sizeof(this->m_loginData.m_sessionKey));
+    hmac.Process(&address, sizeof(address));
+    hmac.Process(&port, sizeof(port));
+    hmac.Finish(digest);
+
+    uint8_t proof[20];
+    msg->GetData(proof, sizeof(proof));
+
+    if (memcmp(&digest, proof, sizeof(proof)) || !msg->IsRead() || msg->m_read > msg->m_size) {
+        connection->Disconnect();
+    } else {
+        this->m_redirectConnection->Connect(address, port, -1);
     }
 }

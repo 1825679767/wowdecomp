@@ -18,6 +18,16 @@
 #include "WoW/Source/DB/Rec/SpellEffectCameraShakesRec.h"
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "Engine/Source/Tempest/CAaSphere.h"
+#include "Engine/Source/Tempest/CMath.h"
+#include "Engine/Source/Tempest/CRandom.h"
+#include "Engine/Source/Model2/M2Scene.h"
+#include "WoW/Source/WorldClient/FrameTime.h"
+#include "WoW/Source/WorldClient/Map.h"
+#include "WoW/Source/WorldClient/World.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
+#include "WoW/Source/DB/Rec/SpellVisualKitAreaModelRec.h"
+#include <cmath>
 #include "WoW/Source/DB/Rec/SpellRec.h"
 #include "Engine/Source/Base/Status.h"
 #include "Engine/Source/Services/Texture.h"
@@ -312,17 +322,17 @@ void SpellVisualsShutdown() {
     SpellVisualsShutdownModelAttachLookup();
 }
 
-// VERIFY: c2183fd9 auto
+// VERIFY: 93bdaa30 auto
 // OFFSET: 0x007F9EE0
 void SpellVisualsBlizzardStop(BlizzardObject** object) {
-    (*object)->unk_0124 = 0.0f;
+    (*object)->m_shardRate = 0.0f;
     *object = nullptr;
 }
 
-// VERIFY: cf521745 auto
+// VERIFY: b2592837 auto
 // OFFSET: 0x007F9F70
 int32_t SpellVisualsIsMountTransitionFinished(const MountTransitionObject* transition) {
-    return (transition->unk_0078 >> 1) & 1;
+    return (transition->m_flags >> 1) & 1;
 }
 
 // VERIFY: bea8214c auto
@@ -337,10 +347,10 @@ float SpellVisualsGetMountTransitionHeight(const MountTransitionObject* transiti
     return transition->m_height;
 }
 
-// VERIFY: 21a8f719 auto
+// VERIFY: 37dce2c2 auto
 // OFFSET: 0x007F9F60
 void SpellVisualsFlagMountTransitionFinished(MountTransitionObject* transition) {
-    transition->unk_0078 |= 0x2;
+    transition->m_flags |= 0x2;
 }
 
 // VERIFY: 96ae8133 manual
@@ -446,7 +456,7 @@ uint32_t SpellVisualsGetModelAttachRecCount(uint32_t kitId) {
     return 0;
 }
 
-// VERIFY: 1fcb7f6f auto
+// VERIFY: d05aaf9b auto
 // OFFSET: 0x007FBE00
 MountTransitionObject* SpellVisualsStartMountTransition(CGUnit_C* unit) {
     MountTransitionObject* transition = s_mountTransitions.NewNode(2, 0, 0);
@@ -455,15 +465,15 @@ MountTransitionObject* SpellVisualsStartMountTransition(CGUnit_C* unit) {
         return nullptr;
     }
 
-    transition->unk_0078 = 0;
+    transition->m_flags = 0;
     transition->m_unitGuid = unit->m_obj->m_guid;
     transition->m_groundNormal = unit->m_movement->GetGroundNormal();
     transition->m_startTime = OsGetAsyncTimeMs();
-    transition->unk_0020 = 0.0f;
-    transition->unk_0024 = 0.0f;
-    transition->unk_0028 = 0.0f;
+    transition->m_eventPivot.x = 0.0f;
+    transition->m_eventPivot.y = 0.0f;
+    transition->m_eventPivot.z = 0.0f;
     transition->m_alpha = 0.0f;
-    transition->unk_0080 = OsGetAsyncTimeMs();
+    transition->m_lastTime = OsGetAsyncTimeMs();
     return transition;
 }
 
@@ -731,4 +741,404 @@ void SpellVisualsTick() {
 
         transition = next;
     }
+}
+
+// STATIC: 0x00D397AC
+static uint32_t s_shardEventCount;
+
+// INLINED
+Shard::Shard() : m_model(nullptr), m_started(0) {
+}
+
+// INLINED
+Shard::~Shard() {
+    if (this->m_model) {
+        this->m_model->Release();
+    }
+}
+
+// VERIFY: 58b50d0a auto
+// OFFSET: 0x007F9D80
+static void ShardAnimEventCallback(CM2Model* model, uint32_t boneId, uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time, uint64_t param) {
+    if ((++s_shardEventCount & 3) == 0 && eventId == 0x444E5324) {
+        SI2::PlaySoundKit(data, position, nullptr, nullptr, 0, nullptr, 1, 0);
+    }
+}
+
+// VERIFY: e0f00e7f auto
+// OFFSET: 0x007FC200
+static void ShardSequenceCallback(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param) {
+    if (!interrupted) {
+        s_shardHeap.Delete(reinterpret_cast<Shard*>(static_cast<uintptr_t>(param)));
+    }
+}
+
+// VERIFY: c8180770 manual
+// OFFSET: 0x007FB4B0
+BlizzardObject::BlizzardObject() : m_entity(nullptr), m_shardAccum(0.0f), m_hasFrame(0) {
+    this->unk_0128[0] = 0.0f;
+    this->unk_0128[1] = 0.0f;
+    this->unk_0128[3] = 0.0f;
+    this->unk_0128[2] = 0.0f;
+}
+
+// VERIFY: 429896ff manual
+// OFFSET: 0x007F9DC0
+C3Vector BlizzardObject::GetWorldPosition() const {
+    if (this->m_hasFrame) {
+        return this->m_position * this->m_frame;
+    }
+
+    return this->m_position;
+}
+
+// VERIFY: d2163b1a manual
+// OFFSET: 0x007FA1B0
+void BlizzardObject::SetFrameOfReference(const C44Matrix* matrix) {
+    this->m_hasFrame = matrix != nullptr;
+
+    if (!matrix) {
+        return;
+    }
+
+    this->m_frame = *matrix;
+    C44Matrix transform;
+    C3Vector position = this->GetWorldPosition();
+    transform.d0 = position.x;
+    transform.d1 = position.y;
+    transform.d2 = position.z;
+    CAaSphere sphere;
+    sphere.r = this->m_radius;
+    sphere.c = C3Vector(0.0f, 0.0f, 0.0f);
+    CAaBox box = sphere.Box();
+    CMap::ObjectUpdate(this->m_entity, transform, box, sphere, sphere.c, 0, 0xFFFFFFFF);
+}
+
+// VERIFY: 46a85d71 manual
+// OFFSET: 0x007FB2D0
+void BlizzardObject::Render(int32_t visible) {
+    C3Vector position(0.0f, 0.0f, 0.0f);
+
+    for (Shard* shard = this->m_shards.Head(); shard; shard = this->m_shards.Next(shard)) {
+        if (FrameTime::s_curTimeMs < shard->m_startTime) {
+            continue;
+        }
+
+        if (!shard->m_started) {
+            shard->m_started = 1;
+            shard->m_model->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+        }
+
+        shard->m_model->SetAnimating(1);
+        CM2Model* model = shard->m_model;
+        CM2Model* parent = model->m_attachParent;
+        uint32_t flag = visible & 1;
+
+        if (parent) {
+            model->m_fFlags = (model->m_fFlags & ~0x80u) | (flag << 7);
+        } else {
+            model->m_fFlags = (model->m_fFlags & ~0x8u) | (flag << 3);
+        }
+
+        if (parent) {
+            model->m_fFlags = (model->m_fFlags & ~0x20000u) | (flag << 17);
+        } else {
+            model->m_fFlags = (model->m_fFlags & ~0x10000u) | (flag << 16);
+        }
+
+        position = shard->m_position;
+
+        if (this->m_hasFrame) {
+            position *= this->m_frame;
+        }
+
+        model = shard->m_model;
+        model->m_fFlags |= 0x8000;
+        C44Matrix& transform = model->m_worldTransform;
+        transform.a0 = 1.0f;
+        transform.a1 = 0.0f;
+        transform.a2 = 0.0f;
+        transform.a3 = 0.0f;
+        transform.b0 = 0.0f;
+        transform.b1 = 1.0f;
+        transform.b2 = 0.0f;
+        transform.b3 = 0.0f;
+        transform.c0 = 0.0f;
+        transform.c1 = 0.0f;
+        transform.c2 = 1.0f;
+        transform.c3 = 0.0f;
+        transform.d0 = position.x;
+        transform.d1 = position.y;
+        transform.d2 = position.z;
+        transform.d3 = 1.0f;
+    }
+}
+
+// VERIFY: 453b4a0d auto
+// OFFSET: 0x007FB590
+int32_t BlizzardObject::WorldObjectRender(void* param, uint32_t flags, uint64_t param64, uintptr_t param32) {
+    static_cast<BlizzardObject*>(param)->Render(flags & 1);
+    return 1;
+}
+
+// VERIFY: 9b4a9523 manual
+// OFFSET: 0x007FB5B0
+void BlizzardObject::Init(const C3Vector* position, const char* modelName, float radius, float rate) {
+    this->m_position = *position;
+    this->m_radius = radius;
+
+    if (s_spellEffectLevelVar) {
+        this->m_shardRate = (s_spellEffectLevelVar->m_intValue * 0.11111111f * 0.9f + 0.1f) * rate;
+    } else {
+        this->m_shardRate = rate;
+    }
+
+    SStrCopy(this->m_modelName, modelName, sizeof(this->m_modelName));
+    C44Matrix transform;
+    transform.d0 = position->x;
+    transform.d1 = position->y;
+    transform.d2 = position->z;
+    this->m_entity = CMap::ObjectCreate(nullptr, BlizzardObject::WorldObjectRender, this, 0, 0, 0xE);
+    CAaSphere sphere;
+    sphere.r = radius;
+    sphere.c = C3Vector(0.0f, 0.0f, 0.0f);
+    CAaBox box = sphere.Box();
+    CMap::ObjectUpdate(this->m_entity, transform, box, sphere, sphere.c, 0, 0xFFFFFFFF);
+}
+
+// VERIFY: 7bc57b00 manual
+// OFFSET: 0x007FC0F0
+BlizzardObject::~BlizzardObject() {
+    Shard* shard;
+
+    while ((shard = this->m_shards.Head()) != nullptr) {
+        s_shardHeap.Delete(shard);
+    }
+
+    if (this->m_entity) {
+        World::ObjectDestroy(this->m_entity);
+    }
+}
+
+// VERIFY: 618bac84 auto
+// OFFSET: 0x007FC220
+bool BlizzardObject::Update() {
+    float elapsed = FrameTime::s_tickTimeSec;
+
+    if (FrameTime::s_tickTimeSec > 0.06666667f) {
+        elapsed = 0.06666667f;
+    }
+
+    this->m_shardAccum = elapsed * this->m_shardRate + this->m_shardAccum;
+    C3Vector center = this->GetWorldPosition();
+
+    for (; this->m_shardAccum >= 1.0f; this->m_shardAccum = this->m_shardAccum - 1.0f) {
+        Shard* shard = s_shardHeap.New<Shard>(0);
+        this->m_shards.LinkToTail(shard);
+        float scale = CRandom::ufloat_(g_rndSeed);
+        C2Vector direction = CRandom::C2Vector_(g_rndSeed);
+        C3Vector start(center.x, center.y, center.z + 0.16666667f);
+        C3Vector end(scale * direction.x * this->m_radius + center.x, scale * direction.y * this->m_radius + center.y, center.z + 16.666666f);
+        C3Vector hit(0.0f, 0.0f, 0.0f);
+        float distance = 1.0f;
+        C3Vector ground;
+
+        if (World::Intersect(start, end, &hit, &distance, 0x120111, nullptr)) {
+            float t = distance * 0.95f;
+            ground = C3Vector(start.x + (end.x - start.x) * t, (end.y - start.y) * t + start.y, start.z + (end.z - start.z) * t);
+        } else {
+            ground = end;
+        }
+
+        hit = ground;
+        start = C3Vector(ground.x, ground.y, ground.z - 33.333332f);
+        float groundDistance = 1.0f;
+
+        if (World::Intersect(hit, start, &shard->m_position, &groundDistance, 0x120111, nullptr)) {
+            if (this->m_hasFrame) {
+                shard->m_position *= this->m_frame.AffineInverse();
+            }
+        } else {
+            shard->m_position = this->m_position;
+        }
+
+        shard->m_model = World::s_m2Scene->CreateModel(this->m_modelName, 0);
+        shard->m_model->SetEventCallback(reinterpret_cast<void*>(&ShardAnimEventCallback), 0);
+        shard->m_model->SetSequenceCallback(reinterpret_cast<void*>(&ShardSequenceCallback), reinterpret_cast<uintptr_t>(shard));
+        uint32_t now = FrameTime::s_curTimeMs;
+        int32_t delay = static_cast<int32_t>(CRandom::ufloat_(g_rndSeed) * 255.0f);
+        shard->m_startTime = now + 2 * delay;
+
+        if (!shard->m_startTime) {
+            shard->m_startTime = 1;
+        }
+    }
+
+    return 0.0f != this->m_shardRate || this->m_shards.Head();
+}
+
+// VERIFY: 4afc8cf8 auto
+// OFFSET: 0x007FA6A0
+int32_t MountTransitionObject::UpdateCharacterData() {
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unitGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return 0;
+    }
+
+    CM2Model* model = unit->m_worldModel;
+    CM2Model* mountModel = nullptr;
+
+    if (unit->m_mountTransitionEffect) {
+        mountModel = unit->m_mountTransitionEffect->m_model;
+    }
+
+    if (!model || !model->IsLoaded(0, 0) || !mountModel || !mountModel->IsLoaded(0, 0) || !mountModel->HasAttachment(0)) {
+        return 0;
+    }
+
+    this->m_attachPivot = mountModel->GetAttachmentPivot(0);
+    M2BoneSequenceInfo info;
+    model->GetBoneSequenceInfo(0xFFFFFFFF, info);
+    float rate = 1.0f / static_cast<float>(info.m_endTime - info.m_startTime);
+    this->m_animRate = rate;
+    uint32_t anim = unit->GetCurrentTorsoAnimId();
+    uint32_t riseStart = model->GetEventSequenceTime(anim, 0x42545324);
+    uint32_t riseEnd = model->GetEventSequenceTime(anim, 0x45545324);
+    this->m_riseStart = static_cast<float>(riseStart) * rate;
+    this->m_riseEnd = rate * static_cast<float>(riseEnd);
+    this->m_riseRate = 1.0f / (this->m_riseEnd - this->m_riseStart);
+
+    if (mountModel->HasEvent(0x42545324)) {
+        this->m_eventPivot = mountModel->GetEventPivot(0x42545324);
+    }
+
+    C44Matrix world = unit->m_worldModel->m_worldTransform;
+    this->m_eventPivot *= world;
+    world = unit->m_worldModel->m_worldTransform;
+    this->m_jumpVector = *reinterpret_cast<const C3Vector*>(&world.d0) - this->m_eventPivot;
+    uint32_t jumpStart = mountModel->GetEventSequenceTime(127, 0x42545324);
+    uint32_t jumpEnd = mountModel->GetEventSequenceTime(127, 0x45545324);
+    this->m_jumpStart = static_cast<float>(jumpStart) * rate;
+    this->m_jumpEnd = rate * static_cast<float>(jumpEnd);
+    this->m_jumpRate = this->m_jumpEnd - this->m_jumpStart;
+
+    if (this->m_jumpEnd - this->m_jumpStart <= 0.0f) {
+        return 0;
+    }
+
+    this->m_jumpRate = 1.0f / (this->m_jumpEnd - this->m_jumpStart);
+    this->m_facing = unit->GetRenderFacing();
+    this->m_verticalSpeed = 0.0f;
+    this->m_flags |= 0x1;
+    return 1;
+}
+
+// VERIFY: ca8128fc manual
+// OFFSET: 0x007FB7F0
+bool MountTransitionObject::Tick() {
+    uint32_t now = OsGetAsyncTimeMs();
+    float elapsed = static_cast<float>(now - this->m_lastTime) * 0.001f;
+    this->m_lastTime = now;
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unitGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!unit) {
+        return false;
+    }
+
+    if (!(this->m_flags & 0x1) && !this->UpdateCharacterData()) {
+        return true;
+    }
+
+    float t = static_cast<float>(OsGetAsyncTimeMs() - this->m_startTime) * this->m_animRate;
+
+    if (this->m_riseStart > 0.0f && t > this->m_riseStart) {
+        this->m_facing = unit->GetRenderFacing();
+        this->m_height = (t - this->m_riseStart) * this->m_riseRate;
+
+        if (this->m_height >= 1.0f) {
+            this->m_flags |= 0x2;
+            this->m_height = 1.0f;
+        }
+    }
+
+    C3Vector normal = unit->m_movement->GetGroundNormal();
+
+    if (t <= this->m_jumpEnd) {
+        if (t > this->m_jumpStart) {
+            float jump = (t - this->m_jumpStart) * this->m_jumpRate;
+
+            if (jump > 1.0f) {
+                jump = 1.0f;
+            }
+
+            World::FacetData facets;
+            float range = std::sqrt(1.0f - jump) * 10.0f;
+            this->m_position.x = this->m_jumpVector.x * jump;
+            this->m_position.y = this->m_jumpVector.y * jump;
+            this->m_position.z = jump * this->m_jumpVector.z;
+            this->m_position.x = this->m_eventPivot.x + this->m_position.x;
+            this->m_position.y = this->m_eventPivot.y + this->m_position.y;
+            this->m_position.z = this->m_eventPivot.z + this->m_position.z;
+            C3Vector hit(0.0f, 0.0f, 0.0f);
+            C3Vector top(this->m_position.x, this->m_position.y, this->m_position.z + range);
+            C3Vector bottom(this->m_position.x, this->m_position.y, this->m_position.z - range);
+            CAaBox box;
+            box.b = bottom;
+            box.t = top;
+            float distance = 1.0f;
+            unit->m_movement->GetGroundNormal();
+
+            if (World::Intersect(top, bottom, &hit, &distance, 0x110, nullptr)) {
+                this->m_flags |= 0x4;
+                this->m_verticalSpeed = range - (distance * range + distance * range);
+            }
+
+            this->m_verticalSpeed = fclamp(this->m_verticalSpeed, -range, range);
+            this->m_position.z = this->m_verticalSpeed + this->m_position.z;
+
+            if (World::GetFacets(&box, &facets, 0x110, nullptr) && facets.facets.m_count && facets.facets.m_data->plane.n.z >= 0.35721236f) {
+                normal = facets.facets.m_data->plane.n;
+            }
+        }
+    } else {
+        this->m_position = unit->GetPosition();
+    }
+
+    normal.x = (normal.x - this->m_groundNormal.x) * 0.25f + this->m_groundNormal.x;
+    normal.y = (normal.y - this->m_groundNormal.y) * 0.25f + this->m_groundNormal.y;
+    normal.z = (normal.z - this->m_groundNormal.z) * 0.25f + this->m_groundNormal.z;
+    this->m_groundNormal = normal;
+    float scale = 1.0f / std::sqrt(this->m_groundNormal.z * this->m_groundNormal.z + this->m_groundNormal.y * this->m_groundNormal.y + this->m_groundNormal.x * this->m_groundNormal.x);
+    this->m_groundNormal.x = this->m_groundNormal.x * scale;
+    this->m_groundNormal.y = this->m_groundNormal.y * scale;
+    this->m_groundNormal.z = scale * this->m_groundNormal.z;
+
+    if (!(this->m_flags & 0x4)) {
+        return true;
+    }
+
+    this->m_alpha = elapsed + elapsed + this->m_alpha;
+
+    if (this->m_alpha > 1.0f) {
+        this->m_alpha = 1.0f;
+    }
+
+    return true;
+}
+
+// VERIFY: fda66b46 manual
+// OFFSET: 0x007FBD70
+BlizzardObject* SpellVisualsBlizzardCreate(const C3Vector* position, float radius, int32_t spellId, int32_t density, float rate) {
+    SpellVisualKitAreaModelRec* rec = g_spellVisualKitAreaModelDB.GetRecordByIndex(density);
+
+    if (!rec) {
+        rec = g_spellVisualKitAreaModelDB.GetRecordByIndex(0);
+    }
+
+    const char* modelName = rec ? rec->m_name : "Spells\\Blizzard_Impact_Base.mdx";
+    BlizzardObject* object = s_blizzardObjectHeap.New<BlizzardObject>(0);
+    s_blizzardObjects.LinkToTail(object);
+    object->Init(position, modelName, radius, rate);
+    return object;
 }

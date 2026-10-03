@@ -4015,7 +4015,7 @@ static int32_t Script_UnitTargetsVehicleInRaidUI(lua_State* L) {
 }
 
 // STATIC: 0x00AD8660
-static const char* s_vehicleSkinNames[2] = { "Natural", "Mechanical" };
+extern const char* s_vehicleSkinNames[2] = { "Natural", "Mechanical" };
 
 // VERIFY: 2e10d235 manual
 // OFFSET: 0x006137D0

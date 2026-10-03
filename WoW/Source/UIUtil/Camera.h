@@ -323,4 +323,6 @@ void CameraRegisterCVars();
 void CameraRegisterScriptFunctions();
 void CameraUnregisterScriptFunctions();
 
+float CameraEaseInOut(float t);
+
 #endif

@@ -4263,3 +4263,9 @@ void CGCamera::AddShakeById(int32_t shakeId, const C3Vector* position) {
         this->AddShake(*position, shake->m_shakeType, shake->m_direction, shake->m_amplitude * 0.027777778f, shake->m_frequency, shake->m_duration, shake->m_phase, shake->m_coefficient);
     }
 }
+
+// VERIFY: 8de48629 auto
+// OFFSET: 0x005FFFD0
+float CameraEaseInOut(float t) {
+    return 0.5f - CMath::cos_(t * 3.1415927f) * 0.5f;
+}

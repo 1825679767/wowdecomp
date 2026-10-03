@@ -31,6 +31,14 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
     int32_t CanHighlight() const override;
     float GetFacing() const override;
     void ModelLoaded(CM2Model* model) override;
+    void Disable() override;
+    void Reenable() override;
+    void PostReenable() override;
+    int32_t GetModelFileName(const char** name) const override;
+    void RenderTargetSelection() const override;
+    int32_t Animate(float elapsed) override;
+    void ShouldRender(uint32_t flags, int32_t& render, int32_t& a3) override;
+    void OnRightClick() override;
 
     CGCorpse_C(uint32_t time, const CClientObjCreate& create);
     void ApplyGuildColor(int32_t request);
@@ -43,6 +51,7 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
     void ShowLootEffect();
     void OnFlagChanged(uint32_t oldFlags);
     void OnDynamicFlagChanged(uint32_t oldFlags);
+    C3Vector GetGroundNormal();
 };
 
 int32_t CorpseDynamicFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param);

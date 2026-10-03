@@ -23,6 +23,7 @@ struct SkillTypeInfo {
 
 class CGSkillInfo {
     public:
+    static void LeaveWorld();
     static uint32_t m_numLines;
     static uint32_t m_numTypes;
     static uint32_t m_numSkillLines;

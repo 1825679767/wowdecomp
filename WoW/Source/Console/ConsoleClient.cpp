@@ -1312,3 +1312,9 @@ void SetConsoleKey(KEY key) {
 void ConsolePostClose() {
     EventPostCloseEx(EventGetCurrentContext());
 }
+
+// VERIFY: b605948e auto
+// OFFSET: 0x00763C60
+int32_t ConsoleGetActive() {
+    return s_active;
+}

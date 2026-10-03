@@ -1278,6 +1278,16 @@ int32_t Packet_SMSG_BATTLEFIELD_MGR_EJECTED(void* param, NETMESSAGE msgId, uint3
     return 1;
 }
 
+// VERIFY: 8039b7f7 auto
+// OFFSET: 0x00549580
+uint32_t CGBattlefieldInfo::GetNumFlagCarriers() {
+    if (CGBattlefieldInfo::m_flagCarriers[1]) {
+        return 2;
+    }
+
+    return CGBattlefieldInfo::m_flagCarriers[0] ? 1 : 0;
+}
+
 // VERIFY: c2e0f8fd auto
 // OFFSET: 0x005495B0
 WOWGUID CGBattlefieldInfo::GetFlagCarrier(uint32_t index) {

@@ -1385,3 +1385,14 @@ void CGUnit_C::StartMissileTrajectoryTargeting(CGUnit_C* unit, const VehicleRec*
     s_trajectoryFadeStart = 0;
     s_trajectoryStartTime = FrameTime::s_curTimeMs;
 }
+
+// VERIFY: 2a978a8c auto
+// OFFSET: 0x006FBFA0
+int32_t MissileTrajectoryObjectCallback(void* param, uint32_t a2, uint64_t a3, uintptr_t a4) {
+    if (s_trajectoryAlpha <= 0.0f && CGUnit_C::s_trajectoryWorldObjects[a4]) {
+        World::ObjectDestroy(CGUnit_C::s_trajectoryWorldObjects[a4]);
+        CGUnit_C::s_trajectoryWorldObjects[a4] = nullptr;
+    }
+
+    return CGUnit_C::s_trajectoryWorldObjects[a4] != nullptr;
+}

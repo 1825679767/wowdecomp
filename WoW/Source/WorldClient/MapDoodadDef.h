@@ -16,6 +16,7 @@ class CMapObjDef;
 
 class CMapDoodadDef : public CMapStaticEntity, public TSHashObject<CMapDoodadDef, HASHKEY_DWORD> {
     public:
+    ~CMapDoodadDef() override;
     static void CreateModel(const char* fileName, CMapDoodadDef* doodadDef, int32_t waitForLoad, int32_t a4);
     static void ExtendBounds(CMapDoodadDef* doodadDef, CMapBaseObj* parent);
     static void Purge(CMapDoodadDef* doodadDef);

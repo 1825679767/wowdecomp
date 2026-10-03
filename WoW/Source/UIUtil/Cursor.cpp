@@ -240,6 +240,34 @@ void CursorSetMode(uint32_t mode) {
     }
 }
 
+// VERIFY: de091fd1 auto
+// OFFSET: 0x00616720
+void CursorGrabVirtualItem(int32_t displayId) {
+    if (s_cursorItemMips) {
+        TextureFreeMippedImg(s_cursorItemMips);
+        s_cursorItemMips = nullptr;
+        s_cursorItemMipsWidth = 0;
+        s_cursorItemMipsHeight = 0;
+    }
+
+    if (displayId) {
+        const char* path = ClientDBStringLookup(3);
+        const char* separator = "\\";
+
+        if (!*path) {
+            separator = "";
+        }
+
+        char fileName[260];
+        SStrPrintf(fileName, sizeof(fileName), "%s%s%s", path, separator, CGItem_C::GetInventoryArt(displayId));
+        PIXEL_FORMAT format = PIXEL_ARGB8888;
+        s_cursorItemMips = TextureLoadImage(fileName, &s_cursorItemMipsWidth, &s_cursorItemMipsHeight, &format, nullptr, nullptr, nullptr, 0);
+    }
+
+    s_cursorItemType = 1;
+    CursorReleaseItemMips();
+}
+
 // VERIFY: ed01e032 manual
 // OFFSET: 0x00616830
 int32_t CursorSetFromName(const char* name) {

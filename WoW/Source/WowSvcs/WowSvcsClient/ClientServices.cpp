@@ -1578,3 +1578,129 @@ void ClientConnection::HandleLogoutResponse(int32_t result, int32_t instant) {
         FrameScript_SignalEvent(this->m_quitAfterLogout ? SCRIPT_EVENT_PLAYER_QUITING : SCRIPT_EVENT_PLAYER_CAMPING, nullptr);
     }
 }
+
+// VERIFY: fb46efae auto
+// OFFSET: 0x006B09A0
+void ClientServices::LoginEnterPIN(int32_t count, uint8_t* digits) {
+    if (!ClientServices::s_loginObj) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    ClientServices::s_loginObj->EnterPIN(count, digits);
+}
+
+// VERIFY: 82562748 auto
+// OFFSET: 0x006B09E0
+void ClientServices::LoginEnterMatrix(uint8_t value) {
+    if (!ClientServices::s_loginObj) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    ClientServices::s_loginObj->EnterMatrix(value);
+}
+
+// VERIFY: 46fc579e manual
+// OFFSET: 0x006B0A40
+void ClientServices::LoginCommitMatrix() {
+    if (!ClientServices::s_loginObj) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    ClientServices::s_loginObj->CommitMatrix();
+}
+
+// VERIFY: 9c7ee31c manual
+// OFFSET: 0x006B0A70
+void ClientServices::LoginFinalizeMatrix() {
+    if (!ClientServices::s_loginObj) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    ClientServices::s_loginObj->FinalizeMatrix();
+}
+
+// VERIFY: 664db17c auto
+// OFFSET: 0x006B0AD0
+void ClientServices::FileAccept(bool accept, uint64_t offset) {
+    ClientServices::s_loginObj->FileAccept(accept, offset);
+    ClientServices::s_newLogin = true;
+}
+
+// VERIFY: 93a34d92 auto
+// OFFSET: 0x006B0B00
+void ClientServices::StartDownload() {
+    ClientServices::s_newLogin = true;
+}
+
+// VERIFY: c07ca7da auto
+// OFFSET: 0x006B0B10
+void ClientServices::SendSurveyData(uint16_t size, uint8_t* data) {
+    ClientServices::s_loginObj->SendSurveyData(size, data);
+}
+
+// VERIFY: dd529696 manual
+// OFFSET: 0x006B0B30
+void ClientServices::SendSurveyFailed() {
+    ClientServices::s_loginObj->SendSurveyFailed();
+}
+
+// VERIFY: 5b32617c manual
+// OFFSET: 0x006B0B40
+int32_t ClientServices::GetSurveyId() {
+    return ClientServices::s_loginObj->GetSurveyId();
+}
+
+// OFFSET: 0x006B2070
+void ClientConnection::HandleCharacterLoginFailed(uint8_t result) {
+    if (this->m_inGame) {
+        this->CharacterSetInGame(0);
+    }
+
+    this->unk_2F40 = 0;
+
+    if (!ClientServices::s_currentConnection) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    if (this == ClientServices::s_currentConnection) {
+        ClientDestroyGame(1, 1, 1);
+    }
+
+    switch (result) {
+        case 1:
+            this->Cancel(CHAR_LOGIN_NO_WORLD);
+            break;
+
+        case 2:
+            this->Cancel(CHAR_LOGIN_DUPLICATE_CHARACTER);
+            break;
+
+        case 3:
+            this->Cancel(CHAR_LOGIN_NO_INSTANCES);
+            break;
+
+        case 4:
+            this->Cancel(CHAR_LOGIN_DISABLED);
+            break;
+
+        case 5:
+            this->Cancel(CHAR_LOGIN_NO_CHARACTER);
+            break;
+
+        case 6:
+            this->Cancel(CHAR_LOGIN_LOCKED_FOR_TRANSFER);
+            break;
+
+        case 7:
+            this->Cancel(CHAR_LOGIN_LOCKED_BY_BILLING);
+            break;
+
+        case 8:
+            this->Cancel(CHAR_LOGIN_LOCKED_BY_MOBILE_AH);
+            break;
+
+        default:
+            this->Cancel(CHAR_LOGIN_FAILED);
+            break;
+    }
+}

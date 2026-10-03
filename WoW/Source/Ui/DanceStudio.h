@@ -31,6 +31,7 @@ int32_t Packet_SMSG_LEARNED_DANCE_MOVES(void* param, NETMESSAGE msgId, uint32_t 
 
 class CGDanceStudio {
     public:
+    static void LeaveWorld();
     static uint64_t m_learnedDanceMoves;
 
     static void InitializeGame();

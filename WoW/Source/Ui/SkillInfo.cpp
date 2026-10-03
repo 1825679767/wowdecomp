@@ -380,3 +380,8 @@ void CGSkillInfo::ShutdownGame() {
         CGSkillInfo::m_types.m_data[i] = nullptr;
     }
 }
+
+// VERIFY: 0141b453 auto
+// OFFSET: 0x005EEB70
+void CGSkillInfo::LeaveWorld() {
+}

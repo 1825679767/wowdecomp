@@ -17,6 +17,7 @@ class CGContainer_C : public CGItem_C, public CGContainer {
     ~CGContainer_C() override;
     const CGBag_C* GetBag() const override;
     CGBag_C* GetBag() override;
+    void Reenable() override;
 
     CGContainer_C(uint32_t time, const CClientObjCreate& create);
     int32_t GetFreeSlots() const;

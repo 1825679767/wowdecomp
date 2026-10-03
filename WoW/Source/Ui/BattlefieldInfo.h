@@ -150,6 +150,7 @@ class CGBattlefieldInfo {
     static bool GetBracketForLevel(uint32_t level, const BattlemasterListRec* rec, int32_t* bracket);
     static void AddVehicle(const WOWGUID& guid);
     static WOWGUID GetVehicleGuid(uint32_t index);
+    static uint32_t GetNumFlagCarriers();
     static WOWGUID GetFlagCarrier(uint32_t index);
     static int32_t GetFlagPosition(uint32_t index, C3Vector* position);
     static void RequestScoreData();

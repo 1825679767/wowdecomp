@@ -1120,17 +1120,17 @@ int32_t CGSpellBook::GetCompanionType(const SpellRec* spell) {
     return (spell->m_effectAura[0] != 78) + 1;
 }
 
-// VERIFY: 10135c7a manual
+// VERIFY: d8053ee4 manual
 // OFFSET: 0x0053BCE0
-int32_t CGSpellBook::GetSkinningSpell(const CGUnit_C* unit) {
-    uint32_t type = unit->m_obj->m_type;
+int32_t CGSpellBook::GetSkinningSpell(const CGObject_C* object) {
+    uint32_t type = object->m_obj->m_type;
 
     if (type & 0x90) {
         return s_skinPlayerCorpseSpell;
     }
 
     if (type & 0x8) {
-        return s_skinningSpells[unit->GetSkinningType()];
+        return s_skinningSpells[static_cast<const CGUnit_C*>(object)->GetSkinningType()];
     }
 
     return 0;

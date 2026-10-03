@@ -3695,3 +3695,8 @@ void CGCalendar::ProcessEventUpdatedAlert(CDataStore* msg, uint8_t* clearPending
         msg->m_read = msg->m_size;
     }
 }
+
+// VERIFY: 8e83d321 auto
+// OFFSET: 0x005EEB70
+void CGCalendar::LeaveWorld() {
+}

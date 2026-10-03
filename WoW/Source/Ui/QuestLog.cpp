@@ -2917,3 +2917,8 @@ void CGQuestLog::UpdateQuestPOIFromUserServer() {
 
     CGQuestLog::Update(1);
 }
+
+// VERIFY: 0cb67ed4 auto
+// OFFSET: 0x005EEB70
+void CGQuestLog::LeaveWorld() {
+}

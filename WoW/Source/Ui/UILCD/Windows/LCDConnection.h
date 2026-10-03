@@ -11,8 +11,17 @@ class CLCDOutput;
 
 class CLCDConnection {
     public:
+    struct CB_EVENT {
+        /* 0000 */ int32_t m_type;
+        /* 0004 */ DWORD m_code;
+        /* 0008 */ DWORD m_param1;
+        /* 000C */ DWORD m_param2;
+        /* 0010 */ DWORD m_param3;
+        /* 0014 */ DWORD m_param4;
+    };
+
     struct CB_EVENT_NODE : public TSLinkedNode<CB_EVENT_NODE> {
-        /* 0008 */ uint8_t unk_0008[24];
+        /* 0008 */ CB_EVENT m_event;
     };
 
     static LONG g_lInitCount;
@@ -45,7 +54,7 @@ class CLCDConnection {
     virtual void OnNotification(uint32_t notification, uint32_t param1);
     virtual void OnConfigure();
     virtual void OnSoftButtonEvent(int32_t device, uint32_t buttons);
-    virtual void Connect();
+    virtual void OnCallbackEvent();
     virtual void ConnectEx();
     virtual void Disconnect();
     virtual CLCDOutput* AllocMonoOutput();
@@ -54,6 +63,8 @@ class CLCDConnection {
     virtual void FreeColorOutput();
     CLCDOutput* ColorOutput();
     CLCDOutput* MonoOutput();
+    int32_t PopEvent(CB_EVENT& event);
+    static DWORD WINAPI _OnSoftButtonsCallback(int device, DWORD buttons, const PVOID context);
 };
 
 #endif

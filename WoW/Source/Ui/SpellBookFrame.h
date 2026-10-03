@@ -8,6 +8,7 @@
 
 struct lua_State;
 class CGUnit_C;
+class CGObject_C;
 class AuraData;
 
 struct SpellUsableInfo {
@@ -76,7 +77,7 @@ class CGSpellBook {
     static void InitializeGame();
     static void ShutdownGame();
     static void MakeKnownSpellModelsLocal();
-    static int32_t GetSkinningSpell(const CGUnit_C* unit);
+    static int32_t GetSkinningSpell(const CGObject_C* object);
     static void ReplaceSpell(int32_t oldSpell, int32_t newSpell);
     static void DelKnownSpell(int32_t spellId, int32_t notify);
     static void SendCompanionUpdate(int32_t type);

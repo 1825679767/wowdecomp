@@ -1,4 +1,5 @@
 #include "MapObjDef.h"
+#include "WoW/Source/LiquidSystem/Liquid.h"
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WorldClient/MapLight.h"
 #include "WoW/Source/WorldClient/World.h"
@@ -84,7 +85,7 @@ CMapObjDef::CMapObjDef() {
 }
 
 // VERIFY: 3855c196 manual
-// OFFSET: 0x007B4500
+// OFFSET: [0x007B4500, 0x007B47C0]
 CMapObjDef::~CMapObjDef() {
 }
 
@@ -470,4 +471,29 @@ void CMapObjDef::SetDoodadsEnabled(CMapObjDef* mapObjDef, int32_t enable, uint16
             }
         }
     }
+}
+
+// VERIFY: 3c60fcab manual
+// OFFSET: [0x007B3BE0, 0x007B3F00]
+CMapObjDefGroup::~CMapObjDefGroup() {
+    if (this->m_liquidInstance) {
+        this->m_liquidInstance->Release();
+        this->m_liquidInstance = nullptr;
+    }
+}
+
+// VERIFY: d684d55b manual
+// OFFSET: 0x007B4700
+bool CMapObjDef::IsAllDrawable() {
+    if (!this->m_owner->IsAllDrawable()) {
+        return false;
+    }
+
+    for (CMapBaseObjLink* link = this->m_mapObjDefGroupLinkList.Head(); link; link = this->m_mapObjDefGroupLinkList.Next(link)) {
+        if (!static_cast<CMapObjDefGroup*>(link->m_owner)->IsAllLoaded()) {
+            return false;
+        }
+    }
+
+    return true;
 }

@@ -25,6 +25,7 @@ class CurrencyTypesRec;
 
 class CGCurrencyTypes {
     public:
+    static void LeaveWorld();
     static CurrencyTypesRec* GetCurrencyRec(int32_t index);
     static int32_t IsCurrencyShown(int32_t index);
     static CurrencyListEntry* GetDisplayListInfo(int32_t index);

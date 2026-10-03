@@ -65,6 +65,8 @@ class ShipPath {
     /* 003E */ uint8_t unk_003E;
 
     ShipPath();
+    void SetTimeOffsetToPoint(uint32_t time, uint32_t point);
+    void FindLegAndSegment(uint32_t pathTime, uint32_t* leg, uint32_t* segment);
     void WaitAtNextPausePoint(uint32_t time, bool pause);
     void Init(uint32_t taxiPathId, float moveSpeed, float accelRate, const TransportPhysicsRec* physics);
     void SetTotalPathTime(uint32_t time);

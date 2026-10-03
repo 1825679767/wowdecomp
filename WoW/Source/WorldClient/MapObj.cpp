@@ -1,4 +1,8 @@
 #include "MapObj.h"
+#include <cstdlib>
+#include <malloc.h>
+#include <new>
+#include "Engine/Source/Gx/CGxVertexPC.h"
 #include "WoW/Source/WorldClient/PolyClipper.h"
 #include <cstring>
 #include <cmath>
@@ -3373,4 +3377,771 @@ bool CMapObj::VectorIntersect(C3Vector& start, C3Vector& end, uint32_t flags, ui
 
     *normalDot = *normalDot / length;
     return hit;
+}
+
+// STATIC: 0x00CFBED8
+static uint16_t s_portalIndices[65536];
+
+// VERIFY: 6960856a manual
+// OFFSET: 0x007A76C0
+void __stdcall CMapObj::RenderGroupCollidableFaces(CMapObjGroup* mapObjGroup) {
+    CGxBuf* vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, 24, mapObjGroup->m_vertexListCount);
+    float* vertices = reinterpret_cast<float*>(g_theGxDevicePtr->BufLock(vertexBuf));
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(mapObjGroup->m_vertexListCount); i++) {
+        vertices[0] = mapObjGroup->m_vertexList[i].x;
+        vertices[1] = mapObjGroup->m_vertexList[i].y;
+        vertices[2] = mapObjGroup->m_vertexList[i].z;
+        vertices[3] = mapObjGroup->m_normalList[i].x;
+        vertices[4] = mapObjGroup->m_normalList[i].y;
+        vertices[5] = mapObjGroup->m_normalList[i].z;
+        vertices += 6;
+    }
+
+    GxBufUnlock(vertexBuf, 0);
+    GxPrimVertexPtr(vertexBuf, GxVBF_PN);
+    CGxBuf* indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, 3000);
+    uint16_t* indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+    SMOPoly* poly = mapObjGroup->m_polyList;
+    uint32_t count = 0;
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(mapObjGroup->m_polyListSize); i++, poly++) {
+        uint8_t flags = poly->m_flags;
+
+        if (!(flags & 0x8) && (!(flags & 0x20) || (flags & 0x4))) {
+            continue;
+        }
+
+        indices[0] = mapObjGroup->m_indices[i * 3];
+        indices[1] = mapObjGroup->m_indices[i * 3 + 1];
+        indices[2] = mapObjGroup->m_indices[i * 3 + 2];
+        count += 3;
+        indices += 3;
+
+        if (count == 3000) {
+            count = 0;
+            GxBufUnlock(indexBuf, 0);
+            g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+            CGxBatch batch;
+            batch.m_maxIndex = mapObjGroup->m_vertexListCount;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = 0;
+            batch.m_count = 3000;
+            batch.m_minIndex = 0;
+            g_theGxDevicePtr->Draw(&batch, 1);
+            indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, 3000);
+            indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+        }
+    }
+
+    GxBufUnlock(indexBuf, 0);
+
+    if (count) {
+        g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+        CGxBatch batch;
+        batch.m_start = 0;
+        batch.m_minIndex = 0;
+        batch.m_maxIndex = mapObjGroup->m_vertexListCount;
+        batch.m_primType = GxPrim_Triangles;
+        batch.m_count = count;
+        g_theGxDevicePtr->Draw(&batch, 1);
+    }
+}
+
+// VERIFY: f62eca12 manual
+// OFFSET: 0x007A9BF0
+void CMapObj::RenderGroupLightmapTex(CMapObjGroup* group, uint32_t index) {
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_Lighting, 0);
+    GxPrimVertexPtr(group->m_vertexListCount, group->m_vertexList, 12, nullptr, 0, group->m_colorVertexList, 4, nullptr, 0, nullptr, 0);
+
+    if (group->m_stripIndices && CMap::s_unk_CE049C) {
+        GxPrimIndexPtr(group->m_stripIndexCount, group->m_stripIndices);
+    } else {
+        GxPrimIndexPtr(group->m_indicesCount, group->m_indices);
+    }
+
+    SMOBatch* batch = group->m_batchList;
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_batchListCount); i++, batch++) {
+        if (!index) {
+            batch->m_flags &= 0xF;
+        }
+
+        if ((batch->m_flags & 0xF0) || CMapObj::CullBatch(batch)) {
+            continue;
+        }
+
+        batch->m_flags |= 0xF0;
+        CGxBatch draw;
+        draw.m_primType = GxPrim_Triangles;
+        draw.m_start = batch->m_indexStart;
+        draw.m_count = batch->m_indexCount;
+        draw.m_minIndex = batch->m_vertexStart;
+        draw.m_maxIndex = batch->m_vertexEnd;
+        g_theGxDevicePtr->Draw(&draw, 1);
+    }
+
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 02fb951d manual
+// OFFSET: 0x007A9D30
+void CMapObj::RenderGroupColorTex(CMapObjGroup* group, uint32_t index) {
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_Lighting, 0);
+    GxPrimVertexPtr(group->m_vertexListCount, group->m_vertexList, 12, nullptr, 0, nullptr, 0, group->m_textureVertexList, 8, nullptr, 0);
+
+    if (group->m_stripIndices && CMap::s_unk_CE049C) {
+        GxPrimIndexPtr(group->m_stripIndexCount, group->m_stripIndices);
+    } else {
+        GxPrimIndexPtr(group->m_indicesCount, group->m_indices);
+    }
+
+    SMOBatch* batch = group->m_batchList;
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_batchListCount); i++, batch++) {
+        if (!index) {
+            batch->m_flags &= 0xF;
+        }
+
+        if ((batch->m_flags & 0xF0) || CMapObj::CullBatch(batch)) {
+            continue;
+        }
+
+        batch->m_flags |= 0xF0;
+        SMOMaterial& material = this->m_materialList[batch->m_texture];
+        CGxTex* gxTex = TextureGetGxTex(material.Textures()[0], 1, nullptr);
+        GxTexSetWrap(gxTex, static_cast<EGxTexWrapMode>((material.m_flags & 0x40) == 0), static_cast<EGxTexWrapMode>((material.m_flags & 0x80) == 0));
+        g_theGxDevicePtr->RsSet(GxRs_Texture0, gxTex);
+        CGxBatch draw;
+        draw.m_primType = GxPrim_Triangles;
+        draw.m_start = batch->m_indexStart;
+        draw.m_count = batch->m_indexCount;
+        draw.m_minIndex = batch->m_vertexStart;
+        draw.m_maxIndex = batch->m_vertexEnd;
+        g_theGxDevicePtr->Draw(&draw, 1);
+    }
+
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: a666e7f7 manual
+// OFFSET: 0x007A9ED0
+void CMapObj::RenderPortals(CMapObjGroup* group) {
+    if (!group->m_portalCount) {
+        return;
+    }
+
+    CImVector* colors = static_cast<CImVector*>(alloca(sizeof(CImVector) * this->m_planeVertCount));
+
+    for (int32_t i = 0; i < this->m_planeVertCount; i++) {
+        new (&colors[i]) CImVector();
+    }
+
+    uint32_t count = 0;
+    SMOPortalRef* ref = &this->m_portalRefList[group->m_portalStart];
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_portalCount); i++, ref++) {
+        SMOPortal* portal = &this->m_portalList[ref->m_portalIndex];
+
+        if (portal->m_count == 2) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < static_cast<uint32_t>(portal->m_count - 2); j++) {
+            s_portalIndices[count] = j + portal->m_startVertex;
+            s_portalIndices[count + 1] = j + portal->m_startVertex + 1;
+            s_portalIndices[count + 2] = portal->m_count + portal->m_startVertex - 1;
+            *reinterpret_cast<uint32_t*>(&colors[s_portalIndices[count]]) = 0x60FF0000;
+            *reinterpret_cast<uint32_t*>(&colors[s_portalIndices[count + 1]]) = 0x60FF0000;
+            *reinterpret_cast<uint32_t*>(&colors[s_portalIndices[count + 2]]) = 0x60FF0000;
+            count += 3;
+        }
+    }
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_MatDiffuse, static_cast<int32_t>((group->m_flags & 0x8) ? 0xFFFFFFFF : 0x60FF0000));
+    GxRsSet(GxRs_BlendingMode, 3);
+    GxRsSet(GxRs_Fog, 0);
+    GxRsSet(GxRs_Lighting, 0);
+    GxRsSet(GxRs_DepthTest, 0);
+    GxRsSet(GxRs_DepthWrite, 0);
+    GxRsSet(GxRs_Culling, 0);
+    GxRsSet(GxRs_VertexShader, 0);
+    GxRsSet(GxRs_PixelShader, 0);
+    GxPrimVertexPtr(this->m_planeVertCount, this->m_portalVertexList, 12, nullptr, 0, colors, 4, nullptr, 0, nullptr, 0);
+    GxPrimIndexPtr(count, s_portalIndices);
+    CGxBatch batch;
+    batch.m_maxIndex = this->m_planeVertCount;
+    batch.m_start = 0;
+    batch.m_minIndex = 0;
+    batch.m_primType = GxPrim_Triangles;
+    batch.m_count = count;
+    g_theGxDevicePtr->Draw(&batch, 1);
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 2c5531e1 manual
+// OFFSET: 0x007AA2E0
+void CMapObj::RenderGroupCollisionFaces(CMapObjGroup* group, uint32_t index) {
+    if (index) {
+        return;
+    }
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_BlendingMode, 0);
+    GxRsSet(GxRs_MatDiffuse, static_cast<int32_t>(0x80FF0000));
+    GxRsSet(GxRs_Fog, 0);
+    CMapObj::SetRenderModeLight();
+    GxRsSet(GxRs_VertexShader, 0);
+    GxRsSet(GxRs_PixelShader, 0);
+    CGxBuf* vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, 24, group->m_vertexListCount);
+    float* vertices = reinterpret_cast<float*>(g_theGxDevicePtr->BufLock(vertexBuf));
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_vertexListCount); i++) {
+        vertices[0] = group->m_vertexList[i].x;
+        vertices[1] = group->m_vertexList[i].y;
+        vertices[2] = group->m_vertexList[i].z;
+        vertices[3] = group->m_normalList[i].x;
+        vertices[4] = group->m_normalList[i].y;
+        vertices[5] = group->m_normalList[i].z;
+        vertices += 6;
+    }
+
+    GxBufUnlock(vertexBuf, 0);
+    GxPrimVertexPtr(vertexBuf, GxVBF_PN);
+    CGxBuf* indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, 3000);
+    uint16_t* indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+    SMOPoly* poly = group->m_polyList;
+    uint32_t count = 0;
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_polyListSize); i++, poly++) {
+        if (!(poly->m_flags & 0x8)) {
+            continue;
+        }
+
+        indices[0] = group->m_indices[i * 3];
+        indices[1] = group->m_indices[i * 3 + 1];
+        indices[2] = group->m_indices[i * 3 + 2];
+        count += 3;
+        indices += 3;
+
+        if (count == 3000) {
+            count = 0;
+            GxBufUnlock(indexBuf, 0);
+            g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+            CGxBatch batch;
+            batch.m_maxIndex = group->m_vertexListCount;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = 0;
+            batch.m_count = 3000;
+            batch.m_minIndex = 0;
+            g_theGxDevicePtr->Draw(&batch, 1);
+            indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, 3000);
+            indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+        }
+    }
+
+    GxBufUnlock(indexBuf, 0);
+
+    if (count) {
+        g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+        CGxBatch batch;
+        batch.m_start = 0;
+        batch.m_minIndex = 0;
+        batch.m_maxIndex = group->m_vertexListCount;
+        batch.m_primType = GxPrim_Triangles;
+        batch.m_count = count;
+        g_theGxDevicePtr->Draw(&batch, 1);
+    }
+
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 481cfef2 manual
+// OFFSET: 0x007AA690
+void CMapObj::RenderGroupDetailFaces(CMapObjGroup* group, uint32_t index) {
+    if (index) {
+        return;
+    }
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_BlendingMode, 0);
+    GxRsSet(GxRs_MatDiffuse, static_cast<int32_t>(0xFF8080FF));
+    GxRsSet(GxRs_Fog, 0);
+    CMapObj::SetRenderModeLight();
+    GxRsSet(GxRs_VertexShader, 0);
+    GxRsSet(GxRs_PixelShader, 0);
+    CGxBuf* vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, 24, group->m_vertexListCount);
+    float* vertices = reinterpret_cast<float*>(g_theGxDevicePtr->BufLock(vertexBuf));
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_vertexListCount); i++) {
+        vertices[0] = group->m_vertexList[i].x;
+        vertices[1] = group->m_vertexList[i].y;
+        vertices[2] = group->m_vertexList[i].z;
+        vertices[3] = group->m_normalList[i].x;
+        vertices[4] = group->m_normalList[i].y;
+        vertices[5] = group->m_normalList[i].z;
+        vertices += 6;
+    }
+
+    GxBufUnlock(vertexBuf, 0);
+    GxPrimVertexPtr(vertexBuf, GxVBF_PN);
+    CGxBuf* indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, 3000);
+    uint16_t* indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+    SMOPoly* poly = group->m_polyList;
+    uint32_t count = 0;
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_polyListSize); i++, poly++) {
+        if (!(poly->m_flags & 0x4)) {
+            continue;
+        }
+
+        indices[0] = group->m_indices[i * 3];
+        indices[1] = group->m_indices[i * 3 + 1];
+        indices[2] = group->m_indices[i * 3 + 2];
+        count += 3;
+        indices += 3;
+
+        if (count == 3000) {
+            count = 0;
+            GxBufUnlock(indexBuf, 0);
+            g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+            CGxBatch batch;
+            batch.m_maxIndex = group->m_vertexListCount;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = 0;
+            batch.m_count = 3000;
+            batch.m_minIndex = 0;
+            g_theGxDevicePtr->Draw(&batch, 1);
+            indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, 3000);
+            indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+        }
+    }
+
+    GxBufUnlock(indexBuf, 0);
+
+    if (count) {
+        g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+        CGxBatch batch;
+        batch.m_start = 0;
+        batch.m_minIndex = 0;
+        batch.m_maxIndex = group->m_vertexListCount;
+        batch.m_primType = GxPrim_Triangles;
+        batch.m_count = count;
+        g_theGxDevicePtr->Draw(&batch, 1);
+    }
+
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 1463fac3 manual
+// OFFSET: 0x007AAA40
+void CMapObj::RenderGroupRenderFaces(CMapObjGroup* group, uint32_t index) {
+    if (index) {
+        return;
+    }
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_BlendingMode, 0);
+    GxRsSet(GxRs_MatDiffuse, static_cast<int32_t>(0xFF00FF00));
+    GxRsSet(GxRs_Fog, 0);
+    CMapObj::SetRenderModeLight();
+    GxRsSet(GxRs_VertexShader, 0);
+    GxRsSet(GxRs_PixelShader, 0);
+    CGxBuf* vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, 24, group->m_vertexListCount);
+    float* vertices = reinterpret_cast<float*>(g_theGxDevicePtr->BufLock(vertexBuf));
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_vertexListCount); i++) {
+        vertices[0] = group->m_vertexList[i].x;
+        vertices[1] = group->m_vertexList[i].y;
+        vertices[2] = group->m_vertexList[i].z;
+        vertices[3] = group->m_normalList[i].x;
+        vertices[4] = group->m_normalList[i].y;
+        vertices[5] = group->m_normalList[i].z;
+        vertices += 6;
+    }
+
+    GxBufUnlock(vertexBuf, 0);
+    GxPrimVertexPtr(vertexBuf, GxVBF_PN);
+    CGxBuf* indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, 3000);
+    uint16_t* indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+    SMOPoly* poly = group->m_polyList;
+    uint32_t count = 0;
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_polyListSize); i++, poly++) {
+        if (!(poly->m_flags & 0x20) || (poly->m_flags & 0x4)) {
+            continue;
+        }
+
+        indices[0] = group->m_indices[i * 3];
+        indices[1] = group->m_indices[i * 3 + 1];
+        indices[2] = group->m_indices[i * 3 + 2];
+        count += 3;
+        indices += 3;
+
+        if (count == 3000) {
+            count = 0;
+            GxBufUnlock(indexBuf, 0);
+            g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+            CGxBatch batch;
+            batch.m_maxIndex = group->m_vertexListCount;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = 0;
+            batch.m_count = 3000;
+            batch.m_minIndex = 0;
+            g_theGxDevicePtr->Draw(&batch, 1);
+            indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, 3000);
+            indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+        }
+    }
+
+    GxBufUnlock(indexBuf, 0);
+
+    if (count) {
+        g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+        CGxBatch batch;
+        batch.m_start = 0;
+        batch.m_minIndex = 0;
+        batch.m_maxIndex = group->m_vertexListCount;
+        batch.m_primType = GxPrim_Triangles;
+        batch.m_count = count;
+        g_theGxDevicePtr->Draw(&batch, 1);
+    }
+
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: ac639cbe manual
+// OFFSET: 0x007AAE00
+void CMapObj::RenderGroupTransFaces(CMapObjGroup* group, uint32_t index) {
+    if (index || !group->m_transparencyBatchesCount) {
+        return;
+    }
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_BlendingMode, 0);
+    GxRsSet(GxRs_MatDiffuse, static_cast<int32_t>(0xFF7F7F7F));
+    GxRsSet(GxRs_Fog, 0);
+    CMapObj::SetRenderModeLight();
+    GxRsSet(GxRs_VertexShader, 0);
+    GxRsSet(GxRs_PixelShader, 0);
+    CGxBuf* vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, 28, group->m_vertexListCount);
+    float* vertices = reinterpret_cast<float*>(g_theGxDevicePtr->BufLock(vertexBuf));
+    CImVector color;
+    color.a = 0xFF;
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_vertexListCount); i++) {
+        vertices[0] = group->m_vertexList[i].x;
+        vertices[1] = group->m_vertexList[i].y;
+        vertices[2] = group->m_vertexList[i].z;
+        vertices[3] = group->m_normalList[i].x;
+        vertices[4] = group->m_normalList[i].y;
+        vertices[5] = group->m_normalList[i].z;
+        color.b = group->m_colorVertexList[i].a;
+        color.g = color.b;
+        color.r = color.b;
+        *reinterpret_cast<CImVector*>(&vertices[6]) = color;
+        vertices += 7;
+    }
+
+    GxBufUnlock(vertexBuf, 0);
+    GxPrimVertexPtr(vertexBuf, GxVBF_PNC);
+    CGxBuf* indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, 3000);
+    uint16_t* indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+    SMOPoly* poly = group->m_polyList;
+    uint32_t count = 0;
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_polyListSize); i++, poly++) {
+        if (!(poly->m_flags & 0x1) || !(poly->m_flags & 0x24)) {
+            continue;
+        }
+
+        indices[0] = group->m_indices[i * 3];
+        indices[1] = group->m_indices[i * 3 + 1];
+        indices[2] = group->m_indices[i * 3 + 2];
+        count += 3;
+        indices += 3;
+
+        if (count == 3000) {
+            count = 0;
+            GxBufUnlock(indexBuf, 0);
+            g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+            CGxBatch batch;
+            batch.m_maxIndex = group->m_vertexListCount;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = 0;
+            batch.m_count = 3000;
+            batch.m_minIndex = 0;
+            g_theGxDevicePtr->Draw(&batch, 1);
+            indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, 3000);
+            indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+        }
+    }
+
+    GxBufUnlock(indexBuf, 0);
+
+    if (count) {
+        g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+        CGxBatch batch;
+        batch.m_start = 0;
+        batch.m_minIndex = 0;
+        batch.m_maxIndex = group->m_vertexListCount;
+        batch.m_primType = GxPrim_Triangles;
+        batch.m_count = count;
+        g_theGxDevicePtr->Draw(&batch, 1);
+    }
+
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 46cfab1c manual
+// OFFSET: 0x007AB1E0
+void CMapObj::RenderGroupCollidable(CMapObjGroup* group, uint32_t index) {
+    if (index) {
+        return;
+    }
+
+    g_theGxDevicePtr->RsPush();
+    int32_t polygonFill = g_theGxDevicePtr->MasterEnable(GxMasterEnable_PolygonFill);
+    GxRsSet(GxRs_Fog, 0);
+    CMapObj::SetRenderModeLight();
+    GxRsSet(GxRs_VertexShader, 0);
+    GxRsSet(GxRs_PixelShader, 0);
+    g_theGxDevicePtr->MasterEnableSet(GxMasterEnable_PolygonFill, 1);
+    GxRsSet(GxRs_BlendingMode, 0);
+    GxRsSet(GxRs_MatDiffuse, static_cast<int32_t>(0x80CCCCCC));
+    GxRsSet(GxRs_DepthWrite, 1);
+    CMapObj::RenderGroupCollidableFaces(group);
+    g_theGxDevicePtr->MasterEnableSet(GxMasterEnable_PolygonFill, 0);
+    GxRsSet(GxRs_BlendingMode, 2);
+    GxRsSet(GxRs_MatDiffuse, static_cast<int32_t>(0x80111111));
+    GxRsSet(GxRs_DepthWrite, 0);
+    CMapObj::RenderGroupCollidableFaces(group);
+    g_theGxDevicePtr->MasterEnableSet(GxMasterEnable_PolygonFill, polygonFill);
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: dd167be3 manual
+// OFFSET: 0x007AB4C0
+void __stdcall CMapObj::RenderNormals(CMapObjGroup* group) {
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_Fog, 0);
+    CMapObj::SetRenderModeLight();
+    GxRsSet(GxRs_VertexShader, 0);
+    GxRsSet(GxRs_PixelShader, 0);
+    uint32_t remaining = group->m_vertexListCount;
+    uint32_t chunk = remaining >= 0x4000 ? 0x4000 : remaining;
+    uint32_t maxChunk = chunk;
+    uint32_t start = 0;
+
+    while (remaining) {
+        if (remaining < chunk) {
+            chunk = remaining;
+        }
+
+        uint32_t left = remaining - chunk;
+        CGxBuf* vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, 16, 2 * chunk);
+        CGxVertexPC* vertices = reinterpret_cast<CGxVertexPC*>(g_theGxDevicePtr->BufLock(vertexBuf));
+        CGxBuf* indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, 2, 2 * chunk);
+        uint16_t* indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+
+        CImVector color;
+        *reinterpret_cast<uint32_t*>(&color) = 0xFFFFFF00;
+
+        for (uint32_t i = 0; i < chunk; i++) {
+            const C3Vector& vertex = group->m_vertexList[start + i];
+            const C3Vector& normal = group->m_normalList[start + i];
+            vertices[0].p = vertex;
+            vertices[0].c = color;
+            vertices[1].p = C3Vector(normal.x * 0.75f + vertex.x, normal.y * 0.75f + vertex.y, normal.z * 0.75f + vertex.z);
+            vertices[1].c = color;
+            indices[0] = 2 * i;
+            indices[1] = 2 * i + 1;
+            vertices += 2;
+            indices += 2;
+        }
+
+        GxBufUnlock(vertexBuf, 0);
+        GxPrimVertexPtr(vertexBuf, GxVBF_PC);
+        GxBufUnlock(indexBuf, 0);
+        g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+        CGxBatch batch;
+        batch.m_count = 2 * chunk;
+        batch.m_maxIndex = 2 * chunk;
+        batch.m_primType = GxPrim_Lines;
+        batch.m_start = 0;
+        batch.m_minIndex = 0;
+        g_theGxDevicePtr->Draw(&batch, 1);
+        start += chunk;
+
+        if (!left) {
+            break;
+        }
+
+        remaining = left;
+        chunk = maxChunk;
+    }
+
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: 107cc03e manual
+// OFFSET: 0x007AEA10
+bool CMapObj::TestConvexVolume(const C3Vector& point) {
+    if (!this->m_isGroupLoaded) {
+        return false;
+    }
+
+    int32_t count = this->m_convexVolumePlaneCount;
+
+    if (!count) {
+        return true;
+    }
+
+    C4Plane* plane = this->m_convexVolumePlanes;
+
+    for (int32_t i = 0; i < count; i++, plane++) {
+        if (plane->n.y * point.y + plane->n.z * point.z + plane->n.x * point.x + plane->d > 0.0f) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// VERIFY: c777c00f manual
+// OFFSET: 0x007AF740
+int32_t CMapObj::IsAllLoaded() {
+    if (!this->m_isGroupLoaded) {
+        return 0;
+    }
+
+    for (int32_t i = 0; i < this->m_groupInfoCount; i++) {
+        if (!(this->m_mapObjGroupArray[i]->m_unkLoadedFlag & 0x1)) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 2b62f89e auto
+// OFFSET: 0x007AF850
+int32_t CMapObj::IsAllDrawable() {
+    int32_t loaded = this->IsAllLoaded();
+
+    if (!loaded) {
+        return loaded;
+    }
+
+    for (int32_t i = 0; i < this->m_materialsCount; i++) {
+        CTexture* texture0 = this->m_materialList[i].Textures()[0];
+
+        if (texture0 && !TextureGetGxTex(texture0, 0, nullptr)) {
+            return 0;
+        }
+
+        CTexture* texture1 = this->m_materialList[i].Textures()[1];
+
+        if (texture1 && !TextureGetGxTex(texture1, 0, nullptr)) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+// VERIFY: 55e33c2a auto
+// OFFSET: 0x007D9780
+static int32_t CompareGroupDistance(const void* a, const void* b) {
+    float distA = (*static_cast<CMapObjGroup* const*>(a))->m_distToCamera;
+    float distB = (*static_cast<CMapObjGroup* const*>(b))->m_distToCamera;
+
+    if (distB < distA) {
+        return -1;
+    }
+
+    return distB > distA;
+}
+
+// VERIFY: 18154d58 auto
+// OFFSET: 0x007D97C0
+static int32_t CompareMapObjDistance(const void* a, const void* b) {
+    float distA = (*static_cast<CMapObj* const*>(a))->m_distToCamera;
+    float distB = (*static_cast<CMapObj* const*>(b))->m_distToCamera;
+
+    if (distB < distA) {
+        return -1;
+    }
+
+    return distB > distA;
+}
+
+// VERIFY: 9b4212c2 manual
+// OFFSET: 0x007D9810
+void CMapObj::ProcessAsyncLoadQueue() {
+    void** pending = static_cast<void**>(alloca(0x1000));
+    uint32_t count = 0;
+
+    for (CMapObjGroup* group = CMapObj::s_unk_ADFC58.Head(); group; group = CMapObj::s_unk_ADFC58.Next(group)) {
+        if (group->m_asyncObjPtr) {
+            pending[count++] = group;
+        }
+    }
+
+    if (count) {
+        qsort(pending, count, sizeof(void*), CompareGroupDistance);
+        AsyncFile::EnterQueueLock();
+
+        for (uint32_t i = 0; i < count; i++) {
+            CMapObjGroup* group = static_cast<CMapObjGroup*>(pending[i]);
+
+            if (group->m_distToCamera < 40000.0f) {
+                CAsyncObject* object = group->m_asyncObjPtr;
+
+                if (object->m_isCurrent || object->m_isRead || object->m_isProcessed) {
+                    continue;
+                }
+
+                AsyncFileReadLinkObject(object, 1);
+            }
+
+            group->m_distToCamera = 3.4028235e38f;
+        }
+
+        AsyncFile::LeaveQueueLock();
+    }
+
+    count = 0;
+
+    for (CMapObj* mapObj = CMapObj::s_asyncLoadQueue.Head(); mapObj; mapObj = CMapObj::s_asyncLoadQueue.Next(mapObj)) {
+        if (mapObj->m_asyncObject) {
+            pending[count++] = mapObj;
+        }
+    }
+
+    if (count) {
+        qsort(pending, count, sizeof(void*), CompareMapObjDistance);
+        AsyncFile::EnterQueueLock();
+
+        for (uint32_t i = 0; i < count; i++) {
+            CMapObj* mapObj = static_cast<CMapObj*>(pending[i]);
+
+            if (mapObj->m_distToCamera < 40000.0f) {
+                CAsyncObject* object = mapObj->m_asyncObject;
+
+                if (object->m_isCurrent || object->m_isRead || object->m_isProcessed) {
+                    continue;
+                }
+
+                AsyncFileReadLinkObject(object, 1);
+            }
+
+            mapObj->m_distToCamera = 3.4028235e38f;
+        }
+
+        AsyncFile::LeaveQueueLock();
+    }
 }

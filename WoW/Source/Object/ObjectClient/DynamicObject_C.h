@@ -13,6 +13,8 @@
 
 class BlizzardObject;
 class CClientObjCreate;
+class SpellRec;
+class SpellVisualEffectNameRec;
 
 class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
     public:
@@ -30,6 +32,13 @@ class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
     virtual float GetFacing() const;
     virtual C44Matrix GetMatrix() const;
     virtual void ShouldRender(uint32_t flags, int32_t& render, int32_t& a3);
+    void SetFrameOfReference(const C44Matrix* matrix) override;
+    void Disable() override;
+    void Reenable() override;
+    void PostReenable() override;
+    void HandleOutOfRange(OUT_OF_RANGE_TYPE type) override;
+    void ModelLoaded(CM2Model* model) override;
+    int32_t GetModelFileName(const char** name) const override;
 
     CGDynamicObject_C(uint32_t time, const CClientObjCreate& create);
     void HandleAnimEvent(uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time);
@@ -37,6 +46,7 @@ class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
     void PostInit(uint32_t time, const CClientObjCreate& create, bool a3);
     void SetStorage(uint32_t* storage, uint32_t* saved);
     void UpdateDisplay(uint32_t time);
+    SpellVisualEffectNameRec* GetVisualEffectNameRec(const SpellRec* spell) const;
 };
 
 #endif

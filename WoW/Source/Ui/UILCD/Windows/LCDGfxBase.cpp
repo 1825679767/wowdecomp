@@ -16,7 +16,7 @@ CLCDGfxBase::CLCDGfxBase() {
 }
 
 // VERIFY: 36052227 auto
-// OFFSET: 0x0095CCE0
+// OFFSET: [0x0095CCE0, 0x0095CCF0]
 CLCDGfxBase::~CLCDGfxBase() {
     this->Shutdown();
 }
@@ -99,4 +99,71 @@ HRESULT CLCDGfxBase::CreateBitmap(uint16_t bitCount) {
     }
 
     return S_OK;
+}
+
+// VERIFY: 4488d159 auto
+// OFFSET: 0x0095CA60
+void CLCDGfxBase::ClearScreen() {
+    RECT rect = { 0, 0, this->m_nWidth, this->m_nHeight };
+    FillRect(this->m_hDC, &rect, static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
+}
+
+// VERIFY: a0eaf199 auto
+// OFFSET: 0x0095CAA0
+void CLCDGfxBase::BeginDraw() {
+    if (!this->m_hPrevBitmap) {
+        this->m_hPrevBitmap = static_cast<HBITMAP>(SelectObject(this->m_hDC, this->m_hBitmap));
+        SetTextColor(this->m_hDC, RGB(255, 255, 255));
+        SetBkColor(this->m_hDC, RGB(0, 0, 0));
+    }
+}
+
+// VERIFY: 733883b2 auto
+// OFFSET: 0x0095CAE0
+void CLCDGfxBase::EndDraw() {
+    if (this->m_hPrevBitmap) {
+        GdiFlush();
+        SelectObject(this->m_hDC, this->m_hPrevBitmap);
+        this->m_hPrevBitmap = nullptr;
+    }
+}
+
+// VERIFY: 8ae02d29 auto
+// OFFSET: 0x00431E70
+HDC CLCDGfxBase::GetHDC() {
+    return this->m_hDC;
+}
+
+// VERIFY: f9541fd8 manual
+// OFFSET: 0x0095CB10
+lgLcdBitmapHeader* CLCDGfxBase::GetLCDScreen() {
+    if (this->m_pLCDScreen) {
+        memcpy(this->m_pLCDScreen + 1, this->m_pBitmapBits, 4 * this->m_nWidth * this->m_nHeight);
+    }
+
+    return this->m_pLCDScreen;
+}
+
+// VERIFY: 4e283189 auto
+// OFFSET: 0x0095CB40
+BITMAPINFO* CLCDGfxBase::GetBitmapInfo() {
+    return this->m_pBitmapInfo;
+}
+
+// VERIFY: 63b68908 auto
+// OFFSET: 0x0095CB50
+HBITMAP CLCDGfxBase::GetHBITMAP() {
+    return this->m_hBitmap;
+}
+
+// VERIFY: d2a3386a auto
+// OFFSET: 0x00885AE0
+int32_t CLCDGfxBase::GetWidth() {
+    return this->m_nWidth;
+}
+
+// VERIFY: 6b833aa7 auto
+// OFFSET: 0x008C32F0
+int32_t CLCDGfxBase::GetHeight() {
+    return this->m_nHeight;
 }

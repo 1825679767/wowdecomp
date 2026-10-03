@@ -59,6 +59,7 @@ class CGGuildInfo {
     static void SetMOTD(const char* motd);
     static void SaveToFile();
     static void QueryRosterAndRanks();
+    static void InvalidatePlayer(const WOWGUID& guid);
     static char m_infoText[2004];
     static char m_motd[516];
     static GuildRosterSortCriteria m_sortCriteria[8];

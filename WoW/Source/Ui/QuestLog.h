@@ -75,6 +75,7 @@ int32_t CountQuestItemDropsNeeded(int32_t questId, void (*callback)(int32_t id, 
 
 class CGQuestLog {
     public:
+    static void LeaveWorld();
     static void SaveTrackedQuests();
     static int32_t UpdateAllQuestPOI();
     static uint32_t ComputeBlobQuestObjectives(int32_t questId);

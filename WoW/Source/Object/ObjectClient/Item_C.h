@@ -63,6 +63,7 @@ class CGItem_C : public CGObject_C, public CGItem {
     const char* GetObjectName() const override;
     int32_t GetPageTextID(void (*callback)(int32_t, const WOWGUID&, void*, bool)) const override;
     uint32_t GetItemStaticFlags(int32_t index) override;
+    void Disable() override;
 
     CGItem_C(uint32_t time, const CClientObjCreate& create);
     uint32_t GetBagFamily() const;
@@ -119,6 +120,7 @@ class CGItem_C : public CGObject_C, public CGItem {
     void SetStorage(uint32_t* storage, uint32_t* saved);
     void SetTranslated();
     void UpdateEnchantments();
+    int32_t GetItemEnchantmentVisualID() const;
     void UpdateEnchantmentTime(int32_t slot, int32_t seconds);
     void UpdateExpirationTime(int32_t seconds);
     void UpdateSockets(uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5);

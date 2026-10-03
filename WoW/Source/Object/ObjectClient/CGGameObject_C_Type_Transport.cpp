@@ -8,10 +8,14 @@
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Tempest/C33Matrix.h"
+#include "Engine/Source/Tempest/CMath.h"
 #include "WoW/Source/Object/Movement.h"
 #include "WoW/Source/Object/GameObject.h"
 #include <cmath>
 #include "WoW/Source/WorldClient/MapEntity.h"
+
+// STATIC: 0x00ADA96C
+static float s_progressBias = 0.5f;
 
 // VERIFY: 0bbb79ee manual
 // OFFSET: 0x0070C8C0
@@ -485,5 +489,47 @@ void CGGameObject_C_Type_Transport::UpdateMovement(uint32_t time, uint32_t elaps
         if (this->m_worldObject) {
             World::ObjectUpdate(this->m_worldObject, matrix);
         }
+    }
+}
+
+// VERIFY: 728231f0 auto
+// OFFSET: 0x00710780
+float CGGameObject_C_Type_Transport::GetStateProgress(uint32_t time, int32_t state) {
+    uint32_t sequenceTime = this->GetSequenceTimeFromRealTime(state, time);
+    int32_t current = this->unk_0038;
+    uint32_t duration = this->GetStateDuration(current);
+
+    if (current) {
+        if (!sequenceTime) {
+            sequenceTime = this->m_frames[this->m_frameCount - 1].m_time;
+        }
+
+        sequenceTime -= this->m_owner->m_gameObject->m_level;
+    }
+
+    float elapsed = state == current ? static_cast<float>(sequenceTime) : static_cast<float>(duration - sequenceTime);
+    return elapsed / static_cast<float>(duration);
+}
+
+// VERIFY: 082d142d manual
+// OFFSET: 0x00710820
+void CGGameObject_C_Type_Transport::UpdateState(int32_t oldState, int32_t newState) {
+    CGGameObject_C* owner = this->m_owner;
+
+    if (!owner->m_gameObject->m_level || !this->m_frameCount || this->unk_0038 == newState) {
+        return;
+    }
+
+    uint32_t time = owner->unk_0200 + OsGetAsyncTimeMs();
+    float progress = this->GetStateProgress(time, oldState);
+
+    if (progress >= 0.95f) {
+        this->m_stateChangeTime = time;
+        this->unk_0038 = newState;
+        this->m_stateChangeSequenceTime = 0;
+    } else {
+        float elapsed = progress * this->GetStateDuration(oldState);
+        this->m_stateChangeTime = time;
+        this->m_stateChangeSequenceTime = CMath::fint_(elapsed - s_progressBias);
     }
 }

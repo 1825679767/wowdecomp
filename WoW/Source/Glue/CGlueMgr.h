@@ -9,7 +9,7 @@
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/WowServices/Types.h"
 
-class CVar;
+struct CVar;
 class SFileImpl;
 class CDataStore;
 struct CHARACTER_CREATE_INFO;

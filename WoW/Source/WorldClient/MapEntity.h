@@ -35,6 +35,7 @@ class WMOAreaTableRec;
 
 class CMapEntity : public CMapStaticEntity {
     public:
+    ~CMapEntity() override;
     void Tick();
     /* 0090 */ int32_t (*m_func)(void*, uint32_t, uint64_t, uintptr_t);
     /* 0094 */ void* m_funcParam;

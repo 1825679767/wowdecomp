@@ -17,6 +17,7 @@ struct StaticConstant {
 
 class CGGMTicketInfo {
     public:
+    static void LeaveWorld();
     static void EnterWorld();
     static void InitializeGame();
     static void ShutdownGame();

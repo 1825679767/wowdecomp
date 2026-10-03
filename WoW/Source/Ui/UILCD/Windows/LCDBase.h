@@ -12,10 +12,8 @@ class CLCDBase {
     /* 000C */ POINT m_Origin;
     /* 0014 */ int32_t m_bVisible;
     /* 0018 */ int32_t m_bInverted;
-    /* 001C */ int32_t unk_001C;
-    /* 0020 */ int32_t unk_0020;
-    /* 0024 */ int32_t unk_0024;
-    /* 0028 */ int32_t unk_0028;
+    /* 001C */ POINT m_ptLogical;
+    /* 0024 */ SIZE m_sizeLogical;
     /* 002C */ int32_t m_nBkMode;
     /* 0030 */ int32_t m_nObjectType;
     /* 0034 */ COLORREF m_crBackgroundColor;
@@ -50,7 +48,7 @@ class CLCDBase {
     virtual void SetObjectType(int32_t type);
     virtual void SetForegroundColor(COLORREF color);
     virtual void SetBackgroundColor(COLORREF color);
-    virtual void Unk6C(int32_t a1);
+    virtual void OnPrepareDraw(CLCDGfxBase& gfx);
     virtual void OnDraw(CLCDGfxBase& gfx);
     virtual void OnUpdate(uint32_t timestamp);
     virtual void SetUserData(int32_t data);

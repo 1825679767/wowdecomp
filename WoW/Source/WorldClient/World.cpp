@@ -245,7 +245,7 @@ static float profTimes[30];
 static int32_t profIdx;
 
 // STATIC: 0x00CD7740
-static int32_t s_disableAreaAmbient;
+int32_t s_disableAreaAmbient;
 
 // STATIC: 0x00CD7764
 static void (*s_FrameCntCallback)();
@@ -1392,7 +1392,7 @@ void CWorldScene::ApplyFogState() {
     GxRsSet(GxRs_FogColor, *reinterpret_cast<int32_t*>(&info->m_fog.m_color));
 }
 
-// VERIFY: dce14472 manual
+// VERIFY: bc9ebd69 manual
 // OFFSET: 0x007816F0
 void DayNight::Update(int32_t reset, const C3Vector* cameraPos) {
     float glare = 0.0f;
@@ -1427,7 +1427,7 @@ void DayNight::Update(int32_t reset, const C3Vector* cameraPos) {
 
     DayNight::UpdateLighting();
     DayNight::g_clouds.Update();
-    DayNight::g_stars.Update();
+    DayNight::UpdateStars();
     DayNight::UpdateFog();
     CWorld::SetShadowColor(info->m_shadowColor);
 
@@ -5284,4 +5284,59 @@ void World::ObjectUpdate(CMapEntity* entity, const C44Matrix& matrix) {
     } else if (object->m_type & 0x40) {
         CMap::UpdateDoodadDefTransform(reinterpret_cast<CMapDoodadDef*>(object), matrix);
     }
+}
+
+// VERIFY: 5db11fb5 auto
+// OFFSET: 0x0077F8F0
+void World::SetFrameCntCallback(void (*callback)()) {
+    s_FrameCntCallback = callback;
+}
+
+// VERIFY: 0bce3425 manual
+// OFFSET: 0x0077FFB0
+bool World::ObjectTestConvexVolume(CMapEntity* entity, const C3Vector& point) {
+    uint16_t type = entity->m_type;
+
+    if (type & 0x8) {
+        return static_cast<CMapObjDef*>(static_cast<CMapBaseObj*>(entity))->m_owner->TestConvexVolume(point);
+    }
+
+    if (!(type & 0x40)) {
+        return true;
+    }
+
+    CM2Model* model = static_cast<CMapStaticEntity*>(static_cast<CMapBaseObj*>(entity))->m_model;
+
+    if (!model || !model->IsLoaded(0, 0)) {
+        return false;
+    }
+
+    model = static_cast<CMapStaticEntity*>(static_cast<CMapBaseObj*>(entity))->m_model;
+
+    if (!(model->m_shared->m_flags & 0x1)) {
+        model->WaitForLoad(nullptr);
+    }
+
+    CAaBox bounds = model->m_shared->m_data->m_collisionBounds.m_extent;
+    C4Plane planes[6];
+    planes[0].n = C3Vector(1.0f, 0.0f, 0.0f);
+    planes[0].d = -bounds.t.x;
+    planes[1].n = C3Vector(0.0f, 1.0f, 0.0f);
+    planes[1].d = -bounds.t.y;
+    planes[2].n = C3Vector(0.0f, 0.0f, 1.0f);
+    planes[2].d = -bounds.t.z - 1.6404123f - 0.013888889f;
+    planes[3].n = C3Vector(-1.0f, 0.0f, 0.0f);
+    planes[3].d = bounds.b.x;
+    planes[4].n = C3Vector(0.0f, -1.0f, 0.0f);
+    planes[4].d = bounds.b.y;
+    planes[5].n = C3Vector(0.0f, 0.0f, -1.0f);
+    planes[5].d = bounds.b.z;
+
+    for (uint32_t i = 0; i < 6; i++) {
+        if (planes[i].n.x * point.x + planes[i].n.z * point.z + planes[i].n.y * point.y + planes[i].d > 0.0f) {
+            return false;
+        }
+    }
+
+    return true;
 }

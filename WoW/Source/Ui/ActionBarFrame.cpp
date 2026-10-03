@@ -2125,3 +2125,8 @@ void CGActionBar::UpdateCritter(int32_t critter) {
         }
     }
 }
+
+// VERIFY: 8b8940d1 auto
+// OFFSET: 0x005EEB70
+void CGActionBar::LeaveWorld() {
+}

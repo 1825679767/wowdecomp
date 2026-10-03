@@ -29,6 +29,8 @@ struct ChaserState {
     /* 0000 */ C3Vector m_position;
     /* 000C */ C3Vector m_velocity;
 
+    ChaserState() = default;
+    ChaserState(const C3Vector& position, const C3Vector& velocity);
     void ChaserImplementation(const C3Vector& target, float stiffness, float elapsed);
 };
 

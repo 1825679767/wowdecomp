@@ -1302,3 +1302,8 @@ int32_t CGRaidInfo::ProcessReadyCheckTimer(const void* data, void* param) {
     CGRaidInfo::CheckReadyCheckTime();
     return 1;
 }
+
+// VERIFY: c54805fa auto
+// OFFSET: 0x005EEB70
+void CGRaidInfo::LeaveWorld() {
+}

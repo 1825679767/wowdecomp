@@ -6,6 +6,8 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 
+class CDataStore;
+
 struct PendingLootRoll : public TSLinkedNode<PendingLootRoll> {
     /* 0008 */ int32_t m_id;
     /* 000C */ uint32_t unk_000C;
@@ -16,16 +18,20 @@ struct PendingLootRoll : public TSLinkedNode<PendingLootRoll> {
     /* 0024 */ uint32_t m_randomSuffix;
     /* 0028 */ uint32_t m_count;
     /* 002C */ uint32_t m_expireTime;
-    /* 0030 */ uint32_t unk_0030;
-    /* 0034 */ uint32_t unk_0034 [3];
-    /* 0040 */ uint8_t unk_0040;
+    /* 0030 */ uint8_t unk_0030;
+    /* 0031 */ uint8_t unk_0031 [3];
+    /* 0034 */ uint32_t unk_0034;
+    /* 0038 */ WOWGUID m_rollerGuid;
+    /* 0040 */ int8_t m_rollNumber;
     /* 0041 */ uint8_t m_showPending;
     /* 0042 */ uint8_t unk_0042;
     /* 0043 */ uint8_t unk_0043;
     /* 0044 */ uint32_t m_rollTime;
-    /* 0048 */ uint32_t m_voteMask;
-    /* 004C */ uint32_t unk_004C;
-    /* 0050 */ uint8_t unk_0050 [2];
+    /* 0048 */ uint8_t m_voteMask;
+    /* 0049 */ uint8_t unk_0049[3];
+    /* 004C */ uint32_t m_rollType;
+    /* 0050 */ uint8_t m_autoPass;
+    /* 0051 */ uint8_t unk_0051;
     /* 0052 */ uint8_t m_reasonNeed;
     /* 0053 */ uint8_t m_reasonGreed;
     /* 0054 */ uint8_t m_reasonDisenchant;
@@ -44,5 +50,10 @@ void LootRoll(int32_t id, int32_t rollType, bool confirmed);
 void CloseAllLootRolls();
 void LootRollDestroy();
 void LootRollShutdown();
+int32_t LootRollMasterList(CDataStore* msg);
+int32_t LootRollRolled(CDataStore* msg);
+int32_t LootRollStart(CDataStore* msg);
+int32_t LootRollAllPassed(CDataStore* msg);
+int32_t LootRollWon(CDataStore* msg);
 
 #endif

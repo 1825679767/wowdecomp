@@ -151,6 +151,7 @@
 #include "WoW/Source/Game/GameClient/PlayerName.h"
 #include "WoW/Source/DB/Rec/EmotesTextRec.h"
 #include "WoW/Source/DB/Rec/EmotesRec.h"
+#include "WoW/Source/Object/ObjectClient/LootRoll.h"
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -3974,7 +3975,7 @@ int32_t Packet_Group_13(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
     return 1;
 }
 
-// VERIFY: a7e484bb manual
+// VERIFY: 77263fbe auto
 // OFFSET: 0x006D84F0
 int32_t PH_LOOT_OPCODES(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -4004,15 +4005,15 @@ int32_t PH_LOOT_OPCODES(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
             return 1;
         }
         case SMSG_LOOT_ALL_PASSED:
-            return LootRoll::AllPassed(msg);
+            return LootRollAllPassed(msg);
         case SMSG_LOOT_ROLL_WON:
-            return LootRoll::Won(msg);
+            return LootRollWon(msg);
         case SMSG_LOOT_START_ROLL:
-            return LootRoll::Start(msg);
+            return LootRollStart(msg);
         case SMSG_LOOT_ROLL:
-            return LootRoll::Roll(msg);
+            return LootRollRolled(msg);
         case SMSG_LOOT_MASTER_LIST:
-            return LootRoll::MasterLoot(msg);
+            return LootRollMasterList(msg);
         case SMSG_LOOT_SLOT_CHANGED:
             return player->OnLootSlotChanged(msg);
         default:
@@ -14037,22 +14038,22 @@ void CGPlayer_C::UpdateObjComponentVisuals(const VisibleItem_C* item, GEOCOMPONE
     }
 }
 
-// VERIFY: fc6715be auto
+// VERIFY: b478364d auto
 // OFFSET: 0x006D6F40
-void CGPlayer_C::HandleSkinning(CGUnit_C* unit, bool autoInteract, bool a4) {
+void CGPlayer_C::HandleSkinning(CGObject_C* object, bool autoInteract, bool a4) {
     float minRange;
     float maxRange;
-    Spell_C::GetSpellRange(this, CGSpellBook::GetSkinningSpell(unit), &minRange, &maxRange, unit);
-    C3Vector target = unit->GetPosition();
+    Spell_C::GetSpellRange(this, CGSpellBook::GetSkinningSpell(object), &minRange, &maxRange, object);
+    C3Vector target = object->GetPosition();
     C3Vector position = this->GetPosition();
     float dx = position.x - target.x;
     float dy = position.y - target.y;
     float dz = position.z - target.z;
 
     if (maxRange * maxRange <= dx * dx + dz * dz + dy * dy && autoInteract) {
-        this->SetTrackingTarget(unit->m_obj->m_guid, 9);
+        this->SetTrackingTarget(object->m_obj->m_guid, 9);
     } else {
-        Spell_C::CastSpell(CGSpellBook::GetSkinningSpell(unit), nullptr, unit->m_obj->m_guid, false);
+        Spell_C::CastSpell(CGSpellBook::GetSkinningSpell(object), nullptr, object->m_obj->m_guid, false);
     }
 
     if (a4) {

@@ -361,3 +361,8 @@ void CGGMTicketInfo::ShutdownGame() {
     ClientServices::ClearMessageHandler(SMSG_GMRESPONSE_STATUS_UPDATE);
     ClientServices::ClearMessageHandler(SMSG_GM_TICKET_STATUS_UPDATE);
 }
+
+// VERIFY: db6a0166 auto
+// OFFSET: 0x005EEB70
+void CGGMTicketInfo::LeaveWorld() {
+}

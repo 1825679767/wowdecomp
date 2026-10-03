@@ -295,7 +295,6 @@ void UnitCombatLogCastStart(const WOWGUID& caster, const WOWGUID& target, int32_
 void Spell_C_StopTargeting();
 void SpellTableInitialize();
 
-int32_t Script_CancelUnitBuff(lua_State* L);
 void SpellRegisterScriptFunctions();
 void SpellUnregisterScriptFunctions();
 

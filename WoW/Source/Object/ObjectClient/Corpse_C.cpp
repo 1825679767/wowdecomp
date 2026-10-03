@@ -17,6 +17,15 @@
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "_Triage/CClientObjCreate.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
+#include "Engine/Source/Services/SysMessage.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Tempest/C44Matrix.h"
+#include "Engine/Source/Tempest/CAaBox.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
+#include "WoW/Source/UIUtil/PortraitButton.h"
+#include "WoW/Source/Game/GameClient/ProjectTex.h"
 
 // VERIFY: 91aabd2d manual
 // OFFSET: 0x00705950
@@ -171,7 +180,7 @@ void CGCorpse_C::PostInit(uint32_t time, const CClientObjCreate& create, bool a3
 }
 
 // VERIFY: 638a971b manual
-// OFFSET: 0x007065B0
+// OFFSET: [0x007065B0, 0x007068A0]
 CGCorpse_C::~CGCorpse_C() {
     if (this->m_component) {
         CCharacterComponent::FreeComponent(this->m_component);
@@ -375,4 +384,219 @@ void CGCorpse_C::ModelLoaded(CM2Model* model) {
     }
 
     this->m_selectionRadius = model->GetBoundingSphere().r * 0.5f;
+}
+
+// VERIFY: af73bdb1 auto
+// OFFSET: 0x00705610
+void CGCorpse_C::PostReenable() {
+    this->m_passenger.Reenable();
+    CGObject_C::PostReenable();
+}
+
+// VERIFY: 342b4610 manual
+// OFFSET: 0x00705670
+int32_t CGCorpse_C::GetModelFileName(const char** name) const {
+    static char s_modelName[260];
+
+    if (this->m_corpse->m_corpseFieldFlags & 0x1) {
+        ChrRacesRec* race = g_chrRacesDB.GetRecord(this->m_corpse->m_corpseFieldBytes1[1]);
+
+        if (!race) {
+            return 0;
+        }
+
+        SStrPrintf(s_modelName, sizeof(s_modelName), "World\\Generic\\PassiveDoodads\\DeathSkeletons\\%s%sDeathSkeleton.mdx", race->m_clientFileString, s_sexNames[this->m_corpse->m_corpseFieldBytes1[2]]);
+        *name = s_modelName;
+        return 1;
+    }
+
+    uint32_t displayId = this->m_corpse->m_corpseFieldDisplayId;
+    CreatureDisplayInfoRec* display = g_creatureDisplayInfoDB.GetRecord(displayId);
+
+    if (!display) {
+        SysMsgPrintf(STATUS_WARNING, 16, "INVALIDPLAYERDISPLAYID|%d|%d|%d", displayId, this->m_corpse->m_corpseFieldBytes1[1], this->m_corpse->m_corpseFieldBytes1[2]);
+        return 0;
+    }
+
+    CreatureModelDataRec* model = g_creatureModelDataDB.GetRecord(display->m_modelID);
+
+    if (!model) {
+        SysMsgPrintf(STATUS_WARNING, 16, "INVALIDPLAYERMODELRECORD|%d|%d|%d", display->m_modelID, this->m_corpse->m_corpseFieldBytes1[1], this->m_corpse->m_corpseFieldBytes1[2]);
+        return 0;
+    }
+
+    *name = model->m_modelName;
+    return *name != nullptr;
+}
+
+// VERIFY: abe6008c auto
+// OFFSET: 0x007057E0
+void CGCorpse_C::ShouldRender(uint32_t flags, int32_t& render, int32_t& a3) {
+    CGObject_C::ShouldRender(flags, render, a3);
+
+    if (render || a3) {
+        if (this->m_component) {
+            this->m_component->Prep();
+        }
+    } else if (((this->m_corpseFlags & 0x2) && (this->m_corpse->m_corpseFieldFlags & 0x1)) || (this->m_component && !this->m_component->RenderPrep(0))) {
+        a3 = 1;
+    }
+}
+
+// VERIFY: e0970af6 auto
+// OFFSET: 0x00705F30
+void CGCorpse_C::Disable() {
+    CGObject_C::Disable();
+    this->m_passenger.m_link.Unlink();
+
+    if (!(this->m_corpse->m_corpseFieldFlags & 0x1) && this->m_corpse->m_corpseFieldOwner == ClntObjMgrGetActivePlayer()) {
+        CGGameUI::SetActiveCorpse(WOWGUID());
+    }
+
+    if (this->m_lootEffect) {
+        if (this->m_lootEffect->m_attachParent) {
+            this->m_lootEffect->DetachFromParent();
+        }
+
+        this->m_lootEffect->Release();
+        this->m_lootEffect = nullptr;
+    }
+}
+
+// VERIFY: f555246e manual
+// OFFSET: 0x00705FA0
+void CGCorpse_C::Reenable() {
+    CGObject_C::Reenable();
+    this->m_corpseFlags &= ~0x1;
+
+    if (this->m_corpse->m_corpseFieldDynamicFlags & 0x1) {
+        this->ShowLootEffect();
+    }
+
+    if (this->m_worldModel) {
+        this->AddWorldObject();
+    }
+
+    if (!(this->m_corpse->m_corpseFieldFlags & 0x1) && this->m_corpse->m_corpseFieldOwner == ClntObjMgrGetActivePlayer()) {
+        CGGameUI::SetActiveCorpse(this->m_obj->m_guid);
+    }
+}
+
+// VERIFY: 99261d4d manual
+// OFFSET: 0x00706010
+void CGCorpse_C::OnRightClick() {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (!player) {
+        return;
+    }
+
+    if ((player->m_mountDisplayId <= 0 || (player->m_clientFlags & 0x10000000)) && (this->m_corpse->m_corpseFieldDynamicFlags & 0x1)) {
+        if (player->m_obj->m_guid != CGUnit_C::s_activeMover) {
+            return;
+        }
+
+        if (player->GetClientStandState()) {
+            if (!player->CanAutoStand()) {
+                CGGameUI::DisplayError(ERR_LOOT_NOTSTANDING);
+                return;
+            }
+
+            player->ChangeStandState(0);
+        }
+
+        player->SetAutoLoot(CGGameUI::IsAutoLooting());
+        player->LootCorpse(this, player->CanAutoInteract());
+    } else if ((this->m_corpse->m_corpseFieldFlags & 0x20) && CGSpellBook::GetSkinningSpell(this) && !player->CanAssist(this)) {
+        player->HandleSkinning(this, player->CanAutoInteract(), true);
+    }
+}
+
+// VERIFY: 1b4de750 auto
+// OFFSET: 0x007062F0
+void CGCorpse_C::RenderTargetSelection() const {
+    C3Vector position = this->GetPosition();
+    float size = this->GetTrueScale() * this->m_selectionRadius;
+
+    if (size > 10.0f) {
+        size = 10.0f;
+    }
+
+    CAaBox box;
+    box.t.x = position.x + size;
+    box.t.y = position.y + size;
+    box.t.z = size + size + position.z;
+    box.b.x = position.x - size;
+    box.b.y = position.y - size;
+    box.b.z = position.z - (size + size);
+    C44Matrix matrix;
+    C3Vector center = this->GetPosition();
+    CGObject_C::BuildSelectionRotMatrix(&matrix, &center);
+    g_theGxDevicePtr->RsPush();
+
+    if (CGObject_C::SetCircleRenderStates()) {
+        ProjectTex::Render2d(box, s_deadSelectionColor, &matrix, 0.5f, 0x200122, 0, 0.4f);
+    }
+
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: f37ff84d manual
+// OFFSET: 0x007066B0
+C3Vector CGCorpse_C::GetGroundNormal() {
+    if (!(this->m_corpseFlags & 0x1) && this->GetObjectModel() && this->GetObjectModel()->IsLoaded(0, 0)) {
+        static World::FacetData s_facets;
+        CAaBox box = this->GetObjectModel()->GetBoundingBox();
+        float scale = this->GetScale();
+        float height = (box.t.z - box.b.z) * scale;
+        box *= scale;
+        box += this->GetPosition();
+        box.b.z -= height * 0.5f;
+
+        if (World::GetFacets(&box, &s_facets, 0x100111, nullptr) && s_facets.facets.Count()) {
+            float x = 0.0f;
+            float y = 0.0f;
+            float z = 0.0f;
+            uint32_t count = 0;
+
+            for (uint32_t i = 0; i < s_facets.facets.Count(); i++) {
+                const C3Vector& normal = s_facets.facets[i].plane.n;
+
+                if (normal.z > 0.0f) {
+                    count++;
+                    x += normal.x;
+                    y += normal.y;
+                    z += normal.z;
+                }
+            }
+
+            if (count) {
+                float inverse = 1.0f / count;
+                this->m_groundNormal = C3Vector(x * inverse, y * inverse, z * inverse);
+            }
+        }
+
+        this->m_corpseFlags |= 0x1;
+    }
+
+    return this->m_groundNormal;
+}
+
+// VERIFY: da463ffb auto
+// OFFSET: 0x007068D0
+int32_t CGCorpse_C::Animate(float elapsed) {
+    for (CEffect* effect = this->m_effectList; effect; ) {
+        CEffect* next = effect->m_next;
+        effect->EffectUpdate();
+        effect = next;
+    }
+
+    CM2Model* model = this->GetObjectModel();
+
+    if (model) {
+        C3Vector up = this->GetGroundNormal();
+        model->SetWorldTransform(this->GetPosition(), this->GetRenderFacing(), this->GetTrueScale(), up, 0xFFFFFFFF);
+    }
+
+    return 1;
 }

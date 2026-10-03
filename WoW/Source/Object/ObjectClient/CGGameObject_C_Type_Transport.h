@@ -40,6 +40,7 @@ class CGGameObject_C_Type_Transport : public CGGameObject_C_Type_TransportBase {
     void InitializeStateChangeTime(uint32_t time);
     void Interpolate(uint32_t time, C3Vector* offset, C4Quaternion* rotation);
     uint32_t GetStateDuration(int32_t state);
+    float GetStateProgress(uint32_t time, int32_t state);
     uint32_t ResetStateChange(uint32_t time);
     C3Vector GetMovement(uint32_t time);
     C4Quaternion GetRotation(uint32_t time);

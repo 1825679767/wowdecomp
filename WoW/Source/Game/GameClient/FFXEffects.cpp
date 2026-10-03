@@ -156,7 +156,7 @@ EffectDeath::EffectDeath() {
 }
 
 // VERIFY: be1ec9ba manual
-// OFFSET: 0x007EA420
+// OFFSET: [0x007EA420, 0x007EA920]
 EffectDeath::~EffectDeath() {
     for (uint32_t i = 0; i < this->m_passes.Count(); i++) {
         if (this->m_passes[i]) {
@@ -193,7 +193,7 @@ PassPropagateFog::PassPropagateFog(FFX::Tex** inputs, uint32_t count, FFX::Tex* 
 }
 
 // VERIFY: be1f217d manual
-// OFFSET: 0x007E8140
+// OFFSET: [0x007E8140, 0x007E9050]
 PassPropagateFog::~PassPropagateFog() {
     for (uint32_t i = 0; i < sizeof(this->m_pixelShaders) / sizeof(this->m_pixelShaders[0]); i++) {
         if (this->m_pixelShaders[i]) {
@@ -256,6 +256,20 @@ PassNetherBlur::~PassNetherBlur() {
     if (this->m_vertexShader) {
         g_theGxDevicePtr->ShaderDestroy(this->m_vertexShader);
     }
+}
+
+// VERIFY: 8f3d2550 auto
+// OFFSET: 0x007E8B90
+bool PassNetherBlur::Valid() {
+    if (this->m_vertexShader && this->m_vertexShader->Valid()) {
+        CGxShader* shader = this->m_pixelShaders[this->m_useRect];
+
+        if (shader && shader->Valid()) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // VERIFY: 0c5ddefb auto
@@ -366,7 +380,7 @@ EffectSwirlingFog::EffectSwirlingFog() {
 }
 
 // VERIFY: 07dd5136 manual
-// OFFSET: 0x007EA5A0
+// OFFSET: [0x007EA5A0, 0x007EA950]
 EffectNetherWorld::~EffectNetherWorld() {
     for (uint32_t i = 0; i < this->m_passes.Count(); i++) {
         if (this->m_passes[i]) {
@@ -376,7 +390,7 @@ EffectNetherWorld::~EffectNetherWorld() {
 }
 
 // VERIFY: 08c57bfc manual
-// OFFSET: 0x007EA850
+// OFFSET: [0x007EA850, 0x007EA980]
 EffectSwirlingFog::~EffectSwirlingFog() {
     for (uint32_t i = 0; i < this->m_passes.Count(); i++) {
         if (this->m_passes[i]) {
@@ -542,4 +556,61 @@ void PassNetherBlur::Execute() {
 
     g_theGxDevicePtr->Draw(&FFX::s_gridBatch, 1);
     FFX::SetupReset();
+}
+
+// VERIFY: 06b2c4be manual
+// OFFSET: 0x007E8180
+bool PassPropagateFog::Valid() {
+    CGxShader* shader = this->m_pixelShaders[this->m_useRect];
+    return shader && shader->Valid();
+}
+
+// VERIFY: 67b3055e manual
+// OFFSET: 0x007E9080
+void PassPropagateFog::Execute() {
+    FFX::SetupGx(this->m_output);
+    FFX::SetupGeo_Quad(this->m_output->m_size, this->m_inputs[0]->m_size, this->m_inputs[0]->m_texSize, FFX::s_gridPos, FFX::s_gridTex, this->unk_002C);
+    CImVector white;
+    *reinterpret_cast<uint32_t*>(&white) = 0xFFFFFFFF;
+    FFX::SetupVB_PCT4(FFX::s_gridPos, white, FFX::s_gridTex, this->m_params, this->m_inputs[0]->m_texelSize);
+    g_theGxDevicePtr->PrimVertexMask(0x3D1);
+    FFX::SetupIB();
+    CGxTex* texture = TextureGetGxTex(this->m_inputs[0]->m_texture, 1, nullptr);
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, texture);
+    g_theGxDevicePtr->RsSet(GxRs_Texture1, texture);
+    g_theGxDevicePtr->RsSet(GxRs_Texture2, texture);
+    g_theGxDevicePtr->RsSet(GxRs_Texture3, texture);
+
+    for (int32_t state = GxRs_Texture4; state <= GxRs_Texture15; state++) {
+        GxRsSet(static_cast<EGxRenderState>(state), 0);
+    }
+
+    g_theGxDevicePtr->RsSet(GxRs_PixelShader, this->m_pixelShaders[this->m_useRect]);
+    float constants[4];
+    constants[0] = this->unk_005C;
+    constants[1] = constants[0];
+    constants[2] = constants[0];
+    constants[3] = constants[0];
+    GxShaderConstantsSet(GxSh_Pixel, 0, constants, 1);
+    GxRsSet(GxRs_BlendingMode, this->m_blend);
+    g_theGxDevicePtr->Draw(&FFX::s_quadBatch, 1);
+    FFX::SetupReset();
+}
+
+// VERIFY: 7f8524f4 auto
+// OFFSET: 0x007E9010
+void EffectSwirlingFog::SetParameters(int32_t count, const int32_t* params) {
+    static_cast<PassFogSeed*>(this->m_passes[0])->unk_0034 = params[0];
+    static_cast<PassPropagateFog*>(this->m_passes[1])->unk_005C = params[1] * 0.0039215689f;
+    PassFogCombine* combine = static_cast<PassFogCombine*>(this->m_passes[2]);
+    combine->unk_0054 = params[2] * 0.0099999998f;
+    combine->unk_0058 = 3.0f;
+}
+
+// VERIFY: d2fd534c auto
+// OFFSET: 0x007E8E20
+void EffectNetherWorld::End() {
+    if (this->m_passes.Count() >= 2) {
+        static_cast<PassNetherCombine*>(this->m_passes[1])->unk_003C = 0.0f;
+    }
 }

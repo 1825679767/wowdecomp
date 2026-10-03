@@ -240,7 +240,8 @@ UIADDON::METADATA::~METADATA() {
     }
 }
 
-// INLINED
+// VERIFY: e761f62e auto
+// OFFSET: 0x005F6FF0
 ADDONSTATELIST::~ADDONSTATELIST() {
     if (this->m_name) {
         SMemFree(this->m_name, __FILE__, __LINE__, 0);

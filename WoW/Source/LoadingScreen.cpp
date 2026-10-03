@@ -46,6 +46,12 @@ static const BackgroundImage s_textureInfo[2] = {
     { "Interface\\Glues\\LoadingBar\\Loading-BarBorder", false, 0.5f, 0.075f, 0.6f, 0.05f },
 };
 
+// STATIC: 0x009E2E2C
+static const BackgroundImage s_miniTextureInfo[2] = {
+    { "Interface\\Glues\\LoadingBar\\Loading-BarFill", true, 0.5f, 0.975f, 0.525f, 0.025f },
+    { "Interface\\Glues\\LoadingBar\\Loading-BarBorder", false, 0.5f, 0.975f, 0.6f, 0.05f },
+};
+
 // STATIC: 0x00AB63B4
 static float s_normalAspect = 4.0f / 3.0f;
 
@@ -904,4 +910,90 @@ bool LoadDynamicBackground() {
     }
 
     return true;
+}
+
+// VERIFY: 4a7d39e7 manual
+// OFFSET: 0x00409B10
+static void LoadingScreenMiniPaint(void* param, const RECTF* rect, const RECTF* visible, float elapsedSec) {
+    if (!GxHasContext() || !GxIsWindowVisible()) {
+        return;
+    }
+
+    float minX;
+    float maxX;
+    float minY;
+    float maxY;
+    float minZ;
+    float maxZ;
+    GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
+
+    GxXformSetViewport(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
+
+    float aspect = CoordinateGetAspectCompensation();
+    float ratio = s_usingWideScreen ? s_wideAspect / s_normalAspect : 1.0f;
+    float scale = aspect / ratio;
+
+    float left = 0.0f;
+    float width = 1.0f;
+    float bottom = 0.0f;
+    float height = 1.0f;
+
+    if (scale > 1.0f) {
+        width = 1.0f / scale;
+        left = (1.0f - width) * 0.5f;
+    } else if (scale < 1.0f) {
+        height = scale;
+        bottom = (1.0f - scale) * 0.5f;
+    }
+
+    GxXformSetViewport(left, width + left, bottom, height + bottom, 0.0f, 1.0f);
+
+    C44Matrix view;
+    C44Matrix projection;
+    GxuXformCreateOrtho(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 500.0f, projection);
+    g_theGxDevicePtr->XformSetView(view);
+    g_theGxDevicePtr->XformSetProjection(projection);
+
+    g_theGxDevicePtr->RsPush();
+
+    C44Matrix transform;
+
+    if (s_vertexShader[0]->Valid() && s_pixelShader[0]->Valid()) {
+        g_theGxDevicePtr->RsSet(GxRs_VertexShader, s_vertexShader[0]);
+        g_theGxDevicePtr->RsSet(GxRs_PixelShader, s_pixelShader[0]);
+        GxXformViewProjNativeTranspose(transform);
+        GxShaderConstantsSet(GxSh_Vertex, 0, &transform.a0, 4);
+    } else {
+        GxRsSet(GxRs_Lighting, 0);
+    }
+
+    GxRsSet(GxRs_Fog, 0);
+    PaintLoadingBar(s_miniTextureInfo, 2, unk_B2FEC4);
+    g_theGxDevicePtr->RsPop();
+    GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
+}
+
+// VERIFY: 38d7d83b manual
+// OFFSET: 0x0040A690
+void LoadingScreenMiniEnable() {
+    if (unk_B2FEC0) {
+        return;
+    }
+
+    CStatus status;
+
+    for (uint32_t i = 0; i < sizeof(unk_B2FEC4) / sizeof(unk_B2FEC4[0]); i++) {
+        if (!unk_B2FEC4[i]) {
+            CGxTexFlags flags;
+            unk_B2FEC4[i] = TextureCreate(s_miniTextureInfo[i].m_path, flags, &status, 0);
+        }
+    }
+
+    RECTF rect;
+    rect.bottom = 0.0f;
+    rect.left = 0.0f;
+    rect.top = 1.0f;
+    rect.right = 1.0f;
+    ScrnLayerCreate(&rect, 9.0f, 3, nullptr, LoadingScreenMiniPaint, &unk_B2FEC0);
+    s_progress = 0.5f;
 }

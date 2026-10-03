@@ -593,3 +593,27 @@ void CMapArea::QueryLiquidSounds(C3Vector* pos, float radius, TSGrowableArray<Wo
         }
     }
 }
+
+// VERIFY: e54d69d6 manual
+// OFFSET: [0x007D6E10, 0x007D7120]
+CMapArea::~CMapArea() {
+    if (this->m_liquid) {
+        SMemFree(this->m_liquid, __FILE__, __LINE__, 0);
+        this->m_liquid = nullptr;
+    }
+
+    if (this->m_fileBuffer) {
+        CMapArea::FreeAsyncLoadBuffer(this->m_fileBuffer, this->m_fileSize);
+    }
+
+    this->unk_008C = 0;
+    this->m_doodadDef = nullptr;
+    this->m_mapObjDef = nullptr;
+    this->m_chunkInfo = nullptr;
+    this->m_doodadDefCount = 0;
+    this->m_mapObjDefCount = 0;
+    this->m_m2FileNames = nullptr;
+    this->m_wmoFileNames = nullptr;
+    this->m_modelFilenamesOffsets = nullptr;
+    this->m_wmoFilenamesOffsets = nullptr;
+}

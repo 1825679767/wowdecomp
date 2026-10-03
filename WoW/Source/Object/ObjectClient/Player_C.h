@@ -403,7 +403,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void SetAutoLoot(int32_t autoLoot);
     bool CanInteract(const CGUnit_C* unit) const;
     void LootUnit(CGUnit_C* unit, bool autoInteract);
-    void HandleSkinning(CGUnit_C* unit, bool autoInteract, bool a4);
+    void HandleSkinning(CGObject_C* object, bool autoInteract, bool a4);
     void HandleOnRightClick(CGUnit_C* unit, bool autoInteract);
     bool CTMAttackUnit(CGUnit_C* unit);
     void CombatModeEnter(const WOWGUID& target, int32_t queueRanged, int32_t silent);

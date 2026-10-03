@@ -48,7 +48,7 @@ Liquid::CMaterialWater::CMaterialWater() {
 }
 
 // VERIFY: 181045ab manual
-// OFFSET: 0x008A3FE0
+// OFFSET: [0x008A3FE0, 0x008A47C0]
 Liquid::CMaterialWater::~CMaterialWater() {
     if (Liquid::CMaterialWater::s_refCount-- == 1) {
         for (uint32_t i = 0; i < 4; i++) {
@@ -80,7 +80,7 @@ Liquid::CMaterialWaterNoSpec::CMaterialWaterNoSpec() {
 }
 
 // VERIFY: eafe186b manual
-// OFFSET: 0x008A40E0
+// OFFSET: [0x008A40E0, 0x008A4820]
 Liquid::CMaterialWaterNoSpec::~CMaterialWaterNoSpec() {
     if (Liquid::CMaterialWaterNoSpec::s_refCount-- == 1) {
         for (uint32_t i = 0; i < 4; i++) {

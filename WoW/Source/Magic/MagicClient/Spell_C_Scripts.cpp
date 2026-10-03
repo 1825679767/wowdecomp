@@ -10,6 +10,8 @@
 #include "WoW/Source/DB/Rec/SpellRec.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/UIUtil/InputControl.h"
+#include "Engine/Source/lua-5.1/src/lauxlib.h"
 
 // VERIFY: bf97997d auto
 // OFFSET: 0x007FDCD0
@@ -215,6 +217,60 @@ static int32_t Script_CancelItemTempEnchantment(lua_State* L) {
     }
 
     CGPlayer_C::RemoveTempEnchantment(invSlot);
+    return 0;
+}
+
+// VERIFY: 36933267 auto
+// OFFSET: 0x00804220
+static int32_t Script_CancelUnitBuff(lua_State* L) {
+    ScriptAuraInfo info;
+
+    if (!Script_GetUnitAuraInfo(L, 1, &info)) {
+        luaL_error(L, "Usage: CancelUnitBuff(\"unit\", [index] or [\"name\", \"rank\"][, \"filter\"])");
+    }
+
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+
+    if (player && player->m_obj->m_guid == info.m_guid) {
+        int32_t slot = static_cast<int32_t>(player->GetSortedAuraSlot(info.m_index, info.m_name, info.m_rank, info.m_filter));
+
+        if (slot < 0) {
+            return 0;
+        }
+
+        SpellRec spell;
+
+        if (g_spellDB.GetRecord(player->GetAuraSpellId(slot), &spell) && ((player->GetAuraFlags(slot) & 0x10) || (spell.m_attributesEx & 0x4))) {
+            Spell_C_CancelAura(&spell, player, slot);
+        }
+
+        return 0;
+    }
+
+    CGInputControl* input = CGInputControl::GetActive();
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+
+    if (!input || !mover || !input->IsVehicleSeatFlagSet(0x2000000)) {
+        return 0;
+    }
+
+    int32_t slot = static_cast<int32_t>(mover->GetSortedAuraSlot(info.m_index, info.m_name, info.m_rank, info.m_filter));
+
+    if (slot < 0 || mover->GetAuraCaster(slot) != ClntObjMgrGetActivePlayer().m_guid) {
+        return 0;
+    }
+
+    SpellRec spell;
+
+    if (g_spellDB.GetRecord(mover->GetAuraSpellId(slot), &spell)) {
+        for (uint32_t i = 0; i < 3; i++) {
+            if (spell.m_effectAura[i] == 236) {
+                mover->VehicleExit();
+                break;
+            }
+        }
+    }
+
     return 0;
 }
 

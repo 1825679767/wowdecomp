@@ -58,4 +58,6 @@ void ClearUniqueSignals();
 
 extern const int32_t s_unitSexValues[3];
 
+extern const char* s_vehicleSkinNames[2];
+
 #endif

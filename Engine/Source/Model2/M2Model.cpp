@@ -891,7 +891,7 @@ CAaSphere CM2Model::GetMaxBoundingSpherePlusAttachments() {
     return sphere;
 }
 
-// VERIFY: 797ee53f manual
+// VERIFY: 4e809ba8 manual
 // OFFSET: 0x00825750
 CAaBox CM2Model::GetCurrentBoundingBox() {
     if (!(this->m_fFlags & 1) || !(this->m_fFlags & 0x8000)) {
@@ -922,7 +922,7 @@ CAaBox CM2Model::GetCurrentBoundingBox() {
     const CAaBox& extent = data->m_sequences[this->m_bones->m_sequence.m_sequenceIndex].m_bounds.m_extent;
     CAaBox box;
 
-    if (extent.IsEmpty()) {
+    if (extent.IsInverted()) {
         box = extent;
     } else {
         const C44Matrix* world = &this->m_worldTransform;

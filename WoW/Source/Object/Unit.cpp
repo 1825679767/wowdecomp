@@ -292,3 +292,10 @@ bool CGUnit::IsSitting() const {
     uint8_t standState = this->m_unit->m_unitFieldBytes1[0];
     return standState == 1 || (standState >= 4 && standState <= 6);
 }
+
+// VERIFY: 01cf0dc8 auto
+// OFFSET: 0x006FED70
+C3Vector CGUnit::GetVelocity() const {
+    float speed = this->m_movement->m_currentSpeed;
+    return C3Vector(this->m_movement->m_moveDir.x * speed, this->m_movement->m_moveDir.y * speed, speed * this->m_movement->m_moveDir.z);
+}

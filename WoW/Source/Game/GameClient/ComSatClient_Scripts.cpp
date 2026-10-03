@@ -6,13 +6,14 @@
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
 #include "WoW/Source/Game/GameClient/ComSatThread.h"
 #include "Engine/Source/Storm/Source/SLock.h"
+#include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include <cstring>
 
 // STATIC: 0x00D31A8C
-static int32_t s_currentOutputDevice;
+int32_t s_currentOutputDevice;
 
 // STATIC: 0x00D31A90
-static int32_t s_currentCaptureDevice;
+int32_t s_currentCaptureDevice;
 
 // VERIFY: f88c26de auto
 // OFFSET: 0x007DC910
@@ -402,4 +403,73 @@ void VoiceUnregisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
+}
+
+// VERIFY: c5661510 manual
+// OFFSET: 0x007DEEF0
+int32_t Script_GetVoiceSessionMemberInfoBySessionID(lua_State* L) {
+    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+        return 0;
+    }
+
+    uint32_t sessionNumber = static_cast<uint32_t>(lua_tonumber(L, 1));
+
+    if (sessionNumber > 31) {
+        return 0;
+    }
+
+    uint32_t memberIndex = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
+
+    if (memberIndex > 39) {
+        return 0;
+    }
+
+    uint32_t found = 0;
+    int32_t index;
+
+    for (index = 0; index < 32; index++) {
+        if (s_comsatData[index].m_sessionID && ++found == sessionNumber) {
+            break;
+        }
+    }
+
+    if (index >= 32) {
+        return 0;
+    }
+
+    COMSATMEMBER& member = s_comsatData[index].m_members[memberIndex];
+    WOWGUID none = { 0 };
+    const char* name = reinterpret_cast<const char*>(g_nameDBCache.GetRecord(member.m_guid.m_guid, none, nullptr, nullptr, false));
+
+    if (!name) {
+        name = FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE);
+    }
+
+    lua_pushstring(L, name);
+
+    if (member.m_flags & 0x4) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (member.m_flags & 0x40) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (ComSatClient_IsMutedPlayer(member.m_guid)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    if (member.m_flags & 0x8) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 5;
 }
