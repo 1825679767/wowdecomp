@@ -979,6 +979,7 @@ static int32_t Script_SetChatColorNameByClass(lua_State* L) {
 static int32_t Script_GetChatTypeIndex(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetChatTypeIndex(type)");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -1046,6 +1047,7 @@ static int32_t Script_GetChannelName(lua_State* L) {
     } else {
         if (!lua_isstring(L, 1)) {
             luaL_error(L, "Usage: GetChannelName([channelIndex] or [channelName])");
+            return 0;
         }
 
         channel = GetChannelByName(lua_tolstring(L, 1, nullptr));
@@ -1775,6 +1777,7 @@ static int32_t Script_EnumerateServerChannels(lua_State* L) {
 static int32_t Script_GetSavedInstanceInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetSavedInstanceInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -1981,6 +1984,7 @@ static int32_t Script_CanComplainChat(lua_State* L) {
     } else {
         if (!lua_isstring(L, 1)) {
             luaL_error(L, "Usage: CanComplainChat(lineID) or CanComplainChat(name) or CanComplainChat(name, text)");
+            return 0;
         }
 
         const char* name = lua_tolstring(L, 1, nullptr);

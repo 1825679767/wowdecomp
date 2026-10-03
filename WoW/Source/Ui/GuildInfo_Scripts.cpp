@@ -348,6 +348,7 @@ static int32_t Script_QueryGuildEventLog(lua_State* L) {
 static int32_t Script_CanEditGuildTabInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CanEditGuildTabInfo(tab)");
+        return 0;
     }
 
     uint32_t tab = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -438,6 +439,7 @@ static int32_t Script_GetGuildRosterSelection(lua_State* L) {
 static int32_t Script_GetGuildRosterInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetGuildRosterInfo(index)");
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -557,6 +559,7 @@ static int32_t Script_GetGuildInfoText(lua_State* L) {
 static int32_t Script_GetGuildRosterLastOnline(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetGuildRosterLastOnline(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -789,6 +792,7 @@ static int32_t Script_GuildControlAddRank(lua_State* L) {
 static int32_t Script_GetGuildBankTabPermissions(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetGuildBankTabPermissions(tab)");
+        return 0;
     }
 
     uint8_t tab = static_cast<uint8_t>(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
@@ -844,6 +848,7 @@ static int32_t Script_SetGuildInfoText(lua_State* L) {
 static int32_t Script_GuildControlGetRankName(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GuildControlGetRankName(index)");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();

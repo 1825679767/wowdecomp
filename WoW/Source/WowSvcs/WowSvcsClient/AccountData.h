@@ -38,6 +38,7 @@ void LoadAccountData(int32_t type, ACCOUNTDATALOADFUNC func, void* param);
 void SaveAccountData(int32_t type, ACCOUNTDATALOADFUNC func, void* param);
 void AccountDataFlush();
 int32_t Packet_SMSG_CHECK_FOR_BOTS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+void SetClearConfigData(int32_t clear);
 void UploadAccountData(int32_t type);
 void UploadAccountData();
 void DownloadAccountData();

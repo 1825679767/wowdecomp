@@ -59,7 +59,7 @@ void CDataStore::Finalize() {
 }
 
 // VERIFY: edfdbe12 auto
-// OFFSET: 0x00403880
+// OFFSET: [0x00403880, 0x004038A0]
 CDataStore::~CDataStore() {
     if (this->m_alloc != -1) {
         this->InternalDestroy(this->m_data, this->m_base, this->m_alloc);

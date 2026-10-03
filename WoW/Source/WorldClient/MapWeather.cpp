@@ -166,7 +166,7 @@ WeatherGrid::WeatherGrid() {
 }
 
 // VERIFY: 6499eaa9 auto
-// OFFSET: 0x00784B80
+// OFFSET: [0x00784B80, 0x00786850]
 WeatherGrid::~WeatherGrid() {
     for (uint32_t y = 0; y < 5; y++) {
         for (uint32_t x = 0; x < 5; x++) {

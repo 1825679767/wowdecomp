@@ -92,7 +92,8 @@ struct PacketList {
     T* Alloc();
 };
 
-// INLINED
+// VERIFY: 3d18abbb auto
+// OFFSET: [0x00786920, 0x00786990, 0x00786A20]
 template <class T>
 Packet<T>::Packet() {
     this->m_origin.x = 0.0f;
@@ -103,7 +104,7 @@ Packet<T>::Packet() {
 }
 
 // VERIFY: f5042ffb auto
-// OFFSET: 0x00786C30
+// OFFSET: [0x00786C30, 0x00786CD0, 0x00786D70]
 template <class T>
 Packet<T>::~Packet() {
     CGxBuf* buf = this->m_vertexBufHandle;
@@ -118,7 +119,7 @@ Packet<T>::~Packet() {
 }
 
 // VERIFY: 828a4f90 manual
-// OFFSET: 0x00788C10
+// OFFSET: [0x00788C10, 0x00788D50, 0x00788E90, 0x00788FD0]
 template <class T>
 PacketList<T>::~PacketList() {
     T* packet = this->m_activePackets.Head();
@@ -142,7 +143,7 @@ PacketList<T>::~PacketList() {
 }
 
 // VERIFY: aced9f3f manual
-// OFFSET: 0x00787920
+// OFFSET: [0x00787920, 0x00787A10, 0x00787B00, 0x00787BF0]
 template <class T>
 T* PacketList<T>::Alloc() {
     T* packet = this->m_freePackets.Head();

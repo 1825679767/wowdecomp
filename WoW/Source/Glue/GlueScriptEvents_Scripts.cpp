@@ -30,8 +30,12 @@
 #include "WoW/Source/ConsoleDevice/ConsoleDevice.h"
 #include "WoW/Source/WowServices/RealmConnection.h"
 #include "Engine/Source/Scrn/Scrn.h"
+#include "Engine/Source/Event/Event.h"
+#include "WoW/Source/Game/ValidateName.h"
+#include "WoW/Source/Glue/CharacterSelection.h"
+#include "WoW/Source/WowServices/BattlenetLogin.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/AccountData.h"
 
-int32_t Script_IsShiftKeyDown(lua_State* L);
 int32_t Script_GetLocale(lua_State* L);
 int32_t Script_QuitGameAndRunLauncher(lua_State* L);
 int32_t Script_PlayCreditsMusic(lua_State* L);
@@ -39,13 +43,11 @@ int32_t Script_PatchDownloadProgress(lua_State* L);
 int32_t Script_PatchDownloadCancel(lua_State* L);
 int32_t Script_PatchDownloadApply(lua_State* L);
 int32_t Script_LaunchAddOnURL(lua_State* L);
-int32_t Script_GetAddOnDependencies(lua_State* L);
 int32_t Script_GetAddOnEnableState(lua_State* L);
 int32_t Script_EnableAddOn(lua_State* L);
 int32_t Script_EnableAllAddOns(lua_State* L);
 int32_t Script_DisableAddOn(lua_State* L);
 int32_t Script_ResetAddOns(lua_State* L);
-int32_t Script_SetAddonVersionCheck(lua_State* L);
 int32_t Script_GetBillingTimeRemaining(lua_State* L);
 int32_t Script_GetBillingPlan(lua_State* L);
 int32_t Script_GetBillingTimeRested(lua_State* L);
@@ -58,12 +60,6 @@ int32_t Script_GetMatrixCoordinates(lua_State* L);
 int32_t Script_IsLinuxClient(lua_State* L);
 int32_t Script_CancelLogin(lua_State* L);
 int32_t Script_AcceptChangedOptionWarnings(lua_State* L);
-int32_t Script_GetNumDeclensionSets(lua_State* L);
-int32_t Script_DeclineName(lua_State* L);
-int32_t Script_GetNumGameAccounts(lua_State* L);
-int32_t Script_GetGameAccountInfo(lua_State* L);
-int32_t Script_SetGameAccount(lua_State* L);
-int32_t Script_SetClearConfigData(lua_State* L);
 int32_t Script_RestoreVideoResolutionDefaults(lua_State* L);
 int32_t Script_RestoreVideoEffectsDefaults(lua_State* L);
 int32_t Script_RestoreVideoStereoDefaults(lua_State* L);
@@ -1022,6 +1018,7 @@ static int32_t Script_Screenshot(lua_State* L) {
 static int32_t Script_GetAddOnEnableState(lua_State* L) {
     if ((!lua_isstring(L, 1) && lua_type(L, 1)) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetAddOnEnableState(\"character\", index)");
+        return 0;
     }
 
     const char* character = lua_tolstring(L, 1, nullptr);
@@ -1029,6 +1026,7 @@ static int32_t Script_GetAddOnEnableState(lua_State* L) {
 
     if (!name) {
         luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+        return 0;
     }
 
     lua_pushnumber(L, GetAddOnEnableState(name, character, true));
@@ -1051,6 +1049,7 @@ static int32_t Script_LaunchURL(lua_State* L) {
 static int32_t Script_GetCreditsText(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: Script_GetCreditText(versionIndex)");
+        return 0;
     }
 
     int32_t version = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -1189,6 +1188,212 @@ static int32_t Script_SetRealmSplitState(lua_State* L) {
 }
 
 // STATIC: 0x00AC3E00
+// VERIFY: 042aa045 auto
+// OFFSET: 0x004DBE10
+static int32_t Script_IsShiftKeyDown(lua_State* L) {
+    if (EventIsKeyDown(KEY_LSHIFT) || EventIsKeyDown(KEY_RSHIFT)) {
+        lua_pushnumber(L, 1.0);
+    } else {
+        lua_pushnil(L);
+    }
+
+    return 1;
+}
+
+// VERIFY: 24f12e8c manual
+// OFFSET: 0x004DCB20
+static int32_t Script_SetAddonVersionCheck(lua_State* L) {
+    if (StringToBOOL(L, 1, 1)) {
+        SetAddonVersionCheck(1);
+    } else {
+        SetAddonVersionCheck(0);
+    }
+
+    return 0;
+}
+
+// VERIFY: d426a464 auto
+// OFFSET: 0x004DCF70
+static int32_t Script_GetNumDeclensionSets(lua_State* L) {
+    if (!lua_isstring(L, 1)) {
+        luaL_error(L, "Usage: GetNumDeclensionSets(\"name\", gender)");
+    }
+
+    int32_t sex = 2;
+    const char* name = lua_tolstring(L, 1, nullptr);
+
+    if (lua_isnumber(L, 2)) {
+        int32_t value = lua_tointeger(L, 2);
+
+        for (int32_t i = 0; i < 3; i++) {
+            if (g_scriptSexIndex[i] == value) {
+                sex = i;
+                break;
+            }
+        }
+    }
+
+    lua_pushnumber(L, GetNumNameDeclensionSets(s_locale, name, sex));
+    return 1;
+}
+
+// VERIFY: b3444eb1 auto
+// OFFSET: 0x004DD020
+static int32_t Script_DeclineName(lua_State* L) {
+    if (!lua_isstring(L, 1) || !lua_isnumber(L, 3)) {
+        luaL_error(L, "Usage: DeclineName(\"name\", gender, declensionSet)");
+    }
+
+    int32_t sex = 2;
+    const char* name = lua_tolstring(L, 1, nullptr);
+
+    if (lua_isnumber(L, 2)) {
+        int32_t value = lua_tointeger(L, 2);
+
+        for (int32_t i = 0; i < 3; i++) {
+            if (g_scriptSexIndex[i] == value) {
+                sex = i;
+                break;
+            }
+        }
+    }
+
+    char declensions[5][1024];
+
+    if (GetNameDeclensions(s_locale, declensions[0], name, sex, static_cast<int32_t>(lua_tonumber(L, 3)) - 1)) {
+        for (uint32_t i = 0; i < 5; i++) {
+            lua_pushstring(L, declensions[i]);
+        }
+
+        return 5;
+    }
+
+    for (uint32_t i = 0; i < 5; i++) {
+        lua_pushnil(L);
+    }
+
+    return 5;
+}
+
+// VERIFY: 30f2d4b2 auto
+// OFFSET: 0x004DD130
+static int32_t Script_GetNumGameAccounts(lua_State* L) {
+    Login* login = ClientServices::LoginConnection();
+
+    if (!login) {
+        luaL_error(L, "No login available");
+        return 0;
+    }
+
+    if (login->GetLoginServerType() != 1) {
+        luaL_error(L, "Wrong login type");
+        return 0;
+    }
+
+    lua_pushnumber(L, static_cast<BattlenetLogin*>(login)->GetNumGameAccounts());
+    return 1;
+}
+
+// VERIFY: fbabed65 manual
+// OFFSET: 0x004DD1C0
+static int32_t Script_GetGameAccountInfo(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetGameAccountInfo(index)");
+        return 0;
+    }
+
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    Login* login = ClientServices::LoginConnection();
+
+    if (!login) {
+        luaL_error(L, "No login available");
+        return 0;
+    }
+
+    if (login->GetLoginServerType() != 1) {
+        luaL_error(L, "Wrong login type");
+        return 0;
+    }
+
+    BattlenetLogin* battlenet = static_cast<BattlenetLogin*>(login);
+    const char* name = battlenet->GetGameAccountName(index);
+
+    if (!name) {
+        return 0;
+    }
+
+    lua_pushstring(L, name);
+    lua_pushnumber(L, battlenet->GetGameAccountRegion(index));
+    return 2;
+}
+
+// VERIFY: a295ea7c manual
+// OFFSET: 0x004DD2B0
+static int32_t Script_SetGameAccount(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: SetGameAccount(index)");
+        return 0;
+    }
+
+    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    Login* login = ClientServices::LoginConnection();
+
+    if (!login) {
+        luaL_error(L, "No login available");
+        return 0;
+    }
+
+    if (login->GetLoginServerType() != 1) {
+        luaL_error(L, "Wrong login type");
+        return 0;
+    }
+
+    lua_pushboolean(L, static_cast<BattlenetLogin*>(login)->SetGameAccount(index));
+    return 1;
+}
+
+// VERIFY: d0d3a8b0 manual
+// OFFSET: 0x004DD3B0
+static int32_t Script_SetClearConfigData(lua_State* L) {
+    if (lua_type(L, 1) == LUA_TBOOLEAN) {
+        SetClearConfigData(lua_toboolean(L, 1));
+    } else {
+        SetClearConfigData(1);
+    }
+
+    return 0;
+}
+
+// VERIFY: 145f8072 auto
+// OFFSET: 0x004DDAC0
+static int32_t Script_GetAddOnDependencies(lua_State* L) {
+    if (!lua_isnumber(L, 1)) {
+        luaL_error(L, "Usage: GetAddOnDependencies(index)");
+        return 0;
+    }
+
+    const char* name = GetAddOnByIndex(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+
+    if (!name) {
+        luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+        return 0;
+    }
+
+    TSGrowableArray<char*>* dependencies = GetAddonDeps(name);
+
+    if (!dependencies) {
+        return 0;
+    }
+
+    lua_checkstack(L, dependencies->m_count);
+
+    for (uint32_t i = 0; i < dependencies->m_count; i++) {
+        lua_pushstring(L, dependencies->m_data[i]);
+    }
+
+    return dependencies->m_count;
+}
+
 static FrameScript_Method s_scriptFunctions[] = {
     { "IsShiftKeyDown", &Script_IsShiftKeyDown },
     { "GetBuildInfo", &Script_GetBuildInfo },

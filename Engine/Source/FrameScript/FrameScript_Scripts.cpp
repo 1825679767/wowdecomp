@@ -702,6 +702,7 @@ static int32_t Script_scrub(lua_State* L) {
 static int32_t Script_strlenutf8(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: strlenutf8(string)");
+        return 0;
     }
 
     lua_pushnumber(L, SStrLenUTF8(lua_tostring(L, 1)));

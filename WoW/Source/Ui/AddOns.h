@@ -35,6 +35,7 @@ void LoadAddOns(CStatus* status);
 void UnloadAddOns();
 void SaveAddOnEnableState();
 bool IsAddonVersionCheckEnabled();
+void SetAddonVersionCheck(int32_t enable);
 const char* GetAddOnURL(const char* name);
 bool IsAddOnUpdateAvailable(const char* name);
 

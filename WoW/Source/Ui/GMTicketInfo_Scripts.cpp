@@ -90,6 +90,7 @@ static int32_t Script_GMSurveyCommentSubmit(lua_State* L) {
 static int32_t Script_GMSurveyQuestion(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GMSurveyGetQuestion(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -109,6 +110,7 @@ static int32_t Script_GMSurveyQuestion(lua_State* L) {
 static int32_t Script_GMSurveyAnswer(lua_State* L) {
     if (!lua_isnumber(L, 1) && !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GMSurveyGetAnswer(questionIndex, answerIndex)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -129,6 +131,7 @@ static int32_t Script_GMSurveyAnswer(lua_State* L) {
 static int32_t Script_GMSurveyNumAnswers(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GMSurveyGetNumAnswers(questionIndex)");
+        return 0;
     }
 
     int32_t count = 0;

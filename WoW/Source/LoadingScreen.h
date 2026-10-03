@@ -42,6 +42,8 @@ class CLoadingScreenShipInfo {
     /* 0000 */ TSGrowableArray<PATHINFO> m_paths;
     /* 0010 */ TSGrowableArray<LOADINGSCREENTAXIPATHINFO> m_legs;
 
+    int32_t FindLeg(WowClientDB<T>* nodeDB, uint32_t path, int32_t continentID);
+    bool GetLeg(uint32_t path, uint32_t leg, int32_t* startNodeID, int32_t* endNodeID);
     void Initialize(WowClientDB<T>* nodeDB, uint32_t pathCount);
 };
 
@@ -52,6 +54,7 @@ void LoadingScreenDisable();
 void LoadingScreenEnableShipLeg(int32_t entryId, uint32_t leg);
 void LoadingScreenEnable(int32_t mapID, bool loadingWorld);
 void LoadingScreenEnableShip(uint32_t transportEntry, int32_t transportMap, int32_t mapID);
+bool LoadDynamicBackground();
 void LoadingScreenInitialize();
 void LoadingScreenMiniDisable();
 void LoadingScreenMiniEnable();
@@ -123,6 +126,59 @@ void CLoadingScreenShipInfo<T>::Initialize(WowClientDB<T>* nodeDB, uint32_t path
 
         prev = node;
     }
+}
+
+// VERIFY: 89cea504 auto
+// OFFSET: 0x00408C80
+template <class T>
+bool CLoadingScreenShipInfo<T>::GetLeg(uint32_t path, uint32_t leg, int32_t* startNodeID, int32_t* endNodeID) {
+    if (path >= this->m_paths.Count()) {
+        return false;
+    }
+
+    PATHINFO& info = this->m_paths.m_data[path];
+
+    if (leg >= info.m_legs.Count()) {
+        return false;
+    }
+
+    LOADINGSCREENTAXIPATHINFO& legInfo = this->m_legs.m_data[info.m_legs.m_data[leg]];
+
+    if (legInfo.m_startNodeID <= 0 || legInfo.m_endNodeID <= 0) {
+        return false;
+    }
+
+    *startNodeID = legInfo.m_startNodeID;
+    *endNodeID = legInfo.m_endNodeID;
+    return true;
+}
+
+// VERIFY: a1285220 auto
+// OFFSET: 0x00408CD0
+template <class T>
+int32_t CLoadingScreenShipInfo<T>::FindLeg(WowClientDB<T>* nodeDB, uint32_t path, int32_t continentID) {
+    int32_t count = path < this->m_paths.Count() ? this->m_paths.m_data[path].m_legs.Count() : 0;
+
+    if (!count) {
+        return -1;
+    }
+
+    for (int32_t i = 0; i < count; i++) {
+        int32_t startNodeID;
+        int32_t endNodeID;
+
+        if (!this->GetLeg(path, i, &startNodeID, &endNodeID)) {
+            break;
+        }
+
+        T* node = nodeDB->GetRecord(startNodeID);
+
+        if (node && node->m_continentID == continentID) {
+            return i;
+        }
+    }
+
+    return -1;
 }
 
 #endif

@@ -97,6 +97,7 @@ static int32_t Script_GetNumSockets(lua_State* L) {
 static int32_t Script_GetNewSocketInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetNewSocketInfo(index)");
+        return 0;
     }
 
     double number = lua_tonumber(L, 1);
@@ -198,6 +199,7 @@ static int32_t Script_GetSocketItemBoundTradeable(lua_State* L) {
 static int32_t Script_GetExistingSocketInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetExistingSocketInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;

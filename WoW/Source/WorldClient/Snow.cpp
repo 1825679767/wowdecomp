@@ -35,18 +35,10 @@ C3Vector* Weather::GetPosition(C3Vector* position) {
     return position;
 }
 
-// INLINED
-SnowFlakeParticleBuffer::SnowFlakeParticleBuffer() {
-    this->m_particleCount = 6144;
-
-    for (uint32_t i = 0; i < 6144; i++) {
-        this->m_particles[i].m_position.x = 0.0f;
-        this->m_particles[i].m_position.y = 0.0f;
-        this->m_particles[i].m_position.z = 0.0f;
-        this->m_particles[i].m_velocity.x = 0.0f;
-        this->m_particles[i].m_velocity.y = 0.0f;
-        this->m_particles[i].m_velocity.z = 0.0f;
-    }
+// VERIFY: 735159a8 manual
+// OFFSET: 0x00785100
+SnowFlakeParticleBuffer::SnowFlakeParticleBuffer()
+    : m_particleCount(6144) {
 }
 
 // VERIFY: 62ca5d5f manual

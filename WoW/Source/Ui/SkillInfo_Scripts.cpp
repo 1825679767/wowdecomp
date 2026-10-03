@@ -78,6 +78,7 @@ static int32_t Script_GetAdjustedSkillPoints(lua_State* L) {
 static int32_t Script_GetSkillLineInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetSkillLineInfo(index)");
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));

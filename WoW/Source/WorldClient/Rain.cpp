@@ -649,22 +649,10 @@ Rain::Rain(float width, float height) : m_bbox(C3Vector(0.0f, 0.0f, 0.0f), C3Vec
     }
 }
 
-// INLINED
-RainParticleBuffer::RainParticleBuffer() {
-    this->m_particleCount = 6144;
-
-    for (uint32_t i = 0; i < 6144; i++) {
-        this->m_particles[i].m_position.x = 0.0f;
-        this->m_particles[i].m_position.y = 0.0f;
-        this->m_particles[i].m_position.z = 0.0f;
-        this->m_particles[i].m_velocity.x = 0.0f;
-        this->m_particles[i].m_velocity.y = 0.0f;
-        this->m_particles[i].m_velocity.z = 0.0f;
-        this->m_particles[i].m_color.b = 0;
-        this->m_particles[i].m_color.g = 0;
-        this->m_particles[i].m_color.r = 0;
-        this->m_particles[i].m_color.a = 0;
-    }
+// VERIFY: 68a2d07d manual
+// OFFSET: 0x007850C0
+RainParticleBuffer::RainParticleBuffer()
+    : m_particleCount(6144) {
 }
 
 // INLINED

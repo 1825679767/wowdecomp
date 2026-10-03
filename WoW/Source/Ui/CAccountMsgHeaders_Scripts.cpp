@@ -11,6 +11,7 @@
 static int32_t Script_AccountMsg_GetNumTotalMsgs(lua_State* L) {
     if (g_accountMsgHeaders.m_state != 2) {
         luaL_error(L, "AccountMsg_GetNumTotalMsgs() failed because the headers are not loaded");
+        return 0;
     }
 
     lua_pushnumber(L, g_accountMsgHeaders.m_count);
@@ -22,16 +23,19 @@ static int32_t Script_AccountMsg_GetNumTotalMsgs(lua_State* L) {
 static int32_t Script_AccountMsg_GetHeaderSubject(lua_State* L) {
     if (g_accountMsgHeaders.m_state != 2) {
         luaL_error(L, "AccountMsg_GetHeaderSubject() failed because the headers are not loaded");
+        return 0;
     }
 
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: AccountMsg_GetHeaderSubject(number)");
+        return 0;
     }
 
     double index = lua_tonumber(L, 1);
 
     if (index < 0.0 || index >= g_accountMsgHeaders.m_count) {
         luaL_error(L, "Usage: AccountMsg_GetHeaderSubject(number) failed because the number is out of range");
+        return 0;
     }
 
     lua_pushstring(L, g_accountMsgHeaders.GetHeaderSubject(static_cast<int32_t>(index)));
@@ -43,16 +47,19 @@ static int32_t Script_AccountMsg_GetHeaderSubject(lua_State* L) {
 static int32_t Script_AccountMsg_GetHeaderPriority(lua_State* L) {
     if (g_accountMsgHeaders.m_state != 2) {
         luaL_error(L, "AccountMsg_GetHeaderPriority() failed because the headers are not loaded");
+        return 0;
     }
 
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: AccountMsg_GetHeaderPriority(number)");
+        return 0;
     }
 
     double index = lua_tonumber(L, 1);
 
     if (index < 0.0 || index >= g_accountMsgHeaders.m_count) {
         luaL_error(L, "Usage: AccountMsg_GetHeaderPriority(number) failed because the number is out of range");
+        return 0;
     }
 
     lua_pushnumber(L, g_accountMsgHeaders.GetHeaderPriority(static_cast<int32_t>(index)));
@@ -88,6 +95,7 @@ static int32_t Script_AccountMsg_LoadBody(lua_State* L) {
 static int32_t Script_AccountMsg_GetBody(lua_State* L) {
     if (g_accountMsgBody.m_state != 2) {
         luaL_error(L, "AccountMsg_GetBody() failed because the body was not loaded");
+        return 0;
     }
 
     if (!g_accountMsgBody.m_iterator.m_node) {
@@ -103,6 +111,7 @@ static int32_t Script_AccountMsg_GetBody(lua_State* L) {
 static int32_t Script_AccountMsg_GetNumUnreadMsgs(lua_State* L) {
     if (g_accountMsgHeaders.m_state != 2) {
         luaL_error(L, "AccountMsg_GetNumUnreadMsgs() failed because the headers are not loaded");
+        return 0;
     }
 
     int32_t count = 0;
@@ -122,6 +131,7 @@ static int32_t Script_AccountMsg_GetNumUnreadMsgs(lua_State* L) {
 static int32_t Script_AccountMsg_GetNumUnreadUrgentMsgs(lua_State* L) {
     if (g_accountMsgHeaders.m_state != 2) {
         luaL_error(L, "AccountMsg_GetNumUnreadMsgs() failed because the headers are not loaded");
+        return 0;
     }
 
     lua_pushnumber(L, g_accountMsgHeaders.GetNumUnreadUrgentMsgs());
@@ -133,6 +143,7 @@ static int32_t Script_AccountMsg_GetNumUnreadUrgentMsgs(lua_State* L) {
 static int32_t Script_AccountMsg_GetIndexHighestPriorityUnreadMsg(lua_State* L) {
     if (g_accountMsgHeaders.m_state != 2) {
         luaL_error(L, "AccountMsg_GetHeaderSubject() failed because the headers are not loaded");
+        return 0;
     }
 
     int32_t index = g_accountMsgHeaders.GetIndexHighestPriorityUnreadMsg();
@@ -146,6 +157,7 @@ static int32_t Script_AccountMsg_GetIndexHighestPriorityUnreadMsg(lua_State* L) 
 static int32_t Script_AccountMsg_GetIndexNextUnreadMsg(lua_State* L) {
     if (g_accountMsgHeaders.m_state != 2) {
         luaL_error(L, "AccountMsg_GetHeaderSubject() failed because the headers are not loaded");
+        return 0;
     }
 
     int32_t index = -1;

@@ -57,6 +57,7 @@ static int32_t Script_ExpandFactionHeader(lua_State* L) {
 static int32_t Script_IsFactionInactive(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: IsFactionInactive(index)");
+        return 0;
     }
 
     if (CGReputationInfo::IsFactionInactive(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1)) {

@@ -144,6 +144,7 @@ static int32_t Script_SetModifiedClick(lua_State* L) {
 static int32_t Script_GetModifiedClick(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetModifiedClick(\"action\")");
+        return 0;
     }
 
     CGUIBindings* bindings = CGUIBindings::s_bindings;
@@ -166,6 +167,7 @@ static int32_t Script_GetModifiedClick(lua_State* L) {
 static int32_t Script_GetBindingAction(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetBindingAction(\"KEY\"[, checkOverride][, mode])");
+        return 0;
     }
 
     BINDING_MODE mode = BINDING_MODE_ACTIVE;
@@ -266,6 +268,7 @@ static int32_t Script_RunBinding(lua_State* L) {
 static int32_t Script_SetBinding(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SetBinding(\"KEY\"[, \"COMMAND\"][, mode])");
+        return 0;
     }
 
     BINDING_MODE mode = BINDING_MODE_0;
@@ -355,6 +358,7 @@ static int32_t Script_SetOverrideBinding(lua_State* L) {
 static int32_t Script_SetBindingSpell(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: SetBindingSpell(\"KEY\", \"spellname\"[, mode])");
+        return 0;
     }
 
     BINDING_MODE mode = BINDING_MODE_0;
@@ -388,6 +392,7 @@ static int32_t Script_SetBindingSpell(lua_State* L) {
 static int32_t Script_SetBindingItem(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: SetBindingItem(\"KEY\", \"itemname\"[, mode])");
+        return 0;
     }
 
     BINDING_MODE mode = BINDING_MODE_0;
@@ -421,6 +426,7 @@ static int32_t Script_SetBindingItem(lua_State* L) {
 static int32_t Script_SetBindingMacro(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: SetBindingMacro(\"KEY\", \"macroname\"|macroid[, mode])");
+        return 0;
     }
 
     BINDING_MODE mode = BINDING_MODE_0;
@@ -454,6 +460,7 @@ static int32_t Script_SetBindingMacro(lua_State* L) {
 static int32_t Script_SetBindingClick(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: SetBindingClick(\"KEY\", \"buttonName\"[, \"mouseButton\"][, mode])");
+        return 0;
     }
 
     BINDING_MODE mode = BINDING_MODE_0;

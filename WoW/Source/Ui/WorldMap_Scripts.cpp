@@ -393,6 +393,7 @@ static int32_t Script_GetMapInfo(lua_State* L) {
 static int32_t Script_GetPlayerMapPosition(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetPlayerMapPosition(\"player\")");
+        return 0;
     }
 
     float x = 0.0f;
@@ -430,6 +431,7 @@ static int32_t Script_GetWintergraspWaitTime(lua_State* L) {
 static int32_t Script_GetMapLandmarkInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetMapLandmarkInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -731,6 +733,7 @@ static int32_t Script_GetMapZones(lua_State* L) {
 static int32_t Script_GetMapOverlayInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetMapOverlayInfo(index)");
+        return 0;
     }
 
     int64_t index = static_cast<int64_t>(lua_tonumber(L, 1)) - 1;

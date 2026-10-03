@@ -4269,3 +4269,50 @@ void CGCamera::AddShakeById(int32_t shakeId, const C3Vector* position) {
 float CameraEaseInOut(float t) {
     return 0.5f - CMath::cos_(t * 3.1415927f) * 0.5f;
 }
+
+// VERIFY: f1d24674 auto
+// OFFSET: 0x006006A0
+void CGCamera::UpdateVehicleYawOffset(uint32_t time) {
+    float t = static_cast<float>(time - this->m_vehicleYawStartTime) / static_cast<float>(this->m_vehicleYawEndTime - this->m_vehicleYawStartTime);
+
+    if (t > 1.0f) {
+        this->m_vehicleYawStartTime = this->m_vehicleYawEndTime;
+        this->m_vehicleYawOffset = this->m_vehicleYawTo;
+    } else {
+        this->m_vehicleYawOffset = CameraEaseInOut(t) * (this->m_vehicleYawTo - this->m_vehicleYawFrom) + this->m_vehicleYawFrom;
+    }
+}
+
+// VERIFY: 1b6d5b25 auto
+// OFFSET: 0x006007B0
+void CGCamera::UpdateVehiclePitchOffset(uint32_t time) {
+    float t = static_cast<float>(time - this->m_vehiclePitchStartTime) / static_cast<float>(this->m_vehiclePitchEndTime - this->m_vehiclePitchStartTime);
+
+    if (t > 1.0f) {
+        this->m_vehiclePitchStartTime = this->m_vehiclePitchEndTime;
+        this->m_vehiclePitchOffset = this->m_vehiclePitchTo;
+    } else {
+        this->m_vehiclePitchOffset = CameraEaseInOut(t) * (this->m_vehiclePitchTo - this->m_vehiclePitchFrom) + this->m_vehiclePitchFrom;
+    }
+}
+
+// VERIFY: cf40d06b manual
+// OFFSET: 0x00605700
+void CGCamera::FaceTarget(CGObject_C* target, uint32_t time) {
+    if (!target) {
+        SErrSetLastError(87);
+        return;
+    }
+
+    if (!(this->m_state & 0x4) && !this->FinishLoadingTarget(target)) {
+        return;
+    }
+
+    C3Vector direction(0.0f, 0.0f, 0.0f);
+    direction = this->GetSafeWorldPos(target);
+    direction.x = direction.x - this->m_position.x;
+    direction.y = direction.y - this->m_position.y;
+    direction.z = this->m_targetHeightFar + direction.z - this->m_position.z;
+    direction.NormalizeSafe();
+    this->SetFacing(direction);
+}

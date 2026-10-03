@@ -338,6 +338,7 @@ static int32_t Script_GetDailyQuestsCompleted(lua_State* L) {
 static int32_t Script_GetActiveTitle(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetActiveTitle(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -351,6 +352,7 @@ static int32_t Script_GetActiveTitle(lua_State* L) {
 static int32_t Script_GetQuestItemLink(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetQuestItemLink(\"type\", index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 2));
@@ -415,6 +417,7 @@ static int32_t Script_CloseQuest(lua_State* L) {
 static int32_t Script_IsAvailableQuestTrivial(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: IsAvailableQuestTrivial(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -434,6 +437,7 @@ static int32_t Script_IsAvailableQuestTrivial(lua_State* L) {
 static int32_t Script_IsActiveQuestTrivial(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: IsActiveQuestTrivial(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -624,6 +628,7 @@ static int32_t Script_GetQuestItemInfo(lua_State* L) {
 
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2) || !CGQuestInfo::QuestItemInfo(lua_tostring(L, 1), static_cast<int32_t>(lua_tonumber(L, 2)) - 1, name, sizeof(name), texture, sizeof(texture), &count, &quality, &usable)) {
         luaL_error(L, "Invalid quest item in GetQuestItemInfo(\"type\", index)");
+        return 0;
     }
 
     lua_pushstring(L, name);
@@ -660,6 +665,7 @@ static int32_t Script_GetQuestSpellLink(lua_State* L) {
 static int32_t Script_GetAvailableQuestInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetAvailableQuestInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;

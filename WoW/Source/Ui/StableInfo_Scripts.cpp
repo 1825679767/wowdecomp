@@ -92,6 +92,7 @@ static int32_t Script_IsAtStableMaster(lua_State* L) {
 static int32_t Script_GetStablePetInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetStablePetInfo(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -331,6 +332,7 @@ static int32_t Script_BuyStableSlot(lua_State* L) {
 static int32_t Script_ClickStablePet(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ClickStablePet(index)");
+        return 0;
     }
 
     double number = lua_tonumber(L, 1);

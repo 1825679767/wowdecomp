@@ -1757,20 +1757,24 @@ bool World::IsValidPosition(const C3Vector& position, float a4) {
     return World::IsValidPosition(position.x, position.y, position.z, a4);
 }
 
-// VERIFY: 0ee74c0d auto
+// VERIFY: 8553e69c auto
 // OFFSET: 0x00406DE0
 bool World::IsValidPosition(float x, float y, float z, float a4) {
-if (_finite(x) && _finite(y) && _finite(z)) {
-    float v4 = -(y - 17066.666f);
-    float v5 = -(x - 17066.666f);
-    if (a4 > v4)
-        return 0;
-    if (34133.332f - a4 > v4 && a4 <= v5 && v5 < 34133.332f - a4)
-        return 1;
-}
-return 0;
-}
+    if (_finite(x) && _finite(y) && _finite(z)) {
+        float v4 = -(y - 17066.666f);
+        float v5 = -(x - 17066.666f);
 
+        if (a4 > v4) {
+            return 0;
+        }
+
+        if (34133.332f - a4 > v4 && a4 <= v5 && v5 < 34133.332f - a4) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
 
 
 

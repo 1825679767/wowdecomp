@@ -77,7 +77,7 @@ CDataStoreCache<size>::CDataStoreCache() {
 }
 
 // VERIFY: 929e0c1c manual
-// OFFSET: 0x008CD160
+// OFFSET: [0x008CD160, 0x008CD040, 0x008CD1C0]
 template <uint32_t size>
 CDataStoreCache<size>::~CDataStoreCache() {
     if (this->m_alloc != -1) {

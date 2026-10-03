@@ -221,6 +221,7 @@ static int32_t Script_SelectStationery(lua_State* L) {
 static int32_t Script_GetStationeryInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetStationeryInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -265,6 +266,7 @@ static int32_t Script_SetSendMailShowing(lua_State* L) {
 static int32_t Script_GetPackageInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetPackageInfo(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -725,6 +727,7 @@ static int32_t Script_DeleteInboxItem(lua_State* L) {
 static int32_t Script_InboxItemCanDelete(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: InboxItemCanDelete(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -846,6 +849,7 @@ static int32_t Script_ClickSendMailItemButton(lua_State* L) {
 static int32_t Script_SetSendMailMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetSendMailMoney(amount)");
+        return 0;
     }
 
     if (CGMailInfo::SetSendMoney(static_cast<int32_t>(lua_tonumber(L, 1)))) {
@@ -1004,6 +1008,7 @@ static int32_t Script_SendMail(lua_State* L) {
 static int32_t Script_GetInboxText(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetInboxText(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -1094,6 +1099,7 @@ static int32_t Script_GetInboxText(lua_State* L) {
 static int32_t Script_GetInboxItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetInboxItem(messageIndex, attachIndex)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -1222,6 +1228,7 @@ static int32_t Script_ComplainInboxItem(lua_State* L) {
 static int32_t Script_CanComplainInboxItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: InboxItemCanComplain(index)");
+        return 0;
     }
 
     if (CGMailInfo::CanComplain(static_cast<int32_t>(lua_tonumber(L, 1)) - 1)) {

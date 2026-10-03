@@ -77,6 +77,7 @@ static int32_t Script_GetAchievementCategory(lua_State* L) {
 static int32_t Script_GetAchievementNumRewards(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetAchievementNumRewards(achievementID)");
+        return 0;
     }
 
     AchievementRec* rec = g_achievementDB.GetRecord(static_cast<int32_t>(lua_tonumber(L, 1)));
@@ -95,6 +96,7 @@ static int32_t Script_GetAchievementNumRewards(lua_State* L) {
 static int32_t Script_GetAchievementReward(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetAchievementNumRewards(achievementID, rewardIndex)");
+        return 0;
     }
 
     int32_t id = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -239,6 +241,7 @@ static int32_t Script_GetCategoryNumAchievements(lua_State* L) {
 
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetCategoryNumAchievements(categoryID)");
+        return 0;
     }
 
     int32_t categoryId = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -594,6 +597,7 @@ static int32_t Script_GetComparisonCategoryNumAchievements(lua_State* L) {
 
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetComparisonCategoryNumAchievements(categoryID)");
+        return 0;
     }
 
     int32_t categoryId = static_cast<int32_t>(lua_tonumber(L, 1));

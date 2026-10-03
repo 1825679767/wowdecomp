@@ -26,6 +26,7 @@
 static int32_t Script_GetLootRollTimeLeft(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLootRollTimeLeft(id)");
+        return 0;
     }
 
     PendingLootRoll* roll = FindRoll(static_cast<int32_t>(lua_tonumber(L, 1)));
@@ -44,6 +45,7 @@ static int32_t Script_GetLootRollTimeLeft(lua_State* L) {
 static int32_t Script_LootSlotIsItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: LootSlotIsItem(slot)");
+        return 0;
     }
 
     int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -74,6 +76,7 @@ static int32_t Script_LootSlotIsItem(lua_State* L) {
 static int32_t Script_LootSlotIsCoin(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: LootSlotIsCoin(slot)");
+        return 0;
     }
 
     int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -175,6 +178,7 @@ static void MasterLootCandidateNameCallback(int32_t id, const WOWGUID& guid, voi
 static int32_t Script_GetMasterLootCandidate(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetMasterLootCandidate(index)");
+        return 0;
     }
 
     WOWGUID guid = GetMasterLootCandidate(static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, 1)) - 1));
@@ -201,6 +205,7 @@ static int32_t Script_GetNumLootItems(lua_State* L) {
 static int32_t Script_GetLootSlotInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLootSlotInfo(slot)");
+        return 0;
     }
 
     uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -237,6 +242,7 @@ static int32_t Script_GetLootSlotInfo(lua_State* L) {
 static int32_t Script_GetLootSlotLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLootSlotLink(slot)");
+        return 0;
     }
 
     char link[1024];

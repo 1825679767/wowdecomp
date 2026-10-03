@@ -325,6 +325,7 @@ static int32_t Script_PetHasActionBar(lua_State* L) {
 static int32_t Script_GetPossessInfo(lua_State* L) {
     if (lua_tonumber(L, 1) == 0.0) {
         luaL_error(L, "Usage: GetPossessInfo(index)");
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -462,6 +463,7 @@ static int32_t Script_GetPetActionsUsable(lua_State* L) {
 static int32_t Script_GetPetActionSlotUsable(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetPetActionSlotsUsable(index)");
+        return 0;
     }
 
     if (CGPetInfo::PetActionSlotUsable(GetPetAction(static_cast<int32_t>(lua_tonumber(L, 1)) - 1))) {

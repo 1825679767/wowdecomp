@@ -15,7 +15,13 @@
 #include "Engine/Source/Scrn/Scrn.h"
 #include "Engine/Source/Services/TextBlock.h"
 #include "Engine/Source/SoundEngine/SoundEngine.h"
+#include "Engine/Source/Tempest/C3Spline_CatmullRom.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
+#include "Engine/Source/Tempest/CMath.h"
+#include "WoW/Source/DB/Rec/LoadingScreenTaxiSplinesRec.h"
+#include "WoW/Source/DB/Rec/TaxiPathNodeRec.h"
+#include "WoW/Source/Object/GameObjectDef.h"
+#include "WoW/Source/Ui/WorldMap.h"
 #include "WoW/Source/Client.h"
 #include "WoW/Source/DB/Rec/LoadingScreensRec.h"
 #include "WoW/Source/DB/Rec/MapRec.h"
@@ -77,12 +83,31 @@ static const char* s_fontNames[9] = {
     "Fonts\\NIM_____.TTF",
 };
 
+// STATIC: 0x00AB63FC
+static CImVector s_pathColor = CImVector(0xFF, 0xFF, 0xFF, 0xFF);
+
 // STATIC: 0x00AB6400
 static C2Vector s_texCoord[4] = {
     C2Vector(0.0f, 1.0f),
     C2Vector(1.0f, 1.0f),
     C2Vector(0.0f, 0.0f),
     C2Vector(1.0f, 0.0f),
+};
+
+// STATIC: 0x00AB6420
+static C3Vector s_pathOffsets[4] = {
+    C3Vector(-0.01f, -0.015f, 0.0f),
+    C3Vector(0.01f, -0.015f, 0.0f),
+    C3Vector(-0.01f, 0.015f, 0.0f),
+    C3Vector(0.01f, 0.015f, 0.0f),
+};
+
+// STATIC: 0x00AB6450
+static C2Vector s_pathTexCoords[4] = {
+    C2Vector(0.0f, 1.0f),
+    C2Vector(0.5f, 1.0f),
+    C2Vector(0.0f, 0.5f),
+    C2Vector(0.5f, 0.5f),
 };
 
 // STATIC: 0x00AB6470
@@ -167,7 +192,7 @@ static C3Vector s_tileVertices[12][4];
 static C2Vector s_tileTexCoords[12][4];
 
 // STATIC: 0x00B302C0
-static TSFixedArray<DYNAMICELEMENTVERT> s_dynamicElements;
+static TSGrowableArray<DYNAMICELEMENTVERT> s_dynamicElements;
 
 // STATIC: 0x00B302D0
 static CLoadingScreenShipInfo<TaxiPathNodeRec> s_shipInfo;
@@ -996,4 +1021,278 @@ void LoadingScreenMiniEnable() {
     rect.right = 1.0f;
     ScrnLayerCreate(&rect, 9.0f, 3, nullptr, LoadingScreenMiniPaint, &unk_B2FEC0);
     s_progress = 0.5f;
+}
+
+// VERIFY: 3eb5beca manual
+// OFFSET: 0x00408690
+static void BuildEndpointVertices(const C3Vector& start, const C3Vector& end) {
+    s_dynamicElements.m_data[0].m_position = C3Vector(start.x - 0.02f, start.y - 0.0265f, 0.0f);
+    s_dynamicElements.m_data[0].m_texCoord.x = 0.5f;
+    s_dynamicElements.m_data[0].m_texCoord.y = 0.5f;
+    s_dynamicElements.m_data[0].m_color = s_pathColor;
+
+    s_dynamicElements.m_data[1].m_position = C3Vector(start.x + 0.02f, start.y - 0.0265f, 0.0f);
+    s_dynamicElements.m_data[1].m_texCoord.x = 1.0f;
+    s_dynamicElements.m_data[1].m_texCoord.y = 0.5f;
+    s_dynamicElements.m_data[1].m_color = s_pathColor;
+
+    s_dynamicElements.m_data[2].m_position = C3Vector(start.x - 0.02f, start.y + 0.0265f, 0.0f);
+    s_dynamicElements.m_data[2].m_texCoord.x = 0.5f;
+    s_dynamicElements.m_data[2].m_texCoord.y = 0.0f;
+    s_dynamicElements.m_data[2].m_color = s_pathColor;
+
+    s_dynamicElements.m_data[3].m_position = C3Vector(start.x + 0.02f, start.y + 0.0265f, 0.0f);
+    s_dynamicElements.m_data[3].m_texCoord.x = 1.0f;
+    s_dynamicElements.m_data[3].m_texCoord.y = 0.0f;
+    s_dynamicElements.m_data[3].m_color = s_pathColor;
+
+    s_dynamicElements.m_data[4].m_position = C3Vector(end.x - 0.02f, end.y - 0.0265f, 0.0f);
+    s_dynamicElements.m_data[4].m_texCoord.x = 0.0f;
+    s_dynamicElements.m_data[4].m_texCoord.y = 0.5f;
+    s_dynamicElements.m_data[4].m_color = s_pathColor;
+
+    s_dynamicElements.m_data[5].m_position = C3Vector(end.x + 0.02f, end.y - 0.0265f, 0.0f);
+    s_dynamicElements.m_data[5].m_texCoord.x = 0.5f;
+    s_dynamicElements.m_data[5].m_texCoord.y = 0.5f;
+    s_dynamicElements.m_data[5].m_color = s_pathColor;
+
+    s_dynamicElements.m_data[6].m_position = C3Vector(end.x - 0.02f, end.y + 0.0265f, 0.0f);
+    s_dynamicElements.m_data[6].m_texCoord.x = 0.0f;
+    s_dynamicElements.m_data[6].m_texCoord.y = 0.0f;
+    s_dynamicElements.m_data[6].m_color = s_pathColor;
+
+    s_dynamicElements.m_data[7].m_position = C3Vector(end.x + 0.02f, end.y + 0.0265f, 0.0f);
+    s_dynamicElements.m_data[7].m_texCoord.x = 0.5f;
+    s_dynamicElements.m_data[7].m_texCoord.y = 0.0f;
+    s_dynamicElements.m_data[7].m_color = s_pathColor;
+}
+
+// VERIFY: 0d76d9d0 manual
+// OFFSET: 0x004089C0
+static void BuildPathVertices(C3Spline* spline, int32_t segments) {
+    float t = 0.0f;
+    float step = 1.0f / segments;
+    DYNAMICELEMENTVERT* vertex = &s_dynamicElements.m_data[8];
+
+    for (int32_t i = 0; i < segments + 1; i++) {
+        t = t < 0.0f ? 0.0f : (1.0f <= t ? 1.0f : t);
+
+        C3Vector position(t, t, t);
+        spline->Pos(t, position, C3Spline::EVAL_ARCLENGTH);
+
+        for (uint32_t j = 0; j < 4; j++) {
+            vertex[j].m_position = s_pathOffsets[j] + position;
+            vertex[j].m_texCoord = s_pathTexCoords[j];
+        }
+
+        vertex += 4;
+        t += step;
+    }
+}
+
+// VERIFY: 8b8c8fa2 manual
+// OFFSET: 0x00408BB0
+static LoadingScreenTaxiSplinesRec* FindTaxiSpline(int32_t pathID, int32_t legIndex) {
+    for (int32_t i = 0; i < g_loadingScreenTaxiSplinesDB.m_numRecords; i++) {
+        LoadingScreenTaxiSplinesRec* rec = g_loadingScreenTaxiSplinesDB.GetRecordByIndex(i);
+
+        if (rec->m_pathID == pathID && rec->m_legIndex == legIndex) {
+            return rec;
+        }
+    }
+
+    return nullptr;
+}
+
+// VERIFY: 99e42577 manual
+// OFFSET: 0x00408E10
+void PaintDynamicLoadingBar() {
+    if (!s_dynamicElements.Count()) {
+        return;
+    }
+
+    int32_t segments = (static_cast<int32_t>(s_dynamicElements.Count()) - 8) / 4;
+    int32_t lit = 0;
+
+    while (lit < segments) {
+        DYNAMICELEMENTVERT* vertex = &s_dynamicElements.m_data[8 + lit * 4];
+        vertex[0].m_color = s_pathColor;
+        vertex[1].m_color = s_pathColor;
+        vertex[2].m_color = s_pathColor;
+        vertex[3].m_color = s_pathColor;
+
+        if (static_cast<float>(lit) / static_cast<float>(segments - 1) > s_progress) {
+            break;
+        }
+
+        lit++;
+    }
+
+    uint32_t indexCount = 6 * lit + 12;
+    uint32_t vertexCount = 4 * lit + 8;
+    uint16_t* indices = static_cast<uint16_t*>(alloca(indexCount * sizeof(uint16_t)));
+    uint16_t* index = indices;
+
+    for (int32_t i = 0; i < lit; i++) {
+        uint16_t base = static_cast<uint16_t>(8 + i * 4);
+        index[0] = base;
+        index[1] = base + 1;
+        index[2] = base + 2;
+        index[3] = base + 1;
+        index[4] = base + 3;
+        index[5] = base + 2;
+        index += 6;
+    }
+
+    index[0] = 0;
+    index[1] = 1;
+    index[2] = 2;
+    index[3] = 1;
+    index[4] = 3;
+    index[5] = 2;
+    index[6] = 4;
+    index[7] = 5;
+    index[8] = 6;
+    index[9] = 5;
+    index[10] = 7;
+    index[11] = 6;
+
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, TextureGetGxTex(s_dynamicElementsTexture, 1, nullptr));
+    GxRsSet(GxRs_BlendingMode, 2);
+    GxUpdateAlphaRef(GxRs_AlphaRef);
+
+    DYNAMICELEMENTVERT* vertices = s_dynamicElements.m_data;
+    GxPrimLockVertexPtrs(vertexCount, &vertices->m_position, sizeof(DYNAMICELEMENTVERT), nullptr, 0, &vertices->m_color, sizeof(DYNAMICELEMENTVERT), nullptr, 0, &vertices->m_texCoord, sizeof(DYNAMICELEMENTVERT), nullptr, 0);
+    GxDrawLockedElements(GxPrim_Triangles, indexCount, indices);
+    GxPrimUnlockVertexPtrs();
+}
+
+// VERIFY: da792d7a manual
+// OFFSET: 0x00409880
+static bool InitializeSpline(uint32_t path, int32_t leg) {
+    LoadingScreenTaxiSplinesRec* splineRec = FindTaxiSpline(path, leg);
+
+    if (!splineRec) {
+        return false;
+    }
+
+    int32_t legCount = path < s_shipInfo.m_paths.Count() ? s_shipInfo.m_paths.m_data[path].m_legs.Count() : 0;
+
+    if (!legCount) {
+        return false;
+    }
+
+    int32_t startNodeID;
+    int32_t endNodeID = 0;
+    int32_t nextStartNodeID = 0;
+
+    if (!s_shipInfo.GetLeg(path, leg, &startNodeID, &endNodeID)) {
+        return false;
+    }
+
+    if (!s_shipInfo.GetLeg(path, (leg + 1) % legCount, &nextStartNodeID, &startNodeID)) {
+        return false;
+    }
+
+    TaxiPathNodeRec* startNode = g_taxiPathNodeDB.GetRecord(endNodeID);
+    TaxiPathNodeRec* endNode = g_taxiPathNodeDB.GetRecord(nextStartNodeID);
+
+    if (!startNode || !endNode) {
+        return false;
+    }
+
+    C3Vector start;
+    start.x = startNode->m_loc[0];
+    start.y = startNode->m_loc[1];
+    start.z = 0.0f;
+
+    C3Vector end;
+    end.x = endNode->m_loc[0];
+    end.y = endNode->m_loc[1];
+    end.z = 0.0f;
+
+    if (!CGWorldMap::GetContinentPosition(start.x, start.y, startNode->m_continentID, &start.x, &start.y) || !CGWorldMap::GetContinentPosition(end.x, end.y, endNode->m_continentID, &end.x, &end.y)) {
+        return false;
+    }
+
+    TSStackArray<C3Vector> points(static_cast<C3Vector*>(alloca(sizeof(C3Vector) * 12)), 12, 1);
+    points.m_data[1] = start;
+    points.m_data[0] = points.m_data[1];
+
+    uint32_t count = 0;
+
+    while (count < 8 && (splineRec->m_locx[count] > 0.0f || splineRec->m_locy[count] > 0.0f)) {
+        points.m_data[count + 2].x = splineRec->m_locx[count];
+        points.m_data[count + 2].y = splineRec->m_locy[count];
+        points.m_data[count + 2].z = 0.0f;
+        count++;
+    }
+
+    points.m_data[count + 3] = end;
+    points.m_data[count + 2] = points.m_data[count + 3];
+
+    C3Spline_CatmullRom spline;
+    spline.SetPoints(points.m_data, count + 4);
+
+    int32_t segments = FloatToInt64(spline.m_length * 66.666672f);
+
+    if (segments < 1) {
+        segments = 1;
+    }
+
+    s_dynamicElements.SetCount(4 * segments + 12);
+    BuildEndpointVertices(start, end);
+    BuildPathVertices(&spline, segments);
+
+    return true;
+}
+
+// VERIFY: 6a24a8ca manual
+// OFFSET: 0x0040AD50
+void LoadingScreenEnableShip(uint32_t transportEntry, int32_t transportMap, int32_t mapID) {
+    s_simpleMapID = mapID;
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player) {
+        CGGameObject_C* transport = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(WOWGUID{ player->GetTransportGUID() }, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+
+        if (transport && transport->m_obj->m_entryID == transportEntry) {
+            uint32_t path = transport->GetPropertyValue(CGameObjectDef::GetPropNum(transport->m_gameObject->m_typeID, 35));
+            uint32_t leg = s_shipInfo.FindLeg(&g_taxiPathNodeDB, path, transportMap);
+
+            if (!InitializeSpline(path, leg) || !LoadDynamicBackground()) {
+                ClearDynamicData();
+                InitializeProgressBar(true);
+                return;
+            }
+
+            s_simpleMapID = -1;
+        }
+    }
+
+    InitializeProgressBar(true);
+}
+
+// VERIFY: 06b933e0 manual
+// OFFSET: 0x0040AE30
+void LoadingScreenEnableShipLeg(int32_t entryId, uint32_t leg) {
+    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+    if (player) {
+        CGGameObject_C* transport = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(WOWGUID{ player->GetTransportGUID() }, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+
+        if (transport && transport->m_obj->m_entryID == entryId) {
+            uint32_t path = transport->GetPropertyValue(CGameObjectDef::GetPropNum(transport->m_gameObject->m_typeID, 35));
+
+            if (!InitializeSpline(path, leg) || !LoadDynamicBackground()) {
+                ClearDynamicData();
+                InitializeProgressBar(true);
+                return;
+            }
+
+            s_simpleMapID = -1;
+        }
+    }
+
+    InitializeProgressBar(true);
 }

@@ -264,6 +264,7 @@ static int32_t Script_CancelAuction(lua_State* L) {
 static int32_t Script_GetNumAuctionItems(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetNumAuctionItems(\"type\")");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -346,6 +347,7 @@ static int32_t Script_IsAuctionSortReversed(lua_State* L) {
 static int32_t Script_GetAuctionSort(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetAuctionSort(\"type\", \"index\")");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -655,6 +657,7 @@ static int32_t Script_SetSelectedAuctionItem(lua_State* L) {
 static int32_t Script_GetSelectedAuctionItem(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetSelectedAuctionItem(\"type\")");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -698,6 +701,7 @@ static int32_t Script_SortAuctionApplySort(lua_State* L) {
 static int32_t Script_CalculateAuctionDeposit(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalculateAuctionDeposit(runTime)");
+        return 0;
     }
 
     const AuctionHouseRec* rec = g_auctionHouseDB.GetRecord(CGAuctionHouse::m_auctionHouseID);
@@ -1164,6 +1168,7 @@ static int32_t Script_StartAuction(lua_State* L) {
 static int32_t Script_GetAuctionItemTimeLeft(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetAuctionItemTimeLeft(\"type\", index)");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);

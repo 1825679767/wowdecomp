@@ -152,6 +152,7 @@ static int32_t Script_CloseGuildBankFrame(lua_State* L) {
 static int32_t Script_GetNumGuildBankTransactions(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetNumGuildBankTransactions(tab)");
+        return 0;
     }
 
     uint8_t tab = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -164,6 +165,7 @@ static int32_t Script_GetNumGuildBankTransactions(lua_State* L) {
 static int32_t Script_GetGuildBankText(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetGuildBankText(tab)");
+        return 0;
     }
 
     int32_t value = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -216,6 +218,7 @@ static int32_t Script_GetGuildBankItemLink(lua_State* L) {
 static int32_t Script_GetGuildBankMoneyTransaction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetGuildBankMoneyTransaction(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -328,6 +331,7 @@ static int32_t Script_WithdrawGuildBankMoney(lua_State* L) {
 static int32_t Script_GetGuildBankItemInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetGuildBankItemInfo(tab, slot)");
+        return 0;
     }
 
     int32_t value = static_cast<int32_t>(lua_tonumber(L, 1));

@@ -174,6 +174,7 @@ static int32_t Script_SecureCmdOptionParse(lua_State* L) {
 static int32_t Script_GetMacroIconInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetMacroIconInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -195,6 +196,7 @@ static int32_t Script_GetMacroIconInfo(lua_State* L) {
 static int32_t Script_GetMacroItemIconInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetMacroItemIconInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -251,6 +253,7 @@ static int32_t Script_GetNumMacroItemIcons(lua_State* L) {
 static int32_t Script_GetMacroIndexByName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetMacroIndexByName(name)");
+        return 0;
     }
 
     lua_pushnumber(L, CGUIMacros::GetSortedIndexByName(lua_tolstring(L, 1, nullptr)) + 1);

@@ -20,6 +20,8 @@ class BattlenetLogin : public Login {
     };
 
     struct GameAccount {
+        /* 0000 */ uint32_t m_region;
+        /* 0004 */ char m_name[256];
     };
 
     struct PatchInstruction {
@@ -100,7 +102,11 @@ class BattlenetLogin : public Login {
 
     BattlenetLogin();
 
+    const char* GetGameAccountName(uint32_t index);
+    uint32_t GetGameAccountRegion(uint32_t index);
+    uint32_t GetNumGameAccounts();
     bool IsConnected();
+    bool SetGameAccount(uint32_t index);
 };
 
 class BNetAuthPacketSub1 {

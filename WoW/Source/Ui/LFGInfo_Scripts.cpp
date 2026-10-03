@@ -272,6 +272,7 @@ static void PushLFDChoiceInfo(lua_State* L, int32_t id) {
 static int32_t Script_GetLFDChoiceInfo(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE && lua_type(L, 1) > LUA_TNIL) {
         luaL_error(L, "Usage: GetLFDChoiceInfo([table])");
+        return 0;
     }
 
     if (lua_type(L, 1) == LUA_TTABLE) {
@@ -1070,6 +1071,7 @@ static int32_t Script_IsLFGDungeonJoinable(lua_State* L) {
 static int32_t Script_GetLFDChoiceCollapseState(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE && lua_type(L, 1) > LUA_TNIL) {
         luaL_error(L, "Usage: GetLFDChoiceCollapseState([table])");
+        return 0;
     }
 
     if (lua_type(L, 1) == LUA_TTABLE) {
@@ -1169,6 +1171,7 @@ static int32_t Script_GetLFDChoiceCollapseState(lua_State* L) {
 static int32_t Script_GetLFDChoiceEnabledState(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE && lua_type(L, 1) > LUA_TNIL) {
         luaL_error(L, "Usage: GetLFDChoiceEnabledState([table])");
+        return 0;
     }
 
     if (lua_type(L, 1) == LUA_TTABLE) {

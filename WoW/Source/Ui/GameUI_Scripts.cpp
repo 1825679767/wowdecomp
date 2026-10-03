@@ -1257,6 +1257,7 @@ static int32_t Script_TargetTotem(lua_State* L) {
 static int32_t Script_GetFunctionCPUUsage(lua_State* L) {
     if (lua_type(L, 1) != LUA_TFUNCTION) {
         luaL_error(L, "Usage: GetFunctionCPUUsage(function[, includeSubroutines])");
+        return 0;
     }
 
     int32_t includeSubroutines = StringToBOOL(L, 2, 1);
@@ -1469,6 +1470,7 @@ static int32_t Script_RandomRoll(lua_State* L) {
 static int32_t Script_GetCVarInfo(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetCVarInfo(\"cvar\")");
+        return 0;
     }
 
     CVar* var = CVar::LookupRegistered(lua_tolstring(L, 1, nullptr));
@@ -1568,10 +1570,12 @@ static int32_t Script_IsAddOnLoaded(lua_State* L) {
 
         if (!name) {
             luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+            return 0;
         }
     } else {
         if (!lua_isstring(L, 1)) {
             luaL_error(L, "Usage: IsAddOnLoaded(index or \"name\")");
+            return 0;
         }
 
         name = lua_tolstring(L, 1, nullptr);
@@ -2684,12 +2688,14 @@ static int32_t Script_GetItemSpell(lua_State* L) {
 static int32_t Script_GetTotemTimeLeft(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTotemTimeLeft(slot)");
+        return 0;
     }
 
     uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
 
     if (slot > 3) {
         luaL_error(L, "Totem slot must be in range of 1 to %d", 4);
+        return 0;
     }
 
     TotemInfo* totem = &CGGameUI::m_totems[slot];
@@ -2939,6 +2945,7 @@ static int32_t Script_HasKey(lua_State* L) {
 static int32_t Script_IsTitleKnown(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: IsTitleKnown(titleMaskID)");
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -3385,6 +3392,7 @@ static int32_t Script_GMRequestPlayerInfo(lua_State* L) {
 static int32_t Script_GetCoinIcon(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetCoinIcon(amount)");
+        return 0;
     }
 
     char icon[260];
@@ -3398,6 +3406,7 @@ static int32_t Script_GetCoinIcon(lua_State* L) {
 static int32_t Script_GetCoinText(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetCoinText(amount [,separator])");
+        return 0;
     }
 
     const char* separator = luaL_optlstring(L, 2, ", ", nullptr);
@@ -3414,6 +3423,7 @@ static int32_t Script_GetCoinTextureString(lua_State* L) {
 
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetCoinText(amount, fontHeight)");
+        return 0;
     }
 
     if (lua_isnumber(L, 2)) {
@@ -3513,10 +3523,12 @@ static int32_t Script_GetAddOnInfo(lua_State* L) {
 
         if (!name) {
             luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+            return 0;
         }
     } else {
         if (!lua_isstring(L, 1)) {
             luaL_error(L, "Usage: GetAddOnInfo(index or \"name\")");
+            return 0;
         }
 
         name = lua_tolstring(L, 1, nullptr);
@@ -3603,10 +3615,12 @@ static int32_t Script_GetAddOnMemoryUsage(lua_State* L) {
 
         if (!name) {
             luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+            return 0;
         }
     } else {
         if (!lua_isstring(L, 1)) {
             luaL_error(L, "Usage: GetAddOnMemoryUsage(index or \"name\")");
+            return 0;
         }
 
         name = lua_tolstring(L, 1, nullptr);
@@ -3626,10 +3640,12 @@ static int32_t Script_GetAddOnCPUUsage(lua_State* L) {
 
         if (!name) {
             luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+            return 0;
         }
     } else {
         if (!lua_isstring(L, 1)) {
             luaL_error(L, "Usage: GetAddOnCPUUsage(index or \"name\")");
+            return 0;
         }
 
         name = lua_tolstring(L, 1, nullptr);
@@ -3715,10 +3731,12 @@ static int32_t Script_IsAddOnLoadOnDemand(lua_State* L) {
 
         if (!name) {
             luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+            return 0;
         }
     } else {
         if (!lua_isstring(L, 1)) {
             luaL_error(L, "Usage: IsAddOnLoadOnDemand(index or \"name\")");
+            return 0;
         }
 
         name = lua_tolstring(L, 1, nullptr);
@@ -3756,6 +3774,7 @@ static int32_t Script_VoicePushToTalkStop(lua_State* L) {
 static int32_t Script_GetNumDeclensionSets(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetNumDeclensionSets(\"name\", gender)");
+        return 0;
     }
 
     int32_t sex = 2;
@@ -3833,12 +3852,14 @@ static int32_t Script_DownloadSettings(lua_State* L) {
 static int32_t Script_GetCVarAbsoluteMin(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetCVarAbsoluteMin(\"cvar\")");
+        return 0;
     }
 
     CVar* var = CVar::LookupRegistered(lua_tolstring(L, 1, nullptr));
 
     if (!var || (var->m_flags & 0x40)) {
         luaL_error(L, "Couldn't find CVar named '%s'", lua_tolstring(L, 1, nullptr));
+        return 0;
     }
 
     if (SStrCmpI(var->m_key.m_str, "extShadowQuality", STORM_MAX_STR)) {
@@ -3855,12 +3876,14 @@ static int32_t Script_GetCVarAbsoluteMin(lua_State* L) {
 static int32_t Script_GetCVarAbsoluteMax(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetCVarAbsoluteMax(\"cvar\")");
+        return 0;
     }
 
     CVar* var = CVar::LookupRegistered(lua_tolstring(L, 1, nullptr));
 
     if (!var || (var->m_flags & 0x40)) {
         luaL_error(L, "Couldn't find CVar named '%s'", lua_tolstring(L, 1, nullptr));
+        return 0;
     }
 
     if (SStrCmpI(var->m_key.m_str, "extShadowQuality", STORM_MAX_STR)) {
@@ -4308,6 +4331,7 @@ static int32_t Script_IsDressableItem(lua_State* L) {
 static int32_t Script_GetFrameCPUUsage(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
         luaL_error(L, "Usage: GetFrameCPUUsage(frame[, includeChildren])");
+        return 0;
     }
 
     lua_rawgeti(L, 1, 0);
@@ -4316,10 +4340,12 @@ static int32_t Script_GetFrameCPUUsage(lua_State* L) {
 
     if (!frame) {
         luaL_error(L, "GetFrameCPUUsage(): Couldn't find 'this' in frame object");
+        return 0;
     }
 
     if (!frame->IsA(CSimpleFrame::GetObjectType())) {
         luaL_error(L, "GetFrameCPUUsage(): Wrong object type, expected frame");
+        return 0;
     }
 
     double time = 0.0;
@@ -4330,7 +4356,7 @@ static int32_t Script_GetFrameCPUUsage(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 1691d8ea manual
+// VERIFY: 19f55934 manual
 // OFFSET: 0x005179B0
 static int32_t Script_GetAddOnDependencies(lua_State* L) {
     const char* name;
@@ -4340,10 +4366,12 @@ static int32_t Script_GetAddOnDependencies(lua_State* L) {
 
         if (!name) {
             luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+            return 0;
         }
     } else {
         if (!lua_isstring(L, 1)) {
             luaL_error(L, "Usage: GetAddOnDependencies(index or \"name\")");
+            return 0;
         }
 
         name = lua_tolstring(L, 1, nullptr);
@@ -4662,6 +4690,7 @@ static int32_t Script_ConfirmSummon(lua_State* L) {
 static int32_t Script_CheckInteractDistance(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CheckInteractDistance(\"unit\", distIndex)");
+        return 0;
     }
 
     static float s_interactDistances[4] = { s_inspectDistSq, s_playerInteractDistSq, s_duelDistSq, s_followDistSq };
@@ -5078,6 +5107,7 @@ static int32_t Script_IsEquippedItemType(lua_State* L) {
 
     if (!type || !*type) {
         luaL_error(L, "Usage: IsEquippedItemType(\"type\")");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -5498,6 +5528,7 @@ static int32_t Script_InitiateTrade(lua_State* L) {
 static int32_t Script_CanInspect(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: CanInspect(unit [, showError])");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);

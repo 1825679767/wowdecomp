@@ -162,6 +162,7 @@ static int32_t Script_CloseTaxiMap(lua_State* L) {
 static int32_t Script_TaxiNodeGetType(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: TaxiNodeGetType(slot)");
+        return 0;
     }
 
     int64_t slot = static_cast<int64_t>(lua_tonumber(L, 1));
@@ -174,12 +175,14 @@ static int32_t Script_TaxiNodeGetType(lua_State* L) {
 static int32_t Script_TaxiNodeCost(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: TaxiNodeCost(slot)");
+        return 0;
     }
 
     uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
 
     if (slot >= static_cast<uint32_t>(CGTaxiMap::m_numNodes)) {
         luaL_error(L, "Invalid taxi node slot");
+        return 0;
     }
 
     lua_pushnumber(L, TaxiNodeCost(slot));

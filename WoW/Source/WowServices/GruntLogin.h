@@ -17,6 +17,7 @@ class GruntLogin : public Login {
         /* 01EA */ uint8_t unk_01EA[6];
 
         MATRIXINPUT();
+        void Finish(SHA1::Digest& digest);
     };
 
     /* 10F0 */ uint8_t m_versionChallenge [16];

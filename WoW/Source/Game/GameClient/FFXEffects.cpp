@@ -20,12 +20,14 @@
 #include "WoW/Source/Game/GameClient/PassFogCombine.h"
 #include "WoW/Source/WorldClient/FrameTime.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
+#include "Engine/Source/Tempest/CMath.h"
+#include "WoW/Source/WorldClient/DayNight__DNInfo.h"
 
 // STATIC: 0x00D38140
 static uint32_t* s_seedTexels;
 
 // VERIFY: 34ad1008 auto
-// OFFSET: 0x007E82A0
+// OFFSET: [0x007E82A0, 0x007E9640]
 PassFogCombine::~PassFogCombine() {
     for (uint32_t i = 0; i < sizeof(this->m_pixelShaders) / sizeof(this->m_pixelShaders[0]); i++) {
         if (this->m_pixelShaders[i]) {
@@ -245,7 +247,7 @@ PassNetherBlur::PassNetherBlur(FFX::Tex** inputs, uint32_t count, FFX::Tex* outp
 }
 
 // VERIFY: 32e95e2f auto
-// OFFSET: 0x007E8B30
+// OFFSET: [0x007E8B30, 0x007E9AE0]
 PassNetherBlur::~PassNetherBlur() {
     for (uint32_t i = 0; i < sizeof(this->m_pixelShaders) / sizeof(this->m_pixelShaders[0]); i++) {
         if (this->m_pixelShaders[i]) {
@@ -286,7 +288,7 @@ PassNetherCombine::PassNetherCombine(FFX::Tex** inputs, uint32_t count, FFX::Tex
 }
 
 // VERIFY: e5b4d009 manual
-// OFFSET: 0x007E8C40
+// OFFSET: [0x007E8C40, 0x007EA190]
 PassNetherCombine::~PassNetherCombine() {
     for (uint32_t i = 0; i < sizeof(this->m_pixelShaders) / sizeof(this->m_pixelShaders[0]); i++) {
         if (this->m_pixelShaders[i]) {
@@ -613,4 +615,233 @@ void EffectNetherWorld::End() {
     if (this->m_passes.Count() >= 2) {
         static_cast<PassNetherCombine*>(this->m_passes[1])->unk_003C = 0.0f;
     }
+}
+
+// STATIC: 0x00AF4940
+static float s_netherCombineConstants[4] = { 0.6f, 0.6f, 0.78f, 0.0f };
+
+// VERIFY: e25bee7f manual
+// OFFSET: 0x007E8380
+static C2Vector PolarCoord(float u, float v) {
+    C2Vector result;
+    result.x = 0.0f;
+    result.y = 0.0f;
+
+    float dy = (v - 0.5f) * 1.4142137f;
+    float dx = (u - 0.5f) * 1.4142137f;
+    float radius = sqrt(dx * dx + dy * dy);
+    result.y = radius;
+
+    float c = radius == 0.0f ? 1.0f : 1.0f / radius * dy;
+    result.x = acos(c) * 0.31830987f;
+    return result;
+}
+
+// VERIFY: 59729488 manual
+// OFFSET: 0x007E8410
+void PassFogCombine::BuildVertices(const C2iVector& size, FFX::Tex* tex0, FFX::Tex* tex1) {
+    CImVector color;
+    *reinterpret_cast<uint32_t*>(&color) = 0xFFFFFFFF;
+
+    float halfU0 = 0.5f / tex0->m_size.x;
+    float halfV0 = 0.5f / tex0->m_size.y;
+    float halfU1 = 0.5f / tex1->m_size.x;
+    float halfV1 = 0.5f / tex1->m_size.y;
+    float stepX = size.x * 0.03125f;
+    float stepY = 0.03125f * size.y;
+    float scaleU0 = tex0->m_size.x * tex0->m_texelSize.x;
+    float scaleV0 = tex0->m_size.y * tex0->m_texelSize.y;
+    float scaleU1 = tex1->m_size.x * tex1->m_texelSize.x;
+    float scaleV1 = tex1->m_size.y * tex1->m_texelSize.y;
+
+    bool flip = this->unk_002C && !g_theGxDevicePtr->DeviceApi();
+
+    FFX::VertexPCT2* vertex = reinterpret_cast<FFX::VertexPCT2*>(g_theGxDevicePtr->BufLock(this->m_vertexBuf));
+
+    for (uint32_t y = 0; y <= 32; y++) {
+        float py = stepY * y;
+        float v = y * 0.03125f;
+
+        if (!flip) {
+            v = 1.0f - v;
+        }
+
+        for (uint32_t x = 0; x <= 32; x++) {
+            vertex->p.x = stepX * x;
+            vertex->p.y = py;
+            vertex->p.z = 0.0f;
+
+            float u = x * 0.03125f;
+            vertex->tc[0] = PolarCoord(u, v);
+            vertex->tc[0].x = vertex->tc[0].x + halfU0;
+            vertex->tc[0].y = vertex->tc[0].y + halfV0;
+            vertex->tc[0].x = vertex->tc[0].x * scaleU0;
+            vertex->tc[0].y = vertex->tc[0].y * scaleV0;
+
+            vertex->tc[1].x = u;
+            vertex->tc[1].y = v;
+            vertex->tc[1].x = vertex->tc[1].x + halfU1;
+            vertex->tc[1].y = vertex->tc[1].y + halfV1;
+            vertex->tc[1].x = vertex->tc[1].x * scaleU1;
+            vertex->tc[1].y = vertex->tc[1].y * scaleV1;
+
+            vertex->c = color;
+            vertex++;
+        }
+    }
+
+    CGxBuf* buf = this->m_vertexBuf;
+    g_theGxDevicePtr->BufUnlock(buf, 0);
+    buf->unk_001C = 1;
+}
+
+// VERIFY: 7f8f703f manual
+// OFFSET: 0x007E8600
+void PassFogCombine::BuildIndices() {
+    uint16_t* index = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(this->m_indexBuf));
+
+    for (uint32_t y = 0; y < 32; y++) {
+        for (uint32_t x = 0; x < 32; x++) {
+            uint16_t base = static_cast<uint16_t>(33 * y + x);
+            index[0] = base + 1;
+            index[1] = base + 33;
+            index[2] = base;
+            index[3] = base + 1;
+            index[4] = base + 34;
+            index[5] = base + 33;
+            index += 6;
+        }
+    }
+
+    CGxBuf* buf = this->m_indexBuf;
+    g_theGxDevicePtr->BufUnlock(buf, 0);
+    buf->unk_001C = 1;
+}
+
+// VERIFY: 883cadff manual
+// OFFSET: 0x007E87B0
+void PassDeath::Execute() {
+    C2Vector texCoords0[4];
+    C2Vector texCoords1[4];
+
+    FFX::SetupGx(this->m_output);
+    FFX::SetupGeo_Quad(this->m_output->m_size, this->m_inputs[0]->m_size, this->m_inputs[0]->m_texSize, FFX::s_gridPos, texCoords0, this->unk_002C);
+    FFX::SetupGeo_Quad(this->m_output->m_size, this->m_inputs[1]->m_size, this->m_inputs[1]->m_texSize, FFX::s_gridPos, texCoords1, this->unk_002C);
+
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, TextureGetGxTex(this->m_inputs[0]->m_texture, 1, nullptr));
+    g_theGxDevicePtr->RsSet(GxRs_Texture1, TextureGetGxTex(this->m_inputs[1]->m_texture, 1, nullptr));
+    g_theGxDevicePtr->RsSet(GxRs_PixelShader, this->m_shaders[this->m_useRect]);
+
+    CImVector color;
+    color.b = 0xA8;
+    color.g = 0x93;
+    color.r = 0x53;
+    color.a = static_cast<uint8_t>(CMath::fint_(DayNight::GetInfo()->m_bands.m_glow * 255.0f));
+
+    GxPrimVertexPtr(4, FFX::s_gridPos, sizeof(C3Vector), nullptr, 0, &color, 0, texCoords0, sizeof(C2Vector), texCoords1, sizeof(C2Vector));
+    GxPrimIndexPtr(4, FFX::s_quadIndices);
+    g_theGxDevicePtr->Draw(&FFX::s_quadBatch, 1);
+
+    FFX::SetupReset();
+}
+
+// VERIFY: 74b70bbd manual
+// OFFSET: 0x007E8C80
+void PassNetherCombine::Execute() {
+    C2Vector texCoords0[4];
+    C2Vector texCoords1[4];
+
+    FFX::SetupGx(this->m_output);
+    FFX::SetupGeo_Quad(this->m_output->m_size, this->m_inputs[0]->m_size, this->m_inputs[0]->m_texSize, FFX::s_gridPos, texCoords0, this->unk_002C);
+    FFX::SetupGeo_Quad(this->m_output->m_size, this->m_inputs[1]->m_size, this->m_inputs[1]->m_texSize, FFX::s_gridPos, texCoords1, this->unk_002C);
+
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, TextureGetGxTex(this->m_inputs[0]->m_texture, 1, nullptr));
+    g_theGxDevicePtr->RsSet(GxRs_Texture1, TextureGetGxTex(this->m_inputs[1]->m_texture, 1, nullptr));
+    g_theGxDevicePtr->RsSet(GxRs_PixelShader, this->m_pixelShaders[this->m_useRect]);
+
+    CImVector color;
+    *reinterpret_cast<uint32_t*>(&color) = 0xFFFFFFFF;
+
+    if (this->unk_003C < 0.75f) {
+        float fade = this->unk_003C + FrameTime::s_tickTimeSec;
+        this->unk_003C = fade >= 0.75f ? 0.75f : fade;
+    }
+
+    s_netherCombineConstants[3] = this->unk_003C;
+    g_theGxDevicePtr->ShaderConstantsSet(GxSh_Pixel, 0, s_netherCombineConstants, 1);
+
+    GxPrimVertexPtr(4, FFX::s_gridPos, sizeof(C3Vector), nullptr, 0, &color, 0, texCoords0, sizeof(C2Vector), texCoords1, sizeof(C2Vector));
+    GxPrimIndexPtr(4, FFX::s_quadIndices);
+    g_theGxDevicePtr->Draw(&FFX::s_quadBatch, 1);
+
+    FFX::SetupReset();
+}
+
+// VERIFY: 0e25f7e9 manual
+// OFFSET: 0x007E9670
+void PassFogCombine::Execute() {
+    FFX::SetupGx(this->m_output);
+
+    bool rebuildVertices = !(this->m_vertexBuf->unk_001C && this->m_vertexBuf->unk_001D);
+    bool rebuildIndices = !(this->m_indexBuf->unk_001C && this->m_indexBuf->unk_001D);
+    const C2iVector& size = this->m_output->m_size;
+
+    if (this->unk_004C != size.x || this->unk_0050 != size.y) {
+        this->unk_004C = size.x;
+        this->unk_0050 = size.y;
+        this->BuildVertices(size, this->m_inputs[0], this->m_inputs[1]);
+    } else if (rebuildVertices) {
+        this->BuildVertices(size, this->m_inputs[0], this->m_inputs[1]);
+    }
+
+    if (rebuildIndices) {
+        this->BuildIndices();
+    }
+
+    g_theGxDevicePtr->RsSet(GxRs_Texture0, TextureGetGxTex(this->m_inputs[0]->m_texture, 1, nullptr));
+    g_theGxDevicePtr->RsSet(GxRs_Texture1, TextureGetGxTex(this->m_inputs[1]->m_texture, 1, nullptr));
+
+    for (int32_t rs = 23; rs < 37; rs++) {
+        GxRsSet(static_cast<EGxRenderState>(rs), 0);
+    }
+
+    g_theGxDevicePtr->RsSet(GxRs_PixelShader, this->m_pixelShaders[this->m_useRect]);
+
+    float density;
+    float minimum;
+
+    if (this->unk_0058 <= 0.0f) {
+        density = this->unk_0054;
+        minimum = 0.1f;
+    } else {
+        float fade = 1.0f - this->unk_0058 * 0.33333334f;
+        this->unk_0058 = this->unk_0058 - FrameTime::s_tickTimeSec;
+
+        if (this->unk_0058 < 0.0f) {
+            this->unk_0058 = 0.0f;
+        }
+
+        density = this->unk_0054 * fade;
+        minimum = fade * 0.1f;
+    }
+
+    float densityConstants[4] = { density, density, density, density };
+    float minimumConstants[4] = { minimum, minimum, minimum, minimum };
+    g_theGxDevicePtr->ShaderConstantsSet(GxSh_Pixel, 0, densityConstants, 1);
+    g_theGxDevicePtr->ShaderConstantsSet(GxSh_Pixel, 1, minimumConstants, 1);
+
+    GxPrimVertexPtr(this->m_vertexBuf, GxVBF_PCT2);
+    g_theGxDevicePtr->PrimIndexPtr(this->m_indexBuf);
+    GxRsSet(GxRs_BlendingMode, this->m_blend);
+    GxUpdateAlphaRef(GxRs_AlphaRef);
+
+    CGxBatch batch;
+    batch.m_primType = GxPrim_Triangles;
+    batch.m_start = 0;
+    batch.m_count = 6144;
+    batch.m_minIndex = 0;
+    batch.m_maxIndex = 1088;
+    g_theGxDevicePtr->Draw(&batch, 1);
+
+    FFX::SetupReset();
 }

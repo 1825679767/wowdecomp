@@ -881,6 +881,7 @@ static int32_t Script_UnitName(lua_State* L) {
 static int32_t Script_UnitPower(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitPower(\"unit\"[, type])");
+        return 0;
     }
 
     uint32_t powerType = 7;
@@ -927,6 +928,7 @@ static int32_t Script_UnitPower(lua_State* L) {
 static int32_t Script_UnitPowerMax(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitPowerMax(\"unit\"[, type])");
+        return 0;
     }
 
     uint32_t powerType = 7;
@@ -971,6 +973,7 @@ static int32_t Script_UnitPowerMax(lua_State* L) {
 static int32_t Script_UnitPowerType(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitPowerType(\"unit\"[, index])");
+        return 0;
     }
 
     uint32_t index = 0;
@@ -1027,6 +1030,7 @@ static int32_t Script_UnitPowerType(lua_State* L) {
 static int32_t Script_UnitFactionGroup(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitFactionGroup(\"unit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);
@@ -1359,6 +1363,7 @@ static int32_t Script_HasFullControl(lua_State* L) {
 static int32_t Script_UnitPVPRank(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitPVPRank(\"unit\")");
+        return 0;
     }
 
     GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -1496,6 +1501,7 @@ static int32_t Script_GetSpellCritChance(lua_State* L) {
 static int32_t Script_UnitIsTapped(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitIsTapped(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -1514,6 +1520,7 @@ static int32_t Script_UnitIsTapped(lua_State* L) {
 static int32_t Script_UnitIsTappedByPlayer(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitIsTappedByPlayer(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -1532,6 +1539,7 @@ static int32_t Script_UnitIsTappedByPlayer(lua_State* L) {
 static int32_t Script_UnitIsTappedByAllThreatList(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitIsTappedByAllThreatList(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -1550,6 +1558,7 @@ static int32_t Script_UnitIsTappedByAllThreatList(lua_State* L) {
 static int32_t Script_UnitIsTrivial(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitIsTrivial(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -1601,6 +1610,7 @@ static int32_t Script_UnitIsPVPSanctuary(lua_State* L) {
 static int32_t Script_UnitIsEnemy(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: UnitIsEnemy(\"unit\", \"otherUnit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -1620,6 +1630,7 @@ static int32_t Script_UnitIsEnemy(lua_State* L) {
 static int32_t Script_UnitCanAssist(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: UnitCanAssist(\"unit\", \"otherUnit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -1639,6 +1650,7 @@ static int32_t Script_UnitCanAssist(lua_State* L) {
 static int32_t Script_UnitCanAttack(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: UnitCanAttack(\"unit\", \"otherUnit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -1658,6 +1670,7 @@ static int32_t Script_UnitCanAttack(lua_State* L) {
 static int32_t Script_UnitCreatureType(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitCreatureType(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -1678,6 +1691,7 @@ static int32_t Script_UnitCreatureType(lua_State* L) {
 static int32_t Script_UnitCreatureFamily(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitCreatureFamily(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -1716,6 +1730,7 @@ static int32_t Script_IsFlying(lua_State* L) {
 static int32_t Script_GetUnitMaxHealthModifier(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetUnitMaxHealthModifier(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -1750,6 +1765,7 @@ static int32_t Script_GetExpertisePercent(lua_State* L) {
 static int32_t Script_GetUnitSpeed(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetUnitSpeed(\"unit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);
@@ -1765,6 +1781,7 @@ static int32_t Script_GetUnitSpeed(lua_State* L) {
 static int32_t Script_GetUnitPitch(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetUnitPitch(\"unit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);
@@ -1858,6 +1875,7 @@ static int32_t Script_GetMaxCombatRatingBonus(lua_State* L) {
 static int32_t Script_UnitReaction(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: UnitReaction(\"unit\", \"otherUnit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -2000,6 +2018,7 @@ static int32_t Script_GetPVPLifetimeStats(lua_State* L) {
 static int32_t Script_IsArenaTeamCaptain(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: IsArenaTeamCaptain(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -2020,6 +2039,7 @@ static int32_t Script_IsArenaTeamCaptain(lua_State* L) {
 static int32_t Script_UnitIsDND(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitIsDND(\"unit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);
@@ -2056,6 +2076,7 @@ static int32_t Script_UnitIsDND(lua_State* L) {
 static int32_t Script_UnitInVehicle(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitInVehicle(\"unit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);
@@ -2087,6 +2108,7 @@ static int32_t Script_UnitInVehicle(lua_State* L) {
 static int32_t Script_UnitUsingVehicle(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitUsingVehicle(\"unit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);
@@ -2118,6 +2140,7 @@ static int32_t Script_UnitUsingVehicle(lua_State* L) {
 static int32_t Script_UnitHasRelicSlot(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitHasRelicSlot(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -2139,6 +2162,7 @@ static int32_t Script_UnitPVPName(lua_State* L) {
 
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitPVPName(\"unit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);
@@ -2160,6 +2184,7 @@ static int32_t Script_UnitPVPName(lua_State* L) {
 static int32_t Script_UnitIsPVPFreeForAll(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitIsPVPFreeForAll(\"unit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);
@@ -2196,6 +2221,7 @@ static int32_t Script_UnitIsPVPFreeForAll(lua_State* L) {
 static int32_t Script_UnitArmor(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitArmor(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -2224,6 +2250,7 @@ static int32_t Script_CanEjectPassengerFromSeat(lua_State* L) {
 
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CanEjectPassengerFromSeat(seatIndex)");
+        return 0;
     }
 
     int32_t seatIndex = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -2844,6 +2871,7 @@ static int32_t Script_UnitChannelInfo(lua_State* L) {
 static int32_t Script_GetComboPoints(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetComboPoints(\"unit\"[, \"target\"]");
+        return 0;
     }
 
     WOWGUID unit = WOWGUID();
@@ -2872,6 +2900,7 @@ static int32_t Script_GetComboPoints(lua_State* L) {
 static int32_t Script_GetPVPRankInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetPVPRankInfo(rank [, unit])");
+        return 0;
     }
 
     int32_t rank = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -2955,6 +2984,7 @@ static int32_t Script_GetRuneType(lua_State* L) {
 static int32_t Script_GetSpellCritChanceFromIntellect(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetSpellCritChanceFromIntellect(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -2975,6 +3005,7 @@ static int32_t Script_GetSpellBonusDamage(lua_State* L) {
 
     if (school > 6) {
         luaL_error(L, "Usage: GetSpellBonusDamage(school)");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -3022,6 +3053,7 @@ static int32_t Script_GetRuneCooldown(lua_State* L) {
 static int32_t Script_UnitIsPVP(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitIsPVP(\"unit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);
@@ -3054,6 +3086,7 @@ static int32_t Script_UnitIsPVP(lua_State* L) {
 static int32_t Script_UnitIsFriend(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: UnitIsFriend(\"unit\", \"otherUnit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);
@@ -3154,12 +3187,14 @@ static int32_t Script_SetPortraitTexture(lua_State* L) {
 static int32_t Script_GetCombatRatingBonus(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetCombatRatingBonus(ratingIndex)");
+        return 0;
     }
 
     int32_t rating = static_cast<int32_t>(lua_tonumber(L, 1));
 
     if (static_cast<uint32_t>(rating - 1) >= 25) {
         luaL_error(L, "ratingIndex is in the range 1 .. %d", 25);
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -3172,6 +3207,7 @@ static int32_t Script_GetCombatRatingBonus(lua_State* L) {
 static int32_t Script_GetAttackPowerForStat(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: Script_GetAttackPowerForStat(stat, value)");
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -3192,6 +3228,7 @@ static int32_t Script_GetAttackPowerForStat(lua_State* L) {
 static int32_t Script_UnitDamage(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitDamage(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -3263,6 +3300,7 @@ static int32_t Script_UnitAttackSpeed(lua_State* L) {
 static int32_t Script_UnitSelectionColor(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitSelectionColor(\"unit\")");
+        return 0;
     }
 
     WOWGUID guid = WOWGUID();
@@ -3282,6 +3320,7 @@ static int32_t Script_UnitSelectionColor(lua_State* L) {
 static int32_t Script_GetCritChanceFromAgility(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetCritChanceFromAgility(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -3300,6 +3339,7 @@ static int32_t Script_GetCritChanceFromAgility(lua_State* L) {
 static int32_t Script_UnitAttackPower(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitAttackPower(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -3323,6 +3363,7 @@ static int32_t Script_UnitAttackPower(lua_State* L) {
 static int32_t Script_UnitRangedAttackPower(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitAttackPower(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -3360,6 +3401,7 @@ static int32_t Script_GetArmorPenetration(lua_State* L) {
 static int32_t Script_GetUnitHealthRegenRateFromSpirit(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetUnitHealthRegenRateFromSpirit(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -3484,6 +3526,7 @@ static int32_t Script_GetPlayerFacing(lua_State* L) {
 static int32_t Script_UnitIsInMyGuild(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitIsInMyGuild(\"name\")");
+        return 0;
     }
 
     const char* name = lua_tolstring(L, 1, nullptr);
@@ -3604,6 +3647,7 @@ static int32_t Script_UnitPlayerOrPetInRaid(lua_State* L) {
 static int32_t Script_UnitGUID(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitGUID(\"unit\")");
+        return 0;
     }
 
     WOWGUID guid = WOWGUID();
@@ -3635,6 +3679,7 @@ static int32_t Script_UnitGUID(lua_State* L) {
 static int32_t Script_UnitClassBase(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitClassBase(\"unit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);
@@ -3741,6 +3786,7 @@ static int32_t Script_UnitRangedDamage(lua_State* L) {
 static int32_t Script_UnitRangedAttack(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitRangedAttack(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -3825,6 +3871,7 @@ static int32_t Script_IsFlyableArea(lua_State* L) {
 static int32_t Script_UnitIsSameServer(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: UnitIsSameServer(\"unit\", \"otherUnit\")");
+        return 0;
     }
 
     const char* first = lua_tolstring(L, 1, nullptr);
@@ -3856,6 +3903,7 @@ static int32_t Script_UnitIsSameServer(lua_State* L) {
 static int32_t Script_GetUnitHealthModifier(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetUnitHealthModifier(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -3876,6 +3924,7 @@ static int32_t Script_GetUnitHealthModifier(lua_State* L) {
 static int32_t Script_GetUnitPowerModifier(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetUnitPowerModifier(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -3915,6 +3964,7 @@ static int32_t Script_ReportPlayerIsPVPAFK(lua_State* L) {
 static int32_t Script_PlayerIsPVPInactive(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: PlayerIsPVPInactive(\"unit\")");
+        return 0;
     }
 
     int32_t inactive = 0;
@@ -3957,6 +4007,7 @@ static int32_t Script_PlayerIsPVPInactive(lua_State* L) {
 static int32_t Script_UnitInRange(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitInRange(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -4326,6 +4377,7 @@ void SystemUnregisterFunctions() {
 static int32_t Script_GetUnitManaRegenRateFromSpirit(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetUnitManaRegenRateFromSpirit(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -4344,6 +4396,7 @@ static int32_t Script_GetUnitManaRegenRateFromSpirit(lua_State* L) {
 static int32_t Script_UnitIsAFK(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitIsAFK(\"unit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);

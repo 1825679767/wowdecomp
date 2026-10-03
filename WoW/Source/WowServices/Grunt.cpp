@@ -846,3 +846,159 @@ void Grunt::ClientLink::ProveVersion(const uint8_t* versionChecksum) {
     msg.Finalize();
     this->Send(msg);
 }
+
+// VERIFY: 53c21c45 manual
+// OFFSET: 0x008CC980
+int32_t Grunt::ClientLink::CmdAuthReconnectChallenge(CDataStore& msg) {
+    if (msg.m_read > msg.m_size || msg.m_size - msg.m_read < 17) {
+        return 0;
+    }
+
+    uint8_t result;
+    msg.Get(result);
+
+    if (result) {
+        return 1;
+    }
+
+    void* challenge;
+    msg.GetDataInSitu(challenge, 16);
+
+    void* versionChallenge;
+    msg.GetDataInSitu(versionChallenge, 16);
+
+    if (msg.m_read > msg.m_size) {
+        return 1;
+    }
+
+    memcpy(this->m_serverChallenge, challenge, 16);
+    this->SetState(5);
+    this->m_clientResponse->GetVersionProof(static_cast<const uint8_t*>(versionChallenge));
+    return 2;
+}
+
+// VERIFY: 39d99ecd auto
+// OFFSET: 0x008CCA50
+int32_t Grunt::ClientLink::CmdAuthReconnectProof(CDataStore& msg) {
+    if (msg.m_read >= msg.m_size) {
+        return 0;
+    }
+
+    uint8_t result;
+    msg.Get(result);
+
+    if (msg.m_read > msg.m_size) {
+        return 1;
+    }
+
+    if (result) {
+        this->SetState(2);
+
+        if (result >= 33) {
+            result = Grunt::GRUNT_RESULT_DISCONNECTED;
+        }
+
+        this->m_clientResponse->ReconnectResult(static_cast<Grunt::Result>(result), nullptr, 0, 0);
+        return 2;
+    }
+
+    if (msg.m_size - msg.m_read < 2) {
+        return 0;
+    }
+
+    uint16_t flags = 0;
+    msg.Get(flags);
+    this->SetState(6);
+    this->m_clientResponse->ReconnectResult(Grunt::GRUNT_RESULT_SUCCESS, this->m_reconnectKey, sizeof(this->m_reconnectKey), flags);
+    return 2;
+}
+
+// VERIFY: 3cf29e43 manual
+// OFFSET: 0x008CCB40
+int32_t Grunt::ClientLink::CmdXferInitiate(CDataStore& msg) {
+    if (msg.m_read >= msg.m_size) {
+        return 0;
+    }
+
+    uint8_t length;
+    msg.Get(length);
+
+    if (msg.m_read > msg.m_size || msg.m_size - msg.m_read < static_cast<uint32_t>(length + 24)) {
+        return 0;
+    }
+
+    if (length >= 0xFE) {
+        length = 0xFE;
+    }
+
+    char fileName[256];
+    msg.GetArray(reinterpret_cast<uint8_t*>(fileName), length);
+    fileName[length] = '\0';
+
+    uint64_t size;
+    msg.Get(size);
+
+    void* md5;
+    msg.GetDataInSitu(md5, 16);
+
+    if (msg.m_read > msg.m_size) {
+        return 1;
+    }
+
+    this->m_clientResponse->GetFileStatus(fileName, size, static_cast<const uint8_t*>(md5));
+    return 2;
+}
+
+// VERIFY: 296d35b8 auto
+// OFFSET: 0x008CCC20
+int32_t Grunt::ClientLink::CmdXferData(CDataStore& msg) {
+    if (msg.m_read > msg.m_size || msg.m_size - msg.m_read < 2) {
+        return 0;
+    }
+
+    uint16_t size;
+    msg.Get(size);
+
+    if (msg.m_read > msg.m_size || msg.m_size - msg.m_read < size) {
+        return 0;
+    }
+
+    void* data;
+    msg.GetDataInSitu(data, size);
+
+    if (msg.m_read > msg.m_size) {
+        return 1;
+    }
+
+    this->m_clientResponse->FileData(static_cast<const uint8_t*>(data), size);
+    return 2;
+}
+
+// VERIFY: e707dad6 manual
+// OFFSET: 0x008CDE60
+void Grunt::ClientLink::FileStatus(bool accept, uint64_t offset) {
+    CDataStoreCache<1024> msg;
+
+    if (accept) {
+        if (offset) {
+            msg.Put(static_cast<uint8_t>(0x33));
+            msg.Put(offset);
+        } else {
+            msg.Put(static_cast<uint8_t>(0x32));
+        }
+    } else {
+        msg.Put(static_cast<uint8_t>(0x34));
+    }
+
+    msg.Finalize();
+    this->Send(msg);
+}
+
+// VERIFY: 37b6a6bc manual
+// OFFSET: 0x008CDFC0
+void Grunt::ClientLink::FileComplete() {
+    CDataStoreCache<1024> msg;
+    msg.Put(static_cast<uint8_t>(0x34));
+    msg.Finalize();
+    this->Send(msg);
+}

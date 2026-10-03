@@ -12,6 +12,7 @@ class BLLLoader {
 
     ~BLLLoader();
     void* GetExport(int32_t ordinal);
+    bool Load(const void* data, uint32_t size);
     void Unload();
 };
 

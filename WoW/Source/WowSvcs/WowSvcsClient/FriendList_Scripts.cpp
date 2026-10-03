@@ -86,6 +86,7 @@ static int32_t Script_GetNumIgnores(lua_State* L) {
 static int32_t Script_GetWhoInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetWhoInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -290,6 +291,7 @@ static int32_t Script_GetNumMutes(lua_State* L) {
 static int32_t Script_GetIgnoreName(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetIgnoreName(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -321,6 +323,7 @@ static int32_t Script_GetIgnoreName(lua_State* L) {
 static int32_t Script_GetMuteName(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetMuteName(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;

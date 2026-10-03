@@ -113,6 +113,7 @@ static int32_t Script_GetContainerNumFreeSlots(lua_State* L) {
 static int32_t Script_GetContainerNumSlots(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetContainerNumSlots(index)");
+        return 0;
     }
 
     double slots = 0.0;
@@ -144,6 +145,7 @@ static int32_t Script_GetContainerNumSlots(lua_State* L) {
 static int32_t Script_GetBagName(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetBagName(index)");
+        return 0;
     }
 
     if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
@@ -636,6 +638,7 @@ static int32_t Script_SetBagPortraitTexture(lua_State* L) {
 static int32_t Script_GetContainerItemQuestInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetContainerItemQuestInfo(index, slot)");
+        return 0;
     }
 
     CGBag_C* bag;
@@ -1127,6 +1130,7 @@ static int32_t Script_ContainerRefundItemPurchase(lua_State* L) {
 static int32_t Script_GetContainerItemGems(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetContainerItemGems(bag, slot)");
+        return 0;
     }
 
     CGBag_C* bag;

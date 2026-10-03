@@ -1,4 +1,6 @@
 #include "GruntLogin.h"
+#include "Engine/Source/Os/OsSecureRandom.h"
+#include "WoW/Source/Net/NetClient/NetClient.h"
 #include <cstring>
 #include <malloc.h>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -556,4 +558,135 @@ bool GruntLogin::GetMatrixCoordinates(uint32_t index, uint32_t* x, uint32_t* y) 
     *x = coordinate % this->m_matrixWidth;
     *y = coordinate / this->m_matrixWidth;
     return true;
+}
+
+// VERIFY: 10ae7b25 manual
+// OFFSET: 0x00465870
+void GruntLogin::MATRIXINPUT::Finish(SHA1::Digest& digest) {
+    this->m_hmac.Finish(digest);
+    this->m_valid = false;
+}
+
+// VERIFY: b49b6056 manual
+// OFFSET: 0x00468F60
+static void ProcessMatrixRC4(uint8_t* data, uint32_t length, SARC4Key* key) {
+    uint8_t x = key->m_x;
+    uint8_t y = key->m_y;
+
+    for (uint32_t i = 0; i < length; i++) {
+        x++;
+        uint8_t a = key->m_state[x];
+        y += a;
+        key->m_state[x] = key->m_state[y];
+        key->m_state[y] = a;
+        data[i] ^= key->m_state[static_cast<uint8_t>(a + key->m_state[x])];
+    }
+
+    key->m_x = x;
+    key->m_y = y;
+}
+
+// VERIFY: d046e16b auto
+// OFFSET: 0x008CA4D0
+void GruntLogin::FileAccept(bool accept, uint64_t offset) {
+    this->m_clientLink->FileStatus(accept, offset);
+}
+
+// VERIFY: e0ac23d3 auto
+// OFFSET: 0x008CA570
+void GruntLogin::FileComplete(bool success) {
+    this->m_clientLink->FileComplete();
+}
+
+// VERIFY: 20c829de manual
+// OFFSET: 0x008CA7F0
+int32_t GruntLogin::Wait(const char* message, LoginData& loginData) {
+    while (this->m_logonStatus == -1) {
+        OsSleep(100);
+    }
+
+    if (this->m_logonStatus) {
+        memset(&loginData, 0, sizeof(loginData));
+    } else {
+        loginData.m_loginServerID = 0;
+        SStrCopy(loginData.m_account, this->m_username, sizeof(loginData.m_account));
+        memcpy(loginData.m_sessionKey, this->m_sessionKey, sizeof(loginData.m_sessionKey));
+    }
+
+    return this->m_logonStatus == 0;
+}
+
+// VERIFY: 66d294df manual
+// OFFSET: 0x008CA880
+void GruntLogin::EnterPIN(int32_t count, uint8_t* digits) {
+    char pin[12];
+
+    for (int32_t i = 0; i < count; i++) {
+        pin[i] = digits[i] + '0';
+    }
+
+    pin[count] = '\0';
+    OsSecureRandom(this->m_pinClientSalt, sizeof(this->m_pinClientSalt));
+
+    SHA1 sha;
+    sha.Prepare();
+    sha.Process(this->m_pinSalt, sizeof(this->m_pinSalt));
+    sha.Process(pin);
+
+    SHA1::Digest digest;
+    sha.Finish(digest);
+
+    sha.Prepare();
+    sha.Process(this->m_pinClientSalt, sizeof(this->m_pinClientSalt));
+    sha.Process(&digest, sizeof(digest));
+    sha.Finish(*reinterpret_cast<SHA1::Digest*>(this->m_pinHash));
+
+    this->m_loginResponse->UpdateLoginStatus(this->NextSecurityState(LOGIN_STATE_PIN), LOGIN_OK, nullptr, 0);
+}
+
+// VERIFY: b2336d08 auto
+// OFFSET: 0x008CAFA0
+void GruntLogin::EnterMatrix(uint8_t value) {
+    GruntLogin::MATRIXINPUT* input = this->m_matrixCommitted;
+    ProcessMatrixRC4(&value, 1, &input->m_key);
+    input->m_hmac.Process(&value, 1);
+}
+
+// VERIFY: be3941c2 auto
+// OFFSET: 0x008CAFE0
+void GruntLogin::FinalizeMatrix() {
+    this->m_matrixInput->Finish(*reinterpret_cast<SHA1::Digest*>(this->m_matrixProof));
+    this->m_loginResponse->UpdateLoginStatus(this->NextSecurityState(LOGIN_STATE_MATRIX), LOGIN_OK, nullptr, 0);
+}
+
+// VERIFY: 2aeb1ed6 manual
+// OFFSET: 0x008CB020
+void GruntLogin::ReconnectResult(Grunt::Result result, const uint8_t* sessionKey, uint32_t sessionKeyLength, uint16_t flags) {
+    if (!this->IsReconnect()) {
+        this->m_logonStatus = 1;
+        this->m_loginResponse->UpdateLoginStatus(LOGIN_STATE_FAILED, LOGIN_FAILED, nullptr, 0);
+        return;
+    }
+
+    switch (result) {
+        case Grunt::GRUNT_RESULT_SUCCESS:
+        case Grunt::GRUNT_RESULT_SUCCESS_SURVEY:
+            this->m_clientLink->GetRealmList();
+            this->m_loginResponse->UpdateLoginStatus(LOGIN_STATE_RESPONSE_CONNECTED, LOGIN_OK, nullptr, 0);
+            return;
+
+        case Grunt::GRUNT_RESULT_BAD_VERSION:
+            this->m_loginResponse->HandleRealmData(2, nullptr);
+            break;
+
+        case Grunt::GRUNT_RESULT_DOWNLOAD_FILE:
+            this->m_loginResponse->HandleRealmData(3, nullptr);
+            break;
+
+        default:
+            this->m_loginResponse->HandleRealmData(1, nullptr);
+            break;
+    }
+
+    this->m_clientLink->Disconnect();
 }

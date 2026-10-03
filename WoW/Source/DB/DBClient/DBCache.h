@@ -290,7 +290,7 @@ void DBCache<T, TKey, THashKey>::Load() {
 }
 
 // VERIFY: a9ebf5d0 manual
-// OFFSET: [0x0067B6A0, 0x0067BD40, 0x0067CA30, 0x0067D0D0, 0x0067D930, 0x0067DE90, 0x0067E3E0, 0x0067F4C0, 0x006806D0, 0x0067C3E0, 0x0067FA80]
+// OFFSET: [0x0067B6A0, 0x0067BD40, 0x0067CA30, 0x0067D0D0, 0x0067D930, 0x0067DE90, 0x0067E3E0, 0x0067F4C0, 0x006806D0, 0x0067C3E0, 0x0067FA80, 0x0067D770, 0x0067EA30, 0x0067EF70, 0x00680170]
 template <class T, class TKey, class THashKey>
 T* DBCache<T, TKey, THashKey>::GetRecord(TKey key, const WOWGUID& guid, void (*callback)(int32_t id, const WOWGUID& guid, void* param, bool success), void* param, bool unique) {
     if (DBCacheIsNullKey(key)) {
@@ -567,7 +567,7 @@ void DBCache<T, TKey, THashKey>::AddItems(CDataStore* msg, bool single) {
     } while (--count);
 }
 
-// VERIFY: 0168a135 manual
+// VERIFY: 591fe5cf manual
 // OFFSET: [0x0067DAD0, 0x0067E030, 0x0067EBD0, 0x0067F110, 0x0067F680, 0x00680310, 0x00680870, 0x0067FC90]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::AddItem(T* item, TKey key) {
@@ -584,7 +584,7 @@ void DBCache<T, TKey, THashKey>::AddItem(T* item, TKey key) {
 
     for (DBCACHECALLBACK* node = hash->m_callbacks.Head(); node;) {
         DBCACHECALLBACK* next = hash->m_callbacks.Next(node);
-        node->m_callback(static_cast<int32_t>(key), node->m_guid, node->m_param, true);
+        node->m_callback(static_cast<int32_t>(DBCacheHashKey(key)), node->m_guid, node->m_param, true);
         node = next;
     }
 
@@ -598,7 +598,7 @@ void DBCache<T, TKey, THashKey>::AddItem(T* item, TKey key) {
 }
 
 // VERIFY: 89cede44 manual
-// OFFSET: [0x0067A070, 0x0067A1E0, 0x0067A2D0, 0x0067A4F0, 0x0067A660, 0x0067A750, 0x0067A840, 0x0067A9B0, 0x0067AAA0, 0x0067ABB0, 0x0067AD70, 0x0067AE60]
+// OFFSET: [0x0067A070, 0x0067A1E0, 0x0067A2D0, 0x0067A4F0, 0x0067A660, 0x0067A750, 0x0067A840, 0x0067A9B0, 0x0067AAA0, 0x0067ABB0, 0x0067AD70, 0x0067AE60, 0x00679D90, 0x00679F80]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::DenyItem(TKey key) {
     DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);
@@ -620,7 +620,7 @@ void DBCache<T, TKey, THashKey>::DenyItem(TKey key) {
 }
 
 // VERIFY: 80ad7a9d auto
-// OFFSET: [0x0067A170, 0x0067A260, 0x0067A5F0, 0x0067A6E0, 0x0067A7D0, 0x0067A940, 0x0067AA30, 0x0067AB30, 0x0067ACA0, 0x0067ADF0, 0x0067AEE0]
+// OFFSET: [0x0067A170, 0x0067A260, 0x0067A5F0, 0x0067A6E0, 0x0067A7D0, 0x0067A940, 0x0067AA30, 0x0067AB30, 0x0067ACA0, 0x0067ADF0, 0x0067AEE0, 0x00679E90, 0x0067A000]
 template <class T, class TKey, class THashKey>
 void DBCache<T, TKey, THashKey>::Invalidate(TKey key) {
     DBCACHEHASH* hash = this->m_entries.Ptr(DBCacheHashKey(key), key);

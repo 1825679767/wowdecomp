@@ -35,6 +35,7 @@ static int32_t Script_CloseGuildRegistrar(lua_State* L) {
 static int32_t Script_BuyGuildCharter(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: BuyGuildCharter(guildName)");
+        return 0;
     }
 
     const char* name = lua_tolstring(L, 1, nullptr);

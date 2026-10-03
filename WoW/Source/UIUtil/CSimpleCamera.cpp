@@ -5,6 +5,8 @@
 #include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/CRect.h"
+#include "Engine/Source/Storm/H/storm.h"
+#include <cmath>
 
 // VERIFY: fbf6cda8 auto
 // OFFSET: 0x005FEE70
@@ -91,4 +93,107 @@ void CSimpleCamera::SetGxProjectionAndView(const CRect& rect) {
 // OFFSET: 0x00607C90
 void CSimpleCamera::SetScreenAspect(const CRect& rect) {
     this->m_aspect = (rect.maxX - rect.minX) / (rect.maxY - rect.minY);
+}
+
+// VERIFY: 6c76bf00 auto
+// OFFSET: 0x00607DF0
+static void FaceDirection(const C3Vector& direction, C3Vector& right, C3Vector& forward, C3Vector& up) {
+    if (fabs(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z) < 0.00000023841858f) {
+        SErrSetLastError(87);
+        return;
+    }
+
+    forward = direction;
+
+    if (fabs(forward.x * forward.x + forward.y * forward.y) < 0.00000023841858f) {
+        right.x = 1.0f;
+        right.y = 0.0f;
+        right.z = 0.0f;
+    } else {
+        right.x = -forward.y;
+        right.y = forward.x;
+        right.z = 0.0f;
+
+        float scale = 1.0f / sqrt(right.x * right.x + right.y * right.y);
+        right.x *= scale;
+        right.y *= scale;
+    }
+
+    up = C3Vector(-(right.y * forward.z), forward.z * right.x, right.y * forward.x - forward.y * right.x);
+}
+
+// VERIFY: b1593acc manual
+// OFFSET: 0x00607ED0
+static void BuildBillboardMatrix(C33Matrix& matrix, const C3Vector& direction) {
+    C3Vector forward(0.0f, 0.0f, 0.0f);
+    C3Vector right(0.0f, 0.0f, 0.0f);
+    C3Vector up(0.0f, 0.0f, 0.0f);
+    FaceDirection(direction, right, forward, up);
+
+    matrix.a0 = forward.x;
+    matrix.a1 = forward.y;
+    matrix.a2 = forward.z;
+    matrix.b0 = right.x;
+    matrix.b1 = right.y;
+    matrix.b2 = right.z;
+    matrix.c0 = up.x;
+    matrix.c1 = up.y;
+    matrix.c2 = up.z;
+}
+
+// VERIFY: 80ae91cc manual
+// OFFSET: 0x00607F40
+static void FaceDirectionWithRoll(const C3Vector& direction, const C3Vector& upHint, C3Vector& right, C3Vector& forward, C3Vector& up) {
+    if (fabs(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z) < 0.00000023841858f) {
+        SErrSetLastError(87);
+        return;
+    }
+
+    forward = direction;
+
+    if (fabs(fabs(upHint.y * forward.y + upHint.x * forward.x + upHint.z * forward.z) - 1.0f) < 0.00000023841858f) {
+        right.x = 1.0f;
+        right.y = 0.0f;
+        right.z = 0.0f;
+    } else {
+        right = C3Vector(upHint.y * forward.z - upHint.z * forward.y, upHint.z * forward.x - upHint.x * forward.z, upHint.x * forward.y - forward.x * upHint.y);
+
+        float scale = 1.0f / sqrt(right.x * right.x + right.z * right.z + right.y * right.y);
+        right.x *= scale;
+        right.y *= scale;
+        right.z *= scale;
+    }
+
+    up = C3Vector(right.z * forward.y - forward.z * right.y, forward.z * right.x - right.z * forward.x, forward.x * right.y - right.x * forward.y);
+}
+
+// VERIFY: 4383901d manual
+// OFFSET: 0x00608080
+static void BuildBillboardMatrixWithRoll(C33Matrix& matrix, const C3Vector& direction, const C3Vector& upHint) {
+    C3Vector forward(0.0f, 0.0f, 0.0f);
+    C3Vector right(0.0f, 0.0f, 0.0f);
+    C3Vector up(0.0f, 0.0f, 0.0f);
+    FaceDirectionWithRoll(direction, upHint, right, forward, up);
+
+    matrix.a0 = forward.x;
+    matrix.a1 = forward.y;
+    matrix.a2 = forward.z;
+    matrix.b0 = right.x;
+    matrix.b1 = right.y;
+    matrix.b2 = right.z;
+    matrix.c0 = up.x;
+    matrix.c1 = up.y;
+    matrix.c2 = up.z;
+}
+
+// VERIFY: 2ba63539 auto
+// OFFSET: 0x006080F0
+void CSimpleCamera::SetFacing(const C3Vector& forward) {
+    BuildBillboardMatrix(this->m_facing, forward);
+}
+
+// VERIFY: bc672379 auto
+// OFFSET: 0x00608110
+void CSimpleCamera::SetFacing(const C3Vector& forward, const C3Vector& up) {
+    BuildBillboardMatrixWithRoll(this->m_facing, forward, up);
 }

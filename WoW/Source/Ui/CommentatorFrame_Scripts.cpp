@@ -429,12 +429,14 @@ static int32_t Script_CommentatorExitInstance(lua_State* L) {
 static int32_t Script_CommentatorGetNumPlayers(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CommentatorGetNumPlayers(faction)");
+        return 0;
     }
 
     uint32_t faction = static_cast<uint32_t>(lua_tonumber(L, 1));
 
     if (faction - 1 >= 2) {
         luaL_error(L, "Error: faction index too large");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();

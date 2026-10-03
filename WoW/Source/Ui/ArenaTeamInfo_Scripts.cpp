@@ -158,6 +158,7 @@ static int32_t Script_GetPreviousArenaSeason(lua_State* L) {
 static int32_t Script_GetArenaTeamRosterInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetArenaTeamRosterInfo(team, index)");
+        return 0;
     }
 
     uint32_t team = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -228,6 +229,7 @@ static int32_t Script_SetArenaTeamRosterSelection(lua_State* L) {
 static int32_t Script_GetArenaTeamRosterSelection(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetArenaTeamRosterSelection(team)");
+        return 0;
     }
 
     uint32_t team = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;

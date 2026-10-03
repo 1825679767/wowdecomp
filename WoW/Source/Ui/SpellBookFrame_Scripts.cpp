@@ -369,6 +369,7 @@ static int32_t Script_GetNumCompanions(lua_State* L) {
 
     if (!GetLuaCompanionType(L, &type)) {
         luaL_error(L, "Usage: GetNumCompanions(type)");
+        return 0;
     }
 
     lua_pushnumber(L, CGSpellBook::m_companions[type].Count());
@@ -382,6 +383,7 @@ static int32_t Script_IsSpellKnown(lua_State* L) {
 
     if (!lua_isnumber(L, 1) || (spellId = lua_tointeger(L, 1)) <= 0) {
         luaL_error(L, "Usage: IsSpellKnown(spellID[, isPet])");
+        return 0;
     }
 
     int32_t isPet = StringToBOOL(L, 2, 0);
@@ -768,6 +770,7 @@ static int32_t Script_CastShapeshiftForm(lua_State* L) {
 static int32_t Script_GetShapeshiftFormCooldown(lua_State* L) {
     if (lua_tonumber(L, 1) == 0.0) {
         luaL_error(L, "Usage: GetShapeshiftFormCooldown(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;

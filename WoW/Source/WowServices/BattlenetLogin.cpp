@@ -116,3 +116,29 @@ bool BattlenetLogin::GetMatrixCoordinates(uint32_t index, uint32_t* x, uint32_t*
 
     return true;
 }
+
+// VERIFY: 5782eea7 auto
+// OFFSET: 0x008C6AF0
+uint32_t BattlenetLogin::GetNumGameAccounts() {
+    return this->m_gameAccounts.m_count;
+}
+
+// VERIFY: e9ea1376 manual
+// OFFSET: 0x008C6B00
+const char* BattlenetLogin::GetGameAccountName(uint32_t index) {
+    if (index < this->m_gameAccounts.m_count) {
+        return this->m_gameAccounts.m_data[index].m_name;
+    }
+
+    return nullptr;
+}
+
+// VERIFY: d642e343 manual
+// OFFSET: 0x008C6B60
+uint32_t BattlenetLogin::GetGameAccountRegion(uint32_t index) {
+    if (index < this->m_gameAccounts.m_count) {
+        return this->m_gameAccounts.m_data[index].m_region;
+    }
+
+    return 0;
+}

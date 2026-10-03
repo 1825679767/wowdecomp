@@ -159,6 +159,7 @@ static int32_t Script_CombatTextSetActiveUnit(lua_State* L) {
 static int32_t Script_CombatLogSetCurrentEntry(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CombatLogSetCurrentEntry(index [,ignoreFilter])");
+        return 0;
     }
 
     s_currentEntry = nullptr;
@@ -207,6 +208,7 @@ static int32_t Script_CombatLogGetCurrentEntry(lua_State* L) {
 static int32_t Script_CombatLogAdvanceEntry(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CombatLogAdvanceEntry(count [,ignoreFilter])");
+        return 0;
     }
 
     int32_t count = lua_tointeger(L, 1);

@@ -162,6 +162,8 @@ class ClientLink : public WowConnectionResponse, public Grunt::Pending, public G
     int32_t CmdXferInitiate(CDataStore& msg);
     void Connect(const char* address);
     void Disconnect();
+    void FileComplete();
+    void FileStatus(bool accept, uint64_t offset);
     void GetRealmList();
     void LogonNewSession(const Grunt::ClientLink::Logon& logon);
     void LogonStoredSession(const Grunt::ClientLink::Logon& logon);

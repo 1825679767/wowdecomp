@@ -2211,3 +2211,153 @@ void CGlueMgr::LoginEnterToken(const char* token) {
     FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s", "CANCEL");
     ClientServices::LoginEnterToken(token);
 }
+
+// VERIFY: 90e67519 auto
+// OFFSET: 0x004D9190
+int32_t CGlueMgr::OnCharCustomizeResult(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID guid = { 0 };
+    char name[48];
+    uint8_t sexID = 0;
+    uint8_t skinID = 0;
+    uint8_t faceID = 0;
+    uint8_t hairStyleID = 0;
+    uint8_t hairColorID = 0;
+    uint8_t facialHairStyleID = 0;
+    uint8_t result;
+
+    CGlueMgr::m_idleState = IDLE_NONE;
+    CGlueMgr::m_showedDisconnect = 0;
+    msg->Get(result);
+
+    if (!msg->IsRead()) {
+        msg->Get(guid.m_guid);
+        msg->GetString(name, sizeof(name));
+        msg->Get(sexID);
+        msg->Get(skinID);
+        msg->Get(faceID);
+        msg->Get(hairStyleID);
+        msg->Get(hairColorID);
+        msg->Get(facialHairStyleID);
+    }
+
+    if (result) {
+        const char* text = FrameScript_GetText(result == 50 ? ClientServices::GetErrorToken(50) : "CHAR_CUSTOMIZE_FAILED", -1, GENDER_NOT_APPLICABLE);
+        FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "OKAY", text);
+        return 1;
+    }
+
+    CCharacterSelection::UpdateCharacterInfo(guid, name, sexID, skinID, faceID, hairStyleID, hairColorID, facialHairStyleID, 0);
+    FrameScript_SignalEvent(GLUE_EVENT_CLOSE_STATUS_DIALOG, nullptr);
+    FrameScript_SignalEvent(GLUE_EVENT_SET_GLUE_SCREEN, "%s", "charselect");
+    return 1;
+}
+
+// VERIFY: 894a77a0 auto
+// OFFSET: 0x004D92D0
+int32_t CGlueMgr::OnCharFactionChangeResult(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    WOWGUID guid = { 0 };
+    char name[48];
+    uint8_t sexID = 0;
+    uint8_t skinID = 0;
+    uint8_t faceID = 0;
+    uint8_t hairStyleID = 0;
+    uint8_t hairColorID = 0;
+    uint8_t facialHairStyleID = 0;
+    uint8_t raceID = 0;
+    uint8_t result;
+
+    CGlueMgr::m_idleState = IDLE_NONE;
+    CGlueMgr::m_showedDisconnect = 0;
+    msg->Get(result);
+
+    if (!msg->IsRead()) {
+        msg->Get(guid.m_guid);
+        msg->GetString(name, sizeof(name));
+        msg->Get(sexID);
+        msg->Get(skinID);
+        msg->Get(faceID);
+        msg->Get(hairStyleID);
+        msg->Get(hairColorID);
+        msg->Get(facialHairStyleID);
+        msg->Get(raceID);
+    }
+
+    const char* text;
+
+    switch (result) {
+        case 0:
+            CCharacterSelection::UpdateCharacterInfo(guid, name, sexID, skinID, faceID, hairStyleID, hairColorID, facialHairStyleID, raceID);
+            FrameScript_SignalEvent(GLUE_EVENT_CLOSE_STATUS_DIALOG, nullptr);
+            CGlueMgr::SetScreen("charselect");
+            return 1;
+
+        case 50:
+            text = FrameScript_GetText(ClientServices::GetErrorToken(50), -1, GENDER_NOT_APPLICABLE);
+            break;
+
+        case 61:
+            text = FrameScript_GetText("CHAR_FACTION_CHANGE_STILL_IN_GUILD", -1, GENDER_NOT_APPLICABLE);
+            break;
+
+        case 62:
+            text = FrameScript_GetText("CHAR_FACTION_CHANGE_RACECLASS_RESTRICTED", -1, GENDER_NOT_APPLICABLE);
+            break;
+
+        case 63:
+            text = FrameScript_GetText("CHAR_FACTION_CHANGE_CHOOSE_RACE", -1, GENDER_NOT_APPLICABLE);
+            break;
+
+        case 64:
+            text = FrameScript_GetText("CHAR_FACTION_CHANGE_ARENA_LEADER", -1, GENDER_NOT_APPLICABLE);
+            break;
+
+        case 65:
+            text = FrameScript_GetText("CHAR_FACTION_CHANGE_DELETE_MAIL", -1, GENDER_NOT_APPLICABLE);
+            break;
+
+        case 66:
+            text = FrameScript_GetText("CHAR_FACTION_CHANGE_SWAP_FACTION", -1, GENDER_NOT_APPLICABLE);
+            break;
+
+        case 67:
+            text = FrameScript_GetText("CHAR_FACTION_CHANGE_RACE_ONLY", -1, GENDER_NOT_APPLICABLE);
+            break;
+
+        case 68:
+            text = FrameScript_GetText("CHAR_FACTION_CHANGE_GOLD_LIMIT", -1, GENDER_NOT_APPLICABLE);
+            break;
+
+        case 69:
+            text = FrameScript_GetText("CHAR_FACTION_CHANGE_FORCE_LOGIN", -1, GENDER_NOT_APPLICABLE);
+            break;
+
+        default:
+            text = FrameScript_GetText("CHAR_FACTION_CHANGE_FAILED", -1, GENDER_NOT_APPLICABLE);
+            break;
+    }
+
+    FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "OKAY", text);
+    return 1;
+}
+
+// OFFSET: 0x004D9500
+int32_t CGlueMgr::OnKickReasonMsg(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint8_t reason = 0;
+    uint8_t seed[16];
+
+    if (!msg->IsRead()) {
+        msg->Get(reason);
+
+        if (!msg->IsRead() && CGlueMgr::m_initialized && !CGlueMgr::m_suspended) {
+            msg->GetArray(seed, sizeof(seed));
+
+            if (msg->m_read <= msg->m_size) {
+                InitTokenSeed(seed);
+                return 1;
+            }
+        }
+    }
+
+    unk_B6AF98 = reason;
+    return 1;
+}

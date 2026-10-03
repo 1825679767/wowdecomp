@@ -294,6 +294,7 @@ static int32_t Script_CalendarSetMonth(lua_State* L) {
 static int32_t Script_CalendarGetNumDayEvents(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CalendarGetNumDayEvents([-1,0,1], monthDay)");
+        return 0;
     }
 
     uint32_t offset = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -307,6 +308,7 @@ static int32_t Script_CalendarGetNumDayEvents(lua_State* L) {
 static int32_t Script_CalendarGetFirstPendingInvite(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CalendarGetDay([-1,0,1], monthDay)");
+        return 0;
     }
 
     uint32_t offset = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -544,6 +546,7 @@ static int32_t Script_CalendarEventIsModerator(lua_State* L) {
 static int32_t Script_CalendarEventCanModerate(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarEventCanModerate(index)");
+        return 0;
     }
 
     double index = lua_tonumber(L, 1);
@@ -623,6 +626,7 @@ static int32_t Script_CalendarCanAddEvent(lua_State* L) {
 static int32_t Script_CalendarGetAbsMonth(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarGetAbsMonth(month[, year])");
+        return 0;
     }
 
     int32_t month = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -660,6 +664,7 @@ static int32_t Script_CalendarGetAbsMonth(lua_State* L) {
 static int32_t Script_CalendarGetDayEventSequenceInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: CalendarGetDayEventSequenceInfo([-1.0.1], monthDay, index)");
+        return 0;
     }
 
     uint32_t offset = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -699,6 +704,7 @@ static int32_t Script_CalendarOpenEvent(lua_State* L) {
 static int32_t Script_CalendarGetRaidInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: CalendarGetRaidInfo([-1,0,1], monthDay, index)");
+        return 0;
     }
 
     uint32_t offset = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -742,6 +748,7 @@ static int32_t Script_CalendarGetRaidInfo(lua_State* L) {
 static int32_t Script_CalendarEventGetInvite(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarEventGetInvite(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -800,6 +807,7 @@ static int32_t Script_CalendarEventGetInvite(lua_State* L) {
 static int32_t Script_CalendarEventGetInviteResponseTime(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarEventGetInviteResponseTime(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -917,6 +925,7 @@ static int32_t Script_CalendarContextInviteStatus(lua_State* L) {
 
         if (!event) {
             luaL_error(L, "Usage: CalendarContextInviteStatus([-1.0.1], monthDay, index)");
+            return 0;
         }
     }
 
@@ -944,6 +953,7 @@ static int32_t Script_CalendarContextInviteType(lua_State* L) {
 
         if (!event) {
             luaL_error(L, "Usage: CalendarContextInviteType([-1.0.1], monthDay, index)");
+            return 0;
         }
     }
 
@@ -1735,6 +1745,7 @@ static int32_t Script_CalendarContextEventCanComplain(lua_State* L) {
 
         if (!event) {
             luaL_error(L, "Usage: CalendarContextEventCanComplain([-1.0.1], monthDay, index)");
+            return 0;
         }
     }
 
@@ -1956,6 +1967,7 @@ static void PushDayEventTexture(lua_State* L, CalendarDayEvent* event) {
 static int32_t Script_CalendarGetDayEvent(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: CalendarGetDayEvent([-1.0.1], monthDay, index)");
+        return 0;
     }
 
     uint32_t offset = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -2033,6 +2045,7 @@ static int32_t Script_CalendarGetDayEvent(lua_State* L) {
 static int32_t Script_CalendarGetHolidayInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: CalendarGetHolidayInfo([-1,0,1], monthDay, index)");
+        return 0;
     }
 
     uint32_t offset = static_cast<int32_t>(lua_tonumber(L, 1));

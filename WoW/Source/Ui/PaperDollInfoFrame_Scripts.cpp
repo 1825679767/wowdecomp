@@ -139,6 +139,7 @@ static int32_t Script_OffhandHasWeapon(lua_State* L) {
 static int32_t Script_GetInventoryAlertStatus(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetInventoryAlertStatus(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;

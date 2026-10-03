@@ -56,17 +56,8 @@ void Sand::SetStormIntensity(float intensity) {
 }
 
 // INLINED
-SandGrainParticleBuffer::SandGrainParticleBuffer() {
-    this->m_particleCount = 6144;
-
-    for (uint32_t i = 0; i < 6144; i++) {
-        this->m_particles[i].m_position.x = 0.0f;
-        this->m_particles[i].m_position.y = 0.0f;
-        this->m_particles[i].m_position.z = 0.0f;
-        this->m_particles[i].m_velocity.x = 0.0f;
-        this->m_particles[i].m_velocity.y = 0.0f;
-        this->m_particles[i].m_velocity.z = 0.0f;
-    }
+SandGrainParticleBuffer::SandGrainParticleBuffer()
+    : m_particleCount(6144) {
 }
 
 // VERIFY: 2208c4de manual

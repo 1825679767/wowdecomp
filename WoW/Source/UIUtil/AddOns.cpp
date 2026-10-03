@@ -1759,6 +1759,16 @@ bool IsAddonVersionCheckEnabled() {
     return g_checkAddonVersionVar->m_intValue != 0;
 }
 
+// VERIFY: e8b33bcf auto
+// OFFSET: 0x005F4CB0
+void SetAddonVersionCheck(int32_t enable) {
+    if (enable) {
+        g_checkAddonVersionVar->Set("1", true, false, false, true);
+    } else {
+        g_checkAddonVersionVar->Set("0", true, false, false, true);
+    }
+}
+
 // VERIFY: caf3378a manual
 // OFFSET: 0x005F74B0
 const char* GetAddOnURL(const char* name) {

@@ -241,6 +241,7 @@ static int32_t Script_GetReadyCheckStatus(lua_State* L) {
 static int32_t Script_GetRaidTargetIndex(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetRaidTargetIndex(unit)");
+        return 0;
     }
 
     uint32_t index = GetRaidTargetIndexFromGuid(GetGuidByKeyword(lua_tolstring(L, 1, nullptr)));

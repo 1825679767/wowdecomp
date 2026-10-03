@@ -23,6 +23,12 @@ namespace FFX {
         /* 0014 */ C2Vector m_texelSize;
     };
 
+    struct VertexPCT2 {
+        /* 0000 */ C3Vector p;
+        /* 000C */ CImVector c;
+        /* 0010 */ C2Vector tc[2];
+    };
+
     struct VertexPCT3 {
         /* 0000 */ C3Vector p;
         /* 000C */ CImVector c;

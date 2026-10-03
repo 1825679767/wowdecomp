@@ -56,7 +56,8 @@ void ClampInPlace(float& value, float min, float max);
 bool fnotequal(float a, float b);
 int32_t IsNaN(double value);
 
-// INLINED
+// VERIFY: 03d90c2d auto
+// OFFSET: 0x005FFF80
 inline float CMath::cos_(float x) {
     float frac;
     int32_t whole;

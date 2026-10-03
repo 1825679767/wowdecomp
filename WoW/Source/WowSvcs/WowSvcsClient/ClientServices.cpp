@@ -1650,6 +1650,7 @@ int32_t ClientServices::GetSurveyId() {
     return ClientServices::s_loginObj->GetSurveyId();
 }
 
+// VERIFY: e32f76a9 auto
 // OFFSET: 0x006B2070
 void ClientConnection::HandleCharacterLoginFailed(uint8_t result) {
     if (this->m_inGame) {

@@ -241,6 +241,13 @@ void LoadAccountData(int32_t type, ACCOUNTDATALOADFUNC func, void* param) {
     }
 }
 
+// VERIFY: ac27b46e auto
+// OFFSET: 0x006B90E0
+void SetClearConfigData(int32_t clear) {
+    unk_C7BFF8 = clear;
+    unk_C7BFFC = clear;
+}
+
 // VERIFY: 53caa8f1 manual
 // OFFSET: 0x006B9100
 void UploadAccountData(int32_t type) {

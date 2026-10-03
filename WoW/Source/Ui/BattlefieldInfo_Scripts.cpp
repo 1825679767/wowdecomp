@@ -131,6 +131,7 @@ static int32_t Script_GetBattlefieldInstanceExpiration(lua_State* L) {
 static int32_t Script_GetBattlefieldTeamInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetBattlefieldTeamInfo(index)");
+        return 0;
     }
 
     uint32_t team = static_cast<uint32_t>(lua_tonumber(L, 1));
@@ -485,6 +486,7 @@ static int32_t Script_GetNumBattlefieldFlagPositions(lua_State* L) {
 static int32_t Script_GetBattlefieldStatData(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetBattlefieldStatData(playerIndex, statIndex)");
+        return 0;
     }
 
     uint32_t player = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -507,6 +509,7 @@ static int32_t Script_GetBattlefieldStatData(lua_State* L) {
 static int32_t Script_GetBattlefieldStatInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetBattlefieldStatInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -747,6 +750,7 @@ static int32_t Script_CloseBattlefield(lua_State* L) {
 static int32_t Script_GetBattlefieldScore(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetBattlefieldScore(index)");
+        return 0;
     }
 
     lua_checkstack(L, 12);
@@ -814,6 +818,7 @@ static int32_t Script_SetBattlefieldScoreFaction(lua_State* L) {
 static int32_t Script_GetBattlefieldPosition(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetBattlefieldPosition(index)");
+        return 0;
     }
 
     int32_t remaining = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -1001,6 +1006,7 @@ static int32_t Script_RequestBattlefieldScoreData(lua_State* L) {
 static int32_t Script_GetBattlefieldFlagPosition(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetBattlefieldFlagPosition(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;

@@ -115,6 +115,7 @@ static int32_t Script_GetPartyMember(lua_State* L) {
 
     if (!lua_isnumber(L, 1) || (index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1) >= 4) {
         luaL_error(L, "Usage: GetPartyMember(1-4)");
+        return 0;
     }
 
     if (CGPartyInfo::m_members[index]) {

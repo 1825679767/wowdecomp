@@ -78,6 +78,7 @@ static int32_t Script_InRepairMode(lua_State* L) {
 static int32_t Script_GetMerchantItemMaxStack(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetMerchantItemMaxStack(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -100,6 +101,7 @@ static int32_t Script_GetMerchantItemMaxStack(lua_State* L) {
 static int32_t Script_GetMerchantItemCostInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetMerchantItemCostInfo(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;

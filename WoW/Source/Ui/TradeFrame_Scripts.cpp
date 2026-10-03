@@ -293,6 +293,7 @@ static int32_t Script_ClickTradeButton(lua_State* L) {
 static int32_t Script_GetTradeTargetItemInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTradeTargetItemInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;

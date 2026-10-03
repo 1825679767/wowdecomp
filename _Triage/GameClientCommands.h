@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class C3Vector;
 class CDataStore;
 class ClientConnection;
 
@@ -41,6 +42,7 @@ class CommandManager {
     void InternalSend(CDataStore* msg);
 };
 
+CDataStore& operator<<(CDataStore& msg, const C3Vector& vec);
 int32_t CCommand_CharmTeleport(const char* command, const char* arguments);
 int32_t CCommand_SetRawPos(const char* command, const char* arguments);
 int32_t CCommand_Teleport(const char* command, const char* arguments);

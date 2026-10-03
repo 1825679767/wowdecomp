@@ -1633,6 +1633,7 @@ static int32_t Script_QuestPOIGetIconInfo(lua_State* L) {
 static int32_t Script_GetQuestLogItemDrop(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetQuestLogItemDrop(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
@@ -1665,6 +1666,7 @@ static int32_t Script_GetQuestLogItemDrop(lua_State* L) {
 static int32_t Script_GetQuestPOILeaderBoard(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetQuestLogLeaderBoard(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;

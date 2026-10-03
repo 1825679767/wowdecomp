@@ -27,6 +27,8 @@ class PassFogCombine : public FFX::Pass {
     void Execute() override;
 
     PassFogCombine(FFX::Tex** inputs, uint32_t count, FFX::Tex* output, EGxBlend blend, bool unk);
+    void BuildIndices();
+    void BuildVertices(const C2iVector& size, FFX::Tex* tex0, FFX::Tex* tex1);
 };
 
 #endif

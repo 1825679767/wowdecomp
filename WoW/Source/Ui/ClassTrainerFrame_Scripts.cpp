@@ -303,12 +303,14 @@ static int32_t GetServiceTypeFromString(const char* type) {
 static int32_t Script_GetTrainerServiceTypeFilter(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetTrainerServiceTypeFilter(\"type\")");
+        return 0;
     }
 
     int32_t type = GetServiceTypeFromString(lua_tolstring(L, 1, nullptr));
 
     if (type == 6) {
         luaL_error(L, "Bad service type in GetTrainerServiceTypeFilter");
+        return 0;
     }
 
     if ((1 << type) & g_serviceTypeFilterCVar->m_intValue) {
@@ -358,6 +360,7 @@ static int32_t Script_OpenTrainer(lua_State* L) {
 static int32_t Script_GetTrainerServiceInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTrainerServiceInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -379,6 +382,7 @@ static int32_t Script_GetTrainerServiceInfo(lua_State* L) {
 static int32_t Script_GetTrainerServiceIcon(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTrainerServiceIcon(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -422,6 +426,7 @@ static int32_t Script_GetTrainerServiceIcon(lua_State* L) {
 static int32_t Script_GetTrainerServiceSkillReq(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTrainerServiceSkillReq(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -474,6 +479,7 @@ static int32_t Script_GetTrainerServiceSkillReq(lua_State* L) {
 static int32_t Script_GetTrainerServiceAbilityReq(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetTrainerServiceAbilityReq(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -519,6 +525,7 @@ static int32_t Script_GetTrainerServiceAbilityReq(lua_State* L) {
 static int32_t Script_GetTrainerServiceStepReq(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTrainerServiceStepReq(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -582,6 +589,7 @@ static int32_t Script_GetTrainerServiceStepReq(lua_State* L) {
 static int32_t Script_GetTrainerServiceDescription(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTrainerServiceDescription(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -620,6 +628,7 @@ static int32_t Script_GetTrainerServiceDescription(lua_State* L) {
 static int32_t Script_GetTrainerServiceStepIncrease(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTrainerServiceStepIncrease(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -835,6 +844,7 @@ static int32_t Script_ExpandTrainerSkillLine(lua_State* L) {
 static int32_t Script_GetTrainerServiceItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTrainerServiceItemLink(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;

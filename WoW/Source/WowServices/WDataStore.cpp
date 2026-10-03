@@ -22,7 +22,7 @@ WDataStore::WDataStore() {
 }
 
 // VERIFY: 439c74d3 manual
-// OFFSET: 0x00403F10
+// OFFSET: [0x00403F10, 0x00403F60]
 WDataStore::~WDataStore() {
     if (this->m_alloc != -1) {
         this->InternalDestroy(this->m_data, this->m_base, this->m_alloc);

@@ -24,6 +24,7 @@ class WardenCachedModule {
 
     WardenCachedModule();
     ~WardenCachedModule();
+    WardenCachedModule& operator=(const WardenCachedModule& source);
     void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);
 };
@@ -46,12 +47,12 @@ namespace WardenClient {
     class OurLibrary {
         public:
         virtual void Data(const void* data, uint32_t size);
-        virtual void ModuleUse(const WardenClient::Id& id, const WardenClient::Key& key);
+        virtual bool ModuleUse(const WardenClient::Id& id, const WardenClient::Key& key);
         virtual void ModuleCache(const WardenClient::Id& id, const void* data, uint32_t size);
         virtual void* MemoryAlloc(uint32_t size);
         virtual void MemoryFree(void* ptr);
         virtual void StateSave(const void* data, uint32_t size);
-        virtual void StateLoad(void* data, uint32_t& size);
+        virtual bool StateLoad(void* data, uint32_t& size);
     };
 }
 

@@ -111,12 +111,14 @@ static int32_t Script_KBQuery_GetArticleHeaderCount(lua_State* L) {
 static int32_t Script_KBSetup_GetLanguageData(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
         luaL_error(L, "KBSetup_GetLanguageData() failed because setup is not loaded");
+        return 0;
     }
 
     XMLNode* node = g_KnowledgeBaseSetup.GetLanguage(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
 
     if (!node) {
         luaL_error(L, "KBSetup_GetLanguageData() called with invalid category index");
+        return 0;
     }
 
     lua_pushnumber(L, g_KnowledgeBaseSetup._GetInt(node, "id"));
@@ -129,12 +131,14 @@ static int32_t Script_KBSetup_GetLanguageData(lua_State* L) {
 static int32_t Script_KBSetup_GetCategoryData(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
         luaL_error(L, "KBSetup_GetCategoryData() failed because setup is not loaded");
+        return 0;
     }
 
     XMLNode* node = g_KnowledgeBaseSetup.GetCategoryNode(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
 
     if (!node) {
         luaL_error(L, "KBSetup_GetCategoryData() called with invalid category index");
+        return 0;
     }
 
     lua_pushnumber(L, g_KnowledgeBaseSetup._GetInt(node, "id"));
@@ -147,12 +151,14 @@ static int32_t Script_KBSetup_GetCategoryData(lua_State* L) {
 static int32_t Script_KBSetup_GetArticleHeaderData(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
         luaL_error(L, "KBSetup_GetArticleHeaderData() failed because setup is not loaded");
+        return 0;
     }
 
     XMLNode* node = g_KnowledgeBaseSetup.GetArticleHeader(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
 
     if (!node) {
         luaL_error(L, "KBSetup_GetArticleHeaderData() called with invalid article header index");
+        return 0;
     }
 
     lua_pushnumber(L, g_KnowledgeBaseSetup._GetInt(node, "id"));
@@ -167,6 +173,7 @@ static int32_t Script_KBSetup_GetArticleHeaderData(lua_State* L) {
 static int32_t Script_KBSetup_GetTotalArticleCount(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
         luaL_error(L, "KBSetup_GetTotalArticleCount() failed because setup is not loaded");
+        return 0;
     }
 
     lua_pushnumber(L, g_KnowledgeBaseSetup._GetInt("ArticleHeaders", "articleCount"));
@@ -178,12 +185,14 @@ static int32_t Script_KBSetup_GetTotalArticleCount(lua_State* L) {
 static int32_t Script_KBQuery_GetArticleHeaderData(lua_State* L) {
     if (g_KnowledgeBaseQuery.m_state != 2) {
         luaL_error(L, "KBQuery_GetArticleHeaderData() failed because query is not loaded");
+        return 0;
     }
 
     XMLNode* node = g_KnowledgeBaseQuery.GetArticleHeader(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
 
     if (!node) {
         luaL_error(L, "KBQuery_GetArticleHeaderData() called with invalid article header index");
+        return 0;
     }
 
     lua_pushnumber(L, g_KnowledgeBaseQuery._GetInt(node, "id"));
@@ -198,6 +207,7 @@ static int32_t Script_KBQuery_GetArticleHeaderData(lua_State* L) {
 static int32_t Script_KBQuery_GetTotalArticleCount(lua_State* L) {
     if (g_KnowledgeBaseQuery.m_state != 2) {
         luaL_error(L, "KBQuery_GetTotalArticleCount() failed because query is not loaded");
+        return 0;
     }
 
     lua_pushnumber(L, g_KnowledgeBaseQuery._GetInt("ArticleHeaders", "articleCount"));
@@ -218,6 +228,7 @@ static int32_t Script_KBArticle_BeginLoading(lua_State* L) {
 static int32_t Script_KBArticle_GetData(lua_State* L) {
     if (g_KnowledgeBaseArticle.m_state != 2) {
         luaL_error(L, "KBArticle_GetData() failed because article is not loaded");
+        return 0;
     }
 
     lua_pushnumber(L, g_KnowledgeBaseArticle._GetBodyInt("Article", "id"));
@@ -235,6 +246,7 @@ static int32_t Script_KBArticle_GetData(lua_State* L) {
 static int32_t Script_KBSetup_GetSubCategoryCount(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
         luaL_error(L, "KBSetup_GetSubCategoryCount() failed because setup is not loaded");
+        return 0;
     }
 
     double category = lua_tonumber(L, 1);
@@ -258,6 +270,7 @@ static int32_t Script_KBSetup_GetSubCategoryCount(lua_State* L) {
 static int32_t Script_KBSetup_GetSubCategoryData(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
         luaL_error(L, "KBSetup_GetSubCategoryData() failed because setup is not loaded");
+        return 0;
     }
 
     int32_t subCategory = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
@@ -266,6 +279,7 @@ static int32_t Script_KBSetup_GetSubCategoryData(lua_State* L) {
 
     if (!node) {
         luaL_error(L, "KBSetup_GetSubCategoryData() called with invalid category or sub category index");
+        return 0;
     }
 
     lua_pushnumber(L, g_KnowledgeBaseSetup._GetInt(node, "id"));
