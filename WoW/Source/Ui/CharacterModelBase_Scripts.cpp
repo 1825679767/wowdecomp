@@ -46,7 +46,7 @@ static int32_t Script_SetCreature(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 46572d0f manual
+// VERIFY: 16330539 manual
 // OFFSET: 0x00597A10
 static int32_t Script_SetRotation(lua_State* L) {
     CGCharacterModelBase* model = static_cast<CGCharacterModelBase*>(FrameScript_GetObjectThis(L, CGCharacterModelBase::GetObjectType()));

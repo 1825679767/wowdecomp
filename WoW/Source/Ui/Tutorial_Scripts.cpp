@@ -93,7 +93,7 @@ static int32_t Script_ResetTutorials(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5bbd7e2c manual
+// VERIFY: 53babe68 manual
 // OFFSET: 0x005301D0
 static int32_t Script_GetNextCompleatedTutorial(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -112,7 +112,7 @@ static int32_t Script_GetNextCompleatedTutorial(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 3c733227 manual
+// VERIFY: 15b806a3 manual
 // OFFSET: 0x00530240
 static int32_t Script_GetPrevCompleatedTutorial(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

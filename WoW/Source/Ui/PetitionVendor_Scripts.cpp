@@ -51,7 +51,7 @@ static int32_t Script_TurnInPetition(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 2a657de7 manual
+// VERIFY: f93a14c6 manual
 // OFFSET: 0x005A1FB0
 static int32_t Script_GetPetitionItemInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -115,7 +115,7 @@ static int32_t Script_ClosePetitionVendor(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 05c4274e manual
+// VERIFY: c105ad23 manual
 // OFFSET: 0x005A2530
 static int32_t Script_BuyPetition(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
@@ -138,7 +138,7 @@ static int32_t Script_BuyPetition(lua_State* L) {
     return 1;
 }
 
-// VERIFY: c130f5cf manual
+// VERIFY: 73187861 manual
 // OFFSET: 0x005A26D0
 static int32_t Script_TurnInArenaPetition(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

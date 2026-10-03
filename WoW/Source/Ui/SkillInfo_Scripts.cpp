@@ -36,7 +36,7 @@ static int32_t Script_CancelSkillUps(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 6d37f79d manual
+// VERIFY: 7fed7462 manual
 // OFFSET: 0x005CD860
 static int32_t Script_SetSelectedSkill(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -74,7 +74,7 @@ static int32_t Script_GetAdjustedSkillPoints(lua_State* L) {
     return 1;
 }
 
-// VERIFY: dee7ad29 manual
+// VERIFY: e41d75e7 manual
 // OFFSET: 0x005CDE20
 static int32_t Script_GetSkillLineInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -205,7 +205,7 @@ static int32_t Script_GetSkillLineInfo(lua_State* L) {
     return 13;
 }
 
-// VERIFY: 8e1b48e5 manual
+// VERIFY: 9014dcdf manual
 // OFFSET: 0x005CE2C0
 static int32_t Script_AbandonSkill(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

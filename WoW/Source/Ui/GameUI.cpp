@@ -4025,7 +4025,7 @@ void CGGameUI::SetFocusTarget(const WOWGUID& guid) {
     FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_FOCUS_CHANGED, nullptr);
 }
 
-// VERIFY: 76ef482a manual
+// VERIFY: 1538eb25 manual
 // OFFSET: 0x005197D0
 void CGGameUI::DestroyTotem(int32_t slot) {
     if (static_cast<uint32_t>(slot) > 3) {

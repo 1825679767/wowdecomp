@@ -134,7 +134,7 @@ static int32_t Script_OffhandHasWeapon(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 23078a8f manual
+// VERIFY: a7d955ef manual
 // OFFSET: 0x005E7FA0
 static int32_t Script_GetInventoryAlertStatus(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -514,7 +514,7 @@ static int32_t Script_ClearInspectPlayer(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 3a52554c manual
+// VERIFY: 626f663f manual
 // OFFSET: 0x005E8030
 static int32_t Script_GetInspectArenaTeamData(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -565,7 +565,7 @@ static int32_t Script_GetInspectArenaTeamData(lua_State* L) {
     return 18;
 }
 
-// VERIFY: 0fde0b48 manual
+// VERIFY: 795ba989 manual
 // OFFSET: 0x005E95C0
 static int32_t Script_GetInventoryItemsForSlot(lua_State* L) {
     uint32_t slot = 0;
@@ -772,7 +772,7 @@ static int32_t Script_GetInventoryItemQuality(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 37cd6434 manual
+// VERIFY: 57bc036f manual
 // OFFSET: 0x005EA170
 static int32_t Script_GetInventoryItemDurability(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -912,7 +912,7 @@ static int32_t Script_GetInventoryItemID(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 631b6b15 manual
+// VERIFY: b474e23d manual
 // OFFSET: 0x005EA4F0
 static int32_t Script_GetInventoryItemGems(lua_State* L) {
     int32_t slot;
@@ -1021,7 +1021,7 @@ static int32_t Script_ShowInventorySellCursor(lua_State* L) {
     return 0;
 }
 
-// VERIFY: fca941f7 manual
+// VERIFY: 8c2943fb manual
 // OFFSET: 0x005EA9B0
 static int32_t Script_SetInventoryPortraitTexture(lua_State* L) {
     CSimpleTexture* texture = static_cast<CSimpleTexture*>(FrameScript_GetObjectThis(L, CSimpleTexture::GetObjectType()));

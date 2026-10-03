@@ -88,7 +88,7 @@ static int32_t Script_Save(lua_State* L) {
     return 0;
 }
 
-// VERIFY: a54ef1a7 manual
+// VERIFY: eddd0be9 manual
 // OFFSET: 0x00599500
 static int32_t Script_CycleVariation(lua_State* L) {
     CGTabardModelFrame* frame = static_cast<CGTabardModelFrame*>(FrameScript_GetObjectThis(L, CGTabardModelFrame::GetObjectType()));

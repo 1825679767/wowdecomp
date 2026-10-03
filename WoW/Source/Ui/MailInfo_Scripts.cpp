@@ -201,7 +201,7 @@ static int32_t Script_TakeInboxTextItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5e8e6e9d manual
+// VERIFY: 0438c98b manual
 // OFFSET: 0x0056E0E0
 static int32_t Script_SelectStationery(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -220,7 +220,7 @@ static int32_t Script_SelectStationery(lua_State* L) {
     return 0;
 }
 
-// VERIFY: a8f5093e manual
+// VERIFY: 437ff54e manual
 // OFFSET: 0x0056DF80
 static int32_t Script_GetStationeryInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -402,7 +402,7 @@ static int32_t Script_GetSendMailItemLink(lua_State* L) {
 // STATIC: 0x00BEB420
 static char s_headerTexture[260];
 
-// VERIFY: c9e3a358 manual
+// VERIFY: 4a59927a manual
 // OFFSET: 0x0056E520
 static int32_t Script_GetInboxHeaderInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -537,7 +537,7 @@ static int32_t Script_GetInboxHeaderInfo(lua_State* L) {
     return 14;
 }
 
-// VERIFY: f87aecc1 manual
+// VERIFY: 0bc89b80 manual
 // OFFSET: 0x0056E9B0
 static int32_t Script_GetInboxInvoiceInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -770,7 +770,7 @@ static int32_t Script_GetLatestThreeSenders(lua_State* L) {
     return count;
 }
 
-// VERIFY: 3001c447 manual
+// VERIFY: f93ff448 manual
 // OFFSET: 0x0056F410
 static int32_t Script_RespondMailLockSendItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1016,7 +1016,7 @@ static int32_t Script_SendMail(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 1607913d manual
+// VERIFY: a7b3383e manual
 // OFFSET: 0x00570BD0
 static int32_t Script_GetInboxText(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1107,7 +1107,7 @@ static int32_t Script_GetInboxText(lua_State* L) {
     return 4;
 }
 
-// VERIFY: ecaff933 manual
+// VERIFY: af16e1e0 manual
 // OFFSET: 0x00570F10
 static int32_t Script_GetInboxItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

@@ -355,7 +355,7 @@ static int32_t Script_OpenTrainer(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 4ba50c6f manual
+// VERIFY: 08dbb36d manual
 // OFFSET: 0x00595090
 static int32_t Script_GetTrainerServiceInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -421,7 +421,7 @@ static int32_t Script_GetTrainerServiceIcon(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 0c093fa2 manual
+// VERIFY: c73f9ea5 manual
 // OFFSET: 0x00595470
 static int32_t Script_GetTrainerServiceSkillReq(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -474,7 +474,7 @@ static int32_t Script_GetTrainerServiceSkillReq(lua_State* L) {
     return 3;
 }
 
-// VERIFY: c961379c manual
+// VERIFY: d5f23f70 manual
 // OFFSET: 0x005955E0
 static int32_t Script_GetTrainerServiceAbilityReq(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -520,7 +520,7 @@ static int32_t Script_GetTrainerServiceAbilityReq(lua_State* L) {
     return 2;
 }
 
-// VERIFY: c2f109ae manual
+// VERIFY: f19026cb manual
 // OFFSET: 0x005957D0
 static int32_t Script_GetTrainerServiceStepReq(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

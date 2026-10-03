@@ -333,7 +333,7 @@ static int32_t Script_GetDailyQuestsCompleted(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 8febeccd manual
+// VERIFY: 9d00e6aa manual
 // OFFSET: 0x0058BED0
 static int32_t Script_GetActiveTitle(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -412,7 +412,7 @@ static int32_t Script_CloseQuest(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 833114b1 manual
+// VERIFY: 2365dae8 manual
 // OFFSET: 0x0058D370
 static int32_t Script_IsAvailableQuestTrivial(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -432,7 +432,7 @@ static int32_t Script_IsAvailableQuestTrivial(lua_State* L) {
     return 1;
 }
 
-// VERIFY: adf4ee20 manual
+// VERIFY: b509af8b manual
 // OFFSET: 0x0058D420
 static int32_t Script_IsActiveQuestTrivial(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -452,7 +452,7 @@ static int32_t Script_IsActiveQuestTrivial(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 420550ce manual
+// VERIFY: 8e509d27 manual
 // OFFSET: 0x0058D4D0
 static int32_t Script_SelectAvailableQuest(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -464,7 +464,7 @@ static int32_t Script_SelectAvailableQuest(lua_State* L) {
     return 0;
 }
 
-// VERIFY: dbb2bfc3 manual
+// VERIFY: 22c936ac manual
 // OFFSET: 0x0058D540
 static int32_t Script_SelectActiveQuest(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -620,7 +620,7 @@ static int32_t Script_GetRewardTitle(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 7f87cecb manual
+// VERIFY: 3968a3dc manual
 // OFFSET: 0x0058D980
 static int32_t Script_GetQuestItemInfo(lua_State* L) {
     char name[256];

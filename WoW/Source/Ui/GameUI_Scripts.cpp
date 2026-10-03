@@ -1230,7 +1230,7 @@ static int32_t Script_CanMapChangeDifficulty(lua_State* L) {
     return 1;
 }
 
-// VERIFY: fb60fbd2 manual
+// VERIFY: 3260815c manual
 // OFFSET: 0x005262E0
 static int32_t Script_TargetTotem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1255,7 +1255,7 @@ static int32_t Script_TargetTotem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 3e7e55ee manual
+// VERIFY: 17f07d34 manual
 // OFFSET: 0x00511720
 static int32_t Script_GetFunctionCPUUsage(lua_State* L) {
     if (lua_type(L, 1) != LUA_TFUNCTION) {
@@ -1335,7 +1335,7 @@ static int32_t Script_CancelSummon(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f351dab3 manual
+// VERIFY: a76967ea manual
 // OFFSET: 0x00522A20
 static int32_t Script_GuildInvite(lua_State* L) {
     const char* target = lua_tolstring(L, 1, nullptr);
@@ -1358,7 +1358,7 @@ static int32_t Script_GuildInvite(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 38a6c581 manual
+// VERIFY: e1f01be5 manual
 // OFFSET: 0x00522AF0
 static int32_t Script_GuildUninvite(lua_State* L) {
     const char* target = lua_tolstring(L, 1, nullptr);
@@ -1381,7 +1381,7 @@ static int32_t Script_GuildUninvite(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 6621126a manual
+// VERIFY: 1cc6457e manual
 // OFFSET: 0x00522BC0
 static int32_t Script_GuildPromote(lua_State* L) {
     const char* target = lua_tolstring(L, 1, nullptr);
@@ -1404,7 +1404,7 @@ static int32_t Script_GuildPromote(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 4a5ca774 manual
+// VERIFY: 1cc6e053 manual
 // OFFSET: 0x00522C90
 static int32_t Script_GuildDemote(lua_State* L) {
     const char* target = lua_tolstring(L, 1, nullptr);
@@ -1427,7 +1427,7 @@ static int32_t Script_GuildDemote(lua_State* L) {
     return 0;
 }
 
-// VERIFY: feef4e01 manual
+// VERIFY: 796ea6cf manual
 // OFFSET: 0x00522D60
 static int32_t Script_GuildSetLeader(lua_State* L) {
     const char* target = lua_tolstring(L, 1, nullptr);
@@ -1474,7 +1474,7 @@ static int32_t Script_RandomRoll(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 91337dba manual
+// VERIFY: 62d98ba4 manual
 // OFFSET: 0x0050FF50
 static int32_t Script_GetCVarInfo(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -2164,7 +2164,7 @@ static int32_t Script_DestroyTotem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: e88c65f9 manual
+// VERIFY: 014257ea manual
 // OFFSET: 0x00515CC0
 static int32_t Script_ArenaTeamInviteByName(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
@@ -2212,7 +2212,7 @@ static int32_t Script_ArenaTeamLeave(lua_State* L) {
     return 0;
 }
 
-// VERIFY: a03dbb95 manual
+// VERIFY: d7c6b55a manual
 // OFFSET: 0x00515EB0
 static int32_t Script_ArenaTeamUninviteByName(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
@@ -2238,7 +2238,7 @@ static int32_t Script_ArenaTeamUninviteByName(lua_State* L) {
     return 0;
 }
 
-// VERIFY: da85970d manual
+// VERIFY: c68517ac manual
 // OFFSET: 0x00515FF0
 static int32_t Script_ArenaTeamSetLeaderByName(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
@@ -2524,7 +2524,7 @@ static int32_t Script_RegisterForSavePerCharacter(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 40b1cff8 manual
+// VERIFY: de3879c5 manual
 // OFFSET: 0x0051CC10
 static int32_t Script_GetMirrorTimerInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -2702,7 +2702,7 @@ static int32_t Script_GetItemSpell(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 42d23833 manual
+// VERIFY: 025af269 manual
 // OFFSET: 0x00517C60
 static int32_t Script_GetTotemTimeLeft(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -2959,7 +2959,7 @@ static int32_t Script_HasKey(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 2f1870ab manual
+// VERIFY: bd9176fa manual
 // OFFSET: 0x0051B410
 static int32_t Script_IsTitleKnown(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -2979,7 +2979,7 @@ static int32_t Script_IsTitleKnown(lua_State* L) {
     return 1;
 }
 
-// VERIFY: ad446345 manual
+// VERIFY: a134affc manual
 // OFFSET: 0x0051B4E0
 static int32_t Script_GetTitleName(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -3628,7 +3628,7 @@ static int32_t Script_GetAddOnMetadata(lua_State* L) {
     return 1;
 }
 
-// VERIFY: c76c4721 manual
+// VERIFY: f959985d manual
 // OFFSET: 0x00511530
 static int32_t Script_GetAddOnMemoryUsage(lua_State* L) {
     const char* name;
@@ -3875,7 +3875,7 @@ static int32_t Script_DownloadSettings(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 9df86b14 manual
+// VERIFY: 6d0a3829 manual
 // OFFSET: 0x00514F60
 static int32_t Script_GetCVarAbsoluteMin(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3899,7 +3899,7 @@ static int32_t Script_GetCVarAbsoluteMin(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b8a567d9 manual
+// VERIFY: bb4233ac manual
 // OFFSET: 0x00515010
 static int32_t Script_GetCVarAbsoluteMax(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3973,7 +3973,7 @@ static int32_t Script_ResurrectHasTimer(lua_State* L) {
     return 1;
 }
 
-// VERIFY: cc2fe4b3 manual
+// VERIFY: a43735ec manual
 // OFFSET: 0x00515A90
 static int32_t Script_GuildSetMOTD(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -4092,7 +4092,7 @@ static int32_t Script_GetGMTicketCategories(lua_State* L) {
     return results;
 }
 
-// VERIFY: d0e47711 manual
+// VERIFY: 4ac3e219 manual
 // OFFSET: 0x00516ED0
 static int32_t Script_GetItemUniqueness(lua_State* L) {
     ItemLinkInfo linkInfo;
@@ -4448,7 +4448,7 @@ static int32_t Script_GetMirrorTimerProgress(lua_State* L) {
     return 1;
 }
 
-// VERIFY: abb82cba manual
+// VERIFY: b065ae4b manual
 // OFFSET: 0x0051A3D0
 static int32_t Script_EquipCursorItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -4720,7 +4720,7 @@ static int32_t Script_ConfirmSummon(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ec0b6655 manual
+// VERIFY: a1b14380 manual
 // OFFSET: 0x0051B240
 static int32_t Script_CheckInteractDistance(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
@@ -4759,7 +4759,7 @@ static int32_t Script_AcceptXPLoss(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b4ab0ad2 manual
+// VERIFY: cab30f22 manual
 // OFFSET: 0x0051BDD0
 static int32_t Script_DropItemOnUnit(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -4865,7 +4865,7 @@ static int32_t Script_ShowCloak(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 2cd7a78d manual
+// VERIFY: 690dd681 manual
 // OFFSET: 0x0051C150
 static int32_t Script_GetItemGem(lua_State* L) {
     int32_t enchantId = 0;
@@ -5561,7 +5561,7 @@ static int32_t Script_InitiateTrade(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 3355d54c manual
+// VERIFY: 945d5573 manual
 // OFFSET: 0x00522710
 static int32_t Script_CanInspect(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -5602,7 +5602,7 @@ static int32_t Script_CanInspect(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 788240f9 manual
+// VERIFY: 643ec510 manual
 // OFFSET: 0x00522870
 static int32_t Script_NotifyInspect(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -5652,7 +5652,7 @@ static int32_t s_setTitleCount = 10;
 // STATIC: 0x00BD0CB8
 static float s_setTitleTime;
 
-// VERIFY: b7203c0d manual
+// VERIFY: 33bd568d manual
 // OFFSET: 0x00522E30
 static int32_t Script_SetCurrentTitle(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -5905,7 +5905,7 @@ static int32_t Script_TargetUnit(lua_State* L) {
     return 0;
 }
 
-// VERIFY: fc32fa61 manual
+// VERIFY: a9d8ce70 manual
 // OFFSET: 0x00525C30
 static int32_t Script_TargetDirectionEnemy(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -5923,7 +5923,7 @@ static int32_t Script_TargetDirectionEnemy(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c622be92 manual
+// VERIFY: 38ff157a manual
 // OFFSET: 0x00525CD0
 static int32_t Script_TargetDirectionFriend(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -6003,7 +6003,7 @@ static int32_t Script_AssistUnit(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 94bdea90 manual
+// VERIFY: 818e9713 manual
 // OFFSET: 0x00526050
 static int32_t Script_SetDungeonDifficulty(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -6038,7 +6038,7 @@ static int32_t Script_SetDungeonDifficulty(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 654b5611 manual
+// VERIFY: c4c81cc7 manual
 // OFFSET: 0x005261A0
 static int32_t Script_SetRaidDifficulty(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

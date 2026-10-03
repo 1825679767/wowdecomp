@@ -106,7 +106,7 @@ static int32_t Script_KBQuery_GetArticleHeaderCount(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 8c822b85 manual
+// VERIFY: 511f6008 manual
 // OFFSET: 0x005517D0
 static int32_t Script_KBSetup_GetLanguageData(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
@@ -126,7 +126,7 @@ static int32_t Script_KBSetup_GetLanguageData(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 3a3144f9 manual
+// VERIFY: f63ffcdf manual
 // OFFSET: 0x00551900
 static int32_t Script_KBSetup_GetCategoryData(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
@@ -146,7 +146,7 @@ static int32_t Script_KBSetup_GetCategoryData(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 52004c77 manual
+// VERIFY: 2a3a128f manual
 // OFFSET: 0x00551A30
 static int32_t Script_KBSetup_GetArticleHeaderData(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
@@ -180,7 +180,7 @@ static int32_t Script_KBSetup_GetTotalArticleCount(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 0efd23c7 manual
+// VERIFY: 6159c4ce manual
 // OFFSET: 0x00551C00
 static int32_t Script_KBQuery_GetArticleHeaderData(lua_State* L) {
     if (g_KnowledgeBaseQuery.m_state != 2) {
@@ -223,7 +223,7 @@ static int32_t Script_KBArticle_BeginLoading(lua_State* L) {
     return 0;
 }
 
-// VERIFY: e8f7141c manual
+// VERIFY: 0075add2 manual
 // OFFSET: 0x00551DD0
 static int32_t Script_KBArticle_GetData(lua_State* L) {
     if (g_KnowledgeBaseArticle.m_state != 2) {
@@ -241,7 +241,7 @@ static int32_t Script_KBArticle_GetData(lua_State* L) {
     return 7;
 }
 
-// VERIFY: f2eea941 manual
+// VERIFY: 52b22198 manual
 // OFFSET: 0x005523A0
 static int32_t Script_KBSetup_GetSubCategoryCount(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
@@ -265,7 +265,7 @@ static int32_t Script_KBSetup_GetSubCategoryCount(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 3092339c manual
+// VERIFY: cc04f165 manual
 // OFFSET: 0x00552440
 static int32_t Script_KBSetup_GetSubCategoryData(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
@@ -287,7 +287,7 @@ static int32_t Script_KBSetup_GetSubCategoryData(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 6c845c8e manual
+// VERIFY: f0e5209c manual
 // OFFSET: 0x00552580
 static int32_t Script_KBQuery_BeginLoading(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {

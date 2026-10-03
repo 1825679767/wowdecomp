@@ -68,7 +68,7 @@ static int32_t Script_CombatLog_Object_IsA(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 6ef1c5ef manual
+// VERIFY: 805a8dd8 manual
 // OFFSET: 0x0074FF70
 static int32_t Script_CombatLogAddFilter(lua_State* L) {
     WOWGUID sourceGuid = WOWGUID();
@@ -157,7 +157,7 @@ static int32_t Script_CombatTextSetActiveUnit(lua_State* L) {
     return 0;
 }
 
-// VERIFY: d56a0296 manual
+// VERIFY: efba33b0 manual
 // OFFSET: 0x0074FAE0
 static int32_t Script_CombatLogSetCurrentEntry(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -206,7 +206,7 @@ static int32_t Script_CombatLogGetCurrentEntry(lua_State* L) {
     return s_currentEntry->PushEvent(L);
 }
 
-// VERIFY: 3636a3c6 manual
+// VERIFY: 10c18f67 manual
 // OFFSET: 0x0074FC20
 static int32_t Script_CombatLogAdvanceEntry(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

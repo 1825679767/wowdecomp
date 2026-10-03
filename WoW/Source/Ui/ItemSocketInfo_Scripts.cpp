@@ -14,7 +14,7 @@
 #include "WoW/Source/UIUtil/Tooltip.h"
 #include "WoW/Source/Ui/GameUI.h"
 
-// VERIFY: 2e549037 manual
+// VERIFY: 1a1201d8 manual
 // OFFSET: 0x005C4550
 static int32_t Script_GetSocketTypes(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -197,7 +197,7 @@ static int32_t Script_GetSocketItemBoundTradeable(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 5ba8e959 manual
+// VERIFY: fe2649ac manual
 // OFFSET: 0x005C5160
 static int32_t Script_GetExistingSocketInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -244,7 +244,7 @@ static int32_t Script_GetExistingSocketInfo(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 36710bcb manual
+// VERIFY: 9ac18b99 manual
 // OFFSET: 0x005C5340
 static int32_t Script_GetExistingSocketLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

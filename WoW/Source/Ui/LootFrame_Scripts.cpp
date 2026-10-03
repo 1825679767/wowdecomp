@@ -21,7 +21,7 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 
-// VERIFY: 58fe7575 manual
+// VERIFY: 55f64cec manual
 // OFFSET: 0x00588CC0
 static int32_t Script_GetLootRollTimeLeft(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -40,7 +40,7 @@ static int32_t Script_GetLootRollTimeLeft(lua_State* L) {
     return 1;
 }
 
-// VERIFY: aafe1aca manual
+// VERIFY: 52798a77 manual
 // OFFSET: 0x00588750
 static int32_t Script_LootSlotIsItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -200,7 +200,7 @@ static int32_t Script_GetNumLootItems(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d7d7a642 manual
+// VERIFY: dcbdf15b manual
 // OFFSET: 0x00588570
 static int32_t Script_GetLootSlotInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -332,7 +332,7 @@ static int32_t Script_ConfirmLootSlot(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f12b832e manual
+// VERIFY: c63300ff manual
 // OFFSET: 0x00589600
 static int32_t Script_GiveMasterLoot(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {

@@ -26,7 +26,7 @@ static int32_t Script_GetNumGlyphSockets(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 9cc859f5 manual
+// VERIFY: 5f83f5a1 manual
 // OFFSET: 0x005B7260
 static int32_t Script_GetGlyphSocketInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -121,7 +121,7 @@ static int32_t Script_GlyphMatchesSocket(lua_State* L) {
     return 0;
 }
 
-// VERIFY: fcc848cc manual
+// VERIFY: c5e5b51d manual
 // OFFSET: 0x005B75A0
 static int32_t Script_PlaceGlyphInSocket(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -145,7 +145,7 @@ static int32_t Script_PlaceGlyphInSocket(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 2a5b7041 manual
+// VERIFY: cccb8fa4 manual
 // OFFSET: 0x005B7660
 static int32_t Script_RemoveGlyphFromSocket(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -167,7 +167,7 @@ static int32_t Script_RemoveGlyphFromSocket(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 9c680b33 manual
+// VERIFY: 64be7f0c manual
 // OFFSET: 0x005B7740
 static int32_t Script_GetGlyphLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

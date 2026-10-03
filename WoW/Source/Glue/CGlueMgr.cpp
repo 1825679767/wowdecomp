@@ -2564,6 +2564,7 @@ int32_t CGlueMgr::OnCharFactionChangeResult(void* param, NETMESSAGE msgId, uint3
     return 1;
 }
 
+// VERIFY: e4d96b3e auto
 // OFFSET: 0x004D9500
 int32_t CGlueMgr::OnKickReasonMsg(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint8_t reason = 0;

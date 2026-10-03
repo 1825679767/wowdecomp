@@ -21,7 +21,7 @@
 #include "WoW/Source/Ui/PetInfo.h"
 #include "WoW/Source/DB/Rec/TotemCategoryRec.h"
 
-// VERIFY: e372e728 manual
+// VERIFY: 67a7662a manual
 // OFFSET: 0x005A7E60
 static int32_t Script_IsUsableAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -48,7 +48,7 @@ static int32_t Script_IsUsableAction(lua_State* L) {
     return 2;
 }
 
-// VERIFY: c5f2d212 auto
+// VERIFY: 4790f532 manual
 // OFFSET: 0x005A8220
 static int32_t Script_HasAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -67,7 +67,7 @@ static int32_t Script_HasAction(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 872afd31 manual
+// VERIFY: 5b1d9a76 manual
 // OFFSET: 0x005A8F10
 static int32_t Script_GetActionInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -161,7 +161,7 @@ static int32_t Script_GetActionCooldown(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 34cab02a auto
+// VERIFY: bfeed94d manual
 // OFFSET: 0x005A9B30
 static int32_t Script_GetActionTexture(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -181,7 +181,7 @@ static int32_t Script_GetActionTexture(lua_State* L) {
     return 1;
 }
 
-// VERIFY: bb173118 auto
+// VERIFY: f8a66885 manual
 // OFFSET: 0x005AAD40
 static int32_t Script_IsCurrentAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -200,7 +200,7 @@ static int32_t Script_IsCurrentAction(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 5bc31f23 manual
+// VERIFY: 8e7de78a manual
 // OFFSET: 0x005AC090
 static int32_t Script_PickupAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -212,7 +212,7 @@ static int32_t Script_PickupAction(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 8e8b464f manual
+// VERIFY: 215bdca3 manual
 // OFFSET: 0x005AC000
 static int32_t Script_UseAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -319,7 +319,7 @@ static int32_t Script_ChangeActionBarPage(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 34736bd1 manual
+// VERIFY: ceaea837 manual
 // OFFSET: 0x005A7D10
 static int32_t Script_GetActionCount(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -375,7 +375,7 @@ static int32_t Script_SetActionBarToggles(lua_State* L) {
     return 0;
 }
 
-// VERIFY: a66b541b auto
+// VERIFY: 143d6bd7 manual
 // OFFSET: 0x005A8BC0
 static int32_t Script_IsEquippedAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -394,7 +394,7 @@ static int32_t Script_IsEquippedAction(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 6e7c65b0 auto
+// VERIFY: b8c643c7 manual
 // OFFSET: 0x005A9C80
 static int32_t Script_IsConsumableAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -413,7 +413,7 @@ static int32_t Script_IsConsumableAction(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 1761f320 auto
+// VERIFY: 58dd316d manual
 // OFFSET: 0x005A8720
 static int32_t Script_IsStackableAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -455,7 +455,7 @@ static int32_t Script_GetMultiCastBarOffset(lua_State* L) {
     return 1;
 }
 
-// VERIFY: c199b98c auto
+// VERIFY: 1c1ed01b manual
 // OFFSET: 0x005A9BA0
 static int32_t Script_IsAttackAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -474,7 +474,7 @@ static int32_t Script_IsAttackAction(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 651b85d6 auto
+// VERIFY: 394bbc6f manual
 // OFFSET: 0x005A9C10
 static int32_t Script_IsAutoRepeatAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -512,7 +512,7 @@ static int32_t Script_IsActionInRange(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d1b7a27b manual
+// VERIFY: 795b8c46 manual
 // OFFSET: 0x005A8330
 static int32_t Script_GetMultiCastTotemSpells(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -538,7 +538,7 @@ static int32_t Script_GetMultiCastTotemSpells(lua_State* L) {
     return count;
 }
 
-// VERIFY: 753b762a manual
+// VERIFY: d98ffc7f manual
 // OFFSET: 0x005A9290
 static int32_t Script_GetActionAutocast(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -578,7 +578,7 @@ static int32_t Script_ActionHasRange(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 6567a621 manual
+// VERIFY: 583a8b5c manual
 // OFFSET: 0x005AB8A0
 static int32_t Script_SetMultiCastSpell(lua_State* L) {
     if (!lua_isnumber(L, 1) && !lua_isnumber(L, 2)) {

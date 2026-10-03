@@ -240,7 +240,7 @@ void CGLookingForGroup::LeaveLFG() {
     ClientServices::Send2(&msg);
 }
 
-// VERIFY: 810954c7 manual
+// VERIFY: 2d5334cf manual
 // OFFSET: 0x00553000
 int32_t CGLookingForGroup::GetLFGProposalMember(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

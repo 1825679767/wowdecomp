@@ -126,7 +126,7 @@ static int32_t Script_GetBattlefieldInstanceExpiration(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 8ae49628 manual
+// VERIFY: 97ad329a manual
 // OFFSET: 0x0054A180
 static int32_t Script_GetBattlefieldTeamInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -677,7 +677,7 @@ static int32_t Script_GetBattlefieldInfo(lua_State* L) {
     return 6;
 }
 
-// VERIFY: b5c47118 manual
+// VERIFY: 3d85c51d manual
 // OFFSET: 0x0054E010
 static int32_t Script_GetBattlegroundInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -746,7 +746,7 @@ static int32_t Script_CloseBattlefield(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 8091a1d8 manual
+// VERIFY: 051f5c85 manual
 // OFFSET: 0x0054BE90
 static int32_t Script_GetBattlefieldScore(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -814,7 +814,7 @@ static int32_t Script_SetBattlefieldScoreFaction(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c79fcaf4 manual
+// VERIFY: 89d9c1b3 manual
 // OFFSET: 0x0054C2E0
 static int32_t Script_GetBattlefieldPosition(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -879,7 +879,7 @@ static int32_t Script_GetBattlefieldPosition(lua_State* L) {
 // STATIC: 0x00AD6B14
 static const char* s_vehicleTypes[5] = { "Drive", "Fly", "Idle", "Airship Horde", "Airship Alliance" };
 
-// VERIFY: d321c450 manual
+// VERIFY: 312f393d manual
 // OFFSET: 0x0054C4D0
 static int32_t Script_GetBattlefieldVehicleInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -921,7 +921,7 @@ static int32_t Script_GetBattlefieldVehicleInfo(lua_State* L) {
     return 8;
 }
 
-// VERIFY: 4c82eb67 manual
+// VERIFY: d51970d3 manual
 // OFFSET: 0x0054DA10
 static int32_t Script_AcceptBattlefieldPort(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1004,7 +1004,7 @@ static int32_t Script_RequestBattlefieldScoreData(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 94f01935 manual
+// VERIFY: ad173dab manual
 // OFFSET: 0x0054DCC0
 static int32_t Script_GetBattlefieldFlagPosition(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1040,7 +1040,7 @@ static int32_t Script_GetBattlefieldFlagPosition(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 0ee48b8b auto
+// VERIFY: 7d981eb2 manual
 // OFFSET: 0x0054DE00
 static int32_t Script_SortBattlefieldScoreData(lua_State* L) {
     if (!lua_isstring(L, 1)) {

@@ -153,7 +153,7 @@ static int32_t Script_GetPreviousArenaSeason(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 338e4a8c manual
+// VERIFY: e6e83a08 manual
 // OFFSET: 0x005A2FC0
 static int32_t Script_GetArenaTeamRosterInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -211,7 +211,7 @@ static int32_t Script_GetArenaTeamRosterInfo(lua_State* L) {
     return 10;
 }
 
-// VERIFY: ecd919be manual
+// VERIFY: 93646446 manual
 // OFFSET: 0x005A3370
 static int32_t Script_SetArenaTeamRosterSelection(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -238,7 +238,7 @@ static int32_t Script_GetArenaTeamRosterSelection(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 5d0b0870 manual
+// VERIFY: 2ae54b7c manual
 // OFFSET: 0x005A3490
 static int32_t Script_SortArenaTeamRoster(lua_State* L) {
     if (!lua_isstring(L, 1)) {

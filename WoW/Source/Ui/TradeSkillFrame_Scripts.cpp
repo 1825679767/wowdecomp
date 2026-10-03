@@ -295,7 +295,7 @@ static int32_t Script_DoTradeSkill(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 47acd73d manual
+// VERIFY: 7c0942ae manual
 // OFFSET: 0x005DB2A0
 static int32_t Script_GetTradeSkillInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -570,7 +570,7 @@ static int32_t Script_GetTradeSkillItemLink(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 6fb02911 manual
+// VERIFY: 32109739 manual
 // OFFSET: 0x005DBBA0
 static int32_t Script_GetTradeSkillNumReagents(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -601,7 +601,7 @@ static int32_t Script_GetTradeSkillNumReagents(lua_State* L) {
     return 1;
 }
 
-// VERIFY: ed215a7d manual
+// VERIFY: 56eb94ae manual
 // OFFSET: 0x005DBCC0
 static int32_t Script_GetTradeSkillReagentItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -979,7 +979,7 @@ static void TradeSkillItemCallback(int32_t id, const WOWGUID& guid, void* param,
     }
 }
 
-// VERIFY: 8fb73a03 manual
+// VERIFY: 54980266 manual
 // OFFSET: 0x005DE400
 static int32_t Script_GetTradeSkillReagentInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {

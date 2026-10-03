@@ -161,7 +161,7 @@ static int32_t Script_GetNumGuildBankTransactions(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 6586d373 manual
+// VERIFY: 1d5f98d7 manual
 // OFFSET: 0x005A45E0
 static int32_t Script_GetGuildBankText(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -183,7 +183,7 @@ static int32_t Script_GetGuildBankText(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 9c6eff83 manual
+// VERIFY: dfebfdff manual
 // OFFSET: 0x005A4D30
 static int32_t Script_GetGuildBankItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -215,7 +215,7 @@ static int32_t Script_GetGuildBankItemLink(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d3e8dc71 manual
+// VERIFY: eee3d7b8 manual
 // OFFSET: 0x005A4E50
 static int32_t Script_GetGuildBankMoneyTransaction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -299,7 +299,7 @@ static int32_t Script_BuyGuildBankTab(lua_State* L) {
     return 0;
 }
 
-// VERIFY: e451df84 manual
+// VERIFY: b6d15730 manual
 // OFFSET: 0x005A5E20
 static int32_t Script_DepositGuildBankMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -331,7 +331,7 @@ static int32_t Script_WithdrawGuildBankMoney(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 2dbb4382 manual
+// VERIFY: f2361e39 manual
 // OFFSET: 0x005A6000
 static int32_t Script_GetGuildBankItemInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -368,7 +368,7 @@ static int32_t Script_GetGuildBankItemInfo(lua_State* L) {
     return 3;
 }
 
-// VERIFY: ed4777f3 manual
+// VERIFY: 2d78d9a3 manual
 // OFFSET: 0x005A6200
 static int32_t Script_PickupGuildBankItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -432,7 +432,7 @@ static int32_t Script_PickupGuildBankItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: eeb01528 manual
+// VERIFY: 87ee0855 manual
 // OFFSET: 0x005A63F0
 static int32_t Script_AutoStoreGuildBankItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -495,7 +495,7 @@ static int32_t Script_AutoStoreGuildBankItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 8622b30d manual
+// VERIFY: f0f42da3 manual
 // OFFSET: 0x005A6600
 static int32_t Script_SplitGuildBankItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
@@ -556,7 +556,7 @@ static int32_t Script_SplitGuildBankItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 1c65e4a7 manual
+// VERIFY: b6ca35d0 manual
 // OFFSET: 0x005A67F0
 static int32_t Script_GetGuildBankTabInfo(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -708,7 +708,7 @@ static int32_t Script_QueryGuildBankLog(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 4d56a532 manual
+// VERIFY: 4c64bf1d manual
 // OFFSET: 0x005A6DC0
 static int32_t Script_GetGuildBankTransaction(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {

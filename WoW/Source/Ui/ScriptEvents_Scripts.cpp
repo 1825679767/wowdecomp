@@ -795,7 +795,7 @@ static int32_t Script_AppendToFile(lua_State* L) {
     return 0;
 }
 
-// VERIFY: a4a7d960 manual
+// VERIFY: d91418ed manual
 // OFFSET: 0x0060E740
 static int32_t Script_UnitName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -877,7 +877,7 @@ static int32_t Script_UnitName(lua_State* L) {
     return 2;
 }
 
-// VERIFY: f9ddec63 manual
+// VERIFY: 5bacc158 manual
 // OFFSET: 0x0060ED40
 static int32_t Script_UnitPower(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -924,7 +924,7 @@ static int32_t Script_UnitPower(lua_State* L) {
     return 1;
 }
 
-// VERIFY: db11e0a8 manual
+// VERIFY: 8b4655cb manual
 // OFFSET: 0x0060EF40
 static int32_t Script_UnitPowerMax(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -969,7 +969,7 @@ static int32_t Script_UnitPowerMax(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 2aad3ea0 manual
+// VERIFY: 9354ea30 manual
 // OFFSET: 0x0060F100
 static int32_t Script_UnitPowerType(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -1026,7 +1026,7 @@ static int32_t Script_UnitPowerType(lua_State* L) {
     return 2;
 }
 
-// VERIFY: cc9043bb manual
+// VERIFY: bf5f66ea manual
 // OFFSET: 0x0060D0A0
 static int32_t Script_UnitFactionGroup(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -1359,7 +1359,7 @@ static int32_t Script_HasFullControl(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 4bbfb5e1 manual
+// VERIFY: ca04b914 manual
 // OFFSET: 0x00611C40
 static int32_t Script_UnitPVPRank(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -1726,7 +1726,7 @@ static int32_t Script_IsFlying(lua_State* L) {
     return 1;
 }
 
-// VERIFY: e52973fe manual
+// VERIFY: 18aba385 manual
 // OFFSET: 0x00612870
 static int32_t Script_GetUnitMaxHealthModifier(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -1924,7 +1924,7 @@ static int32_t Script_GetPowerRegen(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 7aa85aa4 manual
+// VERIFY: 8ec56229 manual
 // OFFSET: 0x0060DDB0
 static int32_t Script_GetCombatRating(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -2015,7 +2015,7 @@ static int32_t Script_GetPVPLifetimeStats(lua_State* L) {
     return 2;
 }
 
-// VERIFY: fe0bce8d manual
+// VERIFY: ebbf2e24 manual
 // OFFSET: 0x0060DC70
 static int32_t Script_IsArenaTeamCaptain(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -2137,7 +2137,7 @@ static int32_t Script_UnitUsingVehicle(lua_State* L) {
     return 1;
 }
 
-// VERIFY: c02f7d5f manual
+// VERIFY: c07d67c2 manual
 // OFFSET: 0x00611330
 static int32_t Script_UnitHasRelicSlot(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -2181,7 +2181,7 @@ static int32_t Script_UnitPVPName(lua_State* L) {
     return 1;
 }
 
-// VERIFY: c276bfad manual
+// VERIFY: 76f248a9 manual
 // OFFSET: 0x0060CFB0
 static int32_t Script_UnitIsPVPFreeForAll(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -2218,7 +2218,7 @@ static int32_t Script_UnitIsPVPFreeForAll(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 199a309f manual
+// VERIFY: dbf9a69d manual
 // OFFSET: 0x00610EC0
 static int32_t Script_UnitArmor(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -2818,7 +2818,7 @@ static int32_t Script_UnitCharacterPoints(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 2b8a7058 manual
+// VERIFY: 82224133 manual
 // OFFSET: 0x00612090
 static int32_t Script_UnitChannelInfo(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -2898,7 +2898,7 @@ static int32_t Script_GetComboPoints(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 00eaa6db manual
+// VERIFY: 59cf42d0 manual
 // OFFSET: 0x00611CB0
 static int32_t Script_GetPVPRankInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -3001,7 +3001,7 @@ static int32_t Script_GetSpellCritChanceFromIntellect(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 7b6edbe8 manual
+// VERIFY: 29f73b82 manual
 // OFFSET: 0x0060E310
 static int32_t Script_GetSpellBonusDamage(lua_State* L) {
     uint32_t school = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -3023,7 +3023,7 @@ static int32_t Script_GetSpellBonusDamage(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 5e857cf7 manual
+// VERIFY: 3b790d54 manual
 // OFFSET: 0x00613020
 static int32_t Script_GetRuneCooldown(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -3053,7 +3053,7 @@ static int32_t Script_GetRuneCooldown(lua_State* L) {
     return 3;
 }
 
-// VERIFY: cabd9576 manual
+// VERIFY: b25b5d51 manual
 // OFFSET: 0x0060CE20
 static int32_t Script_UnitIsPVP(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3086,7 +3086,7 @@ static int32_t Script_UnitIsPVP(lua_State* L) {
     return 1;
 }
 
-// VERIFY: cffb18d2 manual
+// VERIFY: 36da19b0 manual
 // OFFSET: 0x0060D3D0
 static int32_t Script_UnitIsFriend(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
@@ -3187,7 +3187,7 @@ static int32_t Script_SetPortraitTexture(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 0e56bc2d manual
+// VERIFY: 25dfe8dc manual
 // OFFSET: 0x0060DE70
 static int32_t Script_GetCombatRatingBonus(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -3207,7 +3207,7 @@ static int32_t Script_GetCombatRatingBonus(lua_State* L) {
     return 1;
 }
 
-// VERIFY: dad31c33 manual
+// VERIFY: ca6d2982 manual
 // OFFSET: 0x0060E560
 static int32_t Script_GetAttackPowerForStat(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -3228,7 +3228,7 @@ static int32_t Script_GetAttackPowerForStat(lua_State* L) {
     return 1;
 }
 
-// VERIFY: ad0aaf8f manual
+// VERIFY: 252112a9 manual
 // OFFSET: 0x00610860
 static int32_t Script_UnitDamage(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3268,7 +3268,7 @@ static int32_t Script_UnitDamage(lua_State* L) {
     return 7;
 }
 
-// VERIFY: 3ddf336a manual
+// VERIFY: 2e354770 manual
 // OFFSET: 0x00610A00
 static int32_t Script_UnitAttackSpeed(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3301,7 +3301,7 @@ static int32_t Script_UnitAttackSpeed(lua_State* L) {
     return 2;
 }
 
-// VERIFY: ab437090 manual
+// VERIFY: e0576df7 manual
 // OFFSET: 0x0060DA00
 static int32_t Script_UnitSelectionColor(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3340,7 +3340,7 @@ static int32_t Script_GetCritChanceFromAgility(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 1ceedc24 manual
+// VERIFY: 453129c7 manual
 // OFFSET: 0x00610B60
 static int32_t Script_UnitAttackPower(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3364,7 +3364,7 @@ static int32_t Script_UnitAttackPower(lua_State* L) {
     return 3;
 }
 
-// VERIFY: d0d5e159 manual
+// VERIFY: c796c92f manual
 // OFFSET: 0x00610CA0
 static int32_t Script_UnitRangedAttackPower(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3529,7 +3529,7 @@ static int32_t Script_GetPlayerFacing(lua_State* L) {
     return 1;
 }
 
-// VERIFY: f515ecae manual
+// VERIFY: 50537504 manual
 // OFFSET: 0x0060C550
 static int32_t Script_UnitIsInMyGuild(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3682,7 +3682,7 @@ static int32_t Script_UnitGUID(lua_State* L) {
     return 1;
 }
 
-// VERIFY: f0783c4a manual
+// VERIFY: 38537d50 manual
 // OFFSET: 0x00610040
 static int32_t Script_UnitClassBase(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3727,7 +3727,7 @@ static int32_t Script_UnitClassBase(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 8b054330 manual
+// VERIFY: 59222b5b manual
 // OFFSET: 0x00610550
 static int32_t Script_UnitRangedDamage(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3875,7 +3875,7 @@ static int32_t Script_IsFlyableArea(lua_State* L) {
     return 1;
 }
 
-// VERIFY: f7f66bc2 manual
+// VERIFY: 8e75ff63 manual
 // OFFSET: 0x00612670
 static int32_t Script_UnitIsSameServer(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
@@ -3969,7 +3969,7 @@ static int32_t Script_ReportPlayerIsPVPAFK(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 3f49672b manual
+// VERIFY: 1084f77e manual
 // OFFSET: 0x00612E20
 static int32_t Script_PlayerIsPVPInactive(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -4098,7 +4098,7 @@ static int32_t Script_UnitVehicleSkin(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d615c8f6 manual
+// VERIFY: 4c92e9df manual
 // OFFSET: 0x00613E10
 static int32_t Script_EjectPassengerFromSeat(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -4145,7 +4145,7 @@ static int32_t Script_RespondInstanceLock(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c1990874 manual
+// VERIFY: ba72168d manual
 // OFFSET: 0x00613F90
 static int32_t Script_GetPlayerInfoByGUID(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -4264,7 +4264,7 @@ static int32_t Script_GetVehicleUIIndicator(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 7fd65f6a manual
+// VERIFY: fda3de55 manual
 // OFFSET: 0x00614EF0
 static int32_t Script_GetVehicleUIIndicatorSeat(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {

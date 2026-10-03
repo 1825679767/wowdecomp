@@ -1047,7 +1047,7 @@ bool ClientServices::GetCdKeys(Grunt::CdKey& cdKey) {
     return true;
 }
 
-// VERIFY: 0e0b5dca manual
+// VERIFY: 2d0bcb86 manual
 // OFFSET: 0x006B2F60
 void ClientServices::RealmEnumCallback(uint32_t result) {
     if (!ClientServices::s_currentConnection) {
@@ -1169,7 +1169,7 @@ bool ClientServices::SetSelectedRealmInfo(int32_t force) {
     return false;
 }
 
-// VERIFY: 7f074389 manual
+// VERIFY: 299e1103 manual
 // OFFSET: 0x006B2E30
 void ClientServices::ConnectToSelectedServer() {
     if (!ClientServices::m_selectRealmInfoValid && !ClientServices::SetSelectedRealmInfo(0)) {
@@ -1487,7 +1487,7 @@ void ClientConnection::HandleLogoutComplete() {
     }
 }
 
-// VERIFY: e65599e3 manual
+// VERIFY: a00d1e9e manual
 // OFFSET: 0x006B3070
 void ClientServices::JoinRealmResult(uint32_t realmId, int32_t a2, int32_t a3, int32_t a4, int32_t a5) {
     if (ClientServices::s_loginObj->GetLoginServerType() != 1) {

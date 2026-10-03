@@ -142,7 +142,7 @@ static int32_t Script_AccountMsg_GetNumUnreadUrgentMsgs(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 9a74e3c4 manual
+// VERIFY: ddf7e51b manual
 // OFFSET: 0x00550430
 static int32_t Script_AccountMsg_GetIndexHighestPriorityUnreadMsg(lua_State* L) {
     if (g_accountMsgHeaders.m_state != 2) {

@@ -214,7 +214,7 @@ static int32_t Script_CanCancelAuction(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b8349a45 manual
+// VERIFY: afaf3777 manual
 // OFFSET: 0x0059DDF0
 static int32_t Script_CancelAuction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -296,7 +296,7 @@ static const uint32_t s_timeLeftThresholds[3] = { 1800000, 7200000, 43200000 };
 // STATIC: 0x00A15248
 static const uint32_t AUCTION_RUN_TIMES[3] = { 720, 1440, 2880 };
 
-// VERIFY: b5a740f7 manual
+// VERIFY: ae094fc9 manual
 // OFFSET: 0x0059AB90
 static int32_t Script_IsAuctionSortReversed(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
@@ -346,7 +346,7 @@ static int32_t Script_IsAuctionSortReversed(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 3c29890e manual
+// VERIFY: 7b782a18 manual
 // OFFSET: 0x0059AD40
 static int32_t Script_GetAuctionSort(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
@@ -573,7 +573,7 @@ static int32_t Script_QueryAuctionItems(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c3d78c7c manual
+// VERIFY: 33aafb9b manual
 // OFFSET: 0x0059C2D0
 static int32_t Script_GetAuctionItemLink(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
@@ -638,7 +638,7 @@ static int32_t Script_CanSendAuctionQuery(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 805241c6 manual
+// VERIFY: ec7c594c manual
 // OFFSET: 0x0059C830
 static int32_t Script_SetSelectedAuctionItem(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
@@ -794,7 +794,7 @@ static int32_t Script_GetBidderAuctionItems(lua_State* L) {
     return 0;
 }
 
-// VERIFY: d4da8169 manual
+// VERIFY: d3a6eff0 manual
 // OFFSET: 0x0059D5E0
 static int32_t Script_GetAuctionItemInfo(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
@@ -900,7 +900,7 @@ static int32_t Script_GetAuctionItemInfo(lua_State* L) {
     return 13;
 }
 
-// VERIFY: 4433bd2b manual
+// VERIFY: e2337546 manual
 // OFFSET: 0x0059DA40
 static int32_t Script_PlaceAuctionBid(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
@@ -1176,7 +1176,7 @@ static int32_t Script_StartAuction(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 870bf0e4 manual
+// VERIFY: 2139eff4 manual
 // OFFSET: 0x0059FD60
 static int32_t Script_GetAuctionItemTimeLeft(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {

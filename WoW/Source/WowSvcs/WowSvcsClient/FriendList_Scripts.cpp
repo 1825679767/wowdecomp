@@ -81,7 +81,7 @@ static int32_t Script_GetNumIgnores(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b7b26623 manual
+// VERIFY: c8a2e78a manual
 // OFFSET: 0x006B4A80
 static int32_t Script_GetWhoInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -161,7 +161,7 @@ static int32_t Script_SendWho(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f0892371 manual
+// VERIFY: f205224e manual
 // OFFSET: 0x006B4130
 static int32_t Script_GetFriendInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) && !lua_isstring(L, 1)) {
@@ -289,7 +289,7 @@ static int32_t Script_GetNumMutes(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 97ccd8aa manual
+// VERIFY: 08bb9bbd manual
 // OFFSET: 0x006B4620
 static int32_t Script_GetIgnoreName(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -321,7 +321,7 @@ static int32_t Script_GetIgnoreName(lua_State* L) {
     return 1;
 }
 
-// VERIFY: f3c3f8f1 manual
+// VERIFY: 1e56773e manual
 // OFFSET: 0x006B4760
 static int32_t Script_GetMuteName(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -353,7 +353,7 @@ static int32_t Script_GetMuteName(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 77920e4a manual
+// VERIFY: 16fec7e4 manual
 // OFFSET: 0x006B48A0
 static int32_t Script_SetSelectedIgnore(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -373,7 +373,7 @@ static int32_t Script_SetSelectedIgnore(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ec8f7c06 manual
+// VERIFY: b34a47c1 manual
 // OFFSET: 0x006B4950
 static int32_t Script_SetSelectedMute(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -407,7 +407,7 @@ static int32_t Script_GetSelectedMute(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 0585e81f manual
+// VERIFY: 51084fca manual
 // OFFSET: 0x006B4EB0
 static int32_t Script_SortWho(lua_State* L) {
     if (!lua_isstring(L, 1)) {

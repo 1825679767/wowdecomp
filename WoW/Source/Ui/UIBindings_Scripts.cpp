@@ -215,7 +215,7 @@ static int32_t Script_ClearOverrideBindings(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 172305d8 manual
+// VERIFY: 9b83a5dc manual
 // OFFSET: 0x005625F0
 static int32_t Script_GetBindingByKey(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -245,7 +245,7 @@ static int32_t Script_GetBindingByKey(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b133f590 manual
+// VERIFY: 23d2b797 manual
 // OFFSET: 0x0055FAD0
 static int32_t Script_RunBinding(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -613,7 +613,7 @@ static int32_t Script_SetOverrideBindingClick(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f4ee5a5f manual
+// VERIFY: 848027c4 manual
 // OFFSET: 0x00564130
 static int32_t Script_GetClickFrame(lua_State* L) {
     if (!lua_isstring(L, 1)) {

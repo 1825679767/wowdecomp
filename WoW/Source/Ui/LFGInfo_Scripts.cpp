@@ -267,7 +267,7 @@ static void PushLFDChoiceInfo(lua_State* L, int32_t id) {
     lua_settable(L, -3);
 }
 
-// VERIFY: c40d1e1d manual
+// VERIFY: 28164d37 manual
 // OFFSET: 0x005551E0
 static int32_t Script_GetLFDChoiceInfo(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE && lua_type(L, 1) > LUA_TNIL) {
@@ -666,7 +666,7 @@ static int32_t Script_GetLFGCompletionReward(lua_State* L) {
     return 9;
 }
 
-// VERIFY: 4b5bb6fd manual
+// VERIFY: ae8df1b4 manual
 // OFFSET: 0x00557F70
 static int32_t Script_GetLFGCompletionRewardItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -969,7 +969,7 @@ static int32_t Script_GetLFDLockInfo(lua_State* L) {
     return 2;
 }
 
-// VERIFY: b4dc1815 manual
+// VERIFY: 0c2da627 manual
 // OFFSET: 0x00557AA0
 static int32_t Script_GetLFGDungeonRewards(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1011,7 +1011,7 @@ static int32_t Script_GetLFGDungeonRewards(lua_State* L) {
     return 6;
 }
 
-// VERIFY: a9164617 manual
+// VERIFY: 399640cb manual
 // OFFSET: 0x005555D0
 static int32_t Script_GetLFGRandomDungeonInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1073,7 +1073,7 @@ static int32_t Script_IsLFGDungeonJoinable(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d65e5a96 manual
+// VERIFY: 45eb8fb4 manual
 // OFFSET: 0x005564D0
 static int32_t Script_GetLFDChoiceCollapseState(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE && lua_type(L, 1) > LUA_TNIL) {
@@ -1298,7 +1298,7 @@ static int32_t Script_SetLFGComment(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ca970612 manual
+// VERIFY: 44f6b8fc manual
 // OFFSET: 0x00555760
 static int32_t Script_UnitHasLFGRandomCooldown(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -1336,7 +1336,7 @@ static int32_t Script_UnitHasLFGRandomCooldown(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 1d04b62d manual
+// VERIFY: d2f5b8c5 manual
 // OFFSET: 0x00555840
 static int32_t Script_UnitHasLFGDeserter(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -1506,7 +1506,7 @@ static bool GetLFGInfoByIndex(uint32_t index, LFGListParty** party, LFGListPlaye
     return true;
 }
 
-// VERIFY: 61a19424 manual
+// VERIFY: c52dfe5b manual
 // OFFSET: 0x00553C30
 static int32_t Script_SearchLFGGetEncounterResults(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -1964,7 +1964,7 @@ static int32_t Script_RefreshLFGList(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 79bb4034 manual
+// VERIFY: b5d518ff manual
 // OFFSET: 0x0055D2B0
 static int32_t Script_SearchLFGSort(lua_State* L) {
     if (!lua_isstring(L, 1)) {

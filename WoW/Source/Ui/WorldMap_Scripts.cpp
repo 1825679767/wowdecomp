@@ -426,7 +426,7 @@ static int32_t Script_GetWintergraspWaitTime(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 1a109435 manual
+// VERIFY: 95089986 manual
 // OFFSET: 0x00545A30
 static int32_t Script_GetMapLandmarkInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -498,7 +498,7 @@ static int32_t Script_GetMapLandmarkInfo(lua_State* L) {
     return 7;
 }
 
-// VERIFY: 322566bb manual
+// VERIFY: 7570dd98 manual
 // OFFSET: 0x00545110
 static int32_t Script_UpdateMapHighlight(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -730,7 +730,7 @@ static int32_t Script_GetMapZones(lua_State* L) {
     return count;
 }
 
-// VERIFY: 644365a6 manual
+// VERIFY: a9ab4466 manual
 // OFFSET: 0x00545C80
 static int32_t Script_GetMapOverlayInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -802,7 +802,7 @@ static int32_t Script_SetMapZoom(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 0a301e02 manual
+// VERIFY: a3213393 manual
 // OFFSET: 0x00545E60
 static int32_t Script_CreateWorldMapArrowFrame(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
@@ -908,7 +908,7 @@ static int32_t Script_GetDeathReleasePosition(lua_State* L) {
     return 2;
 }
 
-// VERIFY: c2d919f5 manual
+// VERIFY: f00de7d9 manual
 // OFFSET: 0x00545F20
 static int32_t Script_CreateMiniWorldMapArrowFrame(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
@@ -1006,7 +1006,7 @@ static int32_t Script_ZoomOut(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 1bf5645d manual
+// VERIFY: f724a42d manual
 // OFFSET: 0x00546C50
 static int32_t Script_SetMapByID(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

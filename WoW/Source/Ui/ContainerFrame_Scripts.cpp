@@ -62,7 +62,7 @@ static int32_t Script_ContainerIDToInventoryID(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d68e83af manual
+// VERIFY: 8c76374f manual
 // OFFSET: 0x005D7590
 static int32_t Script_GetContainerNumFreeSlots(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -109,7 +109,7 @@ static int32_t Script_GetContainerNumFreeSlots(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 68082673 manual
+// VERIFY: 59b9b306 manual
 // OFFSET: 0x005D74A0
 static int32_t Script_GetContainerNumSlots(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -175,7 +175,7 @@ static int32_t Script_GetBagName(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 9c9fb70c manual
+// VERIFY: 586c8464 manual
 // OFFSET: 0x005D7A90
 static int32_t Script_GetContainerItemInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -263,7 +263,7 @@ static int32_t Script_GetContainerItemCooldown(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 954704b6 manual
+// VERIFY: 0244abbb manual
 // OFFSET: 0x005D8650
 static int32_t Script_UseContainerItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -411,7 +411,7 @@ static int32_t Script_UseContainerItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 535534c3 manual
+// VERIFY: 256ccaab manual
 // OFFSET: 0x005D7FF0
 static int32_t Script_PickupContainerItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -605,7 +605,7 @@ static int32_t Script_ShowContainerSellCursor(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 3b03056d manual
+// VERIFY: 13022947 manual
 // OFFSET: 0x005D7180
 static int32_t Script_SetBagPortraitTexture(lua_State* L) {
     CSimpleTexture* texture = static_cast<CSimpleTexture*>(FrameScript_GetObjectThis(L, CSimpleTexture::GetObjectType()));
@@ -640,7 +640,7 @@ static int32_t Script_SetBagPortraitTexture(lua_State* L) {
     return 0;
 }
 
-// VERIFY: a08906d1 manual
+// VERIFY: 97522acf manual
 // OFFSET: 0x005D9400
 static int32_t Script_GetContainerItemQuestInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -679,7 +679,7 @@ static int32_t Script_GetContainerItemQuestInfo(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 917bca5d manual
+// VERIFY: d21762d0 manual
 // OFFSET: 0x005D8D80
 static int32_t Script_GetContainerItemPurchaseInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -774,7 +774,7 @@ static int32_t Script_GetContainerItemLink(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 0caa5591 manual
+// VERIFY: c109decd manual
 // OFFSET: 0x005D84F0
 static int32_t Script_SplitContainerItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
@@ -865,7 +865,7 @@ static bool BuildItemIconPath(int32_t itemId, char* buffer, uint32_t size) {
     return true;
 }
 
-// VERIFY: d4b7b41d manual
+// VERIFY: 8bb31b86 manual
 // OFFSET: 0x005D7820
 static int32_t Script_GetContainerFreeSlots(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -947,7 +947,7 @@ static int32_t Script_GetContainerFreeSlots(lua_State* L) {
     return 1;
 }
 
-// VERIFY: ca39c834 manual
+// VERIFY: 11b93c9c manual
 // OFFSET: 0x005D7D00
 static int32_t Script_GetContainerItemID(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -973,7 +973,7 @@ static int32_t Script_GetContainerItemID(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 2e98e6f0 manual
+// VERIFY: c4bf89e8 manual
 // OFFSET: 0x005D7EF0
 static int32_t Script_GetContainerItemDurability(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -1007,7 +1007,7 @@ static int32_t Script_GetContainerItemDurability(lua_State* L) {
     return 2;
 }
 
-// VERIFY: af636008 manual
+// VERIFY: bc1a0153 manual
 // OFFSET: 0x005D8F70
 static int32_t Script_GetContainerItemPurchaseItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
@@ -1095,7 +1095,7 @@ static int32_t Script_GetContainerItemPurchaseItem(lua_State* L) {
     return 3;
 }
 
-// VERIFY: f3dbff82 manual
+// VERIFY: a90b94c4 manual
 // OFFSET: 0x005D91B0
 static int32_t Script_ContainerRefundItemPurchase(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -1141,7 +1141,7 @@ static int32_t Script_ContainerRefundItemPurchase(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 02fc1e66 manual
+// VERIFY: 2ff417f7 manual
 // OFFSET: 0x005D9300
 static int32_t Script_GetContainerItemGems(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {

@@ -45,7 +45,7 @@ static int32_t Script_GetNumTalentTabs(lua_State* L) {
     return 1;
 }
 
-// VERIFY: c6674563 manual
+// VERIFY: b59980be manual
 // OFFSET: 0x005C5D40
 static int32_t Script_GetNumTalents(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -80,7 +80,7 @@ static int32_t Script_GetNumTalentGroups(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 7ce5456f manual
+// VERIFY: ede92045 manual
 // OFFSET: 0x005C5E70
 static int32_t Script_SetActiveTalentGroup(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -97,7 +97,7 @@ static int32_t Script_SetActiveTalentGroup(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b82d80eb manual
+// VERIFY: 2d682fac manual
 // OFFSET: 0x005C6150
 static int32_t Script_GetTalentTabInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -230,7 +230,7 @@ static int32_t Script_LearnPreviewTalents(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f4e23c59 manual
+// VERIFY: 2c893b81 manual
 // OFFSET: 0x005C7130
 static int32_t Script_ResetPreviewTalentPoints(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -268,7 +268,7 @@ static int32_t Script_ResetGroupPreviewTalentPoints(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ec497201 manual
+// VERIFY: 1ba1dad4 manual
 // OFFSET: 0x005C7800
 static int32_t Script_GetTalentInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -393,7 +393,7 @@ static int32_t Script_GetTalentInfo(lua_State* L) {
     return 10;
 }
 
-// VERIFY: b2a1c929 manual
+// VERIFY: 6dac478d manual
 // OFFSET: 0x005C7ED0
 static int32_t Script_GetTalentPrereqs(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -495,7 +495,7 @@ static int32_t Script_GetTalentLink(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 241f5249 manual
+// VERIFY: 141c8756 manual
 // OFFSET: 0x005C80E0
 static int32_t Script_LearnTalent(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -554,7 +554,7 @@ static int32_t Script_LearnTalent(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b2a1239e manual
+// VERIFY: d7959687 manual
 // OFFSET: 0x005C9590
 static int32_t Script_AddPreviewTalentPoints(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {

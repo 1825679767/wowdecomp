@@ -433,7 +433,7 @@ static int32_t Script_GetCurrentMultisampleFormat(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d63b1ce9 manual
+// VERIFY: 1162e2e5 manual
 // OFFSET: 0x0054ED80
 static int32_t Script_SetupFullscreenScale(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {

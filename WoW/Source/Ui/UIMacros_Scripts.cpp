@@ -468,7 +468,7 @@ static int32_t Script_PickupMacro(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b0d73827 manual
+// VERIFY: c8955690 manual
 // OFFSET: 0x00568160
 static int32_t Script_CreateMacro(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {

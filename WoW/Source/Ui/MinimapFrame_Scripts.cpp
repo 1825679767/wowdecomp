@@ -195,7 +195,7 @@ static int32_t Script_GetZoom(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b45ff4b2 manual
+// VERIFY: e16a0b62 manual
 // OFFSET: 0x0057BFD0
 static int32_t Script_SetZoom(lua_State* L) {
     if (!lua_isnumber(L, 2)) {

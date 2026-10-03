@@ -70,7 +70,7 @@ static int32_t Script_Sound_ChatSystem_GetNumInputDrivers(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 03a1d415 manual
+// VERIFY: 28a8ec83 manual
 // OFFSET: 0x00985A50
 static int32_t Script_Sound_ChatSystem_GetInputDriverNameByIndex(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -93,7 +93,7 @@ static int32_t Script_Sound_ChatSystem_GetNumOutputDrivers(lua_State* L) {
     return 1;
 }
 
-// VERIFY: cc26c99f manual
+// VERIFY: 74c0fb57 manual
 // OFFSET: 0x00985B10
 static int32_t Script_Sound_ChatSystem_GetOutputDriverNameByIndex(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -120,7 +120,7 @@ static int32_t Script_Sound_GameSystem_GetNumInputDrivers(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 7778bea0 manual
+// VERIFY: cbb4519c manual
 // OFFSET: 0x00985BE0
 static int32_t Script_Sound_GameSystem_GetInputDriverNameByIndex(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -143,7 +143,7 @@ static int32_t Script_Sound_GameSystem_GetNumOutputDrivers(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d8b04f4a manual
+// VERIFY: d5844aa9 manual
 // OFFSET: 0x00985CA0
 static int32_t Script_Sound_GameSystem_GetOutputDriverNameByIndex(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

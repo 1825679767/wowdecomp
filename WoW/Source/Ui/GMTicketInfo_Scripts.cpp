@@ -55,7 +55,7 @@ static int32_t Script_GetGMTicket(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 6b51e860 manual
+// VERIFY: 61961e35 manual
 // OFFSET: 0x005AC390
 static int32_t Script_GMSurveyAnswerSubmit(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isstring(L, 3)) {
@@ -88,7 +88,7 @@ static int32_t Script_GMSurveyCommentSubmit(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 0c8e206b manual
+// VERIFY: e840aec2 manual
 // OFFSET: 0x005AC750
 static int32_t Script_GMSurveyQuestion(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -108,7 +108,7 @@ static int32_t Script_GMSurveyQuestion(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 9ab821fa manual
+// VERIFY: f8da87e2 manual
 // OFFSET: 0x005AC7D0
 static int32_t Script_GMSurveyAnswer(lua_State* L) {
     if (!lua_isnumber(L, 1) && !lua_isnumber(L, 2)) {
@@ -129,7 +129,7 @@ static int32_t Script_GMSurveyAnswer(lua_State* L) {
     return 1;
 }
 
-// VERIFY: ad5bbdea manual
+// VERIFY: ea936260 manual
 // OFFSET: 0x005AC870
 static int32_t Script_GMSurveyNumAnswers(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

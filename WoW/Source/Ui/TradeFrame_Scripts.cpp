@@ -47,7 +47,7 @@ static int32_t Script_GetTargetTradeMoney(lua_State* L) {
     return 1;
 }
 
-// VERIFY: e016b1b4 manual
+// VERIFY: 0ea1cc12 manual
 // OFFSET: 0x005865F0
 static int32_t Script_GetTradeTargetItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -126,7 +126,7 @@ static int32_t Script_SetTradeMoney(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 3589cdf1 manual
+// VERIFY: 28feac8a manual
 // OFFSET: 0x00586C80
 static int32_t Script_ClickTargetTradeButton(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -198,7 +198,7 @@ static int32_t Script_CloseTrade(lua_State* L) {
     return 0;
 }
 
-// VERIFY: d9ea92da manual
+// VERIFY: 161558e0 manual
 // OFFSET: 0x005879D0
 static int32_t Script_ClickTradeButton(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

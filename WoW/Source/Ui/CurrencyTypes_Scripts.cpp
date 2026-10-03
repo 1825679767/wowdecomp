@@ -23,7 +23,7 @@ static int32_t Script_GetCurrencyListSize(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 1b8d22da manual
+// VERIFY: 8158a78e manual
 // OFFSET: 0x005B0A90
 static int32_t Script_GetBackpackCurrencyInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -94,7 +94,7 @@ static int32_t Script_GetBackpackCurrencyInfo(lua_State* L) {
     return 5;
 }
 
-// VERIFY: cae29f5c manual
+// VERIFY: 712f77f4 manual
 // OFFSET: 0x005B0680
 int32_t Script_GetCurrencyListInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -182,7 +182,7 @@ int32_t Script_GetCurrencyListInfo(lua_State* L) {
     return 9;
 }
 
-// VERIFY: 3b71bf98 manual
+// VERIFY: 7bc6412b manual
 // OFFSET: 0x005B0940
 static int32_t Script_ExpandCurrencyList(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -196,7 +196,7 @@ static int32_t Script_ExpandCurrencyList(lua_State* L) {
     return 0;
 }
 
-// VERIFY: e70d3509 manual
+// VERIFY: 2a2053ad manual
 // OFFSET: 0x005B09B0
 static int32_t Script_SetCurrencyUnused(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -210,7 +210,7 @@ static int32_t Script_SetCurrencyUnused(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 74da2452 manual
+// VERIFY: 9f3c79b3 manual
 // OFFSET: 0x005B0A20
 static int32_t Script_SetCurrencyBackpack(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {

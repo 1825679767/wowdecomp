@@ -88,7 +88,7 @@ static int32_t Script_IsAtStableMaster(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 02e936de manual
+// VERIFY: cea8f24c manual
 // OFFSET: 0x005A1330
 static int32_t Script_GetStablePetInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -201,7 +201,7 @@ static int32_t Script_SetPetStablePaperdoll(lua_State* L) {
     return 0;
 }
 
-// VERIFY: aab910cf manual
+// VERIFY: 9aaf1241 manual
 // OFFSET: 0x005A16A0
 static int32_t Script_GetStablePetFoodTypes(lua_State* L) {
     int32_t count = 0;
@@ -281,7 +281,7 @@ static int32_t Script_StablePet(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5d9223ce manual
+// VERIFY: e3cae124 manual
 // OFFSET: 0x005A1AC0
 static int32_t Script_UnstablePet(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -333,7 +333,7 @@ static int32_t Script_BuyStableSlot(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 8b9c8967 manual
+// VERIFY: 0ca22339 manual
 // OFFSET: 0x005A1CA0
 static int32_t Script_ClickStablePet(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

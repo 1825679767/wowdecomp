@@ -215,7 +215,7 @@ bool Login::GetCdKeys(Grunt::CdKey& cdKey) {
     return this->m_loginResponse->GetCdKeys(cdKey);
 }
 
-// VERIFY: fb916344 manual
+// VERIFY: 829265f4 manual
 // OFFSET: 0x00465B20
 void LoginResponse::HandleRealmData(uint32_t result, CDataStore* msg) {
     if (this->m_realmList.m_count) {

@@ -127,7 +127,7 @@ static int32_t Script_GetPartyMember(lua_State* L) {
     return 1;
 }
 
-// VERIFY: fe933570 manual
+// VERIFY: 28997e8a manual
 // OFFSET: 0x0052DE60
 static int32_t Script_SetLootThreshold(lua_State* L) {
     if (!CGPartyInfo::m_members[0] && !CGRaidInfo::m_numMembers) {
@@ -337,7 +337,7 @@ static int32_t Script_UnSilenceMember(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b20405b2 manual
+// VERIFY: 82549b17 manual
 // OFFSET: 0x0052DC20
 static int32_t Script_SetLootMethod(lua_State* L) {
     if (!CGPartyInfo::m_members[0] && !CGRaidInfo::m_numMembers) {
@@ -404,7 +404,7 @@ static int32_t Script_SetLootMethod(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 44f76d0e manual
+// VERIFY: dcbd648d manual
 // OFFSET: 0x0052DF40
 static int32_t SetOrClearAssignment(lua_State* L, bool set) {
     if (set && !CGGameUI::CanPerformAction(4)) {

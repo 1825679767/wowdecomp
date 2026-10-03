@@ -1208,7 +1208,7 @@ static int32_t Script_SetHyperlinkCompareItem(lua_State* L) {
     return 1;
 }
 
-// VERIFY: da7bc442 manual
+// VERIFY: 3266ed80 manual
 // OFFSET: 0x0062E520
 static int32_t Script_SetLootItem(lua_State* L) {
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
@@ -1605,7 +1605,7 @@ static int32_t Script_AddFontStrings(lua_State* L) {
     return 0;
 }
 
-// VERIFY: e9f54139 manual
+// VERIFY: 263db1d7 manual
 // OFFSET: 0x006205C0
 static int32_t Script_SetTotem(lua_State* L) {
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
@@ -1791,7 +1791,7 @@ static int32_t Script_SetQuestLogRewardSpell(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c44d9562 manual
+// VERIFY: d655aaef manual
 // OFFSET: 0x0062E670
 static int32_t Script_SetQuestItem(lua_State* L) {
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
@@ -1817,7 +1817,7 @@ static int32_t Script_SetQuestItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: bddbaeb1 manual
+// VERIFY: 40524ae9 manual
 // OFFSET: 0x0062E790
 static int32_t Script_SetQuestLogItem(lua_State* L) {
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
@@ -1955,7 +1955,7 @@ static int32_t Script_SetTradeSkillItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 2efa241a manual
+// VERIFY: be3a2c61 manual
 // OFFSET: 0x0062ED70
 static int32_t Script_SetMerchantItem(lua_State* L) {
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
@@ -1978,7 +1978,7 @@ static int32_t Script_SetMerchantItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 956acb94 manual
+// VERIFY: d770233b manual
 // OFFSET: 0x0062EE70
 static int32_t Script_SetMerchantCostItem(lua_State* L) {
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
@@ -2018,7 +2018,7 @@ static int32_t Script_SetMerchantCostItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 3dce7a35 manual
+// VERIFY: 6906e91a manual
 // OFFSET: 0x0062EFF0
 static int32_t Script_SetTradePlayerItem(lua_State* L) {
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
@@ -2066,7 +2066,7 @@ static int32_t Script_SetTradePlayerItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b7c84bbf manual
+// VERIFY: 75ef8454 manual
 // OFFSET: 0x0062F1E0
 static int32_t Script_SetTradeTargetItem(lua_State* L) {
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));

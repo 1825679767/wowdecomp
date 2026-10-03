@@ -38,7 +38,7 @@ static int32_t Script_QueryQuestsCompleted(lua_State* L) {
     return 0;
 }
 
-// VERIFY: a12eb50e auto
+// VERIFY: 04aea30d manual
 // OFFSET: 0x005B1690
 static int32_t Script_GetPreviousAchievement(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -114,7 +114,7 @@ static int32_t Script_GetAchievementReward(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 4b6d3002 manual
+// VERIFY: 3bbd7b03 manual
 // OFFSET: 0x005B1AB0
 static int32_t Script_SetAchievementComparisonUnit(lua_State* L) {
     WOWGUID guid = WOWGUID();
@@ -198,7 +198,7 @@ static int32_t Script_GetCategoryList(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 7dc14888 manual
+// VERIFY: c2d78337 manual
 // OFFSET: 0x005B15C0
 static int32_t Script_GetCategoryInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -235,7 +235,7 @@ static int32_t Script_GetTotalAchievementPoints(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b401a900 manual
+// VERIFY: 960921b3 manual
 // OFFSET: 0x005B38E0
 static int32_t Script_GetCategoryNumAchievements(lua_State* L) {
     int32_t total = 0;
@@ -595,7 +595,7 @@ static int32_t Script_GetNumTrackedAchievements(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 8ec1bec6 manual
+// VERIFY: 59d37944 manual
 // OFFSET: 0x005B3B30
 static int32_t Script_GetComparisonCategoryNumAchievements(lua_State* L) {
     int32_t count = 0;
@@ -687,7 +687,7 @@ static int32_t Script_GetNumComparisonCompletedAchievements(lua_State* L) {
     return 2;
 }
 
-// VERIFY: b745caca manual
+// VERIFY: d5afdfba manual
 // OFFSET: 0x005B3EF0
 static int32_t Script_GetNextAchievement(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -719,7 +719,7 @@ static int32_t Script_GetNextAchievement(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c3fbd894 manual
+// VERIFY: 66fda709 manual
 // OFFSET: 0x005B3FC0
 static int32_t Script_GetAchievementInfo(lua_State* L) {
     int32_t previous = 0;
@@ -989,7 +989,7 @@ static int32_t Script_ClearAchievementComparisonUnit(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 8aecdc4e manual
+// VERIFY: 4a0dc04c manual
 // OFFSET: 0x005B4770
 static int32_t Script_GetAchievementComparisonInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1064,7 +1064,7 @@ static int32_t Script_GetQuestsCompleted(lua_State* L) {
     return 1;
 }
 
-// VERIFY: ae9c8560 manual
+// VERIFY: 3304a2dc manual
 // OFFSET: 0x005B5530
 static int32_t Script_GetAchievementNumCriteria(lua_State* L) {
     int32_t count = 0;
@@ -1105,7 +1105,7 @@ static int32_t Script_GetAchievementNumCriteria(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 84d74247 manual
+// VERIFY: 1dda108b manual
 // OFFSET: 0x005B5620
 static int32_t Script_GetStatistic(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1193,7 +1193,7 @@ static int32_t Script_GetStatistic(lua_State* L) {
     return 1;
 }
 
-// VERIFY: fec0d67c manual
+// VERIFY: d4e23c37 manual
 // OFFSET: 0x005B58B0
 static int32_t Script_GetAchievementCriteriaInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1383,7 +1383,7 @@ static int32_t Script_GetAchievementCriteriaInfo(lua_State* L) {
     return 10;
 }
 
-// VERIFY: 4e1d3e1b manual
+// VERIFY: 9555ffc2 manual
 // OFFSET: 0x005B5E70
 static int32_t Script_GetComparisonStatistic(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1473,7 +1473,7 @@ static int32_t Script_GetComparisonStatistic(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 60cbce79 manual
+// VERIFY: f5d25aa2 manual
 // OFFSET: 0x005B6110
 static int32_t Script_GetAchievementLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

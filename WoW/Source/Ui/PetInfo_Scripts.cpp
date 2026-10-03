@@ -28,7 +28,7 @@
 #include "Engine/Source/FrameXML/LoadXML.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 
-// VERIFY: a26fb522 manual
+// VERIFY: 0ad95263 manual
 // OFFSET: 0x005D4EC0
 static int32_t Script_GetPetActionInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -321,7 +321,7 @@ static int32_t Script_PetHasActionBar(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 7527b202 manual
+// VERIFY: 1775c19c manual
 // OFFSET: 0x005D5820
 static int32_t Script_GetPossessInfo(lua_State* L) {
     if (lua_tonumber(L, 1) == 0.0) {
@@ -459,7 +459,7 @@ static int32_t Script_GetPetActionsUsable(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 875a47b2 manual
+// VERIFY: 81f687fb manual
 // OFFSET: 0x005D5400
 static int32_t Script_GetPetActionSlotUsable(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -610,7 +610,7 @@ static int32_t Script_PetRename(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 61399b31 manual
+// VERIFY: ad956acd manual
 // OFFSET: 0x005D65C0
 static int32_t Script_PickupPetAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -683,7 +683,7 @@ static int32_t Script_TogglePetAutocast(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 1c9f220c manual
+// VERIFY: 6465ba07 manual
 // OFFSET: 0x005D67B0
 static int32_t Script_CastPetAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

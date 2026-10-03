@@ -376,7 +376,7 @@ static int32_t Script_GetNumCompanions(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d3d5fa06 manual
+// VERIFY: ef9ff06e manual
 // OFFSET: 0x0053C3A0
 static int32_t Script_IsSpellKnown(lua_State* L) {
     int32_t spellId;
@@ -749,7 +749,7 @@ static int32_t Script_IsSpellInRange(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 6fbd2312 manual
+// VERIFY: 9e0e8af9 manual
 // OFFSET: 0x0053C0F0
 static int32_t Script_CastShapeshiftForm(lua_State* L) {
     if (lua_tonumber(L, 1) == 0.0) {
@@ -766,7 +766,7 @@ static int32_t Script_CastShapeshiftForm(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f541320c manual
+// VERIFY: e1b78d65 manual
 // OFFSET: 0x0053C180
 static int32_t Script_GetShapeshiftFormCooldown(lua_State* L) {
     if (lua_tonumber(L, 1) == 0.0) {
@@ -826,7 +826,7 @@ static int32_t Script_CancelShapeshiftForm(lua_State* L) {
     return 0;
 }
 
-// VERIFY: a14701fb manual
+// VERIFY: f72ddf21 manual
 // OFFSET: 0x0053DE90
 static int32_t Script_GetShapeshiftFormInfo(lua_State* L) {
     if (lua_tonumber(L, 1) == 0.0) {
@@ -885,7 +885,7 @@ static int32_t Script_GetShapeshiftFormInfo(lua_State* L) {
     return 4;
 }
 
-// VERIFY: 6ea2bbc3 manual
+// VERIFY: dbc14ce1 manual
 // OFFSET: 0x0053E490
 static int32_t Script_GetCompanionCooldown(lua_State* L) {
     int32_t type;
@@ -915,7 +915,7 @@ static int32_t Script_GetCompanionCooldown(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 49d0349b manual
+// VERIFY: 7c5d589b manual
 // OFFSET: 0x0053E5E0
 static int32_t Script_CallCompanion(lua_State* L) {
     int32_t type;
@@ -939,7 +939,7 @@ static int32_t Script_CallCompanion(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 88b08790 manual
+// VERIFY: 75ea406b manual
 // OFFSET: 0x0053E6B0
 static int32_t Script_DismissCompanion(lua_State* L) {
     int32_t type;
@@ -1047,7 +1047,7 @@ static int32_t Script_CastSpellByID(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 067d4c88 manual
+// VERIFY: 9d5a5d6d manual
 // OFFSET: 0x00540310
 static int32_t Script_CastSpellByName(lua_State* L) {
     if (!lua_isstring(L, 1)) {

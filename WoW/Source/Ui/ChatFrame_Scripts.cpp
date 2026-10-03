@@ -431,7 +431,7 @@ static int32_t Script_ExpandChannelHeader(lua_State* L) {
     return 0;
 }
 
-// VERIFY: bae4038d manual
+// VERIFY: 0e7cf4b3 manual
 // OFFSET: 0x004FC660
 static int32_t Script_SetChatWindowLocked(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -448,7 +448,7 @@ static int32_t Script_SetChatWindowLocked(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c1223d86 manual
+// VERIFY: e46cbc4f manual
 // OFFSET: 0x004FC6E0
 static int32_t Script_SetChatWindowUninteractable(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -465,7 +465,7 @@ static int32_t Script_SetChatWindowUninteractable(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ef6eedfa manual
+// VERIFY: 15da48c8 manual
 // OFFSET: 0x004FC810
 static int32_t Script_SetChatWindowShown(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -482,7 +482,7 @@ static int32_t Script_SetChatWindowShown(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 3b207b45 manual
+// VERIFY: f498d98a manual
 // OFFSET: 0x004FC020
 static int32_t Script_GetChatWindowSavedDimensions(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -501,7 +501,7 @@ static int32_t Script_GetChatWindowSavedDimensions(lua_State* L) {
     return 2;
 }
 
-// VERIFY: cf3a9a04 manual
+// VERIFY: 65f475bb manual
 // OFFSET: 0x004FC330
 static int32_t Script_SetChatWindowName(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -524,7 +524,7 @@ static int32_t Script_SetChatWindowName(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 1bd37c75 manual
+// VERIFY: 03dc074c manual
 // OFFSET: 0x004FC3D0
 static int32_t Script_SetChatWindowSize(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -555,7 +555,7 @@ static int32_t Script_RequestRaidInfo(lua_State* L) {
     return 0;
 }
 
-// VERIFY: d1d2ec5d manual
+// VERIFY: 596d3ecf manual
 // OFFSET: 0x004FC5B0
 static int32_t Script_SetChatWindowAlpha(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -572,7 +572,7 @@ static int32_t Script_SetChatWindowAlpha(lua_State* L) {
     return 0;
 }
 
-// VERIFY: a5ab89dc manual
+// VERIFY: abac3097 manual
 // OFFSET: 0x004FC760
 static int32_t Script_SetChatWindowDocked(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -595,7 +595,7 @@ static int32_t Script_SetChatWindowDocked(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 96989baf manual
+// VERIFY: fa92b690 manual
 // OFFSET: 0x004FC9A0
 static int32_t Script_SetChatWindowSavedDimensions(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
@@ -617,7 +617,7 @@ static int32_t Script_SetChatWindowSavedDimensions(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 27dd2d41 manual
+// VERIFY: 25b35048 manual
 // OFFSET: 0x004FBF60
 static int32_t Script_GetChatWindowSavedPosition(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -693,7 +693,7 @@ static int32_t Script_GetLanguageByIndex(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 3c44a079 manual
+// VERIFY: e5f9a784 manual
 // OFFSET: 0x004FC890
 static int32_t Script_SetChatWindowSavedPosition(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4)) {
@@ -750,7 +750,7 @@ static int32_t Script_ListChannels(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 2654b048 manual
+// VERIFY: 088c2421 manual
 // OFFSET: 0x004FC470
 static int32_t Script_SetChatWindowColor(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4)) {
@@ -771,7 +771,7 @@ static int32_t Script_SetChatWindowColor(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 7a5c8ce9 manual
+// VERIFY: b3a66eaa manual
 // OFFSET: 0x004FBD90
 static int32_t Script_GetChatWindowInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -992,7 +992,7 @@ static int32_t Script_SetChatColorNameByClass(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ed2f4723 manual
+// VERIFY: c3f85278 manual
 // OFFSET: 0x004FEEE0
 static int32_t Script_GetChatTypeIndex(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -1045,7 +1045,7 @@ static int32_t Script_GetChannelList(lua_State* L) {
     return 2 * count;
 }
 
-// VERIFY: 278ccac5 manual
+// VERIFY: 1a9f7d0e manual
 // OFFSET: 0x004FE850
 static int32_t Script_GetChannelName(lua_State* L) {
     ChatChannel* channel;
@@ -1104,7 +1104,7 @@ static int32_t Script_IsVoiceChatEnabled(lua_State* L) {
     return 1;
 }
 
-// VERIFY: a61885f7 manual
+// VERIFY: 055b4930 manual
 // OFFSET: 0x004FC0C0
 static int32_t Script_GetChatWindowMessages(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1131,7 +1131,7 @@ static int32_t Script_GetChatWindowMessages(lua_State* L) {
     return count;
 }
 
-// VERIFY: c6750ef7 manual
+// VERIFY: f915b6c6 manual
 // OFFSET: 0x004FC170
 static int32_t Script_AddChatWindowMessages(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
@@ -1157,7 +1157,7 @@ static int32_t Script_AddChatWindowMessages(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c9b43d85 manual
+// VERIFY: c7212d54 manual
 // OFFSET: 0x004FC250
 static int32_t Script_RemoveChatWindowMessages(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
@@ -1183,7 +1183,7 @@ static int32_t Script_RemoveChatWindowMessages(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 93fcf20f manual
+// VERIFY: c470c6cf manual
 // OFFSET: 0x004FF580
 static int32_t Script_GetChannelDisplayInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1319,7 +1319,7 @@ static int32_t Script_GetSelectedDisplayChannel(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 2d162025 manual
+// VERIFY: 0e4cb043 manual
 // OFFSET: 0x004FEFF0
 static int32_t Script_GetChatWindowChannels(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1580,7 +1580,7 @@ static int32_t Script_ListChannelByName(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 7f0835d3 manual
+// VERIFY: 26c935c6 manual
 // OFFSET: 0x004FE720
 static int32_t Script_SetChannelPassword(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
@@ -1727,7 +1727,7 @@ static int32_t Script_ResetChatColors(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 94afe789 manual
+// VERIFY: dac42b84 manual
 // OFFSET: 0x004FF0D0
 static int32_t Script_RemoveChatWindowChannel(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
@@ -1797,7 +1797,7 @@ static int32_t Script_EnumerateServerChannels(lua_State* L) {
     return pushed;
 }
 
-// VERIFY: 7755816f manual
+// VERIFY: 73493072 manual
 // OFFSET: 0x004FF2C0
 static int32_t Script_GetSavedInstanceInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -2103,7 +2103,7 @@ static int32_t Script_ChannelUnSilenceAll(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 21a225ec manual
+// VERIFY: 53a0772a manual
 // OFFSET: 0x00501DB0
 static int32_t Script_AddChatWindowChannel(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
@@ -2280,7 +2280,7 @@ static int32_t Script_GetNumChannelMembers(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 42b92c7b manual
+// VERIFY: 4c22838b manual
 // OFFSET: 0x005096D0
 static int32_t Script_LeaveChannelByName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -2352,7 +2352,7 @@ static int32_t Script_JoinPermanentChannel(lua_State* L) {
     return JoinChannelFromScript(L, 1);
 }
 
-// VERIFY: b423dacc manual
+// VERIFY: ccef5a4d manual
 // OFFSET: 0x0050DC10
 static int32_t Script_SetSavedInstanceExtend(lua_State* L) {
     if (!lua_isnumber(L, 1) || lua_type(L, 2) != LUA_TBOOLEAN) {
@@ -2392,7 +2392,7 @@ static int32_t Script_SetSavedInstanceExtend(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 614ce5cf manual
+// VERIFY: eccacdba manual
 // OFFSET: 0x0050ED00
 static int32_t Script_ComplainChat(lua_State* L) {
     const char* text = nullptr;

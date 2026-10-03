@@ -188,7 +188,7 @@ static int32_t Script_CommentatorGetCamera(lua_State* L) {
     return 6;
 }
 
-// VERIFY: 6b0e6719 manual
+// VERIFY: 0f4be0e6 manual
 // OFFSET: 0x0056AB70
 static int32_t Script_CommentatorSetCameraCollision(lua_State* L) {
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -210,7 +210,7 @@ static int32_t Script_CommentatorSetCameraCollision(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f7617c1c manual
+// VERIFY: a53f977c manual
 // OFFSET: 0x0056AC10
 static int32_t Script_CommentatorSetTargetHeightOffset(lua_State* L) {
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -227,7 +227,7 @@ static int32_t Script_CommentatorSetTargetHeightOffset(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 05df4710 manual
+// VERIFY: 49d3efa1 manual
 // OFFSET: 0x0056AA10
 static int32_t Script_CommentatorSetBattlemaster(lua_State* L) {
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -354,7 +354,7 @@ static int32_t Script_CommentatorUpdateMapInfo(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 9ec71bc7 manual
+// VERIFY: f6ab0cd5 manual
 // OFFSET: 0x00569520
 static int32_t Script_CommentatorGetInstanceInfo(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -391,7 +391,7 @@ static int32_t Script_CommentatorGetInstanceInfo(lua_State* L) {
     return 4;
 }
 
-// VERIFY: a58b94e7 manual
+// VERIFY: 3675279d manual
 // OFFSET: 0x005696E0
 static int32_t Script_CommentatorEnterInstance(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -433,7 +433,7 @@ static int32_t Script_CommentatorExitInstance(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 4ff6a3f3 manual
+// VERIFY: f34249a6 manual
 // OFFSET: 0x00569820
 static int32_t Script_CommentatorGetNumPlayers(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -461,7 +461,7 @@ static int32_t Script_CommentatorGetNumPlayers(lua_State* L) {
     return 1;
 }
 
-// VERIFY: c7a5f30a manual
+// VERIFY: 3e3349ce manual
 // OFFSET: 0x00569910
 static int32_t Script_CommentatorGetPlayerInfo(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -513,7 +513,7 @@ static int32_t Script_CommentatorGetPlayerInfo(lua_State* L) {
     return 7;
 }
 
-// VERIFY: b9d68b9c manual
+// VERIFY: e4c603ed manual
 // OFFSET: 0x00569B50
 static int32_t Script_CommentatorFollowPlayer(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -559,7 +559,7 @@ static int32_t Script_CommentatorFollowPlayer(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5a46c051 manual
+// VERIFY: 1a9c1775 manual
 // OFFSET: 0x00569CD0
 static int32_t Script_CommentatorLookatPlayer(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -605,7 +605,7 @@ static int32_t Script_CommentatorLookatPlayer(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 8bebed75 manual
+// VERIFY: a4873970 manual
 // OFFSET: 0x00569E50
 static int32_t Script_CommentatorSetMapAndInstanceIndex(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -642,7 +642,7 @@ static int32_t Script_CommentatorSetMapAndInstanceIndex(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c27bb49f manual
+// VERIFY: 58696e6b manual
 // OFFSET: 0x00569FA0
 static int32_t Script_CommentatorSetPlayerIndex(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -745,7 +745,7 @@ static int32_t Script_CommentatorGetCurrentMapID(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 26508296 manual
+// VERIFY: 321e094a manual
 // OFFSET: 0x0056A410
 static int32_t Script_CommentatorStartInstance(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -790,7 +790,7 @@ static int32_t Script_CommentatorStartInstance(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 0412ca65 manual
+// VERIFY: f8c2e044 manual
 // OFFSET: 0x0056A640
 static int32_t Script_CommentatorAddPlayer(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -851,7 +851,7 @@ static int32_t Script_CommentatorAddPlayer(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c90d6410 manual
+// VERIFY: d891d496 manual
 // OFFSET: 0x0056A860
 static int32_t Script_CommentatorRemovePlayer(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();

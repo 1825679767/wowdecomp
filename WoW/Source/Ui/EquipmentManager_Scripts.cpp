@@ -95,7 +95,7 @@ static int32_t Script_DeleteEquipmentSet(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 3921b235 manual
+// VERIFY: c7766f46 manual
 // OFFSET: 0x005AE860
 static int32_t Script_GetEquipmentSetLocations(lua_State* L) {
     if (!lua_isstring(L, 1) || (lua_type(L, 2) > LUA_TNIL && lua_type(L, 2) != LUA_TTABLE)) {
@@ -314,7 +314,7 @@ static int32_t Script_GetEquipmentSetLocations(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 0c528560 manual
+// VERIFY: c5f296f6 manual
 // OFFSET: 0x005AEF90
 static int32_t Script_GetEquipmentSetItemIDs(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -374,7 +374,7 @@ static int32_t Script_GetNumEquipmentSets(lua_State* L) {
 // STATIC: 0x00ACFB74
 static const char* s_equipmentSetIconPath = "Interface\\Icons\\";
 
-// VERIFY: 7582c3b1 manual
+// VERIFY: 4c8d1592 manual
 // OFFSET: 0x005AF120
 static int32_t Script_GetEquipmentSetInfo(lua_State* L) {
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -532,7 +532,7 @@ static int32_t Script_RenameEquipmentSet(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 15de97bc manual
+// VERIFY: e2bb42ab manual
 // OFFSET: 0x005AF9C0
 static int32_t Script_SaveEquipmentSet(lua_State* L) {
     if (!CGEquipmentManager::m_loaded) {

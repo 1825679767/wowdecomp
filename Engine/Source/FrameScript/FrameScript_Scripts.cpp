@@ -438,7 +438,7 @@ static int32_t Script_debugprofilestop(lua_State* L) {
     return 1;
 }
 
-// VERIFY: fd05451c manual
+// VERIFY: 712665fd manual
 // OFFSET: 0x008173C0
 static int32_t Script_seterrorhandler(lua_State* L) {
     if (lua_type(L, 1) != LUA_TFUNCTION) {

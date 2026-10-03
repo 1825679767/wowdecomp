@@ -1630,7 +1630,7 @@ static int32_t Script_QuestPOIGetIconInfo(lua_State* L) {
     return 4;
 }
 
-// VERIFY: a26fc811 manual
+// VERIFY: d6f69411 manual
 // OFFSET: 0x005E60D0
 static int32_t Script_GetQuestLogItemDrop(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1663,7 +1663,7 @@ static int32_t Script_GetQuestLogItemDrop(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 3e8b8240 manual
+// VERIFY: ba2f887a manual
 // OFFSET: 0x005E6650
 static int32_t Script_GetQuestPOILeaderBoard(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

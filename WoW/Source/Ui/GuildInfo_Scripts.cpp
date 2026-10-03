@@ -80,7 +80,7 @@ static int32_t Script_GuildControlGetNumRanks(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 8bf71aee manual
+// VERIFY: d2e670c0 manual
 // OFFSET: 0x005CA2B0
 static int32_t Script_GuildControlSetRankFlag(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -312,7 +312,7 @@ static int32_t Script_GetGuildBankWithdrawLimit(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 7fbb572a manual
+// VERIFY: 627eac9b manual
 // OFFSET: 0x005CB760
 static int32_t Script_SetGuildBankTabWithdraw(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -346,7 +346,7 @@ static int32_t Script_QueryGuildEventLog(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 9a95bfcb manual
+// VERIFY: ab016c69 manual
 // OFFSET: 0x005CC290
 static int32_t Script_CanEditGuildTabInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -366,7 +366,7 @@ static int32_t Script_CanEditGuildTabInfo(lua_State* L) {
     return 1;
 }
 
-// VERIFY: c8b21ff3 manual
+// VERIFY: d0e6889f manual
 // OFFSET: 0x005CB470
 static int32_t Script_SetGuildBankTabPermissions(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -439,7 +439,7 @@ static int32_t Script_GetGuildRosterSelection(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 42f4aef6 manual
+// VERIFY: 50073971 manual
 // OFFSET: 0x005CC9C0
 static int32_t Script_GetGuildRosterInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -721,7 +721,7 @@ static int32_t Script_SortGuildRoster(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c40ee4fa manual
+// VERIFY: 2a14de91 manual
 // OFFSET: 0x005CB170
 static int32_t Script_GuildControlSaveRank(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -798,7 +798,7 @@ static int32_t Script_GuildControlAddRank(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 7ab68cf8 manual
+// VERIFY: e5f9ce69 manual
 // OFFSET: 0x005CB560
 static int32_t Script_GetGuildBankTabPermissions(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -831,7 +831,7 @@ static int32_t Script_GetGuildBankTabPermissions(lua_State* L) {
     return 4;
 }
 
-// VERIFY: 08c5cb51 manual
+// VERIFY: 8b3ec56c manual
 // OFFSET: 0x005CB820
 static int32_t Script_SetGuildInfoText(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -855,7 +855,7 @@ static int32_t Script_SetGuildInfoText(lua_State* L) {
     return 0;
 }
 
-// VERIFY: d82115c8 manual
+// VERIFY: 1f5aef90 manual
 // OFFSET: 0x005CCC90
 static int32_t Script_GuildControlGetRankName(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -880,7 +880,7 @@ static int32_t Script_GuildControlGetRankName(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 8b34b42d manual
+// VERIFY: 791632e5 manual
 // OFFSET: 0x005CCD90
 static int32_t Script_GetGuildEventInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
