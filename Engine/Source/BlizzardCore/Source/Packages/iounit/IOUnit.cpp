@@ -199,7 +199,8 @@ IOLockUnit::IOLockUnit(IOUnit* next, bool ownsMemory) : IOUnit(next, ownsMemory)
     Blizzard::Lock::MutexCreate(this->m_ownMutex);
 }
 
-// INLINED
+// VERIFY: 8706d800 auto
+// OFFSET: 0x0042B6D0
 IOLockUnit::~IOLockUnit() {
     Blizzard::Lock::MutexDestroy(this->m_ownMutex);
 }

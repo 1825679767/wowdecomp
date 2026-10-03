@@ -21,7 +21,7 @@ CWOWClientStatus::CWOWClientStatus(const char* logFileName, int32_t append) {
 }
 
 // VERIFY: 8eb968ae manual
-// OFFSET: 0x004DA2D0
+// OFFSET: [0x004DA2D0, 0x004DA330]
 CWOWClientStatus::~CWOWClientStatus() {
     if (!this->m_log) {
         return;

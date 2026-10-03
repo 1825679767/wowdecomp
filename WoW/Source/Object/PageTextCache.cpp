@@ -2,7 +2,8 @@
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/Storm/H/storm.h"
 
-// INLINED
+// VERIFY: ead7370d manual
+// OFFSET: 0x00668550
 PageTextCache::~PageTextCache() {
     if (this->m_text) {
         SMemFree(this->m_text, __FILE__, __LINE__, 0);

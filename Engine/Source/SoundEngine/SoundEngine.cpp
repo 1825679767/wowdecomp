@@ -1593,7 +1593,7 @@ SEFileSound::SEFileSound() {
 }
 
 // VERIFY: 2bfa301f auto
-// OFFSET: 0x0087BDF0
+// OFFSET: [0x0087BDF0, 0x0087C400]
 SEFileSound::~SEFileSound() {
     if (this->m_waveData) {
         this->m_waveData->m_refCount--;
