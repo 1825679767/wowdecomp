@@ -246,6 +246,24 @@ int32_t CanSendPartyCommand() {
     return !CGPartyInfo::m_lastAssignmentTime || static_cast<int32_t>(OsGetAsyncTimeMs() - CGPartyInfo::m_lastAssignmentTime - 750) >= 0;
 }
 
+// VERIFY: 8aac24a4 auto
+// OFFSET: 0x0052BB10
+int32_t Packet_SMSG_INSTANCE_SAVE_CREATED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t debug;
+    char text[3000];
+    msg->Get(debug);
+
+    if (debug == 0) {
+        SStrCopy(text, FrameScript_GetText("INSTANCE_SAVED", -1, GENDER_NOT_APPLICABLE), sizeof(text));
+        CGGameUI::SetInstanceLockTime(0, 0, 0);
+    } else if (debug == 1) {
+        SStrPrintf(text, sizeof(text), "(Debug-Only Lock Notice) %s", FrameScript_GetText("INSTANCE_SAVED", -1, GENDER_NOT_APPLICABLE));
+    }
+
+    CGChat::AddChatMessage(text, 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
+    return 1;
+}
+
 // VERIFY: daab7afc auto
 // OFFSET: 0x0052BBC0
 static void LootMasterNameCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {

@@ -12,3 +12,13 @@ CMapBaseObj::CMapBaseObj() {
     this->m_refCount = 0;
     this->m_flags = static_cast<MapObjFlag>(0);
 }
+
+// VERIFY: a8266a2d auto
+// OFFSET: 0x00632050
+void CMapBaseObj::SelectLights(CM2Lighting* lighting) {
+}
+
+// VERIFY: e2a6c90a auto
+// OFFSET: 0x00632050
+void CMapBaseObj::SelectUnderwater(CM2Lighting* lighting) {
+}

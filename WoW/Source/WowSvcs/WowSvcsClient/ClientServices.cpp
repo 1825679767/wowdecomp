@@ -558,6 +558,12 @@ void ClientConnection::Cancel(int32_t errorCode) {
     LogConnectionStatus(this->m_statusOp, errorCode, 0, 0);
 }
 
+// VERIFY: 625995e6 auto
+// OFFSET: 0x006B0EE0
+void ClientServices::FileData(const uint8_t* data, uint32_t size) {
+    CGlueMgr::DownloadFeed(data, size);
+}
+
 // VERIFY: 74020b91 auto
 // OFFSET: 0x006B0F40
 const char* ClientServices::GetErrorToken(int32_t errorCode) {
@@ -572,6 +578,12 @@ const char* ClientServices::GetErrorToken(int32_t errorCode) {
 // OFFSET: 0x006B0F90
 int32_t ClientServices::CharacterValidateName(const char* name) {
     return ValidateCharacterNameConst(s_locale, name, true, true, true, true, 0) + 87;
+}
+
+// VERIFY: ca1062a6 auto
+// OFFSET: 0x006B0FC0
+int32_t ClientServices::CharacterValidateDeclension(const char* name, const char* declension) {
+    return ValidateCharacterNameDeclension(s_locale, name, declension) + 87;
 }
 
 // VERIFY: ae977242 manual
@@ -1413,7 +1425,54 @@ void ClientConnection::RequestCharacterDelete(WOWGUID guid) {
     this->Send(&msg);
 }
 
+// VERIFY: 0fdcb75a auto
+// OFFSET: 0x006B1B80
 void ClientRealmResponseAdapter::GameServerResult(RealmConnection* connection, const char* message1, const char* message2, const char* message3) {
+}
+
+// VERIFY: 13314496 auto
+// OFFSET: 0x006B1B90
+void ClientRealmResponseAdapter::LoginServerResult(LOGIN_STATE state, LOGIN_RESULT result, const char* message1, const char* message2, const char* message3) {
+}
+
+// VERIFY: 851669dd auto
+// OFFSET: 0x00632050
+void ClientRealmResponseAdapter::RealmListReceived(TSFixedArray<REALM_INFO>& realms) {
+}
+
+// VERIFY: af92e680 auto
+// OFFSET: 0x00653A10
+void ClientRealmResponseAdapter::MessageReceived(RealmConnection* connection, uint32_t message) {
+}
+
+// VERIFY: e5acd1b5 auto
+// OFFSET: 0x006B1B90
+void ClientRealmResponseAdapter::OnChatReceived(RealmConnection* connection, WOWGUID guid, const char* text, uint8_t type) {
+}
+
+// VERIFY: 01b28e4e auto
+// OFFSET: 0x006B1B80
+void ClientRealmResponseAdapter::OnAccountOnline(RealmConnection* connection, int32_t a2, WOWGUID guid) {
+}
+
+// VERIFY: 93d4ae81 auto
+// OFFSET: 0x006B1BA0
+void ClientRealmResponseAdapter::OnAFKMonitorInfoResponse(RealmConnection* connection, WOWGUID guid, int32_t a3, int32_t a4, int32_t a5, int32_t a6) {
+}
+
+// VERIFY: a13283da auto
+// OFFSET: 0x00632050
+void ClientRealmResponseAdapter::HandleConnect(RealmConnection* connection) {
+}
+
+// VERIFY: be0ed1e5 auto
+// OFFSET: 0x00632050
+void ClientRealmResponseAdapter::HandleDisconnect(RealmConnection* connection) {
+}
+
+// VERIFY: bbda4733 auto
+// OFFSET: 0x00632050
+void ClientRealmResponseAdapter::HandleCantConnect(RealmConnection* connection) {
 }
 
 // VERIFY: f198842b auto

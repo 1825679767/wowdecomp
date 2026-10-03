@@ -464,3 +464,38 @@ RealmConnection::~RealmConnection() {
     this->m_realmResponse = nullptr;
     RealmConnection::s_allRealmConnectionsCrit.Leave();
 }
+
+// VERIFY: a9aa9a7d auto
+// OFFSET: 0x006B1B90
+void RealmResponse::JoinRealmResult(uint32_t realmID, int32_t result, int32_t a3, int32_t a4, int32_t a5) {
+}
+
+// VERIFY: 01c03df0 auto
+// OFFSET: 0x00653A10
+void RealmResponse::OnChatPlayerNotFound(RealmConnection* connection, const char* name) {
+}
+
+// VERIFY: 0ef00e5d auto
+// OFFSET: 0x006B0960
+void RealmResponse::OnCharacterRestored(RealmConnection* connection, bool success, uint32_t a3, uint32_t a4, uint32_t a5, uint64_t a6, uint64_t a7, uint32_t a8, const char* a9, uint32_t a10, CDataStore* msg, uint64_t a12, uint64_t a13) {
+}
+
+// VERIFY: 4201e0ab auto
+// OFFSET: 0x006B1B80
+void RealmResponse::OnChangeArenaTeamRating(RealmConnection* connection, bool success, int32_t a3, int32_t a4) {
+}
+
+// VERIFY: ceede6fc auto
+// OFFSET: 0x006B1B80
+void RealmResponse::OnServerInfo(RealmConnection* connection, int32_t a2, int32_t a3, char* a4) {
+}
+
+// VERIFY: d7d1893d auto
+// OFFSET: 0x00653A10
+void RealmResponse::HandleCharacterLoginFailed(RealmConnection* connection, uint8_t result) {
+}
+
+// VERIFY: 44e6f046 auto
+// OFFSET: 0x00632050
+void RealmResponse::HandleReceivingObjects(RealmConnection* connection) {
+}

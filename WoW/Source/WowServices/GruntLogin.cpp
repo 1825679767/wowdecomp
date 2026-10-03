@@ -592,6 +592,18 @@ void GruntLogin::FileAccept(bool accept, uint64_t offset) {
     this->m_clientLink->FileStatus(accept, offset);
 }
 
+// VERIFY: 50215692 auto
+// OFFSET: 0x008CA550
+void GruntLogin::SendSurveyData(uint16_t size, uint8_t* data) {
+    this->m_clientLink->SendSurveyData(size, data);
+}
+
+// VERIFY: d5f0969d auto
+// OFFSET: 0x008CA560
+void GruntLogin::SendSurveyFailed() {
+    this->m_clientLink->SendSurveyFailed();
+}
+
 // VERIFY: e0ac23d3 auto
 // OFFSET: 0x008CA570
 void GruntLogin::FileComplete(bool success) {

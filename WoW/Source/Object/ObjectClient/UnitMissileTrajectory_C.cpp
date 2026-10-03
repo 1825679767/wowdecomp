@@ -273,7 +273,7 @@ void CGUnit_C::StopMissileTrajectoryTargeting() {
     s_trajectoryTargetGuid = WOWGUID();
 }
 
-// VERIFY: 865fca67 auto
+// VERIFY: d51d83e9 auto
 // OFFSET: 0x006FE7E0
 void CGUnit_C::UpdateMissileTrajectory() {
     if (!this->m_missileTrajectoryCastId || !this->m_missileTrajectoryStart || this->m_missileTrajectoryReleased) {
@@ -303,8 +303,8 @@ void CGUnit_C::UpdateMissileTrajectory() {
         cast->m_data.m_elevation = 0.0f;
         cast->m_data.m_destPos = C3Vector(0.0f, 0.0f, 0.0f);
         cast->m_data.unk_0120 = 1.0f;
-        int32_t visuals = 0;
-        Spell_C_PlayMissileTrajectoryCastVisuals(this, cast, &spell, visual, kit, &visuals, 1.0f);
+        TSStackArray<CGUnit_C*> targets(static_cast<CGUnit_C**>(alloca(0)), 0, 0);
+        Spell_C_PlayMissileTrajectoryCastVisuals(this, cast, &spell, visual, kit, &targets, 1.0f);
         this->m_missileTrajectoryReleased = cast->m_data.m_castCount;
         cast->unk_0139 = 1;
     } else {
@@ -1276,7 +1276,7 @@ int32_t CGUnit_C::ComputeMissileTrajectory(const SpellRec* spell, float* pitch, 
     return 1;
 }
 
-// VERIFY: 623f3f06 manual
+// VERIFY: 2fb23803 manual
 // OFFSET: 0x006FD6B0
 void CGUnit_C::SendFinalMissileTrajectoryUpdate() {
     SpellRec spell;
@@ -1339,8 +1339,8 @@ void CGUnit_C::SendFinalMissileTrajectoryUpdate() {
             SpellVisualRec visualRec;
             const SpellVisualRec* visual = this->GetAppropriateSpellVisual(&spell, visualRec, 0, 0);
             SpellVisualKitRec* kit = g_spellVisualKitDB.GetRecord(visual ? visual->m_castKit : 0);
-            int32_t visuals = 0;
-            Spell_C_PlayMissileTrajectoryCastVisuals(this, cast, &spell, visual, kit, &visuals, arrival);
+            TSStackArray<CGUnit_C*> targets(static_cast<CGUnit_C**>(alloca(0)), 0, 0);
+            Spell_C_PlayMissileTrajectoryCastVisuals(this, cast, &spell, visual, kit, &targets, arrival);
             this->ReleaseMissiles();
         }
     }

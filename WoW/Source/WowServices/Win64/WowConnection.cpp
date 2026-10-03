@@ -86,6 +86,17 @@ void WowConnection::DoStreamReads() {
     this->ReleaseResponseRef();
 }
 
+// OFFSET: 0x00467270
+WowConnection::WowConnection(int32_t sock, const NETADDR* addr, WowConnectionResponse* response) {
+    this->Init(response, nullptr);
+    int32_t nameLength = sizeof(this->m_peer.peerAddr);
+    getpeername(sock, reinterpret_cast<sockaddr*>(&this->m_peer.peerAddr), &nameLength);
+    nameLength = sizeof(this->m_peer.selfAddr);
+    getsockname(sock, reinterpret_cast<sockaddr*>(&this->m_peer.selfAddr), &nameLength);
+    this->m_sock = sock;
+    this->m_connState = WOWC_CONNECTED;
+}
+
 // OFFSET: 0x004675F0
 int32_t WowConnection::SendPacket(CDataStore* msg, int32_t headroom) {
     int32_t size = msg->m_size;
@@ -488,6 +499,54 @@ void WowConnection::CheckConnect() {
     this->m_lock.Enter();
     this->ReleaseResponseRef();
     this->Release();
+}
+
+// OFFSET: 0x00468580
+void WowConnection::CheckAccept() {
+    for (int32_t i = 0; i < 1000; i++) {
+        NETADDR addr;
+        int32_t addrLength = sizeof(addr);
+        int32_t sock = static_cast<int32_t>(accept(this->m_sock, reinterpret_cast<sockaddr*>(&addr), &addrLength));
+
+        if (sock < 0) {
+            break;
+        }
+
+        if (WowConnection::s_verifyAddr) {
+            NETADDR peer;
+            int32_t peerLength = sizeof(peer);
+            getpeername(sock, reinterpret_cast<sockaddr*>(&peer), &peerLength);
+
+            if (!WowConnection::s_verifyAddr(&peer)) {
+                closesocket(sock);
+                continue;
+            }
+        }
+
+        WowConnection::MarkSocketId(sock);
+        u_long nonBlocking = 1;
+        ioctlsocket(sock, FIONBIO, &nonBlocking);
+
+        WowConnection* inbound = new (__FILE__, __LINE__) WowConnection(sock, &addr, this->m_response);
+        inbound->AddRef();
+        this->AddRef();
+        this->AcquireResponseRef();
+
+        WowConnectionResponse* response = this->m_response;
+        this->m_lock.Leave();
+
+        if (response) {
+            response->WCConnected(this, inbound, OsGetAsyncTimeMs(), &inbound->m_peer);
+        }
+
+        WowConnection::s_network->Add(inbound);
+        WowConnection::s_network->PlatformChangeState(inbound, inbound->m_connState);
+        inbound->Release();
+
+        this->m_lock.Enter();
+        this->ReleaseResponseRef();
+        this->Release();
+    }
 }
 
 // OFFSET: 0x00468790

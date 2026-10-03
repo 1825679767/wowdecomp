@@ -40,6 +40,14 @@ static void GuildTabardCallback(int32_t guildID, const WOWGUID& guid, void* para
     delete corpseGuid;
 }
 
+// VERIFY: 9eb9d9be auto
+// OFFSET: 0x0070CBA0
+void CGCorpse_C::SetStorage(uint32_t* storage, uint32_t* saved) {
+    this->CGObject_C::SetStorage(storage, saved);
+    this->m_corpse = reinterpret_cast<CGCorpseData*>(storage + OBJECT_END);
+    this->m_corpseMirror = saved + CGObject::TotalFieldsSaved();
+}
+
 // VERIFY: 9d2370ce manual
 // OFFSET: 0x00706430
 CGCorpse_C::CGCorpse_C(uint32_t time, const CClientObjCreate& create) : CGObject_C(time, create), m_passenger(create.m_move.m_status.m_transportGuid, create.m_move.m_status.m_transportPosition, this->m_obj->m_guid), m_component(nullptr), m_groundNormal(0.0f, 0.0f, 1.0f), m_corpseFlags(0), m_selectionRadius(0.0f), m_lootEffect(nullptr) {

@@ -224,6 +224,31 @@ void Grunt::ClientLink::LogonStoredSession(const Grunt::ClientLink::Logon& logon
     this->Send(msg);
 }
 
+// VERIFY: 09a17985 manual
+// OFFSET: 0x008CDB90
+void Grunt::ClientLink::SendSurveyData(uint16_t size, uint8_t* data) {
+    CDataStoreCache<1024> msg;
+    msg.Put(static_cast<uint8_t>(4));
+    msg.Put(this->m_surveyId);
+    msg.Put(static_cast<uint8_t>(0));
+    msg.Put(size);
+    msg.PutData(data, size);
+    msg.Finalize();
+    this->Send(msg);
+}
+
+// VERIFY: d759d347 manual
+// OFFSET: 0x008CDD00
+void Grunt::ClientLink::SendSurveyFailed() {
+    CDataStoreCache<1024> msg;
+    msg.Put(static_cast<uint8_t>(4));
+    msg.Put(this->m_surveyId);
+    msg.Put(static_cast<uint8_t>(1));
+    msg.Put(static_cast<uint16_t>(0));
+    msg.Finalize();
+    this->Send(msg);
+}
+
 // VERIFY: 01aad7f9 auto
 // OFFSET: 0x008CE5C0
 void Grunt::Timer::Insert(Grunt::Timer::Event& event) {

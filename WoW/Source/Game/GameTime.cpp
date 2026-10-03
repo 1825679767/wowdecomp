@@ -175,6 +175,58 @@ void CGameTime::GameTimeUpdate(float elapsed) {
     }
 }
 
+// VERIFY: 5022ff80 manual
+// OFFSET: 0x0076D9A0
+void CGameTime::GameTimeSync(const WowTime& time, bool force) {
+    WowTime newTime = time;
+
+    if (this->m_minuteOffset) {
+        int32_t minutes = newTime.GetHourAndMinutes() + this->m_minuteOffset;
+        newTime.SetHourAndMinutes(minutes < 0 ? minutes + 1440 : minutes % 1440);
+    }
+
+    if (this->m_dayOffset) {
+        newTime.AddDays(this->m_dayOffset, false);
+    }
+
+    int32_t days = newTime.GetDaysSinceEpoch() - this->GetDaysSinceEpoch();
+    int32_t delta = (1440 * days - this->GetHourAndMinutes() + newTime.GetHourAndMinutes()) % 1440;
+    int32_t behind;
+
+    if (force || delta > 0) {
+        if (delta > 1) {
+            char newString[1024];
+            char currentString[1024];
+            const char* newText = WowTime::WowGetTimeString(&newTime, newString, sizeof(newString));
+            const char* currentText = WowTime::WowGetTimeString(this, currentString, sizeof(currentString));
+            DebugLog(0x10, "GameTimeSync: skipping forwards %d game minutes, (current = %s, newtime = %s)", delta, currentText, newText);
+        }
+
+        for (; delta > 0; delta--) {
+            this->TickMinute();
+        }
+
+        behind = 0;
+    } else {
+        behind = -delta;
+    }
+
+    newTime.m_tzHours = time.m_tzHours;
+    *static_cast<WowTime*>(this) = newTime;
+
+    if (!behind) {
+        return;
+    }
+
+    this->m_elapsedMinutes += behind;
+
+    for (int32_t i = behind; i > 0; i--) {
+        this->TickMinute();
+    }
+
+    DebugLog(0x10, "GameTimeSync: delta=%d, differential=%d, HoursAndMinutes=%d", 0, this->m_elapsedMinutes, this->GetHourAndMinutes());
+}
+
 // VERIFY: 580cfeb5 manual
 // OFFSET: 0x0076D1D0
 void __stdcall CGameTime::GameTimeUnregisterCallback(TIMESTAMPCALLBACK* callback) {

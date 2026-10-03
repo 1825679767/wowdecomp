@@ -44,7 +44,6 @@ class CGDanceStudio {
     static bool HasDance(const char* name);
 };
 
-int32_t Script_PlayDance(lua_State* L);
 void PlayDance(const char* name);
 
 #endif

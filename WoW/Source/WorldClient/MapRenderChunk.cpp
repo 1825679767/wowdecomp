@@ -23,6 +23,11 @@
 #include "WoW/Source/WorldClient/MapLight.h"
 #include "WoW/Source/WorldClient/Types.h"
 #include "WoW/Source/WorldClient/World.h"
+#if defined(_MSC_VER)
+#include <malloc.h>
+#else
+#include <alloca.h>
+#endif
 
 // STATIC: 0x00AEEBF8
 static uint32_t s_maxVertexCount = 145;
@@ -781,6 +786,64 @@ void CMapRenderChunk::RenderPrep() {
     if (!(this->m_unkFlags & 0x8)) {
         this->UpdateLoaded();
     }
+}
+
+// VERIFY: 5ffc93a3 manual
+// OFFSET: 0x007D40A0
+void CMapRenderChunk::RenderSinglePass() {
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_Fog, 0);
+    GxRsSet(GxRs_Lighting, 0);
+    GxRsSet(GxRs_VertexShader, 0);
+    GxRsSet(GxRs_PixelShader, 0);
+
+    uint32_t vertexCount = this->m_mapChunks[1] ? 290 : 145;
+    CGxBuf* vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, sizeof(CGxVertexPC), 2 * vertexCount);
+    CGxVertexPC* vertices = reinterpret_cast<CGxVertexPC*>(g_theGxDevicePtr->BufLock(vertexBuf));
+    CGxBuf* indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, sizeof(uint16_t), 2 * vertexCount);
+    uint16_t* indices = reinterpret_cast<uint16_t*>(g_theGxDevicePtr->BufLock(indexBuf));
+    CGxVertexPN* source = static_cast<CGxVertexPN*>(alloca(sizeof(CGxVertexPN) * 145));
+    uint16_t index = 0;
+
+    for (uint32_t i = 0; i < 2; i++) {
+        CMapChunk* chunk = this->m_mapChunks[i];
+
+        if (!chunk) {
+            continue;
+        }
+
+        chunk->CreateVerticesWorld(source, C3Vector(0.0f, 0.0f, 0.0f));
+
+        for (uint32_t j = 0; j < 145; j++) {
+            vertices[0].p = source[j].m_position;
+            vertices[0].c = CImVector(0x00, 0xFF, 0xFF, 0xFF);
+            vertices[1].p.x = source[j].m_normal.x * 0.75f + source[j].m_position.x;
+            vertices[1].p.y = source[j].m_normal.y * 0.75f + source[j].m_position.y;
+            vertices[1].p.z = source[j].m_normal.z * 0.75f + source[j].m_position.z;
+            vertices[1].c = CImVector(0x00, 0xFF, 0xFF, 0xFF);
+            vertices += 2;
+            indices[0] = index;
+            indices[1] = index + 1;
+            indices += 2;
+            index += 2;
+        }
+    }
+
+    g_theGxDevicePtr->BufUnlock(vertexBuf, 0);
+    vertexBuf->unk_001C = 1;
+    GxPrimVertexPtr(vertexBuf, GxVBF_PC);
+    g_theGxDevicePtr->BufUnlock(indexBuf, 0);
+    indexBuf->unk_001C = 1;
+    g_theGxDevicePtr->PrimIndexPtr(indexBuf);
+
+    CGxBatch batch;
+    batch.m_primType = GxPrim_Lines;
+    batch.m_start = 0;
+    batch.m_count = 2 * vertexCount;
+    batch.m_minIndex = 0;
+    batch.m_maxIndex = static_cast<uint16_t>(2 * vertexCount);
+    g_theGxDevicePtr->Draw(&batch, 1);
+    g_theGxDevicePtr->RsPop();
 }
 
 // INLINED

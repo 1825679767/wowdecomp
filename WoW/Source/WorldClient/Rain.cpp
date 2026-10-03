@@ -18,6 +18,7 @@
 #include "WoW/Source/WorldClient/FrameTime.h"
 #include "WoW/Source/WorldClient/MapWeather.h"
 #include "WoW/Source/WorldClient/World.h"
+#include "Engine/Source/Gx/CGxVertexPT.h"
 
 // STATIC: 0x00ADF220
 static float s_maxWindTilt = 45.0f;
@@ -400,6 +401,208 @@ void Rain::UpdatePackets() {
         Rain::RealizePacket(splash);
         this->m_rainPatterPacketPtr = nullptr;
     }
+}
+
+// VERIFY: e7a71254 manual
+// OFFSET: 0x007891B0
+void Rain::RenderPatterPacketsSW() {
+    if (!this->m_rainPatterPacketList.m_activePackets.Head()) {
+        return;
+    }
+
+    CGxTex* texture = TextureGetGxTex(this->m_rainDropSplashTex, 0, nullptr);
+
+    if (!texture) {
+        return;
+    }
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_BlendingMode, 5);
+    GxRsSet(GxRs_AlphaRef, static_cast<int32_t>(CGxDevice::s_alphaRef[g_theGxDevicePtr->m_appRenderStates.m_data[GxRs_BlendingMode].m_value.m_data.i[0]]));
+    GxRsSet(GxRs_ColorOp0, 0);
+    GxRsSet(GxRs_AlphaOp0, 0);
+    GxRsSet(GxRs_MatDiffuse, *reinterpret_cast<int32_t*>(&World::s_weather->m_color));
+    GxRsSet(GxRs_DepthWrite, 0);
+    GxRsSet(GxRs_Lighting, 0);
+    GxRsSet(GxRs_Fog, 1);
+    GxRsSet(GxRs_Culling, 0);
+    GxRsSet(GxRs_FogStart, 70.0f);
+    GxRsSet(GxRs_FogEnd, 75.0f);
+    GxRsSet(GxRs_FogColor, static_cast<int32_t>(0x80808080));
+    GxRsSet(GxRs_Texture0, texture);
+    C44Matrix view;
+    GxXformView(view);
+    C3Vector right(view.a0 * 0.083333336f, view.b0 * 0.083333336f, view.c0 * 0.083333336f);
+    C3Vector up(view.a1 * 0.16666667f, view.b1 * 0.16666667f, view.c1 * 0.16666667f);
+    C3Vector left(-right.x, -right.y, -right.z);
+    C3Vector camera = *World::GetCamPos();
+    uint32_t now = CWorld::s_elapsedTicks;
+
+    for (Packet<RainPatterParticleBuffer>* packet = this->m_rainPatterPacketList.m_activePackets.Head(); packet; packet = this->m_rainPatterPacketList.m_activePackets.Next(packet)) {
+        if (packet->m_packetStartTick >= now) {
+            continue;
+        }
+
+        float age = (now - packet->m_packetStartTick) * 0.0009765625f;
+        CGxBuf* vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, sizeof(CGxVertexPT), 3 * packet->m_currParticle);
+        CGxVertexPT* vertices = reinterpret_cast<CGxVertexPT*>(g_theGxDevicePtr->BufLock(vertexBuf));
+        uint32_t vertexCount = 0;
+
+        for (uint32_t i = 0; i < packet->m_currParticle; i++) {
+            const RainPatterParticle& particle = packet->m_particlesBuffer.m_particles[i];
+
+            if (particle.m_startTime > age || particle.m_endTime < age) {
+                continue;
+            }
+
+            C3Vector center = particle.m_position - camera;
+            float scale = 1.0f / sqrt(center.x * center.x + center.z * center.z + center.y * center.y);
+            C3Vector toCamera(-(center.x * scale), -(center.y * scale), -(center.z * scale));
+            float facing = toCamera.x * 0.0f + toCamera.y * 0.0f + toCamera.z;
+
+            if (facing <= 0.0f) {
+                facing = 0.0f;
+            }
+
+            center.x = center.x - up.x * (0.5f * facing);
+            center.y = center.y - up.y * (0.5f * facing);
+            center.z = center.z - up.z * (0.5f * facing) + facing * 0.083333336f;
+            float u = static_cast<float>(floor((age - particle.m_startTime) * 4.0f * 3.99f)) * 0.25f;
+            float v = static_cast<float>(floor((1.0f - facing) * 3.99f)) * 0.25f;
+            vertices[0].p = left + center;
+            vertices[0].tc.x = u;
+            vertices[0].tc.y = v + 0.25f;
+            vertices[1].p = center + up;
+            vertices[1].tc.x = u + 0.125f;
+            vertices[1].tc.y = v + 0.04296875f;
+            vertices[2].p = center + right;
+            vertices[2].tc.x = u + 0.25f;
+            vertices[2].tc.y = v + 0.25f;
+            vertices += 3;
+            vertexCount += 3;
+        }
+
+        g_theGxDevicePtr->BufUnlock(vertexBuf, 0);
+        vertexBuf->unk_001C = 1;
+
+        if (vertexCount) {
+            GxPrimVertexPtr(vertexBuf, GxVBF_PT);
+            CGxBatch batch;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = 0;
+            batch.m_count = vertexCount;
+            batch.m_minIndex = 0;
+            batch.m_maxIndex = 0;
+            g_theGxDevicePtr->Draw(&batch, 0);
+        }
+    }
+
+    g_theGxDevicePtr->RsPop();
+}
+
+// VERIFY: fc199a69 manual
+// OFFSET: 0x007898A0
+void Rain::RenderDropPacketsSW() {
+    if (!this->m_rainDropPacketList.m_activePackets.Head()) {
+        return;
+    }
+
+    CGxTex* texture = TextureGetGxTex(this->m_rainDropTex, 0, nullptr);
+
+    if (!texture) {
+        return;
+    }
+
+    g_theGxDevicePtr->RsPush();
+    GxRsSet(GxRs_BlendingMode, 5);
+    GxRsSet(GxRs_AlphaRef, static_cast<int32_t>(CGxDevice::s_alphaRef[g_theGxDevicePtr->m_appRenderStates.m_data[GxRs_BlendingMode].m_value.m_data.i[0]]));
+    GxRsSet(GxRs_ColorOp0, 0);
+    GxRsSet(GxRs_AlphaOp0, 0);
+    GxRsSet(GxRs_MatDiffuse, *reinterpret_cast<int32_t*>(&World::s_weather->m_color));
+    GxRsSet(GxRs_DepthWrite, 0);
+    GxRsSet(GxRs_Lighting, 0);
+    GxRsSet(GxRs_Fog, 1);
+    GxRsSet(GxRs_Culling, 0);
+    GxRsSet(GxRs_FogStart, 70.0f);
+    GxRsSet(GxRs_FogEnd, 75.0f);
+    GxRsSet(GxRs_FogColor, static_cast<int32_t>(0x80808080));
+    GxRsSet(GxRs_Texture0, texture);
+    C3Vector camera = *World::GetCamPos();
+    uint32_t now = CWorld::s_elapsedTicks;
+    C33Matrix blur(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+    Rain::GetMotionBlurMatrix(&blur);
+    float tilt = Rain::GetWindTiltFactor();
+
+    for (Packet<RainParticleBuffer>* packet = this->m_rainDropPacketList.m_activePackets.Head(); packet; packet = this->m_rainDropPacketList.m_activePackets.Next(packet)) {
+        if (packet->m_packetStartTick >= now) {
+            continue;
+        }
+
+        float age = (now - packet->m_packetStartTick) * 0.0009765625f;
+        CGxBuf* vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, sizeof(CGxVertexPT), 3 * packet->m_currParticle);
+        CGxVertexPT* vertices = reinterpret_cast<CGxVertexPT*>(g_theGxDevicePtr->BufLock(vertexBuf));
+        uint32_t vertexCount = 0;
+
+        for (uint32_t i = 0; i < packet->m_currParticle; i++) {
+            const RainDropParticle& particle = packet->m_particlesBuffer.m_particles[i];
+            C2Vector tex0(0.0f, 1.0f);
+            C2Vector tex1(1.0f, 1.0f);
+            C2Vector tex2(0.5f, 0.0f);
+            C3Vector offset = particle.m_position - camera;
+            float tailTime = particle.m_impactTime - tilt / particle.m_velocity.z;
+
+            if (age < particle.m_startTime || tailTime < age) {
+                continue;
+            }
+
+            float headTime = (age >= particle.m_impactTime ? particle.m_impactTime : age) - particle.m_startTime;
+            float trailTime = (tailTime <= age ? tailTime : age) - particle.m_startTime;
+            C3Vector head = offset + particle.m_velocity * headTime;
+            C3Vector tail = offset + particle.m_velocity * trailTime;
+            C3Vector toCamera(-head.x, -head.y, -head.z);
+            float scale = 1.0f / sqrt(toCamera.z * toCamera.z + toCamera.y * toCamera.y + toCamera.x * toCamera.x);
+            toCamera.x *= scale;
+            toCamera.y *= scale;
+            toCamera.z *= scale;
+            C3Vector direction(-particle.m_velocity.x, -particle.m_velocity.y, -particle.m_velocity.z);
+            scale = 1.0f / sqrt(direction.z * direction.z + direction.y * direction.y + direction.x * direction.x);
+            direction.x *= scale;
+            direction.y *= scale;
+            direction.z *= scale;
+            C3Vector side(direction.z * toCamera.y - direction.y * toCamera.z, toCamera.z * direction.x - direction.z * toCamera.x, toCamera.x * direction.y - toCamera.y * direction.x);
+            scale = 1.0f / sqrt(side.z * side.z + side.y * side.y + side.x * side.x);
+            side.x *= scale;
+            side.y *= scale;
+            side.z *= scale;
+            vertices[0].p = side * -0.050000001f + head;
+            vertices[0].tc = tex0;
+            vertices[1].p = head + side * 0.050000001f;
+            vertices[1].tc = tex1;
+            C3Vector streak = direction * 2.0f;
+            vertices[2].p.x = blur.a0 * streak.x + blur.a1 * streak.y + blur.a2 * streak.z + tail.x;
+            vertices[2].p.y = blur.b0 * streak.x + blur.b1 * streak.y + blur.b2 * streak.z + tail.y;
+            vertices[2].p.z = blur.c0 * streak.x + blur.c1 * streak.y + blur.c2 * streak.z + tail.z;
+            vertices[2].tc = tex2;
+            vertices += 3;
+            vertexCount += 3;
+        }
+
+        g_theGxDevicePtr->BufUnlock(vertexBuf, 0);
+        vertexBuf->unk_001C = 1;
+
+        if (vertexCount) {
+            GxPrimVertexPtr(vertexBuf, GxVBF_PT);
+            CGxBatch batch;
+            batch.m_primType = GxPrim_Triangles;
+            batch.m_start = 0;
+            batch.m_count = vertexCount;
+            batch.m_minIndex = 0;
+            batch.m_maxIndex = 0;
+            g_theGxDevicePtr->Draw(&batch, 0);
+        }
+    }
+
+    g_theGxDevicePtr->RsPop();
 }
 
 // VERIFY: b4ae734d manual

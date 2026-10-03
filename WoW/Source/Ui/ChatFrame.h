@@ -429,7 +429,6 @@ bool ChatParserParseText(const char* text, char* buffer, uint32_t size);
 bool InebriatedParseText(const char* text, char* buffer, uint32_t size, float drunkness);
 int32_t QuestParserParseText(const char* text, char* buffer, uint32_t size, const WOWGUID& guid, const char* name, int32_t a6);
 
-int32_t Script_JoinChannelByName(lua_State* L);
 void ChatRegisterScriptFunctions();
 void ChatUnregisterScriptFunctions();
 

@@ -782,7 +782,7 @@ static int32_t Script_GetLFGRoleUpdateSlot(lua_State* L) {
     return CGLookingForGroup::GetLFGRoleUpdateSlot(L);
 }
 
-// VERIFY: 1da53d3d manual
+// VERIFY: 667e80c2 auto
 // OFFSET: 0x00554170
 static int32_t PushLFGProposalInfo(lua_State* L) {
     if (!CGLookingForGroup::m_proposal.m_id) {
@@ -834,7 +834,7 @@ static int32_t PushLFGProposalInfo(lua_State* L) {
         total = 1;
         completed = CGLookingForGroup::m_proposal.m_completedMask != 0;
     } else {
-        DungeonEncounterDB::CountMatchingRows(dungeon->m_mapID, dungeon->m_difficulty, CGLookingForGroup::m_proposal.m_completedMask, &total, &completed);
+        DungeonEncounterCountMatchingRows(dungeon->m_mapID, dungeon->m_difficulty, CGLookingForGroup::m_proposal.m_completedMask, &total, &completed);
     }
 
     lua_pushnumber(L, total);

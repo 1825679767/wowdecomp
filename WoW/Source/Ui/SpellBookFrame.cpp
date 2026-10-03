@@ -31,6 +31,11 @@
 #include "WoW/Source/Magic/Spell.h"
 #include "WoW/Source/Object/ObjectClient/AuraData.h"
 #include "WoW/Source/DB/Rec/SkillRaceClassInfoRec.h"
+#include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "WoW/Source/DB/Rec/SpellVisualEffectNameRec.h"
+#include "WoW/Source/DB/Rec/SpellVisualKitRec.h"
+#include "WoW/Source/DB/Rec/SpellVisualRec.h"
+#include <cstdio>
 
 // STATIC: 0x00BE8E24
 TSGrowableArray<SpellUsableInfo> s_shapeshiftSpells;
@@ -267,7 +272,7 @@ void CGSpellBook::ClearSpells() {
     }
 }
 
-// VERIFY: 3922ffa3 manual
+// VERIFY: f6883164 manual
 // OFFSET: 0x00542030
 void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replaceSpell) {
     SpellRec spell;
@@ -666,7 +671,7 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
             }
         }
 
-        if (player && player->m_unit->m_unitFieldLevel <= 10 && CGSpellBook::GetSpellProgressionRank(&spell) <= 1 && !(spell.m_attributes & 0x40) && !(spell.m_attributesExB & 0x10) && !SpellHasAuraEffect(&spell, 36)) {
+        if (player && player->m_unit->m_unitFieldLevel <= 10 && CGSpellBook::GetSpellProgressionRank(&spell) <= 1 && !(spell.m_attributes & 0x40) && !(spell.m_attributesExB & 0x10) && !SpellRec::HasAura(&spell, 36)) {
             int32_t offset = GetActionBarPageOffset(player, &spell);
 
             for (int32_t slot = offset; slot < offset + 12; slot++) {
@@ -927,6 +932,176 @@ int __cdecl SortCompanions(const void* a, const void* b) {
     }
 
     return static_cast<int>(creatureB - creatureA);
+}
+
+// VERIFY: d0921763 manual
+// OFFSET: 0x0053C430
+static void MakeSpellVisualEffectNameLocal(int32_t id) {
+    if (!id) {
+        return;
+    }
+
+    SpellVisualEffectNameRec* effect = g_spellVisualEffectNameDB.GetRecord(id);
+
+    if (!effect) {
+        return;
+    }
+
+    char path[260];
+    strcpy(path, effect->m_fileName);
+    SStrLower(path);
+    char* extension = strrchr(path, '.');
+
+    if (!extension) {
+        return;
+    }
+
+    if (!strcmp(extension, ".mdl") || !strcmp(extension, ".mdx")) {
+        strcpy(extension, ".m2");
+    }
+
+    SFile::MakeFileLocal(path, 1, false);
+
+    for (uint32_t i = 0; i < 4; i++) {
+        sprintf(extension, "%02d.skin", i);
+
+        if (!SFile::MakeFileLocal(path, 1, false)) {
+            break;
+        }
+    }
+}
+
+// VERIFY: a19bd6f1 auto
+// OFFSET: 0x0053C520
+static void MakeSpellVisualKitLocal(int32_t id) {
+    if (!id) {
+        return;
+    }
+
+    SpellVisualKitRec* kit = g_spellVisualKitDB.GetRecord(id);
+
+    if (!kit) {
+        return;
+    }
+
+    MakeSpellVisualEffectNameLocal(kit->m_headEffect);
+    MakeSpellVisualEffectNameLocal(kit->m_chestEffect);
+    MakeSpellVisualEffectNameLocal(kit->m_baseEffect);
+    MakeSpellVisualEffectNameLocal(kit->m_leftHandEffect);
+    MakeSpellVisualEffectNameLocal(kit->m_rightHandEffect);
+    MakeSpellVisualEffectNameLocal(kit->m_breathEffect);
+    MakeSpellVisualEffectNameLocal(kit->m_leftWeaponEffect);
+    MakeSpellVisualEffectNameLocal(kit->m_rightWeaponEffect);
+
+    for (uint32_t i = 0; i < 3; i++) {
+        MakeSpellVisualEffectNameLocal(kit->m_specialEffect[i]);
+    }
+
+    MakeSpellVisualEffectNameLocal(kit->m_worldEffect);
+}
+
+// VERIFY: 4e059ff6 auto
+// OFFSET: 0x0053E810
+static void MakeKnownSpellVisualKitsLocal(int32_t SpellVisualRec::* kit) {
+    SpellRec spell;
+
+    for (uint32_t i = 0; i < s_numSpells; i++) {
+        if (!g_spellDB.GetRecord(s_spellList[i], &spell)) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < 2; j++) {
+            if (!spell.m_spellVisualID[j]) {
+                continue;
+            }
+
+            SpellVisualRec* visual = g_spellVisualDB.GetRecord(spell.m_spellVisualID[j]);
+
+            if (visual) {
+                MakeSpellVisualKitLocal(visual->*kit);
+            }
+        }
+    }
+}
+
+// VERIFY: 1d27c5ca manual
+// OFFSET: 0x0053E930
+static void MakeKnownSpellMissilesLocal() {
+    SpellRec spell;
+
+    for (uint32_t i = 0; i < s_numSpells; i++) {
+        if (!g_spellDB.GetRecord(s_spellList[i], &spell)) {
+            continue;
+        }
+
+        for (uint32_t j = 0; j < 2; j++) {
+            if (!spell.m_spellVisualID[j]) {
+                continue;
+            }
+
+            SpellVisualRec* visual = g_spellVisualDB.GetRecord(spell.m_spellVisualID[j]);
+
+            if (visual && visual->m_hasMissile) {
+                MakeSpellVisualEffectNameLocal(visual->m_missileModel);
+            }
+        }
+    }
+}
+
+// OFFSET: 0x0053EA40
+void CGSpellBook::MakeKnownSpellModelsLocal() {
+    MakeKnownSpellMissilesLocal();
+    MakeKnownSpellVisualKitsLocal(&SpellVisualRec::m_castKit);
+    MakeKnownSpellVisualKitsLocal(&SpellVisualRec::m_stateKit);
+    MakeKnownSpellVisualKitsLocal(&SpellVisualRec::m_channelKit);
+    MakeKnownSpellVisualKitsLocal(&SpellVisualRec::m_missileTargetingKit);
+    MakeKnownSpellVisualKitsLocal(&SpellVisualRec::m_instantAreaKit);
+    MakeKnownSpellVisualKitsLocal(&SpellVisualRec::m_persistentAreaKit);
+    MakeKnownSpellVisualKitsLocal(&SpellVisualRec::m_impactKit);
+    MakeKnownSpellVisualKitsLocal(&SpellVisualRec::m_casterImpactKit);
+    MakeKnownSpellVisualKitsLocal(&SpellVisualRec::m_targetImpactKit);
+    MakeKnownSpellVisualKitsLocal(&SpellVisualRec::m_impactAreaKit);
+    MakeKnownSpellVisualKitsLocal(&SpellVisualRec::m_precastKit);
+    MakeKnownSpellVisualKitsLocal(&SpellVisualRec::m_stateDoneKit);
+}
+
+// VERIFY: 356de315 auto
+// OFFSET: 0x0053EAA0
+void PrefetchSpellVisuals(int32_t spellId) {
+    SpellRec spell;
+
+    if (!g_spellDB.GetRecord(spellId, &spell)) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < 2; i++) {
+        if (!spell.m_spellVisualID[i]) {
+            continue;
+        }
+
+        SpellVisualRec* visual = g_spellVisualDB.GetRecord(spell.m_spellVisualID[i]);
+
+        if (!visual) {
+            continue;
+        }
+
+        if (visual->m_hasMissile) {
+            MakeSpellVisualEffectNameLocal(visual->m_missileModel);
+        }
+
+        MakeSpellVisualKitLocal(visual->m_castKit);
+        MakeSpellVisualKitLocal(visual->m_stateKit);
+        MakeSpellVisualKitLocal(visual->m_channelKit);
+        MakeSpellVisualKitLocal(visual->m_missileTargetingKit);
+        MakeSpellVisualKitLocal(visual->m_instantAreaKit);
+        MakeSpellVisualKitLocal(visual->m_persistentAreaKit);
+        MakeSpellVisualKitLocal(visual->m_impactKit);
+        MakeSpellVisualKitLocal(visual->m_casterImpactKit);
+        MakeSpellVisualKitLocal(visual->m_targetImpactKit);
+        MakeSpellVisualKitLocal(visual->m_impactAreaKit);
+        MakeSpellVisualKitLocal(visual->m_precastKit);
+        MakeSpellVisualKitLocal(visual->m_stateDoneKit);
+    }
 }
 
 // VERIFY: c8864654 auto

@@ -2340,6 +2340,12 @@ static int32_t JoinChannelFromScript(lua_State* L, int32_t permanent) {
     return 2;
 }
 
+// VERIFY: 31cbcc26 auto
+// OFFSET: 0x0050DAA0
+static int32_t Script_JoinChannelByName(lua_State* L) {
+    return JoinChannelFromScript(L, 0);
+}
+
 // VERIFY: c8a46eac auto
 // OFFSET: 0x0050DAA0
 static int32_t Script_JoinTemporaryChannel(lua_State* L) {

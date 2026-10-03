@@ -28,6 +28,12 @@ PassFogSeed::~PassFogSeed() {
     g_theGxDevicePtr->RemoveDeviceRestoredCallback(PassFogSeed::DeviceRestoredCallback);
 }
 
+// VERIFY: da3c8c98 auto
+// OFFSET: 0x008A1420
+bool PassFogSeed::Valid() {
+    return true;
+}
+
 // VERIFY: 0d91b22f manual
 // OFFSET: 0x007E92A0
 void PassFogSeed::Execute() {

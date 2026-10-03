@@ -44,5 +44,7 @@ int32_t GetNumRussianNameDeclensionSets(const char* name, int32_t sex);
 int32_t GetRussianNameDeclensions(char* declensions, const char* name, int32_t sex, uint32_t set);
 uint32_t GetNumNameDeclensionSets(int32_t locale, const char* name, int32_t sex);
 int32_t GetNameDeclensions(int32_t locale, char* declensions, const char* name, int32_t sex, uint32_t set);
+int32_t ValidateCharacterNameDeclension(int32_t locale, const char* name, const char* declension);
+bool IsRussianDeclensionValid(const char* name, const char* declension);
 
 #endif

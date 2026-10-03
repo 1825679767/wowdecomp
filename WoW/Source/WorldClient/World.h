@@ -6,6 +6,8 @@
 #include "Engine/Source/Tempest/CBoundingBox.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/CAaBox.h"
+#include "Engine/Source/Tempest/CAaSphere.h"
+#include "Engine/Source/Tempest/C2iVector.h"
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/WorldClient/CMapBaseObjLink.h"
@@ -335,7 +337,45 @@ class WMOAreaTableRec;
 
 namespace World {
     class TriData;
-    class HitTestDebug;
+    class HitTestDebug {
+        public:
+        struct Model {
+            /* 0000 */ const char* m_name;
+            /* 0004 */ int32_t m_depth;
+            /* 0008 */ CAaBox m_bbox;
+            /* 0020 */ CAaSphere m_sphere;
+            /* 0030 */ uint32_t m_numGeometryBatches;
+            /* 0034 */ uint32_t m_numPrimitives;
+            /* 0038 */ uint32_t m_numOtherBatches;
+            /* 003C */ uint32_t m_numBones;
+            /* 0040 */ uint32_t m_numLights;
+            /* 0044 */ uint32_t m_numCurrentLights;
+            /* 0048 */ uint32_t m_attachmentId;
+            /* 004C */ float m_attachmentScale;
+            /* 0050 */ CM2Model* m_model;
+            /* 0054 */ uint32_t m_numCombinableBatches;
+            /* 0058 */ uint32_t m_instanceCountMax;
+            /* 005C */ const char* m_groupName;
+            /* 0060 */ uint32_t m_groupNum;
+            /* 0064 */ uint32_t m_groupFlags;
+            /* 0068 */ int32_t m_doodadSet;
+        };
+
+        struct Parent {
+            /* 0000 */ const char* m_name;
+            /* 0004 */ const char* m_groupName;
+            /* 0008 */ C2iVector m_chunkOffset;
+        };
+
+        /* 0000 */ int32_t m_type;
+        /* 0004 */ uint32_t m_numModels;
+        /* 0008 */ uint32_t m_numParents;
+        /* 000C */ Model m_models[16];
+        /* 06CC */ Parent m_parents[8];
+        /* 074C */ CAaBox m_bbox;
+        /* 0764 */ CAaSphere m_sphere;
+        /* 0774 */ C3Vector m_labelPos;
+    };
 
     struct LiquidQueryResult {
         /* 0000 */ int32_t m_liquidType;
@@ -383,7 +423,6 @@ namespace World {
     void Preload(const C3Vector& position, int32_t a2);
     int32_t QueryMapId();
     void UpdateObjectFadeouts();
-    uint64_t QueryObjectParentParam64(CMapEntity* entity);
     void Update(const C3Vector& position);
     int32_t QueryOutdoors(CMapEntity* entity);
     int32_t QueryObjectLiquid(CMapEntity* entity, int32_t* liquidType, float* height, int32_t* a4);

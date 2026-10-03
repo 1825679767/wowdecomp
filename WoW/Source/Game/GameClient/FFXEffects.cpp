@@ -718,6 +718,13 @@ void PassFogCombine::BuildIndices() {
     buf->unk_001C = 1;
 }
 
+// VERIFY: d096b4ea manual
+// OFFSET: 0x008C2020
+bool PassDeath::Valid() {
+    CGxShader* shader = this->m_shaders[this->m_useRect];
+    return (shader ? shader->Valid() : 0) != 0;
+}
+
 // VERIFY: 883cadff manual
 // OFFSET: 0x007E87B0
 void PassDeath::Execute() {
@@ -743,6 +750,13 @@ void PassDeath::Execute() {
     g_theGxDevicePtr->Draw(&FFX::s_quadBatch, 1);
 
     FFX::SetupReset();
+}
+
+// VERIFY: 51b35afa manual
+// OFFSET: 0x008C2020
+bool PassNetherCombine::Valid() {
+    CGxShader* shader = this->m_pixelShaders[this->m_useRect];
+    return (shader ? shader->Valid() : 0) != 0;
 }
 
 // VERIFY: 74b70bbd manual
@@ -775,6 +789,13 @@ void PassNetherCombine::Execute() {
     g_theGxDevicePtr->Draw(&FFX::s_quadBatch, 1);
 
     FFX::SetupReset();
+}
+
+// VERIFY: ff3f053e manual
+// OFFSET: 0x007E8180
+bool PassFogCombine::Valid() {
+    CGxShader* shader = this->m_pixelShaders[this->m_useRect];
+    return shader && shader->Valid();
 }
 
 // VERIFY: 0e25f7e9 manual

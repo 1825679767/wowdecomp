@@ -36,6 +36,31 @@ static int32_t s_wmoGroupID = -1;
 // STATIC: 0x00CD85EC
 static int32_t s_inMapObj;
 
+// VERIFY: 47f43aed auto
+// OFFSET: 0x0078ED80
+int32_t AreaListGetName(uint32_t areaId, char* buffer, uint32_t size, int32_t includeParent) {
+    if (!buffer || !size) {
+        return 0;
+    }
+
+    *buffer = '\0';
+    AreaTableRec* area = g_areaTableDB.GetRecord(areaId);
+
+    if (!area) {
+        return 0;
+    }
+
+    AreaTableRec* parent;
+
+    if (includeParent && area->m_parentAreaID && (parent = g_areaTableDB.GetRecord(area->m_parentAreaID)) != nullptr) {
+        SStrPrintf(buffer, size, "%s, %s", area->m_areaName, parent->m_areaName);
+        return 1;
+    }
+
+    SStrCopy(buffer, area->m_areaName, size);
+    return 1;
+}
+
 // VERIFY: 374cc580 manual
 // OFFSET: 0x0078EE30
 static void AreaListSendZoneUpdate(int32_t zoneId) {

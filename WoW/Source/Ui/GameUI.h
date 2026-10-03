@@ -8,6 +8,7 @@
 #include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 #include "WoW/Source/Object/WGUID.h"
@@ -502,7 +503,16 @@ bool CVarHandler_useUiScale(CVar* var, const char* oldValue, const char* value, 
 void LoadAccountVariables();
 void LoadPlacedFrames(HOSFILE localFile, HOSFILE cacheFile, void* param);
 void LoadSavedVariables(CStatus* status);
+struct TaintStackFrame {
+    /* 0000 */ lua_Debug m_debug;
+    /* 0064 */ const char* m_objectName;
+};
+
 struct TAINTEVENT : public TSHashObject<TAINTEVENT, HASHKEY_STR> {
+    /* 0018 */ int32_t m_type;
+    /* 001C */ const char* m_name;
+    /* 0020 */ const char* m_taint;
+    /* 0024 */ TSGrowableArray<TaintStackFrame> m_stack;
 };
 
 void LoadScriptFunctions();

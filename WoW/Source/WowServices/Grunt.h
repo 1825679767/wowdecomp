@@ -167,6 +167,8 @@ class ClientLink : public WowConnectionResponse, public Grunt::Pending, public G
     void GetRealmList();
     void LogonNewSession(const Grunt::ClientLink::Logon& logon);
     void LogonStoredSession(const Grunt::ClientLink::Logon& logon);
+    void SendSurveyData(uint16_t size, uint8_t* data);
+    void SendSurveyFailed();
     void PackLogon(CDataStore& msg, const Grunt::ClientLink::Logon& logon);
     void ProveVersion(const uint8_t* versionChecksum);
     void Send(CDataStore& msg);

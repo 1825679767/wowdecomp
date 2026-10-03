@@ -35,6 +35,12 @@ void CLCDOutput::Close() {
     }
 }
 
+// VERIFY: 325fbb1b auto
+// OFFSET: 0x00959D20
+void CLCDOutput::Shutdown() {
+    this->Close();
+}
+
 // VERIFY: 7579de46 auto
 // OFFSET: 0x00959D10
 void CLCDOutput::SetGfx(CLCDGfxBase* gfx) {

@@ -227,10 +227,6 @@ class CGLookingForGroup {
     static void ResortLFGLists();
 };
 
-namespace DungeonEncounterDB {
-    void CountMatchingRows(int32_t mapID, int32_t difficulty, uint32_t completedMask, uint32_t* total, uint32_t* completed);
-}
-
 LfgDungeonExpansionRec* GetLfgDungeonExpansionRec(int32_t dungeonID, int32_t expansionLevel);
 int32_t LFGPacketHandler(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_LFG_OPEN_FROM_GOSSIP(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);

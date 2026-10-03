@@ -981,8 +981,8 @@ WOWGUID CGGameUI::m_cursorItem;
 // STATIC: 0x00BD0774
 CGTooltip* CGGameUI::m_gameTooltip;
 
-// STATIC: 0x00BD0C24
-static int32_t s_unk_BD0C24;
+// STATIC: 0x00BD0C0C
+static TAINTEVENT s_lastTaintEvent;
 
 // STATIC: 0x00BD0C40
 static TSHashTable<TAINTEVENT, HASHKEY_STR> s_taintEvents;
@@ -4366,6 +4366,74 @@ void CGGameUI::ClearInteractTarget(const WOWGUID& guid, int32_t a2) {
     CGGameUI::CloseInteraction();
 }
 
+// VERIFY: 03e32957 manual
+// OFFSET: 0x00519A50
+int32_t CGGameUI::OnMirrorTimerEvent(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    if (msgId == SMSG_START_MIRROR_TIMER) {
+        uint32_t type;
+        uint32_t value;
+        uint32_t maxValue;
+        uint32_t scale;
+        uint8_t paused;
+        uint32_t spellId;
+        msg->Get(type);
+        msg->Get(value);
+        msg->Get(maxValue);
+        msg->Get(scale);
+        msg->Get(paused);
+        msg->Get(spellId);
+
+        FrameScript_SignalEvent(SCRIPT_EVENT_MIRROR_TIMER_START, "%s%d%d%d%d%s", MirrorTimerTypeToken(type), value, maxValue, scale, paused, GetMirrorTimerLabel(type, spellId));
+
+        if (type == 0) {
+            CGTutorial::TriggerTutorial(26);
+        } else if (type == 1) {
+            CGTutorial::TriggerTutorial(28);
+        }
+
+        if (type <= 2) {
+            MirrorTimerInfo* info = &CGGameUI::m_mirrorTimerInfo[type];
+            info->m_type = type;
+            info->m_value = value;
+            info->m_maxValue = maxValue;
+            info->m_scale = scale;
+            info->m_paused = paused;
+            info->m_spellId = spellId;
+            CGGameUI::m_mirrorTimerInfo[type].unk_0018 = OsGetAsyncTimeMs();
+        }
+
+        return 1;
+    }
+
+    if (msgId == SMSG_PAUSE_MIRROR_TIMER) {
+        uint32_t type;
+        uint8_t paused;
+        msg->Get(type);
+        msg->Get(paused);
+        FrameScript_SignalEvent(SCRIPT_EVENT_MIRROR_TIMER_PAUSE, "%s%d", MirrorTimerTypeToken(type), paused);
+        return 1;
+    }
+
+    if (msgId == SMSG_STOP_MIRROR_TIMER) {
+        uint32_t type;
+        msg->Get(type);
+        FrameScript_SignalEvent(SCRIPT_EVENT_MIRROR_TIMER_STOP, "%s", MirrorTimerTypeToken(type));
+
+        if (type <= 2) {
+            MirrorTimerInfo* info = &CGGameUI::m_mirrorTimerInfo[type];
+            info->m_type = 3;
+            info->m_value = 0;
+            info->m_maxValue = 0;
+            info->m_scale = 0;
+            info->m_paused = 0;
+            info->m_spellId = 0;
+            info->unk_0018 = 0;
+        }
+    }
+
+    return 1;
+}
+
 // VERIFY: 692a29c7 auto
 // OFFSET: 0x00519CA0
 AreaTableRec* CGGameUI::GetCurrentSubzoneRec() {
@@ -7229,7 +7297,162 @@ void CGGameUI::StartCinematic(int32_t cinematic) {
     }
 }
 
-// VERIFY: a01598ea manual
+// VERIFY: 3373886b auto
+// OFFSET: 0x005125E0
+static void GetTaintContext(TaintStackFrame* frame, char* buffer, uint32_t size) {
+    char name[1024];
+
+    if (frame->m_objectName) {
+        if (frame->m_debug.name) {
+            SStrPrintf(name, sizeof(name), "%s:%s", frame->m_objectName, frame->m_debug.name);
+        } else if (*frame->m_debug.source == '*') {
+            SStrPrintf(name, sizeof(name), "%s:%s", frame->m_objectName, frame->m_debug.source + 2);
+            frame->m_debug.source = "";
+        } else {
+            name[0] = '\0';
+        }
+
+        frame->m_debug.name = name;
+    }
+
+    if (*frame->m_debug.source == '@') {
+        frame->m_debug.source++;
+    }
+
+    const char* source = frame->m_debug.source;
+
+    if (*source && *source != '=') {
+        if (frame->m_debug.name && *frame->m_debug.name) {
+            SStrPrintf(buffer, size, "%s:%d %s()", source, frame->m_debug.currentline, frame->m_debug.name);
+        } else {
+            SStrPrintf(buffer, size, "%s:%d", source, frame->m_debug.currentline);
+        }
+    } else if (frame->m_debug.name && *frame->m_debug.name) {
+        SStrPrintf(buffer, size, "%s()", frame->m_debug.name);
+    } else {
+        *buffer = '\0';
+    }
+}
+
+// VERIFY: b1647a49 manual
+// OFFSET: 0x00518920
+static void PrintTaintEvent(TAINTEVENT* event) {
+    char context[1024];
+    char text[4096];
+
+    if (event->m_stack.m_count) {
+        GetTaintContext(&event->m_stack.m_data[0], context, sizeof(context));
+    } else {
+        SStrCopy(context, "UNKNOWN", sizeof(context));
+    }
+
+    switch (event->m_type) {
+        case 1:
+            SStrPrintf(text, sizeof(text), "Global variable %s tainted by %s - %s", event->m_name, event->m_taint, context);
+            DebugLog("%s\n", text);
+            SLogWrite(s_taintLog, "%s", text);
+            break;
+
+        case 2:
+            SStrPrintf(text, sizeof(text), "Execution tainted by %s while reading %s - %s", event->m_taint, event->m_name, context);
+            DebugLog("%s\n", text);
+            SLogWrite(s_taintLog, "%s", text);
+            break;
+
+        case 3:
+            SStrPrintf(text, sizeof(text), "An action was blocked because of taint from %s - %s", event->m_taint, context);
+            DebugLog("%s\n", text);
+            SLogWrite(s_taintLog, "%s", text);
+            break;
+
+        case 4:
+            SStrPrintf(text, sizeof(text), "An action was blocked in combat because of taint from %s - %s", event->m_taint, context);
+            DebugLog("%s\n", text);
+            SLogWrite(s_taintLog, "%s", text);
+            break;
+    }
+
+    for (uint32_t i = 1; i < event->m_stack.m_count; i++) {
+        GetTaintContext(&event->m_stack.m_data[i], context, sizeof(context));
+
+        if (context[0]) {
+            SStrPrintf(text, sizeof(text), "    %s", context);
+            DebugLog("%s\n", text);
+            SLogWrite(s_taintLog, "%s", text);
+        }
+    }
+}
+
+// VERIFY: 6ec27ac0 manual
+// OFFSET: 0x0052A650
+void TaintEventCallback(lua_State* L, int32_t event, const char* name, const char* taint) {
+    if (taint == g_macroTaint) {
+        taint = "MACRO_TAINT";
+    }
+
+    if (g_taintLogCVar->m_intValue == 1 && (event == 3 || event == 4) && s_lastTaintEvent.m_type == 2 && s_lastTaintEvent.m_taint == taint) {
+        TAINTEVENT* global = s_taintEvents.Ptr(s_lastTaintEvent.m_name);
+
+        if (global) {
+            PrintTaintEvent(global);
+        }
+
+        PrintTaintEvent(&s_lastTaintEvent);
+    }
+
+    TAINTEVENT* record;
+
+    if (event == 1) {
+        record = s_taintEvents.Ptr(name);
+
+        if (!record) {
+            record = s_taintEvents.New(name, 0, 0);
+        }
+    } else {
+        record = &s_lastTaintEvent;
+    }
+
+    record->m_type = event;
+    record->m_name = name;
+    record->m_taint = taint;
+    record->m_stack.m_count = 0;
+
+    lua_Debug ar;
+
+    if (lua_getstack(L, 0, &ar)) {
+        int32_t level = 1;
+
+        do {
+            const char* objectName = nullptr;
+            lua_getinfo(L, "Sln", &ar);
+
+            if ((*ar.source == '*' || !SStrCmp(ar.namewhat, "method", STORM_MAX_STR)) && lua_getlocal(L, &ar, 1)) {
+                if (lua_type(L, -1) == LUA_TTABLE) {
+                    lua_rawgeti(L, -1, 0);
+                    FrameScript_Object* object = static_cast<FrameScript_Object*>(lua_touserdata(L, -1));
+                    lua_settop(L, -2);
+
+                    if (object) {
+                        const char* objectNameValue = object->GetName();
+                        objectName = objectNameValue ? objectNameValue : "<unnamed>";
+                    }
+                }
+
+                lua_settop(L, -2);
+            }
+
+            record->m_stack.SetCount(level);
+            memcpy(&record->m_stack.m_data[level - 1].m_debug, &ar, sizeof(ar));
+            record->m_stack.m_data[level - 1].m_objectName = objectName;
+        } while (lua_getstack(L, level++, &ar));
+    }
+
+    if (g_taintLogCVar->m_intValue != 1 || (event != 1 && event != 2)) {
+        PrintTaintEvent(record);
+    }
+}
+
+// VERIFY: 5fea758e manual
 // OFFSET: 0x00528F00
 void CGGameUI::Shutdown() {
     CGGameUI::unk_BD08C4++;
@@ -7321,7 +7544,7 @@ void CGGameUI::Shutdown() {
         s_taintLog = nullptr;
     }
 
-    s_unk_BD0C24 = 0;
+    s_lastTaintEvent.m_type = 0;
     s_taintEvents.InternalClear(0);
 }
 

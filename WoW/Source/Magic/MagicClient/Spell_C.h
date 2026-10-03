@@ -255,7 +255,7 @@ void Spell_C_Destroy();
 void Spell_C_Initialize();
 PendingSpellCast* CreatePendingSpellCast(bool assignCastCount);
 PendingSpellCast* GetPendingSpellCast(uint8_t castCount, int32_t spellId, const WOWGUID& caster);
-void Spell_C_PlayMissileTrajectoryCastVisuals(CGUnit_C* unit, PendingSpellCast* cast, const SpellRec* spell, const SpellVisualRec* visual, const SpellVisualKitRec* kit, int32_t* a6, float a7);
+void Spell_C_PlayMissileTrajectoryCastVisuals(CGUnit_C* unit, PendingSpellCast* cast, const SpellRec* spell, const SpellVisualRec* visual, const SpellVisualKitRec* kit, const TSStackArray<CGUnit_C*>* targets, float time);
 PendingSpellCast* FindPendingSpellCast(const WOWGUID& castItem, PendingSpellCast* fallback, uint8_t castCount, int32_t spellId, const WOWGUID& caster);
 void ReleasePendingSpellCast(PendingSpellCast* cast);
 void StartSpellCastVisuals(CGUnit_C* unit, PendingSpellCast* cast, const SpellRec* spell, int32_t castTime, bool hidden);
@@ -299,7 +299,6 @@ void SpellRegisterScriptFunctions();
 void SpellUnregisterScriptFunctions();
 
 bool SpellIsTrackingAura(const SpellRec* spell);
-bool SpellHasAuraEffect(const SpellRec* spell, int32_t aura);
 bool SpellIsCallCompanion(const SpellRec* spell);
 void Spell_C_ExpireDestLocSpellCasts(uint32_t time);
 void SpellSetFeedPetSpell(int32_t spellId);
@@ -323,7 +322,7 @@ void SpellMissingItemsCallback(int32_t itemId, const WOWGUID& guid, void* param,
 void GetCustomSpellFailedString(char* buffer, uint32_t size, int32_t customError);
 void Spell_C_PetSpellFailedUpdateCooldowns(int32_t spellId);
 void Spell_C_ClearInTransitList();
-int32_t Spell_C_PrepareMissileTrajectoryCast(CGUnit_C* caster, PendingSpellCast* cast, const SpellRec* spell, uint32_t* count, float* pitch, float* speed);
+int32_t Spell_C_PrepareMissileTrajectoryCast(CGUnit_C* caster, PendingSpellCast* cast, const SpellRec* spell, const TSStackArray<CGUnit_C*>* targets, float* pitch, float* speed);
 uint32_t Spell_C_EncodeSequenceIntoMissileTrajectory(uint32_t* pitch, uint32_t* speed, uint32_t* source, uint32_t* dest);
 ItemSubClassRec* FindAnyItemSubclassRec(int32_t classId, int32_t subclassMask);
 void ShowPetSpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t reason, int32_t misc1, int32_t misc2);

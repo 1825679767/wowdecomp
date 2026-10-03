@@ -38,7 +38,7 @@ class CMapStaticEntity;
 class CiRect;
 class SFileImpl;
 class SFile;
-namespace World { class FacetData; class TriData; struct LiquidQueryResult; class ObjectCollisionData; }
+namespace World { class FacetData; class TriData; struct LiquidQueryResult; class ObjectCollisionData; class HitTestDebug; }
 
 struct CGxBuf;
 struct CGxPool;
@@ -373,7 +373,7 @@ class CMap {
     static void UpdateLightBounds(CMapLight* light);
     static void LinkLightToMapObjDefs(CMapLight* light);
     static void LinkLightToChunks(CMapLight* light);
-    static bool Intersect(C3Vector* start, C3Vector* end, C3Vector* hitPoint, float* distance, uint32_t flags, void* hitInfo);
+    static bool Intersect(C3Vector* start, C3Vector* end, C3Vector* hitPoint, float* distance, uint32_t flags, World::HitTestDebug* hitInfo);
     static bool VectorIntersect(C3Vector* start, C3Vector* end, uint32_t flags, uint32_t defIgnoreFlags, float* distance, uint16_t* hitIndex, CMapObj** outMapObj, CMapObjDef** outMapObjDef, CMapObjDefGroup** outMapObjDefGroup);
     static bool VectorIntersectTerrain(C3Vector* start, C3Vector* end, float* distance, uint32_t flags, CMapChunk** hitChunk);
     static bool VectorIntersectSubChunkList(C3Vector* start, C3Vector* end, float* distance, uint32_t flags, CMapChunk** hitChunk);
@@ -384,7 +384,7 @@ class CMap {
     static void VectorIntersectSX(CiRect& rect);
     static void VectorIntersectDY(C3Vector& a1, C3Vector& a2, CiRect& rect);
     static void VectorIntersectDX(C3Vector& a1, C3Vector& a2, CiRect& rect);
-    static void SetHitTestDebug(void* hitInfo, CMapBaseObj* hitObject);
+    static void SetHitTestDebug(World::HitTestDebug* hitInfo, CMapBaseObj* hitObject);
     static bool LocateViewerMapObjs(C3Vector& start, C3Vector& end, float dist, CMapObjDef** outDefs, uint32_t* outGroups);
     static void TestQueryAdd(const CFacet& facet, CImVector color, const C44Matrix* mat);
     static bool QueryLiquidStatusMapObjsExt(C3Vector* pos, int32_t* liquidType, float* height);

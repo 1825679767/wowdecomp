@@ -111,6 +111,7 @@ class WowConnection {
     static void MarkSocketId(int32_t sock);
 
     WowConnection(WowConnectionResponse* response, void (*threadInit)());
+    WowConnection(int32_t sock, const NETADDR* addr, WowConnectionResponse* response);
     ~WowConnection();
     void AcquireResponseRef();
     void AddRef();

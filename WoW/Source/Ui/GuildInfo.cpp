@@ -20,6 +20,7 @@
 #include <ctime>
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/Game/GameClient/NameCache.h"
+#include "Engine/Source/Os/OsFile.h"
 
 // STATIC: 0x00C211E0
 GuildEventLogEntry CGGuildInfo::m_eventLog[100];
@@ -64,6 +65,9 @@ uint8_t CGGuildInfo::unk_C22AD4;
 
 // STATIC: 0x00C22AD8
 TSGrowableArray<GuildMemberInfo*> CGGuildInfo::m_roster;
+
+// STATIC: 0x00AD07A4
+static const char* s_guildRosterFile = "Logs\\GuildRoster.txt";
 
 // STATIC: 0x00AD07A8
 int32_t s_guildControlRank = -1;
@@ -568,6 +572,38 @@ void GuildInfoCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool s
     if (CGGuildInfo::unk_C22AD4) {
         CGGuildInfo::SaveToFile();
     }
+}
+
+// VERIFY: c54611bc auto
+// OFFSET: 0x005CBAE0
+void CGGuildInfo::SaveToFile() {
+    OsCreateDirectory("Logs", 0);
+    HOSFILE file = OsCreateFile(s_guildRosterFile, OS_GENERIC_WRITE, 0, OS_CREATE_ALWAYS, OS_FILE_ATTRIBUTE_NORMAL, OS_FILE_TYPE_ANY);
+    CGPlayer_C* player;
+
+    if (file != OS_INVALID_FILE && (player = ClntObjMgrGetActivePlayerObj()) != nullptr) {
+        WOWGUID guid = player->m_obj->m_guid;
+        GuildStats_C* stats = g_guildInfoCache.GetRecord(player->m_player->m_playerGuildid, guid, GuildInfoCacheCallback, nullptr, false);
+
+        if (!stats) {
+            return;
+        }
+
+        char line[512];
+        uint32_t written;
+
+        for (uint32_t i = 0; i < CGGuildInfo::m_numMembers; i++) {
+            GuildMemberInfo* member = CGGuildInfo::m_roster.m_data[i];
+            ChrClassesRec* chrClass = g_chrClassesDB.GetRecord(member->m_class);
+            AreaTableRec* area = g_areaTableDB.GetRecord(member->m_zoneID);
+            SStrPrintf(line, sizeof(line), "%s\t%i\t%s\t%s\t%s\t%s\t%s\t%i\r\n", member->m_name, member->m_level, chrClass ? chrClass->m_name : "", area ? area->m_areaName : "", stats->m_rankNames[member->m_rank], member->m_note, member->m_officerNote, member->m_lastOnline);
+            OsWriteFile(file, line, SStrLen(line), &written);
+        }
+
+        OsCloseFile(file);
+    }
+
+    CGGuildInfo::unk_C22AD4 = 0;
 }
 
 // VERIFY: b420c257 manual

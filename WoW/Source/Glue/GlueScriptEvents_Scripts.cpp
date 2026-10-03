@@ -803,6 +803,13 @@ int32_t Script_IsMacClient(lua_State* L) {
     return 1;
 }
 
+// VERIFY: 31b85cc7 auto
+// OFFSET: 0x00510B90
+int32_t Script_IsLinuxClient(lua_State* L) {
+    lua_pushnil(L);
+    return 1;
+}
+
 // VERIFY: f53e291b auto
 // OFFSET: 0x004DD610
 int32_t Script_GetMovieResolution(lua_State* L) {

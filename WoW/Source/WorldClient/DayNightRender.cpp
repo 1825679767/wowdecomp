@@ -21,37 +21,37 @@ void DayNight::DNStars::Initialize() {
     this->m_lastTimeMs = OsGetAsyncTimeMs();
 }
 
-// VERIFY: 1cf0d118 manual
+// VERIFY: e9833dc1 manual
 // OFFSET: 0x009ABB60
-static void Billboard(C44Matrix* mat, const C3Vector* dir) {
-    mat->a0 = dir->x;
-    mat->a1 = dir->y;
-    mat->a2 = dir->z;
+void DayNight::Billboard(C44Matrix& mat, const C3Vector& dir) {
+    mat.a0 = dir.x;
+    mat.a1 = dir.y;
+    mat.a2 = dir.z;
 
-    float inv = 1.0f / sqrtf(mat->a2 * mat->a2 + mat->a1 * mat->a1 + mat->a0 * mat->a0);
-    mat->a0 = mat->a0 * inv;
-    mat->a1 = mat->a1 * inv;
-    mat->a2 = inv * mat->a2;
+    float inv = 1.0f / sqrtf(mat.a2 * mat.a2 + mat.a1 * mat.a1 + mat.a0 * mat.a0);
+    mat.a0 = mat.a0 * inv;
+    mat.a1 = mat.a1 * inv;
+    mat.a2 = inv * mat.a2;
 
-    mat->b0 = -mat->a1;
-    mat->b1 = mat->a0;
-    mat->b2 = 0.0f;
+    mat.b0 = -mat.a1;
+    mat.b1 = mat.a0;
+    mat.b2 = 0.0f;
 
-    if (fabsf(mat->a0 * mat->b0) <= 0.0000099999997f) {
-        mat->b0 = 0.0f;
-        mat->b1 = 1.0f;
-        mat->b2 = 0.0f;
+    if (fabsf(mat.a0 * mat.b0) <= 0.0000099999997f) {
+        mat.b0 = 0.0f;
+        mat.b1 = 1.0f;
+        mat.b2 = 0.0f;
     } else {
-        float invB = 1.0f / sqrtf(mat->b0 * mat->b0 + mat->b1 * mat->b1);
-        mat->b0 = mat->b0 * invB;
-        mat->b1 = invB * mat->b1;
+        float invB = 1.0f / sqrtf(mat.b0 * mat.b0 + mat.b1 * mat.b1);
+        mat.b0 = mat.b0 * invB;
+        mat.b1 = invB * mat.b1;
     }
 
-    float c0 = mat->b2 * mat->a1 - mat->a2 * mat->b1;
-    float c1 = mat->a2 * mat->b0 - mat->b2 * mat->a0;
-    mat->c0 = c0;
-    mat->c1 = c1;
-    mat->c2 = mat->a0 * mat->b1 - mat->b0 * mat->a1;
+    float c0 = mat.b2 * mat.a1 - mat.a2 * mat.b1;
+    float c1 = mat.a2 * mat.b0 - mat.b2 * mat.a0;
+    mat.c0 = c0;
+    mat.c1 = c1;
+    mat.c2 = mat.a0 * mat.b1 - mat.b0 * mat.a1;
 }
 
 // VERIFY: dedd196d manual
@@ -88,7 +88,7 @@ void DayNight::DNStars::Render() {
     this->m_scene->Draw(M2PASS_1);
 }
 
-// VERIFY: f260b75f manual
+// VERIFY: 5fee0e81 manual
 // OFFSET: 0x009AC660
 void DayNight::DNPlanet::Render() {
     C3Vector verts[6];
@@ -121,7 +121,7 @@ void DayNight::DNPlanet::Render() {
     C3Vector forward(view.a2, view.b2, view.c2);
 
     C44Matrix billboard;
-    Billboard(&billboard, &forward);
+    DayNight::Billboard(billboard, forward);
     billboard.d0 = this->m_position.x - info->m_cameraPos.x;
     billboard.d1 = this->m_position.y - info->m_cameraPos.y;
     billboard.d2 = this->m_position.z - info->m_cameraPos.z;

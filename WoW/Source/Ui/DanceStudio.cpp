@@ -1,4 +1,5 @@
 #include "DanceStudio.h"
+#include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
@@ -18,6 +19,84 @@ uint64_t CGDanceStudio::m_learnedDanceMoves;
 
 // STATIC: 0x00BEB638
 static TSHashTable<KNOWNDANCES, HASHKEY_STRI> s_knownDances;
+
+// VERIFY: 5e35e0a7 manual
+// OFFSET: 0x00576730
+int32_t Packet_SMSG_NOTIFY_DANCE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    uint32_t flags;
+    msg->Get(flags);
+
+    uint32_t error = 0;
+    uint32_t danceId = 0;
+    uint32_t unk = 0;
+    char name[128];
+
+    if (flags & 8) {
+        msg->Get(error);
+    } else {
+        msg->Get(danceId);
+        msg->GetString(name, 0x7FFFFFFF);
+        msg->Get(unk);
+    }
+
+    if (flags & 1) {
+        KNOWNDANCES* dance = s_knownDances.Ptr(name);
+
+        if (!dance) {
+            dance = s_knownDances.New(name, 0, 0);
+        }
+
+        dance->m_id = danceId;
+        dance->unk_001C = unk;
+    }
+
+    if (flags & 2) {
+        KNOWNDANCES* dance = s_knownDances.m_fulllist.Head();
+
+        while (dance) {
+            KNOWNDANCES* next = s_knownDances.Next(dance);
+
+            if (dance->m_id == danceId) {
+                s_knownDances.Delete(dance);
+            }
+
+            dance = next;
+        }
+
+        dance = s_knownDances.New(name, 0, 0);
+        dance->m_id = danceId;
+        dance->unk_001C = unk;
+        g_danceCache.Invalidate(danceId);
+    }
+
+    if (flags & 4) {
+        KNOWNDANCES* dance = s_knownDances.m_fulllist.Head();
+
+        while (dance) {
+            KNOWNDANCES* next = s_knownDances.Next(dance);
+
+            if (dance->m_id == danceId) {
+                s_knownDances.Delete(dance);
+            }
+
+            dance = next;
+        }
+
+        g_danceCache.Invalidate(danceId);
+    }
+
+    if (flags & 8) {
+        if (error == 0) {
+            CGGameUI::DisplayError(ERR_DANCE_CREATE_DUPLICATE);
+        } else if (error == 1) {
+            CGGameUI::DisplayError(ERR_DANCE_SAVE_FAILED);
+        } else if (error == 2) {
+            CGGameUI::DisplayError(ERR_DANCE_DELETE_FAILED);
+        }
+    }
+
+    return 1;
+}
 
 // VERIFY: 166fac44 auto
 // OFFSET: 0x00576A90
