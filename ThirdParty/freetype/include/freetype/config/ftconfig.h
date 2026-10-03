@@ -36,18 +36,18 @@
   /*************************************************************************/
 
 
-#ifndef __FTCONFIG_H__
-#define __FTCONFIG_H__
+#ifndef FTCONFIG_H
+#define FTCONFIG_H
+
 
   /* Include the header file containing all developer build options */
-#ifndef   FT_BUILD_H
-#define   FT_BUILD_H   <freetype/config/ftbuild.h>
+#include <freetype/config/ftoption.h>
+
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
 
-#include  FT_BUILD_H
-#include  FT_CONFIG_OPTIONS_H
-
-FT_BEGIN_HEADER
 
   /*************************************************************************/
   /*                                                                       */
@@ -263,10 +263,13 @@ FT_BEGIN_HEADER
 
 #endif /* __cplusplus */
 
-FT_END_HEADER
+
+#ifdef __cplusplus
+  }
+#endif
 
 
-#endif /* __FTCONFIG_H__ */
+#endif /* FTCONFIG_H */
 
 
 /* END */

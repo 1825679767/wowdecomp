@@ -69,12 +69,12 @@
     TT_Table*  limit;
 
 
-    FT_TRACE3(( "TT_LookUp_Table: %08p, `%c%c%c%c' -- ",
-                face,
-                (FT_Char)( tag >> 24 ),
-                (FT_Char)( tag >> 16 ),
-                (FT_Char)( tag >> 8  ),
-                (FT_Char)( tag       ) ));
+    FT_TRACE3(( "TT_LookUp_Table: %08p, `%c%c%c%c'\n",
+                  face,
+                  (FT_Char)( tag >> 24 ),
+                  (FT_Char)( tag >> 16 ),
+                  (FT_Char)( tag >> 8  ),
+                  (FT_Char)( tag       ) ));
 
     entry = face->dir_tables;
     limit = entry + face->num_tables;
@@ -82,13 +82,10 @@
     for ( ; entry < limit; entry++ )
     {
       if ( entry->Tag == tag )
-      {
-        FT_TRACE3(( "found table.\n" ));
         return entry;
-      }
     }
 
-    FT_TRACE3(( "could not find table!\n" ));
+    FT_TRACE3(( "    Could not find table!\n" ));
     return 0;
   }
 
@@ -449,10 +446,10 @@
   /*************************************************************************/
   /*                                                                       */
   /* <Function>                                                            */
-  /*    TT_Load_Generic_Header                                             */
+  /*    TT_Load_Header                                                     */
   /*                                                                       */
   /* <Description>                                                         */
-  /*    Loads the TrueType table `head' or `bhed'.                         */
+  /*    Loads the TrueType font header.                                    */
   /*                                                                       */
   /* <Input>                                                               */
   /*    face   :: A handle to the target face object.                      */
@@ -498,18 +495,12 @@
     };
 
 
-    FT_TRACE2(( "TT_Load_Generic_Header: "
-                "%08p, looking up font table `%c%c%c%c'.\n",
-                face,
-                (FT_Char)( tag >> 24 ),
-                (FT_Char)( tag >> 16 ),
-                (FT_Char)( tag >> 8  ),
-                (FT_Char)( tag       ) ));
+    FT_TRACE2(( "Load_TT_Header: %08p\n", face ));
 
     error = face->goto_table( face, tag, stream, 0 );
     if ( error )
     {
-      FT_TRACE2(( "TT_Load_Generic_Table: Font table is missing!\n" ));
+      FT_TRACE0(( "Font Header is missing!\n" ));
       goto Exit;
     }
 
@@ -520,7 +511,7 @@
 
     FT_TRACE2(( "    Units per EM: %8u\n", header->Units_Per_EM ));
     FT_TRACE2(( "    IndexToLoc:   %8d\n", header->Index_To_Loc_Format ));
-    FT_TRACE2(( "TT_Load_Generic_Table: Font table loaded.\n" ));
+    FT_TRACE2(( "Font Header Loaded.\n" ));
 
   Exit:
     return error;

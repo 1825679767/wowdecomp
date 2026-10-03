@@ -16,17 +16,19 @@
 /***************************************************************************/
 
 
-#ifndef __SFNT_H__
-#define __SFNT_H__
+#ifndef SFNT_H
+#define SFNT_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H  <freetype/config/ftbuild.h>
+
+#include <freetype/freetype.h>
+#include <freetype/internal/ftdriver.h>
+#include <freetype/internal/tttypes.h>
+
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_INTERNAL_DRIVER_H
-#include   FT_INTERNAL_TRUETYPE_TYPES_H
 
-FT_BEGIN_HEADER
 
   /*************************************************************************/
   /*                                                                       */
@@ -522,9 +524,12 @@ FT_BEGIN_HEADER
   } SFNT_Interface;
 
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __SFNT_H__ */
+
+#endif /* SFNT_H */
 
 
 /* END */

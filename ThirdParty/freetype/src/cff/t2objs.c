@@ -386,9 +386,6 @@
           goto Bad_Format;
         }
 
-        /* Set up num_faces. */
-        root->num_faces = cff->num_faces;
-
         /* compute number of glyphs */
         if ( dict->cid_registry )
           root->num_glyphs = dict->cid_count;
@@ -396,11 +393,11 @@
           root->num_glyphs = cff->charstrings_index.count;
 
         /* set global bbox, as well as EM size */
-        root->units_per_EM = 1000;
-        root->bbox         = dict->font_bbox;
-        root->ascender     = (FT_Short)root->bbox.yMax;
-        root->descender    = (FT_Short)root->bbox.yMin;
-        root->height       = ( ( root->ascender - root->descender ) * 12 ) / 10;
+        root->units_per_EM = (FT_UInt)FT_DivFix( 1000L << 16,
+                                                 dict->font_matrix.yy ) >> 16;
+        root->bbox      = dict->font_bbox;
+        root->ascender  = (FT_Short)root->bbox.yMax;
+        root->descender = (FT_Short)root->bbox.yMin;
 
         /* retrieve font family & style name */
         root->family_name = T2_Get_Name( &cff->name_index, face_index );

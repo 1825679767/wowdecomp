@@ -13,7 +13,7 @@
 # fully.
 
 
-include $(TOP)/builds/compiler/ansi-cc.mk
 include $(TOP)/builds/ansi/ansi-def.mk
+include $(TOP)/builds/compiler/ansi-cc.mk
 
 # EOF

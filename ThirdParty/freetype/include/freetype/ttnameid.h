@@ -16,8 +16,8 @@
 /***************************************************************************/
 
 
-#ifndef __TTNAMEID_H__
-#define __TTNAMEID_H__
+#ifndef TTNAMEID_H
+#define TTNAMEID_H
 
 
 #ifdef __cplusplus
@@ -718,7 +718,7 @@
 #endif
 
 
-#endif /* __TTNAMEID_H__ */
+#endif /* TTNAMEID_H */
 
 
 /* END */

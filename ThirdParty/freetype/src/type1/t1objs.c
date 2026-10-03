@@ -19,26 +19,18 @@
 #include <freetype/internal/ftdebug.h>
 #include <freetype/internal/ftstream.h>
 
-#include <string.h>         /* strcmp() */
-
 
 #ifdef FT_FLAT_COMPILE
 
 #include "t1gload.h"
 #include "t1load.h"
-
-#ifndef T1_CONFIG_OPTION_NO_AFM
 #include "t1afm.h"
-#endif
 
 #else
 
 #include <type1/t1gload.h>
 #include <type1/t1load.h>
-
-#ifndef T1_CONFIG_OPTION_NO_AFM
 #include <type1/t1afm.h>
-#endif
 
 #endif
 
@@ -266,17 +258,6 @@
         }
       }
 
-      /* compute style flags */
-      root->style_flags = 0;
-      if ( face->type1.font_info.italic_angle )
-        root->style_flags |= FT_STYLE_FLAG_ITALIC;
-      if ( face->type1.font_info.weight )
-      {
-        if ( !strcmp( face->type1.font_info.weight, "Bold"  ) ||
-             !strcmp( face->type1.font_info.weight, "Black" ) )
-          root->style_flags |= FT_STYLE_FLAG_BOLD;
-      }
-
       /* no embedded bitmap support */
       root->num_fixed_sizes = 0;
       root->available_sizes = 0;
@@ -285,7 +266,7 @@
       root->units_per_EM = 1000;
       root->ascender     = (FT_Short)face->type1.font_bbox.yMax;
       root->descender    = (FT_Short)face->type1.font_bbox.yMin;
-      root->height       = ( ( root->ascender - root->descender ) * 12 ) / 10;
+      root->height       = ( ( root->ascender + root->descender ) * 12 ) / 10;
 
       /* now compute the maximum advance width */
 

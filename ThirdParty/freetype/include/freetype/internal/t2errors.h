@@ -16,8 +16,8 @@
 /***************************************************************************/
 
 
-#ifndef __T2ERRORS_H__
-#define __T2ERRORS_H__
+#ifndef T2ERRORS_H
+#define T2ERRORS_H
 
 
 #ifdef __cplusplus
@@ -125,7 +125,7 @@
 #endif
 
 
-#endif /* __T2ERRORS_H__ */
+#endif /* T2ERRORS_H */
 
 
 /* END */

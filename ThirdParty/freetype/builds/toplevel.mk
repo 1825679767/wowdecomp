@@ -34,7 +34,7 @@
 # details on host platform detection and library builds.
 
 
-.PHONY: setup distclean
+.PHONY: setup
 
 # The `space' variable is used to avoid trailing spaces in defining the
 # `T' variable later.

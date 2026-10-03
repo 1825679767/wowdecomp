@@ -136,11 +136,11 @@
     1 | T2_COUNT_CHECK_WIDTH | T2_COUNT_EXACT,
     1 | T2_COUNT_CHECK_WIDTH | T2_COUNT_EXACT,
 
-    0 | T2_COUNT_CLEAR_STACK, /* rlineto */
+    0 | T2_COUNT_CLEAR_STACK,  /* rlineto */
     0 | T2_COUNT_CLEAR_STACK,
     0 | T2_COUNT_CLEAR_STACK,
 
-    0 | T2_COUNT_CLEAR_STACK, /* rrcurveto */
+    0 | T2_COUNT_CLEAR_STACK,  /* rrcurveto */
     0 | T2_COUNT_CLEAR_STACK,
     0 | T2_COUNT_CLEAR_STACK,
     0 | T2_COUNT_CLEAR_STACK,
@@ -153,7 +153,7 @@
     9,
     11,
 
-    0 | T2_COUNT_CHECK_WIDTH, /* endchar */
+    0, /* endchar */
 
     2 | T2_COUNT_CHECK_WIDTH, /* hstem */
     2 | T2_COUNT_CHECK_WIDTH,
@@ -849,52 +849,15 @@
         if ( req_args & T2_COUNT_CHECK_WIDTH )
         {
           args = stack;
-
-          if ( num_args > 0 && decoder->read_width )
+          if ( num_args & 1 && decoder->read_width )
           {
-            /* If `nominal_width' is non-zero, the number is really a      */
-            /* difference against `nominal_width'.  Else, the number here  */
-            /* is truly a width, not a difference against `nominal_width'. */
-            /* If the font does not set `nominal_width', then              */
-            /* `nominal_width' defaults to zero, and so we can set         */
-            /* `glyph_width' to `nominal_width' plus number on the stack   */
-            /* -- for either case.                                         */
-
-            FT_Int set_width_ok;
-
-
-            switch ( op )
-            {
-            case t2_op_hmoveto:
-            case t2_op_vmoveto:
-              set_width_ok = num_args & 2;
-              break;
-
-            case t2_op_hstem:
-            case t2_op_vstem:
-            case t2_op_hstemhm:
-            case t2_op_vstemhm:
-            case t2_op_endchar:
-            case t2_op_rmoveto:
-              set_width_ok = num_args & 1;
-              break;
-
-            default:
-              set_width_ok = 0;
-              break;
-            }
-
-            if ( set_width_ok )
-            {
-              decoder->glyph_width = decoder->nominal_width +
-                                       ( stack[0] >> 16 );
-              num_args--;
-              args++;
-            }
+            decoder->glyph_width = decoder->nominal_width +
+                                     ( stack[0] >> 16 );
+            num_args--;
+            args++;
           }
-
-          decoder->read_width = 0;
-          req_args            = 0;
+          decoder->read_width  = 0;
+          req_args = 0;
         }
 
         req_args &= 15;

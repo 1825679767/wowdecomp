@@ -24,16 +24,14 @@
   /*************************************************************************/
 
 
-#ifndef __FTLIST_H__
-#define __FTLIST_H__
+#ifndef FTLIST_H
+#define FTLIST_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H    <freetype/config/ftbuild.h>
+#include <freetype/freetype.h>
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_FREETYPE_H
-
-FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -215,8 +213,11 @@ FT_BEGIN_HEADER
                                        void*               user );
 
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __FTLIST_H__ */
+#endif /* FTLIST_H */
+
 
 /* END */

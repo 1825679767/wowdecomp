@@ -25,8 +25,8 @@
 /***************************************************************************/
 
 
-#ifndef __FT_MAC_H__
-#define __FT_MAC_H__
+#ifndef FT_MAC_H
+#define FT_MAC_H
 
 
 #ifdef __cplusplus
@@ -64,10 +64,11 @@
   /*      fond = GetResource( 'FOND', fontName );                          */
   /*      error = FT_New_Face_From_FOND( library, fond, 0, &face );        */
   /*                                                                       */
-  FT_EXPORT( FT_Error )  FT_New_Face_From_FOND( FT_Library  library,
-                                                Handle      fond,
-                                                FT_Long     face_index,
-                                                FT_Face    *aface );
+  FT_EXPORT_DEF( FT_Error )  FT_New_Face_From_FOND(
+                               FT_Library  library,
+                               Handle      fond,
+                               FT_Long     face_index,
+                               FT_Face    *aface );
 
 
 #ifdef __cplusplus
@@ -75,7 +76,7 @@
 #endif
 
 
-#endif /* __FT_MAC_H__ */
+#endif /* FT_MAC_H */
 
 
 /* END */

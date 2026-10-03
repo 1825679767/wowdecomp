@@ -73,7 +73,7 @@
   FT_CALLBACK_DEF
   FT_Error  ftc_glyph_image_node_new( FTC_GlyphSet     gset,
                                       FT_UInt          glyph_index,
-                                      FTC_GlyphImage  *anode )
+                                      FTC_GlyphImage*  anode )
   {
     FT_Memory       memory   = gset->memory;
     FTC_ImageSet    imageset = (FTC_ImageSet)gset;
@@ -271,10 +271,10 @@
   }
 
 
-  FT_EXPORT_DEF( FT_Error )  FTC_Image_Cache_Lookup( FTC_Image_Cache  cache,
-                                                     FTC_Image_Desc*  desc,
-                                                     FT_UInt          gindex,
-                                                     FT_Glyph        *aglyph )
+  FT_EXPORT( FT_Error )  FTC_Image_Cache_Lookup( FTC_Image_Cache  cache,
+                                                 FTC_Image_Desc*  desc,
+                                                 FT_UInt          gindex,
+                                                 FT_Glyph        *aglyph )
   {
     FT_Error       error;
     FTC_GlyphNode  node;

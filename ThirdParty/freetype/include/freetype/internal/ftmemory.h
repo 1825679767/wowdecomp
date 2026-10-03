@@ -16,17 +16,18 @@
 /***************************************************************************/
 
 
-#ifndef __FTMEMORY_H__
-#define __FTMEMORY_H__
+#ifndef FTMEMORY_H
+#define FTMEMORY_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H  <freetype/config/ftbuild.h>
+
+#include <freetype/config/ftconfig.h>
+#include <freetype/fttypes.h>
+
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_CONFIG_CONFIG_H
-#include   FT_TYPES_H
 
-FT_BEGIN_HEADER
 
   /*************************************************************************/
   /*                                                                       */
@@ -201,9 +202,12 @@ FT_BEGIN_HEADER
 #define FREE( _pointer_ )  FT_Free( memory, (void**)&(_pointer_) )
 
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __FTMEMORY_H__ */
+
+#endif /* FTMEMORY_H */
 
 
 /* END */

@@ -55,16 +55,15 @@
   /*************************************************************************/
 
 
-#ifndef __FTLRU_H__
-#define __FTLRU_H__
+#ifndef FTLRU_H
+#define FTLRU_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H    <freetype/config/ftbuild.h>
+#include <freetype/freetype.h>
+
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_FREETYPE_H
-
-FT_BEGIN_HEADER
 
 
   /* generic key type */
@@ -80,11 +79,12 @@ FT_BEGIN_HEADER
   } FT_LruNodeRec, *FT_LruNode;
 
 
+
   /* forward declaration */
   typedef struct FT_LruRec_*  FT_Lru;
 
 
-  /* LRU class */
+  /* LRU clazz */
   typedef struct  FT_Lru_Class_
   {
     FT_UInt  lru_size;      /* object size in bytes */
@@ -150,6 +150,7 @@ FT_BEGIN_HEADER
 
   FT_EXPORT( void )      FT_Lru_Done ( FT_Lru  lru );
 
+
   FT_EXPORT( FT_Error )  FT_Lru_Lookup_Node( FT_Lru        lru,
                                              FT_LruKey     key,
                                              FT_LruNode   *anode );
@@ -158,16 +159,20 @@ FT_BEGIN_HEADER
                                         FT_LruKey    key,
                                         FT_Pointer  *anobject );
 
+
   FT_EXPORT( void )      FT_Lru_Remove_Node( FT_Lru      lru,
                                              FT_LruNode  node );
-		      
+
   FT_EXPORT( void )      FT_Lru_Remove_Selection( FT_Lru           lru,
                                                   FT_Lru_Selector  selector,
                                                   FT_Pointer       data );
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __FTLRU_H__ */
+
+#endif /* FTLRU_H */
 
 
 /* END */

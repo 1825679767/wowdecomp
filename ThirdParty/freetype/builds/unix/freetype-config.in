@@ -6,21 +6,20 @@ exec_prefix_set=no
 
 usage()
 {
-  cat <<EOF
+ cat <<EOF
 Usage: freetype-config [OPTIONS] [LIBRARIES]
 Options:
  [--prefix[=DIR]]
  [--exec-prefix[=DIR]]
  [--version]
  [--libs]
- [--libtool]
  [--cflags]
 EOF
-  exit $1
+ exit $1
 }
 
 if test $# -eq 0; then
-  usage 1 1>&2
+ usage 1 1>&2
 fi
 
 
@@ -31,42 +30,38 @@ while test $# -gt 0; do
   esac
 
   case $1 in
-  --prefix=*)
-    prefix=$optarg
-    ;;
-  --prefix)
-    echo_prefix=yes
-    ;;
-  --exec-prefix=*)
-    exec_prefix=$optarg
-    exec_prefix_set=yes
-    ;;
-  --exec-prefix)
-    echo_exec_prefix=yes
-    ;;
-  --version)
-    echo @version_info@
-    exit 0
-    ;;
-  --cflags)
-    echo_cflags=yes
-    ;;
-  --libs)
-    echo_libs=yes
-    ;;
-  --libtool)
-    echo_libtool=yes
-    ;;
-  *)
-    usage 1 1>&2
-    ;;
+    --prefix=*)
+      prefix=$optarg
+      if test $exec_prefix_set = no ; then
+        exec_prefix=$optarg
+      fi
+      ;;
+    --prefix)
+      echo_prefix=yes
+      ;;
+    --exec-prefix=*)
+      exec_prefix=$optarg
+      exec_prefix_set=yes
+      ;;
+    --exec-prefix)
+      echo_exec_prefix=yes
+      ;;
+    --version)
+      echo @VERSION@
+      exit 0
+      ;;
+    --cflags)
+      echo_cflags=yes
+      ;;
+    --libs)
+      echo_libs=yes
+      ;;
+    *)
+      usage 1 1>&2
+      ;;
   esac
   shift
 done
-
-if test "$exec_prefix_set" = "no"; then
-  exec_prefix=$prefix
-fi
 
 if test "$echo_prefix" = "yes"; then
  echo $prefix
@@ -82,9 +77,5 @@ if test "$echo_libs" = "yes"; then
  libs="-lfreetype"
  echo -L@libdir@ $libs
 fi
-if test "$echo_libtool" = "yes"; then
- convlib="libfreetype.la"
- echo @libdir@/$convlib
-fi
 
-# EOF
+

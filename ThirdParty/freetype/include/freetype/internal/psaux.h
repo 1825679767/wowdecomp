@@ -17,17 +17,16 @@
 /***************************************************************************/
 
 
-#ifndef __PSAUX_H__
-#define __PSAUX_H__
+#ifndef PSAUX_H
+#define PSAUX_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H  <freetype/config/ftbuild.h>
+
+#include <freetype/internal/ftobjs.h>
+#include <freetype/internal/t1types.h>
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_INTERNAL_OBJECTS_H
-#include   FT_INTERNAL_TYPE1_TYPES_H
-
-FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -628,9 +627,11 @@ FT_BEGIN_HEADER
   } PSAux_Interface;
 
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __PSAUX_H__ */
+#endif /* PSAUX_H */
 
 
 /* END */

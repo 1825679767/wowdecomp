@@ -16,16 +16,16 @@
 /***************************************************************************/
 
 
-#ifndef __FTMODULE_H__
-#define __FTMODULE_H__
+#ifndef FTMODULE_H
+#define FTMODULE_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H    <freetype/config/ftbuild.h>
+#include <freetype/freetype.h>
+
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_FREETYPE_H
 
-FT_BEGIN_HEADER
 
   /* module bit flags */
   typedef enum  FT_Module_Flags_
@@ -266,9 +266,12 @@ FT_BEGIN_HEADER
   FT_EXPORT( void )  FT_Add_Default_Modules( FT_Library  library );
 
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __FTMODULE_H__ */
+
+#endif /* FTMODULE_H */
 
 
 /* END */

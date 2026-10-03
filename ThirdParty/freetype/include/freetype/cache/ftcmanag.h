@@ -59,17 +59,17 @@
   /*************************************************************************/
 
 
-#ifndef __FTCMANAG_H__
-#define __FTCMANAG_H__
+#ifndef FTCMANAG_H
+#define FTCMANAG_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H    <freetype/config/ftbuild.h>
+#include <freetype/ftcache.h>
+#include <freetype/cache/ftlru.h>
+
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_CACHE_H
-#include   FT_CACHE_INTERNAL_LRU_H
 
-FT_BEGIN_HEADER
 
 #define FTC_MAX_FACES_DEFAULT  2
 #define FTC_MAX_SIZES_DEFAULT  4
@@ -143,7 +143,7 @@ FT_BEGIN_HEADER
   /*    will flush as many old cache nodes as possible (ignoring cache     */
   /*    nodes with a non-zero reference count).                            */
   /*                                                                       */
-  /* <InOut>                                                               */
+  /* <Input>                                                               */
   /*    manager :: A handle to the cache manager.                          */
   /*                                                                       */
   /* <Note>                                                                */
@@ -212,9 +212,6 @@ FT_BEGIN_HEADER
   /*                                                                       */
   /*    cache_data :: A generic pointer passed to the destructor.          */
   /*                                                                       */
-  /* <Return>                                                              */
-  /*    The size of a given cache node in bytes.                           */
-  /*                                                                       */
   typedef FT_ULong  (*FTC_CacheNode_SizeFunc)( FTC_CacheNode  node,
                                                FT_Pointer     cache_data );
 
@@ -256,6 +253,7 @@ FT_BEGIN_HEADER
   /*    The cache node class doesn't include a `new_node' function because */
   /*    the cache manager never allocates cache node directly; it          */
   /*    delegates this task to its cache objects.                          */
+  /*                                                                       */
   /*                                                                       */
   typedef struct  FTC_CacheNode_Class_
   {
@@ -360,11 +358,13 @@ FT_BEGIN_HEADER
 
   } FTC_CacheRec;
 
-  /* */
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __FTCMANAG_H__ */
+
+#endif /* FTCMANAG_H */
 
 
 /* END */

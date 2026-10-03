@@ -17,16 +17,16 @@
 /***************************************************************************/
 
 
-#ifndef __T2TYPES_H__
-#define __T2TYPES_H__
+#ifndef T2TYPES_H
+#define T2TYPES_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H  <freetype/config/ftbuild.h>
+
+#include <freetype/freetype.h>
+
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_FREETYPE_H
-
-FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -38,7 +38,7 @@ FT_BEGIN_HEADER
   /*    A structure used to model a CFF Index table.                       */
   /*                                                                       */
   /* <Fields>                                                              */
-  /*    stream      :: The source input stream.                            */
+  /*    stream      :: XXX                                                 */
   /*                                                                       */
   /*    count       :: The number of elements in the index.                */
   /*                                                                       */
@@ -47,7 +47,7 @@ FT_BEGIN_HEADER
   /*    data_offset :: The position of first data byte in the index's      */
   /*                   bytes.                                              */
   /*                                                                       */
-  /*    offsets     :: A table of element offsets in the index.            */
+  /*    offsets     :: XXX                                                 */
   /*                                                                       */
   /*    bytes       :: If the index is loaded in memory, its bytes.        */
   /*                                                                       */
@@ -79,7 +79,6 @@ FT_BEGIN_HEADER
     FT_Int     paint_type;
     FT_Int     charstring_type;
     FT_Matrix  font_matrix;
-    FT_Vector  font_offset;
     FT_ULong   unique_id;
     FT_BBox    font_bbox;
     FT_Pos     stroke_width;
@@ -218,9 +217,12 @@ FT_BEGIN_HEADER
   } CFF_Font;
 
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __T2TYPES_H__ */
+
+#endif /* T2TYPES_H */
 
 
 /* END */

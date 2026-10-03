@@ -43,18 +43,18 @@
   /*************************************************************************/
 
 
-#ifndef __FTERRORS_H__
-#define __FTERRORS_H__
+#ifndef FTERRORS_H
+#define FTERRORS_H
 
 
 #undef FT_NEED_EXTERN_C
-
 
 #ifndef FT_ERRORDEF
 
 #define FT_ERRORDEF( e, v, s )  e = v,
 #define FT_ERROR_START_LIST     enum {
 #define FT_ERROR_END_LIST       FT_Err_Max };
+
 
 #ifdef __cplusplus
 #define FT_NEED_EXTERN_C
@@ -196,7 +196,8 @@
   }
 #endif
 
-#endif /* __FTERRORS_H__ */
+
+#endif /* FTERRORS_H */
 
 
 /* END */

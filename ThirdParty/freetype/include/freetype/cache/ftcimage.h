@@ -23,17 +23,16 @@
   /*************************************************************************/
 
 
-#ifndef __FTCIMAGE_H__
-#define __FTCIMAGE_H__
+#ifndef FTCIMAGE_H
+#define FTCIMAGE_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H    <freetype/config/ftbuild.h>
+
+#include <freetype/cache/ftcglyph.h>
+#include <freetype/ftglyph.h>
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_CACHE_H
-#include   FT_CACHE_INTERNAL_GLYPH_H
-
-FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -161,9 +160,12 @@ FT_BEGIN_HEADER
                                                  FT_Glyph        *aglyph );
 
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __FTCIMAGE_H__ */
+
+#endif /* FTCIMAGE_H */
 
 
 /* END */

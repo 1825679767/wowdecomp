@@ -17,17 +17,17 @@
 /***************************************************************************/
 
 
-#ifndef __T1TABLES_H__
-#define __T1TABLES_H__
+#ifndef T1TABLES_H
+#define T1TABLES_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H    <freetype/config/ftbuild.h>
+
+#include <freetype/freetype.h>
+
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
 
-#include FT_BUILD_H
-#include FT_FREETYPE_H
-
-FT_BEGIN_HEADER
 
   /* Note that we separate font data in T1_FontInfo and T1_Private */
   /* structures in order to support Multiple Master fonts.         */
@@ -235,9 +235,12 @@ FT_BEGIN_HEADER
   } CID_Info;
 
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __T1TABLES_H__ */
+
+#endif /* T1TABLES_H */
 
 
 /* END */

@@ -200,8 +200,9 @@
   }
 
 
-  FT_EXPORT_DEF( FT_Int32 )  FT_SqrtFixed( FT_Int32  x )
+  FT_EXPORT( FT_Int32 )   FT_SqrtFixed( FT_Int32  x )
   {
+
     FT_Int64  z;
 
 
@@ -522,7 +523,7 @@
   }
 
 
-  FT_EXPORT_DEF( FT_Int32 )  FT_SqrtFixed( FT_Int32  x )
+  FT_EXPORT( FT_Int32 )  FT_SqrtFixed( FT_Int32  x )
   {
     FT_Int64  z;
 

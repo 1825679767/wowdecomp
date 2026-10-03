@@ -42,18 +42,15 @@
   /*************************************************************************/
 
 
-#ifndef __FTCCHUNK_H__
-#define __FTCCHUNK_H__
+#ifndef FTCCHUNK_H
+#define FTCCHUNK_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H    <freetype/config/ftbuild.h>
+#include <freetype/cache/ftcmanag.h>
+
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_CACHE_H
-#include   FT_CACHE_MANAGER_H
-
-FT_BEGIN_HEADER
-
 
   /* maximum number of chunk sets in a given chunk cache */
 #define  FTC_MAX_CHUNK_SETS  16
@@ -180,37 +177,47 @@ FT_BEGIN_HEADER
 
   /* chunk set objects */
 
-  FT_EXPORT( void )      FTC_ChunkNode_Destroy( FTC_ChunkNode    node );
+  FT_EXPORT( void )
+  FTC_ChunkNode_Destroy( FTC_ChunkNode    node );
 
 
-  FT_EXPORT( FT_Error )  FTC_ChunkSet_New     ( FTC_Chunk_Cache  cache,
-                                                FT_Pointer       type,
-                                                FTC_ChunkSet    *aset );
+  FT_EXPORT( FT_Error )
+  FTC_ChunkSet_New( FTC_Chunk_Cache  cache,
+                    FT_Pointer       type,
+                    FTC_ChunkSet    *aset );
 
 
-  FT_EXPORT( FT_Error )  FTC_ChunkSet_Lookup_Node(
-                           FTC_ChunkSet    cset,
-                           FT_UInt         glyph_index,
-                           FTC_ChunkNode*  anode,
-                           FT_UInt        *anindex );
+  FT_EXPORT( FT_Error )
+  FTC_ChunkSet_Lookup_Node( FTC_ChunkSet    cset,
+                            FT_UInt         glyph_index,
+                            FTC_ChunkNode*  anode,
+                            FT_UInt        *anindex );
 
 
   /* chunk cache objects */
 
-  FT_EXPORT( FT_Error )  FTC_Chunk_Cache_Init  ( FTC_Chunk_Cache  cache );
-
-  FT_EXPORT( void )      FTC_Chunk_Cache_Done  ( FTC_Chunk_Cache  cache );
-
-  FT_EXPORT( FT_Error )  FTC_Chunk_Cache_Lookup( FTC_Chunk_Cache  cache,
-                                                 FT_Pointer       type,
-                                                 FT_UInt          gindex,
-                                                 FTC_ChunkNode   *anode,
-                                                 FT_UInt         *aindex );
+  FT_EXPORT( FT_Error )
+  FTC_Chunk_Cache_Init(  FTC_Chunk_Cache  cache );
 
 
-FT_END_HEADER
+  FT_EXPORT( void )
+  FTC_Chunk_Cache_Done(  FTC_Chunk_Cache  cache );
 
-#endif /* __FTCCHUNK_H__ */
+
+  FT_EXPORT( FT_Error )
+  FTC_Chunk_Cache_Lookup( FTC_Chunk_Cache  cache,
+                          FT_Pointer       type,
+                          FT_UInt          gindex,
+                          FTC_ChunkNode   *anode,
+                          FT_UInt         *aindex );
+
+
+#ifdef __cplusplus
+  }
+#endif
+
+
+#endif /* FTCCHUNK_H */
 
 
 /* END */

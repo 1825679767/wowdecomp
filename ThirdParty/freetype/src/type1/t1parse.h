@@ -118,11 +118,15 @@
                            PSAux_Interface*  psaux );
 
   FT_LOCAL
-  FT_Error  T1_Get_Private_Dict( T1_ParserRec*     parser,
-                                 PSAux_Interface*  psaux );
+  FT_Error  T1_Get_Private_Dict( T1_ParserRec*  parser );
 
   FT_LOCAL
-  void  T1_Finalize_Parser( T1_ParserRec*  parser );
+  void  T1_Decrypt( FT_Byte*   buffer,
+                    FT_Int     length,
+                    FT_UShort  seed );
+
+  FT_LOCAL
+  void  T1_Done_Parser( T1_ParserRec*  parser );
 
 
 #ifdef __cplusplus

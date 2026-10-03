@@ -16,18 +16,18 @@
 /***************************************************************************/
 
 
-#ifndef __FTCSBITS_H__
-#define __FTCSBITS_H__
+#ifndef FTCSBITS_H
+#define FTCSBITS_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H    <freetype/config/ftbuild.h>
+
+#include <freetype/cache/ftcchunk.h>
+#include <freetype/cache/ftcimage.h>
+
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_CACHE_H
-#include   FT_CACHE_INTERNAL_CHUNK_H
-#include   FT_CACHE_IMAGE_H
 
-FT_BEGIN_HEADER
 
   /* handle to small bitmap */
   typedef struct FTC_SBitRec_*  FTC_SBit;
@@ -60,9 +60,14 @@ FT_BEGIN_HEADER
                                                 FTC_Image_Desc*  desc,
                                                 FT_UInt          gindex,
                                                 FTC_SBit        *sbit );
-FT_END_HEADER
 
-#endif /* __FTCSBITS_H__ */
+
+#ifdef __cplusplus
+  }
+#endif
+
+
+#endif /* FTCSBITS_H */
 
 
 /* END */

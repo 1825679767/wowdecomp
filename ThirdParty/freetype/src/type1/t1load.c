@@ -293,7 +293,7 @@
         FT_Fixed*      blends  = map->blend_points;
         FT_Int         before  = -1, after = -1;
 
-        for ( p = 0; p < (FT_UInt)map->num_points; p++ )
+        for ( p = 0; p < map->num_points; p++ )
         {
           FT_Fixed  p_design = designs[p];
 
@@ -1148,7 +1148,7 @@
       /*                                                         */
       if ( face->type1.private_dict.lenIV >= 0 )
       {
-        psaux->t1_decrypt( base, size, 4330 );
+        T1_Decrypt( base, size, 4330 );
         size -= face->type1.private_dict.lenIV;
         base += face->type1.private_dict.lenIV;
       }
@@ -1268,7 +1268,7 @@
 
         if ( face->type1.private_dict.lenIV >= 0 )
         {
-          psaux->t1_decrypt( base, size, 4330 );
+          T1_Decrypt( base, size, 4330 );
           size -= face->type1.private_dict.lenIV;
           base += face->type1.private_dict.lenIV;
         }
@@ -1567,7 +1567,7 @@
     T1_Release_Table( &loader->subrs );
 
     /* finalize parser */
-    T1_Finalize_Parser( parser );
+    T1_Done_Parser( parser );
   }
 
 
@@ -1599,7 +1599,7 @@
     if ( error )
       goto Exit;
 
-    error = T1_Get_Private_Dict( parser, psaux );
+    error = T1_Get_Private_Dict( parser );
     if ( error )
       goto Exit;
 

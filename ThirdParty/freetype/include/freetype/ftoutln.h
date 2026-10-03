@@ -17,16 +17,15 @@
 /***************************************************************************/
 
 
-#ifndef __FTOUTLN_H__
-#define __FTOUTLN_H__
+#ifndef FTOUTLN_H
+#define FTOUTLN_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H    <freetype/config/ftbuild.h>
+
+#include <freetype/freetype.h>
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_FREETYPE_H
-
-FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -316,9 +315,13 @@ FT_BEGIN_HEADER
                                             FT_Outline*        outline,
                                             FT_Raster_Params*  params );
 
-FT_END_HEADER
 
-#endif /* __FTOUTLN_H__ */
+#ifdef __cplusplus
+  }
+#endif
+
+
+#endif /* FTOUTLN_H */
 
 
 /* END */

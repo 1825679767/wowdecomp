@@ -29,17 +29,14 @@
   /*************************************************************************/
 
 
-#ifndef __FTGLYPH_H__
-#define __FTGLYPH_H__
+#ifndef FTGLYPH_H
+#define FTGLYPH_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H    <freetype/config/ftbuild.h>
+#include <freetype/freetype.h>
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_FREETYPE_H
-
-FT_BEGIN_HEADER
-
 
   /* forward declaration to a private type */
   typedef struct FT_Glyph_Class_  FT_Glyph_Class;
@@ -430,9 +427,11 @@ FT_BEGIN_HEADER
   FT_EXPORT( FT_Error )  FT_Matrix_Invert( FT_Matrix*  matrix );
 
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __FTGLYPH_H__ */
+#endif /* FTGLYPH_H */
 
 
 /* END */

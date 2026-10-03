@@ -16,16 +16,27 @@
 /***************************************************************************/
 
 
-#ifndef __FTDEBUG_H__
-#define __FTDEBUG_H__
+#ifndef FTDEBUG_H
+#define FTDEBUG_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H  <freetype/config/ftbuild.h>
+#include <freetype/config/ftconfig.h>   /* for FT_DEBUG_LEVEL_TRACE, */
+                                        /* FT_DEBUG_LEVEL_ERROR      */
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_CONFIG_CONFIG_H
 
-FT_BEGIN_HEADER
+
+  /* A very stupid pre-processor trick.  See K&R version 2 */
+  /* section A12.3 for details...                          */
+  /*                                                       */
+  /* It is also described in the section `Separate         */
+  /* Expansion of Macro Arguments' in the info file        */
+  /* `cpp.info', describing GNU cpp.                       */
+  /*                                                       */
+#define FT_CAT( x, y )   x ## y
+#define FT_XCAT( x, y )  FT_CAT( x, y )
+
 
 #ifdef FT_DEBUG_LEVEL_TRACE
 
@@ -123,7 +134,7 @@ FT_BEGIN_HEADER
           do                                              \
           {                                               \
             if ( ft_trace_levels[FT_COMPONENT] >= level ) \
-              FT_Message varformat;                       \
+              FT_XCAT( FT_Message, varformat );           \
           } while ( 0 )
 
 
@@ -194,7 +205,7 @@ FT_BEGIN_HEADER
   /* print a message and exit */
   FT_EXPORT( void )  FT_Panic( const char*  fmt, ... );
 
-#define FT_ERROR( varformat )  FT_Message varformat
+#define FT_ERROR( varformat )  FT_XCAT( FT_Message, varformat )
 
 
 #endif /* FT_DEBUG_LEVEL_TRACE || FT_DEBUG_LEVEL_ERROR */
@@ -218,9 +229,12 @@ FT_BEGIN_HEADER
 #define FT_TRACE7( varformat )  FT_TRACE( 7, varformat )
 
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __FTDEBUG_H__ */
+
+#endif /* FTDEBUG_H */
 
 
 /* END */

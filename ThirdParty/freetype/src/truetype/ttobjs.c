@@ -453,7 +453,8 @@
     size->ttmetrics.valid = FALSE;
     return error;
 
-#ifdef TT_CONFIG_OPTION_BYTECODE_INTERPRETER
+#if defined( TT_CONFIG_OPTION_BYTECODE_INTERPRETER ) || \
+    defined( TT_CONFIG_OPTION_EMBEDDED_BITMAPS )
 
   Fail_Exec:
     if ( !size->debug )
@@ -584,12 +585,12 @@
     metrics->max_advance = ( FT_MulFix( face->root.max_advance_width,
                                         metrics->x_scale ) + 32 ) & -64;
 
+#ifdef TT_CONFIG_OPTION_BYTECODE_INTERPRETER
+
 #ifdef TT_CONFIG_OPTION_EMBEDDED_BITMAPS
     /* set to `invalid' by default */
     size->strike_index = 0xFFFF;
 #endif
-
-#ifdef TT_CONFIG_OPTION_BYTECODE_INTERPRETER
 
     {
       TT_ExecContext  exec;
@@ -602,7 +603,7 @@
         size->cvt[i] = FT_MulFix( face->cvt[i], size->ttmetrics.scale );
 
       /* All twilight points are originally zero */
-      for ( j = 0; j < (FT_UInt)size->twilight.n_points; j++ )
+      for ( j = 0; j < size->twilight.n_points; j++ )
       {
         size->twilight.org[j].x = 0;
         size->twilight.org[j].y = 0;
@@ -611,7 +612,7 @@
       }
 
       /* clear storage area */
-      for ( i = 0; i < (FT_UInt)size->storage_size; i++ )
+      for ( i = 0; i < size->storage_size; i++ )
         size->storage[i] = 0;
 
       size->GS = tt_default_graphics_state;
@@ -794,11 +795,16 @@
 
     if ( face->face_flags & FT_FACE_FLAG_FIXED_SIZES )
     {
+      FT_Size_Metrics* sbit_metrics;
+
+
       if ( size->strike_index == 0xFFFF )
         error = Reset_SBit_Size( size );
 
+      sbit_metrics = &size->strike_metrics;
+
       if ( !error && !( face->face_flags & FT_FACE_FLAG_SCALABLE ) )
-        size->root.metrics = size->strike_metrics;
+        size->root.metrics = *sbit_metrics;
     }
 
 #endif /* TT_CONFIG_OPTION_EMBEDDED_BITMAPS */

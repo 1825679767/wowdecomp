@@ -16,16 +16,17 @@
 /***************************************************************************/
 
 
-#ifndef __FTEXTEND_H__
-#define __FTEXTEND_H__
+#ifndef FTEXTEND_H
+#define FTEXTEND_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H  <freetype/config/ftbuild.h>
+
+#include <freetype/internal/ftobjs.h>
+
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_INTERNAL_OBJECTS_H
 
-FT_BEGIN_HEADER
 
   /*************************************************************************/
   /*                                                                       */
@@ -199,9 +200,12 @@ FT_BEGIN_HEADER
                                         void**       extension_interface );
 
 
-FT_END_HEADER
+#ifdef __cplusplus
+  }
+#endif
 
-#endif /* __FTEXTEND_H__ */
+
+#endif /* FTEXTEND_H */
 
 
 /* END */

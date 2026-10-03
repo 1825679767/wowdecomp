@@ -16,16 +16,15 @@
 /***************************************************************************/
 
 
-#ifndef __FTCALC_H__
-#define __FTCALC_H__
+#ifndef FTCALC_H
+#define FTCALC_H
 
-#ifndef    FT_BUILD_H
-#  define  FT_BUILD_H  <freetype/config/ftbuild.h>
+#include <freetype/freetype.h>
+#include <freetype/config/ftconfig.h>   /* for FT_LONG64 */
+
+#ifdef __cplusplus
+  extern "C" {
 #endif
-#include   FT_BUILD_H
-#include   FT_FREETYPE_H
-
-FT_BEGIN_HEADER
 
 
 #ifdef FT_LONG64
@@ -217,9 +216,12 @@ FT_BEGIN_HEADER
 #define ROUND_F26DOT6( x )     ( x >= 0 ? (    ( (x) + 32 ) & -64 )     \
                                         : ( -( ( 32 - (x) ) & -64 ) ) )
 
-FT_END_HEADER
 
-#endif /* __FTCALC_H__ */
+#ifdef __cplusplus
+  }
+#endif
+
+#endif /* FTCALC_H */
 
 
 /* END */
