@@ -1394,7 +1394,7 @@ void CGUnit_C::ModelLoaded(CM2Model* model) {
     }
 }
 
-// VERIFY: 82112df4 manual
+// VERIFY: 05c3070e manual
 // OFFSET: 0x0073DAB0
 void CGUnit_C::PreAnimate(CGWorldFrame* frame) {
     uint32_t time = FrameTime::s_curTimeMs;
@@ -1602,6 +1602,7 @@ void CGUnit_C::PreAnimate(CGWorldFrame* frame) {
             wanted = 0;
         }
 
+        // WoWFix335 npc-turn-attack-anim: original calls UpdateBaseAnimation(0, -1) when Unk71DE90() is nonzero
         if (sequence != wanted) {
             this->Unk71DE90();
         }
@@ -17889,7 +17890,7 @@ void CGUnit_C::SetUIChannelSpell(int32_t spellId, int32_t duration) {
     this->UpdateSpellCastBars(FrameTime::s_curTimeMs);
 }
 
-// VERIFY: 117c6766 manual
+// VERIFY: 4a2466af manual
 // OFFSET: 0x0073EB50
 void CGUnit_C::OnChannelSpellChanged(int32_t oldSpell) {
     if (oldSpell) {
@@ -17939,6 +17940,8 @@ void CGUnit_C::OnChannelSpellChanged(int32_t oldSpell) {
         this->m_fishingLineEffect->Release();
         this->m_fishingLineEffect = nullptr;
     }
+
+    // WoWFix335 missing-pre-cast-animation: original ends with UpdateBaseAnimation(0, -1)
 }
 
 // VERIFY: 49638f19 manual

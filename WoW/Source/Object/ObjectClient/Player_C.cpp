@@ -8251,7 +8251,7 @@ void CGPlayer_C::ToggleSheathe() {
     }
 }
 
-// VERIFY: 46257142 manual
+// VERIFY: b949cd28 manual
 // OFFSET: 0x006E2610
 void CGPlayer_C::MeleeModeEnter(const WOWGUID& target) {
     if (!CGGameUI::CanPerformAction(1)) {
@@ -8325,6 +8325,7 @@ void CGPlayer_C::MeleeModeEnter(const WOWGUID& target) {
     this->SpellInterrupted(this->m_castCount, this->m_castSpellId);
     Spell_C_CancelAutoRepeat(true);
     Spell_C_ClearLastAutoRangedCombatError();
+    // WoWFix335 melee-swing-right-click: original ends with UpdateBaseAnimation(0x40, -1)
 }
 
 // VERIFY: d5f87a32 manual

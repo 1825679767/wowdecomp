@@ -373,9 +373,10 @@ static bool GammaCallback(CVar* var, const char* oldValue, const char* value, vo
     return true;
 }
 
-// VERIFY: a49376e4 manual
+// VERIFY: 134f8295 manual
 // OFFSET: 0x00401A80
 static bool DesktopGammaCallback(CVar* var, const char* oldValue, const char* value, void* arg) {
+    // WoWFix335 windowed-mode-gamma-fix: desktopGamma ignored, original applies the desktop ramp when set
     SStrToInt(value);
 
     float gamma = s_gammaCvar ? s_gammaCvar->m_floatValue : 1.0f;
