@@ -1,11 +1,11 @@
 #include <cstdint>
 #include "ConsoleDevice.h"
-#include "_Triage/GxRestart.h"
 #include "Engine/Source/ConsoleBase/IConsole.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxFormat.h"
 #include "Engine/Source/Os/Gui.h"
 #include "Engine/Source/Services/Texture.h"
+#include "WoW/Source/Ui/GameUI.h"
 
 // VERIFY: 6674b551 auto
 // OFFSET: 0x00769FF0

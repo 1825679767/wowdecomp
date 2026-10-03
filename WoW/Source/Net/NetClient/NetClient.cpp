@@ -3,12 +3,13 @@
 #include <cstring>
 #include <new>
 #include "Engine/Source/Base/Prop.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Util/SHA1.h"
 #include "Engine/Source/ConsoleBase/IConsole.h"
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
-#include "_Triage/SHA1.h"
+#include "WoW/Source/WowServices/HMAC.h"
 
 // STATIC: 0x00AD2ED0
 static TSList<NETCLIENTNODE> s_clientList;

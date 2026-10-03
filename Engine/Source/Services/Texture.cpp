@@ -1,23 +1,23 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include "Engine/Source/Services/Texture.h"
-#include "Engine/Source/BLPFile/blp.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "Engine/Source/BLPFile/blp.h"
 #include "Engine/Source/Event/Event.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Gxu/Gxu.h"
+#include "Engine/Source/Images/MippedImg.h"
 #include "Engine/Source/Images/tga.h"
 #include "Engine/Source/Os/System.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Services/AsyncFile.h"
 #include "Engine/Source/Services/SysMessage.h"
+#include "Engine/Source/Services/Texture.h"
 #include "Engine/Source/Services/TextureBlob.h"
 #include "Engine/Source/Services/TextureInt.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/C2Vector.h"
-#include "_Triage/MippedImg.h"
 
 // STATIC: 0x009F1028
 static const uint16_t s_pixelFormatBytesPerBlock[NUM_PIXEL_FORMATS] = { 8, 16, 0, 0, 0, 0, 0, 16, 0, 0 };

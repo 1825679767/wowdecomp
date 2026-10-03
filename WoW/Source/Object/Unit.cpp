@@ -1,7 +1,7 @@
 #include "Unit.h"
-#include "WoW/Source/Object/Object.h"
+#include "WoW/Source/Object/CMoveSpline.h"
 #include "WoW/Source/Object/Movement.h"
-#include "_Triage/CMoveSpline.h"
+#include "WoW/Source/Object/Object.h"
 
 // STATIC: 0x00AC49D8
 const uint32_t CGUnit::s_mirrorFieldIndices[123] = {

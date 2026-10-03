@@ -3,9 +3,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/BlizzardCore/Source/Packages/Util/SHA1.h"
 #include "WoW/Source/WowServices/Grunt.h"
+#include "WoW/Source/WowServices/HMAC.h"
 #include "WoW/Source/WowServices/Login.h"
-#include "_Triage/SHA1.h"
 
 class GruntLogin : public Login {
     public:

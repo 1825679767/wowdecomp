@@ -1,6 +1,6 @@
 #include "SRP6_Random.h"
 #include <cstring>
-#include "_Triage/SHA1.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Util/SHA1.h"
 
 // VERIFY: 6d10b67a auto
 // OFFSET: 0x009A8980

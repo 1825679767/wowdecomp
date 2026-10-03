@@ -1,10 +1,10 @@
 #include "CAccountMsgBody.h"
 #include "Engine/Source/Base/DynamicString.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Util/SHA1.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
 #include "WoW/Source/Glue/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
-#include "_Triage/SHA1.h"
 
 // STATIC: 0x00BEA7B0
 CAccountMsgBody g_accountMsgBody;

@@ -1,12 +1,12 @@
 #include <cstdint>
 #include <cstring>
-#include "Engine/Source/BLPFile/blp.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "Engine/Source/BLPFile/blp.h"
 #include "Engine/Source/Gx/Blit.h"
-#include "Engine/Source/Storm/H/stpl.h"
+#include "Engine/Source/Images/MippedImg.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C2iVector.h"
-#include "_Triage/MippedImg.h"
 
 // STATIC: 0x00AD90B0
 uint8_t CBLPFile::s_eightBitAlphaLookup[16] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF };

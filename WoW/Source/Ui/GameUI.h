@@ -6,15 +6,15 @@
 #include <windows.h>
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Os/OsFile.h"
+#include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "WoW/Source/Net/Types.h"
+#include "WoW/Source/Object/ObjectClient/Object_C.h"
 #include "WoW/Source/Object/WGUID.h"
+#include "WoW/Source/SoundInterface/SoundInterface2.h"
 #include "WoW/Source/Ui/PartyFrame.h"
 #include "WoW/Source/Ui/TotemInfo.h"
 #include "WoW/Source/Ui/Types.h"
-#include "Engine/Source/Storm/H/stpl.h"
-#include "WoW/Source/Object/ObjectClient/Object_C.h"
-#include "WoW/Source/SoundInterface/SoundInterface2.h"
 
 class CGUnit_C;
 class CGItem_C;
@@ -561,5 +561,7 @@ extern float s_duelDistSq;
 extern float s_playerInteractDistSq;
 extern float s_inspectDistSq;
 extern float s_followDistSq;
+
+void OnGxRestartClearWorld();
 
 #endif

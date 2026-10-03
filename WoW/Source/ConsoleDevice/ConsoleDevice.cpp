@@ -17,9 +17,9 @@
 #include "Engine/Source/Os/System.h"
 #include "Engine/Source/Services/Texture.h"
 #include "Engine/Source/Storm/H/storm.h"
-#include "_Triage/GxRestart.h"
 #include "WoW/Source/Client.h"
 #include "WoW/Source/Hardware.h"
+#include "WoW/Source/Ui/GameUI.h"
 
 // STATIC: 0x00CABAC8
 static int32_t s_consoleGxOverrideSet[GxOverrides_Last];

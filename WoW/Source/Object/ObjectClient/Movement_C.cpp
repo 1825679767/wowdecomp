@@ -4,6 +4,7 @@
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/C4Quaternion.h"
 #include "WoW/Source/Object/CMovementGlobals.h"
+#include "WoW/Source/Object/CMoveSpline.h"
 #include "WoW/Source/Object/Movement.h"
 #include "WoW/Source/Object/ObjectClient/GameObject_C.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
@@ -12,7 +13,6 @@
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/UIUtil/Camera.h"
 #include "WoW/Source/WorldClient/World.h"
-#include "_Triage/CMoveSpline.h"
 
 // STATIC: 0x00ADB74C
 static TSExplicitList<CGGameObject_C, offsetof(CGGameObject_C, m_transportLink)> s_transports;

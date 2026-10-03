@@ -7,12 +7,12 @@
 #include "Engine/Source/Tempest/C3Spline.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/CMath.h"
+#include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Object/CMovementGlobals.h"
+#include "WoW/Source/Object/CMovementStatus.h"
+#include "WoW/Source/Object/CMoveSpline.h"
 #include "WoW/Source/Object/ObjectClient/Movement_C.h"
 #include "WoW/Source/Object/Types.h"
-#include "_Triage/CMoveSpline.h"
-#include "_Triage/CMovementStatus.h"
-#include "WoW/Source/Net/Types.h"
 
 // STATIC: 0x00B2D9E8
 float CMovementShared::s_terminalVelocity = 60.148003f;

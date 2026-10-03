@@ -4,9 +4,9 @@
 #include <cstring>
 #include <windows.h>
 #include <wincrypt.h>
+#include "Engine/Source/BlizzardCore/Source/Packages/Util/SHA1.h"
 #include "Engine/Source/Os/OsSecureRandom.h"
 #include "Engine/Source/Storm/H/storm.h"
-#include "_Triage/SHA1.h"
 
 struct OsSecureRandomEntropy {
     /* 0000 */ DWORD m_tickCount;

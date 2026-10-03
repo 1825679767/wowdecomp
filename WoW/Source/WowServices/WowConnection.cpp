@@ -2,11 +2,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include "Engine/Source/BlizzardCore/Source/Packages/Util/SHA1.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "WoW/Source/WowServices/HMAC.h"
 #include "WoW/Source/WowServices/WDataStore.h"
 #include "WoW/Source/WowServices/WowConnectionNet.h"
-#include "_Triage/SHA1.h"
 
 // STATIC: 0x00AB96F8
 WowConnection::IDBITS WowConnection::s_idBits;

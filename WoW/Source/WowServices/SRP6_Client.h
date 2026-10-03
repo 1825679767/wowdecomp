@@ -3,7 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "_Triage/SHA1.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Util/SHA1.h"
 
 class SRP6_Random;
 

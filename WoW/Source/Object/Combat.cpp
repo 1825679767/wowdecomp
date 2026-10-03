@@ -1,5 +1,5 @@
 #include "Combat.h"
-#include "_Triage/CClientObjCreate.h"
+#include "WoW/Source/ObjectMgrClient/CClientObjCreate.h"
 
 // VERIFY: 596a8ec9 auto
 // OFFSET: 0x0098E520

@@ -3,12 +3,12 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/Net/NetClient/NetClient.h"
+#include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/WowServices/LoginResponse.h"
 #include "WoW/Source/WowServices/RealmConnection.h"
 #include "WoW/Source/WowServices/Types.h"
-#include "_Triage/Types.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/Types.h"
 
 struct CVar;
 class Login;

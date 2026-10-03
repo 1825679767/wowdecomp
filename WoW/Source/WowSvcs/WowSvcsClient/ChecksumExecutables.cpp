@@ -1,7 +1,8 @@
 #include "ChecksumExecutables.h"
 #include <cstring>
+#include "Engine/Source/BlizzardCore/Source/Packages/Util/SHA1.h"
 #include "Engine/Source/Os/OsVersionHash.h"
-#include "_Triage/SHA1.h"
+#include "WoW/Source/WowServices/HMAC.h"
 
 struct ChecksumFile {
     /* 0000 */ const char* m_path;

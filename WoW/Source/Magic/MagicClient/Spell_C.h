@@ -3,12 +3,12 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "WoW/Source/Object/WGUID.h"
-#include "WoW/Source/Net/Types.h"
-#include "_Triage/PendingSpellCastData.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "WoW/Source/Magic/MagicClient/PendingSpellCastData.h"
+#include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
+#include "WoW/Source/Object/WGUID.h"
 
 struct lua_State;
 class CGGameObject_C;

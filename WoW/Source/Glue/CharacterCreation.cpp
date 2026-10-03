@@ -18,15 +18,15 @@
 #include "WoW/Source/Game/GameClient/CDrawBowString.h"
 #include "WoW/Source/Glue/CGlueLoading.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
-#include "WoW/Source/Glue/CSimpleModelFFX.h"
 #include "WoW/Source/Glue/CharacterSelection.h"
 #include "WoW/Source/Glue/ComponentData.h"
+#include "WoW/Source/Glue/CSimpleModelFFX.h"
 #include "WoW/Source/Glue/Types.h"
 #include "WoW/Source/LoadingScreen.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/WowServices/Types.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
-#include "_Triage/Types.h"
+#include "WoW/Source/WowSvcs/WowSvcsClient/Types.h"
 
 // STATIC: 0x00AC4220
 int32_t CCharacterCreation::m_selectedClassID = 1;
