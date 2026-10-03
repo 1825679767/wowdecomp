@@ -3,9 +3,7 @@
 
 #include <cstddef>
 
-extern "C" {
 void jpeg_set_malloc(void* (*allocFunc)(size_t bytes));
 void jpeg_set_free(void (*freeFunc)(void* ptr));
-}
 
 #endif

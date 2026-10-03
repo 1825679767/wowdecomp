@@ -1,15 +1,13 @@
-file(GLOB_RECURSE PRIVATE_SOURCES CONFIGURE_DEPENDS "*.cpp")
+file(GLOB PRIVATE_SOURCES CONFIGURE_DEPENDS "*.c" "*.cpp")
 
-add_library(jpegmem STATIC
+set_source_files_properties(${PRIVATE_SOURCES} PROPERTIES LANGUAGE CXX)
+
+add_library(jpeg STATIC
     ${PRIVATE_SOURCES}
 )
 
-target_include_directories(jpegmem
+target_include_directories(jpeg
     PUBLIC
         ${CMAKE_SOURCE_DIR}
-)
-
-target_link_libraries(jpegmem
-    PUBLIC
-        jpeg
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )

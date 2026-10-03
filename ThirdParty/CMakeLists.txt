@@ -110,59 +110,6 @@ target_include_directories(expat
         ${CMAKE_CURRENT_SOURCE_DIR}/expat/lib
 )
 
-add_library(jpeg STATIC
-    jpeg/jcapimin.c
-    jpeg/jcapistd.c
-    jpeg/jctrans.c
-    jpeg/jcparam.c
-    jpeg/jdatadst.c
-    jpeg/jcinit.c
-    jpeg/jcmaster.c
-    jpeg/jcmarker.c
-    jpeg/jcmainct.c
-    jpeg/jcprepct.c
-    jpeg/jccoefct.c
-    jpeg/jccolor.c
-    jpeg/jcsample.c
-    jpeg/jchuff.c
-    jpeg/jcphuff.c
-    jpeg/jcdctmgr.c
-    jpeg/jfdctfst.c
-    jpeg/jfdctflt.c
-    jpeg/jfdctint.c
-    jpeg/jdapimin.c
-    jpeg/jdapistd.c
-    jpeg/jdtrans.c
-    jpeg/jdatasrc.c
-    jpeg/jdmaster.c
-    jpeg/jdinput.c
-    jpeg/jdmarker.c
-    jpeg/jdhuff.c
-    jpeg/jdphuff.c
-    jpeg/jdmainct.c
-    jpeg/jdcoefct.c
-    jpeg/jdpostct.c
-    jpeg/jddctmgr.c
-    jpeg/jidctfst.c
-    jpeg/jidctflt.c
-    jpeg/jidctint.c
-    jpeg/jidctred.c
-    jpeg/jdsample.c
-    jpeg/jdcolor.c
-    jpeg/jquant1.c
-    jpeg/jquant2.c
-    jpeg/jdmerge.c
-    jpeg/jcomapi.c
-    jpeg/jutils.c
-    jpeg/jerror.c
-    jpeg/jmemmgr.c
-)
-
-target_include_directories(jpeg
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/jpeg
-)
-
 add_library(pcre STATIC
     pcre/pcre.c
     pcre/get.c
