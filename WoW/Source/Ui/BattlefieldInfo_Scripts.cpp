@@ -481,7 +481,7 @@ static int32_t Script_GetNumBattlefieldFlagPositions(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 15310d8d manual
+// VERIFY: e121516b auto
 // OFFSET: 0x00549F60
 static int32_t Script_GetBattlefieldStatData(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -504,7 +504,7 @@ static int32_t Script_GetBattlefieldStatData(lua_State* L) {
     return 1;
 }
 
-// VERIFY: a4ccae58 manual
+// VERIFY: 6e90bb54 auto
 // OFFSET: 0x0054C170
 static int32_t Script_GetBattlefieldStatInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

@@ -21,7 +21,8 @@ class TempBuffer {
 }
 }
 
-// INLINED
+// VERIFY: cf4c642a manual
+// OFFSET: 0x0042EBB0<uint8_t, 4096>
 template <class T, uint32_t N>
 Blizzard::Memory::TempBuffer<T, N>::TempBuffer(uint32_t count) {
     this->m_count = count;
@@ -38,7 +39,7 @@ Blizzard::Memory::TempBuffer<T, N>::~TempBuffer() {
 }
 
 // VERIFY: 019cc2c0 manual
-// OFFSET: [0x0042EC20, 0x0042EAF0]
+// OFFSET: [0x0042EC20, 0x0042EAF0, 0x0041D200]
 template <class T, uint32_t N>
 void Blizzard::Memory::TempBuffer<T, N>::Resize(uint32_t count) {
     if (count > N) {

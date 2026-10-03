@@ -76,7 +76,7 @@ static int32_t Script_GMSurveyAnswerSubmit(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b32e91ff auto
+// VERIFY: 8792c123 auto
 // OFFSET: 0x005AC480
 static int32_t Script_GMSurveyCommentSubmit(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -148,7 +148,7 @@ static int32_t Script_GMSurveyNumAnswers(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 7e504c81 auto
+// VERIFY: ebaa1e68 auto
 // OFFSET: 0x005AD020
 static int32_t Script_GMReportLag(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -160,7 +160,7 @@ static int32_t Script_GMReportLag(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 38c345ae auto
+// VERIFY: e36f68e8 auto
 // OFFSET: 0x005AD080
 static int32_t Script_NewGMTicket(lua_State* L) {
     if (!lua_isstring(L, 1) || lua_type(L, 2) != LUA_TBOOLEAN) {
@@ -176,7 +176,7 @@ static int32_t Script_NewGMTicket(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 079fb9f5 auto
+// VERIFY: a547b787 auto
 // OFFSET: 0x005AD0F0
 static int32_t Script_UpdateGMTicket(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -198,7 +198,7 @@ static int32_t Script_DeleteGMTicket(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 937085ce auto
+// VERIFY: 438ebb53 auto
 // OFFSET: 0x005AD150
 static int32_t Script_GMResponseNeedMoreHelp(lua_State* L) {
     if (!lua_isstring(L, 1)) {

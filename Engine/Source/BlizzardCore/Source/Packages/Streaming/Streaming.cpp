@@ -12,10 +12,25 @@
 #include "Engine/Source/BlizzardCore/Source/System/Time/Time.h"
 
 // STATIC: 0x00AB7AC8
-static uint8_t s_clientInitialized;
+static uint8_t s_clientInitialized = 1;
 
 // STATIC: 0x00B38038
-static Blizzard::Time::Timestamp s_elapsedSinceStart;
+Blizzard::Time::Timestamp Blizzard::Streaming::s_elapsedSinceStart;
+
+// STATIC: 0x00B38040
+int64_t Blizzard::Streaming::s_statBytesRead;
+
+// STATIC: 0x00B38048
+int64_t Blizzard::Streaming::s_statBytesDownloaded;
+
+// STATIC: 0x00B38050
+int64_t Blizzard::Streaming::s_statBytesLocal;
+
+// STATIC: 0x00B38058
+int32_t Blizzard::Streaming::s_statRetries;
+
+// STATIC: 0x00B38060
+char Blizzard::Streaming::s_statFrameTimes[260];
 
 // STATIC: 0x00B38180
 bool Blizzard::Streaming::s_streamingReady;
@@ -127,14 +142,14 @@ void Blizzard::Streaming::MakePartFileName(char* name, uint32_t size) {
     Blizzard::String::Copy(name, part, size);
 }
 
-// VERIFY: 76edbcda auto
+// VERIFY: 4470ae4c auto
 // OFFSET: 0x00437A00
 void Blizzard::Time::GetElapsedSinceStart(bool start) {
     // STATIC: 0x00B38A48
     static Blizzard::Time::Timestamp s_startTime = Blizzard::Time::GetTimestamp();
 
     if (!start) {
-        s_elapsedSinceStart = Blizzard::Time::GetTimestamp() - s_startTime;
+        Blizzard::Streaming::s_elapsedSinceStart = Blizzard::Time::GetTimestamp() - s_startTime;
     }
 }
 
@@ -145,15 +160,15 @@ Blizzard::Streaming::DownloadProgress::DownloadProgress() {
 
 // INLINED
 Blizzard::Streaming::DownloadProgress::~DownloadProgress() {
-    this->unk_0018 = 0;
-    this->unk_0354 = nullptr;
-    memset(this->unk_0020, 0, sizeof(this->unk_0020));
+    this->m_lastTime = 0;
+    this->m_callback = nullptr;
+    memset(this->m_samples, 0, sizeof(this->m_samples));
 }
 
-// VERIFY: 1ed002c0 manual
+// VERIFY: c945173d manual
 // OFFSET: 0x00438300
 void Blizzard::Streaming::DownloadProgress::ResetTime() {
-    this->unk_0018 = static_cast<uint32_t>(Blizzard::Time::Milliseconds());
+    this->m_lastTime = static_cast<uint32_t>(Blizzard::Time::Milliseconds());
 }
 
 // VERIFY: d9c84ab5 auto

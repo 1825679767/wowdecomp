@@ -60,7 +60,7 @@ static const AuctionInvType s_auctionInvTypes[14] = {
     { 23, "INVTYPE_HOLDABLE", 1, 1 },
 };
 
-// VERIFY: 06078343 auto
+// VERIFY: 95a282d9 auto
 // OFFSET: 0x0059B0B0
 static int32_t Script_SetAuctionsTabShowing(lua_State* L) {
     if (lua_type(L, 1) != LUA_TBOOLEAN) {
@@ -190,7 +190,7 @@ static int32_t Script_GetAuctionInvTypes(lua_State* L) {
     return 28;
 }
 
-// VERIFY: 0a1271c4 manual
+// VERIFY: a694c251 auto
 // OFFSET: 0x0059C9F0
 static int32_t Script_CanCancelAuction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -262,7 +262,7 @@ static int32_t Script_CancelAuction(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 370de460 manual
+// VERIFY: c9d2ca3b auto
 // OFFSET: 0x0059C1A0
 static int32_t Script_GetNumAuctionItems(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -385,7 +385,7 @@ static int32_t Script_GetAuctionSort(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 4d5b346c auto
+// VERIFY: a7708e62 auto
 // OFFSET: 0x0059AE70
 static int32_t Script_SortAuctionClearSort(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -406,7 +406,7 @@ static int32_t Script_SortAuctionClearSort(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 6ce803e7 auto
+// VERIFY: bf332834 auto
 // OFFSET: 0x0059AF10
 static int32_t Script_SortAuctionSetSort(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
@@ -660,7 +660,7 @@ static int32_t Script_SetSelectedAuctionItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: e4d0be72 auto
+// VERIFY: f95e702d auto
 // OFFSET: 0x0059C920
 static int32_t Script_GetSelectedAuctionItem(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -683,7 +683,7 @@ static int32_t Script_GetSelectedAuctionItem(lua_State* L) {
     return 1;
 }
 
-// VERIFY: ef011e51 auto
+// VERIFY: 7cc1108f auto
 // OFFSET: 0x0059CAB0
 static int32_t Script_SortAuctionApplySort(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -705,7 +705,7 @@ static int32_t Script_SortAuctionApplySort(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 9e0b91e7 manual
+// VERIFY: 3de5ed5e auto
 // OFFSET: 0x0059D270
 static int32_t Script_CalculateAuctionDeposit(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -989,7 +989,7 @@ static int32_t Script_PlaceAuctionBid(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 53a2205e auto
+// VERIFY: bd9b02e3 auto
 // OFFSET: 0x0059DD00
 static int32_t Script_SortAuctionItems(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
@@ -1071,7 +1071,7 @@ static int32_t Script_GetAuctionSellItemInfo(lua_State* L) {
     return 9;
 }
 
-// VERIFY: 968d4e95 manual
+// VERIFY: 6bd4bdb4 auto
 // OFFSET: 0x0059F990
 static int32_t Script_StartAuction(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {

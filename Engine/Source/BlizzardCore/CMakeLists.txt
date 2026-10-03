@@ -15,3 +15,16 @@ target_link_libraries(BlizzardCore
         lzma
         zlib
 )
+
+if(WIN32)
+    target_link_libraries(BlizzardCore
+        PUBLIC
+            wininet
+    )
+endif()
+
+target_include_directories(BlizzardCore
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/Engine/Source/SoundEngine/fmodex/lib/ogg_vorbis/ogg/include
+        ${CMAKE_SOURCE_DIR}/Engine/Source/SoundEngine/fmodex/lib/ogg_vorbis/vorbis/include
+)

@@ -73,7 +73,7 @@ static int32_t Script_InRepairMode(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 2137ed3a manual
+// VERIFY: 4a349e26 auto
 // OFFSET: 0x005842D0
 static int32_t Script_GetMerchantItemMaxStack(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -96,7 +96,7 @@ static int32_t Script_GetMerchantItemMaxStack(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 5f012ea7 auto
+// VERIFY: 22eb2eec auto
 // OFFSET: 0x005846E0
 static int32_t Script_GetMerchantItemCostInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

@@ -362,7 +362,7 @@ static int32_t Script_IsConsumableSpell(lua_State* L) {
     return 1;
 }
 
-// VERIFY: f715c8b6 manual
+// VERIFY: 33061c66 auto
 // OFFSET: 0x0053C2A0
 static int32_t Script_GetNumCompanions(lua_State* L) {
     int32_t type;
@@ -793,7 +793,7 @@ static int32_t Script_GetShapeshiftFormCooldown(lua_State* L) {
     return 3;
 }
 
-// VERIFY: e1e722df manual
+// VERIFY: 2cf49f7e auto
 // OFFSET: 0x0053C310
 static int32_t Script_PickupCompanion(lua_State* L) {
     int32_t type;
@@ -974,7 +974,7 @@ static int32_t Script_SummonRandomCritter(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 23b3df80 manual
+// VERIFY: 7011eeb5 auto
 // OFFSET: 0x0053E060
 static int32_t Script_CastSpellByID(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

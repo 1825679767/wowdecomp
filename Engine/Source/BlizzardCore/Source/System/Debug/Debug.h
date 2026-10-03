@@ -8,6 +8,7 @@ namespace Debug {
 
 typedef void (*AssertCallback)(const char* expression, const char* message, const char* fileName, uint32_t lineNumber);
 
+void Breakpoint();
 char* CanonicalStr(const char* src, char* dst, uint32_t maxchars);
 void DefaultCallback(const char* expression, const char* message, const char* fileName, uint32_t lineNumber);
 void Printf(void (*output)(const char*), const char* format, ...);

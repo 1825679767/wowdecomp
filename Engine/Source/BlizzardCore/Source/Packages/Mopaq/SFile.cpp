@@ -264,6 +264,17 @@ uint32_t Blizzard::Mopaq::SFileGetFileSize(IOMpqUnit* file, uint32_t* sizeHigh) 
     return -1;
 }
 
+// VERIFY: 7d8723e2 auto
+// OFFSET: 0x00426FA0
+bool Blizzard::Mopaq::SFileWriteFile(IOMpqUnit* file, const void* data, uint32_t size) {
+    if (!file->Write(data, file->m_position, size)) {
+        return false;
+    }
+
+    file->m_position += size;
+    return true;
+}
+
 // VERIFY: 3d1301e5 auto
 // OFFSET: 0x004321A0
 bool Blizzard::Mopaq::SFileCloseFile(IOMpqUnit* file) {
@@ -335,6 +346,36 @@ bool Blizzard::Mopaq::SFileReadFile(IOMpqUnit* file, void* buffer, uint32_t coun
     }
 
     return result;
+}
+
+// VERIFY: dd4a5d22 manual
+// OFFSET: 0x0045A610
+int32_t Blizzard::Mopaq::SFileFileIsLocal(IOMpqUnit* file, int32_t flags) {
+    if (!file) {
+        return 1;
+    }
+
+    const char* path = file->GetPath();
+    int32_t result = Blizzard::Streaming::CheckFileRange(nullptr, 0, 0, path, flags);
+
+    if (result == 1) {
+        return result;
+    }
+
+    int64_t offset = file->GetOffset();
+    int64_t compressed = 0;
+    int32_t size = file->GetCompressedSize(&compressed) ? static_cast<int32_t>(compressed) : -1;
+    System_SFile::ARCHIVEREC* archive = file->GetArchive();
+
+    if (!archive) {
+        file->Release();
+        return 1;
+    }
+
+    char name[260];
+    SFileGetArchiveName(archive, name, sizeof(name));
+
+    return Blizzard::Streaming::CheckFileRange(name, offset, size, path, flags);
 }
 
 // VERIFY: 672505f5 manual

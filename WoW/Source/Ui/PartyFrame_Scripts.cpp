@@ -108,7 +108,7 @@ static int32_t Script_IsRealPartyLeader(lua_State* L) {
     return 1;
 }
 
-// VERIFY: cb6ade84 manual
+// VERIFY: de2d49bb auto
 // OFFSET: 0x0052C1D0
 static int32_t Script_GetPartyMember(lua_State* L) {
     uint32_t index;
@@ -236,7 +236,7 @@ static int32_t Script_SetOptOutOfLoot(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f1613827 auto
+// VERIFY: 7839f724 auto
 // OFFSET: 0x0052CF60
 static int32_t Script_GetPartyAssignment(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -494,7 +494,7 @@ static int32_t Script_ClearPartyAssignment(lua_State* L) {
     return SetOrClearAssignment(L, false);
 }
 
-// VERIFY: 4154fb5e manual
+// VERIFY: c58ebc08 auto
 // OFFSET: 0x0052E420
 static int32_t Script_ChangePlayerDifficulty(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

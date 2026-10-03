@@ -388,7 +388,7 @@ static int32_t Script_GetMapInfo(lua_State* L) {
     return 3;
 }
 
-// VERIFY: ab9e8f42 auto
+// VERIFY: b153db79 auto
 // OFFSET: 0x00545880
 static int32_t Script_GetPlayerMapPosition(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -711,7 +711,7 @@ static int32_t Script_UpdateMapHighlight(lua_State* L) {
     return 8;
 }
 
-// VERIFY: 2039e993 manual
+// VERIFY: 29e7c946 auto
 // OFFSET: 0x00544B90
 static int32_t Script_GetMapZones(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -777,7 +777,7 @@ static int32_t Script_GetMapOverlayInfo(lua_State* L) {
     return 7;
 }
 
-// VERIFY: 269a2aa1 manual
+// VERIFY: 2f36de9c auto
 // OFFSET: 0x005469E0
 static int32_t Script_SetMapZoom(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -828,7 +828,7 @@ static int32_t Script_CreateWorldMapArrowFrame(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 230343d0 manual
+// VERIFY: 04ce3302 auto
 // OFFSET: 0x00545FF0
 static int32_t Script_InitWorldMapPing(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
@@ -1076,7 +1076,7 @@ static int32_t Script_SetMapByID(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 4f3b2103 manual
+// VERIFY: 8c4a2255 auto
 // OFFSET: 0x00546E80
 static int32_t Script_ProcessMapClick(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -1090,7 +1090,7 @@ static int32_t Script_ProcessMapClick(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ab6bdd23 manual
+// VERIFY: 2a928080 auto
 // OFFSET: 0x00546EF0
 static int32_t Script_ClickLandmark(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1117,7 +1117,7 @@ static int32_t Script_ClickLandmark(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c656caf0 auto
+// VERIFY: f361bf64 auto
 // OFFSET: 0x00547B80
 static int32_t Script_SetDungeonMapLevel(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

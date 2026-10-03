@@ -118,7 +118,7 @@ static void getfunc (lua_State *L) {
 }
 
 
-// VERIFY: 9bb620ce auto
+// VERIFY: fa88bdc8 auto
 // OFFSET: 0x008543E0
 static int luaB_getfenv (lua_State *L) {
   getfunc(L);

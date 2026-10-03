@@ -74,7 +74,7 @@ static int32_t Script_EquipmentManagerClearIgnoredSlotsForSave(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 0108f898 auto
+// VERIFY: 6bd6b519 auto
 // OFFSET: 0x005AE800
 static int32_t Script_DeleteEquipmentSet(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -398,7 +398,7 @@ static int32_t Script_GetEquipmentSetInfo(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 54ba72eb auto
+// VERIFY: 43db9cf0 auto
 // OFFSET: 0x005AF1D0
 static int32_t Script_GetEquipmentSetInfoByName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -423,7 +423,7 @@ static int32_t Script_GetEquipmentSetInfoByName(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 335b3aa0 auto
+// VERIFY: 6bce95fb auto
 // OFFSET: 0x005AF250
 static int32_t Script_PickupEquipmentSetByName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -448,7 +448,7 @@ static int32_t Script_PickupEquipmentSetByName(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 36d3ed77 auto
+// VERIFY: 178e5e18 auto
 // OFFSET: 0x005AF2C0
 static int32_t Script_PickupEquipmentSet(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -465,7 +465,7 @@ static int32_t Script_PickupEquipmentSet(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5046be9a auto
+// VERIFY: 78933462 auto
 // OFFSET: 0x005AF320
 static int32_t Script_EquipmentSetContainsLockedItems(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -483,7 +483,7 @@ static int32_t Script_EquipmentSetContainsLockedItems(lua_State* L) {
     return 1;
 }
 
-// VERIFY: ccfc0a7a auto
+// VERIFY: 14344e5d auto
 // OFFSET: 0x005AF380
 static int32_t Script_UseEquipmentSet(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -506,7 +506,7 @@ static int32_t Script_UseEquipmentSet(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 59c68072 auto
+// VERIFY: bc671bf0 auto
 // OFFSET: 0x005AF910
 static int32_t Script_RenameEquipmentSet(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {

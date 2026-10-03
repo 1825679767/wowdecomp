@@ -44,10 +44,18 @@ IOUnit* OpenFileUnit(IOUnitContainer* container, const char* path, int32_t mode)
 
 }
 
+namespace System_Mopaq {
+
+bool CreateDiskFile(const char* name, uint32_t flags, const char* path, System_SFile::ARCHIVEREC* archive, IOMpqUnit** result);
+
+}
+
 namespace Blizzard {
 namespace Mopaq {
 
 bool SFileCloseFile(IOMpqUnit* file);
+bool SFileCreateFile(System_SFile::ARCHIVEREC* handle, const char* name, uint32_t size, uint32_t flags, IOMpqUnit** result);
+int32_t SFileFileIsLocal(IOMpqUnit* file, int32_t flags);
 bool SFileGetArchiveName(System_SFile::ARCHIVEREC* handle, char* name, uint32_t size);
 uint32_t SFileGetFileSize(IOMpqUnit* file, uint32_t* sizeHigh);
 bool SFileLoadFile(System_SFile::ARCHIVEREC* handle, const char* name, void** data, uint32_t* size, uint32_t extra, uint32_t flags);
@@ -57,6 +65,7 @@ bool SFileReadFile(IOMpqUnit* file, void* buffer, uint32_t count, uint32_t* byte
 bool SFileUnloadFile(void* data);
 int32_t SFileSetFilePointer(IOMpqUnit* file, int32_t distance, int32_t* distanceHigh, uint32_t method);
 void SFileSetThreadingMode(uint32_t mode);
+bool SFileWriteFile(IOMpqUnit* file, const void* data, uint32_t size);
 
 }
 }

@@ -1,4 +1,6 @@
 #include <cstdint>
+#include <cstring>
+#include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SFileArchives.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/MPQGlobals.h"
 #include "Engine/Source/BlizzardCore/Source/System/Process/Process.h"
 
@@ -121,4 +123,18 @@ void System_MPQGlobals::WorkerPool::Release(uint32_t count, Worker** workers) {
     } while (--count);
 
     Blizzard::Lock::MutexLeave(this->m_mutex.m_mutex);
+}
+
+// VERIFY: 99eaeda8 manual
+// OFFSET: 0x00453FC0
+System_SFile::ARCHIVEREC* System_MPQGlobals::FindArchiveByName(const char* name) {
+    ArchiveList* archives = GetArchiveList();
+
+    for (ArchiveList::iterator it = archives->begin(); it != archives->end(); ++it) {
+        if (name && *it && !_stricmp(name, (*it)->m_name)) {
+            return *it;
+        }
+    }
+
+    return nullptr;
 }

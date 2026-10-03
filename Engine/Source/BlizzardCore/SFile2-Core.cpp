@@ -15,6 +15,7 @@
 #include "Engine/Source/BlizzardCore/Source/System/Memory/MemoryStorm.h"
 #include "Engine/Source/BlizzardCore/Source/System/String/Path.h"
 #include "Engine/Source/BlizzardCore/Source/System/String/String.h"
+#include "Engine/Source/BlizzardCore/Source/System/Thread/Thread.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Util/Hash.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Storm/Source/MD5.h"
@@ -72,6 +73,36 @@ System_SFile2::FileHash System_SFile2::s_fileHash;
 
 // STATIC: 0x00B324FC
 Blizzard::Thread::LocalObject<System_SFile2::SFileFatalInfo> System_SFile2::s_fatalInfo;
+
+// STATIC: 0x00B32044
+Blizzard::Memory::TempBuffer<uint8_t, 0x400000>* System_SFile2::s_soundCacheBuffer;
+
+// STATIC: 0x00B32498
+volatile int32_t System_SFile2::s_soundCacheStop;
+
+// STATIC: 0x00B3249C
+volatile int32_t System_SFile2::s_soundCacheStopped;
+
+// STATIC: 0x00B324A0
+System_SFile2::SOUNDCACHECALLBACK System_SFile2::s_soundCacheCallback;
+
+// VERIFY: d5074791 auto
+// OFFSET: 0x00421650
+bool System_SFile2::WriteSoundCacheFile(const char* name, const void* data, uint32_t size) {
+    Blizzard::Lock::MutexEnter(s_soundCacheLock);
+
+    IOMpqUnit* file;
+    bool result = Blizzard::Mopaq::SFileCreateFile(s_soundCacheArchive, name, size, 0, &file);
+
+    if (result) {
+        result = Blizzard::Mopaq::SFileWriteFile(file, data, size);
+    }
+
+    Blizzard::Mopaq::SFileCloseFile(file);
+    Blizzard::Lock::MutexLeave(s_soundCacheLock);
+
+    return result;
+}
 
 // VERIFY: 99b101b5 manual
 // OFFSET: 0x004216C0
@@ -277,6 +308,13 @@ void SFile::SetStreamingStatus(bool enabled, bool initialized, bool flag2, bool 
     if (build) {
         s_streamingStatus.m_build = build;
     }
+}
+
+// VERIFY: 3ccd63c7 auto
+// OFFSET: 0x00422100
+int32_t STORMAPI SFile::InitializeStreaming(const char* mfilPath) {
+    Blizzard::File::SetLastErrorStack(0);
+    return Blizzard::Streaming::InitializeStreaming(mfilPath, nullptr, nullptr, nullptr, false);
 }
 
 // VERIFY: 3e9c3828 auto
@@ -558,6 +596,26 @@ bool System_SFile2::OldFindFile(const char* name, char* path, uint32_t size, uin
     return false;
 }
 
+// VERIFY: 9f1ce062 manual
+// OFFSET: 0x00421F50
+int32_t STORMAPI SFileAuthenticateArchiveEx(SArchive* archive, uint32_t* result, const uint8_t* modulus, uint32_t modulusSize, const uint8_t* exponent, uint32_t exponentSize) {
+    Blizzard::Mopaq::AuthResult authResult;
+    bool success = Blizzard::Mopaq::SFileAuthenticateArchiveEx(reinterpret_cast<System_SFile::ARCHIVEREC*>(archive), &authResult, modulus, modulusSize, exponent, exponentSize, "ARCHIVE");
+    *result = authResult;
+
+    if (!success) {
+        SErrSetLastError(Blizzard::Mopaq::SFileGetLastError());
+    }
+
+    return success;
+}
+
+// VERIFY: e70abfa4 auto
+// OFFSET: 0x00421FA0
+int32_t STORMAPI SFileCloseArchive(SArchive* archive) {
+    return Blizzard::Mopaq::SFileCloseArchive(reinterpret_cast<System_SFile::ARCHIVEREC*>(archive));
+}
+
 // VERIFY: cd537558 auto
 // OFFSET: 0x00421FC0
 int32_t STORMAPI SFile::FileExistsInArchives(const char* name) {
@@ -568,6 +626,38 @@ int32_t STORMAPI SFile::FileExistsInArchives(const char* name) {
     }
 
     return result;
+}
+
+// VERIFY: 00e4abfa auto
+// OFFSET: 0x00421FF0
+int32_t STORMAPI SFileLoadFileEx(SArchive* archive, const char* name, void** data, uint32_t* size, uint32_t extra, uint32_t flags, SOVERLAPPED* overlapped) {
+    bool result = Blizzard::Mopaq::SFileLoadFile(reinterpret_cast<System_SFile::ARCHIVEREC*>(archive), name, data, size, extra, flags);
+
+    if (!result) {
+        SErrSetLastError(Blizzard::Mopaq::SFileGetLastError());
+    }
+
+    return result;
+}
+
+// VERIFY: 3136a141 manual
+// OFFSET: 0x00422040
+int32_t STORMAPI SFileOpenArchive(const char* path, int32_t priority, uint32_t flags, SArchive** archive) {
+    System_SFile::ARCHIVEREC* result;
+
+    if (!Blizzard::Mopaq::SFileOpenArchive(path, priority, flags, &result)) {
+        SErrSetLastError(Blizzard::Mopaq::SFileGetLastError());
+        return 0;
+    }
+
+    *archive = reinterpret_cast<SArchive*>(result);
+    return 1;
+}
+
+// VERIFY: 17efbea9 auto
+// OFFSET: 0x00422090
+int32_t STORMAPI SFileUnloadFile(void* data) {
+    return Blizzard::Mopaq::SFileUnloadFile(data);
 }
 
 // VERIFY: 43a7d076 manual
@@ -1151,4 +1241,124 @@ int32_t STORMAPI SFile::LoadFile(const char* name, void** data, uint32_t* size, 
 // OFFSET: 0x00424F80
 int32_t STORMAPI SFileOpenFile(const char* name, SFileImpl** result) {
     return SFile::OpenEx(nullptr, name, 0, result);
+}
+
+// VERIFY: 933721df auto
+// OFFSET: 0x004217A0
+int32_t STORMAPI SFile::FileIsLocal(const char* name, int32_t flags) {
+    return Blizzard::Mopaq::SFileFileIsLocal(name, flags);
+}
+
+// VERIFY: bc7e8291 auto
+// OFFSET: 0x004217C0
+int32_t STORMAPI SFile::FileIsLocal(SFileImpl* file, int32_t flags) {
+    return Blizzard::Mopaq::SFileFileIsLocal(file->m_file, flags);
+}
+
+// VERIFY: 06d4e040 auto
+// OFFSET: 0x00421800
+int32_t STORMAPI SFile::MakeFileLocal(const char* name, int32_t priority, bool wait) {
+    return Blizzard::Mopaq::SFileMakeFileLocal(name, priority, wait);
+}
+
+// VERIFY: f939f7d6 auto
+// OFFSET: 0x00421820
+int32_t STORMAPI SFile::MakeFileLocal(SFileImpl* file, int32_t priority, bool wait) {
+    return Blizzard::Mopaq::SFileMakeFileLocal(file->m_file->GetPath(), priority, wait);
+}
+
+// VERIFY: 0022578c auto
+// OFFSET: 0x004222A0
+bool System_SFile2::VerifyAndCacheFile(const char* name) {
+    void* data = nullptr;
+
+    if (!s_soundCacheCallback) {
+        return false;
+    }
+
+    uint32_t size;
+    bool result = Blizzard::Mopaq::SFileLoadFile(nullptr, name, &data, &size, 0, 0);
+
+    if (result) {
+        result = s_soundCacheCallback(data, size, s_soundCacheBuffer);
+
+        if (result) {
+            result = WriteSoundCacheFile(name, s_soundCacheBuffer->m_data, s_soundCacheBuffer->m_count);
+        }
+    }
+
+    if (data) {
+        Blizzard::Mopaq::SFileUnloadFile(data);
+    }
+
+    return result;
+}
+
+// VERIFY: bdbe70b9 auto
+// OFFSET: 0x00422870
+bool System_SFile2::ShutdownSoundCache() {
+    if (!s_soundCacheArchive) {
+        return false;
+    }
+
+    Blizzard::Mopaq::SFileCloseArchive(s_soundCacheArchive);
+
+    delete s_soundCacheBuffer;
+
+    s_soundCacheStop = 1;
+    Blizzard::Lock::EventSet(s_asyncOpenEvent);
+
+    while (!s_soundCacheStopped) {
+        Blizzard::Thread::Sleep(10);
+    }
+
+    Blizzard::Lock::EventDestroy(s_asyncOpenEvent);
+    Blizzard::Lock::MutexDestroy(s_asyncOpenLock);
+    Blizzard::Lock::MutexDestroy(s_soundCacheLock);
+
+    return true;
+}
+
+// VERIFY: 02dbd616 manual
+// OFFSET: 0x00422F60
+uint32_t System_SFile2::SoundCacheThread(void* param) {
+    while (!s_soundCacheStop) {
+        Blizzard::Lock::EventWaitForever(s_asyncOpenEvent);
+
+        Blizzard::Lock::MutexEnter(s_asyncOpenLock);
+        int32_t count = s_asyncOpenQueue.size();
+        Blizzard::Lock::MutexLeave(s_asyncOpenLock);
+
+        while (count > 0) {
+            Blizzard::Lock::MutexEnter(s_asyncOpenLock);
+
+            std::string name = s_asyncOpenQueue.front();
+            VerifyAndCacheFile(name.c_str());
+            s_asyncOpenQueue.pop_front();
+            count = s_asyncOpenQueue.size();
+
+            Blizzard::Lock::MutexLeave(s_asyncOpenLock);
+            Blizzard::Thread::Sleep(500);
+        }
+    }
+
+    s_soundCacheStopped = 1;
+    return 0;
+}
+
+// VERIFY: e0ff8232 manual
+// OFFSET: 0x00423610
+bool System_SFile2::InitSoundCache(SOUNDCACHECALLBACK callback) {
+    bool result = Blizzard::Mopaq::SFileOpenArchive("Data/SoundCache.MPQ", 100, 0x10, &s_soundCacheArchive);
+
+    if (result || (result = Blizzard::Mopaq::SFileCreateArchive("Data/SoundCache.MPQ", 100, 0x10, &s_soundCacheArchive, nullptr))) {
+        s_soundCacheBuffer = new (0, __FILE__, __LINE__) Blizzard::Memory::TempBuffer<uint8_t, 0x400000>(0);
+        s_soundCacheCallback = callback;
+        Blizzard::Lock::EventCreate(s_asyncOpenEvent);
+        Blizzard::Lock::MutexCreate(s_asyncOpenLock);
+        Blizzard::Lock::MutexCreate(s_soundCacheLock);
+        Blizzard::Thread::CreateDetached(SoundCacheThread, nullptr, nullptr);
+    }
+
+    return result;
 }

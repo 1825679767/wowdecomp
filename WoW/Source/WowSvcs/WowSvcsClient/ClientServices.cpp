@@ -1077,7 +1077,7 @@ void ClientServices::RealmEnumCallback(uint32_t result) {
     if (ClientServices::s_loginObj->GetLoginServerType() == 1) {
         if (ClientServices::m_selectRealmInfoValid || ClientServices::SetSelectedRealmInfo(0)) {
             connection->m_realmConnectPending = 1;
-            ClientServices::s_loginObj->JoinRealm(ClientServices::m_selectRealmInfo.unk_0130[0], ClientServices::m_selectRealmInfo.unk_0130[1], ClientServices::m_selectRealmInfo.unk_0130[2]);
+            ClientServices::s_loginObj->JoinRealm(ClientServices::m_selectRealmInfo.m_regionId, ClientServices::m_selectRealmInfo.m_battlegroupId, ClientServices::m_selectRealmInfo.m_realmId);
         } else {
             ClientServices::Connection()->Complete(0, 39);
         }
@@ -1182,7 +1182,7 @@ void ClientServices::ConnectToSelectedServer() {
         return;
     }
 
-    ClientServices::s_currentConnection->SetSelectedRealm(ClientServices::m_selectRealmInfo.unk_0130[0], ClientServices::m_selectRealmInfo.unk_0130[1], ClientServices::m_selectRealmInfo.unk_0130[2]);
+    ClientServices::s_currentConnection->SetSelectedRealm(ClientServices::m_selectRealmInfo.m_regionId, ClientServices::m_selectRealmInfo.m_battlegroupId, ClientServices::m_selectRealmInfo.m_realmId);
     ClientServices::Connection()->NetClient::Connect(ClientServices::m_selectRealmInfo.m_realmAddress);
 }
 
@@ -1498,7 +1498,7 @@ void ClientServices::JoinRealmResult(uint32_t realmId, int32_t a2, int32_t a3, i
         SErrDisplayAppFatalMessage("", "", 0);
     }
 
-    if (!ClientServices::m_selectRealmInfoValid || !realmId || ClientServices::m_selectRealmInfo.unk_0130[2] != realmId) {
+    if (!ClientServices::m_selectRealmInfoValid || !realmId || ClientServices::m_selectRealmInfo.m_realmId != realmId) {
         ClientServices::s_currentConnection->Complete(0, 4);
         return;
     }
@@ -1597,6 +1597,16 @@ void ClientServices::LoginEnterMatrix(uint8_t value) {
     }
 
     ClientServices::s_loginObj->EnterMatrix(value);
+}
+
+// VERIFY: 43f73fd2 manual
+// OFFSET: 0x006B0A10
+void ClientServices::LoginRevertMatrix() {
+    if (!ClientServices::s_loginObj) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    ClientServices::s_loginObj->RevertMatrix();
 }
 
 // VERIFY: 46fc579e manual

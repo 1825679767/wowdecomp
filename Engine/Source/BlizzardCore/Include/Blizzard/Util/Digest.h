@@ -11,12 +11,28 @@ template <int N>
 struct Digest {
     /* 0000 */ uint8_t m_data[N];
 
+    Digest& FromHexString(const char* hex);
     bool operator<(const Digest& other) const;
     bool operator==(const Digest& other) const;
     bool operator!=(const Digest& other) const;
 };
 
+extern const uint8_t s_hexDigits[256];
+
 }
+}
+
+// VERIFY: 4cd92949 auto
+// OFFSET: 0x00429580<16>
+template <int N>
+Blizzard::Util::Digest<N>& Blizzard::Util::Digest<N>::FromHexString(const char* hex) {
+    if (hex && strlen(hex) == 2 * N) {
+        for (int32_t i = 0; i < 2 * N; i += 2) {
+            this->m_data[i >> 1] = (s_hexDigits[hex[i]] << 4) | s_hexDigits[hex[i + 1]];
+        }
+    }
+
+    return *this;
 }
 
 // VERIFY: 182eff5b manual

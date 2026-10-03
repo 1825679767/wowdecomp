@@ -1,17 +1,20 @@
-#include "ComSatInterface.h"
-#include "Engine/Source/ComSat/ComSatSoundIOSoundEngine.h"
+#include "Engine/Source/ComSat/ComSatInterface.h"
+#include "Engine/Source/ComSat/ComSatManager.h"
+#include "Engine/Source/ComSat/ComSatNetwork.h"
+#include "Engine/Source/ComSat/ComSatSoundManager.h"
+#include <new>
 
 // STATIC: 0x00D43988
-static ComSat::Sound::Manager* unk_D43988;
+static ComSat::Sound::Manager* s_soundManager;
 
 // STATIC: 0x00D4398C
-static ComSat::Network::Manager* unk_D4398C;
+static ComSat::Network::Manager* s_networkManager;
 
 // INLINED
 ComSat::Allocator::~Allocator() {
 }
 
-// VERIFY: d03c9b46 auto
+// VERIFY: 452c7806 auto
 // OFFSET: 0x00880B30
 void ComSat::Interface::Destroy(ComSat::Interface* comsat, ComSat::Allocator& allocator) {
     if (comsat) {
@@ -19,17 +22,25 @@ void ComSat::Interface::Destroy(ComSat::Interface* comsat, ComSat::Allocator& al
         allocator.Free(comsat);
     }
 
-    if (unk_D43988) {
-        ComSat::Sound::Manager* soundManager = unk_D43988;
+    if (s_soundManager) {
+        ComSat::Sound::Manager* soundManager = s_soundManager;
         soundManager->~Manager();
         allocator.Free(soundManager);
-        unk_D43988 = nullptr;
+        s_soundManager = nullptr;
     }
 
-    if (unk_D4398C) {
-        ComSat::Network::Manager* networkManager = unk_D4398C;
+    if (s_networkManager) {
+        ComSat::Network::Manager* networkManager = s_networkManager;
         networkManager->~Manager();
         allocator.Free(networkManager);
-        unk_D4398C = nullptr;
+        s_networkManager = nullptr;
     }
+}
+
+// VERIFY: 5430b1ec manual
+// OFFSET: 0x00880F30
+ComSat::Interface* ComSat::Interface::Create(const ComSat::Initialization& init, ComSat::Allocator& allocator) {
+    s_soundManager = new (allocator.Alloc(sizeof(ComSat::Sound::Manager))) ComSat::Sound::Manager(init, allocator);
+    s_networkManager = new (allocator.Alloc(sizeof(ComSat::Network::Manager))) ComSat::Network::Manager(init, allocator);
+    return new (allocator.Alloc(sizeof(ComSat::Manager))) ComSat::Manager(*s_soundManager, *s_networkManager, init, allocator);
 }

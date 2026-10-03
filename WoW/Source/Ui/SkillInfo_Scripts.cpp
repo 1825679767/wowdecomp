@@ -230,7 +230,7 @@ static int32_t Script_AbandonSkill(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 19628834 auto
+// VERIFY: 407a57be auto
 // OFFSET: 0x005CE3A0
 static int32_t Script_CollapseSkillHeader(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -250,7 +250,7 @@ static int32_t Script_CollapseSkillHeader(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 1235676b auto
+// VERIFY: 3836a490 auto
 // OFFSET: 0x005CE400
 static int32_t Script_ExpandSkillHeader(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -270,7 +270,7 @@ static int32_t Script_ExpandSkillHeader(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 04976012 manual
+// VERIFY: 4bd54e72 auto
 // OFFSET: 0x005CE460
 static int32_t Script_AddSkillUp(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -283,7 +283,7 @@ static int32_t Script_AddSkillUp(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 020eae34 manual
+// VERIFY: fea9ba45 auto
 // OFFSET: 0x005CE4D0
 static int32_t Script_RemoveSkillUp(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -331,7 +331,7 @@ static int32_t Script_AcceptSkillUps(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 1526bb4d manual
+// VERIFY: a3367e9c auto
 // OFFSET: 0x005CE6F0
 static int32_t Script_BuySkillTier(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

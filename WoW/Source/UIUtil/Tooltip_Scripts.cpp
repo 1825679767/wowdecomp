@@ -2378,7 +2378,7 @@ static int32_t Script_SetExistingSocketGem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c26318ae manual
+// VERIFY: e89f31ca auto
 // OFFSET: 0x006304A0
 static int32_t Script_SetGuildBankItem(lua_State* L) {
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));

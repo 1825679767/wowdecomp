@@ -225,7 +225,7 @@ static int32_t Script_SetArenaTeamRosterSelection(lua_State* L) {
     return 0;
 }
 
-// VERIFY: d74e026b manual
+// VERIFY: 35145502 auto
 // OFFSET: 0x005A3410
 static int32_t Script_GetArenaTeamRosterSelection(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -300,7 +300,7 @@ static int32_t Script_CloseArenaTeamRoster(lua_State* L) {
     return 0;
 }
 
-// VERIFY: fa985c25 manual
+// VERIFY: 1e8f2585 auto
 // OFFSET: 0x005A3CF0
 static int32_t Script_ArenaTeamRoster(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

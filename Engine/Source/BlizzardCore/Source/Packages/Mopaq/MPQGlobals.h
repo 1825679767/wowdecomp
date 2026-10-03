@@ -62,6 +62,7 @@ class Globals {
 
 extern Blizzard::Lock::ConstructOnce<Globals> s_globals;
 
+System_SFile::ARCHIVEREC* FindArchiveByName(const char* name);
 ArchiveList* GetArchiveList();
 Blizzard::Lock::RMutex* GetArchiveLock();
 MopaqGlobals* GetMopaqGlobals();

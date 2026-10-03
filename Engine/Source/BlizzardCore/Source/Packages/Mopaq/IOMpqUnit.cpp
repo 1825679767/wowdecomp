@@ -881,3 +881,331 @@ bool IOMpqReadUnit::VerifyRun(uint32_t first, uint32_t count, uint8_t** dest, ui
     *dest += total;
     return true;
 }
+
+// VERIFY: 41bc2f9a manual
+// OFFSET: 0x004397B0
+IOMpqArchiveWriteUnit* IOMpqArchiveWriteUnit::Create(IOUnitContainer* container, System_SFile::ARCHIVEREC* archive, const char* name, uint32_t blockIndex, IOUnit* next) {
+    if (!next) {
+        return nullptr;
+    }
+
+    bool ownsMemory;
+    void* memory = IOUnitContainer::Alloc(container, sizeof(IOMpqArchiveWriteUnit), &ownsMemory);
+
+    if (!memory) {
+        return nullptr;
+    }
+
+    return new (memory) IOMpqArchiveWriteUnit(archive, name, blockIndex, ownsMemory, next);
+}
+
+// INLINED
+IOMpqArchiveWriteUnit::IOMpqArchiveWriteUnit(System_SFile::ARCHIVEREC* archive, const char* name, uint32_t blockIndex, bool ownsMemory, IOUnit* next) : IOMpqArchiveUnit(archive, name, blockIndex, ownsMemory, next) {
+}
+
+bool IOMpqArchiveWriteUnit::Read(void* buffer, int64_t offset, uint32_t count, uint32_t* bytesRead) {
+    return false;
+}
+
+// VERIFY: b7df5c48 manual
+// OFFSET: 0x004268B0
+void IOMpqWriteUnit::SetContext(void* context) {
+    this->m_context = context;
+}
+
+// VERIFY: 295973cf auto
+// OFFSET: 0x00429780
+uint32_t IOMpqWriteUnit::GetType() {
+    return 'mpqW';
+}
+
+// VERIFY: f1455b0b manual
+// OFFSET: 0x0042BB70
+bool IOMpqWriteUnit::GetFileSize(int64_t* size) {
+    *size = std::min(this->m_sectorSize * this->m_sectorIndex, this->m_fileSize);
+    return true;
+}
+
+bool IOMpqWriteUnit::Read(void* buffer, int64_t offset, uint32_t count, uint32_t* bytesRead) {
+    return false;
+}
+
+bool IOMpqWriteUnit::SetFileSize(int64_t size) {
+    return false;
+}
+
+bool IOMpqWriteUnit::Close() {
+    return true;
+}
+
+// VERIFY: 00b11648 manual
+// OFFSET: 0x00443AC0
+IOMpqWriteUnit::IOMpqWriteUnit(const std::vector<Blizzard::Mopaq::CompressionAlgorithm>& compression, uint32_t fileSize, uint32_t sectorCount, uint32_t sectorSize, Callback callback, IOMpqWriteUnit** self, bool ownsMemory, IOUnit* next) : IOUnit(next, ownsMemory), m_checksums(sectorCount), m_sectorOffsets(sectorCount + 2), m_compression(compression) {
+    this->m_fileSize = fileSize;
+    this->m_hasChecksums = false;
+    this->m_sectorSize = sectorSize;
+    this->m_sectorIndex = 0;
+    this->m_callback = callback;
+    this->m_context = nullptr;
+    *self = this;
+    this->m_sectorOffsets.m_data[0] = 4 * (sectorCount + 2);
+    memset(this->m_sectorOffsets.m_data + 1, 0, 4 * sectorCount + 4);
+    memset(this->m_checksums.m_data, 0, 4 * sectorCount);
+}
+
+// VERIFY: 8623bfd7 manual
+// OFFSET: 0x00443BF0
+IOMpqWriteUnit::~IOMpqWriteUnit() {
+}
+
+// VERIFY: 53dd2286 manual
+// OFFSET: 0x00443C90
+IOMpqWriteUnit::IOMpqWriteUnit(const std::vector<Blizzard::Mopaq::CompressionAlgorithm>& compression, uint32_t fileSize, Callback callback, IOMpqWriteUnit** self, bool ownsMemory, IOUnit* next) : IOUnit(next, ownsMemory), m_checksums(0), m_sectorOffsets(0), m_compression(compression) {
+    this->m_fileSize = fileSize;
+    this->m_hasChecksums = false;
+    this->m_sectorSize = fileSize;
+    this->m_sectorIndex = 0;
+    this->m_callback = callback;
+    this->m_context = nullptr;
+    *self = this;
+}
+
+// VERIFY: c03708dd manual
+// OFFSET: 0x004460D0
+IOUnit* IOMpqWriteUnit::Create(IOUnitContainer* container, const std::vector<Blizzard::Mopaq::CompressionAlgorithm>& compression, uint32_t fileSize, uint32_t sectorSize, Callback callback, IOMpqWriteUnit** self, IOUnit* next) {
+    if (!next || !fileSize) {
+        return next;
+    }
+
+    bool ownsMemory;
+    void* memory = IOUnitContainer::Alloc(container, sizeof(IOMpqWriteUnit), &ownsMemory);
+
+    if (!memory) {
+        return nullptr;
+    }
+
+    return new (memory) IOMpqWriteUnit(compression, fileSize, (fileSize + sectorSize - 1) / sectorSize, sectorSize, callback, self, ownsMemory, next);
+}
+
+// VERIFY: 68f18f45 manual
+// OFFSET: 0x00446180
+IOUnit* IOMpqWriteUnit::CreateSingle(IOUnitContainer* container, const std::vector<Blizzard::Mopaq::CompressionAlgorithm>& compression, uint32_t fileSize, Callback callback, IOMpqWriteUnit** self, IOUnit* next) {
+    if (!next) {
+        return nullptr;
+    }
+
+    if (!fileSize || compression.empty()) {
+        return next;
+    }
+
+    bool ownsMemory;
+    void* memory = IOUnitContainer::Alloc(container, sizeof(IOMpqWriteUnit), &ownsMemory);
+
+    if (!memory) {
+        return nullptr;
+    }
+
+    return new (memory) IOMpqWriteUnit(compression, fileSize, callback, self, ownsMemory, next);
+}
+
+// VERIFY: 1a1255b6 manual
+// OFFSET: 0x00459CE0
+void IOMpqWriteUnit::CompressBlock(void* param) {
+    CompressJob* job = static_cast<CompressJob*>(param);
+    IOMpqWriteUnit* unit = job->m_unit;
+    uint32_t sectorSize = job->m_sectorSize;
+    uint8_t* dst = job->m_dst;
+    uint32_t remaining = job->m_size;
+    const uint8_t* src = job->m_src;
+    uint32_t* sizes = job->m_sizes;
+    uint32_t* checksums = job->m_checksums;
+
+    job->m_success = false;
+
+    while (remaining) {
+        uint32_t chunk = std::min(sectorSize, remaining);
+        uint32_t size = chunk;
+        bool checksum = false;
+        bool compressed;
+
+        if (!unit->m_compression.empty()) {
+            compressed = System_SComp::Compress(dst, &size, &checksum, src, chunk, unit->m_compression.size(), &unit->m_compression[0]);
+        } else {
+            compressed = System_SComp::Compress(dst, &size, &checksum, src, chunk, 0, nullptr);
+        }
+
+        if (!compressed) {
+            return;
+        }
+
+        if (checksum && unit->m_sectorOffsets.m_count) {
+            uint32_t adler = adler32(0, dst, size);
+
+            if (!adler) {
+                adler = 0xFFFFFFFF;
+            }
+
+            *checksums = adler;
+            unit->m_hasChecksums = true;
+        }
+
+        checksums++;
+        src += chunk;
+        dst += size;
+        *sizes++ = size;
+        remaining -= chunk;
+    }
+
+    job->m_success = true;
+}
+
+// VERIFY: 46c75536 manual
+// OFFSET: 0x00459E10
+bool IOMpqWriteUnit::Write(const void* buffer, int64_t offset, uint32_t count) {
+    if (!count) {
+        return true;
+    }
+
+    if (count + static_cast<uint32_t>(offset) > this->m_fileSize) {
+        return false;
+    }
+
+    if (static_cast<uint32_t>(offset) / this->m_sectorSize != this->m_sectorIndex) {
+        return false;
+    }
+
+    bool single = !this->m_sectorOffsets.m_count;
+    uint32_t* offsets;
+    uint32_t offsetCount;
+    uint32_t singleOffsets[3];
+
+    if (!single) {
+        offsets = this->m_sectorOffsets.m_data;
+        offsetCount = this->m_sectorOffsets.m_count;
+    } else {
+        singleOffsets[1] = 0;
+        singleOffsets[0] = 0;
+        offsets = singleOffsets;
+        offsetCount = 3;
+    }
+
+    uint32_t sectors = (count + this->m_sectorSize - 1) / this->m_sectorSize;
+    uint32_t workerCount = 0;
+
+    if (sectors >= 8) {
+        workerCount = sectors >> 2;
+        Blizzard::Hardware::GetProcessorFeatures();
+        workerCount = std::min(std::min(workerCount, System_Hardware::s_processorFeatures.m_processorCount), 8u) - 1;
+    }
+
+    System_MPQGlobals::Worker* workers[7];
+    System_MPQGlobals::GetWorkerPool()->Acquire(workerCount, workers);
+
+    uint32_t extra = sectors % (workerCount + 1);
+    uint32_t perJob = sectors / (workerCount + 1);
+    Blizzard::Memory::TempBuffer<uint8_t, 0x1000> output(count);
+    CompressJob jobs[8];
+    uint32_t consumed = 0;
+    uint32_t sectorsDone = 0;
+    bool result = true;
+
+    for (uint32_t i = 0;;) {
+        CompressJob* job = &jobs[i];
+        uint32_t jobSectors = perJob + (i < extra);
+        job->m_src = static_cast<const uint8_t*>(buffer) + consumed;
+        job->m_dst = output.m_data + consumed;
+        job->m_sectorSize = this->m_sectorSize;
+        job->m_unit = this;
+
+        uint32_t bytes = std::min(jobSectors * this->m_sectorSize, count);
+        consumed += bytes;
+        count -= bytes;
+
+        uint32_t index = sectorsDone + this->m_sectorIndex;
+        sectorsDone += jobSectors;
+        job->m_sizes = offsets + index + 1;
+        job->m_checksums = this->m_checksums.m_data + index;
+        job->m_size = bytes;
+
+        if (i) {
+            System_MPQGlobals::Worker* worker = workers[i - 1];
+
+            if (!worker->m_proc) {
+                worker->m_param = job;
+                worker->m_proc = CompressBlock;
+                Blizzard::Lock::EventSet(worker->m_start.m_event);
+            }
+        }
+
+        if (++i > workerCount) {
+            break;
+        }
+    }
+
+    CompressBlock(&jobs[0]);
+
+    for (uint32_t i = 0; i <= workerCount; i++) {
+        CompressJob* job = &jobs[i];
+
+        if (i) {
+            Blizzard::Lock::EventWaitForever(workers[i - 1]->m_done.m_event);
+        }
+
+        if (!job->m_success) {
+            result = false;
+        }
+
+        uint32_t* last = job->m_sizes + (perJob + (i < extra)) - 1;
+
+        for (uint32_t* size = job->m_sizes; size <= last; size++) {
+            *size += size[-1];
+        }
+
+        if (!this->m_next->Write(job->m_dst, job->m_sizes[-1], *last - job->m_sizes[-1])) {
+            result = false;
+        }
+    }
+
+    System_MPQGlobals::GetWorkerPool()->Release(workerCount, workers);
+
+    if (!result) {
+        return false;
+    }
+
+    this->m_sectorIndex += sectorsDone;
+
+    if (this->m_sectorIndex == offsetCount - 2) {
+        uint32_t end = offsets[this->m_sectorIndex];
+
+        if (!single) {
+            if (this->m_hasChecksums) {
+                uint32_t size = 4 * this->m_checksums.m_count;
+                Blizzard::Mopaq::CompressionAlgorithm algorithm;
+                algorithm.m_type = 0x20;
+                algorithm.m_level = 0;
+                bool checksum;
+
+                if (!System_SComp::Compress(this->m_checksums.m_data, &size, &checksum, this->m_checksums.m_data, size, 1, &algorithm)) {
+                    return false;
+                }
+
+                if (!this->m_next->Write(this->m_checksums.m_data, offsets[this->m_sectorIndex], size)) {
+                    return false;
+                }
+
+                end += size;
+            }
+
+            offsets[this->m_sectorIndex + 1] = end;
+            this->m_sectorIndex++;
+
+            if (!this->m_next->Write(offsets, 0, 4 * offsetCount)) {
+                return false;
+            }
+        }
+
+        this->m_callback(this->m_context, end);
+    }
+
+    return true;
+}

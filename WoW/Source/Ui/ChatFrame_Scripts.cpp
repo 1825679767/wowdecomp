@@ -298,7 +298,7 @@ static int32_t Script_GetActiveVoiceChannel(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 96240761 auto
+// VERIFY: 4dce6d52 auto
 // OFFSET: 0x0050D8A0
 static int32_t Script_SendSystemMessage(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -662,7 +662,7 @@ static int32_t Script_GetNumLanguages(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 11a2c976 manual
+// VERIFY: 4f0456ed auto
 // OFFSET: 0x00500810
 static int32_t Script_GetLanguageByIndex(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -916,7 +916,7 @@ static int32_t Script_SendAddonMessage(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 66ca7532 manual
+// VERIFY: 0487e16e auto
 // OFFSET: 0x004FEAF0
 static int32_t Script_ChangeChatColor(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4)) {
@@ -957,7 +957,7 @@ static int32_t Script_ChangeChatColor(lua_State* L) {
     return 0;
 }
 
-// VERIFY: d5186565 auto
+// VERIFY: 9136ba27 auto
 // OFFSET: 0x004FEDC0
 static int32_t Script_SetChatColorNameByClass(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -1916,7 +1916,7 @@ static int32_t Script_SetChannelWatch(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5e2650e5 manual
+// VERIFY: 4d3fdf6e auto
 // OFFSET: 0x00500980
 static int32_t Script_DoEmote(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -1999,7 +1999,7 @@ static int32_t Script_SetActiveVoiceChannel(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 6cc353e2 manual
+// VERIFY: 9e73392f auto
 // OFFSET: 0x00500C80
 static int32_t Script_CanComplainChat(lua_State* L) {
     const char* text = nullptr;

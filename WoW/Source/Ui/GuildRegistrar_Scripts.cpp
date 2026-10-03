@@ -30,7 +30,7 @@ static int32_t Script_CloseGuildRegistrar(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5b208826 auto
+// VERIFY: a9ebbc34 auto
 // OFFSET: 0x0059A130
 static int32_t Script_BuyGuildCharter(lua_State* L) {
     if (!lua_isstring(L, 1)) {

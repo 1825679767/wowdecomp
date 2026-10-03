@@ -8,6 +8,7 @@ namespace Process {
 
 bool GetProcessDirectory(char* buffer, int32_t buffersize);
 bool GetProcessPath(char* buffer, int32_t buffersize);
+bool LaunchChildProcessWithArguments(const char* path, const char* arguments, void (*callback)(void*), void* param);
 void Sleep(uint32_t milliseconds);
 
 }

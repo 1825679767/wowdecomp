@@ -69,6 +69,26 @@ uint32_t Blizzard::String::Append(char* dst, const char* src, uint32_t maxchars)
     return static_cast<uint32_t>(p - dst);
 }
 
+// VERIFY: 109c466e auto
+// OFFSET: 0x00428830
+const char* Blizzard::String::FindFirstOf(const char* str, const char* chars, int32_t maxchars) {
+    if (!str || !chars || !*chars || maxchars < 1 || !*str) {
+        return nullptr;
+    }
+
+    const char* end = str + maxchars;
+
+    for (const char* p = str; p < end && *p; p++) {
+        for (const char* c = chars; *c; c++) {
+            if (*p == *c) {
+                return p;
+            }
+        }
+    }
+
+    return nullptr;
+}
+
 // VERIFY: a95efa1a auto
 // OFFSET: 0x004288A0
 int32_t Blizzard::String::VFormat(char* dst, uint32_t maxchars, const char* format, va_list args) {
@@ -240,6 +260,12 @@ bool Blizzard::String::Equal(const char* str1, const char* str2) {
 // OFFSET: 0x00428780
 bool Blizzard::String::EqualI(const char* str1, const char* str2) {
     return str1 && str2 && !_stricmp(str1, str2);
+}
+
+// VERIFY: ea6a1355 auto
+// OFFSET: 0x004287B0
+bool Blizzard::String::EqualI(const char* str1, const char* str2, uint32_t count) {
+    return str1 && str2 && !_strnicmp(str1, str2, count);
 }
 
 // VERIFY: 87af17bb manual

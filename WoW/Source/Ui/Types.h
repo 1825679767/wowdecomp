@@ -5,15 +5,6 @@
 #include <cstdint>
 #include "Engine/Source/BLPFile/Types.h"
 
-namespace BSN {
-struct BSNPrimitiveEncoder {
-    /* 0000 */ uint8_t unk_0000 [16];
-    /* 0010 */ int32_t unk_0010;
-    /* 0014 */ uint8_t unk_0014 [60];
-    /* 0050 */ int32_t unk_0050;
-};
-}
-
 enum UIErrors {
     ERR_INV_FULL = 0,
     ERR_BANK_FULL = 1,
@@ -1404,6 +1395,31 @@ enum SCRIPT_EVENT {
 #undef SCRIPT_EVENT_ALIAS_ENUM
 #undef SCRIPT_EVENT_ENUM
     NUM_SCRIPT_EVENTS = 722
+};
+
+enum BATTLENET_PRESENCE_FIELD {
+    BN_PRESENCE_ONLINE = 0,
+    BN_PRESENCE_ONLINE_TIME = 1,
+    BN_PRESENCE_LAST_ONLINE = 2,
+    BN_PRESENCE_AFK = 3,
+    BN_PRESENCE_DND = 4,
+    BN_PRESENCE_BROADCAST = 5,
+    BN_PRESENCE_BROADCAST_TIME = 6,
+    BN_PRESENCE_TOON_NAME = 7,
+    BN_PRESENCE_PROGRAM = 8,
+    BN_PRESENCE_ACCOUNT_NAME = 9,
+    BN_PRESENCE_FOCUS = 10,
+    BN_PRESENCE_NOTE = 11,
+    BN_PRESENCE_REALM_NAME = 12,
+    BN_PRESENCE_RACE = 13,
+    BN_PRESENCE_CLASS = 14,
+    BN_PRESENCE_GUILD = 15,
+    BN_PRESENCE_LEVEL = 16,
+    BN_PRESENCE_AREA = 17,
+    BN_PRESENCE_GAME_TEXT = 18,
+    BN_PRESENCE_UNK_19 = 19,
+    BN_PRESENCE_FACTION = 20,
+    NUM_BN_PRESENCE_FIELDS = 21,
 };
 
 enum BINDING_SET {

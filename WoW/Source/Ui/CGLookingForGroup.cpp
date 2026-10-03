@@ -134,7 +134,7 @@ int32_t CGLookingForGroup::GetLFGRoleUpdate(lua_State* L) {
     return 3;
 }
 
-// VERIFY: b42e78a8 auto
+// VERIFY: 5c5209c5 auto
 // OFFSET: 0x00554690
 int32_t CGLookingForGroup::GetLFGRoleUpdateSlot(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -275,7 +275,7 @@ int32_t CGLookingForGroup::GetLFGProposalMember(lua_State* L) {
     return 7;
 }
 
-// VERIFY: 668d01fe manual
+// VERIFY: 71caab52 auto
 // OFFSET: 0x00554380
 int32_t CGLookingForGroup::GetLFGProposalEncounter(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -334,7 +334,7 @@ void CGLookingForGroup::ProposalResponse(bool accept) {
     FrameScript_SignalEvent(SCRIPT_EVENT_LFG_PROPOSAL_UPDATE, nullptr);
 }
 
-// VERIFY: 85c9492d manual
+// VERIFY: cb5ab203 auto
 // OFFSET: 0x00554750
 int32_t CGLookingForGroup::GetLFGRoleUpdateMember(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

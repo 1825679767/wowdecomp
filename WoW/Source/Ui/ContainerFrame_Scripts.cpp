@@ -141,7 +141,7 @@ static int32_t Script_GetContainerNumSlots(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 27e4a857 manual
+// VERIFY: 5491be82 auto
 // OFFSET: 0x005D8C70
 static int32_t Script_GetBagName(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -575,7 +575,7 @@ static int32_t Script_PickupContainerItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5b61867b auto
+// VERIFY: 6deefa52 auto
 // OFFSET: 0x005D8BD0
 static int32_t Script_ShowContainerSellCursor(lua_State* L) {
     if (Spell_C_IsTargeting() || CursorGetResetMode() != 1) {
@@ -748,7 +748,7 @@ static int32_t Script_GetContainerItemPurchaseInfo(lua_State* L) {
     return 5;
 }
 
-// VERIFY: 4ee0a0e3 auto
+// VERIFY: 7da8b539 auto
 // OFFSET: 0x005D7C80
 static int32_t Script_GetContainerItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -817,7 +817,7 @@ static int32_t Script_SplitContainerItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c5b09c6b manual
+// VERIFY: 38975cf9 auto
 // OFFSET: 0x005D8B10
 static int32_t Script_SocketContainerItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {

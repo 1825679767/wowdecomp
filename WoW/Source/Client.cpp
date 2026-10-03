@@ -6,14 +6,14 @@
 #include "_Triage/AreaList.h"
 #include "WoW/Source/Net/NetClient/NetClient.h"
 #include "_Triage/SHA1.h"
-#include "_Triage/DataPreload.h"
 #include "_Triage/GameClientCommands.h"
-#include "_Triage/StartupReport.h"
-#include "_Triage/StreamingSetEnabled.h"
 #include "Engine/Source/Base/Base.h"
 #include "Engine/Source/Base/CmdLine.h"
+#include "Engine/Source/BlizzardCore/OggDecompress.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Manifests.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Tracker.h"
 #include "Engine/Source/BlizzardCore/Source/System/Time/Time.h"
 #include "Engine/Source/ConsoleBase/ConsoleCommand.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
@@ -842,7 +842,7 @@ static void SetInstallPath() {
     }
 }
 
-// VERIFY: a6442131 manual
+// VERIFY: 835a84bd manual
 // OFFSET: 0x00403600
 static void LoadMFIL(const char* file) {
     Blizzard::Time::GetElapsedSinceStart(true);
@@ -860,10 +860,27 @@ static void LoadMFIL(const char* file) {
     }
 
     if (SFile::IsTrial()) {
-        RegisterOggDecompressor();
+        InitOggDecompression();
     }
 
     SFile::SetStreamingStatus(s_streamingDiag & 1, (s_streamingDiag >> 1) & 1, (s_streamingDiag >> 2) & 1, (s_streamingDiag >> 3) & 1, 12340);
+}
+
+// VERIFY: 4b6c1aaa auto
+// OFFSET: 0x004036B0
+void StartupReport(bool firstRun) {
+    uint32_t speedTest;
+
+    if (!SRegLoadValue("World of Warcraft Trial", "SpeedTest", 1, &speedTest)) {
+        speedTest = 0;
+    }
+
+    Blizzard::Streaming::FileManifest::SetSpeedTest(speedTest);
+    StartupReportSetSpeedTest(speedTest);
+    Tracker::SetLocale(CVar::Lookup("locale")->m_stringValue.m_str);
+    Tracker::SetBuildnum(12340);
+    StartupReportSendTelemetry(true, firstRun);
+    World::SetFrameCntCallback(StartupReportFrameCallback);
 }
 
 // VERIFY: 2b64aabf manual
@@ -1777,7 +1794,7 @@ void BeginCloseGame() {
     }
 }
 
-// VERIFY: 47274a9a auto
+// VERIFY: cfa3efeb auto
 // OFFSET: 0x00406C70
 int32_t CommonMain() {
     StormInitialize();
@@ -1814,7 +1831,7 @@ int32_t CommonMain() {
     StormDestroy();
 
     if (SFile::IsTrial()) {
-        ShutdownFileCache();
+        ShutdownOggDecompression();
     }
 
     Blizzard::Time::GetElapsedSinceStart(false);

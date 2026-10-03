@@ -286,6 +286,16 @@ static void F_CALLBACK FSoundFreeCallback(void* ptr, FMOD_MEMORY_TYPE type) {
     SMemFree(ptr, "FMod", 0, 0);
 }
 
+// VERIFY: 8b89c458 manual
+// OFFSET: 0x00887370
+SEStreamCallbacks::~SEStreamCallbacks() {
+}
+
+// VERIFY: d276738b auto
+// OFFSET: 0x005EEB70
+void SEStreamCallbacks::Delete() {
+}
+
 // VERIFY: 762ff4ed manual
 // OFFSET: 0x00878110
 void SEStreamCallbacks::DiscardSamples(uint32_t position, uint32_t count) {

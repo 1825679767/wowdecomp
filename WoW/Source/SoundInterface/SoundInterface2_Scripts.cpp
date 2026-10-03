@@ -175,7 +175,7 @@ static int32_t Script_VoiceChat_StopCapture(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ec24934e manual
+// VERIFY: e09b1c70 auto
 // OFFSET: 0x00985D60
 static int32_t Script_VoiceChat_RecordLoopbackSound(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

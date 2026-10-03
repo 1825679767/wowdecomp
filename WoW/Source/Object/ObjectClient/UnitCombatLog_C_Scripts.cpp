@@ -41,7 +41,7 @@ static int32_t Script_CombatLogClearEntries(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 04498be3 auto
+// VERIFY: 07fafbfd auto
 // OFFSET: 0x0074D5B0
 static int32_t Script_CombatLogSetRetentionTime(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

@@ -40,6 +40,17 @@ System_Thread::ExternalTLSRecord System_Thread::s_externalTLS[32];
 // STATIC: 0x00B382B0
 int32_t System_Thread::s_externalTLSCount;
 
+// OFFSET: 0x004284E0
+bool Blizzard::Thread::Sleep(uint32_t milliseconds) {
+    ::Sleep(milliseconds);
+    return true;
+}
+
+// OFFSET: 0x00428CA0
+bool Blizzard::Thread::IsRunning(ThreadRecord* thread) {
+    return thread->m_state >= 0;
+}
+
 // OFFSET: 0x00428CB0
 bool System_Thread::SetPriorityLevel(Blizzard::Thread::ThreadRecord* thread, int32_t level) {
     switch (level) {

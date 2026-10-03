@@ -3,111 +3,125 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "Engine/Source/Storm/H/stpl.h"
+#include "WoW/Source/Battlenet/BattlenetProtocol.h"
+#include "WoW/Source/Battlenet/GeneralFunction.h"
+#include "WoW/Source/Ui/BattlenetAPI.h"
+#include "WoW/Source/Ui/Types.h"
 
-class Login;
 struct lua_State;
-
-struct BattlenetPresenceValue {
-    /* 0000 */ int32_t m_type;
-    /* 0004 */ uint8_t m_bool;
-    /* 0005 */ uint8_t unk_0005[519];
-};
-
-struct BattlenetBlockList {
-    /* 0000 */ uint32_t m_blockedCount;
-    /* 0004 */ uint32_t m_blocked[100];
-    /* 0194 */ uint32_t m_blockedToonCount;
-    /* 0198 */ uint32_t m_blockedToons[100];
-};
 
 struct BattlenetUIFriend {
     /* 0000 */ uint32_t m_presenceID;
-    /* 0004 */ uint8_t unk_0004[820];
-};
-
-struct BattlenetInviteList {
-    /* 0000 */ uint32_t unk_0000;
-    /* 0004 */ uint32_t unk_0004;
-    /* 0008 */ uint32_t m_count;
+    /* 0004 */ uint32_t m_program;
+    /* 0008 */ BSN::String<72> m_name;
+    /* 0134 */ BSN::String<40> m_givenName;
+    /* 01E0 */ BSN::String<40> m_surname;
+    /* 028C */ BSN::String<40> m_sortSurname;
 };
 
 class BattlenetUI {
     public:
-    static BattlenetInviteList* m_friendInvites;
-    static int32_t unk_BD1B00;
-    static uint8_t m_friendListLoaded;
-    static TSGrowableArray<BattlenetUIFriend> m_friends;
+    struct EventCallback {
+        /* 0000 */ const char* m_event;
+        /* 0004 */ GeneralFunction::SimpleCallbackFunc m_func;
+        /* 0008 */ uint32_t m_handle;
+    };
 
-    static void EnterRealm(const char* nameFormat);
+    struct PresenceCallback {
+        /* 0000 */ uint32_t m_field;
+        /* 0004 */ GeneralFunction::SimpleCallbackFunc m_func;
+        /* 0008 */ uint32_t m_handle;
+    };
+
+    class FriendInviteSentCB : public GeneralFunction::Callback {
+        public:
+        void Call(int32_t argc, const GeneralFunction::Arg* args) const override;
+        void Destroy() const override;
+    };
+
+    static uint32_t s_selfRealm;
+    static bool s_initialized;
+    static bool m_friendListLoaded;
+    static BSN::BSNEncodedObject<Battlenet::Friends::FriendInviteContainer, Protocol>* m_friendInvites;
+    static BSN::BSNEncodedObject<Battlenet::Friends::FriendsOfFriendList, Protocol>* s_friendsOfFriend;
+    static GeneralFunction::Callback* s_createConversationCB;
+    static GeneralFunction::Callback* s_inviteToConversationCB;
+    static GeneralFunction::Callback* s_friendsOfFriendCB;
+    static uint32_t s_selectedFriend;
+    static uint32_t s_selectedBlock;
+    static uint32_t s_selectedToonBlock;
+    static BSN::Array<BattlenetUIFriend, 100> m_friends;
+    static EventCallback s_eventCallbacks[26];
+    static PresenceCallback s_presenceCallbacks[NUM_BN_PRESENCE_FIELDS];
+    static FriendInviteSentCB s_friendInviteSentCB;
+    static int32_t s_broadcastCount;
+    static char s_programString[16];
+    static float s_broadcastTime;
+    static char s_displayName[72];
+
+    static bool AddToFriendList(uint32_t presenceId);
+    static int32_t BNGetFriendInfoHelper(lua_State* L, uint32_t index);
+    static int32_t BNGetToonInfoHelper(lua_State* L, uint32_t presenceId);
+    static void BlockAddedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void BlockListInitializedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void BlockRemovedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatChannelClosedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatChannelCreateCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatChannelInviteCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatChannelJoinedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatChannelLeftCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatChannelMemberJoinedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatChannelMemberLeftCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatChannelMemberUpdatedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatChannelMessageBlockedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatChannelMessageReceivedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatChannelMessageUndeliverableCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatWhisperReceivedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatWhisperSentCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ChatWhisperUndeliverableCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void CustomMessageChangedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void DisambiguateFriendList();
+    static void DisplayError(uint16_t error, uint32_t presenceId);
+    static void FactionUpdateCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static BattlenetUIFriend* FindFriend(uint32_t presenceId);
+    static int32_t FindFriendIndex(uint32_t presenceId);
+    static void FriendAddedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void FriendInfoChangedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void FriendInviteAddedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void FriendInviteListInitializedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void FriendInviteRemovedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void FriendListInitializedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void FriendRemovedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void FriendsOfFriendCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static const char* GetNameForPresenceIdHelper(uint32_t presenceId);
+    static uint32_t GetSelfRealmID();
+    static void IgnoredFieldCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void Init();
+    static void LastOnlineChangedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void NewPresenceCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void OnlinePresenceChangedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void OnlineTimeChangedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
     static void PopulateAutoComplete();
-
-    /* 0000 */ uint8_t unk_0000 [4];
-    /* 0004 */ int32_t unk_0004;
-    /* 0008 */ int32_t unk_0008;
-    /* 000C */ int32_t unk_000C;
+    static int32_t QSortDisambiguateFriendListCB(const void* a, const void* b);
+    static int32_t QSortFriendInviteListByTimeCB(const void* a, const void* b);
+    static int32_t QSortFriendListCB(const void* a, const void* b);
+    static void SelfToonOfflineCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void SelfToonOnlineCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void SendScriptEvent(uint32_t event, const char* format, ...);
+    static void SetBattlenetConnectionRecovered();
+    static void SetDisconnectedFromBattlenet(bool disconnected);
+    static void SettingChangedCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void SortFriendInviteList();
+    static void SystemMessageCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void ToonNameUpdateCB(void* param, int32_t argc, const GeneralFunction::Arg* args);
+    static void Uninit();
+    static int32_t UpdateAutoComplete(uint32_t& presenceId, uint32_t flags, int32_t add, const char* name);
 };
 
-namespace BattlenetAPI {
-    bool IsRIDEnabled();
-    BattlenetPresenceValue GetPresenceValue(uint32_t presenceID, uint32_t field);
-    BattlenetBlockList GetBlockList();
-}
-
+char* FilterChatLinks(const char* source, char* dest, uint32_t size);
 bool BattlenetUI_IsAvailable();
 void BattlenetUI_EnterRealm();
 void BattlenetUI_LeaveRealm();
-
-int32_t Script_BNGetInfo(lua_State* L);
-int32_t Script_BNGetFriendInfo(lua_State* L);
-int32_t Script_BNGetFriendInfoByID(lua_State* L);
-int32_t Script_BNGetNumFriendToons(lua_State* L);
-int32_t Script_BNGetFriendToonInfo(lua_State* L);
-int32_t Script_BNGetToonInfo(lua_State* L);
-int32_t Script_BNRemoveFriend(lua_State* L);
-int32_t Script_BNSetFriendNote(lua_State* L);
-int32_t Script_BNSetSelectedFriend(lua_State* L);
-int32_t Script_BNGetSelectedFriend(lua_State* L);
-int32_t Script_BNGetFriendInviteInfo(lua_State* L);
-int32_t Script_BNSendFriendInvite(lua_State* L);
-int32_t Script_BNSendFriendInviteByID(lua_State* L);
-int32_t Script_BNAcceptFriendInvite(lua_State* L);
-int32_t Script_BNDeclineFriendInvite(lua_State* L);
-int32_t Script_BNReportFriendInvite(lua_State* L);
-int32_t Script_BNSetAFK(lua_State* L);
-int32_t Script_BNSetDND(lua_State* L);
-int32_t Script_BNSetCustomMessage(lua_State* L);
-int32_t Script_BNGetCustomMessageTable(lua_State* L);
-int32_t Script_BNSetFocus(lua_State* L);
-int32_t Script_BNSendWhisper(lua_State* L);
-int32_t Script_BNCreateConversation(lua_State* L);
-int32_t Script_BNInviteToConversation(lua_State* L);
-int32_t Script_BNLeaveConversation(lua_State* L);
-int32_t Script_BNSendConversationMessage(lua_State* L);
-int32_t Script_BNGetNumConversationMembers(lua_State* L);
-int32_t Script_BNGetConversationMemberInfo(lua_State* L);
-int32_t Script_BNGetConversationInfo(lua_State* L);
-int32_t Script_BNListConversation(lua_State* L);
-int32_t Script_BNGetBlockedInfo(lua_State* L);
-int32_t Script_BNIsBlocked(lua_State* L);
-int32_t Script_BNSetBlocked(lua_State* L);
-int32_t Script_BNSetSelectedBlock(lua_State* L);
-int32_t Script_BNGetSelectedBlock(lua_State* L);
-int32_t Script_BNGetBlockedToonInfo(lua_State* L);
-int32_t Script_BNIsToonBlocked(lua_State* L);
-int32_t Script_BNSetToonBlocked(lua_State* L);
-int32_t Script_BNSetSelectedToonBlock(lua_State* L);
-int32_t Script_BNGetSelectedToonBlock(lua_State* L);
-int32_t Script_BNReportPlayer(lua_State* L);
-int32_t Script_BNConnected(lua_State* L);
-int32_t Script_IsBNLogin(lua_State* L);
-int32_t Script_BNRequestFOFInfo(lua_State* L);
-int32_t Script_BNGetNumFOF(lua_State* L);
-int32_t Script_BNGetFOFInfo(lua_State* L);
-int32_t Script_BNSetMatureLanguageFilter(lua_State* L);
-int32_t Script_BNGetMatureLanguageFilter(lua_State* L);
-int32_t Script_BNIsSelf(lua_State* L);
-int32_t Script_BNIsFriend(lua_State* L);
 void BattlenetUI_RegisterScriptFunctions();
 void BattlenetUI_UnregisterScriptFunctions();
 

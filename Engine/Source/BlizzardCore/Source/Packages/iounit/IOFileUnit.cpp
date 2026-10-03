@@ -42,14 +42,14 @@ uint32_t IOFileUnit::GetType() {
     return 'file';
 }
 
-// VERIFY: e1defcb9 manual
+// VERIFY: 50aaf91c manual
 // OFFSET: 0x00453860
 bool IOFileUnit::Read(void* buffer, int64_t offset, uint32_t count, uint32_t* bytesRead) {
     if (static_cast<System_SFile::RawReadInfo&>(System_SFile::s_rawReadInfo).m_retryNative) {
         const char* path = Blizzard::File::GetFileInfo(this->m_stream)->m_path;
         Blizzard::File::StreamingInfo* streaming = this->m_stream->m_streaming;
 
-        if (!streaming || !streaming->m_storagehandle.m_mNode || Blizzard::Streaming::CheckFileRange(path, offset, count, path, 5) == 1) {
+        if (!streaming || !streaming->m_entry || Blizzard::Streaming::CheckFileRange(path, offset, count, path, 5) == 1) {
             return this->ReadNative(static_cast<uint32_t>(offset), path, buffer, count, bytesRead);
         }
     }

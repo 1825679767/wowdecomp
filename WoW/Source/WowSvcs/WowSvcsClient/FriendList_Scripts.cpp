@@ -146,7 +146,7 @@ static int32_t Script_AddFriend(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 8a3bef9d auto
+// VERIFY: 13f3e18a auto
 // OFFSET: 0x006B6B50
 static int32_t Script_SendWho(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -250,7 +250,7 @@ static int32_t Script_GetFriendInfo(lua_State* L) {
     return 8;
 }
 
-// VERIFY: 1a2134ce manual
+// VERIFY: 2c82bd60 auto
 // OFFSET: 0x006B4400
 static int32_t Script_SetSelectedFriend(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -580,7 +580,7 @@ static int32_t Script_AddOrRemoveFriend(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 3082117f manual
+// VERIFY: a9ce0401 auto
 // OFFSET: 0x006B7BD0
 static int32_t Script_RemoveFriend(lua_State* L) {
     if (lua_isnumber(L, 1)) {

@@ -198,7 +198,7 @@ void System_File::GetFileInfoByFile(Blizzard::File::StreamRecord* file) {
         return;
     }
 
-    if (!file->m_streaming || !file->m_streaming->m_storagehandle.m_mNode) {
+    if (!file->m_streaming || !file->m_streaming->m_entry) {
         file->m_info.m_size = (static_cast<int64_t>(sizeHigh) << 32) | sizeLow;
     }
 

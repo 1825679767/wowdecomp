@@ -53,7 +53,7 @@ static int32_t Script_GetNumQuestWatches(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 86a938d8 auto
+// VERIFY: ac535154 auto
 // OFFSET: 0x005DFB00
 static int32_t Script_SetPOIIconOverlapDistance(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1590,7 +1590,7 @@ static int32_t Script_QuestMapUpdateAllQuests(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 11fdb03d auto
+// VERIFY: 39212d82 auto
 // OFFSET: 0x005E0590
 static int32_t Script_QuestPOIGetIconInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

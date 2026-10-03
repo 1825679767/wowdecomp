@@ -3,10 +3,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Storage.h"
 #include "Engine/Source/BlizzardCore/Source/System/Time/Types.h"
 
 namespace Blizzard { namespace File { struct Filesystem; }}
+namespace Blizzard { namespace Streaming { struct StorageEntry; }}
 namespace Blizzard { namespace File { struct ProcessDirParms; }}
 namespace Blizzard { namespace File { struct StreamRecord; }}
 namespace Blizzard { namespace File { struct StreamingInfo; }}
@@ -146,10 +148,9 @@ struct ProcessDirParms {
 namespace Blizzard {
 namespace File {
 struct StreamingInfo {
-    /* 0000 */ Blizzard::Storage::StorageUnitHandle m_storagehandle;
-    /* 0008 */ Blizzard::File::INODE m_inode;
-    /* 000C */ uint32_t m_streamRefCount;
-    /* 0010 */ Blizzard::File::FileInfo m_streaminginfo;
+    /* 0000 */ Blizzard::Streaming::StorageEntry* m_entry;
+    /* 0004 */ std::string m_path;
+    /* 0020 */ Blizzard::File::FileInfo m_info;
 };
 }
 }

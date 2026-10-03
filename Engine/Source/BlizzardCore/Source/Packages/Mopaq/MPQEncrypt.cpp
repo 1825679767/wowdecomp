@@ -213,3 +213,17 @@ void System_MPQEncrypt::Decrypt(uint32_t* data, uint32_t size, uint32_t key) {
         seed = value + seed + (seed << 5) + 3;
     }
 }
+
+// VERIFY: fa28dc11 manual
+// OFFSET: 0x00426670
+void System_MPQEncrypt::Encrypt(uint32_t* data, uint32_t size, uint32_t key) {
+    uint32_t seed = 0xEEEEEEEE;
+
+    for (uint32_t count = size >> 2; count; count--) {
+        seed += s_cryptTable[0x400 + (key & 0xFF)];
+        uint32_t value = *data;
+        *data++ = value ^ (key + seed);
+        key = ((~key << 21) + 0x11111111) | (key >> 11);
+        seed = value + seed + (seed << 5) + 3;
+    }
+}

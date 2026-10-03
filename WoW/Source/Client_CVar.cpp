@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "Client.h"
-#include "_Triage/StreamingSetEnabled.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/ConsoleBase/ConsoleCommand.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"

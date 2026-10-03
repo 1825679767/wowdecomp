@@ -44,7 +44,7 @@ static int32_t Script_TaxiNodeName(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 3ea6e937 manual
+// VERIFY: 39b322e3 auto
 // OFFSET: 0x00590E00
 static int32_t Script_TaxiNodePosition(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -158,7 +158,7 @@ static int32_t Script_CloseTaxiMap(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b6dd9ddf manual
+// VERIFY: a6b4fd5b auto
 // OFFSET: 0x00590ED0
 static int32_t Script_TaxiNodeGetType(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -171,7 +171,7 @@ static int32_t Script_TaxiNodeGetType(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 8f67b73d manual
+// VERIFY: 9565b7c3 auto
 // OFFSET: 0x005915E0
 static int32_t Script_TaxiNodeCost(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -190,7 +190,7 @@ static int32_t Script_TaxiNodeCost(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 9b6d526d manual
+// VERIFY: 113b9a85 auto
 // OFFSET: 0x00591680
 static int32_t Script_TakeTaxiNode(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -203,7 +203,7 @@ static int32_t Script_TakeTaxiNode(lua_State* L) {
     return 0;
 }
 
-// VERIFY: bf20d58d manual
+// VERIFY: 81d3cf0d auto
 // OFFSET: 0x00591E60
 static int32_t Script_TaxiNodeSetCurrent(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

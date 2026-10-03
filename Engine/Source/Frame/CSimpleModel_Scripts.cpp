@@ -71,7 +71,7 @@ int32_t FrameScript_GetColorNoAlpha(lua_State* L, int32_t index, CImVector& colo
     return index;
 }
 
-// VERIFY: cb764878 auto
+// VERIFY: e336fe44 auto
 // OFFSET: 0x00960530
 static int32_t Script_SetModel(lua_State* L) {
     CSimpleModel* model = static_cast<CSimpleModel*>(FrameScript_GetObjectThis(L, CSimpleModel::GetObjectType()));

@@ -11,7 +11,7 @@
 #include <malloc.h>
 #include "Engine/Source/Storm/H/storm.h"
 
-// VERIFY: b16d798f auto
+// VERIFY: 47beb07e auto
 // OFFSET: 0x0055E9B0
 static int32_t Script_GetBindingKey(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -121,7 +121,7 @@ static int32_t Script_SaveBindings(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 6b1312a2 auto
+// VERIFY: 9e9a649e auto
 // OFFSET: 0x0055FB90
 static int32_t Script_SetModifiedClick(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -142,7 +142,7 @@ static int32_t Script_SetModifiedClick(lua_State* L) {
     return 0;
 }
 
-// VERIFY: d049e19f auto
+// VERIFY: 8c63faae auto
 // OFFSET: 0x0055FC20
 static int32_t Script_GetModifiedClick(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -165,7 +165,7 @@ static int32_t Script_GetModifiedClick(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 8955c60c auto
+// VERIFY: faa35395 auto
 // OFFSET: 0x00562550
 static int32_t Script_GetBindingAction(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -195,7 +195,7 @@ static int32_t Script_GetBindingAction(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 615c1d3e auto
+// VERIFY: 783d8193 auto
 // OFFSET: 0x00560560
 static int32_t Script_ClearOverrideBindings(lua_State* L) {
     CScriptObject* owner = nullptr;
@@ -269,7 +269,7 @@ static int32_t Script_RunBinding(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 57e77187 auto
+// VERIFY: 8dba3261 auto
 // OFFSET: 0x00563520
 static int32_t Script_SetBinding(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -300,7 +300,7 @@ static int32_t Script_SetBinding(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b687d044 auto
+// VERIFY: ed0ea2f2 auto
 // OFFSET: 0x0055E8D0
 static int32_t Script_GetBinding(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -333,7 +333,7 @@ static int32_t Script_GetBinding(lua_State* L) {
     return count + 1;
 }
 
-// VERIFY: b5fec94e auto
+// VERIFY: 44fa649a auto
 // OFFSET: 0x00563A90
 static int32_t Script_SetOverrideBinding(lua_State* L) {
     CScriptObject* owner = nullptr;
@@ -361,7 +361,7 @@ static int32_t Script_SetOverrideBinding(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5da0d638 auto
+// VERIFY: 72a9de4c auto
 // OFFSET: 0x005635E0
 static int32_t Script_SetBindingSpell(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
@@ -395,7 +395,7 @@ static int32_t Script_SetBindingSpell(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 6019e3d2 auto
+// VERIFY: e02e1678 auto
 // OFFSET: 0x00563700
 static int32_t Script_SetBindingItem(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
@@ -429,7 +429,7 @@ static int32_t Script_SetBindingItem(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 8d04e514 auto
+// VERIFY: a6cf9194 auto
 // OFFSET: 0x00563820
 static int32_t Script_SetBindingMacro(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
@@ -463,7 +463,7 @@ static int32_t Script_SetBindingMacro(lua_State* L) {
     return 1;
 }
 
-// VERIFY: ee819584 auto
+// VERIFY: 93460342 auto
 // OFFSET: 0x00563940
 static int32_t Script_SetBindingClick(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
@@ -503,7 +503,7 @@ static int32_t Script_SetBindingClick(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 82af3cb9 auto
+// VERIFY: 8c961e80 auto
 // OFFSET: 0x00563B80
 static int32_t Script_SetOverrideBindingSpell(lua_State* L) {
     CScriptObject* owner = nullptr;
@@ -529,7 +529,7 @@ static int32_t Script_SetOverrideBindingSpell(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 9b743ba9 auto
+// VERIFY: 7ede6409 auto
 // OFFSET: 0x00563CB0
 static int32_t Script_SetOverrideBindingItem(lua_State* L) {
     CScriptObject* owner = nullptr;
@@ -555,7 +555,7 @@ static int32_t Script_SetOverrideBindingItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 499be506 auto
+// VERIFY: 08f60cfe auto
 // OFFSET: 0x00563DE0
 static int32_t Script_SetOverrideBindingMacro(lua_State* L) {
     CScriptObject* owner = nullptr;
@@ -581,7 +581,7 @@ static int32_t Script_SetOverrideBindingMacro(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 19f3d063 manual
+// VERIFY: 12320864 auto
 // OFFSET: 0x00563F10
 static int32_t Script_SetOverrideBindingClick(lua_State* L) {
     CScriptObject* owner = nullptr;

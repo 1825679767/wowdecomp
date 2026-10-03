@@ -682,7 +682,7 @@ static int32_t Script_CommentatorSetPlayerIndex(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 17a87bbc manual
+// VERIFY: 824e9e46 auto
 // OFFSET: 0x0056A0F0
 static int32_t Script_CommentatorSetCamera(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -903,7 +903,7 @@ static int32_t Script_CommentatorRemovePlayer(lua_State* L) {
     return 0;
 }
 
-// VERIFY: bc9088b3 manual
+// VERIFY: 5a4b445c auto
 // OFFSET: 0x0056AAF0
 static int32_t Script_CommentatorSetMoveSpeed(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();

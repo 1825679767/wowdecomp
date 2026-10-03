@@ -2,9 +2,11 @@
 #define ENGINE_SOURCE_BLIZZARDCORE_SOURCE_PACKAGES_MOPAQ_IOMPQUNIT_H
 
 #include <cstdint>
+#include <vector>
 #include "Engine/Source/BlizzardCore/Include/Blizzard/Util/Digest.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/iounit/IOUnit.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/SFileArchives.h"
+#include "Engine/Source/BlizzardCore/Source/Packages/Mopaq/Types.h"
 #include "Engine/Source/BlizzardCore/Source/System/Memory/TempBuffer.h"
 
 class IOMpqUnit : public IOUnit {
@@ -65,6 +67,15 @@ class IOMpqArchiveReadUnit : public IOMpqArchiveUnit {
     virtual bool Write(const void* buffer, int64_t offset, uint32_t count);
 
     IOMpqArchiveReadUnit(System_SFile::ARCHIVEREC* archive, const char* name, uint32_t blockIndex, bool ownsMemory, IOUnit* next);
+};
+
+class IOMpqArchiveWriteUnit : public IOMpqArchiveUnit {
+    public:
+    static IOMpqArchiveWriteUnit* Create(IOUnitContainer* container, System_SFile::ARCHIVEREC* archive, const char* name, uint32_t blockIndex, IOUnit* next);
+
+    virtual bool Read(void* buffer, int64_t offset, uint32_t count, uint32_t* bytesRead);
+
+    IOMpqArchiveWriteUnit(System_SFile::ARCHIVEREC* archive, const char* name, uint32_t blockIndex, bool ownsMemory, IOUnit* next);
 };
 
 class IOMpqDiskUnit : public IOMpqUnit {
@@ -137,6 +148,50 @@ class IOMpqReadUnit : public IOUnit {
     bool LoadSectorTable();
     bool ReadRun(uint32_t first, uint32_t count, uint8_t** dest, uint8_t** scratch, uint32_t* scratchLeft);
     bool VerifyRun(uint32_t first, uint32_t count, uint8_t** dest, uint8_t** scratch, uint32_t* scratchLeft);
+};
+
+class IOMpqWriteUnit : public IOUnit {
+    public:
+    typedef void (*Callback)(void* context, uint32_t size);
+
+    struct CompressJob {
+        /* 0000 */ IOMpqWriteUnit* m_unit;
+        /* 0004 */ const uint8_t* m_src;
+        /* 0008 */ uint8_t* m_dst;
+        /* 000C */ uint32_t m_sectorSize;
+        /* 0010 */ uint32_t m_size;
+        /* 0014 */ uint32_t* m_sizes;
+        /* 0018 */ uint32_t* m_checksums;
+        /* 001C */ bool m_success;
+        /* 001D */ uint8_t unk_001D[3];
+    };
+
+    static void CompressBlock(void* param);
+    static IOUnit* Create(IOUnitContainer* container, const std::vector<Blizzard::Mopaq::CompressionAlgorithm>& compression, uint32_t fileSize, uint32_t sectorSize, Callback callback, IOMpqWriteUnit** self, IOUnit* next);
+    static IOUnit* CreateSingle(IOUnitContainer* container, const std::vector<Blizzard::Mopaq::CompressionAlgorithm>& compression, uint32_t fileSize, Callback callback, IOMpqWriteUnit** self, IOUnit* next);
+
+    /* 0010 */ uint32_t m_fileSize;
+    /* 0014 */ Blizzard::Memory::TempBuffer<uint32_t, 8> m_checksums;
+    /* 003C */ bool m_hasChecksums;
+    /* 003D */ uint8_t unk_003D[3];
+    /* 0040 */ Blizzard::Memory::TempBuffer<uint32_t, 10> m_sectorOffsets;
+    /* 0070 */ uint32_t m_sectorSize;
+    /* 0074 */ uint32_t m_sectorIndex;
+    /* 0078 */ std::vector<Blizzard::Mopaq::CompressionAlgorithm> m_compression;
+    /* 0088 */ Callback m_callback;
+    /* 008C */ void* m_context;
+
+    virtual uint32_t GetType();
+    virtual bool Read(void* buffer, int64_t offset, uint32_t count, uint32_t* bytesRead);
+    virtual bool Write(const void* buffer, int64_t offset, uint32_t count);
+    virtual bool GetFileSize(int64_t* size);
+    virtual bool SetFileSize(int64_t size);
+    virtual ~IOMpqWriteUnit();
+    virtual bool Close();
+    virtual void SetContext(void* context);
+
+    IOMpqWriteUnit(const std::vector<Blizzard::Mopaq::CompressionAlgorithm>& compression, uint32_t fileSize, uint32_t sectorCount, uint32_t sectorSize, Callback callback, IOMpqWriteUnit** self, bool ownsMemory, IOUnit* next);
+    IOMpqWriteUnit(const std::vector<Blizzard::Mopaq::CompressionAlgorithm>& compression, uint32_t fileSize, Callback callback, IOMpqWriteUnit** self, bool ownsMemory, IOUnit* next);
 };
 
 #endif

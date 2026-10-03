@@ -85,7 +85,7 @@ static int32_t Script_GetSelectedStationeryTexture(lua_State* L) {
     return 1;
 }
 
-// VERIFY: ab286db5 manual
+// VERIFY: c09e3381 auto
 // OFFSET: 0x0056E310
 static int32_t Script_SelectPackage(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -135,7 +135,7 @@ static int32_t Script_CheckInbox(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ff00a2b9 manual
+// VERIFY: e89f0c93 auto
 // OFFSET: 0x0056EDF0
 static int32_t Script_TakeInboxMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -168,7 +168,7 @@ static int32_t Script_TakeInboxMoney(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 9c8dcaa5 manual
+// VERIFY: 0820303b auto
 // OFFSET: 0x0056EEF0
 static int32_t Script_TakeInboxTextItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -254,7 +254,7 @@ static int32_t Script_GetStationeryInfo(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 37acfbbe auto
+// VERIFY: b60ccfe5 auto
 // OFFSET: 0x0056D570
 static int32_t Script_SetSendMailShowing(lua_State* L) {
     if (lua_type(L, 1) != LUA_TBOOLEAN) {
@@ -266,7 +266,7 @@ static int32_t Script_SetSendMailShowing(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 14637408 manual
+// VERIFY: fddd3d55 auto
 // OFFSET: 0x0056E210
 static int32_t Script_GetPackageInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -350,7 +350,7 @@ static int32_t Script_ClearSendMail(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 86b46fe9 manual
+// VERIFY: 0dd80945 auto
 // OFFSET: 0x0056D610
 static int32_t Script_SetSendMailCOD(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -607,7 +607,7 @@ static int32_t Script_GetInboxInvoiceInfo(lua_State* L) {
     return 10;
 }
 
-// VERIFY: 62ac2eaf manual
+// VERIFY: 5d367394 auto
 // OFFSET: 0x0056ECA0
 static int32_t Script_GetInboxItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -645,7 +645,7 @@ static int32_t Script_GetInboxItemLink(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 671dc41a manual
+// VERIFY: 9102324a auto
 // OFFSET: 0x0056F000
 static int32_t Script_ReturnInboxItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -687,7 +687,7 @@ static int32_t Script_ReturnInboxItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b8051954 manual
+// VERIFY: 4de0ffc3 auto
 // OFFSET: 0x0056F140
 static int32_t Script_DeleteInboxItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -733,7 +733,7 @@ static int32_t Script_DeleteInboxItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 0ee605dc manual
+// VERIFY: bbafceb6 auto
 // OFFSET: 0x0056F280
 static int32_t Script_InboxItemCanDelete(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -856,7 +856,7 @@ static int32_t Script_ClickSendMailItemButton(lua_State* L) {
     return 0;
 }
 
-// VERIFY: fba810ff manual
+// VERIFY: f77670df auto
 // OFFSET: 0x005706C0
 static int32_t Script_SetSendMailMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -921,7 +921,7 @@ static int32_t Script_GetSendMailItem(lua_State* L) {
     return 4;
 }
 
-// VERIFY: 12427637 manual
+// VERIFY: e6b7381f auto
 // OFFSET: 0x00570910
 static int32_t Script_SendMail(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -1171,7 +1171,7 @@ static int32_t Script_GetInboxItem(lua_State* L) {
     return 5;
 }
 
-// VERIFY: cda89321 manual
+// VERIFY: 46d21530 auto
 // OFFSET: 0x005711C0
 static int32_t Script_TakeInboxItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1226,7 +1226,7 @@ static int32_t Script_TakeInboxItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 694369cf manual
+// VERIFY: d282c11a auto
 // OFFSET: 0x00571350
 static int32_t Script_ComplainInboxItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1238,7 +1238,7 @@ static int32_t Script_ComplainInboxItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 538df37c manual
+// VERIFY: cf2ffa69 auto
 // OFFSET: 0x005713C0
 static int32_t Script_CanComplainInboxItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1255,7 +1255,7 @@ static int32_t Script_CanComplainInboxItem(lua_State* L) {
     return 1;
 }
 
-// VERIFY: a2bb6661 manual
+// VERIFY: e42e96ea auto
 // OFFSET: 0x00571450
 static int32_t Script_AutoLootMailItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

@@ -96,7 +96,7 @@ static int32_t Script_AcceptTrade(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 391b5d92 auto
+// VERIFY: 2f99e941 auto
 // OFFSET: 0x00586810
 static int32_t Script_PickupTradeMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -114,7 +114,7 @@ static int32_t Script_PickupTradeMoney(lua_State* L) {
     return 0;
 }
 
-// VERIFY: dd7edb41 manual
+// VERIFY: ac0f520f auto
 // OFFSET: 0x00586870
 static int32_t Script_SetTradeMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -145,7 +145,7 @@ static int32_t Script_ClickTargetTradeButton(lua_State* L) {
     return 0;
 }
 
-// VERIFY: e2896016 manual
+// VERIFY: aa5fb0e2 auto
 // OFFSET: 0x00586D00
 static int32_t Script_GetTradePlayerItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -294,7 +294,7 @@ static int32_t Script_ClickTradeButton(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 54d8f2a3 manual
+// VERIFY: 8c588e45 auto
 // OFFSET: 0x00587C60
 static int32_t Script_GetTradeTargetItemInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -351,7 +351,7 @@ static int32_t Script_GetTradeTargetItemInfo(lua_State* L) {
     return 6;
 }
 
-// VERIFY: 2a7d8005 manual
+// VERIFY: 3df471df auto
 // OFFSET: 0x00587EB0
 static int32_t Script_GetTradePlayerItemInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

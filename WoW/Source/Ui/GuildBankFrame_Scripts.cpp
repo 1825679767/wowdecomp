@@ -123,7 +123,7 @@ static int32_t Script_CanWithdrawGuildBankMoney(lua_State* L) {
     return 1;
 }
 
-// VERIFY: e7dac84b manual
+// VERIFY: d4895bf7 auto
 // OFFSET: 0x005A4330
 static int32_t Script_PickupGuildBankMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -148,7 +148,7 @@ static int32_t Script_CloseGuildBankFrame(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 7f21b862 manual
+// VERIFY: e2247c26 auto
 // OFFSET: 0x005A4520
 static int32_t Script_GetNumGuildBankTransactions(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -261,7 +261,7 @@ static int32_t Script_GetGuildBankMoneyTransaction(lua_State* L) {
     return 7;
 }
 
-// VERIFY: 1cfb9bf3 auto
+// VERIFY: 2728bcf7 auto
 // OFFSET: 0x005A5CE0
 static int32_t Script_QueryGuildBankTab(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -319,7 +319,7 @@ static int32_t Script_DepositGuildBankMoney(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 4edd506a manual
+// VERIFY: bf1125f5 auto
 // OFFSET: 0x005A5EF0
 static int32_t Script_WithdrawGuildBankMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -623,7 +623,7 @@ static int32_t Script_GetGuildBankTabInfo(lua_State* L) {
     return 6;
 }
 
-// VERIFY: 0b7d305b manual
+// VERIFY: 2abc9d81 auto
 // OFFSET: 0x005A6A00
 static int32_t Script_SetGuildBankTabInfo(lua_State* L) {
     if (!ClntObjMgrGetActivePlayerObj()) {
@@ -696,7 +696,7 @@ static int32_t Script_GetGuildTabardFileNames(lua_State* L) {
     return 6;
 }
 
-// VERIFY: 8da3f33c manual
+// VERIFY: 9a345d1e auto
 // OFFSET: 0x005A6D50
 static int32_t Script_QueryGuildBankLog(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -786,7 +786,7 @@ static int32_t Script_GetGuildBankTransaction(lua_State* L) {
     return 10;
 }
 
-// VERIFY: 43e06e0e manual
+// VERIFY: 5b511218 auto
 // OFFSET: 0x005A7110
 static int32_t Script_QueryGuildBankText(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -798,7 +798,7 @@ static int32_t Script_QueryGuildBankText(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 3ee5f8e4 manual
+// VERIFY: 96d4bc1a auto
 // OFFSET: 0x005A7180
 static int32_t Script_SetGuildBankText(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {

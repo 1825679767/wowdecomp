@@ -71,7 +71,7 @@ static int32_t Script_LootSlotIsItem(lua_State* L) {
     return 1;
 }
 
-// VERIFY: f8d54875 manual
+// VERIFY: 07974e21 auto
 // OFFSET: 0x00588810
 static int32_t Script_LootSlotIsCoin(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -173,7 +173,7 @@ static void MasterLootCandidateNameCallback(int32_t id, const WOWGUID& guid, voi
     }
 }
 
-// VERIFY: 7818e364 manual
+// VERIFY: d0557dee auto
 // OFFSET: 0x00588920
 static int32_t Script_GetMasterLootCandidate(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -237,7 +237,7 @@ static int32_t Script_GetLootSlotInfo(lua_State* L) {
     return 5;
 }
 
-// VERIFY: c50a7ab9 manual
+// VERIFY: fc45465a auto
 // OFFSET: 0x005886D0
 static int32_t Script_GetLootSlotLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -257,7 +257,7 @@ static int32_t Script_CloseLoot(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 520678de manual
+// VERIFY: 661226f7 auto
 // OFFSET: 0x00588C00
 static int32_t Script_GetLootRollItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -282,7 +282,7 @@ static int32_t Script_GetLootRollItemLink(lua_State* L) {
     return 1;
 }
 
-// VERIFY: c94773c2 auto
+// VERIFY: 7c8b39af auto
 // OFFSET: 0x00588D60
 static int32_t Script_RollOnLoot(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -295,7 +295,7 @@ static int32_t Script_RollOnLoot(lua_State* L) {
     return 0;
 }
 
-// VERIFY: cb1996cb manual
+// VERIFY: 88e937ae auto
 // OFFSET: 0x00588DD0
 static int32_t Script_ConfirmLootRoll(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -308,7 +308,7 @@ static int32_t Script_ConfirmLootRoll(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 87cfdafa manual
+// VERIFY: 2f666037 auto
 // OFFSET: 0x00589520
 static int32_t Script_LootSlot(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -320,7 +320,7 @@ static int32_t Script_LootSlot(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c2324f9f manual
+// VERIFY: 085a0c07 auto
 // OFFSET: 0x00589590
 static int32_t Script_ConfirmLootSlot(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

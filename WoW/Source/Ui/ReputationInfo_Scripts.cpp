@@ -30,7 +30,7 @@ static int32_t Script_GetNumFactions(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 06bc7cb4 auto
+// VERIFY: 6deeea03 auto
 // OFFSET: 0x005D1F70
 static int32_t Script_CollapseFactionHeader(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -42,7 +42,7 @@ static int32_t Script_CollapseFactionHeader(lua_State* L) {
     return 0;
 }
 
-// VERIFY: fc0d4302 auto
+// VERIFY: ceb13be5 auto
 // OFFSET: 0x005D2000
 static int32_t Script_ExpandFactionHeader(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -54,7 +54,7 @@ static int32_t Script_ExpandFactionHeader(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 0666d394 auto
+// VERIFY: 7c94cd2f auto
 // OFFSET: 0x005D0740
 static int32_t Script_IsFactionInactive(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -71,7 +71,7 @@ static int32_t Script_IsFactionInactive(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 6260777e auto
+// VERIFY: 7d15ad95 auto
 // OFFSET: 0x005D07B0
 static int32_t Script_SetSelectedFaction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -154,7 +154,7 @@ static int32_t Script_GetWatchedFactionInfo(lua_State* L) {
     return 5;
 }
 
-// VERIFY: 571ae289 manual
+// VERIFY: 115d0d85 auto
 // OFFSET: 0x005D1390
 static int32_t Script_FactionToggleAtWar(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -172,7 +172,7 @@ static int32_t Script_FactionToggleAtWar(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 139fa5f2 auto
+// VERIFY: ca638192 auto
 // OFFSET: 0x005D1420
 static int32_t Script_SetWatchedFactionIndex(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -191,7 +191,7 @@ static int32_t Script_SetWatchedFactionIndex(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 38bb0dbb manual
+// VERIFY: 4581b042 auto
 // OFFSET: 0x005D1E50
 static int32_t Script_SetFactionInactive(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -212,7 +212,7 @@ static int32_t Script_SetFactionInactive(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5d8e8c20 manual
+// VERIFY: 5b890263 auto
 // OFFSET: 0x005D1EE0
 static int32_t Script_SetFactionActive(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

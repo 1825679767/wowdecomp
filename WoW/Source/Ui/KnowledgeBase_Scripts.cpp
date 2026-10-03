@@ -168,7 +168,7 @@ static int32_t Script_KBSetup_GetArticleHeaderData(lua_State* L) {
     return 4;
 }
 
-// VERIFY: 620ab044 auto
+// VERIFY: 58c4251a auto
 // OFFSET: 0x00551B40
 static int32_t Script_KBSetup_GetTotalArticleCount(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
@@ -202,7 +202,7 @@ static int32_t Script_KBQuery_GetArticleHeaderData(lua_State* L) {
     return 4;
 }
 
-// VERIFY: cee4ac95 auto
+// VERIFY: 73c4bd52 auto
 // OFFSET: 0x00551D10
 static int32_t Script_KBQuery_GetTotalArticleCount(lua_State* L) {
     if (g_KnowledgeBaseQuery.m_state != 2) {

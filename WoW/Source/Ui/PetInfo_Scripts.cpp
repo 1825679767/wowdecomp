@@ -656,7 +656,7 @@ static int32_t Script_PickupPetAction(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 7e17695f manual
+// VERIFY: f3852677 auto
 // OFFSET: 0x005D66F0
 static int32_t Script_TogglePetAutocast(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

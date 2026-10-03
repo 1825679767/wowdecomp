@@ -347,7 +347,7 @@ static int32_t Script_GetActiveTitle(lua_State* L) {
     return 2;
 }
 
-// VERIFY: ef61e41b manual
+// VERIFY: 812d7ec5 auto
 // OFFSET: 0x0058C2B0
 static int32_t Script_GetQuestItemLink(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
@@ -509,7 +509,7 @@ static int32_t Script_CompleteQuest(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 52bc2f90 auto
+// VERIFY: 58f9202d auto
 // OFFSET: 0x0058D620
 static int32_t Script_GetQuestReward(lua_State* L) {
     int32_t choice = -1;
@@ -663,7 +663,7 @@ static int32_t Script_GetQuestSpellLink(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 2f297b49 manual
+// VERIFY: dfd619a6 auto
 // OFFSET: 0x0058DBC0
 static int32_t Script_GetAvailableQuestInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

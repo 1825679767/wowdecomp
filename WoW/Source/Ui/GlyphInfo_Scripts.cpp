@@ -75,7 +75,7 @@ static int32_t Script_GetGlyphSocketInfo(lua_State* L) {
     return 4;
 }
 
-// VERIFY: bf189600 manual
+// VERIFY: dce2d34a auto
 // OFFSET: 0x005B7410
 static int32_t Script_GlyphMatchesSocket(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

@@ -126,6 +126,7 @@ class ClientServices : public LoginResponse {
     static void LoginEnterPIN(int32_t count, uint8_t* digits);
     static void LoginEnterMatrix(uint8_t value);
     static void LoginCommitMatrix();
+    static void LoginRevertMatrix();
     static void LoginFinalizeMatrix();
     static void FileAccept(bool accept, uint64_t offset);
     static void StartDownload();

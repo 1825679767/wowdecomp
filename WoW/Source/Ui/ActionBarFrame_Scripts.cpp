@@ -142,7 +142,7 @@ static int32_t Script_GetActionInfo(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 45a7ef5a manual
+// VERIFY: 850abda9 auto
 // OFFSET: 0x005A91C0
 static int32_t Script_GetActionCooldown(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -230,7 +230,7 @@ static int32_t Script_UseAction(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b345a40c auto
+// VERIFY: 9530d833 auto
 // OFFSET: 0x005A7D90
 static int32_t Script_GetActionText(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

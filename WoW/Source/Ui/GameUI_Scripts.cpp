@@ -295,7 +295,7 @@ static int32_t Script_ClearCursor(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 55878a9c auto
+// VERIFY: 82f766f4 auto
 // OFFSET: 0x005101D0
 static int32_t Script_SetWaterDetail(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1450,7 +1450,7 @@ static int32_t Script_GuildSetLeader(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 39b52d84 manual
+// VERIFY: 5c44edc4 auto
 // OFFSET: 0x00516610
 static int32_t Script_RandomRoll(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
@@ -1569,7 +1569,7 @@ static int32_t Script_GetItemQualityColor(lua_State* L) {
     return 4;
 }
 
-// VERIFY: fe358aee manual
+// VERIFY: 37c22dd4 auto
 // OFFSET: 0x00511B30
 static int32_t Script_IsAddOnLoaded(lua_State* L) {
     const char* name;
@@ -2145,7 +2145,7 @@ static int32_t Script_InCombatLockdown(lua_State* L) {
     return 1;
 }
 
-// VERIFY: e0877fd5 manual
+// VERIFY: 5f4164d6 auto
 // OFFSET: 0x0051D520
 static int32_t Script_DestroyTotem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -2490,7 +2490,7 @@ static int32_t Script_Quit(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5cc4abd6 manual
+// VERIFY: 3003cf92 auto
 // OFFSET: 0x0052B470
 static int32_t Script_RegisterForSave(lua_State* L) {
     if (lua_tainted) {
@@ -2507,7 +2507,7 @@ static int32_t Script_RegisterForSave(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 6677c3e4 manual
+// VERIFY: da056905 auto
 // OFFSET: 0x0052B4E0
 static int32_t Script_RegisterForSavePerCharacter(lua_State* L) {
     if (lua_tainted) {
@@ -3063,7 +3063,7 @@ static int32_t Script_SitStandOrDescendStart(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f1043ab0 auto
+// VERIFY: f1cdd46e auto
 // OFFSET: 0x005104A0
 static int32_t Script_SetCursor(lua_State* L) {
     struct CursorName {
@@ -3342,7 +3342,7 @@ static int32_t Script_Stuck(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f9ef5104 auto
+// VERIFY: cae879bb auto
 // OFFSET: 0x00510930
 static int32_t Script_ReportBug(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3354,7 +3354,7 @@ static int32_t Script_ReportBug(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 1ec66cba auto
+// VERIFY: e60caf0c auto
 // OFFSET: 0x00510980
 static int32_t Script_ReportSuggestion(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3410,7 +3410,7 @@ static int32_t Script_GMRequestPlayerInfo(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 7e10166d manual
+// VERIFY: 518f4cf8 auto
 // OFFSET: 0x00510BD0
 static int32_t Script_GetCoinIcon(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -3424,7 +3424,7 @@ static int32_t Script_GetCoinIcon(lua_State* L) {
     return 1;
 }
 
-// VERIFY: e702f5d5 manual
+// VERIFY: aa5c7661 auto
 // OFFSET: 0x00510C60
 static int32_t Script_GetCoinText(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -3439,7 +3439,7 @@ static int32_t Script_GetCoinText(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b069b86f manual
+// VERIFY: 53695d34 auto
 // OFFSET: 0x00510D00
 static int32_t Script_GetCoinTextureString(lua_State* L) {
     int32_t height = 14;
@@ -3536,7 +3536,7 @@ static int32_t Script_IsEquippableItem(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 1374044d manual
+// VERIFY: 5a794641 auto
 // OFFSET: 0x00511240
 static int32_t Script_GetAddOnInfo(lua_State* L) {
     const char* name;
@@ -3653,7 +3653,7 @@ static int32_t Script_GetAddOnMemoryUsage(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d46e6c3e manual
+// VERIFY: b50f7eb0 auto
 // OFFSET: 0x00511660
 static int32_t Script_GetAddOnCPUUsage(lua_State* L) {
     const char* name;
@@ -3678,7 +3678,7 @@ static int32_t Script_GetAddOnCPUUsage(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 59c8d845 manual
+// VERIFY: 8458713d auto
 // OFFSET: 0x00511840
 static int32_t Script_EnableAddOn(lua_State* L) {
     const char* name;
@@ -3713,7 +3713,7 @@ static int32_t Script_EnableAllAddOns(lua_State* L) {
     return 0;
 }
 
-// VERIFY: fa157ed2 manual
+// VERIFY: 194605d2 auto
 // OFFSET: 0x00511940
 static int32_t Script_DisableAddOn(lua_State* L) {
     const char* name;
@@ -3748,7 +3748,7 @@ static int32_t Script_DisableAllAddOns(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 53087d42 manual
+// VERIFY: 7468a523 auto
 // OFFSET: 0x00511A60
 static int32_t Script_IsAddOnLoadOnDemand(lua_State* L) {
     const char* name;
@@ -3796,7 +3796,7 @@ static int32_t Script_VoicePushToTalkStop(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 047deaf6 auto
+// VERIFY: abe09c5f auto
 // OFFSET: 0x00511DD0
 static int32_t Script_GetNumDeclensionSets(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -3822,7 +3822,7 @@ static int32_t Script_GetNumDeclensionSets(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 4e597be3 auto
+// VERIFY: 379e1c6d auto
 // OFFSET: 0x00511E80
 static int32_t Script_DeclineName(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 3)) {
@@ -4023,7 +4023,7 @@ static int32_t Script_GetInstanceLockTimeRemaining(lua_State* L) {
     return 4;
 }
 
-// VERIFY: 82abf2b9 auto
+// VERIFY: 4d5a4279 auto
 // OFFSET: 0x00516410
 static int32_t Script_GetInstanceLockTimeRemainingEncounter(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -4357,7 +4357,7 @@ static int32_t Script_IsDressableItem(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d5679913 manual
+// VERIFY: 39dd6870 auto
 // OFFSET: 0x00517890
 static int32_t Script_GetFrameCPUUsage(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
@@ -4498,7 +4498,7 @@ static int32_t Script_EquipCursorItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 26d1745e manual
+// VERIFY: 313f3ea3 auto
 // OFFSET: 0x0051A530
 static int32_t Script_EquipPendingItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -4515,7 +4515,7 @@ static int32_t Script_EquipPendingItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c7ad14f2 manual
+// VERIFY: cd050a1b auto
 // OFFSET: 0x0051A5C0
 static int32_t Script_CancelPendingEquip(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -4556,7 +4556,7 @@ static int32_t Script_ToggleSheath(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c20d95b3 manual
+// VERIFY: 2d52f950 auto
 // OFFSET: 0x0051A6E0
 static int32_t Script_InviteUnit(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -5137,7 +5137,7 @@ static int32_t Script_IsEquippedItem(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 1e858407 manual
+// VERIFY: 356b32c8 auto
 // OFFSET: 0x0051C740
 static int32_t Script_IsEquippedItemType(lua_State* L) {
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -5521,7 +5521,7 @@ static int32_t Script_ClearFocus(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ac63f042 manual
+// VERIFY: a4660e2b auto
 // OFFSET: 0x00522600
 static int32_t Script_InitiateTrade(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -5625,7 +5625,7 @@ static int32_t Script_NotifyInspect(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 69012273 manual
+// VERIFY: d3b8f784 auto
 // OFFSET: 0x00522980
 static int32_t Script_PickupPlayerMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -5855,7 +5855,7 @@ static int32_t Script_EndRefund(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 4830cc72 auto
+// VERIFY: 1fe4019a auto
 // OFFSET: 0x005233D0
 static int32_t Script_EndBoundTradeable(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -6074,7 +6074,7 @@ static int32_t Script_AcceptAreaSpiritHeal(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 73a66642 auto
+// VERIFY: 1959aa5f auto
 // OFFSET: 0x00527F00
 static int32_t Script_InteractUnit(lua_State* L) {
     if (!lua_isstring(L, 1)) {

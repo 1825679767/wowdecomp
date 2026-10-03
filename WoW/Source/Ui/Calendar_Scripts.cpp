@@ -277,7 +277,7 @@ static int32_t Script_CalendarCanSendInvite(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 3aba7d21 auto
+// VERIFY: 76d1ef9d auto
 // OFFSET: 0x005BCC00
 static int32_t Script_CalendarSetMonth(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -305,7 +305,7 @@ static int32_t Script_CalendarGetNumDayEvents(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 7681b03c manual
+// VERIFY: 52f86bfc auto
 // OFFSET: 0x005B9E10
 static int32_t Script_CalendarGetFirstPendingInvite(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -426,7 +426,7 @@ static int32_t Script_CalendarContextEventClipboard(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 90ff2325 auto
+// VERIFY: ff6674b8 auto
 // OFFSET: 0x005B8570
 static int32_t Script_CalendarEventSortInvites(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -516,7 +516,7 @@ static int32_t Script_CalendarEventSetStatus(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 38960e82 manual
+// VERIFY: 38509d1b auto
 // OFFSET: 0x005B87D0
 static int32_t Script_CalendarEventSetModerator(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -528,7 +528,7 @@ static int32_t Script_CalendarEventSetModerator(lua_State* L) {
     return 0;
 }
 
-// VERIFY: d5897814 manual
+// VERIFY: 7005f67e auto
 // OFFSET: 0x005B8840
 static int32_t Script_CalendarEventClearModerator(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -547,7 +547,7 @@ static int32_t Script_CalendarEventIsModerator(lua_State* L) {
     return 1;
 }
 
-// VERIFY: a67e5434 manual
+// VERIFY: bbcdba11 auto
 // OFFSET: 0x005B88E0
 static int32_t Script_CalendarEventCanModerate(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -597,7 +597,7 @@ static int32_t Script_CalendarEventGetCalendarType(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 744ac9ad auto
+// VERIFY: 60d41a94 auto
 // OFFSET: 0x005B8AE0
 static int32_t Script_CalendarEventSelectInvite(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1106,7 +1106,7 @@ static int32_t Script_CalendarContextEventGetCalendarType(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 3aacaae6 manual
+// VERIFY: 1f224d8d auto
 // OFFSET: 0x005BB0C0
 static int32_t Script_CalendarEventRemoveInvite(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1118,7 +1118,7 @@ static int32_t Script_CalendarEventRemoveInvite(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 07c234f3 manual
+// VERIFY: 3dbff87f auto
 // OFFSET: 0x005BB130
 static int32_t Script_CalendarEventGetStatusOptions(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1295,7 +1295,7 @@ static int32_t Script_CalendarEventSetDate(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 04c6caa7 manual
+// VERIFY: c38beb47 auto
 // OFFSET: 0x005BB5A0
 static int32_t Script_CalendarEventSetTime(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -1332,7 +1332,7 @@ static int32_t Script_CalendarEventSetLockoutDate(lua_State* L) {
     return 0;
 }
 
-// VERIFY: a04a738e manual
+// VERIFY: 72d0c4f8 auto
 // OFFSET: 0x005BB750
 static int32_t Script_CalendarEventSetLockoutTime(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -1350,7 +1350,7 @@ static int32_t Script_CalendarEventSetLockoutTime(lua_State* L) {
     return 0;
 }
 
-// VERIFY: c559f66b manual
+// VERIFY: 87bf79dd auto
 // OFFSET: 0x005BB800
 static int32_t Script_CalendarEventSetTextureID(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1520,7 +1520,7 @@ static int32_t Script_CalendarNewEvent(lua_State* L) {
     return 0;
 }
 
-// VERIFY: fe8e8f86 manual
+// VERIFY: d26ce326 auto
 // OFFSET: 0x005BCCB0
 static int32_t Script_CalendarMassInviteGuild(lua_State* L) {
     if (!lua_isnumber(L, 1) && !lua_isnumber(L, 2) && !lua_isnumber(L, 3)) {
@@ -1549,7 +1549,7 @@ static int32_t Script_CalendarNewGuildEvent(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 9b89693d manual
+// VERIFY: cfd24fb4 auto
 // OFFSET: 0x005BCE60
 static int32_t Script_CalendarMassInviteArenaTeam(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1743,7 +1743,7 @@ static int32_t Script_CalendarContextEventCopy(lua_State* L) {
     return 0;
 }
 
-// VERIFY: dd49574d manual
+// VERIFY: 69d55813 auto
 // OFFSET: 0x005BD460
 static int32_t Script_CalendarContextEventPaste(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {

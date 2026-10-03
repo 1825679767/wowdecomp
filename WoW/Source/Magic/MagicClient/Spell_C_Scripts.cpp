@@ -194,7 +194,7 @@ static int32_t Script_SpellStopCasting(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 07d2d114 manual
+// VERIFY: 3c719e98 auto
 // OFFSET: 0x008021D0
 static int32_t Script_CancelItemTempEnchantment(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -221,7 +221,7 @@ static int32_t Script_CancelItemTempEnchantment(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 36933267 auto
+// VERIFY: e1fc05d2 auto
 // OFFSET: 0x00804220
 static int32_t Script_CancelUnitBuff(lua_State* L) {
     ScriptAuraInfo info;

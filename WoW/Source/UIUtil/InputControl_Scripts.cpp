@@ -588,7 +588,7 @@ static int32_t Script_IsVehicleAimPowerAdjustable(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 3bf17f31 auto
+// VERIFY: 2474fdc2 auto
 // OFFSET: 0x005FD550
 static int32_t Script_SetMouselookOverrideBinding(lua_State* L) {
     CGInputControl* inputControl = CGInputControl::s_inputControl;

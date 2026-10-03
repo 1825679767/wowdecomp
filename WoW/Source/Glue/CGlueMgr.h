@@ -1,6 +1,7 @@
 #ifndef WOW_SOURCE_GLUE_CGLUEMGR_H
 #define WOW_SOURCE_GLUE_CGLUEMGR_H
 
+#include <cstddef>
 #include <cstdint>
 #include "WoW/Source/Object/WGUID.h"
 #include "Engine/Source/Os/OsURLDownload.h"
@@ -11,6 +12,7 @@
 
 struct CVar;
 class SFileImpl;
+struct SArchive;
 class CDataStore;
 struct CHARACTER_CREATE_INFO;
 class CHARACTER_INFO;
@@ -97,6 +99,11 @@ class CGlueMgr {
     static FileDownload* m_surveyDownload;
     static FileDownload* m_patchDownload;
     static float m_patchDownloadProgress;
+    static uint32_t m_patchLastUpdate;
+    static uint32_t m_patchStartTime;
+    static uint8_t* m_surveyData;
+    static uint16_t m_surveyDataSize;
+    static bool m_deleteLocalPatch;
     static uint8_t m_ffxActive;
     static FFX::Effect* m_deathEffect;
     static FFX::Effect* m_glowEffect;
@@ -107,6 +114,7 @@ class CGlueMgr {
     static volatile long m_scandllStatus;
     static SThread m_scandllThread;
 
+    static void AcceptChangedOptionWarnings();
     static void AcceptContest();
     static void AcceptEULA();
     static void AcceptScanning();
@@ -118,6 +126,24 @@ class CGlueMgr {
     static void CreateCharacter(const CHARACTER_CREATE_INFO* info);
     static void CustomizeCharacter(WOWGUID guid, const CHARACTER_CREATE_INFO* info);
     static bool AreScriptFunctionsLoaded();
+    static void CancelLogin();
+    static void DownloadFeed(const uint8_t* data, uint32_t size);
+    static size_t GetPatchFolder(char* buffer, uint32_t size);
+    static void LoginCommitMatrix();
+    static void LoginEnterMatrix(uint8_t value);
+    static void LoginEnterPIN(int32_t count, uint8_t* digits);
+    static bool LoginGetMatrixCoordinate(uint32_t* x, uint32_t* y);
+    static void LoginRevertMatrix();
+    static void PatchDownloadApply();
+    static void PatchDownloadCancel();
+    static bool PatchDownloadDeleteCommand(const char* path);
+    static bool PatchDownloadExecuteCommand(const char* path, const char* arguments);
+    static bool PatchDownloadExecutePrepatch(SArchive* archive);
+    static bool PatchDownloadExtractCommand(SArchive* archive, const char* name);
+    static void PatchDownloadFeed(const uint8_t* data, uint32_t size);
+    static void PatchFailed(int32_t reason, uint32_t data);
+    static void QuitGameAndRunLauncher();
+    static void SurveyDownloadFeed(const uint8_t* data, uint32_t size);
     static bool DeclineCharacter(WOWGUID guid, const char** names);
     static void DeleteCharacter(WOWGUID guid);
     static void EnterWorld();

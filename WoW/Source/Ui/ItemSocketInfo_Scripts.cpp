@@ -93,7 +93,7 @@ static int32_t Script_GetNumSockets(lua_State* L) {
     return 1;
 }
 
-// VERIFY: f1b27b3b manual
+// VERIFY: 72d8ccd8 auto
 // OFFSET: 0x005C4B60
 static int32_t Script_GetNewSocketInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -136,7 +136,7 @@ static int32_t Script_GetNewSocketInfo(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 830a3c87 manual
+// VERIFY: e0a7f1d2 auto
 // OFFSET: 0x005C4D10
 static int32_t Script_GetNewSocketLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -156,7 +156,7 @@ static int32_t Script_GetNewSocketLink(lua_State* L) {
     return 1;
 }
 
-// VERIFY: d944b8d4 manual
+// VERIFY: a71e7c4d auto
 // OFFSET: 0x005C4DC0
 static int32_t Script_ClickSocketButton(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

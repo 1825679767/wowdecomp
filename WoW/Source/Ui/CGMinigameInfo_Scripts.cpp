@@ -24,7 +24,7 @@ static int32_t Script_GetMinigameType(lua_State* L) {
     return 1;
 }
 
-// VERIFY: e1b0959d manual
+// VERIFY: 37b2ca9a auto
 // OFFSET: 0x005C5550
 static int32_t Script_MakeMinigameMove(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {

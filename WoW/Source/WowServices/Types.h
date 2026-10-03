@@ -4,6 +4,23 @@
 #include <cstddef>
 #include <cstdint>
 
+enum BN_EVENT_ID {
+    BN_EVENT_CONNECTED = 1,
+    BN_EVENT_CANT_CONNECT = 2,
+    BN_EVENT_DISCONNECTED = 3,
+    BN_EVENT_DATA = 4,
+    BN_EVENT_REALM_LIST = 5,
+    BN_EVENT_RECONNECTED = 6,
+    BN_EVENT_SERVICE_LOST = 7,
+    BN_EVENT_SERVICE_RECOVERED = 8,
+    BN_EVENT_SERVICE_DISCONNECTED = 9,
+    BN_EVENT_SERVICE_FAILED = 10,
+    BN_EVENT_GAME_ACCOUNTS_UPDATED = 11,
+    BN_EVENT_LOGOFF = 12,
+    BN_EVENT_SHOW_SURVEY = 13,
+    BN_EVENT_SEND_SURVEY_INFO = 14,
+};
+
 enum LOGIN_RESULT {
     LOGIN_OK = 0,
     LOGIN_INVALID_CHALLENGE_MESSAGE = 1,
@@ -143,7 +160,10 @@ struct REALM_INFO {
     /* 012D */ uint8_t m_category;
     /* 012E */ uint8_t unk_012E;
     /* 012F */ uint8_t unk_012F;
-    /* 0130 */ uint32_t unk_0130 [4];
+    /* 0130 */ uint32_t m_regionId;
+    /* 0134 */ uint32_t m_battlegroupId;
+    /* 0138 */ uint32_t m_realmId;
+    /* 013C */ uint32_t m_build;
     /* 0140 */ uint8_t m_otherFlags;
     /* 0141 */ uint8_t m_versionMajor;
     /* 0142 */ uint8_t m_versionMinor;

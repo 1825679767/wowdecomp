@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/ComSat/Types.h"
 
 namespace ComSat {
 
@@ -17,13 +18,29 @@ struct DeviceInfo {
     /* 0000 */ char m_name[256];
 };
 
-enum MuteSetting {
+struct Initialization {
+    /* 0000 */ uint32_t m_maxLocalPlayers;
+    /* 0004 */ uint32_t unk_0004;
+    /* 0008 */ uint32_t unk_0008;
+    /* 000C */ uint16_t m_port;
+    /* 0010 */ uint32_t m_time;
+    /* 0014 */ uint32_t m_maxChannels;
 };
 
 class Interface {
     public:
-    class Callback;
+    class Callback {
+        public:
+        virtual ~Callback();
+        virtual void NotifyLocalTalkerStart(uint8_t localTalker) = 0;
+        virtual void NotifyLocalTalkerStop(uint8_t localTalker) = 0;
+        virtual void NotifyTalkerStart(uint8_t localTalker, uint64_t session, uint64_t talker) = 0;
+        virtual void NotifyTalkerStop(uint8_t localTalker, uint64_t session, uint64_t talker) = 0;
+        virtual void NotifyLocalTalkerVoiceLevel(uint8_t localTalker, float level, bool talking) = 0;
+        virtual void NotifyDeviceError(uint8_t localTalker) = 0;
+    };
 
+    static Interface* Create(const Initialization& init, Allocator& allocator);
     static void Destroy(Interface* comsat, Allocator& allocator);
 
     virtual ~Interface();
@@ -32,49 +49,40 @@ class Interface {
     virtual int32_t EnumerateCaptureDevices(DeviceInfo* devices, int32_t maxDevices) = 0;
     virtual void CallbackSet(Interface::Callback& callback) = 0;
     virtual void CallbackClear() = 0;
-    virtual int32_t SessionCreate(uint64_t session) = 0;
-    virtual void SessionDestroy(uint64_t session) = 0;
-    virtual void SessionSetNetworkId(uint64_t session, uint16_t networkId) = 0;
-    virtual int32_t SessionAddLocal(uint64_t session, uint8_t localTalker, uint64_t talker) = 0;
-    virtual int32_t SessionAddRemote(uint64_t session, uint64_t talker, uint8_t priority, const uint8_t (&key)[16], const char* address) = 0;
-    virtual void SessionSetTalkerNetworkIdLocal(uint64_t session, uint64_t talker, uint8_t networkId) = 0;
-    virtual void SessionSetTalkerNetworkIdRemote(uint64_t session, uint64_t talker, uint8_t networkId) = 0;
-    virtual void SessionRemove(uint64_t session, uint64_t talker) = 0;
+    virtual bool SessionCreate(uint64_t session) = 0;
+    virtual bool SessionDestroy(uint64_t session) = 0;
+    virtual bool SessionSetNetworkId(uint64_t session, uint16_t networkId) = 0;
+    virtual bool SessionAddLocal(uint64_t session, uint8_t localTalker, uint64_t talker) = 0;
+    virtual bool SessionAddRemote(uint64_t session, uint64_t talker, uint8_t networkId, const uint8_t (&key)[16], const char* address) = 0;
+    virtual bool SessionSetTalkerNetworkIdLocal(uint64_t session, uint64_t talker, uint8_t networkId) = 0;
+    virtual bool SessionSetTalkerNetworkIdRemote(uint64_t session, uint64_t talker, uint8_t networkId) = 0;
+    virtual bool SessionRemove(uint64_t session, uint64_t talker) = 0;
     virtual int32_t SessionNumMembers(uint64_t session) = 0;
-    virtual int32_t SessionGetTalkerByIndex(uint64_t session, int32_t index, uint64_t& talker, uint8_t& flags) = 0;
-    virtual void SessionSetTalkerPriority(uint64_t session, uint64_t talker, uint8_t priority) = 0;
-    virtual int32_t LocalTalkerCreate(uint8_t localTalker, uint64_t talker, float threshold, int32_t outputDevice, int32_t captureDevice) = 0;
-    virtual void LocalTalkerDestroy(uint8_t localTalker) = 0;
-    virtual void LocalTalkerChangeOutputDevice(uint8_t localTalker, int32_t device) = 0;
-    virtual void LocalTalkerChangeCaptureDevice(uint8_t localTalker, int32_t device) = 0;
+    virtual bool SessionGetTalkerByIndex(uint64_t session, int32_t index, uint64_t& talker, uint8_t& localTalker) = 0;
+    virtual bool SessionSetTalkerPriority(uint64_t session, uint64_t talker, uint8_t priority) = 0;
+    virtual bool LocalTalkerCreate(uint8_t localTalker, uint64_t talker, float threshold, int32_t outputDevice, int32_t captureDevice) = 0;
+    virtual bool LocalTalkerDestroy(uint8_t localTalker) = 0;
+    virtual bool LocalTalkerChangeOutputDevice(uint8_t localTalker, int32_t device) = 0;
+    virtual bool LocalTalkerChangeCaptureDevice(uint8_t localTalker, int32_t device) = 0;
     virtual int32_t LocalTalkerGetCurrentOutputDeviceIndex(uint8_t localTalker) = 0;
     virtual int32_t LocalTalkerGetCurrentCaptureDeviceIndex(uint8_t localTalker) = 0;
-    virtual void LocalTalkerEnable(uint8_t localTalker, bool enable) = 0;
-    virtual void LocalTalkerThreshold(uint8_t localTalker, float threshold) = 0;
-    virtual void LocalTalkerEnableVoiceLevelCallback(uint8_t localTalker, bool enable) = 0;
-    virtual void LocalTalkerSelectSession(uint8_t localTalker, uint64_t session) = 0;
-    virtual void LocalTalkerSetSessionPriority(uint8_t localTalker, uint64_t session, uint8_t priority) = 0;
-    virtual void LocalTalkerSetRemoteTalkerVolume(uint8_t localTalker, uint64_t talker, float volume) = 0;
-    virtual void LocalTalkerSetSessionVolume(uint8_t localTalker, uint64_t session, float volume) = 0;
-    virtual void MuteTalker(uint8_t localTalker, uint64_t talker, MuteSetting setting) = 0;
-    virtual int32_t IsTalkerMuted(uint8_t localTalker, uint64_t talker) = 0;
-    virtual void MuteSession(uint8_t localTalker, uint64_t session, MuteSetting setting) = 0;
-    virtual int32_t IsSessionMuted(uint8_t localTalker, uint64_t session) = 0;
-    virtual int32_t IsTalkerTalkingInSession(uint64_t talker, uint8_t localTalker, uint64_t session) = 0;
-    virtual int32_t DoesTalkerHaveHeadset(uint64_t talker) = 0;
-    virtual int32_t DoesLocalPlayerHaveHeadset(uint8_t localTalker) = 0;
+    virtual bool LocalTalkerEnable(uint8_t localTalker, bool enable) = 0;
+    virtual bool LocalTalkerThreshold(uint8_t localTalker, float threshold) = 0;
+    virtual bool LocalTalkerEnableVoiceLevelCallback(uint8_t localTalker, bool enable) = 0;
+    virtual bool LocalTalkerSelectSession(uint8_t localTalker, uint64_t session) = 0;
+    virtual bool LocalTalkerSetSessionPriority(uint8_t localTalker, uint64_t session, uint8_t priority) = 0;
+    virtual bool LocalTalkerSetRemoteTalkerVolume(uint8_t localTalker, uint64_t talker, float volume) = 0;
+    virtual bool LocalTalkerSetSessionVolume(uint8_t localTalker, uint64_t session, float volume) = 0;
+    virtual bool MuteTalker(uint8_t localTalker, uint64_t talker, MuteSetting setting) = 0;
+    virtual bool IsTalkerMuted(uint8_t localTalker, uint64_t talker) = 0;
+    virtual bool MuteSession(uint8_t localTalker, uint64_t session, MuteSetting setting) = 0;
+    virtual bool IsSessionMuted(uint8_t localTalker, uint64_t session) = 0;
+    virtual bool IsTalkerTalkingInSession(uint64_t session, uint8_t localTalker, uint64_t talker) = 0;
+    virtual bool DoesTalkerHaveHeadset(uint64_t talker) = 0;
+    virtual bool DoesLocalPlayerHaveHeadset(uint8_t localTalker) = 0;
     virtual void DebugSetSequenceDelay(int32_t delay) = 0;
     virtual void DebugSetSoundOutputDelay(uint8_t localTalker, int32_t delay) = 0;
 };
-
-namespace Network {
-
-class Manager {
-    public:
-    ~Manager();
-};
-
-}
 
 }
 

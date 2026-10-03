@@ -101,7 +101,7 @@ static int32_t Script_GetTradeskillRepeatCount(lua_State* L) {
 // STATIC: 0x00A1B788
 static const char s_difficultyNames[4][32] = { "optimal", "medium", "easy", "trivial" };
 
-// VERIFY: a034c051 auto
+// VERIFY: 70374745 auto
 // OFFSET: 0x005DA1B0
 static int32_t Script_GetTradeSkillSubClassFilter(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -154,7 +154,7 @@ static int32_t Script_IsTradeSkillLinked(lua_State* L) {
     return 2;
 }
 
-// VERIFY: dffd5f22 auto
+// VERIFY: 1b04086e auto
 // OFFSET: 0x005DA900
 static int32_t Script_SelectTradeSkill(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -183,7 +183,7 @@ static int32_t Script_GetTradeSkillSelectionIndex(lua_State* L) {
     return 1;
 }
 
-// VERIFY: e27f888d auto
+// VERIFY: 15ddefb1 auto
 // OFFSET: 0x005DA9A0
 static int32_t Script_GetTradeSkillCooldown(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -261,7 +261,7 @@ static int32_t Script_GetFirstTradeSkill(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 69469bac manual
+// VERIFY: 84674611 auto
 // OFFSET: 0x005DAC00
 static int32_t Script_DoTradeSkill(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -377,7 +377,7 @@ static int32_t Script_GetTradeSkillInfo(lua_State* L) {
     return 5;
 }
 
-// VERIFY: 8ee28003 auto
+// VERIFY: 5c82d036 auto
 // OFFSET: 0x005DB550
 static int32_t Script_GetTradeSkillIcon(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -418,7 +418,7 @@ static int32_t Script_GetTradeSkillIcon(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 68b3486e auto
+// VERIFY: dbf6e832 auto
 // OFFSET: 0x005DB6E0
 static int32_t Script_GetTradeSkillNumMade(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -483,7 +483,7 @@ static int32_t Script_GetTradeSkillLine(lua_State* L) {
     return 3;
 }
 
-// VERIFY: aba88414 auto
+// VERIFY: aadc4baa auto
 // OFFSET: 0x005DB920
 static int32_t Script_GetTradeSkillRecipeLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -523,7 +523,7 @@ static int32_t Script_GetTradeSkillRecipeLink(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 58848056 auto
+// VERIFY: 50491ff5 auto
 // OFFSET: 0x005DBA70
 static int32_t Script_GetTradeSkillItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -641,7 +641,7 @@ static int32_t Script_GetTradeSkillReagentItemLink(lua_State* L) {
     return 1;
 }
 
-// VERIFY: de273fc0 auto
+// VERIFY: 981c3ee2 auto
 // OFFSET: 0x005DBE10
 static int32_t Script_GetTradeSkillDescription(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -695,7 +695,7 @@ static int32_t Script_GetTradeSkillInvSlots(lua_State* L) {
     return count;
 }
 
-// VERIFY: cae2a567 manual
+// VERIFY: f80437a8 auto
 // OFFSET: 0x005DBF90
 static int32_t Script_GetTradeSkillInvSlotFilter(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -770,7 +770,7 @@ static int32_t Script_SetTradeSkillItemNameFilter(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 29122e5a manual
+// VERIFY: 6022a2ad auto
 // OFFSET: 0x005DD090
 static int32_t Script_SetTradeSkillItemLevelFilter(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -784,7 +784,7 @@ static int32_t Script_SetTradeSkillItemLevelFilter(lua_State* L) {
     return 0;
 }
 
-// VERIFY: d62d7bc6 manual
+// VERIFY: 58bc80f5 auto
 // OFFSET: 0x005DD0F0
 static int32_t Script_SetTradeSkillSubClassFilter(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -915,7 +915,7 @@ static int32_t Script_TradeSkillOnlyShowSkillUps(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 7a4a6871 manual
+// VERIFY: c74e0f4e auto
 // OFFSET: 0x005DD460
 static int32_t Script_CollapseTradeSkillSubClass(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -943,7 +943,7 @@ static int32_t Script_CollapseTradeSkillSubClass(lua_State* L) {
     return 0;
 }
 
-// VERIFY: a371e13d manual
+// VERIFY: 2ef40ac1 auto
 // OFFSET: 0x005DD500
 static int32_t Script_ExpandTradeSkillSubClass(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1034,7 +1034,7 @@ static int32_t Script_GetTradeSkillReagentInfo(lua_State* L) {
     return 4;
 }
 
-// VERIFY: 6ce46c6f manual
+// VERIFY: d4ae0022 auto
 // OFFSET: 0x005DE620
 static int32_t Script_GetTradeSkillTools(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

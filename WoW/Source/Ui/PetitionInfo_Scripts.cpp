@@ -136,7 +136,7 @@ static int32_t Script_GetPetitionInfo(lua_State* L) {
     return 7;
 }
 
-// VERIFY: 5613ed49 manual
+// VERIFY: c92110d9 auto
 // OFFSET: 0x005CEE30
 static int32_t Script_GetPetitionNameInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -236,7 +236,7 @@ static int32_t Script_OfferPetition(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 2974e308 manual
+// VERIFY: d967f9f8 auto
 // OFFSET: 0x005CF450
 static int32_t Script_RenamePetition(lua_State* L) {
     if (!lua_isstring(L, 1)) {

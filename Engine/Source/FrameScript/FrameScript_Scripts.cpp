@@ -130,7 +130,7 @@ static int32_t Script_strsplit(lua_State* L) {
     return count + 1;
 }
 
-// VERIFY: d9d09017 auto
+// VERIFY: cad68086 auto
 // OFFSET: 0x00816B60
 static int32_t Script_strjoin(lua_State* L) {
     size_t length;
@@ -249,7 +249,7 @@ static int32_t Script_issecure(lua_State* L) {
     return 1;
 }
 
-// VERIFY: ace6c122 auto
+// VERIFY: ed335c44 auto
 // OFFSET: 0x00816DE0
 static int32_t Script_issecurevariable(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
@@ -347,7 +347,7 @@ static int32_t Script_securecall(lua_State* L) {
     return top;
 }
 
-// VERIFY: 622ed2b1 auto
+// VERIFY: 458bba82 auto
 // OFFSET: 0x00817170
 static int32_t Script_hooksecurefunc(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
@@ -702,7 +702,7 @@ static int32_t Script_scrub(lua_State* L) {
     return top;
 }
 
-// VERIFY: 6b683ae5 auto
+// VERIFY: d7c57f5a auto
 // OFFSET: 0x00817C70
 static int32_t Script_strlenutf8(lua_State* L) {
     if (!lua_isstring(L, 1)) {

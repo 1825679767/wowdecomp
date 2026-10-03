@@ -51,7 +51,7 @@ static int32_t Script_GetNumStableSlots(lua_State* L) {
     return 1;
 }
 
-// VERIFY: dda4fad4 auto
+// VERIFY: ef5dfe07 auto
 // OFFSET: 0x005A0FE0
 static int32_t Script_PickupStablePet(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -145,7 +145,7 @@ static int32_t Script_GetNextStableSlotCost(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 4fee38c8 manual
+// VERIFY: 75685864 auto
 // OFFSET: 0x005A1530
 static int32_t Script_SetPetStablePaperdoll(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {

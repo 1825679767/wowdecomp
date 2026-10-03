@@ -63,7 +63,7 @@ static int32_t Script_IsRealRaidLeader(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b9f445b5 manual
+// VERIFY: 3a66ce1f auto
 // OFFSET: 0x00572BC0
 static int32_t Script_SetRaidRosterSelection(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -237,7 +237,7 @@ static int32_t Script_GetReadyCheckStatus(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 86d61574 auto
+// VERIFY: 6d2243ec auto
 // OFFSET: 0x00572AB0
 static int32_t Script_GetRaidTargetIndex(lua_State* L) {
     if (!lua_isstring(L, 1)) {

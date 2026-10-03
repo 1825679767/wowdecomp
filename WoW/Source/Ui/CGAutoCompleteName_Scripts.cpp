@@ -3,7 +3,7 @@
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
 
-// VERIFY: 7c75006a manual
+// VERIFY: c189cafe auto
 // OFFSET: 0x0057B3A0
 static int32_t Script_GetAutoCompleteResults(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4)) {
@@ -25,7 +25,7 @@ static int32_t Script_GetAutoCompleteResults(lua_State* L) {
     return CGAutoCompleteName::GetMatchingResults(L, text, include, exclude, numReturns, cursor, allowFullMatch);
 }
 
-// VERIFY: 64d68b75 manual
+// VERIFY: 6b80b8e7 auto
 // OFFSET: 0x0057B500
 static int32_t Script_GetAutoCompletePresenceID(lua_State* L) {
     if (!lua_isstring(L, 1)) {

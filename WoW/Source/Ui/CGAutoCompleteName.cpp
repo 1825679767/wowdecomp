@@ -410,3 +410,19 @@ AUTOCOMPLETE_NAMENODE* CGAutoCompleteName::AddPlayerToList(const uint32_t& prese
     SortNameNode(node);
     return node;
 }
+
+// VERIFY: c8754f81 auto
+// OFFSET: 0x0057B840
+int32_t CGAutoCompleteName::AddFlags(const uint32_t& presenceId, uint32_t flags, int32_t add, const char* name) {
+    if (!presenceId) {
+        SErrDisplayAppFatalMessage("", "", 0);
+    }
+
+    AUTOCOMPLETE_NAMENODE* node = FindNodeByPresenceId(presenceId);
+
+    if (node) {
+        return ApplyNodeFlags(node, flags, add, name);
+    }
+
+    return CGAutoCompleteName::AddPlayerToList(presenceId, flags, add ? FrameTime::s_curTimeMs : 0, name) != nullptr;
+}

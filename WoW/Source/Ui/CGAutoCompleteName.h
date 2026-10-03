@@ -27,6 +27,7 @@ class CGAutoCompleteName {
     static void ResortAll();
     static int32_t GetPresenceID(const char* name, uint32_t* presenceId);
     static void AddFlags(const WOWGUID& guid, uint32_t flags, int32_t add, const char* name);
+    static int32_t AddFlags(const uint32_t& presenceId, uint32_t flags, int32_t add, const char* name);
     static int32_t RemoveFlags(const WOWGUID& guid, uint32_t flags);
     static int32_t RemoveFlags(const uint32_t& presenceId, uint32_t flags);
     static int32_t SetName(const uint32_t& presenceId, const char* name, bool overwrite);

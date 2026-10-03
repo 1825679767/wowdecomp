@@ -281,7 +281,7 @@ static int32_t Script_GuildControlGetRankFlags(lua_State* L) {
     return 17;
 }
 
-// VERIFY: ed348c21 auto
+// VERIFY: 40d5d07a auto
 // OFFSET: 0x005CB6A0
 static int32_t Script_SetGuildBankWithdrawLimit(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -390,7 +390,7 @@ static int32_t Script_SetGuildBankTabPermissions(lua_State* L) {
     return 0;
 }
 
-// VERIFY: caf993d8 manual
+// VERIFY: 5e321988 auto
 // OFFSET: 0x005CAF40
 static int32_t Script_SetGuildRosterSelection(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -541,7 +541,7 @@ static void SetGuildControlRank(uint32_t rank) {
     }
 }
 
-// VERIFY: e2bc4d66 auto
+// VERIFY: 723ba7a7 auto
 // OFFSET: 0x005CA260
 static int32_t Script_GuildControlSetRank(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -560,7 +560,7 @@ static int32_t Script_GetGuildInfoText(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b3a7ccfd manual
+// VERIFY: 4d6f79ce auto
 // OFFSET: 0x005CABB0
 static int32_t Script_GetGuildRosterLastOnline(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -592,7 +592,7 @@ static int32_t Script_GetGuildRosterLastOnline(lua_State* L) {
     return 4;
 }
 
-// VERIFY: f2c398b9 manual
+// VERIFY: 8f2f2c14 auto
 // OFFSET: 0x005CAD00
 static int32_t Script_GuildRosterSetPublicNote(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
@@ -631,7 +631,7 @@ static int32_t Script_GuildRosterSetPublicNote(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 61555267 manual
+// VERIFY: e9f385cb auto
 // OFFSET: 0x005CAE20
 static int32_t Script_GuildRosterSetOfficerNote(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
@@ -670,7 +670,7 @@ static int32_t Script_GuildRosterSetOfficerNote(lua_State* L) {
     return 0;
 }
 
-// VERIFY: edb0cb80 auto
+// VERIFY: c8bffae2 auto
 // OFFSET: 0x005CB000
 static int32_t Script_SortGuildRoster(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -770,7 +770,7 @@ static int32_t Script_GuildControlSaveRank(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b0fcc11f manual
+// VERIFY: 530716a0 auto
 // OFFSET: 0x005CB330
 static int32_t Script_GuildControlAddRank(lua_State* L) {
     if (!lua_isstring(L, 1)) {

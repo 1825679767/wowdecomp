@@ -597,7 +597,7 @@ static int32_t Script_GetLFDLockPlayerCount(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 6930f1ab auto
+// VERIFY: 51dce08f auto
 // OFFSET: 0x00557BE0
 static int32_t Script_GetLFGDungeonRewardInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -885,7 +885,7 @@ static int32_t PushDungeonInfo(lua_State* L, int32_t dungeonId) {
     return 14;
 }
 
-// VERIFY: 35ec374e auto
+// VERIFY: aa8994fc auto
 // OFFSET: 0x00555590
 static int32_t Script_GetLFGDungeonInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1037,7 +1037,7 @@ static int32_t Script_ClearAllLFGDungeons(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ff10ae1b manual
+// VERIFY: 002364d9 auto
 // OFFSET: 0x00559F50
 static int32_t Script_SetLFGDungeon(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1055,7 +1055,7 @@ static int32_t Script_SetLFGDungeon(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 7cd995a8 auto
+// VERIFY: 3307daf9 auto
 // OFFSET: 0x0055A040
 static int32_t Script_IsLFGDungeonJoinable(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1173,7 +1173,7 @@ static int32_t Script_GetLFDChoiceCollapseState(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 7ab8cbe9 auto
+// VERIFY: bf8c7985 auto
 // OFFSET: 0x005567E0
 static int32_t Script_GetLFDChoiceEnabledState(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE && lua_type(L, 1) > LUA_TNIL) {
@@ -1643,7 +1643,7 @@ static int32_t Script_IsInLFGDungeon(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 14ad353c manual
+// VERIFY: ef0b4eac auto
 // OFFSET: 0x00555FD0
 static int32_t Script_SearchLFGGetResults(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1758,7 +1758,7 @@ static int32_t Script_SearchLFGGetPartyResults(lua_State* L) {
     return AddLFGPlayerInfo(L, nullptr) + 5;
 }
 
-// VERIFY: 8f4a590b manual
+// VERIFY: 1994e414 auto
 // OFFSET: 0x00556AD0
 static int32_t Script_SetLFGHeaderCollapsed(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1776,7 +1776,7 @@ static int32_t Script_SetLFGHeaderCollapsed(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f9b9f3e2 auto
+// VERIFY: 28acc2e2 auto
 // OFFSET: 0x00556B60
 static int32_t Script_SetLFGDungeonEnabled(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1859,7 +1859,7 @@ static int32_t Script_LFGTeleport(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 33222d7f auto
+// VERIFY: edcce8b9 auto
 // OFFSET: 0x00557D60
 static int32_t Script_GetLFGDungeonRewardLink(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -1885,7 +1885,7 @@ static int32_t Script_GetLFGDungeonRewardLink(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 74851aa9 manual
+// VERIFY: b739931e auto
 // OFFSET: 0x00559400
 static int32_t Script_SearchLFGJoin(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -1907,7 +1907,7 @@ static int32_t Script_SearchLFGJoin(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 374d8965 manual
+// VERIFY: 72f2ad5b auto
 // OFFSET: 0x00559500
 static int32_t Script_ClearLFGDungeon(lua_State* L) {
     if (!lua_isnumber(L, 1) && !lua_isnumber(L, 2)) {

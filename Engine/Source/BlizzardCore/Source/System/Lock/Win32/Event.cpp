@@ -4,6 +4,12 @@
 #include <windows.h>
 #include "Engine/Source/BlizzardCore/Source/System/Lock/Lock.h"
 
+// VERIFY: aa3fb77e auto
+// OFFSET: 0x00435C00
+void Blizzard::Lock::EventCreate(Event& event) {
+    event = CreateEventA(nullptr, FALSE, FALSE, nullptr);
+}
+
 // VERIFY: 3018692c auto
 // OFFSET: 0x00428320
 void Blizzard::Lock::EventDestroy(Event& event) {

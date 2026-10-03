@@ -190,7 +190,7 @@ bool System_File::GetRootChars(Blizzard::File::Filesystem* fs, System_File::Stac
     return true;
 }
 
-// VERIFY: 372926fe manual
+// VERIFY: d09f7f0d manual
 // OFFSET: 0x00435580
 void System_File::GetFileInfoByFile(Blizzard::File::StreamRecord* file) {
     if (file->m_infoValid) {
@@ -205,7 +205,7 @@ void System_File::GetFileInfoByFile(Blizzard::File::StreamRecord* file) {
         return;
     }
 
-    if (!file->m_streaming || !file->m_streaming->m_storagehandle.m_mNode) {
+    if (!file->m_streaming || !file->m_streaming->m_entry) {
         file->m_info.m_size = (static_cast<int64_t>(sizeHigh) << 32) | sizeLow;
     }
 

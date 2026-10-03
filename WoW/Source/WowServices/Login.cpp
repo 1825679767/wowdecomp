@@ -245,17 +245,17 @@ void LoginResponse::HandleRealmData(uint32_t result, CDataStore* msg) {
         msg->Get(realm->m_category);
 
         if (this->GetLoginServerType() == 1) {
-            msg->Get(realm->unk_0130[0]);
-            msg->Get(realm->unk_0130[1]);
-            msg->Get(realm->unk_0130[2]);
-            msg->Get(realm->unk_0130[3]);
+            msg->Get(realm->m_regionId);
+            msg->Get(realm->m_battlegroupId);
+            msg->Get(realm->m_realmId);
+            msg->Get(realm->m_build);
         } else {
             uint8_t realmId;
             msg->Get(realmId);
-            realm->unk_0130[2] = realmId;
-            realm->unk_0130[0] = 0;
-            realm->unk_0130[1] = 0;
-            realm->unk_0130[3] = 0;
+            realm->m_realmId = realmId;
+            realm->m_regionId = 0;
+            realm->m_battlegroupId = 0;
+            realm->m_build = 0;
         }
 
         if (realm->m_flags & 0x4) {

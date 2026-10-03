@@ -57,6 +57,7 @@ class ScopedMutex {
     ~ScopedMutex();
 };
 
+void EventCreate(Event& event);
 void EventDestroy(Event& event);
 void EventSet(Event& event);
 Event* EventWait(uint32_t timeout, Event& event);

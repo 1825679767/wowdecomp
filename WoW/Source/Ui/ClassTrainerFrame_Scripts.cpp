@@ -298,7 +298,7 @@ static int32_t GetServiceTypeFromString(const char* type) {
     return SStrCmpI(type, "used", STORM_MAX_STR) ? 6 : 2;
 }
 
-// VERIFY: 7d28716c auto
+// VERIFY: e17cbd49 auto
 // OFFSET: 0x00593E10
 static int32_t Script_GetTrainerServiceTypeFilter(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -377,7 +377,7 @@ static int32_t Script_GetTrainerServiceInfo(lua_State* L) {
     return 4;
 }
 
-// VERIFY: 88ad0cad auto
+// VERIFY: 287a55ea auto
 // OFFSET: 0x00595150
 static int32_t Script_GetTrainerServiceIcon(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -584,7 +584,7 @@ static int32_t Script_GetTrainerServiceStepReq(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 4ae435f2 auto
+// VERIFY: 98de4b57 auto
 // OFFSET: 0x005959D0
 static int32_t Script_GetTrainerServiceDescription(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -623,7 +623,7 @@ static int32_t Script_GetTrainerServiceDescription(lua_State* L) {
     return 1;
 }
 
-// VERIFY: acea8d8f auto
+// VERIFY: 7d343579 auto
 // OFFSET: 0x00595C40
 static int32_t Script_GetTrainerServiceStepIncrease(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -687,7 +687,7 @@ static int32_t Script_GetTrainerServiceStepIncrease(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 6c487cf5 auto
+// VERIFY: f83e44a1 auto
 // OFFSET: 0x00595E60
 static int32_t Script_BuyTrainerService(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -706,7 +706,7 @@ static int32_t Script_BuyTrainerService(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 5c54d48d auto
+// VERIFY: 71ea3b5a auto
 // OFFSET: 0x00595EC0
 static int32_t Script_SetTrainerServiceTypeFilter(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -751,7 +751,7 @@ static int32_t Script_SetTrainerServiceTypeFilter(lua_State* L) {
     return 0;
 }
 
-// VERIFY: df5499a8 auto
+// VERIFY: cb7d0499 auto
 // OFFSET: 0x00596010
 static int32_t Script_SetTrainerSkillLineFilter(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -794,7 +794,7 @@ static int32_t Script_SetTrainerSkillLineFilter(lua_State* L) {
     return 0;
 }
 
-// VERIFY: a1db1e56 manual
+// VERIFY: 05a5d0f5 auto
 // OFFSET: 0x00596150
 static int32_t Script_CollapseTrainerSkillLine(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -822,7 +822,7 @@ static int32_t Script_CollapseTrainerSkillLine(lua_State* L) {
     return 0;
 }
 
-// VERIFY: dd5c37a8 manual
+// VERIFY: 9515160f auto
 // OFFSET: 0x005961F0
 static int32_t Script_ExpandTrainerSkillLine(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -850,7 +850,7 @@ static int32_t Script_ExpandTrainerSkillLine(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ff27bb2a auto
+// VERIFY: 34d380d3 auto
 // OFFSET: 0x00596290
 static int32_t Script_GetTrainerServiceItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

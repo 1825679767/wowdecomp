@@ -456,7 +456,7 @@ static int32_t Script_GetTalentPrereqs(lua_State* L) {
     return 4 * count;
 }
 
-// VERIFY: e016f005 manual
+// VERIFY: 47fcce66 auto
 // OFFSET: 0x005C7CE0
 static int32_t Script_GetTalentLink(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -595,7 +595,7 @@ static int32_t Script_GetActiveTalentGroup(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 2c14e75a auto
+// VERIFY: 8eb75c42 auto
 // OFFSET: 0x005C63B0
 static int32_t Script_GetPreviewTalentPointsSpent(lua_State* L) {
     if (!lua_isnumber(L, 1)) {

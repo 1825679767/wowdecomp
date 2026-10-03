@@ -142,7 +142,7 @@ static int32_t Script_GetMacroSpell(lua_State* L) {
     return 2;
 }
 
-// VERIFY: ea27987a manual
+// VERIFY: cbd63495 auto
 // OFFSET: 0x00564AE0
 static int32_t Script_SecureCmdOptionParse(lua_State* L) {
     const char* options = lua_tolstring(L, 1, nullptr);
@@ -170,7 +170,7 @@ static int32_t Script_SecureCmdOptionParse(lua_State* L) {
     return 2;
 }
 
-// VERIFY: 7e119d87 manual
+// VERIFY: 2de408c7 auto
 // OFFSET: 0x00564E90
 static int32_t Script_GetMacroIconInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -192,7 +192,7 @@ static int32_t Script_GetMacroIconInfo(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 2443acb4 manual
+// VERIFY: 7c42f7b9 auto
 // OFFSET: 0x00564F60
 static int32_t Script_GetMacroItemIconInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -214,7 +214,7 @@ static int32_t Script_GetMacroItemIconInfo(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 558a9e67 auto
+// VERIFY: fa3f6068 auto
 // OFFSET: 0x00566400
 static int32_t Script_RunMacroText(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -250,7 +250,7 @@ static int32_t Script_GetNumMacroItemIcons(lua_State* L) {
     return 1;
 }
 
-// VERIFY: b82ce8df auto
+// VERIFY: bec93d83 auto
 // OFFSET: 0x005666A0
 static int32_t Script_GetMacroIndexByName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -381,7 +381,7 @@ static int32_t Script_EditMacro(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 13afb7d7 auto
+// VERIFY: 8a7babb3 auto
 // OFFSET: 0x005670D0
 static int32_t Script_SetMacroItem(lua_State* L) {
     if (!lua_isstring(L, 2)) {
