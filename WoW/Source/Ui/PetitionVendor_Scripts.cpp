@@ -143,6 +143,7 @@ static int32_t Script_BuyPetition(lua_State* L) {
 static int32_t Script_TurnInArenaPetition(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: TurnInArenaPetition(teamSize)");
+        return 0;
     }
 
     if (!CGPetitionVendorInfo::m_vendor) {

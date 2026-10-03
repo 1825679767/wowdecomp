@@ -595,6 +595,7 @@ static int32_t Script_SetMouselookOverrideBinding(lua_State* L) {
 
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SetMouselookOverrideBinding(\"key\", \"binding\" or nil)");
+        return 0;
     }
 
     if (CGGameUI::CanPerformAction(13)) {

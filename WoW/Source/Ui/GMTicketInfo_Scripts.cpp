@@ -60,6 +60,7 @@ static int32_t Script_GetGMTicket(lua_State* L) {
 static int32_t Script_GMSurveyAnswerSubmit(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isstring(L, 3)) {
         luaL_error(L, "Usage: GMSurveyAnswerSubmit(question, rank, comment)");
+        return 0;
     }
 
     uint32_t question = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -68,6 +69,7 @@ static int32_t Script_GMSurveyAnswerSubmit(lua_State* L) {
 
     if (question >= 10) {
         luaL_error(L, "GMSurveyAnswerSubmit: Questions limited from %d to %d", 1, 10);
+        return 0;
     }
 
     CGGMSurveyInfo::SetAnswer(question, static_cast<uint8_t>(rank), comment);
@@ -79,6 +81,7 @@ static int32_t Script_GMSurveyAnswerSubmit(lua_State* L) {
 static int32_t Script_GMSurveyCommentSubmit(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GMSurveyCommentSubmit(comment)");
+        return 0;
     }
 
     CGGMSurveyInfo::SetComment(lua_tolstring(L, 1, nullptr));
@@ -150,6 +153,7 @@ static int32_t Script_GMSurveyNumAnswers(lua_State* L) {
 static int32_t Script_GMReportLag(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GMReportLag(number)");
+        return 0;
     }
 
     CGGMReportLag::Submit(static_cast<int32_t>(lua_tonumber(L, 1)));
@@ -161,6 +165,7 @@ static int32_t Script_GMReportLag(lua_State* L) {
 static int32_t Script_NewGMTicket(lua_State* L) {
     if (!lua_isstring(L, 1) || lua_type(L, 2) != LUA_TBOOLEAN) {
         luaL_error(L, "Usage: NewGMTicket(ticketDescription, needResponse)");
+        return 0;
     }
 
     if (CGGameUI::CanPerformAction(17)) {
@@ -176,6 +181,7 @@ static int32_t Script_NewGMTicket(lua_State* L) {
 static int32_t Script_UpdateGMTicket(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UpdateGMTicket(ticketDescription)");
+        return 0;
     }
 
     if (CGGameUI::CanPerformAction(17)) {
@@ -197,6 +203,7 @@ static int32_t Script_DeleteGMTicket(lua_State* L) {
 static int32_t Script_GMResponseNeedMoreHelp(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GMResponseNeedMoreHelp(newTicketDescription)");
+        return 0;
     }
 
     if (CGGameUI::CanPerformAction(17)) {

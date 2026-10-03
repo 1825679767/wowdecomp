@@ -85,6 +85,7 @@ static int32_t Script_GetNumTalentGroups(lua_State* L) {
 static int32_t Script_SetActiveTalentGroup(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetActiveTalentGroup(groupIndex)");
+        return 0;
     }
 
     uint32_t group = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -234,6 +235,7 @@ static int32_t Script_LearnPreviewTalents(lua_State* L) {
 static int32_t Script_ResetPreviewTalentPoints(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ResetPreviewTalentPoints(tabIndex[, isPet[, groupIndex]])");
+        return 0;
     }
 
     uint32_t tab = lua_tointeger(L, 1) - 1;
@@ -396,6 +398,7 @@ static int32_t Script_GetTalentInfo(lua_State* L) {
 static int32_t Script_GetTalentPrereqs(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetTalentPrereqs(tabIndex, talentIndex[, isInspect[, isPet[, groupIndex]]])");
+        return 0;
     }
 
     int32_t count = 0;
@@ -497,6 +500,7 @@ static int32_t Script_GetTalentLink(lua_State* L) {
 static int32_t Script_LearnTalent(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: LearnTalent(tabIndex, talentIndex[, isPet])");
+        return 0;
     }
 
     uint32_t tabIndex = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -555,6 +559,7 @@ static int32_t Script_LearnTalent(lua_State* L) {
 static int32_t Script_AddPreviewTalentPoints(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: AddPreviewTalentPoints(tabIndex, talentIndex, points[, isPet[, groupIndex]])");
+        return 0;
     }
 
     uint32_t tab = lua_tointeger(L, 1) - 1;

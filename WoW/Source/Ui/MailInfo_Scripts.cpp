@@ -90,6 +90,7 @@ static int32_t Script_GetSelectedStationeryTexture(lua_State* L) {
 static int32_t Script_SelectPackage(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SelectPackage(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -139,6 +140,7 @@ static int32_t Script_CheckInbox(lua_State* L) {
 static int32_t Script_TakeInboxMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: TakeInboxMoney(index)");
+        return 0;
     }
 
     if (!CGMailInfo::m_commandPending) {
@@ -171,6 +173,7 @@ static int32_t Script_TakeInboxMoney(lua_State* L) {
 static int32_t Script_TakeInboxTextItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: TakeInboxTextItem(index)");
+        return 0;
     }
 
     if (!CGMailInfo::m_commandPending) {
@@ -203,6 +206,7 @@ static int32_t Script_TakeInboxTextItem(lua_State* L) {
 static int32_t Script_SelectStationery(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SelectStationery(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -255,6 +259,7 @@ static int32_t Script_GetStationeryInfo(lua_State* L) {
 static int32_t Script_SetSendMailShowing(lua_State* L) {
     if (lua_type(L, 1) != LUA_TBOOLEAN) {
         luaL_error(L, "Usage: SetSendMailShowing(bool)");
+        return 0;
     }
 
     CGMailInfo::m_sendMailShowing = lua_toboolean(L, 1);
@@ -350,6 +355,7 @@ static int32_t Script_ClearSendMail(lua_State* L) {
 static int32_t Script_SetSendMailCOD(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetSendMailCOD(amount)");
+        return 0;
     }
 
     double amount = lua_tonumber(L, 1);
@@ -401,6 +407,7 @@ static char s_headerTexture[260];
 static int32_t Script_GetInboxHeaderInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetInboxHeaderInfo(index)");
+        return 0;
     }
 
     lua_checkstack(L, 13);
@@ -535,6 +542,7 @@ static int32_t Script_GetInboxHeaderInfo(lua_State* L) {
 static int32_t Script_GetInboxInvoiceInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetInboxInvoiceInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -604,6 +612,7 @@ static int32_t Script_GetInboxInvoiceInfo(lua_State* L) {
 static int32_t Script_GetInboxItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetInboxItemLink(messageIndex, attachIndex)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -641,6 +650,7 @@ static int32_t Script_GetInboxItemLink(lua_State* L) {
 static int32_t Script_ReturnInboxItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ReturnInboxItem(index)");
+        return 0;
     }
 
     if (CGMailInfo::m_commandPending) {
@@ -682,6 +692,7 @@ static int32_t Script_ReturnInboxItem(lua_State* L) {
 static int32_t Script_DeleteInboxItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: DeleteInboxItem(index)");
+        return 0;
     }
 
     if (CGMailInfo::m_commandPending) {
@@ -764,6 +775,7 @@ static int32_t Script_GetLatestThreeSenders(lua_State* L) {
 static int32_t Script_RespondMailLockSendItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: RespondMailLockSendItem(slot, keepItem)");
+        return 0;
     }
 
     uint32_t slot = lua_tointeger(L, 1) - 1;
@@ -914,6 +926,7 @@ static int32_t Script_GetSendMailItem(lua_State* L) {
 static int32_t Script_SendMail(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SendMail(target, subject, body)");
+        return 0;
     }
 
     if (CGMailInfo::m_commandPending) {
@@ -1163,6 +1176,7 @@ static int32_t Script_GetInboxItem(lua_State* L) {
 static int32_t Script_TakeInboxItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: TakeInboxItem(messageIndex, attachIndex)");
+        return 0;
     }
 
     if (CGMailInfo::m_commandPending) {
@@ -1217,6 +1231,7 @@ static int32_t Script_TakeInboxItem(lua_State* L) {
 static int32_t Script_ComplainInboxItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ComplainInboxItem(index)");
+        return 0;
     }
 
     CGMailInfo::Complain(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
@@ -1245,6 +1260,7 @@ static int32_t Script_CanComplainInboxItem(lua_State* L) {
 static int32_t Script_AutoLootMailItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: AutoLootMailItem(index)");
+        return 0;
     }
 
     if (!CGMailInfo::m_commandPending && CGMailInfo::m_object) {

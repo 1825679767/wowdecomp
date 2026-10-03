@@ -46,6 +46,7 @@ static int32_t Script_CombatLogClearEntries(lua_State* L) {
 static int32_t Script_CombatLogSetRetentionTime(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CombatLogSetRetentionTime(seconds)");
+        return 0;
     }
 
     g_combatLogRetentionTimeCVar->Set(static_cast<int32_t>(lua_tointeger(L, 1)), true, false, false, true);
@@ -84,6 +85,7 @@ static int32_t Script_CombatLogAddFilter(lua_State* L) {
 
             if (!(sourceFlags & 0xFFFF0000) && (!(sourceFlags & 0xF) || !(sourceFlags & 0xF0) || !(sourceFlags & 0x300) || !(sourceFlags & 0xFC00))) {
                 luaL_error(L, "CombatLogAddFilter(): incomplete filter for srcMask");
+                return 0;
             }
 
             break;
@@ -103,6 +105,7 @@ static int32_t Script_CombatLogAddFilter(lua_State* L) {
 
             if (!(destFlags & 0xFFFF0000) && (!(destFlags & 0xF) || !(destFlags & 0xF0) || !(destFlags & 0x300) || !(destFlags & 0xFC00))) {
                 luaL_error(L, "CombatLogAddFilter(): incomplete filter for dstMask");
+                return 0;
             }
 
             break;

@@ -150,6 +150,7 @@ static int32_t Script_strjoin(lua_State* L) {
 
     if (!lua_checkstack(L, 2 * count)) {
         luaL_error(L, "strjoin(): Stack overflow");
+        return 0;
     }
 
     for (int32_t i = 1; i < count; i++) {
@@ -258,6 +259,7 @@ static int32_t Script_issecurevariable(lua_State* L) {
 
     if (!lua_isstring(L, 2)) {
         luaL_error(L, "Usage: issecurevariable([table,] \"variable\")");
+        return 0;
     }
 
     const char* name = lua_tostring(L, 2);
@@ -355,6 +357,7 @@ static int32_t Script_hooksecurefunc(lua_State* L) {
 
     if (!lua_isstring(L, 2) || lua_type(L, 3) != LUA_TFUNCTION) {
         luaL_error(L, "Usage: hooksecurefunc([table,] \"function\", hookfunc)");
+        return 0;
     }
 
     lua_settop(L, 3);
@@ -413,6 +416,7 @@ static int32_t Script_hooksecurefunc(lua_State* L) {
 
     if (!hooked) {
         luaL_error(L, "hooksecurefunc(): %s is not a function", name);
+        return 0;
     }
 
     return 0;
@@ -439,6 +443,7 @@ static int32_t Script_debugprofilestop(lua_State* L) {
 static int32_t Script_seterrorhandler(lua_State* L) {
     if (lua_type(L, 1) != LUA_TFUNCTION) {
         luaL_error(L, "Usage: seterrorhandler(errfunc)");
+        return 0;
     }
 
     if (s_errorHandlerFunc != -1) {

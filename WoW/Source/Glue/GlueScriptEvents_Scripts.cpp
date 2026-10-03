@@ -112,6 +112,7 @@ static int32_t Script_SetUsesToken(lua_State* L) {
 static int32_t Script_SetSavedAccountList(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SetSavedAccountList(\"accountList\")");
+        return 0;
     }
 
     g_accountListVar->Set(lua_tolstring(L, 1, nullptr), true, false, false, true);
@@ -748,12 +749,14 @@ static int32_t Script_GetCVarMax(lua_State* L) {
 static int32_t Script_GetCVarAbsoluteMin(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetCVarAbsoluteMin(\"cvar\")");
+        return 0;
     }
 
     CVar* var = CVar::LookupRegistered(lua_tolstring(L, 1, nullptr));
 
     if (!var) {
         luaL_error(L, "Couldn't find CVar named '%s'", lua_tolstring(L, 1, nullptr));
+        return 0;
     }
 
     if (SStrCmpI(var->m_key.m_str, "extShadowQuality", STORM_MAX_STR)) {
@@ -770,12 +773,14 @@ static int32_t Script_GetCVarAbsoluteMin(lua_State* L) {
 static int32_t Script_GetCVarAbsoluteMax(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetCVarAbsoluteMax(\"cvar\")");
+        return 0;
     }
 
     CVar* var = CVar::LookupRegistered(lua_tolstring(L, 1, nullptr));
 
     if (!var) {
         luaL_error(L, "Couldn't find CVar named '%s'", lua_tolstring(L, 1, nullptr));
+        return 0;
     }
 
     if (SStrCmpI(var->m_key.m_str, "extShadowQuality", STORM_MAX_STR)) {
@@ -964,6 +969,7 @@ static int32_t Script_PatchDownloadProgress(lua_State* L) {
 static int32_t Script_PlayCreditsMusic(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: PlayCreditsMusic( \"Sound kit name\" )");
+        return 0;
     }
 
     SI2::StartCreditsMusic(lua_tolstring(L, 1, nullptr));
@@ -1038,6 +1044,7 @@ static int32_t Script_GetAddOnEnableState(lua_State* L) {
 static int32_t Script_LaunchURL(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: LaunchURL(\"URL\")");
+        return 0;
     }
 
     ClientServices::LaunchURL(lua_tolstring(L, 1, nullptr));
@@ -1088,12 +1095,14 @@ static int32_t Script_TokenEntered(lua_State* L) {
 static int32_t Script_GetAddOnInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetAddOnInfo(index)");
+        return 0;
     }
 
     const char* name = GetAddOnByIndex(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1);
 
     if (!name) {
         luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+        return 0;
     }
 
     lua_pushstring(L, name);
@@ -1172,6 +1181,7 @@ static int32_t Script_IsAddonVersionCheckEnabled(lua_State* L) {
 static int32_t Script_SetRealmSplitState(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetRealmSplitState(1 or 2)");
+        return 0;
     }
 
     uint32_t state = static_cast<uint32_t>(lua_tonumber(L, 1));
@@ -1217,6 +1227,7 @@ static int32_t Script_SetAddonVersionCheck(lua_State* L) {
 static int32_t Script_GetNumDeclensionSets(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetNumDeclensionSets(\"name\", gender)");
+        return 0;
     }
 
     int32_t sex = 2;
@@ -1242,6 +1253,7 @@ static int32_t Script_GetNumDeclensionSets(lua_State* L) {
 static int32_t Script_DeclineName(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: DeclineName(\"name\", gender, declensionSet)");
+        return 0;
     }
 
     int32_t sex = 2;

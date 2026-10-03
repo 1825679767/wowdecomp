@@ -142,12 +142,14 @@ static int32_t Script_SetLootThreshold(lua_State* L) {
 
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetLooThreshold(threshold)");
+        return 0;
     }
 
     uint32_t threshold = static_cast<uint32_t>(lua_tonumber(L, 1));
 
     if (threshold - 2 > 4) {
         luaL_error(L, "SetLootThreshold(): threshold must be between %d and %d", 2, 6);
+        return 0;
     }
 
     if (ClntObjMgrGetActivePlayerObj()) {
@@ -239,6 +241,7 @@ static int32_t Script_SetOptOutOfLoot(lua_State* L) {
 static int32_t Script_GetPartyAssignment(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetPartyAssignment(\"assignment\" [,\"raidmember\"] [,exactMatch])");
+        return 0;
     }
 
     const char* assignment = lua_tolstring(L, 1, nullptr);
@@ -249,6 +252,7 @@ static int32_t Script_GetPartyAssignment(lua_State* L) {
 
     if (SStrCmpI(assignment, "MAINASSIST", STORM_MAX_STR)) {
         luaL_error(L, "GetPartyAssignment(): Invalid party assignment");
+        return 0;
     }
 
     return CGPartyInfo::GetPartyAssignments(L, 1);
@@ -348,6 +352,7 @@ static int32_t Script_SetLootMethod(lua_State* L) {
 
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SetLootMethod(\"method\" [,master])");
+        return 0;
     }
 
     const char* method = lua_tolstring(L, 1, nullptr);
@@ -364,6 +369,7 @@ static int32_t Script_SetLootMethod(lua_State* L) {
     } else {
         if (SStrCmpI(method, "needbeforegreed", STORM_MAX_STR)) {
             luaL_error(L, "Invalid loot method");
+            return 0;
         }
 
         lootMethod = 4;
@@ -421,6 +427,7 @@ static int32_t SetOrClearAssignment(lua_State* L, bool set) {
 
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: %s(\"assignment\" [,\"raidmember\"] [,exactMatch])", set ? "SetPartyAssignment" : "ClearPartyAssignment");
+        return 0;
     }
 
     WOWGUID guid = WOWGUID();
@@ -432,6 +439,7 @@ static int32_t SetOrClearAssignment(lua_State* L, bool set) {
     } else {
         if (SStrCmpI(assignmentName, "MAINASSIST", STORM_MAX_STR)) {
             luaL_error(L, "Invalid Party assignment");
+            return 0;
         }
 
         assignment = 1;
@@ -491,6 +499,7 @@ static int32_t Script_ClearPartyAssignment(lua_State* L) {
 static int32_t Script_ChangePlayerDifficulty(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetPlayerDifficulty(\"difficulty\")");
+        return 0;
     }
 
     if (CGGameUI::CanChangePlayerDifficulty()) {

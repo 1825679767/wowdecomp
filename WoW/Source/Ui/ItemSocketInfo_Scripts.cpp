@@ -19,6 +19,7 @@
 static int32_t Script_GetSocketTypes(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetSocketType(index)");
+        return 0;
     }
 
     lua_checkstack(L, 4);
@@ -140,6 +141,7 @@ static int32_t Script_GetNewSocketInfo(lua_State* L) {
 static int32_t Script_GetNewSocketLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetNewSocketLink(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -159,6 +161,7 @@ static int32_t Script_GetNewSocketLink(lua_State* L) {
 static int32_t Script_ClickSocketButton(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ClickSocketButton(index)");
+        return 0;
     }
 
     WOWGUID cursorItem;
@@ -246,6 +249,7 @@ static int32_t Script_GetExistingSocketInfo(lua_State* L) {
 static int32_t Script_GetExistingSocketLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetExistingSocketLink(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;

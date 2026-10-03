@@ -85,6 +85,7 @@ static int32_t Script_GuildControlGetNumRanks(lua_State* L) {
 static int32_t Script_GuildControlSetRankFlag(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GuildControlSetRankFlag(index, enabled)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -285,6 +286,7 @@ static int32_t Script_GuildControlGetRankFlags(lua_State* L) {
 static int32_t Script_SetGuildBankWithdrawLimit(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: Script_SetGuildBankWithdrawLimit(amount)");
+        return 0;
     }
 
     uint32_t amount = static_cast<uint32_t>(lua_tonumber(L, 1));
@@ -315,6 +317,7 @@ static int32_t Script_GetGuildBankWithdrawLimit(lua_State* L) {
 static int32_t Script_SetGuildBankTabWithdraw(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SetGuildBankTabWithdraw(tab, amount)");
+        return 0;
     }
 
     uint32_t tab = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -368,6 +371,7 @@ static int32_t Script_CanEditGuildTabInfo(lua_State* L) {
 static int32_t Script_SetGuildBankTabPermissions(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SetGuildTabPermissions(tab, index, enabled)");
+        return 0;
     }
 
     uint8_t tab = static_cast<uint8_t>(lua_tonumber(L, 1)) - 1;
@@ -391,6 +395,7 @@ static int32_t Script_SetGuildBankTabPermissions(lua_State* L) {
 static int32_t Script_SetGuildRosterSelection(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetGuildRosterSelection(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -541,6 +546,7 @@ static void SetGuildControlRank(uint32_t rank) {
 static int32_t Script_GuildControlSetRank(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GuildControlSetRank(rank)");
+        return 0;
     }
 
     SetGuildControlRank(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
@@ -591,6 +597,7 @@ static int32_t Script_GetGuildRosterLastOnline(lua_State* L) {
 static int32_t Script_GuildRosterSetPublicNote(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: GuildRosterSetPublicNote(index, note)");
+        return 0;
     }
 
     const char* note = lua_tolstring(L, 2, nullptr);
@@ -629,6 +636,7 @@ static int32_t Script_GuildRosterSetPublicNote(lua_State* L) {
 static int32_t Script_GuildRosterSetOfficerNote(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: GuildRosterSetOfficerNote(index, note)");
+        return 0;
     }
 
     const char* note = lua_tolstring(L, 2, nullptr);
@@ -667,6 +675,7 @@ static int32_t Script_GuildRosterSetOfficerNote(lua_State* L) {
 static int32_t Script_SortGuildRoster(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SortGuildRoster(\"type\")");
+        return 0;
     }
 
     int32_t column = 2;
@@ -717,6 +726,7 @@ static int32_t Script_SortGuildRoster(lua_State* L) {
 static int32_t Script_GuildControlSaveRank(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GuildControlSaveRank(name)");
+        return 0;
     }
 
     const char* name = lua_tolstring(L, 1, nullptr);
@@ -765,6 +775,7 @@ static int32_t Script_GuildControlSaveRank(lua_State* L) {
 static int32_t Script_GuildControlAddRank(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GuildControlAddRank(name)");
+        return 0;
     }
 
     const char* name = lua_tolstring(L, 1, nullptr);
@@ -825,6 +836,7 @@ static int32_t Script_GetGuildBankTabPermissions(lua_State* L) {
 static int32_t Script_SetGuildInfoText(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SetGuildInfoText(text)");
+        return 0;
     }
 
     const char* text = lua_tolstring(L, 1, nullptr);
@@ -873,6 +885,7 @@ static int32_t Script_GuildControlGetRankName(lua_State* L) {
 static int32_t Script_GetGuildEventInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetGuildEventInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;

@@ -71,20 +71,24 @@ static int32_t Script_AccountMsg_GetHeaderPriority(lua_State* L) {
 static int32_t Script_AccountMsg_LoadBody(lua_State* L) {
     if (g_accountMsgHeaders.m_state != 2) {
         luaL_error(L, "AccountMsg_LoadBody() failed because the headers are not loaded");
+        return 0;
     }
 
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: AccountMsg_LoadBody(number)");
+        return 0;
     }
 
     double index = lua_tonumber(L, 1);
 
     if (index < 0.0 || index >= g_accountMsgHeaders.m_count) {
         luaL_error(L, "Usage: AccountMsg_LoadBody(number) failed because the number is out of range");
+        return 0;
     }
 
     if (!g_accountMsgBody.LoadBody(g_accountMsgHeaders.GetMessageId(static_cast<int32_t>(index)))) {
         luaL_error(L, "AccountMsg_LoadHeaders() failed");
+        return 0;
     }
 
     return 0;
@@ -177,20 +181,24 @@ static int32_t Script_AccountMsg_GetIndexNextUnreadMsg(lua_State* L) {
 static int32_t Script_AccountMsg_SetMsgRead(lua_State* L) {
     if (g_accountMsgHeaders.m_state != 2) {
         luaL_error(L, "AccountMsg_SetMsgRead() failed because the headers are not loaded");
+        return 0;
     }
 
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: AccountMsg_SetMsgRead(number)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1));
 
     if (index < 0 || index >= g_accountMsgHeaders.m_count) {
         luaL_error(L, "Usage: AccountMsg_SetMsgRead(number) failed because the number is out of range");
+        return 0;
     }
 
     if (!g_accountMsgHeaders.SetMsgRead(index)) {
         luaL_error(L, "Usage: AccountMsg_SetMsgRead(number) failed due to an URL error");
+        return 0;
     }
 
     return 0;
@@ -201,6 +209,7 @@ static int32_t Script_AccountMsg_SetMsgRead(lua_State* L) {
 static int32_t Script_AccountMsg_LoadHeaders(lua_State* L) {
     if (!g_accountMsgHeaders.LoadHeaders()) {
         luaL_error(L, "AccountMsg_LoadHeaders() failed");
+        return 0;
     }
 
     return 0;

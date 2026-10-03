@@ -216,6 +216,7 @@ static int32_t Script_GetArenaTeamRosterInfo(lua_State* L) {
 static int32_t Script_SetArenaTeamRosterSelection(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SetArenaTeamRosterSelection(team, index)");
+        return 0;
     }
 
     uint32_t team = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -242,6 +243,7 @@ static int32_t Script_GetArenaTeamRosterSelection(lua_State* L) {
 static int32_t Script_SortArenaTeamRoster(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usgae: SortArenaTeamRoster(\"type\")");
+        return 0;
     }
 
     int32_t column = 0;
@@ -303,6 +305,7 @@ static int32_t Script_CloseArenaTeamRoster(lua_State* L) {
 static int32_t Script_ArenaTeamRoster(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ArenaTeamRoster(team)");
+        return 0;
     }
 
     uint32_t team = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;

@@ -33,6 +33,7 @@
 static int32_t Script_GetPetActionInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetPetActionInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -614,12 +615,14 @@ static int32_t Script_PetRename(lua_State* L) {
 static int32_t Script_PickupPetAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: PickupPetAction(index)");
+        return 0;
     }
 
     uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
 
     if (slot > 10) {
         luaL_error(L, "Invalid slot in PickupPetAction");
+        return 0;
     }
 
     if (!CGGameUI::CanPerformAction(14)) {
@@ -658,12 +661,14 @@ static int32_t Script_PickupPetAction(lua_State* L) {
 static int32_t Script_TogglePetAutocast(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: TogglePetAutocast(index)");
+        return 0;
     }
 
     uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
 
     if (slot > 10) {
         luaL_error(L, "Invalid slot in TogglePetAutocast");
+        return 0;
     }
 
     uint32_t cursorAction = CGGameUI::m_cursorPetAction;
@@ -683,12 +688,14 @@ static int32_t Script_TogglePetAutocast(lua_State* L) {
 static int32_t Script_CastPetAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CastPetAction(index, target)");
+        return 0;
     }
 
     uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
 
     if (slot > 10) {
         luaL_error(L, "Invalid slot in CastPetAction");
+        return 0;
     }
 
     CGUnit_C* pet = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPEMASK_UNIT, __FILE__, __LINE__));

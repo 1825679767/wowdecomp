@@ -550,6 +550,7 @@ FMOD_RESULT DSPSfxReverb::setParameterInternal(int index, float value)
         case FMOD_DSP_SFXREVERB_REFLECTIONSLEVEL:
         {
             mUpdateProps.lReflections = (int)(value + 0.5f); 
+            mUpdate = true;
             break;
         }        
         case FMOD_DSP_SFXREVERB_REFLECTIONSDELAY:
@@ -561,6 +562,7 @@ FMOD_RESULT DSPSfxReverb::setParameterInternal(int index, float value)
         case FMOD_DSP_SFXREVERB_REVERBLEVEL:
         {
             mUpdateProps.lReverb = (int)(value + 0.5f); 
+            mUpdate = true;
             break;
         }        
         case FMOD_DSP_SFXREVERB_REVERBDELAY:

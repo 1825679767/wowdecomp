@@ -159,6 +159,7 @@ static int32_t Script_IsTradeSkillLinked(lua_State* L) {
 static int32_t Script_SelectTradeSkill(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SelectTradeSkill(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -265,6 +266,7 @@ static int32_t Script_GetFirstTradeSkill(lua_State* L) {
 static int32_t Script_DoTradeSkill(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: DoTradeSkill(index [, repeat])");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -486,6 +488,7 @@ static int32_t Script_GetTradeSkillLine(lua_State* L) {
 static int32_t Script_GetTradeSkillRecipeLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTradeSkillRecipeLink(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -525,6 +528,7 @@ static int32_t Script_GetTradeSkillRecipeLink(lua_State* L) {
 static int32_t Script_GetTradeSkillItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTradeSkillItemLink(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -771,6 +775,7 @@ static int32_t Script_SetTradeSkillItemNameFilter(lua_State* L) {
 static int32_t Script_SetTradeSkillItemLevelFilter(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SetTradeSkillItemLevelFilter(minLevel, maxLevel)");
+        return 0;
     }
 
     int32_t maxLevel = lua_tointeger(L, 2);
@@ -784,6 +789,7 @@ static int32_t Script_SetTradeSkillItemLevelFilter(lua_State* L) {
 static int32_t Script_SetTradeSkillSubClassFilter(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SetTradeSkillSubClassFilter(index [, on\\off, exclusive])");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -798,10 +804,12 @@ static int32_t Script_SetTradeSkillSubClassFilter(lua_State* L) {
 
     if (static_cast<uint32_t>(index) >= CGTradeSkillInfo::m_numSubClasses) {
         luaL_error(L, "Bad sub class in SetTradeSkillSubClassFilter");
+        return 0;
     }
 
     if (!lua_isnumber(L, 2)) {
         luaL_error(L, "Missing on//off parameter in SetTradeSkillSubClassFilter");
+        return 0;
     }
 
     uint32_t filter = CGTradeSkillInfo::m_subClassFilter;
@@ -912,6 +920,7 @@ static int32_t Script_TradeSkillOnlyShowSkillUps(lua_State* L) {
 static int32_t Script_CollapseTradeSkillSubClass(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CollapseTradeSkillSubClass(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -921,6 +930,7 @@ static int32_t Script_CollapseTradeSkillSubClass(lua_State* L) {
 
         if (subClass < 0) {
             luaL_error(L, "Bad sub class in CollapseTradeSkillSubClass");
+            return 0;
         }
 
         CGTradeSkillInfo::m_collapseFilter &= ~(1 << subClass);
@@ -938,6 +948,7 @@ static int32_t Script_CollapseTradeSkillSubClass(lua_State* L) {
 static int32_t Script_ExpandTradeSkillSubClass(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ExpandTradeSkillSubClass(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -947,6 +958,7 @@ static int32_t Script_ExpandTradeSkillSubClass(lua_State* L) {
 
         if (subClass < 0) {
             luaL_error(L, "Bad skill line in ExpandTradeSkillSubClass");
+            return 0;
         }
 
         CGTradeSkillInfo::m_collapseFilter |= 1 << subClass;
@@ -1027,6 +1039,7 @@ static int32_t Script_GetTradeSkillReagentInfo(lua_State* L) {
 static int32_t Script_GetTradeSkillTools(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTradeSkillTools(index)");
+        return 0;
     }
 
     int32_t count = 0;

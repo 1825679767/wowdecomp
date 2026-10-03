@@ -602,6 +602,7 @@ static int32_t Script_GetLFDLockPlayerCount(lua_State* L) {
 static int32_t Script_GetLFGDungeonRewardInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetLFGDungeonRewardInfo(dungeonID, lootIndex)");
+        return 0;
     }
 
     int32_t dungeonID = lua_tointeger(L, 1);
@@ -670,6 +671,7 @@ static int32_t Script_GetLFGCompletionReward(lua_State* L) {
 static int32_t Script_GetLFGCompletionRewardItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLFGCompletionRewardItem(index)");
+        return 0;
     }
 
     int32_t index = lua_tointeger(L, 1) - 1;
@@ -888,6 +890,7 @@ static int32_t PushDungeonInfo(lua_State* L, int32_t dungeonId) {
 static int32_t Script_GetLFGDungeonInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLFGDungeonInfo(dungeonID)");
+        return 0;
     }
 
     return PushDungeonInfo(L, lua_tointeger(L, 1));
@@ -971,6 +974,7 @@ static int32_t Script_GetLFDLockInfo(lua_State* L) {
 static int32_t Script_GetLFGDungeonRewards(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLFGDungeonRewards(dungeonID)");
+        return 0;
     }
 
     int32_t dungeonId = lua_tointeger(L, 1);
@@ -1012,6 +1016,7 @@ static int32_t Script_GetLFGDungeonRewards(lua_State* L) {
 static int32_t Script_GetLFGRandomDungeonInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLFGRandomDungeonInfo(index)");
+        return 0;
     }
 
     uint32_t index = lua_tointeger(L, 1) - 1;
@@ -1037,6 +1042,7 @@ static int32_t Script_ClearAllLFGDungeons(lua_State* L) {
 static int32_t Script_SetLFGDungeon(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetLFGDungeon(type)");
+        return 0;
     }
 
     int32_t id = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -1054,6 +1060,7 @@ static int32_t Script_SetLFGDungeon(lua_State* L) {
 static int32_t Script_IsLFGDungeonJoinable(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: IsLFGDungeonJoinable(dungeonID)");
+        return 0;
     }
 
     LfgDungeonsRec* rec = g_lfgDungeonsDB.GetRecord(lua_tointeger(L, 1));
@@ -1296,6 +1303,7 @@ static int32_t Script_SetLFGComment(lua_State* L) {
 static int32_t Script_UnitHasLFGRandomCooldown(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitHasLFGRandomCooldown(\"unit\")");
+        return 0;
     }
 
     WOWGUID guid = GetGuidByKeyword(lua_tolstring(L, 1, nullptr));
@@ -1333,6 +1341,7 @@ static int32_t Script_UnitHasLFGRandomCooldown(lua_State* L) {
 static int32_t Script_UnitHasLFGDeserter(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitHasLFGDeserter(\"unit\")");
+        return 0;
     }
 
     WOWGUID guid = GetGuidByKeyword(lua_tolstring(L, 1, nullptr));
@@ -1502,6 +1511,7 @@ static bool GetLFGInfoByIndex(uint32_t index, LFGListParty** party, LFGListPlaye
 static int32_t Script_SearchLFGGetEncounterResults(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SearchLFGGetEncounterResults(index, encounterIndex)");
+        return 0;
     }
 
     LfgDungeonsRec* rec = g_lfgDungeonsDB.GetRecord(CGLookingForGroup::m_searchResults.m_lfgID & 0xFFFFFF);
@@ -1638,6 +1648,7 @@ static int32_t Script_IsInLFGDungeon(lua_State* L) {
 static int32_t Script_SearchLFGGetResults(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SearchLFGGetResults(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tointeger(L, 1)) - 1;
@@ -1752,6 +1763,7 @@ static int32_t Script_SearchLFGGetPartyResults(lua_State* L) {
 static int32_t Script_SetLFGHeaderCollapsed(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetLFGHeaderCollapsed(headerID, isCollapsed)");
+        return 0;
     }
 
     int32_t header = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -1769,6 +1781,7 @@ static int32_t Script_SetLFGHeaderCollapsed(lua_State* L) {
 static int32_t Script_SetLFGDungeonEnabled(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetLFGDungeonEnabled(dungeonID, isEnabled)");
+        return 0;
     }
 
     int32_t dungeon = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -1851,6 +1864,7 @@ static int32_t Script_LFGTeleport(lua_State* L) {
 static int32_t Script_GetLFGDungeonRewardLink(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetLFGDungeonRewardLink(dungeonID, lootIndex)");
+        return 0;
     }
 
     uint32_t slot = (lua_tointeger(L, 1) & 0xFFFFFF) | 0x6000000;
@@ -1876,6 +1890,7 @@ static int32_t Script_GetLFGDungeonRewardLink(lua_State* L) {
 static int32_t Script_SearchLFGJoin(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SearchLFGJoin(typeID, lfgID)");
+        return 0;
     }
 
     if (!CGGameUI::CanPerformAction(9)) {
@@ -1897,6 +1912,7 @@ static int32_t Script_SearchLFGJoin(lua_State* L) {
 static int32_t Script_ClearLFGDungeon(lua_State* L) {
     if (!lua_isnumber(L, 1) && !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: ClearLFGDungeon(type, id)");
+        return 0;
     }
 
     uint32_t type = static_cast<uint32_t>(lua_tonumber(L, 1));
@@ -1953,6 +1969,7 @@ static int32_t Script_RefreshLFGList(lua_State* L) {
 static int32_t Script_SearchLFGSort(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SearchLFGSort(\"type\")");
+        return 0;
     }
 
     int32_t type = 3;

@@ -8,6 +8,7 @@
 static int32_t Script_GetAutoCompleteResults(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4)) {
         luaL_error(L, "Usage: GetAutoCompleteResults(text, includeBitField, excludeBitField, numReturns[, cursorPosition[, allowFullMatch]])");
+        return 0;
     }
 
     const char* text = lua_tolstring(L, 1, nullptr);
@@ -29,6 +30,7 @@ static int32_t Script_GetAutoCompleteResults(lua_State* L) {
 static int32_t Script_GetAutoCompletePresenceID(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetAutoCompletePresenceID(\"name\")");
+        return 0;
     }
 
     uint32_t presenceId;

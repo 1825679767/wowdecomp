@@ -35,6 +35,7 @@ static int32_t Script_GetNumFactions(lua_State* L) {
 static int32_t Script_CollapseFactionHeader(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CollapseFactionHeader(index)");
+        return 0;
     }
 
     CGReputationInfo::CollapseHeader(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1, 1);
@@ -46,6 +47,7 @@ static int32_t Script_CollapseFactionHeader(lua_State* L) {
 static int32_t Script_ExpandFactionHeader(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ExpandFactionHeader(index)");
+        return 0;
     }
 
     CGReputationInfo::CollapseHeader(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1, 0);
@@ -74,6 +76,7 @@ static int32_t Script_IsFactionInactive(lua_State* L) {
 static int32_t Script_SetSelectedFaction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetSelectedFaction(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -156,6 +159,7 @@ static int32_t Script_GetWatchedFactionInfo(lua_State* L) {
 static int32_t Script_FactionToggleAtWar(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: FactionToggleAtWar(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -173,6 +177,7 @@ static int32_t Script_FactionToggleAtWar(lua_State* L) {
 static int32_t Script_SetWatchedFactionIndex(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetWatchedFactionIndex(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -191,6 +196,7 @@ static int32_t Script_SetWatchedFactionIndex(lua_State* L) {
 static int32_t Script_SetFactionInactive(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetFactionInactive(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -211,6 +217,7 @@ static int32_t Script_SetFactionInactive(lua_State* L) {
 static int32_t Script_SetFactionActive(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetFactionActive(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;

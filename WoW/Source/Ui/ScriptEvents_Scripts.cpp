@@ -800,6 +800,7 @@ static int32_t Script_AppendToFile(lua_State* L) {
 static int32_t Script_UnitName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitName(\"unit\")");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);
@@ -1935,6 +1936,7 @@ static int32_t Script_GetCombatRating(lua_State* L) {
 
     if (index >= 25) {
         luaL_error(L, "ratingIndex is in the range 1 .. %d", 25);
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -2821,6 +2823,7 @@ static int32_t Script_UnitCharacterPoints(lua_State* L) {
 static int32_t Script_UnitChannelInfo(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitChannelInfo(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -3025,12 +3028,14 @@ static int32_t Script_GetSpellBonusDamage(lua_State* L) {
 static int32_t Script_GetRuneCooldown(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetRuneCooldown(slot)");
+        return 0;
     }
 
     uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
 
     if (slot > 7) {
         luaL_error(L, "Invalid slot");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -3268,6 +3273,7 @@ static int32_t Script_UnitDamage(lua_State* L) {
 static int32_t Script_UnitAttackSpeed(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitAttackSpeed(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -3451,6 +3457,7 @@ static int32_t PushItemStatsTable(lua_State* L, const CGItemStatsSummary* summar
 static int32_t Script_GetItemStats(lua_State* L) {
     if (!lua_isstring(L, 1) || (lua_type(L, 2) > LUA_TNIL && lua_type(L, 2) != LUA_TTABLE)) {
         luaL_error(L, "Usage: GetItemStats(itemLink[, statTable])");
+        return 0;
     }
 
     const char* link = lua_tolstring(L, 1, nullptr);
@@ -3475,6 +3482,7 @@ static int32_t Script_GetItemStats(lua_State* L) {
 static int32_t Script_GetItemStatDelta(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2) || (lua_type(L, 3) > LUA_TNIL && lua_type(L, 3) != LUA_TTABLE)) {
         luaL_error(L, "Usage: GetItemStatSummary(itemLink1, itemLink2[, statTable])");
+        return 0;
     }
 
     const char* link1 = lua_tolstring(L, 1, nullptr);
@@ -3724,6 +3732,7 @@ static int32_t Script_UnitClassBase(lua_State* L) {
 static int32_t Script_UnitRangedDamage(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UnitRangedDamage(\"unit\")");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -3945,6 +3954,7 @@ static int32_t Script_GetUnitPowerModifier(lua_State* L) {
 static int32_t Script_ReportPlayerIsPVPAFK(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: ReportPlayerIsPVPAFK(\"unit\")");
+        return 0;
     }
 
     WOWGUID guid = WOWGUID();
@@ -4093,6 +4103,7 @@ static int32_t Script_UnitVehicleSkin(lua_State* L) {
 static int32_t Script_EjectPassengerFromSeat(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: EjectPassengerFromSeat(seatIndex)");
+        return 0;
     }
 
     int32_t seatIndex = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -4139,12 +4150,14 @@ static int32_t Script_RespondInstanceLock(lua_State* L) {
 static int32_t Script_GetPlayerInfoByGUID(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetPlayerInfoByGUID(\"playerGUID\")");
+        return 0;
     }
 
     WOWGUID guid = StringToGuid(lua_tolstring(L, 1, nullptr));
 
     if (!guid) {
         luaL_error(L, "Usage: GetPlayerInfoByGUID(\"playerGUID\")");
+        return 0;
     }
 
     if (guid.m_guid & 0xF000000000000000ULL) {
@@ -4233,6 +4246,7 @@ static void CacheVehicleUIIndicatorRec(int32_t id) {
 static int32_t Script_GetVehicleUIIndicator(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetVehicleUIIndicator(indicatorID)");
+        return 0;
     }
 
     int32_t id = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -4255,6 +4269,7 @@ static int32_t Script_GetVehicleUIIndicator(lua_State* L) {
 static int32_t Script_GetVehicleUIIndicatorSeat(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetVehicleUIIndicatorSeat(indicatorID, indicatorSeatIndex)");
+        return 0;
     }
 
     int32_t id = static_cast<int32_t>(lua_tonumber(L, 1));

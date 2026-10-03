@@ -149,6 +149,7 @@ static int32_t Script_SecureCmdOptionParse(lua_State* L) {
 
     if (!options) {
         luaL_error(L, "Usage: SecureCmdOptionParse(\"options\")");
+        return 0;
     }
 
     MacroSubstring result = { nullptr, nullptr };
@@ -218,6 +219,7 @@ static int32_t Script_GetMacroItemIconInfo(lua_State* L) {
 static int32_t Script_RunMacroText(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: RunMacroText(\"text\" [, \"button\"])");
+        return 0;
     }
 
     MACRONODE macro;
@@ -384,6 +386,7 @@ static int32_t Script_EditMacro(lua_State* L) {
 static int32_t Script_SetMacroItem(lua_State* L) {
     if (!lua_isstring(L, 2)) {
         luaL_error(L, "Usage: SetMacroItem(macro, item [,target])");
+        return 0;
     }
 
     MACRONODE* macro = GetMacroFromLua(L);
@@ -470,6 +473,7 @@ static int32_t Script_PickupMacro(lua_State* L) {
 static int32_t Script_CreateMacro(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CreateMacro(name, iconIndex, body, perCharacter)");
+        return 0;
     }
 
     if (!CGGameUI::CanPerformAction(12)) {
@@ -481,6 +485,7 @@ static int32_t Script_CreateMacro(lua_State* L) {
 
     if (!name || !*name) {
         luaL_error(L, "CreateMacro() failed, no name specified");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
@@ -494,6 +499,7 @@ static int32_t Script_CreateMacro(lua_State* L) {
 
     if (!id) {
         luaL_error(L, "CreateMacro() failed, already have %d macros", 36);
+        return 0;
     }
 
     lua_pushnumber(L, CGUIMacros::GetMacroIndexByID(id) + 1);

@@ -95,12 +95,14 @@ static int32_t Script_CycleVariation(lua_State* L) {
 
     if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: CycleVariation(variationIndex, delta)");
+        return 0;
     }
 
     uint32_t variation = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
 
     if (variation >= 5) {
         luaL_error(L, "Invalid variationIndex in CycleVariation");
+        return 0;
     }
 
     frame->CycleVariation(variation, static_cast<int32_t>(lua_tonumber(L, 3)));

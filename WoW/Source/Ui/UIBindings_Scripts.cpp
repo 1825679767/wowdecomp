@@ -16,6 +16,7 @@
 static int32_t Script_GetBindingKey(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetBindingKey(\"COMMAND\"[, mode])");
+        return 0;
     }
 
     BINDING_MODE mode = BINDING_MODE_ACTIVE;
@@ -125,6 +126,7 @@ static int32_t Script_SaveBindings(lua_State* L) {
 static int32_t Script_SetModifiedClick(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SetModifiedClick(\"action\", \"binding\")");
+        return 0;
     }
 
     CGUIBindings* bindings = CGUIBindings::s_bindings;
@@ -134,6 +136,7 @@ static int32_t Script_SetModifiedClick(lua_State* L) {
 
     if (!action || !(click = bindings->m_modifiedClicks.Ptr(action)) || !click->SetBinding(BINDING_SET_CURRENT, binding)) {
         luaL_error(L, "SetModifiedClick(): Unknown action (%s) or binding (%s)", action, binding);
+        return 0;
     }
 
     return 0;
@@ -205,6 +208,7 @@ static int32_t Script_ClearOverrideBindings(lua_State* L) {
 
     if (!owner || !owner->IsA(CSimpleFrame::GetObjectType())) {
         luaL_error(L, "Usage: ClearOverrideBindings(owner)");
+        return 0;
     }
 
     CGUIBindings::s_bindings->ClearOverrideBindings(owner, true);
@@ -216,6 +220,7 @@ static int32_t Script_ClearOverrideBindings(lua_State* L) {
 static int32_t Script_GetBindingByKey(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetBindingByKey(\"action\"[, mode])");
+        return 0;
     }
 
     BINDING_MODE mode = BINDING_MODE_ACTIVE;
@@ -245,6 +250,7 @@ static int32_t Script_GetBindingByKey(lua_State* L) {
 static int32_t Script_RunBinding(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: RunBinding(\"COMMAND\")");
+        return 0;
     }
 
     CGUIBindings* bindings = CGUIBindings::s_bindings;
@@ -299,6 +305,7 @@ static int32_t Script_SetBinding(lua_State* L) {
 static int32_t Script_GetBinding(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetBinding(index[, mode])");
+        return 0;
     }
 
     CGUIBindings* bindings = CGUIBindings::s_bindings;
@@ -339,6 +346,7 @@ static int32_t Script_SetOverrideBinding(lua_State* L) {
 
     if (!owner || !owner->IsA(CSimpleFrame::GetObjectType()) || !lua_isstring(L, 3)) {
         luaL_error(L, "Usage: SetOverrideBinding(owner, isPriority, \"KEY\"[, \"COMMAND\"])");
+        return 0;
     }
 
     CGUIBindings* bindings = CGUIBindings::s_bindings;
@@ -508,6 +516,7 @@ static int32_t Script_SetOverrideBindingSpell(lua_State* L) {
 
     if (!owner || !owner->IsA(CSimpleFrame::GetObjectType()) || !lua_isstring(L, 3) || !lua_isstring(L, 4)) {
         luaL_error(L, "Usage: SetOverrideBindingSpell(owner, isPriority, \"KEY\", \"spellname\")");
+        return 0;
     }
 
     CGUIBindings* bindings = CGUIBindings::s_bindings;
@@ -533,6 +542,7 @@ static int32_t Script_SetOverrideBindingItem(lua_State* L) {
 
     if (!owner || !owner->IsA(CSimpleFrame::GetObjectType()) || !lua_isstring(L, 3) || !lua_isstring(L, 4)) {
         luaL_error(L, "Usage: SetOverrideBindingItem(owner, isPriority, \"KEY\", \"itemname\")");
+        return 0;
     }
 
     CGUIBindings* bindings = CGUIBindings::s_bindings;
@@ -558,6 +568,7 @@ static int32_t Script_SetOverrideBindingMacro(lua_State* L) {
 
     if (!owner || !owner->IsA(CSimpleFrame::GetObjectType()) || !lua_isstring(L, 3) || !lua_isstring(L, 4)) {
         luaL_error(L, "Usage: SetOverrideBindingMacro(owner, isPriority, \"KEY\", \"macroname\"|macroid)");
+        return 0;
     }
 
     CGUIBindings* bindings = CGUIBindings::s_bindings;
@@ -583,6 +594,7 @@ static int32_t Script_SetOverrideBindingClick(lua_State* L) {
 
     if (!owner || !owner->IsA(CSimpleFrame::GetObjectType()) || !lua_isstring(L, 3) || !lua_isstring(L, 4)) {
         luaL_error(L, "Usage: SetOverrideBindingClick(owner, isPriority, \"KEY\", \"buttonName\"[, \"mouseButton\"])");
+        return 0;
     }
 
     CGUIBindings* bindings = CGUIBindings::s_bindings;
@@ -606,6 +618,7 @@ static int32_t Script_SetOverrideBindingClick(lua_State* L) {
 static int32_t Script_GetClickFrame(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetClickFrame(\"name\")");
+        return 0;
     }
 
     const char* name = lua_tolstring(L, 1, nullptr);

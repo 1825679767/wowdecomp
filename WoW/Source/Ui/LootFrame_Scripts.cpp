@@ -262,6 +262,7 @@ static int32_t Script_CloseLoot(lua_State* L) {
 static int32_t Script_GetLootRollItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLootRollItemLink(id)");
+        return 0;
     }
 
     PendingLootRoll* roll = FindRoll(static_cast<int32_t>(lua_tonumber(L, 1)));
@@ -286,6 +287,7 @@ static int32_t Script_GetLootRollItemLink(lua_State* L) {
 static int32_t Script_RollOnLoot(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: RollOnLoot(id, rollType)");
+        return 0;
     }
 
     int32_t id = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -298,6 +300,7 @@ static int32_t Script_RollOnLoot(lua_State* L) {
 static int32_t Script_ConfirmLootRoll(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: ConfirmLootRoll(id, rollType)");
+        return 0;
     }
 
     int32_t id = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -310,6 +313,7 @@ static int32_t Script_ConfirmLootRoll(lua_State* L) {
 static int32_t Script_LootSlot(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: LootSlot(slot)");
+        return 0;
     }
 
     CGLootInfo::LootSlot(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
@@ -321,6 +325,7 @@ static int32_t Script_LootSlot(lua_State* L) {
 static int32_t Script_ConfirmLootSlot(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: LootSlot(slot)");
+        return 0;
     }
 
     CGLootInfo::ConfirmLootSlot(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
@@ -332,6 +337,7 @@ static int32_t Script_ConfirmLootSlot(lua_State* L) {
 static int32_t Script_GiveMasterLoot(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GiveMasterLoot(slot, index)");
+        return 0;
     }
 
     uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;

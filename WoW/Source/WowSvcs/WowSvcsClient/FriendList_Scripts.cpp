@@ -151,6 +151,7 @@ static int32_t Script_AddFriend(lua_State* L) {
 static int32_t Script_SendWho(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SendWho(\"filter\")");
+        return 0;
     }
 
     if (FriendList::s_friendList) {
@@ -165,6 +166,7 @@ static int32_t Script_SendWho(lua_State* L) {
 static int32_t Script_GetFriendInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) && !lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetFriendInfo(index or name)");
+        return 0;
     }
 
     FriendInfo* info;
@@ -253,6 +255,7 @@ static int32_t Script_GetFriendInfo(lua_State* L) {
 static int32_t Script_SetSelectedFriend(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetSelectedFriend(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -355,6 +358,7 @@ static int32_t Script_GetMuteName(lua_State* L) {
 static int32_t Script_SetSelectedIgnore(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetSelectedIgnore(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -374,6 +378,7 @@ static int32_t Script_SetSelectedIgnore(lua_State* L) {
 static int32_t Script_SetSelectedMute(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetSelectedMute(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -407,6 +412,7 @@ static int32_t Script_GetSelectedMute(lua_State* L) {
 static int32_t Script_SortWho(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SortWho(\"type\")");
+        return 0;
     }
 
     int32_t field = 4;
@@ -593,6 +599,7 @@ static int32_t Script_RemoveFriend(lua_State* L) {
 
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: RemoveFriend([\"name\"] or [index])");
+        return 0;
     }
 
     const char* name = lua_tolstring(L, 1, nullptr);

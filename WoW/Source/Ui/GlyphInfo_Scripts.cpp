@@ -31,6 +31,7 @@ static int32_t Script_GetNumGlyphSockets(lua_State* L) {
 static int32_t Script_GetGlyphSocketInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetGlyphSocketInfo(index[, talentGroup])");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -79,6 +80,7 @@ static int32_t Script_GetGlyphSocketInfo(lua_State* L) {
 static int32_t Script_GlyphMatchesSocket(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GlyphMatchesSocket(socketIndex)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -124,6 +126,7 @@ static int32_t Script_GlyphMatchesSocket(lua_State* L) {
 static int32_t Script_PlaceGlyphInSocket(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: PlaceGlyphInSocket(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -147,6 +150,7 @@ static int32_t Script_PlaceGlyphInSocket(lua_State* L) {
 static int32_t Script_RemoveGlyphFromSocket(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: RemoveGlyphFromSocket(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -168,6 +172,7 @@ static int32_t Script_RemoveGlyphFromSocket(lua_State* L) {
 static int32_t Script_GetGlyphLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetGlyphLink(index[, talentGroup])");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;

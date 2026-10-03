@@ -41,6 +41,7 @@ static int32_t Script_CancelSkillUps(lua_State* L) {
 static int32_t Script_SetSelectedSkill(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetSelectedSkill(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -209,6 +210,7 @@ static int32_t Script_GetSkillLineInfo(lua_State* L) {
 static int32_t Script_AbandonSkill(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: AbandonSkill(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -233,6 +235,7 @@ static int32_t Script_AbandonSkill(lua_State* L) {
 static int32_t Script_CollapseSkillHeader(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CollapseSkillHeader(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -252,6 +255,7 @@ static int32_t Script_CollapseSkillHeader(lua_State* L) {
 static int32_t Script_ExpandSkillHeader(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ExpandSkillHeader(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -271,6 +275,7 @@ static int32_t Script_ExpandSkillHeader(lua_State* L) {
 static int32_t Script_AddSkillUp(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: AddSkillUp(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -283,6 +288,7 @@ static int32_t Script_AddSkillUp(lua_State* L) {
 static int32_t Script_RemoveSkillUp(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: RemoveSkillUp(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -330,6 +336,7 @@ static int32_t Script_AcceptSkillUps(lua_State* L) {
 static int32_t Script_BuySkillTier(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: BuySkillTier(index)");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();

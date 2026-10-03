@@ -292,16 +292,19 @@ static int32_t Script_KBSetup_GetSubCategoryData(lua_State* L) {
 static int32_t Script_KBQuery_BeginLoading(lua_State* L) {
     if (g_KnowledgeBaseSetup.m_state != 2) {
         luaL_error(L, "KBQuery_BeginLoading() failed because setup is not loaded");
+        return 0;
     }
 
     const char* query = lua_tolstring(L, 1, nullptr);
 
     if (!query) {
         luaL_error(L, "KBQuery_BeginLoading() called with a null string for search query");
+        return 0;
     }
 
     if (SStrLen(query) > 128) {
         luaL_error(L, "KBQuery_BeginLoading() called with a string > 128 bytes for search query");
+        return 0;
     }
 
     int32_t category = static_cast<int32_t>(lua_tonumber(L, 2));
@@ -316,6 +319,7 @@ static int32_t Script_KBQuery_BeginLoading(lua_State* L) {
         if (subCategory) {
             if (!category) {
                 luaL_error(L, "KBQuery_BeginLoading() called with subcategory without category");
+                return 0;
             }
 
             node = g_KnowledgeBaseSetup.GetSubCategory(category - 1, subCategory - 1);
@@ -325,6 +329,7 @@ static int32_t Script_KBQuery_BeginLoading(lua_State* L) {
 
         if (!node) {
             luaL_error(L, "KBSetup_GetCategoryData() called with invalid category index");
+            return 0;
         }
 
         categoryId = g_KnowledgeBaseSetup._GetInt(node, "id");

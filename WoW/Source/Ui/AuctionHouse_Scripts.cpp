@@ -65,6 +65,7 @@ static const AuctionInvType s_auctionInvTypes[14] = {
 static int32_t Script_SetAuctionsTabShowing(lua_State* L) {
     if (lua_type(L, 1) != LUA_TBOOLEAN) {
         luaL_error(L, "Usage: SetAuctionsTabShowing(bool)");
+        return 0;
     }
 
     CGAuctionHouse::m_auctionsTabShowing = lua_toboolean(L, 1);
@@ -194,6 +195,7 @@ static int32_t Script_GetAuctionInvTypes(lua_State* L) {
 static int32_t Script_CanCancelAuction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CanCancelAuction(index)");
+        return 0;
     }
 
     if (!CGAuctionHouse::m_auctioneer) {
@@ -217,6 +219,7 @@ static int32_t Script_CanCancelAuction(lua_State* L) {
 static int32_t Script_CancelAuction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetSelectedAuctionItem(index)");
+        return 0;
     }
 
     if (!CGGameUI::CanPerformAction(8)) {
@@ -298,6 +301,7 @@ static const uint32_t AUCTION_RUN_TIMES[3] = { 720, 1440, 2880 };
 static int32_t Script_IsAuctionSortReversed(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: IsAuctionSortReversed(\"type\", \"sort\")");
+        return 0;
     }
 
     int32_t column = 1;
@@ -386,6 +390,7 @@ static int32_t Script_GetAuctionSort(lua_State* L) {
 static int32_t Script_SortAuctionClearSort(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SortAuctionClearSort(\"type\")");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -406,6 +411,7 @@ static int32_t Script_SortAuctionClearSort(lua_State* L) {
 static int32_t Script_SortAuctionSetSort(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: SortAuctionAddSort(\"type\", \"sort\", \"reverse\")");
+        return 0;
     }
 
     int32_t column = 1;
@@ -572,6 +578,7 @@ static int32_t Script_QueryAuctionItems(lua_State* L) {
 static int32_t Script_GetAuctionItemLink(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetAuctionItemLink(\"type\", index)");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -636,6 +643,7 @@ static int32_t Script_CanSendAuctionQuery(lua_State* L) {
 static int32_t Script_SetSelectedAuctionItem(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SetSelectedAuctionItem(\"type\", index)");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -680,6 +688,7 @@ static int32_t Script_GetSelectedAuctionItem(lua_State* L) {
 static int32_t Script_SortAuctionApplySort(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SortAuctionApplySort(\"type\")");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -790,6 +799,7 @@ static int32_t Script_GetBidderAuctionItems(lua_State* L) {
 static int32_t Script_GetAuctionItemInfo(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetAuctionItemInfo(\"type\", index)");
+        return 0;
     }
 
     lua_checkstack(L, 12);
@@ -895,6 +905,7 @@ static int32_t Script_GetAuctionItemInfo(lua_State* L) {
 static int32_t Script_PlaceAuctionBid(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: PlaceAuctionBid(\"type\", index, bid)");
+        return 0;
     }
 
     if (!CGGameUI::CanPerformAction(8)) {
@@ -983,6 +994,7 @@ static int32_t Script_PlaceAuctionBid(lua_State* L) {
 static int32_t Script_SortAuctionItems(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: SortAuctionItems(\"type\", \"sort\")");
+        return 0;
     }
 
     int32_t column = 1;
@@ -1064,6 +1076,7 @@ static int32_t Script_GetAuctionSellItemInfo(lua_State* L) {
 static int32_t Script_StartAuction(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: StartAuction(minBid, buyoutPrice, runTime, count)");
+        return 0;
     }
 
     WOWGUID auctioneer = CGAuctionHouse::m_auctioneer;

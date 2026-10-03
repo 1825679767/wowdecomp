@@ -68,6 +68,7 @@ static int32_t Script_IsRealRaidLeader(lua_State* L) {
 static int32_t Script_SetRaidRosterSelection(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetRaidRosterSelection(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;

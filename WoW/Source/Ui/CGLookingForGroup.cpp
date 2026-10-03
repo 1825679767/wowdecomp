@@ -139,6 +139,7 @@ int32_t CGLookingForGroup::GetLFGRoleUpdate(lua_State* L) {
 int32_t CGLookingForGroup::GetLFGRoleUpdateSlot(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLFGRoleUpdateSlot(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -244,6 +245,7 @@ void CGLookingForGroup::LeaveLFG() {
 int32_t CGLookingForGroup::GetLFGProposalMember(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLFGProposalMember(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -278,6 +280,7 @@ int32_t CGLookingForGroup::GetLFGProposalMember(lua_State* L) {
 int32_t CGLookingForGroup::GetLFGProposalEncounter(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLFGProposalEncounter(index)");
+        return 0;
     }
 
     double index = lua_tonumber(L, 1);
@@ -336,6 +339,7 @@ void CGLookingForGroup::ProposalResponse(bool accept) {
 int32_t CGLookingForGroup::GetLFGRoleUpdateMember(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLFGRoleUpdateMember(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;

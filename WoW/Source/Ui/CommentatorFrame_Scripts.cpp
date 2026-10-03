@@ -196,6 +196,7 @@ static int32_t Script_CommentatorSetCameraCollision(lua_State* L) {
     if (player && (player->m_player->m_playerFlags & 0x80000) && (player->m_player->m_playerFlags & 0x400000)) {
         if (!lua_isnumber(L, 1)) {
             luaL_error(L, "Usage: CommentatorSetCameraCollision(bool enable)");
+            return 0;
         }
 
         if (lua_tonumber(L, 1) != 0.0) {
@@ -217,6 +218,7 @@ static int32_t Script_CommentatorSetTargetHeightOffset(lua_State* L) {
     if (player && (player->m_player->m_playerFlags & 0x80000) && (player->m_player->m_playerFlags & 0x400000)) {
         if (!lua_isnumber(L, 1)) {
             luaL_error(L, "Usage: CommentatorSetTargetHeightOffset(float offset)");
+            return 0;
         }
 
         CGCommentator::s_Commentator.m_targetHeightOffset = lua_tonumber(L, 1);
@@ -238,16 +240,19 @@ static int32_t Script_CommentatorSetBattlemaster(lua_State* L) {
 
     if (!target) {
         luaL_error(L, "Battlemaster must be targeted.");
+        return 0;
     }
 
     CGObject_C* object = ClntObjMgrObjectPtr(target, TYPEMASK_OBJECT, __FILE__, __LINE__);
 
     if (!object || !(object->m_obj->m_type & TYPEMASK_UNIT)) {
         luaL_error(L, "Targeted unit is not a Battlemaster.");
+        return 0;
     }
 
     if (!(static_cast<CGUnit_C*>(object)->m_unit->m_unitNpcFlags & 0x100000)) {
         luaL_error(L, "Targeted unit is not a Battlemaster.");
+        return 0;
     }
 
     CGCommentator::s_Commentator.m_battlemaster = object->m_obj->m_guid;
@@ -360,6 +365,7 @@ static int32_t Script_CommentatorGetInstanceInfo(lua_State* L) {
 
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CommentatorGetMapInfo(mapIndex,instanceIndex)");
+        return 0;
     }
 
     uint32_t mapIndex = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -367,12 +373,14 @@ static int32_t Script_CommentatorGetInstanceInfo(lua_State* L) {
 
     if (mapIndex >= CGCommentator::s_Commentator.m_maps.Count()) {
         luaL_error(L, "no map at that index");
+        return 0;
     }
 
     CGCommentator::MapInfo* map = CGCommentator::s_Commentator.GetMapInfoByIndex(mapIndex);
 
     if (instanceIndex >= map->m_instances.Count()) {
         luaL_error(L, "no instance at that index");
+        return 0;
     }
 
     CGCommentator::InstanceInfo* instance = &map->m_instances.m_data[instanceIndex];
@@ -397,6 +405,7 @@ static int32_t Script_CommentatorEnterInstance(lua_State* L) {
 
     if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
         luaL_error(L, "Unable to enter instance.");
+        return 0;
     }
 
     WDataStore msg;
@@ -463,6 +472,7 @@ static int32_t Script_CommentatorGetPlayerInfo(lua_State* L) {
 
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CommentatorGetPlayerInfo(factionIndex,playerIndex)");
+        return 0;
     }
 
     uint32_t faction = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -470,6 +480,7 @@ static int32_t Script_CommentatorGetPlayerInfo(lua_State* L) {
 
     if (faction >= 2) {
         luaL_error(L, "Error: faction index too large");
+        return 0;
     }
 
     CGCommentator::MapInfo* map;
@@ -477,6 +488,7 @@ static int32_t Script_CommentatorGetPlayerInfo(lua_State* L) {
 
     if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
         luaL_error(L, "Unable to find instance.");
+        return 0;
     }
 
     if (index < instance->m_numPlayers[faction]) {
@@ -512,6 +524,7 @@ static int32_t Script_CommentatorFollowPlayer(lua_State* L) {
 
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CommentatorFollowPlayer(factionIndex,playerIndex)");
+        return 0;
     }
 
     uint32_t faction = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -519,6 +532,7 @@ static int32_t Script_CommentatorFollowPlayer(lua_State* L) {
 
     if (faction >= 2) {
         luaL_error(L, "Error: faction index too large");
+        return 0;
     }
 
     if (!index) {
@@ -534,6 +548,7 @@ static int32_t Script_CommentatorFollowPlayer(lua_State* L) {
 
     if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
         luaL_error(L, "Unable to find instance.");
+        return 0;
     }
 
     if (index < instance->m_numPlayers[faction] && CGWorldFrame::s_currentWorldFrame) {
@@ -555,6 +570,7 @@ static int32_t Script_CommentatorLookatPlayer(lua_State* L) {
 
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CommentatorLookatPlayer(factionIndex,playerIndex)");
+        return 0;
     }
 
     uint32_t faction = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -562,6 +578,7 @@ static int32_t Script_CommentatorLookatPlayer(lua_State* L) {
 
     if (faction >= 2) {
         luaL_error(L, "Error: faction index too large");
+        return 0;
     }
 
     if (!index) {
@@ -577,6 +594,7 @@ static int32_t Script_CommentatorLookatPlayer(lua_State* L) {
 
     if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
         luaL_error(L, "Unable to find instance.");
+        return 0;
     }
 
     if (index < instance->m_numPlayers[faction]) {
@@ -598,12 +616,14 @@ static int32_t Script_CommentatorSetMapAndInstanceIndex(lua_State* L) {
 
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CommentatorSetMapAndInstanceIndex(mapIndex,instanceIndex)");
+        return 0;
     }
 
     uint32_t mapIndex = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
 
     if (mapIndex >= CGCommentator::s_Commentator.m_maps.Count()) {
         luaL_error(L, "no map at that index");
+        return 0;
     }
 
     CGCommentator::MapInfo* map = CGCommentator::s_Commentator.GetMapInfoByIndex(mapIndex);
@@ -611,6 +631,7 @@ static int32_t Script_CommentatorSetMapAndInstanceIndex(lua_State* L) {
 
     if (instanceIndex >= map->m_instances.Count()) {
         luaL_error(L, "no instance at that index");
+        return 0;
     }
 
     CGCommentator::InstanceInfo* instance = &map->m_instances.m_data[instanceIndex];
@@ -632,6 +653,7 @@ static int32_t Script_CommentatorSetPlayerIndex(lua_State* L) {
 
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CommentatorSetPlayerIndex(factionIndex,playerIndex)");
+        return 0;
     }
 
     uint32_t faction = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -639,6 +661,7 @@ static int32_t Script_CommentatorSetPlayerIndex(lua_State* L) {
 
     if (faction >= 2) {
         luaL_error(L, "Error: faction index too large");
+        return 0;
     }
 
     CGCommentator::MapInfo* map;
@@ -646,10 +669,12 @@ static int32_t Script_CommentatorSetPlayerIndex(lua_State* L) {
 
     if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
         luaL_error(L, "Unable to find instance.");
+        return 0;
     }
 
     if (index >= instance->m_numPlayers[faction]) {
         luaL_error(L, "Error: player index too large");
+        return 0;
     }
 
     CGCommentator::s_Commentator.m_playerIndex = index;
@@ -668,6 +693,7 @@ static int32_t Script_CommentatorSetCamera(lua_State* L) {
 
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4) || !lua_isnumber(L, 5) || !lua_isnumber(L, 6)) {
         luaL_error(L, "Usage: CommentatorSetCamera(xPos,yPos,zPos,yaw,pitch,fov)");
+        return 0;
     }
 
     C3Vector position;
@@ -730,10 +756,12 @@ static int32_t Script_CommentatorStartInstance(lua_State* L) {
 
     if (!CGCommentator::s_Commentator.m_battlemaster) {
         luaL_error(L, "Battlemaster must be set first.");
+        return 0;
     }
 
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4)) {
         luaL_error(L, "Usage: CommentatorStartInstance(mapID,teamSize,minLevel,maxLevel)");
+        return 0;
     }
 
     uint32_t mapID = static_cast<uint32_t>(lua_tonumber(L, 1));
@@ -743,6 +771,7 @@ static int32_t Script_CommentatorStartInstance(lua_State* L) {
 
     if (teamSize != 2 && teamSize != 3 && teamSize != 5) {
         luaL_error(L, "Unknown team size. Use 2, 3, or 5.");
+        return 0;
     }
 
     WDataStore msg;
@@ -772,12 +801,14 @@ static int32_t Script_CommentatorAddPlayer(lua_State* L) {
 
     if (!CGGameUI::m_lockedTarget) {
         luaL_error(L, "A player must be targeted.");
+        return 0;
     }
 
     CGObject_C* target = ClntObjMgrObjectPtr(player->m_unit->m_unitFieldTarget, TYPEMASK_OBJECT, __FILE__, __LINE__);
 
     if (!target || !(target->m_obj->m_type & TYPEMASK_PLAYER)) {
         luaL_error(L, "Must target a player.");
+        return 0;
     }
 
     CGCommentator::MapInfo* map;
@@ -785,14 +816,17 @@ static int32_t Script_CommentatorAddPlayer(lua_State* L) {
 
     if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
         luaL_error(L, "Must select an instance first.");
+        return 0;
     }
 
     if (!CGCommentator::s_Commentator.m_battlemaster) {
         luaL_error(L, "Must set Battlemaster first.");
+        return 0;
     }
 
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CommentatorAddPlayer(teamNumber)");
+        return 0;
     }
 
     uint32_t team = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -831,22 +865,26 @@ static int32_t Script_CommentatorRemovePlayer(lua_State* L) {
 
     if (!CGCommentator::s_Commentator.GetCommentatorInfo(&map, &instance)) {
         luaL_error(L, "Must select an instance first.");
+        return 0;
     }
 
     if (!CGCommentator::s_Commentator.m_battlemaster) {
         luaL_error(L, "Must set Battlemaster first.");
+        return 0;
     }
 
     uint32_t faction = CGCommentator::s_Commentator.m_playerFaction;
 
     if (faction > 2) {
         luaL_error(L, "Error: Faction of current player is invalid.");
+        return 0;
     }
 
     uint32_t index = CGCommentator::s_Commentator.m_playerIndex;
 
     if (index >= instance->m_numPlayers[faction]) {
         luaL_error(L, "Error: Index of current player is invalid.");
+        return 0;
     }
 
     WDataStore msg;
@@ -873,6 +911,7 @@ static int32_t Script_CommentatorSetMoveSpeed(lua_State* L) {
     if (player && player->IsCommentatorUberOrInArena()) {
         if (!lua_isnumber(L, 1)) {
             luaL_error(L, "Usage: CommentatorSetMoveSpeed(speed)");
+            return 0;
         }
 
         CGCommentator::s_Commentator.SetMoveSpeed(lua_tonumber(L, 1));

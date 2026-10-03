@@ -438,6 +438,7 @@ static int32_t Script_GetCurrentMultisampleFormat(lua_State* L) {
 static int32_t Script_SetupFullscreenScale(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
         luaL_error(L, "Usage: SetupFullscreenScale(frame)");
+        return 0;
     }
 
     lua_rawgeti(L, 1, 0);
@@ -446,10 +447,12 @@ static int32_t Script_SetupFullscreenScale(lua_State* L) {
 
     if (!frame) {
         luaL_error(L, "SetupFullscreenScale(): Couldn't find 'this' in frame object");
+        return 0;
     }
 
     if (!frame->IsA(CSimpleFrame::GetObjectType())) {
         luaL_error(L, "SetupFullscreenScale(): Wrong object type, expected frame");
+        return 0;
     }
 
     float compensation = CoordinateGetAspectCompensation();

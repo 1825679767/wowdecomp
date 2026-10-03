@@ -241,6 +241,7 @@ static int32_t Script_OfferPetition(lua_State* L) {
 static int32_t Script_RenamePetition(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage(RenamePetition(\"name\")");
+        return 0;
     }
 
     WOWGUID petition = CGPetitionInfo::m_petitionGUID;

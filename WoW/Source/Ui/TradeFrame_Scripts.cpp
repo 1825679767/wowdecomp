@@ -52,6 +52,7 @@ static int32_t Script_GetTargetTradeMoney(lua_State* L) {
 static int32_t Script_GetTradeTargetItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTradeTargetItemLink(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -100,6 +101,7 @@ static int32_t Script_AcceptTrade(lua_State* L) {
 static int32_t Script_PickupTradeMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: PickupTradeMoney(amount)");
+        return 0;
     }
 
     int32_t amount = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -117,6 +119,7 @@ static int32_t Script_PickupTradeMoney(lua_State* L) {
 static int32_t Script_SetTradeMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetTradeMoney(amount)");
+        return 0;
     }
 
     CGTradeInfo::SetMoney(static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, 1))));
@@ -128,6 +131,7 @@ static int32_t Script_SetTradeMoney(lua_State* L) {
 static int32_t Script_ClickTargetTradeButton(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ClickTargetTradeButton(index)");
+        return 0;
     }
 
     if (CGGameUI::m_cursorMoney) {
@@ -146,6 +150,7 @@ static int32_t Script_ClickTargetTradeButton(lua_State* L) {
 static int32_t Script_GetTradePlayerItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTradePlayerItemLink(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -198,6 +203,7 @@ static int32_t Script_CloseTrade(lua_State* L) {
 static int32_t Script_ClickTradeButton(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ClickTradeButton(index)");
+        return 0;
     }
 
     int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -350,6 +356,7 @@ static int32_t Script_GetTradeTargetItemInfo(lua_State* L) {
 static int32_t Script_GetTradePlayerItemInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTradePlayerItemInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;

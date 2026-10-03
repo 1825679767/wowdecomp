@@ -98,6 +98,7 @@ static int32_t Script_ResetTutorials(lua_State* L) {
 static int32_t Script_GetNextCompleatedTutorial(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetNextCompleatedTutorial(\"tutorial\")");
+        return 0;
     }
 
     int32_t tutorial = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -116,6 +117,7 @@ static int32_t Script_GetNextCompleatedTutorial(lua_State* L) {
 static int32_t Script_GetPrevCompleatedTutorial(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetPrevCompleatedTutorial(\"tutorial\")");
+        return 0;
     }
 
     int32_t tutorial = static_cast<int32_t>(lua_tonumber(L, 1));

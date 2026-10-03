@@ -519,6 +519,7 @@ static int32_t Script_ClearInspectPlayer(lua_State* L) {
 static int32_t Script_GetInspectArenaTeamData(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetInspectArenaTeamData(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -590,6 +591,7 @@ static int32_t Script_GetInventoryItemsForSlot(lua_State* L) {
 
         if (!slot) {
             luaL_error(L, "Usage: GetInventoryItemsForSlot(slot [, returnTable])");
+            return 0;
         }
     }
 
@@ -775,6 +777,7 @@ static int32_t Script_GetInventoryItemQuality(lua_State* L) {
 static int32_t Script_GetInventoryItemDurability(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetInventoryItemDurability(slot)");
+        return 0;
     }
 
     int32_t slot = 0;
@@ -916,6 +919,7 @@ static int32_t Script_GetInventoryItemGems(lua_State* L) {
 
     if (!lua_isnumber(L, 1) || (slot = 0, !ResolveInventorySlotArg(L, 1, slot))) {
         luaL_error(L, "Usage: GetInventoryItemGems(slot)");
+        return 0;
     }
 
     if (slot == -1) {
@@ -1026,6 +1030,7 @@ static int32_t Script_SetInventoryPortraitTexture(lua_State* L) {
 
     if (!lua_isstring(L, 2)) {
         luaL_error(L, "Usage: SetInventoryPortraitTexture(texture, unit, slot)");
+        return 0;
     }
 
     if (!ResolveInventorySlotArg(L, 3, slot)) {

@@ -503,6 +503,7 @@ static int32_t Script_GetMapLandmarkInfo(lua_State* L) {
 static int32_t Script_UpdateMapHighlight(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: UpdateMapHighlight(x, y)");
+        return 0;
     }
 
     float x = lua_tonumber(L, 1);
@@ -715,6 +716,7 @@ static int32_t Script_UpdateMapHighlight(lua_State* L) {
 static int32_t Script_GetMapZones(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetMapZones(continentIndex)");
+        return 0;
     }
 
     uint32_t continent = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -780,12 +782,14 @@ static int32_t Script_GetMapOverlayInfo(lua_State* L) {
 static int32_t Script_SetMapZoom(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetMapZoom(continentIndex [,zoneIndex])");
+        return 0;
     }
 
     int32_t continent = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
 
     if ((continent > 0 && static_cast<uint32_t>(continent) >= CGWorldMap::m_continents.m_count) || continent < -2) {
         luaL_error(L, "Usage: SetMapZoom(continentIndex [,zoneIndex]) .. requested continent out of bounds");
+        return 0;
     }
 
     uint32_t zone = -1;
@@ -803,6 +807,7 @@ static int32_t Script_SetMapZoom(lua_State* L) {
 static int32_t Script_CreateWorldMapArrowFrame(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
         luaL_error(L, "Usage: CreateWorldMapArrowFrame(parent)");
+        return 0;
     }
 
     lua_rawgeti(L, 1, 0);
@@ -811,10 +816,12 @@ static int32_t Script_CreateWorldMapArrowFrame(lua_State* L) {
 
     if (!parent) {
         luaL_error(L, "CreateWorldMapArrowFrame(): Couldn't find 'this' in parent object");
+        return 0;
     }
 
     if (!parent->IsA(CSimpleFrame::GetObjectType())) {
         luaL_error(L, "CreateWorldMapArrowFrame(): Wrong object type, expected frame");
+        return 0;
     }
 
     CGWorldMap::CreateArrowFrame(parent);
@@ -826,6 +833,7 @@ static int32_t Script_CreateWorldMapArrowFrame(lua_State* L) {
 static int32_t Script_InitWorldMapPing(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
         luaL_error(L, "Usage: InitWorldMapPing(parent)");
+        return 0;
     }
 
     lua_rawgeti(L, 1, 0);
@@ -834,10 +842,12 @@ static int32_t Script_InitWorldMapPing(lua_State* L) {
 
     if (!parent) {
         luaL_error(L, "InitWorldMapPing(): Couldn't find 'this' in parent object");
+        return 0;
     }
 
     if (!parent->IsA(CSimpleFrame::GetObjectType())) {
         luaL_error(L, "InitWorldMapPing(): Wrong object type, expected frame");
+        return 0;
     }
 
     CLayoutFrame* layout = parent->GetLayoutFrameByName("WorldMapPing");
@@ -903,6 +913,7 @@ static int32_t Script_GetDeathReleasePosition(lua_State* L) {
 static int32_t Script_CreateMiniWorldMapArrowFrame(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
         luaL_error(L, "Usage: CreateMiniWorldMapArrowFrame(parent)");
+        return 0;
     }
 
     lua_rawgeti(L, 1, 0);
@@ -911,10 +922,12 @@ static int32_t Script_CreateMiniWorldMapArrowFrame(lua_State* L) {
 
     if (!parent) {
         luaL_error(L, "CreateMiniWorldMapArrowFrame(): Couldn't find 'this' in parent object");
+        return 0;
     }
 
     if (!parent->IsA(CSimpleFrame::GetObjectType())) {
         luaL_error(L, "CreateMiniWorldMapArrowFrame(): Wrong object type, expected frame");
+        return 0;
     }
 
     CGWorldMap::CreateMiniArrowFrame(parent);
@@ -998,6 +1011,7 @@ static int32_t Script_ZoomOut(lua_State* L) {
 static int32_t Script_SetMapByID(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetMapByID(mapID)");
+        return 0;
     }
 
     int32_t mapID = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -1067,6 +1081,7 @@ static int32_t Script_SetMapByID(lua_State* L) {
 static int32_t Script_ProcessMapClick(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: ProcessMapClick(x, y)");
+        return 0;
     }
 
     float x = lua_tonumber(L, 1);
@@ -1080,6 +1095,7 @@ static int32_t Script_ProcessMapClick(lua_State* L) {
 static int32_t Script_ClickLandmark(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ClickLandmark(mapLinkID)");
+        return 0;
     }
 
     int32_t id = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -1106,6 +1122,7 @@ static int32_t Script_ClickLandmark(lua_State* L) {
 static int32_t Script_SetDungeonMapLevel(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetDungeonMapLevel(level)");
+        return 0;
     }
 
     int32_t level = static_cast<int32_t>(lua_tonumber(L, 1));

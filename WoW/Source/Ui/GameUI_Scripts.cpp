@@ -300,6 +300,7 @@ static int32_t Script_ClearCursor(lua_State* L) {
 static int32_t Script_SetWaterDetail(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetWaterDetail(value)");
+        return 0;
     }
 
     return 0;
@@ -1234,12 +1235,14 @@ static int32_t Script_CanMapChangeDifficulty(lua_State* L) {
 static int32_t Script_TargetTotem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: TargetTotem(slot)");
+        return 0;
     }
 
     uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
 
     if (slot > 3) {
         luaL_error(L, "Totem slot must be in range of 1 to %d", 4);
+        return 0;
     }
 
     TotemInfo* totem = &CGGameUI::m_totems[slot];
@@ -1344,6 +1347,7 @@ static int32_t Script_GuildInvite(lua_State* L) {
 
     if (SStrLen(target) > 48) {
         luaL_error(L, "Name too long");
+        return 0;
     }
 
     CDataStore msg;
@@ -1366,6 +1370,7 @@ static int32_t Script_GuildUninvite(lua_State* L) {
 
     if (SStrLen(target) > 48) {
         luaL_error(L, "Name too long");
+        return 0;
     }
 
     CDataStore msg;
@@ -1388,6 +1393,7 @@ static int32_t Script_GuildPromote(lua_State* L) {
 
     if (SStrLen(target) > 48) {
         luaL_error(L, "Name too long");
+        return 0;
     }
 
     CDataStore msg;
@@ -1410,6 +1416,7 @@ static int32_t Script_GuildDemote(lua_State* L) {
 
     if (SStrLen(target) > 48) {
         luaL_error(L, "Name too long");
+        return 0;
     }
 
     CDataStore msg;
@@ -1432,6 +1439,7 @@ static int32_t Script_GuildSetLeader(lua_State* L) {
 
     if (SStrLen(target) > 48) {
         luaL_error(L, "Name too long");
+        return 0;
     }
 
     CDataStore msg;
@@ -1447,6 +1455,7 @@ static int32_t Script_GuildSetLeader(lua_State* L) {
 static int32_t Script_RandomRoll(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: RandomRoll(\"max\") or RandomRoll(\"min\", \"max\")");
+        return 0;
     }
 
     int32_t min = SStrToInt(lua_tolstring(L, 1, nullptr));
@@ -2141,12 +2150,14 @@ static int32_t Script_InCombatLockdown(lua_State* L) {
 static int32_t Script_DestroyTotem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: DestroyTotem(slot)");
+        return 0;
     }
 
     int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1));
 
     if (static_cast<uint32_t>(slot - 1) > 3) {
         luaL_error(L, "Totem slot must be in range of 1 to %d", 4);
+        return 0;
     }
 
     CGGameUI::DestroyTotem(slot - 1);
@@ -2171,6 +2182,7 @@ static int32_t Script_ArenaTeamInviteByName(lua_State* L) {
 
     if (SStrLen(playerName) > 48) {
         luaL_error(L, "Name too long");
+        return 0;
     }
 
     CDataStore msg;
@@ -2213,6 +2225,7 @@ static int32_t Script_ArenaTeamUninviteByName(lua_State* L) {
 
     if (playerName && SStrLen(playerName) > 48) {
         luaL_error(L, "Name too long");
+        return 0;
     }
 
     uint32_t teamId = index >= 3 ? 0 : CGArenaTeamInfo::m_arenaTeams[index].m_teamId;
@@ -2238,6 +2251,7 @@ static int32_t Script_ArenaTeamSetLeaderByName(lua_State* L) {
 
     if (playerName && SStrLen(playerName) > 48) {
         luaL_error(L, "Name too long");
+        return 0;
     }
 
     uint32_t teamId = index >= 3 ? 0 : CGArenaTeamInfo::m_arenaTeams[index].m_teamId;
@@ -2481,10 +2495,12 @@ static int32_t Script_Quit(lua_State* L) {
 static int32_t Script_RegisterForSave(lua_State* L) {
     if (lua_tainted) {
         luaL_error(L, "RegisterForSave() is only available to Blizzard scripts");
+        return 0;
     }
 
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: RegisterForSave(\"variable\")");
+        return 0;
     }
 
     CGGameUI::RegisterSavedVariable(lua_tolstring(L, 1, nullptr), 0);
@@ -2496,10 +2512,12 @@ static int32_t Script_RegisterForSave(lua_State* L) {
 static int32_t Script_RegisterForSavePerCharacter(lua_State* L) {
     if (lua_tainted) {
         luaL_error(L, "RegisterForSavePerCharacter() is only available to Blizzard scripts");
+        return 0;
     }
 
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: RegisterForSavePerCharacter(\"variable\")");
+        return 0;
     }
 
     CGGameUI::RegisterSavedVariable(lua_tolstring(L, 1, nullptr), 1);
@@ -2511,6 +2529,7 @@ static int32_t Script_RegisterForSavePerCharacter(lua_State* L) {
 static int32_t Script_GetMirrorTimerInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetMirrorTimerInfo(\"timer\")");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -2965,6 +2984,7 @@ static int32_t Script_IsTitleKnown(lua_State* L) {
 static int32_t Script_GetTitleName(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetTitleName(titleMaskID)");
+        return 0;
     }
 
     int32_t maskId = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -3062,6 +3082,7 @@ static int32_t Script_SetCursor(lua_State* L) {
 
     if (!name) {
         luaL_error(L, "Usage: SetCursor(\"cursor\" or nil)");
+        return 0;
     }
 
     for (uint32_t i = 0; i < 52; i++) {
@@ -3326,6 +3347,7 @@ static int32_t Script_Stuck(lua_State* L) {
 static int32_t Script_ReportBug(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: ReportBug(\"description\")");
+        return 0;
     }
 
     SendBugOpcode(0, lua_tolstring(L, 1, nullptr));
@@ -3337,6 +3359,7 @@ static int32_t Script_ReportBug(lua_State* L) {
 static int32_t Script_ReportSuggestion(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: ReportSuggestion(\"description\")");
+        return 0;
     }
 
     SendBugOpcode(1, lua_tolstring(L, 1, nullptr));
@@ -3665,10 +3688,12 @@ static int32_t Script_EnableAddOn(lua_State* L) {
 
         if (!name) {
             luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+            return 0;
         }
     } else {
         if (!lua_isstring(L, 1)) {
             luaL_error(L, "Usage: EnableAddOn(index or \"name\")");
+            return 0;
         }
 
         name = lua_tolstring(L, 1, nullptr);
@@ -3698,10 +3723,12 @@ static int32_t Script_DisableAddOn(lua_State* L) {
 
         if (!name) {
             luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
+            return 0;
         }
     } else {
         if (!lua_isstring(L, 1)) {
             luaL_error(L, "Usage: DisableAddOn(index or \"name\")");
+            return 0;
         }
 
         name = lua_tolstring(L, 1, nullptr);
@@ -3800,6 +3827,7 @@ static int32_t Script_GetNumDeclensionSets(lua_State* L) {
 static int32_t Script_DeclineName(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: DeclineName(\"name\", gender, declensionSet)");
+        return 0;
     }
 
     int32_t sex = 2;
@@ -3950,6 +3978,7 @@ static int32_t Script_ResurrectHasTimer(lua_State* L) {
 static int32_t Script_GuildSetMOTD(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GuildSetMOTD(\"message\")");
+        return 0;
     }
 
     CDataStore msg;
@@ -3999,6 +4028,7 @@ static int32_t Script_GetInstanceLockTimeRemaining(lua_State* L) {
 static int32_t Script_GetInstanceLockTimeRemainingEncounter(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetInstanceLockTimeRemainingEncounter(encounterIndex)");
+        return 0;
     }
 
     double index = lua_tonumber(L, 1);
@@ -4074,6 +4104,7 @@ static int32_t Script_GetItemUniqueness(lua_State* L) {
     } else {
         if (!lua_isstring(L, 1)) {
             luaL_error(L, "Usage: GetItemUniqueness(itemID|\"name\"|\"itemlink\")");
+            return 0;
         }
 
         const char* text = lua_tolstring(L, 1, nullptr);
@@ -4422,6 +4453,7 @@ static int32_t Script_GetMirrorTimerProgress(lua_State* L) {
 static int32_t Script_EquipCursorItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: EquipCursorItem(slot)");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -4471,6 +4503,7 @@ static int32_t Script_EquipCursorItem(lua_State* L) {
 static int32_t Script_EquipPendingItem(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: EquipPendingItem(index)");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -4487,6 +4520,7 @@ static int32_t Script_EquipPendingItem(lua_State* L) {
 static int32_t Script_CancelPendingEquip(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CancelPendingEquip(index)");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -4539,6 +4573,7 @@ static int32_t Script_InviteUnit(lua_State* L) {
 
     if (SStrLen(name) > 48) {
         luaL_error(L, "Name too long");
+        return 0;
     }
 
     uint32_t flags = 0;
@@ -4729,6 +4764,7 @@ static int32_t Script_AcceptXPLoss(lua_State* L) {
 static int32_t Script_DropItemOnUnit(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: DropItemOnUnit(\"unit\")");
+        return 0;
     }
 
     WOWGUID cursor = CGGameUI::m_cursorItemType == 1 ? CGGameUI::m_cursorItem : WOWGUID();
@@ -4836,6 +4872,7 @@ static int32_t Script_GetItemGem(lua_State* L) {
 
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetItemGem(\"name\"|\"itemlink\", index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
@@ -5489,6 +5526,7 @@ static int32_t Script_ClearFocus(lua_State* L) {
 static int32_t Script_InitiateTrade(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: InitiateTrade(\"unit\")");
+        return 0;
     }
 
     WOWGUID guid = GetGuidByKeyword(lua_tolstring(L, 1, nullptr));
@@ -5569,6 +5607,7 @@ static int32_t Script_CanInspect(lua_State* L) {
 static int32_t Script_NotifyInspect(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: NotifyInspect(unit)");
+        return 0;
     }
 
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
@@ -5591,6 +5630,7 @@ static int32_t Script_NotifyInspect(lua_State* L) {
 static int32_t Script_PickupPlayerMoney(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: PickupPlayerMoney(amount)");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -5617,6 +5657,7 @@ static float s_setTitleTime;
 static int32_t Script_SetCurrentTitle(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetCurrentTitle(titleMaskID)");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -5819,6 +5860,7 @@ static int32_t Script_EndRefund(lua_State* L) {
 static int32_t Script_EndBoundTradeable(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: EndBoundTradeable(\"type\")");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -5868,6 +5910,7 @@ static int32_t Script_TargetUnit(lua_State* L) {
 static int32_t Script_TargetDirectionEnemy(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: TargetDirectionEnemy(facing)");
+        return 0;
     }
 
     if (CGUIMacros::IsActionAllowed(5)) {
@@ -5885,6 +5928,7 @@ static int32_t Script_TargetDirectionEnemy(lua_State* L) {
 static int32_t Script_TargetDirectionFriend(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: TargetDirectionFriend(facing)");
+        return 0;
     }
 
     if (CGUIMacros::IsActionAllowed(5)) {
@@ -5964,6 +6008,7 @@ static int32_t Script_AssistUnit(lua_State* L) {
 static int32_t Script_SetDungeonDifficulty(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetDungeonDifficulty(difficulty)");
+        return 0;
     }
 
     uint32_t difficulty = static_cast<uint32_t>(lua_tonumber(L, 1) - 1.0);
@@ -5998,6 +6043,7 @@ static int32_t Script_SetDungeonDifficulty(lua_State* L) {
 static int32_t Script_SetRaidDifficulty(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetRaidDifficulty(difficulty)");
+        return 0;
     }
 
     uint32_t difficulty = static_cast<uint32_t>(lua_tonumber(L, 1) - 1.0);
@@ -6033,6 +6079,7 @@ static int32_t Script_AcceptAreaSpiritHeal(lua_State* L) {
 static int32_t Script_InteractUnit(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: InteractUnit(unitToken[, exactMatch])");
+        return 0;
     }
 
     const char* token = lua_tolstring(L, 1, nullptr);

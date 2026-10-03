@@ -303,6 +303,7 @@ static int32_t Script_GetActiveVoiceChannel(lua_State* L) {
 static int32_t Script_SendSystemMessage(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SendSystemMessage(\"message\")");
+        return 0;
     }
 
     CGChat::AddChatMessage(lua_tolstring(L, 1, nullptr), CHAT_MSG_SYSTEM, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
@@ -435,6 +436,7 @@ static int32_t Script_ExpandChannelHeader(lua_State* L) {
 static int32_t Script_SetChatWindowLocked(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetChatWindowLocked(index, locked)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -451,6 +453,7 @@ static int32_t Script_SetChatWindowLocked(lua_State* L) {
 static int32_t Script_SetChatWindowUninteractable(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetChatWindowUninteractable(index, uninteractable)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -467,6 +470,7 @@ static int32_t Script_SetChatWindowUninteractable(lua_State* L) {
 static int32_t Script_SetChatWindowShown(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetChatWindowShown(index, shown)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -483,6 +487,7 @@ static int32_t Script_SetChatWindowShown(lua_State* L) {
 static int32_t Script_GetChatWindowSavedDimensions(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetChatWindowSavedDimensions(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -501,6 +506,7 @@ static int32_t Script_GetChatWindowSavedDimensions(lua_State* L) {
 static int32_t Script_SetChatWindowName(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetChatWindowName(index, \"name\")");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -523,6 +529,7 @@ static int32_t Script_SetChatWindowName(lua_State* L) {
 static int32_t Script_SetChatWindowSize(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SetChatWindowSize(index, size)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -553,6 +560,7 @@ static int32_t Script_RequestRaidInfo(lua_State* L) {
 static int32_t Script_SetChatWindowAlpha(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SetChatWindowAlpha(index, alpha)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -569,6 +577,7 @@ static int32_t Script_SetChatWindowAlpha(lua_State* L) {
 static int32_t Script_SetChatWindowDocked(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetChatWindowDocked(index, docked)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -591,6 +600,7 @@ static int32_t Script_SetChatWindowDocked(lua_State* L) {
 static int32_t Script_SetChatWindowSavedDimensions(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: SetChatWindowSavedDimensions(index, width, height)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -612,6 +622,7 @@ static int32_t Script_SetChatWindowSavedDimensions(lua_State* L) {
 static int32_t Script_GetChatWindowSavedPosition(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetChatWindowSavedPosition(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -656,6 +667,7 @@ static int32_t Script_GetNumLanguages(lua_State* L) {
 static int32_t Script_GetLanguageByIndex(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetLanguageByIndex(index)");
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -686,6 +698,7 @@ static int32_t Script_GetLanguageByIndex(lua_State* L) {
 static int32_t Script_SetChatWindowSavedPosition(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4)) {
         luaL_error(L, "Usage: SetChatWindowSavedPosition(index, \"point\", xOffsetRatio, yOffsetRatio)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -698,6 +711,7 @@ static int32_t Script_SetChatWindowSavedPosition(lua_State* L) {
 
     if (!StringToFramePoint(lua_tolstring(L, 2, nullptr), point)) {
         luaL_error(L, "Unknown Region Point");
+        return 0;
     }
 
     ChatWindowInfo* window = &s_chatWindows[index];
@@ -741,6 +755,7 @@ static int32_t Script_ListChannels(lua_State* L) {
 static int32_t Script_SetChatWindowColor(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4)) {
         luaL_error(L, "Usage: SetChatWindowColor(index, r, g, b)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -761,6 +776,7 @@ static int32_t Script_SetChatWindowColor(lua_State* L) {
 static int32_t Script_GetChatWindowInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetChatWindowInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -905,6 +921,7 @@ static int32_t Script_SendAddonMessage(lua_State* L) {
 static int32_t Script_ChangeChatColor(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4)) {
         luaL_error(L, "Usage: ChangeChatColor(chatType, r, g, b)");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -945,6 +962,7 @@ static int32_t Script_ChangeChatColor(lua_State* L) {
 static int32_t Script_SetChatColorNameByClass(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SetChatColorNameByClass(chatType, colorNameByClass)");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -1091,6 +1109,7 @@ static int32_t Script_IsVoiceChatEnabled(lua_State* L) {
 static int32_t Script_GetChatWindowMessages(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetChatWindowMessages(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -1117,6 +1136,7 @@ static int32_t Script_GetChatWindowMessages(lua_State* L) {
 static int32_t Script_AddChatWindowMessages(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: AddChatWindowMessages(index, \"messageGroup\")");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -1142,6 +1162,7 @@ static int32_t Script_AddChatWindowMessages(lua_State* L) {
 static int32_t Script_RemoveChatWindowMessages(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: RemoveChatWindowMessages(index, \"messageGroup\")");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -1167,6 +1188,7 @@ static int32_t Script_RemoveChatWindowMessages(lua_State* L) {
 static int32_t Script_GetChannelDisplayInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetChannelDisplayInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -1302,6 +1324,7 @@ static int32_t Script_GetSelectedDisplayChannel(lua_State* L) {
 static int32_t Script_GetChatWindowChannels(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetChatWindowChannels(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -1562,6 +1585,7 @@ static int32_t Script_ListChannelByName(lua_State* L) {
 static int32_t Script_SetChannelPassword(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: SetChannelPassword(\"name\", \"password\")");
+        return 0;
     }
 
     const char* channel = CGChat::GetChannelString(lua_tolstring(L, 1, nullptr));
@@ -1708,6 +1732,7 @@ static int32_t Script_ResetChatColors(lua_State* L) {
 static int32_t Script_RemoveChatWindowChannel(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: RemoveChatWindowChannel(index, \"channel\")");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -1896,6 +1921,7 @@ static int32_t Script_SetChannelWatch(lua_State* L) {
 static int32_t Script_DoEmote(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: DoEmote(\"emote\"[, \"target\"])");
+        return 0;
     }
 
     const char* emote = lua_tolstring(L, 1, nullptr);
@@ -2082,6 +2108,7 @@ static int32_t Script_ChannelUnSilenceAll(lua_State* L) {
 static int32_t Script_AddChatWindowChannel(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: AddChatWindowChannel(index, \"channel\")");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -2258,6 +2285,7 @@ static int32_t Script_GetNumChannelMembers(lua_State* L) {
 static int32_t Script_LeaveChannelByName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: LeaveChannelByName(\"name\")");
+        return 0;
     }
 
     InternalLeaveChannel(lua_tolstring(L, 1, nullptr), true, false);
@@ -2329,6 +2357,7 @@ static int32_t Script_JoinPermanentChannel(lua_State* L) {
 static int32_t Script_SetSavedInstanceExtend(lua_State* L) {
     if (!lua_isnumber(L, 1) || lua_type(L, 2) != LUA_TBOOLEAN) {
         luaL_error(L, "Usage: SetSavedInstanceExtend(index, extend)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -2375,6 +2404,7 @@ static int32_t Script_ComplainChat(lua_State* L) {
 
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: ComplainChat(lineID) or ComplainChat(name) or ComplainChat(name, text)");
+        return 0;
     }
 
     const char* name = lua_tolstring(L, 1, nullptr);

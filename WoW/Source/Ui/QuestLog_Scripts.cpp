@@ -58,6 +58,7 @@ static int32_t Script_GetNumQuestWatches(lua_State* L) {
 static int32_t Script_SetPOIIconOverlapDistance(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetPOIIconOverlapDistance(index)");
+        return 0;
     }
 
     CGQuestLog::m_questIconOverlapDist = static_cast<float>(lua_tonumber(L, 1));
@@ -1594,6 +1595,7 @@ static int32_t Script_QuestMapUpdateAllQuests(lua_State* L) {
 static int32_t Script_QuestPOIGetIconInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: QuestPOIGetIconInfo(questID)");
+        return 0;
     }
 
     bool complete;

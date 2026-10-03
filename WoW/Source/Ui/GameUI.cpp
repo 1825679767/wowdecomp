@@ -4034,7 +4034,7 @@ void CGGameUI::DestroyTotem(int32_t slot) {
 
     TotemInfo* totem = &CGGameUI::m_totems[slot];
 
-    if (!totem || !totem->unk_0004) {
+    if (!totem || !totem->m_guid) {
         return;
     }
 

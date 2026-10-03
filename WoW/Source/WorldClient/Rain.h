@@ -119,7 +119,7 @@ Packet<T>::~Packet() {
 }
 
 // VERIFY: 828a4f90 manual
-// OFFSET: [0x00788C10, 0x00788D50, 0x00788E90, 0x00788FD0]
+// OFFSET: [0x00788C10<Packet<RainParticleBuffer>>, 0x00788D50<Packet<RainPatterParticleBuffer>>, 0x00788E90<Packet<SnowFlakeParticleBuffer>>, 0x00788FD0<Packet<SandGrainParticleBuffer>>]
 template <class T>
 PacketList<T>::~PacketList() {
     T* packet = this->m_activePackets.Head();
@@ -143,7 +143,7 @@ PacketList<T>::~PacketList() {
 }
 
 // VERIFY: aced9f3f manual
-// OFFSET: [0x00787920, 0x00787A10, 0x00787B00, 0x00787BF0]
+// OFFSET: [0x00787920<Packet<RainParticleBuffer>>, 0x00787A10<Packet<RainPatterParticleBuffer>>, 0x00787B00<Packet<SnowFlakeParticleBuffer>>, 0x00787BF0<Packet<SandGrainParticleBuffer>>]
 template <class T>
 T* PacketList<T>::Alloc() {
     T* packet = this->m_freePackets.Head();

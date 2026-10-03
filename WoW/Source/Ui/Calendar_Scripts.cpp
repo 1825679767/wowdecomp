@@ -225,6 +225,7 @@ static int32_t Script_CalendarDefaultGuildFilter(lua_State* L) {
 static int32_t Script_CalendarSetAbsMonth(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarSetAbsMonth(month[, year])");
+        return 0;
     }
 
     int32_t month = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -281,6 +282,7 @@ static int32_t Script_CalendarCanSendInvite(lua_State* L) {
 static int32_t Script_CalendarSetMonth(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarSetMonth(offsetMonths)");
+        return 0;
     }
 
     int32_t weekDay;
@@ -429,6 +431,7 @@ static int32_t Script_CalendarContextEventClipboard(lua_State* L) {
 static int32_t Script_CalendarEventSortInvites(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: CalendarEventSortInvites(\"criteria\", reverse)");
+        return 0;
     }
 
     uint32_t criterion = 3;
@@ -504,6 +507,7 @@ static int32_t Script_CalendarEventGetInviteSortCriterion(lua_State* L) {
 static int32_t Script_CalendarEventSetStatus(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CalendarEventSetStatus(index, status)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -517,6 +521,7 @@ static int32_t Script_CalendarEventSetStatus(lua_State* L) {
 static int32_t Script_CalendarEventSetModerator(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarEventSetModerator(index)");
+        return 0;
     }
 
     CGCalendar::SetModeratorStatus(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1, 1);
@@ -528,6 +533,7 @@ static int32_t Script_CalendarEventSetModerator(lua_State* L) {
 static int32_t Script_CalendarEventClearModerator(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarEventClearModerator(index)");
+        return 0;
     }
 
     CGCalendar::SetModeratorStatus(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1, 0);
@@ -596,6 +602,7 @@ static int32_t Script_CalendarEventGetCalendarType(lua_State* L) {
 static int32_t Script_CalendarEventSelectInvite(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarEventSelectInvite(index)");
+        return 0;
     }
 
     uint32_t index = lua_tointeger(L, 1) - 1;
@@ -690,6 +697,7 @@ static int32_t Script_CalendarGetDayEventSequenceInfo(lua_State* L) {
 static int32_t Script_CalendarOpenEvent(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: CalendarOpenEvent([-1,0,1], monthDay, index)");
+        return 0;
     }
 
     uint32_t offset = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -846,6 +854,7 @@ static int32_t Script_CalendarRemoveEvent(lua_State* L) {
 static int32_t Script_CalendarContextSelectEvent(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: CalendarContextSelectEvent([-1.0.1], monthDay, index)");
+        return 0;
     }
 
     uint32_t offset = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -985,6 +994,7 @@ static int32_t Script_CalendarContextInviteAvailable(lua_State* L) {
 
         if (!event) {
             luaL_error(L, "Usage: CalendarContextInviteAvailable([-1.0.1], monthDay, index)");
+            return 0;
         }
     }
 
@@ -1022,6 +1032,7 @@ static int32_t Script_CalendarContextInviteDecline(lua_State* L) {
 
         if (!event) {
             luaL_error(L, "Usage: CalendarContextInviteDecline([-1.0.1], monthDay, index)");
+            return 0;
         }
     }
 
@@ -1100,6 +1111,7 @@ static int32_t Script_CalendarContextEventGetCalendarType(lua_State* L) {
 static int32_t Script_CalendarEventRemoveInvite(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarEventRemoveInvite(index)");
+        return 0;
     }
 
     CGCalendar::RemoveInvite(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1);
@@ -1111,6 +1123,7 @@ static int32_t Script_CalendarEventRemoveInvite(lua_State* L) {
 static int32_t Script_CalendarEventGetStatusOptions(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarEventGetStatusOptions(index)");
+        return 0;
     }
 
     double index = lua_tonumber(L, 1);
@@ -1268,6 +1281,7 @@ static int32_t Script_CalendarEventSetSize(lua_State* L) {
 static int32_t Script_CalendarEventSetDate(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: CalendarEventSetDate(month, day, year)");
+        return 0;
     }
 
     uint32_t month = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -1286,6 +1300,7 @@ static int32_t Script_CalendarEventSetDate(lua_State* L) {
 static int32_t Script_CalendarEventSetTime(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CalendarEventSetTime(hour, minute)");
+        return 0;
     }
 
     uint32_t hour = static_cast<uint32_t>(lua_tonumber(L, 1));
@@ -1303,6 +1318,7 @@ static int32_t Script_CalendarEventSetTime(lua_State* L) {
 static int32_t Script_CalendarEventSetLockoutDate(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: CalendarEventSetLockoutDate(month, day, year)");
+        return 0;
     }
 
     uint32_t month = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -1321,6 +1337,7 @@ static int32_t Script_CalendarEventSetLockoutDate(lua_State* L) {
 static int32_t Script_CalendarEventSetLockoutTime(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CalendarEvenSettLockoutTime(hour, minute)");
+        return 0;
     }
 
     uint32_t hour = static_cast<uint32_t>(lua_tonumber(L, 1));
@@ -1338,6 +1355,7 @@ static int32_t Script_CalendarEventSetLockoutTime(lua_State* L) {
 static int32_t Script_CalendarEventSetTextureID(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarEventSetTextureID(textureIndex)");
+        return 0;
     }
 
     CGCalendar::SetEventTextureID(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1);
@@ -1425,6 +1443,7 @@ static int32_t Script_CalendarEventClearAutoApprove(lua_State* L) {
 static int32_t Script_CalendarEventGetTextures(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarEventGetTextures(eventType)");
+        return 0;
     }
 
     double type = lua_tonumber(L, 1);
@@ -1506,6 +1525,7 @@ static int32_t Script_CalendarNewEvent(lua_State* L) {
 static int32_t Script_CalendarMassInviteGuild(lua_State* L) {
     if (!lua_isnumber(L, 1) && !lua_isnumber(L, 2) && !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: CalendarMassInviteGuild(minLevel, maxLevel, minRank)");
+        return 0;
     }
 
     uint32_t minLevel = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -1534,6 +1554,7 @@ static int32_t Script_CalendarNewGuildEvent(lua_State* L) {
 static int32_t Script_CalendarMassInviteArenaTeam(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CalendarNewArenaTeamEvent(index)");
+        return 0;
     }
 
     CGCalendar::ArenaTeam(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1);
@@ -1581,6 +1602,7 @@ static int32_t Script_CalendarContextInviteTentative(lua_State* L) {
 
         if (!event) {
             luaL_error(L, "Usage: Script_CalendarContextInviteTentative([-1.0.1], monthDay, index)");
+            return 0;
         }
     }
 
@@ -1612,6 +1634,7 @@ static int32_t Script_CalendarContextInviteRemove(lua_State* L) {
 
         if (!event) {
             luaL_error(L, "Usage: CalendarContextInviteRemove([-1.0.1], monthDay, index)");
+            return 0;
         }
     }
 
@@ -1641,6 +1664,7 @@ static int32_t Script_CalendarContextEventSignUp(lua_State* L) {
 
         if (!event) {
             luaL_error(L, "Usage: CalendarContextEventSignUp([-1.0.1], monthDay, index)");
+            return 0;
         }
     }
 
@@ -1670,6 +1694,7 @@ static int32_t Script_CalendarContextEventRemove(lua_State* L) {
 
         if (!event) {
             luaL_error(L, "Usage: Script_CalendarContextEventRemove([-1.0.1], monthDay, index)");
+            return 0;
         }
     }
 
@@ -1703,6 +1728,7 @@ static int32_t Script_CalendarContextEventCopy(lua_State* L) {
 
         if (!event) {
             luaL_error(L, "Usage: Script_CalendarContextEventCopy([-1.0.1], monthDay, index)");
+            return 0;
         }
     }
 
@@ -1722,6 +1748,7 @@ static int32_t Script_CalendarContextEventCopy(lua_State* L) {
 static int32_t Script_CalendarContextEventPaste(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: Script_CalendarContextEventPaste([-1.0.1], monthDay)");
+        return 0;
     }
 
     int32_t offset = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -1773,6 +1800,7 @@ static int32_t Script_CalendarContextEventComplain(lua_State* L) {
 
         if (!event) {
             luaL_error(L, "Usage: CalendarContextEventComplain([-1.0.1], monthDay, index)");
+            return 0;
         }
     }
 

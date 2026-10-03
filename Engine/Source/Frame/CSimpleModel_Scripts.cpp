@@ -82,6 +82,7 @@ static int32_t Script_SetModel(lua_State* L) {
 
         if (!model->m_model) {
             luaL_error(L, "Invalid model file: %s", fileName);
+            return 0;
         }
 
         return 0;

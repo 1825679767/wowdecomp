@@ -692,6 +692,7 @@ static int32_t Script_GetTrainerServiceStepIncrease(lua_State* L) {
 static int32_t Script_BuyTrainerService(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: BuyTrainerService(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -710,6 +711,7 @@ static int32_t Script_BuyTrainerService(lua_State* L) {
 static int32_t Script_SetTrainerServiceTypeFilter(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: SetTrainerServiceTypeFilter(\"type\", on/off [, exclusive])");
+        return 0;
     }
 
     const char* type = lua_tolstring(L, 1, nullptr);
@@ -725,10 +727,12 @@ static int32_t Script_SetTrainerServiceTypeFilter(lua_State* L) {
 
     if (serviceType == 6) {
         luaL_error(L, "Bad service type in SetTrainerServiceTypeFilter");
+        return 0;
     }
 
     if (!lua_isnumber(L, 2)) {
         luaL_error(L, "Missing on/off parameter in SetTrainerServiceTypeFilter");
+        return 0;
     }
 
     int32_t filter = g_serviceTypeFilterCVar->m_intValue;
@@ -752,6 +756,7 @@ static int32_t Script_SetTrainerServiceTypeFilter(lua_State* L) {
 static int32_t Script_SetTrainerSkillLineFilter(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SetTrainerSkillLineFilter(index [, on\\off, exclusive])");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -765,10 +770,12 @@ static int32_t Script_SetTrainerSkillLineFilter(lua_State* L) {
 
     if (index >= CGClassTrainer::m_numSkillLines) {
         luaL_error(L, "Bad skill line in SetTrainerSkillLineFilter");
+        return 0;
     }
 
     if (!lua_isnumber(L, 2)) {
         luaL_error(L, "Missing on//off parameter in SetTrainerSkillLineFilter");
+        return 0;
     }
 
     uint32_t filter = CGClassTrainer::m_skillLineFilter;
@@ -792,6 +799,7 @@ static int32_t Script_SetTrainerSkillLineFilter(lua_State* L) {
 static int32_t Script_CollapseTrainerSkillLine(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CollapseTrainerSkillLine(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -801,6 +809,7 @@ static int32_t Script_CollapseTrainerSkillLine(lua_State* L) {
 
         if (skillLine < 0) {
             luaL_error(L, "Bad skill line in CollapseTrainerSkillLine");
+            return 0;
         }
 
         CGClassTrainer::m_expandedSkillLines &= ~(1 << skillLine);
@@ -818,6 +827,7 @@ static int32_t Script_CollapseTrainerSkillLine(lua_State* L) {
 static int32_t Script_ExpandTrainerSkillLine(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: ExpandTrainerSkillLine(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -827,6 +837,7 @@ static int32_t Script_ExpandTrainerSkillLine(lua_State* L) {
 
         if (skillLine < 0) {
             luaL_error(L, "Bad skill line in ExpandTrainerSkillLine");
+            return 0;
         }
 
         CGClassTrainer::m_expandedSkillLines |= 1 << skillLine;

@@ -72,6 +72,7 @@ static int32_t Script_HasAction(lua_State* L) {
 static int32_t Script_GetActionInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetActionInfo(slot)");
+        return 0;
     }
 
     int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -204,6 +205,7 @@ static int32_t Script_IsCurrentAction(lua_State* L) {
 static int32_t Script_PickupAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: PickupAction(slot)");
+        return 0;
     }
 
     CGActionBar::PickupAction(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
@@ -215,6 +217,7 @@ static int32_t Script_PickupAction(lua_State* L) {
 static int32_t Script_UseAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: UseAction(slot, [, target] [, button])");
+        return 0;
     }
 
     int32_t slot = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -514,6 +517,7 @@ static int32_t Script_IsActionInRange(lua_State* L) {
 static int32_t Script_GetMultiCastTotemSpells(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetMultiCastTotemSpells(slot)");
+        return 0;
     }
 
     uint32_t slot = (lua_tointeger(L, 1) - 1) & 3;
@@ -579,6 +583,7 @@ static int32_t Script_ActionHasRange(lua_State* L) {
 static int32_t Script_SetMultiCastSpell(lua_State* L) {
     if (!lua_isnumber(L, 1) && !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SetMultiCastSpell(slot, spellID)");
+        return 0;
     }
 
     if (!CGGameUI::CanPerformAction(14)) {

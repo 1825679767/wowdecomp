@@ -126,6 +126,7 @@ static int luaB_getfenv (lua_State *L) {
     lua_pushvalue(L, LUA_GLOBALSINDEX);  /* return the thread's global env. */
   else
     lua_getfenv(L, -1);
+  luaL_getmetafield(L, -1, "__environment");
   return 1;
 }
 

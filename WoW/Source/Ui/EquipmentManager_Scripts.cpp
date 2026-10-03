@@ -79,6 +79,7 @@ static int32_t Script_EquipmentManagerClearIgnoredSlotsForSave(lua_State* L) {
 static int32_t Script_DeleteEquipmentSet(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: DeleteEquipmentSet(\"setName\")");
+        return 0;
     }
 
     const char* name = lua_tolstring(L, 1, nullptr);
@@ -99,6 +100,7 @@ static int32_t Script_DeleteEquipmentSet(lua_State* L) {
 static int32_t Script_GetEquipmentSetLocations(lua_State* L) {
     if (!lua_isstring(L, 1) || (lua_type(L, 2) > LUA_TNIL && lua_type(L, 2) != LUA_TTABLE)) {
         luaL_error(L, "Usage: GetEquipmentSetLocations(\"setName\" [, returnTable])");
+        return 0;
     }
 
     EQUIPMENT_SET* set = CGEquipmentManager::GetSetByName(lua_tolstring(L, 1, nullptr));
@@ -317,6 +319,7 @@ static int32_t Script_GetEquipmentSetLocations(lua_State* L) {
 static int32_t Script_GetEquipmentSetItemIDs(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetEquipmentSetItemIDs(\"setName\" [, returnTable])");
+        return 0;
     }
 
     EQUIPMENT_SET* set = CGEquipmentManager::GetSetByName(lua_tolstring(L, 1, nullptr));
@@ -378,6 +381,7 @@ static int32_t Script_GetEquipmentSetInfo(lua_State* L) {
 
     if (static_cast<uint32_t>(index - 1) > 9) {
         luaL_error(L, "Usage: GetEquipmentSetInfo(setIndex)");
+        return 0;
     }
 
     EQUIPMENT_SET* set = CGEquipmentManager::GetSetByIndex(index - 1);
@@ -399,6 +403,7 @@ static int32_t Script_GetEquipmentSetInfo(lua_State* L) {
 static int32_t Script_GetEquipmentSetInfoByName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: GetEquipmentSetInfoByName(\"setName\")");
+        return 0;
     }
 
     const char* name = lua_tolstring(L, 1, nullptr);
@@ -423,6 +428,7 @@ static int32_t Script_GetEquipmentSetInfoByName(lua_State* L) {
 static int32_t Script_PickupEquipmentSetByName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: PickupEquipmentSetByName(\"setName\")");
+        return 0;
     }
 
     if (!CGGameUI::CanPerformAction(14)) {
@@ -447,6 +453,7 @@ static int32_t Script_PickupEquipmentSetByName(lua_State* L) {
 static int32_t Script_PickupEquipmentSet(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: PickupEquipmentSet(setIndex)");
+        return 0;
     }
 
     EQUIPMENT_SET* set = CGEquipmentManager::GetSetByIndex(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
@@ -463,6 +470,7 @@ static int32_t Script_PickupEquipmentSet(lua_State* L) {
 static int32_t Script_EquipmentSetContainsLockedItems(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: EquipmentSetContainsLockedItems(\"setName\")");
+        return 0;
     }
 
     EQUIPMENT_SET* set = CGEquipmentManager::GetSetByName(lua_tolstring(L, 1, nullptr));
@@ -480,6 +488,7 @@ static int32_t Script_EquipmentSetContainsLockedItems(lua_State* L) {
 static int32_t Script_UseEquipmentSet(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: UseEquipmentSet(\"setName\")");
+        return 0;
     }
 
     EQUIPMENT_SET* set = CGEquipmentManager::GetSetByName(lua_tolstring(L, 1, nullptr));
@@ -502,6 +511,7 @@ static int32_t Script_UseEquipmentSet(lua_State* L) {
 static int32_t Script_RenameEquipmentSet(lua_State* L) {
     if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
         luaL_error(L, "Usage: RenameEquipmentSet(\"oldName\", \"newName\")");
+        return 0;
     }
 
     const char* oldName = lua_tolstring(L, 1, nullptr);
@@ -510,6 +520,7 @@ static int32_t Script_RenameEquipmentSet(lua_State* L) {
 
     if (!ScrubString(newName, name, 32, sizeof(name), 1)) {
         luaL_error(L, "Invalid string for setName");
+        return 0;
     }
 
     EQUIPMENT_SET* set = CGEquipmentManager::GetSetByName(oldName);
@@ -530,6 +541,7 @@ static int32_t Script_SaveEquipmentSet(lua_State* L) {
 
     if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SaveEquipmentSet(\"setName\", iconIndex)");
+        return 0;
     }
 
     const char* setName = lua_tolstring(L, 1, nullptr);
@@ -538,6 +550,7 @@ static int32_t Script_SaveEquipmentSet(lua_State* L) {
 
     if (!ScrubString(setName, name, 32, sizeof(name), 1)) {
         luaL_error(L, "Invalid string for setName");
+        return 0;
     }
 
     char icon[64] = { 0 };
@@ -586,6 +599,7 @@ static int32_t Script_SaveEquipmentSet(lua_State* L) {
 
     if (!CGEquipmentManager::CanCreateSet()) {
         luaL_error(L, "Too many sets! You can only have %d sets", 10);
+        return 0;
     }
 
     CGEquipmentManager::CreateEquipmentSet(name, icon);

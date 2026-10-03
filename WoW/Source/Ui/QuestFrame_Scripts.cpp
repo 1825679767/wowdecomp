@@ -457,6 +457,7 @@ static int32_t Script_IsActiveQuestTrivial(lua_State* L) {
 static int32_t Script_SelectAvailableQuest(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SelectAvailableQuest(index)");
+        return 0;
     }
 
     CGQuestInfo::QueryQuest(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1);
@@ -468,6 +469,7 @@ static int32_t Script_SelectAvailableQuest(lua_State* L) {
 static int32_t Script_SelectActiveQuest(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: SelectActiveQuest(index)");
+        return 0;
     }
 
     CGQuestInfo::CompleteQuest(static_cast<uint32_t>(lua_tonumber(L, 1)) - 1);
@@ -518,6 +520,7 @@ static int32_t Script_GetQuestReward(lua_State* L) {
 
     if (!CGQuestInfo::GetReward(choice)) {
         luaL_error(L, "Invalid reward choice in GetQuestReward([choice])");
+        return 0;
     }
 
     return 0;

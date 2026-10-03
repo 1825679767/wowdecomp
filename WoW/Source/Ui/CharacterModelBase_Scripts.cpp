@@ -53,6 +53,7 @@ static int32_t Script_SetRotation(lua_State* L) {
 
     if (!lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SetRotation(rotation (in radians))");
+        return 0;
     }
 
     model->RotateModel(static_cast<float>(lua_tonumber(L, 2)));
@@ -66,6 +67,7 @@ static int32_t Script_ModelSetUnit(lua_State* L) {
 
     if (!lua_isstring(L, 2)) {
         luaL_error(L, "Usage: SetUnit(\"unit\")");
+        return 0;
     }
 
     WOWGUID guid = GetGuidByKeyword(lua_tolstring(L, 2, nullptr));

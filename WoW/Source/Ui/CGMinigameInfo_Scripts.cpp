@@ -29,6 +29,7 @@ static int32_t Script_GetMinigameType(lua_State* L) {
 static int32_t Script_MakeMinigameMove(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: MakeMinigameMove(moveType, param)");
+        return 0;
     }
 
     uint8_t moveType = static_cast<int32_t>(lua_tonumber(L, 1) - 1.0);

@@ -67,6 +67,7 @@ static int32_t Script_ContainerIDToInventoryID(lua_State* L) {
 static int32_t Script_GetContainerNumFreeSlots(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetContainerFreeSlots(index)");
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -179,6 +180,7 @@ static int32_t Script_GetBagName(lua_State* L) {
 static int32_t Script_GetContainerItemInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetContainerItemInfo(index, slot)");
+        return 0;
     }
 
     CGBag_C* bag;
@@ -266,6 +268,7 @@ static int32_t Script_GetContainerItemCooldown(lua_State* L) {
 static int32_t Script_UseContainerItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: UseContainerItem(index, slot[, target])");
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -413,6 +416,7 @@ static int32_t Script_UseContainerItem(lua_State* L) {
 static int32_t Script_PickupContainerItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: PickupContainerItem(index, slot)");
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -580,6 +584,7 @@ static int32_t Script_ShowContainerSellCursor(lua_State* L) {
 
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: ShowContainerSellCursor(index, slot)");
+        return 0;
     }
 
     CGBag_C* bag;
@@ -607,6 +612,7 @@ static int32_t Script_SetBagPortraitTexture(lua_State* L) {
 
     if (!lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SetBagPortraitTexture(texture, slot)");
+        return 0;
     }
 
     int32_t slot = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
@@ -617,6 +623,7 @@ static int32_t Script_SetBagPortraitTexture(lua_State* L) {
 
     if (slot >= 11) {
         luaL_error(L, "Invalid slot in SetBagPortraitTexture");
+        return 0;
     }
 
     texture->SetTexture(static_cast<CTexture*>(nullptr));
@@ -677,6 +684,7 @@ static int32_t Script_GetContainerItemQuestInfo(lua_State* L) {
 static int32_t Script_GetContainerItemPurchaseInfo(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetContainerItemPurchaseInfo(index, slot[, isEquipped])");
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -745,6 +753,7 @@ static int32_t Script_GetContainerItemPurchaseInfo(lua_State* L) {
 static int32_t Script_GetContainerItemLink(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetContainerItemLink(index, slot)");
+        return 0;
     }
 
     CGBag_C* bag;
@@ -770,6 +779,7 @@ static int32_t Script_GetContainerItemLink(lua_State* L) {
 static int32_t Script_SplitContainerItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: SplitContainerItem(index, slot, amount)");
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -812,6 +822,7 @@ static int32_t Script_SplitContainerItem(lua_State* L) {
 static int32_t Script_SocketContainerItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SocketContainerItem(index, slot)");
+        return 0;
     }
 
     if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
@@ -859,6 +870,7 @@ static bool BuildItemIconPath(int32_t itemId, char* buffer, uint32_t size) {
 static int32_t Script_GetContainerFreeSlots(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetContainerFreeSlots(index [, returnTable])");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -940,6 +952,7 @@ static int32_t Script_GetContainerFreeSlots(lua_State* L) {
 static int32_t Script_GetContainerItemID(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetContainerItemID(index, slot)");
+        return 0;
     }
 
     CGBag_C* bag;
@@ -965,6 +978,7 @@ static int32_t Script_GetContainerItemID(lua_State* L) {
 static int32_t Script_GetContainerItemDurability(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetContainerItemDurability(index, slot)");
+        return 0;
     }
 
     CGBag_C* bag;
@@ -998,6 +1012,7 @@ static int32_t Script_GetContainerItemDurability(lua_State* L) {
 static int32_t Script_GetContainerItemPurchaseItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Usage: ContainerItemPurchaseItem(bag, slot, itemIndex[, isEquipped])");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -1085,6 +1100,7 @@ static int32_t Script_GetContainerItemPurchaseItem(lua_State* L) {
 static int32_t Script_ContainerRefundItemPurchase(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: ContainerRefundItemPurchase(index, slot[, isEquipped])");
+        return 0;
     }
 
     CGItem_C* item;

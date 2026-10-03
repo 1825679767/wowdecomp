@@ -682,6 +682,7 @@ static int32_t Script_GetBattlefieldInfo(lua_State* L) {
 static int32_t Script_GetBattlegroundInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetBattlegroundInfo(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -883,6 +884,7 @@ static const char* s_vehicleTypes[5] = { "Drive", "Fly", "Idle", "Airship Horde"
 static int32_t Script_GetBattlefieldVehicleInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetBattlefieldVehicleInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -924,6 +926,7 @@ static int32_t Script_GetBattlefieldVehicleInfo(lua_State* L) {
 static int32_t Script_AcceptBattlefieldPort(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: AcceptBattlefieldPort(index, accept)");
+        return 0;
     }
 
     if (!CGGameUI::CanPerformAction(20)) {
@@ -1042,6 +1045,7 @@ static int32_t Script_GetBattlefieldFlagPosition(lua_State* L) {
 static int32_t Script_SortBattlefieldScoreData(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usgae: SortBattlefieldScoreData(\"type\")");
+        return 0;
     }
 
     int32_t column = 0;

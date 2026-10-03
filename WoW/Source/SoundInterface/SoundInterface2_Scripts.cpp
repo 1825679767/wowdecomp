@@ -180,6 +180,7 @@ static int32_t Script_VoiceChat_StopCapture(lua_State* L) {
 static int32_t Script_VoiceChat_RecordLoopbackSound(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: VoiceChat_RecordLoopbackSound(MaxRecordTimeInSeconds)");
+        return 0;
     }
 
     SI2::VoiceChat_RecordLoopbackSound(static_cast<int32_t>(lua_tonumber(L, 1)));

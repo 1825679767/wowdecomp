@@ -1215,6 +1215,7 @@ static int32_t Script_SetLootItem(lua_State* L) {
 
     if (!lua_isnumber(L, 2)) {
         luaL_error(L, "Invalid loot slot in SetInventoryItem");
+        return 0;
     }
 
     uint32_t slot = static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, 2) - 1.0));
@@ -1617,7 +1618,7 @@ static int32_t Script_SetTotem(lua_State* L) {
     uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 2));
     TotemInfo* totem = CGGameUI::GetTotemInfo(slot - 1);
 
-    if (!totem || !totem->unk_0004) {
+    if (!totem || !totem->m_guid) {
         return 0;
     }
 
@@ -1800,6 +1801,7 @@ static int32_t Script_SetQuestItem(lua_State* L) {
 
     if (!lua_isstring(L, 2) || !lua_isnumber(L, 3) || (type = lua_tolstring(L, 2, nullptr), index = static_cast<uint32_t>(lua_tonumber(L, 3)) - 1, itemId = CGQuestInfo::GetQuestItemID(type, index), itemId <= 0)) {
         luaL_error(L, "Invalid quest item in SetQuestItem(\"type\", index)");
+        return 0;
     }
 
     char texture[260];
@@ -1825,6 +1827,7 @@ static int32_t Script_SetQuestLogItem(lua_State* L) {
 
     if (!lua_isstring(L, 2) || !lua_isnumber(L, 3) || (type = lua_tolstring(L, 2, nullptr), index = static_cast<int32_t>(lua_tonumber(L, 3)) - 1, itemId = GetQuestItemRewards(type, index), itemId <= 0)) {
         luaL_error(L, "Invalid quest item in SetQuestLogItem(\"type\", index)");
+        return 0;
     }
 
     tooltip->m_itemLinkInfo.Clear();
@@ -1959,6 +1962,7 @@ static int32_t Script_SetMerchantItem(lua_State* L) {
 
     if (!lua_isnumber(L, 2)) {
         luaL_error(L, "Invalid merchant slot in SetMerchantItem");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 2) - 1.0);
@@ -1981,6 +1985,7 @@ static int32_t Script_SetMerchantCostItem(lua_State* L) {
 
     if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Invalid merchant slot in SetMerchantCostItem");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 2) - 1.0);
@@ -2020,6 +2025,7 @@ static int32_t Script_SetTradePlayerItem(lua_State* L) {
 
     if (!lua_isnumber(L, 2)) {
         luaL_error(L, "Invalid trade slot in SetTradePlayerItem");
+        return 0;
     }
 
     uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 2) - 1.0);
@@ -2067,6 +2073,7 @@ static int32_t Script_SetTradeTargetItem(lua_State* L) {
 
     if (!lua_isnumber(L, 2)) {
         luaL_error(L, "Invalid trade slot in SetTradeTargetItem");
+        return 0;
     }
 
     uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 2) - 1.0);
@@ -2378,6 +2385,7 @@ static int32_t Script_SetGuildBankItem(lua_State* L) {
 
     if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
         luaL_error(L, "Invalid tab or slot in SetGuildBankItem");
+        return 0;
     }
 
     uint32_t tab = static_cast<int32_t>(lua_tonumber(L, 2) - 1.0);

@@ -383,7 +383,7 @@ class WMOGroup {
 };
 
 // VERIFY: d3f8a7cc auto
-// OFFSET: [0x007C9A00, 0x007C9A60, 0x007C9AB0, 0x007CA8C0]
+// OFFSET: [0x007C9A00<BspQuery_Segment>, 0x007C9A60, 0x007C9AB0, 0x007CA8C0<BspQuery_Volume<CAaBox>>]
 template <class T>
 void CAaBsp_Query<T>::GetFaceIndices(const CAaBspNode* node) {
     if (this->m_f->GetFaceIndicesUsingCache(*this->m_aaBsp, node)) {
@@ -398,7 +398,7 @@ void CAaBsp_Query<T>::GetFaceIndices(const CAaBspNode* node) {
 }
 
 // VERIFY: b715a408 manual
-// OFFSET: [0x007CA180, 0x007CA600]
+// OFFSET: [0x007CA180<BspQuery_Segment>, 0x007CA600<BspQuery_SegmentLink>]
 template <class T>
 void CAaBsp_Query_Segment<T>::GetFaceIndices(uint32_t nodeIndex, const C3Segment& seg, const CAaBox& box) {
     const CAaBspNode* node = &this->m_aaBsp->m_nodes[nodeIndex];
@@ -493,7 +493,7 @@ void CAaBsp_Query_Segment<T>::GetFaceIndices(uint32_t nodeIndex, const C3Segment
 }
 
 // VERIFY: 1ae93370 auto
-// OFFSET: [0x007CA440, 0x007CA920]
+// OFFSET: [0x007CA440<BspQuery_Volume<CWFrustum>>, 0x007CA920<BspQuery_Volume<CAaBox>>]
 template <class T>
 void CAaBsp_Query_AaBox<T>::GetFaceIndices(uint32_t nodeIndex, const CAaBox& query, const CAaBox& bounds) {
     const CAaBspNode* node = &this->m_aaBsp->m_nodes[nodeIndex];

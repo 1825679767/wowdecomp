@@ -56,6 +56,7 @@ static int32_t Script_GetNumStableSlots(lua_State* L) {
 static int32_t Script_PickupStablePet(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: PickupStablePet(index)");
+        return 0;
     }
 
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
@@ -149,6 +150,7 @@ static int32_t Script_GetNextStableSlotCost(lua_State* L) {
 static int32_t Script_SetPetStablePaperdoll(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
         luaL_error(L, "Usage: SetPetStablePaperdoll(characterModel)");
+        return 0;
     }
 
     lua_rawgeti(L, 1, 0);
@@ -157,10 +159,12 @@ static int32_t Script_SetPetStablePaperdoll(lua_State* L) {
 
     if (!model) {
         luaL_error(L, "SetPetStablePaperdoll(): Couldn't find 'this' in frame object");
+        return 0;
     }
 
     if (!model->IsA(CGCharacterModelBase::GetObjectType())) {
         luaL_error(L, "SetPetStablePaperdoll(): Wrong object type, expected frame");
+        return 0;
     }
 
     int32_t selected = CGStableInfo::GetSelectedPetIndex();
@@ -204,6 +208,7 @@ static int32_t Script_GetStablePetFoodTypes(lua_State* L) {
 
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: GetStablePetInfo(index)");
+        return 0;
     }
 
     int32_t number = static_cast<int32_t>(lua_tonumber(L, 1));
@@ -281,6 +286,7 @@ static int32_t Script_StablePet(lua_State* L) {
 static int32_t Script_UnstablePet(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: UnstablePet(index)");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();

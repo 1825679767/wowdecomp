@@ -754,6 +754,7 @@ static int32_t Script_IsSpellInRange(lua_State* L) {
 static int32_t Script_CastShapeshiftForm(lua_State* L) {
     if (lua_tonumber(L, 1) == 0.0) {
         luaL_error(L, "Usage: CastShapeshiftForm(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -799,6 +800,7 @@ static int32_t Script_PickupCompanion(lua_State* L) {
 
     if (!GetLuaCompanionType(L, &type) || lua_tonumber(L, 2) == 0.0) {
         luaL_error(L, "Usage: PickupCompanion(type, index)");
+        return 0;
     }
 
     CGSpellBook::PickupCompanion(type, static_cast<uint32_t>(lua_tonumber(L, 2)) - 1);
@@ -829,6 +831,7 @@ static int32_t Script_CancelShapeshiftForm(lua_State* L) {
 static int32_t Script_GetShapeshiftFormInfo(lua_State* L) {
     if (lua_tonumber(L, 1) == 0.0) {
         luaL_error(L, "Usage: GetShapeshiftFormInfo(index)");
+        return 0;
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
@@ -889,6 +892,7 @@ static int32_t Script_GetCompanionCooldown(lua_State* L) {
 
     if (!GetLuaCompanionType(L, &type) || lua_tonumber(L, 2) == 0.0) {
         luaL_error(L, "Usage: GetCompanionCooldown(type, index)");
+        return 0;
     }
 
     if (!ClntObjMgrGetActivePlayerObj()) {
@@ -918,6 +922,7 @@ static int32_t Script_CallCompanion(lua_State* L) {
 
     if (!GetLuaCompanionType(L, &type) || lua_tonumber(L, 2) == 0.0) {
         luaL_error(L, "Usage: CallCompanion(type, index)");
+        return 0;
     }
 
     if (!ClntObjMgrGetActivePlayerObj()) {
@@ -941,6 +946,7 @@ static int32_t Script_DismissCompanion(lua_State* L) {
 
     if (!GetLuaCompanionType(L, &type)) {
         luaL_error(L, "Usage: DismissCompanion(type)");
+        return 0;
     }
 
     CGUnit_C* player = ClntObjMgrGetActivePlayerObj();
@@ -973,6 +979,7 @@ static int32_t Script_SummonRandomCritter(lua_State* L) {
 static int32_t Script_CastSpellByID(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
         luaL_error(L, "Usage: CastSpellByID(spellID[, target])");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -1045,6 +1052,7 @@ static int32_t Script_CastSpellByID(lua_State* L) {
 static int32_t Script_CastSpellByName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: CastSpellByName(name[, target])");
+        return 0;
     }
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();

@@ -207,6 +207,7 @@ static int32_t Script_CancelItemTempEnchantment(lua_State* L) {
 
     if (!lua_isnumber(L, 1) || (slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1, slot > 1)) {
         luaL_error(L, "Usage: CancelItemTempEnchantment(slot)");
+        return 0;
     }
 
     int32_t invSlot = slot + 15;
@@ -227,6 +228,7 @@ static int32_t Script_CancelUnitBuff(lua_State* L) {
 
     if (!Script_GetUnitAuraInfo(L, 1, &info)) {
         luaL_error(L, "Usage: CancelUnitBuff(\"unit\", [index] or [\"name\", \"rank\"][, \"filter\"])");
+        return 0;
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));

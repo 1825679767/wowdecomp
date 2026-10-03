@@ -200,6 +200,7 @@ static int32_t Script_GetZoom(lua_State* L) {
 static int32_t Script_SetZoom(lua_State* L) {
     if (!lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: SetZoom(level)");
+        return 0;
     }
 
     MinimapSetZoom(static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, 2))));
