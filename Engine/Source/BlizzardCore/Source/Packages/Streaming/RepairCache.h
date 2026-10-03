@@ -16,18 +16,17 @@ namespace Repair {
 
 struct RepairKey {
     /* 0000 */ Blizzard::Util::Digest<16> m_md5;
-    /* 0010 */ uint32_t m_index;
+    /* 0010 */ int64_t m_index;
 
     bool operator<(const RepairKey& other) const;
 };
 
 struct RepairEntry {
     /* 0000 */ uint32_t m_offset;
-    /* 0004 */ uint32_t m_flags;
-    /* 0008 */ uint32_t m_size;
-    /* 000C */ void* m_data;
-    /* 0010 */ bool m_valid;
-    /* 0011 */ uint8_t unk_0011[3];
+    /* 0004 */ uint32_t m_size;
+    /* 0008 */ void* m_data;
+    /* 000C */ bool m_valid;
+    /* 000D */ uint8_t unk_000D[3];
 };
 
 class RepairCache {
@@ -42,7 +41,7 @@ class RepairCache {
 
     RepairCache();
     ~RepairCache();
-    bool AddEntry(const Blizzard::Util::Digest<16>& md5, uint32_t index, uint32_t offset, uint32_t flags, uint32_t size);
+    bool AddEntry(const Blizzard::Util::Digest<16>& md5, int64_t index, uint32_t offset, uint32_t size);
     bool Load(Blizzard::File::StreamRecord* file);
 };
 

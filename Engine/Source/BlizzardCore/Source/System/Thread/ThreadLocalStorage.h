@@ -48,7 +48,8 @@ void Blizzard::Thread::LocalObject<T>::Delete(void* ptr) {
     delete static_cast<T*>(ptr);
 }
 
-// INLINED
+// VERIFY: caab968f auto
+// OFFSET: 0x00422280<System_SFile2::SFileFatalInfo>
 template <class T>
 void* Blizzard::Thread::LocalObject<T>::New(void* param) {
     return new T;

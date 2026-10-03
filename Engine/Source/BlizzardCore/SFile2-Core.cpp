@@ -676,7 +676,8 @@ SFileImpl::SFileImpl(uint32_t type) {
     this->m_type = type;
 }
 
-// INLINED
+// VERIFY: 0d4a821e auto
+// OFFSET: 0x004224A0
 SFileImpl::~SFileImpl() {
     Blizzard::Memory::Free(this->m_name);
     Blizzard::Memory::Free(this->unk_0010);

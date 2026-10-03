@@ -106,7 +106,7 @@ void Blizzard::Streaming::Transport::THROTTLE::Wait() {
     } while (s_throttleDebt > 1000000);
 }
 
-// OFFSET: 0x00437AD0
+// OFFSET: [0x00437AD0, 0x00439C10]
 Blizzard::Streaming::TransportHttpCallback::~TransportHttpCallback() {
     CloseHandle(this->m_event);
 }

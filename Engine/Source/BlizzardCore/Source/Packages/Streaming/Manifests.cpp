@@ -202,7 +202,7 @@ Blizzard::Streaming::Manifests::ManifestItem::~ManifestItem() {
 }
 
 // VERIFY: af315f8d manual
-// OFFSET: 0x00437D20
+// OFFSET: [0x00437D20, 0x00437DA0]
 Blizzard::Streaming::Manifests::ParameterItem::~ParameterItem() {
 }
 
@@ -411,7 +411,7 @@ std::string Blizzard::Streaming::Manifests::FileItem::GetRemotePath() {
 }
 
 // VERIFY: b28e420e manual
-// OFFSET: 0x00444000
+// OFFSET: [0x00444000, 0x00447580]
 Blizzard::Streaming::Manifests::ServerItem::~ServerItem() {
 }
 
@@ -421,7 +421,7 @@ Blizzard::Streaming::Manifests::FileItem::FileItem() {
 }
 
 // VERIFY: 6b2adeb3 manual
-// OFFSET: 0x00444130
+// OFFSET: [0x00444130, 0x00444250]
 Blizzard::Streaming::Manifests::FileItem::~FileItem() {
 }
 

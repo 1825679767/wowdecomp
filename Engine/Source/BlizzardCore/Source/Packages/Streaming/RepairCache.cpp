@@ -8,9 +8,8 @@
 
 struct RepairRecord {
     /* 0000 */ Blizzard::Util::Digest<16> m_md5;
-    /* 0010 */ uint32_t m_index;
-    /* 0014 */ uint32_t m_offset;
-    /* 0018 */ uint32_t m_flags;
+    /* 0010 */ int64_t m_index;
+    /* 0018 */ uint32_t m_offset;
     /* 001C */ uint32_t m_size;
 };
 
@@ -52,9 +51,9 @@ Blizzard::Repair::RepairCache::~RepairCache() {
     }
 }
 
-// VERIFY: a2f4a974 manual
+// VERIFY: 5fdd7411 manual
 // OFFSET: 0x00440B10
-bool Blizzard::Repair::RepairCache::AddEntry(const Blizzard::Util::Digest<16>& md5, uint32_t index, uint32_t offset, uint32_t flags, uint32_t size) {
+bool Blizzard::Repair::RepairCache::AddEntry(const Blizzard::Util::Digest<16>& md5, int64_t index, uint32_t offset, uint32_t size) {
     RepairKey key;
     key.m_md5 = md5;
     key.m_index = index;
@@ -62,7 +61,6 @@ bool Blizzard::Repair::RepairCache::AddEntry(const Blizzard::Util::Digest<16>& m
     if (this->m_entries.find(key) == this->m_entries.end()) {
         RepairEntry entry;
         entry.m_offset = offset;
-        entry.m_flags = flags;
         entry.m_size = size;
         entry.m_data = nullptr;
         entry.m_valid = true;
@@ -73,7 +71,7 @@ bool Blizzard::Repair::RepairCache::AddEntry(const Blizzard::Util::Digest<16>& m
     return true;
 }
 
-// VERIFY: 2140c012 manual
+// VERIFY: a63a2d32 manual
 // OFFSET: 0x00440BD0
 bool Blizzard::Repair::RepairCache::Load(Blizzard::File::StreamRecord* file) {
     int64_t offset = 32 * static_cast<int64_t>(this->m_entries.size());
@@ -86,7 +84,7 @@ bool Blizzard::Repair::RepairCache::Load(Blizzard::File::StreamRecord* file) {
             break;
         }
 
-        this->AddEntry(record.m_md5, record.m_index, record.m_offset, record.m_flags, record.m_size);
+        this->AddEntry(record.m_md5, record.m_index, record.m_offset, record.m_size);
         offset += sizeof(record);
     }
 

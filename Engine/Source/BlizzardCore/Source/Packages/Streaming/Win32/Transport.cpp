@@ -110,7 +110,7 @@ void Blizzard::Streaming::Transport::THROTTLE::Wait() {
 }
 
 // VERIFY: 06dc0fd3 manual
-// OFFSET: 0x00437AD0
+// OFFSET: [0x00437AD0, 0x00439C10]
 Blizzard::Streaming::TransportHttpCallback::~TransportHttpCallback() {
     CloseHandle(this->m_event);
 }

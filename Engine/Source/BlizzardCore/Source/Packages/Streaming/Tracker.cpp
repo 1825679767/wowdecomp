@@ -173,7 +173,7 @@ void Tracker::TrackerHttpDataDownloadCallBack::SetTimeOutValue(uint32_t timeout)
 }
 
 // VERIFY: 5d062b5f manual
-// OFFSET: 0x004625A0
+// OFFSET: [0x004625A0, 0x00462610]
 Tracker::TrackerHttpDataDownloadCallBack::~TrackerHttpDataDownloadCallBack() {
     Blizzard::Lock::EventDestroy(this->m_event);
 }

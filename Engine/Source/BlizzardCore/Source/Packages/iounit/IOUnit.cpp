@@ -46,7 +46,8 @@ void* IOUnit::Win32Handle() {
     return this->m_next->Win32Handle();
 }
 
-// INLINED
+// VERIFY: eb064776 auto
+// OFFSET: 0x00430BE0
 IOUnit::~IOUnit() {
 }
 

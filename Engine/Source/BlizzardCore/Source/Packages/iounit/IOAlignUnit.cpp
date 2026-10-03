@@ -40,7 +40,8 @@ IOAlignUnit::IOAlignUnit(int64_t base, uint32_t blockSize, uint32_t blockCount, 
     }
 }
 
-// INLINED
+// VERIFY: ac983fc0 auto
+// OFFSET: 0x00434CA0
 IOAlignUnit::~IOAlignUnit() {
     if (this->m_blocks != &this->m_block) {
         delete[] this->m_blocks;

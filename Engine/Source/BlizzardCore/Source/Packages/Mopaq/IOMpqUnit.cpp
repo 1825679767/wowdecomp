@@ -34,7 +34,8 @@ uint32_t IOMpqUnit::GetType() {
     return 'mpq ';
 }
 
-// INLINED
+// VERIFY: 8c3b48ab auto
+// OFFSET: 0x00435340
 IOMpqUnit::~IOMpqUnit() {
 }
 
@@ -78,7 +79,8 @@ bool IOMpqArchiveUnit::SetFileSize(int64_t size) {
     return false;
 }
 
-// INLINED
+// VERIFY: 6f089668 auto
+// OFFSET: 0x00432010
 IOMpqArchiveUnit::~IOMpqArchiveUnit() {
 }
 
@@ -179,6 +181,8 @@ IOMpqArchiveReadUnit* IOMpqArchiveReadUnit::Create(IOUnitContainer* container, S
 IOMpqArchiveReadUnit::IOMpqArchiveReadUnit(System_SFile::ARCHIVEREC* archive, const char* name, uint32_t blockIndex, bool ownsMemory, IOUnit* next) : IOMpqArchiveUnit(archive, name, blockIndex, ownsMemory, next) {
 }
 
+// VERIFY: f8df25f8 auto
+// OFFSET: 0x00426880
 bool IOMpqArchiveReadUnit::Write(const void* buffer, int64_t offset, uint32_t count) {
     return false;
 }
@@ -206,7 +210,8 @@ IOMpqDiskUnit::IOMpqDiskUnit(System_SFile::ARCHIVEREC* archive, const char* name
     Blizzard::String::Copy(this->m_path.m_data, path, this->m_path.m_count);
 }
 
-// INLINED
+// VERIFY: 3682befb auto
+// OFFSET: 0x00432140
 IOMpqDiskUnit::~IOMpqDiskUnit() {
 }
 
@@ -683,7 +688,8 @@ bool IOMpqReadUnit::SetFileSize(int64_t size) {
     return false;
 }
 
-// INLINED
+// VERIFY: 47664f0f auto
+// OFFSET: 0x00430F80
 IOMpqReadUnit::~IOMpqReadUnit() {
 }
 
@@ -954,7 +960,7 @@ IOMpqWriteUnit::IOMpqWriteUnit(const std::vector<Blizzard::Mopaq::CompressionAlg
 }
 
 // VERIFY: 8623bfd7 manual
-// OFFSET: 0x00443BF0
+// OFFSET: [0x00443BF0, 0x00443C60]
 IOMpqWriteUnit::~IOMpqWriteUnit() {
 }
 
