@@ -11,7 +11,7 @@ ComSat::RunningAverageCalculator::RunningAverageCalculator(ComSat::Allocator& al
 }
 
 // VERIFY: 94225611 auto
-// OFFSET: 0x00886750
+// OFFSET: [0x00886750, 0x00886790]
 ComSat::RunningAverageCalculator::~RunningAverageCalculator() {
     if (this->m_values) {
         this->m_allocator->Free(this->m_values);

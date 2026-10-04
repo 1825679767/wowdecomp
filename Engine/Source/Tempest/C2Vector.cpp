@@ -2,6 +2,13 @@
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 
+// VERIFY: b7ad0a59 auto
+// OFFSET: 0x004079C0
+C2Vector::C2Vector() {
+    this->x = 0.0f;
+    this->y = 0.0f;
+}
+
 // INLINED
 C2Vector::C2Vector(float x, float y) {
     this->x = x;

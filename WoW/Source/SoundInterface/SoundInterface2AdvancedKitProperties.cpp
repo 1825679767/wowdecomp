@@ -577,7 +577,7 @@ void SI2::SetAdvancedSoundPosition(uint32_t id, const C3Vector* position) {
     SE2::UnlockSoundList();
 }
 
-// VERIFY: 4e1ff068 auto
+// VERIFY: 05979585 auto
 // OFFSET: 0x004CB3B0
 void SI2::ClearSuppressorSounds() {
     s_suppressorSounds.Clear();
@@ -590,7 +590,7 @@ void SI2::ClearSuppressorSounds() {
 
     TSHashTable<VSOUND_LOOKUP, HASHKEY_NONE>* lookup = s_vsoundLookup;
 
-    for (VSOUND_LOOKUP* node = lookup->m_fulllist.Head(); node; node = lookup->m_fulllist.Head()) {
+    for (VSOUND_LOOKUP* node = lookup->Head(); node; node = lookup->Head()) {
         uint32_t id = node->m_sound->m_id;
 
         if (id && lookup) {

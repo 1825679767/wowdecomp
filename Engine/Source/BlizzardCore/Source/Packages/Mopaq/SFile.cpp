@@ -93,7 +93,7 @@ IOUnit* System_SFile::CreateRangeUnit(IOUnitContainer* container, int64_t start,
     return IORangeUnit::Create(container, start, end, next);
 }
 
-// VERIFY: ed823991 manual
+// VERIFY: 3c889fb5 manual
 // OFFSET: 0x004609B0
 int32_t Blizzard::Mopaq::SFileOpenFileEx(System_SFile::ARCHIVEREC* handle, const char* name, const Blizzard::Util::Digest<16>& md5, uint32_t flags, IOMpqUnit** result) {
     IOMpqUnit* file = nullptr;
@@ -216,7 +216,7 @@ int32_t Blizzard::Mopaq::SFileOpenFileEx(System_SFile::ARCHIVEREC* handle, const
             file->GetFileSize(&size);
 
             IOUnit* inner = System_SFile::GetLockedUnit(file);
-            IOUnit* md5Unit = IOMd5Unit::Create(nullptr, size, System_MPQGlobals::GetMopaqGlobals()->m_md5Callback, true, nullptr, inner);
+            IOUnit* md5Unit = IOMd5Unit::Create(size, System_MPQGlobals::GetMopaqGlobals()->m_md5Callback, true, nullptr, inner);
             static_cast<IOChecksumUnit*>(md5Unit)->SetContext(file);
 
             bool inserted = System_SFile::InsertLockedUnit(file, md5Unit);

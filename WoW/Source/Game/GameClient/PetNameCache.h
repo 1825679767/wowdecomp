@@ -21,6 +21,7 @@ class PetNameCache {
 
     PetNameCache();
     ~PetNameCache();
+    PetNameCache& operator=(const PetNameCache& source);
     void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);
 };

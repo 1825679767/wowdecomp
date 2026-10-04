@@ -6,6 +6,7 @@
 #include "Engine/Source/Gx/CGxLight.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C3Vector.h"
+#include "Engine/Source/Tempest/CMemBlock.h"
 
 struct CGxuLight;
 struct CLightList;
@@ -39,6 +40,15 @@ struct CLightList : public TSHashObject<CLightList, HASHKEY_DWORD> {
     /* 0018 */ TSExplicitList<CGxuLightLink, offsetof(CGxuLightLink, m_listLink)> m_links;
 
     ~CLightList();
+};
+
+class CGxuLightQueue : public CMemBlock {
+    public:
+    /* 0014 */ uint32_t m_chunk;
+    /* 0018 */ uint32_t m_capacity;
+    /* 001C */ uint32_t m_count;
+
+    CGxuLightQueue(const uint32_t (&params)[2]);
 };
 
 extern void (*GxuLightInitialize)();

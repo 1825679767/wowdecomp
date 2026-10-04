@@ -24,6 +24,9 @@ class M2Array {
 class fixed16 {
     public:
     /* 0000 */ int16_t m_value;
+
+    fixed16() = default;
+    fixed16(float value);
 };
 
 class ubyte4 {

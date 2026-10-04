@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "Engine/Source/Gx/Types.h"
+#include "Engine/Source/Model2/M2Data.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C3Spline_Bezier3.h"
 #include "Engine/Source/Tempest/C3Vector.h"
@@ -20,9 +21,6 @@ class CM2Scene;
 class CParticleEmitter2;
 class CRange;
 class CTexture;
-class fixed16;
-template <class T>
-class M2PartTrack;
 struct CGxBuf;
 struct CGxPool;
 
@@ -31,7 +29,7 @@ class CParticle2 {
     /* 0000 */ float m_age;
     /* 0004 */ C3Vector m_position;
     /* 0010 */ C3Vector m_velocity;
-    /* 001C */ int16_t m_lifeSeed;
+    /* 001C */ fixed16 m_lifeSeed;
     /* 001E */ uint16_t m_randomSeed;
 };
 
@@ -99,6 +97,37 @@ class CParticleEmitter2 {
         SimpleKey();
     };
 
+    struct Params {
+        /* 0000 */ uint32_t m_hasModel;
+        /* 0004 */ float m_emissionRate;
+        /* 0008 */ float m_emissionRateVariation;
+        /* 000C */ float m_life;
+        /* 0010 */ float m_lifeVariation;
+        /* 0014 */ float m_tailLength;
+        /* 0018 */ float m_speed;
+        /* 001C */ float m_gravity;
+        /* 0020 */ float m_variation;
+        /* 0024 */ float m_zsource;
+        /* 0028 */ float m_initialSpin;
+        /* 002C */ float m_initialSpinVariation;
+        /* 0030 */ float m_spin;
+        /* 0034 */ float m_spinVariation;
+        /* 0038 */ uint32_t m_materialBlend;
+        /* 003C */ uint32_t m_materialFlags;
+        /* 0040 */ const M2PartTrack<C3Vector>* m_colorTrack;
+        /* 0044 */ const M2PartTrack<fixed16>* m_alphaTrack;
+        /* 0048 */ const M2PartTrack<C2Vector>* m_scaleTrack;
+        /* 004C */ float m_scaleVariationX;
+        /* 0050 */ float m_scaleVariationY;
+        /* 0054 */ const M2PartTrack<uint16_t>* m_headCellTrack;
+        /* 0058 */ const M2PartTrack<uint16_t>* m_tailCellTrack;
+        /* 005C */ C3Vector m_replacementColors [3];
+        /* 0080 */ float m_simpleMidTime;
+        /* 0084 */ SimpleKey* m_simpleKeys;
+
+        Params();
+    };
+
     static CGxBuf* s_indexBuf;
     static CGxPool* s_indexPool;
     static uint32_t s_initCount;
@@ -133,32 +162,7 @@ class CParticleEmitter2 {
     /* 008C */ uint32_t m_vertsPerParticle;
     /* 0090 */ uint32_t m_indicesPerParticle;
     /* 0094 */ uint32_t unk_0094;
-    /* 0098 */ uint32_t m_hasModel;
-    /* 009C */ float m_emissionRate;
-    /* 00A0 */ float m_emissionRateVariation;
-    /* 00A4 */ float m_life;
-    /* 00A8 */ float m_lifeVariation;
-    /* 00AC */ float m_tailLength;
-    /* 00B0 */ float m_speed;
-    /* 00B4 */ float m_gravity;
-    /* 00B8 */ float m_variation;
-    /* 00BC */ float m_zsource;
-    /* 00C0 */ float m_initialSpin;
-    /* 00C4 */ float m_initialSpinVariation;
-    /* 00C8 */ float m_spin;
-    /* 00CC */ float m_spinVariation;
-    /* 00D0 */ uint32_t m_materialBlend;
-    /* 00D4 */ uint32_t m_materialFlags;
-    /* 00D8 */ const M2PartTrack<C3Vector>* m_colorTrack;
-    /* 00DC */ const M2PartTrack<fixed16>* m_alphaTrack;
-    /* 00E0 */ const M2PartTrack<C2Vector>* m_scaleTrack;
-    /* 00E4 */ float m_scaleVariationX;
-    /* 00E8 */ float m_scaleVariationY;
-    /* 00EC */ const M2PartTrack<uint16_t>* m_headCellTrack;
-    /* 00F0 */ const M2PartTrack<uint16_t>* m_tailCellTrack;
-    /* 00F4 */ C3Vector m_replacementColors [3];
-    /* 0118 */ float m_simpleMidTime;
-    /* 011C */ SimpleKey* m_simpleKeys;
+    /* 0098 */ CParticleEmitter2::Params m_params;
     /* 0120 */ uint32_t m_textureRows;
     /* 0124 */ uint32_t m_textureCols;
     /* 0128 */ CTexture* m_texture;

@@ -45,9 +45,9 @@ static void AnimFinishedCallback(CM2Model* model, uint32_t boneId, uint32_t sequ
     }
 }
 
-// VERIFY: e898266b manual
+// VERIFY: 5dd58488 manual
 // OFFSET: 0x007053A0
-CGDynamicObject_C::CGDynamicObject_C(uint32_t time, const CClientObjCreate& create) : CGObject_C(time, create), m_passenger(create.m_move.m_status.m_transportGuid, create.m_move.m_status.m_transportPosition, this->m_obj->m_guid), unk_0154(1.0f), m_blizzardVisual(nullptr) {
+CGDynamicObject_C::CGDynamicObject_C(uint32_t time, const CClientObjCreate& create) : CGObject_C(time, create), m_passenger(create.m_move.m_status.m_transportGuid, create.m_move.m_status.m_transportPosition, this->m_obj->m_guid), m_scale(1.0f), m_blizzardVisual(nullptr) {
     this->unk_0150 &= ~0x3;
     this->m_passenger.m_facing = create.m_move.m_status.m_transportFacing;
 }
@@ -140,6 +140,18 @@ void CGDynamicObject_C::ShouldRender(uint32_t flags, int32_t& render, int32_t& a
 // OFFSET: 0x00706530
 float CGDynamicObject_C::GetFacing() const {
     return this->m_passenger.GetFacing(this->m_passenger.m_facing);
+}
+
+// VERIFY: 909c3474 auto
+// OFFSET: 0x007054D0
+float CGDynamicObject_C::GetScale() const {
+    return this->m_scale;
+}
+
+// VERIFY: 71b7b31f auto
+// OFFSET: 0x00706550
+float CGDynamicObject_C::GetRawFacing() const {
+    return this->m_passenger.m_facing;
 }
 
 // VERIFY: 7501382d manual
@@ -270,7 +282,7 @@ void CGDynamicObject_C::HandleAnimEvent(uint32_t eventId, uint32_t data, const C
     }
 }
 
-// VERIFY: 6dea8d10 manual
+// VERIFY: 2910d78f manual
 // OFFSET: 0x00704D90
 void CGDynamicObject_C::ModelLoaded(CM2Model* model) {
     CGObject_C::ModelLoaded(model);
@@ -289,17 +301,17 @@ void CGDynamicObject_C::ModelLoaded(CM2Model* model) {
         CAaSphere sphere = this->GetObjectModel()->GetBoundingSphere();
 
         if (sphere.r > 0.001f) {
-            this->unk_0154 = this->m_dynamicObject->m_radius / sphere.r;
+            this->m_scale = this->m_dynamicObject->m_radius / sphere.r;
         } else if (effect && effect->m_areaEffectSize > 0.0f) {
-            this->unk_0154 = this->m_dynamicObject->m_radius / effect->m_areaEffectSize;
+            this->m_scale = this->m_dynamicObject->m_radius / effect->m_areaEffectSize;
         }
     }
 
     if (effect && effect->m_scale > 0.0f) {
-        this->unk_0154 = effect->m_scale * this->unk_0154;
+        this->m_scale = effect->m_scale * this->m_scale;
     }
 
-    this->m_scaleModifier = this->unk_0154 * this->m_scaleModifier;
+    this->m_scaleModifier = this->m_scale * this->m_scaleModifier;
 
     if (effect) {
         this->DoFade(1.0f, 0);

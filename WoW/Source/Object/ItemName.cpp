@@ -3,6 +3,13 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Object/ItemNameCache.h"
 
+// INLINED
+ItemNameCache_C::~ItemNameCache_C() {
+    if (this->m_name) {
+        SMemFree(this->m_name, __FILE__, __LINE__, 0);
+    }
+}
+
 // VERIFY: ea8b2772 manual
 // OFFSET: 0x0098D8C0
 void ItemNameCache_C::Unpack(CDataStore* msg) {

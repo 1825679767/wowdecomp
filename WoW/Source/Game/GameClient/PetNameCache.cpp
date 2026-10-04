@@ -15,6 +15,27 @@ PetNameCache::~PetNameCache() {
     delete this->m_declinedNames;
 }
 
+// VERIFY: f23810ad auto
+// OFFSET: 0x00668590
+PetNameCache& PetNameCache::operator=(const PetNameCache& source) {
+    this->m_petNumber = source.m_petNumber;
+    SStrCopy(this->m_name, source.m_name, sizeof(this->m_name));
+
+    if (source.m_declinedNames) {
+        if (!this->m_declinedNames) {
+            this->m_declinedNames = static_cast<PetNameCache::DeclinedNames*>(SMemAlloc(sizeof(PetNameCache::DeclinedNames), __FILE__, __LINE__, 0));
+        }
+
+        for (uint32_t i = 0; i < 5; i++) {
+            SStrCopy(this->m_declinedNames->m_names[i], source.m_declinedNames->m_names[i], sizeof(this->m_declinedNames->m_names[i]));
+        }
+    }
+
+    this->m_timestamp = source.m_timestamp;
+
+    return *this;
+}
+
 // VERIFY: b3d5f8cd auto
 // OFFSET: 0x007F7550
 void PetNameCache::Pack(CDataStore* msg) {

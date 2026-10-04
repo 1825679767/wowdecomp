@@ -538,7 +538,7 @@ static int32_t Script_GetMultiCastTotemSpells(lua_State* L) {
     return count;
 }
 
-// VERIFY: d98ffc7f manual
+// VERIFY: 48073d98 manual
 // OFFSET: 0x005A9290
 static int32_t Script_GetActionAutocast(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -547,17 +547,17 @@ static int32_t Script_GetActionAutocast(lua_State* L) {
     }
 
     double slot = lua_tonumber(L, 1);
-    uint32_t* action = nullptr;
+    PetAction* action = nullptr;
     int32_t petSpell;
     int32_t spellId = CGActionBar::GetSpell(static_cast<uint32_t>(slot - 1.0), petSpell);
 
-    if (petSpell && (action = CGPetInfo::GetPetSpellAction(spellId)) && static_cast<int32_t>(*action) < 0) {
+    if (petSpell && (action = CGPetInfo::GetPetSpellAction(spellId)) && static_cast<int32_t>(action->m_data) < 0) {
         lua_pushnumber(L, 1.0);
     } else {
         lua_pushnil(L);
     }
 
-    if (action && (*action & 0x40000000)) {
+    if (action && (action->m_data & 0x40000000)) {
         lua_pushnumber(L, 1.0);
         return 2;
     }

@@ -74,7 +74,7 @@ ComSat::BitUnpacker::BitUnpacker(const uint8_t* buffer, uint32_t bitLength) {
 }
 
 // VERIFY: aaf78467 auto
-// OFFSET: 0x00885760
+// OFFSET: [0x00885760, 0x00885AA0]
 ComSat::BitUnpacker::~BitUnpacker() {
 }
 

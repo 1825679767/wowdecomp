@@ -33,6 +33,7 @@ class CGPetition {
     /* 13C0 */ uint32_t m_muid;
 
     CGPetition();
+    CGPetition& operator=(const CGPetition& source);
     void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);
 };

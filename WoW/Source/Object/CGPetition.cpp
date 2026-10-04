@@ -1,5 +1,6 @@
 #include "CGPetition.h"
 #include "Engine/Source/Base/CDataStore.h"
+#include "Engine/Source/Storm/H/storm.h"
 
 // VERIFY: f4e45cbe manual
 // OFFSET: 0x00599FD0
@@ -26,6 +27,35 @@ CGPetition::CGPetition() {
     this->m_numChoices = 0;
     this->m_muid = 0;
     this->m_staticType = 0;
+}
+
+// VERIFY: ac373b5d auto
+// OFFSET: 0x00668600
+CGPetition& CGPetition::operator=(const CGPetition& source) {
+    this->m_id = source.m_id;
+    this->m_ownerGuid = source.m_ownerGuid;
+    SStrCopy(this->m_title, source.m_title, sizeof(this->m_title));
+    SStrCopy(this->m_bodyText, source.m_bodyText, sizeof(this->m_bodyText));
+    this->m_minSignatures = source.m_minSignatures;
+    this->m_maxSignatures = source.m_maxSignatures;
+    this->m_deadline = source.m_deadline;
+    this->m_issueDate = source.m_issueDate;
+    this->m_allowedGuildId = source.m_allowedGuildId;
+    this->m_allowedClasses = source.m_allowedClasses;
+    this->m_allowedRaces = source.m_allowedRaces;
+    this->m_allowedGenders = source.m_allowedGenders;
+    this->m_allowedMaxLevel = source.m_allowedMaxLevel;
+    this->m_allowedMinLevel = source.m_allowedMinLevel;
+    this->m_muid = source.m_muid;
+    this->m_staticType = source.m_staticType;
+
+    for (uint32_t i = 0; i < 10; i++) {
+        SStrCopy(this->m_choiceText[i], source.m_choiceText[i], sizeof(this->m_choiceText[i]));
+    }
+
+    this->m_numChoices = source.m_numChoices;
+
+    return *this;
 }
 
 // VERIFY: a4660661 auto

@@ -5690,7 +5690,7 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
     this->m_frameStamp = this->m_scene->m_frameStamp;
 }
 
-// VERIFY: c75da4a9 manual
+// VERIFY: 7d6e6770 manual
 // OFFSET: 0x008309C0
 void CM2Model::AnimateParticleST(float deltaTime, uint32_t index) {
     if (!(this->m_fFlags & 1)) {
@@ -5728,13 +5728,13 @@ void CM2Model::AnimateParticleST(float deltaTime, uint32_t index) {
         uint32_t count = particleData->m_speedTrack.m_sequenceTimes.m_count;
 
         if (count > 1 || (count == 1 && particleData->m_speedTrack.m_sequenceTimes[0].m_count > this->m_uint90)) {
-            emitter->m_speed = particle->m_speedTrack.m_currentValue;
+            emitter->m_params.m_speed = particle->m_speedTrack.m_currentValue;
         }
 
         count = particleData->m_variationTrack.m_sequenceTimes.m_count;
 
         if (count > 1 || (count == 1 && particleData->m_variationTrack.m_sequenceTimes[0].m_count > this->m_uint90)) {
-            emitter->m_variation = particle->m_variationTrack.m_currentValue;
+            emitter->m_params.m_variation = particle->m_variationTrack.m_currentValue;
         }
 
         count = particleData->m_latitudeTrack.m_sequenceTimes.m_count;
@@ -5752,13 +5752,13 @@ void CM2Model::AnimateParticleST(float deltaTime, uint32_t index) {
         count = particleData->m_gravityTrack.m_sequenceTimes.m_count;
 
         if (count > 1 || (count == 1 && particleData->m_gravityTrack.m_sequenceTimes[0].m_count > this->m_uint90)) {
-            emitter->m_gravity = particle->m_gravityTrack.m_currentValue;
+            emitter->m_params.m_gravity = particle->m_gravityTrack.m_currentValue;
         }
 
         count = particleData->m_lifeTrack.m_sequenceTimes.m_count;
 
         if (count > 1 || (count == 1 && particleData->m_lifeTrack.m_sequenceTimes[0].m_count > this->m_uint90)) {
-            emitter->m_life = particle->m_lifeTrack.m_currentValue;
+            emitter->m_params.m_life = particle->m_lifeTrack.m_currentValue;
         }
 
         count = particleData->m_widthTrack.m_sequenceTimes.m_count;
@@ -6995,7 +6995,7 @@ void CModelBatchList::Optimize() {
     }
 }
 
-// VERIFY: f5542591 manual
+// VERIFY: 0f5f3316 manual
 // OFFSET: 0x00832EA0
 int32_t CM2Model::InitializeLoaded() {
     CM2Shared* shared = this->m_shared;
@@ -7291,14 +7291,14 @@ int32_t CM2Model::InitializeLoaded() {
                 emitter->SetEmissionRate(particleData->m_emissionRateTrack.m_sequenceKeys[0][0]);
             }
 
-            emitter->m_emissionRateVariation = particleData->m_emissionRateVariation;
+            emitter->m_params.m_emissionRateVariation = particleData->m_emissionRateVariation;
 
             if (particleData->m_speedTrack.m_sequenceKeys[0].m_count) {
-                emitter->m_speed = particleData->m_speedTrack.m_sequenceKeys[0][0];
+                emitter->m_params.m_speed = particleData->m_speedTrack.m_sequenceKeys[0][0];
             }
 
             if (particleData->m_variationTrack.m_sequenceKeys[0].m_count) {
-                emitter->m_variation = particleData->m_variationTrack.m_sequenceKeys[0][0];
+                emitter->m_params.m_variation = particleData->m_variationTrack.m_sequenceKeys[0][0];
             }
 
             if (particleData->m_latitudeTrack.m_sequenceKeys[0].m_count) {
@@ -7310,14 +7310,14 @@ int32_t CM2Model::InitializeLoaded() {
             }
 
             if (particleData->m_gravityTrack.m_sequenceKeys[0].m_count) {
-                emitter->m_gravity = particleData->m_gravityTrack.m_sequenceKeys[0][0];
+                emitter->m_params.m_gravity = particleData->m_gravityTrack.m_sequenceKeys[0][0];
             }
 
             if (particleData->m_lifeTrack.m_sequenceKeys[0].m_count) {
-                emitter->m_life = particleData->m_lifeTrack.m_sequenceKeys[0][0];
+                emitter->m_params.m_life = particleData->m_lifeTrack.m_sequenceKeys[0][0];
             }
 
-            emitter->m_lifeVariation = particleData->m_lifeVariation;
+            emitter->m_params.m_lifeVariation = particleData->m_lifeVariation;
 
             if (particleData->m_widthTrack.m_sequenceKeys[0].m_count) {
                 emitter->SetWidth(particleData->m_widthTrack.m_sequenceKeys[0][0]);
@@ -7446,13 +7446,13 @@ int32_t CM2Model::InitializeLoaded() {
             }
 
             emitter->SetMaterial(material, this->m_shared->m_textures[particleData->m_textureIndex]);
-            emitter->m_colorTrack = &particleData->m_colorTrack;
-            emitter->m_scaleTrack = &particleData->m_scaleTrack;
-            emitter->m_alphaTrack = &particleData->m_alphaTrack;
-            emitter->m_scaleVariationX = particleData->m_scaleVariation.x;
-            emitter->m_scaleVariationY = particleData->m_scaleVariation.y;
-            emitter->m_headCellTrack = &particleData->m_headCellTrack;
-            emitter->m_tailCellTrack = &particleData->m_tailCellTrack;
+            emitter->m_params.m_colorTrack = &particleData->m_colorTrack;
+            emitter->m_params.m_scaleTrack = &particleData->m_scaleTrack;
+            emitter->m_params.m_alphaTrack = &particleData->m_alphaTrack;
+            emitter->m_params.m_scaleVariationX = particleData->m_scaleVariation.x;
+            emitter->m_params.m_scaleVariationY = particleData->m_scaleVariation.y;
+            emitter->m_params.m_headCellTrack = &particleData->m_headCellTrack;
+            emitter->m_params.m_tailCellTrack = &particleData->m_tailCellTrack;
 
             CM2Model* source = this->m_model30;
 
@@ -7475,10 +7475,10 @@ int32_t CM2Model::InitializeLoaded() {
             emitter->m_tumbleBaseZ = particleData->m_tumble.b.z;
             emitter->m_tumbleSpanZ = particleData->m_tumble.t.z - particleData->m_tumble.b.z;
             emitter->m_drag = particleData->m_drag;
-            emitter->m_initialSpin = particleData->m_initialSpin;
-            emitter->m_initialSpinVariation = particleData->m_initialSpinVariation;
-            emitter->m_spin = particleData->m_spinVariation;
-            emitter->m_spinVariation = particleData->m_spin;
+            emitter->m_params.m_initialSpin = particleData->m_initialSpin;
+            emitter->m_params.m_initialSpinVariation = particleData->m_initialSpinVariation;
+            emitter->m_params.m_spin = particleData->m_spinVariation;
+            emitter->m_params.m_spinVariation = particleData->m_spin;
             emitter->m_windVectorX = particleData->m_windVector.x;
             emitter->m_windVectorY = particleData->m_windVector.y;
             emitter->m_windTime = particleData->m_windTime;
@@ -7819,7 +7819,7 @@ CAaBox CM2Model::GetBoundingBox() {
     return this->m_shared->m_data->m_bounds.m_extent;
 }
 
-// VERIFY: d8b44604 manual
+// VERIFY: 542067ba manual
 // OFFSET: 0x004F5E80
 CAaSphere CM2Model::GetBoundingSphere() {
     if (!(this->m_shared->m_flags & 1)) {
@@ -7827,7 +7827,9 @@ CAaSphere CM2Model::GetBoundingSphere() {
     }
 
     const M2Bounds& bounds = this->m_shared->m_data->m_bounds;
-    CAaSphere sphere = { C3Vector((bounds.m_extent.b.x + bounds.m_extent.t.x) * 0.5f, (bounds.m_extent.b.y + bounds.m_extent.t.y) * 0.5f, (bounds.m_extent.b.z + bounds.m_extent.t.z) * 0.5f), bounds.m_radius };
+    CAaSphere sphere;
+    sphere.c = C3Vector((bounds.m_extent.b.x + bounds.m_extent.t.x) * 0.5f, (bounds.m_extent.b.y + bounds.m_extent.t.y) * 0.5f, (bounds.m_extent.b.z + bounds.m_extent.t.z) * 0.5f);
+    sphere.r = bounds.m_radius;
 
     return sphere;
 }

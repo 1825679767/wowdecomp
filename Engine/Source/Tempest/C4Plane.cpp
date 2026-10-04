@@ -1,6 +1,15 @@
 #include <cmath>
 #include "Engine/Source/Tempest/C4Plane.h"
 
+// VERIFY: 77db94c7 manual
+// OFFSET: 0x005FEE40
+C4Plane::C4Plane() {
+    this->n.x = 0.0f;
+    this->n.y = 0.0f;
+    this->n.z = 1.0f;
+    this->d = 0.0f;
+}
+
 // VERIFY: 1c5486e7 manual
 // OFFSET: 0x007912C0
 void C4Plane::From3Pos(const C3Vector& p0, const C3Vector& p1, const C3Vector& p2) {

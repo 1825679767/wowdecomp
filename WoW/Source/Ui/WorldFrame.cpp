@@ -293,7 +293,7 @@ void CGWorldFrame::GetCameraPosition(C3Vector* position) {
     *position = CGWorldFrame::s_currentWorldFrame->m_camera->m_position;
 }
 
-// VERIFY: 1fde8745 auto
+// VERIFY: c8cc818e auto
 // OFFSET: 0x004F66C0
 void CGWorldFrame::OnLayerTrackTerrain(const HITTESTRESULT& result) {
     if (!Spell_C_IsTargeting() || !Spell_C_CanTargetTerrain()) {
@@ -350,7 +350,7 @@ void CGWorldFrame::OnLayerTrackTerrain(const HITTESTRESULT& result) {
     CAaBox box;
     box.b = C3Vector(0.0f, 0.0f, 0.0f);
     box.t = C3Vector(0.0f, 0.0f, 0.0f);
-    CAaSphere sphere = { { 0.0f, 0.0f, 0.0f }, 0.0f };
+    CAaSphere sphere;
     C3Vector center = { 0.0f, 0.0f, 0.0f };
 
     if (model->IsLoaded(0, 0)) {
@@ -1600,7 +1600,7 @@ void CGWorldFrame::UpdateDayNight(float deltaSec) {
     info->m_weatherIntensity = World::s_weather->unk_0028 * World::s_weather->unk_0014;
 }
 
-// VERIFY: 9df11d1b manual
+// VERIFY: 1381402d manual
 // OFFSET: 0x004F8D10
 void CGWorldFrame::UpdateObject(CGObject_C* object, uint32_t flags) {
     CM2Model* model = object->GetObjectModel();
@@ -1623,7 +1623,7 @@ void CGWorldFrame::UpdateObject(CGObject_C* object, uint32_t flags) {
     if ((object->m_obj->m_type & (TYPEMASK_UNIT | TYPEMASK_GAMEOBJECT | TYPEMASK_CORPSE)) && visible && !(object->m_modelFlags & 0x100000)) {
         CModelRecord* record;
 
-        if (!this->m_freeModelList.Head()) {
+        if (this->m_freeModelList.IsEmpty()) {
             record = this->m_modelList.NewNode(2, 0, 0);
         } else {
             record = this->m_freeModelList.Head();

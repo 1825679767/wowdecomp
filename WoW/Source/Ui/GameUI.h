@@ -39,6 +39,7 @@ class CTerrainClickEvent;
 class CWorldClickEvent;
 struct CVar;
 class FrameScript_Object;
+class PetAction;
 struct lua_State;
 
 extern CVar* g_autoClearAFKCVar;
@@ -183,7 +184,7 @@ class CGGameUI {
     static uint32_t m_cursorItemSlot;
     static WOWGUID m_lastFriendTarget;
     static int32_t m_cursorSpell;
-    static int32_t m_cursorPetAction;
+    static PetAction m_cursorPetAction;
     static int32_t m_cursorMacro;
     static int32_t m_cursorPet;
     static void GetCursorItem(WOWGUID& item, WOWGUID& container, uint32_t& slot);
@@ -402,7 +403,7 @@ class CGGameUI {
     static int32_t GetCursorVirtualItemOfType(int32_t type);
     static void DropCursorSpell();
     static void SetCursorSpell(int32_t spellId);
-    static void SetCursorPetAction(const uint32_t* action);
+    static void SetCursorPetAction(const PetAction* action);
     static void SetCursorPet(int32_t index);
     static void SetCursorMacro(int32_t macroId);
     static void SetCursorVirtualItem(int32_t id, int32_t displayId, int32_t slot, int32_t type, int32_t stackSplit);

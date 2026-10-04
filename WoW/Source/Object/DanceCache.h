@@ -28,6 +28,7 @@ class DanceCache {
 
     DanceCache();
     ~DanceCache();
+    DanceCache& operator=(const DanceCache& source);
     void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);
 };

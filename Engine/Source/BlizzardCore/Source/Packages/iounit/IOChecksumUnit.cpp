@@ -220,6 +220,27 @@ bool IOCrcUnit::Finish() {
     return this->m_callback(this->m_context, this->m_crc);
 }
 
+// VERIFY: 72d6d727 manual
+// OFFSET: 0x00435120
+IOUnit* IOMd5Unit::Create(int64_t size, Callback callback, bool readToEnd, IOChecksumUnit** self, IOUnit* next) {
+    if (!next) {
+        return nullptr;
+    }
+
+    if (!callback) {
+        return next;
+    }
+
+    bool ownsMemory;
+    void* memory = IOUnitContainer::Alloc(nullptr, sizeof(IOMd5Unit), &ownsMemory);
+
+    if (!memory) {
+        return nullptr;
+    }
+
+    return new (memory) IOMd5Unit(size, callback, readToEnd, self, ownsMemory, next);
+}
+
 // VERIFY: 16498305 manual
 // OFFSET: 0x00435180
 IOUnit* IOMd5Unit::Create(IOUnitContainer* container, int64_t size, Callback callback, bool readToEnd, IOChecksumUnit** self, IOUnit* next) {

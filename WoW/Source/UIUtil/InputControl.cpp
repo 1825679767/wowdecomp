@@ -681,7 +681,7 @@ void CGInputControl::OnMouseMoveRel(const CMouseEvent& evt) {
     }
 }
 
-// VERIFY: 3503f1b9 manual
+// VERIFY: 69f1241e manual
 // OFFSET: 0x005FB260
 void CGInputControl::CameraTurnPlayer(uint32_t time, float facing) {
     if (!this->CameraCanTurnPlayer()) {
@@ -719,7 +719,7 @@ void CGInputControl::CameraTurnPlayer(uint32_t time, float facing) {
         mover->OnSetRawFacingLocal(time, facing);
         CVehiclePassenger_C* passenger = mover->m_vehiclePassenger;
 
-        if (passenger && mover->m_vehicleCamera && mover->m_vehicleCamera->IsHierarchyChasingFacing()) {
+        if (passenger && mover->m_vehicleCamera && mover->m_vehicleCamera->IsTransitioningFacing()) {
             passenger->LockWorldFacingNextFrame(mover->CGUnit::GetFacing(facing));
         }
     }

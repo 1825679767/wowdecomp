@@ -1,5 +1,6 @@
 #include "MapLowDetail.h"
 #include <cmath>
+#include <cstring>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/CMath.h"
@@ -28,6 +29,18 @@ CMapAreaLow::CMapAreaLow() {
     this->unk_0058 = 0;
     this->m_heights = nullptr;
     this->m_holes = nullptr;
+}
+
+// VERIFY: 0b659a65 auto
+// OFFSET: 0x007CC2C0
+CMapLowDetail::CMapLowDetail() {
+    this->m_data = nullptr;
+    this->m_mapObjNames = nullptr;
+    this->m_mapObjNameOffsets = nullptr;
+    this->m_mapObjDefs = nullptr;
+    this->m_mapObjDefCount = 0;
+    this->m_areaOffsets = nullptr;
+    memset(this->m_areas, 0, sizeof(this->m_areas));
 }
 
 // OFFSET: 0x007CBFE0

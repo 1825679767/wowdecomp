@@ -529,7 +529,7 @@ int32_t Packet_MSG_RAID_READY_CHECK_CONFIRM(void* param, NETMESSAGE msgId, uint3
     return 1;
 }
 
-// VERIFY: b6caf9a3 manual
+// VERIFY: 4dc0a7ac manual
 // OFFSET: 0x005747D0
 void CGRaidInfo::InitiateReadyCheck(const char* name) {
     uint32_t now = OsGetAsyncTimeMs();
@@ -553,7 +553,7 @@ void CGRaidInfo::InitiateReadyCheck(const char* name) {
         CGRaidInfo::m_readyCheckTimer = 0;
     }
 
-    CGRaidInfo::m_readyCheckTimer = EventSetTimer(30000, CGRaidInfo::ProcessReadyCheckTimer, nullptr);
+    CGRaidInfo::m_readyCheckTimer = ClientSetTimer(30000, CGRaidInfo::ProcessReadyCheckTimer, nullptr);
 }
 
 // VERIFY: be40c141 auto

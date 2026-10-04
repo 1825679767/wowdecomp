@@ -33,6 +33,7 @@ class WDataStore : public CDataStore {
     void InternalDestroy(uint8_t*& data, uint32_t& base, uint32_t& alloc) override;
     int32_t InternalFetchWrite(uint32_t pos, uint32_t bytes, uint8_t*& data, uint32_t& base, uint32_t& alloc, const char* fileName, int32_t lineNumber) override;
     ~WDataStore() override;
+    uint8_t* GetHeaderSpace(uint32_t bytes) override;
 
     WDataStore();
 };

@@ -56,6 +56,7 @@ class IOMd5Unit : public IOChecksumUnit {
     public:
     typedef bool (*Callback)(void* context, const uint8_t* md5);
 
+    static IOUnit* Create(int64_t size, Callback callback, bool readToEnd, IOChecksumUnit** self, IOUnit* next);
     static IOUnit* Create(IOUnitContainer* container, int64_t size, Callback callback, bool readToEnd, IOChecksumUnit** self, IOUnit* next);
 
     /* 0028 */ Callback m_callback;

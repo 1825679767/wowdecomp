@@ -14,6 +14,7 @@ class CAaSphere {
     /* 0000 */ C3Vector c;
     /* 000C */ float r;
 
+    CAaSphere();
     CAaBox Box() const;
 };
 

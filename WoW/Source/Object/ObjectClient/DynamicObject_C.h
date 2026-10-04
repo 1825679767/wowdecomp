@@ -19,10 +19,11 @@ class SpellVisualEffectNameRec;
 class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
     public:
     static void Initialize();
+
     /* 00D8 */ CPassenger m_passenger;
     /* 0108 */ TSList<void> m_dynamicObjectMirrorLists [6];
     /* 0150 */ uint32_t unk_0150;
-    /* 0154 */ float unk_0154;
+    /* 0154 */ float m_scale;
     /* 0158 */ BlizzardObject* m_blizzardVisual;
     /* 015C */ SE2SoundKitObject m_soundKit;
 
@@ -30,6 +31,8 @@ class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
     virtual C3Vector GetPosition() const;
     virtual C3Vector GetRawPosition() const;
     virtual float GetFacing() const;
+    float GetRawFacing() const override;
+    float GetScale() const override;
     virtual C44Matrix GetMatrix() const;
     virtual void ShouldRender(uint32_t flags, int32_t& render, int32_t& a3);
     void SetFrameOfReference(const C44Matrix* matrix) override;

@@ -8,8 +8,9 @@ struct lua_State;
 class SpellRec;
 
 class CGItem_C;
+class PetAction;
 
-uint32_t* GetPetAction(uint32_t index);
+PetAction* GetPetAction(uint32_t index);
 
 class CGActionBar {
     public:

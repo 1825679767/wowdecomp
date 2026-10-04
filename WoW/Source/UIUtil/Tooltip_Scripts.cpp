@@ -968,7 +968,7 @@ static int32_t Script_SetTalent(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 0e3c1413 manual
+// VERIFY: dc5da273 manual
 // OFFSET: 0x00631000
 static int32_t Script_SetAction(lua_State* L) {
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
@@ -1079,14 +1079,14 @@ static int32_t Script_SetAction(lua_State* L) {
             return 1;
         }
 
-        uint32_t* petAction = GetPetAction(CGActionBar::GetSlotSpellAction(slot));
+        PetAction* petAction = GetPetAction(CGActionBar::GetSlotSpellAction(slot));
 
-        if (!petAction || !*petAction) {
+        if (!petAction || !petAction->m_data) {
             lua_pushnil(L);
             return 1;
         }
 
-        uint32_t value = *petAction;
+        uint32_t value = petAction->m_data;
         char token[64];
         const char* text;
 
@@ -1108,9 +1108,9 @@ static int32_t Script_SetAction(lua_State* L) {
                 Spell_C_GetSpellCooldown(value & 0xFFFFFF, 1, &petDuration, &petStart, &petEnable);
 
                 if (petEnable && petStart && petDuration) {
-                    result = tooltip->SetSpell(*petAction & 0xFFFFFF, 0, petStart + petDuration - OsGetAsyncTimeMs(), 1, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+                    result = tooltip->SetSpell(petAction->m_data & 0xFFFFFF, 0, petStart + petDuration - OsGetAsyncTimeMs(), 1, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
                 } else {
-                    result = tooltip->SetSpell(*petAction & 0xFFFFFF, 0, 0, 1, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+                    result = tooltip->SetSpell(petAction->m_data & 0xFFFFFF, 0, 0, 1, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
                 }
 
                 goto done;
@@ -1631,7 +1631,7 @@ static int32_t Script_SetTotem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 9ef88dc9 manual
+// VERIFY: d1c75157 manual
 // OFFSET: 0x00625470
 static int32_t Script_SetPetAction(lua_State* L) {
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
@@ -1642,24 +1642,24 @@ static int32_t Script_SetPetAction(lua_State* L) {
     }
 
     uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
-    uint32_t* action = CGPetInfo::GetPet(0) && slot < 10 ? &CGPetInfo::m_actions[slot] : nullptr;
+    PetAction* action = CGPetInfo::GetPet(0) && slot < 10 ? &CGPetInfo::m_actions[slot] : nullptr;
 
-    if (!action || !*action) {
+    if (!action || !action->m_data) {
         lua_pushnil(L);
         return 1;
     }
 
-    uint32_t type = (*action >> 24) & 0x3F;
+    uint32_t type = (action->m_data >> 24) & 0x3F;
     uint32_t start = 0;
     uint32_t duration = 0;
     uint32_t enable = 0;
     int32_t result;
 
-    if ((type == 1 || type - 8 <= 9) && (Spell_C_GetSpellCooldown(*action & 0xFFFFFF, 1, &duration, &start, &enable), enable) && start && duration) {
-        int32_t spellId = *action & 0xFFFFFF;
+    if ((type == 1 || type - 8 <= 9) && (Spell_C_GetSpellCooldown(action->m_data & 0xFFFFFF, 1, &duration, &start, &enable), enable) && start && duration) {
+        int32_t spellId = action->m_data & 0xFFFFFF;
         result = tooltip->SetSpell(spellId, 0, start + duration - OsGetAsyncTimeMs(), 1, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
     } else {
-        result = tooltip->SetSpell(*action & 0xFFFFFF, 0, 0, 1, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
+        result = tooltip->SetSpell(action->m_data & 0xFFFFFF, 0, 0, 1, 1, 0, 0, nullptr, nullptr, 0, 0, -1, -1, 0, 0);
     }
 
     if (result) {

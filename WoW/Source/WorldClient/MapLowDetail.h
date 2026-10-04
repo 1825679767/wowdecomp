@@ -48,8 +48,8 @@ class CMapLowDetail {
     /* 0018 */ CMapAreaLow* m_areas [4096];
     /* 4018 */ TSGrowableArray<CMapObjDef*> m_mapObjDefList;
 
+    CMapLowDetail();
     void CullHorizonAreas(const C3Vector* pos);
-
     void Load(const char* mapPath, const char* mapName);
     void Purge();
     void Unload();

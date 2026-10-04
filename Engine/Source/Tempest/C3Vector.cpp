@@ -248,3 +248,19 @@ C3Vector& C3Vector::operator-=(const C3Vector& v) {
     this->z = this->z - v.z;
     return *this;
 }
+
+// VERIFY: ae255bb1 auto
+// OFFSET: 0x00978B70
+void C3Vector::FlushDenormals() {
+    if (0.0f != this->x && fabs(this->x) < 0.0000000099999999f) {
+        this->x = 0.0f;
+    }
+
+    if (0.0f != this->y && fabs(this->y) < 0.0000000099999999f) {
+        this->y = 0.0f;
+    }
+
+    if (0.0f != this->z && fabs(this->z) < 0.0000000099999999f) {
+        this->z = 0.0f;
+    }
+}

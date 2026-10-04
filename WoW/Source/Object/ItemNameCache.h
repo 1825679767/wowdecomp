@@ -13,6 +13,7 @@ class ItemNameCache_C {
     /* 0000 */ char* m_name;
     /* 0004 */ uint32_t m_inventoryType;
 
+    ~ItemNameCache_C();
     void Pack(CDataStore* msg);
     void Unpack(CDataStore* msg);
 };

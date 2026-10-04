@@ -4480,6 +4480,13 @@ void SpellHistory::ClearAll() {
     }
 }
 
+// VERIFY: 1a68408e manual
+// OFFSET: 0x008078E0
+SpellHistory::~SpellHistory() {
+    this->m_history.Clear();
+    this->m_free.Clear();
+}
+
 // VERIFY: 7c88da8e auto
 // OFFSET: 0x00804010
 int32_t Packet_Group_31(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {

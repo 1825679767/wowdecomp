@@ -10887,7 +10887,7 @@ static bool AreaTriggerContains(const AreaTriggerRec* rec, const C3Vector& posit
     return dy * dy + dz * dz + dx * dx <= rec->m_radius * rec->m_radius;
 }
 
-// VERIFY: a211d644 manual
+// VERIFY: c8df8e18 manual
 // OFFSET: 0x006D2F70
 void AreaTriggersInitialize(uint32_t mapId) {
     int32_t start = -1;
@@ -10915,13 +10915,13 @@ void AreaTriggersInitialize(uint32_t mapId) {
 
     s_areaTriggerStart = start;
     s_areaTriggerEnd = i;
-    s_areaTriggerTimer = EventSetTimer(100, AreaTriggerCheck, nullptr);
+    s_areaTriggerTimer = ClientSetTimer(100, AreaTriggerCheck, nullptr);
 }
 
-// VERIFY: 9b5004f3 manual
+// VERIFY: f1281917 manual
 // OFFSET: 0x006DBE30
 int32_t AreaTriggerCheck(const void* data, void* param) {
-    s_areaTriggerTimer = EventSetTimer(100, AreaTriggerCheck, nullptr);
+    s_areaTriggerTimer = ClientSetTimer(100, AreaTriggerCheck, nullptr);
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
 
     if (!player || player->m_unit->m_unitFieldHealth <= 0) {

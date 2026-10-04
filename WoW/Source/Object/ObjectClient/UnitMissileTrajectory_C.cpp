@@ -43,6 +43,7 @@
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Net/NetClient/NetClient.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/Ui/PetInfo.h"
 
 struct MissileUnitRank {
     CGUnit_C* m_unit;
@@ -312,7 +313,7 @@ void CGUnit_C::UpdateMissileTrajectory() {
     }
 }
 
-// VERIFY: 94c27bc3 manual
+// VERIFY: b5322c54 manual
 // OFFSET: 0x006FDA20
 void CGUnit_C::UpdateMissileTrajectoryTargeting() {
     s_trajectoryAlpha = 0.0f;
@@ -469,19 +470,19 @@ void CGUnit_C::UpdateMissileTrajectoryTargeting() {
 
     if (spellId <= 0 || (g_spellDB.GetRecord(spellId, &spell), !spell.m_id)) {
         for (uint32_t i = 0; i < 10; i++) {
-            uint32_t* action = GetPetAction(i);
+            PetAction* action = GetPetAction(i);
 
             if (!action) {
                 continue;
             }
 
-            uint32_t type = (*action >> 24) & 0x3F;
+            uint32_t type = (action->m_data >> 24) & 0x3F;
 
             if (type != 1 && (type <= 7 || type > 17)) {
                 continue;
             }
 
-            spellId = *action & 0xFFFFFF;
+            spellId = action->m_data & 0xFFFFFF;
 
             if (g_spellDB.GetRecord(spellId, &spell) && spell.m_spellMissileID) {
                 break;

@@ -70,6 +70,7 @@ class CVehicleCamera_C {
     int32_t WouldAddingNextCameraCreateLoop(const CVehicleCamera_C* next) const;
     void Destroy();
     int32_t IsHierarchyChasingFacing() const;
+    int32_t IsTransitioningFacing() const;
     int32_t UpdateTransitionFlags();
     float GetTransitionProgress(uint32_t time) const;
     int32_t AttachToHierarchy();

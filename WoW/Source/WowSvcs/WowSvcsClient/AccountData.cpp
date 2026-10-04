@@ -341,7 +341,7 @@ static int32_t SaveTimerHandler(const void* data, void* param) {
     return 1;
 }
 
-// VERIFY: e2437ae6 auto
+// VERIFY: c002fa95 auto
 // OFFSET: 0x006B9440
 static void ScheduleAccountDataSave(int32_t type) {
     AccountDataInfo& info = s_accountData[type];
@@ -362,7 +362,7 @@ static void ScheduleAccountDataSave(int32_t type) {
         info.unk_0020 = 0;
     }
 
-    info.unk_0020 = EventSetTimer(30000, SaveTimerHandler, reinterpret_cast<void*>(static_cast<intptr_t>(type)));
+    info.unk_0020 = ClientSetTimer(30000, SaveTimerHandler, reinterpret_cast<void*>(static_cast<intptr_t>(type)));
 }
 
 // VERIFY: ffb25893 manual

@@ -18,10 +18,4 @@ class C2Vector {
     void NormalizeSafe();
 };
 
-// INLINED
-inline C2Vector::C2Vector() {
-    this->x = 0.0f;
-    this->y = 0.0f;
-}
-
 #endif

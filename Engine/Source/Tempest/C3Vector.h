@@ -35,6 +35,7 @@ class C3Vector {
     void Minimize(const C3Vector& v);
     void Normalize();
     void NormalizeSafe();
+    void FlushDenormals();
     float SquaredMag() const;
     void Zero();
     C3Vector operator-() const;

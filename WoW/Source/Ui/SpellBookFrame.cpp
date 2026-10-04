@@ -1680,7 +1680,7 @@ void CGSpellBook::PickupCompanion(int32_t type, uint32_t index) {
     }
 }
 
-// VERIFY: 6f493db6 manual
+// VERIFY: 95549e84 manual
 // OFFSET: 0x0053BC40
 void CGSpellBook::CastSpell(int32_t slot, int32_t petSpell, WOWGUID target) {
     if (CGGameUI::GetCursorSpell() > 0) {
@@ -1705,7 +1705,8 @@ void CGSpellBook::CastSpell(int32_t slot, int32_t petSpell, WOWGUID target) {
         return;
     }
 
-    uint32_t action = spellId | 0x1000000;
+    PetAction action;
+    action.m_data = spellId | 0x1000000;
     CGPetInfo::SendPetAction(action, target, 0);
 }
 

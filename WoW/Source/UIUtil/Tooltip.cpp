@@ -566,7 +566,8 @@ void CGTooltip::operator delete(void* ptr) {
     CGTooltip::s_tooltipHeap.PutData(ptr, nullptr, 0);
 }
 
-// INLINED
+// VERIFY: 7ff12d51 auto
+// OFFSET: 0x00514410
 int32_t CGTooltip::GetObjectType() {
     if (!CGTooltip::s_objectType) {
         CGTooltip::s_objectType = ++FrameScript_Object::s_objectTypes;

@@ -142,7 +142,7 @@ void CGDuelInfo::InitializeGame() {
     ClientServices::SetMessageHandler(SMSG_DUEL_WINNER, Packet_SMSG_DUEL_WINNER, nullptr);
 }
 
-// VERIFY: 5bc36747 auto
+// VERIFY: 254771ff auto
 // OFFSET: 0x005CF870
 int32_t CGDuelInfo::ProcessCountdown(const void* data, void* param) {
     char buffer[3000];
@@ -150,7 +150,7 @@ int32_t CGDuelInfo::ProcessCountdown(const void* data, void* param) {
     CGChat::AddChatMessage(buffer, 0, nullptr, 0, nullptr, nullptr, nullptr, WOWGUID(), 0, WOWGUID(), 0, false, nullptr);
 
     if (--s_countdown) {
-        s_countdownTimer = EventSetTimer(1000, CGDuelInfo::ProcessCountdown, nullptr);
+        s_countdownTimer = ClientSetTimer(1000, CGDuelInfo::ProcessCountdown, nullptr);
     } else {
         s_countdownTimer = 0;
     }

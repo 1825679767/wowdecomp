@@ -490,8 +490,8 @@ int32_t CDataStore::InternalFetchRead(uint32_t pos, uint32_t bytes, uint8_t*& da
 }
 
 // INLINED
-uint32_t CDataStore::GetHeaderSpace(int32_t bytes) {
-    return 0;
+uint8_t* CDataStore::GetHeaderSpace(uint32_t bytes) {
+    return nullptr;
 }
 
 // VERIFY: 97bd27e2 manual
@@ -524,5 +524,24 @@ CDataStore& CDataStore::GetInt8(uint32_t& val) {
     uint8_t value = 0;
     this->Get(value);
     val = value;
+    return *this;
+}
+
+// VERIFY: 8c30e384 auto
+// OFFSET: [0x00464560, 0x004D3870]
+uint8_t CDataStore::GetByte() {
+    uint8_t val = 0;
+    this->Get(val);
+
+    return val;
+}
+
+// VERIFY: 76f41d37 auto
+// OFFSET: 0x0050F420
+CDataStore& CDataStore::Get(int32_t& val) {
+    uint32_t value = 0;
+    this->Get(value);
+    val = value;
+
     return *this;
 }

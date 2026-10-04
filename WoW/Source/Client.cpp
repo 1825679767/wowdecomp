@@ -213,6 +213,9 @@ WowClientDB<Startup_StringsRec> g_startup_StringsDB;
 // STATIC: 0x00AD2FE0
 const char* s_iniLocaleNames[9] = { "enUS", "koKR", "frFR", "deDE", "zhCN", "zhTW", "esES", "esMX", "ruRU" };
 
+// STATIC: 0x00AD3004
+uint32_t s_localeIds[9] = { 'enUS', 'koKR', 'frFR', 'deDE', 'zhCN', 'zhTW', 'esES', 'esMX', 'ruRU' };
+
 // STATIC: 0x00B2F99C
 int32_t s_region;
 
@@ -2215,6 +2218,12 @@ void SendBotDetected2(uint32_t msgId, uint32_t code) {
     msg.Put(code);
     msg.Finalize();
     ClientServices::Send2(&msg);
+}
+
+// VERIFY: 3ceca495 auto
+// OFFSET: 0x00403370
+uint32_t ClientSetTimer(uint32_t delay, EVENTHANDLERFUNC handler, void* param) {
+    return EventSetTimer(delay, handler, param);
 }
 
 // VERIFY: 25a365e6 auto

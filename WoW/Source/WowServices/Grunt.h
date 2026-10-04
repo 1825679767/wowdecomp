@@ -69,7 +69,7 @@ class Pending {
     struct Data {
         /* 0000 */ TSLink<Grunt::Pending::Data> m_link;
         /* 0008 */ uint32_t unk_0008;
-        /* 000C */ uint32_t unk_000C;
+        /* 000C */ uint32_t m_id;
         /* 0010 */ uint32_t m_time;
     };
 
@@ -83,6 +83,7 @@ class Pending {
     Pending(uint32_t timeout);
     ~Pending();
     void CheckExpired(bool all);
+    Grunt::Pending::Data* Remove(uint32_t id);
 };
 
 class Timer {
@@ -174,6 +175,138 @@ class ClientLink : public WowConnectionResponse, public Grunt::Pending, public G
     void Send(CDataStore& msg);
     void SetState(int32_t state);
     void Shutdown();
+};
+
+struct ServerHelloInfo {
+    /* 0000 */ uint32_t m_realmType;
+    /* 0004 */ uint32_t unk_0004;
+    /* 0008 */ uint32_t unk_0008;
+    /* 000C */ uint32_t m_address;
+    /* 0010 */ uint16_t m_port;
+    /* 0012 */ uint8_t m_versionMajor;
+    /* 0013 */ uint8_t m_versionMinor;
+    /* 0014 */ uint8_t m_versionPatch;
+    /* 0015 */ uint8_t unk_0015;
+    /* 0016 */ uint16_t m_build;
+    /* 0018 */ uint32_t unk_0018;
+    /* 001C */ uint32_t unk_001C;
+    /* 0020 */ uint32_t unk_0020;
+    /* 0024 */ uint32_t m_realmId;
+    /* 0028 */ uint32_t unk_0028;
+    /* 002C */ char m_realmName [32];
+    /* 004C */ uint8_t unk_004C;
+    /* 004D */ uint8_t unk_004D[3];
+    /* 0050 */ uint32_t m_linkType;
+};
+
+struct ServerLicense {
+    /* 0000 */ uint32_t m_id;
+    /* 0004 */ uint8_t m_hasExpiration;
+    /* 0005 */ uint8_t unk_0005[3];
+    /* 0008 */ uint32_t m_expiration;
+};
+
+struct ServerSessionInfo {
+    /* 0000 */ uint32_t unk_0000;
+    /* 0004 */ uint32_t m_accountId;
+    /* 0008 */ uint32_t unk_0008;
+    /* 000C */ uint8_t unk_000C[4];
+    /* 0010 */ uint64_t unk_0010;
+    /* 0018 */ uint16_t unk_0018;
+    /* 001A */ uint8_t unk_001A[2];
+    /* 001C */ uint32_t unk_001C;
+    /* 0020 */ uint8_t m_timeOptions;
+    /* 0021 */ uint8_t unk_0021[3];
+    /* 0024 */ uint32_t m_accountFlags;
+    /* 0028 */ uint8_t unk_0028 [40];
+    /* 0050 */ uint32_t unk_0050;
+    /* 0054 */ uint32_t unk_0054;
+    /* 0058 */ uint32_t m_os;
+    /* 005C */ uint8_t m_versionMajor;
+    /* 005D */ uint8_t m_versionMinor;
+    /* 005E */ uint8_t m_versionPatch;
+    /* 005F */ uint8_t unk_005F;
+    /* 0060 */ uint16_t m_build;
+    /* 0062 */ uint16_t m_timePlayedMinutes;
+    /* 0064 */ uint16_t unk_0064;
+    /* 0066 */ uint8_t m_expansionLevel;
+    /* 0067 */ uint8_t unk_0067;
+    /* 0068 */ int32_t unk_0068;
+    /* 006C */ uint32_t unk_006C;
+    /* 0070 */ uint32_t m_referrerAccountId;
+    /* 0074 */ int32_t m_referralTime;
+    /* 0078 */ uint16_t unk_0078;
+    /* 007A */ uint8_t unk_007A[2];
+    /* 007C */ uint32_t unk_007C;
+    /* 0080 */ uint16_t m_bnetLicenseCount;
+    /* 0082 */ uint8_t unk_0082[2];
+    /* 0084 */ Grunt::ServerLicense m_bnetLicenses [256];
+    /* 0C84 */ uint16_t m_wowLicenseCount;
+    /* 0C86 */ uint8_t unk_0C86[2];
+    /* 0C88 */ Grunt::ServerLicense m_wowLicenses [256];
+};
+
+class ServerResponse {
+    public:
+    virtual void unk_0000() = 0;
+    virtual void unk_0004() = 0;
+    virtual void unk_0008() = 0;
+    virtual void Kick(uint32_t accountId, uint64_t guid, uint8_t reason) = 0;
+    virtual bool GetHelloInfo(Grunt::ServerHelloInfo* info) = 0;
+    virtual void unk_0014() = 0;
+    virtual void ProveSessionResult(uint32_t context, uint8_t result, const Grunt::ServerSessionInfo* info, uint32_t linkType, bool notMac) = 0;
+    virtual void HelloComplete() = 0;
+    virtual void GetStrings(uint32_t id, uint32_t locale, CDataStore* msg) = 0;
+    virtual void SunkenUpdate(uint32_t accountId, uint32_t sunkenId, bool online) = 0;
+    virtual void SunkenOnline(uint32_t sunkenId, bool online) = 0;
+};
+
+class ServerLink : public WowConnectionResponse, public Grunt::Pending, public Grunt::Timer::Event {
+    public:
+    struct Feature {
+        /* 0000 */ uint32_t m_id;
+        /* 0004 */ uint32_t m_version;
+    };
+
+    struct Request : public Grunt::Pending::Data {
+        /* 0014 */ uint32_t m_context;
+    };
+
+    static void PutFeatures(CDataStore& msg);
+
+    /* 0058 */ Grunt::Timer m_timer;
+    /* 0094 */ uint32_t unk_0094;
+    /* 0098 */ uint32_t unk_0098;
+    /* 009C */ uint32_t m_publicAddress;
+    /* 00A0 */ uint32_t m_serverAddress;
+    /* 00A4 */ uint8_t unk_00A4[8];
+    /* 00AC */ uint32_t m_lastPongTime;
+    /* 00B0 */ int32_t m_state;
+    /* 00B4 */ const char* m_serverName;
+    /* 00B8 */ uint8_t unk_00B8[8];
+    /* 00C0 */ SCritSect m_lock;
+    /* 00E8 */ uint8_t unk_00E8[24];
+    /* 0100 */ WowConnection* m_connection;
+    /* 0104 */ uint8_t unk_0104[96];
+    /* 0164 */ uint32_t m_linkType;
+    /* 0168 */ Grunt::ServerResponse* m_response;
+
+    int32_t CmdGruntAuthChallenge(CDataStore& msg);
+    int32_t CmdGruntAuthVerify(CDataStore& msg);
+    int32_t CmdGruntConnPing(CDataStore& msg);
+    int32_t CmdGruntConnPong(CDataStore& msg);
+    int32_t CmdGruntHello(CDataStore& msg);
+    int32_t CmdGruntKick(CDataStore& msg);
+    int32_t CmdGruntPcWarning(CDataStore& msg);
+    int32_t CmdGruntProveSession(CDataStore& msg);
+    int32_t CmdGruntStrings(CDataStore& msg);
+    int32_t CmdGruntSunkenOnline(CDataStore& msg);
+    int32_t CmdGruntSunkenUpdate(CDataStore& msg);
+    const char* GetLinkTypeName() const;
+    void Send(CDataStore& msg);
+    void SendConnected(CDataStore& msg);
+    void SendFeatures();
+    void SendStrings(uint32_t id, uint32_t locale);
 };
 }
 

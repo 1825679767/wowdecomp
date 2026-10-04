@@ -1048,7 +1048,7 @@ WOWGUID CGGameUI::unk_BD07D0;
 int32_t CGGameUI::m_cursorSpell;
 
 // STATIC: 0x00BD07E4
-int32_t CGGameUI::m_cursorPetAction;
+PetAction CGGameUI::m_cursorPetAction;
 
 // STATIC: 0x00BD07E8
 int32_t CGGameUI::m_cursorMacro;
@@ -2428,7 +2428,7 @@ void CGGameUI::SendTarget(WOWGUID guid) {
     ClientServices::Send2(&msg);
 }
 
-// VERIFY: ade1e048 manual
+// VERIFY: 57da3148 manual
 // OFFSET: 0x00519280
 void CGGameUI::ClearCursor(int32_t a1, int32_t a2) {
     if (CGPlayer_C::IsGiftWrapping()) {
@@ -2471,7 +2471,7 @@ void CGGameUI::ClearCursor(int32_t a1, int32_t a2) {
             break;
 
         case 4:
-            CGGameUI::m_cursorPetAction = 0;
+            CGGameUI::m_cursorPetAction.m_data = 0;
             SI2::PlaySoundKit("INTERFACESOUND_CURSORDROPOBJECT", nullptr, nullptr, nullptr);
             break;
 
@@ -3214,16 +3214,16 @@ void CGGameUI::DropCursorSpell() {
     }
 }
 
-// VERIFY: 8083eb0d auto
+// VERIFY: 10992139 auto
 // OFFSET: 0x00520A80
-void CGGameUI::SetCursorPetAction(const uint32_t* action) {
+void CGGameUI::SetCursorPetAction(const PetAction* action) {
     if (!CGGameUI::m_hasControl) {
         return;
     }
 
     const char* texture = nullptr;
 
-    switch ((*action >> 24) & 0x3F) {
+    switch ((action->m_data >> 24) & 0x3F) {
         case 1:
         case 8:
         case 9:
@@ -3237,7 +3237,7 @@ void CGGameUI::SetCursorPetAction(const uint32_t* action) {
         case 17: {
             SpellRec spell;
 
-            if (g_spellDB.GetRecord(*action & 0xFFFFFF, &spell)) {
+            if (g_spellDB.GetRecord(action->m_data & 0xFFFFFF, &spell)) {
                 SpellIconRec* icon = g_spellIconDB.GetRecord(spell.m_spellIconID);
 
                 if (icon) {
@@ -3250,14 +3250,14 @@ void CGGameUI::SetCursorPetAction(const uint32_t* action) {
 
         case 6: {
             char token[64];
-            SStrPrintf(token, sizeof(token), "PET_%s_TEXTURE", CGPetInfo::GetModeToken(*action & 0xFFFFFF));
+            SStrPrintf(token, sizeof(token), "PET_%s_TEXTURE", CGPetInfo::GetModeToken(action->m_data & 0xFFFFFF));
             texture = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
             break;
         }
 
         case 7: {
             char token[64];
-            SStrPrintf(token, sizeof(token), "PET_%s_TEXTURE", CGPetInfo::GetOrdersToken(*action & 0xFFFFFF));
+            SStrPrintf(token, sizeof(token), "PET_%s_TEXTURE", CGPetInfo::GetOrdersToken(action->m_data & 0xFFFFFF));
             texture = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
             break;
         }
@@ -3817,11 +3817,11 @@ void CGGameUI::UnitModelUpdate(const WOWGUID& guid, uint32_t flags) {
 }
 
 
-// VERIFY: e54b0005 auto
+// VERIFY: 6cededd1 auto
 // OFFSET: 0x0051FA50
 int32_t CGGameUI::FilterMouseDown(CMouseEvent* evt) {
     if (evt->m_id == 0x400500C8 && evt->m_data.m_button == 4) {
-        if (CGGameUI::m_cursorItem || CGGameUI::m_cursorVirtualID || CGGameUI::m_cursorMoney || CGGameUI::m_cursorSpell || CGGameUI::m_cursorPetAction || CGGameUI::m_cursorMacro || CGGameUI::m_cursorPet || CGPlayer_C::IsGiftWrapping()) {
+        if (CGGameUI::m_cursorItem || CGGameUI::m_cursorVirtualID || CGGameUI::m_cursorMoney || CGGameUI::m_cursorSpell || CGGameUI::m_cursorPetAction.m_data || CGGameUI::m_cursorMacro || CGGameUI::m_cursorPet || CGPlayer_C::IsGiftWrapping()) {
             CGGameUI::ClearCursor(1, 1);
             return 1;
         }

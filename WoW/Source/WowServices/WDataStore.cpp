@@ -39,6 +39,16 @@ void WDataStore::InternalInitialize(uint8_t*& data, uint32_t& base, uint32_t& al
     this->m_chunkSize = 256;
 }
 
+// VERIFY: 192df1ac manual
+// OFFSET: 0x00465F80
+uint8_t* WDataStore::GetHeaderSpace(uint32_t bytes) {
+    if (!this->m_bufferObj || bytes > sizeof(this->m_bufferObj->unk_0004)) {
+        return nullptr;
+    }
+
+    return reinterpret_cast<uint8_t*>(this->m_bufferObj + 1) - bytes;
+}
+
 // VERIFY: 456591c0 auto
 // OFFSET: 0x00465FB0
 void WDataStoreHeap::Delete(WDATASTOREBUFFER* buffer) {

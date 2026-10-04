@@ -1,4 +1,5 @@
 #include "DanceCache.h"
+#include <cstring>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/Storm/H/storm.h"
 
@@ -15,6 +16,28 @@ DanceCache::DanceCache() {
 // INLINED
 DanceCache::~DanceCache() {
     delete[] this->m_data;
+}
+
+// VERIFY: 57b64e71 manual
+// OFFSET: 0x006688B0
+DanceCache& DanceCache::operator=(const DanceCache& source) {
+    this->m_id = source.m_id;
+    this->m_guid = source.m_guid;
+    SStrCopy(this->m_name, source.m_name, sizeof(this->m_name));
+
+    if (this->m_dataCount < source.m_dataCount) {
+        if (this->m_data) {
+            SMemReAlloc(this->m_data, source.m_dataCount, __FILE__, __LINE__, 0);
+        } else {
+            this->m_data = new (__FILE__, __LINE__) DANCEMOVE[source.m_dataCount];
+        }
+    }
+
+    memcpy(this->m_data, source.m_data, 4 * source.m_dataCount);
+    this->m_dataCount = source.m_dataCount;
+    this->unk_0098 = source.unk_0098;
+
+    return *this;
 }
 
 // VERIFY: cb0294c9 manual

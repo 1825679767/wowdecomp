@@ -2,6 +2,12 @@
 #include <cstdint>
 #include "Engine/Source/Tempest/CAaSphere.h"
 
+// VERIFY: 0e73d0a5 manual
+// OFFSET: 0x006FC1E0
+CAaSphere::CAaSphere() {
+    this->r = 0.0f;
+}
+
 // VERIFY: 96f5035c manual
 // OFFSET: 0x007FA140
 CAaBox CAaSphere::Box() const {

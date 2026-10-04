@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <new>
+#include <typeinfo>
 #include "Engine/Source/Gxu/GxuLight.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -42,6 +43,9 @@ static uint32_t s_frame;
 
 // STATIC: 0x00C7C040
 static TSHashTableReuse<CLightList, HASHKEY_DWORD> s_lightGrid;
+
+// STATIC: 0x00C7C074
+static CGxuLightQueue s_lightQueue({ 32, 32 });
 
 static void GxuLightInitializeImpl() {
 }
@@ -364,3 +368,34 @@ void (*GxuLightSetGridSize)(float gridSize) = GxuLightSetGridSizeImpl;
 
 // STATIC: 0x00AD9864
 void (*GxuLightInvalidate)() = GxuLightInvalidateImpl;
+
+// VERIFY: 78842f2d manual
+// OFFSET: 0x006BB8F0
+CGxuLightQueue::CGxuLightQueue(const uint32_t (&params)[2]) : CMemBlock(sizeof(CGxuLight*) * params[0], 0, typeid(CGxuLight*).raw_name(), SLOG_OBJECT) {
+    uint32_t count = params[0];
+    uint32_t chunk = params[1];
+
+    this->m_chunk = chunk;
+    this->m_capacity = count;
+    this->m_count = 0;
+
+    if (count) {
+        this->m_count++;
+        return;
+    }
+
+    if (!chunk) {
+        return;
+    }
+
+    uint32_t grow = chunk;
+
+    if (grow <= 1 - count) {
+        grow = 1 - count;
+    }
+
+    if (this->Resize(sizeof(CGxuLight*) * (grow + count), true)) {
+        this->m_capacity += grow;
+        this->m_count++;
+    }
+}

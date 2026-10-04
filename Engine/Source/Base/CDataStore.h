@@ -26,7 +26,7 @@ class CDataStore {
     virtual void Finalize();
     virtual void GetBufferParams(const void** data, uint32_t* size, uint32_t* alloc);
     virtual void DetachBuffer(void** data, uint32_t* size, uint32_t* alloc);
-    virtual uint32_t GetHeaderSpace(int32_t bytes);
+    virtual uint8_t* GetHeaderSpace(uint32_t bytes);
 
     CDataStore();
     CDataStore(uint8_t* data, uint32_t size);
@@ -35,8 +35,10 @@ class CDataStore {
     CDataStore& Get(uint8_t& val);
     CDataStore& Get(uint16_t& val);
     CDataStore& Get(uint32_t& val);
+    CDataStore& Get(int32_t& val);
     CDataStore& Get(uint64_t& val);
     CDataStore& Get(float& val);
+    uint8_t GetByte();
     CDataStore& GetInt8(uint32_t& val);
     CDataStore& GetArray(uint8_t* pval, uint32_t count);
     CDataStore& GetArray(uint32_t* pval, uint32_t count);
@@ -70,14 +72,15 @@ class CDataStoreCache : public CDataStore {
     CDataStoreCache();
 };
 
-// INLINED
+// VERIFY: 94af1ab9 manual
+// OFFSET: [0x008CCEE0<1024>]
 template <uint32_t size>
 CDataStoreCache<size>::CDataStoreCache() {
     this->InternalInitialize(this->m_data, this->m_base, this->m_alloc);
 }
 
 // VERIFY: 929e0c1c manual
-// OFFSET: [0x008CD160, 0x008CD040, 0x008CD1C0]
+// OFFSET: [0x008CD040, 0x008CD160, 0x008CD1C0]
 template <uint32_t size>
 CDataStoreCache<size>::~CDataStoreCache() {
     if (this->m_alloc != -1) {

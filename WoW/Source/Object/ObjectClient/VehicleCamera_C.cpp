@@ -223,6 +223,18 @@ int32_t CVehicleCamera_C::IsHierarchyChasingFacing() const {
     }
 }
 
+// VERIFY: 611f0110 auto
+// OFFSET: 0x005FAA10
+int32_t CVehicleCamera_C::IsTransitioningFacing() const {
+    if (!(this->m_flags & 0x10)) {
+        return 0;
+    }
+
+    uint32_t state = this->m_state;
+
+    return state == 1 || state == 2 || state == 3;
+}
+
 // VERIFY: b1bd4cc1 manual
 // OFFSET: 0x00759880
 int32_t CVehicleCamera_C::UpdateTransitionFlags() {

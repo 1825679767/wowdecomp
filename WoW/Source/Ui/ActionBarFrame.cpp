@@ -440,7 +440,7 @@ void CGActionBar::UpdateUsable() {
     }
 }
 
-// VERIFY: 47d25e79 auto
+// VERIFY: 321887df auto
 // OFFSET: 0x005A80E0
 int32_t CGActionBar::GetPetActionSpell(uint32_t slot) {
     uint32_t action = CGActionBar::m_slotActions[slot];
@@ -450,7 +450,7 @@ int32_t CGActionBar::GetPetActionSpell(uint32_t slot) {
         return 0;
     }
 
-    uint32_t petAction = CGPetInfo::m_actions[index];
+    uint32_t petAction = CGPetInfo::m_actions[index].m_data;
 
     if (!petAction) {
         return 0;
@@ -520,9 +520,9 @@ uint32_t CGPetInfo::GetPetMode() {
     return static_cast<uint8_t>(CGPetInfo::m_petMode);
 }
 
-// VERIFY: 332acd46 auto
+// VERIFY: 385d5d88 auto
 // OFFSET: 0x005A79A0
-uint32_t* GetPetAction(uint32_t index) {
+PetAction* GetPetAction(uint32_t index) {
     if (CGPetInfo::GetPet(0) && index < sizeof(CGPetInfo::m_actions) / sizeof(CGPetInfo::m_actions[0])) {
         return &CGPetInfo::m_actions[index];
     }
@@ -601,7 +601,7 @@ void CGActionBar::UpdateSelection() {
     FrameScript_SignalEvent(SCRIPT_EVENT_ACTIONBAR_UPDATE_STATE, nullptr);
 }
 
-// VERIFY: f396b0bf auto
+// VERIFY: 437cce19 auto
 // OFFSET: 0x005A8160
 int32_t CGActionBar::HasAction(uint32_t slot) {
     uint32_t action = CGActionBar::m_slotActions[slot];
@@ -616,13 +616,13 @@ int32_t CGActionBar::HasAction(uint32_t slot) {
         return action != 0;
     }
 
-    uint32_t* petAction = GetPetAction((slot - 120) & 0xEFFFFFFF);
+    PetAction* petAction = GetPetAction((slot - 120) & 0xEFFFFFFF);
 
-    if (!petAction || !*petAction) {
+    if (!petAction || !petAction->m_data) {
         return 0;
     }
 
-    if (((*petAction >> 24) & 0x3F) - 6 <= 1) {
+    if (((petAction->m_data >> 24) & 0x3F) - 6 <= 1) {
         return 1;
     }
 
@@ -782,7 +782,7 @@ void CGActionBar::GetCooldown(int32_t slot, uint32_t& start, uint32_t& duration,
     }
 }
 
-// VERIFY: f1a645e1 manual
+// VERIFY: 109f816f auto
 // OFFSET: 0x005A97F0
 const char* CGActionBar::GetTexture(int32_t slot) {
     if (slot < 0 || slot >= sizeof(CGActionBar::m_slotActions) / sizeof(CGActionBar::m_slotActions[0])) {
@@ -848,13 +848,13 @@ const char* CGActionBar::GetTexture(int32_t slot) {
         return nullptr;
     }
 
-    uint32_t* action = GetPetAction((slot - 120) & 0xEFFFFFFF);
+    PetAction* action = GetPetAction((slot - 120) & 0xEFFFFFFF);
 
-    if (!action || !*action) {
+    if (!action || !action->m_data) {
         return nullptr;
     }
 
-    switch ((*action >> 24) & 0x3F) {
+    switch ((action->m_data >> 24) & 0x3F) {
         case 1:
         case 8:
         case 9:
@@ -868,7 +868,7 @@ const char* CGActionBar::GetTexture(int32_t slot) {
         case 17: {
             SpellRec spell;
 
-            if (g_spellDB.GetRecord(*action & 0xFFFFFF, &spell)) {
+            if (g_spellDB.GetRecord(action->m_data & 0xFFFFFF, &spell)) {
                 CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPEMASK_UNIT, __FILE__, __LINE__));
                 SpellIconRec* icon = g_spellIconDB.GetRecord(Spell_C_IsActiveSpell(&spell, unit) && spell.m_activeIconID ? spell.m_activeIconID : spell.m_spellIconID);
 
@@ -880,17 +880,17 @@ const char* CGActionBar::GetTexture(int32_t slot) {
             return nullptr;
         }
         case 6:
-            SStrPrintf(s_texture, sizeof(s_texture), "PET_%s_TEXTURE", CGPetInfo::GetModeToken(*action & 0xFFFFFF));
+            SStrPrintf(s_texture, sizeof(s_texture), "PET_%s_TEXTURE", CGPetInfo::GetModeToken(action->m_data & 0xFFFFFF));
             return FrameScript_GetText(s_texture, -1, GENDER_NOT_APPLICABLE);
         case 7:
-            SStrPrintf(s_texture, sizeof(s_texture), "PET_%s_TEXTURE", CGPetInfo::GetOrdersToken(*action & 0xFFFFFF));
+            SStrPrintf(s_texture, sizeof(s_texture), "PET_%s_TEXTURE", CGPetInfo::GetOrdersToken(action->m_data & 0xFFFFFF));
             return FrameScript_GetText(s_texture, -1, GENDER_NOT_APPLICABLE);
     }
 
     return nullptr;
 }
 
-// VERIFY: 3484ba04 manual
+// VERIFY: 8513f070 auto
 // OFFSET: 0x005AA240
 int32_t CGActionBar::IsCurrentAction(int32_t slot) {
     if (slot < 0 || slot >= sizeof(CGActionBar::m_slotActions) / sizeof(CGActionBar::m_slotActions[0]) || !CGActionBar::m_slotActions[slot]) {
@@ -911,15 +911,15 @@ int32_t CGActionBar::IsCurrentAction(int32_t slot) {
     int32_t petSpell;
 
     if (CGActionBar::IsPetAction(slot)) {
-        uint32_t* action = GetPetAction((slot - 120) & 0xEFFFFFFF);
+        PetAction* action = GetPetAction((slot - 120) & 0xEFFFFFFF);
 
-        if (!action || !*action) {
+        if (!action || !action->m_data) {
             return 0;
         }
 
-        uint32_t id = *action & 0xFFFFFF;
+        uint32_t id = action->m_data & 0xFFFFFF;
 
-        switch ((*action >> 24) & 0x3F) {
+        switch ((action->m_data >> 24) & 0x3F) {
             case 6:
                 return CGPetInfo::GetPetMode() == id;
             case 7:
@@ -1304,7 +1304,7 @@ void CGActionBar::UpdateMultiCastBar() {
     Script_SendUniqueSignal(SCRIPT_EVENT_UPDATE_MULTI_CAST_ACTIONBAR);
 }
 
-// VERIFY: 316b2457 manual
+// VERIFY: d16e1aa6 manual
 // OFFSET: 0x005ABBC0
 void CGActionBar::UseAction(int32_t slot, const WOWGUID& target, const char* button) {
     if (slot < 0 || slot >= sizeof(CGActionBar::m_slotActions) / sizeof(CGActionBar::m_slotActions[0])) {
@@ -1373,9 +1373,9 @@ void CGActionBar::UseAction(int32_t slot, const WOWGUID& target, const char* but
     } else if (CGActionBar::IsEquipmentSet(slot)) {
         CGEquipmentManager::EquipSet(CGActionBar::GetEquipmentSetID(slot));
     } else if (CGActionBar::IsPetAction(slot)) {
-        uint32_t* petAction = GetPetAction(action & 0xEFFFFFFF);
+        PetAction* petAction = GetPetAction(action & 0xEFFFFFFF);
 
-        if (petAction && *petAction) {
+        if (petAction && petAction->m_data) {
             WOWGUID none = { 0 };
             CGPetInfo::SendPetAction(*petAction, none, 0);
             SI2::PlaySoundKit("GAMEABILITYACTIVATE", nullptr, nullptr, nullptr);

@@ -531,7 +531,7 @@ static int32_t Script_GetSpellCooldown(lua_State* L) {
     return 3;
 }
 
-// VERIFY: 14043ab6 manual
+// VERIFY: 8f904716 manual
 // OFFSET: 0x00541010
 static int32_t Script_GetSpellAutocast(lua_State* L) {
     uint32_t slot = 0;
@@ -541,16 +541,16 @@ static int32_t Script_GetSpellAutocast(lua_State* L) {
         return 0;
     }
 
-    uint32_t* action = nullptr;
+    PetAction* action = nullptr;
     int32_t spellId = static_cast<int32_t>(slot) < 0 ? 0 : petSpell ? (slot < 1024 ? s_petSpellList[slot] : 0) : (slot < s_numSpells ? s_spellList[slot] : 0);
 
-    if (petSpell && (action = CGPetInfo::GetPetSpellAction(spellId)) && (*action & 0x80000000)) {
+    if (petSpell && (action = CGPetInfo::GetPetSpellAction(spellId)) && (action->m_data & 0x80000000)) {
         lua_pushnumber(L, 1.0);
     } else {
         lua_pushnil(L);
     }
 
-    if (action && (*action & 0x40000000)) {
+    if (action && (action->m_data & 0x40000000)) {
         lua_pushnumber(L, 1.0);
     } else {
         lua_pushnil(L);
@@ -974,7 +974,7 @@ static int32_t Script_SummonRandomCritter(lua_State* L) {
     return 1;
 }
 
-// VERIFY: 7011eeb5 auto
+// VERIFY: e3bbfec9 auto
 // OFFSET: 0x0053E060
 static int32_t Script_CastSpellByID(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -1009,15 +1009,16 @@ static int32_t Script_CastSpellByID(lua_State* L) {
         return 0;
     }
 
-    uint32_t petAction = 0;
-    uint32_t* action = CGPetInfo::FindSpellByID(spellId);
+    PetAction petAction;
+    petAction.m_data = 0;
+    PetAction* action = CGPetInfo::FindSpellByID(spellId);
 
     if (!action) {
         if (GetSpellSlot(spellId, 1) < 0) {
             return 0;
         }
 
-        petAction = spellId | 0x1000000;
+        petAction.m_data = spellId | 0x1000000;
         action = &petAction;
     }
 
@@ -1036,7 +1037,7 @@ static int32_t Script_CastSpellByID(lua_State* L) {
         CDataStore msg;
         msg.Put(static_cast<uint32_t>(CMSG_PET_ACTION));
         msg.Put(CGPetInfo::GetPet(0).m_guid);
-        msg.Put(*action);
+        msg.Put(action->m_data);
         msg.Put(target.m_guid);
         msg.Finalize();
         ClientServices::Send2(&msg);
@@ -1047,7 +1048,7 @@ static int32_t Script_CastSpellByID(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 9d5a5d6d manual
+// VERIFY: c96444c2 manual
 // OFFSET: 0x00540310
 static int32_t Script_CastSpellByName(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -1083,7 +1084,7 @@ static int32_t Script_CastSpellByName(lua_State* L) {
             return 0;
         }
 
-        uint32_t* action = CGPetInfo::FindSpellByID(spellId);
+        PetAction* action = CGPetInfo::FindSpellByID(spellId);
 
         if (action) {
             CGPetInfo::SendPetAction(*action, target, 0);
@@ -1106,15 +1107,16 @@ static int32_t Script_CastSpellByName(lua_State* L) {
         return 0;
     }
 
-    uint32_t petAction = 0;
-    uint32_t* action = CGPetInfo::FindSpellByID(spellId);
+    PetAction petAction;
+    petAction.m_data = 0;
+    PetAction* action = CGPetInfo::FindSpellByID(spellId);
 
     if (!action) {
         if (GetSpellSlot(spellId, petSpell) < 0) {
             return 0;
         }
 
-        petAction = spellId | 0x1000000;
+        petAction.m_data = spellId | 0x1000000;
         action = &petAction;
     }
 
@@ -1137,7 +1139,7 @@ static int32_t Script_CastSpellByName(lua_State* L) {
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_PET_ACTION));
     msg.Put(CGPetInfo::GetPet(0).m_guid);
-    msg.Put(*action);
+    msg.Put(action->m_data);
     msg.Put(target.m_guid);
     msg.Finalize();
     ClientServices::Send2(&msg);

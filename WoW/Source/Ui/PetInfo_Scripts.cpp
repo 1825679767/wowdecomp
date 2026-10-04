@@ -28,7 +28,7 @@
 #include "Engine/Source/FrameXML/LoadXML.h"
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 
-// VERIFY: 0ad95263 manual
+// VERIFY: d3a2ff98 manual
 // OFFSET: 0x005D4EC0
 static int32_t Script_GetPetActionInfo(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -37,9 +37,9 @@ static int32_t Script_GetPetActionInfo(lua_State* L) {
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
-    uint32_t* action = CGPetInfo::GetPet(0) && index < sizeof(CGPetInfo::m_actions) / sizeof(CGPetInfo::m_actions[0]) ? &CGPetInfo::m_actions[index] : nullptr;
+    PetAction* action = CGPetInfo::GetPet(0) && index < sizeof(CGPetInfo::m_actions) / sizeof(CGPetInfo::m_actions[0]) ? &CGPetInfo::m_actions[index] : nullptr;
 
-    if (!action || !*action) {
+    if (!action || !action->m_data) {
         for (uint32_t i = 0; i < 7; i++) {
             lua_pushnil(L);
         }
@@ -47,11 +47,11 @@ static int32_t Script_GetPetActionInfo(lua_State* L) {
         return 7;
     }
 
-    uint32_t id = *action & 0xFFFFFF;
+    uint32_t id = action->m_data & 0xFFFFFF;
     bool autoCastEnabled = false;
     char buffer[64];
 
-    switch ((*action >> 24) & 0x3F) {
+    switch ((action->m_data >> 24) & 0x3F) {
         case 1:
         case 8:
         case 9:
@@ -85,8 +85,8 @@ static int32_t Script_GetPetActionInfo(lua_State* L) {
 
             lua_pushnil(L);
             lua_pushnil(L);
-            bool autoCastAllowed = found && (*action & 0x80000000);
-            autoCastEnabled = found && (*action & 0x40000000);
+            bool autoCastAllowed = found && (action->m_data & 0x80000000);
+            autoCastEnabled = found && (action->m_data & 0x40000000);
 
             if (autoCastAllowed) {
                 lua_pushnumber(L, 1.0);
@@ -281,7 +281,7 @@ static int32_t Script_IsPetAttackAction(lua_State* L) {
     return 1;
 }
 
-// VERIFY: e5c8a9a7 manual
+// VERIFY: 50d858a4 manual
 // OFFSET: 0x005D5280
 static int32_t Script_GetPetActionCooldown(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -290,16 +290,16 @@ static int32_t Script_GetPetActionCooldown(lua_State* L) {
     }
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
-    uint32_t* action = CGPetInfo::GetPet(0) && index < sizeof(CGPetInfo::m_actions) / sizeof(CGPetInfo::m_actions[0]) ? &CGPetInfo::m_actions[index] : nullptr;
+    PetAction* action = CGPetInfo::GetPet(0) && index < sizeof(CGPetInfo::m_actions) / sizeof(CGPetInfo::m_actions[0]) ? &CGPetInfo::m_actions[index] : nullptr;
     uint32_t start = 0;
     uint32_t duration = 0;
     uint32_t enable = 0;
 
-    if (action && *action) {
-        uint32_t type = (*action >> 24) & 0x3F;
+    if (action && action->m_data) {
+        uint32_t type = (action->m_data >> 24) & 0x3F;
 
         if (type == 1 || type - 8 <= 9) {
-            Spell_C_GetSpellCooldown(*action & 0xFFFFFF, 1, &duration, &start, &enable);
+            Spell_C_GetSpellCooldown(action->m_data & 0xFFFFFF, 1, &duration, &start, &enable);
         }
     }
 
@@ -476,52 +476,57 @@ static int32_t Script_GetPetActionSlotUsable(lua_State* L) {
     return 1;
 }
 
-// VERIFY: a351adff auto
+// VERIFY: 4e6f97af auto
 // OFFSET: 0x005D54C0
 static int32_t Script_PetPassiveMode(lua_State* L) {
     WOWGUID target = WOWGUID();
-    uint32_t action = 0x06000000;
+    PetAction action;
+    action.m_data = 0x06000000;
     CGPetInfo::SendPetAction(action, target, 0);
     return 0;
 }
 
-// VERIFY: 775018a3 auto
+// VERIFY: 556ce6f4 auto
 // OFFSET: 0x005D54F0
 static int32_t Script_PetDefensiveMode(lua_State* L) {
     WOWGUID target = WOWGUID();
-    uint32_t action = 0x06000001;
+    PetAction action;
+    action.m_data = 0x06000001;
     CGPetInfo::SendPetAction(action, target, 0);
     return 0;
 }
 
-// VERIFY: 4e07a073 auto
+// VERIFY: 115b2ebe auto
 // OFFSET: 0x005D5520
 static int32_t Script_PetAggressiveMode(lua_State* L) {
     WOWGUID target = WOWGUID();
-    uint32_t action = 0x06000002;
+    PetAction action;
+    action.m_data = 0x06000002;
     CGPetInfo::SendPetAction(action, target, 0);
     return 0;
 }
 
-// VERIFY: 2b4a502b auto
+// VERIFY: 0797ff1f auto
 // OFFSET: 0x005D5550
 static int32_t Script_PetWait(lua_State* L) {
     WOWGUID target = WOWGUID();
-    uint32_t action = 0x07000000;
+    PetAction action;
+    action.m_data = 0x07000000;
     CGPetInfo::SendPetAction(action, target, 0);
     return 0;
 }
 
-// VERIFY: 9e6a137c auto
+// VERIFY: 5b55975e auto
 // OFFSET: 0x005D5580
 static int32_t Script_PetFollow(lua_State* L) {
     WOWGUID target = WOWGUID();
-    uint32_t action = 0x07000001;
+    PetAction action;
+    action.m_data = 0x07000001;
     CGPetInfo::SendPetAction(action, target, 0);
     return 0;
 }
 
-// VERIFY: 41a51c92 auto
+// VERIFY: 4e80b8d7 auto
 // OFFSET: 0x005D55B0
 static int32_t Script_PetAttack(lua_State* L) {
     int32_t a3 = 0;
@@ -536,7 +541,8 @@ static int32_t Script_PetAttack(lua_State* L) {
         a3 = 1;
     }
 
-    uint32_t action = 0x07000002;
+    PetAction action;
+    action.m_data = 0x07000002;
     CGPetInfo::SendPetAction(action, target, a3);
     return 0;
 }
@@ -610,7 +616,7 @@ static int32_t Script_PetRename(lua_State* L) {
     return 0;
 }
 
-// VERIFY: ad956acd manual
+// VERIFY: 608c8214 manual
 // OFFSET: 0x005D65C0
 static int32_t Script_PickupPetAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -635,20 +641,20 @@ static int32_t Script_PickupPetAction(lua_State* L) {
         return 0;
     }
 
-    uint32_t cursorAction = CGGameUI::m_cursorPetAction;
+    PetAction cursorAction = CGGameUI::m_cursorPetAction;
     CGGameUI::ClearCursor(1, 1);
 
-    if (cursorAction) {
+    if (cursorAction.m_data) {
         CGPetInfo::PlaceCursorAction(cursorAction, slot);
         return 0;
     }
 
-    uint32_t* action = GetPetAction(slot);
+    PetAction* action = GetPetAction(slot);
 
     if (action) {
         CGGameUI::SetCursorPetAction(action);
 
-        if (((*action >> 24) & 0x3F) == 1) {
+        if (((action->m_data >> 24) & 0x3F) == 1) {
             CGPetInfo::PickupAction(slot, 1);
         }
     }
@@ -656,7 +662,7 @@ static int32_t Script_PickupPetAction(lua_State* L) {
     return 0;
 }
 
-// VERIFY: f3852677 auto
+// VERIFY: a3190f42 auto
 // OFFSET: 0x005D66F0
 static int32_t Script_TogglePetAutocast(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -671,10 +677,10 @@ static int32_t Script_TogglePetAutocast(lua_State* L) {
         return 0;
     }
 
-    uint32_t cursorAction = CGGameUI::m_cursorPetAction;
+    PetAction cursorAction = CGGameUI::m_cursorPetAction;
     CGGameUI::ClearCursor(1, 1);
 
-    if (cursorAction) {
+    if (cursorAction.m_data) {
         CGPetInfo::PlaceAction(cursorAction, slot);
     } else {
         CGPetInfo::SetAutocast(slot, -1);
@@ -683,7 +689,7 @@ static int32_t Script_TogglePetAutocast(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 6465ba07 manual
+// VERIFY: 31323429 manual
 // OFFSET: 0x005D67B0
 static int32_t Script_CastPetAction(lua_State* L) {
     if (!lua_isnumber(L, 1)) {
@@ -701,16 +707,16 @@ static int32_t Script_CastPetAction(lua_State* L) {
     CGUnit_C* pet = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPEMASK_UNIT, __FILE__, __LINE__));
 
     if (pet && !(pet->m_unit->m_unitFieldFlags & 0x1000000)) {
-        uint32_t cursorAction = CGGameUI::m_cursorPetAction;
+        PetAction cursorAction = CGGameUI::m_cursorPetAction;
         CGGameUI::ClearCursor(1, 1);
 
-        if (cursorAction) {
+        if (cursorAction.m_data) {
             CGPetInfo::PlaceCursorAction(cursorAction, slot);
             return 0;
         }
     }
 
-    uint32_t* action = GetPetAction(slot);
+    PetAction* action = GetPetAction(slot);
 
     if (action) {
         WOWGUID target;

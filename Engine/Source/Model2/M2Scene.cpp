@@ -1200,13 +1200,13 @@ int32_t CM2Scene::SortOpaqueRibbons(M2Element* a, M2Element* b) {
     return static_cast<uint32_t>(b->m_index) < static_cast<uint32_t>(a->m_index);
 }
 
-// VERIFY: 169ef098 manual
+// VERIFY: b3646c2c manual
 // OFFSET: 0x0081EDF0
 int32_t CM2Scene::SortOpaqueParticles(M2Element* a, M2Element* b) {
     CParticleEmitter2* emitterA = a->m_emitter;
     CParticleEmitter2* emitterB = b->m_emitter;
-    int32_t blendA = emitterA->m_materialBlend;
-    int32_t blendB = emitterB->m_materialBlend;
+    int32_t blendA = emitterA->m_params.m_materialBlend;
+    int32_t blendB = emitterB->m_params.m_materialBlend;
 
     if (blendA < blendB) {
         return -1;
@@ -1216,8 +1216,8 @@ int32_t CM2Scene::SortOpaqueParticles(M2Element* a, M2Element* b) {
         return 1;
     }
 
-    uint32_t flagsA = ParticleFlagsToM2Flags(emitterA->m_materialFlags);
-    uint32_t flagsB = ParticleFlagsToM2Flags(emitterB->m_materialFlags);
+    uint32_t flagsA = ParticleFlagsToM2Flags(emitterA->m_params.m_materialFlags);
+    uint32_t flagsB = ParticleFlagsToM2Flags(emitterB->m_params.m_materialFlags);
 
     if (flagsA < flagsB) {
         return -1;
@@ -1381,7 +1381,7 @@ int32_t CM2Scene::SortTransparent(uint32_t a, uint32_t b, const void* param) {
     return CM2Scene::SortOpaque(a, b, param);
 }
 
-// VERIFY: 2b046e01 manual
+// VERIFY: 706189e1 manual
 // OFFSET: 0x0081F0E0
 int32_t CM2Scene::SortAdditiveParticles(uint32_t a, uint32_t b, const void* param) {
     const CM2Scene* scene = static_cast<const CM2Scene*>(param);
@@ -1412,8 +1412,8 @@ int32_t CM2Scene::SortAdditiveParticles(uint32_t a, uint32_t b, const void* para
 
     CParticleEmitter2* emitterA = elementA->m_emitter;
     CParticleEmitter2* emitterB = elementB->m_emitter;
-    int32_t blendA = emitterA->m_materialBlend;
-    int32_t blendB = emitterB->m_materialBlend;
+    int32_t blendA = emitterA->m_params.m_materialBlend;
+    int32_t blendB = emitterB->m_params.m_materialBlend;
 
     if (blendA < blendB) {
         return -1;
@@ -1423,8 +1423,8 @@ int32_t CM2Scene::SortAdditiveParticles(uint32_t a, uint32_t b, const void* para
         return 1;
     }
 
-    uint32_t flagsA = ParticleFlagsToM2Flags(emitterA->m_materialFlags);
-    uint32_t flagsB = ParticleFlagsToM2Flags(emitterB->m_materialFlags);
+    uint32_t flagsA = ParticleFlagsToM2Flags(emitterA->m_params.m_materialFlags);
+    uint32_t flagsB = ParticleFlagsToM2Flags(emitterB->m_params.m_materialFlags);
 
     if (flagsA < flagsB) {
         return -1;
@@ -1554,7 +1554,7 @@ CM2Model* CM2Scene::DuplicateModel(CM2Model* source, uint32_t flags) {
     return model;
 }
 
-// VERIFY: c8e78d86 manual
+// VERIFY: 4c9b1c1c manual
 // OFFSET: 0x0081F9E0
 void CM2Scene::SortAdditiveParticleElements(uint32_t pass) {
     TSGrowableArray<uint32_t>& list = this->m_passElements[pass];
@@ -1576,7 +1576,7 @@ void CM2Scene::SortAdditiveParticleElements(uint32_t pass) {
                 blend = data->m_materials[data->m_ribbons[element->m_index].m_materialIndices[0]].m_blendMode;
                 break;
             case 4:
-                blend = (this->m_cache->m_flags & 0x100) ? 4 : ParticleBlendToM2Blend(element->m_emitter->m_materialBlend);
+                blend = (this->m_cache->m_flags & 0x100) ? 4 : ParticleBlendToM2Blend(element->m_emitter->m_params.m_materialBlend);
                 break;
             default:
                 break;
@@ -1638,10 +1638,10 @@ CM2Scene::~CM2Scene() {
     delete[] this->m_hitVerts;
 }
 
-// VERIFY: 638abb37 manual
+// VERIFY: 2f2e9af8 manual
 // OFFSET: 0x00821930
 M2Element* CM2Scene::AddParticleElement(CParticleEmitter2* emitter, CM2Model* model, float depth, float alpha, int32_t split, uint32_t& index, uint32_t& additiveCount) {
-    if (!emitter->HasLiveParticles() || emitter->m_hasModel == 1) {
+    if (!emitter->HasLiveParticles() || emitter->m_params.m_hasModel == 1) {
         return nullptr;
     }
 
@@ -1664,7 +1664,7 @@ M2Element* CM2Scene::AddParticleElement(CParticleEmitter2* emitter, CM2Model* mo
     element->m_pixelPermute = 0xFFFFFFFF;
     element->m_shadowValue = 0;
 
-    int32_t blend = emitter->m_materialBlend;
+    int32_t blend = emitter->m_params.m_materialBlend;
 
     if (blend == 10 || blend == 3) {
         additiveCount++;
