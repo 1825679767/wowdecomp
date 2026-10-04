@@ -65,15 +65,15 @@ class CGTradeInfo {
     static int32_t m_targetSocketEnchants[7][3];
     static int32_t m_targetCount[7];
     static int32_t m_targetItemID[7];
-    static uint8_t unk_BFA5DC[7];
-    static WOWGUID unk_BFA5E8[7];
+    static uint8_t m_playerItemContainerSlot[7];
+    static WOWGUID m_playerItemContainer[7];
     static WOWGUID m_playerItems[7];
     static int32_t m_playerAccepted;
     static int32_t m_targetAccepted;
-    static int32_t unk_BFA668;
-    static int32_t unk_BFA66C;
-    static int32_t unk_BFA670;
-    static int32_t unk_BFA674;
+    static int32_t m_lastPlayerEnchantSpell;
+    static int32_t m_lastTargetEnchantSpell;
+    static int32_t m_lastPlayerMoney;
+    static int32_t m_lastTargetMoney;
 
     static void UpdatePlayerItem(WOWGUID guid);
     static void AddCursorItem(int32_t bound);

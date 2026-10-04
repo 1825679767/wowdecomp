@@ -374,9 +374,9 @@ int32_t CVehicleCamera_C::AttachToHierarchy() {
     return 1;
 }
 
-// VERIFY: 20281449 manual
+// VERIFY: d73ba8b8 auto
 // OFFSET: 0x00759A60
-void CVehicleCamera_C::Unk759A60() {
+void CVehicleCamera_C::DetachFromHierarchy() {
     CGCamera* activeCamera = CGWorldFrame::GetActiveCamera();
 
     if (!activeCamera) {
@@ -1064,7 +1064,7 @@ void CVehicleCamera_C::OnPassengerTransitionMotionBegin(uint32_t time, uint32_t 
     }
 }
 
-// VERIFY: 881824cd auto
+// VERIFY: d24f2186 auto
 // OFFSET: 0x0075AF40
 void CVehicleCamera_C::Update(uint32_t time) {
     if (!this->m_state || time == this->m_lastUpdateTime) {
@@ -1117,7 +1117,7 @@ void CVehicleCamera_C::Update(uint32_t time) {
                     this->m_state = 0;
                     this->UpdateWorldCameraState(time, 0);
                     this->SetTarget(WOWGUID(), WOWGUID());
-                    this->Unk759A60();
+                    this->DetachFromHierarchy();
                     this->m_unit->DestroyVehicleCamera();
                     return;
             }

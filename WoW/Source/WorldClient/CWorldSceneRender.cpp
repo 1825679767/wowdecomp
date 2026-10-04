@@ -66,7 +66,7 @@ void CWorldScene::RenderCollisionDebug() {
     g_theGxDevicePtr->RsPop();
 }
 
-// VERIFY: f0d89212 manual
+// VERIFY: cd492c82 manual
 // OFFSET: 0x0079A870
 void CWorldScene::Render(const C3Vector& cameraPos, float time) {
     if (!CWorldScene::s_viewerMapObjDef) {
@@ -86,7 +86,7 @@ void CWorldScene::Render(const C3Vector& cameraPos, float time) {
     CWorldScene::s_unk_CD8778 = CWorldScene::sortTable.m_pendingExteriorGroupList.Head() != nullptr;
 
     CGCamera* camera = CGWorldFrame::GetActiveCamera();
-    CWorldScene::s_unk_CD877C = CWorld::farFog / cosf(camera->FOV() * 0.5f) - CWorld::farFog;
+    CWorldScene::s_fogFovPadding = CWorld::farFog / cosf(camera->FOV() * 0.5f) - CWorld::farFog;
 
     World::UpdateObjectFadeouts();
     CMapRenderChunk::UpdatePools();
@@ -222,8 +222,8 @@ void CWorldScene::Render(const C3Vector& cameraPos, float time) {
     Liquid::UpdateProceduralTextures();
     CWorldScene::PrepareLiquidInstances();
 
-    if ((CWorld::enables & 0x1000000) && CWorldScene::s_unk_CD8610) {
-        CWorldScene::s_unk_CD8610->Flush(CWorldScene::s_activeWorldView, 0);
+    if ((CWorld::enables & 0x1000000) && CWorldScene::s_liquidRenderer) {
+        CWorldScene::s_liquidRenderer->Flush(CWorldScene::s_activeWorldView, 0);
     }
 
     CAaBox weatherBounds;

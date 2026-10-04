@@ -1614,7 +1614,7 @@ void CM2Model::SetupBoneSequence(uint16_t sequenceIndex, M2SequenceFallback fall
     boneSequence->m_invSpeed = invSpeed;
 }
 
-// VERIFY: 0566b221 manual
+// VERIFY: 70eb6b82 manual
 // OFFSET: 0x00826C40
 void CM2Model::SetPrimaryBoneSequence(uint16_t sequenceIndex, uint16_t boneIndex, M2SequenceFallback fallback, uint32_t time, float speed, int32_t blend) {
     M2ModelBone* bone = &this->m_bones[boneIndex];
@@ -1650,14 +1650,14 @@ void CM2Model::SetPrimaryBoneSequence(uint16_t sequenceIndex, uint16_t boneIndex
     }
 
     if (!bone->m_animListPrev) {
-        bone->m_animListPrev = &this->unk_0014;
-        bone->m_animListNext = this->unk_0014;
+        bone->m_animListPrev = &this->m_animListHead;
+        bone->m_animListNext = this->m_animListHead;
 
-        if (this->unk_0014 != 0xFFFF) {
-            this->m_bones[this->unk_0014].m_animListPrev = &bone->m_animListNext;
+        if (this->m_animListHead != 0xFFFF) {
+            this->m_bones[this->m_animListHead].m_animListPrev = &bone->m_animListNext;
         }
 
-        this->unk_0014 = boneIndex;
+        this->m_animListHead = boneIndex;
     }
 }
 
@@ -2260,7 +2260,7 @@ uint32_t CM2Model::GetNumCombinableDoodadBatches() {
     return combinable;
 }
 
-// VERIFY: 07ee960a manual
+// VERIFY: d7b7ec48 manual
 // OFFSET: 0x00827F70
 uint32_t CM2Model::GetNumPrimitives() {
     if (!(this->m_fFlags & 1)) {
@@ -2316,7 +2316,7 @@ uint32_t CM2Model::GetNumPrimitives() {
     }
 
     for (uint32_t i = 0; i < this->m_shared->m_data->m_particles.m_count; i++) {
-        if (this->m_particles[i].m_active && this->unk_0198 >= 0.000099999997f) {
+        if (this->m_particles[i].m_active && this->m_effectiveAlpha >= 0.000099999997f) {
             primitives += this->m_particleEmitters[i]->GetNumPrimitives();
         }
     }
@@ -2481,7 +2481,7 @@ void M2AnimateTrack<M2CompQuat, C4Quaternion>(CM2Model* model, M2ModelBone* bone
     }
 }
 
-// VERIFY: b884bcf7 manual
+// VERIFY: 4a40646d manual
 // OFFSET: 0x00828A00
 void CM2Model::AnimateST() {
     if (!(this->m_fFlags & 1)) {
@@ -2563,7 +2563,7 @@ void CM2Model::AnimateST() {
             emitter->SetColor(ribbon->m_colorTrack.m_currentValue.x, ribbon->m_colorTrack.m_currentValue.y, ribbon->m_colorTrack.m_currentValue.z);
         }
 
-        emitter->SetAlpha(ribbon->m_alphaTrack.m_currentValue * this->unk_0198);
+        emitter->SetAlpha(ribbon->m_alphaTrack.m_currentValue * this->m_effectiveAlpha);
 
         if (ribbonData->m_heightAboveTrack.m_sequenceTimes.m_count > 1 || (ribbonData->m_heightAboveTrack.m_sequenceTimes.m_count == 1 && ribbonData->m_heightAboveTrack.m_sequenceTimes[0].m_count > this->m_uint90)) {
             emitter->SetAbove(ribbon->m_heightAboveTrack.m_currentValue);
@@ -2629,7 +2629,7 @@ void CM2Model::AnimateST() {
         }
     }
 
-    if (this->unk_0198 == 1.0f) {
+    if (this->m_effectiveAlpha == 1.0f) {
         this->m_uint90 = 1;
     }
 }
@@ -3724,10 +3724,10 @@ M2BatchRange::M2BatchRange() {
     this->m_last = 0;
 }
 
-// VERIFY: 616f2025 manual
+// VERIFY: 2ddf06e6 manual
 // OFFSET: 0x0082BE60
 CM2Model::CM2Model() {
-    this->unk_0088 = 0.0f;
+    this->m_scaleSq = 0.0f;
     this->m_refCount = 1;
     this->m_fFlags = (this->m_fFlags & 0xFF800000) | 0x340;
     this->m_flags = 0;
@@ -3766,7 +3766,7 @@ CM2Model::CM2Model() {
     this->m_textureWeights = nullptr;
     this->m_textureTransforms = nullptr;
     this->m_textureMatrices = nullptr;
-    this->unk_0014 = 0xFFFF;
+    this->m_animListHead = 0xFFFF;
     this->m_attachmentIndex = 0xFFFF;
     this->m_frameStamp = 0xFFFFFFFF;
     this->m_attachmentId = 0xFFFFFFFF;
@@ -3820,14 +3820,14 @@ CM2Model::CM2Model() {
     this->m_frameOfReferenceMatrix.d2 = 0.0f;
     this->m_frameOfReference = nullptr;
     this->m_fadeAlpha = 1.0f;
-    this->unk_017C = 1.0f;
-    this->unk_0180 = 1.0f;
-    this->unk_0184 = 1.0f;
-    this->unk_0188 = 1.0f;
-    this->unk_018C = 0.0f;
-    this->unk_0190 = 0.0f;
-    this->unk_0194 = 0.0f;
-    this->unk_0198 = 1.0f;
+    this->m_baseAlpha = 1.0f;
+    this->m_diffuseTintR = 1.0f;
+    this->m_diffuseTintG = 1.0f;
+    this->m_diffuseTintB = 1.0f;
+    this->m_emissiveTintR = 0.0f;
+    this->m_emissiveTintG = 0.0f;
+    this->m_emissiveTintB = 0.0f;
+    this->m_effectiveAlpha = 1.0f;
     this->m_alpha = 1.0f;
     this->m_diffuseColor.x = 1.0f;
     this->m_diffuseColor.y = 1.0f;
@@ -4329,7 +4329,7 @@ void CM2Model::GetSequenceInfo(uint32_t id, uint32_t variation, M2SequenceInfo& 
     info.m_radius = sequence->m_bounds.m_radius;
 }
 
-// VERIFY: 615429c8 manual
+// VERIFY: 349f9473 manual
 // OFFSET: 0x0082D1A0
 uint32_t CM2Model::GetNumBatches() {
     if (!(this->m_fFlags & 1)) {
@@ -4343,7 +4343,7 @@ uint32_t CM2Model::GetNumBatches() {
         M2ModelRibbon* ribbon = &this->m_ribbons[i];
 
         if (ribbon->m_visibilityTrack.m_currentValue) {
-            float alpha = this->unk_0198;
+            float alpha = this->m_effectiveAlpha;
 
             if (data->m_ribbons[i].m_alphaTrack.m_sequenceTimes.m_count) {
                 alpha *= ribbon->m_alphaTrack.m_currentValue;
@@ -4358,7 +4358,7 @@ uint32_t CM2Model::GetNumBatches() {
     }
 
     for (uint32_t i = 0; i < this->m_shared->m_data->m_particles.m_count; i++) {
-        if (this->m_particles[i].m_active && this->unk_0198 >= 0.000099999997f) {
+        if (this->m_particles[i].m_active && this->m_effectiveAlpha >= 0.000099999997f) {
             batches += this->m_particleEmitters[i]->GetNumBatches();
         }
     }
@@ -4673,7 +4673,7 @@ int32_t CM2Model::HasDeferredSequence(uint16_t boneIndex, bool primary) {
     return 0;
 }
 
-// VERIFY: 44c58c4a manual
+// VERIFY: 3115a6f8 manual
 // OFFSET: 0x0082E140
 void CM2Model::AnimateMTSimple(const C44Matrix* view, const C3Vector& diffuse, const C3Vector& emissive, float alpha, float alpha2) {
     uint32_t flags = this->m_fFlags;
@@ -4694,31 +4694,31 @@ void CM2Model::AnimateMTSimple(const C44Matrix* view, const C3Vector& diffuse, c
     }
 
     if (data->m_flags & 4) {
-        this->unk_0198 = this->m_fadeAlpha;
-        this->m_diffuseColor.x = this->unk_0180;
-        this->m_diffuseColor.y = this->unk_0184;
-        this->m_diffuseColor.z = this->unk_0188;
-        this->m_alpha = this->unk_017C * this->m_fadeAlpha;
-        this->m_emissiveColor.x = this->unk_018C;
-        this->m_emissiveColor.y = this->unk_0190;
-        this->m_emissiveColor.z = this->unk_0194;
+        this->m_effectiveAlpha = this->m_fadeAlpha;
+        this->m_diffuseColor.x = this->m_diffuseTintR;
+        this->m_diffuseColor.y = this->m_diffuseTintG;
+        this->m_diffuseColor.z = this->m_diffuseTintB;
+        this->m_alpha = this->m_baseAlpha * this->m_fadeAlpha;
+        this->m_emissiveColor.x = this->m_emissiveTintR;
+        this->m_emissiveColor.y = this->m_emissiveTintG;
+        this->m_emissiveColor.z = this->m_emissiveTintB;
     } else {
-        this->m_diffuseColor.x = diffuse.x * this->unk_0180;
-        this->m_diffuseColor.y = this->unk_0184 * diffuse.y;
-        this->m_diffuseColor.z = this->unk_0188 * diffuse.z;
-        this->m_emissiveColor.x = this->unk_018C;
-        this->m_emissiveColor.y = this->unk_0190;
-        this->m_emissiveColor.z = this->unk_0194;
+        this->m_diffuseColor.x = diffuse.x * this->m_diffuseTintR;
+        this->m_diffuseColor.y = this->m_diffuseTintG * diffuse.y;
+        this->m_diffuseColor.z = this->m_diffuseTintB * diffuse.z;
+        this->m_emissiveColor.x = this->m_emissiveTintR;
+        this->m_emissiveColor.y = this->m_emissiveTintG;
+        this->m_emissiveColor.z = this->m_emissiveTintB;
 
         uint32_t current = this->m_fFlags;
 
         if (current & 0x100000) {
-            this->unk_0198 = this->m_fadeAlpha;
+            this->m_effectiveAlpha = this->m_fadeAlpha;
         } else {
-            this->unk_0198 = alpha * this->m_fadeAlpha;
+            this->m_effectiveAlpha = alpha * this->m_fadeAlpha;
         }
 
-        this->m_alpha = this->unk_017C * alpha2 * this->m_fadeAlpha;
+        this->m_alpha = this->m_baseAlpha * alpha2 * this->m_fadeAlpha;
 
         if (!(current & 0x80000)) {
             this->m_emissiveColor.x = this->m_emissiveColor.x + emissive.x;
@@ -4743,9 +4743,9 @@ void CM2Model::AnimateMTSimple(const C44Matrix* view, const C3Vector& diffuse, c
     CM2Model* attachParent = this->m_attachParent;
 
     if (!attachParent || (attachParent->m_flags & 1)) {
-        this->unk_0088 = this->m_matrixF4.d2 * this->m_matrixF4.d2 + this->m_matrixF4.d1 * this->m_matrixF4.d1 + this->m_matrixF4.d0 * this->m_matrixF4.d0;
+        this->m_scaleSq = this->m_matrixF4.d2 * this->m_matrixF4.d2 + this->m_matrixF4.d1 * this->m_matrixF4.d1 + this->m_matrixF4.d0 * this->m_matrixF4.d0;
     } else {
-        this->unk_0088 = attachParent->unk_0088;
+        this->m_scaleSq = attachParent->m_scaleSq;
     }
 
     uint32_t delta = 0;
@@ -4824,7 +4824,7 @@ void CM2Model::AnimateMTSimple(const C44Matrix* view, const C3Vector& diffuse, c
     this->m_frameStamp = this->m_scene->m_frameStamp;
 }
 
-// VERIFY: e44f40c1 manual
+// VERIFY: 932496a8 manual
 // OFFSET: 0x0082E550
 void CM2Model::AnimateAttachmentsMT() {
     M2Data* data = this->m_shared->m_data;
@@ -4861,9 +4861,9 @@ void CM2Model::AnimateAttachmentsMT() {
         }
 
         if (child->m_fFlags & 0x1000) {
-            child->AnimateMTSimple(&matrix, this->m_diffuseColor, this->m_emissiveColor, this->unk_0198, this->m_alpha);
+            child->AnimateMTSimple(&matrix, this->m_diffuseColor, this->m_emissiveColor, this->m_effectiveAlpha, this->m_alpha);
         } else {
-            child->AnimateMT(&matrix, this->m_diffuseColor, this->m_emissiveColor, this->unk_0198, this->m_alpha);
+            child->AnimateMT(&matrix, this->m_diffuseColor, this->m_emissiveColor, this->m_effectiveAlpha, this->m_alpha);
         }
     }
 }
@@ -5028,7 +5028,7 @@ void CM2Model::GetCollisionFacets(const CAaBox& box, const C44Matrix& transform,
     }
 }
 
-// VERIFY: 69e3d82c manual
+// VERIFY: d48ec2da manual
 // OFFSET: 0x0082F0F0
 void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C3Vector& emissive, float alpha, float alpha2) {
     uint32_t flags = this->m_fFlags;
@@ -5049,31 +5049,31 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
     }
 
     if (data->m_flags & 4) {
-        this->unk_0198 = this->m_fadeAlpha;
-        this->m_diffuseColor.x = this->unk_0180;
-        this->m_diffuseColor.y = this->unk_0184;
-        this->m_diffuseColor.z = this->unk_0188;
-        this->m_alpha = this->unk_017C * this->m_fadeAlpha;
-        this->m_emissiveColor.x = this->unk_018C;
-        this->m_emissiveColor.y = this->unk_0190;
-        this->m_emissiveColor.z = this->unk_0194;
+        this->m_effectiveAlpha = this->m_fadeAlpha;
+        this->m_diffuseColor.x = this->m_diffuseTintR;
+        this->m_diffuseColor.y = this->m_diffuseTintG;
+        this->m_diffuseColor.z = this->m_diffuseTintB;
+        this->m_alpha = this->m_baseAlpha * this->m_fadeAlpha;
+        this->m_emissiveColor.x = this->m_emissiveTintR;
+        this->m_emissiveColor.y = this->m_emissiveTintG;
+        this->m_emissiveColor.z = this->m_emissiveTintB;
     } else {
-        this->m_diffuseColor.x = diffuse.x * this->unk_0180;
-        this->m_diffuseColor.y = this->unk_0184 * diffuse.y;
-        this->m_diffuseColor.z = this->unk_0188 * diffuse.z;
-        this->m_emissiveColor.x = this->unk_018C;
-        this->m_emissiveColor.y = this->unk_0190;
-        this->m_emissiveColor.z = this->unk_0194;
+        this->m_diffuseColor.x = diffuse.x * this->m_diffuseTintR;
+        this->m_diffuseColor.y = this->m_diffuseTintG * diffuse.y;
+        this->m_diffuseColor.z = this->m_diffuseTintB * diffuse.z;
+        this->m_emissiveColor.x = this->m_emissiveTintR;
+        this->m_emissiveColor.y = this->m_emissiveTintG;
+        this->m_emissiveColor.z = this->m_emissiveTintB;
 
         uint32_t current = this->m_fFlags;
 
         if (current & 0x100000) {
-            this->unk_0198 = this->m_fadeAlpha;
+            this->m_effectiveAlpha = this->m_fadeAlpha;
         } else {
-            this->unk_0198 = alpha * this->m_fadeAlpha;
+            this->m_effectiveAlpha = alpha * this->m_fadeAlpha;
         }
 
-        this->m_alpha = this->unk_017C * alpha2 * this->m_fadeAlpha;
+        this->m_alpha = this->m_baseAlpha * alpha2 * this->m_fadeAlpha;
 
         if (!(current & 0x80000)) {
             this->m_emissiveColor.x = emissive.x + this->m_emissiveColor.x;
@@ -5098,9 +5098,9 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
     CM2Model* attachParent = this->m_attachParent;
 
     if (!attachParent || (attachParent->m_flags & 1)) {
-        this->unk_0088 = this->m_matrixF4.d2 * this->m_matrixF4.d2 + this->m_matrixF4.d1 * this->m_matrixF4.d1 + this->m_matrixF4.d0 * this->m_matrixF4.d0;
+        this->m_scaleSq = this->m_matrixF4.d2 * this->m_matrixF4.d2 + this->m_matrixF4.d1 * this->m_matrixF4.d1 + this->m_matrixF4.d0 * this->m_matrixF4.d0;
     } else {
-        this->unk_0088 = attachParent->unk_0088;
+        this->m_scaleSq = attachParent->m_scaleSq;
     }
 
     C44Matrix parentTransform;
@@ -5581,7 +5581,7 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
         if (count > 1 || (count == 1 && lightData->m_ambientColor.m_sequenceTimes[0].m_count > this->m_uint90)) {
             C3Vector zero(0.0f, 0.0f, 0.0f);
             M2AnimateTrack<C3Vector, C3Vector>(this, &this->m_bones[lightData->m_bone], lightData->m_ambientColor, light->m_ambientColorTrack, zero);
-            float intensity = light->m_ambientIntensityTrack.m_currentValue * this->unk_0198;
+            float intensity = light->m_ambientIntensityTrack.m_currentValue * this->m_effectiveAlpha;
             light->m_light.m_ambColor.x = light->m_ambientColorTrack.m_currentValue.x * intensity;
             light->m_light.m_ambColor.y = light->m_ambientColorTrack.m_currentValue.y * intensity;
             light->m_light.m_ambColor.z = intensity * light->m_ambientColorTrack.m_currentValue.z;
@@ -5599,7 +5599,7 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
         if (count > 1 || (count == 1 && lightData->m_diffuseColor.m_sequenceTimes[0].m_count > this->m_uint90)) {
             C3Vector zero(0.0f, 0.0f, 0.0f);
             M2AnimateTrack<C3Vector, C3Vector>(this, &this->m_bones[lightData->m_bone], lightData->m_diffuseColor, light->m_diffuseColorTrack, zero);
-            float intensity = light->m_diffuseIntensityTrack.m_currentValue * this->unk_0198;
+            float intensity = light->m_diffuseIntensityTrack.m_currentValue * this->m_effectiveAlpha;
             light->m_light.m_dirColor.x = intensity * light->m_diffuseColorTrack.m_currentValue.x;
             light->m_light.m_dirColor.y = light->m_diffuseColorTrack.m_currentValue.y * intensity;
             light->m_light.m_dirColor.z = intensity * light->m_diffuseColorTrack.m_currentValue.z;
@@ -5690,7 +5690,7 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
     this->m_frameStamp = this->m_scene->m_frameStamp;
 }
 
-// VERIFY: 7d6e6770 manual
+// VERIFY: a2d095a0 manual
 // OFFSET: 0x008309C0
 void CM2Model::AnimateParticleST(float deltaTime, uint32_t index) {
     if (!(this->m_fFlags & 1)) {
@@ -5779,7 +5779,7 @@ void CM2Model::AnimateParticleST(float deltaTime, uint32_t index) {
             emitter->SetZsource(particle->m_zsourceTrack.m_currentValue);
         }
 
-        float alpha = this->unk_0198;
+        float alpha = this->m_effectiveAlpha;
 
         if (alpha < 0.0f) {
             alpha = 0.0f;
@@ -5808,7 +5808,7 @@ void CM2Model::AnimateParticleST(float deltaTime, uint32_t index) {
     for (uint32_t i = 0; i < modelCount; i++) {
         uint32_t modelIndex = i;
         CM2Model* model = emitter->GetParticleModelInternal(modelIndex);
-        model->AnimateMT(&this->m_scene->m_view, this->m_diffuseColor, this->m_emissiveColor, this->unk_0198, this->m_alpha);
+        model->AnimateMT(&this->m_scene->m_view, this->m_diffuseColor, this->m_emissiveColor, this->m_effectiveAlpha, this->m_alpha);
         model->AnimateST();
         model->m_currentLighting = this->m_currentLighting;
     }
@@ -5821,7 +5821,7 @@ C3Vector CM2Model::GetWorldPosition() {
     return *reinterpret_cast<const C3Vector*>(&this->m_matrixF4.d0) * this->m_scene->m_viewInv;
 }
 
-// VERIFY: a046dcf2 manual
+// VERIFY: 4377f416 manual
 // OFFSET: 0x00830DC0
 void CM2Model::Animate() {
     CM2Scene* scene = this->m_scene;
@@ -5865,9 +5865,9 @@ void CM2Model::Animate() {
         parent = this->m_attachParent;
 
         if (this->m_fFlags & 0x1000) {
-            this->AnimateMTSimple(transform, parent->m_diffuseColor, parent->m_emissiveColor, parent->unk_0198, parent->m_alpha);
+            this->AnimateMTSimple(transform, parent->m_diffuseColor, parent->m_emissiveColor, parent->m_effectiveAlpha, parent->m_alpha);
         } else {
-            this->AnimateMT(transform, parent->m_diffuseColor, parent->m_emissiveColor, parent->unk_0198, parent->m_alpha);
+            this->AnimateMT(transform, parent->m_diffuseColor, parent->m_emissiveColor, parent->m_effectiveAlpha, parent->m_alpha);
         }
 
         scene = this->m_scene;
@@ -6176,7 +6176,7 @@ C44Matrix CM2Model::GetEventWorldTransform(uint32_t id) {
     return transform;
 }
 
-// VERIFY: cee031ed manual
+// VERIFY: 44b90448 manual
 // OFFSET: 0x00831990
 void CM2Model::AnimateSM() {
     CM2Scene* scene = this->m_scene;
@@ -6185,13 +6185,13 @@ void CM2Model::AnimateSM() {
         return;
     }
 
-    if (this->m_attachParent || this->m_shared->unk_0198) {
+    if (this->m_attachParent || this->m_shared->m_billboardBoneCount) {
         this->Animate();
         return;
     }
 
     *this->m_boneMatrices = this->m_worldTransform * scene->m_view;
-    this->m_alpha = this->unk_017C * this->m_fadeAlpha;
+    this->m_alpha = this->m_baseAlpha * this->m_fadeAlpha;
 
     M2Data* data = this->m_shared->m_data;
 
@@ -6452,7 +6452,7 @@ void CM2Model::CallCallbacks() {
     CM2Model::s_sequenceCallbacks.SetCount(0);
 }
 
-// VERIFY: c5b80560 manual
+// VERIFY: 7263f300 manual
 // OFFSET: 0x00832260
 int32_t CM2Model::ProcessCallbacks() {
     if (this->m_lastAnimTime || !(this->m_fFlags & 0x400000)) {
@@ -6471,7 +6471,7 @@ int32_t CM2Model::ProcessCallbacks() {
     uint32_t current;
 
     do {
-        uint16_t boneIndex = this->unk_0014;
+        uint16_t boneIndex = this->m_animListHead;
         current = now;
 
         while (boneIndex != 0xFFFF) {
@@ -7907,11 +7907,11 @@ void M2SequenceInfo::Clear() {
     this->m_radius = 0.0f;
 }
 
-// VERIFY: 7851ad82 auto
+// VERIFY: 7202abde auto
 // OFFSET: 0x007BABA0
-uint32_t CM2Model::GetSharedUnk0198() const {
+uint32_t CM2Model::GetBillboardBoneCount() const {
     if (this->m_fFlags & 0x1) {
-        return this->m_shared->unk_0198;
+        return this->m_shared->m_billboardBoneCount;
     }
 
     return 0;

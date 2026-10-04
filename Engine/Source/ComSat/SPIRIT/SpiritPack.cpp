@@ -3,9 +3,9 @@
 
 extern "C" {
 
-// VERIFY: 2003966f manual
+// VERIFY: b01f7f01 manual
 // OFFSET: 0x00899830
-void SPIRIT_IP_MR_V3_Unk899830(int32_t value, SPIRIT_IPMR_STREAM* stream, int16_t count, int16_t skip) {
+void SPIRIT_IP_MR_V3_PutBits(int32_t value, SPIRIT_IPMR_STREAM* stream, int16_t count, int16_t skip) {
     if (skip) {
         stream->m_bits += count;
         return;
@@ -33,29 +33,29 @@ void SPIRIT_IP_MR_V3_Unk899830(int32_t value, SPIRIT_IPMR_STREAM* stream, int16_
     }
 }
 
-// VERIFY: 02025e1d manual
+// VERIFY: bceb97dd manual
 // OFFSET: 0x00899A10
-void SPIRIT_IP_MR_V3_Unk899A10(const SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream, int16_t* counter, int16_t skip) {
+void SPIRIT_IP_MR_V3_WriteFrameHeader(const SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream, int16_t* counter, int16_t skip) {
     uint32_t start = stream->m_bits;
 
     if (frame->unk_02A8) {
-        SPIRIT_IP_MR_V3_Unk897370(frame->unk_0288, stream, 2, skip);
+        SPIRIT_IP_MR_V3_PutBitsClear(frame->unk_0288, stream, 2, skip);
     }
 
     if (frame->unk_02B0) {
-        SPIRIT_IP_MR_V3_Unk897370(frame->unk_0294 ? 1 : 0, stream, 1, skip);
+        SPIRIT_IP_MR_V3_PutBitsClear(frame->unk_0294 ? 1 : 0, stream, 1, skip);
     }
 
     *counter += static_cast<int16_t>(stream->m_bits - start);
 }
 
-// VERIFY: f8d5b496 manual
+// VERIFY: 41ba366f manual
 // OFFSET: 0x00899C30
-void SPIRIT_IP_MR_V3_Unk899C30(const SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream, int16_t skip) {
+void SPIRIT_IP_MR_V3_WriteFrameFlags(const SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream, int16_t skip) {
     const uint8_t* widths = frame->unk_02B4 >= 0 || frame->unk_02B0 == 3 ? s_ipmrTableB23754 : s_ipmrTableB23768;
 
     for (int32_t i = 0; i < 4; i++) {
-        SPIRIT_IP_MR_V3_Unk899830(frame->unk_02C8[i], stream, widths[i], skip);
+        SPIRIT_IP_MR_V3_PutBits(frame->unk_02C8[i], stream, widths[i], skip);
     }
 }
 
@@ -92,7 +92,7 @@ void SPIRIT_IP_MR_V3_NAME_31(SPIRIT_IPMR_FRAME* frame, int16_t start) {
     }
 }
 
-// VERIFY: c3558754 manual
+// VERIFY: c29a08c9 manual
 // OFFSET: 0x0089A2C0
 int16_t SPIRIT_IP_MR_V3_NAME_107(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream, int16_t* sizes, int16_t* counters, int16_t skip) {
     if (frame->unk_02B0 == 4) {
@@ -123,23 +123,23 @@ int16_t SPIRIT_IP_MR_V3_NAME_107(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* s
 
     if (static_cast<uint32_t>(frame->unk_02B0) <= 1) {
         for (int32_t i = 0; i < 4; i++) {
-            SPIRIT_IP_MR_V3_Unk899830(frame->unk_02B6[i], &streams[secondary], 1, skip);
-            SPIRIT_IP_MR_V3_Unk899830(frame->unk_02BE[i], &streams[secondary], 1, skip);
+            SPIRIT_IP_MR_V3_PutBits(frame->unk_02B6[i], &streams[secondary], 1, skip);
+            SPIRIT_IP_MR_V3_PutBits(frame->unk_02BE[i], &streams[secondary], 1, skip);
         }
     }
 
     if (frame->unk_02B0 != 3) {
-        SPIRIT_IP_MR_V3_Unk899830((frame->unk_02B4 + 1) % 4, &streams[secondary], 2, skip);
+        SPIRIT_IP_MR_V3_PutBits((frame->unk_02B4 + 1) % 4, &streams[secondary], 2, skip);
     }
 
-    SPIRIT_IP_MR_V3_Unk899C30(frame, &streams[SPIRIT_IP_MR_V3_NAME_68(0, frame, 0)], skip);
+    SPIRIT_IP_MR_V3_WriteFrameFlags(frame, &streams[SPIRIT_IP_MR_V3_NAME_68(0, frame, 0)], skip);
 
     if (frame->unk_02B0 == 3) {
-        SPIRIT_IP_MR_V3_Unk899830(frame->unk_9418, &streams[0], 5, skip);
+        SPIRIT_IP_MR_V3_PutBits(frame->unk_9418, &streams[0], 5, skip);
         int16_t bits = static_cast<int16_t>(streams[0].m_bits);
         sizes[0] = 0;
         sizes[1] = bits;
-        SPIRIT_IP_MR_V3_Unk897440(stream, buffer, 0, bits);
+        SPIRIT_IP_MR_V3_CopyBits(stream, buffer, 0, bits);
         *counters += static_cast<int16_t>(stream->m_bits - start);
         return static_cast<int16_t>(stream->m_bits - start);
     }
@@ -152,8 +152,8 @@ int16_t SPIRIT_IP_MR_V3_NAME_107(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* s
 
         if (frame->unk_02B6[i]) {
             int16_t bits = next ? 8 : static_cast<int16_t>(2 * (previous[i] == 0) + 6);
-            SPIRIT_IP_MR_V3_Unk899830(frame->unk_02D8[i].unk_0008, &streams[SPIRIT_IP_MR_V3_NAME_68(1, frame, i)], bits, skip);
-            SPIRIT_IP_MR_V3_Unk899830(frame->unk_02D8[i].unk_000A, &streams[SPIRIT_IP_MR_V3_NAME_68(2, frame, i)], 4, skip);
+            SPIRIT_IP_MR_V3_PutBits(frame->unk_02D8[i].unk_0008, &streams[SPIRIT_IP_MR_V3_NAME_68(1, frame, i)], bits, skip);
+            SPIRIT_IP_MR_V3_PutBits(frame->unk_02D8[i].unk_000A, &streams[SPIRIT_IP_MR_V3_NAME_68(2, frame, i)], 4, skip);
         }
 
         toggle = next;
@@ -164,20 +164,20 @@ int16_t SPIRIT_IP_MR_V3_NAME_107(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* s
         const SPIRIT_IPMR_TRACK* track = &frame->unk_0308[i][0];
 
         if (frame->unk_02BE[i]) {
-            SPIRIT_IP_MR_V3_Unk899830(track->unk_0024, target, 17, skip);
-            SPIRIT_IP_MR_V3_Unk899830(track->unk_0028, target, 5, skip);
-            SPIRIT_IP_MR_V3_Unk899830(track->unk_002A, target, 4, skip);
+            SPIRIT_IP_MR_V3_PutBits(track->unk_0024, target, 17, skip);
+            SPIRIT_IP_MR_V3_PutBits(track->unk_0028, target, 5, skip);
+            SPIRIT_IP_MR_V3_PutBits(track->unk_002A, target, 4, skip);
         } else {
-            SPIRIT_IP_MR_V3_Unk899830(track->unk_0024, target, s_ipmrTableB235D8[0], skip);
-            SPIRIT_IP_MR_V3_Unk899830(track->unk_0028, target, s_ipmrTableB235E4[0], skip);
-            SPIRIT_IP_MR_V3_Unk899830(track->unk_002A, target, s_ipmrTableB235F0[0], skip);
+            SPIRIT_IP_MR_V3_PutBits(track->unk_0024, target, s_ipmrTableB235D8[0], skip);
+            SPIRIT_IP_MR_V3_PutBits(track->unk_0028, target, s_ipmrTableB235E4[0], skip);
+            SPIRIT_IP_MR_V3_PutBits(track->unk_002A, target, s_ipmrTableB235F0[0], skip);
         }
     }
 
     if (skip) {
         stream->m_bits += static_cast<int16_t>(streams[6].m_bits);
     } else {
-        SPIRIT_IP_MR_V3_Unk897440(stream, buffer, 0, static_cast<int16_t>(streams[6].m_bits));
+        SPIRIT_IP_MR_V3_CopyBits(stream, buffer, 0, static_cast<int16_t>(streams[6].m_bits));
     }
 
     *counters += static_cast<int16_t>(stream->m_bits - start);
@@ -187,9 +187,9 @@ int16_t SPIRIT_IP_MR_V3_NAME_107(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* s
 
         for (int32_t i = 0; i < 4; i++) {
             const SPIRIT_IPMR_TRACK* track = &frame->unk_0308[i][t];
-            SPIRIT_IP_MR_V3_Unk897370(track->unk_0024, stream, static_cast<int16_t>(s_ipmrTableB235D8[t] - s_ipmrTableB235FC[t][i]), skip);
-            SPIRIT_IP_MR_V3_Unk897370(track->unk_0028, stream, s_ipmrTableB235E4[t], skip);
-            SPIRIT_IP_MR_V3_Unk897370(track->unk_002A, stream, s_ipmrTableB235F0[t], skip);
+            SPIRIT_IP_MR_V3_PutBitsClear(track->unk_0024, stream, static_cast<int16_t>(s_ipmrTableB235D8[t] - s_ipmrTableB235FC[t][i]), skip);
+            SPIRIT_IP_MR_V3_PutBitsClear(track->unk_0028, stream, s_ipmrTableB235E4[t], skip);
+            SPIRIT_IP_MR_V3_PutBitsClear(track->unk_002A, stream, s_ipmrTableB235F0[t], skip);
         }
 
         counters[t] += static_cast<int16_t>(stream->m_bits - before);

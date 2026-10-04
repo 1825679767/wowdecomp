@@ -315,26 +315,26 @@ namespace Liquid {
 
     class CMaterialBank {
         public:
-        static TSGrowableArray<IMaterial*> s_unk_D43B24;
+        static TSGrowableArray<IMaterial*> s_materials;
 
         static void Destroy();
         static IMaterial* GetMaterial(uint32_t liquidType);
     };
 
-    extern CDataAllocator s_unk_D43B00;
-    extern CDataAllocator s_unk_D43B34;
-    extern CDataAllocator s_unk_D45048;
-    extern CDataAllocator s_unk_D4505C;
-    extern CDataAllocator s_unk_D45070;
-    extern CDataAllocator s_unk_D45084;
-    extern CDataAllocator s_unk_D45098;
-    extern CDataAllocator s_unk_D450AC;
-    extern CDataAllocator s_unk_D450C0;
+    extern CDataAllocator s_settingsAllocator;
+    extern CDataAllocator s_instanceAllocator;
+    extern CDataAllocator s_procWaterAllocator;
+    extern CDataAllocator s_procWaterFFPAllocator;
+    extern CDataAllocator s_waterAllocator;
+    extern CDataAllocator s_waterNoSpecAllocator;
+    extern CDataAllocator s_waterFFPAllocator;
+    extern CDataAllocator s_magmaAllocator;
+    extern CDataAllocator s_magmaFFPAllocator;
     extern float s_unk_B23F64;
     extern int32_t s_specularEnabled;
     extern IDatabase<LiquidMaterialRec>* s_liquidMaterialDB;
     extern IDatabase<LiquidTypeRec>* s_liquidTypeDB;
-    extern char s_unk_D439F0[256];
+    extern char s_shaderPath[256];
     extern int32_t s_shadersEnabled;
     extern int32_t s_unk_D43AF4;
     extern int32_t s_unk_D43AF8;

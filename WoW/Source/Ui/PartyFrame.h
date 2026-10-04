@@ -58,9 +58,9 @@ class CGPartyInfo {
     static void LeaveWorld();
     static uint32_t m_memberRoles[4];
     static uint8_t m_memberAssignments[4];
-    static uint32_t unk_BD1984;
+    static uint32_t m_nextDifficultyChange;
     static uint8_t m_playerAssignments;
-    static uint8_t unk_BD1989;
+    static uint8_t m_playerLFGFlags;
     static uint8_t m_playerRole;
     static void InitializeGame();
     static void ShutdownGame();
@@ -118,7 +118,7 @@ class CGPartyMemberStateRepository {
     static CGPartyMemberState* GetState(const WOWGUID& guid);
 };
 
-extern CGPartyMemberState unk_BD0D08[4];
+extern CGPartyMemberState s_partyMemberStates[4];
 
 WOWGUID GetPartyMemberGUID(uint32_t index);
 WOWGUID GetPartyPetGUID(uint32_t index);

@@ -743,9 +743,9 @@ int32_t CGObject_C::IsSolidSelectable() const {
     return 1;
 }
 
-// VERIFY: 7e279662 auto
+// VERIFY: 76524fa5 auto
 // OFFSET: 0x00959DE0
-int32_t CGObject_C::Unk40(int32_t a1) const {
+int32_t CGObject_C::IsCollidable(int32_t a1) const {
     return 1;
 }
 
@@ -972,7 +972,7 @@ int32_t CGObject_C::GetQuestGiverCursor(int32_t highlighted) {
     }
 }
 
-// VERIFY: 469c1b9f auto
+// VERIFY: 02ef1834 auto
 // OFFSET: 0x00743BC0
 void CGObject_C::HideHighlightType(int32_t type) {
     this->m_modelFlags &= ~(1 << (type + 24));
@@ -988,9 +988,9 @@ void CGObject_C::HideHighlightType(int32_t type) {
     CM2Model* model = this->GetObjectModel();
 
     if (model && !(this->m_modelFlags & 0x7000000)) {
-        model->unk_018C = 0.0f;
-        model->unk_0190 = 0.0f;
-        model->unk_0194 = 0.0f;
+        model->m_emissiveTintR = 0.0f;
+        model->m_emissiveTintG = 0.0f;
+        model->m_emissiveTintB = 0.0f;
         model->unk_01B8 = 1.0f;
     }
 }
@@ -1212,7 +1212,7 @@ void CGObject_C::SetTypeID(OBJECT_TYPE_ID typeId) {
     }
 }
 
-// VERIFY: b37d282e auto
+// VERIFY: 18198d8d auto
 // OFFSET: 0x00743C70
 void CGObject_C::ShowHighlightType(int32_t type) {
     this->m_modelFlags |= 1 << (type + 24);
@@ -1230,23 +1230,23 @@ void CGObject_C::ShowHighlightType(int32_t type) {
     }
 
     DayNight::DNInfo* info = DayNight::GetInfo();
-    model->unk_018C = info->m_light1.m_ambient.r * (1.0f / 255.0f);
-    model->unk_0190 = info->m_light1.m_ambient.g * (1.0f / 255.0f);
-    model->unk_0194 = info->m_light1.m_ambient.b * (1.0f / 255.0f);
+    model->m_emissiveTintR = info->m_light1.m_ambient.r * (1.0f / 255.0f);
+    model->m_emissiveTintG = info->m_light1.m_ambient.g * (1.0f / 255.0f);
+    model->m_emissiveTintB = info->m_light1.m_ambient.b * (1.0f / 255.0f);
 
     if ((this->m_modelFlags & 0x7000000) != 0x4000000) {
         model->unk_01B8 = 1.0f;
     }
 }
 
-// VERIFY: b1ce287c manual
+// VERIFY: ce4a803c manual
 // OFFSET: 0x00744AC0
 void CGObject_C::ClearEffectList(int32_t all) {
     if (all) {
         for (CEffect* effect = this->m_effectList; effect; effect = this->m_effectList) {
             effect->UnLinkSelf();
 
-            if (effect->m_attachmentId == -1 && effect->unk_00CC) {
+            if (effect->m_attachmentId == -1 && effect->m_expireTime) {
                 effect->MoveToOrphanList();
             } else {
                 effect->Release();
@@ -1461,7 +1461,7 @@ void CGObject_C::EffectDecayHandler(CM2Model* model, uint32_t boneId, uint32_t s
     }
 }
 
-// VERIFY: 509f8bf8 auto
+// VERIFY: 93774946 auto
 // OFFSET: 0x00744920
 void CGObject_C::AuraEffectHoldHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param) {
     CEffect* effect = reinterpret_cast<CEffect*>(static_cast<uintptr_t>(param));
@@ -1470,7 +1470,7 @@ void CGObject_C::AuraEffectHoldHandler(CM2Model* model, uint32_t boneId, uint32_
         return;
     }
 
-    uint32_t endTime = effect->unk_00CC;
+    uint32_t endTime = effect->m_expireTime;
 
     if (endTime && static_cast<int32_t>(OsGetAsyncTimeMs() - endTime) > 0) {
         if (effect->m_model->HasSequence(159)) {
@@ -1502,11 +1502,11 @@ void CGObject_C::AuraEffectHandler(CM2Model* model, uint32_t boneId, uint32_t se
     }
 }
 
-// VERIFY: 241a7a4c manual
+// VERIFY: 0fe69e0d auto
 // OFFSET: 0x00744790
 void CGObject_C::PlayEffectName(int32_t attachType, uint32_t a3, int32_t spellId, const SpellVisualKitRec* kit, const SpellVisualEffectNameRec* effectName, uint32_t* flags, void (*callback)(CM2Model*, uint32_t, uint32_t, int32_t, uint32_t, uint64_t), const C3Vector* position, WOWGUID target, uint32_t a11, const SpellVisualKitModelAttachRec* attach) {
     CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
-    effect->unk_00CC = a3;
+    effect->m_expireTime = a3;
 
     WOWGUID source = this->m_obj->m_guid;
 
@@ -1528,7 +1528,7 @@ void CGObject_C::PlayEffectName(int32_t attachType, uint32_t a3, int32_t spellId
     *flags = (*flags & ~0x411) | 0x400;
 }
 
-// VERIFY: 82722487 manual
+// VERIFY: 3b7cacb6 manual
 // OFFSET: 0x00745230
 void CGObject_C::PlaySpellVisualKit(const PlaySpellVisuaKitData& data) {
     uint32_t flags = 0;
@@ -1664,7 +1664,7 @@ void CGObject_C::PlaySpellVisualKit(const PlaySpellVisuaKitData& data) {
 
     if (effectName) {
         CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
-        effect->unk_00CC = 0;
+        effect->m_expireTime = 0;
 
         if (data.m_spellRec && !data.m_position) {
             for (uint32_t i = 0; i < 3; i++) {
@@ -1704,7 +1704,7 @@ void CGObject_C::PlaySpellVisualKit(const PlaySpellVisuaKitData& data) {
         }
 
         CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
-        effect->unk_00CC = 0;
+        effect->m_expireTime = 0;
         WOWGUID guid = this->m_obj->m_guid;
         effect->InitFromUnit(*data.m_position, OsGetAsyncTimeMs(), spellId, data.m_impactVisualKit, effectName, &guid, flags, callback, data.unk_0030, nullptr, data.m_transportGUID);
         effect->Release();
@@ -1790,14 +1790,14 @@ attachments:
             }
 
             CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
-            effect->unk_00CC = 0;
+            effect->m_expireTime = 0;
             WOWGUID guid = this->m_obj->m_guid;
             effect->InitFromUnit(*data.m_position, OsGetAsyncTimeMs(), spellId, data.m_impactVisualKit, attachEffect, &guid, flags, callback, data.unk_0030, attach, data.m_transportGUID);
             effect->Release();
             flags = (flags & ~0x411) | 0x400;
         } else if (attach->m_attachmentID == -1) {
             CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
-            effect->unk_00CC = 0;
+            effect->m_expireTime = 0;
 
             if (data.m_spellRec && !data.m_position) {
                 for (uint32_t j = 0; j < 3; j++) {

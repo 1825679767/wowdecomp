@@ -98,9 +98,9 @@ void SPIRIT_IP_MR_V3_NAME_390(float* y, const float* a, const float* mem) {
     }
 }
 
-// VERIFY: 446130cf manual
+// VERIFY: 57994d5d manual
 // OFFSET: 0x0089B450
-int32_t SPIRIT_IP_MR_V3_Unk89B450(float* lsf) {
+int32_t SPIRIT_IP_MR_V3_SortLsf(float* lsf) {
     float* f = lsf - 1;
     int32_t pass = 0;
 
@@ -258,9 +258,9 @@ void SPIRIT_IP_MR_V3_NAME_205(const float* prev, const float* cur, int16_t index
     SPIRIT_IP_MR_V3_NAME_215(cur, a);
 }
 
-// VERIFY: a2c63cab manual
+// VERIFY: e9154c58 manual
 // OFFSET: 0x0089BC30
-void SPIRIT_IP_MR_V3_Unk89BC30(float* a, const float* signal, const SPIRIT_IPMR_TABLES* tables) {
+void SPIRIT_IP_MR_V3_ComputeLpc(float* a, const float* signal, const SPIRIT_IPMR_TABLES* tables) {
     float windowed[251];
     float r[11];
 

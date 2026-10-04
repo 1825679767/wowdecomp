@@ -21,7 +21,7 @@ namespace Liquid {
         virtual void SelectLights(CM2Lighting* lighting);
     };
 
-    extern CDataAllocator s_unk_D31A00;
+    extern CDataAllocator s_clientEnvironmentAllocator;
 
     void ClearClientEnvironments();
 }

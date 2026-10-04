@@ -60,7 +60,7 @@ SandGrainParticleBuffer::SandGrainParticleBuffer()
     : m_particleCount(6144) {
 }
 
-// VERIFY: 2208c4de manual
+// VERIFY: 903fb1ef manual
 // OFFSET: 0x00785EA0
 void Sand::InitGrain(SandGrainParticle* grain, float time) {
     C3Vector size(this->m_bbox.t.x - this->m_bbox.b.x, this->m_bbox.t.y - this->m_bbox.b.y, this->m_bbox.t.z - this->m_bbox.b.z);
@@ -78,10 +78,10 @@ void Sand::InitGrain(SandGrainParticle* grain, float time) {
     grain->m_velocity.x = s * speed;
     grain->m_velocity.y = speed * c;
     grain->m_velocity.z = (rise - 0.5f) * 0.16666667f + 0.83333331f;
-    C44Matrix rotation = C44Matrix::RotationAroundZ(-World::s_weather->unk_018C);
+    C44Matrix rotation = C44Matrix::RotationAroundZ(-World::s_weather->m_facing);
     grain->m_velocity = rotation * grain->m_velocity;
     grain->m_position = rotation * grain->m_position;
-    C3Vector wind(World::s_weather->unk_0164, World::s_weather->unk_0168, World::s_weather->unk_016C);
+    C3Vector wind(World::s_weather->m_playerVelocityX, World::s_weather->m_playerVelocityY, World::s_weather->m_playerVelocityZ);
     grain->m_position.x = wind.x * s_windLead + grain->m_position.x;
     grain->m_position.y = wind.y * s_windLead + grain->m_position.y;
     grain->m_position.z = s_windLead * wind.z + grain->m_position.z;
@@ -157,7 +157,7 @@ int32_t Sand::CountActivePackets() {
     return mists + packets;
 }
 
-// VERIFY: dd523a6d manual
+// VERIFY: 4b54c0ca manual
 // OFFSET: 0x00788660
 void Sand::UpdatePackets() {
     if (this->m_fadeOut && this->m_sandGrainPacketPtr) {
@@ -177,7 +177,7 @@ void Sand::UpdatePackets() {
             this->m_sandGrainPacketList.m_activePacketsCount--;
             this->m_sandGrainPacketList.m_freePacketsCount++;
             this->m_sandGrainPacketList.m_freePackets.LinkToTail(packet);
-        } else if (this->m_fadeOut && World::s_weather->unk_0014 <= 0.25f && now <= packet->m_packetStartTick) {
+        } else if (this->m_fadeOut && World::s_weather->m_fogIntensity <= 0.25f && now <= packet->m_packetStartTick) {
             this->m_sandGrainPacketList.m_activePacketsCount--;
             this->m_sandGrainPacketList.m_freePacketsCount++;
             this->m_sandGrainPacketList.m_freePackets.LinkToTail(packet);

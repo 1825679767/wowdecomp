@@ -368,12 +368,12 @@ void Snow::SetStormIntensity(float intensity) {
     this->m_mists.m_spawnRate = mistRate * scale;
 }
 
-// VERIFY: a06d73a5 manual
+// VERIFY: 3630477a manual
 // OFFSET: 0x00784850
 void Weather::SetStormIntensity(float target, float current) {
     uint32_t now = OsGetAsyncTimeMs();
     float delta = current - target;
-    float t = (now - this->unk_0018) * 0.001f / (fabs(delta + 0.001f) * 10.0f);
+    float t = (now - this->m_intensityStartTime) * 0.001f / (fabs(delta + 0.001f) * 10.0f);
 
     if (t < 0.0f) {
         t = 0.0f;
@@ -381,8 +381,8 @@ void Weather::SetStormIntensity(float target, float current) {
         t = 1.0f;
     }
 
-    this->unk_0008 = target + delta * t;
-    float intensity = (this->unk_0008 - 0.25f) * 1.3333334f;
+    this->m_intensity = target + delta * t;
+    float intensity = (this->m_intensity - 0.25f) * 1.3333334f;
 
     if (intensity < 0.0f) {
         intensity = 0.0f;
@@ -400,8 +400,8 @@ void Weather::SetStormIntensity(float target, float current) {
         this->m_sand->SetStormIntensity(intensity);
     }
 
-    float elapsed = (now - this->unk_001C) * 0.001f;
-    float fade = elapsed / (fabs((this->unk_000C - this->unk_0010) * 4.0f + 0.001f) * 10.0f);
+    float elapsed = (now - this->m_fogStartTime) * 0.001f;
+    float fade = elapsed / (fabs((this->m_targetFogIntensity - this->m_startFogIntensity) * 4.0f + 0.001f) * 10.0f);
 
     if (fade < 0.0f) {
         fade = 0.0f;
@@ -409,8 +409,8 @@ void Weather::SetStormIntensity(float target, float current) {
         fade = 1.0f;
     }
 
-    this->unk_0014 = this->unk_0010 + fade * (this->unk_000C - this->unk_0010);
-    float blend = elapsed / (fabs(0.001f + 4.0f * (this->unk_0030 - this->unk_002C)) * 5.0f);
+    this->m_fogIntensity = this->m_startFogIntensity + fade * (this->m_targetFogIntensity - this->m_startFogIntensity);
+    float blend = elapsed / (fabs(0.001f + 4.0f * (this->m_targetDensityBlend - this->m_startDensityBlend)) * 5.0f);
 
     if (blend < 0.0f) {
         blend = 0.0f;
@@ -418,29 +418,29 @@ void Weather::SetStormIntensity(float target, float current) {
         blend = 1.0f;
     }
 
-    this->unk_0028 = blend * (this->unk_0030 - this->unk_002C) + this->unk_002C;
-    DayNight::GetInfo()->m_weatherIntensity = this->unk_0014 * this->unk_0028;
+    this->m_densityBlend = blend * (this->m_targetDensityBlend - this->m_startDensityBlend) + this->m_startDensityBlend;
+    DayNight::GetInfo()->m_weatherIntensity = this->m_fogIntensity * this->m_densityBlend;
     DayNight::ResetFogAccumulators(false);
     this->m_densityChanged = 0;
 }
 
-// VERIFY: 9b569e0a manual
+// VERIFY: c46e1162 manual
 // OFFSET: 0x00787780
 Weather::Weather() {
-    this->unk_0000 = 0.0f;
-    this->unk_0004 = 0.0f;
-    this->unk_0008 = 0.0f;
-    this->unk_000C = 0.0f;
-    this->unk_0010 = 0.0f;
-    this->unk_0014 = 0.0f;
-    this->unk_0018 = 0;
-    this->unk_001C = 0;
-    this->unk_0020 = -1;
+    this->m_targetIntensity = 0.0f;
+    this->m_startIntensity = 0.0f;
+    this->m_intensity = 0.0f;
+    this->m_targetFogIntensity = 0.0f;
+    this->m_startFogIntensity = 0.0f;
+    this->m_fogIntensity = 0.0f;
+    this->m_intensityStartTime = 0;
+    this->m_fogStartTime = 0;
+    this->m_pendingType = -1;
     this->m_densityChanged = 0;
-    this->unk_0025 = 0;
-    this->unk_0028 = 1.0f;
-    this->unk_002C = 1.0f;
-    this->unk_0030 = 1.0f;
+    this->m_immediate = 0;
+    this->m_densityBlend = 1.0f;
+    this->m_startDensityBlend = 1.0f;
+    this->m_targetDensityBlend = 1.0f;
     this->m_color.b = 0xFF;
     this->m_color.g = 0xFF;
     this->m_color.r = 0xFF;
@@ -449,19 +449,19 @@ Weather::Weather() {
     this->m_snow = nullptr;
     this->m_sand = nullptr;
     this->m_grid = nullptr;
-    this->unk_0164 = 0.0f;
-    this->unk_0168 = 0.0f;
-    this->unk_016C = 0.0f;
-    this->unk_0170 = 0.0f;
-    this->unk_0174 = 0.0f;
-    this->unk_0178 = 0.0f;
-    this->unk_017C = 0.0f;
-    this->unk_0180 = 0.0f;
-    this->unk_0184 = 0.0f;
-    this->unk_0188 = 0;
-    this->unk_018C = 0.0f;
-    this->unk_0190 = 0.0f;
-    this->unk_0194 = 0;
+    this->m_playerVelocityX = 0.0f;
+    this->m_playerVelocityY = 0.0f;
+    this->m_playerVelocityZ = 0.0f;
+    this->m_transportVelocityX = 0.0f;
+    this->m_transportVelocityY = 0.0f;
+    this->m_transportVelocityZ = 0.0f;
+    this->m_positionX = 0.0f;
+    this->m_positionY = 0.0f;
+    this->m_positionZ = 0.0f;
+    this->m_onTaxi = 0;
+    this->m_facing = 0.0f;
+    this->m_speed = 0.0f;
+    this->m_hasUpdated = 0;
 
     this->m_grid = new (SMemAlloc(sizeof(WeatherGrid), __FILE__, __LINE__, 0)) WeatherGrid();
 
@@ -478,7 +478,7 @@ Weather::Weather() {
     this->m_precipTexture[0] = '\0';
 }
 
-// VERIFY: b0352c89 manual
+// VERIFY: 99319c82 manual
 // OFFSET: 0x0078D540
 Weather::~Weather() {
     this->Clear();
@@ -486,8 +486,8 @@ Weather::~Weather() {
     delete this->m_grid;
     this->m_grid = nullptr;
 
-    this->unk_014C.Clear();
-    this->unk_0158.Clear();
+    this->m_playerDeltas.Clear();
+    this->m_transportDeltas.Clear();
 }
 
 // VERIFY: f3eaf113 auto
@@ -518,7 +518,7 @@ void Weather::Clear() {
     this->m_sand = nullptr;
 }
 
-// VERIFY: dbf9517f auto
+// VERIFY: 8429a026 auto
 // OFFSET: 0x0078D130
 void Weather::Reset() {
     if (s_weatherTypeForced) {
@@ -526,17 +526,17 @@ void Weather::Reset() {
     }
 
     this->Clear();
-    this->unk_0004 = 0.0f;
-    this->unk_0020 = -1;
-    this->unk_0000 = 0.0f;
+    this->m_startIntensity = 0.0f;
+    this->m_pendingType = -1;
+    this->m_targetIntensity = 0.0f;
     this->m_precipTexture[0] = '\0';
-    this->unk_0008 = 0.0f;
-    this->unk_0010 = 0.0f;
-    this->unk_000C = 0.0f;
-    this->unk_0014 = 0.0f;
-    this->unk_0030 = 1.0f;
-    this->unk_002C = 1.0f;
-    this->unk_0028 = 1.0f;
+    this->m_intensity = 0.0f;
+    this->m_startFogIntensity = 0.0f;
+    this->m_targetFogIntensity = 0.0f;
+    this->m_fogIntensity = 0.0f;
+    this->m_targetDensityBlend = 1.0f;
+    this->m_startDensityBlend = 1.0f;
+    this->m_densityBlend = 1.0f;
 }
 
 // VERIFY: 2089fdca manual
@@ -562,7 +562,7 @@ bool Weather::GetActiveEffectBounds(CAaBox* bounds) {
 
 // OFFSET: 0x0078CA50
 void Weather::Render() {
-    if (!this->unk_0194) {
+    if (!this->m_hasUpdated) {
         return;
     }
 
@@ -579,7 +579,7 @@ void Weather::Render() {
     }
 }
 
-// VERIFY: 596caa86 manual
+// VERIFY: 2ffa4bed manual
 // OFFSET: 0x0078D170
 void Weather::Update() {
     this->UpdatePosDeltas();
@@ -589,39 +589,39 @@ void Weather::Update() {
         CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(activePlayer, TYPEMASK_PLAYER, __FILE__, __LINE__));
 
         if (player) {
-            C3Vector delta(this->unk_0164, this->unk_0168, 0.0f);
+            C3Vector delta(this->m_playerVelocityX, this->m_playerVelocityY, 0.0f);
 
             if (sqrtf(delta.y * delta.y + delta.x * delta.x) < 1.0f || (player->m_unit->m_unitFieldFlags & 0x100000)) {
-                this->unk_018C = player->GetFacing();
+                this->m_facing = player->GetFacing();
             } else {
                 delta.Normalize();
                 float angle = atan2f(delta.y, delta.x);
-                this->unk_018C = angle;
+                this->m_facing = angle;
 
                 if (angle < 0.0f) {
-                    this->unk_018C = angle + 6.2831855f;
+                    this->m_facing = angle + 6.2831855f;
                 }
             }
 
-            this->unk_0188 = (player->m_unit->m_unitFieldFlags >> 20) & 1;
+            this->m_onTaxi = (player->m_unit->m_unitFieldFlags >> 20) & 1;
             C3Vector position = player->GetPosition();
-            this->unk_017C = position.x;
-            this->unk_0180 = position.y;
-            this->unk_0184 = position.z;
+            this->m_positionX = position.x;
+            this->m_positionY = position.y;
+            this->m_positionZ = position.z;
 
             Weather* weather = World::s_weather;
 
-            if (weather->unk_0170 * weather->unk_0170 + weather->unk_0174 * weather->unk_0174 + weather->unk_0178 * weather->unk_0178 <= 2.0f) {
-                this->unk_0190 = player->m_movement->m_currentSpeed;
+            if (weather->m_transportVelocityX * weather->m_transportVelocityX + weather->m_transportVelocityY * weather->m_transportVelocityY + weather->m_transportVelocityZ * weather->m_transportVelocityZ <= 2.0f) {
+                this->m_speed = player->m_movement->m_currentSpeed;
             } else {
-                this->unk_0190 = sqrtf(this->unk_0170 * this->unk_0170 + this->unk_0174 * this->unk_0174);
+                this->m_speed = sqrtf(this->m_transportVelocityX * this->m_transportVelocityX + this->m_transportVelocityY * this->m_transportVelocityY);
             }
         }
     }
 
     bool stormUpdated = false;
 
-    if (this->unk_0020 != -1) {
+    if (this->m_pendingType != -1) {
         int32_t active = 0;
 
         if (this->m_rain) {
@@ -636,8 +636,8 @@ void Weather::Update() {
             active += this->m_sand->CountActivePackets();
         }
 
-        if (active > 0 && this->unk_0025) {
-            this->SetStormIntensity(this->unk_0004, this->unk_0000 < 0.25f ? this->unk_0000 : 0.25f);
+        if (active > 0 && this->m_immediate) {
+            this->SetStormIntensity(this->m_startIntensity, this->m_targetIntensity < 0.25f ? this->m_targetIntensity : 0.25f);
             stormUpdated = true;
 
             if (this->m_snow) {
@@ -657,7 +657,7 @@ void Weather::Update() {
         } else {
             this->Clear();
 
-            switch (this->unk_0020) {
+            switch (this->m_pendingType) {
                 case 1: {
                     void* mem = SMemAlloc(sizeof(Rain), __FILE__, __LINE__, 0);
                     this->m_rain = mem ? new (mem) Rain(130.0f, 75.0f) : nullptr;
@@ -677,9 +677,9 @@ void Weather::Update() {
                 }
             }
 
-            this->unk_0018 = OsGetAsyncTimeMs();
-            this->unk_0004 = this->unk_0008;
-            this->unk_0020 = -1;
+            this->m_intensityStartTime = OsGetAsyncTimeMs();
+            this->m_startIntensity = this->m_intensity;
+            this->m_pendingType = -1;
         }
     }
 
@@ -687,13 +687,13 @@ void Weather::Update() {
         this->m_grid->UpdateOriginCell(&CWorldScene::s_activeWorldView);
     }
 
-    bool changed = fabsf(this->unk_0008 - this->unk_0000) >= 0.00000023841858f || fabsf(this->unk_0014 - this->unk_000C) >= 0.00000023841858f || fabsf(this->unk_0028 - this->unk_0030) >= 0.00000023841858f;
+    bool changed = fabsf(this->m_intensity - this->m_targetIntensity) >= 0.00000023841858f || fabsf(this->m_fogIntensity - this->m_targetFogIntensity) >= 0.00000023841858f || fabsf(this->m_densityBlend - this->m_targetDensityBlend) >= 0.00000023841858f;
 
     if ((changed && !stormUpdated) || this->m_densityChanged) {
-        this->SetStormIntensity(this->unk_0004, this->unk_0000);
+        this->SetStormIntensity(this->m_startIntensity, this->m_targetIntensity);
     }
 
-    this->unk_0194 = 1;
+    this->m_hasUpdated = 1;
 }
 
 // VERIFY: f7fa9fb7 manual
@@ -714,14 +714,14 @@ uint32_t Weather::GetType() const {
     return 0;
 }
 
-// VERIFY: fe5a540b manual
+// VERIFY: 9b9ae04a manual
 // OFFSET: 0x007846A0
 void Weather::SetType(uint32_t type, float intensity, const WeatherRec* rec, bool immediate, float transitionTime) {
     if (s_weatherTypeForced || type > 3) {
         return;
     }
 
-    this->unk_0025 = immediate;
+    this->m_immediate = immediate;
     bool unchanged = true;
 
     if (this->GetType() != type) {
@@ -747,54 +747,54 @@ void Weather::SetType(uint32_t type, float intensity, const WeatherRec* rec, boo
     }
 
     if (this->GetType() != type || !unchanged) {
-        this->unk_0020 = type;
+        this->m_pendingType = type;
     }
 
     float density = intensity < 0.0f ? 0.0f : (intensity >= 1.0f ? 1.0f : intensity);
-    this->unk_0004 = this->unk_0000;
-    this->unk_0000 = density;
+    this->m_startIntensity = this->m_targetIntensity;
+    this->m_targetIntensity = density;
 
     float time;
 
     if (this->GetType() == 0) {
-        this->unk_0030 = transitionTime;
+        this->m_targetDensityBlend = transitionTime;
         time = transitionTime;
     } else if (type == 0) {
-        time = this->unk_0030;
+        time = this->m_targetDensityBlend;
     } else {
         time = transitionTime;
     }
 
-    this->unk_002C = this->unk_0030;
-    this->unk_0030 = time;
+    this->m_startDensityBlend = this->m_targetDensityBlend;
+    this->m_targetDensityBlend = time;
 
     if (!immediate) {
         this->m_densityChanged = 1;
-        this->unk_0004 = density;
-        this->unk_0008 = density;
-        this->unk_002C = time;
-        this->unk_0028 = time;
+        this->m_startIntensity = density;
+        this->m_intensity = density;
+        this->m_startDensityBlend = time;
+        this->m_densityBlend = time;
     }
 
-    this->unk_000C = density < 0.0f ? 0.0f : (density >= 0.25f ? 0.25f : density);
-    this->unk_0010 = this->unk_0004 < 0.0f ? 0.0f : (this->unk_0004 >= 0.25f ? 0.25f : this->unk_0004);
+    this->m_targetFogIntensity = density < 0.0f ? 0.0f : (density >= 0.25f ? 0.25f : density);
+    this->m_startFogIntensity = this->m_startIntensity < 0.0f ? 0.0f : (this->m_startIntensity >= 0.25f ? 0.25f : this->m_startIntensity);
 
     uint32_t now = OsGetAsyncTimeMs();
-    this->unk_0018 = now;
-    this->unk_001C = now;
+    this->m_intensityStartTime = now;
+    this->m_fogStartTime = now;
 }
 
-// VERIFY: 383f409b manual
+// VERIFY: 54aaddcb manual
 // OFFSET: 0x0078C500
 void Weather::UpdatePosDeltas() {
     uint32_t total = 0;
 
-    for (PosDelta* delta = this->unk_014C.Head(); delta;) {
+    for (PosDelta* delta = this->m_playerDeltas.Head(); delta;) {
         total += delta->m_time;
-        PosDelta* next = this->unk_014C.Next(delta);
+        PosDelta* next = this->m_playerDeltas.Next(delta);
 
         if (total >= 150) {
-            this->unk_014C.DeleteNode(this->unk_014C.Head());
+            this->m_playerDeltas.DeleteNode(this->m_playerDeltas.Head());
         }
 
         delta = next;
@@ -802,12 +802,12 @@ void Weather::UpdatePosDeltas() {
 
     total = 0;
 
-    for (PosDelta* delta = this->unk_0158.Head(); delta;) {
+    for (PosDelta* delta = this->m_transportDeltas.Head(); delta;) {
         total += delta->m_time;
-        PosDelta* next = this->unk_0158.Next(delta);
+        PosDelta* next = this->m_transportDeltas.Next(delta);
 
         if (total >= 150) {
-            this->unk_0158.DeleteNode(this->unk_0158.Head());
+            this->m_transportDeltas.DeleteNode(this->m_transportDeltas.Head());
         }
 
         delta = next;
@@ -841,7 +841,7 @@ void Weather::UpdatePosDeltas() {
 
     if (now != s_lastTime) {
         C3Vector delta = transportPos - s_lastTransportPos;
-        PosDelta* node = this->unk_0158.NewNode(2, 0, 0);
+        PosDelta* node = this->m_transportDeltas.NewNode(2, 0, 0);
         node->m_delta = delta;
         node->m_time = now - s_lastTime;
     }
@@ -849,8 +849,8 @@ void Weather::UpdatePosDeltas() {
     s_lastTransportPos = transportPos;
 
     if (now - s_lastTime) {
-        C3Vector delta = playerPos - C3Vector(this->unk_017C, this->unk_0180, this->unk_0184);
-        PosDelta* node = this->unk_014C.NewNode(2, 0, 0);
+        C3Vector delta = playerPos - C3Vector(this->m_positionX, this->m_positionY, this->m_positionZ);
+        PosDelta* node = this->m_playerDeltas.NewNode(2, 0, 0);
         node->m_delta = delta;
         node->m_time = now - s_lastTime;
     }
@@ -860,7 +860,7 @@ void Weather::UpdatePosDeltas() {
     C3Vector playerSum;
     total = 0;
 
-    for (PosDelta* delta = this->unk_014C.Head(); delta; delta = this->unk_014C.Next(delta)) {
+    for (PosDelta* delta = this->m_playerDeltas.Head(); delta; delta = this->m_playerDeltas.Next(delta)) {
         total += delta->m_time;
         playerSum.x += delta->m_delta.x;
         playerSum.y += delta->m_delta.y;
@@ -868,14 +868,14 @@ void Weather::UpdatePosDeltas() {
     }
 
     float playerScale = 1.0f / (static_cast<float>(total + 1) * 0.001f);
-    this->unk_0164 = playerSum.x * playerScale;
-    this->unk_0168 = playerSum.y * playerScale;
-    this->unk_016C = playerSum.z * playerScale;
+    this->m_playerVelocityX = playerSum.x * playerScale;
+    this->m_playerVelocityY = playerSum.y * playerScale;
+    this->m_playerVelocityZ = playerSum.z * playerScale;
 
     C3Vector transportSum;
     total = 0;
 
-    for (PosDelta* delta = this->unk_0158.Head(); delta; delta = this->unk_0158.Next(delta)) {
+    for (PosDelta* delta = this->m_transportDeltas.Head(); delta; delta = this->m_transportDeltas.Next(delta)) {
         total += delta->m_time;
         transportSum.x += delta->m_delta.x;
         transportSum.y += delta->m_delta.y;
@@ -883,14 +883,14 @@ void Weather::UpdatePosDeltas() {
     }
 
     float transportScale = 1.0f / (static_cast<float>(total + 1) * 0.001f);
-    this->unk_0170 = transportSum.x * transportScale;
-    this->unk_0174 = transportSum.y * transportScale;
-    this->unk_0178 = transportSum.z * transportScale;
+    this->m_transportVelocityX = transportSum.x * transportScale;
+    this->m_transportVelocityY = transportSum.y * transportScale;
+    this->m_transportVelocityZ = transportSum.z * transportScale;
 
-    if (fabs(playerVelocity.x) < 2.3841858e-07f && fabs(playerVelocity.y) < 2.3841858e-07f && fabs(playerVelocity.z) < 2.3841858e-07f && this->unk_0170 * this->unk_0170 + this->unk_0174 * this->unk_0174 + this->unk_0178 * this->unk_0178 <= 2.0f) {
-        this->unk_0164 = 0.0f;
-        this->unk_0168 = 0.0f;
-        this->unk_016C = 0.0f;
+    if (fabs(playerVelocity.x) < 2.3841858e-07f && fabs(playerVelocity.y) < 2.3841858e-07f && fabs(playerVelocity.z) < 2.3841858e-07f && this->m_transportVelocityX * this->m_transportVelocityX + this->m_transportVelocityY * this->m_transportVelocityY + this->m_transportVelocityZ * this->m_transportVelocityZ <= 2.0f) {
+        this->m_playerVelocityX = 0.0f;
+        this->m_playerVelocityY = 0.0f;
+        this->m_playerVelocityZ = 0.0f;
     }
 }
 

@@ -149,7 +149,7 @@ static const _ARGLIST s_wowArgList[] = {
 };
 
 // STATIC: 0x00AB6164
-static uint32_t s_unk_AB6164 = 0x40;
+static uint32_t s_startArchivePriority = 0x40;
 
 // STATIC: 0x00AB6168
 static ARCHIVEINFO s_archives[28] = {
@@ -1347,7 +1347,7 @@ void ClientInitializeGame(uint32_t mapId, C3Vector position) {
     s_gameInitialized = 1;
 }
 
-// VERIFY: 11fc177d manual
+// VERIFY: a768ccd6 manual
 // OFFSET: 0x00405DD0
 static void OpenArchives() {
     int32_t availability = CheckDataFilesExist() + 1;
@@ -1367,7 +1367,7 @@ static void OpenArchives() {
     for (uint32_t i = patches.m_files.Count(); i; i--) {
         if (SFile::OpenArchive(patches.m_files[i - 1], priority, 0xC00, &s_archiveHandles[slot])) {
             if (SStrStrI(patches.m_files[i - 1], "Start.MPQ")) {
-                s_unk_AB6164 = priority;
+                s_startArchivePriority = priority;
             }
 
             slot++;

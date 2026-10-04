@@ -4,7 +4,7 @@
 
 extern "C" {
 
-// VERIFY: 3882ce12 manual
+// VERIFY: 231b12b6 manual
 // OFFSET: 0x008992E0
 void SPIRIT_IP_MR_V3_NAME_324(SPIRIT_IPMR_DEC_UNK0020* state, const SPIRIT_IPMR_TABLES* tables, float* out, SPIRIT_IPMR_FRAME* frame, float* lpc, int16_t lost) {
     int16_t count = frame->unk_02AE;
@@ -52,7 +52,7 @@ void SPIRIT_IP_MR_V3_NAME_324(SPIRIT_IPMR_DEC_UNK0020* state, const SPIRIT_IPMR_
 
     for (int16_t sf = 0; sf < 4; sf++) {
         SPIRIT_IP_MR_V3_NAME_333(state->unk_03B4);
-        SPIRIT_IP_MR_V3_Unk899140(frame, &subframe, &state->unk_06A8, &previous, sf, lost);
+        SPIRIT_IP_MR_V3_DecodeSubframeGains(frame, &subframe, &state->unk_06A8, &previous, sf, lost);
         frame->unk_02D8[sf].unk_0000 = subframe.unk_0000;
         int16_t conceal = 0;
 
@@ -72,7 +72,7 @@ void SPIRIT_IP_MR_V3_NAME_324(SPIRIT_IPMR_DEC_UNK0020* state, const SPIRIT_IPMR_
             frame->unk_941C = s_ipmrTableB23374[state->unk_06A8.unk_005A];
         }
 
-        SPIRIT_IP_MR_V3_Unk8978A0(conceal, &state->unk_06A8, tracks, count);
+        SPIRIT_IP_MR_V3_UpdateFixedCodebookEnergy(conceal, &state->unk_06A8, tracks, count);
 
         if (lost == 2) {
             state->unk_06A8.unk_005E = conceal;
@@ -113,9 +113,9 @@ void SPIRIT_IP_MR_V3_NAME_324(SPIRIT_IPMR_DEC_UNK0020* state, const SPIRIT_IPMR_
     }
 }
 
-// VERIFY: 6ca0a5b9 manual
+// VERIFY: 44aa0bbf manual
 // OFFSET: 0x008968B0
-void SPIRIT_IP_MR_V3_Unk8968B0(SPIRIT_IPMR_FRAME* frame, const SPIRIT_IPMR_TABLES* tables, SPIRIT_IPMR_DEC_UNK0020* state, float* out) {
+void SPIRIT_IP_MR_V3_SynthesizeFrame(SPIRIT_IPMR_FRAME* frame, const SPIRIT_IPMR_TABLES* tables, SPIRIT_IPMR_DEC_UNK0020* state, float* out) {
     if (frame->unk_02AA && frame->unk_02AC) {
         float lpc[40];
         SPIRIT_IP_MR_V3_NAME_324(state, tables, out, frame, lpc, static_cast<int16_t>(frame->unk_029C));
@@ -128,13 +128,13 @@ void SPIRIT_IP_MR_V3_Unk8968B0(SPIRIT_IPMR_FRAME* frame, const SPIRIT_IPMR_TABLE
     }
 
     if (frame->unk_02AA || !frame->unk_02AC) {
-        SPIRIT_IP_MR_V3_Unk8967B0(state, tables);
+        SPIRIT_IP_MR_V3_ResetDecoderState(state, tables);
     }
 
     SPIRIT_IP_MR_V3_NAME_332(out, 160);
 }
 
-// VERIFY: d8a5e068 manual
+// VERIFY: 31dc53ad manual
 // OFFSET: 0x00896AB0
 int32_t SPIRIT_IP_MR_V3_NAME_192(SPIRIT_IPMR_DECODER* decoder, SPIRIT_IPMR_STREAM* stream, uint8_t* pcm, int32_t a4, uint32_t a5, int32_t a6, int16_t a7, int16_t a8, int16_t a9, int32_t a10, int16_t* a11) {
     float output[160];
@@ -158,9 +158,9 @@ int32_t SPIRIT_IP_MR_V3_NAME_192(SPIRIT_IPMR_DECODER* decoder, SPIRIT_IPMR_STREA
             return result;
         }
 
-        SPIRIT_IP_MR_V3_Unk896A40(decoder, &frame);
+        SPIRIT_IP_MR_V3_RestoreFrameState(decoder, &frame);
     } else {
-        int16_t result = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk896990(decoder, a4, a5));
+        int16_t result = static_cast<int16_t>(SPIRIT_IP_MR_V3_Reconfigure(decoder, a4, a5));
 
         if (result) {
             return result;
@@ -172,24 +172,24 @@ int32_t SPIRIT_IP_MR_V3_NAME_192(SPIRIT_IPMR_DECODER* decoder, SPIRIT_IPMR_STREA
             return result;
         }
 
-        SPIRIT_IP_MR_V3_Unk899990(&frame, stream);
+        SPIRIT_IP_MR_V3_ReadFrameHeader(&frame, stream);
         result = static_cast<int16_t>(SPIRIT_IP_MR_V3_NAME_309(a6, &frame));
 
         if (result) {
             return result;
         }
 
-        SPIRIT_IP_MR_V3_Unk896950(&frame, stream);
+        SPIRIT_IP_MR_V3_UnpackFrameParameters(&frame, stream);
     }
 
     float scale = static_cast<float>(static_cast<double>(decoder->unk_000C) / frame.m_rate);
     frame.unk_0298 = static_cast<int16_t>(static_cast<int32_t>(frame.unk_0298 * static_cast<double>(scale)));
     frame.unk_9424 = static_cast<int16_t>(static_cast<int32_t>(scale * static_cast<double>(frame.unk_9424)));
-    SPIRIT_IP_MR_V3_Unk8969E0(&frame, decoder);
+    SPIRIT_IP_MR_V3_SaveFrameState(&frame, decoder);
     SPIRIT_IP_MR_V3_NAME_332(output, 160);
     SPIRIT_IP_MR_V3_NAME_332(unused, 640);
     SPIRIT_IP_MR_V3_NAME_399(&decoder->unk_0730, &frame);
-    SPIRIT_IP_MR_V3_Unk8968B0(&frame, decoder->m_tables, &decoder->unk_0020, output);
+    SPIRIT_IP_MR_V3_SynthesizeFrame(&frame, decoder->m_tables, &decoder->unk_0020, output);
     SPIRIT_IP_MR_V3_NAME_200(output, reinterpret_cast<int16_t*>(pcm), frame.unk_0298);
     *a11 = static_cast<int16_t>(stream->m_bits) - *a11;
     return 0;

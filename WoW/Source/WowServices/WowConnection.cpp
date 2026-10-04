@@ -306,7 +306,7 @@ void WowConnection::Disconnect() {
     this->m_lock.Leave();
 }
 
-// VERIFY: 0fdc8e94 auto
+// VERIFY: baaffdbb auto
 // OFFSET: 0x00466E30
 void WowConnection::FreeSendList() {
     WowConnection::SENDNODE* node = this->m_sendList.Head();
@@ -318,11 +318,11 @@ void WowConnection::FreeSendList() {
         node = next;
     }
 
-    node = this->unk_00FC.Head();
+    node = this->m_lagTestRecvList.Head();
 
     while (!TSList<WowConnection::SENDNODE>::IsEnd(node)) {
-        WowConnection::SENDNODE* next = this->unk_00FC.RawNext(node);
-        this->unk_00FC.UnlinkNode(node);
+        WowConnection::SENDNODE* next = this->m_lagTestRecvList.RawNext(node);
+        this->m_lagTestRecvList.UnlinkNode(node);
         WDataStore::FreeBuffer(node, node->m_datasize + sizeof(WowConnection::SENDNODE) + 3);
         node = next;
     }

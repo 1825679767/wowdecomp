@@ -39,7 +39,7 @@ WOWGUID CGPartyInfo::m_members[4];
 uint32_t CGPartyInfo::m_dungeonDifficulty;
 
 // STATIC: 0x00BD0D08
-CGPartyMemberState unk_BD0D08[4];
+CGPartyMemberState s_partyMemberStates[4];
 
 // STATIC: 0x00BD1968
 WOWGUID CGPartyInfo::m_leader;
@@ -78,7 +78,7 @@ uint8_t CGPartyInfo::m_memberAssignments[4];
 uint32_t CGPartyInfo::m_lastAssignmentTime;
 
 // STATIC: 0x00BD1984
-uint32_t CGPartyInfo::unk_BD1984;
+uint32_t CGPartyInfo::m_nextDifficultyChange;
 
 // STATIC: 0x00BD1988
 uint8_t CGPartyInfo::m_playerAssignments;
@@ -87,7 +87,7 @@ uint8_t CGPartyInfo::m_playerAssignments;
 uint8_t CGPartyInfo::m_playerRole;
 
 // STATIC: 0x00BD1989
-uint8_t CGPartyInfo::unk_BD1989;
+uint8_t CGPartyInfo::m_playerLFGFlags;
 
 // STATIC: 0x00BD1990
 WOWGUID CGPartyInfo::m_realLeader;
@@ -144,7 +144,7 @@ uint32_t CGPartyInfo::GetNumPartyMembers() {
     return count;
 }
 
-// VERIFY: 0146e892 manual
+// VERIFY: 17f136a5 auto
 // OFFSET: 0x0052C6E0
 WOWGUID GetPartyPetGUID(uint32_t index) {
     if (index >= 4 || !CGPartyInfo::m_members[index]) {
@@ -158,8 +158,8 @@ WOWGUID GetPartyPetGUID(uint32_t index) {
         return pet;
     }
 
-    if (unk_BD0D08[index].m_flags & 0x1) {
-        return unk_BD0D08[index].m_pet.m_guid;
+    if (s_partyMemberStates[index].m_flags & 0x1) {
+        return s_partyMemberStates[index].m_pet.m_guid;
     }
 
     return WOWGUID();
@@ -340,7 +340,7 @@ int32_t CGPartyInfo::SetLootMethod(int32_t method, WOWGUID master, int32_t thres
     return changed;
 }
 
-// VERIFY: fcce6249 manual
+// VERIFY: adab4393 manual
 // OFFSET: 0x0052BEE0
 CGPartyMemberState* CGPartyInfo::GetRemoteStats(const WOWGUID& guid) {
     if (!guid) {
@@ -349,14 +349,14 @@ CGPartyMemberState* CGPartyInfo::GetRemoteStats(const WOWGUID& guid) {
 
     for (uint32_t i = 0; i < sizeof(CGPartyInfo::m_members) / sizeof(CGPartyInfo::m_members[0]); i++) {
         if (CGPartyInfo::m_members[i] == guid) {
-            return &unk_BD0D08[i];
+            return &s_partyMemberStates[i];
         }
     }
 
     return nullptr;
 }
 
-// VERIFY: 730809cb manual
+// VERIFY: 25905513 manual
 // OFFSET: 0x0052BF80
 CGPartyPetState* CGPartyInfo::GetRemotePetStats(const WOWGUID& guid) {
     if (!guid) {
@@ -364,8 +364,8 @@ CGPartyPetState* CGPartyInfo::GetRemotePetStats(const WOWGUID& guid) {
     }
 
     for (uint32_t i = 0; i < sizeof(CGPartyInfo::m_members) / sizeof(CGPartyInfo::m_members[0]); i++) {
-        if (CGPartyInfo::m_members[i] && (unk_BD0D08[i].m_flags & 1) && unk_BD0D08[i].m_pet.m_guid == guid) {
-            return &unk_BD0D08[i].m_pet;
+        if (CGPartyInfo::m_members[i] && (s_partyMemberStates[i].m_flags & 1) && s_partyMemberStates[i].m_pet.m_guid == guid) {
+            return &s_partyMemberStates[i].m_pet;
         }
     }
 
@@ -491,7 +491,7 @@ void CGPartyInfo::CheckClearLFGSlot() {
     }
 }
 
-// VERIFY: e3cff148 manual
+// VERIFY: 6ce71a3a manual
 // OFFSET: 0x0052D210
 int32_t CGPartyInfo::IsMemberPet(const WOWGUID& guid, int32_t* index) {
     if (!guid) {
@@ -524,7 +524,7 @@ int32_t CGPartyInfo::IsMemberPet(const WOWGUID& guid, int32_t* index) {
             const WOWGUID& pet = member->m_unit->m_unitFieldCharm ? member->m_unit->m_unitFieldCharm : member->m_unit->m_unitFieldSummon;
             match = pet == guid;
         } else {
-            match = (unk_BD0D08[i].m_flags & 1) && unk_BD0D08[i].m_pet.m_guid == guid;
+            match = (s_partyMemberStates[i].m_flags & 1) && s_partyMemberStates[i].m_pet.m_guid == guid;
         }
 
         if (match) {
@@ -539,7 +539,7 @@ int32_t CGPartyInfo::IsMemberPet(const WOWGUID& guid, int32_t* index) {
     return 0;
 }
 
-// VERIFY: 703c7104 auto
+// VERIFY: c3b2e18b auto
 // OFFSET: 0x0052D0E0
 void CGPartyInfo::InitializeGame() {
     CGPartyInfo::m_members[0].m_guid = 0;
@@ -559,14 +559,14 @@ void CGPartyInfo::InitializeGame() {
     CGPartyInfo::m_dungeonDifficulty = 0;
     CGPartyInfo::m_raidDifficulty = 0;
     CGPartyInfo::m_playerAssignments = 0;
-    CGPartyInfo::unk_BD1989 = 0;
+    CGPartyInfo::m_playerLFGFlags = 0;
     CGPartyInfo::m_playerRole = 0;
     CGPartyInfo::m_realLeader.m_guid = 0;
     CGPartyInfo::m_realNumMembers = 0;
     CGPartyInfo::m_lootMethod = 3;
     CGPartyInfo::m_lootMaster.m_guid = 0;
     CGPartyInfo::m_lootThreshold = 2;
-    CGPartyInfo::unk_BD1984 = 0;
+    CGPartyInfo::m_nextDifficultyChange = 0;
     CGPartyInfo::m_lfgSlot = 0;
     CGPartyInfo::m_lfgRestricted = 0;
 
@@ -595,7 +595,7 @@ uint32_t CGPartyInfo::GetGroupRole(const WOWGUID& guid) {
     return 0;
 }
 
-// VERIFY: 6c9ab10c manual
+// VERIFY: 942eebbc manual
 // OFFSET: 0x0052C8C0
 int32_t CGPartyInfo::IsPlayerOrPetInParty(const WOWGUID& guid) {
     if (!static_cast<uint32_t>(guid.m_guid)) {
@@ -618,7 +618,7 @@ int32_t CGPartyInfo::IsPlayerOrPetInParty(const WOWGUID& guid) {
             if (pet == guid) {
                 return 1;
             }
-        } else if ((unk_BD0D08[i].m_flags & 1) && unk_BD0D08[i].m_pet.m_guid == guid) {
+        } else if ((s_partyMemberStates[i].m_flags & 1) && s_partyMemberStates[i].m_pet.m_guid == guid) {
             return 1;
         }
     }
@@ -626,7 +626,7 @@ int32_t CGPartyInfo::IsPlayerOrPetInParty(const WOWGUID& guid) {
     return 0;
 }
 
-// VERIFY: a81ee60b manual
+// VERIFY: fc0197a5 manual
 // OFFSET: 0x0052D310
 int32_t CGPartyInfo::IsMemberOrPet(const WOWGUID& guid) {
     if (!guid) {
@@ -664,7 +664,7 @@ int32_t CGPartyInfo::IsMemberOrPet(const WOWGUID& guid) {
             if (pet == guid) {
                 return 1;
             }
-        } else if ((unk_BD0D08[i].m_flags & 1) && unk_BD0D08[i].m_pet.m_guid == guid) {
+        } else if ((s_partyMemberStates[i].m_flags & 1) && s_partyMemberStates[i].m_pet.m_guid == guid) {
             return 1;
         }
     }
@@ -672,19 +672,19 @@ int32_t CGPartyInfo::IsMemberOrPet(const WOWGUID& guid) {
     return 0;
 }
 
-// VERIFY: 85f3761e manual
+// VERIFY: 9e72f7d6 manual
 // OFFSET: 0x0052BF30
 CGPartyMemberState* CGPartyInfo::GetRemoteStatsFromPet(const WOWGUID& petGuid) {
     for (uint32_t i = 0; i < sizeof(CGPartyInfo::m_members) / sizeof(CGPartyInfo::m_members[0]); i++) {
-        if (CGPartyInfo::m_members[i] && unk_BD0D08[i].m_pet.m_guid == petGuid) {
-            return &unk_BD0D08[i];
+        if (CGPartyInfo::m_members[i] && s_partyMemberStates[i].m_pet.m_guid == petGuid) {
+            return &s_partyMemberStates[i];
         }
     }
 
     return nullptr;
 }
 
-// VERIFY: 182ccb4d manual
+// VERIFY: d1e4647b manual
 // OFFSET: 0x0052D410
 void CGPartyInfo::AddMember(WOWGUID guid, int32_t online, const CGPartyMemberState* state, uint8_t assignments, uint32_t role, const PartyReadyCheckInfo* readyCheck) {
     if (!guid) {
@@ -706,20 +706,20 @@ void CGPartyInfo::AddMember(WOWGUID guid, int32_t online, const CGPartyMemberSta
     CGPartyInfo::m_memberRoles[index] = role;
 
     if (state) {
-        memcpy(&unk_BD0D08[index], state, sizeof(CGPartyMemberState));
+        memcpy(&s_partyMemberStates[index], state, sizeof(CGPartyMemberState));
     } else {
-        memset(&unk_BD0D08[index], 0, sizeof(CGPartyMemberState));
-        unk_BD0D08[index].m_health = 1;
-        unk_BD0D08[index].m_maxHealth = 1;
-        unk_BD0D08[index].m_power = 1;
-        unk_BD0D08[index].m_maxPower = 1;
+        memset(&s_partyMemberStates[index], 0, sizeof(CGPartyMemberState));
+        s_partyMemberStates[index].m_health = 1;
+        s_partyMemberStates[index].m_maxHealth = 1;
+        s_partyMemberStates[index].m_power = 1;
+        s_partyMemberStates[index].m_maxPower = 1;
     }
 
     if (online) {
-        unk_BD0D08[index].m_flags |= 0x1;
+        s_partyMemberStates[index].m_flags |= 0x1;
         CGAutoCompleteName::AddFlags(guid, 33, 0, nullptr);
     } else {
-        unk_BD0D08[index].m_flags &= ~0x1;
+        s_partyMemberStates[index].m_flags &= ~0x1;
         CGAutoCompleteName::AddFlags(guid, 1, 0, nullptr);
         CGAutoCompleteName::RemoveFlags(guid, 32);
     }
@@ -779,7 +779,7 @@ void CGPartyInfo::AddMember(WOWGUID guid, int32_t online, const CGPartyMemberSta
     }
 }
 
-// VERIFY: 64c1cc94 manual
+// VERIFY: 295fee69 manual
 // OFFSET: 0x0052D6E0
 void CGPartyInfo::RemoveAll(int32_t a1) {
     uint32_t dungeonDifficulty = CGGameUI::GetCurrentDungeonDifficulty();
@@ -825,7 +825,7 @@ void CGPartyInfo::RemoveAll(int32_t a1) {
     CGPartyInfo::m_leader = WOWGUID();
     CGPartyInfo::m_leaderIndex = 0;
     CGPartyInfo::m_playerAssignments = 0;
-    CGPartyInfo::unk_BD1989 = 0;
+    CGPartyInfo::m_playerLFGFlags = 0;
     CGPartyInfo::m_playerRole = 0;
     CGPartyInfo::m_lfgSlot = 0;
     CGPartyInfo::m_lfgRestricted = 0;
@@ -847,16 +847,16 @@ void CGPartyInfo::ResetLootMethod() {
     CGPartyInfo::SetOptOutOfLoot(0);
 }
 
-// VERIFY: 79cf5a44 auto
+// VERIFY: 3eaac349 auto
 // OFFSET: 0x0052D8D0
 void CGPartyInfo::ChangeRaidDifficulty(int32_t heroic) {
     if (!CGGameUI::CanChangePlayerDifficulty()) {
         return;
     }
 
-    if (CGPartyInfo::unk_BD1984 && static_cast<int32_t>(static_cast<uint32_t>(::time(nullptr)) - CGPartyInfo::unk_BD1984) < 0) {
+    if (CGPartyInfo::m_nextDifficultyChange && static_cast<int32_t>(static_cast<uint32_t>(::time(nullptr)) - CGPartyInfo::m_nextDifficultyChange) < 0) {
         char duration[1024];
-        CGTooltip::GetDurationString(duration, sizeof(duration), static_cast<uint32_t>(1000 * (CGPartyInfo::unk_BD1984 - static_cast<uint32_t>(::time(nullptr)))), "INT_SPELL_DURATION", nullptr, 1, 0);
+        CGTooltip::GetDurationString(duration, sizeof(duration), static_cast<uint32_t>(1000 * (CGPartyInfo::m_nextDifficultyChange - static_cast<uint32_t>(::time(nullptr)))), "INT_SPELL_DURATION", nullptr, 1, 0);
         CGGameUI::DisplayError(ERR_DIFFICULTY_CHANGE_COOLDOWN_S, duration);
         return;
     }
@@ -868,11 +868,11 @@ void CGPartyInfo::ChangeRaidDifficulty(int32_t heroic) {
     ClientServices::Send2(&msg);
 }
 
-// VERIFY: 8c75d456 auto
+// VERIFY: d7980a8a auto
 // OFFSET: 0x00572420
 CGPartyMemberState* CGPartyInfo::GetMemberState(uint32_t index) {
     if (CGPartyInfo::m_members[index]) {
-        return &unk_BD0D08[index];
+        return &s_partyMemberStates[index];
     }
 
     return nullptr;
@@ -911,7 +911,7 @@ void CGPartyInfo::ClearRecruitAFriend(WOWGUID guid) {
     }
 }
 
-// VERIFY: 28bb1991 manual
+// VERIFY: 93e9c613 manual
 // OFFSET: 0x0052C760
 void CGPartyInfo::EnableMember(CGPlayer_C* player, int32_t enable) {
     WOWGUID guid = player->m_obj->m_guid;
@@ -932,7 +932,7 @@ void CGPartyInfo::EnableMember(CGPlayer_C* player, int32_t enable) {
         return;
     }
 
-    player->FillPartyMemberState(&unk_BD0D08[index]);
+    player->FillPartyMemberState(&s_partyMemberStates[index]);
 
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_REQUEST_PARTY_MEMBER_STATS));
@@ -953,7 +953,7 @@ void CGPartyInfo::ShutdownGame() {
     ConsoleCommandUnregister("changePlayerDifficulty");
 }
 
-// VERIFY: c2ece242 auto
+// VERIFY: 1c547e21 auto
 // OFFSET: 0x0052C460
 int32_t Packet_SMSG_PLAYER_DIFFICULTY_CHANGE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint32_t result;
@@ -993,7 +993,7 @@ int32_t Packet_SMSG_PLAYER_DIFFICULTY_CHANGE(void* param, NETMESSAGE msgId, uint
 
         case 6:
             msg->Get(value);
-            CGPartyInfo::unk_BD1984 = value + static_cast<uint32_t>(::time(nullptr));
+            CGPartyInfo::m_nextDifficultyChange = value + static_cast<uint32_t>(::time(nullptr));
             LoadingScreenEnable(CGGameUI::m_iCurrentMapID, false);
             break;
 

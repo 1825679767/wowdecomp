@@ -33,7 +33,7 @@
 static uint32_t s_maxVertexCount = 145;
 
 // STATIC: 0x00AEEC18
-static uint16_t unk_AEEC18 = 768;
+static uint16_t s_chunkBatchIndexCount = 768;
 
 // STATIC: 0x00A3FFF4
 static const uint32_t s_nibbleMask[2] = { 0x0F, 0xF0 };
@@ -137,7 +137,7 @@ void CMapRenderChunk::SetDirty() {
     CMapRenderChunk::s_bPoolsDirty = 1;
 }
 
-// VERIFY: a9a5b948 auto
+// VERIFY: b36ae9fd auto
 // OFFSET: 0x007BA340
 void CMapRenderChunk::Initialize() {
     CMapRenderChunk::s_bPoolsDirty = 1;
@@ -146,7 +146,7 @@ void CMapRenderChunk::Initialize() {
     CMapRenderChunk::s_pnEstimateVertex = 0;
     CMapRenderChunk::s_pnEstimateIndex = 0;
     CMapRenderChunk::s_chunkBatch.m_primType = GxPrim_Triangles;
-    CMapRenderChunk::s_chunkBatch.m_count = unk_AEEC18;
+    CMapRenderChunk::s_chunkBatch.m_count = s_chunkBatchIndexCount;
     CMapRenderChunk::s_chunkBatch.m_start = 0;
     CMapRenderChunk::s_chunkBatch.m_minIndex = 0;
     CMapRenderChunk::s_gxVertexPool = nullptr;

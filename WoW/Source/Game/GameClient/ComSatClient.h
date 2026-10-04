@@ -56,7 +56,7 @@ int32_t ComSatClient_FindSessionByTypeAndName(int32_t type, const char* name);
 int32_t ComSatClient_IsMemberInVoiceSession(WOWGUID guid, int32_t type, const char* name);
 int32_t ComSatClient_IsTalkerSquelchedInCurrent(WOWGUID guid);
 int32_t ComSatClient_DetermineSessionTypeFromName(const char* name);
-int32_t ComSatClient_Unk7DB830(WOWGUID guid, int32_t type, const char* name);
+int32_t ComSatClient_GetChannelMemberVoiceStatus(WOWGUID guid, int32_t type, const char* name);
 int32_t ComSatClient_IsTalkerSquelched(WOWGUID guid, uint32_t session);
 int32_t ComSatClient_IsMemberVoiceActive(WOWGUID guid, uint32_t session);
 int32_t ComSatClient_GetMemberVoiceStatus(WOWGUID guid, uint32_t session);
@@ -88,7 +88,7 @@ struct COMSATDATA {
 
 extern COMSATDATA s_comsatData[32];
 extern int32_t s_currentSession;
-extern TSHashTable<TALKINGPLAYER, CHashKeyGUID> unk_D37D88;
+extern TSHashTable<TALKINGPLAYER, CHashKeyGUID> s_talkingPlayers;
 extern CVar* s_cvarEnableMicrophone;
 extern CVar* s_cvarEnableVoiceChat;
 extern CVar* s_cvarPushToTalkButton;

@@ -58,7 +58,7 @@ class CMapObj : public CMapObjIndex, public TSHashObject<CMapObj, HASHKEY_NONE> 
     bool QueryLighting(uint32_t groupNum, const C3Vector& point, uint16_t face, CImVector* color, uint8_t* flag);
     bool QueryLighting(uint32_t groupNum, const C3Segment& seg, CImVector* color, uint8_t* flag);
     static TSList<CMapObj, TSGetExplicitLink<CMapObj> > s_asyncLoadQueue;
-    static TSList<CMapObjGroup, TSGetExplicitLink<CMapObjGroup> > s_unk_ADFC58;
+    static TSList<CMapObjGroup, TSGetExplicitLink<CMapObjGroup> > s_loadedGroups;
     static TSHashTable<CMapObj, HASHKEY_NONE> mapObjHash;
     static RENDER_CALLBACK gRenderCallback;
     static void* gRenderUserParam;

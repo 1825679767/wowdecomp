@@ -80,7 +80,7 @@ const int32_t SI2::s_channelGroupMaxSounds[18] = {
 };
 
 // STATIC: 0x00AC384C
-static float s_unk_AC384C = 0.5f;
+static float s_subchunkRound = 0.5f;
 
 // STATIC: 0x00B4A340
 int32_t SI2::s_channelGroupNumSounds[18];
@@ -1465,7 +1465,7 @@ bool SI2::GetObjectPosition(uint64_t guid, C3Vector* position) {
     return object != nullptr;
 }
 
-// VERIFY: 8084b184 manual
+// VERIFY: 94fd8429 manual
 // OFFSET: 0x004C6810
 int32_t SI2::GetChunkLocation(int32_t* mapId, int32_t* chunkX, int32_t* chunkY, int32_t* subchunkX, int32_t* subchunkY) {
     *mapId = World::QueryMapId();
@@ -1478,9 +1478,9 @@ int32_t SI2::GetChunkLocation(int32_t* mapId, int32_t* chunkX, int32_t* chunkY, 
     C3Vector position = player->GetPosition();
     float x = -(position.x - 17066.666f);
     float y = -(position.y - 17066.666f) * 0.029999999f;
-    *subchunkX = CMath::fint_(y - s_unk_AC384C);
+    *subchunkX = CMath::fint_(y - s_subchunkRound);
     x *= 0.029999999f;
-    *subchunkY = CMath::fint_(x - s_unk_AC384C);
+    *subchunkY = CMath::fint_(x - s_subchunkRound);
     *chunkX = (*subchunkX >> 4) & 0x3F;
     *chunkY = (*subchunkY >> 4) & 0x3F;
     *subchunkX &= 0xF;

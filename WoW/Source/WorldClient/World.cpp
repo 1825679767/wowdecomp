@@ -182,7 +182,7 @@ int32_t CWorld::shadowMipLevel;
 CTexture* CWorld::shadowModTexture;
 
 // STATIC: 0x00CD7658
-int32_t CWorld::unk_CD7658;
+int32_t CWorld::s_worldPoolUsage;
 
 // STATIC: 0x00CD765C
 int32_t CWorld::terrainAlphaBitDepth;
@@ -390,7 +390,7 @@ int32_t CWorldScene::s_unk_CD8620;
 CMapObjDef* CWorldScene::s_viewerMapObjDef;
 
 // STATIC: 0x00CD87AC
-float CWorldScene::s_unk_CD87AC;
+float CWorldScene::s_lodFarClip;
 
 // STATIC: 0x00CD8F44
 CAaBox CWorldScene::boundingBox;
@@ -1657,7 +1657,7 @@ void CWorld::Destroy() {
     CShadowQuery::FreeBuffers();
 }
 
-// VERIFY: 7ba61373 manual
+// VERIFY: 7261c1de manual
 // OFFSET: 0x00780F50
 void CWorld::Initialize() {
     CWorld::enables |= 0x7104B73;
@@ -1693,7 +1693,7 @@ void CWorld::Initialize() {
     }
 
     World::idMat.Identity();
-    CWorld::unk_CD7658 = 1;
+    CWorld::s_worldPoolUsage = 1;
     CWorld::shadowColor = 0xFFFFFFFF;
     CWorld::detailDoodadAlphaRef = 128;
     CWorld::detailDoodadTest = 0;
@@ -1923,13 +1923,13 @@ void CWorldScene::UpdateViewerLiquid() {
     Liquid::InvalidateProceduralTextures();
 }
 
-// VERIFY: d30349f9 auto
+// VERIFY: a0789a2d auto
 // OFFSET: 0x00790A80
 void CWorldScene::RenderLiquidPass() {
     CWorldScene::ApplyFogState();
 
-    if ((CWorld::enables & Enable_Water) && CWorldScene::s_unk_CD8610) {
-        CWorldScene::s_unk_CD8610->Flush(CWorldScene::s_activeWorldView, 1);
+    if ((CWorld::enables & Enable_Water) && CWorldScene::s_liquidRenderer) {
+        CWorldScene::s_liquidRenderer->Flush(CWorldScene::s_activeWorldView, 1);
     }
 
     CMap::RenderWaterRipples();
@@ -2511,7 +2511,7 @@ void CWorldScene::UpdateSortedModels() {
     }
 }
 
-// VERIFY: 44ac3c58 auto
+// VERIFY: b0cc1bd0 auto
 // OFFSET: 0x007935A0
 void CWorldScene::CullLiquid(CSortEntry* entry) {
     if (!(CWorld::enables & Enable_Water)) {
@@ -2535,8 +2535,8 @@ void CWorldScene::CullLiquid(CSortEntry* entry) {
             if (CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(box) && !CWorldOcclusion::QueryBuffer(&box, 0) && !CWorldOcclusion::QueryVolumes(liquid->GetSphere())) {
                 liquid->RenderPrep();
 
-                if (CWorldScene::s_unk_CD8610 && liquid->m_instance) {
-                    CWorldScene::s_unk_CD8610->Draw(liquid->m_instance);
+                if (CWorldScene::s_liquidRenderer && liquid->m_instance) {
+                    CWorldScene::s_liquidRenderer->Draw(liquid->m_instance);
                 }
             }
 
@@ -2659,7 +2659,7 @@ void CWorldScene::RenderChunksZoneDebug() {
     }
 }
 
-// VERIFY: a33d8e2c manual
+// VERIFY: 8ead38ba manual
 // OFFSET: 0x00793D20
 void CWorldScene::PrepareLiquidInstances() {
     CMapObjDefGroup* group = CWorldScene::sortTable.m_interiorLiquidGroupList.Head();
@@ -2668,7 +2668,7 @@ void CWorldScene::PrepareLiquidInstances() {
         CMapObjDefGroup* next = CWorldScene::sortTable.m_interiorLiquidGroupList.Next(group);
         group->m_liquidLink.Unlink();
 
-        if ((CWorld::enables & Enable_MapObjs) && CWorldScene::s_unk_CD8610) {
+        if ((CWorld::enables & Enable_MapObjs) && CWorldScene::s_liquidRenderer) {
             if (!group->m_liquidInstance) {
                 CMapObjDef* def = static_cast<CMapObjDef*>(group->m_parentLinkList.Head()->m_ref);
                 CMapObj* mapObj = def->m_owner;
@@ -2726,7 +2726,7 @@ void CWorldScene::PrepareLiquidInstances() {
                 group->m_liquidInstance->m_bounds = group->m_sphere;
             }
 
-            CWorldScene::s_unk_CD8610->Draw(group->m_liquidInstance);
+            CWorldScene::s_liquidRenderer->Draw(group->m_liquidInstance);
         }
 
         group = next;
@@ -2773,11 +2773,11 @@ void CSortTable::Clear() {
     this->m_horizonMapObjList.UnlinkAll();
 }
 
-// VERIFY: 35dcf5af manual
+// VERIFY: fbff50c3 auto
 // OFFSET: 0x00795400
 void CWorldScene::Update(C3Vector* camPos, C3Vector* camTarget) {
-    if (CWorldScene::s_unk_CD8610) {
-        CWorldScene::s_unk_CD8610->Validate();
+    if (CWorldScene::s_liquidRenderer) {
+        CWorldScene::s_liquidRenderer->Validate();
     }
 
     CWorldScene::s_unk_CD8620 = 0;
@@ -2798,10 +2798,10 @@ void CWorldScene::Update(C3Vector* camPos, C3Vector* camTarget) {
     CWorldScene::camPlane.n = CWorldScene::camVec;
     CWorldScene::camPlane.d = -(camPos->x * CWorldScene::camVec.x + camPos->y * CWorldScene::camVec.y + CWorldScene::camVec.z * camPos->z);
 
-    CWorldScene::s_unk_CD87AC = World::s_farClip - 100.0f;
+    CWorldScene::s_lodFarClip = World::s_farClip - 100.0f;
 
-    if (CWorldScene::s_unk_CD87AC < 400.0f) {
-        CWorldScene::s_unk_CD87AC = 400.0f;
+    if (CWorldScene::s_lodFarClip < 400.0f) {
+        CWorldScene::s_lodFarClip = 400.0f;
     }
 
     C3Vector dirXY(CWorldScene::camVec.x, CWorldScene::camVec.y, 0.0f);

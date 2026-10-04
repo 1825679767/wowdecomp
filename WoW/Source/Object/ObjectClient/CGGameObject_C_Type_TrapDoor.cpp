@@ -36,7 +36,7 @@ void CGGameObject_C_Type_TrapDoor::PostInitWithStats() {
     }
 }
 
-// VERIFY: 9982ce1e auto
+// VERIFY: 58fe01f9 auto
 // OFFSET: 0x00710460
 void CGGameObject_C_Type_TrapDoor::UpdateState(int32_t oldState, int32_t newState) {
     if (!this->m_worldObject) {
@@ -45,7 +45,7 @@ void CGGameObject_C_Type_TrapDoor::UpdateState(int32_t oldState, int32_t newStat
 
     if (newState) {
         World::ObjectSetSequence(this->m_worldObject, 146, 0, 0);
-        this->m_owner->unk_020C = 1;
+        this->m_owner->m_hasWorldBounds = 1;
         World::ObjectEnableCollision(this->m_worldObject, 1);
         return;
     }
@@ -69,7 +69,7 @@ void CGGameObject_C_Type_TrapDoor::UpdateState(int32_t oldState, int32_t newStat
     }
 
     World::ObjectSetSequence(this->m_worldObject, 148, 0, 0);
-    this->m_owner->unk_020C = 0;
+    this->m_owner->m_hasWorldBounds = 0;
     World::ObjectEnableCollision(this->m_worldObject, 0);
 }
 

@@ -47,7 +47,7 @@ static uint32_t s_maxUntexturedBatches;
 float CShadowQuery::s_cutoffHeight;
 
 // STATIC: 0x00D25320
-ShadowQueryBuffers CShadowQuery::s_unk_D25320[3];
+ShadowQueryBuffers CShadowQuery::s_bandBuffers[3];
 
 // VERIFY: a0192ad6 auto
 // OFFSET: 0x007BD3A0
@@ -66,7 +66,7 @@ void CShadowQuery::Initialize() {
 
 // OFFSET: 0x007BA7D0
 void CShadowQuery::FreeBuffers() {
-    for (ShadowQueryBuffers* buffers = CShadowQuery::s_unk_D25320; buffers < CShadowQuery::s_unk_D25320 + sizeof(CShadowQuery::s_unk_D25320) / sizeof(CShadowQuery::s_unk_D25320[0]); buffers++) {
+    for (ShadowQueryBuffers* buffers = CShadowQuery::s_bandBuffers; buffers < CShadowQuery::s_bandBuffers + sizeof(CShadowQuery::s_bandBuffers) / sizeof(CShadowQuery::s_bandBuffers[0]); buffers++) {
         if (buffers->m_groups) {
             SMemFree(buffers->m_groups, nullptr, 0, 0);
         }
@@ -238,11 +238,11 @@ void CShadowQuery::FrustumCallback(CFrustum& frustum, C44Matrix& matrix, const C
     }
 }
 
-// VERIFY: dcacd0a0 manual
+// VERIFY: dc5e2519 manual
 // OFFSET: 0x007BA840
 void CShadowQuery::AllocBuffers() {
     for (uint32_t i = 0; i < 3; i++) {
-        ShadowQueryBuffers& buffers = CShadowQuery::s_unk_D25320[i];
+        ShadowQueryBuffers& buffers = CShadowQuery::s_bandBuffers[i];
         buffers.m_groupCount = 0;
         buffers.m_untextured.m_count = 0;
         buffers.m_untextured.m_maxCount = 0x2000;
@@ -320,10 +320,10 @@ int32_t CShadowQuery::QueryCallback(CShadowCacheQueryData& data, uint32_t frame)
     return 1;
 }
 
-// VERIFY: db05a051 manual
+// VERIFY: 2abab737 manual
 // OFFSET: 0x007BBC50
 int32_t CShadowQuery::RenderCallback(CShadowCacheQueryData& data, int32_t band, CGxTex* target, CGxTex* colorTarget, C3Vector& direction) {
-    ShadowQueryBuffers& buffers = CShadowQuery::s_unk_D25320[band];
+    ShadowQueryBuffers& buffers = CShadowQuery::s_bandBuffers[band];
 
     if (!buffers.m_groupCount && !buffers.m_untextured.m_count && !buffers.m_textured.m_count) {
         CShadowQuery::Clear(target, colorTarget, data.m_texBounds[band]);
@@ -438,7 +438,7 @@ int32_t CShadowQuery::RenderCallback(CShadowCacheQueryData& data, int32_t band, 
     return 1;
 }
 
-// VERIFY: 6e6b50bc manual
+// VERIFY: f464b8c3 manual
 // OFFSET: 0x007BB9D0
 void CShadowQuery::GatherShadowCasters(CShadowCacheQueryData& data, int32_t firstBand, int32_t lastBand) {
     float maxRadius[3];
@@ -472,7 +472,7 @@ void CShadowQuery::GatherShadowCasters(CShadowCacheQueryData& data, int32_t firs
             isUnit = 0;
         }
 
-        uint32_t doodad = (model->m_fFlags & 0x1) ? model->m_shared->unk_0198 : 0;
+        uint32_t doodad = (model->m_fFlags & 0x1) ? model->m_shared->m_billboardBoneCount : 0;
 
         for (int32_t band = firstBand; band <= lastBand; band++) {
             int32_t queryFlags = data.m_queryFlags[band];
@@ -525,7 +525,7 @@ void CShadowQuery::GatherShadowCasters(CShadowCacheQueryData& data, int32_t firs
 
             if (extents.t.x >= bbox.b.x && extents.t.y >= bbox.b.y && extents.t.z >= bbox.b.z && extents.b.x <= bbox.t.x && extents.b.y <= bbox.t.y && extents.b.z <= bbox.t.z && minRadius[band] <= entity->m_sphere.r && ((flags & 0x20000) || maxRadius[band] >= entity->m_sphere.r)) {
                 if (data.unk_0624[band].Cull(bbox) && (!data.m_useCullFrustum[band] || data.m_cullFrustums[band].CullInv(bbox) != 3)) {
-                    model->GatherModelBatchesShadowMap(CShadowQuery::s_unk_D25320[band].m_untextured, CShadowQuery::s_unk_D25320[band].m_textured);
+                    model->GatherModelBatchesShadowMap(CShadowQuery::s_bandBuffers[band].m_untextured, CShadowQuery::s_bandBuffers[band].m_textured);
                 }
             }
         }
@@ -619,7 +619,7 @@ static void GetChunkRect(const CAaBox& box, CiRect& rect) {
     rect.maxX = cellMaxX >> 3;
 }
 
-// VERIFY: 0804bb2b manual
+// VERIFY: 9b4413e5 manual
 // OFFSET: 0x007BC890
 void CShadowQuery::QueryMapObjDefsBand(CShadowCacheQueryData& data, int32_t band) {
     float minSize;
@@ -688,7 +688,7 @@ void CShadowQuery::QueryMapObjDefsBand(CShadowCacheQueryData& data, int32_t band
             }
 
             if (interior ? (data.m_queryFlags[band] & 0x4) : (data.m_queryFlags[band] & 0x8)) {
-                ShadowQueryBuffers& buffers = CShadowQuery::s_unk_D25320[band];
+                ShadowQueryBuffers& buffers = CShadowQuery::s_bandBuffers[band];
 
                 if (buffers.m_groupCount >= 0x800) {
                     break;
@@ -712,17 +712,17 @@ void CShadowQuery::QueryMapObjDefsBand(CShadowCacheQueryData& data, int32_t band
                     continue;
                 }
 
-                int32_t wanted = model->GetSharedUnk0198() ? castDoodads : castOther;
+                int32_t wanted = model->GetBillboardBoneCount() ? castDoodads : castOther;
 
                 if (wanted && extents.Intersects(doodad->m_bbox) && data.unk_0624[band].Cull(doodad->m_bbox) && (!data.m_useCullFrustum[band] || data.m_cullFrustums[band].CullInv(doodad->m_bbox) != 3)) {
-                    model->GatherModelBatchesShadowMap(CShadowQuery::s_unk_D25320[band].m_untextured, CShadowQuery::s_unk_D25320[band].m_textured);
+                    model->GatherModelBatchesShadowMap(CShadowQuery::s_bandBuffers[band].m_untextured, CShadowQuery::s_bandBuffers[band].m_textured);
                 }
             }
         }
     }
 }
 
-// VERIFY: 5ac16a0c manual
+// VERIFY: 34693e83 manual
 // OFFSET: 0x007BC490
 void CShadowQuery::QueryMapObjDefs(CShadowCacheQueryData& data, int32_t firstBand, int32_t lastBand) {
     for (CMapObjDef* def = CMap::mapObjDefHash.m_fulllist.Head(); def; def = CMap::mapObjDefHash.Next(def)) {
@@ -758,7 +758,7 @@ void CShadowQuery::QueryMapObjDefs(CShadowCacheQueryData& data, int32_t firstBan
 
             for (int32_t band = firstBand; band <= lastBand; band++) {
                 if (data.m_extents[band].Intersects(defGroup->m_bbox) && data.unk_0624[band].Cull(defGroup->m_bbox) && (!data.m_useCullFrustum[band] || data.m_cullFrustums[band].CullInv(defGroup->m_bbox) != 3)) {
-                    ShadowQueryBuffers& buffers = CShadowQuery::s_unk_D25320[band];
+                    ShadowQueryBuffers& buffers = CShadowQuery::s_bandBuffers[band];
 
                     if (buffers.m_groupCount >= 0x800) {
                         break;
@@ -784,7 +784,7 @@ void CShadowQuery::QueryMapObjDefs(CShadowCacheQueryData& data, int32_t firstBan
                     doodad->m_shadowStamps[band] = CShadowQuery::s_stamp;
 
                     if (!CWorldScene::IsBeyondFadeDistance(doodad->m_sphere.c, doodad->m_fadeLevel) && data.m_extents[band].Intersects(doodad->m_bbox) && data.unk_0624[band].Cull(doodad->m_bbox) && (!data.m_useCullFrustum[band] || data.m_cullFrustums[band].CullInv(doodad->m_bbox) != 3)) {
-                        doodad->m_model->GatherModelBatchesShadowMap(CShadowQuery::s_unk_D25320[band].m_untextured, CShadowQuery::s_unk_D25320[band].m_textured);
+                        doodad->m_model->GatherModelBatchesShadowMap(CShadowQuery::s_bandBuffers[band].m_untextured, CShadowQuery::s_bandBuffers[band].m_textured);
                     }
                 }
             }
@@ -792,7 +792,7 @@ void CShadowQuery::QueryMapObjDefs(CShadowCacheQueryData& data, int32_t firstBan
     }
 }
 
-// VERIFY: ffc858b2 manual
+// VERIFY: 896bfb08 manual
 // OFFSET: 0x007BCF20
 void CShadowQuery::QueryTerrainBand(CShadowCacheQueryData& data, int32_t band) {
     float minSize;
@@ -842,17 +842,17 @@ void CShadowQuery::QueryTerrainBand(CShadowCacheQueryData& data, int32_t band) {
                     continue;
                 }
 
-                int32_t wanted = model->GetSharedUnk0198() ? (data.m_queryFlags[band] & 0x4) : (data.m_queryFlags[band] & 0x8);
+                int32_t wanted = model->GetBillboardBoneCount() ? (data.m_queryFlags[band] & 0x4) : (data.m_queryFlags[band] & 0x8);
 
                 if (wanted && extents.Intersects(doodad->m_bbox) && data.unk_0624[band].Cull(doodad->m_bbox) && (!data.m_useCullFrustum[band] || data.m_cullFrustums[band].CullInv(doodad->m_bbox) != 3)) {
-                    model->GatherModelBatchesShadowMap(CShadowQuery::s_unk_D25320[band].m_untextured, CShadowQuery::s_unk_D25320[band].m_textured);
+                    model->GatherModelBatchesShadowMap(CShadowQuery::s_bandBuffers[band].m_untextured, CShadowQuery::s_bandBuffers[band].m_textured);
                 }
             }
         }
     }
 }
 
-// VERIFY: 8f9ffb3c manual
+// VERIFY: ba8a3951 manual
 // OFFSET: 0x007BCC00
 void CShadowQuery::QueryTerrain(CShadowCacheQueryData& data, int32_t firstBand, int32_t lastBand) {
     CiRect rect;
@@ -894,7 +894,7 @@ void CShadowQuery::QueryTerrain(CShadowCacheQueryData& data, int32_t firstBand, 
                     continue;
                 }
 
-                uint32_t doodadFlag = model->GetSharedUnk0198();
+                uint32_t doodadFlag = model->GetBillboardBoneCount();
 
                 for (int32_t band = firstBand; band <= lastBand; band++) {
                     if (doodad->m_shadowStamps[band] == CShadowQuery::s_stamp) {
@@ -912,7 +912,7 @@ void CShadowQuery::QueryTerrain(CShadowCacheQueryData& data, int32_t firstBand, 
                     }
 
                     if (data.m_extents[band].Intersects(doodad->m_bbox) && data.unk_0624[band].Cull(doodad->m_bbox) && (!data.m_useCullFrustum[band] || data.m_cullFrustums[band].CullInv(doodad->m_bbox) != 3)) {
-                        model->GatherModelBatchesShadowMap(CShadowQuery::s_unk_D25320[band].m_untextured, CShadowQuery::s_unk_D25320[band].m_textured);
+                        model->GatherModelBatchesShadowMap(CShadowQuery::s_bandBuffers[band].m_untextured, CShadowQuery::s_bandBuffers[band].m_textured);
                     }
                 }
             }

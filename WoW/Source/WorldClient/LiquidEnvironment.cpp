@@ -9,12 +9,12 @@
 #include "WoW/Source/WorldClient/World.h"
 
 // STATIC: 0x00D31A00
-CDataAllocator Liquid::s_unk_D31A00(sizeof(Liquid::CClientEnvironment), 0x10);
+CDataAllocator Liquid::s_clientEnvironmentAllocator(sizeof(Liquid::CClientEnvironment), 0x10);
 
-// VERIFY: e3c196d2 auto
+// VERIFY: 6d5d98ec auto
 // OFFSET: 0x007D5100
 void Liquid::ClearClientEnvironments() {
-    Liquid::s_unk_D31A00.Clear(".?AVCClientEnvironment@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_clientEnvironmentAllocator.Clear(".?AVCClientEnvironment@Liquid@@", SLOG_OBJECT, 1);
 }
 
 // VERIFY: 5ea0339f auto
@@ -23,11 +23,11 @@ void Liquid::CClientEnvironment::SetInteriorFog(int32_t interiorFog) {
     this->m_interiorFog = interiorFog;
 }
 
-// VERIFY: 442bf5b9 auto
+// VERIFY: 2f7c754e auto
 // OFFSET: 0x007D4F20
 void Liquid::CClientEnvironment::Release() {
     this->~CClientEnvironment();
-    Liquid::s_unk_D31A00.PutData(this, nullptr, 0);
+    Liquid::s_clientEnvironmentAllocator.PutData(this, nullptr, 0);
 }
 
 // VERIFY: 2a7d5c2c manual
@@ -77,10 +77,10 @@ void Liquid::CClientEnvironment::SelectLights(CM2Lighting* lighting) {
     World::s_m2Scene->SelectLights(lighting);
 }
 
-// VERIFY: 83664886 auto
+// VERIFY: 8ab34ec9 auto
 // OFFSET: 0x007D5120
 Liquid::CClientEnvironment* Liquid::CClientEnvironment::Create(int32_t customLight) {
-    void* mem = Liquid::s_unk_D31A00.GetData(0, ".?AVCClientEnvironment@Liquid@@", SLOG_OBJECT);
+    void* mem = Liquid::s_clientEnvironmentAllocator.GetData(0, ".?AVCClientEnvironment@Liquid@@", SLOG_OBJECT);
     Liquid::CClientEnvironment* environment = mem ? new (mem) Liquid::CClientEnvironment() : nullptr;
     environment->m_interiorFog = 0;
     environment->m_customLight = customLight;

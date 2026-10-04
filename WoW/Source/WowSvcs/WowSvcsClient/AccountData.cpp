@@ -25,7 +25,7 @@ static AccountDataInfo s_accountData[] = {
 };
 
 // STATIC: 0x00C7BFF0
-static uint32_t unk_C7BFF0;
+static uint32_t s_accountDataTime;
 
 // STATIC: 0x00C7BFF8
 static int32_t unk_C7BFF8;
@@ -248,13 +248,13 @@ void SetClearConfigData(int32_t clear) {
     unk_C7BFFC = clear;
 }
 
-// VERIFY: 53caa8f1 manual
+// VERIFY: 61aba3c9 manual
 // OFFSET: 0x006B9100
 void UploadAccountData(int32_t type) {
     HOSFILE file = OpenAccountFile(s_accountData[type].m_global, s_accountData[type].m_cacheFile, false);
     uint32_t size = file == OS_INVALID_FILE ? 0 : static_cast<uint32_t>(OsGetFileSize(file));
 
-    uint32_t time = unk_C7BFF0++;
+    uint32_t time = s_accountDataTime++;
 
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_UPDATE_ACCOUNT_DATA));
@@ -365,12 +365,12 @@ static void ScheduleAccountDataSave(int32_t type) {
     info.unk_0020 = ClientSetTimer(30000, SaveTimerHandler, reinterpret_cast<void*>(static_cast<intptr_t>(type)));
 }
 
-// VERIFY: ffb25893 manual
+// VERIFY: fe34ba05 manual
 // OFFSET: 0x006B94C0
 static int32_t Packet_SMSG_ACCOUNT_DATA_TIMES(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint32_t serverTime = 0;
     msg->Get(serverTime);
-    unk_C7BFF0 = serverTime;
+    s_accountDataTime = serverTime;
 
     uint8_t unk;
     msg->Get(unk);

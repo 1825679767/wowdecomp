@@ -5,13 +5,13 @@
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00D45098
-CDataAllocator Liquid::s_unk_D45098(sizeof(Liquid::CMaterialWaterFFP), 8);
+CDataAllocator Liquid::s_waterFFPAllocator(sizeof(Liquid::CMaterialWaterFFP), 8);
 
 // STATIC: 0x00D45084
-CDataAllocator Liquid::s_unk_D45084(sizeof(Liquid::CMaterialWaterNoSpec), 8);
+CDataAllocator Liquid::s_waterNoSpecAllocator(sizeof(Liquid::CMaterialWaterNoSpec), 8);
 
 // STATIC: 0x00D45070
-CDataAllocator Liquid::s_unk_D45070(sizeof(Liquid::CMaterialWater), 8);
+CDataAllocator Liquid::s_waterAllocator(sizeof(Liquid::CMaterialWater), 8);
 
 // STATIC: 0x00D44C38
 int32_t Liquid::CMaterialWater::s_refCount;
@@ -31,11 +31,11 @@ CGxShader* Liquid::CMaterialWaterNoSpec::s_vertexShaders[4];
 // STATIC: 0x00D44BF8
 CGxShader* Liquid::CMaterialWaterNoSpec::s_pixelShader;
 
-// VERIFY: 6cccb7b7 auto
+// VERIFY: 65c05f6d auto
 // OFFSET: 0x008A3F50
 void Liquid::CMaterialWater::Release() {
     this->~CMaterialWater();
-    Liquid::s_unk_D45070.PutData(this, nullptr, 0);
+    Liquid::s_waterAllocator.PutData(this, nullptr, 0);
 }
 
 // VERIFY: 05103905 auto
@@ -63,11 +63,11 @@ Liquid::CMaterialWater::~CMaterialWater() {
     }
 }
 
-// VERIFY: 62a636a6 auto
+// VERIFY: 894fb61f auto
 // OFFSET: 0x008A4050
 void Liquid::CMaterialWaterNoSpec::Release() {
     this->~CMaterialWaterNoSpec();
-    Liquid::s_unk_D45084.PutData(this, nullptr, 0);
+    Liquid::s_waterNoSpecAllocator.PutData(this, nullptr, 0);
 }
 
 // VERIFY: 4a9ff4b4 auto
@@ -95,31 +95,31 @@ Liquid::CMaterialWaterNoSpec::~CMaterialWaterNoSpec() {
     }
 }
 
-// VERIFY: 2a90d358 auto
+// VERIFY: 6511eac6 auto
 // OFFSET: 0x008A4150
 void Liquid::CMaterialWaterFFP::Release() {
     this->~CMaterialWaterFFP();
-    Liquid::s_unk_D45098.PutData(this, nullptr, 0);
+    Liquid::s_waterFFPAllocator.PutData(this, nullptr, 0);
 }
 
-// VERIFY: b9a59821 auto
+// VERIFY: eb81c4d7 auto
 // OFFSET: 0x008A4790
 Liquid::CMaterialWater* Liquid::CMaterialWater::Create() {
-    void* mem = Liquid::s_unk_D45070.GetData(0, ".?AVCMaterialWater@Liquid@@", SLOG_OBJECT);
+    void* mem = Liquid::s_waterAllocator.GetData(0, ".?AVCMaterialWater@Liquid@@", SLOG_OBJECT);
     return mem ? new (mem) Liquid::CMaterialWater() : nullptr;
 }
 
-// VERIFY: 942c0c77 auto
+// VERIFY: c1099507 auto
 // OFFSET: 0x008A47F0
 Liquid::CMaterialWaterNoSpec* Liquid::CMaterialWaterNoSpec::Create() {
-    void* mem = Liquid::s_unk_D45084.GetData(0, ".?AVCMaterialWaterNoSpec@Liquid@@", SLOG_OBJECT);
+    void* mem = Liquid::s_waterNoSpecAllocator.GetData(0, ".?AVCMaterialWaterNoSpec@Liquid@@", SLOG_OBJECT);
     return mem ? new (mem) Liquid::CMaterialWaterNoSpec() : nullptr;
 }
 
-// VERIFY: 193cac49 auto
+// VERIFY: f4a31f53 auto
 // OFFSET: 0x008A4850
 Liquid::CMaterialWaterFFP* Liquid::CMaterialWaterFFP::Create() {
-    void* mem = Liquid::s_unk_D45098.GetData(0, ".?AVCMaterialWaterFFP@Liquid@@", SLOG_OBJECT);
+    void* mem = Liquid::s_waterFFPAllocator.GetData(0, ".?AVCMaterialWaterFFP@Liquid@@", SLOG_OBJECT);
     return mem ? new (mem) Liquid::CMaterialWaterFFP() : nullptr;
 }
 

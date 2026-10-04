@@ -149,13 +149,13 @@ uint32_t CVehicle_C::IsBoneAnimPlaying(uint32_t bone) const {
     return this->m_playingBoneAnims[bone >> 5] & (1 << (bone & 0x1F));
 }
 
-// VERIFY: 9c052d21 manual
+// VERIFY: 0f448e4f manual
 // OFFSET: 0x00756F40
 int32_t CVehicle_C::HasHighPriorityCastingAnim() const {
     if (this->m_vehicleRec && (this->m_vehicleRec->m_flags & 0x10000)) {
         CGUnit_C* unit = this->m_unit;
 
-        if ((unit->m_animationState & 0x400) || unit->unk_0FA4 != -1) {
+        if ((unit->m_animationState & 0x400) || unit->m_specialIdleAnim != -1) {
             return 1;
         }
     }
@@ -163,7 +163,7 @@ int32_t CVehicle_C::HasHighPriorityCastingAnim() const {
     return 0;
 }
 
-// VERIFY: a6b75f96 manual
+// VERIFY: cfe65bc9 manual
 // OFFSET: 0x007571C0
 int32_t CVehicle_C::HasHighPriorityAnim() const {
     if (this->m_playingBoneAnims[0] & 0x4000000) {
@@ -176,7 +176,7 @@ int32_t CVehicle_C::HasHighPriorityAnim() const {
 
     CGUnit_C* unit = this->m_unit;
 
-    if (!(unit->m_animationState & 0x400) && unit->unk_0FA4 == -1) {
+    if (!(unit->m_animationState & 0x400) && unit->m_specialIdleAnim == -1) {
         return 0;
     }
 

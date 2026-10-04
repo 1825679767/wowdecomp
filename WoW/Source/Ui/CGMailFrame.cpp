@@ -6,7 +6,7 @@
 #include "WoW/Source/Ui/MailInfo.h"
 #include "WoW/Source/Ui/Types.h"
 
-// VERIFY: 233c957f manual
+// VERIFY: 587c3b2c manual
 // OFFSET: 0x0056D4D0
 void CGMailInfo::ClearSendMail(bool signal) {
     for (uint32_t i = 0; i < 16; i++) {
@@ -19,7 +19,7 @@ void CGMailInfo::ClearSendMail(bool signal) {
     CGMailInfo::m_sendMoney = 0;
     CGMailInfo::m_lockSendItems = 0;
     CGMailInfo::m_sendCOD = 0;
-    CGMailInfo::unk_BEB1C4 = 0;
+    CGMailInfo::m_sendPending = 0;
     CGMailInfo::m_selectedStationery = 0;
     CGMailInfo::m_selectedPackage = 0;
 

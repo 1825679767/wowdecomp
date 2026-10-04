@@ -83,7 +83,7 @@ void WowConnectionNet::PlatformRun() {
                 connections[count] = connection;
                 count++;
 
-                if (connection->unk_00FC.Head()) {
+                if (connection->m_lagTestRecvList.Head()) {
                     timeout = 0;
                 }
             }

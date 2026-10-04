@@ -94,7 +94,7 @@ static bool ParseTrailingTokens(const char* token, WOWGUID& guid, CGPlayer_C* pl
     return true;
 }
 
-// VERIFY: f5163c71 manual
+// VERIFY: 618bd45a auto
 // OFFSET: 0x0060ABF0
 bool Script_GetGUIDFromToken(const char* token, WOWGUID& guid, bool defaultToTarget) {
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -161,7 +161,7 @@ bool Script_GetGUIDFromToken(const char* token, WOWGUID& guid, bool defaultToTar
         }
     } else if (!SStrCmpI(token, "focus", 5)) {
         token += 5;
-        guid = CGGameUI::unk_BD07D0;
+        guid = CGGameUI::m_focusTarget;
     } else if (!SStrCmpI(token, "npc", STORM_MAX_STR)) {
         token += 3;
         guid = CGGameUI::m_interactTarget;
@@ -220,7 +220,7 @@ void Script_SendUniqueSignal(const WOWGUID& guid, int32_t signal) {
     entry->m_signal = signal;
 }
 
-// VERIFY: 52e11eaa manual
+// VERIFY: a6908deb manual
 // OFFSET: 0x006144D0
 void Script_SendUniqueSignalToAllUnits(int32_t signal) {
     CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -300,8 +300,8 @@ void Script_SendUniqueSignalToAllUnits(int32_t signal) {
         Script_SendUniqueSignal(CGGameUI::m_lockedTarget, signal);
     }
 
-    if (CGGameUI::unk_BD07D0) {
-        Script_SendUniqueSignal(CGGameUI::unk_BD07D0, signal);
+    if (CGGameUI::m_focusTarget) {
+        Script_SendUniqueSignal(CGGameUI::m_focusTarget, signal);
     }
 
     if (CGGameUI::m_interactTarget) {
@@ -587,7 +587,7 @@ static char s_auraToken[32];
 // STATIC: 0x00C25B5C
 static char s_tokenFromGUID[32];
 
-// VERIFY: f3bf0179 manual
+// VERIFY: 141ebd52 manual
 // OFFSET: 0x0060B0B0
 const char* Script_GetTokenFromGUID(const WOWGUID* guid) {
     if (!*guid) {
@@ -659,7 +659,7 @@ const char* Script_GetTokenFromGUID(const WOWGUID* guid) {
         return "target";
     }
 
-    if (*guid == CGGameUI::unk_BD07D0) {
+    if (*guid == CGGameUI::m_focusTarget) {
         return "focus";
     }
 
@@ -674,7 +674,7 @@ const char* Script_GetTokenFromGUID(const WOWGUID* guid) {
     return nullptr;
 }
 
-// VERIFY: 4748d1fc manual
+// VERIFY: 37a3ec96 manual
 // OFFSET: 0x0060B420
 const char* Script_GetAuraTokenFromGUID(const WOWGUID* guid) {
     if (!*guid) {
@@ -739,7 +739,7 @@ const char* Script_GetAuraTokenFromGUID(const WOWGUID* guid) {
         return "target";
     }
 
-    if (*guid == CGGameUI::unk_BD07D0) {
+    if (*guid == CGGameUI::m_focusTarget) {
         return "focus";
     }
 
@@ -844,7 +844,7 @@ const char* Script_GetAuraTokenFromGUID(const WOWGUID* guid) {
         return "target";
     }
 
-    if ((owner && owner == CGGameUI::unk_BD07D0) || (charm && charm == CGGameUI::unk_BD07D0)) {
+    if ((owner && owner == CGGameUI::m_focusTarget) || (charm && charm == CGGameUI::m_focusTarget)) {
         return "focus";
     }
 
@@ -859,7 +859,7 @@ const char* Script_GetAuraTokenFromGUID(const WOWGUID* guid) {
     return nullptr;
 }
 
-// VERIFY: fba1c703 manual
+// VERIFY: 1a4d44e4 manual
 // OFFSET: 0x0060BB70
 char** Script_GetTokenIDsFromGUID(const WOWGUID& guid, int32_t* count) {
     *count = 0;
@@ -933,7 +933,7 @@ char** Script_GetTokenIDsFromGUID(const WOWGUID& guid, int32_t* count) {
         SStrCopy(s_tokenIDs[(*count)++], "target", sizeof(s_tokenBuffers[0]));
     }
 
-    if (guid == CGGameUI::unk_BD07D0) {
+    if (guid == CGGameUI::m_focusTarget) {
         SStrCopy(s_tokenIDs[(*count)++], "focus", sizeof(s_tokenBuffers[0]));
     }
 

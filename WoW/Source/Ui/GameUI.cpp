@@ -919,7 +919,7 @@ static UIErrorInfo s_errorInfo[ERR_MAX_VALUE] = {
 int32_t CGGameUI::m_cursorEquipmentSet = -1;
 
 // STATIC: 0x00AC80A4
-int32_t CGGameUI::unk_AC80A4;
+int32_t CGGameUI::m_phaseMask;
 
 // STATIC: 0x00AC80A8
 int32_t CGGameUI::m_visible = 1;
@@ -1042,7 +1042,7 @@ WOWGUID CGGameUI::m_lastEnemyTarget;
 WOWGUID CGGameUI::m_lastFriendTarget;
 
 // STATIC: 0x00BD07D0
-WOWGUID CGGameUI::unk_BD07D0;
+WOWGUID CGGameUI::m_focusTarget;
 
 // STATIC: 0x00BD07E0
 int32_t CGGameUI::m_cursorSpell;
@@ -1057,10 +1057,10 @@ int32_t CGGameUI::m_cursorMacro;
 int32_t CGGameUI::m_cursorPet;
 
 // STATIC: 0x00BD07F0
-int32_t CGGameUI::unk_BD07F0;
+int32_t CGGameUI::m_screenWidth;
 
 // STATIC: 0x00BD07F4
-int32_t CGGameUI::unk_BD07F4;
+int32_t CGGameUI::m_screenHeight;
 
 // STATIC: 0x00BD07F8
 float CGGameUI::m_aspect;
@@ -1111,10 +1111,10 @@ uint32_t CGGameUI::m_summonConfirmTime;
 uint32_t CGGameUI::m_billingExpireTime;
 
 // STATIC: 0x00BD0878
-int32_t CGGameUI::unk_BD0878;
+int32_t CGGameUI::m_billingNagCheckTime;
 
 // STATIC: 0x00BD087C
-int32_t CGGameUI::unk_BD087C;
+int32_t CGGameUI::m_billingNagShown;
 
 // STATIC: 0x00BD0880
 int32_t CGGameUI::m_initialized;
@@ -1144,7 +1144,7 @@ WOWGUID CGGameUI::m_comboTarget;
 int32_t CGGameUI::m_threatWarningEnabled;
 
 // STATIC: 0x00BD08C4
-uint16_t CGGameUI::unk_BD08C4;
+uint16_t CGGameUI::m_accountDataGeneration;
 
 // STATIC: 0x00BD08CC
 int32_t CGGameUI::unk_BD08CC;
@@ -1168,10 +1168,10 @@ int32_t CGGameUI::m_stackSplit;
 uint8_t CGGameUI::s_inWorld;
 
 // STATIC: 0x00BD08A4
-uint32_t CGGameUI::unk_BD08A4;
+uint32_t CGGameUI::m_autoStoreItemID;
 
 // STATIC: 0x00BD08B0
-WOWGUID CGGameUI::unk_BD08B0;
+WOWGUID CGGameUI::m_autoStoreItem;
 
 // STATIC: 0x00BD0818
 int32_t CGGameUI::m_corpseMapID;
@@ -1180,7 +1180,7 @@ int32_t CGGameUI::m_corpseMapID;
 int32_t CGGameUI::m_corpseActualMapID;
 
 // STATIC: 0x00BD0820
-int32_t CGGameUI::unk_BD0820;
+int32_t CGGameUI::m_corpseInRange;
 
 // STATIC: 0x00BD0830
 WOWGUID CGGameUI::m_corpseTransportGUID;
@@ -1664,7 +1664,7 @@ int32_t CGGameUI::CanPerformAction(uint32_t action) {
     return 1;
 }
 
-// VERIFY: ba028438 manual
+// VERIFY: a126fb23 manual
 // OFFSET: 0x0052A980
 void CGGameUI::InitializeFrameXML() {
     CGChat::Pause();
@@ -1686,8 +1686,8 @@ void CGGameUI::InitializeFrameXML() {
     CGGameUI::m_summonConfirmTime = 0;
 
     g_theGxDevicePtr->CapsWindowSizeInScreenCoords(windowRect);
-    CGGameUI::unk_BD07F0 = 0;
-    CGGameUI::unk_BD07F4 = 0;
+    CGGameUI::m_screenWidth = 0;
+    CGGameUI::m_screenHeight = 0;
     CGGameUI::SetAspect();
 
     CGGameUI::m_simpleTop = new (__FILE__, __LINE__) CSimpleTop();
@@ -1824,7 +1824,7 @@ void CGGameUI::InitializeFrameXML() {
     CGGameUI::m_currentlyReloadingUI = 0;
 }
 
-// VERIFY: 008486be auto
+// VERIFY: 12c281d2 auto
 // OFFSET: 0x0052B550
 void CGGameUI::InitializeGame() {
     ClientServices::SetMessageHandler(SMSG_PVP_CREDIT, CGGameUI::MessageHandler, nullptr);
@@ -1863,8 +1863,8 @@ void CGGameUI::InitializeGame() {
     ClientServices::SetMessageHandler(SMSG_TALENTS_INVOLUNTARILY_RESET, CGGameUI::MessageHandler, nullptr);
 
     do {
-        CGGameUI::unk_BD08C4++;
-    } while (!CGGameUI::unk_BD08C4);
+        CGGameUI::m_accountDataGeneration++;
+    } while (!CGGameUI::m_accountDataGeneration);
 
     for (uint32_t i = 0; i < sizeof(s_readOnlyCVars) / sizeof(s_readOnlyCVars[0]); i++) {
         CVar* var = CVar::Lookup(s_readOnlyCVars[i]);
@@ -1926,11 +1926,11 @@ void CGGameUI::InitializeGame() {
 
     if (billingMinutes <= 4320 && !(ClientServices::Connection()->m_billingFlags & 0x2) && billingMinutes) {
         CGGameUI::m_billingExpireTime = 60000 * billingMinutes + OsGetAsyncTimeMs();
-        CGGameUI::unk_BD0878 = 0;
-        CGGameUI::unk_BD087C = 0;
+        CGGameUI::m_billingNagCheckTime = 0;
+        CGGameUI::m_billingNagShown = 0;
     }
 
-    CGGameUI::unk_AC80A4 = 1;
+    CGGameUI::m_phaseMask = 1;
     CGGameUI::m_instanceDifficulty = 0;
     CGGameUI::m_dungeonDifficulty = 0;
     CGGameUI::m_lastRegenTime = 0;
@@ -1978,7 +1978,7 @@ void CGGameUI::InitializeGame() {
     }
 }
 
-// VERIFY: d38c16ee manual
+// VERIFY: fa2430a7 manual
 // OFFSET: 0x0052AF40
 int32_t CGGameUI::Idle(const void* data, void* param) {
     if (g_theGxDevicePtr->StereoEnabled()) {
@@ -2020,19 +2020,19 @@ int32_t CGGameUI::Idle(const void* data, void* param) {
         uint32_t minutes = static_cast<uint32_t>(ceil(remaining * (1.0f / 60000.0f)));
         int32_t igr = (ClientServices::Connection()->m_billingFlags >> 3) & 1;
 
-        if (!CGGameUI::unk_BD0878) {
+        if (!CGGameUI::m_billingNagCheckTime) {
             if (igr) {
                 if (minutes <= 600) {
                     FrameScript_SignalEvent(SCRIPT_EVENT_IGR_BILLING_NAG_DIALOG, nullptr);
-                    CGGameUI::unk_BD087C = 1;
+                    CGGameUI::m_billingNagShown = 1;
                 }
             } else if (minutes <= 30) {
                 FrameScript_SignalEvent(SCRIPT_EVENT_BILLING_NAG_DIALOG, "%d", minutes);
-                CGGameUI::unk_BD087C = 1;
+                CGGameUI::m_billingNagShown = 1;
             }
 
-            CGGameUI::unk_BD0878 = now;
-        } else if (static_cast<int32_t>(now - CGGameUI::unk_BD0878) >= 0 && !igr) {
+            CGGameUI::m_billingNagCheckTime = now;
+        } else if (static_cast<int32_t>(now - CGGameUI::m_billingNagCheckTime) >= 0 && !igr) {
             if (minutes <= 30) {
                 char text[3000];
                 SStrPrintf(text, sizeof(text), FrameScript_GetText("BILLING_NAG_WARNING", -1, GENDER_NOT_APPLICABLE), minutes);
@@ -2041,9 +2041,9 @@ int32_t CGGameUI::Idle(const void* data, void* param) {
 
             if (static_cast<int32_t>(now - CGGameUI::m_billingExpireTime) < 0) {
                 if (minutes <= 5) {
-                    CGGameUI::unk_BD0878 = now + remaining % 60000;
+                    CGGameUI::m_billingNagCheckTime = now + remaining % 60000;
                 } else {
-                    CGGameUI::unk_BD0878 = now + remaining % 300000;
+                    CGGameUI::m_billingNagCheckTime = now + remaining % 300000;
                 }
             } else {
                 CGGameUI::m_billingExpireTime = 0;
@@ -2051,13 +2051,13 @@ int32_t CGGameUI::Idle(const void* data, void* param) {
         }
 
         if (igr) {
-            if (minutes <= 600 && !CGGameUI::unk_BD087C) {
+            if (minutes <= 600 && !CGGameUI::m_billingNagShown) {
                 FrameScript_SignalEvent(SCRIPT_EVENT_IGR_BILLING_NAG_DIALOG, nullptr);
-                CGGameUI::unk_BD087C = 1;
+                CGGameUI::m_billingNagShown = 1;
             }
-        } else if (minutes <= 30 && !CGGameUI::unk_BD087C) {
+        } else if (minutes <= 30 && !CGGameUI::m_billingNagShown) {
             FrameScript_SignalEvent(SCRIPT_EVENT_BILLING_NAG_DIALOG, "%d", minutes);
-            CGGameUI::unk_BD087C = 1;
+            CGGameUI::m_billingNagShown = 1;
         }
     }
 
@@ -2179,15 +2179,15 @@ CGPartyPetState* CGPartyMemberStateRepository::FindPetState(const WOWGUID& guid)
     return state;
 }
 
-// VERIFY: bb4e411b auto
+// VERIFY: c132a45d auto
 // OFFSET: 0x0051FB80
 void CGGameUI::ScaleToScreenSize(int32_t width, int32_t height, int32_t force) {
-    if (!force && CGGameUI::unk_BD07F0 > 0 && CGGameUI::unk_BD07F0 == width && CGGameUI::unk_BD07F4 > 0 && CGGameUI::unk_BD07F4 == height) {
+    if (!force && CGGameUI::m_screenWidth > 0 && CGGameUI::m_screenWidth == width && CGGameUI::m_screenHeight > 0 && CGGameUI::m_screenHeight == height) {
         return;
     }
 
-    CGGameUI::unk_BD07F0 = width;
-    CGGameUI::unk_BD07F4 = height;
+    CGGameUI::m_screenWidth = width;
+    CGGameUI::m_screenHeight = height;
 
     float aspect = Screen::GetAspectRatio();
     float scale = height > 768 ? 768.0f / height : 1.0f;
@@ -3625,14 +3625,14 @@ void CGGameUI::NextCinematic(CM2Model* model, uint32_t boneId, uint32_t sequence
     EnableFadingScreen(0.25f, &CGGameUI::NextCinematicInternal, nullptr);
 }
 
-// VERIFY: fc42d909 manual
+// VERIFY: ff9849af manual
 // OFFSET: 0x00524A30
 void CGGameUI::UpdateCorpseLocation() {
     C3Vector position = { 0.0f, 0.0f, 0.0f };
     CGGameUI::SetCorpseLocation(-1, position, -1, 0);
 
-    if (CGGameUI::unk_BD0820) {
-        CGGameUI::unk_BD0820 = 0;
+    if (CGGameUI::m_corpseInRange) {
+        CGGameUI::m_corpseInRange = 0;
 
         if (CGBattlefieldInfo::m_instanceType != 4) {
             FrameScript_SignalEvent(SCRIPT_EVENT_CORPSE_OUT_OF_RANGE, nullptr);
@@ -3660,7 +3660,7 @@ void CGGameUI::BeginCinematicInternal(void* param) {
     }
 }
 
-// VERIFY: 5e672376 manual
+// VERIFY: 694d44fd manual
 // OFFSET: 0x00528010
 void CGGameUI::EnterWorld() {
     if (CGGameUI::s_inWorld) {
@@ -3707,8 +3707,8 @@ void CGGameUI::EnterWorld() {
         }
     }
 
-    CGGameUI::unk_BD08B0 = WOWGUID();
-    CGGameUI::unk_BD08A4 = 0;
+    CGGameUI::m_autoStoreItem = WOWGUID();
+    CGGameUI::m_autoStoreItemID = 0;
 
     if (CGGameUI::m_loggingIn) {
         CGGameUI::m_loggingIn = 0;
@@ -3984,10 +3984,10 @@ void CGGameUI::UpdateUnitHighlights() {
     }
 }
 
-// VERIFY: a21756d1 manual
+// VERIFY: f64f959d auto
 // OFFSET: 0x0051FF20
 void CGGameUI::SetFocusTarget(const WOWGUID& guid) {
-    if (guid == CGGameUI::unk_BD07D0) {
+    if (guid == CGGameUI::m_focusTarget) {
         return;
     }
 
@@ -3996,18 +3996,18 @@ void CGGameUI::SetFocusTarget(const WOWGUID& guid) {
         return;
     }
 
-    if (CGGameUI::unk_BD07D0) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::unk_BD07D0, TYPEMASK_UNIT, __FILE__, __LINE__));
+    if (CGGameUI::m_focusTarget) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_focusTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
 
         if (unit) {
             unit->UnregisterScript(0x2000);
         }
     }
 
-    CGGameUI::unk_BD07D0 = guid;
+    CGGameUI::m_focusTarget = guid;
 
-    if (CGGameUI::unk_BD07D0) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::unk_BD07D0, TYPEMASK_UNIT, __FILE__, __LINE__));
+    if (CGGameUI::m_focusTarget) {
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_focusTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
 
         if (unit) {
             unit->RegisterScript(0x2000);
@@ -5273,7 +5273,7 @@ void CGGameUI::ShowCombatFeedbackAttackRoundInfo(const ATTACKROUNDINFO* info) {
     CGGameUI::SignalUnitCombat(info->m_target, s_victimStateTokens[info->m_victimState], info->m_damage, info->m_schoolMask[0], info->m_hitInfo);
 }
 
-// VERIFY: de4027e3 auto
+// VERIFY: 632abec5 auto
 // OFFSET: 0x00524350
 void CGGameUI::BreakTarget(WOWGUID guid) {
     if (guid == CGGameUI::m_lockedTarget) {
@@ -5298,7 +5298,7 @@ void CGGameUI::BreakTarget(WOWGUID guid) {
         CGWorldFrame::s_currentWorldFrame->HandleSpriteTrack(WOWGUID());
     }
 
-    if (guid == CGGameUI::unk_BD07D0) {
+    if (guid == CGGameUI::m_focusTarget) {
         CGGameUI::SetFocusTarget(WOWGUID());
     }
 
@@ -5714,11 +5714,11 @@ void CGGameUI::UnlockAllItems() {
     }
 }
 
-// VERIFY: 1fe92b1e auto
+// VERIFY: ddd8ee3c auto
 // OFFSET: 0x005A4780
 void CGGameUI::SetPendingItemSound(WOWGUID guid, int32_t itemId) {
-    CGGameUI::unk_BD08B0 = guid;
-    CGGameUI::unk_BD08A4 = itemId;
+    CGGameUI::m_autoStoreItem = guid;
+    CGGameUI::m_autoStoreItemID = itemId;
 }
 
 // VERIFY: 984d2d4b auto
@@ -6159,13 +6159,13 @@ void CGGameUI::StopMovie() {
     CGInputControl::GetActive()->EnterWorld();
 }
 
-// VERIFY: 204352bf auto
+// VERIFY: 5e67cc6a auto
 // OFFSET: 0x00518BF0
 static void AccountVariablesLoadedCallback(HOSFILE localFile, HOSFILE cacheFile, void* param) {
     uint32_t value = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(param));
     uint32_t flag = value & 0xFFFF;
 
-    if ((value >> 16) != CGGameUI::unk_BD08C4) {
+    if ((value >> 16) != CGGameUI::m_accountDataGeneration) {
         return;
     }
 
@@ -6196,17 +6196,17 @@ static void AccountVariablesLoadedCallback(HOSFILE localFile, HOSFILE cacheFile,
     }
 }
 
-// VERIFY: ab6f803c auto
+// VERIFY: f9923385 auto
 // OFFSET: 0x00518C80
 void LoadAccountVariables() {
     s_accountDataPending = 0x30;
 
-    if (!CGGameUI::unk_BD08C4) {
+    if (!CGGameUI::m_accountDataGeneration) {
         SErrDisplayAppFatalMessage("", "", 0);
     }
 
-    LoadAccountData(0, AccountVariablesLoadedCallback, reinterpret_cast<void*>(static_cast<uintptr_t>((CGGameUI::unk_BD08C4 << 16) | 0x10)));
-    LoadAccountData(1, AccountVariablesLoadedCallback, reinterpret_cast<void*>(static_cast<uintptr_t>((CGGameUI::unk_BD08C4 << 16) | 0x20)));
+    LoadAccountData(0, AccountVariablesLoadedCallback, reinterpret_cast<void*>(static_cast<uintptr_t>((CGGameUI::m_accountDataGeneration << 16) | 0x10)));
+    LoadAccountData(1, AccountVariablesLoadedCallback, reinterpret_cast<void*>(static_cast<uintptr_t>((CGGameUI::m_accountDataGeneration << 16) | 0x20)));
 }
 
 // VERIFY: b84f77ba manual
@@ -6387,11 +6387,11 @@ void CGGameUI::AutoMouseOver() {
     CGGameUI::HandleObjectTrackChange(data.m_bestGuid, WOWGUID());
 }
 
-// VERIFY: ea984271 auto
+// VERIFY: 7a62db35 auto
 // OFFSET: 0x00513960
 void CGGameUI::SetPhaseShift(uint32_t phase) {
-    if (static_cast<int32_t>(phase) != CGGameUI::unk_AC80A4) {
-        CGGameUI::unk_AC80A4 = phase;
+    if (static_cast<int32_t>(phase) != CGGameUI::m_phaseMask) {
+        CGGameUI::m_phaseMask = phase;
         CGWorldStateInfo::ResetWorldStateUI();
         FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_WORLD_STATES, nullptr);
     }
@@ -6413,7 +6413,7 @@ void CGGameUI::UpdateAreaSpiritHealerTime(WOWGUID guid, int32_t time) {
     }
 }
 
-// VERIFY: 5827fa27 manual
+// VERIFY: 392ba5c1 manual
 // OFFSET: 0x00526530
 int32_t CGGameUI::MessageHandler(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     switch (msgId) {
@@ -6477,8 +6477,8 @@ int32_t CGGameUI::MessageHandler(void* param, NETMESSAGE msgId, uint32_t time, C
             } else {
                 CGGameUI::SetCorpseLocation(-1, position, -1, 0);
 
-                if (CGGameUI::unk_BD0820) {
-                    CGGameUI::unk_BD0820 = 0;
+                if (CGGameUI::m_corpseInRange) {
+                    CGGameUI::m_corpseInRange = 0;
 
                     if (CGBattlefieldInfo::m_instanceType != 4) {
                         FrameScript_SignalEvent(SCRIPT_EVENT_CORPSE_OUT_OF_RANGE, nullptr);
@@ -6893,14 +6893,14 @@ void CGGameUI::GetCorpsePosition(C3Vector& position) {
     position = CGGameUI::m_corpsePos * s_corpseMapRotation;
 }
 
-// VERIFY: ad5dc623 auto
+// VERIFY: 8b0c9714 auto
 // OFFSET: 0x00512C40
 static void UpdateCorpseRange(int32_t inRange) {
-    if (inRange == CGGameUI::unk_BD0820) {
+    if (inRange == CGGameUI::m_corpseInRange) {
         return;
     }
 
-    CGGameUI::unk_BD0820 = inRange;
+    CGGameUI::m_corpseInRange = inRange;
 
     if (CGBattlefieldInfo::m_instanceType == 4) {
         return;
@@ -7452,10 +7452,10 @@ void TaintEventCallback(lua_State* L, int32_t event, const char* name, const cha
     }
 }
 
-// VERIFY: 5fea758e manual
+// VERIFY: 559cc5a7 manual
 // OFFSET: 0x00528F00
 void CGGameUI::Shutdown() {
-    CGGameUI::unk_BD08C4++;
+    CGGameUI::m_accountDataGeneration++;
     g_theGxDevicePtr->RemoveTextureRecreationCallback(UpdateAllPortraits);
     g_theGxDevicePtr->RemoveDeviceRestoredCallback(UpdateAllPortraits);
     CGChat::Pause();
@@ -7761,7 +7761,7 @@ void CGGameUI::ClearRepopTime() {
     CGGameUI::m_deadNoRepopTimer = 1;
 }
 
-// VERIFY: 5aa3327b auto
+// VERIFY: 2007e2dc auto
 // OFFSET: 0x00513A80
 void CGGameUI::SetCorpseReclaimDelay(uint32_t delay) {
     CGGameUI::m_corpseReclaimDelay = delay + OsGetAsyncTimeMs();
@@ -7770,7 +7770,7 @@ void CGGameUI::SetCorpseReclaimDelay(uint32_t delay) {
         CGGameUI::m_corpseReclaimDelay = 1;
     }
 
-    if (CGGameUI::unk_BD0820) {
+    if (CGGameUI::m_corpseInRange) {
         FrameScript_SignalEvent(CGGameUI::m_corpseMapID != CGGameUI::m_corpseActualMapID ? SCRIPT_EVENT_CORPSE_IN_INSTANCE : SCRIPT_EVENT_CORPSE_IN_RANGE, nullptr);
     }
 }
@@ -8102,7 +8102,7 @@ void CCapturePointUIManager::DeleteNode(CapturePointUIManagerNode* node) {
     FrameScript_SignalEvent(SCRIPT_EVENT_UPDATE_WORLD_STATES, nullptr);
 }
 
-// VERIFY: fe130e62 auto
+// VERIFY: 1c2e47fb auto
 // OFFSET: 0x00528C30
 void CGGameUI::LeaveWorld() {
     if (!CGGameUI::s_inWorld) {
@@ -8193,7 +8193,7 @@ void CGGameUI::LeaveWorld() {
         }
     }
 
-    if (CGGameUI::unk_BD07D0 && !CGGameUI::IsRaidMemberOrPet(CGGameUI::unk_BD07D0)) {
+    if (CGGameUI::m_focusTarget && !CGGameUI::IsRaidMemberOrPet(CGGameUI::m_focusTarget)) {
         CGGameUI::SetFocusTarget(WOWGUID());
     }
 

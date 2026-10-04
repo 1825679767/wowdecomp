@@ -69,7 +69,7 @@ class CM2Shared {
     /* 018C */ M2SkinSection* m_skinSections;
     /* 0190 */ uint32_t m_instances;
     /* 0194 */ uint32_t m_maxInstances;
-    /* 0198 */ uint16_t unk_0198;
+    /* 0198 */ uint16_t m_billboardBoneCount;
     /* 019C */ uint32_t m_lastUsedTime;
     /* 01A0 */ TSLink<CM2Shared> m_updateLink;
 

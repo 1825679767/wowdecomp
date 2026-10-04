@@ -9,7 +9,7 @@
 #include "WoW/Source/LiquidSystem/Liquid.h"
 
 // STATIC: 0x00D31A30
-CDataAllocator Liquid::s_unk_D31A30(sizeof(Liquid::CWaveManager), 0x10);
+CDataAllocator Liquid::s_waveManagerAllocator(sizeof(Liquid::CWaveManager), 0x10);
 
 // STATIC: 0x00AF1690
 float Liquid::CWaveManager::s_fadeOutTime = 5000.0f;
@@ -114,10 +114,10 @@ void Liquid::CWaveManager::PrepareRenderTransform(const C3Vector* camPos) {
     }
 }
 
-// VERIFY: a171683e auto
+// VERIFY: e6c1fe21 auto
 // OFFSET: 0x007D6670
 void Liquid::ClearWaveManagers() {
-    Liquid::s_unk_D31A30.Clear(".?AVCWaveManager@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_waveManagerAllocator.Clear(".?AVCWaveManager@Liquid@@", SLOG_OBJECT, 1);
 }
 
 // VERIFY: 845a53cd auto
@@ -132,12 +132,12 @@ int32_t Liquid::CWaveManager::GetCount() {
     return 42;
 }
 
-// VERIFY: 0b2c6ff5 manual
+// VERIFY: fffbab63 manual
 // OFFSET: 0x007D6210
 void Liquid::CWaveManager::Release() {
     if (this->m_refCount-- == 1) {
         this->~CWaveManager();
-        Liquid::s_unk_D31A30.PutData(this, nullptr, 0);
+        Liquid::s_waveManagerAllocator.PutData(this, nullptr, 0);
     }
 }
 
@@ -155,10 +155,10 @@ Liquid::CWaveManager::CWaveManager() {
     memset(this->m_waves, 0, sizeof(this->m_waves));
 }
 
-// VERIFY: 66640799 auto
+// VERIFY: 8981a733 auto
 // OFFSET: 0x007D6640
 Liquid::CWaveManager* Liquid::CWaveManager::Create() {
-    void* mem = Liquid::s_unk_D31A30.GetData(0, ".?AVCWaveManager@Liquid@@", SLOG_OBJECT);
+    void* mem = Liquid::s_waveManagerAllocator.GetData(0, ".?AVCWaveManager@Liquid@@", SLOG_OBJECT);
     return mem ? new (mem) Liquid::CWaveManager() : nullptr;
 }
 

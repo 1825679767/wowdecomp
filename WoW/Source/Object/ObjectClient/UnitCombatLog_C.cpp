@@ -673,7 +673,7 @@ void CombatLogEntry::PendingCombatLogResolved(int32_t id, const WOWGUID& guid, v
     s_freePendingData.LinkToTail(data);
 }
 
-// VERIFY: bfdde389 manual
+// VERIFY: 96d6a275 manual
 // OFFSET: 0x0074DCB0
 uint32_t GetCombatLogFlags(const WOWGUID& guid) {
     if (!guid.m_guid) {
@@ -777,7 +777,7 @@ uint32_t GetCombatLogFlags(const WOWGUID& guid) {
         flags |= 0x10000;
     }
 
-    if (guid == CGGameUI::unk_BD07D0) {
+    if (guid == CGGameUI::m_focusTarget) {
         flags |= 0x20000;
     }
 

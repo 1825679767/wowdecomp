@@ -754,9 +754,9 @@ const float s_ipmrTableB2358C[5] = {
     0.899999976f, 0.899999976f, 0.899999976f, 0.899999976f, 0.899999976f,
 };
 
-// VERIFY: 0a75c8ff manual
+// VERIFY: 0688b8fd manual
 // OFFSET: 0x00896280
-void SPIRIT_IP_MR_V3_Unk896280(float* dst, const int16_t* src, float scale, int32_t count) {
+void SPIRIT_IP_MR_V3_DequantizeTable(float* dst, const int16_t* src, float scale, int32_t count) {
     float factor = static_cast<float>(scale / 32767.0);
 
     for (int32_t i = 0; i < count; i++) {
@@ -764,20 +764,20 @@ void SPIRIT_IP_MR_V3_Unk896280(float* dst, const int16_t* src, float scale, int3
     }
 }
 
-// VERIFY: 6adb3742 manual
+// VERIFY: e08d764f manual
 // OFFSET: 0x00896330
 void SPIRIT_IP_MR_V3_NAME_201(SPIRIT_IPMR_TABLES* tables) {
     SPIRIT_IP_MR_V3_NAME_334(tables, sizeof(SPIRIT_IPMR_TABLES));
-    SPIRIT_IP_MR_V3_Unk896280(tables->unk_B7C0, s_ipmrTableB1DE44, 0.82f, 10);
+    SPIRIT_IP_MR_V3_DequantizeTable(tables->unk_B7C0, s_ipmrTableB1DE44, 0.82f, 10);
     SPIRIT_IP_MR_V3_NAME_386(tables->unk_B7C0, 0.08f);
-    SPIRIT_IP_MR_V3_Unk896280(tables->unk_0000, s_ipmrTableB21058, 0.1846716f, 4480);
-    SPIRIT_IP_MR_V3_Unk896280(tables->unk_B7F0, s_ipmrTableB1DE08, 0.2f, 10);
+    SPIRIT_IP_MR_V3_DequantizeTable(tables->unk_0000, s_ipmrTableB21058, 0.1846716f, 4480);
+    SPIRIT_IP_MR_V3_DequantizeTable(tables->unk_B7F0, s_ipmrTableB1DE08, 0.2f, 10);
     SPIRIT_IP_MR_V3_NAME_386(tables->unk_B7F0, 0.8f);
-    SPIRIT_IP_MR_V3_Unk896280(tables->unk_B820, s_ipmrTableB1DE1C, 0.3f, 10);
+    SPIRIT_IP_MR_V3_DequantizeTable(tables->unk_B820, s_ipmrTableB1DE1C, 0.3f, 10);
     SPIRIT_IP_MR_V3_NAME_386(tables->unk_B820, 0.45f);
-    SPIRIT_IP_MR_V3_Unk896280(tables->unk_B850, s_ipmrTableB1DE30, 1.0f, 10);
-    SPIRIT_IP_MR_V3_Unk896280(tables->unk_4600, s_ipmrTableB1DE58, 0.097397f, 3200);
-    SPIRIT_IP_MR_V3_Unk896280(tables->unk_7800, s_ipmrTableB1F758, 0.129581f, 3200);
+    SPIRIT_IP_MR_V3_DequantizeTable(tables->unk_B850, s_ipmrTableB1DE30, 1.0f, 10);
+    SPIRIT_IP_MR_V3_DequantizeTable(tables->unk_4600, s_ipmrTableB1DE58, 0.097397f, 3200);
+    SPIRIT_IP_MR_V3_DequantizeTable(tables->unk_7800, s_ipmrTableB1F758, 0.129581f, 3200);
 
     for (int32_t i = 0; i < 40; i++) {
         tables->unk_B8AC[i][0] = i;

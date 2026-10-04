@@ -638,10 +638,10 @@ int32_t CGGameObject_C::IsQuestGiver() const {
     return this->m_gameObject->m_typeID == 2;
 }
 
-// VERIFY: 93c8e68a auto
+// VERIFY: 142300a5 auto
 // OFFSET: 0x00712E60
 int32_t CGGameObject_C::IsSolidSelectable() const {
-    if (this->unk_020C) {
+    if (this->m_hasWorldBounds) {
         return 1;
     }
 
@@ -757,14 +757,14 @@ void CGGameObject_C::StartInteraction() {
     this->m_typeData->StartInteraction();
 }
 
-// VERIFY: a2d85110 auto
+// VERIFY: ac212d62 auto
 // OFFSET: 0x0070F550
-int32_t CGGameObject_C::Unk40(int32_t a1) const {
+int32_t CGGameObject_C::IsCollidable(int32_t a1) const {
     if ((a1 & 0x8000) && !this->m_gameObject->m_typeID) {
         return 0;
     }
 
-    return this->unk_020C;
+    return this->m_hasWorldBounds;
 }
 
 // VERIFY: 08d3c981 auto
@@ -806,7 +806,7 @@ void CGGameObject_C::UpdateInteractIconAttach() {
 // INLINED
 CGGameObject_C_TypeBase::CGGameObject_C_TypeBase(CGGameObject_C* owner) {
     this->m_owner = owner;
-    this->unk_0008 = 234;
+    this->m_useErrorType = 234;
     this->m_interactDistance = 5.0f;
 }
 
@@ -836,9 +836,9 @@ const char* CGGameObject_C_Type_Null::DebugStatus() {
     return "Unknown Object Type";
 }
 
-// VERIFY: 66898c90 manual
+// VERIFY: f43bc69d manual
 // OFFSET: 0x007124B0
-CGGameObject_C_TypeAnimated::CGGameObject_C_TypeAnimated(CGGameObject_C* owner) : CGGameObject_C_TypeBase(owner), m_animState(-1), unk_0014(-1), m_nextAnimTime(-1) {
+CGGameObject_C_TypeAnimated::CGGameObject_C_TypeAnimated(CGGameObject_C* owner) : CGGameObject_C_TypeBase(owner), m_animState(-1), m_pendingAnimState(-1), m_nextAnimTime(-1) {
     this->ResetAnimState();
 }
 
@@ -951,7 +951,7 @@ void CGGameObject_C_TypeAnimated::PostReenable() {
     }
 }
 
-// VERIFY: 88b0cee4 auto
+// VERIFY: 21d999bd auto
 // OFFSET: 0x0070D600
 void CGGameObject_C_TypeAnimated::ResetAnimState() {
     CGGameObject_C* owner = this->m_owner;
@@ -975,7 +975,7 @@ void CGGameObject_C_TypeAnimated::ResetAnimState() {
     }
 
     this->m_animState = -1;
-    this->unk_0014 = -1;
+    this->m_pendingAnimState = -1;
     this->m_nextAnimTime = -1;
     this->UpdateAnimState(state);
 }
@@ -1097,9 +1097,9 @@ void CGGameObject_C_Type_MapObjTransport::AddPassenger(CPassenger* passenger, in
     CGGameObject_C_Type_TransportBase::AddPassenger(passenger, a2);
 }
 
-// VERIFY: c14ec6b1 manual
+// VERIFY: a94a9743 manual
 // OFFSET: 0x007141D0
-CGGameObject_C_Type_MapObjTransport::CGGameObject_C_Type_MapObjTransport(CGGameObject_C* owner) : CGGameObject_C_Type_TransportBase(owner), unk_0080(0) {
+CGGameObject_C_Type_MapObjTransport::CGGameObject_C_Type_MapObjTransport(CGGameObject_C* owner) : CGGameObject_C_Type_TransportBase(owner), m_currentLeg(0) {
 }
 
 // VERIFY: d75d2da1 auto
@@ -1584,11 +1584,11 @@ void CGGameObject_C::Disable() {
     this->m_nameDesc = nullptr;
 }
 
-// VERIFY: f1457284 manual
+// VERIFY: f0999c9b manual
 // OFFSET: 0x00713250
 CGGameObject_C_Type_TransportBase::CGGameObject_C_Type_TransportBase(CGGameObject_C* owner) : CGGameObject_C_Type_WorldObj(owner) {
     this->m_position = C3Vector(0.0f, 0.0f, 0.0f);
-    this->unk_0030 = 0;
+    this->m_pathTime = 0;
     this->unk_0034 = 0;
     this->m_speed = 0.0f;
     this->m_transportUpdateTime = 0;
@@ -1879,13 +1879,13 @@ void CGGameObject_C::SetStorage(uint32_t* storage, uint32_t* saved) {
     this->m_gameObjectMirror = saved + CGObject::TotalFieldsSaved();
 }
 
-// VERIFY: d7df8c50 manual
+// VERIFY: dfb71ec2 manual
 // OFFSET: 0x00714250
 CGGameObject_C::CGGameObject_C(uint32_t time, const CClientObjCreate& create) : CGObject_C(time, create), m_passenger(create.m_move.m_status.m_transportGuid, create.m_move.m_status.m_transportPosition, this->m_obj->m_guid), m_typeData(nullptr), m_stats(nullptr) {
     this->m_worldBounds.b = C3Vector(0.0f, 0.0f, 0.0f);
     this->m_worldBounds.t = C3Vector(0.0f, 0.0f, 0.0f);
     this->m_pendingOneShotAnim = 0;
-    this->unk_020C = 0;
+    this->m_hasWorldBounds = 0;
     this->m_lootEffect = nullptr;
     this->m_displayState = this->m_gameObject->m_state;
     *reinterpret_cast<uint64_t*>(&this->m_passenger.m_facing) = create.m_packedRotation;
@@ -1894,7 +1894,7 @@ CGGameObject_C::CGGameObject_C(uint32_t time, const CClientObjCreate& create) : 
     ClntObjMgrHideObject(this->m_obj->m_guid);
 
     if (create.m_updateFlags & 0x2) {
-        this->unk_0200 = create.m_transportTime - time;
+        this->m_transportTimeOffset = create.m_transportTime - time;
     }
 
     switch (this->m_gameObject->m_typeID) {
@@ -2006,7 +2006,7 @@ CGGameObject_C::CGGameObject_C(uint32_t time, const CClientObjCreate& create) : 
     this->m_effectAnimState = 0;
 }
 
-// VERIFY: 77926b2f auto
+// VERIFY: cd300a2b auto
 // OFFSET: 0x00712F30
 void CGGameObject_C::PostInit(uint32_t time, const CClientObjCreate& create, bool reenable) {
     this->m_passenger.PostInit(create.m_move.m_status.m_position);
@@ -2030,7 +2030,7 @@ void CGGameObject_C::PostInit(uint32_t time, const CClientObjCreate& create, boo
             CWorldMath::TransformAABox(this->m_matrix, bounds, this->m_worldBounds);
 
             if (this->m_typeData->CanBeSolid()) {
-                this->unk_020C = !this->m_worldBounds.IsEmpty();
+                this->m_hasWorldBounds = !this->m_worldBounds.IsEmpty();
             }
         }
     }
@@ -2136,7 +2136,7 @@ void CGGameObject_C_Type_TransportBase::PostReenable() {
     }
 }
 
-// VERIFY: fab945c9 manual
+// VERIFY: 68c80836 manual
 // OFFSET: 0x007101C0
 void CGGameObject_C_Type_MapObjTransport::UpdateState(int32_t oldState, int32_t newState) {
     uint32_t pausePointsIndex = CGameObjectDef::GetPropNum(this->m_owner->m_gameObject->m_typeID, 128);
@@ -2150,10 +2150,10 @@ void CGGameObject_C_Type_MapObjTransport::UpdateState(int32_t oldState, int32_t 
     bool closed = newState == 1;
 
     if (oldState == newState) {
-        this->m_shipPath.WaitAtNextPausePoint(this->unk_0030, !closed);
+        this->m_shipPath.WaitAtNextPausePoint(this->m_pathTime, !closed);
     }
 
-    this->m_shipPath.WaitAtNextPausePoint(this->unk_0030, closed);
+    this->m_shipPath.WaitAtNextPausePoint(this->m_pathTime, closed);
 }
 
 // VERIFY: 70dac489 manual
@@ -2675,7 +2675,7 @@ C4Quaternion CGGameObject_C::GetRotation() const {
     return this->m_passenger.GetRotation();
 }
 
-// VERIFY: f3f1026a manual
+// VERIFY: 7b5a289f manual
 // OFFSET: 0x00713F50
 void CGGameObject_C::ModelLoaded(CM2Model* model) {
     CAaBox box = model->GetBoundingBox();
@@ -2686,7 +2686,7 @@ void CGGameObject_C::ModelLoaded(CM2Model* model) {
     }
 
     if (this->m_typeData->CanBeSolid()) {
-        this->unk_020C = !this->m_worldBounds.IsEmpty();
+        this->m_hasWorldBounds = !this->m_worldBounds.IsEmpty();
     }
 
     ApplyGameObjectArtKit(model, this->m_gameObject->m_artKit);
@@ -2727,13 +2727,13 @@ float CGGameObject_C_TypeBase::GetFacing() const {
     return passenger.GetFacing(passenger.GetRawFacingFromRotation());
 }
 
-// VERIFY: 9e6b8418 manual
+// VERIFY: 901f38d6 auto
 // OFFSET: 0x0070C430
 int32_t CGGameObject_C_TypeAnimated::HandleAnimInterrupted() {
-    int32_t state = this->unk_0014;
+    int32_t state = this->m_pendingAnimState;
 
     if (state == -1 || state == 3 || state == 1 || state == 6) {
-        this->unk_0014 = -1;
+        this->m_pendingAnimState = -1;
         return 1;
     }
 
@@ -3013,7 +3013,7 @@ void CGGameObject_C_Type_MapObjTransport::PostInitWithStats() {
     }
 }
 
-// VERIFY: eb329d86 manual
+// VERIFY: 6ae2280a manual
 // OFFSET: 0x0070D1E0
 void CGGameObject_C_TypeAnimated::SetSequence(CM2Model* model) {
     float speed = 1.0f;
@@ -3118,7 +3118,7 @@ effects:
         ClntObjMgrLockObject(this->m_owner->m_obj->m_guid);
     }
 
-    this->unk_0014 = this->m_animState;
+    this->m_pendingAnimState = this->m_animState;
 
     if (speed > 0.0f) {
         this->m_nextAnimTime = FrameTime::s_curTimeMs + static_cast<uint32_t>(static_cast<float>(info.m_duration - startTime) / speed);
@@ -3275,7 +3275,7 @@ void CGGameObject_C_Type_TransportBase::Disable() {
     this->DestroyWorldObj();
 }
 
-// VERIFY: 9c0b3858 auto
+// VERIFY: 3191030f auto
 // OFFSET: 0x007100D0
 void CGGameObject_C_Type_MapObjTransport::InitializeMovement() {
     uint32_t time = OsGetAsyncTimeMs();
@@ -3284,7 +3284,7 @@ void CGGameObject_C_Type_MapObjTransport::InitializeMovement() {
     GameObjectStats* stats = owner->m_stats;
 
     if (stats && index < 24 && stats->m_propValue[index]) {
-        uint32_t offsetTime = time + this->m_owner->unk_0200;
+        uint32_t offsetTime = time + this->m_owner->m_transportTimeOffset;
         this->m_shipPath.SetTimeOffset(offsetTime, this->m_owner->m_gameObject->m_pathProgress * 0.000015259022f);
         CGGameObjectData* gameObject = this->m_owner->m_gameObject;
 
@@ -3298,12 +3298,12 @@ void CGGameObject_C_Type_MapObjTransport::InitializeMovement() {
     this->UpdateMovement(time, 0);
 }
 
-// VERIFY: ccfc2763 manual
+// VERIFY: c0432d12 manual
 // OFFSET: 0x0070D7E0
 void CGGameObject_C_TypeAnimated::HandleAnimFinished() {
     int32_t state = this->m_animState;
-    int32_t pending = this->unk_0014;
-    this->unk_0014 = -1;
+    int32_t pending = this->m_pendingAnimState;
+    this->m_pendingAnimState = -1;
 
     switch (state) {
         case 0:
@@ -3455,13 +3455,13 @@ void GameObject_C_ProcessAnimEvent(uint32_t eventId, uint32_t displayId, uint32_
     }
 }
 
-// VERIFY: 11b423bd manual
+// VERIFY: 03222568 manual
 // OFFSET: 0x007134A0
 void CGGameObject_C_Type_MapObjTransport::UpdateMovement(uint32_t time, uint32_t elapsed) {
     C3Vector position(0.0f, 0.0f, 0.0f);
     int32_t mapId = -1;
     int32_t initial = this->unk_0038 == -1;
-    uint32_t pathTime = this->m_owner->unk_0200 + time;
+    uint32_t pathTime = this->m_owner->m_transportTimeOffset + time;
     uint32_t sequence;
     float facing;
     uint32_t leg;
@@ -3479,7 +3479,7 @@ void CGGameObject_C_Type_MapObjTransport::UpdateMovement(uint32_t time, uint32_t
         return;
     }
 
-    this->unk_0030 = pathTime;
+    this->m_pathTime = pathTime;
     this->m_transportUpdateTime = this->GetSequenceTimeFromRealTime(pathTime);
     this->UpdateCurrentVelocity(elapsed, position, nullptr);
     this->m_position = position;
@@ -3533,13 +3533,13 @@ void CGGameObject_C_Type_MapObjTransport::UpdateMovement(uint32_t time, uint32_t
 
     int32_t moved;
     this->MovePassengers(&moved);
-    uint32_t previousLeg = this->unk_0080;
+    uint32_t previousLeg = this->m_currentLeg;
 
     if (previousLeg == leg) {
         return;
     }
 
-    this->unk_0080 = leg;
+    this->m_currentLeg = leg;
 
     if (!moved || initial) {
         return;
@@ -4057,7 +4057,7 @@ void CGGameObject_C::RefreshInteractIcon() {
     }
 }
 
-// VERIFY: 083ab44d manual
+// VERIFY: 4f272c71 manual
 // OFFSET: 0x00711470
 bool CGGameObject_C_TypeBase::CanUseNow(GAME_ERROR_TYPE* error, float* distance, const char** errorText) const {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -4136,7 +4136,7 @@ bool CGGameObject_C_TypeBase::CanUseNow(GAME_ERROR_TYPE* error, float* distance,
 
     if ((owner->m_gameObject->m_flags & 0x2) && owner->IsLocked(nullptr, nullptr, nullptr, nullptr, nullptr)) {
         if (error) {
-            *error = static_cast<GAME_ERROR_TYPE>(this->unk_0008);
+            *error = static_cast<GAME_ERROR_TYPE>(this->m_useErrorType);
         }
 
         return false;

@@ -59,7 +59,7 @@ void SPIRIT_IP_MR_V3_NAME_109(int16_t mode, const SPIRIT_IPMR_TRACK* tracks, int
     }
 }
 
-// VERIFY: c772dd8e manual
+// VERIFY: 153e6aae manual
 // OFFSET: 0x0089E260
 void SPIRIT_IP_MR_V3_NAME_156(float* excitation, const float* target, const float* response, const float* a, const float* weighted, const SPIRIT_IPMR_TRACK* tracks, float* memory, float* out, int16_t count) {
     float synthesized[40];
@@ -82,15 +82,15 @@ void SPIRIT_IP_MR_V3_NAME_156(float* excitation, const float* target, const floa
         float* block = &memory[30 * t];
         SPIRIT_IP_MR_V3_NAME_35(tracks, t, t, pulses);
         SPIRIT_IP_MR_V3_NAME_148(pulses, synthesized, a, block, 1);
-        SPIRIT_IP_MR_V3_Unk897220(out, synthesized);
+        SPIRIT_IP_MR_V3_AddSubframe(out, synthesized);
         SPIRIT_IP_MR_V3_NAME_190(block + 10, &synthesized[30]);
         SPIRIT_IP_MR_V3_NAME_190(block + 20, &tracks[t].unk_020C[30]);
     }
 }
 
-// VERIFY: 7a225fe5 manual
+// VERIFY: b32a662b manual
 // OFFSET: 0x0089E3A0
-void SPIRIT_IP_MR_V3_Unk89E3A0(SPIRIT_IPMR_TRACK* track, float* target, const float* h, float* correlation, const float* phi, int16_t* used, int16_t skip) {
+void SPIRIT_IP_MR_V3_SearchTrackPulses(SPIRIT_IPMR_TRACK* track, float* target, const float* h, float* correlation, const float* phi, int16_t* used, int16_t skip) {
     int32_t count = track->unk_0000;
     float d[40];
     SPIRIT_IP_MR_V3_NAME_191(d, correlation);
@@ -154,7 +154,7 @@ void SPIRIT_IP_MR_V3_Unk89E3A0(SPIRIT_IPMR_TRACK* track, float* target, const fl
     double numerator = SPIRIT_IP_MR_V3_NAME_42(target, pulses, 40);
     float ratio = static_cast<float>(fabs(numerator / SPIRIT_IP_MR_V3_NAME_42(pulses, pulses, 40)));
     ratio = static_cast<float>(log(ratio));
-    SPIRIT_IP_MR_V3_Unk89DF30(32, &ratio, &index, 0.7f, 10.18f);
+    SPIRIT_IP_MR_V3_QuantizeUniform(32, &ratio, &index, 0.7f, 10.18f);
     track->unk_0028 = index;
     float exponent = static_cast<float>(index * static_cast<double>(0.30580646f) + static_cast<double>(0.7f));
     float gain = static_cast<float>(exp(exponent));
@@ -177,7 +177,7 @@ void SPIRIT_IP_MR_V3_Unk89E3A0(SPIRIT_IPMR_TRACK* track, float* target, const fl
     SPIRIT_IP_MR_V3_NAME_191(track->unk_020C, pulses);
 }
 
-// VERIFY: 0c9c5e1d manual
+// VERIFY: 05c0b3ee manual
 // OFFSET: 0x0089E800
 void SPIRIT_IP_MR_V3_NAME_59(float* target, SPIRIT_IPMR_TRACK* tracks, int16_t count, const float* h, int16_t skip) {
     int16_t used[40] = {};
@@ -195,7 +195,7 @@ void SPIRIT_IP_MR_V3_NAME_59(float* target, SPIRIT_IPMR_TRACK* tracks, int16_t c
         phi[-k] = value;
     }
 
-    SPIRIT_IP_MR_V3_Unk89E3A0(tracks, target, h, correlation, phi, used, skip);
+    SPIRIT_IP_MR_V3_SearchTrackPulses(tracks, target, h, correlation, phi, used, skip);
 
     for (int16_t t = 1; t < count; t++) {
         if (t >= 6) {
@@ -212,16 +212,16 @@ void SPIRIT_IP_MR_V3_NAME_59(float* target, SPIRIT_IPMR_TRACK* tracks, int16_t c
             }
         }
 
-        SPIRIT_IP_MR_V3_Unk89E3A0(&tracks[t], target, h, correlation, phi, used, skip);
+        SPIRIT_IP_MR_V3_SearchTrackPulses(&tracks[t], target, h, correlation, phi, used, skip);
     }
 }
 
-// VERIFY: 368d817d auto
+// VERIFY: c733f5aa auto
 // OFFSET: 0x0089EAE0
-void SPIRIT_IP_MR_V3_Unk89EAE0(float* target, const float* h, const float* unused, SPIRIT_IPMR_TRACK* tracks, int16_t count, int16_t skip, const SPIRIT_IPMR_TABLES* tables) {
+void SPIRIT_IP_MR_V3_SearchFixedCodebook(float* target, const float* h, const float* unused, SPIRIT_IPMR_TRACK* tracks, int16_t count, int16_t skip, const SPIRIT_IPMR_TABLES* tables) {
     SPIRIT_IP_MR_V3_NAME_59(target, tracks, count, h, skip);
-    SPIRIT_IP_MR_V3_Unk89DB90(count, tracks);
-    SPIRIT_IP_MR_V3_Unk89DC60(tracks, count, tables);
+    SPIRIT_IP_MR_V3_SortPulses(count, tracks);
+    SPIRIT_IP_MR_V3_EncodePulsePositions(tracks, count, tables);
 }
 
 // VERIFY: bc864f9d manual

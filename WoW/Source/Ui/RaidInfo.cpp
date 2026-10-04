@@ -427,7 +427,7 @@ int32_t Packet_MSG_RAID_TARGET_UPDATE(void* param, NETMESSAGE msgId, uint32_t ti
     return 1;
 }
 
-// VERIFY: 5d258bac manual
+// VERIFY: 9364bff5 manual
 // OFFSET: 0x005744F0
 int32_t Packet_MSG_RAID_READY_CHECK_CONFIRM(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     WOWGUID guid = WOWGUID();
@@ -506,7 +506,7 @@ int32_t Packet_MSG_RAID_READY_CHECK_CONFIRM(void* param, NETMESSAGE msgId, uint3
                 SignalReadyCheckConfirmEvents(guid, ready);
             }
 
-            CGPartyMemberState* state = CGPartyInfo::m_members[i] ? &unk_BD0D08[i] : nullptr;
+            CGPartyMemberState* state = CGPartyInfo::m_members[i] ? &s_partyMemberStates[i] : nullptr;
 
             if (pending || (state && (state->m_flags & 0x1) && i < 4 && CGRaidInfo::m_partyReadyCheckPending[i])) {
                 pending = true;

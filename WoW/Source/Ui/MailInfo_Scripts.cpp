@@ -921,7 +921,7 @@ static int32_t Script_GetSendMailItem(lua_State* L) {
     return 4;
 }
 
-// VERIFY: e6b7381f auto
+// VERIFY: 6c063b68 auto
 // OFFSET: 0x00570910
 static int32_t Script_SendMail(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -935,7 +935,7 @@ static int32_t Script_SendMail(lua_State* L) {
 
     WOWGUID mailbox = CGMailInfo::m_object;
 
-    if (!mailbox || CGMailInfo::unk_BEB1C4) {
+    if (!mailbox || CGMailInfo::m_sendPending) {
         return 0;
     }
 
@@ -1011,7 +1011,7 @@ static int32_t Script_SendMail(lua_State* L) {
     msg.Put(static_cast<uint8_t>(0));
     msg.Finalize();
     ClientServices::Send2(&msg);
-    CGMailInfo::unk_BEB1C4 = 1;
+    CGMailInfo::m_sendPending = 1;
     CGMailInfo::m_commandPending = 1;
     return 0;
 }

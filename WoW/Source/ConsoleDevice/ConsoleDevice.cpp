@@ -49,7 +49,7 @@ static bool s_hwChanged;
 static bool s_hwDetect;
 
 // STATIC: 0x00CABCC0
-static int32_t s_unk_CABCC0;
+static int32_t s_defaultsApplied;
 
 // STATIC: 0x00CABCC4
 static int32_t s_consoleAccessEnabled;
@@ -281,12 +281,12 @@ void ConsoleDeviceDefaults(OPTION_PAGE page) {
     }
 }
 
-// VERIFY: 575661ec auto
+// VERIFY: 653cadbd auto
 // OFFSET: 0x0076AAB0
 void AddConsoleDeviceDefaultCallback(void (*callback)(OPTION_PAGE page)) {
     s_defaultCallbacks.New(callback);
 
-    if (s_unk_CABCC0) {
+    if (s_defaultsApplied) {
         for (uint32_t page = OPTION_PAGE_0; page < NUM_OPTION_PAGES; page++) {
             callback(static_cast<OPTION_PAGE>(page));
         }

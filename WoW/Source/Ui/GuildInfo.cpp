@@ -55,13 +55,13 @@ int32_t CGGuildInfo::m_showOffline;
 WOWGUID CGGuildInfo::m_selectedMember;
 
 // STATIC: 0x00C22AC8
-int32_t CGGuildInfo::unk_C22AC8;
+int32_t CGGuildInfo::m_nextAllowedQuery;
 
 // STATIC: 0x00C22AD0
 int32_t CGGuildInfo::m_pendingEventLogNames;
 
 // STATIC: 0x00C22AD4
-uint8_t CGGuildInfo::unk_C22AD4;
+uint8_t CGGuildInfo::m_saveToFile;
 
 // STATIC: 0x00C22AD8
 TSGrowableArray<GuildMemberInfo*> CGGuildInfo::m_roster;
@@ -87,7 +87,7 @@ void CGGuildInfo::QueryPermissions() {
     ClientServices::Send2(&withdrawn);
 }
 
-// VERIFY: f9acb4a0 auto
+// VERIFY: 73972015 auto
 // OFFSET: 0x005CD0B0
 void CGGuildInfo::InitializeGame() {
     ClientServices::SetMessageHandler(SMSG_GUILD_ROSTER, Packet_SMSG_GUILD_ROSTER, nullptr);
@@ -99,7 +99,7 @@ void CGGuildInfo::InitializeGame() {
     CGGuildInfo::m_numRanks = 0;
     CGGuildInfo::m_showOffline = 0;
     CGGuildInfo::m_selectedMember.m_guid = 0;
-    CGGuildInfo::unk_C22AC8 = 0;
+    CGGuildInfo::m_nextAllowedQuery = 0;
     CGGuildInfo::m_numEventLogEntries = 0;
     CGGuildInfo::m_pendingEventLogNames = 0;
     CGGuildInfo::m_infoText[0] = '\0';
@@ -264,7 +264,7 @@ int32_t Packet_MSG_GUILD_PERMISSIONS(void* param, NETMESSAGE msgId, uint32_t tim
     return 1;
 }
 
-// VERIFY: 6955c87d manual
+// VERIFY: 312b8969 manual
 // OFFSET: 0x005CC5D0
 int32_t Packet_SMSG_GUILD_ROSTER(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint32_t allocated = CGGuildInfo::m_roster.m_count;
@@ -348,7 +348,7 @@ int32_t Packet_SMSG_GUILD_ROSTER(void* param, NETMESSAGE msgId, uint32_t time, C
     qsort(CGGuildInfo::m_roster.m_data, CGGuildInfo::m_numMembers, sizeof(GuildMemberInfo*), QSortRoster);
     FrameScript_SignalEvent(SCRIPT_EVENT_GUILD_ROSTER_UPDATE, nullptr);
 
-    if (CGGuildInfo::unk_C22AD4) {
+    if (CGGuildInfo::m_saveToFile) {
         CGGuildInfo::SaveToFile();
     }
 
@@ -381,11 +381,11 @@ void CGGuildInfo::SetMOTD(const char* motd) {
     ScrubString(motd, CGGuildInfo::m_motd, 129, sizeof(CGGuildInfo::m_motd), 1);
 }
 
-// VERIFY: 20231a2d auto
+// VERIFY: 8962a32a auto
 // OFFSET: 0x005CA0F0
 void UpdateGuildRoster(int32_t a1) {
     if (a1) {
-        CGGuildInfo::unk_C22AC8 = 0;
+        CGGuildInfo::m_nextAllowedQuery = 0;
         FrameScript_SignalEvent(SCRIPT_EVENT_GUILD_ROSTER_UPDATE, "%d", 1);
     } else {
         FrameScript_SignalEvent(SCRIPT_EVENT_GUILD_ROSTER_UPDATE, nullptr);
@@ -498,12 +498,12 @@ int32_t QSortRoster(const void* a, const void* b) {
     return 0;
 }
 
-// VERIFY: a23b0c6d manual
+// VERIFY: 04efb218 manual
 // OFFSET: 0x005CA9B0
 void CGGuildInfo::QueryRosterAndRanks() {
     uint32_t now = OsGetAsyncTimeMs();
 
-    if (CGGuildInfo::unk_C22AC8 && static_cast<int32_t>(now - CGGuildInfo::unk_C22AC8) < 0) {
+    if (CGGuildInfo::m_nextAllowedQuery && static_cast<int32_t>(now - CGGuildInfo::m_nextAllowedQuery) < 0) {
         return;
     }
 
@@ -511,7 +511,7 @@ void CGGuildInfo::QueryRosterAndRanks() {
     msg.Put(static_cast<uint32_t>(CMSG_GUILD_GET_ROSTER));
     msg.Finalize();
     ClientServices::Send2(&msg);
-    CGGuildInfo::unk_C22AC8 = now + 10000;
+    CGGuildInfo::m_nextAllowedQuery = now + 10000;
 }
 
 // VERIFY: 5f2444f6 manual
@@ -560,7 +560,7 @@ int32_t CGGuildInfo::GetSelectedMemberIndex() {
     return -1;
 }
 
-// VERIFY: ea3948e7 auto
+// VERIFY: 98330598 auto
 // OFFSET: 0x005CC990
 void GuildInfoCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
     if (!success) {
@@ -569,12 +569,12 @@ void GuildInfoCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool s
 
     FrameScript_SignalEvent(SCRIPT_EVENT_GUILD_ROSTER_UPDATE, nullptr);
 
-    if (CGGuildInfo::unk_C22AD4) {
+    if (CGGuildInfo::m_saveToFile) {
         CGGuildInfo::SaveToFile();
     }
 }
 
-// VERIFY: c54611bc auto
+// VERIFY: 0e95646b auto
 // OFFSET: 0x005CBAE0
 void CGGuildInfo::SaveToFile() {
     OsCreateDirectory("Logs", 0);
@@ -603,7 +603,7 @@ void CGGuildInfo::SaveToFile() {
         OsCloseFile(file);
     }
 
-    CGGuildInfo::unk_C22AD4 = 0;
+    CGGuildInfo::m_saveToFile = 0;
 }
 
 // VERIFY: b420c257 manual
@@ -618,7 +618,7 @@ bool CGGuildInfo::CanEditGuildEvent() {
     return (CGGuildInfo::m_rankInfo[player->m_player->m_playerGuildrank].m_rights >> 20) & 1;
 }
 
-// VERIFY: bc5c65cc manual
+// VERIFY: 24e11556 manual
 // OFFSET: 0x005CAAF0
 void CGGuildInfo::InvalidatePlayer(const WOWGUID& guid) {
     uint32_t time = OsGetAsyncTimeMs();
@@ -629,7 +629,7 @@ void CGGuildInfo::InvalidatePlayer(const WOWGUID& guid) {
             msg.Put(static_cast<uint32_t>(CMSG_GUILD_GET_ROSTER));
             msg.Finalize();
             ClientServices::Send2(&msg);
-            CGGuildInfo::unk_C22AC8 = time + 10000;
+            CGGuildInfo::m_nextAllowedQuery = time + 10000;
             return;
         }
     }

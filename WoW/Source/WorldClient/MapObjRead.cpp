@@ -17,7 +17,7 @@
 TSList<CMapObj, TSGetExplicitLink<CMapObj> > CMapObj::s_asyncLoadQueue = TSExplicitList<CMapObj, offsetof(CMapObj, m_asyncLoadLink)>();
 
 // STATIC: 0x00ADFC58
-TSList<CMapObjGroup, TSGetExplicitLink<CMapObjGroup> > CMapObj::s_unk_ADFC58 = TSExplicitList<CMapObjGroup, offsetof(CMapObjGroup, m_asyncLoadLink)>();
+TSList<CMapObjGroup, TSGetExplicitLink<CMapObjGroup> > CMapObj::s_loadedGroups = TSExplicitList<CMapObjGroup, offsetof(CMapObjGroup, m_asyncLoadLink)>();
 
 // VERIFY: 477d94a9 manual
 // OFFSET: 0x007D72D0
@@ -280,7 +280,7 @@ CMapObjGroup* CMapObj::AttenTransVerts(CMapObjGroup* group) {
     return group;
 }
 
-// VERIFY: 2fb16807 manual
+// VERIFY: 5789fe57 manual
 // OFFSET: 0x007D7C30
 void CMapObjGroup::CreateOptionalDataPointers(SIffChunk* dataChunk) {
     SIffChunk* chunk = dataChunk;
@@ -356,7 +356,7 @@ void CMapObjGroup::CreateOptionalDataPointers(SIffChunk* dataChunk) {
         chunk = reinterpret_cast<SIffChunk*>(reinterpret_cast<uint8_t*>(&chunk->m_data) + chunk->m_size + 8);
         this->m_stripBatches = reinterpret_cast<uint8_t*>(chunk);
 
-        if (CMap::s_unk_CE049C) {
+        if (CMap::s_enableTriangleStrips) {
             for (uint32_t i = 0; i < static_cast<uint32_t>(this->m_batchListCount); i++) {
                 this->m_batchList[i].m_indexStart = *reinterpret_cast<uint32_t*>(&this->m_stripBatches[8 * i]);
                 this->m_batchList[i].m_indexCount = *reinterpret_cast<uint16_t*>(&this->m_stripBatches[8 * i + 4]);
@@ -602,7 +602,7 @@ void CMapObjGroup::AsyncPostloadCallback(void* arg) {
     group->Create();
 }
 
-// VERIFY: d48a58f4 manual
+// VERIFY: 1fdd96d9 manual
 // OFFSET: 0x007D85E0
 void CMapObj::ReadGroup(uint32_t index, bool preLoad) {
     CMapObjGroup* group = this->m_mapObjGroupArray[index];
@@ -635,5 +635,5 @@ void CMapObj::ReadGroup(uint32_t index, bool preLoad) {
     group->m_asyncObjPtr = object;
     AsyncFileReadObject(object, 0);
 
-    CMapObj::s_unk_ADFC58.LinkToTail(group);
+    CMapObj::s_loadedGroups.LinkToTail(group);
 }

@@ -192,14 +192,14 @@ void CEffect::DetachFromParent() {
     }
 }
 
-// VERIFY: e8248e58 auto
+// VERIFY: 552c4366 auto
 // OFFSET: 0x006F7870
 void CEffect::SetEnabled(int32_t enabled) {
     if (!this->m_model) {
         return;
     }
 
-    this->m_model->unk_017C = enabled ? 1.0f : 0.0f;
+    this->m_model->m_baseAlpha = enabled ? 1.0f : 0.0f;
     this->m_model->SetEmittersEnabled(enabled);
     this->m_model->SetRibbonsEnabled(enabled);
 }
@@ -258,7 +258,7 @@ void CEffect::AddFishingLine(CGObject_C* object, const WOWGUID& target) {
     this->m_targetGuid = target;
 }
 
-// VERIFY: 0145e3d7 manual
+// VERIFY: 9ce5579d manual
 // OFFSET: 0x006F9D70
 CEffect::CEffect() {
     this->m_attachmentId = -1;
@@ -293,10 +293,10 @@ CEffect::CEffect() {
     this->unk_00A0 = 0;
     this->m_transportGuid = WOWGUID();
     this->unk_00C8 = 0;
-    this->unk_00CC = 0;
+    this->m_expireTime = 0;
     this->unk_00D0 = 0;
-    this->unk_00D4 = 0;
-    this->unk_00D8 = 0;
+    this->m_attachToModel = 0;
+    this->m_attachToMount = 0;
     this->unk_00DC = 0;
     this->unk_00E0 = 0.0f;
     this->unk_00E4 = 0.0f;
@@ -476,7 +476,7 @@ void __stdcall CEffect::DestroyMatchingEffects(CGObject_C* object, const SpellVi
     }
 }
 
-// VERIFY: 579c63d5 manual
+// VERIFY: 25c89a39 manual
 // OFFSET: 0x006F7E40
 void CEffect::AddSoundEffect(int32_t soundId, int32_t a2, int32_t spellId, const C3Vector* position, CGObject_C* object, uint32_t a6) {
     if (!object) {
@@ -485,7 +485,7 @@ void CEffect::AddSoundEffect(int32_t soundId, int32_t a2, int32_t spellId, const
 
     this->LinkTo(&object->m_effectList);
     this->m_refCount++;
-    this->unk_00CC = a2;
+    this->m_expireTime = a2;
     this->m_spellId = spellId;
     this->m_sourceGuid = object->m_obj->m_guid;
     this->unk_00A0 = a6;
@@ -679,7 +679,7 @@ void CEffect::ClearItemVisualEffect() {
     this->m_itemSlot = 12;
 }
 
-// VERIFY: 899e5338 manual
+// VERIFY: 9f9c444f manual
 // OFFSET: 0x006F87C0
 void CEffect::MoveToDestroyList() {
     this->LinkTo(&s_destroyedEffects);
@@ -689,14 +689,14 @@ void CEffect::MoveToDestroyList() {
         CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_sourceGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
 
         if (unit) {
-            if (this->unk_00D8 && unit->m_mountModel) {
+            if (this->m_attachToMount && unit->m_mountModel) {
                 unit->m_mountModel->m_lastAnimTime = 0;
-                this->unk_00D8 = 0;
+                this->m_attachToMount = 0;
             }
 
-            if (this->unk_00D4 && unit->m_worldModel) {
+            if (this->m_attachToModel && unit->m_worldModel) {
                 unit->m_worldModel->m_lastAnimTime = 0;
-                this->unk_00D4 = 0;
+                this->m_attachToModel = 0;
             }
 
             unit->UpdateBaseAnimation(0, -1);
@@ -830,7 +830,7 @@ CEffect::~CEffect() {
     this->ClearLightning();
 }
 
-// VERIFY: 2377a38a manual
+// VERIFY: bf507d37 manual
 // OFFSET: 0x006FA450
 void CEffect::CleanUpStaticLists() {
     uint32_t now = FrameTime::s_curTimeMs;
@@ -843,7 +843,7 @@ void CEffect::CleanUpStaticLists() {
             effect->EffectUpdate();
         }
 
-        if (effect->unk_00CC && static_cast<int32_t>(now - effect->unk_00CC) > 0) {
+        if (effect->m_expireTime && static_cast<int32_t>(now - effect->m_expireTime) > 0) {
             effect->UnLinkSelf();
 
             if (effect->m_refCount-- == 1) {
@@ -952,7 +952,7 @@ float __stdcall CEffect::ComputeModelScaleFromTarget(CGObject_C* object) {
     return size * scale;
 }
 
-// VERIFY: 296a53c9 manual
+// VERIFY: cd786896 auto
 // OFFSET: 0x006F8040
 void CEffect::AddLightning(int32_t a2, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags) {
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*guid, TYPEMASK_UNIT, __FILE__, __LINE__));
@@ -964,7 +964,7 @@ void CEffect::AddLightning(int32_t a2, uint32_t spellId, const SpellVisualKitRec
     this->LinkTo(&unit->m_effectList);
     this->m_refCount++;
     this->m_kitRec = kit;
-    this->unk_00CC = a2;
+    this->m_expireTime = a2;
     this->m_spellId = spellId;
     this->m_sourceGuid = *guid;
     this->m_flags = flags;
@@ -1181,7 +1181,7 @@ int32_t CEffect::UpdateAttachment() {
     return 1;
 }
 
-// VERIFY: 1bc858d5 manual
+// VERIFY: a7cc6925 manual
 // OFFSET: 0x006FA050
 void CEffect::EffectUpdate() {
     if (!(this->m_flags & 0x900)) {
@@ -1189,7 +1189,7 @@ void CEffect::EffectUpdate() {
     }
 
     if ((this->m_flags & 0x40000) && this->m_lightningState > 0 && !--this->m_lightningState && this->m_model) {
-        this->m_model->unk_017C = 0.0f;
+        this->m_model->m_baseAlpha = 0.0f;
         this->m_model->SetEmittersEnabled(0);
         this->m_model->SetRibbonsEnabled(0);
     }
@@ -1228,21 +1228,21 @@ void CEffect::EffectUpdate() {
         }
     }
 
-    if ((this->m_flags & 0x4) && this->unk_00CC && static_cast<int32_t>(FrameTime::s_curTimeMs - this->unk_00CC) > 0) {
+    if ((this->m_flags & 0x4) && this->m_expireTime && static_cast<int32_t>(FrameTime::s_curTimeMs - this->m_expireTime) > 0) {
         CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_sourceGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
 
         if (!unit) {
             return;
         }
 
-        if (this->unk_00D8 && unit->m_mountModel) {
+        if (this->m_attachToMount && unit->m_mountModel) {
             unit->m_mountModel->m_lastAnimTime = 0;
-            this->unk_00D8 = 0;
+            this->m_attachToMount = 0;
         }
 
-        if (this->unk_00D4 && unit->m_worldModel) {
+        if (this->m_attachToModel && unit->m_worldModel) {
             unit->m_worldModel->m_lastAnimTime = 0;
-            this->unk_00D4 = 0;
+            this->m_attachToModel = 0;
         }
 
         unit->UpdateBaseAnimation(0, -1);
@@ -1257,7 +1257,7 @@ void CEffect::EffectUpdate() {
         object->m_scaleChangeTime = 0;
         object->m_scaleModifier = 1.0f;
         this->MoveToDestroyList();
-    } else if (!(this->m_flags & 0x20) && this->unk_00CC && static_cast<int32_t>(FrameTime::s_curTimeMs - this->unk_00CC) > 0) {
+    } else if (!(this->m_flags & 0x20) && this->m_expireTime && static_cast<int32_t>(FrameTime::s_curTimeMs - this->m_expireTime) > 0) {
         this->MoveToDestroyList();
     }
 
@@ -1266,7 +1266,7 @@ void CEffect::EffectUpdate() {
     }
 }
 
-// VERIFY: a9069759 manual
+// VERIFY: eb25cf59 manual
 // OFFSET: 0x006F8970
 void CEffect::UpdateWorldObject(float elapsed, uint32_t flags) {
     if ((!this->unk_00C8 || static_cast<int32_t>(FrameTime::s_curTimeMs - this->unk_00C8) > 0) && this->m_model) {
@@ -1293,7 +1293,7 @@ void CEffect::UpdateWorldObject(float elapsed, uint32_t flags) {
         }
     }
 
-    if (this->unk_00CC && static_cast<int32_t>(FrameTime::s_curTimeMs - this->unk_00CC) > 0) {
+    if (this->m_expireTime && static_cast<int32_t>(FrameTime::s_curTimeMs - this->m_expireTime) > 0) {
         this->MoveToDestroyList();
     }
 }
@@ -1480,7 +1480,7 @@ void CEffect::InitAtPosition(int32_t spellId, const SpellVisualKitRec* kit, cons
     this->LinkTo(&s_orphanedEffects);
 }
 
-// VERIFY: 08a4eb22 auto
+// VERIFY: a5956734 auto
 // OFFSET: 0x006F80B0
 void CEffect::CreateProceduralEffectImpl(int32_t a2, float param, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags) {
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*guid, TYPEMASK_UNIT, __FILE__, __LINE__));
@@ -1493,7 +1493,7 @@ void CEffect::CreateProceduralEffectImpl(int32_t a2, float param, uint32_t spell
     this->m_refCount++;
 
     if (unit->m_mountModel && unit->m_mountModel->IsLoaded(0, 0)) {
-        this->unk_00D8 = unit->m_mountModel->m_lastAnimTime == 0;
+        this->m_attachToMount = unit->m_mountModel->m_lastAnimTime == 0;
 
         if (param > 0.0f) {
             uint32_t duration = static_cast<uint32_t>(param * 1000.0f);
@@ -1511,11 +1511,11 @@ void CEffect::CreateProceduralEffectImpl(int32_t a2, float param, uint32_t spell
 
         unit->UpdateBoneSequenceFlags(unit->m_mountModel, 1, 0);
     } else {
-        this->unk_00D8 = 1;
+        this->m_attachToMount = 1;
     }
 
     if (unit->m_worldModel && unit->m_worldModel->IsLoaded(0, 0)) {
-        this->unk_00D4 = unit->m_worldModel->m_lastAnimTime == 0;
+        this->m_attachToModel = unit->m_worldModel->m_lastAnimTime == 0;
 
         if (param > 0.0f) {
             uint32_t duration = static_cast<uint32_t>(param * 1000.0f);
@@ -1533,11 +1533,11 @@ void CEffect::CreateProceduralEffectImpl(int32_t a2, float param, uint32_t spell
 
         unit->UpdateBoneSequenceFlags(unit->m_worldModel, 1, 0);
     } else {
-        this->unk_00D4 = 1;
+        this->m_attachToModel = 1;
     }
 
     this->m_kitRec = kit;
-    this->unk_00CC = a2;
+    this->m_expireTime = a2;
     this->m_spellId = spellId;
     this->m_sourceGuid = *guid;
     this->m_flags |= flags | 0x4;
@@ -1613,7 +1613,7 @@ int32_t CEffect::LoadMountTransitionModel() {
     return 1;
 }
 
-// VERIFY: ed2a520e auto
+// VERIFY: b4754e47 auto
 // OFFSET: 0x006F8650
 void CEffect::InitProceduralEffect(int32_t a2, int32_t param, uint32_t spellId, const SpellVisualKitRec* kit, const WOWGUID* guid, uint32_t flags) {
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*guid, TYPEMASK_UNIT, __FILE__, __LINE__));
@@ -1622,7 +1622,7 @@ void CEffect::InitProceduralEffect(int32_t a2, int32_t param, uint32_t spellId, 
         return;
     }
 
-    this->unk_00CC = a2;
+    this->m_expireTime = a2;
     this->m_spellId = spellId;
     this->m_kitRec = kit;
     this->m_sourceGuid = *guid;

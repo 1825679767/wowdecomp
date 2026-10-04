@@ -213,7 +213,7 @@ static uint32_t s_areaTriggerTimer;
 static int32_t s_areaTriggerMapID;
 
 // STATIC: 0x00C9D33C
-static int32_t s_unk_C9D33C;
+static int32_t s_defenseSpellId;
 
 // STATIC: 0x00C9D4F0
 static uint32_t s_proficiency[17];
@@ -237,7 +237,7 @@ static uint32_t s_attackSwingErrorTime;
 WOWGUID CGPlayer_C::s_lastVendorListReceived;
 
 // STATIC: 0x00C9EAA0
-static WOWGUID s_unk_C9EAA0;
+static WOWGUID s_lastBinderGuid;
 
 // STATIC: 0x00C9EAA8
 static int32_t s_attackSwingError;
@@ -362,7 +362,7 @@ static uint32_t s_combatModeExitCount;
 static int32_t s_dualWieldSpell;
 
 // STATIC: 0x00D3F4EC
-static uint32_t unk_D3F4EC;
+static uint32_t s_missileTrajectorySequence;
 
 // STATIC: 0x00A32450
 static const RestStateInfo s_restStateInfo[3] = {
@@ -385,7 +385,7 @@ static int32_t OnUpdatePVPTitle(WOWGUID guid, uint32_t fieldOffset, uint32_t fie
     return 1;
 }
 
-// VERIFY: 88fa79ea manual
+// VERIFY: 6e2cb893 manual
 // OFFSET: 0x006D1970
 static int32_t PetChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
     if (guid == ClntObjMgrGetActivePlayer() || CGGameUI::IsPartyMember(guid)) {
@@ -407,7 +407,7 @@ static int32_t PetChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fie
                 } else if (oldGuid != newGuid) {
                     CGGameUI::ClearTarget(oldGuid, 1);
 
-                    if (CGGameUI::unk_BD07D0 == oldGuid) {
+                    if (CGGameUI::m_focusTarget == oldGuid) {
                         WOWGUID focus = WOWGUID();
                         CGGameUI::SetFocusTarget(focus);
                     }
@@ -612,7 +612,7 @@ static int32_t OnUpdatePlayerFacialStyle(WOWGUID guid, uint32_t fieldOffset, uin
     return 1;
 }
 
-// VERIFY: ae08522d manual
+// VERIFY: 48d07e5a auto
 // OFFSET: 0x006E0340
 static void InitWeaponSkills() {
     int32_t count;
@@ -627,7 +627,7 @@ static void InitWeaponSkills() {
         s_weaponSkills.m_data[i] = 0;
     }
 
-    s_unk_C9D33C = 0;
+    s_defenseSpellId = 0;
 
     SpellRec rec;
     int32_t index = g_spellDB.m_numRecords;
@@ -641,8 +641,8 @@ static void InitWeaponSkills() {
             continue;
         }
 
-        if (!s_unk_C9D33C && rec.m_effect[0] == 26) {
-            s_unk_C9D33C = rec.m_id;
+        if (!s_defenseSpellId && rec.m_effect[0] == 26) {
+            s_defenseSpellId = rec.m_id;
         }
 
         if (rec.m_equippedItemClass != 2) {
@@ -815,14 +815,14 @@ void CGPlayer_C::Initialize() {
     ClntObjMgrSetTypeMirrorHandler(ID_PLAYER, offsetof(CGPlayerData, m_playerBytes), sizeof(uint8_t), OnUpdatePlayerSkinID, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
 }
 
-// VERIFY: b276ec2e manual
+// VERIFY: 22f04900 manual
 // OFFSET: 0x006E4780
 void CGPlayer_C::Shutdown() {
     s_guildUpdateTimestamps.Clear();
     s_initialSpells.Clear();
     s_itemSwaps.Clear();
     s_weaponSkills.Clear();
-    s_unk_C9EAA0 = WOWGUID();
+    s_lastBinderGuid = WOWGUID();
     s_tabardSavePending = 0;
 
     if (s_inspectData) {
@@ -2776,7 +2776,7 @@ void __stdcall CGPlayer_C::ClearAFK(int32_t force) {
     ClientServices::Send2(&msg);
 }
 
-// VERIFY: aeb9ac80 manual
+// VERIFY: e056d4fe manual
 // OFFSET: 0x006E6B40
 CGPlayer_C::CGPlayer_C(uint32_t time, const CClientObjCreate& create)
     : CGUnit_C(time, create),
@@ -2804,7 +2804,7 @@ CGPlayer_C::CGPlayer_C(uint32_t time, const CClientObjCreate& create)
         }
 
         if (this->m_unit->m_unitFieldHealth <= 0) {
-            this->Unk716040();
+            this->RequestRepopOnLanding();
         }
 
         CGWorldFrame::UpdateScreenEffect();
@@ -2820,7 +2820,7 @@ CGPlayer_C::CGPlayer_C(uint32_t time, const CClientObjCreate& create)
     this->m_danceMoveIndex = 0;
 
     if (create.m_updateFlags & 0x1) {
-        Unk7FE510(static_cast<uint32_t>(this->m_obj->m_guid.m_guid));
+        Spell_C_SeedMissileTrajectorySequence(static_cast<uint32_t>(this->m_obj->m_guid.m_guid));
     }
 
     this->m_playedTime = -1;
@@ -4849,10 +4849,10 @@ int32_t CGPlayer_C::GetNewContinentID() {
     return ClntObjMgrGetMapID();
 }
 
-// VERIFY: fc173622 auto
+// VERIFY: e3365355 auto
 // OFFSET: 0x007FE510
-void Unk7FE510(uint32_t guidLow) {
-    unk_D3F4EC = guidLow;
+void Spell_C_SeedMissileTrajectorySequence(uint32_t guidLow) {
+    s_missileTrajectorySequence = guidLow;
 }
 
 // INLINED
@@ -4864,10 +4864,10 @@ static uint32_t SetTrajectoryCheckBit(uint32_t value, uint32_t shift) {
     return masked | (((0x28D7 >> fold) & 1) << shift);
 }
 
-// VERIFY: 2a929aab manual
+// VERIFY: 75b1d789 manual
 // OFFSET: 0x007FE520
 uint32_t Spell_C_EncodeSequenceIntoMissileTrajectory(uint32_t* pitch, uint32_t* speed, uint32_t* source, uint32_t* dest) {
-    uint32_t sequence = unk_D3F4EC++;
+    uint32_t sequence = s_missileTrajectorySequence++;
     uint32_t key[2];
     key[0] = (((source[0] ^ (source[2] & 0xF000)) & 0x2F000) ^ (source[1] & 0x300EE630) ^ (pitch[0] & 0x6000CF0) ^ (dest[1] & 0x60E0400) ^ (speed[0] & 0x240E00) ^ (dest[0] & 0xA9070F01) ^ sequence) | 0x1010101;
     key[1] = 0;
@@ -9000,7 +9000,7 @@ static void RandomRollNameQueryCallback(int32_t id, const WOWGUID& guid, void* p
     operator delete(roll);
 }
 
-// VERIFY: 9cd907bd manual
+// VERIFY: 7e47e286 manual
 // OFFSET: 0x006E2E90
 int32_t Packet_Group_9(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     if (!msg) {
@@ -9173,7 +9173,7 @@ int32_t Packet_Group_9(void* param, NETMESSAGE msgId, uint32_t time, CDataStore*
             uint32_t areaId;
             msg->Get(binder.m_guid);
             msg->Get(areaId);
-            s_unk_C9EAA0 = binder;
+            s_lastBinderGuid = binder;
             SI2::PlaySoundKit(0x475, nullptr, nullptr, nullptr, 0, nullptr, 1, 0);
             AreaTableRec* area = g_areaTableDB.GetRecord(areaId);
 
@@ -11504,7 +11504,7 @@ bool CGPlayer_C::LoadGuildTextures(int32_t displayId) {
     return true;
 }
 
-// VERIFY: 5d7a7c80 manual
+// VERIFY: 90dc58ea manual
 // OFFSET: 0x006D8870
 int32_t Packet_SMSG_GROUP_LIST(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint8_t groupType;
@@ -11573,7 +11573,7 @@ int32_t Packet_SMSG_GROUP_LIST(void* param, NETMESSAGE msgId, uint32_t time, CDa
             continue;
         }
 
-        const CGPartyMemberState* state = CGPartyInfo::m_members[i] ? &unk_BD0D08[i] : nullptr;
+        const CGPartyMemberState* state = CGPartyInfo::m_members[i] ? &s_partyMemberStates[i] : nullptr;
         memcpy(&oldStates[i], state, sizeof(CGPartyMemberState));
         CGPartyInfo::GetReadyCheckInfo(&oldReadyChecks[i], i);
         oldCount++;
@@ -11739,7 +11739,7 @@ int32_t Packet_SMSG_GROUP_LIST(void* param, NETMESSAGE msgId, uint32_t time, CDa
         msg->Get(dynamicDifficulty);
         CGPartyInfo::m_playerAssignments = assignments;
         CGPartyInfo::m_playerRole = roles;
-        CGPartyInfo::unk_BD1989 = lfgFlags;
+        CGPartyInfo::m_playerLFGFlags = lfgFlags;
         CGPartyInfo::SetLootMethod(lootMethod, lootMaster, lootThreshold, wasInGroup == 0);
         CGPartyInfo::m_dungeonDifficulty = partyDungeonDifficulty;
         CGPartyInfo::m_raidDifficulty = partyRaidDifficulty;
@@ -13197,7 +13197,7 @@ void CGPlayer_C::TogglePlayerFlag(uint32_t oldFlags) {
 // STATIC: 0x00ADA2E0
 static uint32_t s_textEmoteStandStates = 0x10B;
 
-// VERIFY: 5713559b manual
+// VERIFY: 1c3eae7c manual
 // OFFSET: 0x006DD9E0
 void CGPlayer_C::SendTextEmote(const EmotesTextRec* emote, WOWGUID target) {
     if (!emote || (this->m_unit->m_unitFieldFlags & 0x1000000)) {
@@ -13233,7 +13233,7 @@ void CGPlayer_C::SendTextEmote(const EmotesTextRec* emote, WOWGUID target) {
 
     if (rec->m_emoteSpecProc == 1 && ((1 << rec->m_emoteSpecProcParam) & s_textEmoteStandStates)) {
         this->ChangeStandState(rec->m_emoteSpecProcParam);
-    } else if (rec->m_animID && this->Unk724410()) {
+    } else if (rec->m_animID && this->CanPlayEmoteAnim()) {
         this->PlayBaseAnimation(rec->m_animID, 0);
     }
 
@@ -13599,15 +13599,15 @@ int32_t CGPlayer_C::GetSpellRank(const SpellRec* spell) const {
     return rank;
 }
 
-// VERIFY: fe044af3 auto
+// VERIFY: b01606c2 auto
 // OFFSET: 0x006DE6D0
 void CGPlayer_C::GetDefenseSkillRank(int32_t& rank, int32_t& bonus) const {
-    int32_t defenseSpell = s_unk_C9D33C;
+    int32_t defenseSpell = s_defenseSpellId;
     bonus = 0;
     rank = 0;
     SkillLineAbilityRec* ability = SpellTableLookupAbility(this->m_unit->m_unitFieldBytes0[0], this->m_unit->m_unitFieldBytes0[1], defenseSpell);
 
-    if (ability && ability->m_spell == s_unk_C9D33C) {
+    if (ability && ability->m_spell == s_defenseSpellId) {
         this->GetExpandedSkillRank(ability->m_skillLine, rank, bonus);
     }
 

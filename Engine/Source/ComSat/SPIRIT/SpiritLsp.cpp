@@ -4,9 +4,9 @@
 
 extern "C" {
 
-// VERIFY: 0239d83d auto
+// VERIFY: bfec4865 auto
 // OFFSET: 0x0089BFA0
-float SPIRIT_IP_MR_V3_Unk89BFA0(float x, const float* f) {
+float SPIRIT_IP_MR_V3_ChebyshevEval(float x, const float* f) {
     float x2 = x + x;
     float b2 = 1.0f;
     float b1 = f[1] + x2;
@@ -20,9 +20,9 @@ float SPIRIT_IP_MR_V3_Unk89BFA0(float x, const float* f) {
     return x * b1 - b2 + f[5];
 }
 
-// VERIFY: a2882f5a manual
+// VERIFY: 5619a3ec manual
 // OFFSET: 0x0089C020
-int32_t SPIRIT_IP_MR_V3_Unk89C020(const float* a, float* lsp, const float* grid) {
+int32_t SPIRIT_IP_MR_V3_LpcToLsp(const float* a, float* lsp, const float* grid) {
     float f1[6];
     float f2[6];
     f1[0] = 1.0f;
@@ -40,7 +40,7 @@ int32_t SPIRIT_IP_MR_V3_Unk89C020(const float* a, float* lsp, const float* grid)
     const float* other = f2;
     int32_t count = 0;
     float xlow = grid[0];
-    float ylow = SPIRIT_IP_MR_V3_Unk89BFA0(xlow, coef);
+    float ylow = SPIRIT_IP_MR_V3_ChebyshevEval(xlow, coef);
     int32_t j = 0;
 
     while (j < 60) {
@@ -48,7 +48,7 @@ int32_t SPIRIT_IP_MR_V3_Unk89C020(const float* a, float* lsp, const float* grid)
         float xhigh = xlow;
         float yhigh = ylow;
         xlow = grid[j];
-        ylow = SPIRIT_IP_MR_V3_Unk89BFA0(xlow, coef);
+        ylow = SPIRIT_IP_MR_V3_ChebyshevEval(xlow, coef);
 
         if (yhigh * ylow > 0.0f) {
             continue;
@@ -56,7 +56,7 @@ int32_t SPIRIT_IP_MR_V3_Unk89C020(const float* a, float* lsp, const float* grid)
 
         for (int32_t i = 0; i < 4; i++) {
             float xmid = (xhigh + xlow) * 0.5f;
-            float ymid = SPIRIT_IP_MR_V3_Unk89BFA0(xmid, coef);
+            float ymid = SPIRIT_IP_MR_V3_ChebyshevEval(xmid, coef);
 
             if (ymid * ylow <= 0.0f) {
                 yhigh = ymid;
@@ -88,15 +88,15 @@ int32_t SPIRIT_IP_MR_V3_Unk89C020(const float* a, float* lsp, const float* grid)
         coef = other;
         other = swap;
         xlow = root;
-        ylow = SPIRIT_IP_MR_V3_Unk89BFA0(xlow, coef);
+        ylow = SPIRIT_IP_MR_V3_ChebyshevEval(xlow, coef);
     }
 
     return 0;
 }
 
-// VERIFY: fb2e9ffe manual
+// VERIFY: 6556dcab manual
 // OFFSET: 0x0089C400
-void SPIRIT_IP_MR_V3_Unk89C400(float* out, const float* coeffs, const float* src, float* mem) {
+void SPIRIT_IP_MR_V3_FilterSubframes(float* out, const float* coeffs, const float* src, float* mem) {
     for (int32_t sf = 0; sf < 4; sf++) {
         SPIRIT_IP_MR_V3_NAME_137(src, out, coeffs);
         SPIRIT_IP_MR_V3_NAME_148(out, out, coeffs + 10, mem, 1);
@@ -106,9 +106,9 @@ void SPIRIT_IP_MR_V3_Unk89C400(float* out, const float* coeffs, const float* src
     }
 }
 
-// VERIFY: d9f03194 auto
+// VERIFY: 5db14922 auto
 // OFFSET: 0x0089C450
-float SPIRIT_IP_MR_V3_Unk89C450(float w, const float* a) {
+float SPIRIT_IP_MR_V3_EvalLpcSpectrum(float w, const float* a) {
     float c = static_cast<float>(cos(w));
     float s = static_cast<float>(sin(w));
     float re = c * a[9];
@@ -128,12 +128,12 @@ float SPIRIT_IP_MR_V3_Unk89C450(float w, const float* a) {
     return rotated * rotated + re * re;
 }
 
-// VERIFY: 2dc4fbcd auto
+// VERIFY: 79049587 auto
 // OFFSET: 0x0089C670
 void SPIRIT_IP_MR_V3_NAME_330(float* out, const float* lsf, const float* a) {
     for (int32_t i = 0; i < 10; i++) {
         float w = static_cast<float>(lsf[i] * static_cast<double>(3.1415927f));
-        out[i] = static_cast<float>(pow(SPIRIT_IP_MR_V3_Unk89C450(w, a), static_cast<double>(-0.3f)));
+        out[i] = static_cast<float>(pow(SPIRIT_IP_MR_V3_EvalLpcSpectrum(w, a), static_cast<double>(-0.3f)));
     }
 
     out[8] = static_cast<float>(out[8] * static_cast<double>(0.64f));

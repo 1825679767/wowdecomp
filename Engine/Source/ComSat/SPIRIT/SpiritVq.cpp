@@ -4,17 +4,17 @@
 
 extern "C" {
 
-// VERIFY: da7addab manual
+// VERIFY: 9f95e8b0 manual
 // OFFSET: 0x0089FD90
-void SPIRIT_IP_MR_V3_Unk89FD90(int32_t count, float* dst, const float* src) {
+void SPIRIT_IP_MR_V3_AddVector(int32_t count, float* dst, const float* src) {
     for (int32_t i = 0; i < count; i++) {
         dst[i] = src[i] + dst[i];
     }
 }
 
-// VERIFY: 34704e78 manual
+// VERIFY: 259fd37d manual
 // OFFSET: 0x0089FE20
-float* SPIRIT_IP_MR_V3_Unk89FE20(int32_t count, float* dst, const float* src) {
+float* SPIRIT_IP_MR_V3_CopyVector(int32_t count, float* dst, const float* src) {
     for (int32_t i = 0; i < count; i++) {
         dst[i] = src[i];
     }
@@ -22,15 +22,15 @@ float* SPIRIT_IP_MR_V3_Unk89FE20(int32_t count, float* dst, const float* src) {
     return dst;
 }
 
-// VERIFY: 7cacf8a7 manual
+// VERIFY: 6985ec60 manual
 // OFFSET: 0x0089FEA0
-void SPIRIT_IP_MR_V3_Unk89FEA0(int32_t count, float* dst, const float* src) {
+void SPIRIT_IP_MR_V3_SubVector(int32_t count, float* dst, const float* src) {
     for (int32_t i = 0; i < count; i++) {
         dst[i] = dst[i] - src[i];
     }
 }
 
-// VERIFY: e738a9e2 manual
+// VERIFY: b5bd5cc8 manual
 // OFFSET: 0x0089FF30
 float SPIRIT_IP_MR_V3_NAME_331(const float* codebook, const float* target, const float* mean, const float* predictor, const float* previous, const int32_t* sizes, const float* weights, float* quantized, int32_t* indices, int32_t stages) {
     int32_t paths[64];
@@ -54,10 +54,10 @@ float SPIRIT_IP_MR_V3_NAME_331(const float* codebook, const float* target, const
     float (*prevRes)[10] = residuals[0];
     float (*spareRes)[10] = residuals[1];
 
-    float* x = SPIRIT_IP_MR_V3_Unk89FE20(10, t, target);
+    float* x = SPIRIT_IP_MR_V3_CopyVector(10, t, target);
 
     if (mean) {
-        SPIRIT_IP_MR_V3_Unk89FEA0(10, x, mean);
+        SPIRIT_IP_MR_V3_SubVector(10, x, mean);
 
         if (predictor && previous) {
             for (int32_t i = 0; i < 10; i++) {
@@ -222,7 +222,7 @@ float SPIRIT_IP_MR_V3_NAME_331(const float* codebook, const float* target, const
         const float* stage = codebook;
 
         for (int32_t i = 0; i < stages; i++) {
-            SPIRIT_IP_MR_V3_Unk89FD90(10, quantized, &stage[10 * lastPaths[best * stages + i]]);
+            SPIRIT_IP_MR_V3_AddVector(10, quantized, &stage[10 * lastPaths[best * stages + i]]);
             stage += 10 * sizes[i];
         }
     }

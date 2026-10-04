@@ -200,12 +200,12 @@ void CGGameObject_C_Type_Transport::PostReenable() {
     }
 }
 
-// VERIFY: f1474ba1 manual
+// VERIFY: 8835b6bb manual
 // OFFSET: 0x00711F20
 void CGGameObject_C_Type_Transport::InitializeMovement() {
     CGGameObject_C* owner = this->m_owner;
     this->unk_0038 = owner->m_gameObject->m_state;
-    uint32_t time = owner->unk_0200 + OsGetAsyncTimeMs();
+    uint32_t time = owner->m_transportTimeOffset + OsGetAsyncTimeMs();
     this->InitializeStateChangeTime(time);
     C3Vector offset(0.0f, 0.0f, 0.0f);
     C4Quaternion rotation;
@@ -213,7 +213,7 @@ void CGGameObject_C_Type_Transport::InitializeMovement() {
     rotation.y = 0.0f;
     rotation.z = 0.0f;
     rotation.w = 1.0f;
-    this->unk_0030 = time;
+    this->m_pathTime = time;
     this->Interpolate(time, &offset, &rotation);
     C3Vector position = this->m_owner->m_passenger.GetPosition(this->m_owner->m_passenger.m_position);
     this->m_position.x = position.x + offset.x;
@@ -396,7 +396,7 @@ C44Matrix& CGGameObject_C_Type_Transport::UpdateOwnerMatrix() {
     return matrix;
 }
 
-// VERIFY: fc8ecef3 manual
+// VERIFY: 181b2f3a manual
 // OFFSET: 0x007139E0
 void CGGameObject_C_Type_Transport::UpdateMovement(uint32_t time, uint32_t elapsed) {
     if (!this->unk_0034 && this->m_worldObject && World::ObjectIsLoaded(this->m_worldObject)) {
@@ -412,11 +412,11 @@ void CGGameObject_C_Type_Transport::UpdateMovement(uint32_t time, uint32_t elaps
 
     if (elapsed > 250) {
         CGGameObject_C* owner = this->m_owner;
-        uint32_t pathTime = owner->unk_0200 + time - 250;
-        this->unk_0030 = pathTime;
+        uint32_t pathTime = owner->m_transportTimeOffset + time - 250;
+        this->m_pathTime = pathTime;
 
         if (owner->m_gameObject->m_level && static_cast<int32_t>(this->m_stateChangeTime - pathTime) >= 0) {
-            this->unk_0030 = this->m_stateChangeTime;
+            this->m_pathTime = this->m_stateChangeTime;
         }
 
         C3Vector offset(0.0f, 0.0f, 0.0f);
@@ -425,7 +425,7 @@ void CGGameObject_C_Type_Transport::UpdateMovement(uint32_t time, uint32_t elaps
         rotation.y = 0.0f;
         rotation.z = 0.0f;
         rotation.w = 1.0f;
-        this->Interpolate(this->unk_0030, &offset, &rotation);
+        this->Interpolate(this->m_pathTime, &offset, &rotation);
         CPassenger& passenger = this->m_owner->m_passenger;
         reinterpret_cast<C4QuaternionCompressed&>(passenger.m_facing) = rotation;
         passenger.unk_002C |= 0x2;
@@ -436,15 +436,15 @@ void CGGameObject_C_Type_Transport::UpdateMovement(uint32_t time, uint32_t elaps
         this->m_position.z = position.z + offset.z;
     }
 
-    this->unk_0030 = this->m_owner->unk_0200 + time;
-    this->m_transportUpdateTime = this->GetSequenceTimeFromRealTime(this->unk_0038, this->unk_0030);
+    this->m_pathTime = this->m_owner->m_transportTimeOffset + time;
+    this->m_transportUpdateTime = this->GetSequenceTimeFromRealTime(this->unk_0038, this->m_pathTime);
     C3Vector offset(0.0f, 0.0f, 0.0f);
     C4Quaternion rotation;
     rotation.x = 0.0f;
     rotation.y = 0.0f;
     rotation.z = 0.0f;
     rotation.w = 1.0f;
-    this->Interpolate(this->unk_0030, &offset, &rotation);
+    this->Interpolate(this->m_pathTime, &offset, &rotation);
     C3Vector base = this->m_owner->m_passenger.GetPosition(this->m_owner->m_passenger.m_position);
     C3Vector position(base.x + offset.x, base.y + offset.y, base.z + offset.z);
     C3Vector direction(0.0f, 0.0f, 0.0f);
@@ -511,7 +511,7 @@ float CGGameObject_C_Type_Transport::GetStateProgress(uint32_t time, int32_t sta
     return elapsed / static_cast<float>(duration);
 }
 
-// VERIFY: 082d142d manual
+// VERIFY: 476dc037 manual
 // OFFSET: 0x00710820
 void CGGameObject_C_Type_Transport::UpdateState(int32_t oldState, int32_t newState) {
     CGGameObject_C* owner = this->m_owner;
@@ -520,7 +520,7 @@ void CGGameObject_C_Type_Transport::UpdateState(int32_t oldState, int32_t newSta
         return;
     }
 
-    uint32_t time = owner->unk_0200 + OsGetAsyncTimeMs();
+    uint32_t time = owner->m_transportTimeOffset + OsGetAsyncTimeMs();
     float progress = this->GetStateProgress(time, oldState);
 
     if (progress >= 0.95f) {

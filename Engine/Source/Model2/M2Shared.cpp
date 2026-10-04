@@ -1493,7 +1493,7 @@ int32_t M2Init<M2Particle>(uint8_t* base, uint32_t size, const M2Data& data, M2A
     return 1;
 }
 
-// VERIFY: 58702961 manual
+// VERIFY: 95d98bd6 manual
 // OFFSET: 0x0083C5F0
 CM2Shared::CM2Shared(CM2Cache* cache) {
     this->m_flags &= ~0x7Fu;
@@ -1524,7 +1524,7 @@ CM2Shared::CM2Shared(CM2Cache* cache) {
     this->m_skinSections = nullptr;
     this->m_instances = 0;
     this->m_maxInstances = 0;
-    this->unk_0198 = 0;
+    this->m_billboardBoneCount = 0;
     this->m_lastUsedTime = 0;
     this->m_fileName[0] = '\0';
 }
@@ -1651,7 +1651,7 @@ uint32_t CM2Shared::GetSkinProfileIndex(uint32_t maxBones) {
     return 0xFFFFFFFF;
 }
 
-// VERIFY: 30eb8874 manual
+// VERIFY: 38f10509 manual
 // OFFSET: 0x0083CC80
 int32_t CM2Shared::Initialize() {
     uint32_t maxBones = 256;
@@ -1718,7 +1718,7 @@ int32_t CM2Shared::Initialize() {
 
     for (uint32_t i = 0; i < this->m_data->m_bones.m_count; i++) {
         if (this->m_data->m_bones[i].m_flags & 0x2F8) {
-            this->unk_0198++;
+            this->m_billboardBoneCount++;
         }
     }
 

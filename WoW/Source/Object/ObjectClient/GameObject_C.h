@@ -32,7 +32,7 @@ enum GAME_ERROR_TYPE : int32_t;
 class CGGameObject_C_TypeBase {
     public:
     /* 0004 */ CGGameObject_C* m_owner;
-    /* 0008 */ uint32_t unk_0008;
+    /* 0008 */ uint32_t m_useErrorType;
     /* 000C */ float m_interactDistance;
 
     virtual ~CGGameObject_C_TypeBase();
@@ -89,7 +89,7 @@ class CGGameObject_C_TypeAnimated : public CGGameObject_C_TypeBase {
     static const char* s_animStateNames[13];
 
     /* 0010 */ int32_t m_animState;
-    /* 0014 */ int32_t unk_0014;
+    /* 0014 */ int32_t m_pendingAnimState;
     /* 0018 */ int32_t m_nextAnimTime;
     /* 001C */ SE2SoundKitObject m_sound;
 
@@ -150,7 +150,7 @@ class CGGameObject_C_Type_TransportBase : public CGGameObject_C_Type_WorldObj {
     /* 0014 */ TSExplicitList<CPassenger, offsetof(CPassenger, m_link)> m_passengers;
     /* 0020 */ C3Vector m_position;
     /* 002C */ float m_speed;
-    /* 0030 */ uint32_t unk_0030;
+    /* 0030 */ uint32_t m_pathTime;
     /* 0034 */ uint32_t unk_0034;
     /* 0038 */ int32_t unk_0038;
     /* 003C */ uint32_t m_transportUpdateTime;
@@ -175,7 +175,7 @@ class CGGameObject_C_Type_TransportBase : public CGGameObject_C_Type_WorldObj {
 class CGGameObject_C_Type_MapObjTransport : public CGGameObject_C_Type_TransportBase {
     public:
     /* 0040 */ ShipPath m_shipPath;
-    /* 0080 */ uint32_t unk_0080;
+    /* 0080 */ uint32_t m_currentLeg;
 
     virtual void UpdateState(int32_t oldState, int32_t newState);
     virtual void AddPassenger(CPassenger* passenger, int32_t a2);
@@ -293,10 +293,10 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     /* 01A4 */ GameObjectStats* m_stats;
     /* 01A8 */ C44Matrix m_matrix;
     /* 01E8 */ CAaBox m_worldBounds;
-    /* 0200 */ uint32_t unk_0200;
+    /* 0200 */ uint32_t m_transportTimeOffset;
     /* 0204 */ int32_t m_displayState;
     /* 0208 */ int32_t m_pendingOneShotAnim;
-    /* 020C */ int32_t unk_020C;
+    /* 020C */ int32_t m_hasWorldBounds;
     /* 0210 */ CM2Model* m_lootEffect;
     /* 0214 */ uint32_t m_effectAnimState;
 
@@ -312,7 +312,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
     virtual void UpdateInteractIconAttach();
     virtual int32_t Animate(float elapsed);
     virtual int32_t IsSolidSelectable() const;
-    virtual int32_t Unk40(int32_t a1) const;
+    virtual int32_t IsCollidable(int32_t a1) const;
     virtual int32_t IsHighlightSuppressed() const;
     virtual int32_t GetModelFileName(const char** name) const;
     virtual void ShouldRender(uint32_t flags, int32_t& render, int32_t& a3);

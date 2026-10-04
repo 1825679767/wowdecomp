@@ -587,7 +587,7 @@ void CGChat::AddWhisperThrottled(uint32_t time) {
     s_whisperThrottleIndex = (s_whisperThrottleIndex + 1) % (sizeof(s_whisperThrottleTimes) / sizeof(s_whisperThrottleTimes[0]));
 }
 
-// VERIFY: 92724af4 auto
+// VERIFY: a1acf867 auto
 // OFFSET: 0x004FCAC0
 static void UpdateVoiceMemberFlags(PENDINGUSERLIST* user, uint8_t flags, WOWGUID guid, int32_t type, const char* name) {
     if (!user) {
@@ -605,7 +605,7 @@ static void UpdateVoiceMemberFlags(PENDINGUSERLIST* user, uint8_t flags, WOWGUID
         user->m_flags |= 0x40;
     }
 
-    if (ComSatClient_Unk7DB830(user->m_guid, type, name)) {
+    if (ComSatClient_GetChannelMemberVoiceStatus(user->m_guid, type, name)) {
         user->m_flags |= 0x80;
     }
 
@@ -1700,7 +1700,7 @@ int32_t StringToChatType(const char* string, int32_t* type) {
     return 0;
 }
 
-// VERIFY: 147b79a4 manual
+// VERIFY: 8eb73ccb manual
 // OFFSET: 0x00577D00
 bool ChatParserParseText(const char* text, char* buffer, uint32_t size) {
     if (!text) {
@@ -1730,7 +1730,7 @@ bool ChatParserParseText(const char* text, char* buffer, uint32_t size) {
             switch (*code) {
                 case 'F':
                 case 'f': {
-                    WOWGUID focus = CGGameUI::unk_BD07D0;
+                    WOWGUID focus = CGGameUI::m_focusTarget;
                     const char* name = nullptr;
 
                     if (focus) {
@@ -5197,7 +5197,7 @@ void CGChat::ShutdownGame() {
     ClientServices::ClearMessageHandler(SMSG_SERVER_FIRST_ACHIEVEMENT);
 }
 
-// VERIFY: f304335d manual
+// VERIFY: 328a6334 manual
 // OFFSET: 0x00500380
 int32_t CGChat::OnUserListUpdate(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     WOWGUID guid;
@@ -5240,7 +5240,7 @@ int32_t CGChat::OnUserListUpdate(void* param, NETMESSAGE msgId, uint32_t time, C
             user->m_flags |= 0x40;
         }
 
-        if (ComSatClient_Unk7DB830(user->m_guid, 0, channelName)) {
+        if (ComSatClient_GetChannelMemberVoiceStatus(user->m_guid, 0, channelName)) {
             user->m_flags |= 0x80;
         }
 
@@ -5481,7 +5481,7 @@ void CGChat::NameDisplayQueryCallback(int32_t id, const WOWGUID& guid, void* par
     }
 }
 
-// VERIFY: 5ddb35c2 manual
+// VERIFY: 07926f96 manual
 // OFFSET: 0x00503990
 int32_t CGChat::OnDisplayChannelList(CDataStore* msg) {
     char name[128];
@@ -5527,7 +5527,7 @@ int32_t CGChat::OnDisplayChannelList(CDataStore* msg) {
                 user->m_flags |= 0x40;
             }
 
-            if (ComSatClient_Unk7DB830(user->m_guid, 0, name)) {
+            if (ComSatClient_GetChannelMemberVoiceStatus(user->m_guid, 0, name)) {
                 user->m_flags |= 0x80;
             }
 
@@ -5700,7 +5700,7 @@ int32_t CGChat::IsVoiceChatEnabled() {
     return CGChat::m_voiceChatSystemStatus && enabled && !disabled;
 }
 
-// VERIFY: 4119c3d6 auto
+// VERIFY: f266388b auto
 // OFFSET: 0x004FCB60
 static void RebuildDisplayListMember(PENDINGUSERLIST* user, int32_t type, const char* name) {
     if (!user) {
@@ -5717,7 +5717,7 @@ static void RebuildDisplayListMember(PENDINGUSERLIST* user, int32_t type, const 
         user->m_flags |= 0x40;
     }
 
-    if (ComSatClient_Unk7DB830(user->m_guid, type, name)) {
+    if (ComSatClient_GetChannelMemberVoiceStatus(user->m_guid, type, name)) {
         user->m_flags |= 0x80;
     }
 

@@ -150,7 +150,7 @@ class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID
     virtual float GetRenderFacing() const;
     virtual void OnSpecialMountAnim();
     virtual int32_t IsSolidSelectable() const;
-    virtual int32_t Unk40(int32_t a1) const;
+    virtual int32_t IsCollidable(int32_t a1) const;
     virtual int32_t CanHighlight() const;
     virtual int32_t CanBeTargetted() const;
     virtual int32_t FloatingTooltip() const;

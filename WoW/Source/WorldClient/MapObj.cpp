@@ -3448,14 +3448,14 @@ void __stdcall CMapObj::RenderGroupCollidableFaces(CMapObjGroup* mapObjGroup) {
     }
 }
 
-// VERIFY: f62eca12 manual
+// VERIFY: 6ec9487c manual
 // OFFSET: 0x007A9BF0
 void CMapObj::RenderGroupLightmapTex(CMapObjGroup* group, uint32_t index) {
     g_theGxDevicePtr->RsPush();
     GxRsSet(GxRs_Lighting, 0);
     GxPrimVertexPtr(group->m_vertexListCount, group->m_vertexList, 12, nullptr, 0, group->m_colorVertexList, 4, nullptr, 0, nullptr, 0);
 
-    if (group->m_stripIndices && CMap::s_unk_CE049C) {
+    if (group->m_stripIndices && CMap::s_enableTriangleStrips) {
         GxPrimIndexPtr(group->m_stripIndexCount, group->m_stripIndices);
     } else {
         GxPrimIndexPtr(group->m_indicesCount, group->m_indices);
@@ -3485,14 +3485,14 @@ void CMapObj::RenderGroupLightmapTex(CMapObjGroup* group, uint32_t index) {
     g_theGxDevicePtr->RsPop();
 }
 
-// VERIFY: 02fb951d manual
+// VERIFY: addd8d14 manual
 // OFFSET: 0x007A9D30
 void CMapObj::RenderGroupColorTex(CMapObjGroup* group, uint32_t index) {
     g_theGxDevicePtr->RsPush();
     GxRsSet(GxRs_Lighting, 0);
     GxPrimVertexPtr(group->m_vertexListCount, group->m_vertexList, 12, nullptr, 0, nullptr, 0, group->m_textureVertexList, 8, nullptr, 0);
 
-    if (group->m_stripIndices && CMap::s_unk_CE049C) {
+    if (group->m_stripIndices && CMap::s_enableTriangleStrips) {
         GxPrimIndexPtr(group->m_stripIndexCount, group->m_stripIndices);
     } else {
         GxPrimIndexPtr(group->m_indicesCount, group->m_indices);
@@ -4079,13 +4079,13 @@ static int32_t CompareMapObjDistance(const void* a, const void* b) {
     return distB > distA;
 }
 
-// VERIFY: 9b4212c2 manual
+// VERIFY: 43651b8e manual
 // OFFSET: 0x007D9810
 void CMapObj::ProcessAsyncLoadQueue() {
     void** pending = static_cast<void**>(alloca(0x1000));
     uint32_t count = 0;
 
-    for (CMapObjGroup* group = CMapObj::s_unk_ADFC58.Head(); group; group = CMapObj::s_unk_ADFC58.Next(group)) {
+    for (CMapObjGroup* group = CMapObj::s_loadedGroups.Head(); group; group = CMapObj::s_loadedGroups.Next(group)) {
         if (group->m_asyncObjPtr) {
             pending[count++] = group;
         }

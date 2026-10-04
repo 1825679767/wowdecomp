@@ -113,9 +113,9 @@ int16_t SPIRIT_IP_MR_V3_NAME_111(const float* x) {
     return static_cast<int16_t>(lag);
 }
 
-// VERIFY: 5cadbc80 manual
+// VERIFY: cb2a9a1a manual
 // OFFSET: 0x0089F0B0
-void SPIRIT_IP_MR_V3_Unk89F0B0(float* out, const float* excitation, const float* target, const float* h, int16_t first, int16_t last) {
+void SPIRIT_IP_MR_V3_PitchCorrelationFiltered(float* out, const float* excitation, const float* target, const float* h, int16_t first, int16_t last) {
     const float* past = &excitation[-first];
     float y[40];
 
@@ -156,9 +156,9 @@ void SPIRIT_IP_MR_V3_Unk89F0B0(float* out, const float* excitation, const float*
     }
 }
 
-// VERIFY: ca10c37a manual
+// VERIFY: 5ca6db75 manual
 // OFFSET: 0x0089F3B0
-void SPIRIT_IP_MR_V3_Unk89F3B0(int16_t first, const float* excitation, const float* target, int16_t last, float* out) {
+void SPIRIT_IP_MR_V3_PitchCorrelationNormalized(int16_t first, const float* excitation, const float* target, int16_t last, float* out) {
     const float* past = &excitation[-first];
     float energy = SPIRIT_IP_MR_V3_NAME_42(past, past, 40);
 
@@ -179,9 +179,9 @@ void SPIRIT_IP_MR_V3_Unk89F3B0(int16_t first, const float* excitation, const flo
     }
 }
 
-// VERIFY: 28bfbdb2 manual
+// VERIFY: 9bdc2bf2 manual
 // OFFSET: 0x0089F470
-void SPIRIT_IP_MR_V3_Unk89F470(const float* correlation, int16_t* lag, int16_t* fraction, int16_t last) {
+void SPIRIT_IP_MR_V3_RefineFractionalPitch(const float* correlation, int16_t* lag, int16_t* fraction, int16_t last) {
     float best = -3.4028235e38f;
     const float* x1 = &correlation[*lag];
     const float* x0 = x1 - 1;
@@ -220,9 +220,9 @@ void SPIRIT_IP_MR_V3_Unk89F470(const float* correlation, int16_t* lag, int16_t* 
     }
 }
 
-// VERIFY: 5779e684 manual
+// VERIFY: cf503282 manual
 // OFFSET: 0x0089F580
-int16_t SPIRIT_IP_MR_V3_Unk89F580(float* gain) {
+int16_t SPIRIT_IP_MR_V3_QuantizePitchGain(float* gain) {
     int32_t i;
 
     for (i = 1; i < 15; i++) {
@@ -317,9 +317,9 @@ void SPIRIT_IP_MR_V3_NAME_153(int16_t index, int16_t* previous, int16_t* lag, in
     *previous = *lag;
 }
 
-// VERIFY: 25627a51 manual
+// VERIFY: 7006c5e4 manual
 // OFFSET: 0x0089F870
-void SPIRIT_IP_MR_V3_Unk89F870(int16_t open, int16_t* previous, SPIRIT_IPMR_SUBFRAME* subframe, const float* excitation, const float* target, const float* h, int16_t mode) {
+void SPIRIT_IP_MR_V3_SearchClosedLoopPitch(int16_t open, int16_t* previous, SPIRIT_IPMR_SUBFRAME* subframe, const float* excitation, const float* target, const float* h, int16_t mode) {
     int16_t fraction = -2;
     int32_t fine = 1;
     int16_t low;
@@ -369,9 +369,9 @@ void SPIRIT_IP_MR_V3_Unk89F870(int16_t open, int16_t* previous, SPIRIT_IPMR_SUBF
     float* correlation = &buffer[-(low - 4)];
 
     if (h) {
-        SPIRIT_IP_MR_V3_Unk89F0B0(correlation, excitation, target, h, low - 4, high + 4);
+        SPIRIT_IP_MR_V3_PitchCorrelationFiltered(correlation, excitation, target, h, low - 4, high + 4);
     } else {
-        SPIRIT_IP_MR_V3_Unk89F3B0(low - 4, excitation, target, high + 4, correlation);
+        SPIRIT_IP_MR_V3_PitchCorrelationNormalized(low - 4, excitation, target, high + 4, correlation);
     }
 
     int16_t lag = low;
@@ -387,7 +387,7 @@ void SPIRIT_IP_MR_V3_Unk89F870(int16_t open, int16_t* previous, SPIRIT_IPMR_SUBF
     if (!fine && lag > 84) {
         fraction = 0;
     } else {
-        SPIRIT_IP_MR_V3_Unk89F470(correlation, &lag, &fraction, 2);
+        SPIRIT_IP_MR_V3_RefineFractionalPitch(correlation, &lag, &fraction, 2);
 
         if (mode == 2) {
             if (lag < low) {
@@ -419,10 +419,10 @@ void SPIRIT_IP_MR_V3_Unk89F870(int16_t open, int16_t* previous, SPIRIT_IPMR_SUBF
     subframe->unk_0000 = lag;
 }
 
-// VERIFY: 36dd572a manual
+// VERIFY: 9c76d169 manual
 // OFFSET: 0x0089FAE0
 void SPIRIT_IP_MR_V3_NAME_14(int16_t* previous, int16_t open, SPIRIT_IPMR_SUBFRAME* subframe, const float* h, float* excitation, float* target, int16_t mode) {
-    SPIRIT_IP_MR_V3_Unk89F870(open, previous, subframe, excitation, target, h, mode);
+    SPIRIT_IP_MR_V3_SearchClosedLoopPitch(open, previous, subframe, excitation, target, h, mode);
     SPIRIT_IP_MR_V3_NAME_79(excitation, subframe->unk_0000, subframe->unk_0002);
     float filtered[40];
 
@@ -443,7 +443,7 @@ void SPIRIT_IP_MR_V3_NAME_14(int16_t* previous, int16_t open, SPIRIT_IPMR_SUBFRA
         gain = 0.0f;
     }
 
-    int16_t index = SPIRIT_IP_MR_V3_Unk89F580(&gain);
+    int16_t index = SPIRIT_IP_MR_V3_QuantizePitchGain(&gain);
     subframe->unk_0004 = gain;
     subframe->unk_000A = index;
 
@@ -453,10 +453,10 @@ void SPIRIT_IP_MR_V3_NAME_14(int16_t* previous, int16_t open, SPIRIT_IPMR_SUBFRA
     }
 }
 
-// VERIFY: c5875d45 auto
+// VERIFY: 32997665 auto
 // OFFSET: 0x0089FCF0
 void SPIRIT_IP_MR_V3_NAME_15(int16_t* previous, int16_t open, SPIRIT_IPMR_SUBFRAME* subframe, float* excitation, const float* target, int16_t mode) {
-    SPIRIT_IP_MR_V3_Unk89F870(open, previous, subframe, excitation, target, nullptr, mode);
+    SPIRIT_IP_MR_V3_SearchClosedLoopPitch(open, previous, subframe, excitation, target, nullptr, mode);
     SPIRIT_IP_MR_V3_NAME_79(excitation, subframe->unk_0000, subframe->unk_0002);
     double cross = SPIRIT_IP_MR_V3_NAME_42(target, excitation, 40);
     float gain = static_cast<float>(cross / (SPIRIT_IP_MR_V3_NAME_42(excitation, excitation, 40) + static_cast<double>(0.01f)));

@@ -28,7 +28,7 @@ GossipQuestInfo CGGossipInfo::m_quests[32];
 int32_t CGGossipInfo::m_textPending;
 
 // STATIC: 0x00C016F8
-uint32_t CGGossipInfo::unk_C016F8;
+uint32_t CGGossipInfo::m_gossipID;
 
 // STATIC: 0x00C016F0
 WOWGUID CGGossipInfo::m_gossip;
@@ -50,7 +50,7 @@ void CGGossipInfo::InitializeGame() {
     ClientServices::SetMessageHandler(SMSG_GOSSIP_POI, Packet_SMSG_GOSSIP_POI, nullptr);
 }
 
-// VERIFY: a0913fd6 manual
+// VERIFY: 8d00a6fa manual
 // OFFSET: 0x0058A550
 void CGGossipInfo::SetGossip(const WOWGUID& guid) {
     if (guid == CGGossipInfo::m_gossip) {
@@ -68,7 +68,7 @@ void CGGossipInfo::SetGossip(const WOWGUID& guid) {
     }
 
     CGGossipInfo::m_gossip = WOWGUID();
-    CGGossipInfo::unk_C016F8 = 0;
+    CGGossipInfo::m_gossipID = 0;
     FrameScript_SignalEvent(SCRIPT_EVENT_GOSSIP_CLOSED, nullptr);
 }
 
@@ -199,14 +199,14 @@ void CGGossipInfo::SetGossipText(int32_t textId) {
     FrameScript_SignalEvent(SCRIPT_EVENT_GOSSIP_SHOW, nullptr);
 }
 
-// VERIFY: d88a5144 manual
+// VERIFY: 73df7f0a manual
 // OFFSET: 0x0058B1B0
 int32_t Packet_SMSG_GOSSIP_MESSAGE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     WOWGUID guid;
     msg->Get(guid.m_guid);
     CGGossipInfo::SetGossip(guid);
     CGGossipInfo::ClearOptions();
-    msg->Get(CGGossipInfo::unk_C016F8);
+    msg->Get(CGGossipInfo::m_gossipID);
 
     uint32_t textId;
     msg->Get(textId);
@@ -361,7 +361,7 @@ int32_t CGQuestInfo::IsLowLevel(int32_t level) {
     return level + range < static_cast<int32_t>(static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__))->m_unit->m_unitFieldLevel);
 }
 
-// VERIFY: 6deef597 manual
+// VERIFY: fd70ce48 manual
 // OFFSET: 0x0058AF10
 void CGGossipInfo::SelectGossipOption(int32_t index, const char* code, int32_t confirmed) {
     if (CGGossipInfo::m_textPending || index < 0 || index >= 32) {
@@ -394,7 +394,7 @@ void CGGossipInfo::SelectGossipOption(int32_t index, const char* code, int32_t c
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_GOSSIP_SELECT_OPTION));
     msg.Put(CGGossipInfo::m_gossip.m_guid);
-    msg.Put(CGGossipInfo::unk_C016F8);
+    msg.Put(CGGossipInfo::m_gossipID);
     msg.Put(static_cast<uint32_t>(option.m_index));
 
     if (option.m_coded & 1) {

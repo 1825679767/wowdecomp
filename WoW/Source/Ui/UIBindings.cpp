@@ -992,7 +992,7 @@ int32_t CGUIBindings::ExecCommand(const char* command, int32_t isDown, float pre
     return 1;
 }
 
-// VERIFY: 638ce5cb manual
+// VERIFY: 9242eb88 manual
 // OFFSET: 0x00563150
 int32_t CGUIBindings::ExecKey(uint32_t modifiers, const char* key, int32_t isDown, int32_t allowPressure, BINDING_MODE mode) {
     char reducedKey[128];
@@ -1022,7 +1022,7 @@ int32_t CGUIBindings::ExecKey(uint32_t modifiers, const char* key, int32_t isDow
                 if (this->IsModifiedClick("SELFCAST")) {
                     target = ClntObjMgrGetActivePlayer();
                 } else if (this->IsModifiedClick("FOCUSCAST")) {
-                    target = CGGameUI::unk_BD07D0;
+                    target = CGGameUI::m_focusTarget;
                 }
 
                 CGSpellBook::CastSpell(spell, isDown, target);
@@ -1040,7 +1040,7 @@ int32_t CGUIBindings::ExecKey(uint32_t modifiers, const char* key, int32_t isDow
             if (this->IsModifiedClick("SELFCAST")) {
                 target = ClntObjMgrGetActivePlayer();
             } else if (this->IsModifiedClick("FOCUSCAST")) {
-                target = CGGameUI::unk_BD07D0;
+                target = CGGameUI::m_focusTarget;
             }
 
             item->UseItem(&target, 0);

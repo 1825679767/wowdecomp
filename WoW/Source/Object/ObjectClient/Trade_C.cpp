@@ -26,7 +26,7 @@ static int32_t s_unk_CA0FE0;
 static int32_t s_unk_CA0FE4;
 
 // STATIC: 0x00CA0FE8
-static WOWGUID s_unk_CA0FE8;
+static WOWGUID s_tradeTarget;
 
 // STATIC: 0x00CA0FF0
 static int32_t s_tradeEnchantSpell[2];
@@ -34,10 +34,10 @@ static int32_t s_tradeEnchantSpell[2];
 // STATIC: 0x00CA0FF8
 static uint32_t s_nextTradeRequestTime;
 
-// VERIFY: 43528ed3 auto
+// VERIFY: bcd077ea auto
 // OFFSET: 0x00703C10
 WOWGUID Trade_C_GetTradeTarget() {
-    return s_unk_CA0FE8;
+    return s_tradeTarget;
 }
 
 // VERIFY: 522e8804 auto
@@ -80,10 +80,10 @@ void Trade_C_Destroy() {
     ClientServices::ClearMessageHandler(SMSG_TRADE_STATUS_EXTENDED);
 }
 
-// VERIFY: f2899d59 manual
+// VERIFY: efe27afc manual
 // OFFSET: 0x00703CF0
 void CGTradeInfo::InitiateTrade(WOWGUID target, int32_t a2) {
-    if (s_unk_CA0FE8) {
+    if (s_tradeTarget) {
         CGGameUI::DisplayError(ERR_ALREADY_TRADING);
         return;
     }
@@ -99,7 +99,7 @@ void CGTradeInfo::InitiateTrade(WOWGUID target, int32_t a2) {
     msg.Finalize();
     ClientServices::Send2(&msg);
     s_unk_CA0FE4 = a2;
-    s_unk_CA0FE8 = target;
+    s_tradeTarget = target;
     s_unk_CA0FE0 = 1;
     NameCache* name = g_nameDBCache.GetRecord(target.m_guid, target, &TradeNameCallback, nullptr, false);
 
@@ -240,17 +240,17 @@ bool CGTradeInfo::SetMoney(uint32_t amount) {
     return true;
 }
 
-// VERIFY: c435de61 auto
+// VERIFY: 895d61e1 auto
 // OFFSET: 0x007048D0
 void Trade_C_Initialize() {
     s_unk_CA0FE0 = 0;
     s_unk_CA0FE4 = 0;
-    s_unk_CA0FE8 = WOWGUID();
+    s_tradeTarget = WOWGUID();
     ClientServices::SetMessageHandler(SMSG_TRADE_STATUS, Packet_SMSG_TRADE_STATUS, nullptr);
     ClientServices::SetMessageHandler(SMSG_TRADE_STATUS_EXTENDED, Packet_SMSG_TRADE_STATUS_EXTENDED, nullptr);
 }
 
-// VERIFY: 991b8783 manual
+// VERIFY: 54433403 manual
 // OFFSET: 0x007044A0
 int32_t Packet_SMSG_TRADE_STATUS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint32_t status;
@@ -285,7 +285,7 @@ int32_t Packet_SMSG_TRADE_STATUS(void* param, NETMESSAGE msgId, uint32_t time, C
             if (s_unk_CA0FE0) {
                 Trade_C_PlayerBusy();
             } else {
-                s_unk_CA0FE8.m_guid = guid;
+                s_tradeTarget.m_guid = guid;
             }
 
             break;
@@ -339,7 +339,7 @@ int32_t Packet_SMSG_TRADE_STATUS(void* param, NETMESSAGE msgId, uint32_t time, C
 
     if (reset) {
         s_unk_CA0FE0 = 0;
-        s_unk_CA0FE8 = WOWGUID();
+        s_tradeTarget = WOWGUID();
     }
 
     return 1;

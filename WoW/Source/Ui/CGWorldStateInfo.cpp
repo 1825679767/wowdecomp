@@ -140,7 +140,7 @@ void CGWorldStateInfo::OnUITime(uint32_t time) {
     CGWorldStateInfo::m_UITimeOffset = time - static_cast<uint32_t>(::time(nullptr));
 }
 
-// VERIFY: 004fb22d manual
+// VERIFY: f7de346e manual
 // OFFSET: 0x005487D0
 void CGWorldStateInfo::ResetWorldStateUI() {
     CGWorldStateInfo::m_worldStateUI.m_count = 0;
@@ -156,7 +156,7 @@ void CGWorldStateInfo::ResetWorldStateUI() {
             continue;
         }
 
-        if (rec->m_phaseShift && !(rec->m_phaseShift & CGGameUI::unk_AC80A4)) {
+        if (rec->m_phaseShift && !(rec->m_phaseShift & CGGameUI::m_phaseMask)) {
             continue;
         }
 

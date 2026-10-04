@@ -94,7 +94,7 @@ TSGrowableArray<uint16_t> CMap::debugIndexArray;
 CMapLight* CMap::s_mapLight;
 
 // STATIC: 0x00ADF800
-float CMap::s_unk_ADF800 = 0.58333333f;
+float CMap::s_liquidAlphaScale = 0.58333333f;
 
 // STATIC: 0x00ADFBC4
 int32_t s_mapId = -1;
@@ -106,10 +106,10 @@ FVBBList CMap::s_vbbList;
 TSExplicitList<CMapRenderChunk, offsetof(CMapRenderChunk, m_renderChunkLink)> CMap::s_mapRenderChunkFreeList;
 
 // STATIC: 0x00AEED80
-TSExplicitList<CMapChunkBuf, offsetof(CMapChunkBuf, unk_0014)> CMap::s_unk_AEED80;
+TSExplicitList<CMapChunkBuf, offsetof(CMapChunkBuf, unk_0014)> CMap::s_chunkBufFreeList;
 
 // STATIC: 0x00AEED8C
-TSList<CMapArea, TSGetExplicitLink<CMapArea> > CMap::s_unk_AEED8C = TSExplicitList<CMapArea, offsetof(CMapArea, m_lameAssLink)>();
+TSList<CMapArea, TSGetExplicitLink<CMapArea> > CMap::s_allocatedAreas = TSExplicitList<CMapArea, offsetof(CMapArea, m_lameAssLink)>();
 
 // STATIC: 0x00AEEDA4
 TSList<CMapChunk, TSGetExplicitLink<CMapChunk> > CMap::s_mapChunkList = TSExplicitList<CMapChunk, offsetof(CMapChunk, m_lameAssLink)>();
@@ -142,10 +142,10 @@ char CMap::mapName[256];
 char CMap::mapPath[256];
 
 // STATIC: 0x00CDF7D0
-float CMap::s_unk_CDF7D0[256];
+float CMap::s_depthCoordTable0[256];
 
 // STATIC: 0x00CDFBD0
-float CMap::s_unk_CDFBD0[256];
+float CMap::s_depthCoordTable1[256];
 
 // STATIC: 0x00CDFFF8
 CGxBuf* CMap::lowDetailIndexBuf;
@@ -247,10 +247,10 @@ uint32_t* CMap::doodadDefHeap;
 uint32_t* CMap::entityHeap;
 
 // STATIC: 0x00CF4958
-static uint32_t unk_CF4958;
+static uint32_t s_nextPlayerFootprint;
 
 // STATIC: 0x00CF495C
-static uint32_t unk_CF495C;
+static uint32_t s_nextFootprint;
 
 // STATIC: 0x00A405E8
 static const int32_t s_subVertexTriangles[12] = { 17, 9, 0, 9, 1, 0, 9, 17, 18, 9, 18, 1 };
@@ -265,7 +265,7 @@ static World::FacetData s_footprintFacets;
 static CMapFootprint s_footprints[144][4];
 
 // STATIC: 0x00CFBE60
-static TSGrowableArray<CMapFootprintTexture> unk_CFBE60;
+static TSGrowableArray<CMapFootprintTexture> s_footprintTextures;
 
 // STATIC: 0x00D25428
 uint32_t* CMap::mapObjDefGroupHeap;
@@ -304,7 +304,7 @@ TSHashTable<CMapObjDef, HASHKEY_NONE> CMap::mapObjDefHash;
 int32_t CMap::enableChunkBatching;
 
 // STATIC: 0x00ADFBB4
-DepthCoordTable* CMap::s_depthCoordTables[2] = { &CMap::s_unk_CDF7D0, &CMap::s_unk_CDFBD0 };
+DepthCoordTable* CMap::s_depthCoordTables[2] = { &CMap::s_depthCoordTable0, &CMap::s_depthCoordTable1 };
 
 // STATIC: 0x00AEEDB0
 TSList<CChunkLiquid, TSGetExplicitLink<CChunkLiquid> > CMap::s_chunkLiquidList = TSExplicitList<CChunkLiquid, offsetof(CChunkLiquid, m_link)>();
@@ -328,7 +328,7 @@ int32_t CMap::bPreload = 1;
 int32_t CMap::s_isStreamingMode;
 
 // STATIC: 0x00CE049C
-bool CMap::s_unk_CE049C;
+bool CMap::s_enableTriangleStrips;
 
 // STATIC: 0x00CE04A0
 bool CMap::enableSpecular;
@@ -355,7 +355,7 @@ TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > CMap::s_unk_ADFBF8 
 TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > CMap::mapObjDefLinkList = TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>();
 
 // STATIC: 0x00AF16CC
-TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > CMap::s_unk_AF16CC = TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>();
+TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBaseObjLink> > CMap::s_globalLightList = TSExplicitList<CMapBaseObjLink, offsetof(CMapBaseObjLink, m_refLink)>();
 
 // STATIC: 0x00ADFC1C
 TSList<CMapChunk, TSGetExplicitLink<CMapChunk> > CMap::s_mapChunkSortList = TSExplicitList<CMapChunk, offsetof(CMapChunk, m_sortListLink)>();
@@ -513,7 +513,7 @@ void CDestructibleProxy::FreeMatching(CDestructibleProxy* proxy) {
     }
 }
 
-// VERIFY: 6c4a26d2 manual
+// VERIFY: e85ab889 manual
 // OFFSET: 0x0079F320
 void CMap::Destroy() {
     if (CMap::bActive) {
@@ -636,20 +636,20 @@ void CMap::Destroy() {
     }
 
     CMap::s_mapRenderChunkFreeList.Clear();
-    CMap::s_unk_AEED80.Clear();
+    CMap::s_chunkBufFreeList.Clear();
 }
 
-// VERIFY: 00edcf9c manual
+// VERIFY: f42871fd manual
 // OFFSET: 0x0079E3C0
 void CMap::InitializeLiquidTables() {
-    float scale = 1.0f / (255.0f * CMap::s_unk_ADF800);
+    float scale = 1.0f / (255.0f * CMap::s_liquidAlphaScale);
 
-    for (uint32_t i = 0; i < sizeof(CMap::s_unk_CDFBD0) / sizeof(CMap::s_unk_CDFBD0[0]); i++) {
-        float alpha = static_cast<float>(i) * CMap::s_unk_ADF800 * scale;
-        CMap::s_unk_CDFBD0[i] = alpha >= 1.0f ? 1.0f : alpha;
+    for (uint32_t i = 0; i < sizeof(CMap::s_depthCoordTable1) / sizeof(CMap::s_depthCoordTable1[0]); i++) {
+        float alpha = static_cast<float>(i) * CMap::s_liquidAlphaScale * scale;
+        CMap::s_depthCoordTable1[i] = alpha >= 1.0f ? 1.0f : alpha;
 
         float depth = static_cast<float>(i) * 0.11111111f;
-        CMap::s_unk_CDF7D0[i] = depth <= 4.6666665f ? depth * 0.21428572f : 1.0f;
+        CMap::s_depthCoordTable0[i] = depth <= 4.6666665f ? depth * 0.21428572f : 1.0f;
     }
 
     WaterRipple::Initialize();
@@ -793,7 +793,7 @@ CMapFootprintTexture::CMapFootprintTexture() {
     this->m_vertexCount = 0;
 }
 
-// VERIFY: c360126c manual
+// VERIFY: fa585208 manual
 // OFFSET: 0x0079F860
 void CMap::FootprintDestroy() {
     for (uint32_t i = 0; i < 144; i++) {
@@ -802,9 +802,9 @@ void CMap::FootprintDestroy() {
         }
     }
 
-    for (uint32_t i = 0; i < unk_CFBE60.Count(); i++) {
-        if (unk_CFBE60[i].m_texture) {
-            HandleClose(reinterpret_cast<HOBJECT>(unk_CFBE60[i].m_texture));
+    for (uint32_t i = 0; i < s_footprintTextures.Count(); i++) {
+        if (s_footprintTextures[i].m_texture) {
+            HandleClose(reinterpret_cast<HOBJECT>(s_footprintTextures[i].m_texture));
         }
     }
 }
@@ -820,14 +820,14 @@ void CMap::ClearAllFootprints() {
     }
 }
 
-// VERIFY: f932b981 manual
+// VERIFY: bc21f929 manual
 // OFFSET: 0x007A03C0
 void CMap::FootprintInitialize() {
     CStatus status;
 
-    unk_CF495C = 64;
-    unk_CF4958 = 0;
-    unk_CFBE60.SetCount(g_footprintTexturesDB.m_maxID + 1);
+    s_nextFootprint = 64;
+    s_nextPlayerFootprint = 0;
+    s_footprintTextures.SetCount(g_footprintTexturesDB.m_maxID + 1);
 
     int32_t index = g_footprintTexturesDB.m_numRecords;
 
@@ -835,7 +835,7 @@ void CMap::FootprintInitialize() {
         index--;
 
         FootprintTexturesRec* record = (index < 0 || index >= g_footprintTexturesDB.m_numRecords) ? nullptr : &g_footprintTexturesDB.m_records[index];
-        CMapFootprintTexture* footprint = &unk_CFBE60[record->m_id];
+        CMapFootprintTexture* footprint = &s_footprintTextures[record->m_id];
 
         if (!footprint->m_texture) {
             footprint->m_texture = TextureCreate(record->m_footstepFilename, CGxTexFlags(), &status, 1);
@@ -2999,10 +2999,10 @@ void CMap::LoadWdt() {
     SFileCloseFile(file);
 }
 
-// VERIFY: f97c6181 manual
+// VERIFY: 99e76495 manual
 // OFFSET: 0x007BFCE0
 void CMap::Load(const char* mapName, int32_t zoneID) {
-    CMap::s_unk_CE049C = false;
+    CMap::s_enableTriangleStrips = false;
 
     uint32_t length = SStrCopy(CMap::mapPath, "World\\Maps\\", STORM_MAX_STR);
     SStrCopy(&CMap::mapPath[length], mapName, STORM_MAX_STR);
@@ -3271,20 +3271,20 @@ CMapBaseObjLink* CMap::AllocBaseObjLink(CMapBaseObj* baseObj) {
     return link;
 }
 
-// VERIFY: e4e64c5e auto
+// VERIFY: a8354093 auto
 // OFFSET: 0x007C07C0
 CMapArea* CMap::AllocArea() {
     uint32_t memHandle;
     void* object = nullptr;
 
     if (!ObjectAlloc(*CMap::areaHeap, &memHandle, &object, false)) {
-        CMap::s_unk_AEED8C.LinkToTail(nullptr);
+        CMap::s_allocatedAreas.LinkToTail(nullptr);
         return nullptr;
     }
 
     CMapArea* area = new (object) CMapArea();
     area->m_objectIndex = memHandle;
-    CMap::s_unk_AEED8C.LinkToTail(area);
+    CMap::s_allocatedAreas.LinkToTail(area);
 
     return area;
 }
@@ -4324,13 +4324,13 @@ void CMap::LinkLightToMapObjDefs(CMapLight* light) {
     }
 }
 
-// VERIFY: 7439bd46 manual
+// VERIFY: fe97de56 manual
 // OFFSET: 0x007DA100
 void CMap::UpdateLight(CMapLight* light) {
     if (!light->m_parentLinkList.Head() && !light->m_light.m_type) {
         CMapBaseObjLink* link = CMap::AllocBaseObjLink(light);
         link->m_ref = nullptr;
-        CMap::s_unk_AF16CC.LinkToTail(link);
+        CMap::s_globalLightList.LinkToTail(link);
     }
 
     if (CMap::bActive && light->m_light.m_type) {
@@ -5780,7 +5780,7 @@ bool CMap::QueryHeight(const C3Vector& position, float range, float* height) {
     return true;
 }
 
-// VERIFY: 8f356ec4 manual
+// VERIFY: 5c4ccdae manual
 // OFFSET: 0x0079FCC0
 void CMap::RenderFootprints() {
     if (!(CWorld::enables & 0x400)) {
@@ -5802,7 +5802,7 @@ void CMap::RenderFootprints() {
                 float alpha = fade * 255.0f;
                 int32_t value = CMath::fint_(alpha - 0.5f);
                 footprint->m_alpha = value < 127 ? CMath::fint_(alpha - 0.5f) : 127;
-                CMapFootprintTexture& texture = unk_CFBE60.m_data[footprint->m_textureIndex];
+                CMapFootprintTexture& texture = s_footprintTextures.m_data[footprint->m_textureIndex];
                 texture.unk_0004.Add(1, &index);
                 texture.m_vertexCount += footprint->m_vertices.Count();
             } else {
@@ -5828,8 +5828,8 @@ void CMap::RenderFootprints() {
     world.d2 = -CWorldScene::s_activeWorldView.z;
     g_theGxDevicePtr->XformPushAndSet(GxXform_World, world);
 
-    for (uint32_t t = 0; t < unk_CFBE60.Count(); t++) {
-        CMapFootprintTexture& texture = unk_CFBE60.m_data[t];
+    for (uint32_t t = 0; t < s_footprintTextures.Count(); t++) {
+        CMapFootprintTexture& texture = s_footprintTextures.m_data[t];
 
         if (texture.m_vertexCount) {
             CGxTex* gxTex = TextureGetGxTex(texture.m_texture, 0, nullptr);
@@ -6042,10 +6042,10 @@ void CMap::BuildFootprintMatrix(C44Matrix& matrix, const float* size, int32_t le
     matrix.RotateAroundZ(-facing);
 }
 
-// VERIFY: 1e420023 manual
+// VERIFY: a2657405 manual
 // OFFSET: 0x0079FA70
 void CMap::NewFootprint(int32_t textureId, const float* size, const C3Vector* position, float facing, int32_t left, int32_t terrainType, int32_t activePlayer) {
-    if (static_cast<uint32_t>(textureId) >= unk_CFBE60.Count()) {
+    if (static_cast<uint32_t>(textureId) >= s_footprintTextures.Count()) {
         return;
     }
 
@@ -6067,16 +6067,16 @@ void CMap::NewFootprint(int32_t textureId, const float* size, const C3Vector* po
     CMapFootprint* footprint;
 
     if (activePlayer) {
-        footprint = &s_footprints[0][0] + unk_CF4958++;
+        footprint = &s_footprints[0][0] + s_nextPlayerFootprint++;
 
-        if (unk_CF4958 >= 64) {
-            unk_CF4958 = 0;
+        if (s_nextPlayerFootprint >= 64) {
+            s_nextPlayerFootprint = 0;
         }
     } else {
-        footprint = &s_footprints[0][0] + unk_CF495C++;
+        footprint = &s_footprints[0][0] + s_nextFootprint++;
 
-        if (unk_CF495C >= 576) {
-            unk_CF495C = 64;
+        if (s_nextFootprint >= 576) {
+            s_nextFootprint = 64;
         }
     }
 

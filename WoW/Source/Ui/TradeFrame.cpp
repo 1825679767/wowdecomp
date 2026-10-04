@@ -66,10 +66,10 @@ int32_t CGTradeInfo::m_targetCount[7];
 int32_t CGTradeInfo::m_targetItemID[7];
 
 // STATIC: 0x00BFA5DC
-uint8_t CGTradeInfo::unk_BFA5DC[7];
+uint8_t CGTradeInfo::m_playerItemContainerSlot[7];
 
 // STATIC: 0x00BFA5E8
-WOWGUID CGTradeInfo::unk_BFA5E8[7];
+WOWGUID CGTradeInfo::m_playerItemContainer[7];
 
 // STATIC: 0x00BFA620
 WOWGUID CGTradeInfo::m_playerItems[7];
@@ -81,16 +81,16 @@ int32_t CGTradeInfo::m_playerAccepted;
 int32_t CGTradeInfo::m_targetAccepted;
 
 // STATIC: 0x00BFA668
-int32_t CGTradeInfo::unk_BFA668;
+int32_t CGTradeInfo::m_lastPlayerEnchantSpell;
 
 // STATIC: 0x00BFA66C
-int32_t CGTradeInfo::unk_BFA66C;
+int32_t CGTradeInfo::m_lastTargetEnchantSpell;
 
 // STATIC: 0x00BFA670
-int32_t CGTradeInfo::unk_BFA670;
+int32_t CGTradeInfo::m_lastPlayerMoney;
 
 // STATIC: 0x00BFA674
-int32_t CGTradeInfo::unk_BFA674;
+int32_t CGTradeInfo::m_lastTargetMoney;
 
 // STATIC: 0x00BFA678
 int32_t CGTradeInfo::m_supressMoneyEvent;
@@ -108,7 +108,7 @@ int32_t CGTradeInfo::GetTargetEnchant(uint32_t slot) {
     return CGTradeInfo::m_targetEnchant[slot];
 }
 
-// VERIFY: 6a67b734 auto
+// VERIFY: 185ffecc auto
 // OFFSET: 0x00586010
 void CGTradeInfo::GetPlayerItem(uint32_t slot, WOWGUID& item, WOWGUID& container, uint8_t& containerSlot) {
     item = slot > 6 ? WOWGUID() : CGTradeInfo::m_playerItems[slot];
@@ -117,8 +117,8 @@ void CGTradeInfo::GetPlayerItem(uint32_t slot, WOWGUID& item, WOWGUID& container
         container = WOWGUID();
         containerSlot = 0;
     } else {
-        container = CGTradeInfo::unk_BFA5E8[slot];
-        containerSlot = CGTradeInfo::unk_BFA5DC[slot];
+        container = CGTradeInfo::m_playerItemContainer[slot];
+        containerSlot = CGTradeInfo::m_playerItemContainerSlot[slot];
     }
 }
 
@@ -130,16 +130,16 @@ void TradeItemStatsCallback(int32_t id, const WOWGUID& guid, void* param, bool s
     }
 }
 
-// VERIFY: ffaeea99 auto
+// VERIFY: 81ca5d00 auto
 // OFFSET: 0x005860A0
 void CGTradeInfo::EnterWorld() {
     CGTradeInfo::m_tradingPlayer = WOWGUID();
     CGTradeInfo::m_playerAccepted = 0;
     CGTradeInfo::m_targetAccepted = 0;
-    CGTradeInfo::unk_BFA668 = 0;
-    CGTradeInfo::unk_BFA66C = 0;
-    CGTradeInfo::unk_BFA670 = 0;
-    CGTradeInfo::unk_BFA674 = 0;
+    CGTradeInfo::m_lastPlayerEnchantSpell = 0;
+    CGTradeInfo::m_lastTargetEnchantSpell = 0;
+    CGTradeInfo::m_lastPlayerMoney = 0;
+    CGTradeInfo::m_lastTargetMoney = 0;
 
     for (uint32_t i = 0; i < 7; i++) {
         CGTradeInfo::m_targetDurability[i] = 0;
@@ -159,8 +159,8 @@ void CGTradeInfo::EnterWorld() {
         CGTradeInfo::m_targetEnchant[i] = 0;
         CGTradeInfo::m_targetCount[i] = 0;
         CGTradeInfo::m_targetItemID[i] = 0;
-        CGTradeInfo::unk_BFA5DC[i] = 0;
-        CGTradeInfo::unk_BFA5E8[i] = WOWGUID();
+        CGTradeInfo::m_playerItemContainerSlot[i] = 0;
+        CGTradeInfo::m_playerItemContainer[i] = WOWGUID();
         CGTradeInfo::m_playerItems[i] = WOWGUID();
     }
 }
@@ -180,7 +180,7 @@ void CGTradeInfo::UpdatePlayerItem(WOWGUID guid) {
     }
 }
 
-// VERIFY: 4934db1f manual
+// VERIFY: f90faa11 manual
 // OFFSET: 0x005869A0
 int32_t CGTradeInfo::SetPlayerItem(uint32_t slot, WOWGUID item, WOWGUID container, uint8_t containerSlot) {
     if (slot > 6) {
@@ -206,8 +206,8 @@ int32_t CGTradeInfo::SetPlayerItem(uint32_t slot, WOWGUID item, WOWGUID containe
     }
 
     CGTradeInfo::m_playerItems[slot] = item;
-    CGTradeInfo::unk_BFA5E8[slot] = container;
-    CGTradeInfo::unk_BFA5DC[slot] = containerSlot;
+    CGTradeInfo::m_playerItemContainer[slot] = container;
+    CGTradeInfo::m_playerItemContainerSlot[slot] = containerSlot;
     FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_PLAYER_ITEM_CHANGED, "%d", slot + 1);
     return 1;
 }
@@ -266,11 +266,11 @@ static void SetTargetAccepted(int32_t accepted) {
     }
 }
 
-// VERIFY: c3d04d8c auto
+// VERIFY: e8e301ad auto
 // OFFSET: 0x00586410
 void CGTradeInfo::DenyPlayerItem(int32_t slot) {
     if (slot == 255) {
-        CGTradeInfo::unk_BFA670 = 0;
+        CGTradeInfo::m_lastPlayerMoney = 0;
         FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_TRADE_MONEY, nullptr);
         FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_MONEY, nullptr);
         return;
@@ -278,8 +278,8 @@ void CGTradeInfo::DenyPlayerItem(int32_t slot) {
 
     CGGameUI::UnlockItem(CGTradeInfo::m_playerItems[slot]);
     CGTradeInfo::m_playerItems[slot] = WOWGUID();
-    CGTradeInfo::unk_BFA5E8[slot] = WOWGUID();
-    CGTradeInfo::unk_BFA5DC[slot] = 0;
+    CGTradeInfo::m_playerItemContainer[slot] = WOWGUID();
+    CGTradeInfo::m_playerItemContainerSlot[slot] = 0;
     FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_PLAYER_ITEM_CHANGED, "%d", slot + 1);
 }
 
@@ -401,7 +401,7 @@ void CGTradeInfo::SetEnchantingItem(CGItem_C* item) {
     }
 }
 
-// VERIFY: 8e40c12a manual
+// VERIFY: b172eb13 manual
 // OFFSET: 0x00586DC0
 void CGTradeInfo::OnTradeUpdated(const TRADE_ITEM* items) {
     CGTradeInfo::PlayerAccept();
@@ -444,29 +444,29 @@ void CGTradeInfo::OnTradeUpdated(const TRADE_ITEM* items) {
         }
     }
 
-    if (CGTradeInfo::unk_BFA668 != Trade_C_GetEnchantSpell(0)) {
-        CGTradeInfo::unk_BFA668 = Trade_C_GetEnchantSpell(0);
+    if (CGTradeInfo::m_lastPlayerEnchantSpell != Trade_C_GetEnchantSpell(0)) {
+        CGTradeInfo::m_lastPlayerEnchantSpell = Trade_C_GetEnchantSpell(0);
         FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_TARGET_ITEM_CHANGED, "%d", 7);
     }
 
-    if (CGTradeInfo::unk_BFA66C != Trade_C_GetEnchantSpell(1)) {
-        CGTradeInfo::unk_BFA66C = Trade_C_GetEnchantSpell(1);
+    if (CGTradeInfo::m_lastTargetEnchantSpell != Trade_C_GetEnchantSpell(1)) {
+        CGTradeInfo::m_lastTargetEnchantSpell = Trade_C_GetEnchantSpell(1);
         FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_PLAYER_ITEM_CHANGED, "%d", 7);
     }
 
-    if (CGTradeInfo::unk_BFA670 != static_cast<int32_t>(CGTradeInfo::GetPlayerTradeMoney())) {
-        CGTradeInfo::unk_BFA670 = CGTradeInfo::GetPlayerTradeMoney();
+    if (CGTradeInfo::m_lastPlayerMoney != static_cast<int32_t>(CGTradeInfo::GetPlayerTradeMoney())) {
+        CGTradeInfo::m_lastPlayerMoney = CGTradeInfo::GetPlayerTradeMoney();
         FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_TRADE_MONEY, nullptr);
         FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_MONEY, nullptr);
     }
 
-    if (CGTradeInfo::unk_BFA674 != static_cast<int32_t>(CGTradeInfo::GetTargetTradeMoney())) {
-        CGTradeInfo::unk_BFA674 = CGTradeInfo::GetTargetTradeMoney();
+    if (CGTradeInfo::m_lastTargetMoney != static_cast<int32_t>(CGTradeInfo::GetTargetTradeMoney())) {
+        CGTradeInfo::m_lastTargetMoney = CGTradeInfo::GetTargetTradeMoney();
         FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_MONEY_CHANGED, nullptr);
     }
 }
 
-// VERIFY: c3a090dc auto
+// VERIFY: 6820d853 auto
 // OFFSET: 0x005870A0
 void CGTradeInfo::SetTradePartner(WOWGUID partner, int32_t a2) {
     if (!partner) {
@@ -490,18 +490,18 @@ void CGTradeInfo::SetTradePartner(WOWGUID partner, int32_t a2) {
     CGTradeInfo::m_tradingPlayer = partner;
     CGTradeInfo::m_playerAccepted = 0;
     CGTradeInfo::m_targetAccepted = 0;
-    CGTradeInfo::unk_BFA668 = 0;
-    CGTradeInfo::unk_BFA66C = 0;
-    CGTradeInfo::unk_BFA670 = 0;
-    CGTradeInfo::unk_BFA674 = 0;
+    CGTradeInfo::m_lastPlayerEnchantSpell = 0;
+    CGTradeInfo::m_lastTargetEnchantSpell = 0;
+    CGTradeInfo::m_lastPlayerMoney = 0;
+    CGTradeInfo::m_lastTargetMoney = 0;
     CGTradeInfo::m_supressMoneyEvent = 0;
 
     for (uint32_t i = 0; i < 7; i++) {
         CGTradeInfo::m_targetEnchant[i] = 0;
         CGTradeInfo::m_targetCount[i] = 0;
         CGTradeInfo::m_targetItemID[i] = 0;
-        CGTradeInfo::unk_BFA5DC[i] = 0;
-        CGTradeInfo::unk_BFA5E8[i] = WOWGUID();
+        CGTradeInfo::m_playerItemContainerSlot[i] = 0;
+        CGTradeInfo::m_playerItemContainer[i] = WOWGUID();
         CGTradeInfo::m_playerItems[i] = WOWGUID();
     }
 
@@ -509,7 +509,7 @@ void CGTradeInfo::SetTradePartner(WOWGUID partner, int32_t a2) {
         if (CGGameUI::m_cursorMoney) {
             if (CGTradeInfo::AddMoney(CGGameUI::m_cursorMoney)) {
                 CGGameUI::ClearCursor(1, 0);
-                CGTradeInfo::unk_BFA670 = CGTradeInfo::GetPlayerTradeMoney();
+                CGTradeInfo::m_lastPlayerMoney = CGTradeInfo::GetPlayerTradeMoney();
                 FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_TRADE_MONEY, nullptr);
                 FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_MONEY, nullptr);
                 FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_SHOW, nullptr);
@@ -533,8 +533,8 @@ void CGTradeInfo::SetTradePartner(WOWGUID partner, int32_t a2) {
                 Trade_C_AddItem(item, container, static_cast<uint8_t>(slot), static_cast<uint8_t>(index));
                 CGGameUI::ClearCursor(0, 1);
                 CGTradeInfo::m_playerItems[index] = item;
-                CGTradeInfo::unk_BFA5E8[index] = container;
-                CGTradeInfo::unk_BFA5DC[index] = static_cast<uint8_t>(slot);
+                CGTradeInfo::m_playerItemContainer[index] = container;
+                CGTradeInfo::m_playerItemContainerSlot[index] = static_cast<uint8_t>(slot);
             }
         }
     }

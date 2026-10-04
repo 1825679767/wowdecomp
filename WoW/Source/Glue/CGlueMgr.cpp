@@ -248,7 +248,7 @@ uint32_t CGlueMgr::m_pendingTimerAlert;
 int32_t CGlueMgr::m_accountMsgAvailable;
 
 // STATIC: 0x00B6AF98
-static int32_t unk_B6AF98;
+static int32_t s_disconnectReason;
 
 // STATIC: 0x00B6AF9C
 uint32_t CGlueMgr::m_numChangedOptionWarnings;
@@ -2231,7 +2231,7 @@ void CGlueMgr::StatusDialogClick() {
     }
 }
 
-// VERIFY: 5fe5b71e auto
+// VERIFY: 4eb1c510 auto
 // OFFSET: 0x004DA9D0
 int32_t CGlueMgr::NetDisconnectHandler(NetClient* client) {
     bool displayScript = CGlueMgr::m_idleState != IDLE_ACCOUNT_LOGIN;
@@ -2267,7 +2267,7 @@ int32_t CGlueMgr::NetDisconnectHandler(NetClient* client) {
 
     if (displayScript) {
         ConsolePrintf("CGlueMgr::NetDisconnectHandler: Displaying script");
-        FrameScript_SignalEvent(GLUE_EVENT_DISCONNECTED_FROM_SERVER, "%d", unk_B6AF98);
+        FrameScript_SignalEvent(GLUE_EVENT_DISCONNECTED_FROM_SERVER, "%d", s_disconnectReason);
     } else {
         ConsolePrintf("CGlueMgr::NetDisconnectHandler: NOT displaying script");
 
@@ -2278,7 +2278,7 @@ int32_t CGlueMgr::NetDisconnectHandler(NetClient* client) {
 
         if (!ClientServices::Connection()->PollStatus(op, &text, result, errorCode) || result) {
             ClientServices::SelectRealm("");
-            FrameScript_SignalEvent(GLUE_EVENT_DISCONNECTED_FROM_SERVER, "%d", unk_B6AF98);
+            FrameScript_SignalEvent(GLUE_EVENT_DISCONNECTED_FROM_SERVER, "%d", s_disconnectReason);
         } else {
             FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "OKAY", text);
         }
@@ -2564,7 +2564,7 @@ int32_t CGlueMgr::OnCharFactionChangeResult(void* param, NETMESSAGE msgId, uint3
     return 1;
 }
 
-// VERIFY: e4d96b3e auto
+// VERIFY: 2e472e07 auto
 // OFFSET: 0x004D9500
 int32_t CGlueMgr::OnKickReasonMsg(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint8_t reason = 0;
@@ -2583,6 +2583,6 @@ int32_t CGlueMgr::OnKickReasonMsg(void* param, NETMESSAGE msgId, uint32_t time, 
         }
     }
 
-    unk_B6AF98 = reason;
+    s_disconnectReason = reason;
     return 1;
 }

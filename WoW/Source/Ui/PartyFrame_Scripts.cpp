@@ -258,11 +258,11 @@ static int32_t Script_GetPartyAssignment(lua_State* L) {
     return CGPartyInfo::GetPartyAssignments(L, 1);
 }
 
-// VERIFY: 07abcb2f manual
+// VERIFY: 11c07222 manual
 // OFFSET: 0x0052D000
 static int32_t Script_CanChangePlayerDifficulty(lua_State* L) {
     lua_pushboolean(L, CGGameUI::CanChangePlayerDifficulty());
-    bool cooldown = CGPartyInfo::unk_BD1984 && static_cast<int32_t>(static_cast<uint32_t>(::time(nullptr)) - CGPartyInfo::unk_BD1984) < 0;
+    bool cooldown = CGPartyInfo::m_nextDifficultyChange && static_cast<int32_t>(static_cast<uint32_t>(::time(nullptr)) - CGPartyInfo::m_nextDifficultyChange) < 0;
     lua_pushboolean(L, !cooldown);
     return 2;
 }

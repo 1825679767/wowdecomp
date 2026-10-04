@@ -105,7 +105,7 @@ struct DelayedSpellVisualKit {
     /* 0020 */ int32_t m_delay;
     /* 0024 */ uint32_t m_flags;
     /* 0028 */ int32_t unk_0028;
-    /* 002C */ int32_t unk_002C;
+    /* 002C */ int32_t m_startTime;
 };
 
 struct UnitThreatHandle {
@@ -228,7 +228,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     static void VehiclePassengerInitWorldCameraState();
     static bool __stdcall IsSpellAllowedInArena(const SpellRec* spell);
     static void ApplyGuildTabard(int32_t guildId, const WOWGUID& guid, void* param, bool apply);
-    static int32_t __stdcall Unk715D00(int32_t hand, const CGUnitVirtualItem* mainHand, const CGUnitVirtualItem* offHand);
+    static int32_t __stdcall ResolveSheathState(int32_t hand, const CGUnitVirtualItem* mainHand, const CGUnitVirtualItem* offHand);
     static bool __stdcall IsAreaInAreaGroup(int32_t areaId, int32_t areaGroupId, int32_t* checked);
     static float __fastcall ComputeTrackingElevationAngle(const C3Vector& position, const C3Vector& target);
     static void InitMissileTrajectorySystem();
@@ -239,7 +239,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     static void AnimEventCallback(CM2Model* model, uint32_t boneId, uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time, uint64_t param);
 
     /* 00DC */ TSList<void> m_unitMirrorLists [142];
-    /* 0784 */ float unk_0784;
+    /* 0784 */ float m_swimDepth;
     /* 0788 */ CMovement_C m_movementData;
     /* 08D0 */ float m_smoothFacing;
     /* 08D4 */ float unk_08D4;
@@ -251,8 +251,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 08F4 */ SE2SoundKitObject m_npcInteractSound;
     /* 0908 */ SE2SoundKitObject m_npcSound;
     /* 091C */ SE2SoundKitObject m_aiSound;
-    /* 0930 */ uint32_t unk_0930;
-    /* 0934 */ SE2SoundKitObject unk_0934;
+    /* 0930 */ uint32_t m_reactionSoundPriority;
+    /* 0934 */ SE2SoundKitObject m_reactionSound;
     /* 0948 */ uint32_t unk_0948 [4];
     /* 0958 */ uint32_t m_animEffectStates [3];
     /* 0964 */ CreatureStats_C* m_creatureCacheEntry;
@@ -270,12 +270,12 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0994 */ uint8_t m_forceWorldModelAlpha;
     /* 0998 */ uint32_t m_virtualItemDisplayId [3];
     /* 09A4 */ CGUnitVirtualItem m_virtualItem [3];
-    /* 09BC */ uint32_t unk_09BC;
+    /* 09BC */ uint32_t m_nextBreathCheckTime;
     /* 09C0 */ int32_t m_mountDisplayId;
     /* 09C4 */ const MountTransitionObject* m_mountTransition;
     /* 09C8 */ CEffect* m_mountTransitionEffect;
-    /* 09CC */ uint32_t unk_09CC;
-    /* 09D0 */ uint32_t unk_09D0;
+    /* 09CC */ uint32_t m_mountTransitionSpellId;
+    /* 09D0 */ uint32_t m_critterDisplayCreatureId;
     /* 09D4 */ int32_t m_displayId;
     /* 09D8 */ C3Vector m_groundNormal;
     /* 09E4 */ uint32_t m_targetChangeTime;
@@ -295,7 +295,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0A40 */ int32_t m_terrainTypeId;
     /* 0A44 */ float m_footprintLength;
     /* 0A48 */ float m_footprintWidth;
-    /* 0A4C */ float unk_0A4C;
+    /* 0A4C */ float m_footprintParticleScale;
     /* 0A50 */ float m_lastSentFacing;
     /* 0A54 */ float m_lastSentPitch;
     /* 0A58 */ uint32_t unk_0A58;
@@ -346,7 +346,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0B48 */ uint32_t m_ammoDisplayId;
     /* 0B4C */ CCharacterComponent* m_characterComponent;
     /* 0B50 */ WTOBJECT* m_weaponTrails [2];
-    /* 0B58 */ uint32_t unk_0B58;
+    /* 0B58 */ uint32_t m_previousSheatheState;
     /* 0B5C */ uint32_t m_sheatheState;
     /* 0B60 */ TSGrowableArray<WOWGUID> m_chainSpellTargets;
     /* 0B70 */ C3Vector m_chainSpellLocation;
@@ -379,7 +379,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0F7C */ uint32_t m_wheelMask;
     /* 0F80 */ float m_wheelAngles [8];
     /* 0FA0 */ uint32_t unk_0FA0;
-    /* 0FA4 */ int32_t unk_0FA4;
+    /* 0FA4 */ int32_t m_specialIdleAnim;
     /* 0FA8 */ CM2Model* m_precastMissileModel;
     /* 0FAC */ uint8_t m_precastCastCount;
     /* 0FB0 */ int32_t m_predictedHealth;
@@ -707,14 +707,14 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void UpdateObjectEffectAnimationStates();
     bool HasAuraEffect(int32_t auraType) const;
     void CancelOpenStable();
-    void Unk716040();
+    void RequestRepopOnLanding();
     C3Spline_CatmullRom* GetSpline();
     float GetSplineElapsedTime();
     float GetSplineDuration();
     int32_t HasAttachmentForEffect(uint32_t id, int32_t raw) const;
     C3Vector GetAttachmentPositionForEffect(uint32_t id, const C3Vector& offset, int32_t raw);
-    bool Unk71A9A0(uint32_t time, CImVector& color);
-    int32_t Unk71AE80() const;
+    bool GetFlashColor(uint32_t time, CImVector& color);
+    int32_t IsFacingUnchangedSinceSent() const;
     bool ShouldKneelForLoot() const;
     void SetVehicleExitVoluntary(int32_t enable);
     void VehicleExit();
@@ -732,7 +732,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void PlayEmotes(const QUESTGIVEREMOTEQUEUE& emotes);
     DelayedSpellVisualKit* DelaySpellVisualKit(int32_t spellId, int32_t kitId, int32_t kitType, const C3Vector* position, WOWGUID targetGuid, int32_t a7, int32_t a8, int32_t delay, int32_t a10, int32_t a11);
     C3Vector GetGroundNormal() const;
-    bool Unk71BC50(CGObject_C* target) const;
+    bool IsMovingToward(CGObject_C* target) const;
     int32_t ChooseLootAnim(uint32_t flags, uint32_t* animId);
     void OnChangeSeatsOnControlledVehicleLocal(uint32_t eventTime, WOWGUID transport, uint8_t seat);
     int32_t IsInFrontOfTargetWithGuid(const WOWGUID& guid) const;
@@ -743,7 +743,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t UnsetKeyBoneSequence(CM2Model* model, uint32_t boneId, int32_t blend, int32_t primary, int32_t force);
     void SetBoneSequenceTimeRecursive(CM2Model* model, uint32_t boneId, uint32_t time, int32_t force);
     void UpdateBoneSequenceFlags(CM2Model* model, int32_t freeze, int32_t force);
-    void Unk738440();
+    void ResetKeyBoneSequences();
     void OnCollideFalling();
     void CreateVehicleData(const CClientObjCreate* create, int32_t vehicleId);
     void RefreshDataPointers();
@@ -829,7 +829,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void ReleaseMissiles();
     void ReleaseMissiles(const C3Vector& position);
     int32_t ShouldShowNamePlate(CGWorldFrame* worldFrame, C3Vector* position);
-    void Unk72E270();
+    void UpdateCritterDisplay();
     void CheckApplyPeriodicClientTriggers();
     void DestroyNamePlate();
     void NamePlateUpdateRaidTarget();
@@ -855,13 +855,13 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void UpdateScriptRegistration();
     void UpdateUnitNameColor();
     void UpdateBreathState(uint32_t time);
-    void Unk720DB0(uint32_t time);
+    void UpdateModelTint(uint32_t time);
     void ProcessEmoteQueue();
     void CreateRipple(uint32_t a2);
     void SmoothFacingAngle(float facing);
     void RotateWheels();
-    int32_t Unk71DE90();
-    int32_t Unk724410();
+    int32_t CanPlayTurnAnim();
+    int32_t CanPlayEmoteAnim();
     void UpdateDelayedSpellVisualKits();
     void PlayFallLandAnimation(uint32_t oldFlags, int32_t jumping);
     void HandleEnvironmentDamage(uint32_t type, int32_t damage, int32_t absorbed, int32_t resisted);
@@ -907,7 +907,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void OnDeathAnimate();
     void ReadLootList(CDataStore* msg);
     void RemoveLootEffect();
-    void Unk71EE70();
+    void DropTargetOnDeath();
     void ClearTrackingTarget(bool a2, bool a3);
     void HandleTracking(float drunkness, float turnOffset);
     void OnSetPitchLocal(uint32_t eventTime, float pitch);
@@ -1129,9 +1129,9 @@ class CAnimKitManager {
 };
 
 struct ClickToMoveActionInfo {
-    /* 0000 */ uint8_t unk_0000;
+    /* 0000 */ uint8_t m_enabled;
     /* 0001 */ uint8_t unk_0001[3];
-    /* 0004 */ float unk_0004;
+    /* 0004 */ float m_stopDistanceSq;
     /* 0008 */ uint8_t unk_0008;
     /* 0009 */ uint8_t unk_0009;
     /* 000A */ uint8_t unk_000A[2];

@@ -5,10 +5,10 @@
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00D450C0
-CDataAllocator Liquid::s_unk_D450C0(sizeof(Liquid::CMaterialMagmaFFP), 8);
+CDataAllocator Liquid::s_magmaFFPAllocator(sizeof(Liquid::CMaterialMagmaFFP), 8);
 
 // STATIC: 0x00D450AC
-CDataAllocator Liquid::s_unk_D450AC(sizeof(Liquid::CMaterialMagma), 8);
+CDataAllocator Liquid::s_magmaAllocator(sizeof(Liquid::CMaterialMagma), 8);
 
 // STATIC: 0x00D44C40
 int32_t Liquid::CMaterialMagma::s_refCount;
@@ -19,11 +19,11 @@ CGxShader* Liquid::CMaterialMagma::s_vertexShader;
 // STATIC: 0x00D44BF0
 CGxShader* Liquid::CMaterialMagma::s_pixelShader;
 
-// VERIFY: 83f1c351 auto
+// VERIFY: c1ce3d88 auto
 // OFFSET: 0x008A4170
 void Liquid::CMaterialMagma::Release() {
     this->~CMaterialMagma();
-    Liquid::s_unk_D450AC.PutData(this, nullptr, 0);
+    Liquid::s_magmaAllocator.PutData(this, nullptr, 0);
 }
 
 // VERIFY: a8322b3f auto
@@ -49,24 +49,24 @@ Liquid::CMaterialMagma::~CMaterialMagma() {
     }
 }
 
-// VERIFY: 3c4b9f03 auto
+// VERIFY: 98a0bedc auto
 // OFFSET: 0x008A4260
 void Liquid::CMaterialMagmaFFP::Release() {
     this->~CMaterialMagmaFFP();
-    Liquid::s_unk_D450C0.PutData(this, nullptr, 0);
+    Liquid::s_magmaFFPAllocator.PutData(this, nullptr, 0);
 }
 
-// VERIFY: 49300414 auto
+// VERIFY: 7e8b3bec auto
 // OFFSET: 0x008A4870
 Liquid::CMaterialMagma* Liquid::CMaterialMagma::Create() {
-    void* mem = Liquid::s_unk_D450AC.GetData(0, ".?AVCMaterialMagma@Liquid@@", SLOG_OBJECT);
+    void* mem = Liquid::s_magmaAllocator.GetData(0, ".?AVCMaterialMagma@Liquid@@", SLOG_OBJECT);
     return mem ? new (mem) Liquid::CMaterialMagma() : nullptr;
 }
 
-// VERIFY: 7d417cc9 auto
+// VERIFY: db3efd66 auto
 // OFFSET: 0x008A48D0
 Liquid::CMaterialMagmaFFP* Liquid::CMaterialMagmaFFP::Create() {
-    void* mem = Liquid::s_unk_D450C0.GetData(0, ".?AVCMaterialMagmaFFP@Liquid@@", SLOG_OBJECT);
+    void* mem = Liquid::s_magmaFFPAllocator.GetData(0, ".?AVCMaterialMagmaFFP@Liquid@@", SLOG_OBJECT);
     return mem ? new (mem) Liquid::CMaterialMagmaFFP() : nullptr;
 }
 

@@ -1096,7 +1096,7 @@ void CMissile::RemoveMissiles() {
     }
 }
 
-// VERIFY: a8c4a938 manual
+// VERIFY: a1f308a5 manual
 // OFFSET: 0x00703810
 int32_t CMissile::WaitForModelFX() {
     if (this->m_model && this->m_model->IsLoaded(0, 0) && (this->m_model->m_fFlags & 0x8000)) {
@@ -1104,14 +1104,14 @@ int32_t CMissile::WaitForModelFX() {
 
         if (this->m_flags & 0x800000) {
             if (this->m_flags & 0x10000000) {
-                model->unk_017C = 0.0f;
+                model->m_baseAlpha = 0.0f;
                 this->m_model->SetEmittersEnabled(0);
                 this->m_model->SetRibbonsEnabled(0);
                 this->m_flags &= ~0x10000000;
             }
         } else {
             if (!(this->m_flags & 0x10000000)) {
-                model->unk_017C = 0.0f;
+                model->m_baseAlpha = 0.0f;
                 this->m_model->SetEmittersEnabled(0);
                 this->m_model->SetRibbonsEnabled(0);
             }

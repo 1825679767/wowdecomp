@@ -57,9 +57,9 @@ const uint32_t s_ipmrTableB23628[33] = {
     0xFFFFFFFF,
 };
 
-// VERIFY: 1c93cd5e manual
+// VERIFY: 0f7acabc manual
 // OFFSET: 0x008998E0
-int32_t SPIRIT_IP_MR_V3_Unk8998E0(SPIRIT_IPMR_STREAM* stream, int16_t count) {
+int32_t SPIRIT_IP_MR_V3_GetBits(SPIRIT_IPMR_STREAM* stream, int16_t count) {
     int32_t result = 0;
     int16_t index = static_cast<int16_t>(stream->m_bits) >> 3;
     int32_t shift = static_cast<int32_t>(stream->m_bits) % 8;
@@ -86,11 +86,11 @@ int32_t SPIRIT_IP_MR_V3_Unk8998E0(SPIRIT_IPMR_STREAM* stream, int16_t count) {
     return result;
 }
 
-// VERIFY: 450fcec9 auto
+// VERIFY: 14a25117 auto
 // OFFSET: 0x00899990
-void SPIRIT_IP_MR_V3_Unk899990(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream) {
+void SPIRIT_IP_MR_V3_ReadFrameHeader(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream) {
     if (frame->unk_02A8) {
-        frame->unk_0288 = SPIRIT_IP_MR_V3_Unk8998E0(stream, 2);
+        frame->unk_0288 = SPIRIT_IP_MR_V3_GetBits(stream, 2);
     } else if (frame->m_mode == 0) {
         frame->unk_0288 = 0;
     } else if (frame->m_mode == 1) {
@@ -98,7 +98,7 @@ void SPIRIT_IP_MR_V3_Unk899990(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* str
     }
 
     if (frame->unk_02B0) {
-        int16_t flag = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk8998E0(stream, 1));
+        int16_t flag = static_cast<int16_t>(SPIRIT_IP_MR_V3_GetBits(stream, 1));
         frame->unk_0294 = flag;
         frame->unk_02B0 = 2 * (flag == 0) + 1;
     } else {
@@ -106,9 +106,9 @@ void SPIRIT_IP_MR_V3_Unk899990(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* str
     }
 }
 
-// VERIFY: 9d5050ea manual
+// VERIFY: af3a02c9 manual
 // OFFSET: 0x00899EE0
-void SPIRIT_IP_MR_V3_Unk899EE0(int16_t count, int16_t* index) {
+void SPIRIT_IP_MR_V3_ValidateStreamIndex(int16_t count, int16_t* index) {
     if (count == 0) {
         return;
     }
@@ -118,13 +118,13 @@ void SPIRIT_IP_MR_V3_Unk899EE0(int16_t count, int16_t* index) {
     }
 }
 
-// VERIFY: e1a8557f manual
+// VERIFY: b2932813 manual
 // OFFSET: 0x00899E60
-void SPIRIT_IP_MR_V3_Unk899E60(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream) {
+void SPIRIT_IP_MR_V3_ReadFrameFlags(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream) {
     const uint8_t* widths = frame->unk_02B4 >= 0 || frame->unk_02B0 == 3 ? s_ipmrTableB23754 : s_ipmrTableB23768;
 
     for (int32_t i = 0; i < 4; i++) {
-        frame->unk_02C8[i] = SPIRIT_IP_MR_V3_Unk8998E0(stream, widths[i]);
+        frame->unk_02C8[i] = SPIRIT_IP_MR_V3_GetBits(stream, widths[i]);
     }
 }
 
@@ -152,15 +152,15 @@ int32_t SPIRIT_IP_MR_V3_NAME_68(int16_t kind, const SPIRIT_IPMR_FRAME* frame, in
     return 6;
 }
 
-// VERIFY: 0f3c58ed manual
+// VERIFY: 0bd3b66c manual
 // OFFSET: 0x00899A80
 int16_t SPIRIT_IP_MR_V3_NAME_152(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream) {
     int16_t start = static_cast<int16_t>(stream->m_bits);
 
     if (static_cast<uint32_t>(frame->unk_02B0) < 2) {
         for (int32_t i = 0; i < 4; i++) {
-            frame->unk_02B6[i] = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk8998E0(stream, 1));
-            frame->unk_02BE[i] = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk8998E0(stream, 1));
+            frame->unk_02B6[i] = static_cast<int16_t>(SPIRIT_IP_MR_V3_GetBits(stream, 1));
+            frame->unk_02BE[i] = static_cast<int16_t>(SPIRIT_IP_MR_V3_GetBits(stream, 1));
         }
     } else {
         frame->unk_02B6[3] = 0;
@@ -176,7 +176,7 @@ int16_t SPIRIT_IP_MR_V3_NAME_152(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* s
     if (frame->unk_02B0 == 3) {
         frame->unk_02B4 = 2;
     } else {
-        frame->unk_02B4 = static_cast<int16_t>((SPIRIT_IP_MR_V3_Unk8998E0(stream, 2) - 1) % 4);
+        frame->unk_02B4 = static_cast<int16_t>((SPIRIT_IP_MR_V3_GetBits(stream, 2) - 1) % 4);
 
         if (frame->unk_02B4 == 3) {
             frame->unk_02B4 = -1;
@@ -258,7 +258,7 @@ int16_t SPIRIT_IP_MR_V3_NAME_67(const SPIRIT_IPMR_FRAME* frame, int16_t* sizes, 
     return total;
 }
 
-// VERIFY: f919027d manual
+// VERIFY: a5cfc0b4 manual
 // OFFSET: 0x0089A78E
 int16_t SPIRIT_IP_MR_V3_NAME_155(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream, int16_t lost) {
     SPIRIT_IPMR_STREAM streams[7];
@@ -287,14 +287,14 @@ int16_t SPIRIT_IP_MR_V3_NAME_155(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* s
     }
 
     int16_t index = static_cast<int16_t>(SPIRIT_IP_MR_V3_NAME_68(0, frame, 0));
-    SPIRIT_IP_MR_V3_Unk899EE0(lost, &index);
+    SPIRIT_IP_MR_V3_ValidateStreamIndex(lost, &index);
 
     if (index != -1) {
-        SPIRIT_IP_MR_V3_Unk899E60(frame, &streams[index]);
+        SPIRIT_IP_MR_V3_ReadFrameFlags(frame, &streams[index]);
     }
 
     if (frame->unk_02B0 == 3) {
-        frame->unk_9418 = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk8998E0(&streams[0], 5));
+        frame->unk_9418 = static_cast<int16_t>(SPIRIT_IP_MR_V3_GetBits(&streams[0], 5));
         stream->m_bits = streams[0].m_bits;
         return static_cast<int16_t>(streams[0].m_bits);
     }
@@ -309,37 +309,37 @@ int16_t SPIRIT_IP_MR_V3_NAME_155(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* s
         if (frame->unk_02B6[i]) {
             bits[i] = toggle ? 8 : static_cast<int16_t>(2 * (previous[i] == 0) + 6);
             index = static_cast<int16_t>(SPIRIT_IP_MR_V3_NAME_68(1, frame, i));
-            SPIRIT_IP_MR_V3_Unk899EE0(lost, &index);
+            SPIRIT_IP_MR_V3_ValidateStreamIndex(lost, &index);
 
             if (index != -1) {
-                frame->unk_02D8[i].unk_0008 = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk8998E0(&streams[index], bits[i]));
+                frame->unk_02D8[i].unk_0008 = static_cast<int16_t>(SPIRIT_IP_MR_V3_GetBits(&streams[index], bits[i]));
             }
 
             index = static_cast<int16_t>(SPIRIT_IP_MR_V3_NAME_68(2, frame, i));
-            SPIRIT_IP_MR_V3_Unk899EE0(lost, &index);
+            SPIRIT_IP_MR_V3_ValidateStreamIndex(lost, &index);
 
             if (index != -1) {
-                frame->unk_02D8[i].unk_000A = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk8998E0(&streams[index], 4));
+                frame->unk_02D8[i].unk_000A = static_cast<int16_t>(SPIRIT_IP_MR_V3_GetBits(&streams[index], 4));
             }
         }
     }
 
     for (int16_t i = 0; i < 4; i++) {
         index = static_cast<int16_t>(SPIRIT_IP_MR_V3_NAME_68(3, frame, i));
-        SPIRIT_IP_MR_V3_Unk899EE0(lost, &index);
+        SPIRIT_IP_MR_V3_ValidateStreamIndex(lost, &index);
 
         if (index != -1) {
             SPIRIT_IPMR_STREAM* source = &streams[index];
             SPIRIT_IPMR_TRACK* track = &frame->unk_0308[i][0];
 
             if (frame->unk_02BE[i]) {
-                track->unk_0024 = SPIRIT_IP_MR_V3_Unk8998E0(source, 17);
-                track->unk_0028 = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk8998E0(source, 5));
-                track->unk_002A = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk8998E0(source, 4));
+                track->unk_0024 = SPIRIT_IP_MR_V3_GetBits(source, 17);
+                track->unk_0028 = static_cast<int16_t>(SPIRIT_IP_MR_V3_GetBits(source, 5));
+                track->unk_002A = static_cast<int16_t>(SPIRIT_IP_MR_V3_GetBits(source, 4));
             } else {
-                track->unk_0024 = SPIRIT_IP_MR_V3_Unk8998E0(source, s_ipmrTableB235D8[0]);
-                track->unk_0028 = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk8998E0(source, s_ipmrTableB235E4[0]));
-                track->unk_002A = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk8998E0(source, s_ipmrTableB235F0[0]));
+                track->unk_0024 = SPIRIT_IP_MR_V3_GetBits(source, s_ipmrTableB235D8[0]);
+                track->unk_0028 = static_cast<int16_t>(SPIRIT_IP_MR_V3_GetBits(source, s_ipmrTableB235E4[0]));
+                track->unk_002A = static_cast<int16_t>(SPIRIT_IP_MR_V3_GetBits(source, s_ipmrTableB235F0[0]));
             }
         }
     }
@@ -350,9 +350,9 @@ int16_t SPIRIT_IP_MR_V3_NAME_155(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* s
         for (int16_t t = 1; t < frame->unk_02AE; t++) {
             for (int32_t i = 0; i < 4; i++) {
                 SPIRIT_IPMR_TRACK* track = &frame->unk_0308[i][t];
-                track->unk_0024 = SPIRIT_IP_MR_V3_Unk8998E0(stream, static_cast<int16_t>(s_ipmrTableB235D8[t] - s_ipmrTableB235FC[t][i]));
-                track->unk_0028 = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk8998E0(stream, s_ipmrTableB235E4[t]));
-                track->unk_002A = static_cast<int16_t>(SPIRIT_IP_MR_V3_Unk8998E0(stream, s_ipmrTableB235F0[t]));
+                track->unk_0024 = SPIRIT_IP_MR_V3_GetBits(stream, static_cast<int16_t>(s_ipmrTableB235D8[t] - s_ipmrTableB235FC[t][i]));
+                track->unk_0028 = static_cast<int16_t>(SPIRIT_IP_MR_V3_GetBits(stream, s_ipmrTableB235E4[t]));
+                track->unk_002A = static_cast<int16_t>(SPIRIT_IP_MR_V3_GetBits(stream, s_ipmrTableB235F0[t]));
             }
         }
     }
@@ -394,9 +394,9 @@ void SPIRIT_IP_MR_V3_NAME_38(SPIRIT_IPMR_FRAME* frame, int16_t start) {
     }
 }
 
-// VERIFY: ed2a653a auto
+// VERIFY: 5c2d5821 auto
 // OFFSET: 0x00896950
-void SPIRIT_IP_MR_V3_Unk896950(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream) {
+void SPIRIT_IP_MR_V3_UnpackFrameParameters(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* stream) {
     if (frame->unk_02AC) {
         SPIRIT_IP_MR_V3_NAME_152(frame, stream);
         SPIRIT_IP_MR_V3_NAME_155(frame, stream, static_cast<int16_t>(frame->unk_029C));
@@ -407,9 +407,9 @@ void SPIRIT_IP_MR_V3_Unk896950(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_STREAM* str
     }
 }
 
-// VERIFY: b5d98b4e manual
+// VERIFY: 5676890b manual
 // OFFSET: 0x00896990
-int32_t SPIRIT_IP_MR_V3_Unk896990(SPIRIT_IPMR_DECODER* decoder, int32_t rateIn, uint32_t mode) {
+int32_t SPIRIT_IP_MR_V3_Reconfigure(SPIRIT_IPMR_DECODER* decoder, int32_t rateIn, uint32_t mode) {
     if (decoder->unk_0004 == SPIRIT_IP_MR_V3_NAME_66(rateIn) && decoder->unk_0010 == static_cast<int32_t>(mode)) {
         return 0;
     }
@@ -417,9 +417,9 @@ int32_t SPIRIT_IP_MR_V3_Unk896990(SPIRIT_IPMR_DECODER* decoder, int32_t rateIn, 
     return SPIRIT_IP_MR_V3_NAME_194(decoder, decoder->m_tables, rateIn, SPIRIT_IP_MR_V3_NAME_65(decoder->unk_000C), mode);
 }
 
-// VERIFY: d9da2dcc auto
+// VERIFY: 9e292457 auto
 // OFFSET: 0x008969E0
-void SPIRIT_IP_MR_V3_Unk8969E0(const SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_DECODER* decoder) {
+void SPIRIT_IP_MR_V3_SaveFrameState(const SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_DECODER* decoder) {
     decoder->unk_0014 = frame->unk_028C;
     decoder->unk_0018 = frame->unk_0292;
     decoder->unk_001A = frame->unk_0296;
@@ -437,9 +437,9 @@ void SPIRIT_IP_MR_V3_Unk8969E0(const SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_DECOD
     }
 }
 
-// VERIFY: 1bbe76ae manual
+// VERIFY: f07a19d6 manual
 // OFFSET: 0x00896A40
-void SPIRIT_IP_MR_V3_Unk896A40(const SPIRIT_IPMR_DECODER* decoder, SPIRIT_IPMR_FRAME* frame) {
+void SPIRIT_IP_MR_V3_RestoreFrameState(const SPIRIT_IPMR_DECODER* decoder, SPIRIT_IPMR_FRAME* frame) {
     frame->unk_0288 = decoder->unk_001C;
     frame->unk_028C = decoder->unk_0014;
     SPIRIT_IP_MR_V3_NAME_309(decoder->unk_0014, frame);

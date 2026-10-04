@@ -72,9 +72,9 @@ void SPIRIT_IP_MR_V3_NAME_179(float* dst, const float* src, int32_t count) {
     }
 }
 
-// VERIFY: fda042cd manual
+// VERIFY: aa7cfcb6 manual
 // OFFSET: 0x00897220
-void SPIRIT_IP_MR_V3_Unk897220(float* dst, const float* src) {
+void SPIRIT_IP_MR_V3_AddSubframe(float* dst, const float* src) {
     for (int32_t i = 0; i < 40; i++) {
         dst[i] = dst[i] + src[i];
     }

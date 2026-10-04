@@ -65,9 +65,9 @@ int32_t SPIRIT_IP_MR_V3_1_Decode(void* state, uint8_t* pcm, SPIRIT_IPMR_PARAMS* 
     return SPIRIT_IP_MR_V3_NAME_192(&codec->m_decoder, stream, pcm, 0, 0, params->unk_0000, 1, params->unk_0004, params->unk_0004, lost, &bits);
 }
 
-// VERIFY: cefd693f auto
+// VERIFY: bcb46639 auto
 // OFFSET: 0x008967B0
-void SPIRIT_IP_MR_V3_Unk8967B0(SPIRIT_IPMR_DEC_UNK0020* state, const SPIRIT_IPMR_TABLES* tables) {
+void SPIRIT_IP_MR_V3_ResetDecoderState(SPIRIT_IPMR_DEC_UNK0020* state, const SPIRIT_IPMR_TABLES* tables) {
     SPIRIT_IP_MR_V3_NAME_334(state, sizeof(SPIRIT_IPMR_DEC_UNK0020));
     state->unk_03B4 = &state->unk_0000[154];
     SPIRIT_IP_MR_V3_NAME_190(state->unk_0310, s_ipmrTableB234D0);
@@ -77,7 +77,7 @@ void SPIRIT_IP_MR_V3_Unk8967B0(SPIRIT_IPMR_DEC_UNK0020* state, const SPIRIT_IPMR
     SPIRIT_IP_MR_V3_NAME_114(&state->unk_06A8, tables->unk_B7C0);
 }
 
-// VERIFY: b1b88145 auto
+// VERIFY: 1581115b auto
 // OFFSET: 0x00896820
 int32_t SPIRIT_IP_MR_V3_NAME_194(SPIRIT_IPMR_DECODER* decoder, const SPIRIT_IPMR_TABLES* tables, int32_t rateIn, int32_t rateOut, uint32_t mode) {
     if (!decoder || !tables) {
@@ -101,15 +101,15 @@ int32_t SPIRIT_IP_MR_V3_NAME_194(SPIRIT_IPMR_DECODER* decoder, const SPIRIT_IPMR
     }
 
     decoder->unk_001C = decoder->unk_0010 == 1;
-    SPIRIT_IP_MR_V3_Unk8967B0(&decoder->unk_0020, tables);
+    SPIRIT_IP_MR_V3_ResetDecoderState(&decoder->unk_0020, tables);
     SPIRIT_IP_MR_V3_NAME_44(&decoder->unk_0730);
     decoder->m_initialized = 1;
     return 0;
 }
 
-// VERIFY: 5485fed6 manual
+// VERIFY: 7154a6db manual
 // OFFSET: 0x00896D10
-void SPIRIT_IP_MR_V3_Unk896D10(SPIRIT_IPMR_ENC_UNK0D20* state) {
+void SPIRIT_IP_MR_V3_ResetEncoderState(SPIRIT_IPMR_ENC_UNK0D20* state) {
     SPIRIT_IP_MR_V3_NAME_334(state, sizeof(SPIRIT_IPMR_ENC_UNK0D20));
     state->unk_1F98 = &state->unk_0010[200];
     state->unk_1F9C = &state->unk_0010[160];
@@ -124,7 +124,7 @@ void SPIRIT_IP_MR_V3_Unk896D10(SPIRIT_IPMR_ENC_UNK0D20* state) {
     SPIRIT_IP_MR_V3_NAME_189(state->unk_19B0, s_ipmrTableB234D0, 10);
 }
 
-// VERIFY: 206d49ee auto
+// VERIFY: 3f75b507 auto
 // OFFSET: 0x00896DD0
 int32_t SPIRIT_IP_MR_V3_NAME_197(SPIRIT_IPMR_ENCODER* encoder, const SPIRIT_IPMR_TABLES* tables, int32_t rate, uint32_t mode) {
     encoder->m_tables = const_cast<SPIRIT_IPMR_TABLES*>(tables);
@@ -143,7 +143,7 @@ int32_t SPIRIT_IP_MR_V3_NAME_197(SPIRIT_IPMR_ENCODER* encoder, const SPIRIT_IPMR
         return 1;
     }
 
-    SPIRIT_IP_MR_V3_Unk896D10(&encoder->unk_0D20);
+    SPIRIT_IP_MR_V3_ResetEncoderState(&encoder->unk_0D20);
     SPIRIT_IP_MR_V3_NAME_334(encoder->unk_0014, sizeof(encoder->unk_0014));
     SPIRIT_IP_MR_V3_NAME_46(&encoder->unk_0020);
     encoder->m_initialized = 1;

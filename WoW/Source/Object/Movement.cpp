@@ -6901,7 +6901,7 @@ void CMovement_C::Disable() {
     this->m_moveQueue.FreeAll();
 }
 
-// VERIFY: ba2b58d3 manual
+// VERIFY: 4286b6ab manual
 // OFFSET: 0x00760720
 void CMovement_C::CollideWithTransport(uint32_t time, uint32_t elapsed, float distance, const C3Vector& direction, const C44Matrix& transportMatrix) {
     C3Vector position = this->m_position * transportMatrix;
@@ -6951,7 +6951,7 @@ void CMovement_C::CollideWithTransport(uint32_t time, uint32_t elapsed, float di
     }
 
     CGGameObject_C* transport = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(this->m_transportGuid, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
-    uint32_t eventTime = static_cast<uint32_t>(static_cast<int64_t>(moveDist / distance * static_cast<float>(elapsed) + 0.5f)) + transport->unk_0200 - elapsed + time;
+    uint32_t eventTime = static_cast<uint32_t>(static_cast<int64_t>(moveDist / distance * static_cast<float>(elapsed) + 0.5f)) + transport->m_transportTimeOffset - elapsed + time;
     uint32_t transportTime = transport->m_typeData->GetSequenceTimeFromRealTime(eventTime);
     CMovementGlobals* globals = MovementGetGlobals();
     uint32_t savedTime = globals->m_transportTime;

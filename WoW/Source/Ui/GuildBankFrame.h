@@ -51,7 +51,7 @@ class CGGuildBankInfo {
     static void UpdateTabInfo(uint8_t tab, const char* name, const char* icon);
     static void SetTextUpdate(uint8_t tab, int32_t update);
     static void ClearGuildTabList(uint32_t tab);
-    static uint32_t unk_C1DC30;
+    static uint32_t m_withdrawMoneyRemaining;
     static WOWGUID m_banker;
     static WOWGUID m_pendingBanker;
     static void AutoStoreItem(WOWGUID item, WOWGUID container, uint32_t slot);
@@ -63,7 +63,7 @@ class CGGuildBankInfo {
     static int32_t m_numLogEntries[7];
     static uint8_t m_logTab;
     static GuildBankLogEntry m_log[7][25];
-    static int32_t unk_C0F8E8[6];
+    static int32_t m_tabContentsDirty[6];
     static TSGrowableArray<GuildBankSlotInfo> m_tabSlots[6];
 
     static void SetGuildBanker(const WOWGUID& banker);

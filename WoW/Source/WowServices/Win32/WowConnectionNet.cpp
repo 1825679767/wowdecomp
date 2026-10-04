@@ -30,7 +30,7 @@ void WowConnectionNet::PlatformChangeState(WowConnection* connection, WOW_CONN_S
     SetEvent(this->m_event);
 }
 
-// VERIFY: 386c341b manual
+// VERIFY: acc51124 manual
 // OFFSET: 0x00469860
 void WowConnectionNet::PlatformRun() {
     this->m_networkStarted = true;
@@ -85,7 +85,7 @@ void WowConnectionNet::PlatformRun() {
                 connections[count] = connection;
                 count++;
 
-                if (connection->unk_00FC.Head()) {
+                if (connection->m_lagTestRecvList.Head()) {
                     timeout = 0;
                 }
             }

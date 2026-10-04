@@ -138,7 +138,7 @@ extern TSExplicitList<SWModelFadeout, offsetof(SWModelFadeout, m_link)> s_fadeou
 class CWorldScene {
     public:
     static bool IsBeyondFadeDistance(const C3Vector& position, uint32_t fadeLevel);
-    static Liquid::CRenderer* s_unk_CD8610;
+    static Liquid::CRenderer* s_liquidRenderer;
     static TSExplicitList<CWFrustum, offsetof(CWFrustum, m_link)> frustumFreeList;
     static int32_t frustumIndex;
     static C3Vector s_frustumCorners[8];
@@ -150,7 +150,7 @@ class CWorldScene {
     static CTexture* s_defaultTexture;
     static int32_t s_unk_CD8778;
     static int32_t s_fogPermute;
-    static float s_unk_CD877C;
+    static float s_fogFovPadding;
     static CMapEntity* camTargetEntity;
     static C3Vector s_activeWorldView;
     static C3Vector camTarget;
@@ -170,7 +170,7 @@ class CWorldScene {
     static CPortalView s_unk_ADF570;
     static char* s_interiorSkybox;
     static int32_t s_unk_CD8620;
-    static float s_unk_CD87AC;
+    static float s_lodFarClip;
     static C3Vector camVec;
     static C44Matrix projMatrix;
     static C44Matrix s_clipBufferMatrix;
@@ -522,7 +522,7 @@ class CWorld {
     static Particulate* particulate;
     static int32_t s_waterRipples;
     static int32_t shadowMipLevel;
-    static int32_t unk_CD7658;
+    static int32_t s_worldPoolUsage;
     static uint32_t maxLights;
     static int32_t terrainAlphaBitDepth;
     static int32_t enableLayerCnt;

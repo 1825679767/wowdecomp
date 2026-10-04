@@ -267,7 +267,7 @@ static int32_t Script_GetNumVoiceSessionMembersBySessionID(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 09dafb32 auto
+// VERIFY: 47db74ba auto
 // OFFSET: 0x007DF0B0
 static int32_t Script_UnitIsTalking(lua_State* L) {
     if (!lua_isstring(L, 1)) {
@@ -277,7 +277,7 @@ static int32_t Script_UnitIsTalking(lua_State* L) {
     WOWGUID guid = { 0 };
     CGChat::ChatTokenToGUID(lua_tolstring(L, 1, nullptr), guid);
 
-    if (guid && unk_D37D88.Ptr(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid))) {
+    if (guid && s_talkingPlayers.Ptr(static_cast<uint32_t>(guid.m_guid), CHashKeyGUID(guid.m_guid))) {
         lua_pushnumber(L, 1.0);
     } else {
         lua_pushnil(L);

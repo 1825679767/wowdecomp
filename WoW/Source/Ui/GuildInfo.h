@@ -67,9 +67,9 @@ class CGGuildInfo {
     static uint32_t m_numOnlineMembers;
     static int32_t m_showOffline;
     static WOWGUID m_selectedMember;
-    static int32_t unk_C22AC8;
+    static int32_t m_nextAllowedQuery;
     static int32_t m_pendingEventLogNames;
-    static uint8_t unk_C22AD4;
+    static uint8_t m_saveToFile;
     static TSGrowableArray<GuildMemberInfo*> m_roster;
     static GuildRankInfo m_rankInfo[10];
     static int32_t m_numEventLogEntries;

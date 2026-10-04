@@ -76,7 +76,7 @@ class CGMailInfo {
     public:
     static SendMailItem m_sendItems[16];
     static uint8_t m_lockSendItems;
-    static uint32_t unk_BEB1C4;
+    static uint32_t m_sendPending;
     static void ClearSendMail(bool signal);
     static bool IsSendItem(WOWGUID item);
     static void CloseMail(bool leavingWorld);

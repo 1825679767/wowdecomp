@@ -13,7 +13,7 @@ class ItemStats_C;
 
 class CGItemSocketInfo {
     public:
-    static uint8_t unk_C20FA8[3];
+    static uint8_t m_gemContainerSlot[3];
     static WOWGUID m_gemItemContainer[3];
     static WOWGUID m_gemItems[3];
     static WOWGUID m_socketItem;

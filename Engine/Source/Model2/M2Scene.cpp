@@ -1638,7 +1638,7 @@ CM2Scene::~CM2Scene() {
     delete[] this->m_hitVerts;
 }
 
-// VERIFY: 2f2e9af8 manual
+// VERIFY: 7bb79c57 manual
 // OFFSET: 0x00821930
 M2Element* CM2Scene::AddParticleElement(CParticleEmitter2* emitter, CM2Model* model, float depth, float alpha, int32_t split, uint32_t& index, uint32_t& additiveCount) {
     if (!emitter->HasLiveParticles() || emitter->m_params.m_hasModel == 1) {
@@ -1657,7 +1657,7 @@ M2Element* CM2Scene::AddParticleElement(CParticleEmitter2* emitter, CM2Model* mo
     element->m_flags = 0;
     element->m_emitter = emitter;
     element->m_priorityPlane = emitter->m_priorityPlane;
-    element->m_sortDepth = model->unk_0088;
+    element->m_sortDepth = model->m_scaleSq;
     element->m_effect = nullptr;
     element->m_depth = depth;
     element->m_vertexPermute = 0xFFFFFFFF;
@@ -1682,7 +1682,7 @@ M2Element* CM2Scene::AddParticleElement(CParticleEmitter2* emitter, CM2Model* mo
     return element;
 }
 
-// VERIFY: 02e53599 manual
+// VERIFY: d0feeb6c manual
 // OFFSET: 0x00821A20
 int32_t CM2Scene::Animate(const C3Vector& cameraPos) {
     this->m_frameStamp++;
@@ -1883,12 +1883,12 @@ int32_t CM2Scene::Animate(const C3Vector& cameraPos) {
             float sortDepth;
 
             if (transparent < 1) {
-                element->m_depth = model->unk_0088;
-                sortDepth = model->unk_0088;
+                element->m_depth = model->m_scaleSq;
+                sortDepth = model->m_scaleSq;
             } else if (data->m_flags & 0x10) {
                 C3Vector position = section->m_sortCenterPosition * model->m_boneMatrices[section->m_centerBoneIndex];
                 element->m_depth = position.z * position.z + position.y * position.y + position.x * position.x;
-                sortDepth = model->unk_0088;
+                sortDepth = model->m_scaleSq;
             } else {
                 const C44Matrix& bone = model->m_boneMatrices[section->m_centerBoneIndex];
                 float depth;
@@ -1932,7 +1932,7 @@ int32_t CM2Scene::Animate(const C3Vector& cameraPos) {
                 if (!depthSort || projected || (material->m_flags & 0x10)) {
                     sortDepth = element->m_depth;
                 } else {
-                    sortDepth = model->unk_0088;
+                    sortDepth = model->m_scaleSq;
                 }
             }
 
@@ -1991,7 +1991,7 @@ int32_t CM2Scene::Animate(const C3Vector& cameraPos) {
                 continue;
             }
 
-            float alpha = model->unk_0198;
+            float alpha = model->m_effectiveAlpha;
             M2Ribbon* ribbon = &data->m_ribbons[i];
 
             if (ribbon->m_alphaTrack.m_sequenceTimes.m_count) {
@@ -2011,9 +2011,9 @@ int32_t CM2Scene::Animate(const C3Vector& cameraPos) {
             element->m_model = model;
             element->m_flags = 0;
             element->m_priorityPlane = ribbon->m_priorityPlane;
-            element->m_sortDepth = model->unk_0088;
+            element->m_sortDepth = model->m_scaleSq;
             element->m_effect = nullptr;
-            element->m_depth = model->unk_0088;
+            element->m_depth = model->m_scaleSq;
             element->m_vertexPermute = 0xFFFFFFFF;
             element->m_pixelPermute = 0xFFFFFFFF;
             element->m_shadowValue = 0;
@@ -2041,9 +2041,9 @@ int32_t CM2Scene::Animate(const C3Vector& cameraPos) {
                 element->m_flags = 0;
                 element->m_index = 0;
                 element->m_priorityPlane = 0;
-                element->m_sortDepth = model->unk_0088;
+                element->m_sortDepth = model->m_scaleSq;
                 element->m_effect = nullptr;
-                element->m_depth = model->unk_0088;
+                element->m_depth = model->m_scaleSq;
                 element->m_vertexPermute = 0xFFFFFFFF;
                 element->m_pixelPermute = 0xFFFFFFFF;
                 element->m_shadowValue = 0;
@@ -2101,7 +2101,7 @@ int32_t CM2Scene::Animate(const C3Vector& cameraPos) {
                 continue;
             }
 
-            float alpha = model->unk_0198;
+            float alpha = model->m_effectiveAlpha;
 
             if (alpha < 0.000099999997f) {
                 continue;

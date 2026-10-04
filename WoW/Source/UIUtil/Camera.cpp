@@ -168,7 +168,7 @@ C3Vector CGCamera::Up() const {
     return up * this->ParentToWorld();
 }
 
-// VERIFY: d9264e4d manual
+// VERIFY: 6dc11132 auto
 // OFFSET: 0x00606B30
 CGCamera::CGCamera() : CSimpleCamera(World::s_nearClip, World::s_farClip, 1.5707964f) {
     this->m_model = nullptr;
@@ -335,8 +335,8 @@ CGCamera::CGCamera() : CSimpleCamera(World::s_nearClip, World::s_farClip, 1.5707
     ConsoleCommandRegister("pitchLimit", CGCamera::CCommand_PitchLimit, CATEGORY_GAME, nullptr);
 
     this->m_state |= 0x50;
-    this->unk_030C = 2;
-    this->unk_0310 = 1.8315002f;
+    this->m_prevViewIndex = 2;
+    this->m_prevDistance = 1.8315002f;
     this->unk_0314 = 1.8315002f;
     this->unk_0318 = 0.0f;
 
@@ -3017,7 +3017,7 @@ void CGCamera::ResetView(int32_t view) {
     }
 }
 
-// VERIFY: 7ccd6b80 manual
+// VERIFY: 9a9cfabb manual
 // OFFSET: 0x00603330
 void CGCamera::SetView(int32_t view, int32_t blendStyle, int32_t transition) {
     if (this->m_state & 0x8) {
@@ -3176,8 +3176,8 @@ void CGCamera::SetView(int32_t view, int32_t blendStyle, int32_t transition) {
         this->m_smoothTargetOffset.m_target = 0.0f;
         changed = distanceChanged || pitchChanged || yawChanged || offsetChanged;
     } else if (transition == 1) {
-        this->unk_0310 = this->m_distance;
-        this->unk_030C = this->m_viewIndex;
+        this->m_prevDistance = this->m_distance;
+        this->m_prevViewIndex = this->m_viewIndex;
         changed = 1;
     } else if (transition == 2) {
         this->m_smoothDistance.m_target = 0.0f;
@@ -4084,7 +4084,7 @@ void CGCamera::RunShakes(const C3Vector& position, C3Vector& offset) {
     }
 }
 
-// VERIFY: 2fcecd55 manual
+// VERIFY: 1192d076 manual
 // OFFSET: 0x006053D0
 void CGCamera::SetTelescope(int32_t telescope) {
     if (!telescope) {
@@ -4093,7 +4093,7 @@ void CGCamera::SetTelescope(int32_t telescope) {
             uint32_t time = OsGetAsyncTimeMs();
             this->StartSmoothFoV(0.0f, 0.5f, time);
             this->m_state = (this->m_state & 0x7FFF7FF7) | 0x80000000;
-            this->SetView(this->unk_030C, 2, 2);
+            this->SetView(this->m_prevViewIndex, 2, 2);
             this->StartSmoothDistance(this->unk_0314, 0.5f, time);
 
             if (fabsf(this->unk_0318) >= 2.3841858e-7f) {

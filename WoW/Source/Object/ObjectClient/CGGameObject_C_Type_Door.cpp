@@ -2,10 +2,10 @@
 #include "WoW/Source/Object/GameObjectDef.h"
 #include "WoW/Source/Object/GameObjectStats.h"
 
-// VERIFY: 4d3d815f auto
+// VERIFY: c0423e81 auto
 // OFFSET: 0x00712520
 CGGameObject_C_Type_Door::CGGameObject_C_Type_Door(CGGameObject_C* owner) : CGGameObject_C_TypeAnimated(owner) {
-    this->unk_0008 = 235;
+    this->m_useErrorType = 235;
 }
 
 // VERIFY: cfff901d auto
@@ -14,11 +14,11 @@ bool CGGameObject_C_Type_Door::CanBeSolid() const {
     return this->m_animState == 1;
 }
 
-// VERIFY: 3c484646 auto
+// VERIFY: e34ee88e auto
 // OFFSET: 0x0070D8D0
 void CGGameObject_C_Type_Door::UpdateAnimState(uint32_t state) {
     CGGameObject_C_TypeAnimated::UpdateAnimState(state);
-    this->m_owner->unk_020C = this->m_animState == 1;
+    this->m_owner->m_hasWorldBounds = this->m_animState == 1;
 }
 
 // VERIFY: c1cac2f1 auto

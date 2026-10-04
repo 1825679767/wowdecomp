@@ -47,10 +47,10 @@ void Rain::SetStormIntensity(float intensity) {
     this->m_mists.m_spawnRate = mistRate * scale;
 }
 
-// VERIFY: 1b6bc368 manual
+// VERIFY: 1e7d808e manual
 // OFFSET: 0x00784140
 void __stdcall Rain::GetMotionBlurMatrix(C33Matrix* matrix) {
-    C3Vector wind(World::s_weather->unk_0164, World::s_weather->unk_0168, World::s_weather->unk_016C);
+    C3Vector wind(World::s_weather->m_playerVelocityX, World::s_weather->m_playerVelocityY, World::s_weather->m_playerVelocityZ);
     float lengthSq = wind.y * wind.y + wind.x * wind.x;
     float tilt = sqrt(lengthSq) / s_maxWindSpeed;
 
@@ -84,10 +84,10 @@ void __stdcall Rain::GetMotionBlurMatrix(C33Matrix* matrix) {
     matrix->Rotate(angle * 0.017453292f, axis, true);
 }
 
-// VERIFY: aacb2821 manual
+// VERIFY: 1f283a72 manual
 // OFFSET: 0x00784270
 float Rain::GetWindTiltFactor() {
-    if (fabs(World::s_weather->unk_016C * World::s_weather->unk_016C + World::s_weather->unk_0168 * World::s_weather->unk_0168 + World::s_weather->unk_0164 * World::s_weather->unk_0164) >= 0.001f) {
+    if (fabs(World::s_weather->m_playerVelocityZ * World::s_weather->m_playerVelocityZ + World::s_weather->m_playerVelocityY * World::s_weather->m_playerVelocityY + World::s_weather->m_playerVelocityX * World::s_weather->m_playerVelocityX) >= 0.001f) {
         return 0.0f;
     }
 
@@ -167,7 +167,7 @@ void __stdcall Rain::RealizePacket(Packet<RainPatterParticleBuffer>* packet) {
     GxBufUnlock(packet->m_vertexBufHandle, 0);
 }
 
-// VERIFY: dc5fdf1c manual
+// VERIFY: ed8fe804 manual
 // OFFSET: 0x00785140
 void Rain::InitDrop(RainDropParticle* drop, float time) {
     C3Vector size(this->m_bbox.t.x - this->m_bbox.b.x, this->m_bbox.t.y - this->m_bbox.b.y, this->m_bbox.t.z - this->m_bbox.b.z);
@@ -191,8 +191,8 @@ void Rain::InitDrop(RainDropParticle* drop, float time) {
     drop->m_position.z = offset.z - t * drop->m_velocity.z;
     Weather* weather = World::s_weather;
     C3Vector axis(0.0f, 0.0f, 0.0f);
-    CMath::sincos_(weather->unk_018C - 1.5707964f, &axis.y, &axis.x);
-    float tilt = weather->unk_0190 * 0.055555556f;
+    CMath::sincos_(weather->m_facing - 1.5707964f, &axis.y, &axis.x);
+    float tilt = weather->m_speed * 0.055555556f;
 
     if (tilt < 0.0f) {
         tilt = 0.0f;
@@ -202,7 +202,7 @@ void Rain::InitDrop(RainDropParticle* drop, float time) {
 
     C44Matrix rotation = C44Matrix::Rotation(tilt * 1.134464f, axis, false);
     drop->m_position = rotation * drop->m_position;
-    C3Vector wind(World::s_weather->unk_0164, World::s_weather->unk_0168, World::s_weather->unk_016C);
+    C3Vector wind(World::s_weather->m_playerVelocityX, World::s_weather->m_playerVelocityY, World::s_weather->m_playerVelocityZ);
     drop->m_position.x = wind.x * s_windLead + drop->m_position.x;
     drop->m_position.y = wind.y * s_windLead + drop->m_position.y;
     drop->m_position.z = s_windLead * wind.z + drop->m_position.z;
@@ -213,7 +213,7 @@ void Rain::InitDrop(RainDropParticle* drop, float time) {
 
     if (World::s_weather->m_grid->GetHeight(&drop->m_position) < drop->m_position.z) {
         float scale = 2.0f;
-        bool fast = World::s_weather->unk_0188 || World::s_weather->unk_0178 * World::s_weather->unk_0178 + World::s_weather->unk_0174 * World::s_weather->unk_0174 + World::s_weather->unk_0170 * World::s_weather->unk_0170 > 2.0f;
+        bool fast = World::s_weather->m_onTaxi || World::s_weather->m_transportVelocityZ * World::s_weather->m_transportVelocityZ + World::s_weather->m_transportVelocityY * World::s_weather->m_transportVelocityY + World::s_weather->m_transportVelocityX * World::s_weather->m_transportVelocityX > 2.0f;
 
         if (fast) {
             scale = 1.0f;
@@ -248,7 +248,7 @@ void Rain::InitDrop(RainDropParticle* drop, float time) {
     drop->m_impactTime = 0.0f;
 }
 
-// VERIFY: 9e969731 manual
+// VERIFY: 46e19b2b manual
 // OFFSET: 0x00785640
 void Rain::UpdatePacket(Packet<RainParticleBuffer>* packet, Packet<RainPatterParticleBuffer>* patter, float count) {
     float tickSec = FrameTime::s_tickTimeSec;
@@ -270,7 +270,7 @@ void Rain::UpdatePacket(Packet<RainParticleBuffer>* packet, Packet<RainPatterPar
             packet->m_packetEndTick = endTick;
         }
 
-        if (drop->m_impactTime != drop->m_startTime && !World::s_weather->unk_0188 && World::s_weather->unk_0178 * World::s_weather->unk_0178 + World::s_weather->unk_0174 * World::s_weather->unk_0174 + World::s_weather->unk_0170 * World::s_weather->unk_0170 <= 2.0f) {
+        if (drop->m_impactTime != drop->m_startTime && !World::s_weather->m_onTaxi && World::s_weather->m_transportVelocityZ * World::s_weather->m_transportVelocityZ + World::s_weather->m_transportVelocityY * World::s_weather->m_transportVelocityY + World::s_weather->m_transportVelocityX * World::s_weather->m_transportVelocityX <= 2.0f) {
             RainPatterParticle* splash = &patter->m_particlesBuffer.m_particles[patter->m_currParticle++];
             float dt = drop->m_impactTime - drop->m_startTime;
             splash->m_position.x = drop->m_velocity.x * dt + drop->m_position.x;
@@ -315,7 +315,7 @@ int32_t Rain::CountActivePackets() {
     return mists + packets;
 }
 
-// VERIFY: 60896d6e manual
+// VERIFY: 35de1ab3 manual
 // OFFSET: 0x00787CE0
 void Rain::UpdatePackets() {
     if (this->m_fadeOut && this->m_rainDropPacketPtr) {
@@ -335,7 +335,7 @@ void Rain::UpdatePackets() {
             this->m_rainDropPacketList.m_activePacketsCount--;
             this->m_rainDropPacketList.m_freePacketsCount++;
             this->m_rainDropPacketList.m_freePackets.LinkToTail(packet);
-        } else if (this->m_fadeOut && World::s_weather->unk_0014 <= 0.25f && now <= packet->m_packetStartTick) {
+        } else if (this->m_fadeOut && World::s_weather->m_fogIntensity <= 0.25f && now <= packet->m_packetStartTick) {
             this->m_rainDropPacketList.m_activePacketsCount--;
             this->m_rainDropPacketList.m_freePacketsCount++;
             this->m_rainDropPacketList.m_freePackets.LinkToTail(packet);

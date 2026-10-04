@@ -74,7 +74,7 @@ class CVehicleCamera_C {
     int32_t UpdateTransitionFlags();
     float GetTransitionProgress(uint32_t time) const;
     int32_t AttachToHierarchy();
-    void Unk759A60();
+    void DetachFromHierarchy();
     void BeginTransition(uint32_t time);
     void ComputeSafeCurWorldPos();
     void Update(uint32_t time);

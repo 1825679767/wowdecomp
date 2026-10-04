@@ -316,7 +316,7 @@ void WowConnection::DoMessageReads() {
     this->ReleaseResponseRef();
 
     while (true) {
-        WowConnection::SENDNODE* node = this->unk_00FC.Head();
+        WowConnection::SENDNODE* node = this->m_lagTestRecvList.Head();
 
         if (!node || static_cast<int32_t>(timeStamp - node->m_sendTime) < 0) {
             break;
@@ -334,7 +334,7 @@ void WowConnection::DoMessageReads() {
         }
 
         this->ReleaseResponseRef();
-        this->unk_00FC.UnlinkNode(node);
+        this->m_lagTestRecvList.UnlinkNode(node);
         WDataStore::FreeBuffer(node, node->m_datasize + sizeof(WowConnection::SENDNODE) + 3);
     }
 
@@ -416,7 +416,7 @@ void WowConnection::DoMessageReads() {
 
             if (WowConnection::s_lagTestDelayMin) {
                 WowConnection::SENDNODE* node = this->NewSendNodePacket(this->m_readBuffer + headerSize, packetSize - headerSize, true);
-                this->unk_00FC.LinkToTail(node);
+                this->m_lagTestRecvList.LinkToTail(node);
             } else if (response) {
                 this->m_lock.Leave();
                 response->WCMessageReady(this, timeStamp, &msg);

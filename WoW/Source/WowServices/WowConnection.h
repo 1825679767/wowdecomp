@@ -88,7 +88,7 @@ class WowConnection {
     /* 00F0 */ int32_t m_sendBytes;
     /* 00F4 */ int32_t m_maxSendDepth;
     /* 00F8 */ int32_t m_serviceFlags;
-    /* 00FC */ TSList<WowConnection::SENDNODE> unk_00FC;
+    /* 00FC */ TSList<WowConnection::SENDNODE> m_lagTestRecvList;
     /* 0108 */ SCritSect m_lock;
     /* 0130 */ int32_t m_serviceCount;
     /* 0134 */ int32_t unk_0134;

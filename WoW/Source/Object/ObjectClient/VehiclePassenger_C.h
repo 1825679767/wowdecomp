@@ -126,7 +126,7 @@ class CVehiclePassenger_C {
     C3Vector ComputeInterpolatedUnitPosition() const;
     int32_t OverridesModelAnimation() const;
 
-    void Unk74A7F0();
+    void UpdateModel();
     int32_t IsInTransitionMotion() const;
     int32_t IsEntering() const;
     void ComputeModelTransform(C44Matrix& matrix, CM2Model*& model, CGUnit_C* vehicle, const VehicleSeatRec* seat, uint32_t attachment, float facing);

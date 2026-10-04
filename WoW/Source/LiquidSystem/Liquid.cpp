@@ -2,7 +2,7 @@
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00D43B34
-CDataAllocator Liquid::s_unk_D43B34(sizeof(Liquid::CInstance), 0x20);
+CDataAllocator Liquid::s_instanceAllocator(sizeof(Liquid::CInstance), 0x20);
 
 // STATIC: 0x00B23F64
 float Liquid::s_unk_B23F64 = 1.0f;
@@ -17,7 +17,7 @@ IDatabase<LiquidMaterialRec>* Liquid::s_liquidMaterialDB;
 IDatabase<LiquidTypeRec>* Liquid::s_liquidTypeDB;
 
 // STATIC: 0x00D439F0
-char Liquid::s_unk_D439F0[256];
+char Liquid::s_shaderPath[256];
 
 // STATIC: 0x00D43AF0
 int32_t Liquid::s_shadersEnabled;
@@ -48,10 +48,10 @@ Liquid::IWaveManager::~IWaveManager() {
 Liquid::IMaterial::~IMaterial() {
 }
 
-// VERIFY: 4b95827e auto
+// VERIFY: afda035c auto
 // OFFSET: 0x008A1770
 int32_t Liquid::Initialize(int32_t a1, float a2, int32_t a3, const char* a4, IDatabase<LiquidTypeRec>* liquidTypeDB, IDatabase<LiquidMaterialRec>* liquidMaterialDB) {
-    SStrCopy(Liquid::s_unk_D439F0, a4, sizeof(Liquid::s_unk_D439F0));
+    SStrCopy(Liquid::s_shaderPath, a4, sizeof(Liquid::s_shaderPath));
     Liquid::s_unk_B23F64 = a2;
     Liquid::s_unk_D43AF8++;
     Liquid::s_unk_D43AFC++;
@@ -63,7 +63,7 @@ int32_t Liquid::Initialize(int32_t a1, float a2, int32_t a3, const char* a4, IDa
     return 1;
 }
 
-// VERIFY: 362c9cb9 manual
+// VERIFY: 6bde3ced manual
 // OFFSET: 0x008A2400
 void Liquid::Shutdown() {
     int32_t count = Liquid::s_unk_D43AFC--;
@@ -77,7 +77,7 @@ void Liquid::Shutdown() {
 
     Liquid::CSettingsBank::Destroy();
     Liquid::ClearMaterials();
-    Liquid::s_unk_D43B34.Clear(".?AVCInstance@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_instanceAllocator.Clear(".?AVCInstance@Liquid@@", SLOG_OBJECT, 1);
 }
 
 // VERIFY: 58e8bcb0 auto
@@ -116,10 +116,10 @@ float Liquid::WorldCoordScale() {
     return Liquid::s_unk_B23F64;
 }
 
-// VERIFY: ecbae4e7 auto
+// VERIFY: 2174e15a auto
 // OFFSET: 0x008A1760
 const char* Liquid::GetShaderSuffix() {
-    return Liquid::s_unk_D439F0;
+    return Liquid::s_shaderPath;
 }
 
 // VERIFY: 6413183d manual
@@ -135,7 +135,7 @@ Liquid::CInstance::CInstance() {
     this->m_refCount = 1;
 }
 
-// VERIFY: d1684687 manual
+// VERIFY: dfea0c3c manual
 // OFFSET: 0x008A1AC0
 void Liquid::CInstance::Release() {
     if (this->m_refCount-- == 1) {
@@ -146,13 +146,13 @@ void Liquid::CInstance::Release() {
             this->m_waveManager->Release();
         }
 
-        Liquid::s_unk_D43B34.PutData(this, nullptr, 0);
+        Liquid::s_instanceAllocator.PutData(this, nullptr, 0);
     }
 }
 
-// VERIFY: 7f5df1db auto
+// VERIFY: 43d6fc45 auto
 // OFFSET: 0x008A1B00
 Liquid::CInstance* Liquid::CInstance::Create() {
-    void* mem = Liquid::s_unk_D43B34.GetData(0, ".?AVCInstance@Liquid@@", SLOG_OBJECT);
+    void* mem = Liquid::s_instanceAllocator.GetData(0, ".?AVCInstance@Liquid@@", SLOG_OBJECT);
     return mem ? new (mem) Liquid::CInstance() : nullptr;
 }

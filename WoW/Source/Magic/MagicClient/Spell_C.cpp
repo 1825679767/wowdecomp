@@ -131,7 +131,7 @@ static const CSoftFloat s_softPercent = { 0x3C23D70A };
 static uint32_t s_feedPetSpell;
 
 // STATIC: 0x00D397C4
-static uint32_t unk_D397C4;
+static uint32_t s_lastFailedSpellId;
 
 // STATIC: 0x00D397C0
 static int32_t s_lastFailedReason;
@@ -698,7 +698,7 @@ bool Spell_C_IsUsableAction(CGUnit_C* unit, const SpellRec* spell, const WOWGUID
     return (!(spell->m_attributesExD & 0x4000000) || static_cast<CGPlayer_C*>(unit)->IsInFlyableZone(1)) && (!(spell->m_attributesExC & 0x800) || !map || map->m_instanceType == 3) && (!(spell->m_attributesExF & 0x800) || !map || map->m_instanceType != 2);
 }
 
-// VERIFY: e589f6bd auto
+// VERIFY: 59e5790d auto
 // OFFSET: 0x008100E0
 void Spell_C_Initialize() {
     ClientServices::SetMessageHandler(SMSG_SPELL_START, Packet_Group_30, nullptr);
@@ -736,7 +736,7 @@ void Spell_C_Initialize() {
     s_autoRepeatingSpell = 0;
     s_autoRangedCombatSpell = 0;
     s_lastAutoRangedCombatError = 187;
-    unk_D397C4 = 0;
+    s_lastFailedSpellId = 0;
     s_feedPetSpell = 0;
     s_spellClassSet = 0;
     s_delayedTrajectoryCast = nullptr;
@@ -918,7 +918,7 @@ bool PendingSpellCast::IsCharmedUnitCast() const {
     return controlled == this->m_data.m_caster;
 }
 
-// VERIFY: 160dd50b auto
+// VERIFY: 03fbbea4 auto
 // OFFSET: 0x007FEC00
 void ClearSpellCastState(CGUnit_C* unit, PendingSpellCast* cast, const SpellRec* spell) {
     unit->ClearCastingSpell(unit->m_castSpellId, unit->m_unit->m_unitChannelSpell == 0, true);
@@ -933,12 +933,12 @@ void ClearSpellCastState(CGUnit_C* unit, PendingSpellCast* cast, const SpellRec*
         }
     }
 
-    if (unit->unk_09CC == static_cast<uint32_t>(cast->m_data.m_spellId)) {
+    if (unit->m_mountTransitionSpellId == static_cast<uint32_t>(cast->m_data.m_spellId)) {
         if (unit->m_mountDisplayId != static_cast<int32_t>(unit->m_unit->m_unitFieldMountdisplayid)) {
             unit->OnMountDisplayChanged(unit->m_unit->m_unitFieldMountdisplayid);
         }
 
-        unit->unk_09CC = 0;
+        unit->m_mountTransitionSpellId = 0;
     }
 
     unit->StopUpdatingMissileTrajectory(cast->m_data.m_spellId);
@@ -1821,7 +1821,7 @@ void SpellHistory::GarbageCollect(uint32_t time) {
     }
 }
 
-// VERIFY: 234969f9 manual
+// VERIFY: 67dd3e6d manual
 // OFFSET: 0x0080E1B0
 void PendingSpellCast::OnSpellGo(CDataStore* msg) {
     WOWGUID castItem = this->m_data.m_castItem;
@@ -1995,7 +1995,7 @@ void PendingSpellCast::OnSpellGo(CDataStore* msg) {
     uint32_t hidden = castFlags & 0x1;
 
     if (!hidden) {
-        unk_D397C4 = 0;
+        s_lastFailedSpellId = 0;
         HandleSpellFailedOrGo(unit, this, &spell, 187);
     }
 
@@ -6331,7 +6331,7 @@ static UIErrors GetSpellFailedError(int32_t reason, const SpellRec* spell, int32
     }
 }
 
-// VERIFY: 8b2b158f manual
+// VERIFY: 613e78c7 manual
 // OFFSET: 0x00808200
 void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t reason, int32_t misc1, int32_t misc2, bool resetCooldown) {
     int32_t spellId = cast->m_data.m_spellId;
@@ -6442,12 +6442,12 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
 
         uint32_t now = OsGetAsyncTimeMs();
 
-        if (static_cast<uint32_t>(spellId) == unk_D397C4 && reason == s_lastFailedReason) {
+        if (static_cast<uint32_t>(spellId) == s_lastFailedSpellId && reason == s_lastFailedReason) {
             if (static_cast<int32_t>(now - s_lastFailedTime - 3000) < 0) {
                 suppress = true;
             }
         } else {
-            unk_D397C4 = spellId;
+            s_lastFailedSpellId = spellId;
             s_lastFailedReason = reason;
         }
 
@@ -7624,7 +7624,7 @@ static bool ValidateSpellTarget(CGUnit_C* caster, const SpellRec* spell, uint32_
     return false;
 }
 
-// VERIFY: d3128f11 manual
+// VERIFY: df42f3b1 manual
 // OFFSET: 0x00809F80
 int32_t Spell_C_PrepareMissileTrajectoryCast(CGUnit_C* caster, PendingSpellCast* cast, const SpellRec* spell, const TSStackArray<CGUnit_C*>* targets, float* pitch, float* speed) {
     if (caster->IsUpdatingMissileTrajectory()) {
@@ -7648,7 +7648,7 @@ int32_t Spell_C_PrepareMissileTrajectoryCast(CGUnit_C* caster, PendingSpellCast*
     }
 
     if (playNow) {
-        if (s_delayedTrajectoryCast || (kit && kit->m_animID >= 0 && caster->unk_0FA4 == kit->m_animID)) {
+        if (s_delayedTrajectoryCast || (kit && kit->m_animID >= 0 && caster->m_specialIdleAnim == kit->m_animID)) {
             Spell_C_SpellFailed(cast, spell, 105, -1, -1, false);
             return 0;
         }
@@ -8288,7 +8288,7 @@ static bool Spell_C_BeginCast(CGUnit_C* caster, const SpellRec* spell, WOWGUID t
     return Spell_C_HandleSpriteClick(caster, cast);
 }
 
-// VERIFY: 0e25cbb1 manual
+// VERIFY: f2938ae3 manual
 // OFFSET: 0x0080CCE0
 bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, WOWGUID target, PendingSpellCast* cast, bool confirmed) {
     SpellRec spell;
@@ -8473,7 +8473,7 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
         return false;
     }
 
-    if (((effect == 53 || effect == 54 || effect == 92 || effect == 156) && unit->GetComboPointTarget()) || unit->unk_09CC) {
+    if (((effect == 53 || effect == 54 || effect == 92 || effect == 156) && unit->GetComboPointTarget()) || unit->m_mountTransitionSpellId) {
         Spell_C_SpellFailed(cast, &spell, 105, -1, -1, false);
         return false;
     }

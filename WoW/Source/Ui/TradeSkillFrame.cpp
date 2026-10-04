@@ -86,7 +86,7 @@ int32_t CGTradeSkillInfo::m_skillRank;
 int32_t CGTradeSkillInfo::m_skillMaxRank;
 
 // STATIC: 0x00C235F0
-int32_t CGTradeSkillInfo::unk_C235F0;
+int32_t CGTradeSkillInfo::m_lastSkillLineID;
 
 // STATIC: 0x00C235F4
 TSGrowableArray<TradeSkillInfo*> CGTradeSkillInfo::m_displayList;
@@ -640,7 +640,7 @@ void CGTradeSkillInfo::RefreshList(int32_t full) {
     FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_SKILL_UPDATE, nullptr);
 }
 
-// VERIFY: 9ddd6131 manual
+// VERIFY: 9f22c8a7 manual
 // OFFSET: 0x005DCAF0
 void CGTradeSkillInfo::ShutdownGame() {
     for (uint32_t i = 0; i < CGTradeSkillInfo::m_displayList.m_count; i++) {
@@ -665,7 +665,7 @@ void CGTradeSkillInfo::ShutdownGame() {
     }
 
     CGTradeSkillInfo::m_itemNameFilter = nullptr;
-    CGTradeSkillInfo::unk_C235F0 = 0;
+    CGTradeSkillInfo::m_lastSkillLineID = 0;
     CGTradeSkillInfo::m_recastSpellID = 0;
     CGTradeSkillInfo::m_pendingRecastSpellID = 0;
 
@@ -1309,7 +1309,7 @@ void CGTradeSkillInfo::SetItemLevelFilter(int32_t minLevel, int32_t maxLevel) {
     }
 }
 
-// VERIFY: acb5de8f manual
+// VERIFY: 51532fda manual
 // OFFSET: 0x005DE120
 void CGTradeSkillInfo::SetTradeSkill(int32_t spellId, const WOWGUID& guid, const char* link, int32_t skillRank, int32_t skillMaxRank) {
     SkillLineRec* skillLine = CGTradeSkillInfo::GetSkillLineRec(spellId, guid);
@@ -1366,7 +1366,7 @@ void CGTradeSkillInfo::SetTradeSkill(int32_t spellId, const WOWGUID& guid, const
 
     CGTradeSkillInfo::m_linkData = link ? SStrDupA(link, __FILE__, __LINE__) : nullptr;
 
-    if (CGTradeSkillInfo::unk_C235F0 != CGTradeSkillInfo::m_skillLineID) {
+    if (CGTradeSkillInfo::m_lastSkillLineID != CGTradeSkillInfo::m_skillLineID) {
         if (CGTradeSkillInfo::m_itemNameFilter) {
             SMemFree(CGTradeSkillInfo::m_itemNameFilter, __FILE__, __LINE__, 0);
         }
@@ -1383,7 +1383,7 @@ void CGTradeSkillInfo::SetTradeSkill(int32_t spellId, const WOWGUID& guid, const
     }
 
     CGTradeSkillInfo::RefreshList(1);
-    CGTradeSkillInfo::unk_C235F0 = CGTradeSkillInfo::m_skillLineID;
+    CGTradeSkillInfo::m_lastSkillLineID = CGTradeSkillInfo::m_skillLineID;
 
     if (CGTradeSkillInfo::m_numDisplayEntries) {
         FrameScript_SignalEvent(SCRIPT_EVENT_TRADE_SKILL_SHOW, nullptr);

@@ -208,15 +208,15 @@ class CGGameUI {
     static void CancelPartyInvite();
     static void SetSummonRequest(WOWGUID summoner, uint32_t area, uint32_t timeout);
     static uint32_t m_cursorMoney;
-    static int32_t unk_AC80A4;
+    static int32_t m_phaseMask;
     static int32_t m_hasControl;
     static uint8_t m_currentlyReloadingUI;
     static uint8_t m_reloadUIRequested;
     static uint8_t m_loggingIn;
     static CGTooltip* m_gameTooltip;
     static CSimpleFrame* m_UISimpleParent;
-    static int32_t unk_BD07F0;
-    static int32_t unk_BD07F4;
+    static int32_t m_screenWidth;
+    static int32_t m_screenHeight;
     static int32_t m_inCinematic;
     static WOWGUID m_directionalTarget;
     static WOWGUID m_pendingLevelGranter;
@@ -236,12 +236,12 @@ class CGGameUI {
     static uint32_t m_instanceLockExtending;
     static uint32_t m_summonConfirmTime;
     static uint32_t m_billingExpireTime;
-    static int32_t unk_BD0878;
-    static int32_t unk_BD087C;
+    static int32_t m_billingNagCheckTime;
+    static int32_t m_billingNagShown;
     static uint32_t m_instanceDifficulty;
     static uint32_t m_lastRegenTime;
     static WOWGUID m_comboTarget;
-    static uint16_t unk_BD08C4;
+    static uint16_t m_accountDataGeneration;
     static TotemInfo m_totems[4];
     static MirrorTimerInfo m_mirrorTimerInfo[3];
     static MirrorTimerInfo* MirrorTimerGetInfo(uint32_t index);
@@ -334,7 +334,7 @@ class CGGameUI {
 
     static void ClearInstanceResetMap();
     static uint32_t m_dungeonDifficulty;
-    static WOWGUID unk_BD07D0;
+    static WOWGUID m_focusTarget;
     static CSimpleTop* m_simpleTop;
 
     static int32_t CameraMusicIsPlaying();
@@ -413,11 +413,11 @@ class CGGameUI {
     static const char* m_subZoneText;
     static int32_t m_subzoneID;
     static int32_t m_wmoGroupID;
-    static uint32_t unk_BD08A4;
-    static WOWGUID unk_BD08B0;
+    static uint32_t m_autoStoreItemID;
+    static WOWGUID m_autoStoreItem;
     static int32_t m_corpseMapID;
     static int32_t m_corpseActualMapID;
-    static int32_t unk_BD0820;
+    static int32_t m_corpseInRange;
     static WOWGUID m_corpseTransportGUID;
     static int32_t m_deathReleaseMapID;
     static C3Vector m_corpsePos;

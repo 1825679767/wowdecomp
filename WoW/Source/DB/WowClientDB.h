@@ -44,7 +44,7 @@ class WowClientDB_Common : public WowClientDB_Base {
     virtual int32_t GetRecordByIndex(int32_t index, void* rec) const = 0;
     virtual void Free() = 0;
     virtual void Reset() = 0;
-    virtual void* Unk1C() = 0;
+    virtual void* GetRecordIndex() = 0;
 };
 
 template <class T>
@@ -58,7 +58,7 @@ class WowClientDB : public WowClientDB_Common<T>, public IDatabase<T> {
     int32_t GetRecordByIndex(int32_t index, void* rec) const override;
     void Free() override;
     void Reset() override;
-    void* Unk1C() override;
+    void* GetRecordIndex() override;
     T* GetRecord(int32_t id) const override;
 
     WowClientDB();
@@ -77,7 +77,7 @@ class WowClientDB_RLE : public WowClientDB_Common<T> {
     int32_t GetRecordByIndex(int32_t index, void* rec) const override;
     void Free() override;
     void Reset() override;
-    void* Unk1C() override;
+    void* GetRecordIndex() override;
 
     WowClientDB_RLE();
     int32_t GetRecordByIndex(int32_t index, T* rec) const;
@@ -269,10 +269,10 @@ void WowClientDB<T>::Reset() {
     this->m_minID = 0xFFFFFFF;
 }
 
-// VERIFY: 17d0c4f6 auto
+// VERIFY: fe64b5f1 auto
 // OFFSET: 0x00662470
 template <class T>
-void* WowClientDB<T>::Unk1C() {
+void* WowClientDB<T>::GetRecordIndex() {
     return &this->m_recordsById;
 }
 
@@ -407,7 +407,7 @@ void WowClientDB_RLE<T>::Reset() {
 }
 
 template <class T>
-void* WowClientDB_RLE<T>::Unk1C() {
+void* WowClientDB_RLE<T>::GetRecordIndex() {
     return &this->m_recordsById;
 }
 

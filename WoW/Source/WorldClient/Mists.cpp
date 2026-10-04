@@ -83,7 +83,7 @@ void Mists::CreateMist(Mist* mist, uint32_t startTick) {
     }
 }
 
-// VERIFY: 20aeca7a manual
+// VERIFY: 7b333740 manual
 // OFFSET: 0x00786560
 void Mists::InitMist(Mist* mist, uint32_t startTick) {
     mist->m_startTick = startTick;
@@ -95,7 +95,7 @@ void Mists::InitMist(Mist* mist, uint32_t startTick) {
     mist->m_velocity.x = s * speed;
     mist->m_velocity.y = speed * c;
     mist->m_velocity.z = (rise - 0.5f) * 0.033333335f + 0.33333334f;
-    C44Matrix rotation = C44Matrix::RotationAroundZ(-World::s_weather->unk_018C);
+    C44Matrix rotation = C44Matrix::RotationAroundZ(-World::s_weather->m_facing);
     mist->m_velocity = rotation * mist->m_velocity;
     float randomZ = CRandom::ufloat_(g_rndSeed);
     float randomY = CRandom::ufloat_(g_rndSeed);

@@ -35,7 +35,7 @@ SendMailItem CGMailInfo::m_sendItems[16];
 uint8_t CGMailInfo::m_lockSendItems;
 
 // STATIC: 0x00BEB1C4
-uint32_t CGMailInfo::unk_BEB1C4;
+uint32_t CGMailInfo::m_sendPending;
 
 // STATIC: 0x00BEAFE8
 MailSenderInfo s_recentSenders[3];
@@ -194,7 +194,7 @@ static StationeryInfo* GetStationery(uint32_t index) {
     return nullptr;
 }
 
-// VERIFY: 1b2002b0 manual
+// VERIFY: 2d3051f3 manual
 // OFFSET: 0x005717B0
 int32_t Packet_SMSG_SEND_MAIL_RESULT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint32_t itemGuid = 0;
@@ -325,7 +325,7 @@ int32_t Packet_SMSG_SEND_MAIL_RESULT(void* param, NETMESSAGE msgId, uint32_t tim
 
     if (!action) {
         CGMailInfo::m_commandPending = 0;
-        CGMailInfo::unk_BEB1C4 = 0;
+        CGMailInfo::m_sendPending = 0;
     }
 
     if (!result && action == 2 && CGMailInfo::m_autoLooting) {
@@ -1255,7 +1255,7 @@ void StationeryItemCallback(int32_t id, const WOWGUID& guid, void* param, bool s
     }
 }
 
-// VERIFY: a800705f auto
+// VERIFY: 917228b6 auto
 // OFFSET: 0x00571530
 void CGMailInfo::EnterWorld() {
     CGMailInfo::m_object = WOWGUID{ 0 };
@@ -1263,7 +1263,7 @@ void CGMailInfo::EnterWorld() {
     CGMailInfo::m_nextMailTime = -1.0f;
     CGMailInfo::m_sendMoney = 0;
     CGMailInfo::m_lockSendItems = 0;
-    CGMailInfo::unk_BEB1C4 = 0;
+    CGMailInfo::m_sendPending = 0;
     CGMailInfo::m_numStationeries = 0;
     CGMailInfo::m_selectedStationery = 0;
     CGMailInfo::m_selectedPackage = 0;

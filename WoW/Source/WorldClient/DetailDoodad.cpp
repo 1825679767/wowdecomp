@@ -32,10 +32,10 @@
 #include "WoW/Source/WorldClient/World.h"
 
 // STATIC: 0x00D1C4C4
-static uint32_t unk_D1C4C4;
+static uint32_t s_indexBufferSize;
 
 // STATIC: 0x00D1C4C8
-static uint32_t unk_D1C4C8;
+static uint32_t s_vertexBufferSize;
 
 // STATIC: 0x00D1C4DC
 static uint32_t unk_D1C4DC;
@@ -462,7 +462,7 @@ void CDetailDoodad::DestroyModels() {
     }
 }
 
-// VERIFY: 28dc16bd manual
+// VERIFY: 9944e10b manual
 // OFFSET: 0x007B2760
 void CDetailDoodad::Initialize() {
     CDetailDoodad::s_instHeap = new (__FILE__, __LINE__) uint32_t(ObjectAllocAddHeap(sizeof(CDetailDoodadInst), 16, "WDETAILDOODADINST", true));
@@ -491,8 +491,8 @@ void CDetailDoodad::Initialize() {
 
     CDetailDoodad::s_vtxBufItems = 0;
     CDetailDoodad::s_idxBufItems = 0;
-    unk_D1C4C8 = 0;
-    unk_D1C4C4 = 0;
+    s_vertexBufferSize = 0;
+    s_indexBufferSize = 0;
     CDetailDoodad::s_freeGxBufs.m_count = 0;
     unk_D1C4DC = 0;
     CDetailDoodad::s_gxVertexPool = nullptr;
@@ -513,7 +513,7 @@ void CDetailDoodad::Initialize() {
     }
 }
 
-// VERIFY: b9225386 auto
+// VERIFY: 2ff521ae auto
 // OFFSET: 0x007B29B0
 void CDetailDoodad::FreeGxBufMat() {
     for (uint32_t i = 0; i < CDetailDoodad::s_freeGxBufs.Count(); i++) {
@@ -537,15 +537,15 @@ void CDetailDoodad::FreeGxBufMat() {
 
     CDetailDoodad::s_vtxBufItems = 0;
     CDetailDoodad::s_idxBufItems = 0;
-    unk_D1C4C8 = 0;
-    unk_D1C4C4 = 0;
+    s_vertexBufferSize = 0;
+    s_indexBufferSize = 0;
     unk_D1C4DC = 0;
     CDetailDoodad::s_gxVertexPool = nullptr;
     CDetailDoodad::s_gxIndexPool = nullptr;
     CDetailDoodad::s_bPoolsDirty = 1;
 }
 
-// VERIFY: 2a1402d2 manual
+// VERIFY: 08827cd3 manual
 // OFFSET: 0x007B2A80
 void CDetailDoodad::UpdatePools() {
     if (!CDetailDoodad::s_bPoolsDirty) {
@@ -570,8 +570,8 @@ void CDetailDoodad::UpdatePools() {
         CDetailDoodad::s_idxBufItems = 4096;
     }
 
-    unk_D1C4C8 = sizeof(CGxVertexPNCT) * vertexItems;
-    unk_D1C4C4 = sizeof(uint16_t) * indexItems;
+    s_vertexBufferSize = sizeof(CGxVertexPNCT) * vertexItems;
+    s_indexBufferSize = sizeof(uint16_t) * indexItems;
 
     CDetailDoodad::s_gxVertexPool = g_theGxDevicePtr->PoolCreate(GxPoolTarget_Vertex, GxPoolUsage_Dynamic, 128 * sizeof(CGxVertexPNCT) * vertexItems, GxPoolHintBit_Unk3, "CDetailDoodad_vtx");
     CDetailDoodad::s_gxIndexPool = g_theGxDevicePtr->PoolCreate(GxPoolTarget_Index, GxPoolUsage_Dynamic, 128 * sizeof(uint16_t) * indexItems, GxPoolHintBit_Unk0, "CDetailDoodad_idx");

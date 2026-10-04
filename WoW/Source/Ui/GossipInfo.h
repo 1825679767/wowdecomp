@@ -38,7 +38,7 @@ class CGGossipInfo {
     static int32_t m_textPending;
     static void ClearOptions();
     static void SetGossipText(int32_t textId);
-    static uint32_t unk_C016F8;
+    static uint32_t m_gossipID;
     static void SetGossip(const WOWGUID& guid);
     static GossipOption m_options[32];
     static char m_gossipText[2048];

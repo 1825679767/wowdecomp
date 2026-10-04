@@ -46,7 +46,7 @@ namespace Liquid {
         void PrepareRenderTransform(const C3Vector* camPos);
     };
 
-    extern CDataAllocator s_unk_D31A30;
+    extern CDataAllocator s_waveManagerAllocator;
 
     void ClearWaveManagers();
 }

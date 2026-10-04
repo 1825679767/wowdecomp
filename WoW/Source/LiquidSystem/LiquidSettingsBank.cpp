@@ -5,12 +5,12 @@
 #include "WoW/Source/DB/Rec/LiquidMaterialRec.h"
 
 // STATIC: 0x00D43B00
-CDataAllocator Liquid::s_unk_D43B00(sizeof(Liquid::CMaterialSettings), 0x20);
+CDataAllocator Liquid::s_settingsAllocator(sizeof(Liquid::CMaterialSettings), 0x20);
 
 // STATIC: 0x00D43B14
 TSGrowableArray<Liquid::CMaterialSettings*> Liquid::CSettingsBank::s_settings;
 
-// VERIFY: f4d601a2 manual
+// VERIFY: 1d70e7aa manual
 // OFFSET: 0x008A2380
 void Liquid::CSettingsBank::Destroy() {
     if (!--Liquid::s_unk_D43AF8) {
@@ -20,14 +20,14 @@ void Liquid::CSettingsBank::Destroy() {
 
                 Liquid::CMaterialSettings* settings = Liquid::CSettingsBank::s_settings[i];
                 settings->~CMaterialSettings();
-                Liquid::s_unk_D43B00.PutData(settings, nullptr, 0);
+                Liquid::s_settingsAllocator.PutData(settings, nullptr, 0);
             }
         }
 
         Liquid::CSettingsBank::s_settings.SetCount(0);
     }
 
-    Liquid::s_unk_D43B00.Clear(".?AVCMaterialSettings@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_settingsAllocator.Clear(".?AVCMaterialSettings@Liquid@@", SLOG_OBJECT, 1);
 }
 
 // VERIFY: 2a7eaf1c manual
@@ -83,7 +83,7 @@ bool Liquid::CSettingsBank::UpdateRecord(Liquid::CMaterialSettings* settings, ui
     return true;
 }
 
-// VERIFY: 5be93056 auto
+// VERIFY: f18ac9d9 auto
 // OFFSET: 0x008A28F0
 Liquid::CMaterialSettings* Liquid::CSettingsBank::GetSettings(uint32_t liquidType) {
     Liquid::CMaterialSettings* settings;
@@ -93,7 +93,7 @@ Liquid::CMaterialSettings* Liquid::CSettingsBank::GetSettings(uint32_t liquidTyp
             return Liquid::CSettingsBank::s_settings.m_data[liquidType];
         }
 
-        void* mem = Liquid::s_unk_D43B00.GetData(0, ".?AVCMaterialSettings@Liquid@@", SLOG_OBJECT);
+        void* mem = Liquid::s_settingsAllocator.GetData(0, ".?AVCMaterialSettings@Liquid@@", SLOG_OBJECT);
         settings = mem ? new (mem) Liquid::CMaterialSettings() : nullptr;
 
         if (Liquid::CSettingsBank::UpdateRecord(settings, liquidType)) {

@@ -15,7 +15,7 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 
 // STATIC: 0x00C20FA8
-uint8_t CGItemSocketInfo::unk_C20FA8[3];
+uint8_t CGItemSocketInfo::m_gemContainerSlot[3];
 
 // STATIC: 0x00C20FB0
 WOWGUID CGItemSocketInfo::m_gemItemContainer[3];
@@ -60,7 +60,7 @@ void CGItemSocketInfo::SetItem(WOWGUID item) {
     }
 }
 
-// VERIFY: c4939c78 manual
+// VERIFY: 21c9b3eb manual
 // OFFSET: 0x005C4780
 int32_t CGItemSocketInfo::SetGem(uint32_t slot, WOWGUID item, WOWGUID container, uint8_t containerSlot) {
     if (slot >= 3 || !CGItemSocketInfo::m_socketItem || !CGItemSocketInfo::m_socketItemStats) {
@@ -93,7 +93,7 @@ int32_t CGItemSocketInfo::SetGem(uint32_t slot, WOWGUID item, WOWGUID container,
     if (!properties || (meta = socketStats->m_socketColor[slot] & 0x1) == (properties->m_type & 0x1)) {
         CGItemSocketInfo::m_gemItems[slot] = item;
         CGItemSocketInfo::m_gemItemContainer[slot] = container;
-        CGItemSocketInfo::unk_C20FA8[slot] = containerSlot;
+        CGItemSocketInfo::m_gemContainerSlot[slot] = containerSlot;
         FrameScript_SignalEvent(SCRIPT_EVENT_SOCKET_INFO_UPDATE, nullptr);
         return 1;
     }
@@ -148,7 +148,7 @@ int32_t CGItemSocketInfo::GemMatchesSocket(const ItemStats_C* item, const ItemSt
     return match;
 }
 
-// VERIFY: 8993934a auto
+// VERIFY: d9030c33 auto
 // OFFSET: 0x005C4470
 void CGItemSocketInfo::GetGemItemForSlot(uint32_t slot, WOWGUID& item, WOWGUID& container, uint8_t& containerSlot) {
     if (slot >= 3) {
@@ -158,7 +158,7 @@ void CGItemSocketInfo::GetGemItemForSlot(uint32_t slot, WOWGUID& item, WOWGUID& 
     } else {
         item = CGItemSocketInfo::m_gemItems[slot];
         container = CGItemSocketInfo::m_gemItemContainer[slot];
-        containerSlot = CGItemSocketInfo::unk_C20FA8[slot];
+        containerSlot = CGItemSocketInfo::m_gemContainerSlot[slot];
     }
 }
 
@@ -170,7 +170,7 @@ void EnchantItemCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool
     }
 }
 
-// VERIFY: 8278b5fc auto
+// VERIFY: 147f3731 auto
 // OFFSET: 0x005C44F0
 void CGItemSocketInfo::EnterWorld() {
     CGItemSocketInfo::m_socketItem = WOWGUID{ 0 };
@@ -181,7 +181,7 @@ void CGItemSocketInfo::EnterWorld() {
     CGItemSocketInfo::m_gemItemContainer[0] = WOWGUID{ 0 };
     CGItemSocketInfo::m_gemItemContainer[1] = WOWGUID{ 0 };
     CGItemSocketInfo::m_gemItemContainer[2] = WOWGUID{ 0 };
-    memset(CGItemSocketInfo::unk_C20FA8, 0, sizeof(CGItemSocketInfo::unk_C20FA8));
+    memset(CGItemSocketInfo::m_gemContainerSlot, 0, sizeof(CGItemSocketInfo::m_gemContainerSlot));
 }
 
 // VERIFY: a44ae1bf manual

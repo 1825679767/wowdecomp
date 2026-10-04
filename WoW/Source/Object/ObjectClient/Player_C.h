@@ -575,7 +575,7 @@ void PlayerSignalSkillStatChanges();
 void SendQuestGiverStatusMultipleQuery();
 int32_t SignalPetSpellPowerUpdate(WOWGUID guid);
 
-void Unk7FE510(uint32_t guidLow);
+void Spell_C_SeedMissileTrajectorySequence(uint32_t guidLow);
 
 class LootRoll {
     public:

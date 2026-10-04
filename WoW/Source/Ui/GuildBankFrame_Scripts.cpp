@@ -432,7 +432,7 @@ static int32_t Script_PickupGuildBankItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: 87ee0855 manual
+// VERIFY: 1d2c15e0 manual
 // OFFSET: 0x005A63F0
 static int32_t Script_AutoStoreGuildBankItem(lua_State* L) {
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
@@ -476,8 +476,8 @@ static int32_t Script_AutoStoreGuildBankItem(lua_State* L) {
         return 0;
     }
 
-    CGGameUI::unk_BD08B0 = WOWGUID();
-    CGGameUI::unk_BD08A4 = info->m_itemID;
+    CGGameUI::m_autoStoreItem = WOWGUID();
+    CGGameUI::m_autoStoreItemID = info->m_itemID;
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_GUILD_BANK_SWAP_ITEMS));
     msg.Put(banker.m_guid);
@@ -556,7 +556,7 @@ static int32_t Script_SplitGuildBankItem(lua_State* L) {
     return 0;
 }
 
-// VERIFY: b6ca35d0 manual
+// VERIFY: 227f7152 manual
 // OFFSET: 0x005A67F0
 static int32_t Script_GetGuildBankTabInfo(lua_State* L) {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -619,7 +619,7 @@ static int32_t Script_GetGuildBankTabInfo(lua_State* L) {
     }
 
     lua_pushnumber(L, CGGuildInfo::GetNumGuildBankTabItemWithdrawalsByRankID(tab, rank));
-    lua_pushnumber(L, CGGuildBankInfo::unk_C1DC30);
+    lua_pushnumber(L, CGGuildBankInfo::m_withdrawMoneyRemaining);
     return 6;
 }
 

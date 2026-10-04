@@ -6,10 +6,10 @@
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00D4505C
-CDataAllocator Liquid::s_unk_D4505C(sizeof(Liquid::CMaterialProcWaterFFP), 8);
+CDataAllocator Liquid::s_procWaterFFPAllocator(sizeof(Liquid::CMaterialProcWaterFFP), 8);
 
 // STATIC: 0x00D45048
-CDataAllocator Liquid::s_unk_D45048(sizeof(Liquid::CMaterialProcWater), 8);
+CDataAllocator Liquid::s_procWaterAllocator(sizeof(Liquid::CMaterialProcWater), 8);
 
 // STATIC: 0x00D44C34
 int32_t Liquid::CMaterialProcWater::s_refCount;
@@ -97,11 +97,11 @@ void Liquid::SetProcWaterLighting(const CM2Lighting& lighting) {
     Liquid::s_psProcWaterConstants.m_sunSpecular.w = 50.0f;
 }
 
-// VERIFY: 616ba53c auto
+// VERIFY: 4d2354fa auto
 // OFFSET: 0x008A3DE0
 void Liquid::CMaterialProcWater::Release() {
     this->~CMaterialProcWater();
-    Liquid::s_unk_D45048.PutData(this, nullptr, 0);
+    Liquid::s_procWaterAllocator.PutData(this, nullptr, 0);
 }
 
 // VERIFY: 624c4ea8 auto
@@ -132,24 +132,24 @@ Liquid::CMaterialProcWater::~CMaterialProcWater() {
     }
 }
 
-// VERIFY: 5b0d20f4 auto
+// VERIFY: c2386692 auto
 // OFFSET: 0x008A3F30
 void Liquid::CMaterialProcWaterFFP::Release() {
     this->~CMaterialProcWaterFFP();
-    Liquid::s_unk_D4505C.PutData(this, nullptr, 0);
+    Liquid::s_procWaterFFPAllocator.PutData(this, nullptr, 0);
 }
 
-// VERIFY: 46263496 auto
+// VERIFY: 065234f4 auto
 // OFFSET: 0x008A4710
 Liquid::CMaterialProcWater* Liquid::CMaterialProcWater::Create() {
-    void* mem = Liquid::s_unk_D45048.GetData(0, ".?AVCMaterialProcWater@Liquid@@", SLOG_OBJECT);
+    void* mem = Liquid::s_procWaterAllocator.GetData(0, ".?AVCMaterialProcWater@Liquid@@", SLOG_OBJECT);
     return mem ? new (mem) Liquid::CMaterialProcWater() : nullptr;
 }
 
-// VERIFY: 3ec533ba auto
+// VERIFY: 3eec8265 auto
 // OFFSET: 0x008A4770
 Liquid::CMaterialProcWaterFFP* Liquid::CMaterialProcWaterFFP::Create() {
-    void* mem = Liquid::s_unk_D4505C.GetData(0, ".?AVCMaterialProcWaterFFP@Liquid@@", SLOG_OBJECT);
+    void* mem = Liquid::s_procWaterFFPAllocator.GetData(0, ".?AVCMaterialProcWaterFFP@Liquid@@", SLOG_OBJECT);
     return mem ? new (mem) Liquid::CMaterialProcWaterFFP() : nullptr;
 }
 

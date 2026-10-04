@@ -111,9 +111,9 @@ void SPIRIT_IP_MR_V3_NAME_63(SPIRIT_IPMR_UNK114* state, SPIRIT_IPMR_SUBFRAME* su
     }
 }
 
-// VERIFY: 93e35e28 auto
+// VERIFY: 0232776c auto
 // OFFSET: 0x00897840
-void SPIRIT_IP_MR_V3_Unk897840(int16_t lost, SPIRIT_IPMR_UNK114* state, const SPIRIT_IPMR_SUBFRAME* subframe) {
+void SPIRIT_IP_MR_V3_UpdateGainHistory(int16_t lost, SPIRIT_IPMR_UNK114* state, const SPIRIT_IPMR_SUBFRAME* subframe) {
     if (!subframe) {
         return;
     }

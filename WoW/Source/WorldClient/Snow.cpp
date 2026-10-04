@@ -26,12 +26,12 @@
 
 const char* const SnowFlakeParticleBuffer::s_packetName = ".?AU?$Packet@UFlake@Snow@@$0BIAA@$00@@";
 
-// VERIFY: 6dc0c6ad manual
+// VERIFY: da6ee014 manual
 // OFFSET: 0x00784010
 C3Vector* Weather::GetPosition(C3Vector* position) {
-    position->x = this->unk_017C;
-    position->y = this->unk_0180;
-    position->z = this->unk_0184;
+    position->x = this->m_positionX;
+    position->y = this->m_positionY;
+    position->z = this->m_positionZ;
     return position;
 }
 
@@ -41,7 +41,7 @@ SnowFlakeParticleBuffer::SnowFlakeParticleBuffer()
     : m_particleCount(6144) {
 }
 
-// VERIFY: 62ca5d5f manual
+// VERIFY: d04403c6 manual
 // OFFSET: 0x00785880
 void Snow::InitFlake(SnowFlakeParticle* flake, float time, const C3Vector* origin, const C3Vector* wind) {
     C3Vector size(this->m_bbox.t.x - this->m_bbox.b.x, this->m_bbox.t.y - this->m_bbox.b.y, this->m_bbox.t.z - this->m_bbox.b.z);
@@ -65,8 +65,8 @@ void Snow::InitFlake(SnowFlakeParticle* flake, float time, const C3Vector* origi
     flake->m_position.z = offset.z - t * flake->m_velocity.z;
     Weather* weather = World::s_weather;
     C3Vector axis(0.0f, 0.0f, 0.0f);
-    CMath::sincos_(weather->unk_018C - 1.5707964f, &axis.y, &axis.x);
-    float tilt = weather->unk_0190 * 0.055555556f;
+    CMath::sincos_(weather->m_facing - 1.5707964f, &axis.y, &axis.x);
+    float tilt = weather->m_speed * 0.055555556f;
 
     if (tilt < 0.0f) {
         tilt = 0.0f;
@@ -86,7 +86,7 @@ void Snow::InitFlake(SnowFlakeParticle* flake, float time, const C3Vector* origi
 
     if (World::s_weather->m_grid->GetHeight(&flake->m_position) < flake->m_position.z) {
         float scale = 2.0f;
-        bool fast = World::s_weather->unk_0188 || World::s_weather->unk_0178 * World::s_weather->unk_0178 + World::s_weather->unk_0174 * World::s_weather->unk_0174 + World::s_weather->unk_0170 * World::s_weather->unk_0170 > 2.0f;
+        bool fast = World::s_weather->m_onTaxi || World::s_weather->m_transportVelocityZ * World::s_weather->m_transportVelocityZ + World::s_weather->m_transportVelocityY * World::s_weather->m_transportVelocityY + World::s_weather->m_transportVelocityX * World::s_weather->m_transportVelocityX > 2.0f;
 
         if (fast) {
             scale = 1.0f;
@@ -179,7 +179,7 @@ int32_t Snow::CountActivePackets() {
     return mists + packets;
 }
 
-// VERIFY: 23a38255 manual
+// VERIFY: 7169f077 manual
 // OFFSET: 0x00788090
 void Snow::UpdatePackets() {
     if (this->m_fadeOut && this->m_snowFlakePacketPtr) {
@@ -203,7 +203,7 @@ void Snow::UpdatePackets() {
             continue;
         }
 
-        bool expired = this->m_fadeOut && World::s_weather->unk_0014 <= 0.25f && now <= packet->m_packetStartTick;
+        bool expired = this->m_fadeOut && World::s_weather->m_fogIntensity <= 0.25f && now <= packet->m_packetStartTick;
 
         if (!expired) {
             C3Vector* camera = World::GetCamPos();
@@ -234,9 +234,9 @@ void Snow::UpdatePackets() {
     }
 
     C3Vector origin = CWorldScene::s_activeWorldView;
-    C3Vector wind(World::s_weather->unk_0164, World::s_weather->unk_0168, World::s_weather->unk_016C);
+    C3Vector wind(World::s_weather->m_playerVelocityX, World::s_weather->m_playerVelocityY, World::s_weather->m_playerVelocityZ);
 
-    if (World::s_weather->unk_0188) {
+    if (World::s_weather->m_onTaxi) {
         WOWGUID active = ClntObjMgrGetActivePlayer();
 
         if (active) {
@@ -251,7 +251,7 @@ void Snow::UpdatePackets() {
 
                     if (duration > 0.0f) {
                         Weather* weather = World::s_weather;
-                        float speed = weather->unk_0190;
+                        float speed = weather->m_speed;
                         float lead;
 
                         if (fequalz(speed, 0.0f, 0.001f)) {

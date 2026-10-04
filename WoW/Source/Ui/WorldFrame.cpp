@@ -1424,12 +1424,12 @@ void CGWorldFrame::OnFrameSizeChanged(const CRect& rect) {
     this->m_viewportNDC.maxY = this->m_viewportNDC.maxY < 1.0f ? this->m_viewportNDC.maxY : 1.0f;
 }
 
-// VERIFY: c2e6c990 manual
+// VERIFY: 0cb92e2e manual
 // OFFSET: 0x004F6560
 static int32_t ObjectCollisionProc(WOWGUID* guid, uintptr_t param, World::ObjectCollisionData* data, uint32_t flags) {
     CGObject_C* object = ClntObjMgrObjectPtr(*guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
 
-    if (!object || !object->Unk40(flags) || !(object->m_obj->m_type & TYPEMASK_GAMEOBJECT)) {
+    if (!object || !object->IsCollidable(flags) || !(object->m_obj->m_type & TYPEMASK_GAMEOBJECT)) {
         return 0;
     }
 
@@ -1544,7 +1544,7 @@ static void DrawSpellCursorShadow(uint32_t a1) {
     g_theGxDevicePtr->RsPop();
 }
 
-// VERIFY: 83f8bce5 manual
+// VERIFY: b5c2c6d4 manual
 // OFFSET: 0x004F8410
 void CGWorldFrame::UpdateDayNight(float deltaSec) {
     DayNight::DNInfo* info = DayNight::GetInfo();
@@ -1597,7 +1597,7 @@ void CGWorldFrame::UpdateDayNight(float deltaSec) {
         }
     }
 
-    info->m_weatherIntensity = World::s_weather->unk_0028 * World::s_weather->unk_0014;
+    info->m_weatherIntensity = World::s_weather->m_densityBlend * World::s_weather->m_fogIntensity;
 }
 
 // VERIFY: 1381402d manual

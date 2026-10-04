@@ -131,7 +131,7 @@ void CGlueMgr::ProcessAttachment(CM2Model* model, int32_t effectID, uint32_t att
     effect->Release();
 }
 
-// VERIFY: d258a8c3 manual
+// VERIFY: 01cf543c manual
 // OFFSET: 0x004E2CE0
 void CGlueMgr::AttachCharacterSelectVisuals(CM2Model* model) {
     SpellVisualKitRec* kitRec = g_spellVisualKitDB.GetRecord(989);
@@ -155,9 +155,9 @@ void CGlueMgr::AttachCharacterSelectVisuals(CM2Model* model) {
             case 1: {
                 CImVector color;
                 *reinterpret_cast<uint32_t*>(&color) = static_cast<uint32_t>(kitRec->m_charParamZero[i]) | 0xFF000000;
-                model->unk_0180 = color.r * (1.0f / 255.0f);
-                model->unk_0184 = color.g * (1.0f / 255.0f);
-                model->unk_0188 = color.b * (1.0f / 255.0f);
+                model->m_diffuseTintR = color.r * (1.0f / 255.0f);
+                model->m_diffuseTintG = color.g * (1.0f / 255.0f);
+                model->m_diffuseTintB = color.b * (1.0f / 255.0f);
                 break;
             }
 

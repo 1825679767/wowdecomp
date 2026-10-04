@@ -2172,7 +2172,7 @@ GEOCOMPONENTLINKS CCharacterComponent::AddHandItem(CM2Model* model, const ItemDi
     return link;
 }
 
-// VERIFY: 659efa48 auto
+// VERIFY: 9faafec0 auto
 // OFFSET: 0x004EAF70
 void CCharacterComponent::RemoveVisuals(CM2Model* model) {
     model->DetachAllChildrenById(15);
@@ -2191,13 +2191,13 @@ void CCharacterComponent::RemoveVisuals(CM2Model* model) {
     model->DetachAllChildrenById(34);
     model->DetachAllChildrenById(35);
     model->DetachAllChildrenById(12);
-    model->unk_018C = 0.0f;
-    model->unk_0190 = 0.0f;
+    model->m_emissiveTintR = 0.0f;
+    model->m_emissiveTintG = 0.0f;
     model->m_fadeAlpha = 1.0f;
-    model->unk_0194 = 0.0f;
-    model->unk_0180 = 1.0f;
-    model->unk_0184 = 1.0f;
-    model->unk_0188 = 1.0f;
+    model->m_emissiveTintB = 0.0f;
+    model->m_diffuseTintR = 1.0f;
+    model->m_diffuseTintG = 1.0f;
+    model->m_diffuseTintB = 1.0f;
 }
 
 // VERIFY: eec03863 manual

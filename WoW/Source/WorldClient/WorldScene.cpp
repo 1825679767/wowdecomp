@@ -43,7 +43,7 @@ TSExplicitList<CWFrustum, offsetof(CWFrustum, m_link)> CWorldScene::frustumFreeL
 GxuScene CWorldScene::s_unk_B2EB68;
 
 // STATIC: 0x00CD8610
-Liquid::CRenderer* CWorldScene::s_unk_CD8610;
+Liquid::CRenderer* CWorldScene::s_liquidRenderer;
 
 // STATIC: 0x00CD8614
 CTexture* CWorldScene::s_defaultBlendTexture;
@@ -52,7 +52,7 @@ CTexture* CWorldScene::s_defaultBlendTexture;
 CTexture* CWorldScene::s_defaultTexture;
 
 // STATIC: 0x00CD877C
-float CWorldScene::s_unk_CD877C;
+float CWorldScene::s_fogFovPadding;
 
 // STATIC: 0x00CD8794
 uint32_t s_liquidTypeId;
@@ -72,7 +72,7 @@ C3Vector CWorldScene::camTarget;
 // STATIC: 0x00D1C420
 CMapObjDef* CWorldScene::s_curMapObjDef;
 
-// VERIFY: ce865553 manual
+// VERIFY: bcfb85c1 auto
 // OFFSET: 0x00798310
 void CWorldScene::Destroy() {
     if (CWorldScene::s_defaultTexture) {
@@ -85,11 +85,11 @@ void CWorldScene::Destroy() {
         CWorldScene::s_defaultBlendTexture = nullptr;
     }
 
-    if (CWorldScene::s_unk_CD8610) {
-        Liquid::CRenderer* renderer = CWorldScene::s_unk_CD8610;
+    if (CWorldScene::s_liquidRenderer) {
+        Liquid::CRenderer* renderer = CWorldScene::s_liquidRenderer;
         renderer->~CRenderer();
         SMemFree(renderer, "delete", SLOG_FUNCTION, 0);
-        CWorldScene::s_unk_CD8610 = nullptr;
+        CWorldScene::s_liquidRenderer = nullptr;
     }
 
     Liquid::ClearWaveManagers();
@@ -103,19 +103,19 @@ void CWorldScene::Destroy() {
     s_antiOccluderFreeList.Clear();
 }
 
-// VERIFY: 6ed0c1fb manual
+// VERIFY: 09edb72e manual
 // OFFSET: 0x007997D0
 void CWorldScene::Initialize() {
     CBarrier::Initialize();
 
-    CWorldScene::s_unk_CD877C = 0.0f;
+    CWorldScene::s_fogFovPadding = 0.0f;
     CWorldScene::s_cullPassStamp = 0;
     CWorldScene::camTargetEntity = nullptr;
     s_liquidTypeId = 0;
 
     Liquid::Initialize(1, 1.0f, 0, "", &g_liquidTypeDB, &g_liquidMaterialDB);
 
-    CWorldScene::s_unk_CD8610 = new (SMemAlloc(sizeof(Liquid::CRenderer), __FILE__, __LINE__, 0)) Liquid::CRenderer();
+    CWorldScene::s_liquidRenderer = new (SMemAlloc(sizeof(Liquid::CRenderer), __FILE__, __LINE__, 0)) Liquid::CRenderer();
 
     CWorldOccluder::Initialize();
 

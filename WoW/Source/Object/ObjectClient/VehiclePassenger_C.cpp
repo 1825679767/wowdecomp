@@ -1039,7 +1039,7 @@ static void SignalVehicleTransitionEvent(WOWGUID guid, const VehicleRec* vehicle
     }
 }
 
-// VERIFY: 72bc81b6 manual
+// VERIFY: 01220e79 manual
 // OFFSET: 0x007489C0
 void CVehiclePassenger_C::SetState(uint32_t state, CGUnit_C* vehicle, uint8_t seat, VehicleSeatRec* seatRec, uint32_t time, WOWGUID relativeGuid) {
     if (this->m_flags & 0x800) {
@@ -1154,7 +1154,7 @@ void CVehiclePassenger_C::SetState(uint32_t state, CGUnit_C* vehicle, uint8_t se
     this->m_startTime = time;
 
     if (this->m_unit->m_unit->m_unitFieldHealth > 0) {
-        this->m_unit->Unk738440();
+        this->m_unit->ResetKeyBoneSequences();
     } else if (this->m_state != 5 && (state == 5 || !state)) {
         this->m_unit->OnDeathAnimate();
     }
@@ -1784,9 +1784,9 @@ void CVehiclePassenger_C::ComputeEndValues(CGUnit_C* vehicle, VehicleSeatRec* se
     }
 }
 
-// VERIFY: 0108536b manual
+// VERIFY: 5375d8a2 manual
 // OFFSET: 0x0074A7F0
-void CVehiclePassenger_C::Unk74A7F0() {
+void CVehiclePassenger_C::UpdateModel() {
     if ((this->m_state == 2 || this->m_state == 5) && !(this->m_flags & 0x1)) {
         return;
     }

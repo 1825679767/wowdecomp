@@ -64,8 +64,8 @@ namespace Liquid {
         CMeshGeomFactory();
     };
 
-    extern CDataAllocator s_unk_D31960;
-    extern CDataAllocator s_unk_D31974;
+    extern CDataAllocator s_meshGeomFactoryAllocator;
+    extern CDataAllocator s_chunkGeomFactoryAllocator;
 
     void ClearGeomFactories();
 }

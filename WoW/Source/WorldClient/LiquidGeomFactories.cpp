@@ -10,10 +10,10 @@
 #include "WoW/Source/WorldClient/MapObjGroup.h"
 
 // STATIC: 0x00D31960
-CDataAllocator Liquid::s_unk_D31960(sizeof(Liquid::CMeshGeomFactory), 4);
+CDataAllocator Liquid::s_meshGeomFactoryAllocator(sizeof(Liquid::CMeshGeomFactory), 4);
 
 // STATIC: 0x00D31974
-CDataAllocator Liquid::s_unk_D31974(sizeof(Liquid::CChunkGeomFactory), 0x10);
+CDataAllocator Liquid::s_chunkGeomFactoryAllocator(sizeof(Liquid::CChunkGeomFactory), 0x10);
 
 // VERIFY: 90914174 auto
 // OFFSET: 0x007D4360
@@ -33,11 +33,11 @@ void Liquid::CMeshGeomFactory::SetDiffuseColor(const CImVector& color) {
     this->m_diffuseColor = color;
 }
 
-// VERIFY: 36347972 auto
+// VERIFY: 09b8bb30 auto
 // OFFSET: 0x007D47D0
 void Liquid::ClearGeomFactories() {
-    Liquid::s_unk_D31960.Clear(".?AVCMeshGeomFactory@Liquid@@", SLOG_OBJECT, 1);
-    Liquid::s_unk_D31974.Clear(".?AVCChunkGeomFactory@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_meshGeomFactoryAllocator.Clear(".?AVCMeshGeomFactory@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_chunkGeomFactoryAllocator.Clear(".?AVCChunkGeomFactory@Liquid@@", SLOG_OBJECT, 1);
 }
 
 // VERIFY: 32ee76a0 manual
@@ -57,21 +57,21 @@ void Liquid::CChunkGeomFactory::Purge() {
     }
 }
 
-// VERIFY: a06cee34 manual
+// VERIFY: a71b0035 manual
 // OFFSET: 0x007D43B0
 void Liquid::CMeshGeomFactory::Release() {
     if (this->m_refCount-- == 1) {
         this->~CMeshGeomFactory();
-        Liquid::s_unk_D31960.PutData(this, nullptr, 0);
+        Liquid::s_meshGeomFactoryAllocator.PutData(this, nullptr, 0);
     }
 }
 
-// VERIFY: 606bea00 manual
+// VERIFY: 670828bb manual
 // OFFSET: 0x007D4760
 void Liquid::CChunkGeomFactory::Release() {
     if (this->m_refCount-- == 1) {
         this->~CChunkGeomFactory();
-        Liquid::s_unk_D31974.PutData(this, nullptr, 0);
+        Liquid::s_chunkGeomFactoryAllocator.PutData(this, nullptr, 0);
     }
 }
 
@@ -216,20 +216,20 @@ Liquid::CMeshGeomFactory::CMeshGeomFactory() {
     this->unk_0024 = 0;
 }
 
-// VERIFY: c7ce1eb1 auto
+// VERIFY: 634ede17 auto
 // OFFSET: 0x007D49B0
 Liquid::CMeshGeomFactory* Liquid::CMeshGeomFactory::Create(CMapObj* mapObj, CMapObjGroup* mapObjGroup) {
-    Liquid::CMeshGeomFactory* factory = Liquid::s_unk_D31960.New<Liquid::CMeshGeomFactory>(0);
+    Liquid::CMeshGeomFactory* factory = Liquid::s_meshGeomFactoryAllocator.New<Liquid::CMeshGeomFactory>(0);
     factory->m_mapObj = mapObj;
     factory->m_mapObjGroup = mapObjGroup;
 
     return factory;
 }
 
-// VERIFY: 1a3ea7df manual
+// VERIFY: 0b00c5ac manual
 // OFFSET: 0x007D49D0
 Liquid::CChunkGeomFactory* Liquid::CChunkGeomFactory::Create(const TSGrowableArray<CChunkLiquid*>& chunks) {
-    void* mem = Liquid::s_unk_D31974.GetData(0, ".?AVCChunkGeomFactory@Liquid@@", SLOG_OBJECT);
+    void* mem = Liquid::s_chunkGeomFactoryAllocator.GetData(0, ".?AVCChunkGeomFactory@Liquid@@", SLOG_OBJECT);
     Liquid::CChunkGeomFactory* factory = mem ? new (mem) Liquid::CChunkGeomFactory() : nullptr;
 
     for (uint32_t i = 0; i < chunks.m_count; i++) {

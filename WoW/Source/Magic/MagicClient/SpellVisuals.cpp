@@ -38,7 +38,7 @@
 static CLightningManager* s_lightningManager;
 
 // STATIC: 0x00AF5090
-static int32_t s_unk_AF5090 = -1;
+static int32_t s_lastUpdateTime = -1;
 
 // STATIC: 0x00AF5094
 static TSList<BlizzardObject> s_blizzardObjects;
@@ -306,7 +306,7 @@ void SpellVisualsClear() {
     }
 }
 
-// VERIFY: 9c3b0607 auto
+// VERIFY: 214943a1 auto
 // OFFSET: 0x007FCBC0
 void SpellVisualsShutdown() {
     SpellVisualsClear();
@@ -315,7 +315,7 @@ void SpellVisualsShutdown() {
         delete s_lightningManager;
     }
 
-    s_unk_AF5090 = -1;
+    s_lastUpdateTime = -1;
     s_blizzardObjectHeap.Clear(typeid(BlizzardObject).raw_name(), -2, 1);
     s_shardHeap.Clear(typeid(Shard).raw_name(), -2, 1);
     s_spellEffectLevelVar = nullptr;
@@ -688,7 +688,7 @@ void SpellVisualsGetMountTransitionTransform(const MountTransitionObject* transi
     *facing = transition->m_facing;
 }
 
-// VERIFY: 77642498 manual
+// VERIFY: 84edc23e manual
 // OFFSET: 0x007FCA30
 void SpellVisualsTick() {
     uint32_t time = OsGetAsyncTimeMs();
@@ -710,11 +710,11 @@ void SpellVisualsTick() {
 
     float elapsed = 0.0f;
 
-    if (s_unk_AF5090 != -1) {
-        elapsed = static_cast<float>((time - s_unk_AF5090) * 0.001);
+    if (s_lastUpdateTime != -1) {
+        elapsed = static_cast<float>((time - s_lastUpdateTime) * 0.001);
     }
 
-    s_unk_AF5090 = time;
+    s_lastUpdateTime = time;
     s_lightningManager->Update(elapsed);
     s_eclipse.Update(time);
     BlizzardObject* blizzard = s_blizzardObjects.Head();

@@ -44,7 +44,7 @@ static uint32_t s_pendingLogQueries;
 GuildBankLogEntry CGGuildBankInfo::m_log[7][25];
 
 // STATIC: 0x00C1DC30
-uint32_t CGGuildBankInfo::unk_C1DC30;
+uint32_t CGGuildBankInfo::m_withdrawMoneyRemaining;
 
 // STATIC: 0x00C1DC34
 int32_t CGGuildBankInfo::m_remainingWithdrawMoney;
@@ -59,7 +59,7 @@ int32_t CGGuildBankInfo::m_numLogEntries[7];
 uint8_t CGGuildBankInfo::m_logTab = 0xFF;
 
 // STATIC: 0x00C0F8E8
-int32_t CGGuildBankInfo::unk_C0F8E8[6];
+int32_t CGGuildBankInfo::m_tabContentsDirty[6];
 
 // STATIC: 0x00C1DC38
 TSGrowableArray<GuildBankSlotInfo> CGGuildBankInfo::m_tabSlots[6];
@@ -315,7 +315,7 @@ void CGGuildBankInfo::AutoStoreItem(WOWGUID item, WOWGUID container, uint32_t sl
     }
 }
 
-// VERIFY: ff0574dc manual
+// VERIFY: 640c8ae9 manual
 // OFFSET: 0x005A56F0
 void CGGuildBankInfo::EnterWorld() {
     for (int32_t i = 0; i < 6; i++) {
@@ -334,7 +334,7 @@ void CGGuildBankInfo::EnterWorld() {
         }
 
         CGGuildBankInfo::m_guildBankTabInfo[tab].unk_2140 = 1;
-        CGGuildBankInfo::unk_C0F8E8[tab] = 1;
+        CGGuildBankInfo::m_tabContentsDirty[tab] = 1;
     }
 
     CDataStore msg;
@@ -410,13 +410,13 @@ void CGGuildBankInfo::Unlock(int32_t itemId, uint32_t virtualSlot) {
     }
 }
 
-// VERIFY: 19c3efd7 auto
+// VERIFY: 23aee2aa auto
 // OFFSET: 0x005A7760
 void CGGuildBankInfo::ClearAllTabs() {
     for (uint32_t i = 0; i < 6; i++) {
         CGGuildBankInfo::m_tabSlots[i].Clear();
         CGGuildBankInfo::m_guildBankTabInfo[i].unk_2140 = 1;
-        CGGuildBankInfo::unk_C0F8E8[i] = 1;
+        CGGuildBankInfo::m_tabContentsDirty[i] = 1;
     }
 
     CGGuildBankInfo::m_numTabs = 0;
@@ -590,10 +590,10 @@ void CGGuildBankInfo::QueryGuildBankLog(uint8_t tab) {
     ClientServices::Send2(&msg);
 }
 
-// VERIFY: fe88b932 manual
+// VERIFY: fbc140ba manual
 // OFFSET: 0x005A5940
 void CGGuildBankInfo::QueryGuildBankText(uint8_t tab) {
-    if (!CGGuildBankInfo::m_banker || !CGGuildBankInfo::unk_C0F8E8[tab]) {
+    if (!CGGuildBankInfo::m_banker || !CGGuildBankInfo::m_tabContentsDirty[tab]) {
         FrameScript_SignalEvent(SCRIPT_EVENT_GUILDBANK_UPDATE_TEXT, "%d", tab + 1);
         return;
     }
@@ -603,7 +603,7 @@ void CGGuildBankInfo::QueryGuildBankText(uint8_t tab) {
     msg.Put(tab);
     msg.Finalize();
     ClientServices::Send2(&msg);
-    CGGuildBankInfo::unk_C0F8E8[tab] = 0;
+    CGGuildBankInfo::m_tabContentsDirty[tab] = 0;
 }
 
 // VERIFY: 1d7a663f manual
@@ -677,7 +677,7 @@ void CGGuildBankInfo::SetGuildBankText(uint8_t tab, const char* text) {
     ClientServices::Send2(&msg);
 }
 
-// VERIFY: 5a5cd21a manual
+// VERIFY: bfba15d4 manual
 // OFFSET: 0x005A7250
 int32_t Packet_SMSG_GUILD_BANK_LIST(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint64_t money;
@@ -685,7 +685,7 @@ int32_t Packet_SMSG_GUILD_BANK_LIST(void* param, NETMESSAGE msgId, uint32_t time
     uint8_t hasTabInfo;
     msg->Get(money);
     msg->Get(tab);
-    msg->Get(CGGuildBankInfo::unk_C1DC30);
+    msg->Get(CGGuildBankInfo::m_withdrawMoneyRemaining);
     msg->Get(hasTabInfo);
 
     if (s_pendingItemQueries) {
@@ -810,8 +810,8 @@ int32_t Packet_SMSG_GUILD_BANK_LIST(void* param, NETMESSAGE msgId, uint32_t time
     return 1;
 }
 
-// VERIFY: c082d582 auto
+// VERIFY: 9c7c4a73 auto
 // OFFSET: 0x005A4310
 void CGGuildBankInfo::SetTextUpdate(uint8_t tab, int32_t update) {
-    CGGuildBankInfo::unk_C0F8E8[tab] = update;
+    CGGuildBankInfo::m_tabContentsDirty[tab] = update;
 }

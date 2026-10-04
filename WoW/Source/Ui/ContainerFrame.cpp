@@ -260,7 +260,7 @@ static void MultiCastBarItemStatsCallback(int32_t id, const WOWGUID& guid, void*
     }
 }
 
-// VERIFY: 5cd3b92a manual
+// VERIFY: 733aa4e0 auto
 // OFFSET: 0x005D9600
 int32_t UpdateContainerContents(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
     CGContainer_C* container = static_cast<CGContainer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_CONTAINER, __FILE__, __LINE__));
@@ -290,16 +290,16 @@ int32_t UpdateContainerContents(WOWGUID guid, uint32_t fieldOffset, uint32_t fie
 
     CGGameUI::UnlockItem(newGuid);
 
-    if (CGGameUI::unk_BD08B0 == oldGuid || CGGameUI::unk_BD08B0 == newGuid || (!CGGameUI::unk_BD08B0 && CGGameUI::unk_BD08A4)) {
-        ItemRec* item = g_itemDB.GetRecord(CGGameUI::unk_BD08A4);
+    if (CGGameUI::m_autoStoreItem == oldGuid || CGGameUI::m_autoStoreItem == newGuid || (!CGGameUI::m_autoStoreItem && CGGameUI::m_autoStoreItemID)) {
+        ItemRec* item = g_itemDB.GetRecord(CGGameUI::m_autoStoreItemID);
 
         if (item) {
             SI2::PlayItemSound(1, item->m_displayInfoID);
         }
     }
 
-    CGGameUI::unk_BD08B0 = WOWGUID();
-    CGGameUI::unk_BD08A4 = 0;
+    CGGameUI::m_autoStoreItem = WOWGUID();
+    CGGameUI::m_autoStoreItemID = 0;
     CGContainerInfo::UpdateContents(guid);
 
     if (newItem) {
@@ -314,7 +314,7 @@ int32_t UpdateContainerContents(WOWGUID guid, uint32_t fieldOffset, uint32_t fie
     return 1;
 }
 
-// VERIFY: df5fd68c manual
+// VERIFY: d73cd982 manual
 // OFFSET: 0x005D9790
 int32_t UpdateInvContents(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
@@ -343,16 +343,16 @@ int32_t UpdateInvContents(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize
 
     CGGameUI::UnlockItem(newGuid);
 
-    if (CGGameUI::unk_BD08B0 == oldGuid || CGGameUI::unk_BD08B0 == newGuid || (!CGGameUI::unk_BD08B0 && CGGameUI::unk_BD08A4)) {
-        ItemRec* item = g_itemDB.GetRecord(CGGameUI::unk_BD08A4);
+    if (CGGameUI::m_autoStoreItem == oldGuid || CGGameUI::m_autoStoreItem == newGuid || (!CGGameUI::m_autoStoreItem && CGGameUI::m_autoStoreItemID)) {
+        ItemRec* item = g_itemDB.GetRecord(CGGameUI::m_autoStoreItemID);
 
         if (item) {
             SI2::PlayItemSound(1, item->m_displayInfoID);
         }
     }
 
-    CGGameUI::unk_BD08B0 = WOWGUID();
-    CGGameUI::unk_BD08A4 = 0;
+    CGGameUI::m_autoStoreItem = WOWGUID();
+    CGGameUI::m_autoStoreItemID = 0;
     CGContainerInfo::UpdateContents(guid);
 
     if ((oldItem && oldItem->GetClassID() == 10) || (newItem && newItem->GetClassID() == 10) || slot - 118 <= 31) {

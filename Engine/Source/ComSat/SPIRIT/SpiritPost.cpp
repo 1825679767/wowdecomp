@@ -63,9 +63,9 @@ void SPIRIT_IP_MR_V3_NAME_400(SPIRIT_IPMR_ENC_UNK0020* state, SPIRIT_IPMR_FRAME*
     state->unk_0166 = frame->unk_0294;
 }
 
-// VERIFY: f2311c9b manual
+// VERIFY: 3d985dbe manual
 // OFFSET: 0x008978A0
-void SPIRIT_IP_MR_V3_Unk8978A0(int16_t lost, SPIRIT_IPMR_UNK114* state, const SPIRIT_IPMR_TRACK* tracks, int16_t count) {
+void SPIRIT_IP_MR_V3_UpdateFixedCodebookEnergy(int16_t lost, SPIRIT_IPMR_UNK114* state, const SPIRIT_IPMR_TRACK* tracks, int16_t count) {
     float energy = 0.0f;
 
     for (int32_t t = 0; t < count; t++) {
@@ -132,9 +132,9 @@ void SPIRIT_IP_MR_V3_NAME_60(SPIRIT_IPMR_ENC_UNK0D20* state, SPIRIT_IPMR_FRAME* 
     }
 }
 
-// VERIFY: 0e9ea84c manual
+// VERIFY: ea0d8edd manual
 // OFFSET: 0x00898CB0
-void SPIRIT_IP_MR_V3_Unk898CB0(const float* in, float* out, const float* a) {
+void SPIRIT_IP_MR_V3_SynthesisFilter32(const float* in, float* out, const float* a) {
     float buffer[42] = {};
     float* y = &buffer[10];
 
@@ -151,9 +151,9 @@ void SPIRIT_IP_MR_V3_Unk898CB0(const float* in, float* out, const float* a) {
     SPIRIT_IP_MR_V3_NAME_189(out, y, 32);
 }
 
-// VERIFY: 109935bb manual
+// VERIFY: 01227fce manual
 // OFFSET: 0x00898D50
-void SPIRIT_IP_MR_V3_Unk898D50(float* x, float* state, float mu) {
+void SPIRIT_IP_MR_V3_TiltCompensation(float* x, float* state, float mu) {
     float last = x[39];
 
     for (int32_t n = 39; n > 0; n--) {
@@ -164,9 +164,9 @@ void SPIRIT_IP_MR_V3_Unk898D50(float* x, float* state, float mu) {
     *state = last;
 }
 
-// VERIFY: 08cc1c94 manual
+// VERIFY: 42e79b15 manual
 // OFFSET: 0x00898DB0
-void SPIRIT_IP_MR_V3_Unk898DB0(float* gain, float alpha, float* signal, const float* reference) {
+void SPIRIT_IP_MR_V3_AdaptiveGainControl(float* gain, float alpha, float* signal, const float* reference) {
     float output = SPIRIT_IP_MR_V3_NAME_42(signal, signal, 40);
 
     if (output <= 1.0e-7) {
@@ -195,7 +195,7 @@ void SPIRIT_IP_MR_V3_Unk898DB0(float* gain, float alpha, float* signal, const fl
     *gain = current;
 }
 
-// VERIFY: 78abe4ef manual
+// VERIFY: 6cdb2574 manual
 // OFFSET: 0x00898E90
 void SPIRIT_IP_MR_V3_NAME_115(SPIRIT_IPMR_POSTFILTER* state, float* signal, const float* lpc, const float* w1, const float* w2) {
     float weighted[80];
@@ -215,7 +215,7 @@ void SPIRIT_IP_MR_V3_NAME_115(SPIRIT_IPMR_POSTFILTER* state, float* signal, cons
         h[0] = 1.0f;
         SPIRIT_IP_MR_V3_NAME_190(&h[1], coeffs);
         SPIRIT_IP_MR_V3_NAME_332(&h[11], 21);
-        SPIRIT_IP_MR_V3_Unk898CB0(h, h, coeffs + 10);
+        SPIRIT_IP_MR_V3_SynthesisFilter32(h, h, coeffs + 10);
         float energy = SPIRIT_IP_MR_V3_NAME_42(h, h, 32);
         float correlation = SPIRIT_IP_MR_V3_NAME_42(h, &h[1], 31);
         float mu = 0.0f;
@@ -225,10 +225,10 @@ void SPIRIT_IP_MR_V3_NAME_115(SPIRIT_IPMR_POSTFILTER* state, float* signal, cons
             mu = scaled / energy;
         }
 
-        SPIRIT_IP_MR_V3_Unk898D50(residual, &state->unk_02D8, mu);
+        SPIRIT_IP_MR_V3_TiltCompensation(residual, &state->unk_02D8, mu);
         SPIRIT_IP_MR_V3_NAME_148(residual, out, coeffs + 10, state->unk_02A8, 0);
         SPIRIT_IP_MR_V3_NAME_190(state->unk_02A8, &out[30]);
-        SPIRIT_IP_MR_V3_Unk898DB0(&state->unk_02DC, 0.9f, out, in);
+        SPIRIT_IP_MR_V3_AdaptiveGainControl(&state->unk_02DC, 0.9f, out, in);
         coeffs += 20;
         out += 40;
     }
@@ -256,9 +256,9 @@ void SPIRIT_IP_MR_V3_NAME_116(SPIRIT_IPMR_DEC_UNK0020* state, const SPIRIT_IPMR_
     }
 }
 
-// VERIFY: af0a266a manual
+// VERIFY: 4abd5c0e manual
 // OFFSET: 0x00899140
-void SPIRIT_IP_MR_V3_Unk899140(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_SUBFRAME* subframe, SPIRIT_IPMR_UNK114* state, int16_t* previous, int16_t index, int32_t lost) {
+void SPIRIT_IP_MR_V3_DecodeSubframeGains(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_SUBFRAME* subframe, SPIRIT_IPMR_UNK114* state, int16_t* previous, int16_t index, int32_t lost) {
     int16_t conceal = 0;
     int16_t missing = 0;
     bool decode = false;
@@ -318,7 +318,7 @@ void SPIRIT_IP_MR_V3_Unk899140(SPIRIT_IPMR_FRAME* frame, SPIRIT_IPMR_SUBFRAME* s
         frame->unk_02B6[index] = subframe->unk_0004 > 0.1f ? 1 : 0;
     }
 
-    SPIRIT_IP_MR_V3_Unk897840(conceal, state, subframe);
+    SPIRIT_IP_MR_V3_UpdateGainHistory(conceal, state, subframe);
     state->unk_005C = conceal;
 }
 

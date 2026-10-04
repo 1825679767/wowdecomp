@@ -4,7 +4,7 @@
 
 extern "C" {
 
-// VERIFY: 697c5e38 manual
+// VERIFY: 6e412523 manual
 // OFFSET: 0x0089D3B0
 int32_t SPIRIT_IP_MR_V3_NAME_37(float* lsp, const int32_t* indices, int16_t lost, float* lsf, const float* previous, const SPIRIT_IPMR_TABLES* tables) {
     if (lost) {
@@ -54,7 +54,7 @@ int32_t SPIRIT_IP_MR_V3_NAME_37(float* lsp, const int32_t* indices, int16_t lost
         }
     }
 
-    int32_t result = SPIRIT_IP_MR_V3_Unk89B450(lsf);
+    int32_t result = SPIRIT_IP_MR_V3_SortLsf(lsf);
 
     for (int32_t i = 0; i < 10; i++) {
         lsp[i] = static_cast<float>(cos(lsf[i] * static_cast<double>(3.1415927f)));
@@ -130,9 +130,9 @@ void SPIRIT_IP_MR_V3_NAME_28(float* memory, int16_t first, int16_t last) {
     }
 }
 
-// VERIFY: b4cabef1 manual
+// VERIFY: 0478c6cc manual
 // OFFSET: 0x0089DB90
-void SPIRIT_IP_MR_V3_Unk89DB90(int16_t count, SPIRIT_IPMR_TRACK* tracks) {
+void SPIRIT_IP_MR_V3_SortPulses(int16_t count, SPIRIT_IPMR_TRACK* tracks) {
     for (int32_t t = 0; t < count; t++) {
         SPIRIT_IPMR_TRACK* track = &tracks[t];
 
@@ -155,9 +155,9 @@ void SPIRIT_IP_MR_V3_Unk89DB90(int16_t count, SPIRIT_IPMR_TRACK* tracks) {
     }
 }
 
-// VERIFY: 4917348c manual
+// VERIFY: 40e4922a manual
 // OFFSET: 0x0089DC60
-void SPIRIT_IP_MR_V3_Unk89DC60(SPIRIT_IPMR_TRACK* tracks, int16_t count, const SPIRIT_IPMR_TABLES* tables) {
+void SPIRIT_IP_MR_V3_EncodePulsePositions(SPIRIT_IPMR_TRACK* tracks, int16_t count, const SPIRIT_IPMR_TABLES* tables) {
     int16_t taken[40] = {};
 
     for (int16_t t = 0; t < count; t++) {
@@ -210,9 +210,9 @@ void SPIRIT_IP_MR_V3_NAME_35(const SPIRIT_IPMR_TRACK* tracks, int16_t first, int
     }
 }
 
-// VERIFY: 337beee8 manual
+// VERIFY: af25792b manual
 // OFFSET: 0x0089DF30
-void SPIRIT_IP_MR_V3_Unk89DF30(int16_t levels, float* value, int16_t* index, float low, float high) {
+void SPIRIT_IP_MR_V3_QuantizeUniform(int16_t levels, float* value, int16_t* index, float low, float high) {
     float step = (high - low) / (levels - 1);
     float threshold = static_cast<float>(0.5 * step + low);
     int16_t level = 0;

@@ -23,7 +23,7 @@
 #include "WoW/Source/WorldClient/MapObjGroup.h"
 
 // STATIC: 0x00ADF7F4
-static const char* unk_ADF7F4[2] = {
+static const char* s_rippleTextureNames[2] = {
     "XTextures\\splash\\splash.blp",
     "XTextures\\splash\\wake.blp"
 };
@@ -32,16 +32,16 @@ static const char* unk_ADF7F4[2] = {
 static float s_rippleFadeFraction[2] = { 0.40000001f, 0.40000001f };
 
 // STATIC: 0x00ADFB58
-static TSExplicitList<CWaterRipple, offsetof(CWaterRipple, m_link)> s_unk_ADFB58;
+static TSExplicitList<CWaterRipple, offsetof(CWaterRipple, m_link)> s_activeRipples;
 
 // STATIC: 0x00CDF7C0
-static CTexture* unk_CDF7C0[2];
+static CTexture* s_rippleTextures[2];
 
 // STATIC: 0x00CDFFDC
-static int32_t unk_CDFFDC;
+static int32_t s_ripplesInitialized;
 
 // STATIC: 0x00CDFFE0
-static TSFixedArray<CWaterRipple> unk_CDFFE0;
+static TSFixedArray<CWaterRipple> s_ripplePool;
 
 // STATIC: 0x00CDF7C8
 uint32_t WaterRipple::s_nextUnitRipple;
@@ -64,10 +64,10 @@ CWaterRipple::CWaterRipple() {
 CWaterRipple::~CWaterRipple() {
 }
 
-// VERIFY: ecdc54a5 manual
+// VERIFY: 801d27b4 manual
 // OFFSET: 0x0079D5E0
 void CMap::RenderWaterRipples() {
-    CWaterRipple* ripple = s_unk_ADFB58.Head();
+    CWaterRipple* ripple = s_activeRipples.Head();
 
     if (!ripple) {
         return;
@@ -77,7 +77,7 @@ void CMap::RenderWaterRipples() {
     TSExplicitList<CWaterRipple, offsetof(CWaterRipple, m_bucketLink)> buckets[2];
 
     while (ripple) {
-        CWaterRipple* next = s_unk_ADFB58.Next(ripple);
+        CWaterRipple* next = s_activeRipples.Next(ripple);
 
         if (ripple->m_endTime <= FrameTime::s_curTimeSec) {
             ripple->m_link.Unlink();
@@ -133,7 +133,7 @@ void CMap::RenderWaterRipples() {
     world.d1 = -CWorldScene::s_activeWorldView.y;
     world.d2 = -CWorldScene::s_activeWorldView.z;
 
-    if (unk_CDFFDC) {
+    if (s_ripplesInitialized) {
         g_theGxDevicePtr->RsSet(GxRs_VertexShader, WaterRipple::s_vsWaterRipples);
         g_theGxDevicePtr->RsSet(GxRs_PixelShader, WaterRipple::s_psWaterRipples);
 
@@ -169,7 +169,7 @@ void CMap::RenderWaterRipples() {
             continue;
         }
 
-        CGxTex* gxTex = TextureGetGxTex(unk_CDF7C0[type], 0, nullptr);
+        CGxTex* gxTex = TextureGetGxTex(s_rippleTextures[type], 0, nullptr);
 
         if (!gxTex) {
             continue;
@@ -241,12 +241,12 @@ void CMap::RenderWaterRipples() {
 
     g_theGxDevicePtr->RsPop();
 
-    if (!unk_CDFFDC) {
+    if (!s_ripplesInitialized) {
         GxXformPop(GxXform_World);
     }
 }
 
-// VERIFY: da76fd0b auto
+// VERIFY: b22d4fe5 auto
 // OFFSET: 0x0079E1A0
 void WaterRipple::Initialize() {
     WaterRipple::s_nextPlayerRipple = 0;
@@ -255,35 +255,35 @@ void WaterRipple::Initialize() {
     CGxTexFlags flags;
     CStatus status;
 
-    for (uint32_t i = 0; i < sizeof(unk_CDF7C0) / sizeof(unk_CDF7C0[0]); i++) {
-        unk_CDF7C0[i] = TextureCreate(unk_ADF7F4[i], flags, &status, 1);
+    for (uint32_t i = 0; i < sizeof(s_rippleTextures) / sizeof(s_rippleTextures[0]); i++) {
+        s_rippleTextures[i] = TextureCreate(s_rippleTextureNames[i], flags, &status, 1);
     }
 
-    unk_CDFFE0.SetCount(128);
-    unk_CDFFDC = 0;
+    s_ripplePool.SetCount(128);
+    s_ripplesInitialized = 0;
 
     g_theGxDevicePtr->ShaderCreate(&WaterRipple::s_vsWaterRipples, GxSh_Vertex, "Shaders\\Vertex", "WaterRipples", 1);
     g_theGxDevicePtr->ShaderCreate(&WaterRipple::s_psWaterRipples, GxSh_Pixel, "Shaders\\Pixel", "WaterRipples", 1);
 
     if (WaterRipple::s_vsWaterRipples && WaterRipple::s_vsWaterRipples->Valid() && WaterRipple::s_psWaterRipples && WaterRipple::s_psWaterRipples->Valid()) {
-        unk_CDFFDC = 1;
+        s_ripplesInitialized = 1;
     }
 }
 
-// VERIFY: 5c80007f auto
+// VERIFY: c46ff70f manual
 // OFFSET: 0x0079E460
 void WaterRipple::Destroy() {
     Liquid::DestroyProceduralTextures();
 
-    for (uint32_t i = 0; i < sizeof(unk_CDF7C0) / sizeof(unk_CDF7C0[0]); i++) {
-        HandleClose(reinterpret_cast<HOBJECT>(unk_CDF7C0[i]));
+    for (uint32_t i = 0; i < sizeof(s_rippleTextures) / sizeof(s_rippleTextures[0]); i++) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_rippleTextures[i]));
     }
 
-    if (unk_CDFFE0.Count()) {
-        unk_CDFFE0.Clear();
+    if (s_ripplePool.Count()) {
+        s_ripplePool.Clear();
     }
 
-    s_unk_ADFB58.Clear();
+    s_activeRipples.Clear();
 
     if (WaterRipple::s_vsWaterRipples) {
         g_theGxDevicePtr->ShaderDestroy(WaterRipple::s_vsWaterRipples);
@@ -344,7 +344,7 @@ void CWaterRipple::InitRipple(const C3Vector& pos, float rotation, float size, f
     }
 }
 
-// VERIFY: ab8c02c2 auto
+// VERIFY: f24850ef auto
 // OFFSET: 0x0079D180
 void WaterRipple::Create(const C3Vector& pos, float facing, float size, float alpha, float duration, float growth, int32_t type, int32_t player) {
     uint32_t index;
@@ -363,7 +363,7 @@ void WaterRipple::Create(const C3Vector& pos, float facing, float size, float al
         }
     }
 
-    CWaterRipple* ripple = &unk_CDFFE0.m_data[index];
+    CWaterRipple* ripple = &s_ripplePool.m_data[index];
     ripple->InitRipple(pos, -facing, size, alpha, duration, growth, type);
-    s_unk_ADFB58.LinkToTail(ripple);
+    s_activeRipples.LinkToTail(ripple);
 }

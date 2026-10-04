@@ -21,7 +21,7 @@ struct ShadowQueryBuffers {
 
 class CShadowQuery {
     public:
-    static ShadowQueryBuffers s_unk_D25320[3];
+    static ShadowQueryBuffers s_bandBuffers[3];
     static float s_cutoffHeight;
 
     static void Update();

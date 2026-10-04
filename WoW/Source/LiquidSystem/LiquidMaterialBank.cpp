@@ -5,33 +5,33 @@
 #include "WoW/Source/DB/Rec/LiquidTypeRec.h"
 
 // STATIC: 0x00D43B24
-TSGrowableArray<Liquid::IMaterial*> Liquid::CMaterialBank::s_unk_D43B24;
+TSGrowableArray<Liquid::IMaterial*> Liquid::CMaterialBank::s_materials;
 
-// VERIFY: 44d8beb7 manual
+// VERIFY: 8e2d4258 manual
 // OFFSET: 0x008A1F50
 void Liquid::CMaterialBank::Destroy() {
-    for (uint32_t i = 0; i < Liquid::CMaterialBank::s_unk_D43B24.Count(); i++) {
-        if (Liquid::CMaterialBank::s_unk_D43B24[i]) {
-            Liquid::CMaterialBank::s_unk_D43B24[i]->Release();
+    for (uint32_t i = 0; i < Liquid::CMaterialBank::s_materials.Count(); i++) {
+        if (Liquid::CMaterialBank::s_materials[i]) {
+            Liquid::CMaterialBank::s_materials[i]->Release();
         }
     }
 
-    Liquid::CMaterialBank::s_unk_D43B24.SetCount(0);
+    Liquid::CMaterialBank::s_materials.SetCount(0);
 }
 
-// VERIFY: 502f2f3f auto
+// VERIFY: 5f91fa25 auto
 // OFFSET: 0x008A4280
 void Liquid::ClearMaterials() {
-    Liquid::s_unk_D45048.Clear(".?AVCMaterialProcWater@Liquid@@", SLOG_OBJECT, 1);
-    Liquid::s_unk_D4505C.Clear(".?AVCMaterialProcWaterFFP@Liquid@@", SLOG_OBJECT, 1);
-    Liquid::s_unk_D45070.Clear(".?AVCMaterialWater@Liquid@@", SLOG_OBJECT, 1);
-    Liquid::s_unk_D45084.Clear(".?AVCMaterialWaterNoSpec@Liquid@@", SLOG_OBJECT, 1);
-    Liquid::s_unk_D45098.Clear(".?AVCMaterialWaterFFP@Liquid@@", SLOG_OBJECT, 1);
-    Liquid::s_unk_D450AC.Clear(".?AVCMaterialMagma@Liquid@@", SLOG_OBJECT, 1);
-    Liquid::s_unk_D450C0.Clear(".?AVCMaterialMagmaFFP@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_procWaterAllocator.Clear(".?AVCMaterialProcWater@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_procWaterFFPAllocator.Clear(".?AVCMaterialProcWaterFFP@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_waterAllocator.Clear(".?AVCMaterialWater@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_waterNoSpecAllocator.Clear(".?AVCMaterialWaterNoSpec@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_waterFFPAllocator.Clear(".?AVCMaterialWaterFFP@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_magmaAllocator.Clear(".?AVCMaterialMagma@Liquid@@", SLOG_OBJECT, 1);
+    Liquid::s_magmaFFPAllocator.Clear(".?AVCMaterialMagmaFFP@Liquid@@", SLOG_OBJECT, 1);
 }
 
-// VERIFY: 6362c891 auto
+// VERIFY: 85245160 auto
 // OFFSET: 0x008A1FA0
 Liquid::IMaterial* Liquid::CMaterialBank::GetMaterial(uint32_t liquidType) {
     LiquidTypeRec* typeRec;
@@ -53,8 +53,8 @@ Liquid::IMaterial* Liquid::CMaterialBank::GetMaterial(uint32_t liquidType) {
 
     uint32_t materialId = typeRec->m_materialID;
 
-    if (materialId < Liquid::CMaterialBank::s_unk_D43B24.Count() && Liquid::CMaterialBank::s_unk_D43B24.m_data[materialId]) {
-        return Liquid::CMaterialBank::s_unk_D43B24.m_data[materialId];
+    if (materialId < Liquid::CMaterialBank::s_materials.Count() && Liquid::CMaterialBank::s_materials.m_data[materialId]) {
+        return Liquid::CMaterialBank::s_materials.m_data[materialId];
     }
 
     bool vertexShaders = g_theGxDevicePtr->Caps().m_shaderTargets[GxSh_Vertex] >= 1;
@@ -92,8 +92,8 @@ Liquid::IMaterial* Liquid::CMaterialBank::GetMaterial(uint32_t liquidType) {
             break;
     }
 
-    Liquid::CMaterialBank::s_unk_D43B24.GrowToFit(materialId, 1);
-    Liquid::CMaterialBank::s_unk_D43B24.m_data[materialId] = material;
+    Liquid::CMaterialBank::s_materials.GrowToFit(materialId, 1);
+    Liquid::CMaterialBank::s_materials.m_data[materialId] = material;
 
     return material;
 }

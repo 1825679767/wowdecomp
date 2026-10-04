@@ -66,10 +66,10 @@ class CEffect {
     /* 00BC */ uint32_t unk_00BC;
     /* 00C0 */ WOWGUID m_transportGuid;
     /* 00C8 */ uint32_t unk_00C8;
-    /* 00CC */ uint32_t unk_00CC;
+    /* 00CC */ uint32_t m_expireTime;
     /* 00D0 */ uint32_t unk_00D0;
-    /* 00D4 */ uint32_t unk_00D4;
-    /* 00D8 */ uint32_t unk_00D8;
+    /* 00D4 */ uint32_t m_attachToModel;
+    /* 00D8 */ uint32_t m_attachToMount;
     /* 00DC */ uint32_t unk_00DC;
     /* 00E0 */ float unk_00E0;
     /* 00E4 */ float unk_00E4;

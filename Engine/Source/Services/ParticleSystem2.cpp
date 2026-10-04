@@ -862,7 +862,7 @@ void __stdcall CParticleEmitter2::RenderParticleVertices(CGxBuf* buf, EGxVertexB
     g_theGxDevicePtr->Draw(&batch, 1);
 }
 
-// VERIFY: 29f3b048 manual
+// VERIFY: a9b4f93f manual
 // OFFSET: 0x0097A670
 int32_t CParticleEmitter2::RenderParticle(CParticle2_Model& particle, const C44Matrix* frameOfReference) {
     uint32_t twinkle = 0;
@@ -927,9 +927,9 @@ int32_t CParticleEmitter2::RenderParticle(CParticle2_Model& particle, const C44M
     model->m_worldTransform = transform;
 
     model = particle.m_model;
-    model->unk_0180 = color.r * 0.0039215689f;
-    model->unk_0184 = color.g * 0.0039215689f;
-    model->unk_0188 = color.b * 0.0039215689f;
+    model->m_diffuseTintR = color.r * 0.0039215689f;
+    model->m_diffuseTintG = color.g * 0.0039215689f;
+    model->m_diffuseTintB = color.b * 0.0039215689f;
     particle.m_model->m_fadeAlpha = 0.0039215689f * alphaByte;
 
     model = particle.m_model;

@@ -150,7 +150,7 @@ static float s_xmlProgress;
 static bool s_loadingWorld;
 
 // STATIC: 0x00B2FEC0
-static HLAYER unk_B2FEC0;
+static HLAYER s_miniLoadingLayer;
 
 // STATIC: 0x00B2FEC4
 static CTexture* unk_B2FEC4[2];
@@ -883,14 +883,14 @@ void LoadingScreenShutdown() {
     }
 }
 
-// VERIFY: dddf5a44 auto
+// VERIFY: 0d44dabd auto
 // OFFSET: 0x00407EF0
 void LoadingScreenMiniDisable() {
-    if (unk_B2FEC0) {
-        HandleClose(reinterpret_cast<HOBJECT>(unk_B2FEC0));
+    if (s_miniLoadingLayer) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_miniLoadingLayer));
     }
 
-    unk_B2FEC0 = nullptr;
+    s_miniLoadingLayer = nullptr;
 
     for (uint32_t i = 0; i < sizeof(unk_B2FEC4) / sizeof(unk_B2FEC4[0]); i++) {
         if (unk_B2FEC4[i]) {
@@ -998,10 +998,10 @@ static void LoadingScreenMiniPaint(void* param, const RECTF* rect, const RECTF* 
     GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
 }
 
-// VERIFY: 38d7d83b manual
+// VERIFY: 62c9d5dd manual
 // OFFSET: 0x0040A690
 void LoadingScreenMiniEnable() {
-    if (unk_B2FEC0) {
+    if (s_miniLoadingLayer) {
         return;
     }
 
@@ -1019,7 +1019,7 @@ void LoadingScreenMiniEnable() {
     rect.left = 0.0f;
     rect.top = 1.0f;
     rect.right = 1.0f;
-    ScrnLayerCreate(&rect, 9.0f, 3, nullptr, LoadingScreenMiniPaint, &unk_B2FEC0);
+    ScrnLayerCreate(&rect, 9.0f, 3, nullptr, LoadingScreenMiniPaint, &s_miniLoadingLayer);
     s_progress = 0.5f;
 }
 

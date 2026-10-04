@@ -306,13 +306,13 @@ static const RussianDeclensionRule s_russianDeclensionRules[55] = {
 };
 
 // STATIC: 0x00D37E10
-static bool unk_D37E10;
+static bool s_charsetCached;
 
 // STATIC: 0x00D37E14
-static int32_t unk_D37E14;
+static int32_t s_cachedLocaleMask;
 
 // STATIC: 0x00D37E18
-static int32_t unk_D37E18;
+static int32_t s_cachedCharsetMask;
 
 // STATIC: 0x00D37E1C
 TSFixedArray<regex_t> g_chatSpamTokens;
@@ -422,7 +422,7 @@ bool IsAlphaInCharSet(uint16_t c, int32_t charset) {
     }
 }
 
-// VERIFY: e8e8c5a5 manual
+// VERIFY: 4635c34b manual
 // OFFSET: 0x007E18C0
 int32_t ValidateName(uint32_t language, const uint16_t* allowed, const char* name, uint32_t* length, int32_t* charset, bool profanity, bool chatProfanity, bool reserved, bool relaxed, bool english, int32_t charsetMask) {
     if (!name) {
@@ -441,7 +441,7 @@ int32_t ValidateName(uint32_t language, const uint16_t* allowed, const char* nam
         if (english && (forceEnglish = CVar::Lookup("forceEnglishNames")) && forceEnglish->m_intValue) {
             charsetMask = 2;
         } else {
-            charsetMask = unk_D37E18;
+            charsetMask = s_cachedCharsetMask;
         }
     }
 
@@ -647,7 +647,7 @@ int32_t ValidateGuildBankTabName(uint32_t language, const char* name) {
     return result;
 }
 
-// VERIFY: cc5abb34 manual
+// VERIFY: e87ebce3 manual
 // OFFSET: 0x007E21B0
 void ValidateNameDestroy() {
     for (uint32_t i = 0; i < sizeof(g_profanityTokens) / sizeof(g_profanityTokens[0]); i++) {
@@ -656,24 +656,24 @@ void ValidateNameDestroy() {
         g_reservedNameTokens[i].Clear();
     }
 
-    unk_D37E10 = false;
+    s_charsetCached = false;
 }
 
-// VERIFY: 78cff06b manual
+// VERIFY: e70b1477 manual
 // OFFSET: 0x007E2250
 void ValidateNameInitialize(int32_t localeMask, int32_t charsetMask) {
-    if (unk_D37E10) {
-        if (localeMask == unk_D37E14 && charsetMask == unk_D37E18) {
+    if (s_charsetCached) {
+        if (localeMask == s_cachedLocaleMask && charsetMask == s_cachedCharsetMask) {
             return;
         }
 
         ValidateNameDestroy();
     }
 
-    unk_D37E10 = true;
+    s_charsetCached = true;
     CVar::Register("forceEnglishNames", nullptr, 0, "0", nullptr, 5, false, nullptr, false);
-    unk_D37E14 = localeMask;
-    unk_D37E18 = charsetMask;
+    s_cachedLocaleMask = localeMask;
+    s_cachedCharsetMask = charsetMask;
 
     for (int32_t language = 0; language < static_cast<int32_t>(sizeof(g_profanityTokens) / sizeof(g_profanityTokens[0])); language++) {
         if (localeMask && !((1 << language) & localeMask)) {

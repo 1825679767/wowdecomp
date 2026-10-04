@@ -41,7 +41,7 @@ class CGTradeSkillInfo {
     static uint32_t m_invSlots;
     static int32_t m_skillRank;
     static int32_t m_skillMaxRank;
-    static int32_t unk_C235F0;
+    static int32_t m_lastSkillLineID;
     static TSGrowableArray<TradeSkillInfo*> m_displayList;
     static TSGrowableArray<TradeSkillSubClassInfo*> m_subClassList;
     static uint32_t m_subClassFilter;

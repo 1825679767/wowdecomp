@@ -153,8 +153,8 @@ class CGCamera : public CSimpleCamera {
     /* 02F8 */ float m_vehiclePitchOffset;
     /* 02FC */ uint32_t m_vehicleTrackingStyle;
     /* 0300 */ TSList<CameraShake> m_cameraShakeList;
-    /* 030C */ uint32_t unk_030C;
-    /* 0310 */ float unk_0310;
+    /* 030C */ uint32_t m_prevViewIndex;
+    /* 0310 */ float m_prevDistance;
     /* 0314 */ float unk_0314;
     /* 0318 */ float unk_0318;
     /* 031C */ CVehicleCamera_C* m_vehicleCamera;
