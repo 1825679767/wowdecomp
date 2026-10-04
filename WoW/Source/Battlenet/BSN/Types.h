@@ -78,6 +78,7 @@ class String {
     /* 0008 */ char m_data[4 * N + 1];
 
     String();
+    explicit String(const char* source);
     String<N>& operator=(const char* source);
     String<N>& operator+=(const char* source);
 };
@@ -102,6 +103,25 @@ class FixedArray {
     /* 0000 */ T m_data[SIZE];
 
     const T& operator[](uint32_t index) const;
+};
+
+template <uint32_t N>
+class Blob {
+    public:
+    /* 0000 */ uint32_t m_length;
+    /* 0004 */ uint8_t m_data[N];
+};
+
+template <uint32_t N>
+class FixedBlob {
+    public:
+    /* 0000 */ uint8_t m_data[N];
+};
+
+template <uint32_t N>
+class FixedBitArray {
+    public:
+    /* 0000 */ uint8_t m_data[(N + 7) / 8];
 };
 
 template <class T>
@@ -156,6 +176,12 @@ BSN::String<N>::String() {
     this->m_size = 0;
     this->m_length = 0;
     this->m_data[0] = '\0';
+}
+
+// INLINED
+template <uint32_t N>
+BSN::String<N>::String(const char* source) {
+    this->m_size = BSN::UTF8StringCopy(this->m_data, source, N, this->m_length);
 }
 
 // VERIFY: 497fac72 auto

@@ -197,7 +197,15 @@ extern BSN::FourCC WOW;
 
 namespace Toon {
 struct FullName {
-    /* 0000 */ uint32_t m_region;
+    static const BSN::FourCC s_default_programId;
+    static const BSN::String<25> s_default_name;
+
+    static void SetDefault_region(uint8_t& value);
+    static void SetDefault_programId(BSN::FourCC& value);
+    static void SetDefault_realm(uint32_t& value);
+    static void SetDefault_name(BSN::String<25>& value);
+
+    /* 0000 */ uint8_t m_region;
     /* 0004 */ BSN::FourCC m_program;
     /* 0008 */ uint32_t m_realm;
     /* 000C */ BSN::String<25> m_name;

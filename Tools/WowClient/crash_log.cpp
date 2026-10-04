@@ -6,9 +6,6 @@
 #include <cstdio>
 #include <cstring>
 
-extern "C" const char* const g_standinNames[];
-extern "C" const int g_standinCount;
-
 static char s_logPath[MAX_PATH];
 static HANDLE s_console = INVALID_HANDLE_VALUE;
 static HANDLE s_logFile = INVALID_HANDLE_VALUE;
@@ -39,21 +36,6 @@ static void ModuleOffset(void* address, char* out, size_t size) {
     } else {
         _snprintf_s(out, size, _TRUNCATE, "%p", address);
     }
-}
-
-extern "C" __declspec(noreturn) void StandinHit(int index, void* returnAddress) {
-    char where[MAX_PATH + 32];
-    ModuleOffset(returnAddress, where, sizeof(where));
-
-    char line[4096];
-    _snprintf_s(line, sizeof(line), _TRUNCATE, "STANDIN %s called from %s\n", index >= 0 && index < g_standinCount ? g_standinNames[index] : "?", where);
-    LogLine(line);
-
-    if (GetEnvironmentVariableA("WOWCLIENT_STANDIN_MSGBOX", nullptr, 0)) {
-        MessageBoxA(nullptr, line, "WowClient stand-in", MB_OK | MB_ICONERROR);
-    }
-
-    ExitProcess(0x5717);
 }
 
 static void LogStack(CONTEXT* context) {
@@ -108,37 +90,6 @@ static void LogStack(CONTEXT* context) {
 #endif
 }
 
-static volatile LONG s_hitFlags[16384];
-
-extern "C" double StandinReport(int index, void* returnAddress) {
-    static int s_continue = -1;
-
-    if (s_continue < 0) {
-#ifdef WOWCLIENT_STANDIN_CONTINUE_DEFAULT
-        s_continue = 1;
-#else
-        s_continue = GetEnvironmentVariableA("WOWCLIENT_STANDIN_CONTINUE", nullptr, 0) ? 1 : 0;
-#endif
-    }
-
-    if (!s_continue) {
-        StandinHit(index, returnAddress);
-    }
-
-    if (index >= 0 && index < static_cast<int>(sizeof(s_hitFlags) / sizeof(s_hitFlags[0])) && InterlockedExchange(&s_hitFlags[index], 1)) {
-        return 0.0;
-    }
-
-    char where[MAX_PATH + 32];
-    ModuleOffset(returnAddress, where, sizeof(where));
-
-    char line[4096];
-    _snprintf_s(line, sizeof(line), _TRUNCATE, "STANDIN %s called from %s (continued)\n", index >= 0 && index < g_standinCount ? g_standinNames[index] : "?", where);
-    LogLine(line);
-
-    return 0.0;
-}
-
 static LONG CALLBACK FirstChanceHandler(EXCEPTION_POINTERS* info) {
     DWORD code = info->ExceptionRecord->ExceptionCode;
 
@@ -177,20 +128,20 @@ static int CrtReportHook(int type, char* message, int* returnValue) {
     return TRUE;
 }
 
-static struct StandinRuntimeInit {
-    StandinRuntimeInit() {
+static struct CrashLogInit {
+    CrashLogInit() {
         GetModuleFileNameA(nullptr, s_logPath, sizeof(s_logPath));
         char* slash = strrchr(s_logPath, '\\');
 
         if (slash) {
-            strcpy_s(slash + 1, sizeof(s_logPath) - (slash + 1 - s_logPath), "WowClient_standin.log");
+            strcpy_s(slash + 1, sizeof(s_logPath) - (slash + 1 - s_logPath), "WowClient_crash.log");
         }
 
         DeleteFileA(s_logPath);
         s_logFile = CreateFileA(s_logPath, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 
         if (AllocConsole()) {
-            SetConsoleTitleA("WowClient stand-ins");
+            SetConsoleTitleA("WowClient");
             s_console = CreateFileA("CONOUT$", GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
         }
 
@@ -199,4 +150,4 @@ static struct StandinRuntimeInit {
         _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
         SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
     }
-} s_standinRuntimeInit;
+} s_crashLogInit;
