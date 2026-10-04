@@ -2,6 +2,7 @@
 #define ENGINE_SOURCE_BLIZZARDCORE_SOURCE_SYSTEM_DEBUG_DEBUG_H
 
 #include <cstdint>
+#include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
 
 namespace Blizzard {
 namespace Debug {
@@ -20,10 +21,17 @@ void StderrOutput(const char* text);
 
 namespace System_Debug {
 
+class UsingDebug : public Blizzard::Using::Use {
+    public:
+    UsingDebug();
+};
+
 extern Blizzard::Debug::AssertCallback s_AssertCallback;
 extern char s_CanonBuffer[1024];
 extern char* s_CanonHead;
 extern char* s_CanonTail;
+
+void ShutdownProc();
 
 }
 

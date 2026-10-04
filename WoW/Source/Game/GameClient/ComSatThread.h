@@ -19,6 +19,7 @@ class ComSatThread {
     static int32_t s_threadRunning;
     static SEvent s_threadShutdownEvent;
 
+    static void Init();
     static uint32_t STORMAPI Work(void* param);
 };
 

@@ -9,6 +9,7 @@
 #include "Engine/Source/BlizzardCore/Source/System/Lock/Lock.h"
 #include "Engine/Source/BlizzardCore/Source/System/Memory/AllocSTL.h"
 #include "Engine/Source/BlizzardCore/Source/System/Thread/ThreadLocalStorage.h"
+#include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
 
 namespace System_Thread {
 
@@ -78,6 +79,16 @@ class ThreadWorker {
     ThreadWorker();
     ~ThreadWorker();
     bool Start(Blizzard::Thread::ThreadPoolRecord* pool, int32_t flags, int32_t stackSize);
+};
+
+class UsingThread : public Blizzard::Using::Use {
+    public:
+    UsingThread();
+};
+
+class UsingThreadLocalStorage : public Blizzard::Using::Use {
+    public:
+    UsingThreadLocalStorage();
 };
 
 struct ExternalTLSRecord {

@@ -5,6 +5,10 @@
 #include "Engine/Source/BlizzardCore/Source/System/Debug/Debug.h"
 #include "Engine/Source/BlizzardCore/Source/System/String/Path.h"
 #include "Engine/Source/BlizzardCore/Source/System/String/String.h"
+#include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
+
+// STATIC: 0x00AB9358
+static System_Debug::UsingDebug s_usingDebug;
 
 // STATIC: 0x00AB90A0
 Blizzard::Debug::AssertCallback System_Debug::s_AssertCallback = Blizzard::Debug::DefaultCallback;
@@ -69,4 +73,10 @@ void Blizzard::Debug::Printf(void (*output)(const char*), const char* format, ..
     }
 
     output(buffer);
+}
+
+// INLINED
+System_Debug::UsingDebug::UsingDebug() : Blizzard::Using::Use("Blizzard::Debug") {
+    System_Using::Intern(this->m_name)->shutdownproc = System_Debug::ShutdownProc;
+    Blizzard::Using::DependsOn("Blizzard::Debug", "Blizzard::Memory");
 }

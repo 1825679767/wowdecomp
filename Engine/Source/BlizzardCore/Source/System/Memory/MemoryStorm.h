@@ -15,6 +15,18 @@ void Free(void* ptr, uint32_t flags, const char* fileName, int32_t lineNumber);
 }
 }
 
+namespace System_Memory {
+
+class UsingMemory {
+    public:
+    UsingMemory();
+    ~UsingMemory();
+};
+
+void ShutdownProc();
+
+}
+
 void* operator new(size_t bytes, uint32_t flags, const char* fileName, int32_t lineNumber);
 void operator delete(void* ptr, uint32_t flags, const char* fileName, int32_t lineNumber);
 

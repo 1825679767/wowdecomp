@@ -9,6 +9,7 @@
 #include "Engine/Source/BlizzardCore/Source/System/Lock/Lock.h"
 #include "Engine/Source/BlizzardCore/Source/System/Memory/AllocSTL.h"
 #include "Engine/Source/BlizzardCore/Source/System/Thread/Thread.h"
+#include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
 
 namespace System_MPQGlobals {
 
@@ -38,6 +39,7 @@ class Worker {
     /* 0010 */ void* m_param;
 
     Worker();
+    ~Worker();
 };
 
 class WorkerPool {
@@ -45,6 +47,7 @@ class WorkerPool {
     /* 0000 */ Blizzard::Lock::RMutex m_mutex;
     /* 0018 */ std::vector<Worker*> m_workers;
 
+    ~WorkerPool();
     void Acquire(uint32_t count, Worker** workers);
     void Release(uint32_t count, Worker** workers);
 };
@@ -58,6 +61,14 @@ class Globals {
     /* 0154 */ WorkerPool m_workerPool;
 
     Globals();
+    ~Globals();
+};
+
+class RegisterGlobalStorage : public Blizzard::Using::Use {
+    public:
+    static void Shutdown();
+
+    RegisterGlobalStorage();
 };
 
 extern Blizzard::Lock::ConstructOnce<Globals> s_globals;

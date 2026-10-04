@@ -13,6 +13,9 @@
 #include "Engine/Source/BlizzardCore/Source/System/Thread/Thread.h"
 #include "Engine/Source/BlizzardCore/Source/System/Time/Time.h"
 
+// STATIC: 0x00AB93EC
+static System_Log::UsingLog s_usingLog;
+
 // STATIC: 0x00B33C59
 bool System_Log::s_threadRunning;
 
@@ -563,4 +566,10 @@ void Blizzard::Log::Flush(int32_t logClass) {
         System_Log::FlushLogs(true);
         Blizzard::Lock::MutexLeave(System_Log::s_mutex);
     }
+}
+
+// INLINED
+System_Log::UsingLog::UsingLog() : Blizzard::Using::Use("Blizzard::Log") {
+    System_Using::Intern(this->m_name)->shutdownproc = System_Log::ShutdownProc;
+    Blizzard::Using::DependsOn("Blizzard::Log", "Blizzard::File");
 }

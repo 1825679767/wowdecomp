@@ -1,6 +1,9 @@
 #include <cstdint>
 #include "Engine/Source/BlizzardCore/Source/System/Memory/MemoryStorm.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
+
+static System_Memory::UsingMemory s_usingMemory;
 
 // VERIFY: 7ea46aa7 manual
 // OFFSET: 0x0042E390
@@ -38,4 +41,20 @@ void Blizzard::Memory::Free(void* ptr) {
 // OFFSET: 0x00428480
 void Blizzard::Memory::Free(void* ptr, uint32_t flags, const char* fileName, int32_t lineNumber) {
     SMemFree(ptr, fileName, lineNumber, (flags & 1) ? SMEM_FLAG_ZEROMEMORY : 0);
+}
+
+// VERIFY: 343a02cf auto
+// OFFSET: 0x005EEB70
+void System_Memory::ShutdownProc() {
+}
+
+// INLINED
+System_Memory::UsingMemory::UsingMemory() {
+    Blizzard::Using::StartUsing("Blizzard::Memory");
+    System_Using::Intern("Blizzard::Memory")->shutdownproc = System_Memory::ShutdownProc;
+}
+
+// INLINED
+System_Memory::UsingMemory::~UsingMemory() {
+    Blizzard::Using::StopUsing("Blizzard::Memory");
 }

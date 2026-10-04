@@ -68,11 +68,28 @@ class GlobalUse {
     ~GlobalUse();
 };
 
+class Use {
+    public:
+    /* 0000 */ const char* m_name;
+
+    Use(const char* name);
+    ~Use();
+};
+
 void DependsOn(const char* me, const char* dependsOn);
 void StartUsing(const char* name);
 void StopUsing(const char* name);
 
 }
+}
+
+namespace System_Using {
+
+class UsingGlobalUse : public Blizzard::Using::Use {
+    public:
+    UsingGlobalUse();
+};
+
 }
 
 #endif

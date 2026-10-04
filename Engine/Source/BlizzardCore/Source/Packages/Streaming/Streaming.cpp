@@ -10,6 +10,10 @@
 #include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Streaming.h"
 #include "Engine/Source/BlizzardCore/Source/System/String/String.h"
 #include "Engine/Source/BlizzardCore/Source/System/Time/Time.h"
+#include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
+
+// STATIC: 0x00AB93E8
+static Blizzard::Using::Use s_useFile("Blizzard::File");
 
 // STATIC: 0x00AB7AC8
 static uint8_t s_clientInitialized = 1;

@@ -4,14 +4,21 @@
 #include <cstddef>
 #include <cstdint>
 
-class WowMouse {
-    public:
-    /* 0004 */ void* m_hidManager;
+class HidManager;
 
-    virtual ~WowMouse();
-    virtual int32_t IsConnected();
+class SteelseriesMouse {
+    public:
+    virtual ~SteelseriesMouse();
+    virtual int32_t IsConnected() = 0;
+};
+
+class WowMouse : public SteelseriesMouse {
+    public:
+    /* 0004 */ HidManager* m_hidManager;
 
     WowMouse();
+    ~WowMouse() override;
+    int32_t IsConnected() override;
 };
 
 #endif

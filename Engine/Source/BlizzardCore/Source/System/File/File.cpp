@@ -12,6 +12,9 @@
 #include "Engine/Source/BlizzardCore/Source/System/Time/Time.h"
 #include "Engine/Source/BlizzardCore/Source/System/Thread/ThreadLocalStorage.h"
 
+// STATIC: 0x00AB935C
+static System_File::UsingFile s_usingFile;
+
 // STATIC: 0x00AB90B0
 Blizzard::File::Filesystem System_File::Stacked::s_initstack = {
     &System_File::Stacked::s_initstack,
@@ -1155,4 +1158,11 @@ bool Blizzard::File::RemoveDirectoryAndContents(const char* path, bool removeRea
     }
 
     return RemoveDirectory(buffer);
+}
+
+// INLINED
+System_File::UsingFile::UsingFile() : Blizzard::Using::Use("Blizzard::File") {
+    System_Using::Intern(this->m_name)->shutdownproc = System_File::Shutdown;
+    Blizzard::Using::DependsOn("Blizzard::File", "Blizzard::Memory");
+    Blizzard::Using::DependsOn("Blizzard::File", "Blizzard::ThreadLocalStorage");
 }

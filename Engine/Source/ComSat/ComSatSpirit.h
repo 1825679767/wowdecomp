@@ -17,13 +17,16 @@ struct SPIRIT_IPMR_STREAM {
 };
 
 struct SPIRIT_IPMR_INFO {
-    /* 0000 */ uint32_t unk_0000[6];
+    /* 0000 */ int16_t unk_0000;
+    /* 0002 */ int16_t unk_0002[7];
+    /* 0010 */ int16_t unk_0010[4];
     /* 0018 */ int16_t unk_0018;
+    /* 001A */ uint8_t unk_001A[2];
 };
 
 extern "C" int32_t SPIRIT_IP_MR_V3_1_GenerateTables(void* tables);
 extern "C" int32_t SPIRIT_IP_MR_V3_1_Init(void* state, const void* tables);
 extern "C" int32_t SPIRIT_IP_MR_V3_1_Encode(void* state, const uint8_t* pcm, SPIRIT_IPMR_PARAMS* params, SPIRIT_IPMR_STREAM* stream, SPIRIT_IPMR_INFO* info);
-extern "C" int32_t SPIRIT_IP_MR_V3_1_Decode(void* state, uint8_t* pcm, SPIRIT_IPMR_PARAMS* params, SPIRIT_IPMR_STREAM* stream, SPIRIT_IPMR_INFO* info);
+extern "C" int32_t SPIRIT_IP_MR_V3_1_Decode(void* state, uint8_t* pcm, SPIRIT_IPMR_PARAMS* params, SPIRIT_IPMR_STREAM* stream, int32_t lost);
 
 #endif

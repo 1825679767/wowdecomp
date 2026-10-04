@@ -41,6 +41,16 @@ class ComSatClientAllocator : public ComSat::Allocator {
     void Free(void* ptr) override;
 };
 
+class ComSatClientCallback : public ComSat::Interface::Callback {
+    public:
+    void NotifyLocalTalkerStart(uint8_t localTalker) override;
+    void NotifyLocalTalkerStop(uint8_t localTalker) override;
+    void NotifyTalkerStart(uint8_t localTalker, uint64_t session, uint64_t talker) override;
+    void NotifyTalkerStop(uint8_t localTalker, uint64_t session, uint64_t talker) override;
+    void NotifyLocalTalkerVoiceLevel(uint8_t localTalker, float level, bool talking) override;
+    void NotifyDeviceError(uint8_t localTalker) override;
+};
+
 int32_t ComSatClient_HasSession(int32_t type, const char* name);
 int32_t ComSatClient_FindSessionByTypeAndName(int32_t type, const char* name);
 int32_t ComSatClient_IsMemberInVoiceSession(WOWGUID guid, int32_t type, const char* name);

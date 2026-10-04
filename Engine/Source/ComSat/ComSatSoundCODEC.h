@@ -5,6 +5,7 @@
 #include <cstdint>
 #include "Engine/Source/ComSat/ComSatInterface.h"
 #include "Engine/Source/ComSat/ComSatMap.h"
+#include "Engine/Source/ComSat/SPIRIT/ipmr.h"
 
 namespace ComSat {
 namespace Sound {
@@ -41,7 +42,7 @@ class CODECIPMR6000 : public CODEC {
         public:
         /* 0004 */ Allocator* m_allocator;
         /* 0008 */ int32_t m_channelCount;
-        /* 000C */ uint8_t m_encoder[13504];
+        /* 000C */ uint8_t m_encoder[sizeof(SPIRIT_IPMR_STATE) + 16];
         /* 34CC */ uint8_t** m_decoders;
         /* 34D0 */ uint8_t* m_tables;
         /* 34D4 */ int32_t m_hangover;
@@ -65,7 +66,7 @@ class CODECIPMR6000 : public CODEC {
 
     /* 0008 */ bool m_initialized;
     /* 000C */ uint32_t m_maxChannels;
-    /* 0010 */ uint8_t m_tables[48096];
+    /* 0010 */ uint8_t m_tables[sizeof(SPIRIT_IPMR_TABLES) + 16];
     /* BBF0 */ Map<uint8_t, LocalPlayer*> m_players;
 
     virtual ~CODECIPMR6000();

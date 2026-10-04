@@ -1,6 +1,10 @@
 #include <cstdint>
 #include "Engine/Source/BlizzardCore/Source/Packages/Streaming/Storage.h"
 #include "Engine/Source/BlizzardCore/Source/System/String/String.h"
+#include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
+
+// STATIC: 0x00AB93C8
+static Blizzard::Using::Use s_useFile("Blizzard::File");
 
 // STATIC: 0x00B3818C
 int32_t Blizzard::Storage::s_variantIndex;

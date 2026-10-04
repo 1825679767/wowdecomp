@@ -1,6 +1,8 @@
 #include "ComSatClient.h"
 #include "Engine/Source/SoundEngine/SoundEngine.h"
 #include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/Os/Processor.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/ComSat/ComSatInterface.h"
 #include <cstring>
 #include "WoW/Source/Ui/RaidInfo.h"
@@ -35,6 +37,9 @@ int32_t s_voiceActivation;
 
 // STATIC: 0x00AF2A48
 static ComSatClientAllocator s_comsatAllocator;
+
+// STATIC: 0x00AF2A4C
+static ComSatClientCallback s_comsatCallback;
 
 // STATIC: 0x00D37CA4
 static float unk_D37CA4;
@@ -1241,6 +1246,7 @@ void Comsat::VoicePlateStart(uint64_t sessionId, uint64_t guid) {
     unk_D37CB0++;
 }
 
+// VERIFY: 1a5a08c9 auto
 // OFFSET: 0x007DBAC0
 static int32_t AcquireSingleInstanceMutex() {
     unk_D37D54.Create(1, "WOWCOMSATCLIENT12340");
@@ -1579,4 +1585,186 @@ void AddComSatCallback(uint32_t type, uint64_t a2, uint64_t a3) {
         callback->unk_0008 = a2;
         callback->unk_0010 = a3;
     }
+}
+
+// VERIFY: 5b40d473 auto
+// OFFSET: 0x007DCDC0
+void ComSatClientCallback::NotifyLocalTalkerStart(uint8_t localTalker) {
+    if (localTalker == 0 && s_currentSession >= 0) {
+        DebugLog("COMSAT_START: NotifyLocalTalkerStart\r\n");
+        s_localTalkerActive = 1;
+        AddComSatCallback(0, 0, 0);
+    }
+}
+
+// VERIFY: 9ec2a4a5 auto
+// OFFSET: 0x007DCE00
+void ComSatClientCallback::NotifyLocalTalkerStop(uint8_t localTalker) {
+    DebugLog("COMSAT_STOP: NotifyLocalTalkerStop\r\n");
+
+    if (localTalker == 0) {
+        s_localTalkerActive = 0;
+        AddComSatCallback(1, 0, 0);
+    }
+}
+
+// VERIFY: 46118eb3 auto
+// OFFSET: 0x007DCE40
+void ComSatClientCallback::NotifyTalkerStart(uint8_t localTalker, uint64_t session, uint64_t talker) {
+    DebugLog("COMSAT_START: NotifyTalkerStart\r\n");
+
+    if (localTalker == 0) {
+        AddComSatCallback(2, session, talker);
+    }
+}
+
+// VERIFY: 456c9b21 auto
+// OFFSET: 0x007DCE80
+void ComSatClientCallback::NotifyTalkerStop(uint8_t localTalker, uint64_t session, uint64_t talker) {
+    DebugLog("COMSAT_STOP: NotifyTalkerStop\r\n");
+
+    if (localTalker == 0) {
+        AddComSatCallback(3, session, talker);
+    }
+}
+
+// VERIFY: 05ae74ae auto
+// OFFSET: 0x0047ADD0
+void ComSatClientCallback::NotifyLocalTalkerVoiceLevel(uint8_t localTalker, float level, bool talking) {
+}
+
+// VERIFY: 39561cba auto
+// OFFSET: 0x00632050
+void ComSatClientCallback::NotifyDeviceError(uint8_t localTalker) {
+}
+
+// VERIFY: e3ca2f75 manual
+// OFFSET: 0x007DF9A0
+void ComSatThread::Init() {
+    s_pushToTalkKey = -1;
+    s_pushToTalkMouseButton = 0;
+
+    ComSat::Initialization init = {};
+    init.m_maxLocalPlayers = 1;
+    init.unk_0004 = 50;
+    init.m_time = OsGetAsyncTimeMs();
+    init.m_window = g_theGxDevicePtr->DeviceWindow();
+    init.m_port = 0;
+    init.m_maxChannels = 4;
+
+    ComSatThread::s_comsat = ComSat::Interface::Create(init, s_comsatAllocator);
+
+    if (!ComSatThread::s_comsat) {
+        return;
+    }
+
+    ComSatThread::s_comsat->CallbackSet(s_comsatCallback);
+    ComSat::DeviceInfo devices[8];
+    int32_t numDevices = ComSatThread::s_comsat->EnumerateOutputDevices(devices, 8);
+    UpdateConnectionState();
+
+    if (numDevices > 0) {
+        WOWGUID player = ClntObjMgrGetActivePlayer();
+        ComSatThread::s_comsat->LocalTalkerCreate(0, player.m_guid, 0.6f, 0, 0);
+        EventRegister(EVENT_ID_IDLE, VoiceChat_TickWrapper);
+    }
+
+    CVar* voiceChatMode = CVar::Lookup("VoiceChatMode");
+
+    if (voiceChatMode && voiceChatMode->m_intValue) {
+        s_voiceActivation = 1;
+    } else {
+        s_voiceActivation = 0;
+    }
+
+    ComSatThread::s_comsat->LocalTalkerEnable(0, false);
+    ComSatThread::s_comsat->DebugSetSequenceDelay(2);
+    ComSatThread::s_comsat->DebugSetSoundOutputDelay(0, 150);
+    s_voiceChatWasEnabled = 0;
+}
+
+// VERIFY: d13da458 auto
+// OFFSET: 0x007DFAF0
+void ComSatClient_Init() {
+    s_comsatDisabledByClient = 0;
+    s_cvarStartTalkingDelay = CVar::Lookup("StartTalkingDelay");
+    s_cvarStartTalkingTime = CVar::Lookup("StartTalkingTime");
+    s_cvarStopTalkingDelay = CVar::Lookup("StopTalkingDelay");
+    s_cvarStopTalkingTime = CVar::Lookup("StopTalkingTime");
+    ResetVoiceVolumeState();
+    CVar* outboundVolume = CVar::Lookup("OutboundChatVolume");
+    CVar* inboundVolume = CVar::Lookup("InboundChatVolume");
+    CVar* voiceChatMode = CVar::Lookup("VoiceChatMode");
+    CVar* sensitivity = CVar::Lookup("VoiceActivationSensitivity");
+    s_cvarEnableMicrophone = CVar::Lookup("EnableMicrophone");
+    s_cvarEnableVoiceChat = CVar::Lookup("EnableVoiceChat");
+    CVar::Lookup("VoiceChatSelfMute");
+    s_cvarPushToTalkButton = CVar::Lookup("PushToTalkButton");
+    s_cvarComSatSleepTime = nullptr;
+
+    if (!(OsGetProcessorFeatures() & 4)) {
+        s_comsatDisabledByClient = 1;
+        SE2::Log_Write(" -###########################################################################################");
+        SE2::Log_Write(" -# ERROR! SSE support is required for voice chat!");
+        SE2::Log_Write(" -# Voice Chat DISABLED.");
+        SE2::Log_Write(" -###########################################################################################");
+        return;
+    }
+
+    if (!AcquireSingleInstanceMutex()) {
+        s_comsatDisabledByClient = 1;
+        SE2::Log_Write(" -###########################################################################################");
+        SE2::Log_Write(" -# ERROR! Voice Chat does not support multiple clients on one computer.");
+        SE2::Log_Write(" -# Voice Chat DISABLED for this client.");
+        SE2::Log_Write(" -###########################################################################################");
+        return;
+    }
+
+    ComSatThread::Init();
+    s_pushToTalkModifiers = 0;
+    memset(s_comsatData, 0, sizeof(s_comsatData));
+    unk_D37CB8 = CVar::Lookup("Sound_SFXVolume");
+    unk_D37CBC = CVar::Lookup("Sound_MusicVolume");
+    unk_D37CC0 = CVar::Lookup("Sound_AmbienceVolume");
+    s_cvarChatSoundVolume = CVar::Lookup("ChatSoundVolume");
+    s_cvarChatMusicVolume = CVar::Lookup("ChatMusicVolume");
+    s_cvarChatAmbienceVolume = CVar::Lookup("ChatAmbienceVolume");
+
+    SE2::Log_Write(" ");
+    SE2::Log_Write("=> Voice Chat User Setting Report:");
+    SE2::Log_Write(" - ===========================");
+    SE2::Log_Write(" - Enable Voice Chat  [%d]", s_cvarEnableVoiceChat->m_intValue);
+    SE2::Log_Write(" ");
+    SE2::Log_Write(" - ========= TALKING =========");
+    SE2::Log_Write(" - Enable Microphone  [%d]", s_cvarEnableMicrophone->m_intValue);
+    SE2::Log_Write(" - Microphone Volume  [%.2f]", outboundVolume->m_floatValue);
+    SE2::Log_Write(" - Chat Mode          [%s]", voiceChatMode->m_intValue ? "VOICE ACTIVATED" : "PUSH TO TALK");
+
+    if (voiceChatMode->m_intValue) {
+        SE2::Log_Write(" - Sensitivity        [%.2f]", 1.0f - sensitivity->m_floatValue);
+    } else {
+        SE2::Log_Write(" - Push To Talk Key   [%s]", s_cvarPushToTalkButton->m_stringValue.m_str);
+    }
+
+    SE2::Log_Write(" ");
+    SE2::Log_Write(" - ======== LISTENING ========");
+    SE2::Log_Write(" - Speaker Volume     [%.2f]", inboundVolume->m_floatValue);
+    SE2::Log_Write(" - Sound ducking      [%.2f]", s_cvarChatSoundVolume->m_floatValue);
+    SE2::Log_Write(" - Music ducking      [%.2f]", s_cvarChatMusicVolume->m_floatValue);
+    SE2::Log_Write(" - Ambience ducking   [%.2f]", s_cvarChatAmbienceVolume->m_floatValue);
+    SE2::Log_Write("=> End of Voice Chat User Setting Report");
+    SE2::Log_Write(" ");
+
+    unk_D37DB0.InternalClear(0);
+    unk_D37D88.InternalClear(0);
+
+    int32_t voiceChatEnabled = s_cvarEnableVoiceChat->m_intValue;
+    int32_t microphoneEnabled = s_cvarEnableMicrophone->m_intValue;
+    CDataStore msg;
+    msg.Put(static_cast<uint32_t>(CMSG_VOICE_SESSION_ENABLE));
+    msg.Put(static_cast<uint8_t>(voiceChatEnabled != 0));
+    msg.Put(static_cast<uint8_t>(microphoneEnabled != 0));
+    msg.Finalize();
+    ClientServices::Send2(&msg);
+    s_localPlayer = ClntObjMgrGetActivePlayer();
 }

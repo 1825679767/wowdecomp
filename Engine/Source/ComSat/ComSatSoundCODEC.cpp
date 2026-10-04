@@ -106,7 +106,7 @@ bool ComSat::Sound::CODECIPMR6000::LocalPlayer::CompressRawData(const uint8_t* p
     return result == 0;
 }
 
-// VERIFY: 9fa1eded manual
+// VERIFY: 4909c6a3 manual
 // OFFSET: 0x00886A50
 bool ComSat::Sound::CODECIPMR6000::LocalPlayer::DecompressEncodedData(int32_t channel, const uint8_t* data, uint32_t bits, uint8_t* pcm, uint32_t* size) {
     if (bits > 960 || *size < 1600) {
@@ -129,7 +129,7 @@ bool ComSat::Sound::CODECIPMR6000::LocalPlayer::DecompressEncodedData(int32_t ch
     stream.m_data = data;
     int32_t result = 0;
     while (bits - stream.m_bits >= 72) {
-        result = SPIRIT_IP_MR_V3_1_Decode(this->m_decoders[channel], pcm, &params, &stream, nullptr);
+        result = SPIRIT_IP_MR_V3_1_Decode(this->m_decoders[channel], pcm, &params, &stream, 0);
         pcm += 320;
         if (result) {
             break;

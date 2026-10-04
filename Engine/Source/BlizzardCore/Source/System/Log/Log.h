@@ -7,6 +7,7 @@
 #include "Engine/Source/BlizzardCore/Source/System/Lock/Lock.h"
 #include "Engine/Source/BlizzardCore/Source/System/Thread/Thread.h"
 #include "Engine/Source/BlizzardCore/Source/System/Time/Types.h"
+#include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
 
 namespace Blizzard {
 namespace Log {
@@ -19,6 +20,11 @@ void Printf(int32_t logClass, const char* name, const char* format, ...);
 }
 
 namespace System_Log {
+
+class UsingLog : public Blizzard::Using::Use {
+    public:
+    UsingLog();
+};
 
 struct Pref {
     /* 0000 */ const char* m_mode;

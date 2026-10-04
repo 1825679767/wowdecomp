@@ -16,6 +16,10 @@
 #include "Engine/Source/BlizzardCore/Source/System/String/String.h"
 #include "Engine/Source/BlizzardCore/Source/System/Time/Time.h"
 #include "Engine/Source/BlizzardCore/Source/System/URL/URL.h"
+#include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
+
+// STATIC: 0x00AB938C
+static Blizzard::Using::Use s_useFile("Blizzard::File");
 
 // STATIC: 0x00AB909E
 static bool s_transportShouldBlock = true;

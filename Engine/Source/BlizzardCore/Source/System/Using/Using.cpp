@@ -23,6 +23,9 @@ int16_t System_Using::s_NextUsingID;
 // STATIC: 0x00B382C0
 int32_t System_Using::s_NextDependsID;
 
+// STATIC: 0x00AB93F4
+static System_Using::UsingGlobalUse s_usingGlobalUse;
+
 // VERIFY: 146a9c90 manual
 // OFFSET: 0x00429220
 uint32_t System_Using::UsingHashTable::Hash(const char* name) {
@@ -169,4 +172,21 @@ Blizzard::Using::GlobalUse::GlobalUse() {
 // INLINED
 Blizzard::Using::GlobalUse::~GlobalUse() {
     Blizzard::Using::StopUsing(this->m_name);
+}
+
+// INLINED
+Blizzard::Using::Use::Use(const char* name) {
+    this->m_name = name;
+    Blizzard::Using::StartUsing(name);
+}
+
+// INLINED
+Blizzard::Using::Use::~Use() {
+    Blizzard::Using::StopUsing(this->m_name);
+}
+
+// INLINED
+System_Using::UsingGlobalUse::UsingGlobalUse() : Blizzard::Using::Use("Blizzard::Using::GlobalUse") {
+    Blizzard::Using::DependsOn("Blizzard::Using::GlobalUse", "Blizzard::File");
+    Blizzard::Using::DependsOn("Blizzard::Using::GlobalUse", "Blizzard::Memory");
 }

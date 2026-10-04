@@ -1,6 +1,7 @@
 #ifndef ENGINE_SOURCE_BLIZZARDCORE_SOURCE_SYSTEM_FILE_FILE_H
 #define ENGINE_SOURCE_BLIZZARDCORE_SOURCE_SYSTEM_FILE_FILE_H
 
+#include "Engine/Source/BlizzardCore/Source/System/Using/Using.h"
 #include <cstdint>
 #include <windows.h>
 #include "Engine/Source/BlizzardCore/Source/System/Debug/ErrorStack.h"
@@ -73,6 +74,11 @@ bool Callback(const ProcessDirParms& parms);
 }
 
 namespace System_File {
+
+class UsingFile : public Blizzard::Using::Use {
+    public:
+    UsingFile();
+};
 
 struct FileError {
     /* 0000 */ int32_t m_lastError;

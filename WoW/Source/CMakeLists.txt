@@ -52,6 +52,7 @@ target_link_libraries(Wow
         ShaderEffect
         Tempest
         SoundEngine
+        SteelseriesMouse
         Storm
         WoWCommon
         Battlenet

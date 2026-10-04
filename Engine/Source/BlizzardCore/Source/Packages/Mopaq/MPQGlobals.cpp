@@ -7,6 +7,9 @@
 // STATIC: 0x00B33E58
 Blizzard::Lock::ConstructOnce<System_MPQGlobals::Globals> System_MPQGlobals::s_globals;
 
+// STATIC: 0x00B382C8
+static System_MPQGlobals::RegisterGlobalStorage s_registerGlobalStorage;
+
 // INLINED
 bool System_MPQGlobals::ArchiveLess::operator()(const System_SFile::ARCHIVEREC* a, const System_SFile::ARCHIVEREC* b) const {
     if (a->m_priority == b->m_priority) {
@@ -137,4 +140,46 @@ System_SFile::ARCHIVEREC* System_MPQGlobals::FindArchiveByName(const char* name)
     }
 
     return nullptr;
+}
+
+// VERIFY: 5ed0190a manual
+// OFFSET: 0x0044FDB0
+System_MPQGlobals::Globals::~Globals() {
+}
+
+// VERIFY: 7f085614 manual
+// OFFSET: 0x0044E4C0
+System_MPQGlobals::WorkerPool::~WorkerPool() {
+    for (std::vector<Worker*>::iterator it = this->m_workers.begin(); it != this->m_workers.end(); ++it) {
+        delete *it;
+    }
+}
+
+// VERIFY: a6b7e9bd manual
+// OFFSET: 0x0044C4D0
+System_MPQGlobals::Worker::~Worker() {
+    this->m_proc = nullptr;
+    Blizzard::Lock::EventSet(this->m_start.m_event);
+    Blizzard::Thread::WaitForever(this->m_thread);
+    Blizzard::Thread::Close(this->m_thread);
+}
+
+// VERIFY: 599afcc5 auto
+// OFFSET: 0x00451B40
+void System_MPQGlobals::RegisterGlobalStorage::Shutdown() {
+    if (s_globals.m_constructed) {
+        reinterpret_cast<Globals*>(s_globals.m_storage)->~Globals();
+        s_globals.m_constructed = false;
+        s_globals.m_count.m_value = 0;
+    }
+}
+
+// VERIFY: 6b56e30f manual
+// OFFSET: 0x00451C90
+System_MPQGlobals::RegisterGlobalStorage::RegisterGlobalStorage() : Blizzard::Using::Use("Blizzard::Mopaq") {
+    System_Using::Intern(this->m_name)->shutdownproc = System_MPQGlobals::RegisterGlobalStorage::Shutdown;
+    Blizzard::Using::DependsOn("Blizzard::Mopaq", "Blizzard::Memory");
+    Blizzard::Using::DependsOn("Blizzard::Mopaq", "Blizzard::File");
+    Blizzard::Using::DependsOn("Blizzard::Mopaq", "Blizzard::ThreadLocalStorage");
+    Blizzard::Using::DependsOn("Blizzard::ThreadLocalStorage", "Blizzard::Memory");
 }
