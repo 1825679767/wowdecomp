@@ -250,11 +250,11 @@ void CShadowQuery::AllocBuffers() {
         buffers.m_textured.m_maxCount = 0x2000;
 
         if (!buffers.m_groups) {
-            buffers.m_groups = SMemAlloc(0x2000, __FILE__, __LINE__, 0);
+            buffers.m_groups = SMemAlloc(0x800 * sizeof(CMapObjGroup*), __FILE__, __LINE__, 0);
         }
 
         if (!buffers.m_groupData) {
-            buffers.m_groupData = SMemAlloc(0x2000, __FILE__, __LINE__, 0);
+            buffers.m_groupData = SMemAlloc(0x800 * sizeof(C44Matrix*), __FILE__, __LINE__, 0);
         }
 
         if (!buffers.m_untextured.m_batches) {

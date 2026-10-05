@@ -234,7 +234,13 @@ void CShaderEffect::SetGlobalLighting(CM2Light* light) {
         sunSpec.z = CShaderEffect::s_sunSpec.z;
         sunSpec.w = 14.0f;
 
-        GxShaderConstantsSet(GxSh_Vertex, 12, &CShaderEffect::s_sunDir.x, 1);
+        C4Vector sunDirConst;
+        sunDirConst.x = CShaderEffect::s_sunDir.x;
+        sunDirConst.y = CShaderEffect::s_sunDir.y;
+        sunDirConst.z = CShaderEffect::s_sunDir.z;
+        sunDirConst.w = CShaderEffect::s_sunSpec.x;
+
+        GxShaderConstantsSet(GxSh_Vertex, 12, &sunDirConst.x, 1);
         GxShaderConstantsSet(GxSh_Vertex, 13, &sunSpec.x, 1);
     }
 }
@@ -561,9 +567,27 @@ void CShaderEffect::SetLocalLighting(CM2Lighting* lighting, int32_t enabled, con
     CShaderEffect::s_sunDiffuse.y = g >= 1.0f ? 1.0f : g;
     CShaderEffect::s_sunDiffuse.z = b < 1.0f ? b : 1.0f;
 
-    GxShaderConstantsSet(GxSh_Vertex, 10, &CShaderEffect::s_sunDiffuse.x, 1);
-    GxShaderConstantsSet(GxSh_Vertex, 11, &CShaderEffect::s_sunAmbient.x, 1);
-    GxShaderConstantsSet(GxSh_Vertex, 12, &CShaderEffect::s_sunDir.x, 1);
+    C4Vector sunDiffuse;
+    sunDiffuse.x = CShaderEffect::s_sunDiffuse.x;
+    sunDiffuse.y = CShaderEffect::s_sunDiffuse.y;
+    sunDiffuse.z = CShaderEffect::s_sunDiffuse.z;
+    sunDiffuse.w = CShaderEffect::s_sunAmbient.x;
+
+    C4Vector sunAmbient;
+    sunAmbient.x = CShaderEffect::s_sunAmbient.x;
+    sunAmbient.y = CShaderEffect::s_sunAmbient.y;
+    sunAmbient.z = CShaderEffect::s_sunAmbient.z;
+    sunAmbient.w = CShaderEffect::s_sunDir.x;
+
+    C4Vector sunDir;
+    sunDir.x = CShaderEffect::s_sunDir.x;
+    sunDir.y = CShaderEffect::s_sunDir.y;
+    sunDir.z = CShaderEffect::s_sunDir.z;
+    sunDir.w = CShaderEffect::s_sunSpec.x;
+
+    GxShaderConstantsSet(GxSh_Vertex, 10, &sunDiffuse.x, 1);
+    GxShaderConstantsSet(GxSh_Vertex, 11, &sunAmbient.x, 1);
+    GxShaderConstantsSet(GxSh_Vertex, 12, &sunDir.x, 1);
 
     if (CShaderEffect::s_localLightCount) {
         CShaderEffect::ComputeLocalLights(&CShaderEffect::s_localLights, CShaderEffect::s_localLightCount, lighting->m_lights, origin);

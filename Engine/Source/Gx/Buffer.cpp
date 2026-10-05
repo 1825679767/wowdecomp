@@ -100,8 +100,8 @@ static CGxVertexAttrib s_vertexAttribsPBNT2[] = {
 static CGxVertexAttrib s_vertexAttribsPNC2T2[] = {
     { GxVA_Position, 4, GxVertexAttribOffset(GxVBF_PNC2T2, GxVA_Position), 48 },
     { GxVA_Normal, 4, GxVertexAttribOffset(GxVBF_PNC2T2, GxVA_Normal), 48 },
-    { GxVA_Color0, 4, GxVertexAttribOffset(GxVBF_PNC2T2, GxVA_Color0), 48 },
-    { GxVA_Color1, 4, GxVertexAttribOffset(GxVBF_PNC2T2, GxVA_Color1), 48 },
+    { GxVA_Color0, 0, GxVertexAttribOffset(GxVBF_PNC2T2, GxVA_Color0), 48 },
+    { GxVA_Color1, 0, GxVertexAttribOffset(GxVBF_PNC2T2, GxVA_Color1), 48 },
     { GxVA_TexCoord0, 3, GxVertexAttribOffset(GxVBF_PNC2T2, GxVA_TexCoord0), 48 },
     { GxVA_TexCoord1, 3, GxVertexAttribOffset(GxVBF_PNC2T2, GxVA_TexCoord1), 48 }
 };
