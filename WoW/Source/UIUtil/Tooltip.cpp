@@ -4451,7 +4451,7 @@ static void AddItemTypeLines(CGTooltip* tooltip, const ItemStats_C* stats, CGPla
         return;
     }
 
-    if (subClass && stats->m_inventoryType != 16 && !(subClass->m_flags & 1) && subClass->m_displayName && *subClass->m_displayName) {
+    if (subClass && stats->m_inventoryType != 16 && !(subClass->m_displayFlags & 1) && subClass->m_displayName && *subClass->m_displayName) {
         SStrCopy(subClassName, subClass->m_displayName, sizeof(subClassName));
     }
 
