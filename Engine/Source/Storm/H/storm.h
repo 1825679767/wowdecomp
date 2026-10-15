@@ -277,9 +277,20 @@ void StormRtlDestroy();
 void StormRtlInitialize();
 int32_t STORMAPI StormSetOption(int32_t optname, void* optval, uint32_t optlen);
 
+#ifdef NDEBUG
+inline void DebugLog(const char* format, ...) {
+}
+
+inline void DebugLog(int32_t target, const char* format, ...) {
+}
+
+inline void DebugValidate(const char* expression) {
+}
+#else
 void DebugLog(const char* format, ...);
 void DebugLog(int32_t target, const char* format, ...);
 void DebugValidate(const char* expression);
+#endif
 
 // INLINED
 inline void* operator new(size_t bytes, const char* filename, int32_t linenumber) {
