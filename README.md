@@ -2,6 +2,10 @@
 
 A C++ decompilation of the World of Warcraft 3.3.5a client (`Wow.exe`, build 12340, June 2010).
 
+Join the discord for other clients and to show off some cool stuff you build.
+
+https://discord.gg/DsZMGUD8aT
+
 Every function is reconstructed from the original binary and keeps the address it came from in an
 `// OFFSET:` tag, so each one can be compared against the original. The source tree follows the layout
 of the original client (`Engine/Source/<Module>`, `WoW/Source/<Module>`, original file names).
