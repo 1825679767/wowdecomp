@@ -144,9 +144,6 @@
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
-// STATIC: 0x00ADB674
-static float s_emoteSoundHeight = 2.0f;
-
 // STATIC: 0x00ADAC04
 static INVENTORY_SLOTS s_virtualItemInvSlots[2] = { INVSLOT_MAINHAND, INVSLOT_OFFHAND };
 
@@ -307,9 +304,6 @@ static ClickToMoveActionInfo s_clickToMoveActions[12] = {
 // STATIC: 0x00ADAA20
 static const uint32_t s_effectAttachmentIds[16] = { 20, 34, 19, 21, 22, 17, 23, 24, 25, 15, 16, 37, 38, 22, 47, 48 };
 
-// STATIC: 0x00ADB630
-static const float s_attachmentHeights[50] = { 1.0f, 1.0f, 1.0f, 1.5f, 1.5f, 1.8f, 1.8f, 0.5f, 0.5f, 1.0f, 1.0f, 2.0f, 1.5f, 1.0f, 1.0f, 1.0f, 1.0f, 2.0f, 2.5f, 0.0f, 2.0f, 1.5f, 1.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 3.0f, 1.5f, 1.5f, 1.0f, 1.0f, 1.5f, 1.0f, 1.0f, 2.5f, 1.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
-
 // STATIC: 0x00CA1190
 static int32_t s_lastNPCSoundCount;
 
@@ -351,9 +345,6 @@ static float s_trackingDefaultInteractDistanceSq = s_trackingFollowDistance * s_
 
 // STATIC: 0x00ADAC18
 static uint32_t s_spellInterruptTrackingMask = 1;
-
-// STATIC: 0x00CA1600
-static uint32_t s_nextVictimImpactTime;
 
 // STATIC: 0x00ADBFDC
 static const char* s_combatTextTokens[12] = { "COMBAT_TEXT_NONE", "COMBAT_TEXT_MISS", "COMBAT_TEXT_RESIST", "COMBAT_TEXT_DODGE", "COMBAT_TEXT_PARRY", "COMBAT_TEXT_BLOCK", "COMBAT_TEXT_EVADE", "COMBAT_TEXT_IMMUNE", "COMBAT_TEXT_IMMUNE", "COMBAT_TEXT_DEFLECT", "COMBAT_TEXT_ABSORB", "COMBAT_TEXT_REFLECT" };
@@ -2351,33 +2342,6 @@ void CGUnit_C::SendSplineDone(uint32_t time, uint32_t splineId) {
     CGInputControl* input = CGInputControl::GetActive();
     input->UpdateHalted();
     input->UpdatePlayer(time, 1);
-}
-
-// VERIFY: b8716225 manual
-// OFFSET: 0x00755270
-void CGUnit_C::HandleEnvironmentDamage(uint32_t type, int32_t damage, int32_t absorbed, int32_t resisted) {
-    if (damage || absorbed || resisted) {
-        WOWGUID guid = this->m_obj->m_guid;
-        UnitCombatLog(guid, type, damage, absorbed, resisted);
-
-        if (this->IsActivePlayer()) {
-            uint32_t flags = absorbed ? 0x20 : 0;
-
-            if (resisted) {
-                flags |= 0x80;
-            }
-
-            WOWGUID target = this->m_obj->m_guid;
-            CGGameUI::ShowCombatFeedback(target, damage, 1 << s_environmentalDamageSchools[type], flags);
-        }
-    }
-
-    SpellVisualKitRec* kit = g_spellVisualKitDB.GetRecord(g_environmentalDamageVisualKits[type]);
-
-    if (kit) {
-        PlaySpellVisuaKitData data(nullptr, kit, 0);
-        this->PlaySpellVisualKit(data);
-    }
 }
 
 // VERIFY: 0a448404 manual
@@ -5734,18 +5698,6 @@ int32_t CGUnit_C::IsMissileTrajectoryUpdateWaitingForMissileRelease() const {
     return this->m_missileTrajectoryCastId && this->m_missileTrajectoryStart && this->m_missileTrajectoryReleased;
 }
 
-// VERIFY: 156171df auto
-// OFFSET: 0x006FBF80
-void CGUnit_C::PitchMissileTrajectoryTargetingNextFrame() {
-    s_pitchMissileTrajectoryTargetingNextFrame = 1;
-}
-
-// VERIFY: 3eb050df auto
-// OFFSET: 0x006FBF90
-void CGUnit_C::SetMissileTrajectoryTargetingSpell(uint32_t spellId) {
-    s_missileTrajectoryTargetingSpell = spellId;
-}
-
 // VERIFY: f0ab1eb4 auto
 // OFFSET: 0x00714AC0
 bool CGUnit_C::IsLocalClientControlled() const {
@@ -7395,122 +7347,6 @@ uint64_t CGUnit_C::GetAuraCaster(uint32_t index) {
     return creator.m_guid;
 }
 
-// VERIFY: 12476da9 auto
-// OFFSET: 0x00746340
-void CGUnit_C::KillCreatureLoopSound() {
-    SI2::StopSound(&this->m_loopSound, 0, 0.5f, 1);
-}
-
-// VERIFY: f678b1e1 auto
-// OFFSET: 0x00746360
-bool CGUnit_C::GetWeaponSwingType(bool offhand, int32_t* swingType) const {
-    if (!this->GetVirtualItemDisplayID(offhand == false)) {
-        *swingType = 0;
-        return true;
-    }
-
-    const CGUnitVirtualItem* item = this->GetVirtualItem(offhand == false, false);
-
-    if (!item || item->m_classID != 2) {
-        return false;
-    }
-
-    const ItemSubClassRec* subClass = SDBItemSubclassGetSubClassRec(2, item->m_subclassID);
-
-    if (subClass) {
-        *swingType = subClass->m_weaponSwingSize;
-    }
-
-    return subClass != nullptr;
-}
-
-// VERIFY: b66560c6 auto
-// OFFSET: 0x007463E0
-uint32_t CGUnit_C::GetImpactType() const {
-    if (this->m_soundData && this->m_soundData->m_creatureImpactType < 4) {
-        return s_impactTypes[this->m_soundData->m_creatureImpactType];
-    }
-
-    return 0;
-}
-
-// VERIFY: 22593312 auto
-// OFFSET: 0x007464D0
-void CGUnit_C::PlayFoleySound() {
-    static CVar* s_enableArmorFoley = CVar::Lookup("Sound_EnableArmorFoleySoundForOthers");
-
-    if (s_enableArmorFoley && s_enableArmorFoley->m_intValue) {
-        C3Vector position = this->GetPosition();
-        SI2::PlayFoleySound(this->m_modelData->m_foleyMaterialID, &position, 0);
-    }
-}
-
-// VERIFY: f4e40cf7 auto
-// OFFSET: 0x007465E0
-void CGUnit_C::PlayStandSound() {
-    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
-        this->PlayUnitSound(5, 0);
-    }
-}
-
-// VERIFY: 5cdf8669 auto
-// OFFSET: 0x00746900
-int32_t CGUnit_C::GetNewNPCSoundCount(int32_t count, int32_t* soundKitId, int32_t* soundIndex) const {
-    if (!this->m_displayInfo) {
-        return -1;
-    }
-
-    NPCSoundsRec* sounds = g_npcSoundsDB.GetRecord(this->m_displayInfo->m_npcsoundID);
-
-    if (!sounds || !sounds->m_soundID[0]) {
-        return -1;
-    }
-
-    if (count < 5) {
-        *soundKitId = sounds->m_soundID[0];
-        *soundIndex = -1;
-        return count + 1;
-    }
-
-    if (count - 5 < SI2::GetNumSoundsInSoundKit(sounds->m_soundID[2])) {
-        *soundIndex = count - 5;
-        *soundKitId = sounds->m_soundID[2];
-        return count + 1;
-    }
-
-    *soundKitId = sounds->m_soundID[0];
-    *soundIndex = -1;
-    return 0;
-}
-
-// VERIFY: 055965ad auto
-// OFFSET: 0x00746AD0
-void CGUnit_C::PlayEmoteStateSound(const C3Vector* position) {
-    EmotesRec* emote = g_emotesDB.GetRecord(this->m_unit->m_unitNpcEmotestate);
-
-    if (emote && emote->m_emoteSpecProc == 2) {
-        SI2::PlaySoundKit(emote->m_eventSoundID, position, nullptr, nullptr, 0, nullptr, 1, 0);
-    }
-}
-
-// VERIFY: c9c84a2c manual
-// OFFSET: 0x00746B30
-int32_t CGUnit_C::GetUnitSoundKitIndex(uint32_t soundType) const {
-    switch (soundType) {
-        case 0:
-        case 1:
-            return (this->m_creatureCacheEntry && (this->m_creatureCacheEntry->m_typeFlags & 0x20)) ? 15 : 9;
-
-        case 2:
-        case 3:
-        case 9:
-            return (this->m_creatureCacheEntry && (this->m_creatureCacheEntry->m_typeFlags & 0x20)) ? 16 : 11;
-
-        default:
-            return 0;
-    }
-}
-
 // VERIFY: f98b8e30 auto
 // OFFSET: 0x0074B880
 void CGUnit_C::VehiclePassengerInitWorldCameraState() {
@@ -7530,106 +7366,6 @@ void CGUnit_C::VehiclePassengerOnUninit() {
 int32_t CGUnit_C::HasVehicleTransport() const {
     uint32_t high = static_cast<uint32_t>(this->m_movementData.m_transportGuid.m_guid >> 32);
     return (high & 0xF0F00000) == 0xF0500000 || (!(high & 0xF0000000) && ((high & 0xF07FFFFF) | static_cast<uint32_t>(this->m_movementData.m_transportGuid.m_guid)));
-}
-
-// VERIFY: c6051623 auto
-// OFFSET: 0x0074B9A0
-uint32_t CGUnit_C::IsStrafingDisabled() const {
-    return this->m_movementData.m_flags2 & MOVEMENTFLAG2_NO_STRAFE;
-}
-
-// VERIFY: d8212e45 auto
-// OFFSET: 0x0074BB90
-uint32_t CGUnit_C::IsVehicleCurrentlyUnstoppable() const {
-    VehicleRec* vehicle = this->m_vehicle ? this->m_vehicle->m_vehicleRec : nullptr;
-
-    if (!vehicle) {
-        return 0;
-    }
-
-    return vehicle->m_flags & ((this->m_movement->m_flags & (MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING)) ? 0x100 : 0x80);
-}
-
-// VERIFY: 64e4513d auto
-// OFFSET: 0x00754EF0
-const CGUnitVirtualItem* CGUnit_C::GetParryingItem(bool offhand) const {
-    const CGUnitVirtualItem* item = this->GetVirtualItem(0, false);
-
-    if (offhand || (item && item->m_classID != 2)) {
-        item = this->GetVirtualItem(1, false);
-
-        if (item && item->m_classID != 2 && item->m_classID != 4) {
-            return nullptr;
-        }
-    }
-
-    return item;
-}
-
-// VERIFY: 7a0f5b4d auto
-// OFFSET: 0x00754F40
-int32_t CGUnit_C::GetUnitSize() const {
-    int32_t size = this->m_displayInfo->m_sizeClass;
-
-    if (size == -1) {
-        return this->m_modelData->m_sizeClass;
-    }
-
-    return size;
-}
-
-// VERIFY: 94a622f4 auto
-// OFFSET: 0x00755540
-const CGUnitVirtualItem* CGUnit_C::GetAttackingWeapon(int32_t hand, bool requireLoadedModel) const {
-    if (!this->m_sheatheState) {
-        return nullptr;
-    }
-
-    const CGUnitVirtualItem* item = this->GetVirtualItem(hand != 0, false);
-
-    if (!item || item->m_classID != 2) {
-        return nullptr;
-    }
-
-    if (!requireLoadedModel) {
-        return item;
-    }
-
-    CM2Model* model = this->m_worldModel;
-
-    if (!model || !model->IsLoaded(0, 0)) {
-        return nullptr;
-    }
-
-    CM2Model* attached = model->m_attachList;
-
-    if (!attached) {
-        return nullptr;
-    }
-
-    while (attached->m_attachmentId != (hand != 0) + 1) {
-        attached = attached->m_attachNext;
-
-        if (!attached) {
-            return nullptr;
-        }
-    }
-
-    if (attached->IsLoaded(0, 0)) {
-        return item;
-    }
-
-    return nullptr;
-}
-
-// VERIFY: 2e85141a manual
-// OFFSET: 0x007559E0
-void CGUnit_C::StopAttack() {
-    CDataStore msg;
-    msg.Put(static_cast<uint32_t>(CMSG_ATTACK_STOP));
-    msg.Finalize();
-    ClientServices::Send2(&msg);
-    this->m_stopAttackSent = 1;
 }
 
 // VERIFY: 5a947930 auto
@@ -8059,99 +7795,10 @@ void CGUnit_C::SetMaxAlpha(float alpha) {
     }
 }
 
-// VERIFY: d0b7eaae manual
-// OFFSET: 0x00746720
-void CGUnit_C::PlaySplashSound(const C3Vector* position) {
-    static CVar* s_listenerAtCharacter = CVar::Lookup("Sound_ListenerAtCharacter");
-
-    int32_t activeMover;
-    int32_t listenerAtCharacter;
-
-    if (s_activeMover != this->m_obj->m_guid) {
-        activeMover = 0;
-        listenerAtCharacter = 0;
-    } else {
-        activeMover = 1;
-        listenerAtCharacter = s_listenerAtCharacter->m_intValue ? 1 : 0;
-    }
-
-    SE2SoundKitProperties properties;
-    properties.ResetToDefaults();
-
-    if (activeMover) {
-        properties.m_priority = 110;
-
-        if (listenerAtCharacter) {
-            properties.m_volumeScale = 0.64999998f;
-        }
-    }
-
-    properties.m_group = 8;
-    SI2::PlaySoundKit(this->m_splashSoundKitId, listenerAtCharacter ? nullptr : position, nullptr, &properties, 0, nullptr, 1, 0);
-}
-
-// VERIFY: e49e815c auto
-// OFFSET: 0x007469C0
-void CGUnit_C::PlayAISound(int32_t soundKitId) {
-    SI2::StopSound(&this->m_npcSound, 1, -1.0f, 1);
-
-    static CVar* s_listenerAtCharacter = CVar::Lookup("Sound_ListenerAtCharacter");
-
-    if (s_activeMover == this->m_obj->m_guid && s_listenerAtCharacter->m_intValue) {
-        SE2SoundKitProperties properties;
-        properties.ResetToDefaults();
-        properties.m_volumeScale = 0.64999998f;
-        properties.m_priority = 110;
-        SI2::PlaySoundKit(soundKitId, nullptr, &this->m_aiSound, &properties, 0, nullptr, 1, 0);
-    } else {
-        C3Vector position = this->GetPosition();
-        SI2::PlaySoundKit(soundKitId, &position, &this->m_aiSound, nullptr, 0, nullptr, 1, 0);
-        SI2::AttachToObject(&this->m_aiSound, this->m_obj->m_guid);
-    }
-}
-
-// VERIFY: b56823a7 manual
-// OFFSET: 0x007470D0
-void CGUnit_C::PlayDismountSound() {
-    static CVar* s_listenerAtCharacter = CVar::Lookup("Sound_ListenerAtCharacter");
-
-    int32_t activeMover;
-    int32_t listenerAtCharacter;
-
-    if (s_activeMover != this->m_obj->m_guid) {
-        activeMover = 0;
-        listenerAtCharacter = 0;
-    } else {
-        activeMover = 1;
-        listenerAtCharacter = s_listenerAtCharacter->m_intValue ? 1 : 0;
-    }
-
-    C3Vector position = this->GetPosition();
-
-    SE2SoundKitProperties properties;
-    properties.ResetToDefaults();
-
-    if (activeMover) {
-        properties.m_priority = 110;
-
-        if (listenerAtCharacter) {
-            properties.m_volumeScale = 0.64999998f;
-        }
-    }
-
-    SI2::PlaySoundKit(s_dismountSoundKitId, listenerAtCharacter ? nullptr : &position, nullptr, &properties, 0, nullptr, 1, 0);
-}
-
 // VERIFY: c0baa56a auto
 // OFFSET: 0x0074B840
 int32_t CGUnit_C::VehiclePassengerIsTransitionAllowed(const VehicleSeatRec* seat, int32_t checkSeat) const {
     return (this->m_clientFlags & 0x20000000) || (checkSeat && seat && (seat->m_flagsB & 0x1000000));
-}
-
-// VERIFY: 561780c9 auto
-// OFFSET: 0x0074BB60
-int32_t CGUnit_C::ShouldUseVehicleSeatExitAnimation(const VehicleSeatRec* seat) const {
-    return seat->m_flags & ((this->m_movementData.m_flags2 & 0x40) ? 0x8 : 0x8000);
 }
 
 // VERIFY: 71f105c7 manual
@@ -8770,16 +8417,6 @@ int32_t CGUnit_C::AddPassenger(CPassenger* passenger, int32_t a2) {
     return this->m_vehicle->AddPassenger(passenger);
 }
 
-// VERIFY: 9082d6a5 auto
-// OFFSET: 0x006FC290
-void CGUnit_C::OnRemoteMissileTrajectoryCollision(MissileCollisionData* data) {
-    for (CMissile* missile = this->m_missiles; missile; missile = missile->m_next) {
-        if (missile->m_casterGuid == data->m_casterGuid && missile->m_castID == data->m_castID) {
-            missile->SetRemoteCollisionPos(data->m_position);
-        }
-    }
-}
-
 // VERIFY: 97ef0b7c auto
 // OFFSET: 0x0071F540
 int32_t CGUnit_C::GetVirtualItemDisplayRec(uint32_t slot, ItemDisplayInfoRec& rec) const {
@@ -8986,66 +8623,6 @@ void CGUnit_C::ToggleRunModeLocal(uint32_t eventTime) {
 // OFFSET: 0x0071F890
 bool CGUnit_C::CanAssist(const CGCorpse_C* corpse) const {
     return this->UnitReaction(corpse) >= 4;
-}
-
-// VERIFY: 034a2c24 auto
-// OFFSET: 0x007467F0
-void CGUnit_C::CheckLoopSound() {
-    CreatureSoundDataRec* soundData = this->GetSoundData();
-
-    if (this->m_unit->m_unitFieldHealth > 0 && !(this->m_unit->m_unitFieldFlags2 & 0x1) && soundData && soundData->m_loopSoundID && !SI2::IsPlaying(&this->m_loopSound)) {
-        C3Vector position = this->GetPosition();
-
-        if (SI2::IsPlaying(&this->m_loopSound) || SI2::IsTooCloseToExistingSoundKit(soundData->m_loopSoundID, &position)) {
-            return;
-        }
-
-        SE2SoundKitProperties properties;
-        properties.ResetToDefaults();
-        properties.m_loopMode = 1;
-        properties.m_maxAudibleBehavior = 0;
-        properties.m_streaming = true;
-        SI2::PlaySoundKit(soundData->m_loopSoundID, &position, &this->m_loopSound, &properties, 0, nullptr, 1, 0);
-        SI2::AttachToObject(&this->m_loopSound, this->m_obj->m_guid);
-        return;
-    }
-
-    SI2::StopSound(&this->m_loopSound, 0, 0.5f, 1);
-}
-
-// VERIFY: 13e3e5f1 auto
-// OFFSET: 0x00746BD0
-C3Vector CGUnit_C::GetAttachmentPosition(uint32_t attachId, const C3Vector* offset) {
-    CM2Model* model = this->m_worldModel;
-
-    if (model && model->IsLoaded(0, 0) && model->HasAttachment(attachId)) {
-        if (!offset || (offset->x == 0.0f && offset->y == 0.0f && offset->z == 0.0f)) {
-            return model->GetAttachmentPosition(attachId);
-        }
-
-        return *offset * model->GetAttachmentWorldTransform(attachId);
-    }
-
-    C3Vector position(0.0f, 0.0f, 0.0f);
-
-    if (offset) {
-        position = *offset;
-    }
-
-    if (attachId <= 49) {
-        position.z = s_attachmentHeights[attachId] + position.z;
-    }
-
-    if (!offset || (offset->x == 0.0f && offset->y == 0.0f && offset->z == 0.0f)) {
-        C3Vector base = this->m_vehiclePassenger ? this->GetModelPosition() : this->GetPosition();
-        position.x = base.x + position.x;
-        position.y = base.y + position.y;
-        position.z = base.z + position.z;
-    } else {
-        position *= this->m_vehiclePassenger ? this->GetModelMatrix() : this->GetMatrix();
-    }
-
-    return position;
 }
 
 // VERIFY: 2fefd292 manual
@@ -9461,18 +9038,6 @@ bool CGUnit_C::ShouldKneelForLoot() const {
     return !(target->m_obj->m_type & TYPEMASK_ITEM);
 }
 
-// VERIFY: dcad4d49 auto
-// OFFSET: 0x0074B9B0
-void CGUnit_C::SetVehicleExitVoluntary(int32_t enable) {
-    this->m_movementData.SetVehicleExitVoluntary(enable);
-}
-
-// VERIFY: 5d120117 auto
-// OFFSET: 0x0074BB20
-void CGUnit_C::OnDismissControlledVehicleLocal(uint32_t eventTime) {
-    this->m_movementData.OnDismissControlledVehicleLocal(eventTime);
-}
-
 // VERIFY: 1fe5076b manual
 // OFFSET: 0x0071A260
 void CGUnit_C::SetEmoteQueue(const QUESTGIVEREMOTENODE* nodes, uint32_t count) {
@@ -9592,12 +9157,6 @@ int32_t CGUnit_C::ChooseLootAnim(uint32_t flags, uint32_t* animId) {
 
     *animId = 50;
     return 1;
-}
-
-// VERIFY: 26b35972 auto
-// OFFSET: 0x0074BB30
-void CGUnit_C::OnChangeSeatsOnControlledVehicleLocal(uint32_t eventTime, WOWGUID transport, uint8_t seat) {
-    this->m_movementData.OnChangeSeatsOnControlledVehicleLocal(eventTime, transport, seat);
 }
 
 // VERIFY: ecaae3a5 auto
@@ -10147,21 +9706,6 @@ void CGUnit_C::OnCollideFalling() {
     }
 
     this->PlayBaseAnimation(ANIM_FALL, 0);
-}
-
-// VERIFY: 51ad0765 auto
-// OFFSET: 0x0074C750
-void CGUnit_C::CreateVehicleData(const CClientObjCreate* create, int32_t vehicleId) {
-    if (this->m_vehicle) {
-        this->m_vehicle->ReceiveVehicleRecIDFromServer(vehicleId);
-        return;
-    }
-
-    this->m_vehicle = CVehicle_C::Create(create, this, vehicleId);
-
-    if ((this->m_modelFlags & 0x40000) && this->IsActivePlayer()) {
-        this->SignalPlayerGainsVehicleDataEvent();
-    }
 }
 
 // VERIFY: 8cfa7612 auto
@@ -10757,33 +10301,6 @@ void CGUnit_C::ClearWeaponTrailHandles() {
             WeaponTrailClose(this->m_weaponTrails[i]);
             this->m_weaponTrails[i] = nullptr;
         }
-    }
-}
-
-// VERIFY: abf1b455 auto
-// OFFSET: 0x0074BC50
-void CGUnit_C::SignalPlayerLosesVehicleDataEvent() {
-    WOWGUID guid = this->m_obj->m_guid;
-    int32_t count;
-    char** tokens = Script_GetTokenIDsFromGUID(guid, &count);
-
-    for (int32_t i = 0; i < count; i++) {
-        FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_LOSES_VEHICLE_DATA, "%s", tokens[i]);
-    }
-}
-
-// VERIFY: d3f8bddf auto
-// OFFSET: 0x0074C7B0
-void CGUnit_C::DestroyVehicleData(int32_t removePassengers) {
-    if (!this->m_vehicle) {
-        return;
-    }
-
-    this->m_vehicle->Destroy(removePassengers);
-    this->m_vehicle = nullptr;
-
-    if (this->IsActivePlayer()) {
-        this->SignalPlayerLosesVehicleDataEvent();
     }
 }
 
@@ -12407,31 +11924,6 @@ void CGUnit_C::HandleNPCFeedback() {
     }
 }
 
-// VERIFY: 7160120e manual
-// OFFSET: 0x0074CE40
-void CGUnit_C::OnVehicleCameraPossiblyNeeded() {
-    if (!this->m_vehiclePassenger || !this->m_vehiclePassenger->m_state || this->m_vehicleCamera) {
-        return;
-    }
-
-    CGCamera* camera = CGWorldFrame::GetActiveCamera();
-
-    if (!camera) {
-        return;
-    }
-
-    CVehicleCamera_C* activeVehicleCamera = camera->m_vehicleCamera;
-    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
-
-    if (this->IsActivePlayer() || this->m_obj->m_guid == camera->m_targetGUID || (player && player->FindRootVehicleOfPassengerChain(this) == this) || (activeVehicleCamera && activeVehicleCamera->m_unit && activeVehicleCamera->m_unit != player && activeVehicleCamera->m_unit->FindRootVehicleOfPassengerChain(this) == this)) {
-        this->CreateVehicleCamera();
-
-        if (this->m_vehicleCamera && this->m_vehicleCamera != camera->m_vehicleCamera && !this->m_vehicleCamera->AttachToHierarchy()) {
-            this->DestroyVehicleCamera();
-        }
-    }
-}
-
 // VERIFY: e4a08d14 manual
 // OFFSET: 0x0071B7F0
 bool CGUnit_C::IsOutdoors() const {
@@ -13395,35 +12887,6 @@ void CGUnit_C::FaceTarget(const WOWGUID& target, int32_t flush) {
     }
 }
 
-// VERIFY: a7438679 auto
-// OFFSET: 0x0074C040
-int32_t CGUnit_C::DeferVehicleTransitionSpline(CDataStore* msg, uint64_t transport, uint8_t seat) {
-    if (this->m_vehiclePassenger) {
-        this->m_vehiclePassenger->DeleteAllDeferredVehicleTransitionAnimSplines();
-        this->m_vehiclePassenger->StopWaitingForVehicleTransitionAnim();
-    }
-
-    int32_t result = this->VehiclePassengerShouldWaitForVehicleTransitionAnim(transport, seat);
-
-    if (!result) {
-        return result;
-    }
-
-    this->m_movementData.FlushMoveQueue(0, 0);
-
-    if (!this->m_vehiclePassenger) {
-        this->m_vehiclePassenger = CVehiclePassenger_C::Alloc(this);
-    }
-
-    this->m_vehiclePassenger->StartDeferringVehicleTransitionAnimSpline(msg);
-
-    if (!this->VehiclePassengerStartWaitingForVehicleTransitionAnim(transport, seat)) {
-        this->m_vehiclePassenger->ExecuteAllDeferredVehicleTransitionAnimSplines();
-    }
-
-    return 1;
-}
-
 // VERIFY: 12cc204b manual
 // OFFSET: 0x0073F590
 int32_t CGUnit_C::HandleMonsterMovePacket(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
@@ -13942,241 +13405,6 @@ void CGUnit_C::PlayAttackerRound(const ATTACKROUNDINFO& info) {
     }
 }
 
-// VERIFY: 4da467b9 manual
-// OFFSET: 0x00755630
-void ATTACKROUNDINFO::Unpack(CDataStore& msg) {
-    msg.Get(this->m_hitInfo);
-    msg >> *reinterpret_cast<SmartGUID*>(&this->m_attacker);
-    msg >> *reinterpret_cast<SmartGUID*>(&this->m_target);
-    msg.Get(reinterpret_cast<uint32_t&>(this->m_damage));
-    msg.Get(reinterpret_cast<uint32_t&>(this->m_overkill));
-    uint8_t count;
-    msg.Get(count);
-
-    for (uint8_t i = 0; i < count; i++) {
-        msg.Get(this->m_schoolMask[i]);
-        msg.Get(this->m_subDamage[i]);
-        msg.Get(this->m_subDamageInt[i]);
-    }
-
-    if (this->m_hitInfo & 0x60) {
-        for (uint8_t i = 0; i < count; i++) {
-            msg.Get(this->m_absorbed[i]);
-        }
-    }
-
-    if (this->m_hitInfo & 0x180) {
-        for (uint8_t i = 0; i < count; i++) {
-            msg.Get(this->m_resisted[i]);
-        }
-    }
-
-    uint8_t victimState;
-    msg.Get(victimState);
-    this->m_victimState = victimState;
-    msg.Get(this->unk_0058);
-    msg.Get(this->m_meleeSpellId);
-
-    if (this->m_hitInfo & 0x2000) {
-        msg.Get(this->m_blocked);
-    }
-
-    if (this->m_hitInfo & 0x800000) {
-        msg.Get(this->m_rageGained);
-    }
-
-    if (this->m_hitInfo & 0x1) {
-        msg.Get(this->unk_0068);
-
-        for (uint32_t i = 0; i < 8; i++) {
-            msg.Get(this->unk_006C[i]);
-        }
-
-        for (uint32_t i = 0; i < 2; i++) {
-            msg.Get(this->unk_0024[i]);
-            msg.Get(this->unk_002C[i]);
-        }
-
-        msg.Get(this->unk_008C[0]);
-    }
-
-    if (ClntObjMgrObjectPtr(this->m_target, TYPEMASK_UNIT, __FILE__, __LINE__) && !this->m_damage && this->m_blocked) {
-        this->m_victimState = 5;
-    }
-}
-
-// VERIFY: 6ec92b3f manual
-// OFFSET: 0x00756180
-void CGUnit_C::ClearAttackRound() {
-    if (!this->m_lastAttackRound.m_attacker.m_guid || !this->m_lastAttackRound.m_target.m_guid) {
-        return;
-    }
-
-    CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_lastAttackRound.m_target, TYPEMASK_UNIT, __FILE__, __LINE__));
-
-    if (target) {
-        target->PlayVictimWorldFeedback(this->m_lastAttackRound);
-    }
-
-    memset(&this->m_lastAttackRound, 0, sizeof(ATTACKROUNDINFO));
-}
-
-// VERIFY: a8a61e30 manual
-// OFFSET: 0x00756770
-void CGUnit_C::OnAttackStop(uint64_t target, int32_t faceTarget) {
-    this->m_combat.m_attacking = WOWGUID{ 0 };
-    this->m_combat.m_attackSent = 0;
-    this->m_stopAttackSent = 0;
-    this->ClearAttackRound();
-
-    if (!target || !faceTarget) {
-        return;
-    }
-
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ target }, TYPEMASK_UNIT, __FILE__, __LINE__));
-
-    if (unit) {
-        this->m_clientFlags |= 0x1;
-        C3Vector targetPosition = unit->GetPosition();
-        C3Vector position = this->GetPosition();
-        this->m_scriptedFacing = CalculateFacingTo(&position, &targetPosition);
-    }
-}
-
-// VERIFY: 161e4292 manual
-// OFFSET: 0x00756800
-int32_t Packet_Group_29(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
-    switch (msgId) {
-        case SMSG_ATTACK_START: {
-            WOWGUID attacker;
-            WOWGUID victim;
-            msg->Get(attacker.m_guid);
-            msg->Get(victim.m_guid);
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
-
-            if (!unit) {
-                return 0;
-            }
-
-            unit->m_combat.m_attackSent = 0;
-            unit->SetAttacking(victim);
-
-            if (!unit->IsActivePlayer()) {
-                return 1;
-            }
-
-            FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_ENTER_COMBAT, nullptr);
-            CGGameUI::UpdateCombatMode();
-            return 1;
-        }
-        case SMSG_ATTACK_STOP:
-        case SMSG_COMBAT_EVENT_FAILED: {
-            SmartGUID attacker;
-            SmartGUID victim;
-            *msg >> attacker;
-            *msg >> victim;
-            uint32_t faceTarget;
-            msg->Get(faceTarget);
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
-
-            if (unit) {
-                unit->OnAttackStop(victim.m_guid, faceTarget);
-
-                if (unit->IsActivePlayer()) {
-                    FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_LEAVE_COMBAT, nullptr);
-                    CGGameUI::UpdateCombatMode();
-                }
-            }
-
-            return 1;
-        }
-        case SMSG_ATTACKSWING_NOTINRANGE:
-            SetAttackSwingError(1);
-            return 0;
-        case SMSG_ATTACKSWING_BADFACING:
-            SetAttackSwingError(2);
-            return 0;
-        case SMSG_ATTACKSWING_DEADTARGET:
-        case SMSG_ATTACKSWING_CANT_ATTACK: {
-            CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
-
-            if (!player) {
-                return 0;
-            }
-
-            player->SetCombatMode();
-            return 0;
-        }
-        case SMSG_ATTACKER_STATE_UPDATE: {
-            ATTACKROUNDINFO info;
-            info.Unpack(*msg);
-            CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
-
-            if (attacker) {
-                if (attacker->m_sheatheState != 1) {
-                    attacker->SetSheatheState(1, 1, 0);
-                }
-
-                attacker->m_combat.m_attackSent = 0;
-                attacker->ClearAttackRound();
-                attacker->m_lastAttackRound = info;
-                CGUnit_C* victim = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_target, TYPEMASK_UNIT, __FILE__, __LINE__));
-
-                if (attacker->IsActivePlayer() && victim) {
-                    static_cast<CGPlayer_C*>(attacker)->UpdateAttackPosition(victim);
-                }
-
-                attacker->PlayAttackerRound(info);
-
-                if (attacker->m_lastAttackRound.m_target == ClntObjMgrGetActivePlayer()) {
-                    WOWGUID guid = attacker->m_obj->m_guid;
-                    TargetAttacker(guid);
-                }
-
-                if (attacker->IsAutoTracking() && !attacker->IsActiveMoverTracking(4)) {
-                    attacker->ClearTrackingTarget(true, true);
-                }
-            } else {
-                CGUnit_C* victim = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_target, TYPEMASK_UNIT, __FILE__, __LINE__));
-
-                if (victim) {
-                    victim->PlayVictimRound(info);
-                }
-            }
-
-            UnitCombatLog(info);
-            return 0;
-        }
-        case SMSG_ENVIRONMENTAL_DAMAGE_LOG: {
-            uint64_t guid = 0;
-            msg->Get(guid);
-            uint8_t type = 0;
-            msg->Get(type);
-            uint32_t damage = 0;
-            msg->Get(damage);
-            uint32_t absorbed = 0;
-            msg->Get(absorbed);
-            uint32_t resisted = 0;
-            msg->Get(resisted);
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ guid }, TYPEMASK_UNIT, __FILE__, __LINE__));
-
-            if (unit) {
-                unit->HandleEnvironmentDamage(type, damage, absorbed, resisted);
-            }
-
-            return 1;
-        }
-        case SMSG_CLEAR_TARGET: {
-            uint64_t guid;
-            msg->Get(guid);
-            CGGameUI::ClearTarget(WOWGUID{ guid }, 1);
-            return 0;
-        }
-        default:
-            return 0;
-    }
-}
-
 // VERIFY: dbeaaa32 manual
 // OFFSET: 0x007300A0
 int32_t Packet_AuraUpdate(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
@@ -14495,61 +13723,6 @@ void CGUnit_C::SetSheatheState(uint32_t showWeapons, int32_t instant, int32_t no
     }
 }
 
-// VERIFY: f28002be manual
-// OFFSET: 0x00755E40
-void CGUnit_C::PlayVictimRound(const ATTACKROUNDINFO& info) {
-    if (this->m_unit->m_unitDynamicFlags & 0x1) {
-        return;
-    }
-
-    this->PlayVictimWorldFeedback(info);
-
-    if (info.m_hitInfo & 0x2) {
-        this->PlayWoundAnimKit(info.m_hitInfo & 0x200);
-
-        if ((info.m_damage || (info.m_hitInfo & 0x1000000)) && (info.m_victimState == 1 || info.m_victimState == 4)) {
-            WOWGUID attacker = info.m_attacker;
-            this->ShowBloodSpurt(attacker, info.m_hitInfo & 0x8000);
-        }
-    }
-
-    if (this->DoNotPlayWoundAnim()) {
-        uint32_t now = FrameTime::s_curTimeMs;
-
-        if (now <= s_nextVictimImpactTime) {
-            return;
-        }
-
-        s_nextVictimImpactTime = static_cast<uint32_t>((static_cast<uint64_t>(CRandom::uint32_(g_rndSeed)) * 2000) >> 32) + now + 3000;
-    }
-
-    if (info.m_victimState == 3) {
-        C3Vector position = this->GetPosition();
-        this->SetImpactKitEffect(false, &info, &position);
-    } else if (info.m_blocked) {
-        C3Vector position = this->GetPosition();
-        this->SetImpactKitEffect(true, &info, &position);
-    } else if (info.m_victimState == 8) {
-        C3Vector position = this->GetPosition();
-        position.z += 2.0f;
-        SI2::PlaySoundKit("(DONOTRENAME)ShieldWoodImpact", &position, nullptr, nullptr);
-    }
-
-    if ((info.m_hitInfo & 0xA0) || info.m_victimState == 7) {
-        C3Vector position = this->GetPosition();
-        position.z += 2.0f;
-        SI2::PlaySoundKit("(DONOTRENAME)AbsorbGetHit", &position, nullptr, nullptr);
-    } else if (info.m_hitInfo & 0x2) {
-        if (info.m_hitInfo & 0x20000) {
-            this->PlayUnitSound(9, 0);
-        } else if (info.m_hitInfo & 0x200) {
-            this->PlayUnitSound(3, 0);
-        } else if (!(info.m_hitInfo & 0x10)) {
-            this->PlayUnitSound(2, 0);
-        }
-    }
-}
-
 // VERIFY: 4d7f7127 manual
 // OFFSET: 0x00722CF0
 void CGUnit_C::ModifyPredictedPower(int32_t powerType, int32_t delta) {
@@ -14635,19 +13808,6 @@ void CGUnit_C::SetLocalClientControl(bool control) {
         if (this->m_clientFlags & 0x400) {
             this->VehiclePassengerUpdateWorldCameraStateInstantly();
         }
-    }
-}
-
-// VERIFY: 396eb2a7 auto
-// OFFSET: 0x0074C4A0
-void CGUnit_C::VehiclePassengerUpdateWorldCameraStateInstantly() {
-    CVehiclePassenger_C* passenger = this->m_vehiclePassenger;
-    VehicleRec* vehicleRec = passenger ? passenger->m_vehicleRec : nullptr;
-
-    if (passenger) {
-        this->VehiclePassengerUpdateWorldCameraState(vehicleRec, passenger->m_seatRec, FrameTime::s_curTimeMs, FrameTime::s_curTimeMs);
-    } else {
-        this->VehiclePassengerUpdateWorldCameraState(vehicleRec, nullptr, FrameTime::s_curTimeMs, FrameTime::s_curTimeMs);
     }
 }
 
@@ -15241,123 +14401,6 @@ void CGUnit_C::SetSheatheStateAnimate() {
             }
         }
     }
-}
-
-// VERIFY: 8b89f8b0 manual
-// OFFSET: 0x00755A60
-void CGUnit_C::PlayVictimWorldFeedback(const ATTACKROUNDINFO& info) {
-    WOWGUID activePlayer = ClntObjMgrGetActivePlayer();
-
-    if (info.m_meleeSpellId && info.m_victimState != 1) {
-        return;
-    }
-
-    uint32_t victimState = info.m_victimState;
-
-    if (victimState == 8) {
-        WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, 9, nullptr, false);
-        CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
-        return;
-    }
-
-    if (victimState == 3) {
-        WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, 4, nullptr, false);
-        CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
-        return;
-    }
-
-    if (victimState == 6) {
-        WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, 6, nullptr, false);
-        CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
-        return;
-    }
-
-    if (victimState == 2) {
-        if (info.m_attacker.m_guid) {
-            CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
-
-            if (attacker) {
-                bool oneHand = !CGUnit_C::IsTwoHanded(attacker->GetVirtualItem(0, false));
-                int32_t self = activePlayer == info.m_attacker || activePlayer == info.m_target;
-                C3Vector position = attacker->GetPosition();
-                SI2::PlayMissedSound(oneHand, &position, self);
-            }
-        }
-
-        WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, 3, nullptr, false);
-        CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
-        return;
-    }
-
-    if (victimState == 5) {
-        WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, 5, nullptr, false);
-        CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
-        return;
-    }
-
-    if (victimState == 7) {
-        WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, 7, nullptr, false);
-        CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
-        return;
-    }
-
-    if (info.m_damage || (info.m_hitInfo & 0x1000000)) {
-        CGUnit_C* victim = nullptr;
-        CGUnit_C* attacker = nullptr;
-
-        if (info.m_attacker.m_guid) {
-            attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
-        }
-
-        if (info.m_target.m_guid) {
-            victim = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_target, TYPEMASK_UNIT, __FILE__, __LINE__));
-        }
-
-        if (attacker && victim) {
-            int32_t self = activePlayer == info.m_attacker || activePlayer == info.m_target;
-            C3Vector position = victim->GetPosition();
-            SI2::PlayHitSound(attacker->GetAttackingWeapon((info.m_hitInfo >> 2) & 1, true), victim->GetImpactType(), info.m_hitInfo & 0x200, &position, self);
-        }
-
-        WOWGUID source = info.m_attacker;
-        this->AddWorldDamageText(source, info.m_damage, 0, (info.m_hitInfo & 0x200) != 0, false, 0);
-        CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
-        return;
-    }
-
-    if (activePlayer != info.m_target && !(info.m_hitInfo & 0x4000)) {
-        int32_t reason;
-
-        if (info.m_hitInfo & 0x20) {
-            reason = 10;
-        } else {
-            reason = (info.m_hitInfo & 0x80) ? 2 : 1;
-        }
-
-        WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, reason, nullptr, false);
-    }
-
-    if (info.m_attacker.m_guid) {
-        CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
-
-        if (attacker) {
-            bool oneHand = !CGUnit_C::IsTwoHanded(attacker->GetVirtualItem(0, false));
-            int32_t self = activePlayer == info.m_attacker || activePlayer == info.m_target;
-            C3Vector position = attacker->GetPosition();
-            SI2::PlayMissedSound(oneHand, &position, self);
-            CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
-            return;
-        }
-    }
-
-    CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
 }
 
 // VERIFY: 8939b08f manual
@@ -16639,22 +15682,6 @@ void CGUnit_C::UpdateChainTargets(const TSStackArray<WOWGUID>& targets, int32_t 
     this->OnChannelSpellChanged(spellId);
 }
 
-// VERIFY: ab8a24d3 manual
-// OFFSET: 0x0074C7F0
-void CGUnit_C::VehicleExit() {
-    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
-
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && player && player->GetTransportGUID() == this->m_obj->m_guid.m_guid) {
-        CGPetInfo::PetDismiss();
-        return;
-    }
-
-    CDataStore msg;
-    msg.Put(static_cast<uint32_t>(CMSG_REQUEST_VEHICLE_EXIT));
-    msg.Finalize();
-    ClientServices::Send2(&msg);
-}
-
 // VERIFY: 63490106 auto
 // OFFSET: 0x0071F060
 void WriteMovementPacket(CGUnit_C* unit, uint32_t msgId, CDataStore* msg, int32_t include) {
@@ -16769,107 +15796,6 @@ bool CGUnit_C::HasDispellableAura(int32_t dispelType, int32_t harmful, bool mech
     }
 
     return false;
-}
-
-// VERIFY: d32caa20 manual
-// OFFSET: 0x0074C8B0
-void CGUnit_C::VehiclePrevSeat() {
-    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
-    WOWGUID guid = this->m_obj->m_guid;
-
-    if (guid == CGUnit_C::s_activeMover && player && player->GetTransportGUID() == guid.m_guid) {
-        if (player->m_vehiclePassenger) {
-            player->m_vehiclePassenger->StopMovement();
-        }
-
-        this->m_movementData.OnChangeSeatsOnControlledVehicleLocal(FrameTime::s_curTimeMs, WOWGUID(), 0xFF);
-        return;
-    }
-
-    CDataStore msg;
-    msg.Put(static_cast<uint32_t>(CMSG_REQUEST_VEHICLE_PREV_SEAT));
-    msg.Finalize();
-    ClientServices::Send2(&msg);
-}
-
-// VERIFY: 55253920 manual
-// OFFSET: 0x0074C9A0
-void CGUnit_C::VehicleNextSeat() {
-    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
-    WOWGUID guid = this->m_obj->m_guid;
-
-    if (guid == CGUnit_C::s_activeMover && player && player->GetTransportGUID() == guid.m_guid) {
-        if (player->m_vehiclePassenger) {
-            player->m_vehiclePassenger->StopMovement();
-        }
-
-        this->m_movementData.OnChangeSeatsOnControlledVehicleLocal(FrameTime::s_curTimeMs, WOWGUID(), 1);
-        return;
-    }
-
-    CDataStore msg;
-    msg.Put(static_cast<uint32_t>(CMSG_REQUEST_VEHICLE_NEXT_SEAT));
-    msg.Finalize();
-    ClientServices::Send2(&msg);
-}
-
-// VERIFY: a64bdd42 manual
-// OFFSET: 0x0074CA90
-int32_t CGUnit_C::SwitchToVehicleSeat(CGUnit_C* vehicle, int32_t virtualSeat) {
-    CVehicle_C* root = vehicle->m_vehicle;
-    const CVehicle_C* target;
-    uint8_t seat;
-
-    if (!root || !root->m_vehicleRec || !root->GetVehicleAndSeatFromVirtualSeat(virtualSeat, target, seat)) {
-        return 0;
-    }
-
-    VehicleSeatRec* seatRec = target->GetVehicleSeatRec(seat);
-
-    if (!seatRec || const_cast<CVehicle_C*>(target)->FindPassengerUnit(seat) || !(seatRec->m_flags & 0x4000000) || !CGInputControl::GetActive() || !CGInputControl::GetActive()->IsVehicleSeatFlagSet(0x4000000)) {
-        return 0;
-    }
-
-    if (this->GetTransportGUID() != CGUnit_C::s_activeMover.m_guid) {
-        CDataStore msg;
-        msg.Put(static_cast<uint32_t>(CMSG_REQUEST_VEHICLE_SWITCH_SEAT));
-        SmartGUID guid;
-        guid.m_guid = target->m_unit->m_obj->m_guid.m_guid;
-        msg << guid;
-        msg.Put(seat);
-        msg.Finalize();
-        ClientServices::Send2(&msg);
-        return 1;
-    }
-
-    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
-
-    if (!mover) {
-        return 1;
-    }
-
-    if (this->m_vehiclePassenger) {
-        this->m_vehiclePassenger->StopMovement();
-    }
-
-    mover->OnChangeSeatsOnControlledVehicleLocal(FrameTime::s_curTimeMs, target->m_unit->m_obj->m_guid, seat);
-    return 1;
-}
-
-// VERIFY: 29d19ef8 manual
-// OFFSET: 0x0074CCE0
-void CGUnit_C::CheckVehicleExitOnCast() {
-    VehicleSeatRec* seat = this->m_vehiclePassenger ? this->m_vehiclePassenger->m_seatRec : nullptr;
-
-    if (!seat || !(seat->m_flagsB & 0x100000)) {
-        return;
-    }
-
-    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
-
-    if (this->m_obj->m_guid != CGUnit_C::s_activeMover || !player || player->GetTransportGUID() != this->m_obj->m_guid.m_guid) {
-        this->VehicleExit();
-    }
 }
 
 // VERIFY: 96853cac manual
@@ -17943,54 +16869,6 @@ void CGUnit_C::OnChannelSpellChanged(int32_t oldSpell) {
     // WoWFix335 missing-pre-cast-animation: original ends with UpdateBaseAnimation(0, -1)
 }
 
-// VERIFY: 49638f19 manual
-// OFFSET: 0x00755850
-void CGUnit_C::PlayCombatSpellMissEffects(uint32_t reason, const WOWGUID& source) {
-    if ((this->m_unit->m_unitFieldFlags2 & 0x1) || this->GetClientStandState() == 7) {
-        return;
-    }
-
-    CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(source, TYPEMASK_UNIT, __FILE__, __LINE__));
-    const CGUnitVirtualItem* weapon = nullptr;
-
-    if (attacker && attacker->m_sheatheState) {
-        const CGUnitVirtualItem* item = attacker->GetVirtualItem(0, false);
-        weapon = item && item->m_classID == 2 ? item : nullptr;
-    }
-
-    WOWGUID mover = CGUnit_C::s_activeMover;
-
-    switch (reason) {
-        case 3:
-            this->PlayBaseAnimation(ANIM_DODGE, 0);
-            break;
-
-        case 4: {
-            this->PlayParryAnimation();
-            C3Vector position = this->GetPosition();
-            SI2::PlayParrySound(weapon, this->GetParryingItem(false), 0, &position, mover == source);
-            break;
-        }
-
-        case 5: {
-            this->PlayBaseAnimation(ANIM_SHIELD_BLOCK, 0);
-            this->GetVirtualItem(0, false);
-            const CGUnitVirtualItem* shield = this->GetVirtualItem(1, false);
-
-            if (shield && shield->m_classID != 2 && shield->m_classID != 4) {
-                shield = nullptr;
-            }
-
-            C3Vector position = this->GetPosition();
-            SI2::PlayParrySound(nullptr, shield, 0, &position, mover == source);
-            break;
-        }
-
-        default:
-            break;
-    }
-}
-
 // VERIFY: 47ba34f4 auto
 // OFFSET: 0x00763570
 void CGUnit_C::HandleSpellEventSound() {
@@ -18935,93 +17813,6 @@ int32_t Packet_SMSG_THREAT_CLEAR(void* param, NETMESSAGE msgId, uint32_t time, C
     return 1;
 }
 
-// VERIFY: 82755190 auto
-// OFFSET: 0x007474B0
-void CGUnit_C::OnAiReaction(int32_t reaction) {
-    if (reaction == 4 && this->m_creatureCacheEntry && (this->m_creatureCacheEntry->m_typeFlags & 0x1000000)) {
-        return;
-    }
-
-    if (!this->m_soundData || SI2::IsPlaying(&this->m_aiSound)) {
-        return;
-    }
-
-    SE2SoundKitObject* object = &this->m_npcSound;
-
-    if (SI2::IsPlaying(object) && reaction <= static_cast<int32_t>(this->m_reactionSoundPriority)) {
-        return;
-    }
-
-    this->m_reactionSoundPriority = reaction;
-    static CVar* s_enablePetSounds = CVar::Lookup("Sound_EnablePetSounds");
-    int32_t soundKitId;
-
-    switch (this->m_reactionSoundPriority) {
-    case 0:
-        if (s_enablePetSounds && !s_enablePetSounds->m_intValue && this->m_unit->m_unitFieldPetnumber) {
-            return;
-        }
-
-        soundKitId = this->m_soundData->m_soundAggroID;
-        break;
-
-    case 1:
-        if (s_enablePetSounds && !s_enablePetSounds->m_intValue && this->m_unit->m_unitFieldPetnumber) {
-            return;
-        }
-
-        soundKitId = this->m_soundData->m_soundPetOrderID;
-        break;
-
-    case 2:
-        if (s_enablePetSounds && !s_enablePetSounds->m_intValue && this->m_unit->m_unitFieldPetnumber) {
-            return;
-        }
-
-        soundKitId = this->m_soundData->m_soundPetAttackID;
-        break;
-
-    case 4:
-        soundKitId = this->m_soundData->m_soundDeathID;
-        break;
-
-    default:
-        return;
-    }
-
-    C3Vector position = this->GetAttachmentPosition(17, nullptr);
-    static CVar* s_listenerAtCharacter = CVar::Lookup("Sound_ListenerAtCharacter");
-    int32_t activeMover;
-    int32_t listenerAtCharacter;
-
-    if (CGUnit_C::s_activeMover == this->m_obj->m_guid) {
-        activeMover = 1;
-        listenerAtCharacter = s_listenerAtCharacter->m_intValue ? 1 : 0;
-    } else {
-        activeMover = 0;
-        listenerAtCharacter = 0;
-    }
-
-    SE2SoundKitProperties properties;
-    properties.ResetToDefaults();
-
-    if (activeMover) {
-        properties.m_priority = 110;
-        CGUnit_C* player = ClntObjMgrGetActivePlayerObj();
-
-        if (player && player->m_unit->m_unitFieldBytes0[1] == 6) {
-            properties.m_useDspChain = 1;
-            SI2::DK_GetPlayerFilterName(player, properties.m_dspChainName, sizeof(properties.m_dspChainName));
-        }
-
-        if (listenerAtCharacter) {
-            properties.m_volumeScale = 0.64999998f;
-        }
-    }
-
-    SI2::PlaySoundKit(soundKitId, listenerAtCharacter ? nullptr : &position, object, &properties, 0, nullptr, 1, 0);
-}
-
 // VERIFY: b7f4a97f manual
 // OFFSET: 0x00716B10
 int32_t Packet_SMSG_AI_REACTION(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
@@ -19206,26 +17997,6 @@ void CGUnit_C::HandleBloodPool(uint32_t time) {
     this->m_nextBloodPoolTime = static_cast<uint32_t>((static_cast<uint64_t>(CRandom::uint32_(g_rndSeed)) * 3000) >> 32) + time + 2000;
     CRandom::sfloat_(g_rndSeed);
     CRandom::sfloat_(g_rndSeed);
-}
-
-// VERIFY: ee364054 manual
-// OFFSET: 0x007561E0
-void CGUnit_C::OnDeathAnimate() {
-    if (!this->DoNotLogDeath()) {
-        UnitCombatLogUnitDead(this);
-    }
-
-    this->PlayDeathAnimation(0);
-
-    if (!(this->m_obj->m_type & TYPEMASK_PLAYER) || !(static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x4000)) {
-        this->OnAiReaction(4);
-    }
-
-    this->KillCreatureLoopSound();
-
-    if (this->IsActivePlayer()) {
-        CGGameUI::UpdateActivePlayer();
-    }
 }
 
 // VERIFY: 92571cc6 auto
@@ -20053,168 +18824,6 @@ void CGUnit_C::HandleAnimEvent(uint32_t boneId, uint32_t eventId, uint32_t data,
 
             if (this->m_ammoModel && this->m_ammoModel->m_attachParent) {
                 this->m_ammoModel->DetachFromParent();
-            }
-
-            return;
-        }
-
-        default:
-            return;
-    }
-}
-
-// VERIFY: 7ce6616c manual
-// OFFSET: 0x00756240
-void CGUnit_C::HandleCombatAnimEvent(uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time) {
-    CGUnit_C* attacker = nullptr;
-    CGUnit_C* target = nullptr;
-
-    if (this->m_lastAttackRound.m_attacker) {
-        attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_lastAttackRound.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
-    }
-
-    if (this->m_lastAttackRound.m_target) {
-        target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_lastAttackRound.m_target, TYPEMASK_UNIT, __FILE__, __LINE__));
-    }
-
-    switch (eventId) {
-        case 0x30484124:
-        case 0x31484124:
-        case 0x32484124:
-        case 0x33484124:
-            if (this->m_lastAttackRound.m_damage && attacker && attacker->m_soundData) {
-                SE2SoundKitProperties properties;
-                properties.ResetToDefaults();
-                properties.m_group = 14;
-
-                switch (eventId) {
-                    case 0x30484124:
-                        SI2::PlaySoundKit(attacker->m_soundData->m_customAttack[0], position, nullptr, &properties, 0, nullptr, 1, 0);
-                        break;
-
-                    case 0x31484124:
-                        SI2::PlaySoundKit(attacker->m_soundData->m_customAttack[1], position, nullptr, &properties, 0, nullptr, 1, 0);
-                        break;
-
-                    case 0x32484124:
-                        SI2::PlaySoundKit(attacker->m_soundData->m_customAttack[2], position, nullptr, &properties, 0, nullptr, 1, 0);
-                        break;
-
-                    case 0x33484124:
-                        SI2::PlaySoundKit(attacker->m_soundData->m_customAttack[3], position, nullptr, &properties, 0, nullptr, 1, 0);
-                        break;
-                }
-
-                this->m_lastAttackRound.m_hitInfo |= 0x200000;
-            }
-
-        case 0x48414324:
-            if (attacker) {
-                uint32_t victimState = attacker->m_lastAttackRound.m_victimState;
-
-                if (!victimState || victimState == 2 || victimState == 6) {
-                    attacker->SetKeyBoneSequenceSpeed(attacker->m_worldModel, 0xFFFFFFFF, 0.5f, 0);
-                }
-            } else if (!target) {
-                if (this->m_obj->m_type & TYPEMASK_PLAYER) {
-                    static_cast<CGPlayer_C*>(this)->HandleSpellEventSound();
-                } else {
-                    CreatureSoundDataRec* soundData = this->GetSoundData();
-
-                    if (soundData) {
-                        SI2::PlaySoundKit(soundData->m_soundExertionID, position, nullptr, nullptr, 0, nullptr, 0, 0);
-                    }
-                }
-            }
-
-            if (target) {
-                target->PlayVictimRound(this->m_lastAttackRound);
-            }
-
-            this->m_lastAttackRound.m_attacker = WOWGUID();
-            this->m_lastAttackRound.m_target = WOWGUID();
-            return;
-
-        case 0x53534324: {
-            if (!attacker) {
-                return;
-            }
-
-            uint32_t victimState = this->m_lastAttackRound.m_victimState;
-
-            if (!victimState || victimState == 2 || victimState == 6) {
-                return;
-            }
-
-            int32_t swingType = 0;
-
-            if (this->GetWeaponSwingType(!(this->m_lastAttackRound.m_hitInfo & 4), &swingType) && this->m_lastAttackRound.m_victimState) {
-                int32_t self = CGUnit_C::s_activeMover == this->m_lastAttackRound.m_attacker || CGUnit_C::s_activeMover == this->m_lastAttackRound.m_target;
-                SI2::PlayWeaponSwooshSound(swingType, this->m_lastAttackRound.m_hitInfo & 0x200, position, this->m_lastAttackRound.m_hitInfo & 0x10, self);
-            }
-
-            return;
-        }
-
-        case 0x50574224: {
-            if (this->IsActivePlayer()) {
-                SpellRec spell;
-
-                if (!g_spellDB.GetRecord(this->m_castSpellId, &spell) || !(spell.m_attributes & 2)) {
-                    if (!g_spellDB.GetRecord(Spell_C_GetAutoRepeatingSpell(), &spell) || !(spell.m_attributes & 2)) {
-                        return;
-                    }
-                }
-            }
-
-            if (this->m_movementData.m_flags & 0x2E0100F) {
-                return;
-            }
-
-            this->PlayRangedItemPull();
-            const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
-
-            if (!item || item->m_classID != 2 || (item->m_subclassID != 3 && item->m_subclassID != 18)) {
-                if (this->m_ammoModel && !this->m_ammoModel->m_attachParent) {
-                    this->m_ammoModel->AttachToParent(this->m_worldModel, 35, nullptr, 0);
-                }
-            }
-
-            this->m_animationState |= 0x4000;
-            return;
-        }
-
-        case 0x48544424:
-            this->PlayDeathThud();
-            this->ShakeCameraOnHit();
-            this->ShowLootEffect();
-            return;
-
-        case 0x50504324: {
-            if (!target || (target->m_unit->m_unitFieldFlags2 & 1) || target->GetClientStandState() == 7) {
-                return;
-            }
-
-            uint32_t victimState = this->m_lastAttackRound.m_victimState;
-
-            if (victimState == 3) {
-                if (!target->m_creatureCacheEntry || !(target->m_creatureCacheEntry->m_typeFlags & 0x200000)) {
-                    target->PlayParryAnimation();
-                }
-
-                this->m_lastAttackRound.m_hitInfo &= ~2u;
-            } else if (victimState == 2 || victimState == 8) {
-                if (!target->m_creatureCacheEntry || !(target->m_creatureCacheEntry->m_typeFlags & 0x200000)) {
-                    target->PlayBaseAnimation(ANIM_DODGE, 0);
-                }
-
-                this->m_lastAttackRound.m_hitInfo &= ~2u;
-            } else if (this->m_lastAttackRound.m_blocked) {
-                if (!target->m_creatureCacheEntry || !(target->m_creatureCacheEntry->m_typeFlags & 0x200000)) {
-                    target->PlayBaseAnimation(ANIM_SHIELD_BLOCK, 0);
-                }
-
-                this->m_lastAttackRound.m_hitInfo &= ~2u;
             }
 
             return;
@@ -22307,142 +20916,6 @@ void CGUnit_C::UpdatePartyMemberPetState() {
     CGPlayer_C::DispatchPartyMemberStatsChanges(newState.m_guid, changes, &oldState, &newState);
 }
 
-// VERIFY: cd9f8160 manual
-// OFFSET: 0x0074C0E0
-void CGUnit_C::VehiclePassengerUpdateWorldCameraState(VehicleRec* vehicleRec, VehicleSeatRec* seatRec, uint32_t startTime, uint32_t endTime) {
-    CGCamera* camera = CGWorldFrame::GetActiveCamera();
-
-    if (!camera) {
-        return;
-    }
-
-    uint32_t active = 0;
-
-    if (this->m_vehiclePassenger && (this->m_vehiclePassenger->m_state == 1 || this->m_vehiclePassenger->m_state == 2 || this->m_vehiclePassenger->m_state == 3)) {
-        active = 1;
-    }
-
-    if (CGUnit_C::s_vehiclePassengerCameraActive == active && CGUnit_C::s_vehiclePassengerCameraVehicle == vehicleRec && CGUnit_C::s_vehiclePassengerCameraSeat == seatRec) {
-        return;
-    }
-
-    uint32_t restoreZoom = camera->m_flags & 0x20;
-    CGUnit_C::s_vehiclePassengerCameraVehicle = vehicleRec;
-    CGUnit_C::s_vehiclePassengerCameraActive = active;
-    CGUnit_C::s_vehiclePassengerCameraSeat = seatRec;
-    int32_t resetMin = 1;
-    int32_t resetMax = 1;
-    float duration = static_cast<float>(endTime - startTime) * 0.001f;
-
-    if (!active) {
-        camera->SetVehicleZoomEnabled(0, duration, restoreZoom == 0);
-        camera->SetDesiredVehicleYawOffset(0.0f, startTime, endTime);
-        camera->SetDesiredVehiclePitchOffset(0.0f, startTime, endTime);
-        camera->SetVehicleTrackingStyle(0);
-    } else {
-        if (seatRec && (seatRec->m_flags & 0x1000000)) {
-            camera->SetVehicleZoomEnabled(1, duration, 1);
-            restoreZoom = 0;
-        } else if (seatRec && (seatRec->m_flagsB & 0x400)) {
-            camera->SetVehicleZoomEnabled(0, duration, 0);
-            float current = camera->m_distance;
-            float target = current;
-            uint32_t flagsB = seatRec->m_flagsB;
-            int32_t hasMin = flagsB & 0x4000;
-            int32_t hasMax = flagsB & 0x8000;
-            uint32_t wasRestore = restoreZoom;
-            restoreZoom = 0;
-            float minDistance = hasMin ? seatRec->m_field33512213054 : camera->GetDefaultZoomMinDistance();
-            float maxDistance = hasMax ? seatRec->m_field33512213055 : CGCamera::GetDefaultZoomMaxDistance();
-
-            if (seatRec->m_flagsB & 0x800) {
-                float preferred = seatRec->m_field33512213053;
-
-                if (preferred > current && !(seatRec->m_flagsB & 0x1000)) {
-                    target = preferred;
-                }
-
-                if (preferred < target && !(seatRec->m_flagsB & 0x2000)) {
-                    target = preferred;
-                }
-
-                if (!hasMin && minDistance > preferred) {
-                    hasMin = 1;
-                    minDistance = preferred;
-                }
-
-                if (!hasMax && maxDistance < preferred) {
-                    hasMax = 1;
-                    maxDistance = preferred;
-                }
-            }
-
-            if (hasMin) {
-                resetMin = 0;
-                camera->SetVehicleSeatZoomMinDistance(minDistance);
-
-                if (minDistance > target) {
-                    target = minDistance;
-                }
-            }
-
-            if (hasMax) {
-                resetMax = 0;
-                camera->SetVehicleSeatZoomMaxDistance(maxDistance);
-
-                if (maxDistance < target) {
-                    target = maxDistance;
-                }
-            }
-
-            if (fnotequalz(current, target, 0.001f)) {
-                if (!wasRestore) {
-                    camera->SetVehicleExitZoomDistance(current);
-                }
-
-                camera->ZoomToDistance(target, startTime, duration, 1);
-            }
-        } else {
-            camera->SetVehicleZoomEnabled(0, duration, restoreZoom == 0);
-        }
-
-        camera->SetDesiredVehicleYawOffset(vehicleRec ? vehicleRec->m_cameraYawOffset : 0.0f, startTime, endTime);
-        camera->SetDesiredVehiclePitchOffset(vehicleRec ? vehicleRec->m_cameraPitchOffset : 0.0f, startTime, endTime);
-
-        if (seatRec && (seatRec->m_flags & 0x800) && (seatRec->m_flagsB & 0x80001)) {
-            camera->SetVehicleTrackingStyle(1);
-        } else {
-            camera->SetVehicleTrackingStyle(2);
-        }
-    }
-
-    if (restoreZoom) {
-        camera->ZoomToDistance(camera->m_vehicleExitZoomDistance, startTime, duration, 1);
-        camera->ClearVehicleExitZoomDistance();
-    }
-
-    if (resetMin) {
-        camera->SetVehicleSeatZoomMinDistanceToDefault();
-    }
-
-    if (resetMax) {
-        camera->SetVehicleSeatZoomMaxDistanceToDefault();
-    }
-}
-
-// VERIFY: 2533cf6d auto
-// OFFSET: 0x0074BBD0
-void CGUnit_C::SignalPlayerGainsVehicleDataEvent() {
-    VehicleRec* vehicleRec = this->m_vehicle ? this->m_vehicle->m_vehicleRec : nullptr;
-    WOWGUID guid = this->m_obj->m_guid;
-    int32_t count;
-    char** tokens = Script_GetTokenIDsFromGUID(guid, &count);
-
-    for (int32_t i = 0; i < count; i++) {
-        FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_GAINS_VEHICLE_DATA, "%s%d", tokens[i], vehicleRec ? vehicleRec->m_vehicleUiindicatorID : 0);
-    }
-}
-
 // VERIFY: 81db5902 manual
 // OFFSET: 0x007265C0
 void CGUnit_C::CreateProceduralEffect(const SpellRec* spell, const SpellVisualRec* visual, const SpellVisualKitRec* kit, int32_t a4, uint32_t flags, WOWGUID guid) {
@@ -22701,36 +21174,6 @@ void CGUnit_C::UpdateCritterDisplay() {
     this->m_critterDisplayCreatureId = GetVisibleAuraEffectDisplay();
     this->m_displayId = stats->m_displayId[index];
     this->UpdateDisplayInfo(0);
-}
-
-// VERIFY: 9c20bca8 auto
-// OFFSET: 0x00746280
-int32_t CreatureSoundDataGetFidgetSound(const CreatureSoundDataRec* rec, uint32_t index) {
-    if (rec && index < 5) {
-        return rec->m_soundFidget[index];
-    }
-
-    return 0;
-}
-
-// VERIFY: 9a579a40 auto
-// OFFSET: 0x007462A0
-float CreatureSoundDataGetFidgetDelayMin(const CreatureSoundDataRec* rec) {
-    if (rec) {
-        return rec->m_fidgetDelaySecondsMin;
-    }
-
-    return 0.0f;
-}
-
-// VERIFY: e79c80f1 auto
-// OFFSET: 0x007462C0
-float CreatureSoundDataGetFidgetDelayMax(const CreatureSoundDataRec* rec) {
-    if (rec) {
-        return rec->m_fidgetDelaySecondsMax;
-    }
-
-    return 0.0f;
 }
 
 // VERIFY: b7b739bd manual
@@ -23140,21 +21583,6 @@ void CGUnit_C::FootstepAnimEventHit(const C3Vector* position, int32_t left) {
     effect->Release();
 }
 
-// VERIFY: 5b00631f auto
-// OFFSET: 0x007555E0
-void CGUnit_C::ShakeCameraOnHit() {
-    if (this->m_unit->m_unitFieldPetnumber) {
-        return;
-    }
-
-    int32_t shakeId = this->m_modelData->m_deathThudShakeSize;
-
-    if (shakeId) {
-        C3Vector position = this->GetPosition();
-        CGWorldFrame::GetActiveCamera()->AddShakeById(shakeId, &position);
-    }
-}
-
 // VERIFY: 9e04967c manual
 // OFFSET: 0x0071DCC0
 int32_t IsSpecialIdleAnim(uint32_t animId) {
@@ -23207,45 +21635,6 @@ void CreatureQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool su
         totem->m_name = unit->GetUnitName(nullptr, 1);
         FrameScript_SignalEvent(SCRIPT_EVENT_PLAYER_TOTEM_UPDATE, "%d", totem->m_slot + 1);
     }
-}
-
-// VERIFY: 4078ec8f manual
-// OFFSET: 0x00755380
-void CGUnit_C::ShowBloodSpurt(const WOWGUID& attacker, int32_t a3) {
-    UnitBloodRec* blood = this->GetBloodRecord();
-
-    if (!blood) {
-        return;
-    }
-
-    int32_t attachType = 15;
-    CGUnit_C* attackerUnit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
-
-    if (attackerUnit) {
-        C3Vector position = this->GetPosition();
-        C3Vector attackerPosition = attackerUnit->GetPosition();
-        float dx = attackerPosition.x - position.x;
-        float dy = attackerPosition.y - position.y;
-        float facing = this->CGUnit_C::GetRenderFacing();
-        float cosFacing = cosf(facing);
-        float sinFacing = sinf(facing);
-
-        if (dy * sinFacing + dx * cosFacing < 0.0f) {
-            attachType = 16;
-        }
-    }
-
-    int32_t effectId = attachType == 15 ? blood->m_combatBloodSpurtFront[a3 != 0] : blood->m_combatBloodSpurtBack[a3 != 0];
-    SpellVisualEffectNameRec* effectName = g_spellVisualEffectNameDB.GetRecord(effectId);
-
-    if (!effectName) {
-        return;
-    }
-
-    CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
-    WOWGUID source = this->m_obj->m_guid;
-    effect->AddEffect(attachType, 0, nullptr, effectName, &attacker, &source, 0x20, CGObject_C::EffectOnceHandler, nullptr, 0, nullptr);
-    effect->Release();
 }
 
 // VERIFY: 8ffb4576 manual
@@ -23314,22 +21703,22 @@ CM2Model* CGUnit_C::CreateItemModel(uint32_t displayId, uint32_t inventoryType, 
 
     switch (inventoryType) {
         case 1:
-            path = "Item\ObjectComponents\Head\\";
+            path = "Item\\ObjectComponents\\Head\\";
             break;
         case 3:
-            path = "Item\ObjectComponents\Shoulder\\";
+            path = "Item\\ObjectComponents\\Shoulder\\";
             break;
         case 14:
-            path = "Item\ObjectComponents\Shield\\";
+            path = "Item\\ObjectComponents\\Shield\\";
             break;
         case 24:
-            path = "Item\ObjectComponents\Ammo\\";
+            path = "Item\\ObjectComponents\\Ammo\\";
             break;
         case 27:
-            path = "Item\ObjectComponents\Quiver\\";
+            path = "Item\\ObjectComponents\\Quiver\\";
             break;
         default:
-            path = "Item\ObjectComponents\Weapon\\";
+            path = "Item\\ObjectComponents\\Weapon\\";
             break;
     }
 
@@ -23470,80 +21859,6 @@ void CGUnit_C::OnVirtualItemChanged(uint32_t slot, int32_t oldItemId) {
         }
 
         this->SetWeaponTrail(this->m_worldModel, slot);
-    }
-}
-
-// VERIFY: bae0a2ba manual
-// OFFSET: 0x00746D60
-void CGUnit_C::PlayEmoteSound(int32_t soundKitId, bool checkCVars, int32_t fileIndex) {
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && this->m_unit->m_unitFieldHealth <= 0) {
-        return;
-    }
-
-    if (checkCVars) {
-        static CVar* s_enableEmoteSounds = CVar::Lookup("Sound_EnableEmoteSounds");
-
-        if (!s_enableEmoteSounds || !s_enableEmoteSounds->m_intValue) {
-            return;
-        }
-
-        static CVar* s_enablePetSounds = CVar::Lookup("Sound_EnablePetSounds");
-
-        if (s_enablePetSounds && !s_enablePetSounds->m_intValue && this->m_unit->m_unitFieldPetnumber) {
-            return;
-        }
-    }
-
-    static CVar* s_listenerAtCharacter = CVar::Lookup("Sound_ListenerAtCharacter");
-    int32_t listenerAtCharacter = s_listenerAtCharacter->m_intValue;
-    int32_t local;
-    int32_t atCharacter;
-
-    if (CGUnit_C::s_activeMover != this->m_obj->m_guid && !this->IsActivePlayer()) {
-        local = 0;
-        atCharacter = 0;
-    } else {
-        local = 1;
-        atCharacter = listenerAtCharacter ? 1 : 0;
-    }
-
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && static_cast<CGPlayer_C*>(this)->m_dance) {
-        return;
-    }
-
-    C3Vector position;
-    CM2Model* model = this->m_worldModel;
-
-    if (model && model->IsLoaded(0, 0) && model->HasAttachment(17)) {
-        position = model->GetAttachmentPosition(17);
-    } else {
-        C3Vector offset(0.0f, 0.0f, s_emoteSoundHeight);
-        C3Vector base = this->m_vehiclePassenger ? this->GetModelPosition() : this->GetPosition();
-        position = base + offset;
-    }
-
-    SE2SoundKitProperties properties;
-    properties.ResetToDefaults();
-    properties.m_fileIndex = fileIndex;
-    properties.m_suppressorMode = 2;
-
-    if (local) {
-        properties.m_priority = 110;
-
-        if (atCharacter) {
-            properties.m_volumeScale = 0.64999998f;
-        }
-    }
-
-    if (soundKitId != 6576 && this->m_unit->m_unitFieldBytes0[1] == 6) {
-        properties.m_useDspChain = 1;
-        SI2::DK_GetPlayerFilterName(this, properties.m_dspChainName, sizeof(properties.m_dspChainName));
-    }
-
-    SI2::PlaySoundKit(soundKitId, atCharacter ? nullptr : &position, &this->m_reactionSound, &properties, 0, nullptr, 1, 0);
-
-    if (!atCharacter) {
-        SI2::AttachToObject(&this->m_reactionSound, this->m_obj->m_guid);
     }
 }
 
@@ -23991,36 +22306,6 @@ int32_t Packet_SMSG_CANCEL_AUTO_REPEAT(void* param, NETMESSAGE msgId, uint32_t t
     }
 
     return 1;
-}
-
-// VERIFY: 972d06e0 auto
-// OFFSET: 0x00747000
-void CGUnit_C::PlayTextEmoteSound(uint32_t emote, uint32_t emoteNum) {
-    CVar* cvar = CVar::Lookup("Sound_EnableEmoteSounds");
-
-    if (!cvar || !cvar->m_intValue) {
-        return;
-    }
-
-    if (!this->IsActivePlayer()) {
-        WOWGUID guid = this->m_obj->m_guid;
-
-        if (!CGGameUI::IsInParty(guid)) {
-            return;
-        }
-    }
-
-    int32_t soundKitId = SI2::GetTextEmoteSoundID(emote, this->GetDisplayRace(), this->GetVoiceSex());
-
-    if (this->IsShapeShifted()) {
-        SpellShapeshiftFormRec* form = g_spellShapeshiftFormDB.GetRecord(this->GetShapeshiftForm());
-
-        if (form && (form->m_flags & 0x1000)) {
-            return;
-        }
-    }
-
-    this->PlayEmoteSound(soundKitId, false, emoteNum);
 }
 
 // VERIFY: 1f03226b auto
@@ -25679,71 +23964,4 @@ void CGUnit_C::CleanUpVehicleBoneAnimsBeforeObjectModelChange() {
 
     vehicle->m_flags &= ~0x1;
     vehicle->m_forceFacingGuid = WOWGUID();
-}
-
-// VERIFY: 119d11a0 auto
-// OFFSET: 0x0074CDF0
-CVehicleCamera_C* CGUnit_C::CreateVehicleCamera() {
-    this->DestroyVehicleCamera();
-    this->m_vehicleCamera = CVehicleCamera_C::Create(this, FrameTime::s_curTimeMs);
-
-    if (!this->m_vehicleCamera) {
-        return nullptr;
-    }
-
-    if (!this->m_vehicleCamera->m_state) {
-        this->DestroyVehicleCamera();
-        return nullptr;
-    }
-
-    CGCamera* camera = CGWorldFrame::GetActiveCamera();
-
-    if (camera) {
-        camera->PickVehicleCamera();
-    }
-
-    return this->m_vehicleCamera;
-}
-
-// VERIFY: e2e6478a manual
-// OFFSET: 0x00756040
-void CGUnit_C::PlayRangedItemPull() {
-    CM2Model* ranged = this->unk_0B40;
-
-    if (!ranged || !ranged->IsLoaded(0, 0) || !ranged->HasSequence(160)) {
-        return;
-    }
-
-    if (!this->m_worldModel || !this->m_worldModel->IsLoaded(0, 0)) {
-        return;
-    }
-
-    M2BoneSequenceInfo info;
-    info.m_sequenceId = 0xFFFFFFFF;
-
-    if (this->m_torsoKeyBone == 4) {
-        this->m_worldModel->GetBoneSequenceInfo(4, info);
-
-        if (info.m_sequenceId == 0xFFFFFFFF) {
-            this->m_worldModel->GetBoneSequenceInfo(0xFFFFFFFF, info);
-        }
-    } else {
-        this->m_worldModel->GetBoneSequenceInfo(0xFFFFFFFF, info);
-    }
-
-    if (info.m_finished) {
-        return;
-    }
-
-    int32_t elapsed = static_cast<int32_t>(static_cast<int64_t>(static_cast<int32_t>(info.m_time) / info.m_speed));
-    int32_t remaining = info.m_endTime - elapsed - info.m_startTime;
-
-    if (remaining <= 0) {
-        return;
-    }
-
-    M2SequenceInfo sequence;
-    sequence.Clear();
-    this->unk_0B40->GetSequenceInfo(160, 0, sequence);
-    this->unk_0B40->SetBoneSequence(0xFFFFFFFF, 160, 0, 0, static_cast<float>(static_cast<int32_t>(sequence.m_duration)) / remaining, 1, 1);
 }

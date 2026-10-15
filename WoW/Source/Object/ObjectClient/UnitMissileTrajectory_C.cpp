@@ -1397,3 +1397,25 @@ int32_t MissileTrajectoryObjectCallback(void* param, uint32_t a2, uint64_t a3, u
 
     return CGUnit_C::s_trajectoryWorldObjects[a4] != nullptr;
 }
+
+// VERIFY: 156171df auto
+// OFFSET: 0x006FBF80
+void CGUnit_C::PitchMissileTrajectoryTargetingNextFrame() {
+    s_pitchMissileTrajectoryTargetingNextFrame = 1;
+}
+
+// VERIFY: 3eb050df auto
+// OFFSET: 0x006FBF90
+void CGUnit_C::SetMissileTrajectoryTargetingSpell(uint32_t spellId) {
+    s_missileTrajectoryTargetingSpell = spellId;
+}
+
+// VERIFY: 9082d6a5 auto
+// OFFSET: 0x006FC290
+void CGUnit_C::OnRemoteMissileTrajectoryCollision(MissileCollisionData* data) {
+    for (CMissile* missile = this->m_missiles; missile; missile = missile->m_next) {
+        if (missile->m_casterGuid == data->m_casterGuid && missile->m_castID == data->m_castID) {
+            missile->SetRemoteCollisionPos(data->m_position);
+        }
+    }
+}
