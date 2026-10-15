@@ -92,3 +92,12 @@ logger off in `WowClient` with `-DWOWCLIENT_CRASH_LOG=OFF`.
 | `ThirdParty/` | Libraries linked from their upstream sources |
 | `Tools/WowClient/` | The `WowClient` executable target |
 | `Tools/XvidDecoder/` | x64 movie decoder that replaces the original 32-bit `DivxDecoder.dll` |
+
+## Special thanks
+
+- [binana](https://github.com/thunderbrewhq/binana)
+- [thunderbrew](https://github.com/thunderbrewhq/thunderbrew)
+- [whoa](https://github.com/whoahq/whoa)
+- TOMRUS, for the initial IDB
+- Everyone who has reported bugs so far
+- The WoW modding community
