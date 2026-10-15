@@ -236,7 +236,9 @@ static void MovieTextureUpdate(EGxTexCommand command, uint32_t width, uint32_t h
 
 // INLINED
 void CSimpleMovieFrame::operator delete(void* ptr) {
-    CSimpleMovieFrame::s_allocator.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CSimpleMovieFrame::s_allocator.PutData(ptr, nullptr, 0);
+    }
 }
 
 // INLINED

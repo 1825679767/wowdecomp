@@ -168,7 +168,9 @@ void* XMLNode::operator new(size_t bytes) noexcept {
 
 // INLINED
 void XMLNode::operator delete(void* ptr) {
-    XMLNode::s_allocator.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        XMLNode::s_allocator.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: c8b1abf3 manual

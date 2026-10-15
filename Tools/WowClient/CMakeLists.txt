@@ -13,7 +13,13 @@ if (WOWCLIENT_OUTPUT_OVERRIDE)
     set(WOWCLIENT_OUTPUT_NAME ${WOWCLIENT_OUTPUT_OVERRIDE})
 endif ()
 
-add_executable(WowClient WIN32 ${CLIENT_SOURCES} ${CLIENT_PLATFORM_SOURCES} crash_log.cpp)
+option(WOWCLIENT_CRASH_LOG "Crash logger with console window and WowClient_crash.log (re/tools/build release mode turns it off)" ON)
+set(CLIENT_TOOL_SOURCES "")
+if (WOWCLIENT_CRASH_LOG)
+    list(APPEND CLIENT_TOOL_SOURCES crash_log.cpp)
+endif ()
+
+add_executable(WowClient WIN32 ${CLIENT_SOURCES} ${CLIENT_PLATFORM_SOURCES} ${CLIENT_TOOL_SOURCES})
 
 set_target_properties(WowClient PROPERTIES
     OUTPUT_NAME ${WOWCLIENT_OUTPUT_NAME}

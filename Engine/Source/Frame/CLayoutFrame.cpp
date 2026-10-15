@@ -511,7 +511,7 @@ void CLayoutFrame::SetProtectFlag(uint32_t flag) {
         return;
     }
 
-    this->m_layoutFlags = (this->m_layoutFlags & ~0x20000u) | ((flag & ~0x800u | 0x800) << 8);
+    this->m_layoutFlags = (this->m_layoutFlags & ~0x20000u) | (((flag & 0xF7FFu) | 0x800) << 8);
     this->PropagateProtectFlagToParent(flag);
     this->ProtectFramepoints(flag);
     this->m_layoutFlags &= ~0x80000u;

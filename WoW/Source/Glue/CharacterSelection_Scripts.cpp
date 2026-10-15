@@ -47,7 +47,7 @@ static int32_t Script_GetNumCharacters(lua_State* L) {
 // VERIFY: c24567ba auto
 // OFFSET: 0x004E2FD0
 static int32_t Script_UpdateSelectionCustomizationScene(lua_State* L) {
-    if (CCharacterSelection::s_selectionIndex < static_cast<int32_t>(CCharacterSelection::s_characterList.Count())) {
+    if (static_cast<uint32_t>(CCharacterSelection::s_selectionIndex) < CCharacterSelection::s_characterList.Count()) {
         CCharacterComponent* component = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component;
 
         if (component) {

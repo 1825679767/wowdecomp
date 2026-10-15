@@ -66,7 +66,9 @@ CDataAllocator CGNamePlateFrame::s_namePlateHeap(sizeof(CGNamePlateFrame), 5);
 
 // INLINED
 void CGNamePlateFrame::operator delete(void* ptr) {
-    CGNamePlateFrame::s_namePlateHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CGNamePlateFrame::s_namePlateHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: eb556f09 auto

@@ -58,6 +58,7 @@ class CGItem_C : public CGObject_C, public CGItem {
     /* 03DC */ uint8_t unk_03DC [4];
 
     ~CGItem_C() override;
+    void PostReenable() override;
     int32_t GetSelectionHighlightColor(CImVector* color) const override;
     void OnRightClick() override;
     const char* GetObjectName() const override;

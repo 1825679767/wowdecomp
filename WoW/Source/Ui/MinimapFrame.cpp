@@ -386,7 +386,9 @@ static const int32_t s_tileOffsets[4][2] = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 
 
 // INLINED
 void CGMinimapFrame::operator delete(void* ptr) {
-    CGMinimapFrame::s_minimapHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CGMinimapFrame::s_minimapHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // INLINED
@@ -1122,7 +1124,7 @@ void MINIMAPTILE::Render(uint32_t index, const CImVector* color) {
     GxPrimLockVertexPtrs(4, this->m_vertices, sizeof(C3Vector), &normal, 0, color, 0, nullptr, 0, this->m_texCoords, sizeof(C2Vector), this->m_maskCoords, sizeof(C2Vector));
     GxDrawLockedElements(GxPrim_TriangleStrip, 4, s_quadIndices);
     GxPrimUnlockVertexPtrs();
-    GxRsSet(GxRs_Texture1, static_cast<void*>(nullptr));
+    GxRsSet(GxRs_Texture1, 0);
 }
 
 // VERIFY: e8182a5d manual
@@ -3621,6 +3623,12 @@ void CGMinimapFrame::ShutdownGame() {
     }
 
     s_poiArrowTexture = nullptr;
+
+    if (s_corpseArrowTexture) {
+        HandleClose(reinterpret_cast<HOBJECT>(s_corpseArrowTexture));
+    }
+
+    s_corpseArrowTexture = nullptr;
 
     if (s_groupArrowTexture) {
         HandleClose(reinterpret_cast<HOBJECT>(s_groupArrowTexture));

@@ -171,7 +171,9 @@ int32_t CSimpleFrame::GetObjectType() {
 
 // INLINED
 void CSimpleFrame::operator delete(void* ptr) {
-    CSimpleFrame::s_allocator.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CSimpleFrame::s_allocator.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: 6649b89d manual

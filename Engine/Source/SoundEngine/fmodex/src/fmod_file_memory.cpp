@@ -104,9 +104,9 @@ FMOD_RESULT MemoryFile::reallySeek(unsigned int pos)
 {
     mPosition = pos;
 
-    if (mPosition > mFileSize)
+    if (mPosition > mLength)
     {
-        mPosition = mFileSize;
+        mPosition = mLength;
     }
     if (mPosition < 0)
     {

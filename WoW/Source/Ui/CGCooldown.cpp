@@ -56,7 +56,9 @@ CDataAllocator CGCooldown::s_cooldownHeap(sizeof(CGCooldown), 100);
 
 // INLINED
 void CGCooldown::operator delete(void* ptr) {
-    CGCooldown::s_cooldownHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CGCooldown::s_cooldownHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // INLINED

@@ -181,7 +181,7 @@ bool CMapObjDefGroup::IsAllLoaded() {
     for (CMapBaseObjLink* link = this->m_doodadDefLinkList.Head(); link; link = this->m_doodadDefLinkList.Next(link)) {
         CMapStaticEntity* doodadDef = static_cast<CMapStaticEntity*>(link->m_owner);
 
-        if (doodadDef->m_model && !(static_cast<uint32_t>(doodadDef->m_flags) & 0x80000000)) {
+        if (doodadDef->m_model && !(doodadDef->m_flags & 0x80)) {
             if (SFile::IsStreamingMode()) {
                 doodadDef->m_model->LinkToAsyncHead(1);
             }

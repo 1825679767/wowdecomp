@@ -563,7 +563,9 @@ const char* CGTooltip::GetAchievementHyperlink(int32_t achievementId, WOWGUID gu
 
 // INLINED
 void CGTooltip::operator delete(void* ptr) {
-    CGTooltip::s_tooltipHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CGTooltip::s_tooltipHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: 7ff12d51 auto
@@ -3531,8 +3533,8 @@ int32_t GetFeralAttackPower(const ItemStats_C* stats, float damage) {
     if (stats->m_class == 2 && (s_inventoryTypeSlots[stats->m_inventoryType] & 0x8000)) {
         double dps = damage / (stats->m_delay * 0.001f);
 
-        if (dps > 54.810001) {
-            return static_cast<int32_t>(floor((dps - 54.810001) * 14.0 + 0.5));
+        if (dps > 54.81f) {
+            return static_cast<int32_t>(floor((dps - 54.81f) * 14.0f + 0.5f));
         }
     }
 

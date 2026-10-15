@@ -12,7 +12,7 @@ class CDataStore;
 class DanceCache;
 struct lua_State;
 
-struct KNOWNDANCES : public TSHashObject<KNOWNDANCES, HASHKEY_STRI> {
+struct KNOWNDANCES : public TSHashObject<KNOWNDANCES, HASHKEY_STR> {
     /* 0018 */ uint32_t m_id;
     /* 001C */ uint32_t unk_001C;
 };

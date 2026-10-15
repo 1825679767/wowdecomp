@@ -162,6 +162,7 @@ void SI2::StartCreditsMusic(const char* name) {
 
     SE2SoundKitProperties properties;
     properties.ResetToDefaults();
+    properties.m_group = 1;
     properties.m_selectMode = 0;
 
     SI2::PlaySoundKit(s_creditsMusicName, nullptr, &s_creditsMusic, &properties);

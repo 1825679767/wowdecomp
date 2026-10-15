@@ -185,7 +185,7 @@ void CSimpleMessageScrollFrame::UpdateNode(CSimpleMessageScrollFrameDisplayNode*
         node->m_string->SetText("", 1);
     }
 
-    if (fabs(node->m_string->GetStringHeight() - height) >= 0.001) {
+    if (fabs(node->m_string->GetStringHeight() - height) >= 0.001f) {
         node->m_string->Resize(1);
     }
 }

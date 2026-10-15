@@ -66,7 +66,9 @@ static void ValueTextureUpdate(EGxTexCommand command, uint32_t width, uint32_t h
 
 // INLINED
 void CSimpleColorSelect::operator delete(void* ptr) {
-    CSimpleColorSelect::s_allocator.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CSimpleColorSelect::s_allocator.PutData(ptr, nullptr, 0);
+    }
 }
 
 // INLINED

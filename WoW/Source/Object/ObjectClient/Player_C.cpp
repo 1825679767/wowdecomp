@@ -6911,7 +6911,7 @@ int32_t CGPlayer_C::CanUseItem(const ItemStats_C* stats, int32_t& error) {
         return 0;
     }
 
-    if (stats->m_requiredCityRank && !this->HasPvpMedal(static_cast<uint8_t>(stats->m_requiredCityRank))) {
+    if (stats->m_requiredCityRank && !this->HasPvpMedal(stats->m_requiredCityRank)) {
         error = ERR_CANT_USE_ITEM;
         return 0;
     }

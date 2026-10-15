@@ -10,7 +10,9 @@ CDataAllocator CGSimpleHealthBar::s_simpleHealthBarHeap(sizeof(CGSimpleHealthBar
 
 // INLINED
 void CGSimpleHealthBar::operator delete(void* ptr) {
-    CGSimpleHealthBar::s_simpleHealthBarHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CGSimpleHealthBar::s_simpleHealthBarHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: 56bf9a4e manual

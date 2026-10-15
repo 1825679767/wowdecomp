@@ -18,7 +18,7 @@
 uint64_t CGDanceStudio::m_learnedDanceMoves;
 
 // STATIC: 0x00BEB638
-static TSHashTable<KNOWNDANCES, HASHKEY_STRI> s_knownDances;
+static TSHashTable<KNOWNDANCES, HASHKEY_STR> s_knownDances;
 
 // VERIFY: 5e35e0a7 manual
 // OFFSET: 0x00576730

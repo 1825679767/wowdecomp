@@ -12,7 +12,7 @@
 #include "WoW/Source/Game/ValidateName.h"
 
 // STATIC: 0x00D37DE4
-static TSHashTable<DECLINEDWORD, HASHKEY_CONSTSTRI> s_declinedWords;
+static TSHashTable<DECLINEDWORD, HASHKEY_CONSTSTR> s_declinedWords;
 
 // VERIFY: 6162c5b1 manual
 // OFFSET: 0x007E01B0

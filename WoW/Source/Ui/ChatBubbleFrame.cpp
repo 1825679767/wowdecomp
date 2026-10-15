@@ -41,7 +41,9 @@ CDataAllocator CGChatBubbleFrame::s_chatBubbleHeap(sizeof(CGChatBubbleFrame), 10
 
 // INLINED
 void CGChatBubbleFrame::operator delete(void* ptr) {
-    CGChatBubbleFrame::s_chatBubbleHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CGChatBubbleFrame::s_chatBubbleHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: 20523c8e auto

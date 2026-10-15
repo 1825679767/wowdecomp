@@ -35,7 +35,9 @@ CDataAllocator CSimpleButton::s_allocator(sizeof(CSimpleButton), 100);
 
 // INLINED
 void CSimpleButton::operator delete(void* ptr) {
-    CSimpleButton::s_allocator.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CSimpleButton::s_allocator.PutData(ptr, nullptr, 0);
+    }
 }
 
 // INLINED

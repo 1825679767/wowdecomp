@@ -18001,7 +18001,7 @@ void CGUnit_C::HandleSpellEventSound() {
     SpellRec spell;
 
     if (!g_spellDB.GetRecord(this->m_castSpellId, &spell)) {
-        SysMsgPrintf(STATUS_ERROR, 2, "NOSPELLIDFOUND|%d", this->m_castSpellId);
+        SysMsgPrintf(STATUS_WARNING, 2, "NOSPELLIDFOUND|%d", this->m_castSpellId);
         return;
     }
 
@@ -18009,7 +18009,7 @@ void CGUnit_C::HandleSpellEventSound() {
     const SpellVisualRec* visual = this->GetAppropriateSpellVisual(&spell, visualRec, 0, 0);
 
     if (!visual) {
-        SysMsgPrintf(STATUS_ERROR, 2, "SPELLVISUALIDNOTFOUND|%d", spell.m_spellVisualID[0]);
+        SysMsgPrintf(STATUS_WARNING, 2, "SPELLVISUALIDNOTFOUND|%d", spell.m_spellVisualID[0]);
         return;
     }
 

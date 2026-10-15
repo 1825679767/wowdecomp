@@ -4398,7 +4398,7 @@ static int32_t Script_GetUnitManaRegenRateFromSpirit(lua_State* L) {
     CGUnit_C* unit = GetUnitFromName(lua_tolstring(L, 1, nullptr));
 
     if (unit && (unit->IsActivePlayer() || unit->m_unit->m_unitFieldPetnumber)) {
-        lua_pushnumber(L, unit->GetManaRegenRateFromSpirit() + 0.001);
+        lua_pushnumber(L, unit->GetManaRegenRateFromSpirit() + 0.001f);
     } else {
         lua_pushnumber(L, 0.0);
     }

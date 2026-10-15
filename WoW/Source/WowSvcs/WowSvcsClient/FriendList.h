@@ -77,7 +77,7 @@ class FriendList {
     /* DC8C */ int32_t m_whoClassMask;
     /* DC90 */ int32_t m_whoStringCount;
     /* DC94 */ char m_whoStrings[10][128];
-    /* E094 */ uint8_t unk_E094[260];
+    /* E194 */ uint8_t unk_E194[4];
 
     FriendList();
     ~FriendList();

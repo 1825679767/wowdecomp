@@ -436,7 +436,7 @@ int32_t StringToBOOL(lua_State* L, int32_t index, int32_t defaultValue) {
             return lua_toboolean(L, index);
 
         case LUA_TNUMBER:
-            return lua_tonumber(L, index) != 0.0;
+            return static_cast<int32_t>(lua_tonumber(L, index)) != 0;
 
         case LUA_TSTRING:
             return StringToBOOL(lua_tolstring(L, index, nullptr), defaultValue);

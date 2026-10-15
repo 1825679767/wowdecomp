@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "Engine/Source/Storm/H/stpl.h"
 
-struct DECLINEDWORD : public TSHashObject<DECLINEDWORD, HASHKEY_CONSTSTRI> {
+struct DECLINEDWORD : public TSHashObject<DECLINEDWORD, HASHKEY_CONSTSTR> {
     /* 0018 */ int32_t m_wordId;
     /* 001C */ int32_t m_caseIndex;
 };

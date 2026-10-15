@@ -36,15 +36,15 @@ static CInitCritSect s_refCritsect;
 template <class T>
 CDebugLockEntry TDebugLock<T>::s_entries[256];
 
-// STATIC: [0x00CB71C8, 0x00CB71F0]
+// STATIC: [0x00CB71C8<CDebugSCritSect>, 0x00CB71F0<CDebugSRWLock>]
 template <class T>
 uint32_t TDebugLock<T>::s_freeEntry;
 
-// STATIC: [0x00CB71CC, 0x00CB71F4]
+// STATIC: [0x00CB71CC<CDebugSCritSect>, 0x00CB71F4<CDebugSRWLock>]
 template <class T>
 CInitCritSect TDebugLock<T>::s_critsect;
 
-// STATIC: [0x00CB71EC, 0x00CB7214]
+// STATIC: [0x00CB71EC<CDebugSCritSect>, 0x00CB7214<CDebugSRWLock>]
 template <class T>
 CDebugLock* TDebugLock<T>::s_lockList;
 

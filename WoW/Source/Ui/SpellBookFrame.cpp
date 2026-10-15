@@ -1332,7 +1332,7 @@ int32_t CGSpellBook::FindCompanionSlotByID(int32_t spellId, int32_t type) {
 // VERIFY: 67b33918 auto
 // OFFSET: 0x0053B900
 bool HasPetSpell(int32_t spellId) {
-    if (spellId > g_spellDB.m_maxID) {
+    if (static_cast<uint32_t>(spellId) > static_cast<uint32_t>(g_spellDB.m_maxID)) {
         return false;
     }
 

@@ -57,7 +57,7 @@ static int32_t Script_GetNumTalents(lua_State* L) {
     int32_t inspect = StringToBOOL(L, 2, 0);
     int32_t pet = StringToBOOL(L, 3, 0);
     TalentTabInfo* tab = CGTalentInfo::GetTab(tabIndex, inspect, pet);
-    lua_pushnumber(L, tab ? static_cast<int32_t>(tab->m_numTalents) : 0);
+    lua_pushnumber(L, tab ? tab->m_numTalents : 0);
     return 1;
 }
 

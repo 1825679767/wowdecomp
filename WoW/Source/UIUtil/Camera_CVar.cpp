@@ -400,7 +400,7 @@ static bool ValidateCameraYaw(CVar* var, const char* oldValue, const char* value
         return true;
     }
 
-    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.0, 360.0);
+    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.0, 360.00001422012247);
     return false;
 }
 
@@ -413,7 +413,7 @@ static bool ValidateCameraAngularSpeed(CVar* var, const char* oldValue, const ch
         return true;
     }
 
-    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.1f, 360.0f);
+    ConsoleWriteA("Value out of range (%f - %f)\n", DEFAULT_COLOR, 0.10000000039264378, 360.00001422012247);
     return false;
 }
 

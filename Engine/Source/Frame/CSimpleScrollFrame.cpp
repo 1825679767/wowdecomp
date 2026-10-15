@@ -34,7 +34,9 @@ CDataAllocator CSimpleScrollFrame::s_allocator(sizeof(CSimpleScrollFrame), 5);
 
 // INLINED
 void CSimpleScrollFrame::operator delete(void* ptr) {
-    CSimpleScrollFrame::s_allocator.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CSimpleScrollFrame::s_allocator.PutData(ptr, nullptr, 0);
+    }
 }
 
 // INLINED

@@ -423,7 +423,7 @@ bool CVarHandler_useUiScale(CVar* var, const char* oldValue, const char* value, 
         CGGameUI::SetUIScale(scale);
     } else {
         CRect rect = { 0.0f, 0.0f, 0.0f, 0.0f };
-        g_theGxDevicePtr->CapsWindowSize(rect);
+        g_theGxDevicePtr->CapsWindowSizeInScreenCoords(rect);
         CGGameUI::ScaleToScreenSize(static_cast<int32_t>(rect.maxX - rect.minX), static_cast<int32_t>(rect.maxY - rect.minY), 1);
     }
 

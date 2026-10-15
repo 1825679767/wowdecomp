@@ -33,6 +33,7 @@ class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
     virtual float GetFacing() const;
     float GetRawFacing() const override;
     float GetScale() const override;
+    uint64_t GetTransportGUID() const override;
     virtual C44Matrix GetMatrix() const;
     virtual void ShouldRender(uint32_t flags, int32_t& render, int32_t& a3);
     void SetFrameOfReference(const C44Matrix* matrix) override;

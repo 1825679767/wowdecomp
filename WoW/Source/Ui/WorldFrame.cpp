@@ -1271,7 +1271,9 @@ CSimpleFrame* CGWorldFrame::Create(CSimpleFrame* parent) {
 
 // INLINED
 void CGWorldFrame::operator delete(void* ptr) {
-    CGWorldFrame::s_worldFrameHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CGWorldFrame::s_worldFrameHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: ee139ec8 auto

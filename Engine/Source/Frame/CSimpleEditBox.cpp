@@ -102,7 +102,9 @@ void CSimpleFontedFrameFont::UpdateObjects() {
 
 // INLINED
 void CSimpleEditBox::operator delete(void* ptr) {
-    CSimpleEditBox::s_allocator.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CSimpleEditBox::s_allocator.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: 64369d87 manual

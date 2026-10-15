@@ -129,7 +129,7 @@ static char s_logLastFile[MAX_PATH];
 // INLINED
 template <class T, class TGetLink>
 T* TSListWinHeap<T, TGetLink>::NewNode(uint32_t location, size_t extrabytes, uint32_t flags) {
-    T* node = new (HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(T) + extrabytes)) T;
+    T* node = new (HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, sizeof(T) + extrabytes)) T;
     memset(node, 0, sizeof(T) + extrabytes);
 
     if (location) {
@@ -170,7 +170,7 @@ static void AddStormFacility(uint16_t facility) {
         tail = &src->next;
     }
 
-    *tail = static_cast<_MSGSRC*>(HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(_MSGSRC)));
+    *tail = static_cast<_MSGSRC*>(HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, sizeof(_MSGSRC)));
     (*tail)->facility = facility;
     (*tail)->module = StormGetInstance();
     (*tail)->next = nullptr;

@@ -32,7 +32,9 @@ CDataAllocator CSimpleStatusBar::s_allocator(sizeof(CSimpleStatusBar), 5);
 
 // INLINED
 void CSimpleStatusBar::operator delete(void* ptr) {
-    CSimpleStatusBar::s_allocator.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CSimpleStatusBar::s_allocator.PutData(ptr, nullptr, 0);
+    }
 }
 
 // INLINED

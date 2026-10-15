@@ -27,7 +27,9 @@ CDataAllocator CSimpleCheckbox::s_allocator(sizeof(CSimpleCheckbox), 50);
 
 // INLINED
 void CSimpleCheckbox::operator delete(void* ptr) {
-    CSimpleCheckbox::s_allocator.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CSimpleCheckbox::s_allocator.PutData(ptr, nullptr, 0);
+    }
 }
 
 // INLINED

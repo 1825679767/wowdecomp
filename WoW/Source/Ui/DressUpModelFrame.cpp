@@ -40,7 +40,9 @@ CDataAllocator CGDressUpModelFrame::s_dressUpModelHeap(sizeof(CGDressUpModelFram
 
 // INLINED
 void CGDressUpModelFrame::operator delete(void* ptr) {
-    CGDressUpModelFrame::s_dressUpModelHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CGDressUpModelFrame::s_dressUpModelHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // INLINED

@@ -211,7 +211,7 @@ static int32_t Script_SelectStationery(lua_State* L) {
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
 
-    if (index >= CGMailInfo::m_stationeries.Count()) {
+    if (index >= CGMailInfo::m_numStationeries) {
         CGMailInfo::m_selectedStationery = 0;
     } else {
         CGMailInfo::m_selectedStationery = CGMailInfo::m_stationeries.m_data[index]->m_id;

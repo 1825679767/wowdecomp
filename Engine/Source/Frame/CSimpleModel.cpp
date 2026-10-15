@@ -62,7 +62,9 @@ int32_t CSimpleModel::GetObjectType() {
 
 // INLINED
 void CSimpleModel::operator delete(void* ptr) {
-    CSimpleModel::s_allocator.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CSimpleModel::s_allocator.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: 56a4df90 auto
@@ -212,10 +214,12 @@ void CSimpleModel::SetSequence(uint32_t sequence) {
 
 // VERIFY: 5e59b8f4 auto
 // OFFSET: 0x0095F610
-void CSimpleModel::SetSequenceTime(uint32_t sequence, int32_t time) {
+int32_t CSimpleModel::SetSequenceTime(uint32_t sequence, int32_t time) {
     if (this->m_model) {
         this->m_model->SetBoneSequence(0xFFFFFFFF, sequence, 0xFFFFFFFF, time, 1.0f, 0, 1);
     }
+
+    return 1;
 }
 
 // VERIFY: 209c9b4c auto

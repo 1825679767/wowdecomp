@@ -737,12 +737,12 @@ static int32_t Script_SetTrainerServiceTypeFilter(lua_State* L) {
 
     int32_t filter = g_serviceTypeFilterCVar->m_intValue;
 
-    if (!lua_tonumber(L, 2)) {
+    if (!static_cast<int32_t>(lua_tonumber(L, 2))) {
         CGClassTrainer::SetServiceTypeFilter(filter & ~(1 << serviceType));
         return 0;
     }
 
-    if (lua_isnumber(L, 3) && lua_tonumber(L, 3)) {
+    if (lua_isnumber(L, 3) && static_cast<int32_t>(lua_tonumber(L, 3))) {
         CGClassTrainer::SetServiceTypeFilter(1 << serviceType);
         return 0;
     }
@@ -780,12 +780,12 @@ static int32_t Script_SetTrainerSkillLineFilter(lua_State* L) {
 
     uint32_t filter = CGClassTrainer::m_skillLineFilter;
 
-    if (!lua_tonumber(L, 2)) {
+    if (!static_cast<int32_t>(lua_tonumber(L, 2))) {
         CGClassTrainer::SetSkillLineFilter(filter & ~(1 << index));
         return 0;
     }
 
-    if (lua_isnumber(L, 3) && lua_tonumber(L, 3)) {
+    if (lua_isnumber(L, 3) && static_cast<int32_t>(lua_tonumber(L, 3))) {
         CGClassTrainer::SetSkillLineFilter(1 << index);
         return 0;
     }

@@ -600,6 +600,9 @@ static int32_t Script_GetLFDLockPlayerCount(lua_State* L) {
 // VERIFY: 51dce08f auto
 // OFFSET: 0x00557BE0
 static int32_t Script_GetLFGDungeonRewardInfo(lua_State* L) {
+    // STATIC: 0x00BEABC8
+    static char texture[260];
+
     if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: GetLFGDungeonRewardInfo(dungeonID, lootIndex)");
         return 0;
@@ -628,9 +631,9 @@ static int32_t Script_GetLFGDungeonRewardInfo(lua_State* L) {
     }
 
     const char* path = ClientDBStringLookup(3);
-    SStrPrintf(s_rewardItemTexture, sizeof(s_rewardItemTexture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(item->m_displayID));
+    SStrPrintf(texture, sizeof(texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(item->m_displayID));
     lua_pushstring(L, name);
-    lua_pushstring(L, s_rewardItemTexture);
+    lua_pushstring(L, texture);
     lua_pushnumber(L, item->m_quantity);
     return 3;
 }

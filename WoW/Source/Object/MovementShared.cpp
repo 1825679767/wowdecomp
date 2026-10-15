@@ -60,7 +60,7 @@ float CMovementShared::TimeToFallDistance(float distance, int32_t safeFall) {
 
     if (distance < accelDistance) {
         if (0.0f < distance) {
-            return sqrt(distance * 0.10367472f);
+            return sqrt(distance * 0.103674725f);
         }
 
         return 0.0f;

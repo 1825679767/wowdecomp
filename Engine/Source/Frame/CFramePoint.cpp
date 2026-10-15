@@ -20,7 +20,9 @@ void* CFramePoint::operator new(size_t bytes) noexcept {
 
 // INLINED
 void CFramePoint::operator delete(void* ptr) {
-    CFramePoint::s_framePointHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CFramePoint::s_framePointHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: 494f351d manual

@@ -342,6 +342,11 @@ void CGItem_C::RequestItemCacheInfo() {
     }
 }
 
+// OFFSET: 0x0070AFB0
+void CGItem_C::PostReenable() {
+    this->RequestItemCacheInfo();
+}
+
 // VERIFY: fffdf723 auto
 // OFFSET: 0x0070AF80
 void CGItem_C::PostInit(uint32_t time, const CClientObjCreate& create, bool a3) {

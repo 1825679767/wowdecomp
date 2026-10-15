@@ -122,7 +122,9 @@ CSimpleModelFFX::~CSimpleModelFFX() {
 
 // INLINED
 void CSimpleModelFFX::operator delete(void* ptr) {
-    CSimpleModelFFX::s_simpleModelFFXHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CSimpleModelFFX::s_simpleModelFFXHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: 9f5b0582 auto

@@ -91,6 +91,7 @@ class CShadowCache {
     static const char* GetShadowModeDesc(uint32_t mode);
     static uint32_t GetShadowValue();
     static void Init();
+    static int32_t Initialize();
     static void InitPcfOffsets();
     static void __fastcall NotifyTexturesRecreate();
     static void PostUpdate();

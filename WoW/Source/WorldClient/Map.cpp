@@ -2448,10 +2448,11 @@ int32_t CMap::SafeOpen(const char* fileName, SFileImpl** file) {
     int32_t tries = 10;
 
     while (!SFileOpenFile(fileName, file)) {
-        DebugLog("CMap::SafeOpen() failed %s\n");
+        DebugLog("CMap::SafeOpen() failed %s\n", fileName);
 
         if (!--tries) {
             SErrDisplayAppFatal("CMap::SafeOpen() failed %s", fileName);
+            return 0;
         }
     }
 
@@ -2464,10 +2465,10 @@ int32_t CMap::SafeRead(const char* fileName, SFileImpl* file, void* buffer, uint
     int32_t tries = 10;
 
     while (!SFileReadFile(file, buffer, size, nullptr, nullptr, 0)) {
-        DebugLog("CMap::SafeRead() failed %s\n");
+        DebugLog("CMap::SafeRead() failed %s\n", fileName);
 
         if (!--tries) {
-            DebugLog("CMap::SafeRead() failed %s");
+            DebugLog("CMap::SafeRead() failed %s", fileName);
             return 0;
         }
     }
@@ -2526,7 +2527,7 @@ void CMap::ValidateShaders() {
 // OFFSET: 0x007BD9F0
 void CMap::Preload() {
     CMap::PurgeMaps();
-    CMapObj::ClearCache(1);
+    CMapObj::ClearCache(0);
     CMap::ClearAllFootprints();
     TextureGxCacheFlush();
     CMap::bPreload = 1;
@@ -4145,7 +4146,7 @@ CTexture* CMap::LoadTexture(const char* fileName) {
     SysMsgAdd(&status);
 
     if (!texture) {
-        DebugLog("Failed to load texture: %s\n");
+        DebugLog("Failed to load texture: %s\n", fileName);
     }
 
     return texture;

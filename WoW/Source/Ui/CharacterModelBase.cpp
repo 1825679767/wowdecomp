@@ -55,7 +55,9 @@ static int32_t IsUnitDrawable(CGUnit_C* unit) {
 
 // INLINED
 void CGCharacterModelBase::operator delete(void* ptr) {
-    CGCharacterModelBase::s_characterModelHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CGCharacterModelBase::s_characterModelHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // INLINED

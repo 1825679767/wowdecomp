@@ -1030,7 +1030,9 @@ void CSimpleFontString::RefreshEmbeddedTextures() {
 
 // INLINED
 void CSimpleFontString::operator delete(void* ptr) {
-    CSimpleFontString::s_allocator.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CSimpleFontString::s_allocator.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: ce8bf3cc manual
@@ -2013,7 +2015,9 @@ int32_t CSimpleTexture::GetObjectType() {
 
 // INLINED
 void CSimpleTexture::operator delete(void* ptr) {
-    CSimpleTexture::s_allocator.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CSimpleTexture::s_allocator.PutData(ptr, nullptr, 0);
+    }
 }
 
 // VERIFY: 0a77af56 auto

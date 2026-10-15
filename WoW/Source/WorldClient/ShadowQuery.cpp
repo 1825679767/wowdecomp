@@ -61,7 +61,7 @@ void CShadowQuery::Initialize() {
     g_shadowScissor = CVar::Register("shadowScissor", "enable scissoring when rendering shadowmaps", 0, "1", nullptr, CATEGORY_DEFAULT, false, nullptr, false);
     g_shadowInstancing = CVar::Register("shadowInstancing", "enable instancing when rendering shadowmaps", 0, "1", nullptr, CATEGORY_DEFAULT, false, nullptr, false);
 
-    CShadowCache::Init();
+    CShadowCache::Initialize();
 }
 
 // OFFSET: 0x007BA7D0

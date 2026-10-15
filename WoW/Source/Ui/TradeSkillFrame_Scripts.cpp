@@ -814,9 +814,9 @@ static int32_t Script_SetTradeSkillSubClassFilter(lua_State* L) {
 
     uint32_t filter = CGTradeSkillInfo::m_subClassFilter;
 
-    if (!lua_tonumber(L, 2)) {
+    if (!static_cast<int32_t>(lua_tonumber(L, 2))) {
         CGTradeSkillInfo::SetSubClassFilter(filter & ~(1 << index), index);
-    } else if (lua_isnumber(L, 3) && lua_tonumber(L, 3)) {
+    } else if (lua_isnumber(L, 3) && static_cast<int32_t>(lua_tonumber(L, 3))) {
         CGTradeSkillInfo::SetSubClassFilter(1 << index, index);
     } else {
         CGTradeSkillInfo::SetSubClassFilter(filter | (1 << index), index);

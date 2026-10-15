@@ -183,11 +183,9 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
         return;
     }
 
-    float valueF = reinterpret_cast<float&>(value);
-
     switch (state) {
         case Ds_DepthMask:
-            if (valueF == 0.0f) {
+            if (!value) {
                 glDepthMask(GL_FALSE);
             } else {
                 glDepthMask(GL_TRUE);
@@ -220,7 +218,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
                     glDisable(current);
                 }
 
-                if (valueF != 0.0f) {
+                if (value) {
                     glEnable(value);
                 }
             }
@@ -235,7 +233,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
         case Ds_TexGenS0 + 5:
         case Ds_TexGenS0 + 6:
         case Ds_TexGenS0 + 7:
-            if (valueF == 0.0f) {
+            if (!value) {
                 glDisable(GL_TEXTURE_GEN_S);
             } else {
                 glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, value);
@@ -255,7 +253,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
         case Ds_TexGenT0 + 5:
         case Ds_TexGenT0 + 6:
         case Ds_TexGenT0 + 7:
-            if (valueF == 0.0f) {
+            if (!value) {
                 glDisable(GL_TEXTURE_GEN_T);
             } else {
                 glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, value);
@@ -275,7 +273,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
         case Ds_TexGenR0 + 5:
         case Ds_TexGenR0 + 6:
         case Ds_TexGenR0 + 7:
-            if (valueF == 0.0f) {
+            if (!value) {
                 glDisable(GL_TEXTURE_GEN_R);
             } else {
                 glTexGeni(GL_R, GL_TEXTURE_GEN_MODE, value);
@@ -295,7 +293,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
         case Ds_TexGenQ0 + 5:
         case Ds_TexGenQ0 + 6:
         case Ds_TexGenQ0 + 7:
-            if (valueF == 0.0f) {
+            if (!value) {
                 glDisable(GL_TEXTURE_GEN_Q);
             } else {
                 glTexGeni(GL_Q, GL_TEXTURE_GEN_MODE, value);
@@ -367,7 +365,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
             if (this->m_deviceStates[Ds_VertexProgram]) {
                 GLuint index = state - Ds_VertexArray0;
 
-                if (valueF == 0.0f) {
+                if (!value) {
                     glDisableVertexAttribArrayARB(index);
                 } else {
                     glEnableVertexAttribArrayARB(index);
@@ -376,7 +374,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
                 GLenum clientStates[14] = { GL_VERTEX_ARRAY, 0, 0, GL_NORMAL_ARRAY, GL_COLOR_ARRAY, GL_COLOR_ARRAY, GL_TEXTURE_COORD_ARRAY, GL_TEXTURE_COORD_ARRAY, GL_TEXTURE_COORD_ARRAY, GL_TEXTURE_COORD_ARRAY, GL_TEXTURE_COORD_ARRAY, GL_TEXTURE_COORD_ARRAY, GL_TEXTURE_COORD_ARRAY, GL_TEXTURE_COORD_ARRAY };
                 GLenum clientState = clientStates[state - Ds_VertexArray0];
 
-                if (valueF == 0.0f) {
+                if (!value) {
                     glDisableClientState(clientState);
                 } else {
                     glEnableClientState(clientState);
@@ -386,7 +384,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
             break;
 
         case Ds_PolygonOffsetFill:
-            if (valueF == 0.0f) {
+            if (!value) {
                 glDisable(GL_POLYGON_OFFSET_FILL);
             } else {
                 glEnable(GL_POLYGON_OFFSET_FILL);
@@ -395,11 +393,11 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
             break;
 
         case Ds_PolygonOffset:
-            glPolygonOffset(-4.0f, valueF * 65536.0f * -1.0f);
+            glPolygonOffset(-4.0f, reinterpret_cast<float&>(value) * 65536.0f * -1.0f);
             break;
 
         case Ds_Blend:
-            if (valueF != 0.0f) {
+            if (value) {
                 glEnable(GL_BLEND);
             } else {
                 glDisable(GL_BLEND);
@@ -408,7 +406,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
             break;
 
         case Ds_AlphaTest:
-            if (valueF != 0.0f) {
+            if (value) {
                 glEnable(GL_ALPHA_TEST);
             } else {
                 glDisable(GL_ALPHA_TEST);
@@ -418,7 +416,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
 
         case Ds_RegisterCombiners:
             if (glNVRegisterCombiners) {
-                if (valueF != 0.0f) {
+                if (value) {
                     glEnable(GL_REGISTER_COMBINERS_NV);
                 } else {
                     glDisable(GL_REGISTER_COMBINERS_NV);
@@ -429,7 +427,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
 
         case Ds_PerStageConstants:
             if (glNVRegisterCombiners2) {
-                if (valueF != 0.0f) {
+                if (value) {
                     glEnable(GL_PER_STAGE_CONSTANTS_NV);
                 } else {
                     glDisable(GL_PER_STAGE_CONSTANTS_NV);
@@ -440,7 +438,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
 
         case Ds_TextureShader:
             if (glNVTextureShader) {
-                if (valueF != 0.0f) {
+                if (value) {
                     glEnable(GL_TEXTURE_SHADER_NV);
                 } else {
                     glDisable(GL_TEXTURE_SHADER_NV);
@@ -451,7 +449,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
 
         case Ds_FragmentProgram:
             if (glARBFragmentProgram) {
-                if (valueF != 0.0f) {
+                if (value) {
                     glEnable(GL_FRAGMENT_PROGRAM_ARB);
                 } else {
                     glDisable(GL_FRAGMENT_PROGRAM_ARB);
@@ -473,7 +471,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState state, uint32_t value, int32_t force) {
 
                 this->m_primVertexDirty = 0xFFFFFFFF;
 
-                if (valueF == 0.0f) {
+                if (!value) {
                     glDisable(GL_VERTEX_PROGRAM_ARB);
                 } else {
                     glEnable(GL_VERTEX_PROGRAM_ARB);
@@ -2937,9 +2935,9 @@ void CGxDeviceOpenGl::IStateSyncEnables() {
 
     if (this->NeedsUpdate(this->m_appMasterEnables, this->m_hwMasterEnables, 0, 0, 8, enable)) {
         if (enable) {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        } else {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        } else {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         }
     }
 

@@ -1073,3 +1073,9 @@ int32_t CShadowCache::Update(const C3Vector& pos, int32_t useCullFrustum) {
 
     return 1;
 }
+
+// OFFSET: 0x00876360
+int32_t CShadowCache::Initialize() {
+    CShadowCache::Init();
+    return 1;
+}

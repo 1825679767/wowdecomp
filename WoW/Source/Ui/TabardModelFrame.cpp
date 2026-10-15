@@ -33,7 +33,9 @@ CDataAllocator CGTabardModelFrame::s_tabardModelHeap(sizeof(CGTabardModelFrame),
 
 // INLINED
 void CGTabardModelFrame::operator delete(void* ptr) {
-    CGTabardModelFrame::s_tabardModelHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CGTabardModelFrame::s_tabardModelHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // INLINED

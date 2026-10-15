@@ -40,7 +40,9 @@ CDataAllocator CGQuestPOIFrame::s_questPOIHeap(sizeof(CGQuestPOIFrame), 5);
 
 // INLINED
 void CGQuestPOIFrame::operator delete(void* ptr) {
-    CGQuestPOIFrame::s_questPOIHeap.PutData(ptr, nullptr, 0);
+    if (ptr) {
+        CGQuestPOIFrame::s_questPOIHeap.PutData(ptr, nullptr, 0);
+    }
 }
 
 // INLINED

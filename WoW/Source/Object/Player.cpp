@@ -157,7 +157,7 @@ uint32_t CGPlayer::GetBuybackPrice(uint32_t slot) {
 
 // VERIFY: feec4401 manual
 // OFFSET: 0x0061DCB0
-bool CGPlayer::HasPvpMedal(uint8_t medal) {
+bool CGPlayer::HasPvpMedal(uint32_t medal) {
     return (this->m_player->m_playerFieldPvpMedals & (1 << (medal - 1))) != 0;
 }
 

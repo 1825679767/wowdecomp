@@ -64,7 +64,7 @@ void CGCurrencyTypes::SetCategoryExpand(int32_t index, int32_t expand) {
     }
 
     for (int32_t i = 0; i < CGCurrencyTypes::m_numCategories; i++) {
-        if (CGCurrencyTypes::m_categories[i].m_id == CGCurrencyTypes::m_list[index].m_itemID) {
+        if (CGCurrencyTypes::m_categories[i].m_id == CGCurrencyTypes::m_list[index].m_categoryID) {
             CGCurrencyTypes::m_categories[i].m_expanded = expand;
             return;
         }
