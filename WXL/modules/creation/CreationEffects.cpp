@@ -110,7 +110,13 @@ bool Mounted(const char* path) {
 }
 std::vector<OwnedVisual> visuals;
 std::vector<CM2Model*> warm;
-void Dispose(OwnedVisual& v) { v.model->SetEmittersEnabled(0); v.model->SetRibbonsEnabled(0); v.model->DetachFromParent(); v.model->Release(); }
+void Dispose(OwnedVisual& v) {
+ v.model->SetEmittersEnabled(0);v.model->SetRibbonsEnabled(0);
+ // Base effects and released attachment-origin flights may be scene roots.
+ // Native detach always consumes an attachment reference, even when unbound.
+ if(v.model->m_attachParent)v.model->DetachFromParent();
+ v.model->Release();
+}
 void ClearVisuals(bool all=true) {
  creation_beams::Stop();
  g_blizzardEmitter.active=g_priestChannelEmitter.active=false;
@@ -192,7 +198,7 @@ void UpdateVisuals() {
     // Capture once in actor coordinates, then travel independently of hand motion.
     v.origin=actor->GetAttachmentPosition(e.attachment)*actor->GetAnimatedWorldTransform().AffineInverse();
     v.origin.x+=e.offsetX;v.origin.y+=e.offsetY;v.origin.z+=e.offsetZ;
-    model->DetachFromParent();
+    if(model->m_attachParent)model->DetachFromParent();
     if(actor->m_attachParent)model->AttachToParent(actor->m_attachParent,0,nullptr,1);
    }
   }
