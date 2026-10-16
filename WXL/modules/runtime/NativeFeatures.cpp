@@ -1,3 +1,4 @@
+#include "WXL/Skyriding.hpp"
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "NativeFeatures.hpp"
 #include "CreationEffects.hpp"
@@ -18,6 +19,7 @@ bool Changed(CVar*,const char*,const char* value,void* arg){
 bool On(uint32_t bit) noexcept{return (enabled.load(std::memory_order_acquire)&Compiled&bit)!=0;}
 }
 void RegisterFeatures(){
+ skyriding::Register();
  creation_effects::Register();
  CVar::Register("wxlAreaLootAuto","WXL automatic area loot",2,"1",nullptr,0,false,nullptr,false);
  CVar::Register("wxlAreaLootQuality","WXL minimum automatic area loot quality",2,"0",nullptr,0,false,nullptr,false);

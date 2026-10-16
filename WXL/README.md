@@ -94,3 +94,7 @@ Extended particle positive zSource constants now become owned native float anima
 ## Challenge and difficulty owner
 
 ChallengeMode ports the donor Mythic+ state, bosses, keystones, completion/history/rating, loot specialization and reward-toast parsers and Lua APIs. Eleven private declarations replace the corresponding raw facade routes; session/player/map changes clear state and deferred UI notification avoids callbacks under transport locks. The separate MythicDifficulty toggle enables the existing third native dungeon mode and typed game-object portal/model handling. Native leader checks and server authorization stay in place. These client modules do not implement server dungeon scaling, rewards or permanent-death policy. Default wxlChallengeMode/wxlMythicDifficulty are ON. See modules/challenge-mode/INTEGRATION.md.
+
+## Native Skyriding owner
+
+Skyriding now owns its server mode/command/impulse protocol, mount animation phases, double-space input and Lua controls. Native movement events retain ordinary collision, server flight permission and speed authority; no raw coordinate/gravity/flight-bit writes are copied. Session/map/player/mount changes release ownership and discard stale packets. Default WXL_ENABLE_SKYRIDING/wxlSkyriding is ON. Donor manual stall descent, surge lift and forced-flight restoration remain outside this typed native port; this is not full physical parity. See modules/skyriding/INTEGRATION.md.

@@ -1,3 +1,4 @@
+#include "WXL/Skyriding.hpp"
 #include "Unit_C.h"
 #include "WXL/AppearanceSession.hpp"
 #include "WoW/Source/Ui/BarberShop.h"
@@ -9244,6 +9245,8 @@ void CGUnit_C::ReleaseEffectsBySpell(int32_t spellId) {
 // VERIFY: e1b2b150 manual
 // OFFSET: 0x00735820
 void CGUnit_C::SetKeyBoneSequence(CM2Model* model, uint32_t boneId, uint32_t sequenceId, uint32_t variation, uint32_t time, float speed, int32_t blend, int32_t primary, int32_t force) {
+    // The native Skyriding owner uses force=1; leave its full phase/speed intact.
+    if (!force && boneId == 0xffffffffu && wxl::native::skyriding::OwnsAnimation(this, model)) return;
     if (!model) {
         return;
     }

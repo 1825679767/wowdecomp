@@ -1,3 +1,4 @@
+#include "WXL/Skyriding.hpp"
 #include "WorldFrame.h"
 #include "WXL/QuestMarker.hpp"
 #include "Engine/Source/Base/ConvertUTF.h"
@@ -2351,6 +2352,7 @@ int32_t CGWorldFrame::OnLayerKeyDown(const CKeyEvent& evt) {
     }
 
     KEY key = evt.m_data.m_key;
+    if (wxl::native::skyriding::KeyDown(uint32_t(key), evt.m_data.m_repeat != 0)) return 1;
 
     if (key >= KEY_LAST) {
         return 0;
@@ -2374,6 +2376,7 @@ int32_t CGWorldFrame::OnLayerKeyDown(const CKeyEvent& evt) {
 // VERIFY: e0914772 manual
 // OFFSET: 0x004F6B70
 int32_t CGWorldFrame::OnLayerKeyUp(const CKeyEvent& evt) {
+    wxl::native::skyriding::KeyUp(uint32_t(evt.m_data.m_key));
     if (this->CSimpleFrame::OnLayerKeyUp(evt)) {
         return 1;
     }

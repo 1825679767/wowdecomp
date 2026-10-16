@@ -1,3 +1,4 @@
+#include "WXL/Skyriding.hpp"
 #include "Movement_C.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -194,6 +195,7 @@ int32_t MovementIdleMoveUnits(const void* data, void* param) {
     uint32_t now = OsGetAsyncTimeMs();
     CMovementGlobals* globals = MovementGetGlobals();
     int32_t elapsed = now - globals->m_lastUpdateTime;
+    wxl::native::skyriding::Tick(elapsed > 0 ? float(elapsed) / 1000.0f : 0.0f);
 
     if (elapsed > 0) {
         MovementMoveTransports(now, elapsed);

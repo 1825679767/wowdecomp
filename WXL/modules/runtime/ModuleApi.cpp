@@ -1,3 +1,4 @@
+#include "WXL/Skyriding.hpp"
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "ModuleApi.hpp"
 #include "NativeFeatures.hpp"
@@ -7,6 +8,7 @@ namespace wxl::native {
 namespace {
 struct Entry {const char* id;const char* dependencies;bool(*enabled)() noexcept;};
 const Entry entries[]{
+ {"skyriding","runtime,protocol,m2,client-extensions",&skyriding::Enabled},
  {"runtime","",&NativeEnabled},{"storage","runtime",&NativeEnabled},
  {"db2","runtime,storage",&Db2Enabled},{"blp","runtime",&BlpEnabled},
  {"materials","runtime,m2",&MaterialsEnabled},{"particles","runtime,m2",&ParticlesEnabled},

@@ -145,8 +145,8 @@ int Network(lua_State* L){
 void InstallPackets(){DestroyPackets();
  // Existing source-owned custom IDs mirrored by the original WXL facade.
  // Builtin spell charges and compiled appearance/paragon owners stay exclusive.
- constexpr uint16_t outgoingIds[]={0x523,0x527,0x529,0x538,0x539,0x53a};
- constexpr uint16_t incomingIds[]={0x524,0x528,0x52a,0x53b};
+ constexpr uint16_t outgoingIds[]={0x523,0x538,0x539,0x53a};
+ constexpr uint16_t incomingIds[]={0x524,0x53b};
  for(auto id:outgoingIds)protocol::RegisterOpcode(id,true);
  for(auto id:incomingIds)protocol::RegisterOpcode(id,false);
 FrameScript_RegisterFunction("_WXL_NETWORK",&Network);FrameScript_Execute(kLegacyPacketsLua,"WXLNativeLegacyPackets",nullptr);}

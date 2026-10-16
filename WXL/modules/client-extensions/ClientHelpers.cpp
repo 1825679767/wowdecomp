@@ -1,3 +1,4 @@
+#include "WXL/Skyriding.hpp"
 // Native addon diagnostics, command-line arguments, mounted text and descriptions.
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "ClientExtensions.hpp"
@@ -85,7 +86,7 @@ void InstallHelpers(){ParseArguments();
  FrameScript_RegisterFunction("WXL_GetArgument",&GetArgument);FrameScript_RegisterFunction("WXL_ReadClientFileText",&ReadFile);
  FrameScript_Execute(Bootstrap,"WXLNativeClientHelpers",nullptr);
 }
-void Install(){if(!ClientExtensionsEnabled())return;InstallHelpers();radial_ping::Install();quest_marker::Install();challenge_mode::Install();InstallPackets();InstallParagon();}
+void Install(){if(!ClientExtensionsEnabled())return;InstallHelpers();skyriding::Install();radial_ping::Install();quest_marker::Install();challenge_mode::Install();InstallPackets();InstallParagon();}
 void UiReady(){if(ClientExtensionsEnabled()){StartPacketPump();radial_ping::UiReady();quest_marker::UiReady();challenge_mode::UiReady();}}
-void Destroy()noexcept{challenge_mode::Destroy();quest_marker::Destroy();radial_ping::Destroy();DestroyPackets();DestroyParagon();arguments.clear();}
+void Destroy()noexcept{skyriding::Destroy();challenge_mode::Destroy();quest_marker::Destroy();radial_ping::Destroy();DestroyPackets();DestroyParagon();arguments.clear();}
 }
