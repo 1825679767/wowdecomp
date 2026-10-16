@@ -126,9 +126,11 @@ bool CGxDeviceD3d11::RecoverDevice(){
     }
     for(auto* q=m_queryList.Head();q;q=m_queryList.Next(q))if(q->m_apiSpecific){static_cast<IUnknown*>(q->m_apiSpecific)->Release();q->m_apiSpecific=nullptr;}
     auto sources=std::move(m->shaderSources);
+    const auto appConstants=m->appConstants;
     if(m->swapchain)m->swapchain->SetFullscreenState(FALSE,nullptr);
     m.reset(new Impl(this));m->window=window;m->ownWindow=own;m->offscreen=offscreen;m->warp=warp;m->width=width;m->height=height;
     m->pools=std::move(pools);m->shaderSources=std::move(sources);
+    m->appConstants=appConstants;
     if(!Initialize(warp)){Log("DX11 device recovery failed; rendering remains unavailable");m_context=0;return false;}
     m_windowFocus=focused;m_windowVisible=visible;
     m->ApplyGamma();NotifyOnDeviceRestored();NotifyOnTextureRecreation();Log("DX11 device recovered with native owners preserved");return true;

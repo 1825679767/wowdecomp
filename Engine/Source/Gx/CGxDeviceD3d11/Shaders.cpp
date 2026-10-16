@@ -120,10 +120,18 @@ void CGxDeviceD3d11::IShaderReload(CGxShader* shader,const char* path,const char
 
 bool CGxDeviceD3d11::Impl::UploadConstants(const Variant& shader,bool vertex){
     const auto& c=shader.translated;uint32_t words[1024]{};
-    std::memcpy(words,self->ShaderConstantsLock(vertex?GxSh_Vertex:GxSh_Pixel),sizeof(words));
+    const uint32_t stage=vertex?0:1;
+    auto& shadow=CGxDevice::s_shadowConstants[vertex?1:0];
+    if(shadow.dirtyMin<=shadow.dirtyMax){
+        if(shadow.dirtyMax>=256)return false;
+        std::memcpy(appConstants[stage].data()+shadow.dirtyMin*4,shadow.constants+shadow.dirtyMin*4,
+                    (shadow.dirtyMax-shadow.dirtyMin+1)*16);
+        shadow.dirtyMin=255;shadow.dirtyMax=0;
+    }
+    std::memcpy(words,appConstants[stage].data(),sizeof(words));
     if(shader.fixed)FixedConstants(vertex,words);
     for(const auto& v:c.inlineConstants[0]){if(v.index>1020)return false;std::memcpy(words+v.index,v.words,16);}
-    const uint32_t stage=vertex?0:1;context->UpdateSubresource(constants[stage][0].Get(),0,nullptr,words,0,0);
+    context->UpdateSubresource(constants[stage][0].Get(),0,nullptr,words,0,0);
     uint32_t ints[64]{};for(const auto& v:c.inlineConstants[1]){if(v.index>60)return false;std::memcpy(ints+v.index,v.words,16);}
     context->UpdateSubresource(constants[stage][1].Get(),0,nullptr,ints,0,0);
     uint32_t bools[16]{};for(const auto& v:c.inlineConstants[2]){if(v.index>=16)return false;bools[v.index]=v.words[0];}

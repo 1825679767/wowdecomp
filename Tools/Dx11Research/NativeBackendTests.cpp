@@ -85,6 +85,29 @@ static void Equal(CImVector actual,CImVector expected,const char* name,int toler
     Check(true,name);
 }
 #include "WxlMaterialChecks.h"
+static void ConstantUpdateChecks(bool warp){
+    CGxDeviceD3d11 d;g_theGxDevicePtr=&d;Check(d.CreateOffscreen(16,16,warp),"constant contract device");
+    d.RsSet(GxRs_DepthTest,0);d.RsSet(GxRs_DepthWrite,0);d.RsSet(GxRs_Culling,0);
+    d.RsSet(GxRs_ScissorTest,0);d.RsSet(GxRs_BlendingMode,GxBlend_Opaque);d.RsSet(GxRs_AlphaRef,0);d.RsSet(GxRs_Fog,0);d.RsSet(GxRs_ColorWrite,15);
+    auto compile=[&](const char* source,EGxShTarget stage,const char* name){
+        ID3DBlob* code=nullptr;ID3DBlob* error=nullptr;
+        const auto hr=D3DCompile(source,std::strlen(source),name,nullptr,nullptr,"main",stage==GxSh_Vertex?"vs_3_0":"ps_3_0",0,0,&code,&error);
+        if(error)error->Release();Check(SUCCEEDED(hr)&&code,"constant regression shader compile");
+        auto* program=WxlProgram(d,stage,name,code->GetBufferPointer(),code->GetBufferSize());code->Release();return program;
+    };
+    auto* vs=compile("float4 main(float3 p:POSITION):POSITION{return float4(p,1);}",GxSh_Vertex,"ConstantRegression.VS");
+    auto* ps=compile("float4 fog:register(c2);float4 main():COLOR{return float4(fog.rgb,1);}",GxSh_Pixel,"ConstantRegression.PS");
+    d.RsSet(GxRs_VertexShader,vs);d.RsSet(GxRs_PixelShader,ps);
+    Triangle(d,CImVector(255,255,255,255));Equal(Center(d),CImVector(0,0,0,255),"untouched PS register uses API default, not FLT_MAX shadow marker");
+    const float tint[]={.25f,.5f,.75f,1};d.ShaderConstantsSet(GxSh_Pixel,2,tint,1);
+    Triangle(d,CImVector(255,255,255,255));Equal(Center(d),CImVector(191,128,64,255),"dirty PS register upload");
+    d.RsSet(GxRs_PixelShader,static_cast<void*>(nullptr));Triangle(d,CImVector(255,255,255,255));d.RsSet(GxRs_PixelShader,ps);
+    Triangle(d,CImVector(255,255,255,255));Equal(Center(d),CImVector(191,128,64,255),"fixed-function shader constants do not overwrite native API registers");
+    Check(d.RecoverDevice(),"constant contract recovery");
+    Triangle(d,CImVector(255,255,255,255));Equal(Center(d),CImVector(191,128,64,255),"native API register contents survive recovery");
+    d.RsSet(GxRs_VertexShader,static_cast<void*>(nullptr));d.RsSet(GxRs_PixelShader,static_cast<void*>(nullptr));
+    d.ShaderDestroy(vs);d.ShaderDestroy(ps);d.DeviceDestroy();g_theGxDevicePtr=nullptr;
+}
 int main(int argc,char** argv) try {
     SetUnhandledExceptionFilter(TraceCrash);
     std::cerr<<"native DX11 backend tests: initialize\n"<<std::flush;
@@ -258,6 +281,7 @@ int main(int argc,char** argv) try {
         inputRetired=true;window.DeviceDestroy();Check(!retiredCallbacks,"window teardown does not call retired native input/IME owner");
         inputRetired=false;g_theGxDevicePtr=nullptr;SFile::EnableDirectAccess(0);
     }
+    ConstantUpdateChecks(argc==3);
     // Exercise actual GxDevDestroy/WXL lifecycle owners, not test substitutes.
     auto* lifecycle=new CGxDeviceD3d11();g_theGxDevicePtr=lifecycle;
     Check(lifecycle->CreateOffscreen(8,8,true),"owned device for real WXL teardown");

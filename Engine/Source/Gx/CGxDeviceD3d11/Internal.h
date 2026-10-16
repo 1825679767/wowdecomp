@@ -54,6 +54,9 @@ struct CGxDeviceD3d11::Impl {
     std::map<std::pair<uint32_t,uint32_t>,std::pair<ComPtr<ID3D11Texture2D>,ComPtr<ID3D11DepthStencilView>>> auxiliaryDepth;
     ComPtr<ID3D11ShaderResourceView> depthSrv;
     ComPtr<ID3D11Buffer> constants[2][4];
+    // API constants retain their values between shader draws. The native
+    // shadow array contains FLT_MAX invalidation markers outside dirty ranges.
+    std::array<std::array<uint32_t,1024>,2> appConstants{};
     struct Pool {Bytes cpu;ComPtr<ID3D11Buffer> gpu;uint32_t dirtyBegin=0xffffffff,dirtyEnd=0;};
     std::map<CGxPool*,Pool> pools;
     struct Texture {
