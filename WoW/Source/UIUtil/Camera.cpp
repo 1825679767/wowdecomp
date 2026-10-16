@@ -2432,14 +2432,14 @@ void CGCamera::CalcTargetCamera(CGObject_C* target, uint32_t time) {
             bool decided = false;
 
             if ((state & 0x200000) && surfacePitch < 0.0f) {
-                if (!(input->m_flags & 0x2000001) || (distance < 0.0f && distance > surfacePitch)) {
+                if (!(input->m_flags & INPUT_PLAYER_LOOK_MASK) || (distance < 0.0f && distance > surfacePitch)) {
                     pitchPlayer = true;
                     decided = true;
                 }
             }
 
             if (!decided && surfacing && 0.0f < submergePitch) {
-                if (!(input->m_flags & 0x2000001) || (0.0f < distance && distance < submergePitch)) {
+                if (!(input->m_flags & INPUT_PLAYER_LOOK_MASK) || (0.0f < distance && distance < submergePitch)) {
                     pitchPlayer = true;
                 }
             }
@@ -3307,15 +3307,15 @@ void CGCamera::SmoothFreeLook(CGInputControl* input, int32_t idle) {
 
     uint32_t flags = input->m_flags;
 
-    if (((flags & 0x300) && !(flags & 0x2000001)) || (flags & 0x2000001)) {
+    if (((flags & INPUT_TURN_PLAYER_MASK) && !(flags & INPUT_PLAYER_LOOK_MASK)) || (flags & INPUT_PLAYER_LOOK_MASK)) {
         reasons |= 0x20;
     }
 
-    if ((flags & 0xC0) || ((flags & 0x2000001) && (flags & 0x300))) {
+    if ((flags & INPUT_STRAFE_PLAYER_MASK) || ((flags & INPUT_PLAYER_LOOK_MASK) && (flags & INPUT_TURN_PLAYER_MASK))) {
         reasons |= 0x10;
     }
 
-    if ((flags & 0x1030) || ((flags & 0x1) && (flags & 0x2))) {
+    if ((flags & INPUT_MOVE_WITH_AUTORUN_MASK) || ((flags & INPUT_TURN_PLAYER) && (flags & INPUT_TURN_CAMERA))) {
         reasons |= 0x8;
     }
 
@@ -3333,7 +3333,7 @@ void CGCamera::SmoothFreeLook(CGInputControl* input, int32_t idle) {
 
     flags = input->m_flags;
 
-    if (!(flags & 0x1030) && !(flags & 0xC0) && (!(flags & 0x2000001) || !(flags & 0x300)) && (!(flags & 0x300) || (flags & 0x2000001)) && !(flags & 0x1E00000)) {
+    if (!(flags & INPUT_MOVE_WITH_AUTORUN_MASK) && !(flags & INPUT_STRAFE_PLAYER_MASK) && (!(flags & INPUT_PLAYER_LOOK_MASK) || !(flags & INPUT_TURN_PLAYER_MASK)) && (!(flags & INPUT_TURN_PLAYER_MASK) || (flags & INPUT_PLAYER_LOOK_MASK)) && !(flags & INPUT_TRACKING_MASK)) {
         reasons |= 0x1;
     }
 

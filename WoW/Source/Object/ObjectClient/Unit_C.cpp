@@ -10273,7 +10273,7 @@ void CGUnit_C::ClearTrackingTarget(bool a2, bool a3) {
             C3Vector targetPosition = target->GetPosition();
             C3Vector position = this->GetPosition();
             CGUnit_C::s_trackingFacing = CalculateFacingTo(&position, &targetPosition);
-            CGInputControl::GetActive()->ToggleControlBit(0x1000000, 1, time, 0);
+            CGInputControl::GetActive()->ToggleControlBit(INPUT_TRACKING_TURN, 1, time, 0);
         }
     }
 
@@ -10282,8 +10282,8 @@ void CGUnit_C::ClearTrackingTarget(bool a2, bool a3) {
             this->TrackingStopMove(time);
         }
 
-        CGInputControl::GetActive()->ToggleControlBit(0x1000000, 0, time, 0);
-        CGInputControl::GetActive()->ToggleControlBit(0x400000, 0, time, 0);
+        CGInputControl::GetActive()->ToggleControlBit(INPUT_TRACKING_TURN, 0, time, 0);
+        CGInputControl::GetActive()->ToggleControlBit(INPUT_TRACKING_PITCH, 0, time, 0);
     }
 
     CGUnit_C::s_trackingGUID = WOWGUID();
@@ -22360,13 +22360,13 @@ int32_t CGUnit_C::GetAbilitySkillLine(int32_t spellId) {
 // VERIFY: 5405d5b8 auto
 // OFFSET: 0x00715BF0
 static void __stdcall EnableTrackingPitch(uint32_t time, float pitch) {
-    CGInputControl::GetActive()->ToggleControlBit(0x400000, 1, time, 0);
+    CGInputControl::GetActive()->ToggleControlBit(INPUT_TRACKING_PITCH, 1, time, 0);
 }
 
 // VERIFY: 4d29d174 auto
 // OFFSET: 0x00715C10
 static void __stdcall DisableTrackingPitch(uint32_t time) {
-    CGInputControl::GetActive()->ToggleControlBit(0x400000, 0, time, 0);
+    CGInputControl::GetActive()->ToggleControlBit(INPUT_TRACKING_PITCH, 0, time, 0);
 }
 
 // VERIFY: b7701f28 manual
@@ -22396,7 +22396,7 @@ void CGUnit_C::TrackingStopMove(uint32_t time) {
         return;
     }
 
-    CGInputControl::GetActive()->ToggleControlBit(0x200000, 0, time, 0);
+    CGInputControl::GetActive()->ToggleControlBit(INPUT_TRACKING_MOVE, 0, time, 0);
 
     if (CGInputControl::GetActive()->CanControl(this) && (this->m_movement->m_flags & 0x3)) {
         CGUnit_C::s_trackingFlags |= 0x1;
@@ -22712,7 +22712,7 @@ bool CGPlayer_C::CTMInteractGO(const WOWGUID& guid, float range) {
 // VERIFY: 79f8d6ee auto
 // OFFSET: 0x0072ECF0
 void CGUnit_C::TrackingStartMove(uint32_t time) {
-    CGInputControl::GetActive()->ToggleControlBit(0x200000, 1, time, 0);
+    CGInputControl::GetActive()->ToggleControlBit(INPUT_TRACKING_MOVE, 1, time, 0);
 
     if (CGInputControl::GetActive()->CanControl(this)) {
         CGUnit_C::s_trackingFlags |= 0x1;
@@ -22841,7 +22841,7 @@ bool CGUnit_C::HandleTrackingPitch(float targetZ, float z, float pitch, float ma
         return false;
     }
 
-    CGInputControl::GetActive()->ToggleControlBit(0x400000, 1, time, 0);
+    CGInputControl::GetActive()->ToggleControlBit(INPUT_TRACKING_PITCH, 1, time, 0);
 
     float current = this->m_movementData.m_pitch;
 
@@ -22884,7 +22884,7 @@ void CGUnit_C::TrackingSetTurn(uint32_t time, float facing) {
 // OFFSET: 0x00731650
 bool CGUnit_C::HandleTrackingFacing(float facing, float maxTurn, uint32_t time) {
     CGUnit_C::s_trackingFacing = facing;
-    CGInputControl::GetActive()->ToggleControlBit(0x1000000, 1, time, 0);
+    CGInputControl::GetActive()->ToggleControlBit(INPUT_TRACKING_TURN, 1, time, 0);
 
     float delta = CMath::normalizeangle0to2pi_(facing - this->GetFacing());
 
@@ -23015,7 +23015,7 @@ void CGUnit_C::HandleTracking(float drunkness, float turnOffset) {
     bool turning = this->HandleTrackingFacing(desired, static_cast<float>(fmod(static_cast<double>(s_trackingTurnRate * elapsed), 6.283185307179586)), time);
 
     if (!turning) {
-        CGInputControl::GetActive()->ToggleControlBit(0x1000000, 0, time, 0);
+        CGInputControl::GetActive()->ToggleControlBit(INPUT_TRACKING_TURN, 0, time, 0);
 
         if (CGUnit_C::s_trackingType == 2) {
             this->ClearTrackingTarget(false, true);
