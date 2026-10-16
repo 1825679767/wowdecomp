@@ -52,10 +52,14 @@ Donor source worktree:
 - `extensions/wxl-garrison/src/Module.cpp`
 - `extensions/wxl-spell-charges/src/SpellCharges.cpp`
 
-Appearance save is not implemented. Its coherent catalog negotiation,
-hello/prepare/result/query and character create/barber flow remains a separate
-integration requirement; no appearance acknowledgement is fabricated.
+Appearance saving is implemented by the separate appearance-session module,
+not this generic packet-consumer module. Its catalog negotiation,
+hello/prepare/result/query, creation permit and snapshot owners are described in
+../appearance-session/INTEGRATION.md. No appearance acknowledgement is fabricated.
+Logged-in barber extra saving still requires a new matching server contract;
+the existing Glue/create protocol cannot be reused as that operation.
 
-This source change has not been built, tested, installed or exercised against an
-account or server. Native-source compilation, packet fixtures and live UI/gameplay
-acceptance remain separate gates.
+The original worker-stage build-state description is superseded by current
+native executable source/build/intake bindings. The combined source has compiled
+and is staged in the existing pending client. Authenticated server persistence,
+packet acceptance and live UI/gameplay acceptance remain separate and untested.
