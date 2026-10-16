@@ -84,8 +84,8 @@ struct DrawScope {
  }
 };
 }
-void RegisterRiftSpriteMaterials(){auto* cv=CVar::Register("wxlRiftSpriteModulation","Exact-source Rift RGB-only donor modulation candidate: 0 unity, 1 source2x/4x",2,"1",RiftModulationChanged,0,false,nullptr,false);if(cv)RiftModulationChanged(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
-void RegisterBloodSpriteMaterials(){auto* cv=CVar::Register("wxlBloodSpriteModulation","Experimental named Blood Boil/Plague RGB4x donor candidate: 0 unity, 1 source modulation",2,"1",BloodModulationChanged,0,false,nullptr,false);if(cv)BloodModulationChanged(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
+void RegisterRiftSpriteMaterials(){auto* cv=CVar::Register("wxlRiftSpriteModulation","Exact-source Rift RGB-only donor modulation candidate: 0 unity, 1 source2x/4x",0,"1",RiftModulationChanged,0,false,nullptr,false);if(cv)RiftModulationChanged(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
+void RegisterBloodSpriteMaterials(){auto* cv=CVar::Register("wxlBloodSpriteModulation","Experimental named Blood Boil/Plague RGB4x donor candidate: 0 unity, 1 source modulation",0,"1",BloodModulationChanged,0,false,nullptr,false);if(cv)BloodModulationChanged(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
 ParticleLayerBinding::~ParticleLayerBinding(){for(auto* texture:textures)if(texture)HandleClose(reinterpret_cast<HOBJECT>(texture));}
 std::shared_ptr<const ParticleLayerBinding> BindParticleLayers(const CM2Model& model,uint32_t index) noexcept{
  try{

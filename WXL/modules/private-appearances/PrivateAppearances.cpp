@@ -131,7 +131,7 @@ bool Bind(CCharacterComponent& c,PrivateAppearanceState& s){
  if(!Geometry(c,s))return false;s.nativeSignature=NativeSignature(c);s.ready=true;return true;
 }
 }
-void Register(){enabled=CVar::Register("wxlPrivateAppearances","WXL authored private Broken and Tuskarr/Murloc female appearances",2,WXL_ENABLE_PRIVATE_APPEARANCES?"1":"0",nullptr,0,false,nullptr,false);}
+void Register(){enabled=CVar::Register("wxlPrivateAppearances","WXL authored private Broken and Tuskarr/Murloc female appearances",0,WXL_ENABLE_PRIVATE_APPEARANCES?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept {return WXL_ENABLE_PRIVATE_APPEARANCES&&NativeEnabled()&&AssetsEnabled()&&BlpEnabled()&&enabled&&enabled->m_intValue;}
 uint32_t Identity(uint32_t race,uint32_t sex) noexcept {return ((race==23&&sex<2)||(sex==1&&(race==14||race==28)))?ap::PrivateModel(uint8_t(race),uint8_t(sex)):0;}
 bool Describe(uint32_t race,uint32_t sex,const char* mountedNativePath,Description& output) noexcept {try{

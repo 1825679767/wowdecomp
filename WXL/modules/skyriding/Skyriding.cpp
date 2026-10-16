@@ -967,7 +967,7 @@ int LuaCommand(lua_State* L){size_t size=0;const char* text=lua_type(L,1)==LUA_T
  const bool context=Enabled()&&protocol::SessionGeneration(L)==session&&ActivePlayer()&&OnAdvFlyMount(ActivePlayer());
  lua_pushboolean(L,allowed&&context&&SendCommand(command));return 1;}
 }
-void Register(){enabled=CVar::Register("wxlSkyriding","WXL native server-authorized Skyriding controller",2,WXL_ENABLE_SKYRIDING?"1":"0",nullptr,0,false,nullptr,false);}
+void Register(){enabled=CVar::Register("wxlSkyriding","WXL native server-authorized Skyriding controller",0,WXL_ENABLE_SKYRIDING?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept{return WXL_ENABLE_SKYRIDING&&NativeEnabled()&&ProtocolEnabled()&&ClientExtensionsEnabled()&&enabled&&enabled->m_intValue;}
 bool Install(){
  if(!installed){const protocol::NativeDeclaration declarations[]={{opcodes::CmsgSkyriding,true},{opcodes::SmsgSkyriding,false,&Receive,&ResetQueue},{opcodes::CmsgMoveAddImpulseAck,true},{opcodes::SmsgMoveAddImpulse,false,&Receive,&ResetQueue}};installed=protocol::RegisterNativeDispatch(declarations,4);}

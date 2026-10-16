@@ -13,4 +13,6 @@ bool PrepareWdl(CMapLowDetail&,uint32_t& size) noexcept;
 enum class GroupLoad { Classic, Loaded, Rejected };
 GroupLoad LoadPreparedWmoGroup(CMapObj&, unsigned index, CMapObjGroup&) noexcept;
 void ReleaseWmo(CMapObj&) noexcept;
+bool IsPreparedWmo(const CMapObj*) noexcept;
+bool ValidWorldRay(const float* start,const float* end) noexcept;
 }

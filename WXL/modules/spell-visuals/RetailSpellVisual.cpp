@@ -169,8 +169,8 @@ end
 )lua";
 }
 void Register(){
- auto* cv=CVar::Register("wxlRetailSpellVisuals","Source-owned retail spell447445 presentation",2,WXL_ENABLE_RETAIL_SPELL_VISUALS?"1":"0",Changed,0,false,nullptr,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,nullptr);
- cv=CVar::Register("wxlRiftPlayback","Exact-source Rift startup213 then hold158; 0 native playback, 1 phase requests",2,"0",Changed,0,false,reinterpret_cast<void*>(1),false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,reinterpret_cast<void*>(1));
+ auto* cv=CVar::Register("wxlRetailSpellVisuals","Source-owned retail spell447445 presentation",0,WXL_ENABLE_RETAIL_SPELL_VISUALS?"1":"0",Changed,0,false,nullptr,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,nullptr);
+ cv=CVar::Register("wxlRiftPlayback","Exact-source Rift startup213 then hold158; 0 native playback, 1 phase requests",0,"0",Changed,0,false,reinterpret_cast<void*>(1),false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,reinterpret_cast<void*>(1));
 }
 bool Enabled() noexcept {return On();}
 void Install(){if(!FrameScript_GetContext())return;WorldLeave();

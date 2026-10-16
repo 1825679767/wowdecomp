@@ -1,3 +1,4 @@
+#include "WXL/VideoOptionsCompat.hpp"
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
@@ -62,9 +63,16 @@ XMLTree* FrameXML_LoadXML(const char* filename, MD5_CTX* md5, CStatus* status) {
         return nullptr;
     }
 
-    MD5Update(md5, static_cast<const uint8_t*>(data), size);
+    // The exact historical panel repair owns a temporary source buffer, not
+    // an archive edit or a placeholder Apply widget. Hash what is actually parsed.
+    std::vector<uint8_t> guarded;
+    const char* parseData=static_cast<const char*>(data);
+    if(wxl::native::ui_compat::GuardVideoApply(filename,static_cast<const uint8_t*>(data),size,guarded)){
+        parseData=reinterpret_cast<const char*>(guarded.data());size=static_cast<uint32_t>(guarded.size());
+    }
+    if(md5)MD5Update(md5,reinterpret_cast<const uint8_t*>(parseData),size);
 
-    XMLTree* tree = XMLTree_Load(static_cast<const char*>(data), size);
+    XMLTree* tree = XMLTree_Load(parseData, size);
 
     if (!tree) {
         status->Add(STATUS_ERROR, "Couldn't parse XML in %s", filename);

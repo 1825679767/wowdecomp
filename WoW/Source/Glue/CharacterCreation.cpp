@@ -746,6 +746,7 @@ void CCharacterCreation::RandomizeCharCustomization() {
     CCharacterCreation::m_character->SetRandomHairColor(COMPONENT_CONTEXT_0);
     CCharacterCreation::m_character->SetRandomHairStyle(COMPONENT_CONTEXT_0);
     CCharacterCreation::m_character->SetRandomFacialFeature(COMPONENT_CONTEXT_0);
+    wxl::native::RandomizeRetailExtras(*CCharacterCreation::m_character);
 
     CCharacterCreation::m_prevSkinIndex = CCharacterCreation::m_character->m_data.m_preferences.m_skinID;
     CCharacterCreation::m_prevFaceIndex = CCharacterCreation::m_character->m_data.m_preferences.m_faceId;

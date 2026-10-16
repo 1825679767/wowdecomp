@@ -88,6 +88,14 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
  if(weighted && !cpuSkinning && g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex]<256)return {};
  const uint32_t batches=Read<uint32_t>(skin.data(),36),at=Read<uint32_t>(skin.data(),40),sections=Read<uint32_t>(skin.data(),28),sectionAt=Read<uint32_t>(skin.data(),32);
  if(!batches||batches>32||!sections||sections>32||at<48||sectionAt<48||!Range(skin.size(),at,batches,24)||!Range(skin.size(),sectionAt,sections,48))return {};
+ // Require an actual supported correction target before capturing geometry.
+ // A stock sibling must not prevent an otherwise supported custom batch.
+ bool hasCustom=false;
+ for(uint32_t b=0;b<batches;++b){const auto shader=Read<uint16_t>(skin.data()+at+24*b,2);
+  if(shader==0x8021&&RiftPath(modelPath))return {}; // named Rift remains a separate native recipe
+  hasCustom|=AddAlphaFamily(shader);
+ }
+ if(!hasCustom)return {};
  const uint32_t boneCombos=Read<uint32_t>(body,0x78),boneAt=Read<uint32_t>(body,0x7c);
  const uint32_t vertexCount=Read<uint32_t>(body,0x3c),vertexAt=Read<uint32_t>(body,0x40),lookupCount=Read<uint32_t>(skin.data(),4),lookupAt=Read<uint32_t>(skin.data(),8),propsAt=Read<uint32_t>(skin.data(),24);
  if(!Range(bodySize,boneAt,boneCombos,2)||!Range(bodySize,vertexAt,vertexCount,48)||!Range(skin.size(),lookupAt,lookupCount,2)||Read<uint32_t>(skin.data(),20)!=lookupCount||!Range(skin.size(),propsAt,lookupCount,4))return {};
@@ -124,14 +132,16 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
   if(!std::memcmp(raw+off,"TXID",4)){if(!txid.empty()||n!=textures*4)return {};txid={raw+off+8,n};}off+=8+n;
  }
  if(txid.size()!=textures*4)return {};
- auto result=std::make_shared<Source>();result->weighted=weighted;result->cpuSkinning=cpuSkinning;result->boneCount=bones;result->sections=std::move(sourceSections);result->modelPath=modelPath;result->sectionCount=sections;result->textureCount=textures;result->batches.reserve(batches);
+ auto result=std::make_shared<Source>();result->weighted=weighted;result->cpuSkinning=cpuSkinning;result->boneCount=bones;result->sections=std::move(sourceSections);result->modelPath=modelPath;result->sectionCount=sections;result->textureCount=textures;result->preparedBatchCount=batches;result->batches.reserve(batches);
  for(uint32_t b=0;b<batches;++b){
   const auto* batch=skin.data()+at+24*b;const uint16_t shader=Read<uint16_t>(batch,2);
-  // The donor's exact named Rift33 correction has a different pixel equation.
-  if(!AddAlphaFamily(shader)||(shader==0x8021&&RiftPath(modelPath))||Read<uint16_t>(batch,14)!=2||Read<uint16_t>(batch,4)>=sections||Read<uint16_t>(batch,12))return {};
+  BatchSource record;record.custom=AddAlphaFamily(shader);std::memcpy(record.batch.data(),batch,24);
+  if(Read<uint16_t>(batch,4)>=sections)return {};
+  if(!record.custom){result->batches.push_back(record);continue;}
+  if(Read<uint16_t>(batch,14)!=2||Read<uint16_t>(batch,12))return {};
   const uint32_t material=Read<uint16_t>(batch,10),combo=Read<uint16_t>(batch,16);
   if(material>=materials||combo>combos||combos-combo<2)return {};
-  BatchSource record;record.flags=Read<uint16_t>(body,materialAt+material*4);record.blend=Read<uint16_t>(body,materialAt+material*4+2);
+  record.flags=Read<uint16_t>(body,materialAt+material*4);record.blend=Read<uint16_t>(body,materialAt+material*4+2);
   if(record.flags>31||record.blend!=7)return {};
   for(uint32_t i=0;i<2;++i){
    const auto index=Read<uint16_t>(body,comboAt+2*(combo+i));if(index>=textures||Read<uint32_t>(body,textureAt+index*16)!=0||Read<uint32_t>(body,textureAt+index*16+8)!=0)return {};
@@ -145,11 +155,33 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
   std::memcpy(record.batch.data(),batch,24);result->batches.push_back(record);
  }
  result->modelFingerprint=Fingerprint({raw,size});result->skinFingerprint=Fingerprint(skin);
- prepared=skin;
- // Preserve every source-indexed two-stage record. Native conversion neither
- // expands nor reorders this private clone; the exact originals stay immutable.
- for(uint32_t i=0;i<batches;++i){const uint16_t packed=0x4011;std::memcpy(prepared.data()+at+24*i+2,&packed,2);}
- return result;
+ std::vector<uint8_t> candidate=skin;
+ // Rewrite only custom rows. Serialize all sibling rows with the existing
+ // strict material serializer, retaining exact native bytes for later binding.
+ for(uint32_t i=0;i<batches;++i)if(result->batches[i].custom){const uint16_t packed=0x4011;std::memcpy(candidate.data()+at+24*i+2,&packed,2);}
+ std::vector<uint8_t> carrier(48,0),canonical;std::memcpy(carrier.data(),"SKIN",4);
+ carrier.insert(carrier.end(),candidate.begin()+at,candidate.begin()+at+size_t(batches)*24);
+ const uint32_t header=48;std::memcpy(carrier.data()+36,&batches,4);std::memcpy(carrier.data()+40,&header,4);
+ if(!wxl::waystone::m2bytes::ConvertSkin(carrier,canonical,true)||canonical.size()<48)return {};
+ const auto canonicalN=Read<uint32_t>(canonical.data(),36),canonicalAt=Read<uint32_t>(canonical.data(),40);
+ if(canonicalN<batches||canonicalN>batches*2||!Range(canonical.size(),canonicalAt,canonicalN,24))return {};
+ std::vector<BatchSource> expanded;expanded.reserve(canonicalN);
+ for(uint32_t i=0;i<batches;++i){
+  // Ask the same serializer for this original row's exact expansion. Never
+  // infer native row ownership from shader names or the aggregate count.
+  std::vector<uint8_t> one(48,0),serialized;std::memcpy(one.data(),"SKIN",4);
+  one.insert(one.end(),candidate.begin()+at+24*i,candidate.begin()+at+24*(i+1));
+  const uint32_t n=1;std::memcpy(one.data()+36,&n,4);std::memcpy(one.data()+40,&header,4);
+  if(!wxl::waystone::m2bytes::ConvertSkin(one,serialized,true)||serialized.size()<48)return {};
+  const auto count=Read<uint32_t>(serialized.data(),36),offset=Read<uint32_t>(serialized.data(),40);
+  if(!count||count>2||(result->batches[i].custom&&count!=1)||!Range(serialized.size(),offset,count,24)||count>canonicalN-expanded.size())return {};
+  for(uint32_t row=0;row<count;++row){auto record=result->batches[i];const auto* expected=serialized.data()+offset+24*row;
+   if(std::memcmp(expected,canonical.data()+canonicalAt+24*expanded.size(),24))return {};
+   std::memcpy(record.nativeBatch.data(),expected,24);expanded.push_back(record);
+  }
+ }
+ if(expanded.size()!=canonicalN)return {};
+ result->batches=std::move(expanded);prepared.swap(candidate);return result;
 }
 std::shared_ptr<const Source> BindTopology(std::shared_ptr<const Source> source,const std::vector<uint8_t>& prepared,
  const std::vector<uint8_t>& model,const std::vector<uint8_t>& rebuilt,const std::vector<uint32_t>& origins,
@@ -157,7 +189,7 @@ std::shared_ptr<const Source> BindTopology(std::shared_ptr<const Source> source,
  if(!source||!source->weighted||source->dnd||source->topologyParent||(!nativeGpuSkinning&&!source->cpuSkinning)||!paletteLimit||paletteLimit>75||prepared.size()<48||model.size()<304||rebuilt.size()<48)return {};
  if(std::memcmp(model.data(),"MD20",4)||Read<uint32_t>(model.data(),4)!=264||std::memcmp(rebuilt.data(),"SKIN",4))return {};
  const auto sourceN=Read<uint32_t>(prepared.data(),36),sourceAt=Read<uint32_t>(prepared.data(),40);
- if(sourceN!=source->batches.size()||!sourceN||sourceAt<48||!Range(prepared.size(),sourceAt,sourceN,24))return {};
+ if(sourceN!=source->preparedBatchCount||!sourceN||sourceAt<48||!Range(prepared.size(),sourceAt,sourceN,24))return {};
  // The unchanged material serializer receives no geometry, never a native
  // publication. Actual rebuilt geometry was validated against the device.
  std::vector<uint8_t> carrier(48,0);std::memcpy(carrier.data(),"SKIN",4);
@@ -169,7 +201,7 @@ std::shared_ptr<const Source> BindTopology(std::shared_ptr<const Source> source,
  const auto bones=Read<uint32_t>(model.data(),0x2c),comboN=Read<uint32_t>(model.data(),0x78),comboAt=Read<uint32_t>(model.data(),0x7c),vertexN=Read<uint32_t>(model.data(),0x3c),vertexAt=Read<uint32_t>(model.data(),0x40);
  const auto lookupN=Read<uint32_t>(rebuilt.data(),4),lookupAt=Read<uint32_t>(rebuilt.data(),8),propsN=Read<uint32_t>(rebuilt.data(),20),propsAt=Read<uint32_t>(rebuilt.data(),24);
  const auto indexN=Read<uint32_t>(rebuilt.data(),12),indexAt=Read<uint32_t>(rebuilt.data(),16);
- if(canonicalN!=sourceN||origins.size()!=batchN||!batchN||batchN>16384||!sectionN||sectionN>16384||bones!=source->boneCount||lookupN!=propsN||
+ if(canonicalN!=source->batches.size()||origins.size()!=batchN||!batchN||batchN>16384||!sectionN||sectionN>16384||bones!=source->boneCount||lookupN!=propsN||
     !Range(canonical.size(),canonicalAt,canonicalN,24)||!Range(rebuilt.size(),batchAt,batchN,24)||!Range(rebuilt.size(),sectionAt,sectionN,48)||
     !Range(model.size(),comboAt,comboN,2)||!Range(model.size(),vertexAt,vertexN,48)||!Range(rebuilt.size(),lookupAt,lookupN,2)||!Range(rebuilt.size(),propsAt,propsN,4)||!Range(rebuilt.size(),indexAt,indexN,2))return {};
  auto next=std::make_shared<Source>(*source);next->topologyParent=source;next->nativeBatchOrigins=origins;next->sectionCount=sectionN;next->sections.clear();next->batches.clear();
@@ -191,7 +223,7 @@ std::shared_ptr<const Source> BindTopology(std::shared_ptr<const Source> source,
  }
  for(uint32_t batch=0;batch<batchN;++batch){const auto origin=origins[batch];if(origin>=canonicalN)return {};const auto* actual=rebuilt.data()+batchAt+24*batch;const auto* expected=canonical.data()+canonicalAt+24*origin;
   for(uint32_t byte=0;byte<24;++byte)if(byte!=4&&byte!=5&&actual[byte]!=expected[byte])return {};
-  const auto section=Read<uint16_t>(actual,4);if(section>=sectionN)return {};auto record=source->batches[origin];std::memcpy(record.batch.data()+4,&section,2);next->batches.push_back(record);
+  const auto section=Read<uint16_t>(actual,4);if(section>=sectionN)return {};auto record=source->batches[origin];std::memcpy(record.batch.data()+4,&section,2);std::memcpy(record.nativeBatch.data(),actual,24);next->batches.push_back(record);
  }
  return ConvertedMatches(*next,rebuilt)?next:nullptr;
 }
@@ -200,10 +232,8 @@ bool ConvertedMatches(const Source& source,const std::vector<uint8_t>& skin) noe
  if(skin.size()<48||Read<uint32_t>(skin.data(),36)!=source.batches.size()||Read<uint32_t>(skin.data(),28)!=source.sectionCount)return false;
  const auto at=Read<uint32_t>(skin.data(),40);if(!Range(skin.size(),at,uint32_t(source.batches.size()),24))return false;
  for(size_t i=0;i<source.batches.size();++i){
-  const auto* b=skin.data()+at+24*i;const auto* raw=source.batches[i].batch.data();
-  if(b[0]!=(raw[0]&0x10)||b[1]!=raw[1])return false;
-  if(Read<uint16_t>(b,2)!=0||Read<uint16_t>(b,14)!=2||Read<uint16_t>(b,18)!=4)return false;
-  for(size_t offset:{size_t(4),size_t(6),size_t(8),size_t(10),size_t(12),size_t(16),size_t(20),size_t(22)})if(Read<uint16_t>(b,offset)!=Read<uint16_t>(raw,offset))return false;
+  const auto* b=skin.data()+at+24*i;
+  if(std::memcmp(b,source.batches[i].nativeBatch.data(),24))return false;
  }
  return true;
 }
@@ -318,13 +348,17 @@ struct StateScope {
  ~StateScope(){device.RsPop();SyncMaterialState(device);}
 };
 }
+bool OwnsBatch(const CM2Shared& shared,const M2Batch* batch) noexcept {
+ const auto* source=MeshSourceFor(shared);if(!source)return false;
+ if(!shared.m_skinData)return true;const auto& skin=*shared.m_skinData;
+ if(source->dnd){if(skin.m_batches.m_count!=3)return true;return batch!=&skin.m_batches[2];}
+ if(skin.m_batches.m_count!=source->batches.size())return true;
+ for(uint32_t i=0;i<skin.m_batches.m_count;++i)if(batch==&skin.m_batches[i])return source->batches[i].custom;
+ // A source-owned model with an unrecognized native row cannot grant a stock fallback.
+ return true;
+}
 bool OwnsBatch(const CM2SceneRender& context) noexcept {
- if(!context.m_curShared)return false;const auto* source=MeshSourceFor(*context.m_curShared);if(!source)return false;
- if(!source->dnd)return true;
- if(!context.m_curShared->m_skinData)return true;const auto& skin=*context.m_curShared->m_skinData;
- if(skin.m_batches.m_count!=3)return true;
- // Only the donor's first two passes own a custom shader. The third stays native.
- return context.m_curBatch!=&skin.m_batches[2];
+ return context.m_curShared&&OwnsBatch(*context.m_curShared,context.m_curBatch);
 }
 bool Draw(CM2SceneRender& context,CGxBatch& draw){
  if(!MaterialsEnabled()||!D3D9()||!CShaderEffect::s_enableShaders||context.m_curType!=0||!context.m_curShared||!context.m_curShared->m_data||!context.m_curShared->m_skinData||!context.m_curModel||!context.m_curBatch||!context.m_curSkinSection||!context.m_curMaterial||!context.m_curElement||context.m_pass!=M2PASS_0)return false;
@@ -335,7 +369,7 @@ bool Draw(CM2SceneRender& context,CGxBatch& draw){
  size_t sourceIndex=source->batches.size();
  for(uint32_t i=0;i<skin.m_batches.m_count;++i)if(&skin.m_batches[i]==context.m_curBatch){sourceIndex=i;break;}
  if(sourceIndex>=source->batches.size())return false;
- const auto& record=source->batches[sourceIndex];const auto* raw=record.batch.data();
+ const auto& record=source->batches[sourceIndex];if(!record.custom)return false;const auto* raw=record.batch.data();
  if(!AddAlphaFamily(Read<uint16_t>(raw,2))||(Read<uint16_t>(raw,2)==0x8021&&RiftPath(source->modelPath.c_str()))||b.m_skinSectionIndex!=Read<uint16_t>(raw,4)||b.m_skinSectionIndex>=skin.m_skinSections.m_count||!context.m_curShared->m_skinSections||&context.m_curShared->m_skinSections[b.m_skinSectionIndex]!=context.m_curSkinSection)return false;
  if(!context.m_curModel->m_boneMatrices||data.m_bones.m_count!=source->boneCount||b.m_skinSectionIndex>=source->sections.size())return false;
  const auto& captured=source->sections[b.m_skinSectionIndex];const auto& section=*context.m_curSkinSection;

@@ -41,7 +41,7 @@ bool Path(const char* name){
 }
 bool Backend(){return LegacyMaterialBackend(g_theGxDevicePtr,3);}
 }
-void RegisterDndMaterials(){auto* cv=CVar::Register("wxlDndMaterialMode","Experimental exact-source DnD donor kernel: 0 off, 1 fade, 2 colour, 3 mask, 4 detail; reload world after changing",2,WXL_ENABLE_DND_MATERIALS?"4":"0",Changed,0,false,nullptr,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
+void RegisterDndMaterials(){auto* cv=CVar::Register("wxlDndMaterialMode","Experimental exact-source DnD donor kernel: 0 off, 1 fade, 2 colour, 3 mask, 4 detail; reload world after changing",0,WXL_ENABLE_DND_MATERIALS?"4":"0",Changed,0,false,nullptr,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
 std::shared_ptr<const Source> PrepareDnd(const char* path,const uint8_t* raw,size_t size,const std::vector<uint8_t>& skin,std::vector<uint8_t>& prepared){
  const auto selected=mode.load(std::memory_order_acquire);
  if(!selected||!MaterialsEnabled()||!Backend()||!Path(path)||!raw||size<312||size>64u*1024*1024||skin.size()<48||skin.size()>64u*1024*1024||std::memcmp(raw,"MD21",4)||std::memcmp(skin.data(),"SKIN",4))return {};

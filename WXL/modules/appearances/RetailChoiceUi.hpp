@@ -26,7 +26,7 @@ do
     if not key then self:Hide(); return end
     if not self.frame then
       local f = CreateFrame("Frame", "WXLNativeRetailOptionsFrame", parent)
-      self.frame = f; f:SetWidth(268); f:SetHeight(264)
+      self.frame = f; f:SetWidth(268); f:SetHeight(290)
       f:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -24, 66)
       f:SetBackdrop({bgFile="Interface\\Tooltips\\UI-Tooltip-Background",
                      edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",tile=true,tileSize=16,edgeSize=12,
@@ -60,6 +60,10 @@ do
         row.right:SetScript("OnClick",function() cycle(1) end)
         UI.rows[i]=row
       end
+      self.reset=button(f,"Reset details",108);self.reset:SetPoint("BOTTOMLEFT",f,"BOTTOMLEFT",8,48)
+      self.random=button(f,"Randomize",124);self.random:SetPoint("BOTTOMRIGHT",f,"BOTTOMRIGHT",-8,48)
+      self.reset:SetScript("OnClick",function() if WXL_ResetRetailChoices() then UI:Refresh(true) end end)
+      self.random:SetScript("OnClick",function() if WXL_RandomizeRetailChoices() then UI:Refresh(true) end end)
       self.prev=button(f,"<",24);self.next=button(f,">",24)
       self.prev:SetPoint("BOTTOMLEFT",f,"BOTTOMLEFT",8,22)
       self.next:SetPoint("BOTTOMRIGHT",f,"BOTTOMRIGHT",-8,22)
@@ -95,6 +99,7 @@ do
       end
       self.pages:SetText(self.page.." / "..math.max(1,math.ceil(#self.options/6)))
     end
+    if barber then self.reset:Hide();self.random:Hide() else self.reset:Show();self.random:Show() end
     local gear=not barber and WXL_IsCreationGearVisible()
     if gear~=nil and not barber then self.gear.text:SetText(gear and "Hide gear" or "Show gear");self.gear:Show() else self.gear:Hide() end
     self.note:SetText(barber and "Preview only; Reset restores saved details" or (WXL_RetailSelectionCanSave() and "" or "Preview only: save support unavailable"))

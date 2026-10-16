@@ -1,4 +1,5 @@
 #include <cstdint>
+#include "WXL/GrassWind.hpp"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDevice/CGxShader.h"
 
@@ -36,4 +37,5 @@ void CGxShader::Load(SFileImpl* file) {
 // VERIFY: 73c2698b auto
 // OFFSET: 0x00689B60
 CGxShader::~CGxShader() {
+    wxl::native::grass_wind::Forget(*this);
 }

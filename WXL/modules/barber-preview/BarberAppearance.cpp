@@ -91,7 +91,7 @@ void RestoreDeferred() {
  if(RestoreRetailExtras(*c,deferred.baseline.data(),uint32_t(deferred.baseline.size())))deferred={};
 }
 }
-void Register(){enabled=CVar::Register("wxlBarberPreview","WXL barber retail-detail previews; extra-detail saving requires server support",2,WXL_ENABLE_BARBER_PREVIEW?"1":"0",nullptr,0,false,nullptr,false);}
+void Register(){enabled=CVar::Register("wxlBarberPreview","WXL barber retail-detail previews; extra-detail saving requires server support",0,WXL_ENABLE_BARBER_PREVIEW?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept {return WXL_ENABLE_BARBER_PREVIEW&&AppearancesEnabled()&&AppearanceSaveEnabled()&&enabled&&enabled->m_intValue;}
 void InitializeLua(){End();FrameScript_RegisterFunction("_WXL_BarberRetailTick",&LuaTick);FrameScript_RegisterFunction("WXL_IsBarberRetailPreview",&LuaActive);FrameScript_RegisterFunction("WXL_ResetBarberRetailPreview",&LuaReset);}
 bool Active() noexcept {return CGBarberShop::m_barberShopEnabled!=0;}

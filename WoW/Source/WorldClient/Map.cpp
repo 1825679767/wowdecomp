@@ -1,4 +1,5 @@
 #include "Map.h"
+#include "WXL/WorldCompat.hpp"
 #include "Engine/Source/ShaderEffect/ShadowCache.h"
 #if defined(_MSC_VER)
 #include <malloc.h>
@@ -5038,6 +5039,7 @@ bool CMap::VectorIntersect(C3Vector* start, C3Vector* end, uint32_t flags, uint3
 // VERIFY: b625f45f manual
 // OFFSET: 0x007A3B70
 bool CMap::Intersect(C3Vector* start, C3Vector* end, C3Vector* hitPoint, float* distance, uint32_t flags, World::HitTestDebug* hitInfo) {
+    if(!wxl::native::world::ValidWorldRay(reinterpret_cast<const float*>(start),reinterpret_cast<const float*>(end)))return false;
     CMap::s_queryTag++;
     bool hit = false;
     CMapObjDef* mapObjDef = nullptr;

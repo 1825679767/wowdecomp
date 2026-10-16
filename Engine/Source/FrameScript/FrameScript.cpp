@@ -1,3 +1,4 @@
+#include "WXL/VideoOptionsCompat.hpp"
 #include <cmath>
 #include "WXL/NativeProtocol.hpp"
 #include "WXL/ModuleApi.hpp"
@@ -895,11 +896,16 @@ int32_t FrameScript_ExecuteFile(const char* filename, const char* wrapper, MD5_C
         return 0;
     }
 
+    std::vector<uint8_t> guarded;
+    const char* executeData=static_cast<const char*>(data);
+    if(wxl::native::ui_compat::GuardVideoApply(path,static_cast<const uint8_t*>(data),bytes,guarded)){
+        executeData=reinterpret_cast<const char*>(guarded.data());bytes=static_cast<uint32_t>(guarded.size());
+    }
     if (md5) {
-        MD5Update(md5, static_cast<const uint8_t*>(data), bytes);
+        MD5Update(md5, reinterpret_cast<const uint8_t*>(executeData), bytes);
     }
 
-    int32_t result = FrameScript_ExecuteBuffer(static_cast<const char*>(data), bytes, chunkname, status, wrapper);
+    int32_t result = FrameScript_ExecuteBuffer(executeData, bytes, chunkname, status, wrapper);
     SFile::Unload(data);
 
     return result;

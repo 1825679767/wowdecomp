@@ -1280,7 +1280,7 @@ int LuaInspect(lua_State* L){if(L==FrameScript_GetContext()){auto* c=CCharacterC
 template<int(*Callback)(lua_State*)>int Control(lua_State* L){if(L!=FrameScript_GetContext())return 0;try{return Callback(L);}catch(...){lua_pushboolean(L,false);return 1;}}
 }
 bool EquipmentSheathed(const CM2Model* model) noexcept {if(!model||!forceEquipmentSheathed)return false;auto* c=CCharacterCreation::m_character;return c&&c->m_data.m_model==model&&actor==model&&serial==c->m_wxlSerial&&actorHandle==model->m_handle;}
-void Register() {enabled=CVar::Register("wxlCreationEffects","WXL native character creation class choreography",2,WXL_ENABLE_CREATION_EFFECTS?"1":"0",nullptr,0,false,nullptr,false);}
+void Register() {enabled=CVar::Register("wxlCreationEffects","WXL native character creation class choreography",0,WXL_ENABLE_CREATION_EFFECTS?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept {return WXL_ENABLE_CREATION_EFFECTS&&NativeEnabled()&&enabled&&enabled->m_intValue;}
 void InitializeLua() {StopCreation();customizationOpen=false;uiTick=0;FrameScript_RegisterFunction("WXL_SetCreationEffectsCustomizationOpen",&LuaCustomizationOpen);
  const std::pair<const char*,lua_CFunction> controls[]={{"_WXL_CC_PREVIEW_PLAY_ANIMATION",Control<LuaPlayAnimation>},{"_WXL_CC_PREVIEW_PLAY_VISUALS",Control<LuaPlayVisuals>},{"_WXL_CC_PREVIEW_CLEAR_VISUALS",Control<LuaClearVisuals>},{"_WXL_CC_PREVIEW_RESTORE_EQUIPMENT",Control<LuaRestoreEquipment>},{"_WXL_CC_PREVIEW_SET_WEAPONS_SHEATHED",Control<LuaSheathed>},{"_WXL_CC_PREVIEW_SET_MODEL_VISIBLE",Control<LuaVisible>},{"_WXL_CC_PREVIEW_TRACE",Control<LuaTrace>},{"_WXL_CC_PREVIEW_INSPECT",Control<LuaInspect>}};for(auto entry:controls)FrameScript_RegisterFunction(entry.first,entry.second);}

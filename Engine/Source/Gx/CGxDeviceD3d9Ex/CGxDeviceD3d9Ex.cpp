@@ -1,4 +1,5 @@
 #include "WXL/UnitOutline.hpp"
+#include "WXL/GrassWind.hpp"
 #include "WXL/WmoMaterials.hpp"
 #include <cmath>
 #include "WXL/ParticleRefraction.hpp"
@@ -829,6 +830,7 @@ void CGxDeviceD3d9Ex::IShaderCreateVertex(CGxShader* shader) {
 
     shader->m_loaded = 1;
 
+    if(wxl::native::grass_wind::CreateVertex(*this,*shader))return;
     LPDIRECT3DVERTEXSHADER9 vertexShader;
 
     if (shader->m_code.Count() && this->m_d3dDevice->CreateVertexShader(reinterpret_cast<const DWORD*>(shader->m_code.m_data), &vertexShader) == D3D_OK) {

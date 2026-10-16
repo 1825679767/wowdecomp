@@ -97,7 +97,7 @@ bool LiveOwner(EnchantAttachmentOwner& owner){
 }
 }
 namespace equipment_attachments {
-void RegisterTimedItemVisuals(){timed=CVar::Register("wxlTimedEnchantModels","Source enchant model start/loop/end phases; StartDelay seconds compatibility policy",2,"1",nullptr,0,false,nullptr,false);}
+void RegisterTimedItemVisuals(){timed=CVar::Register("wxlTimedEnchantModels","Source enchant model start/loop/end phases; StartDelay seconds compatibility policy",0,"1",nullptr,0,false,nullptr,false);}
 bool SameTimedItemVisual(const CM2Model& parent,int32_t visual,uint32_t display,uint32_t subclass) noexcept {
  const auto* owner=parent.m_wxlEnchantAttachments;return On()&&owner&&owner->identified&&owner->parentHandle==parent.m_handle&&owner->scene==parent.m_scene&&owner->visual==visual&&owner->display==display&&owner->subclass==subclass&&owner->generation==ItemGraphVisualGeneration();
 }
