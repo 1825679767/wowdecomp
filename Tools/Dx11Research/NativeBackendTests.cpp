@@ -251,6 +251,15 @@ int main(int argc,char** argv) try {
         inputRetired=true;window.DeviceDestroy();Check(!retiredCallbacks,"window teardown does not call retired native input/IME owner");
         inputRetired=false;g_theGxDevicePtr=nullptr;SFile::EnableDirectAccess(0);
     }
+    // Exercise actual GxDevDestroy/WXL lifecycle owners, not test substitutes.
+    auto* lifecycle=new CGxDeviceD3d11();g_theGxDevicePtr=lifecycle;
+    Check(lifecycle->CreateOffscreen(8,8,true),"owned device for real WXL teardown");
+    WxlProgram(*lifecycle,GxSh_Vertex,"WXL_Mesh_AddAlpha21_VS_20261016",kCombinersModAddAlphaVs,sizeof(kCombinersModAddAlphaVs));
+    WxlProgram(*lifecycle,GxSh_Pixel,"WXL_Mesh_AddAlpha21_PS_20261016",kCombinersModAddAlphaPs,sizeof(kCombinersModAddAlphaPs));
+    WxlProgram(*lifecycle,GxSh_Vertex,"WXL.NativeLayer.Unlit.v1",wxl::modern::particlelayers::programs::Unlit,sizeof(wxl::modern::particlelayers::programs::Unlit));
+    WxlProgram(*lifecycle,GxSh_Pixel,"WXL.NativeLayer.TwoColor.v1",wxl::modern::particlelayers::programs::TwoColorThreeAlpha,sizeof(wxl::modern::particlelayers::programs::TwoColorThreeAlpha));
+    WxlProgram(*lifecycle,GxSh_Pixel,"WXL_BloodRefraction_PS_20261016",kBloodRefractionShader,sizeof(kBloodRefractionShader));
+    GxDevDestroy(lifecycle);Check(!g_theGxDevicePtr,"real WXL native destroy detaches device owner");
     CGxDevice::LogClose();
     std::cout<<"PASS native D3D11 backend checks="<<checks<<" (fixed and native shaders, indexed draw, texture, alpha, blend, depth, targets, copy, query, reset)\n";
     return 0;
