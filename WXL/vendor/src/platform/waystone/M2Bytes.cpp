@@ -333,7 +333,7 @@ bool ConvertSkin(std::span<const uint8_t> input,std::vector<uint8_t>& output,boo
     if(split){if(result.size()%2)result.push_back(0);const auto newOffset=uint32_t(result.size());result.insert(result.end(),batches.begin(),batches.end());d::Wr32(result.data()+36,uint32_t(batches.size()/24));d::Wr32(result.data()+40,newOffset);}
     output.swap(result);return true;
 }
-static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit,PartitionedPair* partitioned,bool wxlFirstTextureApproximation=false,bool nativeSequenceHash=false) {
+static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit,PartitionedPair* partitioned,bool wxlFirstTextureApproximation=false,bool nativeSequenceHash=false,bool nativeRuntimeSequences=false) {
     stats={};auto fail=[&](const char* why){stats.reason=why;return false;};
     if(paletteLimit<3 || paletteLimit>75)return fail("invalid native palette budget");
     if(!path || !resolve || !read || input.size()<8 || input.size()>Limit || d::Rd32(input.data())!=f::kMagicMD21) return false;
@@ -511,7 +511,7 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
     stats.particles=h->particleEmitters.count;stats.cameras=h->cameras.count;
     h->globalFlags&=~0x60u;h->version=f::kClientVersion;
     if(nativeSequenceHash && !nativesequence::ValidateProvided(result,h->sequences.count,h->sequences.offset,h->sequenceLookup.count,h->sequenceLookup.offset))return fail("normalized native sequence policy refused");
-    if(!Validate(result,false,stats.reason,screenBlend,nativeSequenceHash)) return false;
+    if(!Validate(result,false,stats.reason,screenBlend,nativeSequenceHash||nativeRuntimeSequences)) return false;
     if(partitioned){
         partitioned->omittedEmitters=stats.omittedEmitters;
         const auto* finalHeader=reinterpret_cast<const f::M2Header*>(result.data());
@@ -537,12 +537,19 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
         if(result.size()+length>Limit)return fail("partitioned pair marker limit");
         const auto at=uint32_t(result.size());result.insert(result.end(),partitioned->marker.begin(),partitioned->marker.end());result.push_back(0);
         d::Wr32(result.data()+8,uint32_t(length));d::Wr32(result.data()+12,at);
-        if(!Validate(result,false,stats.reason,screenBlend,nativeSequenceHash))return false;
+        if(!Validate(result,false,stats.reason,screenBlend,nativeSequenceHash||nativeRuntimeSequences))return false;
     }
     output.swap(result);return true;
 }
 bool Convert(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit){
  return ConvertImpl(path,input,resolve,read,output,stats,screenBlend,extendedIndices,paletteLimit,nullptr);
+}
+// Native source owns the complete typed sequence consumer. Keep unresolved
+// modern action IDs after owned external/alias assembly and the bounded native
+// hash rebuild; all geometry/material/track validations still apply. The old
+// bridge/generic Convert entry remains strict.
+bool ConvertForNativeRuntime(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit){
+ return ConvertImpl(path,input,resolve,read,output,stats,screenBlend,extendedIndices,paletteLimit,nullptr,false,false,true);
 }
 bool ConvertWithNativeSequenceHash(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit){
  return ConvertImpl(path,input,resolve,read,output,stats,screenBlend,extendedIndices,paletteLimit,nullptr,false,true);

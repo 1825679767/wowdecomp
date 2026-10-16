@@ -51,7 +51,7 @@ bool PrepareModel(CM2Shared& shared){
    paletteLimit=(std::min)(75u,(constants-(constants>0xc0?64u:32u))/3u);
    if(paletteLimit<3)return false;
   }
-  if(!wxl::waystone::m2bytes::Convert(shared.m_fileName,{raw,shared.m_fileSize},&ResolveTexture,&ReadCompanion,converted,stats,ParticlesEnabled(),true,paletteLimit)){
+  if(!wxl::waystone::m2bytes::ConvertForNativeRuntime(shared.m_fileName,{raw,shared.m_fileSize},&ResolveTexture,&ReadCompanion,converted,stats,ParticlesEnabled(),true,paletteLimit)){
    WLOG_WARN("native-modern-model: refused path=%s reason=%s",shared.m_fileName,stats.reason.c_str());return false;
   }
   std::string particleReason;

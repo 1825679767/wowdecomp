@@ -1052,36 +1052,7 @@ void CM2Model::UnoptimizeVisibleGeometry() {
 // VERIFY: 8a7a94e4 manual
 // OFFSET: 0x00825E00
 int32_t CM2Model::HasSequence(const M2Data* data, uint32_t id) {
-    uint32_t hashCount = data->m_sequenceIdxHashById.m_count;
-    uint32_t index;
-
-    if (!hashCount) {
-        for (index = 0; index < data->m_sequences.m_count; index++) {
-            if (data->m_sequences[index].m_id == id) {
-                return index < data->m_sequences.m_count;
-            }
-        }
-
-        return data->m_sequences.m_count > 0xFFFF;
-    }
-
-    uint32_t slot = id % hashCount;
-    index = data->m_sequenceIdxHashById[slot];
-
-    if (index == 0xFFFF) {
-        return data->m_sequences.m_count > 0xFFFF;
-    }
-
-    for (uint32_t step = 1; data->m_sequences[index].m_id != id; step++) {
-        slot = (slot + step * step) % data->m_sequenceIdxHashById.m_count;
-        index = data->m_sequenceIdxHashById[slot];
-
-        if (index == 0xFFFF) {
-            return data->m_sequences.m_count > 0xFFFF;
-        }
-    }
-
-    return index < data->m_sequences.m_count;
+    return this->FindSequenceIndex(data, id, 0) != 0xFFFF;
 }
 
 // VERIFY: 73b3e0d6 auto
@@ -1097,22 +1068,21 @@ int32_t CM2Model::HasSequence(uint32_t id) {
 // VERIFY: cf5b210a auto
 // OFFSET: 0x00825F40
 uint32_t CM2Model::ResolveSequenceFallback(uint32_t id) {
-    if (id >= ANIM_COUNT) {
-        return 0xFFFFFFFF;
-    }
-
     if (!(this->m_fFlags & 1)) {
         this->WaitForLoad(nullptr);
     }
 
-    int32_t visited[ANIM_COUNT];
-    memset(visited, 0, sizeof(visited));
-
     M2Data* data = this->m_shared->m_data;
-
+    // Present modern actions do not index the classic AnimationData fallback
+    // table. AdvFly and other source-authored high IDs play their own tracks.
     if (this->HasSequence(data, id)) {
         return id;
     }
+    if (id >= ANIM_COUNT) {
+        return 0xFFFFFFFF;
+    }
+    int32_t visited[ANIM_COUNT];
+    memset(visited, 0, sizeof(visited));
 
     while (id < ANIM_COUNT) {
         AnimationDataRec* rec = g_animationDataDB.GetRecord(id);
@@ -1155,47 +1125,33 @@ int32_t CM2Model::IsSequenceLoaded(uint32_t id) {
 // VERIFY: 89cf9cd8 manual
 // OFFSET: 0x008260C0
 uint16_t CM2Model::FindSequenceIndex(const M2Data* data, uint32_t id, int32_t variation) {
-    uint32_t hashCount = data->m_sequenceIdxHashById.m_count;
+    if (!data || id > 0xFFFF || variation < 0 ||
+        static_cast<uint32_t>(variation) >= data->m_sequences.m_count) return 0xFFFF;
+    const uint32_t count = data->m_sequences.m_count;
+    const uint32_t hashCount = data->m_sequenceIdxHashById.m_count;
     uint32_t index = 0xFFFF;
-
     if (hashCount) {
         uint32_t slot = id % hashCount;
-        index = data->m_sequenceIdxHashById[slot];
-
-        if (index != 0xFFFF) {
-            for (uint32_t step = 1; data->m_sequences[index].m_id != id; step++) {
-                slot = (slot + step * step) % hashCount;
-                index = data->m_sequenceIdxHashById[slot];
-
-                if (index == 0xFFFF) {
-                    break;
-                }
-            }
+        bool found = false;
+        // Source-native models validate their hash before publication. Keep
+        // classic/caller-supplied tables bounded too, including missing IDs.
+        for (uint32_t probe = 1, visited = 0; visited < hashCount; ++probe, ++visited) {
+            index = data->m_sequenceIdxHashById[slot];
+            if (index == 0xFFFF || index >= count) return 0xFFFF;
+            if (data->m_sequences[index].m_id == id) { found = true; break; }
+            slot = (slot + probe * probe) % hashCount;
         }
+        if (!found) return 0xFFFF;
     } else {
-        for (index = 0; index < data->m_sequences.m_count; index++) {
-            if (data->m_sequences[index].m_id == id) {
-                break;
-            }
-        }
-
-        if (index >= data->m_sequences.m_count) {
-            index = 0xFFFF;
-        }
+        for (index = 0; index < count; ++index)
+            if (data->m_sequences[index].m_id == id) break;
     }
-
-    uint32_t count = data->m_sequences.m_count;
-
     while (index < count && variation) {
         index = data->m_sequences[index].m_variationNext;
-        variation--;
+        --variation;
     }
-
-    if (index >= count || variation) {
-        return 0xFFFF;
-    }
-
-    return static_cast<uint16_t>(index);
+    return index < count && index < 0xFFFF && !variation
+        ? static_cast<uint16_t>(index) : uint16_t(0xFFFF);
 }
 
 // VERIFY: 5546bff4 manual

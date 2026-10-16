@@ -98,3 +98,7 @@ ChallengeMode ports the donor Mythic+ state, bosses, keystones, completion/histo
 ## Native Skyriding owner
 
 Skyriding now owns its server mode/command/impulse protocol, mount animation phases, double-space input and Lua controls. Native movement events retain ordinary collision, server flight permission and speed authority; no raw coordinate/gravity/flight-bit writes are copied. Session/map/player/mount changes release ownership and discard stale packets. Default WXL_ENABLE_SKYRIDING/wxlSkyriding is ON. Donor manual stall descent, surge lift and forced-flight restoration remain outside this typed native port; this is not full physical parity. See modules/skyriding/INTEGRATION.md.
+
+## Source-native extended animations
+
+The native model loader uses a separate ConvertForNativeRuntime entry. After owned skeleton/external/alias assembly and bounded native hash rebuild, modern action IDs remain available instead of being rejected at the bridge's classic505 limit. The eight existing classic role mappings remain; all topology/material/track limits still apply. The old generic/injected-host conversion APIs retain their prior policy. Native direct-present sequence resolution precedes the classic AnimationData fallback boundary, and native lookup/variation traversal is bounded. This supplies the modern mount actions needed by Skyriding without renaming them to Stand. Native playback and visuals remain part of the broad test.

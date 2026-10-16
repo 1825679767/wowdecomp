@@ -34,6 +34,11 @@ bool ValidateClassicNamedHandSource(std::span<const uint8_t> body,std::span<cons
 bool ValidateClassicCurrentGlaiveSource(std::span<const uint8_t> body,std::span<const uint8_t> skin,uint32_t paletteLimit);
 bool ConvertSkin(std::span<const uint8_t> input,std::vector<uint8_t>& output,bool extendedIndices=false);
 bool Convert(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend=false,bool extendedIndices=false,uint32_t paletteLimit=75);
+// Source-native consumer policy. Retains modern uint16 animation IDs after
+// bounded owned assembly, curated classic-role mapping and native hash rebuild.
+// No injected-host capability or single-508 fixture contract is used. All other
+// source/track/topology/texture/material limits remain identical to Convert.
+bool ConvertForNativeRuntime(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend=false,bool extendedIndices=false,uint32_t paletteLimit=75);
 // Explicit unpublished CPU byte policy. Caller must separately obtain the exact
 // verified native capability before publication. No owner/renderer grant here.
 // Requires fully embedded/noalias source and validated supplied native hash;
