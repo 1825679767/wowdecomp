@@ -17,7 +17,10 @@
 #include <vector>
 
 static uint32_t checks=0;
+static bool inputRetired=false;
+static uint32_t retiredCallbacks=0;
 static intptr_t NativeWindowCallback(void* window,uint32_t message,uintptr_t wparam,intptr_t lparam){
+    if(inputRetired)++retiredCallbacks;
     return DefWindowProcA(static_cast<HWND>(window),message,wparam,lparam);
 }
 static LONG WINAPI TraceCrash(EXCEPTION_POINTERS* info){
@@ -231,7 +234,8 @@ int main(int argc,char** argv) try {
         const auto handle=window.DeviceWindow();window.DeviceWM(GxWM_KillFocus,0,0);
         Check(window.RecoverDevice()&&window.DeviceWindow()==handle&&!window.m_windowFocus,"window/owner/focus survive recreation");
         window.SceneClear(3,clear);Equal(Center(window,128,96),clear,"recreated swapchain pixels");window.ScenePresent();
-        window.DeviceDestroy();g_theGxDevicePtr=nullptr;SFile::EnableDirectAccess(0);
+        inputRetired=true;window.DeviceDestroy();Check(!retiredCallbacks,"window teardown does not call retired native input/IME owner");
+        inputRetired=false;g_theGxDevicePtr=nullptr;SFile::EnableDirectAccess(0);
     }
     CGxDevice::LogClose();
     std::cout<<"PASS native D3D11 backend checks="<<checks<<" (fixed and native shaders, indexed draw, texture, alpha, blend, depth, targets, copy, query, reset)\n";

@@ -135,12 +135,14 @@ bool CGxDeviceD3d11::RecoverDevice(){
 
 LRESULT CALLBACK CGxDeviceD3d11::WindowProc(HWND window,UINT msg,WPARAM wp,LPARAM lp){
     auto* self=reinterpret_cast<CGxDeviceD3d11*>(GetWindowLongPtrW(window,GWLP_USERDATA));
-    if(msg==WM_NCCREATE){self=static_cast<CGxDeviceD3d11*>(reinterpret_cast<CREATESTRUCTA*>(lp)->lpCreateParams);SetWindowLongPtrW(window,GWLP_USERDATA,reinterpret_cast<LONG_PTR>(self));}
+    if(msg==WM_NCCREATE){self=static_cast<CGxDeviceD3d11*>(reinterpret_cast<CREATESTRUCTA*>(lp)->lpCreateParams);SetWindowLongPtrW(window,GWLP_USERDATA,reinterpret_cast<LONG_PTR>(self));return DefWindowProcA(window,msg,wp,lp);}
     if(self){
+        if(msg==WM_CREATE)return 0;
         if(msg==WM_SIZE){CRect rect{};rect.maxX=LOWORD(lp);rect.maxY=HIWORD(lp);self->DeviceWM(GxWM_Size,reinterpret_cast<uintptr_t>(&rect),wp==SIZE_MINIMIZED?1:0);}
-        else if(msg==WM_SETFOCUS)self->DeviceWM(GxWM_SetFocus,0,0);
-        else if(msg==WM_KILLFOCUS)self->DeviceWM(GxWM_KillFocus,0,0);
-        else if(msg==WM_DESTROY)self->DeviceWM(GxWM_Destroy,0,0);
+        else if(msg==WM_SETFOCUS){self->DeviceWM(GxWM_SetFocus,0,0);return 0;}
+        else if(msg==WM_KILLFOCUS){self->DeviceWM(GxWM_KillFocus,0,0);return 0;}
+        else if(msg==WM_DESTROY){self->DeviceWM(GxWM_Destroy,0,0);return 0;}
+        else if(msg==WM_PAINT){PAINTSTRUCT paint{};BeginPaint(window,&paint);EndPaint(window,&paint);return 0;}
         else if(msg==WM_ERASEBKGND)return 1;
         else if(msg==WM_SETCURSOR&&LOWORD(lp)==HTCLIENT){SetCursor(nullptr);return TRUE;} // Native software cursor owns the client area.
         if(self->m_windowProc)return self->m_windowProc(window,msg,wp,lp);
@@ -204,7 +206,11 @@ void CGxDeviceD3d11::DeviceDestroy(){
     for(auto* q=m_queryList.Head();q;q=m_queryList.Next(q))if(q->m_apiSpecific){static_cast<IUnknown*>(q->m_apiSpecific)->Release();q->m_apiSpecific=nullptr;}
     HWND window=m->window;const bool own=m->ownWindow;
     if(m->swapchain)m->swapchain->SetFullscreenState(FALSE,nullptr);
-    m.reset(new Impl(this));if(window&&own)DestroyWindow(window);CGxDevice::DeviceDestroy();
+    // The engine destroys its input/IME owners before ConsoleDeviceDestroy.
+    // DestroyWindow can synchronously send IME/focus messages; detach the dead
+    // native input callback before releasing our owned window.
+    m_windowProc=nullptr;
+    m.reset(new Impl(this));if(window&&own){SetWindowLongPtrA(window,GWLP_USERDATA,0);DestroyWindow(window);}CGxDevice::DeviceDestroy();
 }
 void CGxDeviceD3d11::DeviceSetBaseMipLevel(uint32_t level){
     if(level==m_baseMipLevel)return;CGxDevice::DeviceSetBaseMipLevel(level);
