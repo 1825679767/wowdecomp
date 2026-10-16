@@ -2143,7 +2143,7 @@ void CGUnit_C::RefreshInteractIcon() {
         return;
     }
 
-    if (this->UnitReaction(player) < 3) {
+    if (this->UnitReaction(player) < UNIT_REACTION_NEUTRAL) {
         this->m_questStatus = 0;
         this->m_interactIconType = 0;
         this->RemoveInteractIcon();
@@ -2882,13 +2882,13 @@ void CGUnit_C::UpdateClientStandState(uint32_t standState) {
 
 // VERIFY: c0743a42 manual
 // OFFSET: 0x0071F770
-int32_t CGUnit_C::UnitReaction(int32_t factionTemplate, const CGUnit_C* unit) {
+UNIT_REACTION CGUnit_C::UnitReaction(int32_t factionTemplate, const CGUnit_C* unit) {
     FactionTemplateRec* faction = g_factionTemplateDB.GetRecord(factionTemplate);
     CGUnitData* data = unit->m_unit;
     FactionTemplateRec* other = g_factionTemplateDB.GetRecord(data->m_unitFieldFactiontemplate);
 
     if (!faction || !other) {
-        return 3;
+        return UNIT_REACTION_NEUTRAL;
     }
 
     if (data->m_unitFieldFlags & 0x8) {
@@ -2896,11 +2896,13 @@ int32_t CGUnit_C::UnitReaction(int32_t factionTemplate, const CGUnit_C* unit) {
 
         if (controller && controller->IsActivePlayer()) {
             if ((faction->m_flags & 0x1000) && (static_cast<CGPlayer_C*>(controller)->m_player->m_playerFlags & 0x100)) {
-                return 1;
+                return UNIT_REACTION_HOSTILE;
             }
 
-            if (CGReputationInfo::GetForcedReaction(faction->m_faction, &factionTemplate)) {
-                return factionTemplate;
+            UNIT_REACTION forcedReaction;
+
+            if (CGReputationInfo::GetForcedReaction(faction->m_faction, &forcedReaction)) {
+                return forcedReaction;
             }
 
             if (!(unit->m_unit->m_unitFieldFlags2 & 0x4)) {
@@ -2918,9 +2920,9 @@ int32_t CGUnit_C::UnitReaction(int32_t factionTemplate, const CGUnit_C* unit) {
 
 // VERIFY: 374d4818 manual
 // OFFSET: 0x007251C0
-int32_t CGUnit_C::UnitReaction(const CGUnit_C* unit) const {
+UNIT_REACTION CGUnit_C::UnitReaction(const CGUnit_C* unit) const {
     if (unit == this) {
-        return 4;
+        return UNIT_REACTION_FRIENDLY;
     }
 
     CGUnit_C* self = const_cast<CGUnit_C*>(this);
@@ -2938,12 +2940,12 @@ int32_t CGUnit_C::UnitReaction(const CGUnit_C* unit) const {
                 CGPlayerLocalData* otherPlayer = static_cast<CGPlayer_C*>(otherController)->m_player;
 
                 if (otherPlayer->m_playerDuelTeam && player->m_playerDuelArbiter == otherPlayer->m_playerDuelArbiter) {
-                    return player->m_playerDuelTeam != otherPlayer->m_playerDuelTeam ? 1 : 4;
+                    return player->m_playerDuelTeam != otherPlayer->m_playerDuelTeam ? UNIT_REACTION_HOSTILE : UNIT_REACTION_FRIENDLY;
                 }
             }
 
             if (controller == otherController) {
-                return 4;
+                return UNIT_REACTION_FRIENDLY;
             }
 
             if (controller->IsActivePlayer()) {
@@ -2975,18 +2977,18 @@ int32_t CGUnit_C::UnitReaction(const CGUnit_C* unit) const {
             }
         } else if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && !otherController) {
             if (self->IsDuelingWith(other)) {
-                return 1;
+                return UNIT_REACTION_HOSTILE;
             }
         } else if (unit->m_obj->m_guid == ClntObjMgrGetActivePlayer() && !controller) {
             if (other->IsDuelingWith(self)) {
-                return 1;
+                return UNIT_REACTION_HOSTILE;
             }
         }
 
         data = this->m_unit;
 
         if ((data->m_unitFieldBytes2[1] & 0x4) && (unit->m_unit->m_unitFieldBytes2[1] & 0x4)) {
-            return 1;
+            return UNIT_REACTION_HOSTILE;
         }
     }
 
@@ -2997,7 +2999,7 @@ int32_t CGUnit_C::UnitReaction(const CGUnit_C* unit) const {
             FactionTemplateRec* faction = g_factionTemplateDB.GetRecord(unit->m_unit->m_unitFieldFactiontemplate);
 
             if (faction) {
-                int32_t reaction;
+                UNIT_REACTION reaction;
 
                 if (CGReputationInfo::GetForcedReaction(faction->m_faction, &reaction)) {
                     return reaction;
@@ -3005,19 +3007,19 @@ int32_t CGUnit_C::UnitReaction(const CGUnit_C* unit) const {
 
                 if (!(controller->m_unit->m_unitFieldFlags2 & 0x4) && CGUnit_C::FactionHasReputation(faction->m_faction)) {
                     if ((faction->m_flags & 0x1000) && (static_cast<CGPlayer_C*>(controller)->m_player->m_playerFlags & 0x100)) {
-                        return 1;
+                        return UNIT_REACTION_HOSTILE;
                     }
 
-                    return CGReputationInfo::IsAtWar(faction->m_faction) ? 1 : 4;
+                    return CGReputationInfo::IsAtWar(faction->m_faction) ? UNIT_REACTION_HOSTILE : UNIT_REACTION_FRIENDLY;
                 }
             }
         }
     }
 
-    int32_t reaction = CGUnit_C::UnitReaction(this->m_unit->m_unitFieldFactiontemplate, unit);
+    UNIT_REACTION reaction = CGUnit_C::UnitReaction(this->m_unit->m_unitFieldFactiontemplate, unit);
 
-    if (reaction >= 7) {
-        return 7;
+    if (reaction >= UNIT_REACTION_EXALTED) {
+        return UNIT_REACTION_EXALTED;
     }
 
     return reaction;
@@ -3039,16 +3041,16 @@ float CGUnit_C::GetPlayerDiscount(const CGUnit_C* unit) const {
     }
 
     switch (this->UnitReaction(unit)) {
-        case 4:
+        case UNIT_REACTION_FRIENDLY:
             return 0.05f;
 
-        case 5:
+        case UNIT_REACTION_HONORED:
             return 0.1f;
 
-        case 6:
+        case UNIT_REACTION_REVERED:
             return 0.15f;
 
-        case 7:
+        case UNIT_REACTION_EXALTED:
             return 0.2f;
 
         default:
@@ -3075,13 +3077,13 @@ const char* CGUnit_C::GetVisibleUnitName(const char** realm, int32_t a2) {
 // VERIFY: 7c461897 auto
 // OFFSET: 0x00514050
 bool CGUnit_C::IsFriendly(const CGUnit_C* unit) const {
-    return this->UnitReaction(unit) >= 4 || this->IsTreatAsRaidUnit();
+    return this->UnitReaction(unit) >= UNIT_REACTION_FRIENDLY || this->IsTreatAsRaidUnit();
 }
 
 // VERIFY: 698db9c9 auto
 // OFFSET: 0x00514080
 bool CGUnit_C::IsHatedTowards(const CGUnit_C* unit) const {
-    return this->UnitReaction(unit) <= 1;
+    return this->UnitReaction(unit) <= UNIT_REACTION_HOSTILE;
 }
 
 // VERIFY: c1172a2b manual
@@ -5943,40 +5945,40 @@ void CGUnit_C::SaveChainSpellLocation(const C3Vector* location) {
 
 // VERIFY: a3c8b445 manual
 // OFFSET: 0x00715440
-int32_t FactionTemplateReaction(const FactionTemplateRec* faction, const FactionTemplateRec* other) {
+UNIT_REACTION FactionTemplateReaction(const FactionTemplateRec* faction, const FactionTemplateRec* other) {
     int32_t otherGroup = other->m_factionGroup;
 
     if (otherGroup & faction->m_enemyGroup) {
-        return 1;
+        return UNIT_REACTION_HOSTILE;
     }
 
     for (uint32_t i = 0; i < 4 && faction->m_enemies[i]; i++) {
         if (faction->m_enemies[i] == other->m_faction) {
-            return 1;
+            return UNIT_REACTION_HOSTILE;
         }
     }
 
     if (otherGroup & faction->m_friendGroup) {
-        return 4;
+        return UNIT_REACTION_FRIENDLY;
     }
 
     for (uint32_t i = 0; i < 4 && faction->m_friend[i]; i++) {
         if (faction->m_friend[i] == other->m_faction) {
-            return 4;
+            return UNIT_REACTION_FRIENDLY;
         }
     }
 
     if (faction->m_factionGroup & other->m_friendGroup) {
-        return 4;
+        return UNIT_REACTION_FRIENDLY;
     }
 
     for (uint32_t i = 0; i < 4 && other->m_friend[i]; i++) {
         if (other->m_friend[i] == faction->m_faction) {
-            return 4;
+            return UNIT_REACTION_FRIENDLY;
         }
     }
 
-    return (~(static_cast<uint32_t>(faction->m_flags) >> 12) & 2) | 1;
+    return static_cast<UNIT_REACTION>((~(static_cast<uint32_t>(faction->m_flags) >> 12) & 2) | 1);
 }
 
 // VERIFY: 1d445e4d auto
@@ -8425,7 +8427,7 @@ int32_t CGUnit_C::GetVirtualItemDisplayRec(uint32_t slot, ItemDisplayInfoRec& re
 
 // VERIFY: 068ad525 manual
 // OFFSET: 0x00718C20
-int32_t CGUnit_C::UnitReaction(const CGCorpse_C* corpse) const {
+UNIT_REACTION CGUnit_C::UnitReaction(const CGCorpse_C* corpse) const {
     FactionTemplateRec* faction = g_factionTemplateDB.GetRecord(this->m_unit->m_unitFieldFactiontemplate);
     FactionTemplateRec* other = g_factionTemplateDB.GetRecord(corpse->GetFactionTemplate());
 
@@ -8433,7 +8435,7 @@ int32_t CGUnit_C::UnitReaction(const CGCorpse_C* corpse) const {
         return FactionTemplateReaction(faction, other);
     }
 
-    return 3;
+    return UNIT_REACTION_NEUTRAL;
 }
 
 // VERIFY: 53133dc2 manual
@@ -8622,7 +8624,7 @@ void CGUnit_C::ToggleRunModeLocal(uint32_t eventTime) {
 // VERIFY: cf000702 manual
 // OFFSET: 0x0071F890
 bool CGUnit_C::CanAssist(const CGCorpse_C* corpse) const {
-    return this->UnitReaction(corpse) >= 4;
+    return this->UnitReaction(corpse) >= UNIT_REACTION_FRIENDLY;
 }
 
 // VERIFY: 2fefd292 manual
@@ -9958,7 +9960,7 @@ void CGUnit_C::PostInit(uint32_t time, const CClientObjCreate& create, bool reen
 
     CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
 
-    if (CGBattlefieldInfo::m_instanceType == 4 && this->m_unit->m_unitFieldPetnumber && player && player->UnitReaction(this) <= 1) {
+    if (CGBattlefieldInfo::m_instanceType == 4 && this->m_unit->m_unitFieldPetnumber && player && player->UnitReaction(this) <= UNIT_REACTION_HOSTILE) {
         WOWGUID petGuid = this->m_obj->m_guid;
         const WOWGUID* owner = this->m_unit->m_unitFieldCharmedby ? &this->m_unit->m_unitFieldCharmedby : &this->m_unit->m_unitFieldCreatedby;
         CGBattlefieldInfo::AddArenaOpponentPet(petGuid, *owner);
@@ -10179,7 +10181,7 @@ void CGUnit_C::PostReenable() {
 
     CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
 
-    if (CGBattlefieldInfo::m_instanceType == 4 && this->m_unit->m_unitFieldPetnumber && player && player->UnitReaction(this) <= 1) {
+    if (CGBattlefieldInfo::m_instanceType == 4 && this->m_unit->m_unitFieldPetnumber && player && player->UnitReaction(this) <= UNIT_REACTION_HOSTILE) {
         WOWGUID petGuid = this->m_obj->m_guid;
         const WOWGUID* owner = this->m_unit->m_unitFieldCharmedby ? &this->m_unit->m_unitFieldCharmedby : &this->m_unit->m_unitFieldCreatedby;
         CGBattlefieldInfo::AddArenaOpponentPet(petGuid, *owner);
@@ -11787,7 +11789,7 @@ bool CGUnit_C::ProcessCastNotInterruptible(const SpellRec* spell) {
 // VERIFY: bade9591 manual
 // OFFSET: 0x00728C80
 bool CGUnit_C::IsNotHostileTo(const CGUnit_C* unit) const {
-    return this->UnitReaction(unit) >= 3;
+    return this->UnitReaction(unit) >= UNIT_REACTION_NEUTRAL;
 }
 
 // VERIFY: 8ddba777 manual
@@ -11799,7 +11801,7 @@ bool CGUnit_C::CanAssist(const CGUnit_C* unit, bool ignoreFlags) const {
         return false;
     }
 
-    if (this->UnitReaction(unit) < 4 && (!this->m_creatureCacheEntry || !(this->m_creatureCacheEntry->m_typeFlags & 0x4000000))) {
+    if (this->UnitReaction(unit) < UNIT_REACTION_FRIENDLY && (!this->m_creatureCacheEntry || !(this->m_creatureCacheEntry->m_typeFlags & 0x4000000))) {
         return false;
     }
 
@@ -18432,7 +18434,7 @@ void CGUnit_C::UpdateChannelEffects() {
 // VERIFY: 66625199 manual
 // OFFSET: 0x0071F8B0
 bool CGUnit_C::CanInteract(const CGGameObject_C* gameObject) const {
-    return (!(this->m_obj->m_type & TYPEMASK_PLAYER) || !(static_cast<const CGPlayer_C*>(this)->m_player->m_playerFlags & 0x10)) && gameObject->ObjectReaction(this) >= 3;
+    return (!(this->m_obj->m_type & TYPEMASK_PLAYER) || !(static_cast<const CGPlayer_C*>(this)->m_player->m_playerFlags & 0x10)) && gameObject->ObjectReaction(this) >= UNIT_REACTION_NEUTRAL;
 }
 
 // VERIFY: a3dabf99 manual

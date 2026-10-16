@@ -745,11 +745,11 @@ uint32_t GetCombatLogFlags(const WOWGUID& guid) {
             CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
             if (player) {
-                int32_t reaction = unit->UnitReaction(player);
+                UNIT_REACTION reaction = unit->UnitReaction(player);
 
-                if (reaction >= 4) {
+                if (reaction >= UNIT_REACTION_FRIENDLY) {
                     flags |= 0x10;
-                } else if (reaction <= 1) {
+                } else if (reaction <= UNIT_REACTION_HOSTILE) {
                     flags |= 0x40;
                     hostile = true;
                 }

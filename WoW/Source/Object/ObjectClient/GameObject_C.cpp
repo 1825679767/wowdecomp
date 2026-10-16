@@ -2883,7 +2883,7 @@ void CGGameObject_C::Reenable() {
 
 // VERIFY: d9d6f845 manual
 // OFFSET: 0x0070EDD0
-int32_t CGGameObject_C::ObjectReaction(const CGUnit_C* unit) const {
+UNIT_REACTION CGGameObject_C::ObjectReaction(const CGUnit_C* unit) const {
     CGUnit_C* creator = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_gameObject->m_createdBy, TYPEMASK_UNIT, __FILE__, __LINE__));
 
     if (creator) {
@@ -2894,7 +2894,7 @@ int32_t CGGameObject_C::ObjectReaction(const CGUnit_C* unit) const {
         return CGUnit_C::UnitReaction(this->m_gameObject->m_faction, unit);
     }
 
-    return 3;
+    return UNIT_REACTION_NEUTRAL;
 }
 
 // VERIFY: 7fd3c3af auto
@@ -3145,7 +3145,7 @@ bool CGGameObject_C_TypeBase::CanUse() const {
     }
 
     if (this->m_owner->m_gameObject->m_typeID == 6) {
-        if (!this->m_owner->GetLockRec() || this->m_owner->ObjectReaction(player) > 1) {
+        if (!this->m_owner->GetLockRec() || this->m_owner->ObjectReaction(player) > UNIT_REACTION_HOSTILE) {
             return false;
         }
 
@@ -3164,7 +3164,7 @@ bool CGGameObject_C_TypeBase::CanUse() const {
                 return false;
             }
         }
-    } else if (this->m_owner->ObjectReaction(player) <= 1) {
+    } else if (this->m_owner->ObjectReaction(player) <= UNIT_REACTION_HOSTILE) {
         return false;
     }
 
@@ -4048,7 +4048,7 @@ void CGGameObject_C::RefreshInteractIcon() {
         return;
     }
 
-    if (this->ObjectReaction(player) >= 3 && this->IsQuestGiver()) {
+    if (this->ObjectReaction(player) >= UNIT_REACTION_NEUTRAL && this->IsQuestGiver()) {
         player->UpdateQuestStatus(this);
     } else {
         this->m_questStatus = 0;

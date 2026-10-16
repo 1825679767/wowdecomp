@@ -1895,14 +1895,14 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
 
         if (unit->GetCreatureType() != 10) {
             if (activePlayer) {
-                if (activePlayer->UnitReaction(unit) < 4 && !activePlayer->IsTreatAsRaidUnit()) {
+                if (activePlayer->UnitReaction(unit) < UNIT_REACTION_FRIENDLY && !activePlayer->IsTreatAsRaidUnit()) {
                     creatureType = g_creatureTypeDB.GetRecord(unit->GetCreatureType());
                 }
             }
         }
 
         if (unit->GetCreatureType() == 10 || activePlayer) {
-            if (activePlayer && unit->UnitReaction(activePlayer) <= 1 && static_cast<int32_t>(activePlayer->m_unit->m_unitFieldLevel) <= unitLevel - 10) {
+            if (activePlayer && unit->UnitReaction(activePlayer) <= UNIT_REACTION_HOSTILE && static_cast<int32_t>(activePlayer->m_unit->m_unitFieldLevel) <= unitLevel - 10) {
                 showLevel = 0;
             }
         }

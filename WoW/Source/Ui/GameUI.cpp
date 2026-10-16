@@ -5921,7 +5921,7 @@ void CGGameUI::UpdateThreatWarningFromCVar() {
 // OFFSET: 0x00521BF0
 void CGGameUI::GetSelectionHighlightColor(const WOWGUID& guid, CImVector* color, int32_t a3) {
     // STATIC: 0x00BD0C94
-    static CImVector s_reactionColors[8] = { CImVector(0x00, 0x00, 0xFF, 0xFF), CImVector(0x00, 0x00, 0xFF, 0xFF), CImVector(0x00, 0x80, 0xFF, 0xFF), CImVector(0x00, 0xFF, 0xFF, 0xFF), CImVector(0x00, 0xFF, 0x00, 0xFF), CImVector(0x00, 0xFF, 0x00, 0xFF), CImVector(0x00, 0xFF, 0x00, 0xFF), CImVector(0x00, 0xFF, 0x00, 0xFF) };
+    static CImVector s_reactionColors[NUM_UNIT_REACTIONS] = { CImVector(0x00, 0x00, 0xFF, 0xFF), CImVector(0x00, 0x00, 0xFF, 0xFF), CImVector(0x00, 0x80, 0xFF, 0xFF), CImVector(0x00, 0xFF, 0xFF, 0xFF), CImVector(0x00, 0xFF, 0x00, 0xFF), CImVector(0x00, 0xFF, 0x00, 0xFF), CImVector(0x00, 0xFF, 0x00, 0xFF), CImVector(0x00, 0xFF, 0x00, 0xFF) };
 
     // STATIC: 0x00BD0C8C
     static CImVector s_playerColors[2] = { CImVector(0xFF, 0x00, 0x00, 0xFF), CImVector(0xFF, 0x60, 0x60, 0xFF) };
@@ -5965,7 +5965,7 @@ void CGGameUI::GetSelectionHighlightColor(const WOWGUID& guid, CImVector* color,
             }
         }
 
-        *color = pvp ? s_reactionColors[4] : s_playerColors[a3];
+        *color = pvp ? s_reactionColors[UNIT_REACTION_FRIENDLY] : s_playerColors[a3];
         return;
     }
 
@@ -5996,12 +5996,12 @@ void CGGameUI::GetSelectionHighlightColor(const WOWGUID& guid, CImVector* color,
 
     if (unit->m_unit->m_unitFieldFlags & 0x8) {
         if (unit->CanAttack(viewer)) {
-            *color = viewer->CanAttack(unit) ? s_reactionColors[1] : s_playerColors[a3];
+            *color = viewer->CanAttack(unit) ? s_reactionColors[UNIT_REACTION_HOSTILE] : s_playerColors[a3];
             return;
         }
 
         if (viewer->CanAttack(unit)) {
-            *color = s_reactionColors[3];
+            *color = s_reactionColors[UNIT_REACTION_NEUTRAL];
             return;
         }
 
