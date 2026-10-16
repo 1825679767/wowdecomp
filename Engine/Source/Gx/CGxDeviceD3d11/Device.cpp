@@ -65,6 +65,7 @@ bool CGxDeviceD3d11::Initialize(bool warp){
         ICursorCreate(m_format);
     }
     Log("DX11 native device initialized FL=%x WARP=%u size=%ux%u samples=%u",m->featureLevel,m->warp,m->width,m->height,m->samples);
+    if(m_log)SLogFlush(m_log);
     return true;
 }
 
@@ -132,7 +133,7 @@ bool CGxDeviceD3d11::RecoverDevice(){
 
 LRESULT CALLBACK CGxDeviceD3d11::WindowProc(HWND window,UINT msg,WPARAM wp,LPARAM lp){
     auto* self=reinterpret_cast<CGxDeviceD3d11*>(GetWindowLongPtrW(window,GWLP_USERDATA));
-    if(msg==WM_NCCREATE){self=static_cast<CGxDeviceD3d11*>(reinterpret_cast<CREATESTRUCTW*>(lp)->lpCreateParams);SetWindowLongPtrW(window,GWLP_USERDATA,reinterpret_cast<LONG_PTR>(self));}
+    if(msg==WM_NCCREATE){self=static_cast<CGxDeviceD3d11*>(reinterpret_cast<CREATESTRUCTA*>(lp)->lpCreateParams);SetWindowLongPtrW(window,GWLP_USERDATA,reinterpret_cast<LONG_PTR>(self));}
     if(self){
         if(msg==WM_SIZE){CRect rect{};rect.maxX=LOWORD(lp);rect.maxY=HIWORD(lp);self->DeviceWM(GxWM_Size,reinterpret_cast<uintptr_t>(&rect),wp==SIZE_MINIMIZED?1:0);}
         else if(msg==WM_SETFOCUS)self->DeviceWM(GxWM_SetFocus,0,0);
@@ -142,16 +143,17 @@ LRESULT CALLBACK CGxDeviceD3d11::WindowProc(HWND window,UINT msg,WPARAM wp,LPARA
         else if(msg==WM_SETCURSOR&&LOWORD(lp)==HTCLIENT){SetCursor(nullptr);return TRUE;} // Native software cursor owns the client area.
         if(self->m_windowProc)return self->m_windowProc(window,msg,wp,lp);
     }
-    return DefWindowProcW(window,msg,wp,lp);
+    return DefWindowProcA(window,msg,wp,lp);
 }
 int32_t CGxDeviceD3d11::DeviceCreate(GxWindowProc proc,const CGxFormat& format){
     m_windowProc=proc;m_format=format;m->ownWindow=true;
-    const auto instance=GetModuleHandleW(nullptr);WNDCLASSEXW wc{};wc.cbSize=sizeof(wc);wc.hInstance=instance;
-    wc.lpfnWndProc=WindowProc;wc.lpszClassName=L"WxlNativeGxD3d11";wc.hCursor=LoadCursorW(nullptr,MAKEINTRESOURCEW(32512));
-    if(!RegisterClassExW(&wc)&&GetLastError()!=ERROR_CLASS_ALREADY_EXISTS)return 0;
+    // The native GxWindowProc contract and its DefWindowProc use ANSI messages.
+    const auto instance=GetModuleHandleA(nullptr);WNDCLASSEXA wc{};wc.cbSize=sizeof(wc);wc.hInstance=instance;
+    wc.lpfnWndProc=WindowProc;wc.lpszClassName="WxlNativeGxD3d11";wc.hCursor=LoadCursorW(nullptr,MAKEINTRESOURCEW(32512));
+    if(!RegisterClassExA(&wc)&&GetLastError()!=ERROR_CLASS_ALREADY_EXISTS)return 0;
     DWORD style=format.m_window?WS_OVERLAPPEDWINDOW:WS_POPUP;
     RECT rect{0,0,format.m_size.x,format.m_size.y};AdjustWindowRectEx(&rect,style,FALSE,0);
-    m->window=CreateWindowExW(0,wc.lpszClassName,L"World of Warcraft",style,CW_USEDEFAULT,CW_USEDEFAULT,
+    m->window=CreateWindowExA(0,wc.lpszClassName,"World of Warcraft",style,CW_USEDEFAULT,CW_USEDEFAULT,
         rect.right-rect.left,rect.bottom-rect.top,nullptr,nullptr,instance,this);
     if(!m->window)return 0;m->width=format.m_size.x;m->height=format.m_size.y;
     char value[4]{};const bool warp=GetEnvironmentVariableA("WXL_DX11_WARP",value,4)&&value[0]=='1';
@@ -239,7 +241,7 @@ void CGxDeviceD3d11::ScenePresent(){
     }
     if(m->swapchain){if(m->samples>1)m->context->ResolveSubresource(m->backbuffer.Get(),0,m->color.Get(),0,DXGI_FORMAT_R8G8B8A8_UNORM);
         const HRESULT hr=m->swapchain->Present(m_format.m_vsync?1:0,0);
-        if(SUCCEEDED(hr)&&++m->presentedFrames==1)Log("DX11 first native Present succeeded; draws=%llu variants=%zu",m->drawCalls,m->variants.size());
+        if(SUCCEEDED(hr)&&++m->presentedFrames==1){Log("DX11 first native Present succeeded; draws=%llu variants=%zu",m->drawCalls,m->variants.size());if(m_log)SLogFlush(m_log);}
         if(FAILED(hr)){Check(hr,"Present");m_context=0;if(hr==DXGI_ERROR_DEVICE_REMOVED||hr==DXGI_ERROR_DEVICE_RESET)RecoverDevice();}
     }
     CGxDevice::ScenePresent();WaitForFPSCap();

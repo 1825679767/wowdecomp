@@ -17,6 +17,9 @@
 #include <vector>
 
 static uint32_t checks=0;
+static intptr_t NativeWindowCallback(void* window,uint32_t message,uintptr_t wparam,intptr_t lparam){
+    return DefWindowProcA(static_cast<HWND>(window),message,wparam,lparam);
+}
 static LONG WINAPI TraceCrash(EXCEPTION_POINTERS* info){
     CONTEXT frame=*info->ContextRecord;
     std::fprintf(stderr,"exception=%08lx checks=%u\n",info->ExceptionRecord->ExceptionCode,checks);
@@ -209,7 +212,9 @@ int main(int argc,char** argv) try {
         SFile::EnableDirectAccess(1);CGxDeviceD3d11 window;g_theGxDevicePtr=&window;
         C2iVector dimensions;dimensions.x=256;dimensions.y=256;
         CGxFormat f(true,dimensions,CGxFormat::Fmt_Argb8888,CGxFormat::Fmt_Ds248,0,0,true,false,false,true,0);
-        Check(window.DeviceCreate(static_cast<GxWindowProc>(nullptr),f)!=0,"native hardware window/swapchain creation");
+        Check(window.DeviceCreate(NativeWindowCallback,f)!=0,"native hardware window/swapchain creation");
+        char title[64]{};GetWindowTextA(static_cast<HWND>(window.DeviceWindow()),title,sizeof(title));
+        Check(!std::strcmp(title,"World of Warcraft"),"native ANSI window callback contract");
         window.SceneClear(3,clear);Equal(Center(window,256,256),clear,"native swapchain backbuffer pixels");window.ScenePresent();
         f.m_size.x=128;f.m_size.y=96;Check(window.DeviceSetFormat(f)!=0,"native window/swapchain resize");
         window.SceneClear(3,clear);Equal(Center(window,128,96),clear,"resized swapchain pixels");window.ScenePresent();
