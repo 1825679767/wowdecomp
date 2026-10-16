@@ -35,6 +35,26 @@ Run `<build>/bin/Release/NativeDx11BackendTests.exe <native-UI-vs_3_0.bls> <nati
 
 Compilation, API creation and these pixel tests do not establish game/world or visual parity. Require actual login/UI/character/model/terrain/WMO/particle/liquid/shadow/postprocess rendering, reset/focus/fullscreen/streaming and performance comparisons before acceptance. Use a fresh local fixture, preserve data and accounts, and retain the original D3D9 launch path.
 
+The combined backend also has native WXL adapters for scoped mesh/particle
+materials, blood scene refraction, reaction-colored unit silhouettes, WMO overlay
+and four-layer height/tint materials, detail-doodad grass motion and quest/corpse
+navigation quads. The graphics checks exercise real GPU pixels, scene depth,
+state restoration, alpha coverage and recreation. Grass checks preserve native
+point lights and compare disabled motion against all twelve exact stock shader
+permutations before checking actual displacement. These are implementation and
+regression proofs; in-world appearance and representative performance remain
+separate acceptance gates.
+
+For the reported Ogre companion failure, run
+`NativeDx11BackendTests.exe --m2-external <extracted-ogre-fixture>` against the
+retained two model files and their `animations/` companions. This invokes native
+relocation and interpolation over the declared sequences, aliases and channels.
+For a new runtime reproduction, set `WXL_M2_EXTERNAL_TRACE=1` only in the private
+test launch environment. A bounded, flushed per-process log under `Logs/` records
+the actual model and external `.anim` filename before loading and relocation.
+Passing extracted-byte checks does not establish that the reported race crash
+is fixed; retain the exact runtime failure and matching executable/symbols.
+
 ## Import into the active x64 branch
 
 The separate DX11 track starts at `760079926aada4cf4e46c4cc3d83a89f3d4f0907`. Apply its ordered commit series to an isolated integration branch, retaining all subsequent WXL modules and game changes. Review overlapping root/Gx/ThirdParty/Wow CMake changes and Gx factory/adapter hooks; do not replace whole files with older copies. The shader translator and new device are additive. Build both DX11 ON and the default OFF configuration, then repeat native tests and game acceptance against the combined source. Bring `fetch_dependencies.py`, licenses and the signer deployment hook with the code. Release-control pending intake is not promotion or permission to publish.
