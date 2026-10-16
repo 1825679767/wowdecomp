@@ -182,7 +182,7 @@ bool BuildSlot(CCharacterComponent& c,EquipmentAttachmentState& owner,uint32_t s
 }
 }
 namespace equipment_attachments {
-void Register(){procedural_enchants::Register();RegisterTimedItemVisuals();enabled=CVar::Register("wxlEquipmentAttachments","WXL native retail armor models and native item visual validation",2,WXL_ENABLE_EQUIPMENT_ATTACHMENTS?"1":"0",nullptr,0,false,nullptr,false);}
+void Register(){procedural_enchants::Register();RegisterTimedItemVisuals();enabled=CVar::Register("wxlEquipmentAttachments","WXL native retail armor models and native item visual validation",0,WXL_ENABLE_EQUIPMENT_ATTACHMENTS?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept{return WXL_ENABLE_EQUIPMENT_ATTACHMENTS&&NativeEnabled()&&AssetsEnabled()&&Db2Enabled()&&BlpEnabled()&&enabled&&enabled->m_intValue;}
 bool SuppressNativeArmor(const CCharacterComponent& c,uint32_t slot) noexcept{
  if(!Enabled()||slot>=11||(c.m_data.m_flags&1u))return false;

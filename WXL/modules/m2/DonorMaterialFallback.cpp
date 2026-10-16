@@ -28,7 +28,7 @@ bool StrictSplit(uint16_t shader,uint16_t count){
 uint16_t Next(uint16_t base,uint32_t count){return uint32_t(base)+1<count?uint16_t(base+1):base;}
 }
 void RegisterDonorMaterialFallback(){
- auto* variable=CVar::Register("wxlDonorMaterialFallback","WXL donor SKIN diffuse/split approximation for unsupported source shaders; reload models after changing",2,WXL_ENABLE_DONOR_MATERIAL_FALLBACK?"1":"0",&Changed,0,false,nullptr,false);
+ auto* variable=CVar::Register("wxlDonorMaterialFallback","WXL donor SKIN diffuse/split approximation for unsupported source shaders; reload models after changing",0,WXL_ENABLE_DONOR_MATERIAL_FALLBACK?"1":"0",&Changed,0,false,nullptr,false);
  if(variable)Changed(variable,nullptr,variable->m_stringValue.m_str,nullptr);
 }
 bool DonorMaterialFallbackEnabled() noexcept {return enabled.load(std::memory_order_acquire)&&AssetsEnabled();}

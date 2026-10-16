@@ -108,7 +108,7 @@ const std::vector<DWORD>* Inject(const uint8_t* bytes,uint32_t length){auto& dat
  data.code.push_back(std::move(e));if(!ok){WLOG_WARN("native-grass-wind: unsupported shader shape; native grass retained");return nullptr;}return &data.code.back().injected;
 }
 }
-void Register(){for(auto& p:parameters){auto* cv=CVar::Register(p.name,"WXL grass sway/parting parameter",2,p.value,Changed,0,false,&p,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,&p);}}
+void Register(){for(auto& p:parameters){auto* cv=CVar::Register(p.name,"WXL grass sway/parting parameter",0,p.value,Changed,0,false,&p,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,&p);}}
 bool Enabled() noexcept{return WXL_ENABLE_GRASS_WIND&&NativeEnabled()&&Value(0)!=0;}
 void Forget(CGxShader& shader) noexcept {try{Data().created.erase(&shader);}catch(...){}}
 bool CreateVertex(CGxDevice& owner,CGxShader& shader) noexcept {try{

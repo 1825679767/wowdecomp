@@ -34,7 +34,7 @@ struct Source {
  std::vector<SectionSource> sections;
  uint64_t modelFingerprint=0,skinFingerprint=0;
  std::string modelPath;
- uint32_t sectionCount=0,textureCount=0;
+ uint32_t sectionCount=0,textureCount=0,preparedBatchCount=0;
  std::vector<BatchSource> batches;
  std::shared_ptr<const DndSource> dnd;
  // Original recipe/audit remains immutable when full topology is partitioned.

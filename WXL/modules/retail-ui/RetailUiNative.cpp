@@ -54,7 +54,7 @@ const wxl_retail_ui::NativeFrameScript framescript{&RegisterFunction,&Script,&Ex
 namespace wxl_retail_ui {const NativeFrameScript* FrameScript(){return &framescript;}const NativeNetwork* Network(){return &network;}const NativeFdid* Fdid(){return &fdid;}}
 namespace wxl::native::retail_ui {
 bool Enabled() noexcept {return WXL_ENABLE_RETAIL_UI&&NativeEnabled()&&enabled&&enabled->m_intValue;}
-void Install(){if(!enabled)enabled=CVar::Register("wxlRetailUi","Native retail UI, wardrobe and weekly rewards bridges",2,WXL_ENABLE_RETAIL_UI?"1":"0",nullptr,0,false,nullptr,false);
+void Install(){if(!enabled)enabled=CVar::Register("wxlRetailUi","Native retail UI, wardrobe and weekly rewards bridges",0,WXL_ENABLE_RETAIL_UI?"1":"0",nullptr,0,false,nullptr,false);
  ready=false;readyContext=nullptr;Reset(nullptr);if(!Enabled())return;collecting=!bound;if(collecting){declarations.clear();receivers.clear();}
  bool ok=wxl_retail_ui::InstallRetailUiCompatibility();ok=wxl_retail_ui::InstallItemVariants()&&ok;ok=wxl_retail_ui::InstallRetailTransmogPreview()&&ok;ok=wxl_retail_ui::InstallWeeklyRewards()&&ok;ok=wxl_retail_ui::InstallRetailTransmog()&&ok;ok=wxl_retail_ui::InstallRetailTransmogEquipment()&&ok;ok=wxl_retail_ui::InstallRetailTransmogApply()&&ok;ok=wxl_retail_ui::InstallRetailTransmogOutfits()&&ok;ok=wxl_retail_ui::InstallRetailTransmogCustomSets()&&ok;ok=wxl_retail_ui::InstallRetailTransmogSituations()&&ok;
  if(!bound&&ok)bound=protocol::ClaimRawDispatch(declarations.data(),uint32_t(declarations.size()));collecting=false;if(!bound)WLOG_WARN("native-retail-ui: owner registration refused; native sends remain disabled");FrameScript_RegisterFunction("WXL_PumpRetailUi",&Pump);

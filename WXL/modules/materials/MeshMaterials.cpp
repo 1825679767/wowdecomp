@@ -131,7 +131,7 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
   if(!std::memcmp(raw+off,"TXID",4)){if(!txid.empty()||n!=textures*4)return {};txid={raw+off+8,n};}off+=8+n;
  }
  if(txid.size()!=textures*4)return {};
- auto result=std::make_shared<Source>();result->weighted=weighted;result->cpuSkinning=cpuSkinning;result->boneCount=bones;result->sections=std::move(sourceSections);result->modelPath=modelPath;result->sectionCount=sections;result->textureCount=textures;result->batches.reserve(batches);
+ auto result=std::make_shared<Source>();result->weighted=weighted;result->cpuSkinning=cpuSkinning;result->boneCount=bones;result->sections=std::move(sourceSections);result->modelPath=modelPath;result->sectionCount=sections;result->textureCount=textures;result->preparedBatchCount=batches;result->batches.reserve(batches);
  for(uint32_t b=0;b<batches;++b){
   const auto* batch=skin.data()+at+24*b;const uint16_t shader=Read<uint16_t>(batch,2);
   BatchSource record;record.custom=AddAlphaFamily(shader);std::memcpy(record.batch.data(),batch,24);
@@ -161,12 +161,26 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
  std::vector<uint8_t> carrier(48,0),canonical;std::memcpy(carrier.data(),"SKIN",4);
  carrier.insert(carrier.end(),candidate.begin()+at,candidate.begin()+at+size_t(batches)*24);
  const uint32_t header=48;std::memcpy(carrier.data()+36,&batches,4);std::memcpy(carrier.data()+40,&header,4);
- if(!wxl::waystone::m2bytes::ConvertSkin(carrier,canonical,true)||canonical.size()<48||Read<uint32_t>(canonical.data(),36)!=batches)return {};
- const auto canonicalAt=Read<uint32_t>(canonical.data(),40);if(!Range(canonical.size(),canonicalAt,batches,24))return {};
- // Expanded native siblings need a separate origin map; never pretend a
- // one-to-two EnvSplit is a one-to-one source-owned material row.
- for(uint32_t i=0;i<batches;++i)std::memcpy(result->batches[i].nativeBatch.data(),canonical.data()+canonicalAt+24*i,24);
- prepared.swap(candidate);return result;
+ if(!wxl::waystone::m2bytes::ConvertSkin(carrier,canonical,true)||canonical.size()<48)return {};
+ const auto canonicalN=Read<uint32_t>(canonical.data(),36),canonicalAt=Read<uint32_t>(canonical.data(),40);
+ if(canonicalN<batches||canonicalN>batches*2||!Range(canonical.size(),canonicalAt,canonicalN,24))return {};
+ std::vector<BatchSource> expanded;expanded.reserve(canonicalN);
+ for(uint32_t i=0;i<batches;++i){
+  // Ask the same serializer for this original row's exact expansion. Never
+  // infer native row ownership from shader names or the aggregate count.
+  std::vector<uint8_t> one(48,0),serialized;std::memcpy(one.data(),"SKIN",4);
+  one.insert(one.end(),candidate.begin()+at+24*i,candidate.begin()+at+24*(i+1));
+  const uint32_t n=1;std::memcpy(one.data()+36,&n,4);std::memcpy(one.data()+40,&header,4);
+  if(!wxl::waystone::m2bytes::ConvertSkin(one,serialized,true)||serialized.size()<48)return {};
+  const auto count=Read<uint32_t>(serialized.data(),36),offset=Read<uint32_t>(serialized.data(),40);
+  if(!count||count>2||(result->batches[i].custom&&count!=1)||!Range(serialized.size(),offset,count,24)||count>canonicalN-expanded.size())return {};
+  for(uint32_t row=0;row<count;++row){auto record=result->batches[i];const auto* expected=serialized.data()+offset+24*row;
+   if(std::memcmp(expected,canonical.data()+canonicalAt+24*expanded.size(),24))return {};
+   std::memcpy(record.nativeBatch.data(),expected,24);expanded.push_back(record);
+  }
+ }
+ if(expanded.size()!=canonicalN)return {};
+ result->batches=std::move(expanded);prepared.swap(candidate);return result;
 }
 std::shared_ptr<const Source> BindTopology(std::shared_ptr<const Source> source,const std::vector<uint8_t>& prepared,
  const std::vector<uint8_t>& model,const std::vector<uint8_t>& rebuilt,const std::vector<uint32_t>& origins,
@@ -174,7 +188,7 @@ std::shared_ptr<const Source> BindTopology(std::shared_ptr<const Source> source,
  if(!source||!source->weighted||source->dnd||source->topologyParent||(!nativeGpuSkinning&&!source->cpuSkinning)||!paletteLimit||paletteLimit>75||prepared.size()<48||model.size()<304||rebuilt.size()<48)return {};
  if(std::memcmp(model.data(),"MD20",4)||Read<uint32_t>(model.data(),4)!=264||std::memcmp(rebuilt.data(),"SKIN",4))return {};
  const auto sourceN=Read<uint32_t>(prepared.data(),36),sourceAt=Read<uint32_t>(prepared.data(),40);
- if(sourceN!=source->batches.size()||!sourceN||sourceAt<48||!Range(prepared.size(),sourceAt,sourceN,24))return {};
+ if(sourceN!=source->preparedBatchCount||!sourceN||sourceAt<48||!Range(prepared.size(),sourceAt,sourceN,24))return {};
  // The unchanged material serializer receives no geometry, never a native
  // publication. Actual rebuilt geometry was validated against the device.
  std::vector<uint8_t> carrier(48,0);std::memcpy(carrier.data(),"SKIN",4);
@@ -186,7 +200,7 @@ std::shared_ptr<const Source> BindTopology(std::shared_ptr<const Source> source,
  const auto bones=Read<uint32_t>(model.data(),0x2c),comboN=Read<uint32_t>(model.data(),0x78),comboAt=Read<uint32_t>(model.data(),0x7c),vertexN=Read<uint32_t>(model.data(),0x3c),vertexAt=Read<uint32_t>(model.data(),0x40);
  const auto lookupN=Read<uint32_t>(rebuilt.data(),4),lookupAt=Read<uint32_t>(rebuilt.data(),8),propsN=Read<uint32_t>(rebuilt.data(),20),propsAt=Read<uint32_t>(rebuilt.data(),24);
  const auto indexN=Read<uint32_t>(rebuilt.data(),12),indexAt=Read<uint32_t>(rebuilt.data(),16);
- if(canonicalN!=sourceN||origins.size()!=batchN||!batchN||batchN>16384||!sectionN||sectionN>16384||bones!=source->boneCount||lookupN!=propsN||
+ if(canonicalN!=source->batches.size()||origins.size()!=batchN||!batchN||batchN>16384||!sectionN||sectionN>16384||bones!=source->boneCount||lookupN!=propsN||
     !Range(canonical.size(),canonicalAt,canonicalN,24)||!Range(rebuilt.size(),batchAt,batchN,24)||!Range(rebuilt.size(),sectionAt,sectionN,48)||
     !Range(model.size(),comboAt,comboN,2)||!Range(model.size(),vertexAt,vertexN,48)||!Range(rebuilt.size(),lookupAt,lookupN,2)||!Range(rebuilt.size(),propsAt,propsN,4)||!Range(rebuilt.size(),indexAt,indexN,2))return {};
  auto next=std::make_shared<Source>(*source);next->topologyParent=source;next->nativeBatchOrigins=origins;next->sectionCount=sectionN;next->sections.clear();next->batches.clear();

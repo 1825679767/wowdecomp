@@ -127,7 +127,7 @@ struct WorldScope {
  ~WorldScope(){if(world.m_level)--world.m_level;world.m_dirty=1;}
 };
 }
-void Register(){enabled=CVar::Register("wxlCreationBeams","WXL native metadata-driven creation spell beams",2,WXL_ENABLE_CREATION_BEAMS?"1":"0",nullptr,0,false,nullptr,false);}
+void Register(){enabled=CVar::Register("wxlCreationBeams","WXL native metadata-driven creation spell beams",0,WXL_ENABLE_CREATION_BEAMS?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept{return WXL_ENABLE_CREATION_BEAMS&&NativeEnabled()&&BlpEnabled()&&enabled&&enabled->m_intValue;}
 void Stop() noexcept{state.reset();}
 void ReleaseScene(CM2Scene* scene) noexcept{if(state&&state->scene==scene)Stop();}

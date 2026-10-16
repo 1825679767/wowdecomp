@@ -46,8 +46,8 @@ void RegisterFeatures(){
  unit_outline::Register();
  grass_wind::Register();
  wmo_materials::Register();
- CVar::Register("wxlAreaLootAuto","WXL automatic area loot",2,"1",nullptr,0,false,nullptr,false);
- CVar::Register("wxlAreaLootQuality","WXL minimum automatic area loot quality",2,"0",nullptr,0,false,nullptr,false);
+ CVar::Register("wxlAreaLootAuto","WXL automatic area loot",0,"1",nullptr,0,false,nullptr,false);
+ CVar::Register("wxlAreaLootQuality","WXL minimum automatic area loot quality",0,"0",nullptr,0,false,nullptr,false);
  struct Feature{const char* name;const char* help;uint32_t bit;};
  const Feature features[]{
   {"wxlChallengeMode","WXL native server-authoritative Mythic+ API; reload UI after changing",ChallengeMode},
@@ -65,7 +65,7 @@ void RegisterFeatures(){
   {"wxlModernBlp","WXL modern BLP texture decoding; restart after changing",Blp},
   {"wxlCustomMaterials","WXL custom mesh materials including BlendAdd; reload models after changing",Materials},
   {"wxlParticles","WXL modern Screen particle rendering; reload models after changing",Particles}};
- for(const auto& f:features){auto* cv=CVar::Register(f.name,f.help,2,(Compiled&f.bit)?"1":"0",&Changed,0,false,reinterpret_cast<void*>(uintptr_t(f.bit)),false);
+ for(const auto& f:features){auto* cv=CVar::Register(f.name,f.help,0,(Compiled&f.bit)?"1":"0",&Changed,0,false,reinterpret_cast<void*>(uintptr_t(f.bit)),false);
   if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,reinterpret_cast<void*>(uintptr_t(f.bit)));
  }
 }

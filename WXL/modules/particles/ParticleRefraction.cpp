@@ -117,7 +117,7 @@ struct BackendState {
  ~BackendState(){Restore();}
 };
 }
-void RegisterParticleRefraction(){auto* cv=CVar::Register("wxlBloodRefraction","Experimental exact-source Blood Boil donor refraction: 0 off, 1 on",2,WXL_ENABLE_BLOOD_REFRACTION?"1":"0",Changed,0,false,nullptr,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
+void RegisterParticleRefraction(){auto* cv=CVar::Register("wxlBloodRefraction","Experimental exact-source Blood Boil donor refraction: 0 off, 1 on",0,WXL_ENABLE_BLOOD_REFRACTION?"1":"0",Changed,0,false,nullptr,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
 bool ParticleRefractionEnabled() noexcept {return enabled.load(std::memory_order_acquire)||restoreFailed.load(std::memory_order_acquire);}
 std::shared_ptr<const ParticleRefractionRecipe> CaptureParticleRefraction(const char* path,const uint8_t* raw,size_t size){
  if(!WXL_ENABLE_BLOOD_REFRACTION||!ParticlesEnabled()||!Path(path)||!raw||size<312||size>64u*1024*1024||std::memcmp(raw,"MD21",4))return {};

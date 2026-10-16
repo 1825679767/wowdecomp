@@ -58,7 +58,7 @@ int FindBounded(){auto* model=current;for(int hop=0;model&&hop<8;++hop,model=mod
 void Add(const char* token,CGUnit_C* player){CGUnit_C* unit=nullptr;if(targetCount==targets.size()||!GetUnitByKeyword(token,&unit,false)||!unit||!unit->m_worldModel)return;auto* model=unit->m_worldModel;for(uint32_t i=0;i<targetCount;++i)if(targets[i].model==model&&targets[i].handle==model->m_handle)return;
  auto& t=targets[targetCount++];t.model=model;t.handle=model->m_handle;t.player=unit->m_typeId==ID_PLAYER;auto reaction=player?unit->UnitReaction(player):5;t.rgba[0]=reaction<4?1.f:0.f;t.rgba[1]=reaction>=2?1.f:0.f;t.rgba[2]=0;t.rgba[3]=1;}
 }
-void Register(){enabled=CVar::Register("wxlUnitOutline","WXL reaction-colored target and mouseover silhouettes (D3D9)",2,WXL_ENABLE_UNIT_OUTLINE?"1":"0",nullptr,0,false,nullptr,false);}
+void Register(){enabled=CVar::Register("wxlUnitOutline","WXL reaction-colored target and mouseover silhouettes (D3D9)",0,WXL_ENABLE_UNIT_OUTLINE?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept{return WXL_ENABLE_UNIT_OUTLINE&&NativeEnabled()&&enabled&&enabled->m_intValue&&!failed;}
 ModelScope::ModelScope(CM2Model* model) noexcept:previous(current){current=model;}ModelScope::~ModelScope(){current=previous;}
 void BeginWorld() noexcept {active=false;stamped=false;targetCount=0;frameDevice=nullptr;try{if(!Enabled()||!CGGameUI::m_visible||!ClntObjMgrGetCurrent()||!Native(g_theGxDevicePtr))return;auto* player=ClntObjMgrGetActivePlayerObj();Add("mouseover",player);Add("target",player);frameDevice=g_theGxDevicePtr;active=targetCount!=0;}catch(...){active=false;}}

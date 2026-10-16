@@ -55,7 +55,7 @@ void Write(ProceduralEnchantState& s){
  for(uint32_t i=0;i<4;++i)if(s.owned[i]){*fields[i]=s.wanted[i];s.last[i]=s.wanted[i];}
 }
 }
-void Register(){enabled=CVar::Register("wxlProceduralEnchants","WXL bounded legacy-compatible retail enchant tint/alpha payloads",2,WXL_ENABLE_PROCEDURAL_ENCHANTS?"1":"0",nullptr,0,false,nullptr,false);}
+void Register(){enabled=CVar::Register("wxlProceduralEnchants","WXL bounded legacy-compatible retail enchant tint/alpha payloads",0,WXL_ENABLE_PROCEDURAL_ENCHANTS?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept{return WXL_ENABLE_PROCEDURAL_ENCHANTS&&equipment_attachments::Enabled()&&enabled&&enabled->m_intValue;}
 void Release(CM2Model* model) noexcept{try{
  if(!model||!model->m_wxlProceduralEnchant)return;

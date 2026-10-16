@@ -72,7 +72,7 @@ IDirect3DBaseTexture9* Texture(CGxDevice& owner,CTexture* t){auto* gx=TextureGet
  return static_cast<IDirect3DBaseTexture9*>(gx->m_apiSpecificData);
 }
 }
-void Register(){auto* cv=CVar::Register("wxlWmoMaterials","WXL modern WMO overlay alpha and four-layer height/tint materials; reload world after changing",2,WXL_ENABLE_WMO_MATERIALS?"1":"0",&Changed,0,false,nullptr,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
+void Register(){auto* cv=CVar::Register("wxlWmoMaterials","WXL modern WMO overlay alpha and four-layer height/tint materials; reload world after changing",0,WXL_ENABLE_WMO_MATERIALS?"1":"0",&Changed,0,false,nullptr,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
 bool Enabled() noexcept{return WXL_ENABLE_WMO_MATERIALS&&NativeEnabled()&&WmoEnabled()&&configured.load(std::memory_order_acquire)&&!failed.load();}
 bool LayeredReady() noexcept{return Enabled()&&capable.load(std::memory_order_acquire);}
 void DeviceReady(CGxDevice& owner) noexcept {try{auto* d=Native(&owner);D3DCAPS9 caps{};capable=d&&SUCCEEDED(d->GetDeviceCaps(&caps))&&caps.VertexShaderVersion>=D3DVS_VERSION(3,0)&&caps.PixelShaderVersion>=D3DPS_VERSION(3,0)&&caps.MaxStreams>=2&&caps.MaxSimultaneousTextures>=8&&Tools().Ready();}catch(...){capable=false;}}
