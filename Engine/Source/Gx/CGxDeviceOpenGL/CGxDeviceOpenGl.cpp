@@ -82,10 +82,10 @@ static const GLenum s_glAttribType[7] = { GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, GL
 static const GLboolean s_glAttribNormalized[7] = { GL_TRUE, GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
 
 // STATIC: 0x00AD8D90
-static GLenum s_glBlendSrc[12] = { GL_ONE, GL_ONE, GL_SRC_ALPHA, GL_SRC_ALPHA, GL_DST_COLOR, GL_DST_COLOR, GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE, GL_CONSTANT_ALPHA_EXT };
+static GLenum s_glBlendSrc[GxBlends_Last] = { GL_ONE, GL_ONE, GL_SRC_ALPHA, GL_SRC_ALPHA, GL_DST_COLOR, GL_DST_COLOR, GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE, GL_CONSTANT_ALPHA_EXT, GL_ONE, GL_ONE_MINUS_DST_COLOR };
 
 // STATIC: 0x00AD8DC0
-static GLenum s_glBlendDst[12] = { GL_ZERO, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO, GL_SRC_COLOR, GL_ONE, GL_ONE, GL_ZERO, GL_ZERO, GL_ONE, GL_ONE_MINUS_CONSTANT_ALPHA_EXT };
+static GLenum s_glBlendDst[GxBlends_Last] = { GL_ZERO, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO, GL_SRC_COLOR, GL_ONE, GL_ONE, GL_ZERO, GL_ZERO, GL_ONE, GL_ONE_MINUS_CONSTANT_ALPHA_EXT, GL_ONE_MINUS_SRC_ALPHA, GL_ONE };
 
 // STATIC: 0x00AD8E80
 static GLenum s_glDepthFunc[4] = { GL_LEQUAL, GL_EQUAL, GL_GEQUAL, GL_LESS };
@@ -3597,6 +3597,9 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
 
         case GxRs_BlendingMode: {
             uint32_t mode = value.m_data.u[0];
+            if (mode >= GxBlends_Last) {
+                mode = GxBlend_Opaque;
+            }
 
             if (mode < 2) {
                 this->DsSet(Ds_Blend, 0, 0);

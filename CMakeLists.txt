@@ -59,6 +59,8 @@ if (EXISTS ${CMAKE_SOURCE_DIR}/ThirdParty/CMakeLists.txt)
     add_subdirectory(ThirdParty)
 endif ()
 
+add_subdirectory(WXL)
+
 add_subdirectory(Engine/Source/BLPFile)
 add_subdirectory(Engine/Source/Base)
 add_subdirectory(Engine/Source/BlizzardCore)
@@ -117,3 +119,11 @@ foreach (target Wow WowClient MapViewer M2Viewer GxTest MpqTest BlpTest DbcTest 
         target_sources(${target} PRIVATE ${CMAKE_SOURCE_DIR}/waystone.rc)
     endif ()
 endforeach ()
+
+# Native source modules share compiled types/lifetimes; no injected WXL runtime.
+target_link_libraries(Model2 PUBLIC WxlNative)
+target_link_libraries(BLPFile PUBLIC WxlNative)
+target_link_libraries(WowClient PRIVATE WxlNative)
+if(TARGET Wow)
+ target_link_libraries(Wow PRIVATE WxlNative)
+endif()

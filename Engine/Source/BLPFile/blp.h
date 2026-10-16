@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 #include "Engine/Source/BLPFile/Types.h"
 #include "Engine/Source/Services/Types.h"
 
@@ -34,10 +35,12 @@ class CBLPFile {
     int32_t Lock(PIXEL_FORMAT format, uint32_t mipLevel, uint8_t*& data, uint32_t& stride);
     int32_t Lock2(const char* fileName, PIXEL_FORMAT format, uint32_t mipLevel, uint8_t* data, uint32_t& stride);
     int32_t LockChain(PIXEL_FORMAT format, MipBits*& images, uint32_t mipLevel);
+    // In-place mip pointers from transformed sources expire at Close/destruction.
     int32_t LockChain2(const char* fileName, PIXEL_FORMAT format, MipBits*& images, uint32_t mipLevel, int32_t inPlace);
     int32_t Open(const char* fileName, int32_t flags);
     uint32_t Pixels(uint32_t mipLevel) const;
     int32_t Source(void* data);
+    int32_t Source(void* data, uint32_t size);
     int32_t Unlock(uint32_t mipLevel);
     uint32_t Width(uint32_t mipLevel) const;
 
@@ -49,6 +52,11 @@ class CBLPFile {
     void DecompPalARGB8888(uint8_t* out, const void* in, uint32_t count);
     int32_t DecompPalDither(PIXEL_FORMAT format, uint32_t mipLevel, uint8_t* out, const void* in);
     void DecompPalFastPath(uint8_t* out, const void* in, uint32_t count);
+
+    private:
+    // Transformed files belong to this reader, never to an async/shared input buffer.
+    std::vector<uint8_t> m_nativeImage;
+    int32_t SourceData(void* data, uint32_t size, bool sized);
 };
 
 #endif

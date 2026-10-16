@@ -33,7 +33,10 @@ enum EGxBlend {
     GxBlend_SrcAlphaOpaque = 9,
     GxBlend_NoAlphaAdd = 10,
     GxBlend_ConstantAlpha = 11,
-    GxBlends_Last = 12,
+    // Native WXL equations; retain the original Gx blend numeric values.
+    GxBlend_BlendAdd = 12, // ONE, INV_SRC_ALPHA
+    GxBlend_Screen = 13,   // INV_DST_COLOR, ONE
+    GxBlends_Last = 14,
 };
 
 enum EGxTexFormat {

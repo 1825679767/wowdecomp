@@ -5,6 +5,7 @@
 #include <new>
 #include <xmmintrin.h>
 #include "Engine/Source/Model2/M2Scene.h"
+#include "WXL/NativeFeatures.hpp"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Model2/M2Cache.h"
@@ -23,10 +24,27 @@
 #include "Engine/Source/Tempest/NTempest.h"
 
 // STATIC: 0x00A45374
-const uint32_t s_localLighting[7] = { 1, 1, 1, 1, 1, 0, 0 };
+const uint32_t s_localLighting[M2Blend_Count] = { 1, 1, 1, 1, 1, 0, 0, 1, 1 };
 
 // STATIC: 0x00A453B0
-const uint32_t s_blendModes[3][7] = { { 0, 1, 2, 10, 3, 4, 5 }, { 2, 2, 2, 10, 3, 4, 5 }, { 2, 2, 2, 10, 3, 4, 5 } };
+const uint32_t s_blendModes[M2Blend_PassCount][M2Blend_Count] = {
+    { 0, 1, 2, 10, 3, 4, 5, GxBlend_BlendAdd, GxBlend_Screen },
+    { 2, 2, 2, 10, 3, 4, 5, GxBlend_BlendAdd, GxBlend_Screen },
+    { 2, 2, 2, 10, 3, 4, 5, GxBlend_BlendAdd, GxBlend_Screen }
+};
+
+uint32_t M2RenderBlend(uint32_t blend) {
+    if (blend >= M2Blend_Count ||
+        (blend == M2Blend_BlendAdd && !wxl::native::MaterialsEnabled()) ||
+        (blend == M2Blend_ParticleScreen && !wxl::native::ParticlesEnabled())) {
+        return 2; // Safe native alpha fallback for disabled/unsupported modes.
+    }
+    return blend;
+}
+
+uint32_t M2GxBlend(uint32_t pass, uint32_t blend) {
+    return s_blendModes[pass < M2Blend_PassCount ? pass : 0][M2RenderBlend(blend)];
+}
 
 // STATIC: 0x00AF5898
 uint32_t CM2Scene::s_optFlags = 0xFFFFFFFF;
@@ -87,6 +105,8 @@ uint32_t ParticleBlendToM2Blend(uint32_t blend) {
             return 5;
         case 5:
             return 6;
+        case GxBlend_Screen:
+            return wxl::native::ParticlesEnabled() ? M2Blend_ParticleScreen : 2;
         case 10:
             return 3;
         default:
@@ -1446,7 +1466,7 @@ void __stdcall CM2Scene::ComputeElementShaders(M2Element* element) {
     uint32_t lightCount;
     uint32_t shadow;
 
-    if ((material->m_flags & 1) || s_localLighting[material->m_blendMode] == (material->m_flags & 1u)) {
+    if ((material->m_flags & 1) || s_localLighting[M2RenderBlend(material->m_blendMode)] == (material->m_flags & 1u)) {
         shadow = 0;
         specular = 0;
 
@@ -1582,7 +1602,7 @@ void CM2Scene::SortAdditiveParticleElements(uint32_t pass) {
                 break;
         }
 
-        uint32_t gxBlend = s_blendModes[1][blend];
+        uint32_t gxBlend = M2GxBlend(1, blend);
         int32_t additive = gxBlend == 3 || gxBlend == 10;
 
         if (!additive || !prevAdditive) {

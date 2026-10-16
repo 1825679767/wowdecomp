@@ -1,3 +1,4 @@
+#include "WXL/AssetCompat.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -1306,6 +1307,7 @@ int32_t CM2Shared::FinishLoadingSkinProfile(uint32_t size) {
         return 1;
     }
 
+    if(!wxl::native::PrepareSkin(*this,size))return 0;
     M2Data* data = this->m_data;
     M2SkinProfile* skinData = this->m_skinData;
     uint8_t* base = reinterpret_cast<uint8_t*>(skinData);
@@ -1599,6 +1601,7 @@ void CM2Shared::SkinProfileLoadedCallback(void* param) {
 // VERIFY: 2fc725dd manual
 // OFFSET: 0x0083CB40
 int32_t CM2Shared::LoadSkinProfile(uint32_t profile) {
+    wxl::native::SelectSkin(*this,profile);
     char fileName[260];
     MakeSkinFileName(this->m_fileName, profile, fileName);
 
@@ -1689,7 +1692,7 @@ int32_t CM2Shared::Initialize() {
     for (uint32_t i = 0; i < this->m_data->m_materials.m_count; i++) {
         M2Material* material = &this->m_data->m_materials[i];
 
-        if (material->m_blendMode >= 5) {
+        if (material->m_blendMode == 5 || material->m_blendMode == 6) {
             material->m_flags |= 1;
         }
     }
@@ -1730,6 +1733,8 @@ int32_t CM2Shared::FinishLoading() {
     if (this->m_flags & 1) {
         return 1;
     }
+
+    if (!wxl::native::PrepareModel(*this))return 0;
 
     if (!M2Init(reinterpret_cast<uint8_t*>(this->m_data), this->m_fileSize, *this->m_data)) {
         DebugLog("Corrupt model data: %s", this->m_fileName);
@@ -1847,6 +1852,7 @@ void CM2Shared::CancelAllDeferredSequences() {
 // VERIFY: 7f65a462 manual
 // OFFSET: 0x0083D5B0
 CM2Shared::~CM2Shared() {
+    wxl::native::ReleaseModel(*this);
     this->CancelAllDeferredSequences();
 
     int32_t pending = 0;

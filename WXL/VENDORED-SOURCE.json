@@ -1,0 +1,157 @@
+{
+  "sourceRepo": "https://github.com/WarcraftXL/wxl-core.git",
+  "sourceCommit": "797f084d323794b91a89a78f028a5323bf2b0b48",
+  "meaning": "Portable byte conversion and policies only; no DLL hooks/runtime bridge",
+  "files": [
+    {
+      "path": "extensions/wxl-modern-m2/src/load/M2NativeInternal.hpp",
+      "size": 7874,
+      "sha256": "5a55d1acc7e3b700df8b143fc91330c105ee32fc1837498a2c237372d279dacb"
+    },
+    {
+      "path": "extensions/wxl-modern-m2/src/load/M2Normalize.cpp",
+      "size": 3528,
+      "sha256": "34abe038b72838b63c22aa964f569088a419deadf8e952c909e76ca4de752043"
+    },
+    {
+      "path": "extensions/wxl-modern-m2/src/load/M2NormalizeCameras.cpp",
+      "size": 7121,
+      "sha256": "8dfe41abd5a11c540ff57fa6599c0a9fc34a7d610870bfe7574b4d9975456ce5"
+    },
+    {
+      "path": "extensions/wxl-modern-m2/src/load/M2NormalizeLayout.hpp",
+      "size": 4226,
+      "sha256": "6bd770f0fe5f72e6d902a5204652332b1d55ded2c973fb6bb35b724acdd66f8b"
+    },
+    {
+      "path": "extensions/wxl-modern-m2/src/load/M2NormalizeParticles.cpp",
+      "size": 8543,
+      "sha256": "a4ac36c13ac6a529d5ddc392d3abcf9e46ac21d3d8e113d7c0d6ecf3fadf6e86"
+    },
+    {
+      "path": "extensions/wxl-modern-m2/src/load/M2WalkLayout.hpp",
+      "size": 11009,
+      "sha256": "fc236ec3a2fa9017e19521bb90022ba159c06b3337aa5f96151507ed0add70bf"
+    },
+    {
+      "path": "src/common/Config.cpp",
+      "size": 6061,
+      "sha256": "5fe5dd32068b6aa9b258c296f84da3fc35acbf378e9af8a700ee9c97b945d2e4"
+    },
+    {
+      "path": "src/common/Config.hpp",
+      "size": 3962,
+      "sha256": "8bdea83c403b1a68f0fe0142bc3bcee780785caa08d4b68346fd87be241432e7"
+    },
+    {
+      "path": "src/common/Log.cpp",
+      "size": 6059,
+      "sha256": "672fe22880a29bc49f84efd8e92cca6c1b2045afcbec7bbb8166f49ec6bf5c61"
+    },
+    {
+      "path": "src/common/Log.hpp",
+      "size": 4412,
+      "sha256": "c2401a5c72ba8c164fb30f8b6909e00d6e98008be079c2ecec30c4e8cd89d714"
+    },
+    {
+      "path": "src/engine/assets/shared/models/m2/M2Format.hpp",
+      "size": 12798,
+      "sha256": "d2967d357b39519a504e9991e27ba4012729dfe2d256d2d70b8b4794ab746b5c"
+    },
+    {
+      "path": "src/engine/assets/shared/models/m2/M2RecordWidths.hpp",
+      "size": 519,
+      "sha256": "ae50c654c8e1ac14dff70ce1f0846e569a82051458d4b51785042ebf95faea38"
+    },
+    {
+      "path": "src/engine/assets/shared/textures/blp/BlpTranscode.cpp",
+      "size": 28404,
+      "sha256": "b8c373e2b1299b434d6e7fce58d6ae4cd8a1486adae688c607a1440d99c228e2"
+    },
+    {
+      "path": "src/engine/assets/shared/textures/blp/BlpTranscode.hpp",
+      "size": 2803,
+      "sha256": "6d0d72a5caf2110242bb3764dd0d32317249e1723e8d1f3135f53b526be00b9b"
+    },
+    {
+      "path": "src/engine/assets/shared/textures/blp/Dxt.hpp",
+      "size": 4192,
+      "sha256": "a3d3ae6da8422567a174f49ddb5c0dcad1ffd91e130bc25a5f595dc379c3a1cf"
+    },
+    {
+      "path": "src/platform/waystone/CharacterRoster.hpp",
+      "size": 4645,
+      "sha256": "f8623a2bcc68bc619a7e219c7d6f9eaa2233ea866b5223236ed26c79138d7e6c"
+    },
+    {
+      "path": "src/platform/waystone/M2Bytes.cpp",
+      "size": 43555,
+      "sha256": "4789bb5c5de2c450280f0a098aef6141194412113497a395d3618712572ec970"
+    },
+    {
+      "path": "src/platform/waystone/M2Bytes.hpp",
+      "size": 3547,
+      "sha256": "f7688c15e9fbce86e4137a4a9a152b346e6cb11072778deec5426dd0f09feb2c"
+    },
+    {
+      "path": "src/platform/waystone/NativeSequenceHashPolicy.hpp",
+      "size": 3036,
+      "sha256": "29b308595ddc41239eb142251764697a7f300130b346282e80d1eb2f0b330318"
+    },
+    {
+      "path": "src/platform/waystone/PrivateRacePolicy.hpp",
+      "size": 4573,
+      "sha256": "5796f8abe3c0e91f7d78aea43665bf65b4178358677085ac9ca36bf9f72c0251"
+    },
+    {
+      "path": "src/platform/waystone/SequenceCompatibility.hpp",
+      "size": 5728,
+      "sha256": "dfa813b42571779fd02fcb2e099e7baa21e00f5084a93d85ce7b063205ac6ae5"
+    },
+    {
+      "path": "src/platform/waystone/SkeletonEmbed.cpp",
+      "size": 20736,
+      "sha256": "9911e65cb4fc7ae1a9b21aacabda268473c1283cb793c9b3bdca4d3bcec8c6be"
+    },
+    {
+      "path": "src/platform/waystone/SkeletonEmbed.hpp",
+      "size": 1014,
+      "sha256": "c1a5a93507bf73548c04570ced9ff11ce8588d3a03c0f0f1ce923ff08514d713"
+    },
+    {
+      "path": "src/platform/waystone/SkeletonIndex.cpp",
+      "size": 7312,
+      "sha256": "00b4aab696888a764d8af306a109610f5d4d8041a1c7a0f6160fc3e573e66109"
+    },
+    {
+      "path": "src/platform/waystone/SkeletonIndex.hpp",
+      "size": 809,
+      "sha256": "950b11bf22cda5b20265ee1dfe87820e7c57c03020a3483390f39e2b7d4f73a4"
+    },
+    {
+      "path": "src/platform/waystone/SkeletonParentPaths.hpp",
+      "size": 854,
+      "sha256": "b99ae3be6cabbe2a2e08608483711034837ef286eb38de86c18440baeb0a059c"
+    },
+    {
+      "path": "src/platform/waystone/SkinPartition.cpp",
+      "size": 4235,
+      "sha256": "a0aeae71ad419a1b75d29b070cdba36b0507aec9d49684796670e8c343d13f8f"
+    },
+    {
+      "path": "src/platform/waystone/SkinPartition.hpp",
+      "size": 1114,
+      "sha256": "92ada669bcf9dbf681e93190bb99cd4ca39095a639f64e684549af9f214af433"
+    },
+    {
+      "path": "src/platform/waystone/SkinRebuild.cpp",
+      "size": 5981,
+      "sha256": "b5fe5a31e44a036ee9996992c2a853af9afc698e299e824ed172c9af983a8854"
+    },
+    {
+      "path": "src/platform/waystone/WxlFirstTextureApproximation.hpp",
+      "size": 3717,
+      "sha256": "51bef6a7e42f313c78684117a5e5676c54b170f6f5159f86ef7f05470addc6ce"
+    }
+  ]
+}

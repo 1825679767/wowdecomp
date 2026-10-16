@@ -12,6 +12,7 @@
 #include <alloca.h>
 #endif
 #include "Engine/Source/Model2/M2Model.h"
+#include "WXL/NativeFeatures.hpp"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/Base/SIMD.h"
@@ -39,7 +40,7 @@
 #include "WoW/Source/Object/ObjectClient/Types.h"
 
 // STATIC: 0x00A45570
-static const uint32_t s_ribbonBlendModes[] = { 0, 1, 2, 10, 3, 4, 5 };
+static const uint32_t s_ribbonBlendModes[M2Blend_Count] = { 0, 1, 2, 10, 3, 4, 5, GxBlend_BlendAdd, GxBlend_Screen };
 
 // STATIC: 0x00D4118C
 void (*CM2Model::s_transformVertices[5])(CM2Model*, M2SkinSection*, uint8_t*, int32_t);
@@ -7233,7 +7234,7 @@ int32_t CM2Model::InitializeLoaded() {
                 ribbonMaterial->m_depthTest = !(material->m_flags & 8);
                 ribbonMaterial->m_depthWrite = !(material->m_flags & 0x10);
                 ribbonMaterial->m_cull = !(material->m_flags & 4);
-                ribbonMaterial->m_blendMode = s_ribbonBlendModes[material->m_blendMode];
+                ribbonMaterial->m_blendMode = s_ribbonBlendModes[M2RenderBlend(material->m_blendMode)];
             }
 
             CAaRect texCoords;
@@ -7424,6 +7425,12 @@ int32_t CM2Model::InitializeLoaded() {
 
                 case 6:
                     material.m_blendMode = 5;
+                    material.m_flags &= ~4u;
+                    break;
+
+                case 7:
+                    // Source particle mode 7 is Screen, distinct from mesh BlendAdd.
+                    material.m_blendMode = wxl::native::ParticlesEnabled() ? GxBlend_Screen : GxBlend_Alpha;
                     material.m_flags &= ~4u;
                     break;
             }

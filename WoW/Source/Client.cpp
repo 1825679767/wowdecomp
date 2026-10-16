@@ -1,3 +1,4 @@
+#include "WXL/NativeFeatures.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -1689,6 +1690,7 @@ bool InitializeGlobal() {
     ConsoleInitializeClientCommand();
     CVar::Initialize("Config.wtf");
     CVar::ArchiveCodeRegisteredOnly();
+    wxl::native::RegisterFeatures();
 
     {
         ForEveryRunOnceWTF runOnce;

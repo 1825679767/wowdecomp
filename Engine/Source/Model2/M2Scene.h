@@ -130,8 +130,15 @@ class CM2Scene {
     void TransformHitTestVerticesBlendSSE(const CM2Model* model, const M2SkinProfile* skinData, const M2SkinSection* section, int32_t normals, const C3Vector& dir, float d);
 };
 
-extern const uint32_t s_blendModes[3][7];
-extern const uint32_t s_localLighting[7];
+// Slot 8 is internal particle Screen; source mesh blend 7 remains BlendAdd.
+constexpr uint32_t M2Blend_BlendAdd = 7;
+constexpr uint32_t M2Blend_ParticleScreen = 8;
+constexpr uint32_t M2Blend_Count = 9;
+constexpr uint32_t M2Blend_PassCount = 3;
+extern const uint32_t s_blendModes[M2Blend_PassCount][M2Blend_Count];
+extern const uint32_t s_localLighting[M2Blend_Count];
+uint32_t M2RenderBlend(uint32_t blend);
+uint32_t M2GxBlend(uint32_t pass, uint32_t blend);
 
 uint32_t ParticleBlendToM2Blend(uint32_t blend);
 uint32_t ParticleFlagsToM2Flags(uint32_t flags);

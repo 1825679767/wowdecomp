@@ -14,6 +14,7 @@ class CM2Cache;
 class CM2Model;
 class CM2SequencePlayBack;
 class CM2Shared;
+namespace wxl::native {struct ModelAssets;}
 class CShaderEffect;
 class CTexture;
 class SFileImpl;
@@ -72,6 +73,8 @@ class CM2Shared {
     /* 0198 */ uint16_t m_billboardBoneCount;
     /* 019C */ uint32_t m_lastUsedTime;
     /* 01A0 */ TSLink<CM2Shared> m_updateLink;
+
+    wxl::native::ModelAssets* m_wxlAssets = nullptr; // native shared-cache lifetime, no address hook
 
     static void LoadFailedCallback(void* param);
     static void LoadSucceededCallback(void* param);

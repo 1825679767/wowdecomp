@@ -21,7 +21,7 @@
 #include "Engine/Source/Tempest/CImVector.h"
 
 // STATIC: 0x00A45390
-const uint32_t s_fogModes[7] = { 1, 1, 1, 2, 2, 3, 4 };
+const uint32_t s_fogModes[M2Blend_Count] = { 1, 1, 1, 2, 2, 3, 4, 1, 2 };
 
 // STATIC: 0x00AF58A8
 static C44Matrix s_identity;
@@ -200,7 +200,7 @@ int32_t CM2SceneRender::LightingColorsMatch(const CM2Lighting* a, const CM2Light
 // OFFSET: 0x0081FB10
 void CM2SceneRender::SetupLighting() {
     M2Material* material = this->m_curMaterial;
-    int32_t localLighting = !(material->m_flags & 1) && s_localLighting[material->m_blendMode];
+    int32_t localLighting = !(material->m_flags & 1) && s_localLighting[M2RenderBlend(material->m_blendMode)];
     uint32_t shadow = this->m_curElement->m_shadowValue;
 
     this->m_curLocalLighting = localLighting;
@@ -212,7 +212,7 @@ void CM2SceneRender::SetupLighting() {
     if ((this->m_curMaterial->m_flags & 2) || this->m_curLighting->m_fogScale <= 0.0f) {
         fogMode = 0;
     } else {
-        fogMode = s_fogModes[this->m_curMaterial->m_blendMode];
+        fogMode = s_fogModes[M2RenderBlend(this->m_curMaterial->m_blendMode)];
     }
 
     this->m_curFogMode = fogMode;
@@ -286,7 +286,7 @@ void CM2SceneRender::SetupMaterial() {
         if (this->m_curElement->m_flags & 1) {
             blend = this->m_curMaterial->m_blendMode == 1;
         } else {
-            blend = s_blendModes[this->m_pass][this->m_curMaterial->m_blendMode];
+            blend = M2GxBlend(this->m_pass, this->m_curMaterial->m_blendMode);
         }
 
         GxRsSet(GxRs_ColorWrite, (this->m_curElement->m_flags & 1) ? 0 : 15);

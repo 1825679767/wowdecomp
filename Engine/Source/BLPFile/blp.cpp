@@ -7,6 +7,8 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C2iVector.h"
+#include "WXL/AssetCompat.hpp"
+#include "WXL/NativeFeatures.hpp"
 
 // STATIC: 0x00AD90B0
 uint8_t CBLPFile::s_eightBitAlphaLookup[16] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF };
@@ -81,6 +83,7 @@ int32_t CBLPFile::IsValidMip(uint32_t mipLevel) const {
 // OFFSET: 0x006AE8B0
 void CBLPFile::Close() {
     this->m_inMemoryImage = nullptr;
+    this->m_nativeImage.clear();
 
     if (this->m_images) {
         SMemFree(this->m_images, __FILE__, __LINE__, 0);
@@ -99,10 +102,49 @@ int32_t CBLPFile::ValidateHeader(const BLPHeader& header) {
 // OFFSET: 0x006AE900
 int32_t CBLPFile::Source(void* data) {
     this->Close();
+    return this->SourceData(data, 0, false);
+}
+
+int32_t CBLPFile::Source(void* data, uint32_t size) {
+    this->Close();
+
+    if (!data || size < offsetof(BLPHeader, m_extended)) {
+        return 0;
+    }
+
+    if (wxl::native::BlpEnabled() && wxl::native::ConvertBlp(data, size, this->m_nativeImage)) {
+        if (this->m_nativeImage.size() > UINT32_MAX) {
+            this->Close();
+            return 0;
+        }
+        data = this->m_nativeImage.data();
+        size = static_cast<uint32_t>(this->m_nativeImage.size());
+    } else {
+        this->m_nativeImage.clear();
+    }
+
+    if (!this->SourceData(data, size, true)) {
+        this->Close();
+        return 0;
+    }
+
+    return 1;
+}
+
+int32_t CBLPFile::SourceData(void* data, uint32_t size, bool sized) {
+    if (!data || (sized && size < offsetof(BLPHeader, m_extended))) {
+        return 0;
+    }
 
     this->m_inMemoryNeedsFree = 0;
     this->m_inMemoryImage = data;
-    memcpy(&this->m_header, data, sizeof(this->m_header));
+    memset(&this->m_header, 0, sizeof(this->m_header));
+    const size_t headerBytes = sized && size < sizeof(this->m_header) ? size : sizeof(this->m_header);
+    memcpy(&this->m_header, data, headerBytes);
+
+    if (sized && this->m_header.m_colorEncoding == 1 && size < sizeof(this->m_header)) {
+        return 0;
+    }
 
     if (!CBLPFile::ValidateHeader(this->m_header)) {
         return 0;
@@ -914,11 +956,15 @@ int32_t CBLPFile::Open(const char* fileName, int32_t flags) {
 
     s_blpFileLoadBuffer.SetCount(SFileGetFileSize(file, nullptr));
 
-    uint32_t bytesRead;
-    SFileReadFile(file, s_blpFileLoadBuffer.Ptr(), s_blpFileLoadBuffer.Count(), &bytesRead, nullptr, 0);
+    uint32_t bytesRead = 0;
+    const auto readResult = SFileReadFile(file, s_blpFileLoadBuffer.Ptr(), s_blpFileLoadBuffer.Count(), &bytesRead, nullptr, 0);
     SFileCloseFile(file);
 
-    return this->Source(s_blpFileLoadBuffer.Ptr());
+    if (!readResult || bytesRead != s_blpFileLoadBuffer.Count()) {
+        return 0;
+    }
+
+    return this->Source(s_blpFileLoadBuffer.Ptr(), bytesRead);
 }
 
 // VERIFY: 3d8e87b0 manual
@@ -944,6 +990,9 @@ int32_t CBLPFile::LockChain2(const char* fileName, PIXEL_FORMAT format, MipBits*
         }
 
         if (!setImages) {
+            // Native-transformed mip pointers remain owned by this reader.
+            // Texture pumping consumes them synchronously before its reader
+            // is destroyed, just as it consumes the original async buffer.
             for (uint32_t i = 0; this->m_header.m_mipSizes[i]; i++) {
                 images[i].m_mip[0] = reinterpret_cast<C4Pixel*>(static_cast<uint8_t*>(this->m_inMemoryImage) + this->m_header.m_mipOffsets[i]);
             }

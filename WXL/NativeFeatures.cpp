@@ -1,0 +1,34 @@
+// Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
+#include "NativeFeatures.hpp"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include <atomic>
+#include <cstdint>
+#include <cstdlib>
+namespace wxl::native {namespace {
+constexpr uint32_t Assets=1,Blp=2,Materials=4,Particles=8;
+constexpr uint32_t Compiled=(WXL_ENABLE_NATIVE?1u:0u)*((WXL_ENABLE_ASSETS?Assets:0)|(WXL_ENABLE_BLP?Blp:0)|(WXL_ENABLE_MATERIALS?Materials:0)|(WXL_ENABLE_PARTICLES?Particles:0));
+std::atomic<uint32_t> enabled{Compiled};
+bool Changed(CVar*,const char*,const char* value,void* arg){
+ const auto bit=uint32_t(reinterpret_cast<uintptr_t>(arg));
+ if(value && std::strtol(value,nullptr,10)!=0 && (Compiled&bit))enabled.fetch_or(bit,std::memory_order_release);
+ else enabled.fetch_and(~bit,std::memory_order_release);
+ return true;
+}
+bool On(uint32_t bit) noexcept{return (enabled.load(std::memory_order_acquire)&Compiled&bit)!=0;}
+}
+void RegisterFeatures(){
+ struct Feature{const char* name;const char* help;uint32_t bit;};
+ const Feature features[]{
+  {"wxlModernAssets","WXL modern model and FDID assets; restart after changing",Assets},
+  {"wxlModernBlp","WXL modern BLP texture decoding; restart after changing",Blp},
+  {"wxlCustomMaterials","WXL custom mesh materials including BlendAdd; reload models after changing",Materials},
+  {"wxlParticles","WXL modern Screen particle rendering; reload models after changing",Particles}};
+ for(const auto& f:features){auto* cv=CVar::Register(f.name,f.help,2,(Compiled&f.bit)?"1":"0",&Changed,0,false,reinterpret_cast<void*>(uintptr_t(f.bit)),false);
+  if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,reinterpret_cast<void*>(uintptr_t(f.bit)));
+ }
+}
+bool AssetsEnabled() noexcept{return On(Assets);}
+bool BlpEnabled() noexcept{return On(Blp);}
+bool MaterialsEnabled() noexcept{return On(Materials);}
+bool ParticlesEnabled() noexcept{return On(Particles);}
+}

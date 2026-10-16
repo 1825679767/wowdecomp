@@ -1766,10 +1766,10 @@ void UpdateTgaTexture(EGxTexCommand command, uint32_t width, uint32_t height, ui
 
 // VERIFY: c0a503e5 manual
 // OFFSET: 0x004B7BD0
-int32_t PumpBlpTextureAsync(CTexture* texture, void* data) {
+int32_t PumpBlpTextureAsync(CTexture* texture, void* data, uint32_t size) {
     CBLPFile image;
 
-    if (!image.Source(data)) {
+    if (!image.Source(data, size)) {
         texture->m_status.Add(STATUS_FATAL, "BLP Texture failure: \"%s\" invalid file version\n", texture->m_filename);
         return 0;
     }
@@ -1855,7 +1855,7 @@ int32_t PumpBlpTextureAsync(CTexture* texture, void* data) {
 // VERIFY: 85a7ce70 manual
 // OFFSET: 0x004B7E80
 void AsyncTextureSuccessCallback(CTexture* texture) {
-    if (!PumpBlpTextureAsync(texture, texture->m_asyncObject->m_buffer)) {
+    if (!PumpBlpTextureAsync(texture, texture->m_asyncObject->m_buffer, texture->m_asyncObject->m_size)) {
         if (!texture->m_status.IsEmpty()) {
             SysMsgAdd(&texture->m_status);
         }
@@ -2162,11 +2162,13 @@ CTexture* CreateBlpSync(const char* fileName, char* extension, uint32_t flags, C
     uint32_t size = SFileGetFileSize(file, nullptr);
     void* data = SMemAlloc(size, __FILE__, __LINE__, 0);
 
-    if (!SFileReadFile(file, data, size, nullptr, nullptr, 0)) {
+    uint32_t bytesRead = 0;
+    const auto readResult = SFileReadFile(file, data, size, &bytesRead, nullptr, 0);
+    if (!readResult || bytesRead != size) {
         DebugLog("CreateBlpTexture() failed read: %s.\n", fileName);
     }
 
-    if (!PumpBlpTextureAsync(texture, data)) {
+    if (!readResult || bytesRead != size || !PumpBlpTextureAsync(texture, data, bytesRead)) {
         FillInSolidTexture(*reinterpret_cast<const CImVector*>(&s_defaultColor), texture);
     }
 
