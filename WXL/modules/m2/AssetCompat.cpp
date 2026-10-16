@@ -127,7 +127,11 @@ bool PrepareModel(CM2Shared& shared){
     const auto it=assets->skins.find(stem+suffix);if(it==assets->skins.end()||rebuiltSkins[profile].empty())return false;
     // Renderer recipes contain original per-batch/section identities. A
     // topology rewrite must not silently reuse those identities after a split.
-    if(it->second.mesh)return false; // Exact custom mesh palette identity stays unpartitioned.
+    if(it->second.mesh){
+     auto remapped=mesh_materials::BindTopology(it->second.mesh,it->second.prepared,converted,rebuiltSkins[profile],rebuiltBatchOrigins[profile],paletteLimit,assets->nativeGpuSkinning);
+     if(!remapped)return false;
+     it->second.mesh=std::move(remapped);
+    }
     if(it->second.donor){
      std::shared_ptr<const DonorMaterialRecipe> composed;
      if(!BindDonorTopology(it->second,rebuiltSkins[profile],rebuiltBatchOrigins[profile],composed))return false;

@@ -32,6 +32,9 @@ struct Source {
  uint32_t sectionCount=0,textureCount=0;
  std::vector<BatchSource> batches;
  std::shared_ptr<const DndSource> dnd;
+ // Original recipe/audit remains immutable when full topology is partitioned.
+ std::shared_ptr<const Source> topologyParent;
+ std::vector<uint32_t> nativeBatchOrigins;
 };
 std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* model,size_t modelBytes,
  const std::vector<uint8_t>& original,std::vector<uint8_t>& prepared,bool nativeGpuSkinning=false);
@@ -39,6 +42,9 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* model
 bool PrepareNativeCompatibilitySkin(const char* modelPath,const uint8_t* model,size_t modelBytes,
  const std::vector<uint8_t>& original,std::vector<uint8_t>& prepared);
 bool ConvertedMatches(const Source&,const std::vector<uint8_t>& converted) noexcept;
+std::shared_ptr<const Source> BindTopology(std::shared_ptr<const Source>,const std::vector<uint8_t>& prepared,
+ const std::vector<uint8_t>& model,const std::vector<uint8_t>& rebuilt,const std::vector<uint32_t>& origins,
+ uint32_t paletteLimit,bool nativeGpuSkinning);
 bool Draw(CM2SceneRender&,CGxBatch&); // true only when the native draw was issued.
 bool OwnsBatch(const CM2SceneRender&) noexcept;
 bool ApplyPreparedMaterials(const Source&,std::vector<uint8_t>&);

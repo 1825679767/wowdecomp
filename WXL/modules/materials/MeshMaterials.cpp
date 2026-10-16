@@ -4,6 +4,7 @@
 #include "DndMaterials.hpp"
 #include "AssetCompat.hpp"
 #include "NativeFeatures.hpp"
+#include "platform/waystone/M2Bytes.hpp"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDevice/CGxShader.h"
 #include "Engine/Source/Gx/CGxDeviceD3d/CGxDeviceD3d.h"
@@ -95,7 +96,9 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
  for(uint32_t i=0;i<sections;++i){
   const auto* section=skin.data()+sectionAt+48*i;SectionSource captured;
   const uint32_t count=Read<uint16_t>(section,12),palette=Read<uint16_t>(section,14),influences=Read<uint16_t>(section,16),first=Read<uint16_t>(section,4),vertices=Read<uint16_t>(section,6);
-  if(!count||count>(weighted?paletteLimit:1u)||!influences||influences>4||!Read<uint16_t>(section,10)||palette>boneCombos||count>boneCombos-palette||first>lookupCount||vertices>lookupCount-first)return {};
+  // This is a serialized source recipe, not GPU publication. Oversized byte
+  // palettes are partitioned by the native converter before BindTopology.
+  if(!count||count>(weighted?256u:1u)||!influences||influences>4||!Read<uint16_t>(section,10)||palette>boneCombos||count>boneCombos-palette||first>lookupCount||vertices>lookupCount-first)return {};
   captured.firstVertex=uint16_t(first);captured.vertexCount=uint16_t(vertices);captured.paletteOffset=uint16_t(palette);captured.influences=uint16_t(influences);
   for(uint32_t bone=0;bone<count;++bone){const auto global=Read<uint16_t>(body,boneAt+2*(palette+bone));if(global>=bones)return {};captured.palette.push_back(global);}
   for(uint32_t vertex=first;vertex<first+vertices;++vertex){
@@ -141,6 +144,42 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
  // expands nor reorders this private clone; the exact originals stay immutable.
  for(uint32_t i=0;i<batches;++i){const uint16_t packed=0x4011;std::memcpy(prepared.data()+at+24*i+2,&packed,2);}
  return result;
+}
+std::shared_ptr<const Source> BindTopology(std::shared_ptr<const Source> source,const std::vector<uint8_t>& prepared,
+ const std::vector<uint8_t>& model,const std::vector<uint8_t>& rebuilt,const std::vector<uint32_t>& origins,
+ uint32_t paletteLimit,bool nativeGpuSkinning){
+ if(!source||!source->weighted||source->dnd||source->topologyParent||!nativeGpuSkinning||!paletteLimit||paletteLimit>75||prepared.size()<48||model.size()<304||rebuilt.size()<48)return {};
+ if(std::memcmp(model.data(),"MD20",4)||Read<uint32_t>(model.data(),4)!=264||std::memcmp(rebuilt.data(),"SKIN",4))return {};
+ const auto sourceN=Read<uint32_t>(prepared.data(),36),sourceAt=Read<uint32_t>(prepared.data(),40);
+ if(sourceN!=source->batches.size()||!sourceN||sourceAt<48||!Range(prepared.size(),sourceAt,sourceN,24))return {};
+ // The unchanged material serializer receives no geometry, never a native
+ // publication. Actual rebuilt geometry was validated against the device.
+ std::vector<uint8_t> carrier(48,0);std::memcpy(carrier.data(),"SKIN",4);
+ carrier.insert(carrier.end(),prepared.begin()+sourceAt,prepared.begin()+sourceAt+size_t(sourceN)*24);
+ std::memcpy(carrier.data()+36,&sourceN,4);const uint32_t header=48;std::memcpy(carrier.data()+40,&header,4);
+ std::vector<uint8_t> canonical;if(!wxl::waystone::m2bytes::ConvertSkin(carrier,canonical,true))return {};
+ const auto canonicalN=Read<uint32_t>(canonical.data(),36),canonicalAt=Read<uint32_t>(canonical.data(),40);
+ const auto batchN=Read<uint32_t>(rebuilt.data(),36),batchAt=Read<uint32_t>(rebuilt.data(),40),sectionN=Read<uint32_t>(rebuilt.data(),28),sectionAt=Read<uint32_t>(rebuilt.data(),32);
+ const auto bones=Read<uint32_t>(model.data(),0x2c),comboN=Read<uint32_t>(model.data(),0x78),comboAt=Read<uint32_t>(model.data(),0x7c),vertexN=Read<uint32_t>(model.data(),0x3c),vertexAt=Read<uint32_t>(model.data(),0x40);
+ const auto lookupN=Read<uint32_t>(rebuilt.data(),4),lookupAt=Read<uint32_t>(rebuilt.data(),8),propsN=Read<uint32_t>(rebuilt.data(),20),propsAt=Read<uint32_t>(rebuilt.data(),24);
+ if(canonicalN!=sourceN||origins.size()!=batchN||!batchN||batchN>16384||!sectionN||sectionN>16384||bones!=source->boneCount||lookupN!=propsN||
+    !Range(canonical.size(),canonicalAt,canonicalN,24)||!Range(rebuilt.size(),batchAt,batchN,24)||!Range(rebuilt.size(),sectionAt,sectionN,48)||
+    !Range(model.size(),comboAt,comboN,2)||!Range(model.size(),vertexAt,vertexN,48)||!Range(rebuilt.size(),lookupAt,lookupN,2)||!Range(rebuilt.size(),propsAt,propsN,4))return {};
+ auto next=std::make_shared<Source>(*source);next->topologyParent=source;next->nativeBatchOrigins=origins;next->sectionCount=sectionN;next->sections.clear();next->batches.clear();
+ for(uint32_t index=0;index<sectionN;++index){const auto* section=rebuilt.data()+sectionAt+index*48;SectionSource captured;
+  captured.firstVertex=Read<uint16_t>(section,4);captured.vertexCount=Read<uint16_t>(section,6);captured.paletteOffset=Read<uint16_t>(section,14);captured.influences=Read<uint16_t>(section,16);const auto count=Read<uint16_t>(section,12);
+  if(!count||count>paletteLimit||!captured.influences||captured.influences>4||captured.paletteOffset>comboN||count>comboN-captured.paletteOffset||uint32_t(captured.firstVertex)+captured.vertexCount>lookupN)return {};
+  for(uint32_t bone=0;bone<count;++bone){const auto global=Read<uint16_t>(model.data(),comboAt+2*(captured.paletteOffset+bone));if(global>=bones)return {};captured.palette.push_back(global);}
+  for(uint32_t vertex=captured.firstVertex;vertex<uint32_t(captured.firstVertex)+captured.vertexCount;++vertex){const auto origin=Read<uint16_t>(rebuilt.data(),lookupAt+vertex*2);if(origin>=vertexN)return {};const auto* raw=model.data()+vertexAt+size_t(origin)*48;const auto* props=rebuilt.data()+propsAt+size_t(vertex)*4;uint32_t sum=0;bool ended=false;
+   for(uint32_t lane=0;lane<4;++lane){if(!raw[12+lane]){ended=true;continue;}if(ended||lane>=captured.influences||props[lane]>=count)return {};sum+=raw[12+lane];}if(sum!=255)return {};
+  }
+  next->sections.push_back(std::move(captured));
+ }
+ for(uint32_t batch=0;batch<batchN;++batch){const auto origin=origins[batch];if(origin>=canonicalN)return {};const auto* actual=rebuilt.data()+batchAt+24*batch;const auto* expected=canonical.data()+canonicalAt+24*origin;
+  for(uint32_t byte=0;byte<24;++byte)if(byte!=4&&byte!=5&&actual[byte]!=expected[byte])return {};
+  const auto section=Read<uint16_t>(actual,4);if(section>=sectionN)return {};auto record=source->batches[origin];std::memcpy(record.batch.data()+4,&section,2);next->batches.push_back(record);
+ }
+ return ConvertedMatches(*next,rebuilt)?next:nullptr;
 }
 bool ConvertedMatches(const Source& source,const std::vector<uint8_t>& skin) noexcept {
  if(source.dnd)return DndConvertedMatches(source,skin);
