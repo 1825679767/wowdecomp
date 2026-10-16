@@ -1,3 +1,4 @@
+#include "WXL/CreationEffects.hpp"
 #include "WXL/EquipmentAttachments.hpp"
 #include "WXL/ItemGraph.hpp"
 #include "WXL/PrivateAppearances.hpp"
@@ -2159,6 +2160,7 @@ CM2Model* CCharacterComponent::MakeAmmoModel(CM2Model* model, const ItemDisplayI
 // VERIFY: eb4afbd7 manual
 // OFFSET: 0x004EACD0
 GEOCOMPONENTLINKS CCharacterComponent::AddHandItem(CM2Model* model, const ItemDisplayInfoRec* displayRec, INVENTORY_SLOTS invSlot, SHEATHE_TYPE sheatheType, bool sheathed, bool shield, bool mainHand, int32_t itemVisual) {
+    if(wxl::native::creation_effects::EquipmentSheathed(model) && invSlot>=INVSLOT_MAINHAND && invSlot<=INVSLOT_RANGED)sheathed=true;
     if (!model || !displayRec || static_cast<uint32_t>(invSlot) > INVSLOT_TABARD) {
         return ATTACH_NONE;
     }

@@ -1,3 +1,4 @@
+#include "WXL/CreationEquipment.hpp"
 #include "WXL/CreationEffects.hpp"
 #include "WXL/AlternateAppearances.hpp"
 #include "CharacterCreation.h"
@@ -174,6 +175,7 @@ void CCharacterCreation::GetRandomRaceAndSex(ComponentData* data) {
 // VERIFY: 45c27290 auto
 // OFFSET: 0x004DFFC0
 void CCharacterCreation::OnHide() {
+    wxl::native::creation_equipment::Reset();
     wxl::native::creation_effects::StopCreation();
     wxl::native::alternate_appearances::ReleaseCreation();
     wxl::native::HideRetailChoiceUi();
@@ -454,6 +456,7 @@ int32_t CCharacterCreation::GetRandomClassID() {
 // VERIFY: b15e5451 auto
 // OFFSET: 0x004E0FD0
 void CCharacterCreation::Dress() {
+    if(wxl::native::creation_equipment::DressHidden())return;
     if (CCharacterCreation::m_existingCharacterIndex >= 0) {
         CharacterSelectionDisplay* display = CCharacterSelection::GetCharacterDisplay(CCharacterCreation::m_existingCharacterIndex);
 
