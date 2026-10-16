@@ -1,6 +1,7 @@
 // Modern WMO material draw module; preserves native lighting/fog and owns only material overrides.
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 #include "WXL/WmoMaterials.hpp"
+#include "platform/waystone/WmoMaterialPlan.hpp"
 #include "WXL/NativeFeatures.hpp"
 #include "WmoShaderText.hpp"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"

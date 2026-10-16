@@ -93,7 +93,7 @@ wxl_module(WxlClientExtensions ClientExtensions modules/client-extensions/Client
  modules/client-extensions/LegacyPackets.cpp modules/client-extensions/ParagonCompat.cpp)
 wxl_module(WxlChallengeMode ChallengeMode modules/challenge-mode/ChallengeMode.cpp modules/challenge-mode/MythicDifficulty.cpp)
 add_dependencies(WxlChallengeMode WxlRuntime WxlProtocol)
-wxl_module(WxlQuestMarker QuestMarker modules/quest-marker/QuestMarker.cpp)
+wxl_module(WxlQuestMarker QuestMarker modules/quest-marker/QuestMarker.cpp modules/quest-marker/QuestWorldDraw.cpp)
 add_dependencies(WxlQuestMarker WxlRuntime WxlProtocol)
 wxl_module(WxlCreationBeams CreationBeams modules/beams/CreationBeams.cpp)
 target_compile_definitions(WxlCreationBeams PRIVATE WXL_ENABLE_CREATION_BEAMS=$<BOOL:${WXL_ENABLE_CREATION_BEAMS}>)

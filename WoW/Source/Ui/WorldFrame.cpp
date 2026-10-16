@@ -1779,6 +1779,7 @@ void CGWorldFrame::OnWorldRender() {
     SpellVisualsRender();
     CGUnit_C::RenderMissileTrajectoryTargetingTexture();
     wxl::native::quest_marker::RenderObjectives();
+    wxl::native::quest_marker::RenderNavigation();
     this->ClearTrackedObjects();
     CWorldScene::RenderParticulate();
     GxuSortDrawList(GxuCat_1, GxuSort_B2F, *World::GetCamPos());

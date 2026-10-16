@@ -41,8 +41,8 @@ do
  driver:SetScript('OnUpdate',function(self)
   WXL_NativeQuestPump()
   self.arrow:Hide()
-  local x,y,scale,alpha,corpse,offscreen,angle=WXL_NativeQuestVisual()
-  if x then
+  local x,y,scale,alpha,corpse,offscreen,angle,worldDrawn=WXL_NativeQuestVisual()
+  if x and (offscreen or not worldDrawn) then
    local texture=self.marker
    texture:SetAlpha(corpse and 1 or alpha)
    texture:SetVertexColor(1,1,1)

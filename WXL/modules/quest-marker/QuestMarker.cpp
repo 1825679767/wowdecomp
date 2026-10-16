@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 #include "QuestMarker.hpp"
 #include "QuestPresentation.hpp"
+#include "QuestWorldDraw.hpp"
 #include "NativeFeatures.hpp"
 #include "NativeProtocol.hpp"
 #include "Engine/Source/FrameScript/FrameScript.h"
@@ -60,6 +61,7 @@ uint32_t uiMap=0;
 bool diamond=false;
 float diamondX=0,diamondY=0,diamondW=0,diamondH=0;
 CTexture* ringTexture=nullptr;
+unsigned worldNavigationDrawn=0;
 
 bool Position(double x,double y,double z) {
  const double limit=std::numeric_limits<float>::max();
@@ -171,7 +173,7 @@ int Reload(lua_State* L){
 }
 int Diamond(lua_State* L){diamond=Number(L,1,0,0,1)!=0;diamondX=Number(L,2,0,-1,1);diamondY=Number(L,3,0,-1,1);diamondW=Number(L,4,0,0,1);diamondH=Number(L,5,0,0,1);return 0;}
 int Visual(lua_State* L){
- if(!Sync(L)||!settings.enabled||!settings.show){lua_pushnil(L);return 1;}
+ if(!Sync(L)||((!settings.enabled||!settings.show)&&!(dead&&corpse.active))){lua_pushnil(L);return 1;}
  float x=0,y=0;double d=0;bool visible=false;
  if(dead&&corpse.active)visible=Project(corpse.x,corpse.y,corpse.z,x,y,d);
  else if(!dead&&!markers.empty())visible=Project(markers.front().x,markers.front().y,markers.front().z,x,y,d);
@@ -195,7 +197,7 @@ int Visual(lua_State* L){
   }
  }
  if(!visible){lua_pushnil(L);return 1;}
- lua_pushnumber(L,x);lua_pushnumber(L,y);lua_pushnumber(L,offscreen?settings.offScale:settings.worldScale);lua_pushnumber(L,settings.alpha/255.0);lua_pushboolean(L,dead);lua_pushboolean(L,offscreen);lua_pushnumber(L,angle);return 7;
+ lua_pushnumber(L,x);lua_pushnumber(L,y);lua_pushnumber(L,offscreen?settings.offScale:settings.worldScale);lua_pushnumber(L,settings.alpha/255.0);lua_pushboolean(L,dead);lua_pushboolean(L,offscreen);lua_pushnumber(L,angle);lua_pushboolean(L,(worldNavigationDrawn&(dead?2u:1u))!=0);return 8;
 }
 int DiamondVisual(lua_State* L){if(!Sync(L)||!settings.enabled||!diamond||dead){lua_pushnil(L);return 1;}lua_pushnumber(L,diamondX);lua_pushnumber(L,diamondY);lua_pushnumber(L,diamondW);lua_pushnumber(L,diamondH);return 4;}
 int RotateArrow(lua_State* L){
@@ -252,7 +254,18 @@ void RenderObjectives(){
  if(CGObject_C::SetCircleRenderStates()){g_theGxDevicePtr->RsSet(GxRs_Texture0,texture);ClntObjMgrEnumVisibleObjects(RenderUnit,&state);}
  g_theGxDevicePtr->RsPop();
 }
+void RenderNavigation(){
+ worldNavigationDrawn=0;try{
+  if(!QuestMarkerEnabled()||(!settings.enabled&&!corpse.active)||!CGGameUI::m_visible||!ClntObjMgrGetCurrent()||!ClntObjMgrGetActivePlayer()||!g_theGxDevicePtr)return;
+  {std::lock_guard lock(mutex);if(!generation||generation!=protocol::SessionGeneration(FrameScript_GetContext())||map!=ClntObjMgrGetMapID())return;}
+  C3Vector player;if(!PlayerPosition(player))return;std::vector<WorldPoint> points;points.reserve(65);
+  if(corpse.active&&Position(corpse.x,corpse.y,corpse.z))points.push_back({C3Vector(float(corpse.x),float(corpse.y),float(corpse.z)),true});
+  if(!dead&&settings.show)for(const auto& m:markers){if(points.size()>=65)break;if(!m.active||!Position(m.x,m.y,m.z))continue;C3Vector p(float(m.x),float(m.y),float(m.z));if((p-player).SquaredMag()<=100000.f*100000.f)points.push_back({p,false});}
+  worldNavigationDrawn=DrawWorldNavigation(points,settings.worldScale,settings.alpha);
+ }catch(...){worldNavigationDrawn=0;}
+}
 void Destroy() noexcept {
+ DestroyWorldNavigation();worldNavigationDrawn=0;
  Reset(nullptr);markers.clear();corpse={};dead=false;diamond=false;settings={};uiGeneration=0;uiMap=0;
  if(ringTexture)HandleClose(reinterpret_cast<HOBJECT>(ringTexture));ringTexture=nullptr;
 }

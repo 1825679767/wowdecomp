@@ -1,6 +1,6 @@
 // Source-native WMO material module. GPL-3.0-or-later.
 #pragma once
-#include "platform/waystone/WmoMaterialPlan.hpp"
+namespace wxl::waystone::wmo {struct MaterialPlan;}
 #include <memory>
 #include <vector>
 class CGxDevice;class CMapObj;class CMapObjGroup;struct IDirect3DDevice9;
