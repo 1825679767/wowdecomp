@@ -293,7 +293,7 @@ bool DrawCpu(CM2SceneRender& context,const CGxBatch& draw,const SectionSource& s
  if(device.m_primVertexFormat<GxVertexBufferFormats_Last&&!device.m_primVertexBuf)return false;
  for(uint32_t slot=0;slot<14;++slot)if((device.m_primVertexMask&(1u<<slot))&&!device.m_primVertexFormatBuf[slot])return false;
  auto* vb=device.BufStream(GxPoolTarget_Vertex,sizeof(M2VertexPNT2),uint32_t(section.cpuVertices.size()));if(!vb)return false;
- auto* out=static_cast<M2VertexPNT2*>(device.BufLock(vb));if(!out)return false;
+ auto* out=reinterpret_cast<M2VertexPNT2*>(device.BufLock(vb));if(!out)return false;
  for(size_t index=0;index<section.cpuVertices.size();++index){
   M2Vertex source;std::memcpy(&source,section.cpuVertices[index].data(),sizeof(source));C44Matrix matrix;
   M2BlendBoneMatrices(context.m_curModel->m_boneMatrices,source.m_weights,source.m_indices,&matrix);
