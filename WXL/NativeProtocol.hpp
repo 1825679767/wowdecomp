@@ -26,4 +26,17 @@ namespace wxl::native::protocol
     void UiReady();
     // Owner-only validity token for compiled feature Lua entry points.
     uint64_t SessionGeneration(lua_State* state) noexcept;
+    // Compiled owner-side packet dispatch. Callbacks run under the transport
+    // mutex: no Lua calls, sends or protocol API reentry are permitted.
+    using NativePacketHandler = void (*)(uint16_t, const uint8_t*, uint32_t, uint64_t, void*) noexcept;
+    using NativeSessionReset = void (*)(void*) noexcept;
+    struct NativeDeclaration {
+        uint16_t opcode;
+        bool outbound;
+        NativePacketHandler handler = nullptr;
+        NativeSessionReset reset = nullptr;
+        void* user = nullptr;
+    };
+    // Entire group commits atomically; no partial feature registration.
+    bool RegisterNativeDispatch(const NativeDeclaration* entries,uint32_t count) noexcept;
 }

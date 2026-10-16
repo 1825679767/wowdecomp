@@ -3,14 +3,17 @@
 #include "NativeProtocol.hpp"
 #include "NativeFeatures.hpp"
 #include "ProtocolConsumers.hpp"
+#include "AppearanceSession.hpp"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Net/NetClient/NetClient.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <deque>
+#include <span>
 #include <cstring>
 #include <mutex>
+#include <map>
 #include <set>
 #include <thread>
 #include <utility>
@@ -35,6 +38,13 @@ namespace wxl::native::protocol
             {0x525, true}, {0x526, false}, {0x550, true}, {0x551, false},
             {0x552, true}, {0x553, false}};
         std::deque<Message> pending;
+        std::map<uint16_t, NativeDeclaration> nativeHandlers;
+        std::set<uint16_t> nativeOutbound;
+        void ResetNativeOwners() noexcept
+        {
+            for (const auto& [opcode, entry] : nativeHandlers)
+                if (entry.reset) entry.reset(entry.user);
+        }
         size_t pendingBytes = 0;
         uint64_t generation = 1;
         std::thread::id owner;
@@ -69,6 +79,7 @@ namespace wxl::native::protocol
                 pending.clear();
                 pendingBytes = 0;
                 consumers::Reset();
+                ResetNativeOwners();
             }
             return client;
         }
@@ -79,8 +90,13 @@ namespace wxl::native::protocol
             size_t length = 0;
             const char* data = lua_tolstring(L, 2, &length);
             bool sent = false;
+            bool privateOpcode = false;
+            if (number >= NUM_MSG_TYPES && number <= 65535) {
+                std::lock_guard lock(mutex);
+                privateOpcode = nativeOutbound.contains(static_cast<uint16_t>(number));
+            }
             if (L == context && lua_type(L, 1) == LUA_TNUMBER &&
-                lua_type(L, 2) == LUA_TSTRING && number >= NUM_MSG_TYPES && number <= 65535 &&
+                !privateOpcode && lua_type(L, 2) == LUA_TSTRING && number >= NUM_MSG_TYPES && number <= 65535 &&
                 number == static_cast<uint16_t>(number) && length <= MaxPayload)
                 sent = Send(static_cast<uint16_t>(number), data, static_cast<uint32_t>(length));
             lua_pushboolean(L, sent);
@@ -166,6 +182,11 @@ namespace wxl::native::protocol
             // Built-in feature consumers publish validated owner-side state.
             // They perform no Lua calls while native queue/capture locks exist.
             if (consumers::Consume(opcode, packet->m_data + offset, length, generation)) return true;
+            if (auto handler = nativeHandlers.find(opcode); handler != nativeHandlers.end()) {
+                const auto& entry = handler->second;
+                entry.handler(opcode, packet->m_data + offset, length, generation, entry.user);
+                return true;
+            }
             if (pending.size() >= MaxPackets || length > MaxBytes - pendingBytes) return true;
             Message message{opcode, client, client->m_serverConnection, generation, {}};
             if (length) message.payload.assign(packet->m_data + offset, packet->m_data + offset + length);
@@ -216,6 +237,7 @@ namespace wxl::native::protocol
             pending.clear();
             pendingBytes = 0;
             consumers::Reset();
+            ResetNativeOwners();
             observedClient = nullptr;
             observedTransport = nullptr;
         }
@@ -232,12 +254,14 @@ namespace wxl::native::protocol
             pending.clear();
             pendingBytes = 0;
             consumers::Reset();
+            ResetNativeOwners();
             observedClient = nullptr;
             observedTransport = nullptr;
         }
         FrameScript_RegisterFunction("WXL_NativeSendCustom", &LuaSend);
         FrameScript_RegisterFunction("WXL_NativePopCustom", &LuaPop);
         consumers::InitializeLua();
+        appearance_session::Install();
     }
 
     void DestroyLua() noexcept
@@ -251,6 +275,7 @@ namespace wxl::native::protocol
             pending.clear();
             pendingBytes = 0;
             consumers::Reset();
+            ResetNativeOwners();
             observedClient = nullptr;
             observedTransport = nullptr;
         }
@@ -275,5 +300,30 @@ namespace wxl::native::protocol
             if (!IsOwner()) return;
         }
         consumers::UiReady();
+    }
+
+    bool RegisterNativeDispatch(const NativeDeclaration* data,uint32_t count) noexcept
+    {
+        if (!data || !count || count>64) return false;
+        const std::span<const NativeDeclaration> entries(data,count);
+        try {
+            std::lock_guard lock(mutex);
+            if (!IsOwner()) return false;
+            auto nextDeclarations = declarations;
+            auto nextHandlers = nativeHandlers;
+            auto nextOutbound = nativeOutbound;
+            for (const auto& entry : entries) {
+                if (entry.opcode < NUM_MSG_TYPES ||
+                    (entry.outbound ? (entry.handler || entry.reset) : !entry.handler) ||
+                    !nextDeclarations.emplace(entry.opcode, entry.outbound).second) return false;
+                if (!entry.outbound && !nextHandlers.emplace(entry.opcode, entry).second) return false;
+                if (entry.outbound) nextOutbound.insert(entry.opcode);
+            }
+            if (nextDeclarations.size() > 64) return false;
+            declarations.swap(nextDeclarations);
+            nativeHandlers.swap(nextHandlers);
+            nativeOutbound.swap(nextOutbound);
+            return true;
+        } catch (...) { return false; }
     }
 }

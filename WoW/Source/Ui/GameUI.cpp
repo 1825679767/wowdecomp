@@ -1,4 +1,5 @@
 #include "WXL/NativeProtocol.hpp"
+#include "WXL/AppearanceSession.hpp"
 #include "GameUI.h"
 #include "WoW/Source/DB/Rec/FileDataRec.h"
 #include "WoW/Source/DB/Rec/MovieFileDataRec.h"
@@ -2001,6 +2002,7 @@ int32_t CGGameUI::Idle(const void* data, void* param) {
     }
 
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    if (player && player->m_obj) wxl::native::appearance_session::RefreshCharacter(player->m_obj->m_guid.m_guid,player->m_characterComponent);
 
     if (player && !(player->m_unit->m_unitFieldFlags & 0x80000)) {
         lua_gc(L, LUA_GCSTEP, 1);

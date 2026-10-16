@@ -43,6 +43,7 @@ std::string PathKey(const char* path) {
         if (c == '/') c = '\\';
         if (c >= 'A' && c <= 'Z') c = char(c - 'A' + 'a');
     }
+    if (value.ends_with(".mdx")) value.replace(value.size()-4,4,".m2");
     return value;
 }
 

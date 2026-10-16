@@ -8,7 +8,8 @@ option(WXL_ENABLE_MATERIALS "Enable custom mesh materials" ON)
 option(WXL_ENABLE_PARTICLES "Enable modern particle compatibility" ON)
 option(WXL_ENABLE_APPEARANCES "Enable retail appearance recipes" ON)
 option(WXL_ENABLE_PROTOCOL "Enable native custom opcodes" ON)
-foreach(feature NATIVE ASSETS DB2 BLP MATERIALS PARTICLES APPEARANCES PROTOCOL)
+option(WXL_ENABLE_APPEARANCE_SAVE "Enable negotiated retail appearance saving" ON)
+foreach(feature NATIVE ASSETS DB2 BLP MATERIALS PARTICLES APPEARANCES PROTOCOL APPEARANCE_SAVE)
  if(WXL_ENABLE_${feature})
   add_compile_definitions(WXL_ENABLE_${feature}=1)
  else()
@@ -42,6 +43,8 @@ wxl_module(WxlM2 M2 modules/m2/AssetCompat.cpp
 wxl_module(WxlAppearances Appearances modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp
  "${V}/src/platform/waystone/CharacterAtlas.cpp")
 wxl_module(WxlProtocol Protocol modules/protocol/NativeProtocol.cpp modules/protocol/ProtocolConsumers.cpp)
+wxl_module(WxlAppearanceSession AppearanceSession modules/appearance-session/AppearanceSession.cpp)
+add_dependencies(WxlAppearanceSession WxlAppearances WxlProtocol)
 add_dependencies(WxlDB2 WxlRuntime WxlStorage)
 add_dependencies(WxlBlp WxlRuntime)
 add_dependencies(WxlMaterials WxlRuntime)
@@ -52,7 +55,7 @@ add_dependencies(WxlProtocol WxlRuntime)
 add_library(WxlNative STATIC
  $<TARGET_OBJECTS:WxlRuntime> $<TARGET_OBJECTS:WxlStorage> $<TARGET_OBJECTS:WxlDB2>
  $<TARGET_OBJECTS:WxlBlp> $<TARGET_OBJECTS:WxlMaterials> $<TARGET_OBJECTS:WxlParticles>
- $<TARGET_OBJECTS:WxlM2> $<TARGET_OBJECTS:WxlAppearances> $<TARGET_OBJECTS:WxlProtocol>)
+ $<TARGET_OBJECTS:WxlM2> $<TARGET_OBJECTS:WxlAppearances> $<TARGET_OBJECTS:WxlProtocol> $<TARGET_OBJECTS:WxlAppearanceSession>)
 add_library(WXL::Native ALIAS WxlNative)
 target_include_directories(WxlNative PUBLIC "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(WxlNative PUBLIC bcrypt)

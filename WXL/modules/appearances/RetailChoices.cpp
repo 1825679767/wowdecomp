@@ -1,5 +1,6 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "RetailChoices.hpp"
+#include "AppearanceSession.hpp"
 #include "NativeFeatures.hpp"
 #include "NativeStorage.hpp"
 #include "FdidCompat.hpp"
@@ -71,6 +72,27 @@ bool CycleRetailAxis(CCharacterComponent& c,RetailAxis axis,int32_t delta) noexc
 bool CollectRetailChoices(const CCharacterComponent& c,std::vector<uint32_t>& output) noexcept {try{auto* a=For(c.m_data.m_preferences,c.m_data.m_model);if(!a)return false;std::vector<uint32_t> result;auto p=c.m_data.m_preferences;
  for(const auto& o:a->options){auto selected=o.choices[o.axis<0?0:Field(p,RetailAxis(o.axis))%o.choices.size()];if(auto* s=c.m_wxlChoices;s&&s->model==a->chrModel){auto it=s->overrides.find(o.id);if(it!=s->overrides.end())selected=it->second;}result.push_back(selected);}output.swap(result);return true;}catch(...){return false;}}
 bool RetailSelectionNeedsProtocol(const CCharacterComponent& c) noexcept {return c.m_wxlChoices && !c.m_wxlChoices->overrides.empty();}
+bool ApplyRetailChoices(CCharacterComponent& c,const RetailChoicePair* pairs,uint32_t count) noexcept {
+ try {
+  if((c.m_data.m_flags&1u)||!pairs||!count||count>256)return false;
+  auto* authority=For(c.m_data.m_preferences,c.m_data.m_model);
+  if(!authority||authority->options.size()!=count)return false;
+  auto next=std::make_unique<RetailChoiceState>();next->model=authority->chrModel;
+  next->revision=c.m_wxlChoices?c.m_wxlChoices->revision+1:1;if(!next->revision)next->revision=1;
+  auto preferences=c.m_data.m_preferences;
+  for(const auto& option:authority->options){
+   const RetailChoicePair* selected=nullptr;
+   for(uint32_t i=0;i<count;++i)if(pairs[i].option==option.id){if(selected)return false;selected=&pairs[i];}
+   if(!selected)return false;
+   const auto at=std::find(option.choices.begin(),option.choices.end(),selected->choice);
+   if(at==option.choices.end())return false;
+   if(option.axis>=0)Field(preferences,RetailAxis(option.axis))=uint32_t(at-option.choices.begin());
+   else if(selected->choice!=option.choices.front())next->overrides.emplace(option.id,selected->choice);
+  }
+  // Publish only after every option/choice pair has matched the actual model authority.
+  c.m_data.m_preferences=preferences;delete c.m_wxlChoices;c.m_wxlChoices=next.release();Dirty(c);return true;
+ }catch(...){return false;}
+}
 uint32_t RetailChoiceRevision(const CCharacterComponent& c) noexcept {return c.m_wxlChoices?c.m_wxlChoices->revision:0;}
 void TransferRetailChoices(const CCharacterComponent& from,CCharacterComponent& to) noexcept {try{
  if(!from.m_wxlChoices || from.m_data.m_preferences.m_raceID!=to.m_data.m_preferences.m_raceID || from.m_data.m_preferences.m_sexID!=to.m_data.m_preferences.m_sexID)return;
@@ -88,7 +110,7 @@ int LuaChoices(lua_State* L){uint32_t id;if(!Number(L,1,id))return 0;auto* c=Cur
 bool Select(CCharacterComponent& c,uint32_t id,uint32_t choice){auto* a=For(c.m_data.m_preferences,c.m_data.m_model);if(!a)return false;for(const auto& o:a->options)if(o.id==id){auto it=std::find(o.choices.begin(),o.choices.end(),choice);if(it==o.choices.end())return false;if(o.axis>=0)return SetRetailAxis(c,RetailAxis(o.axis),int32_t(it-o.choices.begin()));
  auto* s=c.m_wxlChoices;if(!s){c.m_wxlChoices=new RetailChoiceState;s=c.m_wxlChoices;s->model=a->chrModel;}if(s->model!=a->chrModel)return false;if(choice==o.choices.front())s->overrides.erase(id);else s->overrides[id]=choice;++s->revision;Dirty(c);return true;}return false;}
 int LuaSelect(lua_State* L){uint32_t option,choice;bool ok=false;if(Number(L,1,option)&&Number(L,2,choice)){try{if(auto* c=Current())ok=Select(*c,option,choice);}catch(...){}}lua_pushboolean(L,ok);return 1;}
-int LuaCanSave(lua_State* L){auto* c=Current();lua_pushboolean(L,c&&!RetailSelectionNeedsProtocol(*c));return 1;}
+int LuaCanSave(lua_State* L){auto* c=Current();lua_pushboolean(L,c&&(!RetailSelectionNeedsProtocol(*c)||appearance_session::CanPrepareCurrent()));return 1;}
 int LuaSelection(lua_State* L){static thread_local std::vector<uint32_t> selected;auto* c=Current();if(!c||!CollectRetailChoices(*c,selected))return 0;lua_createtable(L,int(selected.size()),0);for(size_t i=0;i<selected.size();++i){lua_pushinteger(L,selected[i]);lua_rawseti(L,-2,int(i+1));}return 1;}
 }
 void InitializeRetailChoiceLua(){FrameScript_RegisterFunction("WXL_RetailSelectionCanSave",&LuaCanSave);FrameScript_RegisterFunction("WXL_GetRetailOptions",&LuaOptions);FrameScript_RegisterFunction("WXL_GetRetailChoices",&LuaChoices);FrameScript_RegisterFunction("WXL_SetRetailChoice",&LuaSelect);FrameScript_RegisterFunction("WXL_GetRetailSelection",&LuaSelection);}

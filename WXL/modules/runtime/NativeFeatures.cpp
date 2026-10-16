@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <cstdlib>
 namespace wxl::native {namespace {
-constexpr uint32_t Assets=1,Blp=2,Materials=4,Particles=8,Appearances=16,Protocol=32,Db2=64;
-constexpr uint32_t Compiled=(WXL_ENABLE_NATIVE?1u:0u)*((WXL_ENABLE_ASSETS?Assets:0)|(WXL_ENABLE_BLP?Blp:0)|(WXL_ENABLE_MATERIALS?Materials:0)|(WXL_ENABLE_PARTICLES?Particles:0)|(WXL_ENABLE_APPEARANCES?Appearances:0)|(WXL_ENABLE_PROTOCOL?Protocol:0)|(WXL_ENABLE_DB2?Db2:0));
+constexpr uint32_t Assets=1,Blp=2,Materials=4,Particles=8,Appearances=16,Protocol=32,Db2=64,AppearanceSave=128;
+constexpr uint32_t Compiled=(WXL_ENABLE_NATIVE?1u:0u)*((WXL_ENABLE_ASSETS?Assets:0)|(WXL_ENABLE_BLP?Blp:0)|(WXL_ENABLE_MATERIALS?Materials:0)|(WXL_ENABLE_PARTICLES?Particles:0)|(WXL_ENABLE_APPEARANCES?Appearances:0)|(WXL_ENABLE_PROTOCOL?Protocol:0)|(WXL_ENABLE_DB2?Db2:0)|(WXL_ENABLE_APPEARANCE_SAVE?AppearanceSave:0));
 std::atomic<uint32_t> enabled{Compiled};
 bool Changed(CVar*,const char*,const char* value,void* arg){
  const auto bit=uint32_t(reinterpret_cast<uintptr_t>(arg));
@@ -21,6 +21,7 @@ void RegisterFeatures(){
  CVar::Register("wxlAreaLootQuality","WXL minimum automatic area loot quality",2,"0",nullptr,0,false,nullptr,false);
  struct Feature{const char* name;const char* help;uint32_t bit;};
  const Feature features[]{
+  {"wxlAppearanceSave","WXL negotiated retail appearance saving; matching server support required",AppearanceSave},
   {"wxlRetailDb2","WXL retail DB2 schemas and FDID paths; restart after changing",Db2},
   {"wxlRetailAppearances","WXL retail appearance recipes and body atlas; reload models after changing",Appearances},
   {"wxlCustomOpcodes","WXL native custom opcode transport",Protocol},
@@ -35,6 +36,7 @@ void RegisterFeatures(){
 bool NativeEnabled() noexcept{return WXL_ENABLE_NATIVE!=0;}
 bool Db2Enabled() noexcept{return On(Db2);}
 bool AppearancesEnabled() noexcept{return On(Appearances) && On(Assets) && On(Db2) && On(Blp);}
+bool AppearanceSaveEnabled() noexcept{return On(AppearanceSave) && AppearancesEnabled() && ProtocolEnabled();}
 bool ProtocolEnabled() noexcept{return On(Protocol);}
 bool AssetsEnabled() noexcept{return On(Assets);}
 bool BlpEnabled() noexcept{return On(Blp);}

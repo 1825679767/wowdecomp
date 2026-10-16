@@ -160,6 +160,7 @@ class CCharacterComponent {
     /* 052C */ CComponentRequest* m_request;
     wxl::native::AppearanceAssets* m_wxlAppearance = nullptr;
     wxl::native::RetailChoiceState* m_wxlChoices = nullptr;
+    uint64_t m_wxlSerial = 0; // Native component lifetime; pool addresses can be reused.
 
     CCharacterComponent();
     ~CCharacterComponent();

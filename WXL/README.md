@@ -26,7 +26,7 @@ Public headers remain under WXL/. Native call sites use those headers; implement
 
 All implemented features default ON. CMake options: WXL_ENABLE_NATIVE (master), WXL_ENABLE_ASSETS, WXL_ENABLE_DB2, WXL_ENABLE_BLP, WXL_ENABLE_MATERIALS, WXL_ENABLE_PARTICLES, WXL_ENABLE_APPEARANCES, WXL_ENABLE_PROTOCOL. Options control feature availability; interface implementations remain linked so native call sites have defined disabled behavior.
 
-Runtime CVars: wxlModernAssets, wxlRetailDb2, wxlModernBlp, wxlCustomMaterials, wxlParticles, wxlRetailAppearances, wxlCustomOpcodes. Asset/DB changes require restart; model changes require reload. Appearances additionally require assets, DB2 and BLP; material/particle adaptation requires assets. Disabling dependencies suppresses the dependent path without changing its saved setting.
+Runtime CVars: wxlModernAssets, wxlRetailDb2, wxlModernBlp, wxlCustomMaterials, wxlParticles, wxlRetailAppearances, wxlCustomOpcodes, wxlAppearanceSave. Asset/DB changes require restart; model changes require reload. Appearances additionally require assets, DB2 and BLP; material/particle adaptation requires assets. Disabling dependencies suppresses the dependent path without changing its saved setting.
 
 C++ ModuleCount/QueryModule expose version1 module descriptors. Lua WXL_GetNativeModules() returns id, apiVersion, dependencies and effective enabled state. NativeProtocol.md documents binary custom packet send/pop APIs; transport readiness is not a server acknowledgement or complete feature parser.
 
@@ -41,8 +41,7 @@ Mesh blend7 ONE/INV_SRC_ALPHA remains separate from particle Screen INV_DEST_COL
 ## Remaining integration
 
 - Remaining race-specific authoring policies and children with subset/reordered skeletons.
-- Server appearance choice/save handshake and persistence for explicit extra choice IDs.
-- Appearance hello/prepare/create persistence and remaining feature packet consumers; area-loot/garrison/spell charges now have native consumers.
+- Authenticated server acceptance of appearance hello/prepare/create and persistence; remaining feature packet consumers. Area-loot/garrison/spell charges have native consumers.
 - Remaining material shader and particle-layer/cutoff families; broader model source compatibility.
 - Remaining WXL client extensions, UI, WMO/ADT and related modules, following the same module interfaces.
 - DX11 is a separate deferred task; DX11-PORT.md is historical dependency research, not a prerequisite for this x64 WXL build.
@@ -53,7 +52,7 @@ Compilation and source binding do not imply gameplay acceptance. Keep installed 
 
 The five native appearance controls, counts, nth lookups, randomization, validation and Init now use one retail choice authority when the native default/actual model path matches a mounted MD21 retail recipe. The five classic byte fields are limited to256 values per axis. Class/race/sex rebuild creates a candidate before retiring the previous actor; additional choice overrides survive same-family rebuilds.
 
-WXL_GetRetailOptions/GetRetailChoices/GetRetailSelection and WXL_SetRetailChoice expose explicit option/choice IDs. WXL_RetailSelectionCanSave reports whether the selection fits the current native save path. Extra nondefault option IDs remain preview-only and native creation reports that limitation instead of silently dropping them; no server ACK/save is simulated.
+WXL_GetRetailOptions/GetRetailChoices/GetRetailSelection and WXL_SetRetailChoice expose explicit option/choice IDs. WXL_RetailSelectionCanSave reports whether the selection fits the current native save path. Extra nondefault option IDs use the modular appearance-session owner: catalog negotiation, exact prepare/ACK matching, one-use native create dispatch and bounded stale/session/name/choice cancellation. Saved snapshots restore transactionally in character selection and on the active player. Alternate forms, synthetic profiles, barber state and nearby units remain outside this owner. No server ACK/save is simulated; authenticated persistence remains untested.
 
 Recipe-selected skinned children use typed native model lifetime and complete same-index skeleton verification. They share source pose updates, rendering, lighting, scene migration and shadow traversal. Children with differing/subset skeletons or child emitters/lights/point attachments remain unsupported; appendage culling bounds are not expanded yet.
 

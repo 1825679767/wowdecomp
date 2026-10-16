@@ -50,6 +50,7 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WXL/AppearanceCompat.hpp"
 #include "WXL/RetailChoices.hpp"
+#include <atomic>
 
 // STATIC: 0x009F6A00
 static int32_t s_itemPriority[NUM_ITEM_SLOTS][NUM_COMPONENT_SECTIONS] = {
@@ -4225,6 +4226,10 @@ inline CharacterBaseVariation::~CharacterBaseVariation() {
 // VERIFY: 1d57f8e3 manual
 // OFFSET: 0x004EFBE0
 CCharacterComponent::CCharacterComponent() {
+    static std::atomic<uint64_t> nextSerial{0};
+    this->m_wxlSerial = nextSerial.fetch_add(1,std::memory_order_relaxed)+1;
+    if (!this->m_wxlSerial) this->m_wxlSerial = nextSerial.fetch_add(1,std::memory_order_relaxed)+1;
+
     memset(this->m_baseVariation, 0, sizeof(this->m_baseVariation));
     this->m_flags |= 0x7;
     this->m_dirtySections = 0xFFFFFFFF;

@@ -1,5 +1,6 @@
 #include "CharacterCreation.h"
 #include "WXL/RetailChoices.hpp"
+#include "WXL/AppearanceSession.hpp"
 #include <cstring>
 #include <algorithm>
 #include "Engine/Source/Event/Event.h"
@@ -142,6 +143,7 @@ void CCharacterCreation::Shutdown() {
 // VERIFY: e90576fb auto
 // OFFSET: 0x004DFA50
 int32_t CCharacterCreation::Idle(const void* data, void* param) {
+    wxl::native::appearance_session::Tick();
     CGlueLoading::Idle(CCharacterCreation::m_character);
     return 1;
 }
@@ -164,6 +166,7 @@ void CCharacterCreation::GetRandomRaceAndSex(ComponentData* data) {
 // VERIFY: 45c27290 auto
 // OFFSET: 0x004DFFC0
 void CCharacterCreation::OnHide() {
+    wxl::native::appearance_session::Cancel();
     EventUnregister(EVENT_ID_IDLE, &CCharacterCreation::Idle);
     LoadingScreenMiniDisable();
 }
@@ -305,10 +308,6 @@ void CCharacterCreation::CycleCharCustomization(CHAR_CUSTOMIZATION_TYPE type, in
 // OFFSET: 0x004E0380
 void CCharacterCreation::CreateCharacter(const char* name) {
     if (!CCharacterCreation::m_character) return;
-    if (wxl::native::RetailSelectionNeedsProtocol(*CCharacterCreation::m_character)) {
-        FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG,"%s%s","OKAY","Additional retail choices are preview-only until appearance saving is integrated.");
-        return; // Never silently discard explicit retail choice IDs in the classic byte packet.
-    }
 
     WOWGUID guid = WOWGUID();
     CharacterSelectionDisplay* display = nullptr;
@@ -340,6 +339,11 @@ void CCharacterCreation::CreateCharacter(const char* name) {
             return;
         }
     }
+
+    // All native name/default-name validation above remains authoritative.
+    // Explicit retail choices queue one bounded prepare; owner Idle resumes
+    // this function only after the exact current context receives server ACK.
+    if (!wxl::native::appearance_session::BeforeCreate(name)) return;
 
     CHARACTER_CREATE_INFO info;
     SStrCopy(info.m_name, name, sizeof(info.m_name));

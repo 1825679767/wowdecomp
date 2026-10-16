@@ -1,3 +1,4 @@
+#include "WXL/AppearanceSession.hpp"
 #include "CharacterSelection.h"
 #include <cstring>
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
@@ -248,6 +249,7 @@ void CCharacterSelection::UpdateCharacterName(WOWGUID guid, const char* name) {
 // VERIFY: 945f4dbd auto
 // OFFSET: 0x004E29E0
 void CCharacterSelection::UpdateCharacterInfo(WOWGUID guid, const char* name, uint8_t sexID, uint8_t skinColorID, uint8_t faceID, uint8_t hairStyleID, uint8_t hairColorID, uint8_t facialHairStyleID, uint8_t raceID) {
+    wxl::native::appearance_session::InvalidateCharacter(guid.m_guid);
     uint32_t index;
 
     for (index = 0; index < CCharacterSelection::s_characterList.Count(); index++) {
@@ -319,6 +321,8 @@ int32_t CCharacterSelection::Idle(const void* data, void* param) {
         return 1;
     }
 
+    auto& display=CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex];
+    wxl::native::appearance_session::RefreshCharacter(display.m_characterInfo.m_guid.m_guid,display.m_component);
     CGlueLoading::Idle(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component);
     return 1;
 }

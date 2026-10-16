@@ -44,6 +44,14 @@
     {
       "path": "src/platform/waystone/AppearanceTexturePolicy.hpp",
       "sourceSHA256": "93435eb4e2a29b16273eea29dbd249dd127ceb24d67938a7c095b6a5b2d7ac77"
+    },
+    {
+      "path": "include/wxl/AppearanceProtocol.hpp",
+      "sourceSHA256": "211f02af541d88445be3698d702143389a6c75a44de217f21d89cf3a2679bfad"
+    },
+    {
+      "path": "include/wxl/AppearanceCatalogVersion.hpp",
+      "sourceSHA256": "6d484bc918011bb02f1346383940dc1bcc49795d1008bebfa0d615a759b2d370"
     }
   ],
   "adaptations": [
