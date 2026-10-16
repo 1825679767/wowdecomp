@@ -17,7 +17,7 @@ namespace wxl::native::client_extensions {
 namespace {
 constexpr size_t MaxText=8*1024*1024;
 std::vector<std::string> arguments;
-thread_local char textBuffer[MaxText+1];
+thread_local std::vector<char> textBuffer;
 void ParseArguments(){
  arguments.clear();int n=0;auto** args=CommandLineToArgvW(GetCommandLineW(),&n);if(!args)return;
  try{for(int i=0;i<n;++i){const int bytes=WideCharToMultiByte(CP_UTF8,0,args[i],-1,nullptr,0,nullptr,nullptr);
@@ -46,11 +46,16 @@ bool ReadText(const char* path,size_t n,size_t& length){
  char owned[1024];std::memcpy(owned,path,n);owned[n]=0;
  SFileImpl* file=nullptr;if(!SFileOpenFile(owned,&file)||!file)return false;
  uint32_t high=0;const uint32_t bytes=SFileGetFileSize(file,&high);bool ok=false;
- if(!high&&bytes<=MaxText){uint32_t read=0;ok=!bytes||SFileReadFile(file,textBuffer,bytes,&read,nullptr,0)&&read==bytes;length=bytes;}
+ try {
+  if(!high&&bytes<=MaxText){
+   textBuffer.resize(bytes);uint32_t read=0;
+   ok=!bytes||(SFileReadFile(file,textBuffer.data(),bytes,&read,nullptr,0)&&read==bytes);length=bytes;
+  }
+ }catch(...){ok=false;}
  SFileCloseFile(file);return ok;
 }
 int ReadFile(lua_State* L){size_t n=0,length=0;const char* path=lua_type(L,1)==LUA_TSTRING?lua_tolstring(L,1,&n):nullptr;
- if(ReadText(path,n,length))lua_pushlstring(L,textBuffer,length);else lua_pushnil(L);return 1;}
+ if(ReadText(path,n,length))lua_pushlstring(L,length?textBuffer.data():"",length);else lua_pushnil(L);return 1;}
 bool Describe(uint32_t id,char* buffer){SpellRec spell;if(!g_spellDB.GetRecord(id,&spell)||!spell.m_description||!*spell.m_description)return false;
  SpellParserParseText(&spell,buffer,1024,0,0,0,0,1,0);buffer[1023]=0;return true;}
 int Description(lua_State* L){const double id=lua_tonumber(L,1);char text[1024]{};
