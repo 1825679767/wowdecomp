@@ -1,3 +1,4 @@
+#include "WXL/BarberAppearance.hpp"
 // Source-native appearance prepare owner. Wire grammar is shared with server.
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 #include "AppearanceSession.hpp"
@@ -332,6 +333,10 @@ bool QuerySelectedCharacter() noexcept {
     auto* display = index >= 0 ? CCharacterSelection::GetCharacterDisplay(uint32_t(index)) : nullptr;
     return display && QueryCharacter(display->m_characterInfo.m_guid.m_guid);
 }
+bool GetSnapshot(uint64_t guid,ap::Snapshot& output) noexcept {try{
+ const auto session=protocol::SessionGeneration(FrameScript_GetContext());std::lock_guard lock(mutex);
+ if(!session||readySession!=session)return false;const auto it=snapshots.find(guid);if(it==snapshots.end())return false;output=it->second;return true;
+}catch(...){return false;}}
 bool HasSnapshot(uint64_t guid, uint32_t* revision) noexcept {
     try {
         const auto session = protocol::SessionGeneration(FrameScript_GetContext());
@@ -350,6 +355,7 @@ void InvalidateCharacter(uint64_t guid) noexcept {
 
 void RefreshCharacter(uint64_t guid, CCharacterComponent* component) noexcept {
     try {
+        if(barber_appearance::Editing(guid,component))return;
         if (!guid || !component || !component->m_wxlSerial || component == CCharacterCreation::m_character ||
             !component->m_data.m_model || !AppearanceSaveEnabled() ||
             !RetailChoicesReady(component->m_data.m_preferences, component->m_data.m_model)) return;

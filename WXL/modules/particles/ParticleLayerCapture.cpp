@@ -1,5 +1,6 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "ParticleLayers.hpp"
+#include "ParticleLayerMaterial.hpp"
 #include "NativeFeatures.hpp"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Model2/M2Data.h"
@@ -51,15 +52,19 @@ bool CaptureParticleLayers(const uint8_t* raw,size_t size,ParticleLayerSet& outp
  for(uint32_t i=0;i<count;++i){
   const auto* p=body+particlesAt+size_t(i)*stride;const auto flags=Read<uint32_t>(p,offsetof(M2Particle,m_flags));
   if(!(flags&wxl::structure::m2records::kParticleFlagMultiTex))continue;
-  // Supported donor family: unlit, ordinary alpha blending, head-only quads.
+  // The same three-layer donor kernels feed distinct native framebuffer blends.
+  // Capture their original identity before the native emitter is constructed.
+  ParticleLayerMaterial material{};
+  if(!ResolveParticleLayerMaterial(Read<uint8_t>(p,offsetof(M2Particle,m_blendMode)),material))return fail("layer source blend has no native layer material contract");
+  // Supported family: unlit alpha/additive/Screen, head-only quads.
   // Modx4/depth/refraction/TXAC shader variants are not guessed from firsttex.
-  if(!(flags&1) || !(flags&0x20000u) || (flags&(0x80100000u|0x20000000u|0x40000u)) ||
-     Read<uint8_t>(p,offsetof(M2Particle,m_blendMode))!=2)return fail("layer source requires unlit alpha head sprites without modx4/depth variants");
+  if(!(flags&1) || !(flags&0x20000u) || (flags&(0x80100000u|0x20000000u|0x40000u)))return fail("layer source requires unlit head sprites without modx4/depth variants");
   for(const auto field:{offsetof(M2Particle,m_geometryMdl),offsetof(M2Particle,m_recursionMdl)}){
    const auto n=Read<uint32_t>(p,field),at=Read<uint32_t>(p,field+4);
    if(n && (n!=1 || !at || at>=bodySize || body[at]))return fail("layer source model/child particles are unsupported");
   }
   auto recipe=std::make_shared<ParticleLayerRecipe>();recipe->sourceFlags=flags;recipe->packedIndices=Read<uint16_t>(p,offsetof(M2Particle,m_textureIndex));
+  recipe->sourceBlend=material.sourceBlend;
   recipe->hasTxac=txac!=nullptr;
   if(txac){const auto row=2*(uint64_t(materials)+i);recipe->txac={txac[row],txac[row+1]};}
   if(recipe->txac[0] || recipe->txac[1])return fail("layer source nonneutral TXAC shader is unimplemented");

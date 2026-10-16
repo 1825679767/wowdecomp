@@ -39,6 +39,41 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/Object/ObjectClient/Types.h"
 
+namespace {
+// Appearance appendages share the source model coordinate system and bone pose.
+// Their all-animation bounds must participate even when the source's current
+// sequence bounds describe only its original body geometry.
+CAaBox WithSkinnedBounds(const CM2Model& source, CAaBox box, const C44Matrix* world=nullptr) {
+    for (const auto* child : source.m_skinnedDependents) {
+        if (!child || child->m_skinningSource != &source || !child->m_shared || !(child->m_fFlags & 1)) continue;
+        const auto& extent=child->m_shared->m_data->m_bounds.m_extent;
+        if (!extent.IsValid()) continue;
+        box |= world ? CAaBox::Transform(extent,*world) : extent;
+    }
+    return box;
+}
+CAaSphere WithSkinnedSphere(const CM2Model& source, CAaSphere sphere, const C44Matrix* world=nullptr) {
+    for (auto* child : source.m_skinnedDependents) {
+        if (!child || child->m_skinningSource != &source || !child->m_shared || !(child->m_fFlags & 1)) continue;
+        const auto& bounds=child->m_shared->m_data->m_bounds;
+        const auto& local=bounds.m_extent;
+        if (!local.IsValid()) continue;
+        const auto box=world?CAaBox::Transform(local,*world):local;
+        const float dx=std::max(std::abs(box.b.x-sphere.c.x),std::abs(box.t.x-sphere.c.x));
+        const float dy=std::max(std::abs(box.b.y-sphere.c.y),std::abs(box.t.y-sphere.c.y));
+        const float dz=std::max(std::abs(box.b.z-sphere.c.z),std::abs(box.t.z-sphere.c.z));
+        sphere.r=std::max(sphere.r,std::sqrt(dx*dx+dy*dy+dz*dz));
+        // Preserve an authored sphere extending beyond the child's box too.
+        C3Vector center((local.b.x+local.t.x)*0.5f,(local.b.y+local.t.y)*0.5f,(local.b.z+local.t.z)*0.5f);
+        float radius=bounds.m_radius;
+        if(world){center=center*(*world);radius*=std::sqrt(world->a0*world->a0+world->a1*world->a1+world->a2*world->a2);}
+        const auto delta=center-sphere.c;
+        sphere.r=std::max(sphere.r,std::sqrt(delta.x*delta.x+delta.y*delta.y+delta.z*delta.z)+radius);
+    }
+    return sphere;
+}
+}
+
 // STATIC: 0x00A45570
 static const uint32_t s_ribbonBlendModes[M2Blend_Count] = { 0, 1, 2, 10, 3, 4, 5, GxBlend_BlendAdd, GxBlend_Screen };
 
@@ -869,7 +904,7 @@ CAaBox CM2Model::GetMaxBoundingBoxPlusAttachments() {
         box |= grown;
     }
 
-    return box;
+    return WithSkinnedBounds(*this,box);
 }
 
 // VERIFY: fbee199d manual
@@ -898,7 +933,7 @@ CAaSphere CM2Model::GetMaxBoundingSpherePlusAttachments() {
 
     sphere.r = radius + sphere.r;
 
-    return sphere;
+    return WithSkinnedSphere(*this,sphere);
 }
 
 // VERIFY: 4e809ba8 manual
@@ -926,7 +961,7 @@ CAaBox CM2Model::GetCurrentBoundingBox() {
             world = &matrix;
         }
 
-        return CAaBox::Transform(this->m_shared->m_data->m_bounds.m_extent, *world);
+        return WithSkinnedBounds(*this,CAaBox::Transform(this->m_shared->m_data->m_bounds.m_extent,*world),world);
     }
 
     const CAaBox& extent = data->m_sequences[this->m_bones->m_sequence.m_sequenceIndex].m_bounds.m_extent;
@@ -957,7 +992,8 @@ CAaBox CM2Model::GetCurrentBoundingBox() {
         box = box | this->m_ribbonEmitters[i]->m_worldBounds;
     }
 
-    return box;
+    const C44Matrix worldBounds=this->m_attachParent ? this->m_matrixF4 * this->m_scene->m_viewInv : this->m_worldTransform;
+    return WithSkinnedBounds(*this,box,&worldBounds);
 }
 
 // VERIFY: 21639f35 manual
@@ -985,7 +1021,7 @@ CAaBox CM2Model::GetSplitBodyBoundingBox(uint32_t boneId) {
             world = &matrix;
         }
 
-        return CAaBox::Transform(this->m_shared->m_data->m_bounds.m_extent, *world);
+        return WithSkinnedBounds(*this,CAaBox::Transform(this->m_shared->m_data->m_bounds.m_extent,*world),world);
     }
 
     uint32_t count = data->m_sequences.m_count;
@@ -1026,7 +1062,8 @@ CAaBox CM2Model::GetSplitBodyBoundingBox(uint32_t boneId) {
         box |= this->m_ribbonEmitters[i]->m_worldBounds;
     }
 
-    return box;
+    const C44Matrix worldBounds=this->m_attachParent ? this->m_matrixF4 * this->m_scene->m_viewInv : this->m_worldTransform;
+    return WithSkinnedBounds(*this,box,&worldBounds);
 }
 
 // VERIFY: ad274cd1 manual
@@ -3925,7 +3962,7 @@ CAaSphere CM2Model::GetCurrentBoundingSphere() {
         float radius = sqrtf(matrix.a2 * matrix.a2 + matrix.a1 * matrix.a1 + matrix.a0 * matrix.a0) * this->m_shared->m_data->m_bounds.m_radius;
         result.c = center * matrix;
         result.r = radius;
-        return result;
+        return WithSkinnedSphere(*this,result,&matrix);
     }
 
     M2Bounds* bounds = &data->m_sequences[this->m_bones->m_sequence.m_sequenceIndex].m_bounds;
@@ -3946,7 +3983,7 @@ CAaSphere CM2Model::GetCurrentBoundingSphere() {
     uint32_t particleCount = current->m_particles.m_count;
 
     if (!particleCount && !current->m_ribbons.m_count) {
-        return spheres[0];
+        return WithSkinnedSphere(*this,spheres[0],&matrix);
     }
 
     CAaBox box;
@@ -3980,7 +4017,7 @@ CAaSphere CM2Model::GetCurrentBoundingSphere() {
     }
 
     if (box.t.x < box.b.x && box.b.y > box.t.y && box.t.z < box.b.z) {
-        return spheres[0];
+        return WithSkinnedSphere(*this,spheres[0],&matrix);
     }
 
     spheres[1].c.x = (box.t.x + box.b.x) * 0.5f;
@@ -3989,10 +4026,10 @@ CAaSphere CM2Model::GetCurrentBoundingSphere() {
     spheres[1].r = 0.5f * sqrtf((box.t.x - box.b.x) * (box.t.x - box.b.x) + (box.t.z - box.b.z) * (box.t.z - box.b.z) + (box.t.y - box.b.y) * (box.t.y - box.b.y));
 
     if (fabsf(spheres[0].r) >= 0.00000023841858f) {
-        return CAaSphere::BoundingAccurate(spheres, 2);
+        return WithSkinnedSphere(*this,CAaSphere::BoundingAccurate(spheres,2),&matrix);
     }
 
-    return spheres[1];
+    return WithSkinnedSphere(*this,spheres[1],&matrix);
 }
 
 // VERIFY: 34ca59a5 manual
@@ -7820,7 +7857,7 @@ CAaBox CM2Model::GetBoundingBox() {
         this->WaitForLoad(nullptr);
     }
 
-    return this->m_shared->m_data->m_bounds.m_extent;
+    return WithSkinnedBounds(*this,this->m_shared->m_data->m_bounds.m_extent);
 }
 
 // VERIFY: 542067ba manual
@@ -7835,7 +7872,7 @@ CAaSphere CM2Model::GetBoundingSphere() {
     sphere.c = C3Vector((bounds.m_extent.b.x + bounds.m_extent.t.x) * 0.5f, (bounds.m_extent.b.y + bounds.m_extent.t.y) * 0.5f, (bounds.m_extent.b.z + bounds.m_extent.t.z) * 0.5f);
     sphere.r = bounds.m_radius;
 
-    return sphere;
+    return WithSkinnedSphere(*this,sphere);
 }
 
 // VERIFY: f3350a9a auto

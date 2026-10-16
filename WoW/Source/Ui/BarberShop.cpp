@@ -1,3 +1,4 @@
+#include "WXL/BarberAppearance.hpp"
 #include "BarberShop.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "WoW/Source/Ui/Types.h"
@@ -202,6 +203,7 @@ int32_t Packet_SMSG_ENABLE_BARBER_SHOP(void* param, NETMESSAGE msgId, uint32_t t
     CGBarberShop::m_currentFacialHair = CGBarberShop::GetStyle(2, player->m_unit->m_unitFieldBytes0[0], player->m_player->m_playerBytes3[0], player->m_player->m_playerBytes2[0]);
     CGBarberShop::m_currentSkinColor = CGBarberShop::GetStyle(3, player->m_unit->m_unitFieldBytes0[0], player->m_player->m_playerBytes3[0], component->m_data.m_preferences.m_skinID);
     CGBarberShop::m_barberShopEnabled = 1;
+    wxl::native::barber_appearance::Begin();
     FrameScript_SignalEvent(SCRIPT_EVENT_BARBER_SHOP_OPEN, nullptr);
     CGBarberShop::m_minCameraDistance = 1.0f;
     M2SequenceInfo info;
@@ -363,6 +365,7 @@ void CGBarberShop::EnterWorld() {
 // VERIFY: 066af30d manual
 // OFFSET: 0x0052E630
 void CGBarberShop::ResetAppearance() {
+    wxl::native::barber_appearance::ResetPreview();
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
     if (!player) {
@@ -413,6 +416,7 @@ void CGBarberShop::DisableBarberShop() {
         return;
     }
 
+    wxl::native::barber_appearance::End();
     CGBarberShop::m_barberShopEnabled = 0;
     FrameScript_SignalEvent(SCRIPT_EVENT_BARBER_SHOP_CLOSE, nullptr);
     CGCamera* camera = CGWorldFrame::GetActiveCamera();
@@ -514,6 +518,7 @@ int32_t CGBarberShop::GetTotalCost() {
 // VERIFY: 1c20fe76 manual
 // OFFSET: 0x0052EDA0
 void CGBarberShop::ApplyAppearanceChange() {
+    if(!wxl::native::barber_appearance::BeforeApply())return;
     if (!CGBarberShop::m_barberShopEnabled) {
         return;
     }

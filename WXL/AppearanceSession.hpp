@@ -2,6 +2,7 @@
 #pragma once
 #include <cstdint>
 class CCharacterComponent;
+namespace wxl::appearance {struct Snapshot;}
 namespace wxl::native::appearance_session {
 bool Install() noexcept;
 bool CanPrepareCurrent() noexcept;
@@ -13,6 +14,7 @@ void Cancel() noexcept;
 bool QueryCharacter(uint64_t guid) noexcept;
 bool QuerySelectedCharacter() noexcept;
 // Snapshot cache and source-native restoration for the caller-supplied actor.
+bool GetSnapshot(uint64_t guid,wxl::appearance::Snapshot& output) noexcept;
 bool HasSnapshot(uint64_t guid, uint32_t* revision = nullptr) noexcept;
 void RefreshCharacter(uint64_t guid, CCharacterComponent* component) noexcept;
 void RefreshCreationForms() noexcept;

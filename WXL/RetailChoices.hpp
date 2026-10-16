@@ -11,6 +11,9 @@ struct RetailChoicePair {uint32_t option,choice;};
 uint32_t RetailRecipeRace(const CCharacterComponent&) noexcept;
 // Native equipment suffix authority for the actual model, not the wire race.
 uint32_t RetailEquipmentRace(const CCharacterComponent&) noexcept;
+bool IsRetailExtraOption(const CCharacterComponent&,uint32_t option) noexcept;
+bool RetailExtrasMatch(const CCharacterComponent&,const RetailChoicePair*,uint32_t count) noexcept;
+bool RestoreRetailExtras(CCharacterComponent&,const RetailChoicePair*,uint32_t count) noexcept;
 bool CaptureRetailChoicePairs(const CCharacterComponent&,std::vector<RetailChoicePair>&) noexcept;
 bool ApplyRetailChoicePair(CCharacterComponent&,const RetailChoicePair*,uint32_t,CCharacterComponent&,const RetailChoicePair*,uint32_t) noexcept;
 bool ApplyRetailChoices(CCharacterComponent&,const RetailChoicePair*,uint32_t count) noexcept;

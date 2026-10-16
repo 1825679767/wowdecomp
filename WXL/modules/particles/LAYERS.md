@@ -6,9 +6,9 @@ The default-on Particles module now captures and renders a bounded three-texture
 
 ## Exact admitted subset
 
-MD21 inner version274 with global flags0x3090, source MultiTexture flag, unlit ordinary-alpha blend2 head-only sprites, unsigned scale bytes, three file textures, empty geometry/child model names, neutral emitter TXAC, and no source Modx4/depth/refraction variant bits. The implementation does not interpret arbitrary auxiliary chunks. TXAC mesh rows are preserved and do not disqualify an otherwise neutral particle unless the independent EXPT converter's existing all-neutral rule applies. EXPT/EXP2 scalar and cutoff validation remains with ApplyParticleExtensions.
+MD21 inner version274 with global flags0x3090, source MultiTexture flag, unlit alpha/additive/Screen head-only sprites (source blend2/3/4/7), unsigned scale bytes, three file textures, empty geometry/child model names, neutral emitter TXAC, and no source Modx4/depth/refraction variant bits. The implementation does not interpret arbitrary auxiliary chunks. TXAC mesh rows are preserved and do not disqualify an otherwise neutral particle unless the independent EXPT converter's existing all-neutral rule applies. EXPT/EXP2 scalar and cutoff validation remains with ApplyParticleExtensions.
 
-D3D9/9Ex must expose SM3 vertex/pixel targets, at least35 vertex constants and three texture units. Runtime also requires native shaders enabled, unlit ordinary alpha state and a four-vertex/six-index native particle shape. No OpenGL reinterpretation of D3D bytecode occurs. This subset is intentionally narrower than the old donor experiments: signed scales, SourceRGBModulationCandidate, TXAC1/1, BlendAdd/Screen, refraction and lit/shadow variants are not asserted to be recovered.
+D3D9/9Ex must expose SM3 vertex/pixel targets, at least35 vertex constants and three texture units. Runtime also requires native shaders enabled, an exact source-to-emitter-to-active-Gx blend identity and a four-vertex/six-index native particle shape. No OpenGL reinterpretation of D3D bytecode occurs. This subset is intentionally narrower than the old donor experiments: signed scales, SourceRGBModulationCandidate, TXAC1/1, BlendAdd, refraction and lit/shadow variants are not asserted to be recovered.
 
 ## Capture and ownership
 
@@ -28,7 +28,7 @@ Native custom PrimVertexFormat supplies Position(type4,offset0), Color0(type0,of
 
 ## State and cutoff
 
-Native ShaderEffect uses the same projection(c2..5), UV0(c6..7), fog(c30) and model rows(c31..) ABI as the retained donor Unlit program. UpdateProjMatrix, SetTexMtx_Identity and UpdateWorldViewMatrix populate its draw constants. Current c30 fog visibility and PS c2 fog RGB remain native SetupMaterial authority, including the native disabled-fog constant. PS c0=(1,1,max(nativeAlphaRef,lifetimeCutoff),0), so normal alpha blending/fog remains and cutoff clips the composed alpha. Adjacent identical thresholds can share draws without reordering particles.
+Native ShaderEffect uses the same projection(c2..5), UV0(c6..7), fog(c30) and model rows(c31..) ABI as the retained donor Unlit program. UpdateProjMatrix, SetTexMtx_Identity and UpdateWorldViewMatrix populate its draw constants. Current c30 fog visibility and PS c2 fog RGB remain native SetupMaterial authority, including the native disabled-fog constant. PS c0=(1,1,max(nativeAlphaRef,lifetimeCutoff),0), so the captured native framebuffer blend remains and cutoff clips the composed alpha. Additive/Screen explicitly use black PS fog RGB while retaining native c30 visibility. Adjacent identical thresholds can share draws without reordering particles.
 
 DrawScope retains native cached vertex attributes/mask/index, view, shader selections through RsPush/RsPop, PS c0/c2 and VS c2..7/c30..34. It restores through the same native ShaderConstantsSet and render-state APIs, forcing texture-unit cache updates and syncing restored programs before releasing draw-local registered shader refs. Pixel c2 and vertex c30 are reasserted from their saved native values after texture readiness; no replacement fog function is introduced. Each bound texture's original flags are captured before changes, temporary wrap/linear-point-mip sampling is restored per texture (including repeated identities), and native stages0..2 are forced through cache restoration. Temporary extended vertices use native streamed-buffer ownership.
 
@@ -37,3 +37,22 @@ DrawScope retains native cached vertex attributes/mask/index, view, shader selec
 manifest.json pins exact before/after files, native Gx/ShaderEffect/particle contracts, donor policy, generated programs and original HLSL. source-head/status/diff are observed staging provenance, not a binary binding. No build, tests, game launch, installation, package, upload or acceptance occurred in this stage. Root owns the single combined build. Source/API review does not prove shader readiness, actual asset eligibility or effect appearance.
 
 Required runtime validation: admitted and refused source fixtures including nonneutral TXAC/modx4/unknown chunks; all three texture readiness and bytecode rejection paths; custom declaration stride/index bases; sorted/twinkle-skipped particle correspondence; clone/reload texture lifetime; state and sampler restoration across unrelated draws; nonzero composed-alpha cutoff; device reset; and visual/performance comparisons. Actual retail layered/RNG parity and unsupported shaders remain open.
+
+## Native additive and Screen material extension
+
+The recipe now retains its original source blend byte, independently from packed texture IDs/flags and normalized material state. ParticleLayerMaterial.hpp is the shared capture/draw contract; source numbers are not used as Gx or mesh M2BLEND indices.
+
+| Source particle blend | Native Gx material | Native D3D9/9Ex source/destination factors | Fog source target |
+| --- | --- | --- | --- |
+| 2 | Alpha | SRC_ALPHA, INV_SRC_ALPHA | Native scene fog RGB |
+| 3 | NoAlphaAdd | ONE, ONE | Black |
+| 4 | Add | SRC_ALPHA, ONE | Black |
+| 7 | Screen | INV_DEST_COLOR, ONE | Black |
+
+These mappings are read from CM2Model::InitializeLoaded, ParticleBlendToM2Blend, M2GxBlend and both native D3D blend tables. Native M2 fog tables independently select black for the mapped additive/Screen material families. The draw now verifies both emitter materialBlend and the actual native cached GxRs_BlendingMode against the captured contract before texture readiness or shader state mutation. Unsupported source blend values and depth/other pass blend substitutions submit no layer draw.
+
+The existing donor two-color/three-alpha and three-color/three-alpha kernels remain actual shader consumers. Their RGB output remains independent of opacity. Source4 receives alpha weighting exactly once from native SRC_ALPHA; source3 and Screen retain their native independent RGB contribution. No new premultiplication, shader recompilation, invented blend mode or table replacement occurs. Existing native alphaRef and per-lifetime composed cutoff still combine through max and shader clipping.
+
+For source3/4/7 the draw supplies black PS c2 RGB, preserving its native alpha component and native c30 fog visibility/disabled-fog constant. PS parameters.w stays zero: the donor experimental BlendAdd switch also clips layer0 alpha separately, which is not part of these native additive/Screen contracts. DrawScope restores PS c2 and all original resources/state through the already integrated typed native synchronization. Persistent native-device shader ownership, handle duplication, clone/replacement lifetime, sorted vertex correspondence and cutoff ownership remain unchanged.
+
+Signed-scale status: the local donor explicitly excludes the high scale bit; the fetched primary record documentation establishes only a 2.5 fixed-point field, not its sign encoding or negative-zero interpretation. This stage therefore retains the signed-scale refusal rather than inferring two's complement or sign-magnitude from the different 16-bit scroll field. Primary record reference: https://skarndev.github.io/wowlib/python/m2/records/ (multi_tex_scale), checked2026-10-16. Broader retail RNG/modulation parity remains unclaimed.

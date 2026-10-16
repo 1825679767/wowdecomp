@@ -16,6 +16,7 @@ namespace wxl::native {
 // Complete source record retained before normalization; no borrowed source bytes.
 struct ParticleLayerRecipe {
  uint32_t sourceFlags{};
+ uint8_t sourceBlend{};
  uint16_t packedIndices{};
  std::array<uint8_t,2> txac{};
  bool hasTxac{},threeColor{};

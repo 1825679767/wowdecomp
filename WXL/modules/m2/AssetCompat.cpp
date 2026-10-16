@@ -25,12 +25,12 @@ constexpr uint32_t Limit=64u*1024*1024;
 std::string Key(const char* path){std::string key=path?path:"";for(auto& c:key){if(c=='/')c='\\';if(c>='A' && c<='Z')c=char(c-'A'+'a');}return key;}
 struct Skin {std::vector<uint8_t> original,prepared,converted;std::shared_ptr<const mesh_materials::Source> mesh;};
 }
-struct ModelAssets {const uint8_t* meshInput=nullptr;size_t meshInputSize=0;std::shared_ptr<const mesh_materials::Source> selectedMesh;std::map<std::string,Skin> skins;uint32_t profile{};ParticleCutoffSet cutoffs;ParticleLayerSet layers;};
+struct ModelAssets {std::string meshPath;const uint8_t* meshInput=nullptr;size_t meshInputSize=0;std::shared_ptr<const mesh_materials::Source> selectedMesh;std::map<std::string,Skin> skins;uint32_t profile{};ParticleCutoffSet cutoffs;ParticleLayerSet layers;};
 namespace {
 thread_local ModelAssets* loading{};
 bool ReadCompanion(const char* path,std::vector<uint8_t>& output){
  if(!ReadAsset(path,output))return false;
- const auto key=Key(path);if(loading && key.ends_with(".skin")){auto& skin=loading->skins[key];skin.original=output;skin.mesh=mesh_materials::Prepare(loading->meshInput,loading->meshInputSize,skin.original,skin.prepared);if(skin.mesh)output=skin.prepared;}
+ const auto key=Key(path);if(loading && key.ends_with(".skin")){auto& skin=loading->skins[key];skin.original=output;skin.mesh=mesh_materials::Prepare(loading->meshPath.c_str(),loading->meshInput,loading->meshInputSize,skin.original,skin.prepared);if(!skin.mesh)mesh_materials::PrepareNativeCompatibilitySkin(loading->meshPath.c_str(),loading->meshInput,loading->meshInputSize,skin.original,skin.prepared);if(!skin.prepared.empty())output=skin.prepared;}
  return true;
 }
 
@@ -40,7 +40,7 @@ bool PrepareModel(CM2Shared& shared){
  const auto* raw=reinterpret_cast<const uint8_t*>(shared.m_data);
  if(std::memcmp(raw,"MD21",4))return true;
  if(!AssetsEnabled())return true; // Native unsupported-format handling remains authoritative.
- try{auto assets=std::make_unique<ModelAssets>();assets->meshInput=raw;assets->meshInputSize=shared.m_fileSize;std::vector<uint8_t> converted;wxl::waystone::m2bytes::Stats stats;
+ try{auto assets=std::make_unique<ModelAssets>();assets->meshPath=shared.m_fileName;assets->meshInput=raw;assets->meshInputSize=shared.m_fileSize;std::vector<uint8_t> converted;wxl::waystone::m2bytes::Stats stats;
   std::string layerReason;
   if(!CaptureParticleLayers(raw,shared.m_fileSize,assets->layers,layerReason)){
    WLOG_WARN("native-modern-layers: refused path=%s reason=%s",shared.m_fileName,layerReason.c_str());return false;
@@ -69,7 +69,7 @@ bool PrepareModel(CM2Shared& shared){
    WLOG_WARN("native-modern-particles: refused path=%s reason=%s",shared.m_fileName,particleReason.c_str());return false;
   }
   PreserveMaterials({raw,shared.m_fileSize},converted);
-  for(auto& [name,skin]:assets->skins){if(!wxl::waystone::m2bytes::ConvertSkin(skin.mesh?skin.prepared:skin.original,skin.converted,true))return false;if(skin.mesh&&!mesh_materials::ConvertedMatches(*skin.mesh,skin.converted))return false;}
+  for(auto& [name,skin]:assets->skins){if(!wxl::waystone::m2bytes::ConvertSkin(!skin.prepared.empty()?skin.prepared:skin.original,skin.converted,true))return false;if(skin.mesh&&!mesh_materials::ConvertedMatches(*skin.mesh,skin.converted))return false;}
   assets->meshInput=nullptr;assets->meshInputSize=0;
   auto* replacement=static_cast<M2Data*>(SIMD::AllocA16(converted.size(),__FILE__,__LINE__));if(!replacement)return false;
   std::memcpy(replacement,converted.data(),converted.size());SIMD::FreeA16(shared.m_data);

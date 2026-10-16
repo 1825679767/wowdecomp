@@ -1,3 +1,4 @@
+#include "WXL/BarberAppearance.hpp"
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "RetailChoices.hpp"
 #include "AlternateAppearances.hpp"
@@ -170,6 +171,18 @@ bool ApplyRetailChoicePair(CCharacterComponent& primary,const RetailChoicePair* 
  primary.m_data.m_preferences=pp;alternate.m_data.m_preferences=aprefs;
  delete primary.m_wxlChoices;primary.m_wxlChoices=ps.release();delete alternate.m_wxlChoices;alternate.m_wxlChoices=as.release();Dirty(primary);Dirty(alternate);return true;
 }catch(...){return false;}}
+
+bool IsRetailExtraOption(const CCharacterComponent& c,uint32_t id) noexcept {try{auto* a=For(c.m_data.m_preferences,c.m_data.m_model);if(!a)return false;for(const auto& o:a->options)if(o.id==id)return o.axis<0;return false;}catch(...){return false;}}
+bool RetailExtrasMatch(const CCharacterComponent& c,const RetailChoicePair* baseline,uint32_t count) noexcept {try{
+ if(!baseline||!count||count>256)return false;std::vector<RetailChoicePair> current;if(!CaptureRetailChoicePairs(c,current)||current.size()!=count)return false;
+ for(auto row:current)if(IsRetailExtraOption(c,row.option)){const RetailChoicePair* saved=nullptr;for(uint32_t i=0;i<count;++i)if(baseline[i].option==row.option){if(saved)return false;saved=&baseline[i];}if(!saved||saved->choice!=row.choice)return false;}
+ return true;}catch(...){return false;}}
+bool RestoreRetailExtras(CCharacterComponent& c,const RetailChoicePair* baseline,uint32_t count) noexcept {try{
+ if(!baseline||!count||count>256)return false;std::vector<RetailChoicePair> current;if(!CaptureRetailChoicePairs(c,current)||current.size()!=count)return false;
+ for(auto& row:current)if(IsRetailExtraOption(c,row.option)){const RetailChoicePair* saved=nullptr;for(uint32_t i=0;i<count;++i)if(baseline[i].option==row.option){if(saved)return false;saved=&baseline[i];}if(!saved)return false;row.choice=saved->choice;}
+ if(RetailExtrasMatch(c,baseline,count))return true;
+ return ApplyRetailChoices(c,current.data(),uint32_t(current.size()));}catch(...){return false;}}
+
 uint32_t RetailChoiceRevision(const CCharacterComponent& c) noexcept {return c.m_wxlChoices?c.m_wxlChoices->revision:0;}
 void TransferRetailChoices(const CCharacterComponent& from,CCharacterComponent& to) noexcept {try{
  if(!from.m_wxlChoices || from.m_data.m_preferences.m_raceID!=to.m_data.m_preferences.m_raceID || from.m_data.m_preferences.m_sexID!=to.m_data.m_preferences.m_sexID)return;
@@ -186,16 +199,16 @@ bool RandomizeRetailExtras(CCharacterComponent& c) noexcept {try{
 void ReleaseRetailChoices(CCharacterComponent& c) noexcept {delete c.m_wxlChoices;c.m_wxlChoices=nullptr;}
 namespace {
 uint32_t uiLastTick=0;bool uiInstalled=false;
-CCharacterComponent* Current(){auto* c=alternate_appearances::Editor();return c&&RetailChoicesReady(c->m_data.m_preferences,c->m_data.m_model)?c:nullptr;}
+CCharacterComponent* Current(){if(barber_appearance::Active())return barber_appearance::Editor();auto* c=alternate_appearances::Editor();return c&&RetailChoicesReady(c->m_data.m_preferences,c->m_data.m_model)?c:nullptr;}
 bool Number(lua_State* L,int at,uint32_t& value){const auto n=lua_tonumber(L,at);if(lua_type(L,at)!=LUA_TNUMBER||!(n>=0&&n<=4294967295.0)||n!=uint32_t(n))return false;value=uint32_t(n);return true;}
 int LuaOptions(lua_State* L){auto* c=Current();if(!c)return 0;const Authority* a=nullptr;try{a=For(c->m_data.m_preferences,c->m_data.m_model);}catch(...){return 0;}if(!a)return 0;lua_createtable(L,int(a->options.size()),0);
  for(size_t i=0;i<a->options.size();++i){const auto& o=a->options[i];lua_createtable(L,0,4);lua_pushinteger(L,o.id);lua_setfield(L,-2,"id");lua_pushstring(L,db::OptionName(o.id));lua_setfield(L,-2,"name");lua_pushinteger(L,o.choices.size());lua_setfield(L,-2,"count");lua_pushinteger(L,o.axis+1);lua_setfield(L,-2,"axis");lua_rawseti(L,-2,int(i+1));}return 1;}
 int LuaChoices(lua_State* L){uint32_t id;if(!Number(L,1,id))return 0;auto* c=Current();if(!c)return 0;const Authority* a=nullptr;try{a=For(c->m_data.m_preferences,c->m_data.m_model);}catch(...){return 0;}if(!a)return 0;const Option* o=nullptr;for(const auto& entry:a->options)if(entry.id==id)o=&entry;if(!o)return 0;
  lua_createtable(L,int(o->choices.size()),0);for(size_t i=0;i<o->choices.size();++i){const auto choice=o->choices[i];lua_createtable(L,0,4);lua_pushinteger(L,choice);lua_setfield(L,-2,"id");lua_pushstring(L,db::ChoiceName(choice));lua_setfield(L,-2,"name");WXL_ChrChoice info{};db::ChoiceAt(id,uint32_t(i),info);lua_pushnumber(L,info.swatchColor);lua_setfield(L,-2,"swatchColor");lua_pushnumber(L,db::ChoiceSwatchColor2(choice));lua_setfield(L,-2,"swatchColor2");lua_rawseti(L,-2,int(i+1));}return 1;}
-bool Select(CCharacterComponent& c,uint32_t id,uint32_t choice){auto* a=For(c.m_data.m_preferences,c.m_data.m_model);if(!a)return false;for(const auto& o:a->options)if(o.id==id){auto it=std::find(o.choices.begin(),o.choices.end(),choice);if(it==o.choices.end())return false;if(o.axis>=0)return SetRetailAxis(c,RetailAxis(o.axis),int32_t(it-o.choices.begin()));
+bool Select(CCharacterComponent& c,uint32_t id,uint32_t choice){auto* a=For(c.m_data.m_preferences,c.m_data.m_model);if(!a)return false;for(const auto& o:a->options)if(o.id==id){auto it=std::find(o.choices.begin(),o.choices.end(),choice);if(it==o.choices.end())return false;if(barber_appearance::Active()&&o.axis>=0)return false;if(o.axis>=0)return SetRetailAxis(c,RetailAxis(o.axis),int32_t(it-o.choices.begin()));
  auto* s=c.m_wxlChoices;if(!s){c.m_wxlChoices=new RetailChoiceState;s=c.m_wxlChoices;s->model=a->chrModel;}if(s->model!=a->chrModel)return false;if(choice==o.choices.front())s->overrides.erase(id);else s->overrides[id]=choice;++s->revision;Dirty(c);return true;}return false;}
 int LuaSelect(lua_State* L){uint32_t option,choice;bool ok=false;if(Number(L,1,option)&&Number(L,2,choice)){try{if(auto* c=Current())ok=Select(*c,option,choice);}catch(...){}}lua_pushboolean(L,ok);return 1;}
-int LuaCanSave(lua_State* L){auto* c=Current();lua_pushboolean(L,c&&(!RetailSelectionNeedsProtocol(*c)||appearance_session::CanPrepareCurrent()));return 1;}
+int LuaCanSave(lua_State* L){if(barber_appearance::Active()){lua_pushboolean(L,false);return 1;}auto* c=Current();lua_pushboolean(L,c&&(!RetailSelectionNeedsProtocol(*c)||appearance_session::CanPrepareCurrent()));return 1;}
 int LuaContext(lua_State* L){try{auto* c=Current();if(!c)return 0;const auto& p=c->m_data.m_preferences;
  std::string key=std::to_string(c->m_wxlSerial)+":"+std::to_string(c->m_data.m_model->m_handle);
  for(auto n:{p.m_raceID,p.m_sexID,p.m_classId,p.m_skinID,p.m_faceId,p.m_hairStyleId,p.m_hairColorId,p.m_facialHairId,RetailChoiceRevision(*c)})key+=":"+std::to_string(n);
@@ -206,5 +219,5 @@ void UpdateRetailChoiceUi(){const auto now=OsGetAsyncTimeMs();if(now-uiLastTick<
  if(!uiInstalled){FrameScript_Execute(RetailChoiceUi,"native-retail-choice-controls",nullptr);uiInstalled=true;}
  FrameScript_Execute("if WXLNativeRetailOptions then WXLNativeRetailOptions:Refresh() end","native-retail-choice-refresh",nullptr);}
 void HideRetailChoiceUi(){FrameScript_Execute("if WXLNativeRetailOptions then WXLNativeRetailOptions:Hide() end","native-retail-choice-hide",nullptr);}
-void InitializeRetailChoiceLua(){alternate_appearances::InitializeLua();uiInstalled=false;uiLastTick=0;FrameScript_RegisterFunction("WXL_GetRetailChoiceContext",&LuaContext);FrameScript_RegisterFunction("WXL_RetailSelectionCanSave",&LuaCanSave);FrameScript_RegisterFunction("WXL_GetRetailOptions",&LuaOptions);FrameScript_RegisterFunction("WXL_GetRetailChoices",&LuaChoices);FrameScript_RegisterFunction("WXL_SetRetailChoice",&LuaSelect);FrameScript_RegisterFunction("WXL_GetRetailSelection",&LuaSelection);}
+void InitializeRetailChoiceLua(){barber_appearance::InitializeLua();alternate_appearances::InitializeLua();uiInstalled=false;uiLastTick=0;FrameScript_RegisterFunction("WXL_GetRetailChoiceContext",&LuaContext);FrameScript_RegisterFunction("WXL_RetailSelectionCanSave",&LuaCanSave);FrameScript_RegisterFunction("WXL_GetRetailOptions",&LuaOptions);FrameScript_RegisterFunction("WXL_GetRetailChoices",&LuaChoices);FrameScript_RegisterFunction("WXL_SetRetailChoice",&LuaSelect);FrameScript_RegisterFunction("WXL_GetRetailSelection",&LuaSelection);}
 }

@@ -1,5 +1,6 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "ParticleLayers.hpp"
+#include "ParticleLayerMaterial.hpp"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDevice/CGxShader.h"
@@ -114,8 +115,12 @@ bool DrawParticleLayers(CParticleEmitter2& emitter){
     device->Caps().m_shaderTargets[GxSh_Vertex]<3 || device->Caps().m_shaderTargets[GxSh_Pixel]<4 ||
     !CShaderEffect::s_enableShaders || !CShaderEffect::s_curEffect || !emitter.m_wxlLayerValid ||
     !binding || binding->recipe!=emitter.m_params.m_wxlLayerRecipe || emitter.m_params.m_hasModel ||
-    (emitter.m_params.m_materialFlags&1) || emitter.m_params.m_materialBlend!=GxBlend_Alpha ||
+    (emitter.m_params.m_materialFlags&1) ||
     emitter.m_vertsPerParticle!=4 || emitter.m_indicesPerParticle!=6)return false;
+ ParticleLayerMaterial material{};
+ if(!ResolveParticleLayerMaterial(binding->recipe->sourceBlend,material) ||
+    emitter.m_params.m_materialBlend!=uint32_t(material.nativeBlend) ||
+    device->m_appRenderStates[GxRs_BlendingMode].m_value.m_data.i[0]!=int32_t(material.nativeBlend))return false;
  if(emitter.m_renderedParticles>4096)return false;
  const auto vertices=emitter.m_renderedParticles*4;
  if(!vertices || vertices>16384 || emitter.m_wxlLayerVertices.size()!=size_t(vertices)*40 ||
@@ -142,6 +147,11 @@ bool DrawParticleLayers(CParticleEmitter2& emitter){
   // c30 fog visibility and PS c2 fog RGB already belong to native SetupMaterial;
   // preserve them, including the native disabled-fog constant, without guessing.
   device->ShaderConstantsSet(GxSh_Vertex,30,scope.vertex30,1);device->ShaderConstantsSet(GxSh_Pixel,2,scope.pixel2,1);
+  // Additive and Screen must approach their neutral black source at distance.
+  // Leave the native visibility exponent/disabled-fog constant in c30 intact.
+  // Do NOT set donor parameters.w: that experimental BlendAdd switch also
+  // enables a separate layer0 alpha test, which is not this material contract.
+  if(material.blackFog){const float black[4]{0,0,0,scope.pixel2[3]};device->ShaderConstantsSet(GxSh_Pixel,2,black,1);}
   const CGxVertexAttrib attribs[]{{GxVA_Position,4,0,40},{GxVA_Color0,0,12,40},{GxVA_TexCoord0,3,16,40},{GxVA_TexCoord1,3,24,40},{GxVA_TexCoord2,3,32,40}};
   device->PrimVertexFormat(buffer,attribs,5);device->PrimVertexMask((1u<<GxVA_Position)|(1u<<GxVA_Color0)|(1u<<GxVA_TexCoord0)|(1u<<GxVA_TexCoord1)|(1u<<GxVA_TexCoord2));
   device->PrimIndexPtr(CParticleEmitter2::s_indexBuf);device->RsSet(GxRs_VertexShader,shaders.vertex);device->RsSet(GxRs_PixelShader,shaders.pixel);
@@ -150,6 +160,8 @@ bool DrawParticleLayers(CParticleEmitter2& emitter){
    const float cutoff=cutoffAt(begin);if(!std::isfinite(cutoff)||cutoff<0||cutoff>1)return false;
    size_t end=begin+1;while(end<emitter.m_renderedParticles && cutoffAt(end)==cutoff)++end;
    // RGB/alpha extension multipliers were already baked into native keys.
+   // Weighted additive applies alpha exactly once in the native blend stage;
+   // unweighted additive/Screen preserve independent RGB and opacity.
    const float parameters[4]{1,1,cutoff,0};device->ShaderConstantsSet(GxSh_Pixel,0,parameters,1);
    CGxBatch batch;batch.m_primType=GxPrim_Triangles;batch.m_start=uint32_t(begin)*6;batch.m_count=uint32_t(end-begin)*6;
    batch.m_minIndex=uint16_t(begin*4);batch.m_maxIndex=uint16_t(end*4-1);device->Draw(&batch,1);begin=end;

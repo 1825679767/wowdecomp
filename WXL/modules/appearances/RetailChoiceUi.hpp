@@ -19,7 +19,8 @@ do
     if self.frame then self.frame:Hide() end
   end
   function UI:Refresh(force)
-    local parent = G.CharacterCreate
+    local barber = type(WXL_IsBarberRetailPreview)=="function" and WXL_IsBarberRetailPreview()
+    local parent = barber and G.BarberShopFrame or G.CharacterCreate
     if not parent or not parent:IsShown() then self:Hide(); return end
     local key = WXL_GetRetailChoiceContext()
     if not key then self:Hide(); return end
@@ -70,12 +71,13 @@ do
       self.note=f:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
       self.note:SetPoint("BOTTOM",f,"BOTTOM",0,10);self.note:SetWidth(250)
     end
+    if self.frame:GetParent()~=parent then self.frame:SetParent(parent);self.frame:ClearAllPoints();self.frame:SetPoint("BOTTOMRIGHT",parent,"BOTTOMRIGHT",-24,66);self.key=nil end
     if force or self.key~=key then
       local all=WXL_GetRetailOptions() or {};local values=WXL_GetRetailSelection() or {}
       self.options={};self.selected={}
       for i,o in ipairs(all) do
         self.selected[o.id]=values[i]
-        if (o.axis==0 or WXL_IsAlternateAppearance()) and o.count>1 then self.options[#self.options+1]=o end
+        if (o.axis==0 or (not barber and WXL_IsAlternateAppearance())) and o.count>1 then self.options[#self.options+1]=o end
       end
       self.key=key;self.page=math.max(1,math.min(self.page,math.ceil(#self.options/6)))
       for i,row in ipairs(self.rows) do
@@ -91,9 +93,9 @@ do
       end
       self.pages:SetText(self.page.." / "..math.max(1,math.ceil(#self.options/6)))
     end
-    self.note:SetText(WXL_RetailSelectionCanSave() and "" or "Preview only: save support unavailable")
-    if WXL_HasAlternateAppearance() then self.form:Show() else self.form:Hide() end
-    if #self.options>0 or WXL_HasAlternateAppearance() then self.frame:Show() else self:Hide() end
+    self.note:SetText(barber and "Preview only; Reset restores saved details" or (WXL_RetailSelectionCanSave() and "" or "Preview only: save support unavailable"))
+    if not barber and WXL_HasAlternateAppearance() then self.form:Show() else self.form:Hide() end
+    if #self.options>0 or (not barber and WXL_HasAlternateAppearance()) then self.frame:Show() else self:Hide() end
   end
 end
 )lua";

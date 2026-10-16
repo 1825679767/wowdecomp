@@ -18,7 +18,8 @@ option(WXL_ENABLE_QUEST_MARKER "Enable native quest marker and objective highlig
 option(WXL_ENABLE_RADIAL_PING "Enable native radial pings" ON)
 option(WXL_ENABLE_CREATION_EFFECTS "Enable native character creation choreography" ON)
 option(WXL_ENABLE_SKYRIDING "Enable native server-authorized Skyriding" ON)
-foreach(feature SKYRIDING CREATION_EFFECTS NATIVE ASSETS DB2 BLP MATERIALS PARTICLES APPEARANCES PROTOCOL APPEARANCE_SAVE WMO SPLIT_ADT CLIENT_EXTENSIONS RADIAL_PING QUEST_MARKER CHALLENGE_MODE MYTHIC_DIFFICULTY)
+option(WXL_ENABLE_BARBER_PREVIEW "Enable native barber retail-detail previews" ON)
+foreach(feature BARBER_PREVIEW SKYRIDING CREATION_EFFECTS NATIVE ASSETS DB2 BLP MATERIALS PARTICLES APPEARANCES PROTOCOL APPEARANCE_SAVE WMO SPLIT_ADT CLIENT_EXTENSIONS RADIAL_PING QUEST_MARKER CHALLENGE_MODE MYTHIC_DIFFICULTY)
  if(WXL_ENABLE_${feature})
   add_compile_definitions(WXL_ENABLE_${feature}=1)
  else()
@@ -49,7 +50,7 @@ wxl_module(WxlM2 M2 modules/m2/AssetCompat.cpp
  "${V}/src/platform/waystone/SkeletonEmbed.cpp" "${V}/src/platform/waystone/SkinPartition.cpp"
  "${V}/src/platform/waystone/SkinRebuild.cpp" "${V}/extensions/wxl-modern-m2/src/load/M2Normalize.cpp"
  "${V}/extensions/wxl-modern-m2/src/load/M2NormalizeCameras.cpp")
-wxl_module(WxlAppearances Appearances modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp modules/appearances/AlternateAppearances.cpp
+wxl_module(WxlAppearances Appearances modules/barber-preview/BarberAppearance.cpp modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp modules/appearances/AlternateAppearances.cpp
  "${V}/src/platform/waystone/CharacterAtlas.cpp")
 wxl_module(WxlProtocol Protocol modules/protocol/NativeProtocol.cpp modules/protocol/ProtocolConsumers.cpp)
 wxl_module(WxlAppearanceSession AppearanceSession modules/appearance-session/AppearanceSession.cpp)
