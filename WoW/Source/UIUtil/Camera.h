@@ -19,6 +19,29 @@ class CRect;
 class CVehicleCamera_C;
 struct CVar;
 
+struct CameraView {
+    float m_distance;
+    float m_pitch;
+    float m_yaw;
+
+    // Component order follows the distance/pitch/yaw CVar columns.
+    float& Component(uint32_t component) {
+        switch (component) {
+            case 0: return m_distance;
+            case 1: return m_pitch;
+            default: return m_yaw;
+        }
+    }
+
+    const float& Component(uint32_t component) const {
+        switch (component) {
+            case 0: return m_distance;
+            case 1: return m_pitch;
+            default: return m_yaw;
+        }
+    }
+};
+
 class CAMERA_DEFAULTS {
     public:
     /* 0000 */ const char* m_values [3];
@@ -95,7 +118,7 @@ class CGCamera : public CSimpleCamera {
     /* 00AC */ int32_t m_ignoreFacingRefs;
     /* 00B0 */ int32_t m_groundTiltRefs;
     /* 00B4 */ uint32_t m_viewIndex;
-    /* 00B8 */ float m_views [8][3];
+    /* 00B8 */ CameraView m_views [8];
     /* 0118 */ float m_distance;
     /* 011C */ float m_yaw;
     /* 0120 */ float m_pitch;

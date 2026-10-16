@@ -370,9 +370,9 @@ CGCamera::~CGCamera() {
 // VERIFY: 6952a863 manual
 // OFFSET: 0x00603900
 void CGCamera::BarberShopSetView(float distance, float facing, float pitch) {
-    this->m_views[7][0] = distance;
-    this->m_views[7][2] = facing;
-    this->m_views[7][1] = pitch;
+    this->m_views[7].m_distance = distance;
+    this->m_views[7].m_yaw = facing;
+    this->m_views[7].m_pitch = pitch;
     this->SetView(7, 1, 0);
 }
 
@@ -764,7 +764,7 @@ void CGCamera::InitializeView() {
                 value *= 0.017453292f;
             }
 
-            this->m_views[i][j] = value;
+            this->m_views[i].Component(j) = value;
         }
     }
 }
@@ -1746,7 +1746,7 @@ int32_t CGCamera::IsViewDefault(uint32_t view) {
             value *= 0.017453292f;
         }
 
-        if (!(fabsf(this->m_views[view][i] - value) < 0.001f)) {
+        if (!(fabsf(this->m_views[view].Component(i) - value) < 0.001f)) {
             return 0;
         }
     }
@@ -1823,12 +1823,12 @@ void CGCamera::SaveCameraSettings() {
 void CGCamera::SaveViewToCVars(uint32_t view, float distance, float pitch, float yaw) {
     char buffer[40];
 
-    this->m_views[view][0] = distance;
-    this->m_views[view][1] = pitch;
-    this->m_views[view][2] = yaw;
+    this->m_views[view].m_distance = distance;
+    this->m_views[view].m_pitch = pitch;
+    this->m_views[view].m_yaw = yaw;
 
     for (uint32_t i = 0; i < 3; i++) {
-        float value = this->m_views[view][i];
+        float value = this->m_views[view].Component(i);
 
         if (s_cameraViewAngular[i]) {
             value *= 57.29578f;
@@ -3006,9 +3006,9 @@ void CGCamera::ResetView(int32_t view) {
 
     for (uint32_t i = 0; i < 3; i++) {
         if (s_cameraViewAngular[i]) {
-            this->m_views[view][i] = SStrToFloat(s_cameraViewDefaults[view].m_values[i]) * 0.017453292f;
+            this->m_views[view].Component(i) = SStrToFloat(s_cameraViewDefaults[view].m_values[i]) * 0.017453292f;
         } else {
-            this->m_views[view][i] = SStrToFloat(s_cameraViewDefaults[view].m_values[i]);
+            this->m_views[view].Component(i) = SStrToFloat(s_cameraViewDefaults[view].m_values[i]);
         }
     }
 
@@ -3079,7 +3079,7 @@ void CGCamera::SetView(int32_t view, int32_t blendStyle, int32_t transition) {
         this->m_smoothYaw.m_rate = 0.0f;
     }
 
-    float yaw = this->m_views[this->m_viewIndex][2];
+    float yaw = this->m_views[this->m_viewIndex].m_yaw;
 
     if (this->m_ignoreFacingRefs > 0) {
         CGObject_C* target = ClntObjMgrObjectPtr(this->m_targetGUID, TYPEMASK_OBJECT, __FILE__, __LINE__);
@@ -3099,8 +3099,8 @@ void CGCamera::SetView(int32_t view, int32_t blendStyle, int32_t transition) {
     }
 
     if (blendStyle == 1) {
-        int32_t distanceSet = this->SmoothSetDistance(this->m_views[view][0], 0.0f, 1.0f, time);
-        int32_t pitchSet = this->SetDesiredPitchAngle(this->m_views[view][1], 0.0f, 1.0f, time);
+        int32_t distanceSet = this->SmoothSetDistance(this->m_views[view].m_distance, 0.0f, 1.0f, time);
+        int32_t pitchSet = this->SetDesiredPitchAngle(this->m_views[view].m_pitch, 0.0f, 1.0f, time);
         int32_t yawSet = this->SetDesiredYawAngle(yaw, 0.0f, 1.0f, time);
         int32_t offsetSet = this->SetDesiredTargetOffset(0.0f, 0.0f, 1.0f, time);
         float rate = 0.0f;
@@ -3162,14 +3162,14 @@ void CGCamera::SetView(int32_t view, int32_t blendStyle, int32_t transition) {
     int32_t changed;
 
     if (!transition) {
-        int32_t distanceChanged = fnotequalz(this->m_distance, this->m_views[view][0], 0.001f) != 0;
-        int32_t pitchChanged = fnotequalz(this->m_pitch, this->m_views[view][1], 0.001f) != 0;
+        int32_t distanceChanged = fnotequalz(this->m_distance, this->m_views[view].m_distance, 0.001f) != 0;
+        int32_t pitchChanged = fnotequalz(this->m_pitch, this->m_views[view].m_pitch, 0.001f) != 0;
         int32_t yawChanged = fnotequalz(this->m_yaw, yaw, 0.001f) != 0;
         int32_t offsetChanged = fnotequalz(this->m_targetOffset, 0.0f, 0.001f) != 0;
-        this->m_distance = this->m_views[view][0];
-        this->m_smoothDistance.m_target = this->m_views[view][0];
-        this->m_pitch = this->m_views[view][1];
-        this->m_smoothPitch.m_target = this->m_views[view][1];
+        this->m_distance = this->m_views[view].m_distance;
+        this->m_smoothDistance.m_target = this->m_views[view].m_distance;
+        this->m_pitch = this->m_views[view].m_pitch;
+        this->m_smoothPitch.m_target = this->m_views[view].m_pitch;
         this->m_yaw = yaw;
         this->m_smoothYaw.m_target = yaw;
         this->m_targetOffset = 0.0f;
@@ -3429,7 +3429,7 @@ void CGCamera::SmoothFreeLook(CGInputControl* input, int32_t idle) {
             this->CancelSmoothPitch();
             smoothPitch = 0;
         } else {
-            float pitch = this->m_views[this->m_viewIndex][1];
+            float pitch = this->m_views[this->m_viewIndex].m_pitch;
 
             if (pitchMin > this->m_pitch) {
                 pitch = pitchMin;
@@ -3465,7 +3465,7 @@ void CGCamera::SmoothFreeLook(CGInputControl* input, int32_t idle) {
             this->CancelSmoothYaw();
             smoothYaw = 0;
         } else {
-            float base = this->m_views[this->m_viewIndex][2];
+            float base = this->m_views[this->m_viewIndex].m_yaw;
             float yaw = base;
 
             if (this->m_ignoreFacingRefs <= 0) {
@@ -4221,9 +4221,9 @@ void CGCamera::CalcModelCamera(uint32_t time) {
 // VERIFY: 399367f6 auto
 // OFFSET: 0x006038A0
 void CGCamera::CommentatorSetViewAndPosition(const C3Vector& position, float facing, float pitch) {
-    this->m_views[6][0] = 0.0f;
-    this->m_views[6][2] = facing;
-    this->m_views[6][1] = pitch;
+    this->m_views[6].m_distance = 0.0f;
+    this->m_views[6].m_yaw = facing;
+    this->m_views[6].m_pitch = pitch;
     this->m_position = position;
     this->m_position = position;
     this->SetView(6, 2, 0);
