@@ -1,0 +1,126 @@
+{
+  "repo": "https://github.com/microsoft/D3D9On12",
+  "commit": "f3352d12acb286e09c0b73d44a1fe2dfbb05065e",
+  "scope": [
+    "ShaderConverter",
+    "external/ddithunk.h",
+    "LICENSE"
+  ],
+  "files": [
+    {
+      "path": "external/ddithunk.h",
+      "sha256": "cc8bd2b274308940a153032623fe91285d2901b73590ee569860eb58fdaf0f28",
+      "size": 31116
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "903df5512f7d02609fed0c780a9b704f5a3eeb6e4d84ebe42a29845c81899a3c",
+      "size": 1093
+    },
+    {
+      "path": "ShaderConverter/CMakeLists.txt",
+      "sha256": "c9ead560c6198c62574fb662993915d0ec77de6162424be2283c285efd240219",
+      "size": 919
+    },
+    {
+      "path": "ShaderConverter/Inc/ShaderBinary.h",
+      "sha256": "1f7c4f994e7a9980c5a7b7c5ae0f1daee68b8882ace161a05603733910fb876a",
+      "size": 70795
+    },
+    {
+      "path": "ShaderConverter/Inc/ShaderConv.h",
+      "sha256": "48f0128592353c5143db8f0fda45285d771c0a1f52cdc35894da0d0ce9f3e0ec",
+      "size": 26345
+    },
+    {
+      "path": "ShaderConverter/Inc/ShaderConvCommon.h",
+      "sha256": "d1750c56b7c68cd8c479fa7db8237538554b6b0eaa04e6e50175b14bd4ff3e28",
+      "size": 803
+    },
+    {
+      "path": "ShaderConverter/Inc/ShaderConvInternal.h",
+      "sha256": "b537ff0395b4f540a1eb608899854acf518b521edf39951532b25cf3b7fb3715",
+      "size": 15972
+    },
+    {
+      "path": "ShaderConverter/ShaderBinary/pch.hpp",
+      "sha256": "102636b333a7c430de59d35bdee67f802e1ef21ee0469166cc12dc95ade55b8c",
+      "size": 859
+    },
+    {
+      "path": "ShaderConverter/ShaderBinary/ShaderBinary.cpp",
+      "sha256": "22e74e6f42379806e436570e2f8ecfa65437224e61f9cafdc6c25f5d70b100a2",
+      "size": 62658
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/context.cpp",
+      "sha256": "fdc254c17c566eee4dd4808903acfc4119e9fffb18b1c8a3c8b64657c052a310",
+      "size": 168684
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/context.hpp",
+      "sha256": "5d2afd925cda195d31008fe0129849163f6498abc203132141778b808ef95bdf",
+      "size": 23613
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/disasm.hpp",
+      "sha256": "3f6ee70136cb5792d31e1081f4e73d61bf2c507955e5a970fc2368dfd7c7455e",
+      "size": 673
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/disasm20.cpp",
+      "sha256": "60cbcb78900958f33b8d397c9abe521bccb10ebbfd56bae155d97fc0ab0d59fc",
+      "size": 28920
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/gsconv.cpp",
+      "sha256": "0e2c9119ddbd3553c48928a5ebf388e6ad682ee4738b043a9c244b48c78ba839",
+      "size": 38353
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/pch.h",
+      "sha256": "66a3a6c8b5182dc43c1a179ae18be792451fb214cac72dcde94f3849d62d28c3",
+      "size": 995
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/psconv.cpp",
+      "sha256": "2402b9407b9896be248fea8673fb4d015ece9695e6e7ef924adaf3b86b8e8188",
+      "size": 56485
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/ShaderBinaryEx.cpp",
+      "sha256": "dd50d99aedebc012543078074480bf4ffe72997a768eed15bf23e3a4e13ad136",
+      "size": 4804
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/ShaderBinaryEx.hpp",
+      "sha256": "7701e84875ca7f550d25ce3ccc12e32e50c7bb695fdac0c05318f6a8dfc36624",
+      "size": 20987
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/ShaderConv.cpp",
+      "sha256": "bb4a1a295f0d93f217f5266caf918305c2cab156dbf3ba68568b1ef3e2dd32d3",
+      "size": 12145
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/shaderconv.hpp",
+      "sha256": "0ca912d485b5efd9b5dd20ddbf42a80c88f5b6cececc62ae47c48d541a486e0c",
+      "size": 14323
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/tlvsconv.cpp",
+      "sha256": "af76d9b8251e791fa7cd9312455feff83bb01f984f0d0cfaca5d3d987c48f184",
+      "size": 13175
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/translator.cpp",
+      "sha256": "66f14161d13639e4d42e353c1c2a8985fe97f08ee6867c74aeb4d2a25ffc90b3",
+      "size": 3073
+    },
+    {
+      "path": "ShaderConverter/ShaderConv/vsconv.cpp",
+      "sha256": "c3e51be22dea805a7d6e6979ea585e311ae539f31fb81f790b0402405e24c2fd",
+      "size": 38809
+    }
+  ]
+}

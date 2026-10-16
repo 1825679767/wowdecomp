@@ -1,0 +1,45 @@
+cmake_minimum_required(VERSION 3.20)
+project(Dx11Research LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+add_library(Dx11Zlib STATIC
+    ${ROOT}/ThirdParty/zlib/adler32.c ${ROOT}/ThirdParty/zlib/crc32.c
+    ${ROOT}/ThirdParty/zlib/inffast.c ${ROOT}/ThirdParty/zlib/inflate.c
+    ${ROOT}/ThirdParty/zlib/inftrees.c ${ROOT}/ThirdParty/zlib/zutil.c
+    ${ROOT}/ThirdParty/zlib/compress.c ${ROOT}/ThirdParty/zlib/deflate.c
+    ${ROOT}/ThirdParty/zlib/trees.c)
+add_library(GxShaderContainer STATIC ${ROOT}/Engine/Source/Gx/ShaderContainer/ShaderContainer.cpp
+    ${ROOT}/Engine/Source/Gx/ShaderContainer/LegacyContainer.cpp)
+target_include_directories(GxShaderContainer PUBLIC ${ROOT})
+target_link_libraries(GxShaderContainer PUBLIC Dx11Zlib)
+add_executable(ShaderContainerTests ShaderContainerTests.cpp)
+target_link_libraries(ShaderContainerTests PRIVATE GxShaderContainer)
+add_executable(ShaderInspect ShaderInspect.cpp)
+target_link_libraries(ShaderInspect PRIVATE GxShaderContainer)
+if(WIN32)
+    add_executable(Dx11Offscreen Dx11Offscreen.cpp)
+    target_link_libraries(Dx11Offscreen PRIVATE GxShaderContainer d3d11 d3dcompiler dxguid)
+    target_link_libraries(ShaderInspect PRIVATE d3dcompiler dxguid)
+endif()
+enable_testing()
+if(WXL_DX11_WDK_ROOT)
+    add_subdirectory(${ROOT}/ThirdParty/D3D9ShaderConverter ${CMAKE_CURRENT_BINARY_DIR}/ShaderConverter)
+    add_library(GxLegacyShaderTranslator STATIC ${ROOT}/Engine/Source/Gx/ShaderContainer/LegacyShaderTranslator.cpp)
+    target_include_directories(GxLegacyShaderTranslator PUBLIC ${ROOT})
+    target_link_libraries(GxLegacyShaderTranslator PUBLIC GxD3D9ShaderConverter d3dcompiler)
+    add_executable(LegacyShaderCheck LegacyShaderCheck.cpp)
+    target_link_libraries(LegacyShaderCheck PRIVATE GxLegacyShaderTranslator d3d11 d3dcompiler dxguid)
+    add_executable(LegacyShaderAudit LegacyShaderAudit.cpp)
+    target_link_libraries(LegacyShaderAudit PRIVATE GxLegacyShaderTranslator GxShaderContainer d3d11)
+    if(WXL_DX11_SIGNER_DLL)
+        add_custom_command(TARGET LegacyShaderCheck POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${WXL_DX11_SIGNER_DLL}" "$<TARGET_FILE_DIR:LegacyShaderCheck>/dxbcSigner.dll")
+        add_custom_command(TARGET LegacyShaderAudit POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${WXL_DX11_SIGNER_DLL}" "$<TARGET_FILE_DIR:LegacyShaderAudit>/dxbcSigner.dll")
+    endif()
+endif()
+add_test(NAME ShaderContainerBounds COMMAND ShaderContainerTests)
+if(WIN32)
+    add_test(NAME Dx11WarpOffscreen COMMAND Dx11Offscreen)
+endif()

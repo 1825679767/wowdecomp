@@ -10,6 +10,9 @@
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDeviceD3d/CGxDeviceD3d.h"
 #include "Engine/Source/Gx/CGxDeviceD3d9Ex/CGxDeviceD3d9Ex.h"
+#ifdef WXL_ENABLE_DX11
+#include "Engine/Source/Gx/CGxDeviceD3d11/CGxDeviceD3d11.h"
+#endif
 
 // STATIC: 0x00AD8CE8
 static D3DMULTISAMPLE_TYPE s_d3dMultisampleTypes[9] = { D3DMULTISAMPLE_NONE, D3DMULTISAMPLE_2_SAMPLES, D3DMULTISAMPLE_4_SAMPLES, D3DMULTISAMPLE_6_SAMPLES, D3DMULTISAMPLE_8_SAMPLES, D3DMULTISAMPLE_10_SAMPLES, D3DMULTISAMPLE_12_SAMPLES, D3DMULTISAMPLE_14_SAMPLES, D3DMULTISAMPLE_16_SAMPLES };
@@ -36,6 +39,11 @@ int32_t CGxDevice::AdapterFormats(EGxApi api, TSGrowableArray<CGxFormat>& format
     formats.Reserve(256, 0);
 
     switch (api) {
+#ifdef WXL_ENABLE_DX11
+        case GxApi_D3d11:
+            CGxDeviceD3d11::AdapterFormats(formats);
+            break;
+#endif
         case GxApi_OpenGl:
             CGxDevice::OpenGlAdapterFormats(formats);
             break;
