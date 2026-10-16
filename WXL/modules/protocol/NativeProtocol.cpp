@@ -1,6 +1,7 @@
 // Native source transport adapted from WXL platform/waystone/Network.cpp.
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 #include "NativeProtocol.hpp"
+#include "ClientExtensions.hpp"
 #include "NativeFeatures.hpp"
 #include "ProtocolConsumers.hpp"
 #include "AppearanceSession.hpp"
@@ -262,10 +263,12 @@ namespace wxl::native::protocol
         FrameScript_RegisterFunction("WXL_NativePopCustom", &LuaPop);
         consumers::InitializeLua();
         appearance_session::Install();
+        client_extensions::Install();
     }
 
     void DestroyLua() noexcept
     {
+        client_extensions::Destroy();
         try
         {
             std::lock_guard lock(mutex);
@@ -300,6 +303,7 @@ namespace wxl::native::protocol
             if (!IsOwner()) return;
         }
         consumers::UiReady();
+        client_extensions::UiReady();
     }
 
     bool RegisterNativeDispatch(const NativeDeclaration* data,uint32_t count) noexcept
@@ -326,4 +330,16 @@ namespace wxl::native::protocol
             return true;
         } catch (...) { return false; }
     }
+    bool CanLegacySend(uint16_t opcode) noexcept {
+        try {std::lock_guard lock(mutex);return IsOwner() && ProtocolEnabled() &&
+            declarations.contains({opcode,true}) && !nativeOutbound.contains(opcode);}
+        catch(...){return false;}
+    }
+    bool CanLegacyObserve(uint16_t opcode) noexcept {
+        try {std::lock_guard lock(mutex);return IsOwner() && ProtocolEnabled() &&
+            declarations.contains({opcode,false}) && !nativeHandlers.contains(opcode) &&
+            !consumers::OwnsIncoming(opcode);}
+        catch(...){return false;}
+    }
+
 }

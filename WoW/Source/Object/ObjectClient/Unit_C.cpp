@@ -1,4 +1,6 @@
 #include "Unit_C.h"
+#include "WXL/AppearanceSession.hpp"
+#include "WoW/Source/Ui/BarberShop.h"
 #include <cmath>
 #include <new>
 #include <typeinfo>
@@ -848,6 +850,13 @@ void CGUnit_C::UpdateDisplay(uint32_t time) {
 
     if (!this->m_worldObject || !this->GetObjectModel() || !this->GetObjectModel()->IsLoaded(0, 0)) {
         return;
+    }
+
+    // Source-owned player components only: no snapshots on NPC disguises or
+    // transformed model families. The module checks the actual retail root.
+    if (this->m_obj && (this->m_obj->m_type & TYPEMASK_PLAYER) && this->m_characterComponent &&
+        !(CGBarberShop::m_barberShopEnabled && this->m_obj->m_guid == ClntObjMgrGetActivePlayer())) {
+        wxl::native::appearance_session::RefreshCharacter(this->m_obj->m_guid.m_guid,this->m_characterComponent);
     }
 
     if (!World::QueryObjectVisible(this->m_worldObject)) {

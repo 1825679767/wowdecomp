@@ -41,12 +41,13 @@ bool ApplyParticleExtensions(std::span<const uint8_t> raw,std::vector<uint8_t>& 
  }
  // WhiteoutLib a88224a9 parser.cpp150..168 maps EXPT
  // zSource/colorMult/alphaMult triples to emitter i. EXPT has no cutoff track.
- // Mixed chunks require a separately verified precedence policy.
- if(seenExpt && seenExp2)return fail("EXPT/EXP2 precedence is not supported");
+ // Whiteout specification13.4: EXP2 is authoritative when both exist;
+ // EXPT reconstructs the extension only when EXP2 is absent.
+ const bool useExpt=seenExpt && !seenExp2;
  if(!seenExpt && !seenExp2)return true;
  if(seenTxac){
   if((uint64_t(materials)+count)*2!=txac.size())return fail("particle extension TXAC row count");
-  if(seenExpt){
+  if(useExpt){
    for(const auto value:txac)if(value)return fail("EXPT requires neutral TXAC");
   }else{
    for(uint32_t i=0;i<count;++i){const auto at=2*(uint64_t(materials)+i);
@@ -55,9 +56,9 @@ bool ApplyParticleExtensions(std::span<const uint8_t> raw,std::vector<uint8_t>& 
   }
  }
  auto fits=[](size_t limit,uint32_t at,uint32_t n,size_t stride){return at<=limit && n<=(limit-at)/stride;};
- const auto extension=seenExpt?expt:exp2;
- uint32_t offset=0;const uint32_t recordStride=seenExpt?12:28;
- if(seenExpt){
+ const auto extension=useExpt?expt:exp2;
+ uint32_t offset=0;const uint32_t recordStride=useExpt?12:28;
+ if(useExpt){
   if(expt.size()!=uint64_t(count)*recordStride)return fail("EXPT emitter row count");
  }else{
   if(exp2.size()<8)return fail("EXP2 header bounds");
@@ -77,7 +78,10 @@ bool ApplyParticleExtensions(std::span<const uint8_t> raw,std::vector<uint8_t>& 
    if(times!=keys || keys>4096 || !fits(exp2.size(),timesAt,times,2) || !fits(exp2.size(),keysAt,keys,2) || (keys && (!timesAt || !keysAt)))return fail("EXP2 cutoff bounds");
    uint16_t previous=0;
    for(uint32_t k=0;k<keys;++k){const auto t=Read<uint16_t>(exp2.data(),timesAt+k*2);
-    if(Read<uint16_t>(exp2.data(),keysAt+k*2) || t>32767 || (k && t<previous))return fail("EXP2 nonzero/invalid cutoff");previous=t;
+    // Source cutoff positions span the full unorm16 lifetime domain. A
+    // zero function is exactly zero at every position, including65535;
+    // no native signed-fixed16 conversion or interpolation is needed.
+    if(Read<uint16_t>(exp2.data(),keysAt+k*2) || (k && t<previous))return fail("EXP2 nonzero/invalid cutoff");previous=t;
    }
   }
   // Every emitter owns its appended copies even if exporters alias key arrays.

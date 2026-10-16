@@ -99,8 +99,7 @@ deliberately not called merely when submitting the save, because an immediate
 query could observe the old server revision before commit. `HasSnapshot` still
 reports cache presence/revision, without implying server save acceptance.
 
-**Alternate forms, synthetic models, barber state and other nearby world units
-are not implemented by this stage.** Main-player/selection restoration and
+**Alternate forms, synthetic models, barber state are not implemented by this stage.** Player/selection restoration and
 creation/save ordering are source work; actual server persistence and visual
 results require separate acceptance.
 
@@ -110,3 +109,6 @@ Donor references: x64-waystone worktree
 injection, fixed addresses, auth evidence or gameplay acceptance is implied.
 
 Root integration adds a dedicated WxlAppearanceSession target and wxlAppearanceSave CVar (default ON), a C++17-compatible pointer/count dispatch API, transactional choice application, selection/active-player idle refresh and successful native character-update invalidation. No source/runtime acceptance implied by staging.
+
+
+Broader source batch also calls RefreshCharacter from typed player UpdateDisplay, sharing a four-query/second budget and bounded cached/retry state. Root identity validation excludes unsupported/NPC/transformed model families before querying. Caches refresh no faster than sixty seconds after a received snapshot, expire actors after120 seconds idle and prune at most once/second. Active barber edits suspend source refresh. The existing snapshot revision/model/lifetime memo avoids repeatedly overwriting local live edits. No new barber wire grammar is invented.

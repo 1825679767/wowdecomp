@@ -1,0 +1,184 @@
+{
+  "kind": "source-only-native-world-modules",
+  "base_commit": "6a8ea998b964b07570fd45d0f5a83febe5b7aa95",
+  "observed_utc": "2026-10-16T10:05:30.3553337Z",
+  "inputs": [
+    {
+      "path": "WoW/Source/WorldClient/MapArea.cpp",
+      "base_commit_blob": "3d49259e95dd8eb47d3bedd02aceb92676a77e07",
+      "live_sha256": "f6d576c90af8ed065d11da3211f768e1b60435c9a66eb8993acc925435fb8378"
+    },
+    {
+      "path": "WoW/Source/WorldClient/MapObjRead.cpp",
+      "base_commit_blob": "4913da53e6876bb0e470fa78ba34994df1005a8b",
+      "live_sha256": "5bb7ff34aea6cf43cfb859c18adf3ab85105b52e7db748bb273849e4f98da5d9"
+    },
+    {
+      "path": "WoW/Source/WorldClient/MapObj.cpp",
+      "base_commit_blob": "5cae84935e77ed383e8cbef33de4d24b6cc00e76",
+      "live_sha256": "3d45e23a69bc049dc1eefd05f1098c3efb1f4589ea54f017d7585d872a72187a"
+    },
+    {
+      "path": "WoW/Source/WorldClient/MapArea.h",
+      "base_commit_blob": "f8f3ae251e6df97f82751a6c2b619925e321de96",
+      "live_sha256": "a37ffca8e5ef6a0f2d9b9050bfba4d5c6499762100c3c3af64b2be2fa07d4392"
+    },
+    {
+      "path": "WoW/Source/WorldClient/MapChunk.h",
+      "base_commit_blob": "af9c4efbe77ea57775b997b06860eba2d3c8efe7",
+      "live_sha256": "75ec07532de737afa2f4c373476223ffb8c67a7fee4caeea7af7f7789bbca406"
+    },
+    {
+      "path": "WoW/Source/WorldClient/MapObj.h",
+      "base_commit_blob": "9567ebe0943363dc927b9ddc6ed29eb408d34bc4",
+      "live_sha256": "eea75fb5927fffcbeab3c8ab94dee41c30506c4435cecb0f71d46cdc739b1efc"
+    },
+    {
+      "path": "WoW/Source/WorldClient/MapRenderChunk.h",
+      "base_commit_blob": "e48a6a242046a5cf3e9e15ed3a0f444e1a042127",
+      "live_sha256": "82b28b3991964cc9f27c5461c8a0345b818132886e2ad0b849fcc983b91273f4"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "INTEGRATION.md",
+      "bytes": 5519,
+      "sha256": "b513fb8a3dbe4b2053d91733322e0e23bf540106dcfada3cae29f11b6836ffc5"
+    },
+    {
+      "path": "WoW/Source/WorldClient/MapArea.cpp",
+      "bytes": 23532,
+      "sha256": "e2d442524017b3e0352f414d4598201c0c1dad483e1313f2c3d659aeff6effb9"
+    },
+    {
+      "path": "WoW/Source/WorldClient/MapObj.cpp",
+      "bytes": 139976,
+      "sha256": "32b395f36a20a3969b48bad61922634df0d6ef55d9329eaa45d6256a842aa723"
+    },
+    {
+      "path": "WoW/Source/WorldClient/MapObjRead.cpp",
+      "bytes": 25330,
+      "sha256": "5cf5ad3df7a6d97186d2ef500da8f46c9670713a00aa7e843634cb4a4f9d4d2b"
+    },
+    {
+      "path": "WXL/WorldCompat.hpp",
+      "bytes": 423,
+      "sha256": "473d90b36eb2b1af0547a610a4079920dab10e1dafc001321dafbd7c5eece286"
+    },
+    {
+      "path": "WXL/modules/world/SplitAdtNative.cpp",
+      "bytes": 7812,
+      "sha256": "77f065dafab49456386d665c4fccfe14f8a443a094230045443babec8d1d8f05"
+    },
+    {
+      "path": "WXL/modules/world/WmoNative.cpp",
+      "bytes": 7983,
+      "sha256": "6992ab79069a32fafa274758796ea569a3422c97d2b96f53b406b32a60a973e1"
+    },
+    {
+      "path": "WXL/modules/world/WorldBytes.hpp",
+      "bytes": 1519,
+      "sha256": "0ef3252942a621f3cfe450ace99e253f0c9a9ea46c54f8f0d43def868fe0a138"
+    },
+    {
+      "path": "WXL/vendor/src/engine/assets/shared/models/wmo/ShaderFallback.hpp",
+      "bytes": 432,
+      "sha256": "ad07da15dadf3acb5295e9654adbd852026427cebb76dad1bfe7f6d73e68ad66"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/AdtChunkCompatibility.hpp",
+      "bytes": 4169,
+      "sha256": "ea0806e309f47880ee436112da82b25220ec1d689e5ced8088f596cb51975227"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/AdtCompanionInputs.hpp",
+      "bytes": 1697,
+      "sha256": "22a231706f34e92e9eb0d4502ff45c44c4012352acdf3ba3f1f03a1bec51c98c"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/AdtDoodadNames.hpp",
+      "bytes": 4373,
+      "sha256": "3fd778ccbfd062727dc57ac0a06811556cf26d49bc76a1b2adb35f4e54467c91"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/AdtObjectNames.hpp",
+      "bytes": 3190,
+      "sha256": "3eb1c828392c2fd389bac7f8d9618bb6194d481318486c2d664623a8932a00fe"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/AdtPreparedByteFamily.hpp",
+      "bytes": 3001,
+      "sha256": "cf95aee08ed38aca6aa8a7db39938ac41a749f4a43e79e020644f46ae53c615c"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/AdtRootStream.hpp",
+      "bytes": 1425,
+      "sha256": "16683ad069bcad4d60ac5ae0e0f440ec917380e12f9f3b9175a233d1a2d3b64e"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/AdtSourceAlphaPolicy.hpp",
+      "bytes": 989,
+      "sha256": "e8cdb6366951855c02373ef21e7805d74c212602954aeacb96ec25b92d020f99"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/AdtTextureNames.hpp",
+      "bytes": 3131,
+      "sha256": "9f2bd4e62e50eded53a56bcd6a9c04bb81ff4e0384ebda3821aa686ca977b562"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/AdtWmoPlacementNames.hpp",
+      "bytes": 4635,
+      "sha256": "da2ca4c4cbcb7ef3e4738d7683654e61272f6cbe725280ce28558c6755f34c3a"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/WmoAssetFamily.cpp",
+      "bytes": 4228,
+      "sha256": "8b301b412b4e45f14e07ce2b97aa33ff8b923678c1677dbd897ae837fce25059"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/WmoAssetFamily.hpp",
+      "bytes": 600,
+      "sha256": "da5869a1881888f35959c6b4e817b6a59d368b26cd6117802d5543e45e171cb6"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/WmoChunkIndex.cpp",
+      "bytes": 7584,
+      "sha256": "bd3a9bd2545d514558f3f8ad02b12e13cedc3e9e54bb66630586858d4b87f02a"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/WmoChunkIndex.hpp",
+      "bytes": 1524,
+      "sha256": "bad01bc52da3b2659a2dcc68ff76da3ba35b59af91f181a793c9226925fb541e"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/WmoLayout.hpp",
+      "bytes": 495,
+      "sha256": "4acf2742e0a3893f7be5fc8c1f7a94cf2529172e0d439ea2bfea32cfab956d9c"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/WmoMaterialPlan.cpp",
+      "bytes": 2873,
+      "sha256": "71e42928c9ae4aaf3818a85803847a7114d5d5fe1de406520d29140b7b0a9171"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/WmoMaterialPlan.hpp",
+      "bytes": 1081,
+      "sha256": "1f69f20c60dc912a591f2af3bead67f896edc47368445ddabb045e77eab5a578"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/WmoRootBytes.cpp",
+      "bytes": 4844,
+      "sha256": "cc06ce65b5c71264be283de24d28c96160d16f96ee4b897a6ca79ab92738a4bc"
+    },
+    {
+      "path": "WXL/vendor/src/platform/waystone/WmoRootBytes.hpp",
+      "bytes": 685,
+      "sha256": "56b189ba630f7abe81d1026fb52541d471838804ef9281bee45e614d37c5cf12"
+    }
+  ],
+  "binding_note": "Git blob IDs and live input hashes bind source references; no build binding or runtime acceptance",
+  "built": false,
+  "tested": false,
+  "installed": false,
+  "accepted": false
+}

@@ -11,7 +11,8 @@ const Entry entries[]{
  {"materials","runtime,m2",&MaterialsEnabled},{"particles","runtime,m2",&ParticlesEnabled},
  {"m2","runtime,storage;db2 optional for FDID",&AssetsEnabled},
  {"appearances","m2,db2,blp",&AppearancesEnabled},{"protocol","runtime",&ProtocolEnabled},
- {"appearance-session","appearances,protocol",&AppearanceSaveEnabled}};
+ {"appearance-session","appearances,protocol",&AppearanceSaveEnabled},
+ {"client-extensions","runtime,protocol",&ClientExtensionsEnabled},{"world-wmo","storage,db2",&WmoEnabled},{"world-adt","storage,db2",&SplitAdtEnabled}};
 int LuaModules(lua_State* L){
  lua_createtable(L,int(ModuleCount()),0);
  for(uint32_t i=0;i<ModuleCount();++i){

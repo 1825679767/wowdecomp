@@ -49,7 +49,7 @@ Pending pending;
 bool installed = false, ready = false, sessionLostNotice = false;
 uint64_t readySession = 0, nextRequest = 0;
 std::map<uint64_t, ap::Snapshot> snapshots;
-struct QueryState { uint32_t attempts = 0, lastSent = 0; };
+struct QueryState { uint32_t attempts = 0, lastSent = 0, lastTouched = 0, received = 0; };
 std::map<uint64_t, QueryState> queries;
 struct Applied {
     uint64_t session = 0, serial = 0;
@@ -61,7 +61,17 @@ std::map<uint64_t, Applied> applied;
 uint64_t helloSession = 0;
 uint32_t helloAttempts = 0, helloSentAt = 0;
 bool helloWaiting = false, helloRejected = false;
-constexpr uint32_t RetryMs = 3000, MaxAttempts = 3;
+constexpr uint32_t RetryMs = 3000, MaxAttempts = 3, RefreshMs = 60000;
+uint32_t queryWindow = 0, queryCount = 0, queryPruneAt = 0;
+void PruneQueries(uint32_t now) {
+    if (now-queryPruneAt < 1000) return;
+    queryPruneAt=now;
+    for (auto it = queries.begin(); it != queries.end();) {
+        if (now - it->second.lastTouched > 120000) {
+            snapshots.erase(it->first); applied.erase(it->first); it = queries.erase(it);
+        } else ++it;
+    }
+}
 
 void Dialog(const char* text) {
     FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "OKAY", text);
@@ -70,7 +80,7 @@ void Reset(void*) noexcept {
     try { std::lock_guard lock(mutex);
         if (pending.phase != Phase::None && pending.phase != Phase::Consumed) sessionLostNotice = true;
         pending = {}; ready = false; readySession = 0; snapshots.clear(); queries.clear(); applied.clear();
-        helloSession = 0; helloAttempts = helloSentAt = 0; helloWaiting = helloRejected = false;
+        helloSession = 0; helloAttempts = helloSentAt = 0; helloWaiting = helloRejected = false; queryWindow = queryCount = queryPruneAt = 0;
     } catch (...) {}
 }
 bool Same(const Context& a, const Context& b) {
@@ -167,6 +177,7 @@ void Receive(uint16_t opcode, const uint8_t* bytes, uint32_t length, uint64_t se
             const auto it = snapshots.find(snapshot.guid);
             if (it != snapshots.end() && it->second.revision > snapshot.revision) return;
             if (it == snapshots.end() && snapshots.size() >= 512) return;
+            queries[snapshot.guid].received = OsGetAsyncTimeMs();
             snapshots[snapshot.guid] = std::move(snapshot);
         }
     } catch (...) { Reset(nullptr); }
@@ -313,10 +324,15 @@ bool QueryCharacter(uint64_t guid) noexcept {
         if (EnsureHello(session) != HelloResult::Ready) return false;
         const uint32_t now = OsGetAsyncTimeMs();
         { std::lock_guard lock(mutex);
-            if (!ready || readySession != session || (!queries.contains(guid) && queries.size() >= 512)) return false;
-            auto& query = queries[guid];
+            if (!ready || readySession != session) return false;
+            if (!queries.contains(guid)) { PruneQueries(now); if (queries.size() >= 512) return false; }
+            auto& query = queries[guid]; query.lastTouched = now;
+            if (query.received && now-query.received < RefreshMs) return false;
+            if (query.received && now-query.received >= RefreshMs && now-query.lastSent >= RefreshMs) query.attempts=0;
+            if (now-queryWindow >= 1000) {queryWindow=now;queryCount=0;}
+            if (queryCount >= 4) return false;
             if (query.attempts >= MaxAttempts || (query.attempts && now - query.lastSent < RetryMs)) return false;
-            ++query.attempts; query.lastSent = now;
+            ++queryCount; ++query.attempts; query.lastSent = now;
         }
         std::vector<uint8_t> wire; ap::Put(wire, guid);
         if (WireSend(ap::CmsgQuery, wire)) return true;
@@ -347,17 +363,23 @@ void InvalidateCharacter(uint64_t guid) noexcept {
 void RefreshCharacter(uint64_t guid, CCharacterComponent* component) noexcept {
     try {
         if (!guid || !component || !component->m_wxlSerial || component == CCharacterCreation::m_character ||
-            !component->m_data.m_model || !AppearanceSaveEnabled()) return;
+            !component->m_data.m_model || !AppearanceSaveEnabled() ||
+            !RetailChoicesReady(component->m_data.m_preferences, component->m_data.m_model)) return;
         const auto session = protocol::SessionGeneration(FrameScript_GetContext());
         if (!session || EnsureHello(session) != HelloResult::Ready) return;
         ap::Snapshot snapshot;
-        bool cached = false;
+        bool cached = false, refresh = false;
         {
             std::lock_guard lock(mutex);
             const auto it = snapshots.find(guid);
-            if (it != snapshots.end() && readySession == session) { snapshot = it->second; cached = true; }
+            if (it != snapshots.end() && readySession == session) {
+                snapshot = it->second; cached = true;
+                auto& query = queries[guid]; query.lastTouched = OsGetAsyncTimeMs();
+                refresh = query.lastTouched - query.received >= RefreshMs;
+            }
         }
         if (!cached) { QueryCharacter(guid); return; }
+        if (refresh) QueryCharacter(guid);
         const auto& selection = snapshot.selection;
         const auto& preferences = component->m_data.m_preferences;
         if (snapshot.guid != guid || selection.catalog != ap::ClientCatalogId || !selection.alternate.empty() ||

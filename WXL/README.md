@@ -18,15 +18,18 @@ Each module has its own object-library build target and source directory. WxlNat
 | particles | WxlParticles / WXL::Particles | emitter normalization, EXP2 multiplier bake and neutral EXPT |
 | m2 | WxlM2 / WXL::M2 | native model/SKIN conversion, skeletons, animation and owned companion lifetime |
 | appearances | WxlAppearances / WXL::Appearances | component-owned atlas/mips, equipment textures, geosets and whole sheets |
+| client-extensions | WxlClientExtensions / WXL::ClientExtensions | native helpers, legacy addon packet codec/dispatch and paragon owner |
+| world | WxlWorld / WXL::World | modern WMO root/group providers and split ADT native byte families |
+| appearance-session | WxlAppearanceSession / WXL::AppearanceSession | hello/prepare/create and restored player choices |
 | protocol | WxlProtocol / WXL::Protocol | bounded custom packet transport, session lifecycle and Lua APIs |
 
 Public headers remain under WXL/. Native call sites use those headers; implementations live under WXL/modules/. DB2 no longer depends on a model adapter just to read files, and BLP preprocessing is separate from model loading. Narrow native Gx, Model2, character and network seams stay with their native owners.
 
 ## Feature controls
 
-All implemented features default ON. CMake options: WXL_ENABLE_NATIVE (master), WXL_ENABLE_ASSETS, WXL_ENABLE_DB2, WXL_ENABLE_BLP, WXL_ENABLE_MATERIALS, WXL_ENABLE_PARTICLES, WXL_ENABLE_APPEARANCES, WXL_ENABLE_PROTOCOL. Options control feature availability; interface implementations remain linked so native call sites have defined disabled behavior.
+All implemented features default ON. CMake options: WXL_ENABLE_NATIVE (master), WXL_ENABLE_ASSETS, WXL_ENABLE_DB2, WXL_ENABLE_BLP, WXL_ENABLE_MATERIALS, WXL_ENABLE_PARTICLES, WXL_ENABLE_APPEARANCES, WXL_ENABLE_PROTOCOL, WXL_ENABLE_APPEARANCE_SAVE, WXL_ENABLE_WMO, WXL_ENABLE_SPLIT_ADT, WXL_ENABLE_CLIENT_EXTENSIONS. Options control feature availability; interface implementations remain linked so native call sites have defined disabled behavior.
 
-Runtime CVars: wxlModernAssets, wxlRetailDb2, wxlModernBlp, wxlCustomMaterials, wxlParticles, wxlRetailAppearances, wxlCustomOpcodes, wxlAppearanceSave. Asset/DB changes require restart; model changes require reload. Appearances additionally require assets, DB2 and BLP; material/particle adaptation requires assets. Disabling dependencies suppresses the dependent path without changing its saved setting.
+Runtime CVars: wxlModernAssets, wxlRetailDb2, wxlModernBlp, wxlCustomMaterials, wxlParticles, wxlRetailAppearances, wxlCustomOpcodes, wxlAppearanceSave, wxlModernWmo, wxlSplitAdt, wxlClientExtensions. Asset/DB changes require restart; model changes require reload. Appearances additionally require assets, DB2 and BLP; material/particle adaptation requires assets. Disabling dependencies suppresses the dependent path without changing its saved setting.
 
 C++ ModuleCount/QueryModule expose version1 module descriptors. Lua WXL_GetNativeModules() returns id, apiVersion, dependencies and effective enabled state. NativeProtocol.md documents binary custom packet send/pop APIs; transport readiness is not a server acknowledgement or complete feature parser.
 
@@ -36,7 +39,7 @@ CM2Shared converts modern data before native relocation and owns converted SKIN 
 
 Sized sync/async BLP sources keep transcode buffers alive through upload. The appearance module joins mounted retail customization/material/layout tables, checks exact model identity, composes private atlas sheets and equipment layers, applies geosets and owns replaceable textures with native teardown. Creation preferences are sized from mounted race IDs instead of the former22-race array.
 
-Mesh blend7 ONE/INV_SRC_ALPHA remains separate from particle Screen INV_DEST_COLOR/ONE. EXP2 constant RGB/alpha multipliers are baked into private native keys. Neutral EXPT accepts only exact0/1/1 triples per emitter with absent or exact neutral TXAC, based on the documented Whiteout source contract; mixed EXP2/EXPT, unknown values and malformed rows refuse without publishing altered model bytes.
+Mesh blend7 ONE/INV_SRC_ALPHA remains separate from particle Screen INV_DEST_COLOR/ONE. EXP2 constant RGB/alpha multipliers are baked into private native keys. EXPT supports emitter RGB/alpha constants with neutral TXAC. EXP2 takes precedence when both extension chunks occur, matching source semantics. Identically-zero cutoff tracks support the full uint16 lifetime domain; unsupported nonzero cutoff, zSource and layered rendering remain refused.
 
 ## Remaining integration
 
@@ -54,8 +57,18 @@ The five native appearance controls, counts, nth lookups, randomization, validat
 
 WXL_GetRetailOptions/GetRetailChoices/GetRetailSelection and WXL_SetRetailChoice expose explicit option/choice IDs. WXL_RetailSelectionCanSave reports whether the selection fits the current native save path. Extra nondefault option IDs use the modular appearance-session owner: catalog negotiation, exact prepare/ACK matching, one-use native create dispatch and bounded stale/session/name/choice cancellation. Saved snapshots restore transactionally in character selection and on the active player. Alternate forms, synthetic profiles, barber state and nearby units remain outside this owner. No server ACK/save is simulated; authenticated persistence remains untested.
 
-Recipe-selected skinned children use typed native model lifetime and complete same-index skeleton verification. They share source pose updates, rendering, lighting, scene migration and shadow traversal. Children with differing/subset skeletons or child emitters/lights/point attachments remain unsupported; appendage culling bounds are not expanded yet.
+Recipe-selected skinned children use typed native model lifetime and a verified child-to-source skeleton map. Ancestor-closed subsets and reordered bones are supported when exact identifiers, bind pivots and parent topology establish a unique injective correspondence. They share source pose updates, rendering, lighting, scene migration and shadow traversal. Ambiguous skeletons, omitted ancestors, differing bind pivots or child emitters/lights/point attachments remain unsupported; appendage culling bounds are not expanded yet.
 
 EXPT now supports finite constant RGB/alpha multipliers through the same private-key bake as EXP2, retaining source emitter order and native Screen behavior. Nonzero zSource, layered UV/shader rendering and animated cutoff remain unsupported.
 
 Area-loot, garrison and spell-charge consumers now publish validated session-owned state through their existing WXL Lua APIs and WXL64 aliases. Spell-charge presentation installs after GameUI initialization, not during early Lua setup. See modules/protocol/CONSUMERS.md. Existing UI/data archives are not modified by this source batch.
+
+## Broader native integration batch
+
+Creation now has a paginated, template-independent retail-detail panel for explicit extra options. The native randomize command includes extra options, and the panel refreshes from actual component/lifetime/preferences/revision changes. The five stock axes remain in their native controls. UI/archive layouts can be refined after broad testing; no shared or locale archive is changed.
+
+Source-native player UpdateDisplay restores server appearance snapshots for nearby players as well as the active player; actual default model checks keep NPC disguises and transformed families out. Queries share a four-per-second budget, three attempts per refresh, bounded512 actor caches, sixty-second revision refresh and idle eviction. Active barber edits suspend restoration. This does not add an unsupported barber save opcode or authenticate server persistence.
+
+WXL::World integrates modern WMO root/material/FDID normalization and root-owned group providers before the stock parser. A complete prepared family publishes atomically; native group creation and SMem lifetime own copies. Provider failure is distinct from classic fallback. Split ADT loads the real caller's exact root/tex0/obj0 family using consumed native MPHD alpha policy, shapes an owned monolithic native buffer and retains stock terrain parsing/rendering. tex1 alternatives, unresolved placements, unsupported liquid layouts, 32-bit WMO geometry and incompatible layered shaders remain refused. There is no guessed WDT/MAID route or global alpha mutation. This adds source loader support, with synchronous preparation and runtime streaming/visual acceptance still pending. Native world/fog/liquid/weather rendering stays native. See modules/world/INTEGRATION.md.
+
+Client extensions now supply CreateWXLPacket/OnWXLPacket, typed bounded little-endian codecs, source-whitelisted raw custom IDs, private native-consumer exclusion, session-safe readers/writers and an owner-side callback pump. Logging, spell descriptions, Unicode command-line arguments and mounted text reads retain the donor APIs. Paragon has its own bounded compiled request/state owner and original Lua entry points. Native gameplay handlers for other raw addon IDs are not implied by the facade. See modules/client-extensions/INTEGRATION.md.

@@ -21,5 +21,8 @@ bool RetailSelectionNeedsProtocol(const CCharacterComponent&) noexcept;
 uint32_t RetailChoiceRevision(const CCharacterComponent&) noexcept;
 void TransferRetailChoices(const CCharacterComponent&,CCharacterComponent&) noexcept;
 void ReleaseRetailChoices(CCharacterComponent&) noexcept;
+bool RandomizeRetailExtras(CCharacterComponent&) noexcept;
 void InitializeRetailChoiceLua();
+void UpdateRetailChoiceUi();
+void HideRetailChoiceUi();
 }

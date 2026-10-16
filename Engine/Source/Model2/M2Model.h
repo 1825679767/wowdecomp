@@ -223,9 +223,10 @@ class CM2Model {
     /* 02E8 */ uint32_t m_handle;
     /* 02EC */ uint32_t unused_02EC;
 
-    // Skinned components share a complete verified bind topology, not a socket.
+    // Skinned components share verified bind topology through an explicit map.
     // A dependent retains its source; the source's reverse list is non-owning.
     CM2Model* m_skinningSource = nullptr;
+    std::vector<uint16_t> m_skinningBoneMap; // dependent index -> source index
     std::vector<CM2Model*> m_skinnedDependents;
     bool SetSkinningSource(CM2Model* source);
     void SynchronizeSkinnedDependentsMT(const C44Matrix* view);

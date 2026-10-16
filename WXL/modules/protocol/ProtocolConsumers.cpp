@@ -271,9 +271,11 @@ namespace wxl::native::protocol::consumers
         }
     }
 
+    bool OwnsIncoming(uint16_t opcode) noexcept {return opcode==0x526 || opcode==0x551 || opcode==0x553;}
+
     bool Consume(uint16_t opcode, const uint8_t* data, size_t length, uint64_t session) noexcept
     {
-        if (opcode != 0x526 && opcode != 0x551 && opcode != 0x553) return false;
+        if (!OwnsIncoming(opcode)) return false;
         try
         {
             if (!session) return true;

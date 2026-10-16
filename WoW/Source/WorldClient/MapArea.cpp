@@ -1,4 +1,5 @@
 #include "MapArea.h"
+#include "WXL/WorldCompat.hpp"
 #include <cstring>
 #include "Engine/Source/Services/AsyncFile.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -380,6 +381,12 @@ CMapArea::CMapArea() {
 // VERIFY: 09d8cf56 auto
 // OFFSET: 0x007D7150
 void CMapArea::Load(const char* fileName) {
+    const auto split = wxl::native::world::LoadSplitArea(*this, fileName);
+    if (split == wxl::native::world::SplitLoad::Loaded) return;
+    if (split == wxl::native::world::SplitLoad::Rejected) {
+        SErrDisplayAppFatal("Unsupported or malformed split ADT family: %s", fileName);
+        return;
+    }
     CMap::SafeOpen(fileName, &this->m_file);
     this->m_fileSize = SFileGetFileSize(this->m_file, nullptr);
     this->m_fileBuffer = CMapArea::AllocAsyncLoadBuffer(this->m_fileSize);

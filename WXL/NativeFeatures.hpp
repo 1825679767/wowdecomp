@@ -4,6 +4,9 @@ namespace wxl::native {
 void RegisterFeatures();
 bool NativeEnabled() noexcept;
 bool Db2Enabled() noexcept;
+bool WmoEnabled() noexcept;
+bool ClientExtensionsEnabled() noexcept;
+bool SplitAdtEnabled() noexcept;
 bool AppearanceSaveEnabled() noexcept;
 bool AppearancesEnabled() noexcept;
 bool ProtocolEnabled() noexcept;

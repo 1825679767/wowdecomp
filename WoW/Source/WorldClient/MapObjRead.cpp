@@ -1,4 +1,5 @@
 #include "MapObjRead.h"
+#include "WXL/WorldCompat.hpp"
 #include "Engine/Source/Tempest/NTempest.h"
 #include "Engine/Source/Tempest/C3Ray.h"
 #include "WoW/Common/AaBsp.h"
@@ -416,6 +417,10 @@ void CMapObj::PostloadCallback(void* arg) {
     AsyncFileReadDestroyObject(mapObj->m_asyncObject);
     mapObj->m_asyncObject = nullptr;
     mapObj->m_asyncLoadLink.Unlink();
+    if (!wxl::native::world::PrepareWmo(*mapObj)) {
+        SErrDisplayAppFatal("Unsupported or malformed modern WMO family: %s", mapObj->m_wmoName);
+        return;
+    }
     mapObj->Load();
     mapObj->CreateMaterials();
     mapObj->m_argbColor = *reinterpret_cast<CImVector*>(&mapObj->m_header->m_ambColor);
@@ -606,6 +611,12 @@ void CMapObjGroup::AsyncPostloadCallback(void* arg) {
 // OFFSET: 0x007D85E0
 void CMapObj::ReadGroup(uint32_t index, bool preLoad) {
     CMapObjGroup* group = this->m_mapObjGroupArray[index];
+    const auto prepared = wxl::native::world::LoadPreparedWmoGroup(*this,index,*group);
+    if (prepared == wxl::native::world::GroupLoad::Loaded) return;
+    if (prepared == wxl::native::world::GroupLoad::Rejected) {
+        SErrDisplayAppFatal("Unable to load prepared WMO group: %s (%u)",this->m_wmoName,index);
+        return;
+    }
 
     char fileName[256];
     strcpy(fileName, this->m_wmoName);

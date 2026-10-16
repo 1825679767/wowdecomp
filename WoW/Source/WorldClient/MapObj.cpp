@@ -1,4 +1,5 @@
 #include "MapObj.h"
+#include "WXL/WorldCompat.hpp"
 #include <cstdlib>
 #include <malloc.h>
 #include <new>
@@ -1855,6 +1856,7 @@ void CMapObj::Init() {
 // VERIFY: b756cecb manual
 // OFFSET: 0x007AE3B0
 void CMapObj::Clear() {
+    wxl::native::world::ReleaseWmo(*this);
     int32_t freeData = 1;
 
     if (this->m_asyncObject) {

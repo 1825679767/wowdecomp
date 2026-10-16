@@ -39,4 +39,7 @@ namespace wxl::native::protocol
     };
     // Entire group commits atomically; no partial feature registration.
     bool RegisterNativeDispatch(const NativeDeclaration* entries,uint32_t count) noexcept;
+    // Legacy addon facade may use declared raw packets, never compiled owners.
+    bool CanLegacySend(uint16_t opcode) noexcept;
+    bool CanLegacyObserve(uint16_t opcode) noexcept;
 }

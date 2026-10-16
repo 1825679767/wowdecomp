@@ -144,6 +144,7 @@ void CCharacterCreation::Shutdown() {
 // OFFSET: 0x004DFA50
 int32_t CCharacterCreation::Idle(const void* data, void* param) {
     wxl::native::appearance_session::Tick();
+    wxl::native::UpdateRetailChoiceUi();
     CGlueLoading::Idle(CCharacterCreation::m_character);
     return 1;
 }
@@ -166,6 +167,7 @@ void CCharacterCreation::GetRandomRaceAndSex(ComponentData* data) {
 // VERIFY: 45c27290 auto
 // OFFSET: 0x004DFFC0
 void CCharacterCreation::OnHide() {
+    wxl::native::HideRetailChoiceUi();
     wxl::native::appearance_session::Cancel();
     EventUnregister(EVENT_ID_IDLE, &CCharacterCreation::Idle);
     LoadingScreenMiniDisable();
@@ -604,6 +606,7 @@ void CCharacterCreation::InitCharacterComponents(ComponentData* data, bool rando
         CCharacterCreation::m_character->SetRandomHairStyle(COMPONENT_CONTEXT_0);
         CCharacterCreation::m_character->SetRandomFace(COMPONENT_CONTEXT_0);
         CCharacterCreation::m_character->SetRandomFacialFeature(COMPONENT_CONTEXT_0);
+    wxl::native::RandomizeRetailExtras(*CCharacterCreation::m_character);
     }
 
     CCharacterCreation::m_prevSkinIndex = CCharacterCreation::m_character->m_data.m_preferences.m_skinID;
