@@ -113,6 +113,7 @@ bool CGxDeviceD3d11::RecoverDevice(){
     if(!m->device)return false;m_context=0;
     const HWND window=m->window;const bool own=m->ownWindow,offscreen=m->offscreen,warp=m->warp;
     const uint32_t width=m->width,height=m->height;
+    const auto focused=m_windowFocus,visible=m_windowVisible;
     m->RestoreGamma();m->context->ClearState();m->context->Flush();
     for(auto& [texture,data]:m->textures){texture->m_apiSpecificData=nullptr;texture->m_apiSpecificData2=nullptr;texture->m_needsCreation=1;texture->m_needsUpdate=1;}
     auto pools=std::move(m->pools);for(auto& [pool,data]:pools){pool->m_apiSpecific=nullptr;data.gpu.Reset();data.dirtyBegin=0;data.dirtyEnd=uint32_t(data.cpu.size());}
@@ -125,6 +126,7 @@ bool CGxDeviceD3d11::RecoverDevice(){
     m.reset(new Impl(this));m->window=window;m->ownWindow=own;m->offscreen=offscreen;m->warp=warp;m->width=width;m->height=height;
     m->pools=std::move(pools);m->shaderSources=std::move(sources);
     if(!Initialize(warp)){Log("DX11 device recovery failed; rendering remains unavailable");m_context=0;return false;}
+    m_windowFocus=focused;m_windowVisible=visible;
     m->ApplyGamma();NotifyOnDeviceRestored();NotifyOnTextureRecreation();Log("DX11 device recovered with native owners preserved");return true;
 }
 
@@ -172,6 +174,11 @@ int32_t CGxDeviceD3d11::DeviceSetFormat(const CGxFormat& format){
         SetWindowPos(m->window,nullptr,0,0,rect.right-rect.left,rect.bottom-rect.top,SWP_NOMOVE|SWP_NOZORDER|SWP_FRAMECHANGED|SWP_NOACTIVATE);
     }
     m->changingFormat=false;
+    if(m->swapchain&&!format.m_window){
+        DXGI_MODE_DESC mode{};mode.Width=format.m_size.x;mode.Height=format.m_size.y;
+        mode.Format=DXGI_FORMAT_R8G8B8A8_UNORM;mode.RefreshRate.Numerator=format.m_refreshRate;mode.RefreshRate.Denominator=1;
+        if(!Check(m->swapchain->ResizeTarget(&mode),"fullscreen display mode"))return 0;
+    }
     if(m->swapchain&&!Check(m->swapchain->SetFullscreenState(!format.m_window,nullptr),"fullscreen change"))return 0;
     const bool result=Resize(format.m_size.x,format.m_size.y);if(result){m->ApplyGamma();NotifyOnDeviceRestored();}return result;
 }

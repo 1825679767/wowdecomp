@@ -204,7 +204,21 @@ int main(int argc,char** argv) try {
         Equal(Center(device,8,8),clear,"MSAA color resolve/readback");CiRect r(0,0,8,8);TSGrowableArray<float> depths;
         device.DeviceReadDepths(r,depths);Check(depths.Count()==64&&depths[32]==1.f,"MSAA depth clear/readback");
     }
-    device.DeviceDestroy();g_theGxDevicePtr=nullptr;CGxDevice::LogClose();
+    device.DeviceDestroy();g_theGxDevicePtr=nullptr;
+    if(argc==4&&!std::strcmp(argv[3],"window")){
+        SFile::EnableDirectAccess(1);CGxDeviceD3d11 window;g_theGxDevicePtr=&window;
+        C2iVector dimensions;dimensions.x=256;dimensions.y=256;
+        CGxFormat f(true,dimensions,CGxFormat::Fmt_Argb8888,CGxFormat::Fmt_Ds248,0,0,true,false,false,true,0);
+        Check(window.DeviceCreate(static_cast<GxWindowProc>(nullptr),f)!=0,"native hardware window/swapchain creation");
+        window.SceneClear(3,clear);Equal(Center(window,256,256),clear,"native swapchain backbuffer pixels");window.ScenePresent();
+        f.m_size.x=128;f.m_size.y=96;Check(window.DeviceSetFormat(f)!=0,"native window/swapchain resize");
+        window.SceneClear(3,clear);Equal(Center(window,128,96),clear,"resized swapchain pixels");window.ScenePresent();
+        const auto handle=window.DeviceWindow();window.DeviceWM(GxWM_KillFocus,0,0);
+        Check(window.RecoverDevice()&&window.DeviceWindow()==handle&&!window.m_windowFocus,"window/owner/focus survive recreation");
+        window.SceneClear(3,clear);Equal(Center(window,128,96),clear,"recreated swapchain pixels");window.ScenePresent();
+        window.DeviceDestroy();g_theGxDevicePtr=nullptr;SFile::EnableDirectAccess(0);
+    }
+    CGxDevice::LogClose();
     std::cout<<"PASS native D3D11 backend checks="<<checks<<" (fixed and native shaders, indexed draw, texture, alpha, blend, depth, targets, copy, query, reset)\n";
     return 0;
 }catch(const std::exception& e){CGxDevice::LogClose();std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}
