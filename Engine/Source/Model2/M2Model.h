@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 #include "Engine/Source/Model2/M2Light.h"
 #include "Engine/Source/Model2/M2Shared.h"
 #include "Engine/Source/Tempest/C2Vector.h"
@@ -221,6 +222,13 @@ class CM2Model {
     /* 02E4 */ uint32_t m_hitTestGroup;
     /* 02E8 */ uint32_t m_handle;
     /* 02EC */ uint32_t unused_02EC;
+
+    // Skinned components share a complete verified bind topology, not a socket.
+    // A dependent retains its source; the source's reverse list is non-owning.
+    CM2Model* m_skinningSource = nullptr;
+    std::vector<CM2Model*> m_skinnedDependents;
+    bool SetSkinningSource(CM2Model* source);
+    void SynchronizeSkinnedDependentsMT(const C44Matrix* view);
 
     static void (*s_transformVertices[5])(CM2Model*, M2SkinSection*, uint8_t*, int32_t);
     static TSGrowableArray<M2ModelCallback> s_sequenceCallbacks;

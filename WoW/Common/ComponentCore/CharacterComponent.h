@@ -23,7 +23,7 @@ class CTexture;
 struct CVar;
 class ItemDisplayInfoRec;
 struct st_race;
-namespace wxl::native {struct AppearanceAssets;}
+namespace wxl::native {struct AppearanceAssets;struct RetailChoiceState;}
 
 struct CharacterBaseVariation {
     /* 0000 */ void* m_texture [3];
@@ -159,6 +159,7 @@ class CCharacterComponent {
     /* 0464 */ int32_t m_itemSlotForAttachSlot [50];
     /* 052C */ CComponentRequest* m_request;
     wxl::native::AppearanceAssets* m_wxlAppearance = nullptr;
+    wxl::native::RetailChoiceState* m_wxlChoices = nullptr;
 
     CCharacterComponent();
     ~CCharacterComponent();

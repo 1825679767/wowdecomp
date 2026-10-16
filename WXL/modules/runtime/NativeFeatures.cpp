@@ -17,6 +17,8 @@ bool Changed(CVar*,const char*,const char* value,void* arg){
 bool On(uint32_t bit) noexcept{return (enabled.load(std::memory_order_acquire)&Compiled&bit)!=0;}
 }
 void RegisterFeatures(){
+ CVar::Register("wxlAreaLootAuto","WXL automatic area loot",2,"1",nullptr,0,false,nullptr,false);
+ CVar::Register("wxlAreaLootQuality","WXL minimum automatic area loot quality",2,"0",nullptr,0,false,nullptr,false);
  struct Feature{const char* name;const char* help;uint32_t bit;};
  const Feature features[]{
   {"wxlRetailDb2","WXL retail DB2 schemas and FDID paths; restart after changing",Db2},

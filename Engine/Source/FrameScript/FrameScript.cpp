@@ -1,6 +1,7 @@
 #include <cmath>
 #include "WXL/NativeProtocol.hpp"
 #include "WXL/ModuleApi.hpp"
+#include "WXL/RetailChoices.hpp"
 #include <cstdint>
 #include <cstring>
 #include <malloc.h>
@@ -1166,6 +1167,7 @@ int32_t FrameScript_Initialize(int32_t profile) {
     FrameScript_Execute(s_compatLua, "compat.lua", nullptr);
 
     wxl::native::InitializeModuleLua();
+    wxl::native::InitializeRetailChoiceLua();
     wxl::native::protocol::InitializeLua();
 
     return 1;

@@ -143,6 +143,10 @@ void CM2Model::WaitForLoad(const char* reason) {
 // VERIFY: 240e75c9 auto
 // OFFSET: 0x00823F10
 void CM2Model::SetAnimating(int32_t animating) {
+    if (animating && this->m_skinningSource) {
+        this->m_skinningSource->SetAnimating(1);
+        return; // source MT/ST owns the dependency's animation and draw order
+    }
     if (this->m_flags & 0x20) {
         if (!animating) {
             goto unlink;
@@ -2633,6 +2637,11 @@ void CM2Model::AnimateST() {
     if (this->m_effectiveAlpha == 1.0f) {
         this->m_uint90 = 1;
     }
+
+    for (CM2Model* child : this->m_skinnedDependents) {
+        child->AnimateST();
+        child->m_currentLighting = this->m_currentLighting;
+    }
 }
 
 // VERIFY: 852eaff5 manual
@@ -4827,6 +4836,7 @@ void CM2Model::AnimateMTSimple(const C44Matrix* view, const C3Vector& diffuse, c
     }
 
     this->m_frameStamp = this->m_scene->m_frameStamp;
+    this->SynchronizeSkinnedDependentsMT(view);
 }
 
 // VERIFY: 932496a8 manual
@@ -5693,6 +5703,7 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
     }
 
     this->m_frameStamp = this->m_scene->m_frameStamp;
+    this->SynchronizeSkinnedDependentsMT(view);
 }
 
 // VERIFY: a2d095a0 manual
@@ -5829,6 +5840,10 @@ C3Vector CM2Model::GetWorldPosition() {
 // VERIFY: 4377f416 manual
 // OFFSET: 0x00830DC0
 void CM2Model::Animate() {
+    if (this->m_skinningSource) {
+        this->m_skinningSource->Animate();
+        return;
+    }
     CM2Scene* scene = this->m_scene;
 
     if (this->m_frameStamp == scene->m_frameStamp) {
@@ -6184,6 +6199,10 @@ C44Matrix CM2Model::GetEventWorldTransform(uint32_t id) {
 // VERIFY: 44b90448 manual
 // OFFSET: 0x00831990
 void CM2Model::AnimateSM() {
+    if (this->m_skinningSource || !this->m_skinnedDependents.empty()) {
+        this->Animate();
+        return;
+    }
     CM2Scene* scene = this->m_scene;
 
     if (this->m_frameStamp == scene->m_frameStamp) {
@@ -6247,6 +6266,9 @@ void CM2Model::SetupLighting() {
 
     for (CM2Model* child = this->m_attachList; child; child = child->m_attachNext) {
         child->SetupLighting();
+    }
+    for (CM2Model* child : this->m_skinnedDependents) {
+        child->m_currentLighting = this->m_currentLighting;
     }
 }
 
@@ -6576,6 +6598,7 @@ void CM2Model::ProcessCallbacksRecursive() {
 // VERIFY: d96ccadd manual
 // OFFSET: 0x00832640
 CM2Model::~CM2Model() {
+    this->SetSkinningSource(nullptr);
     CM2Model* model30 = this->m_model30;
 
     if (model30 && model30->m_refCount-- == 1) {
@@ -7696,6 +7719,9 @@ void CM2Model::AttachToSceneRecursive(CM2Scene* scene) {
     for (CM2Model* child = this->m_attachList; child; child = child->m_attachNext) {
         child->AttachToSceneRecursive(scene);
     }
+    for (CM2Model* child : this->m_skinnedDependents) {
+        child->AttachToSceneRecursive(scene);
+    }
 }
 
 // VERIFY: 3596777a manual
@@ -7761,6 +7787,9 @@ void CM2Model::GatherModelBatchesShadowMap(CModelBatchList& untextured, CModelBa
     }
 
     for (CM2Model* child = this->m_attachList; child; child = child->m_attachNext) {
+        child->GatherModelBatchesShadowMap(untextured, textured);
+    }
+    for (CM2Model* child : this->m_skinnedDependents) {
         child->GatherModelBatchesShadowMap(untextured, textured);
     }
 }

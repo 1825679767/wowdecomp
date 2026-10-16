@@ -5,6 +5,7 @@
 
 class NetClient;
 class CDataStore;
+struct lua_State;
 
 namespace wxl::native::protocol
 {
@@ -21,4 +22,8 @@ namespace wxl::native::protocol
     void ResetSession(NetClient* client) noexcept;
     void InitializeLua();
     void DestroyLua() noexcept;
+    // Call after the root UI has loaded; installs spell-charge presentation.
+    void UiReady();
+    // Owner-only validity token for compiled feature Lua entry points.
+    uint64_t SessionGeneration(lua_State* state) noexcept;
 }

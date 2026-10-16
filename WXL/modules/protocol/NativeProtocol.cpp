@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 #include "NativeProtocol.hpp"
 #include "NativeFeatures.hpp"
+#include "ProtocolConsumers.hpp"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Net/NetClient/NetClient.h"
@@ -31,13 +32,15 @@ namespace wxl::native::protocol
         // Existing portable feature wire IDs. Appearance save needs a separate
         // feature owner for its hello/prepare/query state machine.
         std::set<std::pair<uint16_t, bool>> declarations{
-            {0x526, false}, {0x550, true}, {0x551, false},
+            {0x525, true}, {0x526, false}, {0x550, true}, {0x551, false},
             {0x552, true}, {0x553, false}};
         std::deque<Message> pending;
         size_t pendingBytes = 0;
         uint64_t generation = 1;
         std::thread::id owner;
         lua_State* context = nullptr;
+        ClientConnection* observedClient = nullptr;
+        WowConnection* observedTransport = nullptr;
 
         bool IsOwner()
         {
@@ -50,6 +53,24 @@ namespace wxl::native::protocol
             auto* client = ClientServices::s_currentConnection;
             return client && client->m_netState == NS_CONNECTED &&
                 client->m_serverConnection && !client->m_suspended ? client : nullptr;
+        }
+
+        // Owner thread, with mutex held. A redirect can replace the transport
+        // without a disconnect event; invalidate consumer state at that seam too.
+        ClientConnection* ObserveSession()
+        {
+            auto* client = ProtocolEnabled() ? Current() : nullptr;
+            auto* transport = client ? client->m_serverConnection : nullptr;
+            if (client != observedClient || transport != observedTransport)
+            {
+                observedClient = client;
+                observedTransport = transport;
+                ++generation;
+                pending.clear();
+                pendingBytes = 0;
+                consumers::Reset();
+            }
+            return client;
         }
 
         int LuaSend(lua_State* L)
@@ -102,12 +123,14 @@ namespace wxl::native::protocol
 
     bool Send(uint16_t opcode, const void* payload, uint32_t length) noexcept
     {
-        if (!ProtocolEnabled() || length > MaxPayload || (length && !payload)) return false;
+        if (!ProtocolEnabled() || length > MaxPayload || (length && !payload) ||
+            !consumers::ValidateSend(opcode, payload, length)) return false;
         try
         {
             {
                 std::lock_guard lock(mutex);
                 if (!IsOwner() || !declarations.contains({opcode, true})) return false;
+                if (!ObserveSession()) return false;
             }
             auto* client = Current();
             if (!client) return false;
@@ -133,13 +156,17 @@ namespace wxl::native::protocol
             if (!declarations.contains({opcode, false})) return false;
             claimed = true;
             if (!packet) return true;
-            if (!IsOwner() || client != Current() || !packet->m_data ||
+            if (!IsOwner() || client != ObserveSession() || !packet->m_data ||
                 packet->m_read < packet->m_base || packet->m_read > packet->m_size) return true;
             const uint32_t length = packet->m_size - packet->m_read;
             const uint32_t offset = packet->m_read - packet->m_base;
-            if (length > MaxPayload || pending.size() >= MaxPackets || length > MaxBytes - pendingBytes ||
+            if (length > MaxPayload ||
                 (packet->m_alloc != UINT32_MAX &&
                  (offset > packet->m_alloc || length > packet->m_alloc - offset))) return true;
+            // Built-in feature consumers publish validated owner-side state.
+            // They perform no Lua calls while native queue/capture locks exist.
+            if (consumers::Consume(opcode, packet->m_data + offset, length, generation)) return true;
+            if (pending.size() >= MaxPackets || length > MaxBytes - pendingBytes) return true;
             Message message{opcode, client, client->m_serverConnection, generation, {}};
             if (length) message.payload.assign(packet->m_data + offset, packet->m_data + offset + length);
             pending.push_back(std::move(message));
@@ -162,7 +189,7 @@ namespace wxl::native::protocol
         {
             std::lock_guard lock(mutex);
             if (!IsOwner()) return false;
-            auto* current = ProtocolEnabled() ? Current() : nullptr;
+            auto* current = ObserveSession();
             while (!pending.empty())
             {
                 Message message = std::move(pending.front());
@@ -188,6 +215,9 @@ namespace wxl::native::protocol
             ++generation;
             pending.clear();
             pendingBytes = 0;
+            consumers::Reset();
+            observedClient = nullptr;
+            observedTransport = nullptr;
         }
         catch (...) {}
     }
@@ -201,9 +231,13 @@ namespace wxl::native::protocol
             ++generation;
             pending.clear();
             pendingBytes = 0;
+            consumers::Reset();
+            observedClient = nullptr;
+            observedTransport = nullptr;
         }
         FrameScript_RegisterFunction("WXL_NativeSendCustom", &LuaSend);
         FrameScript_RegisterFunction("WXL_NativePopCustom", &LuaPop);
+        consumers::InitializeLua();
     }
 
     void DestroyLua() noexcept
@@ -216,7 +250,30 @@ namespace wxl::native::protocol
             ++generation;
             pending.clear();
             pendingBytes = 0;
+            consumers::Reset();
+            observedClient = nullptr;
+            observedTransport = nullptr;
         }
         catch (...) {}
+    }
+
+    uint64_t SessionGeneration(lua_State* state) noexcept
+    {
+        try
+        {
+            std::lock_guard lock(mutex);
+            if (!IsOwner() || context != state) return 0;
+            return ObserveSession() ? generation : 0;
+        }
+        catch (...) { return 0; }
+    }
+
+    void UiReady()
+    {
+        {
+            std::lock_guard lock(mutex);
+            if (!IsOwner()) return;
+        }
+        consumers::UiReady();
     }
 }

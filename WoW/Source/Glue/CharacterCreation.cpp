@@ -1,4 +1,5 @@
 #include "CharacterCreation.h"
+#include "WXL/RetailChoices.hpp"
 #include <cstring>
 #include <algorithm>
 #include "Engine/Source/Event/Event.h"
@@ -303,6 +304,12 @@ void CCharacterCreation::CycleCharCustomization(CHAR_CUSTOMIZATION_TYPE type, in
 // VERIFY: 0b8a8ec0 manual
 // OFFSET: 0x004E0380
 void CCharacterCreation::CreateCharacter(const char* name) {
+    if (!CCharacterCreation::m_character) return;
+    if (wxl::native::RetailSelectionNeedsProtocol(*CCharacterCreation::m_character)) {
+        FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG,"%s%s","OKAY","Additional retail choices are preview-only until appearance saving is integrated.");
+        return; // Never silently discard explicit retail choice IDs in the classic byte packet.
+    }
+
     WOWGUID guid = WOWGUID();
     CharacterSelectionDisplay* display = nullptr;
     bool validate = true;
@@ -561,20 +568,12 @@ void CCharacterCreation::InitCharacterComponents(ComponentData* data, bool rando
         return;
     }
 
-    if (CCharacterCreation::m_character) {
-        if (CCharacterCreation::m_character->m_data.m_model->m_attachParent) {
-            CCharacterCreation::m_character->m_data.m_model->DetachFromParent();
-        }
-
-        CCharacterComponent::FreeComponent(CCharacterCreation::m_character);
-    }
-
-    CCharacterCreation::m_character = CCharacterComponent::AllocComponent();
+    if (!CCharacterCreation::m_charCustomizeFrame) return;
+    auto* previous = CCharacterCreation::m_character;
+    auto* candidate = CCharacterComponent::AllocComponent();
+    if (!candidate) return;
     data->m_model = CCharacterCreation::m_charCustomizeFrame->GetScene()->CreateModel(modelRec->m_modelName, 0);
-
-    if (!data->m_model) {
-        return;
-    }
+    if (!data->m_model) { CCharacterComponent::FreeComponent(candidate); return; }
 
     CCharacterCreation::m_charCustomizeFrame->m_lightArray2[0].unk_01BC = 1;
     data->m_model->m_lightingCallback = &CCharacterSelection::GenericLightingCallback;
@@ -582,7 +581,18 @@ void CCharacterCreation::InitCharacterComponents(ComponentData* data, bool rando
     data->m_model->SetBoneSequence(0xFFFFFFFF, 0, 0, 0, 1.0f, 1, 1);
     data->m_flags |= 0x2;
 
-    CCharacterCreation::m_character->Init(data, nullptr);
+    if (!candidate->Init(data, nullptr)) {
+        CCharacterComponent::FreeComponent(candidate);
+        data->m_model = nullptr;
+        return; // Preserve the previous actor on unsupported/missing component data.
+    }
+    if (previous) wxl::native::TransferRetailChoices(*previous,*candidate);
+    CCharacterCreation::m_character = candidate;
+    if (previous) {
+        if (previous->m_data.m_model && previous->m_data.m_model->m_attachParent) previous->m_data.m_model->DetachFromParent();
+        CCharacterComponent::FreeComponent(previous);
+    }
+
 
     if (randomize) {
         CCharacterCreation::m_character->SetRandomSkin(COMPONENT_CONTEXT_0);

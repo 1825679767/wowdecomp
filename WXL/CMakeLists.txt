@@ -39,9 +39,9 @@ wxl_module(WxlM2 M2 modules/m2/AssetCompat.cpp
  "${V}/src/platform/waystone/SkeletonEmbed.cpp" "${V}/src/platform/waystone/SkinPartition.cpp"
  "${V}/src/platform/waystone/SkinRebuild.cpp" "${V}/extensions/wxl-modern-m2/src/load/M2Normalize.cpp"
  "${V}/extensions/wxl-modern-m2/src/load/M2NormalizeCameras.cpp")
-wxl_module(WxlAppearances Appearances modules/appearances/AppearanceCompat.cpp
+wxl_module(WxlAppearances Appearances modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp
  "${V}/src/platform/waystone/CharacterAtlas.cpp")
-wxl_module(WxlProtocol Protocol modules/protocol/NativeProtocol.cpp)
+wxl_module(WxlProtocol Protocol modules/protocol/NativeProtocol.cpp modules/protocol/ProtocolConsumers.cpp)
 add_dependencies(WxlDB2 WxlRuntime WxlStorage)
 add_dependencies(WxlBlp WxlRuntime)
 add_dependencies(WxlMaterials WxlRuntime)

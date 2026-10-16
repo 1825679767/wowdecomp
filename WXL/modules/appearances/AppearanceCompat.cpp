@@ -4,6 +4,7 @@
 #include "NativeStorage.hpp"
 #include "FdidCompat.hpp"
 #include "NativeFeatures.hpp"
+#include "WXL/RetailChoices.hpp"
 #include "vendor/extensions/wxl-db2/src/schemas/AppearanceStore.hpp"
 #include "platform/waystone/CharacterAtlas.hpp"
 #include "platform/waystone/AppearanceTexturePolicy.hpp"
@@ -15,6 +16,7 @@
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Model2/M2Shared.h"
+#include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Services/Texture.h"
 #include "common/Log.hpp"
 #include <algorithm>
@@ -32,10 +34,7 @@ namespace atlas = wxl::waystone::appearance;
 constexpr uint32_t MaxDimension = 4096, MaxChoices = 8192, MaxSections = 128;
 
 uint32_t RetailRace(uint32_t race) {
-    // Explicit client roster from WXL CharacterRaceMap. Never pass private ID
-    // collisions through numerically. Eredar/Broken retain classic materials.
-    static constexpr uint32_t races[] = {0,1,2,3,4,5,6,7,8,35,10,11,22,27,17,29,0,76,31,0,30,9,26,0,85,13,25,86,0,34,75,32};
-    return race < std::size(races) ? races[race] : 0;
+    return RetailRaceId(race);
 }
 
 std::string PathKey(const char* path) {
@@ -117,8 +116,19 @@ std::vector<uint32_t> Signature(const CCharacterComponent& component) {
         values.push_back(section.m_layerMask);
         for (auto id : section.m_layerItemDisplayId) values.push_back(id);
     }
+    values.push_back(RetailChoiceRevision(component));
     return values;
 }
+
+struct SkinnedChild {
+    CM2Model* model = nullptr;
+    ~SkinnedChild() {
+        if (model) {
+            model->SetSkinningSource(nullptr);
+            model->Release();
+        }
+    }
+};
 }
 
 struct AppearanceAssets {
@@ -127,6 +137,7 @@ struct AppearanceAssets {
     std::map<uint32_t,std::unique_ptr<Sheet>> sheets;
     std::map<uint32_t,CTexture*> original;
     std::vector<uint16_t> ownedGeosets, selectedGeosets;
+    std::vector<std::unique_ptr<SkinnedChild>> children;
     bool ready = false;
     ~AppearanceAssets() {
         for (const auto& [type, texture] : original)
@@ -157,27 +168,17 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
         sections.push_back(section);
         rects.push_back({section.x,section.y,section.width,section.height});
     }
-    atlas::Inputs inputs{prefs.m_skinID,prefs.m_faceId,prefs.m_hairStyleId,
-        prefs.m_hairColorId,prefs.m_facialHairId};
     std::vector<uint32_t> choices, allChoices;
-    bool facialMapped = false;
+    if (!CollectRetailChoices(component,choices) || choices.size() > MaxChoices) return false;
     for (uint32_t i = 0; i < optionCount; ++i) {
         WXL_ChrOption option{};
         if (!recipe::OptionAt(modelId,i,option)) return false;
         const auto count = recipe::ChoiceCount(option.id);
         if (!count || count > MaxChoices || allChoices.size()+count > MaxChoices) return false;
-        const char* name = recipe::OptionName(option.id);
-        atlas::Inputs axis = inputs;
-        if (atlas::FacialOption(name ? name : "")) {
-            if (facialMapped) axis.facialStyle = 0;
-            facialMapped = true;
-        }
-        const auto selected = atlas::ChoiceOrdinal(name ? name : "",count,axis);
         for (uint32_t j = 0; j < count; ++j) {
             WXL_ChrChoice choice{};
             if (!recipe::ChoiceAt(option.id,j,choice)) return false;
             allChoices.push_back(choice.id);
-            if (j == selected) choices.push_back(choice.id);
         }
     }
     recipe::Recipe appearance, all;
@@ -240,10 +241,31 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
         if (!sheet) return false;
         output.sheets.emplace(type,std::move(sheet));
     }
-    if (!appearance.attached.empty())
-        WLOG_WARN("native-appearance: race=%u sex=%u attached-skinned-models=%zu pending",race,prefs.m_sexID,appearance.attached.size());
-    WLOG_INFO("native-appearance: race=%u sex=%u model=%u layout=%u size=%ux%u sheets=%zu choices=%zu",
-        race,prefs.m_sexID,modelId,layout,output.sheets.at(1)->width,output.sheets.at(1)->height,output.sheets.size(),choices.size());
+    if (appearance.attached.size() > 64) return false;
+    std::vector<uint32_t> childFiles;
+    for (const auto& attached : appearance.attached) {
+        if (!attached.fileDataId || std::find(childFiles.begin(),childFiles.end(),attached.fileDataId) != childFiles.end()) continue;
+        childFiles.push_back(attached.fileDataId);
+        const char* path = ResolveModel(attached.fileDataId);
+        if (!path) return false;
+        auto child = std::make_unique<SkinnedChild>();
+        child->model = component.m_data.m_model->m_scene->CreateModel(path,0);
+        if (!child->model || !child->model->IsLoaded(1,0) || !child->model->m_shared
+            || PathKey(child->model->m_shared->m_fileName) != PathKey(path)) return false;
+        const auto* skin = child->model->m_shared->m_skinData;
+        // Authored no-geometry choices deliberately suppress an appendage.
+        if (!skin || !skin->m_indices.m_count || !skin->m_batches.m_count) continue;
+        if (!child->model->SetSkinningSource(component.m_data.m_model)) {
+            WLOG_WARN("native-appearance: incompatible skinned child fdid=%u geoset=%u path=%s",attached.fileDataId,attached.geoset,path);
+            return false;
+        }
+        child->model->SetGeometryVisible(0,65535,1);
+        child->model->OptimizeVisibleGeometry();
+        for (const auto& [type,sheet] : output.sheets) child->model->ReplaceTexture(type,sheet->texture);
+        output.children.push_back(std::move(child));
+    }
+    WLOG_INFO("native-appearance: race=%u sex=%u model=%u layout=%u size=%ux%u sheets=%zu choices=%zu skinned-children=%zu",
+        race,prefs.m_sexID,modelId,layout,output.sheets.at(1)->width,output.sheets.at(1)->height,output.sheets.size(),choices.size(),output.children.size());
     return true;
 }
 
@@ -253,6 +275,8 @@ void Bind(CCharacterComponent& component, AppearanceAssets& state) {
     for (uint16_t geoset : state.selectedGeosets) component.m_data.m_model->SetGeometryVisible(geoset,geoset,1);
     component.m_data.m_model->OptimizeVisibleGeometry();
     for (const auto& [type,sheet] : state.sheets) component.m_data.m_model->ReplaceTexture(type,sheet->texture);
+    for (const auto& child : state.children)
+        for (const auto& [type,sheet] : state.sheets) child->model->ReplaceTexture(type,sheet->texture);
     component.m_dirtySections = 0;
     component.m_flags &= ~1u;
 }
