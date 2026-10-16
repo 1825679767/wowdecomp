@@ -178,7 +178,7 @@ void UpdateVisuals() {
   if(!v.configured)v.configured=Animate(model,e.modelAnimation==UINT32_MAX?0:e.modelAnimation,e.modelAnimationBlend,int(e.modelAnimationLoop));
   const auto age=now-v.launch;
   if(e.animationHoldFromMs&&age>=e.animationHoldFromMs&&(!e.animationReleaseAtMs||age<e.animationReleaseAtMs))model->SetBoneSequenceTime(AllBones,e.animationHoldAtMs);
-  if(e.modelAnimationLoop&&v.configured){M2BoneSequenceInfo info{};if(model->GetBoneSequenceInfo(AllBones,info)&&info.finished)Animate(model,e.modelAnimation==UINT32_MAX?0:e.modelAnimation,e.modelAnimationBlend,int(e.modelAnimationLoop));}
+  if(e.modelAnimationLoop&&v.configured){M2BoneSequenceInfo info{};if(model->GetBoneSequenceInfo(AllBones,info)&&info.m_finished)Animate(model,e.modelAnimation==UINT32_MAX?0:e.modelAnimation,e.modelAnimationBlend,int(e.modelAnimationLoop));}
   const float t=e.travelMs?(std::min)(1.0f,float(age)/float(e.travelMs)):0.0f;
   C3Vector position=v.origin;
   position.x+=e.travel*t;position.z+=e.travelZ*t;
