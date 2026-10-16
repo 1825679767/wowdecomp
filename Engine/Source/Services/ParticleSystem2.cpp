@@ -26,6 +26,9 @@
 #include "Engine/Source/Tempest/CMath.h"
 #include "Engine/Source/Tempest/CRange.h"
 
+const float CParticleEmitter2::VEL_UPDATE_TIME = 0.033333335f;
+const float CParticleEmitter2::MIN_ZSOURCE = 0.001f;
+
 // STATIC: 0x00B2D530
 static int32_t s_particleRenderEnable = 1;
 
