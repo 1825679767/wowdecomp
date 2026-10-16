@@ -6,6 +6,7 @@
 #include <new>
 #include <typeinfo>
 #include "Engine/Source/Model2/M2Shared.h"
+#include "Engine/Source/Model2/M2ExternalSequence.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/SIMD.h"
 #include "Engine/Source/Base/Status.h"
@@ -183,7 +184,7 @@ int32_t M2Init(uint8_t* base, uint32_t size, const M2Data& data, M2TrackBase& tr
         } else if (!M2Init(base, size, data, track.m_sequenceTimes)) {
             return 0;
         }
-    } else if (s_sequenceIndex < track.m_sequenceTimes.m_count) {
+    } else if (track.m_loopIndex == 0xFFFF && s_sequenceIndex < track.m_sequenceTimes.m_count) {
         track.m_sequenceTimes[s_sequenceIndex].Relocate(s_sequenceData);
     }
 
@@ -217,7 +218,7 @@ int32_t M2Init(uint8_t* base, uint32_t size, const M2Data& data, M2Track<T>& tra
         } else if (!M2Init(base, size, data, track.m_sequenceKeys)) {
             return 0;
         }
-    } else {
+    } else if (track.m_loopIndex == 0xFFFF) {
         if (s_sequenceIndex < track.m_sequenceTimes.m_count) {
             track.m_sequenceTimes[s_sequenceIndex].Relocate(s_sequenceData);
         }
@@ -1551,6 +1552,11 @@ int32_t M2Init(uint8_t* base, uint32_t size, M2Data& data) {
 // VERIFY: 8000b812 manual
 // OFFSET: 0x0083C6E0
 int32_t CM2Shared::FinishLoadingLowPrioritySequence(uint32_t sequenceIndex, uint8_t* buffer, uint32_t size) {
+    if (!this->m_data || !buffer || s_sequenceIndex != 0xFFFFFFFF ||
+        !M2ExternalSequence::Validate(*this->m_data, this->m_fileSize, sequenceIndex, size)) {
+        return 0;
+    }
+    if (this->m_data->m_sequences[sequenceIndex].m_flags & 0x20) return 1;
     s_sequenceIndex = sequenceIndex;
     s_sequenceData = buffer;
 
@@ -1574,6 +1580,14 @@ int32_t CM2Shared::FinishLoadingLowPrioritySequence(uint32_t sequenceIndex, uint
 // VERIFY: b8d661f9 manual
 // OFFSET: 0x0083CA90
 int32_t CM2Shared::FinishLoadingLowPrioritySequence(uint32_t sequenceIndex, CAsyncObject* object) {
+    if (!this->m_data || !object || !object->m_buffer || s_sequenceIndex != 0xFFFFFFFF) return 0;
+    // Validate every alias before any leaf offset or ready flag is changed.
+    uint32_t current = sequenceIndex;
+    for (uint32_t remaining = this->m_data->m_sequences.m_count; ; ) {
+        if (!remaining-- || !M2ExternalSequence::Validate(*this->m_data, this->m_fileSize, current, object->m_size)) return 0;
+        current = this->m_data->m_sequences[current].m_aliasNext;
+        if (current == sequenceIndex) break;
+    }
     M2Sequence* sequence = &this->m_data->m_sequences[sequenceIndex];
 
     if (!this->FinishLoadingLowPrioritySequence(sequenceIndex, static_cast<uint8_t*>(object->m_buffer), object->m_size)) {
@@ -1945,11 +1959,11 @@ void CM2Shared::LowPrioritySequenceLoadedCallback(void* param) {
     CM2Shared* shared = load->m_shared;
 
     shared->m_flags |= 0x10;
-    shared->FinishLoadingLowPrioritySequence(load->m_sequenceIndex, load->m_asyncObject);
+    const bool sequenceReady = shared->FinishLoadingLowPrioritySequence(load->m_sequenceIndex, load->m_asyncObject) != 0;
 
     CM2SequencePlayBack* playback = load->m_playbacks.Head();
 
-    while (!load->m_playbacks.IsEnd(playback)) {
+    while (sequenceReady && !load->m_playbacks.IsEnd(playback)) {
         CM2SequencePlayBack* next = load->m_playbacks.RawNext(playback);
 
         if (playback->m_flags & 8) {
