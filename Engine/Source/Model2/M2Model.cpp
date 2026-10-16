@@ -13,6 +13,7 @@
 #endif
 #include "Engine/Source/Model2/M2Model.h"
 #include "WXL/NativeFeatures.hpp"
+#include "WXL/AssetCompat.hpp"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/Base/SIMD.h"
@@ -4145,6 +4146,10 @@ void CM2Model::OptimizeVisibleGeometry() {
     CM2Shared* shared = this->m_shared;
     uint32_t cacheFlags = shared->m_cache->m_flags;
     M2SkinProfile* skin = shared->m_skinData;
+    // Custom programs retain per-source batch/palette ownership. Use the
+    // ordinary native visibility path rather than merge those identities.
+    // Unoptimize above already retires this instance's old optimized buffers.
+    if (wxl::native::MeshSourceFor(*shared)) return;
     // The legacy optimizer merges section counts into a uint16. Large retail
     // topology uses the ordinary complete geometry path until that optimizer
     // has a wide section-count representation; never truncate or drop sections.

@@ -22,9 +22,11 @@ struct BatchSource {
 struct SectionSource {
  uint16_t firstVertex=0,vertexCount=0,paletteOffset=0,influences=0;
  std::vector<uint16_t> palette;
+ std::vector<std::array<uint8_t,48>> cpuVertices;
+ std::vector<uint16_t> cpuIndices;
 };
 struct Source {
- bool weighted=false;
+ bool weighted=false,cpuSkinning=false;
  uint32_t boneCount=0;
  std::vector<SectionSource> sections;
  uint64_t modelFingerprint=0,skinFingerprint=0;
