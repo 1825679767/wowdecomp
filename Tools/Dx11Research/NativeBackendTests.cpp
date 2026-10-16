@@ -124,10 +124,12 @@ static void ConstantUpdateChecks(bool warp){
     d.RsSet(GxRs_VertexShader,static_cast<void*>(nullptr));d.RsSet(GxRs_PixelShader,static_cast<void*>(nullptr));
     d.ShaderDestroy(vs);d.ShaderDestroy(ps);d.DeviceDestroy();g_theGxDevicePtr=nullptr;
 }
+#include "M2ExternalChecks.h"
 int main(int argc,char** argv) try {
     SetUnhandledExceptionFilter(TraceCrash);
     std::cerr<<"native DX11 backend tests: initialize\n"<<std::flush;
     StormRtlInitialize();
+    if(argc==3&&!std::strcmp(argv[1],"--m2-external"))return M2ExternalChecks(argv[2]);
     std::filesystem::create_directories("Logs");CGxDevice::LogOpen();
     OsTimeManagerCreate(OsTimeManager::SystemMethod2);
     Check(argc==3||argc==4,"pass extracted native UI vertex and pixel containers, optional hardware");
