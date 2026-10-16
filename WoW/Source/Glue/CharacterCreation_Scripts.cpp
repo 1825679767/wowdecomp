@@ -1,3 +1,4 @@
+#include <limits>
 #include "CharacterCreation.h"
 #include <cstdint>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -424,6 +425,11 @@ static int32_t Script_GetCreateBackgroundModel(lua_State* L) {
 // OFFSET: 0x004E1880
 static int32_t Script_GetAvailableRaces(lua_State* L) {
     uint32_t count = CCharacterCreation::m_races.Count();
+    if (count > static_cast<uint32_t>((std::numeric_limits<int>::max)() / 3)
+        || !lua_checkstack(L, static_cast<int>(3 * count))) {
+        return luaL_error(L, "Mounted race roster exceeds the Lua return capacity");
+    }
+
 
     for (uint32_t i = 0; i < count; i++) {
         lua_pushstring(L, CGUnit_C::GetDisplayRaceNameFromRecord(g_chrRacesDB.GetRecord(CCharacterCreation::m_races.m_data[i]), CCharacterCreation::m_character->m_data.m_preferences.m_sexID, nullptr));

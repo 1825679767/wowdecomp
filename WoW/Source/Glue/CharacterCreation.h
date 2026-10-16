@@ -2,6 +2,8 @@
 #define WOW_SOURCE_GLUE_CHARACTERCREATION_H
 
 #include <cstdint>
+#include <array>
+#include <vector>
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Game/NameGen.h"
 #include "WoW/Source/Glue/Types.h"
@@ -14,7 +16,7 @@ struct CharacterPreferences;
 
 class CCharacterCreation {
     public:
-    static CharacterPreferences* m_charPreferences[22][2];
+    static std::vector<std::array<CharacterPreferences*, 2>> m_charPreferences;
     static CCharacterComponent* m_character;
     static CNameGen m_nameGen;
     static CSimpleModelFFX* m_charCustomizeFrame;

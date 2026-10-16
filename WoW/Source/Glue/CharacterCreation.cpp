@@ -1,5 +1,6 @@
 #include "CharacterCreation.h"
 #include <cstring>
+#include <algorithm>
 #include "Engine/Source/Event/Event.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Model2/M2Model.h"
@@ -35,7 +36,7 @@ int32_t CCharacterCreation::m_selectedClassID = 1;
 int32_t CCharacterCreation::m_existingCharacterIndex = -1;
 
 // STATIC: 0x00B6B0D0
-CharacterPreferences* CCharacterCreation::m_charPreferences[22][2];
+std::vector<std::array<CharacterPreferences*, 2>> CCharacterCreation::m_charPreferences;
 
 // STATIC: 0x00B6B180
 uint32_t CCharacterCreation::m_raceIndex;
@@ -79,14 +80,21 @@ void CCharacterCreation::Initialize() {
     CCharacterCreation::m_charFacing = 0.0f;
     CCharacterCreation::m_charCustomizeFrame = nullptr;
     CCharacterCreation::m_existingCharacterIndex = -1;
-    memset(CCharacterCreation::m_charPreferences, 0, sizeof(CCharacterCreation::m_charPreferences));
+    for (auto& race : CCharacterCreation::m_charPreferences) {
+        for (auto* preferences : race) {
+            if (preferences) SMemFree(preferences, __FILE__, __LINE__, 0);
+        }
+    }
+    // IDs come from mounted ChrRaces; the existing creation wire stores race as uint8.
+    const auto maxRaceID = (std::min)(255, (std::max)(0, g_chrRacesDB.m_maxID));
+    CCharacterCreation::m_charPreferences.assign(static_cast<size_t>(maxRaceID) + 1, {nullptr, nullptr});
     CCharacterCreation::m_races.m_count = 0;
 
     for (int32_t faction = 0; faction < 2; faction++) {
         for (int32_t i = 0; i < g_chrRacesDB.m_numRecords; i++) {
             ChrRacesRec* race = i >= 0 && i < g_chrRacesDB.m_numRecords ? &g_chrRacesDB.m_records[i] : nullptr;
 
-            if (race && (race->m_flags & 0x1)) {
+            if (!race || race->m_id <= 0 || static_cast<size_t>(race->m_id) >= CCharacterCreation::m_charPreferences.size() || (race->m_flags & 0x1)) {
                 continue;
             }
 
@@ -122,9 +130,9 @@ void CCharacterCreation::Shutdown() {
     CCharacterCreation::m_nameGen.m_names.Clear();
     CCharacterCreation::m_nameGen.m_dictionary.Clear();
 
-    for (uint32_t i = 0; i < 22; i++) {
+    for (size_t i = 0; i < CCharacterCreation::m_charPreferences.size(); i++) {
         for (uint32_t j = 0; j < 2; j++) {
-            delete CCharacterCreation::m_charPreferences[i][j];
+            if (CCharacterCreation::m_charPreferences[i][j]) SMemFree(CCharacterCreation::m_charPreferences[i][j], __FILE__, __LINE__, 0);
             CCharacterCreation::m_charPreferences[i][j] = nullptr;
         }
     }
@@ -602,7 +610,12 @@ void CCharacterCreation::InitCharacterComponents(ComponentData* data, bool rando
 // VERIFY: 68a365e1 manual
 // OFFSET: 0x004E1540
 void CCharacterCreation::SetSelectedSex(uint32_t sexID) {
-    if (sexID >= 3 || sexID == CCharacterCreation::m_character->m_data.m_preferences.m_sexID) {
+    if (!CCharacterCreation::m_character || CCharacterCreation::m_raceIndex >= CCharacterCreation::m_races.Count()
+        || CCharacterCreation::m_character->m_data.m_preferences.m_sexID >= 2) {
+        return;
+    }
+
+    if (sexID >= 2 || sexID == CCharacterCreation::m_character->m_data.m_preferences.m_sexID) {
         return;
     }
 
@@ -766,6 +779,11 @@ void CCharacterCreation::ResetCharCustomizeInfo() {
 // VERIFY: 06f4239a manual
 // OFFSET: 0x004E20B0
 void CCharacterCreation::SetSelectedRace(uint32_t raceIndex) {
+    if (!CCharacterCreation::m_character || CCharacterCreation::m_raceIndex >= CCharacterCreation::m_races.Count()
+        || CCharacterCreation::m_character->m_data.m_preferences.m_sexID >= 2) {
+        return;
+    }
+
     if (raceIndex >= CCharacterCreation::m_races.Count() || raceIndex == CCharacterCreation::m_raceIndex) {
         return;
     }
