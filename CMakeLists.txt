@@ -144,6 +144,7 @@ if(TARGET Wow)
 endif()
 if(WXL_ENABLE_DX11)
     add_executable(NativeDx11BackendTests Tools/Dx11Research/NativeBackendTests.cpp)
+    target_compile_features(NativeDx11BackendTests PRIVATE cxx_std_20)
     target_include_directories(NativeDx11BackendTests PRIVATE ${CMAKE_SOURCE_DIR})
     target_link_libraries(NativeDx11BackendTests PRIVATE Gx Tempest Storm Os Base BlizzardCore zlib)
     # Current Gx teardown owns WXL custom programs and refraction resources.

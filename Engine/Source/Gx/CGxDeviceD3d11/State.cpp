@@ -72,7 +72,9 @@ bool CGxDeviceD3d11::Impl::States(){
         if(t&&t->m_format==GxTex_D24X8)sd.Filter=D3D11_FILTER(sd.Filter|0x80);
         if(samplerOverrides[i].enabled){
             sd.Filter=samplerOverrides[i].mipLinear?D3D11_FILTER_MIN_MAG_MIP_LINEAR:D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-            sd.AddressU=sd.AddressV=sd.AddressW=D3D11_TEXTURE_ADDRESS_CLAMP;
+            sd.AddressU=samplerOverrides[i].wrapU?D3D11_TEXTURE_ADDRESS_WRAP:D3D11_TEXTURE_ADDRESS_CLAMP;
+            sd.AddressV=samplerOverrides[i].wrapV?D3D11_TEXTURE_ADDRESS_WRAP:D3D11_TEXTURE_ADDRESS_CLAMP;
+            sd.AddressW=D3D11_TEXTURE_ADDRESS_CLAMP;
             sd.MipLODBias=0;sd.MinLOD=0;sd.MaxLOD=samplerOverrides[i].mipLinear?D3D11_FLOAT32_MAX:0;
             sd.MaxAnisotropy=1;
         }

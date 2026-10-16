@@ -85,7 +85,7 @@ bool Capture(CGxDevice& owner,IDirect3DDevice9& d){
 }
 struct NativeState {
  CGxDevice& device;float pixel0[4];
- explicit NativeState(CGxDevice& d):device(d){std::memcpy(pixel0,CGxDevice::s_shadowConstants[0].constants,sizeof(pixel0));device.RsPush();}
+ explicit NativeState(CGxDevice& d):device(d){ReadMaterialConstants(d,GxSh_Pixel,0,1,pixel0);device.RsPush();}
  ~NativeState(){device.ShaderConstantsSet(GxSh_Pixel,0,pixel0,1);device.RsPop();Sync(device);}
 };
 #ifdef WXL_ENABLE_DX11

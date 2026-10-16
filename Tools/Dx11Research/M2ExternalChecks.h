@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/Source/Model2/M2Shared.h"
 #include "Engine/Source/Os/OsMemory.h"
+#include "Engine/Source/Services/Types.h"
 #include <iomanip>
 #include <sstream>
 
@@ -43,11 +44,21 @@ static int M2ExternalChecks(const std::filesystem::path& directory){
             std::cerr<<"external sequence "<<file.str()<<" index="<<i<<'\n'<<std::flush;
             Check(M2Init(model,uint32_t(original.size()),*data)!=0,"native model relocation");
             CM2Shared shared(nullptr);shared.m_data=data;shared.m_fileSize=uint32_t(original.size());
-            Check(shared.FinishLoadingLowPrioritySequence(i,animation,uint32_t(bytes.size()))!=0,"native external animation relocation");
-            for(uint32_t b=0;b<data->m_bones.m_count;++b){const auto& bone=data->m_bones[b];
-                M2TrackCheck(bone.m_translationTrack,i,model,original.size(),animation,bytes.size());
-                M2TrackCheck(bone.m_rotationTrack,i,model,original.size(),animation,bytes.size());
-                M2TrackCheck(bone.m_scaleTrack,i,model,original.size(),animation,bytes.size());
+            std::snprintf(shared.m_fileName,sizeof(shared.m_fileName),"%s.m2",name);
+            struct Detach{CM2Shared& shared;~Detach(){shared.m_data=nullptr;}} detach{shared};
+            std::vector<uint32_t> aliases{i};auto next=data->m_sequences[i].m_aliasNext;
+            while(next!=i){Check(next<data->m_sequences.m_count&&aliases.size()<data->m_sequences.m_count,"bounded native alias ring");aliases.push_back(next);next=data->m_sequences[next].m_aliasNext;}
+            CAsyncObject object{};object.m_buffer=animation;object.m_size=uint32_t(bytes.size());
+            Check(shared.FinishLoadingLowPrioritySequence(i,&object)!=0,"native external animation and alias relocation");
+            for(auto index:aliases){
+                auto track=[&](const auto& t){M2TrackCheck(t,index,model,original.size(),animation,bytes.size());};
+                for(uint32_t b=0;b<data->m_bones.m_count;++b){const auto& bone=data->m_bones[b];track(bone.m_translationTrack);track(bone.m_rotationTrack);track(bone.m_scaleTrack);}
+                for(uint32_t b=0;b<data->m_colors.m_count;++b){track(data->m_colors[b].m_color);track(data->m_colors[b].m_alpha);}
+                for(uint32_t b=0;b<data->m_textureWeights.m_count;++b)track(data->m_textureWeights[b].m_weight);
+                for(uint32_t b=0;b<data->m_textureTransforms.m_count;++b){const auto& t=data->m_textureTransforms[b];track(t.m_translation);track(t.m_rotation);track(t.m_scaling);}
+                for(uint32_t b=0;b<data->m_attachments.m_count;++b)track(data->m_attachments[b].m_animateAttached);
+                for(uint32_t b=0;b<data->m_lights.m_count;++b){const auto& t=data->m_lights[b];track(t.m_ambientColor);track(t.m_ambientIntensity);track(t.m_diffuseColor);track(t.m_diffuseIntensity);track(t.m_attenuationStart);track(t.m_attenuationEnd);track(t.m_visibility);}
+                for(uint32_t b=0;b<data->m_cameras.m_count;++b){const auto& t=data->m_cameras[b];track(t.m_positions);track(t.m_targetPositions);track(t.m_roll);}
             }
             shared.m_data=nullptr;OsFreeNear(animation);OsFreeNear(model);++loaded;
         }

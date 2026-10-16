@@ -5,6 +5,8 @@
 #include <malloc.h>
 #include <new>
 #include <typeinfo>
+#include <atomic>
+#include <windows.h>
 #include "Engine/Source/Model2/M2Shared.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/SIMD.h"
@@ -117,6 +119,17 @@ static void MakeAnimFileName(const char* fileName, uint32_t id, uint32_t variati
     }
 
     sprintf(&result[strlen(result)], "%04d-%02d.anim", id, variation);
+}
+
+// Opt-in, bounded diagnostic for an external-sequence crash whose filename is
+// otherwise lost on restart. Each run keeps its own flushed file; no account data.
+static void TraceExternalSequence(const char* phase,const CM2Shared& shared,uint32_t index,const char* file,uint32_t size) {
+    static const bool enabled=[](){char value[8]{};return GetEnvironmentVariableA("WXL_M2_EXTERNAL_TRACE",value,sizeof(value))&&value[0]=='1';}();
+    if(!enabled)return;static std::atomic<uint32_t> lines{0};if(lines.fetch_add(1)>=1024)return;
+    CreateDirectoryA("Logs",nullptr);char name[128];std::snprintf(name,sizeof(name),"Logs/native-m2-sequences-%lu.log",GetCurrentProcessId());
+    FILE* log=nullptr;if(fopen_s(&log,name,"ab")||!log)return;
+    std::fprintf(log,"%llu %s sequence=%u bytes=%u model=%s animation=%s\n",GetTickCount64(),phase,index,size,shared.m_fileName,file?file:"");
+    std::fflush(log);std::fclose(log);
 }
 
 // VERIFY: 90b40e33 manual
@@ -1551,6 +1564,7 @@ int32_t M2Init(uint8_t* base, uint32_t size, M2Data& data) {
 // VERIFY: 8000b812 manual
 // OFFSET: 0x0083C6E0
 int32_t CM2Shared::FinishLoadingLowPrioritySequence(uint32_t sequenceIndex, uint8_t* buffer, uint32_t size) {
+    TraceExternalSequence("relocate-begin",*this,sequenceIndex,nullptr,size);
     s_sequenceIndex = sequenceIndex;
     s_sequenceData = buffer;
 
@@ -1562,11 +1576,13 @@ int32_t CM2Shared::FinishLoadingLowPrioritySequence(uint32_t sequenceIndex, uint
     s_sequenceSize = 0;
 
     if (!result) {
+        TraceExternalSequence("relocate-failed",*this,sequenceIndex,nullptr,size);
         DebugLog("Corrupt model sequence data: %s (%d)", this->m_fileName, sequenceIndex);
         return 0;
     }
 
     sequence->m_flags = (sequence->m_flags & ~0x30u) | 0x20;
+    TraceExternalSequence("relocate-complete",*this,sequenceIndex,nullptr,size);
 
     return 1;
 }
@@ -2020,6 +2036,7 @@ CM2SequenceLoad* CM2Shared::LoadLowPrioritySequence(uint16_t sequenceIndex) {
 
     char fileName[260];
     MakeAnimFileName(this->m_fileName, source->m_id, source->m_variationIndex, fileName);
+    TraceExternalSequence("request",*this,sequenceIndex,fileName,0);
 
     SFileImpl* file;
 
@@ -2030,6 +2047,7 @@ CM2SequenceLoad* CM2Shared::LoadLowPrioritySequence(uint16_t sequenceIndex) {
     }
 
     uint32_t size = SFileGetFileSize(file, nullptr);
+    TraceExternalSequence("file-open",*this,sequenceIndex,fileName,size);
 #if defined(WOWDECOMP_ARCH_64)
     uint8_t* buffer = static_cast<uint8_t*>(OsAllocNear(this->m_data, size));
 #else

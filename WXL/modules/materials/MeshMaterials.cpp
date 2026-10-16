@@ -274,7 +274,7 @@ void SyncCpuState(CGxDevice& device){SyncMaterialState(device);}
 struct CpuState {
  CGxDevice& device;CGxVertexAttrib attributes[14];CGxBuf* buffers[14];uint32_t mask,size;EGxVertexBufferFormat format;CGxBuf* vertices;CGxBuf* indices;float rows[12];
  explicit CpuState(CGxDevice& value):device(value),mask(value.m_primVertexMask),size(value.m_primVertexSize),format(value.m_primVertexFormat),vertices(value.m_primVertexBuf),indices(value.m_primIndexBuf){
-  std::memcpy(attributes,value.m_primVertexFormatAttrib,sizeof(attributes));std::memcpy(buffers,value.m_primVertexFormatBuf,sizeof(buffers));std::memcpy(rows,CGxDevice::s_shadowConstants[1].constants+31*4,sizeof(rows));device.RsPush();
+  std::memcpy(attributes,value.m_primVertexFormatAttrib,sizeof(attributes));std::memcpy(buffers,value.m_primVertexFormatBuf,sizeof(buffers));ReadMaterialConstants(value,GxSh_Vertex,31,4,rows);device.RsPush();
  }
  ~CpuState(){
   device.ShaderConstantsSet(GxSh_Vertex,31,rows,3);

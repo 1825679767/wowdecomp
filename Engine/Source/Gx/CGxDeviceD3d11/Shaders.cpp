@@ -4,6 +4,7 @@
 #include "Engine/Source/Gx/ShaderContainer/LegacyContainer.h"
 #include <cstdio>
 #include "WXL/UnitOutline.hpp"
+#include "WXL/WmoMaterials.hpp"
 
 using namespace gx11;
 
@@ -119,14 +120,25 @@ void CGxDeviceD3d11::IShaderReload(CGxShader* shader,const char* path,const char
     Assign(shader,container.Permutations()[source.index]);
 }
 
+bool CGxDeviceD3d11::CopyShaderConstants(EGxShTarget target,uint32_t index,uint32_t count,float* output) const {
+    if(!output||index>256||count>256-index||(target!=GxSh_Vertex&&target!=GxSh_Pixel))return false;
+    const uint32_t stage=target==GxSh_Vertex?0:1;const auto& shadow=s_shadowConstants[target==GxSh_Vertex?1:0];
+    std::memcpy(output,m->appConstants[stage].data()+index*4,count*16);
+    if(shadow.dirtyMin<=shadow.dirtyMax&&shadow.dirtyMax<256)
+        for(uint32_t i=std::max(index,shadow.dirtyMin);i<std::min(index+count,shadow.dirtyMax+1);++i)
+            if(!InvalidatedConstant(shadow.constants+i*4))std::memcpy(output+(i-index)*4,shadow.constants+i*4,16);
+    return true;
+}
 bool CGxDeviceD3d11::Impl::UploadConstants(const Variant& shader,bool vertex){
     const auto& c=shader.translated;uint32_t words[1024]{};
     const uint32_t stage=vertex?0:1;
     auto& shadow=CGxDevice::s_shadowConstants[vertex?1:0];
     if(shadow.dirtyMin<=shadow.dirtyMax){
         if(shadow.dirtyMax>=256)return false;
-        std::memcpy(appConstants[stage].data()+shadow.dirtyMin*4,shadow.constants+shadow.dirtyMin*4,
-                    (shadow.dirtyMax-shadow.dirtyMin+1)*16);
+        // Dirty ranges may span untouched registers after cache invalidation.
+        // Native D3D9 keeps their hardware values; preserve the same API state.
+        for(uint32_t i=shadow.dirtyMin;i<=shadow.dirtyMax;++i)
+            if(!InvalidatedConstant(shadow.constants+i*4))std::memcpy(appConstants[stage].data()+i*4,shadow.constants+i*4,16);
         shadow.dirtyMin=255;shadow.dirtyMax=0;
     }
     std::memcpy(words,appConstants[stage].data(),sizeof(words));
@@ -228,6 +240,7 @@ uint64_t CGxDeviceD3d11::SubmittedDraws() const{return m->drawCalls;}
 void CGxDeviceD3d11::Draw(CGxBatch* batch,int32_t indexed){
     // Wrath's second argument is an indexed/non-indexed flag, not an array count.
     if(!batch||!batch->m_count||batch->m_primType>=GxPrims_Last||!SyncDraw(batch->m_primType))return;
+    if(indexed&&wxl::native::wmo_materials::Draw(*this,*batch))return;
     static const D3D11_PRIMITIVE_TOPOLOGY topology[]={D3D11_PRIMITIVE_TOPOLOGY_POINTLIST,D3D11_PRIMITIVE_TOPOLOGY_LINELIST,
         D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST};
     m->context->IASetPrimitiveTopology(topology[batch->m_primType]);

@@ -4,12 +4,14 @@
 #include "platform/waystone/WmoMaterialPlan.hpp"
 #include "WXL/NativeFeatures.hpp"
 #include "WmoShaderText.hpp"
+#include "WXL/MaterialBackend.hpp"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDeviceD3d/CGxDeviceD3d.h"
 #include "Engine/Source/Gx/CGxDeviceD3d9Ex/CGxDeviceD3d9Ex.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Services/Texture.h"
+#include "Engine/Source/Base/Status.h"
 #include "common/Log.hpp"
 #include <d3dcompiler.h>
 #include <atomic>
@@ -39,10 +41,15 @@ std::string Disassemble(const std::vector<DWORD>& code){Com<ID3DBlob> text;auto&
 bool Assemble(const std::string& text,Com<ID3DBlob>& code){Com<ID3DBlob> errors;return !text.empty()&&Tools().Ready()&&SUCCEEDED(Tools().assemble(text.data(),text.size(),"WxlWmo",nullptr,nullptr,0,&code.p,&errors.p))&&code.p;}
 template<class T>bool Code(T* shader,std::vector<DWORD>& output){UINT size=0;if(!shader||FAILED(shader->GetFunction(nullptr,&size))||size<8||size>0x20000||size%4)return false;output.resize(size/4);return SUCCEEDED(shader->GetFunction(output.data(),&size))&&size==output.size()*4;}
 }}
+struct WmoDx11Resources;
 struct WmoMaterialResources {
+ std::shared_ptr<WmoDx11Resources> dx11;
  std::vector<std::unique_ptr<wmo_materials::Pair>> pairs;std::vector<std::unique_ptr<wmo_materials::GroupGpu>> groups;
  wmo_materials::Com<IDirect3DVertexDeclaration9> declaration;size_t bytes=0;
 };
+#if WXL_ENABLE_DX11
+namespace wmo_materials {void TrimDx11(WmoMaterialResources&);}
+#endif
 namespace wmo_materials {namespace {
 void Trim(WmoMaterialResources& r){for(auto it=r.groups.begin();it!=r.groups.end();)if((*it)->source.expired()){r.bytes-=(*it)->bytes;it=r.groups.erase(it);}else ++it;}
 Pair* Program(WmoMaterialResources& r,IDirect3DDevice9& d,bool layers){Com<IDirect3DVertexShader9> vs;Com<IDirect3DPixelShader9> ps;if(FAILED(d.GetVertexShader(&vs.p))||FAILED(d.GetPixelShader(&ps.p)))return nullptr;
@@ -65,7 +72,7 @@ GroupGpu* Group(WmoMaterialResources& r,IDirect3DDevice9& d,const std::shared_pt
  r.bytes+=g->bytes;auto* result=g.get();r.groups.push_back(std::move(g));return result;
 }
 Textures* Material(GroupGpu& group,const wxl::waystone::wmo::MaterialRecord& record,unsigned id){for(auto& m:group.textures)if(m->material==id)return m.get();if(group.textures.size()>=256)return nullptr;
- auto next=std::make_unique<Textures>();next->material=id;constexpr unsigned paths[]{0,1,2,3,5,6,7,8};for(unsigned i=0;i<8;++i){const auto& name=record.paths[paths[i]];if(name.empty())return nullptr;next->values[i]=TextureCreate(name.c_str(),CGxTexFlags(GxTex_Linear,1,1),nullptr,0);if(!next->values[i])return nullptr;}auto* result=next.get();group.textures.push_back(std::move(next));return result;
+ auto next=std::make_unique<Textures>();next->material=id;constexpr unsigned paths[]{0,1,2,3,5,6,7,8};for(unsigned i=0;i<8;++i){const auto& name=record.paths[paths[i]];if(name.empty())return nullptr;next->values[i]=TextureCreate(name.c_str(),CGxTexFlags(GxTex_Linear,1,1),&GetGlobalStatusObj(),0);if(!next->values[i])return nullptr;}auto* result=next.get();group.textures.push_back(std::move(next));return result;
 }
 IDirect3DBaseTexture9* Texture(CGxDevice& owner,CTexture* t){auto* gx=TextureGetGxTex(t,0,nullptr);if(!gx||gx->m_target!=GxTex_2d)return nullptr;owner.ITexMarkAsUpdated(gx);
  if(owner.m_api==GxApi_D3d9Ex){auto& ex=static_cast<CGxDeviceD3d9Ex&>(owner);if(!gx->m_apiSpecificData){if(!gx->m_apiSpecificData2)return nullptr;ex.ITexAcquire(gx);if(gx->m_apiSpecificData)ex.ITexUploadAll(gx);}ex.ITexTouch(gx);}
@@ -75,10 +82,19 @@ IDirect3DBaseTexture9* Texture(CGxDevice& owner,CTexture* t){auto* gx=TextureGet
 void Register(){auto* cv=CVar::Register("wxlWmoMaterials","WXL modern WMO overlay alpha and four-layer height/tint materials; reload world after changing",2,WXL_ENABLE_WMO_MATERIALS?"1":"0",&Changed,0,false,nullptr,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
 bool Enabled() noexcept{return WXL_ENABLE_WMO_MATERIALS&&NativeEnabled()&&WmoEnabled()&&configured.load(std::memory_order_acquire)&&!failed.load();}
 bool LayeredReady() noexcept{return Enabled()&&capable.load(std::memory_order_acquire);}
-void DeviceReady(CGxDevice& owner) noexcept {try{auto* d=Native(&owner);D3DCAPS9 caps{};capable=d&&SUCCEEDED(d->GetDeviceCaps(&caps))&&caps.VertexShaderVersion>=D3DVS_VERSION(3,0)&&caps.PixelShaderVersion>=D3DPS_VERSION(3,0)&&caps.MaxStreams>=2&&caps.MaxSimultaneousTextures>=8&&Tools().Ready();}catch(...){capable=false;}}
+void DeviceReady(CGxDevice& owner) noexcept {try{
+#if WXL_ENABLE_DX11
+ if(owner.m_api==GxApi_D3d11){capable=LegacyMaterialBackend(&owner,8)&&Tools().Ready();return;}
+#endif
+ auto* d=Native(&owner);D3DCAPS9 caps{};capable=d&&SUCCEEDED(d->GetDeviceCaps(&caps))&&caps.VertexShaderVersion>=D3DVS_VERSION(3,0)&&caps.PixelShaderVersion>=D3DPS_VERSION(3,0)&&caps.MaxStreams>=2&&caps.MaxSimultaneousTextures>=8&&Tools().Ready();}catch(...){capable=false;}}
 void Release(CGxDevice& d) noexcept {d.m_wxlWmoMaterials.reset();}
-void EndWorld() noexcept {try{if(g_theGxDevicePtr&&g_theGxDevicePtr->m_wxlWmoMaterials)Trim(*g_theGxDevicePtr->m_wxlWmoMaterials);}catch(...){}}
+void EndWorld() noexcept {try{if(g_theGxDevicePtr&&g_theGxDevicePtr->m_wxlWmoMaterials){auto& resources=*g_theGxDevicePtr->m_wxlWmoMaterials;Trim(resources);
+#if WXL_ENABLE_DX11
+ TrimDx11(resources);
+#endif
+ }}catch(...){}}
 BatchScope::BatchScope(CMapObj& root,CMapObjGroup& group,unsigned index) noexcept:previous(std::move(current)),previousMaterial(material){current=FindSource(root,group);material=index;}
+BatchScope::BatchScope(std::shared_ptr<const GroupSource> source,unsigned index) noexcept:previous(std::move(current)),previousMaterial(material){current=std::move(source);material=index;}
 BatchScope::~BatchScope(){current=std::move(previous);material=previousMaterial;}
 bool BatchScope::Modern() const noexcept{return current!=nullptr;}
 bool Draw(IDirect3DDevice9* d,uint32_t primitive,int32_t base,uint32_t min,uint32_t vertices,uint32_t start,uint32_t count) noexcept {bool required=false;try{
@@ -101,3 +117,6 @@ bool Draw(IDirect3DDevice9* d,uint32_t primitive,int32_t base,uint32_t min,uint3
  if(FAILED(d->SetPixelShader(pair->ps.p)))return false;d->DrawIndexedPrimitive(static_cast<D3DPRIMITIVETYPE>(primitive),base,min,vertices,start,count);return true;
  }catch(...){return required;}}
 }}
+#if WXL_ENABLE_DX11
+#include "WmoDx11.inl"
+#endif

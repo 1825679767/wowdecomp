@@ -2,6 +2,7 @@
 #include "Engine/Source/Gx/Gx.h"
 #include <cstdio>
 #include <limits>
+#include "WXL/WmoMaterials.hpp"
 
 using namespace gx11;
 
@@ -80,7 +81,10 @@ bool CGxDeviceD3d11::CreateOffscreen(uint32_t width,uint32_t height,bool warp){
 
 bool CGxDeviceD3d11::Resize(uint32_t width,uint32_t height){
     if(!m->device||!width||!height||width>16384||height>16384)return false;
-    m->outline=Impl::Outline{};
+    // Cached shader variants are keyed by their source object's identity.
+    // Resize discards only target-dependent resources, retaining those sources.
+    auto& outline=m->outline;outline.active=false;outline.stamped=false;
+    outline.destination.Reset();outline.srv.Reset();outline.view.Reset();outline.mask.Reset();outline.resolved.Reset();
     m_context=0;
     m->UnbindViews();m->savedDepth.Reset();m->depthOverride.Reset();m->colorView.Reset();m->depthView.Reset();m->depthSrv.Reset();
     m->backbuffer.Reset();m->color.Reset();m->depth.Reset();
@@ -194,6 +198,7 @@ int32_t CGxDeviceD3d11::DeviceSetFormat(const CGxFormat& format){
 }
 void CGxDeviceD3d11::DeviceDestroy(){
     if(!m)return;
+    wxl::native::wmo_materials::Release(*this);
     if(m->sceneCapture){auto* capture=m->sceneCapture;m->sceneCapture=nullptr;TexDestroy(capture);}
     if(!m->offscreen){
         for(auto& shader:s_uiVertexShader)if(shader)ShaderDestroy(shader);

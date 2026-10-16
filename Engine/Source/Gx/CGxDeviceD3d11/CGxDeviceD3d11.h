@@ -71,8 +71,9 @@ public:
     void ReadTargetPixels(CiRect& rect,TSGrowableArray<CImVector>& pixels);
     bool RecoverDevice();
     // Draw-local donor sampler policy; leaves shared CGxTex flags untouched.
-    struct SamplerOverride { bool enabled=false,mipLinear=false; };
+    struct SamplerOverride { bool enabled=false,mipLinear=false,wrapU=false,wrapV=false; };
     SamplerOverride ExchangeSamplerOverride(uint32_t stage,SamplerOverride value);
+    bool CopyShaderConstants(EGxShTarget,uint32_t index,uint32_t count,float* output) const;
     // Capture active RT0 (including MSAA), preserving native target ownership.
     CGxTex* CaptureCurrentColor();
     uint64_t SubmittedDraws() const;

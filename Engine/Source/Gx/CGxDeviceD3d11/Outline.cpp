@@ -102,7 +102,7 @@ bool CGxDeviceD3d11::EndUnitOutlineFrame(){
         "float4 main(float4 p:SV_Position,float2 uv:TEXCOORD):SV_Target{float2 o=px.xy*px.z;"
         "float4 a=m.Sample(s,uv+float2(o.x,0))+m.Sample(s,uv-float2(o.x,0))+m.Sample(s,uv+float2(0,o.y))+m.Sample(s,uv-float2(0,o.y))"
         "+m.Sample(s,uv+o)+m.Sample(s,uv-o)+m.Sample(s,uv+float2(o.x,-o.y))+m.Sample(s,uv+float2(-o.x,o.y));"
-        "float line=saturate(a.a*.2)*(1-m.Sample(s,uv).a);clip(line-.02);return float4(a.a>.001?a.rgb/a.a:float3(1,1,1),saturate(line*1.4));}";
+        "float coverage=saturate(a.a*.2)*(1-m.Sample(s,uv).a);clip(coverage-.02);return float4(a.a>.001?a.rgb/a.a:float3(1,1,1),saturate(coverage*1.4));}";
         ComPtr<ID3DBlob> code;if(!CompileOutline(ps,"ps_4_0",code)||!Check(m->device->CreatePixelShader(code->GetBufferPointer(),code->GetBufferSize(),nullptr,&r.edge),"outline screen PS"))return false;}
     m->context->OMSetRenderTargets(0,nullptr,nullptr);
     if(r.samples>1)m->context->ResolveSubresource(r.resolved.Get(),0,r.mask.Get(),0,DXGI_FORMAT_R8G8B8A8_UNORM);else m->context->CopyResource(r.resolved.Get(),r.mask.Get());

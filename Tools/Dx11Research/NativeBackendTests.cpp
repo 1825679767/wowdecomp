@@ -114,9 +114,14 @@ static void ConstantUpdateChecks(bool warp){
     auto* vs=compile("float4 main(float3 p:POSITION):POSITION{return float4(p,1);}",GxSh_Vertex,"ConstantRegression.VS");
     auto* ps=compile("float4 fog:register(c2);float4 main():COLOR{return float4(fog.rgb,1);}",GxSh_Pixel,"ConstantRegression.PS");
     d.RsSet(GxRs_VertexShader,vs);d.RsSet(GxRs_PixelShader,ps);
+    d.ShaderConstantsClear();const float sparseZero[4]{};
+    d.ShaderConstantsSet(GxSh_Pixel,0,sparseZero,1);d.ShaderConstantsSet(GxSh_Pixel,10,sparseZero,1);
+    Triangle(d,CImVector(255,255,255,255));Equal(Center(d),CImVector(0,0,0,255),"sparse constant updates preserve untouched API registers");
     Triangle(d,CImVector(255,255,255,255));Equal(Center(d),CImVector(0,0,0,255),"untouched PS register uses API default, not FLT_MAX shadow marker");
     const float tint[]={.25f,.5f,.75f,1};d.ShaderConstantsSet(GxSh_Pixel,2,tint,1);
+    float borrowed[4]{};Check(d.CopyShaderConstants(GxSh_Pixel,2,1,borrowed)&&!std::memcmp(borrowed,tint,sizeof(tint)),"draw scope sees pending API constants");
     Triangle(d,CImVector(255,255,255,255));Equal(Center(d),CImVector(191,128,64,255),"dirty PS register upload");
+    d.ShaderConstantsClear();Check(d.CopyShaderConstants(GxSh_Pixel,2,1,borrowed)&&!std::memcmp(borrowed,tint,sizeof(tint)),"draw scope sees retained API constants after cache invalidation");
     d.RsSet(GxRs_PixelShader,static_cast<void*>(nullptr));Triangle(d,CImVector(255,255,255,255));d.RsSet(GxRs_PixelShader,ps);
     Triangle(d,CImVector(255,255,255,255));Equal(Center(d),CImVector(191,128,64,255),"fixed-function shader constants do not overwrite native API registers");
     Check(d.RecoverDevice(),"constant contract recovery");
@@ -126,6 +131,7 @@ static void ConstantUpdateChecks(bool warp){
 }
 #include "M2ExternalChecks.h"
 #include "OutlineChecks.h"
+#include "WmoMaterialChecks.h"
 int main(int argc,char** argv) try {
     SetUnhandledExceptionFilter(TraceCrash);
     std::cerr<<"native DX11 backend tests: initialize\n"<<std::flush;
@@ -303,6 +309,7 @@ int main(int argc,char** argv) try {
     }
     ConstantUpdateChecks(argc==3);
     OutlineChecks(argc==3);
+    WmoMaterialChecks(argc==3);
     // Exercise actual GxDevDestroy/WXL lifecycle owners, not test substitutes.
     auto* lifecycle=new CGxDeviceD3d11();g_theGxDevicePtr=lifecycle;
     Check(lifecycle->CreateOffscreen(8,8,true),"owned device for real WXL teardown");

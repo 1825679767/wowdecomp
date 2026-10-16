@@ -54,14 +54,14 @@ struct DrawScope {
  float pixel0[4],pixel2[4],vertex2[24],vertex10[12],vertex17[44],vertex29[4],vertex30[4],vertex31[16];C44Matrix view;
  explicit DrawScope(CGxDevice& d):device(d),mask(d.m_primVertexMask),indices(d.m_primIndexBuf){
   std::memcpy(attribs,d.m_primVertexFormatAttrib,sizeof(attribs));std::memcpy(buffers,d.m_primVertexFormatBuf,sizeof(buffers));
-  std::memcpy(pixel0,CGxDevice::s_shadowConstants[0].constants,sizeof(pixel0));
-  std::memcpy(pixel2,CGxDevice::s_shadowConstants[0].constants+2*4,sizeof(pixel2));
-  std::memcpy(vertex2,CGxDevice::s_shadowConstants[1].constants+2*4,sizeof(vertex2));
-  std::memcpy(vertex10,CGxDevice::s_shadowConstants[1].constants+10*4,sizeof(vertex10));
-  std::memcpy(vertex17,CGxDevice::s_shadowConstants[1].constants+17*4,sizeof(vertex17));
-  std::memcpy(vertex29,CGxDevice::s_shadowConstants[1].constants+29*4,sizeof(vertex29));
-  std::memcpy(vertex30,CGxDevice::s_shadowConstants[1].constants+30*4,sizeof(vertex30));
-  std::memcpy(vertex31,CGxDevice::s_shadowConstants[1].constants+31*4,sizeof(vertex31));
+  ReadMaterialConstants(d,GxSh_Pixel,0,1,pixel0);
+  ReadMaterialConstants(d,GxSh_Pixel,2,1,pixel2);
+  ReadMaterialConstants(d,GxSh_Vertex,2,6,vertex2);
+  ReadMaterialConstants(d,GxSh_Vertex,10,3,vertex10);
+  ReadMaterialConstants(d,GxSh_Vertex,17,11,vertex17);
+  ReadMaterialConstants(d,GxSh_Vertex,29,1,vertex29);
+  ReadMaterialConstants(d,GxSh_Vertex,30,1,vertex30);
+  ReadMaterialConstants(d,GxSh_Vertex,31,4,vertex31);
   view=d.m_xforms[GxXform_View].m_mtx[d.m_xforms[GxXform_View].m_level];d.RsPush();
  }
  void SaveTextures(const std::array<CGxTex*,3>& value){textures=value;for(unsigned i=0;i<3;++i)flags[i]=textures[i]->m_flags;}

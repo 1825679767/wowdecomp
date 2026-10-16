@@ -18,6 +18,7 @@ namespace gx11 {
 using Microsoft::WRL::ComPtr;
 template<class T> std::string Key(const T& value){return std::string(reinterpret_cast<const char*>(&value),sizeof(value));}
 inline bool Check(HRESULT hr,const char* operation){if(SUCCEEDED(hr))return true;CGxDevice::Log("DX11 %s failed: %08x",operation,uint32_t(hr));return false;}
+inline bool InvalidatedConstant(const float* value){uint32_t words[4];std::memcpy(words,value,16);return words[0]==0x7f7fffff&&words[1]==0x7f7fffff&&words[2]==0x7f7fffff&&words[3]==0x7f7fffff;}
 inline DXGI_FORMAT Format(EGxTexFormat f){
     static const DXGI_FORMAT map[GxTexFormats_Last]={DXGI_FORMAT_UNKNOWN,DXGI_FORMAT_R8G8B8A8_UNORM,
         DXGI_FORMAT_B8G8R8A8_UNORM,DXGI_FORMAT_B4G4R4A4_UNORM,DXGI_FORMAT_B5G5R5A1_UNORM,
