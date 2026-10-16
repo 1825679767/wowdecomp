@@ -14,6 +14,7 @@ namespace wxl::native::protocol
     // duplicate declarations are rejected. Lua cannot declare arbitrary IDs.
     bool RegisterOpcode(uint16_t opcode, bool outbound) noexcept;
     bool Send(uint16_t opcode, const void* payload, uint32_t length) noexcept;
+    bool SendInSession(uint16_t opcode, const void* payload, uint32_t length, uint64_t expectedGeneration) noexcept;
     bool Pop(uint16_t& opcode, std::vector<uint8_t>& payload) noexcept;
     // NetClient owner/event-queue boundary, after reading the uint16 opcode.
     // True means the custom packet was claimed, including a bounded drop.
@@ -40,6 +41,7 @@ namespace wxl::native::protocol
     // Entire group commits atomically; no partial feature registration.
     bool RegisterNativeDispatch(const NativeDeclaration* entries,uint32_t count) noexcept;
     // Legacy addon facade may use declared raw packets, never compiled owners.
+    bool ClaimRawDispatch(const NativeDeclaration* entries,uint32_t count) noexcept;
     bool CanLegacySend(uint16_t opcode) noexcept;
     bool CanLegacyObserve(uint16_t opcode) noexcept;
 }

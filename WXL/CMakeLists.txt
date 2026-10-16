@@ -1,3 +1,4 @@
+option(WXL_ENABLE_RETAIL_UI "Enable native retail UI/wardrobe/weekly rewards" ON)
 # Native WXL modules are object libraries, collected once into a static facade.
 # This retains independent build targets without cross-archive linker cycles.
 option(WXL_ENABLE_PROCEDURAL_ENCHANTS "Enable bounded donor-compatible retail enchant tint/alpha" ON)
@@ -71,6 +72,13 @@ target_compile_definitions(WxlAppearances PRIVATE WXL_ENABLE_PRIVATE_APPEARANCES
 wxl_module(WxlEquipmentAttachments EquipmentAttachments modules/equipment/EquipmentAttachments.cpp modules/equipment/ProceduralEnchants.cpp modules/equipment/EnchantModelTimeline.cpp)
 target_compile_definitions(WxlEquipmentAttachments PRIVATE WXL_ENABLE_PROCEDURAL_ENCHANTS=$<BOOL:${WXL_ENABLE_PROCEDURAL_ENCHANTS}>)
 add_dependencies(WxlEquipmentAttachments WxlRuntime WxlM2 WxlDB2 WxlBlp)
+wxl_module(WxlRetailUi RetailUi modules/retail-ui/RetailUiNative.cpp modules/retail-ui/NativeDb2.cpp
+ modules/retail-ui/RetailTransmogPreview.cpp modules/retail-ui/RetailUi.cpp modules/retail-ui/WeeklyRewards.cpp modules/retail-ui/RetailTransmog.cpp
+ modules/retail-ui/RetailTransmogEquipment.cpp modules/retail-ui/RetailTransmogApply.cpp
+ modules/retail-ui/RetailTransmogOutfits.cpp modules/retail-ui/RetailTransmogCustomSets.cpp modules/retail-ui/RetailTransmogSituations.cpp)
+target_include_directories(WxlRetailUi PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/modules/retail-ui/abi")
+target_compile_definitions(WxlRetailUi PRIVATE WXL_ENABLE_RETAIL_UI=$<BOOL:${WXL_ENABLE_RETAIL_UI}>)
+add_dependencies(WxlRetailUi WxlRuntime WxlDB2)
 wxl_module(WxlProtocol Protocol modules/protocol/NativeProtocol.cpp modules/protocol/ProtocolConsumers.cpp)
 wxl_module(WxlAppearanceSession AppearanceSession modules/appearance-session/AppearanceSession.cpp)
 wxl_module(WxlWorld World modules/world/WmoNative.cpp modules/world/SplitAdtNative.cpp
@@ -104,6 +112,7 @@ add_dependencies(WxlAppearances WxlM2 WxlDB2 WxlBlp)
 add_dependencies(WxlProtocol WxlRuntime)
 add_dependencies(WxlSpellVisuals WxlRuntime WxlStorage WxlDB2 WxlM2 WxlProtocol)
 add_library(WxlNative STATIC
+ $<TARGET_OBJECTS:WxlRetailUi>
  $<TARGET_OBJECTS:WxlCreationBeams>
  $<TARGET_OBJECTS:WxlSpellVisuals>
  $<TARGET_OBJECTS:WxlEquipmentAttachments>
