@@ -39,7 +39,7 @@ namespace native_items {
 using namespace wxl::runtime::db2;
 bool IsNativePresentation(uint32_t id){if(!id||id>INT32_MAX)return false;const auto& db=g_itemDB;return db.m_recordsById&&int32_t(id)>=db.m_minID&&int32_t(id)<=db.m_maxID&&db.m_recordsById[int32_t(id)-db.m_minID];}
 uint32_t RequestDisplayForItem(uint32_t id,uint32_t modifier){auto c=retailitems::Current();if(!c)return 0;uint32_t display=0;auto v=c->variants.find((uint64_t(id)<<32)|modifier);if(modifier&&v!=c->variants.end())display=v->second.displayId;if(!display)if(auto i=c->items.find(id);i!=c->items.end())display=i->second.displayId;if(display)itemdisplay::Request(display);return display;}
-std::string VariantIconPath(uint32_t id,uint32_t modifier){auto c=retailitems::Current();if(!c)return {};uint32_t icon=0;auto v=c->variants.find((uint64_t(id)<<32)|modifier);if(modifier&&v!=c->variants.end())icon=v->second.iconFileDataId;if(!icon)if(auto i=c->items.find(id);i!=c->items.end())icon=i->second.iconFileDataId;auto* path=icon?wxl::native::ResolveTexture(icon):nullptr;return path?path:"";}
+std::string VariantIconPath(uint32_t id,uint32_t modifier){if(auto source=wxl::client::wxlwow::PresentationSourceForItem(id))id=source;auto c=retailitems::Current();if(!c)return {};uint32_t icon=0;auto v=c->variants.find((uint64_t(id)<<32)|modifier);if(modifier&&v!=c->variants.end())icon=v->second.iconFileDataId;if(!icon)if(auto i=c->items.find(id);i!=c->items.end())icon=i->second.iconFileDataId;auto* path=icon?wxl::native::ResolveTexture(icon):nullptr;return path?path:"";}
 void RequestIconForItem(uint32_t id,uint32_t modifier){(void)VariantIconPath(id,modifier);}
 uint64_t IconGeneration(){return wxl::native::ItemGraphGeneration();}
 }
@@ -745,6 +745,7 @@ namespace
                         {
                             g_variantGeneration.fetch_add(
                                 1, std::memory_order_release);
+                            wxl::native::ItemGraphPublished();
                             WLOG_INFO(
                                 "wxlwow: pending equipped variant slot=%u item=%u modifier=%u display=%u",
                                 equipmentSlot, instance.itemId,

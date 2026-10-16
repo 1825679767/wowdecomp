@@ -14,9 +14,18 @@
 static void VisibleItemCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
 }
 
+// A generated item keeps its actual server identity. Only the unambiguous
+// server-snapshot source supplies native equipment classification/presentation.
+static ItemRec* VariantPresentationRow(const VisibleItem_C* item) {
+    const auto id=wxl::native::VisibleItemKey(item->m_itemId);
+    const auto source=wxl::client::wxlwow::PresentationSourceForItem(id);
+    return source&&source!=id&&source<=INT32_MAX?g_itemDB.GetRecord(int32_t(source)):nullptr;
+}
+
 // VERIFY: 04ee8da3 auto
 // OFFSET: 0x00758D30
 uint32_t VisibleItem_C::GetClassID() {
+    if(auto* source=VariantPresentationRow(this))return source->m_classID;
     WOWGUID guid = WOWGUID();
     ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
@@ -28,6 +37,7 @@ uint32_t VisibleItem_C::GetClassID() {
 // VERIFY: da6c80bd auto
 // OFFSET: 0x00758D80
 uint32_t VisibleItem_C::GetSubtypeID() {
+    if(auto* source=VariantPresentationRow(this))return source->m_subclassID;
     WOWGUID guid = WOWGUID();
     ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
@@ -39,6 +49,7 @@ uint32_t VisibleItem_C::GetSubtypeID() {
 // VERIFY: 0eef7107 auto
 // OFFSET: 0x00758DD0
 uint32_t VisibleItem_C::GetInventoryType() {
+    if(auto* source=VariantPresentationRow(this))return source->m_inventoryType;
     WOWGUID guid = WOWGUID();
     ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
@@ -54,6 +65,7 @@ uint32_t VisibleItem_C::GetInventoryType() {
 // OFFSET: 0x00758E50
 uint32_t VisibleItem_C::GetDisplayID() {
     if(auto display=wxl::native::ItemVariantDisplay(this))return display;
+    if(auto* source=VariantPresentationRow(this))return source->m_displayInfoID;
     WOWGUID guid = WOWGUID();
     ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
@@ -68,6 +80,7 @@ uint32_t VisibleItem_C::GetDisplayID() {
 // VERIFY: dfd59b1b auto
 // OFFSET: 0x00758ED0
 uint32_t VisibleItem_C::GetMaterial() {
+    if(auto* source=VariantPresentationRow(this))return source->m_material;
     WOWGUID guid = WOWGUID();
     ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
@@ -82,6 +95,7 @@ uint32_t VisibleItem_C::GetMaterial() {
 // VERIFY: 38f006d3 auto
 // OFFSET: 0x00758F50
 uint32_t VisibleItem_C::GetSheatheType() {
+    if(auto* source=VariantPresentationRow(this))return source->m_sheatheType;
     WOWGUID guid = WOWGUID();
     ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
@@ -96,6 +110,7 @@ uint32_t VisibleItem_C::GetSheatheType() {
 // VERIFY: 610fe897 auto
 // OFFSET: 0x00758FD0
 uint32_t VisibleItem_C::GetSoundOverrideSubclassID() {
+    if(auto* source=VariantPresentationRow(this))return source->m_soundOverrideSubclassID;
     WOWGUID guid = WOWGUID();
     ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
