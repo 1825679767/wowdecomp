@@ -16,6 +16,7 @@ target_include_directories(Gx
 target_link_libraries(Gx
     PRIVATE
         d3d9.lib
+        zlib
 )
 
 if (WIN32)
