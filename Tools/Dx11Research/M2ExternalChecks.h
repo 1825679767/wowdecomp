@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Source/Model2/M2Shared.h"
+#include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Os/OsMemory.h"
 #include "Engine/Source/Services/Types.h"
 #include <iomanip>
@@ -25,6 +26,15 @@ template<class T> static void M2TrackCheck(const M2Track<T>& t,uint32_t index,co
         if(index<t.m_sequenceTimes.m_count)M2Leaf(t.m_sequenceTimes[index],anim,animSize);
         if(index<t.m_sequenceKeys.m_count)M2Leaf(t.m_sequenceKeys[index],anim,animSize);
     }
+}
+template<class T,class V> static void M2SampleCheck(CM2Model& model,M2ModelBone& bone,const M2Track<T>& track,M2ModelTrack<V>& state,const V& fallback){
+    const auto index=uint32_t(bone.m_sequence.m_animIndex);
+    if(track.m_sequenceKeys.m_count){const auto& keys=track.m_sequenceKeys[index<track.m_sequenceKeys.m_count?index:0];
+        if(keys.m_count){uint32_t first=0,last=0;float ratio=0;model.FindKey(&bone.m_sequence,track,first,last,ratio);
+            Check(first<keys.m_count&&last<keys.m_count&&std::isfinite(ratio)&&ratio>=0&&ratio<=1,"native animation key sampling remains bounded");}}
+    M2AnimateTrack<T,V>(&model,&bone,track,state,fallback);
+    float components[4]{};static_assert(sizeof(V)<=sizeof(components));std::memcpy(components,&state.m_currentValue,sizeof(V));
+    for(unsigned i=0;i<sizeof(V)/sizeof(float);++i)Check(std::isfinite(components[i]),"native animated bone component is finite");
 }
 static int M2ExternalChecks(const std::filesystem::path& directory){
     uint32_t loaded=0;
@@ -59,6 +69,20 @@ static int M2ExternalChecks(const std::filesystem::path& directory){
                 for(uint32_t b=0;b<data->m_attachments.m_count;++b)track(data->m_attachments[b].m_animateAttached);
                 for(uint32_t b=0;b<data->m_lights.m_count;++b){const auto& t=data->m_lights[b];track(t.m_ambientColor);track(t.m_ambientIntensity);track(t.m_diffuseColor);track(t.m_diffuseIntensity);track(t.m_attenuationStart);track(t.m_attenuationEnd);track(t.m_visibility);}
                 for(uint32_t b=0;b<data->m_cameras.m_count;++b){const auto& t=data->m_cameras[b];track(t.m_positions);track(t.m_targetPositions);track(t.m_roll);}
+            }
+            {
+                std::vector<int32_t> loops(data->m_loops.m_count);CM2Model evaluator;shared.AddRef();evaluator.m_shared=&shared;evaluator.m_loops=loops.data();
+                struct UnbindLoops{CM2Model& model;~UnbindLoops(){model.m_loops=nullptr;}} unbind{evaluator};
+                for(auto index:aliases){const auto duration=data->m_sequences[index].m_duration;
+                    for(uint32_t time:{0u,250u,500u,duration/2,duration,duration+1}){
+                        for(uint32_t k=0;k<loops.size();++k)loops[k]=time%std::max(1u,data->m_loops[k].m_length);
+                        for(uint32_t b=0;b<data->m_bones.m_count;++b){const auto& source=data->m_bones[b];M2ModelBone bone;bone.m_blendFactor=0;bone.m_sequence.m_animIndex=uint16_t(index);bone.m_sequence.m_currentTime=time;
+                            M2SampleCheck(evaluator,bone,source.m_translationTrack,bone.m_translation,C3Vector(0,0,0));
+                            C4Quaternion identity;identity.x=identity.y=identity.z=0;identity.w=1;M2SampleCheck(evaluator,bone,source.m_rotationTrack,bone.m_rotation,identity);
+                            M2SampleCheck(evaluator,bone,source.m_scaleTrack,bone.m_scale,C3Vector(1,1,1));
+                        }
+                    }
+                }
             }
             shared.m_data=nullptr;OsFreeNear(animation);OsFreeNear(model);++loaded;
         }
