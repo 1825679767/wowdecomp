@@ -1,6 +1,8 @@
 // Modern ItemVisuals/ItemVisualsXEffect are a distinct graph, never native DBC rows.
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "ItemVisualGraph.hpp"
+#include "PositionerGraph.hpp"
+#include "WXL/ProceduralPayload.hpp"
 #include "RetailSchemas.hpp"
 #include "WXL/ItemGraph.hpp"
 #include "WXL/FdidCompat.hpp"
@@ -56,9 +58,8 @@ void ResolveKits(Catalog& catalog){
  for(const auto& [id,owners]:procedureOwners)for(const auto& owner:owners){
   const auto* row=proceduresLoaded?procedures.Find(id):nullptr;if(!row){++unsupported[owner.kit];continue;}
   ItemGraphProcedural effect;effect.kitId=owner.kit;effect.kitEffectId=owner.link;effect.procedureId=id;effect.type=procedures.Value(*row,"Type");
-  bool zero=true;for(uint32_t value=0;value<4;++value){effect.rawValues[value]=procedures.Value(*row,"Value",value);const auto f=std::bit_cast<float>(effect.rawValues[value]);if(!std::isfinite(f)||(value&&f!=0))zero=false;}
-  const auto first=std::bit_cast<float>(effect.rawValues[0]);
-  effect.compatible=zero&&((effect.type==1&&first>=0&&first<=16777215&&std::trunc(first)==first)||(effect.type==14&&first>=0&&first<=1));
+  for(uint32_t value=0;value<4;++value)effect.rawValues[value]=procedures.Value(*row,"Value",value);
+  std::array<float,4> payload;effect.compatible=DecodeProceduralPayload(effect,payload);
   if(!effect.compatible)++unsupported[owner.kit];
   if(proceduresByKit[owner.kit].size()<256)proceduresByKit[owner.kit].push_back(effect);else ++unsupported[owner.kit];
  }
@@ -73,6 +74,9 @@ void ResolveKits(Catalog& catalog){
  for(const auto& attach:attachments){auto id=attachTable.Value(attach.row,"SpellVisualEffectNameID");if(id)effectIds.push_back(id);}
  Unique(effectIds);
  if(!effectIds.empty()&&!Filter(schema::SpellVisualEffectName,db::wdc5::SnapshotFilterSource::RowId,effectIds,names))return;
+ std::vector<uint32_t> positionerIds;
+ for(const auto& attach:attachments){auto id=attachTable.Value(attach.row,"PositionerID");if(id)positionerIds.push_back(id);}Unique(positionerIds);
+ auto positioners=LoadItemPositioners(positionerIds);
  std::unordered_map<uint32_t,std::vector<ItemGraphKitModel>> byKit;
  for(const auto& attach:attachments){
   const auto& row=attach.row;const auto effectId=attachTable.Value(row,"SpellVisualEffectNameID");const auto* effect=names.Find(effectId);
@@ -80,13 +84,15 @@ void ResolveKits(Catalog& catalog){
   if(!effect){refuse();continue;}
   // Recovered native Euler/sequence ownership admits static transforms and
   // start/loop/end timing. Positioners/random variation/unknown flags stay refused.
-  bool supported=!attachTable.Value(row,"PositionerID")&&!attachTable.Value(row,"Flags")&&!attachTable.Value(row,"AnimKitID");
+  bool supported=!attachTable.Value(row,"Flags")&&!attachTable.Value(row,"AnimKitID");
+  const auto positionerId=attachTable.Value(row,"PositionerID");const auto positioned=positioners.find(positionerId);
+  supported&=!positionerId||(positioned!=positioners.end()&&positioned->second->staticCompatible);
   for(auto field:{"YawVariation","PitchVariation","RollVariation","ScaleVariation"})supported&=Float(attachTable,row,field)==0;
   for(unsigned axis=0;axis<3;++axis)supported&=Float(attachTable,row,"OffsetVariation",axis)==0;
   // Effect-name substitutions, procedural types, positioners and dissolve
   // pipelines are outside a model-only equipment owner.
   supported&=!names.Value(*effect,"TextureFileDataID")&&!names.Value(*effect,"DissolveEffectID")&&!names.Value(*effect,"Flags")&&!names.Value(*effect,"ModelPosition");
-  ItemGraphKitModel model;model.kitId=attach.kit;model.modelAttachId=row.id;model.fileDataId=names.Value(*effect,"ModelFileDataID");model.attachmentId=attachTable.Value(row,"AttachmentID");model.animationId=attachTable.Value(row,"AnimID");
+  ItemGraphKitModel model;if(positionerId&&positioned!=positioners.end())model.positioner=positioned->second;model.kitId=attach.kit;model.modelAttachId=row.id;model.fileDataId=names.Value(*effect,"ModelFileDataID");model.attachmentId=attachTable.Value(row,"AttachmentID");model.animationId=attachTable.Value(row,"AnimID");
   auto animation=[](uint32_t value)->int32_t{return value==0xffffu||value==0xffffffffu?-1:int32_t(value);};
   model.startAnimationId=animation(attachTable.Value(row,"StartAnimID"));model.endAnimationId=animation(attachTable.Value(row,"EndAnimID"));
   supported&=model.startAnimationId>=-1&&model.endAnimationId>=-1;

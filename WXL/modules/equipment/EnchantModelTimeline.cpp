@@ -62,7 +62,18 @@ void Placement(CM2Model& model,const ItemGraphKitModel& recipe){
  native.m_yaw=recipe.yaw;native.m_pitch=recipe.pitch;native.m_roll=recipe.roll;
  // The native model-attach contract is Z(-yaw),Y(pitch),X(roll), then
  // offset(X,-Y,Z) in attachment-local coordinates (facing zero).
- CEffect::ApplyModelAttachRecToMatrix(&native,matrix,0.0f);model.SetWorldTransform(matrix);
+ CEffect::ApplyModelAttachRecToMatrix(&native,matrix,0.0f);
+ if(recipe.positioner){
+  if(!recipe.positioner->staticCompatible)return;
+  for(const auto& state:recipe.positioner->states){
+   C44Matrix local;local.Identity();local.Scale(state.scale);SpellVisualKitModelAttachRec positioned;
+   for(uint32_t i=0;i<3;++i)positioned.m_offset[i]=state.position[i];positioned.m_yaw=state.yaw;positioned.m_pitch=state.pitch;positioned.m_roll=state.roll;
+   CEffect::ApplyModelAttachRecToMatrix(&positioned,local,0.0f);
+   // Compatibility port: static positioner is local to the authored attachment.
+   matrix=local*matrix;
+  }
+ }
+ model.SetWorldTransform(matrix);
 }
 bool Activate(EnchantAttachmentOwner& owner,Entry& entry,uint32_t now){
  auto& parent=*owner.parent;auto& recipe=entry.recipe;

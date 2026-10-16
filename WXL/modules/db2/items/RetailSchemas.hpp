@@ -215,6 +215,16 @@ namespace wxl::runtime::db2::retail
         kSpellVisualKitEffectFields,
     };
 
+    // PTR12.1 positioner layouts, exact primary definitions and local headers.
+    inline constexpr std::array kPositionerFields{Field{"FirstStateID"},Field{"Flags"},Field{"StartLife"},Field{"StartLifePercent"}};
+    inline constexpr Definition Positioner{"Positioner","positioner.db2",0xE0D4FD55u,kPositionerFields};
+    inline constexpr std::array kPositionerStateFields{Field{"NextStateID"},Field{"TransformMatrixID"},Field{"PosEntryID"},Field{"RotEntryID"},Field{"ScaleEntryID"},Field{"Flags"},Field{"EndLife"},Field{"EndLifePercent"}};
+    inline constexpr Definition PositionerState{"PositionerState","positionerstate.db2",0x9CDFBF30u,kPositionerStateFields};
+    inline constexpr std::array kPositionerEntryFields{Field{"ParamA"},Field{"ParamB"},Field{"CurveID"},Field{"SrcValType"},Field{"SrcVal"},Field{"DstValType"},Field{"DstVal"},Field{"EntryType"},Field{"Style"},Field{"SrcType"},Field{"DstType"}};
+    inline constexpr Definition PositionerStateEntry{"PositionerStateEntry","positionerstateentry.db2",0x855AA6BCu,kPositionerEntryFields};
+    inline constexpr std::array kTransformMatrixFields{Field{"Pos",3},Field{"Yaw"},Field{"Pitch"},Field{"Roll"},Field{"Scale"}};
+    inline constexpr Definition TransformMatrix{"TransformMatrix","transformmatrix.db2",0x45999148u,kTransformMatrixFields};
+
     inline constexpr std::array kSpellVisualKitModelAttachFields{
         Field{"Offset", 3}, Field{"OffsetVariation", 3},
         Field{"SpellVisualEffectNameID"}, Field{"AttachmentID"},

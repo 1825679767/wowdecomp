@@ -273,8 +273,7 @@ void ApplyItemVisual(CM2Model* parent,int32_t visual,uint32_t display,uint32_t w
  ItemGraphVisual modern;uint32_t subclass=weaponSubclass;
  if(subclass==UINT32_MAX)ItemGraphWeaponSubclass(display,subclass);
  const bool resolved=!record&&Enabled()&&(visual>0?ItemGraphVisualData(uint32_t(visual),modern):ItemGraphDisplayVisual(display,modern));
- procedural_enchants::Release(parent);
- if(resolved)procedural_enchants::Apply(parent,modern,subclass);
+ if(resolved)procedural_enchants::Apply(parent,modern,subclass);else procedural_enchants::Release(parent);
  if(resolved&&SameTimedItemVisual(*parent,visual,display,subclass))return;
  RetireTimedItemVisuals(*parent);
  // The item owns its visual children. Retiring timeline children keep their

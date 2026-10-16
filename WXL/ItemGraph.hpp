@@ -1,5 +1,6 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #pragma once
+#include <memory>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -31,11 +32,26 @@ struct ItemGraphVisualEffect {
  uint32_t id=0,attachmentId=0,displayWeaponSubclassId=0,spellVisualKitId=0,fileDataId=0;
  float scale=1;std::string path;
 };
+struct ItemGraphPositionerEntry {
+ uint32_t id=0,curveId=0;float paramA=0,paramB=0;
+ int32_t sourceValueType=0,sourceValue=0,destinationValueType=0,destinationValue=0;
+ uint32_t entryType=0,style=0,sourceType=0,destinationType=0;
+};
+struct ItemGraphPositionerState {
+ uint32_t id=0,nextState=0,flags=0,transformId=0;float endLife=0;uint32_t endPercent=0;
+ float position[3]{},yaw=0,pitch=0,roll=0,scale=1;
+ uint32_t entryIds[3]{};std::vector<ItemGraphPositionerEntry> entries;
+};
+struct ItemGraphPositioner {
+ uint32_t id=0,flags=0,startPercent=0;float startLife=0;
+ bool staticCompatible=false;std::vector<ItemGraphPositionerState> states;
+};
 struct ItemGraphKitModel {
  uint32_t kitId=0,modelAttachId=0,fileDataId=0,attachmentId=0;
  uint32_t displayWeaponSubclassId=UINT32_MAX,sourceEffectId=0,animationId=0;
  int32_t startAnimationId=-1,endAnimationId=-1;
  uint32_t sourceFlags=0;
+ std::shared_ptr<const ItemGraphPositioner> positioner;
  float startDelay=0; // source float, not integer bits
  float scale=1,alpha=1,offset[3]{},yaw=0,pitch=0,roll=0;
  std::string path;
