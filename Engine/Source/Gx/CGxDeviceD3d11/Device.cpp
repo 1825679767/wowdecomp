@@ -36,7 +36,9 @@ bool CGxDeviceD3d11::Initialize(bool warp){
         if(!m_format.m_window&&!Check(m->swapchain->SetFullscreenState(TRUE,nullptr),"fullscreen"))return false;
     }
     memset(&m_caps,0,sizeof(m_caps));m_caps.m_numTmus=16;m_caps.m_numStreams=16;m_caps.m_streamOffset=1;
-    m_caps.m_colorFormat=GxCF_argb;m_caps.m_pixelCenterOnEdge=0;m_caps.m_texelCenterOnEdge=0;
+    // Preserve Wrath's legacy pixel/texel contract. The converter applies the
+    // D3D9-to-D3D11 half-pixel adjustment after native UI/font projection setup.
+    m_caps.m_colorFormat=GxCF_argb;m_caps.m_pixelCenterOnEdge=0;m_caps.m_texelCenterOnEdge=1;
     m_caps.unk_0018=1;m_caps.m_maxIndex=65535;m_caps.m_generateMipMaps=1;
     m_caps.m_shaderTargets[GxSh_Vertex]=3;m_caps.m_shaderTargets[GxSh_Pixel]=4;
     m_caps.m_shaderConstants[GxSh_Vertex]=256;m_caps.m_shaderConstants[GxSh_Pixel]=224;
