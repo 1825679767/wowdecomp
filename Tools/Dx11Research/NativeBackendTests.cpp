@@ -132,6 +132,7 @@ static void ConstantUpdateChecks(bool warp){
 #include "M2ExternalChecks.h"
 #include "OutlineChecks.h"
 #include "WmoMaterialChecks.h"
+#include "GrassWindChecks.h"
 int main(int argc,char** argv) try {
     SetUnhandledExceptionFilter(TraceCrash);
     std::cerr<<"native DX11 backend tests: initialize\n"<<std::flush;
@@ -310,6 +311,7 @@ int main(int argc,char** argv) try {
     ConstantUpdateChecks(argc==3);
     OutlineChecks(argc==3);
     WmoMaterialChecks(argc==3);
+    GrassWindChecks(argc==3);
     // Exercise actual GxDevDestroy/WXL lifecycle owners, not test substitutes.
     auto* lifecycle=new CGxDeviceD3d11();g_theGxDevicePtr=lifecycle;
     Check(lifecycle->CreateOffscreen(8,8,true),"owned device for real WXL teardown");

@@ -5,6 +5,7 @@
 #include <cstdio>
 #include "WXL/UnitOutline.hpp"
 #include "WXL/WmoMaterials.hpp"
+#include "WXL/GrassWind.hpp"
 
 using namespace gx11;
 
@@ -66,14 +67,16 @@ void CGxDeviceD3d11::ShaderCreate(CGxShader** shaders,EGxShTarget target,const c
 std::shared_ptr<CGxDeviceD3d11::Impl::Variant> CGxDeviceD3d11::Impl::Shader(CGxShader* shader,
     const std::vector<gx::shader::Semantic>& decl,const gx::shader::TranslationState& state){
     if(!shader||!shader->m_code.Count())return {};
-    std::string key=Key(shader);
+    const bool vertex=shader->m_target==GxSh_Vertex;
+    uint32_t injectedLength=0;
+    const void* injected=vertex?wxl::native::grass_wind::VertexCode(*shader,injectedLength):nullptr;
+    std::string key=Key(shader)+Key(bool(injected));
     for(const auto& d:decl)key+=Key(d);
     key+=Key(state.alphaFunc)+Key(state.primitive)+Key(state.clipPlanes)+Key(state.alphaTest)+Key(state.fog)+Key(state.fogMode)+Key(state.shadowSamplers);
     for(auto type:state.samplerTypes)key+=Key(type);
     auto found=variants.find(key);if(found!=variants.end())return found->second;
     auto candidate=std::make_shared<Variant>();std::string error;
-    const bool vertex=shader->m_target==GxSh_Vertex;
-    if(!gx::shader::TranslateLegacy(shader->m_code.Ptr(),shader->m_code.Count(),vertex,decl,state,candidate->translated,error)){
+    if(!gx::shader::TranslateLegacy(injected?injected:shader->m_code.Ptr(),injected?injectedLength:shader->m_code.Count(),vertex,decl,state,candidate->translated,error)){
         if(lastError!=error){CGxDevice::Log("DX11 shader conversion refused: %s",error.c_str());lastError=error;}return {};
     }
     auto& code=candidate->translated.dxbc;

@@ -111,18 +111,22 @@ const std::vector<DWORD>* Inject(const uint8_t* bytes,uint32_t length){auto& dat
 void Register(){for(auto& p:parameters){auto* cv=CVar::Register(p.name,"WXL grass sway/parting parameter",0,p.value,Changed,0,false,&p,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,&p);}}
 bool Enabled() noexcept{return WXL_ENABLE_GRASS_WIND&&NativeEnabled()&&Value(0)!=0;}
 void Forget(CGxShader& shader) noexcept {try{Data().created.erase(&shader);}catch(...){}}
+const void* VertexCode(CGxShader& shader,uint32_t& length) noexcept {length=0;try{
+ if(!WXL_ENABLE_GRASS_WIND||!NativeEnabled())return nullptr;bool grass=false;for(auto* actual:CDetailDoodad::s_vertexShader)if(actual==&shader)grass=true;if(!grass)return nullptr;
+ const auto size=shader.m_code.Count();if(!shader.m_code.m_data||size<8)return nullptr;uint32_t version=0;std::memcpy(&version,shader.m_code.m_data,4);
+ constexpr uint32_t v2[]{552,644,788,1428,1520,1664},v3[]{548,676,844,1328,1456,1624};bool known=false;for(unsigned i=0;i<6;++i)known|=(version==0xfffe0200u&&size==v2[i])||(version==0xfffe0300u&&size==v3[i]);if(!known)return nullptr;
+ auto* code=Inject(shader.m_code.m_data,size);if(!code)return nullptr;length=uint32_t(code->size()*sizeof(DWORD));return code->data();
+ }catch(...){return nullptr;}}
 bool CreateVertex(CGxDevice& owner,CGxShader& shader) noexcept {try{
- Forget(shader);if(!WXL_ENABLE_GRASS_WIND||!NativeEnabled())return false;bool grass=false;for(auto* actual:CDetailDoodad::s_vertexShader)if(actual==&shader)grass=true;if(!grass)return false;
- const auto length=shader.m_code.Count();if(!shader.m_code.m_data||length<8)return false;uint32_t version=0;std::memcpy(&version,shader.m_code.m_data,4);
- constexpr uint32_t v2[]{552,644,788,1428,1520,1664},v3[]{548,676,844,1328,1456,1624};bool known=false;for(unsigned i=0;i<6;++i)known|=(version==0xfffe0200u&&length==v2[i])||(version==0xfffe0300u&&length==v3[i]);if(!known)return false;
- auto* code=Inject(shader.m_code.m_data,length);if(!code)return false;IDirect3DDevice9* d=nullptr;if(owner.m_api==GxApi_D3d9)d=static_cast<CGxDeviceD3d&>(owner).m_d3dDevice;else if(owner.m_api==GxApi_D3d9Ex)d=static_cast<CGxDeviceD3d9Ex&>(owner).m_d3dDevice;if(!d)return false;
- Com<IDirect3DVertexShader9> created;if(FAILED(d->CreateVertexShader(code->data(),&created.p))||!created.p)return false;
+ Forget(shader);uint32_t length=0;auto* code=static_cast<const DWORD*>(VertexCode(shader,length));if(!code)return false;IDirect3DDevice9* d=nullptr;if(owner.m_api==GxApi_D3d9)d=static_cast<CGxDeviceD3d&>(owner).m_d3dDevice;else if(owner.m_api==GxApi_D3d9Ex)d=static_cast<CGxDeviceD3d9Ex&>(owner).m_d3dDevice;if(!d)return false;
+ Com<IDirect3DVertexShader9> created;if(FAILED(d->CreateVertexShader(code,&created.p))||!created.p)return false;
  // Publish the CPU identity before transferring COM ownership; exceptions cannot leak a shader.
  Data().created[&shader]=created.p;shader.m_apiSpecific=created.p;created.p=nullptr;shader.m_valid=1;shader.m_loaded=1;return true;
  }catch(...){return false;}}
 void Upload(CGxShader& shader) noexcept {try{
- if(!g_theGxDevicePtr||(g_theGxDevicePtr->m_api!=GxApi_D3d9&&g_theGxDevicePtr->m_api!=GxApi_D3d9Ex)||!shader.Valid())return;
- const auto it=Data().created.find(&shader);if(it==Data().created.end()||it->second!=shader.m_apiSpecific||!shader.m_valid||!g_theGxDevicePtr)return;
+ if(!g_theGxDevicePtr||(g_theGxDevicePtr->m_api!=GxApi_D3d9&&g_theGxDevicePtr->m_api!=GxApi_D3d9Ex&&g_theGxDevicePtr->m_api!=GxApi_D3d11)||!shader.Valid())return;
+ if(g_theGxDevicePtr->m_api==GxApi_D3d11){uint32_t length=0;if(!VertexCode(shader,length))return;}
+ else {const auto it=Data().created.find(&shader);if(it==Data().created.end()||it->second!=shader.m_apiSpecific||!shader.m_valid)return;}
  auto* frame=CGWorldFrame::s_currentWorldFrame;if(!frame||!frame->m_camera)return;const auto cam=frame->m_camera->m_position;auto player=cam;bool hasPlayer=false;if(auto* active=ClntObjMgrGetActivePlayerObj()){player=active->GetModelPosition();hasPlayer=true;}
  const bool enabled=Enabled(),sway=enabled&&Value(1)!=0,rep=enabled&&Value(2)!=0&&hasPlayer;
  const float t=(GetTickCount()%1000000u)*.001f,a1=Value(3)*Pi2/360.f,a2=(Value(3)+Value(9))*Pi2/360.f,k1=Pi2/Value(6),k2=Pi2/Value(8),d1x=std::cos(a1),d1y=std::sin(a1),d2x=std::cos(a2),d2y=std::sin(a2);
