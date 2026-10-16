@@ -1469,7 +1469,7 @@ float CGCamera::GetDefaultZoomMaxDistance() {
 
 // VERIFY: cfc63e8a manual
 // OFFSET: 0x00606330
-void CGCamera::AddShake(const C3Vector& position, int32_t type, int32_t dir, float amplitude, float frequency, float duration, float timeOffset, float damping) {
+void CGCamera::AddShake(const C3Vector& position, int32_t type, CGCameraDir dir, float amplitude, float frequency, float duration, float timeOffset, float damping) {
     CameraShake* shake = this->m_cameraShakeList.NewNode(2, 0, 0);
 
     if (shake) {
@@ -4015,25 +4015,25 @@ static int32_t __stdcall ComputeShakeFalloff(const C3Vector& position, const C3V
 
 // VERIFY: 6b01b912 manual
 // OFFSET: 0x005FE6C0
-void CGCamera::AddShakeOffset(C3Vector& offset, float facing, float amplitude, float time, float frequency, int32_t type, float damping, int32_t dir) {
+void CGCamera::AddShakeOffset(C3Vector& offset, float facing, float amplitude, float time, float frequency, int32_t type, float damping, CGCameraDir dir) {
     float value = sinf(frequency * time * 6.2831855f) * amplitude;
 
     if (type == 1) {
         value = value * expf(-(time * damping));
     }
 
-    if (dir == 0) {
+    if (dir == CAMERA_FORWARD) {
         float c = cosf(facing);
         float s = sinf(facing);
         offset.x = c * value + offset.x;
         offset.y = value * s + offset.y;
-    } else if (dir == 1) {
+    } else if (dir == CAMERA_RIGHT) {
         float angle = facing + 1.5707964f;
         float c = cosf(angle);
         float s = sinf(angle);
         offset.x = c * value + offset.x;
         offset.y = value * s + offset.y;
-    } else if (dir == 2) {
+    } else if (dir == CAMERA_UP) {
         offset.z = value + offset.z;
     }
 }
@@ -4053,9 +4053,9 @@ void CGCamera::RunShakes(const C3Vector& position, C3Vector& offset) {
     }
 
     float facing = unit->GetSmoothFacing();
-    float amplitudes[3] = { 0.0f, 0.0f, 0.0f };
-    float times[3] = { 0.0f, 0.0f, 0.0f };
-    CameraShake* shakes[3] = { nullptr, nullptr, nullptr };
+    float amplitudes[NUM_CAMERA_DIRECTIONS] = { 0.0f, 0.0f, 0.0f };
+    float times[NUM_CAMERA_DIRECTIONS] = { 0.0f, 0.0f, 0.0f };
+    CameraShake* shakes[NUM_CAMERA_DIRECTIONS] = { nullptr, nullptr, nullptr };
     CameraShake* next;
 
     for (CameraShake* shake = this->m_cameraShakeList.Head(); !this->m_cameraShakeList.IsEnd(shake); shake = next) {
@@ -4075,7 +4075,7 @@ void CGCamera::RunShakes(const C3Vector& position, C3Vector& offset) {
         }
     }
 
-    for (uint32_t i = 0; i < 3; i++) {
+    for (uint32_t i = 0; i < NUM_CAMERA_DIRECTIONS; i++) {
         CameraShake* shake = shakes[i];
 
         if (shake) {
@@ -4260,7 +4260,7 @@ void CGCamera::AddShakeById(int32_t shakeId, const C3Vector* position) {
     CameraShakesRec* shake = g_cameraShakesDB.GetRecord(shakeId);
 
     if (shake) {
-        this->AddShake(*position, shake->m_shakeType, shake->m_direction, shake->m_amplitude * 0.027777778f, shake->m_frequency, shake->m_duration, shake->m_phase, shake->m_coefficient);
+        this->AddShake(*position, shake->m_shakeType, static_cast<CGCameraDir>(shake->m_direction), shake->m_amplitude * 0.027777778f, shake->m_frequency, shake->m_duration, shake->m_phase, shake->m_coefficient);
     }
 }
 

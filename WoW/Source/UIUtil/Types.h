@@ -4,6 +4,13 @@
 #include <cstddef>
 #include <cstdint>
 
+enum CGCameraDir : int32_t {
+    CAMERA_FORWARD = 0,
+    CAMERA_RIGHT = 1,
+    CAMERA_UP = 2,
+    NUM_CAMERA_DIRECTIONS = 3,
+};
+
 // CGInputControl::m_flags, using the 3.3.5 input and movement paths.
 // These masks are separate from movement, mouse-mode and vehicle-seat flags.
 enum INPUT_CONTROL : uint32_t {

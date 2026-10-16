@@ -10,6 +10,7 @@
 #include "Engine/Source/Base/Handle.h"
 #include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/UIUtil/CSimpleCamera.h"
+#include "WoW/Source/UIUtil/Types.h"
 #include "Engine/Source/Services/CameraInt.h"
 
 class CGObject_C;
@@ -59,7 +60,7 @@ class CAMERA_SMOOTH {
 
 struct CameraShake : public TSLinkedNode<CameraShake> {
     /* 0008 */ int32_t m_type;
-    /* 000C */ int32_t m_dir;
+    /* 000C */ CGCameraDir m_dir;
     /* 0010 */ float m_amplitude;
     /* 0014 */ float m_frequency;
     /* 0018 */ float m_duration;
@@ -98,7 +99,7 @@ class CGCamera : public CSimpleCamera {
     static uint32_t GetCollisionQueryFlags();
     static float GetDefaultZoomMaxDistance();
     float GetDefaultZoomMinDistance();
-    static void __stdcall AddShakeOffset(C3Vector& offset, float facing, float amplitude, float time, float frequency, int32_t type, float damping, int32_t dir);
+    static void __stdcall AddShakeOffset(C3Vector& offset, float facing, float amplitude, float time, float frequency, int32_t type, float damping, CGCameraDir dir);
     void SetPositionAndTargetWithRoll(const C3Vector& position, const C3Vector& target, float roll);
     void CommentatorSetViewAndPosition(const C3Vector& position, float facing, float pitch);
     void BarberShopSetView(float distance, float facing, float pitch);
@@ -189,7 +190,7 @@ class CGCamera : public CSimpleCamera {
 
     CGCamera();
     ~CGCamera();
-    void AddShake(const C3Vector& position, int32_t type, int32_t dir, float amplitude, float frequency, float duration, float timeOffset, float damping);
+    void AddShake(const C3Vector& position, int32_t type, CGCameraDir dir, float amplitude, float frequency, float duration, float timeOffset, float damping);
     void AddShakeById(int32_t shakeId, const C3Vector* position);
     void BeginBobbingSmooth();
     void CalcTerrainTilt(CGObject_C* target, uint32_t time);
