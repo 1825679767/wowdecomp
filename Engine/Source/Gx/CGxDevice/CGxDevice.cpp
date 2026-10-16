@@ -745,8 +745,10 @@ void CGxDevice::PrimVertexMask(uint32_t mask) {
 // VERIFY: a26b1a58 auto
 // OFFSET: 0x00682F10
 void CGxDevice::PrimIndexPtr(CGxBuf* buf) {
-    if (buf->m_dirty || this->m_primIndexBuf != buf) {
-        buf->m_dirty = 0;
+    // Scoped native renderers must also be able to restore an unbound index
+    // stream. Null is a legitimate state, not a buffer to dereference.
+    if ((buf && buf->m_dirty) || this->m_primIndexBuf != buf) {
+        if (buf) buf->m_dirty = 0;
         this->m_primIndexDirty = 1;
         this->m_primIndexBuf = buf;
     }

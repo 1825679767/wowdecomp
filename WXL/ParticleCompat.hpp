@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include "ParticleCutoff.hpp"
+#include "ParticleLayers.hpp"
 namespace wxl::native {
 // Bake constant EXPT/EXP2 RGB and alpha multipliers into private native keys.
 // Requires neutral TXAC and native-representable key values. Nonnegative
@@ -12,10 +13,11 @@ namespace wxl::native {
 // constant float tracks when the original track is empty/neutral; conflicting
 // native animation and negative/sub-epsilon source points remain refused. EXP2
 // takes precedence over EXPT. A supplied source-owned cutoff set admits nonzero
-// linear UNORM16 lifetime ramps for single-texture sprites with strictly ordered
+// linear UNORM16 lifetime ramps for single-texture sprites or exact separately
+// admitted layer recipes, with strictly ordered
 // timestamps. Zero ramps retain existing native rendering without a sidecar.
 // Emitter order/count and mesh/particle blend identities are preserved.
 // On refusal the caller must discard its candidate buffer; no runtime model
 // owns the candidate until this conversion and all other model gates succeed.
-bool ApplyParticleExtensions(std::span<const uint8_t>,std::vector<uint8_t>&,std::string&,ParticleCutoffSet* cutoffs=nullptr);
+bool ApplyParticleExtensions(std::span<const uint8_t>,std::vector<uint8_t>&,std::string&,ParticleCutoffSet* cutoffs=nullptr,const ParticleLayerSet* layers=nullptr);
 }

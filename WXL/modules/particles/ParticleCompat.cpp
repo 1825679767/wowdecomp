@@ -62,7 +62,7 @@ bool BakeZSource(std::vector<uint8_t>& bytes,size_t particle,float value,std::st
 // EXPT has emitter-indexed float triples; EXP2 additionally carries cutoff tracks.
 // Bake it into private native key arrays before relocation. Native simulation,
 // lifetime interpolation, batching and render ownership remain unchanged.
-bool ApplyParticleExtensions(std::span<const uint8_t> raw,std::vector<uint8_t>& native,std::string& reason,ParticleCutoffSet* cutoffs){
+bool ApplyParticleExtensions(std::span<const uint8_t> raw,std::vector<uint8_t>& native,std::string& reason,ParticleCutoffSet* cutoffs,const ParticleLayerSet* layers){
  auto fail=[&](const char* text){reason=text;return false;};
  if(cutoffs)cutoffs->clear();
  if(!ParticlesEnabled())return true;
@@ -138,17 +138,20 @@ bool ApplyParticleExtensions(std::span<const uint8_t> raw,std::vector<uint8_t>& 
    if(nonzero){
     if(!cutoffs)return fail("EXP2 cutoff owner missing");
     const auto particle=particlesAt+i*sizeof(M2Particle);
-    // Affected emitters must be single-texture sprites. Layer/model-child
-    // shaders have independent cutoff/composition contracts and stay refused.
+    // Layered cutoffs require the independently captured/admitted layer recipe;
+    // packed metadata may never disappear through first-texture normalization.
     auto emptyName=[&](size_t field){
      const auto n=Read<uint32_t>(native.data(),particle+field),at=Read<uint32_t>(native.data(),particle+field+4);
      return !n || (n==1 && at<native.size() && native[at]==0);
     };
     const auto sourceParticle=sourceParticlesAt+size_t(i)*sourceStride;
     const auto sourceFlags=Read<uint32_t>(raw.data()+8,sourceParticle+offsetof(M2Particle,m_flags));
-    if((sourceFlags&wxl::structure::m2records::kParticleFlagMultiTex) ||
-       (Read<uint32_t>(native.data(),particle+offsetof(M2Particle,m_flags))&wxl::structure::m2records::kParticleFlagMultiTex) ||
-       !emptyName(offsetof(M2Particle,m_geometryMdl)) || !emptyName(offsetof(M2Particle,m_recursionMdl)))return fail("EXP2 cutoff requires single-texture sprites");
+    const bool layered=(sourceFlags&wxl::structure::m2records::kParticleFlagMultiTex) ||
+       (Read<uint32_t>(native.data(),particle+offsetof(M2Particle,m_flags))&wxl::structure::m2records::kParticleFlagMultiTex);
+    const bool admitted=layers && layers->size()==count && (*layers)[i] && (*layers)[i]->sourceFlags==sourceFlags &&
+       (*layers)[i]->sourceRecord.size()==sourceStride && !std::memcmp((*layers)[i]->sourceRecord.data(),raw.data()+8+sourceParticle,sourceStride);
+    if((layered && !admitted) ||
+       !emptyName(offsetof(M2Particle,m_geometryMdl)) || !emptyName(offsetof(M2Particle,m_recursionMdl)))return fail("EXP2 cutoff requires sprite or admitted layer contract");
     if(size_t(keys)*4>Limit-cutoffBytes)return fail("EXP2 cutoff ownership byte budget");cutoffBytes+=size_t(keys)*4;
     auto track=std::make_shared<ParticleCutoffTrack>();track->times.reserve(keys);track->values.reserve(keys);
     for(uint32_t k=0;k<keys;++k){const auto time=Read<uint16_t>(exp2.data(),timesAt+k*2);

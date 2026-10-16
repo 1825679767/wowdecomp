@@ -41,8 +41,8 @@ wxl_module(WxlDB2 DB2 modules/db2/FdidCompat.cpp
  "${V}/extensions/wxl-db2/src/decode/Wdc5.cpp" "${V}/extensions/wxl-db2/src/decode/Wdc5Table.cpp"
  "${V}/extensions/wxl-db2/src/api/Db2.cpp" "${V}/extensions/wxl-db2/src/schemas/AppearanceStore.cpp")
 wxl_module(WxlBlp BLP modules/blp/BlpCompat.cpp "${V}/src/engine/assets/shared/textures/blp/BlpTranscode.cpp")
-wxl_module(WxlMaterials Materials modules/materials/MaterialCompat.cpp)
-wxl_module(WxlParticles Particles modules/particles/ParticleCompat.cpp modules/particles/ParticleCutoff.cpp
+wxl_module(WxlMaterials Materials modules/materials/MaterialCompat.cpp modules/materials/MeshMaterials.cpp)
+wxl_module(WxlParticles Particles modules/particles/ParticleCompat.cpp modules/particles/ParticleCutoff.cpp modules/particles/ParticleLayerCapture.cpp modules/particles/ParticleLayers.cpp
  "${V}/extensions/wxl-modern-m2/src/load/M2NormalizeParticles.cpp")
 wxl_module(WxlM2 M2 modules/m2/AssetCompat.cpp
  "${V}/src/platform/waystone/M2Bytes.cpp" "${V}/src/platform/waystone/SkeletonIndex.cpp"

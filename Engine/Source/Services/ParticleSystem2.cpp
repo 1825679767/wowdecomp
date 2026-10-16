@@ -2298,12 +2298,20 @@ void CParticleEmitter2::SyncAllocation(uint32_t count) {
 void CParticleEmitter2::BuildParticleVertices(ParticleVertex& vertex, uint32_t count, const C44Matrix& transform) {
     uint32_t i = 0;
     this->m_wxlRenderedCutoffs.clear();
+    this->m_wxlLayerVertices.clear();this->m_wxlLayerValid=true;
+    if(this->m_params.m_wxlLayerRecipe){
+        try{this->m_wxlLayerVertices.reserve(size_t(count)*4*40);}catch(...){this->m_wxlLayerValid=false;this->m_renderedParticles=0;return;}
+    }
     if(this->m_params.m_wxlCutoff){
         try{this->m_wxlRenderedCutoffs.reserve(count);}catch(...){this->m_renderedParticles=0;return;}
     }
     auto buildVertex=[&](const CParticle2& particle){
         const auto before=vertex.m_count;
+        const auto* nativeQuad=vertex.m_position;
         this->BuildVertex(particle,vertex);
+        if(vertex.m_count>before && this->m_params.m_wxlLayerRecipe){
+            if(vertex.m_count-before!=4 || !wxl::native::AppendParticleLayerQuad(*this->m_params.m_wxlLayerRecipe,particle,nativeQuad,vertex.m_positionStride,this->m_wxlLayerVertices))this->m_wxlLayerValid=false;
+        }
         if(vertex.m_count>before && this->m_params.m_wxlCutoff){
             // Same lifetime evaluation used by native InterpolateAllTracks and
             // StepUpdate, including the signed life seed and variation.
@@ -2392,7 +2400,9 @@ void CParticleEmitter2::RenderParticles(const C44Matrix* frameOfReference, void*
         buf->m_hasData = 1;
 
         if (this->m_renderedParticles) {
-            if(this->m_params.m_wxlCutoff){
+            if(this->m_params.m_wxlLayerRecipe){
+                if(!wxl::native::DrawParticleLayers(*this))this->m_renderedParticles=0;
+            }else if(this->m_params.m_wxlCutoff){
                 if(!wxl::native::DrawParticleCutoffVertices(buf,format,vertex.m_count,this->m_vertsPerParticle,this->m_indicesPerParticle,this->m_wxlRenderedCutoffs))this->m_renderedParticles=0;
             }else{
                 CParticleEmitter2::RenderParticleVertices(buf, format, vertex.m_count, this->m_renderedParticles * this->m_indicesPerParticle);

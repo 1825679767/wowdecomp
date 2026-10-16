@@ -1,3 +1,5 @@
+#include "WXL/MeshMaterials.hpp"
+#include "WXL/AssetCompat.hpp"
 #include <cmath>
 #include <cstdint>
 #include "Engine/Source/Model2/CM2SceneRender.h"
@@ -466,6 +468,14 @@ void CM2SceneRender::DrawBatch() {
     batch.m_start = this->m_curSkinSection->IndexStart();
     batch.m_count = this->m_curSkinSection->m_indexCount;
 
+    if (wxl::native::MeshSourceFor(*this->m_curShared)) {
+        batch.m_minIndex = this->m_curSkinSection->m_vertexStart;
+        batch.m_maxIndex = this->m_curSkinSection->m_vertexCount + batch.m_minIndex - 1;
+        // A privately prepared custom family must not silently fall back to a
+        // different stock equation when its shaders/backend are unavailable.
+        wxl::native::mesh_materials::Draw(*this, batch);
+        return;
+    }
     if (CShaderEffect::s_enableShaders) {
         batch.m_minIndex = this->m_curSkinSection->m_vertexStart;
         batch.m_maxIndex = this->m_curSkinSection->m_vertexCount + this->m_curSkinSection->m_vertexStart - 1;
@@ -765,7 +775,7 @@ uint32_t CM2SceneRender::DrawBatchedParticle(uint32_t index, M2Element* elements
         }
 
         CParticleEmitter2* otherEmitter = other->m_emitter;
-        if(otherEmitter->m_params.m_wxlCutoff)break;
+        if(otherEmitter->m_params.m_wxlCutoff || otherEmitter->m_params.m_wxlLayerRecipe)break;
         uint32_t otherParticles = 0x4000 / otherEmitter->m_vertsPerParticle;
         uint32_t otherLive = otherEmitter->m_liveList.m_count;
 
@@ -868,7 +878,7 @@ uint32_t CM2SceneRender::DrawParticle(uint32_t index, M2Element* elements, uint3
     this->m_curMaterial = &material;
     this->m_prevMaterial = nullptr;
 
-    if ((this->m_cache->m_flags & 0x80) && !emitter->m_params.m_wxlCutoff) {
+    if ((this->m_cache->m_flags & 0x80) && !emitter->m_params.m_wxlCutoff && !emitter->m_params.m_wxlLayerRecipe) {
         return this->DrawBatchedParticle(index, elements, indices, count);
     }
 

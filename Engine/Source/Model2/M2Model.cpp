@@ -799,6 +799,11 @@ void CM2Model::ReplaceTexture(uint32_t type, CTexture* texture) {
         if (data->m_textures[data->m_particles[i].m_textureIndex].m_type == type) {
             this->m_particleEmitters[i]->SetTexture(texture);
         }
+        if(this->m_particleEmitters[i]->m_params.m_wxlLayerRecipe){
+            // Refresh all three references from THIS instance after the native
+            // replacement table changes. Clones keep independent bindings.
+            this->m_particleEmitters[i]->m_params.m_wxlLayers=wxl::native::BindParticleLayers(*this,i);
+        }
     }
 
     this->m_fFlags &= ~0x10u;
@@ -7437,6 +7442,8 @@ int32_t CM2Model::InitializeLoaded() {
 
             emitter->SetMaterial(material, this->m_shared->m_textures[particleData->m_textureIndex]);
             emitter->m_params.m_wxlCutoff = wxl::native::ParticleCutoffFor(*this->m_shared,i);
+            emitter->m_params.m_wxlLayerRecipe = wxl::native::ParticleLayersFor(*this->m_shared,i);
+            emitter->m_params.m_wxlLayers = wxl::native::BindParticleLayers(*this,i);
             emitter->m_params.m_colorTrack = &particleData->m_colorTrack;
             emitter->m_params.m_scaleTrack = &particleData->m_scaleTrack;
             emitter->m_params.m_alphaTrack = &particleData->m_alphaTrack;

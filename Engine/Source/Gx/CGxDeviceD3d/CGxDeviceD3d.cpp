@@ -2034,7 +2034,8 @@ void CGxDeviceD3d::IStateSync() {
     if (this->m_primIndexDirty) {
         this->m_primIndexDirty = 0;
 
-        LPDIRECT3DINDEXBUFFER9 indexBuffer = static_cast<LPDIRECT3DINDEXBUFFER9>(this->m_primIndexBuf->m_pool->m_apiSpecific);
+        LPDIRECT3DINDEXBUFFER9 indexBuffer = this->m_primIndexBuf
+            ? static_cast<LPDIRECT3DINDEXBUFFER9>(this->m_primIndexBuf->m_pool->m_apiSpecific) : nullptr;
 
         if (this->m_d3dCurrentIndexBuf != indexBuffer) {
             this->m_d3dDevice->SetIndices(indexBuffer);

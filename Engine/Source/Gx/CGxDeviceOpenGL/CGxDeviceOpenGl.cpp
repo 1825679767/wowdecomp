@@ -2858,6 +2858,14 @@ void CGxDeviceOpenGl::IStateSyncIndexPtr() {
     }
 
     CGxBuf* buf = this->m_primIndexBuf;
+    if (!buf) {
+        if (glARBVertexBufferObject && this->m_deviceStates[Ds_ElementArrayBuffer])
+            glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+        this->m_deviceStates[Ds_ElementArrayBuffer] = 0;
+        this->m_indexPtr = 0;
+        this->m_primIndexDirty = 0;
+        return;
+    }
     CGxPool* pool = buf->m_pool;
 
     if (glARBVertexBufferObject) {
