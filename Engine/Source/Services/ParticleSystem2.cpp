@@ -332,7 +332,7 @@ void CParticleEmitter2::SetParticleStyle(int32_t head, int32_t tail, float tailL
 void CParticleEmitter2::SetZsource(float zsource) {
     this->m_params.m_zsource = zsource;
 
-    if (fabs(zsource) < 0.001f) {
+    if (fabs(zsource) < MIN_ZSOURCE) {
         this->m_params.m_zsource = 0.0f;
     }
 }
@@ -2508,7 +2508,7 @@ void CParticleEmitter2::Update(float deltaTime, const C44Matrix& transform, cons
     if (this->m_flags & 0x800) {
         this->m_ivelTimer = this->m_ivelTimer + deltaTime;
 
-        if (this->m_ivelTimer > 0.033333335f) {
+        if (this->m_ivelTimer > VEL_UPDATE_TIME) {
             float rate = this->m_ivelTimer * 29.999998f;
             this->m_ivelTimer = zero;
 

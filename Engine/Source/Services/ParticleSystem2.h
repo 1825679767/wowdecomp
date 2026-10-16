@@ -68,6 +68,10 @@ class CSortableParticleQueue : public CMemBlock {
 };
 
 class CParticleEmitter2 {
+    protected:
+    static constexpr float VEL_UPDATE_TIME = 0.033333335f;
+    static constexpr float MIN_ZSOURCE = 0.001f;
+
     public:
     enum PARTICLE_EMITTER_TYPE : int32_t {
         PET_BASE_EMITTER = 0,
