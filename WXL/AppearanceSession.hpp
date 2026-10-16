@@ -15,6 +15,7 @@ bool QuerySelectedCharacter() noexcept;
 // Snapshot cache and source-native restoration for the caller-supplied actor.
 bool HasSnapshot(uint64_t guid, uint32_t* revision = nullptr) noexcept;
 void RefreshCharacter(uint64_t guid, CCharacterComponent* component) noexcept;
+void RefreshCreationForms() noexcept;
 // Call on successful existing-character save result to permit a fresh query.
 void InvalidateCharacter(uint64_t guid) noexcept;
 void InvalidateContext() noexcept;

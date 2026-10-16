@@ -7480,6 +7480,7 @@ int32_t CM2Model::InitializeLoaded() {
             }
 
             emitter->SetMaterial(material, this->m_shared->m_textures[particleData->m_textureIndex]);
+            emitter->m_params.m_wxlCutoff = wxl::native::ParticleCutoffFor(*this->m_shared,i);
             emitter->m_params.m_colorTrack = &particleData->m_colorTrack;
             emitter->m_params.m_scaleTrack = &particleData->m_scaleTrack;
             emitter->m_params.m_alphaTrack = &particleData->m_alphaTrack;

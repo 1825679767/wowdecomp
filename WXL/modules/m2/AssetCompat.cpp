@@ -24,7 +24,7 @@ constexpr uint32_t Limit=64u*1024*1024;
 std::string Key(const char* path){std::string key=path?path:"";for(auto& c:key){if(c=='/')c='\\';if(c>='A' && c<='Z')c=char(c-'A'+'a');}return key;}
 struct Skin {std::vector<uint8_t> original,converted;};
 }
-struct ModelAssets {std::map<std::string,Skin> skins;uint32_t profile{};};
+struct ModelAssets {std::map<std::string,Skin> skins;uint32_t profile{};ParticleCutoffSet cutoffs;};
 namespace {
 thread_local ModelAssets* loading{};
 bool ReadCompanion(const char* path,std::vector<uint8_t>& output){
@@ -55,7 +55,7 @@ bool PrepareModel(CM2Shared& shared){
    WLOG_WARN("native-modern-model: refused path=%s reason=%s",shared.m_fileName,stats.reason.c_str());return false;
   }
   std::string particleReason;
-  if(!ApplyParticleExtensions({raw,shared.m_fileSize},converted,particleReason)){
+  if(!ApplyParticleExtensions({raw,shared.m_fileSize},converted,particleReason,&assets->cutoffs)){
    WLOG_WARN("native-modern-particles: refused path=%s reason=%s",shared.m_fileName,particleReason.c_str());return false;
   }
   PreserveMaterials({raw,shared.m_fileSize},converted);
@@ -76,6 +76,10 @@ bool PrepareSkin(CM2Shared& shared,uint32_t& size){
   auto* replacement=static_cast<M2SkinProfile*>(SIMD::AllocA16(skin.converted.size(),__FILE__,__LINE__));if(!replacement)return false;
   std::memcpy(replacement,skin.converted.data(),skin.converted.size());SIMD::FreeA16(shared.m_skinData);shared.m_skinData=replacement;size=uint32_t(skin.converted.size());return true;
  }catch(...){return false;}
+}
+std::shared_ptr<const ParticleCutoffTrack> ParticleCutoffFor(const CM2Shared& shared,uint32_t index) noexcept {
+ if(!shared.m_wxlAssets || index>=shared.m_wxlAssets->cutoffs.size())return {};
+ return shared.m_wxlAssets->cutoffs[index];
 }
 void ReleaseModel(CM2Shared& shared) noexcept {delete shared.m_wxlAssets;shared.m_wxlAssets=nullptr;}
 }

@@ -2,6 +2,7 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "NativeFeatures.hpp"
 #include "Engine/Source/Model2/M2Data.h"
+#include "engine/assets/shared/models/m2/M2RecordWidths.hpp"
 #include <cstring>
 #include <cmath>
 namespace wxl::native {
@@ -13,8 +14,9 @@ template<class T>T Read(const uint8_t* p,size_t at){T v;std::memcpy(&v,p+at,size
 // EXPT has emitter-indexed float triples; EXP2 additionally carries cutoff tracks.
 // Bake it into private native key arrays before relocation. Native simulation,
 // lifetime interpolation, batching and render ownership remain unchanged.
-bool ApplyParticleExtensions(std::span<const uint8_t> raw,std::vector<uint8_t>& native,std::string& reason){
+bool ApplyParticleExtensions(std::span<const uint8_t> raw,std::vector<uint8_t>& native,std::string& reason,ParticleCutoffSet* cutoffs){
  auto fail=[&](const char* text){reason=text;return false;};
+ if(cutoffs)cutoffs->clear();
  if(!ParticlesEnabled())return true;
  if(raw.size()<8 || native.size()<sizeof(M2Data))return fail("particle extension header bounds");
  const auto bodySize=Read<uint32_t>(raw.data(),4);
@@ -67,6 +69,10 @@ bool ApplyParticleExtensions(std::span<const uint8_t> raw,std::vector<uint8_t>& 
  }
  const auto particlesAt=Read<uint32_t>(native.data(),particleField+4);
  if(!fits(native.size(),particlesAt,count,sizeof(M2Particle)))return fail("native particle bounds");
+ const auto sourceParticlesAt=Read<uint32_t>(raw.data()+8,particleField+4);
+ constexpr auto sourceStride=wxl::structure::m2records::kParticleStrideModern;
+ if(!fits(bodySize,sourceParticlesAt,count,sourceStride))return fail("source cutoff emitter bounds");
+ ParticleCutoffSet captured(count);size_t cutoffBytes=0;
  for(uint32_t i=0;i<count;++i){
   const auto rec=offset+i*recordStride;
   const float extra=Read<float>(extension.data(),rec),rgb=Read<float>(extension.data(),rec+4),alpha=Read<float>(extension.data(),rec+8);
@@ -76,12 +82,32 @@ bool ApplyParticleExtensions(std::span<const uint8_t> raw,std::vector<uint8_t>& 
    const auto times=Read<uint32_t>(exp2.data(),rec+12),timesAt=Read<uint32_t>(exp2.data(),rec+16);
    const auto keys=Read<uint32_t>(exp2.data(),rec+20),keysAt=Read<uint32_t>(exp2.data(),rec+24);
    if(times!=keys || keys>4096 || !fits(exp2.size(),timesAt,times,2) || !fits(exp2.size(),keysAt,keys,2) || (keys && (!timesAt || !keysAt)))return fail("EXP2 cutoff bounds");
-   uint16_t previous=0;
+   uint16_t previous=0;bool nonzero=false;
    for(uint32_t k=0;k<keys;++k){const auto t=Read<uint16_t>(exp2.data(),timesAt+k*2);
-    // Source cutoff positions span the full unorm16 lifetime domain. A
-    // zero function is exactly zero at every position, including65535;
-    // no native signed-fixed16 conversion or interpolation is needed.
-    if(Read<uint16_t>(exp2.data(),keysAt+k*2) || (k && t<previous))return fail("EXP2 nonzero/invalid cutoff");previous=t;
+    if(k && t<previous)return fail("EXP2 cutoff timestamps");previous=t;
+    nonzero|=Read<uint16_t>(exp2.data(),keysAt+k*2)!=0;
+   }
+   if(nonzero){
+    if(!cutoffs)return fail("EXP2 cutoff owner missing");
+    const auto particle=particlesAt+i*sizeof(M2Particle);
+    // Affected emitters must be single-texture sprites. Layer/model-child
+    // shaders have independent cutoff/composition contracts and stay refused.
+    auto emptyName=[&](size_t field){
+     const auto n=Read<uint32_t>(native.data(),particle+field),at=Read<uint32_t>(native.data(),particle+field+4);
+     return !n || (n==1 && at<native.size() && native[at]==0);
+    };
+    const auto sourceParticle=sourceParticlesAt+size_t(i)*sourceStride;
+    const auto sourceFlags=Read<uint32_t>(raw.data()+8,sourceParticle+offsetof(M2Particle,m_flags));
+    if((sourceFlags&wxl::structure::m2records::kParticleFlagMultiTex) ||
+       (Read<uint32_t>(native.data(),particle+offsetof(M2Particle,m_flags))&wxl::structure::m2records::kParticleFlagMultiTex) ||
+       !emptyName(offsetof(M2Particle,m_geometryMdl)) || !emptyName(offsetof(M2Particle,m_recursionMdl)))return fail("EXP2 cutoff requires single-texture sprites");
+    if(size_t(keys)*4>Limit-cutoffBytes)return fail("EXP2 cutoff ownership byte budget");cutoffBytes+=size_t(keys)*4;
+    auto track=std::make_shared<ParticleCutoffTrack>();track->times.reserve(keys);track->values.reserve(keys);
+    for(uint32_t k=0;k<keys;++k){const auto time=Read<uint16_t>(exp2.data(),timesAt+k*2);
+     if(k && time<=track->times.back())return fail("EXP2 nonzero cutoff needs strictly increasing timestamps");
+     track->times.push_back(time);track->values.push_back(Read<uint16_t>(exp2.data(),keysAt+k*2));
+    }
+    captured[i]=std::move(track);
    }
   }
   // Every emitter owns its appended copies even if exporters alias key arrays.
@@ -113,6 +139,7 @@ bool ApplyParticleExtensions(std::span<const uint8_t> raw,std::vector<uint8_t>& 
    const auto target=static_cast<uint32_t>(aligned);std::memcpy(native.data()+values+4,&target,4);
   }
  }
+ if(cutoffs)cutoffs->swap(captured);
  return true;
 }
 

@@ -1,6 +1,7 @@
 // Source-native appearance prepare owner. Wire grammar is shared with server.
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 #include "AppearanceSession.hpp"
+#include "AlternateAppearances.hpp"
 #include "NativeProtocol.hpp"
 #include "NativeFeatures.hpp"
 #include "RetailChoices.hpp"
@@ -36,6 +37,7 @@ struct Context {
     std::array<uint32_t, 7> profile{};
     std::string name;
     ap::Selection selection;
+    alternate_appearances::Stamp forms;
 };
 struct Pending {
     Context context;
@@ -90,7 +92,7 @@ bool Same(const Context& a, const Context& b) {
         a.existingIndex == b.existingIndex && a.profile == b.profile && a.name == b.name &&
         a.selection.catalog == b.selection.catalog && a.selection.race == b.selection.race &&
         a.selection.sex == b.selection.sex && a.selection.choices == b.selection.choices &&
-        a.selection.alternate == b.selection.alternate;
+        a.selection.alternate == b.selection.alternate && a.forms == b.forms;
 }
 bool Build(const char* name, Context& out, bool structural = false) {
     if (!AppearanceSaveEnabled() || !ProtocolEnabled() || (!name && !structural)) return false;
@@ -104,13 +106,7 @@ bool Build(const char* name, Context& out, bool structural = false) {
     const auto& p = c->m_data.m_preferences;
     if (p.m_raceID > 255 || p.m_sexID > 1) return false;
     const auto* race = ap::FindRace(uint8_t(p.m_raceID));
-    if (!race || !race->creatable || ap::PrivateModel(uint8_t(p.m_raceID), uint8_t(p.m_sexID)) ||
-        ap::AlternateRetailRace(uint8_t(p.m_raceID))) return false;
-    std::vector<uint32_t> choices;
-    if (!CollectRetailChoices(*c, choices)) return false;
-    const uint32_t model = db::ChrModelForRace(RetailRaceId(p.m_raceID), p.m_sexID);
-    const uint32_t count = model ? db::OptionCount(model) : 0;
-    if (!count || count > ap::MaxChoices || choices.size() != count) return false;
+    if (!race || !race->creatable || ap::PrivateModel(uint8_t(p.m_raceID), uint8_t(p.m_sexID))) return false;
     Context next;
     next.session = session; next.component = c; next.root = c->m_data.m_model;
     next.componentSerial = c->m_wxlSerial; next.modelHandle = c->m_data.m_model->m_handle;
@@ -127,19 +123,11 @@ bool Build(const char* name, Context& out, bool structural = false) {
         next.guid = display->m_characterInfo.m_guid.m_guid;
         next.customizeFlags = display->m_characterInfo.m_customizeFlags;
     }
-    for (uint32_t i = 0; i < count; ++i) {
-        WXL_ChrOption option{};
-        if (!db::OptionAt(model, i, option)) return false;
-        bool found = false;
-        const auto n = db::ChoiceCount(option.id);
-        if (!n || n > 8192) return false;
-        for (uint32_t j = 0; j < n; ++j) {
-            WXL_ChrChoice choice{};
-            if (!db::ChoiceAt(option.id, j, choice)) return false;
-            if (choice.id == choices[i]) { found = true; break; }
-        }
-        if (!found) return false;
-        next.selection.choices.push_back({option.id, choices[i]});
+    if(ap::AlternateRetailRace(uint8_t(p.m_raceID))){
+        if(!alternate_appearances::Capture(next.selection,next.forms))return false;
+    }else{
+        std::vector<RetailChoicePair> pairs;if(!CaptureRetailChoicePairs(*c,pairs)||pairs.empty()||pairs.size()>ap::MaxChoices)return false;
+        for(auto pair:pairs)next.selection.choices.push_back({pair.option,pair.choice});
     }
     if (!ap::Canonical(next.selection)) return false;
     out = std::move(next);
@@ -170,7 +158,7 @@ void Receive(uint16_t opcode, const uint8_t* bytes, uint32_t length, uint64_t se
         } else if (opcode == ap::SmsgSnapshot) {
             ap::Snapshot snapshot;
             if (!ap::DecodeSnapshot(bytes, length, snapshot) || snapshot.selection.catalog != ap::ClientCatalogId ||
-                !snapshot.selection.alternate.empty() || ap::AlternateRetailRace(snapshot.selection.race) ||
+                (ap::AlternateRetailRace(snapshot.selection.race)&&snapshot.selection.alternate.empty()) ||
                 ap::PrivateModel(snapshot.selection.race, snapshot.selection.sex)) return;
             std::lock_guard lock(mutex);
             if (!ready || readySession != session || !queries.contains(snapshot.guid)) return;
@@ -234,7 +222,7 @@ bool BeforeCreate(const char* name) noexcept {
         Context current;
         if (!Build(name, current)) {
             Cancel();
-            Dialog("This appearance cannot be saved yet. Check the current model and server connection; alternate-form and synthetic appearances are not supported by this native save path.");
+            Dialog("This appearance cannot be saved yet. Check the current model and server connection; both current appearance forms must be ready before saving.");
             return false;
         }
         bool stalePermit = false;
@@ -382,8 +370,7 @@ void RefreshCharacter(uint64_t guid, CCharacterComponent* component) noexcept {
         if (refresh) QueryCharacter(guid);
         const auto& selection = snapshot.selection;
         const auto& preferences = component->m_data.m_preferences;
-        if (snapshot.guid != guid || selection.catalog != ap::ClientCatalogId || !selection.alternate.empty() ||
-            ap::AlternateRetailRace(selection.race) || ap::PrivateModel(selection.race, selection.sex) ||
+        if (snapshot.guid != guid || selection.catalog != ap::ClientCatalogId || ap::PrivateModel(selection.race, selection.sex) ||
             selection.race != preferences.m_raceID || selection.sex != preferences.m_sexID ||
             !RetailChoicesReady(preferences, component->m_data.m_model)) return;
         const Applied identity{session, component->m_wxlSerial, component, component->m_data.m_model,
@@ -398,13 +385,15 @@ void RefreshCharacter(uint64_t guid, CCharacterComponent* component) noexcept {
                     old.modelHandle == identity.modelHandle && old.revision == identity.revision) return;
             }
         }
-        if (selection.choices.empty() || selection.choices.size() > ap::MaxChoices) return;
+        const auto family=RetailRecipeRace(*component);const auto* race=ap::FindRace(selection.race);
+        if(!race)return;const auto* rows=family==race->retail?&selection.choices:family==ap::AlternateRetailRace(selection.race)?&selection.alternate:nullptr;
+        if(!rows||rows->empty()||rows->size()>ap::MaxChoices)return;
         std::array<RetailChoicePair, ap::MaxChoices> pairs{};
-        for (size_t i = 0; i < selection.choices.size(); ++i)
-            pairs[i] = {selection.choices[i].option, selection.choices[i].choice};
+        for (size_t i = 0; i < rows->size(); ++i)
+            pairs[i] = {(*rows)[i].option, (*rows)[i].choice};
         // Transactional native authority validation and component update run
         // outside transport/state locks. No shared model recipe is overwritten.
-        const bool success = ApplyRetailChoices(*component, pairs.data(), uint32_t(selection.choices.size()));
+        const bool success = ApplyRetailChoices(*component, pairs.data(), uint32_t(rows->size()));
         // Failed exact authority applications are memoized as attempts too, so
         // malformed/unavailable snapshots do not run an apply every frame.
         (void)success;
@@ -416,4 +405,13 @@ void RefreshCharacter(uint64_t guid, CCharacterComponent* component) noexcept {
         }
     } catch (...) {}
 }
+void RefreshCreationForms() noexcept {try{
+ if(!alternate_appearances::Available()||CCharacterCreation::m_existingCharacterIndex<0)return;
+ const auto* display=CCharacterSelection::GetCharacterDisplay(uint32_t(CCharacterCreation::m_existingCharacterIndex));if(!display)return;
+ const auto guid=display->m_characterInfo.m_guid.m_guid;const auto session=protocol::SessionGeneration(FrameScript_GetContext());if(!guid||!session)return;
+ ap::Snapshot snapshot;bool found=false;{std::lock_guard lock(mutex);const auto it=snapshots.find(guid);if(readySession==session&&it!=snapshots.end()){snapshot=it->second;found=true;}}
+ if(!found){QueryCharacter(guid);return;}
+ alternate_appearances::Restore(guid,snapshot.revision,snapshot.selection);
+}catch(...){}}
+
 }

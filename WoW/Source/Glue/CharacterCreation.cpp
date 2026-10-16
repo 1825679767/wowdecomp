@@ -1,3 +1,4 @@
+#include "WXL/AlternateAppearances.hpp"
 #include "CharacterCreation.h"
 #include "WXL/RetailChoices.hpp"
 #include "WXL/AppearanceSession.hpp"
@@ -124,6 +125,7 @@ void CCharacterCreation::Initialize() {
 // VERIFY: 3b1595cf manual
 // OFFSET: 0x004E1E20
 void CCharacterCreation::Shutdown() {
+    wxl::native::alternate_appearances::ReleaseCreation();
     if (CCharacterCreation::m_character) {
         CCharacterComponent::FreeComponent(CCharacterCreation::m_character);
         CCharacterCreation::m_character = nullptr;
@@ -143,6 +145,8 @@ void CCharacterCreation::Shutdown() {
 // VERIFY: e90576fb auto
 // OFFSET: 0x004DFA50
 int32_t CCharacterCreation::Idle(const void* data, void* param) {
+    wxl::native::alternate_appearances::UpdateCreation();
+    wxl::native::appearance_session::RefreshCreationForms();
     wxl::native::appearance_session::Tick();
     wxl::native::UpdateRetailChoiceUi();
     CGlueLoading::Idle(CCharacterCreation::m_character);
@@ -167,6 +171,7 @@ void CCharacterCreation::GetRandomRaceAndSex(ComponentData* data) {
 // VERIFY: 45c27290 auto
 // OFFSET: 0x004DFFC0
 void CCharacterCreation::OnHide() {
+    wxl::native::alternate_appearances::ReleaseCreation();
     wxl::native::HideRetailChoiceUi();
     wxl::native::appearance_session::Cancel();
     EventUnregister(EVENT_ID_IDLE, &CCharacterCreation::Idle);
@@ -198,6 +203,7 @@ void CCharacterCreation::SetCharCustomizeModel(const char* modelName) {
         return;
     }
 
+    wxl::native::alternate_appearances::ReleaseCreation();
     CCharacterCreation::m_charCustomizeFrame->SetModel(modelName);
     CCharacterCreation::m_charCustomizeFrame->m_lightArray1[0].unk_01B5 = 1;
 
@@ -218,6 +224,7 @@ void CCharacterCreation::SetCharCustomizeModel(const char* modelName) {
 // VERIFY: 218e9a92 auto
 // OFFSET: 0x004E0160
 void CCharacterCreation::SetCharacterFacing(float facing) {
+    wxl::native::alternate_appearances::SetFacing(facing);
     CCharacterCreation::m_charFacing = facing;
 
     if (CCharacterCreation::m_character->m_data.m_model) {
@@ -241,6 +248,11 @@ bool CCharacterCreation::IsClassAvailable(int32_t classID) {
 // VERIFY: e48266b8 auto
 // OFFSET: 0x004E01F0
 void CCharacterCreation::CycleCharCustomization(CHAR_CUSTOMIZATION_TYPE type, int32_t delta) {
+    if(wxl::native::alternate_appearances::IsAlternate()){
+        auto* editor=wxl::native::alternate_appearances::Editor();
+        if(editor&&static_cast<uint32_t>(type)<5)wxl::native::CycleRetailAxis(*editor,static_cast<wxl::native::RetailAxis>(type),delta);
+        return;
+    }
     if (!delta) {
         return;
     }
@@ -595,6 +607,7 @@ void CCharacterCreation::InitCharacterComponents(ComponentData* data, bool rando
     if (previous) wxl::native::TransferRetailChoices(*previous,*candidate);
     CCharacterCreation::m_character = candidate;
     if (previous) {
+        wxl::native::alternate_appearances::ReleaseCreation();
         if (previous->m_data.m_model && previous->m_data.m_model->m_attachParent) previous->m_data.m_model->DetachFromParent();
         CCharacterComponent::FreeComponent(previous);
     }
@@ -718,6 +731,7 @@ void CCharacterCreation::SetSelectedClass(int32_t classID) {
 // VERIFY: ca66e480 auto
 // OFFSET: 0x004E17F0
 void CCharacterCreation::RandomizeCharCustomization() {
+    if(wxl::native::alternate_appearances::IsAlternate()){wxl::native::alternate_appearances::RandomizeEditor();return;}
     CCharacterCreation::m_character->SetRandomSkin(COMPONENT_CONTEXT_0);
     CCharacterCreation::m_character->SetRandomFace(COMPONENT_CONTEXT_0);
     CCharacterCreation::m_character->SetRandomHairColor(COMPONENT_CONTEXT_0);

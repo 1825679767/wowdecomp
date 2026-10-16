@@ -149,7 +149,7 @@ struct AppearanceAssets {
 namespace {
 bool Build(CCharacterComponent& component, AppearanceAssets& output) {
     const auto& prefs = component.m_data.m_preferences;
-    const uint32_t race = RetailRace(prefs.m_raceID);
+    const uint32_t race = RetailRecipeRace(component);
     const auto modelId = recipe::ChrModelForRace(race, prefs.m_sexID);
     const auto optionCount = recipe::OptionCount(modelId);
     if (!modelId || !optionCount || optionCount > 256) return false;
@@ -171,9 +171,10 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
     }
     std::vector<uint32_t> choices, allChoices;
     if (!CollectRetailChoices(component,choices) || choices.size() > MaxChoices) return false;
-    for (uint32_t i = 0; i < optionCount; ++i) {
-        WXL_ChrOption option{};
-        if (!recipe::OptionAt(modelId,i,option)) return false;
+    std::vector<RetailChoicePair> effectiveOptions;
+    if(!CaptureRetailChoicePairs(component,effectiveOptions))return false;
+    for (uint32_t i = 0; i < effectiveOptions.size(); ++i) {
+        WXL_ChrOption option{};option.id=effectiveOptions[i].option;
         const auto count = recipe::ChoiceCount(option.id);
         if (!count || count > MaxChoices || allChoices.size()+count > MaxChoices) return false;
         for (uint32_t j = 0; j < count; ++j) {
@@ -189,6 +190,15 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
     const char* actualPath = ResolveModel(appearance.modelFileDataId);
     if (!actualPath || PathKey(actualPath) != PathKey(component.m_data.m_model->m_shared->m_fileName)) return false;
     if (all.geosets.size() > MaxChoices || appearance.geosets.size() > MaxChoices) return false;
+    if(race==23){recipe::Recipe human,allHuman;
+        if(!recipe::BuildForCharacter(1,prefs.m_sexID,choices.data(),uint32_t(choices.size()),human))return false;
+        if(human.modelFileDataId==appearance.modelFileDataId){
+            for(const auto& layer:human.layers)if(layer.textureType==19)appearance.layers.push_back(layer);
+            if(!recipe::BuildForCharacter(1,prefs.m_sexID,allChoices.data(),uint32_t(allChoices.size()),allHuman))return false;
+            for(auto geoset:human.geosets)if(geoset/100==33)appearance.geosets.push_back(geoset);
+            for(auto geoset:allHuman.geosets)if(geoset/100==33)all.geosets.push_back(geoset);
+        }
+    }
     output.ownedGeosets = std::move(all.geosets);
     output.selectedGeosets = appearance.geosets;
     body->levels.emplace_back(size_t(body->width)*body->height,0xff000000u);
@@ -341,6 +351,7 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
     }
 }
 
+bool AppearanceReady(const CCharacterComponent& component) noexcept {try{const auto* state=component.m_wxlAppearance;return state&&state->ready&&state->model==component.m_data.m_model&&state->signature==Signature(component);}catch(...){return false;}}
 void ReleaseAppearance(CCharacterComponent& component) noexcept {
     delete component.m_wxlAppearance;
     component.m_wxlAppearance = nullptr;

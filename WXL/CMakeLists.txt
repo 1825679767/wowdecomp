@@ -12,7 +12,8 @@ option(WXL_ENABLE_APPEARANCE_SAVE "Enable negotiated retail appearance saving" O
 option(WXL_ENABLE_WMO "Enable modern WMO byte providers" ON)
 option(WXL_ENABLE_SPLIT_ADT "Enable split ADT byte providers" ON)
 option(WXL_ENABLE_CLIENT_EXTENSIONS "Enable WXL addon helper and packet APIs" ON)
-foreach(feature NATIVE ASSETS DB2 BLP MATERIALS PARTICLES APPEARANCES PROTOCOL APPEARANCE_SAVE WMO SPLIT_ADT CLIENT_EXTENSIONS)
+option(WXL_ENABLE_RADIAL_PING "Enable native radial pings" ON)
+foreach(feature NATIVE ASSETS DB2 BLP MATERIALS PARTICLES APPEARANCES PROTOCOL APPEARANCE_SAVE WMO SPLIT_ADT CLIENT_EXTENSIONS RADIAL_PING)
  if(WXL_ENABLE_${feature})
   add_compile_definitions(WXL_ENABLE_${feature}=1)
  else()
@@ -36,14 +37,14 @@ wxl_module(WxlDB2 DB2 modules/db2/FdidCompat.cpp
  "${V}/extensions/wxl-db2/src/api/Db2.cpp" "${V}/extensions/wxl-db2/src/schemas/AppearanceStore.cpp")
 wxl_module(WxlBlp BLP modules/blp/BlpCompat.cpp "${V}/src/engine/assets/shared/textures/blp/BlpTranscode.cpp")
 wxl_module(WxlMaterials Materials modules/materials/MaterialCompat.cpp)
-wxl_module(WxlParticles Particles modules/particles/ParticleCompat.cpp
+wxl_module(WxlParticles Particles modules/particles/ParticleCompat.cpp modules/particles/ParticleCutoff.cpp
  "${V}/extensions/wxl-modern-m2/src/load/M2NormalizeParticles.cpp")
 wxl_module(WxlM2 M2 modules/m2/AssetCompat.cpp
  "${V}/src/platform/waystone/M2Bytes.cpp" "${V}/src/platform/waystone/SkeletonIndex.cpp"
  "${V}/src/platform/waystone/SkeletonEmbed.cpp" "${V}/src/platform/waystone/SkinPartition.cpp"
  "${V}/src/platform/waystone/SkinRebuild.cpp" "${V}/extensions/wxl-modern-m2/src/load/M2Normalize.cpp"
  "${V}/extensions/wxl-modern-m2/src/load/M2NormalizeCameras.cpp")
-wxl_module(WxlAppearances Appearances modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp
+wxl_module(WxlAppearances Appearances modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp modules/appearances/AlternateAppearances.cpp
  "${V}/src/platform/waystone/CharacterAtlas.cpp")
 wxl_module(WxlProtocol Protocol modules/protocol/NativeProtocol.cpp modules/protocol/ProtocolConsumers.cpp)
 wxl_module(WxlAppearanceSession AppearanceSession modules/appearance-session/AppearanceSession.cpp)
@@ -52,7 +53,9 @@ wxl_module(WxlWorld World modules/world/WmoNative.cpp modules/world/SplitAdtNati
  "${V}/src/platform/waystone/WmoMaterialPlan.cpp" "${V}/src/platform/waystone/WmoChunkIndex.cpp")
 wxl_module(WxlClientExtensions ClientExtensions modules/client-extensions/ClientHelpers.cpp
  modules/client-extensions/LegacyPackets.cpp modules/client-extensions/ParagonCompat.cpp)
-add_dependencies(WxlClientExtensions WxlRuntime WxlProtocol)
+wxl_module(WxlRadialPing RadialPing modules/radial-ping/RadialPing.cpp)
+add_dependencies(WxlRadialPing WxlRuntime WxlProtocol)
+add_dependencies(WxlClientExtensions WxlRuntime WxlProtocol WxlRadialPing)
 add_dependencies(WxlWorld WxlStorage WxlDB2 WxlRuntime)
 add_dependencies(WxlAppearanceSession WxlAppearances WxlProtocol)
 add_dependencies(WxlDB2 WxlRuntime WxlStorage)
@@ -65,7 +68,7 @@ add_dependencies(WxlProtocol WxlRuntime)
 add_library(WxlNative STATIC
  $<TARGET_OBJECTS:WxlRuntime> $<TARGET_OBJECTS:WxlStorage> $<TARGET_OBJECTS:WxlDB2>
  $<TARGET_OBJECTS:WxlBlp> $<TARGET_OBJECTS:WxlMaterials> $<TARGET_OBJECTS:WxlParticles>
- $<TARGET_OBJECTS:WxlM2> $<TARGET_OBJECTS:WxlAppearances> $<TARGET_OBJECTS:WxlProtocol> $<TARGET_OBJECTS:WxlAppearanceSession> $<TARGET_OBJECTS:WxlWorld> $<TARGET_OBJECTS:WxlClientExtensions>)
+ $<TARGET_OBJECTS:WxlM2> $<TARGET_OBJECTS:WxlAppearances> $<TARGET_OBJECTS:WxlProtocol> $<TARGET_OBJECTS:WxlAppearanceSession> $<TARGET_OBJECTS:WxlWorld> $<TARGET_OBJECTS:WxlClientExtensions> $<TARGET_OBJECTS:WxlRadialPing>)
 add_library(WXL::Native ALIAS WxlNative)
 target_include_directories(WxlNative PUBLIC "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(WxlNative PUBLIC bcrypt shell32)

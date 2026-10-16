@@ -99,7 +99,7 @@ deliberately not called merely when submitting the save, because an immediate
 query could observe the old server revision before commit. `HasSnapshot` still
 reports cache presence/revision, without implying server save acceptance.
 
-**Alternate forms, synthetic models, barber state are not implemented by this stage.** Player/selection restoration and
+**Alternate forms are now integrated through the independent dual-form owner; synthetic models and barber persistence remain separate.** Player/selection restoration and
 creation/save ordering are source work; actual server persistence and visual
 results require separate acceptance.
 

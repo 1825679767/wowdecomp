@@ -927,11 +927,21 @@ int __cdecl SortCompanions(const void* a, const void* b) {
         creatureB = g_creatureDBCache.GetRecord(spell.m_effectMiscValue[0], requester, nullptr, nullptr, false);
     }
 
-    if (creatureA && creatureB) {
-        return SStrSortUTF8I(creatureA->m_name[0], creatureB->m_name[0], STORM_MAX_STR);
+    // Creature-name queries can still be pending when the native list sorts.
+    // Names are independently nullable; unrelated cache pointers have no
+    // meaningful subtraction/order, especially in an x64 address space.
+    const char* nameA = creatureA ? creatureA->m_name[0] : nullptr;
+    const char* nameB = creatureB ? creatureB->m_name[0] : nullptr;
+    const bool namedA = nameA && *nameA, namedB = nameB && *nameB;
+    if (namedA && namedB) {
+        const int result = SStrSortUTF8I(nameA,nameB,STORM_MAX_STR);
+        if (result) return result;
+    } else if (namedA != namedB) {
+        return namedA ? -1 : 1;
     }
-
-    return static_cast<int>(creatureB - creatureA);
+    const auto idA = *static_cast<const uint32_t*>(a);
+    const auto idB = *static_cast<const uint32_t*>(b);
+    return idA < idB ? -1 : idA > idB ? 1 : 0;
 }
 
 // VERIFY: d0921763 manual

@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WXL/ParticleCutoff.hpp"
 #include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Model2/M2Data.h"
 #include "Engine/Source/Storm/H/stpl.h"
@@ -125,6 +126,8 @@ class CParticleEmitter2 {
         /* 0080 */ float m_simpleMidTime;
         /* 0084 */ SimpleKey* m_simpleKeys;
 
+        std::shared_ptr<const wxl::native::ParticleCutoffTrack> m_wxlCutoff;
+
         Params();
     };
 
@@ -200,6 +203,7 @@ class CParticleEmitter2 {
     /* 020C */ C3Vector m_billboardAxis;
     /* 0218 */ CAaBox m_worldBounds;
     /* 0230 */ uint32_t unused_0230;
+    std::vector<float> m_wxlRenderedCutoffs;
 
     virtual void Sync();
     virtual void CreateParticle(CParticle2& particle, float time, const C44Matrix& transform);

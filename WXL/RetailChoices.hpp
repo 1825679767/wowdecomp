@@ -8,6 +8,9 @@ class CCharacterComponent;
 namespace wxl::native {
 struct RetailChoiceState;
 struct RetailChoicePair {uint32_t option,choice;};
+uint32_t RetailRecipeRace(const CCharacterComponent&) noexcept;
+bool CaptureRetailChoicePairs(const CCharacterComponent&,std::vector<RetailChoicePair>&) noexcept;
+bool ApplyRetailChoicePair(CCharacterComponent&,const RetailChoicePair*,uint32_t,CCharacterComponent&,const RetailChoicePair*,uint32_t) noexcept;
 bool ApplyRetailChoices(CCharacterComponent&,const RetailChoicePair*,uint32_t count) noexcept;
 enum class RetailAxis : uint32_t { Skin,Face,HairStyle,HairColor,Facial };
 uint32_t RetailRaceId(uint32_t) noexcept;

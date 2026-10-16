@@ -2297,6 +2297,21 @@ void CParticleEmitter2::SyncAllocation(uint32_t count) {
 // OFFSET: 0x0097E580
 void CParticleEmitter2::BuildParticleVertices(ParticleVertex& vertex, uint32_t count, const C44Matrix& transform) {
     uint32_t i = 0;
+    this->m_wxlRenderedCutoffs.clear();
+    if(this->m_params.m_wxlCutoff){
+        try{this->m_wxlRenderedCutoffs.reserve(count);}catch(...){this->m_renderedParticles=0;return;}
+    }
+    auto buildVertex=[&](const CParticle2& particle){
+        const auto before=vertex.m_count;
+        this->BuildVertex(particle,vertex);
+        if(vertex.m_count>before && this->m_params.m_wxlCutoff){
+            // Same lifetime evaluation used by native InterpolateAllTracks and
+            // StepUpdate, including the signed life seed and variation.
+            float life=particle.m_lifeSeed.m_value*this->m_params.m_lifeVariation*0.000030518509f+this->m_params.m_life;
+            if(life<=0.001f)life=0.001f;
+            this->m_wxlRenderedCutoffs.push_back(this->m_params.m_wxlCutoff->Sample(particle.m_age/life));
+        }
+    };
 
     if (this->m_flags & 0x20) {
         for (; i < this->m_liveList.Count(); i++) {
@@ -2308,13 +2323,13 @@ void CParticleEmitter2::BuildParticleVertices(ParticleVertex& vertex, uint32_t c
 
         for (uint32_t j = count; j; j--) {
             CSortableParticleRecord record = CParticleEmitter2::s_pq.Pop();
-            this->BuildVertex(*record.m_particle, vertex);
+            buildVertex(*record.m_particle);
         }
     } else {
         for (; i < count; i++) {
             uint32_t index = this->m_liveList[i];
             CParticle2* particle = this->m_params.m_hasModel ? static_cast<CParticle2*>(&this->m_particleModels[index]) : &this->m_particles[index];
-            this->BuildVertex(*particle, vertex);
+            buildVertex(*particle);
         }
     }
 
@@ -2377,7 +2392,11 @@ void CParticleEmitter2::RenderParticles(const C44Matrix* frameOfReference, void*
         buf->m_hasData = 1;
 
         if (this->m_renderedParticles) {
-            CParticleEmitter2::RenderParticleVertices(buf, format, vertex.m_count, this->m_renderedParticles * this->m_indicesPerParticle);
+            if(this->m_params.m_wxlCutoff){
+                if(!wxl::native::DrawParticleCutoffVertices(buf,format,vertex.m_count,this->m_vertsPerParticle,this->m_indicesPerParticle,this->m_wxlRenderedCutoffs))this->m_renderedParticles=0;
+            }else{
+                CParticleEmitter2::RenderParticleVertices(buf, format, vertex.m_count, this->m_renderedParticles * this->m_indicesPerParticle);
+            }
             g_theGxDevicePtr->XformSetView(view);
         }
     }

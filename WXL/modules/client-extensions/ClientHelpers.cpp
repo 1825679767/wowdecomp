@@ -1,6 +1,7 @@
 // Native addon diagnostics, command-line arguments, mounted text and descriptions.
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "ClientExtensions.hpp"
+#include "RadialPing.hpp"
 #include "WXL/NativeFeatures.hpp"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -82,7 +83,7 @@ void InstallHelpers(){ParseArguments();
  FrameScript_RegisterFunction("WXL_GetArgument",&GetArgument);FrameScript_RegisterFunction("WXL_ReadClientFileText",&ReadFile);
  FrameScript_Execute(Bootstrap,"WXLNativeClientHelpers",nullptr);
 }
-void Install(){if(!ClientExtensionsEnabled())return;InstallHelpers();InstallPackets();InstallParagon();}
-void UiReady(){if(ClientExtensionsEnabled())StartPacketPump();}
-void Destroy()noexcept{DestroyPackets();DestroyParagon();arguments.clear();}
+void Install(){if(!ClientExtensionsEnabled())return;InstallHelpers();radial_ping::Install();InstallPackets();InstallParagon();}
+void UiReady(){if(ClientExtensionsEnabled()){StartPacketPump();radial_ping::UiReady();}}
+void Destroy()noexcept{radial_ping::Destroy();DestroyPackets();DestroyParagon();arguments.clear();}
 }

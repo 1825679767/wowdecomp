@@ -64,6 +64,9 @@ do
       self.pages:SetPoint("BOTTOM",f,"BOTTOM",0,27)
       self.prev:SetScript("OnClick",function() UI.page=math.max(1,UI.page-1);UI:Refresh(true) end)
       self.next:SetScript("OnClick",function() UI.page=math.min(math.ceil(#UI.options/6),UI.page+1);UI:Refresh(true) end)
+      self.form=button(f,"Switch appearance form",160)
+      self.form:SetPoint("TOP",f,"BOTTOM",0,-4)
+      self.form:SetScript("OnClick",function() if WXL_ShowAlternateAppearance(not WXL_IsAlternateAppearance()) then UI.key=nil;UI:Refresh(true) end end)
       self.note=f:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
       self.note:SetPoint("BOTTOM",f,"BOTTOM",0,10);self.note:SetWidth(250)
     end
@@ -72,7 +75,7 @@ do
       self.options={};self.selected={}
       for i,o in ipairs(all) do
         self.selected[o.id]=values[i]
-        if o.axis==0 and o.count>1 then self.options[#self.options+1]=o end
+        if (o.axis==0 or WXL_IsAlternateAppearance()) and o.count>1 then self.options[#self.options+1]=o end
       end
       self.key=key;self.page=math.max(1,math.min(self.page,math.ceil(#self.options/6)))
       for i,row in ipairs(self.rows) do
@@ -89,7 +92,8 @@ do
       self.pages:SetText(self.page.." / "..math.max(1,math.ceil(#self.options/6)))
     end
     self.note:SetText(WXL_RetailSelectionCanSave() and "" or "Preview only: save support unavailable")
-    if #self.options>0 then self.frame:Show() else self:Hide() end
+    if WXL_HasAlternateAppearance() then self.form:Show() else self.form:Hide() end
+    if #self.options>0 or WXL_HasAlternateAppearance() then self.frame:Show() else self:Hide() end
   end
 end
 )lua";

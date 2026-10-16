@@ -6,6 +6,7 @@ bool NativeEnabled() noexcept;
 bool Db2Enabled() noexcept;
 bool WmoEnabled() noexcept;
 bool ClientExtensionsEnabled() noexcept;
+bool RadialPingEnabled() noexcept;
 bool SplitAdtEnabled() noexcept;
 bool AppearanceSaveEnabled() noexcept;
 bool AppearancesEnabled() noexcept;
